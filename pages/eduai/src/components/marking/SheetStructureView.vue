@@ -111,7 +111,7 @@
             :data="currentQuestions"
             :columns="questionColumns"
             engine="element"
-            :layout-table="{ height: '100%' }"
+            :layout-table="{ fill: true }"
             :settings="{ border: false }"
             @row-click="(row: any) => selectRow(row)"
             :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
@@ -119,15 +119,19 @@
             <template #col-no="{ row }">
               <span :class="{ 'ss-row-active': Number(row.resultId) === selectedId }">
                 {{ row.no || '-' }}
-                <el-tag v-if="isUnrecognized(row)" size="small" type="danger" effect="dark"
-                  class="ss-unrec-tag" title="OCR 未识别出本题作答，请老师对照卷面处理">待协助</el-tag>
+                <el-tag v-if="isUnrecognized(row)" size="small" :type="unrecTagType"
+                  effect="dark" class="ss-unrec-tag" :title="unrecTagTitle">
+                  {{ unrecLabel }}
+                </el-tag>
               </span>
             </template>
             <template #col-stem="{ row }">
               <span class="ss-stem">{{ row.stem || '—' }}</span>
             </template>
             <template #col-score="{ row }">
-              <span class="ss-ai-score">{{ row.score ?? '-' }}</span>
+              <span class="ss-ai-score">
+                {{ row.score ?? '-' }}{{ row.maxScore != null && row.maxScore !== '' ? `/${row.maxScore}` : '' }}
+              </span>
             </template>
             <template #col-editScore="{ row }">
               <ReInputNumber
@@ -142,7 +146,7 @@
             </template>
             <template #col-studentAnswer="{ row }">
               <span v-if="isUnrecognized(row)" class="ss-unrec-answer" :title="row.comment">
-                待协助·请老师补录作答
+                {{ unrecLabel }}·请老师补录作答
               </span>
               <span v-else-if="isBlankAnswer(row)" class="ss-no-answer">未作答</span>
               <span v-else>{{ row.studentAnswer }}</span>
@@ -425,6 +429,23 @@ const isVirtual = (row: any) => row?.virtual === true;
 /** 识别失败占位行：OCR 有题号锚点但无作答结果，后端补行待老师协助 */
 const isUnrecognized = (row: any) => row?.unrecognized === true;
 
+/** 卷型：自有卷 SELF（有题库可核对）vs 外来卷 ANY（无题库，靠人工判分） */
+const markingMode = computed(() => String(structure.value?.mode || '').toUpperCase());
+
+/**
+ * 识别失败标记按卷型区分效果：
+ * - SELF 自有卷：橙色「待协助」——题库有题，请核对题号
+ * - ANY  外来卷：红色「人工判分」——无题库对照，请老师人工判分
+ */
+const isExternalPaper = computed(() => markingMode.value === 'ANY');
+const unrecLabel = computed(() => (isExternalPaper.value ? '人工判分' : '待协助'));
+const unrecTagType = computed(() => (isExternalPaper.value ? 'danger' : 'warning'));
+const unrecTagTitle = computed(() =>
+  isExternalPaper.value
+    ? 'OCR 未识别出本题（外来卷无题库可核对），请老师按卷面人工判分'
+    : 'OCR 未识别出本题，请对照题库核对题号后补录',
+);
+
 /** 题目/作答文本统一净化：去括号对、书名号、引号、下划线空位与全半角标点、空白，只留核心字 */
 const normalizeCore = (s: string) =>
   String(s || '')
@@ -494,7 +515,7 @@ const anchorText = (a: any) => {
   const q = a.bound;
   const answer = String(a.answer ?? '').trim().replace(/\s+/g, ' ');
   const brief = answer.length > 8 ? `${answer.slice(0, 8)}…` : answer;
-  if (isUnrecognized(q)) return `待协助${q.editScore ? '·' + q.editScore : ''}`;
+  if (isUnrecognized(q)) return `${unrecLabel.value}${q.editScore ? '·' + q.editScore : ''}`;
   return q ? `${q.editScore}·${brief || '—'}` : '?';
 };
 const isAnchorSelected = (a: any) =>
@@ -1077,7 +1098,7 @@ const save = async () => {
 .ss-standard-answer { color: var(--el-color-success); font-weight: 500; }
 .ss-unrec-tag { margin-left: 6px; vertical-align: 1px; }
 .ss-unrec-answer { color: var(--el-color-warning); font-weight: 600; }
-.ss-no-answer { color: var(--el-text-color-placeholder); font-style: italic; }
+.ss-no-answer { color: var(--el-text-color-placeholder); font-style: italic; font-size: 12px; }
 .ss-score-correct { color: var(--el-color-success); font-weight: 600; }
 .ss-score-partial { color: var(--el-color-warning); font-weight: 600; }
 .ss-score-wrong { color: var(--el-color-danger); font-weight: 600; }

@@ -225,14 +225,9 @@ function onSubmit(): void {
   const hasAccount = form.serverHostAccount.trim();
   const hasPassword = !!form.serverHostPassword;
   const hasKey = form.serverHostPrivateKey.trim();
-  if (form.authType === 'password' && hasAccount && !hasPassword) {
-    message.warning('请填写登录密码');
-    return;
-  }
-  if (form.authType === 'key' && hasAccount && !hasKey) {
-    message.warning('请填写 PEM 私钥');
-    return;
-  }
+  // 密码非必填：选「账号密码」时只填账号、不填密码也允许保存。
+  // 后端 autoCreateIdentity 仅在账号+密码齐全时自动建身份，密码缺失则回落默认凭据；
+  // 「key」方式保留私钥必填（有私钥必须能关联账号）。
   if (form.authType === 'key' && !hasAccount && hasKey) {
     message.warning('请填写登录账号');
     return;
@@ -249,9 +244,10 @@ function onSubmit(): void {
     serverHostTags: JSON.stringify(form.tags),
     serverHostDescription: form.serverHostDescription.trim(),
   } as Record<string, any>;
-  if (form.authType === 'password' && hasAccount && hasPassword) {
+  if (form.authType === 'password' && hasAccount) {
+    // 账号必带；密码可空（非必填），空则不传，后端按默认凭据处理
     submit.serverHostAccount = form.serverHostAccount.trim();
-    submit.serverHostPassword = form.serverHostPassword;
+    submit.serverHostPassword = hasPassword ? form.serverHostPassword : null;
   } else if (form.authType === 'key' && hasAccount && hasKey) {
     submit.serverHostAccount = form.serverHostAccount.trim();
     submit.serverHostPrivateKey = form.serverHostPrivateKey.trim();
@@ -362,7 +358,7 @@ function onSubmit(): void {
             </div>
             <div class="form-field">
               <label class="field-label">登录密码</label>
-              <ReInput v-model="form.serverHostPassword" type="password" show-password placeholder="密码" />
+              <ReInput v-model="form.serverHostPassword" type="password" show-password placeholder="密码（可选）" />
             </div>
           </div>
         </template>

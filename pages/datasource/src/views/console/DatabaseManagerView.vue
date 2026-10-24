@@ -126,7 +126,11 @@
       <div class="dbm-sidebar" @contextmenu.prevent="onSidebarContextMenu">
         <div class="dbm-tree" @contextmenu.prevent="onSidebarContextMenu">
           <!-- 数据源根节点 -->
-          <div class="dbm-tree-node dbm-tree-root" @click="toggleNode('root')">
+          <div
+            class="dbm-tree-node dbm-tree-root"
+            @click="toggleNode('root')"
+            @contextmenu.prevent="onRootContextMenu($event)"
+          >
             <ReIcon :name="expandedNodes.has('root') ? 'ArrowDown' : 'ArrowRight'" :size="12" class="dbm-arrow" />
             <ReIcon name="Connection" :size="15" class="dbm-tree-icon dbm-root-icon" />
             <span class="dbm-tree-label">{{ currentDatasourceName }}</span>
@@ -982,6 +986,30 @@
           </div>
         </template>
 
+        <!-- 数据源根节点：整条连接的文档 / 新建 / 刷新。文档查看复用与主页
+             （数据源中心右键「查看数据库文档」）同一管线 —— 数据源级，不带库名。 -->
+        <template v-else-if="contextMenu.root">
+          <div class="dbm-context-item" @click="openDatasourceDocument">
+            <ReIcon name="View" :size="14" />查看数据库文档
+          </div>
+          <div class="dbm-context-item" @click="openCreateDatabase">
+            <ReIcon name="FolderAdd" :size="14" />新建数据库
+          </div>
+          <div class="dbm-context-item" @click="openCreateTable()">
+            <ReIcon name="Plus" :size="14" />新建表
+          </div>
+          <div class="dbm-context-item" @click="openNewQuery">
+            <ReIcon name="EditPen" :size="14" />新建查询
+          </div>
+          <div class="dbm-context-item" @click="openImportDataFromToolbar">
+            <ReIcon name="Upload" :size="14" />导入数据
+          </div>
+          <div class="dbm-context-divider" />
+          <div class="dbm-context-item" @click="refreshTree">
+            <ReIcon name="Refresh" :size="14" />刷新
+          </div>
+        </template>
+
         <!-- 页签右键：关闭当前 / 关闭其他 / 关闭全部 -->
         <template v-else-if="contextMenu.tabId">
           <div class="dbm-context-item" @click="closeTab(contextMenu.tabId)">
@@ -1386,10 +1414,10 @@
       </template>
     </ReDialog>
 
-    <!-- 在线查看数据库文档（右键「查看文档」：markdown → HTML 弹窗预览） -->
+    <!-- 在线查看数据库文档（右键「查看文档」/ 根节点「查看数据库文档」：markdown → HTML 弹窗预览） -->
     <ReDialog
       v-model="docPreviewVisible"
-      :title="docPreviewDatabase ? `${docPreviewDatabase} · 数据库文档` : '数据库文档'"
+      :title="docPreviewDatabase ? `${docPreviewDatabase} · 数据库文档` : `${currentDatasourceName || '数据源'} · 数据库文档`"
       width="85%"
       top="6vh"
       class="dbm-doc-preview-dialog"
@@ -6024,8 +6052,8 @@ async function runWithParams(): Promise<void> {
   await executeScriptWithParams();
 }
 
-// 右键菜单（tableName=表节点 / database=库节点 / tabId=页签 / 全空=侧栏空白）
-const contextMenu = reactive({ visible: false, x: 0, y: 0, tableName: "", database: "", tabId: "", isView: false });
+// 右键菜单（tableName=表节点 / database=库节点 / tabId=页签 / root=数据源根节点 / 全空=侧栏空白）
+const contextMenu = reactive({ visible: false, x: 0, y: 0, tableName: "", database: "", tabId: "", isView: false, root: false });
 
 // 新建表：表单与 SQL 拼装都在共享组件里，这里只保留「弹窗开关 + 目标库」
 const createTableVisible = ref(false);
@@ -7248,6 +7276,36 @@ async function doDocumentExport() {
 }
 
 /**
+ * 数据源根节点右键「查看数据库文档」：数据源级（不带库名），复用与
+ * 数据中心主页同一条 {@code previewDbDocument} 管线。
+ *
+ * <p>与库级 {@link openDocumentPreview} 的区别只在粒度：库级带 {@code database}
+ * 参数采集单个库，这里是整条连接（DocumentParser("database") 会遍历其全部库）。
+ * 展示走同一个 doc 预览弹窗（markdown → HTML iframe），状态与文案复用。</p>
+ */
+async function openDatasourceDocument() {
+  if (currentDatasourceId.value <= 0) {
+    message.warning("请先连接一个数据源");
+    return;
+  }
+  docPreviewDatabase.value = "";
+  docPreviewLoading.value = true;
+  docPreviewError.value = "";
+  docPreviewContent.value = "";
+  docPreviewVisible.value = true;
+  try {
+    docPreviewContent.value = await previewDbDocument({
+      datasourceId: currentDatasourceId.value,
+      template: docExportTemplate.value,
+    });
+  } catch (e) {
+    docPreviewError.value = String((e as Error)?.message ?? e);
+  } finally {
+    docPreviewLoading.value = false;
+  }
+}
+
+/**
  * 库右键「查看文档」：把数据库设计文档（markdown → HTML）在弹窗里在线预览。
  *
  * <p>与导出同一份采集/渲染链路，只是不落盘；word / pdf 是二进制，
@@ -8102,6 +8160,7 @@ function onTableContextMenu(e: MouseEvent, tableName: string, database: string, 
   contextMenu.database = database;
   contextMenu.tabId = "";
   contextMenu.isView = isView;
+  contextMenu.root = false;
   activeDatabase.value = database;
   void clampContextMenuPosition();
 }
@@ -8120,7 +8179,26 @@ function onDatabaseContextMenu(e: MouseEvent, database: string) {
   contextMenu.database = database;
   contextMenu.tabId = "";
   contextMenu.isView = false;
+  contextMenu.root = false;
   activeDatabase.value = database;
+  void clampContextMenuPosition();
+}
+
+/**
+ * 数据源根节点右键：整条连接的动作（查看数据库文档 / 刷新 / 新建库表等），
+ * 不走「侧栏空白」分支 —— 空白分支是新库/新表/新查询这类零上下文动作，
+ * 而根节点右键天然带着「当前数据源」这个上下文。
+ */
+function onRootContextMenu(e: MouseEvent) {
+  e.stopPropagation();
+  contextMenu.visible = true;
+  contextMenu.x = e.clientX;
+  contextMenu.y = e.clientY;
+  contextMenu.tableName = "";
+  contextMenu.database = "";
+  contextMenu.tabId = "";
+  contextMenu.isView = false;
+  contextMenu.root = true;
   void clampContextMenuPosition();
 }
 
@@ -8132,6 +8210,7 @@ function onSidebarContextMenu(e: MouseEvent) {
   contextMenu.database = "";
   contextMenu.tabId = "";
   contextMenu.isView = false;
+  contextMenu.root = false;
   void clampContextMenuPosition();
 }
 
@@ -8149,6 +8228,7 @@ function onTabContextMenu(e: MouseEvent, tabId: string) {
   contextMenu.database = "";
   contextMenu.tabId = tabId;
   contextMenu.isView = false;
+  contextMenu.root = false;
   void clampContextMenuPosition();
 }
 
@@ -8179,12 +8259,12 @@ function closeContextMenu() {
 /** 右键菜单估算高度（项高 32 + 上下内边距 + 按节点类型的分割线） */
 function menuEstimatedHeight(): number {
   // 项数必须与模板四套菜单实际条目同步：表 12 项/3 分割线、**视图 10 项/3 分割线**、
-  // 库 8 项/2 分割线、页签 3 项/1 分割线、空白 5 项/1 分割线。
+  // 库 8 项/2 分割线、**根节点 6 项/1 分割线**、页签 3 项/1 分割线、空白 5 项/1 分割线。
   // 曾硬编码库 5 项（实际 8 项）→ 低估 96px → 靠近窗口底部时菜单溢出视口，
   // 末项「删除数据库」落在屏幕外永远点不到（普通点击超时、force 点到屏外无响应）
   // 视图菜单比表少 2 项（复制表 / 清空表 对视图必败），沿用 12 会高估 64px。
-  const count = contextMenu.tableName ? (contextMenu.isView ? 10 : 12) : contextMenu.database ? 8 : contextMenu.tabId ? 3 : 5;
-  const dividers = contextMenu.tableName ? 3 : contextMenu.database ? 2 : 1;
+  const count = contextMenu.tableName ? (contextMenu.isView ? 10 : 12) : contextMenu.database ? 8 : contextMenu.root ? 6 : contextMenu.tabId ? 3 : 5;
+  const dividers = contextMenu.tableName ? 3 : contextMenu.database ? 2 : contextMenu.root ? 1 : 1;
   return count * 32 + dividers * 11 + 10;
 }
 

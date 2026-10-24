@@ -34,8 +34,24 @@ import HostNetworkAdapters from "../components/HostNetworkAdapters.vue";
 const route = useRoute();
 const router = useRouter();
 
+/**
+ * 嵌入模式：作为主机工作区的一个页签渲染。
+ *
+ * <p>嵌入时主机由页签绑定（{@link props.hostId}），不读路由参数；
+ * 页头（返回资产 / 连接远控）也由外壳承担，这里只留指标本体。</p>
+ */
+const props = withDefaults(
+  defineProps<{
+    /** 嵌入模式 */
+    embedded?: boolean;
+    /** 嵌入模式下锁定查看的主机 id */
+    hostId?: number | null;
+  }>(),
+  { embedded: false, hostId: null },
+);
+
 /** 路由参数是主机台账标识（AssetsView 用 /host/${h.id} 跳转），不是监控项标识 */
-const hostId = ref<number>(Number(route.params.id) || 0);
+const hostId = ref<number>(props.embedded ? (props.hostId ?? 0) : (Number(route.params.id) || 0));
 /** 指标查询用监控项标识，由资产详情解析得到 */
 const monitorId = ref<number>(0);
 const hostName = ref("");
@@ -563,6 +579,7 @@ async function requestAnalysis(): Promise<void> {
 
 // ---------------- 生命周期 ----------------
 watch(() => route.params.id, id => {
+  if (props.embedded) return;
   const n = Number(id);
   if (!n || n === hostId.value) return;
   hostId.value = n;
@@ -578,6 +595,26 @@ watch(() => route.params.id, id => {
     await resolveAsset();       // 解析监控项（监控项24h覆盖）
     await refreshNow(true);     // 强制新鲜采集（含网络）
     void loadProfileSection();  // 画像分区随主机切换重拉
+  })();
+});
+/** 嵌入模式：父级切换锁定主机时重新加载全套指标 */
+watch(() => props.hostId, id => {
+  if (!props.embedded) return;
+  const n = Number(id);
+  if (!n || n === hostId.value) return;
+  hostId.value = n;
+  monitorId.value = 0;
+  hostRecord.value = null;
+  if (histChart) { histChart.dispose(); histChart = null; }
+  resetMetrics();
+  resetProfilePager();
+  profileRows.value = [];
+  void (async () => {
+    await loadHostRecord();
+    await loadHostBaseHistory();
+    await resolveAsset();
+    await refreshNow(true);
+    void loadProfileSection();
   })();
 });
 onMounted(() => {
@@ -1214,9 +1251,9 @@ async function submitProfileEnv(): Promise<void> {
 </script>
 
 <template>
-  <div class="hd tel-page">
-    <!-- 页头（外壳浅色区域，保持与整体一致） -->
-    <ReSectionHead :description="`主机 #${hostId} · 实时遥测与趋势`">
+  <div class="hd tel-page" :class="{ 'is-embedded': embedded }">
+    <!-- 页头（外壳浅色区域，保持与整体一致）；嵌入到工作区时由外壳提供 -->
+    <ReSectionHead v-if="!embedded" :description="`主机 #${hostId} · 实时遥测与趋势`">
       <template #title>{{ hostName || `主机 #${hostId}` }}</template>
       <template #actions>
         <ReButton icon="Back" :show-text="true" @click="router.push('/assets')">资产</ReButton>
@@ -1786,6 +1823,12 @@ async function submitProfileEnv(): Promise<void> {
   height: auto;
   min-height: 100%;
   overflow: visible;
+}
+/* 嵌入到工作区页签：由页签面板自己滚，内部不再撑出第二层滚动条 */
+.hd.tel-page.is-embedded {
+  min-height: 0;
+  padding: 12px 14px;
+  overflow-y: auto;
 }
 .hd-error {
   display: flex; align-items: center; gap: 12px;

@@ -922,17 +922,23 @@ const handleClick = (event: MouseEvent) => {
   align-items: flex-start;
 }
 
-/* 助手消息卡片：用户反馈原「整宽正文区、与背景同色」很难看，故改为有承载面的卡片。
-   仍遵守 koi 规约：不加投影，层次靠底色 + 圆角 + 内边距 + 细边框表达。 */
+/* 助手消息：**去掉承载面与边框，直接融入会话背景**（用户要求 2026-10-24，与参考图一致）。
+   原实现是「整宽卡片 + 底色 + 细边框 + 内边距」，视觉上把 AI 回复框成一个盒子；
+   参考图里助手正文就是一整块背景，外面不再套一层容器。
+   层次改由字号 / 行高 / 过程行的弱化色表达，不再靠底板与描边。
+   注：只改助手侧，用户气泡（.user-section）保持原卡片形态不动。 */
 .assistant-section .message-item__card {
-  background: var(--color-bubble-assitant-bg);
+  background: transparent;
   color: var(--color-bubble-assitant-text);
   margin-right: auto;
   width: 100%;
-  padding: 12px 16px;
-  border-radius: var(--el-radius-xl, 16px);
-  border: 1px solid var(--color-bubble-assitant-border);
+  padding: 0;
+  border-radius: 0;
+  border: none;
   box-shadow: none;
+  /* 字号 15px → 14px：与参考图一致（不要太大），也与 FloatingChatPanel 里
+     同一份正文的 14px 覆盖同档，避免同一内容两处大小不一。 */
+  font-size: 14px;
 }
 
 .assistant-section .message-item__card strong {
@@ -997,6 +1003,9 @@ const handleClick = (event: MouseEvent) => {
 
 .assistant-section .message-item__text {
   margin-bottom: 8px;
+  /* 与上面卡片同口径：14px + 稍松行高，替代原先按 15px 令牌算出的 24px 行高 */
+  font-size: 14px;
+  line-height: 1.65;
 }
 
 .message-item__wrapper {

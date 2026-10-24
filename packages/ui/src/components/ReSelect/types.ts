@@ -25,6 +25,8 @@ export interface ReOption {
   consumption?: string;
   /** 卡片模式：分组标题 */
   group?: string;
+  /** 卡片 / square 布局：内置图标集名（sunmoon / check / star / bell / arrow / anim） */
+  preset?: string;
   /** 表格模式：额外字段（key: value） */
   [key: string]: unknown;
 }

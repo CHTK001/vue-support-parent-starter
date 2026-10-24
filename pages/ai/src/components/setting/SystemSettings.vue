@@ -80,6 +80,12 @@
                         <template v-else-if="currentTabValue === 'face-config'">
                             <DefaultModelSettings :groups="['face']" />
                         </template>
+                        <template v-else-if="currentTabValue === 'reid-config'">
+                            <!-- 人脸重识别：检测/特征模型 + 轨迹归并参数（阈值/时间窗/容量/保留时长）。
+                                 reid 分组由后端 ReidGlobalSettingProvider 声明，保存后
+                                 ReidClientManager 热重建，模型与归并参数即时生效。 -->
+                            <DefaultModelSettings :groups="['reid']" />
+                        </template>
                         <template v-else-if="currentTabValue === 'image-search-config'">
                             <DefaultModelSettings :groups="['image_search']" />
                         </template>
@@ -200,6 +206,13 @@
                         <template v-else-if="currentTabValue === 'face-library'">
                             <FaceLibraryPanel />
                         </template>
+                        <!--
+                          重识别库：只做**管理**（查看/删除观测），观测与轨迹在外侧「人脸重识别」页。
+                          与「人脸识别（外侧） + 人脸底库（设置内）」同一分工。
+                        -->
+                        <template v-else-if="currentTabValue === 'reid-library'">
+                            <ReidLibraryPanel />
+                        </template>
                         </template>
                     </ScrollContainer>
                 </div>
@@ -236,6 +249,7 @@ import MenuDisplaySettings from './MenuDisplaySettings.vue'
 import ImageLibraryPanel from './ImageLibraryPanel.vue'
 // 人脸底库**管理**面板（识别仍在外侧「人脸识别」页，这里只管底库）
 import FaceLibraryPanel from './FaceLibraryPanel.vue'
+import ReidLibraryPanel from './ReidLibraryPanel.vue'
 
 import {
     Grid16Regular,
@@ -258,6 +272,7 @@ import {
     DesktopSpeaker24Regular,
     DocumentText24Regular,
     AppsListDetail20Regular,
+    Fingerprint24Regular,
 } from '@vicons/fluent'
 
 import { ArrowBackIosNewTwotone, VerifiedUserOutlined } from '@vicons/material'
@@ -285,6 +300,7 @@ const groupMap = computed<Record<string, string>>(() => ({
     // 原先它们全挤在「常规」里，与通用/浏览器/外观混在一起，找模型要翻很久。
     'default-models': t('settings.system.groups.modelConfig'),
     'face-config': t('settings.system.groups.modelConfig'),
+    'reid-config': t('settings.system.groups.modelConfig'),
     'image-search-config': t('settings.system.groups.modelConfig'),
     'layout-config': t('settings.system.groups.modelConfig'),
     'rag-config': t('settings.system.groups.modelConfig'),
@@ -318,6 +334,7 @@ const groupMap = computed<Record<string, string>>(() => ({
     // 收进同一个「底库」分组后，入口位置与语义一致。
     'image-library': t('settings.system.groups.library'),
     'face-library': t('settings.system.groups.library'),
+    'reid-library': t('settings.system.groups.library'),
     // 渠道管理：账号类渠道（Cline / Qoder / Trae / Gemini）的账号绑定。
     // 账号连接按 userId 隔离（每个用户管理自己的绑定），与其它菜单口径一致；
     // 免费渠道的路由/全局 Key 另走管理员渠道管理配置。
@@ -361,6 +378,17 @@ const sidebarItems = computed(() => [
         label: '人脸识别配置',
         path: 'face-config',
         icon: Person20Regular,
+        roles: ['primary'],
+    },
+    {
+        // 人脸重识别（跨摄像头/跨帧追踪）的独立配置。
+        //
+        // 与「人脸识别配置」同口径：不设 adminOnly。
+        // 重识别的模型与归并参数按账号生效（后端 ReidStores 按账号构建实例），
+        // 普通用户可以调自己的阈值/时间窗，管理员改的则作为全局默认。
+        label: '人脸重识别配置',
+        path: 'reid-config',
+        icon: Fingerprint24Regular,
         roles: ['primary'],
     },
     {
@@ -545,6 +573,17 @@ const sidebarItems = computed(() => [
         label: t('settings.system.tabs.faceLibrary'),
         path: 'face-library',
         icon: Person20Regular,
+        roles: ['primary'],
+    },
+    {
+        // 重识别库：与人脸底库同组、同口径（按账号隔离，不设 adminOnly）。
+        //
+        // 它存的不是「已登记的人」，而是「观测过的人」——每次观测一行，
+        // 跨帧轨迹由这些行按 trackId 汇聚而来。所以这里的列表就是轨迹的原始数据：
+        // 删掉一行，等于把那次观测从轨迹里移除。
+        label: '重识别库',
+        path: 'reid-library',
+        icon: Fingerprint24Regular,
         roles: ['primary'],
     },
     {

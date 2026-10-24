@@ -5,6 +5,20 @@
  * 实际业务可参考示例数据格式（JsonNode / JsonLine / Graph3DData）。
  */
 import type { TemplateMeta } from "./types";
+// 三国数据：ReRelationGraphV2 集成示例（44 节点按势力分组）
+import { sanguoNodes, sanguoEdges } from "../data/sanguo";
+
+/** ReRelationGraphV2 默认数据：三国势力分组（nodes: id/label/group/type/size，edges: source/target） */
+export const relationGraphV2Data = () => ({
+  nodes: sanguoNodes.map((n) => ({
+    id: n.id,
+    label: n.id,
+    group: n.data.cluster,
+    type: n.data.type === "person" ? "circle" : n.data.type,
+    size: n.style.size ?? 40,
+  })),
+  edges: sanguoEdges.map((e) => ({ source: e.source, target: e.target })),
+});
 
 // ============================================================
 // 示例数据 —— 各布局演示用
@@ -256,10 +270,24 @@ export const reGraph3DMeta: TemplateMeta = {
   ],
 };
 
+export const reRelationGraphV2Meta: TemplateMeta = {
+  name: "ReRelationGraphV2",
+  component: () => import("@repo/ui/re-relation-graph-v2").then((m) => ({ default: m.default })),
+  title: "关系图谱V2",
+  description: "G6 5.1.1 原生：bubble-sets 气泡集分组 / 势力聚类 / 缩放拖拽 / 节点边 hover 事件",
+  modelable: false,
+  props: [
+    { key: "nodes", label: "节点（V2Node[]）", type: "json", default: relationGraphV2Data().nodes },
+    { key: "edges", label: "边（V2Edge[]）", type: "json", default: relationGraphV2Data().edges },
+    { key: "height", label: "高度", type: "string", default: "100%" },
+  ],
+};
+
 export const graphTemplates: TemplateMeta[] = [
   reGraphMeta,
   reGraphForceMeta,
   reGraphTreeMeta,
   reGraphCenterMeta,
   reGraph3DMeta,
+  reRelationGraphV2Meta,
 ];

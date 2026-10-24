@@ -25,7 +25,7 @@ import ReSelect from "@repo/ui/re-select";
 import ReTable from "@repo/ui/re-table";
 import BooleanSegmented from "./BooleanSegmented.vue";
 import type { ReTableColumn } from "@repo/ui/re-table";
-import { columnTypeSelectOptions, ENUM_LIKE_TYPES, typeAllowsScale, typeNeedsSize } from "../../utils/columnTypes";
+import { columnDefaultOptions, columnTypeSelectOptions, ENUM_LIKE_TYPES, typeAllowsScale, typeNeedsSize } from "../../utils/columnTypes";
 import type { DesignColumnRow } from "./designColumnModel";
 
 defineOptions({ name: "DesignColumnGrid" });
@@ -321,11 +321,29 @@ function rowClassName(arg: { row: Record<string, unknown> }): string {
       </template>
 
       <template #col-defaultValue="{ row }">
-        <ReInput v-model="asRow(row).defaultValue" class="dcg-mono" placeholder="默认值" />
+        <!-- 默认值自动补全：按列类型给建议（日期类型给 CURRENT_TIMESTAMP 全家），
+             filterable 可搜索、allow-create 可输入下拉里没有的自定义 SQL 表达式。 -->
+        <ReSelect
+          v-model="asRow(row).defaultValue as never"
+          :options="columnDefaultOptions(asRow(row).type ?? '')"
+          filterable
+          allow-create
+          clearable
+          placeholder="默认值 / 自动补全"
+          class="dcg-mono dcg-default"
+        />
       </template>
 
       <template #col-comment="{ row }">
-        <ReInput v-model="asRow(row).comment" placeholder="列注释" />
+        <!-- 注释列：modern 布局 + 右侧专注模式 —— 列窄（120px），聚焦时输入框向右
+             展开成浮层，编辑长注释不再被单元格宽度逼成横向滚动。 -->
+        <ReInput
+          v-model="asRow(row).comment"
+          layout="modern"
+          focus-right
+          placeholder="列注释"
+          class="dcg-comment"
+        />
       </template>
 
       <template #col-actions="{ row }">

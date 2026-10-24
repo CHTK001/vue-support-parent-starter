@@ -47,6 +47,26 @@ interface Props {
   initialTab?: string | null;
   /** 父组件每打开一次画像自增，保证重复打开同一台主机也会重新定位刷新 */
   openSeq?: number;
+  /**
+   * 嵌入模式：作为多标签工作区的一个页签内容渲染。
+   *
+   * <p>嵌入时左侧主机列表由工作区外壳统一提供，这里只渲染右侧详情区，
+   * 并隐藏「刷新主机 / 连接 / 监控 / 编辑」等跨页动作（它们已在主机右键菜单里）。
+   * 非嵌入时保持原有 master-detail 完整布局，宿主老入口不受影响。</p>
+   */
+  embedded?: boolean;
+  /**
+   * 嵌入模式下锁定查看的主机。
+   *
+   * <p>工作区里每个页签都绑定一台主机，主机由页签自身持有；此时组件内的
+   * 选中逻辑退化为只读，避免同一个页签里再切出第二台主机造成语义混乱。</p>
+   */
+  hostId?: number | null;
+  /**
+   * 嵌入模式下只渲染指定分区（画像被拆成「端口 / 进程 / 服务 / 磁盘 / 网络 /
+   * 环境变量 / 防火墙」各自独立的页签，一个页签只负责一个分区）。
+   */
+  section?: string | null;
 }
 const props = withDefaults(defineProps<Props>(), {
   liveDelay: () => ({}),
@@ -54,6 +74,9 @@ const props = withDefaults(defineProps<Props>(), {
   initialHostId: null,
   initialTab: null,
   openSeq: 0,
+  embedded: false,
+  hostId: null,
+  section: null,
 });
 
 const emit = defineEmits<{
@@ -140,16 +163,16 @@ const COLUMNS: Record<SectionKey, Array<{ key: string; label: string; width?: st
 const AUTO_REFRESH_MILLIS = 10000;
 
 /** 左侧选中的主机 id */
-const selectedId = ref<number | null>(null);
-/** 左侧视图：主机列表 / 选中主机的概要 */
-const railView = ref<"list" | "summary">("list");
+const selectedId = ref<number | null>(props.embedded ? (props.hostId ?? null) : null);
+/** 左侧视图：主机列表 / 选中主机的概要（嵌入模式下不渲染左侧，始终视为概要视图） */
+const railView = ref<"list" | "summary">(props.embedded ? "summary" : "list");
 function backToList(): void {
   railView.value = "list";
 }
 /** 左侧搜索关键词 */
 const search = ref("");
-/** 当前分区 */
-const active = ref<SectionKey>("disks");
+/** 当前分区（嵌入模式下由页签固定，一个页签只承载一个分区） */
+const active = ref<SectionKey>(props.embedded ? (mapTab(props.section) ?? "disks") : "disks");
 /** 分页（仅进程/服务生效） */
 const page = ref(1);
 const pageSize = ref(10);
@@ -311,6 +334,18 @@ function pickSection(name: SectionKey): void {
 
 watch(visibleHosts, (list) => {
   if (!list.length) return;
+  // 嵌入模式：主机由所属页签固定，列表变化不得改写选中项（否则一台主机开多个页签会互相抢选中）
+  if (props.embedded) {
+    if (props.hostId != null && selectedId.value !== props.hostId) {
+      selectedId.value = props.hostId;
+      rows.value = [];
+      sectionError.value = "";
+      resetPager();
+      loadProfile();
+      loadSection();
+    }
+    return;
+  }
   // 抽屉懒挂载时 openSeq/initialHostId 的初值不会触发下方非即时 watcher，这里优先定位父组件指定主机
   const requested = props.initialHostId;
   if (requested != null && list.some(h => h.id === requested)) {
@@ -322,7 +357,28 @@ watch(visibleHosts, (list) => {
   }
 }, { immediate: true });
 
-watch([() => props.openSeq, () => props.initialHostId], () => focusRequested());
+watch([() => props.openSeq, () => props.initialHostId], () => {
+  if (!props.embedded) focusRequested();
+});
+
+/** 嵌入模式：父级切换锁定主机 / 分区时重新加载 */
+watch([() => props.hostId, () => props.section], ([hid, sec]) => {
+  if (!props.embedded) return;
+  if (hid == null) return;
+  const next = mapTab(sec) ?? active.value;
+  const hostChanged = selectedId.value !== hid;
+  const sectionChanged = active.value !== next;
+  if (!hostChanged && !sectionChanged) return;
+  selectedId.value = hid;
+  active.value = next;
+  if (hostChanged) {
+    rows.value = [];
+    sectionError.value = "";
+  }
+  resetPager();
+  loadProfile();
+  loadSection();
+});
 
 /** 父组件请求定位到某台主机（重复打开同一台也要重新拉数据） */
 function focusRequested(): void {
@@ -920,9 +976,9 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
 </script>
 
 <template>
-  <div class="profile">
-    <!-- 左侧：主机列表 -->
-    <aside class="profile-rail">
+  <div class="profile" :class="{ 'is-embedded': embedded }">
+    <!-- 左侧：主机列表（嵌入到工作区页签时由外壳统一提供，这里不再渲染） -->
+    <aside v-if="!embedded" class="profile-rail">
       <!-- 列表视图 -->
       <template v-if="railView === 'list'">
         <div class="rail-head">
@@ -985,7 +1041,8 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
         <ReEmpty description="从左侧选择一台主机查看画像" />
       </div>
       <template v-else>
-        <div class="profile-head">
+        <!-- 主机头：嵌入模式由工作区页签与底部状态条承担，这里不再重复一遍主机名 -->
+        <div v-if="!embedded" class="profile-head">
           <span class="ph-os"><span v-html="osIconSvg(selectedHost.serverHostOsType)"></span></span>
           <div class="ph-name-wrap">
             <b class="ph-name">{{ selectedHost.serverHostName }}</b>
@@ -1021,6 +1078,32 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
           </div>
         </div>
 
+        <!-- 嵌入模式：页签内的紧凑工具条（只留刷新与自动刷新，主机级动作在左侧右键菜单） -->
+        <div v-else class="profile-head profile-head--embedded">
+          <div class="ph-pills">
+            <span :class="['pill', onlineState(selectedHost) === 1 ? 'pill-ok' : 'pill-bad']">
+              {{ onlineState(selectedHost) === 1 ? '在线' : '离线' }}
+            </span>
+            <span :class="['pill', delayBad(delayOf(selectedHost)) ? 'pill-warn' : 'pill-mute']">
+              {{ delayText(delayOf(selectedHost)) }}
+            </span>
+            <template v-if="isAgentMode">
+              <span v-if="agentReady" class="pill pill-agent">Agent v{{ agentVersion || '?' }}</span>
+              <span v-else class="pill pill-bad">Agent 未就绪</span>
+            </template>
+          </div>
+          <div class="ph-actions">
+            <ReButton icon="Refresh" layout="square" type="primary" :loading="loadingProfile"
+              @click="loadProfile(true)">刷新</ReButton>
+            <ReButton v-if="isAgentMode && !agentReady" icon="Download" layout="square" type="success"
+              @click="emit('deploy-agent', selectedHost)">安装 Agent</ReButton>
+            <label class="auto-switch">
+              <ReSwitch v-model="autoRefresh" />
+              <span>10s 自动刷新</span>
+            </label>
+          </div>
+        </div>
+
         <div v-if="profileError" class="alert alert-error">
           <b>通道读取失败：</b>{{ profileError }}
           <div class="dim">
@@ -1030,8 +1113,8 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
         </div>
         <div v-else-if="osMismatch" class="alert alert-warn">{{ osMismatch }}</div>
 
-        <!-- 资源仪表 -->
-        <div class="gauges">
+        <!-- 资源仪表：嵌入模式已移到工作区底部常驻状态条，这里不再重复 -->
+        <div v-if="!embedded" class="gauges">
           <div v-for="g in gauges" :key="g.label" class="gauge">
             <div class="gauge-top">
               <span class="gauge-label">{{ g.label }}</span>
@@ -1043,8 +1126,8 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
 
         </div>
 
-        <!-- 分段切换 -->
-        <div class="seg">
+        <!-- 分段切换：嵌入模式下每个分区已是独立页签，不再需要二级切换 -->
+        <div v-if="!embedded" class="seg">
           <button
             v-for="s in sections"
             :key="s.name"
@@ -1386,8 +1469,14 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
 
 /* 右侧 */
 .profile-detail { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-y: auto; padding: 16px 20px; }
+/* 嵌入到工作区页签：整页只有一个滚动条 —— 由内层表格自己滚，
+   外层只负责纵向 flex 分配高度，避免内外双滚动条抢滚轮 */
+.profile.is-embedded .profile-detail { overflow: hidden; min-height: 0; padding: 12px 14px; }
 .detail-empty { height: 100%; display: flex; align-items: center; justify-content: center; }
 .profile-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-bottom: 14px; border-bottom: 1px solid var(--border-subtle); }
+/* 嵌入模式的紧凑工具条：只有状态胶囊与刷新，压缩高度把空间让给数据表 */
+.profile-head--embedded { padding-bottom: 10px; }
+.profile-head--embedded .ph-actions { margin-left: auto; }
 .ph-os {
   display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 12px;
   font-size: 24px; color: var(--brand-500); background: var(--bg-fill, #f5f6fa); flex-shrink: 0;
@@ -1468,6 +1557,9 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
 .page-no { font-size: 12px; color: var(--text-tertiary); min-width: 22px; text-align: center; }
 .sec-loading { padding: 24px; text-align: center; font-size: 13px; }
 .tbl-wrap { display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border-subtle); border-radius: 10px; max-height: calc(100vh - 420px); }
+/* 嵌入模式：页签内容区自己撑满可用高度，表格内部滚动，不再按视口硬算高度 */
+.profile.is-embedded .tbl-wrap { flex: 1 1 auto; max-height: none; min-height: 0; }
+.profile.is-embedded .seg-body { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; padding-bottom: 0; }
 .tbl-scroll { flex: 1; min-height: 0; overflow: auto; }
 /* 进程分析：左右分栏，左侧表格、右侧矩形树图 */
 .tbl-wrap.analyze-split { flex-direction: row; }

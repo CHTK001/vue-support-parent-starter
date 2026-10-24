@@ -10,6 +10,7 @@
  */
 import "../../shared/modern-vars.css";
 import ReIcon from "../../ReIcon/theme/default/ReIcon.vue";
+import StateIcon from "../../ReStateIcon/StateIcon.vue";
 import { ElIcon } from "element-plus";
 import { computed, type Component } from "vue";
 
@@ -45,6 +46,14 @@ const props = withDefaults(
      * 不再可点、也不再吃悬停/按压反馈 —— 该图标本来就只是视觉装饰。
      */
     decorative?: boolean;
+    /** 两态图标：激活态图标名 */
+    activeIcon?: string;
+    /** 两态图标：非激活态图标名 */
+    inactiveIcon?: string;
+    /** 内置图标集名（sunmoon / check / star / bell / arrow / anim）；"none" 关闭内置回落 */
+    preset?: string;
+    /** 当前是否激活（配合两态图标使用） */
+    active?: boolean;
   }>(),
   {
     type: "",
@@ -56,6 +65,10 @@ const props = withDefaults(
     animIconSize: undefined,
     nativeType: "button",
     decorative: false,
+    activeIcon: "",
+    inactiveIcon: "",
+    preset: undefined,
+    active: false,
   },
 );
 
@@ -73,6 +86,17 @@ const iconName = computed<string>(() => (typeof props.icon === "string" ? props.
 
 /** 图标是不是动画图标（`anim:<lib>:<icon>`） */
 const isAnimIcon = computed<boolean>(() => iconName.value.startsWith("anim:"));
+
+/**
+ * 是否启用两态图标动画。
+ *
+ * 需要「至少一个能区分两态的来源」：activeIcon / inactiveIcon / preset 任一非空即启用，
+ * 通用 `icon` 作为两态的最终兜底；只传 `icon` 时两态相同，交给 ReIcon 即可（不动画）。
+ * 组件对象形态的图标（{@code iconIsComponent}）不参与两态解析。
+ */
+const useStateIcon = computed<boolean>(
+  () => !iconIsComponent.value && Boolean(props.activeIcon || props.inactiveIcon || props.preset),
+);
 </script>
 
 <template>
@@ -100,12 +124,22 @@ const isAnimIcon = computed<boolean>(() => iconName.value.startsWith("anim:"));
   >
     <!-- loading 态：
          · 普通图标 → 换成 spinner（图标让位，两者是互斥的 v-if/v-else）
-         · 动画图标 → **保留图标并让它转起来**：上游动画图标自带 hover 动效，
+         · 两态/动画图标 → **保留图标并让它转起来**：上游动画图标自带 hover 动效，
            加载中再叠一个持续旋转，比「图标消失、换成另一个圈」更连贯，
            也让用户一眼看出「还是这个按钮，正在转」。
          两者都保留 spinner 的语义（旋转 = 进行中），只是形态不同。 -->
-    <span v-if="loading && isAnimIcon" class="rs-btn__spinner rs-btn__spinner--icon">
-      <ReIcon :name="iconName" :size="animIconSize" class="rs-btn__icon" />
+    <span v-if="loading && (useStateIcon || isAnimIcon)" class="rs-btn__spinner rs-btn__spinner--icon">
+      <StateIcon
+        v-if="useStateIcon"
+        :active="active"
+        :icon="iconName"
+        :active-icon="activeIcon"
+        :inactive-icon="inactiveIcon"
+        :preset="preset"
+        :size="animIconSize"
+        class="rs-btn__icon"
+      />
+      <ReIcon v-else :name="iconName" :size="animIconSize" class="rs-btn__icon" />
     </span>
     <span v-else-if="loading" class="rs-btn__spinner">
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -113,7 +147,17 @@ const isAnimIcon = computed<boolean>(() => iconName.value.startsWith("anim:"));
       </svg>
     </span>
     <template v-else>
-      <ReIcon v-if="icon && !iconIsComponent" :name="iconName" :size="animIconSize" class="rs-btn__icon" />
+      <StateIcon
+        v-if="useStateIcon"
+        :active="active"
+        :icon="iconName"
+        :active-icon="activeIcon"
+        :inactive-icon="inactiveIcon"
+        :preset="preset"
+        :size="animIconSize"
+        class="rs-btn__icon"
+      />
+      <ReIcon v-else-if="icon && !iconIsComponent" :name="iconName" :size="animIconSize" class="rs-btn__icon" />
       <ElIcon v-else-if="iconIsComponent" class="rs-btn__icon">
         <component :is="icon" />
       </ElIcon>

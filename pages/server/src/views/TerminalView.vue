@@ -40,6 +40,26 @@ interface Host {
   /** 远控通道：GUACD 中转 / DIRECT 直连 */
   serverHostRemoteMode?: string | null;
 }
+/**
+ * 嵌入模式：作为主机工作区的「远控」页签渲染。
+ *
+ * <p>嵌入时主机由页签绑定（{@link props.hostId}），左侧主机资源条由工作区外壳提供，
+ * 这里只渲染右侧远控台与工具条。非嵌入时保持原有独立页面行为。</p>
+ */
+const props = withDefaults(
+  defineProps<{
+    /** 嵌入模式 */
+    embedded?: boolean;
+    /** 嵌入模式下锁定连接的主机 id */
+    hostId?: number | null;
+    /** 嵌入模式下显式协议（缺省按主机配置/平台推断） */
+    protocol?: string | null;
+    /** 嵌入模式下显式登录身份 */
+    identityId?: number | null;
+  }>(),
+  { embedded: false, hostId: null, protocol: null, identityId: null },
+);
+
 /** 复杂/新信息类型尽量少展开，读取必需字段用 any 规约 */
 const layout = { railWidth: 288, railCollapsed: 48 };
 
@@ -61,7 +81,7 @@ const sftpVisible = ref(false);
  * @returns 规范化协议名或空串
  */
 function protocolQuery(): string {
-  const raw = route.query.protocol;
+  const raw = props.embedded ? props.protocol : route.query.protocol;
   const q = (Array.isArray(raw) ? raw[0] : raw) || "";
   const v = q.toLowerCase();
   return v === "ssh" || v === "rdp" || v === "vnc" ? v : "";
@@ -111,7 +131,9 @@ const disconnected = ref(false);
 const connection = computed(() => {
   const h = selectedHost.value;
   if (!h || disconnected.value) return null;
-  const qIdentity = route.query.identityId ? Number(route.query.identityId) : null;
+  const qIdentity = props.embedded
+    ? (props.identityId != null ? Number(props.identityId) : null)
+    : (route.query.identityId ? Number(route.query.identityId) : null);
   const mode = (h.serverHostRemoteMode ?? "").toUpperCase();
   return {
     hostId: h.id,
@@ -270,6 +292,8 @@ function popout(): void {
 function selectHost(h: Host): void {
   selectedId.value = h.id;
   disconnected.value = false;
+  // 嵌入模式：主机由所属页签绑定，不写路由（否则开多个远控页签会互相改写 URL）
+  if (props.embedded) return;
   const q: Record<string, string> = { hostId: String(h.id), protocol: defaultProtocolOf(h) };
   const qId = route.query.identityId;
   if (qId) q.identityId = String(qId);
@@ -353,9 +377,9 @@ function syncFromQuery(qid: string | string[] | undefined): void {
 
 /** 从资产页直达时：先按 query 选中，若无该 host 再从后端补拉 */
 async function selectFromQuery(): Promise<void> {
-  const qid = route.query.hostId;
-  if (!qid) return;
-  const base = qid instanceof Array ? qid[0] : qid;
+  const qid = props.embedded ? props.hostId : route.query.hostId;
+  if (qid == null || qid === "") return;
+  const base = Array.isArray(qid) ? qid[0] : qid;
   const id = Number(base);
   if (!Number.isFinite(id)) return;
   if (hosts.value.some(h => h.id === id)) {
@@ -385,8 +409,19 @@ async function selectFromQuery(): Promise<void> {
   }
 }
 
-/** 左列表点选：就地断言 + 更新 URL（同路由不重建整页，保留 identityId） */
-watch(() => route.query.hostId, (val) => { if (val != null) syncFromQuery(val as string | string[]); });
+/** 左列表点选：就地断言 + 更新 URL（同路由不重建整页，保留 identityId）；嵌入模式不跟随路由 */
+watch(() => route.query.hostId, (val) => {
+  if (props.embedded) return;
+  if (val != null) syncFromQuery(val as string | string[]);
+});
+
+/** 嵌入模式：父级切换锁定主机时重连 */
+watch(() => props.hostId, (id) => {
+  if (!props.embedded || id == null) return;
+  if (selectedId.value === id) return;
+  selectedId.value = id;
+  disconnected.value = false;
+});
 
 async function onMountedInit(): Promise<void> {
   await loadHosts();
@@ -401,9 +436,9 @@ onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
 </script>
 
 <template>
-  <div :class="['tw', 'tel-page', { immersive }]">
-    <!-- 左侧主机资源条 -->
-    <aside :style="{ width: railWidth }" class="rail tel-rail">
+  <div :class="['tw', 'tel-page', { immersive, 'is-embedded': embedded }]">
+    <!-- 左侧主机资源条（嵌入到工作区页签时由外壳统一提供，这里不再渲染） -->
+    <aside v-if="!embedded" :style="{ width: railWidth }" class="rail tel-rail">
       <div v-if="railOpen" class="rail-inner">
         <div class="rail-head">
           <span class="rail-title">主机资源</span>
@@ -515,7 +550,9 @@ onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
            overflow-y:auto 裁掉 —— 表现为右侧整块空白，而 DOM 里提示文字其实在
            （快照能抓到两份）。加上守卫后两处都不渲染，只留 .remote-empty。 -->
       <ScGuacViewer v-else-if="connection" ref="guacViewerRef" :connection="connection" inline @close="disconnected = true" />
-      <div v-if="!connection" class="remote-empty">从左侧选择一台主机开始控制</div>
+      <div v-if="!connection" class="remote-empty">
+        {{ embedded ? '正在建立远控会话…' : '从左侧选择一台主机开始控制' }}
+      </div>
 
       <ReDrawer
         v-model="sftpVisible"
@@ -541,6 +578,12 @@ onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
   /* 高度交给全局 .tel-page 的 height:100%（外层 .main 才是滚动容器）。
      不能写 calc(100vh - 56px)：外壳实际由 56px 顶栏 + 42px 标签条 + .main 的 20px
      上内边距叠成，硬编码 56px 会让整个工作区比可视范围多出约 51px、底部被裁掉。 */
+  min-height: 0;
+}
+/* 嵌入到工作区页签：页签面板已给出确定高度，远控台直接吃满，不能再让全局
+   .tel-page 的 height:100% 撑出第二层滚动条 */
+.tw.is-embedded {
+  height: 100%;
   min-height: 0;
 }
 .rail {

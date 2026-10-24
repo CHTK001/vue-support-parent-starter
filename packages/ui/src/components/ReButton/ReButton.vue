@@ -106,6 +106,19 @@ const props = withDefaults(
      * 在小方钮里显得偏大或偏小。</p>
      */
     animIconSize?: number;
+    /**
+     * 两态图标切换（仅 square 布局）：激活态 / 非激活态各一套图标，
+     * 由 ReStateIcon 做动画切换。三者任一非空即启用。
+     *
+     * <p>与 {@link icon} 的优先级：激活态 = activeIcon ?? 内置集.activeIcon ?? icon；
+     * 非激活态 = inactiveIcon ?? 内置集.inactiveIcon ?? icon。</p>
+     */
+    activeIcon?: string;
+    inactiveIcon?: string;
+    /** 内置图标集名（sunmoon / check / star / bell / arrow / anim）；"none" 关闭内置回落 */
+    preset?: string;
+    /** 当前是否激活（配合 activeIcon / inactiveIcon / preset 使用） */
+    active?: boolean;
   }>(),
   {
     layout: "el",
@@ -128,6 +141,10 @@ const props = withDefaults(
     tip: undefined,
     iconSize: 32,
     animIconSize: undefined,
+    activeIcon: "",
+    inactiveIcon: "",
+    preset: undefined,
+    active: false,
     decorative: false,
   },
 );
@@ -222,6 +239,10 @@ function onClick(e: MouseEvent): void {
         :disabled="disabled"
         :icon="icon"
         :anim-icon-size="animIconSize"
+        :active="active"
+        :active-icon="activeIcon"
+        :inactive-icon="inactiveIcon"
+        :preset="preset"
         :native-type="nativeType"
         :aria-label="labelText"
         v-bind="$attrs"
@@ -238,6 +259,10 @@ function onClick(e: MouseEvent): void {
     :disabled="disabled"
     :icon="icon"
     :anim-icon-size="animIconSize"
+    :active="active"
+    :active-icon="activeIcon"
+    :inactive-icon="inactiveIcon"
+    :preset="preset"
     :native-type="nativeType"
     :decorative="decorative"
     v-bind="$attrs"

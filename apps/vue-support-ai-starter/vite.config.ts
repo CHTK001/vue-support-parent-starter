@@ -15,6 +15,39 @@ import type { PluginOption } from 'vite'
 
 const APP_NAME = 'vue-support-ai-starter'
 const WORKSPACE_ROOT = path.resolve(__dirname, '../..')
+
+/**
+ * 把 esbuild 的临时目录改到工作区内（仅 Windows）。
+ *
+ * <p><b>为什么需要它。</b>生产构建会在 `[vite:worker-import-meta-url]` 阶段失败：</p>
+ * <pre>
+ * [vite:worker-import-meta-url] remove C:\Users\...\AppData\Local\Temp\esbuild-xxxx: Access is denied.
+ * file: packages/ui/web-llm/src/index.ts
+ * </pre>
+ * <p>触发点是 {@code packages/ui/web-llm/src/index.ts} 里的
+ * {@code new Worker(new URL("./worker.ts", import.meta.url))} —— Vite 用 esbuild 打包
+ * worker，并在结束时删除其临时文件；该临时文件位于系统 TEMP 时删除被拒（实测：同一用户
+ * 下用 node 手写/删除 TEMP 文件正常，普通 {@code esbuild.transform} 也正常，唯独
+ * worker 打包产出的那个临时文件删不掉，属系统 TEMP 目录层面的句柄/扫描干扰）。</p>
+ *
+ * <p>把 TEMP 指到工作区内的目录后构建可稳定通过（实测 3m5s 成功）。
+ * 只在 Windows 且未显式指定时才覆盖，避免影响 Linux/CI 的既有行为。</p>
+ */
+function redirectEsbuildTempOnWindows(): void {
+  if (process.platform !== 'win32') return
+  const localTemp = path.join(WORKSPACE_ROOT, '.tmp', 'esbuild-tmp')
+  try {
+    fs.mkdirSync(localTemp, { recursive: true })
+  } catch {
+    return
+  }
+  // esbuild 子进程继承父进程环境变量：这里设置后，其 Go 进程即在工作区内建/删临时文件
+  process.env.TEMP = localTemp
+  process.env.TMP = localTemp
+}
+
+redirectEsbuildTempOnWindows()
+
 /**
  * Node 内置 `events` 的浏览器垫片绝对路径，供下面 resolve.alias 使用。
  *

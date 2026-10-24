@@ -47,7 +47,8 @@
 
     /* 路径解析 */
     "baseUrl": ".",
-    "ignoreDeprecations": "6.0",
+    /* ignoreDeprecations：与 catalog 锁定的 TypeScript 5.x 对应（"6.0" 是 TS6 才接受的值） */
+    "ignoreDeprecations": "5.0",
     "paths": {
       "@/*": ["./src/*"],
       "@pages/filesystem": ["../filesystem/src/index.ts"],

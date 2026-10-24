@@ -65,6 +65,8 @@ export const CORE_PRESET: UiPreset = [
   "ReProcessTask",
   "ReCommand",
   "ReIconSelect",
+  "ReRelationGraph",
+  "ReRelationGraphV2",
   "ReProgress",
   "ReThree",
 ];

@@ -5,27 +5,26 @@
  * @author CH
  * @since 4.0.0
  */
-import { computed, onMounted, onBeforeUnmount, ref, reactive } from "vue";
+import { computed, onMounted, onBeforeUnmount, ref, reactive, watch } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessageBox, ElProgress, ElDropdown, ElDropdownMenu, ElDropdownItem, ElPopover, ElTooltip } from "element-plus";
-import { ReFormItem } from "@repo/ui/re-kit";
-import type { ReFilterItem } from "@repo/ui/components/ReFilter/types";
+import { ElMessageBox } from "element-plus";
 import { queryHosts, delHost, switchHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity, scanPorts, installNginxHost } from "../api";
 import HostFormDialog from "./HostFormDialog.vue";
 import HostConfigDialog from "./HostConfigDialog.vue";
-import HostProfileDialog from "./HostProfileDialog.vue";
+import HostProfileView from "./HostProfileView.vue";
+import HostDetailView from "./HostDetailView.vue";
+import TerminalView from "./TerminalView.vue";
+import HostFileManager from "../components/HostFileManager.vue";
+import ScHostMetricsBar from "../components/ScHostMetricsBar.vue";
+import type { MetricRow } from "../components/ScHostMetricsBar.types";
 import ScInstallDialog from "../components/ScInstallDialog.vue";
 import { useDialogPrerender } from "../utils/dialogPrerender";
 import { osIconSvg } from "../utils/osIcon";
 import {useSocketService, message} from "@repo/core";
-import ReMaskDialog from "../components/ReMaskDialog.vue";
 import AgentDeployDialog from "../components/AgentDeployDialog.vue";
-import ReProgressTask from "@repo/ui/components/ReProgress/ReProgressTask.vue";
 import { submitAgentAction } from "../api";
-import type { Component } from "vue";
-import { CircleCheck, DocumentChecked, Download, Tickets } from "@element-plus/icons-vue";
-import ReStatCard from "@repo/ui/re-stat-card";
-import ReEcharts from "@repo/ui/re-echarts";
+import ReTabs from "@repo/ui/re-tabs";
+import type { ReTabsContextItem, ReTabsItem } from "@repo/ui/re-tabs";
 
 export interface Host {
   id: number;
@@ -107,7 +106,6 @@ const loading = ref(false);
 const loadError = ref("");
 /** fetchAll 序号：并发触发时只采用最新一次结果，丢弃过期响应 */
 let fetchSeq = 0;
-const selection = ref<Host[]>([]);
 /** 实时延迟（hostId → delayMs，socket host-delay 推送更新；-1 表不可达） */
 const liveDelay = ref<Record<number, number>>({});
 /** 实时在线状态（hostId → 1/0，socket host-online 推送翻转） */
@@ -118,52 +116,26 @@ let unsubMetrics: (() => void) | undefined;
 let unsubDeploy: (() => void) | undefined;
 let unsubPortScan: (() => void) | undefined;
 
-/** 视图模式：card（默认，卡片网格）/ table（表格） */
-const viewMode = ref<"card" | "table">("card");
+/** 左侧主机区检索与筛选 */
+const keyword = ref("");
+/** 状态筛选：all / online / offline / remote */
+const statusFilter = ref<"all" | "online" | "offline" | "remote">("all");
+/** 分组筛选：null 表示全部 */
+const groupFilter = ref<number | null>(null);
+/** 已折叠的分组 id 集合（含 0 表示「未分组」） */
+const collapsedGroups = ref<Set<number>>(new Set());
 
-/** ReFilter 过滤状态（由 ReFilter 组件统一驱动，替代手写 keyword/status/group 三个 ref） */
-const filterState = ref<Record<string, unknown>>({ keyword: "", status: "", group: "", tag: "" });
 /**
- * ReFilter 过滤项变更
- * @param prop 过滤属性名
- * @param value 过滤值
+ * 分组折叠开关
+ *
+ * @param gid 分组 id（0 = 未分组）
  */
-/**
- * ReFilter 过滤项变更
- * @param prop 过滤属性名
- * @param value 过滤值
- */
-function onFilterChange(prop: string, value: unknown): void {
-  filterState.value[prop] = value;
+function toggleGroup(gid: number): void {
+  const next = new Set(collapsedGroups.value);
+  if (next.has(gid)) next.delete(gid);
+  else next.add(gid);
+  collapsedGroups.value = next;
 }
-/**
- * 重置全部过滤条件
- */
-function onFilterReset(): void {
-  filterState.value = { keyword: "", status: "", group: "", tag: "" };
-}
-
-/** 空态卡片里的「重置筛选」按钮：复用同一套重置逻辑，不再另写一份 */
-function resetFilters(): void {
-  onFilterReset();
-}
-
-/** ReFilter 筛选项配置（"标签"项仅在存在标签数据时显示，避免空的筛选项） */
-const filterItems = computed<ReFilterItem[]>(() => {
-  const items: ReFilterItem[] = [
-    { prop: "keyword", label: "名称/IP", type: "input", placeholder: "搜索名称 / IP", clearable: true, always: true },
-    { prop: "status", label: "状态", type: "select", placeholder: "状态", clearable: true, options: [
-      { label: "在线", value: "online" },
-      { label: "离线", value: "offline" },
-      { label: "远控启用", value: "remote" },
-    ], always: true },
-    { prop: "group", label: "分组", type: "select", placeholder: "分组", clearable: true, options: groups.value.map(g => ({ label: g.msServerGroupName, value: g.id })), always: true },
-  ];
-  if (allTags.value.length > 0) {
-    items.push({ prop: "tag", label: "标签", type: "slot", always: false });
-  }
-  return items;
-});
 
 /** 弹窗内 ReSelect 选项（computed 缓存，避免每次渲染重算） */
 const identityOptions = computed(() => identities.value.map(i => ({
@@ -171,15 +143,6 @@ const identityOptions = computed(() => identities.value.map(i => ({
   value: i.id,
 })));
 const groupOptions = computed(() => groups.value.map(g => ({ label: g.msServerGroupName, value: g.id })));
-
-/** 标签集合（用于筛选/展示） */
-const allTags = computed(() => {
-  const s = new Set<string>();
-  for (const h of hosts.value) {
-    for (const t of splitTags(h.serverHostTags)) s.add(t);
-  }
-  return [...s];
-});
 
 /**
  * 逗号分隔标签拆分为数组
@@ -203,22 +166,6 @@ function parsePorts(raw?: string | null): PortItem[] {
   } catch { return []; }
 }
 
-/** 端口文案：22/tcp ssh */
-function portText(p: PortItem): string {
-  const parts = [`${p.port}${p.protocol ? "/" + p.protocol : ""}`];
-  if (p.service) parts.push(p.service);
-  return parts.join(" ");
-}
-
-/** 端口状态 → OPEN/CLOSED 标记：state 含 open/open 视为 OPEN（绿点），其余/空视为 CLOSED（红点） */
-function portStatusM(state?: string): { open: boolean | null; text: string } {
-  const s = String(state ?? "").trim().toLowerCase();
-  if (!s || s === "unknown") return { open: null, text: "" };
-  const openWords = ["open", "listen", "listening", "running", "active", "established"];
-  if (openWords.some(w => s === w || s.includes(w))) return { open: true, text: "OPEN" };
-  return { open: false, text: "CLOSED" };
-}
-
 /** 端口扫描（后台异步，完成后由 host-portscan socket 事件回填，不阻塞/轮询） */
 async function scanHostPorts(h: Host): Promise<void> {
   try {
@@ -239,150 +186,22 @@ function groupName(id?: number | null): string {
 /** 分组背景色开关：开启时分组标记按分组配置颜色显示底色 */
 const groupColorEnabled = ref(true);
 
-/**
- * 趋势环比文案：首尾采样之差，让「涨还是在降」不用盯着折线猜。
- *
- * @param id 主机标识
- * @returns 形如 ↑ 3.2% / ↓ 1.4% / — 的短文本
- */
-function trendDeltaText(id: number): string {
-  const arr = rtTrend[id] ?? [];
-  if (arr.length < 2) return '—';
-  const delta = arr[arr.length - 1] - arr[0];
-  if (Math.abs(delta) < 0.1) return '持平';
-  return `${delta > 0 ? '↑' : '↓'} ${Math.abs(delta).toFixed(1)}%`;
-}
-
-/**
- * 环比上升（负载变差）标红，下降标绿。
- *
- * @param id 主机标识
- * @returns 样式类名
- */
-function trendDeltaClass(id: number): string {
-  const arr = rtTrend[id] ?? [];
-  if (arr.length < 2) return '';
-  const delta = arr[arr.length - 1] - arr[0];
-  if (Math.abs(delta) < 0.1) return '';
-  return delta > 0 ? 'is-up' : 'is-down';
-}
-
-/**
- * 占用环的 conic-gradient 样式：把百分比画成一段弧。
- *
- * @param pct 占用百分比（0-100）
- * @returns 内联样式
- */
-function ringStyle(pct: number | undefined): Record<string, string> {
-  const v = Math.max(0, Math.min(100, Math.round(pct ?? 0)));
-  return {
-    background: `conic-gradient(${barColor(v)} ${v * 3.6}deg, var(--el-fill-color) 0deg)`,
-  };
-}
-
-// ---- 实时指标（默认开启，socket 推送，不轮询） ----
+// ---- 实时指标（socket 推送，不轮询；底部状态条与页签状态点共用这份数据） ----
 const realtimeEnabled = ref(localStorage.getItem('assets-realtime-enabled') !== 'false');
 const rtMetrics = reactive<Record<number, { cpu: number; mem: number; disk: number; tx: string; rx: string }>>({});
 
-/** CPU 趋势采样窗口（保留最近 N 个点，足够画一条可读的迷你折线又不至于吃内存） */
-const TREND_POINTS = 24;
-/** 每台主机的 CPU 历史采样，按 id 索引；用于卡片右侧迷你趋势图 */
-const rtTrend = reactive<Record<number, number[]>>({});
-
 /**
- * 采样一个 CPU 点进趋势缓冲。
+ * 实时监控开关。
  *
- * <p>只在指标真正变化时推入，避免 socket 抖动造成折线全是同一数值；
- * 超过 {@link TREND_POINTS} 时丢最旧的，保持固定窗口长度。</p>
+ * <p>关掉时清空缓存而不是留着最后一份：留着会让底部状态条停在一个不再更新的
+ * 数字上，看起来像「还在采」，实际是「已经停了」。</p>
  *
- * @param id  主机标识
- * @param cpu CPU 使用率（0-100）
+ * @param v 是否开启
  */
-function pushTrend(id: number, cpu: number): void {
-  if (!rtTrend[id]) rtTrend[id] = [];
-  const arr = rtTrend[id];
-  const last = arr[arr.length - 1];
-  if (last !== undefined && Math.abs(last - cpu) < 0.05) return;
-  arr.push(cpu);
-  if (arr.length > TREND_POINTS) arr.splice(0, arr.length - TREND_POINTS);
-}
-
-/**
- * 卡片右侧 CPU 迷你趋势图配置。
- *
- * <p>刻意压掉坐标轴、图例与网格，只留一条带面积渐变的折线 —— 卡片右侧空间窄，
- * 堆坐标轴会变成噪音。y 轴固定 0-100，避免不同主机的曲线看起来「一样高」。</p>
- *
- * @param id 主机标识
- * @returns ECharts 配置；无数据时返回空折线
- */
-function trendOption(id: number): Record<string, unknown> {
-  const data = rtTrend[id] ?? [];
-  // 必须用具体色值：ECharts 走 Canvas，解析不了 CSS 变量
-  const color = barColorHex(data[data.length - 1] ?? 0);
-  return {
-    animation: false,
-    grid: { left: 2, right: 2, top: 6, bottom: 2 },
-    xAxis: { type: 'category', show: false, boundaryGap: false, data: data.map((_, i) => i) },
-    yAxis: { type: 'value', show: false, min: 0, max: 100 },
-    tooltip: {
-      trigger: 'axis',
-      confine: true,
-      formatter: (ps: any[]) => `${Number(ps?.[0]?.value ?? 0).toFixed(1)}%`,
-    },
-    series: [{
-      type: 'line',
-      data,
-      smooth: true,
-      symbol: 'none',
-      lineStyle: { width: 2, color },
-      areaStyle: {
-        opacity: 0.18,
-        color: {
-          type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-          colorStops: [
-            { offset: 0, color },
-            { offset: 1, color: 'transparent' },
-          ],
-        },
-      },
-    }],
-  };
-}
-
-/**
- * 使用率对应的状态色 —— 给 DOM / Element 组件用（CSS 变量解析得到真实颜色）。
- *
- * @param pct 使用率（0-100）
- */
-function barColor(pct: number): string {
-  if (pct >= 90) return 'var(--el-color-danger)';
-  if (pct >= 70) return 'var(--el-color-warning)';
-  return 'var(--el-color-success)';
-}
-
-/**
- * 使用率对应的状态色 —— 给 ECharts / Canvas 用。
- *
- * <p>Canvas 的 addColorStop 只认具体色值，传 `var(--el-color-xxx)` 会抛
- * `Failed to execute 'addColorStop' ... could not be parsed as a color`。
- * 这个异常发生在 ECharts 的渲染循环里，会打断所在组件的更新 ——
- * 表现为卡片里的按钮点了没反应、`@click` 完全静默。</p>
- *
- * @param pct 使用率（0-100）
- */
-function barColorHex(pct: number): string {
-  if (pct >= 90) return '#f56c6c';
-  if (pct >= 70) return '#e6a23c';
-  return '#67c23a';
-}
-
 function onRealtimeToggle(v: boolean): void {
   localStorage.setItem('assets-realtime-enabled', String(v));
   if (!v) {
-    // 关闭即清空，重新打开时由下一次列表刷新或推送铺值
     Object.keys(rtMetrics).forEach(k => delete rtMetrics[Number(k)]);
-    Object.keys(rtTrend).forEach(k => delete rtTrend[Number(k)]);
     return;
   }
   syncRtFromHosts();
@@ -408,7 +227,6 @@ function syncRtFromHosts(): void {
       tx: prev?.tx ?? '—',
       rx: prev?.rx ?? '—',
     };
-    pushTrend(h.id, cpu);
   }
 }
 /** 取分组颜色（未配置或关闭开关时返回空，不使用背景色） */
@@ -478,131 +296,64 @@ function onlineText(h: Host): string {
   return v === 1 ? "在线" : v === 0 ? "离线" : "未知";
 }
 
-const onlineCount = computed(() => hosts.value.filter(h => h.serverHostOnline === 1).length);
+const onlineCount = computed(() => hosts.value.filter(h => liveOnlineState(h) === 1).length);
 const remoteCount = computed(() => hosts.value.filter(h => h.serverHostRemoteEnabled === 1).length);
 const offlineCount = computed(() => hosts.value.length - onlineCount.value);
 
-/**
- * 统计卡定义。
- *
- * <p>与「账号管理 / 代理管理」同口径：{@code icon} 必须是组件
- * （ReStatCard 内部走 {@code <component :is="icon" />}），所以引用
- * @element-plus/icons-vue 的组件而不是图标名字符串；{@code iconColor}
- * 用 koi 令牌，不写死品牌色。</p>
- */
-interface HostKpi {
-  key: string;
-  title: string;
-  value: number | string;
-  desc: string;
-  icon: Component;
-  iconColor: string;
-}
-
-const hostKpis = computed<HostKpi[]>(() => [
-  {
-    key: "total",
-    title: "可远控目标",
-    value: hosts.value.length,
-    desc: "共注册可远控目标",
-    icon: DocumentChecked,
-    iconColor: "var(--brand-500, var(--el-color-primary))",
-  },
-  {
-    key: "online",
-    title: "可连接资产",
-    value: `${onlineCount.value} / ${hosts.value.length}`,
-    desc: "当前在线可连接",
-    icon: CircleCheck,
-    iconColor: "var(--el-color-success)",
-  },
-  {
-    key: "offline",
-    title: "需关注处理",
-    value: offlineCount.value,
-    desc: "离线或采集异常",
-    icon: Tickets,
-    iconColor: "var(--el-text-color-placeholder)",
-  },
-  {
-    key: "remote",
-    title: "支持远程连接",
-    value: remoteCount.value,
-    desc: "已开启远控协议",
-    icon: Download,
-    iconColor: "var(--metric-cpu, var(--el-color-primary))",
-  },
-]);
-
+/** 左侧主机区筛选结果（关键字 + 状态 + 分组） */
 const filtered = computed(() => {
-  const fs = filterState.value;
   let list = hosts.value;
-  const status = String(fs.status ?? "");
-  if (status === "online") list = list.filter(h => h.serverHostOnline === 1);
-  else if (status === "offline") list = list.filter(h => h.serverHostOnline !== 1);
-  else if (status === "remote") list = list.filter(h => h.serverHostRemoteEnabled === 1);
-  // 仅当分组值是有效分组（非 null/空串/0）时才过滤，避免组件回传脏值把整列清空
-  if (fs.group != null && fs.group !== "" && fs.group !== 0) {
-    const gid = String(fs.group);
-    list = list.filter(h => String(h.msServerGroupId ?? "") === gid);
+  if (statusFilter.value === "online") list = list.filter(h => liveOnlineState(h) === 1);
+  else if (statusFilter.value === "offline") list = list.filter(h => liveOnlineState(h) !== 1);
+  else if (statusFilter.value === "remote") list = list.filter(h => h.serverHostRemoteEnabled === 1);
+  if (groupFilter.value != null) {
+    const gid = String(groupFilter.value);
+    list = list.filter(h => String(h.msServerGroupId ?? "0") === gid);
   }
-  // 标签仅在为非空字符串时过滤
-  if (typeof fs.tag === "string" && fs.tag) {
-    // 先取出到常量，避免闭包内丢失 typeof 收窄
-    const tag = fs.tag;
-    list = list.filter(h => splitTags(h.serverHostTags).includes(tag));
-  }
-  const kw = typeof fs.keyword === "string" ? fs.keyword.toLowerCase() : "";
+  const kw = keyword.value.trim().toLowerCase();
   if (kw) {
-    list = list.filter(h => (h.serverHostName ?? "").toLowerCase().includes(kw) || (h.serverHostAddress ?? "").toLowerCase().includes(kw));
+    list = list.filter(h =>
+      (h.serverHostName ?? "").toLowerCase().includes(kw)
+      || (h.serverHostAddress ?? "").toLowerCase().includes(kw)
+      || splitTags(h.serverHostTags).some(t => t.toLowerCase().includes(kw)));
   }
   return list;
 });
 
-/**
- * 注解数据：每张 KPI 卡的统计口径。
- *
- * <p>KPI 卡的 {@code desc} 只有四五个字（「离线或采集异常」），读者并不知道
- * 「离线」是心跳超时还是 Agent 掉线、「需关注」到底合并了哪几类。
- * 这里把口径写全，与 {@link hostKpis} 同 key 对应，改卡片时不会漏改注解。</p>
- *
- * <p>呈现方式：挂在各卡标题旁的 tip（见模板里的 #title 插槽）。
- * 早先是页面底部一张常驻的 ElCard，四行说明固定占掉约 120px 高度 ——
- * 而这四条注解绝大多数人一辈子不会点开，纯属白占版面。改成按需浮层后零占位，
- * 且注解紧贴它所属的那张卡，不用上下对照。</p>
- */
-const hostKpiNotes = computed<Array<{ key: string; title: string; note: string }>>(() => [
-  {
-    key: "total",
-    title: "可远控目标",
-    note: "台账中登记的全部主机，含离线与停用采集的；右键可编辑、删除、绑定身份。",
-  },
-  {
-    key: "online",
-    title: "可连接资产",
-    note: "分子为当前在线（近一次心跳 / 探测正常），分母为台账总数；网络不可达时计数不增长。",
-  },
-  {
-    key: "offline",
-    title: "需关注处理",
-    note: "合并三类：心跳超时、采集通道异常、远端凭证失效。任一类命中即计入，需要逐台排查。",
-  },
-  {
-    key: "remote",
-    title: "支持远程连接",
-    note: "已开启 SSH / RDP / VNC 之一且填写了协议端口的主机；未开启的不出现在远控入口。",
-  },
-]);
-
-/**
- * 按 key 取该 KPI 卡的口径说明，供标题旁的 tip 使用。
- *
- * @param key 与 {@link hostKpis} 对应的卡标识
- * @return 说明文本；该卡没有注解时返回空串（此时不渲染 tip 图标）
- */
-function noteOf(key: string): string {
-  return hostKpiNotes.value.find((n) => n.key === key)?.note ?? "";
+/** 按分组归拢后的左侧列表（组头带在线统计，可折叠） */
+interface HostGroupBucket {
+  id: number;
+  name: string;
+  color?: string | null;
+  hosts: Host[];
+  online: number;
 }
+
+const groupedHosts = computed<HostGroupBucket[]>(() => {
+  const map = new Map<number, HostGroupBucket>();
+  for (const h of filtered.value) {
+    const gid = h.msServerGroupId ?? 0;
+    if (!map.has(gid)) {
+      const g = groups.value.find(x => x.id === gid);
+      map.set(gid, {
+        id: gid,
+        name: gid === 0 ? "未分组" : (g?.msServerGroupName ?? `组#${gid}`),
+        color: g?.msServerGroupColor ?? null,
+        hosts: [],
+        online: 0,
+      });
+    }
+    const bucket = map.get(gid)!;
+    bucket.hosts.push(h);
+    if (liveOnlineState(h) === 1) bucket.online++;
+  }
+  // 有分组名的排前面（按名称），「未分组」垫底
+  return [...map.values()].sort((a, b) => {
+    if (a.id === 0) return 1;
+    if (b.id === 0) return -1;
+    return a.name.localeCompare(b.name, "zh-Hans-CN");
+  });
+});
 
 /**
  * 是否存在主机（与筛选结果无关）。
@@ -613,7 +364,7 @@ function noteOf(key: string): string {
 const hasHosts = computed(() => hosts.value.length > 0);
 
 /**
- * 空态文案。
+ * 左侧空态文案。
  *
  * <p>三种情况刻意分开，不能压缩成两种：加载失败时 {@code hosts} 也是空数组，
  * 若只按「有没有主机」判，就会把「没读到」显示成「暂无主机」——
@@ -623,35 +374,6 @@ const emptyDescription = computed(() => {
   if (loadError.value) return "数据加载失败，请重试";
   return hasHosts.value ? "当前筛选条件下没有匹配的主机" : "暂无主机";
 });
-
-/** ReTable 列定义 */
-const tableColumns = computed(() => [
-  { prop: "serverHostName", label: "名称", minWidth: 150, slot: "name" },
-  { prop: "serverHostAddress", label: "地址", width: 150, slot: "addr" },
-  { prop: "msServerGroupId", label: "分组", width: 92, slot: "group" },
-  { prop: "serverHostTags", label: "标签", minWidth: 120, slot: "tags" },
-  { prop: "serverHostOsType", label: "协议", width: 100, slot: "proto" },
-  { prop: "serverHostOnline", label: "状态", width: 84, slot: "status" },
-  { prop: "serverHostDelayMs", label: "延迟", width: 84, slot: "delay" },
-  { prop: "serverHostCollectMode", label: "采集模式", width: 100, formatter: (_: unknown, __: unknown, v: unknown) => collectModeLabel(String(v ?? "")) },
-  { prop: "serverHostPorts", label: "端口", minWidth: 140, slot: "ports" },
-  { prop: "serverHostAgentEnabled", label: "Agent", width: 90, slot: "agent" },
-  { prop: "id", label: "操作", width: 140, fixed: "right", slot: "actions" },
-]);
-
-/** 表格合计统计（筛选后数量顶部展示） */
-const batchDeleteToolbar = computed(() => ({
-  enabled: true,
-  confirmMessage: `确认批量删除选中的 ${selection.value.length} 台主机？`,
-  handler: async (rows: Record<string, unknown>[]) => {
-    for (const r of rows) {
-      const id = Number(r.id);
-      if (id) { try { await delHost(id); } catch { /* 单条失败继续 */ } }
-    }
-    selection.value = [];
-    await fetchAll();
-  },
-}));
 
 async function fetchAll(): Promise<void> {
   const seq = ++fetchSeq;
@@ -671,15 +393,326 @@ async function fetchAll(): Promise<void> {
   }
 }
 
+/* ==================== 主机工作区（Deck 布局） ==================== */
+
 /**
- * 跳转远程控制台并携带连接参数
- * @param h 主机
+ * 页签功能类型。
+ *
+ * <p>画像是「一堆互不相干的分区」，把它们塞进一个页签再套一层分段切换，
+ * 等于在右侧又造了一个小页面。这里每个分区各自是一个独立页签，
+ * 与远控 / 文件 / 指标平级 —— 打开哪个看哪个，不用先选主机再选分区。</p>
  */
-function connect(h: Host): void {
-  router.push({ path: "/terminal", query: { hostId: String(h.id), protocol: protocolOf(h) } });
+type TabKind =
+  | "ports"
+  | "processes"
+  | "services"
+  | "disks"
+  | "network"
+  | "env"
+  | "firewall"
+  | "remote"
+  | "files"
+  | "metrics";
+
+/** 功能定义：名称 / 图标 / 是否为画像分区 */
+interface TabKindMeta {
+  label: string;
+  icon: string;
+  /** 画像分区 key（非画像功能为空） */
+  section?: string;
+  /** 需要 Agent / 采集通道 */
+  needChannel?: boolean;
 }
-function openDetail(h: Host): void {
-  router.push(`/host/${h.id}`);
+
+const TAB_KINDS: Record<TabKind, TabKindMeta> = {
+  ports: { label: "监听端口", icon: "Connection", section: "ports", needChannel: true },
+  processes: { label: "进程", icon: "Cpu", section: "processes", needChannel: true },
+  services: { label: "服务", icon: "SetUp", section: "services", needChannel: true },
+  disks: { label: "磁盘", icon: "Coin", section: "disks", needChannel: true },
+  network: { label: "网络", icon: "Share", section: "network", needChannel: true },
+  env: { label: "环境变量", icon: "Document", section: "env", needChannel: true },
+  firewall: { label: "防火墙", icon: "Lock", section: "firewall", needChannel: true },
+  remote: { label: "远控", icon: "Position" },
+  files: { label: "文件管理", icon: "FolderOpened" },
+  metrics: { label: "指标监控", icon: "TrendCharts" },
+};
+
+/** 工作区页签（比 ReTabsItem 多带主机上下文，便于渲染内容） */
+interface WorkTab extends ReTabsItem {
+  hostId: number;
+  kind: TabKind;
+  /** 文件管理页签的初始路径 */
+  path?: string;
+  /** 远控页签使用的登录身份（空 = 默认凭据） */
+  identityId?: number | null;
+}
+
+/** 已打开的页签 */
+const openTabs = ref<WorkTab[]>([]);
+/** 当前激活页签 name */
+const activeTab = ref("");
+
+/**
+ * 打开一个功能页签。
+ *
+ * <p>同一个「主机 + 功能」只开一次：重复点同一个动作是切过去，不是再开一个副本。
+ * 否则用户点两下「进程」就会看到两个内容一模一样的页签，关闭时还要关两次。</p>
+ *
+ * @param host 目标主机
+ * @param kind 功能类型
+ * @param opts 附加参数（文件管理初始路径 / 远控登录身份）
+ */
+function openTab(host: Host, kind: TabKind, opts?: { path?: string; identityId?: number | null }): void {
+  const name = `${host.id}:${kind}`;
+  const exist = openTabs.value.find(t => t.name === name);
+  if (exist) {
+    if (opts?.path) exist.path = opts.path;
+    if (opts?.identityId != null) exist.identityId = opts.identityId;
+    activeTab.value = name;
+    return;
+  }
+  const meta = TAB_KINDS[kind];
+  const tab: WorkTab = {
+    name,
+    hostId: host.id,
+    kind,
+    label: host.serverHostName,
+    hint: meta.label,
+    icon: meta.icon,
+    status: liveOnlineState(host) === 1 ? "online" : "offline",
+    closable: true,
+    path: opts?.path,
+    identityId: opts?.identityId ?? null,
+  };
+  openTabs.value = [...openTabs.value, tab];
+  activeTab.value = name;
+}
+
+/**
+ * 关闭页签：若关的是当前页签，自动切到相邻的一个（右优先，其次左）。
+ *
+ * @param name 页签 name
+ */
+function closeTab(name: string): void {
+  const idx = openTabs.value.findIndex(t => t.name === name);
+  if (idx < 0) return;
+  const rest = openTabs.value.filter(t => t.name !== name);
+  openTabs.value = rest;
+  if (activeTab.value !== name) return;
+  const next = rest[idx] ?? rest[idx - 1] ?? rest[0];
+  activeTab.value = next?.name ?? "";
+}
+
+/** 关闭其它页签（保留目标页签） */
+function closeOtherTabs(name: string): void {
+  openTabs.value = openTabs.value.filter(t => t.name === name);
+  activeTab.value = name;
+}
+
+/** 关闭右侧页签 */
+function closeTabsToRight(name: string): void {
+  const idx = openTabs.value.findIndex(t => t.name === name);
+  if (idx < 0) return;
+  openTabs.value = openTabs.value.slice(0, idx + 1);
+  if (!openTabs.value.some(t => t.name === activeTab.value)) activeTab.value = name;
+}
+
+/** 关闭全部页签 */
+function closeAllTabs(): void {
+  openTabs.value = [];
+  activeTab.value = "";
+}
+
+/** 当前激活的页签对象 */
+const activeTabObj = computed(() => openTabs.value.find(t => t.name === activeTab.value) ?? null);
+
+/** 当前激活页签对应主机 */
+const activeTabHost = computed<Host | null>(() => {
+  const t = activeTabObj.value;
+  if (!t) return null;
+  return hosts.value.find(h => h.id === t.hostId) ?? null;
+});
+
+/** 左侧选中的主机（用于右键菜单与状态条） */
+const selectedHost = ref<Host | null>(null);
+
+/** 底部状态条要展示的主机：有激活页签看激活页签，否则看左侧选中的主机 */
+const statusHost = computed<Host | null>(() => activeTabHost.value ?? selectedHost.value);
+
+/** 页签刷新代次（按页签 name 计），作为子组件 key 的一部分，变化即重建内容 */
+const tabReloadSeq = reactive<Record<string, number>>({});
+
+/**
+ * 取某个页签当前的刷新代次（未刷新过为 0）。
+ *
+ * @param name 页签 name
+ */
+function reloadSeqOf(name: string): number {
+  return tabReloadSeq[name] ?? 0;
+}
+
+/** 页签右键菜单 */
+const tabContextMenu = computed<ReTabsContextItem[]>(() => {
+  const idx = openTabs.value.findIndex(t => t.name === activeTab.value);
+  const hasRight = idx >= 0 && idx < openTabs.value.length - 1;
+  return [
+    { key: "refresh", label: "刷新当前页签", icon: "RefreshRight" },
+    { key: "reopen", label: "重新打开（清空状态）", icon: "Refresh" },
+    { key: "close", label: "关闭当前页签", icon: "Close", divided: true },
+    { key: "close-others", label: "关闭其它页签", icon: "CircleClose", disabled: openTabs.value.length <= 1 },
+    { key: "close-right", label: "关闭右侧页签", icon: "DArrowRight", disabled: !hasRight },
+    { key: "close-all", label: "关闭全部页签", icon: "Delete", danger: true, divided: true },
+  ];
+});
+
+/** 页签右键命令分发 */function onTabCommand(payload: { key: string; tab: ReTabsItem }): void {
+  const name = payload.tab.name;
+  switch (payload.key) {
+    case "close":
+      closeTab(name);
+      break;
+    case "close-others":
+      closeOtherTabs(name);
+      break;
+    case "close-right":
+      closeTabsToRight(name);
+      break;
+    case "close-all":
+      closeAllTabs();
+      break;
+    case "refresh":
+      // 按页签计数：刷 A 页签不该顺手把 B 页签也重建（B 可能正在跑终端会话）
+      tabReloadSeq[name] = reloadSeqOf(name) + 1;
+      break;
+    case "reopen": {
+      // 先关再开：用于终端会话卡死、文件列表脏数据等需要彻底重建的场景
+      const t = openTabs.value.find(x => x.name === name);
+      if (!t) break;
+      const host = hosts.value.find(h => h.id === t.hostId);
+      const kind = t.kind;
+      const path = t.path;
+      closeTab(name);
+      if (host) openTab(host, kind, { path, identityId: t.identityId });
+      break;
+    }
+    default:
+      break;
+  }
+}
+
+/* ==================== 左侧主机右键菜单：全部功能入口 ==================== */
+
+/** 右键菜单状态 */
+const ctxMenu = reactive<{ visible: boolean; x: number; y: number; host: Host | null }>({
+  visible: false,
+  x: 0,
+  y: 0,
+  host: null,
+});
+
+/** 菜单估算尺寸，用于贴边翻转 */
+const CTX_MENU_W = 214;
+const CTX_MENU_H = 470;
+
+/**
+ * 打开主机右键菜单。
+ *
+ * @param event 原生右键事件
+ * @param h 目标主机
+ */
+function openCtxMenu(event: MouseEvent, h: Host): void {
+  event.preventDefault();
+  event.stopPropagation();
+  let x = event.clientX;
+  let y = event.clientY;
+  if (x + CTX_MENU_W > window.innerWidth - 8) x = window.innerWidth - CTX_MENU_W - 8;
+  if (y + CTX_MENU_H > window.innerHeight - 8) y = window.innerHeight - CTX_MENU_H - 8;
+  ctxMenu.host = h;
+  ctxMenu.x = Math.max(8, x);
+  ctxMenu.y = Math.max(8, y);
+  ctxMenu.visible = true;
+}
+
+/** 关闭右键菜单 */
+function closeCtxMenu(): void {
+  ctxMenu.visible = false;
+  ctxMenu.host = null;
+}
+
+/**
+ * 右键命令分发。
+ *
+ * <p>左侧主机行的右键菜单是<b>唯一</b>的功能总入口：远控 / 文件 / 指标 / 画像各分区
+ * 全在这里，卡片和列表上不再各摆一排按钮。用户明确要求「入口都放到左侧右键里」，
+ * 这样右侧工作区才能干净地只做「内容」。</p>
+ *
+ * @param cmd 命令标识
+ */
+function ctxCommand(cmd: string): void {
+  const h = ctxMenu.host;
+  closeCtxMenu();
+  if (!h) return;
+  // 工作区页签类命令
+  const tabCmds: Record<string, TabKind> = {
+    "tab-remote": "remote",
+    "tab-files": "files",
+    "tab-metrics": "metrics",
+    "tab-ports": "ports",
+    "tab-processes": "processes",
+    "tab-services": "services",
+    "tab-disks": "disks",
+    "tab-network": "network",
+    "tab-env": "env",
+    "tab-firewall": "firewall",
+  };
+  const kind = tabCmds[cmd];
+  if (kind) {
+    openTab(h, kind);
+    return;
+  }
+  switch (cmd) {
+    case "toggle-remote":
+      toggleHost(h);
+      break;
+    case "edit":
+      openEdit(h);
+      break;
+    case "scan":
+      scanHostPorts(h);
+      break;
+    case "install-nginx":
+      onOpenInstall(h);
+      break;
+    case "agent-install":
+      openDeploy(h, "install");
+      break;
+    case "agent-reinstall":
+      openDeploy(h, "reinstall");
+      break;
+    case "agent-upgrade":
+      openDeploy(h, "upgrade");
+      break;
+    case "agent-uninstall":
+      openDeploy(h, "uninstall");
+      break;
+    case "delete":
+      removeHost(h);
+      break;
+    case "open-all-profile": {
+      // 一次把画像七个分区全开出来：巡检某台机器时的批量动作
+      (["ports", "processes", "services", "disks", "network", "env", "firewall"] as TabKind[])
+        .forEach(k => openTab(h, k));
+      break;
+    }
+    case "close-host-tabs":
+      openTabs.value = openTabs.value.filter(t => t.hostId !== h.id);
+      if (!openTabs.value.some(t => t.name === activeTab.value)) {
+        activeTab.value = openTabs.value[openTabs.value.length - 1]?.name ?? "";
+      }
+      break;
+    default:
+      break;
+  }
 }
 
 /** 认证方式/采集方式选项已随弹窗拆入 HostFormDialog 子组件 */
@@ -699,23 +732,6 @@ function collectModeLabel(m?: string | null): string {
   return map[m ?? ""] ?? m ?? "—";
 }
 
-/**
- * 属性胶囊里的采集方式短标签。
- *
- * <p>胶囊本身已带「采集」前缀，标签再以「采集」结尾就重复了（「采集 Agent采集」）。
- * 更要紧的是宽度：350px 卡片里四个胶囊总宽会超出可用宽度，折成两行占掉 32px；
- * 去掉这层冗余后缀后四个能并排一行，卡片整体矮一截。</p>
- */
-function collectModeShort(m?: string | null): string {
-  const map: Record<string, string> = {
-    NONE: "无", OPENSSH: "OpenSSH", SCHEDULED: "定时", WINRM: "WinRM", AGENT: "Agent", LOCAL: "本机", PROMETHEUS: "Prom", HTTP: "HTTP",
-  };
-  if (!m) {
-    return "—";
-  }
-  return map[m] ?? m.replace(/采集$/, "");
-}
-
 // ---- 连接时选择身份（空闲时预渲染，首次打开毫秒级——dialogPrerender.ts） ----
 const connectVisible = ref(false);
 useDialogPrerender(connectVisible);
@@ -723,6 +739,14 @@ const connectTarget = ref<Host | null>(null);
 const connectIdentityId = ref<number | null>(null);
 const hostBoundIdentities = ref<number[]>([]);
 
+/**
+ * 打开「连接」弹窗：选登录身份。
+ *
+ * <p>选定身份后不再跳转到 /terminal 独立页，而是直接在本页工作区开一个远控页签 ——
+ * 用户是在「主机资产」里点的主机，跳走等于把他从当前上下文里踢出去。</p>
+ *
+ * @param h 主机
+ */
 function openConnect(h: Host): void {
   connectTarget.value = h;
   connectIdentityId.value = null;
@@ -731,14 +755,12 @@ function openConnect(h: Host): void {
     hostBoundIdentities.value = list ?? [];
   }).catch(() => { hostBoundIdentities.value = []; });
 }
+
+/** 以弹窗里选中的身份打开远控页签 */
 function doConnect(): void {
   const h = connectTarget.value;
   if (!h) return;
-  const identityId = connectIdentityId.value;
-  router.push({
-    path: "/terminal",
-    query: { hostId: String(h.id), protocol: protocolOf(h), ...(identityId != null ? { identityId: String(identityId) } : {}) },
-  });
+  openTab(h, "remote", { identityId: connectIdentityId.value });
   connectVisible.value = false;
 }
 
@@ -760,16 +782,10 @@ const configVisible = ref(false);
 useDialogPrerender(configVisible);
 const configHost = ref<Host | null>(null);
 const configMode = ref<"online" | "metric" | "delay">("metric");
-// 画像抽屉定位：打开时预选的主机与分区
-const profileHostId = ref<number | null>(null);
-const profileTab = ref("overview");
-/** 每次打开自增，保证重复打开同一台主机也会重新定位并刷新 */
-const profileSeq = ref(0);
 
 // 协议服务器管理弹窗已移除
 
-// ---- 主机画像（master-detail：左主机列表 + 右 ReTab 详情） ----
-const profileVisible = ref(false);
+// ---- Agent 部署进度弹窗状态 ----
 const deployDialogVisible = ref(false);
 const deployProgress = ref(0);
 const deployMessage = ref("");
@@ -787,63 +803,10 @@ const deployTask = ref<any>({
   startedAt: Date.now(),
   history: [],
 });
-useDialogPrerender(profileVisible);
 
 /** 软件安装（nginx）对话框状态 */
 const installVisible = ref(false);
 const installHost = ref<Host | null>(null);
-
-/** 顶部「新增」右侧功能菜单开关（ElPopover 自管 visible） */
-const toolbarMenuOpen = ref(false);
-/** 卡片「更多」当前展开的主机 id（同一时刻只允许一张卡片展开） */
-const morePopover = ref<number | null>(null);
-
-/** 关闭顶部功能区菜单 */
-function closeToolbarMenu(): void {
-  toolbarMenuOpen.value = false;
-}
-/** 关闭卡片「更多」菜单 */
-function closeMoreMenu(): void {
-  morePopover.value = null;
-}
-
-/**
- * 没有实时指标时的说明文案。
- *
- * <p>区别于「还在等推送」与「这台主机本来就采不到」：前者刷新一下就好，
- * 后者要去改采集方式，提示必须能把这两件事分开，否则用户只会反复刷新。</p>
- *
- * @param h 主机
- */
-function rtMetricsMissingText(h: Host): string {
-  const mode = (h.serverHostCollectMode ?? "").toUpperCase();
-  if (mode === "MANUAL") return "手动采集模式，暂无实时指标";
-  if (h.serverHostStatus === 0) return "主机离线，暂无实时指标";
-  return "等待采集上报…";
-}
-
-/**
- * 点击菜单外部时关闭：自定义指令。
- *
- * <p>不用 el-popover 的 onClickOutside，是因为要用同一个开关状态驱动
- * 「点击按钮取反」，而 Element 的 popper 触发器在当前构建下没能把 ref 交回来
- * （全页 84 个 .el-tooltip__trigger 只有 3 个拿到 aria-haspopup），点开是无响应。
- * 这里用 mousedown 判定，避免与菜单项自身的 click 抢先后。</p>
- */
-const vClickOutsideMenu = {
-  mounted(el: HTMLElement, binding: { value?: () => void }) {
-    const handler = (e: MouseEvent) => {
-      if (!el.contains(e.target as Node)) binding.value?.();
-    };
-    (el as HTMLElement & { __menuOutside?: (e: MouseEvent) => void }).__menuOutside = handler;
-    // 冒泡阶段：菜单项自身 @click.stop 已处理，这里只兜底外部点击
-    document.addEventListener("mousedown", handler);
-  },
-  unmounted(el: HTMLElement) {
-    const h = (el as HTMLElement & { __menuOutside?: (e: MouseEvent) => void }).__menuOutside;
-    if (h) document.removeEventListener("mousedown", h);
-  },
-};
 
 /** 打开软件安装对话框 */
 function onOpenInstall(h: Host): void {
@@ -857,75 +820,16 @@ function onInstalled(): void {
 }
 
 /**
- * 顶部「新增资产」按钮弹出的功能菜单命令分发。
+ * 重置左侧检索与筛选条件。
  *
- * <p>设计取舍：右上角按钮本身是「新增」这个最高频动作（点击即开表单），
- * 悬停时展开的功能菜单是它的补充入口 —— 把原先堆在每张卡片底部的一排操作
- * 收敛到一处，卡片只留「远控 / 监控」两个真正的主操作。</p>
- *
- * <p>需要一台具体主机才能执行的动作（画像 / 编辑 / 安装 / 删除）不在这里列出，
- * 卡片底部只保留「远控 / 监控 / 更多」，右键菜单仍可直达全部动作 —— 在没有任何
- * 行上下文的位置放这些项，点下去只能二选一：静默无反应，或误作用于列表第一台。</p>
- *
- * @param cmd 菜单命令
+ * <p>只在「筛得只剩空列表」时才有意义：此时给用户一个一键回到全量的出口，
+ * 而不是让他自己去猜是关键字、状态还是分组把结果筛没了。</p>
  */
-function onToolbarCommand(cmd: string): void {
-  switch (cmd) {
-    case "add-host":
-      openAdd();
-      break;
-    case "refresh":
-      fetchAll();
-      break;
-    case "card-mode":
-      viewMode.value = "card";
-      break;
-    case "table-mode":
-      viewMode.value = "table";
-      break;
-    case "toggle-realtime":
-      realtimeEnabled.value = !realtimeEnabled.value;
-      onRealtimeToggle(realtimeEnabled.value);
-      break;
-    case "reset-filter":
-      resetFilters();
-      break;
-    default:
-      break;
-  }
-}
-
-function openSysMgr(type: string, row: Host): void {
-  // 画像页现在全量走 Agent：未安装时不再拦在门外，进去后由画像页给出
-  // 「Agent 未就绪 + 最近错误 + 安装 Agent」的引导，避免用户完全看不到主机状态
-  profileHostId.value = row.id;
-  profileTab.value = type;
-  profileSeq.value++;
-  profileVisible.value = true;
-}
-
-function onMoreCommand(cmd: string, row: Host): void {
-  if (cmd === "remote-config") {
-    // 远控配置已并入编辑弹窗的「远控配置」区块
-    openEdit(row);
-    return;
-  }
-  // 所有系统管理项都合并到主机画像弹窗
-  const tabMap: Record<string, string> = {
-    "online": "process",
-    "metric": "process",
-    "delay": "process",
-    "process": "process",
-    "system-service": "service",
-    "network-interface": "network-interface",
-    "network-connection": "network-connection",
-    "disk": "disk",
-    "partition": "disk",
-    "firewall": "firewall",
-    "driver": "driver",
-  };
-  const tab = tabMap[cmd] || "process";
-  openSysMgr(tab, row);
+function resetFilters(): void {
+  keyword.value = "";
+  statusFilter.value = "all";
+  groupFilter.value = null;
+  collapsedGroups.value = new Set();
 }
 
 function openAdd(): void {
@@ -1020,85 +924,13 @@ function isAgentInstalled(h: Host): boolean {
 }
 
 /**
- * 表格「更多」下拉命令分发
- * @param cmd 下拉项 command
- * @param h 当前行主机
- */
-function runRowCommand(cmd: string, h: Host): void {
-  switch (cmd) {
-    case "detail": openDetail(h); break;
-    case "scan": scanHostPorts(h); break;
-    case "profile": openSysMgr("disk", h); break;
-    case "edit": openEdit(h); break;
-    case "install-nginx": onOpenInstall(h); break;
-    case "agent-install": openDeploy(h, "install"); break;
-    case "agent-reinstall": openDeploy(h, "reinstall"); break;
-    case "agent-upgrade": openDeploy(h, "upgrade"); break;
-    case "agent-uninstall": openDeploy(h, "uninstall"); break;
-    case "delete": removeHost(h); break;
-    default: break;
-  }
-}
-
-/** 右键上下文菜单状态 */
-const ctxMenu = reactive<{ visible: boolean; x: number; y: number; host: Host | null }>({
-  visible: false,
-  x: 0,
-  y: 0,
-  host: null,
-});
-/** 菜单估算尺寸，用于边缘翻转避免超出视口 */
-const CTX_MENU_W = 208;
-const CTX_MENU_H = 380;
-/** 打开右键菜单（卡片/表格行右键触发） */
-function openCtxMenu(event: MouseEvent, h: Host): void {
-  event.preventDefault();
-  let x = event.clientX;
-  let y = event.clientY;
-  if (x + CTX_MENU_W > window.innerWidth - 8) x = window.innerWidth - CTX_MENU_W - 8;
-  if (y + CTX_MENU_H > window.innerHeight - 8) y = window.innerHeight - CTX_MENU_H - 8;
-  ctxMenu.host = h;
-  ctxMenu.x = Math.max(8, x);
-  ctxMenu.y = Math.max(8, y);
-  ctxMenu.visible = true;
-}
-/** 关闭右键菜单 */
-function closeCtxMenu(): void {
-  ctxMenu.visible = false;
-  ctxMenu.host = null;
-}
-/** 右键菜单命令分发（连接/编辑直连本组件方法，其余走行命令） */
-function ctxCommand(cmd: string): void {
-  const h = ctxMenu.host;
-  closeCtxMenu();
-  if (!h) return;
-  if (cmd === "connect") { openConnect(h); return; }
-  if (cmd === "edit") { openEdit(h); return; }
-  runRowCommand(cmd, h);
-}
-/** 表格根上的原生右键：把 <tr> 按行序号映射回主机并打开统一菜单（主表体/固定列同序）
+ * 切换主机的远控启用状态。
  *
- * <p>选择器必须**同时**认两套引擎的行类名：本页 ReTable 未传 engine，当前走默认的
- * element 引擎（{@code tr.el-table__row}）；一旦该表格改用 {@code engine="vxe"}，
- * 行会变成 {@code tr.vxe-body--row}，只写 element 那支时 closest 返回 null、
- * 这里直接 return，右键菜单**静默失效且不报错**，排查成本很高。</p>
+ * <p>右键菜单里的「启用/停用远控」：停用后该主机不再出现在远控入口，
+ * 但台账与画像数据保留 —— 这是「暂时不给连」而不是「删掉这台机器」。</p>
  *
- * <p>固定列（element 的 fixed / vxe 的 fixed-right wrapper）会各自渲染一份同序、
- * 同数量的行，所以在任一 tbody 内取 :scope 直接子行，序号都与 filtered 对齐。</p>
+ * @param h 主机
  */
-function onTableContextMenu(event: MouseEvent): void {
-  const target = event.target as HTMLElement | null;
-  const tr = target?.closest?.("tr.el-table__row, tr.vxe-body--row") as HTMLElement | null;
-  if (!tr) return;
-  const tbody = tr.parentElement;
-  if (!tbody) return;
-  const rows = Array.from(
-    tbody.querySelectorAll(":scope > tr.el-table__row, :scope > tr.vxe-body--row"),
-  );
-  const idx = rows.indexOf(tr);
-  const h = filtered.value[idx];
-  if (h) openCtxMenu(event, h);
-}
 async function toggleHost(h: Host): Promise<void> {
   try {
     await switchHost(h.id, h.serverHostRemoteEnabled !== 1);
@@ -1108,17 +940,172 @@ async function toggleHost(h: Host): Promise<void> {
     message.error(String((e as Error)?.message ?? e));
   }
 }
-async function batchDelete(): Promise<void> {
-  if (selection.value.length === 0) return;
-  await ElMessageBox.confirm(`批量删除 ${selection.value.length} 台主机？`, "批量删除", { type: "warning" });
-  let ok = 0;
-  for (const h of selection.value) {
-    try { await delHost(h.id); ok++; } catch { /* 单条失败继续 */ }
+
+/* ==================== 底部状态条数据 ==================== */
+
+/**
+ * 状态条上的三条占用率。
+ *
+ * <p>优先用 socket 实时值（{@link rtMetrics}），没有就退回台账里最近一次采集的落库值。
+ * 两者都没有时返回 0 并由 {@code hasMetrics} 标成「等待采集」——
+ * 显示成 0% 会被读成「这台机器一点负载都没有」，与「没采到」是两件事。</p>
+ */
+const statusMetrics = computed(() => {
+  const h = statusHost.value;
+  if (!h) return { cpu: 0, mem: 0, disk: 0, has: false };
+  const live = rtMetrics[h.id];
+  if (live) {
+    return { cpu: live.cpu ?? 0, mem: live.mem ?? 0, disk: live.disk ?? 0, has: true };
   }
-  message.success(`删除 ${ok}/${selection.value.length}`);
-  selection.value = [];
-  await fetchAll();
+  const cpu = h.serverHostCpuUsage;
+  const mem = h.serverHostMemUsage;
+  const disk = h.serverHostDiskUsage;
+  const has = cpu != null || mem != null || disk != null;
+  return {
+    cpu: Number(cpu) || 0,
+    mem: Number(mem) || 0,
+    disk: Number(disk) || 0,
+    has,
+  };
+});
+
+/** 概要浮层里的行（原先画像页左侧那套「概要信息」） */
+const statusOverviewRows = computed<MetricRow[]>(() => {
+  const h = statusHost.value;
+  if (!h) return [];
+  const dash = (v: unknown) => {
+    const s = v == null ? "" : String(v).trim();
+    return s ? s : "—";
+  };
+  const rows: MetricRow[] = [
+    { label: "操作系统", value: dash([h.serverHostOsType, h.serverHostOsVersion].filter(Boolean).join(" ")) },
+    { label: "架构", value: dash(h.serverHostOsArch) },
+    { label: "CPU 核心", value: h.serverHostCpuCores ? `${h.serverHostCpuCores} 核` : "—" },
+    { label: "内存", value: h.serverHostMemoryMb ? `${(h.serverHostMemoryMb / 1024).toFixed(1)} GB` : "—" },
+    { label: "磁盘", value: h.serverHostDiskGb ? `${h.serverHostDiskGb} GB` : "—" },
+    { label: "地址", value: dash(`${h.serverHostAddress}:${h.serverHostPort}`), mono: true },
+    { label: "内网 IP", value: dash(h.serverHostPrivateIp), mono: true },
+    { label: "公网 IP", value: dash(h.serverHostPublicIp), mono: true },
+    { label: "协议", value: protocolOf(h).toUpperCase() },
+    { label: "采集方式", value: collectModeLabel(h.serverHostCollectMode) },
+    { label: "分组", value: groupName(h.msServerGroupId) },
+    { label: "标签", value: dash(splitTags(h.serverHostTags).join(" / ")) },
+    { label: "最近采集", value: dash(h.serverHostLastCollectTime) },
+    { label: "已扫描端口", value: parsePorts(h.serverHostPorts).length ? `${parsePorts(h.serverHostPorts).length} 个` : "未扫描" },
+    { label: "Agent", value: h.serverHostAgentInstalled === 1 ? `v${h.serverHostAgentVersion || "?"}` : "未安装" },
+  ];
+  if (h.serverHostDescription) {
+    rows.push({ label: "备注", value: h.serverHostDescription });
+  }
+  return rows;
+});
+
+/* ==================== 左侧栏与页签查询辅助 ==================== */
+
+/**
+ * 左侧状态筛选档位（带计数）。
+ *
+ * <p>计数跟着实时在线状态走而不是台账状态：{@code serverHostStatus} 是上一次落库的值，
+ * 主机刚掉线时它还写着「在线」，筛选出来却是一排灰点，看着像筛选坏了。</p>
+ */
+const statusFilters = computed(() => [
+  { value: "all" as const, label: "全部", count: hosts.value.length },
+  { value: "online" as const, label: "在线", count: onlineCount.value },
+  { value: "offline" as const, label: "离线", count: offlineCount.value },
+  { value: "remote" as const, label: "可远控", count: remoteCount.value },
+]);
+
+/**
+ * 点击左侧主机行：只做选中，不动工作区。
+ *
+ * <p>刻意不自动开页签：浏览列表时会一路点过去，每点一台就开一个「指标监控」
+ * 等于给工作区灌一堆没人看的页签，还要一个个关。开什么由右键菜单决定。</p>
+ *
+ * @param h 主机
+ */
+function selectHost(h: Host): void {
+  selectedHost.value = h;
 }
+
+/**
+ * 按 name 取工作区页签。
+ *
+ * <p>模板里拿到的是 ReTabs 回传的 {@link ReTabsItem}，它不带主机上下文，
+ * 所以内容区分支一律通过 name 回查本数组，而不是往 ReTabsItem 上强转。</p>
+ *
+ * @param name 页签 name
+ */
+function tabOf(name: string): WorkTab | undefined {
+  return openTabs.value.find(t => t.name === name);
+}
+
+/**
+ * 页签的功能类型
+ *
+ * @param name 页签 name
+ */
+function tabKindOf(name: string): TabKind | undefined {
+  return tabOf(name)?.kind;
+}
+
+/**
+ * 页签绑定的主机 id（找不到时为 0，子组件据此走空态而不是崩）
+ *
+ * @param name 页签 name
+ */
+function tabHostIdOf(name: string): number {
+  return tabOf(name)?.hostId ?? 0;
+}
+
+/**
+ * 页签对应的画像分区 key（非画像页签返回空串）
+ *
+ * @param name 页签 name
+ */
+function tabSectionOf(name: string): string {
+  const kind = tabKindOf(name);
+  if (!kind) return "";
+  return TAB_KINDS[kind]?.section ?? "";
+}
+
+/**
+ * 主机平台标识（文件管理用它决定路径分隔符与命令集）
+ *
+ * @param hostId 主机 id
+ */
+function platformOf(hostId: number): string {
+  const h = hosts.value.find(x => x.id === hostId);
+  return (h?.serverHostOsType || "LINUX").toUpperCase();
+}
+
+/**
+ * 主机列表或实时在线状态变化时，把页签标题与状态点、以及左侧选中项同步到最新数据。
+ *
+ * <p>{@code hosts} 每次刷新都是新对象数组，若不同步，页签上会一直挂着改名前的
+ * 主机名和刷新前的在线点；{@code selectedHost} 也会指向上一次的对象，
+ * 底部状态条读到的就是旧指标。</p>
+ */
+watch([hosts, liveOnline], () => {
+  const patch = (h: Host): Partial<ReTabsItem> => ({
+    label: h.serverHostName,
+    status: liveOnlineState(h) === 1 ? "online" : "offline",
+  });
+  let changed = false;
+  const next = openTabs.value.map(t => {
+    const h = hosts.value.find(x => x.id === t.hostId);
+    if (!h) return t;
+    const p = patch(h);
+    if (p.label === t.label && p.status === t.status) return t;
+    changed = true;
+    return { ...t, ...p };
+  });
+  if (changed) openTabs.value = next;
+
+  if (selectedHost.value) {
+    const fresh = hosts.value.find(x => x.id === selectedHost.value?.id);
+    if (fresh && fresh !== selectedHost.value) selectedHost.value = fresh;
+  }
+});
 
 onMounted(() => {
   fetchAll();
@@ -1167,15 +1154,12 @@ onMounted(() => {
       const d = (msg.data ?? msg) as { hostId?: number; cpu?: number; mem?: number; disk?: number };
       if (!realtimeEnabled.value) return;
       if (d && d.hostId != null) {
-        const cpu = Math.round((Number(d.cpu) || 0) * 10) / 10;
         rtMetrics[d.hostId] = {
-          cpu,
+          cpu: Math.round((Number(d.cpu) || 0) * 10) / 10,
           mem: Math.round((Number(d.mem) || 0) * 10) / 10,
           disk: Math.round((Number(d.disk) || 0) * 10) / 10,
           tx: '—', rx: '—'
         };
-        // 同步进趋势缓冲，卡片右侧折线才有时序形状
-        pushTrend(d.hostId, cpu);
       }
     } catch { /* 静默 */ }
   });
@@ -1256,426 +1240,171 @@ function osTileClass(h: Host): string {
       <ReButton icon="RefreshRight" type="primary" :show-text="true" @click="fetchAll">重试</ReButton>
     </div>
 
-    <!-- 统计卡：ReStatCard 紧凑档，与「账号管理 / 代理管理」同规格 -->
-    <section class="host-kpis">
-      <ReStatCard
-        v-for="k in hostKpis"
-        :key="k.key"
-        size="compact"
-        :title="k.title"
-        :value="k.value"
-        :desc="k.desc"
-        :icon="k.icon"
-        :icon-color="k.iconColor"
-      >
-        <!-- 口径说明挂在标题旁：按需浮层，不占版面。
-             注解与卡同 key 绑定，改卡片时不会漏改注解。 -->
-        <template #title>
-          <span class="kpi-title">
-            <span class="kpi-title__text">{{ k.title }}</span>
-            <ElTooltip
-              v-if="noteOf(k.key)"
-              :content="noteOf(k.key)"
-              placement="top"
-              :show-after="200"
-            >
-              <span class="kpi-title__tip" @click.stop>
-                <ReIcon name="QuestionFilled" :size="12" />
-              </span>
-            </ElTooltip>
-          </span>
-        </template>
-      </ReStatCard>
-    </section>
-
-    <!-- 筛选条（对齐 UI 稿：独立白色圆角面板） -->
-    <div class="as-panel as-filter">
-      <div class="filter">
-        <ReFilter
-          :items="filterItems"
-          :columns="3"
-          :collapsible="false"
-          :show-actions="false"
-          @change="onFilterChange"
-          @reset="onFilterReset"
-          style="flex:1;min-width:0"
-        >
-          <template #tag>
-            <div v-if="allTags.length" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
-              <span class="muted">标签:</span>
-              <ReTag
-                v-for="t in allTags"
-                :key="t"
-                :class="['chip', { active: filterState.tag === t }]"
-                @click="filterState.tag = filterState.tag === t ? '' : t"
-              >{{ t }}</ReTag>
-            </div>
-          </template>
-        </ReFilter>
-        <span v-if="filtered.length !== hosts.length" class="muted">{{ filtered.length }} / {{ hosts.length }}</span>
-        <div class="view-toggle">
-          <button class="vt-btn" :class="{ active: viewMode === 'card' }" @click="viewMode = 'card'">
-            <ReIcon name="Grid" :size="14" />卡片
-          </button>
-          <button class="vt-btn" :class="{ active: viewMode === 'table' }" @click="viewMode = 'table'">
-            <ReIcon name="Menu" :size="14" />列表
-          </button>
+    <div class="as-body">
+    <!-- ==================== 左侧：主机资源栏 ==================== -->    <aside class="as-rail">
+      <div class="rail-head">
+        <div class="rail-head__row">
+          <span class="rail-head__title">主机资产</span>
+          <span class="rail-head__count">{{ filtered.length }}<i>/{{ hosts.length }}</i></span>
+          <span class="rail-head__gap" />
+          <ReButton icon="RefreshRight" layout="square" tip="刷新列表" :loading="loading" @click="fetchAll" />
+          <ReButton icon="Plus" layout="square" type="primary" tip="新增主机" @click="openAdd" />
         </div>
-        <!-- 操作区：统一 ReButton square（图标 + tip），落在视图切换右侧 -->
-        <div class="filter-ops">
-          <label class="color-switch">
-            <span>实时监控</span>
-            <el-switch v-model="realtimeEnabled" @change="onRealtimeToggle" />
-          </label>
-          <ReButton icon="RefreshRight" layout="square" tip="刷新" :loading="loading" @click="fetchAll" />
-          <!-- 「新增资产」= 点击直接开表单（最高频动作）；右侧箭头才是功能区菜单：
-               刷新 / 视图切换 / 实时监控 / 重置筛选 收敛到一处。
-               用 split 而不是「整颗按钮都弹菜单」——后者让最高频的「新增」多一次点击。 -->
-          <div class="filter-ops__add" v-click-outside-menu="closeToolbarMenu">
-            <ReButton icon="Plus" layout="square" type="primary" tip="新增资产" @click="openAdd" />
-            <!-- 用原生 v-show 定位菜单，不依赖 el-popover / el-dropdown：
-                 当前构建下 Element 的 popper 触发器链路大面积失效（全页 84 个
-                 .el-tooltip__trigger 里只有 3 个拿到 aria-haspopup），点开是空响应。 -->
-            <button
-              class="filter-ops__add-more"
-              type="button"
-              title="更多功能"
-              aria-label="更多功能"
-              aria-haspopup="menu"
-              :aria-expanded="toolbarMenuOpen ? 'true' : 'false'"
-              @click.stop="toolbarMenuOpen = !toolbarMenuOpen"
-            >
-              <ReIcon name="ArrowDown" :size="12" />
-            </button>
-            <transition name="hc-menu-fade">
-              <div v-show="toolbarMenuOpen" class="hc-more-menu hc-more-menu--anchor" role="menu">
-                <button class="hc-more-item" @click="onToolbarCommand('add-host'); toolbarMenuOpen = false"><ReIcon name="Plus" />新增主机</button>
-                <div class="hc-more-sep" />
-                <button class="hc-more-item" @click="onToolbarCommand('refresh'); toolbarMenuOpen = false"><ReIcon name="RefreshRight" />刷新列表</button>
-                <button class="hc-more-item" @click="onToolbarCommand('card-mode'); toolbarMenuOpen = false"><ReIcon name="Grid" />卡片视图</button>
-                <button class="hc-more-item" @click="onToolbarCommand('table-mode'); toolbarMenuOpen = false"><ReIcon name="Menu" />列表视图</button>
-                <button class="hc-more-item" @click="onToolbarCommand('toggle-realtime'); toolbarMenuOpen = false"><ReIcon name="TrendCharts" />{{ realtimeEnabled ? '关闭' : '开启' }}实时监控</button>
-                <div class="hc-more-sep" />
-                <button class="hc-more-item" @click="onToolbarCommand('reset-filter'); toolbarMenuOpen = false"><ReIcon name="Refresh" />重置筛选</button>
-              </div>
-            </transition>
-          </div>
+        <ReInput v-model="keyword" placeholder="搜索名称 / IP / 标签" clearable class="rail-head__search" />
+        <div class="rail-filters">
+          <button
+            v-for="f in statusFilters"
+            :key="f.value"
+            type="button"
+            class="rail-chip"
+            :class="{ 'is-active': statusFilter === f.value }"
+            @click="statusFilter = f.value"
+          >
+            <span>{{ f.label }}</span>
+            <b>{{ f.count }}</b>
+          </button>
         </div>
       </div>
-    </div>
 
-        <!-- 卡片视图（默认）：吃满一行，显示详细指标
-             用 el-card 而非 ReCard：el-card 支持 header / footer 插槽，结构与页面一致；
-             底下把它的页面级装饰复位成扁平容器，视觉与页面其余面板统一。 -->
-      <div
-        v-if="viewMode === 'card'"
-        class="host-card-grid"
-        :class="{ 'host-card-grid--empty': filtered.length === 0 }"
-      >
-        <ElCard
-          v-for="h in filtered"
-          :key="h.id"
-          :body-style="{ paddingTop: '10px', paddingBottom: '10px' }"
-          @contextmenu="openCtxMenu($event, h)"
-        >
-          <template #header>
-            <div class="hc-head">
-              <span class="hc-os" :class="osTileClass(h)">
+      <ReScrollbar class="rail-list">
+        <div v-for="g in groupedHosts" :key="g.id" class="rail-group">
+          <button type="button" class="rail-group__head" @click="toggleGroup(g.id)">
+            <ReIcon :name="collapsedGroups.has(g.id) ? 'ArrowRight' : 'ArrowDown'" :size="11" />
+            <span class="rail-group__dot" :style="groupColorStyle(g.id)" />
+            <span class="rail-group__name">{{ g.name }}</span>
+            <span class="rail-group__stat"><b>{{ g.online }}</b>/{{ g.hosts.length }}</span>
+          </button>
+          <template v-if="!collapsedGroups.has(g.id)">
+            <div
+              v-for="h in g.hosts"
+              :key="h.id"
+              class="rail-host"
+              :class="{ 'is-active': statusHost?.id === h.id, 'is-off': liveOnlineState(h) !== 1 }"
+              @click="selectHost(h)"
+              @dblclick="openTab(h, 'metrics')"
+              @contextmenu="openCtxMenu($event, h)"
+            >
+              <span class="rail-host__os" :class="osTileClass(h)">
                 <span v-html="osIconSvg(h.serverHostOsType)"></span>
               </span>
-              <div class="hc-name-wrap">
-                <div class="hc-title-row">
-                  <b class="hc-name">{{ h.serverHostName }}</b>
-                  <span v-if="h.serverHostOsType" class="hc-os-tag" :title="h.serverHostOsVersion || h.serverHostOsType">{{ h.serverHostOsType }}</span>
-                  <span class="hc-online" :class="liveOnlineState(h) === 1 ? 'is-on' : 'is-off'">
-                    <i class="hc-dot" />{{ liveOnlineState(h) === 1 ? '在线' : '离线' }}
-                  </span>
-                </div>
-                <div class="hc-addr mono">{{ h.serverHostAddress }}:{{ h.serverHostPort }}</div>
-                <div v-if="h.serverHostPublicIp || h.serverHostPrivateIp" class="hc-ip mono">
-                  <span v-if="h.serverHostPublicIp">公网 {{ h.serverHostPublicIp }}</span>
-                  <span v-if="h.serverHostPublicIp && h.serverHostPrivateIp" class="hc-ip-sep">·</span>
-                  <span v-if="h.serverHostPrivateIp">内网 {{ h.serverHostPrivateIp }}</span>
-                </div>
-              </div>
+              <span class="rail-host__meta">
+                <b class="rail-host__name">{{ h.serverHostName }}</b>
+                <span class="rail-host__addr mono">{{ h.serverHostAddress }}</span>
+              </span>
+              <span class="rail-host__right">
+                <span class="rail-host__delay mono" :class="{ bad: delayBad(liveDelayMs(h)) }">{{ delayText(liveDelayMs(h)) }}</span>
+                <i class="rail-host__dot" :class="liveOnlineState(h) === 1 ? 'is-on' : 'is-off'" />
+              </span>
             </div>
           </template>
+        </div>
 
-          <!-- 关键属性胶囊（延迟 / 采集 / 协议 / Agent） -->
-          <div class="hc-chips">
-            <span class="hc-chip">
-              <i>延迟</i>
-              <b class="mono" :class="{ bad: delayBad(liveDelayMs(h)) }">{{ delayText(liveDelayMs(h)) }}</b>
-            </span>
-            <span class="hc-chip"><i>采集</i><b>{{ collectModeShort(h.serverHostCollectMode) }}</b></span>
-            <span class="hc-chip"><i>协议</i><b>{{ protocolOf(h).toUpperCase() }}</b></span>
-            <span class="hc-chip"><i>Agent</i><b>{{ h.serverHostAgentEnabled === 1 ? '已注册' : '未注册' }}</b></span>
-          </div>
+        <div v-if="!filtered.length" class="rail-empty">
+          <ReIcon name="Files" :size="22" />
+          <span>{{ emptyDescription }}</span>
+          <ReButton v-if="loadError" icon="RefreshRight" type="primary" :show-text="true" @click="fetchAll">重试</ReButton>
+          <ReButton v-else-if="hasHosts" icon="Refresh" :show-text="true" @click="resetFilters">重置筛选</ReButton>
+          <ReButton v-else type="primary" icon="Plus" :show-text="true" @click="openAdd">新增主机</ReButton>
+        </div>
+      </ReScrollbar>
 
-          <!-- 实时指标区：左侧条形 + 右侧 CPU 趋势迷你图（socket host-metrics 推送） -->
-          <div v-if="realtimeEnabled && rtMetrics[h.id]" class="hc-metrics">
-            <div class="hc-metrics__bars">
-              <div class="hc-bar-row">
-                <span class="hc-bar-label">CPU</span>
-                <ElProgress
-                  :percentage="Math.round(rtMetrics[h.id].cpu ?? 0)"
-                  :color="barColor(rtMetrics[h.id].cpu)"
-                  :stroke-width="16"
-                  :show-text="false"
-                  class="hc-bar-progress"
-                />
-                <span class="hc-bar-val">{{ (rtMetrics[h.id].cpu ?? 0).toFixed(1) }}%</span>
-              </div>
-              <div class="hc-bar-row">
-                <span class="hc-bar-label">内存</span>
-                <ElProgress
-                  :percentage="Math.round(rtMetrics[h.id].mem ?? 0)"
-                  :color="barColor(rtMetrics[h.id].mem)"
-                  :stroke-width="16"
-                  :show-text="false"
-                  class="hc-bar-progress"
-                />
-                <span class="hc-bar-val">{{ (rtMetrics[h.id].mem ?? 0).toFixed(1) }}%</span>
-              </div>
-              <div class="hc-bar-row">
-                <span class="hc-bar-label">磁盘</span>
-                <ElProgress
-                  :percentage="Math.round(rtMetrics[h.id].disk ?? 0)"
-                  :color="barColor(rtMetrics[h.id].disk)"
-                  :stroke-width="16"
-                  :show-text="false"
-                  class="hc-bar-progress"
-                />
-                <span class="hc-bar-val">{{ (rtMetrics[h.id].disk ?? 0).toFixed(1) }}%</span>
-              </div>
-            </div>
-
-            <!-- 右侧可视化：CPU 时序折线 + 三项占用环，一眼看出负载走势而不只是当前值 -->
-            <div class="hc-metrics__viz" :title="`CPU 趋势（最近 ${TREND_POINTS} 次采样）`">
-              <div class="hc-viz-head">
-                <span class="hc-viz-title">CPU 趋势</span>
-                <span class="hc-viz-delta" :class="trendDeltaClass(h.id)">{{ trendDeltaText(h.id) }}</span>
-              </div>
-              <ReEcharts class="hc-viz-chart" :option="trendOption(h.id)" height="52px" />
-              <div class="hc-viz-rings">
-                <span class="hc-ring" :style="ringStyle(rtMetrics[h.id].cpu)">
-                  <b>{{ Math.round(rtMetrics[h.id].cpu ?? 0) }}</b><i>CPU</i>
-                </span>
-                <span class="hc-ring" :style="ringStyle(rtMetrics[h.id].mem)">
-                  <b>{{ Math.round(rtMetrics[h.id].mem ?? 0) }}</b><i>内存</i>
-                </span>
-                <span class="hc-ring" :style="ringStyle(rtMetrics[h.id].disk)">
-                  <b>{{ Math.round(rtMetrics[h.id].disk ?? 0) }}</b><i>磁盘</i>
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 无实时指标时的占位：主机还没采集到使用率（MANUAL / 离线 / 刚加入）时，
-               不渲染指标区，但要占住同样的高度 —— 否则同一行的卡片高低不齐、
-               操作栏也会跳到不同位置，看起来像「渲染坏了」。 -->
-          <div v-else-if="realtimeEnabled" class="hc-metrics hc-metrics--empty">
-            <span class="hc-metrics__placeholder">
-              <ReIcon name="DataLine" :size="14" />
-              {{ rtMetricsMissingText(h) }}
-            </span>
-          </div>
-
-          <!-- 分组 + 标签（无分组无标签时整块不渲染，不再显示“未分组”） -->
-          <div v-if="h.msServerGroupId || splitTags(h.serverHostTags).length" class="hc-tags">
-            <ReTag
-              v-if="h.msServerGroupId"
-
-              :value="String(h.msServerGroupId)"
-              :tag-options="[{ dictValue: String(h.msServerGroupId), dictLabel: groupName(h.msServerGroupId), dictTag: 'primary' }]"
-            />
-            <ReTag
-              v-for="t in splitTags(h.serverHostTags)"
-              :key="t"
-
-              :value="t"
-              :tag-options="[{ dictValue: t, dictLabel: t, dictTag: 'info' }]"
-            />
-          </div>
-
-          <!-- 端口：收敛为单个标签，hover 弹层列出全部 -->
-          <div v-if="parsePorts(h.serverHostPorts).length" class="hc-ports">
-            <ElPopover trigger="hover" placement="top-start" :width="260" popper-class="ports-popover">
-              <template #reference>
-                <ReTag effect="plain" type="info">端口 {{ parsePorts(h.serverHostPorts).length }}</ReTag>
-              </template>
-              <div class="ports-pop-list">
-                <div v-for="p in parsePorts(h.serverHostPorts)" :key="p.port" class="ports-pop-item">
-                  <span class="mono">{{ portText(p) }}</span>
-                  <span v-if="portStatusM(p.state).open !== null" class="port-status" :class="portStatusM(p.state).open ? 'ps-open' : 'ps-closed'">
-                    <i class="ps-dot"></i>{{ portStatusM(p.state).text }}
-                  </span>
-                </div>
-              </div>
-            </ElPopover>
-          </div>
-
-          <!-- 卡片操作：只保留两个主操作，图标态 + 悬停提示。
-               原先「远控 / 监控 / 扫描 / 更多」四个文字按钮要占一整行（约 61px），
-               窄卡片里还会折行；扫描与其余低频动作已收敛到右上角功能菜单与右键菜单。
-               图标态点击区仍是 28px，且都带 title，识别成本低于多占一行的收益。 -->
-          <template #footer>
-            <div class="hc-actions">
-              <ReButton icon="Connection" layout="square" type="primary" tip="远控" @click="openConnect(h)" />
-              <ReButton icon="TrendCharts" layout="square" tip="监控" @click="openDetail(h)" />
-              <!-- 「更多」= 原生定位菜单（同顶部功能区）：不依赖 Element 的 popper 触发器链路 -->
-              <div class="hc-more-wrap" v-click-outside-menu="closeMoreMenu">
-                <button
-                  class="hc-more"
-                  type="button"
-                  title="更多操作"
-                  aria-label="更多操作"
-                  aria-haspopup="menu"
-                  :aria-expanded="morePopover === h.id ? 'true' : 'false'"
-                  @click.stop="morePopover = morePopover === h.id ? null : h.id"
-                >
-                  <ReIcon name="MoreFilled" :size="14" />
-                </button>
-                <transition name="hc-menu-fade">
-                  <div v-show="morePopover === h.id" class="hc-more-menu hc-more-menu--anchor" role="menu">
-                    <button class="hc-more-item" @click="runRowCommand('scan', h); morePopover = null"><ReIcon name="Aim" />端口扫描</button>
-                    <button class="hc-more-item" @click="runRowCommand('profile', h); morePopover = null"><ReIcon name="Histogram" />主机画像</button>
-                    <button class="hc-more-item" @click="runRowCommand('edit', h); morePopover = null"><ReIcon name="EditPen" />编辑主机</button>
-                    <div class="hc-more-sep" />
-                    <button class="hc-more-item" @click="runRowCommand('install-nginx', h); morePopover = null"><ReIcon name="Box" />安装 Nginx</button>
-                    <template v-if="isAgentMode(h) && !isAgentInstalled(h)">
-                      <div class="hc-more-sep" />
-                      <button class="hc-more-item" @click="runRowCommand('agent-install', h); morePopover = null"><ReIcon name="Download" />安装 Agent</button>
-                    </template>
-                    <template v-else-if="isAgentMode(h)">
-                      <div class="hc-more-sep" />
-                      <button class="hc-more-item" @click="runRowCommand('agent-reinstall', h); morePopover = null"><ReIcon name="RefreshRight" />重装 Agent</button>
-                      <button class="hc-more-item" @click="runRowCommand('agent-upgrade', h); morePopover = null"><ReIcon name="Top" />升级 Agent</button>
-                      <button class="hc-more-item" @click="runRowCommand('agent-uninstall', h); morePopover = null"><ReIcon name="DeleteFilled" />卸载 Agent</button>
-                    </template>
-                    <div class="hc-more-sep" />
-                    <button class="hc-more-item is-danger" @click="runRowCommand('delete', h); morePopover = null"><ReIcon name="Delete" />删除主机</button>
-                  </div>
-                </transition>
-              </div>
-            </div>
-          </template>
-        </ElCard>
-        <!-- 空态：外层套一个独立 el-card，与主机卡片同规格（同一套边框/圆角/阴影），
-             避免 ElEmpty 裸放在 grid 里时和卡片容器风格不一致。
-             空态分三种：加载失败 / 一台都没有 / 筛选用完没匹配上。
-             加载失败单列一种是有意的：此时 hosts 是空数组，按前两种判都会说成
-             「暂无主机」或「没有匹配」，把「没读到」说成「没有」是误导 ——
-             虽然顶部已有红条，但空态卡本身也该自解释。 -->
-        <ElCard v-if="filtered.length === 0" class="hc-empty-card" shadow="never">
-          <ElEmpty
-            :description="emptyDescription"
-            :image-size="120"
-          >
-            <ReButton v-if="loadError" icon="RefreshRight" type="primary" :show-text="true" @click="fetchAll">重试</ReButton>
-            <ReButton v-else-if="hasHosts" icon="Refresh" :show-text="true" @click="resetFilters">重置筛选</ReButton>
-            <ReButton v-else type="primary" icon="Plus" :show-text="true" @click="openAdd">新增主机</ReButton>
-          </ElEmpty>
-        </ElCard>
+      <div class="rail-foot">
+        <span class="rail-foot__hint"><ReIcon name="Mouse" :size="11" />右键主机打开功能</span>
+        <span class="rail-foot__sum">
+          <i class="is-on" />{{ onlineCount }}
+          <i class="is-off" />{{ offlineCount }}
+        </span>
       </div>
+    </aside>
 
-      <!-- 表格视图 -->
-      <ReTable
-        v-else
-        :data="filtered.map(h => ({ ...h }))"
-        :columns="tableColumns"
-        :loading="loading"
-        :table-id="'asset-host-list'"
-
-        border
-        style="width:100%"
-        empty-text="暂无主机"
-        :toolbar="true"
-        :toolbar-config="{ position: 'top', refresh: true, columnSettings: true, tableSettings: true, batchSelect: { enabled: true, tip: '批量选择' }, batchDelete: { enabled: true, confirmMessage: '确认批量删除选中的主机？', handler: batchDelete } }"
-        @selection-change="selection = $event"
-        @contextmenu="onTableContextMenu"
+    <!-- ==================== 右侧：多标签工作区 ==================== -->
+    <section class="as-work">
+      <ReTabs
+        v-model="activeTab"
+        :tabs="openTabs"
+        closable
+        show-close-all
+        :context-menu="tabContextMenu"
+        empty-text="右键左侧主机，选择要打开的功能"
+        @close="closeTab"
+        @close-all="closeAllTabs"
+        @context-command="onTabCommand"
       >
-        <template #col-name="{ row }">
-          <span class="h-os">
-            <span v-html="osIconSvg(row.serverHostOsType)"></span>
-          </span>
-          <b style="vertical-align:middle;margin-left:6px">{{ row.serverHostName }}</b>
-        </template>
-        <template #col-addr="{ row }"><span class="mono">{{ row.serverHostAddress }}:{{ row.serverHostPort }}</span></template>
-        <template #col-group="{ row }">
-          <ReTag
-            v-if="row.msServerGroupId"
-
-            :value="String(row.msServerGroupId)"
-            :tag-options="[{ dictValue: String(row.msServerGroupId), dictLabel: groupName(row.msServerGroupId), dictTag: 'primary' }]"
+        <template #default="{ tab }">
+          <!-- 画像分区：复用 HostProfileView 的单分区嵌入模式 -->
+          <HostProfileView
+            v-if="tabSectionOf(tab.name)"
+            :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
+            embedded
+            :hosts="hosts"
+            :groups="groups"
+            :host-id="tabHostIdOf(tab.name)"
+            :section="tabSectionOf(tab.name)"
+            :live-delay="liveDelay"
+            :live-online="liveOnline"
+            @connect="openConnect"
+            @edit="openEdit"
+            @detail="(h) => openTab(h, 'metrics')"
+            @deploy-agent="(h) => openDeploy(h, 'install')"
+            @refreshed="fetchAll"
+          />
+          <!-- 远控 -->
+          <TerminalView
+            v-else-if="tabKindOf(tab.name) === 'remote'"
+            :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
+            embedded
+            :host-id="tabHostIdOf(tab.name)"
+            :identity-id="tabOf(tab.name)?.identityId ?? null"
+          />
+          <!-- 文件管理 -->
+          <HostFileManager
+            v-else-if="tabKindOf(tab.name) === 'files'"
+            :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
+            :host-id="tabHostIdOf(tab.name)"
+            :platform="platformOf(tabHostIdOf(tab.name))"
+            :initial-path="tabOf(tab.name)?.path ?? ''"
+          />
+          <!-- 指标监控 -->
+          <HostDetailView
+            v-else-if="tabKindOf(tab.name) === 'metrics'"
+            :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
+            embedded
+            :host-id="tabHostIdOf(tab.name)"
           />
         </template>
-        <template #col-tags="{ row }">
-          <div v-if="splitTags(row.serverHostTags).length" style="display:flex;gap:4px;flex-wrap:wrap">
-            <ReTag v-for="t in splitTags(row.serverHostTags)" :key="t" :value="t" :tag-options="[{ dictValue: t, dictLabel: t, dictTag: 'info' }]" />
-          </div>
-          <span v-else class="dim">—</span>
-        </template>
-        <template #col-proto="{ row }">
-          <ReTag :value="protocolOf(row)" :tag-options="[
-            { dictValue: 'ssh', dictLabel: 'SSH', dictTag: 'primary' },
-            { dictValue: 'rdp', dictLabel: 'RDP', dictTag: 'warning' },
-            { dictValue: 'vnc', dictLabel: 'VNC', dictTag: 'info' },
-          ]" />
-        </template>
-        <template #col-status="{ row }">
-          <span class="st-cell"><ReStatusIndicator :type="liveOnlineState(row) === 1 ? 'success' : 'danger'" />{{ liveOnlineState(row) === 1 ? '在线' : '离线' }}</span>
-        </template>
-        <template #col-delay="{ row }">
-          <span class="delay-live" :class="{ bad: delayBad(liveDelayMs(row)) }">{{ delayText(liveDelayMs(row)) }}</span>
-        </template>
-        <template #col-agent="{ row }">
-          <ReTag :value="row.serverHostAgentEnabled === 1 ? 'on' : 'off'" :tag-options="[
-            { dictValue: 'on', dictLabel: '已注册', dictTag: 'success' },
-            { dictValue: 'off', dictLabel: '未注册', dictTag: 'info' },
-          ]" />
-        </template>
-        <template #col-ports="{ row }">
-          <ElPopover v-if="parsePorts(row.serverHostPorts).length" trigger="hover" placement="top-start" :width="260" popper-class="ports-popover">
-            <template #reference>
-              <ReTag effect="plain" type="info">端口 {{ parsePorts(row.serverHostPorts).length }}</ReTag>
-            </template>
-            <div class="ports-pop-list">
-              <div v-for="p in parsePorts(row.serverHostPorts)" :key="p.port" class="ports-pop-item">
-                <span class="mono">{{ portText(p) }}</span>
-                <span v-if="portStatusM(p.state).open !== null" class="port-status" :class="portStatusM(p.state).open ? 'ps-open' : 'ps-closed'">
-                  <i class="ps-dot"></i>{{ portStatusM(p.state).text }}
-                </span>
-              </div>
+
+        <template #empty>
+          <div class="work-empty">
+            <ReIcon name="Monitor" :size="30" />
+            <b class="work-empty__title">还没有打开任何功能</b>
+            <p class="work-empty__desc">
+              在左侧主机上点<strong>右键</strong>，选择「远控 / 文件管理 / 指标监控 / 端口 / 进程 …」，
+              每个功能都会在这里打开一个独立页签，可以同时开多个互不干扰。
+            </p>
+            <div v-if="selectedHost" class="work-empty__quick">
+              <ReButton icon="Position" :show-text="true" @click="openTab(selectedHost, 'remote')">远控 {{ selectedHost.serverHostName }}</ReButton>
+              <ReButton icon="TrendCharts" :show-text="true" @click="openTab(selectedHost, 'metrics')">指标监控</ReButton>
             </div>
-          </ElPopover>
-          <span v-else class="dim">未扫描</span>
-        </template>
-        <template #col-actions="{ row }">
-          <div class="op-cell">
-            <ReButton icon="Connection" layout="square" type="primary" @click="openConnect(row)">连接</ReButton>
-            <ReButton icon="EditPen" layout="square" @click="openEdit(row)">编辑</ReButton>
-            <ElDropdown trigger="click" placement="bottom-end" @command="(cmd) => runRowCommand(cmd as string, row)">
-              <ReButton icon="MoreFilled" layout="square" aria-label="更多" />
-              <template #dropdown>
-                <ElDropdownMenu>
-                  <ElDropdownItem command="detail"><ReIcon name="TrendCharts" />监控</ElDropdownItem>
-                  <ElDropdownItem command="scan"><ReIcon name="Search" />端口扫描</ElDropdownItem>
-                  <ElDropdownItem command="profile"><ReIcon name="Histogram" />主机画像</ElDropdownItem>
-                  <ElDropdownItem command="install-nginx" divided><ReIcon name="Box" />安装 Nginx</ElDropdownItem>
-                  <ElDropdownItem v-if="isAgentMode(row) && !isAgentInstalled(row)" command="agent-install" divided><ReIcon name="Download" />安装 Agent</ElDropdownItem>
-                  <template v-else-if="isAgentMode(row)">
-                    <ElDropdownItem command="agent-reinstall" divided><ReIcon name="RefreshRight" />重装 Agent</ElDropdownItem>
-                    <ElDropdownItem command="agent-upgrade"><ReIcon name="Top" />升级 Agent</ElDropdownItem>
-                    <ElDropdownItem command="agent-uninstall"><ReIcon name="DeleteFilled" />卸载 Agent</ElDropdownItem>
-                  </template>
-                  <ElDropdownItem command="delete" divided style="color:var(--el-color-danger,#f56c6c)"><ReIcon name="Delete" />删除</ElDropdownItem>
-                </ElDropdownMenu>
-              </template>
-            </ElDropdown>
           </div>
         </template>
-      </ReTable>
+      </ReTabs>
+
+      <!-- 底部常驻条：CPU / 内存 / 磁盘 + 主机概要（hover 浮层） -->
+      <ScHostMetricsBar
+        :host-name="statusHost?.serverHostName ?? ''"
+        :address="statusHost ? `${statusHost.serverHostAddress}:${statusHost.serverHostPort}` : ''"
+        :online="statusHost ? liveOnlineState(statusHost) : 0"
+        :delay-ms="statusHost ? liveDelayMs(statusHost) : null"
+        :protocol="statusHost ? protocolOf(statusHost) : ''"
+        :agent-version="statusHost?.serverHostAgentInstalled === 1 ? (statusHost.serverHostAgentVersion ?? '') : ''"
+        :cpu="statusMetrics.cpu"
+        :mem="statusMetrics.mem"
+        :disk="statusMetrics.disk"
+        :has-metrics="statusMetrics.has"
+        :rows="statusOverviewRows"
+      />
+    </section>
+    </div>
 
     <!-- 新增/编辑弹窗（独立子组件——弹窗渲染只在子组件内进行，不再触发本组件全量 diff） -->
     <HostFormDialog
@@ -1715,23 +1444,6 @@ function osTileClass(h: Host): string {
 
     <HostConfigDialog v-model="configVisible" :host="configHost" :mode="configMode" @saved="fetchAll" />
 
-    <!-- 主机画像弹窗（独立子组件：左主机列表 + 右分区详情，数据全部来自 Agent） -->
-    <HostProfileDialog
-      v-model="profileVisible"
-      :hosts="hosts"
-      :groups="groups"
-      :live-delay="liveDelay"
-      :live-online="liveOnline"
-      :initial-host-id="profileHostId"
-      :initial-tab="profileTab"
-      :open-seq="profileSeq"
-      @connect="(h) => openConnect(h)"
-      @edit="(h) => openEdit(h)"
-      @detail="(h) => openDetail(h)"
-      @deploy-agent="(h) => openDeploy(h, 'install')"
-      @refreshed="fetchAll"
-    />
-
     <!-- 远控配置已并入主机编辑弹窗（HostFormDialog 的「远控配置」区块） -->
   </div>
     <!-- Agent 自动部署进度弹窗（socket 实时推送，支持最小化和断点续传） -->
@@ -1745,35 +1457,71 @@ function osTileClass(h: Host): string {
     <!-- 软件安装（nginx）对话框 -->
     <ScInstallDialog v-model="installVisible" :host="installHost" :hosts="hosts" @installed="onInstalled" />
 
-    <!-- 主机右键上下文菜单（卡片/表格统一，动作直连，点击外侧关闭） -->
+    <!-- 主机右键菜单：左侧主机列表的唯一功能总入口 -->
     <Teleport to="body">
-      <div v-if="ctxMenu.visible" class="host-ctx-backdrop" @click="closeCtxMenu" @contextmenu.prevent="closeCtxMenu" />
+      <div v-if="ctxMenu.visible" class="host-ctx-backdrop" @mousedown="closeCtxMenu" @contextmenu.prevent="closeCtxMenu" />
       <div
         v-if="ctxMenu.visible && ctxMenu.host"
         class="host-ctx-menu"
         :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }"
+        role="menu"
         @contextmenu.prevent
       >
-        <div class="host-ctx-item" @click="ctxCommand('connect')">
-          <ReIcon name="Connection" /><span>连接远控</span>
+        <div class="host-ctx-head">
+          <b>{{ ctxMenu.host.serverHostName }}</b>
+          <span class="mono">{{ ctxMenu.host.serverHostAddress }}</span>
         </div>
-        <div class="host-ctx-item" @click="ctxCommand('detail')">
-          <ReIcon name="TrendCharts" /><span>监控详情</span>
+
+        <div class="host-ctx-item" @click="ctxCommand('tab-remote')">
+          <ReIcon name="Position" /><span>远程控制</span>
         </div>
-        <div class="host-ctx-item" @click="ctxCommand('profile')">
-          <ReIcon name="Histogram" /><span>主机画像</span>
+        <div class="host-ctx-item" @click="ctxCommand('tab-files')">
+          <ReIcon name="FolderOpened" /><span>文件管理</span>
         </div>
+        <div class="host-ctx-item" @click="ctxCommand('tab-metrics')">
+          <ReIcon name="TrendCharts" /><span>指标监控</span>
+        </div>
+
+        <div class="host-ctx-sep" />
+        <div class="host-ctx-label">主机画像</div>
+        <div class="host-ctx-item" @click="ctxCommand('tab-ports')">
+          <ReIcon name="Connection" /><span>监听端口</span>
+        </div>
+        <div class="host-ctx-item" @click="ctxCommand('tab-processes')">
+          <ReIcon name="Cpu" /><span>进程</span>
+        </div>
+        <div class="host-ctx-item" @click="ctxCommand('tab-services')">
+          <ReIcon name="SetUp" /><span>服务</span>
+        </div>
+        <div class="host-ctx-item" @click="ctxCommand('tab-disks')">
+          <ReIcon name="Coin" /><span>磁盘</span>
+        </div>
+        <div class="host-ctx-item" @click="ctxCommand('tab-network')">
+          <ReIcon name="Share" /><span>网络</span>
+        </div>
+        <div class="host-ctx-item" @click="ctxCommand('tab-env')">
+          <ReIcon name="Document" /><span>环境变量</span>
+        </div>
+        <div class="host-ctx-item" @click="ctxCommand('tab-firewall')">
+          <ReIcon name="Lock" /><span>防火墙</span>
+        </div>
+        <div class="host-ctx-item" @click="ctxCommand('open-all-profile')">
+          <ReIcon name="Grid" /><span>展开全部画像分区</span>
+        </div>
+
+        <div class="host-ctx-sep" />
         <div class="host-ctx-item" @click="ctxCommand('scan')">
           <ReIcon name="Aim" /><span>端口扫描</span>
         </div>
         <div class="host-ctx-item" @click="ctxCommand('install-nginx')">
           <ReIcon name="Box" /><span>安装 Nginx</span>
         </div>
-        <div class="host-ctx-sep" />
-        <div class="host-ctx-item" @click="ctxCommand('edit')">
-          <ReIcon name="EditPen" /><span>编辑主机</span>
+        <div class="host-ctx-item" @click="ctxCommand('toggle-remote')">
+          <ReIcon name="SwitchButton" />
+          <span>{{ ctxMenu.host.serverHostRemoteEnabled === 1 ? '停用远控入口' : '启用远控入口' }}</span>
         </div>
-        <template v-if="ctxMenu.host && isAgentMode(ctxMenu.host)">
+
+        <template v-if="isAgentMode(ctxMenu.host)">
           <div class="host-ctx-sep" />
           <div v-if="!isAgentInstalled(ctxMenu.host)" class="host-ctx-item" @click="ctxCommand('agent-install')">
             <ReIcon name="Download" /><span>安装 Agent</span>
@@ -1790,7 +1538,14 @@ function osTileClass(h: Host): string {
             </div>
           </template>
         </template>
+
         <div class="host-ctx-sep" />
+        <div class="host-ctx-item" @click="ctxCommand('edit')">
+          <ReIcon name="EditPen" /><span>编辑主机</span>
+        </div>
+        <div class="host-ctx-item" @click="ctxCommand('close-host-tabs')">
+          <ReIcon name="CircleClose" /><span>关闭该主机全部页签</span>
+        </div>
         <div class="host-ctx-item is-danger" @click="ctxCommand('delete')">
           <ReIcon name="Delete" /><span>删除主机</span>
         </div>
@@ -1799,701 +1554,440 @@ function osTileClass(h: Host): string {
 </template>
 
 <style scoped lang="scss">
-/* 页面容器：直接铺在布局灰底上（白卡片浮于其上，对齐 UI 稿）
-   纵向 flex + 吃满高度：上方 KPI 与筛选条是定高区块，高度全给下方主机区。
-   不这样做的话，主机少时内容撑不满视口，底部会留一大片灰 —— 去掉口径说明卡后
-   这块空白更明显了。父级 el-main 是 flex:1 的滚动容器，height:100% 有确定值可解析。 */
+/* ============================================================
+   主机资产工作台（Deck 布局）
+   左：分组主机列表；右：多标签工作区 + 底部常驻指标条。
+   整体吃满父容器高度，只有左侧列表与页签面板各自滚动。
+   ============================================================ */
 .as {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
   box-sizing: border-box;
 }
-/* 定高区块不参与纵向压缩：视口变矮时该由主机区（min-height:0）让位，
-   而不是把 KPI 卡和筛选条一起压扁。 */
-.as > .host-kpis,
-.as > .as-filter {
-  flex-shrink: 0;
-}
 
-/* ============================================================
-   统计卡（ReStatCard 紧凑档横排，卡片外壳规格由组件基线提供）
-   —— 顶部 hero（大标题 + 主操作）已删除：页面标题由外壳面包屑承担，
-   原 hero 上的「实时监控 / 刷新 / 新增资产」下沉到筛选行右侧。
-   ============================================================ */
-.host-kpis {
-  display: grid;
-  /* 紧凑档单卡较窄，auto-fit 让 4 张按可用宽度自动换行，无需断点硬切 */
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+/* 左右两栏：左侧定宽，右侧吃掉剩余 */
+.as-body {
+  display: flex;
+  flex: 1 1 auto;
   gap: 12px;
+  min-height: 0;
 }
 
 /* ============================================================
-   KPI 标题内的口径 tip：文字 + 问号图标
+   左侧：主机资源栏
    ============================================================ */
-.kpi-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  max-width: 100%;
-  min-width: 0;
-}
-/* ReStatCard 的标题自带 nowrap + ellipsis，但省略号只作用在插槽内容这一层，
-   里面再嵌了行内 flex 就落不到文字上了 —— 文字这层要自己声明。 */
-.kpi-title__text {
+.as-rail {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: 268px;
+  min-height: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.kpi-title__tip {
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
-  cursor: help;
-  color: var(--el-text-color-placeholder);
-  transition: color 0.15s ease;
-}
-.kpi-title__tip:hover {
-  color: var(--el-color-primary);
-}
-
-/* ============================================================
-   筛选面板（对齐 UI 稿：独立白色圆角条）
-   ============================================================ */
-.as-panel {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-xl, 16px);
   box-shadow: var(--el-box-shadow-light, var(--shadow-1));
 }
-.as-filter {
+
+.rail-head {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.rail-head__row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  margin: 16px 0;
+  gap: 6px;
 }
-.as-filter .filter { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; }
-/* 筛选行右侧操作区：统一 ReButton square（图标 + tip），与视图切换同一行 */
-.filter-ops {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex: none;
+
+.rail-head__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
 }
-/* 「新增资产」按钮 + 右侧小箭头：共用同一个圆角块，箭头只是打开功能菜单的入口。
-   不把整颗按钮都做成下拉 —— 新增是最高频动作，不该为了菜单多一次点击。
-   position: relative 让功能菜单锚定在这一块上（.hc-more-menu--anchor）。 */
-.filter-ops__add {
-  position: relative;
-  display: inline-flex;
-  align-items: stretch;
-  overflow: visible;
-  border-radius: var(--el-border-radius-base, 6px);
+
+.rail-head__count {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-color-primary);
 }
-/* 按钮本身仍要保持圆角块外观；外层 overflow 放开是为了菜单不被裁掉 */
-.filter-ops__add > .re-button__tip-wrap,
-.filter-ops__add > button:first-child {
-  overflow: hidden;
-  border-radius: var(--el-border-radius-base, 6px) 0 0 var(--el-border-radius-base, 6px);
+
+.rail-head__count i {
+  font-style: normal;
+  font-weight: 400;
+  color: var(--el-text-color-placeholder);
 }
-.filter-ops__add-more {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  padding: 0;
-  margin-left: 1px;
-  color: var(--el-color-white, #fff);
-  cursor: pointer;
-  background: var(--el-color-primary-dark-2, #337ecc);
-  border: none;
-  border-radius: 0 var(--el-border-radius-base, 6px) var(--el-border-radius-base, 6px) 0;
-  transition: background 0.15s ease;
+
+.rail-head__gap {
+  flex: 1;
 }
-.filter-ops__add-more:hover {
-  background: var(--el-color-primary-dark-3, #2a6aa8);
+
+.rail-head__search {
+  width: 100%;
 }
-/* 视图切换（UI 稿：胶囊分段） */
-.view-toggle {
-  display: inline-flex;
+
+/* 状态筛选：胶囊分段，计数跟在文案后面 */
+.rail-filters {
+  display: flex;
   gap: 4px;
   padding: 3px;
-  flex: none;
   background: var(--el-fill-color-light);
   border-radius: var(--el-radius-full, 9999px);
 }
-.vt-btn {
+
+.rail-chip {
   display: inline-flex;
+  flex: 1;
   align-items: center;
-  gap: 6px;
-  height: 30px;
-  padding: 0 14px;
-  font-size: 13px;
+  justify-content: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 6px;
+  font-size: 12px;
   color: var(--el-text-color-secondary);
+  cursor: pointer;
   background: transparent;
   border: none;
   border-radius: var(--el-radius-full, 9999px);
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease;
 }
-.vt-btn:hover { color: var(--el-text-color-primary); }
-.vt-btn.active {
+
+.rail-chip b {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-placeholder);
+}
+
+.rail-chip:hover {
+  color: var(--el-text-color-primary);
+}
+
+.rail-chip.is-active {
   color: var(--el-color-primary);
   background: var(--el-bg-color);
   box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+}
+
+.rail-chip.is-active b {
+  color: var(--el-color-primary);
+}
+
+/* 主机列表：唯一可滚动区 */
+.rail-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 6px;
+}
+
+/* 分组头：折叠开关 + 颜色点 + 名称 + 在线/总数 */
+.rail-group {
+  margin-bottom: 2px;
+}
+
+.rail-group__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 28px;
+  padding: 0 6px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  border-radius: var(--el-radius-sm, 4px);
+}
+
+.rail-group__head:hover {
+  background: var(--el-fill-color-light);
+}
+
+.rail-group__dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--el-text-color-placeholder);
+}
+
+.rail-group__name {
+  flex: 1;
+  overflow: hidden;
   font-weight: 600;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px 28px;
-  padding: 16px 8px 8px;
+
+.rail-group__stat {
+  flex: none;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-placeholder);
 }
-/* 上下布局：label 独占一行在上，控件在下 */
-.form-vertical {
-  :deep(.el-form-item) {
-    display: block;
-    width: 100%;
-    margin-bottom: 14px;
-  }
-  :deep(.el-form-item__label) {
-    display: block;
-    height: auto;
-    margin-bottom: 6px;
-    line-height: 1.4;
-    padding: 0;
-    font-size: 13px;
-    color: var(--text-secondary);
-  }
-  :deep(.el-form-item__content) {
-    margin-left: 0 !important;
-  }
-  :deep(.el-form-item__content > .re-input),
-  :deep(.el-form-item__content > .el-input-number) {
-    width: 100%;
-  }
+
+.rail-group__stat b {
+  color: var(--el-color-success);
 }
-/* 分节标题：左侧品牌色竖条 + 留白 */
-.form-section {
-  position: relative;
-  font-size: 13px;
+
+/* 主机行：OS 图标 + 名称/地址 + 延迟/在线点 */
+.rail-host {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+  border-radius: var(--el-radius-md, 8px);
+  border: 1px solid transparent;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.rail-host:hover {
+  background: var(--el-fill-color-light);
+}
+
+.rail-host.is-active {
+  background: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary-light-7);
+}
+
+.rail-host.is-off .rail-host__name {
+  color: var(--el-text-color-secondary);
+}
+
+.rail-host__os {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  font-size: 16px;
+  line-height: 1;
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-fill-color-light);
+}
+
+.rail-host__os :deep(svg) {
+  display: block;
+}
+
+.rail-host__os.is-windows {
+  background: color-mix(in srgb, var(--metric-mem, #8b5cf6) 12%, var(--el-bg-color));
+}
+
+.rail-host__os.is-linux {
+  background: color-mix(in srgb, var(--metric-disk, #f59e0b) 14%, var(--el-bg-color));
+}
+
+.rail-host__os.is-macos {
+  background: color-mix(in srgb, var(--el-text-color-placeholder) 14%, var(--el-bg-color));
+}
+
+.rail-host__meta {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.rail-host__name {
+  overflow: hidden;
+  font-size: 12.5px;
   font-weight: 600;
-  color: var(--text-primary);
-  padding: 0 0 8px 12px;
-  margin-top: 14px;
-  border-bottom: 1px solid var(--border-subtle);
+  color: var(--el-text-color-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.form-section::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 2px;
-  bottom: 10px;
-  width: 3px;
-  border-radius: 2px;
-  background: var(--brand-500, #6d5dfc);
+
+.rail-host__addr {
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.form-section:first-child {
-  margin-top: 0;
+
+.rail-host__right {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
 }
-.form-section.full {
-  grid-column: 1 / -1;
+
+.rail-host__delay {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-secondary);
 }
-.col-span-2 {
-  grid-column: span 2;
+
+.rail-host__delay.bad {
+  font-weight: 600;
+  color: var(--el-color-danger);
 }
+
+.rail-host__dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+}
+
+.rail-host__dot.is-on {
+  background: var(--el-color-success);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-success) 18%, transparent);
+}
+
+.rail-host__dot.is-off {
+  background: var(--el-text-color-placeholder);
+}
+
+/* 左侧空态 */
+.rail-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 40px 16px;
+  font-size: 12.5px;
+  text-align: center;
+  color: var(--el-text-color-placeholder);
+}
+
+/* 左栏底部：提示 + 在线/离线小结 */
+.rail-foot {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.rail-foot__hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rail-foot__sum {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.rail-foot__sum i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.rail-foot__sum i.is-on {
+  background: var(--el-color-success);
+}
+
+.rail-foot__sum i.is-off {
+  margin-left: 4px;
+  background: var(--el-text-color-placeholder);
+}
+
+/* ============================================================
+   右侧：工作区（页签 + 底部指标条）
+   ============================================================ */
+.as-work {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+}
+
+/* 工作区空态：告诉用户「入口在右键」，而不是干放一句「暂无数据」 */
+.work-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-width: 420px;
+  padding: 24px;
+  color: var(--el-text-color-placeholder);
+}
+
+.work-empty__title {
+  font-size: 14px;
+  color: var(--el-text-color-primary);
+}
+
+.work-empty__desc {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.7;
+  text-align: center;
+}
+
+.work-empty__desc strong {
+  color: var(--el-color-primary);
+}
+
+.work-empty__quick {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
 .as-error {
   display: flex;
+  flex: none;
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   font-size: 13px;
   color: var(--status-error-text);
   background: var(--status-error-bg);
   border: 1px solid var(--status-error-border);
   border-radius: var(--radius-sm);
 }
-.h-os { display: inline-flex; align-items: center; vertical-align: middle; color: var(--brand-500); font-size: 17px; }
-.h-os :deep(svg) { display: block; }
-.kpi-ico { position: absolute; top: 12px; right: 12px; opacity: 0.14; pointer-events: none; }
-.st-cell { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
-.delay-live { font-family: var(--font-mono, monospace); font-size: 12px; color: var(--text-secondary, #8b90a0); }
-.delay-live.bad { color: var(--danger, #f56c6c); font-weight: 600; }
-.color-switch { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary,#8b90a0); }
 
-/* ============================================================
-   主机卡片（对齐 UI 稿：OS 图标 + 名称/地址 + 属性胶囊 + 指标条 + 操作）
-   ============================================================ */
-.host-card-grid {
-  /* 吃掉上方定高区块之外的全部高度；min-height:0 是 flex 子项能被压到内容以下的前提 */
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  /* 卡片收窄到 320px：一行放下更多主机。指标区左右两栏（条形 + 趋势）在 320px
-     下仍能并排不挤压 —— 右侧可视列固定 124px，左侧条形至少留 140px。
-     数值取自实测：350px 卡片下条形区曾只有 130px，进度条短到读不出差异。 */
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  /* 有卡片时按自然高度排布、不把卡片拉高（卡片高度由自身内容决定）；
-     剩余空间宁可留在网格下方，也不要把每张主机卡撑成同一个死板的高度。 */
-  align-content: start;
-  /* 行高跟随内容最大高度：卡片（el-card 是 flex column + body overflow:auto）
-     若行被压矮，指标条会在卡片内部出现滚动条；内容超出网格时宁可整页滚动。
-     指标区不是定高的，卡片没有自己的高度上限，靠这条保证「指标完整显示」。 */
-  grid-auto-rows: max-content;
-  gap: 14px;
-  padding: 0 0 8px;
-}
-/* 空态例外：网格里只有一张空态卡，让它吃满 —— 否则卡片只有一条内容高，
-   底下又是一大片灰，比「没撑满」更显眼。 */
-.host-card-grid--empty {
-  align-content: stretch;
-}
 @media (max-width: 1100px) {
-  .host-card-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
-}
-@media (max-width: 640px) {
-  .host-card-grid { grid-template-columns: 1fr; }
-}
-/* el-card 自带页面级样式（koi 主题装饰、深色块背景、按钮点击态），
-   这里显式复位成扁平容器，只保留边框/圆角/阴影三种视觉，
-   与页面其余面板（ds-panel / ReCard）保持一致。 */
-.host-card-grid :deep(.el-card) {
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  /* 不再设 min-height：卡片高度完全由内容决定。
-     设了固定下限后，窄卡片里指标区一旦换行就会顶到下限、body 被压出滚动条；
-     现在高度跟着内容走，指标永远完整显示（页面整体滚动，而非卡片内滚动）。 */
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-}
-/* 去掉 el-card 自带的头部底色和分隔线：卡片头部区域由 .hc-head 自己排版 */
-.host-card-grid :deep(.el-card__header) {
-  padding: 0;
-  border-bottom: 0;
-  background: transparent;
-}
-.host-card-grid :deep(.el-card__body) {
-  padding: 10px 0;
-  /* body 不设 overflow：卡片内部永不出现滚动条（滚动只发生在页面级） */
-  overflow: visible;
-}
-/* footer 的 18px 上下内边距是纯留白：里面只有一个 28px 高的按钮行，
-   叠加 .hc-actions 自己的 8px 后，底栏白白占掉 84px（实测）。收到 0，
-   底部留白交给 .hc-actions 统一控制，底栏高度回落到按钮高度本身。 */
-.host-card-grid :deep(.el-card__footer) {
-  padding: 0;
-  border-top: 0;
-}
-.host-card-grid :deep(.el-card:hover) {
-  transform: translateY(-3px);
-  box-shadow: var(--el-box-shadow, var(--shadow-2));
-  border-color: var(--el-color-primary-light-7, var(--el-border-color));
-}
-
-/* 头部：OS 图标 + 名称/地址 + 状态 */
-.hc-head { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px 8px; }
-.hc-os {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  flex: none;
-  font-size: 26px;
-  line-height: 1;
-  border-radius: var(--el-radius-lg, 12px);
-  background: var(--el-fill-color-light);
-}
-.hc-os :deep(svg) { display: block; }
-.hc-os.is-windows { background: color-mix(in srgb, var(--metric-mem, #8b5cf6) 12%, var(--el-bg-color)); }
-.hc-os.is-linux { background: color-mix(in srgb, var(--metric-disk, #f59e0b) 14%, var(--el-bg-color)); }
-.hc-os.is-macos { background: color-mix(in srgb, var(--el-text-color-placeholder) 14%, var(--el-bg-color)); }
-
-.hc-name-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.hc-title-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.hc-name {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.hc-os-tag {
-  flex: none;
-  padding: 1px 8px;
-  font-size: 11px;
-  line-height: 18px;
-  font-weight: 500;
-  color: var(--el-text-color-secondary);
-  background: var(--el-fill-color);
-  border-radius: var(--el-radius-full, 9999px);
-}
-.hc-online {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  flex: none;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-.hc-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--el-color-success); }
-.hc-online.is-off .hc-dot { background: var(--el-color-danger); }
-.hc-online.is-on .hc-dot { box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-success) 18%, transparent); }
-.hc-addr { font-size: 12.5px; color: var(--el-text-color-secondary); }
-.hc-ip { font-size: 12px; color: var(--el-text-color-placeholder); }
-.hc-ip-sep { margin: 0 4px; }
-
-/* 关键属性胶囊 */
-.hc-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 16px 10px; }
-/* 350px 的卡片里，四个胶囊按原尺寸会折成「3+1」两行 —— 70px 只显示一行信息量。
-   收紧高度/内边距/字号后四个能并排；窄屏（卡片被拉宽）时回落到 26px 更易点。 */
-.hc-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 24px;
-  padding: 0 8px;
-  font-size: 11.5px;
-  color: var(--el-text-color-regular);
-  background: var(--el-fill-color-extra-light, var(--el-fill-color-light));
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-full, 9999px);
-}
-@media (max-width: 640px) {
-  .hc-chip { gap: 6px; height: 26px; padding: 0 10px; font-size: 12px; }
-}
-.hc-chip i { font-style: normal; color: var(--el-text-color-placeholder); }
-.hc-chip b { font-weight: 600; color: var(--el-text-color-primary); }
-.hc-chip b.bad { color: var(--el-color-danger); }
-
-/* 实时指标区：左侧条形 + 右侧趋势可视化（对齐 UI 稿的粗条与大号数值） */
-.hc-metrics {
-  display: grid;
-  /* 右列由 168px 收到 150px：卡片宽度降到 320px 后，仍保证左侧条形（标签+条+数值）
-     有 130px 以上可画 —— 否则条形会被压成一条细线，指标等于看不出来。
-     注意容器查询/断点只按视口宽度判，卡片宽度远小于视口时不会触发，
-     所以这里的收缩必须靠固定列宽 + minmax(0,1fr) 配合完成，而不是靠媒体查询。 */
-  grid-template-columns: minmax(0, 1fr) 150px;
-  gap: 12px;
-  align-items: stretch;
-  padding: 0 16px 12px;
-}
-/* 卡片收窄到 350px 后，150px 的右列把左侧条形压到只剩 130px 出头，
-   而右侧「趋势图 + 三个环」在 130px 里也挤成一团 —— 两边都不好读。
-   这里换成更划算的分法：右列降到 124px（趋势图仍可读，环缩到 34px），
-   省出的宽度全部给左侧进度条，CPU/内存/磁盘的差异才看得出来。 */
-.host-card-grid :deep(.el-card) .hc-metrics {
-  grid-template-columns: minmax(0, 1fr) 124px;
-  gap: 10px;
-}
-.hc-metrics__bars { display: flex; flex-direction: column; gap: 10px; justify-content: center; min-width: 0; }
-/* 无指标占位：高度对齐真实指标区（条形 3 行 + 趋势图 = 约 131px），
-   这样同一行卡片的操作栏始终对齐，不会因为某台主机采不到数据而高低不齐。 */
-.hc-metrics--empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 131px;
-}
-.hc-metrics__placeholder {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12.5px;
-  color: var(--el-text-color-placeholder);
-}
-.hc-bar-row { display: flex; align-items: center; gap: 8px; }
-.hc-bar-label {
-  width: 34px;
-  flex: none;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-/* 「内存」最长 2 字，34px 里还余着空白；收窄到 28px 把宽度让给进度条。 */
-.host-card-grid :deep(.el-card) .hc-bar-label {
-  width: 28px;
-  font-size: 11.5px;
-}
-.hc-bar-progress { flex: 1; min-width: 0; }
-.hc-bar-progress :deep(.el-progress-bar__outer) {
-  background-color: var(--el-fill-color);
-  border-radius: var(--el-radius-full, 9999px);
-}
-.hc-bar-progress :deep(.el-progress-bar__inner) {
-  border-radius: var(--el-radius-full, 9999px);
-  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.hc-bar-val {
-  width: 46px;
-  flex: none;
-  text-align: right;
-  font-size: 12.5px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--el-text-color-primary);
-}
-/* 46px 是按「100.0%」这种最宽取值留的，实际多为「12.3%」这类 5 字符，右侧余一截空白。
-   收到 38px 把这 8px 让给进度条本身 —— 卡片窄，条越长越能看出差异。 */
-.host-card-grid :deep(.el-card) .hc-bar-val {
-  width: 38px;
-  font-size: 12px;
-}
-
-/* ── 卡片右侧可视化：CPU 迷你趋势 + 占用环 ──
-   窄列只放「走势」和「现在多少」，不放坐标轴/图例，避免变成噪音。 */
-.hc-metrics__viz {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-  padding-left: 10px;
-  border-left: 1px dashed var(--el-border-color-lighter);
-}
-.hc-viz-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 6px;
-}
-.hc-viz-title {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--el-text-color-secondary);
-  text-transform: uppercase;
-}
-.hc-viz-delta {
-  font-size: 11px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--el-text-color-secondary);
-  white-space: nowrap;
-}
-.hc-viz-delta.is-up { color: var(--el-color-danger); }
-.hc-viz-delta.is-down { color: var(--el-color-success); }
-.hc-viz-chart { width: 100%; flex: none; }
-.hc-viz-rings {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  padding-top: 2px;
-}
-/* 占用环：conic-gradient 由 ringStyle() 内联写入，内部用实心圆挖空 */
-.hc-ring {
-  position: relative;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  flex: none;
-  border-radius: 50%;
-  transition: background 0.5s ease;
-}
-/* 右列降到 124px 后，三个 40px 环 + 间距会溢出（40*3+12=132）。
-   缩到 34px：环内数字仍能放下两位数 + 单位，且不换行。 */
-.host-card-grid :deep(.el-card) .hc-ring {
-  width: 34px;
-  height: 34px;
-}
-.hc-ring::before {
-  content: "";
-  position: absolute;
-  inset: 4px;
-  border-radius: 50%;
-  background: var(--el-bg-color);
-}
-.hc-ring b,
-.hc-ring i {
-  position: relative;
-  z-index: 1;
-  font-style: normal;
-  line-height: 1.05;
-  font-variant-numeric: tabular-nums;
-}
-.hc-ring b { font-size: 12px; font-weight: 700; color: var(--el-text-color-primary); }
-.hc-ring i { font-size: 9px; color: var(--el-text-color-secondary); }
-/* 34px 环的内高只有 26px，12px + 9px 两行会顶满并压到边。
-   数字收到 11.5px、单位 8.5px，两行合计约 21px，留出呼吸空间。 */
-.host-card-grid :deep(.el-card) .hc-ring b { font-size: 11.5px; }
-.host-card-grid :deep(.el-card) .hc-ring i { font-size: 8.5px; }
-@media (max-width: 520px) {
-  /* 必须带上 .host-card-grid :deep(.el-card) 前缀：否则特异性低于上方
-     「350px 卡片两栏」那条，窄屏叠成一列的规则会被静默覆盖，条形被压没。 */
-  .host-card-grid :deep(.el-card) .hc-metrics { grid-template-columns: 1fr; }
-  .hc-metrics__viz {
-    padding-left: 0;
-    padding-top: 10px;
-    border-left: 0;
-    border-top: 1px dashed var(--el-border-color-lighter);
+  .as-rail {
+    width: 232px;
   }
 }
 
-/* 标签 / 端口 / 操作 */
-.hc-tags { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 8px; }
-.hc-ports { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 10px; }
-/* 卡片底部：只剩两个主操作 + 「更多」图标，靠右对齐、单行不折。
-   高度约 44px（原先四个文字按钮一行 61px，窄卡片里还会折成两行）。 */
-.hc-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-  padding: 8px 16px;
-}
-/* 底栏与指标区之间用一条 inset 分隔线（左右留白对齐正文），
-   比贴边通栏的 border-top 更轻，也不会和大卡片边框形成两道平行线。
-   padding 上收到 6px：上面已无 footer 内边距，再留 8px 会显得按钮悬空。 */
-.host-card-grid :deep(.el-card__footer) .hc-actions {
-  padding: 6px 16px;
-  box-shadow: inset 0 1px 0 var(--el-border-color-lighter);
-}
-/* 「更多」与 ReButton square 同尺寸同底色的图标按钮 */
-.hc-more {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  color: var(--el-text-color-regular);
-  cursor: pointer;
-  background: var(--el-fill-color-light, #f3f4f6);
-  border: 1px solid transparent;
-  border-radius: var(--el-border-radius-base, 6px);
-  transition: color 0.15s ease, background 0.15s ease;
-}
-.hc-more:hover {
-  color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9, #ecf5ff);
-}
+@media (max-width: 860px) {
+  /* 窄屏改为上下堆叠：左栏变成一条横向可滚动的主机带 */
+  .as-body {
+    flex-direction: column;
+  }
 
-/* 自管的操作菜单（卡片「更多」与顶部功能区共用）：视觉对齐 el-dropdown-menu */
-.hc-more-menu {
-  display: flex;
-  flex-direction: column;
-  padding: 4px 0;
+  .as-rail {
+    width: auto;
+    max-height: 240px;
+  }
 }
-/* 锚定到触发按钮右下方：绝对定位在定位祖先上，不依赖 popper。
-   宽度用固定值而非 max-content —— 后者会被较长的菜单文字（如「关闭实时监控」）撑宽，
-   导致 right:0 也贴不住按钮右缘。 */
-.hc-more-menu--anchor {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 3000;
-  width: 168px;
-  box-sizing: border-box;
-  background: var(--el-bg-color-overlay, var(--el-bg-color));
-  border: 1px solid var(--el-border-color-light);
-  border-radius: var(--el-border-radius-base, 6px);
-  box-shadow: var(--el-box-shadow-light, 0 6px 16px rgba(0, 0, 0, 0.08));
-}
-.hc-more-wrap {
-  position: relative;
-  display: inline-flex;
-}
-.hc-menu-fade-enter-active,
-.hc-menu-fade-leave-active {
-  transition: opacity 0.12s ease, transform 0.12s ease;
-}
-.hc-menu-fade-enter-from,
-.hc-menu-fade-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
-}
-.hc-more-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 7px 12px;
-  font-size: 13px;
-  line-height: 1.4;
-  color: var(--el-text-color-regular);
-  text-align: left;
-  cursor: pointer;
-  background: none;
-  border: none;
-  transition: color 0.15s ease, background 0.15s ease;
-}
-.hc-more-item:hover {
-  color: var(--el-color-primary);
-  background: var(--el-fill-color-light, #f3f4f6);
-}
-.hc-more-item.is-danger { color: var(--el-color-danger, #f56c6c); }
-.hc-more-item.is-danger:hover { background: var(--el-color-danger-light-9, #fef0f0); }
-.hc-more-sep {
-  height: 1px;
-  margin: 4px 0;
-  background: var(--el-border-color-lighter);
-}
-/* 空态卡：与主机卡片同规格（独立 el-card + 扁平容器），
-   占满 grid 整行，不让 ElEmpty 裸奔在网格里 */
-.hc-empty-card {
-  grid-column: 1 / -1;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
-}
-.hc-empty-card :deep(.el-card__body) {
-  /* 空态卡被网格拉到满高，body 居中让 ElEmpty 落在视觉中心，
-     而不是顶部 —— 满高卡片里内容顶在上面的观感更像是「没加载完」。 */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px 16px;
-}/* 表格操作列：主操作 + 更多下拉，按钮固定窄列内不折行 */
-.op-cell { display: flex; align-items: center; gap: 2px; white-space: nowrap; }
 </style>
 
 <style lang="scss">
-/* 端口弹层（teleport 到 body，需全局样式） */
-.ports-popover.el-popover {
-  padding: 8px;
-}
-.ports-pop-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  max-height: 260px;
-  overflow-y: auto;
-}
-.ports-pop-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--el-text-color-regular, #4b5563);
-  padding: 3px 8px;
-  border-radius: 4px;
-}
-.ports-pop-item:hover {
-  background: var(--el-fill-color-light, #f3f4f6);
-}
-/* 端口开放情况：浅灰底圆角块 + 圆点 + 同色大写半粗文字（图片 1 的标记样式） */
-.port-status {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 1px 8px; border-radius: 999px;
-  background: var(--el-fill-color-light, #f3f4f6);
-  border: 1px solid var(--el-border-color-lighter, #e4e7ed);
-  font-size: 11px; font-weight: 600; letter-spacing: 0.4px;
-  line-height: 1.5;
-  font-family: var(--font-mono, monospace);
-  flex-shrink: 0;
-}
+/* 主机右键菜单：Teleport 到 body，scoped 样式作用不到，只能放全局块 */
 .ps-dot {
   width: 8px; height: 8px; border-radius: 50%;
   box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.4);
@@ -2553,5 +2047,37 @@ function osTileClass(h: Host): string {
   height: 1px;
   margin: 5px 7px;
   background: var(--el-border-color-lighter, #eceef1);
+}
+/* 菜单头：被右键的那台主机是谁。菜单项有十几条，没有头部时用户
+   很容易在「编辑」和「删除」之间忘了自己在操作哪台机器。 */
+.host-ctx-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 9px 8px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid var(--el-border-color-lighter, #eceef1);
+}
+.host-ctx-head b {
+  font-size: 13px;
+  color: var(--el-text-color-primary, #1f2430);
+}
+.host-ctx-head span {
+  font-size: 11.5px;
+  color: var(--el-text-color-placeholder, #a8abb2);
+}
+/* 分组标题：把十几条菜单项切成「打开 / 画像分区 / 运维 / 主机」四段 */
+.host-ctx-label {
+  padding: 6px 9px 3px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--el-text-color-placeholder, #a8abb2);
+  text-transform: uppercase;
+}
+/* 菜单可能比视口还高（小屏笔记本），超出时可滚 */
+.host-ctx-menu {
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
 }
 </style>

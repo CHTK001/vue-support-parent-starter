@@ -137,6 +137,8 @@ const props = withDefaults(
     activeIcon?: string;
     /** square 布局：未选中项图标名（缺省回退到选项自身的 inactiveIcon / icon） */
     inactiveIcon?: string;
+    /** square 布局：内置图标集名（sunmoon / check / star / bell / arrow / anim）；"none" 关闭内置回落 */
+    preset?: string;
     /** 紧凑模式：square/card 布局下拉框宽度自适应文字，默认 false */
     compact?: boolean;
     /** 卡片多选时：是否显示全选 / 反选（默认 false） */
@@ -172,6 +174,7 @@ const props = withDefaults(
     vertical: false,
     activeIcon: "",
     inactiveIcon: "",
+    preset: undefined,
     compact: undefined,
     bulkActions: false,
   },
@@ -557,6 +560,7 @@ defineExpose({
     :control-size="controlSize"
     :active-icon="activeIcon"
     :inactive-icon="inactiveIcon"
+    :preset="preset"
     v-bind="$attrs"
   />
 

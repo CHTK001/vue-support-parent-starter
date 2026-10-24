@@ -39,6 +39,18 @@ const routes: RouteRecordRaw[] = [
   },
   {
     /*
+     * ReTable / ReSelect / ReSwitch / ReRadio 状态图标与视觉打磨对照页。
+     *
+     * <p>把本次新增的两态图标能力（ReStateIcon 预设 + active/inactive props）与
+     * 四个组件的美化结果集中摆出来，人工验收时可逐项点击观察切换动画。</p>
+     */
+    path: "/lab/re-icon-state",
+    name: "lab-re-icon-state",
+    component: () => import("./views/ReIconStateLab.vue"),
+    meta: { title: "Re 状态图标对照" },
+  },
+  {
+    /*
      * ReTree「弹窗编辑路径」对照组页。
      *
      * <p>供 `scripts/re-controls-acceptance.mjs` 第 7 节（弹窗编排）使用：

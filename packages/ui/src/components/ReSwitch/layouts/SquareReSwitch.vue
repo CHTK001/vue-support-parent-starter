@@ -15,7 +15,15 @@
     >
       <span class="re-switch-square__label">
         <slot v-if="useNamedSlot" :name="isActive ? 'active' : 'inactive'" />
-        <ReIcon v-else-if="centerIcon" :name="centerIcon" :size="iconSize" />
+        <StateIcon
+          v-else-if="hasIconConfig"
+          :active="isActive"
+          :icon="icon"
+          :active-icon="activeIcon"
+          :inactive-icon="inactiveIcon"
+          :preset="preset"
+          :size="iconSize"
+        />
         <slot v-else-if="hasSlotContent" />
         <svg
           v-else
@@ -54,7 +62,15 @@
   >
     <span class="re-switch-square__label">
       <slot v-if="useNamedSlot" :name="isActive ? 'active' : 'inactive'" />
-      <ReIcon v-else-if="centerIcon" :name="centerIcon" :size="iconSize" />
+      <StateIcon
+        v-else-if="hasIconConfig"
+        :active="isActive"
+        :icon="icon"
+        :active-icon="activeIcon"
+        :inactive-icon="inactiveIcon"
+        :preset="preset"
+        :size="iconSize"
+      />
       <slot v-else-if="hasSlotContent" />
       <svg
         v-else
@@ -100,7 +116,7 @@
  */
 import { computed, useSlots } from "vue";
 import { ElTooltip } from "element-plus";
-import ReIcon from "../../ReIcon";
+import StateIcon from "../../ReStateIcon/StateIcon.vue";
 
 defineOptions({ name: "SquareReSwitch", inheritAttrs: true });
 
@@ -149,6 +165,8 @@ const props = withDefaults(
     activeIcon?: string;
     /** 非激活态图标名（缺省回退到 icon） */
     inactiveIcon?: string;
+    /** 内置图标集名（sunmoon / check / star / bell / arrow / anim）；"none" 关闭内置回落 */
+    preset?: string;
   }>(),
   {
     title: "",
@@ -160,6 +178,7 @@ const props = withDefaults(
     icon: "",
     activeIcon: "",
     inactiveIcon: "",
+    preset: undefined,
   },
 );
 
@@ -180,11 +199,8 @@ const iconSize = computed(() =>
   props.size === "small" ? 15 : props.size === "large" ? 22 : 18,
 );
 
-/** 当前态解析出的图标名（0 长度表示未配置，回退到默认插槽/内置图形） */
-const centerIcon = computed(() => {
-  const specific = isActive.value ? props.activeIcon : props.inactiveIcon;
-  return specific || props.icon || "";
-});
+/** 是否配置了图标（配置后走 ReStateIcon 的两态动画切换；只传 preset 也算） */
+const hasIconConfig = computed(() => Boolean(props.icon || props.activeIcon || props.inactiveIcon || props.preset));
 
 /** 当前态是否使用专属命名插槽 */
 const useNamedSlot = computed(() =>
@@ -207,7 +223,15 @@ function toggle() {
   background: var(--el-bg-color, #fff);
   color: var(--el-text-color-secondary, #909399);
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  box-sizing: border-box;
+  /* 只过渡绘制属性：原先 `transition: all` 会把 1.5px→2px 的边框宽度一起带进
+     过渡，图标跟着轻微位移。尺寸用 border-box 固定，切换时外框不跳。 */
+  transition:
+    color 0.2s var(--el-transition-duration, 0.2s),
+    border-color 0.2s var(--el-transition-duration, 0.2s),
+    background-color 0.2s var(--el-transition-duration, 0.2s),
+    box-shadow 0.2s var(--el-transition-duration, 0.2s),
+    transform 0.12s cubic-bezier(0.22, 1, 0.36, 1);
   outline: none;
   padding: 0;
   position: relative;
@@ -241,6 +265,10 @@ function toggle() {
 .re-switch-square__default-icon {
   width: 18px;
   height: 18px;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.re-switch-square--active .re-switch-square__default-icon {
+  transform: scale(1.08);
 }
 .re-switch-square__fallback {
   font-size: 16px;
@@ -259,10 +287,16 @@ function toggle() {
 
 /* 激活态：边框高亮 + 右上角打勾 */
 .re-switch-square--active {
-  border: 2px solid var(--el-color-primary, #409eff);
-  background: #fff;
+  border-color: var(--el-color-primary, #409eff);
   color: var(--el-color-primary, #409eff);
-  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.12);
+  background: color-mix(in srgb, var(--el-color-primary) 8%, var(--el-bg-color, #fff));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 14%, transparent);
+}
+/* 键盘焦点环只给焦点，鼠标点击不显示。用 outline（而非 box-shadow）：
+   既让键盘用户看清焦点，又不增加组件库 surface 快照的 box-shadow 声明数。 */
+.re-switch-square:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+  outline-offset: 2px;
 }
 .re-switch-square--active:hover:not(.re-switch-square--disabled) {
   border-color: var(--el-color-primary-light-3, #79bbff);
@@ -280,10 +314,10 @@ function toggle() {
   justify-content: center;
   width: 16px;
   height: 16px;
-  background: var(--el-color-primary, #409eff);
+  background: color-mix(in srgb, var(--el-color-primary, #409eff) 88%, var(--el-color-black, #000));
   border-radius: 50%;
-  color: #fff;
-  box-shadow: 0 1px 4px rgba(64, 158, 255, 0.4);
+  color: var(--el-color-white, #fff);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--el-color-primary, #409eff) 45%, transparent);
 }
 .re-switch-square__check svg {
   width: 10px;
@@ -294,5 +328,18 @@ function toggle() {
 .re-switch-square--disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .re-switch-square,
+  .re-switch-square__default-icon {
+    transition: none;
+  }
+  .re-switch-square:active:not(.re-switch-square--disabled) {
+    transform: none;
+  }
+  .re-switch-square--active .re-switch-square__default-icon {
+    transform: none;
+  }
 }
 </style>

@@ -20,7 +20,27 @@
       :title="opt.label"
       @click="select(opt)"
     >
-      <ReIcon v-if="iconFor(opt)" :name="iconFor(opt)" :size="iconSize" :class="['re-select-square__icon', { 're-select-square__icon--active': isSelected(opt) }]" />
+      <span v-if="vertical && iconFor(opt)" class="re-select-square__icon-badge">
+        <StateIcon
+          :active="isSelected(opt)"
+          :icon="(opt.icon as string) || undefined"
+          :active-icon="(opt.activeIcon as string) || props.activeIcon || undefined"
+          :inactive-icon="(opt.inactiveIcon as string) || props.inactiveIcon || undefined"
+          :preset="(opt.icon || opt.activeIcon || opt.inactiveIcon) ? undefined : preset"
+          :size="iconSize"
+          :class="['re-select-square__icon', { 're-select-square__icon--active': isSelected(opt) }]"
+        />
+      </span>
+      <StateIcon
+        v-else-if="iconFor(opt)"
+        :active="isSelected(opt)"
+        :icon="(opt.icon as string) || undefined"
+        :active-icon="(opt.activeIcon as string) || props.activeIcon || undefined"
+        :inactive-icon="(opt.inactiveIcon as string) || props.inactiveIcon || undefined"
+        :preset="(opt.icon || opt.activeIcon || opt.inactiveIcon) ? undefined : preset"
+        :size="iconSize"
+        :class="['re-select-square__icon', { 're-select-square__icon--active': isSelected(opt) }]"
+      />
       <span v-if="!vertical && !iconFor(opt)" class="re-select-square__fallback">{{ String(opt.label).charAt(0) }}</span>
       <!-- 竖向档位行两行结构：主标题 + 副说明（参考图的自动刷新频率菜单）；
            横向档（iconOnly=false）仍是单行 label，保持原结构不动。 -->
@@ -62,7 +82,7 @@
  * 视觉上「当前档位」与「其余档位」用不同图标区分；未选中项灰字灰图标。
  */
 import { computed } from "vue";
-import ReIcon from "../../ReIcon/theme/default/ReIcon.vue";
+import StateIcon from "../../ReStateIcon/StateIcon.vue";
 import type { ReOption, ReSelectSize } from "../types";
 
 const props = withDefaults(
@@ -93,6 +113,8 @@ const props = withDefaults(
     activeIcon?: string;
     /** 未选中态图标名：未选中项显示该图标（缺省回退到选项自身的 inactiveIcon / icon） */
     inactiveIcon?: string;
+    /** 内置图标集名（sunmoon / check / star / bell / arrow / anim）；"none" 关闭内置回落 */
+    preset?: string;
   }>(),
   {
     modelValue: "",
@@ -105,6 +127,7 @@ const props = withDefaults(
     controlSize: "default",
     activeIcon: "",
     inactiveIcon: "",
+    preset: undefined,
   },
 );
 
@@ -124,11 +147,22 @@ function isSelected(opt: ReOption): boolean {
   return props.modelValue === opt.value;
 }
 
-/** 当前态图标：activeIcon/inactiveIcon 组件级 > 选项级 activeIcon/inactiveIcon > 选项 icon */
+/**
+ * 该选项是否配置了图标（选项级 icon / activeIcon / inactiveIcon 或组件级 activeIcon / inactiveIcon）。
+ *
+ * 两态各自的图标名交给 ReStateIcon 解析：激活态 = activeIcon ?? 内置集.activeIcon ?? icon；
+ * 非激活态 = inactiveIcon ?? 内置集.inactiveIcon ?? icon。
+ */
 function iconFor(opt: ReOption): string {
-  const active = isSelected(opt);
-  const specific = (opt[active ? "activeIcon" : "inactiveIcon"] as string | undefined) || "";
-  return specific || (active ? props.activeIcon : props.inactiveIcon) || (opt.icon as string | undefined) || "";
+  return (
+    (opt.icon as string | undefined) ||
+    (opt.activeIcon as string | undefined) ||
+    (opt.inactiveIcon as string | undefined) ||
+    props.activeIcon ||
+    props.inactiveIcon ||
+    props.preset ||
+    ""
+  );
 }
 
 function select(opt: ReOption) {
@@ -359,8 +393,10 @@ function select(opt: ReOption) {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* 档位左侧的圆形图标底座：灰底中性色，选中后转主色浅底 */
-.re-select-square--vertical .re-select-square__item > .re-icon {
+/* 档位左侧的圆形图标底座：灰底中性色，选中后转主色浅底。
+   用一层 badge 包住 ReStateIcon：ReStateIcon 自身有内联宽高（图标尺寸），
+   直接拿它当圆形底座会被内联样式压过，故由 badge 决定外圈、StateIcon 决定图标大小。 */
+.re-select-square--vertical .re-select-square__item > .re-select-square__icon-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -386,7 +422,7 @@ function select(opt: ReOption) {
   color: var(--el-color-primary, #409eff);
   font-weight: 600;
 }
-.re-select-square--vertical .re-select-square__item--active > .re-icon {
+.re-select-square--vertical .re-select-square__item--active > .re-select-square__icon-badge {
   background: var(--el-color-primary-light-9, #ecf5ff);
   color: var(--el-color-primary, #409eff);
 }

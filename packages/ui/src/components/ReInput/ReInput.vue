@@ -52,6 +52,11 @@ const props = withDefaults(
     formatter?: (value: string | number | undefined) => string;
     /** 输入回写格式化（与 formatter 配合使用） */
     parser?: (value: string) => string;
+    /**
+     * 右侧专注模式（仅 modern 布局生效）：聚焦时输入框锚定当前位置向右展开成浮层，
+     * 用于窄列（如表设计网格的注释列）编辑长文本；失焦还原。
+     */
+    focusRight?: boolean;
   }>(),
   {
     layout: "el",
@@ -72,6 +77,7 @@ const props = withDefaults(
     status: undefined as undefined | "success" | "warning" | "error",
     formatter: undefined,
     parser: undefined,
+    focusRight: false,
   },
 );
 
@@ -145,6 +151,7 @@ function onClear(): void {
       :status="status"
       :formatter="formatter"
       :parser="parser"
+      :focus-right="focusRight"
     >
       <template v-if="$slots.prefix" #prefix>
         <slot name="prefix" />

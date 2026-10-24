@@ -62,6 +62,35 @@ export interface SyncTask {
   syncTaskHookUrl?: string | null;
   /** Hook 通知时机：DONE 完成通知 / ROW 每条数据+完成（全量固定 DONE） */
   syncTaskHookNotify?: string | null;
+  /** 多目标 JSON 数组（服务端归一化后的配置），空表示按上面的单目标字段解析 */
+  syncTaskTargets?: string | null;
+  /** 多目标各自的增量水位 JSON：{"数据源ID#表名": "水位"}（服务端回写） */
+  syncTaskTargetSeqs?: string | null;
+}
+
+/**
+ * 一个输出目标：一次采集的结果分别写进多张表时，每张表一套独立配置。
+ *
+ * <p>字段与任务级同名配置一一对应，因此「每个目标都是原来那一套配置」，
+ * 不需要为多目标发明第二套语义。</p>
+ */
+export interface SyncTargetPayload {
+  /** 目标数据源 ID，必须是 jdbc 类型 */
+  targetDatasourceId: number | null;
+  /** 目标表名，可带 `库.表` */
+  targetTable: string;
+  /** 写入模式 INSERT/REPLACE/UPSERT/OVERWRITE */
+  writeMode?: string | null;
+  /** 同步模式 FULL/INCREMENTAL */
+  syncMode?: string | null;
+  /** 增量字段，按选择顺序生效（复合水位） */
+  incFields?: string[] | null;
+  /** 字段映射 JSON 数组字符串，空表示按同名自动匹配 */
+  columnMapping?: string | null;
+  /** 批量提交条数 */
+  batchSize?: number | null;
+  /** 增量每批数量，null=不限 */
+  incBatchSize?: number | null;
 }
 
 /** 任务新建/修改入参（用 type 而非 interface：`.data()` 的参数要求 Record<string, unknown>，
@@ -78,6 +107,8 @@ export type SyncTaskPayload = {
   sourceOptions?: string | null;
   targetDatasourceId: number;
   targetTable: string;
+  /** 多目标列表：非空时以此为准，上面的 targetDatasourceId/targetTable 只作为第一个目标的兼容值 */
+  targets?: SyncTargetPayload[] | null;
   columnMapping?: string | null;
   writeMode: string;
   /** 同步模式 FULL/INCREMENTAL，空按 FULL */

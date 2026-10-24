@@ -73,6 +73,8 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
      并被跳过，预览渲染成同名未知元素（<regraph3d>），而 log.warn 走 console.log，
      控制台里连 warning 都不明显 —— 属静默失败。 */
   ReGraph3D: () => import("./components/ReGraph3D"),
+  ReRelationGraph: () => import("./components/ReRelationGraph"),
+  ReRelationGraphV2: () => import("./components/ReRelationGraphV2"),
   ReFlowGraph: () => import("./components/ReFlowGraph"),
   ReChart: () => import("./components/ReChart"),
   ReEcharts: () => import("./components/ReEcharts"),
@@ -101,6 +103,7 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
   ReColorize: () => import("./components/ReColorize"),
   ReStationMessage: () => import("./components/ReStationMessage"),
   ReTab: () => import("./components/ReTab"),
+  ReTabs: () => import("./components/ReTabs"),
   ReSwitch: () => import("./components/ReSwitch"),
   ReCron: () => import("./components/ReCron"),
   ReEmpty: () => import("./components/ReEmpty"),
@@ -118,6 +121,7 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
   ReMap3D: () => import("./components/ReMap3D"),
   ReCanvasUi: () => import("./components/ReCanvasUi"),
   ReKit: () => import("./components/ReKit"),
+  ReStateIcon: () => import("./components/ReStateIcon"),
   ReCommand: () => import("./components/ReCommand"),
 };
 

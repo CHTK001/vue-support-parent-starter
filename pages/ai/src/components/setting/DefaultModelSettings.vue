@@ -270,6 +270,18 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  /**
+   * 是否以「全局层」保存（管理员系统配置页用）。
+   *
+   * <p>默认 false：保存写「本人覆盖层」（会话/模型的个人默认）。传 true 且当前为管理员时，
+   * 改走 {@code PUT /v2/settings/{group}} 写入全局默认层 —— 因为 runtime/paper 这类系统分组的
+   * 运行时读取（{@code GlobalSettingReader#getStrDirect}）只认全局层，若写覆盖层会「保存了
+   * 却不生效」。非管理员即便传 true 也仍写自己的覆盖层（接口层有白名单与管理员专属字段守卫）。</p>
+   */
+  globalSave: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 /**
@@ -287,8 +299,14 @@ const props = defineProps({
  * （SearchSettings.vue，读取同一批 provider / apiKey / endpoint 字段），
  * 默认模型整页再渲染「联网搜索」分组就是两个入口两份表单；拆出后只保留专用入口，
  * 避免「这里填了、搜索设置里没显示」这类错位。</p>
+ *
+ * <p><b>试卷（paper）必须在此列</b>：它的独立菜单是<b>管理员专属</b>
+ * （{@code adminOnly: true}），而「默认模型」整页对所有登录用户开放。
+ * 漏在这里的后果不是「多一个入口」，而是<b>越权</b> —— 普通用户能在默认模型页里
+ * 改到试卷管线配置（保存会被接口层拒，但界面给了他们可编辑的假象，
+ * 也暴露了管理员专属的管线参数）。</p>
  */
-const SPLIT_GROUPS = ['face', 'image_search', 'layout', 'rag', 'ocr', 'bot', 'language', 'runtime', 'asr', 'tts', 'search']
+const SPLIT_GROUPS = ['face', 'image_search', 'layout', 'rag', 'ocr', 'bot', 'language', 'runtime', 'asr', 'tts', 'search', 'paper', 'reid']
 
 /** 传入 groups 时只渲染指定分组（设置中心拆出的独立菜单复用同一套交互与保存逻辑） */
 const displayGroups = computed(() => {
@@ -651,6 +669,10 @@ const requiredTypeFor = (group, field) => {
     const f = String(field || '').toLowerCase()
     // CV / ONNX 管线分组（非 OpenAI 兼容接口模型）
     if (g === 'face') return 'face'
+    // 人脸重识别与人脸识别**共用同一批 ONNX 模型**（SCRFD 检测 + ArcFace 特征），
+    // 分组名不同但模型类型完全一致。不在这里归类的话，detector_model / feature_model
+    // 会一路落到末尾的 'text'（对话模型），弹框里只剩 LLM，真正的检测/特征模型一个都选不到。
+    if (g === 'reid') return 'face'
     if (g === 'ocr') return 'ocr'
     if (g === 'layout') return 'layout'
     // 图片识别组里的检测模型是独立类型，分类/分割等仍归 image_cv
@@ -721,6 +743,9 @@ const SUBTYPE_FOR_FIELD = {
     'face.deepfake_model': ['face_deepfake'],
     'face.recognizer_model': ['face_recognition'],
     'face.pose_model': ['face_pose'],
+    // 人脸重识别与人脸识别共用模型，细分类型沿用 face_*（见 requiredTypeFor 的说明）
+    'reid.detector_model': ['face_detection'],
+    'reid.feature_model': ['face_feature'],
     'image.detect_model': ['object_detection', 'defect_detection'],
 }
 
@@ -937,40 +962,55 @@ const MEDIUM_RISK_FIELDS = new Set([
   'deepfake_model', 'direction_model',
 ])
 
+/**
+ * 真正拥有「底库」的分组白名单 —— 只有它们换模型才会让已入库向量失效。
+ *
+ * <p>此前这里只特判了 {@code ocr}（「OCR 组无底库概念」），其余分组一律套底库话术，
+ * 于是出现了错位提示：<b>图片识别（image 组）</b>的
+ * {@code segment_model} / {@code captioning_model} 命中 {@link #MEDIUM_RISK_FIELDS}，
+ * 被拿以图搜图的图像底库条数去提示「底库已有 N 条…建议重登底库」——
+ * 可图片识别的分割/描述模型与以图搜图的向量库毫无关系，用户按提示去「重登底库」
+ * 完全是白做。同理，新拆出的 {@code reid} 分组也有 {@code feature_model}，
+ * 会误判成「换特征模型要重登人脸底库」，而重识别用的是实时轨迹、没有底库。</p>
+ *
+ * <p>改为白名单后语义是正的：不在表里的分组，换任何模型都不影响任何向量库。</p>
+ */
+const LIBRARY_GROUPS = new Set(['face', 'image_search'])
+
 /** 人脸底库 / 图像底库条目数；0 表示空库。加载失败按 0 处理（不打扰用户） */
 const faceLibraryCount = ref(0)
 const imageLibraryCount = ref(0)
 
 const getFieldRisk = (item, group) => {
-  // OCR 组无底库概念，直接返回空风险等级
-  if (group === 'ocr') return ''
+  // 没有底库的分组不产生「变更风险」——那里的模型改动不影响任何已入库向量
+  if (!LIBRARY_GROUPS.has(group)) return ''
   const field = String(item?.field ?? '')
+  if (group === 'image_search') {
+    // 以图搜图：换图像特征模型 = 换嵌入空间，图像底库旧向量全部失配
+    return field === 'default_image_feature_model' && imageLibraryCount.value > 0 ? 'high' : ''
+  }
+  // face 分组：特征/识别模型换坐标系（红），其余只影响新登记（黄）
   if (HIGH_RISK_FIELDS.has(field)) {
     return faceLibraryCount.value > 0 ? 'high' : ''
   }
   if (MEDIUM_RISK_FIELDS.has(field)) {
-    const count = groupIsFace(item) ? faceLibraryCount.value : imageLibraryCount.value
-    return count > 0 ? 'medium' : ''
+    return faceLibraryCount.value > 0 ? 'medium' : ''
   }
   return ''
 }
 
-/** 该字段属于人脸底库还是图像底库：face 分组里混了图像侧的字段，不能一概而论 */
-const groupIsFace = (item) => {
-  const f = String(item?.field ?? '')
-  return !['captioning_model', 'segment_model'].includes(f)
-}
-
 const getFieldRiskTip = (item, group) => {
-  // OCR 组无底库概念，跳过风险提示
-  if (group === 'ocr') return ''
+  if (!LIBRARY_GROUPS.has(group)) return ''
   const field = String(item?.field ?? '')
+  if (group === 'image_search') {
+    return `图像底库已有 ${imageLibraryCount.value} 条。换图像特征模型后，旧向量与新模型不在同一嵌入空间，` +
+      '以图搜图会对所有历史图片失配，必须重新登记整库。'
+  }
   if (HIGH_RISK_FIELDS.has(field)) {
     return `人脸底库已有 ${faceLibraryCount.value} 条。换特征模型后，旧人脸向量与新模型不在同一嵌入空间，` +
       '1:N 检索会对所有历史条目失配，必须重新登记整库。若只是想微调阈值，请改「相似度阈值」而不是换模型。'
   }
-  const count = groupIsFace(item) ? faceLibraryCount.value : imageLibraryCount.value
-  return `${count > 0 ? '底库已有 ' + count + ' 条。' : ''}更换该模型只影响之后新登记/新检索的处理过程，` +
+  return `人脸底库已有 ${faceLibraryCount.value} 条。更换该模型只影响之后新登记/新检索的处理过程，` +
     '已入库的向量仍然可用；但新旧模型混用会让部分条目的效果不一致，建议换模型后重登一遍底库。'
 }
 
@@ -1546,7 +1586,13 @@ const saveGroupSettings = async (group) => {
         payload[field] = value === '' || value === null || value === undefined ? null : value
     }
     try {
-        await apiService.updateUserGroupOverrides(group, payload)
+        // 全局层保存（管理员系统配置）：runtime/paper 这类系统分组的运行时读取只认全局层，
+        // 写覆盖层会出现「界面保存了却不生效」。配置中心页传 globalSave=true 走全局出口。
+        if (props.globalSave && isAdmin()) {
+            await apiService.updateGroupSettings(group, payload)
+        } else {
+            await apiService.updateUserGroupOverrides(group, payload)
+        }
         notify.success('设置已保存')
         // 重新拉取合并视图：拿回 overridden/defaultValue，界面上「继承全局」状态才会刷新
         await loadGroupValues(group)

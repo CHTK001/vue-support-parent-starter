@@ -1,26 +1,34 @@
 /* ============================================================
- * tokens.css —— Hotsport 观测台设计令牌（深色工程台）
+ * tokens.css —— Hotsport 观测台设计令牌（koi 体系 · 渐变数据台）
  *
  * 定位：整套 UI 的唯一调色/间距来源。页面与组件一律引用令牌，
  *       不再出现写死的 hex —— 换主题只需改本文件。
+ *
+ * 版本说明（koi 渐变数据台）：
+ *   底层色板整体切换到系统 Vue 体系的 koi 令牌（--brand-500 / --bg-container /
+ *   --text-primary / --status-*），语义层 --apm-* 接口保持不变，因此
+ *   15 个页面零改动自动跟随；新增数据主色渐变（品牌紫 → 亮紫）作为
+ *   统计卡图标底 / 主操作 / 图表主序列的统一强调。
+ *
+ * 深浅双主题：跟随宿主 html[data-theme="dark"] 切换。白天为浅色卡片 +
+ *   品牌渐变点缀（方案 C 数据台），夜间为 koi 深色令牌 + 去饱和强调。
  *
  * 为什么覆盖 Element Plus 的 --el-* 变量：
  *   库内 Re 组件大量从 Element 令牌取色，覆盖后自动跟随，零改码：
  *     - ReEcharts   读 --el-color-primary/success/warning/danger/info 注入图表调色板
  *     - ReStatCard  用 --el-color-primary 以 color-mix 派生图标渐变底与柔和投影
  *     - ReTable / ReTag / ReButton / ReInput 等全部走 --el-*
- *   因此本文件只维护一套色板（apm-* 语义层 → --el-* 映射），避免两套令牌打架。
  *
  * 分层约定（自下而上，上层只能消费下层）：
- *   1. 原始色板  --apm-palette-*   纯色值，仅本文件引用
- *   2. 语义层    --apm-*           角色色，供业务页面/图表引用
+ *   1. 原始色板  --koi-*           来自系统 @repo/theme 的 koi 令牌（--brand-* / --bg-* / …）
+ *   2. 语义层    --apm-*           角色色，供业务页面/图表引用（接口稳定，页面零改动）
  *   3. Element映射 --el-*           供库内 Re 组件自动跟随
  * ============================================================ */
 
 /* ---------- 盒模型重置（作用域内）----------
    缺这条会出真实布局 bug：.apm-sider 声明 width:232px，但 content-box 下
    padding(12px*2) + border(1px) 还要另算，实测占 257px，折叠目标 64px
-   实测会占 89px —— 声明值与实际占位恒差 25px，响应式断点全部对不上。
+    实测会占 89px —— 声明值与实际占位恒差 25px，响应式断点全部对不上。
    迁入平台后必须限定在本包作用域内，否则会把宿主的布局一起改掉。 */
 .hotsport-scope,
 .hotsport-scope *,
@@ -31,89 +39,97 @@
 
 /* ---------- 设计令牌 ----------
    一律 `--apm-*` 前缀，只被本包消费；挂 :root 是为了让 Element Plus
-   传送到 body 的弹层（下拉/提示/消息）也能解析这些值。定义本身不改任何样式。 */
+   传送到 body 的弹层（下拉/提示/消息）也能解析这些值。定义本身不改任何样式。
+   基底值直接引用系统 koi 令牌；koi 未加载时用字面量兜底，独立应用不崩。 */
 :root {
-  /* ---------- 1. 原始色板（深色工程台）----------
-     蓝图为「冷灰基底 + 电蓝主色 + 琥珀/翡翠状态色」。
-     基底刻意压低饱和度与亮度，让数据色（图表/状态）成为画面唯一亮点。 */
-  --apm-palette-ink-900: #070a12; /* 画布最深处：页面底 */
-  --apm-palette-ink-800: #0b101d; /* 面板底 */
-  --apm-palette-ink-700: #111827; /* 抬升面：抽屉/弹层/表头 */
-  --apm-palette-ink-600: #1a2338; /* 强调面：hover 块 / 选中行 */
-  --apm-palette-ink-500: #24304a; /* 分隔线强调 */
+  /* ---------- 1. 原始色板（koi 体系映射）----------
+     主色：品牌紫 #6d5dfc（koi --brand-500），亮紫 #8f83fd（--brand-400）。
+     基底：浅色数据台 —— 页面 #f6f7fb / 卡片 #ffffff / 强调 #fbfbff。 */
+  --apm-koi-500: var(--brand-500, #6d5dfc);
+  --apm-koi-400: var(--brand-400, #8f83fd);
+  --apm-koi-600: var(--brand-600, #5a4bd9);
+  --apm-koi-100: var(--brand-100, #ece9ff);
+  --apm-koi-50: var(--brand-50, #f6f4ff);
 
-  --apm-palette-line: #1c2540; /* 常规描边 */
-  --apm-palette-line-soft: #151d33; /* 弱描边：卡片内分隔 */
-
-  --apm-palette-text-hi: #eaf0fb; /* 主文本：数值/标题 */
-  --apm-palette-text: #a7b3c9; /* 常规文本 */
-  --apm-palette-text-dim: #6b7a95; /* 弱文本：标签/单位/表头 */
-  --apm-palette-text-faint: #47546e; /* 极弱：占位/禁用 */
-
-  --apm-palette-blue: #4d7cfe; /* 主色：交互/强调 */
-  --apm-palette-blue-hi: #7aa2ff; /* 主色亮部：hover/文字链 */
-  --apm-palette-indigo: #7c6cfa; /* 次强调：图表第二序列 */
-
-  --apm-palette-cyan: #22d3ee; /* 数据高亮：实时/链路 */
-  --apm-palette-emerald: #2fd8a3; /* 成功/健康 */
-  --apm-palette-amber: #f5a524; /* 警告/降级 */
-  --apm-palette-rose: #f4614f; /* 错误/饱和 */
-  --apm-palette-slate: #7c8aa5; /* 中性：未知/降级态 */
-
-  /* ---------- 2. 语义层 ---------- */
-  /* 品牌与交互 */
-  --apm-accent: var(--apm-palette-blue);
-  --apm-accent-hover: var(--apm-palette-blue-hi);
-  --apm-accent-subtle: color-mix(in srgb, var(--apm-palette-blue) 14%, transparent);
-  /* 次强调：用于"第三类"统计卡图标等需要区分于主色/状态色的位置。
-     原各页写死 #8b5cf6，与主色 #3b82f6 在深色底上几乎同色，这里统一取靛蓝。 */
-  --apm-accent-alt: var(--apm-palette-indigo);
-
-  /* 表面：三级递进，靠亮度而非描边分层 */
-  --apm-canvas: var(--apm-palette-ink-900);
-  --apm-panel: var(--apm-palette-ink-800);
-  --apm-panel-raised: var(--apm-palette-ink-700);
-  --apm-panel-active: var(--apm-palette-ink-600);
+  /* 表面：浅色三级递进（koi：page / container / elevated） */
+  --apm-panel-canvas: var(--bg-page, #f6f7fb);
+  --apm-panel: var(--bg-container, #ffffff);
+  --apm-panel-raised: var(--bg-elevated, #fbfbff);
+  --apm-panel-active: var(--bg-fill, #f5f7fa);
 
   /* 描边：卡片轮廓与内部分隔分两档，避免整屏网格感 */
-  --apm-border: var(--apm-palette-line);
-  --apm-border-soft: var(--apm-palette-line-soft);
+  --apm-panel-border: var(--border-default, #e3e6ef);
+  --apm-panel-border-soft: var(--border-subtle, #eef0f6);
+
+  /* 文本四档（koi：primary / secondary / tertiary） */
+  --apm-panel-text-hi: var(--text-primary, #1f2430);
+  --apm-panel-text: var(--text-secondary, #5c6270);
+  --apm-panel-text-dim: var(--text-tertiary, #6b7280);
+  --apm-panel-text-faint: color-mix(in srgb, var(--text-tertiary, #6b7280) 62%, #ffffff);
+
+  /* 数据/状态色（koi 语义，浅色下饱和度够高） */
+  --apm-panel-blue: var(--metric-cpu, #3b82f6);
+  --apm-panel-emerald: var(--status-success, #2fbf71);
+  --apm-panel-amber: var(--status-warning, #f59e0b);
+  --apm-panel-rose: var(--status-error, #f04a5d);
+  --apm-panel-cyan: var(--metric-net, #06b6d4);
+  --apm-panel-indigo: var(--metric-mem, #8b5cf6);
+  --apm-panel-slate: #9aa3b2;
+  --apm-panel-teal: var(--metric-jvm, #14b8a6);
+
+  /* ---------- 2. 语义层（接口稳定，页面零改动） ---------- */
+  /* 品牌与交互：主色带渐变，别处用 color-mix 派生即自动带数据台质感 */
+  --apm-accent: var(--apm-koi-500);
+  --apm-accent-hover: var(--apm-koi-400);
+  --apm-accent-gradient: linear-gradient(135deg, var(--apm-koi-500) 0%, var(--apm-koi-400) 100%);
+  --apm-accent-subtle: var(--apm-koi-100);
+  /* 次强调：用于"第三类"统计卡图标等需要区分于主色/状态色的位置 */
+  --apm-accent-alt: var(--apm-panel-indigo);
+
+  /* 表面：三级递进（色板层已定义 --apm-panel / --apm-panel-raised / --apm-panel-active，
+     这里只需补页面画布这一层的语义口，其余页面直接消费同名色板变量） */
+  --apm-canvas: var(--apm-panel-canvas);
+
+  /* 描边 */
+  --apm-border: var(--apm-panel-border);
+  --apm-border-soft: var(--apm-panel-border-soft);
 
   /* 文本四档 */
-  --apm-fg: var(--apm-palette-text-hi);
-  --apm-fg-regular: var(--apm-palette-text);
-  --apm-muted: var(--apm-palette-text-dim);
-  --apm-fg-faint: var(--apm-palette-text-faint);
+  --apm-fg: var(--apm-panel-text-hi);
+  --apm-fg-regular: var(--apm-panel-text);
+  --apm-muted: var(--apm-panel-text-dim);
+  --apm-fg-faint: var(--apm-panel-text-faint);
 
   /* 状态语义色 */
-  --apm-success: var(--apm-palette-emerald);
-  --apm-warning: var(--apm-palette-amber);
-  --apm-danger: var(--apm-palette-rose);
-  --apm-info: var(--apm-palette-cyan);
-  --apm-neutral: var(--apm-palette-slate);
+  --apm-success: var(--apm-panel-emerald);
+  --apm-warning: var(--apm-panel-amber);
+  --apm-danger: var(--apm-panel-rose);
+  --apm-info: var(--apm-panel-cyan);
+  --apm-neutral: var(--apm-panel-slate);
 
   /* 状态底色：徽标/标签的低饱和填充 */
-  --apm-success-bg: color-mix(in srgb, var(--apm-palette-emerald) 14%, transparent);
-  --apm-warning-bg: color-mix(in srgb, var(--apm-palette-amber) 14%, transparent);
-  --apm-danger-bg: color-mix(in srgb, var(--apm-palette-rose) 14%, transparent);
-  --apm-info-bg: color-mix(in srgb, var(--apm-palette-cyan) 14%, transparent);
-  --apm-neutral-bg: color-mix(in srgb, var(--apm-palette-slate) 14%, transparent);
+  --apm-success-bg: color-mix(in srgb, var(--apm-panel-emerald) 12%, transparent);
+  --apm-warning-bg: color-mix(in srgb, var(--apm-panel-amber) 14%, transparent);
+  --apm-danger-bg: color-mix(in srgb, var(--apm-panel-rose) 12%, transparent);
+  --apm-info-bg: color-mix(in srgb, var(--apm-panel-cyan) 12%, transparent);
+  --apm-neutral-bg: color-mix(in srgb, var(--apm-panel-slate) 14%, transparent);
 
-  /* 图表序列：订单即 ECharts 默认取色顺序 */
-  --apm-chart-1: var(--apm-palette-blue);
-  --apm-chart-2: var(--apm-palette-emerald);
-  --apm-chart-3: var(--apm-palette-indigo);
-  --apm-chart-4: var(--apm-palette-amber);
-  --apm-chart-5: var(--apm-palette-cyan);
-  --apm-chart-6: var(--apm-palette-rose);
-  --apm-chart-grid: color-mix(in srgb, var(--apm-palette-text-dim) 16%, transparent);
-  --apm-chart-axis: var(--apm-palette-text-dim);
+  /* 图表序列：主序列品牌紫渐变，其余彩色序列 */
+  --apm-chart-1: var(--apm-koi-500);
+  --apm-chart-2: var(--apm-panel-teal);
+  --apm-chart-3: var(--apm-panel-indigo);
+  --apm-chart-4: var(--apm-panel-amber);
+  --apm-chart-5: var(--apm-panel-cyan);
+  --apm-chart-6: var(--apm-panel-rose);
+  --apm-chart-gradient: var(--apm-accent-gradient);
+  --apm-chart-grid: color-mix(in srgb, var(--apm-panel-text-dim) 18%, transparent);
+  --apm-chart-axis: var(--apm-panel-text-dim);
 
-  /* 圆角梯度：控件 < 卡片 < 抬升面 */
-  --apm-radius-sm: 6px;
-  --apm-radius-md: 10px;
-  --apm-radius-lg: 14px;
-  --apm-radius-xl: 18px;
+  /* 圆角梯度：控件 < 卡片 < 抬升面（koi radius 对齐） */
+  --apm-radius-sm: var(--radius-sm, 6px);
+  --apm-radius-md: var(--radius-md, 8px);
+  --apm-radius-lg: var(--radius-lg, 12px);
+  --apm-radius-xl: var(--radius-xl, 16px);
 
   /* 间距：4px 基准 */
   --apm-space-1: 4px;
@@ -123,16 +139,16 @@
   --apm-space-5: 20px;
   --apm-space-6: 24px;
 
-  /* 阴影：深色底上用「近距暗影 + 远距主色弥散」制造悬浮感，
-     纯黑投影在深色底上几乎不可见，必须带主色着色 */
-  --apm-shadow-card: 0 1px 2px rgb(0 0 0 / 30%),
-    0 12px 28px -14px color-mix(in srgb, var(--apm-palette-blue) 22%, transparent);
-  --apm-shadow-card-hover: 0 2px 4px rgb(0 0 0 / 38%),
-    0 18px 36px -14px color-mix(in srgb, var(--apm-palette-blue) 34%, transparent);
-  --apm-shadow-pop: 0 8px 24px rgb(0 0 0 / 46%);
+  /* 阴影：浅色底上柔和阴影 + 品牌冷光 */
+  --apm-shadow-card: 0 1px 2px rgba(15, 18, 33, 0.04),
+    0 4px 12px rgba(15, 18, 33, 0.05);
+  --apm-shadow-card-hover: 0 2px 4px rgba(15, 18, 33, 0.06),
+    0 12px 24px -8px color-mix(in srgb, var(--apm-koi-500) 26%, transparent);
+  --apm-shadow-pop: 0 8px 24px rgba(15, 18, 33, 0.12);
 
-  /* 字体 */
-  --apm-font-sans: "Inter", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  /* 字体（走系统栈，减小与宿主平台的字体割裂） */
+  --apm-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Microsoft YaHei", system-ui, sans-serif;
   /* 数据一律等宽，保证数值列纵向对齐（终端/日志/traceId/耗时） */
   --apm-font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", Consolas,
     "DejaVu Sans Mono", monospace;
@@ -144,12 +160,47 @@
 }
 
 /* ============================================================
+ * 深色主题（html[data-theme="dark"]）—— koi 深色令牌覆盖
+ * 夜间模式：深色卡片底、品牌紫提亮、状态色提饱和度。
+ * ============================================================ */
+:root[data-theme="dark"],
+html[data-theme="dark"] {
+  /* 原始色板（koi dark 映射） */
+  --apm-koi-500: var(--brand-500, #6d5dfc);
+  --apm-koi-400: var(--brand-400, #8f83fd);
+  --apm-koi-600: var(--brand-600, #7c6cf0);
+  --apm-koi-100: var(--brand-100, rgba(109, 93, 252, 0.25));
+  --apm-koi-50: var(--brand-50, rgba(109, 93, 252, 0.15));
+
+  --apm-panel-canvas: var(--bg-page, #0f1117);
+  --apm-panel: var(--bg-container, #1a1d27);
+  --apm-panel-raised: var(--bg-elevated, #222633);
+  --apm-panel-active: var(--bg-fill, #262a38);
+
+  --apm-panel-border: var(--border-default, rgba(255, 255, 255, 0.12));
+  --apm-panel-border-soft: var(--border-subtle, rgba(255, 255, 255, 0.06));
+
+  --apm-panel-text-hi: var(--text-primary, #e4e6ef);
+  --apm-panel-text: var(--text-secondary, #9ca0b0);
+  --apm-panel-text-dim: var(--text-tertiary, #6b7080);
+  --apm-panel-text-faint: color-mix(in srgb, var(--text-tertiary, #6b7080) 60%, transparent);
+
+  --apm-panel-blue: var(--metric-cpu, #3b82f6);
+  --apm-panel-emerald: var(--status-success, #4ade80);
+  --apm-panel-amber: var(--status-warning, #fbbf24);
+  --apm-panel-rose: var(--status-error, #ff6b6b);
+  --apm-panel-cyan: var(--metric-net, #06b6d4);
+  --apm-panel-indigo: var(--metric-mem, #8b5cf6);
+  --apm-panel-slate: #6b7080;
+  --apm-panel-teal: var(--metric-jvm, #14b8a6);
+}
+
+/* ============================================================
  * Element Plus 映射层
  * 把上面的语义色灌进 Element 令牌，库内组件自动跟随。
- * 只覆盖与本应用视觉相关的档位，其余沿用 Element 默认。
  *
  * 限定在作用域内：本包迁入平台后是内容区的一块，不能把宿主的
- * 按钮/表格/输入框一起染成深色工程台。
+ * 按钮/表格/输入框一起染成观测台配色。
  * 同时补上 Element 传送到 body 的弹层选择器 —— 那些节点不在
  * .hotsport-scope 之内，变量必须由 body.hotsport-dark 带进去。
  * ============================================================ */
@@ -160,58 +211,58 @@ body.hotsport-dark .el-message,
 body.hotsport-dark .el-notification,
 body.hotsport-dark .el-loading-mask {
   /* 主色五档：hover 与浅底档用 color-mix 从主色派生，换主色一处生效 */
-  --el-color-primary: var(--apm-palette-blue);
-  --el-color-primary-light-3: color-mix(in srgb, var(--apm-palette-blue) 70%, #fff);
-  --el-color-primary-light-5: color-mix(in srgb, var(--apm-palette-blue) 50%, #fff);
-  --el-color-primary-light-7: color-mix(in srgb, var(--apm-palette-blue) 30%, #fff);
-  --el-color-primary-light-8: color-mix(in srgb, var(--apm-palette-blue) 20%, #fff);
-  --el-color-primary-light-9: color-mix(in srgb, var(--apm-palette-blue) 10%, #fff);
-  --el-color-primary-dark-2: color-mix(in srgb, var(--apm-palette-blue) 80%, #000);
+  --el-color-primary: var(--apm-koi-500);
+  --el-color-primary-light-3: color-mix(in srgb, var(--apm-koi-500) 70%, #fff);
+  --el-color-primary-light-5: color-mix(in srgb, var(--apm-koi-500) 50%, #fff);
+  --el-color-primary-light-7: color-mix(in srgb, var(--apm-koi-500) 30%, #fff);
+  --el-color-primary-light-8: color-mix(in srgb, var(--apm-koi-500) 20%, #fff);
+  --el-color-primary-light-9: color-mix(in srgb, var(--apm-koi-500) 10%, #fff);
+  --el-color-primary-dark-2: color-mix(in srgb, var(--apm-koi-500) 80%, #000);
 
   /* 状态四色 */
-  --el-color-success: var(--apm-palette-emerald);
-  --el-color-warning: var(--apm-palette-amber);
-  --el-color-danger: var(--apm-palette-rose);
-  --el-color-error: var(--apm-palette-rose);
-  --el-color-info: var(--apm-palette-slate);
+  --el-color-success: var(--apm-panel-emerald);
+  --el-color-warning: var(--apm-panel-amber);
+  --el-color-danger: var(--apm-panel-rose);
+  --el-color-error: var(--apm-panel-rose);
+  --el-color-info: var(--apm-panel-slate);
 
-  --el-color-success-light-9: color-mix(in srgb, var(--apm-palette-emerald) 12%, transparent);
-  --el-color-warning-light-9: color-mix(in srgb, var(--apm-palette-amber) 12%, transparent);
-  --el-color-danger-light-9: color-mix(in srgb, var(--apm-palette-rose) 12%, transparent);
-  --el-color-info-light-9: color-mix(in srgb, var(--apm-palette-slate) 12%, transparent);
+  --el-color-success-light-9: color-mix(in srgb, var(--apm-panel-emerald) 12%, transparent);
+  --el-color-warning-light-9: color-mix(in srgb, var(--apm-panel-amber) 12%, transparent);
+  --el-color-danger-light-9: color-mix(in srgb, var(--apm-panel-rose) 12%, transparent);
+  --el-color-info-light-9: color-mix(in srgb, var(--apm-panel-slate) 12%, transparent);
 
   /* 表面：与 --apm-* 对齐，Element 与自有层不产生色差 */
-  --el-bg-color: var(--apm-palette-ink-800);
-  --el-bg-color-page: var(--apm-palette-ink-900);
-  --el-bg-color-overlay: var(--apm-palette-ink-700);
+  --el-bg-color: var(--apm-panel);
+  --el-bg-color-page: var(--apm-canvas);
+  --el-bg-color-overlay: var(--apm-panel-raised);
 
   /* 填充三档 */
-  --el-fill-color: var(--apm-palette-ink-700);
-  --el-fill-color-light: var(--apm-palette-ink-800);
-  --el-fill-color-lighter: color-mix(in srgb, var(--apm-palette-ink-700) 60%, transparent);
-  --el-fill-color-extra-light: color-mix(in srgb, var(--apm-palette-ink-700) 40%, transparent);
-  --el-fill-color-dark: var(--apm-palette-ink-600);
-  --el-fill-color-darker: var(--apm-palette-ink-500);
+  --el-fill-color: var(--apm-panel-raised);
+  --el-fill-color-light: var(--apm-panel);
+  --el-fill-color-lighter: color-mix(in srgb, var(--apm-panel-raised) 60%, transparent);
+  --el-fill-color-extra-light: color-mix(in srgb, var(--apm-panel-raised) 40%, transparent);
+  --el-fill-color-dark: var(--apm-panel-active);
+  --el-fill-color-darker: color-mix(in srgb, var(--apm-panel-active) 92%, #000);
 
   /* 描边四档 */
-  --el-border-color: var(--apm-palette-line);
-  --el-border-color-light: var(--apm-palette-line-soft);
-  --el-border-color-lighter: color-mix(in srgb, var(--apm-palette-line) 70%, transparent);
-  --el-border-color-extra-light: color-mix(in srgb, var(--apm-palette-line) 45%, transparent);
-  --el-border-color-dark: var(--apm-palette-ink-500);
-  --el-border-color-darker: var(--apm-palette-ink-500);
+  --el-border-color: var(--apm-border);
+  --el-border-color-light: var(--apm-border-soft);
+  --el-border-color-lighter: color-mix(in srgb, var(--apm-border) 70%, transparent);
+  --el-border-color-extra-light: color-mix(in srgb, var(--apm-border) 45%, transparent);
+  --el-border-color-dark: var(--apm-panel-active);
+  --el-border-color-darker: var(--apm-panel-active);
 
   /* 文本四档 */
-  --el-text-color-primary: var(--apm-palette-text-hi);
-  --el-text-color-regular: var(--apm-palette-text);
-  --el-text-color-secondary: var(--apm-palette-text-dim);
-  --el-text-color-placeholder: var(--apm-palette-text-faint);
-  --el-text-color-disabled: var(--apm-palette-text-faint);
+  --el-text-color-primary: var(--apm-fg);
+  --el-text-color-regular: var(--apm-fg-regular);
+  --el-text-color-secondary: var(--apm-muted);
+  --el-text-color-placeholder: var(--apm-fg-faint);
+  --el-text-color-disabled: var(--apm-fg-faint);
 
   /* 遮罩与阴影 */
-  --el-mask-color: rgb(3 6 14 / 72%);
+  --el-mask-color: rgb(15 18 33 / 55%);
   --el-box-shadow: var(--apm-shadow-pop);
-  --el-box-shadow-light: 0 4px 12px rgb(0 0 0 / 36%);
+  --el-box-shadow-light: 0 4px 12px rgba(15, 18, 33, 0.1);
   --el-box-shadow-dark: var(--apm-shadow-pop);
 
   /* 圆角对齐自有梯度，控件与卡片不打架 */

@@ -156,9 +156,9 @@
         :context-breakdown="tokenStats?.breakdown || null" />
     </div>
 
-    <!-- 回到底部悬浮按钮 -->
+    <!-- 回到底部悬浮按钮（左下角：附带「当前在做什么」状态文案） -->
     <ScrollToBottomButton :show="showScrollToBottomBtn" :is-streaming="shouldButtonBreathe"
-      @click="handleScrollToBottomClick" />
+      :status="processingStatus" @click="handleScrollToBottomClick" />
   </div>
   <!-- 记忆管理弹窗 -->
   <ReDialog v-model="memoPanelVisible" :title="t('chat.panel.memoryManagement')" width="560px"
@@ -177,7 +177,8 @@ import { useDebounceFn } from "@vueuse/core";
 import { useSessionStore } from "../../stores/session";
 import { useAuthStore } from "../../stores/auth"
 import { useLayoutStore } from "@/stores/layout"
-import { getCurrentTurns } from "@/utils/messageUtils"
+import { getCurrentTurns, flattenContentsForTimeline } from "@/utils/messageUtils"
+import { getToolActionLabel } from "@/utils/toolDisplay"
 import { useStreamResponse } from "@/composables/useStreamResponse"
 import type { InputMessageState, Session, QueuedMessage } from '@/types/session';
 import type { Character } from '@/types/character';
@@ -497,6 +498,57 @@ const turns = computed(() => {
 const visibleTurns = computed(() =>
   turns.value.filter((t) => t.user),
 );
+
+/**
+ * 最后一条助手轨迹里「此刻正在发生」的那一项。
+ *
+ * 只判断每组轨迹的**最后一项**：更早的步骤都已经结束，往回找不可能找到在跑的东西，
+ * 反而会把「上一轮早已完成的工具」误报成进行中。
+ * 数据来源是消息自带的 toolCalls / reasoning 状态，不新拉接口。
+ */
+const currentProcessItem = computed<{ kind: 'tool'; tool: any } | { kind: 'think' } | null>(() => {
+  const list = visibleTurns.value || [];
+  for (let i = list.length - 1; i >= 0; i -= 1) {
+    const assistants = (list[i] as any)?.assistants || [];
+    for (let j = assistants.length - 1; j >= 0; j -= 1) {
+      const items = flattenContentsForTimeline(getCurrentTurns(assistants[j]));
+      const item = items[items.length - 1];
+      if (!item) continue;
+      if (item.type === 'tool') {
+        const running = (item.toolCalls || []).filter((tc: any) => !tc.outcome);
+        if (running.length) {
+          return { kind: 'tool', tool: running[running.length - 1] };
+        }
+      } else if (item.type === 'think' && (item as any).source?.state?.isThinking) {
+        return { kind: 'think' };
+      }
+      return null;
+    }
+  }
+  return null;
+});
+
+/**
+ * 回到底部按钮上的「当前在做什么」（用户要求 2026-10-24）。
+ *
+ * 优先级：压缩 > 正在跑的工具 > 思考 > 生成。
+ * 压缩排最前是因为它会整段替换历史，用户最需要知道「现在别急」；
+ * 工具排在生成前，因为「正在运行命令 pwd」比「正在生成」更具体、更有信息量。
+ */
+const processingStatus = computed(() => {
+  const sessionId = currentSessionId.value;
+  if (sessionId && sessionStore.sessionIsCompressing(sessionId)) {
+    return t('chat.panel.statusCompressing');
+  }
+  const current = currentProcessItem.value;
+  if (current?.kind === 'tool') {
+    return t('chat.panel.statusRunningTool', { action: getToolActionLabel(current.tool) });
+  }
+  if (current?.kind === 'think') {
+    return t('chat.panel.statusThinking');
+  }
+  return isStreaming.value ? t('chat.panel.statusGenerating') : '';
+});
 
 // 监听轮次变化：仅 handleSendMessage 发送的新消息才标记动画
 watch(() => visibleTurns.value.length, (newLen, oldLen) => {

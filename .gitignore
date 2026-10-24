@@ -324,3 +324,15 @@ crud-ui-test.mjs
 **/trace-actions.mjs
 **/debug-*.mjs
 **/debug-*.log
+
+# --- 2026-10-24 补充：dev 缓存 / 空文件残留 / 一次性交付脚本 ---
+# vite dev 依赖预构建缓存（app 内 .vite-cache，随 node_modules 清理重建）
+**/.vite-cache/
+# pnpm 误生成的 0KB 空文件（apps/*/pnpm、apps/*/<pkg>@<ver>）
+apps/*/pnpm
+apps/*/@*
+# 并发会话的一次性交付/验证脚本（_deliver-* / _assets-* / _deliver-*.cjs）
+/_deliver-*.cjs
+/_assets-*.cjs
+/_deliver-*.mjs
+/_assets-*.mjs

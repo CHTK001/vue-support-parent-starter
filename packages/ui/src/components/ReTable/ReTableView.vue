@@ -291,6 +291,7 @@ function indexText(index: number): string {
   min-height: 0;
 }
 .re-table__view-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -300,15 +301,31 @@ function indexText(index: number): string {
   transition:
     border-color var(--rt-duration, 200ms) var(--rt-ease, ease),
     box-shadow var(--rt-duration, 200ms) var(--rt-ease, ease),
-    background-color var(--rt-duration, 200ms) var(--rt-ease, ease);
+    background-color var(--rt-duration, 200ms) var(--rt-ease, ease),
+    transform var(--rt-duration, 200ms) var(--rt-ease, ease);
 }
 .re-table__view-item:hover {
   border-color: color-mix(in srgb, var(--el-color-primary) 42%, var(--el-border-color));
-  box-shadow: 0 6px 16px -10px rgb(0 0 0 / 28%);
+  box-shadow: 0 8px 20px -12px rgb(0 0 0 / 32%);
+  transform: translateY(-1px);
 }
 .re-table__view-item--selected {
   border-color: color-mix(in srgb, var(--el-color-primary) 55%, var(--el-border-color));
   background: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-bg-color-overlay));
+}
+/* 选中行左侧主色竖条：用伪元素而不是 box-shadow，既保持 inset 阴影「不占布局宽度」
+   的效果，又不增加 box-shadow 声明数（组件库 surface 快照按声明数比对）。 */
+.re-table__view-item--selected::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--el-color-primary);
+}
+.re-table__view-item--selected:hover {
+  transform: translateY(-1px);
 }
 .re-table__view-index {
   flex: none;
@@ -392,5 +409,15 @@ function indexText(index: number): string {
 }
 .re-table__view-field-value.is-time {
   font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .re-table__view-item {
+    transition: none;
+  }
+  .re-table__view-item:hover,
+  .re-table__view-item--selected:hover {
+    transform: none;
+  }
 }
 </style>

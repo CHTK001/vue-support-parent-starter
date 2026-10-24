@@ -168,6 +168,7 @@ import { useApmStore } from "./stores/apmStore";
 import ShortcutsPanel from "./components/ShortcutsPanel.vue";
 import { currentLang, setLang } from "./i18n";
 import { realtimeService } from "./services/realtimeService";
+import { ROUTE_PREFIX } from "@pages/hotsport";
 
 const route = useRoute();
 const router = useRouter();
@@ -212,45 +213,45 @@ const navGroups: NavGroup[] = [
   {
     title: "概览",
     items: [
-      { path: "/dashboard", label: "总览看板", icon: DataAnalysis },
-      { path: "/topology", label: "系统拓扑", icon: Share },
-      { path: "/dependencies", label: "依赖拓扑", icon: DataBoard },
+      { path: `${ROUTE_PREFIX}/dashboard`, label: "总览看板", icon: DataAnalysis },
+      { path: `${ROUTE_PREFIX}/topology`, label: "系统拓扑", icon: Share },
+      { path: `${ROUTE_PREFIX}/dependencies`, label: "依赖拓扑", icon: DataBoard },
     ],
   },
   {
     title: "链路分析",
     items: [
-      { path: "/traces", label: "调用链路", icon: Document },
-      { path: "/endpoints", label: "端点分析", icon: Histogram },
-      { path: "/services", label: "服务列表", icon: Connection },
-      { path: "/errors", label: "错误排行", icon: Warning },
+      { path: `${ROUTE_PREFIX}/traces`, label: "调用链路", icon: Document },
+      { path: `${ROUTE_PREFIX}/endpoints`, label: "端点分析", icon: Histogram },
+      { path: `${ROUTE_PREFIX}/services`, label: "服务列表", icon: Connection },
+      { path: `${ROUTE_PREFIX}/errors`, label: "错误排行", icon: Warning },
     ],
   },
   {
     title: "资源与日志",
     items: [
-      { path: "/leaks", label: "资源泄漏", icon: DataLine },
-      { path: "/jvm", label: "JVM 指标", icon: Odometer },
-      { path: "/logs", label: "日志", icon: Tickets },
+      { path: `${ROUTE_PREFIX}/leaks`, label: "资源泄漏", icon: DataLine },
+      { path: `${ROUTE_PREFIX}/jvm`, label: "JVM 指标", icon: Odometer },
+      { path: `${ROUTE_PREFIX}/logs`, label: "日志", icon: Tickets },
     ],
   },
   {
     title: "运维",
     items: [
-      { path: "/alerts", label: "告警中心", icon: Bell },
-      { path: "/agent", label: "Agent 中心", icon: Monitor },
-      { path: "/injector", label: "数据注入器", icon: DataLine },
+      { path: `${ROUTE_PREFIX}/alerts`, label: "告警中心", icon: Bell },
+      { path: `${ROUTE_PREFIX}/agent`, label: "Agent 中心", icon: Monitor },
+      { path: `${ROUTE_PREFIX}/injector`, label: "数据注入器", icon: DataLine },
     ],
   },
 ];
 
 /** 当前路由是否命中（含 /traces/detail 归到 /traces 组） */
 function isActive(path: string): boolean {
-  if (path === "/traces") {
-    return route.path.startsWith("/traces");
+  if (path === `${ROUTE_PREFIX}/traces`) {
+    return route.path.startsWith(`${ROUTE_PREFIX}/traces`);
   }
-  if (path === "/services") {
-    return route.path.startsWith("/services");
+  if (path === `${ROUTE_PREFIX}/services`) {
+    return route.path.startsWith(`${ROUTE_PREFIX}/services`);
   }
   return route.path === path;
 }
@@ -307,9 +308,9 @@ function applyGlobalSearch() {
     return;
   }
   if (/^[0-9a-f-]{12,}$/i.test(kw)) {
-    router.push({ path: "/traces", query: { traceId: kw } });
+    router.push({ path: `${ROUTE_PREFIX}/traces`, query: { traceId: kw } });
   } else {
-    router.push({ path: "/logs", query: { keyword: kw } });
+    router.push({ path: `${ROUTE_PREFIX}/logs`, query: { keyword: kw } });
   }
   globalSearch.value = "";
 }

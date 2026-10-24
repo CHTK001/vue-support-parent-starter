@@ -12,8 +12,9 @@
       </span>
     </div>
 
-    <!-- 内容区：折叠时显示最多3行 + 渐变遮罩，展开时全量显示 -->
-    <div class="thinking-section__content-wrapper border-l ml-1.75 pl-4 text-sm border-gray-300 dark:border-gray-700">
+    <!-- 内容区：极简展开态（用户要求 2026-10-24）——细左侧导轨 + 纯文本，
+         不套填充卡片。折叠时显示最多3行 + 渐变遮罩，展开时全量显示 -->
+    <div class="thinking-section__content-wrapper">
       <div class="thinking-content" :class="{ 'is-collapsed': !isExpanded && !isThinking }">
         <MarkdownContent @click.stop="$emit('click')" class="flex-1 markdown-text text-gray-500 dark:text-gray-400"
           :content="reasoningContent" />
@@ -84,6 +85,17 @@ watch(() => props.isThinking, (isThinking: boolean) => {
 
 .thinking-section__header {
   user-select: none;
+}
+
+/* 极简展开态：一条细导轨 + 纯文本（与工具行 / 检索行同一套视觉口径）。
+   原来用 Tailwind 的 border-gray-300 dark:border-gray-700，那是两套硬编码灰，
+   换肤后不跟随；这里统一走 --el-border-color-lighter。 */
+.thinking-section__content-wrapper {
+  margin-left: 7px;
+  padding-left: 16px;
+  border-left: 2px solid var(--el-border-color-lighter);
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
 }
 
 

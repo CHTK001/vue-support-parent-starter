@@ -23,11 +23,26 @@ const props = withDefaults(
     radioOnLabel?: string;
     /** 「关」的文案 */
     radioOffLabel?: string;
+    /** 通用图标（两态相同）；activeIcon / inactiveIcon 未配置时回落到它 */
+    icon?: string;
+    /** 激活态图标名（缺省回退到 icon / 内置集） */
+    activeIcon?: string;
+    /** 非激活态图标名（缺省回退到 icon / 内置集） */
+    inactiveIcon?: string;
+    /** 内置图标集名（sunmoon / check / star / bell / arrow / anim）；"none" 关闭内置回落 */
+    preset?: string;
+    /** 图标尺寸（px） */
+    iconSize?: number;
   }>(),
   {
     title: "",
     radioOnLabel: "是",
     radioOffLabel: "否",
+    icon: "",
+    activeIcon: "",
+    inactiveIcon: "",
+    preset: undefined,
+    iconSize: 16,
   },
 );
 
@@ -51,8 +66,20 @@ function onUpdate(value: unknown): void {
       v-bind="$attrs"
       @update:model-value="onUpdate"
     >
-      <ReRadioButton :value="true">{{ props.radioOnLabel }}</ReRadioButton>
-      <ReRadioButton :value="false">{{ props.radioOffLabel }}</ReRadioButton>
+      <ReRadioButton
+        :value="true"
+        :icon="props.icon"
+        :active-icon="props.activeIcon"
+        :preset="props.preset"
+        :icon-size="props.iconSize"
+      >{{ props.radioOnLabel }}</ReRadioButton>
+      <ReRadioButton
+        :value="false"
+        :icon="props.icon"
+        :inactive-icon="props.inactiveIcon"
+        :preset="props.preset"
+        :icon-size="props.iconSize"
+      >{{ props.radioOffLabel }}</ReRadioButton>
     </ReRadioGroup>
   </div>
 </template>

@@ -16,8 +16,8 @@
  *   import ReKit from "@repo/ui/re-kit";
  *   app.use(ReKit);
  */
-import type { App, Plugin, PropType } from "vue";
-import { defineComponent, h } from "vue";
+import type { App, InjectionKey, Plugin, PropType, Slots } from "vue";
+import { computed, defineComponent, h, inject, provide, type VNode } from "vue";
 import {
   ElAlert,
   ElAvatar,
@@ -38,8 +38,20 @@ import {
   ElTableColumn,
   ElTreeSelect,
 } from "element-plus";
+import StateIcon from "../ReStateIcon/StateIcon.vue";
 import "../shared/re-inputs.css";
 import "./re-kit.css";
+
+/**
+ * ReRadioGroup 向下提供当前选中值（computed ref），供 ReRadio / ReRadioButton 判断激活态。
+ *
+ * 不用 Element Plus 内部的 `radioGroupKey`（深路径导入 `element-plus/es/components/radio`
+ * 在 exports 映射下并不可靠），改用本组件自己的注入键：语义相同，且不依赖 EP 内部实现。
+ *
+ * 键值类型刻意用 `unknown`：把 `ComputedRef<T>` 直接标成 `Ref<unknown>` 会触发 ref 的
+ * 读写变体检查；统一成 `unknown`，读取处再判空即可。
+ */
+const RE_RADIO_STATE_KEY: InjectionKey<unknown> = Symbol("reRadioState");
 
 /* ==================== ReOption ==================== */
 const ReOption = defineComponent({
@@ -161,6 +173,8 @@ const ReRadioGroup = defineComponent({
   },
   emits: ["update:modelValue"],
   setup(props, { attrs, slots, emit }) {
+    // 把当前选中值下发给子项：ReRadio / ReRadioButton 靠它判断激活态（图标动画需要）。
+    provide(RE_RADIO_STATE_KEY, computed(() => props.modelValue));
     return () =>
       h(
         ElRadioGroup,
@@ -189,6 +203,59 @@ const ReRadioGroup = defineComponent({
   },
 });
 
+/**
+ * 读取 ReRadioGroup 下发的当前选中值（computed ref）。
+ *
+ * ReRadio / ReRadioButton 只是 el-radio / el-radio-button 的薄封装，自身不持有分组值；
+ * 判断某个选项当前是否选中（图标动画要知道激活态）必须读注入的分组状态。
+ */
+function useRadioState(): unknown {
+  return inject(RE_RADIO_STATE_KEY, null);
+}
+
+/** 该选项当前是否选中（不在分组内时按未选中处理） */
+function isRadioChecked(state: unknown, value: unknown): boolean {
+  return state != null && (state as { value?: unknown }).value === value;
+}
+
+/**
+ * 组装 radio 的显示内容：图标 + 文本。
+ *
+ * 只有配置了图标才追加 ReStateIcon；文本优先取使用者插槽，其次 label 属性。
+ * 配置了图标时始终下发 default 插槽（含 label 文本），否则沿用「直接透传插槽」的既有行为。
+ */
+function renderRadioContent(options: {
+  checked: boolean;
+  label?: unknown;
+  slots: Slots;
+  icon?: string;
+  activeIcon?: string;
+  inactiveIcon?: string;
+  preset?: string;
+  iconSize?: number;
+}): Array<VNode | string> {
+  const children: Array<VNode | string> = [];
+  if (options.icon || options.activeIcon || options.inactiveIcon || options.preset) {
+    children.push(
+      h(StateIcon, {
+        active: options.checked,
+        icon: options.icon,
+        activeIcon: options.activeIcon,
+        inactiveIcon: options.inactiveIcon,
+        preset: options.preset,
+        size: options.iconSize ?? 16,
+      }),
+    );
+  }
+  const slotNodes = options.slots.default?.() ?? [];
+  if (slotNodes.length) {
+    children.push(...slotNodes);
+  } else if (options.label != null && options.label !== "") {
+    children.push(String(options.label));
+  }
+  return children;
+}
+
 const ReRadio = defineComponent({
   name: "ReRadio",
   inheritAttrs: true,
@@ -198,14 +265,45 @@ const ReRadio = defineComponent({
     disabled: { type: Boolean, default: false },
     border: { type: Boolean, default: false },
     size: { type: String },
+    /** 通用图标（两态相同）；activeIcon / inactiveIcon 未配置时回落到它 */
+    icon: { type: String, default: "" },
+    /** 激活态图标名 */
+    activeIcon: { type: String, default: "" },
+    /** 非激活态图标名 */
+    inactiveIcon: { type: String, default: "" },
+    /** 内置图标集名（sunmoon / check / star / bell / arrow / anim）；"none" 关闭内置回落 */
+    preset: { type: String, default: undefined },
+    /** 图标尺寸（px） */
+    iconSize: { type: Number, default: 16 },
   },
   setup(props, { attrs, slots }) {
-    return () =>
-      h(ElRadio, { ...attrs, value: props.value, label: props.label, disabled: props.disabled, border: props.border, size: props.size } as any, {
-        // 以函数插槽下发：直接传 slots.default?.() 会让 Element Plus 报
-        // 「Non-function value encountered for default slot」。同 ReRadioGroup。
-        default: () => slots.default?.(),
-      });
+    const radioState = useRadioState();
+    return () => {
+      const childSlots = props.icon || props.activeIcon || props.inactiveIcon || props.preset
+        ? {
+            default: () =>
+              renderRadioContent({
+                checked: isRadioChecked(radioState, props.value),
+                label: props.label,
+                slots,
+                icon: props.icon,
+                activeIcon: props.activeIcon,
+                inactiveIcon: props.inactiveIcon,
+                preset: props.preset,
+                iconSize: props.iconSize,
+              }),
+          }
+        : {
+            // 以函数插槽下发：直接传 slots.default?.() 会让 Element Plus 报
+            // 「Non-function value encountered for default slot」。同 ReRadioGroup。
+            default: () => slots.default?.(),
+          };
+      return h(
+        ElRadio,
+        { ...attrs, value: props.value, label: props.label, disabled: props.disabled, border: props.border, size: props.size } as any,
+        childSlots,
+      );
+    };
   },
 });
 
@@ -216,13 +314,44 @@ const ReRadioButton = defineComponent({
     value: { type: [String, Number, Boolean, Object], default: "" },
     label: { type: [String, Number, Object] },
     disabled: { type: Boolean, default: false },
+    /** 通用图标（两态相同）；activeIcon / inactiveIcon 未配置时回落到它 */
+    icon: { type: String, default: "" },
+    /** 激活态图标名 */
+    activeIcon: { type: String, default: "" },
+    /** 非激活态图标名 */
+    inactiveIcon: { type: String, default: "" },
+    /** 内置图标集名（sunmoon / check / star / bell / arrow / anim）；"none" 关闭内置回落 */
+    preset: { type: String, default: undefined },
+    /** 图标尺寸（px） */
+    iconSize: { type: Number, default: 16 },
   },
   setup(props, { attrs, slots }) {
-    return () =>
-      h(ElRadioButton, { ...attrs, value: props.value, label: props.label, disabled: props.disabled } as any, {
-        // 同 ReRadio：必须用函数插槽，否则 Element Plus 报警告
-        default: () => slots.default?.(),
-      });
+    const radioState = useRadioState();
+    return () => {
+      const childSlots = props.icon || props.activeIcon || props.inactiveIcon || props.preset
+        ? {
+            default: () =>
+              renderRadioContent({
+                checked: isRadioChecked(radioState, props.value),
+                label: props.label,
+                slots,
+                icon: props.icon,
+                activeIcon: props.activeIcon,
+                inactiveIcon: props.inactiveIcon,
+                preset: props.preset,
+                iconSize: props.iconSize,
+              }),
+          }
+        : {
+            // 同 ReRadio：必须用函数插槽，否则 Element Plus 报警告
+            default: () => slots.default?.(),
+          };
+      return h(
+        ElRadioButton,
+        { ...attrs, value: props.value, label: props.label, disabled: props.disabled } as any,
+        childSlots,
+      );
+    };
   },
 });
 

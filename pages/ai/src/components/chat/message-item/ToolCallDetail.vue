@@ -18,14 +18,14 @@
       </div>
       <div class="tool-call-detail__card">
         <div v-if="isSimpleParams(args)" class="params-table">
-          <div class="param-header py-2 border-b border-gray-200 dark:border-gray-700">
+          <div class="param-header py-1">
             <span class="param-key text-sm font-semibold text-gray-800 dark:text-gray-200">{{
               t('chat.toolCalls.paramKey') }}</span>
             <span class="param-value text-sm font-semibold text-gray-800 dark:text-gray-200 ml-4">{{
               t('chat.toolCalls.paramValue') }}</span>
           </div>
           <div v-for="(value, key) in parseParams(args)" :key="key"
-            class="param-row py-2 border-b border-gray-100 dark:border-gray-800 last:border-b-0">
+            class="param-row py-1">
             <span class="param-key text-sm font-medium text-gray-700 dark:text-gray-300">{{ key }}</span>
             <span class="param-value text-sm text-gray-600 dark:text-gray-400 ml-4">{{ formatParamValue(value) }}</span>
           </div>
@@ -50,14 +50,14 @@
       <div class="tool-call-detail__card">
         <!-- JSON 解码成功且为简单对象 → 表格展示 -->
         <div v-if="isSimpleResult(response)" class="params-table">
-          <div class="param-header py-2 border-b border-gray-200 dark:border-gray-700">
+          <div class="param-header py-1">
             <span class="param-key text-sm font-semibold text-gray-800 dark:text-gray-200">{{
               t('chat.toolCalls.fieldKey') }}</span>
             <span class="param-value text-sm font-semibold text-gray-800 dark:text-gray-200 ml-4">{{
               t('chat.toolCalls.paramValue') }}</span>
           </div>
           <div v-for="(value, key) in parseResult(response)" :key="key"
-            class="param-row py-2 border-b border-gray-100 dark:border-gray-800 last:border-b-0">
+            class="param-row py-1">
             <span class="param-key text-sm font-medium text-gray-700 dark:text-gray-300">{{ key }}</span>
             <span class="param-value text-sm text-gray-600 dark:text-gray-400 ml-4">{{ formatParamValue(value) }}</span>
           </div>
@@ -201,16 +201,19 @@ const parseResult = (value: any): Record<string, any> => {
 .tool-call-detail__title {
   display: flex;
   align-items: center;
-  margin-bottom: 6px;
-  font-size: 13px;
+  margin-bottom: 4px;
+  font-size: 12.5px;
   font-weight: 500;
-  color: var(--el-text-color-regular);
+  color: var(--el-text-color-secondary);
 }
 
 .tool-call-detail__card {
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: var(--el-fill-color-light);
+  /* 极简展开态（用户要求 2026-10-24，与参考图一致）：
+     去掉填充底色/圆角/内边距这三件「卡片」特征，参数与结果直接作为文本呈现。
+     层级由外层 .tool-inline 的细导轨与标题行表达，不再套第二层容器。 */
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .tool-call-detail__executing {
@@ -224,10 +227,12 @@ const parseResult = (value: any): Record<string, any> => {
   white-space: pre-wrap;
   word-break: break-word;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  margin: 0;
+  color: var(--el-text-color-secondary);
 }
 
 .tool-call-detail code {
-  font-size: 13px;
+  font-size: 12.5px;
 }
 
 .params-table {
@@ -238,11 +243,13 @@ const parseResult = (value: any): Record<string, any> => {
 .param-header {
   display: flex;
   align-items: baseline;
+  color: var(--el-text-color-placeholder);
 }
 
 .param-row {
   display: flex;
   align-items: baseline;
+  color: var(--el-text-color-secondary);
 }
 
 .param-key {
