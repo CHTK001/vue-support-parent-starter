@@ -9,10 +9,10 @@
   数据来源：@pages/filesystem/api/filestorageApi 的 uploadTask* 系列（Spring 侧接口，
   走应用登录态，与文件服务器直连通道无关）。
 
-  【重构 2026-10-24 · 紧凑台账 Ledger】文件记录区改为高密度台账：
-    文件名 + 说明（objectKey/message）合并为一列、bucket 徽标化、
-    分片与百分比并入进度条一格、状态用色点 + 文字。
-    数据点零丢失：文件名/大小/bucket/分片/进度/状态/说明/取消全部保留。
+  【重构 2026-10-24 · 主从工作台 Master-Detail】文件记录区改为左列表 + 右详情分栏：
+    左列任务列表（状态色点、文件名、bucket/分片、迷你进度条、百分比），点选高亮；
+    右列选中任务详情（大进度条、状态徽章、大小/bucket/objectKey/任务号、失败原因、取消）。
+    数据点零丢失：文件名/大小/bucket/分片/进度/状态/说明(objectKey/message)/取消全部保留。
 -->
 <template>
   <div class="upload-task-page">
@@ -99,88 +99,109 @@
       />
     </div>
 
-    <!-- 文件记录（紧凑台账） -->
-    <div class="table-card koi-card">
-      <div class="ut-list-header">
-        <span class="ut-list-title">文件记录</span>
-        <el-button size="small" text :icon="Refresh" :loading="listLoading" @click="refreshTasks" />
-      </div>
-      <el-table
-        :data="tasks"
-        v-loading="listLoading"
-        size="small"
-        empty-text="暂无上传任务"
-        class="ut-table"
-      >
-        <template #empty>
+    <!-- 文件记录（主从工作台：左列表 + 右详情，点选联动） -->
+    <div class="md-wrap">
+      <!-- 左：任务列表 -->
+      <div class="md-list-card koi-card">
+        <div class="md-card-hd">
+          <span class="md-card-title">任务列表</span>
+          <el-button size="small" text :icon="Refresh" :loading="listLoading" @click="refreshTasks" />
+        </div>
+        <div v-if="tasks.length === 0" class="md-list-empty">
           <ReEmpty v-if="!listLoading" layout="modern" description="暂无上传任务，从上方发起上传">
             <el-button size="small" type="primary" @click="pickFiles">选择文件上传</el-button>
           </ReEmpty>
-        </template>
-        <!-- 文件名 + 说明（objectKey / message）并入一列，保证不丢数据 -->
-        <el-table-column prop="fileName" label="文件名" min-width="240" show-overflow-tooltip>
-          <template #default="{ row }">
-            <div class="ld-name">{{ row.fileName }}</div>
-            <div v-if="row.message || row.objectKey" class="ld-sub" :title="row.message || row.objectKey">
-              {{ row.message || row.objectKey }}
-            </div>
-          </template>
-        </el-table-column>
-        <!-- 大小 -->
-        <el-table-column label="大小" width="92" align="right">
-          <template #default="{ row }">{{ formatSize(row.totalSize) }}</template>
-        </el-table-column>
-        <!-- bucket 徽标 -->
-        <el-table-column label="bucket" width="118">
-          <template #default="{ row }">
-            <span class="ld-bucket">{{ row.provider || "默认" }}</span>
-          </template>
-        </el-table-column>
-        <!-- 分片 · 进度合一 -->
-        <el-table-column label="分片 · 进度" min-width="172">
-          <template #default="{ row }">
-            <div class="ld-prog">
-              <div class="ld-prog-bar">
-                <i
-                  class="ld-prog-fill"
-                  :class="progClass(row.state)"
-                  :style="{ width: taskPercent(row) + '%' }"
-                />
+        </div>
+        <ul v-else v-loading="listLoading" class="md-list" role="listbox" aria-label="上传任务列表">
+          <li
+            v-for="t in tasks"
+            :key="t.taskId"
+            class="md-item"
+            :class="{ 'is-selected': t.taskId === selectedTaskId }"
+            role="option"
+            :aria-selected="t.taskId === selectedTaskId"
+            @click="selectedTaskId = t.taskId"
+          >
+            <span class="md-dot" :class="stateDotClass(t.state)"></span>
+            <div class="md-item-main">
+              <div class="md-item-name" :title="t.fileName">{{ t.fileName }}</div>
+              <div class="md-item-sub">
+                {{ t.provider || "默认" }} · {{ t.receivedChunks }}/{{ t.totalChunks }} 片
               </div>
-              <span class="ld-prog-meta">{{ row.receivedChunks }}/{{ row.totalChunks }} · {{ taskPercent(row) }}%</span>
             </div>
-          </template>
-        </el-table-column>
-        <!-- 状态：色点 + 文字 -->
-        <el-table-column label="状态" width="96">
-          <template #default="{ row }">
-            <span class="ld-state">
-              <i class="ld-dot" :class="stateDotClass(row.state)"></i>{{ stateLabel(row.state) }}
+            <div class="md-item-side">
+              <span class="md-item-pct">{{ taskPercent(t) }}%</span>
+              <div class="md-mini-bar"><i :class="progClass(t.state)" :style="{ width: taskPercent(t) + '%' }" /></div>
+            </div>
+            <span class="md-chev" aria-hidden="true">›</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 右：选中任务详情 -->
+      <div class="md-detail-card koi-card">
+        <template v-if="selectedTask">
+          <div class="md-detail-hd">
+            <span class="md-card-title">任务详情</span>
+            <span class="md-state-badge" :class="stateBadgeClass(selectedTask.state)">
+              <span class="md-dot" :class="stateDotClass(selectedTask.state)"></span>{{ stateLabel(selectedTask.state) }}
             </span>
-          </template>
-        </el-table-column>
-        <!-- 操作 -->
-        <el-table-column label="操作" width="84" fixed="right">
-          <template #default="{ row }">
-            <el-popconfirm title="确定取消该任务？" @confirm="onCancel(row)">
-              <template #reference>
-                <el-button
-                  text
-                  type="danger"
-                  size="small"
-                  :disabled="!isActive(row.state)"
-                >取消</el-button>
-              </template>
-            </el-popconfirm>
-          </template>
-        </el-table-column>
-      </el-table>
+          </div>
+          <div class="md-detail-body">
+            <h3 class="md-detail-name" :title="selectedTask.fileName">{{ selectedTask.fileName }}</h3>
+
+            <div class="md-progress">
+              <div class="md-progress-bar">
+                <i :class="progClass(selectedTask.state)" :style="{ width: taskPercent(selectedTask) + '%' }" />
+              </div>
+              <div class="md-progress-meta">
+                {{ selectedTask.receivedChunks }}/{{ selectedTask.totalChunks }} 片 · {{ taskPercent(selectedTask) }}%
+                <span v-if="isActive(selectedTask.state)" class="md-live" aria-hidden="true"></span>
+              </div>
+            </div>
+
+            <div class="md-kv">
+              <div class="md-kv-item">
+                <span class="md-kv-label">大小</span>
+                <span class="md-kv-value">{{ formatSize(selectedTask.totalSize) }}</span>
+              </div>
+              <div class="md-kv-item">
+                <span class="md-kv-label">bucket</span>
+                <span class="md-bucket" :class="{ 'is-default': !selectedTask.provider }">{{ selectedTask.provider || "默认" }}</span>
+              </div>
+              <div class="md-kv-item">
+                <span class="md-kv-label">objectKey</span>
+                <span class="md-kv-value md-kv-ellipsis" :title="selectedTask.objectKey || '-'">{{ selectedTask.objectKey || "-" }}</span>
+              </div>
+              <div class="md-kv-item">
+                <span class="md-kv-label">任务号</span>
+                <span class="md-kv-value md-kv-ellipsis" :title="selectedTask.taskId">{{ selectedTask.taskId }}</span>
+              </div>
+            </div>
+
+            <div v-if="selectedTask.message" class="md-msg" :class="{ 'is-error': selectedTask.state === 'FAILED' }">
+              {{ selectedTask.message }}
+            </div>
+
+            <div class="md-detail-actions">
+              <el-popconfirm title="确定取消该任务？" @confirm="onCancel(selectedTask)">
+                <template #reference>
+                  <el-button type="danger" plain size="small" :disabled="!isActive(selectedTask.state)">
+                    取消任务
+                  </el-button>
+                </template>
+              </el-popconfirm>
+            </div>
+          </div>
+        </template>
+        <div v-else class="md-detail-empty">从左侧选择一条任务查看详情</div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { Refresh, Upload } from "@element-plus/icons-vue";
 import ReEmpty from "@repo/ui/re-empty";
@@ -214,6 +235,14 @@ const chunkSizeMb = ref(5);
 /** 任务列表 */
 const tasks = ref<UploadTaskInfo[]>([]);
 const listLoading = ref(false);
+
+/** 主从工作台：当前选中的任务 id（默认选中第一项；列表刷新后若该项仍在则跟随） */
+const selectedTaskId = ref<string>("");
+
+/** 选中的任务对象（未选中或不存在时为 undefined） */
+const selectedTask = computed<UploadTaskInfo | undefined>(() => {
+  return tasks.value.find((t) => t.taskId === selectedTaskId.value) ?? tasks.value[0];
+});
 
 /** 是否有分片正在上传 */
 const uploading = ref(false);
@@ -278,6 +307,10 @@ async function refreshTasks() {
   listLoading.value = true;
   try {
     tasks.value = await listUploadTasks();
+    // 主从联动：列表刷新后保持选中项，若该项已不存在则回落到第一项
+    if (selectedTaskId.value && !tasks.value.some((t) => t.taskId === selectedTaskId.value)) {
+      selectedTaskId.value = tasks.value[0]?.taskId ?? "";
+    }
   } catch {
     // 轮询失败静默，不打断页面
   } finally {
@@ -375,6 +408,22 @@ function progClass(state: UploadTaskState): string {
 
 /** 台账状态色点 */
 function stateDotClass(state: UploadTaskState): string {
+  switch (state) {
+    case "COMPLETED":
+      return "is-success";
+    case "FAILED":
+      return "is-danger";
+    case "CANCELLED":
+      return "is-info";
+    case "MERGING":
+      return "is-warning";
+    default:
+      return "is-primary";
+  }
+}
+
+/** 主从详情：状态徽章描边色（与色点同语义） */
+function stateBadgeClass(state: UploadTaskState): string {
   switch (state) {
     case "COMPLETED":
       return "is-success";
@@ -563,129 +612,316 @@ function formatSize(bytes: number): string {
   border-radius: var(--radius-md, 8px);
 }
 
-/* ===== 文件记录 · 紧凑台账 ===== */
-.ut-list-header {
+/* ===== 文件记录 · 主从工作台 ===== */
+.md-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+/* 卡片通用头 */
+.md-card-hd {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 8px;
+  padding-bottom: 10px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
 }
-.ut-list-title {
+.md-card-title {
   font-weight: 600;
   font-size: 14px;
   color: var(--text-primary, var(--el-text-color-primary, #303133));
 }
-.ut-list-header :deep(.el-button) {
+.md-card-hd :deep(.el-button) {
   color: var(--text-secondary, var(--el-text-color-secondary, #909399));
 }
 
-/* 台账观感：去外框、行 hover、紧凑留白 */
-.ut-table {
-  --el-table-border-color: var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
+/* ===== 左列：任务列表 ===== */
+.md-list-card {
+  padding: 12px;
+  min-width: 0;
 }
-:deep(.ut-table .el-table__row) {
-  transition: background-color 0.15s ease;
+.md-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 480px;
+  overflow-y: auto;
 }
-:deep(.ut-table .cell) {
-  padding: 6px 12px;
-}
-:deep(.ut-table .el-table__cell) {
-  border-bottom: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
-}
-
-/* 文件名 + 次级说明 */
-.ld-name {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-primary, var(--el-text-color-primary, #303133));
-  line-height: 1.4;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.ld-sub {
-  font-size: 11px;
-  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
-  line-height: 1.3;
-  margin-top: 1px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 320px;
-}
-
-/* bucket 徽标 */
-.ld-bucket {
-  display: inline-flex;
-  align-items: center;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--el-color-primary, #409eff);
-  background: var(--el-color-primary-light-9, #ecf5ff);
-  border: 1px solid var(--el-color-primary-light-7, #b3d8ff);
-  border-radius: var(--el-radius-sm, 6px);
-  padding: 1px 8px;
-  line-height: 1.6;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.ld-bucket.is-default {
-  color: var(--text-secondary, #909399);
-  background: var(--bg-subtle, #f4f4f5);
-  border-color: var(--border-subtle, #e4e7ed);
-}
-
-/* 分片 · 进度合一 */
-.ld-prog {
+.md-item {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px;
+  border-radius: var(--el-radius-md, 8px);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 0.15s var(--ease-out, ease), border-color 0.15s;
 }
-.ld-prog-bar {
-  height: 6px;
-  border-radius: var(--el-radius-full, 9999px);
-  background: var(--bg-subtle, var(--el-fill-color-light, #e8e8e8));
-  overflow: hidden;
+.md-item:hover {
+  background: var(--el-fill-color-light, #f5f7fa);
 }
-.ld-prog-fill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--el-color-primary, #409eff);
-  transition: width 0.3s var(--ease-out, ease);
+.md-item.is-selected {
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  border-color: var(--el-color-primary-light-7, #b3d8ff);
 }
-.ld-prog-fill.is-success { background: var(--status-success, #67c23a); }
-.ld-prog-fill.is-danger { background: var(--status-error, #f56c6c); }
-.ld-prog-meta {
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+.md-item + .md-item {
+  margin-top: 2px;
 }
 
-/* 状态：色点 + 文字 */
-.ld-state {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-primary, var(--el-text-color-primary, #303133));
-  white-space: nowrap;
-}
-.ld-dot {
+/* 列表色点 */
+.md-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
   flex: none;
   background: var(--el-color-primary, #409eff);
 }
-.ld-dot.is-success { background: var(--status-success, #67c23a); }
-.ld-dot.is-danger { background: var(--status-error, #f56c6c); }
-.ld-dot.is-warning { background: var(--status-warning, #e6a23c); }
-.ld-dot.is-info { background: var(--text-tertiary, #909399); }
+.md-dot.is-success { background: var(--status-success, #67c23a); }
+.md-dot.is-danger { background: var(--status-error, #f56c6c); }
+.md-dot.is-warning { background: var(--status-warning, #e6a23c); }
+.md-dot.is-info { background: var(--text-tertiary, #909399); }
+
+.md-item-main {
+  flex: 1;
+  min-width: 0;
+}
+.md-item-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.md-item-sub {
+  font-size: 11px;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.md-item-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex: none;
+}
+.md-item-pct {
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+}
+.md-mini-bar {
+  width: 56px;
+  height: 5px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--bg-subtle, var(--el-fill-color-light, #e8e8e8));
+  overflow: hidden;
+}
+.md-mini-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--el-color-primary, #409eff);
+  transition: width 0.3s var(--ease-out, ease);
+}
+.md-mini-bar i.is-success { background: var(--status-success, #67c23a); }
+.md-mini-bar i.is-danger { background: var(--status-error, #f56c6c); }
+.md-mini-bar i.is-warning { background: var(--status-warning, #e6a23c); }
+.md-mini-bar i.is-info { background: var(--text-tertiary, #909399); }
+.md-chev {
+  color: var(--text-tertiary, #c0c4cc);
+  font-size: 15px;
+  flex: none;
+}
+.md-item.is-selected .md-chev {
+  color: var(--el-color-primary, #409eff);
+}
+.md-list-empty {
+  padding: 24px 8px;
+}
+
+/* ===== 右列：任务详情 ===== */
+.md-detail-card {
+  padding: 12px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.md-detail-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
+}
+.md-state-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: var(--el-radius-full, 9999px);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.md-state-badge.is-primary { color: var(--el-color-primary, #409eff); background: var(--el-color-primary-light-9, #ecf5ff); border-color: var(--el-color-primary-light-7, #b3d8ff); }
+.md-state-badge.is-success { color: var(--status-success, #67c23a); background: #f0f9eb; border-color: #c2e7b0; }
+.md-state-badge.is-danger { color: var(--status-error, #f56c6c); background: #fef0f0; border-color: #fbc4c4; }
+.md-state-badge.is-warning { color: var(--status-warning, #e6a23c); background: #fdf6ec; border-color: #f5dab1; }
+.md-state-badge.is-info { color: var(--text-secondary, #909399); background: #f4f4f5; border-color: #e4e7ed; }
+
+.md-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.md-detail-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+/* 大进度条 */
+.md-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.md-progress-bar {
+  height: 8px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--bg-subtle, var(--el-fill-color-light, #e8e8e8));
+  overflow: hidden;
+}
+.md-progress-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--el-color-primary, #409eff);
+  transition: width 0.3s var(--ease-out, ease);
+}
+.md-progress-bar i.is-success { background: var(--status-success, #67c23a); }
+.md-progress-bar i.is-danger { background: var(--status-error, #f56c6c); }
+.md-progress-bar i.is-warning { background: var(--status-warning, #e6a23c); }
+.md-progress-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+}
+.md-live {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--el-color-primary, #409eff);
+  animation: md-pulse 1.2s ease-in-out infinite;
+}
+@keyframes md-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.75); }
+}
+
+/* 信息网格 */
+.md-kv {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.md-kv-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--bg-subtle, var(--el-fill-color-lighter, #fafbfc));
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
+  border-radius: var(--el-radius-md, 8px);
+  padding: 8px 10px;
+  min-width: 0;
+}
+.md-kv-label {
+  font-size: 11px;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+}
+.md-kv-value {
+  font-size: 12.5px;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+  font-variant-numeric: tabular-nums;
+}
+.md-kv-ellipsis {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.md-bucket {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--el-color-primary, #409eff);
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  border: 1px solid var(--el-color-primary-light-7, #b3d8ff);
+  border-radius: var(--el-radius-sm, 6px);
+  padding: 0 8px;
+  line-height: 1.7;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.md-bucket.is-default {
+  color: var(--text-secondary, #909399);
+  background: var(--bg-subtle, #f4f4f5);
+  border-color: var(--border-subtle, #e4e7ed);
+}
+
+/* 说明 / 失败原因 */
+.md-msg {
+  font-size: 12.5px;
+  color: var(--text-secondary, var(--el-text-color-secondary, #606266));
+  background: var(--bg-subtle, var(--el-fill-color-lighter, #fafbfc));
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
+  border-left: 3px solid var(--el-color-primary, #409eff);
+  border-radius: var(--el-radius-md, 8px);
+  padding: 9px 12px;
+  line-height: 1.5;
+  word-break: break-all;
+}
+.md-msg.is-error {
+  border-left-color: var(--status-error, #f56c6c);
+  color: var(--status-error, #f56c6c);
+  background: #fef0f0;
+}
+
+.md-detail-actions {
+  display: flex;
+  gap: 8px;
+}
+.md-detail-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+  font-size: 13px;
+  min-height: 200px;
+}
 
 /* ===== 响应式 ===== */
 @media (max-width: 768px) {
@@ -696,8 +932,14 @@ function formatSize(bytes: number): string {
   .ut-chunk-select {
     width: 100%;
   }
-  .ld-sub {
-    max-width: 200px;
+  .md-wrap {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .md-list {
+    max-height: 320px;
+  }
+  .md-kv {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -711,8 +953,12 @@ function formatSize(bytes: number): string {
   .koi-card:hover {
     transform: none;
   }
-  .ld-prog-fill {
+  .md-mini-bar i,
+  .md-progress-bar i {
     transition: none;
+  }
+  .md-live {
+    animation: none;
   }
 }
 </style>
