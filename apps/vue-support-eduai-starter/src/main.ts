@@ -9,7 +9,14 @@
  * @repo/ui core preset + 少量追加，main.ts 不再 installKoi/installUi 手写组件清单。
  */
 import { createContextApp } from "@repo/app";
-import { eduaiRoutes } from "@pages/eduai";
+// 路由走「别名 → 具体文件」的深引（`@pages/eduai/router` 即 `pages/eduai/src/router`），
+// 而不是从包桶 `@pages/eduai` 取：那个桶把每个视图都 `export { default as X } from "./views/X.vue"`
+// 静态再导出，入口一引桶，全部视图（及其依赖的 katex / echarts / three / 富文本…）就被拖进
+// 入口的静态依赖图，vite 会给它们逐个打 `<link rel="modulepreload">`。
+// 实测：从桶引 → index.html 里 242 个 modulepreload、首屏 250 个请求；
+// 深引 router 后视图回到 `() => import(...)` 的懒加载，首屏只剩布局/主题真正需要的少量 chunk。
+// 与 router/index.ts 里引 `@pages/collect/src/styles/*.css` 同一套约定（注释里写了为什么绕开桶）。
+import { eduaiRoutes } from "@pages/eduai/router";
 import { getAccessToken } from "@repo/utils";
 import { useAuthStore } from "@repo/pinia";
 import { getRouter } from "@repo/core";
