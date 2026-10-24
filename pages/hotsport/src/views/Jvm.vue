@@ -152,7 +152,7 @@
         <div v-if="!metrics.length" class="panel-empty">
           该时间窗内暂无指标采样<br />5s 轮询开始后会逐步累积
         </div>
-        <ReEcharts v-else :option="trendOption" theme="dark" height="240px" />
+        <ReEcharts v-else :option="trendOption" theme="light" height="240px" />
       </div>
 
       <!-- 线程池 / 连接池 -->

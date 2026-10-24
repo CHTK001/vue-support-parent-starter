@@ -141,7 +141,7 @@
         </div>
         <span class="panel-tag">耗时分布</span>
       </div>
-      <ReEcharts :option="durationOption" theme="dark" height="280px" class="duration-chart" />
+      <ReEcharts :option="durationOption" theme="light" height="280px" class="duration-chart" />
       <div class="call-share-row" v-if="callSharePercent !== null">
         <div class="call-share-bar">
           <div class="call-share-fill" :style="{ width: callSharePercent + '%' }"></div>
@@ -159,7 +159,7 @@
         </div>
         <span v-if="trendLoading" class="panel-tag is-loading">加载中…</span>
       </div>
-      <ReEcharts :option="endpointTrendOption" theme="dark" height="220px" class="duration-chart" />
+      <ReEcharts :option="endpointTrendOption" theme="light" height="220px" class="duration-chart" />
     </div>
   </div>
 </template>

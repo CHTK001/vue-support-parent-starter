@@ -74,7 +74,7 @@
 }
 
 /* ---------- 面板容器 ----------
-   无实色边框：1px 透明描边 + 主色着色的弥散投影，深色底上更透气 */
+   纸感：白卡片 + 发丝线描边，分隔靠线不靠影 */
 .hotsport-scope .panel {
   display: flex;
   flex-direction: column;
@@ -82,9 +82,8 @@
   min-width: 0;
   padding: var(--apm-space-4) var(--apm-space-5);
   background: var(--apm-panel);
-  border: 1px solid transparent;
+  border: 1px solid var(--apm-panel-border);
   border-radius: var(--apm-radius-lg);
-  box-shadow: var(--apm-shadow-card);
 }
 
 /* 面板头：标题 + 副标题竖排 */
@@ -147,9 +146,8 @@
   gap: var(--apm-space-3);
   padding: var(--apm-space-3) var(--apm-space-4);
   background: var(--apm-panel);
-  border: 1px solid transparent;
+  border: 1px solid var(--apm-panel-border);
   border-radius: var(--apm-radius-lg);
-  box-shadow: var(--apm-shadow-card);
 }
 
 .hotsport-scope .filter-field {
@@ -183,12 +181,11 @@
 }
 
 /* ---------- 表格面板 ----------
-   表格自己有行分隔线，故内距用 8px 一档，避免卡片感过重 */
+   表格自己有行分隔线，故内距用 8px 一档，发丝线描边 */
 .hotsport-scope .table-panel {
   background: var(--apm-panel);
-  border: 1px solid transparent;
+  border: 1px solid var(--apm-panel-border);
   border-radius: var(--apm-radius-lg);
-  box-shadow: var(--apm-shadow-card);
   padding: var(--apm-space-2);
   min-width: 0;
 }

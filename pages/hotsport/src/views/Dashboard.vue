@@ -66,7 +66,7 @@
       <ReEcharts
         ref="trendChartRef"
         :option="trendOption"
-        theme="dark"
+        theme="light"
         height="260px"
         class="panel-chart chart-trend"
       />
@@ -85,7 +85,7 @@
         <ReEcharts
           ref="errorTrendChartRef"
           :option="errorTrendOption"
-          theme="dark"
+          theme="light"
           height="240px"
           class="panel-chart chart-error"
         />
@@ -101,7 +101,7 @@
         <ReEcharts
           v-else
           :option="donutOption"
-          theme="dark"
+          theme="light"
           height="240px"
           class="panel-chart"
         />
@@ -255,7 +255,7 @@ function exportChart(type: "trend" | "error" | "donut") {
       for (const [, instance] of instances) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ((instance as any).group === type) {
-          const dataURL = (instance as unknown as { getDataURL: (opts: { type: string; pixelRatio: number; backgroundColor: string }) => string }).getDataURL({ type: "png", pixelRatio: 2, backgroundColor: "#070a12" });
+          const dataURL = (instance as unknown as { getDataURL: (opts: { type: string; pixelRatio: number; backgroundColor: string }) => string }).getDataURL({ type: "png", pixelRatio: 2, backgroundColor: "#fafbfc" });
           triggerDownload(dataURL, `hotsport-${type}-${Date.now()}.png`);
           return;
         }
@@ -264,7 +264,7 @@ function exportChart(type: "trend" | "error" | "donut") {
     }
     const instance = echarts.getInstanceByDom(document.querySelector(`.chart-${type}`) as HTMLElement);
     if (!instance) return;
-    const dataURL = instance.getDataURL({ type: "png", pixelRatio: 2, backgroundColor: "#070a12" });
+    const dataURL = instance.getDataURL({ type: "png", pixelRatio: 2, backgroundColor: "#fafbfc" });
     triggerDownload(dataURL, `hotsport-${type}-${Date.now()}.png`);
   } catch {
     /* 导出失败静默降级 */
@@ -844,7 +844,7 @@ onBeforeUnmount(() => {
   padding: var(--apm-space-4) var(--apm-space-5);
   text-align: left;
   background: var(--bg-container, var(--apm-panel));
-  border: 1px solid transparent;
+  border: 1px solid var(--border-default, var(--apm-panel-border));
   border-radius: var(--radius-lg, var(--apm-radius-lg));
   box-shadow: var(--shadow-sm, var(--apm-shadow-card));
   color: inherit;

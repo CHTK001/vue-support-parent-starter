@@ -65,7 +65,7 @@
         </div>
         <ReEcharts
           :option="waterfallOption"
-          theme="dark"
+          theme="light"
           height="100%"
           class="waterfall-chart"
           @click="onChartClick"

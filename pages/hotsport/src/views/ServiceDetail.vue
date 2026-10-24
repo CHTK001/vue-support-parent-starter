@@ -70,7 +70,7 @@
               <ReEcharts
                 v-if="trendHasData"
                 :option="trendOption"
-                theme="dark"
+                theme="light"
                 height="300px"
                 class="trend-chart"
               />
