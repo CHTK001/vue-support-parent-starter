@@ -297,6 +297,14 @@
   line-height: 1.5;
 }
 
+/* 次要位置的等宽文本（表格副行里的 cron、命令、路径）：
+   12px 在 38px 行高的副行里偏大，会和主行抢注意力 */
+.pk-mono-sm {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .pk-dim {
   color: var(--el-text-color-secondary);
 }
