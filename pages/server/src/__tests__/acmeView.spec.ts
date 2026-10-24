@@ -17,8 +17,6 @@ import {
   daysLeftText,
   daysUntil,
   filterCerts,
-  formatCertDay,
-  formatCertTime,
   groupByUrgency,
   parseCertTime,
   runwayAxis,
@@ -68,39 +66,6 @@ function row(patch: Partial<CertRow> = {}): CertRow {
     ...patch,
   }
 }
-
-describe('parseCertTime', () => {
-  it('T 分隔与空格分隔等价', () => {
-    expect(parseCertTime('2026-10-24T09:30:00')?.getTime()).toBe(
-      parseCertTime('2026-10-24 09:30:00')?.getTime(),
-    )
-  })
-
-  it('只有日期按 0 点', () => {
-    expect(parseCertTime('2026-10-24')?.getHours()).toBe(0)
-  })
-
-  it('空值与垃圾值给 null', () => {
-    expect(parseCertTime('')).toBeNull()
-    expect(parseCertTime(null)).toBeNull()
-    expect(parseCertTime('不是时间')).toBeNull()
-  })
-})
-
-describe('formatCertDay / formatCertTime', () => {
-  it('日期只到天', () => {
-    expect(formatCertDay(new Date(2026, 0, 5, 7, 8))).toBe('2026-01-05')
-  })
-
-  it('时刻到分钟', () => {
-    expect(formatCertTime(new Date(2026, 0, 5, 7, 8))).toBe('2026-01-05 07:08')
-  })
-
-  it('null 给破折号', () => {
-    expect(formatCertDay(null)).toBe('—')
-    expect(formatCertTime(null)).toBe('—')
-  })
-})
 
 describe('daysUntil', () => {
   it('整 30 天', () => {

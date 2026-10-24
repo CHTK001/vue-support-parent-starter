@@ -9,6 +9,11 @@
  * @author CH
  * @since 4.0.0
  */
+import {
+  dayKeyOf as dayKeyOfShared,
+  formatDateTime,
+  parseDateTime,
+} from '../shared/datetime'
 
 /** 后端维护计划行 */
 export interface PlanRow {
@@ -110,54 +115,26 @@ export const PLAN_STATUS: ReadonlyArray<{ value: string; label: string; tone: Pl
 ]
 
 /**
- * 解析后端时间。
+ * 解析计划时间。
  *
- * <p>后端给的是 `YYYY-MM-DDTHH:mm:ss`（表单 value-format）与 `YYYY-MM-DD HH:mm:ss`
- * 两种写法，README 与既有数据里都出现过。手工拆字段再交给 Date：
- * `new Date('2026-10-24T09:00:00')` 在浏览器里按本地时区解，但
- * `new Date('2026-10-24 09:00:00')` 在部分引擎里会被当成非法值，两种写法行为不一致，
- * 而这一页所有判断（是否进行中、画在哪一格）都依赖本地时刻。</p>
- *
- * @param value 后端时间串
+ * <p>解析规则在 {@link parseDateTime}（四页共用一份），此处保留计划域的名字，
+ * 让下面的映射读起来是「解析计划时间」而不是泛泛的「解析时间」。</p>
  */
-export function parsePlanTime(value?: string | null): Date | null {
-  if (!value) return null
-  const text = String(value).trim().replace('T', ' ')
-  const m = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ ](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/.exec(text)
-  if (!m) {
-    // 兜底交给引擎：像 ISO 带时区的写法（2026-10-24T09:00:00Z）只能靠它
-    const fallback = new Date(text)
-    return Number.isNaN(fallback.getTime()) ? null : fallback
-  }
-  const d = new Date(
-    Number(m[1]),
-    Number(m[2]) - 1,
-    Number(m[3]),
-    Number(m[4] ?? 0),
-    Number(m[5] ?? 0),
-    Number(m[6] ?? 0),
-  )
-  return Number.isNaN(d.getTime()) ? null : d
-}
+export const parsePlanTime = parseDateTime
 
 /**
- * 补零
- *
- * @param n 数字
- */
-function pad2(n: number): string {
-  return String(n).padStart(2, '0')
-}
-
-/**
- * 日期时间文本 `YYYY-MM-DD HH:mm`。
+ * 计划时间文本 `YYYY-MM-DD HH:mm`
  *
  * @param d 时刻
  */
-export function formatPlanTime(d: Date | null): string {
-  if (!d) return '—'
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`
-}
+export const formatPlanTime = formatDateTime
+
+/**
+ * 日期键 `YYYY-MM-DD`
+ *
+ * @param d 时刻
+ */
+export const dayKeyOf = dayKeyOfShared
 
 /**
  * 时长文本。
@@ -179,16 +156,6 @@ export function formatSpan(ms: number | null): string {
   const days = Math.floor(hours / 24)
   const restHour = hours % 24
   return restHour ? `${days} 天 ${restHour} 小时` : `${days} 天`
-}
-
-/**
- * 日期键 `YYYY-MM-DD`
- *
- * @param d 时刻
- */
-export function dayKeyOf(d: Date | null): string {
-  if (!d) return ''
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
 }
 
 /**

@@ -15,10 +15,8 @@ import {
   dayKeyOf,
   dayLabel,
   filterPlans,
-  formatPlanTime,
   formatSpan,
   parseHostIds,
-  parsePlanTime,
   planDays,
   planGeometry,
   toPlanView,
@@ -48,48 +46,6 @@ function row(patch: Partial<PlanRow> = {}): PlanRow {
     ...patch,
   }
 }
-
-describe('parsePlanTime', () => {
-  it('解析 T 分隔写法', () => {
-    const d = parsePlanTime('2026-10-24T09:30:00')
-    expect(d?.getFullYear()).toBe(2026)
-    expect(d?.getMonth()).toBe(9)
-    expect(d?.getDate()).toBe(24)
-    expect(d?.getHours()).toBe(9)
-    expect(d?.getMinutes()).toBe(30)
-  })
-
-  it('解析空格分隔写法（两种写法必须等价）', () => {
-    expect(parsePlanTime('2026-10-24 09:30:00')?.getTime()).toBe(
-      parsePlanTime('2026-10-24T09:30:00')?.getTime(),
-    )
-  })
-
-  it('只有日期时按 0 点', () => {
-    expect(parsePlanTime('2026-10-24')?.getHours()).toBe(0)
-  })
-
-  it('无秒也接受', () => {
-    expect(parsePlanTime('2026-10-24 09:30')?.getMinutes()).toBe(30)
-  })
-
-  it('空值与垃圾值给 null，而不是「现在」或 Invalid Date', () => {
-    expect(parsePlanTime('')).toBeNull()
-    expect(parsePlanTime(null)).toBeNull()
-    expect(parsePlanTime(undefined)).toBeNull()
-    expect(parsePlanTime('不是时间')).toBeNull()
-  })
-})
-
-describe('formatPlanTime', () => {
-  it('补零到分钟', () => {
-    expect(formatPlanTime(new Date(2026, 0, 5, 7, 8))).toBe('2026-01-05 07:08')
-  })
-
-  it('null 给破折号', () => {
-    expect(formatPlanTime(null)).toBe('—')
-  })
-})
 
 describe('formatSpan', () => {
   it('分钟 / 小时 / 天三档', () => {

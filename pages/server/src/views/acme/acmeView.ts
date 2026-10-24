@@ -112,61 +112,27 @@ export const URGENCY_LABEL: Record<CertUrgency, string> = {
   unknown: '时间未知',
 }
 
-/** 一天的毫秒数 */
-const DAY_MS = 86_400_000
+/** 一天的毫秒数（与共享时间模块同一份） */
+import { DAY_MS, formatDate, formatDateTime, pad2, parseDateTime } from '../shared/datetime'
 
 /**
- * 解析后端时间。
- *
- * @param value 时间串
+ * 解析证书时间（规则见 {@link parseDateTime}）
  */
-export function parseCertTime(value?: string | null): Date | null {
-  if (!value) return null
-  const text = String(value).trim().replace('T', ' ')
-  const m = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ ](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/.exec(text)
-  if (!m) {
-    const fallback = new Date(text)
-    return Number.isNaN(fallback.getTime()) ? null : fallback
-  }
-  const d = new Date(
-    Number(m[1]),
-    Number(m[2]) - 1,
-    Number(m[3]),
-    Number(m[4] ?? 0),
-    Number(m[5] ?? 0),
-    Number(m[6] ?? 0),
-  )
-  return Number.isNaN(d.getTime()) ? null : d
-}
-
-/**
- * 补零
- *
- * @param n 数字
- */
-function pad2(n: number): string {
-  return String(n).padStart(2, '0')
-}
+export const parseCertTime = parseDateTime
 
 /**
  * 日期文本 `YYYY-MM-DD`（证书有效期只需要到天）
  *
  * @param d 时刻
  */
-export function formatCertDay(d: Date | null): string {
-  if (!d) return '—'
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
-}
+export const formatCertDay = formatDate
 
 /**
  * 日期文本 `YYYY-MM-DD HH:mm`
  *
  * @param d 时刻
  */
-export function formatCertTime(d: Date | null): string {
-  if (!d) return '—'
-  return `${formatCertDay(d)} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`
-}
+export const formatCertTime = formatDateTime
 
 /**
  * 距到期天数。
