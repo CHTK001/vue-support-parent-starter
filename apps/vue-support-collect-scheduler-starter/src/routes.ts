@@ -19,7 +19,7 @@
 import type { RouteConfigsTable } from "@repo/core";
 // 深导入 src/routes 而不是包根：包根 index.ts 有 registerMenuViewModules 顶层副作用，
 // 会把整个 api/组件桶拖进主 chunk；本文件只需要路由工厂。
-import { createDatasourceManageRoutes } from "@pages/datasource/routes";
+import { createDatasourceManageRoutes } from "@pages/datasource/src/routes";
 
 /** 宿主层路由树（平台总览 + 首页重定向 + 数据源管理页） */
 export const hostRoutes: RouteConfigsTable[] = [
