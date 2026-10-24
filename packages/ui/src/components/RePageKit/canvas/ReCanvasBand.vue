@@ -17,10 +17,11 @@
 
     <div
       class="pk-band__axis band__axis"
+      :class="{ 'is-clickable': axisClickable }"
       :style="{ height: `${height}px` }"
       role="button"
-      tabindex="0"
-      :aria-label="axisLabel"
+      :tabindex="axisClickable ? 0 : undefined"
+      :aria-label="axisClickable ? axisLabel : undefined"
       @click="onAxisClick"
     >
       <span
@@ -64,12 +65,16 @@ const props = withDefaults(
     nowPercent?: number | null
     /** 点空白处的无障碍说明 */
     axisLabel?: string
+    /** 轴是否可点（点空白处按时间筛选）。默认 true；不可筛的页面传 false，
+     *  否则会出现「鼠标变成十字准星但点了没反应」 */
+    axisClickable?: boolean
   }>(),
   {
     height: 44,
     ticks: () => [],
     nowPercent: null,
     axisLabel: '点击轴上的空白位置以按该时间范围筛选',
+    axisClickable: true,
   },
 )
 
@@ -90,6 +95,7 @@ const emit = defineEmits<{
  * @param event 鼠标事件
  */
 function onAxisClick(event: MouseEvent): void {
+  if (!props.axisClickable) return
   const el = event.currentTarget as HTMLElement | null
   if (!el) return
   const width = el.clientWidth
@@ -109,10 +115,16 @@ function onAxisClick(event: MouseEvent): void {
   margin-bottom: 7px;
 }
 
-/* 轴本体：crosshair 提示这块可点（点空白按时间筛） */
+/* 轴本体的光标：只有真正可点时才给 crosshair。
+   不可筛的页面（如维护计划按天展示的窗口）给 default，
+   否则会出现「鼠标变成十字准星但点了没反应」。 */
 .band__axis {
-  cursor: crosshair;
+  cursor: default;
   outline: none;
+}
+
+.band__axis.is-clickable {
+  cursor: crosshair;
 }
 
 .band__axis:focus-visible {
