@@ -121,6 +121,7 @@ const buildExtra = () => {
   const extra: Record<string, any> = {
     ...origExtra.value,
     load_strategy: form.loadStrategy,
+    auto_switch_on_rate_limit: form.autoSwitchOnRateLimit,
     custom_headers: parseHeaders(form.customHeaders),
   }
   // 推理设备仅本地 ONNX 有意义：auto 视为默认不落库，避免把 auto 写进 extra
@@ -200,7 +201,7 @@ const openEdit = (provider: any) => {
   }
   form.proxyUrl = provider.proxy || provider.proxyUrl || ''
   form.loadStrategy = provider.extra?.load_strategy || provider.loadStrategy || 'failover'
-  form.autoSwitchOnRateLimit = provider.autoSwitchOnRateLimit !== false
+  form.autoSwitchOnRateLimit = provider.extra?.auto_switch_on_rate_limit !== false
   // 后端把自定义请求头存在 extra.custom_headers（不是 extra.headers），旧键名读不到任何东西
   form.customHeaders = provider.customHeaders || headersToText(provider.extra?.custom_headers) || ''
   // 认证方式回显：由 auth_scheme + extra.auth_header/auth_prefix 反推表单值

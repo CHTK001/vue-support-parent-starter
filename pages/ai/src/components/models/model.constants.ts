@@ -211,6 +211,7 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
   { id: 'openrouter', name: 'OpenRouter', description: '聚合 API，支持数百个模型', protocol: 'openai', defaultApiUrl: 'https://openrouter.ai/api/v1', keywords: ['router'] },
   { id: 'commandcode', name: 'commandcode', description: '聚合 API，支持数百个模型', protocol: 'openai', defaultApiUrl: 'https://api.commandcode.ai/provider/v1', keywords: ['router'] },
   { id: 'agnes', name: 'Agnes AI', description: '聚合 API，免费使用多种模型', protocol: 'openai', defaultApiUrl: 'https://apihub.agnes-ai.cn/v1', keywords: ['apihub'] },
+  { id: 'free-channel', name: '免费渠道', description: '聚合多个免费模型，按模型自动切换上游地址与全局 Key，支持多账号限流切换', protocol: 'openai', defaultApiUrl: 'https://free.nomifun.com/v1', keywords: ['free', 'channel', 'mianfei', '免费渠道'] },
   { id: 'opencode', name: 'OpenCode', description: '免费开源 API，支持多种模型', protocol: 'openai', defaultApiUrl: 'https://opencode.ai/zen/v1', keywords: ['zen'] },
   { id: 'siliconflow', name: 'SiliconFlow 硅基流动', description: '国内 AI 模型平台，支持 DeepSeek、Qwen 等', protocol: 'openai', defaultApiUrl: 'https://api.siliconflow.cn/v1', keywords: ['jiguang', 'silicon'] },
   { id: 'bai', name: 'b.ai', description: '免费 AI 模型平台，支持 DeepSeek 等', protocol: 'openai', defaultApiUrl: 'https://api.b.ai/v1', keywords: [] },

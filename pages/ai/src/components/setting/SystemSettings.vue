@@ -170,8 +170,8 @@
                         <!--
                           渠道管理：账号类渠道（Cline / Qoder / Trae / Gemini）的账号绑定、
                           轮询、刷新、签到、模型拉取与单模型开关。
-                          全模块 adminOnly：写的是 sys_ai_provider / sys_ai_provider_connection
-                          的全局凭据，普通用户改会影响所有人。
+                          账号连接按 userId 隔离（sys_ai_provider_connection_user_id），
+                          每个用户管理自己的绑定，与其它菜单口径一致；免费渠道另走管理员配置。
                         -->
                         <template v-else-if="currentTabValue === 'channels'">
                             <ChannelManagementPage />
@@ -318,9 +318,9 @@ const groupMap = computed<Record<string, string>>(() => ({
     // 收进同一个「底库」分组后，入口位置与语义一致。
     'image-library': t('settings.system.groups.library'),
     'face-library': t('settings.system.groups.library'),
-    // 渠道管理：账号类渠道（Cline / Qoder / Trae / Gemini）的全局凭据管理。
-    // 写在 sys_ai_provider / sys_ai_provider_connection 的全局凭据，
-    // 普通用户改会影响所有人，故独立分组 + adminOnly。
+    // 渠道管理：账号类渠道（Cline / Qoder / Trae / Gemini）的账号绑定。
+    // 账号连接按 userId 隔离（每个用户管理自己的绑定），与其它菜单口径一致；
+    // 免费渠道的路由/全局 Key 另走管理员渠道管理配置。
     channels: t('settings.system.groups.channels'),
 }))
 
@@ -550,13 +550,12 @@ const sidebarItems = computed(() => [
     {
         // 渠道管理：账号类渠道（Cline / Qoder / Trae / Gemini）的账号绑定、
         // 轮询、刷新、签到、模型拉取与单模型开关。
-        // 全模块 adminOnly：写的是 sys_ai_provider / sys_ai_provider_connection
-        // 的全局凭据，普通用户改会影响所有人。
+        // 账号连接按 userId 隔离（sys_ai_provider_connection_user_id），
+        // 每个用户管理自己的绑定，与其它菜单口径一致；免费渠道另走管理员配置。
         label: t('settings.system.tabs.channels'),
         path: 'channels',
         icon: Cloud24Regular,
         roles: ['primary'],
-        adminOnly: true,
     },
 ])
 

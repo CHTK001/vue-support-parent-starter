@@ -1,16 +1,18 @@
 <script setup lang="ts">
-// 渠道管理页（admin-only）。
+// 渠道管理页（全部登录用户，数据按 userId 隔离）。
 //
 // 设计原则：
 // - 只展示 dsh-our-free-model 仓库的账号类渠道（Cline / Qoder / Trae / Gemini），
 //   通过后端 /api/channels 拉取；前端不硬编码渠道清单，新增 SPI 实现即可自动呈现。
+// - 账号连接按当前用户隔离：每个人看到的都是自己绑定的账号。
 // - 每个渠道卡片呈现：
 //     ① 渠道总开关（PUT /api/channels/{ch}/enabled）
 //     ② 账号连接列表（绑定 / 刷新 / 签到 / 删除）
 //     ③ 模型拉取 + 单模型开关（PUT /api/channels/{ch}/models/{m}/enabled）
 // - 绑定交互：点「绑定账号」→ 弹窗 + 自动打开授权页（或显示二维码）→
 //   后端 SSE 持续等待 → 拿到凭据自动关窗并刷新列表。用户不需要粘贴回调地址；
-//   TRAE / Gemini / LobsterAI 由后端本地监听回环端口接收浏览器跳转。
+//   TRAE / Gemini / LobsterAI 由后端本地监听回环端口接收浏览器跳转；
+//   Loomy 走微信扫码（官方授权页 + 弹窗内二维码），不收集手机号。
 // - 自动签到走后端 ChannelCheckinTask，前端「签到」按钮仅做手动补一次。
 
 import { onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
@@ -62,7 +64,7 @@ const CHANNEL_BRANDS: Record<string, ChannelBrand> = {
   minimax: { icon: minimaxIcon, color: '#F5701A', glyph: 'M', method: '设备码' },
   zcode: { icon: zcodeIcon, color: '#0C5CFF', glyph: 'Z', method: '浏览器授权' },
   raccoon: { color: '#0FA47F', glyph: 'R', method: '扫码' },
-  loomy: { color: '#2B7DE9', glyph: 'L', method: '短信' },
+  loomy: { color: '#2B7DE9', glyph: 'L', method: '微信扫码' },
   lobsterai: { icon: lobsteraiIcon, color: '#F03D64', glyph: 'L', method: '浏览器授权' },
   opencode: { icon: opencodeIcon, color: '#111827', glyph: 'O', method: 'API Key' },
 }
@@ -150,13 +152,13 @@ async function toggleChannelEnabled(channel: string, enabled: boolean) {
 // 交互契约（所有渠道统一）：
 //   点「绑定账号」→ 立刻弹出绑定对话框 → 后端 start-login → 自动打开授权页/二维码
 //   → SSE 持续等待 → 拿到凭据（done）自动关弹窗并刷新账号列表。
-// 用户在弹窗里<b>不输入任何账号信息</b>（唯一例外：短信验证码、手动 API key，
-// 这两类在页面内拿不到，但也都放在弹窗里完成，不散落在卡片上）。
+// 用户在弹窗里<b>不输入任何账号信息</b>（唯一例外：手动 API key，
+// 这类在页面内拿不到，但也放在弹窗里完成，不散落在卡片上）。
 //
 // ⚠️ 用 reactive：模板直接读 bindState[c.channel]，必须响应式才能渲染弹窗内容。
 const bindState = reactive<Record<string, {
   handle: Record<string, any>
-  input: { phone: string; smsCode: string; apiKey: string }
+  input: { apiKey: string }
 }>>({})
 
 // 进行中的 SSE 客户端（按渠道），用于「关闭弹窗 / 重新发起」时中止旧流。
@@ -178,7 +180,7 @@ let bindTimer: ReturnType<typeof setInterval> | null = null
 const qrImages = reactive<Record<string, string>>({})
 
 function resetBindChannel(channel: string) {
-  bindState[channel] = { handle: {}, input: { phone: '', smsCode: '', apiKey: '' } }
+  bindState[channel] = { handle: {}, input: { apiKey: '' } }
 }
 function ensureBindState(channel: string) {
   if (!bindState[channel]) resetBindChannel(channel)
@@ -187,15 +189,12 @@ function ensureBindState(channel: string) {
 
 // 按渠道 loginMethod 把弹窗内的输入合并进句柄后再开流。
 // 约定键（与 SPI 实现对齐）：
-//   sms      → handle.phone / handle.smsCode（Loomy）
 //   api-key  → handle.apiKey（OpenCode）
 //   其余     → handle.callbackUrl（手写兜底；TRAE / Gemini / LobsterAI 已由后端监听回调，正常不会用到）
 function buildPollHandle(channel: string): Record<string, any> {
   const state = bindState[channel]
   const handle: Record<string, any> = { ...(state?.handle ?? {}) }
-  const input = state?.input ?? { phone: '', smsCode: '', apiKey: '' }
-  if (input.phone?.trim()) handle.phone = input.phone.trim()
-  if (input.smsCode?.trim()) handle.smsCode = input.smsCode.trim()
+  const input = state?.input ?? { apiKey: '' }
   if (input.apiKey?.trim()) handle.apiKey = input.apiKey.trim()
   return handle
 }
@@ -221,10 +220,9 @@ const callbackAuto = (channel: string) => bindState[channel]?.handle?.callbackLi
 
 // 当前绑定的渠道登录方式
 const bindMethod = () => String(channels.value.find((c) => c.channel === bindChannel.value)?.loginMethod ?? '')
-const isSmsBind = () => /^sms$/i.test(bindMethod())
 const isApiKeyBind = () => /^api-key$/i.test(bindMethod())
 const isQrBind = () => /^qr-code$/i.test(bindMethod())
-const bindNeedsInput = () => isSmsBind() || isApiKeyBind()
+const bindNeedsInput = () => isApiKeyBind()
 
 // 设备码：优先读句柄的 user_code；没有时从 verifyUrl 的 query 里兜底解析。
 // 上游（如 MiniMax）只把码拼在 verification_uri_complete 里，句柄不带独立字段，
@@ -249,9 +247,6 @@ async function copyBindCode() {
     // 剪贴板权限被拒 / 非安全上下文：忽略，用户仍可手抄
   }
 }
-
-// 短信发码是否已成功（句柄被 poll 回显带上 smsSent）
-const smsSent = () => bindState[bindChannel.value]?.handle?.smsSent === true
 
 // 自动打开授权页：新窗口 + noopener（防止被打开的页面拿到 opener 句柄）。
 //
@@ -326,8 +321,7 @@ function startSse(channel: string) {
     { handle: buildPollHandle(channel) },
     {
       onPending: (data) => {
-        // ⚠️ 合并服务端回显的句柄（Loomy 发码后写回的 msgid/smsSent、
-        // Zcode 的 __lastPollAt 等），否则两次轮询之间服务端写入的状态会丢。
+        // ⚠️ 合并服务端回显的句柄（Zcode 的 __lastPollAt 等），否则两次轮询之间服务端写入的状态会丢。
         const state = bindState[channel]
         if (data?.handle && typeof data.handle === 'object' && state) {
           Object.assign(state.handle, data.handle)
@@ -392,20 +386,28 @@ async function openBindDialog(channel: string) {
 
     const url = handleVerifyUrl(handle)
     if (isQrBind() && url) {
-      await renderQr(channel, url)
-    } else if (url && !isSmsBind() && !isApiKeyBind()) {
+      // 后端直接下发的二维码图片（data URL）优先；没有时再本地把 URL 渲染成二维码。
+      // 有后端直发二维码图时，verifyUrl 是官方授权页（如 Loomy 微信扫码）：
+      // 除弹窗内联展示二维码外，同时自动打开官方页 —— 与浏览器授权类渠道一致。
+      if (handle.qrImage) {
+        qrImages[channel] = String(handle.qrImage)
+        openAuthWindow(url)
+      } else {
+        await renderQr(channel, url)
+      }
+    } else if (url && !isApiKeyBind()) {
       // 授权页类渠道：直接开新窗口（用户点完就切过去了，不用回来操作本页）
       openAuthWindow(url)
     }
 
-    // sms / api-key 需要用户先在弹窗里给出凭据，不立即开流；
+    // api-key 需要用户先在弹窗里给出凭据，不立即开流；
     // 其余渠道（设备码 / 授权页 / 扫码）立刻开流等待。
     if (!bindNeedsInput()) {
       startSse(channel)
     } else {
       bindPhase.value = 'waiting'
     }
-    // sms / api-key 之外的入参就绪后立刻发起；这里仅提示状态。
+    // api-key 之外的入参就绪后立刻发起；这里仅提示状态。
     if (handle.callbackListening === false) {
       ElMessage.warning('本地回调端口不可用，授权后需要手动粘贴回调地址')
     }
@@ -428,27 +430,11 @@ async function restartBind() {
   await openBindDialog(channel)
 }
 
-// 短信：发码（把手机号带给后端，后端调 sendMsgCode 并写回 msgid）
-async function sendSmsCode() {
-  const state = bindState[bindChannel.value]
-  if (!state) return
-  if (!state.input.phone.trim()) {
-    ElMessage.warning('请先填写手机号')
-    return
-  }
-  state.input.smsCode = ''
-  startSse(bindChannel.value)
-}
-
-// 短信：提交验证码；api-key：提交 key
+// api-key：提交 key（其余渠道无需输入，直接开流）
 function submitBindInput() {
   const channel = bindChannel.value
   const state = bindState[channel]
   if (!state) return
-  if (isSmsBind() && !smsSent() && !state.input.smsCode.trim()) {
-    void sendSmsCode()
-    return
-  }
   if (isApiKeyBind() && !state.input.apiKey.trim()) {
     ElMessage.warning('请填写 API key（匿名通道填 public）')
     return
@@ -790,10 +776,9 @@ const pendingCallbackFor = (channel: string) => pendingCallback.value[channel] ?
             (1) 设备码（device-code / browser-device）：授权码大字 + 复制 + 授权链接
             (2) 扫码（qr-code）：二维码 + 提示
             (3) 浏览器授权（browser-oauth）：打开授权页主按钮 + 链接兜底
-            (4) 短信（sms）：手机号 → 验证码
-            (5) API key：密钥输入
+            (4) API key：密钥输入
         - #footer：重新发起 + 取消
-      拿到凭据（SSE done）自动关闭；用户在弹窗里不做任何账号粘贴。
+      拿到凭据（SSE done）自动关闭；用户在弹窗里不做任何账号粘贴（Loomy 微信扫码同其它渠道）。
     -->
     <ReDialog
       v-model="bindDialogVisible"
@@ -830,8 +815,6 @@ const pendingCallbackFor = (channel: string) => pendingCallback.value[channel] ?
           <span class="chm-bind__dot" :class="{ 'is-error': bindPhase === 'error' }" />
           <span v-if="bindPhase === 'starting'">正在创建登录会话…</span>
           <span v-else-if="bindPhase === 'error'">失败：{{ bindError }}</span>
-          <span v-else-if="isSmsBind() && !smsSent()">请输入手机号并获取验证码</span>
-          <span v-else-if="isSmsBind()">验证码已发送，请填写后提交</span>
           <span v-else-if="isApiKeyBind()">请填写 API key 后提交</span>
           <span v-else-if="isQrBind()">请用微信扫码授权</span>
           <span v-else-if="callbackAuto(bindChannel)">已打开授权页，完成后会自动绑定（无需回到本页）</span>
@@ -862,7 +845,7 @@ const pendingCallbackFor = (channel: string) => pendingCallback.value[channel] ?
           </div>
 
           <!-- (3) 浏览器授权入口（授权链接兜底：自动开窗失败 / 被关闭时） -->
-          <div v-if="handleVerifyUrl(bindState[bindChannel]?.handle ?? {}) && !isSmsBind() && !isApiKeyBind()"
+          <div v-if="handleVerifyUrl(bindState[bindChannel]?.handle ?? {}) && !isQrBind() && !isApiKeyBind()"
                class="chm-bind__cta">
             <button
               class="chm-bind__open"
@@ -876,31 +859,7 @@ const pendingCallbackFor = (channel: string) => pendingCallback.value[channel] ?
                target="_blank" rel="noopener noreferrer">或点此链接</a>
           </div>
 
-          <!-- (4a) 短信登录（Loomy）：手机号 → 验证码 -->
-          <div v-if="isSmsBind()" class="chm-bind__form">
-            <div class="chm-bind__row">
-              <input
-                :value="bindState[bindChannel]?.input?.phone ?? ''"
-                @input="(bindState[bindChannel]!.input.phone = (e as any).target.value)"
-                class="chm-input"
-                placeholder="手机号"
-                inputmode="numeric"
-              />
-              <button class="chm-btn" type="button" :disabled="smsSent()" @click="sendSmsCode()">获取验证码</button>
-            </div>
-            <div class="chm-bind__row" v-if="smsSent()">
-              <input
-                :value="bindState[bindChannel]?.input?.smsCode ?? ''"
-                @input="(bindState[bindChannel]!.input.smsCode = (e as any).target.value)"
-                class="chm-input"
-                placeholder="短信验证码"
-                inputmode="numeric"
-              />
-              <button class="chm-btn chm-btn--primary" type="button" @click="submitBindInput()">提交</button>
-            </div>
-          </div>
-
-          <!-- (4b) API key（OpenCode） -->
+          <!-- (4) API key（OpenCode） -->
           <div v-if="isApiKeyBind()" class="chm-bind__form">
             <div class="chm-bind__row">
               <input
@@ -1379,6 +1338,34 @@ const pendingCallbackFor = (channel: string) => pendingCallback.value[channel] ?
 }
 
 /* ---------- 绑定弹窗（ReDialog 重构） ---------- */
+/* 外壳：ReDialog 默认 layout=el 是素面 Element 弹窗，这里补「运维甲板」风格外壳 */
+.chm-bind-dialog {
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, .18);
+  border: 1px solid var(--border-default, #e2e9f3);
+}
+.chm-bind-dialog :deep(.el-dialog__header) {
+  padding: 16px 20px 0;
+  margin-right: 0;
+  border-bottom: 1px solid var(--border-subtle, #eef2f8);
+  background: var(--bg-elevated, #f8fafc);
+}
+.chm-bind-dialog :deep(.el-dialog__headerbtn) {
+  top: 16px;
+  right: 16px;
+}
+.chm-bind-dialog :deep(.el-dialog__body) {
+  padding: 16px 20px 8px;
+}
+.chm-bind-dialog :deep(.el-dialog__footer) {
+  padding: 8px 20px 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 1px solid var(--border-subtle, #eef2f8);
+  background: var(--bg-elevated, #f8fafc);
+}
 .chm-bind {
   display: flex;
   flex-direction: column;
@@ -1574,7 +1561,7 @@ const pendingCallbackFor = (channel: string) => pendingCallback.value[channel] ?
 .chm-bind__href {
   color: var(--brand-600, #2563eb);
 }
-/* 输入表单（短信 / API key / 回调粘贴） */
+/* 输入表单（API key / 回调粘贴） */
 .chm-bind__form {
   display: flex;
   flex-direction: column;
