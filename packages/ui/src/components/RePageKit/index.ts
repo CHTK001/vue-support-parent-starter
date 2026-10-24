@@ -47,3 +47,31 @@ export { usePageVariant } from './usePageVariant'
 export type { UsePageVariantOptions, UsePageVariantResult } from './usePageVariant'
 
 export { default as RePageVariantDock } from './RePageVariantDock.vue'
+
+/* ==================== 五个方向的通用画布 ==================== */
+
+export { default as RePageStage } from './canvas/RePageStage.vue'
+export { default as ReCanvasTable } from './canvas/ReCanvasTable.vue'
+export { default as ReCanvasCards } from './canvas/ReCanvasCards.vue'
+export { default as ReCanvasSplit } from './canvas/ReCanvasSplit.vue'
+export { default as ReCanvasBand } from './canvas/ReCanvasBand.vue'
+export { default as ReCanvasTelemetry } from './canvas/ReCanvasTelemetry.vue'
+
+export type { CanvasGroup } from './canvas/types'
+
+export {
+  gridTemplate,
+  minTableWidth,
+  cellValue,
+  cellText,
+} from './canvas/types'
+
+export type {
+  TabItem,
+  FilterKind,
+  FilterField,
+  StatCell,
+  BandItem,
+  CanvasColumn,
+  Keyed,
+} from './canvas/types'
