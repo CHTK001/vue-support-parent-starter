@@ -27,6 +27,48 @@ import {
 } from '@element-plus/icons-vue'
 import { channelApi, type ChannelSummary, type ChannelConnectionSummary } from '@/services/javaApi'
 
+// 各渠道的官方图标（本地落地的品牌资源）。
+// 有官方 SVG/ICO 的渠道用图标；没有公开官方资源的渠道（Qoder / Raccoon / Loomy…）
+// 用品牌色圆角徽标 + 首字母兜底，保证视觉一致性。
+import clineIcon from '@/assets/channel-icons/cline.svg'
+import traeIcon from '@/assets/channel-icons/trae.svg'
+import opencodeIcon from '@/assets/channel-icons/opencode.svg'
+import geminiIcon from '@/assets/channel-icons/gemini.svg'
+import minimaxIcon from '@/assets/channel-icons/minimax.ico'
+import zcodeIcon from '@/assets/channel-icons/zcode.ico'
+import lobsteraiIcon from '@/assets/channel-icons/lobsterai.ico'
+
+/** 渠道品牌外观：官方图标（可选）+ 品牌色 + 徽标字形 */
+interface ChannelBrand {
+  /** 官方图标资源 URL；缺省时用 brandColor/glyph 渲染徽标 */
+  icon?: string
+  /** 品牌主色（徽标底色 / 状态点缀） */
+  color: string
+  /** 徽标字形（无官方图标时用首字母） */
+  glyph: string
+  /** 登录方式短标签（展示用） */
+  method?: string
+}
+
+// channel id（后端 @Spi 别名，小写）→ 品牌外观
+const CHANNEL_BRANDS: Record<string, ChannelBrand> = {
+  cline: { icon: clineIcon, color: '#6E4FFF', glyph: 'C', method: '设备码' },
+  qoder: { color: '#4F6BFF', glyph: 'Q', method: '设备码' },
+  'qoder-cn': { color: '#F59E0B', glyph: 'Q', method: '设备码' }, // 国内变体用琥珀金区分
+  trae: { icon: traeIcon, color: '#0F766E', glyph: 'T', method: '浏览器授权' },
+  gemini: { icon: geminiIcon, color: '#8E75B2', glyph: 'G', method: '浏览器授权' },
+  minimax: { icon: minimaxIcon, color: '#F5701A', glyph: 'M', method: '设备码' },
+  zcode: { icon: zcodeIcon, color: '#0C5CFF', glyph: 'Z', method: '浏览器授权' },
+  raccoon: { color: '#0FA47F', glyph: 'R', method: '扫码' },
+  loomy: { color: '#2B7DE9', glyph: 'L', method: '短信' },
+  lobsterai: { icon: lobsteraiIcon, color: '#F03D64', glyph: 'L', method: '浏览器授权' },
+  opencode: { icon: opencodeIcon, color: '#111827', glyph: 'O', method: 'API Key' },
+}
+
+/** 渠道品牌外观（未知渠道给中性灰兜底） */
+const brandOf = (channel: string): ChannelBrand =>
+  CHANNEL_BRANDS[channel] ?? { color: '#64748B', glyph: (channel || '?').slice(0, 1).toUpperCase() }
+
 interface ParsedHandle {
   channel: string
   handle: Record<string, any>
@@ -43,12 +85,28 @@ const activeChannel = ref<string>('')
 // 渠道卡片内的状态：是否正在签到 / 正在拉模型 / 正在刷新
 const busy = ref<Record<string, { sign?: boolean; models?: boolean; refresh?: boolean; login?: boolean }>>({})
 
-// 账号 label 输入
-const accountLabel = ref<Record<string, string>>({})
-
 const busyOf = (channel: string) => (busy.value[channel] ??= {})
 
 const activeSummary = () => channels.value.find((c) => c.channel === activeChannel.value)
+
+// ---------- 方案 A：运维甲板（OPS·DECK）派生状态 ----------
+// 渠道级健康状态：按该渠道绑定的账号状态汇总出「在线 / 待刷新 / 未绑定」。
+const channelState = (c?: ChannelSummary): 'online' | 'stale' | 'none' => {
+  const conns = c?.connections ?? []
+  if (!conns.length) return 'none'
+  return conns.some((x) => x.status === 'valid') ? 'online' : 'stale'
+}
+const channelStateText = (c?: ChannelSummary): string =>
+  ({ online: '在线', stale: '待刷新', none: '未绑定' })[channelState(c)]
+
+// 待刷新账号数（过期 / 失效 / 未知凭借据）
+const staleCount = (c?: ChannelSummary): number =>
+  (c?.connections ?? []).filter((x) => x.status === 'expired' || x.status === 'invalid').length
+
+const connState = (conn: ChannelConnectionSummary): 'valid' | 'stale' | 'unknown' =>
+  conn.status === 'valid' ? 'valid' : conn.status === 'expired' || conn.status === 'invalid' ? 'stale' : 'unknown'
+const connStateText = (conn: ChannelConnectionSummary): string =>
+  ({ valid: '有效', stale: '待刷新', unknown: '未知' })[connState(conn)]
 
 // ---------- 取数 ----------
 async function loadChannels() {
@@ -250,7 +308,8 @@ function startSse(channel: string) {
   }
   const sse = channelApi.sseLogin(
     channel,
-    { handle: buildPollHandle(channel), label: accountLabel.value[channel] || undefined },
+    // 不传 label：页面不收集任何账号信息（需求②），由后端按「账号 N」自动生成。
+    { handle: buildPollHandle(channel) },
     {
       onPending: (data) => {
         // ⚠️ 合并服务端回显的句柄（Loomy 发码后写回的 msgid/smsSent、
@@ -512,34 +571,27 @@ onBeforeUnmount(() => {
 // 模板引用
 const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') =>
   busyOf(channel)[key] === true
-const setAccountLabel = (channel: string, label: string) => {
-  accountLabel.value[channel] = label
-}
 const setCallback = (channel: string, url: string) => {
   pendingCallback.value[channel] = url
 }
 const pendingCallbackFor = (channel: string) => pendingCallback.value[channel] ?? ''
-const accountLabelFor = (channel: string) => accountLabel.value[channel] ?? ''
 </script>
 
 <template>
   <div class="chm" data-page="channel">
-    <!-- 页头 -->
-    <header class="chm-head">
-      <div class="chm-head__text">
-        <h2 class="chm-head__title">渠道管理</h2>
-        <p class="chm-head__sub">
-          账号类渠道的账号绑定、轮询、刷新、签到与模型开关。
-          <b>{{ channels.length }}</b> 个已注册渠道
-        </p>
-      </div>
-      <div class="chm-head__actions">
+    <!-- 页头：统一用 RePageHead（全站共用一份页面头实现） -->
+    <RePageHead title="渠道管理">
+      <template #sub>
+        账号类渠道的账号绑定、轮询、刷新、签到与模型开关。
+        <b>{{ channels.length }}</b> 个已注册渠道
+      </template>
+      <template #actions>
         <el-button class="chm-btn" :loading="loading" @click="loadChannels">
           <el-icon v-if="!loading" class="chm-btn__icon" aria-hidden="true"><RefreshIcon /></el-icon>
           刷新
         </el-button>
-      </div>
-    </header>
+      </template>
+    </RePageHead>
 
     <!-- 错误条 -->
     <div v-if="loadError" class="chm-alert is-danger">
@@ -557,125 +609,161 @@ const accountLabelFor = (channel: string) => accountLabel.value[channel] ?? ''
       </template>
     </el-empty>
 
-    <!-- 渠道卡片网格 -->
-    <div v-else class="chm-grid">
-      <section
-        v-for="c in channels"
-        :key="c.channel"
-        class="chm-card"
-        :class="{ 'is-active': c.channel === activeChannel }"
-        role="button"
-        tabindex="0"
-        @click="activeChannel = c.channel"
-        @keydown.enter="activeChannel = c.channel"
-        @keydown.space.prevent="activeChannel = c.channel"
-      >
-        <!-- 卡片头 -->
-        <div class="chm-card__head">
-          <div class="chm-card__title">
-            <b>{{ c.displayName || c.channel }}</b>
-            <span class="chm-card__chip" v-if="c.supportsCheckin">可签到</span>
-            <span class="chm-card__chip is-muted" v-else>无签到</span>
+    <!-- 方案 A · 运维甲板：左渠道索引 + 右选中详情 -->
+    <div v-else class="chm-deck">
+      <!-- 左：渠道索引（官方图标 / 品牌徽标 + 状态灯） -->
+      <aside class="chm-rail">
+        <div class="chm-rail__head">
+          <span>渠道索引</span>
+          <b>{{ channels.length }}</b>
+        </div>
+        <button
+          v-for="c in channels"
+          :key="c.channel"
+          type="button"
+          class="chm-rail__item"
+          :class="{ 'is-active': c.channel === activeChannel }"
+          @click="activeChannel = c.channel"
+        >
+          <span class="chm-rail__logo"
+                :class="{ 'is-ico': !!brandOf(c.channel).icon }"
+                :style="brandOf(c.channel).icon ? undefined : { background: brandOf(c.channel).color }">
+            <img v-if="brandOf(c.channel).icon" :src="brandOf(c.channel).icon" :alt="c.channel" />
+            <b v-else>{{ brandOf(c.channel).glyph }}</b>
+          </span>
+          <span class="chm-rail__name" :title="c.displayName || c.channel">
+            {{ c.displayName || c.channel }}
+          </span>
+          <span class="chm-rail__dot" :class="'is-' + channelState(c)"
+                :title="channelStateText(c)" />
+        </button>
+      </aside>
+
+      <!-- 右：选中渠道详情 -->
+      <section v-if="activeSummary()" class="chm-panel">
+        <header class="chm-panel__head">
+          <span class="chm-panel__logo"
+                :class="{ 'is-ico': !!brandOf(activeChannel).icon }"
+                :style="brandOf(activeChannel).icon ? undefined : { background: brandOf(activeChannel).color }">
+            <img v-if="brandOf(activeChannel).icon" :src="brandOf(activeChannel).icon" :alt="activeChannel" />
+            <b v-else>{{ brandOf(activeChannel).glyph }}</b>
+          </span>
+          <div class="chm-panel__title">
+            <h3>{{ activeSummary()!.displayName || activeChannel }}</h3>
+            <span>
+              <i>{{ brandOf(activeChannel).method || activeSummary()!.loginMethod || '—' }}</i>
+              · provider {{ activeSummary()!.providerId }}
+              <span class="chm-panel__chip" v-if="activeSummary()!.supportsCheckin">可签到</span>
+              <span class="chm-panel__chip is-muted" v-else>无签到</span>
+            </span>
+          </div>
+          <div class="chm-panel__state">
+            <span class="chm-rail__dot" :class="'is-' + channelState(activeSummary())" />
+            {{ channelStateText(activeSummary()) }}
           </div>
           <el-switch
-            v-model="c.enabled"
-            class="chm-card__switch"
-            @click.stop
-            @change="(v: boolean | string | number) => toggleChannelEnabled(c.channel, !!v)"
+            :model-value="activeSummary()!.enabled"
+            class="chm-panel__switch"
+            @change="(v: boolean | string | number) => toggleChannelEnabled(activeChannel, !!v)"
           />
+        </header>
+
+        <!-- KPI 行 -->
+        <div class="chm-kpis">
+          <div class="chm-kpi">
+            <b>{{ (activeSummary()!.connections ?? []).length }}</b>
+            <span>绑定账号</span>
+          </div>
+          <div class="chm-kpi">
+            <b>{{ (activeSummary()!.models ?? []).length }}</b>
+            <span>可用模型</span>
+          </div>
+          <div class="chm-kpi">
+            <b :class="{ 'is-warn': staleCount(activeSummary()!) > 0 }">{{ staleCount(activeSummary()!) }}</b>
+            <span>待刷新</span>
+          </div>
         </div>
 
         <!-- 账号区 -->
-        <div class="chm-card__section">
-          <div class="chm-card__sect-title">
+        <div class="chm-panel__block">
+          <div class="chm-panel__sect-title">
             <el-icon aria-hidden="true"><ConnectionIcon /></el-icon>
-            账号 <i class="chm-card__sect-count">{{ (c.connections ?? []).length }}</i>
+            账号 <i>{{ (activeSummary()!.connections ?? []).length }}</i>
           </div>
-          <div class="chm-card__accounts">
+          <div class="chm-accs">
             <div
-              v-for="conn in c.connections ?? []"
+              v-for="conn in activeSummary()!.connections ?? []"
               :key="conn.connectionId"
               class="chm-acc"
-              :class="{ 'is-stale': conn.status === 'expired' || conn.status === 'invalid' }"
+              :class="{ 'is-stale': connState(conn) !== 'valid' }"
             >
               <span class="chm-acc__label" :title="conn.label">{{ conn.label || '未命名' }}</span>
-              <span class="chm-acc__state" :class="{
-                'is-valid': conn.status === 'valid',
-                'is-stale': conn.status === 'expired' || conn.status === 'invalid',
-                'is-pending': conn.status === 'unbound' || !conn.status,
-              }">
-                {{ conn.status || '未知' }}
+              <span class="chm-acc__state" :class="'is-' + connState(conn)">
+                {{ connStateText(conn) }}
               </span>
               <div class="chm-acc__actions">
-                <button class="chm-acc__btn" :disabled="busyFor(c.channel, 'refresh')"
-                        @click.stop="refreshAccount(c.channel, conn.label ?? '')">刷新</button>
-                <button v-if="c.supportsCheckin" class="chm-acc__btn"
-                        :disabled="busyFor(c.channel, 'sign')"
-                        @click.stop="checkin(c.channel, conn.label ?? '')">签到</button>
+                <button class="chm-acc__btn" :disabled="busyFor(activeChannel, 'refresh')"
+                        @click.stop="refreshAccount(activeChannel, conn.label ?? '')">刷新</button>
+                <button v-if="activeSummary()!.supportsCheckin" class="chm-acc__btn"
+                        :disabled="busyFor(activeChannel, 'sign')"
+                        @click.stop="checkin(activeChannel, conn.label ?? '')">签到</button>
                 <button class="chm-acc__btn is-danger"
-                        @click.stop="deleteAccount(c.channel, conn.label ?? '')">删除</button>
+                        @click.stop="deleteAccount(activeChannel, conn.label ?? '')">删除</button>
               </div>
             </div>
-            <div v-if="!(c.connections ?? []).length" class="chm-card__empty">
+            <div v-if="!(activeSummary()!.connections ?? []).length" class="chm-card__empty">
               尚无绑定账号
-            </div>
-          </div>
-
-          <!-- 绑定新账号：点一下即弹窗，授权页自动打开，SSE 完成后自动关窗 -->
-          <div class="chm-card__bind">
-            <div class="chm-card__bindrow">
-              <!--
-                v-model 只接受「成员表达式」（a / a.b / a[i]）；写成函数调用
-                accountLabelFor(c.channel) 会直接编译失败：
-                "v-model value must be a valid JavaScript member expression"，
-                整个应用构建挂掉。这里本来就是「读用函数、写用 @input」的单向绑定，
-                改成 :value 后语义不变、且能编译。
-              -->
-              <input
-                :value="accountLabelFor(c.channel)"
-                @input="setAccountLabel(c.channel, (e as any).target.value)"
-                class="chm-input"
-                placeholder="账号标签（可选）"
-                style="flex: 1"
-              />
-              <button class="chm-btn chm-btn--primary" :disabled="busyFor(c.channel, 'login')"
-                      @click.stop="openBindDialog(c.channel)">
-                <el-icon v-if="!busyFor(c.channel, 'login')" class="chm-btn__icon" aria-hidden="true">
-                  <PlusIcon />
-                </el-icon>
-                {{ busyFor(c.channel, 'login') ? '登录中…' : '绑定账号' }}
-              </button>
             </div>
           </div>
         </div>
 
         <!-- 模型区 -->
-        <div class="chm-card__section">
-          <div class="chm-card__sect-title">
+        <div class="chm-panel__block">
+          <div class="chm-panel__sect-title">
             <el-icon aria-hidden="true"><DataAnalysisIcon /></el-icon>
-            模型 <i class="chm-card__sect-count">{{ (c.models ?? []).length }}</i>
-            <button class="chm-card__pull" :disabled="busyFor(c.channel, 'models')"
-                    @click.stop="pullModels(c.channel)">
-              {{ busyFor(c.channel, 'models') ? '拉取中…' : '拉取模型' }}
+            模型 <i>{{ (activeSummary()!.models ?? []).length }}</i>
+            <button class="chm-panel__pull" :disabled="busyFor(activeChannel, 'models')"
+                    @click.stop="pullModels(activeChannel)">
+              {{ busyFor(activeChannel, 'models') ? '拉取中…' : '拉取模型' }}
             </button>
           </div>
-          <div class="chm-card__models">
+          <div class="chm-models">
             <label
-              v-for="m in c.models ?? []"
+              v-for="m in activeSummary()!.models ?? []"
               :key="m.model"
               class="chm-model"
               :class="{ 'is-off': !m.enabled }"
             >
               <input type="checkbox" :checked="m.enabled"
-                     @change="(e) => toggleModel(c.channel, m.model, (e as any).target.checked)" />
+                     @change="(e) => toggleModel(activeChannel, m.model, (e as any).target.checked)" />
               <span class="chm-model__name" :title="m.model">{{ m.model }}</span>
               <span v-if="m.contextWindow" class="chm-model__ctx">{{ m.contextWindow }}</span>
             </label>
-            <div v-if="!(c.models ?? []).length" class="chm-card__empty">
+            <div v-if="!(activeSummary()!.models ?? []).length" class="chm-card__empty">
               该渠道暂无已启用模型
             </div>
           </div>
         </div>
+
+        <!-- 绑定新账号：虚线框，点击即弹窗。
+             不设账号标签输入框——页面不收集任何账号信息（需求②），
+             标签由后端按「账号 N」自动生成，绑定成功后可在列表里识别。 -->
+        <button
+          class="chm-panel__bindbtn"
+          type="button"
+          :disabled="busyFor(activeChannel, 'login')"
+          @click="openBindDialog(activeChannel)"
+        >
+          <el-icon v-if="!busyFor(activeChannel, 'login')" class="chm-btn__icon" aria-hidden="true">
+            <PlusIcon />
+          </el-icon>
+          {{ busyFor(activeChannel, 'login') ? '登录中…' : '＋ 绑定新账号（点击弹出）' }}
+        </button>
+      </section>
+
+      <!-- 选中渠道消失的兜底（列表刷新间隙） -->
+      <section v-else class="chm-panel">
+        <div class="chm-card__empty">正在加载渠道详情…</div>
       </section>
     </div>
 
@@ -871,44 +959,181 @@ const accountLabelFor = (channel: string) => accountLabel.value[channel] ?? ''
   cursor: pointer;
   font-size: 12px;
 }
-.chm-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-  gap: 16px;
+/* ============ 方案 A · 运维甲板（OPS·DECK） ============ */
+.chm-deck {
+  display: flex;
+  gap: 14px;
+  align-items: stretch;
 }
-.chm-card {
-  border: 1px solid var(--el-border-color-lighter, #ebeef5);
-  border-radius: 10px;
-  padding: 16px;
-  background: var(--el-bg-color, #fff);
+
+/* ---- 左：渠道索引 ---- */
+.chm-rail {
+  flex: none;
+  width: 216px;
+  border: 1px solid var(--border-default, #e2e9f3);
+  border-radius: 12px;
+  background: var(--bg-container, #fff);
+  padding: 10px 8px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  outline: none;
-  transition: border-color .15s ease, box-shadow .15s ease;
+  gap: 2px;
+  max-height: calc(100vh - 220px);
+  overflow-y: auto;
 }
-.chm-card.is-active {
-  border-color: var(--el-color-primary-light-5, #a0cfff);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-primary, #409eff) 12%, transparent);
-}
-.chm-card:focus {
-  border-color: var(--el-color-primary, #409eff);
-}
-.chm-card__head {
+.chm-rail__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  padding: 4px 8px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary, #475569);
+  letter-spacing: .04em;
 }
-.chm-card__title {
+.chm-rail__head b {
+  color: var(--text-tertiary, #94a3b8);
+  font-variant-numeric: tabular-nums;
+}
+.chm-rail__item {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--el-text-color-primary, #303133);
+  width: 100%;
+  padding: 7px 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text-primary, #0f172a);
+  transition: background-color .15s ease;
 }
-.chm-card__chip {
+.chm-rail__item:hover {
+  background: var(--bg-hover, #f1f5fb);
+}
+.chm-rail__item.is-active {
+  background: color-mix(in srgb, var(--brand-500, #3b82f6) 10%, transparent);
+  font-weight: 600;
+}
+.chm-rail__logo {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  overflow: hidden;
+}
+.chm-rail__logo.is-ico {
+  background: #fff;
+  border: 1px solid var(--border-subtle, #eef2f8);
+}
+.chm-rail__logo img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+.chm-rail__logo b {
+  color: #fff;
+  font-size: 11px;
+}
+.chm-rail__name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chm-rail__dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-tertiary, #94a3b8);
+}
+.chm-rail__dot.is-online {
+  background: #22c55e;
+}
+.chm-rail__dot.is-stale {
+  background: #f59e0b;
+}
+.chm-rail__dot.is-none {
+  background: #cbd5e1;
+}
+
+/* ---- 右：选中渠道详情 ---- */
+.chm-panel {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border-default, #e2e9f3);
+  border-radius: 12px;
+  background: var(--bg-container, #fff);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.chm-panel__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.chm-panel__logo {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 800;
+  overflow: hidden;
+}
+.chm-panel__logo.is-ico {
+  background: #fff;
+  border: 1px solid var(--border-subtle, #eef2f8);
+}
+.chm-panel__logo img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+.chm-panel__logo b {
+  color: #fff;
+  font-size: 18px;
+}
+.chm-panel__title {
+  flex: 1;
+  min-width: 0;
+}
+.chm-panel__title h3 {
+  margin: 0 0 2px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+}
+.chm-panel__title > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary, #475569);
+  flex-wrap: wrap;
+}
+.chm-panel__title i {
+  font-style: normal;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text-secondary, #475569);
+  background: var(--bg-fill, #f1f5fb);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+.chm-panel__chip {
   display: inline-block;
   padding: 1px 6px;
   font-size: 11px;
@@ -917,90 +1142,137 @@ const accountLabelFor = (channel: string) => accountLabel.value[channel] ?? ''
   background: color-mix(in srgb, var(--el-color-success, #67c23a) 14%, transparent);
   color: var(--el-color-success, #67c23a);
 }
-.chm-card__chip.is-muted {
+.chm-panel__chip.is-muted {
   background: color-mix(in srgb, var(--el-text-color-secondary, #909399) 14%, transparent);
   color: var(--el-text-color-secondary, #909399);
 }
-.chm-card__switch {
+.chm-panel__state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary, #475569);
+  white-space: nowrap;
+}
+.chm-panel__state .chm-rail__dot {
+  width: 9px;
+  height: 9px;
+}
+.chm-panel__switch {
   margin: 0;
 }
-.chm-card__section {
+
+/* ---- KPI 行 ---- */
+.chm-kpis {
+  display: flex;
+  gap: 10px;
+}
+.chm-kpi {
+  flex: 1;
+  border: 1px solid var(--border-subtle, #eef2f8);
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: var(--bg-elevated, #f8fafc);
+}
+.chm-kpi b {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.chm-kpi b.is-warn {
+  color: var(--el-color-warning, #e6a23c);
+}
+.chm-kpi span {
+  font-size: 12px;
+  color: var(--text-secondary, #475569);
+}
+
+/* ---- 账号 / 模型区块 ---- */
+.chm-panel__block {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-.chm-card__sect-title {
+.chm-panel__sect-title {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--el-text-color-regular, #606266);
-  text-transform: uppercase;
+  color: var(--text-regular, #475569);
   letter-spacing: .04em;
 }
-.chm-card__sect-count {
+.chm-panel__sect-title i {
   font-style: normal;
   font-weight: 500;
-  color: var(--el-text-color-secondary, #909399);
+  color: var(--text-tertiary, #94a3b8);
 }
-.chm-card__pull {
+.chm-panel__sect-title .el-icon {
+  color: var(--text-tertiary, #94a3b8);
+}
+.chm-panel__pull {
   margin-left: auto;
-  border: 1px solid var(--el-border-color, #dcdfe6);
-  background: var(--el-fill-color-blank, #fff);
-  color: var(--el-text-color-regular, #606266);
-  border-radius: 4px;
-  padding: 2px 10px;
+  border: 1px solid var(--border-default, #e2e9f3);
+  background: var(--bg-container, #fff);
+  color: var(--text-regular, #475569);
+  border-radius: 6px;
+  padding: 3px 10px;
   font-size: 12px;
   cursor: pointer;
 }
-.chm-card__pull:hover {
-  border-color: var(--el-color-primary-light-5, #a0cfff);
-  color: var(--el-color-primary, #409eff);
+.chm-panel__pull:hover {
+  border-color: var(--brand-400, #60a5fa);
+  color: var(--brand-600, #2563eb);
 }
-.chm-card__pull:disabled {
+.chm-panel__pull:disabled {
   opacity: .55;
   cursor: not-allowed;
 }
+
 .chm-card__empty {
   font-size: 12px;
-  color: var(--el-text-color-placeholder, #a8abb2);
+  color: var(--text-tertiary, #94a3b8);
   padding: 8px;
-  border: 1px dashed var(--el-border-color-lighter, #ebeef5);
-  border-radius: 6px;
+  border: 1px dashed var(--border-default, #d3dceb);
+  border-radius: 8px;
   text-align: center;
 }
-.chm-card__accounts,
-.chm-card__models {
+.chm-accs,
+.chm-models {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 .chm-acc {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) auto 1fr;
+  display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border: 1px solid var(--el-border-color-lighter, #ebeef5);
-  border-radius: 6px;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-subtle, #eef2f8);
+  border-radius: 8px;
   font-size: 13px;
+  background: var(--bg-container, #fff);
 }
 .chm-acc.is-stale {
   border-color: color-mix(in srgb, var(--el-color-warning, #e6a23c) 50%, transparent);
 }
 .chm-acc__label {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--el-text-color-primary, #303133);
+  color: var(--text-primary, #0f172a);
   font-weight: 500;
 }
 .chm-acc__state {
   font-size: 11px;
   font-weight: 500;
-  padding: 1px 6px;
-  border-radius: 3px;
+  padding: 1px 8px;
+  border-radius: 99px;
   background: color-mix(in srgb, var(--el-text-color-secondary, #909399) 14%, transparent);
   color: var(--el-text-color-secondary, #909399);
 }
@@ -1012,23 +1284,27 @@ const accountLabelFor = (channel: string) => accountLabel.value[channel] ?? ''
   background: color-mix(in srgb, var(--el-color-warning, #e6a23c) 14%, transparent);
   color: var(--el-color-warning, #e6a23c);
 }
+.chm-acc__state.is-unknown {
+  background: color-mix(in srgb, var(--el-text-color-secondary, #909399) 14%, transparent);
+  color: var(--el-text-color-secondary, #909399);
+}
 .chm-acc__actions {
   display: flex;
-  gap: 4px;
-  justify-content: flex-end;
+  gap: 6px;
 }
 .chm-acc__btn {
-  border: 1px solid var(--el-border-color, #dcdfe6);
-  background: var(--el-fill-color-blank, #fff);
-  color: var(--el-text-color-regular, #606266);
-  border-radius: 4px;
-  padding: 2px 8px;
+  border: 1px solid var(--border-default, #e2e9f3);
+  background: var(--bg-container, #fff);
+  color: var(--text-regular, #475569);
+  border-radius: 6px;
+  padding: 3px 10px;
   font-size: 12px;
   cursor: pointer;
+  transition: border-color .15s, color .15s;
 }
 .chm-acc__btn:hover {
-  border-color: var(--el-color-primary-light-5, #a0cfff);
-  color: var(--el-color-primary, #409eff);
+  border-color: var(--brand-400, #60a5fa);
+  color: var(--brand-600, #2563eb);
 }
 .chm-acc__btn.is-danger:hover {
   border-color: var(--el-color-danger-light-5, #fab6b6);
@@ -1038,14 +1314,31 @@ const accountLabelFor = (channel: string) => accountLabel.value[channel] ?? ''
   opacity: .55;
   cursor: not-allowed;
 }
-.chm-card__bind {
+
+/* ---- 绑定虚线框 ---- */
+.chm-panel__bindbtn {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 6px;
+  width: 100%;
+  padding: 10px;
+  font-size: 13px;
+  color: var(--text-regular, #475569);
+  background: transparent;
+  border: 1px dashed var(--border-strong, #d3dceb);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color .15s, color .15s, background-color .15s;
 }
-.chm-card__bindrow {
-  display: flex;
-  gap: 6px;
+.chm-panel__bindbtn:hover {
+  border-color: var(--brand-600, #2563eb);
+  color: var(--brand-600, #2563eb);
+  background: color-mix(in srgb, var(--brand-500, #3b82f6) 6%, transparent);
+}
+.chm-panel__bindbtn:disabled {
+  opacity: .55;
+  cursor: not-allowed;
 }
 
 /* ---------- 绑定弹窗 ---------- */
