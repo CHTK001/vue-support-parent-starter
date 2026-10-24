@@ -13,6 +13,11 @@
  * @author CH
  * @since 4.0.0
  */
+import {
+  hourOfDay as hourOfDayShared,
+  pad2 as pad2Shared,
+  parseDateTime,
+} from '../shared/datetime'
 
 /** 会话状态筛选取值 */
 export type SessionStatusFilter = '' | 'OPEN' | 'CLOSED'
@@ -116,19 +121,11 @@ export const EMPTY_SESSION_FILTERS: SessionFilters = {
 /**
  * 解析后端时间串。
  *
- * <p>两种形态都要吃：`2026-10-24T09:12:04` 与 `2026-10-24 09:12:04`。
- * 后者在 Safari 上 `new Date()` 会得到 Invalid Date，故先把 `-` 换成 `/`
- * （与 tshark 的 parseTime 同一处理，避免两处口径不同）。</p>
- *
- * @param raw 时间串
+ * <p>规则在 {@link parseDateTime}（七个管理页共用一份）。这一页额外要求两种形态都能吃：
+ * `2026-10-24T09:12:04` 与 `2026-10-24 09:12:04` —— 后者在 Safari 上直接 `new Date()`
+ * 会得到 Invalid Date，共享实现是手工拆字段，两边都不会出这种差异。</p>
  */
-export function parseTime(raw?: string | null): Date | null {
-  if (!raw) return null
-  const s = String(raw).trim()
-  if (!s) return null
-  const d = s.includes('T') ? new Date(s) : new Date(s.replace(/-/g, '/'))
-  return Number.isNaN(d.getTime()) ? null : d
-}
+export const parseTime = parseDateTime
 
 /**
  * 统一时间显示 `yyyy-MM-dd HH:mm:ss`。
@@ -148,13 +145,11 @@ export function formatTime(raw?: string | null): string {
 }
 
 /**
- * 不到两位补零。
+ * 不到两位补零（与其它页面同一份实现）
  *
  * @param n 数字
  */
-export function pad2(n: number): string {
-  return String(n).padStart(2, '0')
-}
+export const pad2 = pad2Shared
 
 /**
  * 时长可读文本。
@@ -183,10 +178,7 @@ export function formatDuration(ms: number | null | undefined): string {
  *
  * @param d 时间
  */
-export function hourOfDay(d: Date | null): number | null {
-  if (!d) return null
-  return d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600
-}
+export const hourOfDay = hourOfDayShared
 
 /**
  * 协议色档。
