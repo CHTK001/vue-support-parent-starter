@@ -82,6 +82,11 @@ packages/core/rust/**/wasm-pack/
 !packages/core/rust/**/*.wasm
 # 前端 wasm 资产需入库：代码用 ?url 导入，缺失会导致构建失败
 !pages/filesystem/src/wasm/**/*.wasm
+# file-viewer 渲染器 wasm 资产（public/wasm）已作为源码提交（2026-10-24）：
+# 覆盖 *.wasm 全局忽略，连同配套的 worker.js / .map / 版本化子目录一并入库
+!public/wasm/**/*.wasm
+!public/wasm/**
+!public/wasm/
 Cargo.lock
 **/Cargo.lock
 
@@ -249,8 +254,8 @@ apps/*/dist-dsh/
 **/_ofdtest/
 
 # @file-viewer vite-plugin ��Ⱦ���ʲ���dev �����빹��ʱ�ɲ��������Լ 27MB������⣩
-public/vendor/
-public/flyfish-viewer-assets.json
+# public/vendor/  <- 资产作为源码提交，见上（升级渲染器时手动同步）
+# public/flyfish-viewer-assets.json
 
 **/.kb-ui-accept/
 **/dcm-probe*.mjs
