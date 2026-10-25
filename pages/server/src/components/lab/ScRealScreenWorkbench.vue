@@ -84,12 +84,20 @@ function defaultProtocolOf(h: Host): string {
   return "ssh";
 }
 
-/** 生效远控端口（SSH 交由后端按资产接入端口处理） */
-function remotePortOf(h: Host): number | null {
+/** 生效远控端口（SSH 回落资产接入端口，不再返回 null） */
+function remotePortOf(h: Host): number {
   const p = defaultProtocolOf(h);
   const configured = (h.serverHostRemoteProtocol ?? "").toLowerCase();
   if (configured === p && h.serverHostRemotePort && h.serverHostRemotePort > 0) return h.serverHostRemotePort;
-  return p === "ssh" ? null : p === "rdp" ? 3389 : 5900;
+  if (p === "ssh") return h.serverHostPort || 22;
+  return p === "rdp" ? 3389 : 5900;
+}
+
+/** 生效远控通道（协议联动）：SSH/VNC 平台自研直连，仅 RDP 必须 guacd 中转；显式 NONE 尊重 */
+function remoteModeOf(h: Host): string {
+  if (defaultProtocolOf(h) === "rdp") return "GUACD";
+  const mode = (h.serverHostRemoteMode ?? "").toUpperCase();
+  return mode === "NONE" ? "NONE" : "DIRECT";
 }
 
 /* ==================== 屏幕模型 ==================== */
@@ -108,7 +116,7 @@ interface Screen {
     address: string;
     protocol: string;
     identityId: number | null;
-    targetPort: number | null;
+    targetPort: number;
     mode: string;
   };
 }
@@ -119,7 +127,6 @@ const canvasPos = ref<Record<number, { x: number; y: number; w: number; h: numbe
 
 function buildScreen(h: Host, protocol?: string): Screen {
   const proto = protocol || defaultProtocolOf(h);
-  const mode = (h.serverHostRemoteMode ?? "").toUpperCase();
   return {
     id: Date.now(),
     hostId: h.id,
@@ -133,7 +140,7 @@ function buildScreen(h: Host, protocol?: string): Screen {
       protocol: proto,
       identityId: null,
       targetPort: remotePortOf(h),
-      mode: mode === "DIRECT" || mode === "NONE" ? mode : "GUACD",
+      mode: remoteModeOf(h),
     },
   };
 }

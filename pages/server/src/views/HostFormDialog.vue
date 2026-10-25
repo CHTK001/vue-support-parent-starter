@@ -317,15 +317,27 @@ const DIRECT_SUPPORTED = ["SSH", "VNC"];
 const directSupported = computed(() => DIRECT_SUPPORTED.includes(effectiveRemoteProtocol.value));
 /** RDP 只能由 guacd 渲染，通道锁定不可选 */
 const channelEditable = computed(() => effectiveRemoteProtocol.value !== "RDP");
-/** 当前协议下可选通道 */
-const channelOptions = computed(() =>
-  remoteModes.filter(m => m.value !== "DIRECT" || directSupported.value),
-);
+/**
+ * 当前协议下可选通道（协议联动：除 RDP 外都不需要 guacd 远控通道）：
+ * SSH / VNC → 平台直连 / 无需通道（MINA SSHD / noVNC RFB 自研客户端直连）；
+ * RDP → 仅 Guacd 中转（平台无自研 RDP 客户端）。
+ */
+const channelOptions = computed(() => {
+  if (!directSupported.value) {
+    // RDP（或本机自采集限定的 VNC 之外）：只留 GUACD
+    return remoteModes.filter(m => m.value === "GUACD");
+  }
+  // SSH / VNC：直连 / 无需通道，去掉 guacd 中转
+  return remoteModes.filter(m => m.value !== "GUACD");
+});
 
 // 协议切换即纠正通道，避免下拉已锁定却仍提交后端会拒绝的组合
 watch(effectiveRemoteProtocol, (protocol) => {
   if (protocol === "RDP") {
     form.value.serverHostRemoteMode = "GUACD";
+  } else if (form.value.serverHostRemoteMode === "GUACD") {
+    // SSH / VNC 不需要远控通道，从 RDP 切过来时回落到平台直连
+    form.value.serverHostRemoteMode = "DIRECT";
   } else if (form.value.serverHostRemoteMode === "DIRECT" && !DIRECT_SUPPORTED.includes(protocol)) {
     form.value.serverHostRemoteMode = "GUACD";
   }
@@ -746,7 +758,10 @@ watch(() => props.modelValue, (v) => {
           </ReFormItem>
           <ReFormItem class="col-span-2" label=" ">
             <span class="remote-tip">
-              Guacd 中转：网页端经 guacd 渲染；平台直连：由平台自研客户端连接（当前仅 SSH、VNC）；无需通道：平台不做任何中转，网页端只显示本机客户端的连接地址，SSH 用系统终端、VNC 用本机客户端。RDP 必须经 guacd 中转。端口留空按协议默认（SSH 22 / RDP 3389 / VNC 5900）。
+              通道随协议联动：SSH / VNC 由平台自研客户端直连（SSH 用 MINA SSHD PTY、VNC 用 noVNC RFB），
+              不需要 guacd 中转；RDP 平台无自研客户端，必须经 guacd 中转（通道自动锁定）。
+              「无需通道」表示平台不做任何中转，只显示本机客户端的连接地址（SSH 用系统终端、VNC 用本机客户端）。
+              端口留空按协议默认（SSH 22 / RDP 3389 / VNC 5900）。
             </span>
           </ReFormItem>
         </template>

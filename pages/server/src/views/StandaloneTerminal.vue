@@ -47,18 +47,24 @@ const identityId = computed(() => {
   return Number.isFinite(n) ? n : null;
 });
 
-/** 远控端口：协议与台账一致时用台账端口，否则按协议默认（见 TerminalView.remotePortOf 说明） */
-function targetPortOf(h: StandHost, p: string): number | null {
+/** 远控端口：协议与台账一致时用台账端口，否则按协议默认；SSH 回落资产接入端口 */
+function targetPortOf(h: StandHost, p: string): number {
   const configured = (h.serverHostRemoteProtocol ?? "").toLowerCase();
   if (configured === p && h.serverHostRemotePort && h.serverHostRemotePort > 0) return h.serverHostRemotePort;
-  if (p === "ssh") return h.serverHostPort || null;
+  if (p === "ssh") return h.serverHostPort || 22;
   return p === "rdp" ? 3389 : 5900;
+}
+
+/** 生效远控通道（协议联动）：SSH/VNC 平台自研直连，仅 RDP 必须 guacd 中转；显式 NONE 尊重 */
+function remoteModeOf(h: StandHost, p: string): string {
+  if (p === "rdp") return "GUACD";
+  const mode = (h.serverHostRemoteMode ?? "").toUpperCase();
+  return mode === "NONE" ? "NONE" : "DIRECT";
 }
 
 const connection = computed(() => {
   const h = host.value;
   if (!h || !protocol.value || disconnected.value) return null;
-  const mode = (h.serverHostRemoteMode ?? "").toUpperCase();
   return {
     hostId: h.id,
     hostName: `${h.serverHostName} (${h.serverHostAddress})`,
@@ -66,7 +72,7 @@ const connection = computed(() => {
     protocol: protocol.value,
     identityId: identityId.value,
     targetPort: targetPortOf(h, protocol.value),
-    mode: mode === "DIRECT" || mode === "NONE" ? mode : "GUACD",
+    mode: remoteModeOf(h, protocol.value),
   };
 });
 

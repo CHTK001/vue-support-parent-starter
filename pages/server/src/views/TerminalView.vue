@@ -109,14 +109,29 @@ function protocolOf(h: Host): string {
 /**
  * 生效远控端口：协议与台账一致时用台账端口，否则按协议默认。
  * 台账 remotePort 只对「该协议本身」有意义（SSH 主机配 22 是 SSH 端口，
- * 选中 VNC 时不能拿它当 VNC 端口）。SSH 交由后端按 ms_server_host_port 处理。
+ * 选中 VNC 时不能拿它当 VNC 端口）。SSH 端口回落到资产接入端口（serverHostPort），
+ * 不再返回 null —— 低层 viewer（guacd / noVNC）统一按「有端口值」处理。
  * @param h 主机
  */
-function remotePortOf(h: Host): number | null {
+function remotePortOf(h: Host): number {
   const p = protocolOf(h);
   const configured = (h.serverHostRemoteProtocol ?? "").toLowerCase();
   if (configured === p && h.serverHostRemotePort && h.serverHostRemotePort > 0) return h.serverHostRemotePort;
-  return p === "ssh" ? null : (p === "rdp" ? 3389 : 5900);
+  if (p === "ssh") return h.serverHostPort || 22;
+  return p === "rdp" ? 3389 : 5900;
+}
+
+/**
+ * 生效远控通道（协议联动）：SSH / VNC 由平台自研客户端直连（MINA SSHD PTY /
+ * noVNC RFB），不需要 guacd 中转通道；仅 RDP 平台无自研客户端，必须走 guacd。
+ * 主机显式配置「无需通道」(NONE) 时尊重该选择（本机客户端连，平台不中转），
+ * 其余一律按协议落到 DIRECT。
+ * @param h 主机
+ */
+function remoteModeOf(h: Host): string {
+  if (protocolOf(h) === "rdp") return "GUACD";
+  const mode = (h.serverHostRemoteMode ?? "").toUpperCase();
+  return mode === "NONE" ? "NONE" : "DIRECT";
 }
 
 const railWidth = computed(() => (railOpen.value ? `${layout.railWidth}px` : `${layout.railCollapsed}px`));
@@ -134,7 +149,6 @@ const connection = computed(() => {
   const qIdentity = props.embedded
     ? (props.identityId != null ? Number(props.identityId) : null)
     : (route.query.identityId ? Number(route.query.identityId) : null);
-  const mode = (h.serverHostRemoteMode ?? "").toUpperCase();
   return {
     hostId: h.id,
     hostName: `${h.serverHostName} (${h.serverHostAddress})`,
@@ -142,7 +156,7 @@ const connection = computed(() => {
     protocol: protocolOf(h),
     identityId: Number.isFinite(qIdentity as number) ? (qIdentity as number) : null,
     targetPort: remotePortOf(h),
-    mode: mode === "DIRECT" || mode === "NONE" ? mode : "GUACD",
+    mode: remoteModeOf(h),
   };
 });
 
