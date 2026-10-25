@@ -67,6 +67,7 @@ const CHANNEL_BRANDS: Record<string, ChannelBrand> = {
   loomy: { color: '#2B7DE9', glyph: 'L', method: '微信扫码' },
   lobsterai: { icon: lobsteraiIcon, color: '#F03D64', glyph: 'L', method: '浏览器授权' },
   opencode: { icon: opencodeIcon, color: '#111827', glyph: 'O', method: 'API Key' },
+  workbuddy: { color: '#5A4FF3', glyph: 'W', method: '浏览器授权' },
 }
 
 /** 渠道品牌外观（未知渠道给中性灰兜底） */
