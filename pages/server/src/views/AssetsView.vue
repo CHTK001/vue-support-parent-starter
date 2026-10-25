@@ -1381,6 +1381,16 @@ function tabHostIdOf(name: string): number {
 }
 
 /**
+ * 页签绑定的主机名（工作台等承载多主机上下文的页签用作默认显示名）
+ *
+ * @param hostId 主机 id
+ */
+function hostNameOf(hostId: number): string {
+  if (!hostId) return "";
+  return hosts.value.find(h => h.id === hostId)?.serverHostName ?? "";
+}
+
+/**
  * 页签对应的画像分区 key（非画像页签返回空串）
  *
  * @param name 页签 name
@@ -2057,6 +2067,8 @@ function onGlobalKeydown(e: KeyboardEvent): void {
               v-else-if="tabKindOf(tab.name) === 'workbench'"
               :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
               :start="tabOf(tab.name)?.startPanel ?? 'screen'"
+              :host-id="tabHostIdOf(tab.name)"
+              :host-name="hostNameOf(tabHostIdOf(tab.name))"
             />
           </template>
 

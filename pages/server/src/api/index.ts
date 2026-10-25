@@ -196,12 +196,39 @@ export const delBookmark = (id: number) => http().delete(`${B}/terminal/bookmark
 /* ===== 主机工作台：Docker/K8s 能力与资源（接口约定见 src/workbench-api-contract.md） ===== */
 export const dockerCapability = (hostId: number) =>
   http().get(`${B}/host/${hostId}/docker/capability`).then(r => unwrapResult<any>(r));
-export const listDockerContainers = (hostId: number) =>
-  http().get(`${B}/host/${hostId}/docker/containers`).query({ all: true }).then(r => unwrapResult<any[]>(r));
+export const listDockerContainers = (hostId: number, all = true) =>
+  http().get(`${B}/host/${hostId}/docker/containers`).query({ all }).then(r => unwrapResult<any[]>(r));
 export const startDockerContainer = (hostId: number, containerId: string) =>
   http().post(`${B}/host/${hostId}/docker/containers/${containerId}/start`).then(r => unwrapResult<boolean>(r));
 export const stopDockerContainer = (hostId: number, containerId: string) =>
   http().post(`${B}/host/${hostId}/docker/containers/${containerId}/stop`).then(r => unwrapResult<boolean>(r));
+export const restartDockerContainer = (hostId: number, containerId: string) =>
+  http().post(`${B}/host/${hostId}/docker/containers/${containerId}/restart`).then(r => unwrapResult<boolean>(r));
+export const dockerContainerLogs = (hostId: number, containerId: string, tail = 200) =>
+  http().post(`${B}/host/${hostId}/docker/containers/${containerId}/logs`).query({ tail }).then(r => unwrapResult<string>(r));
+export const listDockerImages = (hostId: number) =>
+  http().get(`${B}/host/${hostId}/docker/images`).then(r => unwrapResult<any[]>(r));
+export const listDockerNetworks = (hostId: number) =>
+  http().get(`${B}/host/${hostId}/docker/networks`).then(r => unwrapResult<any[]>(r));
+export const listDockerVolumes = (hostId: number) =>
+  http().get(`${B}/host/${hostId}/docker/volumes`).then(r => unwrapResult<any[]>(r));
+export const dockerPrune = (hostId: number) =>
+  http().post(`${B}/host/${hostId}/docker/prune`).then(r => unwrapResult<any>(r));
+
+export const k8sCapability = (hostId: number) =>
+  http().get(`${B}/host/${hostId}/kubernetes/capability`).then(r => unwrapResult<any>(r));
+export const k8sCluster = (hostId: number) =>
+  http().get(`${B}/host/${hostId}/kubernetes/cluster`).then(r => unwrapResult<any>(r));
+export const k8sWorkloads = (hostId: number, namespace?: string) =>
+  http().get(`${B}/host/${hostId}/kubernetes/workloads`).query({ namespace: namespace || '' }).then(r => unwrapResult<any[]>(r));
+export const k8sNamespaces = (hostId: number) =>
+  http().get(`${B}/host/${hostId}/kubernetes/namespaces`).then(r => unwrapResult<string[]>(r));
+export const k8sScale = (hostId: number, name: string, kind: string, ns: string, replicas: number) =>
+  http().post(`${B}/host/${hostId}/kubernetes/workloads/${name}/scale`)
+    .query({ kind, ns, replicas }).then(r => unwrapResult<boolean>(r));
+export const k8sRestart = (hostId: number, name: string, kind: string, ns: string) =>
+  http().post(`${B}/host/${hostId}/kubernetes/workloads/${name}/restart`)
+    .query({ kind, ns }).then(r => unwrapResult<boolean>(r));
 
 /* ===== 主机工作台：隧道 / 反向隧道（接口约定见 src/workbench-api-contract.md） ===== */
 export const listTunnels = (hostId: number) =>

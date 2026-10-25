@@ -1,79 +1,82 @@
 <script setup lang="ts">
 /**
- * Docker / Kubernetes 工作台 —— 卡片推进版式（已选定）
+ * Docker / Kubernetes 工作台 —— 卡片推进版式（已选定，真实接口）
  *
  * <p>硬约束是能力门控：<b>服务器没有安装对应服务就不显示这个功能</b>
  * （工具条入口不出现，页面里该项显示「未检测到服务」空态）。</p>
  *
- * <p>卡片推进：容器卡片墙 + K8s 工作负载卡，每张卡自带
- * 启动 / 停止 / 日志 / 终端 四个动作 —— 容器不多时最顺手。</p>
- *
- * <p>数据为 mock（真实后端尚不存在），能力探测逻辑与真实代理保持一致：
- * 探到才能进来，探不到入口不出现。</p>
+ * <p>数据源为后端真实接口（{@code /ms/server/host/{id}/docker|kubernetes}，
+ * SSH 执行受控主机 CLI）：能力探测决定门控，容器 / 工作负载卡片来自
+ * {@code docker ps --format json} 与 {@code kubectl get ... -o json}。
+ * 启动 / 停止调真实 docker CLI。</p>
  *
  * @author CH
  * @since 4.0.0.44
  */
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
+import { ElMessageBox } from "element-plus";
+import { message } from "@repo/core";
+import {
+  dockerCapability,
+  listDockerContainers,
+  startDockerContainer,
+  stopDockerContainer,
+  restartDockerContainer,
+  dockerContainerLogs,
+  k8sCapability,
+  k8sWorkloads,
+} from "../../api";
 
 const props = defineProps<{
-  /** 当前上下文主机 */
-  host: string;
+  /** 当前上下文主机 id（后端接口路径参数；0 表示无上下文 → 空态） */
+  hostId: number;
+  /** 当前上下文主机名（展示用） */
+  hostName: string;
 }>();
 
 const emit = defineEmits<{
   (e: "back"): void;
 }>();
 
-/* ==================== mock 能力与数据 ==================== */
+/* ==================== 真实能力与数据 ==================== */
 
-/** 每台主机的容器能力（未安装的服务不显示功能） */
-const CAP = {
-  "web-01": { docker: true, compose: true, k8s: false },
-  "db-01": { docker: true, compose: false, k8s: false },
-  "web-02": { docker: false, compose: false, k8s: true },
-} as Record<string, { docker: boolean; compose: boolean; k8s: boolean }>;
+/** 是否加载中 */
+const loading = ref(false);
 
-/** 当前主机的能力 */
-const cap = computed(() => CAP[props.host] ?? { docker: false, compose: false, k8s: false });
+/** 能力状态（后端探测；能力不存在时前端隐藏对应域） */
+const cap = ref({ docker: false, compose: false, k8s: false });
 
-/** Docker 容器 mock（web-01） */
-const CONTAINERS = [
-  { id: "3f2ab9c1d5e6", name: "nginx-proxy", image: "nginx:1.27-alpine", status: "running", ports: "0.0.0.0:80→80, 443→443", uptime: "42 天", cpu: "0.4%", mem: "18.2M", network: "proxy-net" },
-  { id: "a71c0e2b4fd9", name: "api-gateway", image: "registry/apisix:3.9", status: "running", ports: "0.0.0.0:9080→9080", uptime: "42 天", cpu: "2.1%", mem: "96.4M", network: "proxy-net" },
-  { id: "8d04f3a9b12c", name: "node-exporter", image: "prom/node-exporter:v1.7", status: "running", ports: "—", uptime: "15 天", cpu: "0.1%", mem: "12.6M", network: "mon-net" },
-  { id: "5512c8d94ab0", name: "grafana", image: "grafana/grafana:11.1", status: "running", ports: "0.0.0.0:3000→3000", uptime: "31 天", cpu: "0.8%", mem: "121.5M", network: "mon-net" },
-  { id: "c29e7a5f03d4", name: "redis-cache", image: "redis:7-alpine", status: "running", ports: "127.0.0.1:6379→6379", uptime: "7 天", cpu: "0.2%", mem: "9.1M", network: "app-net" },
-  { id: "0b5f1c8e27d9", name: "batch-worker", image: "registry/batch:2.4", status: "exited", ports: "—", uptime: "3 小时前", cpu: "0%", mem: "0B", network: "app-net" },
-];
+/** Docker 容器（真实） */
+const containers = ref(
+  [] as Array<{
+    id: string;
+    name: string;
+    image: string;
+    state: string;
+    status: string;
+    ports: string;
+    network: string;
+    createdAt: string;
+  }>,
+);
 
-/** K8s 工作负载 mock（web-02 才有） */
-const K8S = {
-  version: "v1.31.2",
-  nodes: [
-    { name: "web-02", role: "control-plane", ready: true, version: "v1.31.2", cpu: "2/4", mem: "3.2/7.8G" },
-    { name: "node-a", role: "worker", ready: true, version: "v1.31.2", cpu: "1/4", mem: "2.1/7.8G" },
-    { name: "node-b", role: "worker", ready: false, version: "v1.30.5", cpu: "0.5/2", mem: "1.9/3.9G" },
-  ],
-  workloads: [
-    { name: "web-front", kind: "Deployment", ns: "frontend", ready: "3/3", image: "registry/front:v3", restarts: 0 },
-    { name: "web-api", kind: "Deployment", ns: "frontend", ready: "2/2", image: "registry/api:v2.1", restarts: 2 },
-    { name: "cache", kind: "StatefulSet", ns: "infra", ready: "1/1", image: "redis:7-alpine", restarts: 0 },
-    { name: "ingress", kind: "DaemonSet", ns: "ingress-nginx", ready: "2/3", image: "ingress-nginx:1.11", restarts: 1 },
-  ],
-};
+/** K8s 数据（真实） */
+const k8sData = ref({
+  version: "",
+  workloads: [] as Array<{ name: string; kind: string; namespace: string; ready: string; image: string; restarts: number }>,
+});
 
 /** 容器总数与运行数 */
-const runningCount = computed(() => CONTAINERS.filter((c) => c.status === "running").length);
+const runningCount = computed(() => containers.value.filter((c) => c.state === "running").length);
 
 /** 卡片墙分段（K8s 只在有集群能力时出现） */
 const cardsActive = ref("running");
 const cardsSeg = computed(() => {
   const segs: Array<{ key: string; label: string; n: number }> = [
     { key: "running", label: "运行中", n: runningCount.value },
-    { key: "stopped", label: "已停止", n: CONTAINERS.length - runningCount.value },
+    { key: "stopped", label: "已停止", n: containers.value.length - runningCount.value },
   ];
-  if (cap.value.k8s) segs.push({ key: "k8s", label: "K8s 工作负载", n: K8S.workloads.length });
+  if (cap.value.k8s) segs.push({ key: "k8s", label: "K8s 工作负载", n: k8sData.value.workloads.length });
   return segs;
 });
 
@@ -90,6 +93,112 @@ const emptyHint = computed(() => {
   if (!cap.value.k8s) lines.push("Kubernetes 未检测到集群");
   return lines.join(" · ") || "已全部安装";
 });
+
+/** 无有效主机上下文（不应调接口） */
+const noHost = computed(() => !props.hostId);
+
+/**
+ * 拉取能力 + 各域数据（页面加载与「刷新」共用）
+ *
+ * <p>能力探测是门控的入口：接口未部署 / 主机未装服务（exploral 404 或后端返回
+ * installed=false）一律静默按「未安装」处理（功能隐藏），不弹错误；只有
+ * 能力判为已安装后列表拉取失败才报错，避免每次打开都弹一条噪音。</p>
+ */
+async function refresh(): Promise<void> {
+  if (noHost.value) {
+    cap.value = { docker: false, compose: false, k8s: false };
+    containers.value = [];
+    k8sData.value = { version: "", workloads: [] };
+    return;
+  }
+  loading.value = true;
+  // 能力探测彼此独立：Docker 挂了不影响 K8s 门控
+  const [dkRes, k8Res] = await Promise.allSettled([
+    dockerCapability(props.hostId),
+    k8sCapability(props.hostId),
+  ]);
+  const dk = dkRes.status === "fulfilled" ? dkRes.value : null;
+  const k8 = k8Res.status === "fulfilled" ? k8Res.value : null;
+
+  cap.value = {
+    docker: !!dk?.installed,
+    compose: !!dk?.compose,
+    k8s: !!k8?.installed,
+  };
+  containers.value = [];
+  k8sData.value = { version: k8?.serverVersion ?? "", workloads: [] };
+
+  try {
+    // 判为已安装后才拉数据；失败才提示（说明装了但读不出来）
+    if (dk?.installed) {
+      containers.value = await listDockerContainers(props.hostId, true);
+    }
+    if (k8?.installed) {
+      k8sData.value.workloads = await k8sWorkloads(props.hostId);
+    }
+  } catch (e: any) {
+    message.error("加载工作台数据失败: " + (e?.message ?? e));
+  } finally {
+    loading.value = false;
+  }
+}
+
+/**
+ * 启停容器（运行中 → 停止；其他 → 启动）
+ *
+ * @param c 容器
+ */
+async function toggleContainer(c: { id: string; state: string }): Promise<void> {
+  if (noHost.value) return;
+  try {
+    if (c.state === "running") {
+      await stopDockerContainer(props.hostId, c.id);
+      message.success(`已停止 ${c.id.slice(0, 12)}`);
+    } else {
+      await startDockerContainer(props.hostId, c.id);
+      message.success(`已启动 ${c.id.slice(0, 12)}`);
+    }
+    await refresh();
+  } catch (e: any) {
+    message.error((e?.message ?? e) || "操作失败");
+  }
+}
+
+/**
+ * 查看容器最近日志（弹窗展示）
+ *
+ * @param c 容器
+ */
+async function showLogs(c: { id: string; name: string }): Promise<void> {
+  if (noHost.value) return;
+  try {
+    const text = await dockerContainerLogs(props.hostId, c.id, 200);
+    ElMessageBox.alert(text || "（空）", `日志 · ${c.name}`, {
+      customClass: "ty-docker-log",
+      confirmButtonText: "关闭",
+    });
+  } catch (e: any) {
+    message.error((e?.message ?? e) || "读取日志失败");
+  }
+}
+
+/**
+ * 重启容器
+ *
+ * @param c 容器
+ */
+async function restartContainer(c: { id: string }): Promise<void> {
+  if (noHost.value) return;
+  try {
+    await restartDockerContainer(props.hostId, c.id);
+    message.success(`已重启 ${c.id.slice(0, 12)}`);
+    await refresh();
+  } catch (e: any) {
+    message.error((e?.message ?? e) || "重启失败");
+  }
+}
+
+onMounted(refresh);
 </script>
 
 <template>
@@ -99,7 +208,7 @@ const emptyHint = computed(() => {
         <ReIcon name="Back" :size="11" />返回
       </button>
       <span class="dk-title">Docker · Kubernetes 工作台</span>
-      <span class="lb-pill lb-pill--plain">{{ host }}</span>
+      <span class="lb-pill lb-pill--plain">{{ hostName }}</span>
       <span class="lb-spacer" />
       <span class="lb-dim" style="font-size: 11px">
         未安装的服务入口已隐藏（{{ emptyHint }}）
@@ -117,23 +226,29 @@ const emptyHint = computed(() => {
       </span>
       <span class="lb-pill" :class="cap.k8s ? 'lb-ok' : 'lb-mute'">
         <ReIcon :name="cap.k8s ? 'CircleCheck' : 'CircleClose'" :size="11" />
-        Kubernetes {{ cap.k8s ? `已连接 · ${K8S.version}` : "未检测到集群" }}
+        Kubernetes {{ cap.k8s ? `已连接 · ${k8sData.version}` : "未检测到集群" }}
       </span>
       <span class="lb-spacer" />
-      <button type="button" class="lb-btn" title="刷新能力与数据（mock）">
+      <button type="button" class="lb-btn" :disabled="noHost || loading" title="刷新能力与数据" @click="refresh">
         <ReIcon name="RefreshRight" :size="11" />刷新
       </button>
     </div>
 
     <!-- 该主机的服务一个都没装：整页空态（功能被隐藏的旁证） -->
-    <div v-if="!cap.docker && !cap.k8s" class="lb-empty lb-pane" style="flex: 1">
+    <div v-if="noHost" class="lb-empty lb-pane" style="flex: 1">
+      <ReIcon name="Warning" :size="34" color="var(--el-text-color-placeholder)" />
+      <b>没有选中的主机</b>
+      <span>请从左侧主机列表进入工作台。</span>
+    </div>
+
+    <div v-else-if="!cap.docker && !cap.k8s" class="lb-empty lb-pane" style="flex: 1">
       <ReIcon name="Warning" :size="34" color="var(--el-text-color-placeholder)" />
       <b>这台主机没有检测到容器 / 编排服务</b>
       <span>Docker 与 Kubernetes 工具条入口已隐藏。安装 Docker 或 K8s 后此页自动出现。</span>
     </div>
 
     <!-- ============ 卡片推进（已选定版式） ============ -->
-    <div v-else class="dk-cards-mode">
+    <div v-else class="dk-cards-mode" v-loading="loading">
       <div class="dk-cards-head">
         <div class="lb-seg">
           <button
@@ -153,20 +268,20 @@ const emptyHint = computed(() => {
 
       <template v-if="cardsActive === 'k8s'">
         <div class="dk-wl-cards">
-          <article v-for="w in K8S.workloads" :key="w.name" class="dk-wcard" :class="readyOk(w.ready) ? 'lb-ok' : 'lb-warn'">
+          <article v-for="w in k8sData.workloads" :key="w.name" class="dk-wcard" :class="readyOk(w.ready) ? 'lb-ok' : 'lb-warn'">
             <header>
               <b>{{ w.name }}</b>
               <span class="lb-pill">{{ w.kind }}</span>
               <span class="lb-spacer" />
-              <span class="lb-dim" style="font-size: 10.5px">{{ w.ns }}</span>
+              <span class="lb-dim" style="font-size: 10.5px">{{ w.namespace }}</span>
             </header>
             <p class="lb-mono lb-dim">{{ w.image }}</p>
             <footer>
               <span class="lb-pill" :class="readyOk(w.ready) ? 'lb-ok' : 'lb-warn'">{{ w.ready }} 就绪</span>
               <span class="lb-mono lb-dim" style="font-size: 10.5px">重启 {{ w.restarts }}</span>
               <span class="lb-spacer" />
-              <button type="button" class="lb-btn" title="查看日志（mock）"><ReIcon name="Document" :size="11" />日志</button>
-              <button type="button" class="lb-btn" title="更多（mock）"><ReIcon name="More" :size="11" /></button>
+              <button type="button" class="lb-btn" title="查看日志（接口待补）"><ReIcon name="Document" :size="11" />日志</button>
+              <button type="button" class="lb-btn" title="更多操作（接口待补）"><ReIcon name="More" :size="11" /></button>
             </footer>
           </article>
         </div>
@@ -175,26 +290,26 @@ const emptyHint = computed(() => {
       <template v-else>
         <div class="dk-ccards">
           <article
-            v-for="c in CONTAINERS.filter((x) => (cardsActive === 'running' ? x.status === 'running' : x.status !== 'running'))"
+            v-for="c in containers.filter((x) => (cardsActive === 'running' ? x.state === 'running' : x.state !== 'running'))"
             :key="c.id"
             class="dk-ccard"
-            :class="c.status === 'running' ? 'lb-ok' : 'lb-bad'"
+            :class="c.state === 'running' ? 'lb-ok' : 'lb-bad'"
           >
             <header>
               <i class="lb-dot" />
               <b class="lb-mono">{{ c.name }}</b>
               <span class="lb-spacer" />
-              <span class="lb-dim" style="font-size: 10.5px">{{ c.uptime }}</span>
+              <span class="lb-dim" style="font-size: 10.5px">{{ c.status }}</span>
             </header>
             <p class="lb-mono lb-dim">{{ c.image }}</p>
-            <p class="lb-mono lb-dim" style="font-size: 10.5px">{{ c.ports }}</p>
+            <p class="lb-mono lb-dim" style="font-size: 10.5px">{{ c.ports || "无端口映射" }}</p>
             <footer>
-              <span class="lb-mono" style="font-size: 10.5px">{{ c.cpu }} · {{ c.mem }}</span>
+              <span class="lb-mono" style="font-size: 10.5px">{{ c.network || "—" }}</span>
               <span class="lb-spacer" />
-              <button type="button" class="lb-btn" title="查看日志（mock）"><ReIcon name="Document" :size="11" /></button>
-              <button type="button" class="lb-btn" title="进入容器终端（mock）"><ReIcon name="Terminal" :size="11" /></button>
-              <button type="button" class="lb-btn" :class="c.status === 'running' ? 'is-bad' : 'is-primary'" :title="c.status === 'running' ? '停止' : '启动'">
-                <ReIcon :name="c.status === 'running' ? 'VideoPause' : 'VideoPlay'" :size="11" />
+              <button type="button" class="lb-btn" title="查看日志" @click="showLogs(c)"><ReIcon name="Document" :size="11" /></button>
+              <button type="button" class="lb-btn" title="重启容器" @click="restartContainer(c)"><ReIcon name="RefreshRight" :size="11" /></button>
+              <button type="button" class="lb-btn" :class="c.state === 'running' ? 'is-bad' : 'is-primary'" :title="c.state === 'running' ? '停止' : '启动'" @click="toggleContainer(c)">
+                <ReIcon :name="c.state === 'running' ? 'VideoPause' : 'VideoPlay'" :size="11" />
               </button>
             </footer>
           </article>

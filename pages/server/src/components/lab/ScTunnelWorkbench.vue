@@ -15,8 +15,11 @@
  */
 import { computed, ref } from "vue";
 
-defineProps<{
-  host: string;
+const props = defineProps<{
+  /** 当前上下文主机 id（隧道接口就绪后作为路径参数） */
+  hostId: number;
+  /** 当前上下文主机名（展示用） */
+  hostName: string;
 }>();
 
 const emit = defineEmits<{
@@ -85,7 +88,7 @@ const form = ref({
         <ReIcon name="Back" :size="11" />返回
       </button>
       <span class="tu-title">隧道 · 反向隧道工作台</span>
-      <span class="lb-pill lb-pill--plain">{{ host }}</span>
+      <span class="lb-pill lb-pill--plain">{{ hostName }}</span>
       <span class="lb-spacer" />
       <span class="lb-dim" style="font-size: 11px">正向：本机端口 → 远端 · 反向：远端端口 → 本机</span>
     </div>
