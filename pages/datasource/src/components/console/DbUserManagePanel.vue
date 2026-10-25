@@ -48,16 +48,23 @@
       :loading="loading || grantsLoading"
       :pagination="false"
       :border="true"
+      :settings="TABLE_SETTINGS"
       size="mini"
       stripe
-      highlight-current-row
-      row-key="name"
+      row-key="account"
       empty-text="暂无用户"
-      @current-change="onCurrentChange"
+      @row-click="onRowClick"
     >
       <template #col-name="{ row }">
-        <span class="dus-mono">{{ row.name }}@{{ row.host }}</span>
-        <ReTag v-if="row.isSuper" effect="plain" type="danger" size="small" class="dus-super">SUPER</ReTag>
+        <el-popover trigger="hover" placement="right" :width="480" popper-class="dus-user-pop" :show-arrow="true">
+          <template #reference>
+            <span class="dus-user" :data-testid="`dus-user-${row.name}`">
+              <span class="dus-mono">{{ row.name }}@{{ row.host }}</span>
+              <ReTag v-if="row.isSuper" effect="plain" type="danger" size="small" class="dus-super">SUPER</ReTag>
+            </span>
+          </template>
+          <UserGrantPopper :row="row" :grants="grantTexts[accountKey(row.name, row.host)]" :set="grantSets[accountKey(row.name, row.host)]" />
+        </el-popover>
       </template>
       <template #col-ssl="{ row }">
         <span class="dus-mono">{{ row.sslType || "—" }}</span>
@@ -93,23 +100,6 @@
         </div>
       </template>
     </ReTable>
-
-    <!-- 底部权限详情卡：选中账号后展示 SHOW GRANTS 原文 + 资源限制 -->
-    <div v-if="selectedUser" class="dus-detail" data-testid="dus-detail">
-      <div class="dus-detail__head">
-        <span class="dus-mono dus-detail__name">{{ selectedUser.name }}@{{ selectedUser.host }}</span>
-        <ReButton size="small" icon="Refresh" :loading="grantsLoading" @click="loadGrantsFor(selectedUser)">刷新权限</ReButton>
-      </div>
-      <ReEmpty v-if="grantsError" :description="grantsError" />
-      <div v-else class="dus-detail__grants">
-        <ReEmpty v-if="detailGrants.length === 0" description="无权限记录（USAGE 仅表示可登录）" />
-        <div
-          v-for="(g, i) in detailGrants"
-          :key="i"
-          class="dus-detail__grant dus-mono"
-        >{{ g }}</div>
-      </div>
-    </div>
 
     <!-- 新建 / 编辑用户弹窗 -->
     <ReDialog v-model="saveVisible" :title="saveMode ? `编辑用户 · ${saveForm.username}@${saveForm.host}` : '新建用户'" width="560px">
@@ -178,8 +168,9 @@
  * 用户管理面板（内嵌于 JDBC 控制台 DatabaseManagerView 的 users 页签）。
  *
  * <p>矩阵表视图（design-exploration 方案 B）：行 = 账号、列 = 权限类别、格内勾选
- * 展示每个账号已拥有的全局权限；多账号横向对比一目了然。底部为选中账号的
- * SHOW GRANTS 权限详情卡。权限变更走「权限管理员」弹窗（GRANT/REVOKE 原子化）。</p>
+ * 展示每个账号已拥有的全局权限；多账号横向对比一目了然。账号权限详情（SHOW GRANTS
+ * 原文 + 权限集 + 资源限制）在「用户名」格 **hover** 弹 popover 展示，点击行本身只
+ * 记录选中、不产生副作用；权限变更走「权限管理员」弹窗（GRANT/REVOKE 原子化）。</p>
  *
  * <p>数据来自后端 {@code /ms/monitor/db/users} 系列端点：账号列表（name@host / SSL /
  * 资源限制 / SUPER），每账号的权限经 {@code fetchDbUserGrants} 拉取 SHOW GRANTS 原文
@@ -194,11 +185,11 @@ import { onMounted, ref, watch } from "vue";
 import { ElCheckboxGroup, ElMessageBox, ElSwitch } from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
-import ReEmpty from "@repo/ui/re-empty";
 import ReInput from "@repo/ui/re-input";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
-import type { ReTableColumn } from "@repo/ui/re-table";
+import type { ReTableColumn, ReTableSettings } from "@repo/ui/re-table";
+import UserGrantPopper from "./UserGrantPopper.vue";
 import {
   createDbUser,
   deleteDbUser,
@@ -207,6 +198,19 @@ import {
   updateDbUser,
   type DbUserRow,
 } from "../../api/manageConsoles";
+
+/**
+ * 表格行：在接口返回的账号上补一个 {@code account} 稳定主键。
+ *
+ * <p>为什么不能直接用 {@code name} 当 row-key：{@code mysql.user} 的主键是
+ * {@code (user, host)}，同一用户名可以有多个主机（本机就有 {@code root@%} 与
+ * {@code root@localhost}）。用 name 当 key 会让这两行共用同一个 key，vxe 的当前行
+ * 高亮、勾选、取行都会串到错误的那一行。</p>
+ */
+type UserRow = DbUserRow & { account: string };
+
+/** 表格设置：高亮当前行（ReTable 的当前行只认 settings.highlightCurrentRow，裸属性会被忽略） */
+const TABLE_SETTINGS: ReTableSettings = { highlightCurrentRow: true };
 
 const props = withDefaults(defineProps<{ datasourceId?: number }>(), { datasourceId: 0 });
 
@@ -237,11 +241,11 @@ const MATRIX_GRANTS = [
   "ALL PRIVILEGES",
 ] as const;
 
-const users = ref<DbUserRow[]>([]);
+const users = ref<UserRow[]>([]);
 const loading = ref(false);
 const supported = ref(true);
 const unsupportedMessage = ref("");
-const selectedUser = ref<DbUserRow | null>(null);
+const selectedUser = ref<UserRow | null>(null);
 
 /** 保存弹窗状态 */
 const saveVisible = ref(false);
@@ -259,8 +263,8 @@ const grantsUser = ref<DbUserRow | null>(null);
 /** 每账号的权限集合缓存：key = name@host，value = 已授予的权限名集合 */
 const grantSets = ref<Record<string, Set<string>>>({});
 
-/** 底部详情卡的 grants 原文（当前选中账号） */
-const detailGrants = ref<string[]>([]);
+/** 每账号的 SHOW GRANTS 原文缓存：key = name@host，value = 原始权限语句列表（popover 展示用） */
+const grantTexts = ref<Record<string, string[]>>({});
 
 function reactiveForm() {
   return ref<{
@@ -318,17 +322,20 @@ function parseGrantsToSet(grants: string[]): Set<string> {
   return set;
 }
 
+/** 缓存键：name@host（与行 account 主键一致） */
+function accountKey(name: string, host: string): string {
+  return `${name}@${host}`;
+}
+
 /** 账号是否已拥有某权限（矩阵格勾选态） */
 function hasGrant(name: string, host: string, g: string): boolean {
-  const set = grantSets.value[`${name}@${host}`];
+  const set = grantSets.value[accountKey(name, host)];
   return !!set?.has(g);
 }
 
-/** 拉取某账号的 grants 并填充缓存 + 详情卡 */
-async function loadGrantsFor(u: DbUserRow, forDetail = false): Promise<void> {
+/** 拉取某账号的 grants 并填充缓存（矩阵格勾选态 + popover 原文共用） */
+async function loadGrantsFor(u: UserRow): Promise<void> {
   const key = `${u.name}@${u.host}`;
-  grantsLoading.value = true;
-  if (forDetail) grantsError.value = "";
   try {
     const result = await fetchDbUserGrants({
       datasourceId: props.datasourceId,
@@ -337,17 +344,15 @@ async function loadGrantsFor(u: DbUserRow, forDetail = false): Promise<void> {
     });
     const grants = result.grants ?? [];
     grantSets.value = { ...grantSets.value, [key]: parseGrantsToSet(grants) };
-    if (forDetail) {
-      detailGrants.value = grants;
-    }
-  } catch (e) {
-    if (forDetail) grantsError.value = String((e as Error)?.message ?? e);
-    // 单个账号拉取失败不阻塞整体：保留空权限集，用户可在底部详情卡看到错误
+    grantTexts.value = { ...grantTexts.value, [key]: grants };
+  } catch {
+    // 单个账号拉取失败不阻塞整体：保留空权限集，popover 里显示加载失败而非报错
     if (!grantSets.value[key]) {
       grantSets.value = { ...grantSets.value, [key]: new Set() };
     }
-  } finally {
-    grantsLoading.value = false;
+    if (!grantTexts.value[key]) {
+      grantTexts.value = { ...grantTexts.value, [key]: [] };
+    }
   }
 }
 
@@ -358,18 +363,21 @@ function limitText(v: number | null | undefined): string {
   return String(v);
 }
 
-function pick(row: DbUserRow) {
+function pick(row: UserRow) {
   selectedUser.value = row;
 }
 
-function onCurrentChange(row: DbUserRow | null) {
-  selectedUser.value = row;
-  if (row) {
-    detailGrants.value = [];
-    void loadGrantsFor(row, true);
-  } else {
-    detailGrants.value = [];
+/**
+ * 行点击 → 仅记录选中账号（供右侧操作列使用），不产生额外副作用。
+ *
+ * <p>账号权限详情走「用户名」格的 hover popover（数据来自预取缓存），点击行本身
+ * 不再触发请求或弹窗 —— 避免「点一行就发起一次 grants 拉取 / 弹出校验错误」的噪音。</p>
+ */
+function onRowClick(row: UserRow) {
+  if (!row?.name) {
+    return;
   }
+  selectedUser.value = row;
 }
 
 /** 加载用户列表；随后为每个账号预取 grants 填充矩阵格 */
@@ -384,18 +392,21 @@ async function loadUsers() {
     const result = await fetchDbUsers(id);
     supported.value = !!result.supported;
     unsupportedMessage.value = result.message ?? "";
-    users.value = result.users ?? [];
+    users.value = (result.users ?? []).map(u => ({ ...u, account: `${u.name}@${u.host}` }));
     // 清掉被删账号的缓存
-    const keep = new Set((result.users ?? []).map(u => `${u.name}@${u.host}`));
+    const keep = new Set(users.value.map(u => u.account));
     grantSets.value = Object.fromEntries(
       Object.entries(grantSets.value).filter(([k]) => keep.has(k)),
     );
-    if (selectedUser.value && !keep.has(`${selectedUser.value.name}@${selectedUser.value.host}`)) {
+    grantTexts.value = Object.fromEntries(
+      Object.entries(grantTexts.value).filter(([k]) => keep.has(k)),
+    );
+    if (selectedUser.value && !keep.has(selectedUser.value.account)) {
       selectedUser.value = null;
     }
-    // 预取矩阵权限（并行，限用户数量避免大库打满）
-    const rows = (result.users ?? []).slice(0, 50);
-    await Promise.allSettled(rows.map(u => loadGrantsFor(u, false)));
+    // 预取矩阵权限 + popover 原文（并行，限用户数量避免大库打满）
+    const rows = users.value.slice(0, 50);
+    await Promise.allSettled(rows.map(u => loadGrantsFor(u)));
   } catch (e) {
     message.error(`加载用户失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
@@ -534,7 +545,7 @@ async function loadGrants() {
 watch(() => props.datasourceId, () => {
   selectedUser.value = null;
   grantSets.value = {};
-  detailGrants.value = [];
+  grantTexts.value = {};
   void loadUsers();
 });
 
@@ -602,44 +613,15 @@ onMounted(loadUsers);
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
 }
-/* 底部权限详情卡 */
-.dus-detail {
-  flex: 0 0 auto;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-base, 6px);
-  background: var(--el-bg-color-overlay);
-  padding: 8px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.dus-detail__head {
-  display: flex;
+/* 用户名格：hover 弹权限 popover，给出可悬停的视觉暗示 */
+.dus-user {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-.dus-detail__name {
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-.dus-detail__grants {
-  max-height: 96px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.dus-detail__grant {
-  font-size: 11.5px;
-  color: var(--el-text-color-regular);
-  background: var(--el-fill-color-light);
-  border-radius: 4px;
-  padding: 2px 8px;
-  line-height: 16px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  gap: 4px;
+  cursor: default;
+  &:hover .dus-mono {
+    color: var(--el-color-primary);
+  }
 }
 .dus-form {
   display: flex;
@@ -693,5 +675,17 @@ onMounted(loadUsers);
   font-size: 13px;
   color: var(--el-color-danger);
   background: var(--el-color-danger-light-9);
+}
+</style>
+
+<!-- el-popover 弹层被 teleport 到 body，scoped 命中不到，用非 scoped 全局限定 popper-class -->
+<style lang="scss">
+.dus-user-pop.el-popover {
+  --el-popover-padding: 12px 14px;
+  border-radius: var(--el-radius-md, 10px);
+  box-shadow: var(--el-box-shadow-light, 0 6px 24px rgba(0, 0, 0, 0.08));
+}
+.dus-user-pop .el-popover__title {
+  display: none;
 }
 </style>

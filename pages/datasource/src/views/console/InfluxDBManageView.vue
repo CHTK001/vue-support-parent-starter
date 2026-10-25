@@ -99,11 +99,33 @@
 
       <!-- 右侧内容区 -->
       <div class="dsm-content">
-        <!-- 工作区页签（对齐 jdbc dbm-tabs）：总览 + 多个 Flux 查询页签，可多开、切换保留 -->
+        <!-- 工作区页签（对齐 jdbc dbm-tabs）：总览 + 查询页签 + 打开表 + 设计表，可多开、切换保留 -->
         <div class="dsm-tabs">
           <div class="dsm-tab" :class="{ active: activeWorkspaceTab === 'overview' }" @click="activeWorkspaceTab = 'overview'">
             <ReIcon name="Collection" size="12" />
             <span class="dsm-tab-title">总览</span>
+          </div>
+          <div
+            v-for="t in tableTabs"
+            :key="t.id"
+            class="dsm-tab"
+            :class="{ active: activeWorkspaceTab === t.id }"
+            @click="activeWorkspaceTab = t.id"
+          >
+            <ReIcon name="Grid" size="12" />
+            <span class="dsm-tab-title">{{ t.measurement }}</span>
+            <ReIcon name="Close" size="12" class="dsm-tab-close" @click.stop="closeTableTab(t.id)" />
+          </div>
+          <div
+            v-for="t in designTabs"
+            :key="t.id"
+            class="dsm-tab"
+            :class="{ active: activeWorkspaceTab === t.id }"
+            @click="activeWorkspaceTab = t.id"
+          >
+            <ReIcon name="Setting" size="12" />
+            <span class="dsm-tab-title">{{ t.measurement }} - 设计</span>
+            <ReIcon name="Close" size="12" class="dsm-tab-close" @click.stop="closeDesignTab(t.id)" />
           </div>
           <div
             v-for="t in queryTabs"
@@ -210,6 +232,103 @@
           <p>{{ gap ? (databaseModel ? "未读取到真实数据库" : "未读取到真实存储桶") : (databaseModel ? "暂无数据库，点击「刷新」重新加载" : "暂无存储桶，点击「刷新」重新加载") }}</p>
         </div>
 
+        <!-- 打开表页签内容（对齐 jdbc 表数据 tab：时间窗 + field 过滤 + 数据表格） -->
+        <div
+          v-for="t in tableTabs"
+          v-show="activeWorkspaceTab === t.id"
+          :key="t.id"
+          class="dsm-browser-tab"
+        >
+          <div class="dsm-browser-bar">
+            <ReSelect v-model="t.range" style="width: 130px" @change="runTableTabQuery(t)">
+              <ReOption label="最近 1 小时" value="-1h" />
+              <ReOption label="最近 6 小时" value="-6h" />
+              <ReOption label="最近 24 小时" value="-24h" />
+              <ReOption label="最近 7 天" value="-7d" />
+            </ReSelect>
+            <ReSelect v-model="t.field" clearable placeholder="按 field 过滤" style="width: 160px" @change="runTableTabQuery(t)">
+              <ReOption v-for="f in t.fields" :key="f" :label="f" :value="f" />
+            </ReSelect>
+            <span class="dsm-browser-meta">{{ t.rows.length }} 行</span>
+            <span class="dsm-spacer" />
+            <ReButton
+              layout="square"
+              type="primary"
+              icon="EditPen"
+              tip="添加数据（写入数据点）"
+              data-testid="dsm-browser-add"
+              @click="openWritePointFor(t)"
+            />
+            <ReButton
+              layout="square"
+              type="danger"
+              icon="Delete"
+              tip="删除测量（删该测量的全部数据）"
+              data-testid="dsm-browser-drop"
+              @click="confirmDeleteMeasurement(t.measurement)"
+            />
+            <ReButton text @click="runTableTabQuery(t)">
+              <template #icon><ReIcon name="Refresh" size="12" /></template>刷新
+            </ReButton>
+          </div>
+          <ReTable
+            :data="t.rows"
+            :columns="t.columns"
+            :loading="t.loading"
+            stripe
+            border
+            :layout-table="{ height: 'calc(100vh - 220px)' }"
+          />
+        </div>
+
+        <!-- 设计表页签内容（对齐 jdbc 设计表 tab：测量字段结构 —— field 键含类型 + tag 键） -->
+        <div
+          v-for="t in designTabs"
+          v-show="activeWorkspaceTab === t.id"
+          :key="t.id"
+          class="dsm-design-tab"
+        >
+          <div class="dsm-design-toolbar">
+            <span class="dsm-design-name mono">{{ activeBucket }}.{{ t.measurement }}</span>
+            <span class="dsm-spacer" />
+            <ReButton text @click="runDesignTabQuery(t)">
+              <template #icon><ReIcon name="Refresh" size="12" /></template>刷新结构
+            </ReButton>
+          </div>
+          <div class="dsm-design-grid">
+            <div class="dsm-design-col">
+              <div class="dsm-design-col-title">字段（Fields）</div>
+              <ReTable
+                :data="t.fields"
+                :columns="designFieldColumns"
+                :loading="t.loading"
+                stripe
+                border
+                size="mini"
+                :layout-table="{ height: '260px' }"
+                empty-text="无字段"
+              />
+            </div>
+            <div class="dsm-design-col">
+              <div class="dsm-design-col-title">标签（Tags）</div>
+              <ReTable
+                :data="t.tags.map(k => ({ key: k }))"
+                :columns="designTagColumns"
+                :loading="t.loading"
+                stripe
+                border
+                size="mini"
+                :layout-table="{ height: '260px' }"
+                empty-text="无标签"
+              />
+            </div>
+          </div>
+          <p class="dsm-design-hint">
+            InfluxDB 测量没有固定列结构：字段（field）为数值/字符串类型，标签（tag）为索引字符串；
+            v3 由 <code>information_schema.columns</code> 提供，v1/v2 走 <code>SHOW FIELD/TAG KEYS</code>。
+          </p>
+        </div>
+
         <!-- Flux 查询页签内容（对齐 jdbc 查询页：方钮工具栏 + 编辑器 + 结果表；多开、切换保留） -->
         <div
           v-for="t in queryTabs"
@@ -305,50 +424,6 @@
           <template #icon><ReIcon name="Check" /></template>确定
         </ReButton>
       </template>
-    </ReDialog>
-
-    <!-- 数据浏览弹窗 -->
-    <ReDialog v-model="browserVisible" :title="`数据浏览 · ${browserMeasurement}`" width="860px">
-      <div class="dsm-browser-bar">
-        <ReSelect v-model="browserRange" style="width: 130px" @change="runBrowserQuery">
-          <ReOption label="最近 1 小时" value="-1h" />
-          <ReOption label="最近 6 小时" value="-6h" />
-          <ReOption label="最近 24 小时" value="-24h" />
-          <ReOption label="最近 7 天" value="-7d" />
-        </ReSelect>
-        <ReSelect v-model="browserField" clearable placeholder="按 field 过滤" style="width: 160px" @change="runBrowserQuery">
-          <ReOption v-for="f in browserFields" :key="f" :label="f" :value="f" />
-        </ReSelect>
-        <span class="dsm-browser-meta">{{ browserRows.length }} 行</span>
-        <span class="dsm-spacer" />
-        <ReButton
-          layout="square"
-          type="primary"
-          icon="EditPen"
-          tip="添加数据（写入数据点）"
-          data-testid="dsm-browser-add"
-          @click="openWritePoint"
-        />
-        <ReButton
-          layout="square"
-          type="danger"
-          icon="Delete"
-          tip="删除测量（删该测量的全部数据）"
-          data-testid="dsm-browser-drop"
-          @click="confirmDeleteMeasurement(browserMeasurement)"
-        />
-        <ReButton text @click="runBrowserQuery">
-          <template #icon><ReIcon name="Refresh" size="12" /></template>刷新
-        </ReButton>
-      </div>
-      <ReTable
-        :data="browserRows"
-        :columns="browserColumns"
-        :loading="browserLoading"
-        stripe
-        border
-        :layout-table="{ height: '360px' }"
-      />
     </ReDialog>
 
     <!-- 写入数据弹窗 -->
@@ -499,10 +574,10 @@ const sideMenuItems = computed(() =>
         { key: "delete", label: databaseModel.value ? "删除数据库" : "删除 Bucket", icon: "Delete", danger: true, divided: true },
       ]
     : [
-        // 对齐 jdbc 表右键：打开表（数据浏览）/ 编辑表（打开数据浏览并可写）/ 删除表
+        // 对齐 jdbc 表右键：打开表（数据浏览 tab）/ 设计表（字段结构 tab）/ 查询该测量 / 删除表
         { key: "open", label: "打开表", icon: "Grid" },
-        { key: "edit", label: "编辑表（浏览并写数据）", icon: "EditPen" },
-        { key: "query", label: "查询该测量", icon: "EditPen" },
+        { key: "design", label: "设计表", icon: "EditPen" },
+        { key: "query", label: "查询该测量", icon: "Search" },
         { key: "copy", label: "复制名称", icon: "Document" },
         { key: "delete", label: "删除表（删该测量）", icon: "Delete", danger: true, divided: true },
       ],
@@ -539,16 +614,10 @@ function onSideMenuSelect(action: string) {
     else selectMeasurement(name);
     return;
   }
-  if (action === "open" || action === "edit") {
+  if (action === "open" || action === "design") {
     if (sideMenu.kind === "measurement") {
-      onMeasurementRowClick({ name });
-      // 编辑表 = 打开数据浏览后直接拉起写入面板（时序库"编辑"= 删旧写新）
-      if (action === "edit") {
-        // 打开数据浏览后立刻定位到写入：等弹窗挂载后设置
-        window.setTimeout(() => {
-          if (browserVisible.value && browserMeasurement.value) openWritePoint();
-        }, 50);
-      }
+      if (action === "design") openDesignTab(name);
+      else onMeasurementRowClick({ name });
     }
     return;
   }
@@ -582,7 +651,7 @@ const {
   deriveColumns,
   deriveFieldOptions,
   resolveSqlColumns,
-} = useInfluxdbQuery({ datasourceId, useSql, activeBucket, measurements });
+} = useInfluxdbQuery({ datasourceId, useSql, isV3, activeBucket, measurements });
 
 /**
  * 连接信息（地址/端口/组织/版本）。
@@ -611,6 +680,16 @@ const measurementColumns: Column[] = [
 ];
 const dataColumns = computed<Column[]>(() => deriveColumns(recentData.value));
 
+/** 设计表「字段」列：键 + 类型 */
+const designFieldColumns: Column[] = [
+  { prop: "key", label: "字段名", minWidth: 180 },
+  { prop: "type", label: "类型", width: 140 },
+];
+/** 设计表「标签」列 */
+const designTagColumns: Column[] = [
+  { prop: "key", label: "标签名", minWidth: 200 },
+];
+
 // Flux 查询（工作区页签：jdbc「查询 N」式，可多开、各自保留编辑器与结果）
 interface QueryTab {
   id: string;
@@ -627,6 +706,37 @@ interface QueryTab {
 const queryTabs = ref<QueryTab[]>([]);
 const activeWorkspaceTab = ref<string>("overview");
 let queryTabSeq = 0;
+
+// ---------- 「打开表」页签（对齐 jdbc table tab：时间窗 + field 过滤 + 数据表格） ----------
+
+/** 打开表页签状态 */
+interface TableTab {
+  id: string;
+  measurement: string;
+  range: string;
+  field: string;
+  fields: string[];
+  rows: Record<string, unknown>[];
+  columns: Column[];
+  loading: boolean;
+}
+const tableTabs = ref<TableTab[]>([]);
+let tableTabSeq = 0;
+
+// ---------- 「设计表」页签（对齐 jdbc design tab：测量字段结构） ----------
+
+/** 设计表页签状态 */
+interface DesignTab {
+  id: string;
+  measurement: string;
+  /** field 键与类型（SHOW FIELD KEYS / information_schema） */
+  fields: { key: string; type: string }[];
+  /** tag 键 */
+  tags: string[];
+  loading: boolean;
+}
+const designTabs = ref<DesignTab[]>([]);
+let designTabSeq = 0;
 
 /** 查询分隔条拖拽状态 */
 const splitDragging = ref(false);
@@ -685,16 +795,6 @@ const bucketForm = ref<{ id: string; name: string; retentionHours: number; descr
   retentionHours: 0,
   description: "",
 });
-
-// 数据浏览
-const browserVisible = ref(false);
-const browserLoading = ref(false);
-const browserMeasurement = ref("");
-const browserRange = ref("-1h");
-const browserField = ref("");
-const browserFields = ref<string[]>([]);
-const browserRows = ref<Record<string, unknown>[]>([]);
-const browserColumns = ref<Column[]>([]);
 
 // 写入数据点
 const writeVisible = ref(false);
@@ -835,13 +935,13 @@ async function loadMeasurements() {
 }
 
 /**
- * 点击度量行打开数据浏览弹窗（时间范围 + 表格 + field 过滤）
+ * 点击度量行打开表页签（对齐 jdbc「打开表」）
  * @param row 度量行
  */
 function onMeasurementRowClick(row: Record<string, unknown>) {
   const name = String(row?.name ?? "");
   if (name) {
-    openBrowser(name);
+    openTableTab(name);
   }
 }
 
@@ -1091,11 +1191,11 @@ async function confirmDeleteMeasurement(measurement: string) {
     await dropInfluxdbMeasurement(activeBucket.value, measurement, datasourceId.value);
     message.success("测量已删除");
     await loadMeasurements();
-    if (browserMeasurement.value === measurement) {
-      browserMeasurement.value = "";
-      browserRows.value = [];
-      browserColumns.value = [];
-    }
+    // 已打开的「打开表 / 设计表」页签不再指向被删测量：从页签列表移除
+    const tableIdx = tableTabs.value.findIndex(t => t.measurement === measurement);
+    if (tableIdx >= 0) closeTableTab(tableTabs.value[tableIdx].id);
+    const designIdx = designTabs.value.findIndex(t => t.measurement === measurement);
+    if (designIdx >= 0) closeDesignTab(designTabs.value[designIdx].id);
   } catch (e) {
     fail(e, "/ms/monitor/influxdb/measurement/drop");
   }
@@ -1128,53 +1228,166 @@ async function confirmDeleteBucket(row: InfluxdbBucket) {
 }
 
 /**
- * 打开数据浏览弹窗
+ * 打开表页签（对齐 jdbc「打开表」：工作区 tab，不是弹窗）。
  * @param measurement 度量名
  */
-function openBrowser(measurement: string) {
-  browserMeasurement.value = measurement;
-  browserRange.value = "-1h";
-  browserField.value = "";
-  browserFields.value = [];
-  browserRows.value = [];
-  browserColumns.value = [];
-  browserVisible.value = true;
-  runBrowserQuery();
+function openTableTab(measurement: string) {
+  const existing = tableTabs.value.find(t => t.measurement === measurement);
+  if (existing) {
+    activeWorkspaceTab.value = existing.id;
+    return;
+  }
+  const id = `t${++tableTabSeq}`;
+  const tab: TableTab = {
+    id,
+    measurement,
+    range: "-1h",
+    field: "",
+    fields: [],
+    rows: [],
+    columns: [],
+    loading: false,
+  };
+  tableTabs.value.push(tab);
+  activeWorkspaceTab.value = id;
+  runTableTabQuery(tab);
 }
 
-/**
- * 执行数据浏览查询（v2 走 Flux，v3 走 SQL）
- */
-async function runBrowserQuery() {
-  if (!activeBucket.value || !browserMeasurement.value) return;
-  browserLoading.value = true;
-  try {
-    const statement = buildBrowserStatement(
-      browserMeasurement.value,
-      browserRange.value,
-      browserField.value || undefined,
-    );
-    const { rows } = await runQuery(statement);
-    browserRows.value = rows;
-    browserColumns.value = deriveColumns(rows);
-    browserFields.value = deriveFieldOptions(rows);
-    ready();
-  } catch (e) {
-    browserRows.value = [];
-    browserColumns.value = [];
-    fail(e, "/ms/monitor/influxdb/query");
-  } finally {
-    browserLoading.value = false;
+/** 关闭打开表页签 */
+function closeTableTab(id: string) {
+  const idx = tableTabs.value.findIndex(t => t.id === id);
+  if (idx < 0) return;
+  tableTabs.value.splice(idx, 1);
+  if (activeWorkspaceTab.value === id) {
+    const next = tableTabs.value[idx] || queryTabs.value[queryTabs.value.length - 1];
+    activeWorkspaceTab.value = next ? next.id : "overview";
   }
 }
 
 /**
- * 打开写入数据点弹窗
+ * 执行打开表页签的查询（时间窗 + field 过滤）。
+ * @param tab 页签
+ */
+async function runTableTabQuery(tab: TableTab) {
+  if (!activeBucket.value || !tab.measurement) return;
+  tab.loading = true;
+  try {
+    const statement = buildBrowserStatement(tab.measurement, tab.range, tab.field || undefined);
+    const { rows } = await runQuery(statement);
+    tab.rows = rows;
+    tab.columns = deriveColumns(rows);
+    tab.fields = deriveFieldOptions(rows);
+    ready();
+  } catch (e) {
+    tab.rows = [];
+    tab.columns = [];
+    tab.fields = [];
+    fail(e, "/ms/monitor/influxdb/query");
+  } finally {
+    tab.loading = false;
+  }
+}
+
+/**
+ * 设计表页签（对齐 jdbc「设计表」：工作区 tab 展示测量字段结构）。
+ *
+ * <p>InfluxDB 测量没有固定列，设计表 = 查看该测量的 field 键（含类型）与
+ * tag 键：v3 用 {@code information_schema.columns}，v1/v2 InfluxQL 用
+ * {@code SHOW FIELD KEYS / SHOW TAG KEYS}。</p>
+ *
+ * @param measurement 度量名
+ */
+function openDesignTab(measurement: string) {
+  const existing = designTabs.value.find(t => t.measurement === measurement);
+  if (existing) {
+    activeWorkspaceTab.value = existing.id;
+    return;
+  }
+  const id = `d${++designTabSeq}`;
+  const tab: DesignTab = { id, measurement, fields: [], tags: [], loading: false };
+  designTabs.value.push(tab);
+  activeWorkspaceTab.value = id;
+  void runDesignTabQuery(tab);
+}
+
+/** 关闭设计表页签 */
+function closeDesignTab(id: string) {
+  const idx = designTabs.value.findIndex(t => t.id === id);
+  if (idx < 0) return;
+  designTabs.value.splice(idx, 1);
+  if (activeWorkspaceTab.value === id) {
+    const next = designTabs.value[idx] || queryTabs.value[queryTabs.value.length - 1] || tableTabs.value[tableTabs.value.length - 1];
+    activeWorkspaceTab.value = next ? next.id : "overview";
+  }
+}
+
+/**
+ * 执行设计表查询：拉取测量的 field 键（含类型）与 tag 键。
+ * @param tab 页签
+ */
+async function runDesignTabQuery(tab: DesignTab) {
+  if (!activeBucket.value || !tab.measurement) return;
+  tab.loading = true;
+  try {
+    if (isV3.value) {
+      const safe = tab.measurement.replace(/'/g, "''");
+      const { rows } = await runQuery(
+        `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '${safe}' ORDER BY ordinal_position`,
+      );
+      tab.fields = rows
+        .filter(r => r.column_name && String(r.column_name).toLowerCase() !== "time")
+        .map(r => ({ key: String(r.column_name), type: String(r.data_type ?? "") }));
+      tab.tags = [];
+    } else {
+      const { rows: fieldRows } = await runQuery(`SHOW FIELD KEYS FROM ${sqlIdentifier(tab.measurement)}`);
+      tab.fields = fieldRows.map(r => {
+        const key = String(r.fieldKey ?? r[""] ?? r.name ?? "");
+        const type = String(r.fieldType ?? r.type ?? "");
+        return { key, type };
+      }).filter(f => f.key);
+      const { rows: tagRows } = await runQuery(`SHOW TAG KEYS FROM ${sqlIdentifier(tab.measurement)}`);
+      tab.tags = tagRows
+        .map(r => String(r.tagKey ?? r[""] ?? r.name ?? ""))
+        .filter(Boolean);
+    }
+    ready();
+  } catch (e) {
+    tab.fields = [];
+    tab.tags = [];
+    fail(e, "/ms/monitor/influxdb/query");
+  } finally {
+    tab.loading = false;
+  }
+}
+
+/** InfluxQL 标识符转义：双引号包裹并转义内部引号 */
+function sqlIdentifier(name: string): string {
+  return `"${name.replace(/"/g, '""')}"`;
+}
+
+/**
+ * 打开写入数据点弹窗（工具栏入口：测量名优先取当前激活的「打开表」页签）
  */
 function openWritePoint() {
+  const activeTable = tableTabs.value.find(t => t.id === activeWorkspaceTab.value);
   writeForm.value = {
     bucket: activeBucket.value,
-    measurement: browserMeasurement.value || "",
+    measurement: activeTable?.measurement || "",
+    tags: "",
+    fields: "",
+    timestamp: "",
+  };
+  writeVisible.value = true;
+}
+
+/**
+ * 从「打开表」页签打开写入弹窗（预填该页签的测量名）
+ * @param tab 打开表页签
+ */
+function openWritePointFor(tab: TableTab) {
+  writeForm.value = {
+    bucket: activeBucket.value,
+    measurement: tab.measurement,
     tags: "",
     fields: "",
     timestamp: "",
@@ -1730,5 +1943,64 @@ watch(source, applyConnectionInfo);
 .dsm-browser-meta {
   font-size: 12px;
   color: var(--text-tertiary);
+}
+
+/* 打开表页签（对齐 jdbc 表数据 tab） */
+.dsm-browser-tab {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding-top: 2px;
+}
+
+/* 设计表页签（对齐 jdbc 设计表 tab） */
+.dsm-design-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+}
+.dsm-design-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dsm-design-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.dsm-design-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  align-items: start;
+}
+.dsm-design-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dsm-design-col-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.dsm-design-hint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  line-height: 1.6;
+  code {
+    font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+    background: var(--bg-hover);
+    border-radius: 4px;
+    padding: 1px 6px;
+  }
+}
+.mono {
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
 }
 </style>

@@ -28,10 +28,12 @@ export function useInfluxdbQuery(options: {
   datasourceId: Ref<number | undefined>;
   /** 查询方言是否为 SQL / InfluxQL */
   useSql: Ref<boolean>;
+  /** 是否 InfluxDB 3.x：决定 SQL 语法（v3 用 INTERVAL 表达式，v1/v2 InfluxQL 用时长字面量） */
+  isV3: Ref<boolean>;
   activeBucket: Ref<string>;
   measurements: Ref<InfluxdbMeasurement[]>;
 }) {
-  const { datasourceId, useSql, activeBucket, measurements } = options;
+  const { datasourceId, useSql, isV3, activeBucket, measurements } = options;
 
   /**
    * SQL 模式下的表名。
@@ -101,6 +103,27 @@ export function useInfluxdbQuery(options: {
   }
 
   /**
+   * 时间窗子句：SQL 方言下 v3 与 InfluxQL 语法不同。
+   *
+   * <p>InfluxDB 3.x 的 SQL 用 {@code INTERVAL '1' HOUR} 表达式；v1/v2 的
+   * InfluxQL 用时长字面量 {@code now() - 1h}。混用会拿到 400
+   * （实测：InfluxQL 不认 INTERVAL，v3 SQL 不认裸时长）。</p>
+   *
+   * @param range 时间范围（如 {@code -1h} / {@code -7d}）
+   * @returns 可拼进 WHERE 的时间窗子句
+   */
+  function sqlTimeWindow(range: string): string {
+    const m = /^(\d+)([hd])$/.exec(range.replace(/^-/, ""));
+    const amount = m?.[1] ?? "1";
+    const unit = m?.[2] === "d" ? "d" : "h";
+    if (isV3.value) {
+      const unitUpper = unit === "d" ? "DAY" : "HOUR";
+      return `time >= now() - INTERVAL '${amount}' ${unitUpper}`;
+    }
+    return `time >= now() - ${amount}${unit}`;
+  }
+
+  /**
    * 数据浏览查询语句（SQL 方言生成 SQL/InfluxQL，Flux 方言生成 Flux）
    * @param measurement 度量名
    * @param range 时间范围（如 {@code -1h} / {@code -7d}）
@@ -110,10 +133,7 @@ export function useInfluxdbQuery(options: {
   function buildBrowserStatement(measurement: string, range: string, field?: string): string {
     if (useSql.value) {
       const table = sqlTable(measurement);
-      const m = /^(\d+)([hd])$/.exec(range.replace(/^-/, ""));
-      const unit = m?.[2] === "d" ? "DAY" : "HOUR";
-      const amount = m?.[1] ?? "1";
-      let statement = `SELECT * FROM ${table} WHERE time >= now() - INTERVAL '${amount}' ${unit}`;
+      let statement = `SELECT * FROM ${table} WHERE ${sqlTimeWindow(range)}`;
       if (field) {
         statement += ` AND "${field.replace(/"/g, '""')}" IS NOT NULL`;
       }
