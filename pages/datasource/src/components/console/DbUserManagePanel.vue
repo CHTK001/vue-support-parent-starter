@@ -39,12 +39,16 @@
       <span v-if="!supported" class="dus-unsupported">{{ unsupportedMessage || "该数据库内核不支持用户管理（仅 MySQL/MariaDB 支持）" }}</span>
     </div>
 
+    <!-- 权限矩阵表：行 = 账号，列 = 权限类别，格内勾选展示该账号已拥有的全局权限。
+         多账号横向对比权限一眼可见；勾选态只读（权限变更走「权限管理员」弹窗，避免
+         逐格 GRANT/REVOKE 造成半同步）。 -->
     <ReTable
       :data="users"
-      :columns="columns"
-      :loading="loading"
+      :columns="matrixColumns"
+      :loading="loading || grantsLoading"
       :pagination="false"
       :border="true"
+      size="mini"
       stripe
       highlight-current-row
       row-key="name"
@@ -67,12 +71,45 @@
         <span class="dus-slash">/</span>
         <span class="dus-num">{{ limitText(row.maxUserConnections) }}</span>
       </template>
+      <!-- 每个权限类别一列：拥有则实心勾，否则空圆 -->
+      <template
+        v-for="g in MATRIX_GRANTS"
+        :key="'col-' + g"
+        #[`col-${g}`]="{ row }"
+      >
+        <span
+          class="dus-cell"
+          :class="{ 'dus-cell--on': hasGrant(row.name, row.host, g) }"
+          :title="hasGrant(row.name, row.host, g) ? '已授予 ' + g : '未授予 ' + g"
+        >
+          {{ hasGrant(row.name, row.host, g) ? "✓" : "·" }}
+        </span>
+      </template>
       <template #col-ops="{ row }">
-        <ReButton layout="square" size="small" icon="EditPen" tip="编辑" @click="pick(row); openSave(true)" />
-        <ReButton layout="square" size="small" type="danger" icon="Delete" tip="删除" @click="pick(row); confirmDelete()" />
-        <ReButton layout="square" size="small" icon="Key" tip="权限" @click="pick(row); openGrants()" />
+        <div class="dus-ops">
+          <ReButton layout="square" size="small" icon="EditPen" tip="编辑" @click="pick(row); openSave(true)" />
+          <ReButton layout="square" size="small" type="danger" icon="Delete" tip="删除" @click="pick(row); confirmDelete()" />
+          <ReButton layout="square" size="small" icon="Key" tip="权限" @click="pick(row); openGrants()" />
+        </div>
       </template>
     </ReTable>
+
+    <!-- 底部权限详情卡：选中账号后展示 SHOW GRANTS 原文 + 资源限制 -->
+    <div v-if="selectedUser" class="dus-detail" data-testid="dus-detail">
+      <div class="dus-detail__head">
+        <span class="dus-mono dus-detail__name">{{ selectedUser.name }}@{{ selectedUser.host }}</span>
+        <ReButton size="small" icon="Refresh" :loading="grantsLoading" @click="loadGrantsFor(selectedUser)">刷新权限</ReButton>
+      </div>
+      <ReEmpty v-if="grantsError" :description="grantsError" />
+      <div v-else class="dus-detail__grants">
+        <ReEmpty v-if="detailGrants.length === 0" description="无权限记录（USAGE 仅表示可登录）" />
+        <div
+          v-for="(g, i) in detailGrants"
+          :key="i"
+          class="dus-detail__grant dus-mono"
+        >{{ g }}</div>
+      </div>
+    </div>
 
     <!-- 新建 / 编辑用户弹窗 -->
     <ReDialog v-model="saveVisible" :title="saveMode ? `编辑用户 · ${saveForm.username}@${saveForm.host}` : '新建用户'" width="560px">
@@ -124,6 +161,7 @@
           :columns="grantColumns"
           :pagination="false"
           :border="true"
+          size="mini"
           stripe
           empty-text="无权限记录"
         />
@@ -139,9 +177,14 @@
 /**
  * 用户管理面板（内嵌于 JDBC 控制台 DatabaseManagerView 的 users 页签）。
  *
- * <p>对齐 Navicat 用户管理：用户列表 + 新建/编辑/删除/权限管理员工具条。
- * 数据来自后端 {@code /ms/monitor/db/users} 系列端点；内核不支持时
- * （非 MySQL/MariaDB）端点返回 {@code supported=false}，面板给出原因而非报错。</p>
+ * <p>矩阵表视图（design-exploration 方案 B）：行 = 账号、列 = 权限类别、格内勾选
+ * 展示每个账号已拥有的全局权限；多账号横向对比一目了然。底部为选中账号的
+ * SHOW GRANTS 权限详情卡。权限变更走「权限管理员」弹窗（GRANT/REVOKE 原子化）。</p>
+ *
+ * <p>数据来自后端 {@code /ms/monitor/db/users} 系列端点：账号列表（name@host / SSL /
+ * 资源限制 / SUPER），每账号的权限经 {@code fetchDbUserGrants} 拉取 SHOW GRANTS 原文
+ * 后解析成权限集合填充矩阵格。内核不支持时（非 MySQL/MariaDB）端点返回
+ * {@code supported=false}，面板给出原因而非报错。</p>
  *
  * @author CH
  * @since 4.0.0.42
@@ -151,7 +194,7 @@ import { onMounted, ref, watch } from "vue";
 import { ElCheckboxGroup, ElMessageBox, ElSwitch } from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
-import ReIcon from "@repo/ui/re-icon";
+import ReEmpty from "@repo/ui/re-empty";
 import ReInput from "@repo/ui/re-input";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
@@ -167,7 +210,7 @@ import {
 
 const props = withDefaults(defineProps<{ datasourceId?: number }>(), { datasourceId: 0 });
 
-/** 可授予的全局权限选项 */
+/** 可授予的全局权限选项（矩阵列与新建/编辑弹窗共用一份） */
 const USER_GRANTS = [
   "ALL PRIVILEGES",
   "SELECT",
@@ -179,6 +222,19 @@ const USER_GRANTS = [
   "ALTER",
   "INDEX",
   "REFERENCES",
+] as const;
+
+/** 矩阵展示列：只展示高频权限，避免列过多挤压账号列 */
+const MATRIX_GRANTS = [
+  "SELECT",
+  "INSERT",
+  "UPDATE",
+  "DELETE",
+  "CREATE",
+  "DROP",
+  "ALTER",
+  "INDEX",
+  "ALL PRIVILEGES",
 ] as const;
 
 const users = ref<DbUserRow[]>([]);
@@ -200,6 +256,12 @@ const grantsError = ref("");
 const grantsRows = ref<{ grant: string }[]>([]);
 const grantsUser = ref<DbUserRow | null>(null);
 
+/** 每账号的权限集合缓存：key = name@host，value = 已授予的权限名集合 */
+const grantSets = ref<Record<string, Set<string>>>({});
+
+/** 底部详情卡的 grants 原文（当前选中账号） */
+const detailGrants = ref<string[]>([]);
+
 function reactiveForm() {
   return ref<{
     username: string;
@@ -211,17 +273,83 @@ function reactiveForm() {
   }>({ username: "", host: "%", password: "", confirmPassword: "", grants: [], superUser: false });
 }
 
-const columns: ReTableColumn[] = [
-  { prop: "name", label: "用户名", minWidth: 180, slot: "col-name" },
-  { prop: "host", label: "主机", width: 110 },
-  { prop: "sslType", label: "SSL 类型", width: 90, slot: "col-ssl", align: "center" },
-  { prop: "resources", label: "每小时查询/更新/连接 · 最大连接", minWidth: 220, slot: "col-resources", align: "center" },
-  { prop: "ops", label: "操作", width: 110, slot: "col-ops", align: "center" },
+const matrixColumns: ReTableColumn[] = [
+  { prop: "name", label: "用户名", minWidth: 170, slot: "col-name", fixed: true },
+  { prop: "host", label: "主机", width: 100 },
+  { prop: "sslType", label: "SSL", width: 70, slot: "col-ssl", align: "center" },
+  { prop: "resources", label: "每小时查询/更新/连接 · 最大连接", minWidth: 210, slot: "col-resources", align: "center" },
+  ...MATRIX_GRANTS.map(g => ({
+    prop: g,
+    label: g === "ALL PRIVILEGES" ? "ALL" : g,
+    width: g === "ALL PRIVILEGES" ? 80 : 64,
+    slot: `col-${g}` as string,
+    align: "center" as const,
+  })),
+  { prop: "ops", label: "操作", width: 140, slot: "col-ops", align: "center", fixed: "right" },
 ];
 
 const grantColumns: ReTableColumn[] = [
   { prop: "grant", label: "权限语句（SHOW GRANTS）", minWidth: 300 },
 ];
+
+/** 从 SHOW GRANTS 原文解析该账号已拥有的权限名集合 */
+function parseGrantsToSet(grants: string[]): Set<string> {
+  const set = new Set<string>();
+  for (const line of grants ?? []) {
+    // 形如：GRANT SELECT, INSERT, ... ON *.* TO 'u'@'h'  或 GRANT USAGE ON *.* TO ...
+    const m = /^\s*GRANT\s+(.+?)\s+ON\s+/i.exec(line);
+    if (!m) continue;
+    const privList = m[1]
+      .split(",")
+      .map(s => s.trim().toUpperCase())
+      .filter(Boolean);
+    for (const p of privList) {
+      if (p === "ALL PRIVILEGES" || p === "ALL") {
+        set.add("ALL PRIVILEGES");
+        // 隐式拥有全部基础权限
+        for (const g of USER_GRANTS) set.add(g);
+      } else if (p === "USAGE" || p === "PROXY") {
+        // USAGE 仅表示可登录，不映射权限格
+      } else {
+        set.add(p);
+      }
+    }
+  }
+  return set;
+}
+
+/** 账号是否已拥有某权限（矩阵格勾选态） */
+function hasGrant(name: string, host: string, g: string): boolean {
+  const set = grantSets.value[`${name}@${host}`];
+  return !!set?.has(g);
+}
+
+/** 拉取某账号的 grants 并填充缓存 + 详情卡 */
+async function loadGrantsFor(u: DbUserRow, forDetail = false): Promise<void> {
+  const key = `${u.name}@${u.host}`;
+  grantsLoading.value = true;
+  if (forDetail) grantsError.value = "";
+  try {
+    const result = await fetchDbUserGrants({
+      datasourceId: props.datasourceId,
+      username: u.name,
+      host: u.host,
+    });
+    const grants = result.grants ?? [];
+    grantSets.value = { ...grantSets.value, [key]: parseGrantsToSet(grants) };
+    if (forDetail) {
+      detailGrants.value = grants;
+    }
+  } catch (e) {
+    if (forDetail) grantsError.value = String((e as Error)?.message ?? e);
+    // 单个账号拉取失败不阻塞整体：保留空权限集，用户可在底部详情卡看到错误
+    if (!grantSets.value[key]) {
+      grantSets.value = { ...grantSets.value, [key]: new Set() };
+    }
+  } finally {
+    grantsLoading.value = false;
+  }
+}
 
 function limitText(v: number | null | undefined): string {
   if (v == null || v === -1 || v === 0) {
@@ -236,9 +364,15 @@ function pick(row: DbUserRow) {
 
 function onCurrentChange(row: DbUserRow | null) {
   selectedUser.value = row;
+  if (row) {
+    detailGrants.value = [];
+    void loadGrantsFor(row, true);
+  } else {
+    detailGrants.value = [];
+  }
 }
 
-/** 加载用户列表 */
+/** 加载用户列表；随后为每个账号预取 grants 填充矩阵格 */
 async function loadUsers() {
   const id = props.datasourceId;
   if (!id) {
@@ -251,10 +385,17 @@ async function loadUsers() {
     supported.value = !!result.supported;
     unsupportedMessage.value = result.message ?? "";
     users.value = result.users ?? [];
-    // 选中的行可能已被删掉，清掉悬空引用
-    if (selectedUser.value && !users.value.some(u => u.name === selectedUser.value?.name && u.host === selectedUser.value?.host)) {
+    // 清掉被删账号的缓存
+    const keep = new Set((result.users ?? []).map(u => `${u.name}@${u.host}`));
+    grantSets.value = Object.fromEntries(
+      Object.entries(grantSets.value).filter(([k]) => keep.has(k)),
+    );
+    if (selectedUser.value && !keep.has(`${selectedUser.value.name}@${selectedUser.value.host}`)) {
       selectedUser.value = null;
     }
+    // 预取矩阵权限（并行，限用户数量避免大库打满）
+    const rows = (result.users ?? []).slice(0, 50);
+    await Promise.allSettled(rows.map(u => loadGrantsFor(u, false)));
   } catch (e) {
     message.error(`加载用户失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
@@ -368,7 +509,7 @@ async function openGrants() {
   await loadGrants();
 }
 
-/** 加载用户权限（SHOW GRANTS） */
+/** 加载权限弹窗数据 */
 async function loadGrants() {
   const u = grantsUser.value;
   if (!u) {
@@ -392,6 +533,8 @@ async function loadGrants() {
 
 watch(() => props.datasourceId, () => {
   selectedUser.value = null;
+  grantSets.value = {};
+  detailGrants.value = [];
   void loadUsers();
 });
 
@@ -433,6 +576,70 @@ onMounted(loadUsers);
 }
 .dus-super {
   margin-left: 6px;
+}
+/* 操作列：三个图标按钮必须同一行（mini 行高下最容易挤成两行、第三个还会被右边界切掉） */
+.dus-ops {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+/* 矩阵权限格：拥有=实心勾（主色），未拥有=空圆（占位灰） */
+.dus-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--el-text-color-placeholder);
+  cursor: default;
+}
+.dus-cell--on {
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+/* 底部权限详情卡 */
+.dus-detail {
+  flex: 0 0 auto;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 6px);
+  background: var(--el-bg-color-overlay);
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dus-detail__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.dus-detail__name {
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.dus-detail__grants {
+  max-height: 96px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dus-detail__grant {
+  font-size: 11.5px;
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-light);
+  border-radius: 4px;
+  padding: 2px 8px;
+  line-height: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .dus-form {
   display: flex;

@@ -571,6 +571,15 @@ const props = withDefaults(
      */
     size?: "large" | "default" | "small" | "mini";
     /**
+     * 紧凑模式（等价于 {@code size="small"}：行高 51px → 33~36px）。
+     *
+     * <p>与上面的 {@code size} / 下面的 {@code border} 同属「被静默忽略的历史属性」：
+     * 裸写 {@code compact} 此前只落成一个普通 HTML 属性，密度实际只由设置面板的
+     * {@code settings.compact} 决定，页面以为压过行高、实际一直是默认 51px。
+     * 这里显式接收，写法与设置面板开关保持一致；两者同时给出时 {@code settings.compact} 优先。</p>
+     */
+    compact?: boolean;
+    /**
      * 是否显示表格外边框（默认 true）。
      *
      * <p>页面上有 60 处裸写 {@code border}，此前同样无效（边框实际由
@@ -2451,6 +2460,8 @@ function resolveSettings(v?: ReTableSettings): ReTableSettings {
     // 顶层 border prop 作为缺省值：页面里裸写 border / :border="false" 以前是无效属性
     border: props.border ?? true,
     stripe: props.stripe,
+    // 顶层 compact prop 同理：页面里裸写 compact 以前也是无效属性，密度只认设置面板的开关
+    compact: props.compact,
     pageCache: paginationCfg.value.remember ?? true,
     shortcuts: true,
     ...v,
@@ -6017,6 +6028,37 @@ const iconSelect = Select;
 .re-table--compact .vxe-body--column {
   padding-top: 6px !important;
   padding-bottom: 6px !important;
+}
+/* mini 档（size="mini"）：比 compact 再压一档 —— 表头 5px、单元格上下 4px、
+   行内 line-height 18px，纯文本行 ≈ 27px（compact ≈ 33px / 默认 51px）。
+   ⚠ 这套规则以前**根本不存在**：size="mini" 只挂了个 .re-table--mini 空 class，
+     而 vxe 原生的 size--mini 行高（--vxe-ui-table-row-height-mini: 36px）又被
+     上面两条「写死 padding + min-height:0 !important」抹平，实测 mini/small/medium
+     三档行高全是 51px —— mini 等于没效果。真正的密度只能由这里给。
+   ⚠ 不硬压 height：含输入控件的表格（列设计网格、行内编辑）要按内容自然撑高，
+     写死 height 会把控件裁掉；所以这里显式 height:auto!important 顶掉上面那条 51px。 */
+.re-table--mini .vxe-body--row,
+.re-table--mini .vxe-body--row > .vxe-body--column {
+  height: auto !important;
+}
+.re-table--mini .vxe-header--column {
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+  font-size: 12.5px;
+}
+.re-table--mini .vxe-body--column {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+}
+.re-table--mini .vxe-body--column .vxe-cell,
+.re-table--mini .vxe-header--column .vxe-cell {
+  padding: 0 8px;
+  line-height: 18px;
+  /* vxe 会给表头/表体单元格写内联 height/min-height 来做行对齐
+     （开了 header-show-overflow-tooltip 的表头是 height:36px），
+     内联样式只有 !important 压得过；不压的话表头还是 47px，压不动。 */
+  height: auto !important;
+  min-height: 0 !important;
 }
 /* 斑马纹（仅在 stripe 开启时生效，且比 element 更淡、不喧宾夺主）
    ⚠ vxe 4.6 的 stripe 不打 row--striped 行类（实测产物里无此串），

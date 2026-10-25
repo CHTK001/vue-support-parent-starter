@@ -282,6 +282,46 @@ export const executeDbSql = (sql: string, datasourceId?: number, database?: stri
   return (timeoutMs === undefined ? req : req.timeout(timeoutMs)).then(r => unwrap<DbQueryResult>(r));
 };
 
+// ---------- SPI 能力清单（用户管理 / 进程 / 慢查询的显隐依据） ----------
+
+/**
+ * 数据源 SPI 能力清单。
+ *
+ * <p>能力的有无由后端引擎 SPI 决定（{@code UserManager} / {@code PermissionManager} 等），
+ * 不是前端按数据源类型猜：{@code GET /ms/monitor/db/capabilities} 内部按方言协议去
+ * {@code ServiceProvider} 里找实现，找得到才是 true。</p>
+ *
+ * @author CH
+ * @since 4.0.0.44
+ */
+export interface DbCapabilities {
+  /** 方言协议：mysql / mariadb / postgresql / oracle / sqlserver */
+  dialect?: string;
+  /** 是否有 UserManager SPI 实现（决定「用户管理」入口） */
+  users?: boolean;
+  /** 是否有 PermissionManager SPI 实现 */
+  permissions?: boolean;
+  /** 是否有进程管理 SPI（接口尚未定义，后端恒 false） */
+  processes?: boolean;
+  /** 是否有慢查询 SPI（接口尚未定义，后端恒 false） */
+  slowQueries?: boolean;
+}
+
+/**
+ * 查询数据源的 SPI 能力清单。
+ *
+ * <p>老后端没有这个端点时会 404，调用方应回落到按方言的保守判断。</p>
+ *
+ * @param datasourceId 数据源 ID
+ * @returns 能力清单
+ */
+export const fetchDbCapabilities = (datasourceId: number) =>
+  http()
+    .get("/ms/monitor/db/capabilities")
+    .noToast(true)
+    .query({ datasourceId })
+    .then(r => unwrap<DbCapabilities>(r));
+
 // ---------- 用户管理（需求：数据源中心 / JDBC 控制台右键，SPI 判断显隐） ----------
 
 /** 数据库用户行（后端 DbUserVO） */

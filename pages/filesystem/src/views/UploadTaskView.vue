@@ -174,7 +174,7 @@
                     size="small"
                     :model-value="selectedIds.includes(t.taskId)"
                     @click.stop
-                    @change="(v) => toggleSelect(t.taskId, Boolean(v))"
+                    @change="(v: boolean | string | number) => toggleSelect(t.taskId, Boolean(v))"
                     aria-label="选择任务"
                   />
                   <div class="md-item-main">

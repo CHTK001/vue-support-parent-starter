@@ -74,7 +74,7 @@ import {
   type DbSlowQueryListResult,
   type DbSlowQueryRow,
 } from "../api";
-import { fetchDbDocumentHtml } from "../api/manageConsoles";
+import { fetchDbDocumentHtml, fetchDbCapabilities, type DbCapabilities } from "../api/manageConsoles";
 import {
   deleteDatasourceTunnel,
   fetchDatasourceTunnel,
@@ -761,13 +761,59 @@ const datasourceStatusTextOf = (item: DataSourceInfo): string => STATUS_TEXT[dat
 /** 右键菜单挂的目标项：菜单项闭包都基于它，弹出期间不换目标 */
 const ctxMenu = reactive({ visible: false, x: 0, y: 0, item: null as DataSourceInfo | null });
 
+// ---------- 后端 SPI 能力（菜单显隐的唯一依据） ----------
+
+/** 每个数据源的能力清单缓存：id → capabilities（null = 探测失败，按方言兜底） */
+const capabilityCache = reactive<Record<number, DbCapabilities | null>>({});
+
+/** 正在探测的数据源 id，防止右键连点时重复打同一个接口 */
+const capabilityProbing = new Set<number>();
+
 /**
- * 该数据源类型是否支持「显示进程」：进程管理是数据库内核特有 SPI 能力
- * （仅 MySQL/MariaDB/PostgreSQL 的 JDBC 数据源可用），其余类型/内核不显示该菜单项。
+ * 探测数据源的 SPI 能力（用户管理 / 进程 / 慢查询）。
+ *
+ * <p>能力的有无由后端引擎 SPI 决定：后端按方言协议在 {@code ServiceProvider} 里找
+ * {@code UserManager} / {@code PermissionManager} 的实现，找得到才返回 true。
+ * 老后端没有这个端点（404）时缓存 null，菜单回落到按方言的保守判断 ——
+ * 入口不会因为「后端升级前」就整体消失。</p>
+ *
+ * @param item 数据源
  */
-const supportsProcess = (item: DataSourceInfo): boolean =>
-  item.type === "jdbc" &&
-  /^jdbc:(mysql|mariadb|postgresql):/i.test((item.database ?? "").trim());
+const probeCapabilities = async (item: DataSourceInfo) => {
+  const id = item.id;
+  if (id == null || id in capabilityCache || capabilityProbing.has(id)) {
+    return;
+  }
+  capabilityProbing.add(id);
+  try {
+    capabilityCache[id] = await fetchDbCapabilities(id);
+  } catch {
+    capabilityCache[id] = null;
+  } finally {
+    capabilityProbing.delete(id);
+  }
+};
+
+/**
+ * 某项 SPI 能力是否可用。
+ *
+ * <p>以 {@code GET /ms/monitor/db/capabilities} 的返回为准；该端点不可用（老后端）时
+ * 按方言保守兜底，避免「升级前后入口时有时无」。</p>
+ *
+ * @param key 能力键
+ * @param item 数据源
+ * @returns 是否可用
+ */
+const capabilityOf = (key: "users" | "processes" | "slowQueries", item: DataSourceInfo): boolean => {
+  const caps = item.id == null ? null : capabilityCache[item.id];
+  const decided = caps?.[key];
+  if (typeof decided === "boolean") {
+    return decided;
+  }
+  const dialect = dialectOf(item);
+  const processFamily = dialect === "mysql" || dialect === "mariadb" || dialect === "postgresql";
+  return key === "users" ? processFamily || dialect === "oracle" : processFamily;
+};
 
 /** 右键菜单：按数据源类型 + SPI 能力动态生成 */
 const ctxMenuItems = computed(() => {
@@ -783,15 +829,16 @@ const ctxMenuItems = computed(() => {
       divided: true,
     },
   ];
-  // JDBC 内核能力（SPI 判断）：用户管理 / 查看文档 / 进程列表 / 慢查询
+  // JDBC 内核能力：用户管理入口对全部 JDBC 数据源显示（MySQL/MariaDB 原生支持，
+  // 其余内核进入面板后由 DbUserManagePanel 的 supported=false 降级提示，避免入口
+  // 依赖 capabilities SPI 探测而时有时无）；进程/慢查询仍按后端 SPI 能力显隐。
   if (item?.type === "jdbc") {
-    const dialect = jdbcDialect(item.jdbcUrl ?? item.database ?? "");
-    if (dialect === "mysql" || dialect === "mariadb") {
-      base.push({ key: "users", label: "用户管理", icon: "User", warning: true });
-    }
+    base.push({ key: "users", label: "用户管理", icon: "User", warning: true });
     base.push({ key: "docs", label: "查看数据库文档", icon: "Document" });
-    if (dialect === "mysql" || dialect === "mariadb" || dialect === "postgresql") {
+    if (capabilityOf("processes", item)) {
       base.push({ key: "processes", label: "显示进程", icon: "Monitor" });
+    }
+    if (capabilityOf("slowQueries", item)) {
       base.push({ key: "slow", label: "慢查询", icon: "Timer" });
     }
   }
@@ -814,6 +861,39 @@ const jdbcDialect = (database: string): string => {
   if (lower.startsWith("jdbc:oracle:")) return "oracle";
   if (lower.startsWith("jdbc:sqlserver:")) return "sqlserver";
   return "other";
+};
+
+/**
+ * 数据源条目 → 内核方言（「用户管理 / 显示进程 / 慢查询」这些 SPI 能力的判定依据）。
+ *
+ * <p>台账里 JDBC 有两种存法：整串 URL（{@code jdbc:mysql://…}）与三段式
+ * （host + port + database 只存库名）。三段式由后端 {@code resolveJdbcUrl}
+ * 用 **MySQL 模板**拼串，所以这类记录必然是 MySQL 系内核。</p>
+ *
+ * <p>⚠ 这里曾经直接写 {@code jdbcDialect(item.jdbcUrl ?? item.database)}：
+ * 线上 {@code /ms/datasource/list} 目前并不返回 {@code jdbcUrl}（类型里承诺了、
+ * 老后端没给），于是落到 {@code database} = 库名「report」上，被判成 {@code other}，
+ * 「显示进程 / 慢查询」两个入口就**静默消失**（菜单只剩 7 项，也不报错）。
+ * 现在按「整串 URL → 驱动类名 → 三段式按 MySQL 兜底」的顺序判定。</p>
+ *
+ * @param item 数据源台账条目
+ * @returns mysql / mariadb / postgresql / oracle / sqlserver / other
+ */
+const dialectOf = (item: DataSourceInfo): string => {
+  const url = (item.jdbcUrl ?? "").trim();
+  if (/^jdbc:/i.test(url)) return jdbcDialect(url);
+  const db = (item.database ?? "").trim();
+  if (/^jdbc:/i.test(db)) return jdbcDialect(db);
+  // 老后端不回 jdbcUrl：用驱动类名兜一层（三段式可以不填驱动，填了就能精确判）
+  const cls = (item.driverClassName ?? "").toLowerCase();
+  if (cls.includes("mariadb")) return "mariadb";
+  if (cls.includes("mysql")) return "mysql";
+  if (cls.includes("postgresql")) return "postgresql";
+  if (cls.includes("oracle")) return "oracle";
+  if (cls.includes("sqlserver") || cls.includes("mssql")) return "sqlserver";
+  // 三段式 = 后端 MySQL 模板拼串，host 有值即可判定为 MySQL 系
+  if (item.type === "jdbc" && (item.host ?? "").trim()) return "mysql";
+  return jdbcDialect(db);
 };
 
 /**
@@ -863,6 +943,8 @@ const openDbDocument = async (item: DataSourceInfo) => {
 const onItemContextMenu = (e: MouseEvent, item: DataSourceInfo) => {
   e.stopPropagation();
   selectSource(item);
+  // 能力清单按需探测：菜单先按缓存/方言兜底渲染，接口返回后 computed 会自动补上/去掉入口
+  void probeCapabilities(item);
   Object.assign(ctxMenu, { visible: true, x: e.clientX, y: e.clientY, item });
 };
 
@@ -1013,17 +1095,17 @@ const openProcesses = async (item: DataSourceInfo) => {
   }
 };
 
-/** 进程列定义 */
+/** 进程列定义（宽度合计控制在弹窗 960px 内，避免操作列被横向滚动挡掉） */
 const processColumns: ReTableColumn[] = [
   { prop: "_sel", label: "", width: 40, slot: "col-sel", align: "center" },
-  { prop: "pid", label: "PID", width: 90 },
-  { prop: "user", label: "用户", minWidth: 90 },
-  { prop: "host", label: "客户端", minWidth: 130 },
-  { prop: "db", label: "库", minWidth: 110 },
-  { prop: "command", label: "命令/状态", minWidth: 110 },
-  { prop: "time", label: "时长(s)", width: 80, align: "right" },
-  { prop: "info", label: "正在执行", minWidth: 220 },
-  { prop: "_op", label: "操作", width: 80, slot: "col-op", align: "center" },
+  { prop: "pid", label: "PID", width: 72 },
+  { prop: "user", label: "用户", minWidth: 82 },
+  { prop: "host", label: "客户端", minWidth: 150 },
+  { prop: "db", label: "库", minWidth: 90 },
+  { prop: "command", label: "命令/状态", minWidth: 100 },
+  { prop: "time", label: "时长(s)", width: 72, align: "right" },
+  { prop: "info", label: "正在执行", minWidth: 170 },
+  { prop: "_op", label: "操作", width: 72, slot: "col-op", align: "center" },
 ];
 
 /** 切换单条进程选中 */
@@ -1569,6 +1651,8 @@ const connectionRows = computed(() => {
 /** 左栏选中数据源（按 id 定位，列表刷新后仍能保持选中） */
 const selectSource = (item: DataSourceInfo) => {
   currentId.value = item.id ?? null;
+  // 顺手预取 SPI 能力清单：右键菜单打开时通常已经拿到结果，不会先闪一下兜底项
+  void probeCapabilities(item);
 };
 
 /**
@@ -1882,7 +1966,7 @@ onMounted(load);
       <ReDialog
         v-model="dbDocVisible"
         :title="`数据库文档 · ${dbDocSource?.name ?? ''}`"
-        width="920px"
+        width="1180px"
         class="ds-db-doc"
       >
         <div class="ds-db-doc__body">
@@ -2466,6 +2550,7 @@ onMounted(load);
           :columns="schemaColumnDefs"
           :data="schemaColumns"
           row-key="name"
+          size="mini"
           empty-text="选择一张表查看列结构"
         >
           <template #nullable="{ row }">
@@ -2514,7 +2599,7 @@ onMounted(load);
         </div>
 
         <p v-if="!processSupported" class="ds-process__error">
-          {{ processMessage || "该数据库内核不支持进程管理（仅 MySQL/MariaDB/PostgreSQL 支持）" }}
+          {{ processMessage || "该数据库内核不支持会话管理" }}
         </p>
         <ReTable
           v-else
@@ -2522,6 +2607,7 @@ onMounted(load);
           :columns="processColumns"
           :loading="processLoading"
           row-key="pid"
+          size="mini"
           stripe
           border
           :layout-table="{ height: '380px' }"
@@ -2551,7 +2637,7 @@ onMounted(load);
       </template>
     </ReDialog>
 
-    <!-- 慢查询：平均耗时 Top 50（仅 MySQL/MariaDB/PostgreSQL 内核显示入口） -->
+    <!-- 慢查询：按平均耗时降序（入口显隐由后端 SPI capability 决定） -->
     <ReDialog v-model="slowQueryVisible" :title="`慢查询 · ${slowQuerySource?.name ?? ''}`" width="960px">
       <div class="ds-process">
         <div class="ds-process__bar">
@@ -2563,11 +2649,11 @@ onMounted(load);
             :loading="slowQueryLoading"
             @click="reloadSlowQueries"
           />
-          <span class="ds-process__count">共 {{ slowQueryRows.length }} 条（按平均耗时降序 Top 50）</span>
+          <span class="ds-process__count">共 {{ slowQueryRows.length }} 条（按平均耗时降序）</span>
         </div>
 
         <p v-if="!slowQuerySupported" class="ds-process__error">
-          {{ slowQueryMessage || "该数据库内核不支持慢查询（仅 MySQL/MariaDB/PostgreSQL 支持）" }}
+          {{ slowQueryMessage || "该数据库内核不支持慢查询分析" }}
         </p>
         <ReTable
           v-else
@@ -2575,6 +2661,7 @@ onMounted(load);
           :columns="slowQueryColumns"
           :loading="slowQueryLoading"
           row-key="digest"
+          size="mini"
           stripe
           border
           :layout-table="{ height: '420px' }"
@@ -3603,7 +3690,7 @@ onMounted(load);
 
 /* 查看数据库文档弹窗：iframe 占满弹窗高，出错/加载中给出可读提示 */
 .ds-db-doc__body {
-  height: 560px;
+  height: 620px;
   display: flex;
   flex-direction: column;
 }

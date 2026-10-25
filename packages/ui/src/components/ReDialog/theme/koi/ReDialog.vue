@@ -30,6 +30,15 @@ const props = withDefaults(
     center?: boolean;
     /** 弹窗是否在视口中水平、垂直居中 */
     alignCenter?: boolean;
+    /**
+     * 是否可拖拽（默认 false，与 default 主题一致）。
+     *
+     * <p>koi 版历史是把 draggable 钉死为 true，导致所有弹窗（含不应拖拽的对话框）
+     * 头部都可拖；且 headless / 自定义 header 场景拖拽把手不直观。改为受控 prop
+     * 后：需要拖拽的弹窗显式传 true（element-plus 以 transform 位移，与 align-center
+     * 的 flex 居中兼容，两者可同时开启），其余弹窗保持居中不可拖。</p>
+     */
+    draggable?: boolean;
     height?: number;
     closeOnClickModal?: boolean;
     /**
@@ -102,6 +111,7 @@ const props = withDefaults(
     destroyOnClose: false,
     fullscreen: false,
     loading: false,
+    draggable: false,
     // footerHidden 必须显式给 default: undefined —— Boolean prop「未传且无默认值」
     // 会被 Vue 强转成 false（runtime-core resolvePropValue: isAbsent && !hasDefault → false），
     // 三态里的「未传」将永远不可达；default: undefined 使 hasOwn(default) 成立、跳过强转。
@@ -240,7 +250,7 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
     :close-on-press-escape="closeOnPressEscape"
     append-to-body
     modal-class="koi-dialog-modal"
-    draggable
+    :draggable="draggable"
     :destroy-on-close="destroyOnClose"
     :fullscreen="dialogFullscreen"
     :z-index="props.zIndex"

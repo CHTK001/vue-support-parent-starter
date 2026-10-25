@@ -470,6 +470,13 @@ export interface ReTableSearchFilter {
   type?: "input" | "select" | "date" | "daterange" | "treeselect";
   /** 占位文案 */
   placeholder?: string;
+  /**
+   * 在搜索区网格里横跨几列（默认 1）。
+   *
+   * <p>日期区间这类控件本身就要 ~350px（开始 + 结束两段输入），塞进 220px 的默认列宽里
+   * 会画到相邻字段和右侧按钮上。给 {@code span: 2} 让它占两列即可。</p>
+   */
+  span?: number;
   /** select / treeselect 选项数据 */
   options?: Array<{ label: string; value: string | number; children?: any[] }>;
   /**

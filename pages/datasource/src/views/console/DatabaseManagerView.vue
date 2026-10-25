@@ -350,6 +350,7 @@
             :header-show-overflow-tooltip="true"
             show-selection
             stripe
+            size="mini"
             height="calc(100% - 56px)"
             :context-menu="gridMenuItems"
             @selection-change="onSelectionChange"
@@ -460,6 +461,7 @@
               :pagination="false"
               stripe
               border
+              size="mini"
               column-draggable
               height="calc(100% - 70px)"
             >
@@ -479,6 +481,7 @@
               :pagination="false"
               stripe
               border
+              size="mini"
               column-draggable
               height="calc(100% - 70px)"
             >
@@ -594,6 +597,7 @@
               :pagination="false"
               stripe
               border
+              size="mini"
               column-draggable
               height="calc(100% - 40px)"
             />
@@ -707,7 +711,11 @@
             :toolbar="true"
             :minimap="true"
             @node-dblclick="onErNodeDblClick"
-          />
+          >
+            <template #node-content="{ node }">
+              <ErTableCard :node="node" @open-cols="openErColumns" />
+            </template>
+          </ReRelationGraph>
           <!-- 表清单侧栏：图上双击要靠坐标命中，100 张表时图本身就没法导航。
                清单给出确定的入口，也让「这张表有几条关系」一眼可见。 -->
           <div class="dbm-er-list">
@@ -785,7 +793,11 @@
               :editable="false"
               :context-menu="false"
               @node-dblclick="onErNodeDblClick"
-            />
+            >
+              <template #node-content="{ node }">
+                <ErTableCard :node="node" @open-cols="openErColumns" />
+              </template>
+            </ReRelationGraph>
             <!-- 表清单侧栏：与 ER 页签一致，图上双击要靠坐标命中，清单给确定入口 -->
             <div class="dbm-er-list">
               <div
@@ -970,7 +982,9 @@
           <div class="dbm-context-item" @click="openCreateUser(contextMenu.database)">
             <ReIcon name="User" :size="14" />添加用户
           </div>
-          <div v-if="usersSupported" class="dbm-context-item" @click="openUsersTab()">
+          <!-- 用户管理入口始终显示：JDBC 控制台总是有这个页签，非 MySQL/MariaDB
+               内核由 DbUserManagePanel 的 supported=false 降级提示，避免入口时有时无。 -->
+          <div class="dbm-context-item" @click="openUsersTab()">
             <ReIcon name="UserFilled" :size="14" />用户管理
           </div>
           <div class="dbm-context-item" @click="copyText(contextMenu.database)">
@@ -1070,6 +1084,11 @@
           </span>
         </div>
 
+        <!-- 中间内容区：唯一可滚动区域（底部操作条不参与滚动，永远贴底可见）。
+             这里必须有 overflow:auto —— 否则矮视口下内容比弹窗 body 高，
+             .el-dialog__body 的 overflow:hidden 会把底部操作条整条裁掉。 -->
+        <div class="dbm-sync-body">
+
         <!-- ========== 视图一：选择源 / 目标（图 1） ========== -->
         <template v-if="syncView === 'select' || syncView === 'compare'">
           <div class="dbm-sync-panes">
@@ -1107,9 +1126,10 @@
               </div>
             </div>
 
-            <!-- 双向切换 -->
+            <!-- 双向切换：源/目标左右并排，所以用**水平**双向箭头（ep `Switch` ⇄）。
+                 之前用的 `Sort` 是竖向双箭头（↑↓），在左右布局里读起来像「排序」而不是「互换」。 -->
             <div class="dbm-sync-swap">
-              <ReButton layout="square" icon="Sort" tip="交换源与目标" @click="swapSyncSides" />
+              <ReButton layout="square" icon="Switch" tip="交换源与目标" @click="swapSyncSides" />
             </div>
 
             <!-- 目标面板 -->
@@ -1155,19 +1175,6 @@
           />
           <ReEmpty v-if="syncDiffError" :description="syncDiffError" />
         </template>
-
-        <!-- ========== 视图二：比较中（图 2：居中遮罩弹窗，背后面板保留） ========== -->
-        <div v-if="syncView === 'compare'" class="dbm-sync-compare-mask">
-          <div class="dbm-sync-compare">
-            <ReIcon name="Refresh" :size="36" class="dbm-sync-compare-spin" />
-            <div class="dbm-sync-compare-title">正在比较数据库…</div>
-            <div class="dbm-sync-compare-sub">{{ syncComparePhase }}</div>
-            <div class="dbm-sync-compare-track">
-              <div class="dbm-sync-compare-bar" :style="{ width: syncComparePct + '%' }" />
-            </div>
-            <ReButton plain size="small" @click="cancelSyncCompare">取消</ReButton>
-          </div>
-        </div>
 
         <!-- ========== 视图三：差异（图 3：源对象 / 操作 / 目标对象 三列，按操作分组折叠） ========== -->
         <template v-else-if="syncView === 'diff'">
@@ -1301,6 +1308,8 @@
           </div>
         </template>
 
+        </div><!-- /.dbm-sync-body 中间内容区结束 -->
+
         <!-- ========== 底部导航（图 1：保存/加载/选项 + 比较；图 3：上一步/重新比较/下一步；图 4/5：开始） ========== -->
         <div class="dbm-sync-foot">
           <template v-if="syncView === 'select' || syncView === 'diff' || syncView === 'deploy'">
@@ -1357,6 +1366,22 @@
             </ReButton>
             <ReButton v-else size="small" type="primary" @click="closeSync">完成</ReButton>
           </template>
+        </div>
+
+        <!-- ========== 视图二：比较中（图 2：居中遮罩弹窗，背后面板保留） ==========
+             必须挂在 .dbm-sync 直属层（不在 .dbm-sync-body 里，否则会被滚动区裁切），
+             且**不能**插在 select / diff / deploy 三段之间：那会打断 v-if → v-else-if 链，
+             让差异页在「选择」步骤里也跟着渲染。 -->
+        <div v-if="syncView === 'compare'" class="dbm-sync-compare-mask">
+          <div class="dbm-sync-compare">
+            <ReIcon name="Refresh" :size="36" class="dbm-sync-compare-spin" />
+            <div class="dbm-sync-compare-title">正在比较数据库…</div>
+            <div class="dbm-sync-compare-sub">{{ syncComparePhase }}</div>
+            <div class="dbm-sync-compare-track">
+              <div class="dbm-sync-compare-bar" :style="{ width: syncComparePct + '%' }" />
+            </div>
+            <ReButton plain size="small" @click="cancelSyncCompare">取消</ReButton>
+          </div>
         </div>
       </div>
 
@@ -1779,6 +1804,7 @@
             :pagination="false"
             stripe
             border
+            size="mini"
             column-draggable
             height="240px"
           >
@@ -2290,6 +2316,7 @@ import ReSelect from "@repo/ui/re-select";
 import ReSwitch from "../../components/console/ConsoleSwitch.vue";
 import BooleanSegmented from "../../components/console/BooleanSegmented.vue";
 import DesignColumnGrid from "../../components/console/DesignColumnGrid.vue";
+import ErTableCard from "../../components/console/ErTableCard.vue";
 import type { DesignColumnRow } from "../../components/console/designColumnModel";
 // 类型分组与长度/小数位/UNSIGNED 适用范围：与「设计表」建表对话框共用一份
 import { COLUMN_TYPE_GROUPS, SCALE_ALLOWED, SIZE_REQUIRED, UNSIGNED_ALLOWED } from "../../utils/columnTypes";
@@ -2446,19 +2473,6 @@ const datasourceOptions = computed<CollectOption[]>(() =>
 function onDatasourcePick(value: string): void {
   currentDatasourceId.value = Number(value) || 0;
 }
-
-/**
- * 用户管理能力（SPI 判断）：仅当前数据源为 MySQL/MariaDB 内核时可用。
- *
- * <p>用户定义落在 {@code mysql.user} 表，MySQL/MariaDB 有完整的 CREATE/ALTER/DROP
- * USER 与 SHOW GRANTS；其余内核（含 PostgreSQL）结构与语义差异大，不显示入口。
- * 判断依据是当前数据源台账里的完整 JDBC URL（database 字段）。</p>
- */
-const usersSupported = computed(() => {
-  const ds = datasources.value.find(d => d.id === currentDatasourceId.value);
-  const url = (ds?.database ?? "").trim().toLowerCase();
-  return url.startsWith("jdbc:mysql:") || url.startsWith("jdbc:mariadb:");
-});
 
 // 连接树
 const databases = ref<string[]>([]);
@@ -6064,7 +6078,8 @@ const newTableDatabase = ref("");
 onMounted(async () => {
   await loadDatasources();
   // 数据源中心右键「用户管理」→ 打开全屏控制台并定位到用户管理页签（/db-manager/full?panel=users）
-  if (String(route.query.panel ?? "").toLowerCase() === "users" && usersSupported.value) {
+  // 入口对全部 JDBC 数据源开放；非 MySQL/MariaDB 内核由面板 supported=false 降级提示。
+  if (String(route.query.panel ?? "").toLowerCase() === "users") {
     openUsersTab();
   }
   // text2sql 入口按后端能力显隐（未集成/未配置 = 隐藏），失败已在 API 内兜底
@@ -6389,23 +6404,70 @@ const erExportDialogVisible = ref(false);
 /** 弹框内 ER 图对应的库名（页签与弹框分离后各自携带） */
 const erDialogDatabase = ref("");
 
-/** 图上的节点 */
-const erNodes = computed(() => erTables.value.map(t => ({
-  id: t.name,
-  label: t.comment ? `${t.name}\n${t.comment}` : t.name,
-  type: "rect" as const,
-  size: [180, 52] as [number, number],
-  style: {
-    fill: erMissingTables.value.has(t.name) ? "var(--el-fill-color-dark)" : "var(--el-bg-color-overlay)",
-    stroke: erMissingTables.value.has(t.name) ? "var(--el-color-warning)" : "var(--el-color-primary)",
-    lineWidth: 1,
-    radius: 6,
-    labelFill: "var(--el-text-color-primary)",
-    labelFontSize: 12,
-    cursor: "pointer",
-  },
-  data: { tableName: t.name, missing: erMissingTables.value.has(t.name) },
-})));
+/** 表卡列缓存：表名 → 列清单。只在需要展示列预览时按需拉取，避免 144 张表 N+1。 */
+const erTableCols = reactive(new Map<string, DbColumnInfo[]>());
+
+/** 按需拉取某张表的列并缓存（已有缓存或拉取失败时幂等返回）。 */
+async function ensureErCols(name: string): Promise<void> {
+  if (erTableCols.has(name)) return;
+  try {
+    const cols = await fetchTableColumns(
+      name,
+      currentDatasourceId.value,
+      erDialogDatabase.value || activeTabObj.value?.database,
+    );
+    erTableCols.set(name, cols || []);
+  } catch {
+    erTableCols.set(name, []);
+  }
+}
+
+/** 图上每张表的关联列线索（该表在外键里出现的列名集合） */
+function erRelColumns(name: string): string[] {
+  const out = new Set<string>();
+  for (const r of erRelations.value) {
+    if (r.fromTable === name && r.fromColumn) out.add(r.fromColumn);
+    if (r.toTable === name && r.toColumn) out.add(r.toColumn);
+  }
+  return [...out];
+}
+
+/** 图上的节点：有关系的表展开为「表卡」（html 节点，列预览 + 关系数徽标），
+ *  孤立表收敛为精简圆点（画布只对有内容的表花钱）。 */
+const erNodes = computed(() => erTables.value.map(t => {
+  const missing = erMissingTables.value.has(t.name);
+  const degree = erDegree(t.name);
+  if (degree > 0) {
+    return {
+      id: t.name,
+      label: t.name,
+      type: "html" as const,
+      size: [210, 132] as [number, number],
+      data: {
+        tableName: t.name,
+        comment: t.comment,
+        degree,
+        missing,
+        relCols: erRelColumns(t.name),
+        cols: erTableCols.get(t.name),
+      },
+    };
+  }
+  return {
+    id: t.name,
+    label: t.name,
+    type: "circle" as const,
+    size: 30,
+    style: {
+      fill: missing ? "var(--el-color-warning-light-9)" : "var(--el-bg-color-overlay)",
+      stroke: missing ? "var(--el-color-warning)" : "var(--el-border-color-lighter)",
+      lineWidth: 1,
+      labelFill: "var(--el-text-color-secondary)",
+      labelFontSize: 10,
+      cursor: "pointer",
+    },
+  };
+}));
 
 /** 只被外键引用、却不在表清单里的表（跨库外键等） */
 const erMissingTables = computed(() => new Set(
@@ -6817,21 +6879,21 @@ function sqlHighlight(sql: string): string {
   return out;
 }
 
-/** 某分组内可勾选的差异项（只有带 DDL 的才能勾选执行） */
-function groupCheckables(key: string): SyncDiffRow[] {
+/** 某分组内的全部项（不分有无 DDL：勾选态与行内 checkbox 完全一致） */
+function groupItems(key: string): SyncDiffRow[] {
   const g = syncGroups.value.find(g => g.key === key);
-  return g ? g.items.filter(d => d.ddl) : [];
+  return g ? g.items : [];
 }
 
-/** 分组头：全选 */
+/** 分组头：全选（作用于组内全部项，与行内勾选框一致；部署脚本仍只取有 DDL 的项） */
 function setGroupChecked(key: string, value: boolean) {
-  groupCheckables(key).forEach(d => (d.checked = value));
+  groupItems(key).forEach(d => (d.checked = value));
   syncDeployScript.value = buildDeployScript();
 }
 
 /** 分组头：反选 */
 function invertGroupChecked(key: string) {
-  groupCheckables(key).forEach(d => (d.checked = !d.checked));
+  groupItems(key).forEach(d => (d.checked = !d.checked));
   syncDeployScript.value = buildDeployScript();
 }
 
@@ -7367,6 +7429,16 @@ async function loadErDiagram(): Promise<void> {
           erTables.value.push({ name: n, comment: "（被外键引用，但不在当前库的表清单里）" });
         }
       }
+    }
+    // 表卡列预览：只对有关系的表预取列（关系表通常远少于全表，避免 N+1 打满库）。
+    // 孤立表不预取，保持圆点形态；用户双击表卡时 ensureErCols 幂等补拉。
+    const related = new Set<string>();
+    for (const r of erRelations.value) {
+      if (r.fromTable) related.add(r.fromTable);
+      if (r.toTable) related.add(r.toTable);
+    }
+    for (const name of related) {
+      void ensureErCols(name);
     }
   } catch (e) {
     erError.value = `读取失败：${String((e as Error)?.message ?? e)}`;
@@ -9096,6 +9168,20 @@ onBeforeUnmount(() => {
 /* 结构同步弹窗 */
 /* ============ 结构同步（Navicat 业务链：选择→比较→差异→部署；风格用 Vue/koi 变量） ============ */
 .dbm-sync { display: flex; flex-direction: column; gap: 10px; position: relative; flex: 1; min-height: 0; }
+/* 中间内容区（方向条与底部操作条之间）：**唯一**的滚动容器。
+   矮视口（1440x800 及以下）时 .dbm-sync 的内容比弹窗 body 高，body 是 overflow:hidden，
+   以前底部操作条直接被裁到框外看不见。现在改由这一层滚，底部条固定贴底。 */
+.dbm-sync-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* 滚动条出现时不要挤压内容宽度 */
+  scrollbar-gutter: stable;
+}
 /* 顶部源→目标方向示意（图 1/3/4/5 均保留） */
 .dbm-sync-direction {
   display: flex;
@@ -9135,9 +9221,10 @@ onBeforeUnmount(() => {
 .dbm-sync-db-icon--dst { background: var(--el-color-primary); }
 .dbm-sync-direction-arrow { color: var(--el-text-color-placeholder); }
 
-/* 源/目标双面板 */
+/* 源/目标双面板：可以长（够高就撑满），但不许被压缩到比内容还矮 ——
+   压不下去时由外层 .dbm-sync-body 滚，底部操作条才不会掉出弹窗。 */
 .dbm-sync-panes {
-  flex: 1;
+  flex: 1 0 auto;
   min-height: 0;
   display: flex;
   align-items: stretch;
@@ -9223,8 +9310,9 @@ onBeforeUnmount(() => {
   transition: width 0.3s ease;
 }
 
-/* 差异页分组列表（图 3：源对象 / 操作 / 目标对象 三列，按操作分组折叠） */
-.dbm-sync-groups { display: flex; flex-direction: column; gap: 4px; flex: 1; min-height: 0; overflow-y: auto; }
+/* 差异页分组列表（图 3：源对象 / 操作 / 目标对象 三列，按操作分组折叠）
+   —— 这里不要再自带 overflow-y：滚动交给外层 .dbm-sync-body，否则出现嵌套双滚动条。 */
+.dbm-sync-groups { display: flex; flex-direction: column; gap: 4px; flex: 1 0 auto; }
 .dbm-sync-group { border: 1px solid var(--el-border-color-lighter); border-radius: var(--el-radius-base, 4px); }
 .dbm-sync-group-head {
   display: flex;
@@ -9322,7 +9410,7 @@ onBeforeUnmount(() => {
 .dbm-sync-tab.active { color: var(--el-color-primary); border-bottom-color: var(--el-color-primary); font-weight: 600; }
 
 /* 部署脚本：可编辑（图 4），SQL 语法高亮 overlay：下层 pre 高亮、上层透明 textarea 同步滚动 */
-.dbm-sync-script-panel { display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 0; }
+.dbm-sync-script-panel { display: flex; flex-direction: column; gap: 6px; flex: 1 0 auto; min-height: 180px; }
 .dbm-sync-script-head { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--el-text-color-secondary); }
 .dbm-sync-sql-editor {
   position: relative;
@@ -9377,7 +9465,7 @@ onBeforeUnmount(() => {
 .dbm-sync-sql-hl .sql-com { color: var(--el-text-color-placeholder); font-style: italic; }
 
 /* 消息日志（图 5）：统计面板 + SSE 逐条日志 */
-.dbm-sync-log-panel { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; }
+.dbm-sync-log-panel { display: flex; flex-direction: column; gap: 8px; flex: 1 0 auto; min-height: 180px; }
 .dbm-sync-run-stats {
   display: flex;
   gap: 20px;
@@ -9430,8 +9518,9 @@ onBeforeUnmount(() => {
 .dbm-sync-log-msg { flex: none; color: var(--el-text-color-secondary); }
 .dbm-sync-log-line--fail .dbm-sync-log-msg { color: var(--el-color-danger); }
 
-/* 底部导航 */
+/* 底部导航：flex:none —— 无论中间滚到哪，这一条始终占住弹窗底边、不被压缩 */
 .dbm-sync-foot {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -10374,5 +10463,17 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+}
+/* ReDialog 把 slot 又包了一层 .dialog-content-wrapper，默认是 display:block + overflow:auto
+   —— 等于「方向条 + 中间内容 + 底部操作条」整块一起滚：差异项一多（实测 4545px）或视口矮
+   （1440x800 及以下）时，底部按钮就被滚出可视区，永远看不到「比较 / 下一步 / 开始」。
+   这里把它改成定高 flex 列且不自己滚，高度约束才能传到 .dbm-sync，
+   中间的 .dbm-sync-body 才拿得到确定高度、overflow:auto 才真正生效。
+   ⚠ 必须限定在本弹窗的 class 下：.dialog-content-wrapper 是全站 ReDialog 共用的。 */
+.dbm-sync-dialog .dialog-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 </style>
