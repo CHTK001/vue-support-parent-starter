@@ -120,6 +120,15 @@
   background: var(--el-border-color-lighter);
 }
 
+/** 控制栏左侧的内容分段位（bar-lead 插槽）与右侧动作位（bar-actions 插槽） */
+.pk-bar__lead,
+.pk-bar__actions {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /** 控制栏右侧的计数/口径说明 */
 .pk-bar__count {
   flex: none;

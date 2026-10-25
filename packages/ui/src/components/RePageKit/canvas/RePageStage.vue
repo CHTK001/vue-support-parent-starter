@@ -13,10 +13,22 @@
 
   画布通过名为方向 id 的插槽提供（console / instrument / rhythm / dossier / wall），
   当前方向由 `variant` 决定，舞台只渲染对应那一个。
+
+  页头只留标题与一句说明。**操作按钮不放页头**：页头右侧一旦挂上分段 + 若干按钮，
+  下面再跟一条筛选卡，就会变成两行竞相争夺视线 —— 第一行右侧是按钮、第二行右侧
+  又是计数与刷新。按钮应当与控制栏同处一张卡：
+
+  - `bar-lead`   —— 控制栏最左（内容分段，如「证书 / 账户」），后面自动补分隔线
+  - `bar-actions` —— 控制栏最右（计数之后、刷新之前），一组动作按钮
+
+  两个插槽都不传时，控制栏与旧版完全一致。
+
+  若页面连标题也不想要（比如上级菜单 / 面包屑已经说清「这里是哪一页」），
+  传 `no-head` 把整段页头关掉，页面的第一行就是控制栏。
 -->
 <template>
   <div class="pk-page">
-    <div class="pk-head">
+    <div v-if="!noHead" class="pk-head">
       <div class="pk-head__titles">
         <h2 class="pk-head__title">{{ title }}</h2>
         <p v-if="desc" class="pk-head__desc">{{ desc }}</p>
@@ -27,6 +39,14 @@
     </div>
 
     <div v-if="showBar" class="pk-bar">
+      <div v-if="$slots['bar-lead']" class="pk-bar__lead">
+        <slot name="bar-lead" />
+      </div>
+      <span
+        v-if="$slots['bar-lead'] && ((tabs && tabs.length) || (filters && filters.length))"
+        class="pk-bar__sep"
+      />
+
       <div v-if="tabs && tabs.length" class="pk-seg" role="group" :aria-label="tabLabel">
         <button
           v-for="tab in tabs"
@@ -65,6 +85,9 @@
 
       <span class="pk-bar__spacer" />
       <span v-if="countText" class="pk-bar__count">{{ countText }}</span>
+      <div v-if="$slots['bar-actions']" class="pk-bar__actions">
+        <slot name="bar-actions" />
+      </div>
       <ReButton
         icon="Refresh"
         layout="square"
@@ -122,6 +145,8 @@ withDefaults(
     loading?: boolean
     /** 是否显示控制栏；档案柜等以栏内搜索为主的页面可关掉 */
     showBar?: boolean
+    /** 连页头（标题 + 说明）一起关掉，页面的第一行就是控制栏 */
+    noHead?: boolean
     /** 分段控件的无障碍分组名 */
     tabLabel?: string
     /** 刷新按钮提示 */
@@ -137,6 +162,7 @@ withDefaults(
     countText: '',
     loading: false,
     showBar: true,
+    noHead: false,
     tabLabel: '按状态筛选',
     refreshTip: '刷新',
   },
