@@ -5,11 +5,18 @@
  * （InfluxDB / Neo4j / Nacos / ZooKeeper）。请求走 @repo/utils 的 http 管线，
  * 返回已解包的业务数据。</p>
  *
+ * <p><strong>导入副作用</strong>：本模块的接口全部落在监控后端的 {@code /ms/monitor/db/*}
+ * 前缀下。宿主一旦用到本模块（数据源控制台页面），「浏览表结构」就应走同一套接口，
+ * 因此本模块在导入时把表结构提供者切成监控侧实现 —— 宿主不必再在 main.ts 里手写一次
+ * 注册调用（与本包 {@code registerMenuViewModules} 的「导入即注册」约定同构）。</p>
+ *
  * @author CH
  * @since 4.0.0
  */
 import { getAccessToken, http, unwrapResult } from "@repo/utils";
 import type { DbColumnPayload } from "./dbManageApi";
+import { setDatasourceSchemaProvider, hubSchemaProvider, type CollectColumn, type DataSourceInfo } from "./index";
+import { fetchDataSource } from "./index";
 
 const unwrap = <T>(res: any): T => unwrapResult<T>(res);
 // ==================== 数据库 web 管理器（使用默认主 datasource） ====================
@@ -274,6 +281,86 @@ export const executeDbSql = (sql: string, datasourceId?: number, database?: stri
     .data({ sql, datasourceId, database, txId });
   return (timeoutMs === undefined ? req : req.timeout(timeoutMs)).then(r => unwrap<DbQueryResult>(r));
 };
+
+// ---------- 用户管理（需求：数据源中心 / JDBC 控制台右键，SPI 判断显隐） ----------
+
+/** 数据库用户行（后端 DbUserVO） */
+export interface DbUserRow {
+  name: string;
+  host: string;
+  sslType?: string | null;
+  maxQuestionsPerHour?: number | null;
+  maxUpdatesPerHour?: number | null;
+  maxConnectionsPerHour?: number | null;
+  maxUserConnections?: number | null;
+  isSuper?: boolean;
+}
+
+/** 用户列表响应：supported=false 表示该内核不支持用户管理 */
+export interface DbUserListResult {
+  supported: boolean;
+  users: DbUserRow[];
+  message?: string;
+}
+
+/** 保存用户的请求体（新建 / 修改共用） */
+export interface DbUserSavePayload {
+  [key: string]: unknown;
+  datasourceId?: number;
+  username: string;
+  host: string;
+  password?: string;
+  grants?: string[];
+  superUser?: boolean;
+}
+
+/** 删除/查权限用户的请求体 */
+export interface DbUserIdentity {
+  [key: string]: unknown;
+  datasourceId?: number;
+  username: string;
+  host: string;
+}
+
+/** 查询数据库用户列表（仅 MySQL/MariaDB 支持，其余内核返回 supported=false） */
+export const fetchDbUsers = (datasourceId: number) =>
+  http()
+    .get("/ms/monitor/db/users")
+    .noToast(true)
+    .query({ datasourceId })
+    .then((r: any) => unwrap<DbUserListResult>(r));
+
+/** 新建数据库用户（CREATE USER + GRANT） */
+export const createDbUser = (payload: DbUserSavePayload) =>
+  http()
+    .post("/ms/monitor/db/users")
+    .noToast(true)
+    .data(payload)
+    .then(r => unwrap<boolean>(r));
+
+/** 修改数据库用户（ALTER USER + 增量权限） */
+export const updateDbUser = (payload: DbUserSavePayload) =>
+  http()
+    .put("/ms/monitor/db/users")
+    .noToast(true)
+    .data(payload)
+    .then(r => unwrap<boolean>(r));
+
+/** 删除数据库用户（DROP USER） */
+export const deleteDbUser = (payload: DbUserIdentity) =>
+  http()
+    .delete("/ms/monitor/db/users")
+    .noToast(true)
+    .data(payload)
+    .then(r => unwrap<boolean>(r));
+
+/** 查询数据库用户权限（SHOW GRANTS FOR） */
+export const fetchDbUserGrants = (payload: DbUserIdentity) =>
+  http()
+    .post("/ms/monitor/db/users/grants")
+    .noToast(true)
+    .data(payload)
+    .then(r => unwrap<{ supported: boolean; grants: string[]; message?: string }>(r));
 
 // ---------- AI text2sql（第九批 7.2：后端集成 ai-starter 才有这两个端点） ----------
 
@@ -631,6 +718,72 @@ export async function downloadDbDocument(params: {
       `database-doc.${params.format === "markdown" ? "md" : params.format}`,
     ),
   };
+}
+
+/**
+ * 在线查看数据库设计文档（markdown → HTML，用于弹窗内预览）。
+ *
+ * <p>与导出走同一套结构采集路径，但端点返回可直接渲染的 HTML。
+ * word / pdf 为二进制格式，在线预览端点会返回 501 并给出下载提示。</p>
+ *
+ * @param params 数据源、库名与可选的模板样式
+ * @returns 渲染后的 HTML 文本
+ * @author CH
+ * @since 4.0.0.43
+ */
+export async function previewDbDocument(params: {
+  datasourceId: number;
+  database?: string;
+  template?: string;
+}): Promise<string> {
+  const query = new URLSearchParams();
+  query.set("datasourceId", String(params.datasourceId));
+  if (params.database) query.set("database", params.database);
+  query.set("format", "markdown");
+  if (params.template) query.set("template", params.template);
+
+  const token = getAccessToken();
+  const response = await fetch(`/ms/monitor/db/document/preview?${query.toString()}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) {
+    throw new Error((await response.text()) || `预览失败（HTTP ${response.status}）`);
+  }
+  return response.text();
+}
+
+/**
+ * 取数据库设计文档的 HTML 文本（右键「查看数据库文档」用）。
+ *
+ * <p>与 {@link downloadDbDocument} 同源同端点，只是拿 {@code text/html} 的响应体
+ * 文本而不是 blob —— 右键入口要把文档在页面内直接展示，不需要落盘文件名。</p>
+ *
+ * @param params 数据源、库名与模板；format 固定 html
+ * @returns HTML 文档文本
+ * @author CH
+ * @since 4.0.0.43
+ */
+export async function fetchDbDocumentHtml(params: {
+  datasourceId: number;
+  database?: string;
+  template?: string;
+  tables?: string;
+}): Promise<string> {
+  const query = new URLSearchParams();
+  query.set("datasourceId", String(params.datasourceId));
+  if (params.database) query.set("database", params.database);
+  query.set("format", "html");
+  if (params.template) query.set("template", params.template);
+  if (params.tables) query.set("tables", params.tables);
+
+  const token = getAccessToken();
+  const response = await fetch(`/ms/monitor/db/document/export?${query.toString()}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) {
+    throw new Error((await response.text()) || `获取数据库文档失败（HTTP ${response.status}）`);
+  }
+  return response.text();
 }
 // ==================== 外部服务管理（InfluxDB / Neo4j / Nacos / ZooKeeper） ====================
 
@@ -1084,3 +1237,197 @@ export const updateZkNode = (request: { path: string; data: string; datasourceId
  */
 export const deleteZkNode = (path: string, datasourceId?: number) =>
   http().delete("/ms/monitor/zookeeper/node").query({ path, datasourceId }).then(r => unwrap<boolean>(r));
+
+// ==================== 表结构提供者（监控侧） ====================
+
+/**
+ * 每个数据源在浏览时会话内选定的库。
+ *
+ * <p>列元数据接口需要 database 参数，而「浏览表结构」只携带数据源 ID，
+ * 因此先由表清单流程选定并缓存，列查询复用同一库。</p>
+ */
+const schemaDatabaseCache = new Map<number, string>();
+
+/** 系统库：仅当数据源自身未登记库名时才跳过 */
+const SYSTEM_DATABASES = new Set([
+  "information_schema",
+  "performance_schema",
+  "mysql",
+  "sys",
+  "pg_catalog",
+]);
+
+/**
+ * 数据源在「浏览/选表」时会话内命中的库名。
+ *
+ * <p>表清单由候选库逐个试出，命中库已写进 {@link schemaDatabaseCache}。
+ * 同步任务保存/预览时目标表要拼成「库.表」，否则后端按连接默认 catalog 查列，
+ * 会出现「页面选得到表、后台报 Table '<默认库>.<表>' doesn't exist」。</p>
+ *
+ * @param datasourceId 数据源 ID
+ * @returns 命中的库名；尚未选过表/无库概念时 undefined
+ */
+export function getDatasourceDatabase(datasourceId: number): string | undefined {
+  return schemaDatabaseCache.get(datasourceId);
+}
+
+/**
+ * 候选库顺序：优先数据源登记的库名，其次首个非系统库，最后其余库。
+ *
+ * <p>系统库（如 mysql）在部分服务端不可枚举表，故登记库取不到表时按此顺序回退。</p>
+ *
+ * @param meta      数据源台账，可能为 null
+ * @param databases 服务端返回的库列表
+ * @return 去重后的候选库（最多 3 个，避免逐库试错拖慢弹窗）
+ */
+function pickDatabaseCandidates(meta: DataSourceInfo | null, databases: string[]): string[] {
+  const ordered: string[] = [];
+  const push = (name: string | undefined) => {
+    if (name && databases.includes(name) && !ordered.includes(name)) {
+      ordered.push(name);
+    }
+  };
+  const configured = typeof meta?.database === "string" ? meta.database.trim() : "";
+  push(configured);
+  push(databases.find(name => !SYSTEM_DATABASES.has(name.toLowerCase())));
+  databases.forEach(name => push(name));
+  // 文件库（SQLite）没有「库」概念，服务端返回 []：兜一个空串候选，
+  // 走「默认库」链路（fetchDbTables(id, ""))拉表，弹窗才不至于空手而归
+  if (!ordered.length) {
+    ordered.push("");
+  }
+  return ordered.slice(0, 3);
+}
+
+/**
+ * 遍历候选库，找到「有表」的那个库及其表清单。
+ *
+ * <p>候选库顺序见 {@link pickDatabaseCandidates}：登记库优先，其次首个非系统库，
+ * 最后其余库。命中即返回，命中库会写进 {@link schemaDatabaseCache} 供列查询复用。</p>
+ *
+ * @param id 数据源 ID
+ * @returns 命中的库名与表清单；所有候选库都取不到表时返回 null
+ */
+async function resolveMonitorTables(
+  id: number,
+): Promise<{ database: string; tables: DbTableInfo[] } | null> {
+  const [meta, databases] = await Promise.all([
+    fetchDataSource(id).catch(() => null),
+    fetchDbDatabases(id).catch(() => [] as string[]),
+  ]);
+  const candidates = pickDatabaseCandidates(meta, databases ?? []);
+  for (const database of candidates) {
+    const tables = await fetchDbTables(id, database).catch(() => []);
+    if (tables && tables.length > 0) {
+      return { database, tables };
+    }
+  }
+  return null;
+}
+
+/**
+ * 同步任务表清单：遍历数据源下所有库，返回带库前缀的限定表名（{@code 库.表}）。
+ *
+ * <p>同步任务的预览/保存需要把表名连同真实库一起交给后端，否则后端按连接默认
+ * catalog 查列会出现「页面选得到表、后台报 Table '<默认库>.<表>' doesn't exist」。
+ * 源/目标下拉直接使用本函数的结果，value 即 {@code jdbc_acc.__e...}、{@code ngxacc.device_channel}；
+ * 因此同一数据源下多库的表都能被选中，而不是只列出“命中的第一个库”。</p>
+ *
+ * <p>列查询复用 {@link schemaDatabaseCache} 时，这里约定最后设置第一个有表的候选库，
+ * 仅供“裸表名手输”场景兜底；下拉选中值本身已含库前缀，不依赖该缓存。</p>
+ *
+ * @param datasourceId 数据源 ID
+ * @returns 限定表名列表（无库概念时裸表名）
+ */
+export async function fetchMonitorTablesQualified(datasourceId: number | string): Promise<string[]> {
+  const id = Number(datasourceId);
+  if (!Number.isFinite(id) || id <= 0) {
+    const infos = (await hubSchemaProvider.fetchTableInfos?.(datasourceId)) ?? [];
+    return infos.map(info => info.name);
+  }
+  const [meta, databases] = await Promise.all([
+    fetchDataSource(id).catch(() => null),
+    fetchDbDatabases(id).catch(() => [] as string[]),
+  ]);
+  const candidates = pickDatabaseCandidates(meta, databases ?? []);
+  const result: string[] = [];
+  let firstHitDatabase = "";
+  for (const database of candidates) {
+    const tables = await fetchDbTables(id, database).catch(() => [] as DbTableInfo[]);
+    if (tables && tables.length > 0) {
+      if (!firstHitDatabase) {
+        firstHitDatabase = database;
+        schemaDatabaseCache.set(id, database);
+      }
+      if (database) {
+        result.push(...tables.map(table => `${database}.${table.name}`));
+      } else {
+        result.push(...tables.map(table => table.name));
+      }
+    }
+  }
+  if (!firstHitDatabase) {
+    schemaDatabaseCache.delete(id);
+  }
+  return result;
+}
+
+/**
+ * 把「浏览表结构」切到监控侧实现（{@code /ms/monitor/db/*}）。
+ *
+ * <p>本模块的接口本就落在监控后端前缀下，宿主用到本模块即意味着「浏览表结构」
+ * 也该走这里。导入时自动执行一次，宿主无须在 main.ts 里手写注册调用。</p>
+ */
+export function registerMonitorSchemaProvider(): void {
+  async function monitorTables(id: number): Promise<string[]> {
+    const hit = await resolveMonitorTables(id);
+    if (hit) {
+      schemaDatabaseCache.set(id, hit.database);
+      return hit.tables.map(table => table.name);
+    }
+    schemaDatabaseCache.delete(id);
+    return [];
+  }
+
+  setDatasourceSchemaProvider({
+    async fetchTables(datasource) {
+      const id = Number(datasource);
+      if (!Number.isFinite(id) || id <= 0) {
+        // 采集侧默认目标库是 app/空串，不属于数据库控制台的数字数据源 ID，
+        // 应回落到数据源中心默认实现，否则目标表下拉永远拿不到应用主库的表。
+        return hubSchemaProvider.fetchTables(datasource);
+      }
+      return monitorTables(id);
+    },
+
+    async fetchTableInfos(datasource) {
+      const id = Number(datasource);
+      if (!Number.isFinite(id) || id <= 0) {
+        return (await hubSchemaProvider.fetchTableInfos?.(datasource)) ?? [];
+      }
+      const names = await monitorTables(id);
+      return names.map(name => ({ name, comment: null, type: null }));
+    },
+
+    async fetchColumns(datasource, table) {
+      const id = Number(datasource);
+      if (!Number.isFinite(id) || id <= 0) {
+        return hubSchemaProvider.fetchColumns(datasource, table);
+      }
+      const columns = await fetchTableColumns(table, id, schemaDatabaseCache.get(id));
+      return (columns ?? []).map(
+        (column): CollectColumn => ({
+          name: column.name,
+          label: column.remark ?? null,
+          position: column.position ?? null,
+          typeName: column.type ?? null,
+          size: column.size ?? null,
+          nullable: column.nullable ?? null,
+          primaryKey: column.isPrimaryKey ?? null,
+        }),
+      );
+    },
+  });
+}
+
+registerMonitorSchemaProvider();

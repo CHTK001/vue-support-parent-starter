@@ -15,13 +15,11 @@
         :data="tokens"
         :columns="tokenColumns"
         :loading="loading"
-        engine="element"
-        :pagination="false"
-        :toolbar="false"
         :layout-table="{ minHeight: 0 }"
         :settings="{ border: false }"
         stripe
         class="stp-table"
+        :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
       >
         <template #col-token="{ row }">
           <div class="stp-token">
@@ -51,11 +49,13 @@
             {{ row.enabled ? '启用' : '禁用' }}
           </el-tag>
         </template>
+        <!-- 操作列统一 ReButton square（纯图标 + tooltip） -->
         <template #col-actions="{ row }">
-          <el-button @click="toggle(row)">
-            {{ row.enabled ? '禁用' : '启用' }}
-          </el-button>
-          <el-button type="danger" plain @click="remove(row)">删除</el-button>
+          <div class="row-actions">
+            <ReButton v-if="row.enabled" layout="square" type="warning" :icon="Lock" tip="禁用" @click="toggle(row)" />
+            <ReButton v-else layout="square" type="success" :icon="Unlock" tip="启用" @click="toggle(row)" />
+            <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click="remove(row)" />
+          </div>
         </template>
       </ReTable>
     </div>
@@ -103,6 +103,8 @@ import { ref, watch, onMounted } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { createClient, v2Http } from '@/framework/context'
 import { Add24Regular, Copy24Regular } from '@vicons/fluent'
+import { Delete, Lock, Unlock } from '@element-plus/icons-vue'
+import ReButton from '@repo/ui/re-button'
 import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 import ReDialog from '@repo/ui/re-dialog'

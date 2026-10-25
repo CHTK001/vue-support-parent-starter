@@ -116,10 +116,7 @@
 /* ---------------- 卡片骨架 ---------------- */
 
 .collect-card {
-  border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--cc-radius);
-  background: var(--el-fill-color-blank);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 4%);
 }
 
 .collect-card--head {

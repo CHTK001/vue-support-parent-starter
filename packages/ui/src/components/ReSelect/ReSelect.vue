@@ -29,20 +29,16 @@
  *   同一「查询条件（params + keyword）」在 cacheTtl 内再次出现时直接读存档，不再请求；
  *   显式 reload() 绕过缓存一次并顺手写回，暴露 clearCache() 供增删改后主动失效。
  */
-import { computed, defineAsyncComponent, onMounted, ref, useAttrs, watch } from "vue";
+import { computed, onMounted, ref, useAttrs, watch } from "vue";
 import { ElSelect, ElOption, ElCheckbox } from "element-plus";
 import { getApiHttp, useDataSource, type ReDataSource } from "@repo/core";
 import type { ReOption, ReSelectCacheStorage, ReSelectLayout, ReSelectLoader, ReSelectSize } from "./types";
-import { debounce, createStorage, browserLocalStorage, browserSessionStorage, type StorageWrapper } from "@repo/utils";
+import { debounce, createStorage, browserLocalStorage, browserSessionStorage, yieldToMain, type StorageWrapper } from "@repo/utils";
 import { getStorageKey } from "@repo/config";
 import "../shared/modern-vars.css";
-
-/** 卡片下拉布局组件（按需异步加载） */
-const CardDropdownLayout = defineAsyncComponent(() => import("./layouts/CardDropdown.vue"));
-/** Square 布局组件（按需异步加载） */
-const SquareLayout = defineAsyncComponent(() => import("./layouts/Square.vue"));
-/** Modern 扁平布局组件（按需异步加载） */
-const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
+import CardDropdownLayout from "./layouts/CardDropdown.vue";
+import SquareLayout from "./layouts/Square.vue";
+import ModernLayout from "./layouts/Modern.vue";
 
 defineOptions({ name: "ReSelect", inheritAttrs: true });
 
@@ -137,6 +133,12 @@ const props = withDefaults(
     iconOnly?: boolean;
     /** square 布局：竖向档位列表（一行一档，整行高亮 + 右侧对勾），用于浮层里选间隔等场景 */
     vertical?: boolean;
+    /** square 布局：选中项图标名（缺省回退到选项自身的 activeIcon / icon） */
+    activeIcon?: string;
+    /** square 布局：未选中项图标名（缺省回退到选项自身的 inactiveIcon / icon） */
+    inactiveIcon?: string;
+    /** square 布局：内置图标集名（sunmoon / check / star / bell / arrow / anim）；"none" 关闭内置回落 */
+    preset?: string;
     /** 紧凑模式：square/card 布局下拉框宽度自适应文字，默认 false */
     compact?: boolean;
     /** 卡片多选时：是否显示全选 / 反选（默认 false） */
@@ -170,6 +172,9 @@ const props = withDefaults(
     triggerIcon: true,
     iconOnly: true,
     vertical: false,
+    activeIcon: "",
+    inactiveIcon: "",
+    preset: undefined,
     compact: undefined,
     bulkActions: false,
   },
@@ -187,6 +192,11 @@ const isRemote = computed<boolean>(
  * 而 size 会被 v-bind="$attrs" / modernProps 透传到子布局，各处重复兜底容易漏。
  */
 const controlSize = computed<ReSelectSize>(() => props.type ?? props.size ?? "default");
+
+/** el-select 能吃下的档位：element 原生只有 large/default/small，mini 归一为 small + CSS 压薄 */
+const elSelectSize = computed<"large" | "default" | "small">(() =>
+  controlSize.value === "mini" ? "small" : controlSize.value,
+);
 
 /** 静态模式下的最终数据（data 传数组优先，否则 options） */
 const staticData = computed<ReOption[]>(() =>
@@ -480,9 +490,13 @@ const modernBind = computed(() => ({ ...modernProps.value, ...attrs }));
  * <p>与 ReTable 的 {@code reload()} 同一语义：默认的 params / keyword 变化重载仍走缓存，
  * 只有这里的显式刷新强制走网络。</p>
  */
-function reload(): Promise<void> {
+async function reload(): Promise<void> {
   bypassCacheOnce = isRemote.value;
-  return dsReload();
+  // 先让一帧：让下拉的 loading 态（Element Plus 的 spinner）先画出来再取数。
+  // 否则点击刷新后浏览器要等接口回来才开始处理后续任务，用户看到的是
+  // 「按下去没反应，过一会儿整块冻住」—— 与 ReTable 的刷新是同一个问题。
+  await yieldToMain();
+  await dsReload();
 }
 
 defineExpose({
@@ -544,6 +558,9 @@ defineExpose({
     :vertical="vertical"
     :compact="isCompact"
     :control-size="controlSize"
+    :active-icon="activeIcon"
+    :inactive-icon="inactiveIcon"
+    :preset="preset"
     v-bind="$attrs"
   />
 
@@ -561,7 +578,7 @@ defineExpose({
     :collapse-tags="collapseTags"
     :disabled="disabled"
     :loading="loading || dataLoading"
-    :size="controlSize"
+    :size="elSelectSize"
     :filter-method="onInput"
     :popper-class="isRichLayout ? 're-select__popper--rich' : ''"
     :teleported="true"
@@ -742,6 +759,16 @@ defineExpose({
   min-height: var(--rm-height-sm);
   padding: 2px 10px;
   font-size: var(--rm-font-sm);
+}
+/* mini 档：比 small 再压薄（element 原生无 mini，复用 small 的 :size + 这里压高度） */
+.re-select.re-select--mini :deep(.el-select__wrapper) {
+  min-height: 24px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+.re-select.re-select--mini :deep(.el-select__placeholder),
+.re-select.re-select--mini :deep(.el-select__selected-item) {
+  font-size: 12px;
 }
 .re-select.re-select--large :deep(.el-select__wrapper) {
   min-height: var(--rm-height-lg);

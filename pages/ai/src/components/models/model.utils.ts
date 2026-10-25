@@ -1,5 +1,5 @@
 // 模型管理：数据映射与工具函数
-import { TASK_TO_TYPE, LOCAL_PROVIDER_IDS, PROVIDER_SOURCE_LABEL, taskHintForName } from './model.constants'
+import { TASK_TO_TYPE, LOCAL_PROVIDER_IDS, PROVIDER_SOURCE_LABEL, taskHintForName, PROVIDER_TEMPLATES } from './model.constants'
 
 /**
  * 转发 model.constants 里的这几个符号。
@@ -15,7 +15,7 @@ import { TASK_TO_TYPE, LOCAL_PROVIDER_IDS, PROVIDER_SOURCE_LABEL, taskHintForNam
  * 加载期 pageerror 1 条）。import 未使用的 TASK_TO_TYPE 等同样转发，避免以后再有人
  * 从 utils 取它们时踩同一个坑。</p>
  */
-export { TASK_TO_TYPE, LOCAL_PROVIDER_IDS, PROVIDER_SOURCE_LABEL, taskHintForName }
+export { TASK_TO_TYPE, LOCAL_PROVIDER_IDS, PROVIDER_SOURCE_LABEL, taskHintForName, PROVIDER_TEMPLATES }
 
 export interface ModelConfig {
   inputCapabilities: string[]
@@ -41,10 +41,14 @@ export interface ModelConfig {
   /** 生成参数（仅 image / video 类型）：随模型走 capabilities[].generate 节点 */
   generate: ModelGenerateConfig
   /**
-   * 思考强度档位（low/medium/high/max）：随模型走 capabilities[].thinking_efforts 节点。
+   * 思考强度档位（none/minimal/low/medium/high/max）：随模型走 capabilities[].thinking_efforts 节点。
    * 空数组视为「未配置」，前端按默认集合兜底；'default' 由会话层表示「不传」。
    */
   thinkingEfforts: string[]
+  /**
+   * 能力开关（Models.dev 回填 / 手动配置）：attachment / reasoning / tool_call / temperature / open_weights
+   */
+  capabilities: string[]
   [key: string]: any
 }
 
@@ -120,11 +124,13 @@ export function createDefaultModelConfig(src: any = {}): ModelConfig {
     cvMode: src.cvMode || 'classify',
     cvConfidence: src.cvConfidence ?? null,
     generate: createDefaultGenerateConfig(src.generate),
-    // 思考强度档位：默认 low/medium/high/max（用户可在模型管理里改；清空视为未配置，
+    // 思考强度档位：默认 none/minimal/low/medium/high/max（用户可在模型管理里改；清空视为未配置，
     // 保存时仍会写成空数组，前端读取时再按默认集合兜底）
     thinkingEfforts: Array.isArray(src.thinkingEfforts) && src.thinkingEfforts.length
       ? [...src.thinkingEfforts]
-      : ['low', 'medium', 'high', 'max'],
+      : ['none', 'minimal', 'low', 'medium', 'high', 'max'],
+    // 能力开关：默认空，由 Models.dev 回填或手动勾选
+    capabilities: Array.isArray(src.capabilities) ? [...src.capabilities] : [],
   }
 }
 
@@ -151,150 +157,11 @@ function parseApiKeys(raw: any): string[] {
 }
 
 // ===== 供应商品牌（logo）解析 =====
-// 说明：历史数据把「接入协议」（openai/anthropic/gemini 等）写进了 platform，
-// 导致所有 OpenAI 兼容供应商都显示 OpenAI 图标。这里统一把「品牌」与「协议」解耦：
-// 优先用 base_url 域名、其次名称推断品牌，platform 仅在它本身就是品牌时才采用。
+// 品牌映射统一维护在 providerIcons.ts，此处仅转发，避免多处重复定义。
+import { resolveProviderBrand, PROTOCOL_IDS } from './providerIcons'
 
-// 已知品牌 id（与 public/images/providers 下的图标文件名对应，不含扩展名）
-const BRAND_IDS = new Set([
-  '360', '360ai', 'agnes', 'ai302', 'aliyun-bailian', 'anthropic', 'aws-bedrock', 'azure',
-  'bai', 'baichuan', 'baidu', 'baidu-wenxin', 'cerebras', 'cohere', 'commandcode', 'deepseek',
-  'dots', 'doubao', 'flytek', 'google', 'groq', 'huggingface', 'huiqing', 'hunyuan', 'longcat',
-  'minimax', 'mistral', 'mock', 'modelscope', 'moonshot', 'nvidia', 'ollama', 'onnx',
-  'openai', 'openai-response', 'opencode', 'openrouter', 'perplexity', 'qianfan', 'qwen',
-  'sensenova', 'siliconflow', 'spark', 'stepfun', 'tencent', 'together', 'volcengine',
-  'xai', 'xqapi', 'zhipu',
-])
-
-// 这些是「协议」值，单独出现不能作为品牌（避免把中转服务误标成 OpenAI）
-const PROTOCOL_IDS = new Set(['', 'openai', 'openai-response', 'anthropic', 'gemini', 'agent', 'custom'])
-
-// base_url 域名片段 -> 品牌（按顺序匹配，靠前的优先）
-const DOMAIN_BRANDS: Array<[string, string]> = [
-  ['deepseek', 'deepseek'],
-  ['agnes', 'agnes'],
-  ['openrouter', 'openrouter'],
-  ['commandcode', 'commandcode'],
-  ['siliconflow', 'siliconflow'],
-  ['bigmodel', 'zhipu'],
-  ['moonshot', 'moonshot'],
-  ['minimax', 'minimax'],
-  ['baichuan-intl', 'baichuan'],
-  ['baichuan', 'baichuan'],
-  ['stepfun', 'stepfun'],
-  ['sensenova', 'sensenova'],
-  ['volcengine', 'volcengine'],
-  ['ark.cn', 'volcengine'],
-  ['xf-yun', 'spark'],
-  ['spark-api', 'spark'],
-  ['hunyuan', 'hunyuan'],
-  ['tencent', 'tencent'],
-  ['modelscope', 'modelscope'],
-  ['dashscope', 'qwen'],
-  ['qianfan', 'baidu'],
-  ['baidu', 'baidu'],
-  ['360', '360ai'],
-  ['ai302', 'ai302'],
-  ['302.ai', 'ai302'],
-  ['opencode', 'opencode'],
-  ['ollama', 'ollama'],
-  ['onnx', 'onnx'],
-  ['x.ai', 'xai'],
-  ['mistral', 'mistral'],
-  ['groq', 'groq'],
-  ['together', 'together'],
-  ['cerebras', 'cerebras'],
-  ['cohere', 'cohere'],
-  ['perplexity', 'perplexity'],
-  ['huggingface', 'huggingface'],
-  ['nvidia', 'nvidia'],
-  ['anthropic', 'anthropic'],
-  ['openai.com', 'openai'],
-  ['google', 'google'],
-  ['gemini', 'google'],
-  ['googleapis', 'google'],
-  ['azure', 'azure'],
-  ['bedrock', 'aws-bedrock'],
-  ['longcat', 'longcat'],
-  ['huiqing', 'huiqing'],
-  ['xqapi', 'xqapi'],
-  ['b.ai', 'bai'],
-  ['ai.cn', 'dots'],
-]
-
-// 名称片段 -> 品牌（中文/英文名兜底）
-const NAME_BRANDS: Array<[string, string]> = [
-  ['deepseek', 'deepseek'], ['深度求索', 'deepseek'],
-  ['agnes', 'agnes'],
-  ['openrouter', 'openrouter'],
-  ['commandcode', 'commandcode'],
-  ['siliconflow', 'siliconflow'], ['硅基', 'siliconflow'],
-  ['zhipu', 'zhipu'], ['智谱', 'zhipu'], ['glm', 'zhipu'],
-  ['moonshot', 'moonshot'], ['kimi', 'moonshot'], ['月之暗面', 'moonshot'],
-  ['minimax', 'minimax'], ['海螺', 'minimax'],
-  ['baichuan', 'baichuan'], ['百川', 'baichuan'],
-  ['stepfun', 'stepfun'], ['阶跃', 'stepfun'],
-  ['sensenova', 'sensenova'], ['商汤', 'sensenova'],
-  ['volcengine', 'volcengine'], ['方舟', 'volcengine'],
-  ['doubao', 'doubao'], ['豆包', 'doubao'],
-  ['spark', 'spark'], ['星火', 'spark'], ['讯飞', 'spark'],
-  ['hunyuan', 'hunyuan'], ['混元', 'hunyuan'],
-  ['tencent', 'tencent'], ['腾讯', 'tencent'],
-  ['modelscope', 'modelscope'], ['魔搭', 'modelscope'],
-  ['qwen', 'qwen'], ['通义', 'qwen'], ['千问', 'qwen'], ['dashscope', 'qwen'], ['阿里', 'qwen'],
-  ['qianfan', 'baidu'], ['千帆', 'baidu'], ['文心', 'baidu'], ['baidu', 'baidu'], ['百度', 'baidu'],
-  ['360', '360ai'],
-  ['mistral', 'mistral'],
-  ['groq', 'groq'],
-  ['together', 'together'],
-  ['cerebras', 'cerebras'],
-  ['cohere', 'cohere'],
-  ['perplexity', 'perplexity'],
-  ['huggingface', 'huggingface'],
-  ['nvidia', 'nvidia'],
-  ['anthropic', 'anthropic'], ['claude', 'anthropic'],
-  ['openai', 'openai'], ['gpt', 'openai'],
-  ['gemini', 'google'], ['google', 'google'],
-  ['azure', 'azure'],
-  ['bedrock', 'aws-bedrock'],
-  ['ollama', 'ollama'],
-  ['onnx', 'onnx'],
-  ['dots', 'dots'], ['点点', 'dots'],
-  ['xai', 'xai'], ['grok', 'xai'],
-  ['opencode', 'opencode'],
-  ['ai302', 'ai302'],
-  ['longcat', 'longcat'],
-  ['huiqing', 'huiqing'],
-  ['xqapi', 'xqapi'],
-  ['b.ai', 'bai'],
-]
-
-// 解析供应商品牌 id（用于 ProviderLogo）
-export function resolveProviderBrand(p: any): string {
-  if (!p) return 'custom'
-  const rawId = String(p.provider_id || p.id || '').toLowerCase()
-  if (rawId === 'agent') return 'agent'
-
-  // 1) 域名优先
-  const rawUrl = String(p.base_url || p.apiUrl || p.api_url || '')
-  let host = rawUrl.toLowerCase()
-  try { host = new URL(rawUrl).host.toLowerCase() } catch { /* keep raw */ }
-  for (const [token, brand] of DOMAIN_BRANDS) {
-    if (host.includes(token)) return brand
-  }
-
-  // 2) 名称兜底
-  const nm = String(p.name || '').toLowerCase().replace(/[\s\-_/()（）]+/g, '')
-  for (const [token, brand] of NAME_BRANDS) {
-    if (nm.includes(token)) return brand
-  }
-
-  // 3) platform 本身就是品牌
-  const plat = String(p.platform || p.provider || '').toLowerCase()
-  if (plat && !PROTOCOL_IDS.has(plat) && BRAND_IDS.has(plat)) return plat
-  // platform 是协议值时，不显示协议图标，退回首字母
-  return 'custom'
-}
+// 转发 resolveProviderBrand，供 ProviderFormDialog 等从 model.utils 导入
+export { resolveProviderBrand }
 
 // 从模型 capabilities 推断接入协议
 function deriveProtocol(p: any, modelsArr: any[]): string {
@@ -602,8 +469,42 @@ export function mapModel(m: any, providerId: string): any {
       temperature: m.temperature ?? null,
       topP: m.top_p ?? m.topP ?? null,
       frequencyPenalty: m.frequency_penalty ?? m.frequencyPenalty ?? null,
+      // 能力开关：优先实体列（attachment/reasoning/tool_call/temperature_supported/open_weights），
+      // 缺省回退 metrics JSON 里的布尔键
+      capabilities: deriveCapabilitySwitches(m),
+      // 模型信息回填（实体列 + metrics 双存，编辑弹窗只读展示）
+      family: m.family ?? m.metrics?.model_family ?? null,
+      knowledge: m.knowledge ?? m.metrics?.knowledge_cutoff ?? null,
+      releaseDate: m.release_date ?? m.releaseDate ?? m.metrics?.release_date ?? null,
+      lastUpdated: m.last_updated ?? m.lastUpdated ?? m.metrics?.last_updated ?? null,
+      modalities: m.modalities ?? m.metrics?.modalities ?? null,
+      openWeights: m.open_weights ?? m.openWeights ?? m.metrics?.open_weights ?? null,
     },
   }
+}
+
+/** 能力开关可选项（与 ModelFormDialog 的开关组一致） */
+const CAPABILITY_SWITCH_KEYS = ['attachment', 'reasoning', 'tool_call', 'temperature', 'open_weights'] as const
+
+/**
+ * 从模型行推导能力开关集合。
+ *
+ * <p>实体列（attachment / reasoning / tool_call / temperature_supported / open_weights）
+ * 为布尔；旧数据没有实体列时，回退到 metrics JSON 里的布尔键（attachment /
+ * reasoning / function_calling / temperature / open_weights）。</p>
+ *
+ * @param m 后端模型行
+ * @returns 开启的能力开关数组
+ */
+export function deriveCapabilitySwitches(m: any): string[] {
+  const flags: string[] = []
+  const pick = (truthy: unknown): boolean => truthy === true || truthy === 'true' || truthy === 1 || truthy === '1'
+  if (pick(m?.attachment ?? m?.metrics?.attachment)) flags.push('attachment')
+  if (pick(m?.reasoning ?? m?.metrics?.reasoning ?? m?.metrics?.reasoning_model)) flags.push('reasoning')
+  if (pick(m?.tool_call ?? m?.toolCall ?? m?.metrics?.function_calling ?? m?.metrics?.tool_call)) flags.push('tool_call')
+  if (pick(m?.temperature_supported ?? m?.temperatureSupported ?? m?.metrics?.temperature)) flags.push('temperature')
+  if (pick(m?.open_weights ?? m?.openWeights ?? m?.metrics?.open_weights)) flags.push('open_weights')
+  return flags
 }
 
 // 解析 headers 文本为对象

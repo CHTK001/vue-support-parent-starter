@@ -91,6 +91,14 @@
       "types": "./src/components/ReSearch/index.ts",
       "default": "./src/components/ReSearch/index.ts"
     },
+    "./re-section-head": {
+      "types": "./src/components/ReSectionHead/index.ts",
+      "default": "./src/components/ReSectionHead/index.ts"
+    },
+    "./re-filter": {
+      "types": "./src/components/ReFilter/index.ts",
+      "default": "./src/components/ReFilter/index.ts"
+    },
     "./re-tag-filter": {
       "types": "./src/components/ReTagFilter/index.ts",
       "default": "./src/components/ReTagFilter/index.ts"
@@ -98,6 +106,14 @@
     "./re-loading": {
       "types": "./src/components/ReLoading/index.ts",
       "default": "./src/components/ReLoading/index.ts"
+    },
+    "./re-loader": {
+      "types": "./src/components/ReLoader/index.ts",
+      "default": "./src/components/ReLoader/index.ts"
+    },
+    "./reloader": {
+      "types": "./src/components/ReLoader/index.ts",
+      "default": "./src/components/ReLoader/index.ts"
     },
     "./re-drawer": {
       "types": "./src/components/ReDrawer/index.ts",
@@ -147,17 +163,25 @@
       "types": "./src/components/ReGraphFixed/index.ts",
       "default": "./src/components/ReGraphFixed/index.ts"
     },
-    "./re-relation-graph": {
-      "types": "./src/components/ReRelationGraph/index.ts",
-      "default": "./src/components/ReRelationGraph/index.ts"
-    },
     "./re-graph-3d": {
       "types": "./src/components/ReGraph3D/index.ts",
       "default": "./src/components/ReGraph3D/index.ts"
     },
+    "./re-relation-graph": {
+      "types": "./src/components/ReRelationGraph/index.ts",
+      "default": "./src/components/ReRelationGraph/index.ts"
+    },
+    "./re-relation-graph-v2": {
+      "types": "./src/components/ReRelationGraphV2/index.ts",
+      "default": "./src/components/ReRelationGraphV2/index.ts"
+    },
     "./re-echarts": {
       "types": "./src/components/ReEcharts/index.ts",
       "default": "./src/components/ReEcharts/index.ts"
+    },
+    "./re-chart": {
+      "types": "./src/components/ReChart/index.ts",
+      "default": "./src/components/ReChart/index.ts"
     },
     "./re-cropper": {
       "types": "./src/components/ReCropper/index.ts",
@@ -283,6 +307,10 @@
       "types": "./src/components/RePagination/index.ts",
       "default": "./src/components/RePagination/index.ts"
     },
+    "./re-page-kit": {
+      "types": "./src/components/RePageKit/index.ts",
+      "default": "./src/components/RePageKit/index.ts"
+    },
     "./re-timeline": {
       "types": "./src/components/ReTimeline/index.ts",
       "default": "./src/components/ReTimeline/index.ts"
@@ -298,6 +326,10 @@
     "./re-tab": {
       "types": "./src/components/ReTab/index.ts",
       "default": "./src/components/ReTab/index.ts"
+    },
+    "./re-tabs": {
+      "types": "./src/components/ReTabs/index.ts",
+      "default": "./src/components/ReTabs/index.ts"
     },
     "./re-switch": {
       "types": "./src/components/ReSwitch/index.ts",
@@ -339,6 +371,10 @@
       "types": "./src/components/ReKit/index.ts",
       "default": "./src/components/ReKit/index.ts"
     },
+    "./re-state-icon": {
+      "types": "./src/components/ReStateIcon/index.ts",
+      "default": "./src/components/ReStateIcon/index.ts"
+    },
     "./re-placeholder-picker": {
       "types": "./src/components/RePlaceholderPicker/index.ts",
       "default": "./src/components/RePlaceholderPicker/index.ts"
@@ -358,6 +394,7 @@
     "icons:check:remote": "node scripts/sync-animated-icons.mjs --check --remote"
   },
   "dependencies": {
+    "@antv/g": "^6.1.28",
     "@antv/g6": "^5.1.1",
     "@antv/x6": "^2.18.1",
     "@antv/x6-plugin-clipboard": "^2.1.6",
@@ -406,11 +443,13 @@
     "ag-grid-vue3": "^36.1.0",
     "cropperjs": "catalog:",
     "d3-force": "^3.0.0",
+    "d3-sankey": "^0.12.3",
     "dom-zindex": "1.0.7",
     "echarts": "catalog:",
     "element-plus": "catalog:",
     "framer-motion": "catalog:",
     "katex": "^0.16.47",
+    "maplibre-gl": "^6.15.0",
     "motion": "catalog:",
     "motion-dom": "catalog:",
     "motion-utils": "catalog:",

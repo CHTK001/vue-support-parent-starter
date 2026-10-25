@@ -178,9 +178,8 @@
           <ReInput v-model="form.betaIps" placeholder="例如 192.168.1.10,192.168.1.11" />
         </div>
       </div>
-      <template #footer>
-        <ReButton @click="configVisible = false">关闭</ReButton>
-        <ReButton v-if="dialogMode !== 'view'" type="primary" :loading="saving" @click="saveConfig">
+      <template v-if="dialogMode !== 'view'" #footer>
+        <ReButton type="primary" :loading="saving" @click="saveConfig">
           <template #icon><ReIcon name="Check" /></template>{{ dialogMode === "create" ? "创建并发布" : "保存并发布" }}
         </ReButton>
       </template>
@@ -971,7 +970,7 @@ onMounted(async () => {
 .dsm-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
 .dsm-toolbar-left { display: flex; align-items: center; gap: 10px; }
 .dsm-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
-.dsm-nacos-icon { color: #fbbf24; }
+.dsm-nacos-icon { color: var(--koi-brand-500, var(--apm-brand-500)); }
 .dsm-toolbar-right { display: flex; gap: 8px; }
 .dsm-body { display: flex; flex: 1; gap: 0; overflow: hidden; }
 .dsm.resizing { user-select: none; }

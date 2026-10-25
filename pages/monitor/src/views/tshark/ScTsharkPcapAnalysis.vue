@@ -1,18 +1,19 @@
 <!--
   PCAP 分析（导入 pcap → 解析入库 → 下载原件）
 
-  形态与「抓包分析」不同，这是刻意的：抓包分析的主数据是**报文流水**（边抓边来、宽而扁），
-  所以它进来就是四个标签页；PCAP 分析的主数据是**一份份文件** —— 用户来到这一页的第一个问题
-  永远是「我传的那份解出来了没」，而不是「第 3 个字节是什么」。
+  形态与「抓包分析」不同，这是刻意的：抓包分析的主数据是**报文流水**（边抓边来、宽而扁）；
+  PCAP 分析的主数据是**一份份文件** —— 用户来到这一页的第一个问题永远是
+  「我传的那份解出来了没」，而不是「第 3 个字节是什么」。
 
   所以这一页做成「目录 → 详情」两级，同一时刻只出现一级：
 
-    ① 目录（默认）：导入条 + 导入记录表。整页只有这一张表，不摆任何别的标签 ——
+    ① 目录（默认）：导入条 + 导入记录列表。整页只有这一块列表，不摆任何别的标签 ——
        一个还没有文件的页面如果铺开「报文 / 统计 / 会话流」三个空标签，只会稀释
-       「先导入一个文件」这个当下唯一的动作。
+       「先导入一个文件」这个当下唯一的动作。列表本身交给 TsharkSessionStage
+       （与抓包分析共用五个方向），这一页只提供自己的页头动作与导入条。
     ② 详情：点某一行（整行可点）后整块换成这份文件的报文 / 统计 / 会话流。
        头部条负责交代「这是哪一份、解到哪了、原件能不能下」，「返回」回到目录，
-       并保留目录上的搜索词与页码（都在 useTshark 里，清掉也是白清）。
+       并保留目录上的搜索词（词放在页面上，见 script 里的 listKeyword）。
 
   为什么不是「上半屏列表 + 下半屏详情」：导入记录的列很宽（文件名 / 状态 / 报文数 /
   时间范围 / 时长 / 操作），压到左栏会折行，压到上半屏则详情只剩半屏高度 ——
@@ -27,26 +28,30 @@
   <div class="tshark-page" @dragover.prevent @drop.prevent="onDrop">
     <!-- ==================== ① 目录：导入记录 ==================== -->
     <template v-if="activeSessionId == null">
-      <div class="tshark-bar">
-        <div class="tshark-bar__group">
+      <TsharkSessionStage
+        :rows="sessions"
+        page-key="monitor.tshark-pcap"
+        title="PCAP 分析"
+        desc="导入 pcap / pcapng，由 tshark 离线解析成报文；点任意一行看它的报文 / 统计 / 会话流。"
+        noun="导入记录"
+        running-label="解析中"
+        search-placeholder="搜索文件名 / 会话名"
+        v-model:keyword="listKeyword"
+        empty-text="还没有导入过 pcap"
+        empty-hint="点右上角「选择文件」，或直接把文件拖到页面上。"
+        :loading="loadingSessions"
+        :iface-label="ifaceLabel"
+        @open="openSessionTab"
+        @download="downloadPcap"
+        @remove="deleteSession"
+        @refresh="loadSessions(false)"
+      >
+        <template #head-actions>
           <span class="tshark-status" :class="tsharkOk ? 'tshark-status--ok' : 'tshark-status--bad'">
-            <span class="tshark-status__dot"></span>
+            <span class="tshark-status__dot" />
             <span>{{ tsharkOk ? 'TShark 可用' : 'TShark 未就绪' }}</span>
           </span>
-          <span class="tshark-dim pcap-page__hint">点任意一行查看它的报文 / 统计 / 会话流</span>
-        </div>
 
-        <span class="tshark-bar__spacer"></span>
-        <span class="tshark-bar__sep"></span>
-
-        <div class="tshark-bar__group">
-          <ReInput
-            class="tshark-bar__bpf"
-            :model-value="importName"
-            placeholder="会话名（可空，默认用文件名）"
-            clearable
-            @update:model-value="onName"
-          />
           <input
             ref="fileInput"
             class="pcap-file-input"
@@ -55,7 +60,6 @@
             @change="onPickFile"
           />
           <ReButton icon="FolderOpened" show-text @click="chooseFile">选择文件</ReButton>
-          <span class="tshark-dim pcap-file-hint" :title="file?.name || ''">{{ fileText }}</span>
           <ReButton
             type="primary"
             icon="Upload"
@@ -67,29 +71,24 @@
           >
             导入并解析
           </ReButton>
-        </div>
-      </div>
+        </template>
 
-      <div class="tshark-work">
-        <ScTsharkImportPanel
-          :sessions="pagedSessions"
-          :loading="loadingSessions"
-          :keyword="sessionKeyword"
-          :page="sessionPage"
-          :page-size="sessionPageSize"
-          :total="filteredSessions.length"
-          :backend-total="sessionBackendTotal"
-          :loaded-count="sessions.length"
-          :parsing-count="parsingCount"
-          :active-id="activeSessionId"
-          @update:keyword="setSessionKeyword"
-          @page-change="setSessionPage"
-          @open="openSessionTab"
-          @download="downloadPcap"
-          @remove="deleteSession"
-          @refresh="loadSessions(false)"
-        />
-      </div>
+        <!-- 导入条：会话名 + 已选文件 + 拖拽提示 + 加载范围说明 -->
+        <template #alerts>
+          <div class="import-strip">
+            <ReInput
+              class="import-strip__name"
+              :model-value="importName"
+              placeholder="会话名（可空，默认用文件名）"
+              clearable
+              @update:model-value="onName"
+            />
+            <span class="import-strip__file" :title="file?.name || ''">{{ fileText }}</span>
+            <span class="pk-faint">也可以把文件直接拖到页面里</span>
+            <span v-if="loadedNote" class="pk-faint">{{ loadedNote }}</span>
+          </div>
+        </template>
+      </TsharkSessionStage>
     </template>
 
     <!-- ==================== ② 详情：某一份文件的报文 ==================== -->
@@ -99,7 +98,7 @@
           返回导入记录
         </ReButton>
 
-        <span class="tshark-bar__sep"></span>
+        <span class="tshark-bar__sep" />
 
         <div class="pcap-detail__title">
           <span class="pcap-detail__name" :title="detailName">{{ detailName }}</span>
@@ -107,7 +106,7 @@
           <span v-if="parsing" class="tshark-dim pcap-detail__parsing">报文数会陆续增长</span>
         </div>
 
-        <span class="tshark-bar__spacer"></span>
+        <span class="tshark-bar__spacer" />
 
         <div class="pcap-detail__meta">
           <span>{{ packetTotal }} 个报文</span>
@@ -207,7 +206,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { message } from '@repo/core'
 import { useTshark } from './useTshark'
-import ScTsharkImportPanel from './ScTsharkImportPanel.vue'
+import TsharkSessionStage from './TsharkSessionStage.vue'
 import ScTsharkFilterBar from './ScTsharkFilterBar.vue'
 import ScTsharkPacketPanel from './ScTsharkPacketPanel.vue'
 import ScTsharkStatsPanel from './ScTsharkStatsPanel.vue'
@@ -233,15 +232,15 @@ const MAX_UPLOAD_BYTES = 2048 * 1024 * 1024
  * 「目录 / 详情」这一级状态 —— 不另设 showDetail 标志，少一处能与真实选中项不一致的状态。
  */
 const {
-  tsharkOk, importing,
-  loadingSessions, sessions, sessionBackendTotal, sessionKeyword,
-  sessionPage, activeSessionId, activeSession, filteredSessions, pagedSessions,
-  runningCount: parsingCount, sessionPageSize,
+  tsharkOk, ifaceOptions, importing,
+  loadingSessions, sessions, sessionBackendTotal,
+  activeSessionId, activeSession,
+  runningCount: parsingCount,
   loadingPackets, packets, packetPage, packetTotal, packetFilter, filterError,
   packetPageSize, protoStats, topFlows, statsVersion, loadingStats,
   timeline, timelineBucket, anomalies,
   detailOpen, packetDetail,
-  init, loadSessions, selectSession, setSessionKeyword,
+  init, loadSessions, selectSession,
   clearActiveSession, loadPackets, applyPacketFilter, filterByProtocol, filterByFlow,
   loadTimeline,
   exportCsv, downloadPcap, deleteSession, openPacketDetail, openPacketDetailById, importPcap,
@@ -268,12 +267,47 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const file = ref<File | null>(null)
 const importName = ref('')
 
+/**
+ * 目录列表的搜索词。
+ *
+ * <p>放在页面上而不是列表组件里：进详情时列表组件会整个销毁，词若只活在组件内部，
+ * 返回目录就丢了 —— 而用户刚才是「搜到那一份、点进去看」，回来还得再搜一遍。</p>
+ */
+const listKeyword = ref('')
+
 const detailTabs = computed(() => [
   { name: 'packet', label: '报文', icon: 'Tickets', badge: packetTotal.value || null },
   { name: 'stats', label: '统计', icon: 'PieChart' },
   { name: 'flow', label: '会话流', icon: 'TrendCharts' },
   { name: 'insight', label: '诊断', icon: 'FirstAidKit' },
 ])
+
+// ==================== 目录：加载范围说明 ====================
+
+/**
+ * 列表只拉最近若干条（SESSION_FETCH_SIZE），所以后端总数更大时要说明白 ——
+ * 否则用户搜一个半年期的文件名搜不到，会以为是搜索坏了。
+ */
+const loadedNote = computed(() => {
+  const loaded = sessions.value.length
+  const total = Number(sessionBackendTotal.value ?? 0)
+  const capped = total > loaded ? `（已加载 ${loaded}/${total}）` : ''
+  const parsing = parsingCount.value > 0 ? `，${parsingCount.value} 份解析中` : ''
+  if (!capped && !parsing) return ''
+  return `搜索只在这 ${loaded} 条内进行${capped}${parsing}`
+})
+
+/**
+ * 网卡显示名：导入记录一般没有网卡（报文来自文件），有值时用友好名，没有给破折号。
+ *
+ * @param value 网卡原始值
+ */
+function ifaceLabel(value?: string | null): string {
+  if (!value) return '—'
+  const hit = ifaceOptions.value.find(o => o.value === value)
+  if (hit) return hit.label
+  return value
+}
 
 // ==================== 详情头部条 ====================
 // 选中项可能在翻查期间被别处删掉（后端推送刷新后 activeSession 会是 null），
@@ -371,10 +405,6 @@ function onName(v: unknown) {
   importName.value = v === null || v === undefined ? '' : String(v)
 }
 
-function setSessionPage(p: number) {
-  sessionPage.value = p
-}
-
 /** 统计面板点协议：填进报文关键字并切过去，省掉「记住协议名 → 回头手打」那一步 */
 function onPickProtocol(protocol: string) {
   filterByProtocol(protocol)
@@ -395,3 +425,32 @@ function onPickAnomaly(filterText: string) {
 
 onMounted(init)
 </script>
+
+<style scoped>
+/* 导入条：会话名 + 已选文件 + 提示 */
+.import-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 11px;
+  background: var(--el-fill-color-light);
+  border-radius: var(--el-radius-sm, 6px);
+}
+
+.import-strip__name {
+  width: 236px;
+}
+
+.import-strip__file {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+}
+
+/* 文件选择框由 tshark.css 里的 .pcap-file-input 隐藏；
+   这里不再重复，否则两处都改才生效 */
+</style>

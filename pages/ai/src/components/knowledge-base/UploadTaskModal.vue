@@ -44,13 +44,6 @@
 
     <!-- 空状态 -->
     <ReEmpty v-else :text="t('knowledge.uploadTask.empty')" />
-
-    <!-- 底部操作 -->
-    <template #footer>
-      <div class="flex justify-end">
-        <ReButton type="default" @click="handleClose">{{ t('common.close') }}</ReButton>
-      </div>
-    </template>
   </ReDialog>
 </template>
 
@@ -61,9 +54,9 @@
  * <p>风格与系统一致：外壳用仓库标准 {@code ReDialog}（koi，标题栏可拖拽）；每条任务用组件库基线
  * {@code re-surface}（含 hover 态），状态标签与按钮用 {@code ReTag} / {@code ReButton}，
  * 空态用 {@code ReEmpty}；颜色只用 koi 令牌 {@code --rm-*} —— 原先的
- * {@code border-gray-200} / {@code dark:border-[#2e3035]} / {@code hover:bg-gray-50} /
- * {@code dark:hover:bg-[#2a2c30]} / {@code text-gray-*} / {@code dark:text-[#8b8d95]} /
- * {@code dark:text-[#3e4046]} / {@code text-red-600 dark:text-red-400} 等已全部移除。</p>
+ * {@code border-gray-200} / {@code dark:border-gray-800} / {@code hover:bg-gray-50} /
+ * {@code dark:hover:bg-[#2a2c30]} / {@code text-gray-*} / {@code dark:text-gray-400} /
+ * {@code dark:text-gray-600} / {@code text-red-600 dark:text-red-400} 等已全部移除。</p>
  */
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'

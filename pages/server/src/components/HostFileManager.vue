@@ -302,7 +302,6 @@
         class="we-editor-area"
       />
       <template #footer>
-        <el-button @click="editorVisible = false">关闭</el-button>
         <el-button type="primary" :loading="saving" @click="saveEditor">
           保存
         </el-button>
@@ -325,7 +324,6 @@
       </div>
       <template #footer>
         <span class="we-preview-meta dim">{{ previewName }} · {{ formatSize(previewSize) }}</span>
-        <el-button @click="closePreview">关闭</el-button>
       </template>
     </ReDialog>
 

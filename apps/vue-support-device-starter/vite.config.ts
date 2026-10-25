@@ -13,7 +13,7 @@ import path from 'node:path'
  * 后端（spring-support-device-starter）地址。
  *
  * 后端只跑在 Kali 上（18170 实例实测在远端监听），本机不起后端进程，
- * 所以缺省指向远端而不是 localhost —— 与 vue-support-ai-guada /
+ * 所以缺省指向远端而不是 localhost —— 与 vue-support-ai-starter /
  * vue-support-system-starter / monitor 同一口径。
  *
  * 指向没人监听的本机端口时，dev 代理返回的是**合法 JSON 但 data 为空**，

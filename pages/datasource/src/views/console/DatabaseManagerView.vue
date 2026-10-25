@@ -1,5 +1,5 @@
 <template>
-  <div class="dbm" :class="{ 'is-embedded': embedded }">
+  <div class="dbm" :class="{ 'is-embedded': embedded, 'dbm--fullscreen': isFullscreen }">
     <!-- 顶部工具栏
          页面级动作只留数据源切换与一个刷新：新建查询 / 新建库表 / 导入数据已下沉到右键菜单
          （表 / 库 / 空白 三套），与 Navicat 的操作面一致。
@@ -98,28 +98,23 @@
         <!-- 表视图设置簇：与 .dbm-table-view 同一 v-if 条件，表页签激活才出现 -->
         <!-- 表视图设置簇：与 .dbm-table-view 同一 v-if 条件，表页签激活才出现 -->
         <template v-if="activeTabObj && activeTabObj.type === 'table'">
-          <label class="dbm-switch">
-            <ReSwitch v-model="showTotal" aria-label="统计总数" />
-            <span>统计总数</span>
-          </label>
+          <ReRadioGroup
+            v-model="showTotalValue"
+            class="dbm-total-select"
+            :capsule="false"
+            size="small"
+            aria-label="统计总数"
+          >
+            <ReRadioButton value="yes">是</ReRadioButton>
+            <ReRadioButton value="no">否</ReRadioButton>
+          </ReRadioGroup>
           <ReButton layout="square" icon="Operation" tip="列显示设置（显示 / 固定列）" @click="openColumnViewDialog" />
-          <ReButton layout="square" icon="RefreshLeft" tip="恢复默认设置（视图偏好与各表筛选条件）" @click="resetViewSettings" />
+          <ReButton layout="square" icon="SetUp" tip="恢复默认设置（视图偏好与各表筛选条件）" @click="resetViewSettings" />
         </template>
-        <!-- 内嵌模式不显示数据源下拉：宿主页签已经表明当前浏览的是哪个数据源，
-             再放一个下拉会和宿主左栏的选择打架（两个可改同一个值）。 -->
-        <template v-if="!embedded">
-          <!-- 共享数据源选择器（外部选项模式）：本页的候选是「默认主数据源」+ 台账，
-               且 id 在本页是 number（要喂给各 API），所以由本页出选项、组件只管渲染。
-               用 watch 而非 @change：ReSelect 不发 change 事件 -->
-          <DatasourceSelect
-            class="dbm-ds-select"
-            placeholder="选择数据源"
-            :model-value="String(currentDatasourceId)"
-            :options="datasourceOptions"
-            @update:model-value="onDatasourcePick"
-          />
-        </template>
-        <span v-else class="dbm-ds-chip">
+        <!-- 数据源选择已删除：独立路由 /db-manager 由外层数据源中心带 datasourceId 进入，
+             页内再放一个下拉会和外层左栏的选择打架（两个可改同一个值）。
+             这里只读展示当前浏览的数据源，切换请回到外层列表。 -->
+        <span class="dbm-ds-chip">
           <ReIcon name="Coin" :size="13" />
           {{ currentDatasourceName }}
         </span>
@@ -131,7 +126,11 @@
       <div class="dbm-sidebar" @contextmenu.prevent="onSidebarContextMenu">
         <div class="dbm-tree" @contextmenu.prevent="onSidebarContextMenu">
           <!-- 数据源根节点 -->
-          <div class="dbm-tree-node dbm-tree-root" @click="toggleNode('root')">
+          <div
+            class="dbm-tree-node dbm-tree-root"
+            @click="toggleNode('root')"
+            @contextmenu.prevent="onRootContextMenu($event)"
+          >
             <ReIcon :name="expandedNodes.has('root') ? 'ArrowDown' : 'ArrowRight'" :size="12" class="dbm-arrow" />
             <ReIcon name="Connection" :size="15" class="dbm-tree-icon dbm-root-icon" />
             <span class="dbm-tree-label">{{ currentDatasourceName }}</span>
@@ -278,7 +277,7 @@
             <ReIcon
               :name="tab.type === 'query' ? 'Edit' : tab.type === 'object'
                 ? (DB_OBJECT_CATEGORIES.find(c => c.value === tab.objectCategory)?.icon ?? 'Document')
-                : 'Grid'"
+                : tab.type === 'users' ? 'User' : 'Grid'"
               size="12"
             />
             <span class="dbm-tab-title">{{ tab.title }}</span>
@@ -436,51 +435,20 @@
 
           <template v-if="designSubTab === 'columns'">
             <div class="dbm-col-hint">单元格可直接编辑，改动行高亮，保存后生效</div>
-            <div v-loading="designLoading" class="dbm-dgrid">
-              <div class="dbm-dgrid-head">
-                <span>#</span>
-                <span>字段名</span>
-                <span>类型</span>
-                <span>长度</span>
-                <span>可空</span>
-                <span>主键</span>
-                <span>默认值</span>
-                <span>注释</span>
-                <span>操作</span>
-              </div>
-              <div
-                v-for="(row, i) in designRows"
-                :key="row.originalName || row.name"
-                class="dbm-dgrid-row"
-                :class="{ dirty: isDesignDirty(row) }"
-              >
-                <span class="dbm-dgrid-idx">{{ i + 1 }}</span>
-                <ReInput v-model="row.name" class="dbm-mono" @dblclick="openColumnDialog('edit', row)" />
-                <ReSelect v-model="row.type" :options="columnTypeOptions.map(t => ({ label: t, value: t }))" />
-                <ReInputNumber :model-value="row.size ?? undefined" @update:model-value="row.size = $event ?? null" :min="1" :max="65535" controls-position="right" style="width: 100%" />
-                <ReSwitch v-model="row.nullable" size="small" aria-label="允许为空" />
-                <span class="dbm-dgrid-pk"><ReIcon v-if="row.isPrimaryKey" name="Key" :size="13" /></span>
-                <ReInput v-model="row.defaultValue" class="dbm-mono" placeholder="默认值" />
-                <ReInput v-model="row.comment" placeholder="注释" />
-                <span class="dbm-dgrid-ops">
-                  <ReButton
-                    icon="Setting"
-                    layout="square"
-                    tip="列属性"
-                    @click="openColumnDialog('edit', row)"
-                  />
-                  <ReButton
-                    icon="Check"
-                    layout="square"
-                    tip="保存该行"
-                    :disabled="!isDesignDirty(row)"
-                    @click="saveDesignRow(row)"
-                  />
-                  <ReButton icon="Delete" layout="square" type="danger" tip="删除列" @click="removeColumn(row as never)" />
-                </span>
-              </div>
-              <ReEmpty v-if="designRows.length === 0" description="暂无字段" :image-size="40" />
-            </div>
+            <!-- 表结构网格：与「新建表（设计表）」共用同一个 DesignColumnGrid，
+                 列清单只在组件里维护一份（此前这里是手写 flex 网格，缺小数位且与弹窗各自为政）。 -->
+            <DesignColumnGrid
+              :rows="designRows"
+              mode="existing"
+              :loading="designLoading"
+              :is-dirty="isDesignDirty"
+              :max-height="designGridHeight"
+              empty-text="暂无字段"
+              @save-row="saveDesignRow"
+              @remove-row="row => removeColumn(row as never)"
+              @open-column="row => openColumnDialog('edit', row)"
+              @reorder="onDesignReorder"
+            />
           </template>
 
           <template v-else-if="designSubTab === 'indexes'">
@@ -757,32 +725,114 @@
               <span class="dbm-er-list-deg">{{ erDegree(t.name) }}</span>
             </div>
           </div>
-          <!-- 双击节点后的列清单：ER 图上看列才能定位到具体字段 -->
-          <ReDialog v-model="erColumnsVisible" :title="`${erPickedTable} 的列`" width="520px">
-            <div class="dbm-er-cols">
-              <div
-                v-for="c in erPickedColumns"
-                :key="c.name"
-                class="dbm-er-col-row"
-              >
-                <span class="dbm-er-col-name">{{ c.name }}</span>
-                <span class="dbm-er-col-type">{{ c.type }}</span>
-                <span class="dbm-er-col-flags">
-                  <span v-if="c.isPrimaryKey" class="dbm-er-flag pk">PK</span>
-                  <span v-if="c.nullable" class="dbm-er-flag null">可空</span>
-                </span>
-              </div>
-              <ReEmpty v-if="erPickedColumns.length === 0" description="没有列信息" />
-            </div>
-            <template #footer>
-              <ReButton
-                type="primary"
-                @click="openErTableData(erPickedTable)"
-              >打开该表数据</ReButton>
-              <ReButton @click="erColumnsVisible = false">关闭</ReButton>
-            </template>
-          </ReDialog>
+          <!-- 双击节点后的列清单：ER 图上看列才能定位到具体字段（弹窗已上移到两个 ER 视图公共位置） -->
         </div>
+
+        <!-- 右键「ER 图」弹框：筛选 + 按钮一行，图工具栏全部方形图标按钮，无底部删除 -->
+        <ReDialog
+          v-model="erExportDialogVisible"
+          title="ER 图（表关系）"
+          width="92%"
+          top="6vh"
+          class="dbm-er-dialog"
+        >
+          <div class="dbm-er-view">
+            <div class="dbm-er-toolbar dbm-er-toolbar--dialog">
+              <span class="dbm-table-name">{{ qualifiedEr }}</span>
+              <ReInput
+                v-model="erTableFilter"
+                class="dbm-mono dbm-er-filter"
+                placeholder="只画匹配这些表的图（支持 % 与 _，留空为全部）"
+                clearable
+                @keyup.enter="loadErDiagram"
+              />
+              <ReButton layout="square" type="primary" icon="Search" tip="按过滤条件重画" @click="loadErDiagram" />
+              <span class="dbm-er-stat">{{ erStatText }}</span>
+              <ReSelect v-model="erLayout" class="dbm-er-layout" placeholder="布局">
+                <ReOption v-for="l in ER_LAYOUT_CHOICES" :key="l.value" :label="l.label" :value="l.value" />
+              </ReSelect>
+              <ReButton
+                layout="square"
+                :type="erShowLabels ? 'primary' : ''"
+                icon="Label"
+                tip="显示 / 隐藏关系名"
+                @click="erShowLabels = !erShowLabels"
+              />
+              <ReButton layout="square" icon="Refresh" tip="重新读取元数据" @click="loadErDiagram" />
+              <ReButton layout="square" icon="Download" tip="导出为 DOT（Graphviz）" @click="exportErDot" />
+            </div>
+            <div v-if="erLoading" class="dbm-er-mask">正在读取表与外键…</div>
+            <ReEmpty
+              v-else-if="erError"
+              class="dbm-er-empty"
+              :description="erError"
+            />
+            <ReEmpty
+              v-else-if="erNodes.length === 0"
+              class="dbm-er-empty"
+              :description="erTableFilter ? '没有匹配的表' : '这个库里还没有表'"
+            />
+            <ReRelationGraph
+              v-else
+              ref="erGraphRef"
+              class="dbm-er-graph dbm-er-graph--dialog"
+              :nodes="erNodes"
+              :edges="erEdges"
+              :layout="erLayout"
+              highlight="adjacent"
+              :toolbar="true"
+              :minimap="true"
+              :editable="false"
+              :context-menu="false"
+              @node-dblclick="onErNodeDblClick"
+            />
+            <!-- 表清单侧栏：与 ER 页签一致，图上双击要靠坐标命中，清单给确定入口 -->
+            <div class="dbm-er-list">
+              <div
+                v-for="t in erTables"
+                :key="t.name"
+                class="dbm-er-list-row"
+                :class="{ missing: erMissingTables.has(t.name) }"
+                :title="t.comment || t.name"
+                @click="highlightErNode(t.name)"
+                @dblclick="openErColumns(t.name)"
+              >
+                <span class="dbm-er-list-name">{{ t.name }}</span>
+                <span class="dbm-spacer" />
+                <span class="dbm-er-list-deg">{{ erDegree(t.name) }}</span>
+              </div>
+            </div>
+          </div>
+          <template #footer>
+            <ReButton type="primary" icon="Download" :show-text="true" @click="exportErDot">导出 DOT</ReButton>
+          </template>
+        </ReDialog>
+
+        <!-- 双击节点后的列清单（页签与弹框两个 ER 视图共用；必须挂在这两个视图之外，
+             否则右键 ER 弹框打开时页签分支未挂载，列清单弹窗永远弹不出来） -->
+        <ReDialog v-model="erColumnsVisible" :title="`${erPickedTable} 的列`" width="520px">
+          <div class="dbm-er-cols">
+            <div
+              v-for="c in erPickedColumns"
+              :key="c.name"
+              class="dbm-er-col-row"
+            >
+              <span class="dbm-er-col-name">{{ c.name }}</span>
+              <span class="dbm-er-col-type">{{ c.type }}</span>
+              <span class="dbm-er-col-flags">
+                <span v-if="c.isPrimaryKey" class="dbm-er-flag pk">PK</span>
+                <span v-if="c.nullable" class="dbm-er-flag null">可空</span>
+              </span>
+            </div>
+            <ReEmpty v-if="erPickedColumns.length === 0" description="没有列信息" />
+          </div>
+          <template #footer>
+            <ReButton
+              type="primary"
+              @click="openErTableData(erPickedTable)"
+            >打开该表数据</ReButton>
+          </template>
+        </ReDialog>
 
         <!-- 对象定义页签（存储过程 / 函数 / 触发器 / 事件） -->
     <div v-if="activeTabObj && activeTabObj.type === 'object'" class="dbm-object-view">
@@ -822,7 +872,13 @@
     </div>
 
     <!-- 空状态 -->
-        <div v-if="tabs.length === 0" class="dbm-empty">
+        <div
+          v-if="activeTabObj && activeTabObj.type === 'users'"
+          class="dbm-users-view"
+        >
+          <DbUserManagePanel :datasource-id="currentDatasourceId" data-testid="dbm-users-panel" />
+        </div>
+        <div v-else-if="tabs.length === 0" class="dbm-empty">
           <ReIcon name="Grid" size="64" class="dbm-empty-icon" />
           <p class="dbm-empty-text">从左侧选择表查看数据，或点击"新建查询"执行 SQL</p>
         </div>
@@ -899,7 +955,10 @@
           <div class="dbm-context-item" @click="openQueryWithSql('', contextMenu.database)">
             <ReIcon name="EditPen" :size="14" />新建查询
           </div>
-          <div class="dbm-context-item" @click="openErDiagram(contextMenu.database)">
+          <div class="dbm-context-item" @click="openDocumentPreview(contextMenu.database)">
+            <ReIcon name="View" :size="14" />查看文档
+          </div>
+          <div class="dbm-context-item" @click="openErExportDialog(contextMenu.database)">
             <ReIcon name="Share" :size="14" />ER 图（表关系）
           </div>
           <div class="dbm-context-item" @click="openStructureSync(contextMenu.database)">
@@ -907,6 +966,12 @@
           </div>
           <div class="dbm-context-item" @click="openDocumentExport(contextMenu.database)">
             <ReIcon name="Document" :size="14" />导出数据库文档
+          </div>
+          <div class="dbm-context-item" @click="openCreateUser(contextMenu.database)">
+            <ReIcon name="User" :size="14" />添加用户
+          </div>
+          <div v-if="usersSupported" class="dbm-context-item" @click="openUsersTab()">
+            <ReIcon name="UserFilled" :size="14" />用户管理
           </div>
           <div class="dbm-context-item" @click="copyText(contextMenu.database)">
             <ReIcon name="CopyDocument" :size="14" />复制库名
@@ -918,6 +983,30 @@
           <div class="dbm-context-divider" />
           <div class="dbm-context-item dbm-danger" @click="deleteDatabase(contextMenu.database)">
             <ReIcon name="Delete" :size="14" />删除数据库
+          </div>
+        </template>
+
+        <!-- 数据源根节点：整条连接的文档 / 新建 / 刷新。文档查看复用与主页
+             （数据源中心右键「查看数据库文档」）同一管线 —— 数据源级，不带库名。 -->
+        <template v-else-if="contextMenu.root">
+          <div class="dbm-context-item" @click="openDatasourceDocument">
+            <ReIcon name="View" :size="14" />查看数据库文档
+          </div>
+          <div class="dbm-context-item" @click="openCreateDatabase">
+            <ReIcon name="FolderAdd" :size="14" />新建数据库
+          </div>
+          <div class="dbm-context-item" @click="openCreateTable()">
+            <ReIcon name="Plus" :size="14" />新建表
+          </div>
+          <div class="dbm-context-item" @click="openNewQuery">
+            <ReIcon name="EditPen" :size="14" />新建查询
+          </div>
+          <div class="dbm-context-item" @click="openImportDataFromToolbar">
+            <ReIcon name="Upload" :size="14" />导入数据
+          </div>
+          <div class="dbm-context-divider" />
+          <div class="dbm-context-item" @click="refreshTree">
+            <ReIcon name="Refresh" :size="14" />刷新
           </div>
         </template>
 
@@ -957,76 +1046,336 @@
       </div>
     </Teleport>
 
-    <!-- 结构同步（比较两个库并生成同步脚本） -->
-    <ReDialog v-model="syncVisible" title="结构同步" width="900px">
+    <!-- 结构同步（Navicat 复刻：选择源/目标 → 比较 → 差异 → 部署执行，SSE 实时日志） -->
+    <ReDialog
+      v-model="syncVisible"
+      title="结构同步"
+      width="980px"
+      top="6vh"
+      class="dbm-sync-dialog"
+      :close-on-click-modal="false"
+      :show-close="!syncComparing"
+    >
       <div class="dbm-sync">
-        <div class="dbm-sync-bar">
-          <span class="dbm-sync-side">
-            源库
-            <ReSelect v-model="syncSourceDb" placeholder="源库" class="dbm-sync-select">
-              <ReOption v-for="db in databases" :key="'s' + db" :label="dbLabel(db)" :value="db" />
-            </ReSelect>
+        <!-- ========== 顶部方向条（图 1 / 3 / 4 / 5 均保留）：源 连接.库 → 目标 连接.库 ========== -->
+        <div class="dbm-sync-direction">
+          <span class="dbm-sync-direction-side dbm-sync-direction-side--src">
+            <span class="dbm-sync-db-icon dbm-sync-db-icon--src" />
+            <span class="dbm-sync-conn">{{ syncOverviewSrc }}</span>
           </span>
-          <ReIcon name="Right" :size="16" />
-          <span class="dbm-sync-side">
-            目标库
-            <ReSelect v-model="syncTargetDb" placeholder="目标库" class="dbm-sync-select">
-              <ReOption v-for="db in databases" :key="'t' + db" :label="dbLabel(db)" :value="db" />
-            </ReSelect>
+          <ReIcon name="Right" :size="18" class="dbm-sync-direction-arrow" />
+          <span class="dbm-sync-direction-side dbm-sync-direction-side--dst">
+            <span class="dbm-sync-conn">{{ syncOverviewDst }}</span>
+            <span class="dbm-sync-db-icon dbm-sync-db-icon--dst" />
           </span>
+        </div>
+
+        <!-- ========== 视图一：选择源 / 目标（图 1） ========== -->
+        <template v-if="syncView === 'select' || syncView === 'compare'">
+          <div class="dbm-sync-panes">
+            <!-- 源面板 -->
+            <div class="dbm-sync-pane dbm-sync-pane--src">
+              <div class="dbm-sync-pane-title">源</div>
+              <div class="dbm-sync-field">
+                <span class="dbm-sync-field-label">连接</span>
+                <ReSelect
+                  v-model="syncSrcDs"
+                  placeholder="选择数据源（连接）"
+                  class="dbm-sync-ds-select"
+                  @change="onSyncSrcDsChange"
+                >
+                  <ReOption v-for="ds in syncDsOptions" :key="'ss' + ds.id" :label="dsLabel(ds)" :value="ds.id" />
+                </ReSelect>
+              </div>
+              <div class="dbm-sync-field">
+                <span class="dbm-sync-field-label">数据库</span>
+                <ReSelect
+                  v-model="syncSrcDb"
+                  placeholder="选择数据库"
+                  class="dbm-sync-db-select"
+                  :disabled="!syncSrcDbs.length"
+                  @change="onSyncSrcDbChange"
+                >
+                  <ReOption v-for="db in syncSrcDbs" :key="'sb' + db" :label="dbLabel(db)" :value="db" />
+                </ReSelect>
+              </div>
+              <div class="dbm-sync-info">
+                <div v-for="f in syncSrcInfo" :key="f.k" class="dbm-sync-info-row">
+                  <span class="dbm-sync-info-k">{{ f.k }}</span>
+                  <span class="dbm-sync-info-v">{{ f.v }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 双向切换 -->
+            <div class="dbm-sync-swap">
+              <ReButton layout="square" icon="Sort" tip="交换源与目标" @click="swapSyncSides" />
+            </div>
+
+            <!-- 目标面板 -->
+            <div class="dbm-sync-pane dbm-sync-pane--dst">
+              <div class="dbm-sync-pane-title">目标</div>
+              <div class="dbm-sync-field">
+                <span class="dbm-sync-field-label">连接</span>
+                <ReSelect
+                  v-model="syncDstDs"
+                  placeholder="选择数据源（连接）"
+                  class="dbm-sync-ds-select"
+                  @change="onSyncDstDsChange"
+                >
+                  <ReOption v-for="ds in syncDsOptions" :key="'sd' + ds.id" :label="dsLabel(ds)" :value="ds.id" />
+                </ReSelect>
+              </div>
+              <div class="dbm-sync-field">
+                <span class="dbm-sync-field-label">数据库</span>
+                <ReSelect
+                  v-model="syncDstDb"
+                  placeholder="选择数据库"
+                  class="dbm-sync-db-select"
+                  :disabled="!syncDstDbs.length"
+                  @change="onSyncDstDbChange"
+                >
+                  <ReOption v-for="db in syncDstDbs" :key="'tb' + db" :label="dbLabel(db)" :value="db" />
+                </ReSelect>
+              </div>
+              <div class="dbm-sync-info">
+                <div v-for="f in syncDstInfo" :key="f.k" class="dbm-sync-info-row">
+                  <span class="dbm-sync-info-k">{{ f.k }}</span>
+                  <span class="dbm-sync-info-v">{{ f.v }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <ReInput
             v-model="syncTableFilter"
             class="dbm-mono dbm-sync-filter"
             placeholder="只比较匹配的表（支持 % 与 _，留空为全部）"
             clearable
           />
-          <ReButton layout="square" type="primary" icon="Search" tip="比较" :loading="syncLoading" @click="runStructureDiff" />
-        </div>
-        <ReEmpty
-          v-if="!syncLoading && !syncDiffError && !syncRan"
-          description="选好源库与目标库后点「比较」"
-        />
-        <ReEmpty
-          v-else-if="syncDiffError"
-          :description="syncDiffError"
-        />
-        <ReEmpty
-          v-else-if="syncItems.length === 0"
-          description="两个库的结构已经一致，没有需要同步的差异"
-        />
-        <div v-else class="dbm-sync-body">
-          <div class="dbm-sync-summary">
-            {{ syncItems.length }} 处差异 ·
-            {{ syncActionableCount }} 处可直接同步 ·
-            {{ syncExtraCount }} 处是目标多出来的（不会自动删除）
+          <ReEmpty v-if="syncDiffError" :description="syncDiffError" />
+        </template>
+
+        <!-- ========== 视图二：比较中（图 2：居中遮罩弹窗，背后面板保留） ========== -->
+        <div v-if="syncView === 'compare'" class="dbm-sync-compare-mask">
+          <div class="dbm-sync-compare">
+            <ReIcon name="Refresh" :size="36" class="dbm-sync-compare-spin" />
+            <div class="dbm-sync-compare-title">正在比较数据库…</div>
+            <div class="dbm-sync-compare-sub">{{ syncComparePhase }}</div>
+            <div class="dbm-sync-compare-track">
+              <div class="dbm-sync-compare-bar" :style="{ width: syncComparePct + '%' }" />
+            </div>
+            <ReButton plain size="small" @click="cancelSyncCompare">取消</ReButton>
           </div>
-          <div class="dbm-sync-list">
-            <div v-for="(d, i) in syncItems" :key="i" class="dbm-sync-row" :class="d.kind">
-              <span class="dbm-sync-kind">{{ SYNC_KIND_LABELS[d.kind] || d.kind }}</span>
-              <span class="dbm-sync-obj">{{ d.table }}.{{ d.object }}</span>
-              <span class="dbm-sync-detail">{{ d.detail }}</span>
+        </div>
+
+        <!-- ========== 视图三：差异（图 3：源对象 / 操作 / 目标对象 三列，按操作分组折叠） ========== -->
+        <template v-else-if="syncView === 'diff'">
+          <div class="dbm-sync-groups">
+            <div
+              v-for="g in syncGroups"
+              :key="g.key"
+              class="dbm-sync-group"
+              :class="g.key"
+            >
+              <div class="dbm-sync-group-head" @click="syncGroupOpen[g.key] = !syncGroupOpen[g.key]">
+                <ReIcon :name="syncGroupOpen[g.key] ? 'ArrowDown' : 'ArrowRight'" :size="14" class="dbm-sync-group-caret" />
+                <span class="dbm-sync-group-name">{{ g.name }}</span>
+                <span class="dbm-sync-group-selected">已选择 {{ g.checkedCount }} 个（共 {{ g.items.length }} 个）</span>
+                <span class="dbm-sync-group-actions" @click.stop>
+                  <ReButton size="small" text @click="setGroupChecked(g.key, true)">全选</ReButton>
+                  <ReButton size="small" text @click="setGroupChecked(g.key, false)">全不选</ReButton>
+                  <ReButton size="small" text @click="invertGroupChecked(g.key)">反选</ReButton>
+                </span>
+              </div>
+              <div v-if="syncGroupOpen[g.key]" class="dbm-sync-group-items">
+                <div class="dbm-sync-grid-row dbm-sync-grid-row--head">
+                  <span class="dbm-sync-grid-src">源对象</span>
+                  <span class="dbm-sync-grid-op">操作</span>
+                  <span class="dbm-sync-grid-dst">目标对象</span>
+                </div>
+                <div
+                  v-for="(d, i) in g.items"
+                  :key="g.key + i"
+                  class="dbm-sync-grid-row"
+                  :class="{ 'dbm-sync-grid-row--checked': d.checked }"
+                >
+                  <span class="dbm-sync-grid-src">
+                    <input
+                      v-model="d.checked"
+                      type="checkbox"
+                      class="dbm-sync-diff-check"
+                      :aria-label="`勾选 ${d.object}`"
+                    >
+                    <span class="dbm-sync-diff-obj">{{ syncGridObj(d) }}</span>
+                  </span>
+                  <span class="dbm-sync-grid-op">
+                    <span class="dbm-sync-diff-op" :class="syncOpClass(d)">
+                      {{ syncOpIcon(d) }} {{ syncOpVerb(d) }}
+                    </span>
+                  </span>
+                  <span class="dbm-sync-grid-dst">
+                    <span class="dbm-sync-diff-obj">{{ syncGridObj(d) }}</span>
+                    <span class="dbm-sync-diff-detail">{{ d.detail }}</span>
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-          <div v-if="syncScript" class="dbm-sync-script-wrap">
+        </template>
+
+        <!-- ========== 视图四：部署执行（图 4：部署脚本 tab；图 5：消息日志 tab + 进度统计） ========== -->
+        <template v-else>
+          <div class="dbm-sync-tabs">
+            <div
+              class="dbm-sync-tab"
+              :class="{ active: syncDeployTab === 'script' }"
+              @click="switchSyncDeployTab('script')"
+            >
+              部署脚本
+            </div>
+            <div
+              class="dbm-sync-tab"
+              :class="{ active: syncDeployTab === 'log' }"
+              @click="switchSyncDeployTab('log')"
+            >
+              消息日志
+            </div>
+          </div>
+
+          <!-- 部署脚本 tab：可编辑脚本区，SQL 语法高亮（图 4） -->
+          <div v-if="syncDeployTab === 'script'" class="dbm-sync-script-panel">
             <div class="dbm-sync-script-head">
-              <span>生成的同步脚本（未执行）</span>
+              <span>部署脚本</span>
               <span class="dbm-spacer" />
-              <ReButton layout="square" icon="DocumentCopy" tip="复制脚本" @click="copyText(syncScript)" />
-              <ReButton
-                layout="square"
-                type="primary"
-                icon="VideoPlay"
-                tip="在目标库执行这段脚本"
-                @click="runStructureScript"
+              <ReButton size="small" plain icon="DocumentCopy" @click="copyText(syncDeployScript)">复制</ReButton>
+            </div>
+            <div class="dbm-sync-sql-editor">
+              <!-- 下层：语法高亮预览（随上层 textarea 滚动同步） -->
+              <pre
+                ref="syncSqlHlEl"
+                class="dbm-sync-sql-hl"
+                aria-hidden="true"
+              ><code v-html="sqlHighlight(syncDeployScript)"></code></pre>
+              <!-- 上层：透明文字 textarea，负责编辑/滚动/选择（文字色透明、光标可见） -->
+              <textarea
+                v-model="syncDeployScript"
+                class="dbm-sync-sql-input"
+                spellcheck="false"
+                wrap="off"
+                @input="syncSqlScroll"
+                @scroll="syncSqlScroll"
               />
             </div>
-            <pre class="dbm-sync-script">{{ syncScript }}</pre>
           </div>
+
+          <!-- 消息日志 tab：进度统计 + SSE 逐条日志（图 5） -->
+          <div v-else class="dbm-sync-log-panel">
+            <div class="dbm-sync-run-stats">
+              <span>进度：{{ syncRunDone ? syncRunTotal : syncRunOk + syncRunFail }}</span>
+              <span>成功：{{ syncRunOk }}</span>
+              <span>错误：{{ syncRunFail }}</span>
+              <span>时间：{{ ((syncRunElapsed || 0) / 1000).toFixed(1) }}s</span>
+            </div>
+            <div ref="syncLogEl" class="dbm-sync-log">
+              <div
+                v-for="(line, i) in syncLog"
+                :key="i"
+                class="dbm-sync-log-line"
+                :class="line.ok === undefined ? '' : line.ok ? 'dbm-sync-log-line--ok' : 'dbm-sync-log-line--fail'"
+              >
+                <template v-if="line.ok === undefined">
+                  <span class="dbm-sync-log-no">{{ line.no }}</span>
+                  <span class="dbm-sync-log-sql">{{ line.sql }}</span>
+                  <span class="dbm-sync-log-msg">{{ line.msg }}</span>
+                </template>
+                <template v-else>
+                  <span class="dbm-sync-log-no">{{ line.no }}</span>
+                  <span class="dbm-sync-log-flag">{{ line.ok ? "✓" : "✗" }}</span>
+                  <span class="dbm-sync-log-sql">{{ line.sql }}</span>
+                  <span v-if="line.affected !== undefined" class="dbm-sync-log-msg">影响 {{ line.affected }} 行</span>
+                  <span v-if="line.error" class="dbm-sync-log-msg">{{ line.error }}</span>
+                </template>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- ========== 底部导航（图 1：保存/加载/选项 + 比较；图 3：上一步/重新比较/下一步；图 4/5：开始） ========== -->
+        <div class="dbm-sync-foot">
+          <template v-if="syncView === 'select' || syncView === 'diff' || syncView === 'deploy'">
+            <ReButton size="small" plain icon="Download" @click="saveSyncProfile">保存配置文件</ReButton>
+            <ReButton size="small" plain icon="Upload" @click="loadSyncProfile">加载配置文件</ReButton>
+            <ReButton size="small" plain icon="Setting" @click="syncOptVisible = true">部署选项</ReButton>
+            <span class="dbm-spacer" />
+          </template>
+          <template v-if="syncView === 'select'">
+            <ReButton
+              size="small"
+              type="primary"
+              icon="Search"
+              :loading="syncLoading"
+              :disabled="!canCompare"
+              @click="runStructureDiff"
+            >
+              比较
+            </ReButton>
+          </template>
+          <template v-else-if="syncView === 'diff'">
+            <ReButton size="small" plain @click="syncView = 'select'">上一步</ReButton>
+            <ReButton size="small" plain icon="Refresh" @click="runStructureDiff">重新比较</ReButton>
+            <ReButton
+              size="small"
+              type="primary"
+              :disabled="!syncDeployScript.trim()"
+              @click="goDeploy"
+            >
+              下一步
+            </ReButton>
+          </template>
+          <template v-else-if="syncView === 'deploy'">
+            <ReButton size="small" plain :disabled="syncRunning" @click="backFromDeploy">上一步</ReButton>
+            <ReButton
+              size="small"
+              plain
+              icon="Refresh"
+              :disabled="syncRunning"
+              @click="recompareFromDeploy"
+            >
+              重新比较
+            </ReButton>
+            <ReButton
+              v-if="!syncRunDone"
+              size="small"
+              type="primary"
+              icon="VideoPlay"
+              :loading="syncRunning"
+              :disabled="!syncDeployScript.trim() && !syncRunning"
+              @click="syncRunning ? stopSyncRun() : runStructureSync()"
+            >
+              {{ syncRunning ? "停止" : "开始" }}
+            </ReButton>
+            <ReButton v-else size="small" type="primary" @click="closeSync">完成</ReButton>
+          </template>
         </div>
       </div>
-      <template #footer>
-        <ReButton @click="syncVisible = false">关闭</ReButton>
-      </template>
+
+      <!-- 选项弹窗 -->
+      <ReDialog v-model="syncOptVisible" title="选项" width="420px" append-to-body>
+        <div class="dbm-sync-opt">
+          <label class="dbm-sync-opt-row">
+            <input v-model="syncOptStopOnError" type="checkbox" class="dbm-sync-opt-check">
+            执行时遇错即停
+          </label>
+          <label class="dbm-sync-opt-row">
+            <input v-model="syncOptIncludeExtra" type="checkbox" class="dbm-sync-opt-check">
+            包含「目标多出的对象」的删除语句（DROP）
+          </label>
+        </div>
+        <template #footer>
+          <ReButton @click="syncOptVisible = false">关闭</ReButton>
+        </template>
+      </ReDialog>
     </ReDialog>
 
     <!-- 导出数据库文档（表结构 / 主键 / 外键，渲染走后端既有的 DocumentProvider SPI） -->
@@ -1063,6 +1412,28 @@
           导出
         </ReButton>
       </template>
+    </ReDialog>
+
+    <!-- 在线查看数据库文档（右键「查看文档」/ 根节点「查看数据库文档」：markdown → HTML 弹窗预览） -->
+    <ReDialog
+      v-model="docPreviewVisible"
+      :title="docPreviewDatabase ? `${docPreviewDatabase} · 数据库文档` : `${currentDatasourceName || '数据源'} · 数据库文档`"
+      width="85%"
+      top="6vh"
+      class="dbm-doc-preview-dialog"
+    >
+      <div v-if="docPreviewLoading" class="dbm-doc-preview-loading">正在渲染文档…</div>
+      <div v-else-if="docPreviewError" class="dbm-doc-preview-error">
+        <p>预览失败：{{ docPreviewError }}</p>
+        <ReButton type="primary" @click="doDocumentExport">改为下载文档</ReButton>
+      </div>
+      <iframe
+        v-else-if="docPreviewContent"
+        :srcdoc="docPreviewContent"
+        class="dbm-doc-preview-iframe"
+        sandbox="allow-same-origin"
+        title="数据库文档预览"
+      />
     </ReDialog>
 
     <!-- 列显示设置（Navicat 的字段显示 / 固定列） -->
@@ -1162,7 +1533,6 @@
         <pre v-else class="dbm-blob-hex">{{ blobHex }}</pre>
       </div>
       <template #footer>
-        <ReButton @click="blobVisible = false">关闭</ReButton>
         <ReButton
           v-if="blobEditing"
           type="primary"
@@ -1271,6 +1641,42 @@
       <template #footer>
         <ReButton @click="createDbVisible = false">取消</ReButton>
         <ReButton type="primary" :loading="creatingDb" @click="createDatabase">创建</ReButton>
+      </template>
+    </ReDialog>
+
+    <!-- 添加用户弹窗 -->
+    <ReDialog v-model="createUserVisible" title="添加用户" width="520px">
+      <div class="dbm-create-form">
+        <div class="dbm-form-item">
+          <label>用户名</label>
+          <ReInput v-model="userForm.username" placeholder="请输入用户名" data-testid="dbm-user-username" />
+        </div>
+        <div class="dbm-form-item">
+          <label>主机</label>
+          <ReInput v-model="userForm.host" placeholder="如 localhost / %" data-testid="dbm-user-host" />
+        </div>
+        <div class="dbm-form-item">
+          <label>密码</label>
+          <ReInput v-model="userForm.password" type="password" show-password placeholder="请输入密码" data-testid="dbm-user-password" />
+        </div>
+        <div class="dbm-form-item">
+          <label>确认密码</label>
+          <ReInput v-model="userForm.confirmPassword" type="password" show-password placeholder="请再次输入密码" data-testid="dbm-user-confirm" />
+        </div>
+        <div class="dbm-form-item">
+          <label>授予权限</label>
+          <div class="dbm-user-grants">
+            <label v-for="g in USER_GRANTS" :key="g" class="dbm-user-grant">
+              <ElCheckbox v-model="userForm.grants" :value="g" />
+              <span>{{ g }}</span>
+            </label>
+          </div>
+          <span class="dbm-hint">勾选后追加 <code>GRANT ... ON *.* TO 'user'@'host'</code></span>
+        </div>
+      </div>
+      <template #footer>
+        <ReButton @click="createUserVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="creatingUser" @click="createUser">创建</ReButton>
       </template>
     </ReDialog>
 
@@ -1405,7 +1811,6 @@
         </div>
       </div>
       <template #footer>
-        <ReButton @click="closeImportWizard">关闭</ReButton>
         <ReButton
           type="primary"
           :loading="importing"
@@ -1566,14 +1971,14 @@
       </div>
       <div v-if="columnAllowsUnsigned" class="dbm-form-item">
         <label>无符号</label>
-        <ReSwitch v-model="columnForm.unsigned" aria-label="无符号" />
+        <BooleanSegmented v-model="columnForm.unsigned" aria-label="无符号" />
       </div>
       <div
         v-if="columnForm.unsigned && columnForm.type !== 'FLOAT' && columnForm.type !== 'DOUBLE'"
         class="dbm-form-item"
       >
         <label>补零</label>
-        <ReSwitch v-model="columnForm.zerofill" aria-label="补零" />
+        <BooleanSegmented v-model="columnForm.zerofill" aria-label="补零" />
       </div>
       <div v-if="columnIsEnum" class="dbm-form-item">
         <label>{{ columnForm.type === "SET" ? "集合取值" : "枚举取值" }}</label>
@@ -1609,11 +2014,11 @@
       </template>
       <div class="dbm-form-item">
         <label>可空</label>
-        <ReSwitch v-model="columnForm.nullable" aria-label="可空" />
+        <BooleanSegmented v-model="columnForm.nullable" aria-label="可空" />
       </div>
       <div v-if="columnAllowsUnsigned" class="dbm-form-item">
         <label>自动递增</label>
-        <ReSwitch v-model="columnForm.autoIncrement" aria-label="自动递增" />
+        <BooleanSegmented v-model="columnForm.autoIncrement" aria-label="自动递增" />
       </div>
       <div class="dbm-form-item">
         <label>默认值</label>
@@ -1702,11 +2107,11 @@
       </div>
       <div v-if="!indexForm.primary" class="dbm-form-item">
         <label>唯一索引</label>
-        <ReSwitch v-model="indexForm.unique" aria-label="唯一索引" />
+        <BooleanSegmented v-model="indexForm.unique" aria-label="唯一索引" />
       </div>
       <div class="dbm-form-item">
         <label>设为主键</label>
-        <ReSwitch v-model="indexForm.primary" aria-label="设为主键" />
+        <BooleanSegmented v-model="indexForm.primary" aria-label="设为主键" />
       </div>
     </div>
       <template #footer>
@@ -1758,7 +2163,6 @@
       <template #footer>
         <ReButton :loading="aiBusy" type="primary" @click="generateAiSql">生成 SQL</ReButton>
         <ReButton v-if="aiSql" type="success" @click="applyAiSql">应用到编辑器</ReButton>
-        <ReButton @click="aiDialogVisible = false">关闭</ReButton>
       </template>
     </ReDialog>
 
@@ -1855,7 +2259,6 @@
         <textarea class="dbm-sql-editor dbm-ddl" readonly :value="ddlText" />
       </div>
       <template #footer>
-        <ReButton @click="ddlVisible = false">关闭</ReButton>
         <ReButton type="primary" icon="CopyDocument" :show-text="true" @click="copyText(ddlText)">复制</ReButton>
       </template>
     </ReDialog>
@@ -1870,6 +2273,7 @@
  * @since 4.0.0
  */
 import { message } from "@repo/core";
+import { http } from "@repo/utils";
 // 卡片视觉统一底座（16px 圆角/透明边框/双层投影，--dense 为 12px/10px 内距档）
 import "@repo/ui/surface";
 import { ref, computed, onMounted, onBeforeUnmount, reactive, watch, nextTick } from "vue";
@@ -1884,13 +2288,17 @@ import ReInputNumber from "@repo/ui/re-input-number";
 import RePagination from "@repo/ui/re-pagination";
 import ReSelect from "@repo/ui/re-select";
 import ReSwitch from "../../components/console/ConsoleSwitch.vue";
+import BooleanSegmented from "../../components/console/BooleanSegmented.vue";
+import DesignColumnGrid from "../../components/console/DesignColumnGrid.vue";
+import type { DesignColumnRow } from "../../components/console/designColumnModel";
 // 类型分组与长度/小数位/UNSIGNED 适用范围：与「设计表」建表对话框共用一份
 import { COLUMN_TYPE_GROUPS, SCALE_ALLOWED, SIZE_REQUIRED, UNSIGNED_ALLOWED } from "../../utils/columnTypes";
 import ReTable from "@repo/ui/re-table";
 import ReRelationGraph from "@repo/ui/re-relation-graph";
-import { ReFormItem, ReOption } from "@repo/ui/re-kit";
+import { ReFormItem, ReOption, ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 import DbSqlEditor from "../../components/console/DbSqlEditor.vue";
 import CreateTableDialog from "../../components/console/CreateTableDialog.vue";
+import DbUserManagePanel from "../../components/console/DbUserManagePanel.vue";
 // 数据源下拉走共享件：中文口径与停用项剔除规则全站一份
 import { DatasourceSelect } from "@pages/datasource";
 import type { CollectOption } from "@pages/datasource";
@@ -1929,6 +2337,7 @@ import {
   type DbAiStatus,
   dbDocumentFormats,
   downloadDbDocument,
+  previewDbDocument,
   type DbDocumentFormat,
 } from "../../api/manageConsoles";
 import { fetchDataSources, type DataSourceInfo } from "@pages/datasource";
@@ -2003,6 +2412,9 @@ const props = withDefaults(
 );
 const { embedded } = props;
 
+/** 全屏模式（/db-manager/full 等 standalone 路由）：无应用外壳，高度应吃满视口 */
+const isFullscreen = computed(() => route.meta?.standalone === true);
+
 /** 默认主数据源：后端把 datasourceId=0/null 解析为主数据源，这里把它显式作为下拉首项 */
 const DEFAULT_DATASOURCE: DataSourceInfo = { id: 0, name: "默认主数据源", type: "master" };
 
@@ -2034,6 +2446,19 @@ const datasourceOptions = computed<CollectOption[]>(() =>
 function onDatasourcePick(value: string): void {
   currentDatasourceId.value = Number(value) || 0;
 }
+
+/**
+ * 用户管理能力（SPI 判断）：仅当前数据源为 MySQL/MariaDB 内核时可用。
+ *
+ * <p>用户定义落在 {@code mysql.user} 表，MySQL/MariaDB 有完整的 CREATE/ALTER/DROP
+ * USER 与 SHOW GRANTS；其余内核（含 PostgreSQL）结构与语义差异大，不显示入口。
+ * 判断依据是当前数据源台账里的完整 JDBC URL（database 字段）。</p>
+ */
+const usersSupported = computed(() => {
+  const ds = datasources.value.find(d => d.id === currentDatasourceId.value);
+  const url = (ds?.database ?? "").trim().toLowerCase();
+  return url.startsWith("jdbc:mysql:") || url.startsWith("jdbc:mariadb:");
+});
 
 // 连接树
 const databases = ref<string[]>([]);
@@ -2338,7 +2763,7 @@ const activeTable = ref<string>("");
 interface Tab {
   id: string;
   /** object = 存储过程/函数/触发器/事件的定义页 */
-  type: "table" | "design" | "query" | "object" | "er";
+  type: "table" | "design" | "query" | "object" | "er" | "users";
   title: string;
   tableName?: string;
   database?: string;
@@ -2411,6 +2836,14 @@ const rowMode = ref<"data" | "data-comment">(viewPref.rowMode);
 
 /** 是否统计总数（关闭后跳过 COUNT，走「上一页/下一页」模式） */
 const showTotal = ref(viewPref.showTotal);
+
+/** 把 boolean 的 showTotal 转成 ReRadio 分段档能用的字符串，双向同步 */
+const showTotalValue = computed<string>({
+  get: () => (showTotal.value ? "yes" : "no"),
+  set: (v: string) => {
+    showTotal.value = v === "yes";
+  },
+});
 /** 列注释映射（表头/行显示模式） */
 const columnComments = reactive<Record<string, string>>({});
 
@@ -2861,6 +3294,100 @@ const createDatabase = async () => {
     message.error(`创建失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     creatingDb.value = false;
+  }
+};
+
+// ==================== 添加用户 ====================
+/** 可授予的全局权限选项 */
+const USER_GRANTS = [
+  "ALL PRIVILEGES",
+  "SELECT",
+  "INSERT",
+  "UPDATE",
+  "DELETE",
+  "CREATE",
+  "DROP",
+  "ALTER",
+  "INDEX",
+  "REFERENCES",
+] as const;
+
+const createUserVisible = ref(false);
+const creatingUser = ref(false);
+const userForm = reactive<{
+  username: string;
+  host: string;
+  password: string;
+  confirmPassword: string;
+  grants: string[];
+}>({
+  username: "",
+  host: "%",
+  password: "",
+  confirmPassword: "",
+  grants: [],
+});
+
+/** 打开添加用户弹窗（默认库只为展示，用户名/主机/权限为全局对象） */
+const openCreateUser = (_database?: string) => {
+  userForm.username = "";
+  userForm.host = "%";
+  userForm.password = "";
+  userForm.confirmPassword = "";
+  userForm.grants = [];
+  createUserVisible.value = true;
+};
+
+/**
+ * 创建数据库用户：拼 `CREATE USER` + 可选 `GRANT`，走通用 DDL 通道执行。
+ *
+ * <p>通用 SQL 执行通道（{@code /db/execute}）与设计表/建库同一权限级别，可执行任意 DDL。
+ * 语句不限定方言：MySQL / MariaDB 用 {@code 'user'@'host'}；PostgreSQL 的语法不同，
+ * 执行失败会由后端回显服务端错误，因此先做内核无关的基础校验。</p>
+ */
+const createUser = async () => {
+  const username = userForm.username.trim();
+  const host = (userForm.host.trim() || "%").trim();
+  const password = userForm.password;
+  if (!username) {
+    message.warning("请输入用户名");
+    return;
+  }
+  if (!/^[A-Za-z0-9_$.]+$/.test(username)) {
+    message.warning("用户名只能包含字母、数字、下划线、$ 和点");
+    return;
+  }
+  if (!/^[A-Za-z0-9_$.%\-]+$/.test(host)) {
+    message.warning("主机名不合法");
+    return;
+  }
+  if (userForm.password !== userForm.confirmPassword) {
+    message.warning("两次输入的密码不一致");
+    return;
+  }
+  creatingUser.value = true;
+  try {
+    const stmts: string[] = [];
+    // 无密码时 MySQL 的 IDENTIFIED BY '' 会被当成空密码，直接省略 IDENTIFIED BY
+    const create = password
+      ? `CREATE USER '${username}'@'${host}' IDENTIFIED BY '${password.replace(/'/g, "''")}'`
+      : `CREATE USER '${username}'@'${host}'`;
+    stmts.push(create);
+    if (userForm.grants.length > 0) {
+      const grants = userForm.grants.join(", ");
+      stmts.push(`GRANT ${grants} ON *.* TO '${username}'@'${host}'`);
+    }
+    // 逐条执行：MySQL 的 Statement.execute 不支持一次多条（需 allowMultiQueries），
+    // 拆开虽多一次往返，但任何一条失败都能准确定位
+    for (const stmt of stmts) {
+      await executeDbSql(stmt, currentDatasourceId.value);
+    }
+    message.success("用户创建成功");
+    createUserVisible.value = false;
+  } catch (e) {
+    message.error(`创建用户失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    creatingUser.value = false;
   }
 };
 
@@ -3655,35 +4182,28 @@ interface ColumnAttrSource {
   charset?: string;
   collation?: string;
   enumValues?: string[];
-  scale?: number;
+  scale?: number | null;
 }
 
 /**
  * 设计行：包含原始值快照用于脏检测。
  *
- * <p>除表格里显示的几列外，还带上了列的**完整属性**（无符号 / 字符集 / 自增 /
- * 枚举取值等）。这些在网格里不显示，但「列属性」弹窗要靠它们回填 ——
- * 若不带上，打开弹窗只能看到空值，用户一点保存就把属性全清掉。</p>
+ * <p>字段与共享列网格模型 {@link DesignColumnRow} **同名同义**（primaryKey / size / scale
+ * / enumText …），因此行对象可以直接喂给 `DesignColumnGrid`，不需要再映射一层 ——
+ * 这也是「改一处两处同时生效」的前提。额外字段（originalName / origin / 无符号 / 字符集
+ * 等）只服务于本视图的脏检测与列属性弹窗，网格不展示但会原样带回去。</p>
  */
-interface DesignRow {
+interface DesignRow extends DesignColumnRow {
   originalName: string;
-  name: string;
-  type: string;
-  size: number | null;
-  nullable: boolean;
-  isPrimaryKey: boolean;
-  defaultValue: string;
-  comment: string;
   default?: string;
   remark?: string;
   baseType?: string;
   unsigned?: boolean;
   zerofill?: boolean;
-  autoIncrement?: boolean;
   charset?: string;
   collation?: string;
+  /** 枚举取值（列属性弹窗回填用；网格里展示的是 {@link DesignColumnRow.enumText} 文本） */
   enumValues?: string[];
-  scale?: number;
   origin: { name: string; type: string; size: number | null; nullable: boolean; defaultValue: string; comment: string };
 }
 
@@ -3725,24 +4245,130 @@ const designColumns = computed<DbColumnInfo[]>(() =>
     type: r.type,
     size: r.size ?? undefined,
     nullable: r.nullable,
-    isPrimaryKey: r.isPrimaryKey,
+    // 共享网格编辑的是 primaryKey（唯一可信来源），isPrimaryKey 只是历史别名
+    isPrimaryKey: r.primaryKey,
     default: r.defaultValue,
     remark: r.comment,
   }) as DbColumnInfo),
 );
 
+/** 拖动中的设计行下标（用于高亮放置目标） */
+const designDragIdx = ref<number | null>(null);
+/** 当前悬停的设计行下标（用于高亮放置目标） */
+const designDragOverIdx = ref<number | null>(null);
+
+/** 列拖拽开始：记录来源行；只允许列结构非空时拖 */
+function onDesignDragStart(i: number, event: DragEvent): void {
+  if (designRows.value.length < 2) {
+    event.preventDefault();
+    return;
+  }
+  designDragIdx.value = i;
+  designDragOverIdx.value = null;
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", String(i));
+  }
+}
+
+/** 悬停目标：让放置行显示高亮 */
+function onDesignDragOver(i: number): void {
+  if (designDragIdx.value !== null) {
+    designDragOverIdx.value = i;
+  }
+}
+
+/** 放置：重排 designRows 并保存新的列顺序 */
+async function onDesignDrop(i: number): Promise<void> {
+  const from = designDragIdx.value;
+  designDragIdx.value = null;
+  designDragOverIdx.value = null;
+  if (from === null || from === i || from < 0 || i < 0 || from >= designRows.value.length || i >= designRows.value.length) {
+    return;
+  }
+  const rows = [...designRows.value];
+  const [moved] = rows.splice(from, 1);
+  rows.splice(i, 0, moved);
+  designRows.value = rows;
+  await saveColumnOrder();
+}
+
+/** 保存拖拽后的列顺序：逐列 MODIFY ... AFTER 前一列（第一列 FIRST） */
+async function saveColumnOrder(): Promise<void> {
+  const rows = designRows.value;
+  const tab = activeTabObj.value;
+  if (!tab?.tableName || rows.length < 2) return;
+  designLoading.value = true;
+  try {
+    // 顺序是相对的：从第二列开始，把该列排到上一列之后；第一列排到最前。
+    // 锚点必须用 originalName（数据库里真实存在的列名）：
+    // 拖拽时行的 name 可能还是用户刚改的未保存值，拿它当 AFTER 锚会 1054。
+    for (let idx = 0; idx < rows.length; idx++) {
+      const row = rows[idx];
+      const afterColumn = idx === 0 ? "" : rows[idx - 1].originalName;
+      await modifyDbColumn(tab.tableName, row.originalName, {
+        ...designPayload(row),
+        afterColumn,
+        database: tab.database,
+      });
+    }
+    message.success("列顺序已更新");
+    await loadTableDesign(tab);
+  } catch (e) {
+    message.error(`保存列顺序失败: ${String((e as Error)?.message ?? e)}`);
+    await loadTableDesign(tab);
+  } finally {
+    designLoading.value = false;
+    designDragIdx.value = null;
+    designDragOverIdx.value = null;
+  }
+}
+
 /**
  * 行是否有改动
+ *
+ * <p>参数类型用共享模型 {@link DesignColumnRow}（不是更宽的 DesignRow）：共享列网格按
+ * 这个签名回调，TS 的逆变规则下窄签名无法传入。内部再断言回 DesignRow 取 origin 快照。</p>
+ *
  * @param row 设计行
  */
-function isDesignDirty(row: DesignRow): boolean {
-  const o = row.origin;
+function isDesignDirty(row: DesignColumnRow): boolean {
+  const full = row as DesignRow;
+  const o = full.origin;
   return row.name !== o.name
     || row.type !== o.type
     || (row.size ?? null) !== (o.size ?? null)
     || row.nullable !== o.nullable
     || row.defaultValue !== o.defaultValue
     || row.comment !== o.comment;
+}
+
+/** 共享列网格的行 key 自增（行对象要能直接喂给 DesignColumnGrid） */
+let designRowSeq = 0;
+
+/**
+ * 表结构网格高度：设计视图是整块区域，交给 ReTable 的 maxHeight 走内滚。
+ *
+ * <p>网格是共享的 DesignColumnGrid（内部 ReTable），自身不撑满高度；
+ * 这里给一个足够大的上限，让行多时在表体内滚动而不是把工具栏顶出视口。</p>
+ */
+const designGridHeight = "calc(100vh - 320px)";
+
+/**
+ * 拖拽排序（共享网格回调）：重排 designRows 后落库列顺序。
+ *
+ * @param from 来源下标
+ * @param to   目标下标
+ */
+async function onDesignReorder(from: number, to: number): Promise<void> {
+  if (from === to || from < 0 || to < 0 || from >= designRows.value.length || to >= designRows.value.length) {
+    return;
+  }
+  const rows = [...designRows.value];
+  const [moved] = rows.splice(from, 1);
+  rows.splice(to, 0, moved);
+  designRows.value = rows;
+  await saveColumnOrder();
 }
 
 /** 脏行数量（保存按钮角标） */
@@ -3768,11 +4394,20 @@ function designPayload(row: DesignRow) {
  * 保存单个字段（单元格编辑后行内「保存」）
  * @param row 设计行
  */
-async function saveDesignRow(row: DesignRow): Promise<void> {
+/**
+ * 保存单行。
+ *
+ * <p>参数用共享模型 DesignColumnRow（共享网格的 @save-row 按此签名回调），
+ * 内部断言回 DesignRow 取 originalName 做修改锚点。</p>
+ *
+ * @param row 设计行
+ */
+async function saveDesignRow(row: DesignColumnRow): Promise<void> {
+  const full = row as DesignRow;
   const tab = activeTabObj.value;
   if (!tab?.tableName || !isDesignDirty(row)) return;
   try {
-    await modifyDbColumn(tab.tableName, row.originalName, { ...designPayload(row), database: tab.database });
+    await modifyDbColumn(tab.tableName, full.originalName, { ...designPayload(full), database: tab.database });
     message.success(`字段 ${row.name} 已保存`);
     await loadTableDesign(tab);
   } catch (e) {
@@ -4323,8 +4958,10 @@ const blobModes = computed(() => {
   if (blobImageSrc.value) {
     modes.push("image");
   }
-  // 只有可解码成文本的二进制才提供「文本」视图
-  if (blobIsBinary.value && blobText.value && !/�/.test(blobText.value)) {
+  // 只有可解码成文本的二进制才提供「文本」视图。
+  // bytesToText 对不可解码的字节会给出替换符 U+FFFD，因此「解码后没有替换符」才是可读文本；
+  // 此前正则被写成了「至多一个 U+951F」，恒为真，导致纯二进制（图片、压缩包）也被塞进满是替换符的「文本」页签。
+  if (blobIsBinary.value && blobText.value && !/\uFFFD/.test(blobText.value)) {
     modes.unshift("text");
   }
   return modes;
@@ -5415,8 +6052,8 @@ async function runWithParams(): Promise<void> {
   await executeScriptWithParams();
 }
 
-// 右键菜单（tableName=表节点 / database=库节点 / tabId=页签 / 全空=侧栏空白）
-const contextMenu = reactive({ visible: false, x: 0, y: 0, tableName: "", database: "", tabId: "", isView: false });
+// 右键菜单（tableName=表节点 / database=库节点 / tabId=页签 / root=数据源根节点 / 全空=侧栏空白）
+const contextMenu = reactive({ visible: false, x: 0, y: 0, tableName: "", database: "", tabId: "", isView: false, root: false });
 
 // 新建表：表单与 SQL 拼装都在共享组件里，这里只保留「弹窗开关 + 目标库」
 const createTableVisible = ref(false);
@@ -5426,6 +6063,10 @@ const newTableDatabase = ref("");
 // 初始化
 onMounted(async () => {
   await loadDatasources();
+  // 数据源中心右键「用户管理」→ 打开全屏控制台并定位到用户管理页签（/db-manager/full?panel=users）
+  if (String(route.query.panel ?? "").toLowerCase() === "users" && usersSupported.value) {
+    openUsersTab();
+  }
   // text2sql 入口按后端能力显隐（未集成/未配置 = 隐藏），失败已在 API 内兜底
   void refreshAiStatus();
 });
@@ -5743,6 +6384,10 @@ const erShowLabels = ref(true);
 const erColumnsVisible = ref(false);
 const erPickedTable = ref("");
 const erPickedColumns = ref<DbColumnInfo[]>([]);
+/** 右键「ER 图」改打开的弹框：不占页签，双击后即看即关 */
+const erExportDialogVisible = ref(false);
+/** 弹框内 ER 图对应的库名（页签与弹框分离后各自携带） */
+const erDialogDatabase = ref("");
 
 /** 图上的节点 */
 const erNodes = computed(() => erTables.value.map(t => ({
@@ -5816,7 +6461,7 @@ const erStatText = computed(() => {
 
 /** 页签标题里的库名 */
 const qualifiedEr = computed(() => {
-  const db = activeTabObj.value?.database || "";
+  const db = erDialogDatabase.value || activeTabObj.value?.database || "";
   return db ? `${db} · ER 图` : "ER 图";
 });
 
@@ -5830,6 +6475,7 @@ function openErDiagram(database = activeDatabase.value) {
     message.warning("请先在左侧选择一个库");
     return;
   }
+  erDialogDatabase.value = "";
   const id = "er-" + database;
   let tab = tabs.value.find(t => t.id === id);
   if (!tab) {
@@ -5837,6 +6483,24 @@ function openErDiagram(database = activeDatabase.value) {
     tabs.value.push(tab);
   }
   activeTab.value = id;
+  void loadErDiagram();
+}
+
+/**
+ * 右键「ER 图」打开弹框（不再跳页签）。
+ *
+ * @param database 库名；缺省用当前选中库
+ */
+function openErExportDialog(database = activeDatabase.value) {
+  if (!database) {
+    message.warning("请先在左侧选择一个库");
+    return;
+  }
+  erDialogDatabase.value = database;
+  erExportDialogVisible.value = true;
+  erTableFilter.value = "";
+  erPickedTable.value = "";
+  erPickedColumns.value = [];
   void loadErDiagram();
 }
 
@@ -5860,10 +6524,162 @@ const syncVisible = ref(false);
 const syncLoading = ref(false);
 const syncRan = ref(false);
 const syncDiffError = ref("");
-const syncSourceDb = ref("");
-const syncTargetDb = ref("");
+/** 当前视图：select 选择源/目标 → compare 比较中 → diff 差异 → deploy 部署执行 */
+const syncView = ref<"select" | "compare" | "diff" | "deploy">("select");
+/** 比较中的阶段文案与进度（动画推进，非真实服务端进度） */
+const syncComparePhase = ref("正在获取表结构…");
+const syncComparePct = ref(0);
+let syncCompareTimer: ReturnType<typeof setInterval> | null = null;
+/** 来源数据源 ID 与数据库 */
+const syncSrcDs = ref<number>(0);
+const syncSrcDb = ref("");
+const syncSrcDbs = ref<string[]>([]);
+/** 目标数据源 ID 与数据库 */
+const syncDstDs = ref<number>(0);
+const syncDstDb = ref("");
+const syncDstDbs = ref<string[]>([]);
 const syncTableFilter = ref("");
-const syncItems = ref<DbStructureDiffItem[]>([]);
+const syncItems = ref<SyncDiffRow[]>([]);
+/** 差异分组方式：action 按操作 / type 按对象类型 */
+const syncGroupBy = ref<"action" | "type">("action");
+/** 部署视图标签：script 部署脚本 / log 消息日志 */
+const syncDeployTab = ref<"script" | "log">("script");
+/** 中止结构同步执行（点「停止」置位，SSE onMessage 据此忽略后续事件） */
+let syncStop = false;
+/** 部署脚本（勾选差异自动生成，可编辑） */
+const syncDeployScript = ref("");
+/** SSE 执行日志 */
+const syncLog = ref<StructureSyncLine[]>([]);
+const syncRunning = ref(false);
+const syncRunDone = ref(false);
+const syncRunTotal = ref(0);
+const syncRunOk = ref(0);
+const syncRunFail = ref(0);
+const syncRunElapsed = ref(0);
+const syncLogEl = ref<HTMLElement>();
+/** 选项 */
+const syncOptVisible = ref(false);
+const syncOptStopOnError = ref(true);
+const syncOptIncludeExtra = ref(true);
+
+/** 结构同步差异行：在服务端 DiffItem 之上加勾选标记与来源 kind */
+interface SyncDiffRow extends DbStructureDiffItem {
+  checked: boolean;
+  originalKind: string;
+}
+
+/** 结构同步日志行 */
+interface StructureSyncLine {
+  no: string;
+  sql: string;
+  msg?: string;
+  ok?: boolean;
+  affected?: number;
+  error?: string;
+}
+
+/** 可比较的数据源选项（默认主数据源 + JDBC），源/目标两侧共用 */
+const syncDsOptions = computed(() =>
+  datasources.value.filter(d => d.type === "jdbc" || (d.id ?? 0) === 0),
+);
+
+/** 数据源展示名 */
+function dsLabel(ds: DataSourceInfo | undefined | null): string {
+  if (!ds) return "未选择";
+  return ds.id === 0 || ds.type === "master" ? ds.name || "默认主数据源" : ds.name || `数据源 #${ds.id}`;
+}
+
+function dsById(id: number): DataSourceInfo | undefined {
+  return datasources.value.find(d => d.id === id);
+}
+
+/** 来源数据源切换：拉库列表并保留原选择 */
+async function onSyncSrcDsChange() {
+  syncSrcDb.value = "";
+  syncSrcDbs.value = [];
+  syncSrcDb.value = await loadSyncDbs(syncSrcDs.value, dbs => (syncSrcDbs.value = dbs));
+}
+
+/** 目标数据源切换 */
+async function onSyncDstDsChange() {
+  syncDstDb.value = "";
+  syncDstDbs.value = [];
+  syncDstDb.value = await loadSyncDbs(syncDstDs.value, dbs => (syncDstDbs.value = dbs));
+}
+
+/** 来源/目标库选择变化：清掉历史差异，防止“旧结果配新选择” */
+function onSyncSrcDbChange() {
+  resetSyncResult();
+}
+
+function onSyncDstDbChange() {
+  resetSyncResult();
+}
+
+function resetSyncResult() {
+  syncItems.value = [];
+  syncDeployScript.value = "";
+  syncRan.value = false;
+}
+
+async function loadSyncDbs(dsId: number, apply: (dbs: string[]) => void): Promise<string> {
+  try {
+    const dbs = await fetchDbDatabases(dsId);
+    apply(dbs.length ? dbs : [""]);
+    return dbs[0] ?? "";
+  } catch (e) {
+    message.error(`加载 ${dsLabel(dsById(dsId))} 的数据库列表失败: ${String((e as Error)?.message ?? e)}`);
+    apply([]);
+    return "";
+  }
+}
+
+/** 目标数据源对象（模板展示用） */
+const syncDstDsObj = computed(() => dsById(syncDstDs.value));
+
+/** 源/目标两侧连接信息卡 */
+const syncSrcInfo = computed(() => dbInfoRows(syncSrcDs.value, syncSrcDb.value));
+const syncDstInfo = computed(() => dbInfoRows(syncDstDs.value, syncDstDb.value));
+
+function dbInfoRows(dsId: number, db: string): { k: string; v: string }[] {
+  const ds = dsById(dsId);
+  if (!ds) {
+    return ["云名称", "项目名称", "连接类型", "连接名称", "主机", "端口", "服务器版本"]
+      .map(k => ({ k, v: "--" }));
+  }
+  const type = ds.type || "--";
+  return [
+    { k: "云名称", v: "--" },
+    { k: "项目名称", v: "--" },
+    { k: "连接类型", v: type === "master" ? "默认主数据源" : type.toUpperCase() },
+    { k: "连接名称", v: ds.name || "--" },
+    { k: "主机", v: ds.host || "--" },
+    { k: "端口", v: ds.port != null ? String(ds.port) : "--" },
+    { k: "服务器版本", v: ds.version || "--" },
+  ];
+}
+
+/** 是否可以比较：源/目标都选了数据源与库（不同库） */
+const canCompare = computed(
+  () =>
+    syncSrcDb.value.trim() !== "" &&
+    syncDstDb.value.trim() !== "" &&
+    (syncSrcDs.value !== syncDstDs.value || syncSrcDb.value !== syncDstDb.value),
+);
+
+/** 交换源与目标 */
+function swapSyncSides() {
+  const dsId = syncSrcDs.value;
+  const db = syncSrcDb.value;
+  const dbs = syncSrcDbs.value;
+  syncSrcDs.value = syncDstDs.value;
+  syncSrcDb.value = syncDstDb.value;
+  syncSrcDbs.value = syncDstDbs.value;
+  syncDstDs.value = dsId;
+  syncDstDb.value = db;
+  syncDstDbs.value = dbs;
+  resetSyncResult();
+}
 
 /** 需要同步的差异数（排除只提示的那些） */
 const syncActionableCount = computed(
@@ -5873,33 +6689,499 @@ const syncActionableCount = computed(
 const syncExtraCount = computed(
   () => syncItems.value.filter(d => SYNC_EXTRA_KINDS.has(d.kind)).length,
 );
-/** 生成的脚本：只拼可执行的那些 */
-const syncScript = computed(
-  () => syncItems.value.filter(d => d.ddl).map(d => d.ddl).join("\n"),
+
+/** 差异按操作分组 */
+const GROUP_ACTION_ORDER = [
+  { key: "modify", name: "要修改的对象", kinds: ["COLUMN_MISMATCH", "INDEX_MISMATCH"] },
+  { key: "create", name: "要创建的对象", kinds: ["MISSING_TABLE", "MISSING_COLUMN", "MISSING_INDEX", "MISSING_FOREIGN_KEY"] },
+  { key: "delete", name: "要删除的对象", kinds: ["EXTRA_TABLE", "EXTRA_COLUMN"] },
+  { key: "none", name: "无操作", kinds: [] },
+];
+
+/** 差异按对象类型分组 */
+const GROUP_TYPE_ORDER = [
+  { key: "table", name: "表", kinds: ["MISSING_TABLE", "EXTRA_TABLE"] },
+  { key: "column", name: "列", kinds: ["MISSING_COLUMN", "EXTRA_COLUMN", "COLUMN_MISMATCH"] },
+  { key: "index", name: "索引", kinds: ["MISSING_INDEX", "INDEX_MISMATCH"] },
+  { key: "foreignKey", name: "外键", kinds: ["MISSING_FOREIGN_KEY"] },
+];
+
+/** 当前分组的完整列表（含空组，便于展示 0 计数） */
+const syncGroupDefs = computed(() =>
+  syncGroupBy.value === "action" ? GROUP_ACTION_ORDER : GROUP_TYPE_ORDER,
 );
+
+function kindGroupKey(kind: string, by: "action" | "type"): string {
+  const defs = by === "action" ? GROUP_ACTION_ORDER : GROUP_TYPE_ORDER;
+  const hit = defs.find(g => g.kinds.includes(kind));
+  return hit ? hit.key : "none";
+}
+
+/** 分组展开状态（按分组 key 维护，避免模板里嵌套 ref 不解包） */
+const syncGroupOpen = reactive<Record<string, boolean>>({
+  modify: true,
+  create: true,
+  delete: true,
+  none: false,
+});
+
+/** 分组视图：每个组带 open 状态、items（含勾选）、已勾选计数 */
+const syncGroups = computed(() =>
+  syncGroupDefs.value.map(def => {
+    const known = def.kinds;
+    const inGroup =
+      def.key === "none"
+        ? syncItems.value.filter(d => !GROUP_ACTION_ORDER.some(g => g.kinds.includes(d.kind)))
+        : syncItems.value.filter(d => known.includes(d.kind));
+    return {
+      key: def.key,
+      name: def.name,
+      open: syncGroupOpen[def.key],
+      items: inGroup,
+      checkedCount: inGroup.filter(d => d.checked).length,
+    };
+  }),
+);
+
+/** 操作标记：创建 + / 修改 ~ / 删除 - / 无操作 = */
+function syncOpIcon(d: SyncDiffRow): string {
+  if (d.kind === "MISSING_TABLE" || d.kind === "MISSING_COLUMN"
+      || d.kind === "MISSING_INDEX" || d.kind === "MISSING_FOREIGN_KEY") return "+";
+  if (d.kind === "EXTRA_TABLE" || d.kind === "EXTRA_COLUMN") return "-";
+  if (d.kind === "COLUMN_MISMATCH" || d.kind === "INDEX_MISMATCH") return "~";
+  return "=";
+}
+
+function syncOpClass(d: SyncDiffRow): string {
+  if (d.kind === "COLUMN_MISMATCH" || d.kind === "INDEX_MISMATCH") return "op-modify";
+  if (d.ddl) return "op-create";
+  return "op-delete";
+}
+
+/** 差异行「源对象 / 目标对象」列展示：表名或 表.对象（与 Navicat 列表一致） */
+function syncGridObj(d: SyncDiffRow): string {
+  if (!d.object) return d.table || "";
+  return d.object === d.table ? d.table : `${d.table}.${d.object}`;
+}
+
+/** 操作列动词：创建 / 修改 / 删除 / 无操作 */
+function syncOpVerb(d: SyncDiffRow): string {
+  if (d.kind === "MISSING_TABLE" || d.kind === "MISSING_COLUMN"
+      || d.kind === "MISSING_INDEX" || d.kind === "MISSING_FOREIGN_KEY") return "创建";
+  if (d.kind === "EXTRA_TABLE" || d.kind === "EXTRA_COLUMN") return "删除";
+  if (d.kind === "COLUMN_MISMATCH" || d.kind === "INDEX_MISMATCH") return "修改";
+  return "无操作";
+}
+
+/** SQL 关键字（高亮用） */
+const SQL_KEYWORDS = new Set([
+  "SELECT","FROM","WHERE","AND","OR","NOT","NULL","IS","IN","LIKE","BETWEEN",
+  "INSERT","INTO","VALUES","UPDATE","SET","DELETE","CREATE","TABLE","ALTER","ADD",
+  "DROP","INDEX","PRIMARY","KEY","FOREIGN","REFERENCES","CONSTRAINT","UNIQUE",
+  "DEFAULT","ENGINE","CHARSET","COMMENT","AUTO_INCREMENT","IF","EXISTS","USE",
+  "BEGIN","COMMIT","ROLLBACK","TRUNCATE","RENAME","MODIFY","CHANGE","COLUMN",
+  "VARCHAR","INT","BIGINT","TINYINT","CHAR","TEXT","LONGTEXT","DECIMAL","DOUBLE",
+  "FLOAT","BOOLEAN","DATE","DATETIME","TIMESTAMP","JSON","BLOB","MEDIUMTEXT",
+]);
+
+function sqlHtmlEscape(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/** 轻量 SQL 语法高亮：字符串/反引号标识符/注释/数字/关键字上色 */
+function sqlHighlight(sql: string): string {
+  if (!sql) return "";
+  const re =
+    /'([^'\\]|\\.)*'|`([^`\\]|\\.)*`|--[^\n]*|\/\*[\s\S]*?\*\/|\b\d+(?:\.\d+)?\b|\b[A-Za-z_][A-Za-z0-9_]*\b/gi;
+  let out = "";
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(sql)) !== null) {
+    out += sqlHtmlEscape(sql.slice(last, m.index));
+    const tok = m[0];
+    let cls = "";
+    if (tok.startsWith("'")) cls = "sql-str";
+    else if (tok.startsWith("`")) cls = "sql-id";
+    else if (tok.startsWith("--") || tok.startsWith("/*")) cls = "sql-com";
+    else if (/^\d/.test(tok)) cls = "sql-num";
+    else if (SQL_KEYWORDS.has(tok.toUpperCase())) cls = "sql-kw";
+    out += cls ? `<span class="${cls}">${sqlHtmlEscape(tok)}</span>` : sqlHtmlEscape(tok);
+    last = re.lastIndex;
+  }
+  out += sqlHtmlEscape(sql.slice(last));
+  return out;
+}
+
+/** 某分组内可勾选的差异项（只有带 DDL 的才能勾选执行） */
+function groupCheckables(key: string): SyncDiffRow[] {
+  const g = syncGroups.value.find(g => g.key === key);
+  return g ? g.items.filter(d => d.ddl) : [];
+}
+
+/** 分组头：全选 */
+function setGroupChecked(key: string, value: boolean) {
+  groupCheckables(key).forEach(d => (d.checked = value));
+  syncDeployScript.value = buildDeployScript();
+}
+
+/** 分组头：反选 */
+function invertGroupChecked(key: string) {
+  groupCheckables(key).forEach(d => (d.checked = !d.checked));
+  syncDeployScript.value = buildDeployScript();
+}
+
+/** 勾选差异拼接部署脚本 */
+function buildDeployScript(): string {
+  return syncItems.value
+    .filter(d => d.checked && d.ddl)
+    .map(d => d.ddl)
+    .join("\n");
+}
+
+/** 逐项勾选/取消勾选差异时，部署脚本实时重算 */
+watch(
+  () => syncItems.value.map(d => d.checked).join(","),
+  () => {
+    if (syncView.value === "diff") {
+      syncDeployScript.value = buildDeployScript();
+    }
+  },
+);
+
+/** 顶部概览文案 */
+const syncOverviewSrc = computed(() => {
+  const ds = dsById(syncSrcDs.value);
+  return `${dsLabel(ds)} / ${syncSrcDb.value || "—"}`;
+});
+const syncOverviewDst = computed(() => {
+  const ds = dsById(syncDstDs.value);
+  return `${dsLabel(ds)} / ${syncDstDb.value || "—"}`;
+});
 
 /**
  * 打开结构同步弹窗。
  *
- * <p>默认把「当前库当源、第一个不是它的库当目标」——
+ * <p>默认把「当前数据源 + 当前库当来源、另一个库当目标」——
  * 用户从某个库的右键点进来时，这个方向最可能是他要的。
  * 方向永远是用户显式选的：结构同步是单向操作，
  * 「以谁为准」不该由实现替用户定。</p>
  *
- * @param database 当前库，作为源
+ * @param database 当前库，作为来源
  */
 function openStructureSync(database = activeDatabase.value) {
   if (!database) {
     message.warning("请先在左侧选择一个库");
     return;
   }
-  syncSourceDb.value = database;
-  syncTargetDb.value = databases.value.find(db => db && db !== database) || "";
+  syncView.value = "select";
+  syncSrcDs.value = currentDatasourceId.value;
+  syncSrcDb.value = database;
   syncTableFilter.value = "";
   syncItems.value = [];
   syncDiffError.value = "";
   syncRan.value = false;
+  syncLog.value = [];
+  syncRunning.value = false;
+  syncRunDone.value = false;
+  syncDeployScript.value = "";
   syncVisible.value = true;
+  syncSrcDbs.value = databases.value.length ? databases.value : [database];
+  // 目标默认选中第一个不是它的库（同一数据源内）
+  const other = databases.value.find(db => db && db !== database) || "";
+  syncDstDs.value = currentDatasourceId.value;
+  syncDstDb.value = other;
+  syncDstDbs.value = databases.value.length ? databases.value : [other || ""];
+}
+
+/** 比较两个库（选择视图点「比较」；比较通过才进入差异视图） */
+async function runStructureDiff(): Promise<void> {
+  if (syncComparing()) return;
+  if (!canCompare.value) {
+    message.warning("请同时选择来源与目标（数据源 + 数据库）");
+    return;
+  }
+  syncView.value = "compare";
+  startCompareAnimation();
+  syncLoading.value = true;
+  syncDiffError.value = "";
+  try {
+    const raw = await compareDbStructure({
+      sourceDatasourceId: syncSrcDs.value,
+      sourceDatabase: syncSrcDb.value,
+      targetDatasourceId: syncDstDs.value,
+      targetDatabase: syncDstDb.value,
+      tables: syncTableFilter.value.trim() || undefined,
+    });
+    syncItems.value = raw.map(it => ({ ...it, checked: !!(it.ddl), originalKind: it.kind }));
+    syncRan.value = true;
+    syncDeployScript.value = buildDeployScript();
+    stopCompareAnimation();
+    syncView.value = "diff";
+  } catch (e) {
+    stopCompareAnimation();
+    syncDiffError.value = `比较失败：${String((e as Error)?.message ?? e)}`;
+    syncItems.value = [];
+    syncRan.value = true;
+    syncView.value = "select";
+  } finally {
+    syncLoading.value = false;
+  }
+}
+
+function syncComparing(): boolean {
+  return syncView.value === "compare";
+}
+
+/** 比较中的动画进度：阶段文案轮换，进度条推进到 90% 停住 */
+function startCompareAnimation() {
+  const phases = [
+    "正在获取表结构…",
+    "正在获取列…",
+    "正在获取索引…",
+    "正在获取外键…",
+    "正在对比差异…",
+  ];
+  let i = 0;
+  syncComparePct.value = 5;
+  syncComparePhase.value = phases[0];
+  syncCompareTimer = setInterval(() => {
+    syncComparePct.value = Math.min(90, syncComparePct.value + 3 + Math.random() * 6);
+    if (syncComparePct.value > 60 && i < phases.length - 1) {
+      i++;
+      syncComparePhase.value = phases[i];
+    }
+  }, 260);
+}
+
+function stopCompareAnimation() {
+  if (syncCompareTimer) {
+    clearInterval(syncCompareTimer);
+    syncCompareTimer = null;
+  }
+  syncComparePct.value = 100;
+}
+
+function cancelSyncCompare() {
+  stopCompareAnimation();
+  syncView.value = "select";
+  syncLoading.value = false;
+}
+
+/** 进入部署视图 */
+function goDeploy() {
+  syncView.value = "deploy";
+  syncDeployTab.value = "script";
+  syncLog.value = [];
+  syncRunning.value = false;
+  syncRunDone.value = false;
+  syncRunElapsed.value = 0;
+  syncStop = false;
+}
+
+/** 部署视图底部 tab 切换（部署脚本 ↔ 消息日志） */
+function switchSyncDeployTab(tab: "script" | "log") {
+  syncDeployTab.value = tab;
+  if (tab === "log") void scrollSyncLog();
+}
+
+/** 部署视图「上一步」：回到差异视图 */
+function backFromDeploy() {
+  if (syncRunning.value) return;
+  syncView.value = "diff";
+}
+
+/** 部署视图「重新比较」：回到选择视图重跑比较 */
+function recompareFromDeploy() {
+  if (syncRunning.value) return;
+  runStructureDiff();
+}
+
+/** 点「停止」：标记中止，忽略后续 SSE 事件 */
+function stopSyncRun() {
+  syncStop = true;
+  syncRunning.value = false;
+  syncLog.value.push({
+    no: "!",
+    sql: "",
+    msg: "已停止执行（后续日志忽略）",
+  });
+  void scrollSyncLog();
+}
+
+/**
+ * 部署（第四步）：把部署脚本在目标库逐条执行，SSE 实时日志。
+ *
+ * <p>与后端 {@code /ms/monitor/db/structure-sync-run} 建 SSE 连接并传入
+ * 前端勾选/编辑后的部署脚本；每执行一条语句服务端即推一条 {@code log} 事件，
+ * 完成推 {@code done}、链路早期失败推 {@code error}。前端只负责追加渲染，
+ * 不用轮询、不用等整体返回。</p>
+ */
+function runStructureSync(): void {
+  if (syncRunning.value || syncRunDone.value) return;
+  const script = syncDeployScript.value.trim();
+  if (!script) {
+    message.warning("部署脚本为空，无法执行");
+    return;
+  }
+  syncStop = false;
+  syncLog.value = [];
+  syncRunning.value = true;
+  syncRunDone.value = false;
+  syncRunTotal.value = 0;
+  syncRunOk.value = 0;
+  syncRunFail.value = 0;
+  syncRunElapsed.value = 0;
+  // 点「开始」后直接切到消息日志 tab，实时展示执行过程（Navicat 行为）
+  syncDeployTab.value = "log";
+  void scrollSyncLog();
+  const startedAt = Date.now();
+  http()
+    .post("/ms/monitor/db/structure-sync-run")
+    .noToast(true)
+    .data({
+      sourceDatasourceId: syncSrcDs.value,
+      sourceDatabase: syncSrcDb.value,
+      targetDatasourceId: syncDstDs.value,
+      targetDatabase: syncDstDb.value,
+      tables: syncTableFilter.value.trim() || undefined,
+      stopOnError: syncOptStopOnError.value,
+      script,
+    })
+    .sse<Record<string, unknown>>({
+      onMessage: (e) => {
+        if (syncStop) return;
+        const data = (e.data ?? {}) as Record<string, unknown>;
+        if (e.event === "log") {
+          syncLog.value.push({
+            no: String(data.no ?? ""),
+            sql: String(data.sql ?? ""),
+            ok: data.ok === true,
+            affected: typeof data.affectedRows === "number" ? data.affectedRows : undefined,
+            error: data.error ? String(data.error) : undefined,
+          });
+          if (data.ok === true) syncRunOk.value += 1;
+          else syncRunFail.value += 1;
+          void scrollSyncLog();
+        } else if (e.event === "done") {
+          syncRunTotal.value = Number(data.total ?? 0);
+          syncRunOk.value = Number(data.ok ?? 0);
+          syncRunFail.value = Number(data.fail ?? 0);
+          syncRunElapsed.value = Date.now() - startedAt;
+          syncRunDone.value = true;
+          syncRunning.value = false;
+          void scrollSyncLog();
+        } else if (e.event === "error") {
+          syncLog.value.push({ no: "!", sql: "", error: String(data.message ?? "执行失败"), ok: false });
+          syncRunDone.value = true;
+          syncRunning.value = false;
+          syncRunElapsed.value = Date.now() - startedAt;
+          void scrollSyncLog();
+        }
+      },
+      onError: (err) => {
+        if (syncStop) return;
+        syncLog.value.push({
+          no: "!",
+          sql: "",
+          error: String((err as { message?: string } | null)?.message ?? err ?? "连接中断"),
+          ok: false,
+        });
+        syncRunDone.value = true;
+        syncRunning.value = false;
+        syncRunElapsed.value = Date.now() - startedAt;
+        void scrollSyncLog();
+      },
+    });
+}
+
+/** 日志追加后滚动到底部 */
+function scrollSyncLog() {
+  void nextTick(() => {
+    const el = syncLogEl.value;
+    if (el) el.scrollTop = el.scrollHeight;
+  });
+}
+
+/** SQL 高亮层的 <pre>（部署脚本 tab 内，负责与上层 textarea 同步滚动） */
+const syncSqlHlEl = ref<HTMLElement>();
+
+/** textarea 滚动/输入时同步下层高亮 pre 的滚动位置（两者逐字对齐） */
+function syncSqlScroll() {
+  void nextTick(() => {
+    const ta = syncSqlHlEl.value?.parentElement?.querySelector<HTMLTextAreaElement>(".dbm-sync-sql-input");
+    const hl = syncSqlHlEl.value;
+    if (!ta || !hl) return;
+    hl.scrollTop = ta.scrollTop;
+    hl.scrollLeft = ta.scrollLeft;
+  });
+}
+
+/** 保存配置文件：把当前源/目标选择导出为 JSON 下载 */
+function saveSyncProfile() {
+  const payload = {
+    sourceDatasourceId: syncSrcDs.value,
+    sourceDatabase: syncSrcDb.value,
+    targetDatasourceId: syncDstDs.value,
+    targetDatabase: syncDstDb.value,
+    tableFilter: syncTableFilter.value,
+  };
+  const json = JSON.stringify(payload, null, 2);
+  const url = URL.createObjectURL(new Blob([json], { type: "application/json" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "结构同步配置文件.json";
+  link.click();
+  URL.revokeObjectURL(url);
+  message.success("已导出配置文件");
+}
+
+/** 加载配置文件：读取 JSON 还原源/目标选择 */
+function loadSyncProfile() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".json,application/json";
+  input.onchange = async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text) as {
+        sourceDatasourceId?: number;
+        sourceDatabase?: string;
+        targetDatasourceId?: number;
+        targetDatabase?: string;
+        tableFilter?: string;
+      };
+      if (typeof data.sourceDatabase !== "string" || typeof data.targetDatabase !== "string") {
+        message.error("配置文件缺少 source/target 数据库");
+        return;
+      }
+      syncSrcDs.value = Number(data.sourceDatasourceId ?? syncSrcDs.value);
+      syncSrcDb.value = data.sourceDatabase;
+      syncSrcDbs.value = (await loadSyncDbs(syncSrcDs.value, dbs => (syncSrcDbs.value = dbs))) ? syncSrcDbs.value : [data.sourceDatabase];
+      syncSrcDb.value = data.sourceDatabase;
+      syncDstDs.value = Number(data.targetDatasourceId ?? syncDstDs.value);
+      syncDstDb.value = data.targetDatabase;
+      syncDstDbs.value = (await loadSyncDbs(syncDstDs.value, dbs => (syncDstDbs.value = dbs))) ? syncDstDbs.value : [data.targetDatabase];
+      syncDstDb.value = data.targetDatabase;
+      syncTableFilter.value = data.tableFilter ?? "";
+      resetSyncResult();
+      message.success("已加载配置文件");
+    } catch (e) {
+      message.error(`加载配置文件失败：${String((e as Error)?.message ?? e)}`);
+    }
+  };
+  input.click();
+}
+
+function closeSync() {
+  stopCompareAnimation();
+  syncVisible.value = false;
 }
 
 // ==================== 导出数据库文档（后端复用 utils 层 DocumentProvider SPI） ====================
@@ -5912,6 +7194,13 @@ const docExportFormats = ref<DbDocumentFormat[]>([]);
 const docExportTemplates = ref<string[]>([]);
 const docExportLoading = ref(false);
 const docExportFormatsError = ref("");
+
+// 在线查看文档（右键「查看文档」→ markdown 转 HTML 弹窗预览）
+const docPreviewVisible = ref(false);
+const docPreviewLoading = ref(false);
+const docPreviewContent = ref("");
+const docPreviewError = ref("");
+const docPreviewDatabase = ref("");
 
 /** 格式中文名（渲染器名保持英文，与后端 SPI 名一致，便于对排查） */
 const DOC_FORMAT_LABELS: Record<string, string> = {
@@ -5986,93 +7275,85 @@ async function doDocumentExport() {
   }
 }
 
-/** 比较两个库 */
-async function runStructureDiff(): Promise<void> {
-  if (!syncSourceDb.value || !syncTargetDb.value) {
-    message.warning("请同时选择源库与目标库");
+/**
+ * 数据源根节点右键「查看数据库文档」：数据源级（不带库名），复用与
+ * 数据中心主页同一条 {@code previewDbDocument} 管线。
+ *
+ * <p>与库级 {@link openDocumentPreview} 的区别只在粒度：库级带 {@code database}
+ * 参数采集单个库，这里是整条连接（DocumentParser("database") 会遍历其全部库）。
+ * 展示走同一个 doc 预览弹窗（markdown → HTML iframe），状态与文案复用。</p>
+ */
+async function openDatasourceDocument() {
+  if (currentDatasourceId.value <= 0) {
+    message.warning("请先连接一个数据源");
     return;
   }
-  if (syncSourceDb.value === syncTargetDb.value) {
-    message.warning("源库与目标库相同，没有可比较的差异");
-    return;
-  }
-  syncLoading.value = true;
-  syncDiffError.value = "";
+  docPreviewDatabase.value = "";
+  docPreviewLoading.value = true;
+  docPreviewError.value = "";
+  docPreviewContent.value = "";
+  docPreviewVisible.value = true;
   try {
-    syncItems.value = await compareDbStructure({
-      sourceDatasourceId: currentDatasourceId.value,
-      sourceDatabase: syncSourceDb.value,
-      targetDatasourceId: currentDatasourceId.value,
-      targetDatabase: syncTargetDb.value,
-      tables: syncTableFilter.value.trim() || undefined,
+    docPreviewContent.value = await previewDbDocument({
+      datasourceId: currentDatasourceId.value,
+      template: docExportTemplate.value,
     });
-    syncRan.value = true;
   } catch (e) {
-    syncDiffError.value = `比较失败：${String((e as Error)?.message ?? e)}`;
-    syncItems.value = [];
-    syncRan.value = true;
+    docPreviewError.value = String((e as Error)?.message ?? e);
   } finally {
-    syncLoading.value = false;
+    docPreviewLoading.value = false;
   }
 }
 
 /**
- * 在目标库执行生成的脚本，然后重新比较一次。
+ * 库右键「查看文档」：把数据库设计文档（markdown → HTML）在弹窗里在线预览。
  *
- * <p>执行前必须二次确认：脚本里含 {@code DROP INDEX} 与
- * {@code MODIFY COLUMN}，是不可逆的。用户看过脚本再点一次是有意义的，
- * 但不能靠「他应该看过了」。</p>
+ * <p>与导出同一份采集/渲染链路，只是不落盘；word / pdf 是二进制，
+ * 后端预览端点会返回 501，这里把错误原文展示给用户而不是假装成功。</p>
+ *
+ * @param database 目标库名
  */
-async function runStructureScript(): Promise<void> {
-  const script = syncScript.value;
-  if (!script) return;
-  const lines = script.split("\n").filter(Boolean).length;
-  try {
-    await ElMessageBox.confirm(
-      `将向目标库「${syncTargetDb.value}」执行 ${lines} 条语句，其中含不可逆的 DROP INDEX / MODIFY COLUMN。确定执行？`,
-      "执行同步脚本",
-      { type: "warning", confirmButtonText: "执行", cancelButtonText: "取消" },
-    );
-  } catch {
+async function openDocumentPreview(database = activeDatabase.value) {
+  if (!database) {
+    message.warning("请先在左侧选择一个库");
     return;
   }
-  syncLoading.value = true;
+  docPreviewDatabase.value = database;
+  docPreviewLoading.value = true;
+  docPreviewError.value = "";
+  docPreviewContent.value = "";
+  docPreviewVisible.value = true;
   try {
-    const result = await executeDbSqlBatch(script, currentDatasourceId.value, syncTargetDb.value);
-    // 批量结果里没有 success 字段：失败是「有 message 且没有结果集/影响行数」，
-    // 逐条判断要按 DbStatementResult 的实际形状来，不能套一个想当然的 success
-    const bad = (result.results || []).filter(
-      r => !!r.message && r.columns === undefined && r.affectedRows === undefined,
-    );
-    if (bad.length > 0) {
-      message.error(`${bad.length}/${lines} 条语句失败：` + String(bad[0].message || "").slice(0, 120));
-    } else {
-      message.success(`已执行 ${lines} 条语句，正在重新比较`);
-    }
+    docPreviewContent.value = await previewDbDocument({
+      datasourceId: currentDatasourceId.value,
+      database,
+      template: docExportTemplate.value,
+    });
   } catch (e) {
-    message.error(`执行失败: ${String((e as Error)?.message ?? e)}`);
+    docPreviewError.value = String((e as Error)?.message ?? e);
   } finally {
-    syncLoading.value = false;
+    docPreviewLoading.value = false;
   }
-  await runStructureDiff();
 }
 
 /**
  * 读取并绘制 ER 图。
  *
- * <p>只在这一个页签需要时才拉数据：ER 图对大库是**一次性整体视图**，
+ * <p>页签与右键弹框共用同一份图状态：页签从 activeTabObj 取库名，
+ * 弹框从 erDialogDatabase 取库名。ER 图对大库是**一次性整体视图**，
  * 在每次切库/切页签时都重拉会让浏览树的过程明显变慢。</p>
  */
 async function loadErDiagram(): Promise<void> {
   const tab = activeTabObj.value;
-  if (!tab || tab.type !== "er") return;
+  const database = erDialogDatabase.value || (tab && tab.type === "er" ? tab.database : "");
+  if (!database) return;
   erLoading.value = true;
   erError.value = "";
   try {
     const data = await fetchErDiagram(
       erTableFilter.value.trim() || undefined,
       currentDatasourceId.value,
-      tab.database,
+      database,
     );
     erTables.value = data.tables || [];
     erRelations.value = data.relations || [];
@@ -6111,7 +7392,7 @@ async function openErColumns(name: string): Promise<void> {
   erColumnsVisible.value = true;
   erPickedColumns.value = [];
   try {
-    const cols = await fetchTableColumns(name, currentDatasourceId.value, activeTabObj.value?.database);
+    const cols = await fetchTableColumns(name, currentDatasourceId.value, erDialogDatabase.value || activeTabObj.value?.database);
     erPickedColumns.value = cols || [];
   } catch (e) {
     message.error(`读取列失败: ${String((e as Error)?.message ?? e)}`);
@@ -6137,7 +7418,7 @@ function highlightErNode(name: string): void {
 function openErTableData(tableName: string) {
   if (!tableName) return;
   erColumnsVisible.value = false;
-  openTableData(tableName, activeTabObj.value?.database || activeDatabase.value);
+  openTableData(tableName, erDialogDatabase.value || activeTabObj.value?.database || activeDatabase.value);
 }
 
 /**
@@ -6160,7 +7441,7 @@ function exportErDot(): void {
   }
   lines.push("}");
   downloadText(
-    `${activeTabObj.value?.database || "er"}-${Date.now()}.dot`,
+    `${erDialogDatabase.value || activeTabObj.value?.database || "er"}-${Date.now()}.dot`,
     lines.join("\n"),
     "text/plain",
   );
@@ -6181,6 +7462,24 @@ function qualified(tab: Tab) {
 function openNewQuery() {
   const id = "query-" + Date.now();
   const tab: Tab = { id, type: "query", title: "查询 " + (tabs.value.filter(t => t.type === "query").length + 1), sql: "", database: activeDatabase.value };
+  tabs.value.push(tab);
+  activeTab.value = id;
+}
+
+/**
+ * 打开用户管理页签（内嵌面板）。
+ *
+ * <p>用户是连接级对象，不挂在某个库下 —— 库右键进到这里时只负责打开面板，
+ * 面板内部按当前数据源查询 {@code mysql.user}。重复打开复用已有页签。</p>
+ */
+function openUsersTab() {
+  const existing = tabs.value.find(t => t.type === "users");
+  if (existing) {
+    activeTab.value = existing.id;
+    return;
+  }
+  const id = "users-" + Date.now();
+  const tab: Tab = { id, type: "users", title: "用户管理" };
   tabs.value.push(tab);
   activeTab.value = id;
 }
@@ -6449,9 +7748,10 @@ async function loadTableDesign(tab: Tab) {
         comment: c.remark ?? "",
       };
       return {
+        key: ++designRowSeq,
         originalName: c.name,
         ...origin,
-        isPrimaryKey: !!c.isPrimaryKey,
+        primaryKey: !!c.isPrimaryKey,
         // 把列的完整属性带进行内（类型文本保持内核原样：弹窗要靠它抠长度与小数位）
         type: c.type || origin.type,
         remark: c.remark ?? "",
@@ -6463,9 +7763,10 @@ async function loadTableDesign(tab: Tab) {
         charset: c.charset ?? "",
         collation: c.collation ?? "",
         enumValues: c.enumValues ?? [],
-        scale: c.scale ?? 0,
+        enumText: (c.enumValues ?? []).join(", "),
+        scale: c.scale ?? null,
         origin,
-      };
+      } as DesignRow;
     });
   } catch (e) {
     message.error(`加载表结构失败: ${String((e as Error)?.message ?? e)}`);
@@ -6859,6 +8160,7 @@ function onTableContextMenu(e: MouseEvent, tableName: string, database: string, 
   contextMenu.database = database;
   contextMenu.tabId = "";
   contextMenu.isView = isView;
+  contextMenu.root = false;
   activeDatabase.value = database;
   void clampContextMenuPosition();
 }
@@ -6877,7 +8179,26 @@ function onDatabaseContextMenu(e: MouseEvent, database: string) {
   contextMenu.database = database;
   contextMenu.tabId = "";
   contextMenu.isView = false;
+  contextMenu.root = false;
   activeDatabase.value = database;
+  void clampContextMenuPosition();
+}
+
+/**
+ * 数据源根节点右键：整条连接的动作（查看数据库文档 / 刷新 / 新建库表等），
+ * 不走「侧栏空白」分支 —— 空白分支是新库/新表/新查询这类零上下文动作，
+ * 而根节点右键天然带着「当前数据源」这个上下文。
+ */
+function onRootContextMenu(e: MouseEvent) {
+  e.stopPropagation();
+  contextMenu.visible = true;
+  contextMenu.x = e.clientX;
+  contextMenu.y = e.clientY;
+  contextMenu.tableName = "";
+  contextMenu.database = "";
+  contextMenu.tabId = "";
+  contextMenu.isView = false;
+  contextMenu.root = true;
   void clampContextMenuPosition();
 }
 
@@ -6889,6 +8210,7 @@ function onSidebarContextMenu(e: MouseEvent) {
   contextMenu.database = "";
   contextMenu.tabId = "";
   contextMenu.isView = false;
+  contextMenu.root = false;
   void clampContextMenuPosition();
 }
 
@@ -6906,6 +8228,7 @@ function onTabContextMenu(e: MouseEvent, tabId: string) {
   contextMenu.database = "";
   contextMenu.tabId = tabId;
   contextMenu.isView = false;
+  contextMenu.root = false;
   void clampContextMenuPosition();
 }
 
@@ -6936,12 +8259,12 @@ function closeContextMenu() {
 /** 右键菜单估算高度（项高 32 + 上下内边距 + 按节点类型的分割线） */
 function menuEstimatedHeight(): number {
   // 项数必须与模板四套菜单实际条目同步：表 12 项/3 分割线、**视图 10 项/3 分割线**、
-  // 库 8 项/2 分割线、页签 3 项/1 分割线、空白 5 项/1 分割线。
+  // 库 8 项/2 分割线、**根节点 6 项/1 分割线**、页签 3 项/1 分割线、空白 5 项/1 分割线。
   // 曾硬编码库 5 项（实际 8 项）→ 低估 96px → 靠近窗口底部时菜单溢出视口，
   // 末项「删除数据库」落在屏幕外永远点不到（普通点击超时、force 点到屏外无响应）
   // 视图菜单比表少 2 项（复制表 / 清空表 对视图必败），沿用 12 会高估 64px。
-  const count = contextMenu.tableName ? (contextMenu.isView ? 10 : 12) : contextMenu.database ? 8 : contextMenu.tabId ? 3 : 5;
-  const dividers = contextMenu.tableName ? 3 : contextMenu.database ? 2 : 1;
+  const count = contextMenu.tableName ? (contextMenu.isView ? 10 : 12) : contextMenu.database ? 8 : contextMenu.root ? 6 : contextMenu.tabId ? 3 : 5;
+  const dividers = contextMenu.tableName ? 3 : contextMenu.database ? 2 : contextMenu.root ? 1 : 1;
   return count * 32 + dividers * 11 + 10;
 }
 
@@ -7492,6 +8815,13 @@ onBeforeUnmount(() => {
   background: var(--bg-fill);
 }
 
+/* 全屏模式（standalone 路由，无应用外壳）：吃满视口高度，不再减导航占位 */
+.dbm.dbm--fullscreen {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+}
+
 /* 内嵌到数据源中心：宿主已经算好了可用高度（页签面板是 flex:1 + min-height:0），
    这里必须改成吃满父级而不是再算一次 100vh - 120px，否则会出现双层滚动条。
    同时去掉自身内边距，避免和宿主页签面板的内边距叠加出两层空白。 */
@@ -7508,10 +8838,7 @@ onBeforeUnmount(() => {
   width: 240px;
 }
 
-/* 独立模式的数据源下拉：宽度与原 ReSelect 一致，避免工具栏布局跳动 */
-.dbm-ds-select {
-  width: 200px;
-}
+/* 独立模式的数据源选择已删除；只读 chip 见 .dbm-ds-chip */
 
 /* 内嵌模式的数据源标识：替代独立模式的下拉，只读展示当前浏览对象 */
 .dbm-ds-chip {
@@ -7536,26 +8863,56 @@ onBeforeUnmount(() => {
    工具条撑高一档、左右卡片高度对不齐。scoped 里只留布局，不再自写一套卡片壳。 */
 .dbm-toolbar {
   display: flex;
-  /* 右侧簇换行落分页条时，左侧簇贴主行顶部 —— 两大簇不因分页换行而错位 */
+  /* 左/右簇与分页条、统计总数档、图标按钮统一 32px 高，各簇内部垂直居中，
+     避免右侧分页把左侧图标顶得上不对齐。 */
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
   flex-wrap: nowrap;
 }
-.dbm-toolbar-left { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; flex: 0 1 auto; min-width: 0; }
+.dbm-toolbar-left { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; align-content: center; flex: 0 1 auto; min-width: 0; min-height: 32px; }
 .dbm-toolbar-hint { font-size: 12px; color: var(--el-text-color-placeholder); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* 右侧：数据源下拉与刷新按钮之间不留多余间距；
     表页签激活时这里还要吃下「分页条」，允许整体换行（.dbm-pager-bar），
     换行只发生在右侧簇内部 —— 左侧簇与右侧簇的主行对齐不受影响。 */
-.dbm-toolbar-right { display: flex; align-items: center; gap: 8px; flex: none; flex-wrap: wrap; justify-content: flex-end; }
-/* 分页条：表页签激活时跟在右侧簇末尾（要求 1.2 的 COUNT 跟随分页形态走，
-    与 .dbm-simple-pager 共用 52px 高，避免统计总数开关切换时工具条抖动）。 */
-.dbm-pager-bar { display: flex; align-items: center; justify-content: flex-end; height: 52px; flex: none; }
-.dbm-pager-bar .dbm-simple-pager { height: 52px; }
+.dbm-toolbar-right { display: flex; align-items: center; gap: 8px; flex: none; flex-wrap: wrap; justify-content: flex-end; min-height: 32px; }
+/* 分页条：表页签激活时跟在右侧簇末尾。高度与相邻 square 按钮 / ReRadio 对齐（32px），
+   内部再垂直居中 —— 截图里「共0条/50条页/页码」与旁边图标不同水平线，
+   就是因为容器高度 52px 而其它控件 32px，基线错位。 */
+.dbm-pager-bar { display: flex; align-items: center; justify-content: flex-end; height: 32px; min-height: 32px; flex: none; }
+.dbm-pager-bar .dbm-simple-pager { height: 32px; display: inline-flex; align-items: center; gap: 8px; }
+/* 分页器内部控件统一垂直居中，避免数字/箭头/每页条数与相邻按钮水平基线不一致。
+   注意 pages.css 全局对 .el-pagination 有 padding:16px 0 0，会把 32px 高内
+   content 压成 16px、align-items:center 后内容中心整体下移 8px —— 这里清零。 */
+.dbm-pager-bar :deep(.el-pagination) { display: inline-flex; align-items: center; height: 32px; overflow: hidden; padding: 0; }
+.dbm-pager-bar :deep(.el-pagination .el-pagination__jump),
+.dbm-pager-bar :deep(.el-pagination .btn-prev),
+.dbm-pager-bar :deep(.el-pagination .btn-next),
+.dbm-pager-bar :deep(.el-pagination .el-pager) {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+}
+/* 每页条数下拉（sizes）实测会把分页条撑高到 36px、把整条内容压偏下——
+   强制与其它控件同高 32px 并垂直居中，否则分页数字与相邻按钮差一条基线。 */
+.dbm-pager-bar :deep(.el-pagination__sizes) {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+}
+.dbm-pager-bar :deep(.el-pagination__sizes .el-select__wrapper),
+.dbm-pager-bar :deep(.el-pagination__sizes .el-select) {
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+}
 /* 统计总数开关（ConsoleSwitch 的 radio 胶囊）：ep-radio-group 是换行 flex，
    一旦被压窄就会把「是 / 否」竖着叠成两行，连带把整个工具条顶高 ——
    钉死不缩，胶囊恒定单行，工具条高度才不随页签切换抖动。 */
 .dbm-toolbar-right .dbm-switch { flex: none; }
+/* 统计总数方形档（ReRadio=square）：两个方形分段 是/否，与右侧图标按钮同高 32px */
+.dbm-toolbar-right .dbm-total-select { flex: none; }
+.dbm-total-select { width: auto; }
 
 /* 主体 */
 .dbm-body { display: flex; gap: 16px; flex: 1; min-height: 0; }
@@ -7737,68 +9094,363 @@ onBeforeUnmount(() => {
 
 /* 列设置弹窗 */
 /* 结构同步弹窗 */
-.dbm-sync { display: flex; flex-direction: column; gap: 10px; }
-.dbm-sync-bar {
+/* ============ 结构同步（Navicat 业务链：选择→比较→差异→部署；风格用 Vue/koi 变量） ============ */
+.dbm-sync { display: flex; flex-direction: column; gap: 10px; position: relative; flex: 1; min-height: 0; }
+/* 顶部源→目标方向示意（图 1/3/4/5 均保留） */
+.dbm-sync-direction {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  padding: 4px 8px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-regular);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
-.dbm-sync-side {
+.dbm-sync-direction-side {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12.5px;
-  color: var(--el-text-color-secondary);
+  max-width: 40%;
 }
-.dbm-sync-select { width: 170px; }
-.dbm-sync-filter { width: 220px; }
-.dbm-sync-body { display: flex; flex-direction: column; gap: 8px; }
-.dbm-sync-summary {
+.dbm-sync-direction-side--src { color: var(--el-color-success); }
+.dbm-sync-direction-side--dst { color: var(--el-color-primary); }
+.dbm-sync-conn {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--el-font-family-mono, monospace);
   font-size: 12.5px;
-  color: var(--el-text-color-secondary);
 }
-.dbm-sync-list {
-  max-height: 220px;
-  overflow-y: auto;
+.dbm-sync-db-icon {
+  display: inline-block;
+  width: 7px;
+  height: 14px;
+  border-radius: 1px 3px 3px 1px;
+  border: 1px solid currentColor;
+  box-sizing: content-box;
+}
+.dbm-sync-db-icon--src { background: var(--el-color-success); }
+.dbm-sync-db-icon--dst { background: var(--el-color-primary); }
+.dbm-sync-direction-arrow { color: var(--el-text-color-placeholder); }
+
+/* 源/目标双面板 */
+.dbm-sync-panes {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+.dbm-sync-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 8px);
+}
+.dbm-sync-pane--src { border-top: 3px solid var(--el-color-success); }
+.dbm-sync-pane--dst { border-top: 3px solid var(--el-color-primary); }
+.dbm-sync-pane-title { font-size: 13px; font-weight: 600; color: var(--el-text-color-primary); }
+.dbm-sync-field { display: flex; flex-direction: column; gap: 4px; }
+.dbm-sync-field-label { font-size: 12px; color: var(--el-text-color-secondary); }
+.dbm-sync-ds-select,
+.dbm-sync-db-select { width: 100%; }
+
+/* 连接信息只读卡 */
+.dbm-sync-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 12px;
+  padding: 8px 10px;
+  background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-base, 4px);
+  font-size: 12px;
 }
-.dbm-sync-row {
+.dbm-sync-info-row { display: flex; justify-content: space-between; gap: 8px; }
+.dbm-sync-info-k { color: var(--el-text-color-secondary); }
+.dbm-sync-info-v { color: var(--el-text-color-regular); font-family: var(--el-font-family-mono, monospace); }
+
+/* 交换方向按钮 */
+.dbm-sync-swap { align-self: center; }
+
+.dbm-sync-filter { width: 100%; }
+
+/* 比较中（图 2：居中遮罩弹窗，背后面板保留） */
+.dbm-sync-compare-mask {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
   display: flex;
-  align-items: baseline;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--el-mask-color, #000) 35%, transparent);
+  border-radius: var(--el-radius-base, 4px);
+}
+.dbm-sync-compare {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  min-width: 360px;
+  padding: 26px 22px 20px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 6px);
+  box-shadow: var(--el-box-shadow, 0 2px 12px rgba(0, 0, 0, 0.12));
+}
+.dbm-sync-compare-spin { color: var(--el-color-primary); animation: dbm-sync-spin 1s linear infinite; }
+@keyframes dbm-sync-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.dbm-sync-compare-title { font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); }
+.dbm-sync-compare-sub { font-size: 12.5px; color: var(--el-text-color-secondary); }
+.dbm-sync-compare-track {
+  width: 100%;
+  max-width: 300px;
+  height: 8px;
+  overflow: hidden;
+  background: var(--el-fill-color);
+  border-radius: 9999px;
+}
+.dbm-sync-compare-bar {
+  height: 100%;
+  background: var(--el-color-primary);
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+/* 差异页分组列表（图 3：源对象 / 操作 / 目标对象 三列，按操作分组折叠） */
+.dbm-sync-groups { display: flex; flex-direction: column; gap: 4px; flex: 1; min-height: 0; overflow-y: auto; }
+.dbm-sync-group { border: 1px solid var(--el-border-color-lighter); border-radius: var(--el-radius-base, 4px); }
+.dbm-sync-group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  background: var(--el-fill-color-light);
+}
+.dbm-sync-group-caret { color: var(--el-text-color-placeholder); }
+.dbm-sync-group-selected {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--el-text-color-secondary);
+}
+/* 分组头「全选 / 全不选 / 反选」（图 3：每个分类一组小按钮，点击不触发折叠） */
+.dbm-sync-group-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+.dbm-sync-group-actions :deep(.el-button) {
+  height: 22px;
+  padding: 0 6px;
+  font-size: 12px;
+  line-height: 20px;
+}
+.dbm-sync-group.modify .dbm-sync-group-name { color: var(--el-color-warning); }
+.dbm-sync-group.create .dbm-sync-group-name { color: var(--el-color-success); }
+.dbm-sync-group.delete .dbm-sync-group-name { color: var(--el-color-danger); }
+.dbm-sync-group-items { padding: 2px 0; }
+.dbm-sync-grid-row {
+  display: grid;
+  grid-template-columns: 1fr 120px 1fr;
+  align-items: center;
   gap: 8px;
   padding: 5px 10px;
   font-size: 12.5px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  border-top: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
 }
-.dbm-sync-row:last-child { border-bottom: none; }
-.dbm-sync-kind {
-  flex-shrink: 0;
-  padding: 0 6px;
-  font-size: 11px;
-  line-height: 17px;
-  border-radius: 3px;
-  color: var(--el-color-warning);
-  background: var(--el-color-warning-light-9, var(--el-fill-color-light));
-}
-/* 「目标多出来的」用中性色：它不是待办事项，是提示 */
-.dbm-sync-row.EXTRA_TABLE .dbm-sync-kind,
-.dbm-sync-row.EXTRA_COLUMN .dbm-sync-kind {
+.dbm-sync-grid-row--head {
+  font-size: 11.5px;
+  font-weight: 600;
   color: var(--el-text-color-secondary);
-  background: var(--el-fill-color-light);
+  background: var(--el-fill-color);
 }
-.dbm-sync-obj {
-  flex-shrink: 0;
+.dbm-sync-grid-row--checked { background: var(--el-color-primary-light-9, var(--el-fill-color-light)); }
+.dbm-sync-grid-src { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.dbm-sync-grid-op { display: flex; align-items: center; justify-content: flex-start; }
+.dbm-sync-grid-dst { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.dbm-sync-diff-check { flex: none; margin: 0; accent-color: var(--el-color-primary); }
+.dbm-sync-diff-op {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+  border-radius: 3px;
+}
+.dbm-sync-diff-op.op-modify { color: var(--el-color-warning); background: var(--el-color-warning-light-9, var(--el-fill-color-light)); }
+.dbm-sync-diff-op.op-create { color: var(--el-color-success); background: var(--el-color-success-light-9, var(--el-fill-color-light)); }
+.dbm-sync-diff-op.op-delete { color: var(--el-color-danger); background: var(--el-color-danger-light-9, var(--el-fill-color-light)); }
+.dbm-sync-diff-obj {
   font-family: var(--el-font-family-mono, monospace);
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.dbm-sync-detail {
+.dbm-sync-diff-detail {
   color: var(--el-text-color-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.dbm-sync-script-wrap { display: flex; flex-direction: column; gap: 6px; }
+
+/* 部署视图底部双标签（图 4/5：部署脚本 / 消息日志） */
+.dbm-sync-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--el-border-color-lighter); }
+.dbm-sync-tab {
+  padding: 7px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--el-text-color-secondary);
+  border-bottom: 2px solid transparent;
+}
+.dbm-sync-tab.active { color: var(--el-color-primary); border-bottom-color: var(--el-color-primary); font-weight: 600; }
+
+/* 部署脚本：可编辑（图 4），SQL 语法高亮 overlay：下层 pre 高亮、上层透明 textarea 同步滚动 */
+.dbm-sync-script-panel { display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 0; }
+.dbm-sync-script-head { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--el-text-color-secondary); }
+.dbm-sync-sql-editor {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-radius-base, 4px);
+  background: var(--el-fill-color-blank);
+}
+/* 下层高亮层：逐字对齐 textarea（相同字体/字号/行高/内边距），仅作显示 */
+.dbm-sync-sql-hl {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  overflow: hidden;
+  padding: 10px 12px;
+  box-sizing: border-box;
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-size: 12.5px;
+  line-height: 1.6;
+  white-space: pre;
+  color: var(--el-text-color-primary);
+  pointer-events: none;
+}
+/* 上层 textarea：文字透明只留光标，负责编辑/选择/滚动 */
+.dbm-sync-sql-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  resize: none;
+  padding: 10px 12px;
+  box-sizing: border-box;
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-size: 12.5px;
+  line-height: 1.6;
+  white-space: pre;
+  overflow: auto;
+  color: transparent;
+  caret-color: var(--el-text-color-primary);
+  background: transparent;
+  border: none;
+  outline: none;
+}
+.dbm-sync-sql-editor:focus-within { border-color: var(--el-color-primary); }
+/* 高亮 token 配色（全用 Vue 变量，亮/暗主题都成立） */
+.dbm-sync-sql-hl .sql-kw { color: var(--el-color-primary); font-weight: 600; }
+.dbm-sync-sql-hl .sql-str { color: var(--el-color-success); }
+.dbm-sync-sql-hl .sql-id { color: var(--el-color-warning); }
+.dbm-sync-sql-hl .sql-num { color: var(--el-color-danger); }
+.dbm-sync-sql-hl .sql-com { color: var(--el-text-color-placeholder); font-style: italic; }
+
+/* 消息日志（图 5）：统计面板 + SSE 逐条日志 */
+.dbm-sync-log-panel { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; }
+.dbm-sync-run-stats {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  color: var(--el-text-color-primary);
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 4px);
+}
+.dbm-sync-run-stats span { font-weight: 600; }
+.dbm-sync-run-stats span:first-child { color: var(--el-text-color-secondary); font-weight: 400; }
+.dbm-sync-run-stats span:nth-child(2) { color: var(--el-color-success); }
+.dbm-sync-run-stats span:nth-child(3) { color: var(--el-color-danger); }
+.dbm-sync-run-stats span:nth-child(4) { color: var(--el-text-color-placeholder); font-weight: 400; }
+
+/* 执行日志（SSE 实时）：用 Vue 变量配色，不用自定义深色终端 */
+.dbm-sync-log {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px 12px;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 4px);
+  font-family: var(--el-font-family-mono, Consolas, monospace);
+  font-size: 12.5px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.dbm-sync-log-line { display: flex; gap: 8px; align-items: baseline; }
+.dbm-sync-log-line--ok { color: var(--el-color-success); }
+.dbm-sync-log-line--fail { color: var(--el-color-danger); }
+.dbm-sync-log-no {
+  flex: none;
+  width: 26px;
+  text-align: right;
+  color: var(--el-text-color-placeholder);
+}
+.dbm-sync-log-flag { flex: none; }
+.dbm-sync-log-sql {
+  flex: 1;
+  color: var(--el-text-color-regular);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dbm-sync-log-msg { flex: none; color: var(--el-text-color-secondary); }
+.dbm-sync-log-line--fail .dbm-sync-log-msg { color: var(--el-color-danger); }
+
+/* 底部导航 */
+.dbm-sync-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+/* 选项弹窗 */
+.dbm-sync-opt { display: flex; flex-direction: column; gap: 10px; }
+.dbm-sync-opt-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  cursor: pointer;
+}
+.dbm-sync-opt-check { margin: 0; accent-color: var(--el-color-primary); }
 .dbm-doc-export { display: flex; flex-direction: column; gap: 12px; }
 .dbm-doc-row { display: flex; align-items: center; gap: 12px; }
 .dbm-doc-label {
@@ -7833,6 +9485,35 @@ onBeforeUnmount(() => {
   font-size: 12px;
   color: var(--el-color-danger);
 }
+/* 在线查看数据库文档弹窗：加载 / 错误 / iframe 三种态，iframe 撑满弹窗主体
+ *
+ * 必须用 :global 而不是 :deep：ReDialog 把弹窗 Teleport 到 body，组件作用域的
+ * data-v 属性不在弹窗节点上，:deep(.el-dialog__body) 编译出的
+ * `.dbm-doc-preview-dialog[data-v-x] .el-dialog__body` 永远匹配不到，
+ * 结果 el-dialog__body 按内容自适应高度、iframe(height:100%) 塌成一条，
+ * 弹窗只露出页头。:global 生成不带 data-v 的选择器，才是这里要的。
+ */
+:global(.dbm-doc-preview-dialog .el-dialog__body) {
+  padding: 0;
+  overflow: hidden;
+  height: 68vh;
+}
+.dbm-doc-preview-loading,
+.dbm-doc-preview-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 12px;
+  color: var(--el-text-color-secondary);
+}
+.dbm-doc-preview-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #fff;
+}
 .dbm-sync-script-head {
   display: flex;
   align-items: center;
@@ -7866,11 +9547,39 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  /* 筛选与按钮保持一行（2.1）：空间不足时横向滚动，绝不把按钮挤到第二行 */
+  flex-wrap: nowrap;
+  overflow-x: auto;
   padding-bottom: 8px;
 }
-.dbm-er-filter { width: 280px; }
-.dbm-er-layout { width: 150px; }
+.dbm-er-filter { width: 280px; flex: 0 1 auto; min-width: 160px; }
+.dbm-er-layout { width: 150px; flex: none; }
+.dbm-er-toolbar--dialog {
+  /* 2.1：弹框里筛选输入与按钮必须有间隔地排在一行（不换行不挤成两行） */
+  flex-wrap: nowrap;
+  row-gap: 0;
+}
+.dbm-er-toolbar--dialog .dbm-er-stat { white-space: nowrap; flex: none; }
+.dbm-er-toolbar--dialog .dbm-er-filter { width: 220px; flex: none; }
+.dbm-er-toolbar--dialog .dbm-er-layout { width: 130px; flex: none; }
+.dbm-er-dialog .dbm-er-view {
+  height: 68vh;
+  min-height: 0;
+}
+/* 弹框正文去 padding：图要尽量撑满，四周留白交给对话框自身 */
+.dbm-er-dialog :deep(.el-dialog__body) {
+  padding: 8px 16px 0;
+  overflow: hidden;
+}
+.dbm-er-graph--dialog {
+  min-height: 320px;
+}
+/* 2.4：节点/边文字使用主题主文字色，暗色主题下不再黑底黑字 */
+.dbm-er-view :deep(.g6-node .g6-node-label),
+.dbm-er-view :deep(.g6-edge .g6-edge-label) {
+  fill: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
+}
 .dbm-er-stat {
   font-size: 12.5px;
   color: var(--el-text-color-secondary);
@@ -8251,6 +9960,14 @@ onBeforeUnmount(() => {
 .dbm-empty-icon { color: var(--el-text-color-placeholder); }
 .dbm-empty-text { margin: 0; }
 
+/* 用户管理面板（users 页签） */
+.dbm-users-view {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 10px 12px;
+  overflow: auto;
+}
+
 /* 右键菜单（对齐 Navicat） */
 .dbm-context-menu {
   position: fixed;
@@ -8378,6 +10095,10 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-secondary);
 }
 .dbm-hint { font-size: 12px; color: var(--el-text-color-placeholder); }
+
+/* 添加用户：权限多选网格 */
+.dbm-user-grants { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.dbm-user-grant { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; cursor: pointer; color: var(--el-text-color-regular); }
 .dbm-simple-pager { display: inline-flex; align-items: center; gap: 8px; }
 
 /* ============================================================
@@ -8628,71 +10349,30 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-/* ==================== 表设计网格 ==================== */
-.dbm-dgrid {
-  flex: 1;
-  overflow: auto;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-lg, 12px);
-}
-.dbm-dgrid-head,
-.dbm-dgrid-row {
-  display: grid;
-  /* 「可空」那格现在是 ReRadio 分段单选（是/否），比原来的开关宽：
-     70px 会把两枚按钮挤到换行/溢出，撑到 96px。 */
-  grid-template-columns: 44px minmax(150px, 1.2fr) 130px 110px 96px 56px minmax(120px, 1fr) minmax(150px, 1.2fr) 100px;
-  gap: 8px;
-  align-items: center;
-  padding: 6px 12px;
-  min-width: 1120px;
-}
-.dbm-dgrid-head {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--el-text-color-secondary);
-  background: var(--el-fill-color-light);
-}
-.dbm-dgrid-row { border-top: 1px solid var(--el-border-color-lighter); }
-.dbm-dgrid-row:hover { background: var(--el-fill-color-extra-light, var(--el-fill-color-light)); }
-.dbm-dgrid-row.dirty { background: var(--el-color-warning-light-9); }
-.dbm-dgrid-idx {
-  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-  text-align: right;
-}
-.dbm-dgrid-pk { display: grid; place-items: center; color: var(--el-color-warning); }
-.dbm-dgrid-ops { display: flex; gap: 4px; justify-content: center; }
+/* ==================== 表设计网格 ====================
+   列网格已收口到 components/console/DesignColumnGrid.vue（与「新建表」弹窗同一份实现），
+   原来这里那套 .dbm-dgrid-* 手写 grid 样式随模板块一并删除，避免留下会误导人的死样式。 */
 .dbm-mono .el-input__inner {
   font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
   font-size: 12.5px;
 }
 
-/* ==================== 设计网格「可空」那格的分段单选 ====================
-   这格是 ReSwitch（radio 布局）的「是/否」分段。re-kit 给每个分段定了
-   min-width: 64px —— 那是独立控件的口径，两枚加起来 128px，塞不进 96px 的
-   轨道，于是两枚完全叠在一起（用户截图里看到的就是这个）。
-   只在网格里收窄，re-kit 那份全局的 64px 别动（控制台开关要它）。
-   类写两遍是为了把特异性抬到 re-kit 那条 (0,3,0) 之上。 */
-.dbm-dgrid-row.dbm-dgrid-row :deep(.re-switch-radio),
-.dbm-dgrid-row.dbm-dgrid-row :deep(.re-radio-group) {
-  width: 100%;
-  min-width: 0;
-}
-.dbm-dgrid-row.dbm-dgrid-row :deep(.re-radio-group .el-radio-button) {
-  flex: 1 1 0;
-  min-width: 0;
-}
-.dbm-dgrid-row.dbm-dgrid-row :deep(.re-radio-group .el-radio-button__inner) {
-  width: 100%;
-  min-width: 0;
-  padding: 0 6px;
-  font-size: 12px;
-}
-
 /* ==================== SQL 编辑器 ==================== */
 .dbm-sql-component { margin-top: 2px; }
+</style>
+
+<!-- 非 scoped：结构同步弹窗被 ReDialog Teleport 到 body，scoped 的 [data-v] 属性
+     不会落到 .el-dialog 上（实测 .dbm-sync-dialog[data-v-xxx] 匹配不到），
+     所以固定高度等穿透规则必须放这里（仅限本弹窗 class，不影响全局） -->
+<style>
+/* 弹窗主体固定高度：四步等高、内容区内滚、底部按钮始终可见（步骤切换高度不变） */
+.dbm-sync-dialog .el-dialog__body {
+  height: 58vh;
+  min-height: 460px;
+  padding: 12px 18px 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
 </style>

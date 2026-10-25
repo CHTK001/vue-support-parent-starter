@@ -10,7 +10,7 @@
     -->
     <!-- 编辑消息时不渲染建议面板（避免与编辑条重叠，报障 2.5） -->
     <AiNextTaskPanel v-if="!props.editing" :session-id="sessionId == null ? null : String(sessionId)"
-      @send-suggestion="onSendSuggestion" />
+      :dismiss-signal="suggestionDismissSignal" @send-suggestion="onSendSuggestion" />
     <!-- 输入框区域 -->
     <div
       class="input-area p-[12px_8px_10px_8px] min-h-15 w-full bg-(--color-input-bg) border border-(--color-input-border) rounded-(--size-rounded-radius) transition-[border-color,background-color] duration-150"
@@ -63,7 +63,7 @@
           <component :is="EditorContent" :editor="editor" class="message-editor" />
           <!-- 命令选择弹窗 -->
           <CommandPicker v-if="commandPickerVisible" ref="commandPickerRef" :visible="commandPickerVisible"
-            :items="commandsCache[commandTrigger]" :query="pickerQuery" :selected-index="selectedIndex"
+            :items="pickerItems" :query="pickerQuery" :selected-index="selectedIndex"
             :trigger="commandTrigger" @select="selectCommand" @close="closeCommandPicker"
             @update:selected-index="selectedIndex = $event" />
         </template>
@@ -79,21 +79,27 @@
           <slot name="buttons"></slot>
           <!-- 左侧工具按钮组 -->
           <template v-if="!props.readonly">
-            <!-- 附件/图片/知识库按钮（放到最左侧） -->
-            <button ref="attachButtonRef" class="tool-btn" aria-label="添加附件/图片/知识库" @click.stop="toggleAttachPopover">
-              <el-icon size="16">
-                <Add24Regular />
-              </el-icon>
-            </button>
-            <AttachmentPopover v-model:visible="attachPopoverVisible" :anchor-el="attachButtonRef"
+            <!-- 「+」= 指令栏入口：附件/图片/知识库与「压缩上下文 / 切换模型」等指令同栏。
+                 沿用既有的 CommandPicker（与 / 、@ 同一套 UI 与执行通道），
+                 所以这里只是换一份候选集，不另造第三种弹层。 -->
+            <LTooltip content="指令与附件" placement="top">
+              <button v-if="showButtons.attachmentButton" ref="attachButtonRef" class="tool-btn" aria-label="指令栏：附件与指令" @click.stop="openCommandPickerByButton('plus')">
+                <el-icon size="16">
+                  <Add24Regular />
+                </el-icon>
+              </button>
+            </LTooltip>
+            <AttachmentPopover v-if="showButtons.attachmentButton" v-model:visible="attachPopoverVisible" :anchor-el="attachButtonRef"
               :knowledge-bases="knowledgeBases" :selected-kb-ids="props.config?.knowledgeBaseIds || []"
               :selected-attachments="props.config?.attachments || {}" @select-image="triggerImageInput"
               @select-file="triggerFileInput" @toggle-kb="toggleKnowledgeBaseSelection"
               @toggle-attachment="toggleAttachmentSelection" />
 
-            <!-- 技能按钮（图标+tip） -->
-            <LTooltip content="技能" placement="top">
-              <button class="tool-btn skill-btn" aria-label="技能" @click.stop="openCommandPicker('', 'slash')">
+            <!-- 技能按钮（图标+tip）。
+                 .skill-btn 只作为「点击外部关闭命令弹层」的判定锚点与窄窗隐藏该入口的钩子保留，
+                 视觉一律由 .tool-btn 提供（原先那份 .skill-btn 规则与 .tool-btn 完全重复，已删） -->
+            <LTooltip v-if="showButtons.skillButton" content="技能" placement="top">
+              <button class="tool-btn skill-btn" aria-label="技能" @click.stop="openCommandPickerByButton('slash')">
                 <el-icon size="16">
                   <Wrench24Regular />
                 </el-icon>
@@ -130,7 +136,7 @@
             </button>
           </LTooltip>
           <!-- 思考等级：排在模型按钮**左侧**的独立胶囊，图标 + 当前档位短文案（用户需求） -->
-          <LTooltip :content="t('chat.input.thinkingLevelTitle')" placement="top">
+          <LTooltip v-if="modelReasoningVisible" :content="t('chat.input.thinkingLevelTitle')" placement="top">
             <button ref="thinkingLevelButtonRef" class="thinking-chip" :class="{ 'is-on': thinkingEnabled }"
               :aria-label="t('chat.input.thinkingLevelTitle')" :aria-pressed="thinkingEnabled"
               @click.stop="toggleThinkingLevelPopover">
@@ -138,7 +144,7 @@
               <span v-if="currentThinkingLabel" class="thinking-chip-text">{{ currentThinkingLabel }}</span>
             </button>
           </LTooltip>
-          <ThinkingEffortPopover v-model:visible="thinkingLevelPopoverVisible" :anchor-el="thinkingLevelButtonRef"
+          <ThinkingEffortPopover v-if="modelReasoningVisible" v-model:visible="thinkingLevelPopoverVisible" :anchor-el="thinkingLevelButtonRef"
             :options="thinkingLevelOptions" :current-value="currentThinkingValue"
             @select="handleThinkingLevelSelect" />
 
@@ -198,9 +204,6 @@
         width="640px" :close-on-click-modal="false" destroy-on-close class="pasted-preview-dialog"
         @close="closeFilePreview">
         <pre class="pasted-preview-text">{{ previewContent }}</pre>
-        <template #footer>
-          <el-button @click="closeFilePreview">{{ t('common.close') }}</el-button>
-        </template>
       </ReDialog>
     </div>
   </div>
@@ -348,11 +351,20 @@ const editor = ref<Editor>();
 const commandPickerVisible = ref(false);
 const pickerQuery = ref('');
 const selectedIndex = ref(0);
-const commandsCache = reactive<{ slash: any[]; mention: any[] }>({
+const commandsCache = reactive<{ slash: any[]; mention: any[]; plus: any[] }>({
   slash: [],
   mention: [],
+  // 「+」指令栏的候选集（附件类入口 + 会话级内置指令 + 后端命令），与 slash 分开存，
+  // 因为它的语义是「这一个按钮能做什么」，而不是「斜杠命令有哪些」
+  plus: [],
 });
 const commandTrigger = ref<'slash' | 'mention'>('slash');
+// 弹层里显示的候选集。plus 是「+」的候选集（附件入口 + 指令 + 同一批后端命令），
+// 与 slash / mention 分开存：它的语义是「这个按钮能做什么」，而不是「斜杠命令有哪些」。
+const pickerItemSet = ref<'slash' | 'mention' | 'plus'>('slash');
+// 弹层是不是由工具条按钮（+ / 技能）打开的。
+// 按钮唤起与在编辑器里敲 / 、@ 有两点行为差异，见 selectCommand 与 onBlur 处的注释。
+const pickerOpenedByButton = ref(false);
 const editorContent = ref('');
 
 // 命令选择弹窗 ref
@@ -403,6 +415,10 @@ const showButtons = reactive({
   thinkingButton: false,
   webSearchButton: true,
   tokensButton: true,
+  /** 附件/指令栏入口（模型 attachment 能力，缺省显） */
+  attachmentButton: true,
+  /** 技能入口（模型 tool_call 能力，缺省显） */
+  skillButton: true,
 });
 
 // 图片预览 URL 字典（与 file 对象解耦）
@@ -491,6 +507,7 @@ const parseCommandTags = (text: string): string => {
   );
 };
 
+
 /**
  * AI 建议被点中：用户已明确要求「直接作为用户消息发送」，
  * 因此把建议文本填入编辑器后走与发送按钮同一条 sendMessage 路径。
@@ -564,6 +581,17 @@ watch(() => currentModel.value?.config, (config) => {
   // 思考按钮：当模型支持 thinking 时显示
   showButtons.thinkingButton = config?.features?.includes('thinking') || false;
 }, { immediate: true });
+
+// 模型能力开关 → 会话工具栏按钮显隐（attachment/reasoning/tool_call/temperature）
+// 后端模型行回传顶层布尔字段；仅显式 false 才隐藏按钮，字段为空（未配置 / 旧数据）
+// 保持按钮可见。思考胶囊用 modelReasoningVisible 单独控制。
+watch(() => currentModel.value, (model) => {
+  if (model?.['attachment'] === false) showButtons.attachmentButton = false;
+  if (model?.['tool_call'] === false) showButtons.skillButton = false;
+}, { immediate: true });
+
+/** 思考胶囊显隐：仅模型显式声明 reasoning=false 才隐藏；未配置/未知保持可见 */
+const modelReasoningVisible = computed(() => currentModel.value?.['reasoning'] !== false);
 
 // 思考强度相关
 const localThinkingEffort = ref<string>('none'); // 'none' | 'low' | 'medium' | 'high' | 'max' | ...
@@ -1436,6 +1464,15 @@ const extractSendContent = (): { text: string; skillNames: string[] } => {
   return { text: blocks.join('\n'), skillNames };
 };
 
+/**
+ * 「用户自己发消息」信号：每次自发送 +1，建议面板 watch 到变化就销毁自己。
+ *
+ * 刻意用单向信号 prop，而不是模板 ref + defineExpose 调子组件方法：
+ * 后者在本组件上实测触发 `Maximum recursive updates exceeded in <ChatInput>`，
+ * 整个会话页渲染不出来（107/108/146 全白）。信号没有回写，天然不成环。
+ */
+const suggestionDismissSignal = ref(0);
+
 const sendMessage = async () => {
   const { text: content, skillNames } = extractSendContent();
   if (!content.trim() && uploadFiles.value.length === 0) {
@@ -1463,6 +1500,14 @@ const sendMessage = async () => {
   const uploadedFiles = uploadFiles.value.filter(f =>
     f.uploadStatus === 'uploaded' || !f.uploadStatus
   );
+
+
+  // 用户自己在输入框里发消息 = 明确不采纳当前这批建议 → 通知建议面板销毁自己。
+  //
+  // 放在这里（而不是 sendMessage 开头）是刻意的：上面几个 return 都是"没真正发出去"
+  // 的分支（内容为空、用户选择继续等上传），那些情况下面板该继续留着。
+  // 点击建议那条路已由面板自己在 onPick 里销毁，这里多一次信号是无害的。
+  suggestionDismissSignal.value += 1;
 
   // 发送消息(仅包含已上传完成的文件)；content 已剥离技能徽标，skillNames 单独透传
   emit('send', {
@@ -1522,10 +1567,46 @@ const openCommandPicker = async (query: string = '', trigger: 'slash' | 'mention
   pickerQuery.value = query;
   selectedIndex.value = 0;
   commandTrigger.value = trigger;
+  pickerItemSet.value = trigger;
+  pickerOpenedByButton.value = false;
   // 按需加载对应触发方式的命令
   await loadCommands(trigger);
   commandPickerVisible.value = true;
 };
+
+/**
+ * 由工具条按钮唤起弹层：「+」= 附件入口 + 指令，技能 = 斜杠命令。
+ *
+ * <p>为什么不另写一套弹层：`/` 已经有带搜索、键盘上下选中的浮层，
+ * 再写一个「+ 菜单」就是同一功能的第三种视觉，用户要学两遍。
+ *
+ * <p>它与在编辑器里敲 / 、@ 只有两点差异，都记在 pickerOpenedByButton 上：
+ * 1. 选中条目后不能删「最后一个 / 或 @ 之后的文本」——那是编辑器触发的产物（见 selectCommand）；
+ * 2. 编辑器失焦不该关掉它——失焦正是「点了按钮」的副作用（见 onBlur）。
+ */
+const openCommandPickerByButton = async (set: 'slash' | 'plus') => {
+  if (commandPickerVisible.value) {
+    closeCommandPicker();
+    return;
+  }
+  pickerQuery.value = '';
+  selectedIndex.value = 0;
+  // CommandPicker 的 trigger 只影响空状态与图标口径，按 slash 走（与技能按钮原行为一致）
+  commandTrigger.value = 'slash';
+  pickerItemSet.value = set;
+  pickerOpenedByButton.value = true;
+  if (set === 'plus') {
+    await loadPlusCommands();
+  } else {
+    await loadCommands('slash');
+  }
+  commandPickerVisible.value = true;
+};
+
+// 弹层渲染的候选集由 pickerItemSet 决定，其余逻辑（过滤、键盘、选中）完全共用
+const pickerItems = computed(() =>
+  pickerItemSet.value === 'plus' ? commandsCache.plus : commandsCache[pickerItemSet.value]
+);
 
 const closeCommandPicker = () => {
   commandPickerVisible.value = false;
@@ -1597,22 +1678,27 @@ const handlePickerKeydown = (e: KeyboardEvent) => {
 const selectCommand = (item: any) => {
   if (!editor.value) return;
 
-  const { state } = editor.value;
-  const { selection } = state;
-  const { $from } = selection;
+  // 只有 / 、@ 触发的场景才清理「触发字符及其后的查询文本」。
+  // 「+」/技能按钮不是靠编辑器里的触发字符打开的：此时若照删「最后一个 / 或 @ 之后的文本」，
+  // 会把用户正在写的内容误删。
+  if (!pickerOpenedByButton.value) {
+    const { state } = editor.value;
+    const { selection } = state;
+    const { $from } = selection;
 
-  const textBefore = $from.parent.textBetween(0, $from.parentOffset, '\n', '\n');
-  const slashIndex = textBefore.lastIndexOf('/');
+    const textBefore = $from.parent.textBetween(0, $from.parentOffset, '\n', '\n');
+    const slashIndex = textBefore.lastIndexOf('/');
 
-  // 删除触发字符（/ 或 @）及其后的查询文本
-  const triggerIndex = textBefore.lastIndexOf('/');
-  const atIndex = textBefore.lastIndexOf('@');
-  const delIndex = Math.max(triggerIndex, atIndex);
+    // 删除触发字符（/ 或 @）及其后的查询文本
+    const triggerIndex = textBefore.lastIndexOf('/');
+    const atIndex = textBefore.lastIndexOf('@');
+    const delIndex = Math.max(triggerIndex, atIndex);
 
-  if (delIndex >= 0) {
-    const from = $from.start() + delIndex;
-    const to = $from.pos;
-    editor.value.chain().focus().deleteRange({ from, to }).run();
+    if (delIndex >= 0) {
+      const from = $from.start() + delIndex;
+      const to = $from.pos;
+      editor.value.chain().focus().deleteRange({ from, to }).run();
+    }
   }
 
   // 内置命令：执行会话级动作（压缩上下文 / 创建技能 / 新建会话），不插入命令节点
@@ -1673,11 +1759,86 @@ const BUILTIN_COMMANDS = [
 ];
 
 /**
+ * 「+」指令栏里的附件类入口。
+ *
+ * <p>它们只是把原先散在 AttachmentPopover 里的三个入口提到指令栏里，
+ * 具体面板仍然复用 AttachmentPopover / 原生文件选择框，没有第二套实现。
+ */
+const ATTACH_COMMANDS = [
+  {
+    name: 'plus-attach-image',
+    label: '上传图片',
+    description: '从本机选择图片添加到本轮消息',
+    builtin: 'attach-image',
+    providerId: 'builtin',
+  },
+  {
+    name: 'plus-attach-file',
+    label: '上传文件',
+    description: '从本机选择文件添加到本轮消息',
+    builtin: 'attach-file',
+    providerId: 'builtin',
+  },
+  {
+    name: 'plus-knowledge-base',
+    label: '知识库 / 附加连接',
+    description: '选择知识库或已接入的附加数据源',
+    builtin: 'knowledge-base',
+    providerId: 'builtin',
+  },
+];
+
+/**
+ * 「+」指令栏里不属于 `/` 列表的入口：附件三项 + 切换模型。
+ *
+ * <p>它们都**不下沉**到 `/` 里 —— `/` 的语义是「技能 / 工具命令」，
+ * 混进「上传图片」「切换模型」会让用户以为存在这样一条斜杠命令。
+ */
+const PLUS_ONLY_COMMANDS = [
+  ...ATTACH_COMMANDS,
+  {
+    name: 'plus-switch-model',
+    label: '切换模型',
+    description: '打开模型选择面板，为当前会话换一个模型',
+    builtin: 'model',
+    providerId: 'builtin',
+  },
+];
+
+/**
+ * 「+」指令栏的固定部分：附件入口在前（用户对「+」的既有预期就是加东西），
+ * 会话级指令在后。
+ *
+ * <p>附件三项与 BUILTIN_COMMANDS 都**不是**复制出来的第二份定义：
+ * 后者直接引用同一批对象，所以「压缩上下文」这类指令只维护一处。
+ */
+const PLUS_COMMANDS = [...PLUS_ONLY_COMMANDS, ...BUILTIN_COMMANDS];
+
+/**
  * 执行内置命令。
  *
- * @param kind 内置命令类型（compress / create-skill / new-session）
+ * @param kind 内置命令类型（compress / create-skill / new-session / attach-image / attach-file / knowledge-base / model）
  */
 async function runBuiltinCommand(kind: string): Promise<void> {
+  if (kind === 'attach-image') {
+    triggerImageInput();
+    return;
+  }
+  if (kind === 'attach-file') {
+    triggerFileInput();
+    return;
+  }
+  if (kind === 'knowledge-base') {
+    // 「+」已经不再直接开附件面板，知识库 / 附加连接的入口挪到这里。
+    // 面板锚点仍是「+」本身，视觉位置与改动前一致。
+    if (!attachPopoverVisible.value) await toggleAttachPopover();
+    return;
+  }
+  if (kind === 'model') {
+    // 复用既有的模型选择面板；它自带「没有可用模型」的引导与失败提示
+    await openModelPanel();
+    return;
+  }
   if (kind === 'compress') {
     const sessionId = props.sessionId == null ? '' : String(props.sessionId);
     if (!sessionId) {
@@ -1725,6 +1886,18 @@ const loadCommands = async (trigger: 'slash' | 'mention') => {
       commandsCache[trigger] = [...BUILTIN_COMMANDS];
     }
   }
+};
+
+/**
+ * 「+」指令栏的候选集。
+ *
+ * <p>后端的技能 / MCP 工具从 `/` 的缓存里取（同一份数据不重复请求），
+ * 但要先剥掉内置段再拼，否则「压缩上下文」会在栏里出现两次。
+ */
+const loadPlusCommands = async () => {
+  await loadCommands('slash');
+  const remoteOnly = (commandsCache.slash || []).filter((item: any) => !item.builtin);
+  commandsCache.plus = [...PLUS_COMMANDS, ...remoteOnly];
 };
 
 
@@ -1776,13 +1949,17 @@ watch(() => props.buttons, (value) => {
   });
 }, { immediate: true });
 
-// 全局点击事件：点击外部关闭技能弹层
+// 全局点击事件：点击外部关闭命令弹层
 const handleClickOutside = (e: MouseEvent) => {
   if (commandPickerVisible.value) {
     const pickerEl = commandPickerRef.value?.$el as HTMLElement;
     const skillBtn = document.querySelector('.skill-btn') as HTMLElement;
-    if (pickerEl && !pickerEl.contains(e.target as Node) && 
-        skillBtn && !skillBtn.contains(e.target as Node)) {
+    // 「+」和技能按钮都能唤起弹层：点它们不算「点外部」，
+    // 否则弹层会在按钮的 click 处理之前被关掉（表现为点一下没反应）
+    const attachBtn = attachButtonRef.value as HTMLElement | null;
+    if (pickerEl && !pickerEl.contains(e.target as Node) &&
+        skillBtn && !skillBtn.contains(e.target as Node) &&
+        attachBtn && !attachBtn.contains(e.target as Node)) {
       closeCommandPicker();
     }
   }
@@ -1868,7 +2045,12 @@ onMounted(() => {
       onBlur: () => {
         focused.value = false;
         emit('blur');
+        // 编辑器失焦后要收起 `/` 弹层，否则它会一直挂在输入框上方。
+        // 但按钮唤起的弹层不能在这里收：点「+」/技能本身就会让编辑器失焦，
+        // 200ms 后这次「失焦」会把刚打开的弹层关掉，表现为「点一下闪一下就没了」。
+        // 按钮唤起的弹层统一交给 handleClickOutside 关。
         setTimeout(() => {
+          if (pickerOpenedByButton.value) return;
           if (!document.querySelector('.command-picker:hover')) {
             closeCommandPicker();
           }
@@ -1998,12 +2180,24 @@ defineExpose({ insertText, insertBadge });
 }
 
 /* 编辑态：与上方「正在编辑消息」提示条拼成同一张卡。
-   提示条负责顶部圆角与上/侧边框，本段只留底部圆角与下/侧边框，
-   两段交界处边框与底色连续，看起来是一张卡而不是两张。 */
+   提示条负责顶部圆角与上/侧边框，本段只留底部圆角与下/侧边框。
+   本段必须显式去掉上边框：交界处那条 1px 线由提示条内层画（ChatPanel 的
+   .edit-banner__inner），两段都不画交界边，那条线就不会因为负边距或亚像素
+   四舍五入在交界处错位、加粗。 */
 .input-area--continues-banner {
+  border-top-width: 0;
   border-top-left-radius: 0;
   border-top-right-radius: 0;
   margin-top: 0;
+  /* 投影必须只向下。0 2px 12px 的模糊上下各漫出 blur/2 = 6px，减去 2px 的下移后
+     仍有约 4px 糊在提示条上，在交界处压出一条灰带 —— 这才是「看起来还是两张卡」
+     的主因，和宽度/圆角无关。负 spread 把上边界拉回输入卡内，向下那侧几乎不变。 */
+  box-shadow: 0 2px 12px -6px rgb(0 0 0 / 12%);
+}
+
+/* 暗色下输入卡本来就没有投影（工具类里的 dark:shadow-none），这里保持同一口径 */
+html.dark .input-area--continues-banner {
+  box-shadow: none;
 }
 
 /* 拖拽悬停高亮 */
@@ -2182,12 +2376,10 @@ defineExpose({ insertText, insertBadge });
   }
 }
 
-/* 技能按钮 */
-.skill-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
+/* 技能按钮没有自己的样式：它与 MCP / + / 在线检索 / 优化输入共用 .tool-btn，
+   原先这里那份 .skill-btn 规则（display/align-items/gap）与 .tool-btn 逐条重复，
+   一旦只改了其中一处就会出现「同排按钮不一样大」的偏差，故整块删除。
+   类名本身保留在模板上，仅作为点击外部判定的锚点与窄窗隐藏钩子（见上面的媒体查询）。 */
 
 .model-selector-btn {
   cursor: pointer;

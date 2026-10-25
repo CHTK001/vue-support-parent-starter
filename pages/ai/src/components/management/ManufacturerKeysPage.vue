@@ -1,22 +1,18 @@
 <template>
-  <div class="manufacturer-keys-page">
-    <div class="page-header">
-      <h2>厂商Key管理</h2>
-      <div class="header-actions">
-        <el-input
-          v-model="searchKeyword"
-          placeholder="搜索厂商名称或编码"
-          clearable
-          style="width: 240px; margin-right: 12px"
-        >
-          <template #prefix><el-icon><Search /></el-icon></template>
-        </el-input>
-        <el-button v-if="admin" type="primary" @click="openCreateDialog">
-          <el-icon><Plus /></el-icon> 新增厂商Key
-        </el-button>
-        <el-button @click="loadData"><el-icon><Refresh /></el-icon> 刷新</el-button>
-      </div>
-    </div>
+  <RePage data-page="mfr-keys" title="厂商Key管理" subtitle="各模型厂商的 API Key 与限额">
+    <template #actions>
+      <el-input
+        v-model="searchKeyword"
+        placeholder="搜索厂商名称或编码"
+        clearable
+      >
+        <template #prefix><el-icon><Search /></el-icon></template>
+      </el-input>
+      <el-button v-if="admin" type="primary" @click="openCreateDialog">
+        <el-icon><Plus /></el-icon> 新增厂商Key
+      </el-button>
+      <el-button @click="loadData"><el-icon><Refresh /></el-icon> 刷新</el-button>
+    </template>
 
     <el-alert
       v-if="!admin"
@@ -28,14 +24,13 @@
     />
 
     <div v-if="admin" class="panel-card">
-    <!-- 表格统一 ReTable（替换裸 el-table）：engine="element"；pagination/toolbar 关闭
+    <!-- 表格统一 ReTable（替换裸 el-table）：默认引擎已是 vxe；pagination/toolbar 关闭
          （分页由下方 el-pagination 自管）；原表没有 border → :settings="{ border: false }"；
          v-loading → :loading。 -->
     <ReTable
       :data="pagedData"
       :columns="manufacturerKeyColumns"
       :loading="loading"
-      engine="element"
       :pagination="false"
       :toolbar="false"
       :layout-table="{ minHeight: 0 }"
@@ -53,15 +48,15 @@
       <template #col-status="{ row }">
         <el-tag :type="statusTag(row.status)" >{{ statusText(row.status) }}</el-tag>
       </template>
+      <!-- 操作列统一 ReButton square（纯图标 + tooltip） -->
       <template #col-actions="{ row }">
-        <el-button type="primary" link @click="openEditDialog(row)">编辑</el-button>
-        <el-button
-
-          :type="row.status === 1 ? 'warning' : 'success'"
-          link
-          @click="toggleItem(row)"
-        >{{ row.status === 1 ? '停用' : '启用' }}</el-button>
-        <el-button type="danger" link @click="deleteItem(row)">删除</el-button>
+        <div class="row-actions">
+          <ReButton layout="square" type="primary" :icon="Edit" tip="编辑" @click="openEditDialog(row)" />
+          <ReButton v-if="row.status === 1" layout="square" type="warning" :icon="Lock" tip="停用"
+            @click="toggleItem(row)" />
+          <ReButton v-else layout="square" type="success" :icon="Unlock" tip="启用" @click="toggleItem(row)" />
+          <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click="deleteItem(row)" />
+        </div>
       </template>
     </ReTable>
 
@@ -124,19 +119,21 @@
         <el-button type="primary" @click="submitForm" :loading="submitting">保存</el-button>
       </template>
     </ReDialog>
-  </div>
+  </RePage>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { ElMessageBox } from 'element-plus';
-import { Search, Plus, Refresh } from '@element-plus/icons-vue';
+import { Search, Plus, Refresh, Edit, Delete, Lock, Unlock } from '@element-plus/icons-vue';
 import { isAdmin, message } from '@repo/core';
 import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn } from '@repo/ui/re-table';
 import { manufacturerApi, manufacturerKeyApi } from '@/services/javaApi';
 import ReDialog from '@repo/ui/re-dialog';
 import ReNumberInput from '@/components/re/ReNumberInput.vue';
+import RePage from '@/components/re/RePage.vue';
+import ReButton from '@repo/ui/re-button';
 
 /**
  * 列配置：原模板里的 9 个 el-table-column 收敛为数组。
@@ -337,26 +334,13 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.manufacturer-keys-page { padding: 22px 24px; height: 100%; overflow: auto; }
-.page-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
-.page-header h2 {
-  position: relative; margin: 0; font-size: 21px; font-weight: 700;
-  color: var(--el-text-color-primary); padding-left: 12px;
-}
-.page-header h2::before {
-  content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
-  width: 4px; height: 19px;
-  /* 原值 4px，恰为 19px 高的半径即胶囊；用 full 令牌表达同一种形状 */
-  border-radius: var(--el-radius-full, 9999px);
-  background: linear-gradient(180deg, var(--el-color-primary), var(--el-color-primary-light-3));
-}
-.header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+/* 页面外壳（留白/标题/操作区）已收口到 RePage，这里只留内容区样式。 */
 
 .panel-card {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  /* 原值 18px → xl 档 */
-  border-radius: var(--el-radius-xl, 16px);
+  /* 与用量页看板统一 8px 圆角 */
+  border-radius: var(--u-radius, 8px);
   padding: 16px 18px 14px;
   /* 表格容器是页面区块，不加投影 */
 }

@@ -272,8 +272,8 @@ export class FlowGraphEngine {
         minScale: 0.5,
         maxScale: 1.5,
       },
-      // 左键留给框选，平移走空格（官方是 leftMouseDown，理由见文件头）
-      panning: { enabled: options.panning !== false, modifiers: "space" },
+      // 拖拽画面：直接左键拖空白区即为平移，不再要求按空格（默认 leftMouseDown）
+      panning: { enabled: options.panning !== false },
       connecting: {
         router: { name: "orth", args: { padding: 28 } },
         connector: { name: "rounded", args: { radius: 8 } },
@@ -871,6 +871,10 @@ export class FlowGraphEngine {
       image?: string;
       strokeColor?: string;
       strokeWidth?: number;
+      /** 卡片第二行状态文本（重播时显示「开始时间 · 耗时」）；空串清除 */
+      stateText?: string;
+      /** 是否「正在循环/当前执行」：卡片渲染蓝色虚线动画边框 */
+      looping?: boolean;
     },
   ) {
     const cell = this.graph.getCellById(id);
@@ -887,6 +891,8 @@ export class FlowGraphEngine {
       flowImage?: string;
       flowStrokeColor?: string;
       flowStrokeWidth?: number;
+      flowStateText?: string;
+      flowLooping?: boolean;
       flowData?: Record<string, unknown>;
     };
     // 一次 setData 收齐所有字段：卡片组件订阅的是 change:data，
@@ -911,6 +917,13 @@ export class FlowGraphEngine {
     if (patch.strokeWidth != null) {
       next.flowStrokeWidth = patch.strokeWidth;
     }
+    // 空串是「清除状态文本」，必须走 != null
+    if (patch.stateText != null) {
+      next.flowStateText = patch.stateText;
+    }
+    if (patch.looping != null) {
+      next.flowLooping = patch.looping;
+    }
     if (patch.data) {
       next.flowData = patch.data;
     }
@@ -921,6 +934,13 @@ export class FlowGraphEngine {
       if (patch.strokeWidth != null) body.strokeWidth = patch.strokeWidth;
       if (Object.keys(body).length) {
         node.setAttrs({ body } as never);
+      }
+    } else if (patch.stateText != null) {
+      // 卡片型节点：有状态文本时加高一行，否则收回默认高度（重播信息不能被 36px 裁掉）
+      const target = patch.stateText ? NODE_HEIGHT + 18 : NODE_HEIGHT;
+      const size = node.getSize();
+      if (size.height !== target) {
+        node.resize(size.width, target);
       }
     }
     node.setData(next);
@@ -957,6 +977,24 @@ export class FlowGraphEngine {
       flowTransfer: transfer,
       flowData: patch.data ?? data.flowData ?? {},
     });
+  }
+
+  /**
+   * 标记「当前推进」的边：给连线容器加/去动画类，让上一个节点到当前节点之间的线变成流动虚线。
+   *
+   * <p>只动容器类，不改 flowKind / flowTransfer，避免把「不传递变量」的语义虚线改成实线。</p>
+   *
+   * @param id 连线 id
+   * @param active true=加高亮动画，false=清除
+   */
+  setEdgeActive(id: string | null, active = false): void {
+    const cell = id ? this.graph.getCellById(id) : null;
+    if (!cell?.isEdge()) {
+      return;
+    }
+    const view = this.graph.findViewByCell(cell);
+    const container = view?.container as HTMLElement | undefined;
+    container?.classList.toggle("flow-edge-active", active);
   }
 
   /**

@@ -1,114 +1,56 @@
 /**
- * vue-support-monitor-starter 路由模式入口
+ * vue-support-monitor-starter 入口 —— 壳（app shell）
  *
- * 模式：mode=router（默认）+ koi 布局（侧边栏菜单由路由树自动推导）
- * 路由模式：hash（routerMode: "hash"）
+ * <p>本应用只做三件事：<b>选主题 / 装组件 / 挂路由</b>。</p>
+ * <ul>
+ *   <li>业务功能全在 {@code @pages/xx}（视图 + API + 路由工厂三者同源），本文件不抄第二份；</li>
+ *   <li>Re* 组件清单由 {@code @repo/ui} 的 preset 维护，本文件只声明预设名；</li>
+ *   <li>菜单默认项、分组导航等策略已内置于框架（{@code @repo/config} 的 defaultAppConfig），
+ *       运维侧仍可用 app.yaml 覆盖 —— 不在本文件重复声明。</li>
+ * </ul>
  *
- * 与 single 模式的区别：
- *   - 使用 koi 默认布局（AppWithRouter + layout），不再需要自定义 App.vue
- *   - 侧边栏菜单由路由树（RouteConfigsTable[]）自动推导
- *   - 业务路由自动挂到 layout 之下
- * @author CH
- * @since 4.0.0
+ * <p>路由模式：hash（routerMode: "hash"）；菜单由路由树自动推导。</p>
  */
 import { createContextApp } from "@repo/app";
+import { useGlobalStore } from "@repo/pinia";
+// ── 本应用壳级布局 / 遥测样式（app 私有，见 src/styles） ─────────────
 import "./styles/pages.css";
 import "./styles/telemetry.css";
+
+// ── @pages/* 的全局样式：为什么由壳 main.ts 显式引入？ ─────────────
+// pages 包按约定只放「视图 + API + 路由工厂 + 样式文件」，不持有 App.vue/main.ts 入口；
+// 因此包内 .css（tokens / page / dialog）没有自己的挂载时机，必须在壳入口 import 才会
+// 被打包进产物。这三条是 pages/server 与 pages/monitor 的页面依赖的全局样式：
+//   - tokens.css  定义包级 CSS 变量色板（侧边栏/卡片/表格的 --el-* 覆盖），
+//                 供两个包的所有 .vue 的 <style> 使用，必须全局可用；
+//   - page.css    主机资产管理等页面的通用版式类（只读全局类，不 scoped）；
+//   - dialog.css  主机表单 / 详情弹窗的统一视觉（变量驱动，不 scoped）。
+// 唯一归属在壳、不归 pages 的理由：样式的「消费方」是壳整体装配出的应用，
+// 页面只声明依赖、由应用入口统一收集，避免每页重复 import 造成重复打包。
+import "@pages/monitor/src/styles/tokens.css";
+import "@pages/server/src/styles/tokens.css";
+import "@pages/server/src/styles/page.css";
+import "@pages/server/src/styles/dialog.css";
 import ProcessHost from "./components/ProcessHost.vue";
 import monitorRoutes from "./router";
-import { registerMonitorDatasourceSchema } from "@pages/datasource";
 
-/** 本页可能用到的 Re* 组件。
- *  注意：ReIcon / ReScrollNav / ReDrawer 已由 koi 主题安装器（installKoi 内部 installUiComponents）
- *  注册，且先于本清单执行，不要再列入 ——
- *  重复 app.component 会触发 Vue「has already been registered」生产期控制台告警。 */
-const MONITOR_RE_COMPONENTS = [
-  "ReButton",
-  "ReTag",
-  "ReBadge",
-  "ReInput",
-  "ReInputNumber",
-  "ReSelect",
-  "ReDialog",
-  "ReTable",
-  "RePagination",
-  "ReForm",
-  "ReEmpty",
-  "ReSkeleton",
-  "ReCard",
-  "ReStatusIndicator",
-  "ReStatCard",
-  "ReSectionHead",
-  "ReSwitch",
-  "ReFilter",
-  "ReText",
-  "ReCountup",
-  "ReTrend",
-  "ReRemoteSelect",
-  "ReLoading",
-  "ReScrollbar",
-  "ReTagFilter",
-  "ReTree",
-  "ReEmptyState",
-  "ReTab",
-  "ReKit",
-  "ReProcessTask",
-  "ReCommand",
-  "ReIconSelect",
-  "ReRelationGraph",
-];
-
-// 数据源中心「浏览表结构」改走监控后端 /ms/monitor/db/*（不依赖采集平台）
-// 实现已收敛进 @pages/datasource，宿主只需启动时调一次。
-registerMonitorDatasourceSchema();
-
-// 数据源台账接口前缀：沿用 @pages/datasource 的默认 /ms/datasource。
-//
-// 曾经在这里覆盖成 /ms/monitor/datasource，理由是「未部署 hub 模块」。
-// 该前提已不成立：监控后端的 fat jar 里带了 spring-support-datasource-hub-starter，
-// /ms/datasource/list 实测 HTTP 200 且能返回真实台账；
-// 而 /ms/monitor/datasource/list 实测 HTTP 404「资源不存在」——
-// 监控后端里根本没有 datasource 的 Controller，这条覆盖只会让整个数据源中心恒为空。
-// 故删掉覆盖，回到共享包默认值。
-
-// createContextApp 一站式装配：主题/菜单/路由由框架处理，Re* 组件按需安装交给
-// ui()，全局过程任务浮层宿主交给 host()，宿主路径不再需要 main.ts 手写
-// installUi / createVNode / render / appendChild。
-await createContextApp({
+const app = await createContextApp({
   appName: "vue-support-monitor-starter",
   title: "监控管理平台",
   mode: "router",
   routerMode: "hash",
-  /**
-   * 本应用的代码级默认配置（优先级最低的一层）。
-   *
-   * <p>这里声明「默认走分组导航」：</p>
-   * <ul>
-   *   <li>{@code collapseSingleChild: true} —— 只有一个子项的分组也渲染成可展开的
-   *       二级菜单，而不是被压平；{@code flattenSingleRoot: false} —— 分组不因
-   *       「单根」被自动提升为顶层项，保证「监控管理 / 数据中心 / 资产管理 /
-   *       发布管理 / 系统管理」五个分组始终存在。</li>
-   * </ul>
-   *
-   * <p>app.example.yaml / app.yaml / app.{env}.yaml / 远程配置 / 环境变量仍能覆盖它
-   * （例如运维临时在 app.yaml 里关掉分组），符合「代码给默认、配置可覆盖」。</p>
-   */
-  defaults: {
-    menu: {
-      collapseSingleChild: true,
-      flattenSingleRoot: false,
-    },
-  },
 })
-  .ui({ components: MONITOR_RE_COMPONENTS })
+  .ui({ preset: "monitor" })
   .host(ProcessHost)
   .routes(monitorRoutes)
   .mount("#app");
 
-/** 预加载弹窗内组件的懒加载布局（ReDialog koi / ReSelect / ReSwitch / ReDrawer），消除首次打开卡顿 */
-void import("@repo/ui/components/ReDialog/theme/koi/ReDialog.vue");
-void import("@repo/ui/components/ReSelect/layouts/Square.vue");
-void import("@repo/ui/components/ReSelect/layouts/Modern.vue");
-void import("@repo/ui/components/ReSwitch/layouts/SquareReSwitch.vue");
-void import("@repo/ui/components/ReSwitch/layouts/CardReSwitch.vue");
-void import("@repo/ui/components/ReDrawer");
+// 默认导航布局改为「分组导航」。
+//
+// 为什么放在这里而不是改 @repo/pinia 的 global.ts：
+//   - global.ts 的默认值是全仓共享的，直接改成 group 会影响设备/采集/系统等所有
+//     没有显式覆盖布局的应用；
+//   - 这里只对 monitor 这一壳设置，用户仍可在顶部「主题设置」手动切换并把选择持久化；
+//   - 设值放在 mount 之后，保证 pinia 实例已就绪，也避免 before mount 与布局组件读取
+//     同一 store 时产生时序竞争。
+useGlobalStore(app.pinia).setGlobalState("layout", "group");

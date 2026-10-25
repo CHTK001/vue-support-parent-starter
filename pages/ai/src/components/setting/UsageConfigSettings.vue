@@ -84,6 +84,7 @@
 
 <script setup lang="ts">
 import { message } from "@repo/core";
+import { http } from '@repo/utils';
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 
 import { usageApi } from '@/services/javaApi';
@@ -243,7 +244,16 @@ const syncAllLoading = ref(false);
 const syncAllProgress = reactive({
   running: false, total: 0, processed: 0, percent: 0, error: '',
 });
-let es: EventSource | null = null;
+
+/**
+ * SSE 连接句柄。
+ *
+ * <p>用共享的 {@code http().sse()}（fetch-based）而不是裸 {@code new EventSource}：
+ * 本项目 /v2/** 全部靠 {@code x-oauth-token} 头鉴权，而裸 EventSource **无法设置请求头**，
+ * 建连会直接 401 —— 页面表现是「点了全量回填，进度永远停在 0%」，控制台只有一条不显眼的报错。
+ * 共享客户端已内置鉴权头（Authorization + x-oauth-token 双写）、空心跳过滤与事件解析。</p>
+ */
+let es: { close: () => void } | null = null;
 
 function closeEventSource() {
   if (es) {
@@ -261,34 +271,37 @@ async function handleSyncAll() {
       running: true, total: 0, processed: 0, percent: 0, error: '',
     });
     closeEventSource();
-    es = new EventSource('/v2/usage/task-status/stream');
-    es.onmessage = (ev) => {
-      try {
-        const d = JSON.parse(ev.data);
-        if (d.total) syncAllProgress.total = d.total;
-        if (d.processed != null) syncAllProgress.processed = d.processed;
-        if (d.total) syncAllProgress.percent = Math.min(100, Math.round((d.processed / d.total) * 100));
-        if (d.status === 'done' || d.status === 'completed' || d.status === 'cancelled') {
-          syncAllProgress.running = false;
-          closeEventSource();
-          message.success(d.status === 'cancelled' ? '全量回填已取消' : '全量回填完成');
-        }
-        if (d.status === 'failed' || d.error) {
-          syncAllProgress.running = false;
-          syncAllProgress.error = d.error || '任务失败';
-          closeEventSource();
-          message.error('全量回填失败：' + (d.error || ''));
-        }
-      } catch {
-        /* ignore */
-      }
-    };
-    es.onerror = () => {
-      if (syncAllProgress.running) {
-        syncAllProgress.running = false;
-        closeEventSource();
-      }
-    };
+    // parseData 默认 JSON.parse，onMessage 拿到的 ev.data 已是对象；空心跳帧已被底层丢弃
+    es = http()
+      .get('/v2/usage/task-status/stream')
+      .sse<any>({
+        onMessage: (ev) => {
+          const d = ev.data;
+          if (!d || typeof d !== 'object') return;
+          if (d.total) syncAllProgress.total = d.total;
+          if (d.processed != null) syncAllProgress.processed = d.processed;
+          if (d.total) syncAllProgress.percent = Math.min(100, Math.round((d.processed / d.total) * 100));
+          if (d.status === 'done' || d.status === 'completed' || d.status === 'cancelled') {
+            syncAllProgress.running = false;
+            closeEventSource();
+            message.success(d.status === 'cancelled' ? '全量回填已取消' : '全量回填完成');
+          }
+          if (d.status === 'failed' || d.error) {
+            syncAllProgress.running = false;
+            syncAllProgress.error = d.error || '任务失败';
+            closeEventSource();
+            message.error('全量回填失败：' + (d.error || ''));
+          }
+        },
+        onError: () => {
+          if (syncAllProgress.running) {
+            syncAllProgress.running = false;
+            closeEventSource();
+          }
+        },
+        // 任务状态流是「跑完即结束」的短流程，不做长重连（避免任务结束后又连一条新的）
+        reconnect: false,
+      });
   } catch (e: any) {
     message.error('触发全量同步失败：' + (e?.message || e));
   } finally {

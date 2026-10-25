@@ -13,6 +13,9 @@
 import { computed } from 'vue'
 
 import WindowControls from './WindowControls.vue'
+// 模板里用了 <TitlebarLeftPanel />，此前**漏了 import** —— Vue 解析不到会抛
+// "Failed to resolve component: TitlebarLeftPanel" 警告并中断该节点渲染。
+import TitlebarLeftPanel from './TitlebarLeftPanel.vue'
 
 const isElectron = computed(() => {
   return typeof window !== 'undefined' && window.electronAPI !== undefined

@@ -20,9 +20,16 @@
         control-width="220px"
       >
         <el-select v-model="selectedProvider" @update:model-value="handleProviderChange">
+          <!-- 360 放最前并作为默认：它无需 API Key 即可用，是唯一「不配任何东西就能联网」
+               的路径；后端 WebSearchService 的兜底也正是 360。此前页面没有这个选项，
+               后端却默认走它，导致「页面显示的选中项」和「实际生效的搜索源」不是同一个。 -->
+          <el-option label="360（免费，无需 API Key）" value="360" />
           <el-option :label="t('settings.search.bocha')" value="bocha" />
           <el-option label="Tavily" value="tavily" />
           <el-option :label="t('settings.search.metaso')" value="metaso" />
+          <el-option label="LangSearch" value="langsearch" />
+          <el-option label="Gubo Search" value="gubo" />
+          <el-option label="TinyFish" value="tinyfish" />
         </el-select>
       </SettingsRow>
 
@@ -68,11 +75,63 @@
           placeholder="tvly-..." clearable />
       </SettingsRow>
 
-      <!-- 提示信息 -->
+      <!-- LangSearch / Gubo Search / TinyFish 的 API Key。
+           与上面三个源同构，用 v-for 渲染：这几个源只是「换个 Key 和域名」，
+           再抄三遍块级模板只会让下一个源的接入成本继续变高。 -->
+      <template v-for="p in EXTRA_PROVIDERS" :key="p.key">
+        <SettingsRow
+          v-if="selectedProvider === p.key"
+          :label="`${p.label} API Key`"
+          control-flex
+        >
+          <template #description>
+            {{ p.desc }}
+            <span class="key-link" @click="p.open()">{{ t('settings.search.getApiKey') }}</span>
+          </template>
+          <el-input v-model="providerKeys[p.key]" type="password" show-password
+            :placeholder="p.placeholder" clearable />
+        </SettingsRow>
+      </template>
+
+      <!-- 高级：自定义接口地址（后端 search 分组 gubo_endpoint / tinyfish_endpoint / langsearch_endpoint）。
+           默认模型页已不再渲染 search 分组，这三个字段若没有入口，改了默认地址也无法被界面覆盖。 -->
+      <template v-for="p in ENDPOINT_FIELDS" :key="p.key">
+        <SettingsRow
+          v-if="selectedProvider === p.provider"
+          :label="p.label"
+          :description="p.desc"
+          control-width="320px"
+        >
+          <el-input v-model="providerEndpoints[p.key]" :placeholder="p.placeholder" clearable />
+        </SettingsRow>
+      </template>
+
+      <!-- 提示信息。
+           注意最后那个 v-else：它兜的是 metaso，所以新增搜索源必须显式加分支，
+           否则选中新源时会显示秘塔的文案（这里之前就会把 360 显示成秘塔）。 -->
       <div class="search-tip">
-        <template v-if="selectedProvider === 'bocha'">{{ t('settings.search.bochaTip') }}</template>
+        <template v-if="selectedProvider === '360'">
+          360 搜索无需 API Key，开箱即用；返回网页结果，适合实时信息（天气、行情、新闻）。
+          调用失败时后端会自动回落到该源，因此把它留在列表里总是安全的。
+        </template>
+        <template v-else-if="selectedProvider === 'bocha'">{{ t('settings.search.bochaTip') }}</template>
         <template v-else-if="selectedProvider === 'tavily'">{{ t('settings.search.tavilyTip') }}</template>
-        <template v-else>{{ t('settings.search.metasoTip') }}</template>
+        <template v-else-if="selectedProvider === 'metaso'">{{ t('settings.search.metasoTip') }}</template>
+        <template v-else-if="selectedProvider === 'langsearch'">
+          LangSearch 网页搜索 API，按官方 web-search 契约调用（Bearer 鉴权，返回 data.webPages.value）。
+          未填写 Key 时该源不可用，后端自动回落 360。
+        </template>
+        <template v-else-if="selectedProvider === 'gubo'">
+          Gubo Search。接口地址可在「联网搜索」分组的高级项里覆盖
+          （<code>gubo_endpoint</code>）：官方文档未随代码固化，若域名或契约不同，
+          改地址即可适配，无需改代码。
+        </template>
+        <template v-else-if="selectedProvider === 'tinyfish'">
+          TinyFish。接口地址可在「联网搜索」分组的高级项里覆盖
+          （<code>tinyfish_endpoint</code>）：官方文档未随代码固化，若域名或契约不同，
+          改地址即可适配，无需改代码。
+        </template>
+        <template v-else>付费源的 Key 未填写或调用失败时，后端会自动回落到 360 免费搜索。</template>
       </div>
     </SettingsCard>
   </div>
@@ -94,18 +153,124 @@ import SettingsRow from './SettingsRow.vue'
 const { notify } = usePopup()
 const { t } = useI18n()
 
-// 当前选中的供应商
-const selectedProvider = ref('bocha')
+// 当前选中的供应商。默认 360：与后端 WebSearchService 的 orElse("360") 兜底对齐，
+// 也与 SearchGlobalSettingProvider 里 provider 的默认值一致，三处口径必须同一个。
+const selectedProvider = ref('360')
+
+/**
+ * 需要 API Key 的付费搜索源。
+ *
+ * 用一份清单驱动「表单字段 / 变更监听 / 读取 / 保存」四处，避免每加一个源就要在
+ * 四个地方各抄一遍（此前 bocha/tavily/metaso 就是这样重复的，漏一处就出现
+ * 「填了 key 存不下去」或「存了读不回来」的静默 bug）。
+ * 值与后端 SearchGlobalSettingProvider 的字段名一一对应。
+ */
+const PAID_PROVIDERS = ['bocha', 'tavily', 'metaso', 'langsearch', 'gubo', 'tinyfish'] as const
+
+/**
+ * endpoint 高级字段：后端 search 分组里 gubo / tinyfish / langsearch 允许覆盖接口地址，
+ * 默认模型页已不再渲染 search 分组，必须在专门搜索设置页提供入口。
+ * key 与后端字段名 gubo_endpoint / tinyfish_endpoint / langsearch_endpoint 一一对应。
+ */
+const ENDPOINT_FIELDS = [
+  {
+    key: 'gubo_endpoint',
+    provider: 'gubo',
+    label: 'Gubo 接口地址',
+    desc: '默认 https://api.gubosearch.com/v1/web-search；契约不同时在此覆盖。',
+    placeholder: 'https://api.gubosearch.com/v1/web-search',
+  },
+  {
+    key: 'tinyfish_endpoint',
+    provider: 'tinyfish',
+    label: 'TinyFish 接口地址',
+    desc: '默认 https://api.tinyfish.ai/v1/web-search；契约不同时在此覆盖。',
+    placeholder: 'https://api.tinyfish.ai/v1/web-search',
+  },
+  {
+    key: 'langsearch_endpoint',
+    provider: 'langsearch',
+    label: 'LangSearch 接口地址',
+    desc: '默认 https://api.langsearch.com/v1/web-search；契约不同时在此覆盖。',
+    placeholder: 'https://api.langsearch.com/v1/web-search',
+  },
+] as const
+
+/**
+ * 后三家源的展示信息。
+ *
+ * 与 PAID_PROVIDERS 分开是因为：上面三个源在模板里已有各自的 i18n 文案与专属行，
+ * 这三家共用同一套 v-for 模板，只需要标签 / 提示 / 官网入口三项差异。
+ */
+const EXTRA_PROVIDERS = [
+  {
+    key: 'langsearch',
+    label: 'LangSearch',
+    desc: 'LangSearch 网页搜索 API，Bearer 鉴权；留空则该源不可用，不影响其他源。',
+    placeholder: 'sk-...',
+    open: () => openInExternalBrowser('https://langsearch.com'),
+  },
+  {
+    key: 'gubo',
+    label: 'Gubo Search',
+    desc: 'Gubo Search；接口地址可用 gubo_endpoint 覆盖。',
+    placeholder: 'gubo-...',
+    open: () => openInExternalBrowser('https://gubosearch.com'),
+  },
+  {
+    key: 'tinyfish',
+    label: 'TinyFish',
+    desc: 'TinyFish；接口地址可用 tinyfish_endpoint 覆盖。',
+    placeholder: 'tf-...',
+    open: () => openInExternalBrowser('https://tinyfish.ai'),
+  },
+]
 
 // 各供应商 API Key 独立存储（切换供应商时不会丢失）
-const providerKeys = reactive({
-  bocha: '',
-  tavily: '',
-  metaso: '',
-})
+const providerKeys = reactive<Record<string, string>>(
+  Object.fromEntries(PAID_PROVIDERS.map((k) => [k, ''])),
+)
+
+// 各供应商自定义接口地址（后端 gubo_endpoint / tinyfish_endpoint / langsearch_endpoint）
+const providerEndpoints = reactive<Record<string, string>>(
+  Object.fromEntries(ENDPOINT_FIELDS.map((e) => [e.key, ''])),
+)
+
+/**
+ * 解析后端存的 API Key 值。
+ *
+ * <p>后端把 {@code {apiKey: "sk-..."}} 对象序列化成字符串 {@code "{apiKey=sk-...}"}
+ * 存入/回读（Java Map.toString），不是 JSON。因此不能直接用 {@code raw.apiKey}，
+ * 得从字符串里把值抠出来；空串/掩码/未知形态都按空处理。</p>
+ *
+ * @param raw 后端回读的裸值（对象、字符串或缺失）
+ * @return 可显示的 key 明文（掩码形态如 sk-*** 时原样返回，便于用户辨认）
+ */
+function parseApiKey(raw: unknown): string {
+  if (!raw) return ''
+  if (typeof raw === 'object' && raw !== null) {
+    const v = (raw as { apiKey?: string }).apiKey
+    return typeof v === 'string' ? v : ''
+  }
+  const s = String(raw).trim()
+  if (!s || s === '{}') return ''
+  // 期望 '{apiKey=sk-xxx}' 或 '{apiKey=}'；健壮起见做宽匹配
+  const m = s.match(/\{apiKey=([^}]*)\}/i)
+  return m ? m[1] : ''
+}
 
 // 原始备份，用于检测变更
 const originalSettings = ref<any>(null)
+
+/** 当前表单快照：provider + 各源 key，用于保存与变更比对（同一份口径，避免两处写歪） */
+const snapshot = () =>
+  JSON.parse(
+    JSON.stringify({
+      provider: selectedProvider.value,
+      ...Object.fromEntries(PAID_PROVIDERS.map((k) => [k, { apiKey: providerKeys[k] || '' }])),
+      ...Object.fromEntries(ENDPOINT_FIELDS.map((e) => [e.key, providerEndpoints[e.key] || ''])),
+    }),
+  )
 
 // 插件状态
 const pluginEnabled = ref(false)
@@ -117,14 +282,21 @@ const debouncedSave = useDebounceFn(async () => {
 }, 500)
 
 // 监听 API Key 变化自动保存
-watch(() => [providerKeys.bocha, providerKeys.tavily, providerKeys.metaso], () => {
-  debouncedSave()
-})
+watch(
+  () => [
+    ...PAID_PROVIDERS.map((k) => providerKeys[k]),
+    ...ENDPOINT_FIELDS.map((e) => providerEndpoints[e.key]),
+  ],
+  () => {
+    debouncedSave()
+  },
+)
 
 // 打开链接
 const openBochaUrl = () => openInExternalBrowser('https://open.bochaai.com')
 const openMetasoUrl = () => openInExternalBrowser('https://metaso.cn/search-api')
 const openTavilyUrl = () => openInExternalBrowser('https://app.tavily.com')
+// LangSearch / Gubo / TinyFish 的官网入口在 EXTRA_PROVIDERS 里随行定义，不再各建一个常量
 
 // 切换供应商即时保存 + 触发插件重载以重新注册工具
 const handleProviderChange = async (val: string) => {
@@ -140,25 +312,29 @@ const handleProviderChange = async (val: string) => {
 // 加载设置
 const loadSettings = async () => {
   try {
+    // fetchGroupSettings 返回 { success, data }：字段在 data 里。早前的实现直接
+    // 读 response.provider，永远拿到 undefined → provider 恒为 360、key 恒空，
+    // endpoint 无入口（曾因默认模型页还渲染 search 分组掩盖过这个错位）。
     const response = await apiService.fetchGroupSettings('search')
-    selectedProvider.value = response.provider || 'bocha'
-    providerKeys.bocha = response.bocha?.apiKey || ''
-    providerKeys.tavily = response.tavily?.apiKey || ''
-    providerKeys.metaso = response.metaso?.apiKey || ''
-    originalSettings.value = JSON.parse(JSON.stringify({
-      provider: selectedProvider.value,
-      bocha: { apiKey: providerKeys.bocha },
-      tavily: { apiKey: providerKeys.tavily },
-      metaso: { apiKey: providerKeys.metaso },
-    }))
+    const data = (response?.data ?? response ?? {}) as Record<string, any>
+    selectedProvider.value = String(data.provider || '360') || '360'
+    for (const k of PAID_PROVIDERS) {
+      providerKeys[k] = parseApiKey(data[k])
+    }
+    for (const e of ENDPOINT_FIELDS) {
+      providerEndpoints[e.key] = typeof data[e.key] === 'string' ? (data[e.key] as string) : ''
+    }
+    originalSettings.value = snapshot()
   } catch (error) {
     console.error('获取搜索设置失败:', error)
-    originalSettings.value = JSON.parse(JSON.stringify({
-      provider: 'bocha',
-      bocha: { apiKey: '' },
-      tavily: { apiKey: '' },
-      metaso: { apiKey: '' },
-    }))
+    selectedProvider.value = '360'
+    for (const k of PAID_PROVIDERS) {
+      providerKeys[k] = ''
+    }
+    for (const e of ENDPOINT_FIELDS) {
+      providerEndpoints[e.key] = ''
+    }
+    originalSettings.value = snapshot()
   }
 
   // 加载插件状态
@@ -178,18 +354,12 @@ const handleSave = async () => {
   try {
     const dataToSave: Record<string, any> = {
       provider: selectedProvider.value,
-      bocha: { apiKey: providerKeys.bocha || '' },
-      tavily: { apiKey: providerKeys.tavily || '' },
-      metaso: { apiKey: providerKeys.metaso || '' },
+      ...Object.fromEntries(PAID_PROVIDERS.map((k) => [k, { apiKey: providerKeys[k] || '' }])),
+      ...Object.fromEntries(ENDPOINT_FIELDS.map((e) => [e.key, providerEndpoints[e.key] || ''])),
     }
 
     await apiService.updateGroupSettings('search', dataToSave)
-    originalSettings.value = JSON.parse(JSON.stringify({
-      provider: selectedProvider.value,
-      bocha: { apiKey: providerKeys.bocha },
-      tavily: { apiKey: providerKeys.tavily },
-      metaso: { apiKey: providerKeys.metaso },
-    }))
+    originalSettings.value = snapshot()
   } catch (error: any) {
     console.error('保存搜索设置失败:', error)
     notify.error(t('common.saveFailed'), error.message || t('common.error.unknown'))

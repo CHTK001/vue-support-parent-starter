@@ -15,6 +15,8 @@ import { storeToRefs } from "pinia";
 import { useRouter } from "vue-router";
 import { useMessageStore } from "@repo/pinia";
 import {getStationMessageAdapter, message} from "@repo/core";
+/** 顶栏动画图标（index.ts 默认导出即 defineAsyncComponent 结果，可直接当组件用） */
+import ReIcon from "../ReIcon";
 
 const props = withDefaults(
   defineProps<{
@@ -174,10 +176,13 @@ async function handleItemClick(msg: {
           :max="99"
           class="re-station-message-badge"
         >
+          <!-- 顶栏消息入口：icons-animated 动画铃铛（hover/focus 播放）。
+               原先为 <el-icon><Bell/> + koi-scale-i 容器缩放；动画图标自带交互动效后
+               不再叠加容器动画，避免「缩放 + 摆铃」两层动作互相打架。 -->
           <div
-            class="re-station-message-trigger hover:bg-[--el-header-icon-hover-bg-color] koi-icon w-36px h-36px rounded-md flex flex-justify-center flex-items-center koi-scale-i"
+            class="re-station-message-trigger hover:bg-[--el-header-icon-hover-bg-color] koi-icon w-36px h-36px rounded-md flex flex-justify-center flex-items-center"
           >
-            <el-icon :size="18"><Bell /></el-icon>
+            <ReIcon name="anim:heroicons:bell" :size="18" />
           </div>
         </el-badge>
       </div>

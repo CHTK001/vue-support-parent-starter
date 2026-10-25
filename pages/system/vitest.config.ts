@@ -27,7 +27,7 @@ export default defineConfig({
      * spec 注册的替身只挂在 6.0.3 那份上，而 packages/core/src/msg.ts 解析到的是
      * 5.9.3 那份，于是 @repo/core 的提示打到了真实的 Element Plus 上。
      *
-     * 哈希差异的来源是 typescript 版本：apps/vue-support-ai-guada 与 pages/ai
+     * 哈希差异的来源是 typescript 版本：apps/vue-support-ai-starter 与 pages/ai
      * 声明 typescript ^6.0.2（解析为 6.0.3），绕过了 pnpm-workspace.yaml 里
      * catalog 的 ^5.7.3（解析为 5.9.3），全仓其余 30 个包走的都是 catalog。
      * 把 typescript 统一回 catalog 属于跨仓的版本决策，且会牵动构建产物，

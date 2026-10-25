@@ -41,6 +41,8 @@ const props = withDefaults(
     activeIcon?: string;
     /** square 布局：非激活态图标名（缺省回退到 icon） */
     inactiveIcon?: string;
+    /** square 布局：内置图标集名（sunmoon / check / star / bell / arrow / anim）；"none" 关闭内置回落 */
+    preset?: string;
     /** radio 布局：「开」的文案 */
     radioOnLabel?: string;
     /** radio 布局：「关」的文案 */
@@ -53,6 +55,7 @@ const props = withDefaults(
     icon: "",
     activeIcon: "",
     inactiveIcon: "",
+    preset: undefined,
     radioOnLabel: "是",
     radioOffLabel: "否",
   },
@@ -113,6 +116,7 @@ watch(
     :icon="icon"
     :active-icon="activeIcon"
     :inactive-icon="inactiveIcon"
+    :preset="preset"
     :radio-on-label="layout === 'radio' ? radioOnLabel : undefined"
     :radio-off-label="layout === 'radio' ? radioOffLabel : undefined"
     v-model="modelValue"

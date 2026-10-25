@@ -1,5 +1,5 @@
 <template>
-  <LDialog v-model="dialogVisible" :title="isEdit ? t('bot.modal.editTitle') : t('bot.modal.createTitle')" width="600px" :close-on-click-modal="false"
+  <ReDialog v-model="dialogVisible" :title="isEdit ? t('bot.modal.editTitle') : t('bot.modal.createTitle')" width="600px" :close-on-click-modal="false"
     @close="handleClose" append-to-body>
     <el-form ref="formRef" :model="formData" :rules="formRules" label-width="120px" class="bot-form"
       :validate-on-rule-change="false">
@@ -10,7 +10,7 @@
           <el-option v-for="platform in botStore.platforms" :key="platform.platform" :label="platform.displayName"
             :value="platform.platform">
             <span>{{ platform.displayName }}</span>
-            <span class="text-gray-400 dark:text-[#6b6d75] text-xs ml-2">{{ platform.description }}</span>
+            <span class="text-gray-400 dark:text-gray-400 text-xs ml-2">{{ platform.description }}</span>
           </el-option>
         </el-select>
         <div class="mt-2">
@@ -35,7 +35,7 @@
             </div>
           </el-option>
         </el-select>
-        <div class="text-xs text-gray-500 dark:text-[#8b8d95] mt-1">
+        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
           {{ t('bot.modal.characterHint') }}
         </div>
       </el-form-item>
@@ -50,7 +50,7 @@
             </div>
           </el-option>
         </el-select>
-        <div class="text-xs text-gray-500 dark:text-[#8b8d95] mt-1">
+        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
           {{ t('bot.modal.modelHint') }}
         </div>
       </el-form-item>
@@ -61,7 +61,7 @@
           <el-option v-for="effort in thinkingEffortOptions" :key="effort" :label="getThinkingEffortLabel(effort)"
             :value="effort" />
         </el-select>
-        <div class="text-xs text-gray-500 dark:text-[#8b8d95] mt-1">
+        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
           {{ t('bot.modal.thinkingHint') }}
         </div>
       </el-form-item>
@@ -160,7 +160,7 @@
         {{ isEdit ? t('bot.modal.save') : t('bot.modal.create') }}
       </el-button>
     </template>
-  </LDialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
@@ -169,7 +169,7 @@ import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import type { FormInstance, FormRules } from 'element-plus'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog';
 import ReNumberInput from '@/components/re/ReNumberInput.vue'
 import { useBotStore } from '@/stores/bot'
 import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'

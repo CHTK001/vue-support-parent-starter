@@ -1027,7 +1027,6 @@ onMounted(() => {
         </div>
       </div>
       <template #footer>
-        <el-button @click="emailDialogVisible = false">关闭</el-button>
         <el-button type="primary" :loading="emailChecking" @click="handleEmailCheck">重新检测</el-button>
       </template>
     </ReDialog>

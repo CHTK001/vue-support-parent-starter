@@ -15,7 +15,6 @@ import "element-plus/theme-chalk/dark/css-vars.css";
 import "leaflet/dist/leaflet.css";
 import { setupCommonDirectives } from "@repo/core";
 import { setupSvgSprite } from "@repo/assets";
-import { installUi } from "@repo/ui";
 import App from "./App.vue";
 import router from "./router";
 
@@ -35,7 +34,6 @@ const GEO_RE_COMPONENTS = [
   "ReLoading",
   "ReDialog",
   "ReDrawer",
-  "ReTabs",
   "ReStat",
   "ReStatCard",
   "ReProgress",
@@ -49,6 +47,7 @@ const GEO_RE_COMPONENTS = [
   "ReSectionHead",
 ];
 
+/** 单页面应用最小化主题安装器：只做 ElementPlus / 图标 / 指令 / SVG sprite */
 async function installSinglePage(app: VueApp): Promise<void> {
   setupSvgSprite();
   app.use(ElementPlus, { locale: zhCn });
@@ -56,7 +55,6 @@ async function installSinglePage(app: VueApp): Promise<void> {
     app.component(key, component);
   }
   setupCommonDirectives(app);
-  await installUi(app, { components: GEO_RE_COMPONENTS });
 }
 
 await createContextApp({
@@ -66,5 +64,9 @@ await createContextApp({
   install: installSinglePage,
 })
   .app(App)
+  // Re* 组件清单交给 @repo/app 的 .ui() 链安装（installUi 由 createContextApp
+  // 在主题安装器之后执行）。本应用不挂 koi（无 app.yaml themeId），ReIcon 等
+  // 不会被 koi 安装器自动注册，所以必须保留原清单中的每一项，不能用 core preset。
+  .ui({ components: GEO_RE_COMPONENTS })
   .use(router)
   .mount("#app");

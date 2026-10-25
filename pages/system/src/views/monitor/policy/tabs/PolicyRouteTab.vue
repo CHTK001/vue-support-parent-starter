@@ -771,7 +771,7 @@ defineExpose({ reload: () => tableRef.value?.reload() });
         <el-form-item :label="t('policy.route.form.action')" required>
           <el-radio-group
             :model-value="rule.action"
-            @update:model-value="(v) => handleActionChange(v as ApiRouteAction)"
+            @update:model-value="(v: string) => handleActionChange(v as ApiRouteAction)"
           >
             <el-radio v-for="item in actions" :key="item.value" :value="item.value">
               {{ item.label }}
@@ -897,7 +897,7 @@ defineExpose({ reload: () => tableRef.value?.reload() });
   margin: 0;
   font-size: 12px;
   line-height: 1.5;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary, var(--el-text-color-secondary));
 }
 
 /* 弹窗底部：删除靠左，保存/取消靠右，中间留空 */
@@ -930,7 +930,7 @@ defineExpose({ reload: () => tableRef.value?.reload() });
 .policy-route-state__note {
   font-size: 12px;
   line-height: 1.5;
-  color: var(--el-text-color-regular);
+  color: var(--text-primary, var(--el-text-color-regular));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -938,7 +938,7 @@ defineExpose({ reload: () => tableRef.value?.reload() });
 }
 .policy-route-unset {
   font-size: 12px;
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary, var(--el-text-color-placeholder));
 }
 /* 「生效」列：开关 + 规则状态文字。   开关只表达规则的 status，文字说明规则本身处于什么状态；
    接口的实际处境由「动作」列的有效状态标签表达，两者不混用。 */
@@ -949,7 +949,7 @@ defineExpose({ reload: () => tableRef.value?.reload() });
 }
 .policy-route-status__text {
   font-size: 12px;
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary, var(--el-text-color-placeholder));
   white-space: nowrap;
 }
 </style>

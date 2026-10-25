@@ -5,11 +5,11 @@
             v-if="show"
             ref="buttonRef"
             class="scroll-to-bottom-btn"
-            :class="{ streaming: isStreaming }"
+            :class="{ streaming: isStreaming, 'has-status': !!status }"
             @click="handleClick"
             type="button"
         >
-            <div class="scroll-to-bottom-btn-content">
+            <span class="scroll-to-bottom-btn__icon">
                 <!-- 向下箭头图标 -->
                 <svg class="scroll-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path 
@@ -20,7 +20,13 @@
                         stroke-linejoin="round"
                     />
                 </svg>
-            </div>
+            </span>
+            <!--
+                当前在做什么（正在运行命令 / 正在压缩 …）。
+                由 ChatPanel 计算后传入：这里只负责展示，判据集中在会话状态一侧，
+                避免同一个「当前步骤」在按钮和别处各算一遍而分叉。
+            -->
+            <span v-if="status" class="scroll-to-bottom-btn__status">{{ status }}</span>
         </button>
     </Transition>
 </template>
@@ -33,6 +39,8 @@ import { useDebounceFn } from '@vueuse/core'
 const props = defineProps<{
     show?: boolean;
     isStreaming?: boolean;
+    /** 当前正在处理的步骤文案（如「正在运行命令 · pwd」「正在压缩」）；空则不显示 */
+    status?: string;
     onClick?: (event: MouseEvent) => void;
 }>()
 
@@ -91,8 +99,10 @@ defineExpose({
 .scroll-to-bottom-btn {
     position: absolute;
     bottom: 140px; /* 输入框上方，留出足够空间 */
-    left: 50%;
-    transform: translateX(-50%);
+    /* 左下角（用户要求 2026-10-24）：原为水平居中悬浮，会与输入框/正文抢中线注意力；
+       挪到左侧后与「回到底部」这一辅助动作的次要层级相符，也给右侧状态区让出位置。 */
+    left: 24px;
+    transform: none;
     width: 34px;
     height: 34px;
     /* 原值 50%（正圆）→ full 档，与 34×34 正方形的圆角胶囊同形 */
@@ -110,6 +120,18 @@ defineExpose({
     outline: none;
 }
 
+/*
+  带状态文案时从正圆变成胶囊：图标 + 「正在运行命令 · pwd」。
+  限宽 + 省略号兜底——命令可能很长，不能让它把按钮拉成横贯整屏的长条。
+*/
+.scroll-to-bottom-btn.has-status {
+    width: auto;
+    max-width: min(60vw, 420px);
+    height: 30px;
+    gap: 6px;
+    padding: 0 12px 0 9px;
+}
+
 /* 键盘焦点环：原来只写了 outline:none 却没给任何替代，键盘用户完全看不到焦点。
    环落在按钮外侧的消息区底色上，12% 主色在浅色/深色底上都偏弱，故给到 45%。 */
 .scroll-to-bottom-btn:focus-visible {
@@ -122,23 +144,34 @@ defineExpose({
 .scroll-to-bottom-btn:hover {
     background-color: var(--el-color-primary-dark-2);
     box-shadow: 0 6px 16px color-mix(in srgb, var(--el-color-primary) 40%, transparent);
-    transform: translateX(-50%) translateY(-2px);
+    transform: translateY(-2px);
 }
 
 /* 点击效果 */
 .scroll-to-bottom-btn:active {
-    transform: translateX(-50%) translateY(0);
+    transform: translateY(0);
     box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-primary) 30%, transparent);
 }
 
-/* 按钮内容 */
-.scroll-to-bottom-btn-content {
+/* 按钮内容（图标容器） */
+.scroll-to-bottom-btn__icon {
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 100%;
-    height: 100%;
+    flex-shrink: 0;
+}
+
+/* 状态文案：等宽数字便于秒数/文件名不跳动，超长省略 */
+.scroll-to-bottom-btn__status {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--el-color-white);
 }
 
 /* 滚动图标 */
@@ -158,14 +191,13 @@ defineExpose({
 @keyframes breathing {
     0%, 100% {
         opacity: 0.6;
-        /* 保持居中的同时缩放 */
-        transform: translateX(-50%) scale(0.95);
+        /* 缩放不再需要补 translateX(-50%)：按钮已改为左对齐（left 定位） */
+        transform: scale(0.95);
         box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-primary) 20%, transparent);
     }
     50% {
         opacity: 1;
-        /* 保持居中的同时缩放 */
-        transform: translateX(-50%) scale(1.05);
+        transform: scale(1.05);
         box-shadow: 0 6px 16px color-mix(in srgb, var(--el-color-primary) 50%, transparent);
     }
 }

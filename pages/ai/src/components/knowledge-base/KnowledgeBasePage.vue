@@ -1,8 +1,9 @@
 <template>
-  <!-- kb-refactor：知识库编辑部设计层作用域（styles/kb-refactor.css）。
+  <!-- kb：知识库设计系统作用域（styles/kb-refactor.css）。
+       设计方向「档案台 Ledger + 流水线 Pipeline」：三栏常驻 + 命令条 + 处理过程可见。
        data-kb-ask 由「设置 → 显示 → 右侧问答栏宽度」驱动（narrow / full）。 -->
   <div
-    class="kb-refactor h-full w-full flex flex-col min-h-0"
+    class="kb h-full w-full flex flex-col min-h-0" data-page="kb-detail"
     :data-kb-ask="askWidth"
   >
     <PageHeader :title="t('knowledge.page.title')" />
@@ -51,484 +52,523 @@
     />
 
     <!-- 视图模式：知识库详情（非 list 即详情） -->
-    <div v-else class="flex-1 flex flex-col overflow-hidden">
-      <!-- 详情页头：左 返回（图标钮）+ 标题/副标题，右 图标动作组。
-           全站图标按钮统一「无底色 + 悬浮提示」形态（.kb-btn），不再出现文字按钮 -->
-      <div class="shrink-0 kb-detail__header">
-        <ReSquareButton layout="square" class="kb-btn" :icon="ArrowLeft24Filled" tip="返回知识库列表" @click="backToList" />
-        <div class="min-w-0 kb-detail__titlebox">
-          <h1 class="kb-detail__title">{{ currentKB?.name }}</h1>
-          <p class="kb-detail__subtitle">
-            文档 {{ fmtCount(countOf(currentKB?.id || '', 'file_count')) }} 篇 ·
-            实体 {{ fmtCount(countOf(currentKB?.id || '', 'entity_count')) }} ·
-            关系 {{ fmtCount(countOf(currentKB?.id || '', 'relation_count')) }}
-          </p>
-        </div>
-        <div class="flex-1" />
-        <div class="kb-detail__actions">
-          <ReSquareButton layout="square" class="kb-btn" :icon="Refresh" tip="刷新"
-            :loading="detailRefreshing" @click="refreshDetail" />
-          <ReSquareButton layout="square" class="kb-btn" type="primary" :icon="Setting" tip="设置"
-            :disabled="!canEditCurrent" @click="handleMenuAction('settings')" />
-          <ReSquareButton layout="square" class="kb-btn" type="danger" :icon="Delete" tip="删除知识库"
-            :disabled="!canEditCurrent" @click="handleDeleteFromDetail" />
+    <!-- ================= 知识库详情：档案台三栏骨架 =================
+         左「库目录 + 文档」/ 中「当前视图」/ 右「问答」常驻，不换页。
+         data-kb-ask 仍由「设置 → 显示 → 右侧问答栏宽度」驱动。 -->
+    <div v-else class="flex-1 flex flex-col overflow-hidden min-h-0">
+      <!-- 顶栏：命令条（签名元素）+ 状态胶囊 + 动作组 -->
+      <div class="kb-bar">
+        <button type="button" class="kb-cmd" @click="openCommand">
+          <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" style="flex-shrink:0">
+            <circle cx="6.8" cy="6.8" r="4.6" fill="none" stroke="currentColor" stroke-width="1.5" />
+            <path d="M10.4 10.4 14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+          <span class="kb-cmd__text">搜索文档、实体、问答记录</span>
+          <kbd class="kb-cmd__kbd">Ctrl K</kbd>
+        </button>
+
+        <div class="kb-bar__right">
+          <span class="kb-chip kb-chip--ok"><b>{{ filesForFilter.length }}</b> 文档</span>
+          <span v-if="activeFiles.filter(f => f.processingStatus === 'failed').length" class="kb-chip kb-chip--err">
+            <b>{{ activeFiles.filter(f => f.processingStatus === 'failed').length }}</b> 失败
+          </span>
+          <el-tooltip content="刷新" placement="bottom" :show-after="200">
+            <ReSquareButton layout="square" class="kb-btn" :icon="Refresh" :loading="detailRefreshing"
+              @click="refreshDetail" />
+          </el-tooltip>
+          <el-tooltip content="设置" placement="bottom" :show-after="200">
+            <ReSquareButton layout="square" class="kb-btn" type="primary" :icon="Setting"
+              :disabled="!canEditCurrent" @click="handleMenuAction('settings')" />
+          </el-tooltip>
+          <el-tooltip content="删除知识库" placement="bottom" :show-after="200">
+            <ReSquareButton layout="square" class="kb-btn" type="danger" :icon="Delete"
+              :disabled="!canEditCurrent" @click="handleDeleteFromDetail" />
+          </el-tooltip>
         </div>
       </div>
-      <div class="flex-1 overflow-auto min-h-0 flex flex-col" @scroll="handleScroll">
-        <div class="w-full kb-detail__body">
-          <!-- 文件列表 Tab：左「文档」+ 右「智能问答」双栏 -->
-          <KBMenu
-            :kb-name="currentKB?.name"
-            :active="activeTab"
-            @select="handleMenuSelect"
-            @action="handleMenuAction"
-            @back="backToList"
-          />
 
-          <div v-show="activeTab === 'overview'" class="kb-pane kb-pane--scroll">
-            <!-- 统计卡 -->
-            <div class="kb-stats kb-overview__stats">
-              <div class="kb-stat re-surface re-surface--dense">
-                <el-icon :size="26" class="kb-stat__icon"><Document /></el-icon>
-                <div class="kb-stat__body">
-                  <div class="kb-stat__value">{{ fmtCount(countOf(currentKB?.id || '', 'file_count')) }}</div>
-                  <div class="kb-stat__label">文档总量</div>
-                </div>
-              </div>
-              <div class="kb-stat re-surface re-surface--dense">
-                <el-icon :size="26" class="kb-stat__icon"><Share /></el-icon>
-                <div class="kb-stat__body">
-                  <div class="kb-stat__value">{{ fmtCount(countOf(currentKB?.id || '', 'entity_count')) }}</div>
-                  <div class="kb-stat__label">实体节点</div>
-                </div>
-              </div>
-              <div class="kb-stat re-surface re-surface--dense">
-                <el-icon :size="26" class="kb-stat__icon"><Connection /></el-icon>
-                <div class="kb-stat__body">
-                  <div class="kb-stat__value">{{ fmtCount(countOf(currentKB?.id || '', 'relation_count')) }}</div>
-                  <div class="kb-stat__label">关系连线</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="kb-ov-grid">
-              <!-- 实体类型分布 -->
-              <section class="re-surface re-surface--dense kb-ov-card">
-                <div class="flex items-center justify-between gap-2">
-                  <h3 class="kb-ov__title">实体类型分布</h3>
-                  <ReTag size="small">{{ fmtCount(graphView.entityCount) }} 个实体</ReTag>
-                </div>
-                <div v-if="entityTypeStats.length > 0" class="flex flex-col gap-2.5">
-                  <div v-for="s in entityTypeStats" :key="s.type" class="kb-ov__bar">
-                    <span class="kb-ov__label">{{ s.label }}</span>
-                    <span class="kb-ov__track">
-                      <i class="kb-ov__fill" :style="{ width: barWidth(s.count, entityTypeStats[0].count), background: s.color }" />
-                    </span>
-                    <span class="kb-ov__count">{{ s.count }}</span>
-                  </div>
-                </div>
-                <ReEmpty v-else text="暂无实体，上传文档或生成图谱后可见" />
-              </section>
-
-              <!-- 关系类型分布 -->
-              <section class="re-surface re-surface--dense kb-ov-card">
-                <div class="flex items-center justify-between gap-2">
-                  <h3 class="kb-ov__title">关系类型分布</h3>
-                  <ReTag size="small">{{ fmtCount(graphView.relationCount) }} 条关系</ReTag>
-                </div>
-                <div v-if="relationTypeStats.length > 0" class="flex flex-col gap-2.5">
-                  <div v-for="s in relationTypeStats" :key="s.type" class="kb-ov__bar">
-                    <span class="kb-ov__label">{{ s.type }}</span>
-                    <span class="kb-ov__track">
-                      <i class="kb-ov__fill" :style="{ width: barWidth(s.count, relationTypeStats[0].count) }" />
-                    </span>
-                    <span class="kb-ov__count">{{ s.count }}</span>
-                  </div>
-                </div>
-                <ReEmpty v-else text="暂无关系，点「知识图谱 → 生成图谱」抽取" />
-              </section>
-
-              <!-- 关联最多的实体 -->
-              <section class="re-surface re-surface--dense kb-ov-card">
-                <h3 class="kb-ov__title">关联最多的实体</h3>
-                <ul v-if="topEntities.length > 0" class="kb-ov__list">
-                  <li v-for="(e, i) in topEntities" :key="e.id" class="kb-ov__row" @click="openEntityInGraph(e.name)">
-                    <span class="kb-ov__rank" :class="{ 'is-top': i < 3 }">{{ i + 1 }}</span>
-                    <span class="kb-ov__name truncate">{{ e.name }}</span>
-                    <el-tag size="small" :type="entityTagType(e.type)">{{ entityTypeLabel(e.type) }}</el-tag>
-                    <span class="kb-ov__degree">{{ e.degree }} 关系</span>
-                  </li>
-                </ul>
-                <ReEmpty v-else text="暂无实体" />
-              </section>
-
-              <!-- 快捷操作：图标 + 名称 + 说明的可点击行。
-                   之前只有一排纯图标方块，鼠标不悬停时完全看不出功能，
-                   且卡片内容过少、与相邻卡等高时内部大片留白。 -->
-              <section class="re-surface re-surface--dense kb-ov-card">
-                <h3 class="kb-ov__title">快捷操作</h3>
-                <ul class="kb-ov__acts">
-                  <li v-for="a in quickActions" :key="a.tab" class="kb-ov__act" @click="handleMenuSelect(a.tab)">
-                    <span class="kb-ov__act-icon" :class="{ 'is-primary': a.tab === 'files' }">
-                      <el-icon :size="16"><component :is="a.icon" /></el-icon>
-                    </span>
-                    <span class="kb-ov__act-text">
-                      <b>{{ a.label }}</b>
-                      <i>{{ a.desc }}</i>
-                    </span>
-                  </li>
-                </ul>
-                <p class="kb-ov__hint">
-                  统计来自当前知识库的索引与图谱抽取结果；上传文档或重新生成图谱后会同步更新。
-                </p>
-              </section>
-            </div>
+      <!-- 三栏 -->
+      <div class="kb-cols" data-ask="on">
+        <!-- ============ 左栏：库目录 + 文档 + 视图入口 ============ -->
+        <aside class="kb-nav">
+          <div class="kb-nav__group">
+            <h2 class="kb-nav__title">知识库</h2>
+            <button
+              v-for="k in store.knowledgeBases"
+              :key="k.id"
+              type="button"
+              class="kb-nav__kb"
+              :class="{ 'is-on': k.id === currentKB?.id, 'is-off': !k.isActive }"
+              @click="handleOverviewOpen(k)"
+            >
+              <span class="kb-nav__kb-dot" />
+              <span class="kb-nav__kb-name">{{ k.name }}</span>
+              <span v-if="!k.isActive" class="kb-nav__kb-off">停用</span>
+            </button>
+            <ReButton link type="primary" size="small" class="!mt-1 !justify-start" @click="backToList">
+              ← 返回列表
+            </ReButton>
           </div>
 
-          <div v-show="activeTab === 'files'" class="kb-split">
-            <!-- 左栏：文档 -->
-            <section class="kb-split__docs">
-              <div class="kb-split__head">
-                <div class="kb-split__title">
-                  <h2>文档</h2>
-                  <el-tag effect="plain" round size="small">{{ filesForFilter.length }} 篇</el-tag>
-                  <span v-if="currentKB?.name" class="kb-split__sub" :title="currentKB?.name">{{ currentKB?.name }}</span>
+          <!-- 视图入口（原 KBMenu 的 7 个平级 Tab → 归并为 4 个视图 + 2 个管理） -->
+          <div class="kb-nav__group">
+            <h2 class="kb-nav__title">视图</h2>
+            <button
+              v-for="v in navViews"
+              :key="v.key"
+              type="button"
+              class="kb-nav__kb"
+              :class="{ 'is-on': activeTab === v.key }"
+              @click="handleMenuSelect(v.key)"
+            >
+              <el-icon :size="13"><component :is="v.icon" /></el-icon>
+              <span class="kb-nav__kb-name">{{ v.label }}</span>
+            </button>
+          </div>
+
+          <!-- 文档快速列表（仅文档视图显示） -->
+          <div v-if="activeTab === 'files'" class="kb-nav__group kb-nav__group--grow">
+            <h2 class="kb-nav__title">文档<em>{{ filesForFilter.length }}</em></h2>
+            <button
+              v-for="f in activeFiles.slice(0, 60)"
+              :key="f.id"
+              type="button"
+              class="kb-nav__doc"
+              :class="{ 'is-on': selectedDocId === f.id }"
+              @click="selectedDocId = f.id"
+            >
+              <span class="kb-nav__dot" :data-tone="fileTone(f.processingStatus)" />
+              <span class="kb-nav__doc-name">{{ f.displayName || f.fileName }}</span>
+              <span class="kb-nav__doc-hint" :data-tone="fileTone(f.processingStatus)">
+                {{ fileStatusLabel(f.processingStatus) }}
+              </span>
+            </button>
+          </div>
+
+          <div class="kb-nav__group">
+            <h2 class="kb-nav__title">图谱</h2>
+            <p class="kb-nav__foot">
+              {{ fmtCount(graphView.entityCount) }} 实体 · {{ fmtCount(graphView.relationCount) }} 关系
+            </p>
+          </div>
+        </aside>
+
+        <!-- ============ 中栏：当前视图 ============ -->
+        <main class="kb-main" @scroll="handleScroll">
+          <!-- ---- 文档视图：状态分栏 + 文件树（问答并入右栏） ---- -->
+          <template v-if="activeTab === 'files'">
+            <div class="kb-docview__list">
+              <div class="kb-docview__head">
+                <div class="kb-filters">
+                  <button
+                    v-for="f in fileStatusFilters"
+                    :key="f.key"
+                    type="button"
+                    class="kb-filter"
+                    :class="{ 'is-on': fileStatusFilter === f.key }"
+                    @click="fileStatusFilter = f.key"
+                  >
+                    <span>{{ f.label }}</span>
+                    <i class="kb-filter__n">{{ f.count }}</i>
+                  </button>
                 </div>
-                <!-- 上传入口（仅 owner；他人公开库只读）：纯图标方形按钮组 + 悬浮提示 -->
+                <div class="kb-toolbar__grow" />
                 <KBFileUploader v-if="canEditCurrent" :kb-id="store.activeKnowledgeBaseId!"
                   :current-folder-path="getCurrentFolderPath()" :get-current-files="getCurrentFiles"
                   @uploaded="handleUploadComplete" @show-upload-task="showUploadTaskModal = true"
                   @folder-created="handleFolderCreated" />
               </div>
 
-              <div v-if="!canEditCurrent" class="kb-split__readonly">
+              <div v-if="!canEditCurrent" class="kb-readonly" style="margin: 0 12px 8px">
                 {{ t('knowledge.page.readonlyHint') }}
               </div>
 
-              <!-- 状态分栏：全部 / 已索引 / 解析中 / 失败 -->
-              <div class="kb-split__filters">
-                <button
-                  v-for="f in fileStatusFilters"
-                  :key="f.key"
-                  type="button"
-                  class="kb-split__filter"
-                  :class="{ 'is-active': fileStatusFilter === f.key }"
-                  @click="fileStatusFilter = f.key"
-                >
-                  <span>{{ f.label }}</span>
-                  <i class="kb-split__filter-count">{{ f.count }}</i>
-                </button>
-              </div>
-
-              <!-- 文件列表内容区 -->
-              <div class="kb-split__tree">
+              <div class="kb-docview__tree">
                 <KBFileTree ref="fileTreeRef" :kb-id="store.activeKnowledgeBaseId!" :readonly="!canEditCurrent"
                   :status-filter="fileStatusFilter"
                   @view="handleViewFile" @retry="handleRetryFile" @delete="handleDeleteFile"
                   @chunks="handleViewChunks"
                   @folder-change="handleFolderChange" @files-loaded="handleFilesLoaded" />
               </div>
-            </section>
+            </div>
+          </template>
 
-            <!-- 右栏：智能问答 -->
-            <section class="kb-split__ask">
-              <KBAskPanel
-                :kb-id="currentKB?.id || ''"
-                :kb-name="currentKB?.name"
-                :graph-nodes="graphNodes"
-                :graph-edges="graphEdges"
-                @view-graph="handleMenuSelect('graph')"
-              />
-            </section>
-          </div>
+          <!-- ---- 概览视图：统计 + 流水线状态带 ---- -->
+          <template v-else-if="activeTab === 'overview'">
+            <p class="kb-path">{{ currentKB?.name }}</p>
+            <h1 class="kb-title">概览</h1>
+            <p class="kb-text" style="margin-top: 6px">{{ currentKB?.description || '暂无描述' }}</p>
 
-          <!-- 搜索 Tab -->
-          <div v-show="activeTab === 'search'" class="kb-pane">
-            <KBSearchPanel :knowledge-bases="store.knowledgeBases" :default-kb-id="store.activeKnowledgeBaseId"
-              @result-click="handleSearchResultClick" />
-          </div>
-
-          <!-- 智能问答 Tab -->
-          <div v-show="activeTab === 'ask'" class="kb-pane">
-            <section class="kb-ask-standalone">
-              <KBAskPanel
-                :kb-id="currentKB?.id || ''"
-                :kb-name="currentKB?.name"
-                :graph-nodes="graphNodes"
-                :graph-edges="graphEdges"
-                @view-graph="handleMenuSelect('graph')"
-              />
-            </section>
-          </div>
-
-          <!-- 实体管理：工具条（搜索 + 图标动作组）+ 卡片表格 + 客户端分页 -->
-          <div v-show="activeTab === 'entities'" class="kb-pane">
-            <div class="kb-view__toolbar">
-              <el-input v-model="graphEntityKeyword" :prefix-icon="Search" placeholder="按名称过滤" clearable
-                class="kb-view__search" />
-              <div class="flex-1" />
-              <div class="kb-actions">
-                <ReSquareButton layout="square" class="kb-btn" :icon="Refresh" tip="刷新" :loading="graphLoading" @click="loadGraph" />
-                <ReSquareButton layout="square" class="kb-btn" type="primary" :icon="Plus" tip="新增实体" @click="openEntityForm()" />
-                <ReSquareButton layout="square" class="kb-btn" type="danger" :icon="Delete"
-                  :tip="selectedEntityUids.length ? `批量删除(${selectedEntityUids.length})` : '批量删除'"
-                  :disabled="selectedEntityUids.length === 0" @click="handleBatchDeleteEntities" />
+            <!-- 流水线：四道工序（入库 → 切分 → 向量化 → 抽取）状态带 -->
+            <div class="kb-stages">
+              <div v-for="(s, i) in pipelineStages" :key="s.key" class="kb-stage" :class="{ 'is-on': s.running }">
+                <span class="kb-stage__label">
+                  <span class="kb-stage__n">{{ String(i + 1).padStart(2, '0') }}</span>{{ s.label }}
+                </span>
+                <span class="kb-stage__v" :data-tone="s.tone">{{ s.value }}</span>
               </div>
             </div>
-            <div class="panel-card">
-              <!-- 实体表：裸 el-table → ReTable。type="selection" 删列改 show-selection；
-                   engine="element" 沿用原 el-table DOM（:deep 样式与 e2e 选择器不失效）；
-                   原表无 border → settings.border=false；分页仍由下方 el-pagination 自管；
-                   clearSelection() 改调 ReTable 暴露的 clearAllSelection()。 -->
-              <ReTable
-                ref="entityTableRef"
-                :data="pagedGraphEntities"
-                :columns="entityColumns"
-                :loading="graphLoading"
-                engine="element"
-                :pagination="false"
-                :toolbar="false"
-                :layout-table="{ minHeight: 0 }"
-                :settings="{ border: false }"
-                :show-selection="true"
-                stripe
-                class="flat-table"
-                @selection-change="onEntitySelection"
-              >
-                <template #col-name="{ row }">
-                  <div class="flex items-center gap-2">
-                    <img v-if="row.image" :src="row.image" alt="" class="w-6 h-6 rounded object-cover border border-[var(--rm-border)] shrink-0"
-                      @error="($event.target as HTMLImageElement).style.display = 'none'" />
-                    <span>{{ row.text }}</span>
-                  </div>
-                </template>
-                <template #col-type="{ row }">
-                  <el-tag size="small" :type="entityTagType(row.type)">{{ entityTypeLabel(row.type) }}</el-tag>
-                </template>
-                <template #col-actions="{ row }">
-                  <ReSquareButton layout="square" class="kb-btn" size="small" type="primary" :icon="Edit" tip="编辑" @click="openEntityForm(row)" />
-                  <ReSquareButton layout="square" class="kb-btn" size="small" type="danger" :icon="Delete" tip="删除" @click="handleDeleteEntity(row)" />
-                </template>
-              </ReTable>
-              <div class="pagination-wrapper">
-                <el-pagination
-                  v-model:current-page="entityPage"
-                  v-model:page-size="entityPageSize"
-                  :page-sizes="[10, 20, 50]"
-                  :total="filteredGraphEntities.length"
-                  layout="total, sizes, prev, pager, next"
-                />
-              </div>
-            </div>
-          </div>
 
-          <!-- 关系管理：工具条（搜索 + 图标动作组）+ 卡片表格 + 客户端分页 -->
-          <div v-show="activeTab === 'relations'" class="kb-pane">
-            <div class="kb-view__toolbar">
-              <el-input v-model="graphRelationKeyword" :prefix-icon="Search" placeholder="按实体名/关系类型过滤" clearable
-                class="kb-view__search" />
-              <div class="flex-1" />
-              <div class="kb-actions">
-                <ReSquareButton layout="square" class="kb-btn" :icon="Refresh" tip="刷新" :loading="graphLoading" @click="loadGraph" />
-                <ReSquareButton layout="square" class="kb-btn" type="primary" :icon="Plus" tip="新增关系" @click="openRelationForm()" />
-                <ReSquareButton layout="square" class="kb-btn" type="danger" :icon="Delete"
-                  :tip="selectedRelationUids.length ? `批量删除(${selectedRelationUids.length})` : '批量删除'"
-                  :disabled="selectedRelationUids.length === 0" @click="handleBatchDeleteRelations" />
+            <!-- 统计四格 -->
+            <div class="kb-statrow">
+              <div class="kb-statrow__cell">
+                <span class="kb-statrow__v">{{ fmtCount(countOf(currentKB?.id || '', 'file_count')) }}</span>
+                <span class="kb-statrow__k">文档</span>
+              </div>
+              <div class="kb-statrow__cell">
+                <span class="kb-statrow__v">{{ fmtNum(totalChunks) }}</span>
+                <span class="kb-statrow__k">切块</span>
+              </div>
+              <div class="kb-statrow__cell">
+                <span class="kb-statrow__v">{{ fmtNum(totalTokens) }}</span>
+                <span class="kb-statrow__k">Tokens</span>
+              </div>
+              <div class="kb-statrow__cell">
+                <span class="kb-statrow__v">{{ fmtCount(graphView.entityCount) }}</span>
+                <span class="kb-statrow__k">实体</span>
               </div>
             </div>
-            <div class="panel-card">
-              <!-- 关系表：同实体表换算（无 border、type="selection" 删列改 show-selection、v-loading→:loading）。 -->
-              <ReTable
-                ref="relationTableRef"
-                :data="pagedGraphRelations"
-                :columns="relationColumns"
-                :loading="graphLoading"
-                engine="element"
-                :pagination="false"
-                :toolbar="false"
-                :layout-table="{ minHeight: 0 }"
-                :settings="{ border: false }"
-                :show-selection="true"
-                stripe
-                class="flat-table"
-                @selection-change="onRelationSelection"
-              >
-                <template #col-from="{ row }">
-                  <div class="flex items-center gap-2">
-                    <img v-if="nodeImageById(row.from)" :src="nodeImageById(row.from)" alt=""
-                      class="w-6 h-6 rounded object-cover border border-[var(--rm-border)] shrink-0"
-                      @error="($event.target as HTMLImageElement).style.display = 'none'" />
-                    <span class="truncate">{{ nodeNameById(row.from) }}</span>
-                  </div>
-                </template>
-                <template #col-to="{ row }">
-                  <div class="flex items-center gap-2">
-                    <img v-if="nodeImageById(row.to)" :src="nodeImageById(row.to)" alt=""
-                      class="w-6 h-6 rounded object-cover border border-[var(--rm-border)] shrink-0"
-                      @error="($event.target as HTMLImageElement).style.display = 'none'" />
-                    <span class="truncate">{{ nodeNameById(row.to) }}</span>
-                  </div>
-                </template>
-                <template #col-text="{ row }">
-                  <el-tag size="small" :type="relationTagType(row.text)">{{ row.text }}</el-tag>
-                </template>
-                <template #col-actions="{ row }">
-                  <ReSquareButton layout="square" class="kb-btn" size="small" type="danger" :icon="Delete" tip="删除" @click="handleDeleteRelation(row)" />
-                </template>
-              </ReTable>
-              <div class="pagination-wrapper">
-                <el-pagination
-                  v-model:current-page="relationPage"
-                  v-model:page-size="relationPageSize"
-                  :page-sizes="[10, 20, 50]"
-                  :total="filteredGraphRelations.length"
-                  layout="total, sizes, prev, pager, next"
-                />
-              </div>
-            </div>
-          </div>
 
-          <div v-show="activeTab === 'graph'" class="kb-pane kb-pane--graph">
-            <div class="kb-graph__bar">
-              <span class="text-sm kb-graph__count">
-                <template v-if="isGraphFiltered">
-                  实体 {{ graphNodes.length }} / {{ graphView.entityCount }} ·
-                  关系 {{ graphEdges.length }} / {{ graphView.relationCount }}
-                </template>
-                <template v-else>
-                  实体 {{ graphView.entityCount }} · 关系 {{ graphView.relationCount }}
-                </template>
+            <h2 class="kb-h2">切块配方</h2>
+            <p class="kb-text">
+              上限 {{ currentKB?.chunkMaxSize ?? '—' }} 字 · 下限 {{ currentKB?.chunkMinSize ?? '—' }} 字 ·
+              相邻块重叠 {{ currentKB?.chunkOverlapSize ?? '—' }} 字
+              <template v-if="currentKB?.sourceUrl">
+                · 采集来源 {{ currentKB.sourceUrl }}（≤{{ currentKB.sourceMaxPages }} 页）
+              </template>
+            </p>
+
+            <h2 class="kb-h2">实体类型分布 <em>{{ fmtCount(graphView.entityCount) }}</em></h2>
+            <div v-if="entityTypeStats.length > 0" class="kb-ents">
+              <span v-for="s in entityTypeStats" :key="s.type" class="kb-ent">
+                {{ s.label }}<i>{{ s.count }}</i>
               </span>
-              <!-- 图例说明与手工补录提示收敛进悬浮气泡，不再占用两行版面 -->
-              <el-tooltip placement="bottom-start" effect="light" :show-after="150">
-                <template #content>
-                  <div class="leading-relaxed max-w-[320px]">
-                    节点大小按关系条数缩放（{{ NODE_MIN_SIZE }}–{{ NODE_MAX_SIZE }}px，每条关系 +{{ NODE_SIZE_STEP }}px），点击节点可看关系明细。
-                  </div>
-                  <div class="leading-relaxed max-w-[320px] mt-1">
-                    画布直接用鼠标滚轮 / 触控板缩放；手工补录的内容独立于知识点，删除知识点不会连带删掉。
-                  </div>
-                </template>
-                <el-icon class="kb-graph__help"><QuestionFilled /></el-icon>
-              </el-tooltip>
+            </div>
+            <ReEmpty v-else text="暂无实体，上传文档或生成图谱后可见" />
 
-              <span v-if="graphError" class="text-sm text-[var(--rm-danger)]">{{ graphError }}</span>
-              <span v-else-if="!graphLoading && graphView.nodes.length === 0" class="text-sm kb-graph__hint">
-                <template v-if="graphView.placeholder">
-                  暂无图谱数据（尚未抽取过关系）。点「生成图谱」让 AI 从现有知识点里抽一遍。
-                </template>
-                <template v-else>
-                  当前范围确实没有关系。可点「重新生成」按最新原文再抽一次。
-                </template>
-              </span>
-              <!-- 节点过多时的引导：实测 248 节点无论把 kr/kg/碰撞半径调到哪，
-                   重叠对数都只在噪声范围内波动（甚至关掉防重叠反而更少）——
-                   力参数救不了，唯一有效的是减少节点数，所以在这里给出明确动作。
-                   筛选一旦生效提示即消失，不长期占版面。 -->
-              <span v-else-if="graphTooDense" class="text-sm kb-graph__hint">
-                节点较多，按<ReButton type="primary" link class="kb-graph__hint-act"
-                  @click="focusGraphTypeFilter">「实体类型」</ReButton>筛选后结构更清晰。
-              </span>
+            <h2 class="kb-h2">关联最多的实体</h2>
+            <ul v-if="topEntities.length > 0" style="margin: 0; padding: 0; list-style: none">
+              <li v-for="e in topEntities.slice(0, 8)" :key="e.id" class="kb-ent" style="margin: 0 4px 4px 0; cursor: pointer"
+                @click="openEntityInGraph(e.name)">
+                {{ e.name }}<i>{{ entityTypeLabel(e.type) }} · {{ e.degree }}</i>
+              </li>
+            </ul>
+            <ReEmpty v-else text="暂无实体" />
+          </template>
 
-              <div class="flex-1" />
+          <!-- ---- 搜索视图 ---- -->
+          <template v-else-if="activeTab === 'search'">
+            <div class="kb-view">
+              <KBSearchPanel :knowledge-bases="store.knowledgeBases" :default-kb-id="store.activeKnowledgeBaseId"
+                @result-click="handleSearchResultClick" />
+            </div>
+          </template>
 
-              <el-input v-model="graphKeyword" :prefix-icon="Search" placeholder="按实体名过滤" clearable
-                class="kb-view__search" />
-              <!-- 实体类型过滤：概览页统计了类型分布却无处可用，这里接上多选 -->
-              <el-select v-model="graphTypeFilter" ref="graphTypeFilterRef" multiple collapse-tags collapse-tags-tooltip
-                :max-collapse-tags="2" clearable placeholder="实体类型" class="kb-view__types">
-                <el-option v-for="s in entityTypeStats" :key="s.type" :label="`${s.label} (${s.count})`"
-                  :value="s.type">
-                  <span class="flex items-center gap-2">
-                    <i class="kb-dot" :style="{ background: s.color }" />
-                    <span>{{ s.label }}</span>
-                    <span class="kb-dot__n">{{ s.count }}</span>
-                  </span>
-                </el-option>
-              </el-select>
-              <div class="kb-actions">
-                <ReSquareButton layout="square" class="kb-btn" :icon="Refresh" tip="刷新" :loading="graphLoading" @click="loadGraph" />
-                <!-- 占位图时主推「生成」，有数据时也允许重新抽取（原文改了关系可用） -->
-                <ReSquareButton layout="square" v-if="ragReady" class="kb-btn" type="primary" :icon="Refresh"
-                  :tip="graphView.placeholder ? '生成图谱' : '重新生成'"
-                  :loading="graphGenerating" @click="handleGenerateGraph" />
-                <ReSquareButton layout="square" v-if="graphView.nodes.length > 0" class="kb-btn" :icon="Grid" tip="管理实体" @click="goManage('entity')" />
-                <ReSquareButton layout="square" v-if="graphView.nodes.length > 0" class="kb-btn" :icon="Connection" tip="管理关系" @click="goManage('relation')" />
+          <!-- ---- 智能问答：问答本身在右栏常驻，中栏给「怎么问、问了什么」的线索 ---- -->
+          <template v-else-if="activeTab === 'ask'">
+            <p class="kb-path">{{ currentKB?.name }}</p>
+            <h1 class="kb-title">智能问答</h1>
+            <p class="kb-text" style="margin-top: 6px">
+              问答面板固定在右侧，可以边翻阅文档、图谱边追问。答案里的引用可点开原文定位到具体切块。
+            </p>
+
+            <h2 class="kb-h2">可问范围</h2>
+            <div class="kb-statrow">
+              <div class="kb-statrow__cell">
+                <span class="kb-statrow__v">{{ filesForFilter.length }}</span>
+                <span class="kb-statrow__k">可检索文档</span>
+              </div>
+              <div class="kb-statrow__cell">
+                <span class="kb-statrow__v">{{ fmtNum(totalChunks) }}</span>
+                <span class="kb-statrow__k">已索引切块</span>
+              </div>
+              <div class="kb-statrow__cell">
+                <span class="kb-statrow__v">{{ fmtNum(totalTokens) }}</span>
+                <span class="kb-statrow__k">Tokens</span>
+              </div>
+              <div class="kb-statrow__cell">
+                <span class="kb-statrow__v">{{ fmtCount(graphView.entityCount) }}</span>
+                <span class="kb-statrow__k">可关联实体</span>
               </div>
             </div>
 
-            <div class="kb-graph__body">
-              <div v-loading="graphLoading" class="kb-graph__canvas kb-graph__stage">
-                <!-- toolbar=true：组件自带地图式工具栏（布局/分组/高亮/悬停聚焦/小地图），
-                     toolbar-items 只保留图谱需要的按钮；页面右上角仍负责刷新/生成/管理实体等动作 -->
-                <ReRelationGraph v-if="graphEverMounted || (graphNodes.length > 0 && activeTab === 'graph')" v-show="activeTab === 'graph'" ref="graphCompRef" :nodes="graphNodes" :edges="graphEdges"
-                  toolbar toolbar-position="top-left" :toolbar-items="graphToolbarItems" show-groups highlight="adjacent"
-                  details lazy-details :load-node-detail="loadGraphEntityDetail" :load-neighbors="loadGraphNeighbors"
-                  :menu-items="graphMenuItems" :load-settings="loadGraphLayoutSettings" :save-settings="saveGraphLayoutSettings"
-                  edge-label-mode="onHover" layout="force-atlas2" height="100%" @ready="handleGraphReady" @node-click="handleGraphNodeClick" />
+            <h2 class="kb-h2">提问建议</h2>
+            <ul class="kb-suggest">
+              <li v-for="q in askSuggestions" :key="q" class="kb-suggest__item">
+                <span class="kb-suggest__q">{{ q }}</span>
+              </li>
+            </ul>
+          </template>
 
-                <!-- 过滤后无命中：图谱组件 v-if 已卸载，若不给提示画布就是一片空白，
-                     用户会以为是加载失败而不是「筛掉了」 -->
-                <div v-if="!graphLoading && graphView.nodes.length > 0 && graphNodes.length === 0"
-                  class="kb-graph__filtered">
-                  <el-icon :size="26"><Search /></el-icon>
-                  <span>当前过滤条件下没有匹配的实体</span>
-                  <ReButton type="primary" link @click="clearGraphFilters">清空过滤条件</ReButton>
-                </div>
+          <!-- ---- 知识图谱视图 ---- -->
+          <template v-else-if="activeTab === 'graph'">
+            <div class="kb-view kb-graphview">
+              <div class="kb-toolbar">
+                <span class="kb-docview__count">
+                  <template v-if="isGraphFiltered">
+                    实体 {{ graphNodes.length }} / {{ graphView.entityCount }} ·
+                    关系 {{ graphEdges.length }} / {{ graphView.relationCount }}
+                  </template>
+                  <template v-else>
+                    实体 {{ graphView.entityCount }} · 关系 {{ graphView.relationCount }}
+                  </template>
+                </span>
+                <el-tooltip placement="bottom-start" effect="light" :show-after="150">
+                  <template #content>
+                    <div class="leading-relaxed max-w-[320px]">
+                      节点大小按关系条数缩放（{{ NODE_MIN_SIZE }}–{{ NODE_MAX_SIZE }}px，每条关系 +{{ NODE_SIZE_STEP }}px），点击节点可看关系明细。
+                    </div>
+                    <div class="leading-relaxed max-w-[320px] mt-1">
+                      画布可直接用鼠标滚轮 / 触控板缩放；手工补录的内容独立于知识点，删除知识点不会连带删掉。
+                    </div>
+                  </template>
+                  <el-icon class="kb-graph__help"><QuestionFilled /></el-icon>
+                </el-tooltip>
+                <span v-if="graphError" style="color: var(--kb-err); font-size: 12px">{{ graphError }}</span>
+                <span v-else-if="!graphLoading && graphView.nodes.length === 0" style="font-size: 12px; color: var(--kb-ink-3)">
+                  <template v-if="graphView.placeholder">
+                    暂无图谱数据（尚未抽取过关系）。点「生成图谱」让 AI 从现有知识点里抽一遍。
+                  </template>
+                  <template v-else>
+                    当前范围确实没有关系。可点「重新生成」按最新原文再抽一次。
+                  </template>
+                </span>
+                <span v-else-if="graphTooDense" style="font-size: 12px; color: var(--kb-ink-3)">
+                  节点较多，按<ReButton type="primary" link @click="focusGraphTypeFilter">「实体类型」</ReButton>筛选后结构更清晰。
+                </span>
 
-                <!-- 图例：按当前图谱里实际出现的实体类型生成，不写死 -->
-                <div v-if="graphLegend.length > 0" class="kb-graph__legend">
-                  <span v-for="l in graphLegend" :key="l" class="kb-graph__legend-item">
-                    <i class="kb-graph__legend-dot" :style="{ background: entityColor(l) }" />{{ entityTypeLabel(l) }}
-                  </span>
+                <div class="kb-toolbar__grow" />
+
+                <el-input v-model="graphKeyword" :prefix-icon="Search" placeholder="按实体名过滤" clearable
+                  style="width: 180px" />
+                <ReButton size="small"
+                  :type="graphTypeFilter.length === 1 && graphTypeFilter[0] === 'person' ? 'primary' : 'default'"
+                  @click="togglePersonOnly">只看人物</ReButton>
+                <ReButton v-if="!graphLazyAll && graphView.nodes.length > GRAPH_LAZY_CORE" size="small"
+                  type="primary" plain @click="showAllGraph">
+                  显示全部（{{ graphNodes.length }}/{{ graphView.nodes.length }}）
+                </ReButton>
+                <el-select v-model="graphTypeFilter" ref="graphTypeFilterRef" multiple collapse-tags collapse-tags-tooltip
+                  :max-collapse-tags="2" clearable placeholder="实体类型" style="width: 168px">
+                  <el-option v-for="s in entityTypeStats" :key="s.type" :label="`${s.label} (${s.count})`" :value="s.type">
+                    <span class="flex items-center gap-2">
+                      <i class="kb-dot" :style="{ background: s.color }" />
+                      <span>{{ s.label }}</span>
+                      <span class="kb-dot__n">{{ s.count }}</span>
+                    </span>
+                  </el-option>
+                </el-select>
+                <div class="kb-actions">
+                  <ReSquareButton layout="square" class="kb-btn" :icon="Refresh" tip="刷新" :loading="graphLoading" @click="loadGraph" />
+                  <ReSquareButton layout="square" v-if="ragReady" class="kb-btn" type="primary" :icon="Refresh"
+                    :tip="graphView.placeholder ? '生成图谱' : '重新生成'"
+                    :loading="graphGenerating" @click="handleGenerateGraph" />
+                  <ReSquareButton layout="square" v-if="graphView.nodes.length > 0" class="kb-btn" :icon="Grid" tip="管理实体" @click="goManage('entity')" />
+                  <ReSquareButton layout="square" v-if="graphView.nodes.length > 0" class="kb-btn" :icon="Connection" tip="管理关系" @click="goManage('relation')" />
                 </div>
               </div>
 
-              <!-- 右：实体详情（点击节点出现） -->
-              <aside v-if="selectedGraphNode" class="kb-gedetail re-surface">
-                <div class="kb-gedetail__head">
-                  <h3 class="kb-gedetail__name truncate">{{ selectedGraphNode.name }}</h3>
-                  <ReSquareButton layout="square" class="kb-btn kb-gedetail__close" size="small" :icon="Close" tip="关闭" @click="selectedGraphNode = null" />
-                </div>
-                <div class="kb-gedetail__sub">
-                  实体 ID:{{ selectedGraphNode.id }}
-                  <template v-if="selectedGraphNode.type"> · {{ entityTypeLabel(selectedGraphNode.type) }}</template>
-                </div>
+              <div class="kb-graphview__canvas">
+                <div v-loading="graphLoading" class="kb-graph__canvas kb-graph__stage" style="height: 100%">
+                  <ReRelationGraph v-if="graphEverMounted || (graphNodes.length > 0 && activeTab === 'graph')"
+                    v-show="activeTab === 'graph'" ref="graphCompRef" :nodes="graphNodes" :edges="graphEdges"
+                    toolbar toolbar-position="top-left" :toolbar-items="graphToolbarItems" highlight="adjacent"
+                    details lazy-details :load-node-detail="loadGraphEntityDetail" :load-neighbors="loadGraphNeighbors"
+                    :menu-items="graphMenuItems" :load-settings="loadGraphLayoutSettings" :save-settings="saveGraphLayoutSettings"
+                    edge-label-mode="onHover" :layout="GRAPH_LAYOUT" :layout-options="GRAPH_LAYOUT_OPTIONS" height="100%"
+                    :hover-tip="false" :tooltip="false" grouped-layout
+                    @ready="handleGraphReady" @node-click="handleGraphNodeClick" />
 
-                <div class="kb-gedetail__metrics">
-                  <div class="kb-gedetail__metric">
-                    <span class="kb-gedetail__metric-value">{{ selectedGraphNode.degree }}</span>
-                    <span class="kb-gedetail__metric-label">关系</span>
+                  <div v-if="!graphLoading && graphView.nodes.length > 0 && graphNodes.length === 0"
+                    class="kb-graph__filtered">
+                    <el-icon :size="26"><Search /></el-icon>
+                    <span>当前过滤条件下没有匹配的实体</span>
+                    <ReButton type="primary" link @click="clearGraphFilters">清空过滤条件</ReButton>
+                  </div>
+
+                  <div v-if="graphLegend.length > 0" class="kb-graph__legend">
+                    <span v-for="l in graphLegend" :key="l" class="kb-graph__legend-item">
+                      <i class="kb-graph__legend-dot" :style="{ background: entityColor(l) }" />{{ entityTypeLabel(l) }}
+                    </span>
                   </div>
                 </div>
 
-                <h4 class="kb-gedetail__section">关系（{{ selectedNodeRelations.length }}）</h4>
-                <ul class="kb-gedetail__relations">
-                  <li v-for="r in selectedNodeRelations" :key="r.key" class="kb-gedetail__relation">
-                    <span class="kb-gedetail__relation-type">{{ r.type || '相关' }}</span>
-                    <span class="kb-gedetail__relation-peer truncate">{{ r.peer }}</span>
-                  </li>
-                  <li v-if="selectedNodeRelations.length === 0" class="kb-gedetail__relation kb-gedetail__relation--empty">
-                    该实体暂无关系
-                  </li>
-                </ul>
-
-                <div class="kb-gedetail__actions">
-                  <ReSquareButton layout="square" class="kb-btn" size="small" type="primary" :icon="Edit" tip="编辑实体" @click="goManage('entity')" />
-                  <ReSquareButton layout="square" class="kb-btn" size="small" :icon="Document" tip="查看来源文档" @click="viewSourceDocs" />
-                </div>
-              </aside>
+                <aside v-if="selectedGraphNode" class="kb-gedetail re-surface">
+                  <div class="kb-gedetail__head">
+                    <h3 class="kb-gedetail__name truncate">{{ selectedGraphNode.name }}</h3>
+                    <ReSquareButton layout="square" class="kb-btn kb-gedetail__close" size="small" :icon="Close" tip="关闭" @click="selectedGraphNode = null" />
+                  </div>
+                  <div class="kb-gedetail__sub">
+                    实体 ID:{{ selectedGraphNode.id }}
+                    <template v-if="selectedGraphNode.type"> · {{ entityTypeLabel(selectedGraphNode.type) }}</template>
+                  </div>
+                  <div class="kb-gedetail__metrics">
+                    <div class="kb-gedetail__metric">
+                      <span class="kb-gedetail__metric-value">{{ selectedGraphNode.degree }}</span>
+                      <span class="kb-gedetail__metric-label">关系</span>
+                    </div>
+                  </div>
+                  <h4 class="kb-gedetail__section">关系（{{ selectedNodeRelations.length }}）</h4>
+                  <ul class="kb-gedetail__relations">
+                    <li v-for="r in selectedNodeRelations" :key="r.key" class="kb-gedetail__relation">
+                      <span class="kb-gedetail__relation-type">{{ r.type || '相关' }}</span>
+                      <span class="kb-gedetail__relation-peer truncate">{{ r.peer }}</span>
+                    </li>
+                    <li v-if="selectedNodeRelations.length === 0" class="kb-gedetail__relation kb-gedetail__relation--empty">
+                      该实体暂无关系
+                    </li>
+                  </ul>
+                  <div class="kb-gedetail__actions">
+                    <ReSquareButton layout="square" class="kb-btn" size="small" type="primary" :icon="Edit" tip="编辑实体" @click="goManage('entity')" />
+                    <ReSquareButton layout="square" class="kb-btn" size="small" :icon="Document" tip="查看来源文档" @click="viewSourceDocs" />
+                  </div>
+                </aside>
+              </div>
             </div>
-          </div>
-        </div>
+          </template>
+
+          <!-- ---- 实体管理 ---- -->
+          <template v-else-if="activeTab === 'entities'">
+            <div class="kb-view">
+              <div class="kb-toolbar">
+                <el-input v-model="graphEntityKeyword" :prefix-icon="Search" placeholder="按名称过滤" clearable
+                  style="width: 200px" />
+                <div class="kb-toolbar__grow" />
+                <div class="kb-actions">
+                  <ReSquareButton layout="square" class="kb-btn" :icon="Refresh" tip="刷新" :loading="graphLoading" @click="loadGraph" />
+                  <ReSquareButton layout="square" class="kb-btn" type="primary" :icon="Plus" tip="新增实体" @click="openEntityForm()" />
+                  <ReSquareButton layout="square" class="kb-btn" type="danger" :icon="Delete"
+                    :tip="selectedEntityUids.length ? `批量删除(${selectedEntityUids.length})` : '批量删除'"
+                    :disabled="selectedEntityUids.length === 0" @click="handleBatchDeleteEntities" />
+                </div>
+              </div>
+              <div class="kb-tablecard">
+                <ReTable
+                  ref="entityTableRef"
+                  :data="pagedGraphEntities"
+                  :columns="entityColumns"
+                  :loading="graphLoading"
+                  :pagination="false"
+                  :toolbar="false"
+                  :layout-table="{ minHeight: 0 }"
+                  :settings="{ border: false }"
+                  :show-selection="true"
+                  stripe
+                  class="flat-table"
+                  @selection-change="onEntitySelection"
+                >
+                  <template #col-name="{ row }">
+                    <div class="flex items-center gap-2">
+                      <img v-if="row.image" :src="row.image" alt="" class="w-6 h-6 rounded object-cover border border-[var(--rm-border)] shrink-0"
+                        @error="($event.target as HTMLImageElement).style.display = 'none'" />
+                      <span>{{ row.text }}</span>
+                    </div>
+                  </template>
+                  <template #col-type="{ row }">
+                    <el-tag size="small" :type="entityTagType(row.type)">{{ entityTypeLabel(row.type) }}</el-tag>
+                  </template>
+                  <template #col-actions="{ row }">
+                    <ReSquareButton layout="square" class="kb-btn" size="small" type="primary" :icon="Edit" tip="编辑" @click="openEntityForm(row)" />
+                    <ReSquareButton layout="square" class="kb-btn" size="small" type="danger" :icon="Delete" tip="删除" @click="handleDeleteEntity(row)" />
+                  </template>
+                </ReTable>
+                <div class="pagination-wrapper">
+                  <el-pagination
+                    v-model:current-page="entityPage"
+                    v-model:page-size="entityPageSize"
+                    :page-sizes="[10, 20, 50]"
+                    :total="filteredGraphEntities.length"
+                    layout="total, sizes, prev, pager, next"
+                  />
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <!-- ---- 关系管理 ---- -->
+          <template v-else-if="activeTab === 'relations'">
+            <div class="kb-view">
+              <div class="kb-toolbar">
+                <el-input v-model="graphRelationKeyword" :prefix-icon="Search" placeholder="按实体名/关系类型过滤" clearable
+                  style="width: 220px" />
+                <div class="kb-toolbar__grow" />
+                <div class="kb-actions">
+                  <ReSquareButton layout="square" class="kb-btn" :icon="Refresh" tip="刷新" :loading="graphLoading" @click="loadGraph" />
+                  <ReSquareButton layout="square" class="kb-btn" type="primary" :icon="Plus" tip="新增关系" @click="openRelationForm()" />
+                  <ReSquareButton layout="square" class="kb-btn" type="danger" :icon="Delete"
+                    :tip="selectedRelationUids.length ? `批量删除(${selectedRelationUids.length})` : '批量删除'"
+                    :disabled="selectedRelationUids.length === 0" @click="handleBatchDeleteRelations" />
+                </div>
+              </div>
+              <div class="kb-tablecard">
+                <ReTable
+                  ref="relationTableRef"
+                  :data="pagedGraphRelations"
+                  :columns="relationColumns"
+                  :loading="graphLoading"
+                  :pagination="false"
+                  :toolbar="false"
+                  :layout-table="{ minHeight: 0 }"
+                  :settings="{ border: false }"
+                  :show-selection="true"
+                  stripe
+                  class="flat-table"
+                  @selection-change="onRelationSelection"
+                >
+                  <template #col-from="{ row }">
+                    <div class="flex items-center gap-2">
+                      <img v-if="nodeImageById(row.from)" :src="nodeImageById(row.from)" alt=""
+                        class="w-6 h-6 rounded object-cover border border-[var(--rm-border)] shrink-0"
+                        @error="($event.target as HTMLImageElement).style.display = 'none'" />
+                      <span class="truncate">{{ nodeNameById(row.from) }}</span>
+                    </div>
+                  </template>
+                  <template #col-to="{ row }">
+                    <div class="flex items-center gap-2">
+                      <img v-if="nodeImageById(row.to)" :src="nodeImageById(row.to)" alt=""
+                        class="w-6 h-6 rounded object-cover border border-[var(--rm-border)] shrink-0"
+                        @error="($event.target as HTMLImageElement).style.display = 'none'" />
+                      <span class="truncate">{{ nodeNameById(row.to) }}</span>
+                    </div>
+                  </template>
+                  <template #col-text="{ row }">
+                    <el-tag size="small" :type="relationTagType(row.text)">{{ row.text }}</el-tag>
+                  </template>
+                  <template #col-actions="{ row }">
+                    <ReSquareButton layout="square" class="kb-btn" size="small" type="danger" :icon="Delete" tip="删除" @click="handleDeleteRelation(row)" />
+                  </template>
+                </ReTable>
+                <div class="pagination-wrapper">
+                  <el-pagination
+                    v-model:current-page="relationPage"
+                    v-model:page-size="relationPageSize"
+                    :page-sizes="[10, 20, 50]"
+                    :total="filteredGraphRelations.length"
+                    layout="total, sizes, prev, pager, next"
+                  />
+                </div>
+              </div>
+            </div>
+          </template>
+        </main>
+
+        <!-- ============ 右栏：问答常驻（文档视图也不收起，问答是档案台的第三根柱子） ============ -->
+        <aside class="kb-ask">
+          <KBAskPanel
+            :kb-id="currentKB?.id || ''"
+            :kb-name="currentKB?.name"
+            :graph-nodes="graphNodes"
+            :graph-edges="graphEdges"
+            @view-graph="handleMenuSelect('graph')"
+          />
+        </aside>
       </div>
-
     </div>
   </div>
 
   <!-- 新增/编辑实体表单（表单弹窗挂在模板根部，不依赖任何视图的显示状态） -->
   <ReDialog v-model="showEntityForm" :title="entityForm.id ? '编辑实体' : '新增实体'" :width="460" :close-on-click-modal="false">
-    <div class="kb-refactor flex flex-col gap-4">
+    <div class="kb flex flex-col gap-4">
       <div>
         <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">名称<i class="not-italic text-[var(--rm-danger)] ml-0.5">*</i></label>
         <el-input v-model="entityForm.name" maxlength="128" />
@@ -561,7 +601,7 @@
 
   <!-- 新增关系表单（同上，挂根部） -->
   <ReDialog v-model="showRelationForm" title="新增关系" :width="460" :close-on-click-modal="false">
-    <div class="kb-refactor flex flex-col gap-4">
+    <div class="kb flex flex-col gap-4">
       <div>
         <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">源实体<i class="not-italic text-[var(--rm-danger)] ml-0.5">*</i></label>
         <el-select v-model="relationForm.source" filterable allow-create default-first-option
@@ -595,7 +635,7 @@
     <!-- 复用本文件已有的 .kb-form / .kb-sec / .kb-field / .kb-visibility 设计系统。
          之前这里是一套平铺的 Tailwind + 内联 SVG，与样式表里那套成体系的表单样式脱节：
          字号三档混用（13px / 12px / 11px）、数字框宽度时宽时窄、可见范围用 <br> 硬换行。 -->
-    <div class="kb-refactor kb-form">
+    <div class="kb kb-form">
       <div class="kb-field">
         <span class="kb-label">
           {{ t('knowledge.page.kbName') }}<i class="kb-req">*</i>
@@ -721,6 +761,43 @@
   <!-- 上传任务弹窗 -->
   <UploadTaskModal v-model="showUploadTaskModal" :upload-tasks="uploadTasksList" @retry="handleRetryFile"
     @delete="handleDeleteFile" />
+
+  <!-- 命令面板（签名元素）：Ctrl/⌘ + K 唤起，跨 文档 / 实体 即时检索。
+       用 position:fixed 覆盖全屏，不依赖 Teleport（部分外壳会劫持 body 子节点）。 -->
+  <div v-if="cmdOpen" class="kbc-mask" @click.self="closeCommand">
+      <div class="kbc-panel" role="dialog" aria-label="知识库检索">
+        <input
+          ref="cmdInputRef"
+          v-model="cmdQuery"
+          class="kbc-input"
+          type="text"
+          placeholder="搜索文档、实体…"
+          @keydown="onCmdKeydown"
+          @input="cmdActive = 0"
+        />
+        <div class="kbc-list">
+          <section v-for="g in cmdResults" :key="g.key">
+            <h3 class="kbc-group__title">{{ g.label }}</h3>
+            <button
+              v-for="(item, i) in g.items"
+              :key="item.key"
+              type="button"
+              class="kbc-row"
+              :class="{ 'is-active': cmdFlat[cmdActive]?.key === item.key }"
+              @click="cmdActive = cmdFlat.findIndex((x) => x.key === item.key); runCommand()"
+              @mouseenter="cmdActive = cmdFlat.findIndex((x) => x.key === item.key)"
+            ><span class="kbc-row__title">{{ item.title }}</span>
+              <span class="kbc-row__hint">{{ item.hint }}</span>
+            </button>
+          </section>
+          <p v-if="cmdResults.length === 0" class="kbc-none">没有匹配结果</p>
+        </div>
+        <footer class="kbc-foot">
+          <span>↑↓ 移动</span><span>↵ 打开</span><span>esc 关闭</span>
+        </footer>
+      </div>
+  </div>
+
 </template>
 
 <script setup lang="ts">
@@ -808,11 +885,276 @@ const viewMode = ref<'list' | 'detail'>('list')  // 视图模式：列表或详�
 const searchKeyword = ref('')  // 知识库搜索关键词
 const detailRefreshing = ref(false)  // 详情页头「刷新」进行中
 
+/* ============================================================================
+   档案台骨架（Ledger）—— 三栏常驻所需的展示态。
+   全部为纯展示数据，不新增任何接口调用。
+   ============================================================================ */
+
+/** 左栏「视图」入口：原 7 个平级 Tab 归并为 4 个视图 + 2 个管理 */
+const navViews: ReadonlyArray<{ key: KBViewKey; label: string; icon: unknown }> = [
+  { key: 'files', label: '文档', icon: Files },
+  { key: 'overview', label: '概览', icon: Grid },
+  { key: 'graph', label: '知识图谱', icon: Connection },
+  { key: 'search', label: '搜索', icon: Search },
+  { key: 'ask', label: '智能问答', icon: ChatDotRound },
+  { key: 'entities', label: '实体管理', icon: Share },
+  { key: 'relations', label: '关系管理', icon: Connection },
+]
+
+/** 左栏当前高亮的文档（本地展示态，与文件树的选中互不干扰） */
+const selectedDocId = ref<string | null>(null)
+
+/**
+ * 文件处理状态 → koi 语义色调。
+ *
+ * @param status 后端 processingStatus
+ * @returns success / warning / error / info
+ */
+function fileTone(status: string): 'success' | 'warning' | 'error' | 'info' {
+  if (status === 'completed') return 'success'
+  if (status === 'failed') return 'error'
+  if (status === 'processing' || status === 'pending' || status === 'queued'
+    || status === 'uploading' || status === 'uploaded') return 'warning'
+  return 'info'
+}
+
+/**
+ * 文件处理状态 → 中文短标签。
+ *
+ * @param status 后端 processingStatus
+ * @returns 展示文案
+ */
+function fileStatusLabel(status: string): string {
+  const map: Record<string, string> = {
+    queued: '排队中',
+    uploading: '上传中',
+    uploaded: '已上传',
+    pending: '待处理',
+    processing: '解析中',
+    completed: '已索引',
+    failed: '解析失败',
+  }
+  return map[status] || status
+}
+
+/**
+ * 千分位（概览统计用，避免长数字撑破格子）。
+ *
+ * @param n 数字
+ * @returns 带逗号的字符串
+ */
+function fmtNum(n: number): string {
+  return (n || 0).toLocaleString('en-US')
+}
+
+/* ---------- 命令面板（签名元素）：跨 文档 / 实体 一次检索 ---------- */
+
+/** 面板是否展开 */
+const cmdOpen = ref(false)
+/** 检索词 */
+const cmdQuery = ref('')
+/** 当前高亮行（键盘 ↑↓） */
+const cmdActive = ref(0)
+/** 输入框引用（展开后聚焦） */
+const cmdInputRef = ref<HTMLInputElement | null>(null)
+
+/**
+ * 命令面板结果：文档来自已加载文件、实体来自图谱缓存。
+ * 两者都是内存数据，因此本面板零额外请求、即时响应。
+ */
+const cmdResults = computed(() => {
+  const q = cmdQuery.value.trim().toLowerCase()
+  const hit = (s: string) => !q || s.toLowerCase().includes(q)
+  const docs = filesForFilter.value
+    .filter((f) => hit(f.displayName || f.fileName))
+    .slice(0, 5)
+    .map((f) => ({
+      kind: 'doc' as const,
+      key: `d-${f.id}`,
+      title: f.displayName || f.fileName,
+      hint: `${f.totalChunks || 0} 块 · ${fileStatusLabel(f.processingStatus)}`,
+      file: f,
+      name: '',
+    }))
+  // graphView 是 reactive 对象（不是 ref），这里不能写 .value
+  const ents = (graphView.nodes || [])
+    .filter((n) => hit(n.text || ''))
+    .slice(0, 4)
+    .map((n) => ({
+      kind: 'entity' as const,
+      key: `e-${n.id}`,
+      title: n.text,
+      hint: `${entityTypeLabel(n.type)} · ${n.degree ?? 0} 关系`,
+      name: n.text,
+      file: null as KBFile | null,
+    }))
+  return [
+    { key: 'doc', label: '文档', items: docs },
+    { key: 'entity', label: '实体', items: ents },
+  ].filter((g) => g.items.length > 0)
+})
+
+/** 扁平化结果，供 ↑↓ 定位 */
+const cmdFlat = computed(() => cmdResults.value.flatMap((g) => g.items))
+
+/** 打开命令面板 */
+function openCommand(): void {
+  cmdOpen.value = true
+  cmdQuery.value = ''
+  cmdActive.value = 0
+  nextTick(() => cmdInputRef.value?.focus())
+}
+
+/** 关闭命令面板 */
+function closeCommand(): void {
+  cmdOpen.value = false
+}
+
+/**
+ * 执行当前高亮结果：文档 → 切到文档视图并预览；实体 → 切到图谱并聚焦该实体。
+ */
+function runCommand(): void {
+  const item = cmdFlat.value[cmdActive.value]
+  if (!item) return
+  if (item.kind === 'doc' && item.file) {
+    handleMenuSelect('files')
+    selectedDocId.value = item.file.id
+    openFilePreview(item.file)
+  } else if (item.name) {
+    handleMenuSelect('graph')
+    openEntityInGraph(item.name)
+  }
+  cmdOpen.value = false
+}
+
+/**
+ * 面板内键盘：↑↓ 移动、Enter 执行、Esc 关闭。
+ *
+ * @param e 键盘事件
+ */
+function onCmdKeydown(e: KeyboardEvent): void {
+  if (e.key === 'Escape') {
+    closeCommand()
+    return
+  }
+  if (e.key === 'ArrowDown') {
+    e.preventDefault()
+    cmdActive.value = Math.min(cmdFlat.value.length - 1, cmdActive.value + 1)
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault()
+    cmdActive.value = Math.max(0, cmdActive.value - 1)
+  } else if (e.key === 'Enter') {
+    e.preventDefault()
+    runCommand()
+  }
+}
+
+/**
+ * 全局快捷键：Ctrl/⌘ + K 唤起命令面板。
+ * 在输入框/文本域内不拦截，避免抢走正在编辑的文本。
+ *
+ * @param e 键盘事件
+ */
+function onGlobalKeydown(e: KeyboardEvent): void {
+  if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'k') return
+  const t = e.target as HTMLElement | null
+  const tag = t?.tagName
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || t?.isContentEditable) return
+  e.preventDefault()
+  if (cmdOpen.value) {
+    closeCommand()
+  } else {
+    openCommand()
+  }
+}
+
 // ---- 关系图谱（Tab=graph）状态 ----
 const graphLoading = ref(false)        // 图谱加载中
 const graphError = ref('')             // 图谱加载错误
 const graphKeyword = ref('')           // 实体名过滤关键词
 const graphTypeFilter = ref<string[]>([]) // 实体类型过滤（空 = 不过滤）
+
+// ---- 图谱懒加载：首屏只渲染核心节点，点击/扩线时从全量池动态补充 ----
+// 全量图谱 370+ 节点/800+ 边一次交给 force-atlas2 布局会让首屏卡十几秒；
+// 这里把 graphView 当作「数据池」，graphNodes 只输出「已加载集合」，
+// 初始加载按 degree 取最核心的节点，点哪个节点就把它的直接邻居补充进来。
+const GRAPH_LAZY_CORE = 60              // 首屏渲染的核心节点数
+const lazyLoadedIds = ref<Set<string>>(new Set()) // 已动态加载的节点 id 集合
+const graphLazyAll = ref(false)          // 是否已「显示全部」（true 时不再裁剪）
+
+/** 节点 degree（后端字段 degree；无则回退 0） */
+const degreeOf = (n: any): number => Math.max(0, Number(n?.degree) || 0)
+
+/** 从池子按 degree 取前 N 个核心节点 id（不改变 lazyLoadedIds，仅计算候选） */
+const topCoreIds = (limit = GRAPH_LAZY_CORE): Set<string> => {
+  const base = graphBaseNodes.value as Array<any>
+  const sorted = [...base].sort((a, b) => degreeOf(b) - degreeOf(a))
+  const ids = new Set<string>()
+  for (let i = 0; i < Math.min(limit, sorted.length); i++) {
+    ids.add(String(sorted[i]?.id ?? ''))
+  }
+  return ids
+}
+
+/** 懒加载目标集合：已展开时 = 已加载集合（含过滤交集）；未展开时 = 核心种子 */
+const graphLazyTarget = computed(() => {
+  if (graphLazyAll.value) {
+    return new Set<string>()
+  }
+  return lazyLoadedIds.value.size > 0 ? lazyLoadedIds.value : topCoreIds()
+})
+
+/** 播种首屏核心节点：把当前（含过滤后）按 degree 取的核心节点写入已加载集合 */
+function seedLazyGraph() {
+  if (graphLazyAll.value) {
+    return
+  }
+  lazyLoadedIds.value = topCoreIds()
+}
+
+/** 把指定节点及其直接邻居加入已加载集合（点击节点时调用，实现动态添加） */
+function expandLazyNeighbors(id: string) {
+  const ids = new Set(lazyLoadedIds.value)
+  // 首屏种子未写入时先播种，避免「点击后只剩被点节点」的断崖
+  if (ids.size === 0) {
+    for (const c of topCoreIds()) ids.add(c)
+  }
+  ids.add(id)
+  const raw = graphView.nodes as Array<any>
+  const idSet = new Set(raw.map((n) => String(n?.id ?? '')))
+  for (const e of graphView.edges as Array<any>) {
+    const f = String(e?.from ?? '')
+    const t = String(e?.to ?? '')
+    if (f === id && idSet.has(t)) ids.add(t)
+    if (t === id && idSet.has(f)) ids.add(f)
+  }
+  lazyLoadedIds.value = ids
+}
+
+/** 显示全部：不再裁剪，回到全量图谱。
+ *  <p>「只看人物」（graphTypeFilter）与关键词搜索（graphKeyword）同样会裁剪画布，
+ *  若只清懒加载裁剪，「显示全部」后面仍被过滤锁死（如原仍只有人物）。
+ *  因此这里一并还原类型过滤与关键词，确保画布回到完整 370 节点。</p>
+ */
+function showAllGraph() {
+  graphLazyAll.value = true
+  graphTypeFilter.value = []
+  graphKeyword.value = ''
+  lazyLoadedIds.value = new Set((graphView.nodes as Array<any>).map((n) => String(n?.id ?? '')))
+}
+
+/** 清空懒加载状态（重载/切换图谱时调用） */
+function resetGraphLazy() {
+  lazyLoadedIds.value = new Set()
+  graphLazyAll.value = false
+}
+
+// 筛选（只看人物 / 实体类型 / 关键词）变化时重新播种核心节点：
+// 让新过滤范围内的核心节点立即可见，而不是保留旧范围已加载节点（过滤语义优先）
+watch([graphTypeFilter, graphKeyword], () => {
+  if (graphView.nodes.length === 0 || graphLazyAll.value) return
+  seedLazyGraph()
+})
 const graphCount = ref(0)              // 图谱元素总数（上传后判断要不要整图刷新）
 const graphView = reactive({           // 后端返回的原始图谱
   nodes: [] as any[],
@@ -822,6 +1164,7 @@ const graphView = reactive({           // 后端返回的原始图谱
   // true = 该范围还没抽取过关系（占位图），false = 抽过但确实没有关系
   placeholder: true,
 })
+
 
 // ---- 节点来源文档（「查看来源文档」弹窗） ----
 // 图谱节点本身不带来源文档路径（后端 /v2/rag/graph 只返回 id/text/type/degree），
@@ -1503,6 +1846,43 @@ async function handleBatchDeleteRelations() {
 }
 
 /**
+ * 势力归属：从「人物 ↔ organization 势力」的任意边推导 人物 → 势力名，用于按势力分组。
+ *
+ * <p>三国模板里人物的势力归属分散在多种关系里：{@code 从属}（廖化→蜀汉）、
+ * {@code 效力/成员/统领/统治/创立/建立}（曹操→曹魏、刘备→蜀汉、孙权→东吴）等。
+ * 只要一条边的另一端是 organization 实体，就把该人物归入对应势力；这样绝大部分
+ * 人物都能进组合容器，同势力的武将文臣被包进同一区块（参考图「蜀 / 刘备 / 诸葛亮…」）。
+ * 完全没有势力关联的节点保留按实体类型分组，不因无归属而丢失。</p>
+ */
+const factionGroup = computed(() => {
+  const map = new Map<string, string>()
+  const nameOf = new Map<string, string>()
+  const typeOf = new Map<string, string>()
+  for (const n of (graphView.nodes as Array<any>) ?? []) {
+    const id = String(n?.id ?? '')
+    nameOf.set(id, String(n?.text ?? n?.label ?? ''))
+    typeOf.set(id, String(n?.type ?? ''))
+  }
+  for (const e of (graphView.edges as Array<any>) ?? []) {
+    const from = String(e?.from ?? '')
+    const to = String(e?.to ?? '')
+    if (!from || !to) continue
+    // 人物 ↔ 势力：任一端是 organization 就把它另一端归入该势力名
+    const fromType = typeOf.get(from)
+    const toType = typeOf.get(to)
+    const personId = fromType === 'person' && toType === 'organization' ? from
+      : toType === 'person' && fromType === 'organization' ? to
+      : ''
+    const orgId = personId ? (from === personId ? to : from) : ''
+    if (!personId || !orgId) continue
+    const org = nameOf.get(orgId) || orgId
+    // 多势力归属时优先记录（人物跨势力如「刘备→东汉朝廷 / 蜀汉」取更名的后一次）
+    map.set(personId, org)
+  }
+  return map
+})
+
+/**
  * 后端节点 → {@code ReRelationGraph} 的 RelationNode 契约。
  *
  * <p><b>关键修复</b>：G6 v5 的 {@code type} 是**图元原型**（circle/rect/…），
@@ -1530,8 +1910,13 @@ function decorateGraphNode(n: any) {
     type: image ? ('image' as const) : ('circle' as const),
     image: image || undefined,
     size,
-    // 分组容器：同一实体类型包一个浅色背景，页面工具栏可一键开关
-    group: entityType,
+    // 分组容器：人物优先按势力分组（从「人物↔organization」任意边推导），
+    // 找不到势力归属的人物不设 group —— 否则 60+ 个「无势力」人物会全部
+    // 回退到 entityType='person'、被塞进同一个 person 大 combo，视觉上糊成一团。
+    // 其它实体类型（event/location/…）仍按类型分组。
+    group: entityType === 'person'
+      ? (factionGroup.value.get(String(n?.id ?? '')) || undefined)
+      : entityType,
     style: {
       fill: image ? undefined : entityColor(entityType),
       stroke: 'rgba(255,255,255,0.85)',
@@ -1586,8 +1971,17 @@ const graphBaseNodes = computed(() => {
   return base.filter((n) => keep.has(n.id))
 })
 
-/** 按关键词过滤后的节点：命中实体及其直接邻居都保留，避免过滤后只剩孤点 */
-const graphNodes = computed(() => graphBaseNodes.value.map(decorateGraphNode))
+/** 按关键词过滤后的节点：命中实体及其直接邻居都保留，避免过滤后只剩孤点。
+ *  懒加载模式下再按 {@link graphLazyTarget} 裁剪，只输出已加载的核心/展开节点。 */
+const graphNodes = computed(() => {
+  const target = graphLazyTarget.value
+  if (target.size === 0) {
+    return graphBaseNodes.value.map(decorateGraphNode)
+  }
+  return graphBaseNodes.value
+    .filter((n) => target.has(String(n?.id ?? '')))
+    .map(decorateGraphNode)
+})
 
 /**
  * 只保留两端都可见的连线，并转成 {@code RelationEdge} 契约。
@@ -1670,6 +2064,7 @@ async function loadGraph() {
     graphView.entityCount = 0
     graphView.relationCount = 0
     graphCount.value = 0
+    resetGraphLazy()
     return
   }
   graphLoading.value = true
@@ -1680,6 +2075,8 @@ async function loadGraph() {
     graphView.edges = view.edges
     graphView.entityCount = view.entityCount
     graphView.relationCount = view.relationCount
+    // 懒加载：新数据到达后播种首屏核心节点（只渲染核心，点击/扩线再动态补充）
+    seedLazyGraph()
     // 后端未返回该字段时按「有数据即非占位」兜底
     graphView.placeholder = view.placeholder === undefined
       ? view.entityCount === 0 && view.relationCount === 0
@@ -1864,6 +2261,10 @@ function handleGraphNodeClick(node: any) {
   if (clickId) {
     selectedGraphNode.value = { id: clickId, name, type, degree }
   }
+  // 懒加载：点击节点把它的一跳邻居动态加入画布（本地池子秒开，不走网络）
+  if (clickId && !graphLazyAll.value) {
+    expandLazyNeighbors(clickId)
+  }
   if (name) {
     toast.info(`${name}${type ? `（${entityTypeLabel(type)}）` : ''}：${degree} 条关系`)
   }
@@ -1907,14 +2308,27 @@ const graphCompRef = ref<any>(null)
  */
 const graphEverMounted = ref(false)
 
-/** 知识图谱布局名：G6 的 force 在这套数据上会退化成 (0,0)，实测 force-atlas2 正常 */
-const GRAPH_LAYOUT = 'force-atlas2'
+/** 知识图谱布局：分组聚簇（rrg-cluster → G6 原生 force 聚类）。
+ *  <p>同势力节点在原生向心力下向簇心聚集、异势力之间被斥力推开，{@code preventOverlap}
+ *  保证节点不压盖；每个势力再套一个原生 {@code circle} 组合容器（位置随成员包围盒自动推导，
+ *  画出来是贴合内容的气泡圆，不是矩形框）→ 参考图「蜀 / 刘备 / 诸葛亮…按势力分组」形态。
+ *  <p>由组件通用能力 {@code grouped-layout} 承担：任何给节点标 {@code group}=势力名的
+ *  业务直接开聚簇布局即可，业务页只负责数据语义。
+ */
+const GRAPH_LAYOUT = 'rrg-cluster'
+
+/** 聚簇参数（原生 force clustering）：节点斥力 / 簇心吸力 / 连线长度 / 防重叠 */
+const GRAPH_LAYOUT_OPTIONS: Record<string, unknown> = {
+  clustering: true,
+  nodeStrength: 800,
+  linkDistance: 160,
+  clusterNodeStrength: 25,
+}
 
 /** 组件工具栏只放图谱视图相关按钮；页面右上角仍负责刷新/生成/管理实体等动作 */
 const graphToolbarItems = [
   'layout',
   'layoutSettings',
-  'group',
   'highlight',
   'hoverFocus',
   'minimap',
@@ -1997,7 +2411,14 @@ async function loadGraphLayoutSettings() {
   const r = await apiService.fetchGraphLayoutSettings(kbId)
   if (!r?.settings) return null
   try {
-    return JSON.parse(r.settings)
+    const s = JSON.parse(r.settings)
+    // 分组聚簇走 G6 原生 d3-force 聚类：每个势力是一个圆形组合容器，show-groups 负责
+    // 生成 combo；关掉它等于把组拆了，聚簇会退化成一圈互相压盖的散点。
+    if (s && typeof s === 'object') {
+      s.showGroups = true
+      s.layout = GRAPH_LAYOUT
+    }
+    return s
   } catch {
     return null
   }
@@ -2033,10 +2454,18 @@ function handleGraphReady() {
         getInstance?: () => unknown
         fitView?: () => Promise<void>
       } | null
-      if (!comp?.setLayout) {
+      if (!comp) {
         return
       }
-      if (!graphLooksDegenerate(comp)) {
+      // 首帧无条件适配视口：节点少的图（3~6 个实体）如果不 fitView，会以 1:1
+      // 落在画布中央，几十像素的圆被放大成占满整屏的大泡泡。等布局这一帧提交完
+      // 再量 bbox，否则量到的是尚未定位的旧范围。
+      window.setTimeout(() => {
+        const api = graphCompRef.value as { fitView?: () => Promise<void> } | null
+        void api?.fitView?.()
+      }, 260)
+      // 布局退化（节点全挤在一点）才强制重排；正常布局不打断用户当前视角。
+      if (!comp.setLayout || !graphLooksDegenerate(comp)) {
         return
       }
       try {
@@ -2213,11 +2642,15 @@ async function handleSelectKB(kb: KnowledgeBase) {
   viewMode.value = 'detail'
 
   // 更新路由（使用 params）
-  router.replace({ name: 'KnowledgeBase', params: { id: kb.id } })
+  // 保留现有 query：切换知识库时不能丢掉 URL 上的参数（如外部带入的筛选条件），
+  // 否则一次换库就把用户此前的上下文清空了。
+  router.replace({ name: 'KnowledgeBase', params: { id: kb.id }, query: route.query })
 
   try {
     // 选择新知识库时重置分页
     await refreshFileList()
+    // 同时取一份全量清单：左侧计数与概览统计在任何视图都要有数
+    void loadFileInventory()
     // toast.success(`已选择：${kb.name}`)
   } catch (error) {
     console.error('加载文件列表失败:', error)
@@ -2902,8 +3335,101 @@ const fileStatusFilter = ref<FileStatusFilter>('all')
 /** 当前目录下的文件（来自 KBFileTree 的 files-loaded） */
 const loadedFiles = ref<KBFile[]>([])
 
+/**
+ * 扁平文件清单（本页自取，不依赖 KBFileTree 是否挂载）。
+ *
+ * <p>{@code loadedFiles} 只在「文档」视图由文件树回填，切到概览/图谱就没了；
+ * 这份清单在任何视图下都存在，左栏计数与统计格优先用它。</p>
+ */
+const inventoryFiles = ref<KBFile[]>([])
+
 /** 只统计真实文件，目录不进分栏计数 */
-const filesForFilter = computed(() => loadedFiles.value.filter((f) => !f.isDirectory))
+/**
+ * 统计与左栏统一使用的文件集合（只统计真实文件，目录不进分栏计数）。
+ *
+ * <p>两份来源合并去重：文件树回填的 {@code loadedFiles}（含实时处理状态轮询）
+ * 与本页自取的全量 {@code inventoryFiles}（任意视图都可用）。</p>
+ */
+const filesForFilter = computed(() => {
+  const byId = new Map<string, KBFile>()
+  for (const f of inventoryFiles.value) {
+    if (!f.isDirectory) byId.set(f.id, f)
+  }
+  for (const f of loadedFiles.value) {
+    if (!f.isDirectory) byId.set(f.id, f)
+  }
+  return [...byId.values()]
+})
+
+/**
+ * 左栏「文档」快速列表：跟随当前状态分栏过滤。
+ *
+ * <p><b>必须声明在 FILE_STATUS_GROUPS / filesForFilter 之后</b>：computed 的求值虽然惰性，
+ * 但模板首次渲染就会读它，此时若依赖还在 TDZ（let/const 未初始化），
+ * 会抛 ReferenceError 并让整个三栏骨架渲染失败。</p>
+ */
+const activeFiles = computed(() => {
+  const key = fileStatusFilter.value
+  if (key === 'all') return filesForFilter.value
+  const group = FILE_STATUS_GROUPS[key] || []
+  return filesForFilter.value.filter((f) => group.includes(f.processingStatus))
+})
+
+/** 全库切块总数（KBFile.totalChunks 此前从未上屏） */
+const totalChunks = computed(() => filesForFilter.value.reduce((a, f) => a + (f.totalChunks || 0), 0))
+
+/** 全库 token 总数（KBFile.totalTokens 此前从未上屏） */
+const totalTokens = computed(() => filesForFilter.value.reduce((a, f) => a + (f.totalTokens || 0), 0))
+
+/**
+ * 流水线四道工序状态带：入库 → 切分 → 向量化 → 抽取。
+ *
+ * <p>把「系统现在在干什么」摊开：每道工序给出计数，处理中的工序标 warning 并挂传送带。
+ * 计数全部来自已有数据（filesForFilter / totalChunks / graphView），不额外请求。</p>
+ *
+ * <p><b>位置敏感</b>：必须声明在 graphView / filesForFilter / totalChunks 之后——
+ * 模板首次渲染会立刻读它，若依赖仍在 TDZ 会抛 ReferenceError 并整块渲染失败。
+ * 另外 graphView 是 reactive 对象而非 ref，读取时不能写 .value。</p>
+ */
+const pipelineStages = computed(() => {
+  const fs = filesForFilter.value
+  const waiting = fs.filter((f) => ['queued', 'uploading', 'uploaded', 'pending'].includes(f.processingStatus)).length
+  const parsing = fs.filter((f) => f.processingStatus === 'processing').length
+  const failed = fs.filter((f) => f.processingStatus === 'failed').length
+  return [
+    { key: 'intake', label: '入库', value: `${fs.length} 篇`, running: waiting > 0, tone: '' },
+    { key: 'chunk', label: '切分', value: `${totalChunks.value} 块`, running: parsing > 0, tone: '' },
+    {
+      key: 'embed',
+      label: '向量化',
+      value: parsing > 0 ? `${parsing} 进行中` : '空闲',
+      running: parsing > 0,
+      tone: parsing > 0 ? 'warning' : '',
+    },
+    {
+      key: 'extract',
+      label: '实体抽取',
+      value: failed > 0 ? `${failed} 失败` : `${graphView.entityCount} 实体`,
+      running: false,
+      tone: failed > 0 ? 'error' : '',
+    },
+  ]
+})
+
+/**
+ * 问答视图的提问建议：按当前知识库是否已有实体/文档给出不同引导，
+ * 纯静态提示词，不需要额外请求。
+ */
+const askSuggestions = computed(() => {
+  const hasEntities = graphView.entityCount > 0
+  const hasChunks = totalChunks.value > 0
+  if (!hasChunks) {
+    return ['这个知识库有哪些文档？', '上传文档后能问什么？']
+  }
+  return hasEntities
+    ? ['主要人物之间是什么关系？', '这几篇文档的核心考点是什么？', '哪些情节可以支撑这个结论？']
+    : ['这几篇文档的核心考点是什么？', '帮我总结主要论点', '哪些段落可以支撑这个结论？']
+})
 
 /** 四个分栏各自的计数。显式标注返回类型，否则 key 会被推断成 string，模板里回写分栏就过不了类型检查 */
 const fileStatusFilters = computed<ReadonlyArray<{ key: FileStatusFilter; label: string; count: number }>>(() => {
@@ -2980,6 +3506,12 @@ function clearGraphFilters() {
   graphTypeFilter.value = []
 }
 
+/** 「只看人物」快捷过滤：点一次只筛 person，再点恢复。 */
+function togglePersonOnly() {
+  const only = graphTypeFilter.value.length === 1 && graphTypeFilter.value[0] === 'person'
+  graphTypeFilter.value = only ? [] : ['person']
+}
+
 // ========== Lifecycle ==========
 // 详情页支持 ?tab= 深链：外部/验收可直接打开指定视图，路由查询变化时同步切换
 watch(() => route.query.tab, (tab) => {
@@ -3022,6 +3554,8 @@ watch(() => store.activeKnowledgeBaseId, () => {
 onMounted(async () => {
   // 显示偏好与首屏数据无关，并行拉取即可（内部幂等 + 去重）
   void initKbDisplay()
+  // 命令面板快捷键（Ctrl/⌘+K）：只在本页挂载期间生效
+  window.addEventListener('keydown', onGlobalKeydown)
   fetchRagStatus()
   await store.fetchKnowledgeBases()
   await loadOverview() // 列表页统计卡与卡片计数（须在库列表之后，per_base 才有意义）
@@ -3055,6 +3589,7 @@ onUnmounted(() => {
   console.log('[DEBUG] KnowledgeBasePage 组件销毁,清理定时器')
   // 注意：文件轮询已由 KBFileTree 内部管理，无需在此清理
   stopUploadTaskPolling() // 停止上传任务轮询
+  window.removeEventListener('keydown', onGlobalKeydown) // 撤销命令面板快捷键
 })
 
 /**
@@ -3235,6 +3770,34 @@ async function refreshFileList() {
   }
 }
 
+/**
+ * 独立拉取当前知识库的扁平文件清单（含子目录），供左栏与统计格使用。
+ *
+ * <p>为什么不复用 {@code loadedFiles}：那个只由 {@code KBFileTree} 的 {@code files-loaded}
+ * 事件填充，而文件树只在「文档」视图挂载——切到概览 / 图谱时计数会归零。
+ * 这里直接调一次扁平列表接口，其余视图也能拿到真实篇数与切块数。</p>
+ */
+async function loadFileInventory(): Promise<void> {
+  const kbId = store.activeKnowledgeBaseId
+  if (!kbId) {
+    inventoryFiles.value = []
+    return
+  }
+  try {
+    const res = await apiService.fetchKBFiles(kbId, 0, 1000)
+    // 接口返回分页信封，items 为空时回落到旧字段名
+    const rows = (res as { items?: KBFile[]; records?: KBFile[] })?.items
+      ?? (res as { records?: KBFile[] })?.records
+      ?? []
+    inventoryFiles.value = Array.isArray(rows) ? rows : []
+  } catch (error) {
+    console.error('获取文件清单失败:', error)
+    inventoryFiles.value = []
+  }
+}
+
+
+
 // 监听路由变化，处理 URL 中的 id 参数
 watch(() => route.params.id, async (newKbId: string | string[] | undefined) => {
   // 如果是数组，取第一个值；如果是字符串直接使用；否则为 undefined
@@ -3268,3 +3831,6 @@ watch(
   }
 )
 </script>
+
+
+

@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full w-full flex flex-col min-h-0">
+  <div class="h-full w-full flex flex-col min-h-0" data-page="characters">
     <PageHeader :title="t('characters.page.title')" />
     <div class="flex flex-1 overflow-scroll w-full">
       <!-- 与会话/设置中心/插件市场同口径：满屏撑满、窄屏回退 65rem（原 md:max-w-260）。

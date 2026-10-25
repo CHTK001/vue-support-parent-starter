@@ -2,10 +2,10 @@
   <div v-if="hasTodo" class="session-todo-list">
     <!-- 头部 -->
     <div class="shrink-0 flex items-center justify-between px-2">
-      <h3 class="text-sm font-normal text-gray-500 dark:text-[#8b8d95] whitespace-nowrap mx-2">
+      <h3 class="text-sm font-normal text-gray-500 dark:text-gray-400 whitespace-nowrap mx-2">
         {{ t('chat.workspace.todoList') }}
       </h3>
-      <span class="text-xs text-gray-400 dark:text-[#6b6d73]">
+      <span class="text-xs text-gray-400 dark:text-gray-400">
         {{ doneCount }}/{{ todoItems.length }}
       </span>
     </div>
@@ -27,14 +27,14 @@
         <!-- 步骤文本 -->
         <span class="text-xs truncate flex-1"
           :class="item.status === 'completed'
-            ? 'line-through text-gray-400 dark:text-[#6b6d73]'
-            : 'text-gray-600 dark:text-[#8b8d95]'"
+            ? 'line-through text-gray-400 dark:text-gray-400'
+            : 'text-gray-600 dark:text-gray-400'"
           :title="item.content">
           {{ item.content }}
         </span>
       </div>
     </div>
-    <div class="border-b border-gray-100 dark:border-[#2e3035] mx-4 mt-3"></div>
+    <div class="border-b border-gray-100 dark:border-gray-800 mx-4 mt-3"></div>
   </div>
 </template>
 

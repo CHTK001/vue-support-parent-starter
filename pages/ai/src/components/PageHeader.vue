@@ -19,14 +19,19 @@
     <!-- 中间：标题区域 -->
     <div v-if="title || $slots.title" class="flex items-center flex-1 min-w-0">
       <slot name="title">
-        <span class="text-sm font-semibold text-gray-800 dark:text-[#e8e9ed] m-0 truncate">{{ title }}</span>
+        <span class="text-sm font-semibold text-gray-800 dark:text-gray-100 m-0 truncate">{{ title }}</span>
       </slot>
     </div>
 
     <!-- 右侧：操作按钮组 -->
     <div class="flex items-center justify-end min-w-10 gap-2 no-drag mr-3">
-      <!-- 顶栏环境信息（天气 / 活跃台风，开关关闭时组件内不渲染） -->
-      <TopEnvironment />
+      <!--
+        这里不放天气 / 台风等环境信息：AI 控制台没有顶部菜单栏，
+        头部只承担「侧栏折叠 + 标题 + 页面自定义 actions + 窗口控制」。
+        原先挂的 <TopEnvironment /> 模板是空壳（渲染 0 个元素），却在 onMounted
+        里轮询 /v2/weather/overview 与 /v2/typhoon/active，后端无数据源时会把
+        「无可用天气数据源」弹成全局 toast。该组件已删除，需要时从 git 历史取回。
+      -->
       <slot name="actions" />
     </div>
 
@@ -41,7 +46,6 @@ import { useI18n } from 'vue-i18n'
 import LeftBarIcon from './icons/LeftBarIcon.vue'
 import WindowControls from '@/components/WindowControls.vue'
 import LTooltip from '@/components/ui/LTooltip.vue'
-import TopEnvironment from '@/components/TopEnvironment.vue'
 
 const { t } = useI18n()
 

@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { NextFunction } from "connect";
 import { createReadStream, existsSync, readdirSync, realpathSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { PluginOption } from "vite";
 
@@ -116,7 +116,7 @@ function serveFileViewerOfficeWorkers(): PluginOption {
 }
 
 // 后端实例：后台只跑在 Kali 上，本机不起后端进程，所以缺省值指向远端而不是 127.0.0.1。
-// 与 vue-support-ai-guada / vue-support-system-starter 同一口径
+// 与 vue-support-ai-starter / vue-support-system-starter 同一口径
 // （见 a2b20b189「前端代理默认指向远端后端」）。
 //
 // 为什么这件事值得单独说明（**两种静默错法，第二种更贵**）：
@@ -144,6 +144,8 @@ function serveFileViewerOfficeWorkers(): PluginOption {
 // 注意此前缺省写的 29181 是**错的端口**，即使把主机改成远端，socket 推送仍然连不上。
 const apiTarget = process.env.MS_API_TARGET ?? "http://192.168.50.198:8081";
 const socketTarget = process.env.MS_SOCKET_TARGET ?? "http://192.168.50.198:29612";
+/** 独立 ACME 后端：/monitor/api/** 的专用前缀（见 pages/server acmeApi.ts 的 BASE） */
+const acmeTarget = process.env.ACME_API_TARGET ?? "http://101.200.205.64:19170";
 
 /** APM 观测后端地址；实测 8582 无监听，故不预置远端缺省，详见下方注释 */
 const apmTarget = process.env.APM_TARGET ?? "http://127.0.0.1:8582";
@@ -289,7 +291,16 @@ export default createVite({
     //     与实际 public/vendor/... 一致。
     //   - 渲染器注册由 vue3-full 默认 preset-all 与各面板显式 preset 共同完成
     //     （见 PreviewOfficePanel），不注入虚拟模块，避免与自定义 dev HTML 模板中间件互相干扰。
-    fileViewerRenderers({ inject: false, preset: "all", copyAssets: true }),
+    // 【资产已作为源码提交 public/vendor（2026-10-24）】：
+    //   - iwork/hangul/wordperfect 及其它渲染器资产全部落盘并入库，
+    //     dev/build 都直接读 public/vendor，插件无需再复制（copyAssets:false）。
+    //   - apply:'build' + copyAssets:false：build 时保留插件的 chunk 分组能力，
+    //     但不复制资产（publicDir 会从源码带进 dist/vendor）。
+    //   - dev 由下面 serveFileViewerOfficeWorkers 中间件做兜底（资产已在，正常不触发）。
+    {
+      ...fileViewerRenderers({ inject: false, preset: "all", copyAssets: false }),
+      apply: 'build' as const,
+    },
     // copyAssets 复制清单漏了 iwork/hangul/wordperfect 的 worker/wasm，
     // 这里用 dev 中间件从 node_modules 直接补齐（见上方
     // serveFileViewerOfficeWorkers 头注）。只对 serve 生效，不影响 build。
@@ -307,16 +318,6 @@ export default createVite({
     "@pages/datasource": "pages/datasource",
     "@pages/device": "pages/device",
   },
-  /**
-   * 依赖预构建缓存目录（默认 node_modules/.vite）。
-   *
-   * <p>多个 worktree 共用同一个 {@code node_modules}（junction）时，默认缓存也共用：
-   * 某个实例因 lockfile 变化重新预构建，会让其他实例手里的旧 chunk 失效，表现为
-   * {@code Failed to fetch dynamically imported module} / {@code 504 Outdated Optimize Dep}。</p>
-   *
-   * <p>并行开多个 dev server 时用 {@code VITE_CACHE_DIR=.vite-xxx} 各开一份缓存即可隔离。</p>
-   */
-  cacheDir: process.env.VITE_CACHE_DIR ? join(process.cwd(), process.env.VITE_CACHE_DIR) : undefined,
   server: {
     port: 8848,
     strictPort: true,
@@ -363,14 +364,19 @@ export default createVite({
         /[/\\]flyfish-viewer-assets\.json$/,
       ],
     },
-    // 启动预编译：预热弹窗相关源码文件，首次点击弹窗不再现场 transform（避免 5s~1min 卡顿）
+    // 启动预编译：预热入口与首屏视图源码文件，首次加载不再现场 transform（避免 5s~1min 卡顿）。
+    // 注意：monitor 是壳应用（main.ts 里 import "@pages/xxx"），src 下没有 views/ 目录；
+    // 路径必须真实存在，否则 vite 启动即报 Failed to load url ... Does the file exist?
     warmup: {
       clientFiles: [
         "src/main.ts",
         "src/App.vue",
-        "src/router.ts",
-        "src/views/AssetsView.vue",
-        "src/views/HostFormDialog.vue",
+        "src/router/index.ts",
+        "src/components/ProcessHost.vue",
+        // 壳应用真实业务首屏（@pages/monitor），相对 app root 解析
+        "../../pages/monitor/src/views/WorkbenchView.vue",
+        "../../pages/monitor/src/views/AlarmsView.vue",
+        "../../pages/monitor/src/views/OnlineNodesView.vue",
       ],
     },
     proxy: {
@@ -378,6 +384,11 @@ export default createVite({
       // 布局 /v2/user/layout 等。缺失会导致启动期“远程登录页配置拉取失败 404”。
       "/v2": {
         target: apiTarget,
+        changeOrigin: true,
+      },
+      // 独立 ACME 后端：/monitor/api/**（ACME 证书管理）
+      "/monitor/api": {
+        target: acmeTarget,
         changeOrigin: true,
       },
       // 天气组件 IP 定位：freeipapi（HTTPS）
@@ -470,8 +481,11 @@ export default createVite({
         target: apmTarget,
         changeOrigin: true,
       },
+      // 与上面的 ACME 前缀共用同一个目标：这里曾硬编码 http://127.0.0.1:19180，
+      // 而 ACME 后端实际跑在 101.200.205.64:19170，dev 下 /monitor/api/** 全部
+      // ECONNREFUSED → 页面拿到 502，ACME 账户/证书一律显示 0 条（看起来像数据丢了）。
       "/monitor/api": {
-        target: "http://127.0.0.1:19180",
+        target: acmeTarget,
         changeOrigin: true,
       },
       "/api/account": {
@@ -496,9 +510,18 @@ export default createVite({
       "/recycle": { target: fileStorageTarget, changeOrigin: true },
     },
   },
-  optimizeDeps: {
-    // @file-viewer/* 必须在这里显式列出，不能靠懒发现。
-    //
+  // 以下 UserConfig 级字段必须放进 config：createVite 只透传 server / config，
+  // 顶层 cacheDir / optimizeDeps 会被工厂忽略（见 createVite.ts CreateViteOptions）。
+  config: {
+    // 依赖预构建缓存目录：默认落到 app 内 .vite-cache（独立于 node_modules/.vite，
+    // 不随 node_modules 重建/清理丢失，也不被多 worktree 共用的 junction 缓存污染）。
+    // 需要把缓存放到别的盘时：VITE_CACHE_DIR=E:/vite-cache/monitor pnpm dev
+    cacheDir: process.env.VITE_CACHE_DIR
+      ? isAbsolute(process.env.VITE_CACHE_DIR)
+        ? process.env.VITE_CACHE_DIR
+        : join(process.cwd(), process.env.VITE_CACHE_DIR)
+      : join(process.cwd(), ".vite-cache"),
+    // @file-viewer/* 必须显式列入 optimizeDeps.include，不能靠懒发现。
     // 原因：这些渲染器全是 `import()` 动态加载的懒依赖，不在 include 里时
     // Vite 要等到**某个文件被打开时**才发现它们，于是运行中途触发
     // 「optimized dependencies changed. reloading」。重优化会重算 chunk 哈希，
@@ -508,7 +531,8 @@ export default createVite({
     // 表现就是：同一个 xlsx，第一次能渲染、刷新后变回 iframe/旧面板，
     // 动画也没了——被误判成「有的格式没接 file-viewer」，实际是依赖被优化掉了。
     // 显式 include 后启动即预打包，运行期不再变更。
-    include: [
+    optimizeDeps: {
+      include: [
       "element-plus",
       "@repo/theme",
       "@repo/ui",
@@ -586,5 +610,6 @@ export default createVite({
       // 一条故障报成三条。显式列出后启动即预打包，运行期不再变。
       "@novnc/novnc",
     ],
+    },
   },
 });

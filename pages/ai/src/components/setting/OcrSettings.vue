@@ -3,13 +3,13 @@
     <div class="space-y-8">
       <!-- OCR 设置分组 -->
       <div>
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-[#e8e9ed] mb-3">{{ t('settings.ocr.title') }}</h3>
-        <div class="rounded-xl border border-gray-200 dark:border-[#2e3035] bg-(--color-surface) overflow-hidden">
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">{{ t('settings.ocr.title') }}</h3>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-800 bg-(--color-surface) overflow-hidden">
           <!-- OCR 提供商 -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
+          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-800">
             <div class="flex flex-col gap-1 min-w-0">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('settings.ocr.provider') }}</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('settings.ocr.providerDesc') }}<span class="text-[#409eff] cursor-pointer hover:underline" @click="openOcrDocs">{{ t('settings.ocr.viewDocs') }}</span></span>
+              <span class="text-base text-gray-900 dark:text-gray-100">{{ t('settings.ocr.provider') }}</span>
+              <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('settings.ocr.providerDesc') }}<span class="text-[#409eff] cursor-pointer hover:underline" @click="openOcrDocs">{{ t('settings.ocr.viewDocs') }}</span></span>
             </div>
             <el-select v-model="settingsForm.provider" :placeholder="t('settings.ocr.selectProvider')" style="width: 200px;" class="shrink-0">
               <el-option :label="t('settings.ocr.disabled')" value="none" />
@@ -19,18 +19,18 @@
 
           <!-- UMI-OCR 配置 -->
           <template v-if="settingsForm.provider === 'umi'">
-            <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
+            <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-800">
               <div class="flex flex-col gap-1 min-w-0">
-                <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('settings.ocr.serviceHost') }}</span>
-                <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('settings.ocr.serviceHostDesc') }}</span>
+                <span class="text-base text-gray-900 dark:text-gray-100">{{ t('settings.ocr.serviceHost') }}</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('settings.ocr.serviceHostDesc') }}</span>
               </div>
               <el-input v-model="settingsForm.umiHost" placeholder="127.0.0.1" style="width: 200px;" class="shrink-0" />
             </div>
 
             <div class="px-4 py-3.5 flex items-center justify-between gap-4">
               <div class="flex flex-col gap-1 min-w-0">
-                <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('settings.ocr.servicePort') }}</span>
-                <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('settings.ocr.servicePortDesc') }}</span>
+                <span class="text-base text-gray-900 dark:text-gray-100">{{ t('settings.ocr.servicePort') }}</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('settings.ocr.servicePortDesc') }}</span>
               </div>
               <ReNumberInput v-model="settingsForm.umiPort" :min="1" :max="65535" placeholder="1224" class="shrink-0" />
             </div>
@@ -38,26 +38,26 @@
 
           <!-- 百度 OCR 配置（暂时隐藏） -->
           <template v-if="false">
-            <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
+            <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-800">
               <div class="flex flex-col gap-1 min-w-0">
-                <span class="text-base text-gray-900 dark:text-[#e8e9ed]">API Key</span>
-                <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('settings.ocr.baiduApiKeyDesc') }}</span>
+                <span class="text-base text-gray-900 dark:text-gray-100">API Key</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('settings.ocr.baiduApiKeyDesc') }}</span>
               </div>
               <el-input v-model="settingsForm.baiduApiKey" :placeholder="t('settings.ocr.enterApiKey')" style="width: 320px;" class="shrink-0" />
             </div>
 
             <div class="px-4 py-3.5 flex items-center justify-between gap-4">
               <div class="flex flex-col gap-1 min-w-0">
-                <span class="text-base text-gray-900 dark:text-[#e8e9ed]">Secret Key</span>
-                <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('settings.ocr.baiduSecretKeyDesc') }}</span>
+                <span class="text-base text-gray-900 dark:text-gray-100">Secret Key</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('settings.ocr.baiduSecretKeyDesc') }}</span>
               </div>
               <el-input v-model="settingsForm.baiduSecretKey" :placeholder="t('settings.ocr.enterSecretKey')" type="password" show-password style="width: 320px;" class="shrink-0" />
             </div>
           </template>
 
           <!-- 提示信息 -->
-          <div class="px-4 py-3.5 bg-gray-50 dark:bg-[#1e1f23] border-t border-gray-100 dark:border-[#2e3035]">
-            <div class="text-xs text-gray-500 dark:text-[#8b8d95] space-y-1">
+          <div class="px-4 py-3.5 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
+            <div class="text-xs text-gray-500 dark:text-gray-400 space-y-1">
               <template v-if="settingsForm.provider === 'none'">
                 <div>{{ t('settings.ocr.disabledTip') }}</div>
               </template>

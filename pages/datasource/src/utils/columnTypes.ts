@@ -40,6 +40,33 @@ export const UNSIGNED_ALLOWED = new Set([
 /** ENUM / SET：除了类型本身还要给取值列表，否则后端构造期就拒绝。 */
 export const ENUM_LIKE_TYPES = new Set(["ENUM", "SET"]);
 
+/** 日期时间类型（用于默认值建议分组） */
+export const DATE_TIME_TYPES = new Set(["DATE", "TIME", "DATETIME", "TIMESTAMP", "YEAR"]);
+
+/**
+ * 默认值建议项（按类型分组）。
+ *
+ * <p>「默认值」列从自由输入升级为自动补全：给常用 SQL 默认值做成分组建议，
+ * 日期时间类型额外给 CURRENT_TIMESTAMP 全家 —— 表设计时最常写错的正是日期默认值
+ * （忘记加括号、写死时间戳），这里直接点选。</p>
+ *
+ * @param type 列类型（决定是否给日期分组）
+ * @return 分组建议项（ReSelect 的 group 字段做分组标题）
+ */
+export const columnDefaultOptions = (type: string): Array<{ label: string; value: string; group: string }> => {
+  const isDate = DATE_TIME_TYPES.has(type);
+  const groups: Array<{ label: string; items: string[] }> = [];
+  if (isDate) {
+    groups.push(
+      { label: "日期时间", items: ["CURRENT_TIMESTAMP", "CURRENT_DATE", "CURRENT_TIME", "NOW()", "LOCALTIME", "LOCALTIMESTAMP", "SYSDATE()", "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"] },
+    );
+  }
+  groups.push(
+    { label: "常用", items: isDate ? ["NULL", "CURRENT_USER()"] : ["NULL", "0", "1", "CURRENT_USER()", "UUID()"] },
+  );
+  return groups.flatMap(g => g.items.map(v => ({ label: v, value: v, group: g.label })));
+};
+
 /**
  * 该类型是否需要长度输入。
  *

@@ -1,5 +1,5 @@
 <template>
-  <LDialog
+  <ReDialog
     v-model="visible"
     :title="t('settings.providerDetail.fetchModelsTitle')"
     width="600px"
@@ -49,44 +49,18 @@
                 <div class="fetch-id">
                   <span class="fetch-name">{{ model.modelName }}</span>
                   <!--
-                    类型徽标：原来只认「非 text 即嵌入」这一个硬判断。
-                    上游模型行没有 modelType（那是逐条录入时才落库的字段），
-                    于是云端拉回来的全部行都满足 modelType !== 'text'，
-                    对话模型也被打上「嵌入」—— 必须经过推断后再显示。
+                    行内标签统一走 ModelTagStrip（图标 + tooltip）：
+                    类型 / 细分类型 / 来源（本地·云 API）/ 管线角色（检测·识别·矫正）/ 特性。
+
+                    为什么改：本弹框只有 600px 宽而模型名常很长，此前四个纯文字徽标
+                    （类型、来源、三态提示，外加特性文字）会把一行挤满甚至换行；
+                    「OCR识别 · 文字识别」这种复合徽标单独就占 100px 以上。
+                    图标化后每项只占 22px，最多显示 2 个、其余折叠成 +N，悬停看全。
+
+                    注意：类型徽标曾只认「非 text 即嵌入」，导致云端拉回的对话模型
+                    全被标成「嵌入」；推断逻辑保留在 fetchTypeBadge 里不动，这里只是换渲染。
                   -->
-                  <span
-                    v-if="fetchTypeBadge(model)"
-                    class="fetch-badge"
-                    :class="'badge-' + (fetchTypeBadge(model)?.kind || '')"
-                  >
-                    {{ fetchTypeBadge(model)?.label }}
-                  </span>
-                  <!--
-                    来源徽标：本地推理（ONNX / Ollama）与云 API 必须一眼分开。
-                    只看供应商标识，行里没有可靠依据。
-                  -->
-                  <span class="fetch-badge" :class="'src-' + fetchSourceBadge.kind">
-                    {{ fetchSourceBadge.label }}
-                  </span>
-                  <!--
-                    三态提示：模型名关键词标出管线角色（检测 / 识别 / 矫正），
-                    与类型徽标并列。只影响显示，不动任何分组。
-                  -->
-                  <span
-                    v-if="taskHintForName(model.modelName)"
-                    class="fetch-badge badge-hint"
-                  >
-                    {{ taskHintForName(model.modelName) }}
-                  </span>
-                  <template v-for="feature in model.config?.features || []" :key="feature">
-                    <LTooltip :content="getLableName(feature)" placement="top">
-                      <el-icon class="fetch-feature" :size="14">
-                        <WrenchScrewdriver24Regular v-if="feature === 'tools'" />
-                        <LightbulbFilament24Regular v-else-if="feature === 'thinking'" />
-                        <ScienceOutlined v-else />
-                      </el-icon>
-                    </LTooltip>
-                  </template>
+                  <ModelTagStrip :tags="rowTags(model)" :max="2" />
                 </div>
                 <!-- 行内小字描述：后端 description 优先（ONNX 本地行自带真实描述），
                      云端上游目录不带描述时按 task 推类型说明，都没有则不渲染 -->
@@ -119,22 +93,29 @@
         </el-button>
       </div>
     </div>
-  </LDialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Model } from '@/types/api'
-import LDialog from '@/components/ui/LDialog.vue'
-import LTooltip from '../ui/LTooltip.vue'
+import ReDialog from '@repo/ui/re-dialog'
 import { describeFetchRow, sourceBadgeFor, taskHintForName } from './model.utils'
-import { MODEL_SUBTYPE_LABELS } from './model.constants'
+import {
+  MODEL_SUBTYPE_LABELS, MODEL_TYPE_ICON, MODEL_TYPE_KIND, TASK_TO_TYPE,
+} from './model.constants'
+import { isChannelProvider } from './model.constants'
+import { channelApi } from '@/services/javaApi'
 import { SearchOutlined, ScienceOutlined } from '@vicons/material'
-import { WrenchScrewdriver24Regular, LightbulbFilament24Regular } from '@vicons/fluent'
+import {
+  WrenchScrewdriver24Regular, LightbulbFilament24Regular,
+  Desktop24Regular, Cloud24Regular, Scan24Regular, DocumentText24Regular, Wand24Regular,
+} from '@vicons/fluent'
 import { Loading, CircleCloseFilled, Download } from '@element-plus/icons-vue'
 import { apiService } from '../../services/ApiService'
 import { message } from '@repo/core'
+import ModelTagStrip from './ModelTagStrip.vue'
 
 const emit = defineEmits<{
   /** 逐条挑一个模型 → 预填表单 */
@@ -155,6 +136,8 @@ const fetched = ref<any[]>([])
 const loadError = ref('')
 /** 当前供应商标识：批量录入要按它落库，open 时记下，避免再从 props 里猜 */
 const providerId = ref('')
+/** 本次 open 的是否渠道 provider（决定 handleImportAll 走逐条 createModel 还是后端 import-all） */
+const openIsChannel = ref(false)
 let existingModels: any[] = []
 /**
  * 已知在库里的模型名（打开时来自既有模型，每次录入成功后并入返回的新行）。
@@ -194,12 +177,68 @@ const getLableName = (type: string) => {
  *   重置掉（openAdd 会清空表单）。
  */
 const open = async (provider: any, models: any[], fallbackToManual = true) => {
+  // 账号渠道 provider：模型目录由渠道管理页统一管理，不走云端 fetchRemoteModels（没有 apiKey）
+  const channelProviderFlag = isChannelProvider(provider)
+  const channelPlatform = String(provider?.platform || provider?.provider || provider?.id || '').toLowerCase()
+
   // 本地推理（ONNX）无需 base_url 与 Key：模型目录由后端本地模型门面提供，
   // 不能沿用云端提供商的「必须配好地址和 Key 才允许拉取」的前置校验，否则加模型流程会被堵死
   const isLocalProvider =
     provider?.id === 'onnx' ||
     provider?.provider_id === 'onnx' ||
     String(provider?.platform || provider?.provider || '').toLowerCase().includes('onnx')
+
+  if (channelProviderFlag) {
+    // 渠道 provider：从渠道管理页拉取已启用模型（渠道总开关 + 单模型开关双重过滤）
+    providerId.value = provider?.id || provider?.provider_id || ''
+    openIsChannel.value = true
+    existingModels = models || []
+    knownPresent.clear()
+    for (const m of existingModels) {
+      const n = String(m?.model ?? m?.modelName ?? '')
+      if (n) knownPresent.add(n)
+    }
+    searchName.value = ''
+    fetched.value = []
+    loadError.value = ''
+    visible.value = true
+    fetching.value = true
+    try {
+      const res: any = await channelApi.list()
+      const allChannels: any[] = (res as any)?.data ?? res
+      const channelList = Array.isArray(allChannels) ? allChannels : []
+      const hit = channelList.find((c: any) => c.channel === channelPlatform || c.providerId === provider?.id)
+      if (!hit) throw new Error('未找到该渠道信息，请先到渠道管理页绑定账号')
+      if (hit.enabled === false) throw new Error('该渠道当前未启用，请在渠道管理页开启总开关')
+      // 从渠道摘要的 models 字段取已启用模型
+      const rawModels: any[] = Array.isArray(hit.models) ? hit.models : []
+      const enabledModels = rawModels.filter((m: any) => m.enabled !== false)
+      const apiModels: any[] = enabledModels.map((m: any) => ({
+        modelName: m.model || m.alias,
+        modelType: 'text',
+        config: { contextWindow: m.contextWindow ?? undefined, features: [] },
+      }))
+      const enriched = apiModels.map((apiModel: any) => {
+        const existing = existingModels.find((m: any) => m.modelName === apiModel.modelName)
+        if (existing) {
+          return { ...apiModel, id: existing.id, config: { ...existing.config } }
+        }
+        return { ...apiModel, config: apiModel.config || { features: [] } }
+      })
+      fetched.value = enriched
+      message.success(
+        t('settings.providerDetail.fetchSuccess', { n: enriched.length }),
+        { duration: 2000 },
+      )
+    } catch (error: any) {
+      fetched.value = []
+      loadError.value = error?.message || t('settings.providerDetail.fetchFailed')
+      console.error('拉取渠道模型失败:', error)
+    } finally {
+      fetching.value = false
+    }
+    return
+  }
 
   if (!isLocalProvider) {
     const hasApiKey =
@@ -222,6 +261,7 @@ const open = async (provider: any, models: any[], fallbackToManual = true) => {
   }
 
   providerId.value = provider?.id || provider?.provider_id || ''
+  openIsChannel.value = false
   existingModels = models || []
   knownPresent.clear()
   for (const m of existingModels) {
@@ -358,6 +398,97 @@ const fetchTypeBadge = (m: any): { label: string; kind: string } | null => {
 /** 来源徽标：整场弹窗同一个供应商，算一次即可 */
 const fetchSourceBadge = computed(() => sourceBadgeFor(providerId.value))
 
+/** 管线角色（检测/识别/矫正）→ 图标 */
+const HINT_ICONS: Record<string, any> = {
+  检测: Scan24Regular,
+  识别: DocumentText24Regular,
+  矫正: Wand24Regular,
+}
+
+/** 特性 key → 图标 */
+const FEATURE_ICONS: Record<string, any> = {
+  tools: WrenchScrewdriver24Regular,
+  thinking: LightbulbFilament24Regular,
+  visual: ScienceOutlined,
+  'web-search': ScienceOutlined,
+}
+
+/**
+ * 把一行上游模型的各项标识组装成标签条标签（图标 + tooltip）。
+ *
+ * <p>组成顺序：类型 → 细分类型 → 来源 → 管线角色 → 特性。
+ * 由 {@link ModelTagStrip} 统一渲染为「最多 2 个，其余 +N，悬停看全」。</p>
+ *
+ * <p>类型徽标原先是一个复合字符串（`OCR识别 · 文字识别`），在 600px 的弹框里
+ * 单独就占 100px 以上。这里把它拆成**两个独立标签**，各自带图标，tooltip 各自
+ * 给出名称；kind 经 {@link TASK_TO_TYPE} 归一到规范类型，以便取到图标与配色。</p>
+ *
+ * @param m 上游模型行
+ * @returns 标签项列表（可能为空）
+ */
+const rowTags = (m: any) => {
+  const tags: Array<{ key: string; label: string; icon: any; kind: string }> = []
+
+  // ① 类型 + 细分类型（fetchTypeBadge 已做推断，这里只拆开展示）
+  const badge = fetchTypeBadge(m)
+  if (badge) {
+    const rawKind = String(badge.kind || '').toLowerCase()
+    const typeKey = TASK_TO_TYPE[rawKind] || rawKind || 'text'
+    const [mainLabel, subLabel] = String(badge.label || '').split('·').map((s) => s.trim())
+    if (mainLabel) {
+      tags.push({
+        key: `type:${typeKey}`,
+        label: mainLabel,
+        icon: MODEL_TYPE_ICON[typeKey] || ScienceOutlined,
+        kind: MODEL_TYPE_KIND[typeKey] || 'chat',
+      })
+    }
+    if (subLabel) {
+      tags.push({
+        key: `sub:${subLabel}`,
+        label: subLabel,
+        icon: MODEL_TYPE_ICON[typeKey] || Scan24Regular,
+        kind: MODEL_TYPE_KIND[typeKey] || 'info',
+      })
+    }
+  }
+
+  // ② 来源：本地推理 vs 云 API（本地/云必须一眼分开，图标也要能区分）
+  const src = fetchSourceBadge.value
+  if (src?.label) {
+    const local = src.kind === 'local'
+    tags.push({
+      key: `src:${src.kind}`,
+      label: src.label,
+      icon: local ? Desktop24Regular : Cloud24Regular,
+      kind: local ? 'tool' : 'info',
+    })
+  }
+
+  // ③ 管线角色（检测 / 识别 / 矫正）——只影响显示，不动任何分组
+  const hint = taskHintForName(m?.modelName)
+  if (hint) {
+    tags.push({
+      key: `hint:${hint}`,
+      label: `管线角色：${hint}`,
+      icon: HINT_ICONS[hint] || Scan24Regular,
+      kind: 'doc',
+    })
+  }
+
+  // ④ 特性
+  for (const f of m?.config?.features || []) {
+    tags.push({
+      key: `feat:${f}`,
+      label: getLableName(f),
+      icon: FEATURE_ICONS[f] || ScienceOutlined,
+      kind: 'tool',
+    })
+  }
+
+  return tags
+}
+
 const close = () => { visible.value = false }
 /** 点击「手动添加」：先关掉 fetchDialog，让表单-dialog 露出来。
  * 表单-dialog 在「添加模型」时就已打开，这里不能调 openAdd 重置用户内容。 */
@@ -383,44 +514,73 @@ const handleImportAll = async () => {
   if (importing.value || !providerId.value || fetched.value.length === 0) return
   importing.value = true
   try {
-    const res = await apiService.importAllModels(providerId.value)
-    const imported = Number(res?.imported ?? 0)
-    const skipped = Number(res?.skipped ?? 0)
-    const total = Number(res?.total ?? imported + skipped)
-    if (total === 0) {
-      // 上游一个模型都没返回：不是故障，但必须说清楚，否则用户以为卡住
-      message.warning(
-        t('settings.providerDetail.fetchSuccess', { n: 0 }),
+    // 账号渠道 provider：后端 import-all 走 fetchModelsFromUpstream，对 oauth 类 provider 会失败
+    // 渠道 provider 逐条走 createModel（PUT /api/provider-models）
+    const channelFlag = openIsChannel.value
+    if (channelFlag) {
+      // 逐条创建，已存在的跳过
+      let imported = 0
+      let skipped = 0
+      for (const m of fetched.value) {
+        const name = fetchRowName(m)
+        if (!name || knownPresent.has(name)) { skipped++; continue }
+        try {
+          await apiService.createModel({
+            providerId: providerId.value,
+            modelName: name,
+            enabled: true,
+            sort_order: imported,
+            config: {},
+            capabilities: [{ task: 'chat', traits: [] }],
+          })
+          knownPresent.add(name)
+          imported++
+        } catch (e: any) {
+          // 已存在等错误视为跳过
+          if (String(e?.message || '').includes('已存在') || String(e?.message || '').includes('exist')) skipped++
+          else throw e
+        }
+      }
+      message.success(
+        t('settings.providerDetail.importDone', { imported, skipped }),
         { duration: 3000 },
       )
-      return
-    }
-    const processed = imported + skipped
-    const expected = fetched.value.length // 弹窗列表来自 remote_models，是「该录全」的口径
-    for (const row of res?.models || []) {
-      const n = String(row?.model ?? row?.modelName ?? '')
-      if (n) knownPresent.add(n)
-    }
-    // 上游网关在快速重复调用时会返回不完整目录（实测同一密钥连打会回短列表/401）。
-    // 但只有「这次没返回的条目里确实还有库里没有的」才算缺口 —— 全录过之后再短返回
-    // 不该报警，否则用户会对已录全的列表反复点。有缺口就明确告知并保留弹窗续点补录。
-    const missingLocally = fetched.value.filter((m) => !knownPresent.has(fetchRowName(m))).length
-    if (processed < expected && missingLocally > 0) {
-      // 上游网关在快速重复调用时会返回不完整目录（实测同一密钥连打会回短列表/401）。
-      // 这时若照常关弹窗，用户会以为录全了 —— 明确告知缺口、保留弹窗让他续点补录。
-      message.warning(
-        t('settings.providerDetail.importPartialDesc', { got: processed, expected, imported, skipped }),
-        { duration: 6000 },
+      emit('imported')
+      visible.value = false
+    } else {
+      const res = await apiService.importAllModels(providerId.value)
+      const imported = Number(res?.imported ?? 0)
+      const skipped = Number(res?.skipped ?? 0)
+      const total = Number(res?.total ?? imported + skipped)
+      if (total === 0) {
+        message.warning(
+          t('settings.providerDetail.fetchSuccess', { n: 0 }),
+          { duration: 3000 },
+        )
+        return
+      }
+      const processed = imported + skipped
+      const expected = fetched.value.length
+      for (const row of res?.models || []) {
+        const n = String(row?.model ?? row?.modelName ?? '')
+        if (n) knownPresent.add(n)
+      }
+      const missingLocally = fetched.value.filter((m) => !knownPresent.has(fetchRowName(m))).length
+      if (processed < expected && missingLocally > 0) {
+        message.warning(
+          t('settings.providerDetail.importPartialDesc', { got: processed, expected, imported, skipped }),
+          { duration: 6000 },
+        )
+        emit('imported')
+        return
+      }
+      message.success(
+        t('settings.providerDetail.importDone', { imported, skipped }),
+        { duration: 3000 },
       )
-      emit('imported') // 已录进去的部分照样要让父组件刷新
-      return
+      emit('imported')
+      visible.value = false
     }
-    message.success(
-      t('settings.providerDetail.importDone', { imported, skipped }),
-      { duration: 3000 },
-    )
-    emit('imported')
-    visible.value = false
   } catch (error: any) {
     message.error(
       error?.response?.data?.message
@@ -478,18 +638,6 @@ const handleImportAll = async () => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.fetch-badge.src-local {
-  color: var(--el-color-success);
-  background: color-mix(in srgb, var(--el-color-success) 10%, transparent);
-}
-.fetch-badge.src-cloud {
-  color: var(--el-color-info);
-  background: color-mix(in srgb, var(--el-color-info) 10%, transparent);
-}
-.fetch-badge.badge-hint {
-  color: var(--el-color-warning);
-  background: color-mix(in srgb, var(--el-color-warning) 12%, transparent);
-}
 .fetch-id { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; margin-right: 16px; }
 .fetch-name {
   font-size: 13px;
@@ -499,17 +647,9 @@ const handleImportAll = async () => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.fetch-badge {
-  padding: 1px 6px;
-  /* 原值 5px → sm 档 */
-  border-radius: var(--el-radius-sm, 6px);
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
-}
-.fetch-feature { color: var(--color-text-gray); transition: color 0.15s ease; }
-.fetch-feature:hover { color: var(--color-primary); }
+/* .fetch-badge / .fetch-feature 已随标签改造移除：
+   类型、来源、管线角色、特性统一由 ModelTagStrip 以「图标 + tooltip」渲染，
+   不再有纯文字徽标，配色也由该组件的 kind-* 负责。 */
 .fetch-empty { text-align: center; padding: 48px 0; font-size: 13px; color: var(--color-text-disabled); }
 .fetch-error {
   display: flex;
@@ -533,13 +673,11 @@ const handleImportAll = async () => {
   word-break: break-word;
 }
 
-/* 动效降级：系统开启「减少动态效果」时，供应商行的悬停底色与特性链接的文字色直接到位。
+/* 动效降级：系统开启「减少动态效果」时，供应商行的悬停底色直接到位。
    逐个列出，不写 `*` / .fetch-row * 通配，
-   避免把 el-dialog / el-tag 内部 Element Plus 组件的合法过渡一起掐掉。
-   这两个都只带 transition（无 animation），hover 态本身是静态样式，照常成立。 */
+   避免把 el-dialog / el-tag 内部 Element Plus 组件的合法过渡一起掐掉。 */
 @media (prefers-reduced-motion: reduce) {
-  .fetch-row,
-  .fetch-feature {
+  .fetch-row {
     transition: none;
   }
 }

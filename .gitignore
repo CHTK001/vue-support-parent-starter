@@ -19,6 +19,16 @@ dist-verify2/
 playwright-bulk-report/
 # 交付部署目录（rsync/发布产物，20MB+，不入库）
 dist-deploy/
+# 打包体积报告（rollup-plugin-visualizer 产物，几百 KB 的纯生成文件）。
+# 曾经入库过，每次 build 都产生 diff，属于「临时文件必须放仓库外」的典型。
+stats.html
+# npm 的锁文件：本仓统一用 pnpm（pnpm-lock.yaml），
+# 残缺的 package-lock.json 只会误导安装行为。
+package-lock.json
+# 备份/交换文件
+*.bak
+*.orig
+*.rej
 .turbo/
 .turbo/**/
 coverage/
@@ -26,6 +36,11 @@ coverage/
 
 # 防御性忽略：apps/ 下若意外残留 index.html（dev/build 都不应再生成到 app 根）
 apps/*/index.html
+# 反忽略：filestorage 的 index.html 是**手写源码**（多页入口壳，vite.config.ts 把它列为
+# build input、sync-to-fs-server.ps1 把 dist/index.html 同步给后端 static/index.html），
+# 不是 dev/build 生成的残留物。它此前被上面那条通配规则连带忽略、从未提交，
+# 导致该应用 `pnpm build` 失败、dev 访问 / 返回 404。只放行这一个文件，其余 app 维持原规则。
+!apps/vue-support-filestorage-starter/index.html
 
 # 环境变量
 .env
@@ -67,6 +82,11 @@ packages/core/rust/**/wasm-pack/
 !packages/core/rust/**/*.wasm
 # 前端 wasm 资产需入库：代码用 ?url 导入，缺失会导致构建失败
 !pages/filesystem/src/wasm/**/*.wasm
+# file-viewer 渲染器 wasm 资产（public/wasm）已作为源码提交（2026-10-24）：
+# 覆盖 *.wasm 全局忽略，连同配套的 worker.js / .map / 版本化子目录一并入库
+!public/wasm/**/*.wasm
+!public/wasm/**
+!public/wasm/
 Cargo.lock
 **/Cargo.lock
 
@@ -228,11 +248,14 @@ dist-verify/
 **/.tmp-probe-*.mjs
 **/dbg-*.mjs
 
+# dist-dsh：构建产物目录（vite build 输出，不属于源码）
+apps/*/dist-dsh/
+
 **/_ofdtest/
 
 # @file-viewer vite-plugin ��Ⱦ���ʲ���dev �����빹��ʱ�ɲ��������Լ 27MB������⣩
-public/vendor/
-public/flyfish-viewer-assets.json
+# public/vendor/  <- 资产作为源码提交，见上（升级渲染器时手动同步）
+# public/flyfish-viewer-assets.json
 
 **/.kb-ui-accept/
 **/dcm-probe*.mjs
@@ -301,3 +324,15 @@ crud-ui-test.mjs
 **/trace-actions.mjs
 **/debug-*.mjs
 **/debug-*.log
+
+# --- 2026-10-24 补充：dev 缓存 / 空文件残留 / 一次性交付脚本 ---
+# vite dev 依赖预构建缓存（app 内 .vite-cache，随 node_modules 清理重建）
+**/.vite-cache/
+# pnpm 误生成的 0KB 空文件（apps/*/pnpm、apps/*/<pkg>@<ver>）
+apps/*/pnpm
+apps/*/@*
+# 并发会话的一次性交付/验证脚本（_deliver-* / _assets-* / _deliver-*.cjs）
+/_deliver-*.cjs
+/_assets-*.cjs
+/_deliver-*.mjs
+/_assets-*.mjs

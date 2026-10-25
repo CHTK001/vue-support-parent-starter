@@ -190,8 +190,7 @@ async function save(): Promise<void> {
         <ReInput v-model="form.remark" type="textarea" :rows="2" />
       </div>
     </div>
-    <template #footer="{ cancel }">
-      <ReButton @click="cancel">关闭</ReButton>
+    <template #footer>
       <ReButton type="primary" :loading="saving" @click="save">保存</ReButton>
     </template>
   </ReDialog>

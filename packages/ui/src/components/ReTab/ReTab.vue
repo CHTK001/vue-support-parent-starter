@@ -335,16 +335,16 @@ function toggleCollapsed(): void {
     color: var(--el-color-primary);
     font-weight: 600;
 
-    /* 激活下划线：与页签内边距对齐，压在导航底线之上 */
+    /* 激活下划线：与页签内边距对齐，压在导航底线之上。
+       1px + 无圆角，与导航底线同粗细，避免两条线叠出差集感 */
     &::after {
       content: "";
       position: absolute;
       right: 12px;
       bottom: -1px;
       left: 12px;
-      height: 2px;
+      height: 1px;
       background: var(--el-color-primary);
-      border-radius: 1px;
     }
   }
 }
@@ -409,8 +409,9 @@ function toggleCollapsed(): void {
 /* 单个 tab 项：横向均分，图标 + 文字横排垂直居中 */
 .re-tab-capsule__item {
   display: flex;
-  flex: 1;
-  min-width: 0;
+  flex: 1 1 auto;
+  /* 内容宽度是下限：flex 基础值取内容宽度，避免短档名被拉宽、长档名被裁字 */
+  min-width: max-content;
   align-items: center;
   justify-content: center;
   gap: 6px;
@@ -451,9 +452,10 @@ function toggleCollapsed(): void {
 }
 
 .re-tab-capsule__label {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* 不参与收缩：胶囊条按内容宽度排版（页面侧 width:auto 时尤其如此），
+     一旦允许收缩，「SSH 密钥库」这类长档名会被压成「SSH 密...」。
+     需要单行省略时由调用方给固定宽度，而不是让 label 在这里被静默截断。 */
+  flex: 0 0 auto;
   white-space: nowrap;
   font-size: 13px;
   line-height: 1;

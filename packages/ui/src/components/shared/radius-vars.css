@@ -4,7 +4,7 @@
  * 为什么要这一层：
  *   --el-radius-* 六档原本只在 packages/theme 的 koi 主题里定义
  *   （themes/koi/styles/radius.scss）。没有加载 koi 主题的应用
- *   （例如 apps/vue-support-ai-guada 只引 element-plus/dist/index.css）
+ *   （例如 apps/vue-support-ai-starter 只引 element-plus/dist/index.css）
  *   里 `var(--el-radius-md, 8px)` 只能吃兜底 px —— 视觉不变，
  *   但主题一旦挂上，圆角档与其它页面就对不齐。
  *   本文件把这套档位下沉到「装了组件库就能拿到」的层级，消掉这个缺口。

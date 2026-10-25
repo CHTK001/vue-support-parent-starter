@@ -37,6 +37,19 @@ const ENTRIES: readonly AnimatedIconEntry[] = [
   { name: "anim:tabler:heart", lib: "tabler", icon: "heart", load: () => import("./tabler/heart.vue") },
   { name: "anim:tabler:plus", lib: "tabler", icon: "plus", load: () => import("./tabler/plus.vue") },
   { name: "anim:tabler:trash", lib: "tabler", icon: "trash", load: () => import("./tabler/trash.vue") },
+  { name: "anim:tabler:refresh", lib: "tabler", icon: "refresh", load: () => import("./tabler/refresh.vue") },
+  { name: "anim:tabler:search", lib: "tabler", icon: "search", load: () => import("./tabler/search.vue") },
+  { name: "anim:tabler:sun", lib: "tabler", icon: "sun", load: () => import("./tabler/sun.vue") },
+  { name: "anim:tabler:moon", lib: "tabler", icon: "moon", load: () => import("./tabler/moon.vue") },
+  { name: "anim:tabler:sun-moon", lib: "tabler", icon: "sun-moon", load: () => import("./tabler/sun-moon.vue") },
+  { name: "anim:tabler:settings", lib: "tabler", icon: "settings", load: () => import("./tabler/settings.vue") },
+  { name: "anim:tabler:layout-grid", lib: "tabler", icon: "layout-grid", load: () => import("./tabler/layout-grid.vue") },
+  { name: "anim:tabler:clock", lib: "tabler", icon: "clock", load: () => import("./tabler/clock.vue") },
+  { name: "anim:tabler:propeller", lib: "tabler", icon: "propeller", load: () => import("./tabler/propeller.vue") },
+  { name: "anim:tabler:language", lib: "tabler", icon: "language", load: () => import("./tabler/language.vue") },
+  { name: "anim:tabler:arrows-maximize", lib: "tabler", icon: "arrows-maximize", load: () => import("./tabler/arrows-maximize.vue") },
+  { name: "anim:tabler:arrows-minimize", lib: "tabler", icon: "arrows-minimize", load: () => import("./tabler/arrows-minimize.vue") },
+  { name: "anim:tabler:user", lib: "tabler", icon: "user", load: () => import("./tabler/user.vue") },
 ];
 
 const BY_NAME = new Map<string, AnimatedIconEntry>(ENTRIES.map((entry) => [entry.name, entry]));

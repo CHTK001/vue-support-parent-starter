@@ -53,25 +53,28 @@
 
     <!-- 工具条 + 表格 -->
     <el-card shadow="never" class="table-card">
-      <div class="table-toolbar">
-        <div class="table-toolbar__left">
-          <el-button type="primary" :icon="Plus" @click="openCreate">新增汉字</el-button>
-        </div>
-      </div>
-
-      <div v-loading="loading" class="table-wrap">
+      <div class="table-wrap">
         <ReTable
-          :data="hanziRows"
+          ref="tableRef"
+          :loader="loadRows"
           :columns="hanziColumns"
+          :params="appliedParams"
           :row-key="'hanziId'"
+          v-model:page="pageNo"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 50, 100]"
           layout="table"
           :layout-switch="false"
-          :pagination="false"
           :toolbar="false"
           stripe
           :settings="{ border: false }"
           class="hanzi-table"
+          @load="onLoad"
+          @load-error="pageLoadError"
         >
+          <template #toolbar>
+            <el-button type="primary" :icon="Plus" @click="openCreate">新增汉字</el-button>
+          </template>
           <template #empty>
             <el-empty :image-size="88" description="暂无汉字，点击「新增汉字」创建" />
           </template>
@@ -113,24 +116,10 @@
           </template>
         </ReTable>
       </div>
-
-      <div class="table-footer">
-        <span class="table-footer__total">共 {{ total }} 条</span>
-        <el-pagination
-          v-model:current-page="pageNo"
-          v-model:page-size="pageSize"
-          :total="total"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="sizes, prev, pager, next, jumper"
-          background
-          @current-change="loadList"
-          @size-change="onSizeChange"
-        />
-      </div>
     </el-card>
 
     <!-- 新增/编辑对话框 -->
-    <ReDialog v-model="dialogVisible" class="q-dialog" width="880" :show-close="false" align-center>
+    <ReDialog v-model="dialogVisible" class="q-dialog" width="880" :show-close="false" :show-window-shell="false" align-center>
       <template #header>
         <div class="dialog-head">
           <div class="dialog-head__left">
@@ -233,6 +222,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
 import { Close, Delete, EditPen, Plus, Reading, RefreshLeft, Search } from "@element-plus/icons-vue";
 import { eduaiApi } from "../api/eduaiApi";
+import { createPageLoader, pageLoadError, strParam } from "../api/pageLoader";
 import type { EduHanzi } from "../api/types";
 import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
 import type { ReTableColumn } from "@repo/ui/re-table";
@@ -264,14 +254,13 @@ const hanziColumns: ReTableColumn[] = [
   { prop: "hanziMeaning", label: "释义 / 组词", minWidth: 200, showOverflowTooltip: true },
   { prop: "hanziImage", label: "字画", width: 80, align: "center", slot: "col-hanziImage" },
   { prop: "hanziGradeLevel", label: "学段", width: 80, align: "center", slot: "col-hanziGradeLevel" },
-  { prop: "actions", label: "操作", width: 120, align: "center", fixed: "right", slot: "col-actions" },
+  { prop: "actions", label: "操作", width: 140, align: "center", fixed: "right", slot: "col-actions" },
 ];
 
 // ==================== 列表 ====================
 const loading = ref(false);
 const rows = ref<EduHanzi[]>([]);
-/** ReTable 的 data 只收 Record 结构，此处仅做渲染层类型适配，不改数据本身 */
-const hanziRows = computed(() => rows.value as unknown as Record<string, unknown>[]);
+const tableRef = ref();
 const total = ref(0);
 const pageNo = ref(1);
 const pageSize = ref(20);
@@ -279,6 +268,27 @@ const pageSize = ref(20);
 const blankSearch = () => ({ keyword: "", gradeLevel: "" });
 const searchDraft = reactive(blankSearch());
 const applied = reactive(blankSearch());
+
+/** 筛选参数：提交后交给后端 pageQuery */
+const appliedParams = computed(() => ({
+  keyword: strParam(applied.keyword),
+  gradeLevel: strParam(applied.gradeLevel),
+}));
+
+/** 汉字分页 loader（后端筛选） */
+const loadRows = createPageLoader((page, size, params) =>
+  eduaiApi.pageHanzi({
+    ...params,
+    pageNum: page,
+    pageSize: size,
+  }),
+);
+
+/** ReTable 每页加载完成后同步当前页行与总数 */
+function onLoad(r: { data: unknown[]; total?: number }) {
+  rows.value = (r.data ?? []) as EduHanzi[];
+  total.value = r?.total ?? rows.value.length;
+}
 
 const statCards = computed(() => {
   const list = rows.value;
@@ -291,40 +301,14 @@ const statCards = computed(() => {
   ];
 });
 
-async function loadList() {
-  loading.value = true;
-  try {
-    const res = await eduaiApi.pageHanzi({
-      keyword: applied.keyword || undefined,
-      gradeLevel: applied.gradeLevel || undefined,
-      pageNum: pageNo.value,
-      pageSize: pageSize.value,
-    });
-    rows.value = res?.data ?? res?.records ?? [];
-    total.value = res?.total ?? rows.value.length;
-  } catch {
-    rows.value = [];
-    total.value = 0;
-    message.error("加载汉字失败");
-  } finally {
-    loading.value = false;
-  }
-}
-
 function commitSearch() {
   Object.assign(applied, { ...searchDraft });
-  pageNo.value = 1;
-  void loadList();
+  void tableRef.value?.goto(1);
 }
 
 function handleReset() {
   Object.assign(searchDraft, blankSearch());
   commitSearch();
-}
-
-function onSizeChange() {
-  pageNo.value = 1;
-  void loadList();
 }
 
 // ==================== 表单 ====================
@@ -387,7 +371,7 @@ async function save() {
     });
     message.success("保存成功");
     dialogVisible.value = false;
-    await loadList();
+    void tableRef.value?.reload();
   } catch (e) {
     message.error("保存失败: " + (e instanceof Error ? e.message : String(e)));
   } finally {
@@ -408,14 +392,14 @@ async function remove(row: EduHanzi) {
   try {
     await eduaiApi.deleteHanzi(row.hanziId as number);
     message.success("已删除");
-    await loadList();
+    void tableRef.value?.reload();
   } catch (e) {
     message.error("删除失败: " + (e instanceof Error ? e.message : String(e)));
   }
 }
 
 onMounted(() => {
-  void loadList();
+  // 表格 loader 自动加载首屏，无需手动触发
 });
 </script>
 
@@ -566,17 +550,6 @@ onMounted(() => {
 .table-card :deep(.el-card__body) {
   padding: 16px 20px 18px;
 }
-.table-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-.table-toolbar__left .el-button {
-  border-radius: var(--el-radius-lg, 12px);
-  font-weight: 600;
-}
 .table-wrap {
   /* 固定容器高度：表格自身高度不再随页面滚动位置重算（那是滚动抖动的根因）。
      503 为 1440×900 实测值：wrap.top 427 + 分页条与其间距 50 + 卡片 body 底部
@@ -634,19 +607,6 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-.table-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 14px;
-  flex-wrap: wrap;
-}
-.table-footer__total {
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-  font-weight: 600;
-}
 
 /* ---------- 对话框 ---------- */
 .q-dialog :deep(.el-dialog__header) {

@@ -316,9 +316,6 @@ const tableColumns = [
           <span :class="['kv-val', { mono: row.mono }]">{{ row.value }}</span>
         </div>
       </div>
-      <template #footer>
-        <ReButton type="primary" @click="statusVisible = false">关闭</ReButton>
-      </template>
     </ReDialog>
 
     <!-- 属性弹窗 -->
@@ -336,9 +333,6 @@ const tableColumns = [
           <ReButton v-if="item.editable" layout="square" @click="openIPv4()">属性</ReButton>
         </div>
       </div>
-      <template #footer>
-        <ReButton @click="propsVisible = false">关闭</ReButton>
-      </template>
     </ReDialog>
 
     <!-- IPv4 编辑弹窗 -->

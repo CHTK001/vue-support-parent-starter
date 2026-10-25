@@ -136,6 +136,11 @@ export default {
     loadingHistory: 'Loading message history...',
     noMoreMessages: 'No more messages',
     compressing: 'Optimizing conversation history, please wait...',
+    // 回到底部按钮上的「当前在做什么」状态（见 ScrollToBottomButton + ChatPanel.processingStatus）
+    statusCompressing: 'Compressing',
+    statusRunningTool: 'Running: {action}',
+    statusThinking: 'Thinking',
+    statusGenerating: 'Generating',
     editingMessage: 'Editing message',
     memoryManagement: 'Memory Management',
     contextUsage: 'Context Usage',

@@ -237,32 +237,49 @@
             <span class="dsm-spacer" />
             <span class="dsm-query-hint">{{ useSql ? (isV3 ? "表/列名与 SQL 关键字输入即提示" : "InfluxQL 语句，目标桶由当前选中的桶带入") : "桶/测量名与 Flux 函数输入即提示" }}</span>
           </div>
-          <DbSqlEditor
-            v-model="t.flux"
-            :language="useSql ? 'sql' : 'flux'"
-            :keywords="useSql ? [] : fluxKeywords"
-            :tables="isV3 && useSql ? sqlTables : undefined"
-            :column-resolver="isV3 && useSql ? resolveSqlColumns : undefined"
-            data-testid="dsm-flux-editor"
-            @execute="executeQuery(t)"
-          />
-          <div class="dsm-query-result">
-            <div class="dsm-query-header">
-              查询结果
-              <span v-if="t.result.rows.length > 0" class="dsm-query-meta">
-                {{ t.result.rows.length }} 行 · {{ t.elapsed }} ms
-                <span v-if="t.truncated" class="dsm-query-warn">已截断，服务端共 {{ t.totalRows }} 行，请加 limit 或收窄时间窗</span>
-              </span>
+          <!-- 编辑器与结果表之间可上下拖拽分隔条（拖动改变两者高度，默认 45% / 55%） -->
+          <div class="dsm-query-split">
+            <div
+              class="dsm-query-editor-pane"
+              :style="{ height: `calc((100% - 24px) * ${t.editorRatio})` }"
+            >
+              <DbSqlEditor
+                v-model="t.flux"
+                :language="useSql ? 'sql' : 'flux'"
+                :keywords="useSql ? [] : fluxKeywords"
+                :tables="isV3 && useSql ? sqlTables : undefined"
+                :column-resolver="isV3 && useSql ? resolveSqlColumns : undefined"
+                :max-height="`${t.editorRatio * 100}vh`"
+                data-testid="dsm-flux-editor"
+                @execute="executeQuery(t)"
+              />
             </div>
-            <ReTable
-              v-if="t.result.columns.length > 0"
-              :data="t.result.rows"
-              :columns="t.result.columns"
-              stripe
-              border
-              :layout-table="{ height: '360px' }"
-            />
-            <ReEmpty v-else description="执行查询后显示结果" />
+            <div
+              class="dsm-splitter"
+              :data-testid="`dsm-splitter-${t.id}`"
+              :title="'上下拖拽调整编辑器与结果区高度'"
+              @mousedown.prevent="startSplitDrag($event, t)"
+            >
+              <ReIcon name="Rank" size="12" class="dsm-splitter-icon" />
+            </div>
+            <div class="dsm-query-result">
+              <div class="dsm-query-header">
+                查询结果
+                <span v-if="t.result.rows.length > 0" class="dsm-query-meta">
+                  {{ t.result.rows.length }} 行 · {{ t.elapsed }} ms
+                  <span v-if="t.truncated" class="dsm-query-warn">已截断，服务端共 {{ t.totalRows }} 行，请加 limit 或收窄时间窗</span>
+                </span>
+              </div>
+              <ReTable
+                v-if="t.result.columns.length > 0"
+                :data="t.result.rows"
+                :columns="t.result.columns"
+                stripe
+                border
+                :layout-table="{ height: '100%' }"
+              />
+              <ReEmpty v-else description="执行查询后显示结果" />
+            </div>
           </div>
         </div>
       </div>
@@ -303,6 +320,23 @@
           <ReOption v-for="f in browserFields" :key="f" :label="f" :value="f" />
         </ReSelect>
         <span class="dsm-browser-meta">{{ browserRows.length }} 行</span>
+        <span class="dsm-spacer" />
+        <ReButton
+          layout="square"
+          type="primary"
+          icon="EditPen"
+          tip="添加数据（写入数据点）"
+          data-testid="dsm-browser-add"
+          @click="openWritePoint"
+        />
+        <ReButton
+          layout="square"
+          type="danger"
+          icon="Delete"
+          tip="删除测量（删该测量的全部数据）"
+          data-testid="dsm-browser-drop"
+          @click="confirmDeleteMeasurement(browserMeasurement)"
+        />
         <ReButton text @click="runBrowserQuery">
           <template #icon><ReIcon name="Refresh" size="12" /></template>刷新
         </ReButton>
@@ -315,9 +349,6 @@
         border
         :layout-table="{ height: '360px' }"
       />
-      <template #footer>
-        <ReButton @click="browserVisible = false">关闭</ReButton>
-      </template>
     </ReDialog>
 
     <!-- 写入数据弹窗 -->
@@ -399,6 +430,7 @@ import {
 import {
   createInfluxdbBucket,
   deleteInfluxdbBucket,
+  dropInfluxdbMeasurement,
   fetchInfluxdbOrg,
   updateInfluxdbBucketRetention,
   writeInfluxdbPoints,
@@ -467,8 +499,12 @@ const sideMenuItems = computed(() =>
         { key: "delete", label: databaseModel.value ? "删除数据库" : "删除 Bucket", icon: "Delete", danger: true, divided: true },
       ]
     : [
-        { key: "view", label: "查看该测量", icon: "TrendCharts" },
+        // 对齐 jdbc 表右键：打开表（数据浏览）/ 编辑表（打开数据浏览并可写）/ 删除表
+        { key: "open", label: "打开表", icon: "Grid" },
+        { key: "edit", label: "编辑表（浏览并写数据）", icon: "EditPen" },
+        { key: "query", label: "查询该测量", icon: "EditPen" },
         { key: "copy", label: "复制名称", icon: "Document" },
+        { key: "delete", label: "删除表（删该测量）", icon: "Delete", danger: true, divided: true },
       ],
 );
 /** 存储桶表格行右键（ReTable 内置菜单，图标为组件引用） */
@@ -503,9 +539,30 @@ function onSideMenuSelect(action: string) {
     else selectMeasurement(name);
     return;
   }
-  if (action === "delete" && sideMenu.kind === "bucket") {
-    const row = buckets.value.find(b => b.name === name);
-    if (row) confirmDeleteBucket(row);
+  if (action === "open" || action === "edit") {
+    if (sideMenu.kind === "measurement") {
+      onMeasurementRowClick({ name });
+      // 编辑表 = 打开数据浏览后直接拉起写入面板（时序库"编辑"= 删旧写新）
+      if (action === "edit") {
+        // 打开数据浏览后立刻定位到写入：等弹窗挂载后设置
+        window.setTimeout(() => {
+          if (browserVisible.value && browserMeasurement.value) openWritePoint();
+        }, 50);
+      }
+    }
+    return;
+  }
+  if (action === "query") {
+    if (sideMenu.kind === "measurement") selectMeasurement(name);
+    return;
+  }
+  if (action === "delete") {
+    if (sideMenu.kind === "bucket") {
+      const row = buckets.value.find(b => b.name === name);
+      if (row) confirmDeleteBucket(row);
+    } else if (sideMenu.kind === "measurement") {
+      confirmDeleteMeasurement(name);
+    }
   }
 }
 /** 存储桶表格菜单分发 */
@@ -563,11 +620,51 @@ interface QueryTab {
   elapsed: number;
   truncated: boolean;
   totalRows: number;
+  /** 编辑器区域占比（0~1），随分隔条拖拽变化 */
+  editorRatio: number;
   result: { columns: Column[]; rows: Record<string, unknown>[] };
 }
 const queryTabs = ref<QueryTab[]>([]);
 const activeWorkspaceTab = ref<string>("overview");
 let queryTabSeq = 0;
+
+/** 查询分隔条拖拽状态 */
+const splitDragging = ref(false);
+/** 正在拖拽的目标页签 */
+let splitTarget: QueryTab | null = null;
+
+/**
+ * 开始拖拽分隔条：记录起始 Y 与页签，之后在 window 上监听 move/up，
+ * move 时按容器高度换算编辑区占比并夹取在 25%~80% 之间。
+ */
+function startSplitDrag(e: MouseEvent, tab: QueryTab) {
+  if (e.button !== 0) return;
+  splitDragging.value = true;
+  splitTarget = tab;
+  const startY = e.clientY;
+  const startRatio = tab.editorRatio;
+  const container = (e.currentTarget as HTMLElement)?.closest(".dsm-query-split") as HTMLElement | null;
+  const containerHeight = container?.getBoundingClientRect().height ?? 400;
+
+  const onMove = (ev: MouseEvent) => {
+    if (!splitTarget) return;
+    const delta = (ev.clientY - startY) / containerHeight;
+    splitTarget.editorRatio = Math.min(0.8, Math.max(0.25, startRatio + delta));
+  };
+  const onUp = () => {
+    splitDragging.value = false;
+    splitTarget = null;
+    window.removeEventListener("mousemove", onMove);
+    window.removeEventListener("mouseup", onUp);
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+  };
+
+  window.addEventListener("mousemove", onMove);
+  window.addEventListener("mouseup", onUp);
+  document.body.style.cursor = "row-resize";
+  document.body.style.userSelect = "none";
+}
 /** Flux 补全候选：桶名 + 已加载的测量名（输入即提示，随数据异步刷新） */
 const fluxKeywords = computed(() => [
   ...buckets.value.map(b => b.name),
@@ -839,6 +936,7 @@ function openQueryTab(flux?: string): QueryTab {
     elapsed: 0,
     truncated: false,
     totalRows: 0,
+    editorRatio: 0.45,
     result: { columns: [], rows: [] },
   };
   queryTabs.value.push(tab);
@@ -971,6 +1069,35 @@ async function submitBucket() {
     fail(e, "/ms/monitor/influxdb/bucket");
   } finally {
     bucketSaving.value = false;
+  }
+}
+
+/**
+ * 删除测量（InfluxDB 的「表」）—— 二次确认后调用后端 DROP MEASUREMENT / DROP TABLE。
+ * @param measurement 度量名
+ */
+async function confirmDeleteMeasurement(measurement: string) {
+  if (!activeBucket.value || !measurement) return;
+  try {
+    await ElMessageBox.confirm(
+      `确认删除测量「${measurement}」？该操作会删除该测量的全部数据，不可恢复。`,
+      "删除测量",
+      { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" }
+    );
+  } catch {
+    return;
+  }
+  try {
+    await dropInfluxdbMeasurement(activeBucket.value, measurement, datasourceId.value);
+    message.success("测量已删除");
+    await loadMeasurements();
+    if (browserMeasurement.value === measurement) {
+      browserMeasurement.value = "";
+      browserRows.value = [];
+      browserColumns.value = [];
+    }
+  } catch (e) {
+    fail(e, "/ms/monitor/influxdb/measurement/drop");
   }
 }
 
@@ -1211,7 +1338,7 @@ watch(source, applyConnectionInfo);
 }
 
 .dsm-title-icon {
-  color: #34d399;
+  color: var(--brand-500, var(--apm-brand-500));
 }
 
 .dsm-toolbar-right {
@@ -1249,8 +1376,8 @@ watch(source, applyConnectionInfo);
 }
 
 .dsm-dialect-btn.is-active {
-  color: var(--el-color-primary, #409eff);
-  background: var(--el-color-primary-light-9, #ecf5ff);
+  color: var(--brand-500, var(--apm-brand-500));
+  background: var(--bg-hover, var(--apm-bg-hover));
   font-weight: 600;
 }
 
@@ -1310,7 +1437,7 @@ watch(source, applyConnectionInfo);
 }
 
 .dsm-influx-icon {
-  color: #34d399;
+  color: var(--brand-500, var(--apm-brand-500));
 }
 
 .dsm-tree-label {
@@ -1330,20 +1457,46 @@ watch(source, applyConnectionInfo);
   border-radius: 10px;
 }
 
-/* 工作区页签（jdbc dbm-tabs 式）：总览 + Flux 查询 */
-.dsm-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0; }
+/* 工作区页签（对齐 jdbc dbm-tabs）：总览 + 查询/表数据页签，可多开、切换保留 */
+.dsm-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 10px 12px 0;
+  border-bottom: 1px solid var(--border-subtle, var(--apm-border-subtle));
+  overflow-x: auto;
+  flex-shrink: 0;
+}
 
-.dsm-tab { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer; color: var(--text-tertiary); border-bottom: 2px solid transparent; transition: all 0.15s; user-select: none; }
+.dsm-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  color: var(--text-secondary, var(--apm-text-secondary));
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: var(--radius-md, 8px) var(--radius-md, 8px) 0 0;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
 
-.dsm-tab:hover { color: var(--text-primary); }
+.dsm-tab:hover { background: var(--bg-hover, var(--apm-bg-hover)); color: var(--text-primary, var(--apm-text-primary)); }
 
-.dsm-tab.active { color: var(--brand-600); border-bottom-color: var(--brand-500); font-weight: 600; }
+.dsm-tab.active {
+  color: var(--brand-500, var(--apm-brand-500));
+  background: var(--bg-hover, var(--apm-bg-hover));
+  font-weight: 600;
+  border-color: var(--border-subtle, var(--apm-border-subtle));
+}
 
-.dsm-tab-title { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dsm-tab-title { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .dsm-tab-close { opacity: 0.5; transition: opacity 0.15s ease; }
 
-.dsm-tab-close:hover { opacity: 1; color: var(--el-color-danger); }
+.dsm-tab-close:hover { opacity: 1; color: var(--status-error, var(--apm-status-error)); }
 
 .dsm-content {
   flex: 1;
@@ -1399,7 +1552,7 @@ watch(source, applyConnectionInfo);
 
 .dsm-query-warn {
   margin-left: 8px;
-  color: var(--el-color-warning, #e6a23c);
+  color: var(--status-warning, var(--apm-status-warning));
 }
 
 .dsm-section {
@@ -1440,6 +1593,60 @@ watch(source, applyConnectionInfo);
   flex-direction: column;
   gap: 12px;
   min-height: 0;
+  flex: 1;
+}
+
+/* 查询/结果上下拖拽分栏 */
+.dsm-query-split {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  gap: 8px;
+}
+.dsm-query-editor-pane {
+  flex: none;
+  min-height: 120px;
+}
+.dsm-splitter {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 16px;
+  cursor: row-resize;
+  color: var(--text-tertiary, var(--apm-text-tertiary));
+  border-radius: 6px;
+  user-select: none;
+  transition: background 0.15s, color 0.15s;
+}
+.dsm-splitter:hover {
+  background: var(--bg-hover, var(--apm-bg-hover));
+  color: var(--brand-500, var(--apm-brand-500));
+}
+.dsm-splitter-icon {
+  transition: transform 0.15s;
+}
+.dsm-splitter:hover .dsm-splitter-icon {
+  transform: scale(1.15);
+}
+.dsm-query-result {
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.dsm-query-result :deep(.rs-table-wrap) {
+  flex: 1;
+  min-height: 0;
+}
+.dsm-query-result :deep(.rs-table__body-wrapper),
+.dsm-query-result :deep(.el-scrollbar) {
+  height: 100%;
 }
 
 /* 查询工具栏：对齐 jdbc 查询页（方钮 + 弹性占位 + 提示文案） */
@@ -1455,7 +1662,7 @@ watch(source, applyConnectionInfo);
 
 .dsm-query-hint {
   font-size: 12px;
-  color: var(--text-secondary, var(--el-text-color-secondary));
+  color: var(--text-secondary, var(--apm-text-secondary));
 }
 
 .dsm-query-editor {

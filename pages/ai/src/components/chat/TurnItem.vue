@@ -99,6 +99,13 @@
             @click="handleClick" />
 
           <!--
+            首字未返回时的思考占位：随机文案（会话管理可配）+ 三点/呼吸动画。
+            不让 AI 气泡在等首字时是一块空白 —— 本机实测等待 5～50s，
+            空白会被读成「卡死了」。首字一到即由正文顶替（见 showThinkingPlaceholder）。
+          -->
+          <ThinkingPlaceholder v-if="showThinkingPlaceholder" class="mt-3" />
+
+          <!--
             Agent 产出图片就地预览：正文/工具调用里提到的工作区图片文件，
             真实存在就渲染缩略图（幻觉路径静默跳过）。
             传本轮全部版本——图片是 agent 的真实产物，不随文本版本切换丢失。
@@ -252,6 +259,7 @@ import { getModelDisplayName, getModelAvatarPath } from '@/utils/modelUtils';
 import { usePopup } from "../../composables/usePopup";
 import MessageToolCalls from './message-item/MessageToolCalls.vue';
 import ProcessTimeline from './message-item/ProcessTimeline.vue';
+import ThinkingPlaceholder from './message-item/ThinkingPlaceholder.vue';
 import MessageOutputImages from './message-item/MessageOutputImages.vue';
 import MessageActions from './message-item/MessageActions.vue';
 import FileChangesBar from './message-item/FileChangesBar.vue';
@@ -373,6 +381,28 @@ const displayGroups = computed<DisplayGroup[]>(() => {
 const timelineItems = computed<DisplayItem[]>(() => {
   return flattenContentsForTimeline(turnsCache.value);
 });
+
+/**
+ * 正文是否已经有字了（= 首字到了没）。
+ *
+ * <p>只认 content 正文：思考行/工具行不算「回复」——它们出现时正文往往仍是空的，
+ * 占位继续显示才符合读感（「在想」→ 还在想下一句）。</p>
+ */
+const hasReplyText = computed(() => {
+  const msg = activeAssistant.value;
+  if (!msg) return false;
+  return (msg.contents || []).some((c: any) => String(c?.content || '').trim().length > 0);
+});
+
+/**
+ * 是否显示「AI 正在思考…」占位：正在流式，且正文一个字都还没有。
+ *
+ * <p>首字一到 hasReplyText 变 true，占位立刻卸载、由正文顶替，
+ * 不会出现「占位和正文同时挂在气泡里」的怪状态。</p>
+ */
+const showThinkingPlaceholder = computed(
+  () => streamingState.value.isStreaming && !hasReplyText.value,
+);
 
 // ============================================
 // 执行日志（agentscope trace）
@@ -892,17 +922,23 @@ const handleClick = (event: MouseEvent) => {
   align-items: flex-start;
 }
 
-/* 助手消息卡片：用户反馈原「整宽正文区、与背景同色」很难看，故改为有承载面的卡片。
-   仍遵守 koi 规约：不加投影，层次靠底色 + 圆角 + 内边距 + 细边框表达。 */
+/* 助手消息：**去掉承载面与边框，直接融入会话背景**（用户要求 2026-10-24，与参考图一致）。
+   原实现是「整宽卡片 + 底色 + 细边框 + 内边距」，视觉上把 AI 回复框成一个盒子；
+   参考图里助手正文就是一整块背景，外面不再套一层容器。
+   层次改由字号 / 行高 / 过程行的弱化色表达，不再靠底板与描边。
+   注：只改助手侧，用户气泡（.user-section）保持原卡片形态不动。 */
 .assistant-section .message-item__card {
-  background: var(--color-bubble-assitant-bg);
+  background: transparent;
   color: var(--color-bubble-assitant-text);
   margin-right: auto;
   width: 100%;
-  padding: 12px 16px;
-  border-radius: var(--el-radius-xl, 16px);
-  border: 1px solid var(--color-bubble-assitant-border);
+  padding: 0;
+  border-radius: 0;
+  border: none;
   box-shadow: none;
+  /* 字号 15px → 14px：与参考图一致（不要太大），也与 FloatingChatPanel 里
+     同一份正文的 14px 覆盖同档，避免同一内容两处大小不一。 */
+  font-size: 14px;
 }
 
 .assistant-section .message-item__card strong {
@@ -967,6 +1003,9 @@ const handleClick = (event: MouseEvent) => {
 
 .assistant-section .message-item__text {
   margin-bottom: 8px;
+  /* 与上面卡片同口径：14px + 稍松行高，替代原先按 15px 令牌算出的 24px 行高 */
+  font-size: 14px;
+  line-height: 1.65;
 }
 
 .message-item__wrapper {

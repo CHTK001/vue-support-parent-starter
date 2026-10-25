@@ -1,5 +1,5 @@
 <template>
-    <div class="h-full flex">
+    <div class="h-full flex" data-page="system-settings">
         <Teleport v-if="portalReady" to="#settings-sidebar-portal">
             <!-- 设置侧边栏：Teleport 到全局侧边栏位置以获得毛玻璃效果 -->
             <div
@@ -45,7 +45,7 @@
                 <template #title>
                     <span class="text-sm text-gray-400 dark:text-gray-500">{{ t('settings.system.title') }}</span>
                     <span class="text-sm text-gray-300 dark:text-gray-600 mx-1.5">·</span>
-                    <span class="text-sm font-semibold text-gray-800 dark:text-[#e8e9ed]">{{ currentTabLabel }}</span>
+                    <span class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ currentTabLabel }}</span>
                 </template>
             </PageHeader>
             <div class="flex-1 overflow-hidden flex flex-col w-full" :style="contentMaxWidthStyle">
@@ -80,6 +80,12 @@
                         <template v-else-if="currentTabValue === 'face-config'">
                             <DefaultModelSettings :groups="['face']" />
                         </template>
+                        <template v-else-if="currentTabValue === 'reid-config'">
+                            <!-- 人脸重识别：检测/特征模型 + 轨迹归并参数（阈值/时间窗/容量/保留时长）。
+                                 reid 分组由后端 ReidGlobalSettingProvider 声明，保存后
+                                 ReidClientManager 热重建，模型与归并参数即时生效。 -->
+                            <DefaultModelSettings :groups="['reid']" />
+                        </template>
                         <template v-else-if="currentTabValue === 'image-search-config'">
                             <DefaultModelSettings :groups="['image_search']" />
                         </template>
@@ -91,6 +97,9 @@
                         </template>
                         <template v-else-if="currentTabValue === 'ocr-config'">
                             <DefaultModelSettings :groups="['ocr']" />
+                        </template>
+                        <template v-else-if="currentTabValue === 'paper-config'">
+                            <DefaultModelSettings :groups="['paper']" />
                         </template>
                         <template v-else-if="currentTabValue === 'bot-connector-config'">
                             <DefaultModelSettings :groups="['bot']" />
@@ -165,13 +174,20 @@
                             <ServiceTokensPage />
                         </template>
                         <!--
-                          文件存储：直接复用 @repo/filesystem 的 FileStorageManage。
-                          该页原本对接独立文件服务器（默认 127.0.0.1:18080），
-                          这里作为「系统配置」的一个只读查看入口，
-                          便于排查生成任务的参考图/产物是否真的落盘。
+                          渠道管理：账号类渠道（Cline / Qoder / Trae / Gemini）的账号绑定、
+                          轮询、刷新、签到、模型拉取与单模型开关。
+                          账号连接按 userId 隔离（sys_ai_provider_connection_user_id），
+                          每个用户管理自己的绑定，与其它菜单口径一致；免费渠道另走管理员配置。
                         -->
-                        <template v-else-if="currentTabValue === 'file-storage'">
-                            <FileStorageManage class="h-full" />
+                        <template v-else-if="currentTabValue === 'channels'">
+                            <ChannelManagementPage />
+                        </template>
+                        <!--
+                          菜单管理：把侧栏菜单全部列出，逐项「显示 / 隐藏」。
+                          与侧栏同源清单（config/sidebarMenu.ts），改完立即生效。
+                        -->
+                        <template v-else-if="currentTabValue === 'menu-manage'">
+                            <MenuDisplaySettings class="h-full" />
                         </template>
                         <!--
                           图像底库：以图搜图底库的独立管理页。
@@ -189,6 +205,13 @@
                         -->
                         <template v-else-if="currentTabValue === 'face-library'">
                             <FaceLibraryPanel />
+                        </template>
+                        <!--
+                          重识别库：只做**管理**（查看/删除观测），观测与轨迹在外侧「人脸重识别」页。
+                          与「人脸识别（外侧） + 人脸底库（设置内）」同一分工。
+                        -->
+                        <template v-else-if="currentTabValue === 'reid-library'">
+                            <ReidLibraryPanel />
                         </template>
                         </template>
                     </ScrollContainer>
@@ -217,14 +240,16 @@ import UsageConfigSettings from './UsageConfigSettings.vue'
 import SkillsSourceSettings from './SkillsSourceSettings.vue'
 import ServiceManagementPage from '../management/ServiceManagementPage.vue'
 import ServiceTokensPage from '../management/ServiceTokensPage.vue'
+import ChannelManagementPage from '../management/ChannelManagementPage.vue'
 import CommunityPanel from './CommunityPanel.vue'
 import ScrollContainer from '../ui/ScrollContainer.vue'
-// 复用 pages/filesystem 的文件存储管理页（同一份实现，不复制）
-import { FileStorageManage } from '@pages/filesystem'
+// 菜单管理：与侧栏同源的清单 + 显示/隐藏开关（不嵌 sys_menu 的增删改）
+import MenuDisplaySettings from './MenuDisplaySettings.vue'
 // 以图搜图图像底库管理面板（同一份实现，被「图像底库」tab 复用）
 import ImageLibraryPanel from './ImageLibraryPanel.vue'
 // 人脸底库**管理**面板（识别仍在外侧「人脸识别」页，这里只管底库）
 import FaceLibraryPanel from './FaceLibraryPanel.vue'
+import ReidLibraryPanel from './ReidLibraryPanel.vue'
 
 import {
     Grid16Regular,
@@ -245,6 +270,9 @@ import {
     Server24Regular,
     Person20Regular,
     DesktopSpeaker24Regular,
+    DocumentText24Regular,
+    AppsListDetail20Regular,
+    Fingerprint24Regular,
 } from '@vicons/fluent'
 
 import { ArrowBackIosNewTwotone, VerifiedUserOutlined } from '@vicons/material'
@@ -272,10 +300,12 @@ const groupMap = computed<Record<string, string>>(() => ({
     // 原先它们全挤在「常规」里，与通用/浏览器/外观混在一起，找模型要翻很久。
     'default-models': t('settings.system.groups.modelConfig'),
     'face-config': t('settings.system.groups.modelConfig'),
+    'reid-config': t('settings.system.groups.modelConfig'),
     'image-search-config': t('settings.system.groups.modelConfig'),
     'layout-config': t('settings.system.groups.modelConfig'),
     'rag-config': t('settings.system.groups.modelConfig'),
     'ocr-config': t('settings.system.groups.modelConfig'),
+    'paper-config': t('settings.system.groups.modelConfig'),
     'bot-connector-config': t('settings.system.groups.modelConfig'),
     'audio-config': t('settings.system.groups.modelConfig'),
     ocr: t('settings.system.groups.general'),
@@ -298,12 +328,17 @@ const groupMap = computed<Record<string, string>>(() => ({
     security: t('settings.system.groups.account'),
     services: t('settings.system.groups.system'),
     'service-tokens': t('settings.system.groups.system'),
-    'file-storage': t('settings.system.groups.system'),
+    'menu-manage': t('settings.system.groups.system'),
     // 底库：图像底库与人脸底库归到同一个分组。
     // 原先图像底库挂在「系统」组、人脸库挂在外侧主导航，两个同类功能分处两地；
     // 收进同一个「底库」分组后，入口位置与语义一致。
     'image-library': t('settings.system.groups.library'),
     'face-library': t('settings.system.groups.library'),
+    'reid-library': t('settings.system.groups.library'),
+    // 渠道管理：账号类渠道（Cline / Qoder / Trae / Gemini）的账号绑定。
+    // 账号连接按 userId 隔离（每个用户管理自己的绑定），与其它菜单口径一致；
+    // 免费渠道的路由/全局 Key 另走管理员渠道管理配置。
+    channels: t('settings.system.groups.channels'),
 }))
 
 // 设置项菜单
@@ -346,6 +381,17 @@ const sidebarItems = computed(() => [
         roles: ['primary'],
     },
     {
+        // 人脸重识别（跨摄像头/跨帧追踪）的独立配置。
+        //
+        // 与「人脸识别配置」同口径：不设 adminOnly。
+        // 重识别的模型与归并参数按账号生效（后端 ReidStores 按账号构建实例），
+        // 普通用户可以调自己的阈值/时间窗，管理员改的则作为全局默认。
+        label: '人脸重识别配置',
+        path: 'reid-config',
+        icon: Fingerprint24Regular,
+        roles: ['primary'],
+    },
+    {
         // 从默认模型页拆出的独立配置：以图搜图（图像特征模型 + 关键词提取）
         label: '以图搜图配置',
         path: 'image-search-config',
@@ -372,6 +418,17 @@ const sidebarItems = computed(() => [
         path: 'ocr-config',
         icon: ScanText24Regular,
         roles: ['primary'],
+    },
+    {
+        // 试卷识别：OCR / OCR+LLM 双管线，用于试卷扫描与阅卷结构化
+        label: '试卷配置',
+        path: 'paper-config',
+        icon: DocumentText24Regular,
+        roles: ['primary'],
+        // paper 分组写的是**全局**配置（PaperClientManager 是共享管线，只读全局层），
+        // 非管理员写入会被接口层拒绝（S0503 仅管理员可修改），因此入口只给管理员，
+        // 避免普通用户点进去看到一堆注定失败的保存
+        adminOnly: true,
     },
     {
         // 从默认模型页拆出的独立配置：连接器(bot)
@@ -489,10 +546,11 @@ const sidebarItems = computed(() => [
         adminOnly: true,
     },
     {
-        // 文件存储：查看文件服务器上的对象，供排查生成任务的参考图/产物落盘情况
-        label: '文件存储',
-        path: 'file-storage',
-        icon: Folder20Regular,
+        // 菜单管理：sys_menu 的增删改（侧栏菜单 + 按钮权限）。
+        // 只给管理员：写的是全局菜单表，普通用户改会直接影响所有人。
+        label: '菜单管理',
+        path: 'menu-manage',
+        icon: AppsListDetail20Regular,
         roles: ['primary'],
         adminOnly: true,
     },
@@ -517,6 +575,27 @@ const sidebarItems = computed(() => [
         icon: Person20Regular,
         roles: ['primary'],
     },
+    {
+        // 重识别库：与人脸底库同组、同口径（按账号隔离，不设 adminOnly）。
+        //
+        // 它存的不是「已登记的人」，而是「观测过的人」——每次观测一行，
+        // 跨帧轨迹由这些行按 trackId 汇聚而来。所以这里的列表就是轨迹的原始数据：
+        // 删掉一行，等于把那次观测从轨迹里移除。
+        label: '重识别库',
+        path: 'reid-library',
+        icon: Fingerprint24Regular,
+        roles: ['primary'],
+    },
+    {
+        // 渠道管理：账号类渠道（Cline / Qoder / Trae / Gemini）的账号绑定、
+        // 轮询、刷新、签到、模型拉取与单模型开关。
+        // 账号连接按 userId 隔离（sys_ai_provider_connection_user_id），
+        // 每个用户管理自己的绑定，与其它菜单口径一致；免费渠道另走管理员配置。
+        label: t('settings.system.tabs.channels'),
+        path: 'channels',
+        icon: Cloud24Regular,
+        roles: ['primary'],
+    },
 ])
 
 // 根据用户角色过滤菜单项
@@ -538,6 +617,7 @@ const groupedSidebarItems = computed(() => {
         t('settings.system.groups.library'),
         t('settings.system.groups.account'),
         t('settings.system.groups.system'),
+        t('settings.system.groups.channels'),
     ]
     const groups: Record<string, typeof items> = {}
     for (const g of groupOrder) groups[g] = []
@@ -608,15 +688,23 @@ const loadProviderPanel = async () => {
 // 面板卡片的增删改/一键添加实际落在模型管理页，这里只做入口跳转
 const gotoModels = () => router.push({ name: 'Models' })
 
-// 右侧内容区宽度：宽表格类 tab（服务配置 / 令牌 / 供应商 / 模型指标）不吃满宽会挤成横向滚动条，
-// 这些页签放开 max-w 限制；其余页签跟随「设置 → 显示」的窄屏/满屏设置
-// （MainLayout 仅在满屏时注入 --content-max-width: none），窄屏保持原
-// md:max-w-220（55rem）居中阅读列，满屏撑满剩余空间。
-const WIDE_TABS = ['services', 'service-tokens', 'providers', 'model-metrics']
+/*
+ * 右侧内容区宽度：宽表格类 tab（服务配置 / 令牌 / 供应商 / 模型指标）不吃满宽会挤成横向滚动条，
+ * 这些页签放开 max-w 限制；其余页签跟随「设置 → 显示」的窄屏/满屏设置
+ * （MainLayout 仅在满屏时注入 --content-max-width: none），窄屏保持原
+ * md:max-w-220（55rem）居中阅读列，满屏撑满剩余空间。
+ *
+ * 宽屏支持：55rem 是笔记本上的舒适阅读宽度，但在 2K/4K 上会把整个设置项挤在中间一条，
+ * 左侧文本列占满 560px 上限后右侧控件只剩很窄一点。所以默认值改成
+ * `min(76rem, max(55rem, 62vw))` —— 窄屏仍是 55rem，宽屏按 62vw 跟着屏幕长，最多 76rem。
+ * 注意这里必须用 var() 的 **回退值** 写法：满屏时 MainLayout 会把
+ * --content-max-width 定义为 none，那时整条 max-width 失效 = 撑满，与原来一致。
+ */
+const WIDE_TABS = ['services', 'service-tokens', 'providers', 'model-metrics', 'channels']
 const contentMaxWidthStyle = computed(() =>
     WIDE_TABS.includes(currentTabValue.value)
         ? {}
-        : { maxWidth: 'var(--content-max-width, 55rem)', marginLeft: 'auto', marginRight: 'auto' },
+        : { maxWidth: 'var(--content-max-width, min(76rem, max(55rem, 62vw)))', marginLeft: 'auto', marginRight: 'auto' },
 )
 
 // Teleport 目标就绪标志：确保 #settings-sidebar-portal 已挂载到 DOM
@@ -625,6 +713,7 @@ const portalReady = ref(false)
 // 当前标签标题
 const currentTabLabel = computed(() => {
     if (currentTabValue.value === 'service-tokens') return '访问令牌'
+    if (currentTabValue.value === 'channels') return t('settings.system.tabs.channels')
     const item = filteredSidebarItems.value.find(i => i.path === currentTabValue.value)
     return item?.label || t('settings.system.settings')
 })

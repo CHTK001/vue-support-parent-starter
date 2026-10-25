@@ -5,8 +5,8 @@
       :key="`${chip.typeId}-${chip.id}`"
       class="attachment-chip group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-colors"
     >
-      <span class="truncate max-w-24 text-gray-700 dark:text-[#c5c7cc]">{{ chip.name }}</span>
-      <span v-if="chip.subtitle" class="opacity-50 text-[10px] text-gray-500 dark:text-[#8b8d95]">{{ chip.subtitle }}</span>
+      <span class="truncate max-w-24 text-gray-700 dark:text-gray-200">{{ chip.name }}</span>
+      <span v-if="chip.subtitle" class="opacity-50 text-[10px] text-gray-500 dark:text-gray-400">{{ chip.subtitle }}</span>
       <button
         class="ml-0.5 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-500 leading-none"
         @click.stop="$emit('remove', chip.typeId, chip.id)"

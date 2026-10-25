@@ -111,12 +111,12 @@
             :data="keyRows"
             :columns="keyColumns"
             :loading="loading"
-            :pagination="false"
             stripe
             border
             height="360px"
             :context-menu="keyTableMenu"
             @context-menu-select="onKeyTableMenuSelect"
+            :config="{ pagination: { enable: false } }"
           >
             <template #col-key="{ row }">
               <ReButton text type="primary" @click="selectKey((row as EtcdKeyRow).key)">{{ (row as EtcdKeyRow).key }}</ReButton>
@@ -165,7 +165,7 @@
               <ReButton text @click="loadLeases"><template #icon><ReIcon name="Refresh" size="12" /></template>刷新</ReButton>
             </div>
           </div>
-          <ReTable :data="leases" :columns="leaseColumns" :loading="loading" :pagination="false" stripe border height="360px">
+          <ReTable :data="leases" :columns="leaseColumns" :loading="loading" stripe border height="360px" :config="{ pagination: { enable: false } }">
             <template #col-leaseId="{ row }"><span class="mono">{{ (row as EtcdLease).id }}</span></template>
             <template #col-ttl="{ row }">
               <ReTag type="warning">{{ (row as EtcdLease).ttl ?? "—" }} / {{ (row as EtcdLease).grantedTtl ?? "—" }} 秒</ReTag>
@@ -184,7 +184,7 @@
               <ReButton text @click="loadMembers"><template #icon><ReIcon name="Refresh" size="12" /></template>刷新</ReButton>
             </div>
           </div>
-          <ReTable :data="members" :columns="memberColumns" :loading="loading" :pagination="false" stripe border height="260px">
+          <ReTable :data="members" :columns="memberColumns" :loading="loading" stripe border height="260px" :config="{ pagination: { enable: false } }">
             <template #col-memberId="{ row }"><span class="mono">{{ shortId((row as EtcdMember).id) }}</span></template>
             <template #col-role="{ row }">
               <ReTag v-if="(row as EtcdMember).leader" type="warning">Leader</ReTag>
@@ -871,7 +871,7 @@ onMounted(refresh);
 .dsm-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
 .dsm-toolbar-left { display: flex; align-items: center; gap: 10px; }
 .dsm-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
-.dsm-etcd-icon { color: #10b981; }
+.dsm-etcd-icon { color: var(--koi-brand-500, var(--apm-brand-500)); }
 .dsm-toolbar-right { display: flex; gap: 8px; }
 .dsm-body { display: flex; flex: 1; gap: 0; overflow: hidden; }
 .dsm.resizing { user-select: none; }
@@ -901,7 +901,7 @@ onMounted(refresh);
 .dsm-tree-icon { flex-shrink: 0; }
 .dsm-tree-label { flex: 1; font-size: 13px; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dsm-tree-count { font-size: 11px; color: var(--text-tertiary); background: var(--bg-fill); padding: 1px 6px; border-radius: 10px; }
-.dsm-lease-tag { font-size: 10px; color: #f59e0b; background: rgba(245, 158, 11, 0.15); padding: 1px 5px; border-radius: 4px; font-weight: 600; }
+.dsm-lease-tag { font-size: 10px; color: var(--koi-status-warning, var(--apm-status-warning)); background: rgba(245, 158, 11, 0.15); padding: 1px 5px; border-radius: 4px; font-weight: 600; }
 .dsm-content { flex: 1; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
 /* 顶部信息带：视觉（圆角/边框/投影/底色）由模板上的 re-surface 类统一提供（16px 圆角、
    透明边框 + 双层柔光投影），这里只留网格布局——不再自写一套卡片壳防漂移（surface:check） */

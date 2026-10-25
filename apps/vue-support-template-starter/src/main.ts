@@ -17,7 +17,6 @@ import "element-plus/dist/index.css";
 import "element-plus/theme-chalk/dark/css-vars.css";
 import { setupCommonDirectives } from "@repo/core";
 import { setupSvgSprite } from "@repo/assets";
-import { installUi } from "@repo/ui";
 import App from "./App.vue";
 import router from "./router";
 
@@ -84,7 +83,7 @@ const ALL_RE_COMPONENTS = [
   "ReAvatar3D",
   "ReThree",
   "ReClineCharacter",
-  /* ⚠ 以下 7 项曾漏登记：注册表（src/data/componentRegistry.ts）里有卡片，
+  /* ⚠ 以下 8 项曾漏登记：注册表（src/data/componentRegistry.ts）里有卡片，
      但不在这里 → 卡片可点、预览是空的（Vue 把未注册的组件渲染成同名未知元素），
      页面不报错。`tests/e2e/registry-consistency.mjs` 专门守这条不变量：
      注册表里出现过的 Re* 必须都出现在本列表里。 */
@@ -95,9 +94,10 @@ const ALL_RE_COMPONENTS = [
   "ReIconSelect",
   "ReImageCompare",
   "ReGraph3D",
+  "ReRelationGraphV2",
 ];
 
-/** 单页面应用最小化主题安装器 */
+/** 单页面应用最小化主题安装器：只做 ElementPlus / 图标 / 指令 / SVG sprite */
 async function installSinglePage(app: VueApp): Promise<void> {
   setupSvgSprite();
   app.use(ElementPlus, { locale: zhCn });
@@ -105,9 +105,6 @@ async function installSinglePage(app: VueApp): Promise<void> {
     app.component(key, component);
   }
   setupCommonDirectives(app);
-  // 一次性注册全部 Re* 组件（installUi 内部按 componentLoaders 动态 import，
-  // 普通 Plugin 走 app.use，主题化组件走 await plugin.install）
-  await installUi(app, { components: ALL_RE_COMPONENTS });
 }
 
 await createContextApp({
@@ -117,5 +114,10 @@ await createContextApp({
   install: installSinglePage,
 })
   .app(App)
+  // Re* 组件清单交给 @repo/app 的 .ui() 链安装：installUi 由 createContextApp
+  // 内部在主题安装器之后调用，避免在主题安装器里手写 `await installUi`。
+  // 模板预览需要全量组件（componentRegistry 逐项对照），所以保留 ALL_RE_COMPONENTS，
+  // 不降级成 core preset —— 缺失时卡片可点但预览空白，且注册表一致性测试会守住这条不变量。
+  .ui({ components: ALL_RE_COMPONENTS })
   .use(router)
   .mount("#app");

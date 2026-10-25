@@ -7,7 +7,40 @@
           class="px-2 pt-2 pb-0.5 text-[10px] font-semibold tracking-normal text-gray-400 dark:text-gray-500 select-none">
           {{ item.section }}
         </div>
-        <div @click="handleNavClick(item.key)" role="button" :aria-label="item.label" :aria-current="currentActiveTab === item.key ? 'page' : undefined"
+
+        <!-- 有 children 的父级菜单：可折叠 -->
+        <template v-if="item.children?.length">
+          <div @click="handleNavClick(item.key)" role="button" :aria-label="item.label"
+            :aria-expanded="expandedImageMgmt"
+            class="nav-item flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-all duration-200 ease-in-out"
+            :class="currentActiveTab === item.key
+              ? 'nav-item-active bg-(--color-sidebar-bg-active) text-(--color-sidebar-text-active)'
+              : 'text-(--color-text) hover:bg-(--color-sidebar-bg-hover) hover:text-(--color-sidebar-text-hover)'">
+            <component :is="item.icon" class="w-4.5 h-4.5 shrink-0" />
+            <span class="text-sm font-medium flex-1 truncate">{{ item.label }}</span>
+            <!-- 子项任一未配置 → 父项打「!」徽标（子项内仍有具体说明） -->
+            <span v-if="item.children.some((c: any) => c.badge)" class="nav-item-badge" title="部分子功能未配置">!</span>
+            <ChevronDown12Regular class="w-3 h-3 shrink-0 transition-transform duration-200"
+              :class="expandedImageMgmt ? '' : '-rotate-90'" />
+          </div>
+
+          <div v-show="expandedImageMgmt" class="space-y-0.5">
+            <div v-for="child in item.children" :key="child.key"
+              @click="handleNavClick(child.key)" role="button" :aria-label="child.label"
+              :aria-current="currentActiveTab === child.key ? 'page' : undefined"
+              class="nav-item flex items-center gap-2 pl-6 pr-2 py-1.5 rounded-lg cursor-pointer transition-all duration-200 ease-in-out"
+              :class="currentActiveTab === child.key
+                ? 'nav-item-active bg-(--color-sidebar-bg-active) text-(--color-sidebar-text-active)'
+                : 'text-(--color-text) hover:bg-(--color-sidebar-bg-hover) hover:text-(--color-sidebar-text-hover)'">
+              <component :is="child.icon" class="w-4 h-4 shrink-0 opacity-80" />
+              <span class="text-sm font-medium flex-1 truncate">{{ child.label }}</span>
+              <span v-if="child.badge" class="nav-item-badge" :title="child.badgeTip">{{ child.badge }}</span>
+            </div>
+          </div>
+        </template>
+
+        <!-- 无 children 的普通菜单项 -->
+        <div v-else @click="handleNavClick(item.key)" role="button" :aria-label="item.label" :aria-current="currentActiveTab === item.key ? 'page' : undefined"
           class="nav-item flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-all duration-200 ease-in-out"
           :class="currentActiveTab === item.key
             ? 'nav-item-active bg-(--color-sidebar-bg-active) text-(--color-sidebar-text-active)'
@@ -30,10 +63,14 @@
     <div class="flex-1 overflow-hidden py-1">
       <ScrollContainer ref="scrollContainer" class="h-full max-h-full">
         <!-- 按分组展示会话 -->
-        <div v-for="group in displayGroups" :key="group.id" class="mb-1">
+        <div v-for="group in displayGroups" :key="group.id" class="mb-1"
+            @dragover.prevent="dragOverGroupId = group.id"
+            @dragleave="dragOverGroupId = null"
+            @drop.prevent.stop="onDropSessionToGroup(null, group.id)">
           <!-- 分组标题栏 -->
           <div
             class="group-header flex items-center justify-between pl-1 pr-1 py-1 ml-1 mr-0.5 rounded-md cursor-pointer transition-colors duration-200 select-none group text-neutral-600 dark:text-neutral-200"
+            :class="{ 'group-drag-over': dragOverGroupId === group.id }"
             @click="toggleGroupExpand(group.id)" @contextmenu.prevent="openGroupContextMenu($event, group)">
             <div class="flex items-center gap-1.5">
               <span class="relative w-4 h-4 shrink-0 flex items-center justify-center">
@@ -47,7 +84,7 @@
               <span class="text-sm font-medium">{{ group.name }}</span>
             </div>
             <div class="flex items-center gap-1">
-              <!-- 新建会话 / 多选 -->
+              <!-- 新建会话 / 新建分组 / 多选 -->
               <DropdownMenu @command="(cmd: string) => handleGroupPlusCommand(cmd, group)">
                 <div
                   class="session-action-trigger p-0.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-700">
@@ -57,6 +94,10 @@
                   <DropdownMenuItem command="new">
                     <Add12Regular class="w-3.5 h-3.5 mr-2 inline-block" />
                     新建会话
+                  </DropdownMenuItem>
+                  <DropdownMenuItem command="new-group">
+                    <Folder20Regular class="w-3.5 h-3.5 mr-2 inline-block" />
+                    新建分组
                   </DropdownMenuItem>
                 </template>
               </DropdownMenu>
@@ -80,26 +121,45 @@
             <template v-else>
               <div v-for="session in getGroupSessions(group.id)" :key="session.id" class="session-wrap">
               <div
-                class="session-item flex items-center gap-2 py-1.5 pr-1 pl-2 ml-1 mr-0.5  rounded-md cursor-pointer transition-all duration-200 ease-in-out group"
+                class="session-item flex items-center gap-1.5 py-1.5 pr-1 pl-2 ml-1 mr-0.5 rounded-md cursor-pointer transition-all duration-200 ease-in-out group"
                 :class="{
                   'session-item-active': !multiSelectMode && session.id === currentSessionId,
                   'session-item-inactive': !multiSelectMode && session.id !== currentSessionId,
                   'session-in-check': multiSelectMode,
-                  'session-checked': multiSelectMode && isSelected(session)
-                }" @click="onSessionClick(session)">
+                  'session-checked': multiSelectMode && isSelected(session),
+                  'session-pinned': isPinned(session.id),
+                  'session-drag-over': dragOverGroupId === group.id
+                }"
+                :draggable="!multiSelectMode"
+                @click="onSessionClick(session)"
+                @contextmenu.prevent="openSessionContextMenu($event, session)"
+                @dragstart="onSessionDragStart(session, $event)"
+                @dragend="onSessionDragEnd"
+                @dragover.prevent
+                @drop.prevent.stop="onDropSessionToGroup(session, group.id)">
                 <!-- 多选框 -->
                 <el-checkbox v-if="multiSelectMode" class="ms-row-check shrink-0"
                   :model-value="isSelected(session)" tabindex="-1">
                   <span></span>
                 </el-checkbox>
-                <!-- 状态指示器：运行中时左侧显示旋转动画 -->
-                <div v-else class="status-indicator w-3 h-3 shrink-0 flex items-center justify-center">
+                <!-- 目标/置顶/状态指示区 -->
+                <div v-else class="status-indicator shrink-0 flex items-center gap-0.5">
+                  <!-- 如果有会话目标，最前面显示目标图标 -->
+                  <el-icon v-if="getSessionGoal(session)" class="goal-icon" size="13">
+                    <Target20Regular />
+                  </el-icon>
+                  <!-- 置顶标记 -->
+                  <el-icon v-if="isPinned(session.id)" class="pin-icon" size="12">
+                    <Pin20Regular />
+                  </el-icon>
                   <el-icon v-if="getSessionWorking(session.id)" class="working-spin" size="12">
                     <Loading />
                   </el-icon>
-                  <div v-else-if="getSessionUnread(session.id) && (session.id !== currentSessionId || windowHidden)"
-                    class="w-1 h-1 rounded-full bg-red-500" />
-                  <div v-else class="w-1 h-1 rounded-full bg-gray-400 opacity-50" />
+                  <template v-else>
+                    <div v-if="getSessionUnread(session.id) && (session.id !== currentSessionId || windowHidden)"
+                      class="w-1 h-1 rounded-full bg-red-500" />
+                    <div v-else class="w-1 h-1 rounded-full bg-gray-400 opacity-50" />
+                  </template>
                 </div>
 
                 <!-- 展开/收起：露出子会话、最近消息、元信息与操作 -->
@@ -116,26 +176,52 @@
                     {{ session.title }}
                   </div>
                 </div>
-                <div v-if="!multiSelectMode" class="session-actions shrink-0 relative min-w-5 h-full flex items-center">
+                <!-- ml-auto：把这一栏顶到最右边缘。缺了它时该块紧跟在标题后面，
+                     时间既不在最右、hover 出来的工具也无处可站。
+                     h-4 而不是 h-full：h-full 是「父容器多高我就多高」，而父容器的高度
+                     又由这一栏里最高的子元素决定 —— 形成回环，于是 hover 时换成更高的
+                     工具块（24px）会把整行从 32px 撑到 36px，鼠标每划过一行整列都往下跳。
+                     把高度钉成与静止态时间行盒等高的 16px，行高就与显示哪个配件无关。 -->
+                <div v-if="!multiSelectMode" class="session-actions ml-auto shrink-0 h-4 flex items-center gap-1">
                   <!-- 运行中：右侧显示前端计算的实时耗时（每秒刷新） -->
                   <span v-if="getSessionWorking(session.id)"
-                    class="absolute right-0 top-1/2 -translate-y-1/2 text-xs font-medium text-blue-500 whitespace-nowrap">
+                    class="text-xs font-medium text-blue-500 whitespace-nowrap">
                     {{ formatWorkingElapsed(session.id) }}
                   </span>
-                  <!-- 最近一次执行耗时（非运行时灰显，当前会话也显示——完成即记录；hover 时隐藏，右对齐悬浮） -->
+                  <!-- 最近一次执行耗时（非运行时灰显，当前会话也显示——完成即记录）。
+                       hover 时让位给右侧工具：这里必须用 hidden 而不是 opacity-0 ——
+                       opacity-0 元素仍占宽度，时间把位置霸着，工具按钮就会被挤出可视区
+                       （用户反馈「鼠标经过不显示工具，移出去才显示时间」就是这个原因）。 -->
                   <span v-else-if="formatLastRun(session.id)"
-                    class="absolute right-0 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500 group-hover:hidden whitespace-nowrap">
+                    class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap group-hover:hidden">
                     {{ formatLastRun(session.id) }}
                   </span>
-                  <!-- 最后活跃时间（无执行记录时回退，hover 时隐藏，右对齐悬浮） -->
+                  <!-- 最后活跃时间（无执行记录时回退），同样 hover 让位 -->
                   <span v-else-if="session.id !== currentSessionId"
-                    class="absolute right-0 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500 group-hover:hidden whitespace-nowrap">
+                    class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap group-hover:hidden">
                     {{ formatLastActive(session.lastActiveAt || session.updatedAt) }}
                   </span>
-                  <!-- 操作菜单（默认隐藏，hover 时显示） -->
-                  <div
-                    class="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 flex items-center"
-                    :class="{ 'opacity-100': session.id === currentSessionId }">
+                  <!-- hover 快捷操作：置顶/取消置顶、归档。
+                       用 hidden/group-hover:flex 而不是 opacity-0：opacity-0 仍占宽度，
+                       不 hover 时这段空隙会把左侧的时间顶离最右边缘
+                       （用户要求「时间固定在最右」，占位式隐藏做不到）。 -->
+                  <div class="session-hover-actions hidden group-hover:flex items-center gap-0.5">
+                    <el-icon class="session-action-trigger" size="14"
+                      :title="isPinned(session.id) ? t('ui.sidebar.unpin') : t('ui.sidebar.pin')"
+                      @click.stop="togglePin(session)">
+                      <PinOff20Regular v-if="isPinned(session.id)" />
+                      <Pin20Regular v-else />
+                    </el-icon>
+                    <el-icon class="session-action-trigger" size="14"
+                      :title="t('ui.sidebar.archive')" @click.stop="handleArchiveSession(session)">
+                      <Archive20Regular />
+                    </el-icon>
+                  </div>
+                  <!-- 操作菜单：对所有会话（含当前激活的）都只在 hover 时出现。
+                       原先「当前会话常显」是特例，但激活态本身已由高亮背景表达，
+                       再常驻一个 … 图标只会白占右侧宽度、把时间顶离最右。
+                       用 hidden/group-hover:flex 保证不 hover 时不占位。 -->
+                  <div class="hidden group-hover:flex items-center">
                     <DropdownMenu @command="(cmd: string) => handleDropdownSelect(cmd, session)">
                       <div class="session-action-trigger">
                         <el-icon class="w-4 h-4">
@@ -143,9 +229,18 @@
                         </el-icon>
                       </div>
                       <template #dropdown>
+                        <DropdownMenuItem command="ai-rename">
+                          <Sparkle16Regular class="w-4 h-4 mr-2 inline-block" />
+                          {{ t('ui.sidebar.aiRename') }}
+                        </DropdownMenuItem>
                         <DropdownMenuItem command="rename">
                           <Edit16Regular class="w-4 h-4 mr-2 inline-block" />
                           {{ t('ui.sidebar.rename') }}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem :command="isPinned(session.id) ? 'unpin' : 'pin'">
+                          <PinOff20Regular v-if="isPinned(session.id)" class="w-4 h-4 mr-2 inline-block" />
+                          <Pin20Regular v-else class="w-4 h-4 mr-2 inline-block" />
+                          {{ isPinned(session.id) ? t('ui.sidebar.unpin') : t('ui.sidebar.pin') }}
                         </DropdownMenuItem>
                         <DropdownMenuItem command="move">
                           <Folder20Regular class="w-4 h-4 mr-2 inline-block" />
@@ -277,12 +372,12 @@
             <!-- 颜色主题：内联三态切换 -->
             <div class="px-5 py-2 flex items-center gap-2">
               <span class="text-sm text-gray-500 dark:text-gray-400 mr-1">{{ t('ui.sidebar.colorTheme') }}</span>
-              <div class="flex items-center gap-0.5 p-0.5 rounded-md bg-gray-100 dark:bg-[#1a1b1e]">
+              <div class="flex items-center gap-0.5 p-0.5 rounded-md bg-gray-100 dark:bg-gray-900">
                 <button v-for="option in themeOptions" :key="option.value" @click="setTheme(option.value)"
                   class="px-2 py-1 rounded text-xs font-medium transition-all duration-200 flex items-center gap-1"
                   :class="themeMode === option.value
-                    ? 'bg-white dark:bg-[#3a3b3f] text-gray-900 dark:text-[#e8e9ed] shadow-sm'
-                    : 'text-gray-500 dark:text-[#8b8d95] hover:text-gray-700 dark:hover:text-[#c0c1c5]'">
+                    ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-[#c0c1c5]'">
                   <component :is="option.icon" class="w-3.5 h-3.5" />
                   {{ option.label }}
                 </button>
@@ -302,21 +397,22 @@
 
       <!-- 设置 -->
       <LTooltip :content="t('ui.sidebar.settings')" placement="bottom">
-        <!-- 纯图标按钮必须自带可访问名：tooltip 只在悬停时出现，屏幕阅读器与
-             自动化验收都读不到它（实测 sweep 每个路由都记一条 no-accessible-name）。 -->
+        <!-- 只留图标：底部这一条与头像并排，加文字会把头像那一栏挤窄；
+             入口语义由 tooltip + aria-label 表达（悬停即可见，不比常驻文字差）。
+             内边距由 px-2.5 收到 p-2，保持与头像行等高、视觉居中。 -->
         <div role="button" :aria-label="t('ui.sidebar.settings')" @click="handleNavClick('setting')"
-          class="flex items-center justify-center px-2.5 py-2 rounded-lg cursor-pointer transition-all duration-200 shrink-0"
+          class="flex items-center justify-center p-2 rounded-lg cursor-pointer transition-all duration-200 shrink-0"
           :class="currentActiveTab === 'setting'
             ? 'bg-(--color-sidebar-bg-active) text-(--color-sidebar-text-active)'
             : 'text-(--color-text-gray) hover:bg-(--color-sidebar-bg-hover) hover:text-(--color-sidebar-text-hover)'">
-          <component :is="Settings16Filled" class="w-4 h-4" />
+          <component :is="Settings16Filled" class="w-4 h-4 shrink-0" />
         </div>
       </LTooltip>
     </div>
   </div>
 
   <!-- 删除会话确认对话框 -->
-  <LDialog v-model="deleteDialogVisible" :title="t('ui.sidebar.deleteSessionTitle')" width="500px" :close-on-click-modal="false">
+  <ReDialog v-model="deleteDialogVisible" :title="t('ui.sidebar.deleteSessionTitle')" width="500px" :close-on-click-modal="false">
     <div class="space-y-4">
       <p class="text-gray-700 dark:text-gray-300">
         {{ t('ui.sidebar.deleteSessionConfirm', { title: deleteSessionData?.title }) }}
@@ -341,10 +437,10 @@
         <el-button type="danger" @click="confirmDeleteSession">{{ t('ui.sidebar.confirmDelete') }}</el-button>
       </div>
     </template>
-  </LDialog>
+  </ReDialog>
 
   <!-- 移动会话到分组弹窗 -->
-  <LDialog v-model="moveGroupDialogVisible" :title="t('ui.sidebar.selectGroup')" width="360px" :close-on-click-modal="false">
+  <ReDialog v-model="moveGroupDialogVisible" :title="t('ui.sidebar.selectGroup')" width="360px" :close-on-click-modal="false">
     <div class="space-y-1 py-2">
       <div v-for="(g) in moveGroupOptions" :key="g.value"
         class="flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 text-sm"
@@ -362,11 +458,15 @@
         <el-button type="primary" @click="confirmMoveSession">{{ t('common.ok') }}</el-button>
       </div>
     </template>
-  </LDialog>
+  </ReDialog>
 
   <!-- 分组右键菜单 -->
   <ContextMenu :visible="groupContextMenu.visible" :x="groupContextMenu.x" :y="groupContextMenu.y"
     :items="groupContextMenuItems" @close="closeGroupContextMenu" />
+
+  <!-- 会话右键菜单（与更多菜单保持一致） -->
+  <ContextMenu :visible="sessionContextMenu.visible" :x="sessionContextMenu.x" :y="sessionContextMenu.y"
+    :items="sessionContextMenuItems" @close="closeSessionContextMenu" />
 </template>
 
 <script setup lang="ts">
@@ -380,12 +480,15 @@ import { useModelConfigStore } from '../stores/modelConfig'
 import { UNGROUPED_ID } from '../stores/session'
 import { useTheme, type ThemeMode } from '../composables/useTheme'
 import { usePopup } from '../composables/usePopup'
+import { createSidebarMenuItems, readMenuSettings, menuDisplayVersion } from '../config/sidebarMenu'
 import { Avatar, ScrollContainer } from './ui'
 import DropdownMenu from './ui/DropdownMenu.vue'
 import DropdownMenuItem from './ui/DropdownMenuItem.vue'
 import ContextMenu, { type ContextMenuItem } from './ui/ContextMenu.vue'
 import LTooltip from './ui/LTooltip.vue'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog';
+// 登出时收掉残留的加载遮罩（closeAll）
+import { closeAll } from '@repo/ui/re-loader';
 import { apiService } from '@/services/ApiService'
 import { sessionAgentApi } from '@/services/javaApi'
 import { isAdmin } from '@repo/core'
@@ -423,10 +526,18 @@ import {
   Image20Regular,
   Person20Regular,
   ImageSearch20Regular,
+  DocumentText20Regular,
+  ImageMultiple20Regular,
   Key20Regular,
   ChatMultiple24Regular,
   DesktopSpeaker24Regular,
   Headphones24Regular,
+  Sparkle16Regular,
+  Pin20Regular,
+  PinOff20Regular,
+  Target20Regular,
+  ArrowUp16Regular,
+  ArrowDown16Regular,
 } from '@vicons/fluent'
 import { MoreHorizontal20Filled, Settings20Regular, Grid16Regular } from '@vicons/fluent'
 import { Loading } from '@element-plus/icons-vue'
@@ -490,6 +601,7 @@ const exitMultiSelect = () => {
 }
 const handleGroupPlusCommand = (cmd: string, group: any) => {
   if (cmd === 'new') openNewSession(group.id)
+  if (cmd === 'new-group') createNewGroup()
 }
 // 批量按钮：多选态下再次点击即退出，避免只能靠底部「取消」退出
 const toggleMultiSelect = () => {
@@ -561,9 +673,22 @@ const groupContextMenu = ref({
 // 分组右键菜单项
 const groupContextMenuItems = computed<ContextMenuItem[]>(() => {
   const group = groupContextMenu.value.group
+  const groups = sessionGroupStore.sortedGroups
+  const index = groups.findIndex((g) => g.id === group?.id)
   if (!group || group.id === UNGROUPED_ID) return []
   return [
+    ...(index > 0 ? [{
+      label: t('ui.sidebar.moveGroupUp'),
+      icon: markRaw(ArrowUp16Regular),
+      onClick: () => handleMoveGroup(group, -1),
+    }] : []),
+    ...(index >= 0 && index < groups.length - 1 ? [{
+      label: t('ui.sidebar.moveGroupDown'),
+      icon: markRaw(ArrowDown16Regular),
+      onClick: () => handleMoveGroup(group, 1),
+    }] : []),
     {
+      divider: true,
       label: t('ui.sidebar.rename'),
       icon: markRaw(Edit16Regular),
       onClick: () => handleRenameGroup(group),
@@ -594,6 +719,162 @@ const closeGroupContextMenu = () => {
   groupContextMenu.value.group = null
 }
 
+// ==================== 会话右键菜单（与更多菜单保持一致） ====================
+const sessionContextMenu = ref({
+  visible: false,
+  x: 0,
+  y: 0,
+  session: null as any,
+})
+
+const sessionContextMenuItems = computed<ContextMenuItem[]>(() => {
+  const session = sessionContextMenu.value.session
+  if (!session) return []
+  const pinned = isPinned(session.id)
+  return [
+    {
+      label: t('ui.sidebar.aiRename'),
+      icon: markRaw(Sparkle16Regular),
+      onClick: () => handleAIRenameSession(session),
+    },
+    {
+      label: t('ui.sidebar.rename'),
+      icon: markRaw(Edit16Regular),
+      onClick: () => handleRenameSession(session),
+    },
+    {
+      label: pinned ? t('ui.sidebar.unpin') : t('ui.sidebar.pin'),
+      icon: markRaw(pinned ? PinOff20Regular : Pin20Regular),
+      onClick: () => togglePin(session),
+    },
+    {
+      label: t('ui.sidebar.moveToGroup'),
+      icon: markRaw(Folder20Regular),
+      onClick: () => handleMoveSession(session),
+    },
+    {
+      divider: true,
+      label: t('ui.sidebar.archive'),
+      icon: markRaw(Archive20Regular),
+      onClick: () => handleArchiveSession(session),
+    },
+    {
+      label: t('ui.sidebar.delete'),
+      icon: markRaw(Delete20Regular),
+      onClick: () => handleDeleteSession(session),
+    },
+  ]
+})
+
+const openSessionContextMenu = (event: MouseEvent, session: any) => {
+  sessionContextMenu.value = {
+    visible: true,
+    x: event.clientX,
+    y: event.clientY,
+    session,
+  }
+}
+
+const closeSessionContextMenu = () => {
+  sessionContextMenu.value.visible = false
+  sessionContextMenu.value.session = null
+}
+
+// ==================== 置顶（localStorage 持久化） ====================
+const PIN_KEY = 'ai-sidebar.pinned-session-ids'
+const pinnedSessionIds = ref<Set<string>>(new Set())
+
+const loadPinnedSessions = (): void => {
+  try {
+    const raw = localStorage.getItem(PIN_KEY)
+    if (!raw) return
+    pinnedSessionIds.value = new Set(JSON.parse(raw) as string[])
+  } catch { /* ignore */ }
+}
+
+const savePinnedSessions = (): void => {
+  try {
+    localStorage.setItem(PIN_KEY, JSON.stringify([...pinnedSessionIds.value]))
+  } catch { /* ignore */ }
+}
+
+const isPinned = (sessionId: string): boolean => pinnedSessionIds.value.has(String(sessionId))
+
+const togglePin = async (session: any) => {
+  const id = String(session.id)
+  const next = new Set(pinnedSessionIds.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  pinnedSessionIds.value = next
+  savePinnedSessions()
+}
+
+const getSessionGoal = (session: any): string => {
+  return session?.goal
+    || session?.target
+    || session?.objective
+    || session?.settings?.goal
+    || session?.settings?.objective
+    || session?.settings?.target
+    || ''
+}
+
+// ==================== 会话拖拽到分组 ====================
+const dragSessionId = ref<string | null>(null)
+const dragOverGroupId = ref<string | null>(null)
+
+const onSessionDragStart = (session: any, event: DragEvent) => {
+  if (multiSelectMode.value) return
+  dragSessionId.value = String(session.id)
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', String(session.id))
+  }
+}
+
+const onSessionDragEnd = () => {
+  dragSessionId.value = null
+  dragOverGroupId.value = null
+}
+
+const onDropSessionToGroup = (draggedSession: any, targetGroupId: string) => {
+  const session = draggedSession
+    || (dragSessionId.value ? sessionStore.getSession(dragSessionId.value) : null)
+  if (!session) return
+  const normalizedTarget = targetGroupId === UNGROUPED_ID ? null : targetGroupId
+  if ((session.groupId || null) === normalizedTarget) {
+    dragSessionId.value = null
+    dragOverGroupId.value = null
+    return
+  }
+  applyMoveSession(session, normalizedTarget)
+  dragSessionId.value = null
+  dragOverGroupId.value = null
+}
+
+const applyMoveSession = async (session: any, groupId: string | null) => {
+  try {
+    await apiService.updateSession(session.id, { groupId })
+    sessionStore.moveSession(session.id, groupId)
+    toast.success(t('ui.sidebar.moved'))
+  } catch (error) {
+    console.error('移动会话失败:', error)
+    toast.error(t('ui.sidebar.moveFailed'))
+  }
+}
+
+// ==================== 分组移动 ====================
+const handleMoveGroup = async (group: any, direction: -1 | 1) => {
+  const groups = sessionGroupStore.sortedGroups
+  const index = groups.findIndex((g) => g.id === group.id)
+  const targetIndex = index + direction
+  if (index < 0 || targetIndex < 0 || targetIndex >= groups.length) return
+  const ordered = groups.map((g) => g.id)
+  ;[ordered[index], ordered[targetIndex]] = [ordered[targetIndex], ordered[index]]
+  const ok = await sessionGroupStore.reorderGroups(ordered)
+  if (ok) toast.success(t('ui.sidebar.moved'))
+}
+
 // 打开新建会话面板，指定分组
 const openNewSession = (groupId: string) => {
   // 已在新会话页面时只更新 query 参数，不重新导航
@@ -613,147 +894,37 @@ const openNewSession = (groupId: string) => {
 }
 
 // 导航项配置（根据用户设置过滤）
+//
+// 菜单清单统一来自 config/sidebarMenu.ts —— 「配置中心 → 菜单管理」用同一份数据
+// 渲染开关，避免侧栏加了新菜单、开关页却漏掉它（或反之）。
 const navItems = computed(() => {
-  const allItems = [
-    {
-      key: 'chat',
-      label: '会话',
-      icon: AddSquare20Regular,
-      shortcut: isElectron ? 'Ctrl N' : 'Ctrl Alt N',
-      alwaysShow: true
-    },
-    {
-      key: 'characters',
-      label: t('ui.sidebar.navCharacters'),
-      icon: ContactCard20Regular,
-      showKey: 'showCharactersMenu'
-    },
-    {
-      key: 'tavern',
-      label: '酒馆',
-      icon: ChatMultiple24Regular,
-      alwaysShow: true
-    },
-    {
-      key: 'knowledge-base',
-      label: t('ui.sidebar.navKnowledgeBase'),
-      icon: BookSearch20Regular,
-      showKey: 'showKnowledgeBaseMenu'
-    },
-    {
-      key: 'plugins',
-      label: t('ui.sidebar.navPlugins'),
-      icon: Apps20Regular,
-      showKey: 'showPluginsMenu'
-    },
-    {
-      key: 'image-generate',
-      label: '图像生成',
-      icon: Image20Regular,
-      section: '图像',
-      alwaysShow: true
-    },
-    {
-      key: 'face-search',
-      label: '人脸识别',
-      icon: Person20Regular,
-      section: '图像',
-      // 底库已按账号隔离（<工作目录>/<账号>/face/），每个账号管自己的库，
-      // 因此不再标 adminOnly；后端 /v2/face/* 也已去掉 @Permission("admin")，
-      // 未登录仍会被 requireUserId() 拒掉。
-      // 注意：人脸「模型」配置是全局设置，仍只有管理员能改（不受此项影响）。
-      // 底库的**管理**（列表/删除/登记）在「系统设置 → 底库 → 人脸底库」，
-      // 本页只做识别/检索 —— 与「以图搜图（外侧） + 图像底库（设置内）」同一分工。
-      // 检测/特征模型未配齐 → 菜单打「未配置」徽标（页面内会说明差哪几项、去哪儿配）
-      // 注意：modelConfig 是 Pinia store 实例，getter 经 store 访问已自动解包，
-      // 直接取布尔值即可；写 .value 会恒为 undefined（徽标永不消失）。
-      badge: modelConfig.faceReady ? '' : '未配置',
-      badgeTip: '人脸检测模型 / 人脸特征模型未配置，识别不可用',
-    },
-    {
-      key: 'image-search',
-      label: '以图搜图',
-      icon: ImageSearch20Regular,
-      section: '图像',
-      // 底库已按账号隔离（<工作目录>/<账号>/imagesearch），每个账号管自己的库，
-      // 因此不再标 adminOnly；后端 /v2/image-search/* 也已去掉 @Permission("admin")，
-      // 未登录仍会被 requireUserId() 拒掉。
-      // 图像特征模型未配置 → 菜单打「未配置」徽标（同上，store getter 已解包）
-      badge: modelConfig.imageReady ? '' : '未配置',
-      badgeTip: '图像特征模型未配置，以图搜图不可用',
-    },
-    {
-      key: 'image-colorize',
-      label: '图像上色',
-      icon: Image20Regular,
-      section: '图像',
-      // 上色模型未配置 → 菜单打「未配置」徽标，页面内给出与以图搜图同口径的配置提示
-      badge: modelConfig.colorizeReady ? '' : '未配置',
-      badgeTip: '上色模型未配置，图像上色不可用',
-    },
-    {
-      key: 'audio-recognition',
-      label: '音频识别',
-      icon: DesktopSpeaker24Regular,
-      section: '音频',
-      // 独立分组：音频与图像是两类能力，混在「图像」分组里既难找也名不副实。
-      //
-      // 门禁只要求 default_model 一项：provider 缺省走后端 whisper 本地推理，
-      // 密钥/地址仅云端 ASR 才需要，全列为必需会把本地推理也一并挡掉。
-      // 未配置时菜单打「未配置」徽标，页面内引导去「系统设置 → 音频配置」。
-      badge: modelConfig.asrReady ? '' : '未配置',
-      badgeTip: 'ASR 默认模型未配置，音频识别不可用',
-    },
-    {
-      key: 'text-to-speech',
-      label: '语音合成',
-      icon: Headphones24Regular,
-      section: '音频',
-      // 与「音频识别」同一 section：识别与合成是音频的一进一出，同组呈现。
-      // 门禁与 ASR 同口径：只要求 default_model，provider 缺省回落到 ai.tts.provider。
-      badge: modelConfig.ttsReady ? '' : '未配置',
-      badgeTip: 'TTS 默认模型未配置，语音合成不可用',
-    },
-    {
-      key: 'models',
-      label: '模型管理',
-      icon: BrainCircuit20Regular,
-      section: 'AI 配置',
-      showKey: 'showModelsMenu'
-    },
-    {
-      key: 'usage',
-      label: '用量管理',
-      icon: DataBarVertical20Regular,
-      // 独立分组：用量统计的是本账号的 token/费用消费，与「AI 配置」下的模型接入
-      // 不是一类事。原先没有 section，会视觉上并进 AI 配置（用户反馈）。
-      section: '用量统计',
-      showKey: 'showUsageMenu'
-    },
-    {
-      key: 'connectors',
-      label: '连接器',
-      icon: PlugConnected20Regular,
-      showKey: 'showConnectorsMenu'
-    },
-    {
-      key: 'scheduler',
-      label: t('ui.sidebar.navScheduler'),
-      icon: ClockAlarm20Regular,
-      showKey: 'showSchedulerMenu',
-      adminOnly: true
-    },
-  ]
-  
-  // 从 localStorage 读取菜单显示配置（默认全部显示）
-  const menuSettings = JSON.parse(localStorage.getItem('menuDisplaySettings') || '{}')
-  
-  return allItems.filter(item => {
-    if (item.alwaysShow) return true
-    if (item.adminOnly && !isAdmin()) return false
-    if (!item.showKey) return true
-    return menuSettings[item.showKey] !== false
-  })
+  // 依赖版本号：菜单管理里改完开关，侧栏立即刷新，不用整页重载
+  const version = menuDisplayVersion.value
+  const menuSettings = readMenuSettings()
+  const allItems = createSidebarMenuItems({ t, isElectron, modelConfig })
+  void version
+  return allItems
+    .filter(item => {
+      if (item.alwaysShow) return true
+      if (item.adminOnly && !isAdmin()) return false
+      if (!item.showKey) return true
+      return menuSettings[item.showKey] !== false
+    })
+    .map(item => {
+      // 子项也要过同一道管理员闸。顶层这层 filter 只看得到 item.adminOnly，
+      // 管不到 children：子项背后的接口可能本身就是 @Permission("admin")
+      // （如 OCR 的 recognize/annotate/models 三个都是），不拦下来就会变成
+      // 「菜单点得进去、进去每个请求都 403」，比一开始就不显示更难排查。
+      if (!item.children?.length) return item
+      // 子项同样受「菜单管理」的显示开关控制（各有自己的 showKey）
+      const children = item.children.filter((c: any) => {
+        if (c.adminOnly && !isAdmin()) return false
+        if (!c.showKey) return true
+        return menuSettings[c.showKey] !== false
+      })
+      return children.length ? { ...item, children } : null
+    })
+    .filter(Boolean)
 })
 
 // 当前激活的 tab（根据路由）
@@ -776,10 +947,13 @@ const currentActiveTab = computed(() => {
   if (routeName === 'KnowledgeBase') return 'knowledge-base'
   if (routeName === 'Plugins') return 'plugins'
   if (routeName === 'Scheduler') return 'scheduler'
+  // 图像类已扁平化（不再有 image-management 二级父项），高亮直接落在各自菜单项上
   if (routeName === 'ImageGenerate') return 'image-generate'
   if (routeName === 'FaceSearch') return 'face-search'
+  if (routeName === 'FaceReid') return 'face-reid'
   if (routeName === 'ImageSearch') return 'image-search'
   if (routeName === 'ImageColorize') return 'image-colorize'
+  if (routeName === 'Ocr') return 'ocr'
   if (routeName === 'AudioRecognition') return 'audio-recognition'
   if (routeName === 'TextToSpeech') return 'text-to-speech'
   if (routeName === 'Models') return 'models'
@@ -800,6 +974,13 @@ const currentSessionId = computed(() => {
   const sessionId = route.params.sessionId
   return Array.isArray(sessionId) ? sessionId[0] : sessionId
 })
+
+// 图像分组（含子项时的父级）折叠状态。
+//
+// 默认必须是 true（展开）：此前默认 false，一旦「图像生成 / 人脸识别 / 以图搜图 /
+// 图像上色」被收进可折叠父项后整组不可见，侧栏只剩一个父项，用户直接反馈
+// 「图像菜单没了」。默认展开可保证任何子项都不会一进来就藏起来。
+const expandedImageMgmt = ref(true)
 
 // 窗口隐藏状态（用于侧边栏未读徽标显示逻辑，SSE 事件由 useSessionEvents composable 统一管理）
 const windowHidden = ref(false)
@@ -844,10 +1025,17 @@ const displayGroups = computed(() => {
   return groups
 })
 
-// 获取分组内的会话（从 sessionStore 统一数据源获取）
+// 获取分组内的会话（从 sessionStore 统一数据源获取；置顶会话优先）
 const getGroupSessions = (groupId: string): any[] => {
   const groupIdParam = groupId === UNGROUPED_ID ? null : groupId
-  return sessionStore.getSessionsByGroup(groupIdParam)
+  return sessionStore.getSessionsByGroup(groupIdParam).sort((a, b) => {
+    const aPinned = isPinned(a.id) ? 1 : 0
+    const bPinned = isPinned(b.id) ? 1 : 0
+    if (aPinned !== bPinned) return bPinned - aPinned
+    const timeA = new Date(a.lastActiveAt || a.updatedAt || 0).getTime()
+    const timeB = new Date(b.lastActiveAt || b.updatedAt || 0).getTime()
+    return timeB - timeA
+  })
 }
 
 // 获取分组会话数量（从 sessionStore 统一数据源获取）
@@ -1111,15 +1299,38 @@ const handleNavClick = async (tab: string) => {
   } else if (tab === 'image-generate') {
     router.replace({ name: 'ImageGenerate' })
   } else if (tab === 'face-search') {
-    // 点击菜单时再等一次合并视图，避免侧栏首次加载未完成时误判为未配置
+    // 点击菜单时再等一次合并视图与注册清单，避免侧栏首次加载未完成时误判
     await modelConfig.load()
     if (!modelConfig.faceReady) {
       toast.warning('人脸识别未启用：请先到「系统设置 → 默认模型 → 人脸识别」配置检测模型与特征模型')
       return
     }
+    if (modelConfig.unregisteredConfigured.length) {
+      toast.warning(
+        '人脸识别模型当前不可用：已配置的检测/特征模型未在后端注册。' +
+        '请到「系统设置 → 默认模型 → 人脸识别」重新选择当前可用的模型',
+      )
+      return
+    }
     router.replace({ name: 'FaceSearch' })
+  } else if (tab === 'face-reid') {
+    // 人脸重识别与「人脸识别」用同一批模型（检测 + 特征），门禁口径一致
+    await modelConfig.load()
+    if (!modelConfig.faceReady) {
+      toast.warning('人脸重识别未启用：请先到「系统设置 → 默认模型 → 人脸重识别」配置检测模型与特征模型')
+      return
+    }
+    if (modelConfig.unregisteredConfigured.length) {
+      toast.warning(
+        '人脸重识别模型当前不可用：已配置的检测/特征模型未在后端注册。' +
+        '请到「系统设置 → 默认模型 → 人脸重识别」重新选择当前可用的模型',
+      )
+      return
+    }
+    router.replace({ name: 'FaceReid' })
   } else if (tab === 'image-search') {
     // 以图搜图同口径：点击时才拿最新配置，配置后不需要刷新页面
+    expandedImageMgmt.value = true
     await modelConfig.load()
     if (!modelConfig.imageReady) {
       toast.warning('以图搜图未启用：请先到「系统设置 → 默认模型 → 以图搜图」配置图像特征模型')
@@ -1128,12 +1339,23 @@ const handleNavClick = async (tab: string) => {
     router.replace({ name: 'ImageSearch' })
   } else if (tab === 'image-colorize') {
     // 同口径：点击时才拿最新配置，配置后不需要刷新页面
+    expandedImageMgmt.value = true
     await modelConfig.load()
     if (!modelConfig.colorizeReady) {
       toast.warning('图像上色未启用：请先到「系统设置 → 默认模型 → 图片识别」配置上色模型')
       return
     }
     router.replace({ name: 'ImageColorize' })
+  } else if (tab === 'ocr') {
+    // 与其它图像菜单同口径：点击时再拿一次最新配置，未配齐就提示去哪儿配，
+    // 不把用户送进一个必然失败的页面
+    expandedImageMgmt.value = true
+    await modelConfig.load()
+    if (!modelConfig.ocrReady) {
+      toast.warning('OCR 识别未启用：请先到「系统设置 → 默认模型 → OCR」配置文字检测模型或文字识别模型')
+      return
+    }
+    router.replace({ name: 'Ocr' })
   } else if (tab === 'audio-recognition') {
     // 音频识别同口径：点击时才拿最新配置，配置后不需要刷新页面
     await modelConfig.load()
@@ -1177,14 +1399,40 @@ const handleNavClick = async (tab: string) => {
 
 // 处理会话下拉菜单选择
 const handleDropdownSelect = (command: string, session: any) => {
-  if (command === 'rename') {
+  if (command === 'ai-rename') {
+    handleAIRenameSession(session)
+  } else if (command === 'rename') {
     handleRenameSession(session)
+  } else if (command === 'pin' || command === 'unpin') {
+    togglePin(session)
   } else if (command === 'move') {
     handleMoveSession(session)
   } else if (command === 'archive') {
     handleArchiveSession(session)
   } else if (command === 'delete') {
     handleDeleteSession(session)
+  }
+}
+
+/**
+ * AI 重命名：使用默认模型/当前会话模型，结合部分上下文生成标题。
+ * 后端已有 /sessions/{id}/generate-title 接口，由服务端挑选模型并提取上下文生成标题。
+ */
+const handleAIRenameSession = async (session: any) => {
+  if (!session?.id) return
+  try {
+    const result = await apiService.generateSessionTitle(session.id)
+    if (result?.title && result.title !== session.title) {
+      sessionStore.updateSessionTitle(session.id, result.title)
+      toast.success(t('ui.sidebar.aiRenamed'))
+    } else if (result?.skipped) {
+      toast.info(t('ui.sidebar.aiRenameSkipped'))
+    } else {
+      toast.info(t('ui.sidebar.aiRenameNoChange'))
+    }
+  } catch (error) {
+    console.error('AI 重命名失败:', error)
+    toast.error(t('ui.sidebar.aiRenameFailed'))
   }
 }
 
@@ -1257,6 +1505,27 @@ const confirmMoveSession = async () => {
   } catch (error) {
     console.error('移动会话失败:', error)
     toast.error(t('ui.sidebar.moveFailed'))
+  }
+}
+
+/**
+ * 新建分组
+ */
+const createNewGroup = async () => {
+  try {
+    const name = await prompt(t('ui.sidebar.createGroupTitle'), {
+      placeholder: t('ui.sidebar.inputGroupName'),
+    })
+    if (!name) return
+    const group = await sessionGroupStore.createGroup(name)
+    if (group) {
+      toast.success(t('ui.sidebar.groupCreated'))
+    } else {
+      toast.error(t('ui.sidebar.createGroupFailed'))
+    }
+  } catch (error) {
+    console.error('新建分组失败:', error)
+    toast.error(t('ui.sidebar.createGroupFailed'))
   }
 }
 
@@ -1416,6 +1685,12 @@ const handleUserMenuCommand = (command: string) => {
       cancelText: t('common.cancel')
     }).then((confirmed) => {
       if (confirmed) {
+        /*
+          登出时收掉所有残留加载态。
+          否则：退出后跳到登录页，而登录页上方可能还盖着上一页（设置中心/导出等）
+          发起的全屏遮罩 —— 用户以为登录页卡死。
+        */
+        closeAll('manual')
         authStore.logout()
         router.replace({ name: 'Login' })
       }
@@ -1431,6 +1706,7 @@ watch(() => authStore.isAuthenticated, (isAuth) => {
 }, { immediate: true })
 
 onMounted(() => {
+  loadPinnedSessions()
   // 最后活跃时间每分钟刷新；运行中耗时每秒刷新（两者共用 updateTick）
   tickTimer = setInterval(() => {
     updateTick.value++
@@ -1467,6 +1743,31 @@ onUnmounted(() => {
     black calc(100% - 6px),
     rgba(0, 0, 0, 0.65) calc(100% - 3px),
     transparent 100%);
+}
+
+/* 置顶会话标记：固定在标题前，与状态/展开图标区分 */
+.session-pinned .pin-icon {
+  color: var(--el-color-primary, #4f7cff);
+}
+
+/* 目标图标 */
+.goal-icon {
+  color: var(--el-color-warning, #e6a23c);
+}
+
+/* 会话悬停快捷操作 */
+.session-hover-actions .session-action-trigger {
+  padding: 2px;
+  border-radius: var(--el-radius-xs, 4px);
+}
+
+/* 拖拽高亮：分组标题或会话列表容器处于 drop 目标时 */
+.group-drag-over,
+.session-drag-over {
+  outline: 2px solid var(--el-color-primary, #4f7cff);
+  outline-offset: -2px;
+  border-radius: 6px;
+  background: var(--el-color-primary-light-9, rgba(79, 124, 255, 0.08));
 }
 
 .session-item-inactive {
@@ -1529,6 +1830,10 @@ onUnmounted(() => {
 /* 菜单「未配置」徽标：人脸识别 / 以图搜图的模型没配齐时打在标签右侧。
    取告警语义色（而非主色）——它是「此功能暂不可用」的提示，不是选中态；
    尺寸压到 10px、与标签之间留 4px，不与 shortcut 的等宽字体混在一起。 */
+@keyframes nav-badge-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
 .nav-item-badge {
   flex-shrink: 0;
   padding: 1px 5px;
@@ -1538,6 +1843,11 @@ onUnmounted(() => {
   font-weight: 600;
   color: var(--el-color-warning-dark-2, #b88230);
   background: var(--el-color-warning-light-8, #faecd8);
+  animation: nav-badge-breathe 1.8s ease-in-out infinite;
+}
+/* 动效降级：系统开启「减少动态效果」时关掉呼吸灯 */
+@media (prefers-reduced-motion: reduce) {
+  .nav-item-badge { animation: none; }
 }
 
 /* 空状态 */

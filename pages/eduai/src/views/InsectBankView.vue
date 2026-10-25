@@ -76,32 +76,27 @@
 
     <!-- 工具条 + 表格 -->
     <el-card shadow="never" class="table-card">
-      <div class="table-toolbar">
-        <div class="table-toolbar__left">
-          <el-button type="primary" :icon="Plus" @click="openCreate">新增昆虫</el-button>
-        </div>
-        <div class="table-toolbar__right">
-          <span class="model-hint">
-            建模文件放在 <code>pages/eduai/src/insect/three/builders/&lt;slug&gt;.ts</code>；
-            未建模的物种只在此处可见，不会出现在「昆虫识图」名录里
-          </span>
-        </div>
-      </div>
-
       <div v-loading="loading" class="table-wrap">
         <ReTable
-          :data="insectRows"
+          ref="tableRef"
+          :data="filtered"
           :columns="insectColumns"
           :row-key="'insectId'"
           layout="table"
           :layout-switch="false"
-          :pagination="false"
-          :toolbar="false"
           stripe
           :settings="{ border: false }"
           class="insect-table"
           @row-click="(row: Record<string, unknown>) => openEdit(row as unknown as InsectLibraryItem)"
+          :config="{ toolbar: { enable: false } }"
         >
+          <template #toolbar>
+            <el-button type="primary" :icon="Plus" @click="openCreate">新增昆虫</el-button>
+            <span class="model-hint">
+              建模文件放在 <code>pages/eduai/src/insect/three/builders/&lt;slug&gt;.ts</code>；
+              未建模的物种只在此处可见，不会出现在「昆虫识图」名录里
+            </span>
+          </template>
           <template #empty>
             <el-empty :image-size="88" description="暂无昆虫，点击「新增昆虫」创建" />
           </template>
@@ -152,22 +147,10 @@
           </template>
         </ReTable>
       </div>
-
-      <div class="table-footer">
-        <span class="table-footer__total">共 {{ filtered.length }} 条</span>
-        <el-pagination
-          v-model:current-page="pageNo"
-          v-model:page-size="pageSize"
-          :total="filtered.length"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="sizes, prev, pager, next, jumper"
-          background
-        />
-      </div>
     </el-card>
 
     <!-- 新增/编辑对话框 -->
-    <ReDialog v-model="dialogVisible" class="q-dialog" width="920" :show-close="false" align-center>
+    <ReDialog v-model="dialogVisible" class="q-dialog" width="920" :show-close="false" :show-window-shell="false" align-center>
       <template #header>
         <div class="dialog-head">
           <div class="dialog-head__left">
@@ -498,8 +481,7 @@ const MEDIA_LABEL: Record<string, string> = { complete: "完全变态", incomple
 // ==================== 列表 ====================
 const loading = ref(false);
 const rows = ref<InsectLibraryItem[]>([]);
-const pageNo = ref(1);
-const pageSize = ref(20);
+const tableRef = ref();
 
 const blankSearch = () => ({ keyword: "", order: "", metamorphosis: "", modelState: "", guideState: "" });
 const searchDraft = reactive(blankSearch());
@@ -555,14 +537,6 @@ const filtered = computed(() => {
   });
 });
 
-const pagedRows = computed(() => {
-  const start = (pageNo.value - 1) * pageSize.value;
-  return filtered.value.slice(start, start + pageSize.value);
-});
-
-/** ReTable 的 data 只收 Record 结构，此处仅做渲染层类型适配，不改数据本身 */
-const insectRows = computed(() => pagedRows.value as unknown as Record<string, unknown>[]);
-
 /**
  * 昆虫列表的列定义（ReTable 表格模式用）。
  *
@@ -579,7 +553,7 @@ const insectColumns: ReTableColumn[] = [
   { prop: "insectDifficulty", label: "难度", width: 90, slot: "col-insectDifficulty" },
   { prop: "modelState", label: "建模", width: 110, align: "center", slot: "col-modelState" },
   { prop: "hasGuide", label: "讲解", width: 90, align: "center", slot: "col-hasGuide" },
-  { prop: "actions", label: "操作", width: 120, align: "center", fixed: "right", slot: "col-actions" },
+  { prop: "actions", label: "操作", width: 140, align: "center", fixed: "right", slot: "col-actions" },
 ];
 
 const statCards = computed(() => {
@@ -612,13 +586,13 @@ async function loadList() {
 
 function commitSearch() {
   Object.assign(applied, searchDraft);
-  pageNo.value = 1;
+  void tableRef.value?.goto(1);
 }
 
 function handleReset() {
   Object.assign(searchDraft, blankSearch());
   Object.assign(applied, blankSearch());
-  pageNo.value = 1;
+  void tableRef.value?.goto(1);
 }
 
 // ==================== 表单 ====================
@@ -838,7 +812,7 @@ const save = async () => {
     // 新记录很可能落在第 2 页之后，不筛的话用户会以为没保存成功。
     searchDraft.keyword = payload.insectName ?? "";
     Object.assign(applied, searchDraft);
-    pageNo.value = 1;
+    void tableRef.value?.goto(1);
     nextTick(() => {
       guideTouched.value = false;
     });
@@ -966,13 +940,6 @@ onMounted(() => {
   gap: 8px;
 }
 
-.table-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
 .model-hint {
   font-size: 12px;
   color: var(--el-text-color-secondary);
@@ -1076,17 +1043,6 @@ onMounted(() => {
 /* 删除键的焦点环用危险色，和它的 hover 底色保持同一语义 */
 .row-del-btn:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-danger) 14%, transparent);
-}
-.table-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 12px;
-  gap: 12px;
-}
-.table-footer__total {
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
 }
 
 .dialog-head {

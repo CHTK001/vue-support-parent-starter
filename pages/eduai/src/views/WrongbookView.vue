@@ -23,6 +23,12 @@
       <ReTableColumn prop="wrongQuestionStudentId" label="学生" />
       <ReTableColumn prop="wrongQuestionQuestionId" label="题目ID" />
       <ReTableColumn prop="wrongQuestionWrongCount" label="错次" />
+      <ReTableColumn label="订正" width="80">
+        <template #default="{ row }">
+          <ReTag v-if="row.wrongQuestionCorrected" size="small" type="success">已订正</ReTag>
+          <ReTag v-else size="small" type="info" plain>未订正</ReTag>
+        </template>
+      </ReTableColumn>
       <ReTableColumn label="掌握度" >
         <template #default="{ row }">
           <el-rate v-model="row.wrongQuestionMasteryLevel" :max="2" />
@@ -30,20 +36,38 @@
       </ReTableColumn>
       <ReTableColumn prop="wrongQuestionLastWrongTime" label="最近错误" />
       <ReTableColumn prop="wrongQuestionReviewCount" label="复习次数" />
-      <ReTableColumn label="操作" width="120" fixed="right">
+      <ReTableColumn label="操作" width="200" fixed="right">
         <template #default="{ row }">
-          <ReButton icon="Refresh" :show-text="false" type="primary" @click="updateMastery(row)">更新掌握度</ReButton>
+          <ReButton icon="Histogram" :show-text="false" type="primary" @click="openSources(row)">溯源</ReButton>
+          <ReButton
+            v-if="!row.wrongQuestionCorrected"
+            icon="CircleCheck"
+            :show-text="false"
+            type="success"
+            @click="markCorrected(row)"
+          >订正</ReButton>
+          <ReButton icon="Refresh" :show-text="false" @click="updateMastery(row)">更新掌握度</ReButton>
         </template>
       </ReTableColumn>
     </ReTable>
+
+    <ReDialog v-model="sourceVisible" :title="sourceTitle" width="560">
+      <el-table v-if="sourceRows.length" :data="sourceRows" size="small" border>
+        <el-table-column prop="sourceTaskId" label="来源任务" min-width="200" />
+        <el-table-column prop="sourceTaskTime" label="完成时间" min-width="150">
+          <template #default="{ row }">{{ row.sourceTaskTime || '—' }}</template>
+        </el-table-column>
+        <el-table-column prop="paperName" label="试卷" min-width="120">
+          <template #default="{ row }">{{ row.paperName || '任意卷' }}</template>
+        </el-table-column>
+      </el-table>
+      <div v-else class="text-sm">未查到该题的来源任务（历史数据未记录来源）。</div>
+    </ReDialog>
 
     <ReDialog v-model="reviewVisible" title="复习卷生成结果" width="520">
       <div class="text-sm">
         已为当前学生挑选 {{ reviewQuestionIds.length }} 道错题用于复习（题目 ID：{{ reviewQuestionIds.join('、') || '无' }}）。
       </div>
-      <template #footer>
-        <el-button @click="reviewVisible = false">关闭</el-button>
-      </template>
     </ReDialog>
   </div>
 </template>
@@ -53,7 +77,7 @@ import { message } from "@repo/core";
 import { ref } from 'vue';
 
 import { eduaiApi } from '../api/eduaiApi';
-import type { WrongQuestion } from '../api/types';
+import type { WrongQuestion, WrongSource } from '../api/types';
 import { createPageLoader, numParam, pageLoadError, strParam, useSnapshotSearch } from '../api/pageLoader';
 import type { ReTableSearchConfig } from '@repo/ui/re-table';
 import ReDialog from "@repo/ui/re-dialog";
@@ -64,6 +88,34 @@ const tableRef = ref();
 
 const reviewVisible = ref(false);
 const reviewQuestionIds = ref<number[]>([]);
+
+/** 溯源弹窗 */
+const sourceVisible = ref(false);
+const sourceRows = ref<WrongSource[]>([]);
+const sourceTitle = ref('');
+
+/** 打开某错题的溯源列表 */
+const openSources = async (row: WrongQuestion) => {
+  try {
+    const rows = await eduaiApi.wrongSources(row.wrongQuestionId);
+    sourceRows.value = Array.isArray(rows) ? rows : [];
+    sourceTitle.value = `题目 #${row.wrongQuestionQuestionId} 的来源任务`;
+    sourceVisible.value = true;
+  } catch (e) {
+    message.error('溯源查询失败: ' + (e instanceof Error ? e.message : String(e)));
+  }
+};
+
+/** 一键订正 */
+const markCorrected = async (row: WrongQuestion) => {
+  try {
+    await eduaiApi.markCorrected(row.wrongQuestionId);
+    message.success('已标记为已订正');
+    reload();
+  } catch (e) {
+    message.error('订正失败: ' + (e instanceof Error ? e.message : String(e)));
+  }
+};
 
 function blankSearch(): Record<string, unknown> {
   return { studentId: '', subject: '', masteryLevel: null };

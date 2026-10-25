@@ -1,5 +1,5 @@
 <template>
-  <LDialog :model-value="modelValue" @update:model-value="(v) => emit('update:modelValue', v)"
+  <ReDialog :model-value="modelValue" @update:model-value="(v) => emit('update:modelValue', v)"
     title="模型推理参数" width="640px">
     <div v-loading="loading" class="omp">
       <div class="omp-head">
@@ -67,7 +67,7 @@
       <el-button @click="emit('update:modelValue', false)">取消</el-button>
       <el-button type="primary" :loading="saving" @click="submit">保存</el-button>
     </template>
-  </LDialog>
+  </ReDialog>
 </template>
 
 <script setup>
@@ -75,6 +75,7 @@ import { ref, computed, watch } from 'vue'
 import { Delete } from '@element-plus/icons-vue'
 import { adminApi } from '@/framework/context'
 import { useI18n } from 'vue-i18n'
+import ReDialog from '@repo/ui/re-dialog'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },

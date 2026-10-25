@@ -3,20 +3,37 @@
     @mouseleave="closeCard">
     <!-- 竖条指示器 -->
     <div class="outline-lines">
+      <!-- role/tabindex/键盘处理：原先只有 @click，键盘与读屏都用不了这条导航；
+           本文件 :focus-visible 的焦点环样式此前就挂好了，补上 tabindex 才生效 -->
       <div v-for="item in outlineItems" :key="item.id"
         class="outline-line-item"
         :class="{ 'is-active': activeId === item.id, 'is-hover': hoverItem?.id === item.id }"
+        role="button"
+        tabindex="0"
+        :aria-label="`定位到：${item.title}`"
         @click="handleItemClick(item.id)"
+        @keydown.enter.prevent="handleItemClick(item.id)"
+        @keydown.space.prevent="handleItemClick(item.id)"
         @mouseenter="showCard(item.id, $event)">
         <span class="outline-line"></span>
       </div>
     </div>
 
-    <!-- 悬停卡片 -->
+    <!-- 悬停卡片：卡片自己也可点。此前它是 pointer-events:none，
+         用户最直觉的动作「点这张预览卡」会直接穿到下面的消息文本上，
+         表现出来就是「点预览没反应」。 -->
     <transition name="card-fade">
-      <div v-if="hoverItem && isHoverCard" class="outline-card" :style="{ top: cardTop + 'px' }">
+      <div v-if="hoverItem && isHoverCard" class="outline-card" :style="{ top: cardTop + 'px' }"
+        role="button"
+        tabindex="0"
+        :aria-label="`定位到：${hoverItem.title}`"
+        @mouseenter="cancelCloseCard"
+        @click="handleCardClick"
+        @keydown.enter.prevent="handleCardClick"
+        @keydown.space.prevent="handleCardClick">
         <div class="card-title">{{ hoverItem.title }}</div>
         <div class="card-preview">{{ hoverItem.preview }}</div>
+        <div class="card-action">点击定位到这条提问</div>
       </div>
     </transition>
   </div>
@@ -42,6 +59,19 @@ const hoverItem = ref<{ id: string; title: string; preview: string } | null>(nul
 const isHoverCard = ref(false)
 const cardTop = ref(0)
 let closeTimer: ReturnType<typeof setTimeout> | null = null
+
+/**
+ * 定位重试参数：间隔 120ms、最多 20 次（≈2.4s）。
+ *
+ * <p>要覆盖的最长等待是「会话切换 → 骨架屏最短显示 500ms → 消息渲染」这一段，
+ * 2.4s 留了足够余量；不设无限重试，是因为目标消息真的不在窗口里时
+ * （例如已被回退删除）无限轮询只会一直占着定时器。</p>
+ */
+const LOCATE_RETRY_INTERVAL_MS = 120
+const LOCATE_RETRY_MAX = 20
+
+/** 待重试的定位定时器：同一时刻只保留一个，连点多个标记时以最后一次为准 */
+let locateRetryTimer: ReturnType<typeof setTimeout> | null = null
 
 const outlineItems = computed(() => {
   return props.messages
@@ -79,6 +109,14 @@ watch(() => props.messages, () => {
 
 onBeforeUnmount(() => {
   observer?.disconnect()
+  if (closeTimer) {
+    clearTimeout(closeTimer)
+    closeTimer = null
+  }
+  if (locateRetryTimer) {
+    clearTimeout(locateRetryTimer)
+    locateRetryTimer = null
+  }
 })
 
 function setupObserver() {
@@ -158,8 +196,70 @@ function closeCard() {
   }, 200)
 }
 
+/**
+ * 鼠标移到卡片上时取消关闭计时。
+ *
+ * <p>卡片与竖条之间隔了 24px，指针穿过这段空隙时容器的 mouseleave 已经触发；
+ * 不取消计时的话，用户还没点到卡片它就先消失了。</p>
+ */
+function cancelCloseCard() {
+  if (closeTimer) {
+    clearTimeout(closeTimer)
+    closeTimer = null
+  }
+}
+
+/** 点悬停卡片：等价于点对应的竖条标记 */
+function handleCardClick() {
+  if (hoverItem.value) {
+    handleItemClick(hoverItem.value.id)
+  }
+}
+
+/**
+ * 目标消息是否已经渲染进 DOM。
+ *
+ * <p>与 ChatPanel.scrollToMessage 用同一个选择器，判定口径保持一致：
+ * 这里说「已渲染」而那边找不到，或者反过来，都会让重试变得没有意义。</p>
+ *
+ * @param messageId 消息 id
+ */
+function isMessageRendered(messageId: string): boolean {
+  return !!document.querySelector(`[data-message-id="${messageId}"]`)
+}
+
+/**
+ * 点击定位：发一次 scrollToMessage 给父级（ChatPage → ChatPanel.scrollToMessage）。
+ *
+ * <p><b>为什么需要重试</b>：右侧预览条由 activeMessages 派生，而消息 DOM 要等骨架屏
+ * 结束才会渲染 —— 两者之间存在一小段「条已经能点、消息还不存在」的窗口
+ * （实测在会话切换后的骨架屏阶段稳定复现）。这段窗口里点下去，ChatPanel 只会
+ * 打一行 console.warn('未找到消息元素') 然后什么都不发生，用户看到的就是「点了没反应」。
+ * 目标还没渲染时按帧重试，等消息出现再把同一次定位请求发出去。</p>
+ *
+ * @param messageId 消息 id
+ * @param attempt   已重试次数
+ */
+function locateMessage(messageId: string, attempt: number) {
+  if (isMessageRendered(messageId) || attempt >= LOCATE_RETRY_MAX) {
+    if (locateRetryTimer) {
+      clearTimeout(locateRetryTimer)
+      locateRetryTimer = null
+    }
+    emit('scrollToMessage', messageId)
+    return
+  }
+  if (locateRetryTimer) {
+    clearTimeout(locateRetryTimer)
+  }
+  locateRetryTimer = setTimeout(
+    () => locateMessage(messageId, attempt + 1),
+    LOCATE_RETRY_INTERVAL_MS,
+  )
+}
+
 function handleItemClick(messageId: string) {
-  emit('scrollToMessage', messageId)
+  locateMessage(messageId, 0)
 }
 </script>
 
@@ -187,18 +287,25 @@ function handleItemClick(messageId: string) {
 .outline-lines {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  /* 标记之间不留缝：缝隙里没有任何点击处理，真实鼠标点进去既不定位也没有反馈
+     （实测：原 gap:6px 时每个标记只占 12px 节距里的一半，命中率约五成）。
+     节的节奏仍靠 .outline-line-item 的 12px 高度维持，视觉位置与原先一致。 */
+  gap: 0;
   align-items: flex-end;
-  padding: 4px 0;
+  padding: 0;
 }
 
 .outline-line-item {
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  /* 命中区：16px 宽 × 12px 高。视觉上仍是 8×2 居中的细条（见 .outline-line），
+     但左右各多出 4px、上下各多出 5px 的容错，点到细条附近也算数。
+     原先是 8×6，且上下相邻之间还隔着 6px 死区。 */
+  width: 16px;
+  height: 12px;
   cursor: pointer;
   outline: none;
-  padding: 2px 0;
 }
 
 /* 键盘焦点环。这是 div + @click，当前模板未加 tabindex，
@@ -262,8 +369,15 @@ function handleItemClick(messageId: string) {
   /* 悬停浮出的预览卡属「浮起反馈」，是本文件唯一保留的投影：
      原为 0 4px 20px + 0 2px 6px 双层，收敛为单层令牌 */
   box-shadow: var(--el-box-shadow-light);
-  pointer-events: none;
+  /* 卡片自己要能点：它是最显眼的「这一条讲什么」预览，
+     原先 pointer-events:none 让点击穿到下面的消息文本上，等于点了没反应 */
+  pointer-events: auto;
+  cursor: pointer;
   transform: translateY(-50%);
+}
+
+.outline-card:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .dark .outline-card {
@@ -295,6 +409,16 @@ function handleItemClick(messageId: string) {
 
 .dark .card-preview {
   color: var(--el-text-color-secondary);
+}
+
+/* 卡片上的动作提示：卡片可点这件事必须写出来，否则用户仍会去点那条 2px 细线 */
+.card-action {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  font-size: 12px;
+  color: var(--el-color-primary);
+  line-height: 1.4;
 }
 
 /* —— 卡片过渡动画 —— */

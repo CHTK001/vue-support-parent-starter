@@ -16,7 +16,7 @@ const LAYOUT_DEFAULT_MIGRATION_KEY = "layout-default-vertical-v1";
 const globalStore = defineStore("global", {
   persist: {
     key: "global",
-    afterRestore: (ctx) => {
+    afterHydrate: (ctx) => {
       // 首启动时把旧的默认值 group 纠正为 vertical（用户后续手动切换仍会持久化生效）
       try {
         const storage = getFrameworkStorage();

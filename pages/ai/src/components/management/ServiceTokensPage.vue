@@ -1,19 +1,19 @@
 <template>
-  <div class="service-tokens-page">
-    <div class="page-header">
-      <div class="title-wrap">
-        <el-button text @click="goBack" class="back-btn">
-          <el-icon><ArrowLeft24Regular /></el-icon>
-        </el-button>
-        <h2>访问令牌 · {{ instanceName }}</h2>
-      </div>
+  <RePage data-page="service-tokens">
+    <template #title>
+      <el-button text @click="goBack" class="back-btn" title="返回服务列表">
+        <el-icon><ArrowLeft24Regular /></el-icon>
+      </el-button>
+      <span>访问令牌 · {{ instanceName }}</span>
+    </template>
+    <template #actions>
       <el-button type="primary" @click="openCreate">
         <el-icon class="mr-1"><Add24Regular /></el-icon>签发令牌
       </el-button>
-    </div>
+    </template>
 
     <div class="panel-card">
-    <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM；
+    <!-- 表格统一 ReTable（替换裸 el-table）：默认引擎已是 vxe；
          pagination=false —— 页面没有外置分页，保持全量直出；toolbar=false 不新增工具栏；
          原表没有 border → :settings="{ border: false }" 显式抑制 ReTable 的默认边框；
          v-loading → :loading。 -->
@@ -21,13 +21,11 @@
       :data="tokens"
       :columns="tokenColumns"
       :loading="loading"
-      engine="element"
-      :pagination="false"
-      :toolbar="false"
       :layout-table="{ minHeight: 0 }"
       :settings="{ border: false }"
       stripe
       class="flat-table"
+      :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
     >
       <template #col-token="{ row }">
         <div class="token-cell">
@@ -57,11 +55,13 @@
           {{ row.enabled ? '启用' : '禁用' }}
         </el-tag>
       </template>
+      <!-- 操作列统一 ReButton square（纯图标 + tooltip） -->
       <template #col-actions="{ row }">
-        <el-button @click="toggle(row)">
-          {{ row.enabled ? '禁用' : '启用' }}
-        </el-button>
-        <el-button type="danger" plain @click="remove(row)">删除</el-button>
+        <div class="row-actions">
+          <ReButton v-if="row.enabled" layout="square" type="warning" :icon="Lock" tip="禁用" @click="toggle(row)" />
+          <ReButton v-else layout="square" type="success" :icon="Unlock" tip="启用" @click="toggle(row)" />
+          <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click="remove(row)" />
+        </div>
       </template>
     </ReTable>
     </div>
@@ -101,7 +101,7 @@
         <el-button type="primary" @click="submit">签发</el-button>
       </template>
     </ReDialog>
-  </div>
+  </RePage>
 </template>
 
 <script setup lang="ts">
@@ -115,6 +115,9 @@ import {
   Add24Regular,
   Copy24Regular,
 } from '@vicons/fluent'
+import { Delete, Lock, Unlock } from '@element-plus/icons-vue';
+import RePage from '@/components/re/RePage.vue';
+import ReButton from '@repo/ui/re-button';
 import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 
@@ -296,33 +299,16 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.service-tokens-page {
-  padding: 0;
-}
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-.title-wrap {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.title-wrap h2 {
-  margin: 0;
-  font-size: 18px;
-  color: var(--el-text-color-primary);
-}
+/* 页面外壳已收口到 RePage：原来的 .service-tokens-page / .page-header / .title-wrap h2
+   删掉，返回按钮与标题由 RePage 的 #title 插槽承担。 */
 .back-btn {
   padding: 4px;
 }
 .panel-card {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  /* 原值 18px → xl 档 */
-  border-radius: var(--el-radius-xl, 16px);
+  /* 与用量页看板统一 8px 圆角 */
+  border-radius: var(--u-radius, 8px);
   padding: 14px 16px 12px;
   /* 表格容器是页面区块，不加投影 */
 }

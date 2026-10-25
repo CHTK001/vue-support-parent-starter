@@ -7,6 +7,7 @@
 import type { App, Plugin } from "vue";
 import type { ThemedComponent } from "./theme";
 import { log } from "@repo/utils";
+import { resolveUiPreset } from "./presets";
 
 /** 安装选项：需要注册的组件（默认空，全部按需传入） */
 export interface UiInstallOptions {
@@ -14,6 +15,12 @@ export interface UiInstallOptions {
   components?: string[];
   /** 额外插件 */
   plugins?: Plugin[];
+  /**
+   * 组件预设名（如 {@code "monitor"}）—— 由组件库内部维护的成组组件清单。
+   *
+   * <p>与 {@link components} 可同时使用：preset 先展开，components 后追加。</p>
+   */
+  preset?: string;
 }
 
 /** 已注册组件缓存，避免重复注册 */
@@ -38,6 +45,7 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
   ReBadge: () => import("./components/ReBadge"),
   ReIcon: () => import("./components/ReIcon"),
   ReIp: () => import("./components/ReIp"),
+  ReIpText: () => import("./components/ReIpText"),
   ReTime: () => import("./components/ReTime"),
   ReIconSelect: () => import("./components/ReIconSelect"),
   ReScrollNav: () => import("./components/ReScrollNav"),
@@ -45,6 +53,7 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
   ReRichText: () => import("./components/ReRichText"),
   ReTagFilter: () => import("./components/ReTagFilter"),
   ReLoading: () => import("./components/ReLoading"),
+  ReLoader: () => import("./components/ReLoader"),
   ReDrawer: () => import("./components/ReDrawer"),
   ReSeamlessScroll: () => import("./components/ReSeamlessScroll"),
   ReStatusIndicator: () => import("./components/ReStatusIndicator"),
@@ -65,12 +74,15 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
      控制台里连 warning 都不明显 —— 属静默失败。 */
   ReGraph3D: () => import("./components/ReGraph3D"),
   ReRelationGraph: () => import("./components/ReRelationGraph"),
+  ReRelationGraphV2: () => import("./components/ReRelationGraphV2"),
   ReFlowGraph: () => import("./components/ReFlowGraph"),
+  ReChart: () => import("./components/ReChart"),
   ReEcharts: () => import("./components/ReEcharts"),
   ReCropper: () => import("./components/ReCropper"),
   ReCode: () => import("./components/ReCode"),
   ReScrollbar: () => import("./components/ReScrollbar"),
   ReLazy: () => import("./components/ReLazy"),
+  ReAsync: () => import("./components/ReAsync"),
   ReCountup: () => import("./components/ReCountup"),
   ReImageCompare: () => import("./components/ReImageCompare"),
   ReImage: () => import("./components/ReImage"),
@@ -91,6 +103,7 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
   ReColorize: () => import("./components/ReColorize"),
   ReStationMessage: () => import("./components/ReStationMessage"),
   ReTab: () => import("./components/ReTab"),
+  ReTabs: () => import("./components/ReTabs"),
   ReSwitch: () => import("./components/ReSwitch"),
   ReCron: () => import("./components/ReCron"),
   ReEmpty: () => import("./components/ReEmpty"),
@@ -108,23 +121,34 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
   ReMap3D: () => import("./components/ReMap3D"),
   ReCanvasUi: () => import("./components/ReCanvasUi"),
   ReKit: () => import("./components/ReKit"),
+  ReStateIcon: () => import("./components/ReStateIcon"),
   ReCommand: () => import("./components/ReCommand"),
 };
 
 /**
  * 按需安装组件
- * 未在 components 中声明的组件不会被 import，保证打包时被 tree-shaking 掉。
+ * 未在 components / preset 中声明的组件不会被 import，保证打包时被 tree-shaking 掉。
  */
 export async function installUi(
   app: App,
   options: UiInstallOptions = {},
 ): Promise<void> {
-  const { components = [], plugins = [] } = options;
-  for (const name of components) {
+  const { components = [], plugins = [], preset } = options;
+  // preset 先展开（组件库维护的成组清单），components 后追加（宿主临时补单个组件）。
+  const presetComponents = preset ? [...resolveUiPreset(preset)] : [];
+  for (const name of [...presetComponents, ...components]) {
     if (registered.has(name)) continue;
     const loader = componentLoaders[name];
     if (!loader) {
       log.warn(`[ui] 未找到组件 ${name}`);
+      continue;
+    }
+    // 主题安装器（koi）会先注册 ReIcon / ReScrollNav / ReDrawer —— 它们不走本模块的
+    // installUi，registered 集合里查不到。若 preset 恰好也列了这些组件，
+    // app.component 会二次注册同名组件，Vue 在生产期打「has already been registered」告警。
+    // 这里以「app 上是否已存在同名全局组件」为准再兜一层。
+    if (app.component(name)) {
+      registered.add(name);
       continue;
     }
     try {

@@ -2,7 +2,7 @@
   <div class="process-section search-section">
     <!-- 标题行 -->
     <div
-      class="search-section__header flex items-center text-sm text-gray-700 dark:text-[#8b8d95] cursor-pointer font-medium transition-colors duration-200"
+      class="search-section__header flex items-center text-sm text-gray-700 dark:text-gray-400 cursor-pointer font-medium transition-colors duration-200"
       @click.stop="handleToggle">
       <el-icon size="15" class="shrink-0" :class="{ 'is-spinning': isSearching }">
         <GlobeShield20Regular />
@@ -12,10 +12,10 @@
       </span>
     </div>
 
-    <!-- 内容区 -->
+    <!-- 内容区：极简展开态（与思考 / 工具行同一套细导轨口径） -->
     <div
       v-if="isExpanded"
-      class="search-section__content-wrapper border-l ml-1.75 pl-4 text-sm border-gray-300 dark:border-gray-700">
+      class="search-section__content-wrapper">
       <!-- 检索中：显示检索词 -->
       <div v-if="isSearching" class="flex items-center py-1 text-gray-400 dark:text-gray-500">
         <span v-if="searchQuery" class="truncate">{{ searchQuery }}</span>
@@ -80,6 +80,16 @@ watch(() => props.isSearching, (v: boolean) => {
 
 .search-section__header {
   user-select: none;
+}
+
+/* 极简展开态：与思考块 / 工具行共用同一套「细导轨 + 纯文本」，
+   不再各自写死 gray-300 / gray-700 两套灰。 */
+.search-section__content-wrapper {
+  margin-left: 7px;
+  padding-left: 16px;
+  border-left: 2px solid var(--el-border-color-lighter);
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
 }
 
 .search-source__link:hover {

@@ -23,6 +23,7 @@ export type AcmeAccount = {
   acmeAccountPrivateKeyPem?: string;
   acmeAccountEabKid?: string;
   acmeAccountEabHmacKey?: string;
+  acmeAccountTimeoutSeconds?: number;
   acmeAccountRemark?: string;
   createTime?: string;
   updateTime?: string;
@@ -59,6 +60,17 @@ export interface AcmeOrder {
   updateTime?: string;
 }
 
+export interface AcmeCertificateVerification {
+  pemParsable: boolean;
+  inValidWindow: boolean;
+  domainsCovered: boolean;
+  privateKeyMatches: boolean;
+  chainComplete: boolean;
+  revoked: boolean;
+  message?: string;
+  overallValid: boolean;
+}
+
 export interface AcmeCertificateDetail {
   certificate: AcmeCertificate;
   account?: AcmeAccount;
@@ -68,6 +80,7 @@ export interface AcmeCertificateDetail {
   soonExpiring?: boolean | null;
   currentStep?: number | null;
   stepDescription?: string | null;
+  verification?: AcmeCertificateVerification | null;
 }
 
 export interface AcmeCertStats {
@@ -127,6 +140,8 @@ export type AcmeApplyCertRequest = {
   challengeType?: string;
   deployMode?: string;
   webrootPath?: string;
+  /** 部署目标主机 ID（主机资产）：传入后由后端解析 SSH 凭据，无需再传地址/端口/用户名/密码 */
+  sshHostId?: number;
   sshHost?: string;
   sshPort?: number;
   sshUsername?: string;

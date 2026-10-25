@@ -1,5 +1,5 @@
 <template>
-  <div class="is-root">
+  <div class="is-root" data-page="image-search">
     <!-- ============ 顶栏：品牌 / 上传入口 / 状态 ============ -->
     <header class="is-topbar">
       <div class="is-brand">
@@ -8,41 +8,25 @@
       </div>
 
       <div class="is-searchbox">
-        <div class="is-mode-switch">
-          <button type="button" class="is-mode-btn" :class="{ active: searchMode === 'image' }"
-            :disabled="searching" @click="setSearchMode('image')">
-            以图
-          </button>
-          <button type="button" class="is-mode-btn" :class="{ active: searchMode === 'keyword' }"
-            :disabled="searching" @click="setSearchMode('keyword')">
-            关键词
-          </button>
-        </div>
-
-        <template v-if="searchMode === 'keyword'">
-          <el-input ref="keywordInput" v-model="keyword" class="is-keyword-input"
-            placeholder="输入名称或关键词检索图像底库" clearable @keyup.enter="runKeywordSearch"
-            @clear="runKeywordSearch">
-            <template #prefix><el-icon><Search /></el-icon></template>
-          </el-input>
-          <button class="is-upload-btn" :disabled="busy || searching || !available" @click="runKeywordSearch">
-            <el-icon><Search /></el-icon>检索
-          </button>
-        </template>
-
-        <template v-else>
-          <span class="is-searchbox-tip">选一张图，检索底库中最相似的图片</span>
-          <button class="is-upload-btn" :disabled="busy || !available" @click="pickImage">
-            <el-icon><Upload /></el-icon>上传图片
-          </button>
-        </template>
+        <!--
+          单一检索入口：不再有「以图 / 关键词」模式切换。
+          产品要求：不要模式概念，直接搜即可 —— 输入框里输了字就按关键词检索，
+          没输字就点右侧的搜索图标选一张图做以图检索（选图后自动出结果）。
+        -->
+        <el-input ref="keywordInput" v-model="keyword" class="is-keyword-input"
+          placeholder="输入名称或关键词直接搜索，或点右侧图标选图搜索" clearable @keyup.enter="submitSearch">
+          <template #prefix><el-icon><Search /></el-icon></template>
+        </el-input>
+        <button class="is-upload-btn is-upload-btn--icon" :disabled="busy || searching || !available"
+          :title="keyword.trim() ? '按关键词搜索' : '选择图片搜索'" :aria-label="keyword.trim() ? '按关键词搜索' : '选择图片搜索'"
+          @click="submitSearch">
+          <el-icon :size="18"><Search /></el-icon>
+        </button>
       </div>
 
       <div class="is-topbar-right">
         <span class="is-badge" :class="available ? 'is-ok' : 'is-off'">
-          {{ available
-            ? (searchMode === 'keyword' ? '关键词检索已启用' : '以图搜图已启用')
-            : '未配置特征模型' }}
+          {{ available ? '以图搜图已启用' : '未配置特征模型' }}
         </span>
       </div>
     </header>
@@ -135,7 +119,7 @@
             </div>
 
             <div v-if="searching" class="is-mask">
-              <TechScanLoader size="lg" />
+              <ReLoader loading size="lg" :fullscreen="false" />
               <span class="is-mask-text">正在提取特征并检索…</span>
             </div>
 
@@ -147,6 +131,19 @@
         </div>
 
         <input ref="fileInput" type="file" accept="image/png,image/jpeg" class="is-hidden" @change="onFilePicked" />
+
+        <!-- 右缘悬浮工具条：与人脸识别 / 图像上色同一套，贴舞台右缘竖排图标钮。
+             始终渲染（上传按钮常驻可直接选图）；清空在空态置灰，不隐藏。 -->
+        <div class="is-rail">
+          <button class="is-rail-btn" title="选择/更换上传图片" aria-label="选择/更换上传图片"
+            :disabled="busy || searching" @click="pickImage">
+            <el-icon :size="18"><Upload /></el-icon>
+          </button>
+          <button class="is-rail-btn is-danger" title="清空当前图片与检索结果" aria-label="清空当前图片与检索结果"
+            :disabled="busy || searching || (!previewUrl && !results.length)" @click="clearQuery">
+            <el-icon :size="18"><Delete /></el-icon>
+          </button>
+        </div>
       </section>
 
       <!-- ============ 右：结果面板 ============ -->
@@ -241,7 +238,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 // 留着会让人以为本页还有搜索框与删除入口
 import {
   Camera, Upload, Picture, FolderOpened, Link, Search,
-  Plus, Warning, ArrowDown, CircleCheckFilled,
+  Plus, Warning, ArrowDown, CircleCheckFilled, Delete,
 } from '@element-plus/icons-vue'
 import Viewer from 'viewerjs'
 import 'viewerjs/dist/viewer.css'
@@ -250,7 +247,7 @@ import { resolveImageUrl } from '@/utils/imageSearchUrl'
 import { createAuthImageLoader } from '@/utils/authImage'
 import { usePopup } from '@/composables/usePopup'
 import { useModelConfigStore } from '@/stores/modelConfig'
-import TechScanLoader from '@/components/ui/TechScanLoader.vue'
+import ReLoader from '@repo/ui/re-loader'
 
 /**
  * 以图搜图页面
@@ -329,25 +326,36 @@ const filteredResults = computed(() =>
   results.value.filter((item) => (item.score ?? 1) >= minScore.value),
 )
 
-/** 关键词模式：只跑底库 list 的 name+tags 检索，不参与相似度统计 */
-const keywordMode = computed(() => searchMode.value === 'keyword')
-
 function focusKeyword() {
   nextTick(() => keywordInput.value?.focus())
 }
 
-function setSearchMode(mode: 'image' | 'keyword') {
-  if (searchMode.value === mode || searching.value) return
-  searchMode.value = mode
-  results.value = []
-  searched.value = false
-  elapsedMs.value = null
-  minScore.value = 0
-  if (mode === 'keyword') {
-    previewUrl.value = ''
-    previewFile.value = null
-    queryMeta.value = null
+/**
+ * 统一检索入口（输入框回车 / 顶栏搜索图标共用）。
+ *
+ * <p>取代原来的模式切换：有输入按关键词检索，没输入就选图检索。
+ * 两种模式的内部状态仍由 {@code searchMode} 表达（结果区文案、计分口径、
+ * 左侧画布形态都按它分支），只是不再由用户手动切换，改为在此自动判定。</p>
+ */
+function submitSearch() {
+  if (busy.value || searching.value) {
+    return
   }
+  if (keyword.value.trim()) {
+    if (!available.value) {
+      toast.warning(NOT_READY_MSG)
+      return
+    }
+    // runKeywordSearch 内部要求 keyword 模式，这里先落状态再触发
+    searchMode.value = 'keyword'
+    void runKeywordSearch()
+    return
+  }
+  // 没有关键词 → 走以图检索：选图后 useImage 会自动发起检索
+  if (searchMode.value !== 'image') {
+    searchMode.value = 'image'
+  }
+  pickImage()
 }
 
 /**
@@ -477,12 +485,33 @@ function formatDims(item: ImageItem): string {
 const NOT_READY_MSG =
   '以图搜图未启用：请先到「系统设置 → 默认模型 → 以图搜图」配置图像特征模型'
 
-function pickImage() {
-  // 关键词模式不需要选图；点击左栏/顶栏仍回到关键词输入，不弹文件选择器
-  if (searchMode.value === 'keyword') {
-    focusKeyword()
-    return
+/**
+ * 清空当前查询：图片、文件、结果、元信息、耗时与筛选全部归零，回到初始空态。
+ *
+ * <p>查询图是 {@code URL.createObjectURL} 生成的 blob，清空时必须 revoke，
+ * 否则反复「上传 → 清空 → 上传」会持续泄漏内存（与上传/检索后的 viewer
+ * 重建一起作用）。</p>
+ */
+function clearQuery() {
+  queryViewer?.destroy()
+  queryViewer = null
+  if (previewUrl.value) {
+    try { URL.revokeObjectURL(previewUrl.value) } catch { /* ignore */ }
   }
+  previewUrl.value = ''
+  previewFile.value = null
+  queryMeta.value = null
+  results.value = []
+  searched.value = false
+  searching.value = false
+  elapsedMs.value = null
+  minScore.value = 0
+  keyword.value = ''
+  searchMode.value = 'image'
+  keywordInput.value?.blur?.()
+}
+
+function pickImage() {
   // 模型未配置时连文件选择器都不弹（不是选完才拦）
   if (!available.value) {
     toast.warning(NOT_READY_MSG)
@@ -536,6 +565,8 @@ async function useImage(file: File) {
     toast.warning(NOT_READY_MSG)
     return
   }
+  // 选了图即进入以图检索语境：此前若停在关键词模式，结果区文案/计分口径会串
+  searchMode.value = 'image'
   busy.value = true
   try {
     const normalized = await normalizeToPng(file)
@@ -784,6 +815,7 @@ onBeforeUnmount(() => {
   --is-primary: var(--el-color-primary, #409eff);
   --is-primary-soft: color-mix(in srgb, var(--is-primary) 12%, transparent);
   --is-primary-line: color-mix(in srgb, var(--is-primary) 40%, transparent);
+  --is-shadow: 0 4px 18px -6px rgba(0, 0, 0, 0.12);
 
   display: flex;
   flex-direction: column;
@@ -791,6 +823,53 @@ onBeforeUnmount(() => {
   min-height: 0;
   color: var(--is-text);
   background: var(--is-bg);
+}
+
+/* 右缘悬浮工具条：与人脸识别 / 图像上色同一套，贴在舞台右缘竖排图标钮 */
+.is-rail {
+  position: absolute;
+  right: 22px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 5;
+}
+
+.is-rail-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--is-radius-sm);
+  border: 1px solid var(--is-border);
+  background: var(--is-card);
+  color: var(--is-muted);
+  cursor: pointer;
+  outline: none;
+  box-shadow: var(--is-shadow);
+  transition:
+    color var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    transform var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+.is-rail-btn:hover:not(:disabled) {
+  color: var(--is-primary);
+  border-color: var(--is-primary-line, var(--is-border));
+  transform: translateY(-1px);
+}
+
+.is-rail-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.is-rail-btn.is-danger:hover:not(:disabled) {
+  color: var(--el-color-danger, #f56c6c);
+  border-color: color-mix(in srgb, var(--el-color-danger, #f56c6c) 40%, var(--is-border));
 }
 
 /* ==================== 顶栏 ==================== */
@@ -849,14 +928,6 @@ onBeforeUnmount(() => {
   border-color: var(--is-primary);
 }
 
-/* 以图搜图模式仍是引导；关键词模式由 .is-mode-switch / .is-keyword-input 接管 */
-.is-searchbox-tip {
-  flex: 1;
-  min-width: 0;
-  font-size: 14px;
-  color: var(--is-muted);
-}
-
 .is-upload-btn {
   display: flex;
   align-items: center;
@@ -871,6 +942,16 @@ onBeforeUnmount(() => {
   font-weight: 600;
   cursor: pointer;
   transition: opacity var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+/* 顶栏搜索按钮：只有图标，所以做成等宽高的圆钮。
+   原先是「上传图片」文字按钮，产品要求换成搜索图标 —— 有输入就按关键词搜，
+   没输入就选图搜，两种行为都在 submitSearch 里判定。 */
+.is-upload-btn--icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  justify-content: center;
 }
 
 .is-upload-btn:hover:not(:disabled) {
@@ -920,6 +1001,7 @@ onBeforeUnmount(() => {
   min-width: 0;
   padding: 14px;
   display: flex;
+  position: relative; /* 右缘悬浮工具条的定位基准 */
   transition: flex-basis 260ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -930,7 +1012,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   border-radius: var(--is-radius);
-  border: 1px solid var(--is-border);
+  border: none; /* 不设实线框：空态虚线由 .is-drop 承担，避免双层边框 */
   background: var(--is-card);
   overflow: hidden;
 }
@@ -938,24 +1020,30 @@ onBeforeUnmount(() => {
 /* 拖拽悬停：这一圈主色光环是「正在接收文件」的唯一提示，
    属状态反馈而非卡片投影，故保留；色源从主色派生 */
 .is-stage-inner.is-drag {
-  border-color: var(--el-color-primary, #409eff);
   box-shadow: 0 0 0 3px var(--is-primary-soft);
 }
 
 /* ---------- 空态 ---------- */
 .is-drop {
   flex: 1;
+  margin: 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 6px;
+  border: 2px dashed var(--is-border);
+  border-radius: var(--is-radius);
+  background: var(--is-card);
   cursor: pointer;
-  transition: background var(--el-transition-duration-fast, 0.2s) ease;
+  transition:
+    background var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .is-drop:hover {
   background: var(--is-hover);
+  border-color: var(--is-primary-line, var(--el-color-primary, #409eff));
 }
 
 .is-drop:focus-visible {
@@ -1718,3 +1806,4 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 </style>
+

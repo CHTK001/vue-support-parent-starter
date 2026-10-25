@@ -6,7 +6,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["../../pages/device/src/*"],
-      "@pages/device/*": ["../../pages/device/*"],
+      "@pages/device/*": ["../../pages/device/src/*"],
       "@pages/device": ["../../pages/device/src/index.ts"]
     }
   },

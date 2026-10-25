@@ -177,7 +177,7 @@
               </div>
               <div v-else class="dsm-data-block">
                 <div class="dsm-data-title">ACL 列表</div>
-                <ReTable :data="aclList" :columns="aclColumns" :loading="aclLoading" :pagination="false" stripe border >
+                <ReTable :data="aclList" :columns="aclColumns" :loading="aclLoading" stripe border :config="{ pagination: { enable: false } }">
                   <template #col-perms="{ row }">
                     <ReTag type="info">{{ (row as unknown as ZkNodeAcl).permsText }}</ReTag>
                   </template>
@@ -191,7 +191,7 @@
 
           <div v-if="children.length > 0" class="dsm-children-section">
             <div class="dsm-data-title">子节点列表</div>
-            <ReTable :data="children" :columns="childColumns" :loading="childLoading" :pagination="false" stripe border >
+            <ReTable :data="children" :columns="childColumns" :loading="childLoading" stripe border :config="{ pagination: { enable: false } }">
               <template #col-type="{ row }">
                 <ReTag :type="(row as unknown as ZkChildNode).ephemeral ? 'warning' : 'info'" >
                   {{ (row as unknown as ZkChildNode).ephemeral ? "临时" : "持久" }}
@@ -995,7 +995,7 @@ onMounted(async () => {
 .dsm-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
 .dsm-toolbar-left { display: flex; align-items: center; gap: 10px; }
 .dsm-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
-.dsm-zk-icon { color: #fb923c; }
+.dsm-zk-icon { color: var(--koi-brand-500, var(--apm-brand-500)); }
 .dsm-toolbar-right { display: flex; gap: 8px; }
 .dsm-body { display: flex; flex: 1; gap: 0; overflow: hidden; }
 .dsm.resizing { user-select: none; }
@@ -1044,10 +1044,10 @@ onMounted(async () => {
 .dsm-tree-children { padding-left: 16px; }
 .dsm-tree-flat { padding-left: 4px; }
 .dsm-tree-icon { flex-shrink: 0; }
-.dsm-ephemeral { color: #f59e0b; }
+.dsm-ephemeral { color: var(--koi-status-warning, var(--apm-status-warning)); }
 .dsm-tree-label { flex: 1; font-size: 13px; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dsm-tree-count { font-size: 11px; color: var(--text-tertiary); background: var(--bg-fill); padding: 1px 6px; border-radius: 10px; }
-.dsm-ephemeral-tag { font-size: 10px; color: #f59e0b; background: rgba(245, 158, 11, 0.15); padding: 1px 5px; border-radius: 4px; font-weight: 600; }
+.dsm-ephemeral-tag { font-size: 10px; color: var(--koi-status-warning, var(--apm-status-warning)); background: rgba(245, 158, 11, 0.15); padding: 1px 5px; border-radius: 4px; font-weight: 600; }
 .dsm-content { flex: 1; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
 /* 顶部信息带：视觉（圆角/边框/投影/底色）由模板上的 re-surface 类统一提供（16px 圆角、
    透明边框 + 双层柔光投影），这里只留网格布局——不再自写一套卡片壳防漂移（surface:check） */
@@ -1099,9 +1099,9 @@ onMounted(async () => {
   transition: background 0.15s;
 }
 .zkm-item:hover { background: var(--bg-hover, #f1f5f9); }
-.zkm-item.zkm-danger { color: #ef4444; }
+.zkm-item.zkm-danger { color: var(--koi-status-error, var(--apm-status-error)); }
 .zkm-item.zkm-danger:hover { background: rgba(239, 68, 68, 0.1); }
-.zkm-item.zkm-warning { color: #f59e0b; }
+.zkm-item.zkm-warning { color: var(--koi-status-warning, var(--apm-status-warning)); }
 .zkm-item.zkm-warning:hover { background: rgba(245, 158, 11, 0.1); }
 .zkm-divider {
   height: 1px;
@@ -1118,7 +1118,7 @@ onMounted(async () => {
 /* ---- 集群拓扑（ReRelationGraph）---- */
 .zk-cluster { display: flex; flex-direction: column; gap: 10px; }
 .zk-cluster__tip-title { font-weight: 600; margin-bottom: 4px; }
-.zk-cluster__tip-row { color: var(--el-text-color-regular, #606266); line-height: 1.6; }
+.zk-cluster__tip-row { color: var(--koi-text-secondary, var(--apm-text-secondary)); line-height: 1.6; }
 .zk-cluster__detail {
   border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.2));
   border-radius: 8px;

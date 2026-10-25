@@ -8,7 +8,7 @@
  *   - 大圆角（8px）
  *   - 平滑过渡动画
  */
-import { ref, computed, useAttrs } from "vue";
+import { ref, computed, useAttrs, onBeforeUnmount } from "vue";
 import "../../shared/modern-vars.css";
 
 defineOptions({ name: "ReInputModern", inheritAttrs: true });
@@ -62,6 +62,18 @@ const props = withDefaults(
     status?: "" | "success" | "warning" | "error";
     formatter?: (value: string | number | undefined) => string;
     parser?: (value: string) => string;
+    /**
+     * 右侧专注模式（默认关闭）。
+     *
+     * <p>窄列（如表设计网格的「注释」列只有 ~120px）里编辑长文本很吃力：
+     * 开启后聚焦时输入框会**锚定当前位置、向右展开**成一块浮层（约 360px 宽，
+     * 悬浮在表格之上，z-index 提权），失焦即还原回单元格宽度。</p>
+     *
+     * <p>实现要点：聚焦时读取 input 的 {@code getBoundingClientRect}，把 wrapper
+     * 切到 {@code position: fixed} 铺回同一位置并加宽；滚动时跟随（window scroll
+     * 监听重新定位），失焦 / 卸载时清理，不做成「跳走」的分离弹层。</p>
+     */
+    focusRight?: boolean;
   }>(),
   {
     type: "text",
@@ -81,11 +93,59 @@ const props = withDefaults(
     status: "",
     formatter: undefined,
     parser: undefined,
+    focusRight: false,
   },
 );
 
 const focused = ref(false);
 const passwordVisible = ref(false);
+const floatRect = ref<{ left: number; top: number; width: number } | null>(null);
+const wrapRef = ref<HTMLDivElement | null>(null);
+/** 专注模式下的浮动定位：null=未展开 */
+const floatPos = computed(() => (props.focusRight && focused.value ? floatRect.value : null));
+
+/** 聚焦：切到固定定位铺回原位置并向右展开（展开宽度参考设计表里能用的横向空间） */
+function onWrapFocus(e: FocusEvent): void {
+  focused.value = true;
+  if (!props.focusRight) return;
+  window.addEventListener("scroll", onScrollSync, true);
+  const input = e.target as HTMLElement | null;
+  const rect = input?.getBoundingClientRect?.();
+  const vw = window.innerWidth;
+  if (rect) {
+    floatRect.value = {
+      left: rect.left,
+      top: rect.top,
+      // 向右展开：原宽基础上尽量吃到视口右侧留白，最大 360px，最小 260px
+      width: Math.min(360, Math.max(260, vw - rect.left - 16)),
+    };
+  }
+}
+
+function onWrapBlur(): void {
+  focused.value = false;
+  floatRect.value = null;
+  window.removeEventListener("scroll", onScrollSync, true);
+}
+
+/** 专注态滚动跟随：fixed 定位不随页面滚，滚动时把输入框钉回 input 当前视口位置 */
+function onScrollSync(): void {
+  if (!props.focusRight || !focused.value) return;
+  const input = wrapRef.value?.querySelector<HTMLElement>(".rm-input__inner, .rm-input__textarea");
+  const rect = input?.getBoundingClientRect?.();
+  if (rect) {
+    const vw = window.innerWidth;
+    floatRect.value = {
+      left: rect.left,
+      top: rect.top,
+      width: Math.min(360, Math.max(260, vw - rect.left - 16)),
+    };
+  }
+}
+
+onBeforeUnmount(() => {
+  window.removeEventListener("scroll", onScrollSync, true);
+});
 
 const isTextarea = computed(() => props.type === "textarea");
 const inputType = computed(() => {
@@ -117,6 +177,7 @@ function togglePassword(): void {
 
 <template>
   <div
+    ref="wrapRef"
     :class="[
       'rm-input-wrap',
       `rm-input-wrap--${size || 'default'}`,
@@ -126,8 +187,10 @@ function togglePassword(): void {
         'rm-input-wrap--readonly': readonly,
         [`rm-input-wrap--${status}`]: status,
         'rm-input-wrap--textarea': isTextarea,
+        'rm-input-wrap--focus-right': props.focusRight,
       },
     ]"
+    :style="floatPos ? { position: 'fixed', left: `${floatPos.left}px`, top: `${floatPos.top}px`, width: `${floatPos.width}px`, zIndex: 3001 } : undefined"
     v-bind="$attrs"
   >
     <div v-if="$slots.prefix || prefixIcon" class="rm-input__prefix">
@@ -148,8 +211,8 @@ function togglePassword(): void {
       class="rm-input__textarea"
       v-bind="ariaAttrs"
       @input="onInput"
-      @focus="focused = true"
-      @blur="focused = false"
+      @focus="onWrapFocus"
+      @blur="onWrapBlur"
     />
     <input
       v-else
@@ -163,8 +226,8 @@ function togglePassword(): void {
       class="rm-input__inner"
       v-bind="ariaAttrs"
       @input="onInput"
-      @focus="focused = true"
-      @blur="focused = false"
+      @focus="onWrapFocus"
+      @blur="onWrapBlur"
     />
 
     <div class="rm-input__suffix">
@@ -220,6 +283,16 @@ function togglePassword(): void {
 /* Focus */
 .rm-input-wrap--focused {
   box-shadow: 0 0 0 1px var(--rm-border-focus, var(--rm-primary)) inset, 0 0 0 4px var(--rm-primary-light-9);
+}
+
+/* 右侧专注模式：聚焦时是浮在页面上的编辑层（position:fixed + z-index 由内联样式给），
+   需要投影把它和底下的表格/单元格区分开，否则浮层和表格融为一体、看不出宽度扩展了。 */
+.rm-input-wrap--focus-right.rm-input-wrap--focused {
+  box-shadow:
+    0 0 0 1px var(--rm-border-focus, var(--rm-primary)) inset,
+    0 0 0 4px var(--rm-primary-light-9),
+    0 4px 16px rgba(15, 23, 42, 0.16);
+  background: var(--rm-bg, #fff);
 }
 
 /* Status */

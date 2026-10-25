@@ -234,6 +234,12 @@ async function fetchOverviewFromThirdParty(query: WeatherQuery): Promise<Weather
     lon = num(first.longitude);
     city = String(first.name ?? city);
   }
+  // 坐标缺失/非法（含 0,0）时不再硬发请求：Open-Meteo 会照单全收并返回
+  // 几内亚湾上空的天气，界面显示"0° 阴"，比"暂无天气"更像出了故障。
+  // 城市也解析不出来就明确报错，让调用方展示空态。
+  if (!isUsableCoord(lat, lon)) {
+    throw new Error(`[weather] 无有效坐标（lat=${lat}, lon=${lon}）与可解析的城市`);
+  }
   const days = query.days ?? DEFAULT_DAYS;
   const hours = query.hours ?? DEFAULT_HOURS;
   const path =
@@ -258,13 +264,24 @@ async function fetchOverviewFromThirdParty(query: WeatherQuery): Promise<Weather
  *
  * 后台已实现（HEAD 探测命中）→ GET /v2/weather/overview；
  * 否则直连三方并归一化。两条链路都失败时抛出最后一个错误，由调用方决定空态展示。
+ *
+ * <p>入参未带坐标/城市时，先自行解析一次定位再请求：后台天气接口按
+ * {@code latitude/longitude} 或 {@code city} 取数，两者都没有时
+ * {@code WeatherDataServiceImpl#load} 直接返回 null，接口回"无可用天气数据源"。
+ * 调用方（顶栏环境信息等）往往只想要"当前天气"，不该要求它先自己定位。</p>
  */
 export async function getWeatherOverview(query: WeatherQuery = {}): Promise<WeatherOverview> {
+  const effective = await withResolvedLocation(query);
   if (await probeBackend(WEATHER_OVERVIEW_PATH)) {
     try {
       const res = await http()
         .get(WEATHER_OVERVIEW_PATH)
-        .query(query as Record<string, unknown>)
+        .query(effective as Record<string, unknown>)
+        // 天气是"后台可选增强"能力，失败要在本函数内部静默回落三方，
+        // 不能让拦截器把后端 msg 弹成全局 toast —— 那条提示对用户无意义
+        // （"无可用天气数据源"只是后台此刻没数据源，界面本就该继续用三方数据），
+        // 却会打断正在进行的操作。定位接口同理。
+        .noToast(true)
         .then<ApiResult<WeatherOverview>>((r) => r.data);
       if (res?.data) {
         return normalizeBackendOverview(res.data);
@@ -274,7 +291,33 @@ export async function getWeatherOverview(query: WeatherQuery = {}): Promise<Weat
       log.warn("weather", "后台天气接口失败，回落三方", error);
     }
   }
-  return fetchOverviewFromThirdParty(query);
+  return fetchOverviewFromThirdParty(effective);
+}
+
+/**
+ * 入参缺坐标/城市时补一次定位解析。
+ *
+ * <p>定位解析失败（无浏览器定位、IP 定位不通、配置里也没写经纬度）时原样返回入参，
+ * 由后续链路各自报错 —— 这里不抛错，避免"定位失败"把"天气失败"的成因盖掉。</p>
+ */
+async function withResolvedLocation(query: WeatherQuery): Promise<WeatherQuery> {
+  // 注意用 isUsableCoord 而不是"非 undefined"：调用方可能传 0（定位没取到时的
+  // 缺省值），那等同于没定位，这里必须再尝试解析一次，否则 0,0 会一路带到三方接口。
+  const hasCoord = isUsableCoord(num(query.latitude, NaN), num(query.longitude, NaN));
+  const hasCity = !!query.city?.trim() && query.city.trim() !== "本地";
+  if (hasCoord || hasCity) return query;
+  try {
+    const geo = await resolveGeoLocation();
+    return {
+      ...query,
+      latitude: geo.latitude,
+      longitude: geo.longitude,
+      city: geo.city,
+    };
+  } catch (error) {
+    log.warn("weather", "定位解析失败，天气请求将不带坐标", error);
+    return query;
+  }
 }
 
 /** 后台返回的结构补齐缺省字段（数组/数值），保证 UI 消费端无需逐字段判空 */
@@ -340,6 +383,25 @@ async function locateByIp(
 }
 
 /**
+ * 校验经纬度是否可用于天气查询。
+ *
+ * <p>赤道与本初子午线交点（0,0）是几内亚湾外海，不是任何人的位置；
+ * 定位链路任何一环失败时都会把 0 当缺省值传下来，若不拦截，
+ * 三方接口会返回一片虚无的"当地"天气（界面显示 0° 的加勒比海），
+ * 比"取不到天气"更迷惑人。纬度合法区间 [-90, 90]，经度 [-180, 180]。</p>
+ *
+ * @param lat 纬度
+ * @param lon 经度
+ * @returns 是否是可用于查询的坐标
+ */
+function isUsableCoord(lat: number, lon: number): boolean {
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return false;
+  if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return false;
+  // 0,0 视为无效（等同"没定位到"）
+  return lat !== 0 || lon !== 0;
+}
+
+/**
  * 解析展示用定位。
  *
  * 链路：后台（按客户端 IP 服务端解析）→ 浏览器定位 → IP 定位 → app.yaml 配置的经纬度。
@@ -351,9 +413,12 @@ export async function resolveGeoLocation(): Promise<GeoLocation> {
     try {
       const res = await http()
         .get(LOCATION_RESOLVE_PATH)
+        // 同 getWeatherOverview：定位失败要静默回落到浏览器/IP 定位，
+        // 不弹全局 toast（后台没有定位能力是部署常态，不是用户可处理的错误）。
+        .noToast(true)
         .then<ApiResult<GeoLocation>>((r) => r.data);
       const data = res?.data;
-      if (data && (data.latitude || data.longitude)) {
+      if (data && isUsableCoord(num(data.latitude), num(data.longitude))) {
         return {
           latitude: num(data.latitude),
           longitude: num(data.longitude),
@@ -367,7 +432,7 @@ export async function resolveGeoLocation(): Promise<GeoLocation> {
   }
 
   const browser = await locateInBrowser();
-  if (browser) {
+  if (browser && isUsableCoord(browser.latitude, browser.longitude)) {
     return {
       latitude: browser.latitude,
       longitude: browser.longitude,
@@ -383,7 +448,9 @@ export async function resolveGeoLocation(): Promise<GeoLocation> {
 
   const lat = num(weather.latitude);
   const lon = num(weather.longitude);
-  if (!lat || !lon) {
+  // 配置缺省是 0（见 shared.ts 的 other.weather 默认值），0,0 不是合法位置，
+  // 按"未配置"处理并抛错，由调用方展示空态 —— 而不是拿几内亚湾当当地天气。
+  if (!isUsableCoord(lat, lon)) {
     throw new Error("[weather] 后台未提供定位接口且未配置 weather 经纬度");
   }
   return { latitude: lat, longitude: lon, city: weather.city || "本地", source: "config" };

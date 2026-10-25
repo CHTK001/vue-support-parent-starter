@@ -33,11 +33,10 @@
         :data="events as unknown as Record<string, unknown>[]"
         :columns="accessEventColumns"
         engine="element"
-        :pagination="false"
-        :toolbar="false"
         :layout-table="{ minHeight: 0 }"
         :settings="{ border: false }"
         style="width:100%"
+        :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
       >
         <el-empty v-if="events.length === 0" description="无事件" :image-size="40" />
       </ReTable>

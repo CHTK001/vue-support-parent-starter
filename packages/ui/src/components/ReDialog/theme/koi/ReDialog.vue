@@ -56,6 +56,13 @@ const props = withDefaults(
      *   - true：整个底部区域不渲染（即使有 #footer 插槽，与历史语义一致）。
      */
     footerHidden?: boolean;
+    /**
+     * 是否显示右上角关闭按钮（默认 true）。
+     *
+     * <p>与基类 ReDialog 对齐：业务传了自定义 #header 时，窗口壳不会被渲染，
+     * 原生关闭按钮必须补上，否则弹窗只能靠底部「关闭」按钮兜底。</p>
+     */
+    showClose?: boolean;
     /** 是否显示右上角窗口壳操作区（收起 / 全屏 / 关闭） */
     showWindowShell?: boolean;
     /** 最小化按钮是否显示（默认仅关闭可见） */
@@ -99,6 +106,7 @@ const props = withDefaults(
     // 会被 Vue 强转成 false（runtime-core resolvePropValue: isAbsent && !hasDefault → false），
     // 三态里的「未传」将永远不可达；default: undefined 使 hasOwn(default) 成立、跳过强转。
     footerHidden: undefined,
+    showClose: true,
     showWindowShell: true,
     showMinimize: false,
     showFullscreen: false,
@@ -168,6 +176,19 @@ const emit = defineEmits<{
   (e: "confirm"): void;
   (e: "ok"): void;
   (e: "cancel"): void;
+  /**
+   * 生命周期事件：显式声明并从内部 ElDialog 转发。
+   *
+   * <p>不声明时这些监听器留在 `$attrs` 里、靠 `<ElDialog v-bind="$attrs">` 透传，
+   * 能工作但属隐式依赖；声明后由本组件负责转发，语义与 LDialog 的
+   * open/close/closed 一致，从 LDialog 迁过来的页面不必改监听器。</p>
+   *
+   * <p><b>注意</b>：声明会把这些监听器从 `$attrs` 摘走，所以下面必须在 ElDialog
+   * 上显式 emit，否则等于把事件丢掉。</p>
+   */
+  (e: "open"): void;
+  (e: "close"): void;
+  (e: "closed"): void;
 }>();
 
 function koiClose() {
@@ -224,9 +245,18 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
     :fullscreen="dialogFullscreen"
     :z-index="props.zIndex"
     :loading="loading"
-    :show-close="!showWindowShell"
+    :show-close="!headless && showClose && (!!$slots.header || !showWindowShell)"
+    @open="emit('open')"
+    @close="emit('close')"
+    @closed="emit('closed')"
   >
-    <template v-if="showWindowShell" #header>
+    <!-- 业务自定义 header 优先：直接放进 ElDialog 的 #header，避免 ElDialog
+         再按 title 渲染一层默认标题，造成双 header。 -->
+    <template v-if="$slots.header && !headless" #header>
+      <slot name="header" />
+    </template>
+    <!-- 无业务 header 时，showWindowShell/headless 使用窗口壳（默认标题 + 壳操作） -->
+    <template v-else-if="showWindowShell || headless" #header>
       <div class="koi-dialog-custom-header" :class="{ 'is-empty': headless }">
         <template v-if="!headless">
           <span class="koi-dialog-header-left">
@@ -255,7 +285,6 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
         </template>
       </div>
     </template>
-    <slot v-if="!headless" name="header"></slot>
     <ReDialogCloseFab
       v-if="headless"
       :size="28"
@@ -459,12 +488,18 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
   padding: 4px 20px 6px !important;
 }
 
-/* footer 内按钮统一紧凑高度（业务侧传入的 ReButton 默认偏大，弹窗内收窄） */
+/* footer 内按钮统一高度与字重（业务侧传入的 ReButton 默认偏大，弹窗内收窄）。
+   min-width/圆角/字重为 Vue 体系弹窗 footer 按钮标准（源自 eduai /edu/students
+   弹窗的既有观感：96px 最小宽、12px 圆角、600 字重），统一在此收敛，
+   各应用不要在页面里各自覆盖。 */
 .koi-dialog-shell .el-dialog__footer .el-button {
   height: 26px;
   min-height: 26px;
+  min-width: 96px;
   padding: 0 14px;
   font-size: 12px;
+  font-weight: 600;
+  border-radius: var(--el-radius-lg, 12px);
 }
 
 /* compact 模式：进一步缩小 body 内边距 */

@@ -60,31 +60,25 @@ watch(
   { immediate: true },
 );
 
-/** 列下拉候选，主键列排在前面并标注出来 */
+/** 列下拉候选，主键列排在前面并标注出来；description 给类型，便于下拉里也能看到字段类型 */
 const columnOptions = computed(() =>
   props.columns.map(column => ({
     value: column.name,
     label: column.primaryKey ? `${column.name}（主键）` : column.name,
+    description: column.typeName
+      ? `${column.typeName}${column.nullable === false ? " NOT NULL" : ""}`
+      : "未读取类型",
   })),
 );
 
 const knownColumns = computed(() => new Set(props.columns.map(column => column.name)));
 
-/** 目标表还不存在 → 新建表模式，左列改成自由输入，不做孤儿列告警 */
+/** 目标表还不存在 → 新建表模式，必须先设计表，映射才能选字段 */
 const creatingTable = computed(() => props.tableExists === false);
-
-/**
- * 左列是否退回自由输入：新建表、读列失败、或还没读到列清单。
- *
- * <p>下拉没有可挑的候选时，映射行必须照样能配 —— 读列失败还有数据源不可达、
- * 权限不足、连接超时等多种原因，不能让一次失败把整张映射表吞掉；
- * 等列清单到位会自动切回下拉。</p>
- */
-const freeInput = computed(() => creatingTable.value || !props.columns.length);
 
 /** 已经配了但当前表里没有的列：表结构变了，必须让用户看见（新建表模式与列清单缺失时不算，不猜） */
 const orphanRows = computed(() =>
-  creatingTable.value || !props.columns.length
+  !props.columns.length
     ? []
     : rows.value
       .map((row, index) => ({ row, index }))
@@ -144,18 +138,18 @@ function typeHint(name: string): string {
       </span>
     </div>
     <div v-else-if="!table" class="mapping-state">
-      先在上方填「目标表」，再回来配置：左边选这张表的列，右边写要写进去的值 / ${表达式}。
+      先在上方选「目标表」，再回来配置：左边选这张表的列，右边写要写进去的值 / ${表达式}。
     </div>
     <div v-else-if="creatingTable" class="mapping-state mapping-state-create">
-      目标表 {{ table }} 尚不存在，将按下面填的列名自动建表，列类型按这一批实际取值推断；左边填新列名（如 title），右边写值。
+      目标表 {{ table }} 尚不存在：请先用上方的「设计表」创建并配置字段，创建后这里会按真实字段下拉选择。
     </div>
     <div v-else-if="!columnOptions.length" class="mapping-state">
-      该表没有读到列：确认表名正确、数据源可达，或点下方「重新读取表结构」重试；期间左列可自由输入列名，映射照常能配。
+      该表没有读到列：确认表名正确、数据源可达，或点下方「重新读取表结构」重试；也可用「设计表」调整字段。
     </div>
 
     <!-- 表头：写清左右两列各是什么，避免「目标列 ← 值表达式」的对应关系靠猜 -->
     <div v-if="rows.length" class="mapping-head">
-        <span class="head-col">{{ creatingTable ? "新列名（将自动建列）" : freeInput ? "目标列（列清单暂缺，自由输入）" : "目标列（写到哪）" }}</span>
+        <span class="head-col">目标列（写到哪）</span>
         <span class="head-value">值表达式（写什么）</span>
         <span class="head-type">列类型</span>
         <span class="head-op"></span>
@@ -167,19 +161,10 @@ function typeHint(name: string): string {
         class="mapping-row"
         :class="{ 'mapping-row--orphan': orphanIndexes.has(index) }"
       >
-        <ReInput
-          v-if="freeInput"
-          
-          class="mapping-column"
-          :placeholder="creatingTable ? '新列名，如 title' : '列名（列清单暂不可用，自由输入）'"
-          :model-value="row.key"
-          @update:model-value="(v: unknown) => (row.key = String(v ?? ''))"
-        />
         <ReSelect
-          v-else
-          
           filterable
           clearable
+          layout="card"
           class="mapping-column"
           placeholder="选择目标表的列"
           :model-value="row.key"
@@ -195,6 +180,7 @@ function typeHint(name: string): string {
         />
         <span class="mapping-type">
           <template v-if="orphanIndexes.has(index)">当前表中不存在</template>
+          <template v-else-if="!props.columns.length">未读取类型</template>
           <template v-else>{{ typeHint(row.key.trim()) || "—" }}</template>
         </span>
         <ReButton
@@ -212,7 +198,7 @@ function typeHint(name: string): string {
       <div v-if="!rows.length" class="mapping-empty">
         <div class="mapping-empty-title">还没有字段映射</div>
         <div class="mapping-empty-tip">
-          点下面的「添加字段」新建一行：{{ freeInput ? "左边填目标列名（列清单可挑时会变成下拉）" : "左边选目标表的列" }}，右边写要写进去的值。
+          点下面的「添加字段」新建一行，左边选目标表的列，右边写要写进去的值。
           例：目标列 title ← 值表达式 ${title}；也可以直接写固定文本。
         </div>
       </div>
@@ -224,7 +210,7 @@ function typeHint(name: string): string {
       </div>
 
       <ReButton
-        v-if="!creatingTable"
+        v-if="!creatingTable && columnOptions.length"
         
         plain
         icon="Refresh"
@@ -232,7 +218,12 @@ function typeHint(name: string): string {
       >
         重新读取表结构
       </ReButton>
-    <ReButton  plain icon="Plus" @click="addRow">添加字段</ReButton>
+    <ReButton
+      v-if="!creatingTable && columnOptions.length"
+      plain
+      icon="Plus"
+      @click="addRow"
+    >添加字段</ReButton>
   </div>
 </template>
 

@@ -159,23 +159,181 @@ interface ListResponse {
 }
 
 /**
+ * 运行时文件服务器配置（进入页面先请求 /v2/file/server-config 获得）。
+ *
+ * <p>优先级高于 localStorage：后端配置接口是当前部署的权威来源，
+ * 避免本地残留的独立端口地址把嵌入式部署带偏。</p>
+ */
+let runtimeFileServer: { mode?: string; server?: string; pathPrefix?: string; bucket?: string } | null = null;
+/** 配置接口请求结果：null=尚未请求；true=成功取得运行时配置；false=失败（可回退旧配置） */
+let configDiscoveryOk: boolean | null = null;
+
+/** 配置接口请求失败详情（供页面提示/日志） */
+export interface FileServerConfigError {
+  /** HTTP 状态码；无响应时为 0 */
+  status?: number;
+  /** 后端 msg（如有） */
+  message?: string;
+}
+
+let configDiscoveryError: FileServerConfigError | null = null;
+
+/**
+ * 文件服务器运行期配置（GET /v2/file/server-config 返回体）
+ */
+export interface FileServerConfig {
+  /** 部署形态：embedded / standalone */
+  mode: string;
+  /** embedded=相对路径（如 /fs）；standalone=http://host:port */
+  server: string;
+  /** 内置形态路径前缀 */
+  pathPrefix?: string;
+  /** 默认存储桶 */
+  bucket?: string;
+}
+
+/**
+ * 请求文件服务器当前配置（进入 #/files 前必须调用）。
+ *
+ * <p>这是「先问后端再连文件服务」的入口：成功后运行时配置生效，
+ * 后续 {@link #getServerBase()} / {@link #getDefaultBucket()} 都以它为第一优先级；
+ * 请求失败时回退到 localStorage / app.yaml，并对外暴露失败状态，页面据此提示降级。</p>
+ *
+ * @return 配置结果；失败返回 null
+ */
+export async function loadFileServerConfig(): Promise<FileServerConfig | null> {
+  configDiscoveryOk = false;
+  configDiscoveryError = null;
+  try {
+    // createHttp() 的 then 回调拿到的是 AxiosResponse（.data=业务体 {code,data,msg}），
+    // 但宿主若已注入剥层拦截器，then 回调拿到的就是业务体本身。两者都要兼容：
+    // 逐层剥开 data，直到出现带 mode/server 的配置对象为止。
+    const res = await createHttp({ headers: authHeaders() }).get("/v2/file/server-config");
+    const config = unwrapFileServerConfig(res);
+    if (!config?.mode || !config?.server) {
+      configDiscoveryError = { message: "配置接口返回内容不完整" };
+      return null;
+    }
+    runtimeFileServer = {
+      mode: config.mode,
+      server: config.server,
+      pathPrefix: config.pathPrefix,
+      bucket: config.bucket,
+    };
+    configDiscoveryOk = true;
+    return config;
+  } catch (e) {
+    if (e instanceof AxiosError) {
+      configDiscoveryError = {
+        status: e.response?.status ?? 0,
+        message: e.response?.data?.msg ?? e.message,
+      };
+    } else {
+      configDiscoveryError = { message: (e as Error)?.message ?? "配置请求失败" };
+    }
+    return null;
+  }
+}
+
+/**
+ * 从响应里剥出文件服务器配置对象。
+ *
+ * <p>兼容三种形态：</p>
+ * <ul>
+ *   <li>AxiosResponse → {@code res.data} 是 {@code {code,data,msg}} 业务体；</li>
+ *   <li>剥层后业务体 → {@code res} 就是 {@code {code,data,msg}}；</li>
+ *   <li>直接配置体 → {@code res} 或 {@code res.data} 就是 {@code {mode,server,...}}。</li>
+ * </ul>
+ *
+ * @param res 请求响应（可能是 AxiosResponse / 业务体 / 配置体）
+ * @return 配置对象；无法剥出时返回 null
+ */
+function unwrapFileServerConfig(res: unknown): FileServerConfig | null {
+  let cur: unknown = res;
+  for (let i = 0; i < 3; i++) {
+    if (cur == null || typeof cur !== "object") break;
+    const obj = cur as Record<string, unknown>;
+    // 已剥到配置体：有 mode/server 即止
+    if (typeof obj.mode === "string" && typeof obj.server === "string") {
+      return obj as unknown as FileServerConfig;
+    }
+    const next = obj.data;
+    if (next == null || next === cur) break;
+    cur = next;
+  }
+  return null;
+}
+
+/**
+ * 返回配置接口是否成功取得运行时配置。
+ *
+ * @return true=运行时配置生效；false=失败；null=尚未请求/未指定
+ */
+export function isFileServerConfigDiscovered(): boolean | null {
+  return configDiscoveryOk;
+}
+
+/**
+ * 返回最近一次配置接口失败详情；成功或尚未请求时为 null。
+ */
+export function getFileServerConfigError(): FileServerConfigError | null {
+  return configDiscoveryError;
+}
+
+/**
+ * 清空运行时配置与失败状态（重置后应按旧逻辑重新发现）。
+ */
+export function clearRuntimeFileServerConfig(): void {
+  runtimeFileServer = null;
+  configDiscoveryOk = null;
+  configDiscoveryError = null;
+}
+
+/**
  * 读取文件服务器地址
  *
- * <p>优先级：localStorage（页面级覆盖）＞ getConfig（app.yaml / `/v2/setting/default` 下发的
- * {@code other.filestorage.server}）＞ 当前地址（window.location.origin）。</p>
+ * <p>优先级：运行时配置（{@link #loadFileServerConfig()} 请求成功）＞
+ * localStorage（页面级覆盖）＞ spring starter 下发
+ * {@code other.filestorage.mode + server}＞ 当前地址（window.location.origin）。</p>
+ *
+ * <p><b>嵌入/独立分流</b>：后端配置接口返回
+ * {@code mode=embedded|standalone} 与 {@code server}；
+ * embedded 的 server 是相对路径（如 /fs 或 /system/api/fs），
+ * 必须用当前 origin 拼出完整地址；standalone 的 server 是完整 http://host:port，
+ * 直接使用，不再落到 window.location.origin。</p>
  *
  * @return 文件服务器地址（已去除尾部斜杠）
  */
 export function getServerBase(): string {
+  const runtime = runtimeFileServer?.server?.trim();
+  if (runtime) {
+    return embbedResolve(runtime, runtimeFileServer?.mode || "embedded");
+  }
   const stored = localStorage.getItem(SERVER_KEY);
   if (stored) {
     return stored.replace(/\/+$/, "");
   }
-  const configured = appFileStorageConfig().server;
-  if (configured) {
+  const cfg = appFileStorageConfig();
+  const configured = cfg.server?.trim();
+  const mode = (cfg.mode || "embedded").toLowerCase();
+  if (!configured) {
+    return typeof window !== "undefined" ? window.location.origin : DEFAULT_SERVER;
+  }
+  return embbedResolve(configured, mode);
+}
+
+/**
+ * 按 embedded/standalone 语义把后端下发的 server 归一成完整请求地址。
+ */
+function embbedResolve(configured: string, mode: string): string {
+  if (mode === "standalone" || /^https?:\/\//i.test(configured)) {
     return configured.replace(/\/+$/, "");
   }
-  return typeof window !== "undefined" ? window.location.origin : DEFAULT_SERVER;
+  // 嵌入：相对路径（/fs 或 /system/api/fs），由前端拼当前页面 origin。
+  const origin = typeof window !== "undefined" ? window.location.origin : DEFAULT_SERVER;
+  const relative = configured.startsWith("/") ? configured.slice(1) : configured;
+  if (!relative) return origin;
+  return `${origin}/${relative}`.replace(/\/+$/, "");
 }
 
 /**
@@ -193,7 +351,10 @@ export function setServerBase(value: string): void {
  * @return 存储桶名称
  */
 export function getDefaultBucket(): string {
-  return localStorage.getItem(BUCKET_KEY) || appFileStorageConfig().bucket || DEFAULT_BUCKET;
+  return runtimeFileServer?.bucket?.trim()
+    || localStorage.getItem(BUCKET_KEY)
+    || appFileStorageConfig().bucket
+    || DEFAULT_BUCKET;
 }
 
 /**
@@ -1366,6 +1527,315 @@ export async function downloadZip(bucket: string, sources: string[]): Promise<Bl
   } catch (e) {
     throw new Error(toErrorMessage(e, "打包下载"));
   }
+}
+
+// ==================== 上传任务（任务化分片上传） ====================
+
+/** 上传任务接口前缀（Spring 侧，非文件服务器直连） */
+const UPLOAD_TASK_BASE = "/v2/file/upload-task";
+
+/** 上传任务状态（与后端 UploadTask.State 对应） */
+export type UploadTaskState =
+  | "UPLOADING"
+  | "MERGING"
+  | "COMPLETED"
+  | "FAILED"
+  | "CANCELLED";
+
+/** 上传任务快照（后端 /upload-task 接口的任务结构） */
+export interface UploadTaskInfo {
+  /** 任务号 */
+  taskId: string;
+  /** 原始文件名 */
+  fileName: string;
+  /** 文件总字节数（0 = 未知） */
+  totalSize: number;
+  /** 已收字节数 */
+  receivedBytes: number;
+  /** 分片大小（字节；0 = 不分片） */
+  chunkSize: number;
+  /** 分片总数 */
+  totalChunks: number;
+  /** 已收分片数 */
+  receivedChunks: number;
+  /** 存储提供者名（空 = 默认提供者） */
+  provider: string;
+  /** 存储桶/目录路径（空 = 提供者默认桶） */
+  bucket: string;
+  /** 任务状态 */
+  state: UploadTaskState;
+  /** 附加消息（失败原因等） */
+  message: string;
+  /** 存储侧对象键（合并成功后回填） */
+  objectKey: string;
+  /** 创建时间（毫秒时间戳） */
+  createdAt: number;
+}
+
+/**
+ * 请求上传任务接口（走应用登录态，与 server-config 同一通道）
+ */
+function uploadTaskHttp(): Http {
+  return createHttp({ headers: authHeaders() });
+}
+
+/**
+ * 解包 ReturnResult：code 非 200 抛错，成功返回 data
+ */
+function unwrapTask<T>(r: { data?: { code?: number; msg?: string; data?: T } }): T {
+  const body = r.data;
+  if (body && typeof body.code === "number" && body.code !== 200) {
+    throw new Error(body.msg || `上传任务接口错误 (${body.code})`);
+  }
+  return (body?.data ?? (body as unknown)) as T;
+}
+
+/**
+ * 列出后台已开启的存储桶（提供者名列表），供上传时选择 bucket。
+ *
+ * @return 提供者名列表（如 ["local", "minio"]）
+ */
+export async function listUploadBuckets(): Promise<string[]> {
+  try {
+    return await uploadTaskHttp()
+      .get(`${UPLOAD_TASK_BASE}/buckets`)
+      .then<string[]>((r) => unwrapTask<string[]>(r) ?? []);
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "获取 bucket 列表"));
+  }
+}
+
+/**
+ * 创建上传任务（分片上传第一步：只建任务，立即返回任务号）。
+ *
+ * @param options 任务描述
+ * @return 任务快照（含 taskId / totalChunks）
+ */
+export async function createUploadTask(options: {
+  /** 文件名（必填） */
+  fileName: string;
+  /** 文件总字节数（0 = 未知） */
+  totalSize?: number;
+  /** 分片大小（字节；0 = 不分片） */
+  chunkSize?: number;
+  /** 存储提供者名（空 = 默认） */
+  provider?: string;
+  /** 存储桶/目录（空 = 提供者默认桶） */
+  bucket?: string;
+}): Promise<UploadTaskInfo> {
+  try {
+    return await uploadTaskHttp()
+      .post(`${UPLOAD_TASK_BASE}/task`)
+      .headers({ "Content-Type": "application/json;charset=UTF-8" })
+      .data(JSON.stringify(options))
+      .then<UploadTaskInfo>((r) => unwrapTask<UploadTaskInfo>(r));
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "创建上传任务"));
+  }
+}
+
+/**
+ * 上传一个分片（body 为原始分片字节；同片重传幂等覆盖）。
+ *
+ * @param taskId 任务号
+ * @param index  分片序号（0 起）
+ * @param chunk  分片内容
+ * @return 任务快照（含已收片数，供断点续传判断）
+ */
+export async function uploadTaskChunk(
+  taskId: string,
+  index: number,
+  chunk: Blob | ArrayBuffer,
+): Promise<UploadTaskInfo> {
+  try {
+    return await uploadTaskHttp()
+      .put(`${UPLOAD_TASK_BASE}/task/${taskId}/chunk?index=${index}`)
+      .headers({ "Content-Type": "application/octet-stream" })
+      .data(chunk)
+      .then<UploadTaskInfo>((r) => unwrapTask<UploadTaskInfo>(r));
+  } catch (e) {
+    throw new Error(toErrorMessage(e, `上传分片 #${index}`));
+  }
+}
+
+/**
+ * 标记分片上传完毕，触发后台合并（时间轮调度 + 虚拟线程执行）。
+ *
+ * @param taskId 任务号
+ * @return 任务快照
+ */
+export async function completeUploadTask(taskId: string): Promise<UploadTaskInfo> {
+  try {
+    return await uploadTaskHttp()
+      .post(`${UPLOAD_TASK_BASE}/task/${taskId}/complete`)
+      .then<UploadTaskInfo>((r) => unwrapTask<UploadTaskInfo>(r));
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "完成任务上传"));
+  }
+}
+
+/**
+ * 上传任务列表（按创建时间倒序，供「上传任务」页面展示）。
+ *
+ * @return 任务快照列表
+ */
+export async function listUploadTasks(): Promise<UploadTaskInfo[]> {
+  try {
+    return await uploadTaskHttp()
+      .get(`${UPLOAD_TASK_BASE}/tasks`)
+      .then<UploadTaskInfo[]>((r) => unwrapTask<UploadTaskInfo[]>(r) ?? []);
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "获取上传任务列表"));
+  }
+}
+
+/**
+ * 取消上传任务（停止调度并清理分片）。
+ *
+ * @param taskId 任务号
+ * @return 被取消的任务快照
+ */
+export async function cancelUploadTask(taskId: string): Promise<UploadTaskInfo> {
+  try {
+    return await uploadTaskHttp()
+      .delete(`${UPLOAD_TASK_BASE}/task/${taskId}`)
+      .then<UploadTaskInfo>((r) => unwrapTask<UploadTaskInfo>(r));
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "取消上传任务"));
+  }
+}
+
+/**
+ * 任务化上传一个文件：创建任务 → 按分片切片上传（顺序，失败即抛）→ complete。
+ *
+ * <p>进度通过 {@link UploadProgressHandler} 汇报（0-100）。
+ * 文件小于分片大小时退化为单分片。</p>
+ *
+ * @param file    文件
+ * @param options provider / bucket / chunkSize（默认 5MB）
+ * @return 合并完成后的任务快照（complete 后任务仍在后台合并，需轮询 listUploadTasks 看最终状态）
+ */
+export async function uploadFileAsTask(
+  file: File,
+  options: { provider?: string; bucket?: string; chunkSize?: number; onProgress?: UploadProgressHandler } = {},
+): Promise<UploadTaskInfo> {
+  const chunkSize = options.chunkSize && options.chunkSize > 0 ? options.chunkSize : 5 * 1024 * 1024;
+  const task = await createUploadTask({
+    fileName: file.name,
+    totalSize: file.size,
+    chunkSize,
+    provider: options.provider,
+    bucket: options.bucket,
+  });
+  const totalChunks = Math.max(task.totalChunks, 1);
+  for (let index = 0; index < totalChunks; index++) {
+    const start = index * chunkSize;
+    const chunk = file.slice(start, Math.min(start + chunkSize, file.size));
+    await uploadTaskChunk(task.taskId, index, await chunk.arrayBuffer());
+    if (options.onProgress) {
+      const loaded = Math.min(start + chunkSize, file.size);
+      options.onProgress(Math.round((loaded / Math.max(file.size, 1)) * 100), loaded, file.size);
+    }
+  }
+  return completeUploadTask(task.taskId);
+}
+
+/**
+ * 小文件同步直传阈值（MB）：与后端 plugin.filesystem.task-sync-max-mb 默认值一致，
+ * 不超过该大小的文件走 {@link uploadFileSimple}（同步，立即完成），超过才走任务链路。
+ */
+export const SIMPLE_SYNC_MAX_MB = 5;
+
+/**
+ * 小文件同步直传：multipart 一次传给 /simple，后端同步写入存储并直接返回 COMPLETED。
+ *
+ * <p>不建任务、不经时间轮；后端按 task-sync-max-mb 复核，超过阈值仍会转任务链路
+ * （返回 UPLOADING），调用方据此无需自行判断。</p>
+ *
+ * @param file    文件
+ * @param options provider / bucket
+ * @return 任务快照（小文件为 COMPLETED 且带 objectKey）
+ */
+export async function uploadFileSimple(
+  file: File,
+  options: { provider?: string; bucket?: string } = {},
+): Promise<UploadTaskInfo> {
+  try {
+    const form = new FormData();
+    form.append("file", file);
+    if (options.bucket) {
+      form.append("fileBucket", options.bucket);
+    }
+    if (options.provider) {
+      form.append("ossType", options.provider);
+    }
+    return await uploadTaskHttp()
+      .post(`${UPLOAD_TASK_BASE}/simple`)
+      .data(form)
+      .timeout(UPLOAD_TIMEOUT_MS)
+      .then<UploadTaskInfo>((r) => unwrapTask<UploadTaskInfo>(r));
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "上传文件"));
+  }
+}
+
+/**
+ * 订阅上传任务实时推送（SSE，复用 vue 体系 @repo/core 的统一 socket 模块）。
+ *
+ * <p>对应后端 {@code GET /v2/file/upload-task/events}，事件约定：</p>
+ * <ul>
+ *   <li>{@code init} —— 连接建立后的全量任务列表（UploadTaskInfo[]）；</li>
+ *   <li>{@code task} —— 单个任务变化（分片进度 / 状态流转即时下发）。</li>
+ * </ul>
+ *
+ * <p>令牌经 setSocketTokenProvider 注入，SSE 以 {@code Authorization: Bearer}
+ * 请求头携带（fetch-event-source 支持自定义头，无需把令牌放进 URL）。
+ * 自动重连（默认最多 5 次，间隔 3 秒）。</p>
+ *
+ * @param onInit   全量快照回调
+ * @param onTask   单任务变化回调
+ * @return 取消订阅函数（组件卸载时调用，关闭连接）
+ */
+export function subscribeUploadTasks(
+  onInit: (tasks: UploadTaskInfo[]) => void,
+  onTask: (task: UploadTaskInfo) => void,
+): () => void {
+  // 动态引入 @repo/core 的 socket 模块：保持本 API 与 socket 基础设施松耦合
+  let dispose: (() => void) | null = null;
+  let cancelled = false;
+  void Promise.all([import("@repo/core"), import("@repo/utils")]).then(([core, utils]) => {
+    if (cancelled) {
+      return;
+    }
+    // 令牌提供者：SSE 握手把 accessToken 放进 Authorization 头
+    try {
+      core.setSocketTokenProvider(() => utils.getAccessToken() ?? "");
+    } catch {
+      // 令牌提供者设置失败不影响连接（公共接口匿名可用）
+    }
+    const sse = core.createSseService({
+      urls: [window.location.origin],
+      path: `${UPLOAD_TASK_BASE}/events`,
+      reconnection: true,
+      reconnectionDelay: 3000,
+    });
+    sse.on("init", (data) => {
+      if (Array.isArray(data)) {
+        onInit(data as UploadTaskInfo[]);
+      }
+    });
+    sse.on("task", (data) => {
+      if (data && typeof data === "object" && "taskId" in (data as object)) {
+        onTask(data as UploadTaskInfo);
+      }
+    });
+    sse.connect();
+    dispose = () => sse.close();
+  });
+  return () => {
+    cancelled = true;
+    dispose?.();
+  };
 }
 
 

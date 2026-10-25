@@ -85,6 +85,9 @@ import {
   getAppDefaultBucket,
   hasBucketOverride,
   isBucketMissingError,
+  loadFileServerConfig,
+  isFileServerConfigDiscovered,
+  getFileServerConfigError,
 } from "../api/filestorageApi";
 import type { BucketConfig, CapabilitiesResponse, StorageObject, TreeItem } from "../api/filestorageApi";
 import PreviewIframePanel from "../components/PreviewIframePanel.vue";
@@ -117,6 +120,7 @@ const PreviewIfcPanel = defineAsyncComponent(() => import("../components/Preview
  * archive-wasm、binary 结构解析器等），不预览的人不该为它们付首屏成本。</p>
  */
 const FvTextPanel = defineAsyncComponent(() => import("../components/fv/FvTextPanel.vue"));
+const FvLogAnalyzePanel = defineAsyncComponent(() => import("../components/fv/FvLogAnalyzePanel.vue"));
 const FvDocPanel = defineAsyncComponent(() => import("../components/fv/FvDocPanel.vue"));
 const FvOutlinePanel = defineAsyncComponent(() => import("../components/fv/FvOutlinePanel.vue"));
 const FvDesignPanel = defineAsyncComponent(() => import("../components/fv/FvDesignPanel.vue"));
@@ -165,7 +169,8 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   ts: FvTextPanel,
   tsx: FvTextPanel,
   xml: FvTextPanel,
-  log: FvTextPanel,
+  // .log：hs_err_pid*.log（JVM 崩溃日志）走运维分析面板（双模式），普通日志退化为文本
+  log: FvLogAnalyzePanel,
   vue: FvTextPanel,
   yaml: FvTextPanel,
   yml: FvTextPanel,
@@ -199,6 +204,8 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   rb: FvTextPanel,
   swift: FvTextPanel,
   kt: FvTextPanel,
+  // .mf（Java MANIFEST.MF / METAFONT 源文件）为纯文本，按文本渲染
+  mf: FvTextPanel,
   // renderer-doc
   xmind: FvDocPanel,
   epub: FvDocPanel,
@@ -2357,6 +2364,55 @@ const chainFilterRows = computed(() =>
 );
 
 /**
+ * 生成滤镜链的只读效果示例（不再让管理员手工填参数）
+ *
+ * <p>与后台 {@code applyFilterChainStep} 的真实执行逻辑对齐：未实现的
+ * SPI 能力明确标注“不会生效”，避免把后台未执行的参数描述成正常功能。</p>
+ */
+function chainFilterExample(id: string, params: string): string {
+  const key = id.trim().toLowerCase();
+  const kv: Record<string, string> = {};
+  for (const pair of params.split(",").map((s) => s.trim()).filter(Boolean)) {
+    const eq = pair.indexOf("=");
+    if (eq > 0) kv[pair.slice(0, eq).trim().toLowerCase()] = pair.slice(eq + 1).trim();
+  }
+  switch (key) {
+    case "size":
+    case "resize": {
+      const w = kv["width"];
+      const h = kv["height"];
+      if (w && h) return `固定缩放到 ${w}x${h}（示例：width=200,height=200）`;
+      if (kv["size"]) return `固定缩放到 ${kv["size"]}（示例：size=200x200）`;
+      if (kv["scale"]) return `按比例缩放 ${kv["scale"]}%（示例：scale=50）`;
+      return "该滤镜缺少 width/height 或 size 参数，当前会被跳过";
+    }
+    case "gray":
+    case "grayscale":
+      return "整图灰度，无需参数";
+    case "blur":
+    case "gaussianblur":
+      return `高斯模糊，radius=${kv["radius"] ?? "5"}`;
+    case "sharpen":
+    case "usm":
+      return `锐化，radius=${kv["radius"] ?? "1"}`;
+    case "bright":
+    case "brightness":
+      return `亮度调整，brightness=${kv["brightness"] ?? "1.15"}`;
+    case "rotate":
+      return `旋转 ${kv["angle"] ?? "90"}°`;
+    case "flip":
+      return `翻转 direction=${kv["direction"] ?? "horizontal"}`;
+    case "autoorient":
+      return "自动按 EXIF 旋转，无需参数";
+    case "watermark":
+    case "textwatermark":
+      return kv["text"] ? `文字水印：${kv["text"]}` : "文字水印缺少 text 参数，当前会被跳过";
+    default:
+      return `后台 JDK 管线未实现“${id}”，开启后不会产生效果（仅记录配置）`;
+  }
+}
+
+/**
  * 开关某个全局滤镜：开启即加入链，关闭即移除
  *
  * @param id      滤镜能力 id
@@ -4248,8 +4304,24 @@ function copyOneTimeLink(): void {
   el.remove();
 }
 
-onMounted(() => {
+onMounted(async () => {
   document.addEventListener("keydown", onFileKeydown);
+  // 先请求 filesystem-starter 的配置接口，拿到当前部署形态与地址（embedded/standalone）。
+  // 成功则以配置接口为准；失败（旧后端 404/403）回退 app.yaml/localStorage/origin，
+  // 但必须提示，避免用户误以为仍在用后端当前配置。
+  await loadFileServerConfig();
+  if (isFileServerConfigDiscovered() === false) {
+    const err = getFileServerConfigError();
+    // 调试/验收用：Playwright 可直接读取，不等 UI 浮层
+    document.documentElement.dataset.fsConfigError = String(err?.status || 0);
+    document.documentElement.dataset.fsConfigFallback = "true";
+    message.warning(err?.status ? `文件服务器配置获取失败（${err.status}），已使用本地配置` : "文件服务器配置获取失败，已使用本地配置");
+  } else if (isFileServerConfigDiscovered() === true) {
+    document.documentElement.dataset.fsConfigError = "0";
+    document.documentElement.dataset.fsConfigFallback = "false";
+  }
+  server.value = getServerBase() || DEFAULT_SERVER;
+  bucket.value = resolveBucket() || getDefaultBucket() || DEFAULT_BUCKET;
   // 「预览（新窗口）」标记：先读并剥掉（一次性，两处地址都剥），否则刷新后又会自动打开
   const autoPreviewKey = takePreviewFlag();
   // 必须排在最前：视图/目录/排序都从这里恢复，后面所有播种都基于恢复后的值
@@ -4987,6 +5059,7 @@ onUnmounted(() => {
       width="1040px"
       :append-to-body="true"
       :close-on-click-modal="false"
+      :draggable="true"
       destroy-on-close
     >
       <template #header>
@@ -5052,7 +5125,7 @@ onUnmounted(() => {
             <!-- 三方 URL 预览：能力由后台 SPI 枚举，显式选择后才生效（不是开关） -->
             <div v-if="admHitAny(ADMIN_FILE_ITEM_TERMS.thirdUrlPreview)" class="fs-admin__field">
               <span class="fs-admin__label fs-admin__label--field">三方 URL 预览</span>
-              <el-select v-model="adminForm.thirdUrlPreview" class="fs-admin__select">
+              <el-select v-model="adminForm.thirdUrlPreview" class="fs-admin__select" popper-class="fs-admin-select-popper">
                 <template #prefix><el-icon><Link /></el-icon></template>
                 <el-option
                   v-for="opt in urlPreviewerOptions"
@@ -5185,7 +5258,7 @@ onUnmounted(() => {
 
             <div v-if="admHitAny(ADMIN_FILTER_ITEM_TERMS.imageFilter)" class="fs-admin__field fs-admin__field--wide">
               <span class="fs-admin__label fs-admin__label--field">图片滤镜</span>
-              <el-select v-model="adminForm.imageFilter" class="fs-admin__select">
+              <el-select v-model="adminForm.imageFilter" class="fs-admin__select" popper-class="fs-admin-select-popper">
                 <template #prefix><el-icon><Picture /></el-icon></template>
                 <el-option v-for="opt in imageFilterOptions" :key="opt.value" :value="opt.value" :label="opt.label">
                   <span class="fs-admin__optiontext">
@@ -5219,7 +5292,7 @@ onUnmounted(() => {
 
             <div v-if="admHitAny(ADMIN_IMAGE_ITEM_TERMS.caps)" class="fs-admin__field fs-admin__field--wide">
               <span class="fs-admin__label fs-admin__label--field">URL 参数能力</span>
-              <el-select v-model="adminForm.fileSettingKey" class="fs-admin__select">
+              <el-select v-model="adminForm.fileSettingKey" class="fs-admin__select" popper-class="fs-admin-select-popper">
                 <template #prefix><el-icon><Link /></el-icon></template>
                 <el-option
                   v-for="opt in urlParamSettingOptions"
@@ -5242,7 +5315,9 @@ onUnmounted(() => {
                 <span v-for="c in fileCapabilityChips" :key="c" class="fs-admin__cap">{{ c }}</span>
               </div>
               <p class="fs-admin__hint">
-                选择解析 URL 参数（如 ?size=100x100、?grayscale=1）的后台 SPI 实现；可选实现与能力清单均来自能力接口，前端不硬编码。
+                选择解析地址栏 URL 参数（如 ?size=100x100、?grayscale=1、?format=webp）的后台 SPI 实现；
+                可选实现与能力清单均来自能力接口，前端不硬编码。
+                缩放请使用 宽x高 或 百分比（如 ?size=100x100、?size=50%）；单独写 ?size=100 后台当前不会缩放。
               </p>
               <el-button
                 v-if="capabilitiesFailed"
@@ -5278,13 +5353,9 @@ onUnmounted(() => {
                       @change="onChainFilterSwitch(f.value, $event)"
                     />
                   </div>
-                  <el-input
-                    v-if="f.row"
-                    v-model="f.row.params"
-                    class="fs-admin__filterparam"
-                    placeholder="参数（如 width=200,height=200；gray 等无参滤镜留空）"
-                    clearable
-                  />
+                  <p v-if="f.row" class="fs-admin__filterexample">
+                    {{ chainFilterExample(f.value, f.row.params) }}
+                  </p>
                 </div>
                 <span v-if="capabilitiesLoading" class="fs-admin__cap fs-admin__cap--muted">加载中…</span>
                 <span v-else-if="capabilitiesFailed" class="fs-admin__cap fs-admin__cap--muted">
@@ -5296,9 +5367,9 @@ onUnmounted(() => {
               </div>
 
               <p class="fs-admin__hint">
-                勾选要开启的滤镜即可，顺序按后台 FileStorageFilterSetting SPI 的能力清单执行；
-                size/缩放需带 width/height，模糊/锐化可带 radius，亮度用 brightness，旋转用 angle，翻转用 direction。
-                JDK 管线不支持的滤镜会被跳过并在服务端日志告警。
+                开启后会对每张图片强制按链顺序处理；这里只展示每个滤镜的实际效果示例，不再手工填写参数。
+                想按请求动态处理，请直接使用地址栏 URL 参数（如 ?size=100x100、?grayscale=1、?format=webp），无需开启本链。
+                后台 JDK 管线未实现的滤镜即使开启也不会生效，并会在服务端日志告警。
               </p>
               <p v-if="adminForm.imageFilterEnabled && serializeChainRows() === ''" class="fs-admin__hint fs-admin__hint--warn">
                 已启用但链为空：不会产生处理效果，请先开启至少一个滤镜。
@@ -5546,7 +5617,6 @@ onUnmounted(() => {
       <template #footer>
         <el-button v-if="oneTimeLink" :icon="Document" @click="copyOneTimeLink">复制链接</el-button>
         <el-button v-else type="primary" :loading="oneTimeGenerating" :icon="Document" @click="generateOneTimeLink">生成</el-button>
-        <el-button @click="oneTimeVisible = false">关闭</el-button>
       </template>
       <el-alert v-if="oneTimeLink" :type="oneTimeType === 'once' ? 'warning' : 'success'" :closable="false" :title="oneTimeType === 'once' ? '该链接只能访问一次，访问后立即销毁' : '该链接在有效期内可多次访问，到期自动失效'" class="mt-3" />
     </ReDialog>
@@ -5578,7 +5648,6 @@ onUnmounted(() => {
       <template #footer>
         <el-button v-if="quickExpiryResult" :icon="Document" @click="copyQuickExpiryLink">复制链接</el-button>
         <el-button v-else type="primary" :loading="quickExpiryBusy" :icon="Document" @click="generateQuickExpiryLink">生成</el-button>
-        <el-button @click="quickExpiryVisible = false">关闭</el-button>
       </template>
     </ReDialog>
 
@@ -5612,9 +5681,6 @@ onUnmounted(() => {
           <div class="fs-props__row"><dt>三方预览</dt><dd>{{ bucketConfig?.thirdUrlPreview || '-' }}</dd></div>
           <div class="fs-props__row"><dt>水印</dt><dd>{{ bucketConfig?.watermark || '无' }}</dd></div>
         </dl>
-      </template>
-      <template #footer>
-        <el-button @click="propsVisible = false">关闭</el-button>
       </template>
     </ReDialog>
 
@@ -7596,6 +7662,14 @@ button.fs-stat:hover {
   width: 100%;
 }
 
+.fs-admin__filterexample {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+  word-break: break-word;
+  margin: 0;
+}
+
 .fs-admin__retry {
   align-self: flex-start;
   margin-top: 4px;
@@ -8544,13 +8618,7 @@ button.fs-stat:hover {
       color-mix(in srgb, var(--el-color-primary, #409eff) 10%, var(--el-bg-color, #fff)) 0%,
       color-mix(in srgb, var(--el-color-success, #67c23a) 6%, var(--el-bg-color, #fff)) 100%
     );
-  border-bottom: 1px solid transparent;
-  border-image: linear-gradient(
-    90deg,
-    var(--el-color-primary, #409eff) 0%,
-    color-mix(in srgb, var(--el-color-primary, #409eff) 40%, var(--el-color-success, #67c23a)) 50%,
-    var(--el-color-info, #909399) 100%
-  ) 1;
+
 }
 
 .fs-preview-dlg .el-dialog__title {
@@ -8692,6 +8760,31 @@ button.fs-stat:hover {
 .fs-admin-dialog .el-input__wrapper,
 .fs-admin-dialog .el-select__wrapper {
   border-radius: var(--el-radius-md, 8px);
+}
+
+/* 系统配置弹窗内自定义描述型下拉：选项改为可变高度，避免标题与描述叠压 */
+.fs-admin-select-popper .el-select-dropdown__item {
+  height: auto;
+  min-height: 42px;
+  line-height: 1.4;
+  white-space: normal;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+}
+
+.fs-admin-select-popper .fs-admin__optiontext {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  line-height: 1.4;
+}
+
+.fs-admin-select-popper .fs-admin__optdesc {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  white-space: normal;
 }
 
 /* 下载时效单位（原来是写死的内联色，暗色模式下不跟随主题） */

@@ -4,30 +4,37 @@
             粗标题 + 蓝色下划线 / 浅蓝灰背景 / 扁平现代 / 绿色状态胶囊
    原则：只改视觉，不改布局；全部基于 CSS 变量，自动适配深色与手动配色。
    本文件自包含：设计令牌 → Element Plus 映射 → @repo/ui 桥接 → 组件重绘 → 基础。
+
+   ── 与体系的关系（2026-10）────────────────────────────────────────────
+   设计令牌的**真源已迁到 styles/tokens.css**（与 monitor / hotspot 同源的
+   --brand-* / --bg-* / --text-* / --border-* / --radius-* / --shadow-* 命名）。
+   本文件里的 --color-* 保留为**本页内部别名**，但取值改为引用体系令牌 ——
+   好处：既有已调好的视觉不变，同时新增组件/跨 app 复用时用体系命名即可，
+   不会再长出第三套命名。tokens.css 必须在**本文件之前**引入。
    ============================================================================ */
 
 /* ############################################################################
-   1. 设计令牌 —— 浅色
+   1. 设计令牌 —— 浅色（值来自 tokens.css 的体系令牌）
    ############################################################################ */
 :root {
   --color-primary-0f: #2563eb0f;
 
-  /* 主色：纯蓝 #2563EB（blue-600） */
-  --color-primary: #2563eb;
-  --color-primary-50: #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-200: #bfdbfe;
-  --color-primary-300: #93c5fd;
-  --color-primary-400: #60a5fa;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;
-  --color-primary-700: #1d4ed8;
-  --color-primary-800: #1e40af;
-  --color-primary-900: #1e3a8a;
-  --color-primary-950: #172554;
-  --color-primary-disabled: var(--color-primary-200);
-  --color-primary-hover: var(--color-primary-700);
-  --color-primary-active: var(--color-primary-800);
+  /* 主色：纯蓝 #2563EB（blue-600）—— 取自体系 --brand-600 */
+  --color-primary: var(--brand-600);
+  --color-primary-50: var(--brand-50);
+  --color-primary-100: var(--brand-100);
+  --color-primary-200: var(--brand-200);
+  --color-primary-300: var(--brand-300);
+  --color-primary-400: var(--brand-400);
+  --color-primary-500: var(--brand-500);
+  --color-primary-600: var(--brand-600);
+  --color-primary-700: var(--brand-700);
+  --color-primary-800: var(--brand-800);
+  --color-primary-900: var(--brand-900);
+  --color-primary-950: var(--brand-950);
+  --color-primary-disabled: var(--brand-200);
+  --color-primary-hover: var(--brand-700);
+  --color-primary-active: var(--brand-800);
   --color-primary-text: #ffffff;
   --color-primary-text-disabled: var(--color-primary-text);
 
@@ -50,17 +57,17 @@
   --color-secondary-text: #ffffff;
   --color-secondary-text-disabled: #ffffff;
 
-  /* 文本 / 表面 / 边框 */
-  --color-text: #0f172a;
-  --color-text-gray: #475569;
-  --color-text-disabled: #94a3b8;
-  --color-surface: #ffffff;
-  --color-secondary-surface: #f8fafc;
-  --color-surface-border: #e7edf6;
-  --color-surface-hover: #f1f5fb;
-  --color-bg: #f2f6fc;
-  --color-border: #e2e9f3;
-  --code-block-bg: #f6f8fc;
+  /* 文本 / 表面 / 边框 —— 取自体系令牌 */
+  --color-text: var(--text-primary);
+  --color-text-gray: var(--text-secondary);
+  --color-text-disabled: var(--text-tertiary);
+  --color-surface: var(--bg-container);
+  --color-secondary-surface: var(--bg-elevated);
+  --color-surface-border: var(--border-default);
+  --color-surface-hover: var(--bg-hover);
+  --color-bg: var(--bg-page);
+  --color-border: var(--border-default);
+  --code-block-bg: var(--bg-elevated);
 
   /* 消息气泡。assistant 不能再是 transparent：那等于与页面背景同色，
      整段回复看起来没有承载面，用户反馈「和背景色一样，很难看」。 */
@@ -106,7 +113,7 @@
   --color-dialog-bg: #ffffff;
   --color-dialog-border: var(--color-border);
 
-  /* 圆角 */
+  /* 圆角 —— 卡片保持既有大圆角，控件/浮层用体系阶梯 */
   --size-surface-radius: 20px;
   --size-rounded-radius: 20px;
   --size-dialog-rounded-radius: 18px;
@@ -114,16 +121,16 @@
   --size-text-sm: 14px;
 
   /* 品牌渐变 / 阴影（组件层使用） */
-  --gradient-brand: linear-gradient(135deg, #2563eb 0%, #6d28d9 100%);
-  --r-sm: 8px;
-  --r: 12px;
-  --r-lg: 16px;
+  --gradient-brand: var(--brand-gradient);
+  --r-sm: var(--radius-sm);
+  --r: var(--radius-md);
+  --r-lg: var(--radius-lg);
   --r-card: 20px;
-  --r-dialog: 18px;
+  --r-dialog: var(--radius-dialog);
   --r-pill: 999px;
-  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.04);
-  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 10px 30px rgba(37, 99, 235, 0.07);
-  --shadow-pop: 0 12px 32px rgba(15, 23, 42, 0.14);
+  --shadow-xs: var(--shadow-sm);
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-lg);
 
   /* 窗口控制 / 波纹 */
   --titlebar-text-color: #0f172a;
@@ -139,22 +146,24 @@
    2. 设计令牌 —— 深色
    ############################################################################ */
 html.dark {
-  --color-primary: #3b82f6;
-  --color-primary-hover: #60a5fa;
-  --color-primary-active: #2563eb;
+  /* 深色下的主色：体系已在 tokens.css 里把 --brand-* 提亮（--brand-600: #3b82f6），
+     这里只做别名映射，不再重复定义色值，避免两处真源打架。 */
+  --color-primary: var(--brand-600);
+  --color-primary-hover: var(--brand-400);
+  --color-primary-active: var(--brand-700);
   --color-primary-disabled: #2b3a55;
   --color-primary-text: #ffffff;
   --color-primary-50: #15202f;
   --color-primary-100: #172554;
   --color-primary-200: #1e3a8a;
   --color-primary-300: #1e40af;
-  --color-primary-400: #1d4ed8;
-  --color-primary-500: #2563eb;
-  --color-primary-600: #3b82f6;
-  --color-primary-700: #60a5fa;
-  --color-primary-800: #93c5fd;
-  --color-primary-900: #bfdbfe;
-  --color-primary-950: #dbeafe;
+  --color-primary-400: var(--brand-400);
+  --color-primary-500: var(--brand-500);
+  --color-primary-600: var(--brand-600);
+  --color-primary-700: var(--brand-400);
+  --color-primary-800: var(--brand-300);
+  --color-primary-900: var(--brand-200);
+  --color-primary-950: var(--brand-100);
 
   --color-secondary: #8b5cf6;
   --color-secondary-hover: #a78bfa;
@@ -173,16 +182,16 @@ html.dark {
   --color-secondary-900: #ddd6fe;
   --color-secondary-950: #ede9fe;
 
-  --color-text: #e6edf7;
-  --color-text-gray: #a8b3c7;
-  --color-text-disabled: #6b7689;
-  --color-surface: #161c27;
-  --color-secondary-surface: #1c2330;
-  --color-surface-border: #252d3b;
-  --color-surface-hover: #222b3a;
-  --color-bg: #0f141d;
-  --color-border: #252d3b;
-  --code-block-bg: #1a212e;
+  --color-text: var(--text-primary);
+  --color-text-gray: var(--text-secondary);
+  --color-text-disabled: var(--text-tertiary);
+  --color-surface: var(--bg-container);
+  --color-secondary-surface: var(--bg-elevated);
+  --color-surface-border: var(--border-default);
+  --color-surface-hover: var(--bg-hover);
+  --color-bg: var(--bg-page);
+  --color-border: var(--border-default);
+  --code-block-bg: var(--bg-elevated);
 
   --color-bubble-user-bg: #24304a;
   --color-bubble-user-text: var(--color-text);

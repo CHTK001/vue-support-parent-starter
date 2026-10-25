@@ -12,7 +12,9 @@ import { computed, onActivated, reactive, ref } from "vue";
 import { msgError, msgSuccess, msgWarning } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
+import ReEmpty from "@repo/ui/re-empty";
 import ReInput from "@repo/ui/re-input";
+import ReSectionHead from "@repo/ui/re-section-head";
 import ReSwitch from "@repo/ui/re-switch";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
@@ -160,43 +162,121 @@ async function remove(input: Record<string, unknown>): Promise<void> {
 }
 </script>
 
+<!--
+  现代化视图：ReSectionHead 页头 + koi 令牌概览条 + 筛选卡 + 表格卡片外壳 + ReEmpty 空态 + ReDialog 表单。
+
+  ReTable 的列定义（含 value / encrypted / action 三个 slot）、搜索区协议（v-model:search-model /
+  @search / @search-reset / @refresh）与 ReDialog 的 #footer="{ cancel }" 作用域插槽原样保留，
+  只重排外壳与样式；页头与筛选卡上的按钮只调用既有的 openCreate / reload / applySearch / resetSearch。
+
+  刻意保留表格而不用卡片网格：变量是 6 列宽表（值列最长），一行一条才能横向对齐比较；
+  概览条已用 koi 令牌承担「大数字 + 顶部色条」的统计表达，这里不再重复该模式。
+-->
 <template>
-  <div class="collect-page">
-    <ReTable
-      class="collect-card"
-      table-id="collect-variable"
-      :loading="loading"
-      :data="visibleRows"
-      :columns="columns"
-      :pagination="false"
-      :search="SEARCH"
-      v-model:search-model="searchModel"
-      row-key="collectVariableId"
-      :empty-text="applied.keyword ? `没有匹配「${applied.keyword}」的全局变量` : '暂无全局变量'"
-      stripe
-      @search="applySearch"
-      @search-reset="resetSearch"
-      @refresh="reload"
+  <div class="collect-page variable-page">
+    <ReSectionHead
+      class="variable-head"
+      title="全局变量"
+      description="每次执行时合并进上下文；流程同名变量优先级更高，密文变量的值读回恒为掩码"
     >
-      <template #toolbar>
-        <ReButton icon="Plus" type="primary" title="新建变量" @click="openCreate">新建变量</ReButton>
-        <span class="collect-hint">全局变量在每次执行时合并进上下文，流程同名变量优先级更高；密文变量的值读回恒为掩码</span>
+      <template #actions>
+        <ReButton show-text icon="Refresh" size="small" tip="重新拉取全局变量" @click="reload">刷新</ReButton>
+        <ReButton show-text icon="Plus" type="primary" size="small" tip="新建变量" @click="openCreate">新建变量</ReButton>
       </template>
-      <template #value="{ row }">
-        <span class="collect-cell-ellipsis" :title="String(row.collectVariableValue ?? '')">
-          {{ row.collectVariableValue == null || row.collectVariableValue === "" ? "—" : row.collectVariableValue }}
+    </ReSectionHead>
+
+    <!-- 概览条：总数 / 密文 / 明文 / 筛选命中，窄屏 2 列 -->
+    <div class="stat-grid" role="group" aria-label="全局变量概览">
+      <div class="stat-card" style="--accent: var(--brand-500)">
+        <span class="stat-label">变量总数</span>
+        <span class="stat-value">{{ rows.length }}</span>
+        <span class="stat-trend">全局生效</span>
+      </div>
+      <div class="stat-card" style="--accent: var(--status-warning)">
+        <span class="stat-label">密文</span>
+        <span class="stat-value">{{ rows.filter(row => row.collectVariableEncrypted === 1).length }}</span>
+        <span class="stat-trend">读回只显示掩码</span>
+      </div>
+      <div class="stat-card" style="--accent: var(--metric-cpu)">
+        <span class="stat-label">明文</span>
+        <span class="stat-value">{{ rows.filter(row => row.collectVariableEncrypted !== 1).length }}</span>
+        <span class="stat-trend">可直接查看</span>
+      </div>
+      <div class="stat-card" style="--accent: var(--status-success)">
+        <span class="stat-label">当前命中</span>
+        <span class="stat-value">{{ visibleRows.length }}</span>
+        <span class="stat-trend" :class="{ 'is-down': !!applied.keyword && !visibleRows.length }">
+          {{ applied.keyword ? `按「${applied.keyword}」过滤` : "未启用关键字" }}
         </span>
-      </template>
-      <template #encrypted="{ row }">
-        <ReTag  :type="row.collectVariableEncrypted === 1 ? 'warning' : 'info'" effect="plain">
-          {{ row.collectVariableEncrypted === 1 ? "是" : "否" }}
-        </ReTag>
-      </template>
-      <template #action="{ row }">
-        <ReButton v-bind="COLLECT_ACTIONS.editVariable" layout="square" @click="openEdit(row)"/>
-        <ReButton v-bind="COLLECT_ACTIONS.deleteVariable" layout="square" @click="remove(row)"/>
-      </template>
-    </ReTable>
+      </div>
+    </div>
+
+    <!-- 筛选卡：草稿值点「查询」才生效（与流程 / 运行记录页同一套语义） -->
+    <div class="filter-card">
+      <ReInput
+        v-model="searchModel.keyword"
+        class="filter-field filter-field--search"
+        prefix-icon="Search"
+        placeholder="变量名或说明"
+        clearable
+        @keyup.enter="applySearch"
+      />
+      <ReButton icon="Search" size="small" type="primary" tip="按关键字过滤" @click="applySearch">查询</ReButton>
+      <ReButton icon="RefreshLeft" size="small" tip="清空关键字并恢复全部变量" @click="resetSearch">重置</ReButton>
+      <span class="filter-hint">命中 {{ visibleRows.length }} / {{ rows.length }} 个变量</span>
+    </div>
+
+    <!-- 表格：保留 ReTable 全部插槽与搜索协议，仅换成 koi 卡片外壳 -->
+    <div class="table-card">
+      <ReTable
+        class="collect-card"
+        table-id="collect-variable"
+        :loading="loading"
+        :data="visibleRows"
+        :columns="columns"
+        :pagination="false"
+        :search="SEARCH"
+        v-model:search-model="searchModel"
+        row-key="collectVariableId"
+        :empty-text="applied.keyword ? `没有匹配「${applied.keyword}」的全局变量` : '暂无全局变量'"
+        stripe
+        @search="applySearch"
+        @search-reset="resetSearch"
+        @refresh="reload"
+      >
+        <template #toolbar>
+          <ReButton icon="Plus" type="primary" title="新建变量" @click="openCreate">新建变量</ReButton>
+          <span class="collect-hint">全局变量在每次执行时合并进上下文，流程同名变量优先级更高；密文变量的值读回恒为掩码</span>
+        </template>
+        <template #value="{ row }">
+          <span class="collect-cell-ellipsis" :title="String(row.collectVariableValue ?? '')">
+            {{ row.collectVariableValue == null || row.collectVariableValue === "" ? "—" : row.collectVariableValue }}
+          </span>
+        </template>
+        <template #encrypted="{ row }">
+          <ReTag  :type="row.collectVariableEncrypted === 1 ? 'warning' : 'info'" effect="plain">
+            {{ row.collectVariableEncrypted === 1 ? "是" : "否" }}
+          </ReTag>
+        </template>
+        <template #action="{ row }">
+          <ReButton v-bind="COLLECT_ACTIONS.editVariable" layout="square" @click="openEdit(row)"/>
+          <ReButton v-bind="COLLECT_ACTIONS.deleteVariable" layout="square" @click="remove(row)"/>
+        </template>
+        <!-- 空态走 ReEmpty：表格内的 el-empty 换成扁平空态，提示语仍由 empty-text 驱动 -->
+        <template #empty="{ description }">
+          <ReEmpty v-if="!loading" layout="modern" :description="description">
+            <ReButton
+              v-if="!applied.keyword"
+              show-text
+              icon="Plus"
+              type="primary"
+              @click="openCreate"
+            >新建第一个变量</ReButton>
+            <ReButton v-else icon="RefreshLeft" @click="resetSearch">清空关键字</ReButton>
+          </ReEmpty>
+        </template>
+      </ReTable>
+    </div>
 
     <ReDialog
       v-model="visible"
@@ -246,3 +326,138 @@ async function remove(input: Record<string, unknown>): Promise<void> {
     </ReDialog>
   </div>
 </template>
+
+<style scoped lang="scss">
+.variable-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ===== 概览条 ===== */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+  padding: 14px 16px;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+}
+.stat-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent, var(--brand-500));
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.stat-label {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+}
+.stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.stat-trend {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.stat-trend.is-down {
+  color: var(--status-error);
+}
+
+/* ===== 筛选卡 ===== */
+.filter-card {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.filter-field--search {
+  width: 240px;
+}
+.filter-hint {
+  margin-left: auto;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+/* ===== 表格壳 ===== */
+.table-card {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.table-card > :deep(.re-table) {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* 表格内的扁平空态不需要 el-table 默认的居中大留白 */
+.table-card :deep(.rm-empty) {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 0;
+}
+
+/* ===== 响应式：移动端 2 列概览 + 搜索框占满 ===== */
+@media (max-width: 768px) {
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .filter-field--search {
+    width: 100%;
+  }
+  .filter-hint {
+    margin-left: 0;
+  }
+}
+
+/* ===== 减少动态效果 ===== */
+@media (prefers-reduced-motion: reduce) {
+  .stat-card {
+    transition: none;
+  }
+  .stat-card:hover {
+    transform: none;
+  }
+}
+</style>

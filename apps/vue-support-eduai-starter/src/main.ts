@@ -4,39 +4,43 @@
  * .routes(路由树)：路由树即菜单树（两级分组导航），自动挂到 layout 之下并驱动侧边栏；
  * 路由树未含 homePath 时由 buildMenuFromRoutes 补上框架默认导航项「工作台」(/home)。
  *
- * install：koi 框架安装 + 按需注册本应用用到的 Re* 组件（installUi）。
+ * 主题与组件：app.yaml themeId=koi，主题安装器（ElementPlus/图标/指令/ReIcon/ScrollNav/
+ * Drawer）由 createContextApp 按 themeId 自动解析；业务用到的其余 Re* 组件收敛为
+ * @repo/ui core preset + 少量追加，main.ts 不再 installKoi/installUi 手写组件清单。
  */
 import { createContextApp } from "@repo/app";
-import { eduaiRoutes } from "@pages/eduai";
-import type { App as VueApp } from "vue";
-import { installKoi } from "@repo/theme/koi/framework";
-import { installUi } from "@repo/ui";
+// 路由走「别名 → 具体文件」的深引（`@pages/eduai/router` 即 `pages/eduai/src/router`），
+// 而不是从包桶 `@pages/eduai` 取：那个桶把每个视图都 `export { default as X } from "./views/X.vue"`
+// 静态再导出，入口一引桶，全部视图（及其依赖的 katex / echarts / three / 富文本…）就被拖进
+// 入口的静态依赖图，vite 会给它们逐个打 `<link rel="modulepreload">`。
+// 实测：从桶引 → index.html 里 242 个 modulepreload、首屏 250 个请求；
+// 深引 router 后视图回到 `() => import(...)` 的懒加载，首屏只剩布局/主题真正需要的少量 chunk。
+// 与 router/index.ts 里引 `@pages/collect/src/styles/*.css` 同一套约定（注释里写了为什么绕开桶）。
+import { eduaiRoutes } from "@pages/eduai/router";
 import { getAccessToken } from "@repo/utils";
 import { useAuthStore } from "@repo/pinia";
 import { getRouter } from "@repo/core";
-
-/**
- * 教育 AI 页面用到的 Re* 组件（ReKit 提供 ReTableColumn 等表格子组件）。
- *
- * <p>ReTime 是「采集管理」迁到 @pages/collect 后新增的：采集器列表的「下次执行」
- * 列用它渲染倒计时。eduai 原先没有这个页面，组件清单里也没有它。</p>
- */
-const EDUAI_RE_COMPONENTS = ["ReButton", "ReCron", "ReInput", "ReSelect", "ReSearch", "ReTable", "ReKit", "ReSwitch", "ReTag", "ReTime"];
-
-async function installEduAi(app: VueApp): Promise<void> {
-  await installKoi(app);
-  await installUi(app, { components: EDUAI_RE_COMPONENTS });
-}
+// AI 提供商管理（pages/ai 的模型管理页）以内部普通页面组件嵌入本应用，
+// 深导入 /embed 而非包根：它在 import 时合并 pages/ai 语言包，不拖 AI 控制台整壳。
+import "@pages/ai/embed";
+import { adoptHostFramework } from "@pages/ai/embed";
 
 const instance = await createContextApp({
-  install: installEduAi,
   // 代码级默认配置（优先级最低，app.yaml 可覆盖）：
   // 分组导航增强 —— 分组标题按分区标题排版（加大/加粗/深色）+ 底部带文字的「设置」条目。
   // 框架默认即 true，这里显式声明是为了让本应用「菜单长相」的意图在入口处可见。
   defaults: { menu: { groupNav: true } },
 })
   .routes(eduaiRoutes as never)
+  // Re* 组件清单：core preset（CRUD 基础件）+ ReTime（采集器「下次执行」倒计时列）、
+  // ReAsync（AI 提供商页异步加载用）。清单由 @repo/ui 维护，避免在壳里抄一份漂移。
+  .ui({ preset: "core", components: ["ReTime", "ReAsync"] })
   .mount("#app");
+
+// pages/ai 内嵌页（ModelsPage）显式采用本应用框架上下文：请求管线本就可经宿主
+// 默认实例回退拿到（见 pages/ai/framework/context.ts），这里再保证 pages/ai
+// 直接读 context 的能力与宿主一致；语言包已在 import "@pages/ai/embed" 时合并。
+adoptHostFramework(instance.context);
 
 /**
  * 静态菜单灌入 store 的时机：既没有登录流程（openAuth=false），也没有 initAuthRouter

@@ -1,0 +1,357 @@
+/* ============================================================================
+   AI 控制台 · 设计令牌（tokens.css）
+
+   目的：把本应用的视觉纳入 **Vue 体系**（与 monitor / hotspot / collect 同源）。
+
+   现状问题：pages/ai 此前只有 refactor.css 里自建的一套 `--color-*` 令牌
+   （--color-surface / --color-text / --r-lg …），命名与体系不一致，导致：
+     · 同一个语义在不同 app 里用不同变量名，组件无法跨 app 复用；
+     · 新组件只能"猜"用哪套变量，久了就出现第三套命名；
+     · 深色模式要逐个 app 各自覆盖一遍。
+
+   本文件的做法（与 monitor / hotspot 同一手法）：
+     1) 先定义**体系命名**的令牌（--brand-* / --bg-* / --text-* / --border-*
+        / --radius-* / --shadow-* / --status-* / --focus-ring …）；
+     2) 再把体系令牌**桥接**到 Element Plus 的 --el-*（组件库只认 --el-*）；
+     3) 最后让 refactor.css 里的 --color-* 由体系令牌派生 ——
+        这样既有统一真源，又不推翻已经调好的既有视觉。
+
+   注意：本文件必须在 refactor.css **之前**引入（后者的 :root 覆盖同优先级时，
+   派生关系才成立）。见 main.js 的引入顺序。
+   ============================================================================ */
+
+:root {
+  /* ========== 品牌色 ==========
+     沿用 refactor.css 既有的纯蓝主色（#2563EB），但换成体系命名，
+     并补齐 50/100/…/950 全阶，组件层需要任意档位时不必再自己调。 */
+  --brand-50: #eff6ff;
+  --brand-100: #dbeafe;
+  --brand-200: #bfdbfe;
+  --brand-300: #93c5fd;
+  --brand-400: #60a5fa;
+  --brand-500: #3b82f6;
+  --brand-600: #2563eb;
+  --brand-700: #1d4ed8;
+  --brand-800: #1e40af;
+  --brand-900: #1e3a8a;
+  --brand-950: #172554;
+  --brand-gradient: linear-gradient(135deg, var(--brand-600) 0%, #6d28d9 100%);
+
+  /* ========== 背景 ========== */
+  --bg-page: #f2f6fc;          /* 页面底 */
+  --bg-container: #ffffff;     /* 卡片 / 面板 */
+  --bg-elevated: #f8fafc;      /* 悬浮层 / 次级面 */
+  --bg-fill: #f1f5fb;          /* 输入框 / 填充 */
+  --bg-hover: #f1f5fb;         /* 悬浮态 */
+
+  /* ========== 文本 ========== */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #94a3b8;
+  --text-inverse: #ffffff;
+
+  /* ========== 边框 ========== */
+  --border-subtle: #eef2f8;
+  --border-default: #e2e9f3;
+  --border-strong: #d3dceb;
+
+  /* ========== 圆角 ==========
+     体系里是 6/8/12/16 的阶梯；refactor.css 另有一套 20px 大圆角
+     （--r-card / --size-surface-radius）。二者并存：卡片保持既有大圆角，
+     控件/浮层用体系阶梯，避免"大圆角套小圆角"的割裂感。 */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-dialog: 10px;
+
+  /* ========== 阴影 ========== */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 30px rgba(37, 99, 235, 0.07);
+
+  /* ========== 状态语义色 ==========
+     体系里状态色是"语义"而非"某个 hue"，图表 / 状态点 / 徽标统一取这里。 */
+  --status-success: #16a34a;
+  --status-warning: #f59e0b;
+  --status-error: #ef4444;
+  --status-info: #3b82f6;
+  --status-online: #16a34a;
+  --status-offline: #94a3b8;
+  --status-unknown: #f5a524;
+  --status-alarm: #f04a5d;
+
+  /* ========== 焦点环 / 选区 / 滚动条 ========== */
+  --focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.16);
+  --selection-bg: rgba(37, 99, 235, 0.16);
+  --scroll-thumb: #cbd5e1;
+  --scroll-thumb-hover: #94a3b8;
+  --overlay-bg: rgba(15, 23, 42, 0.45);
+
+  /* ========== 过渡 ========== */
+  --transition-base: all 0.18s ease;
+  --transition-slow: all 0.3s ease;
+  --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================================================
+   控制台配色（--u-*）
+
+   用途：**管理类页面**（模型/渠道/密钥/技能/设置/用量…）共用的一套语义色。
+   与上面的 --brand-* 不冲突：--brand-* 是「品牌 + 交互状态」，
+   --u-* 是「控制台版式」用的底色/边框/文字层级 + 图表语义色（成功/警示/危险/辅助）。
+
+   为什么单独一组而不直接复用 --el-*：Element Plus 的 --el-* 是组件内部口径
+   （悬停灰、禁用灰等），拿来画版式会出现「标题和禁用文字同色」这类层级塌陷。
+   这组值来自用量页重构时定下的视觉体系，其它页面直接引用即可保持一致。
+   ============================================================================ */
+:root {
+  --u-primary: #165dff;
+  --u-primary-weak: rgba(22, 93, 255, 0.08);
+  --u-primary-weak-2: rgba(22, 93, 255, 0.12);
+  --u-primary-shadow: rgba(22, 93, 255, 0.28);
+  --u-success: #00b42a;
+  --u-warning: #ff7d00;
+  --u-danger: #f53f3f;
+  --u-purple: #722ed1;
+  --u-page: #f5f7fa;
+  --u-card: #ffffff;
+  --u-border: #e5e6eb;
+  --u-text: #1d2129;
+  --u-text-2: #4e5969;
+  --u-text-3: #86909c;
+  --u-radius: 8px;
+  --u-hover-lift: 0 6px 18px rgba(15, 23, 42, 0.09);
+}
+
+/* ============================================================================
+   深色模式：只覆盖自定义令牌；Element Plus 自身的 --el-* 深色变量
+   由 element-plus/theme-chalk/dark/css-vars.css 提供（main.js 已引入）。
+   ============================================================================ */
+html.dark {
+  /* 控制台配色：只换颜色。主色必须提亮 —— #165DFF 压在 #161C27 上对比度只有 ~2.9，
+     蓝色小字（链接、选中态、速率胶囊）在深底上基本读不出来。 */
+  --u-primary: #4080ff;
+  --u-primary-weak: rgba(64, 128, 255, 0.16);
+  --u-primary-weak-2: rgba(64, 128, 255, 0.24);
+  --u-primary-shadow: rgba(64, 128, 255, 0.3);
+  --u-success: #23c343;
+  --u-warning: #ff9a2e;
+  --u-danger: #f76560;
+  --u-purple: #8d4eda;
+  --u-page: #0f172a;
+  --u-card: #161c27;
+  --u-border: rgba(255, 255, 255, 0.12);
+  --u-text: #e2e8f0;
+  --u-text-2: #a9b6c8;
+  --u-text-3: #7c8899;
+  --u-hover-lift: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+html.dark {
+  --bg-page: #0f172a;
+  --bg-container: #161c27;
+  --bg-elevated: #1e293b;
+  --bg-fill: #1e293b;
+  --bg-hover: #263449;
+
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+  --text-inverse: #0f172a;
+
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.11);
+  --border-strong: rgba(255, 255, 255, 0.18);
+
+  /* 深底上品牌色要提亮，否则按钮文字对比度不足 */
+  --brand-50: rgba(37, 99, 235, 0.16);
+  --brand-100: rgba(37, 99, 235, 0.24);
+  --brand-400: #60a5fa;
+  --brand-500: #3b82f6;
+  --brand-600: #3b82f6;
+  --brand-700: #2563eb;
+  --brand-gradient: linear-gradient(135deg, var(--brand-500) 0%, #7c3aed 100%);
+
+  --status-success: #4ade80;
+  --status-warning: #fbbf24;
+  --status-error: #f87171;
+  --status-info: #60a5fa;
+  --status-online: #4ade80;
+  --status-offline: #64748b;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.36);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.44);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.22);
+
+  --focus-ring: 0 0 0 3px rgba(59, 130, 246, 0.28);
+  --selection-bg: rgba(59, 130, 246, 0.28);
+  --scroll-thumb: #334155;
+  --scroll-thumb-hover: #475569;
+  --overlay-bg: rgba(2, 6, 23, 0.6);
+}
+
+/* ============================================================================
+   Element Plus 桥接
+   组件库只认 --el-*，所以体系令牌必须映射过去，否则令牌再统一也没用。
+   只映射**语义稳定**的那些（背景/文本/边框/圆角/填充），
+   主色色阶由 themeColor.ts 按用户选色动态生成，不在此覆盖。
+   ============================================================================ */
+html:root {
+  --el-bg-color: var(--bg-container);
+  --el-bg-color-page: var(--bg-page);
+  --el-bg-color-overlay: var(--bg-elevated);
+  --el-text-color-primary: var(--text-primary);
+  --el-text-color-regular: var(--text-secondary);
+  --el-text-color-secondary: var(--text-tertiary);
+  --el-text-color-placeholder: var(--text-tertiary);
+  --el-text-color-disabled: var(--text-tertiary);
+  --el-border-color: var(--border-default);
+  --el-border-color-light: var(--border-subtle);
+  --el-border-color-lighter: var(--border-subtle);
+  --el-border-color-extra-light: var(--border-subtle);
+  --el-fill-color-blank: var(--bg-container);
+  --el-fill-color-light: var(--bg-fill);
+  --el-fill-color-lighter: var(--bg-elevated);
+  --el-fill-color: var(--bg-fill);
+  --el-border-radius-base: var(--radius-md);
+  --el-border-radius-small: var(--radius-sm);
+  --el-box-shadow-light: var(--shadow-md);
+  --el-box-shadow: var(--shadow-md);
+  --el-overlay-color-lighter: var(--overlay-bg);
+}
+
+html.dark:root {
+  --el-bg-color: var(--bg-container);
+  --el-bg-color-page: var(--bg-page);
+  --el-bg-color-overlay: var(--bg-elevated);
+  --el-text-color-primary: var(--text-primary);
+  --el-text-color-regular: var(--text-secondary);
+  --el-text-color-secondary: var(--text-tertiary);
+  --el-fill-color-blank: var(--bg-container);
+  --el-fill-color-light: var(--bg-fill);
+  --el-fill-color-lighter: var(--bg-elevated);
+  --el-fill-color: var(--bg-fill);
+  --el-border-color: var(--border-default);
+  --el-border-color-light: var(--border-subtle);
+  --el-border-color-lighter: var(--border-subtle);
+}
+
+/* ============================================================================
+   vxe-table 桥接
+
+   vxe 有自己的一整套 CSS 变量（--vxe-ui-*，138 个），**不认 --el-***。
+   于是：Element 侧深色已切、vxe 侧表头底色仍是浅色 → 表头变成
+   「浅色文字压浅色底」（实测对比度 1.16，几乎不可读）。
+
+   这里把 vxe 的关键变量接到体系令牌上，深色随之切换。
+
+   ⚠️ 必须用 `html:root` 而不是 `:root`：vxe 把自己的变量也定义在 `:root`
+   （硬编码 #f8f8f9 等），而 vxe 的 CSS 是**按需 chunk**、加载时机不确定 ——
+   同优先级下谁后加载谁赢。`html:root` 比 `:root` 特异性高一级，
+   无论加载顺序都压得住。
+   ============================================================================ */
+html:root {
+  --vxe-ui-layout-background-color: var(--bg-container);
+  --vxe-ui-table-header-background-color: var(--bg-elevated);
+  --vxe-ui-table-border-color: var(--border-default);
+  --vxe-ui-table-border-top-color: var(--border-default);
+  --vxe-ui-table-border-bottom-color: var(--border-default);
+  --vxe-ui-table-border-left-color: var(--border-default);
+  --vxe-ui-table-border-right-color: var(--border-default);
+  --vxe-ui-header-background-color: var(--bg-elevated);
+  --vxe-ui-header-border-color: var(--border-default);
+  --vxe-ui-header-text-color: var(--text-primary);
+  --vxe-ui-header-column-background-color: var(--bg-elevated);
+  --vxe-ui-row-hover-background-color: var(--bg-hover);
+  --vxe-ui-row-current-background-color: var(--bg-hover);
+  --vxe-ui-row-striped-background-color: var(--bg-elevated);
+  --vxe-ui-font-color: var(--text-secondary);
+  --vxe-ui-font-darken-color: var(--text-primary);
+  --vxe-ui-font-lighten-color: var(--text-tertiary);
+  --vxe-ui-font-tinge-color: var(--text-tertiary);
+  --vxe-ui-font-disabled-color: var(--text-tertiary);
+  --vxe-ui-base-hover-background-color: var(--bg-hover);
+  --vxe-ui-input-border-color: var(--border-default);
+  --vxe-ui-input-disabled-background-color: var(--bg-fill);
+  --vxe-ui-input-placeholder-color: var(--text-tertiary);
+  --vxe-ui-loading-background-color: var(--bg-container);
+  --vxe-ui-footer-background-color: var(--bg-elevated);
+}
+
+html.dark:root {
+  --vxe-ui-layout-background-color: var(--bg-container);
+  --vxe-ui-table-header-background-color: var(--bg-elevated);
+  --vxe-ui-table-border-color: var(--border-default);
+  --vxe-ui-table-border-top-color: var(--border-default);
+  --vxe-ui-table-border-bottom-color: var(--border-default);
+  --vxe-ui-table-border-left-color: var(--border-default);
+  --vxe-ui-table-border-right-color: var(--border-default);
+  --vxe-ui-header-background-color: var(--bg-elevated);
+  --vxe-ui-header-border-color: var(--border-default);
+  --vxe-ui-header-text-color: var(--text-primary);
+  --vxe-ui-header-column-background-color: var(--bg-elevated);
+  --vxe-ui-row-hover-background-color: var(--bg-hover);
+  --vxe-ui-row-current-background-color: var(--bg-hover);
+  --vxe-ui-row-striped-background-color: var(--bg-elevated);
+  --vxe-ui-font-color: var(--text-secondary);
+  --vxe-ui-font-darken-color: var(--text-primary);
+  --vxe-ui-font-lighten-color: var(--text-tertiary);
+  --vxe-ui-font-tinge-color: var(--text-tertiary);
+  --vxe-ui-font-disabled-color: var(--text-tertiary);
+  --vxe-ui-base-hover-background-color: var(--bg-hover);
+  --vxe-ui-input-border-color: var(--border-default);
+  --vxe-ui-input-disabled-background-color: var(--bg-fill);
+  --vxe-ui-input-placeholder-color: var(--text-tertiary);
+  --vxe-ui-loading-background-color: var(--bg-container);
+  --vxe-ui-footer-background-color: var(--bg-elevated);
+}
+
+/* ============================================================================
+   基础打磨：字体渲染 / 选区 / 焦点环 / 滚动条
+   与 monitor 的 tokens.css 同一套口径（只做一遍，全 app 生效）。
+   ============================================================================ */
+html,
+body {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--selection-bg);
+}
+
+/* 统一焦点环：键盘可达性 + 与体系 --focus-ring 一致。
+   鼠标点击不显示（:focus-visible 只在键盘操作时命中）。 */
+:focus-visible {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scroll-thumb-hover);
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+

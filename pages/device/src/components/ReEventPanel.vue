@@ -34,11 +34,10 @@
       :data="events as unknown as Record<string, unknown>[]"
       :columns="eventColumns"
       engine="element"
-      :pagination="false"
-      :toolbar="false"
       :layout-table="{ maxHeight: 500 }"
       :settings="{ border: false }"
       style="width:100%"
+      :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
     >
       <template #empty>
         <el-empty description="无事件" :image-size="60" />

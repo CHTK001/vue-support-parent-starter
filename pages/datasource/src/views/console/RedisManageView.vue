@@ -168,7 +168,7 @@
             <pre v-else-if="resultView.kind === 'json'" class="dsm-reply-pre" data-testid="dsm-reply-json">{{ resultView.text }}</pre>
             <div v-else-if="resultView.kind === 'nil'" class="dsm-reply-nil" data-testid="dsm-reply-nil">nil</div>
             <div v-else class="dsm-table-wrap">
-              <ReTable :data="resultView.rows" :columns="resultView.columns" :pagination="false" stripe border height="240px" />
+              <ReTable :data="resultView.rows" :columns="resultView.columns" stripe border height="240px" :config="{ pagination: { enable: false } }"/>
             </div>
           </div>
         </div>
@@ -265,7 +265,7 @@
                 <ReButton type="primary" :loading="saving" @click="addHashField"><template #icon><ReIcon name="Plus" size="12" /></template>添加字段</ReButton>
               </div>
               <div class="dsm-table-wrap">
-                <ReTable :data="hashFields" :columns="hashColumns" :pagination="false" stripe border>
+                <ReTable :data="hashFields" :columns="hashColumns" stripe border :config="{ pagination: { enable: false } }">
                   <template #col-actions="{ row }">
                     <div class="dsm-cell-actions">
                       <ReButton layout="square" size="small" icon="Edit" tip="编辑字段" data-testid="dsm-cell-edit" @click="editHashField((row as RedisHashField).field, (row as RedisHashField).value)" />
@@ -284,7 +284,7 @@
                 <ReButton type="primary" :loading="saving" @click="pushListElement"><template #icon><ReIcon name="Plus" size="12" /></template>追加元素</ReButton>
               </div>
               <div class="dsm-table-wrap">
-                <ReTable :data="listRows" :columns="listColumns" :pagination="false" stripe border>
+                <ReTable :data="listRows" :columns="listColumns" stripe border :config="{ pagination: { enable: false } }">
                   <template #col-actions="{ row }">
                     <div class="dsm-cell-actions">
                       <ReButton layout="square" size="small" icon="Edit" tip="编辑元素" data-testid="dsm-cell-edit" @click="editListElement((row as ListRow).index, (row as ListRow).value)" />
@@ -303,7 +303,7 @@
                 <ReButton type="primary" :loading="saving" @click="addSetMember"><template #icon><ReIcon name="Plus" size="12" /></template>添加成员</ReButton>
               </div>
               <div class="dsm-table-wrap">
-                <ReTable :data="setRows" :columns="memberColumns" :pagination="false" stripe border>
+                <ReTable :data="setRows" :columns="memberColumns" stripe border :config="{ pagination: { enable: false } }">
                   <template #col-member="{ row }"><span class="mono">{{ (row as MemberRow).member }}</span></template>
                   <template #col-actions="{ row }">
                     <div class="dsm-cell-actions">
@@ -324,7 +324,7 @@
                 <ReButton type="primary" :loading="saving" @click="addZsetMember"><template #icon><ReIcon name="Plus" size="12" /></template>添加成员</ReButton>
               </div>
               <div class="dsm-table-wrap">
-                <ReTable :data="zsetRows" :columns="zsetColumns" :pagination="false" stripe border>
+                <ReTable :data="zsetRows" :columns="zsetColumns" stripe border :config="{ pagination: { enable: false } }">
                   <template #col-score="{ row }"><span class="mono">{{ (row as MemberRow).score }}</span></template>
                   <template #col-actions="{ row }">
                     <div class="dsm-cell-actions">
@@ -345,7 +345,7 @@
                 <ReButton type="primary" :loading="saving" @click="appendStreamEntry"><template #icon><ReIcon name="Plus" size="12" /></template>追加消息</ReButton>
               </div>
               <div class="dsm-table-wrap">
-                <ReTable :data="streamEntries" :columns="streamColumns" :pagination="false" stripe border>
+                <ReTable :data="streamEntries" :columns="streamColumns" stripe border :config="{ pagination: { enable: false } }">
                   <template #col-id="{ row }"><span class="mono">{{ (row as RedisStreamEntry).id }}</span></template>
                   <template #col-fields="{ row }">
                     <span v-for="(f, fi) in (row as RedisStreamEntry).fields" :key="fi" class="dsm-stream-field">
@@ -398,9 +398,8 @@
 
     <!-- 服务器信息弹窗 -->
     <ReDialog v-model="infoVisible" title="Redis 服务器信息" width="720px">
-      <ReTable :data="infoRows" :columns="infoColumns" :pagination="false" stripe border height="420px" />
+      <ReTable :data="infoRows" :columns="infoColumns" stripe border height="420px" :config="{ pagination: { enable: false } }"/>
       <template #footer>
-        <ReButton @click="infoVisible = false"><template #icon><ReIcon name="Close" size="12" /></template>关闭</ReButton>
         <ReButton type="primary" :loading="infoLoading" @click="reloadInfo"><template #icon><ReIcon name="Refresh" /></template>刷新</ReButton>
       </template>
     </ReDialog>
@@ -1875,7 +1874,7 @@ onBeforeUnmount(stopTtlCountdown);
 .dsm-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
 .dsm-toolbar-left { display: flex; align-items: center; gap: 10px; }
 .dsm-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
-.dsm-redis-icon { color: #dc382d; }
+.dsm-redis-icon { color: var(--brand-600, var(--apm-accent)); }
 .dsm-toolbar-right { display: flex; align-items: center; gap: 8px; }
 .dsm-toolbar-right :deep(.rs-btn) { margin: 0; }
 .dsm-db-select { width: 220px; flex-shrink: 0; }
@@ -1883,7 +1882,7 @@ onBeforeUnmount(stopTtlCountdown);
 .dsm.resizing { user-select: none; }
 .dsm-split { position: relative; width: 16px; flex-shrink: 0; cursor: col-resize; }
 .dsm-split::after { content: ""; position: absolute; top: 0; bottom: 0; left: 6px; width: 4px; border-radius: 2px; background: transparent; transition: background 0.15s; }
-.dsm-split:hover::after, .dsm-split.active::after { background: var(--brand-400); }
+.dsm-split:hover::after, .dsm-split.active::after { background: var(--brand-500, var(--apm-accent)); }
 .dsm-sidebar { width: 300px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); overflow: hidden; flex-shrink: 0; display: flex; flex-direction: column; }
 .dsm-search-section { display: flex; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--border-subtle); }
 .dsm-search-section > *:first-child { flex: 1; }
@@ -1894,11 +1893,11 @@ onBeforeUnmount(stopTtlCountdown);
 .dsm-key-list { flex: 1; padding: 6px 0; min-height: 80px; overflow-y: auto; }
 .dsm-tree-node { position: relative; display: flex; align-items: center; gap: 6px; padding: 6px 12px; cursor: pointer; transition: background 0.15s; background: var(--bg-container); }
 .dsm-tree-node:hover { background: var(--bg-hover); }
-.dsm-tree-node.active { background: var(--brand-50); color: var(--brand-600); }
+.dsm-tree-node.active { background: var(--bg-hover, var(--apm-panel-active)); color: var(--brand-600, var(--apm-accent)); }
 .dsm-tree-node.is-dir { font-weight: 600; color: var(--text-secondary); }
 .dsm-tree-caret { color: var(--text-tertiary); }
 .dsm-tree-icon { flex-shrink: 0; }
-.dsm-tree-folder { color: var(--brand-500, var(--brand-600, #409eff)); }
+.dsm-tree-folder { color: var(--brand-500, var(--apm-accent)); }
 /* 行悬停工具条：默认隐藏，鼠标经过行才显示；绝对定位覆盖右侧，避免出现时挤压布局。
    背景 inherit 跟随行的三态（默认/hover/active），按钮图标覆盖其后的类型 ReTag。 */
 .dsm-row-actions { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); display: none; align-items: center; gap: 2px; padding-left: 18px; background: inherit; }
@@ -1913,7 +1912,7 @@ onBeforeUnmount(stopTtlCountdown);
 .dsm-command-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .dsm-command-actions :deep(.rs-btn) { margin: 0; }
 .dsm-command-hint { margin-left: 2px; font-size: 12px; color: var(--text-tertiary); }
-.dsm-command-error { padding: 10px 14px; font-size: 13px; color: var(--danger, #f56c6c); background: color-mix(in srgb, var(--danger, #f56c6c) 8%, transparent); border: 1px solid color-mix(in srgb, var(--danger, #f56c6c) 30%, transparent); border-radius: 6px; word-break: break-all; flex-shrink: 0; }
+.dsm-command-error { padding: 10px 14px; font-size: 13px; color: var(--status-error, var(--apm-danger)); background: color-mix(in srgb, var(--status-error, var(--apm-danger)) 8%, transparent); border: 1px solid color-mix(in srgb, var(--status-error, var(--apm-danger)) 30%, transparent); border-radius: 6px; word-break: break-all; flex-shrink: 0; }
 .dsm-command-result { flex: 1; display: flex; flex-direction: column; min-height: 260px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); overflow: hidden; padding: 12px 14px; }
 .dsm-command-result :deep(.dsm-table-wrap) { flex: 1; min-height: 0; }
 .dsm-reply-pre { margin: 0; padding: 12px; background: var(--bg-fill); border-radius: 6px; font-family: "JetBrains Mono", "Consolas", monospace; font-size: 12.5px; line-height: 1.6; color: var(--text-primary); white-space: pre-wrap; word-break: break-all; overflow: auto; max-height: 480px; flex-shrink: 0; }
@@ -1950,7 +1949,7 @@ onBeforeUnmount(stopTtlCountdown);
 /* 键列表顶部扫描条：静默重扫时走动画（删空集合后自动刷新左侧） */
 .dsm-scan-bar { position: sticky; top: 0; z-index: 2; height: 2px; overflow: hidden; background: transparent; opacity: 0; transition: opacity 0.15s; }
 .dsm-scan-bar.is-active { opacity: 1; }
-.dsm-scan-bar span { display: block; width: 40%; height: 100%; background: linear-gradient(90deg, transparent, var(--brand-500, #409eff), transparent); transform: translateX(-100%); }
+.dsm-scan-bar span { display: block; width: 40%; height: 100%; background: linear-gradient(90deg, transparent, var(--brand-500, var(--apm-accent)), transparent); transform: translateX(-100%); }
 .dsm-scan-bar.is-active span { animation: dsm-scan-slide 1s linear infinite; }
 @keyframes dsm-scan-slide { to { transform: translateX(350%); } }
 .dsm-stream-field { display: inline-flex; align-items: center; gap: 6px; margin-right: 10px; }
@@ -1964,20 +1963,20 @@ onBeforeUnmount(stopTtlCountdown);
 .dsm-seg button { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px; color: var(--text-secondary); background: transparent; border: none; border-right: 1px solid var(--border-default); cursor: pointer; transition: background 0.15s, color 0.15s; }
 .dsm-seg button:last-child { border-right: none; }
 .dsm-seg button:hover { background: var(--bg-hover); color: var(--text-primary); }
-.dsm-seg button.is-active { background: var(--brand-50); color: var(--brand-600); font-weight: 600; }
+.dsm-seg button.is-active { background: var(--bg-hover, var(--apm-panel-active)); color: var(--brand-600, var(--apm-accent)); font-weight: 600; }
 .dsm-value-view { min-height: 80px; }
 /* JSON 叠加编辑器：高亮层绝对定位铺满（只读、透明度不透出），编辑层透明文字叠在其上；
    两层同 font/padding/white-space，保证逐字符对齐；滚动由编辑层驱动、高亮层跟随。 */
 .dsm-json-editor { position: relative; flex: 1; min-height: 160px; }
 .dsm-json-hl { position: absolute; inset: 0; margin: 0; padding: 12px; overflow: hidden; background: var(--bg-fill); border-radius: 6px; font-family: "JetBrains Mono", "Consolas", monospace; font-size: 13px; line-height: 1.5; color: var(--text-primary); white-space: pre-wrap; word-break: break-all; pointer-events: none; }
 .dsm-json-input { position: relative; z-index: 1; width: 100%; height: 100%; min-height: 160px; padding: 12px; font-family: "JetBrains Mono", "Consolas", monospace; font-size: 13px; line-height: 1.5; white-space: pre-wrap; word-break: break-all; color: transparent; caret-color: var(--text-primary); background: transparent; border: 1px solid var(--border-default); border-radius: 6px; resize: none; outline: none; }
-.dsm-json-input:focus { border-color: var(--brand-400); box-shadow: var(--focus-ring); }
+.dsm-json-input:focus { border-color: var(--brand-500, var(--apm-accent)); box-shadow: var(--focus-ring); }
 /* JSON 高亮（v-html 注入的 span 不带 scope 属性 → 必须 :deep） */
-.dsm-json-hl:deep(.dsm-json-key) { color: var(--brand-600, #409eff); font-weight: 600; }
-.dsm-json-hl:deep(.dsm-json-str) { color: var(--success, #67c23a); }
-.dsm-json-hl:deep(.dsm-json-num) { color: var(--warning, #e6a23c); }
-.dsm-json-hl:deep(.dsm-json-lit) { color: var(--danger, #f56c6c); font-style: italic; }
+.dsm-json-hl:deep(.dsm-json-key) { color: var(--brand-600, var(--apm-accent)); font-weight: 600; }
+.dsm-json-hl:deep(.dsm-json-str) { color: var(--status-success, var(--apm-success)); }
+.dsm-json-hl:deep(.dsm-json-num) { color: var(--status-warning, var(--apm-warning)); }
+.dsm-json-hl:deep(.dsm-json-lit) { color: var(--status-error, var(--apm-danger)); font-style: italic; }
 .dsm-json-hl:deep(.dsm-json-punct) { color: var(--text-tertiary); }
 .dsm-node-data { width: 100%; padding: 12px; font-family: "JetBrains Mono", "Consolas", monospace; font-size: 13px; border: 1px solid var(--border-default); border-radius: 6px; background: var(--bg-elevated); color: var(--text-primary); resize: vertical; outline: none; }
-.dsm-node-data:focus { border-color: var(--brand-400); box-shadow: var(--focus-ring); }
+.dsm-node-data:focus { border-color: var(--brand-500, var(--apm-accent)); box-shadow: var(--focus-ring); }
 </style>

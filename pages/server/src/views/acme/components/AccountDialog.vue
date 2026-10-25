@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from "vue";
 import { message } from "@repo/core";
+import ReDialog from "@repo/ui/re-dialog";
 import {
   saveAccount,
   ACME_SERVER_GROUPS,
@@ -31,6 +32,7 @@ const form = reactive<AcmeAccount>({
   acmeAccountProviderType: "acme",
   acmeAccountEabKid: "",
   acmeAccountEabHmacKey: "",
+  acmeAccountTimeoutSeconds: 60,
   acmeAccountRemark: "",
 });
 
@@ -47,6 +49,7 @@ watch(dialogVisible, (v) => {
     acmeAccountProviderType: src?.acmeAccountProviderType || "acme",
     acmeAccountEabKid: src?.acmeAccountEabKid ?? "",
     acmeAccountEabHmacKey: src?.acmeAccountEabHmacKey ?? "",
+    acmeAccountTimeoutSeconds: src?.acmeAccountTimeoutSeconds ?? 60,
     acmeAccountRemark: src?.acmeAccountRemark ?? "",
   });
 });
@@ -73,6 +76,7 @@ async function submit(): Promise<void> {
       acmeAccountEmail: form.acmeAccountEmail.trim(),
       acmeAccountServer: form.acmeAccountServer.trim(),
       acmeAccountRemark: form.acmeAccountRemark?.trim() || undefined,
+      acmeAccountTimeoutSeconds: form.acmeAccountTimeoutSeconds ?? 60,
     });
     message.success(isEdit.value ? "ACME 账户已更新" : "ACME 账户已创建");
     dialogVisible.value = false;
@@ -86,7 +90,7 @@ async function submit(): Promise<void> {
 </script>
 
 <template>
-  <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑 ACME 账户' : '添加 ACME 账户'" width="560px" append-to-body :close-on-click-modal="false">
+  <ReDialog v-model="dialogVisible" :title="isEdit ? '编辑 ACME 账户' : '添加 ACME 账户'" width="560px" append-to-body :close-on-click-modal="false">
     <el-form label-width="120px">
       <el-form-item label="邮箱" required>
         <el-input v-model="form.acmeAccountEmail" placeholder="example@domain.com" :disabled="isEdit" />
@@ -115,6 +119,11 @@ async function submit(): Promise<void> {
         </el-form-item>
       </template>
 
+      <el-form-item label="连接超时">
+        <el-input-number v-model="form.acmeAccountTimeoutSeconds" :min="10" :max="600" :step="10" style="width:180px" />
+        <div class="field-hint">ACME 网络请求超时（秒），默认 60；公网 CA 握手慢时调大，避免申请失败。</div>
+      </el-form-item>
+
       <el-form-item label="备注">
         <el-input v-model="form.acmeAccountRemark" type="textarea" :rows="2" placeholder="可选" />
       </el-form-item>
@@ -124,7 +133,7 @@ async function submit(): Promise<void> {
       <el-button @click="dialogVisible = false">取消</el-button>
       <el-button type="primary" :loading="submitting" @click="submit">保存</el-button>
     </template>
-  </el-dialog>
+  </ReDialog>
 </template>
 
 <style scoped>

@@ -38,6 +38,7 @@ export {
   fetchDatasourceTables,
   fetchDatasourceTableInfos,
   fetchDatasourceColumns,
+  hubSchemaProvider,
   toTableOptions,
   toColumnOptions,
   setDatasourceSchemaProvider,
@@ -69,6 +70,7 @@ export {
   managerRouteFor,
   MANAGER_ROUTE_MAP,
   MANAGER_ROUTE_PATHS,
+  createSyncTaskRoutes,
 } from "./routes";
 export type { DatasourceManageRoutesOptions } from "./routes";
 
@@ -78,10 +80,23 @@ export {
   TableSelect,
   ColumnSelect,
   DatasourceTableSelect,
-  CreateTableDialog,
+  DdlPreviewDialog,
 } from "./components/selectors";
 
+// 「设计表」—— 表名 + 逐列网格（类型 / 长度 / 小数位 / 可空 / 主键 / 自增 / 默认值 / 注释），
+// 与数据库管理器的表结构视图共用同一份 DesignColumnGrid。
+//
+// 宿主统一用它建表：它按目标库方言调 POST /ms/monitor/db/table，支持指定库，
+// 而不是只能建到连接默认库的 DDL 预览。
+export { default as CreateTableDialog } from "./components/console/CreateTableDialog.vue";
+// 历史别名，保留以免既有调用方断掉；新代码用 CreateTableDialog。
+export { default as DesignTableDialog } from "./components/console/CreateTableDialog.vue";
+
 // 数据源「浏览表结构」的 schema 提供者（监控侧实现）。
-// 宿主 app 只需在启动时调用一次 registerMonitorDatasourceSchema()，
-// 不必再把这份逻辑抄进 app shell。
+//
+// 实现与它依赖的 /ms/monitor/db/* 接口同处 api/manageConsoles，由该模块导入时自动注册：
+// 宿主用到数据源控制台页面即意味着「浏览表结构」该走监控侧接口，
+// 不必再在 main.ts 里手写一次注册调用。
+//
+// registerMonitorDatasourceSchema 仍导出，供需要提前注册的首屏场景显式调用（幂等）。
 export { registerMonitorDatasourceSchema } from "./schema/monitorSchemaProvider";

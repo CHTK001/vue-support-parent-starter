@@ -32,19 +32,28 @@
 
     const wsProto = location.protocol === 'https:' ? 'wss://' : 'ws://';
     const wsHost = location.host;
-    const wsUrl = wsProto + wsHost + '/ws/ms/server/terminal?hostId=' + hostId +
-      '&protocol=' + protocol +
-      (identityId ? '&identityId=' + identityId : '') +
-      (targetPort ? '&targetPort=' + targetPort : '');
+    // 隧道地址只到 path：Guacamole WebSocketTunnel.connect(参数) 会把参数拼成
+    // `?key=value&...` 追加到 URL 尾部。若 URL 已带 query 再连，connect 无参数时
+    // 会拼出 `?undefined` 污染 x-oauth-token 导致鉴权 403。因此连接参数一律经
+    // client.connect(queryString) 传入，由库拼出干净的查询串。
+    const wsUrl = wsProto + wsHost + '/ws/ms/server/terminal';
+    const connParams = new URLSearchParams({
+      hostId: hostId,
+      protocol: protocol,
+    });
+    if (identityId) connParams.set('identityId', identityId);
+    if (targetPort) connParams.set('targetPort', targetPort);
+    const token = params.get('x-oauth-token');
+    if (token) connParams.set('x-oauth-token', token);
 
-    console.log('[remote] connecting tunnel:', wsUrl);
+    console.log('[remote] connecting tunnel:', wsUrl + '?' + connParams.toString().slice(0, 200));
     const tunnel = new Guacamole.WebSocketTunnel(wsUrl);
     const client = new Guacamole.Client(tunnel);
     const displayEl = client.getDisplay().getElement();
     displayEl.style.width = '100%';
     displayEl.style.height = '100%';
     document.getElementById('display').appendChild(displayEl);
-    client.connect();
+    client.connect(connParams.toString());
 
     const keyboard = new Guacamole.Keyboard(document);
     keyboard.onkeydown = (keysym) => client.sendKeyEvent(1, keysym);

@@ -301,7 +301,7 @@
     />
 
     <!-- 组织管理 -->
-    <el-dialog v-model="orgVisible" title="组织管理" width="560">
+    <ReDialog v-model="orgVisible" title="组织管理" width="560">
       <div class="flex items-center justify-between mb-3">
         <span class="text-xs text-el-text-secondary">组织来自厂商平台同步，用于设备分组与筛选。</span>
         <el-button size="small" :loading="orgSyncing" @click="syncOrg">
@@ -319,10 +319,10 @@
         />
         <div v-else class="py-8 text-center text-sm text-el-text-secondary">暂无组织，点击「同步组织」从厂商拉取。</div>
       </div>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 视频预览 -->
-    <el-dialog v-model="previewVisible" :title="previewTitle" width="760px" destroy-on-close>
+    <ReDialog v-model="previewVisible" :title="previewTitle" width="760px" destroy-on-close>
       <div class="bg-black rounded-lg overflow-hidden aspect-video">
         <ReVideo
           v-if="previewUrl"
@@ -332,12 +332,9 @@
           @error="onPreviewError"
         />
       </div>
-      <template #footer>
-        <el-button @click="previewVisible = false">关闭</el-button>
-      </template>
-    </el-dialog>
+    </ReDialog>
     <!-- 视频布局向导 -->
-    <el-dialog v-model="videoWizardVisible" title="视频预览" width="480px" destroy-on-close>
+    <ReDialog v-model="videoWizardVisible" title="视频预览" width="480px" destroy-on-close>
       <div class="space-y-4">
         <div>
           <div class="text-sm mb-2">布局</div>
@@ -364,7 +361,7 @@
         <el-button @click="videoWizardVisible = false">取消</el-button>
         <el-button type="primary" @click="confirmVideoWizard">打开预览</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 设置分组（单台 / 批量） -->
     <el-dialog v-model="groupDialogVisible" :title="groupDialogTitle" width="460px" destroy-on-close>
@@ -394,6 +391,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { message } from '@repo/core'
+import ReDialog from '@repo/ui/re-dialog'
 import {
   ArrowDown,
   Connection,
@@ -989,16 +987,17 @@ onMounted(async () => {
 
 <style scoped>
 .device-page {
-  background: var(--el-bg-color);
+  background: var(--bg-page, var(--el-bg-color));
 }
 
 .stat-card {
   position: relative;
   padding: 16px;
-  border-radius: 14px;
-  border: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color-overlay);
+  border-radius: var(--radius-lg, 14px);
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter));
+  background: var(--bg-container, var(--el-bg-color-overlay));
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 .stat-card::before {
   content: '';
@@ -1006,10 +1005,10 @@ onMounted(async () => {
   inset: 0 auto 0 0;
   width: 4px;
 }
-.accent-blue::before { background: var(--el-color-primary); }
-.accent-emerald::before { background: var(--el-color-success); }
-.accent-orange::before { background: var(--el-color-warning); }
-.accent-slate::before { background: var(--el-color-info); }
+.accent-blue::before { background: var(--brand-500, var(--el-color-primary)); }
+.accent-emerald::before { background: var(--status-success, var(--el-color-success)); }
+.accent-orange::before { background: var(--status-warning, var(--el-color-warning)); }
+.accent-slate::before { background: var(--status-info, var(--el-color-info)); }
 
 .filter-bar {
   display: flex;
@@ -1017,9 +1016,9 @@ onMounted(async () => {
   align-items: center;
   gap: 10px;
   padding: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
-  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter));
+  border-radius: var(--radius-lg, 12px);
+  background: var(--bg-container, var(--el-bg-color-overlay));
 }
 .filter-keyword { width: 260px; }
 .filter-select { width: 140px; }
@@ -1030,9 +1029,9 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  border: 1px solid var(--el-color-primary-light-7);
-  background: var(--el-color-primary-light-9);
-  border-radius: 10px;
+  border: 1px solid var(--border-default, var(--el-color-primary-light-7));
+  background: color-mix(in srgb, var(--brand-500, var(--el-color-primary)) 6%, transparent);
+  border-radius: var(--radius-md, 10px);
 }
 
 .device-table :deep(.el-table__cell) {
@@ -1042,5 +1041,9 @@ onMounted(async () => {
 @media (max-width: 1280px) {
   .filter-keyword { width: 200px; }
   .filter-org { width: 150px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stat-card { transition: none; animation: none; }
 }
 </style>

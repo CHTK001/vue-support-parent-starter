@@ -34,8 +34,24 @@ import HostNetworkAdapters from "../components/HostNetworkAdapters.vue";
 const route = useRoute();
 const router = useRouter();
 
+/**
+ * 嵌入模式：作为主机工作区的一个页签渲染。
+ *
+ * <p>嵌入时主机由页签绑定（{@link props.hostId}），不读路由参数；
+ * 页头（返回资产 / 连接远控）也由外壳承担，这里只留指标本体。</p>
+ */
+const props = withDefaults(
+  defineProps<{
+    /** 嵌入模式 */
+    embedded?: boolean;
+    /** 嵌入模式下锁定查看的主机 id */
+    hostId?: number | null;
+  }>(),
+  { embedded: false, hostId: null },
+);
+
 /** 路由参数是主机台账标识（AssetsView 用 /host/${h.id} 跳转），不是监控项标识 */
-const hostId = ref<number>(Number(route.params.id) || 0);
+const hostId = ref<number>(props.embedded ? (props.hostId ?? 0) : (Number(route.params.id) || 0));
 /** 指标查询用监控项标识，由资产详情解析得到 */
 const monitorId = ref<number>(0);
 const hostName = ref("");
@@ -281,7 +297,7 @@ function applyHostRecord(r: any): void {
   if (r.serverHostCpuUsage != null) {
     const v = Number(r.serverHostCpuUsage);
     cpu.value = { usage: v, cores };
-    if (trendIsRealtime.value) pushPoint(cpuHist, v);
+    if (trendFollowsLive.value) pushPoint(cpuHist, v);
   } else if (cores != null) {
     cpu.value = { ...(cpu.value ?? {}), cores };
   }
@@ -292,7 +308,7 @@ function applyHostRecord(r: any): void {
     const v = Number(r.serverHostMemUsage);
     const used = memTotal != null ? (memTotal * v) / 100 : undefined;
     mem.value = { usagePercent: v, usage: used, total: memTotal };
-    if (trendIsRealtime.value) pushPoint(memHist, v);
+    if (trendFollowsLive.value) pushPoint(memHist, v);
   } else if (memTotal != null) {
     mem.value = { ...(mem.value ?? {}), total: memTotal };
   }
@@ -333,12 +349,12 @@ function bindHostMetrics(): void {
       if (d.cpu != null && !Number.isNaN(Number(d.cpu))) {
         const v = Number(d.cpu);
         cpu.value = { ...(cpu.value ?? {}), usage: v };
-        if (trendIsRealtime.value) pushPoint(cpuHist, v);
+        if (trendFollowsLive.value) pushPoint(cpuHist, v);
       }
       if (d.mem != null && !Number.isNaN(Number(d.mem))) {
         const v = Number(d.mem);
         mem.value = { ...(mem.value ?? {}), usagePercent: v };
-        if (trendIsRealtime.value) pushPoint(memHist, v);
+        if (trendFollowsLive.value) pushPoint(memHist, v);
       }
       if (d.disk != null && !Number.isNaN(Number(d.disk))) {
         const v = Number(d.disk);
@@ -347,10 +363,10 @@ function bindHostMetrics(): void {
         } else {
           disk.value = disk.value.map((d0, i) => (i === 0 ? { ...d0, usagePercent: v } : d0));
         }
-        pushPoint(diskHist, v);
+        if (trendFollowsLive.value) pushPoint(diskHist, v);
       }
-      if (d.diskRead != null) { const v = Number(d.diskRead); diskRead.value = v; if (trendIsRealtime.value) pushPoint(diskReadHist, v); }
-      if (d.diskWrite != null) { const v = Number(d.diskWrite); diskWrite.value = v; if (trendIsRealtime.value) pushPoint(diskWriteHist, v); }
+      if (d.diskRead != null) { const v = Number(d.diskRead); diskRead.value = v; if (trendFollowsLive.value) pushPoint(diskReadHist, v); }
+      if (d.diskWrite != null) { const v = Number(d.diskWrite); diskWrite.value = v; if (trendFollowsLive.value) pushPoint(diskWriteHist, v); }
       const sw = parseSoftware(d.software);
       if (sw.length) software.value = sw;
       markPushHeart(d.collectTime);
@@ -369,7 +385,7 @@ function applyFreshProfile(p: HostProfile): void {
   const m = p.metrics as Record<string, any> | undefined;
   if (!m) { markPushHeart(p.collectedAt); return; }
 
-  const realtime = trendIsRealtime.value;
+  const realtime = trendFollowsLive.value;
   const cpuVal = numOr0(m.cpuPercent);
   const cores = cpu.value?.cores ?? ((p.host as any)?.serverHostCpuCores != null ? numOr0((p.host as any).serverHostCpuCores) : undefined);
   cpu.value = { usage: cpuVal, cores };
@@ -452,8 +468,13 @@ async function fetchMetrics(): Promise<void> {
         ? { heapUsed: numOr0(j.value.heapUsedBytes), heapMax: numOr0(j.value.heapMaxBytes), heapUsagePercent: numOr0(j.value.heapUsagePercent) }
         : null;
     }
+    // 用当前趋势范围而不是写死 24：否则用户选了 6H，切一次监控项就被打回 24H，
+    // 图上点数突变、标题却还写着「近6H」。实时档（0）在监控项口径下仍按 24H 取，
+    // 因为监控项没有「仅本次会话」的序列。
+    const histHours = trendHours.value || 24;
     const [ch, mh, nh, jh] = await Promise.allSettled([
-      getCpuHistory(id, 24), getMemoryHistory(id, 24), getNetworkHistory(id, 24), getJvmHistory(id, 24),
+      getCpuHistory(id, histHours), getMemoryHistory(id, histHours),
+      getNetworkHistory(id, histHours), getJvmHistory(id, histHours),
     ]);
     if (ch.status === "fulfilled") cpuHist.value = (ch.value ?? []).map(r => numOr0(r.cpuUsage));
     if (mh.status === "fulfilled") memHist.value = (mh.value ?? []).map(r => numOr0(r.usagePercent));
@@ -563,11 +584,13 @@ async function requestAnalysis(): Promise<void> {
 
 // ---------------- 生命周期 ----------------
 watch(() => route.params.id, id => {
+  if (props.embedded) return;
   const n = Number(id);
   if (!n || n === hostId.value) return;
   hostId.value = n;
   monitorId.value = 0;
   hostRecord.value = null;
+  trendHours.value = 0;   // 换主机回到「实时」，否则选择器写着 6H、图上却只有近 1h 的种子数据
   if (histChart) { histChart.dispose(); histChart = null; }
   resetMetrics();
   resetProfilePager();
@@ -578,6 +601,27 @@ watch(() => route.params.id, id => {
     await resolveAsset();       // 解析监控项（监控项24h覆盖）
     await refreshNow(true);     // 强制新鲜采集（含网络）
     void loadProfileSection();  // 画像分区随主机切换重拉
+  })();
+});
+/** 嵌入模式：父级切换锁定主机时重新加载全套指标 */
+watch(() => props.hostId, id => {
+  if (!props.embedded) return;
+  const n = Number(id);
+  if (!n || n === hostId.value) return;
+  hostId.value = n;
+  monitorId.value = 0;
+  hostRecord.value = null;
+  trendHours.value = 0;
+  if (histChart) { histChart.dispose(); histChart = null; }
+  resetMetrics();
+  resetProfilePager();
+  profileRows.value = [];
+  void (async () => {
+    await loadHostRecord();
+    await loadHostBaseHistory();
+    await resolveAsset();
+    await refreshNow(true);
+    void loadProfileSection();
   })();
 });
 onMounted(() => {
@@ -624,6 +668,111 @@ async function loadHostBaseHistory(): Promise<void> {
       if (wVals.length) diskWriteHist.value = wVals.slice(-MAX_LIVE);
     }
   } catch { /* 静默，实时推送仍可出数 */ }
+}
+
+/* ---------------- 趋势时间范围切换（实时 / 1H / 6H / 24H / 7D） ---------------- */
+
+/**
+ * 当前趋势范围（小时）。
+ *
+ * <p>0 表示「实时」：趋势图只吃 socket 推送累积的点，不额外请求历史；
+ * 其余档位按小时数拉一次历史并整体替换，切回实时时重新以近 1h 打底。</p>
+ */
+const trendHours = ref(0);
+
+/**
+ * 趋势是否跟随实时推送。
+ *
+ * <p>两个条件同时成立才算：没有监控项（有监控项时趋势来自监控项明细），
+ * 且范围选在「实时」。少了后半句，用户切到 6H 之后 socket 每来一个点就
+ * 往历史序列尾部追加一次，图上会多出一段密度完全不同的实时数据。</p>
+ */
+const trendFollowsLive = computed(() => trendIsRealtime.value && trendHours.value === 0);
+
+/** 范围档位（与后端 metric-history 的 hours 参数一一对应） */
+const TREND_RANGES = [
+  { label: "实时", value: 0 },
+  { label: "1H", value: 1 },
+  { label: "6H", value: 6 },
+  { label: "24H", value: 24 },
+  { label: "7D", value: 168 },
+];
+
+/** 趋势卡标题里的范围文案 */
+const trendRangeLabel = computed(() => {
+  const hit = TREND_RANGES.find(r => r.value === trendHours.value);
+  return hit && hit.value !== 0 ? `近${hit.label}` : (trendIsRealtime.value ? "近1H" : "24H");
+});
+
+/**
+ * 切换趋势时间范围。
+ *
+ * <p>实时档不请求历史：它代表「看现在的推送」，切过去若还去拉 1h 数据，
+ * 图上会突然铺满旧点，和「实时」这个语义对不上。</p>
+ *
+ * @param hours 小时数（0 = 实时）
+ */
+async function setTrendHours(hours: number): Promise<void> {
+  if (trendHours.value === hours) return;
+  trendHours.value = hours;
+  if (hours === 0) {
+    resetTrendSeries();
+    await loadHostBaseHistory();
+    return;
+  }
+  await loadTrendRange(hours);
+}
+
+/** 清空趋势序列（切范围前先清，避免旧范围的点混进新图） */
+function resetTrendSeries(): void {
+  cpuHist.value = [];
+  memHist.value = [];
+  diskHist.value = [];
+  diskReadHist.value = [];
+  diskWriteHist.value = [];
+  netHist.value = [];
+  jvmHist.value = [];
+}
+
+/**
+ * 按指定小时数拉取趋势序列。
+ *
+ * <p>监控项与内置指标是两套端点：有监控项走 /monitor 的明细历史（含 JVM），
+ * 没监控项走主机内置 metric-history（只有 CPU/内存/磁盘/IO）。</p>
+ *
+ * @param hours 小时数
+ */
+async function loadTrendRange(hours: number): Promise<void> {
+  const id = monitorId.value;
+  if (id) {
+    const [ch, mh, nh, jh] = await Promise.allSettled([
+      getCpuHistory(id, hours), getMemoryHistory(id, hours), getNetworkHistory(id, hours), getJvmHistory(id, hours),
+    ]);
+    if (ch.status === "fulfilled") cpuHist.value = (ch.value ?? []).map(r => numOr0(r.cpuUsage));
+    if (mh.status === "fulfilled") memHist.value = (mh.value ?? []).map(r => numOr0(r.usagePercent));
+    if (nh.status === "fulfilled") netHist.value = (nh.value ?? []).map(r => numOr0(r.txBytes));
+    if (jh.status === "fulfilled") jvmHist.value = (jh.value ?? []).map(r => numOr0(r.heapUsagePercent));
+    return;
+  }
+  const rows = await getHostMetricHistory(hostId.value, hours);
+  if (!rows.length) { resetTrendSeries(); return; }
+  const cpuVals: number[] = [];
+  const memVals: number[] = [];
+  const diskVals: number[] = [];
+  const rVals: number[] = [];
+  const wVals: number[] = [];
+  for (const r of rows) {
+    if (r[1] != null) cpuVals.push(Number(r[1]));
+    if (r[2] != null) memVals.push(Number(r[2]));
+    if (r[3] != null) diskVals.push(Number(r[3]));
+    if (r[4] != null) rVals.push(Number(r[4]));
+    if (r[5] != null) wVals.push(Number(r[5]));
+  }
+  cpuHist.value = cpuVals;
+  memHist.value = memVals;
+  diskHist.value = diskVals;
+  diskReadHist.value = rVals;
+  diskWriteHist.value = wVals;
 }
 
 /** 历史弹窗指标：单序列百分比（cpu/mem/disk）或双序列磁盘IO（diskio） */
@@ -1127,9 +1276,12 @@ async function loadProfileSection(): Promise<void> {
       profilePaged.value ? profilePageSize.value : undefined,
       profilePaged.value ? profileKeyword.value.trim() || undefined : undefined);
     if (req !== profileReq || hid !== hostId.value) return;
-    profileRows.value = res.rows ?? [];
-    profileTotal.value = profilePaged.value && typeof res.total === "number" ? res.total : (res.rows?.length ?? 0);
-    profileTruncated.value = profilePaged.value && !!res.truncated;
+    // 兼容两种返回：新后端为 { rows, total, truncated }，旧后端为裸数组
+    const rows = Array.isArray(res) ? res : (Array.isArray(res?.rows) ? res.rows : []);
+    profileRows.value = rows;
+    profileTotal.value = Array.isArray(res) ? rows.length
+      : (typeof res.total === "number" ? res.total : rows.length);
+    profileTruncated.value = !Array.isArray(res) && !!res.truncated;
     if (profilePaged.value && profilePage.value > 1 && profilePageSize.value * (profilePage.value - 1) >= profileTotal.value) {
       profilePage.value = Math.max(1, Math.ceil(profileTotal.value / profilePageSize.value));
     }
@@ -1155,6 +1307,16 @@ function changeProfilePage(delta: number): void {
   if (next < 1) return;
   profilePage.value = next;
   void loadProfileSection();
+}
+
+/** 端口状态 → OPEN/CLOSED 标记：监听/运行中视为 OPEN（绿点），其余视为 CLOSED（红点），空值不标记 */
+function portStatus(state: unknown): { open: boolean | null; text: string } {
+  const raw = String(state ?? "").trim();
+  const s = raw.toLowerCase();
+  if (!s || s === "-" || s === "—") return { open: null, text: "" };
+  const openWords = ["listen", "listening", "open", "running", "active", "established"];
+  if (openWords.some(w => s === w || s.includes(w))) return { open: true, text: "OPEN" };
+  return { open: false, text: "CLOSED" };
 }
 
 /** 正在执行动作的行键（同一时刻只允许一个远端写操作） */
@@ -1201,9 +1363,9 @@ async function submitProfileEnv(): Promise<void> {
 </script>
 
 <template>
-  <div class="hd tel-page">
-    <!-- 页头（外壳浅色区域，保持与整体一致） -->
-    <ReSectionHead :description="`主机 #${hostId} · 实时遥测与趋势`">
+  <div class="hd tel-page" :class="{ 'is-embedded': embedded }">
+    <!-- 页头（外壳浅色区域，保持与整体一致）；嵌入到工作区时由外壳提供 -->
+    <ReSectionHead v-if="!embedded" :description="`主机 #${hostId} · 实时遥测与趋势`">
       <template #title>{{ hostName || `主机 #${hostId}` }}</template>
       <template #actions>
         <ReButton icon="Back" :show-text="true" @click="router.push('/assets')">资产</ReButton>
@@ -1393,10 +1555,25 @@ async function submitProfileEnv(): Promise<void> {
       </section>
 
       <!-- 趋势（点击卡片弹窗，弹窗内只选时间段，口径与外侧一致） -->
+      <div class="trend-range">
+        <span class="tr-label">趋势范围</span>
+        <div class="tr-seg">
+          <button
+            v-for="r in TREND_RANGES"
+            :key="r.value"
+            type="button"
+            class="tr-btn"
+            :class="{ on: trendHours === r.value }"
+            @click="setTrendHours(r.value)"
+          >{{ r.label }}</button>
+        </div>
+        <span class="tr-hint">点击任一趋势卡可打开大图</span>
+      </div>
+
       <section class="trend-grid">
         <div class="trend clickable" title="点击查看 CPU 历史" @click="openHistDialog('cpu')">
           <div class="t-head">
-            <span class="t-label">CPU · {{ trendIsRealtime ? "近1H" : "24H" }}</span>
+            <span class="t-label">CPU · {{ trendRangeLabel }}</span>
             <span class="t-right"><span class="t-now mono">{{ trendLast(cpuHist) }}%</span><i class="t-zoom"></i></span>
           </div>
           <svg class="t-svg" viewBox="0 0 200 56" preserveAspectRatio="none">
@@ -1410,7 +1587,7 @@ async function submitProfileEnv(): Promise<void> {
 
         <div class="trend clickable" title="点击查看内存历史" @click="openHistDialog('mem')">
           <div class="t-head">
-            <span class="t-label">内存 · {{ trendIsRealtime ? "近1H" : "24H" }}</span>
+            <span class="t-label">内存 · {{ trendRangeLabel }}</span>
             <span class="t-right"><span class="t-now mono">{{ trendLast(memHist) }}%</span><i class="t-zoom"></i></span>
           </div>
           <svg class="t-svg" viewBox="0 0 200 56" preserveAspectRatio="none">
@@ -1424,7 +1601,7 @@ async function submitProfileEnv(): Promise<void> {
 
         <div class="trend clickable" title="点击查看磁盘容量历史" @click="openHistDialog('disk')">
           <div class="t-head">
-            <span class="t-label">磁盘容量 · 近1H</span>
+            <span class="t-label">磁盘容量 · {{ trendRangeLabel }}</span>
             <span class="t-right"><span class="t-now mono">{{ trendLast(diskHist) }}%</span><i class="t-zoom"></i></span>
           </div>
           <svg class="t-svg" viewBox="0 0 200 56" preserveAspectRatio="none">
@@ -1439,7 +1616,7 @@ async function submitProfileEnv(): Promise<void> {
         <!-- 磁盘IO（双序列，点击查看读写历史） -->
         <div class="trend clickable" title="点击查看磁盘读写历史" @click="openHistDialog('diskio')">
           <div class="t-head">
-            <span class="t-label">磁盘 IO · 近1H</span>
+            <span class="t-label">磁盘 IO · {{ trendRangeLabel }}</span>
             <span class="t-right"><i class="t-zoom"></i></span>
           </div>
           <svg class="t-svg" viewBox="0 0 200 56" preserveAspectRatio="none">
@@ -1454,7 +1631,7 @@ async function submitProfileEnv(): Promise<void> {
         </div>
 
         <div v-if="monitorId" class="trend">
-          <div class="t-head"><span class="t-label">JVM · 24H</span><span class="t-now mono">{{ trendLast(jvmHist) }}%</span></div>
+          <div class="t-head"><span class="t-label">JVM · {{ trendRangeLabel }}</span><span class="t-now mono">{{ trendLast(jvmHist) }}%</span></div>
           <svg class="t-svg" viewBox="0 0 200 56" preserveAspectRatio="none">
             <defs><linearGradient id="tg-jvm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#14b8a6" stop-opacity=".30"/><stop offset="1" stop-color="#14b8a6" stop-opacity="0"/></linearGradient></defs>
             <g class="t-grid"><line x1="0" y1="14" x2="200" y2="14"/><line x1="0" y1="28" x2="200" y2="28"/><line x1="0" y1="42" x2="200" y2="42"/></g>
@@ -1465,7 +1642,7 @@ async function submitProfileEnv(): Promise<void> {
         </div>
 
         <div class="trend">
-          <div class="t-head"><span class="t-label">网络 · {{ trendIsRealtime ? "实时" : "24H" }}</span><span class="t-now mono">{{ netLast(netHist) }}</span></div>
+          <div class="t-head"><span class="t-label">网络 · {{ trendHours === 0 ? "实时" : trendRangeLabel }}</span><span class="t-now mono">{{ netLast(netHist) }}</span></div>
           <svg class="t-svg" viewBox="0 0 200 56" preserveAspectRatio="none">
             <defs><linearGradient id="tg-net" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#06b6d4" stop-opacity=".30"/><stop offset="1" stop-color="#06b6d4" stop-opacity="0"/></linearGradient></defs>
             <g class="t-grid"><line x1="0" y1="14" x2="200" y2="14"/><line x1="0" y1="28" x2="200" y2="28"/><line x1="0" y1="42" x2="200" y2="42"/></g>
@@ -1588,7 +1765,15 @@ async function submitProfileEnv(): Promise<void> {
             </thead>
             <tbody>
               <tr v-for="(r, idx) in profileVisibleRows" :key="idx">
-                <td v-for="col in PROFILE_COLUMNS[profileTab]" :key="col.key" :class="['mono', { right: col.align === 'right' }]">{{ r[col.key] ?? "—" }}</td>
+                <td v-for="col in PROFILE_COLUMNS[profileTab]" :key="col.key" :class="['mono', { right: col.align === 'right' }]">
+                  <template v-if="profileTab === 'ports' && col.key === 'state'">
+                    <span v-if="portStatus(r.state).open !== null" class="port-status" :class="portStatus(r.state).open ? 'ps-open' : 'ps-closed'">
+                      <i class="ps-dot"></i>{{ portStatus(r.state).text }}
+                    </span>
+                    <span v-else>—</span>
+                  </template>
+                  <template v-else>{{ r[col.key] ?? "—" }}</template>
+                </td>
                 <td v-if="profileTab === 'processes'">
                   <ReButton icon="RefreshRight" :loading="profileBusyRow === `restart-${r.pid}`" :disabled="!Number(r.pid)" @click="confirmProfileAction(`确定重启进程 ${r.name ?? ''}（PID ${r.pid}）？`).then(ok => ok && runProfileAction(`restart-${r.pid}`, restartHostProcess(Number(r.pid), hostId)))">重启</ReButton>
                   <ReButton icon="CircleClose" type="danger" :loading="profileBusyRow === `kill-${r.pid}`" :disabled="!Number(r.pid)" @click="confirmProfileAction(`确定结束进程 ${r.name ?? ''}（PID ${r.pid}）？该操作不可恢复。`).then(ok => ok && runProfileAction(`kill-${r.pid}`, killProcess(Number(r.pid), hostId)))">结束</ReButton>
@@ -1667,10 +1852,6 @@ async function submitProfileEnv(): Promise<void> {
       <div v-else class="ai-state">
         <span>点击上方「开始分析」生成主机指标诊断结论。</span>
       </div>
-
-      <template #footer>
-        <ReButton @click="aiDialogVisible = false">关闭</ReButton>
-      </template>
     </ReDialog>
 
     <!-- 历史数据弹窗：只保留时间范围过滤，指标由被点击卡片确定 -->
@@ -1732,9 +1913,6 @@ async function submitProfileEnv(): Promise<void> {
           </tbody>
         </table>
       </div>
-      <template #footer>
-        <ReButton type="primary" @click="swDetailVisible = false">关闭</ReButton>
-      </template>
     </ReDialog>
 
     <!-- 画像分区：新增系统级环境变量 -->
@@ -1772,6 +1950,12 @@ async function submitProfileEnv(): Promise<void> {
   height: auto;
   min-height: 100%;
   overflow: visible;
+}
+/* 嵌入到工作区页签：由页签面板自己滚，内部不再撑出第二层滚动条 */
+.hd.tel-page.is-embedded {
+  min-height: 0;
+  padding: 12px 14px;
+  overflow-y: auto;
 }
 .hd-error {
   display: flex; align-items: center; gap: 12px;
@@ -1993,6 +2177,36 @@ async function submitProfileEnv(): Promise<void> {
 .g-sub { margin-top: 3px; font-size: 10.5px; color: var(--p-text-3); }
 
 /* ---------- 趋势（响应式自适应） ---------- */
+/* 趋势范围切换：分段按钮，和 Termix 的 LIVE/1H/6H/24H/7D 对齐 */
+.trend-range {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 14px;
+}
+.tr-label {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
+  color: var(--p-text-3); text-transform: uppercase;
+}
+.tr-seg {
+  display: inline-flex; gap: 2px; padding: 2px;
+  background: var(--el-fill-color-light);
+  border-radius: 9999px;
+}
+.tr-btn {
+  min-width: 38px; height: 22px; padding: 0 8px;
+  font-family: inherit; font-size: 11px; font-weight: 600;
+  color: var(--p-text-3); cursor: pointer;
+  background: transparent; border: none; border-radius: 9999px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.tr-btn:hover { color: var(--p-text-1); }
+.tr-btn.on {
+  color: var(--el-color-primary);
+  background: var(--p-card);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+.tr-hint { margin-left: auto; font-size: 10.5px; color: var(--p-text-3); }
+
 .trend-grid {
   position: relative; z-index: 1;
   display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px;
@@ -2208,6 +2422,24 @@ async function submitProfileEnv(): Promise<void> {
 .pp-table th.sortable:hover, .pp-table th.sort-on { color: var(--el-color-primary); }
 .pp-table th.right { text-align: right; }
 .pp-table td.right { text-align: right; }
+/* 端口开放情况：浅灰底圆角块 + 圆点 + 同色大写半粗文字（图片 1 的标记样式） */
+.port-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 10px; border-radius: 999px;
+  background: var(--el-fill-color-light, #f3f4f6);
+  border: 1px solid var(--el-border-color-lighter, #e4e7ed);
+  font-size: 12px; font-weight: 600; letter-spacing: 0.4px;
+  line-height: 1.5;
+  font-family: var(--p-mono, monospace);
+}
+.ps-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.4);
+}
+.ps-open { color: var(--el-color-success, #67c23a); }
+.ps-open .ps-dot { background: var(--el-color-success, #67c23a); box-shadow: 0 0 0 1.5px rgba(103, 194, 58, 0.45); }
+.ps-closed { color: var(--el-color-danger, #f56c6c); }
+.ps-closed .ps-dot { background: var(--el-color-danger, #f56c6c); box-shadow: 0 0 0 1.5px rgba(245, 108, 108, 0.45); }
 .sub-label { font-size: 12px; color: var(--el-text-color-secondary); margin: 8px 0 4px; }
 
 /* ---------- 磁盘 ---------- */

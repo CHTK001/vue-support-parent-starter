@@ -55,6 +55,11 @@ declare module '*.svg' {
   export default src
 }
 
+declare module '*.ico' {
+  const src: string
+  export default src
+}
+
 // 环境变量声明
 interface ImportMetaEnv {
   readonly VITE_APP_TITLE: string

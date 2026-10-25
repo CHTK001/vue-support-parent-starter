@@ -680,6 +680,34 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
   ): Promise<void> {
     sessionStore.setSessionIsStreaming(streamingSessionId, true);
 
+    // 【本地乐观渲染用户消息，2026-10-21】用户按发送／点「AI 建议的下一步」之后，
+    // 必须**立刻**看到自己发出去的那一条，而不是等后端把 user_message 回显回来。
+    // 之前只依赖回显，且回显还带一道「与上一条用户消息同文即丢弃」的内容去重 ——
+    // 连点同一条建议（后端据上下文重新联想出的是同一句话）时，消息只在后端落库、
+    // 界面上根本不显示（用户报障原话：点了建议会话列表里根本不显示，
+    // 而这个动作本来就只是发一条用户消息）。
+    // 这里先插一条本地消息（id 以 local-user- 开头、带 _localPending 标记），
+    // 后端回显到达时就地认领真实 id（见下方 user_message 分支），不会多出一行；
+    // 发送失败／被会话忙拒绝时由 finally 兜底删除，界面上不会留一条假的记录。
+    // 仅在「新发送」时乐观插入：重答/订阅（regenerationMode 非空）传的是既有消息的 id，
+    // 那条已经在列表里了，再插一条就会重复。
+    if (regenerationMode == null && userMessage?.content?.trim()) {
+      const localId = `local-user-${Date.now()}`;
+      sessionStore.addMessage(streamingSessionId, {
+        id: localId,
+        role: "user",
+        contents: [
+          {
+            id: `${localId}-content`,
+            content: userMessage.content,
+            state: { isStreaming: false },
+          },
+        ],
+        state: { isStreaming: false },
+        _localPending: true,
+      } as any);
+    }
+
     let message: Message | null = null;
     let contentIndex = 0;
     // 修复：添加标志位，确保一次流式会话只更新一次时间戳
@@ -765,29 +793,37 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
         }
 
         if (response.type === "user_message") {
-          // 后端广播的用户消息。
-          // 【重复行根因，2026-10-08】重新生成时后端会**先回放既有用户消息**，
-          // 补推副本的 id 与真正的用户轮次**不同** —— 只按 id 去重判不掉，
-          // 于是切会话/重载后多出一行用户消息（用户实测：点一次「重新生成」再切回
-          // 第一个会话，就变成两行记录）。
+          // 后端广播的用户消息（每个流开头必发一次）。
           //
-          // 这里原来还有一个 `regenerationMode === "multi_version"` 的前置跳过。
-          // 那个模式已经不存在了：重新生成改成「覆盖」语义（ChatPanel.regenerateResponse
-          // 先把该轮已有的 assistant 全删干净，再以 "regenerate" 模式起流），
-          // 全仓没有任何调用方会传 "multi_version"，分支恒不成立（TS2367）。
-          // 回放帧的兜底由下面的 id + 内容双重去重完成，不依赖这个分支。
+          // 【为什么不能再按内容去重，2026-10-21】这里原来还有一道兜底判断：
+          // 「与现存最后一条用户消息同文，即视为重答回放出来的副本，丢弃」。
+          // 它会把**用户真的重复发出的同一句话**当成副本吞掉 —— 点「AI 建议的下一步」正是
+          // 这种场景：建议由后端据上下文联想生成，常常与上一条用户消息一字不差，
+          // 于是消息只在后端落库、界面上根本不显示（用户报障原话：
+          // 「点击 AI 建议的下一步的选项，会话列表里根本不显示，这个不就是简单的发送用户信息么」）。
+          //
+          // 回放帧的去重由下面的 id 判断独立承担，不需要内容兜底：
+          // 后端重答回放时沿用既有用户消息的真实数字主键（见 ChatStreamOrchestrator.execute
+          // 里 userMsg.put("id", userMessageId) 的说明），id 必然命中，不会多出一行；
+          // 而新发送的消息 id 是新生成的，永远不命中，必须显示。
           const userMsg = response.userMessage;
           if (userMsg?.id) {
             const existing = sessionStore.getMessages(streamingSessionId);
             const dupById = existing.some((msg: Message) => msg.id === userMsg.id);
-            // 内容兜底：与「最后一条用户消息」同文，视为回放副本（id 不同也判得掉）
-            const lastUser = [...existing].reverse().find((m: Message) => m.role === "user");
-            const newText = userMsg.contents?.[0]?.content ?? "";
-            const dupByContent = !!lastUser
-              && (lastUser.contents?.[0]?.content ?? "") === newText
-              && !!newText;
-            if (!dupById && !dupByContent) {
-              sessionStore.addMessage(streamingSessionId, userMsg);
+            if (!dupById) {
+              // 本地乐观插入的那条：就地认领后端 id，而不是再插一条（避免出现两行）
+              const pending = [...existing]
+                .reverse()
+                .find((msg: Message) => msg.role === "user" && (msg as any)._localPending);
+              if (pending) {
+                (pending as any).id = userMsg.id;
+                (pending as any)._localPending = false;
+                if (userMsg.contents?.length) {
+                  pending.contents = userMsg.contents;
+                }
+              } else {
+                sessionStore.addMessage(streamingSessionId, userMsg);
+              }
             }
           }
           continue;
@@ -913,6 +949,43 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
                 content.traceLog = [];
               }
               content.traceLog.push(response.trace);
+
+              // 智能体路径**不发 tool_call 事件**，工具信息只走 trace。
+              // 若不在这里聚合，流式期间工具行恒为空 —— 只有刷新后由后端
+              // （AiSessionController 从 confirmation 的 toolTraces 合成）才补出来，
+              // 表现为「流式中看不到任何工具、刷新后突然出现」。
+              // 聚合口径与后端逐条对齐：tool_call 开新行，tool_args / tool_result 归位，
+              // 失败判定看 tool_result 的真实内容（绝不无条件写 success）。
+              const tr: any = response.trace;
+              const toolName = tr?.toolName;
+              if (toolName) {
+                if (!content.metadata) {
+                  content.metadata = {} as any;
+                }
+                if (!Array.isArray(content.metadata.toolCalls)) {
+                  content.metadata.toolCalls = [];
+                }
+                const rows = content.metadata.toolCalls as any[];
+                const kind = tr.kind || '';
+                let row: any = rows.length > 0 ? rows[rows.length - 1] : null;
+                if (!row || kind === 'tool_call' || row.name !== toolName) {
+                  row = {
+                    name: toolName,
+                    arguments: kind === 'tool_call' ? '' : (tr.text || ''),
+                    outcome: 'success',
+                  };
+                  rows.push(row);
+                } else if (kind === 'tool_args') {
+                  row.arguments = tr.text || '';
+                } else if (kind === 'tool_result') {
+                  const txt = String(tr.text || '');
+                  row.result = txt;
+                  row.outcome =
+                    txt.startsWith('Error') || txt.startsWith('error') || txt.includes('validation failed')
+                      ? 'failed'
+                      : 'success';
+                }
+              }
             }
           }
           continue;
@@ -961,6 +1034,12 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
         message.toolDurationMs = (message.toolDurationMs || 0) + (Date.now() - toolPhaseStart);
         toolPhaseStart = null;
       }
+      // 乐观插入的用户消息若始终没被后端回显认领（发送失败、被会话忙拒绝、连接断开），
+      // 就从列表里删掉 —— 界面上不能留一条后端并不存在的记录。
+      sessionStore
+        .getMessages(streamingSessionId)
+        .filter((m: Message) => (m as any)._localPending)
+        .forEach((m: Message) => sessionStore.deleteMessage(streamingSessionId, m.id));
       cleanupStreaming(streamingSessionId, message, contentIndex);
     }
   }

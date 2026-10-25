@@ -1,5 +1,5 @@
 <template>
-  <LDialog
+  <ReDialog
     v-model="visible"
     :title="isEditMode ? t('settings.providerDetail.editModelInfo') : t('settings.providerDetail.newModel')"
     width="880px"
@@ -45,13 +45,25 @@
                   clearable
                   :disabled="isEditMode"
                 />
-                <el-tooltip v-if="!isEditMode" content="从提供商获取模型列表" placement="top">
+                
+                <el-tooltip content="从提供商获取模型列表" placement="top">
                   <el-button
+                    v-if="!isEditMode"
                     type="primary"
                     :loading="fetching"
                     :icon="CloudDownloadOutlined"
                     circle
                     @click="emit('request-fetch')"
+                  />
+                </el-tooltip>
+                <el-tooltip content="按模型名自动获取指标参数（上下文/能力/思考档位等）" placement="top">
+                  <el-button
+                    type="success"
+                    :loading="autoFetching"
+                    :icon="AutoFixHighOutlined"
+                    circle
+                    :disabled="!form.modelName?.trim()"
+                    @click="handleAutoFetch"
                   />
                 </el-tooltip>
               </div>
@@ -93,6 +105,15 @@
                 <el-checkbox-button value="image">
                   <span class="cap-label"><el-icon class="mr-1"><Image24Regular /></el-icon>{{ t('settings.providerDetail.image') }}</span>
                 </el-checkbox-button>
+                <el-checkbox-button value="audio">
+                  <span class="cap-label"><el-icon class="mr-1"><Speaker224Regular /></el-icon>{{ t('settings.providerDetail.audio') }}</span>
+                </el-checkbox-button>
+                <el-checkbox-button value="video">
+                  <span class="cap-label"><el-icon class="mr-1"><Video24Regular /></el-icon>{{ t('settings.providerDetail.video') }}</span>
+                </el-checkbox-button>
+                <el-checkbox-button value="pdf">
+                  <span class="cap-label"><el-icon class="mr-1"><DocumentText24Regular /></el-icon>{{ t('settings.providerDetail.pdf') }}</span>
+                </el-checkbox-button>
               </el-checkbox-group>
             </el-form-item>
             <el-form-item :label="t('settings.providerDetail.outputCapabilities')" prop="config.outputCapabilities" class="mb-2">
@@ -102,6 +123,15 @@
                 </el-checkbox-button>
                 <el-checkbox-button value="image">
                   <span class="cap-label"><el-icon class="mr-1"><Image24Regular /></el-icon>{{ t('settings.providerDetail.image') }}</span>
+                </el-checkbox-button>
+                <el-checkbox-button value="audio">
+                  <span class="cap-label"><el-icon class="mr-1"><Speaker224Regular /></el-icon>{{ t('settings.providerDetail.audio') }}</span>
+                </el-checkbox-button>
+                <el-checkbox-button value="video">
+                  <span class="cap-label"><el-icon class="mr-1"><Video24Regular /></el-icon>{{ t('settings.providerDetail.video') }}</span>
+                </el-checkbox-button>
+                <el-checkbox-button value="pdf">
+                  <span class="cap-label"><el-icon class="mr-1"><DocumentText24Regular /></el-icon>{{ t('settings.providerDetail.pdf') }}</span>
                 </el-checkbox-button>
               </el-checkbox-group>
             </el-form-item>
@@ -119,11 +149,44 @@
               </el-checkbox-group>
             </el-form-item>
 
-            <!-- 思考强度档位：在模型管理里配置该模型可选的档位（默认 low/medium/high/max）。
+            <!-- 能力开关：attachment / reasoning / tool_call / temperature（随模型走 config） -->
+            <el-form-item :label="t('settings.providerDetail.capabilitySwitches')" class="mb-2">
+              <el-checkbox-group v-model="form.config.capabilities">
+                <el-checkbox-button value="attachment">
+                  <span class="cap-label">{{ t('settings.providerDetail.attachment') }}</span>
+                </el-checkbox-button>
+                <el-checkbox-button value="reasoning">
+                  <span class="cap-label">{{ t('settings.providerDetail.reasoning') }}</span>
+                </el-checkbox-button>
+                <el-checkbox-button value="tool_call">
+                  <span class="cap-label">{{ t('settings.providerDetail.toolCall') }}</span>
+                </el-checkbox-button>
+                <el-checkbox-button value="temperature">
+                  <span class="cap-label">{{ t('settings.providerDetail.temperatureSupported') }}</span>
+                </el-checkbox-button>
+                <el-checkbox-button value="open_weights">
+                  <span class="cap-label">{{ t('settings.providerDetail.openWeights') }}</span>
+                </el-checkbox-button>
+              </el-checkbox-group>
+            </el-form-item>
+
+            <!-- 模型信息回填：family / knowledge / release_date / last_updated / modalities（仅编辑态展示） -->
+            <el-form-item v-if="isEditMode && modelBackfill" :label="t('settings.providerDetail.backfill')" class="mb-2">
+              <div class="me-backfill">
+                <template v-for="(label, idx) in backfillRows" :key="idx">
+                  <span v-if="label.value" class="me-backfill-item">
+                    <el-tag size="small" type="info" effect="plain">{{ label.label }}</el-tag>
+                    <span class="me-backfill-val">{{ label.value }}</span>
+                  </span>
+                </template>
+              </div>
+            </el-form-item>
+
+            <!-- 思考强度档位：在模型管理里配置该模型可选的档位（默认 none/minimal/low/medium/high/max）。
                  会话侧选「默认」= 不传档位，交由各厂商默认。 -->
             <el-form-item :label="t('common.thinkingEffort.levels')" prop="config.thinkingEfforts" class="mb-2">
               <el-checkbox-group v-model="form.config.thinkingEfforts">
-                <el-checkbox-button v-for="effort in ['low', 'medium', 'high', 'max']" :key="effort" :value="effort">
+                <el-checkbox-button v-for="effort in THINKING_EFFORT_LEVELS" :key="effort" :value="effort">
                   {{ t(`common.thinkingEffort.${effort}`) }}
                 </el-checkbox-button>
               </el-checkbox-group>
@@ -381,26 +444,28 @@
         <el-button class="me-foot-btn" type="primary" @click="handleSave" :loading="saving">{{ t('settings.providerDetail.saveChanges') }}</el-button>
       </div>
     </template>
-  </LDialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 import { CloudDownloadOutlined, AutoFixHighOutlined } from '@vicons/material'
 import {
   TextT24Regular, BrainCircuit20Regular, GlobeShield20Regular, Image24Regular, WrenchScrewdriver24Regular,
-  Checkmark24Regular, Info24Regular,
+  Checkmark24Regular, Info24Regular, Speaker224Regular, Video24Regular, DocumentText24Regular,
 } from '@vicons/fluent'
 import { apiService } from '../../services/ApiService'
 import { message } from '@repo/core'
-import { MODEL_TYPE_OPTIONS, MODEL_SUBTYPE_OPTIONS, TYPE_TO_TASK } from './model.constants'
+import { MODEL_TYPE_OPTIONS, MODEL_SUBTYPE_OPTIONS, TYPE_TO_TASK, THINKING_EFFORT_LEVELS, isChannelProvider } from './model.constants'
+import { channelApi } from '@/services/javaApi'
 import {
   createDefaultModelConfig,
   inferSubType,
   inferModelType,
   deriveModelTraits,
+  deriveCapabilitySwitches,
 } from './model.utils'
 import ReNumberInput from '@/components/re/ReNumberInput.vue'
 
@@ -421,8 +486,12 @@ const { t } = useI18n()
 
 const visible = ref(false)
 const saving = ref(false)
+/** 「自动获取」按钮 loading（按模型名从指标端点拉快照） */
+const autoFetching = ref(false)
 const isEditMode = ref(false)
 const editingId = ref<string | null>(null)
+/** 编辑中的模型行（只读回填展示用） */
+const editingModel = ref<any>(null)
 const formRef = ref<any>(null)
 const modelTypeOptions = MODEL_TYPE_OPTIONS
 const subTypeOptions = computed(() => MODEL_SUBTYPE_OPTIONS[form.value.modelType] || [])
@@ -435,6 +504,124 @@ const form = ref<any>({
   modelType: 'text',
   subType: '',
   config: createDefaultModelConfig(),
+})
+
+/**
+ * 「自动获取」：按当前模型名从后台指标端点拉取指标快照（上下文/能力开关/思考档位/
+ * family/knowledge 等），回填到表单 config；模型未被指标源收录时提示并保持表单不动。
+ */
+const handleAutoFetch = async () => {
+  const modelName = String(form.value.modelName || '').trim()
+  if (!modelName) return
+  autoFetching.value = true
+  try {
+    const res: any = await apiService.fetchModelMetrics(props.provider.id, modelName)
+    if (!res || res.found === false) {
+      message.warning(res?.message || '该模型未被指标源收录，可手动填写配置')
+      return
+    }
+    const cfg = form.value.config || {}
+    // 上下文 / 输出上限：仅在未填时回填
+    const ctx = Number(res.context_window_tokens)
+    if (!cfg.contextWindow && Number.isFinite(ctx) && ctx > 0) cfg.contextWindow = ctx
+    const maxOut = Number(res.max_output_tokens)
+    if (!cfg.maxOutputTokens && Number.isFinite(maxOut) && maxOut > 0) cfg.maxOutputTokens = maxOut
+    // 能力开关：Metrics 布尔 → config.capabilities（去重合并）
+    const caps = new Set<string>(Array.isArray(cfg.capabilities) ? cfg.capabilities : [])
+    const flagCap = (booleanValue: any, key: string) => {
+      if (booleanValue === true || booleanValue === 'true' || booleanValue === 1) caps.add(key)
+    }
+    flagCap(res.attachment, 'attachment')
+    flagCap(res.reasoning, 'reasoning')
+    flagCap(res.tool_call, 'tool_call')
+    flagCap(res.temperature_supported ?? res.temperature, 'temperature')
+    flagCap(res.open_weights, 'open_weights')
+    cfg.capabilities = [...caps]
+    // 能力：features（思考/工具 等规约到前端同义键，供会话侧按钮联动）
+    const features = new Set<string>(Array.isArray(cfg.features) ? cfg.features : [])
+    if (res.reasoning) features.add('thinking')
+    if (res.tool_call) features.add('tools')
+    cfg.features = [...features]
+    // 思考档位：reasoning_efforts（Models.dev reasoning_options 解析）
+    if (Array.isArray(res.reasoning_efforts) && res.reasoning_efforts.length) {
+      cfg.thinkingEfforts = res.reasoning_efforts
+    }
+    // 信息回填字段（编辑态只读展示 / 新增态保存下发）
+    if (res.family) cfg.family = String(res.family)
+    if (res.knowledge) cfg.knowledge = String(res.knowledge)
+    if (res.release_date) cfg.releaseDate = String(res.release_date)
+    if (res.last_updated) cfg.lastUpdated = String(res.last_updated)
+    if (res.modalities && typeof res.modalities === 'object') cfg.modalities = res.modalities
+    configMerged.value = true
+    message.success(`已按模型「${modelName}」自动获取指标参数，请核对后保存`)
+  } catch (error: any) {
+    message.error(error?.message || '自动获取指标参数失败')
+  } finally {
+    autoFetching.value = false
+  }
+}
+
+/** 标记「自动获取已回填」：新增保存时把 family 等指标带到 payload */
+const configMerged = ref(false)
+
+function configMergePayload() {
+  const cfg = form.value.config || {}
+  if (!configMerged.value || !isEditMode.value) {
+    return cfg
+  }
+  // 编辑态：把自动获取的指标回填字段透传到 payload 顶层（与后端 toProviderModelResponse 键一致），
+  // 保存时同步落库实体列
+  const out: any = { ...cfg }
+  if (cfg.family) out.family = cfg.family
+  if (cfg.knowledge) out.knowledge = cfg.knowledge
+  if (cfg.releaseDate) out.release_date = cfg.releaseDate
+  if (cfg.lastUpdated) out.last_updated = cfg.lastUpdated
+  if (cfg.modalities) out.modalities = cfg.modalities
+  if (typeof cfg.openWeights === 'boolean') out.open_weights = cfg.openWeights
+  if (typeof cfg.capabilities === 'object') {
+    const c = cfg.capabilities || []
+    out.attachment = c.includes('attachment') || false
+    out.reasoning = c.includes('reasoning') || false
+    out.tool_call = c.includes('tool_call') || false
+    out.temperature_supported = c.includes('temperature') || false
+    out.open_weights = c.includes('open_weights') || false
+  }
+  return out
+}
+
+/**
+ * 编辑态只读展示的模型信息回填（family / knowledge / release_date / last_updated / modalities）。
+ * 数据来自实体列与 metrics JSON（同步价格自动回填），仅编辑模型时展示。
+ */
+const modelBackfill = computed(() => !!editingModel.value && isEditMode.value)
+
+const backfillRows = computed(() => {
+  const m = editingModel.value || {}
+  const cfg = form.value?.config || {}
+  const rows: Array<{ label: string; value: string }> = []
+  const push = (label: string, value: unknown) => {
+    if (value === null || value === undefined || value === '') return
+    const text = Array.isArray(value)
+      ? value.join(' / ')
+      : typeof value === 'object'
+        ? JSON.stringify(value)
+        : String(value)
+    if (text) rows.push({ label, value: text })
+  }
+  push(t('settings.providerDetail.family'), cfg.family ?? m.family ?? m.metrics?.model_family)
+  push(t('settings.providerDetail.knowledge'), cfg.knowledge ?? m.knowledge ?? m.metrics?.knowledge_cutoff)
+  push(t('settings.providerDetail.releaseDate'), cfg.releaseDate ?? m.release_date ?? m.releaseDate ?? m.metrics?.release_date)
+  push(t('settings.providerDetail.lastUpdated'), cfg.lastUpdated ?? m.last_updated ?? m.lastUpdated ?? m.metrics?.last_updated)
+  push(t('settings.providerDetail.openWeights'), cfg.openWeights ?? m.open_weights ?? m.openWeights ?? m.metrics?.open_weights)
+  const modalities = cfg.modalities ?? m.modalities ?? m.metrics?.modalities
+  if (modalities && typeof modalities === 'object') {
+    const input = Array.isArray(modalities.input) ? modalities.input.join(' / ') : ''
+    const output = Array.isArray(modalities.output) ? modalities.output.join(' / ') : ''
+    if (input || output) {
+      push(t('settings.providerDetail.modalities'), `输入: ${input || '-'}  输出: ${output || '-'}`)
+    }
+  }
+  return rows
 })
 
 const customParamsStr = computed({
@@ -535,6 +722,7 @@ const openAdd = () => {
 const openEdit = (model: any) => {
   isEditMode.value = true
   editingId.value = model.id
+  editingModel.value = model
   form.value = {
     modelName: model.modelName || '',
     alias: model.alias || '',
@@ -546,6 +734,8 @@ const openEdit = (model: any) => {
       generate: model.generate,
       // 档位后端同样以顶层 thinking_efforts 回传（见 ApiProviderController.toProviderModelResponse）
       thinkingEfforts: model.thinking_efforts,
+      // 能力开关：由实体列/metrics 推导（编辑回显勾选态）
+      capabilities: model.config?.capabilities ?? deriveCapabilitySwitches(model),
     }),
   }
   formRef.value?.clearValidate?.()
@@ -576,17 +766,56 @@ const handleSave = async () => {
   } catch {
     return
   }
+  // 账号渠道 provider：新建模型时，模型名必须在该渠道已启用模型列表中
+  if (!isEditMode.value && isChannelProvider(props.provider)) {
+    const modelName = String(form.value.modelName || '').trim()
+    if (modelName) {
+      try {
+        const channelPlatform = String(props.provider?.platform || props.provider?.provider || props.provider?.id || '').toLowerCase()
+        const res: any = await channelApi.list()
+        const allChannels: any[] = (res as any)?.data ?? res
+        const channelList = Array.isArray(allChannels) ? allChannels : []
+        const hit = channelList.find((c: any) => c.channel === channelPlatform || c.providerId === props.provider.id)
+        if (hit) {
+          const enabledModels: string[] = (Array.isArray(hit.models) ? hit.models : [])
+            .filter((m: any) => m.enabled !== false)
+            .map((m: any) => String(m.model || m.alias || ''))
+          if (enabledModels.length > 0 && !enabledModels.includes(modelName)) {
+            message.warning(`该渠道当前已启用的模型为：${enabledModels.join('、')}，请在渠道管理页开启目标模型后再添加`)
+            return
+          }
+        }
+      } catch {
+        // 校验失败不阻断保存
+      }
+    }
+  }
   saving.value = true
   try {
     // 保存时把规范类型写入 capabilities[].task，供刷新后回显与系统配置分组
     const task = TYPE_TO_TASK[form.value.modelType] || 'chat'
+    const caps = form.value.config?.capabilities || []
+    const merged = configMergePayload()
     const payload = {
       ...form.value,
+      ...merged,
       providerId: props.provider.id,
       capabilities: [{ task, traits: [] }],
       // 思考强度档位：后端写进 capabilities[].thinking_efforts
       // （复用已有 JSON 列，不新增数据库字段；见 ApiProviderController.applyThinkingEfforts）
       thinking_efforts: form.value.config.thinkingEfforts,
+      // 能力开关：config.capabilities 勾选态 → 顶层实体列（后端 boolOrNull 落库）
+      attachment: caps.includes('attachment'),
+      reasoning: caps.includes('reasoning'),
+      tool_call: caps.includes('tool_call'),
+      temperature_supported: caps.includes('temperature'),
+      open_weights: caps.includes('open_weights'),
+      // 自动获取回填的信息字段（family/knowledge/release_date/last_updated/modalities）
+      ...(merged.family ? { family: merged.family } : {}),
+      ...(merged.knowledge ? { knowledge: merged.knowledge } : {}),
+      ...(merged.release_date ? { release_date: merged.release_date } : {}),
+      ...(merged.last_updated ? { last_updated: merged.last_updated } : {}),
+      ...(merged.modalities ? { modalities: merged.modalities } : {}),
     }
     if (isEditMode.value) {
       if (editingId.value) await apiService.updateModel(editingId.value, payload)

@@ -174,7 +174,13 @@ function toVM(m: SysMenu): MenuVM {
     activeMenu: m.sysMenuActivePath,
     isVisible: m.sysMenuHidden === 1 ? 0 : 1,
     isRemind: m.sysMenuRemind ?? 0,
-    position: m.sysMenuPosition === "top" ? "top" : "standard",
+    // top / footer 都是「脱离菜单控制」的位置，standard 是普通侧边栏菜单
+    position:
+      m.sysMenuPosition === "top"
+        ? "top"
+        : m.sysMenuPosition === "footer"
+          ? "footer"
+          : "standard",
     isKeepAlive: m.sysMenuKeepAlive,
     // 未配置(NULL)时后端按「隐藏父级」处理，子菜单直接显示
     isExpanded: m.sysMenuShowParent ?? 1,
@@ -207,8 +213,10 @@ function toEntity(v: MenuVM): SysMenu {
     sysMenuFrameSrc: v.linkMode === "component" ? undefined : v.linkUrl,
     sysMenuActivePath: v.activeMenu,
     sysMenuHidden: v.isVisible === 1 ? 0 : 1,
-    sysMenuRemind: (v.position === "top" ? 1 : v.isRemind) ?? 0,
-    sysMenuPosition: v.position === "top" ? "top" : "standard",
+    // top / footer 均强制脱离菜单控制（后端 normalizeMenuPosition 也会再兜一次）
+    sysMenuRemind: (v.position === "top" || v.position === "footer" ? 1 : v.isRemind) ?? 0,
+    sysMenuPosition:
+      v.position === "top" ? "top" : v.position === "footer" ? "footer" : "standard",
     sysMenuKeepAlive: v.isKeepAlive,
     sysMenuShowParent: v.isExpanded,
     sysMenuHiddenTag: v.isHideTab,
@@ -484,11 +492,11 @@ const saving = ref(false);
 const form = ref<MenuVM>({});
 const formRef = ref();
 
-// 顶部菜单强制脱离菜单控制(remind=true)，且不允许修改
+// 顶部 / 底部入口强制脱离菜单控制(remind=true)，且不允许修改
 watch(
   () => form.value.position,
   (position) => {
-    if (position === "top") {
+    if (position === "top" || position === "footer") {
       form.value.isRemind = 1;
     }
   }
@@ -1251,8 +1259,6 @@ onMounted(() => {
               :columns="buttonPermColumns"
               class="menu-button-table"
               engine="element"
-              :pagination="false"
-              :toolbar="false"
               :layout-table="{ minHeight: 0 }"
               empty-text="暂无数据"
               stripe
@@ -1261,6 +1267,7 @@ onMounted(() => {
               index-label="序号"
               index-width="70px"
               @selection-change="onButtonSelectionChange"
+              :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
             >
               <!--
                 按钮权限空态：el-table 默认只写一句「暂无数据」，
@@ -1484,16 +1491,21 @@ onMounted(() => {
                   <el-radio-group v-model="form.position">
                     <el-radio value="standard">标准</el-radio>
                     <el-radio value="top">顶部</el-radio>
+                    <el-radio value="footer">侧边栏底部</el-radio>
                   </el-radio-group>
+                  <span v-if="form.position === 'footer'" class="menu-position-tip">
+                    底部入口：有子菜单则点击弹出弹框，无子菜单则直接跳转
+                  </span>
                 </el-form-item>
               </el-col>
               <el-col :sm="12" :xs="24">
                 <el-form-item label="菜单控制" prop="isRemind">
-                  <el-radio-group v-model="form.isRemind" :disabled="form.position === 'top'">
+                  <el-radio-group v-model="form.isRemind" :disabled="form.position === 'top' || form.position === 'footer'">
                     <el-radio :value="0">作为菜单</el-radio>
                     <el-radio :value="1">脱离菜单</el-radio>
                   </el-radio-group>
                   <span v-if="form.position === 'top'" class="menu-position-tip">顶部菜单默认脱离(remind=true)，不可修改</span>
+                  <span v-else-if="form.position === 'footer'" class="menu-position-tip">底部入口默认脱离(remind=true)，不可修改</span>
                 </el-form-item>
               </el-col>
               <el-col :sm="12" :xs="24">
@@ -1672,10 +1684,9 @@ onMounted(() => {
         :data="batchRows"
         :columns="batchRowColumns"
         engine="element"
-        :pagination="false"
-        :toolbar="false"
         :layout-table="{ minHeight: 0 }"
         style="width: 100%"
+        :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
       >
         <template #col-remove="{ row }">
           <el-button type="danger" link :icon="Delete" @click="removeBatchRowByRef(row)" />

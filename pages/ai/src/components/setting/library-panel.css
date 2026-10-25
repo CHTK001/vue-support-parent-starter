@@ -15,6 +15,14 @@
   --lib-radius: var(--rm-radius-lg, var(--el-radius-lg, 12px));
   --lib-radius-sm: var(--rm-radius, var(--el-radius-md, 8px));
   --lib-transition: var(--rm-transition, var(--el-transition-duration-fast, 0.2s) ease);
+  /* 图上覆层/白字：缩略图深浅不可控，必须用系统可切换的令牌推导，不写死色值 */
+  --lib-text-white: var(--rm-text-white, var(--el-color-white, #fff));
+  --lib-overlay: var(--rm-overlay, var(--el-overlay-color-lighter, rgba(0, 0, 0, 0.5)));
+  --lib-overlay-soft: color-mix(in srgb, var(--lib-overlay) 70%, transparent);
+  /* 已修复等浅底语义标签：统一走 koi 警告色，再混出文字/底色 */
+  --lib-warning: var(--rm-warning, var(--el-color-warning, #e6a23c));
+  --lib-warning-fg: color-mix(in srgb, var(--lib-warning) 78%, var(--el-color-black, #000));
+  --lib-warning-bg: color-mix(in srgb, var(--lib-warning) 12%, var(--lib-surface));
 
   display: flex;
   flex-direction: column;
@@ -56,8 +64,8 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  color: #b3701d;
-  background: #fdf3e0;
+  color: var(--lib-warning-fg);
+  background: var(--lib-warning-bg);
 }
 
 .lib-head-actions {
@@ -417,11 +425,11 @@
   justify-content: center;
   width: 20px;
   height: 20px;
-  border: 1px solid color-mix(in srgb, var(--el-color-white) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--lib-text-white) 70%, transparent);
   border-radius: var(--el-radius-xs, 4px);
   /* 图片明暗不可控，勾选框必须有固定深底才在任何图上都看得见 */
-  background: rgba(0, 0, 0, 0.35);
-  color: var(--el-color-white);
+  background: var(--lib-overlay-soft);
+  color: var(--lib-text-white);
   font-size: 12px;
   cursor: pointer;
   transition: background var(--lib-transition), border-color var(--lib-transition);
@@ -453,7 +461,7 @@
 .lib-row.is-selected .lib-check.is-inline {
   border-color: var(--el-color-primary);
   background: var(--el-color-primary);
-  color: var(--el-color-white);
+  color: var(--lib-text-white);
 }
 
 .lib-badges {
@@ -475,7 +483,7 @@
   border-radius: var(--el-radius-xs, 4px);
   font-size: 11px;
   line-height: 18px;
-  color: var(--el-color-white);
+  color: var(--lib-text-white);
   white-space: nowrap;
 }
 
@@ -517,8 +525,8 @@
   padding: 0;
   border: none;
   border-radius: var(--el-radius-xs, 4px);
-  background: rgba(0, 0, 0, 0.5);
-  color: var(--el-color-white);
+  background: var(--lib-overlay);
+  color: var(--lib-text-white);
   font-size: 14px;
   cursor: pointer;
   transition: background var(--lib-transition), color var(--lib-transition);

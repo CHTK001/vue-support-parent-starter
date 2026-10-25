@@ -18,7 +18,6 @@
                   :response-url-path="'data.url'"
                   :trigger-text="'更换头像'"
                   :dialog-title="'裁剪头像'"
-                  :disabled="!mineUpdateSupported"
                   @success="handleAvatarSuccess"
                   @error="handleAvatarError"
                 />
@@ -142,7 +141,6 @@
                         type="primary"
                         plain
                         :loading="mineSaving"
-                        :disabled="!mineUpdateSupported"
                         @click="handleMineSave"
                       >
                         保存
@@ -516,16 +514,18 @@ const avatarHeaders = computed(() => {
 /** 上传额外参数（fileBucket 为后端必填） */
 const avatarData = { fileBucket: "default", ossType: "FILESYSTEM" };
 
-/** 上传成功后：PUT /v2/user/update 持久化 sysUserAvatar，刷新登录用户信息 */
+/**
+ * 上传成功后：持久化 sysUserAvatar，刷新登录用户信息
+ *
+ * <p>走自助端点 {@code PUT /v2/user/updateProfile}（后端会清空 sysUserId、不做管理员校验），
+ * 不用管理员端点 {@code /v2/user/update}——后者在收紧部署里常被停用/未部署，
+ * 探测会命中 404，把「更换头像 / 保存」入口整个禁掉。</p>
+ */
 async function handleAvatarSuccess(_response: unknown, url: string): Promise<void> {
   if (!url) return;
   mine.value.avatar = url;
   try {
-    const { getApiHttp } = await import("@repo/core");
-    const res = await getApiHttp()
-      .put("/v2/user/update")
-      .data({ sysUserAvatar: url } as Record<string, unknown>)
-      .then<{ code?: string; msg?: string; success?: boolean }>((r) => r.data);
+    const res = await saveSelfProfile({ sysUserAvatar: url });
     if (Http.isSuccessful(res)) {
       msgSuccess("头像已更新");
       await authStore.getLoginUserInfo();
@@ -605,7 +605,7 @@ const refreshMine = async () => {
       email: data.sysUserEmail || "",
       emailVerified: data.sysUserEmailVerified ?? 0,
       emailVerifyTime: data.sysUserEmailVerifyTime || "",
-      roles: data.roles?.join("、") || authStore.roleList?.join("、") || "",
+      roles: [...new Set<string>(data.roles ?? [])].join("、") || [...new Set<string>(authStore.roleList ?? [])].join("、") || "",
       avatarFrame: data.sysUserAvatarFrame ?? 0,
       avatarFrameShow: data.sysUserAvatarFrameShow ?? 0,
       birthday: data.sysUserBirthday || "",
@@ -675,7 +675,7 @@ const mineRules = reactive({
   ],
 });
 
-/** 部署能力：资料编辑端点（PUT /v2/user/update）是否由当前后端提供（未部署时置灰保存/头像持久化） */
+/** 部署能力：自助资料端点是否可用；仅在真实保存命中 404 后才置 false（不再靠探测预判——探测误判会把入口彻底锁死） */
 const mineUpdateSupported = ref(true);
 
 /** 判断异常是否为「端点未部署（404）」 */
@@ -685,22 +685,32 @@ function isEndpointMissing(e: unknown): boolean {
 }
 
 /**
- * 探测资料编辑端点是否部署：GET 命中 PUT 映射返回 405（已部署）、未映射返回 404（未部署）。
- * 探测本身不改数据；网络/鉴权类异常保持可用，等真实保存时再按 404 收敛。
+ * 自助写入「自己的档案」（头像 / 基本资料 / 头像框）。
+ *
+ * <p>优先个人中心专用端点 {@code PUT /v2/user/updateProfile}（后端会清空 sysUserId、
+ * 不做管理员校验）；个别部署未提供该端点时，回退到通用端点 {@code /v2/user/update}。
+ * 调用方只传要改的字段；sysUserId 一律不外发（带上会被判成「更新他人」）。</p>
+ *
+ * @param payload 要更新的字段
+ * @returns 后端返回体
  */
-async function probeMineUpdate(): Promise<void> {
+async function saveSelfProfile(payload: Record<string, unknown>) {
+  const { getApiHttp } = await import("@repo/core");
   try {
-    const { getApiHttp } = await import("@repo/core");
-    await getApiHttp().get("/v2/user/update").then((r) => r.status);
-    mineUpdateSupported.value = true;
+    return await getApiHttp()
+      .put("/v2/user/updateProfile")
+      .data(payload)
+      .then<{ code?: string; msg?: string; success?: boolean }>((r) => r.data);
   } catch (e) {
-    const status = (e as { response?: { status?: number } })?.response?.status;
-    if (status === 404) mineUpdateSupported.value = false;
-    else if (status === 405) mineUpdateSupported.value = true;
+    if (!isEndpointMissing(e)) throw e;
+    return getApiHttp()
+      .put("/v2/user/update")
+      .data(payload)
+      .then<{ code?: string; msg?: string; success?: boolean }>((r) => r.data);
   }
 }
 
-/** 保存基本资料（PUT /v2/user/update，不传 sysUserId 时后端更新当前账号） */
+/** 保存基本资料（PUT /v2/user/updateProfile，目标行由令牌决定，不传 sysUserId） */
 const handleMineSave = () => {
   if (!mineFormRef.value) return;
   mineFormRef.value.validate(async (valid: boolean) => {
@@ -710,13 +720,12 @@ const handleMineSave = () => {
     }
     mineSaving.value = true;
     try {
-      const { getApiHttp } = await import("@repo/core");
-      const { sysUserUsername, ...payload } = mineForm.value;
+      const { sysUserUsername, sysUserId, ...payload } = mineForm.value;
       void sysUserUsername;
-      const res = await getApiHttp()
-        .put("/v2/user/update")
-        .data(payload)
-        .then<{ code?: string; msg?: string; success?: boolean }>((r) => r.data);
+      // sysUserId 不外发：目标行由令牌决定，带上会被判成「更新他人」
+      // 从而撞上管理员校验（非管理员报「没有权限操作」）
+      void sysUserId;
+      const res = await saveSelfProfile(payload as Record<string, unknown>);
       if (Http.isSuccessful(res)) {
         msgSuccess("保存成功");
         // 刷新用户信息到 storage 与 auth store
@@ -1255,8 +1264,6 @@ onMounted(async () => {
   refreshMine();
   initLockState();
   loadTotpStatus();
-  // 部署能力探测：资料编辑端点是否存在（决定保存/头像持久化是否可用）
-  void probeMineUpdate();
   // 登录日志预载：端点未部署时在用户点开前就把「登录日志」页签隐藏
   void loadLoginLogs();
   // 监听 Storage 事件（跨标签页同步）

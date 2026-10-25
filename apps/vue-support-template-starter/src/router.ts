@@ -39,6 +39,18 @@ const routes: RouteRecordRaw[] = [
   },
   {
     /*
+     * ReTable / ReSelect / ReSwitch / ReRadio 状态图标与视觉打磨对照页。
+     *
+     * <p>把本次新增的两态图标能力（ReStateIcon 预设 + active/inactive props）与
+     * 四个组件的美化结果集中摆出来，人工验收时可逐项点击观察切换动画。</p>
+     */
+    path: "/lab/re-icon-state",
+    name: "lab-re-icon-state",
+    component: () => import("./views/ReIconStateLab.vue"),
+    meta: { title: "Re 状态图标对照" },
+  },
+  {
+    /*
      * ReTree「弹窗编辑路径」对照组页。
      *
      * <p>供 `scripts/re-controls-acceptance.mjs` 第 7 节（弹窗编排）使用：
@@ -49,6 +61,19 @@ const routes: RouteRecordRaw[] = [
     name: "lab-re-tree",
     component: () => import("./views/ReTreeLab.vue"),
     meta: { title: "ReTree 弹窗对照组" },
+  },
+  {
+    /*
+     * ReGraphG6 · 关系图（G6 v5.1.1 原生）验收页。
+     *
+     * <p>以 G6 官方 bubble-sets 示例为地基，逐步添加功能。
+     * 独立路由而非模板体系：G6 直接实例化，不经过 @repo/ui 包装层，
+     * 便于对照官方示例逐版验收。</p>
+     */
+    path: "/lab/re-graph-g6",
+    name: "lab-re-graph-g6",
+    component: () => import("./views/ReGraphG6Lab.vue"),
+    meta: { title: "ReGraphG6 · 关系图（G6 原生）" },
   },
   {
     path: "/:pathMatch(.*)*",

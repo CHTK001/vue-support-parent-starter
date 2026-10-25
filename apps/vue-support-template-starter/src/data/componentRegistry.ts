@@ -142,6 +142,7 @@ export const registry: ComponentMeta[] = [
   { name: "ReGraphForce", title: "力导布局", description: "力导向关系图", category: "chart", icon: "Connection" },
   { name: "ReGraphMind", title: "思维导图", description: "思维导图关系图", category: "chart", icon: "Share" },
   { name: "ReRelationGraph", title: "关系图谱", description: "G6 内核：多布局 / 搜索定位 / 撤销重做 / 图片导出 / 拖边连线 / 节点内容插槽 / 2D-3D 切换", category: "chart", icon: "Connection" },
+  { name: "ReRelationGraphV2", title: "关系图谱V2", description: "G6 5.1.1 原生：气泡集 / Hull 双分组轮廓 / 分组布局 / 全部 G6 布局 / 内置工具栏 / 节点边 hover", category: "chart", icon: "Share" },
   { name: "ReGraphTree", title: "树形图", description: "树形布局关系图", category: "chart", icon: "Share" },
   { name: "ReGraph3D", title: "3D 关系图", description: "3D 力导向关系图（three.js + d3-force）", category: "chart", icon: "MagicStick" },
   { name: "ReColorize", title: "色彩化", description: "文本色彩化（关键词高亮）", category: "chart", icon: "Brush" },

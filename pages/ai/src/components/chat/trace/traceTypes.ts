@@ -382,3 +382,33 @@ export function formatClock(time: number): string {
   const pad = (n: number, w = 2) => String(n).padStart(w, "0");
   return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${pad(d.getMilliseconds(), 3)}`;
 }
+
+/**
+ * 把 WS 实时推来的 trace 事件归一成 {@link SessionTrace}。
+ *
+ * <p>为什么需要归一：实时帧是后端边跑边推的原始 payload，字段口径与落库行**近似但不保证完全一致**
+ * （历史/实时两条路径对字段名的容忍度不同，例如时间戳可能叫 eventTime 也可能是 time/ts）。
+ * 这里统一成同一套字段，让「实时」与「历史」共用同一张关系图，而不是各画一份。</p>
+ *
+ * @param raw 原始帧数据
+ * @returns 归一结果；无法识别（缺时间戳）时返回 null，不猜时间
+ */
+export function normalizeLiveTrace(raw: unknown): SessionTrace | null {
+  if (!raw || typeof raw !== 'object') return null
+  const r = raw as Record<string, unknown>
+  const eventTime = Number(r.eventTime ?? r.time ?? r.ts ?? r.timestamp ?? 0)
+  // 没有时间戳就没法排进链路：直接丢掉，不编一个"现在"出来
+  if (!Number.isFinite(eventTime) || eventTime <= 0) return null
+  return {
+    kind: String(r.kind ?? r.type ?? 'edge'),
+    agentId: (r.agentId as string) ?? null,
+    spanId: (r.spanId as string) ?? null,
+    spanEnd: Boolean(r.spanEnd ?? r.end ?? false),
+    toolName: (r.toolName as string) ?? null,
+    text: (r.text as string) ?? null,
+    eventTime,
+    spanEndTime: Number(r.spanEndTime ?? 0) || null,
+    seq: Number(r.seq ?? 0),
+    durationMs: r.durationMs == null ? null : Number(r.durationMs),
+  }
+}

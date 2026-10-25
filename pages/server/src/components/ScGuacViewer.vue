@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import type { SpecialKeyStep } from './specialKeys';
+import { getAccessToken } from "@repo/utils";
 
 /**
  * guacd 远控渲染组件 —— iframe 嵌入本地 /remote.html 页面
@@ -44,6 +45,9 @@ const iframeSrc = computed(() => {
   });
   if (c.identityId != null) params.set('identityId', String(c.identityId));
   if (c.targetPort != null) params.set('targetPort', String(c.targetPort));
+  // guacd 隧道端点同样在 AuthFilter 层鉴权，必需带登录 token（与 SSH/VNC 直连同规则）
+  const token = getAccessToken();
+  if (token) params.set('x-oauth-token', token);
   return `/remote.html?${params.toString()}`;
 });
 

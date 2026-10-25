@@ -1,6 +1,6 @@
 <template>
   <!-- 主体内容（侧边栏已移至 MainLayout） -->
-  <div class="chat-page-root flex flex-col h-full w-full">
+  <div class="chat-page-root flex flex-col h-full w-full" data-page="chat">
     <template v-if="sessionStore.activeSessionId !== 'new-session'">
       <!-- 可拖拽分割区域 -->
       <div class="flex-1 overflow-hidden">
@@ -89,8 +89,13 @@
                         @select-character="handleSelectCharacter" />
                     </Teleport>
 
-                    <!-- 右侧大纲导航 -->
-                    <ChatOutline v-if="mainSession && activeTabId === 'main'" :messages="chatPanelRef?.activeMessages || []"
+                    <!-- 右侧大纲导航。
+                         工作目录全屏时 ChatPanel 被 Teleport 进 #floating-chat，本列 pane 宽度被压到 0，
+                         预览条的定位基准（.chat-pane-content，contain:layout）跟着塌成 0×0：
+                         实测 13 个标记全部落在视口 (0,0)、点不到，同时还会占着 Tab 键的焦点位。
+                         全屏下这条导航本就无处安放，直接不渲染。 -->
+                    <ChatOutline v-if="mainSession && activeTabId === 'main' && !layoutStore.workspaceFullscreen"
+                      :messages="chatPanelRef?.activeMessages || []"
                       :chat-panel-ref="chatPanelRef" @scroll-to-message="handleScrollToMessage" />
                   </template>
                 </div>

@@ -2,6 +2,12 @@
 /**
  * ReTable —— 表格组件
  *
+ * 配置入口有两种形态，**并存且分组优先**：
+ *   - 旧：一堆平行 props（pageSize / toolbarConfig / search / showSelection …）
+ *   - 新：`config` 分组（pagination / toolbar / search / selection）
+ *   说明与迁移对照见 `docs/frontend/re-table.md`；活示例见验收台
+ *   `pages/monitor/src/views/ReTableLab.vue`（路由 /re-table-lab，新旧写法各一张表）。
+ *
  * 两种数据源（只用这两个，url 形态已移除），语义已原子化：
  *   1) 本地数组：:data="[...]" —— 前端分页，组件按 page / pageSize 切片，total 取数组长度。
  *      data 只收数组，传函数是类型错误（远程请用 loader）。
@@ -70,7 +76,7 @@ import { computed, defineAsyncComponent, inject, onActivated, onBeforeUnmount, o
 // 模板上 @row-contextmenu / @cell-contextmenu / @cell-click 的形参必须与它一致，
 // 否则 vue-tsc 报 TS2322（此前这里写的是 any）。
 import { ElTable, ElTableColumn, ElPagination, ElButton, ElPopover, ElInput, ElCheckbox, ElCheckboxGroup, ElTooltip, ElIcon, ElSelect, ElOption, type TableColumnCtx } from "element-plus";
-import { Refresh, Setting, Menu, Delete, Edit, Check, Select, Search, ArrowUp, ArrowDown, View, Grid, Rank } from "@element-plus/icons-vue";
+import { Menu, Delete, Edit, Check, Select, Search, ArrowUp, ArrowDown, View, Grid, Rank } from "@element-plus/icons-vue";
 import { useDataSource, type ReDataSource } from "@repo/core";
 import ReTableCardView from "./ReTableCardView.vue";
 // 视图模式：默认模板已就绪，随主包加载，切换时零延迟（与卡片模式同一套选择/右键/空态能力）
@@ -90,7 +96,7 @@ import { useRoute } from "vue-router";
 // 列表结果缓存：TTL 走 @repo/utils 的 StorageWrapper（set 第三参即过期毫秒数），
 // key 前缀走 @repo/config 的 getStorageKey —— 与 columnStorage 同一套应用前缀约定
 import { getStorageKey } from "@repo/config";
-import { createStorage, browserLocalStorage, browserSessionStorage, type StorageWrapper } from "@repo/utils";
+import { createStorage, browserLocalStorage, browserSessionStorage, yieldToMain, type StorageWrapper } from "@repo/utils";
 /**
  * vxe 的两个组件用具名导入。
  *
@@ -147,14 +153,17 @@ import type {
   ReTableLoadParams,
   ReTableSettings,
   ReTableToolbarConfig,
+  ReTableToolbarButton,
   ReTableSearchConfig,
   ReTableAutoRefresh,
   ReTableContextMenuItem,
   ReTableContextMenuContext,
+  ReTableContextMenuProvider,
   ReTableCellClickPayload,
   ReTableSortChangePayload,
   ReTableRowSortPayload,
   ReTableTreeProps,
+  ReTableGroupedConfig,
 } from "./types";
 import type { ReTableColumnStorage } from "./columnStorage";
 import { localColumnStorage, sessionColumnStorage } from "./columnStorage";
@@ -180,6 +189,18 @@ function hasColSlot(col: ReTableColumn): boolean {
 
 /** 全局可注入 storage（key 与 columnStorage 一致，方便业务注入） */
 const RE_TABLE_STORAGE_KEY = Symbol("ReTableStorage") as unknown as import("vue").InjectionKey<ReTableColumnStorage>;
+
+/**
+ * 每页条数默认上限。
+ *
+ * <p>放在 props 之前定义：props 的默认值里要引用它（{@code maxPageSize}），
+ * 声明在使用之后会触发 TDZ（访问未初始化的 const）。</p>
+ *
+ * <p>取 500 而不是 200：默认档位里就有 500，若上限还是 200，{@link pageSizeOptions}
+ * 会把这个档位过滤掉 —— 表现为「文档说支持 500，界面上却选不到」。
+ * 上限的作用是防止有人传一个荒唐的值（比如一整页几万行），不是去砍默认档位。</p>
+ */
+const DEFAULT_MAX_PAGE_SIZE = 500;
 
 const props = withDefaults(
   defineProps<{
@@ -238,6 +259,14 @@ const props = withDefaults(
     /** 每页条数选项 */
     pageSizes?: number[];
     /**
+     * 每页条数上限（默认 500）。
+     *
+     * <p>超出上限的档位会被剔除、传入的值会被钳制 —— 目的是防止有人把「一整页」
+     * 设成几万行把 DOM 撑爆。默认档位本身含 500，所以上限也用 500：
+     * 若上限写 200，500 这一档会被过滤掉，界面上就选不到它了。</p>
+     */
+    maxPageSize?: number;
+    /**
      * 分页方式："pager"（默认）= 页码 + 每页条数菜单；"scroll" = 滚动分页：
      * 隐藏分页菜单，表格滚到底部自动追加下一批（本地数据按 pageSize 逐步放出，
      * 远程 loader 按页取数追加）。
@@ -265,6 +294,15 @@ const props = withDefaults(
     paginationModePersist?: boolean;
     /** 远程模式：自动随 params / page / pageSize 重新加载 */
     autoReload?: boolean;
+    /**
+     * 分组配置（新 API）。
+     *
+     * <p>把 40+ 个平行 props 按功能收成对象。**分组值优先于同名顶层 prop**，
+     * 没写的字段继续读旧 props —— 于是可以逐页迁移，旧页面零改动。</p>
+     *
+     * <p>目前已接管：{@code pagination}（页码 / 每页条数 / 分页方式 / 自动重载 / 记住页码）。</p>
+     */
+    config?: ReTableGroupedConfig;
     /** 表格唯一标识；传入后列配置（顺序 / 隐藏）会持久化 */
     tableId?: string;
     /** 自定义 storage（默认 localStorage），可通过 app.provide 注入全局 */
@@ -273,8 +311,8 @@ const props = withDefaults(
     toolbar?: boolean;
     /** toolbar 配置（批量删除/选择/修改等），toolbar=true 时生效 */
     toolbarConfig?: ReTableToolbarConfig;
-    /** 右键菜单项（传入行/cell 入参） */
-    contextMenu?: ReTableContextMenuItem[];
+    /** 右键菜单（数组或按右键上下文动态生成的函数）；行/单元格右键自动弹菜单 */
+    contextMenu?: ReTableContextMenuProvider;
     /** 列设置 popover 触发文案 */
     columnsTriggerText?: string;
     /** 表格设置 popover 触发文案 */
@@ -513,6 +551,32 @@ const props = withDefaults(
     showSearchToggle?: boolean;
     showSearchTitle?: boolean;
     showSelection?: boolean;
+    /**
+     * 常驻勾选列（{@link showSelection} 的别名）。
+     *
+     * <p>页面上一直有人写 `:selection="true"`，但组件此前没声明这个 prop：
+     * 因为 {@code inheritAttrs: true} 且没有 `$attrs` 透传，它会变成一个落在根 div 上的
+     * 无效 HTML 属性 —— 看起来在用、实际什么都没发生。这里显式支持，避免继续踩。</p>
+     */
+    selection?: boolean;
+    /**
+     * 表格尺寸：{@code "small"} 等价于「紧凑模式」，其余按默认。
+     *
+     * <p>同样是被静默忽略的历史属性：全仓 15 处 {@code size="small"} 此前全无效。
+     * 只有 default / small 两档（与 el-table 一致）。</p>
+     *
+     * <p>mini 是本组件新增的第三档（比 small 更紧凑）：element 引擎下 el-table 本身
+     * 只有 large/default/small，mini 通过 {@code .re-table--mini} 的 CSS 把表头/行
+     * 内边距进一步压薄实现；vxe 引擎原生的 medium/small/mini 直接透传。<p>
+     */
+    size?: "large" | "default" | "small" | "mini";
+    /**
+     * 是否显示表格外边框（默认 true）。
+     *
+     * <p>页面上有 60 处裸写 {@code border}，此前同样无效（边框实际由
+     * settings.border 默认值决定）。现在显式接收：`:border="false"` 能真正关掉边框。</p>
+     */
+    border?: boolean;
     /** 内置 ReSearch 搜索区（true=默认配置；传对象可配 filters/title/btnMode 等） */
     search?: boolean | ReTableSearchConfig;
     /** 搜索区与表格的间距（px），0 时搜索与表格连为一体 */
@@ -581,7 +645,8 @@ const props = withDefaults(
     total: 0,
     page: 1,
     pageSize: 50,
-    pageSizes: () => [20, 50, 100],
+    pageSizes: () => [10, 20, 50, 100, 200, 500],
+    maxPageSize: DEFAULT_MAX_PAGE_SIZE,
     paginationMode: "pager",
     paginationModeSwitch: false,
     paginationModePersist: true,
@@ -630,6 +695,10 @@ const props = withDefaults(
     showSearchToggle: true,
     showSearchTitle: true,
     showSelection: false,
+    // 别名与尺寸 / 边框：默认 undefined，便于区分「没传」与「显式传 false」
+    selection: undefined,
+    size: undefined,
+    border: undefined,
     search: false,
     searchGap: 16,
     searchModel: undefined,
@@ -653,6 +722,7 @@ const emit = defineEmits<{
   (e: "update:settings", settings: ReTableSettings): void;
   (e: "row-click", row: Record<string, unknown>): void;
   (e: "cell-click", payload: ReTableCellClickPayload): void;
+  (e: "header-contextmenu", payload: { columnProp?: string; columnLabel?: string; column: unknown; event: PointerEvent }): void;
   (e: "selection-change", rows: Record<string, unknown>[]): void;
   (e: "context-menu-select", item: ReTableContextMenuItem, ctx: ReTableContextMenuContext): void;
   (e: "batch-delete", rows: Record<string, unknown>[]): void;
@@ -674,6 +744,31 @@ const emit = defineEmits<{
   (e: "edit-save", rows: Array<Record<string, unknown>>): void;
   (e: "column-order-change", order: string[]): void;
 }>();
+
+/**
+ * 分页组的解析结果（新 API `config.pagination` 与旧顶层 props 的合并视图）。
+ *
+ * <p>优先级：分组值 > 同名顶层 prop > 内置默认值。内部所有分页相关读取统一走这里，
+ * 所以「分组 API」不需要改任何页面就能生效，也给后续把更多组收进来留了位置。</p>
+ *
+ * <p>{@code remember} 是分组独有的字段，最终落到表格设置里的 settings.pageCache，
+ * 与设置面板里的「记住页码」是同一个开关。</p>
+ */
+const paginationCfg = computed(() => {
+  const g = props.config?.pagination;
+  return {
+    enable: g?.enable ?? props.pagination,
+    page: g?.page ?? props.page,
+    pageSize: g?.pageSize ?? props.pageSize,
+    pageSizes: g?.pageSizes ?? props.pageSizes,
+    mode: g?.mode ?? props.paginationMode,
+    modeSwitch: g?.modeSwitch ?? props.paginationModeSwitch,
+    modePersist: g?.modePersist ?? props.paginationModePersist,
+    autoReload: g?.autoReload ?? props.autoReload,
+    remember: g?.remember,
+  };
+});
+
 
 /**
  * 当前路由 path（无路由环境为 null）。
@@ -736,7 +831,7 @@ const selectedRowsMap = ref<Record<string, Record<string, unknown>>>(loadSelecti
 /** 当前页选中行（el-table selection-change 回调更新） */
 const currentPageSelection = ref<Record<string, unknown>[]>([]);
 
-/** 默认每页条数（props.pageSize 未传时的兜底，与 props 默认值保持一致） */
+/** 默认每页条数（paginationCfg.value.pageSize 未传时的兜底，与 props 默认值保持一致） */
 const DEFAULT_PAGE_SIZE = 50;
 
 /**
@@ -753,7 +848,24 @@ const DEFAULT_PAGE_SIZE = 50;
  * <p>超出时钳制到上限并在 dev 下警告 —— 不静默吞掉：调用方多半是配置写错了，
  * 静默改掉只会让「我明明传了 1000」的困惑留在原地。</p>
  */
-const MAX_PAGE_SIZE = 200;
+/**
+ * 每页条数上限。
+ *
+ * <p>取值 200 的依据：常见业务表格一屏最多几十行；200 行 DOM 已经偏重，
+ * 但仍在可接受区间；超过这个量级的场景正确做法是**服务端分页 + 收窄查询条件**，
+ * 而不是把整页塞进 DOM。</p>
+ *
+ * <p>超出时钳制到上限并在 dev 下警告 —— 不静默吞掉：调用方多半是配置写错了，
+ * 静默改掉只会让「我明明传了 1000」的困惑留在原地。</p>
+ *
+ * <p><b>可被 props.maxPageSize 覆盖</b>：用量的明细表需要 10/200/500 三档，
+ * 500 行在 vxe 的虚拟滚动下依然流畅（只渲染可视区），所以硬编码 200 会把
+ * 「500 条/页」这个档位悄悄钳掉 —— 用户选了却没生效，比不提供更糟。</p>
+ */
+const MAX_PAGE_SIZE = computed<number>(() => {
+  const n = Math.floor(Number(props.maxPageSize));
+  return Number.isFinite(n) && n > 0 ? n : DEFAULT_MAX_PAGE_SIZE;
+});
 
 /**
  * 把任意输入钳制成合法的每页条数。
@@ -765,14 +877,14 @@ const MAX_PAGE_SIZE = 200;
 function clampPageSize(size: unknown, source: string): number {
   const n = Math.floor(Number(size));
   if (!Number.isFinite(n) || n <= 0) return DEFAULT_PAGE_SIZE;
-  if (n <= MAX_PAGE_SIZE) return n;
+  if (n <= MAX_PAGE_SIZE.value) return n;
   if (import.meta.env.DEV) {
     console.warn(
-      `[ReTable] ${source} 的每页条数 ${n} 超过上限 ${MAX_PAGE_SIZE}，已钳制为 ${MAX_PAGE_SIZE}。` +
+      `[ReTable] ${source} 的每页条数 ${n} 超过上限 ${MAX_PAGE_SIZE.value}，已钳制为 ${MAX_PAGE_SIZE.value}。` +
         `大数据量请用服务端分页收窄查询，不要把整页塞进 DOM。`,
     );
   }
-  return MAX_PAGE_SIZE;
+  return MAX_PAGE_SIZE.value;
 }
 
 /**
@@ -786,24 +898,24 @@ function clampPageSize(size: unknown, source: string): number {
  * @returns 在允许档位内返回 true
  */
 function isAllowedPageSize(size: number): boolean {
-  const sizes = Array.isArray(props.pageSizes) ? props.pageSizes : [];
+  const sizes = Array.isArray(paginationCfg.value.pageSizes) ? paginationCfg.value.pageSizes : [];
   return sizes.length === 0 || sizes.includes(size);
 }
 
 /**
  * 分页器上「每页条数」下拉的档位。
  *
- * <p>props.pageSizes 未传时用组件默认档（20/50/100）；做了去重与过滤，
+ * <p>paginationCfg.value.pageSizes 未传时用组件默认档（20/50/100）；做了去重与过滤，
  * 避免调用方给出重复值或非正数时下拉里出现两个一样的项或 0 条/页。
  * 超过 {@link MAX_PAGE_SIZE} 的档位直接剔除 —— 下拉里摆一个必然被钳制的选项，
  * 用户选了却没生效，是比不提供更糟的体验。</p>
  */
 const pageSizeOptions = computed<number[]>(() => {
-  const raw = Array.isArray(props.pageSizes) ? props.pageSizes : [];
+  const raw = Array.isArray(paginationCfg.value.pageSizes) ? paginationCfg.value.pageSizes : [];
   const seen = new Set<number>();
   for (const size of raw) {
     const value = Math.floor(Number(size));
-    if (Number.isFinite(value) && value > 0 && value <= MAX_PAGE_SIZE) {
+    if (Number.isFinite(value) && value > 0 && value <= MAX_PAGE_SIZE.value) {
       seen.add(value);
     }
   }
@@ -811,15 +923,15 @@ const pageSizeOptions = computed<number[]>(() => {
 });
 
 /** 内部分页状态（与 props 同步，确保 reload 时读到最新值） */
-const internalPage = ref(props.page ?? 1);
-const internalPageSize = ref(clampPageSize(props.pageSize ?? DEFAULT_PAGE_SIZE, "props.page-size"));
+const internalPage = ref(paginationCfg.value.page ?? 1);
+const internalPageSize = ref(clampPageSize(paginationCfg.value.pageSize ?? DEFAULT_PAGE_SIZE, "paginationCfg.value.page-size"));
 // 强制响应式：用 shallowRef 或 triggerRef
 import { triggerRef } from "vue";
-watch(() => props.page, (v) => { if (typeof v === "number") internalPage.value = v; });
+watch(() => paginationCfg.value.page, (v) => { if (typeof v === "number") internalPage.value = v; });
 watch(
-  () => props.pageSize,
+  () => paginationCfg.value.pageSize,
   (v) => {
-    if (typeof v === "number") internalPageSize.value = clampPageSize(v, "props.page-size");
+    if (typeof v === "number") internalPageSize.value = clampPageSize(v, "paginationCfg.value.page-size");
   },
 );
 
@@ -830,17 +942,17 @@ watch(
  * setup 期间就可能读到它（useDataSource 的 immediate 首取会跑 buildRemoteSource、
  * loadColumnState 在 immediate watch 里恢复存档），放后面会撞 TDZ。</p>
  *
- * <p>取值来源两条：props.paginationMode（受控，缺省 pager）；存档恢复——
+ * <p>取值来源两条：paginationCfg.value.mode（受控，缺省 pager）；存档恢复——
  * 仅当 {@code paginationModeSwitch} 开着（页面给了用户切换入口）且
  * {@code paginationModePersist !== false} 时，localStorage 里的历史选择优先于
  * props，尊重用户偏好（与 activeLayout 同一套语义）。</p>
  */
 const activePaginationMode = ref<RePaginationMode>(
-  props.paginationMode === "scroll" ? "scroll" : "pager",
+  paginationCfg.value.mode === "scroll" ? "scroll" : "pager",
 );
-/** props.paginationMode 变化时跟随（受控场景） */
+/** paginationCfg.value.mode 变化时跟随（受控场景） */
 watch(
-  () => props.paginationMode,
+  () => paginationCfg.value.mode,
   (val) => {
     activePaginationMode.value = val === "scroll" ? "scroll" : "pager";
   },
@@ -849,9 +961,9 @@ watch(
 /**
  * 本次生效的每页条数（读取统一入口，已钳制）。
  *
- * <p>原本「internalPageSize → props.pageSize → DEFAULT」这串兜底在
+ * <p>原本「internalPageSize → paginationCfg.value.pageSize → DEFAULT」这串兜底在
  * {@link pagedRows} 和 {@link buildRemoteSource} 里各写了一遍。两处都漏了上限：
- * 兜底分支会直接把未经钳制的 {@code props.pageSize} 交给远程请求和本地切片 ——
+ * 兜底分支会直接把未经钳制的 {@code paginationCfg.value.pageSize} 交给远程请求和本地切片 ——
  * 也就是「上限看起来在，内部状态也确实被钳了，但真正决定渲染行数/请求条数的那次读取
  * 绕过了它」，属于看起来有防护其实没有。</p>
  *
@@ -861,7 +973,7 @@ watch(
  */
 const currentPageSize = computed<number>(() =>
   clampPageSize(
-    internalPageSize.value || props.pageSize || DEFAULT_PAGE_SIZE,
+    internalPageSize.value || paginationCfg.value.pageSize || DEFAULT_PAGE_SIZE,
     "生效值",
   ),
 );
@@ -997,7 +1109,7 @@ async function onBatchDelete(): Promise<void> {
 
 /** 获取批量删除 handler */
 function getBatchDeleteHandler() {
-  const cfg = props.toolbarConfig?.batchDelete;
+  const cfg = mergedToolbarConfig.value?.batchDelete;
   if (!cfg || cfg === true) return undefined;
   return cfg.handler;
 }
@@ -1029,7 +1141,7 @@ async function onBatchSave(): Promise<void> {
 
 /** 获取批量修改 handler */
 function getBatchEditHandler() {
-  const cfg = props.toolbarConfig?.batchEdit;
+  const cfg = mergedToolbarConfig.value?.batchEdit;
   if (!cfg || cfg === true) return undefined;
   return cfg.handler;
 }
@@ -1051,7 +1163,29 @@ const searchVisible = computed({
 });
 
 /** ========== 内置 ReSearch 搜索区 ========== */
-const searchConfig = computed<ReTableSearchConfig>(() => (props.search && typeof props.search === "object" ? props.search : {}));
+/**
+ * 搜索配置的来源：分组 {@code config.search} 优先于旧的 {@code search} prop。
+ *
+ * <p>对象形态里的 {@code enable: false} 归一成 {@code false}，这样「配置留着、开关关掉」
+ * 不必把整个对象删掉。</p>
+ */
+const searchSource = computed<boolean | ReTableSearchConfig | undefined>(() => {
+  const g = props.config?.search;
+  if (g === undefined) return props.search;
+  if (g === true || g === false) return g;
+  return g.enable === false ? false : g;
+});
+
+/** 内置搜索区配置对象（布尔形态时为空对象） */
+const searchConfig = computed<ReTableSearchConfig>(() => {
+  const s = searchSource.value;
+  return s && typeof s === "object" ? s : {};
+});
+
+/** 是否常驻勾选列：分组 config.selection.enable 优先于旧 showSelection prop */
+const selectionEnabled = computed<boolean>(
+  () => props.config?.selection?.enable ?? (props.showSelection || props.selection === true),
+);
 /**
  * 内置搜索是否真正可用。
  *
@@ -1064,7 +1198,8 @@ const searchConfig = computed<ReTableSearchConfig>(() => (props.search && typeof
  * <p>{@code #search} 插槽形态不受本判断约束，由 {@link searchAreaVisible} 单独放行。</p>
  */
 const searchEnabled = computed(() => {
-  if (props.search !== true && (typeof props.search !== "object" || props.search === null)) {
+  const s = searchSource.value;
+  if (s !== true && (typeof s !== "object" || s === null)) {
     return false;
   }
   return (searchConfig.value.filters?.length ?? 0) > 0;
@@ -1087,7 +1222,7 @@ function onSearchModelUpdate(value: Record<string, unknown>): void {
  * 再由 watch 用新条件打一遍」—— 既重复又有一遍是脏数据。</p>
  *
  * <p>为什么不能干脆删掉这里的 reload：watch 有两道闸门
- * （{@code isRemote} 与 {@code props.autoReload}），而
+ * （{@code isRemote} 与 {@code paginationCfg.value.autoReload}），而
  * {@code UserManage.vue} 就是 {@code :auto-reload="false"} + 内置搜索 ——
  * 对它来说 watch 永不触发，这里是搜索唯一的驱动。</p>
  *
@@ -1098,7 +1233,7 @@ function onSearchModelUpdate(value: Record<string, unknown>): void {
 function reloadUnlessWatchWill(): void {
   const keyBefore = internalParamsKey.value;
   nextTick(() => {
-    const watchWillReload = isRemote.value && props.autoReload && internalParamsKey.value !== keyBefore;
+    const watchWillReload = isRemote.value && paginationCfg.value.autoReload && internalParamsKey.value !== keyBefore;
     if (!watchWillReload) {
       void reload();
     }
@@ -1123,6 +1258,20 @@ const ctxMenuY = ref(0);
 const ctxMenuContext = ref<ReTableContextMenuContext | undefined>(undefined);
 
 /**
+ * 解析后的右键菜单项。
+ *
+ * <p>{@code contextMenu} 传函数时按当前右键上下文动态生成；传数组时原样返回。
+ * 行/单元格右键弹菜单与否、菜单内容都以它为准 —— 使用方传一个生成函数
+ * 即可让不同行/列弹出不同菜单，无需自己维护弹窗状态。</p>
+ */
+const resolvedCtxMenuItems = computed<ReTableContextMenuItem[]>(() => {
+  const provider = props.contextMenu;
+  if (!provider) return [];
+  const ctx = ctxMenuContext.value;
+  return typeof provider === "function" ? (ctx ? provider(ctx) : []) : provider;
+});
+
+/**
  * 行右键事件（el-table）
  *
  * <p>形参类型对齐 element-plus 的事件声明：{@code onRow-contextmenu} 传的是
@@ -1136,7 +1285,8 @@ function onRowContextMenu(
   _column: TableColumnCtx<Record<string, unknown>> | null,
   event: PointerEvent,
 ): void {
-  if (!props.contextMenu || props.contextMenu.length === 0) return;
+  const items = resolvedCtxMenuItems.value;
+  if (!items || items.length === 0) return;
   event.preventDefault();
   ctxMenuX.value = event.clientX;
   ctxMenuY.value = event.clientY;
@@ -1162,7 +1312,8 @@ function onCellContextMenu(
   _cell: HTMLTableCellElement,
   event: PointerEvent,
 ): void {
-  if (!props.contextMenu || props.contextMenu.length === 0) return;
+  const items = resolvedCtxMenuItems.value;
+  if (!items || items.length === 0) return;
   event.preventDefault();
   ctxMenuX.value = event.clientX;
   ctxMenuY.value = event.clientY;
@@ -1174,6 +1325,25 @@ function onCellContextMenu(
     event,
   };
   ctxMenuVisible.value = true;
+}
+
+/**
+ * 表头右键事件（element 引擎的 {@code onHeader-contextmenu}）。
+ *
+ * <p>把列信息与原生事件原样抛给宿主：要不要弹菜单、菜单里放什么由宿主决定
+ * （表头右键一般是「排序 / 筛选 / 列设置」这类与行无关的动作，不塞进行级
+ * contextMenu 配置）。不在这里 preventDefault，宿主要拦截自己拦。</p>
+ */
+function onHeaderContextMenu(
+  column: TableColumnCtx<Record<string, unknown>>,
+  event: PointerEvent,
+): void {
+  emit("header-contextmenu", {
+    columnProp: column?.property || column?.prop,
+    columnLabel: column?.label,
+    column,
+    event,
+  });
 }
 
 /** 右键菜单选择 */
@@ -1310,6 +1480,14 @@ let scrollGeneration = 0;
 const SCROLL_BOUNDARY_THRESHOLD = 120;
 
 /**
+ * 批量勾选的分片大小：每勾这么多行就把主线程让回浏览器一帧。
+ *
+ * <p>见 {@link restoreSelection} 的说明：一页几百行时同步勾完会形成长任务，
+ * 把刷新时的动画冻住。50 行一片是「每片够快、又不至于让用户等」的折中。</p>
+ */
+const SELECTION_CHUNK_SIZE = 50;
+
+/**
  * 滚动分页是否生效。
  *
  * <p>三个条件都满足才生效：pagination 开着（它是「分页方式」的一种，不分页的表格
@@ -1318,7 +1496,7 @@ const SCROLL_BOUNDARY_THRESHOLD = 120;
  * 分页菜单照常渲染——这是刻意的优雅降级，不是状态不一致。</p>
  */
 const isScrollPaging = computed<boolean>(
-  () => props.pagination === true && activePaginationMode.value === "scroll" && useVxe.value,
+  () => paginationCfg.value.enable === true && activePaginationMode.value === "scroll" && useVxe.value,
 );
 
 /** 滚动模式下已加载的行数（本地 = 已放出的行数；远程 = 首批 + 追加） */
@@ -1374,17 +1552,17 @@ watch(activePaginationMode, (val, old) => {
   if (val === "scroll" && internalPage.value !== 1) {
     internalPage.value = 1;
     emit("update:page", 1);
-  } else if (isRemote.value && props.autoReload) {
+  } else if (isRemote.value && paginationCfg.value.autoReload) {
     nextTick(() => { void dsReload(); });
   }
-  if (props.paginationModeSwitch === true && props.paginationModePersist !== false) {
+  if (paginationCfg.value.modeSwitch === true && paginationCfg.value.modePersist !== false) {
     saveColumnState();
   }
 });
 
 /** element 引擎不支持滚动分页：开启只提示，不假装生效（与 virtualScroll 同一策略） */
 watch(
-  [() => props.paginationMode, useVxe],
+  [() => paginationCfg.value.mode, useVxe],
   ([mode, vxe]) => {
     if (mode === "scroll" && !vxe && import.meta.env.DEV) {
       console.warn("[ReTable] 滚动分页仅 vxe 引擎支持（columns 属性声明列），当前为 element 引擎，已回落为页码分页。");
@@ -1924,13 +2102,16 @@ const tableRows = computed<Array<Record<string, unknown>>>(() =>
 /**
  * vxe-table 的 size 取值是 medium / small / mini，没有 element-plus 的 default。
  *
- * <p>ReTable 对外仍用 default / small（localSettings.compact 决定），这里单向翻译。
- * 认不出的一律按 medium（vxe 默认）走，不要透传原始值——vxe 拿到非法值会静默
- * 落回默认档，行为上没错，但会让「为什么我传了 small 却没生效」变成查不到的原因。</p>
+ * <p>ReTable 对外仍用 default / small / mini（localSettings.compact 决定 small，
+ * size="mini" 直通 mini），这里单向翻译。认不出的一律按 medium（vxe 默认）走，
+ * 不要透传原始值——vxe 拿到非法值会静默落回默认档，行为上没错，
+ * 但会让「为什么我传了 small 却没生效」变成查不到的原因。</p>
  */
-const vxeTableSize = computed<"medium" | "small">(() =>
-  tableSize.value === "small" ? "small" : "medium",
-);
+const vxeTableSize = computed<"medium" | "small" | "mini">(() => {
+  if (tableSize.value === "small") return "small";
+  if (tableSize.value === "mini") return "mini";
+  return "medium";
+});
 
 /** 行配置：主键字段 / hover 高亮 / 当前行高亮，统一在这里给定。
  *
@@ -1996,9 +2177,13 @@ const vxeSortConfig = computed(() => {
  * 就打不开。这里只在有菜单项时启用 —— 只传 {@code enabled} 不传 options，
  * vxe 便只派发事件、不渲染它自己的菜单，外观仍由 ReTable 的 .re-ctx-menu 决定。</p>
  */
-const vxeMenuConfig = computed(() =>
-  props.contextMenu && props.contextMenu.length > 0 ? { enabled: true } : undefined,
-);
+/** 是否配置了右键菜单（数组非空或传了动态生成函数） */
+function ctxMenuConfigured(): boolean {
+  const p = props.contextMenu;
+  return !!p && (Array.isArray(p) ? p.length > 0 : true);
+}
+
+const vxeMenuConfig = computed(() => (ctxMenuConfigured() ? { enabled: true } : undefined));
 
 /**
  * 编辑配置：vxe 原生单元格编辑（APITable 式「点哪格编辑哪格」）。
@@ -2110,6 +2295,17 @@ function onVxeCellMenu(payload: VxeCellEvent): void {
   onCellContextMenu(row, column, (row?.[columnProp] ?? null) as unknown as HTMLTableCellElement, event);
 }
 
+/**
+ * 表头右键（vxe 的 {@code header-cell-context-menu}）：
+ * 载荷里没有行数据，只有列与事件，转成与 element 引擎一致的
+ * {@code header-contextmenu} 载荷抛给宿主。
+ */
+function onVxeHeaderCellContextMenu(payload: { column?: { property?: string; title?: string }; $event?: PointerEvent }): void {
+  const column = (payload.column ?? {}) as unknown as TableColumnCtx<Record<string, unknown>>;
+  const event = payload.$event ?? ({} as PointerEvent);
+  onHeaderContextMenu(column, event);
+}
+
 /** 勾选变化：vxe 的 checkbox-change / checkbox-all 都给出 records，统一转成行数组 */
 function onVxeCheckboxChange(payload: { records?: Array<Record<string, unknown>> }): void {
   onSelectionChange(payload.records ?? []);
@@ -2161,22 +2357,38 @@ function onCellClick(
   emit("cell-click", payload);
 }
 
-/** 恢复当前页选中状态（分页切换后调用） */
-function restoreSelection(): void {
-  if (!batchSelectActive.value) return;
-  nextTick(() => {
-    const data = dataList.value ?? [];
-    for (const row of data) {
-      const key = String(row[props.rowKey] ?? "");
-      if (!key || !selectedRowsMap.value[key]) continue;
-      if (useVxe.value) {
-        // vxe 用 setCheckboxRow() 勾选行；toggleCheckboxRow 是「反转」语义、不接受第二参
-        vxeTableRef.value?.setCheckboxRow(row, true);
-      } else {
-        elTableRef.value?.toggleRowSelection(row, true);
-      }
+/**
+ * 恢复当前页选中状态（分页切换后调用）
+ *
+ * <p><b>异步分片</b>：勾选动作逐行调 vxe / element 的 API，每调一次都会触发一次
+ * 表格内部重算（行样式、复选框态、选中计数）。一页几百行时，一口气同步勾完
+ * 就是一个几百毫秒的 Long Task —— 期间浏览器不出帧，刷新按钮的 loading 动画
+ * 看起来像冻住，用户感知就是「刷新卡死」。</p>
+ *
+ * <p>这里每勾 {@link SELECTION_CHUNK_SIZE} 行就让出一帧：勾选照常全部完成，
+ * 但每片之间的空档浏览器能出帧、能响应输入，动画不再被冻住。</p>
+ */
+async function restoreSelection(): Promise<void> {
+  // 勾选列存在才需要恢复：showSelection（常驻复选框列）或批量选择模式开着才有这回事。
+  // 之前只看 batchSelectActive，导致「常驻选择列 + 跨页记住勾选」的表格翻页后不恢复。
+  if (!batchSelectActive.value && !selectionEnabled.value) return;
+  await nextTick();
+  const data = dataList.value ?? [];
+  for (let i = 0; i < data.length; i++) {
+    const row = data[i];
+    const key = String(row[props.rowKey] ?? "");
+    if (!key || !selectedRowsMap.value[key]) continue;
+    if (useVxe.value) {
+      // vxe 用 setCheckboxRow() 勾选行；toggleCheckboxRow 是「反转」语义、不接受第二参
+      vxeTableRef.value?.setCheckboxRow(row, true);
+    } else {
+      elTableRef.value?.toggleRowSelection(row, true);
     }
-  });
+    // 每片末尾让一帧（最后一片不用让）
+    if ((i + 1) % SELECTION_CHUNK_SIZE === 0 && i + 1 < data.length) {
+      await yieldToMain();
+    }
+  }
 }
 
 /**
@@ -2212,11 +2424,11 @@ const pagedRows = computed<Array<Record<string, unknown>>>(() => {
     const size = currentPageSize.value;
     return all.slice(0, Math.max(1, scrollPage.value) * size);
   }
-  if (isRemote.value || !props.pagination) return dataList.value ?? [];
+  if (isRemote.value || !paginationCfg.value.enable) return dataList.value ?? [];
   const all = dataList.value ?? [];
   const size = currentPageSize.value;
   const maxPage = Math.max(1, Math.ceil(all.length / size));
-  const page = Math.min(Math.max(1, internalPage.value || props.page || 1), maxPage);
+  const page = Math.min(Math.max(1, internalPage.value || paginationCfg.value.page || 1), maxPage);
   const start = (page - 1) * size;
   return all.slice(start, start + size);
 });
@@ -2232,7 +2444,17 @@ const totalToShow = computed<number>(() => {
 /** 表格外观设置：受控（v-model:settings），并写入 props.settings 响应 */
 // props.settings 是局部覆盖语义，重建时必须带上属性推导出的默认值，否则 immediate 回调会把它们冲掉
 function resolveSettings(v?: ReTableSettings): ReTableSettings {
-  return { border: true, stripe: props.stripe, ...v };
+  // pageCache / shortcuts 缺省开启：不做任何配置的表格也该有「记住页码」和「方向键翻页」。
+  // pageCache 也接受分组配置里的 config.pagination.remember（同一开关的两个入口）；
+  // 显式写在 settings 里的值优先（...v 在后面）。
+  return {
+    // 顶层 border prop 作为缺省值：页面里裸写 border / :border="false" 以前是无效属性
+    border: props.border ?? true,
+    stripe: props.stripe,
+    pageCache: paginationCfg.value.remember ?? true,
+    shortcuts: true,
+    ...v,
+  };
 }
 
 const localSettings = ref<ReTableSettings>(resolveSettings(props.settings));
@@ -2378,33 +2600,48 @@ function loadColumnState(): void {
     columnState.value = {
       order: validOrder,
       hidden: saved.hidden.filter((p) => propsList.includes(p)),
+      // 列宽恢复：只保留仍存在的列，且值必须是正数（存档是历史数据，做一次过滤）
+      widths: saved.widths && typeof saved.widths === "object"
+        ? Object.fromEntries(
+            Object.entries(saved.widths).filter(
+              ([p, w]) => propsList.includes(p) && typeof w === "number" && w > 0,
+            ),
+          )
+        : undefined,
     };
     // 恢复分页与设置（完整状态扩展字段）
     // 标记 isRestoringState，避免 emit page/pageSize 时触发多余 reload
     isRestoringState = true;
-    let restoredPage = false;
+    // 页码恢复不单独记标志：首批取数已用恢复后的页码，不需要补取（见 finally 的说明）
+    let restoredSearch = false;
     try {
       const full = saved as ReTableFullState;
       // 分页方式存档：仅 switch 开启（页面给了用户切换入口）且持久化未关闭时恢复。
       // 与 layout 同语义——开关关闭意味着「业务上固定」，存档的脏历史不干扰；
       // 但开关开着、用户曾经选过，下次应回到上次习惯。
       if (
-        props.paginationModeSwitch === true &&
-        props.paginationModePersist !== false &&
+        paginationCfg.value.modeSwitch === true &&
+        paginationCfg.value.modePersist !== false &&
         (full.paginationMode === "pager" || full.paginationMode === "scroll")
       ) {
         activePaginationMode.value = full.paginationMode;
       }
       if (typeof full.page === "number") {
-        if (activePaginationMode.value === "scroll") {
+        // 「记住页码」关闭：忽略存档页码，始终从第 1 页开始
+        if (localSettings.value.pageCache === false) {
+          internalPage.value = 1;
+          emit("update:page", 1);
+        } else if (activePaginationMode.value === "scroll") {
           // 滚动模式固定从第 1 批开始：不恢复历史页码（那批数据已在首批里），只归位
           // 内部状态，让翻页 watcher 顺带把页面状态也对齐一下。首批已在 setup 期立即取数阶段按
           // buildRemoteSource 的 isScrollPaging 分支拿到第 1 批了，这里不用再来一次。
           internalPage.value = 1;
           emit("update:page", 1);
         } else {
+          // 必须同时写内部状态：非受控用法（页面没绑 v-model:page）时 emit 出去没人接，
+          // 只 emit 等于"恢复了却看不见"——这正是刷新后仍回到第 1 页的原因。
+          internalPage.value = full.page;
           emit("update:page", full.page);
-          restoredPage = true;
         }
         // pageSize 需校验档位：默认档位调整后，老用户 localStorage 里存的旧值（如 10）
         // 不在 pageSizes 中，若照搬会渲染出「分页器档位」与「实际每页条数」不一致的界面
@@ -2418,12 +2655,28 @@ function loadColumnState(): void {
         localSettings.value = { ...localSettings.value, ...full.settings };
         emitSettings();
       }
+      // 筛选条件恢复：仅内置搜索可用、页面没给受控初始值时回填，避免覆盖页面的受控状态
+      if (
+        searchEnabled.value &&
+        full.searchModel &&
+        typeof full.searchModel === "object" &&
+        Object.keys(full.searchModel).length > 0 &&
+        (!props.searchModel || Object.keys(props.searchModel).length === 0)
+      ) {
+        emit("update:searchModel", full.searchModel);
+        restoredSearch = true;
+      }
     } finally {
-      // nextTick 后重置标记，并确保恢复的分页状态生效后重新加载数据
+      // nextTick 后重置标记
       nextTick(() => {
         isRestoringState = false;
-        // 恢复了分页状态时，等 props 更新后重新加载对应页的数据
-        if (restoredPage && isRemote.value && props.autoReload) {
+        // 只在「筛选条件」被恢复时补一次取数：条件是通过 emit 回给页面的，
+        // 页面 v-model 回写晚于首批取数，所以必须补。
+        //
+        // 页码**不补**：loadColumnState 的 watch 是 immediate，跑在 useDataSource 之前，
+        // 首批取数读到的 internalPage 已是恢复后的页码（buildRemoteSource 读的就是它）。
+        // 以前这里按 restoredPage 也补一次，于是"进第 2 页要打两次接口"。
+        if (restoredSearch && isRemote.value && paginationCfg.value.autoReload) {
           void dsReload();
         }
       });
@@ -2437,18 +2690,70 @@ function loadColumnState(): void {
 
 function saveColumnState(): void {
   if (!activeTableId.value) return;
+  const pageCacheOn = localSettings.value.pageCache !== false;
   // 保存列配置 + 分页 + 设置 + 布局（完整状态，统一落一份）
   const fullState: ReTableFullState = {
     ...columnState.value,
-    page: props.page,
-    pageSize: props.pageSize,
-    ...(props.paginationModeSwitch === true && props.paginationModePersist !== false
+    // 页码/每页条数存**内部实际值**：paginationCfg.value.page 在非受控用法下恒为初始值（通常是 1），
+    // 存它等于永远记不住第 2 页 —— 这正是"刷新回到第 1 页"的根因。
+    // 关闭「记住页码」时干脆不写页字段，下次也就无从恢复。
+    ...(pageCacheOn ? { page: internalPage.value, pageSize: currentPageSize.value } : {}),
+    ...(paginationCfg.value.modeSwitch === true && paginationCfg.value.modePersist !== false
       ? { paginationMode: activePaginationMode.value }
       : {}),
     settings: localSettings.value,
     layout: activeLayout.value,
+    // 筛选条件快照：仅内置搜索（配置了 filters）时写入，页面受控值原样存档
+    ...(searchEnabled.value && props.searchModel && Object.keys(props.searchModel).length > 0
+      ? { searchModel: props.searchModel }
+      : {}),
   };
   effectiveStorage.value.set(activeTableId.value, fullState);
+}
+
+/** ========== 列宽持久化 ========== */
+
+/**
+ * 列的实际渲染宽度：用户拖拽后的持久化值优先，未改过的列沿用列定义的 width。
+ * 模板里两套引擎的 :width 都走这里，恢复与实时更新共用同一入口。
+ */
+function colWidth(col: ReTableColumn): string | number | undefined {
+  const w = columnState.value.widths?.[col.prop];
+  return typeof w === "number" ? w : col.width;
+}
+
+/** 落盘一列的拖拽后宽度（写回 columnState 并触发统一保存） */
+function persistColumnWidth(prop: string, width: number): void {
+  if (!prop) return;
+  const w = Math.round(width);
+  if (!Number.isFinite(w) || w <= 0) return;
+  columnState.value = {
+    ...columnState.value,
+    widths: { ...(columnState.value.widths ?? {}), [prop]: w },
+  };
+  saveColumnState();
+}
+
+/**
+ * element 引擎：表头拖宽结束（header-dragend）。
+ * newWidth 为最终宽度；column.property 即列 prop（选择/序号等内置列 property 为空，被入口挡掉）。
+ */
+function onElementHeaderDragend(
+  newWidth: number,
+  _oldWidth: number,
+  column: TableColumnCtx<Record<string, unknown>>,
+): void {
+  persistColumnWidth((column as { property?: string })?.property ?? "", newWidth);
+}
+
+/** vxe 引擎：列宽调整结束（resizable-change）。新宽度在 column.resizeWidth，缺省退回 column.width。 */
+function onVxeResizableChange(params: {
+  column?: { field?: string; resizeWidth?: number; width?: number | string };
+}): void {
+  const col = params?.column;
+  if (!col?.field) return;
+  const w = typeof col.resizeWidth === "number" ? col.resizeWidth : Number(col.width);
+  if (Number.isFinite(w)) persistColumnWidth(col.field, w);
 }
 
 /** 监听 tableId / columns 变化时重载列配置 */
@@ -2748,7 +3053,7 @@ function buildRemoteSource(): ReDataSource<Array<Record<string, unknown>>> {
   const run = async (): Promise<Array<Record<string, unknown>>> => {
     // 滚动分页固定从第 1 批开始：追加由 loadMoreForScroll 驱动，这里只能拿首批；
     // 否则「页码模式翻到第 3 页再切滚动」会把第 3 页当首批、后续批次全错位。
-    const curPage = isScrollPaging.value ? 1 : (internalPage.value || props.page || 1);
+    const curPage = isScrollPaging.value ? 1 : (internalPage.value || paginationCfg.value.page || 1);
     const curSize = currentPageSize.value;
     try {
       const { result, records, total } = await callLoader(curPage, curSize);
@@ -2844,6 +3149,9 @@ const { loading: dataLoading, data: dataList, reload: dsReload } = useDataSource
  */
 watch(dataList, () => {
   if (isScrollPaging.value) resetScrollPaging();
+  // 新一批数据落地后恢复勾选：跨页记住的勾选状态要落到新行上。
+  // 放在这里而不是各个 reload 入口，是为了让「刷新 / 翻页 / 改查询条件」共用一条路径。
+  void restoreSelection();
 });
 
 /** params 变化 → 重置回第 1 页并重新加载 */
@@ -2856,10 +3164,10 @@ const internalParamsKey = computed<string>(() => {
 const lastParamsKey = ref<string>(internalParamsKey.value);
 
 watch(internalParamsKey, (key) => {
-  if (!isRemote.value || !props.autoReload) return;
+  if (!isRemote.value || !paginationCfg.value.autoReload) return;
   if (key === lastParamsKey.value) return;
   lastParamsKey.value = key;
-  if (props.page !== 1) {
+  if (paginationCfg.value.page !== 1) {
     emit("update:page", 1);
   }
   // params 变化后等 props 更新再重新加载
@@ -2867,16 +3175,22 @@ watch(internalParamsKey, (key) => {
 });
 
 /** page 变化 → 重新加载远程数据 */
-watch(() => props.page, (p, oldP) => {
-  if (!isRemote.value || !props.autoReload) return;
+watch(() => paginationCfg.value.page, (p, oldP) => {
+  if (!isRemote.value || !paginationCfg.value.autoReload) return;
   if (p === oldP) return;
   nextTick(() => { void dsReload(); });
 });
 
-/** internalPage 变化（用户点击分页）→ 同步并 reload */
+/** internalPage 变化（用户点击分页 / 方向键）→ 落盘 + 同步并 reload */
 watch(internalPage, (p, oldP) => {
-  if (!isRemote.value || !props.autoReload) return;
   if (p === oldP) return;
+  // 页码一变化就落盘：分页器点击与 ←/→ 翻页都经过这里。
+  // 之前只有 onPageChange 里保存，而它实际已无调用方 —— 于是「记住页码」永远存不到。
+  saveColumnState();
+  // 存档恢复期间不触发取数：恢复逻辑自己会 emit，首批取数也已经在 setup 期按
+  // 恢复后的页码完成，这里再打一次就是"先取第 1 页再取第 2 页"的重复请求。
+  if (isRestoringState) return;
+  if (!isRemote.value || !paginationCfg.value.autoReload) return;
   emit("update:page", p);
   nextTick(() => { void dsReload(); });
 });
@@ -2888,6 +3202,82 @@ function onPageClick(p: number) {
   internalPage.value = p;
   // watch internalPage 会自动 emit update:page 和 dsReload
 }
+
+/** ========== 键盘快捷键（←/→ 上一页/下一页） ========== */
+
+/** 快捷键是否开启（表格设置里可关，默认开） */
+const shortcutsEnabled = computed<boolean>(() => localSettings.value.shortcuts !== false);
+
+/**
+ * 键盘归属：focus 优先、其次 hover。
+ *
+ * <p>一页里可能有多张表，而 keydown 是 document 级的 —— 不加归属判定，一次按键会同时
+ * 翻动所有表格。规则：焦点在表内（focusin）时归它；否则鼠标悬停的那张表归它；
+ * 都没有则不响应。</p>
+ */
+const keyboardHovered = ref(false);
+const keyboardFocused = ref(false);
+const ownsKeyboard = computed<boolean>(() => keyboardFocused.value || keyboardHovered.value);
+
+/** 焦点是否仍在表格内（用于 focusout：移到兄弟元素时不应释放归属） */
+function onRootFocusout(event: FocusEvent): void {
+  const next = event.relatedTarget as Node | null;
+  if (next && rootRef.value?.contains(next)) return;
+  keyboardFocused.value = false;
+}
+
+/** 鼠标进入：取得键盘归属（focus 优先，见 ownsKeyboard） */
+function onRootMouseenter(): void {
+  keyboardHovered.value = true;
+}
+
+/** 鼠标离开：释放 hover 归属，同时清掉十字高亮（原 @mouseleave 的职责） */
+function onRootMouseleave(): void {
+  keyboardHovered.value = false;
+  clearCrosshair();
+}
+
+/**
+ * 事件目标是否是可编辑控件。
+ *
+ * <p>输入框里按 ←/→ 是移动光标，翻页会让人抓狂 —— 这是方向键方案最容易踩的坑，
+ * 必须优先放行，且不能 preventDefault。</p>
+ *
+ * @param target 事件目标
+ * @returns 是否属于可编辑区域
+ */
+function isEditableTarget(target: EventTarget | null): boolean {
+  const node = target as HTMLElement | null;
+  if (!node || typeof node.closest !== "function") return false;
+  if (node.isContentEditable) return true;
+  return !!node.closest("input, textarea, select, [contenteditable='true']");
+}
+
+/**
+ * 全局方向键处理。
+ *
+ * <p>只有「归属本表 + 快捷键开启 + 分页模式（非滚动分页）+ 有下一页」时才动作；
+ * 首尾页不动作也不循环 —— 循环翻页极易误操作。</p>
+ *
+ * @param event 键盘事件
+ */
+function onShortcutKeydown(event: KeyboardEvent): void {
+  if (!shortcutsEnabled.value || !ownsKeyboard.value) return;
+  if (!paginationCfg.value.enable || isScrollPaging.value) return;
+  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+  if (isEditableTarget(event.target)) return;
+  // 组合键（Ctrl/⌘/Alt/Shift + ←）留给浏览器与系统快捷键
+  if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+  const maxPage = Math.max(1, Math.ceil(totalToShow.value / currentPageSize.value));
+  if (maxPage <= 1) return;
+  const next = event.key === "ArrowLeft" ? internalPage.value - 1 : internalPage.value + 1;
+  if (next < 1 || next > maxPage) return;
+  event.preventDefault();
+  onPageClick(next);
+}
+
+onMounted(() => document.addEventListener("keydown", onShortcutKeydown));
+onBeforeUnmount(() => document.removeEventListener("keydown", onShortcutKeydown));
 
 function formatCell(row: Record<string, unknown>, column: ReTableColumn): string {
   const value = row[column.prop];
@@ -2916,31 +3306,20 @@ function displayCellText(row: Record<string, unknown>, column: ReTableColumn): s
   return String(value);
 }
 
-function onPageChange(p: number): void {
-  (window as any).__onPageChange = p;
-  internalPage.value = p;
-  emit("update:page", p);
-  saveColumnState();
-  restoreSelection();
-  // 等 props 更新后重新加载远程数据
-  if (isRemote.value && props.autoReload) {
-    nextTick(() => { void dsReload(); });
-  }
-}
 function onSizeChange(s: number): void {
   const size = clampPageSize(s, "分页器切换每页条数");
   internalPageSize.value = size;
   // emit 的也是钳制后的值：否则父级 v-model 拿到 1000、回流进 props 又被 watch 钳一次，
   // 出现「内部是 200、父级以为是 1000」的不一致
   emit("update:pageSize", size);
-  if (props.page !== 1) {
+  if (paginationCfg.value.page !== 1) {
     internalPage.value = 1;
     emit("update:page", 1);
   }
   saveColumnState();
-  restoreSelection();
+  void restoreSelection();
   // 等 props 更新后重新加载远程数据
-  if (isRemote.value && props.autoReload) {
+  if (isRemote.value && paginationCfg.value.autoReload) {
     nextTick(() => { void dsReload(); });
   }
 }
@@ -2951,6 +3330,11 @@ async function reload(): Promise<void> {
   // 滚动分页的刷新 = 回第 1 批重新来（追加的批次随旧条件作废）。
   // 本地模式 dsReload 可能不换数组引用（watch dataList 不触发），这里显式重置兜底。
   resetScrollPaging();
+  // 先让一帧：让按钮的 loading 态（spinner）与表格遮罩**先画出来**，再开始取数。
+  // 否则点击刷新后，浏览器要等到接口回来才开始处理后续任务，用户看到的是
+  // 「按下去什么都没发生，过一会儿整页冻住」—— 正是「刷新卡死」的观感来源。
+  // 让完这一帧后，loading 动画已经在屏幕上转，取数期间界面依然流畅。
+  await yieldToMain();
   await dsReload();
 }
 
@@ -3088,9 +3472,17 @@ async function goto(page?: number, size?: number): Promise<void> {
   await dsReload();
 }
 
-/** 表格尺寸：紧凑模式 → small */
-const tableSize = computed<"default" | "small">(() =>
-  localSettings.value.compact ? "small" : "default",
+/** 表格尺寸：紧凑模式 → small；mini 是比 small 更紧凑的第三档 */
+const tableSize = computed<"default" | "small" | "mini">(() => {
+  // size="small" 是页面里的历史写法（此前未被声明、静默失效），优先级高于设置面板的紧凑开关
+  if (props.size === "small") return "small";
+  if (props.size === "mini") return "mini";
+  return localSettings.value.compact ? "small" : "default";
+});
+
+/** element 引擎能识别的档位：el-table 只有 large/default/small，mini 降格为 small + CSS 压薄 */
+const elementTableSize = computed<"default" | "small">(() =>
+  tableSize.value === "mini" ? "small" : tableSize.value,
 );
 
 /** 空数据状态（用于添加 body 最小高度，避免无行时表格塌陷） */
@@ -3350,6 +3742,36 @@ function nearestScrollContainer(el: HTMLElement | null): HTMLElement | null {
 }
 
 /**
+ * 判断容器是否为「内容驱动型滚动盒」——即容易引发高度正反馈循环。
+ *
+ * <p>特征：
+ *   1. {@code overflowY === 'auto'}且{@code height === ''}(未显式设定)
+ *   2. {@code scrollHeight ≈ clientHeight + scrollTop}(内容刚好撑满可视区)
+ *   3. 类名含"card"、"panel"等典型包装器特征
+ * </p>
+ *
+ * <p>这类容器的高度完全取决于内部内容，一旦被 fill 回填就触发 ResizeObserver →
+ * 高度涨高 → 再次触发 ResizeObserver 的死锁。</p>
+ */
+function isContentDrivenScrollContainer(el: HTMLElement): boolean {
+  const cs = getComputedStyle(el);
+  
+  // 规则 1: 必须是 auto/scroll 滚动模式
+  if (!/(auto|scroll)/.test(cs.overflowY)) return false;
+  
+  // 规则 2: 未显式设定 height (computed 值等于自动计算结果)
+  if (el.style.height !== '' && el.style.height !== 'auto') return false;
+  
+  // 规则 3: 内容与可视区高度基本一致 (允许 5px 误差，边框/滚动条导致)
+  const used = el.clientHeight;
+  const content = el.scrollHeight;
+  const diff = Math.abs(used - content);
+  
+  // 如果差值很小 (<8px)，说明是内容驱动的 → 排除
+  return diff < 8;
+}
+
+/**
  * 量「本组件上沿 → 最近滚动容器可视下沿」之间的距离，作为 fill 的像素高度。
  *
  * <p>结果必须与「当前滚动位置」无关：用
@@ -3461,6 +3883,72 @@ onActivated(() => {
   });
 });
 
+/* ==================== 加载遮罩定位（vxe 引擎） ==================== */
+
+/**
+ * 加载遮罩要盖的「表体可视区」矩形。
+ *
+ * <p>vxe 把加载层（路径 1 时是 {@code .vxe-loading}）渲染在**表格末尾**（表头之后、
+ * 表体之前的那层的最后），没有绝对定位就跟着文档流排到了表格下方。
+ * 这里给它补上 absolute 定位（相对 .vxe-table，它 position:relative），
+ * 再用本函数量出的表体矩形把上边界/高度钉准 —— 遮罩只盖表体区域，
+ * 表头保持可见（表头是列名，遮住反而让人失去上下文），转圈也稳定落在 body 正中。</p>
+ *
+ * <p>量的是<b>相对 .vxe-table</b> 的偏移（absolute 的 inset 用的是 containing block
+ * 的坐标，不是视口坐标）—— 实测踩过：直接用视口坐标会让遮罩整体下移一个表头高度。</p>
+ */
+const loadingMaskStyle = ref<Record<string, string>>({});
+
+/** 量一次表体可视区（相对表格根），写进 CSS 变量 */
+function measureLoadingMask(): void {
+  if (!useVxe.value) {
+    if (Object.keys(loadingMaskStyle.value).length) loadingMaskStyle.value = {};
+    return;
+  }
+  const table = rootRef.value?.querySelector(".vxe-table") as HTMLElement | null;
+  const body = table?.querySelector(".vxe-table--body-wrapper") as HTMLElement | null;
+  if (!table || !body) return;
+  const tableRect = table.getBoundingClientRect();
+  const bodyRect = body.getBoundingClientRect();
+  // 表体在表格内的可视区（可能被父容器裁掉，取交集）
+  const top = Math.max(bodyRect.top, tableRect.top);
+  const bottom = Math.min(bodyRect.bottom, tableRect.bottom);
+  const height = Math.max(0, bottom - top);
+  if (height <= 0) return;
+  const next = {
+    // 相对表格根的上偏移（absolute 的 inset 参照 containing block = .vxe-table）
+    "--rt-loading-top": `${Math.round(top - tableRect.top)}px`,
+    "--rt-loading-height": `${Math.round(height)}px`,
+  };
+  const cur = loadingMaskStyle.value;
+  if (cur["--rt-loading-top"] !== next["--rt-loading-top"] || cur["--rt-loading-height"] !== next["--rt-loading-height"]) {
+    loadingMaskStyle.value = next;
+  }
+}
+
+/** 加载态变化 → 重测（遮罩只有显示时才有意义） */
+watch(
+  () => [dataLoading.value, props.loading, useVxe.value] as const,
+  () => {
+    if (dataLoading.value || props.loading) {
+      nextTick(() => requestAnimationFrame(measureLoadingMask));
+    }
+  },
+  { immediate: true },
+);
+
+/** 窗口尺寸变化 → 遮罩矩形要跟着重算 */
+function onLoadingMaskResize(): void {
+  if (dataLoading.value || props.loading) measureLoadingMask();
+}
+
+onMounted(() => {
+  window.addEventListener("resize", onLoadingMaskResize, { passive: true });
+});
+onBeforeUnmount(() => {
+  window.removeEventListener("resize", onLoadingMaskResize);
+});
+
 /* 开关变化（fill / height / maxHeight / minHeight）后需要重新判定 */
 watch(
   () => [props.layoutTable?.fill, props.layoutTable?.height, props.layoutTable?.maxHeight, props.layoutTable?.minHeight] as const,
@@ -3488,6 +3976,20 @@ const heightMinStyle = computed<Record<string, string> | undefined>(() => {
   if (fillActive.value) return undefined;
   if (props.layoutTable?.height || props.layoutTable?.maxHeight) return undefined;
   return { minHeight: tableMinHeight.value };
+});
+
+/**
+ * vxe 引擎的表格内联样式：高度样式 + 加载遮罩的定位变量。
+ *
+ * <p>遮罩变量必须挂在**表格根元素**上：加载层（.vxe-loading）渲染在 .vxe-table 内，
+ * CSS 变量沿 DOM 树向下继承，挂在根上它就能取到；而 absolute 的 containing block
+ * 也正是 .vxe-table（position:relative），所以变量里的偏移是相对表格根的。</p>
+ */
+const vxeTableStyle = computed<Record<string, string> | undefined>(() => {
+  const base = heightMinStyle.value;
+  const mask = loadingMaskStyle.value;
+  if (!base && !Object.keys(mask).length) return undefined;
+  return { ...(base ?? {}), ...mask };
 });
 
 // ==================== 布局切换（表格 / 视图 / 卡片） ====================
@@ -3608,7 +4110,7 @@ const PAGINATION_MODE_TIP: Record<RePaginationMode, string> = {
  * 干脆不渲染这个控件，不留一个点了没反应的按钮）。</p>
  */
 const showPaginationModeSwitch = computed<boolean>(
-  () => props.paginationModeSwitch === true && props.pagination === true && useVxe.value,
+  () => paginationCfg.value.modeSwitch === true && paginationCfg.value.enable === true && useVxe.value,
 );
 
 /**
@@ -3687,7 +4189,7 @@ function switchEngine(key: "element" | "vxe"): void {
 const layoutIndexOffset = computed<number>(() => {
   // 滚动分页：视图模式下列表由第一页起累计，无需页码偏移
   if (isScrollPaging.value) return 0;
-  return props.pagination ? Math.max(0, (internalPage.value - 1) * currentPageSize.value) : 0;
+  return paginationCfg.value.enable ? Math.max(0, (internalPage.value - 1) * currentPageSize.value) : 0;
 });
 
 /** 数据加载/翻页后重新布局，确保表头与表体列宽始终对齐（异步数据、横向滚动、窗口缩放场景） */
@@ -3755,7 +4257,7 @@ const indexStart = computed<number>(() => {
   if (!props.indexContinuous) {
     return 0;
   }
-  const page = internalPage.value || props.page || 1;
+  const page = internalPage.value || paginationCfg.value.page || 1;
   return Math.max(0, (page - 1) * currentPageSize.value);
 });
 
@@ -3949,15 +4451,38 @@ const vxeColumnConfig = computed(() => ({
  * <p>virtualScroll 开启时沿用现有 enabled/gt；滚动分页则只补 threshold 提前量，
  * 依赖 vxe 原生 scroll-boundary 判断（threshold 单独设置不会打开虚拟滚动）。
  * 两者可并存，scroll 模式不会擅自把用户没开的虚拟滚动打开。</p>
+ *
+ * <p><b>行数阈值自动启用</b>：页面没显式传 {@code virtualScroll} 且当前渲染行数
+ * 超过 {@link AUTO_VIRTUAL_SCROLL_GT} 时自动打开（仅 vxe），避免大数据量表
+ * 全量铺 DOM 卡死 —— 虚拟滚动下 vxe 只渲染可视区行，对半透明效果与行高无副作用。
+ * 自动启用会在 dev 下提示一次，便于定位「行数没那么多怎么也开了」的疑问。</p>
  */
+const AUTO_VIRTUAL_SCROLL_GT = 500;
+const autoVirtualHinted = { value: false };
+const autoVirtualScroll = computed(() => {
+  if (props.virtualScroll || !useVxe.value) return false;
+  // 虚拟滚动的收益只与「实际渲染的行数」有关，看 pagedRows（本地切片 / 远程当前批）
+  return (pagedRows.value?.length ?? 0) > AUTO_VIRTUAL_SCROLL_GT;
+});
+
 const vxeVirtualYConfig = computed(() => {
-  const base = props.virtualScroll
-    ? { enabled: true, gt: Math.max(0, props.virtualScrollGt) }
-    : {};
+  let base: { enabled?: boolean; gt?: number } = {};
+  if (props.virtualScroll) {
+    base = { enabled: true, gt: Math.max(0, props.virtualScrollGt) };
+  } else if (autoVirtualScroll.value) {
+    base = { enabled: true, gt: AUTO_VIRTUAL_SCROLL_GT };
+    if (import.meta.env.DEV && !autoVirtualHinted.value) {
+      autoVirtualHinted.value = true;
+      console.info(
+        `[ReTable] 当前渲染行数超过 ${AUTO_VIRTUAL_SCROLL_GT}，已自动启用 vxe 虚拟滚动（virtualScroll 未显式配置）。` +
+          `如需固定行为请显式传 :virtual-scroll="true" 或 "false"。`,
+      );
+    }
+  }
   if (isScrollPaging.value) {
     return { ...base, threshold: SCROLL_BOUNDARY_THRESHOLD };
   }
-  return props.virtualScroll ? base : undefined;
+  return Object.keys(base).length > 0 ? base : undefined;
 });
 
 /** vxe 区域选择 · 鼠标配置（area 打开框选） */
@@ -4140,6 +4665,49 @@ defineExpose({
 });
 
 /** ========== toolbarConfig 解析 ========== */
+
+/**
+ * 分组配置与旧 toolbarConfig 的合并视图。
+ *
+ * <p>优先级：{@code config.toolbar} > 旧 {@code toolbarConfig} prop。**只覆盖显式写了值的字段**，
+ * 分组对象里没出现的键不会把旧配置冲成 undefined —— 否则「只写 config.toolbar.refresh」
+ * 会顺手把 batchDelete 等全部抹掉。</p>
+ */
+const mergedToolbarConfig = computed<ReTableToolbarConfig>(() => {
+  const base: ReTableToolbarConfig = { ...(props.toolbarConfig ?? {}) };
+  const group = props.config?.toolbar;
+  if (!group) return base;
+  for (const [key, value] of Object.entries(group)) {
+    if (value !== undefined) (base as Record<string, unknown>)[key] = value;
+  }
+  return base;
+});
+
+/** 工具栏是否启用：分组里的 enable 优先于旧的顶层 toolbar prop */
+const toolbarEnabled = computed<boolean>(() => props.config?.toolbar?.enable ?? props.toolbar);
+
+/**
+ * 把「布尔 | 按钮配置对象」归一成按钮配置。
+ *
+ * @param value 配置值
+ * @returns enabled + 可选覆盖项
+ */
+function normalizeButton(value: boolean | ReTableToolbarButton | undefined): {
+  enabled: boolean;
+  tip?: string;
+  icon?: any;
+  handler?: () => void | Promise<void>;
+} {
+  if (value === false) return { enabled: false };
+  if (value === true || value === undefined) return { enabled: true };
+  return {
+    enabled: value.enable !== false,
+    tip: value.tip,
+    icon: value.icon,
+    handler: value.handler,
+  };
+}
+
 function isBatchEnabled(val: unknown): boolean {
   if (!val) return false;
   if (val === true) return true;
@@ -4147,12 +4715,25 @@ function isBatchEnabled(val: unknown): boolean {
   return Boolean(val);
 }
 const hasToolbarConfig = computed(() => {
-  const cfg = props.toolbarConfig;
+  const cfg = mergedToolbarConfig.value;
   if (!cfg) return false;
   return isBatchEnabled(cfg.batchDelete) || isBatchEnabled(cfg.batchSelect) || isBatchEnabled(cfg.batchEdit);
 });
 
-const toolbarConfigPosition = computed<"top" | "bottom">(() => props.toolbarConfig?.position ?? "top");
+/**
+ * 是否配置了任一批量动作。
+ *
+ * <p>勾选列与行可选性都以此为准：只要配了 batchDelete / batchSelect / batchEdit 之一，
+ * 复选框就应该出现 —— 否则「配了批量删除函数，却要点一次按钮才长出勾选框」，
+ * 而且行还不可选（`selectable` 原先只认 batchSelect），功能等于不可用。</p>
+ */
+const batchActionEnabled = computed<boolean>(() => {
+  const cfg = mergedToolbarConfig.value;
+  if (!cfg) return false;
+  return isBatchEnabled(cfg.batchDelete) || isBatchEnabled(cfg.batchSelect) || isBatchEnabled(cfg.batchEdit);
+});
+
+const toolbarConfigPosition = computed<"top" | "bottom">(() => mergedToolbarConfig.value?.position ?? "top");
 
 /**
  * 合并后的 toolbar 配置（传给 ReTableToolbar）。
@@ -4164,7 +4745,7 @@ const toolbarConfigPosition = computed<"top" | "bottom">(() => props.toolbarConf
  * 而不是渲染一个不可用的按钮。
  */
 const effectiveToolbarConfig = computed<ReTableToolbarConfig>(() => {
-  const cfg = props.toolbarConfig;
+  const cfg = mergedToolbarConfig.value;
   const canConfigureColumns = props.columns.length > 0;
 
   /**
@@ -4181,7 +4762,7 @@ const effectiveToolbarConfig = computed<ReTableToolbarConfig>(() => {
    * <p>批量按钮一并关掉：本 prop 的 toolbarConfig 注释已写明「toolbar=true 时生效」，
    * 且 `isBatchEnabled` 对 `false` 返回 false，语义一致。</p>
    */
-  if (!props.toolbar) {
+  if (!toolbarEnabled.value) {
     return {
       ...cfg,
       refresh: false,
@@ -4203,33 +4784,50 @@ const effectiveToolbarConfig = computed<ReTableToolbarConfig>(() => {
     //
     // 远程模式（loader / data 传函数）下 reload 才有意义，保持页面显式配置优先，
     // 因此只在本地模式下强制关掉，不覆盖页面主动打开的意图。
-    refresh: isRemote.value ? cfg.refresh : false,
-    columnSettings: canConfigureColumns ? cfg.columnSettings !== false : false,
+    //
+    // 用 normalizeButton 判断而不是 `!== false`：按钮配置现在可以是对象，
+    // 传了 `{ enable: false }` 同样要关掉，否则按钮会显示成可点却什么都不做。
+    refresh: isRemote.value && normalizeButton(cfg.refresh).enabled ? cfg.refresh : false,
+    columnSettings:
+      canConfigureColumns && normalizeButton(cfg.columnSettings).enabled ? cfg.columnSettings : false,
   };
 });
 
 const batchSelectTip = computed(() => {
-  const cfg = props.toolbarConfig?.batchSelect;
+  const cfg = mergedToolbarConfig.value?.batchSelect;
   if (!cfg || cfg === true) return "批量选择";
   return cfg.tip || "批量选择";
 });
 
+/**
+ * 分页行（footer）使用的工具栏配置。
+ *
+ * <p><b>保留刷新</b>：ReTable 的布局里，`position='top'` 时顶部那一条只渲染批量区
+ * （`mode="batch"`），刷新/列设置/表格设置都在分页行 —— 也就是分页行这枚刷新是
+ * **唯一入口**，从它身上移走会直接让表格失去刷新能力。</p>
+ *
+ * <p>确实不需要它的页面（自带页面级刷新）可以显式关：
+ * {@code :config="{ toolbar: { refresh: false } }"} 或旧的
+ * {@code :toolbar-config="{ refresh: false }"}。分页行右侧另外还有「快捷键帮助」入口。</p>
+ */
+const footerToolbarConfig = computed<ReTableToolbarConfig>(() => ({
+  ...effectiveToolbarConfig.value,
+}));
+
 const batchDeleteTip = computed(() => {
-  const cfg = props.toolbarConfig?.batchDelete;
+  const cfg = mergedToolbarConfig.value?.batchDelete;
   if (!cfg || cfg === true) return "批量删除";
   return cfg.tip || "批量删除";
 });
 
 const batchEditTip = computed(() => {
-  const cfg = props.toolbarConfig?.batchEdit;
+  const cfg = mergedToolbarConfig.value?.batchEdit;
   if (!cfg || cfg === true) return "批量修改";
   return cfg.tip || "批量修改";
 });
 
-/** 工具栏按钮图标（来自 @element-plus/icons-vue） */
-const iconRefresh = Refresh;
-const iconColumns = Menu;
-const iconSettings = Setting;
+/** 工具栏按钮图标（来自 @element-plus/icons-vue）
+ *  列设置 / 表格设置 / 刷新已改用 anim: 动画图标（见模板），这里只留还在用的。 */
 const iconDelete = Delete;
 const iconEdit = Edit;
 const iconCheck = Check;
@@ -4241,10 +4839,14 @@ const iconSelect = Select;
     ref="rootRef"
     class="re-table"
     @mouseover="onCrosshairOver"
-    @mouseleave="clearCrosshair"
+    @mouseenter="onRootMouseenter"
+    @mouseleave="onRootMouseleave"
+    @focusin="keyboardFocused = true"
+    @focusout="onRootFocusout"
     :class="{
       're-table--empty': isEmpty,
       're-table--compact': tableSize === 'small',
+      're-table--mini': tableSize === 'mini',
       're-table--separated': searchSeparated,
       're-table--fixed-height': hasFixedHeight || fillActive,
       're-table--fill': fillActive,
@@ -4373,9 +4975,11 @@ const iconSelect = Select;
           :tip="searchVisible ? '隐藏搜索' : '显示搜索'"
           @click="searchVisible = !searchVisible"
         />
+        <!-- 刷新：动画刷新图标（hover 播上游动效，loading 态整体旋转） -->
         <ReButton
           layout="square"
-          icon="Refresh"
+          icon="anim:tabler:refresh"
+          :anim-icon-size="16"
           tip="刷新"
           :loading="dataLoading || loading"
           @click="onBuiltinSearchRefresh"
@@ -4469,11 +5073,13 @@ const iconSelect = Select;
       </div>
     </div>
 
-    <!-- 顶部工具栏（当 toolbarConfig.position === 'top' 时）：只放批量操作按钮，工具区在分页行 -->
-    <div v-if="toolbar && hasToolbarConfig && toolbarConfigPosition === 'top'" class="re-table__toolbar-top">
+    <!-- 顶部工具栏（当 toolbarConfig.position === 'top' 时）：只放批量操作按钮，工具区在分页行。
+         config 必须用合并视图：直接写 toolbarConfig 会落到旧 prop 上，分组配置里的
+         config.toolbar.batchDelete 就传不进来，表现为「配了批量删除却没有按钮」。 -->
+    <div v-if="toolbarEnabled && hasToolbarConfig && toolbarConfigPosition === 'top'" class="re-table__toolbar-top">
       <ReTableToolbar
         mode="batch"
-        :config="toolbarConfig"
+        :config="effectiveToolbarConfig"
         :selected-count="selectedCount"
         :editing="editing"
         :processing="batchProcessing"
@@ -4505,7 +5111,7 @@ const iconSelect = Select;
       :highlight-current-row="localSettings.highlightCurrentRow ?? false"
       :stripe="localSettings.stripe ?? false"
       :border="localSettings.border ?? true"
-      :size="tableSize"
+      :size="elementTableSize"
       :row-key="rowKey"
       :show-header="layoutTable?.showHeader ?? true"
       :height="resolvedHeight"
@@ -4521,12 +5127,14 @@ const iconSelect = Select;
       @cell-click="(row: Record<string, unknown>, column: TableColumnCtx<Record<string, unknown>>, cell: HTMLTableCellElement, event: PointerEvent) => onCellClick(row, column, cell, event)"
       @row-contextmenu="(row: Record<string, unknown>, column: TableColumnCtx<Record<string, unknown>> | null, event: PointerEvent) => onRowContextMenu(row, column, event)"
       @cell-contextmenu="(row: Record<string, unknown>, column: TableColumnCtx<Record<string, unknown>>, cell: HTMLTableCellElement, event: PointerEvent) => onCellContextMenu(row, column, cell, event)"
+      @header-contextmenu="(column: TableColumnCtx<Record<string, unknown>>, event: PointerEvent) => onHeaderContextMenu(column, event)"
       @selection-change="onSelectionChange"
+      @header-dragend="onElementHeaderDragend"
       @sort-change="(payload: any) => onSortChange(payload)"
     >
-      <!-- 批量选择 checkbox 列（批量选择 / 批量删除模式 / 常驻选择） -->
+      <!-- 批量选择 checkbox 列（配置了任一批量动作 / 批量选择模式 / 常驻选择） -->
       <ElTableColumn
-        v-if="showSelection || batchSelectActive || batchDeleteMode || isBatchEnabled(toolbarConfig.batchSelect)"
+        v-if="selectionEnabled || batchActionEnabled || batchSelectActive || batchDeleteMode"
         type="selection"
         width="50"
         fixed="left"
@@ -4569,7 +5177,7 @@ const iconSelect = Select;
           v-if="hasColSlot(col)"
           :prop="col.prop"
           :label="col.label"
-          :width="col.width"
+          :width="colWidth(col)"
           :min-width="col.minWidth"
           :max-width="col.maxWidth"
           :fixed="col.fixed"
@@ -4594,7 +5202,7 @@ const iconSelect = Select;
           v-else
           :prop="col.prop"
           :label="col.label"
-          :width="col.width"
+          :width="colWidth(col)"
           :min-width="col.minWidth"
           :max-width="col.maxWidth"
           :fixed="col.fixed"
@@ -4676,7 +5284,7 @@ const iconSelect = Select;
       :max-height="resolvedMaxHeight"
       :show-header="layoutTable?.showHeader ?? true"
       :empty-text="emptyText"
-      :style="heightMinStyle"
+      :style="vxeTableStyle"
       :row-config="vxeRowConfig"
       :column-config="vxeColumnConfig"
       :checkbox-config="vxeCheckboxConfig"
@@ -4696,16 +5304,18 @@ const iconSelect = Select;
       :row-style="rowDraggable || dragMode ? { cursor: 'grab' } : undefined"
       @cell-click="onVxeCellClick"
       @cell-menu="onVxeCellMenu"
+      @header-cell-context-menu="onVxeHeaderCellContextMenu"
       @checkbox-change="onVxeCheckboxChange"
       @checkbox-all="onVxeCheckboxAll"
       @sort-change="onVxeSortChange"
       @row-dragend="onVxeRowDragEnd"
       @column-dragend="onVxeColumnDragEnd"
+      @resizable-change="onVxeResizableChange"
       @scroll-boundary="onVxeScrollBoundary"
     >
-      <!-- 勾选列：常驻选择 / 批量选择 / 批量删除三种场景共用一列 -->
+      <!-- 勾选列：常驻选择 / 批量选择 / 任一批量动作配置 共用一列 -->
       <VxeColumn
-        v-if="showSelection || batchSelectActive || batchDeleteMode || isBatchEnabled(toolbarConfig.batchSelect)"
+        v-if="selectionEnabled || batchActionEnabled || batchSelectActive || batchDeleteMode"
         type="checkbox"
         width="50"
         fixed="left"
@@ -4741,7 +5351,7 @@ const iconSelect = Select;
         :key="col.prop || col.label"
         :field="col.prop"
         :title="col.label"
-        :width="col.width"
+        :width="colWidth(col)"
         :min-width="col.minWidth"
         :max-width="col.maxWidth"
         :fixed="vxeFixed(col)"
@@ -4850,8 +5460,13 @@ const iconSelect = Select;
            即：只要传了 loading，就必须存在「全局注册的 vxe-loading 组件」或「本插槽」，
            否则每次 nextTick 刷两条 error。本仓库刻意没有 app.use(vxe-table)（全局注册会带来
            其它副作用），所以在这里提供插槽，顺带把加载态收进设计体系。
-           外层 .vxe-loading--custom-wrapper 由 vxe 提供（absolute + 100%×100% + display 切换），
-           这里只补遮罩与转圈内容。 -->
+
+           ⚠ 但本仓**确实注册了 vxe-pc-ui**（为了 VxeTooltip），它连带把 VxeLoading
+           注册进了 VxeUI 的全局表 → vxe 走的是「VxeLoading 组件」那条路径，
+           插槽内容被塞进它的默认 slot 里，外层是 .vxe-loading.vxe-table--loading，
+           **不是** .vxe-loading--custom-wrapper。
+           （实测：DOM 是 .vxe-loading > .vxe-loading--wrapper > .re-table__loading）
+           所以定位样式加在 .vxe-loading 上，详见文件末尾的加载态 CSS 块。 -->
       <template #loading>
         <div class="re-table__loading">
           <span class="re-table__loading-spinner" aria-hidden="true"></span>
@@ -4874,8 +5489,8 @@ const iconSelect = Select;
       :columns="visibleColumns"
       :layout="layoutView ?? {}"
       :row-key="rowKey"
-      :selectable="batchSelectActive || isBatchEnabled(toolbarConfig.batchSelect)"
-      :context-menu="contextMenu"
+      :selectable="batchSelectActive || batchActionEnabled"
+      :context-menu="resolvedCtxMenuItems"
       :empty-text="emptyText"
       :index-offset="layoutIndexOffset"
       @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
@@ -4894,8 +5509,8 @@ const iconSelect = Select;
       :columns="visibleColumns"
       :layout="layoutCard ?? {}"
       :row-key="rowKey"
-      :selectable="batchSelectActive || isBatchEnabled(toolbarConfig.batchSelect)"
-      :context-menu="contextMenu"
+      :selectable="batchSelectActive || batchActionEnabled"
+      :context-menu="resolvedCtxMenuItems"
       :empty-text="emptyText"
       @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
       @selection-change="onSelectionChange"
@@ -4906,8 +5521,8 @@ const iconSelect = Select;
       </template>
     </ReTableCardView>
 
-    <div v-if="pagination || toolbar" class="re-table__footer">
-      <div class="re-table__toolbar" v-if="toolbar || pagination">
+    <div v-if="paginationCfg.enable || toolbarEnabled" class="re-table__footer">
+      <div class="re-table__toolbar" v-if="toolbarEnabled || paginationCfg.enable">
         <!--
           左侧分页：复用设计体系的 RePagination（layout=modern 即胶囊分页），
           不再在本组件内重写「总数 / 每页条数 / 省略号页码 / 上下页」——那套逻辑
@@ -4915,15 +5530,19 @@ const iconSelect = Select;
           重复实现会导致两处样式/边界行为漂移。
           size 变更走 onSizeChange 而不是直接 v-model：它顺带 emit 回父级、把页码收回第 1 页、
           并在远程模式下重新取数，直接 v-model 会漏掉这些副作用。
+
+          注意这里必须读 paginationCfg / toolbarEnabled，不能写裸 prop 名：
+          模板里的 `pagination` 会直接解析成 props.pagination，绕过分组配置，
+          表现为「配了 config.pagination.enable=false 但分页照旧渲染」。
         -->
-        <div v-if="pagination && !isScrollPaging" class="re-table__pagination">
+        <div v-if="paginationCfg.enable && !isScrollPaging" class="re-table__pagination">
           <RePagination
             layout="modern"
             :total="totalToShow"
             :current-page="internalPage"
             :page-size="currentPageSize"
             :page-sizes="pageSizeOptions"
-            :small="tableSize === 'small'"
+            :small="tableSize !== 'default'"
             @current-change="onPageClick"
             @size-change="onSizeChange"
           />
@@ -4949,7 +5568,7 @@ const iconSelect = Select;
         <!-- 使用 ReTableToolbar 统一组件；position=top 时分页行只保留右侧工具区，默认模式保持完整工具栏 -->
         <ReTableToolbar
           :mode="toolbarConfigPosition === 'top' ? 'tools' : 'full'"
-          :config="effectiveToolbarConfig"
+          :config="footerToolbarConfig"
           :selected-count="selectedCount"
           :editing="editing"
           :processing="batchProcessing"
@@ -4984,7 +5603,7 @@ const iconSelect = Select;
                      正好两条该告警，对应列设置 + 表格设置）。外面这层 span 只是给
                      ElOnlyChild 一个可挂载的单根节点，点击从内层按钮冒泡上来即可。 -->
                 <span class="re-table__settings-trigger">
-                  <ReButton layout="square" :size="tableSize" :icon="iconColumns" :tip="columnsTriggerText" />
+                  <ReButton layout="square" :size="elementTableSize" icon="anim:tabler:layout-grid" :anim-icon-size="16" :tip="columnsTriggerText" />
                 </span>
               </template>
               <div class="re-table__columns-panel">
@@ -4993,7 +5612,7 @@ const iconSelect = Select;
                   <ElButton
                     link
                     type="primary"
-                    :size="tableSize"
+                    :size="elementTableSize"
                     @click="resetColumns"
                   >重置</ElButton>
                 </div>
@@ -5027,8 +5646,8 @@ const iconSelect = Select;
                         {{ col.label }}
                       </ElCheckbox>
                       <span class="re-table__columns-actions">
-                        <ElButton link :size="tableSize" :disabled="idx === 0" @click="moveColumn(idx, -1)">↑</ElButton>
-                        <ElButton link :size="tableSize" :disabled="idx === filteredColumnsForSettings.length - 1" @click="moveColumn(idx, 1)">↓</ElButton>
+                        <ElButton link :size="elementTableSize" :disabled="idx === 0" @click="moveColumn(idx, -1)">↑</ElButton>
+                        <ElButton link :size="elementTableSize" :disabled="idx === filteredColumnsForSettings.length - 1" @click="moveColumn(idx, 1)">↓</ElButton>
                       </span>
                     </li>
                   </ul>
@@ -5051,7 +5670,7 @@ const iconSelect = Select;
               <template #reference>
                 <!-- ⚠ 同上：必须外包单根元素，否则 ElOnlyChild 挂不上触发器、面板点不开。 -->
                 <span class="re-table__settings-trigger">
-                  <ReButton layout="square" :size="tableSize" :icon="iconSettings" :tip="settingsTriggerText" />
+                  <ReButton layout="square" :size="elementTableSize" icon="anim:tabler:settings" :anim-icon-size="16" :tip="settingsTriggerText" />
                 </span>
               </template>
               <div class="re-table__settings-panel">
@@ -5119,18 +5738,76 @@ const iconSelect = Select;
                       @update:model-value="(v: any) => onSettingChange('resizable', Boolean(v))"
                     />
                   </div>
+                  <div class="settings-item">
+                    <div class="settings-item__label">
+                      <span class="settings-item__title">记住页码</span>
+                      <span class="settings-item__desc">刷新后回到上次所在页（按表格独立）</span>
+                    </div>
+                    <ElSwitch
+                      :model-value="localSettings.pageCache ?? true"
+                      @update:model-value="(v: any) => onSettingChange('pageCache', Boolean(v))"
+                    />
+                  </div>
+                  <div class="settings-item">
+                    <div class="settings-item__label">
+                      <span class="settings-item__title">键盘快捷键</span>
+                      <span class="settings-item__desc">← / → 切换上一页 / 下一页</span>
+                    </div>
+                    <ElSwitch
+                      :model-value="localSettings.shortcuts ?? true"
+                      @update:model-value="(v: any) => onSettingChange('shortcuts', Boolean(v))"
+                    />
+                  </div>
                 </div>
               </div>
             </ElPopover>
           </template>
         </ReTableToolbar>
+
+        <!--
+          快捷键帮助：替代原来分页行里的「刷新」（刷新在顶部工具栏已有，重复入口）。
+          快捷键关闭时仍显示入口，但文案明确告知"已关闭"，避免用户按了方向键没反应又找不到原因。
+        -->
+        <ElPopover
+          placement="top-end"
+          :width="276"
+          trigger="click"
+          popper-class="re-table__popover"
+        >
+          <template #reference>
+            <span class="re-table__help-trigger">
+              <ReButton
+                layout="square"
+                :size="elementTableSize"
+                icon="QuestionFilled"
+                tip="快捷键帮助"
+              />
+            </span>
+          </template>
+          <div class="re-table__help-panel">
+            <div class="settings-header">
+              <span class="settings-title">快捷键</span>
+            </div>
+            <ul class="re-table__help-list">
+              <li>
+                <span class="re-table__help-keys"><kbd>←</kbd><kbd>→</kbd></span>
+                <span class="re-table__help-desc">上一页 / 下一页</span>
+              </li>
+            </ul>
+            <p class="re-table__help-hint">
+              鼠标悬停或点击表格后，方向键才作用于本表；一页多张表时互不干扰。
+              <template v-if="shortcutsEnabled">可在「表格设置 → 键盘快捷键」关闭。</template>
+              <template v-else><b>当前已在「表格设置」中关闭。</b></template>
+            </p>
+          </div>
+        </ElPopover>
       </div>
     </div>
 
     <!-- 右键菜单 -->
     <ReTableContextMenu
       v-model:visible="ctxMenuVisible"
-      :items="contextMenu"
+      :items="resolvedCtxMenuItems"
       :context="ctxMenuContext"
       :x="ctxMenuX"
       :y="ctxMenuY"
@@ -5577,12 +6254,19 @@ const iconSelect = Select;
 .re-table__layout-switch-item:hover {
   color: var(--el-color-primary);
 }
-/* 选中态：浮起白底 + 主色图标（对比靠 overlay / light 令牌分层，不硬编码品牌色） */
+/* 选中态：浮起白底 + 主色图标（对比靠 overlay / light 令牌分层，不硬编码品牌色）。
+   底色带极淡主色渐变 + 顶部高光，让滑块在灰轨道上有一点点「浮起来」的体积感。 */
 .re-table__layout-switch-item.is-active,
 .re-table__layout-switch-item.is-active:hover {
   color: var(--el-color-primary);
-  background: var(--el-bg-color-overlay);
-  box-shadow: var(--el-box-shadow-light);
+  background: linear-gradient(
+    180deg,
+    var(--el-bg-color-overlay),
+    color-mix(in srgb, var(--el-color-primary) 6%, var(--el-bg-color-overlay))
+  );
+  box-shadow:
+    var(--el-box-shadow-light),
+    inset 0 1px 0 color-mix(in srgb, var(--el-bg-color-overlay) 55%, transparent);
 }
 /* 自动刷新浮层（参考图排版）：标题行 + 状态徽标 → 档位菜单 → 分隔线 + 倒计时说明。
    浮层外壳宽度/内距由 ReSwitch 的 popoverWidth(268)/popoverPadding(8) 锚定；
@@ -5911,10 +6595,13 @@ const iconSelect = Select;
    显不显示空态，本地分页时 dataList 可能非空而当前页没有行，那时空态该照常显示。
    height + overflow 一起给：只给 height:0 时子元素仍会把 scrollHeight 撑开。 */
 .re-table:has(.vxe-body--row) .vxe-table--body-wrapper .vxe-table--empty-block {
-  min-height: 0;
-  height: 0;
-  padding: 0;
-  overflow: hidden;
+  /* 有数据行时**彻底隐藏**空态块。
+     此前只压高度（min-height:0; height:0; overflow:hidden），但空块本身
+     display:flex —— 内容（"暂无数据"文字）仍会溢出渲染，且空块占位把
+     数据行整体往下推（实测行 top 被推到 2287px）。
+     判据仍用 :has(.vxe-body--row)：vxe 按**实际渲染出的行**决定显不显示空态，
+     本地分页时 dataList 可能非空而当前页没有行，那时空态该照常显示。 */
+  display: none;
 }
 /* vxe 自己的 .vxe-table--empty-content 是 width:50%（相对空块），
    空块被改回可视宽后内容只剩一半、字会多折几行。改回 100% 让它与
@@ -6060,6 +6747,57 @@ const iconSelect = Select;
   background: var(--el-bg-color);
   border-radius: 8px;
   overflow: hidden;
+}
+
+/* ---- 快捷键帮助浮层（分页行右侧，替代原刷新入口） ---- */
+.re-table__help-trigger {
+  display: inline-flex;
+  align-items: center;
+}
+.re-table__help-panel {
+  padding: 0;
+  background: var(--el-bg-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.re-table__help-list {
+  padding: 12px 16px;
+  margin: 0;
+  list-style: none;
+}
+.re-table__help-list li {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+.re-table__help-keys {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 4px;
+}
+.re-table__help-keys kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color);
+  border-radius: 4px;
+}
+.re-table__help-hint {
+  padding: 0 16px 14px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
 }
 .settings-header {
   padding: 14px 16px 10px;
@@ -6235,8 +6973,59 @@ const iconSelect = Select;
 .re-table:hover .vxe-table--body-wrapper::-webkit-scrollbar-thumb {
   background-color: color-mix(in srgb, var(--el-text-color-secondary) 30%, transparent);
 }
-/* vxe 加载态（#loading 插槽内容）：定位与显隐由 vxe 的 .vxe-loading--custom-wrapper 提供，
-   这里只补遮罩与转圈。遮罩用主题底色 mix 出来，暗色自动适配。 */
+/* vxe 加载态（#loading 插槽内容）。
+
+   ⚠️ vxe 4.22 的加载态有**两条互斥的渲染路径**（table.js 源码）：
+      1. VxeUI 里注册了 VxeLoading（本仓注册了 vxe-pc-ui，走这条）
+         → h(VxeUILoadingComponent, { class: 'vxe-table--loading' })
+      2. 没注册、但有 #loading 插槽
+         → h('div', { class: ['vxe-loading--custom-wrapper', {is--visible}] })
+
+   本仓注册了 vxe-pc-ui（为了 VxeTooltip），它连带把 VxeLoading 也注册进了
+   VxeUI 的全局表，于是 vxe 走**路径 1**。
+
+   而路径 1 有两个坑：
+     ① vxe-ui 的 .vxe-loading 样式在 vxe-pc-ui 的 style.css 里，而本仓只 import 了
+        "vxe-table/lib/style.css"，**没 import vxe-pc-ui 的样式** → .vxe-loading 拿不到
+        position:absolute / width:100% / height:100%，退回浏览器默认的 position:static；
+     ② position:static 的元素跟着文档流排，vxe 又把它放在表格的**末尾**
+        （表头之后、表体之前那层的最后），于是它被排到**表格下方**，
+        高度还是 vxe-ui 组件自己的 22px（showIcon 默认 false → 空条）。
+
+   实测（修复前）：遮罩 top=855（表格 242~855 的正下方），而表体在 281~855 ——
+   正是「加载动画跑到表格底部、不在 body 中间」。
+
+   修法：直接给路径 1 的 .vxe-loading 补齐定位与尺寸（absolute + 100%×100%），
+   让它相对 .vxe-table（position:relative）铺满整表；再用 JS 量出的表体矩形
+   把上边界钉到表体顶部（--rt-loading-top/height），使遮罩只盖表体、
+   转圈落在 body 正中。 */
+.re-table .vxe-loading.vxe-table--loading {
+  position: absolute;
+  inset: 0;
+  z-index: 99;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* 遮罩只覆盖「表体可视区」：vxe 把这层挂在表格末尾，靠 absolute 铺满整表；
+   这里用 JS 量出的表体矩形（相对 .vxe-table 的偏移）把上边界钉准 ——
+   表头保持可见（表头是列名，遮住反而让人失去上下文），转圈也稳定落在 body 中间。
+
+   ⚠️ 高度**不再**用 JS 量出来的快照，改成 `calc(100% - top)` 现算：
+   量测发生在 loading 刚变 true 的那一帧，此时表体常常还是空的（远程模式下
+   新参数一提交 dataList 就被清空、等 loader 返回），量到的高度是「空表体」的
+   几十像素；等数据回来表体长高，写死的快照高度就短了一截 —— 实测遮挡
+   40px / 表体 54px，下半截裸露。
+   钉住上边界、高度贴着表格底现算，无论表体怎么长，遮罩永远盖满表体。 */
+.re-table .vxe-loading.vxe-table--loading.is--visible {
+  top: var(--rt-loading-top, 0);
+  height: calc(100% - var(--rt-loading-top, 0px));
+}
+
 .re-table__loading {
   display: flex;
   align-items: center;
@@ -6285,3 +7074,4 @@ const iconSelect = Select;
      ⚠ 必须放在主 <style> 之后：引擎规则原本就排在共用规则之后，
        顺序一换会让同权重的共用规则反压引擎规则。 -->
 <style src="./engines/element/element-table.css"></style>
+

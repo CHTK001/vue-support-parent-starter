@@ -78,7 +78,7 @@ let context: AppContext | null = null;
 /** 启动框架上下文（幂等：重复调用复用同一实例） */
 export async function bootstrapFramework(): Promise<AppContext> {
   if (context) return context;
-  context = await createApp({ appName: 'vue-support-ai-guada' });
+  context = await createApp({ appName: 'vue-support-ai-starter' });
   return context;
 }
 
@@ -165,10 +165,38 @@ export function createClient(getHttp: () => Http, options: { unwrap?: boolean } 
   };
 
   const send = (method: NonNullable<RequestOptions['method']>, url: string, options: RequestOptions = {}): Promise<any> =>
-    build(method, url, options).then((res) => {
-      const body = res?.data;
-      return unwrap ? unwrapBody(body) : body;
-    });
+    build(method, url, options)
+      .then((res) => {
+        const body = res?.data;
+        return unwrap ? unwrapBody(body) : body;
+      })
+      .catch((e: unknown) => {
+        // HTTP 非 2xx（如登记 500）时 axios 抛「Request failed with status code 500」，
+        // 后端真实 msg 在 e.response.data 里 —— 不替换的话页面只能看到笼统状态码，
+        // 无法区分「模型没加载」「图片解码失败」「后端 5xx 抖动」等实际原因。
+        const err = e as { response?: { data?: unknown }; message?: string };
+        const respData = err?.response?.data;
+        let backendMsg: unknown;
+        if (respData && typeof respData === 'object') {
+          const obj = respData as { msg?: unknown; message?: unknown; error?: unknown };
+          backendMsg = obj.msg ?? obj.message ?? obj.error;
+        } else if (typeof respData === 'string' && respData.trim()) {
+          backendMsg = respData;
+        }
+        if (backendMsg) {
+          const wrapped = new Error(String(backendMsg)) as Error & {
+            status?: number;
+            code?: unknown;
+            response?: unknown;
+            cause?: unknown;
+          };
+          const status = (e as { response?: { status?: number } }).response?.status;
+          if (status !== undefined) wrapped.status = status;
+          wrapped.cause = e;
+          throw wrapped;
+        }
+        throw e;
+      });
 
   return {
     request: (endpoint, options = {}) =>

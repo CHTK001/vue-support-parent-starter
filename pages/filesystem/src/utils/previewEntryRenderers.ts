@@ -39,6 +39,21 @@ export interface RendererSpec {
  *  渲染器组（一个 renderer 包一组；doc 组合并三个包由 file-viewer 自选）
  * ------------------------------------------------------------------ */
 
+/**
+ * renderer-text 原生识别的扩展名（file-viewer.capability.json formats）。
+ *
+ * <p>文本面板与预览入口用它判断「未知扩展名但要按纯文本渲染」——renderer-text
+ * 只认白名单内的扩展名，白名单外的（如 {@code MANIFEST.MF}）必须改名为
+ * {@code .txt} 再喂给 file-viewer，否则找不到渲染器而落空。</p>
+ */
+export const TEXT_EXTENSIONS: ReadonlySet<string> = new Set([
+  "md", "markdown", "txt", "json", "js", "mjs", "cjs", "css", "java", "py",
+  "html", "htm", "jsx", "ts", "tsx", "xml", "log", "vue", "yaml", "yml",
+  "ini", "sh", "bash", "sql", "go", "rs", "php", "c", "cpp", "cc", "h",
+  "hpp", "cs", "jsonc", "json5", "ipynb", "toml", "proto", "hcl", "tex",
+  "gv", "http", "react", "rb", "swift", "kt",
+]);
+
 const TEXT_SPEC: RendererSpec = {
   presetId: "text",
   load: async () => [(await import("@file-viewer/renderer-text")).textRenderer as unknown],
@@ -177,7 +192,8 @@ const SPEC_BY_EXT: Record<string, RendererSpec> = {
   ts: TEXT_SPEC,
   tsx: TEXT_SPEC,
   xml: TEXT_SPEC,
-  log: TEXT_SPEC,
+  // .log：hs_err_pid*.log（JVM 崩溃日志）在 FilePreviewEntry 走 FvLogAnalyzePanel
+  // （分析结论 / 原始日志双模式），普通日志由该面板内部退化为文本渲染
   vue: TEXT_SPEC,
   yaml: TEXT_SPEC,
   yml: TEXT_SPEC,
@@ -211,6 +227,8 @@ const SPEC_BY_EXT: Record<string, RendererSpec> = {
   rb: TEXT_SPEC,
   swift: TEXT_SPEC,
   kt: TEXT_SPEC,
+  // .mf：Java MANIFEST.MF / METAFONT 源文件，均为纯文本，按文本渲染
+  mf: TEXT_SPEC,
   // ---- renderer-mindmap / epub / email（doc 组，file-viewer 按扩展名自选）----
   xmind: DOC_SPEC,
   epub: DOC_SPEC,

@@ -923,8 +923,7 @@ function autoOptimize(): void {
           </span>
         </div>
       </div>
-      <template #footer="{ cancel }">
-        <ReButton  @click="cancel">关闭</ReButton>
+      <template #footer>
         <ReButton  type="primary" :loading="saving" @click="save">保存</ReButton>
       </template>
     </ReDialog>
@@ -934,17 +933,17 @@ function autoOptimize(): void {
 <style scoped>
 .tb-label {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
 }
 
 .tb-sep {
   width: 1px;
   align-self: stretch;
-  background: var(--el-border-color-lighter);
+  background: var(--border-subtle, var(--el-border-color-lighter, #e4e7ed));
 }
 
 .tb-dot {
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary, var(--el-text-color-placeholder, #a8abb2));
 }
 
 .collect-runtime {
@@ -952,7 +951,7 @@ function autoOptimize(): void {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
 }
 
 .collect-runtime .spacer {

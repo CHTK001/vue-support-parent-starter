@@ -62,7 +62,7 @@
     "grid-layout-plus": "^1.1.1",
     "mitt": "^3.0.1",
     "pinia": "catalog:",
-    "pinia-plugin-persistedstate": "^3.2.3",
+    "pinia-plugin-persistedstate": "catalog:",
     "qrcode": "^1.5.4",
     "vue": "catalog:",
     "vue-i18n": "catalog:",

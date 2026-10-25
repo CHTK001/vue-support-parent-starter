@@ -5,6 +5,20 @@
  * 实际业务可参考示例数据格式（JsonNode / JsonLine / Graph3DData）。
  */
 import type { TemplateMeta } from "./types";
+// 三国数据：ReRelationGraphV2 集成示例（44 节点按势力分组）
+import { sanguoNodes, sanguoEdges } from "../data/sanguo";
+
+/** ReRelationGraphV2 默认数据：三国势力分组（nodes: id/label/group/type/size，edges: source/target） */
+export const relationGraphV2Data = () => ({
+  nodes: sanguoNodes.map((n) => ({
+    id: n.id,
+    label: n.id,
+    group: n.data.cluster,
+    type: n.data.type === "person" ? "circle" : n.data.type,
+    size: n.style.size ?? 40,
+  })),
+  edges: sanguoEdges.map((e) => ({ source: e.source, target: e.target })),
+});
 
 // ============================================================
 // 示例数据 —— 各布局演示用
@@ -256,10 +270,110 @@ export const reGraph3DMeta: TemplateMeta = {
   ],
 };
 
+/**
+ * ReRelationGraphV2 布局可选项（与 packages/ui/src/components/ReRelationGraphV2/internals/layouts.ts
+ * 的 LAYOUT_OPTIONS 保持一致；此处刻意重复一份静态清单，避免模板模块 eager import
+ * 组件包把 G6（约 2MB）拉进调试页首屏）。
+ */
+const RELATION_GRAPH_V2_LAYOUTS = [
+  { label: "分组布局 group", value: "group", icon: "Files" },
+  { label: "力导向 force", value: "force", icon: "Share" },
+  { label: "D3 力导向 d3-force", value: "d3-force", icon: "Connection" },
+  { label: "ForceAtlas2 force-atlas2", value: "force-atlas2", icon: "Aim" },
+  { label: "Fruchterman fruchterman", value: "fruchterman", icon: "Compass" },
+  { label: "环形 circular", value: "circular", icon: "RefreshRight" },
+  { label: "同心圆 concentric", value: "concentric", icon: "Odometer" },
+  { label: "网格 grid", value: "grid", icon: "Grid" },
+  { label: "辐射 radial", value: "radial", icon: "Position" },
+  { label: "MDS mds", value: "mds", icon: "Histogram" },
+  { label: "Dagre 分层 dagre", value: "dagre", icon: "Sort" },
+  { label: "AntV Dagre 分层 antv-dagre", value: "antv-dagre", icon: "SortDown" },
+  { label: "Combo 组合 combo-combined", value: "combo-combined", icon: "Menu" },
+  { label: "蛇形 snake", value: "snake", icon: "Guide" },
+  { label: "鱼骨 fishbone", value: "fishbone", icon: "DataLine" },
+  { label: "随机 random", value: "random", icon: "MagicStick" },
+];
+
+export const reRelationGraphV2Meta: TemplateMeta = {
+  name: "ReRelationGraphV2",
+  component: () => import("@repo/ui/re-relation-graph-v2").then((m) => ({ default: m.default })),
+  title: "关系图谱V2",
+  description:
+    "G6 5.1.1 原生：气泡集 / Hull 双分组轮廓 + 分组布局（每组独立区域）+ 全部 G6 布局 + 内置工具栏（布局/分组/参数）+ 节点边 hover",
+  modelable: false,
+  props: [
+    { key: "nodes", label: "节点（V2Node[]）", type: "json", default: relationGraphV2Data().nodes },
+    { key: "edges", label: "边（V2Edge[]）", type: "json", default: relationGraphV2Data().edges },
+    {
+      key: "layout",
+      label: "布局",
+      type: "select",
+      default: "group",
+      description: "group = 分组布局（每组自动占据独立区域，推荐）",
+      options: RELATION_GRAPH_V2_LAYOUTS,
+    },
+    {
+      key: "layoutOptions",
+      label: "布局参数（layoutOptions）",
+      type: "json",
+      default: {},
+      description:
+        '分组布局支持 { "spacing": 100, "gap": 170, "minRadius": 70 }；其余布局透传 G6 参数',
+    },
+    {
+      key: "groupType",
+      label: "分组轮廓（groupType）",
+      type: "select",
+      default: "bubble",
+      description: "bubble = 气泡集；hull = Hull 轮廓（凹包）；none = 不画轮廓",
+      options: [
+        { label: "气泡集 bubble-sets", value: "bubble", icon: "ChatDotRound" },
+        { label: "Hull 轮廓 hull", value: "hull", icon: "Crop" },
+        { label: "不分组 none", value: "none", icon: "Hide" },
+      ],
+    },
+    {
+      key: "groupVisible",
+      label: "显示分组轮廓（groupVisible）",
+      type: "boolean",
+      default: true,
+      description: "关掉只保留势力配色，不画轮廓",
+    },
+    {
+      key: "groupOptions",
+      label: "分组轮廓参数（groupOptions）",
+      type: "json",
+      default: {},
+      description:
+        'hull 支持 { "padding": 18, "concavity": 200 }；bubble 支持 { "nodeR1": 50 }；共用 { "fillOpacity": 0.16, "lineWidth": 2 }',
+    },
+    {
+      key: "toolbar",
+      label: "内置工具栏（toolbar）",
+      type: "boolean",
+      default: true,
+      description: "图标 + Popover：布局 / 分组轮廓 / 分组开关 / 布局设置 / 适应画布",
+    },
+    {
+      key: "toolbarVariant",
+      label: "工具栏外观（toolbarVariant）",
+      type: "select",
+      default: "pill",
+      options: [
+        { label: "胶囊 pill", value: "pill", icon: "Minus" },
+        { label: "卡片 card", value: "card", icon: "Postcard" },
+        { label: "侧轨 rail", value: "rail", icon: "Operation" },
+      ],
+    },
+    { key: "height", label: "高度", type: "string", default: "100%" },
+  ],
+};
+
 export const graphTemplates: TemplateMeta[] = [
   reGraphMeta,
   reGraphForceMeta,
   reGraphTreeMeta,
   reGraphCenterMeta,
   reGraph3DMeta,
+  reRelationGraphV2Meta,
 ];

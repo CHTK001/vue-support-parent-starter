@@ -11,6 +11,7 @@ export function emptyDsl(name?: string): CollectDsl {
   return {
     name: name ?? null,
     threadCount: null,
+    timeoutMs: null,
     headers: [],
     cookies: [],
     variables: [],
@@ -27,6 +28,7 @@ export function cloneDsl(dsl: CollectDsl | null | undefined): CollectDsl {
   return {
     name: dsl.name ?? null,
     threadCount: dsl.threadCount ?? null,
+    timeoutMs: dsl.timeoutMs ?? null,
     headers: (dsl.headers ?? []).map(p => ({ ...p })),
     cookies: (dsl.cookies ?? []).map(p => ({ ...p })),
     variables: (dsl.variables ?? []).map(p => ({ ...p })),

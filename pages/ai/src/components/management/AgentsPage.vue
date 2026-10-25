@@ -1,28 +1,23 @@
 <template>
-  <div class="agents-page">
-    <div class="page-header">
-      <h2>Agent管理</h2>
-      <div class="page-header-actions">
-        <el-button @click="installDialogVisible = true">
-          <el-icon><Download /></el-icon> 安装智能体
-        </el-button>
-        <el-button type="primary" @click="handleAdd">
-          <el-icon><Plus /></el-icon> 新增Agent
-        </el-button>
-      </div>
-    </div>
+  <RePage data-page="agents" title="Agent管理" subtitle="智能体清单、工具绑定与系统提示词">
+    <template #actions>
+      <el-button @click="installDialogVisible = true">
+        <el-icon><Download /></el-icon> 安装智能体
+      </el-button>
+      <el-button type="primary" @click="handleAdd">
+        <el-icon><Plus /></el-icon> 新增Agent
+      </el-button>
+    </template>
 
-    <!-- Agent列表：裸 el-table → ReTable（engine="element" 保持原 DOM；原表带 border 走
+    <!-- Agent列表：裸 el-table → ReTable（默认引擎已是 vxe；原表带 border 走
          ReTable 默认省略；页面无分页 → :pagination="false"；toolbar 关闭；无 height → minHeight 抑制）。 -->
     <ReTable
       :data="agentList"
       :columns="agentColumns"
       :loading="loading"
-      engine="element"
-      :pagination="false"
-      :toolbar="false"
       :layout-table="{ minHeight: 0 }"
       style="width: 100%"
+      :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
     >
       <template #col-type="{ row }">
         <el-tag :type="row.type === 'master' ? 'warning' : 'info'" >
@@ -34,11 +29,14 @@
           {{ row.enabled ? '启用' : '禁用' }}
         </el-tag>
       </template>
+      <!-- 操作列统一 ReButton square（纯图标 + tooltip） -->
       <template #col-actions="{ row }">
-        <el-button type="primary" link @click="handleConfig(row)">工作流配置</el-button>
-        <el-button type="success" link @click="handleRegister(row)">注册为模型</el-button>
-        <el-button type="warning" link @click="handleEdit(row)">编辑</el-button>
-        <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
+        <div class="row-actions">
+          <ReButton layout="square" type="primary" :icon="Share" tip="工作流配置" @click="handleConfig(row)" />
+          <ReButton layout="square" type="success" :icon="Promotion" tip="注册为模型" @click="handleRegister(row)" />
+          <ReButton layout="square" type="warning" :icon="Edit" tip="编辑" @click="handleEdit(row)" />
+          <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click="handleDelete(row)" />
+        </div>
       </template>
     </ReTable>
 
@@ -54,11 +52,9 @@
       :data="packageList"
       :columns="packageColumns"
       :loading="loadingPackages"
-      engine="element"
-      :pagination="false"
-      :toolbar="false"
       :layout-table="{ minHeight: 0 }"
       style="width: 100%"
+      :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
     >
       <template #col-source="{ row }">
         <el-tag :type="row.source === 'builtin' ? 'info' : 'success'">{{ row.source }}</el-tag>
@@ -81,7 +77,9 @@
         />
       </template>
       <template #col-actions="{ row }">
-        <el-button type="danger" link @click="handleUninstallPackage(row)">卸载</el-button>
+        <div class="row-actions">
+          <ReButton layout="square" type="danger" :icon="Delete" tip="卸载" @click="handleUninstallPackage(row)" />
+        </div>
       </template>
     </ReTable>
 
@@ -134,15 +132,15 @@
             :data="subAgentList"
             :columns="subAgentColumns"
             :loading="loadingSubAgents"
-            engine="element"
-            :pagination="false"
-            :toolbar="false"
             :layout-table="{ minHeight: 0 }"
             style="width: 100%; margin-top: 10px"
+            :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
           >
             <template #col-actions="{ row }">
-              <el-button type="warning" link @click="handleEditSubAgent(row)">编辑</el-button>
-              <el-button type="danger" link @click="handleDeleteSubAgent(row)">删除</el-button>
+              <div class="row-actions">
+                <ReButton layout="square" type="warning" :icon="Edit" tip="编辑" @click="handleEditSubAgent(row)" />
+                <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click="handleDeleteSubAgent(row)" />
+              </div>
             </template>
           </ReTable>
         </el-tab-pane>
@@ -238,14 +236,15 @@
             :data="marketItems"
             :columns="marketColumns"
             :loading="searchingMarket"
-            engine="element"
-            :pagination="false"
-            :toolbar="false"
             :layout-table="{ minHeight: 0 }"
             style="width: 100%; margin-top: 10px"
+            :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
           >
             <template #col-actions="{ row }">
-              <el-button type="primary" link @click="handleInstallFromMarket(row)">安装</el-button>
+              <div class="row-actions">
+                <ReButton layout="square" type="primary" :icon="Download" tip="安装"
+                  @click="handleInstallFromMarket(row)" />
+              </div>
             </template>
           </ReTable>
         </el-tab-pane>
@@ -272,19 +271,21 @@
         </el-tab-pane>
       </el-tabs>
     </ReDialog>
-  </div>
+  </RePage>
 </template>
 
 <script setup lang="ts">
 import { message } from "@repo/core";
 import { ref, onMounted } from 'vue';
 import { ElMessageBox } from 'element-plus';
-import { Plus, Refresh, Download } from '@element-plus/icons-vue';
+import { Plus, Refresh, Download, Edit, Delete, Share, Promotion } from '@element-plus/icons-vue';
 import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn } from '@repo/ui/re-table';
 import { agentApi } from '@/services/javaApi';
 import ReDialog from '@repo/ui/re-dialog';
 import ReNumberInput from '@/components/re/ReNumberInput.vue';
+import RePage from '@/components/re/RePage.vue';
+import ReButton from '@repo/ui/re-button';
 
 // ==================== 四张表的列配置（原模板里的 el-table-column 收敛为数组） ====================
 /** Agent 列表：类型 / 状态 / 操作原本无 prop 或带默认插槽 → slot。 */
@@ -821,18 +822,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.agents-page {
-  padding: 20px;
-  height: 100%;
-  overflow-y: auto;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
+/* 页面外壳（留白 / 标题 / 操作区）已收口到 RePage，原来的 .agents-page /
+   .page-header / .page-header-actions 一并删除（留着会与 RePage 的留白叠加）。 */
 
 .sub-agents-toolbar {
   display: flex;
@@ -840,11 +831,6 @@ onMounted(() => {
 }
 
 .orchestration-toolbar {
-  display: flex;
-  gap: 10px;
-}
-
-.page-header-actions {
   display: flex;
   gap: 10px;
 }

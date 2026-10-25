@@ -7,11 +7,11 @@
         <div class="mb-3">
           <div class="flex items-center justify-between mb-2">
             <div class="flex items-center gap-1.5">
-              <span class="text-sm font-semibold text-gray-700 dark:text-[#e8e9ed]">{{ t('chat.memo.contextUsage')
+              <span class="text-sm font-semibold text-gray-700 dark:text-gray-100">{{ t('chat.memo.contextUsage')
                 }}</span>
               <LTooltip :content="t('chat.memo.contextUsageTooltip')" placement="top">
                 <el-icon
-                  class="text-gray-400 dark:text-[#8b8d95] hover:text-gray-600 dark:hover:text-[#a8aab0] cursor-help transition-colors"
+                  class="text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-[#a8aab0] cursor-help transition-colors"
                   :size="14">
                   <QuestionFilled />
                 </el-icon>
@@ -24,7 +24,7 @@
           <el-progress :percentage="tokenStats.percentage" :color="progressColor" :stroke-width="14"
             :show-text="false" />
           <div class="flex items-center gap-2 mt-1.5">
-            <span class="text-xs text-gray-400 dark:text-[#8b8d95]">
+            <span class="text-xs text-gray-400 dark:text-gray-400">
               {{ tokenStats.usedTokens.toLocaleString() }} / {{ tokenStats.totalTokens.toLocaleString() }} · {{
                 t('chat.memo.messages', { count: tokenStats.messageCount }) }}
             </span>
@@ -39,13 +39,13 @@
         <div v-if="tokenStats.breakdown && showBreakdown" class="space-y-2.5 mb-3">
           <div v-for="item in breakdownItems" :key="item.key">
             <div class="flex items-center justify-between mb-1">
-              <span class="text-xs text-gray-600 dark:text-[#a8aab0]">{{ item.label }}</span>
+              <span class="text-xs text-gray-600 dark:text-gray-300">{{ item.label }}</span>
               <div class="flex items-center gap-2">
                 <span class="text-sm font-medium" :class="item.colorClass">{{ item.tokens.toLocaleString() }}</span>
-                <span class="text-xs text-gray-400 dark:text-[#8b8d95] w-10 text-right">{{ item.percentage }}%</span>
+                <span class="text-xs text-gray-400 dark:text-gray-400 w-10 text-right">{{ item.percentage }}%</span>
               </div>
             </div>
-            <div class="h-1.5 bg-gray-200 dark:bg-[#2a2c30] rounded-full overflow-hidden">
+            <div class="h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
               <div class="h-full rounded-full transition-all duration-300" :class="item.barClass"
                 :style="{ width: item.percentage + '%' }" />
             </div>
@@ -77,9 +77,9 @@
     <!-- ============ 最新压缩状态 ============ -->
     <div>
       <div class="flex items-center justify-between mb-3">
-        <h4 class="text-sm font-semibold text-gray-700 dark:text-[#e8e9ed]">{{ t('chat.memo.latestCompressStatus') }}
+        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-100">{{ t('chat.memo.latestCompressStatus') }}
         </h4>
-        <span class="text-xs text-gray-400 dark:text-[#8b8d95]">{{ t('chat.memo.compressedTimes', {
+        <span class="text-xs text-gray-400 dark:text-gray-400">{{ t('chat.memo.compressedTimes', {
           count: summaryTotal
           })
           }}</span>
@@ -91,7 +91,7 @@
 
           <!-- 摘要内容 -->
           <div v-if="summaries[0].summaryContent"
-            class="text-xs text-gray-700 dark:text-[#c8c9cd] whitespace-pre-wrap leading-relaxed mb-3 max-h-32 overflow-y-auto">
+            class="text-xs text-gray-700 dark:text-gray-200 whitespace-pre-wrap leading-relaxed mb-3 max-h-32 overflow-y-auto">
             {{ summaries[0].summaryContent }}
           </div>
 
@@ -100,8 +100,8 @@
             <div
               v-if="summaries[0].compressionStats?.beforeTokenCount && summaries[0].compressionStats?.afterTokenCount"
               class="flex justify-between items-center text-xs">
-              <span class="text-gray-600 dark:text-[#a8aab0]">Token</span>
-              <span class="font-medium text-gray-800 dark:text-[#e8e9ed]">
+              <span class="text-gray-600 dark:text-gray-300">Token</span>
+              <span class="font-medium text-gray-800 dark:text-gray-100">
                 {{ formatNumber(summaries[0].compressionStats.beforeTokenCount) }} → {{
                   formatNumber(summaries[0].compressionStats.afterTokenCount) }}
                 <span class="text-green-600 dark:text-green-500 ml-1">
@@ -113,8 +113,8 @@
             <div
               v-if="summaries[0].compressionStats?.beforeMessageCount && summaries[0].compressionStats?.afterMessageCount"
               class="flex justify-between items-center text-xs">
-              <span class="text-gray-600 dark:text-[#a8aab0]">{{ t('chat.memo.message') }}</span>
-              <span class="font-medium text-gray-800 dark:text-[#e8e9ed]">
+              <span class="text-gray-600 dark:text-gray-300">{{ t('chat.memo.message') }}</span>
+              <span class="font-medium text-gray-800 dark:text-gray-100">
                 {{ summaries[0].compressionStats.beforeMessageCount }} → {{
                   summaries[0].compressionStats.afterMessageCount }}
               </span>
@@ -124,20 +124,20 @@
                 }}</el-tag>
               <el-tag v-else-if="summaries[0].summaryContent" type="success">{{
                 t('chat.memo.summaryCompress') }}</el-tag>
-              <span v-if="summaries[0].pruningMetadata" class="text-gray-500 dark:text-[#8b8d95]">
+              <span v-if="summaries[0].pruningMetadata" class="text-gray-500 dark:text-gray-400">
                 {{ Object.keys(summaries[0].pruningMetadata).length }} {{ t('chat.memo.items') }}
               </span>
             </div>
           </div>
 
-          <div v-else-if="!summaries[0].summaryContent" class="text-xs text-gray-400 dark:text-[#8b8d95] italic mb-3">
+          <div v-else-if="!summaries[0].summaryContent" class="text-xs text-gray-400 dark:text-gray-400 italic mb-3">
             {{ t('chat.memo.noSummaryContent') }}
           </div>
 
 
           <!-- 底部信息：时间戳和操作按钮 -->
           <div class="flex items-center justify-between text-xs pt-3">
-            <span class="text-gray-400 dark:text-[#8b8d95] truncate" :title="formatTime(summaries[0].createdAt)">
+            <span class="text-gray-400 dark:text-gray-400 truncate" :title="formatTime(summaries[0].createdAt)">
               {{ formatTime(summaries[0].createdAt) }}
             </span>
             <div class="flex gap-1">
@@ -172,7 +172,7 @@
     </div>
 
     <!-- 编辑摘要对话框 -->
-    <LDialog v-model="editDialogVisible" :title="t('chat.memo.editSummaryTitle')" width="600px" append-to-body>
+    <ReDialog :close-on-click-modal="true" v-model="editDialogVisible" :title="t('chat.memo.editSummaryTitle')" width="600px" append-to-body>
       <el-input v-model="editingSummary.content" type="textarea" :rows="10"
         :placeholder="t('chat.memo.summaryPlaceholder')" />
       <template #footer>
@@ -181,44 +181,44 @@
           <el-button type="primary" @click="saveEdit">{{ t('chat.memo.save') }}</el-button>
         </span>
       </template>
-    </LDialog>
+    </ReDialog>
 
     <!-- 压缩历史记录对话框 -->
-    <LDialog v-model="historyDialogVisible" :title="t('chat.memo.compressHistoryTitle')" width="800px"
+    <ReDialog :close-on-click-modal="true" v-model="historyDialogVisible" :title="t('chat.memo.compressHistoryTitle')" width="800px"
       append-to-body>
       <template v-if="summaries.length > 0">
         <div v-for="(summary, index) in summaries" :key="summary.id" class="mb-4 last:mb-0">
-          <div class="rounded-lg border border-gray-200 dark:border-[#2a2c30] bg-white dark:bg-[#232428] p-4">
+          <div class="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 p-4">
             <!-- 头部：序号和时间 -->
-            <div class="flex items-center justify-between mb-3 pb-2 border-b border-gray-100 dark:border-[#2a2c30]">
+            <div class="flex items-center justify-between mb-3 pb-2 border-b border-gray-100 dark:border-gray-800">
               <div class="flex items-center gap-2">
-                <span class="text-sm font-semibold text-gray-700 dark:text-[#e8e9ed]">{{ t('chat.memo.compressTime', {
+                <span class="text-sm font-semibold text-gray-700 dark:text-gray-100">{{ t('chat.memo.compressTime', {
                   n: summaryTotal - index }) }}</span>
                 <el-tag :type="getStrategyTagType(summary.cleaningStrategy || 'unknown')">
                   {{ getStrategyLabel(summary.cleaningStrategy || 'unknown') }}
                 </el-tag>
               </div>
-              <span class="text-xs text-gray-400 dark:text-[#8b8d95]">{{ formatTime(summary.createdAt) }}</span>
+              <span class="text-xs text-gray-400 dark:text-gray-400">{{ formatTime(summary.createdAt) }}</span>
             </div>
 
             <!-- 摘要内容 -->
             <div v-if="summary.summaryContent" class="mb-3">
-              <div class="text-xs text-gray-500 dark:text-[#8b8d95] mb-1">{{ t('chat.memo.summaryContentLabel') }}</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('chat.memo.summaryContentLabel') }}</div>
               <div
-                class="text-xs text-gray-700 dark:text-[#c8c9cd] whitespace-pre-wrap leading-relaxed bg-gray-50 dark:bg-[#1e1f23] rounded p-3 max-h-40 overflow-y-auto">
+                class="text-xs text-gray-700 dark:text-gray-200 whitespace-pre-wrap leading-relaxed bg-gray-50 dark:bg-gray-900 rounded p-3 max-h-40 overflow-y-auto">
                 {{ summary.summaryContent }}
               </div>
             </div>
 
             <!-- 统计信息 -->
             <div v-if="summary.compressionStats || summary.pruningMetadata" class="space-y-2">
-              <div class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('chat.memo.compressStatsLabel') }}</div>
-              <div class="bg-gray-50 dark:bg-[#1e1f23] rounded p-3 space-y-2">
+              <div class="text-xs text-gray-500 dark:text-gray-400">{{ t('chat.memo.compressStatsLabel') }}</div>
+              <div class="bg-gray-50 dark:bg-gray-900 rounded p-3 space-y-2">
                 <!-- Token 统计 -->
                 <div v-if="summary.compressionStats?.beforeTokenCount && summary.compressionStats?.afterTokenCount"
                   class="flex justify-between items-center text-xs">
-                  <span class="text-gray-600 dark:text-[#a8aab0]">{{ t('chat.memo.tokenCount') }}</span>
-                  <span class="font-medium text-gray-800 dark:text-[#e8e9ed]">
+                  <span class="text-gray-600 dark:text-gray-300">{{ t('chat.memo.tokenCount') }}</span>
+                  <span class="font-medium text-gray-800 dark:text-gray-100">
                     {{ formatNumber(summary.compressionStats.beforeTokenCount) }} → {{
                       formatNumber(summary.compressionStats.afterTokenCount) }}
                     <span class="text-green-600 dark:text-green-500 ml-1">(-{{
@@ -230,8 +230,8 @@
                 <!-- 消息数量统计 -->
                 <div v-if="summary.compressionStats?.beforeMessageCount && summary.compressionStats?.afterMessageCount"
                   class="flex justify-between items-center text-xs">
-                  <span class="text-gray-600 dark:text-[#a8aab0]">{{ t('chat.memo.messageCount') }}</span>
-                  <span class="font-medium text-gray-800 dark:text-[#e8e9ed]">
+                  <span class="text-gray-600 dark:text-gray-300">{{ t('chat.memo.messageCount') }}</span>
+                  <span class="font-medium text-gray-800 dark:text-gray-100">
                     {{ summary.compressionStats.beforeMessageCount }} → {{ summary.compressionStats.afterMessageCount }}
                   </span>
                 </div>
@@ -239,7 +239,7 @@
                 <!-- 压缩率 -->
                 <div v-if="summary.compressionStats?.beforeTokenCount && summary.compressionStats?.afterTokenCount"
                   class="flex justify-between items-center text-xs">
-                  <span class="text-gray-600 dark:text-[#a8aab0]">{{ t('chat.memo.compressRate') }}</span>
+                  <span class="text-gray-600 dark:text-gray-300">{{ t('chat.memo.compressRate') }}</span>
                   <span class="font-medium text-green-600 dark:text-green-500">
                     {{ ((1 - summary.compressionStats.afterTokenCount / summary.compressionStats.beforeTokenCount) *
                     100).toFixed(2) }}%
@@ -248,8 +248,8 @@
 
                 <!-- 裁剪数量（只在没有摘要时显示） -->
                 <div v-if="summary.pruningMetadata" class="flex justify-between items-center gap-2 text-xs pt-1">
-                  <span class="text-gray-600 dark:text-[#a8aab0]">{{ t('chat.memo.prunedCount') }}</span>
-                  <span class="text-gray-500 dark:text-[#8b8d95]">{{ Object.keys(summary.pruningMetadata).length }} {{
+                  <span class="text-gray-600 dark:text-gray-300">{{ t('chat.memo.prunedCount') }}</span>
+                  <span class="text-gray-500 dark:text-gray-400">{{ Object.keys(summary.pruningMetadata).length }} {{
                     t('chat.memo.items') }}</span>
                 </div>
               </div>
@@ -257,7 +257,7 @@
 
             <!-- 操作按钮 -->
             <div v-if="summary.summaryContent"
-              class="flex justify-end gap-2 mt-3 pt-2 border-t border-gray-100 dark:border-[#2a2c30]">
+              class="flex justify-end gap-2 mt-3 pt-2 border-t border-gray-100 dark:border-gray-800">
               <el-button text @click="handleEditFromHistory(summary)"
                 class="text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300">
                 <el-icon>
@@ -284,7 +284,7 @@
           <el-button @click="historyDialogVisible = false">{{ t('chat.memo.close') }}</el-button>
         </span>
       </template>
-    </LDialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -293,7 +293,7 @@ import { ref, watch, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useSessionTokenStats } from '@/composables/useSessionTokenStats';
 import { useDebounceFn } from '@vueuse/core';
-import LDialog from '@/components/ui/LDialog.vue';
+import ReDialog from '@repo/ui/re-dialog';
 import { useSessionStore } from '@/stores/session';
 import { apiService } from '@/services/ApiService';
 import { usePopup } from '@/composables/usePopup';

@@ -10,6 +10,7 @@
 import { message } from "@repo/core";
 import { computed, markRaw, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import type { Component } from "vue";
+import { getConfig } from "@repo/config";
 
 import {
   Refresh, Cpu, Document, Coffee, DocumentCopy,
@@ -72,10 +73,7 @@ const MAX_POINTS = 30;
 const cpuTrend = ref<number[]>([]);
 const sysMemTrend = ref<number[]>([]);
 const jvmMemTrend = ref<number[]>([]);
-const diskTrend = ref<number[]>([]);
 const loadTrend = ref<number[]>([]);
-const gcCountTrend = ref<number[]>([]);
-const threadTrend = ref<number[]>([]);
 const timeLabels = ref<string[]>([]);
 const netRxTrend = ref<Record<string, number[]>>({});
 const netTxTrend = ref<Record<string, number[]>>({});
@@ -88,10 +86,7 @@ function pushTrend(data: ServerInfo) {
   cpuTrend.value.push(r1(data.cpu?.usagePercent ?? 0));
   sysMemTrend.value.push(r1(data.systemMemory?.usagePercent ?? 0));
   jvmMemTrend.value.push(r1(data.jvmMemory?.usagePercent ?? 0));
-  diskTrend.value.push(r1(data.diskPeak?.usagePercent ?? 0));
   loadTrend.value.push(Math.round((data.systemLoadAverage ?? 0) * 100) / 100);
-  gcCountTrend.value.push((data.gcCollectors ?? []).reduce((s, g) => s + (g.collectionCount ?? 0), 0));
-  threadTrend.value.push(data.threadCount ?? 0);
   timeLabels.value.push(now);
   const cores = data.coreUsages ?? [];
   for (let i = 0; i < cores.length; i++) {
@@ -116,8 +111,7 @@ function pushTrend(data: ServerInfo) {
   }
   if (cpuTrend.value.length > MAX_POINTS) {
     cpuTrend.value.shift(); sysMemTrend.value.shift(); jvmMemTrend.value.shift();
-    diskTrend.value.shift(); loadTrend.value.shift(); timeLabels.value.shift();
-    gcCountTrend.value.shift(); threadTrend.value.shift();
+    loadTrend.value.shift(); timeLabels.value.shift();
   }
 }
 function applyMetrics(d: ServerInfo) { info.value = d ?? {}; pushTrend(info.value); updateTime.value = new Date().toLocaleTimeString(); }
@@ -125,6 +119,10 @@ function connectSSE() {
   disconnectSSE(); connStatus.value = "connecting";
   sseClient = createSseClient<ServerInfo>("/v2/server/info/stream", {
     method: "POST", body: {},
+    // 长连接推送：服务端每次重开流都续上（底层只在 onerror 里触发重连）。
+    // 选项名是 reconnect（见 packages/utils/src/types 的 SseClientOptions），
+    // 缺省即 true，这里显式写出来是为了配合下面的 reconnectInterval 一起表达意图。
+    reconnect: true, reconnectInterval: 2000,
     onOpen: () => { connStatus.value = "live"; },
     onMessage: (e) => { applyMetrics(e.data); connStatus.value = "live"; },
     onError: () => { connStatus.value = "disconnected"; },
@@ -193,6 +191,11 @@ const cpuPct = computed(() => r1(info.value.cpu?.usagePercent ?? 0));
 const sysMemPct = computed(() => r1(info.value.systemMemory?.usagePercent ?? 0));
 const jvmMemPct = computed(() => r1(info.value.jvmMemory?.usagePercent ?? 0));
 const diskPct = computed(() => r1(info.value.diskPeak?.usagePercent ?? 0));
+/** 环境标识：取应用配置 config.env.env（dev/test/prod），取不到按 dev 处理 */
+const envLabel = computed(() => {
+  const env = getConfig().env.env;
+  return env === "prod" ? "生产环境" : env === "test" ? "测试环境" : "开发环境";
+});
 const hostname = computed(() => info.value.server?.hostname || "—");
 const osInfo = computed(() => { const s = info.value.server; return s ? `${s.osName ?? ""} ${s.osVersion ?? ""}`.trim() : "—"; });
 const loadAvg = computed(() => (info.value.systemLoadAverage ?? 0));
@@ -355,8 +358,54 @@ async function loadActuator(tab: ActuatorTab = actuatorTab.value) {
   } finally {
     actuatorLoading.value = false;
   }
+  if (tab === "metrics") {
+    // 默认选中第一个指标，避免右侧一直空着
+    metricKeyword.value = "";
+    metricName.value = "";
+    metricDetail.value = null;
+    const first = metricNames.value[0];
+    if (first) void selectMetric(first);
+  }
   if (tab === "scheduledtasks") {
     void loadManagedTasks();
+  }
+}
+
+/* --- 指标（metrics）：左侧指标名列表 + 右侧明细 --- */
+interface MetricMeasurement { statistic: string; value: number; }
+interface MetricTag { tag: string; values?: string[]; }
+interface MetricDetail {
+  name: string;
+  description?: string;
+  baseUnit?: string;
+  measurements?: MetricMeasurement[];
+  availableTags?: MetricTag[];
+}
+const metricKeyword = ref("");
+const metricName = ref("");
+const metricDetail = ref<MetricDetail | null>(null);
+const metricDetailLoading = ref(false);
+/** /actuator/metrics 返回的指标名列表 */
+const metricNames = computed<string[]>(() => {
+  const names = (actuatorData.value as { names?: unknown } | null)?.names;
+  return Array.isArray(names) ? names.filter((n): n is string => typeof n === "string") : [];
+});
+const filteredMetricNames = computed<string[]>(() => {
+  const kw = metricKeyword.value.trim().toLowerCase();
+  return kw ? metricNames.value.filter((n) => n.toLowerCase().includes(kw)) : metricNames.value;
+});
+/** 加载单个指标明细（/actuator/metrics/{name}） */
+async function selectMetric(name: string) {
+  metricName.value = name;
+  metricDetailLoading.value = true;
+  metricDetail.value = null;
+  try {
+    const data = await getActuatorEndpoint(`metrics/${name}`);
+    metricDetail.value = (data as MetricDetail) ?? null;
+  } catch (e) {
+    message.error((e as Error)?.message ?? "加载指标明细失败");
+  } finally {
+    metricDetailLoading.value = false;
   }
 }
 
@@ -770,6 +819,7 @@ const actCount = computed(() => {
     case "threaddump": return threadRows.value.length;
     case "configprops": return configRows.value.length;
     case "scheduledtasks": return scheduledRows.value.length;
+    case "metrics": return metricNames.value.length;
     case "info": return Object.keys(actuatorData.value ?? {}).length;
     default: return 0;
   }
@@ -1302,7 +1352,7 @@ function coreRowOpt(index: number): Opt {
         <p class="srv-page__subtitle">{{ hostname }}<span v-if="osInfo !== '—'"> · {{ osInfo }}</span> · 实时采集 OSHI + JMX</p>
       </div>
       <div class="srv-page__actions">
-        <span class="srv-badge srv-badge--env">生产环境</span>
+        <span class="srv-badge srv-badge--env">{{ envLabel }}</span>
         <span class="srv-conn" :class="`srv-conn--${connStatus}`">
           <span class="srv-conn__dot" />{{ connLabel }}
         </span>
@@ -1927,7 +1977,53 @@ function coreRowOpt(index: number): Opt {
             <el-empty v-else description="应用未暴露 info 信息" :image-size="48" />
           </template>
           <template v-else-if="actuatorTab === 'metrics'">
-            <el-empty description="metrics 端点未在此服务暴露（可查看 JVM 运行时）" :image-size="48" />
+            <div class="act-metrics">
+              <aside class="act-metrics__list">
+                <ReInput
+                  layout="modern"
+                  v-model="metricKeyword"
+                  placeholder="过滤指标名"
+                  clearable
+                  class="act-metrics__filter"
+                />
+                <div class="act-metrics__scroll">
+                  <button
+                    v-for="n in filteredMetricNames"
+                    :key="n"
+                    type="button"
+                    class="act-metrics__item"
+                    :class="{ 'is-active': n === metricName }"
+                    @click="selectMetric(n)"
+                  >{{ n }}</button>
+                </div>
+                <el-empty v-if="!filteredMetricNames.length" description="无可显示的指标" :image-size="40" />
+              </aside>
+              <section v-loading="metricDetailLoading" class="act-metrics__detail">
+                <template v-if="metricDetail">
+                  <div class="act-metrics__title">
+                    {{ metricDetail.name }}
+                    <span v-if="metricDetail.baseUnit" class="act-metrics__unit">{{ metricDetail.baseUnit }}</span>
+                  </div>
+                  <p v-if="metricDetail.description" class="act-metrics__desc">{{ metricDetail.description }}</p>
+                  <div class="act-kv">
+                    <div v-for="m in metricDetail.measurements ?? []" :key="m.statistic" class="act-kv__row">
+                      <span class="act-kv__k">{{ m.statistic }}</span>
+                      <span class="act-kv__v">{{ m.value }}</span>
+                    </div>
+                  </div>
+                  <div v-if="metricDetail.availableTags?.length" class="act-metrics__tags">
+                    <div class="act-group__title">可用标签</div>
+                    <div class="act-kv">
+                      <div v-for="t in metricDetail.availableTags" :key="t.tag" class="act-kv__row">
+                        <span class="act-kv__k">{{ t.tag }}</span>
+                        <span class="act-kv__v">{{ (t.values ?? []).join("、") || "—" }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+                <el-empty v-else description="选择左侧指标查看明细" :image-size="48" />
+              </section>
+            </div>
           </template>
 
           <!-- 环境属性 -->
@@ -2161,7 +2257,7 @@ function coreRowOpt(index: number): Opt {
           <el-empty v-else-if="!actuatorLoading" description="无数据" :image-size="48" />
         </div>
 
-        <p class="act__hint">Base: /system/api/actuator · {{ actuatorTabs.length }} 个端点 · profile=actuator 已激活</p>
+        <p class="act__hint">Base: /actuator · {{ actuatorTabs.length }} 个端点</p>
       </div>
     </ReDialog>
 
@@ -2796,6 +2892,25 @@ function coreRowOpt(index: number): Opt {
 .act__empty { padding: 32px; text-align: center; font-size: 13px; color: var(--el-text-color-secondary); }
 .act__empty.is-error { color: var(--el-color-danger); }
 .act__hint { margin: 0; font-size: 11px; color: var(--el-text-color-placeholder); }
+
+/* 指标（metrics）：左列表 + 右明细 */
+.act-metrics { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 14px; align-items: start; }
+.act-metrics__list { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.act-metrics__filter { width: 100%; }
+.act-metrics__scroll { max-height: 380px; overflow: auto; display: flex; flex-direction: column; gap: 2px; }
+.act-metrics__item {
+  text-align: left; padding: 6px 10px; border: none; border-radius: var(--el-radius-md, 8px);
+  background: transparent; cursor: pointer; font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--el-text-color-regular); word-break: break-all;
+}
+.act-metrics__item:hover { background: var(--el-fill-color-light); }
+.act-metrics__item.is-active { background: var(--el-color-primary-light-9); color: var(--el-color-primary); }
+.act-metrics__detail { min-width: 0; }
+.act-metrics__title { font-size: 13px; font-weight: 600; color: var(--el-text-color-primary); word-break: break-all; }
+.act-metrics__unit { margin-left: 8px; font-size: 11px; font-weight: 400; color: var(--el-text-color-secondary); }
+.act-metrics__desc { margin: 4px 0 10px; font-size: 12px; color: var(--el-text-color-secondary); }
+.act-metrics__tags { margin-top: 12px; }
 
 /* 健康状态 */
 .act-health__banner {

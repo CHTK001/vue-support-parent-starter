@@ -106,14 +106,13 @@
       <ReTable
         class="lc-table"
         :data="visibleSteps as unknown as Record<string, unknown>[]"
-        :pagination="false"
-        :toolbar="false"
         row-key="packetId"
         size="small"
         :layout-table="{ maxHeight: 280 }"
         stripe
         empty-text="这条流没有可展示的报文"
         @row-click="onRowClick"
+        :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
       >
         <ReTableColumn prop="relativeMs" label="相对时间" width="112" align="right">
           <template #default="{ row }">

@@ -1,5 +1,5 @@
 <template>
-  <LDialog :model-value="visible" @update:model-value="(v: boolean) => emit('update:visible', v)"
+  <ReDialog :close-on-click-modal="true" :model-value="visible" @update:model-value="(v: boolean) => emit('update:visible', v)"
     :title="target?.name || 'MCP 详情'" width="620px" align-center destroy-on-close>
     <div class="mcp-detail" v-if="target">
       <div class="mcp-detail__head">
@@ -47,20 +47,19 @@
     </div>
 
     <template #footer>
-      <el-button @click="emit('update:visible', false)">关闭</el-button>
       <el-button v-if="target && !target.installable && !installed" type="primary"
         @click="emit('configure', target)">手动配置</el-button>
       <el-button v-if="target && target.installable && !installed" type="primary"
         :loading="installing" @click="emit('install', target)">安装</el-button>
       <el-button v-if="installed" type="success" disabled>已安装</el-button>
     </template>
-  </LDialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import PluginIcon from '@/components/ui/PluginIcon.vue'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 import { LinkOutlined } from '@vicons/material'
 import { openInExternalBrowser } from '@/utils/browserUtils'
 

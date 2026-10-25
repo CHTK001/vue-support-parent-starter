@@ -2,7 +2,7 @@
   <div class="process-section thinking-section">
     <!-- 标题行 -->
     <div
-      class="thinking-section__header flex items-center text-sm text-gray-700 dark:text-[#8b8d95] cursor-pointer font-medium transition-colors duration-200"
+      class="thinking-section__header flex items-center text-sm text-gray-700 dark:text-gray-400 cursor-pointer font-medium transition-colors duration-200"
       @click.stop="handleToggle">
       <!-- 不再重复画思考图标：外层 ProcessTimeline 的 timeline-rail 已经给了一个，
            组件内再画会导致同一块思考出现两个图标（用户反馈「思考的图标重复出现」） -->
@@ -12,8 +12,9 @@
       </span>
     </div>
 
-    <!-- 内容区：折叠时显示最多3行 + 渐变遮罩，展开时全量显示 -->
-    <div class="thinking-section__content-wrapper border-l ml-1.75 pl-4 text-sm border-gray-300 dark:border-gray-700">
+    <!-- 内容区：极简展开态（用户要求 2026-10-24）——细左侧导轨 + 纯文本，
+         不套填充卡片。折叠时显示最多3行 + 渐变遮罩，展开时全量显示 -->
+    <div class="thinking-section__content-wrapper">
       <div class="thinking-content" :class="{ 'is-collapsed': !isExpanded && !isThinking }">
         <MarkdownContent @click.stop="$emit('click')" class="flex-1 markdown-text text-gray-500 dark:text-gray-400"
           :content="reasoningContent" />
@@ -84,6 +85,17 @@ watch(() => props.isThinking, (isThinking: boolean) => {
 
 .thinking-section__header {
   user-select: none;
+}
+
+/* 极简展开态：一条细导轨 + 纯文本（与工具行 / 检索行同一套视觉口径）。
+   原来用 Tailwind 的 border-gray-300 dark:border-gray-700，那是两套硬编码灰，
+   换肤后不跟随；这里统一走 --el-border-color-lighter。 */
+.thinking-section__content-wrapper {
+  margin-left: 7px;
+  padding-left: 16px;
+  border-left: 2px solid var(--el-border-color-lighter);
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
 }
 
 

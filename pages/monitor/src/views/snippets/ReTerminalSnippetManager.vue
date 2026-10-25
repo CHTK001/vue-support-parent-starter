@@ -17,11 +17,10 @@
         :data="snippets"
         :columns="snippetColumns"
         engine="element"
-        :pagination="false"
-        :toolbar="false"
         :layout-table="{ minHeight: 0 }"
         :settings="{ border: false }"
         style="width: 100%"
+        :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
       >
         <template #col-actions="{ row }">
           <el-button text type="primary" @click="handleEdit(snippetOf(row))">编辑</el-button>

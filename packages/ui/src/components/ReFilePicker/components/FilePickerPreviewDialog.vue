@@ -8,6 +8,7 @@
  */
 import { computed } from "vue";
 import { TopRight, WarningFilled } from "@element-plus/icons-vue";
+import ReDialog from "../../ReDialog/index";
 import type { FilePickerItem } from "../types";
 
 const props = defineProps<{
@@ -34,7 +35,7 @@ const title = computed(() => (props.item ? `预览 · ${props.item.name}` : "预
 </script>
 
 <template>
-  <el-dialog
+  <ReDialog
     v-if="modelValue"
     v-model="visible"
     :title="title"
@@ -75,10 +76,9 @@ const title = computed(() => (props.item ? `预览 · ${props.item.name}` : "预
           在新窗口打开
           <el-icon :size="12"><TopRight /></el-icon>
         </a>
-        <el-button @click="visible = false">关闭</el-button>
       </div>
     </template>
-  </el-dialog>
+  </ReDialog>
 </template>
 
 <style scoped>

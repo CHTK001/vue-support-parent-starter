@@ -1,5 +1,5 @@
 <template>
-  <LDialog :model-value="modelValue" @update:model-value="onVisibleChange" :title="title" width="640px">
+  <ReDialog :close-on-click-modal="true" :model-value="modelValue" @update:model-value="onVisibleChange" :title="title" width="640px">
     <div class="lmp">
       <el-tabs v-model="activeTab" class="lmp-tabs">
         <!-- ============ 从提供商获取 ============ -->
@@ -87,7 +87,7 @@
       :loader="dirLoader"
       @select="onDirPicked"
     />
-  </LDialog>
+  </ReDialog>
 </template>
 
 <script setup>
@@ -95,7 +95,7 @@ import { ref, computed, watch } from 'vue'
 import { Search, FolderOpened } from '@element-plus/icons-vue'
 import { CheckCircleFilled } from '@vicons/material'
 import { ElTabs, ElTabPane, ElInput, ElButton, ElIcon } from 'element-plus'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 import ReFilePicker from '@repo/ui/re-file-picker'
 import { adminApi } from '@/framework/context'
 

@@ -12,7 +12,7 @@
  * 三个弹窗。数据按登录态在后端隔离，本组件不传、也传不了别人的 ID。</p>
  */
 import { message } from '@repo/core';
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { Reading } from '@element-plus/icons-vue';
 import { http } from '@repo/utils';
@@ -21,6 +21,7 @@ import { failToast } from '../../api/errorText';
 import { createPageLoader } from '../../api/pageLoader';
 import type {
   EduStudent,
+  MarkingDashboardStats,
   MarkingProgressVO,
   MarkingResultVO,
   PageResult,
@@ -33,6 +34,7 @@ import ReTag from '@repo/ui/re-tag';
 import ReEcharts from '@repo/ui/re-echarts';
 import MarkingTaskTable from './MarkingTaskTable.vue';
 import MarkingUploadDialog from './MarkingUploadDialog.vue';
+import PaperPreview from '../paper/PaperPreview.vue';
 
 const props = withDefaults(
   defineProps<{
@@ -100,7 +102,11 @@ const fetchMarkingPage = async (pageNo: number, pageSizeNo: number): Promise<Pag
   let total = 0;
   if (markingTasksPagedSupported) {
     try {
-      const res = await eduaiApi.pageTeacherMarkingTasks({ pageNum: pageNo, pageSize: pageSizeNo });
+      const res = await eduaiApi.pageTeacherMarkingTasks({
+        pageNum: pageNo,
+        pageSize: pageSizeNo,
+        teacherFinished: finishFilter.value,
+      });
       rows = (res.data ?? res.records ?? []) as TeacherMarkingTask[];
       total = Number(res.total ?? rows.length);
     } catch {
@@ -119,14 +125,150 @@ const fetchMarkingPage = async (pageNo: number, pageSizeNo: number): Promise<Pag
       .filter((t) => Number(t.markingTaskStatus) === 2 && t.markingTaskTaskId && !scores.value[t.markingTaskTaskId])
       .map((t) => fillScore(t.markingTaskTaskId)),
   );
+  tasks.value = rows;
   return { pageNo, pageSize: pageSizeNo, total, totalPages: Math.max(1, Math.ceil(total / pageSizeNo)), data: rows };
 };
 
 /** ReTable 远端分页 loader（createPageLoader 负责合并重复请求、映射 total/data） */
 const markingTasksLoader = createPageLoader<TeacherMarkingTask>(fetchMarkingPage);
 
+/** 阅卷列表「完成状态」筛选（0=待完成, 1=已完成） */
+const finishFilter = ref<0 | 1 | undefined>(undefined);
+
+/** 切换完成状态筛选后刷新列表 */
+const onFinishFilterChange = () => {
+  void markingTaskTableRef.value?.reload();
+};
+
 /** MarkingTaskTable 实例：任务终态 / 新任务提交后主动刷新，ReTable 自己管分页和刷新按钮 */
 const markingTaskTableRef = ref<{ reload: () => Promise<void> } | null>(null);
+
+/* ==================== 批量操作 ==================== */
+const selectedTasks = ref<TeacherMarkingTask[]>([]);
+const batchFinishing = ref(false);
+const batchUndoing = ref(false);
+
+/** ReTable 多选变化 */
+const onSelectionChange = (rows: TeacherMarkingTask[]) => {
+  selectedTasks.value = rows ?? [];
+};
+
+/** 批量完成：只处理未完成的、已判分且有学生的任务 */
+const batchFinish = async () => {
+  const ids = selectedTasks.value
+    .filter((t) => !t.markingTaskTeacherFinished)
+    .map((t) => t.markingTaskTaskId)
+    .filter(Boolean) as string[];
+  if (!ids.length) {
+    message.warning('请先勾选未完成的阅卷任务');
+    return;
+  }
+  batchFinishing.value = true;
+  try {
+    const results = await eduaiApi.batchFinishMarking(ids);
+    const ok = results.filter((r) => r.success).length;
+    const fail = results.length - ok;
+    message.success(`批量完成 ${ok} 个任务${fail ? `，${fail} 个失败` : ''}`);
+    selectedTasks.value = [];
+    void markingTaskTableRef.value?.reload();
+    void loadDashboardStats();
+  } catch (e) {
+    failToast('批量完成失败', e);
+  } finally {
+    batchFinishing.value = false;
+  }
+};
+
+/** 批量撤销：只处理已完成的 */
+const batchUnfinish = async () => {
+  const ids = selectedTasks.value
+    .filter((t) => t.markingTaskTeacherFinished)
+    .map((t) => t.markingTaskTaskId)
+    .filter(Boolean) as string[];
+  if (!ids.length) {
+    message.warning('请先勾选已完成的阅卷任务');
+    return;
+  }
+  batchUndoing.value = true;
+  try {
+    const results = await eduaiApi.batchUnfinishMarking(ids);
+    const ok = results.filter((r) => r.success).length;
+    const fail = results.length - ok;
+    message.success(`批量撤销 ${ok} 个任务${fail ? `，${fail} 个失败` : ''}`);
+    selectedTasks.value = [];
+    void markingTaskTableRef.value?.reload();
+    void loadDashboardStats();
+  } catch (e) {
+    failToast('批量撤销失败', e);
+  } finally {
+    batchUndoing.value = false;
+  }
+};
+
+/** 导出成绩单 CSV：当前页已加载的任务 + 总分快照（缺失的按任务补齐一次结果） */
+const exportingScore = ref(false);
+const exportScoreCsv = async () => {
+  const rows = tasks.value ?? [];
+  if (!rows.length) {
+    message.warning('当前没有可导出的阅卷记录');
+    return;
+  }
+  exportingScore.value = true;
+  try {
+    const missing = rows.filter((t) => t.markingTaskTaskId && !scores.value[t.markingTaskTaskId]);
+    if (missing.length) {
+      await Promise.all(missing.map((t) => fillScore(t.markingTaskTaskId)));
+    }
+    const header = ['任务号', '学生', '试卷', '类型', '任务状态', '完成状态', 'AI 总分', '老师总分'];
+    const lines = rows.map((t) => {
+      const s = scores.value[t.markingTaskTaskId] ?? { ai: 0, final: 0, finished: false };
+      const statusText =
+        t.markingTaskStatus === 2 ? '已完成' : t.markingTaskStatus === 3 ? '失败' : t.markingTaskStatus === 1 ? '处理中' : '排队中';
+      return [
+        t.markingTaskTaskId || '',
+        t.markingTaskStudentId || '',
+        paperNameOf(t),
+        t.markingTaskMode || '',
+        statusText,
+        t.markingTaskTeacherFinished ? '已登记错题' : '待登记',
+        s.ai,
+        s.final,
+      ];
+    });
+    const csv =
+      '\uFEFF' +
+      [header, ...lines]
+        .map((r) => r.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
+        .join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `阅卷成绩单-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    message.success(`已导出 ${rows.length} 条阅卷成绩`);
+  } catch (e) {
+    failToast('导出成绩单失败', e);
+  } finally {
+    exportingScore.value = false;
+  }
+};
+
+/* ==================== 总览统计 ==================== */
+const dashboardStats = ref<MarkingDashboardStats | null>(null);
+const statsLoading = ref(false);
+
+const loadDashboardStats = async () => {
+  if (statsLoading.value) return;
+  statsLoading.value = true;
+  try {
+    dashboardStats.value = await eduaiApi.markingDashboardStats();
+  } catch {
+    dashboardStats.value = null;
+  } finally {
+    statsLoading.value = false;
+  }
+};
 
 /** 试卷下拉/记录列表展示共用：分值与试卷名都按试卷回数据库取 */
 const loadPapers = async () => {
@@ -156,6 +298,88 @@ const onView = (row: TeacherMarkingTask) => {
     return;
   }
   openDetailWindow(target);
+};
+
+/** 内置卷（自有卷）点击试卷名 → 直接打开试卷模板（组卷页，与试卷列表「组卷」同入口） */
+const onOpenPaperTemplate = (row: TeacherMarkingTask) => {
+  const paperId = row.markingTaskPaperId;
+  if (paperId == null) {
+    message.warning('该任务未关联内置试卷，无法打开卷面模板');
+    return;
+  }
+  void router.push({
+    path: '/eduai/paper-compose',
+    query: { paperId: String(paperId) },
+  });
+};
+
+/* ==================== 阅卷下载试卷 ==================== */
+const downloadPaper = ref<Paper | null>(null);
+const downloadPaperRef = ref<{
+  exportA4Images?: (options?: {
+    mode?: string;
+    answers?: Record<string, string>;
+    filename?: string;
+    scale?: number;
+  }) => Promise<void>;
+} | null>(null);
+const downloadingPaper = ref(false);
+
+/** 下载试卷对应的卷头，与 PaperView 详情保持一致 */
+const downloadPaperHeader = computed(() => ({
+  paperId: downloadPaper.value?.paperId ?? '',
+  name: downloadPaper.value?.paperName ?? '',
+  subject: downloadPaper.value?.paperSubject ?? '',
+  gradeLevel: downloadPaper.value?.paperGradeLevel ?? '',
+  grade: downloadPaper.value?.paperGrade ?? '',
+  pageSize: downloadPaper.value?.paperPageSize ?? 'A4',
+  pageOrientation: downloadPaper.value?.paperPageOrientation ?? 'PORTRAIT',
+  titleStyle: downloadPaper.value?.paperTitleStyle ?? 'classic',
+  header: downloadPaper.value?.paperHeader ?? '',
+  footer: downloadPaper.value?.paperFooter ?? '',
+}));
+
+/** 下载试卷对应的题目，按 order 升序，与 PaperView 详情保持一致 */
+const downloadPaperQuestions = computed(() =>
+  [...(downloadPaper.value?.questions ?? [])]
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    .map((q) => ({
+      questionId: q.id,
+      type: q.type,
+      stem: q.stem,
+      options: q.options,
+      score: q.score,
+      paperQuestionNo: q.questionNo,
+      answer: q.answer,
+      analysis: q.analysis,
+    })),
+);
+
+/** 阅卷记录行「下载试卷」：拉试卷详情 → 隐藏 PaperPreview 渲染 → 导出 A4 PNG 到本地 */
+const onDownloadPaper = async (row: TeacherMarkingTask) => {
+  const paperId = row.markingTaskPaperId;
+  if (paperId == null) {
+    message.warning('该任务未关联内置试卷，无法下载试卷');
+    return;
+  }
+  if (downloadingPaper.value) return;
+  downloadingPaper.value = true;
+  downloadPaper.value = null;
+  try {
+    const detail = await eduaiApi.getPaper(paperId);
+    downloadPaper.value = detail;
+    await nextTick();
+    await downloadPaperRef.value?.exportA4Images?.({
+      mode: 'paper',
+      filename: detail.paperName || `试卷${paperId}`,
+    });
+    message.success(`已下载试卷 ${detail.paperName || paperId}`);
+  } catch (e) {
+    failToast('下载试卷失败', e);
+  } finally {
+    downloadPaper.value = null;
+    downloadingPaper.value = false;
+  }
 };
 
 /** 「任务号直达 → 查询」：同样开独立窗口看这份试卷 */
@@ -432,6 +656,71 @@ const openDistribution = async () => {
   }
 };
 
+/* ==================== 阅卷配置（管理端） ==================== */
+const markingSettingsVisible = ref(false);
+const markingSettingsLoading = ref(false);
+const markingSettingsSaving = ref(false);
+const markingSettings = reactive<{
+  markingPrompt: string;
+  retryTimes: number;
+  retryBackoffMillis: number;
+  retryBackoffMultiplier: number;
+  retryMaxBackoffMillis: number;
+  retryOnTransient: boolean;
+  extractStrategy: string;
+}>({
+  markingPrompt: '',
+  retryTimes: 3,
+  retryBackoffMillis: 1000,
+  retryBackoffMultiplier: 2,
+  retryMaxBackoffMillis: 15000,
+  retryOnTransient: true,
+  extractStrategy: 'whole',
+});
+
+/** 打开阅卷配置弹窗：拉取当前生效设置（含判分 Prompt）回填 */
+const openMarkingSettings = async () => {
+  markingSettingsVisible.value = true;
+  markingSettingsLoading.value = true;
+  try {
+    const s = await eduaiApi.getMarkingSettings();
+    markingSettings.markingPrompt = s?.markingPrompt ?? '';
+    markingSettings.retryTimes = s?.retryTimes ?? 3;
+    markingSettings.retryBackoffMillis = s?.retryBackoffMillis ?? 1000;
+    markingSettings.retryBackoffMultiplier = s?.retryBackoffMultiplier ?? 2;
+    markingSettings.retryMaxBackoffMillis = s?.retryMaxBackoffMillis ?? 15000;
+    markingSettings.retryOnTransient = s?.retryOnTransient ?? true;
+    markingSettings.extractStrategy = s?.extractStrategy ?? 'whole';
+  } catch (e) {
+    failToast('读取阅卷配置失败', e);
+    markingSettingsVisible.value = false;
+  } finally {
+    markingSettingsLoading.value = false;
+  }
+};
+
+/** 保存阅卷配置：落库后对后续新提交的判分任务生效（判分 prompt 可自定义） */
+const saveMarkingSettings = async () => {
+  markingSettingsSaving.value = true;
+  try {
+    await eduaiApi.saveMarkingSettings({
+      markingPrompt: markingSettings.markingPrompt,
+      retryTimes: markingSettings.retryTimes,
+      retryBackoffMillis: markingSettings.retryBackoffMillis,
+      retryBackoffMultiplier: markingSettings.retryBackoffMultiplier,
+      retryMaxBackoffMillis: markingSettings.retryMaxBackoffMillis,
+      retryOnTransient: markingSettings.retryOnTransient,
+      extractStrategy: markingSettings.extractStrategy,
+    });
+    message.success('阅卷配置已保存');
+    markingSettingsVisible.value = false;
+  } catch (e) {
+    failToast('保存阅卷配置失败', e);
+  } finally {
+    markingSettingsSaving.value = false;
+  }
+};
+
 /* ==================== 提交答题卡（管理端） ==================== */
 const submitDialogVisible = ref(false);
 const submitting = ref(false);
@@ -539,6 +828,7 @@ const doSubmit = async () => {
 
 onMounted(() => {
   void loadPapers();
+  void loadDashboardStats();
 });
 onUnmounted(() => {
   stopPolling();
@@ -555,6 +845,7 @@ onUnmounted(() => {
           {{ isAdmin ? '扫描阅卷' : '上传答卷阅卷' }}
         </ReButton>
         <ReButton icon="TrendCharts" @click="openDistribution">分数分布</ReButton>
+        <ReButton v-if="isAdmin" icon="Setting" @click="openMarkingSettings">阅卷配置</ReButton>
         <template v-if="isAdmin">
           <el-input v-model="taskId" placeholder="任务号直达（可选）" clearable style="width: 260px" />
           <ReButton icon="Search" @click="onQuery">查询</ReButton>
@@ -562,6 +853,38 @@ onUnmounted(() => {
         <span v-if="!isAdmin" class="mw-hint">
           支持拖拽图片或点击选择；自有卷按题号取分，任意卷手动给总分；学生可留空匿名阅卷
         </span>
+      </div>
+    </el-card>
+    <!-- 阅卷总览统计：任务状态 / 完成状态 / 得分率分布 / 错题 TOP（当前账号归属范围） -->
+    <el-card v-if="dashboardStats" shadow="never" class="mt-3 mw-stats">
+      <div class="mw-stats__grid">
+        <div class="mw-stat">
+          <div class="mw-stat__label">任务总数</div>
+          <div class="mw-stat__value">{{ dashboardStats.taskTotal ?? 0 }}</div>
+        </div>
+        <div class="mw-stat">
+          <div class="mw-stat__label">已完成（老师）</div>
+          <div class="mw-stat__value">{{ (dashboardStats.teacherFinished ?? []).find((x) => x.name === '已完成')?.count ?? 0 }}</div>
+        </div>
+        <div class="mw-stat">
+          <div class="mw-stat__label">错题总数</div>
+          <div class="mw-stat__value">{{ dashboardStats.wrongTotal ?? 0 }}</div>
+        </div>
+        <div class="mw-stat">
+          <div class="mw-stat__label">订正率</div>
+          <div class="mw-stat__value">{{ Math.round((dashboardStats.correctedRate ?? 0) * 100) }}%</div>
+        </div>
+      </div>
+      <div class="mw-stats__bottom">
+        <div v-for="item in dashboardStats.taskStatus ?? []" :key="item.name" class="mw-mini-stat">
+          <span class="mw-mini-stat__name">{{ item.name }}</span>
+          <span class="mw-mini-stat__count">{{ item.count }}</span>
+        </div>
+        <span class="mw-stats__divider" />
+        <div v-for="item in dashboardStats.scoreRateDistribution ?? []" :key="item.name" class="mw-mini-stat">
+          <span class="mw-mini-stat__name">{{ item.name }}</span>
+          <span class="mw-mini-stat__count">{{ item.count }}</span>
+        </div>
       </div>
     </el-card>
     <!-- 实时进度（SSE）：上传后立即显示识别/解析/判分推进，终态自动收起 -->
@@ -597,8 +920,33 @@ onUnmounted(() => {
           <span class="mw-strong">AI 阅卷记录（试卷）</span>
           <ReTag type="info">{{ totalCount }} 份</ReTag>
           <ReTag type="success" effect="plain">老师总分为最终成绩</ReTag>
+          <span class="mw-spacer" />
+          <el-select
+            v-model="finishFilter"
+            size="small"
+            style="width: 120px"
+            @change="onFinishFilterChange"
+          >
+            <el-option :value="undefined" label="全部" />
+            <el-option :value="0" label="待完成" />
+            <el-option :value="1" label="已完成" />
+          </el-select>
         </div>
       </template>
+      <div class="mw-batch-bar">
+        <span v-if="selectedTasks.length" class="mw-batch-count">已选 {{ selectedTasks.length }} 个任务</span>
+        <el-button size="small" type="success" :disabled="batchFinishing" :loading="batchFinishing" @click="batchFinish">
+          批量完成
+        </el-button>
+        <el-button size="small" type="warning" :disabled="batchUndoing" :loading="batchUndoing" @click="batchUnfinish">
+          批量撤销
+        </el-button>
+        <span class="mw-spacer" />
+        <ReButton size="small" icon="Download" :loading="exportingScore" @click="exportScoreCsv">导出成绩单</ReButton>
+        <ReTag v-if="dashboardStats" size="small" effect="plain">
+          订正率 {{ Math.round((dashboardStats.correctedRate ?? 0) * 100) }}%（{{ dashboardStats.correctedCount ?? 0 }}/{{ dashboardStats.wrongTotal ?? 0 }}）
+        </ReTag>
+      </div>
       <MarkingTaskTable
         ref="markingTaskTableRef"
         v-model:total="totalCount"
@@ -606,9 +954,27 @@ onUnmounted(() => {
         :tasks="tasks"
         :papers="paperOptions"
         :scores="scores"
+        selectable
         @view="onView"
+        @paper="onDownloadPaper"
+        @paper-template="onOpenPaperTemplate"
+        @selection-change="onSelectionChange"
       />
     </el-card>
+
+    <!-- 下载试卷：隐藏 PaperPreview，按卷头/题目渲染后导出 A4 PNG 到本地（不占布局） -->
+    <div
+      v-if="downloadPaper"
+      aria-hidden="true"
+      class="mw-paper-download-stage"
+    >
+      <PaperPreview
+        ref="downloadPaperRef"
+        :header="downloadPaperHeader"
+        :questions="downloadPaperQuestions"
+        :fit-width="760"
+      />
+    </div>
 
     <!-- 提交答题卡对话框（管理端） -->
     <ReDialog v-if="isAdmin" v-model="submitDialogVisible" title="提交答题卡" width="640">
@@ -686,10 +1052,70 @@ onUnmounted(() => {
         </div>
       </div>
     </ReDialog>
+
+    <!-- 阅卷配置：重试曲线 + 识别策略 + 主观题判分 Prompt（管理员专属） -->
+    <ReDialog v-model="markingSettingsVisible" title="阅卷配置" width="720">
+      <div v-loading="markingSettingsLoading" class="mw-settings">
+        <el-form label-position="top">
+          <el-form-item label="阅卷判分 Prompt（主观题 AI 判分指令；留空 = 使用内置默认）">
+            <el-input
+              v-model="markingSettings.markingPrompt"
+              type="textarea"
+              :rows="9"
+              placeholder="你是资深阅卷老师，擅长根据标准答案和题目，对学生的作答进行客观、严格、公正的评分。你必须只返回 JSON，禁止任何解释。（提交后对之后提交的新阅卷任务生效）"
+            />
+            <div class="mw-settings__hint">
+              内置默认要求模型只返回 <code>{"score": 分数, "comment": "评语"}</code> JSON。自定义时请保留该输出约束，
+              模型会拿到：题型 / 题干 / 标准答案 / 学生作答 / 满分。
+            </div>
+          </el-form-item>
+          <el-row :gutter="12">
+            <el-col :span="8">
+              <el-form-item label="模型调用最大重试次数">
+                <el-input-number v-model="markingSettings.retryTimes" :min="0" :max="20" controls-position="right" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="初始退避（毫秒）">
+                <el-input-number v-model="markingSettings.retryBackoffMillis" :min="0" :step="500" controls-position="right" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="退避上限（毫秒）">
+                <el-input-number v-model="markingSettings.retryMaxBackoffMillis" :min="0" :step="1000" controls-position="right" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="12">
+            <el-col :span="8">
+              <el-form-item label="任意卷识别策略">
+                <el-select v-model="markingSettings.extractStrategy" style="width: 100%">
+                  <el-option label="整卷（默认）" value="whole" />
+                  <el-option label="按版面区域分块" value="region" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </el-form>
+      </div>
+      <template #footer>
+        <el-button @click="markingSettingsVisible = false">取消</el-button>
+        <el-button type="primary" :loading="markingSettingsSaving" @click="saveMarkingSettings">保存</el-button>
+      </template>
+    </ReDialog>
   </div>
 </template>
 
 <style scoped>
+/* 下载试卷的隐藏渲染层：放到视口外，避免空滚动条也避免被页面样式影响 */
+.mw-paper-download-stage {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  width: 800px;
+  pointer-events: none;
+  opacity: 0;
+}
 /* 管理端铺满路由视口并内部滚动；老师端嵌在 tab 里时高度自适应内容 */
 .marking-workbench {
   display: flex;
@@ -762,5 +1188,93 @@ onUnmounted(() => {
   font-size: 12px;
   color: var(--el-color-warning);
   margin-bottom: 8px;
+}
+/* 阅卷配置弹窗 */
+.mw-settings {
+  min-height: 240px;
+}
+.mw-settings__hint {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+  margin-top: 6px;
+}
+.mw-settings__hint code {
+  background: var(--el-fill-color-light);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: Consolas, Monaco, monospace;
+  font-size: 11px;
+}
+/* 阅卷总览统计卡 */
+.mw-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.mw-stats__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+.mw-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-bg-color));
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 14%, transparent);
+}
+.mw-stat__label {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.mw-stat__value {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--el-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+.mw-stats__bottom {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+.mw-mini-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+}
+.mw-mini-stat__name {
+  color: var(--el-text-color-secondary);
+}
+.mw-mini-stat__count {
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+.mw-stats__divider {
+  width: 1px;
+  height: 16px;
+  background: var(--el-border-color);
+}
+/* 批量操作条 */
+.mw-batch-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.mw-batch-count {
+  font-size: 13px;
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+.mw-spacer {
+  flex: 1;
 }
 </style>

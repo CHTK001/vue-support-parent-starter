@@ -29,8 +29,9 @@
       </div>
     </ReSkeleton>
 
-    <ReSectionHead class="export-head" title="指标导出" description="按当前筛选导出采集指标历史数据">
+    <ReSectionHead class="export-head" title="指标导出" :description="'按当前筛选导出采集指标历史数据  ' + liveTime">
       <template #actions>
+        <span class="live-dot"></span>
         <ReButton show-text icon="Download" type="primary" @click="downloadAllMetrics">导出全部</ReButton>
         <ReButton show-text icon="Download" @click="downloadMetrics">导出选中</ReButton>
       </template>
@@ -46,14 +47,17 @@
             <div class="dist-item">
               <span class="dist-label">服务器</span>
               <ReProgress :progress="serverPct / 100" color="primary" :height="16" />
+              <span class="dist-pct">{{ serverPct }}%</span>
             </div>
             <div class="dist-item">
               <span class="dist-label">Redis</span>
               <ReProgress :progress="redisPct / 100" color="warning" :height="16" />
+              <span class="dist-pct">{{ redisPct }}%</span>
             </div>
             <div class="dist-item">
               <span class="dist-label">数据库</span>
               <ReProgress :progress="dbPct / 100" color="success" :height="16" />
+              <span class="dist-pct">{{ dbPct }}%</span>
             </div>
           </div>
         </ReCard>
@@ -67,10 +71,12 @@
             <div class="dist-item">
               <span class="dist-label">运行中</span>
               <ReProgress :progress="enabledPct / 100" color="success" :height="16" />
+              <span class="dist-pct">{{ enabledPct }}%</span>
             </div>
             <div class="dist-item">
               <span class="dist-label">已停用</span>
               <ReProgress :progress="disabledPct / 100" color="danger" :height="16" />
+              <span class="dist-pct">{{ disabledPct }}%</span>
             </div>
           </div>
         </ReCard>
@@ -80,7 +86,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, defineExpose } from 'vue'
+import { ref, computed, onMounted, onUnmounted, defineExpose } from 'vue'
 import { message } from '@repo/core'
 import { getOverview, exportMetricHistory, exportAllMetricHistory } from '../../api'
 
@@ -94,6 +100,19 @@ const redisPct = computed(() => data.value.total > 0 ? Math.round(data.value.red
 const dbPct = computed(() => data.value.total > 0 ? Math.round(data.value.dbCount / data.value.total * 100) : 0)
 const enabledPct = computed(() => data.value.total > 0 ? Math.round(data.value.enabled / data.value.total * 100) : 0)
 const disabledPct = computed(() => data.value.total > 0 ? Math.round(data.value.disabled / data.value.total * 100) : 0)
+
+// 实时时钟
+const liveTime = ref('')
+let clockTimer: ReturnType<typeof setInterval>
+const updateClock = () => {
+  const now = new Date()
+  liveTime.value = now.toLocaleTimeString('zh-CN', { hour12: false })
+}
+onMounted(() => {
+  updateClock()
+  clockTimer = setInterval(updateClock, 1000)
+})
+onUnmounted(() => clearInterval(clockTimer))
 
 onMounted(async () => {
   loading.value = true
@@ -154,6 +173,13 @@ const downloadMetrics = async () => {
   gap: 14px;
   margin-bottom: 16px;
 }
+.stats-grid > * {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.stats-grid > *:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
 /* 统计卡视觉（圆角/无边框/双层柔光/悬停上浮）由 ReStatCard 自身的
    re-surface 基线提供（packages/ui/src/components/shared/re-surface.css），
    此处不再覆写一遍，避免与基线重复且互相打架。 */
@@ -165,6 +191,24 @@ const downloadMetrics = async () => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+.export-head :deep(.re-button) {
+  transition: transform 0.2s ease;
+}
+.export-head :deep(.re-button:hover) {
+  transform: scale(1.05);
+}
+.live-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--el-color-success);
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+  margin-right: 4px;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
+  50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
 }
 
 /* 圆角沿用本页令牌；悬停视觉由 ReCard 自身 hoverable / re-surface 基线提供，不再重复写 */
@@ -186,6 +230,13 @@ const downloadMetrics = async () => {
   width: 56px;
   font-size: 13px;
   color: var(--text-secondary);
+  flex-shrink: 0;
+}
+.dist-pct {
+  width: 40px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  text-align: right;
   flex-shrink: 0;
 }
 .dist-item :deep(.el-progress) { flex: 1; }

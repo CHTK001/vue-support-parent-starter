@@ -18,7 +18,7 @@ import { createVite } from "../../turbo/vite/createVite.ts";
 
 // 后端只跑在 Kali 上（collect-scheduler 的 18190 实例实测在远端监听），
     // 本机不起后端进程，所以缺省指向远端而不是 127.0.0.1。
-    // 与 vue-support-ai-guada / vue-support-system-starter / monitor 同一口径。
+    // 与 vue-support-ai-starter / vue-support-system-starter / monitor 同一口径。
     // 注意：缺省目标指向没人监听的本机端口时，dev 代理返回的是合法 JSON 但 data 为空，
     // 不会报连接错误，排查方向容易被带偏。
     // 需要指向其他实例时用环境变量覆盖：

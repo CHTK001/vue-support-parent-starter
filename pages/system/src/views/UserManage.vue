@@ -8,7 +8,7 @@
 import { message } from "@repo/core";
 import { computed, nextTick, onMounted, ref } from "vue";
 import { ElMessageBox } from "element-plus";
-import { User, Plus, Edit, Delete, Search, Refresh, Key, UserFilled, Upload, Download, More, View, CopyDocument, Iphone, Message, Female, Male, Postcard } from "@element-plus/icons-vue";
+import { User, Plus, Edit, Delete, Search, Refresh, Key, UserFilled, Upload, Download, More, View, CopyDocument, Iphone, Message, Female, Male, Postcard, Loading } from "@element-plus/icons-vue";
 import {
   pageForUser,
   saveUser,
@@ -30,12 +30,25 @@ import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re
 import useUserStore from "@repo/pinia/modules/user";
 import useAuthStore from "@repo/pinia/modules/auth";
 import ReDialog from "@repo/ui/re-dialog";
+import ReSectionHead from "@repo/ui/re-section-head";
+import ReEmpty from "@repo/ui/re-empty";
 
 const userStore = useUserStore();
 const authStore = useAuthStore();
 const statusLoading = ref<number>(0);
 const deleteLoading = ref<number>(0);
 const resettingPwd = ref<number>(0);
+
+/** 表格选择行 */
+const selection = ref<Record<string, unknown>[]>([]);
+
+/** CSV 导入弹窗 */
+const showImportDialog = ref(false);
+const importStep = ref<1 | 2 | 3>(1); // 1=选择文件, 2=预览, 3=确认
+const importFile = ref<File | null>(null);
+const importPreviewData = ref<Record<string, unknown>[]>([]);
+const importPreviewColumns = ref<string[]>([]);
+const importLoading = ref(false);
 
 const userSexOptions = [
   { label: "男", value: 0 },
@@ -204,8 +217,15 @@ function isReadonlyUser(user: SysUser): boolean {
   return codes.some((c) => c.includes("readonly") || c === "read_only" || c === "ro");
 }
 
-function uniqueUserRoles(row: Record<string, unknown>): SysRole[] {
-  const values: unknown[] = Array.isArray(row.userRoles) ? row.userRoles : [];
+/**
+ * 去重用户角色：按唯一角色编号（sysRoleId）收敛，避免同一角色重复渲染。
+ *
+ * <p>后端 sys_user_role 允许重复行，接口返回的角色可能按行数放大；此处统一按
+ * sysRoleId 去重（列表 / 详情 / 资料卡共用一处，避免各写一份 Map 去重）。</p>
+ */
+function uniqueUserRoles(row: unknown): SysRole[] {
+  const source = (row as { userRoles?: unknown } | null)?.userRoles;
+  const values: unknown[] = Array.isArray(source) ? source : [];
   const roles = values.filter(
     (role): role is SysRole => typeof role === 'object' && role !== null,
   );
@@ -280,8 +300,14 @@ function handleReset() {
 /* ================== 导入导出 ================== */
 
 const importInput = ref<HTMLInputElement>();
+const importCsvInput = ref<HTMLInputElement>();
 const importing = ref(false);
 const exporting = ref(false);
+
+/** 触发 CSV 导入文件选择 */
+function triggerCsvImport() {
+  importCsvInput.value?.click();
+}
 
 /** 触发文件选择 */
 function triggerImport() {
@@ -678,6 +704,108 @@ function handleActionCommand(cmd: string, row: Record<string, unknown>) {
   else if (cmd === "unbindTotp") handleUnbindTotp(row);
 }
 
+/* ================== 批量操作 ================== */
+
+/** 批量重置密码 */
+async function batchResetPassword() {
+  const ids = selection.value.map((r: Record<string, unknown>) => r.sysUserId as number).filter(Boolean);
+  if (!ids.length) return;
+  try {
+    await ElMessageBox.confirm(
+      `确认重置 ${ids.length} 个用户的密码？`,
+      "批量重置密码",
+      { type: "warning" },
+    );
+  } catch {
+    return;
+  }
+  importLoading.value = true;
+  try {
+    // 逐个调用，后端无批量接口时退化处理
+    const promises = ids.map((id) => resetUserPassword(id));
+    await Promise.allSettled(promises);
+    const successCount = ids.length;
+    message.success(`已重置 ${successCount} 个用户密码`);
+    selection.value = [];
+    tableRef.value?.reload();
+  } catch (e) {
+    message.error((e as Error)?.message ?? "批量重置失败");
+  } finally {
+    importLoading.value = false;
+  }
+}
+
+/* ================== CSV 导入 ================== */
+
+/** 解析 CSV 文件并预览 */
+function parseCsvForPreview(file: File) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const text = e.target?.result as string;
+    const lines = text.split("\n").filter((l) => l.trim());
+    if (lines.length < 2) {
+      message.warning("CSV 文件内容不足，至少需要表头和 1 行数据");
+      return;
+    }
+    const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
+    const rows = lines.slice(1).map((line) => {
+      const values = line.split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
+      const obj: Record<string, unknown> = {};
+      headers.forEach((h, i) => { obj[h] = values[i] ?? ""; });
+      return obj;
+    });
+    importPreviewColumns.value = headers;
+    importPreviewData.value = rows;
+    importStep.value = 2;
+  };
+  reader.readAsText(file);
+}
+
+/** 处理导入弹窗文件选择 */
+function handleImportFileSelect(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  if (!file.name.endsWith(".csv")) {
+    message.warning("请选择 CSV 格式文件");
+    input.value = "";
+    return;
+  }
+  importFile.value = file;
+  parseCsvForPreview(file);
+}
+
+/** 确认导入 */
+async function confirmImport() {
+  if (!importFile.value) return;
+  importStep.value = 3;
+  importLoading.value = true;
+  try {
+    // 直接复用已有的 importUsers 接口（支持 xlsx/csv）
+    const res = await importUsers(importFile.value);
+    if (res?.code === 200 || res?.status === 200) {
+      message.success(res?.data ?? "导入成功");
+      showImportDialog.value = false;
+      resetImportState();
+      tableRef.value?.reload();
+    } else {
+      message.error(res?.msg ?? "导入失败");
+    }
+  } catch (err) {
+    message.error((err as Error)?.message ?? "导入失败");
+  } finally {
+    importLoading.value = false;
+  }
+}
+
+/** 重置导入状态 */
+function resetImportState() {
+  importStep.value = 1;
+  importFile.value = null;
+  importPreviewData.value = [];
+  importPreviewColumns.value = [];
+}
+
 const columns: ReTableColumn[] = [
   { prop: "sysUserUsername", label: "账号", minWidth: 200, slot: "username" },
   { prop: "sysUserNickname", label: "昵称", minWidth: 160, slot: "nickname" },
@@ -708,6 +836,14 @@ onMounted(() => {
         class="visually-hidden-input"
         @change="handleFileChange"
       />
+      <!-- CSV 导入专用 -->
+      <input
+        ref="importCsvInput"
+        type="file"
+        accept=".csv"
+        class="visually-hidden-input"
+        @change="handleImportFileSelect"
+      />
 
       <ReTable
         ref="tableRef"
@@ -725,14 +861,25 @@ onMounted(() => {
         v-model:page-size="query.pageSize"
         :batch-delete="true"
         :batch-delete-handler="handleBatchDeleteRows"
+        :selection="true"
+        @selection-change="selection = $event"
         @search-reset="handleReset"
       >
         <!-- 工具栏：页面业务按钮（批量删除由 ReTable 内置工具按钮提供） -->
         <template #toolbar>
           <ReButton type="primary" icon="Plus" @click="handleAdd" text>添加</ReButton>
           <ReButton type="primary" icon="Download" @click="handleDownloadTemplate" text>下载模板</ReButton>
-          <ReButton type="primary" icon="Upload" :loading="importing" @click="triggerImport" text>导入用户</ReButton>
+          <ReButton type="primary" icon="Upload" @click="showImportDialog = true" text>导入</ReButton>
           <ReButton type="primary" icon="Download" :loading="exporting" @click="handleExport" text>导出</ReButton>
+        </template>
+
+        <!-- 批量操作区域 -->
+        <template v-if="selection.length > 0" #batch-actions>
+          <div class="batch-actions">
+            <span>已选 {{ selection.length }} 项</span>
+            <ReButton icon="Key" @click="batchResetPassword" :loading="importLoading">批量重置密码</ReButton>
+            <ReButton icon="Delete" type="danger" @click="() => tableRef?.batchDelete()">批量删除</ReButton>
+          </div>
         </template>
 
         <template #empty>
@@ -1006,7 +1153,7 @@ onMounted(() => {
             <div class="profile-info-item"><span class="label">邮箱</span><span>{{ profileUser.sysUserEmail || '-' }}</span></div>
             <div class="profile-info-item"><span class="label">状态</span><span>{{ profileUser.sysUserStatus === 1 ? '启用' : '禁用' }}</span></div>
             <div class="profile-info-item"><span class="label">部门</span><span>{{ deptNameOf(profileUser.sysDeptId) }}</span></div>
-            <div class="profile-info-item"><span class="label">角色</span><span>{{ [...new Map((profileUser.userRoles ?? []).map(r => [r.sysRoleId, r])).values()].map(r => r.sysRoleName).join('、') || '-' }}</span></div>
+            <div class="profile-info-item"><span class="label">角色</span><span>{{ uniqueUserRoles(profileUser).map(r => r.sysRoleName).join('、') || '-' }}</span></div>
             <div class="profile-info-item"><span class="label">岗位</span><span>{{ [...new Map((profileUser.userPosts ?? []).map(p => [p.sysPostId, p])).values()].map(p => p.sysPostName).join('、') || '-' }}</span></div>
             <div class="profile-info-item"><span class="label">最后登录</span><span>{{ profileUser.sysUserLastLoginTime || '-' }}</span></div>
             <div class="profile-info-item"><span class="label">登录IP</span><span>{{ profileUser.sysUserLastIp || '-' }}</span></div>
@@ -1091,7 +1238,7 @@ onMounted(() => {
           </el-descriptions-item>
           <el-descriptions-item label="角色">
             <div v-if="detailUser.userRoles?.length" class="flex flex-wrap gap-1">
-              <ReTag v-for="r in [...new Map((detailUser.userRoles ?? []).map(r => [r.sysRoleId, r])).values()]" :key="r.sysRoleId" type="primary" effect="plain" >
+              <ReTag v-for="r in uniqueUserRoles(detailUser)" :key="r.sysRoleId" type="primary" effect="plain" >
                 {{ r.sysRoleName }}
               </ReTag>
             </div>
@@ -1140,85 +1287,56 @@ onMounted(() => {
         </el-descriptions>
       </template>
     </ReDrawer>
+
+    <!-- CSV 导入弹窗 -->
+    <ReDialog
+      v-model="showImportDialog"
+      title="导入用户"
+      width="640px"
+      :close-on-click-modal="false"
+      :confirm-loading="importLoading"
+      @ok="confirmImport"
+    >
+      <!-- 步骤1：选择文件 -->
+      <div v-if="importStep === 1" class="import-step">
+        <div class="import-upload-area">
+          <ReButton type="primary" @click="triggerCsvImport">选择 CSV 文件</ReButton>
+          <div class="import-upload-hint mt-2">支持 .csv 格式，请先下载模板填写</div>
+        </div>
+      </div>
+
+      <!-- 步骤2：预览数据 -->
+      <div v-else-if="importStep === 2" class="import-step">
+        <div class="import-preview-header">
+          <span>文件：{{ importFile?.name }}</span>
+          <span class="text-[--el-text-color-secondary]">共 {{ importPreviewData.length }} 条数据</span>
+        </div>
+        <el-table :data="importPreviewData" max-height="300" border size="small">
+          <el-table-column
+            v-for="col in importPreviewColumns"
+            :key="col"
+            :prop="col"
+            :label="col"
+            min-width="100"
+            show-overflow-tooltip
+          />
+        </el-table>
+        <div class="import-preview-tip">确认数据无误后点击确定开始导入</div>
+      </div>
+
+      <!-- 步骤3：导入中 -->
+      <div v-else-if="importStep === 3" class="import-step">
+        <div class="import-loading">
+          <el-icon class="is-loading" size="32"><Loading /></el-icon>
+          <span>正在导入，请稍候...</span>
+        </div>
+      </div>
+    </ReDialog>
   </div>
 </template>
 
 <style scoped lang="scss">
-.profile-body {
-  display: flex;
-  gap: 24px;
-  min-height: 400px;
-}
-.profile-left {
-  width: 260px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-  /* 浅底用令牌而不是写死 #f8fafc：暗色模式下会自动翻转，写死则暗色下刺眼 */
-  background: var(--el-fill-color-lighter);
-  border-radius: var(--el-radius-md, 8px);
-}
-.profile-left .profile-name {
-  font-size: 18px;
-  font-weight: 600;
-}
-.profile-left .profile-account {
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-}
-.profile-left .profile-tags {
-  display: flex;
-  gap: 6px;
-}
-.profile-info-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-  width: 100%;
-}
-.profile-info-grid .profile-info-item {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-  .label {
-    color: var(--el-text-color-secondary);
-  }
-}
-.profile-right {
-  flex: 1;
-  min-width: 0;
-}
-.log-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.log-item {
-  padding: 8px 12px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-sm, 6px);
-  .log-item__main {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-  }
-  .log-item__meta {
-    display: flex;
-    gap: 12px;
-    margin-top: 4px;
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-  }
-}
-.profile-empty {
-  text-align: center;
-  padding: 40px;
-  color: var(--el-text-color-secondary);
-}
+/* ===== 页面骨架 ===== */
 .system-page {
   display: flex;
   flex-direction: column;
@@ -1233,25 +1351,95 @@ onMounted(() => {
   justify-content: space-between;
   gap: 12px;
 }
-.system-page__title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+/* ===== 统计卡片 ===== */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
 }
-.system-page__subtitle {
-  margin-top: 4px;
+.stat-card {
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+}
+.stat-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--accent, var(--brand-500));
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.stat-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 8px;
+  letter-spacing: 0.02em;
+}
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+.stat-trend {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+.stat-trend.is-up { color: var(--status-success); }
+.stat-trend.is-down { color: var(--status-error); }
+/* ===== 筛选工具栏 ===== */
+.page-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+/* ===== 批量操作条 ===== */
+.batch-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: color-mix(in srgb, var(--brand-500) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brand-500) 20%, transparent);
+  border-radius: var(--radius-md);
   font-size: 13px;
-  color: var(--el-text-color-secondary);
+  margin-bottom: 8px;
 }
-:deep(.el-overlay) {
-  transition: none !important;
+.batch-info {
+  font-size: 12px;
+  color: var(--brand-500);
+  font-weight: 600;
+  margin-right: 8px;
 }
+/* ===== 操作按钮组 ===== */
 .row-actions {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
 }
+/* ===== 空状态 ===== */
+.empty-state {
+  display: flex;
+  justify-content: center;
+  padding: 60px 0;
+}
+/* ===== 自定义分页（纯自绘按钮） ===== */
 .custom-pagination {
   display: flex;
   justify-content: flex-end;
@@ -1263,73 +1451,95 @@ onMounted(() => {
   min-width: 28px;
   height: 28px;
   padding: 0 6px;
-  border: 1px solid var(--el-border-color);
-  border-radius: var(--el-radius-xs, 4px);
-  background: var(--el-bg-color);
-  color: var(--el-text-color-regular);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-container);
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 13px;
   outline: none;
-  transition:
-    color var(--el-transition-duration-fast, 0.2s) ease,
-    border-color var(--el-transition-duration-fast, 0.2s) ease,
-    background-color var(--el-transition-duration-fast, 0.2s) ease;
+  transition: color 0.2s var(--ease-out), border-color 0.2s var(--ease-out), background-color 0.2s var(--ease-out);
 }
-/* 分页是纯自绘按钮（不是 el-button），键盘焦点环必须自己补，否则键盘用户看不见焦点 */
 .page-btn:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  box-shadow: var(--focus-ring);
 }
 .page-btn:hover:not(:disabled):not(.active) {
-  color: var(--el-color-primary);
-  border-color: var(--el-color-primary);
+  color: var(--brand-500);
+  border-color: var(--brand-500);
 }
 .page-btn.active {
-  background: var(--el-color-primary);
-  border-color: var(--el-color-primary);
-  color: var(--el-color-white);
+  background: var(--brand-500);
+  border-color: var(--brand-500);
+  color: var(--text-inverse);
 }
 .page-btn:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
-.user-dialog__body {
-  padding: 4px 8px 0;
+/* ===== 用户详情 / 画像 ===== */
+.profile-body {
+  display: flex;
+  gap: 24px;
+  min-height: 400px;
 }
-.user-dialog__grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0 18px;
+.profile-left {
+  width: 260px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--bg-fill);
+  border-radius: var(--radius-md);
 }
-.user-dialog__full {
-  grid-column: 1 / -1;
+.profile-left .profile-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
-.user-dialog__tip {
-  margin-top: 4px;
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--el-text-color-secondary);
-}
-/* 隐藏的文件选择框：必须保留在 DOM 里（脚本用 ref 触发 click），只做视觉隐藏 */
-.visually-hidden-input {
-  display: none;
-}
-.reset-pwd-body {
-  padding: 20px 0;
-}
-.reset-pwd-tip {
+.profile-left .profile-account {
   font-size: 13px;
-  line-height: 1.6;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
+}
+.profile-info-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  width: 100%;
+}
+.profile-info-grid .profile-info-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  .label { color: var(--text-tertiary); }
+}
+.profile-right {
+  flex: 1;
+  min-width: 0;
+}
+.log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.log-item {
+  padding: 8px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  .log-item__main { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-primary); }
+  .log-item__meta { display: flex; gap: 12px; margin-top: 4px; font-size: 12px; color: var(--text-tertiary); }
+}
+.profile-empty {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-tertiary);
 }
 .detail-section-title {
   margin: 16px 0 8px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-.user-cell__avatar {
-  position: relative;
-  flex-shrink: 0;
+  color: var(--text-primary);
 }
 .user-cell__dot {
   position: absolute;
@@ -1338,34 +1548,90 @@ onMounted(() => {
   box-sizing: content-box;
   width: 8px;
   height: 8px;
-  border: 2px solid var(--el-bg-color);
+  border: 2px solid var(--bg-container);
   border-radius: 50%;
 }
 .user-cell__dot.is-online {
-  background: var(--el-color-success);
+  background: var(--status-success);
   animation: user-cell__pulse 2s ease-in-out infinite;
 }
 .user-cell__dot.is-offline {
-  background: var(--el-text-color-disabled);
+  background: var(--text-tertiary);
 }
 @keyframes user-cell__pulse {
-  0% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--el-color-success) 55%, transparent);
-  }
-  70% {
-    box-shadow: 0 0 0 5px transparent;
-  }
-  100% {
-    box-shadow: 0 0 0 0 transparent;
-  }
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--status-success) 55%, transparent); }
+  70% { box-shadow: 0 0 0 5px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
 }
-
 /* 尊重系统「减少动态效果」偏好：脉冲与过渡都要停 */
 @media (prefers-reduced-motion: reduce) {
   .page-btn,
-  .user-cell__dot {
-    transition: none;
-    animation: none;
-  }
+  .user-cell__dot { transition: none; animation: none; }
+}
+/* ===== 对话框 ===== */
+.user-dialog__body { padding: 4px 8px 0; }
+.user-dialog__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 18px;
+}
+.user-dialog__full { grid-column: 1 / -1; }
+.user-dialog__tip {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-tertiary);
+}
+.visually-hidden-input { display: none; }
+.reset-pwd-body { padding: 20px 0; }
+.reset-pwd-tip {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-tertiary);
+}
+/* ===== CSV 导入弹窗 ===== */
+.import-step { padding: 16px 0; }
+.import-upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  border: 2px dashed var(--border-default);
+  border-radius: var(--radius-md);
+  gap: 12px;
+  text-align: center;
+}
+.import-upload-icon { color: var(--text-tertiary); }
+.import-upload-text { font-size: 14px; color: var(--text-primary); }
+.import-upload-hint { font-size: 12px; color: var(--text-tertiary); }
+.import-preview-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+.import-preview-tip {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+.import-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 16px;
+  color: var(--text-tertiary);
+}
+/* ===== 响应式 ===== */
+@media (max-width: 768px) {
+  .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .user-dialog__grid { grid-template-columns: 1fr; }
+  .profile-body { flex-direction: column; }
+  .profile-left { width: 100%; }
 }
 </style>

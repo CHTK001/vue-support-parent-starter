@@ -36,7 +36,7 @@
         <el-button :disabled="loading" @click="load(page)">
           <el-icon><Refresh /></el-icon>刷新
         </el-button>
-        <el-button type="primary" :disabled="loading" @click="openEnroll">
+        <el-button type="primary" :disabled="loading || !canEnroll" @click="openEnroll">
           <el-icon><Upload /></el-icon>人脸登记入库
         </el-button>
       </div>
@@ -313,6 +313,12 @@
     <!-- 底栏：把当前生效的识别参数亮出来，排查「搜不到」时先看这两个值 -->
     <div class="lib-foot">
       <span class="lib-foot-value">人脸检测模型：{{ detectorModel || '未配置' }} · 特征模型：{{ featureModel || '未配置' }}</span>
+      <span v-if="faceUnregisteredMsg" class="lib-foot-warn">
+        <span>{{ faceUnregisteredMsg }}</span>
+        <el-button size="small" type="warning" plain :loading="fixingModels" @click="fixUnregisteredModels">
+          一键修复模型名
+        </el-button>
+      </span>
     </div>
   </div>
 </template>
@@ -375,6 +381,8 @@ interface Row {
 
 const loading = ref(false)
 const busy = ref(false)
+/** 一键修复「onnx: 前缀模型名 → 裸模型名」的进行中状态 */
+const fixingModels = ref(false)
 const enrollVisible = ref(false)
 /** 正在编辑的行；null = 新增登记模式 */
 const editItem = ref<FaceRecord | null>(null)
@@ -461,6 +469,31 @@ const landmarkReady = computed(() => String(landmarkModel.value ?? '').trim() !=
 
 /** 修复入口是否可用：与关键点按钮同一判据（读用户覆盖优先的合并视图） */
 const restoreReady = computed(() => String(restoreModel.value ?? '').trim() !== '')
+
+/** 已配置但模型已从注册清单消失（登记/识别必然后端报“模型未注册”） */
+const faceUnregistered = computed(() => modelConfig.unregisteredConfigured)
+
+/** 登记是否可点：既要求字段真配置，也要求模型当前仍在 /api/providers 注册可用 */
+const canEnroll = computed(() =>
+  modelConfig.faceReady && modelConfig.unregisteredConfigured.length === 0,
+)
+
+/** 未注册模型对应的字段中文名（提示用） */
+const FACE_FIELD_LABELS: Record<string, string> = {
+  detector_model: '人脸检测模型',
+  feature_model: '人脸特征模型',
+  landmark_model: '人脸关键点模型',
+  restore_model: '人脸修复模型',
+}
+
+/** 已配置但未注册时的统一提示 */
+const faceUnregisteredMsg = computed(() =>
+  faceUnregistered.value.length
+    ? `人脸识别模型当前不可用：${faceUnregistered.value
+        .map((f) => FACE_FIELD_LABELS[f] ?? f)
+        .join('、')} 已配置的模型未在后端注册。请到「系统设置 → 默认模型 → 人脸识别」重新选择当前可用的模型`
+    : '',
+)
 
 /**
  * 服务端条目 → 展示行（网格/列表/表格三视图共用同一映射）。
@@ -736,8 +769,42 @@ async function mountViewer() {
 }
 
 function openEnroll() {
+  if (!modelConfig.faceReady) {
+    message.warning('人脸识别未启用：请先到「系统设置 → 默认模型 → 人脸识别」配置检测模型与特征模型')
+    return
+  }
+  if (faceUnregistered.value.length) {
+    message.error(faceUnregisteredMsg.value)
+    return
+  }
   editItem.value = null
   enrollVisible.value = true
+}
+
+/**
+ * 修复存量 `onnx:modelName` 配置：人脸设置应存裸模型名（后端 FaceClientManager
+ * 按 ModelRegistry 裸 key 查会话），把带前缀的值去掉前缀重写用户覆盖，再刷新门禁。
+ */
+async function fixUnregisteredModels() {
+  const entries = faceUnregistered.value
+  if (!entries.length) return
+  const payload: Record<string, string> = {}
+  for (const field of entries) {
+    const raw = String(configuredValue(modelConfig.faceMerged, field) ?? '')
+    payload[field] = raw.includes(':') ? raw.slice(raw.indexOf(':') + 1) : raw
+  }
+  if (!Object.keys(payload).length) return
+  try {
+    fixingModels.value = true
+    await apiService.updateUserGroupOverrides('face', payload)
+    await modelConfig.refresh()
+    await load(page.value)
+    message.success('已修复人脸检测 / 特征模型名称，可以重新登记了')
+  } catch (e: any) {
+    message.error('修复模型名称失败：' + (e?.message ?? e))
+  } finally {
+    fixingModels.value = false
+  }
 }
 
 /**
@@ -925,8 +992,21 @@ onBeforeUnmount(() => {
   justify-content: center;
   width: 100%;
   height: 100%;
-  color: var(--el-text-color-placeholder);
-  background: var(--el-fill-color-light);
+  color: var(--rm-text-secondary, var(--el-text-color-placeholder));
+  background: var(--rm-bg-subtle, var(--el-fill-color-light));
+}
+
+.lib-foot-warn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  padding: 6px 10px;
+  border-radius: var(--rm-radius-sm, var(--el-radius-sm, 6px));
+  background: color-mix(in srgb, var(--rm-warning, var(--el-color-warning)) 12%, transparent);
+  color: var(--rm-text-regular, var(--el-text-color-regular));
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .fl-alert {
@@ -943,8 +1023,8 @@ onBeforeUnmount(() => {
   width: 44px;
   height: 44px;
   object-fit: cover;
-  border-radius: var(--el-border-radius-base, 4px);
-  background: var(--el-fill-color-light);
+  border-radius: var(--rm-radius-sm, var(--el-border-radius-base, 4px));
+  background: var(--rm-bg-subtle, var(--el-fill-color-light));
   cursor: zoom-in;
 }
 
@@ -952,13 +1032,13 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--el-text-color-placeholder);
+  color: var(--rm-text-secondary, var(--el-text-color-placeholder));
   cursor: default;
 }
 
 .lt-mono {
   font-family: var(--el-font-family, monospace);
-  font-size: var(--el-font-size-small);
+  font-size: var(--rm-font-sm, var(--el-font-size-small));
 }
 
 .lt-actions {

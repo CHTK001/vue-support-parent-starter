@@ -6,6 +6,7 @@
  */
 import { computed } from "vue";
 import type { FilePickerItem } from "../types";
+import ReDialog from "../../ReDialog/index";
 import { fileTypeText, formatSize, formatTime, parentPathOf } from "../utils";
 
 const props = defineProps<{
@@ -46,7 +47,7 @@ const rows = computed<Array<{ label: string; value: string }>>(() => {
 </script>
 
 <template>
-  <el-dialog
+  <ReDialog
     v-if="modelValue"
     v-model="visible"
     title="属性"
@@ -61,7 +62,7 @@ const rows = computed<Array<{ label: string; value: string }>>(() => {
         <dd :title="row.value">{{ row.value || "-" }}</dd>
       </template>
     </dl>
-  </el-dialog>
+  </ReDialog>
 </template>
 
 <style scoped>

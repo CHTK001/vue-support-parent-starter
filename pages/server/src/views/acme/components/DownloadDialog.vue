@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { message } from "@repo/core";
+import ReDialog from "@repo/ui/re-dialog";
 import { Document, Download, Key, Link, FolderOpened } from "@element-plus/icons-vue";
 import { downloadCertFile, type AcmeCertificate } from "../../../api/acmeApi";
 import { createZip } from "../../../utils/zip";
@@ -90,7 +91,7 @@ async function handleDownloadAll(): Promise<void> {
 </script>
 
 <template>
-  <el-dialog v-model="dialogVisible" title="下载证书" width="480px" append-to-body>
+  <ReDialog v-model="dialogVisible" title="下载证书" width="480px" append-to-body>
     <div class="dlg-tip">选择要下载的文件，证书链与私钥均为 PEM 格式。</div>
     <div class="dlg-list">
       <div class="dlg-item" @click="handleDownload('cert')">
@@ -119,12 +120,11 @@ async function handleDownloadAll(): Promise<void> {
       </div>
     </div>
     <template #footer>
-      <el-button @click="dialogVisible = false">关闭</el-button>
       <el-button type="primary" :loading="downloading" @click="handleDownloadAll">
         <el-icon style="margin-right:4px"><FolderOpened /></el-icon>打包下载全部（zip）
       </el-button>
     </template>
-  </el-dialog>
+  </ReDialog>
 </template>
 
 <style scoped>

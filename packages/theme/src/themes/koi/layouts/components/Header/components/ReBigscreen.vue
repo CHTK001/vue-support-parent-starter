@@ -7,13 +7,13 @@
 <template>
   <el-tooltip :content="$t('header.bigscreen')" placement="bottom" :show-after="300">
     <div class="bigscreen-trigger" :title="$t('header.bigscreen')" @click="openBigscreen">
-      <el-icon :size="18"><Monitor /></el-icon>
+      <!-- 动画图标（hover/focus 播放）；上游无 Monitor，取分屏栅格表达「多屏大屏」 -->
+      <ReIcon name="anim:tabler:layout-grid" :size="18" />
     </div>
   </el-tooltip>
 </template>
 
 <script setup lang="ts">
-import { Monitor } from "@element-plus/icons-vue";
 import { getConfig } from "@repo/config";
 
 const bigscreenUrl = () => getConfig().other.bigscreen.url || "/bigscreen";

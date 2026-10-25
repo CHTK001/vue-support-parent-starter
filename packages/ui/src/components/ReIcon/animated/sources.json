@@ -52,6 +52,45 @@
     },
     "tabler/trash.vue": {
       "sha256": "2d79e371df08701cb82f8ae14e29d5f86d617d8c144e3adb827776493d508a20"
+    },
+    "tabler/refresh.vue": {
+      "sha256": "882df8d7155c1188ee8cc7c8fe352e00e42d055fa2c5a8a6477d86a4aa20b20d"
+    },
+    "tabler/search.vue": {
+      "sha256": "c280201ed122ae83b9b7a08241aa7e1c0f5ff0579c3158840e3d950a49d71d77"
+    },
+    "tabler/sun.vue": {
+      "sha256": "e575c1ef32608e740141bc62ea0640ac62f822f63084e4890a697f0d22b38674"
+    },
+    "tabler/moon.vue": {
+      "sha256": "6bb45a76a7e6fb59a93354c2cd9b948e168d078df58bd2f855bee96eaf606416"
+    },
+    "tabler/sun-moon.vue": {
+      "sha256": "2491876ded9017eb96e1c1458b745a96f76c5c42f9049db77c544608894d20cd"
+    },
+    "tabler/settings.vue": {
+      "sha256": "c33a9ebfcddbe1fceab0da2b8f97377769e201210ba51676e6e9846b1c5f2476"
+    },
+    "tabler/layout-grid.vue": {
+      "sha256": "e8f149fd47c93d5f1d7518ab0f7d5ebc4f886cbca6f4ac5a74deaa31e62503f4"
+    },
+    "tabler/clock.vue": {
+      "sha256": "405b4d22c7b98a2789acae6a7ab974e5bb96bdda0c319361664135a96f09d70f"
+    },
+    "tabler/propeller.vue": {
+      "sha256": "63df58ad43064976dd7fdd08f016307574257957572d9bff8b994ba8580dc82c"
+    },
+    "tabler/language.vue": {
+      "sha256": "cbe6e2f1a0ef9c24ff4e55d77da1508d3cfd8c5a116e2ece5df7ed58e0880aa8"
+    },
+    "tabler/arrows-maximize.vue": {
+      "sha256": "dc57bcf5438a6bab507fe3e93dfe2645bc44e2d74998dd510a3b83f562a654ae"
+    },
+    "tabler/arrows-minimize.vue": {
+      "sha256": "ef09ef075e2599d0101477b58b395a4b4cc411c12640b9144180f5244704342a"
+    },
+    "tabler/user.vue": {
+      "sha256": "24e8d589440889bfdffe7dc16303ca3a9612da0749968255ba51b315a152a41c"
     }
   }
 }

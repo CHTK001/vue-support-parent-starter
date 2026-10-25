@@ -170,23 +170,42 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="p-6">
-    <!-- 页面头部 -->
-    <div class="mb-6">
-      <h2 class="text-xl font-semibold tracking-tight text-[--el-text-color-primary]">
-        推送日志
-      </h2>
-      <p class="mt-1 text-sm text-[--el-text-color-secondary]">
-        查看各渠道的推送记录与发送结果
-      </p>
+  <div class="log-page">
+    <ReSectionHead
+      class="log-head"
+      title="推送日志"
+      description="查看各渠道的推送记录与发送结果"
+    >
+      <template #actions>
+        <ReStationMessage />
+      </template>
+    </ReSectionHead>
+
+    <!-- 概览统计：总数 / 成功 / 失败 / 未读，窄屏 2 列 -->
+    <div class="stat-grid" role="group" aria-label="推送日志概览">
+      <div class="stat-card" style="--accent: var(--brand-500)">
+        <span class="stat-label">日志总数</span>
+        <span class="stat-value">{{ pagination.total }}</span>
+        <span class="stat-trend">累计发送</span>
+      </div>
+      <div class="stat-card" style="--accent: var(--status-success)">
+        <span class="stat-label">成功</span>
+        <span class="stat-value">{{ list.filter((r) => r.sysMessageCode === "SUCCESS").length }}</span>
+        <span class="stat-trend">当前页成功</span>
+      </div>
+      <div class="stat-card" style="--accent: var(--status-error)">
+        <span class="stat-label">失败</span>
+        <span class="stat-value">{{ list.filter((r) => r.sysMessageCode === "FAILURE").length }}</span>
+        <span class="stat-trend">当前页失败</span>
+      </div>
+      <div class="stat-card" style="--accent: var(--status-info)">
+        <span class="stat-label">未读</span>
+        <span class="stat-value">{{ list.filter((r) => r.sysMessageReadStatus === 0).length }}</span>
+        <span class="stat-trend">当前页未读</span>
+      </div>
     </div>
 
-    <!-- 站内消息入口 -->
-    <div class="mb-4 flex items-center justify-end">
-      <ReStationMessage />
-    </div>
-
-    <!-- 顶部：全部 / 提供商上下文切换 -->
+    <!-- 站内消息入口 + 提供商上下文切换（ReProviderFilterBar 保持原样） -->
     <ReProviderFilterBar
       v-model:provider-id="query.sysMessageProviderId"
       title="推送日志"
@@ -195,20 +214,20 @@ onMounted(() => {
       :current-provider="currentProvider"
       @change="handleProviderChange"
     >
-      <el-button type="danger" plain :icon="Delete" @click="handleClean">清理日志</el-button>
+      <ReButton type="danger" size="small" :icon="Delete" @click="handleClean">清理日志</ReButton>
     </ReProviderFilterBar>
 
-    <!-- 列表区域 -->
-    <el-card shadow="never" class="mt-6 rounded-xl border border-solid border-[--el-border-color-lighter]">
-      <div class="mb-4 flex flex-wrap items-center gap-3">
+    <!-- 列表区域：koi 卡片外壳包裹 ReTable；列插槽 / 搜索协议 / el-pagination 原样保留 -->
+    <div class="table-card">
+      <div class="filter-bar">
         <el-input
           v-model="query.sysMessageLogTarget"
           placeholder="接收人"
           clearable
-          class="!w-56"
+          class="filter-field"
           @keyup.enter="handleReset"
         />
-        <el-select v-model="query.sysMessageCode" placeholder="返回码" clearable class="!w-32">
+        <el-select v-model="query.sysMessageCode" placeholder="返回码" clearable class="filter-field filter-field--sm">
           <el-option label="成功" value="SUCCESS" />
           <el-option label="失败" value="FAILURE" />
         </el-select>
@@ -216,25 +235,21 @@ onMounted(() => {
           v-model="query.sysMessageReadStatus"
           placeholder="阅读状态"
           clearable
-          class="!w-32"
+          class="filter-field filter-field--sm"
         >
           <el-option label="已读" :value="1" />
           <el-option label="未读" :value="0" />
         </el-select>
-        <div class="flex-1" />
-        <el-button type="primary" :icon="Search" @click="loadList">查询</el-button>
-        <el-button :icon="Refresh" @click="handleReset">重置</el-button>
+        <div class="filter-spacer" />
+        <ReButton type="primary" size="small" :icon="Search" @click="loadList">查询</ReButton>
+        <ReButton size="small" :icon="Refresh" @click="handleReset">重置</ReButton>
       </div>
-      <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM；
-           原表没有 border → :settings="{ border: false }"；stripe 同名保留；v-loading → :loading；
-           分页仍由下方 el-pagination 自管，ReTable 自带分页/工具栏关闭；minHeight:0 关掉 fill
-           与空态 440px 强撑。下同。 -->
       <ReTable
         :loading="loading"
         :data="list"
         :columns="logColumns"
         stripe
-        class="w-full"
+        class="log-table"
         engine="element"
         :pagination="false"
         :toolbar="false"
@@ -261,19 +276,23 @@ onMounted(() => {
               {{ row.sysMessageReadStatus === 1 ? "已读" : "未读" }}
             </el-tag>
           </template>
-          <span v-else class="text-xs text-[--el-text-color-secondary]">-</span>
+          <span v-else class="log-dim">-</span>
         </template>
         <template #col-sysMessageLogSubject="{ row }">
           <span>{{ row.sysMessageLogSubject ?? "-" }}</span>
         </template>
         <template #col-cost="{ row }">
-          <span class="text-[--el-text-color-secondary]"><ReTime :value="costMs(row.sysMessageCost)" format="duration" placeholder="—" /></span>
+          <span class="log-dim"><ReTime :value="costMs(row.sysMessageCost)" format="duration" placeholder="—" /></span>
         </template>
         <template #col-actions="{ row }">
           <el-button link type="primary" @click="showDetail(row)">详情</el-button>
         </template>
       </ReTable>
-      <div class="mt-4 flex justify-end">
+      <!-- 表格空态：ReEmpty 扁平呈现 -->
+      <div v-if="!list.length && !loading" class="table-empty">
+        <ReEmpty description="暂无可展示的推送日志，调整筛选条件后再试" />
+      </div>
+      <div class="pager">
         <el-pagination
           :total="pagination.total"
           :current-page="pagination.page"
@@ -282,9 +301,150 @@ onMounted(() => {
           @current-change="handlePageChange"
         />
       </div>
-    </el-card>
+    </div>
 
     <!-- 日志详情弹窗 -->
     <ReLogDetailDialog v-model:visible="detailVisible" v-model:model="detail" />
   </div>
 </template>
+
+<style scoped lang="scss">
+.log-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px;
+}
+
+/* ===== 概览条 ===== */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+  padding: 14px 16px;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+}
+.stat-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent, var(--brand-500));
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.stat-label {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+}
+.stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.stat-trend {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== 筛选工具条 ===== */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 4px;
+}
+.filter-field {
+  width: 220px;
+}
+.filter-field--sm {
+  width: 150px;
+}
+.filter-spacer {
+  flex: 1;
+}
+
+/* ===== 表格壳 ===== */
+.table-card {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.log-table {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.log-dim {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.table-empty {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 12px 0 4px;
+}
+.pager {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ===== 响应式：移动端 2 列概览 + 筛选占满 ===== */
+@media (max-width: 768px) {
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .filter-field {
+    width: 100%;
+  }
+  .filter-field--sm {
+    width: 48%;
+  }
+  .filter-spacer {
+    flex-basis: 100%;
+  }
+}
+
+/* ===== 减少动态效果 ===== */
+@media (prefers-reduced-motion: reduce) {
+  .stat-card {
+    transition: none;
+  }
+  .stat-card:hover {
+    transform: none;
+  }
+}
+</style>

@@ -53,31 +53,36 @@
                 </el-select>
               </div>
               <div class="filter-actions">
-                <el-button type="primary" :icon="Plus" @click="openStudent()">新增学生</el-button>
+                <el-button type="primary" plain :icon="Search" @click="commitStudentSearch">查询</el-button>
                 <el-button :icon="RefreshLeft" :loading="loading" @click="loadAll">刷新</el-button>
               </div>
             </div>
           </el-card>
 
-          <!-- 管理页统一收敛为 ReTable（本页自带底部总数行与 tab 计数，
-               所以关掉 ReTable 自带的 toolbar / pagination，避免双套分页/工具条）。
-               原裸 el-table 的列、插槽、行点击全部等价迁移。 -->
+          <!-- 学生表：后端分页（ReTable loader 模式）。筛选提交后由 loadStudents 带参请求。 -->
           <ReTable
-            v-loading="loading"
-            :data="studentRows"
+            ref="studentTableRef"
+            :loader="loadStudents"
             :columns="studentColumns"
+            :params="studentParams"
             :row-key="'studentId'"
+            v-model:page="studentPage"
+            v-model:page-size="studentPageSize"
+            :page-sizes="[10, 20, 50, 100]"
             layout="table"
             :layout-switch="false"
-            :pagination="false"
             :toolbar="false"
             stripe
+            @load="onStudentLoad"
+            @load-error="pageLoadError"
             @row-click="(row: Record<string, unknown>) => openStudent(row as unknown as EduStudent)"
           >
-            <!-- 空态门控：本页 loading 在 ReTable 外层（v-loading 直接挂在组件上，
-                 不进 ReTable 内部状态），加载窗口内不画空态，杜绝「暂无数据」闪现 -->
+            <template #toolbar>
+              <el-button type="primary" :icon="Plus" @click="openStudent()">新增学生</el-button>
+            </template>
+            <!-- 空态门控：loader 模式下 ReTable 自带 loading/error 处理，空态由表格空数据渲染 -->
             <template #empty>
-              <el-empty v-if="!loading" :image-size="80" description="暂无学生，点击「新增学生」创建" />
+              <el-empty :image-size="80" description="暂无学生，点击「新增学生」创建" />
             </template>
             <!-- 学号：发给家长的登录凭据，最常被「念一遍 / 贴进群里」：
                  给一个一键复制，省掉手工框选。按钮必须 .stop ——
@@ -151,32 +156,35 @@
               />
             </template>
           </ReTable>
-          <div class="table-footer"><span class="table-footer__total">共 {{ filteredStudents.length }} 条</span></div>
         </el-tab-pane>
 
         <!-- ============ 班级 ============ -->
-        <el-tab-pane :label="`班级 (${classes.length})`" name="class">
-          <div class="filter-row">
-            <el-button type="primary" :icon="Plus" @click="openClass()">新增班级</el-button>
-            <el-button :icon="RefreshLeft" :loading="loading" @click="loadAll">刷新</el-button>
-          </div>
+        <el-tab-pane :label="`班级 (${classTotal})`" name="class">
           <ReTable
-            v-loading="loading"
-            :data="classRows"
+            ref="classTableRef"
+            :loader="loadClasses"
             :columns="classColumns"
             :row-key="'classId'"
+            v-model:page="classPage"
+            v-model:page-size="classPageSize"
+            :page-sizes="[10, 20, 50, 100]"
             layout="table"
             :layout-switch="false"
-            :pagination="false"
             :toolbar="false"
             stripe
+            @load="onClassLoad"
+            @load-error="pageLoadError"
             @row-click="(row: Record<string, unknown>) => openClass(row as unknown as EduClass)"
           >
+            <template #toolbar>
+              <el-button type="primary" :icon="Plus" @click="openClass()">新增班级</el-button>
+              <el-button :icon="RefreshLeft" :loading="loading" @click="loadAll">刷新</el-button>
+            </template>
             <template #empty>
-              <el-empty v-if="!loading" :image-size="80" description="暂无班级" />
+              <el-empty :image-size="80" description="暂无班级" />
             </template>
             <template #col-classGradeLevel="{ row }">{{ levelText(row.classGradeLevel) }}</template>
-            <template #col-studentCount="{ row }">{{ studentsInClass(row.classId) }}</template>
+            <template #col-studentCount="{ row }">{{ row.studentCount ?? 0 }}</template>
             <template #col-actions="{ row }">
               <!-- .stop：ReTable 绑了 @row-click="openClass"，不挡冒泡会顺带打开编辑 -->
               <ReButton
@@ -198,23 +206,27 @@
         </el-tab-pane>
 
         <!-- ============ 教师 ============ -->
-        <el-tab-pane :label="`教师 (${teachers.length})`" name="teacher">
-          <div class="filter-row">
-            <el-button type="primary" :icon="Plus" @click="openTeacher()">新增教师</el-button>
-            <el-button :icon="RefreshLeft" :loading="loading" @click="loadAll">刷新</el-button>
-          </div>
+        <el-tab-pane :label="`教师 (${teacherTotal})`" name="teacher">
           <ReTable
-            v-loading="loading"
-            :data="teacherRows"
+            ref="teacherTableRef"
+            :loader="loadTeachers"
             :columns="teacherColumns"
             :row-key="'teacherId'"
+            v-model:page="teacherPage"
+            v-model:page-size="teacherPageSize"
+            :page-sizes="[10, 20, 50, 100]"
             layout="table"
             :layout-switch="false"
-            :pagination="false"
             :toolbar="false"
             stripe
+            @load="onTeacherLoad"
+            @load-error="pageLoadError"
             @row-click="(row: Record<string, unknown>) => openTeacher(row as unknown as EduTeacher)"
           >
+            <template #toolbar>
+              <el-button type="primary" :icon="Plus" @click="openTeacher()">新增教师</el-button>
+              <el-button :icon="RefreshLeft" :loading="loading" @click="loadAll">刷新</el-button>
+            </template>
             <template #empty>
               <el-empty v-if="!loading" :image-size="80" description="暂无教师" />
             </template>
@@ -233,7 +245,7 @@
                 class="tag-pill is-blue"
                 :title="classNamesOf(row as unknown as EduTeacher)"
               >
-                {{ classesOf(row as unknown as EduTeacher).length }} 个班级
+                {{ row.classCount ?? classesOf(row as unknown as EduTeacher).length }} 个班级
               </span>
             </template>
             <template #col-actions="{ row }">
@@ -266,7 +278,7 @@
     </el-card>
 
     <!-- ============ 学生对话框 ============ -->
-    <ReDialog v-model="stuVisible" class="q-dialog" width="920" :show-close="false" align-center>
+    <ReDialog v-model="stuVisible" class="q-dialog" width="920" :show-close="false" :show-window-shell="false" align-center>
       <template #header>
         <div class="dialog-head">
           <div class="dialog-head__left">
@@ -419,7 +431,7 @@
     </ReDialog>
 
     <!-- ============ 班级对话框 ============ -->
-    <ReDialog v-model="clsVisible" class="q-dialog" width="860" :show-close="false" align-center>
+    <ReDialog v-model="clsVisible" class="q-dialog" width="860" :show-close="false" :show-window-shell="false" align-center>
       <template #header>
         <div class="dialog-head">
           <div class="dialog-head__left">
@@ -490,7 +502,7 @@
     </ReDialog>
 
     <!-- ============ 教师对话框 ============ -->
-    <ReDialog v-model="teaVisible" class="q-dialog" width="860" :show-close="false" align-center>
+    <ReDialog v-model="teaVisible" class="q-dialog" width="860" :show-close="false" :show-window-shell="false" align-center>
       <template #header>
         <div class="dialog-head">
           <div class="dialog-head__left">
@@ -557,36 +569,73 @@
     </ReDialog>
 
     <!-- ============ 教师班级配置对话框 ============ -->
-    <ReDialog v-model="teaClassVisible" class="q-dialog" width="620" :show-close="false" align-center>
+    <ReDialog
+      v-model="teaClassVisible"
+      class="q-dialog tea-class-dialog"
+      width="920"
+      :show-close="false"
+      :show-window-shell="false"
+      align-center
+    >
       <template #header>
         <div class="dialog-head">
           <div class="dialog-head__left">
             <span class="dialog-head__icon"><el-icon :size="18"><OfficeBuilding /></el-icon></span>
             <div class="dialog-head__text">
               <div class="dialog-head__title">配置教师班级</div>
-              <div class="dialog-head__sub">{{ teaClassForm.teacherName }} 的老师端数据范围 = 勾选的班级（保存即全量替换）</div>
+              <div class="dialog-head__sub">仅勾选该教师需要管理的班级，保存后将覆盖原有配置</div>
             </div>
           </div>
           <ReButton layout="square" :icon="Close" tip="关闭" @click="teaClassVisible = false" />
         </div>
       </template>
-      <el-checkbox-group v-model="teaClassForm.classIds" class="tea-class-group">
-        <el-checkbox
-          v-for="c in classes"
-          :key="c.classId"
-          :label="c.classId"
-          :value="c.classId"
-        >
-          <span class="tea-class-name">{{ c.className }}</span>
-          <span class="tea-class-meta">{{ levelText(c.classGradeLevel) }}{{ c.classGrade ? ` · ${c.classGrade}` : "" }}</span>
-        </el-checkbox>
-      </el-checkbox-group>
-      <el-alert
-        v-if="!classes.length"
-        type="warning"
-        :closable="false"
-        title="还没有班级，请先在「班级」页签新增"
-      />
+
+      <!-- 工具栏：搜索 + 全选/反选 -->
+      <div class="tea-class-toolbar">
+        <div class="tea-class-search">
+          <el-icon class="tea-class-search__icon"><Search /></el-icon>
+          <input
+            v-model="teaClassKeyword"
+            type="text"
+            class="tea-class-search__input"
+            placeholder="搜索班级名称或编号"
+          />
+        </div>
+        <div class="tea-class-actions">
+          <el-button size="small" @click="selectAllTeaClasses">全选</el-button>
+          <el-button size="small" @click="invertTeaClasses">反选</el-button>
+        </div>
+      </div>
+
+      <!-- 班级网格（两列卡片勾选） -->
+      <div class="tea-class-list">
+        <el-alert
+          v-if="!classes.length"
+          type="warning"
+          :closable="false"
+          title="还没有班级，请先在「班级」页签新增"
+        />
+        <div v-else class="tea-class-grid">
+          <label
+            v-for="c in filteredTeaClasses"
+            :key="c.classId"
+            class="tea-class-item"
+            :class="{ 'is-checked': teaClassForm.classIds.includes(c.classId) }"
+          >
+            <input
+              type="checkbox"
+              class="tea-class-item__checkbox"
+              :checked="teaClassForm.classIds.includes(c.classId)"
+              @change="toggleTeaClass(c)"
+            />
+            <span class="tea-class-item__body">
+              <span class="tea-class-item__name">{{ c.className }}</span>
+              <span class="tea-class-item__meta">{{ levelText(c.classGradeLevel) }}{{ c.classGrade ? ` · ${c.classGrade}` : "" }}</span>
+            </span>
+          </label>
+        </div>
+      </div>
+
       <template #footer>
         <div class="dialog-foot">
           <el-button @click="teaClassVisible = false">取消</el-button>
@@ -615,6 +664,8 @@ import { ElMessageBox } from "element-plus";
 import { Close, Delete, EditPen, Grid, Key, Plus, Reading, RefreshLeft, Search, Star, View,
   Calendar, CircleCheck, Collection, CreditCard, Iphone, Link, OfficeBuilding, Postcard, School, User } from "@element-plus/icons-vue";
 import { eduaiApi } from "../api/eduaiApi";
+import { createPageLoader, pageLoadError, strParam } from "../api/pageLoader";
+
 import type { EduClass, EduStudent, EduTeacher } from "../api/types";
 import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
 import type { ReTableColumn } from "@repo/ui/re-table";
@@ -625,8 +676,29 @@ const loading = ref(false);
 const saving = ref(false);
 const activeTab = ref("student");
 
-const students = ref<EduStudent[]>([]);
+/** 学生表 ref（loader 模式） */
+const studentTableRef = ref();
+/** 班级表 ref（loader 模式） */
+const classTableRef = ref();
+/** 教师表 ref（loader 模式） */
+const teacherTableRef = ref();
+
+/** 各表分页状态（独立于 ReTable 内部） */
+const studentPage = ref(1);
+const studentPageSize = ref(20);
+const classPage = ref(1);
+const classPageSize = ref(20);
+const teacherPage = ref(1);
+const teacherPageSize = ref(20);
+
+/** 后端分页 total（统计卡 + 底部总数用） */
+const studentTotal = ref(0);
+const classTotal = ref(0);
+const teacherTotal = ref(0);
+
+/** 班级全量（学生筛选下拉 + 学生行班级名映射） */
 const classes = ref<EduClass[]>([]);
+/** 班级数据仍保留：学生筛选的班级下拉需要全量班级名，37 条量级可接受 */
 const teachers = ref<EduTeacher[]>([]);
 
 /** 学段下拉：后端内置枚举 */
@@ -637,27 +709,78 @@ const stuKeyword = ref("");
 const stuLevel = ref("");
 const stuClassId = ref<number | null>(null);
 
-const filteredStudents = computed(() => {
-  const kw = stuKeyword.value.trim().toLowerCase();
-  return students.value.filter((s) => {
-    if (stuLevel.value && s.studentGradeLevel !== stuLevel.value) return false;
-    if (stuClassId.value && s.studentClassId !== stuClassId.value) return false;
-    if (kw) {
-      const hay = `${s.studentName ?? ""} ${s.studentNo ?? ""} ${s.studentAccount ?? ""}`.toLowerCase();
-      if (!hay.includes(kw)) return false;
-    }
-    return true;
-  });
-});
+/** 学生筛选参数：提交后作为 loader 的 params */
+const studentParams = computed(() => ({
+  keyword: strParam(stuKeyword.value),
+  gradeLevel: strParam(stuLevel.value),
+  classId: stuClassId.value ?? undefined,
+}));
+
+/** 学生分页 loader（后端筛选） */
+const loadStudents = createPageLoader((page, size, params) =>
+  eduaiApi.pageStudents({
+    ...params,
+    pageNum: page,
+    pageSize: size,
+  }),
+);
+
+/** 班级分页 loader */
+const loadClasses = createPageLoader((page, size, params) =>
+  eduaiApi.pageClasses({
+    ...params,
+    pageNum: page,
+    pageSize: size,
+  }),
+);
+
+/** 教师分页 loader */
+const loadTeachers = createPageLoader((page, size, params) =>
+  eduaiApi.pageTeachers({
+    ...params,
+    pageNum: page,
+    pageSize: size,
+  }),
+);
+
+/** 学生筛选提交：回到第一页并重查 */
+function commitStudentSearch() {
+  void studentTableRef.value?.goto(1);
+}
+
+/** ReTable 学生页加载完成后同步总数（统计卡 / 底部总数） */
+function onStudentLoad(r: { total?: number }) {
+  studentTotal.value = r?.total ?? 0;
+}
+
+/** ReTable 班级页加载完成后同步总数 */
+function onClassLoad(r: { total?: number }) {
+  classTotal.value = r?.total ?? 0;
+}
+
+/** ReTable 教师页加载完成后同步总数 */
+function onTeacherLoad(r: { total?: number }) {
+  teacherTotal.value = r?.total ?? 0;
+}
 
 const statCards = computed(() => {
-  const bound = students.value.filter((s) => !!s.studentAccount).length;
   return [
-    { title: "学生总数", value: students.value.length, hint: `已绑定 ${bound} 人`, icon: "Star", bg: "var(--el-color-primary-light-9)" },
-    { title: "班级数", value: classes.value.length, hint: `教师 ${teachers.value.length} 人`, icon: "Grid", bg: "var(--el-color-success-light-9)" },
-    { title: "未绑定学生", value: students.value.length - bound, hint: "尚未登录学生端", icon: "Warning", bg: "var(--el-color-warning-light-9)" },
+    { title: "学生总数", value: studentTotal.value, hint: `已绑定 ${boundCount.value} 人`, icon: "Star", bg: "var(--el-color-primary-light-9)" },
+    { title: "班级数", value: classTotal.value, hint: `教师 ${teacherTotal.value} 人`, icon: "Grid", bg: "var(--el-color-success-light-9)" },
+    { title: "未绑定学生", value: Math.max(0, studentTotal.value - boundCount.value), hint: "尚未登录学生端", icon: "Warning", bg: "var(--el-color-warning-light-9)" },
   ];
 });
+
+/** 已绑定人数：后端分页无法从一页算全局，改由统计接口/全量轻查兜底 */
+const boundCount = ref(0);
+async function loadBoundCount() {
+  try {
+    const list = await eduaiApi.listStudents();
+    boundCount.value = list?.filter((s) => !!s.studentAccount).length ?? 0;
+  } catch {
+    boundCount.value = 0;
+  }
+}
 
 /**
  * 学段码转中文
@@ -683,20 +806,22 @@ function className(id?: number | null): string {
 }
 
 /**
- * 某班级下的学生数
+ * 某班级下的学生数。
  *
- * @param classId 班级 ID
- * @returns 人数
+ * <p>后端分页后班级行的学生数由 pageClasses 的 {@code studentCount} 字段提供；
+ * 这里保留一个按班级查的兜底，供班级编辑弹窗 / 删除前校验使用。</p>
  */
-function studentsInClass(classId: number): number {
-  return students.value.filter((s) => s.studentClassId === classId).length;
+async function studentsInClass(classId: number): Promise<number> {
+  try {
+    const page = await eduaiApi.pageStudents({ classId, pageNum: 1, pageSize: 1 });
+    return page?.total ?? 0;
+  } catch {
+    return 0;
+  }
 }
 
 // ==================== ReTable 列定义 ====================
-/** ReTable 的 data 只收 Record 结构，此处仅做渲染层类型适配，不改数据本身 */
-const studentRows = computed(() => filteredStudents.value as unknown as Record<string, unknown>[]);
-const classRows = computed(() => classes.value as unknown as Record<string, unknown>[]);
-const teacherRows = computed(() => teachers.value as unknown as Record<string, unknown>[]);
+/** ReTable loader 模式下数据由后端提供，此处仅保留列配置，不再有前端行 computed */
 
 /**
  * 学生表列定义（原裸 el-table 迁移为 ReTable）
@@ -715,7 +840,7 @@ const studentColumns: ReTableColumn[] = [
   { prop: "studentAccount", label: "绑定账号", width: 140, showOverflowTooltip: true },
   { prop: "studentParentPhone", label: "家长手机号", width: 130, slot: "col-studentParentPhone" },
   { prop: "studentStatus", label: "状态", width: 90, align: "center", slot: "col-studentStatus" },
-  { prop: "actions", label: "操作", width: 170, align: "center", fixed: "right", slot: "col-actions", className: "op-col" },
+  { prop: "actions", label: "操作", width: 200, align: "center", fixed: "right", slot: "col-actions", className: "op-col" },
 ];
 
 /** 班级表列定义 */
@@ -726,7 +851,7 @@ const classColumns: ReTableColumn[] = [
   { prop: "classGradeLevel", label: "学段", width: 90, slot: "col-classGradeLevel" },
   { prop: "classGrade", label: "年级", width: 110 },
   { prop: "studentCount", label: "学生数", width: 90, align: "center", slot: "col-studentCount" },
-  { prop: "actions", label: "操作", width: 96, align: "center", fixed: "right", slot: "col-actions", className: "op-col" },
+  { prop: "actions", label: "操作", width: 120, align: "center", fixed: "right", slot: "col-actions", className: "op-col" },
 ];
 
 /** 教师表列定义 */
@@ -738,23 +863,23 @@ const teacherColumns: ReTableColumn[] = [
   { prop: "accountBind", label: "老师端绑定", width: 140, align: "center", slot: "col-accountBind" },
   { prop: "teacherStatus", label: "状态", width: 90, align: "center", slot: "col-teacherStatus" },
   { prop: "classCount", label: "配置班级", width: 120, align: "center", slot: "col-classCount" },
-  { prop: "actions", label: "操作", width: 150, align: "center", fixed: "right", slot: "col-actions", className: "op-col" },
+  { prop: "actions", label: "操作", width: 160, align: "center", fixed: "right", slot: "col-actions", className: "op-col" },
 ];
 
 // ==================== 加载 ====================
+/** 首次 / 刷新：只拉班级全量（筛选下拉 + 班级名映射），三张表由各自 loader 分页加载 */
 async function loadAll() {
   loading.value = true;
   try {
-    const [stu, cls, tea] = await Promise.all([
-      eduaiApi.listStudents(),
+    const [cls] = await Promise.all([
       eduaiApi.listClasses(),
-      eduaiApi.listTeachers(),
+      loadBoundCount(),
     ]);
-    students.value = stu ?? [];
     classes.value = cls ?? [];
-    teachers.value = tea ?? [];
-    // 教师班级配置缓存（列表页「配置班级」列展示用）
-    void loadTeacherClasses();
+    // 三个表重新加载（当前筛选条件不变，回到各自第一页）
+    void studentTableRef.value?.reload();
+    void classTableRef.value?.reload();
+    void teacherTableRef.value?.reload();
   } catch (e) {
     message.error(`加载失败：${e instanceof Error ? e.message : String(e)}`);
   } finally {
@@ -805,10 +930,7 @@ function syncGradeSource() {
 }
 
 function onTabChange() {
-  // 三个表一次拉全，切标签不需要重新请求；这里只在数据为空时补拉
-  if (!students.value.length && !classes.value.length && !teachers.value.length) {
-    void loadAll();
-  }
+  // 三张表各自分页，切标签不需要重新请求；表格已由 loader 自动加载
 }
 
 // ==================== 学生 ====================
@@ -1086,16 +1208,21 @@ const clsProfileItems = computed(() => [
     icon: School,
   },
   { label: "年级", value: clsForm.classGrade || "未填", icon: Collection },
-  { label: "学生数", value: clsForm.classId ? `${studentsInClass(clsForm.classId)} 人` : "—", icon: User },
+  { label: "学生数", value: clsForm.classId ? `${clsStudentCount.value} 人` : "—", icon: User },
   { label: "状态", value: clsForm.classStatus === 0 ? "停用" : "启用", icon: CircleCheck },
 ]);
+
+/** 班级编辑弹窗里的学生数：打开时从后端分页行的 studentCount 带过来 */
+const clsStudentCount = ref(0);
 
 function openClass(row?: EduClass) {
   Object.keys(clsForm).forEach((k) => delete (clsForm as Record<string, unknown>)[k]);
   if (row) {
     Object.assign(clsForm, row);
+    clsStudentCount.value = (row as unknown as { studentCount?: number }).studentCount ?? 0;
   } else {
     Object.assign(clsForm, { classStatus: 1 });
+    clsStudentCount.value = 0;
   }
   clsVisible.value = true;
 }
@@ -1125,7 +1252,7 @@ async function saveClass() {
 }
 
 async function removeClass(row: EduClass) {
-  const inClass = studentsInClass(row.classId);
+  const inClass = await studentsInClass(row.classId);
   if (inClass > 0) {
     message.warning(`该班级下还有 ${inClass} 名学生，请先转班或删学生`);
     return;
@@ -1214,6 +1341,7 @@ async function removeTeacher(row: EduTeacher) {
 /** 教师班级配置弹窗 */
 const teaClassVisible = ref(false);
 const teaClassSaving = ref(false);
+const teaClassKeyword = ref("");
 const teaClassForm = reactive<{
   teacherId: number | null;
   teacherName: string;
@@ -1221,6 +1349,48 @@ const teaClassForm = reactive<{
 }>({ teacherId: null, teacherName: "", classIds: [] });
 /** 教师 → 已配置班级缓存（列表页「配置班级」列展示用） */
 const teacherClassMap = ref<Record<number, EduClass[]>>({});
+
+/** 按关键字过滤班级：名称或班级编码（图中搜索框语义） */
+const filteredTeaClasses = computed(() => {
+  const kw = teaClassKeyword.value.trim().toLowerCase();
+  if (!kw) return classes.value;
+  return classes.value.filter((c) =>
+    [c.className, c.classCode].filter(Boolean).some((v) => String(v).toLowerCase().includes(kw)),
+  );
+});
+
+/** 切换单个班级勾选 */
+function toggleTeaClass(c: EduClass): void {
+  const id = c.classId;
+  const i = teaClassForm.classIds.indexOf(id);
+  if (i >= 0) {
+    teaClassForm.classIds.splice(i, 1);
+  } else {
+    teaClassForm.classIds.push(id);
+  }
+}
+
+/** 全选当前筛出的班级（不影响筛掉但已选中的班级） */
+function selectAllTeaClasses(): void {
+  const ids = new Set(teaClassForm.classIds);
+  filteredTeaClasses.value.forEach((c) => ids.add(c.classId));
+  teaClassForm.classIds = [...ids];
+}
+
+/** 反选当前筛出的班级（筛掉的班级保持原状态） */
+function invertTeaClasses(): void {
+  const current = new Set(filteredTeaClasses.value.map((c) => c.classId));
+  const ids = new Set(teaClassForm.classIds);
+  filteredTeaClasses.value.forEach((c) => {
+    if (ids.has(c.classId)) {
+      ids.delete(c.classId);
+    } else {
+      ids.add(c.classId);
+    }
+  });
+  void current;
+  teaClassForm.classIds = [...ids];
+}
 
 /** 教师已配置的班级列表（未拉取到时为空数组） */
 function classesOf(teacher: EduTeacher): EduClass[] {
@@ -1232,21 +1402,6 @@ function classNamesOf(teacher: EduTeacher): string {
   return classesOf(teacher).map((c) => c.className).join("、") || "未配置班级";
 }
 
-/** 预取每位教师已配置的班级（教师列表通常不大，并发拉取不阻塞首屏） */
-async function loadTeacherClasses() {
-  const map: Record<number, EduClass[]> = {};
-  await Promise.all(
-    teachers.value.map(async (t) => {
-      try {
-        map[t.teacherId] = (await eduaiApi.listTeacherClasses(t.teacherId)) ?? [];
-      } catch {
-        map[t.teacherId] = [];
-      }
-    }),
-  );
-  teacherClassMap.value = map;
-}
-
 /**
  * 打开教师班级配置：先拉该教师已配置的班级进表单。
  *
@@ -1256,6 +1411,7 @@ async function openTeacherClasses(teacher: EduTeacher) {
   teaClassForm.teacherId = teacher.teacherId;
   teaClassForm.teacherName = teacher.teacherName || teacher.teacherNo;
   teaClassForm.classIds = [];
+  teaClassKeyword.value = "";
   teaClassVisible.value = true;
   try {
     const list = await eduaiApi.listTeacherClasses(teacher.teacherId);
@@ -1515,30 +1671,6 @@ onMounted(() => {
   border-radius: var(--el-radius-lg, 12px);
   min-width: 88px;
   font-weight: 600;
-}
-/* 班级 / 教师页签没有筛选条件，只放操作键 */
-.filter-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 14px;
-}
-.filter-row .el-button {
-  border-radius: var(--el-radius-lg, 12px);
-  font-weight: 600;
-}
-.table-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 14px;
-  flex-wrap: wrap;
-}
-.table-footer__total {
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
 }
 /* 空值占位：与「—」同类语义，但中文更直白 */
 .cell-muted {
@@ -1864,22 +1996,145 @@ onMounted(() => {
   }
 }
 
-/* ---------- 教师班级配置：班级勾选列表 ---------- */
-.tea-class-group {
+/* ---------- 教师班级配置：两列卡片勾选网格 ---------- */
+.tea-class-dialog .dialog-head__sub {
+  max-width: none;
+}
+.tea-class-toolbar {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.tea-class-search {
+  display: flex;
+  align-items: center;
+  flex: 1 1 280px;
+  min-width: 220px;
+  height: 34px;
+  padding: 0 10px;
+  gap: 6px;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-radius-base, 4px);
+  background: var(--el-bg-color);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.tea-class-search:focus-within {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+.tea-class-search__icon {
+  flex-shrink: 0;
+  color: var(--el-text-color-placeholder);
+  font-size: 14px;
+}
+.tea-class-search__input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+  background: transparent;
+}
+.tea-class-search__input::placeholder {
+  color: var(--el-text-color-placeholder);
+}
+.tea-class-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.tea-class-actions .el-button {
+  height: 30px;
+  padding: 0 14px;
+  border-radius: var(--el-radius-base, 4px);
+  font-size: 13px;
+}
+.tea-class-list {
   max-height: 46vh;
   overflow-y: auto;
-  padding: 6px 4px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 8px);
+  padding: 10px;
+  background: var(--el-fill-color-light);
+  margin-bottom: 18px;
 }
-.tea-class-name {
+.tea-class-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+.tea-class-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+  cursor: pointer;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 8px);
+  background: var(--el-bg-color);
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.tea-class-item:hover {
+  border-color: var(--el-color-primary);
+}
+.tea-class-item.is-checked {
+  border-color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-bg-color));
+}
+.tea-class-item__checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex-shrink: 0;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-radius-xs, 4px);
+  background: var(--el-bg-color);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+}
+.tea-class-item.is-checked .tea-class-item__checkbox {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary);
+}
+.tea-class-item.is-checked .tea-class-item__checkbox::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.tea-class-item__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+.tea-class-item__name {
+  font-size: 13px;
   font-weight: 600;
   color: var(--el-text-color-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.tea-class-meta {
-  margin-left: 8px;
+.tea-class-item__meta {
   font-size: 12px;
   color: var(--el-text-color-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>

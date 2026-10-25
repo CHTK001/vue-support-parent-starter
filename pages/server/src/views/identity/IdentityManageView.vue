@@ -23,8 +23,10 @@ import { ElMessageBox } from "element-plus";
 import { CircleCheck, Collection, Connection, Key, Lock, Monitor, Postcard, Unlock, User } from "@element-plus/icons-vue";
 import { ReFormItem } from "@repo/ui/re-kit";
 import ReStatCard from "@repo/ui/re-stat-card";
+import ReTab from "@repo/ui/re-tab";
+import type { ReTabItem } from "@repo/ui/components/ReTab/types";
 import type { ReFilterItem } from "@repo/ui/components/ReFilter/types";
-import { getIdentities, saveIdentity, delIdentity, getKeys, saveKey, delKey, generateKeyPair, queryHosts, listBoundIdentities, bindIdentity, unbindIdentity, listMailbox, getMailboxMessage } from "@pages/server/src/api";
+import { getIdentities, saveIdentity, delIdentity, getKeys, saveKey, delKey, generateKeyPair, queryHosts, listBoundIdentities, bindIdentity, unbindIdentity, listMailbox, getMailboxMessage } from "../../api";
 import { useDialogPrerender } from "../../utils/dialogPrerender";
 
 interface Identity {
@@ -55,6 +57,17 @@ interface HostRow {
 
 /** 页面 tab：身份 / 密钥库 */
 const tab = ref<"identity" | "key">("identity");
+
+/**
+ * 顶部页签项。
+ *
+ * <p>与 ACME 证书页（证书管理 / 账户管理）保持同一套胶囊分段外观：只放文字，
+ * 不带图标 —— 图标在这个粒度的两个页签上只是噪音，也会把胶囊撑得过宽。</p>
+ */
+const identityTabs: ReTabItem[] = [
+  { name: "identity", label: "登录身份" },
+  { name: "key", label: "SSH 密钥库" },
+];
 
 /** 公钥指纹（取 SHA256 前 16 位，便于识别） */
 function keyFingerprint(pub: string | undefined): string {
@@ -713,10 +726,9 @@ async function submitAdd(): Promise<void> {
     <!-- 顶部 hero（大标题 + 副标题 + 导出/刷新）已删除：页面标题由外壳面包屑承担，
          hero 上的「导出 / 刷新」与分区头里的操作按钮合并到下方筛选行右侧（图标 + tip）。 -->
 
-    <!-- Tab 切换 -->
+    <!-- Tab 切换（胶囊分段：与 ACME 证书页同一套外观，替换原先全宽下划线页签） -->
     <div class="tabs">
-      <button class="tab-btn" :class="{ active: tab === 'identity' }" @click="tab = 'identity'">登录身份</button>
-      <button class="tab-btn" :class="{ active: tab === 'key' }" @click="tab = 'key'">SSH 密钥库</button>
+      <ReTab v-model="tab" :tabs="identityTabs" nav-only />
     </div>
 
     <!-- 身份 tab -->
@@ -968,9 +980,6 @@ async function submitAdd(): Promise<void> {
         </div>
         <div v-else class="dim" style="padding:8px 0">已全部绑定</div>
       </template>
-      <template #footer>
-        <ReButton @click="bindVisible = false">关闭</ReButton>
-      </template>
     </ReDialog>
 
     <!-- 邮箱（MAILBOX）弹窗 -->
@@ -1042,9 +1051,6 @@ async function submitAdd(): Promise<void> {
           <span>收件箱为空</span>
         </div>
       </template>
-      <template #footer>
-        <ReButton @click="mailVisible = false">关闭</ReButton>
-      </template>
     </ReDialog>
   </div>
 </template>
@@ -1057,7 +1063,10 @@ async function submitAdd(): Promise<void> {
 /* .tel-page 已提供 height:100% 与 overflow-y:auto；这里补 min-height:0，
    否则 flex 子项默认 min-height:auto，长列表会把卡片顶高、外层出滚动条 */
 .im { display: flex; flex-direction: column; gap: 14px; min-height: 0; }
-.tabs { flex: none; }
+/* 页签不再撑满整行：ReTab capsule 自身是 width:100%（多项均分），
+   这里把它约束成「内容宽度」，与 ACME 证书页左对齐的胶囊条一致。 */
+.tabs { flex: none; align-self: flex-start; max-width: 100%; }
+.tabs :deep(.re-tab--capsule) { width: auto; }
 
 /* ---------- 统计卡（ReStatCard 紧凑档横排，卡片外壳规格由组件基线提供） ---------- */
 .im-kpis {

@@ -115,50 +115,244 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 dark:from-slate-900 dark:to-slate-800 sm:p-6 lg:p-8">
-    <div class="mx-auto max-w-6xl">
-      <div class="mb-8">
-        <h1 class="bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-3xl font-bold text-transparent dark:from-violet-400 dark:to-indigo-400">
-          My Achievements
-        </h1>
-        <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Track your progress and unlock new tiers</p>
-      </div>
+  <div class="achievement-page">
+    <ReSectionHead
+      class="achievement-head"
+      title="My Achievements"
+      description="Track your progress and unlock new tiers"
+    />
 
-      <div class="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <ReAchievementStatCard title="Unlocked" :value="stats.totalUnlocked ?? 0" gradient="from-violet-400 to-indigo-500" emoji="🏆" shadow-class="from-violet-500/10" />
-        <ReAchievementStatCard title="Categories" :value="types.length" gradient="from-emerald-400 to-teal-500" emoji="📂" shadow-class="from-emerald-500/10" />
-        <ReAchievementStatCard title="Badges" :value="unlocked.length" gradient="from-amber-400 to-orange-500" emoji="⭐" shadow-class="from-amber-500/10" />
-        <ReAchievementStatCard title="Total Tiers" :value="allTiers.length" gradient="from-rose-400 to-pink-500" emoji="📊" shadow-class="from-rose-500/10" />
+    <!-- 成就统计概览：大数字 + 顶部色条，窄屏 2 列 -->
+    <div class="stat-grid" role="group" aria-label="成就概览">
+      <div class="stat-card" style="--accent: var(--brand-500)">
+        <span class="stat-label">Unlocked</span>
+        <span class="stat-value">{{ stats.totalUnlocked ?? 0 }}</span>
+        <span class="stat-trend">成就已解锁</span>
       </div>
+      <div class="stat-card" style="--accent: var(--metric-cpu)">
+        <span class="stat-label">Categories</span>
+        <span class="stat-value">{{ types.length }}</span>
+        <span class="stat-trend">类型数</span>
+      </div>
+      <div class="stat-card" style="--accent: var(--status-warning)">
+        <span class="stat-label">Badges</span>
+        <span class="stat-value">{{ unlocked.length }}</span>
+        <span class="stat-trend">已获取徽章</span>
+      </div>
+      <div class="stat-card" style="--accent: var(--status-info)">
+        <span class="stat-label">Total Tiers</span>
+        <span class="stat-value">{{ allTiers.length }}</span>
+        <span class="stat-trend">当前段位</span>
+      </div>
+    </div>
 
-      <ReCard :radius="16" :padding="0" class="overflow-hidden border border-slate-200/60 bg-white/90 backdrop-blur-lg shadow-xl dark:border-slate-700/60 dark:bg-slate-800/90">
-        <div class="border-b border-slate-200/60 px-6 py-4 dark:border-slate-700/60">
-          <ReAchievementTypeTabs :types="types" :active-type="activeType" :badge-map="badgeMap" @change="switchType" @select-default="activeType = types[0]" />
-        </div>
-        <div class="p-6">
-          <div v-if="loading" class="space-y-6">
-            <div v-for="i in 3" :key="i" class="flex items-center gap-4 animate-pulse">
-              <div class="h-12 w-12 rounded-full bg-slate-200 dark:bg-slate-700" />
-              <div class="flex-1 space-y-2">
-                <div class="h-4 w-1/3 rounded bg-slate-200 dark:bg-slate-700" />
-                <div class="h-3 w-2/3 rounded bg-slate-100 dark:bg-slate-600" />
-              </div>
+    <!-- 类型切换 + 段位时间线卡片壳；子组件交互协议不变 -->
+    <div class="achievement-card">
+      <div class="achievement-tabs">
+        <ReAchievementTypeTabs
+          :types="types"
+          :active-type="activeType"
+          :badge-map="badgeMap"
+          @change="switchType"
+          @select-default="activeType = types[0]"
+        />
+      </div>
+      <div class="achievement-body">
+        <div v-if="loading" class="skeleton-list">
+          <div v-for="i in 3" :key="i" class="skeleton-item">
+            <div class="skeleton-avatar" />
+            <div class="skeleton-lines">
+              <div class="skeleton-line skeleton-line--lg" />
+              <div class="skeleton-line" />
             </div>
           </div>
-          <div v-else-if="activeType" class="relative space-y-6">
-            <div class="absolute left-6 top-0 h-full w-0.5 bg-gradient-to-b from-violet-300 via-indigo-300 to-transparent dark:from-violet-600 dark:via-indigo-600" />
-            <ReAchievementTierItem
-              v-for="tier in allTiers"
-              :key="tier.id"
-              :tier="tier"
-              :unlocked="isUnlocked(tier.id)"
-              :badge-icon="badgeMap[tier.type ?? '']?.icon ?? '🏆'"
-              :unlocked-item="findUnlocked(tier.id)"
-            />
-          </div>
-          <ReEmpty v-else description="No achievements yet. Complete actions to earn badges!" />
         </div>
-      </ReCard>
+        <div v-else-if="activeType" class="tier-timeline">
+          <div class="tier-timeline__rail" />
+          <ReAchievementTierItem
+            v-for="tier in allTiers"
+            :key="tier.id"
+            :tier="tier"
+            :unlocked="isUnlocked(tier.id)"
+            :badge-icon="badgeMap[tier.type ?? '']?.icon ?? '🏆'"
+            :unlocked-item="findUnlocked(tier.id)"
+          />
+        </div>
+        <ReEmpty v-else description="No achievements yet. Complete actions to earn badges!" />
+      </div>
     </div>
   </div>
 </template>
+
+<style scoped lang="scss">
+.achievement-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px;
+  background: var(--bg-page);
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+/* ===== 统计卡片 ===== */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+  padding: 14px 16px;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+}
+.stat-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent, var(--brand-500));
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.stat-label {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.stat-trend {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== 主卡片壳 ===== */
+.achievement-card {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.achievement-tabs {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.achievement-body {
+  flex: 1 1 auto;
+  padding: 16px;
+  min-height: 0;
+}
+
+/* ===== 加载骨架：koi 背景填充 + 呼吸动效（尊重 reduced-motion） ===== */
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.skeleton-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  animation: skeleton-pulse 1.5s var(--ease-out) infinite;
+}
+.skeleton-avatar {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: var(--bg-fill);
+}
+.skeleton-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.skeleton-line {
+  height: 12px;
+  width: 66%;
+  border-radius: var(--radius-sm);
+  background: var(--bg-fill);
+}
+.skeleton-line--lg {
+  height: 16px;
+  width: 33%;
+}
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ===== 段位时间线 ===== */
+.tier-timeline {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.tier-timeline__rail {
+  position: absolute;
+  left: 23px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--brand-500) 40%, transparent),
+    color-mix(in srgb, var(--brand-500) 12%, transparent),
+    transparent
+  );
+  border-radius: 9999px;
+  pointer-events: none;
+}
+
+/* ===== 响应式：移动端 2 列概览 + 单列下方内容 ===== */
+@media (max-width: 768px) {
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ===== 减少动态效果 ===== */
+@media (prefers-reduced-motion: reduce) {
+  .stat-card {
+    transition: none;
+  }
+  .stat-card:hover {
+    transform: none;
+  }
+  .skeleton-item {
+    animation: none;
+  }
+}
+</style>

@@ -534,11 +534,13 @@ function filterLoader(filter: SearchFilter): ReSelectLoader | undefined {
 
       <!-- 操作按钮（常驻，隐藏过滤区时它是唯一的还原入口） -->
       <div class="koi-search__actions">
+        <!-- 动画图标：hover 播上游动效；loading 态保留图标并整体旋转 -->
         <ReButton
           v-if="showSearchBtn"
           v-show="localFilterVisible"
           type="primary"
-          icon="Search"
+          icon="anim:tabler:search"
+          :anim-icon-size="16"
           show-text
           :loading="loading"
           @click="emit('search')"
@@ -546,7 +548,8 @@ function filterLoader(filter: SearchFilter): ReSelectLoader | undefined {
         <ReButton
           v-if="showResetBtn"
           v-show="localFilterVisible"
-          icon="RefreshLeft"
+          icon="anim:tabler:refresh"
+          :anim-icon-size="16"
           show-text
           @click="resetForm"
         >{{ resetText }}</ReButton>

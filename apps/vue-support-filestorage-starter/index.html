@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>文件管理</title>
+  <!--
+    文件管理页壳（多页入口之一）。
+
+    为什么必须有这个文件：vite.config.ts 把 index.html 列为构建入口
+    （`main: path.resolve(root, "index.html")`），scripts/sync-to-fs-server.ps1
+    又要把 `dist/index.html` 同步到后端 static/index.html（供 FileStorageServerFilter
+    直出）。它一旦缺失，`pnpm build` 直接失败、dev 下访问 `/` 也是 404 ——
+    后端 static/index.html 里已经引用了 hash 化的 assets，可证这份源码壳原本存在，
+    只是此前被根 .gitignore 的 `apps/*/index.html` 防御性规则连带忽略、从未提交。
+
+    与 preview.html 同构，只换入口脚本与标题：
+      index.html   -> /src/main.ts    （文件管理，FileStorageManage）
+      preview.html -> /src/preview.ts （统一预览入口，由 readPreviewShell 注入引导参数）
+  -->
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

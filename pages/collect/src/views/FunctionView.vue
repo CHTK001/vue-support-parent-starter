@@ -9,13 +9,21 @@
      停用或被内置函数遮蔽会明确报"函数未生效"；
   5. 调用方写法：流程参数表达式里 ${名字(...)}、${宿主.名字(参数)}、${命名空间.名字(参数)}，
      脚本节点里 名字(...) 或 fn.名字(...)，三种拼法在后端解析到同一张白名单表。
+
+  ── 视图约定 ──────────────────────────────────────────────
+  ReTable 承载搜索区（v-model:search-model + SEARCH filters 配置）、工具栏插槽、
+  7 列具名插槽与事件回源，模板换骨架会让这些契约全部失配；因此只现代化「外壳」：
+  ReSectionHead 页头 + koi 令牌统计条 + 卡片壳表格 + ReEmpty 空态，
+  表单/试跑两个 ReDialog 原样保留。
 -->
 <script setup lang="ts">
 import { computed, onActivated, reactive, ref } from "vue";
 import { msgError, msgInfo, msgSuccess, msgWarning } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
+import ReEmpty from "@repo/ui/re-empty";
 import ReInput from "@repo/ui/re-input";
+import ReSectionHead from "@repo/ui/re-section-head";
 import ReSwitch from "@repo/ui/re-switch";
 import ReTable from "@repo/ui/re-table";
 import ReTime from "@repo/ui/re-time";
@@ -217,58 +225,117 @@ function showHelp(): void {
 }
 </script>
 
+<!--
+  现代化视图：ReSectionHead 页头 + koi 令牌统计条 + 卡片壳表格 + ReEmpty 空态。
+  ReTable 本体（search-model / SEARCH / 7 个具名插槽 / search 事件回源）与两个
+  ReDialog（新建编辑表单、试跑）原样保留，仅重排外壳与样式。
+-->
 <template>
-  <div class="collect-page">
-    <ReTable
-      class="collect-card"
-      table-id="collect-function"
-      :loading="loading"
-      :data="rows"
-      :columns="columns"
-      :pagination="false"
-      row-key="collectFunctionId"
-      v-model:search-model="searchModel"
-      :search="SEARCH"
-      empty-text="暂无自定义函数"
-      stripe
-      @search="applySearch"
-      @search-reset="applySearch"
-      @refresh="reload"
+  <div class="function-page">
+    <!-- 页头：标题 + 说明 + 动作（写法帮助 / 新建函数） -->
+    <ReSectionHead
+      class="function-head"
+      title="函数库"
+      description="Groovy 闭包自定义函数 · 保存前编译，登记后流程参数表达式与脚本节点都能调"
     >
-      <template #toolbar>
-        <ReButton icon="QuestionFilled" title="查看函数调用写法与内置函数名单" @click="showHelp">查看函数调用写法与内置函数名单</ReButton>
-        <ReButton icon="Plus" type="primary" title="新建函数" @click="openCreate">新建函数</ReButton>
-        <span class="collect-hint">保存前编译，登记后流程参数表达式 ${name(...)} 与脚本节点里的 fn.name(...) 都能调</span>
-      </template>
-
-      <template #args="{ row }">{{ row.collectFunctionParameters ?? 0 }}</template>
-      <template #script="{ row }">
-        <span class="collect-cell-mono">{{ row.collectFunctionScript }}</span>
-      </template>
-      <template #description="{ row }">{{ row.collectFunctionDescription || "—" }}</template>
-      <template #enabled="{ row }">
-        <ReSwitch
-          
-          :model-value="row.collectFunctionEnabled ?? 1"
-          :active-value="1"
-          :inactive-value="0"
-          @update:model-value="(v: unknown) => toggleEnabled(row, v)"
+      <template #actions>
+        <ReButton
+          icon="QuestionFilled"
+          size="small"
+          tip="查看函数调用写法与内置函数名单"
+          @click="showHelp"
         />
+        <ReButton show-text icon="Plus" type="primary" size="small" tip="新建函数" @click="openCreate">
+          新建函数
+        </ReButton>
       </template>
-      <template #last="{ row }">
-        <span
-          class="collect-cell-ellipsis"
-          :title="`${row.collectFunctionLastResult ?? ''}\n${row.collectFunctionLastTime ?? ''}`"
-        >
-          {{ row.collectFunctionLastResult || "—" }}
-        </span>
-      </template>
-      <template #action="{ row }">
-        <ReButton v-bind="COLLECT_ACTIONS.editFunction" layout="square" @click="openEdit(row)"/>
-        <ReButton v-bind="COLLECT_ACTIONS.testFunction" layout="square" @click="openTest(row)"/>
-        <ReButton v-bind="COLLECT_ACTIONS.deleteFunction" layout="square" @click="remove(row)"/>
-      </template>
-    </ReTable>
+    </ReSectionHead>
+
+    <!-- 概览条：函数总数 / 已启用 / 已停用 -->
+    <div class="stat-grid" role="group" aria-label="函数概览">
+      <div class="stat-card" style="--accent: var(--brand-500)">
+        <span class="stat-label">函数总数</span>
+        <span class="stat-value">{{ rows.length }}</span>
+        <span class="stat-trend">当前搜索结果</span>
+      </div>
+      <div class="stat-card" style="--accent: var(--status-success)">
+        <span class="stat-label">已启用</span>
+        <span class="stat-value">{{ rows.filter(r => (r.collectFunctionEnabled ?? 1) === 1).length }}</span>
+        <span class="stat-trend is-up">可被流程调用</span>
+      </div>
+      <div class="stat-card" style="--accent: var(--pulse-unknown)">
+        <span class="stat-label">已停用</span>
+        <span class="stat-value">{{ rows.filter(r => (r.collectFunctionEnabled ?? 1) !== 1).length }}</span>
+        <span class="stat-trend">登记但未生效</span>
+      </div>
+      <div class="stat-card" style="--accent: var(--metric-net)">
+        <span class="stat-label">内置函数</span>
+        <span class="stat-value">{{ builtinNames.length }}</span>
+        <span class="stat-trend">名字不可占用</span>
+      </div>
+    </div>
+
+    <!-- 表格壳：搜索区由 ReTable 内置（SEARCH 配置），工具栏在此插槽 -->
+    <div class="table-card">
+      <ReTable
+        class="collect-card"
+        table-id="collect-function"
+        :loading="loading"
+        :data="rows"
+        :columns="columns"
+        :pagination="false"
+        row-key="collectFunctionId"
+        v-model:search-model="searchModel"
+        :search="SEARCH"
+        empty-text="暂无自定义函数"
+        stripe
+        @search="applySearch"
+        @search-reset="applySearch"
+        @refresh="reload"
+      >
+        <template #empty>
+          <ReEmpty
+            v-if="!loading"
+            layout="modern"
+            :image-size="72"
+            :description="String(searchModel.keyword ?? '').trim() ? '没有匹配的函数，换个关键字试试' : '还没有自定义函数，点击右上角「新建函数」开始'"
+          />
+        </template>
+
+        <template #toolbar>
+          <span class="collect-hint">
+            保存前编译，登记后流程参数表达式 <code>${name(...)}</code> 与脚本节点里的 <code>fn.name(...)</code> 都能调
+          </span>
+        </template>
+
+        <template #args="{ row }">{{ row.collectFunctionParameters ?? 0 }}</template>
+        <template #script="{ row }">
+          <span class="collect-cell-mono">{{ row.collectFunctionScript }}</span>
+        </template>
+        <template #description="{ row }">{{ row.collectFunctionDescription || "—" }}</template>
+        <template #enabled="{ row }">
+          <ReSwitch
+            :model-value="row.collectFunctionEnabled ?? 1"
+            :active-value="1"
+            :inactive-value="0"
+            @update:model-value="(v: unknown) => toggleEnabled(row, v)"
+          />
+        </template>
+        <template #last="{ row }">
+          <span
+            class="collect-cell-ellipsis"
+            :title="`${row.collectFunctionLastResult ?? ''}\n${row.collectFunctionLastTime ?? ''}`"
+          >
+            {{ row.collectFunctionLastResult || "—" }}
+          </span>
+        </template>
+        <template #action="{ row }">
+          <ReButton v-bind="COLLECT_ACTIONS.editFunction" layout="square" @click="openEdit(row)"/>
+          <ReButton v-bind="COLLECT_ACTIONS.testFunction" layout="square" @click="openTest(row)"/>
+          <ReButton v-bind="COLLECT_ACTIONS.deleteFunction" layout="square" @click="remove(row)"/>
+        </template>
+      </ReTable>
+    </div>
 
     <ReDialog
       v-model="visible"
@@ -279,7 +346,7 @@ function showHelp(): void {
       <div class="collect-form">
         <div class="collect-form__item">
           <span class="collect-form__label"><i class="req">*</i>函数名</span>
-          <ReInput v-model="form.collectFunctionName"  maxlength="64" placeholder="小写字母开头，如 signName"/>
+          <ReInput v-model="form.collectFunctionName" maxlength="64" placeholder="小写字母开头，如 signName"/>
           <span class="collect-hint collect-hint--muted">不能与内置函数同名，全流程唯一</span>
         </div>
         <div class="collect-form__item collect-form__item--stack">
@@ -297,7 +364,7 @@ function showHelp(): void {
         </div>
         <div class="collect-form__item">
           <span class="collect-form__label">说明</span>
-          <ReInput v-model="form.collectFunctionDescription"  maxlength="255" placeholder="这个函数解决什么"/>
+          <ReInput v-model="form.collectFunctionDescription" maxlength="255" placeholder="这个函数解决什么"/>
         </div>
         <div class="collect-form__item">
           <span class="collect-form__label">启用</span>
@@ -305,8 +372,8 @@ function showHelp(): void {
         </div>
       </div>
       <template #footer="{ cancel }">
-        <ReButton  @click="cancel">取消</ReButton>
-        <ReButton  type="primary" :loading="saving" @click="save">保存</ReButton>
+        <ReButton @click="cancel">取消</ReButton>
+        <ReButton type="primary" :loading="saving" @click="save">保存</ReButton>
       </template>
     </ReDialog>
 
@@ -314,7 +381,7 @@ function showHelp(): void {
       <div class="collect-form">
         <div v-for="index in argumentSlots" :key="index" class="collect-form__item">
           <span class="collect-form__label">实参 {{ index + 1 }}</span>
-          <ReInput v-model="testArgs[index]"  placeholder="按字符串提交，闭包里自行转换"/>
+          <ReInput v-model="testArgs[index]" placeholder="按字符串提交，闭包里自行转换"/>
         </div>
         <p v-if="!argumentCount" class="collect-hint collect-hint--muted">该函数没有形参，直接试跑</p>
         <div v-if="testResult" class="collect-callout" :class="testResult.success ? 'is-ok' : 'is-bad'">
@@ -324,17 +391,112 @@ function showHelp(): void {
           <span v-else>{{ testResult.errorMessage || "试跑失败" }}</span>
         </div>
       </div>
-      <template #footer="{ cancel }">
-        <ReButton  @click="cancel">关闭</ReButton>
-        <ReButton  type="primary" :loading="testing" @click="runTest">试跑</ReButton>
+      <template #footer>
+        <ReButton type="primary" :loading="testing" @click="runTest">试跑</ReButton>
       </template>
     </ReDialog>
   </div>
 </template>
 
 <style scoped>
-.script-input :deep(textarea) {
-  font-family: var(--el-font-family-mono, monospace);
+/* ===== 页面骨架 ===== */
+.function-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px;
+  min-width: 0;
+}
+
+/* ===== 概览条 ===== */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.stat-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 16px;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: box-shadow 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+}
+.stat-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--accent, var(--brand-500));
+}
+.stat-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.stat-label {
   font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+}
+.stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.stat-trend {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+.stat-trend.is-up {
+  color: var(--status-success);
+}
+
+/* ===== 表格壳 ===== */
+.table-card {
+  min-height: 240px;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.table-card :deep(.collect-hint code) {
+  padding: 0 4px;
+  font-family: var(--rm-font-mono, ui-monospace, sfmono-regular, consolas, monospace);
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--bg-fill);
+  border-radius: var(--radius-sm);
+}
+
+/* ===== 函数体编辑框 ===== */
+.script-input :deep(textarea) {
+  font-family: var(--rm-font-mono, ui-monospace, sfmono-regular, consolas, monospace);
+  font-size: 12px;
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 768px) {
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ===== 减少动态效果 ===== */
+@media (prefers-reduced-motion: reduce) {
+  .stat-card {
+    transition: none;
+  }
+  .stat-card:hover {
+    transform: none;
+  }
 }
 </style>

@@ -222,54 +222,65 @@
 
       <!-- ==================== 班级管理 ==================== -->
       <section v-show="activeTab === 'class'" class="tab-panel">
-        <div class="subject-actions">
-          <el-select
-            v-model="classLevelFilter"
-            clearable
-            placeholder="全部学段"
-            style="width: 160px"
-            @change="loadClasses"
-          >
-            <el-option
-              v-for="opt in gradeLevelOptions"
-              :key="opt.value"
-              :label="opt.label"
-              :value="opt.value"
-            />
-          </el-select>
-          <div class="subject-actions__right">
+        <!-- 班级列表：前端数据（学段筛选在 loader 之外，切学段直接重拉全量） -->
+        <ReTable
+          v-loading="classLoading"
+          :data="classes"
+          :columns="classColumns"
+          row-key="classId"
+          layout="table"
+          :layout-switch="false"
+          :layout-table="{ fill: false }"
+          stripe
+          @row-click="(row: Record<string, unknown>) => openClassEdit(row as unknown as EduClass)"
+          :config="{ toolbar: { enable: false } }"
+        >
+          <template #toolbar>
+            <el-select
+              v-model="classLevelFilter"
+              clearable
+              placeholder="全部学段"
+              style="width: 160px"
+              @change="loadClasses"
+            >
+              <el-option
+                v-for="opt in gradeLevelOptions"
+                :key="opt.value"
+                :label="opt.label"
+                :value="opt.value"
+              />
+            </el-select>
             <el-button type="primary" :icon="Plus" @click="openClassCreate">新增班级</el-button>
-          </div>
-        </div>
-
-        <div v-loading="classLoading" class="grade-list">
-          <div v-for="c in classes" :key="c.classId" class="grade-row">
-            <span class="grade-row__name">{{ c.className }}</span>
-            <span class="grade-row__code">{{ c.classCode || "编码自动生成" }}</span>
-            <span class="level-chip">{{ levelLabel(c.classGradeLevel) }}</span>
-            <span class="grade-row__order">{{ c.classGrade || "未设年级" }}</span>
-            <span class="grade-row__order">{{ classStudentCount(c.classId) }} 人</span>
-            <span class="status-pill" :class="c.classStatus === 1 ? 'is-on' : 'is-off'">
+          </template>
+          <template #empty>
+            <el-empty :image-size="80" description="暂无班级，点击「新增班级」创建" />
+          </template>
+          <template #col-classGradeLevel="{ row }">{{ levelLabel(row.classGradeLevel) }}</template>
+          <template #col-studentCount="{ row }">{{ classStudentCount(row.classId) }} 人</template>
+          <template #col-classStatus="{ row }">
+            <span class="status-pill" :class="row.classStatus === 1 ? 'is-on' : 'is-off'">
               <i class="status-dot" />
-              {{ c.classStatus === 1 ? "启用" : "停用" }}
+              {{ row.classStatus === 1 ? "启用" : "停用" }}
             </span>
-            <div class="subject-card__ops">
-              <button type="button" class="icon-btn" title="编辑" @click="openClassEdit(c)">
-                <el-icon><EditPen /></el-icon>
-              </button>
-              <el-popconfirm :title="`确认删除班级「${c.className}」?`" @confirm="removeClass(c)">
-                <template #reference>
-                  <button type="button" class="icon-btn is-danger" title="删除">
-                    <el-icon><Delete /></el-icon>
-                  </button>
-                </template>
-              </el-popconfirm>
-            </div>
-          </div>
-          <div v-if="!classLoading && !classes.length" class="empty-panel">
-            暂无班级，点击「新增班级」创建
-          </div>
-        </div>
+          </template>
+          <template #col-actions="{ row }">
+            <!-- .stop：ReTable 绑了 @row-click="openClassEdit"，不挡冒泡会顺带打开编辑 -->
+            <ReButton
+              layout="square"
+              type="primary"
+              :icon="EditPen"
+              tip="编辑"
+              @click.stop="openClassEdit(row as unknown as EduClass)"
+            />
+            <ReButton
+              layout="square"
+              type="danger"
+              :icon="Delete"
+              tip="删除"
+              @click.stop="removeClass(row as unknown as EduClass)"
+            />
+          </template>
+        </ReTable>
       </section>
 
       <!-- ==================== 组卷模板管理 ==================== -->
@@ -287,12 +298,16 @@
           </div>
         </div>
 
-        <!-- 组卷模板：改用 ReTable 的 view 模式（一行一块：左边信息、右边操作同屏） -->
+        <!-- 组卷模板：改用 ReTable 的 view 模式（一行一块：左边信息、右边操作同屏）。
+             fill:false —— 本页 .el-card__body 是内容撑高的滚动容器，
+             参与「撑满视口」计算会与 ResizeObserver 形成高度正反馈（行高一路涨到上千、
+             整页滚动条反复抖动）。改为整页滚动，由外层统一滚。 -->
         <ReTable
           v-loading="templateLoading"
           :data="filteredTemplates"
           row-key="templateId"
           layout="view"
+          :layout-table="{ fill: false }"
           empty-text="暂无组卷模板，点击「新增模板」创建"
         >
           <ReTableColumn prop="templateName" label="模板名称" />
@@ -335,6 +350,7 @@
       class="card-dialog subject-dialog"
       align-center
       :show-close="false"
+      :show-window-shell="false"
     >
       <template #header>
         <div class="dlg-header">
@@ -458,6 +474,7 @@
       class="card-dialog subject-dialog grade-dialog"
       align-center
       :show-close="false"
+      :show-window-shell="false"
     >
       <template #header>
         <div class="dlg-header">
@@ -550,6 +567,7 @@
       class="card-dialog subject-dialog grade-dialog"
       align-center
       :show-close="false"
+      :show-window-shell="false"
     >
       <template #header>
         <div class="dlg-header">
@@ -623,6 +641,7 @@
       class="card-dialog subject-dialog template-dialog"
       align-center
       :show-close="false"
+      :show-window-shell="false"
     >
       <template #header>
         <div class="dlg-header">
@@ -745,6 +764,7 @@ import type { EduClass, EduGrade, EduStudent, EduSubject, GradeLevelOption, Pape
 import ReRichText from "@repo/ui/re-rich-text";
 import ReDialog from "@repo/ui/re-dialog";
 import ReInputNumber from "@repo/ui/re-input-number";
+import type { ReTableColumn } from "@repo/ui/re-table";
 
 const FALLBACK_GRADE_LEVELS: GradeLevelOption[] = [
   { value: "PRIMARY", label: "小学" },
@@ -1100,6 +1120,17 @@ const classForm = reactive<Partial<EduClass>>({});
 const classLevelFilter = ref("");
 /** 仅用于「班级学生数」展示：与班级一起懒加载，避免进页面就多发一次请求 */
 const classStudents = ref<EduStudent[]>([]);
+
+/** 班级表列定义 */
+const classColumns: ReTableColumn[] = [
+  { prop: "className", label: "班级名称", minWidth: 180, showOverflowTooltip: true },
+  { prop: "classCode", label: "班级编码", width: 200, showOverflowTooltip: true },
+  { prop: "classGradeLevel", label: "学段", width: 100, slot: "col-classGradeLevel" },
+  { prop: "classGrade", label: "年级", width: 120 },
+  { prop: "studentCount", label: "学生数", width: 100, align: "center", slot: "col-studentCount" },
+  { prop: "classStatus", label: "状态", width: 100, align: "center", slot: "col-classStatus" },
+  { prop: "actions", label: "操作", width: 120, align: "center", fixed: "right", slot: "col-actions", className: "op-col" },
+];
 
 const loadClasses = async () => {
   classLoading.value = true;

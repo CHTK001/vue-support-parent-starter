@@ -159,9 +159,9 @@ onMounted(() => {
         table-id="task-dispatch"
         :columns="taskColumns"
         :data="tasks"
-        :pagination="false"
         row-key="taskId"
         v-loading="loading"
+        :config="{ pagination: { enable: false } }"
       >
         <template #taskType="{ row }">
           <ReTag type="primary" effect="plain" >{{ row.taskType || "-" }}</ReTag>
@@ -195,9 +195,9 @@ onMounted(() => {
         table-id="task-node"
         :columns="nodeColumns"
         :data="nodes"
-        :pagination="false"
         row-key="nodeId"
         v-loading="nodeLoading"
+        :config="{ pagination: { enable: false } }"
       >
         <template #host="{ row }">
           <span v-if="row.host">{{ row.host }}</span>
@@ -223,6 +223,8 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* koi 令牌化：仅替换外观颜色/圆角，结构类名与布局逻辑保持不变（table 均挂 ref，禁止改 template）。
+   每个 koi 令牌都带原 --el-* 回退，确保令牌未注入时视觉不变。 */
 .task-page {
   display: flex;
   flex-direction: column;
@@ -243,21 +245,26 @@ onMounted(() => {
 .task-page__title {
   font-size: 18px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
   line-height: 1.4;
 }
 
 .task-page__subtitle {
   margin-top: 4px;
   font-size: 13px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
   line-height: 1.4;
 }
 
 .task-page__card {
-  border-radius: var(--el-radius-lg, 12px);
-  border: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color);
+  border-radius: var(--radius-lg, var(--el-radius-lg, 12px));
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+  background: var(--bg-container, var(--el-bg-color, #fff));
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s var(--ease-out, ease-out), transform 0.2s var(--ease-out, ease-out);
+}
+.task-page__card:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .task-page__card-head {
@@ -272,20 +279,20 @@ onMounted(() => {
   gap: 6px;
   font-size: 14px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
 }
 
 .task-page__card-icon {
-  color: var(--el-color-primary);
+  color: var(--brand-500, var(--el-color-primary, #409eff));
 }
 
 .task-page__card-count {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
 }
 
 .task-dim {
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
   font-size: 12px;
 }
 
@@ -296,26 +303,32 @@ onMounted(() => {
 .task-status-pill {
   display: inline-block;
   padding: 2px 8px;
-  /* 原为 999px 胶囊；改用 EP 的 full 档（9999px），视觉等价 */
-  border-radius: var(--el-radius-full, 9999px);
+  /* 胶囊圆角：koi radius-xl 优先，回退 EP full 档 */
+  border-radius: var(--radius-xl, var(--el-radius-full, 9999px));
   font-size: 11px;
   font-weight: 600;
 }
 
 .task-status-pill.on {
-  color: var(--el-color-success);
-  background: color-mix(in srgb, var(--el-color-success) 8%, transparent);
+  color: var(--status-success, var(--el-color-success, #67c23a));
+  background: color-mix(in srgb, var(--status-success, var(--el-color-success, #67c23a)) 8%, transparent);
 }
 
 .task-status-pill.off {
-  color: var(--el-text-color-secondary);
-  background: var(--el-fill-color);
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+  background: var(--bg-fill, var(--el-fill-color, #f0f2f5));
 }
 
 @media screen and (max-width: 768px) {
   .task-page {
     padding: 16px;
     gap: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .task-page__card {
+    transition: none;
   }
 }
 </style>

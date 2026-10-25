@@ -68,6 +68,11 @@ import type {
   TeacherMarkingTask,
   StudentWrongQuestion,
   PaperAssignVO,
+  MarkingFinishPreview,
+  BatchMarkingResult,
+  WrongSource,
+  MarkingDashboardStats,
+  MarkingSettingsVO,
 } from "./types";
 
 /** 解包 { code, msg, data }（兼容 AxiosResponse 双层包装）为业务负载 */
@@ -82,11 +87,15 @@ function unwrap<T>(r: unknown): T {
  */
 export const eduaiApi = {
   // 题库
-  pageQuestions: (params: { pageNum?: number; pageSize?: number; subject?: string; gradeLevel?: string; grade?: string; type?: string; difficulty?: number; status?: number; auditStatus?: number; orderBy?: string; orderDir?: "asc" | "desc" }) =>
+  pageQuestions: (params: { pageNum?: number; pageSize?: number; keyword?: string; subject?: string; gradeLevel?: string; grade?: string; type?: string; difficulty?: number; status?: number; auditStatus?: number; orderBy?: string; orderDir?: "asc" | "desc" }) =>
     http()
       .get("/v2/edu/question/page")
       .query(params)
       .then<PageResult<Question>>(unwrap),
+  questionStats: () =>
+    http()
+      .get("/v2/edu/question/stats")
+      .then<{ total?: number; pendingAudit?: number; todayNew?: number; subjectCount?: number }>(unwrap),
   getQuestion: (id: number) =>
     http()
       .get(`/v2/edu/question/${id}`)
@@ -301,10 +310,50 @@ export const eduaiApi = {
    * @param taskId 任务标识
    * @returns 完成结果（学生 / 试卷 / 本次错题数）
    */
-  finishMarking: (taskId: string) =>
+  finishMarking: (taskId: string, excludeQuestionIds?: number[]) =>
     http()
       .post(`/v2/edu/marking/${taskId}/finish`)
+      .data({ excludeQuestionIds: excludeQuestionIds && excludeQuestionIds.length ? excludeQuestionIds : undefined } as unknown as Record<string, unknown>)
       .then<MarkingFinishResult>(unwrap),
+
+  /**
+   * 阅卷完成预览：按当前判错阈值算出将登记的题目清单。
+   *
+   * <p>老师点「完成」前先拉预览，弹窗列出题目与得分率，勾选剔除后再调用
+   * {@code finishMarking}。预览不做任何数据变更。</p>
+   *
+   * @param taskId 任务标识
+   * @returns 预览结果（学生 / 将登记题数 / 题目清单）
+   */
+  previewFinishMarking: (taskId: string) =>
+    http()
+      .get(`/v2/edu/marking/finish-preview/${taskId}`)
+      .then<MarkingFinishPreview>(unwrap),
+
+  /**
+   * 批量阅卷完成。
+   *
+   * @param taskIds 任务标识列表
+   * @param excludeQuestionIdsByTask 任务 → 剔除题目列表（可选）
+   * @returns 逐任务完成结果
+   */
+  batchFinishMarking: (taskIds: string[], excludeQuestionIdsByTask?: Record<string, number[]>) =>
+    http()
+      .post("/v2/edu/marking/batch-finish")
+      .data({ taskIds, excludeQuestionIdsByTask } as unknown as Record<string, unknown>)
+      .then<BatchMarkingResult[]>(unwrap),
+
+  /**
+   * 批量撤销阅卷完成。
+   *
+   * @param taskIds 任务标识列表
+   * @returns 逐任务撤销结果
+   */
+  batchUnfinishMarking: (taskIds: string[]) =>
+    http()
+      .post("/v2/edu/marking/batch-unfinish")
+      .data({ taskIds } as unknown as Record<string, unknown>)
+      .then<BatchMarkingResult[]>(unwrap),
 
   /**
    * 获取「与图片同版式」的结构化解析结果。
@@ -318,6 +367,60 @@ export const eduaiApi = {
   getMarkingStructure: (taskId: string) =>
     http()
       .get(`/v2/edu/marking/structure/${taskId}`)
+      .then<Record<string, any>>(unwrap),
+
+  /**
+   * 读取阅卷运行时设置（管理员专属）。
+   *
+   * <p>返回重试次数/退避曲线 + 任意卷识别策略 + 阅卷判分 Prompt。保存在
+   * {@code edu_app_config} 键值表，未配置的项回落到 application.yml 默认。</p>
+   *
+   * @returns 阅卷运行时设置
+   */
+  getMarkingSettings: () =>
+    http()
+      .get("/v2/edu/marking-settings")
+      .then<MarkingSettingsVO>(unwrap),
+
+  /**
+   * 保存阅卷运行时设置（管理员专属）。
+   *
+   * @param data 阅卷运行时设置
+   * @returns 保存后重新读出的设置（服务端已按兜底规则纠正）
+   */
+  saveMarkingSettings: (data: MarkingSettingsVO) =>
+    http()
+      .post("/v2/edu/marking-settings")
+      .data(data as unknown as Record<string, unknown>)
+      .then<MarkingSettingsVO>(unwrap),
+
+  /**
+   * 读取 AI 运行时配置（管理员专属，用于 AI 配置中心）。
+   *
+   * <p>返回 runtime 分组 field -> value 的键值对（provider / provider_base_url /
+   * provider_api_key / default_model / temperature / max_tokens / timeout_millis 等）。
+   * 凭据类字段对非管理员回掩码 {@code ***}；管理员回显原值。</p>
+   *
+   * @returns runtime 分组配置键值对
+   */
+  getAiRuntimeConfig: () =>
+    http()
+      .get("/v2/settings/runtime")
+      .then<Record<string, any>>(unwrap),
+
+  /**
+   * 保存 AI 运行时配置（管理员专属）。
+   *
+   * <p>整组覆盖提交；凭据字段值为 {@code ***} 表示保留原值不覆盖。保存后服务端
+   * 发布变更事件，后端按新签名重建对话客户端（无需重启）。</p>
+   *
+   * @param data runtime 分组配置键值对
+   * @returns 保存后的配置
+   */
+  saveAiRuntimeConfig: (data: Record<string, any>) =>
+    http()
+      .put("/v2/settings/runtime")
+      .data(data as unknown as Record<string, unknown>)
       .then<Record<string, any>>(unwrap),
 
   /**
@@ -467,6 +570,14 @@ export const eduaiApi = {
       .put("/v2/edu/wrongbook/mastery")
       .query({ wrongId, masteryLevel })
       .then<boolean>(unwrap),
+  markCorrected: (wrongId: number) =>
+    http()
+      .put(`/v2/edu/wrongbook/correct/${wrongId}`)
+      .then<boolean>(unwrap),
+  wrongSources: (wrongId: number) =>
+    http()
+      .get(`/v2/edu/wrongbook/sources/${wrongId}`)
+      .then<WrongSource[]>(unwrap),
 
   // 考试
   pageExams: (params: { page?: number; pageSize?: number; examName?: string; examClassId?: string; examStatus?: number } = {}) =>
@@ -541,6 +652,19 @@ export const eduaiApi = {
       .get("/v2/edu/idiom/list")
       .query(params)
       .then<Idiom[]>(unwrap),
+  /** 成语分页（后端筛选 + 归属隔离，供成语库 ReTable 使用） */
+  pageIdioms: (params: {
+    keyword?: string;
+    gradeLevel?: string;
+    grade?: string;
+    difficulty?: number;
+    pageNum?: number;
+    pageSize?: number;
+  } = {}) =>
+    http()
+      .get("/v2/edu/idiom/page")
+      .query(params)
+      .then<PageResult<Idiom>>(unwrap),
   generateIdiomGame: (params: { gradeLevel?: string; grade?: string; count?: number }) =>
     http()
       .get("/v2/edu/idiom/game/generate")
@@ -821,6 +945,11 @@ export const eduaiApi = {
       .put("/v2/edu/student/wrongbook/mastery")
       .query({ wrongId, masteryLevel })
       .then<boolean>(unwrap),
+  /** 一键订正我的错题（重新作答后的客观标记，老师端可见订正率） */
+  updateStudentWrongCorrected: (wrongId: number) =>
+    http()
+      .put(`/v2/edu/student/wrongbook/correct/${wrongId}`)
+      .then<boolean>(unwrap),
   /** 我的答题/阅卷记录 */
   studentMarkingTasks: (limit = 20) =>
     http()
@@ -931,11 +1060,21 @@ export const eduaiApi = {
       .query({ limit })
       .then<TeacherMarkingTask[]>(unwrap),
   /** 我发起的阅卷任务（分页，按创建时间倒序） */
-  pageTeacherMarkingTasks: (params: { pageNum?: number; pageSize?: number } = {}) =>
+  pageTeacherMarkingTasks: (params: { pageNum?: number; pageSize?: number; teacherFinished?: 0 | 1 } = {}) =>
     http()
       .get("/v2/edu/teacher/marking/tasks/page")
-      .query(params)
+      .query(params as unknown as Record<string, unknown>)
       .then<PageResult<TeacherMarkingTask>>(unwrap),
+  /** 撤销阅卷完成：删除任务的错题记录并复位完成状态 */
+  unfinishMarking: (taskId: string) =>
+    http()
+      .post(`/v2/edu/marking/${taskId}/unfinish`)
+      .then<import("./types").MarkingUndoResult>(unwrap),
+  /** 阅卷总览统计（当前账号归属范围内：任务状态 / 得分率分布 / 错题 TOP / 订正率） */
+  markingDashboardStats: () =>
+    http()
+      .get("/v2/edu/teacher/marking/dashboard-stats")
+      .then<MarkingDashboardStats>(unwrap),
 
   // ==================== 班级试卷布置（老师给班级组卷 -> 班内学生可见） ====================
   /** 老师把一张试卷布置给自己的某个班级（重复布置同一班同一卷走「复活」，不重复建行） */
@@ -989,6 +1128,19 @@ export const eduaiApi = {
       .get("/v2/edu/dimension/students")
       .query(params)
       .then<EduStudent[]>(unwrap),
+  /** 学生分页（后端筛选 + 归属隔离；供学生管理 ReTable 使用） */
+  pageStudents: (params: {
+    classId?: number;
+    gradeLevel?: string;
+    grade?: string;
+    keyword?: string;
+    pageNum?: number;
+    pageSize?: number;
+  } = {}) =>
+    http()
+      .get("/v2/edu/dimension/students/page")
+      .query(params)
+      .then<PageResult<EduStudent>>(unwrap),
   saveStudent: (data: Partial<EduStudent>) =>
     http()
       .post("/v2/edu/dimension/students/save")
@@ -1083,6 +1235,17 @@ export const eduaiApi = {
       .get("/v2/edu/dimension/classes")
       .query(params)
       .then<EduClass[]>(unwrap),
+  /** 班级分页（后端筛选 + 归属隔离） */
+  pageClasses: (params: {
+    gradeLevel?: string;
+    keyword?: string;
+    pageNum?: number;
+    pageSize?: number;
+  } = {}) =>
+    http()
+      .get("/v2/edu/dimension/classes/page")
+      .query(params)
+      .then<PageResult<EduClass>>(unwrap),
   saveClass: (data: Partial<EduClass>) =>
     http()
       .post("/v2/edu/dimension/classes/save")
@@ -1098,6 +1261,17 @@ export const eduaiApi = {
       .get("/v2/edu/dimension/teachers")
       .query(params)
       .then<EduTeacher[]>(unwrap),
+  /** 教师分页（后端筛选 + 归属隔离） */
+  pageTeachers: (params: {
+    subjectCode?: string;
+    keyword?: string;
+    pageNum?: number;
+    pageSize?: number;
+  } = {}) =>
+    http()
+      .get("/v2/edu/dimension/teachers/page")
+      .query(params)
+      .then<PageResult<EduTeacher>>(unwrap),
   saveTeacher: (data: Partial<EduTeacher>) =>
     http()
       .post("/v2/edu/dimension/teachers/save")

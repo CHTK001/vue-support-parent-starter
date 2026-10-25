@@ -83,6 +83,14 @@ import type { SessionNextTaskItem, SessionNextTaskState } from '@/services/modul
 const props = defineProps<{
   /** 会话标识；缺省时不渲染面板 */
   sessionId?: string | null
+  /**
+   * 「用户自己发消息」信号：父组件每次自发送 +1，面板据此销毁自己。
+   *
+   * <p>为什么用单向信号而不是父组件拿模板 ref 调 dismiss()：后者在本仓库实测触发
+   * `Maximum recursive updates exceeded in <ChatInput>` —— 父组件持有子实例后每次 patch
+   * 都会回写那个 ref，形成环，整个会话页渲染不出来。信号是单向的、没有回写。</p>
+   */
+  dismissSignal?: number
 }>()
 
 const emit = defineEmits<{
@@ -103,7 +111,17 @@ const unsupported = ref(false)
  * 对用户只是噪音。load() 在首次开启时会自动联想一次，只要联想出结果，
  * 面板就自己出现，不需要用户多点一步。
  */
-const visible = computed(() => !!state.value && (state.value.tasks?.length ?? 0) > 0)
+/** 当前这批建议是否已被用户处理掉（点建议 / 自己发消息），且后端还没生成更新的一代 */
+const dismissed = computed(() => {
+  const sid = props.sessionId == null ? null : String(props.sessionId)
+  if (!sid || !state.value) return false
+  const mark = readMark(sid)
+  return mark > 0 && (state.value.generatedAt ?? 0) <= mark
+})
+
+const visible = computed(
+  () => !!state.value && (state.value.tasks?.length ?? 0) > 0 && !dismissed.value,
+)
 
 const pinnedTitle = '该会话已保留开启时的取值，之后设置中心改默认值不会影响它'
 const inheritedTitle = '该会话还没有自己的取值，暂时跟随设置中心的默认值'
@@ -128,15 +146,83 @@ async function onPick(task: SessionNextTaskItem): Promise<void> {
   if (!text.trim()) {
     return
   }
-  const list = state.value?.tasks
-  if (list) {
-    // 「点了建议」= **消费整块**：用户要求点一条就把这个组件销毁（与点右上角 X 同效果），
-    // 而不是只摘掉被点的那一条。清空本地列表 → visible=false → v-if 直接卸载整块面板。
-    // 后端仍持有原列表，下一次 load()／「重新联想」以后端返回为准（新建议照常出现）。
-    state.value!.tasks = []
-  }
+  // 「点了建议」= 消费整块（见 dismiss 注释），不是只摘掉被点的那一条
+  dismiss()
   emit('send-suggestion', text)
 }
+
+/**
+ * 「已被用户处理掉的建议」水位：key → 那一批建议的 generatedAt。
+ *
+ * <p>为什么必须**落 sessionStorage**（三层原因，都是实测踩出来的）：</p>
+ * <ol>
+ *   <li>组件在流式期间可能被父组件重挂 → 组件内的 ref 会丢，同一批建议又挂回来；</li>
+ *   <li>整页重载（刷新/路由重建）连模块作用域的 Map 也一起清空 → 用户刷新一次建议就回来；</li>
+ *   <li><b>新会话第一次发送时 sessionId 还是 null</b>，没有 key 可记 ——
+ *       用户截图里那条正是新会话的第一条消息，于是"发了消息建议还在"。</li>
+ * </ol>
+ *
+ * <p>语义：只要后端还没生成**更新的一代**建议（generatedAt 变大）就一直隐藏；
+ * 下一轮结束后后端重新联想，面板自然带着新建议回来。</p>
+ */
+const DISMISS_STORE = 'ai-next-task-dismissed'
+/** 会话尚未建立时的占位 key：新会话首次发送记在这里，建会话后由 load() 继承 */
+const PENDING_KEY = '__pending__'
+
+function readMarks(): Record<string, number> {
+  try {
+    return JSON.parse(sessionStorage.getItem(DISMISS_STORE) || '{}') as Record<string, number>
+  } catch {
+    return {}
+  }
+}
+
+function readMark(key: string): number {
+  return readMarks()[key] ?? 0
+}
+
+function writeMark(key: string, at: number): void {
+  try {
+    const marks = readMarks()
+    // 取较大值：同一批建议被处理多次时水位只前进不后退
+    marks[key] = Math.max(marks[key] ?? 0, at)
+    sessionStorage.setItem(DISMISS_STORE, JSON.stringify(marks))
+  } catch {
+    /* 隐私模式下 sessionStorage 可能不可用：退化成"仅本次内存生效"，不因此报错 */
+  }
+}
+
+/**
+ * 销毁面板：记录水位 + 清空本地列表 → {@code visible=false} → 整块卸载。
+ *
+ * <p>两个时机共用这一条路径：点了某条建议；或用户自己在输入框里发了消息
+ * （= 明确不采纳当前这批建议）。**没有 sessionId 也要记**（记到 PENDING_KEY），
+ * 否则新会话首条消息发出的那一次等于没记。</p>
+ */
+function dismiss(): void {
+  const sid = props.sessionId == null ? PENDING_KEY : String(props.sessionId)
+  writeMark(sid, state.value?.generatedAt ?? Date.now())
+  if (state.value) {
+    state.value.tasks = []
+  }
+}
+
+defineExpose({ dismiss })
+
+/**
+ * 父组件的「用户自己发消息」信号 → 销毁面板。
+ *
+ * <p>单向信号、组件内部只读，不存在回写，因此不会像模板 ref 那样形成更新环
+ * （那个写法实测把整个会话页打白）。</p>
+ */
+watch(
+  () => props.dismissSignal,
+  (now, before) => {
+    if ((now ?? 0) !== (before ?? 0)) {
+      dismiss()
+    }
+  },
+)
 
 /**
  * 重新联想。
@@ -185,6 +271,17 @@ async function load(): Promise<void> {
   }
   try {
     const next = await apiService.fetchSessionNextTaskState(sessionId)
+    /*
+     * 继承「新会话首次发送」记下的 pending 水位：
+     * 那一刻还没有会话 id，标记只能先记在 PENDING_KEY 上；
+     * 建好会话、面板带着真 id 挂上来时，如果这批建议**生成于那次发送之前**，
+     * 就说明用户当时已经用行动拒绝了它 —— 补记到该会话名下并清掉 pending。
+     */
+    const pending = readMark(PENDING_KEY)
+    if (pending > 0 && (next?.generatedAt ?? 0) <= pending) {
+      writeMark(sessionId, pending)
+      writeMark(PENDING_KEY, 0)
+    }
     state.value = next?.enabled ? next : null
     if (next?.enabled && !next.tasks.length && !next.message) {
       // 首次开启且还没联想过：直接生成一次，用户不用多点一次

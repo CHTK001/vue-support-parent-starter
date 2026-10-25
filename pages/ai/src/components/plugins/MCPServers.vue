@@ -212,7 +212,7 @@
       @save="handleFormSave" />
 
     <!-- 来源设置 -->
-    <LDialog v-model="sourceVisible" title="MCP 来源设置" width="520px" align-center destroy-on-close>
+    <ReDialog :close-on-click-modal="true" v-model="sourceVisible" title="MCP 来源设置" width="520px" align-center destroy-on-close>
       <div class="source-list" v-if="sourceConfig">
         <div class="source-item">
           <div>
@@ -234,7 +234,7 @@
         <el-button @click="sourceVisible = false">取消</el-button>
         <el-button type="primary" :loading="sourceSaving" @click="saveSourceConfig">保存</el-button>
       </template>
-    </LDialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -249,7 +249,7 @@ import {
 import { mcpApi } from '@/services/javaApi'
 import PluginIcon from '@/components/ui/PluginIcon.vue'
 import LTooltip from '@/components/ui/LTooltip.vue'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 import McpDetailDialog from './McpDetailDialog.vue'
 import McpServerFormDialog from './McpServerFormDialog.vue'
 

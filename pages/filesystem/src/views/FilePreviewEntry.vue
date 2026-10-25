@@ -28,7 +28,7 @@ import { computed, defineAsyncComponent, onMounted, ref, shallowRef, type Compon
 import PreviewOfficePanel from "../components/PreviewOfficePanel.vue";
 import FvPanelBase from "../components/fv/FvPanelBase.vue";
 import { isClientRenderable } from "../utils/officeRenderer";
-import { base64ToUtf8, specFor, type RendererSpec } from "../utils/previewEntryRenderers";
+import { base64ToUtf8, specFor, TEXT_EXTENSIONS, type RendererSpec } from "../utils/previewEntryRenderers";
 
 /* ==================== 专用面板组件注册表（file-viewer 不支持的格式） ==================== */
 
@@ -50,6 +50,10 @@ const SPECIAL_COMPONENT_BY_EXT: Record<string, Component> = {
   // 大纲 / 脑图（非 XMind）：FreeMind .mm、OPML .opml（前端解析成树）
   mm: defineAsyncComponent(() => import("../components/fv/FvOutlinePanel.vue")),
   opml: defineAsyncComponent(() => import("../components/fv/FvOutlinePanel.vue")),
+  // .class：前端反编译（CFR）+ Binary Inspector 十六进制检视 + 下载反编译源码
+  class: defineAsyncComponent(() => import("../components/fv/FvBinaryPanel.vue")),
+  // .log：hs_err_pid*.log（JVM 崩溃日志）运维分析（结论 / 原文双模式），普通日志退化为文本
+  log: defineAsyncComponent(() => import("../components/fv/FvLogAnalyzePanel.vue")),
 };
 
 /* ==================== 引导参数（内嵌态唯一事实来源） ==================== */
@@ -249,7 +253,47 @@ function dispatch(
     return;
   }
 
-  // 2) file-viewer 注册表后缀：按扩展名取渲染器组，file-viewer 自动选渲染器
+  // 2) .class：前端反编译（FvBinaryPanel = CFR 反编译 + Binary Inspector 十六进制 + 下载）。
+  //    优先走字节直链（src），无直链时可解析桶键则面板内部签票取数。
+  if (ext === "class" && (opts.bytesUrl || opts.bucketKey)) {
+    const comp = SPECIAL_COMPONENT_BY_EXT["class"];
+    if (comp) {
+      specialComponent.value = comp;
+      specialProps.value = {
+        src: opts.bytesUrl ?? "",
+        fileName,
+        size: opts.size ?? 0,
+        inner: opts.inner ?? "",
+        ...(opts.bucketKey
+          ? { bucket: opts.bucketKey.bucket, objectKey: opts.bucketKey.objectKey }
+          : {}),
+      };
+      state.value = "special";
+      return;
+    }
+  }
+
+  // 2) .log：hs_err_pid*.log（JVM 崩溃日志）走运维分析面板（结论 / 原文双模式），
+  //    普通 .log 由 FvLogAnalyzePanel 内部退化为文本渲染。优先字节直链 src。
+  if (ext === "log" && (opts.bytesUrl || opts.bucketKey)) {
+    const comp = SPECIAL_COMPONENT_BY_EXT["log"];
+    if (comp) {
+      specialComponent.value = comp;
+      specialProps.value = {
+        src: opts.bytesUrl ?? "",
+        fileName,
+        size: opts.size ?? 0,
+        inner: opts.inner ?? "",
+        ...(opts.bucketKey
+          ? { bucket: opts.bucketKey.bucket, objectKey: opts.bucketKey.objectKey }
+          : {}),
+      };
+      state.value = "special";
+      return;
+    }
+  }
+
+  // 3) file-viewer 注册表后缀：按扩展名取渲染器组，file-viewer 自动选渲染器
   const spec = specFor(fileName);
   if (spec) {
     if (!opts.bytes) {
@@ -296,8 +340,17 @@ async function startClientRenderer(fileName: string, spec: RendererSpec, bytes: 
     }
     activeSpec.value = spec;
     renderers.value = plugins;
-    // file-viewer 按文件名扩展名自动选渲染器：File 名必须保留真实扩展名
-    fileRef.value = new File([bytes as BlobPart], fileName, { type: "application/octet-stream" });
+    // file-viewer 按文件名扩展名自动选渲染器：File 名必须保留真实扩展名；
+    // 文本渲染器只认白名单扩展名（TEXT_EXTENSIONS），白名单外（如 MANIFEST.MF）
+    // 改名 .txt 按纯文本渲染，否则找不到渲染器而落空。
+    const viewerName = (() => {
+      if (spec.presetId === "text") {
+        const ext = extensionOf(fileName).toLowerCase();
+        if (ext && !TEXT_EXTENSIONS.has(ext)) return `${fileName}.txt`;
+      }
+      return fileName;
+    })();
+    fileRef.value = new File([bytes as BlobPart], viewerName, { type: "application/octet-stream" });
     state.value = "client";
   } catch (e) {
     console.warn("[FilePreviewEntry] 渲染器加载失败", e);
@@ -508,8 +561,8 @@ onMounted(async (): Promise<void> => {
   flex-direction: column;
   width: 100%;
   height: 100vh;
-  background: #f5f6f8;
-  color: #24292f;
+  background: var(--bg-page, #f5f6f8);
+  color: var(--text-primary, #24292f);
 }
 
 .fpe__bar {
@@ -517,14 +570,15 @@ onMounted(async (): Promise<void> => {
   align-items: center;
   gap: 10px;
   padding: 8px 14px;
-  background: #fff;
-  border-bottom: 1px solid #e1e4e8;
+  background: var(--bg-container, #fff);
+  border-bottom: 1px solid var(--border-subtle, #e1e4e8);
   flex-shrink: 0;
 }
 
 .fpe__title {
   font-size: 13px;
   font-weight: 600;
+  color: var(--text-primary, #24292f);
   max-width: 46vw;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -533,30 +587,32 @@ onMounted(async (): Promise<void> => {
 
 .fpe__size {
   font-size: 12px;
-  color: #6e7781;
+  color: var(--text-secondary, #6e7781);
 }
 
 .fpe__badge {
   font-size: 11px;
   padding: 1px 8px;
-  border-radius: 6px;
-  background: #eef2f7;
-  color: #57606a;
+  border-radius: var(--radius-md, 6px);
+  background: var(--bg-fill, #eef2f7);
+  color: var(--text-tertiary, #57606a);
   margin-left: auto;
 }
 
 .fpe__retry {
   font-size: 12px;
   padding: 3px 12px;
-  border-radius: 6px;
-  border: 1px solid #d0d7de;
-  background: #fff;
-  color: #24292f;
+  border-radius: var(--radius-md, 6px);
+  border: 1px solid var(--border-default, #d0d7de);
+  background: var(--bg-container, #fff);
+  color: var(--text-primary, #24292f);
   cursor: pointer;
+  transition: background-color 0.2s var(--ease-out, ease), border-color 0.2s var(--ease-out, ease);
 }
 
 .fpe__retry:hover {
-  background: #f6f8fa;
+  background: var(--bg-hover, #f6f8fa);
+  border-color: var(--border-strong, #a6b1bd);
 }
 
 .fpe__body {
@@ -570,7 +626,7 @@ onMounted(async (): Promise<void> => {
   width: 100%;
   height: 100%;
   border: none;
-  background: #fff;
+  background: var(--bg-container, #fff);
 }
 
 /* iframe 需要 display:block 消除基线缝隙；面板组件（office 的 flex 布局、
@@ -588,19 +644,19 @@ onMounted(async (): Promise<void> => {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  color: #57606a;
+  color: var(--text-tertiary, #57606a);
   font-size: 13px;
 }
 
 .fpe__placeholder--error {
-  color: #c0392b;
+  color: var(--status-error, #c0392b);
 }
 
 .fpe__spinner {
   width: 22px;
   height: 22px;
-  border: 2px solid #d0d7de;
-  border-top-color: #0969da;
+  border: 2px solid var(--border-default, #d0d7de);
+  border-top-color: var(--brand-500, #0969da);
   border-radius: 50%;
   animation: fpe-spin 0.9s linear infinite;
 }
@@ -620,5 +676,29 @@ onMounted(async (): Promise<void> => {
   text-align: center;
   line-height: 1.7;
   word-break: break-all;
+}
+
+/* ===== 响应式（移动端信息栏收窄） ===== */
+@media (max-width: 768px) {
+  .fpe__bar {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+  .fpe__title {
+    max-width: 46vw;
+  }
+  .fpe__badge {
+    display: none;
+  }
+}
+
+/* ===== 减少动态效果 ===== */
+@media (prefers-reduced-motion: reduce) {
+  .fpe__spinner {
+    animation-duration: 2s;
+  }
+  .fpe__retry {
+    transition: none;
+  }
 }
 </style>

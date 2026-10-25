@@ -19,7 +19,9 @@
             <span class="set-row-risk" :class="`is-${risk}`" role="img" :aria-label="riskTip" />
           </el-tooltip>
         </span>
-        <span v-if="description || $slots.description" class="set-row-desc">
+        <!-- 说明被折叠成 N 行后，完整文案靠 title 悬浮查看（有 description 插槽时由插槽自己负责） -->
+        <span v-if="description || $slots.description" class="set-row-desc"
+          :title="!$slots.description && description ? description : undefined">
           <slot name="description">{{ description }}</slot>
         </span>
       </div>
@@ -108,7 +110,15 @@ onBeforeUnmount(() => {
 watch(() => [props.label, props.tip, slots.label?.()], () => nextTick(scheduleMeasure), { flush: 'post' })
 
 const controlStyle = computed(() => {
-  if (props.controlFlex) return { flex: '0 1 380px', width: '380px', maxWidth: '100%', minWidth: '180px' }
+  /*
+   * 右侧控件区默认「自己长」，不再写死宽度。
+   *
+   * 原来三个分支都带 flex: 0 0 auto（不给就不伸缩），宽屏上右侧会缩在一角、
+   * 左边空出一大片；controlFlex 更是把 380px 焊死在计算属性里。
+   * 现在：不传宽度 = 交给 CSS 的 flex 规则（可伸可缩，带上限）；
+   * 只有页面**显式**要求某个固定宽度时才内联写死（少数需要像素对齐的控件）。
+   */
+  if (props.controlFlex) return {}
   if (props.controlWidth) {
     // 静态属性传入无单位字符串（如 "200"），补 px
     const width = /^\d+(\.\d+)?$/.test(props.controlWidth)
@@ -116,7 +126,7 @@ const controlStyle = computed(() => {
       : props.controlWidth
     return { width, flex: '0 0 auto' }
   }
-  return { flex: '0 0 auto' }
+  return {}
 })
 </script>
 
@@ -135,7 +145,18 @@ const controlStyle = computed(() => {
 }
 .set-row--stack .set-row-body { flex-direction: column; align-items: stretch; gap: 12px; }
 
-.set-row-text { min-width: 0; display: flex; flex-direction: column; gap: 4px; flex: 1 1 auto; padding-right: 8px; }
+/*
+  左侧文本列：固定最大宽度。
+  原来只有 `flex: 1 1 auto` 没有上限，说明越长越往右吃 —— 右控件是 flex-shrink: 0，
+  最后被挤成窄窄一条（用户报障：会话配置的说明太长，右侧组件宽度不够）。
+  上限用变量而不是写死：个别页面（例如会话配置的多行输入）需要更宽时，
+  在该行上覆盖 --set-row-text-max 即可，不必再改这个共享组件。
+*/
+.set-row-text {
+  min-width: 0; display: flex; flex-direction: column; gap: 4px;
+  flex: 1 1 auto; padding-right: 8px;
+  max-width: var(--set-row-text-max, 560px);
+}
 .set-row-label {
   display: inline-flex; align-items: center; gap: 8px;
   font-size: 13.5px; font-weight: 600; line-height: 1.4;
@@ -160,6 +181,11 @@ const controlStyle = computed(() => {
   height: 8px;
   border-radius: 50%;
   cursor: help;
+  animation: risk-dot-breathe 1.8s ease-in-out infinite;
+}
+@keyframes risk-dot-breathe {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.8); opacity: 0.6; }
 }
 .set-row-risk.is-high {
   background: var(--el-color-danger, #f56c6c);
@@ -176,11 +202,48 @@ const controlStyle = computed(() => {
   color: var(--el-color-primary);
   background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
-.set-row-desc { font-size: 12px; line-height: 1.6; color: var(--el-text-color-secondary); }
+/*
+  说明文字：过长时折叠成 N 行（默认 3 行）。
+  不折叠的话，长说明会在固定宽度里堆成一大段，把行撑得很高、
+  控件在视觉上被顶到一边；完整文案交给 title 悬浮查看。
+  行数同样用变量，单个页面可覆盖。
+*/
+.set-row-desc {
+  font-size: 12px; line-height: 1.6; color: var(--el-text-color-secondary);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--set-row-desc-lines, 3);
+  line-clamp: var(--set-row-desc-lines, 3);
+  overflow: hidden;
+  /* 中文长串（例如一长串字段名）没有空格可断行，默认会撑破容器 */
+  overflow-wrap: anywhere;
+}
 
+/*
+  右侧控件区：默认**可伸缩**，不再写死宽度。
+  - flex: 1 1 auto → 宽屏上把多余空间给控件，而不是让左侧文本列一直吃到边；
+  - min-width 保证窄屏时控件不被压没（换行交给 flex-wrap）；
+  - max-width 用变量兜一下，避免多行输入这类控件在超宽屏上拉成一整面墙。
+  显式传了 control-width 的行仍走内联固定宽度（少数要像素对齐的控件），
+  那条内联规则会盖住这里的 flex。
+*/
 .set-row-control {
   display: flex; align-items: center; justify-content: flex-end;
-  min-width: 0; flex-shrink: 0;
+  /*
+    保底 200px：内部 el-select / el-input 被上面的 `width: 100%` 撑满，
+    容器一旦没有固有宽度（原来 flex: 0 0 auto + min-width: 0），
+    100% 就塌成很窄一条 —— 下拉框里只看得见一个「3」，
+    用户没法直观看出来「最多联想条数 / 初始加载记录数量」到底设了什么。
+  */
+  min-width: var(--set-row-control-min, 200px);
+  max-width: var(--set-row-control-max, 100%);
+  flex: 1 1 auto;
+}
+/* 极窄屏：控件整体换到下一行，而不是被挤成一条竖线 */
+@media (max-width: 720px) {
+  .set-row-body { flex-wrap: wrap; }
+  .set-row-text { max-width: 100%; }
+  .set-row-control { justify-content: flex-start; }
 }
 .set-row--stack .set-row-control { justify-content: flex-start; }
 .set-row-control :deep(.el-switch) { flex-shrink: 0; }
@@ -202,6 +265,9 @@ const controlStyle = computed(() => {
 @media (prefers-reduced-motion: reduce) {
   .set-row--clickable {
     transition: none;
+  }
+  .set-row-risk {
+    animation: none;
   }
 }
 

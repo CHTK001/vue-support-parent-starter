@@ -16,6 +16,9 @@
         <ReButton type="primary" @click="openCreate">
           <template #icon><ReIcon name="Plus" /></template>新建任务
         </ReButton>
+        <ReButton @click="bulkImportVisible = true">
+          <template #icon><ReIcon name="Upload" /></template>批量导入
+        </ReButton>
       </div>
     </div>
 
@@ -107,11 +110,12 @@
     </div>
 
     <div class="st-body">
-      <!-- 表格统一 ReTable：默认 vxe 引擎（本页 UI 图契约与可点元素普查也按 vxe DOM 口径），
-           分页由页脚自管（pageTasks 切片与原实现逐行一致），toolbar=false 保持本页按钮清单不变。 -->
+      <!-- 表格统一 ReTable：默认 vxe 引擎（本页 UI 图契约与可点元素普查也按 vxe DOM 口径）。
+           分页用 ReTable 自带分页（本地数组模式：组件按 page/pageSize 切片、total 取数组长度），
+           toolbar=false 保持本页按钮清单不变。 -->
       <ReTable
-        :data="pageTasks" :columns="taskColumns" :loading="loading"
-        :pagination="false" :toolbar="false"
+        :data="filteredTasks" :columns="taskColumns" :loading="loading"
+        :page-size="8" :page-sizes="[8, 20, 50]" :toolbar="false"
         table-id="monitor-sync-tasks" stripe
         empty-text="没有符合条件的同步任务"
       >
@@ -140,6 +144,11 @@
               <span class="st-flow-chip" :title="dsName(row.syncTaskTargetDatasourceId) + '.' + row.syncTaskTargetTable">
                 <ReIcon name="Grid" :size="12" />{{ row.syncTaskTargetTable || "-" }}
               </span>
+              <span
+                v-if="targetCount(row) > 1"
+                class="st-flow-more"
+                :title="`共 ${targetCount(row)} 个输出目标，分别写入不同表`"
+              >+{{ targetCount(row) - 1 }}</span>
             </div>
         </template>
         <template #col-writeMode="{ row }">
@@ -199,7 +208,7 @@
             <div class="st-acts">
               <ReButton
                 layout="square" icon="VideoPlay" tip="立即执行"
-                :loading="runningId === row.id" :disabled="row.syncTaskEnabled !== 1"
+                :loading="runningId === row.id" :disabled="runningId === row.id"
                 @click="run(row)"
               />
               <ReButton layout="square" icon="Document" tip="日志" @click="openLog(row)" />
@@ -208,14 +217,6 @@
             </div>
         </template>
       </ReTable>
-      <div class="st-foot">
-        <span>显示 {{ pageStart }}-{{ pageEnd }} 条，共 {{ tasks.length }} 个同步任务</span>
-        <el-pagination
-          v-model:current-page="pageNo" :page-size="PAGE_SIZE" :total="filteredTasks.length"
-          :pager-count="5" size="small" background layout="prev, pager, next"
-          aria-label="同步任务分页"
-        />
-      </div>
     </div>
 
     <ReDialog
@@ -288,15 +289,23 @@
             <div v-if="sourceMode === 'table'" class="st-form-item">
               <label>数据表</label>
               <el-select v-model="pickedSourceTable" placeholder="选择源库数据表" filterable clearable class="st-full" @change="applySourceTable" @clear="onSourceTableClear">
-                <el-option v-for="t in sourceTables" :key="t" :label="t" :value="t" />
+                <el-option v-for="t in sourceTables" :key="t" :label="displayTargetTable(t)" :value="t" />
               </el-select>
               <div class="st-form-hint">选中后自动生成 SELECT（见下方 SQL，只读）；需要微调请切到「自定义 SQL」。</div>
             </div>
 
             <div class="st-form-item">
-              <label>源读取 SQL（必须以 SELECT 开头）</label>
-              <el-input v-model="form.sourceSql" type="textarea" :rows="4" class="mono" :readonly="sourceMode === 'table'" placeholder="SELECT id, name FROM t_order" />
-              <div class="st-form-hint">只读源库：写语句会被后端挡下。</div>
+              <label>{{ sourceMode === 'sql' ? '源读取 SQL（必须以 SELECT 开头）' : '源读取 SQL（由所选数据表生成，只读）' }}</label>
+              <el-input
+                v-model="form.sourceSql" type="textarea" :rows="4" class="mono"
+                :readonly="sourceMode === 'table'"
+                :placeholder="sourceMode === 'table' ? '选好左侧数据表后自动生成' : 'SELECT id, name FROM t_order'"
+              />
+              <div class="st-form-hint">
+                {{ sourceMode === 'sql'
+                  ? '只读源库：写语句会被后端挡下；点「下一步」会按当前库方言只取 1 条真实校验（表/列不存在会当场报错）。'
+                  : '切到「自定义 SQL」才能编辑；在该模式下需要自己保证语句以 SELECT 开头。' }}
+              </div>
             </div>
           </template>
 
@@ -458,135 +467,238 @@
           </template>
         </template>
 
-        <!-- ② 设置输出：数据源中心选 jdbc 数据源，选目标表 + 字段映射 -->
+        <!-- ② 设置输出：方案 D（汇总折叠）——每个目标一行摘要，展开后编辑该目标自己的
+             数据源 / 表 / 写入模式 / 同步模式 / 增量字段 / 字段映射。一次采集写多张表时，
+             各目标配置互不影响（独立写入事务、独立增量水位）。 -->
         <template v-else-if="step === 1">
-          <div class="st-form-item">
-            <label>目标数据源（jdbc）</label>
-            <el-select v-model="form.targetDatasourceId" placeholder="从数据源中心选择目标数据源" class="st-full" @change="onTargetChange">
-              <el-option v-for="ds in jdbcSources" :key="ds.id" :label="ds.name" :value="ds.id" />
-            </el-select>
-          </div>
-
-          <div class="st-grid">
-            <div class="st-form-item">
-              <label>目标数据表</label>
-              <el-select v-model="form.targetTable" placeholder="选择或输入目标表名" filterable allow-create default-first-option class="st-full">
-                <el-option v-for="t in targetTables" :key="t" :label="t" :value="t" />
-              </el-select>
-              <div class="st-form-hint">表清单取自目标数据源；不在清单中的表名可直接输入。预览发现表不存在时，会弹出设计表向导在对应库建好并自动继续预览。</div>
-            </div>
-            <div class="st-form-item">
-              <label>写入模式</label>
-              <el-select v-model="form.writeMode" class="st-full">
-                <el-option v-for="m in writeModes" :key="m.code" :label="m.label + '（' + m.code + '）'" :value="m.code" />
-              </el-select>
-            </div>
-          </div>
-
-          <!-- 同步模式与增量配置：与「写入模式」分开的维度——写入模式管目标端语句长什么样，
-               同步模式管这一轮从源读全部还是按水位只读新增 -->
-          <div class="st-grid">
-            <div class="st-form-item">
-              <label>同步模式</label>
-              <el-select v-model="form.syncMode" class="st-full" @change="onSyncModeChange">
-                <el-option label="全量（每次读取全部源数据）" value="FULL" />
-                <el-option label="增量（按增量字段水位取新数据）" value="INCREMENTAL" />
-              </el-select>
-              <div class="st-form-hint">
-                {{ form.syncMode === 'INCREMENTAL'
-                  ? '按增量字段升序分批取数，每轮成功后自动记录水位，下次只取新于水位的数据；配合「存在即更新」不产生重复。'
-                  : '单次流式读完全部源数据，适用于小数据范围；配合「先清空再插入」即为全量覆盖。大数据请用增量模式。' }}
-              </div>
-            </div>
-            <div class="st-form-item">
-              <label>增量字段</label>
-              <el-input
-                v-model="form.incField" class="mono"
-                :disabled="form.syncMode !== 'INCREMENTAL'"
-                placeholder="如 id / updated_at（源结果集里存在的列）"
-              />
-              <div class="st-form-hint" v-if="form.syncMode === 'INCREMENTAL'">
-                JDBC：自动包裹进源 SQL（水位条件+升序+每批上限）；HTTP：以查询参数携带上次水位。
-                <template v-if="form.lastSeq"><b>当前水位：{{ form.lastSeq }}</b>（改动字段会清空水位）</template>
-                <template v-else>尚无水位，首跑按升序分批引导。</template>
-              </div>
-              <div class="st-form-hint" v-else>切换为增量模式后可填写；源 SQL 与该列需同时存在于结果集。</div>
-            </div>
-          </div>
-
-          <div v-if="form.syncMode === 'INCREMENTAL'" class="st-form-item">
-            <label>每批数量（单次执行最多同步条数，留空不限）</label>
-            <el-input-number
-              v-model="form.incBatchSize" :min="1" :max="100000000" :step="1000"
-              controls-position="right" class="st-full" placeholder="留空表示不限"
-            />
-            <div class="st-form-hint">积压数据分轮自动消化：每轮取最老的 N 条并推进水位，下一轮接着往后，不漏不重。</div>
-          </div>
-
-          <!-- 解析预览（UI 图卡片）：真实预览结果（源/目标列 + 类型），未预览时如实说明，不造假日数 -->
-          <div class="st-preview">
-            <div class="st-preview-head">
-              <span class="st-preview-title">解析预览</span>
-              <span class="st-preview-meta">
-                {{ previewSourceColumns.length
-                  ? `源 ${previewSourceColumns.length} 列 · 目标 ${previewTargetColumns.length} 列 · 已配对 ${form.mapping.length} 项`
-                  : "尚未预览" }}
-              </span>
-              <ReButton @click="doPreview">
-                <template #icon><ReIcon name="Refresh" /></template>预览 / 自动配对
-              </ReButton>
-            </div>
-            <div v-if="previewSourceColumns.length" class="st-preview-chips">
-              <span v-for="col in previewSourceColumns" :key="col.name" class="st-chip">
-                <b class="st-chip-name">{{ col.name }}</b>
-                <i class="st-chip-type">{{ col.type }}</i>
-              </span>
-            </div>
-            <div v-else class="st-form-hint">点「预览 / 自动配对」真实读取一次源列与目标列，并按同名自动配对。</div>
-            <div v-for="(warning, index) in previewWarnings" :key="index" class="st-warn">{{ warning }}</div>
-          </div>
-
-          <div class="st-map">
-            <div class="st-map-head">
-              <span>字段映射（源 → 目标）</span>
-              <div class="st-inline">
-                <ReButton @click="addMappingRow">
-                  <template #icon><ReIcon name="Plus" /></template>加一行
-                </ReButton>
-              </div>
-            </div>
-            <!-- 映射列表同样收口 ReTable（表格统一）：原来是无表头的 flex 行 + 中间一个 → 箭头，
-                 换成真表头「源字段 / 目标字段 / 操作」，方向语义由列名承担，箭头不再需要。
-                 四个无条件属性同列表页；原行没有任何边框/斑马纹，故 border:false 抑制默认边框。 -->
-            <ReTable
-              :data="form.mapping"
-              :columns="mappingColumns"
-              :pagination="false"
-              :toolbar="false"
-              :layout-table="{ minHeight: 0 }"
-              :settings="{ border: false }"
+          <div class="st-targets">
+            <div
+              v-for="(target, index) in form.targets"
+              :key="index"
+              class="st-target"
+              :class="{ 'is-active': isTargetOpen(index) }"
             >
-              <template #col-source="{ row }">
-                <el-select v-model="row.source" placeholder="源列" filterable class="st-map-col">
-                  <el-option v-for="c in sourceColumnOptions" :key="c.name" :label="c.name" :value="c.name" />
-                </el-select>
-              </template>
-              <template #col-target="{ row }">
-                <el-select v-model="row.target" placeholder="目标列" filterable class="st-map-col">
-                  <el-option v-for="c in targetColumnOptions" :key="c.name" :label="c.name" :value="c.name" />
-                </el-select>
-              </template>
-              <template #col-actions="{ row }">
-                <ReButton type="danger" circle title="删除" @click="removeMappingRow(row)">
-                  <template #icon><ReIcon name="Delete" /></template>
-                </ReButton>
-              </template>
-              <template #empty>
-                <div class="st-form-hint">
-                  留空则按「同名（忽略大小写）」自动配对；建议先点「预览 / 自动配对」确认配对结果。
+              <div
+                class="st-target-head"
+                role="button" tabindex="0"
+                :aria-expanded="isTargetOpen(index)"
+                :aria-controls="`st-target-body-${index}`"
+                @click="toggleTarget(index)"
+                @keydown.enter.prevent="toggleTarget(index)"
+                @keydown.space.prevent="toggleTarget(index)"
+              >
+                <ReIcon
+                  class="st-target-chevron" :class="{ 'is-open': isTargetOpen(index) }"
+                  :name="isTargetOpen(index) ? 'arrow-down' : 'arrow-right'" :size="13"
+                />
+                <span class="st-target-idx">{{ index + 1 }}</span>
+                <span class="st-target-name">
+                  <b :title="target.targetTable || '未选择表'">
+                    {{ target.targetTable ? displayTargetTable(target.targetTable) : "未选择目标表" }}
+                  </b>
+                  <i class="st-sub">{{ targetDatasourceLabel(target) }}</i>
+                </span>
+                <span class="st-target-tags">
+                  <el-tag size="small" effect="plain">{{ modeLabel(target.writeMode) }}</el-tag>
+                  <el-tag
+                    v-if="target.syncMode === 'INCREMENTAL'"
+                    size="small" type="warning" effect="plain"
+                    :title="`增量字段 ${target.incFields.join(' → ') || '-'} · 每批 ${target.incBatchSize ?? '不限'} 条 · 水位 ${target.lastSeq || '（首跑）'}`"
+                  >增量</el-tag>
+                  <el-tag v-else size="small" type="info" effect="plain">全量</el-tag>
+                  <el-tag v-if="target.mapping.length" size="small" type="success" effect="plain" :title="`已配置 ${target.mapping.length} 条字段映射`">
+                    映射 {{ target.mapping.length }}
+                  </el-tag>
+                </span>
+                <span class="st-target-acts">
+                  <span class="st-target-open">{{ isTargetOpen(index) ? "收起" : "展开" }}</span>
+                  <ReButton
+                    v-if="form.targets.length > 1"
+                    layout="square" type="danger" icon="Delete" tip="删除该目标"
+                    @click.stop="removeTarget(index)"
+                  />
+                </span>
+              </div>
+
+              <div v-show="isTargetOpen(index)" :id="`st-target-body-${index}`" class="st-target-body">
+                <div class="st-grid">
+                  <div class="st-form-item">
+                    <label>目标数据源（jdbc）</label>
+                    <el-select v-model="activeTarget.targetDatasourceId" placeholder="从数据源中心选择目标数据源" class="st-full" @change="onTargetChange">
+                      <el-option v-for="ds in jdbcSources" :key="ds.id" :label="ds.name" :value="ds.id" />
+                    </el-select>
+                  </div>
+                  <div class="st-form-item">
+                    <label>目标数据表</label>
+                    <el-select v-model="activeTarget.targetTable" placeholder="选择或输入目标表名" filterable allow-create default-first-option class="st-full">
+                      <el-option v-for="t in targetTables" :key="t" :label="displayTargetTable(t)" :value="t" />
+                    </el-select>
+                    <div class="st-form-hint">表清单取自目标数据源，选中值带库前缀（如 ngxacc.device_channel），保证预览/保存与后台查列落在同一库；不在清单中的表名可直接输入。</div>
+                  </div>
                 </div>
-              </template>
-            </ReTable>
+
+                <div class="st-grid">
+                  <div class="st-form-item">
+                    <label>写入模式</label>
+                    <el-select v-model="activeTarget.writeMode" class="st-full">
+                      <el-option
+                        v-for="m in writeModesFor(activeTarget)"
+                        :key="m.code"
+                        :label="m.label + '（' + m.code + '）'"
+                        :value="m.code"
+                      />
+                    </el-select>
+                    <div class="st-form-hint" v-if="activeTarget.syncMode === 'INCREMENTAL'">
+                      「先清空再插入」与增量水位互斥（每批都会清空目标表），增量模式下不提供该写入模式。
+                    </div>
+                  </div>
+                  <div class="st-form-item">
+                    <label>同步模式</label>
+                    <el-select v-model="activeTarget.syncMode" class="st-full" @change="onSyncModeChange">
+                      <el-option label="全量（每次读取全部源数据）" value="FULL" />
+                      <!-- 不支持增量的输入源直接不提供该选项：给一个永远选不了的灰项只会让人反复点 -->
+                      <el-option
+                        v-if="incrementalSourceSupported"
+                        label="增量（按增量字段水位取新数据）"
+                        value="INCREMENTAL"
+                      />
+                    </el-select>
+                  </div>
+                </div>
+
+                <!-- 增量专属配置：全量模式直接不渲染，避免出现一整片灰控件 -->
+                <div v-if="activeTarget.syncMode === 'INCREMENTAL'" class="st-grid">
+                  <div class="st-form-item">
+                    <label>增量字段</label>
+                    <el-select
+                      v-model="activeTarget.incFields"
+                      multiple
+                      filterable
+                      allow-create
+                      default-first-option
+                      collapse-tags
+                      collapse-tags-tooltip
+                      class="st-full"
+                      placeholder="从源结果集列中选择（可多选，按选择顺序生效）"
+                    >
+                      <el-option
+                        v-for="col in sourceColumnOptions"
+                        :key="col.name"
+                        :label="col.name"
+                        :value="col.name"
+                      />
+                    </el-select>
+                    <div class="st-form-hint">
+                      <template v-if="activeTarget.incFields.length > 1">
+                        复合水位（按此顺序比较）：<b>{{ incFieldOrderText }}</b>；前一个字段相等时才比较后一个，同一时间戳内不会漏行。
+                      </template>
+                      JDBC：自动包裹进源 SQL（水位条件+升序+每批上限）；HTTP：以查询参数携带上次水位。
+                      <template v-if="activeTarget.lastSeq"><b>当前水位：{{ activeTarget.lastSeq }}</b>（改动字段会清空水位）</template>
+                      <template v-else>尚无水位，首跑按升序分批引导。</template>
+                    </div>
+                  </div>
+                  <div class="st-form-item">
+                    <label>每批数量（留空不限）</label>
+                    <el-input-number
+                      v-model="activeTarget.incBatchSize" :min="1" :max="100000000" :step="1000"
+                      controls-position="right" class="st-full"
+                      placeholder="留空表示不限"
+                    />
+                    <div class="st-form-hint">
+                      积压数据分轮自动消化：每轮取最老的 N 条并推进水位，下一轮接着往后，不漏不重。
+                    </div>
+                  </div>
+                </div>
+                <!-- 全量模式下给一句说明即可，不再摆一排禁用控件 -->
+                <div v-else class="st-form-hint">
+                  <template v-if="incrementalSourceSupported">
+                    当前目标按全量执行；切换为增量后才有增量字段与每批上限可配。
+                  </template>
+                  <template v-else>当前输入源不支持增量（仅 JDBC / HTTP 源可用）。</template>
+                </div>
+
+                <div class="st-grid">
+                  <div class="st-form-item">
+                    <label>批量提交条数</label>
+                    <el-input-number v-model="activeTarget.batchSize" :min="1" :max="100000" :step="100" controls-position="right" class="st-full" />
+                    <div class="st-form-hint">每批写入的行数：调大提升吞吐，调小降低单事务压力。</div>
+                  </div>
+                </div>
+
+                <!-- 该目标的解析预览：目标表结构各不相同，必须按目标分别预览 -->
+                <div class="st-preview">
+                  <div class="st-preview-head">
+                    <span class="st-preview-title">解析预览（目标 {{ index + 1 }}）</span>
+                    <span class="st-preview-meta">
+                      {{ previewSourceColumns.length
+                        ? `源 ${previewSourceColumns.length} 列 · 目标 ${activeTarget.previewTargetColumns.length} 列 · 已配对 ${activeTarget.mapping.length} 项`
+                        : "尚未预览" }}
+                    </span>
+                    <ReButton @click="doPreview">
+                      <template #icon><ReIcon name="Refresh" /></template>预览 / 自动配对
+                    </ReButton>
+                  </div>
+                  <div v-if="previewSourceColumns.length" class="st-preview-chips">
+                    <span v-for="col in previewSourceColumns" :key="col.name" class="st-chip">
+                      <b class="st-chip-name">{{ col.name }}</b>
+                      <i class="st-chip-type">{{ col.type || "（解析）" }}</i>
+                    </span>
+                  </div>
+                  <div v-else class="st-form-hint">点「预览 / 自动配对」真实读取一次源列与目标列，并按同名自动配对。</div>
+                  <div v-for="(warning, i) in activeTarget.previewWarnings" :key="i" class="st-warn">{{ warning }}</div>
+                </div>
+
+                <div class="st-map">
+                  <div class="st-map-head">
+                    <span>字段映射（源 → 目标）</span>
+                    <div class="st-inline">
+                      <ReButton @click="addMappingRow">
+                        <template #icon><ReIcon name="Plus" /></template>加一行
+                      </ReButton>
+                    </div>
+                  </div>
+                  <ReTable
+                    :data="activeTarget.mapping"
+                    :columns="mappingColumns"
+                    :pagination="false"
+                    :toolbar="false"
+                    :layout-table="{ minHeight: 0 }"
+                    :settings="{ border: false }"
+                  >
+                    <template #col-source="{ row }">
+                      <el-select v-model="row.source" placeholder="源列" filterable class="st-map-col">
+                        <el-option v-for="c in sourceColumnOptions" :key="c.name" :label="c.name" :value="c.name" />
+                      </el-select>
+                    </template>
+                    <template #col-target="{ row }">
+                      <el-select v-model="row.target" placeholder="目标列" filterable class="st-map-col">
+                        <el-option v-for="c in targetColumnOptions" :key="c.name" :label="c.name" :value="c.name" />
+                      </el-select>
+                    </template>
+                    <template #col-actions="{ row }">
+                      <ReButton type="danger" circle title="删除" @click="removeMappingRow(row)">
+                        <template #icon><ReIcon name="Delete" /></template>
+                      </ReButton>
+                    </template>
+                    <template #empty>
+                      <div class="st-form-hint">
+                        留空则按「同名（忽略大小写）」自动配对；建议先点「预览 / 自动配对」确认配对结果。
+                      </div>
+                    </template>
+                  </ReTable>
+                </div>
+              </div>
+            </div>
+
+            <div class="st-target-add">
+              <ReButton @click="addTarget">
+                <template #icon><ReIcon name="Plus" /></template>添加输出目标
+              </ReButton>
+              <span class="st-form-hint">
+                一次采集的结果可同时写入多张表。每个目标有独立的写入模式、同步模式、增量字段与字段映射；
+                某个目标写失败不会影响其它目标推进。
+              </span>
+            </div>
           </div>
         </template>
 
@@ -608,17 +720,16 @@
             <div v-if="cronError" class="st-warn">{{ cronError }}</div>
           </div>
 
-          <!-- 批量提交条数与启用定时各占一行：原先两列并排，控件挤在一起读与调都不顺手 -->
-          <div class="st-form-item">
-            <label>批量提交条数</label>
-            <el-input-number v-model="form.batchSize" :min="1" :max="100000" :step="100" controls-position="right" class="st-full" />
-            <div class="st-form-hint">每批写入的行数：调大提升吞吐，调小降低单事务压力。</div>
-          </div>
-          <div class="st-form-item st-switch-item">
+          <!-- 批量提交条数属于「每个目标各自的写入参数」，已在第②步的目标里配置；
+               这里只放任务级调度与 Hook 通知。 -->
+          <!-- 启用定时的开关只在填了 cron 时才出现：没填 cron 时它永远开不了，
+               摆一个点不动的灰开关没有意义，直接不渲染。 -->
+          <div v-if="form.cron.trim()" class="st-form-item st-switch-item">
             <label>启用定时</label>
-            <el-switch v-model="form.enabled" aria-label="启用定时" :disabled="!form.cron.trim()" />
-            <span class="st-form-hint">未填定时表达式时不能启用</span>
+            <el-switch v-model="form.enabled" aria-label="启用定时" />
+            <span class="st-form-hint">开启后按上面的 cron 自动执行；关闭则只保留手动执行。</span>
           </div>
+          <div v-else class="st-form-hint">未填定时表达式，保存后只能手动执行。</div>
 
           <!-- Hook HTTP 回调：旁路通知，发送失败只记日志不影响同步结果 -->
           <div class="st-form-item">
@@ -629,18 +740,21 @@
             />
             <div class="st-form-hint">每轮执行结束向该地址 JSON POST 执行结果（成功/失败都发）；增量选「每条」时每写入一条再推一条。</div>
           </div>
-          <div v-if="form.hookUrl.trim()" class="st-form-item">
+          <!-- 通知时机只在「有增量目标」时才有意义：全量固定 DONE，
+               所以全量时直接不渲染这个下拉，而不是摆一个选不动的灰控件。 -->
+          <div v-if="form.hookUrl.trim() && anyIncrementalTarget" class="st-form-item">
             <label>通知时机</label>
-            <el-select v-model="form.hookNotify" class="st-full" :disabled="form.syncMode === 'FULL'">
+            <el-select v-model="form.hookNotify" class="st-full">
               <el-option label="完成通知（每轮一条，成功/失败各带 status）" value="DONE" />
               <el-option label="每条数据 + 完成通知" value="ROW" />
             </el-select>
             <div class="st-form-hint">
-              {{ form.syncMode === 'FULL'
-                ? '全量模式固定为完成通知。'
-                : '增量模式可逐条推送（异步发送，慢接收端不拖累同步吞吐；队列满丢通知不丢数据）。' }}
+              有增量目标时可逐条推送（异步发送，慢接收端不拖累同步吞吐；队列满丢通知不丢数据）。
               通知失败只记日志，不影响同步。
             </div>
+          </div>
+          <div v-else-if="form.hookUrl.trim()" class="st-form-hint">
+            全部目标都是全量模式，通知时机固定为「完成通知」。
           </div>
         </template>
       </div>
@@ -656,7 +770,7 @@
               <template #icon><ReIcon name="CaretLeft" :size="12" /></template>上一步
             </ReButton>
             <ReButton @click="dialogVisible = false">取消</ReButton>
-            <ReButton v-if="step < 2" type="primary" @click="nextStep">
+            <ReButton v-if="step < 2" type="primary" :loading="sourceVerifying" @click="nextStep">
               <template #icon><ReIcon name="CaretRight" :size="12" /></template>下一步 · {{ WIZ_STEPS[step + 1].title }}
             </ReButton>
             <ReButton v-else type="primary" :loading="saving" @click="submit">
@@ -763,12 +877,11 @@
       <template #footer>
         <div class="st-dlg-actions">
           <ReButton v-if="logFetchError && logEntries.length" @click="clearLogEntries">清空本机记录</ReButton>
-          <ReButton @click="logVisible = false">关闭</ReButton>
           <ReButton v-if="logTask" @click="openEditFromLog">编辑任务</ReButton>
           <ReButton
             v-if="logTask" type="primary"
             :loading="runningId === logTask.id"
-            :disabled="logTask.syncTaskEnabled !== 1"
+            :disabled="runningId === logTask.id"
             @click="runFromLog"
           >立即执行</ReButton>
         </div>
@@ -781,6 +894,7 @@
     <CreateTableDialog
       v-model="tableDesignerVisible"
       :datasource-id="designerDatasourceId ?? undefined"
+      :database="designerDatabase || undefined"
       :initial-name="designerTable"
       :initial-columns="designerColumns"
       @created="onTableCreated"
@@ -798,6 +912,7 @@
       initial-path="/"
       :loader="localFileLoader"
       @select="onPathPicked" />
+    <BulkImportDialog v-model="bulkImportVisible" />
   </div>
 </template>
 
@@ -819,8 +934,8 @@ import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch, type 
 import { ElMessageBox } from "element-plus";
 import { CircleCheck, Document as DocumentIcon, Files, Loading, Upload as UploadIcon, Warning } from "@element-plus/icons-vue";
 import { fetchDataSources, fetchDatasourceTables, type DataSourceInfo } from "@pages/datasource";
-import { fetchTableColumns } from "@pages/datasource/src/api/manageConsoles";
-import CreateTableDialog from "@pages/datasource/src/components/console/CreateTableDialog.vue";
+import { fetchTableColumns, fetchMonitorTablesQualified, getDatasourceDatabase } from "../../api/manageConsoles";import CreateTableDialog from "../../components/console/CreateTableDialog.vue";
+import BulkImportDialog from "../../components/sync/BulkImportDialog.vue";
 import ReCron from "@repo/ui/re-cron";
 import ReFilePicker from "@repo/ui/re-file-picker";
 import type { FilePickerItem } from "@repo/ui/components/ReFilePicker/types";
@@ -836,6 +951,7 @@ import {
   previewSyncMapping,
   runSyncTask,
   updateSyncTask,
+  validateSyncSource,
   type SyncColumn,
   type SyncFieldMapping,
   type SyncTask,
@@ -862,21 +978,24 @@ const writeModes = ref<SyncWriteMode[]>([]);
 /** 源库可选表 */
 const sourceTables = ref<string[]>([]);
 /** 目标库可选表 */
-const targetTables = ref<string[]>([]);
+const targetTables = ref<string[]>([]);/** 目标数据源当前命中的库（选表后由清单流程写入，保存/预览用「库.表」对齐后端） */
+const targetDatabase = ref("");
+/** 源数据源当前命中的库（源表下拉限定值已含库名；建表回填裸表名时用它补库） */
+const sourceDatabase = ref("");
 /** 源库选表用的临时值 */
 const pickedSourceTable = ref<string | null>(null);
 /** 弹窗可见 */
 const dialogVisible = ref(false);
+/** 批量导入弹窗可见 */
+const bulkImportVisible = ref(false);
 /** 保存中 */
 const saving = ref(false);
+/** 源可读性校验中（第①步「下一步」在等后端真读一次源） */
+const sourceVerifying = ref(false);
 /** 正在编辑的任务 ID，空表示新建 */
 const editingId = ref<number | null>(null);
-/** 预览得到的源列 */
+/** 预览得到的源列（源只有一份，多个目标共用；目标列各目标自己存） */
 const previewSourceColumns = ref<SyncColumn[]>([]);
-/** 预览得到的目标列 */
-const previewTargetColumns = ref<SyncColumn[]>([]);
-/** 预览提示 */
-const previewWarnings = ref<string[]>([]);
 /** 当前向导步骤：0 设置输入 / 1 设置输出 / 2 设置配置 */
 const step = ref(0);
 /** 输入取数方式：table 选数据表（自动生成 SELECT）/ sql 自定义 SQL */
@@ -911,6 +1030,43 @@ const WIZ_STEPS = [
   { title: "设置输出", description: "目标数据源与写入表" },
   { title: "设置配置", description: "调度与运行参数" },
 ];
+
+/** 一个输出目标的表单草稿（多目标时 form.targets 里有多份） */
+type TargetForm = {
+  targetDatasourceId: number | null;
+  targetTable: string;
+  writeMode: string;
+  /** 同步模式：FULL 全量 / INCREMENTAL 增量 */
+  syncMode: "FULL" | "INCREMENTAL";
+  /** 增量字段（源结果集里存在的列名；多选时按选择顺序构成复合水位） */
+  incFields: string[];
+  /** 增量每批数量（单次执行最多同步条数），null=不限 */
+  incBatchSize: number | null;
+  /** 批量提交条数 */
+  batchSize: number;
+  /** 该目标的字段映射 */
+  mapping: SyncFieldMapping[];
+  /** 该目标自己的预览结果（目标表结构各不同，不能共用） */
+  previewTargetColumns: SyncColumn[];
+  previewWarnings: string[];
+  /** 增量水位（仅编辑时展示；服务端执行成功后回写，不随表单提交） */
+  lastSeq: string;
+};
+
+/** 新建一个空目标 */
+const emptyTarget = (): TargetForm => ({
+  targetDatasourceId: null,
+  targetTable: "",
+  writeMode: "INSERT",
+  syncMode: "FULL",
+  incFields: [],
+  incBatchSize: null,
+  batchSize: 500,
+  mapping: [],
+  previewTargetColumns: [],
+  previewWarnings: [],
+  lastSeq: "",
+});
 
 /** 表单 */
 const form = reactive({
@@ -953,26 +1109,99 @@ const form = reactive({
   sourceCookie: "",
   /** HTTP 超时（秒） */
   sourceTimeout: 30,
-  targetDatasourceId: null as number | null,
-  targetTable: "",
-  writeMode: "INSERT",
-  /** 同步模式：FULL 全量 / INCREMENTAL 增量 */
-  syncMode: "FULL" as "FULL" | "INCREMENTAL",
-  /** 增量字段（源结果集里存在的列名） */
-  incField: "",
-  /** 增量每批数量（单次执行最多同步条数），null=不限 */
-  incBatchSize: null as number | null,
+  /** 输出目标列表（方案 D：汇总折叠，同时只展开一个） */
+  targets: [emptyTarget()] as TargetForm[],
   /** Hook 通知地址，空=不通知 */
   hookUrl: "",
   /** Hook 通知时机：DONE 完成通知 / ROW 每条数据+完成 */
   hookNotify: "DONE" as "DONE" | "ROW",
-  /** 增量水位（仅编辑时展示；服务端执行成功后回写，不随表单提交） */
-  lastSeq: "",
-  batchSize: 500,
   cron: "",
   enabled: false,
-  mapping: [] as SyncFieldMapping[],
 });
+
+/** 当前展开编辑的目标下标（方案 D：汇总行 + 折叠编辑） */
+const activeTargetIndex = ref(0);
+/**
+ * 当前目标是否展开。
+ *
+ * <p>同时只展开一个：编辑区绑的是单个 activeTarget（表清单、预览、字段映射都是
+ * 按目标单独加载的单例状态），允许多个同时展开会让每个编辑区都显示并改写同一个
+ * 目标——界面直接说谎。因此这里做「手风琴 + 可全部收起」：点开新的自动收起旧的，
+ * 再点自己则收起，全部收起时只剩摘要行，目标再多也不会把弹窗撑成一条长表单。</p>
+ */
+const targetExpanded = ref(true);
+/** 某个目标是否展开 */
+const isTargetOpen = (index: number): boolean => index === activeTargetIndex.value && targetExpanded.value;
+/** 当前编辑的目标；targets 恒有 1 项，故不会为 undefined */
+const activeTarget = computed<TargetForm>(() => form.targets[activeTargetIndex.value] ?? form.targets[0]);
+
+/**
+ * 目标行的数据源描述（汇总行第二行）
+ *
+ * <p>选中表已带库前缀时，库里那一段就是落库位置，比数据源名更有信息量，
+ * 因此拼成「数据源名 · 库」；未选数据源时如实说未选。</p>
+ *
+ * @param target 目标草稿
+ */
+const targetDatasourceLabel = (target: TargetForm): string => {
+  if (target.targetDatasourceId == null) return "未选择数据源";
+  const name = dsName(target.targetDatasourceId);
+  const table = target.targetTable.trim();
+  const dot = table.indexOf(".");
+  return dot > 0 ? `${name} · ${table.slice(0, dot)}` : name;
+};
+
+/** 添加一个输出目标：默认沿用当前目标的数据源与批量参数，表与映射留空 */
+const addTarget = () => {
+  const base = activeTarget.value;
+  form.targets.push({
+    ...emptyTarget(),
+    targetDatasourceId: base.targetDatasourceId,
+    batchSize: base.batchSize,
+  });
+  const index = form.targets.length - 1;
+  activeTargetIndex.value = index;
+  // 新加的目标自动展开，方便立刻填表
+  targetExpanded.value = true;
+  void loadTables(form.targets[index].targetDatasourceId, true);
+};
+
+/**
+ * 切换某个目标的展开 / 收起
+ *
+ * <p>点开新目标会自动收起旧目标（编辑区只能对应一个目标）；再点当前已展开的
+ * 目标则收起它，允许全部收起，只留摘要行。</p>
+ *
+ * @param index 目标下标
+ */
+const toggleTarget = (index: number) => {
+  if (index === activeTargetIndex.value) {
+    targetExpanded.value = !targetExpanded.value;
+    return;
+  }
+  activeTargetIndex.value = index;
+  targetExpanded.value = true;
+  targetTables.value = [];
+  void loadTables(form.targets[index].targetDatasourceId, true);
+};
+
+/**
+ * 删除一个输出目标（至少保留一个，否则保存时没有落点）
+ *
+ * @param index 目标下标
+ */
+const removeTarget = (index: number) => {
+  if (form.targets.length <= 1) {
+    message.warning("至少保留一个输出目标");
+    return;
+  }
+  form.targets.splice(index, 1);
+  // 删除后下标可能越界：收敛到最后一个，避免 activeTarget 落到空对象上
+  activeTargetIndex.value = Math.min(activeTargetIndex.value, form.targets.length - 1);
+  // 删掉的正好是展开项时，把编辑区落到收敛后的目标上，避免出现「无目标展开」的空面板
+  targetExpanded.value = true;
+  void loadTables(activeTarget.value.targetDatasourceId, true);
+};
 
 /** 本机文件选择器可见性 */
 const filePickerVisible = ref(false);
@@ -1110,11 +1339,50 @@ const onSourceTypeChange = (type: string | number | boolean | undefined) => {
     sourceTables.value = [];
   } else if (type === "FILE" || type === "DIR") {
     form.sourceDatasourceId = null;
+    // 文件/目录源没有可靠水位列，后端只允许 JDBC / HTTP 走增量；切过来时先把**所有目标**调回全量，
+    // 否则表单会停在「保存必被拒」的状态
+    let downgraded = false;
+    for (const target of form.targets) {
+      if (target.syncMode === "INCREMENTAL") {
+        target.syncMode = "FULL";
+        downgraded = true;
+      }
+    }
+    if (downgraded) {
+      message.info("文件 / 文件夹输入源不支持增量模式，已切换为全量");
+    }
   }
-  // 换了源类型，上一次预览到的源列不再可信
+  // 换了源类型，上一次预览到的源列与各目标列都不再可信
   previewSourceColumns.value = [];
-  previewWarnings.value = [];
+  for (const target of form.targets) {
+    target.previewTargetColumns = [];
+    target.previewWarnings = [];
+  }
 };
+
+/**
+ * 当前输入源是否支持增量：后端只允许 JDBC / HTTP 源走增量（文件/目录没有可靠水位列）。
+ */
+const incrementalSourceSupported = computed(
+  () => form.sourceType === "JDBC" || form.sourceType === "HTTP_JSON" || form.sourceType === "HTTP_HTML",
+);
+
+/**
+ * 复合水位的可读说明：把选择顺序显式写出来。
+ *
+ * <p>顺序本身就是配置的一部分（字典序比较），不展示用户会以为是「一组字段」而随意调换。</p>
+ */
+const incFieldOrderText = computed(() =>
+  activeTarget.value.incFields.map((field, index) => `${index + 1}. ${field}`).join(" → "),
+);
+
+/**
+ * 是否有任一目标使用增量模式
+ *
+ * <p>Hook 的「每条数据 + 完成通知」只在增量下有意义（全量没有水位，逐条推送会与
+ * 完成通知的语义打架），多目标下只要有一个增量目标就放开该选项。</p>
+ */
+const anyIncrementalTarget = computed(() => form.targets.some(target => target.syncMode === "INCREMENTAL"));
 
 /**
  * 切换同步模式：增量模式下把「先清空再插入」换成「存在即更新」。
@@ -1123,9 +1391,23 @@ const onSourceTypeChange = (type: string | number | boolean | undefined) => {
  * 上一轮同步的数据直接消失。后端也会在保存时拦，这里提前调好少一次报错往返。</p>
  */
 const onSyncModeChange = (mode: string | number | boolean | undefined) => {
-  if (mode === "INCREMENTAL" && form.writeMode === "OVERWRITE") {
-    form.writeMode = "UPSERT";
+  const target = activeTarget.value;
+  if (mode !== "INCREMENTAL") {
+    // 切到全量只让增量配置**失效**，不抹掉：后端保存全量时也刻意保留已存的增量配置
+    // （见 applyModeAndHook），前端先清空反而会让用户切回来时白选一遍。
+    return;
+  }
+  if (!incrementalSourceSupported.value) {
+    target.syncMode = "FULL";
+    message.warning("增量模式仅支持 JDBC / HTTP 输入源，已切回全量");
+    return;
+  }
+  if (target.writeMode === "OVERWRITE") {
+    target.writeMode = "UPSERT";
     message.info("增量模式已将写入模式调整为「存在即更新」——先清空再插入会清掉未同步的数据");
+  }
+  if (!sourceColumnOptions.value.length) {
+    message.info("先回第①步点「下一步」完成源校验，增量字段下拉才会列出源结果集列（也可直接手输列名）");
   }
 };
 
@@ -1134,6 +1416,25 @@ const onSyncModeChange = (mode: string | number | boolean | undefined) => {
  * @param row 任务
  */
 const effectiveSyncMode = (row: SyncTask): string => row.syncTaskSyncMode || "FULL";
+
+/**
+ * 任务的输出目标个数
+ *
+ * <p>多目标任务的旧单目标字段只镜像第一个目标，列表里光看表名会漏掉其余表，
+ * 因此按服务端存的 targets JSON 数个数（坏 JSON 时退回 1）。</p>
+ *
+ * @param row 任务
+ */
+const targetCount = (row: SyncTask): number => {
+  const json = row.syncTaskTargets;
+  if (!json) return 1;
+  try {
+    const parsed = JSON.parse(json);
+    return Array.isArray(parsed) && parsed.length ? parsed.length : 1;
+  } catch {
+    return 1;
+  }
+};
 
 /**
  * 把存储的 sourceOptions 回填到表单
@@ -1197,14 +1498,19 @@ const parseSourceOptions = (json?: string | null): Record<string, unknown> => {
   }
 };
 
-/** 仅 jdbc 类型数据源 */
-const jdbcSources = computed(() => datasources.value.filter(ds => (ds.type || "").toLowerCase() === "jdbc"));
+/** 仅 jdbc 类型数据源；id 是数据源主键、缺了就没法作为选项值，故一并滤掉 */
+const jdbcSources = computed(() =>
+  datasources.value.filter(
+    (ds): ds is DataSourceInfo & { id: number } =>
+      (ds.type || "").toLowerCase() === "jdbc" && typeof ds.id === "number",
+  ),
+);
 
 /** 源列下拉项（优先用预览结果，未预览时给一个占位以支持手填） */
 const sourceColumnOptions = computed<SyncColumn[]>(() => previewSourceColumns.value);
 
-/** 目标列下拉项 */
-const targetColumnOptions = computed<SyncColumn[]>(() => previewTargetColumns.value);
+/** 目标列下拉项（当前展开目标的预览结果） */
+const targetColumnOptions = computed<SyncColumn[]>(() => activeTarget.value.previewTargetColumns);
 
 /**
  * 数据源名称
@@ -1274,13 +1580,13 @@ const nameFilter = ref("");
  * 单元格内容一律走 {@code #col-<prop>} 插槽；宽度 / 对齐 / 固定列与 UI 图逐列一致。</p>
  */
 const taskColumns: ReTableColumn[] = [
-  { prop: "task", label: "任务", minWidth: 230 },
-  { prop: "flow", label: "数据流向", minWidth: 250 },
-  { prop: "writeMode", label: "写入模式", width: 118, align: "center" },
-  { prop: "cron", label: "定时", width: 150 },
-  { prop: "enabled", label: "启用", width: 78, align: "center" },
-  { prop: "lastRun", label: "最近执行", minWidth: 260 },
-  { prop: "actions", label: "操作", width: 170, fixed: "right", align: "center" },
+  { prop: "task", label: "任务", minWidth: 180 },
+  { prop: "flow", label: "数据流向", minWidth: 180 },
+  { prop: "writeMode", label: "写入模式", width: 100, align: "center" },
+  { prop: "cron", label: "定时", width: 110 },
+  { prop: "enabled", label: "启用", width: 66, align: "center" },
+  { prop: "lastRun", label: "最近执行", minWidth: 176 },
+  { prop: "actions", label: "操作", width: 150, fixed: "right", align: "center" },
 ];
 /**
  * 字段映射列（编辑弹窗第 ② 步）：三列全是自定义控件（两个下拉 + 删除按钮），
@@ -1294,9 +1600,6 @@ const mappingColumns: ReTableColumn[] = [
   { prop: "target", label: "目标字段", slot: "target" },
   { prop: "actions", label: "操作", width: 84, align: "center", slot: "actions" },
 ];
-/** 分页：UI 图底部分页；e2e 的行数口径按「当前页行数」+ 徽标仍按全过滤集 */
-const pageNo = ref(1);
-const PAGE_SIZE = 8;
 /** 时间范围筛选，默认「全部时间」：默认就按 24 小时裁会让「全部 10」只显示 7 行，计数与表格对不上 */
 const rangeFilter = ref("all");
 const RANGE_OPTIONS = [
@@ -1321,17 +1624,27 @@ const refreshedText = computed(() => {
 });
 /** 写入模式下拉项（来自字典，附「全部」项已在模板里单独给） */
 const writeModeOptions = computed(() => writeModes.value.map(m => ({ label: m.label, value: m.code })));
-/** 筛选条件变化 → 回到第 1 页（分页口径下换筛选停在空页尾是假象） */
-watch([statusFilter, writeModeFilter, rangeFilter, nameFilter], () => {
-  pageNo.value = 1;
-});
-
+/**
+ * 某个目标可选的写入模式。
+ *
+ * <p>「先清空再插入」（OVERWRITE）与增量水位互斥：增量每批都会清空目标表，
+ * 配在一起只会把数据清光。这种组合不是「暂时不可用」，而是根本不成立，
+ * 因此增量模式下直接不列出该项，而不是列出来再置灰。</p>
+ *
+ * @param target 目标草稿
+ */
+const writeModesFor = (target: TargetForm): SyncWriteMode[] =>
+  target.syncMode === "INCREMENTAL"
+    ? writeModes.value.filter(m => m.code !== "OVERWRITE")
+    : writeModes.value;
 /** 运行中的任务：本地点击「立即执行」期间标记，后端无 RUNNING 状态字段 */
 const runningIds = ref<Set<number>>(new Set());
 /** 任务状态归类 */
 function statusOf(row: SyncTask): Exclude<StatusKey, "all"> {
-  if (row.syncTaskEnabled !== 1) return "disabled";
+  // 执行中优先于启用态：停用只代表没有定时调度，手动「立即执行」照常可跑，
+  // 因此停用任务执行期间也必须计入「运行中」，否则 KPI 与分段计数会漏掉它。
   if (runningIds.value.has(row.id)) return "running";
+  if (row.syncTaskEnabled !== 1) return "disabled";
   if (row.syncTaskLastStatus === "SUCCESS") return "success";
   if (row.syncTaskLastStatus) return "failed";
   // 启用但从未执行：算「成功」会让成功率虚高，算「失败」会误报，统一归入成功之外的独立态
@@ -1376,15 +1689,10 @@ const baseTasks = computed(() => tasks.value.filter(row =>
   && inRange(row)
   && (!nameFilter.value.trim() || (row.syncTaskName || "").toLowerCase().includes(nameFilter.value.trim().toLowerCase())),
 ));
-/** 表格实际数据源：基础集再按状态分段收一道 */
+/** 表格实际数据源：基础集再按状态分段收一道（ReTable 自带分页会按 page/pageSize 切片） */
 const filteredTasks = computed(() => baseTasks.value.filter(row =>
   statusFilter.value === "all" || statusOf(row) === statusFilter.value,
 ));
-/** 当前页切片；筛选条件变化时回到第 1 页（watch 见下方） */
-const pageTasks = computed(() => filteredTasks.value.slice((pageNo.value - 1) * PAGE_SIZE, pageNo.value * PAGE_SIZE));
-/** 页脚「显示 a-b 条」 */
-const pageStart = computed(() => (filteredTasks.value.length ? (pageNo.value - 1) * PAGE_SIZE + 1 : 0));
-const pageEnd = computed(() => Math.min(pageNo.value * PAGE_SIZE, filteredTasks.value.length));
 
 /** 今日成功率：今日有执行记录的任务里成功占比；无今日执行则为 null（显示「—」，不伪造 100%） */
 const todayRate = computed<number | null>(() => {
@@ -1648,12 +1956,13 @@ const refresh = async () => {
   loading.value = true;
   try {
     tasks.value = await fetchSyncTasks();
-    // 「N 分钟前更新」的时间戳；顺手清掉已结束的执行中标记
+    // 「N 分钟前更新」的时间戳。
+    // 这里**不能**清空 runningIds：refresh 可能在别的任务仍在执行时被调用
+    // （手动刷新、重试其它任务、日志轮询），清空会把在跑的任务误判成已结束。
+    // 执行中的标记只由 run() 的 finally 在本次请求真正返回后移除。
     refreshedAt.value = Date.now();
-    runningIds.value = new Set();
-    // 新数据进来：横幅按新失败集重算（本轮手动关闭失效）、分页回到第 1 页
+    // 新数据进来：横幅按新失败集重算（本轮手动关闭失效）
     bannerDismissed.value = false;
-    pageNo.value = 1;
   } catch (e) {
     message.error("加载同步任务失败：" + (e as Error)?.message);
   } finally {
@@ -1675,11 +1984,17 @@ const loadTables = async (id: number | null, target: boolean) => {
     return;
   }
   try {
-    const list = await fetchDatasourceTables(id);
+    // 源/目标侧都直接拿「库.表」限定名，选中值即真实库+表名，避免会话缓存库名与
+    // 表实际所在库不一致——源端漏拼库会让 `SELECT * FROM device_channel` 落在源数据源
+    // 的默认库（jdbc_acc）上，报 Table '<默认库>.device_channel' doesn't exist。
+    const list = await fetchMonitorTablesQualified(id);
     if (target) {
       targetTables.value = list;
+      // 手填裸表名时仍用缓存库兜底；选中下拉项的值已带库前缀，这里只作降级。
+      targetDatabase.value = getDatasourceDatabase(Number(id)) ?? "";
     } else {
       sourceTables.value = list;
+      sourceDatabase.value = getDatasourceDatabase(Number(id)) ?? "";
     }
   } catch {
     // 表清单只是辅助，取不到不影响手填 SQL / 表名
@@ -1698,16 +2013,26 @@ const onSourceChange = async () => {
   await loadTables(form.sourceDatasourceId, false);
 };
 
-/** 目标数据源变更 */
+/** 目标数据源变更：换库后目标表与目标列都失效 */
 const onTargetChange = async () => {
-  previewTargetColumns.value = [];
-  await loadTables(form.targetDatasourceId, true);
+  const target = activeTarget.value;
+  target.previewTargetColumns = [];
+  target.previewWarnings = [];
+  await loadTables(target.targetDatasourceId, true);
+};
+
+/** 限定表名 → SQL 段：`库.表` 拆成 `` `库`.`表` ``，裸表名保持 `` `表` `` */
+const sourceTableRef = (table: string): string => {
+  const dot = table.indexOf(".");
+  return dot > 0
+    ? `\`${table.slice(0, dot)}\`.\`${table.slice(dot + 1)}\``
+    : `\`${table}\``;
 };
 
 /** 由所选表生成源 SQL */
 const applySourceTable = () => {
   if (pickedSourceTable.value) {
-    form.sourceSql = `SELECT * FROM \`${pickedSourceTable.value}\``;
+    form.sourceSql = `SELECT * FROM ${sourceTableRef(pickedSourceTable.value)}`;
   }
 };
 
@@ -1746,7 +2071,14 @@ const stepIssue = (index: number): string | null => {
   if (index === 0) {
     if (form.sourceType === "JDBC") {
       if (form.sourceDatasourceId == null) return "请先选择源数据源";
-      if (!form.sourceSql.trim()) return "请选择数据表或填写源读取 SQL";
+      // 取数方式与 SQL 的校验语义联动：选表时只要求「表已选」（SQL 由表生成），
+      // 自定义 SQL 时才要求「以 SELECT 开头」——两种模式下把同一条规则套上去，
+      // 会让选表模式因为生成语句的空白差异误报，也会让 SQL 模式漏掉真正的语法要求。
+      if (sourceMode.value === "table") {
+        if (!pickedSourceTable.value) return "请选择数据表（或在「自定义 SQL」里直接写语句）";
+        return null;
+      }
+      if (!form.sourceSql.trim()) return "请填写源读取 SQL";
       if (!/^\s*select/i.test(form.sourceSql)) return "源读取 SQL 必须以 SELECT 开头";
       return null;
     }
@@ -1762,16 +2094,38 @@ const stepIssue = (index: number): string | null => {
     return null;
   }
   if (index === 1) {
-    if (form.targetDatasourceId == null) return "请先选择目标数据源";
-    if (!form.targetTable.trim()) return "请选择或输入目标数据表";
-    if (form.syncMode === "INCREMENTAL") {
-      if (form.sourceType !== "JDBC" && form.sourceType !== "HTTP_JSON" && form.sourceType !== "HTTP_HTML") {
-        return "增量模式仅支持 JDBC / HTTP 输入源，文件/目录请用全量";
+    if (!form.targets.length) return "请至少配置一个输出目标";
+    // 同一张表配两次没有意义：两个目标会互相覆盖，水位也会各自记一份，先拦下来
+    const seen = new Set<string>();
+    for (let i = 0; i < form.targets.length; i++) {
+      const target = form.targets[i];
+      const prefix = form.targets.length > 1 ? `目标 ${i + 1}：` : "";
+      if (target.targetDatasourceId == null) return `${prefix}请先选择目标数据源`;
+      if (!target.targetTable.trim()) return `${prefix}请选择或输入目标数据表`;
+      const key = `${target.targetDatasourceId}#${target.targetTable.trim().toLowerCase()}`;
+      if (seen.has(key)) return `${prefix}与前面的目标写入了同一张表（${target.targetTable.trim()}）`;
+      seen.add(key);
+      if (target.syncMode === "INCREMENTAL") {
+        if (!incrementalSourceSupported.value) {
+          return `${prefix}增量模式仅支持 JDBC / HTTP 输入源，文件/目录请用全量`;
+        }
+        const incFields = target.incFields.map(field => field.trim()).filter(Boolean);
+        if (!incFields.length) return `${prefix}增量模式必须选择增量字段`;
+        for (const incField of incFields) {
+          if (!/^[A-Za-z0-9_]{1,64}$/.test(incField)) {
+            return `${prefix}增量字段名只允许字母、数字、下划线：${incField}`;
+          }
+        }
+        const missing = incFields.filter(
+          field => !sourceColumnOptions.value.some(col => col.name.toLowerCase() === field.toLowerCase()),
+        );
+        if (sourceColumnOptions.value.length && missing.length) {
+          return `${prefix}增量字段「${missing.join("、")}」不在源结果集列中`;
+        }
+        if (target.writeMode === "OVERWRITE") {
+          return `${prefix}增量模式不能使用「先清空再插入」（每批都会清空目标表）`;
+        }
       }
-      const incField = form.incField.trim();
-      if (!incField) return "增量模式必须填写增量字段";
-      if (!/^[A-Za-z0-9_]{1,64}$/.test(incField)) return "增量字段名只允许字母、数字、下划线";
-      if (form.writeMode === "OVERWRITE") return "增量模式不能使用「先清空再插入」（每批都会清空目标表）";
     }
     return null;
   }
@@ -1801,8 +2155,13 @@ const validateStep = (index: number): boolean => {
 const stepIssueNow = computed(() => stepIssue(step.value));
 
 /** 下一步 */
-const nextStep = () => {
+const nextStep = async () => {
   if (!validateStep(step.value)) {
+    return;
+  }
+  // 第①步还要真读一次源：语法合法 ≠ 表存在。早先这里只查「以 SELECT 开头」，
+  // 源表不存在也能一路进第②步，配完目标表与映射才在预览时被打回，白走一整套。
+  if (step.value === 0 && !(await verifySourceReadable())) {
     return;
   }
   step.value = Math.min(2, step.value + 1);
@@ -1811,6 +2170,53 @@ const nextStep = () => {
 /** 上一步 */
 const prevStep = () => {
   step.value = Math.max(0, step.value - 1);
+};
+
+/**
+ * 真读一次源，确认 SQL / 文件可用（向导第①步「下一步」的放行条件）。
+ *
+ * <p>校验与预览共用后端 `resolvePreviewSourceColumns`，所以这里放行就代表预览的
+ * 源侧一定能过；失败文案原样展示（如「源表不存在或无法读取: ...」），不再二次包装。</p>
+ *
+ * @returns 可读返回 true，否则弹提示并返回 false
+ */
+const verifySourceReadable = async (): Promise<boolean> => {
+  if (form.sourceType === "JDBC") {
+    if (form.sourceDatasourceId == null) {
+      message.warning("请先选择源数据源");
+      return false;
+    }
+    if (sourceMode.value === "table" && pickedSourceTable.value) {
+      form.sourceSql = `SELECT * FROM ${sourceTableRef(pickedSourceTable.value)}`;
+    }
+  }
+  sourceVerifying.value = true;
+  try {
+    const columns = await validateSyncSource({
+      sourceType: form.sourceType,
+      sourceDatasourceId: form.sourceDatasourceId,
+      sourceSql: form.sourceSql,
+      sourcePath: form.sourcePath,
+      sourceOptions: buildSourceOptions(),
+    });
+    if (!columns.length) {
+      message.warning("源没有返回任何列，请确认语句或文件内容");
+      return false;
+    }
+    // 顺手把源列带进预览：第②步打开时映射候选立刻可用，不必再点一次预览
+    previewSourceColumns.value = columns;
+    return true;
+  } catch (e) {
+    const errText = (e as Error)?.message || "未知错误";
+    message.error("源不可用：" + errText);
+    // 源表不存在的典型路径：当场弹设计表，建好后回填源表并继续。
+    if (isSourceTableMissingError(errText) || isTableMissingError(errText)) {
+      void openTableDesigner(errText);
+    }
+    return false;
+  } finally {
+    sourceVerifying.value = false;
+  }
 };
 
 /** 打开新建弹窗 */
@@ -1840,22 +2246,19 @@ const openCreate = () => {
   form.sourceCellSelector = "td,th";
   form.sourceHeaderRow = true;
   form.sourceTimeout = 30;
-  form.targetDatasourceId = defaultTarget ? (defaultTarget.id ?? null) : null;
-  form.targetTable = "";
-  form.writeMode = "INSERT";
-  form.syncMode = "FULL";
-  form.incField = "";
-  form.incBatchSize = null;
+  form.targets = [
+    {
+      ...emptyTarget(),
+      targetDatasourceId: defaultTarget ? (defaultTarget.id ?? null) : null,
+    },
+  ];
+  activeTargetIndex.value = 0;
+  targetExpanded.value = true;
   form.hookUrl = "";
   form.hookNotify = "DONE";
-  form.lastSeq = "";
-  form.batchSize = 500;
   form.cron = "";
   form.enabled = false;
-  form.mapping = [];
   previewSourceColumns.value = [];
-  previewTargetColumns.value = [];
-  previewWarnings.value = [];
   pickedSourceTable.value = null;
   sourceTables.value = [];
   targetTables.value = [];
@@ -1864,7 +2267,7 @@ const openCreate = () => {
   cronError.value = "";
   dialogVisible.value = true;
   void loadTables(form.sourceDatasourceId, false);
-  void loadTables(form.targetDatasourceId, true);
+  void loadTables(form.targets[0].targetDatasourceId, true);
 };
 
 /**
@@ -1897,22 +2300,36 @@ const openEdit = (row: SyncTask) => {
   form.sourceHeaderRow = true;
   form.sourceTimeout = 30;
   applySourceOptions(parseSourceOptions(row.syncTaskSourceOptions));
-  form.targetDatasourceId = row.syncTaskTargetDatasourceId;
-  form.targetTable = row.syncTaskTargetTable;
-  form.writeMode = row.syncTaskWriteMode || "INSERT";
-  form.syncMode = row.syncTaskSyncMode === "INCREMENTAL" ? "INCREMENTAL" : "FULL";
-  form.incField = row.syncTaskIncField || "";
-  form.incBatchSize = row.syncTaskIncBatchSize ?? null;
+  // 多目标优先：服务端归一化后的 targets JSON 是权威值；存量任务该列为空时退回单目标三件套
+  const restoredTargets = parseTargetJson(row.syncTaskTargets, row.syncTaskTargetSeqs);
+  if (restoredTargets.length) {
+    form.targets = restoredTargets;
+  } else {
+    form.targets = [
+      {
+        ...emptyTarget(),
+        targetDatasourceId: row.syncTaskTargetDatasourceId ?? null,
+        targetTable: row.syncTaskTargetTable || "",
+        writeMode: row.syncTaskWriteMode || "INSERT",
+        syncMode: row.syncTaskSyncMode === "INCREMENTAL" ? "INCREMENTAL" : "FULL",
+        incFields: (row.syncTaskIncField || "")
+          .split(",")
+          .map(field => field.trim())
+          .filter(Boolean),
+        incBatchSize: row.syncTaskIncBatchSize ?? null,
+        batchSize: row.syncTaskBatchSize || 500,
+        mapping: parseMapping(row.syncTaskColumnMapping),
+        lastSeq: row.syncTaskLastSeq || "",
+      },
+    ];
+  }
+  activeTargetIndex.value = 0;
+  targetExpanded.value = true;
   form.hookUrl = row.syncTaskHookUrl || "";
   form.hookNotify = row.syncTaskHookNotify === "ROW" ? "ROW" : "DONE";
-  form.lastSeq = row.syncTaskLastSeq || "";
-  form.batchSize = row.syncTaskBatchSize || 500;
   form.cron = row.syncTaskCron || "";
   form.enabled = row.syncTaskEnabled === 1;
-  form.mapping = parseMapping(row.syncTaskColumnMapping);
   previewSourceColumns.value = [];
-  previewTargetColumns.value = [];
-  previewWarnings.value = [];
   pickedSourceTable.value = null;
   sourceTables.value = [];
   targetTables.value = [];
@@ -1920,12 +2337,80 @@ const openEdit = (row: SyncTask) => {
   step.value = 0;
   // 存量 SQL 若正是「选表生成」的形状，则回到选表模式并回填表名；否则进 SQL 模式（可编辑），
   // 否则 readonly 的 SQL 框会让存量自定义 SQL 无法修改。
-  const tableHit = /^\s*select\s+\*\s+from\s+`([^`]+)`\s*;?\s*$/i.exec(row.syncTaskSourceSql || "");
+  // 注意：选表生成的 SQL 是「库.表」限定形态（`库`.`表`），早先这里只认单反引号
+  // （`表`），存量任务一编辑就匹配不上 → 掉进 SQL 模式且选中表为空，之后预览
+  // 失败时既定位不到源侧缺表，也回填不了表名。两种形态都要认。
+  const tableHit =
+    /^\s*select\s+\*\s+from\s+`([^`]+)`\s*\.\s*`([^`]+)`\s*;?\s*$/i.exec(row.syncTaskSourceSql || "") ||
+    /^\s*select\s+\*\s+from\s+`([^`]+)`\s*;?\s*$/i.exec(row.syncTaskSourceSql || "");
+  const restoredTable = tableHit ? (tableHit[2] ? `${tableHit[1]}.${tableHit[2]}` : tableHit[1]) : null;
   sourceMode.value = tableHit ? "table" : "sql";
-  pickedSourceTable.value = tableHit ? tableHit[1] : null;
+  pickedSourceTable.value = restoredTable;
   dialogVisible.value = true;
   void loadTables(form.sourceDatasourceId, false);
-  void loadTables(form.targetDatasourceId, true);
+  void loadTables(form.targets[activeTargetIndex.value].targetDatasourceId, true);
+};
+
+/**
+ * 解析多目标 JSON（服务端 ms_sync_task_targets）
+ *
+ * <p>坏 JSON / 空数组一律回落到空列表，让调用方退回单目标三件套——
+ * 宁可少显示一个目标，也不要因为历史脏数据打不开编辑弹窗。</p>
+ *
+ * @param json 存储值
+ */
+const parseTargetJson = (json?: string | null, seqsJson?: string | null): TargetForm[] => {
+  if (!json) {
+    return [];
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) {
+    return [];
+  }
+  // 水位不写在 targets JSON 里（服务端单独存 ms_sync_task_target_seqs，键是「数据源ID#表名」），
+  // 编辑时并进来只为了把「当前水位」显示出来；它照旧不随保存提交。
+  let seqs: Record<string, unknown> = {};
+  if (seqsJson) {
+    try {
+      const parsedSeqs = JSON.parse(seqsJson);
+      if (parsedSeqs && typeof parsedSeqs === "object" && !Array.isArray(parsedSeqs)) {
+        seqs = parsedSeqs as Record<string, unknown>;
+      }
+    } catch {
+      seqs = {};
+    }
+  }
+  const list: TargetForm[] = [];
+  for (const raw of parsed) {
+    if (!raw || typeof raw !== "object") {
+      continue;
+    }
+    const item = raw as Record<string, unknown>;
+    const datasourceId = item.targetDatasourceId;
+    const table = typeof item.targetTable === "string" ? item.targetTable : "";
+    const seqKey = typeof datasourceId === "number" ? `${datasourceId}#${table}` : "";
+    const seqValue = seqKey ? seqs[seqKey] : undefined;
+    list.push({
+      ...emptyTarget(),
+      targetDatasourceId: typeof datasourceId === "number" ? datasourceId : null,
+      targetTable: table,
+      writeMode: typeof item.writeMode === "string" && item.writeMode ? item.writeMode : "INSERT",
+      syncMode: item.syncMode === "INCREMENTAL" ? "INCREMENTAL" : "FULL",
+      incFields: Array.isArray(item.incFields)
+        ? item.incFields.filter((field): field is string => typeof field === "string")
+        : [],
+      incBatchSize: typeof item.incBatchSize === "number" ? item.incBatchSize : null,
+      batchSize: typeof item.batchSize === "number" ? item.batchSize : 500,
+      mapping: typeof item.columnMapping === "string" ? parseMapping(item.columnMapping) : [],
+      lastSeq: typeof seqValue === "string" ? seqValue : "",
+    });
+  }
+  return list;
 };
 
 /**
@@ -1946,22 +2431,24 @@ const parseMapping = (json?: string | null): SyncFieldMapping[] => {
 
 /** 加一行空白映射 */
 const addMappingRow = () => {
-  form.mapping.push({ source: "", target: "" });
+  activeTarget.value.mapping.push({ source: "", target: "" });
 };
 
 /**
  * 删一行映射（ReTable 插槽只回传 row，没有 el-table 列插槽的 $index，
- * 故按下标查找后 splice —— 与原 `form.mapping.splice(index, 1)` 等价）。
+ * 故按下标查找后 splice —— 与原 `mapping.splice(index, 1)` 等价）。
  */
 const removeMappingRow = (cellRow: Record<string, unknown>) => {
   const item = cellRow as unknown as SyncFieldMapping;
-  const i = form.mapping.indexOf(item);
-  if (i >= 0) form.mapping.splice(i, 1);
+  const mapping = activeTarget.value.mapping;
+  const i = mapping.indexOf(item);
+  if (i >= 0) mapping.splice(i, 1);
 };
 
-/** 预览并自动配对 */
+/** 预览并自动配对（针对当前展开的目标） */
 const doPreview = async () => {
-  if (form.targetDatasourceId == null) {
+  const target = activeTarget.value;
+  if (target.targetDatasourceId == null) {
     message.warning("请先选择目标数据源");
     return;
   }
@@ -1978,9 +2465,26 @@ const doPreview = async () => {
     message.warning("请先选择文件或文件夹");
     return;
   }
-  if (!form.targetTable.trim()) {
+  if (!target.targetTable.trim()) {
     message.warning("请先填写目标表名");
     return;
+  }
+  // 选表模式下 SQL 由选中表派生，预览前按当前值重建一次：
+  // 否则「先选表、后换数据源/库或表被重建」时会拿旧 SQL 去 prepare，
+  // 报出的就是 `Table '旧库.旧表' doesn't exist` 这类与界面完全对不上的错。
+  if (form.sourceType === "JDBC" && sourceMode.value === "table" && pickedSourceTable.value) {
+    form.sourceSql = `SELECT * FROM ${sourceTableRef(pickedSourceTable.value)}`;
+  }
+  // 选表模式下改过数据源/表被删时，SQL 与表清单可能指向已不存在的对象：
+  // 先确认表还在清单里，不在就先刷新清单并提示重选，而不是发一个必然失败的请求。
+  if (form.sourceType === "JDBC" && sourceMode.value === "table" && pickedSourceTable.value) {
+    if (sourceTables.value.length && !sourceTables.value.some(t => sameTable(t, pickedSourceTable.value!))) {
+      message.warning(`源表 ${pickedSourceTable.value} 已不在当前数据源的表清单里，请重新选择源表`);
+      await loadTables(form.sourceDatasourceId, false);
+      pickedSourceTable.value = null;
+      form.sourceSql = "";
+      return;
+    }
   }
   try {
     const preview = await previewSyncMapping({
@@ -1989,17 +2493,17 @@ const doPreview = async () => {
       sourceSql: form.sourceSql,
       sourcePath: form.sourcePath,
       sourceOptions: buildSourceOptions(),
-      targetDatasourceId: form.targetDatasourceId,
-      targetTable: form.targetTable,
-      mapping: form.mapping.filter(item => item.source && item.target),
+      targetDatasourceId: target.targetDatasourceId,
+      targetTable: qualifiedTargetTable(target),
+      mapping: target.mapping.filter(item => item.source && item.target),
     });
     previewSourceColumns.value = preview.sourceColumns;
-    previewTargetColumns.value = preview.targetColumns;
-    previewWarnings.value = preview.warnings;
-    form.mapping = preview.mapping.map(item => ({ ...item }));
+    target.previewTargetColumns = preview.targetColumns;
+    target.previewWarnings = preview.warnings;
+    target.mapping = preview.mapping.map(item => ({ ...item }));
     message.success(`源 ${preview.sourceColumns.length} 列 / 目标 ${preview.targetColumns.length} 列，已配对 ${preview.mapping.length} 项`);
   } catch (e) {
-    previewWarnings.value = [];
+    target.previewWarnings = [];
     // 局部名不能叫 message：它会遮蔽顶部 import 的 message 提示器，
     // 下一行 message.error(...) 直接抛 TypeError，把整个 catch 打断 ——
     // 用户既看不到失败提示，下面的「表不存在 → 弹设计表」也永远不会执行
@@ -2038,39 +2542,79 @@ const designerTable = ref("");
 const designerColumns = ref<DesignerColumn[]>([]);
 /** 设计器要连的数据源 ID */
 const designerDatasourceId = ref<number | null>(null);
+/** 设计器要建表所在的库（与 JDBC 数据库管理器「新建表」同口径：弹窗展示目标库并按库建表） */
+const designerDatabase = ref("");
 
-/** 预览报错是不是「表不存在」（MySQL / PostgreSQL / Oracle 三种方言的形态） */
+/** 预览报错是不是「表不存在」（MySQL / PostgreSQL / Oracle 三种方言 + 后端约定文案） */
 const isTableMissingError = (message: string): boolean =>
-  /doesn'?t exist|does not exist|ORA-00942|表不存在/i.test(message);
+  /doesn'?t exist|does not exist|ORA-00942|表不存在|无法读取/i.test(message);
 
-/** 从方言报错里抠出缺失的表名：Table 'db.tbl' / relation "tbl" / 表 tbl 不存在 */
+/**
+ * 后端约定：源侧读取失败。
+ *
+ * <p>{@code SyncTaskServiceImpl.loadSourceColumns} 把驱动原生异常统一成
+ * 「源表不存在或无法读取: ...」，前端据此把缺表定位到源侧。
+ * 否则原生串会被当成目标侧缺表，去建一张本来就不该建的表。</p>
+ */
+const isSourceTableMissingError = (message: string): boolean =>
+  /源表不存在或无法读取/.test(message);
+
+/** 目标侧缺表的后端约定文案 */
+const isTargetTableMissingError = (message: string): boolean =>
+  /目标表不存在或没有可读列/.test(message);
+
+/**
+ * 从方言报错里抠出缺失的表名。
+ *
+ * <p><b>保留库前缀</b>：早先这里 {@code raw.split(".").pop()} 只剩裸表名，
+ * 而源表选中值、目标表提交值都是「库.表」限定名，比对必然不相等，
+ * 于是「源侧缺表」被误判成「目标侧缺表」。现在返回原样的限定名，
+ * 由 {@link detectMissingSide} 用「裸名 + 限定名」两种形态比对。</p>
+ */
 const parseMissingTable = (message: string): string | null => {
   const hit =
     /Table '([^']+)'/.exec(message) ||
     /relation "([^"]+)"/.exec(message) ||
-    /表\s*[`'"]?([\w.]+)[`'"]?\s*不存在/.exec(message);
-  const raw = hit?.[1] ?? "";
-  const table = (raw.split(".").pop() ?? raw).replace(/[`"]/g, "").trim();
-  return table || null;
+    /表\s*[`'"]?([\w.]+)[`'"]?\s*不存在/.exec(message) ||
+    // 后端约定文案：源表不存在或无法读取: Table 'db.tbl' ... / 目标表不存在或没有可读列: db.tbl
+    /目标表不存在或没有可读列:\s*([\w.]+)/.exec(message) ||
+    /无法读取:\s*Table '([^']+)'/.exec(message);
+  const raw = (hit?.[1] ?? "").replace(/[`"]/g, "").trim();
+  return raw || null;
 };
 
-/** 缺失表在源侧还是目标侧：与目标表名、选表模式表名、SQL 的 FROM/JOIN 表逐一比对 */
+/** 限定名与裸名的归一化比较：任一方为「库.表」都按裸表名对齐 */
+const sameTable = (left: string, right: string): boolean => {
+  const norm = (s: string) =>
+    s.replace(/[`"\s]/g, "").toLowerCase().split(".").pop() ?? "";
+  return Boolean(norm(left)) && norm(left) === norm(right);
+};
+
+/**
+ * 缺失表在源侧还是目标侧。
+ *
+ * <p>判定顺序（前者优先，都是确定信息，不再猜）：
+ * 1) 后端明确说是源侧/目标侧 → 直接采纳；
+ * 2) 与目标表（含库前缀）同名 → 目标侧；
+ * 3) 与选中的源表（含库前缀）同名，或出现在源 SQL 的 FROM/JOIN 里 → 源侧；
+ * 4) 兜底目标侧（建目标表是主流场景）。</p>
+ */
 const detectMissingSide = (table: string | null): "source" | "target" => {
-  const norm = (s: string) => s.replace(/[`"\s]/g, "").toLowerCase();
-  // 文件 / 目录源没有「源表」概念；解析不出表名时按目标表处理（建目标表是主要场景）
-  if (form.sourceType !== "JDBC" || !table) {
+  if (form.sourceType !== "JDBC") {
     return "target";
   }
-  if (norm(form.targetTable) === norm(table)) {
+  if (!table) {
     return "target";
   }
-  if (sourceMode.value === "table" && pickedSourceTable.value && norm(pickedSourceTable.value) === norm(table)) {
+  if (sameTable(activeTarget.value.targetTable, table)) {
+    return "target";
+  }
+  if (sourceMode.value === "table" && pickedSourceTable.value && sameTable(pickedSourceTable.value, table)) {
     return "source";
   }
   if (sourceMode.value === "sql") {
-    const refs = [...form.sourceSql.matchAll(/(?:from|join)\s+`?([\w.]+)`?/gi)]
-      .map(m => (m[1] ?? "").split(".").pop() ?? "");
-    if (refs.some(ref => norm(ref) === norm(table))) {
+    const refs = [...form.sourceSql.matchAll(/(?:from|join)\s+`?([\w.]+)`?/gi)].map(m => m[1] ?? "");
+    if (refs.some(ref => sameTable(ref, table))) {
       return "source";
     }
   }
@@ -2084,7 +2628,11 @@ const fetchSourcePrefill = async (): Promise<DesignerColumn[]> => {
   }
   try {
     if (sourceMode.value === "table" && pickedSourceTable.value) {
-      const columns = await fetchTableColumns(pickedSourceTable.value, form.sourceDatasourceId);
+      const table = pickedSourceTable.value;
+      const dot = table.indexOf(".");
+      const tableName = dot >= 0 ? table.slice(dot + 1) : table;
+      const database = dot >= 0 ? table.slice(0, dot) : sourceDatabase.value || undefined;
+      const columns = await fetchTableColumns(tableName, form.sourceDatasourceId, database);
       return columns.map(c => ({
         name: c.name,
         type: (c.baseType || c.type || "VARCHAR").toUpperCase(),
@@ -2107,26 +2655,80 @@ const fetchSourcePrefill = async (): Promise<DesignerColumn[]> => {
 /** 预览失败且是「表不存在」→ 打开设计表向导 */
 const openTableDesigner = async (message: string): Promise<void> => {
   const missing = parseMissingTable(message);
-  const side = detectMissingSide(missing);
+  // 后端已给出明确侧别时直接采纳，只在它没说清时才用名字比对兜底：
+  // 原生方言串（旧版后端 / 非 MySQL）没有侧别信息，必须靠比对。
+  const side: "source" | "target" = isSourceTableMissingError(message)
+    ? "source"
+    : isTargetTableMissingError(message)
+      ? "target"
+      : detectMissingSide(missing);
   designerSide.value = side;
-  designerTable.value = missing ?? (side === "target" ? form.targetTable.trim() : pickedSourceTable.value ?? "");
-  designerDatasourceId.value = (side === "target" ? form.targetDatasourceId : form.sourceDatasourceId) ?? null;
+  designerTable.value = missing ?? (side === "target" ? activeTarget.value.targetTable.trim() : pickedSourceTable.value ?? "");
+  designerDatasourceId.value = (side === "target" ? activeTarget.value.targetDatasourceId : form.sourceDatasourceId) ?? null;
+  // 与 JDBC 数据库管理器「新建表」同口径：把目标/源命中库带给设计器，
+  // 弹窗展示目标库、建表也按该库，而不是落到数据源默认库（否则又是错库）。
+  // 目标侧裸表名优先沿用源表所在库（resolveTargetDatabase），避免掉回登记主库 jdbc_acc。
+  designerDatabase.value = side === "target" ? resolveTargetDatabase() : sourceDatabase.value;
   designerColumns.value = side === "target" ? await fetchSourcePrefill() : [];
   tableDesignerVisible.value = true;
 };
 
 /** 建表成功（后端已按方言 CREATE TABLE）→ 回填表名、刷新表清单并自动续跑预览 */
 const onTableCreated = async (_database: string, table: string): Promise<void> => {
+  // 设计器按目标库建表（database 已随弹窗传入），created 回传库名；把表名限定成
+  // 「库.表」再回填，保证预览/保存与后台查列落在同一库（与选表下拉限定值口径一致）。
+  const qualified = _database && !table.includes(".") ? `${_database}.${table}` : table;
   if (designerSide.value === "target") {
-    form.targetTable = table;
-    void loadTables(form.targetDatasourceId, true);
+    activeTarget.value.targetTable = qualified;
+    void loadTables(activeTarget.value.targetDatasourceId, true);
   } else {
     sourceMode.value = "table";
-    pickedSourceTable.value = table;
-    form.sourceSql = `SELECT * FROM \`${table}\``;
+    pickedSourceTable.value = qualified;
+    form.sourceSql = `SELECT * FROM ${sourceTableRef(qualified)}`;
     void loadTables(form.sourceDatasourceId, false);
   }
   await doPreview();
+};
+
+/**
+ * 手填裸表名时应落到的目标库：
+ * <p>1) 目标表已带库前缀（下拉选中值 / 用户手写 {@code 库.表}）→ 以它为准；
+ * 2) 源是 JDBC 且选了带库前缀的源表 → 目标默认沿用源表所在库（同一库内同步是主流，
+ *    也是「选 device_channel 却落到默认库 jdbc_acc」这类错库问题的根治：手填表名
+ *    不再掉回数据源登记主库）；3) 其余退回目标数据源登记主库缓存兜底。</p>
+ */
+const resolveTargetDatabase = (target: TargetForm = activeTarget.value): string => {
+  const raw = target.targetTable.trim();
+  const dot = raw.indexOf(".");
+  if (dot > 0) return raw.slice(0, dot);
+  if (form.sourceType === "JDBC" && sourceMode.value === "table" && pickedSourceTable.value) {
+    const sd = pickedSourceTable.value.indexOf(".");
+    if (sd > 0) return pickedSourceTable.value.slice(0, sd);
+  }
+  return targetDatabase.value;
+};
+
+/**
+ * 目标表提交值：把页面选中的表名补上库前缀。
+ *
+ * <p>表清单来自数据源中心（候选库逐个试出），命中的库存在 {@link targetDatabase}。
+ * 后端 {@code SyncJdbcSupport.tableColumns/quoteTable} 原生支持 {@code 库.表}，
+ * 因此提交为 {@code ngxacc.device_channel} 后预览/保存/执行全程一致。
+ * 已带点的存量表名或用户手写的完整表名保持原样，避免重复拼库；
+ * 手填裸表名时按 {@link resolveTargetDatabase} 落库（源表库优先）。</p>
+ */
+const qualifiedTargetTable = (target: TargetForm = activeTarget.value): string => {
+  const raw = target.targetTable.trim();
+  if (!raw) return raw;
+  if (raw.includes(".")) return raw;
+  const db = resolveTargetDatabase(target);
+  return db ? `${db}.${raw}` : raw;
+};
+
+/** 下拉只展示裸表名，选中值保留「库.表」限定名 */
+const displayTargetTable = (table: string): string => {
+  const dot = table.lastIndexOf(".");
+  return dot >= 0 ? table.slice(dot + 1) : table;
 };
 
 /** 保存任务 */
@@ -2156,10 +2758,26 @@ const submit = async () => {
     message.warning("启用定时前请先填写定时表达式");
     return;
   }
-  const mapping = form.mapping.filter(item => item.source && item.target);
+  // 多目标：每个目标独立转换。首个目标镜像回旧单目标字段，保证老任务/老脚本仍读得到值。
+  const targets = form.targets.map(target => {
+    const mapping = target.mapping.filter(item => item.source && item.target);
+    return {
+      targetDatasourceId: target.targetDatasourceId,
+      targetTable: qualifiedTargetTable(target),
+      writeMode: target.writeMode,
+      syncMode: target.syncMode,
+      // 全量模式也回传增量字段表单值：后端全量分支不覆盖存量配置，来回切换不丢水位
+      incFields: target.syncMode === "INCREMENTAL"
+        ? target.incFields.map(field => field.trim()).filter(Boolean)
+        : [],
+      incBatchSize: target.syncMode === "INCREMENTAL" ? (target.incBatchSize ?? null) : null,
+      columnMapping: mapping.length ? JSON.stringify(mapping) : null,
+      batchSize: target.batchSize,
+    };
+  });
   // validateStep 已在运行时保证非空，这里再收窄一次类型（number|null → number）
-  const targetId = form.targetDatasourceId;
-  if (targetId == null) {
+  const first = targets[0];
+  if (!first || first.targetDatasourceId == null) {
     return;
   }
   saving.value = true;
@@ -2172,17 +2790,18 @@ const submit = async () => {
       sourceSql: form.sourceType === "JDBC" ? form.sourceSql.trim() : null,
       sourcePath: form.sourceType === "JDBC" ? null : form.sourcePath.trim(),
       sourceOptions: buildSourceOptions(),
-      targetDatasourceId: targetId,
-      targetTable: form.targetTable.trim(),
-      columnMapping: mapping.length ? JSON.stringify(mapping) : null,
-      writeMode: form.writeMode,
-      syncMode: form.syncMode,
-      // 全量模式也回传增量字段表单值：后端全量分支不覆盖存量配置，来回切换不丢水位
-      incField: form.incField.trim() || null,
-      incBatchSize: form.syncMode === "INCREMENTAL" ? (form.incBatchSize ?? null) : null,
+      // 单目标时只发旧三件套（存储形态与历史任务一致），多目标才发 targets
+      targetDatasourceId: first.targetDatasourceId,
+      targetTable: first.targetTable,
+      columnMapping: first.columnMapping,
+      writeMode: first.writeMode,
+      syncMode: first.syncMode,
+      incField: first.incFields.length ? first.incFields.join(",") : null,
+      incBatchSize: first.incBatchSize,
+      batchSize: first.batchSize,
+      targets: targets.length > 1 ? targets : null,
       hookUrl: form.hookUrl.trim() || null,
       hookNotify: form.hookNotify,
-      batchSize: form.batchSize,
       cron: form.cron.trim() ? form.cron.trim() : null,
       enabled: form.enabled ? 1 : 0,
     };
@@ -2240,6 +2859,11 @@ const run = async (row: SyncTask) => {
     message.error("执行失败：" + errText);
   } finally {
     runningId.value = null;
+    // 只移除本次任务的标记：原来靠 refresh() 整体清空，但 refresh 可能在其它任务
+    // 仍在执行时被调用（手动刷新 / 重试），那样会把在跑的任务误判成已结束。
+    const rest = new Set(runningIds.value);
+    rest.delete(row.id);
+    runningIds.value = rest;
     await refresh();
   }
 };
@@ -2679,7 +3303,13 @@ onUnmounted(() => {
   border-radius: 10px;
   background: var(--bg-container);
   border: 1px solid var(--border-subtle);
+  /* 窄屏放不下时横向滚动，而不是把每个按钮压成竖排单字 */
+  flex-wrap: nowrap;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.st-segments::-webkit-scrollbar { display: none; }
 .st-seg {
   display: inline-flex;
   align-items: center;
@@ -2692,6 +3322,9 @@ onUnmounted(() => {
   font-size: 13px;
   color: var(--text-secondary);
   transition: background 0.15s ease, color 0.15s ease;
+  /* 关键：不允许按钮内部文字换行（否则窄屏会一字一行） */
+  white-space: nowrap;
+  flex: none;
 }
 .st-seg:hover { color: var(--text-primary); }
 .st-seg.on {
@@ -2709,6 +3342,17 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
   flex: none;
+}
+/* 窄屏：筛选条改为两行堆叠，各控件按可用宽度伸缩，不再被压成竖排单字 */
+@media (max-width: 900px) {
+  .st-filter-bar { flex-direction: column; align-items: stretch; }
+  .st-filter-right { flex-wrap: wrap; }
+  .st-filter-right :deep(.st-filter-sel) { width: 148px; }
+  .st-filter-right :deep(.st-search) { width: auto; flex: 1 1 180px; min-width: 0; }
+}
+@media (max-width: 620px) {
+  .st-filter-right :deep(.st-filter-sel) { width: calc(50% - 5px); }
+  .st-filter-right :deep(.st-search) { flex-basis: 100%; }
 }
 /* 必须用 :deep 抬高特异性并落在**后代**上：ReSelect 根同时挂自己的 data-v，
    父级 data-v 回落属性不保证在它身上（实测 .st-filter-sel[data-v-父] 匹配不上、
@@ -2785,15 +3429,6 @@ onUnmounted(() => {
 }
 .st-acts :deep(.rs-btn) { margin: 0; }
 
-.st-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 16px 0;
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
 /* 三步向导头部：与表单区留出呼吸感 */
 /* ---------- 向导步骤条（UI 图）：圆序号 + 连接线 + 标题/说明，全走 koi 变量 ---------- */
 .st-steps { display: flex; align-items: flex-start; margin-bottom: 18px; }
@@ -2865,6 +3500,54 @@ onUnmounted(() => {
    下拉也不再是 flex 子项，flex:1 失效，改成满宽，否则在单元格里会缩成一小截。 */
 .st-map-col { width: 100%; }
 .st-warn { font-size: 12px; color: var(--el-color-warning); background: var(--el-color-warning-light-9); border-radius: 6px; padding: 4px 8px; margin-bottom: 6px; }
+
+/* 多目标「方案 D：汇总折叠」——一行一个目标的摘要，点开后在行内编辑该目标的完整配置。
+   摘要行常显（数据源 / 表 / 写入模式 / 同步模式 / 映射条数）；同时只展开一个，
+   但可以全部收起（再点自己即收起），目标再多也只占摘要行的高度。 */
+.st-targets { display: flex; flex-direction: column; gap: 10px; }
+.st-target {
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-container);
+  overflow: hidden;
+}
+.st-target.is-active { border-color: var(--el-color-primary); }
+.st-target-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; cursor: pointer; user-select: none;
+}
+.st-target.is-active .st-target-head { background: var(--el-color-primary-light-9); }
+/* 开合箭头：展开朝下、收起朝右，随展开状态过渡 */
+.st-target-chevron {
+  flex: none;
+  color: var(--text-tertiary);
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+.st-target.is-active .st-target-chevron { color: var(--el-color-primary); }
+.st-target-head:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: -2px;
+}
+.st-target-idx {
+  flex: none; width: 20px; height: 20px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600;
+  color: var(--el-color-primary); background: var(--el-color-primary-light-8);
+}
+.st-target-name {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px;
+}
+.st-target-name b { font-size: 13px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-target-tags { flex: none; display: inline-flex; align-items: center; gap: 6px; }
+.st-target-acts { flex: none; display: inline-flex; align-items: center; gap: 6px; }
+.st-target-open { font-size: 12px; color: var(--el-color-primary); }
+.st-target-body { display: flex; flex-direction: column; gap: 14px; padding: 4px 12px 12px; border-top: 1px dashed var(--border-subtle); padding-top: 12px; }
+.st-target-add { display: flex; align-items: center; gap: 10px; }
+.st-flow-more {
+  flex: none; font-size: 11px; font-weight: 600;
+  color: var(--el-color-primary); background: var(--el-color-primary-light-9);
+  border-radius: 8px; padding: 0 5px;
+}
 .mono { font-family: "JetBrains Mono", "Consolas", monospace; }
 
 /* ---------- 输入源类型卡片（UI 图）：图标磁贴 + 名称，选中=主色描边浅底 ---------- */

@@ -109,7 +109,13 @@ export default createVite({
   // 写错时只在 dev server 暴露（模块 500、路由桶文件连带失败、页面全白屏），
   // 生产构建走包 exports 能解析，所以单跑 vue-tsc / vite build 发现不了。
   alias: {
+    "@": "pages/ai/src",
     "@pages/collect": "pages/collect",
+    // 数据源管理页（@pages/datasource）被采集/调度入口深导入：
+    //   "@pages/datasource/src/views/... vue" 与 "@pages/datasource/src/api/..."
+    // system/monitor/collect-scheduler 均把该前缀覆盖为包根目录，eduai 若漏配，
+    // rolldown 构建会报 Failed to resolve import "@pages/datasource/src/api/..."。
+    "@pages/datasource": "pages/datasource",
   },
     server: {
       port: 19093,

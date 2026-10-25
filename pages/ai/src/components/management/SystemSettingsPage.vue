@@ -1,11 +1,10 @@
 <template>
-  <div class="system-settings-page">
-    <div class="page-header">
-      <h2>系统设置</h2>
+  <RePage data-page="settings" title="系统设置" subtitle="全局参数、渠道与运行时配置">
+    <template #actions>
       <el-button type="primary" @click="saveAll" :loading="saving">
         <el-icon><Checkmark20Regular /></el-icon> 保存全部
       </el-button>
-    </div>
+    </template>
 
     <el-tabs v-model="activeTab" type="border-card" class="settings-tabs">
       <!-- 全局Bean配置 -->
@@ -192,12 +191,13 @@
         </div>
       </el-tab-pane>
     </el-tabs>
-  </div>
+  </RePage>
 </template>
 
 <script setup lang="ts">
 import { message } from "@repo/core";
 import { ref, onMounted } from 'vue';
+import RePage from '@/components/re/RePage.vue';
 
 import { Checkmark20Regular } from '@vicons/fluent';
 import { settingsApi, usageApi, modelMetricsApi } from '@/services/javaApi';
@@ -489,27 +489,12 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.system-settings-page {
-  padding: 20px;
-  height: 100%;
-  overflow-y: auto;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.page-header h2 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-}
-
+/* 页面外壳已收口到 RePage（原来的 .system-settings-page 自带 padding + overflow，
+   与 RePage 叠加会变成双层留白 + 双滚动条）。 */
 .settings-tabs {
   min-height: 500px;
+  /* 页签卡片与其它面板统一 8px 圆角 */
+  border-radius: var(--u-radius, 8px);
 }
 
 .settings-content {

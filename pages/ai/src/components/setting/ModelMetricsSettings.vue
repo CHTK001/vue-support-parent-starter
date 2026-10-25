@@ -152,11 +152,14 @@
               </button>
             </div>
           </template>
+          <!-- 操作列统一 ReButton square（纯图标 + tooltip）：
+               未改动时两个按钮都禁用，避免误点保存空改动 -->
           <template #col-actions="{ row }">
-            <div class="op-cell">
-              <el-button type="primary" :disabled="!row.dirty" :loading="row.saving"
-                @click="saveRow(row)">保存</el-button>
-              <el-button :disabled="!row.dirty" @click="discardRow(row)">还原</el-button>
+            <div class="op-cell row-actions">
+              <ReButton layout="square" type="primary" :icon="Select" tip="保存本行"
+                :disabled="!row.dirty" :loading="row.saving" @click="saveRow(row)" />
+              <ReButton layout="square" type="default" :icon="RefreshLeft" tip="还原本行"
+                :disabled="!row.dirty" @click="discardRow(row)" />
             </div>
           </template>
         </ReTable>
@@ -182,11 +185,12 @@ import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 import type { EChartsOption } from 'echarts'
 
-import { Search } from '@element-plus/icons-vue'
+import { Search, Select, RefreshLeft } from '@element-plus/icons-vue'
 
 import { modelMetricsApi } from '@/services/javaApi'
 import SettingsCard from './SettingsCard.vue'
 import SettingsRow from './SettingsRow.vue'
+import ReButton from '@repo/ui/re-button'
 
 /** tooltip 里要拼 HTML，模型名/厂商来自指标源，先转义避免破坏标签结构 */
 const esc = (s: string): string =>

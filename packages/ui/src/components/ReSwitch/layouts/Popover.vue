@@ -13,7 +13,11 @@
       <span class="re-switch-popover__trigger">
         <ReButton
           layout="square"
-          :icon="triggerIcon"
+          :icon="icon"
+          :active-icon="activeIcon"
+          :inactive-icon="inactiveIcon"
+          :preset="preset"
+          :active="isActive"
           :tip="title"
           :type="isActive ? 'primary' : ''"
           :size="size"
@@ -95,6 +99,8 @@ const props = withDefaults(
     activeIcon?: string;
     /** 关闭态图标名（缺省回退到 icon） */
     inactiveIcon?: string;
+    /** 内置图标集名（sunmoon / check / star / bell / arrow / anim）；"none" 关闭内置回落 */
+    preset?: string;
     /** 是否禁用 */
     disabled?: boolean;
     /** 触发器尺寸（与工具栏其它方块按钮对齐，默认 30px） */
@@ -120,6 +126,7 @@ const props = withDefaults(
     icon: "",
     activeIcon: "",
     inactiveIcon: "",
+    preset: undefined,
     disabled: false,
     size: "default",
     placement: "bottom-end",
@@ -150,11 +157,7 @@ const isActive = computed<boolean>(() => {
   return v === true;
 });
 
-/** 触发器图标：按状态取专属图标，缺省回退到通用 icon */
-const triggerIcon = computed<string>(() => {
-  const specific = isActive.value ? props.activeIcon : props.inactiveIcon;
-  return specific || props.icon;
-});
+/** 触发器图标按状态取专属图标，交给 ReButton 的两态图标（activeIcon / inactiveIcon / preset）处理。 */
 
 /**
  * 浮层外壳的内距：经 popper-style 下发 CSS 变量，而不是内联 padding。

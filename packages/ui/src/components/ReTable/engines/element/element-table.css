@@ -40,6 +40,12 @@
   padding-top: 6px !important;
   padding-bottom: 6px !important;
 }
+/** mini 档：比 compact（small）更薄 —— el-table 本身只有 large/default/small，
+    本档由 .re-table--mini 的 CSS 把表头/行内边距进一步压薄实现 */
+.re-table--mini .el-table__header-wrapper th.el-table__cell {
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
+}
 .re-table .el-table__body td.el-table__cell {
   padding-top: 10px !important;
   padding-bottom: 10px !important;
@@ -49,6 +55,10 @@
 .re-table--compact .el-table__body td.el-table__cell {
   padding-top: 6px !important;
   padding-bottom: 6px !important;
+}
+.re-table--mini .el-table__body td.el-table__cell {
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
 }
 .re-table .el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
   background: var(--el-fill-color-extra-light);

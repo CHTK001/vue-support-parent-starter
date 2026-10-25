@@ -13,7 +13,7 @@
 import { computed, ref, watch, onMounted, nextTick } from "vue";
 import { ElPopover, ElInput } from "element-plus";
 import { useDataSource, type ReDataSource } from "@repo/core";
-import { debounce } from "@repo/utils";
+import { debounce, yieldToMain } from "@repo/utils";
 import "../shared/modern-vars.css";
 import ReIcon from "../ReIcon/theme/default/ReIcon.vue";
 import type { ReRemoteOption } from "./types";
@@ -48,7 +48,12 @@ const props = withDefaults(
     size?: "large" | "default" | "small";
     /** 自动重新加载 */
     autoReload?: boolean;
-    /** 同步按钮图标 */
+    /**
+     * 同步按钮图标。
+     *
+     * <p>默认用**动画**刷新图标（{@code anim:tabler:refresh}）：hover 播上游动效，
+     * 加载中由外层 .is-spinning 整体旋转。传普通图标名则退回静态图标。</p>
+     */
     syncIcon?: string;
     /** 同步按钮 tooltip */
     syncTooltip?: string;
@@ -74,7 +79,7 @@ const props = withDefaults(
     inputPlaceholder: "请输入或选择",
     size: "default",
     autoReload: true,
-    syncIcon: "Refresh",
+    syncIcon: "anim:tabler:refresh",
     syncTooltip: "刷新远程数据",
     debounceMs: 300,
     labelKey: "label",
@@ -174,10 +179,14 @@ const triggerText = computed<string>(() => {
   return selectedLabel.value || "";
 });
 
-function onSync(): void {
+async function onSync(): Promise<void> {
   if (props.disabled || dataLoading.value) return;
   emit("sync");
-  dsReload();
+  // 先让一帧：让同步按钮的旋转动画先画出来再取数。
+  // 否则点击后浏览器要等接口回来才开始处理后续任务，用户看到的是
+  // 「按下去没反应，过一会儿整块冻住」。
+  await yieldToMain();
+  await dsReload();
 }
 
 function onSelectOption(opt: ReRemoteOption): void {
@@ -521,6 +530,12 @@ const filterOptions = computed<ReRemoteOption[]>(() => {
 }
 .re-remote-select__sync-icon.is-spinning {
   animation: re-remote-select-spin 0.9s linear infinite;
+
+  /* 上游动画图标自带 hover 动效，与外层整体旋转叠在一起会互相打架 ——
+     加载中只保留外层旋转，压掉图标自身的动效。 */
+  :deep(.re-icon__anim) {
+    animation: none;
+  }
 }
 .re-remote-select__sync-icon :deep(svg) {
   width: 16px;

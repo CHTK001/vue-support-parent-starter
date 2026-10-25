@@ -34,6 +34,7 @@
               <div class="title-row">
                 <h3 :title="item.projectName">{{ item.projectName }}</h3>
                 <el-tag v-if="item.enabled === false" type="info" effect="plain" round>已禁用</el-tag>
+                <el-tag v-if="apmLabel(item)" type="warning" effect="plain" round>{{ apmLabel(item) }}</el-tag>
               </div>
               <el-tag effect="plain" round>{{ typeLabel(item.projectType) }}</el-tag>
             </div>
@@ -296,6 +297,53 @@
             </div>
           </div>
         </template>
+
+        <!-- APM 注入（高级选项，仅 Java 类项目显示） -->
+        <template #apm>
+          <div class="apm-pane">
+            <div class="apm-tip">
+              APM JavaAgent 高级选项：选择后在项目启动脚本（java -jar）中挂载 agent，重启项目即开始上报
+              调用链与监控信息。jar 路径为<b>目标主机上</b>的绝对路径，保存前请确认 agent 已就位。
+            </div>
+            <ReForm label-position="top" class="apm-form">
+              <ReFormItem label="APM 类型">
+                <ReSelect v-model="form.apmType" style="width:100%">
+                  <ReOption label="不启用" value="none" />
+                  <ReOption label="平台自有 APM（runtime-agent）" value="platform" />
+                  <ReOption label="SkyWalking" value="skywalking" />
+                </ReSelect>
+              </ReFormItem>
+
+              <template v-if="form.apmType === 'platform'">
+                <ReFormItem label="Agent jar 路径（目标主机绝对路径）">
+                  <ReInput v-model="form.apmJarPath" placeholder="如 /opt/agent/apm-agent.jar" style="width:100%" />
+                </ReFormItem>
+                <ReFormItem label="agent 参数（逗号分隔，不含前缀）">
+                  <ReInput v-model="form.apmOptions" placeholder="如 port=4567" style="width:100%" />
+                </ReFormItem>
+              </template>
+
+              <template v-if="form.apmType === 'skywalking'">
+                <ReFormItem label="SkyWalking agent jar 路径（目标主机绝对路径）">
+                  <ReInput v-model="form.swJarPath" placeholder="如 /opt/skywalking/skywalking-agent.jar" style="width:100%" />
+                </ReFormItem>
+                <ReFormItem label="service_name（服务名，上报到 OAP 后按此聚合）">
+                  <ReInput v-model="form.swServiceName" :placeholder="`默认 ${form.projectName || '项目名'}`" style="width:100%" />
+                </ReFormItem>
+                <ReFormItem label="collector.backend_service（OAP 地址，如 oap:11800）">
+                  <ReInput v-model="form.swBackendService" placeholder="如 192.168.50.198:11800" style="width:100%" />
+                </ReFormItem>
+                <ReFormItem label="其它 -Dskywalking 参数（空格分隔，可选）">
+                  <ReInput v-model="form.swExtraArgs" placeholder="如 -Dskywalking.logging.dir=/opt/skywalking/logs" style="width:100%" />
+                </ReFormItem>
+              </template>
+
+              <ReFormItem v-if="form.apmType !== 'none'" label="启动命令预览">
+                <pre class="apm-preview">java {{ apmPreviewArgs }} -jar {{ form.mainEntry || '&lt;主入口&gt;' }} ...</pre>
+              </ReFormItem>
+            </ReForm>
+          </div>
+        </template>
       </ReTab>
       <template #footer>
         <ReButton @click="dialogVisible = false">取消</ReButton>
@@ -411,9 +459,6 @@
           </div>
         </transition>
       </div>
-      <template #footer>
-        <ReButton @click="logDialogVisible = false">关闭</ReButton>
-      </template>
     </ReDialog>
   </div>
 </template>
@@ -524,7 +569,18 @@ const form = ref({
   configDir: '',
   libDir: '',
   nginxDir: '',
+  // APM 高级选项：none=不注入，platform=平台自有 APM，skywalking=SkyWalking
+  apmType: 'none' as 'none' | 'platform' | 'skywalking',
+  apmJarPath: '',
+  apmOptions: 'port=4567',
+  swJarPath: '',
+  swServiceName: '',
+  swBackendService: '',
+  swExtraArgs: '',
 });
+
+/** Java 类项目类型（启动脚本走 java -jar，支持 -javaagent 挂载） */
+const JAVA_APM_TYPES = ['springboot', 'fatjar'];
 
 const editTabs = computed(() => {
   const tabs = [
@@ -533,6 +589,10 @@ const editTabs = computed(() => {
     { name: 'vars', label: '变量设置', icon: 'Operation' },
     { name: 'system', label: '系统管理', icon: 'Setting' },
   ];
+  // APM 注入属高级选项，仅 Java 类项目（启动脚本走 java -jar）提供
+  if (JAVA_APM_TYPES.includes(form.value.projectType)) {
+    tabs.push({ name: 'apm', label: 'APM 注入', icon: 'Cpu' });
+  }
   // 备份记录仅在编辑已存在项目时可用（新建项目尚无 backups/）
   if (editingId.value != null) {
     tabs.push({ name: 'backups', label: '备份记录', icon: 'Files' });
@@ -566,6 +626,20 @@ const scriptContext = computed(() => ({
   path: form.value.projectPath,
   appName: form.value.projectName,
 }));
+
+/** APM tab 启动命令预览：展示保存后将会合入 jvmArgs 的 javaagent 参数 */
+const apmPreviewArgs = computed(() => {
+  const apm: ApmForm = {
+    apmType: form.value.apmType,
+    apmJarPath: form.value.apmJarPath,
+    apmOptions: form.value.apmOptions,
+    swJarPath: form.value.swJarPath,
+    swServiceName: form.value.swServiceName,
+    swBackendService: form.value.swBackendService,
+    swExtraArgs: form.value.swExtraArgs,
+  };
+  return materializeApmArgs(apm, []).join(' ');
+});
 
 function typeLabel(t: string) {
   return ({
@@ -653,6 +727,13 @@ function resetForm() {
     configDir: '',
     libDir: '',
     nginxDir: '',
+    apmType: 'none' as 'none' | 'platform' | 'skywalking',
+    apmJarPath: '',
+    apmOptions: 'port=4567',
+    swJarPath: '',
+    swServiceName: '',
+    swBackendService: '',
+    swExtraArgs: '',
   };
 }
 
@@ -694,9 +775,108 @@ function openEditDialog(item: Project) {
     configDir: item.configDir || '',
     libDir: item.libDir || '',
     nginxDir: item.nginxDir || '',
+    ...parseApmConfig(parseJson<string>(item.jvmArgs, [])),
   };
   activeTab.value = 'basic';
   dialogVisible.value = true;
+}
+
+/** APM 类型描述（仅现有 jvmArgs 中的 javaagent 项会出现在这里） */
+type ApmType = 'none' | 'platform' | 'skywalking';
+
+interface ApmForm {
+  apmType: ApmType;
+  apmJarPath: string;
+  apmOptions: string;
+  swJarPath: string;
+  swServiceName: string;
+  swBackendService: string;
+  swExtraArgs: string;
+}
+
+/**
+ * 项目卡片显示的 APM 配置徽标；无 APM 注入时返回空串。
+ * SkyWalking 依据 agent 文件名/SkyWalking 参数识别，其余 javaagent 视为平台自有 APM。
+ */
+function apmLabel(item: Project): string {
+  if (!JAVA_APM_TYPES.includes(item.projectType)) return '';
+  const cfg = parseApmConfig(parseJson<string>(item.jvmArgs, []));
+  if (cfg.apmType === 'skywalking') return 'SkyWalking';
+  if (cfg.apmType === 'platform') return 'APM';
+  return '';
+}
+
+/**
+ * 从项目持久化后的 jvmArgs 反解 APM 高级配置。
+ * SkyWalking 依据 agent 文件/参数标记识别；其余 javaagent 视为平台自有 APM。
+ */
+function parseApmConfig(jvm: string[]): ApmForm {
+  const agent = jvm.find((a) => a.startsWith('-javaagent:'));
+  // Java 语法：-javaagent:jarpath[=options]，options 由首个 = 分隔
+  const raw = agent ? agent.slice('-javaagent:'.length) : '';
+  const eq = raw.indexOf('=');
+  const path = eq >= 0 ? raw.slice(0, eq) : raw;
+  const options = eq >= 0 ? raw.slice(eq + 1) : '';
+  const swName = jvm.find((a) => a.startsWith('-Dskywalking.agent.service_name='));
+  const swBackend = jvm.find((a) => a.startsWith('-Dskywalking.collector.backend_service='));
+  const swExtra = jvm
+    .filter((a) => a.startsWith('-Dskywalking.') && a !== swName && a !== swBackend)
+    .join(' ');
+  const isSkyWalking = /skywalking|sky-agent/i.test(path) || !!swName || !!swBackend;
+  if (isSkyWalking) {
+    return {
+      apmType: 'skywalking',
+      apmJarPath: '',
+      apmOptions: 'port=4567',
+      swJarPath: path,
+      swServiceName: swName ? swName.split('=').slice(1).join('=') : '',
+      swBackendService: swBackend ? swBackend.split('=').slice(1).join('=') || '' : '',
+      swExtraArgs: swExtra,
+    };
+  }
+  if (agent) {
+    return {
+      apmType: 'platform',
+      apmJarPath: path,
+      apmOptions: options || 'port=4567',
+      swJarPath: '',
+      swServiceName: '',
+      swBackendService: '',
+      swExtraArgs: '',
+    };
+  }
+  return {
+    apmType: 'none',
+    apmJarPath: '',
+    apmOptions: 'port=4567',
+    swJarPath: '',
+    swServiceName: '',
+    swBackendService: '',
+    swExtraArgs: '',
+  };
+}
+
+/** 保存前把 APM 高级选项合入 jvmArgs（选择启用时替换旧的 APM javaagent / skywalking 项） */
+function materializeApmArgs(apm: ApmForm, jvm: string[]): string[] {
+  if (apm.apmType === 'none') {
+    return jvm;
+  }
+  const rest = jvm.filter(
+    (a) => !a.startsWith('-javaagent:') && !a.startsWith('-Dskywalking.agent.service_name=') && !a.startsWith('-Dskywalking.collector.backend_service='),
+  );
+  if (apm.apmType === 'platform' && apm.apmJarPath.trim()) {
+    const base = `-javaagent:${apm.apmJarPath.trim()}`;
+    const opts = apm.apmOptions?.trim();
+    return [opts ? `${base}=${opts}` : base, ...rest];
+  }
+  if (apm.apmType === 'skywalking' && apm.swJarPath.trim()) {
+    const out = [`-javaagent:${apm.swJarPath.trim()}`, ...rest];
+    if (apm.swServiceName?.trim()) out.push(`-Dskywalking.agent.service_name=${apm.swServiceName.trim()}`);
+    if (apm.swBackendService?.trim()) out.push(`-Dskywalking.collector.backend_service=${apm.swBackendService.trim()}`);
+    out.push(...(apm.swExtraArgs || '').split(/\s+/).map((x) => x.trim()).filter(Boolean));
+    return out;
+  }
+  return rest;
 }
 
 function parseJson<T>(raw: string | null | undefined, fallback: T[]): T[] {
@@ -892,8 +1072,22 @@ async function handleSave() {
     // 保存前自动补齐未填写的脚本（内置模板 + 占位符展开），用户无需手写
     fillScriptsFromTemplate(true);
     materializeVars();
+    // APM 高级选项合入 jvmArgs（javaagent 参数随启动脚本生效；APM 字段本身不落库）
+    form.value.jvmArgs = materializeApmArgs(
+      {
+        apmType: form.value.apmType,
+        apmJarPath: form.value.apmJarPath,
+        apmOptions: form.value.apmOptions,
+        swJarPath: form.value.swJarPath,
+        swServiceName: form.value.swServiceName,
+        swBackendService: form.value.swBackendService,
+        swExtraArgs: form.value.swExtraArgs,
+      },
+      form.value.jvmArgs,
+    );
+    const { apmType, apmJarPath, apmOptions, swJarPath, swServiceName, swBackendService, swExtraArgs, ...projectForm } = form.value;
     const payload = {
-      ...form.value,
+      ...projectForm,
       envVars: JSON.stringify(form.value.envVars),
       jvmArgs: JSON.stringify(form.value.jvmArgs),
       cmdArgs: JSON.stringify(form.value.cmdArgs),
@@ -2094,6 +2288,28 @@ onBeforeUnmount(() => {
 .bk-row-main { flex: 1; min-width: 0; }
 .bk-row-name { font-size: 13px; font-weight: 600; color: var(--text-primary, #1f2430); word-break: break-all; }
 .bk-row-meta { font-size: 12px; color: var(--text-secondary, #6b7280); margin-top: 2px; }
+
+/* APM 注入（高级选项）tab */
+.apm-pane { display: flex; flex-direction: column; gap: 14px; max-width: 640px; }
+.apm-tip {
+  font-size: 12.5px; line-height: 1.6; color: var(--text-secondary, #6b7280);
+  padding: 12px 14px;
+  background: var(--bg-fill, #f7f8fa);
+  border: 1px solid var(--border-subtle, #eef0f6);
+  border-radius: var(--radius-md, 8px);
+}
+.apm-tip b { color: var(--text-primary, #1f2430); }
+.apm-form { display: flex; flex-direction: column; gap: 4px; }
+.apm-preview {
+  margin: 0; padding: 10px 12px; width: 100%; box-sizing: border-box;
+  font-family: "Cascadia Code", Consolas, monospace; font-size: 12px;
+  color: var(--terminal-fg, #e6edf3);
+  background: var(--terminal-bg, #0d1117);
+  border-radius: var(--radius-md, 8px);
+  white-space: pre-wrap; word-break: break-all;
+  line-height: 1.6;
+}
+
 .log-container {
   height: 420px;
   overflow-y: auto;

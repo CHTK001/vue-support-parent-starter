@@ -16,6 +16,7 @@ import type { Component } from "vue";
 import { msgError } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
 import ReFlowGraph from "@repo/ui/re-flow-graph";
+import ReIcon from "@repo/ui/re-icon";
 import ReInput from "@repo/ui/re-input";
 import ReSelect from "@repo/ui/re-select";
 import ReSwitch from "@repo/ui/re-switch";
@@ -24,7 +25,6 @@ import { costMs } from "@repo/utils";
 import commentForm from "./nodes/commentForm.vue";
 import conditionForm from "./nodes/conditionForm.vue";
 import dataEntryForm from "./nodes/dataEntryForm.vue";
-import databaseForm from "./nodes/databaseForm.vue";
 import dedupForm from "./nodes/dedupForm.vue";
 import endForm from "./nodes/endForm.vue";
 import extractForm from "./nodes/extractForm.vue";
@@ -104,6 +104,12 @@ const props = defineProps<{
   readonly?: boolean;
   /** 最近一次任务的逐节点执行状态，用来给画布节点描边 */
   states?: Record<string, CollectTaskLog>;
+  /** 已执行轨迹的连线 id 集合；这些边显示流动虚线动画（重播 / 追踪） */
+  activeEdgeIds?: string[];
+  /** 当前正在执行/循环的节点 id；该节点显示蓝色虚线动画边框 */
+  loopingNodeId?: string | null;
+  /** 紧凑模式：降低画布最低高度，供弹窗内叠放的第二张图使用 */
+  compact?: boolean;
   /**
    * 最近一次落库时间（UI 稿底栏「最近保存 15:07」）。
    *
@@ -333,6 +339,13 @@ const selectedMeta = computed(() =>
   nodeForm.value ? metaMap.value[nodeForm.value.shape] ?? null : null,
 );
 
+/** 非 Tab 化节点的说明：基础信息「节点 ID / 类型」旁的信息图标 */
+const nodeInfoText = computed(() =>
+  selectedMeta.value
+    ? [selectedMeta.value.description, selectedMeta.value.outputVariable].filter(Boolean).join("\n")
+    : "",
+);
+
   const flowOptionsOf = computed(() =>
     (props.flowOptions ?? []).map(item => ({ value: item.value, label: item.label })),
   );
@@ -347,6 +360,36 @@ const panelTitle = computed(() => {
   if (edgeForm.value) return "连线属性";
   return "流程属性";
 });
+
+/** 流程属性：运行超时的文本态（空 = 用平台全局默认 30 分钟） */
+const timeoutText = ref("");
+const formatTimeout = (v: number | null | undefined): string =>
+  v && v > 0 ? String(v) : "";
+watch(
+  () => flow.value.timeoutMs,
+  (v) => { timeoutText.value = formatTimeout(v); },
+);
+/** 流程属性：更新运行超时（毫秒），空/非正数按「用全局默认」处理并清空 */
+function updateTimeout(v: string): void {
+  const raw = String(v ?? "").trim();
+  const n = raw === "" ? null : Number(raw);
+  timeoutText.value = raw;
+  if (raw === "") {
+    if (flow.value.timeoutMs !== null) {
+      flow.value.timeoutMs = null;
+      emit("change");
+    }
+    return;
+  }
+  if (n == null || !Number.isFinite(n) || n <= 0) {
+    timeoutText.value = formatTimeout(flow.value.timeoutMs);
+    return;
+  }
+  if (flow.value.timeoutMs !== Math.trunc(n)) {
+    flow.value.timeoutMs = Math.trunc(n);
+    emit("change");
+  }
+}
 
 const selectedState = computed(() =>
   nodeForm.value ? props.states?.[nodeForm.value.id] ?? null : null,
@@ -798,7 +841,9 @@ const FORM_BY_SHAPE: Record<string, Component> = {
   request: requestForm,
   extract: extractForm,
   link: linkForm,
-  database: databaseForm,
+  // database 没有专属表单：它属于 SIMPLE_TABBED_SHAPES，统一走 NodeFormTabs → NodeParamForm。
+  // 原先这里登记的 databaseForm 是一条走不到的分支，且它引用的是「建表 / 补列」DDL 预览弹窗，
+  // 与设计表（数据库管理器同一套列网格）不是同一个东西 —— 留着只会让下一个人以为界面上用的就是它。
   output: outputForm,
   sql: sqlForm,
   dedup: dedupForm,
@@ -809,7 +854,7 @@ const FORM_BY_SHAPE: Record<string, Component> = {
   comment: commentForm,
   condition: conditionForm,
   end: endForm,
-  // 数据录入：手工录行产出行数据流，建表走共享 CreateTableDialog
+  // 数据录入：手工录行产出行数据流；本节点不建表（建表在数据库节点，走共享设计表）
   entry: dataEntryForm,
   // 中间件读写四型共用一份表单，差异（数据源类型过滤）由 shape 前缀决定
   "influxdb-read": middlewareForm,
@@ -818,9 +863,10 @@ const FORM_BY_SHAPE: Record<string, Component> = {
   "neo4j-write": middlewareForm,
 };
 
-/** 使用统一 Tab 外壳的节点类型；request 保留自身页签，script 已下线不参与 */
+/** 使用统一 Tab 外壳的节点类型；request 也走统一 Tab，script 已下线不参与 */
 const SIMPLE_TABBED_SHAPES = new Set([
   "start",
+  "request",
   "extract",
   "database",
   "sql",
@@ -1090,8 +1136,8 @@ const formContext = computed<NodeFormContext>(() => ({
     void loadTablesForActive();
     void loadColumnsForActive(true);
   },
-  // 建表 / 补列不再经由上下文：两个表单各自用 @pages/datasource 的共享 CreateTableDialog，
-  // 预览与执行由那个组件直连数据源中心，这里不再转发 DDL 回调。
+  // 建表 / 补列不再经由上下文：设计表走 @pages/datasource 的 DesignTableDialog（数据库管理器
+  // 同一套列网格），由各节点表单自己接，这里不再转发 DDL 回调。
   writeFields,
 }));
 
@@ -1354,8 +1400,21 @@ function stateText(nodeId: string): string {
   const iteration = state.collectTaskLogIteration;
   // 与表格列同源：走 ReTime 的 formatDuration，空值不显示耗时段
   const cost = costMs(state.collectTaskLogCost);
-  const costText = cost == null ? "" : ` ${formatDuration(cost)}`;
-  return `${label}${iteration == null ? "" : ` ×${Number(iteration) + 1}`}${costText}`;
+  const costText = cost == null ? "" : ` · 耗时 ${formatDuration(cost)}`;
+  const startText = state.createTime ? `开始 ${formatTime(state.createTime)}` : "";
+  return `${label}${iteration == null ? "" : ` ×${Number(iteration) + 1}`}${costText}${startText ? ` · ${startText}` : ""}`;
+}
+
+/** 时间字段可能是 ISO / 时间戳 / 后端字符串，只取 HH:mm:ss 片段 */
+function formatTime(value: string | number | Date | null | undefined): string {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) {
+    const text = String(value).trim();
+    const match = text.match(/(\d{2}:\d{2}:\d{2})/);
+    return match?.[1] ?? text.slice(0, 19);
+  }
+  return d.toTimeString().slice(0, 8);
 }
 
 /** 回放/校验状态只改节点边框数据并临时关掉历史记录，避免轮询状态污染撤销栈 */
@@ -1370,11 +1429,16 @@ function applyStates(): void {
       // 执行前校验：类型未注册的节点标红（回放状态优先于校验标红）
       const unregistered = !status && !metaMap.value[node.type];
       if (status && STATE_RING[status]) {
-        eng.updateNode(node.id, { strokeColor: STATE_RING[status], strokeWidth: 3 });
+        eng.updateNode(node.id, {
+          strokeColor: STATE_RING[status],
+          strokeWidth: 3,
+          stateText: stateText(node.id),
+          looping: node.id === props.loopingNodeId,
+        });
       } else if (unregistered) {
-        eng.updateNode(node.id, { strokeColor: "#f53f3f", strokeWidth: 3 });
+        eng.updateNode(node.id, { strokeColor: "#f53f3f", strokeWidth: 3, stateText: "", looping: false });
       } else {
-        eng.updateNode(node.id, { strokeColor: "", strokeWidth: 1.5 });
+        eng.updateNode(node.id, { strokeColor: "", strokeWidth: 1.5, stateText: "", looping: false });
       }
     });
     eng.graph.enableHistory();
@@ -1383,7 +1447,24 @@ function applyStates(): void {
   }
 }
 
-watch(() => props.states, applyStates, { deep: true });
+/** 推进线：执行轨迹上的边全部点亮（虚线动画），其余恢复常规样式 */
+function applyActiveEdge(): void {
+  const eng = engine.value;
+  if (!eng) return;
+  const active = new Set(props.activeEdgeIds ?? []);
+  eng.getData().edges.forEach(edge => {
+    eng.setEdgeActive(edge.id, active.has(edge.id));
+  });
+  // X6 在 setData 后异步建 view；刚灌完图就传 activeEdgeIds 时补一次，
+  // 否则新图上的“执行轨迹虚线”要到下一次 cursor 变化才出现动画
+  if (active.size) {
+    window.setTimeout(applyActiveEdge, 0);
+  }
+}
+
+watch(() => props.activeEdgeIds, applyActiveEdge, { deep: true });
+// 当前执行/循环节点变化时重描边（蓝色虚线边框）
+watch(() => props.loopingNodeId, applyStates);
 // 后端执行器注册表变化（如重启后启用了 script）时重描边，未注册红标跟着刷新
 watch(() => props.metas, applyStates, { deep: true });
 
@@ -1391,17 +1472,24 @@ watch(() => props.metas, applyStates, { deep: true });
 
 function load(dsl: CollectDsl | null | undefined): void {
   const source = dsl ?? emptyDsl();
+  const data = toGraphData(source);
+  const signature = signatureOf(data);
+  // 重复加载同一张图（onReady 和 watcher 都可能触发）时直接跳过，避免节点/边被灌成两份
+  if (signature === loadedSignature && loadedSignature !== "") {
+    return;
+  }
   pending = true;
   flow.value = {
     name: source.name ?? null,
     threadCount: source.threadCount ?? null,
+    timeoutMs: source.timeoutMs ?? null,
     headers: (source.headers ?? []).map(item => ({ ...item })),
     cookies: (source.cookies ?? []).map(item => ({ ...item })),
     variables: (source.variables ?? []).map(item => ({ ...item })),
   };
+  timeoutText.value = formatTimeout(source.timeoutMs);
   nodeForm.value = null;
   edgeForm.value = null;
-  const data = toGraphData(source);
   // 两个分支都要写 graphData：ReFlowGraph 的「N 节点 / M 连线」统计只在 data prop
   // 变化时刷新（内部 syncStat），只调 engine.setData 会让画布有图而计数仍是 0（实测）。
   graphData.value = data;
@@ -1409,10 +1497,11 @@ function load(dsl: CollectDsl | null | undefined): void {
     // 同时直灌内核：重复加载同一张图时结构签名没变，prop 那条路会被拦下
     engine.value.setData(data);
     applyStates();
+    applyActiveEdge();
   }
   refreshStartPresence();
   // 载入即记录签名：随后引擎回抛的 change 会与它一致，onGraphChange 据此判定为程序行为
-  loadedSignature = signatureOf(data);
+  loadedSignature = signature;
 }
 
 /**
@@ -1432,6 +1521,7 @@ function getGraph(): CollectDsl {
   return {
     name: flow.value.name ?? null,
     threadCount: flow.value.threadCount ?? null,
+    timeoutMs: flow.value.timeoutMs ?? null,
     headers: (flow.value.headers ?? []).map(item => ({ ...item })),
     cookies: (flow.value.cookies ?? []).map(item => ({ ...item })),
     variables: (flow.value.variables ?? []).map(item => ({ ...item })),
@@ -1466,11 +1556,17 @@ function autoOptimize(): void {
   graphRef.value?.fit?.();
 }
 
-defineExpose({ load, getGraph, addNode, startWith, shapeIssues, autoOptimize });
+/** 回放追踪：把某个节点居中显示（engine.focusNode 透传） */
+function focusNode(id: string | null | undefined): void {
+  if (!id) return;
+  engine.value?.focusNode(id);
+}
+
+defineExpose({ load, getGraph, addNode, startWith, shapeIssues, autoOptimize, focusNode });
 </script>
 
 <template>
-  <div class="collect-flow">
+  <div class="collect-flow" :style="compact ? { height: '100%', minHeight: '180px' } : undefined">
     <ReFlowGraph
       ref="graphRef"
       :data="graphData"
@@ -1526,7 +1622,18 @@ defineExpose({ load, getGraph, addNode, startWith, shapeIssues, autoOptimize });
                 <ReInput  :model-value="nodeForm.name" @update:model-value="renameNode"/>
               </div>
               <div class="field">
-                <div class="field-label">节点 ID / 类型</div>
+                <div class="field-label">
+                  节点 ID / 类型
+                  <el-tooltip
+                    v-if="nodeInfoText"
+                    :content="nodeInfoText"
+                    placement="top"
+                    :show-after="200"
+                    :teleported="true"
+                  >
+                    <span class="label-tip"><ReIcon name="InfoFilled" :size="13" /></span>
+                  </el-tooltip>
+                </div>
                 <ReInput
                   
                   disabled
@@ -1542,21 +1649,6 @@ defineExpose({ load, getGraph, addNode, startWith, shapeIssues, autoOptimize });
                     {{ selectedState.collectTaskLogMessage }}
                   </em>
                 </span>
-              </div>
-
-              <!--
-                通用说明只在「没有专属表单、回落到 genericForm」时显示。
-                15 个 shape 现在都有自己的 .node-intro（讲得更准），再叠一块就重复了；
-                保留这条是为了将来后端新增 shape 时前端仍有基本说明。
-              -->
-              <div
-                v-if="!FORM_BY_SHAPE[nodeForm.shape] && (selectedMeta.description || selectedMeta.outputVariable)"
-                class="field field-wide"
-              >
-                <div v-if="selectedMeta.description" class="field-tip">{{ selectedMeta.description }}</div>
-                <div v-if="selectedMeta.outputVariable" class="field-tip">
-                  {{ selectedMeta.outputVariable }}
-                </div>
               </div>
 
               <!-- 「${节点类型}配置」分节头：extract →「抽取配置」，恰合 UI 稿叫法 -->
@@ -1628,6 +1720,27 @@ defineExpose({ load, getGraph, addNode, startWith, shapeIssues, autoOptimize });
                 <ReButton  type="danger" plain @click="removeSelectedEdge">
                   删除这条连线
                 </ReButton>
+              </div>
+            </div>
+
+            <!--
+              流程属性：未选中节点/连线时显示。含流程级运行超时——
+              分片型大采集（如 GitHub 全量 1140 个分页请求）默认 30 分钟会被
+              超时强制结束，这里可按需调大；留空表示用平台全局默认。
+            -->
+            <div v-else-if="!nodeForm && !edgeForm" class="pane-grid pane-grid--flow">
+              <SectionHead title="流程属性" />
+              <div class="field">
+                <div class="field-label">运行超时（毫秒）</div>
+                <ReInput
+                  :model-value="timeoutText"
+                  placeholder="留空 = 平台默认（30 分钟）"
+                  @update:model-value="(v: unknown) => updateTimeout(text(v))"
+                />
+                <div class="field-tip">
+                  单次运行最长毫秒，超时后任务判失败并停止。例：10800000 = 3 小时；
+                  分片大采集（如 GitHub 全部项目）建议调大后再运行。
+                </div>
               </div>
             </div>
 

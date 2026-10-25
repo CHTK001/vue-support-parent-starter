@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full overflow-hidden flex flex-col">
+  <div class="h-full overflow-hidden flex flex-col" data-page="bot">
     <PageHeader :title="t('bot.center.title')" />
     <div class="flex-1 flex flex-col overflow-hidden">
       <div class="shrink-0 px-4 w-full md:max-w-260 md:mx-auto">

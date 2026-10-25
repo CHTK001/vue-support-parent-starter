@@ -10,7 +10,7 @@
     （先按检测框裁脸取点、再映射回去），所以这里可以直接按原图尺寸做 viewBox 叠加，
     并且仍然做一次「点必须落在原图与人脸框内」的校验（判据只加强不放松：宁可拒画也不画错）。
   -->
-  <el-dialog
+  <ReDialog
     :model-value="modelValue"
     :title="`人脸特征点 · ${faceName || faceId || ''}`"
     width="720px"
@@ -73,7 +73,7 @@
         </p>
       </div>
     </div>
-  </el-dialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
@@ -91,6 +91,7 @@
 import { ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Warning } from '@element-plus/icons-vue'
+import ReDialog from '@repo/ui/re-dialog'
 import { apiService } from '@/services/ApiService'
 
 const props = defineProps<{

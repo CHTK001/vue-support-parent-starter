@@ -18,12 +18,14 @@ import {
   batchMoveGroup,
   scanPorts,
   testPrometheusHost,
+  installNginxHost,
 } from '../api';
 import ScHostFormDialog from '../components/ScHostFormDialog.vue';
 import ScConnectDialog from '../components/ScConnectDialog.vue';
 import ScGuacViewer from '../components/ScGuacViewer.vue';
 import ScSftpPanel from '../components/ScSftpPanel.vue';
 import ScHostDetail from '../components/ScHostDetail.vue';
+import ScInstallDialog from '../components/ScInstallDialog.vue';
 
 /** 主机行 */
 interface HostRow {
@@ -48,6 +50,17 @@ interface HostRow {
   serverHostDelayMs?: number | null;
   serverHostPorts?: string;
   serverHostLastPortScanTime?: string;
+  serverHostSshEnabled?: number;
+  /**
+   * 实时指标（CPU / 内存 / 磁盘使用率，百分比 0-100）。
+   *
+   * 后端 /ms/server/host 返回的主机行会带这三个字段（详情页与卡片环形图都用它），
+   * 但实体声明里没有，导致模板访问时 TS2339。这里显式补上：字段缺失表示
+   * 「该主机暂无实时指标」（如手动采集模式），模板按 0 渲染并提示。
+   */
+  cpuUsage?: number | null;
+  memUsage?: number | null;
+  diskUsage?: number | null;
 }
 
 /** 采集方式选项 */
@@ -145,6 +158,10 @@ const detailHost = ref<HostRow | null>(null);
 /** 更多配置弹窗状态 */
 const configVisible = ref(false);
 const configHost = ref<HostRow | null>(null);
+
+/** 软件安装对话框状态 */
+const installVisible = ref(false);
+const installHost = ref<HostRow | null>(null);
 const cfgForm = reactive({
   serverHostOnlineEnabled: 1,
   serverHostOnlineInterval: 60,
@@ -204,6 +221,17 @@ function openConfig(row: HostRow) {
   cfgForm.serverHostDelayEnabled = row.serverHostDelayEnabled ?? 0;
   cfgForm.serverHostDelayInterval = row.serverHostDelayInterval ?? 60;
   configVisible.value = true;
+}
+
+/** 打开软件安装对话框 */
+function onOpenInstall(row: HostRow): void {
+  installHost.value = row;
+  installVisible.value = true;
+}
+
+/** 安装完成回调：刷新主机列表 */
+function onInstalled(): void {
+  refresh();
 }
 
 /** 保存更多配置 */
@@ -495,292 +523,451 @@ async function onImportFile(file: File | undefined) {
     message.error((e as Error).message);
   }
 }
+
+/** CPU 使用率颜色 */
+function cpuColor(v?: number): string {
+  const n = Number(v) || 0;
+  if (n >= 80) return 'var(--el-color-danger)';
+  if (n >= 60) return 'var(--el-color-warning)';
+  return 'var(--el-color-success)';
+}
+
+/** 内存使用率颜色 */
+function memColor(v?: number): string {
+  return cpuColor(v);
+}
+
+/** 磁盘使用率颜色 */
+function diskColor(v?: number): string {
+  const n = Number(v) || 0;
+  if (n >= 90) return 'var(--el-color-danger)';
+  if (n >= 75) return 'var(--el-color-warning)';
+  return 'var(--el-color-success)';
+}
 </script>
 
+<!-- New modernized template: card-grid layout with koi tokens -->
 <template>
-  <div class="host-list sc-page">
-    <!-- 页面头部 + 主操作 -->
-    <ReSectionHead class="page-head" title="主机资产" description="服务器台账、启停管理、远控与文件分发">
-      <template #actions>
-        <ReButton show-text icon="Plus" type="primary" size="default" @click="openCreate">新增主机</ReButton>
-        <ReButton show-text icon="Refresh" @click="refresh">刷新</ReButton>
-        <label class="import-btn">
-          <input type="file" accept=".xlsx,.xls" hidden @change="(e: Event) => onImportFile((e.target as HTMLInputElement).files?.[0])" />
-          <ReButton show-text icon="Upload" tag="span">导入</ReButton>
-        </label>
-        <ReButton show-text icon="Download" @click="onExport">导出</ReButton>
-      </template>
-    </ReSectionHead>
+<div class="host-list sc-page">
+  <ReSectionHead class="page-head" title="主机资产" description="服务器台账、启停管理、远控与文件分发">
+    <template #actions>
+      <ReButton show-text icon="Plus" type="primary" size="default" @click="openCreate">新增主机</ReButton>
+      <ReButton show-text icon="Refresh" @click="refresh">刷新</ReButton>
+      <label class="import-btn">
+        <input type="file" accept=".xlsx,.xls" hidden @change="(e: Event) => onImportFile((e.target as HTMLInputElement).files?.[0])" />
+        <ReButton show-text icon="Upload" tag="span">导入</ReButton>
+      </label>
+      <ReButton show-text icon="Download" @click="onExport">导出</ReButton>
+    </template>
+  </ReSectionHead>
 
-    <!-- 资产统计 -->
-    <ReSkeleton :loading="statsLoading" :rows="2" :count="1" animated>
-      <div class="stats-grid">
-        <ReStatCard size="compact" title="资产总数" :value="hostStats.total" icon-color="var(--metric-cpu)">
-          <template #icon><Monitor /></template>
-          <template #value><ReCountup :value="hostStats.total" :duration="800" /></template>
-        </ReStatCard>
-        <ReStatCard size="compact" title="在线" :value="hostStats.online" icon-color="var(--status-success)">
-          <template #icon><CircleCheckFilled /></template>
-          <template #value><ReCountup :value="hostStats.online" :duration="800" /></template>
-        </ReStatCard>
-        <ReStatCard size="compact" title="离线" :value="hostStats.offline" icon-color="var(--status-error)">
-          <template #icon><CircleCloseFilled /></template>
-          <template #value><ReCountup :value="hostStats.offline" :duration="800" /></template>
-        </ReStatCard>
-        <ReStatCard size="compact" title="未知" :value="hostStats.unknown" icon-color="var(--metric-disk)">
-          <template #icon><QuestionFilled /></template>
-          <template #value><ReCountup :value="hostStats.unknown" :duration="800" /></template>
-        </ReStatCard>
+  <!-- 统计卡片：koi 令牌 + 大数字 + 微趋势 -->
+  <ReSkeleton :loading="statsLoading" :rows="2" :count="1" animated>
+    <div class="stats-grid">
+      <div class="stat-card" style="--accent: var(--metric-cpu)">
+        <div class="stat-label">资产总数</div>
+        <div class="stat-value"><ReCountup :value="hostStats.total" :duration="800" /></div>
+        <div class="stat-trend">全部主机</div>
       </div>
-    </ReSkeleton>
-
-    <!-- 筛选工具条 -->
-    <div class="toolbar page-toolbar">
-      <ReInput
-        v-model="keyword"
-        placeholder="搜索名称/编码/地址"
-        clearable
-        prefix-icon="Search"
-        style="width: 240px"
-        @keyup.enter="refresh"
-      />
-      <ReSelect
-        v-model="filterGroupId"
-        placeholder="全部分组"
-        clearable
-        :data="groupSelectOptions"
-        style="width: 180px"
-        @change="onGroupFilterChange"
-      />
+      <div class="stat-card" style="--accent: var(--status-success)">
+        <div class="stat-label">在线</div>
+        <div class="stat-value"><ReCountup :value="hostStats.online" :duration="800" /></div>
+        <div class="stat-trend is-up">运行正常</div>
+      </div>
+      <div class="stat-card" style="--accent: var(--status-error)">
+        <div class="stat-label">离线</div>
+        <div class="stat-value"><ReCountup :value="hostStats.offline" :duration="800" /></div>
+        <div class="stat-trend is-down">需要关注</div>
+      </div>
+      <div class="stat-card" style="--accent: var(--metric-disk)">
+        <div class="stat-label">未知</div>
+        <div class="stat-value"><ReCountup :value="hostStats.unknown" :duration="800" /></div>
+        <div class="stat-trend">等待检测</div>
+      </div>
     </div>
+  </ReSkeleton>
 
-    <div class="batch-bar" v-if="selectedIds.length > 0">
-      <span class="batch-info">已选 {{ selectedIds.length }} 台</span>
-      <ReButton show-text icon="CircleCheck" type="success" @click="onBatchEnable(true)">批量启用</ReButton>
-      <ReButton show-text icon="CircleClose" type="warning" @click="onBatchEnable(false)">批量停用</ReButton>
-      <ReButton show-text icon="FolderOpened" @click="onBatchMoveGroup">移动分组</ReButton>
-      <ReButton show-text icon="Close" @click="selectedIds = []">清除选择</ReButton>
-    </div>
-
-    <!-- 主机表格 -->
-    <ReTable :data="hosts" :loading="loading" border stripe size="default" :pagination="false" :toolbar="false"
-      empty-text="暂无主机，点击右上角「新增主机」添加"
-      @row-click="openDetail"
-      @selection-change="(rows: any[]) => selectedIds = rows.map((r: any) => r.id)">
-      <ReTableColumn type="selection" width="40" />
-      <ReTableColumn label="状态" width="90">
-        <template #default="{ row }">
-          <span class="status-cell">
-            <ReStatusIndicator
-              :type="row.serverHostOnline === 1 ? 'success' : row.serverHostOnline === 0 ? 'danger' : 'info'"
-              :pulse="row.serverHostOnline === 1"
-            />
-            {{ row.serverHostOnline === 1 ? '在线' : row.serverHostOnline === 0 ? '离线' : '未知' }}
-          </span>
-        </template>
-      </ReTableColumn>
-      <ReTableColumn prop="serverHostName" label="名称" min-width="140" show-overflow-tooltip />
-      <ReTableColumn prop="serverHostAddress" label="地址" min-width="140" show-overflow-tooltip />
-      <ReTableColumn prop="serverHostPort" label="端口" width="70" />
-      <ReTableColumn prop="serverHostOsType" label="系统" width="90" />
-      <ReTableColumn label="分组" width="110">
-        <template #default="{ row }">{{ groupName(row.msServerGroupId) }}</template>
-      </ReTableColumn>
-      <ReTableColumn label="标签" min-width="120">
-        <template #default="{ row }">
-          <ReTag
-            v-for="tag in parseTags(row.serverHostTags)"
-            :key="tag"
-
-            style="margin-right: 4px"
-          >{{ tag }}</ReTag>
-        </template>
-      </ReTableColumn>
-      <ReTableColumn label="启用" width="80">
-        <template #default="{ row }">
-          <span @click.stop><ReSwitch :model-value="row.serverHostStatus === 1" @change="onSwitch(row)" /></span>
-        </template>
-      </ReTableColumn>
-      <ReTableColumn label="延迟" width="100">
-        <template #default="{ row }">
-          <span
-            :class="[
-              'delay-cell',
-              row.serverHostDelayMs === null || row.serverHostDelayMs === undefined
-                ? 'is-info'
-                : row.serverHostDelayMs < 0 ? 'is-down' : row.serverHostDelayMs <= 50 ? 'is-fast' : 'is-slow'
-            ]"
-          >{{ delayText(row.serverHostDelayMs) }}</span>
-        </template>
-      </ReTableColumn>
-      <ReTableColumn label="端口" min-width="160">
-        <template #default="{ row }">
-          <span v-if="!parsePorts(row.serverHostPorts).length" class="ports-empty">未扫描</span>
-          <div v-else class="ports-wrap">
-            <ReTag
-              v-for="p in parsePorts(row.serverHostPorts)"
-              :key="p.port"
-
-              type="info"
-              style="margin-right: 4px; margin-bottom: 4px"
-            >{{ portText(p) }}</ReTag>
-          </div>
-        </template>
-      </ReTableColumn>
-      <ReTableColumn label="操作" width="380" fixed="right">
-        <template #default="{ row }">
-          <span @click.stop>
-          <ReButton show-text icon="View" type="primary" @click.stop="openDetail(row)">详情</ReButton>
-          <ReButton show-text icon="Connection" type="primary" @click="onOpenConnect(row)">远控</ReButton>
-          <ReButton show-text icon="FolderOpened" type="primary" @click="onOpenSftp(row)">文件</ReButton>
-          <ReButton show-text icon="Aim" @click="onTestConnect(row)">测连</ReButton>
-          <ReButton show-text icon="Search" type="warning" @click="onScanPorts(row)">扫端口</ReButton>
-          <ReButton show-text icon="Edit" @click="openEdit(row)">编辑</ReButton>
-          <ReButton show-text icon="MoreFilled" @click="openConfig(row)">更多</ReButton>
-          <ReButton show-text icon="Delete" type="danger" @click="onDelete(row)">删除</ReButton>
-          </span>
-        </template>
-      </ReTableColumn>
-    </ReTable>
-
-    <!-- 表单 / 连接 / 远控 / SFTP -->
-    <ScHostFormDialog v-model="formVisible" :host="editingHost" @submit="onSubmitForm" />
-    <ScConnectDialog v-model="connectVisible" :host="connectingHost" :identities="identities" @connect="onConnect" />
-    <ScGuacViewer :connection="guacConnection" @close="guacConnection = null" />
-
-    <ReDrawer v-model="sftpVisible" title="SFTP 文件管理" :size="'60%'" direction="rtl" :footer-hidden="true" close-only>
-      <template #content>
-        <ScSftpPanel :host-id="sftpHostId" />
-      </template>
-    </ReDrawer>
-
-    <!-- 主机更多配置：在离线 / 指标采集 / 延迟检测 -->
-    <ReDialog
-      v-model="configVisible"
-      layout="modern"
-      compact
-      :title="`主机配置 - ${configHost?.serverHostName || ''}`"
-      width="520"
-      ok-text="保存"
-      cancel-text="取消"
-      :confirm-loading="cfgSaving"
-      :footer-hidden="false" @confirm="onSaveConfig"
-      @cancel="configVisible = false"
-    >
-      <ReForm label-position="left" label-width="130px" class="cfg-form">
-        <ReDivider content-position="left">在离线检测</ReDivider>
-        <ReFormItem label="启用自动检测">
-          <ReSwitch v-model="cfgForm.serverHostOnlineEnabled" :active-value="1" :inactive-value="0" />
-        </ReFormItem>
-        <ReFormItem label="检测间隔(秒)">
-          <ReInputNumber v-model="cfgForm.serverHostOnlineInterval" :min="5" :max="86400" style="width: 180px" />
-        </ReFormItem>
-
-        <ReDivider content-position="left">指标采集</ReDivider>
-        <ReFormItem label="启用采集">
-          <ReSwitch v-model="cfgForm.serverHostCollectEnabled" :active-value="1" :inactive-value="0" />
-        </ReFormItem>
-        <ReFormItem label="采集方式">
-          <ReSelect v-model="cfgForm.serverHostCollectMode" :data="collectModeOptions" style="width: 220px" />
-        </ReFormItem>
-        <ReFormItem v-if="cfgForm.serverHostCollectMode === 'PROMETHEUS'" label="Prometheus">
-          <div class="prom-actions">
-            <ReButton type="primary" :loading="promTestLoading" @click="onTestPrometheus">凭据校验</ReButton>
-            <a v-if="promPkgUrl" class="prom-dl" :href="promPkgUrl" target="_blank" rel="noopener">下载 Prometheus 包</a>
-            <span v-else class="prom-tip">未配置安装包下载地址（系统配置 → Prometheus → 安装包下载地址）</span>
-          </div>
-        </ReFormItem>
-        <ReFormItem label="采集间隔(秒)">
-          <ReInputNumber v-model="cfgForm.serverHostCollectInterval" :min="10" :max="86400" style="width: 180px" />
-        </ReFormItem>
-
-        <ReDivider content-position="left">延迟检测</ReDivider>
-        <ReFormItem label="启用延迟检测">
-          <ReSwitch v-model="cfgForm.serverHostDelayEnabled" :active-value="1" :inactive-value="0" />
-        </ReFormItem>
-        <ReFormItem label="检测间隔(秒)">
-          <ReInputNumber v-model="cfgForm.serverHostDelayInterval" :min="5" :max="86400" style="width: 180px" />
-        </ReFormItem>
-      </ReForm>
-    </ReDialog>
-
-    <ScHostDetail v-model="detailVisible" :host="detailHost" @updated="refresh" />
+  <!-- 筛选工具条 -->
+  <div class="toolbar page-toolbar">
+    <ReInput v-model="keyword" placeholder="搜索名称/编码/地址" clearable prefix-icon="Search" style="width: 240px" @keyup.enter="refresh" />
+    <ReSelect v-model="filterGroupId" placeholder="全部分组" clearable :data="groupSelectOptions" style="width: 180px" @change="onGroupFilterChange" />
   </div>
+
+  <div class="batch-bar" v-if="selectedIds.length > 0">
+    <span class="batch-info">已选 {{ selectedIds.length }} 台</span>
+    <ReButton show-text icon="CircleCheck" type="success" @click="onBatchEnable(true)">批量启用</ReButton>
+    <ReButton show-text icon="CircleClose" type="warning" @click="onBatchEnable(false)">批量停用</ReButton>
+    <ReButton show-text icon="FolderOpened" @click="onBatchMoveGroup">移动分组</ReButton>
+    <ReButton show-text icon="Close" @click="selectedIds = []">清除选择</ReButton>
+  </div>
+
+  <!-- 主机卡片网格 -->
+  <div class="host-grid">
+    <div
+      v-for="row in hosts"
+      :key="row.id"
+      class="host-card"
+      :class="{ 'is-offline': row.serverHostOnline === 0, 'is-unknown': row.serverHostOnline !== 1 && row.serverHostOnline !== 0 }"
+      style="--status-color: var(--status-success)"
+      @click="openDetail(row)"
+    >
+      <div class="host-card__head">
+        <ReStatusIndicator :type="row.serverHostOnline === 1 ? 'success' : row.serverHostOnline === 0 ? 'danger' : 'info'" :pulse="row.serverHostOnline === 1" />
+        <span class="host-name">{{ row.serverHostName }}</span>
+        <span class="host-addr">{{ row.serverHostAddress }}:{{ row.serverHostPort }}</span>
+      </div>
+
+      <div class="host-card__metrics">
+        <div class="mini-ring" :style="{ '--pct': (row.cpuUsage ?? 0) + '%', '--ring-color': cpuColor(row.cpuUsage ?? 0) }">
+          <span class="mini-ring__val">{{ row.cpuUsage ?? 0 }}%</span>
+        </div>
+        <div class="mini-ring" :style="{ '--pct': (row.memUsage ?? 0) + '%', '--ring-color': memColor(row.memUsage ?? 0) }">
+          <span class="mini-ring__val">{{ row.memUsage ?? 0 }}%</span>
+        </div>
+        <div class="mini-ring" :style="{ '--pct': (row.diskUsage ?? 0) + '%', '--ring-color': diskColor(row.diskUsage ?? 0) }">
+          <span class="mini-ring__val">{{ row.diskUsage ?? 0 }}%</span>
+        </div>
+        <div class="metric-labels">
+          <span>CPU</span><span>内存</span><span>磁盘</span>
+        </div>
+      </div>
+
+      <div class="host-card__tags">
+        <ReTag v-for="tag in parseTags(row.serverHostTags)" :key="tag" style="margin-right: 4px; margin-bottom: 4px">{{ tag }}</ReTag>
+        <span v-if="!parseTags(row.serverHostTags).length" class="no-tags">无标签</span>
+      </div>
+
+      <div class="host-card__ports">
+        <span v-if="!parsePorts(row.serverHostPorts).length" class="ports-empty">未扫描</span>
+        <ReTag v-for="p in parsePorts(row.serverHostPorts)" :key="p.port" class="port-chip" type="info">{{ portText(p) }}</ReTag>
+      </div>
+
+      <div class="host-card__footer">
+        <span class="host-group">{{ groupName(row.msServerGroupId) }}</span>
+        <span class="host-delay" :class="{ 'is-down': row.serverHostDelayMs != null && row.serverHostDelayMs < 0 }">{{ delayText(row.serverHostDelayMs) }}</span>
+      </div>
+
+      <div class="host-card__actions" @click.stop>
+        <ReButton show-text icon="View" type="primary" size="small" @click.stop="openDetail(row)">详情</ReButton>
+        <ReButton show-text icon="Connection" type="primary" size="small" @click="onOpenConnect(row)">远控</ReButton>
+        <ReButton show-text icon="FolderOpened" type="primary" size="small" @click="onOpenSftp(row)">文件</ReButton>
+        <ReButton show-text icon="Aim" size="small" @click="onTestConnect(row)">测连</ReButton>
+        <ReButton show-text icon="Search" type="warning" size="small" @click="onScanPorts(row)">扫端口</ReButton>
+        <ReButton show-text icon="Box" type="success" size="small" @click="onOpenInstall(row)">安装</ReButton>
+        <ReButton show-text icon="Edit" size="small" @click="openEdit(row)">编辑</ReButton>
+        <ReButton show-text icon="MoreFilled" size="small" @click="openConfig(row)">更多</ReButton>
+        <ReButton show-text icon="Delete" type="danger" size="small" @click="onDelete(row)">删除</ReButton>
+      </div>
+    </div>
+  </div>
+
+  <div v-if="!hosts.length && !loading" class="empty-state">
+    <ReEmpty description="暂无主机，点击右上角「新增主机」添加" />
+  </div>
+
+  <!-- 对话框保持不变 -->
+  <ScHostFormDialog v-model="formVisible" :host="editingHost" @submit="onSubmitForm" />
+  <ScConnectDialog v-model="connectVisible" :host="connectingHost" :identities="identities" @connect="onConnect" />
+  <ScGuacViewer :connection="guacConnection" @close="guacConnection = null" />
+  <ReDrawer v-model="sftpVisible" title="SFTP 文件管理" :size="'60%'" direction="rtl" :footer-hidden="true" close-only>
+    <template #content><ScSftpPanel :host-id="sftpHostId" /></template>
+  </ReDrawer>
+  <ReDialog v-model="configVisible" layout="modern" compact :title="`主机配置 - ${configHost?.serverHostName || ''}`" width="520" ok-text="保存" cancel-text="取消" :confirm-loading="cfgSaving" :footer-hidden="false" @confirm="onSaveConfig" @cancel="configVisible = false">
+    <ReForm label-position="left" label-width="130px" class="cfg-form">
+      <ReDivider content-position="left">在离线检测</ReDivider>
+      <ReFormItem label="启用自动检测"><ReSwitch v-model="cfgForm.serverHostOnlineEnabled" :active-value="1" :inactive-value="0" /></ReFormItem>
+      <ReFormItem label="检测间隔(秒)"><ReInputNumber v-model="cfgForm.serverHostOnlineInterval" :min="5" :max="86400" style="width: 180px" /></ReFormItem>
+      <ReDivider content-position="left">指标采集</ReDivider>
+      <ReFormItem label="启用采集"><ReSwitch v-model="cfgForm.serverHostCollectEnabled" :active-value="1" :inactive-value="0" /></ReFormItem>
+      <ReFormItem label="采集方式"><ReSelect v-model="cfgForm.serverHostCollectMode" :data="collectModeOptions" style="width: 220px" /></ReFormItem>
+      <ReFormItem v-if="cfgForm.serverHostCollectMode === 'PROMETHEUS'" label="Prometheus">
+        <div class="prom-actions">
+          <ReButton type="primary" :loading="promTestLoading" @click="onTestPrometheus">凭据校验</ReButton>
+          <a v-if="promPkgUrl" class="prom-dl" :href="promPkgUrl" target="_blank" rel="noopener">下载 Prometheus 包</a>
+          <span v-else class="prom-tip">未配置安装包下载地址（系统配置 → Prometheus → 安装包下载地址）</span>
+        </div>
+      </ReFormItem>
+      <ReFormItem label="采集间隔(秒)"><ReInputNumber v-model="cfgForm.serverHostCollectInterval" :min="10" :max="86400" style="width: 180px" /></ReFormItem>
+      <ReDivider content-position="left">延迟检测</ReDivider>
+      <ReFormItem label="启用延迟检测"><ReSwitch v-model="cfgForm.serverHostDelayEnabled" :active-value="1" :inactive-value="0" /></ReFormItem>
+      <ReFormItem label="检测间隔(秒)"><ReInputNumber v-model="cfgForm.serverHostDelayInterval" :min="5" :max="86400" style="width: 180px" /></ReFormItem>
+    </ReForm>
+  </ReDialog>
+  <ScHostDetail v-model="detailVisible" :host="detailHost" @updated="refresh" />
+  <ScInstallDialog v-model="installVisible" :host="installHost" :hosts="hosts" @installed="onInstalled" />
+</div>
 </template>
 
- <style scoped lang="scss">
+<style scoped lang="scss">
 .host-list {
   display: flex;
   flex-direction: column;
+  gap: 16px;
+  padding: 4px;
+}
+
+/* ===== 统计卡片 ===== */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 12px;
 }
+.stat-card {
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+}
+.stat-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--accent, var(--brand-500));
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.stat-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 8px;
+  letter-spacing: 0.02em;
+}
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+.stat-trend {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+.stat-trend.is-up { color: var(--status-success); }
+.stat-trend.is-down { color: var(--status-error); }
 
-.import-btn {
-  cursor: pointer;
-  display: inline-flex;
+/* ===== 筛选工具条 ===== */
+.page-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
+/* ===== 批量操作条 ===== */
 .batch-bar {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 14px;
-  background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
-  /* 原为 var(--border-radius)（tokens.css 里是 10px），10px 距 8/12 等距，取 12px(lg) */
-  border-radius: var(--el-radius-lg, 12px);
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 15%, transparent);
-  /* 时长取 0.2s 微交互档；缓动原来是私有令牌 var(--ease-out)，这里内联同一个
-     cubic-bezier(0.4, 0, 0.2, 1)，避免继续依赖 pages/server 那套无暗色变体的 tokens.css */
-  animation: batch-in var(--el-transition-duration-fast, 0.2s) cubic-bezier(0.4, 0, 0.2, 1) both;
+  padding: 10px 16px;
+  background: color-mix(in srgb, var(--brand-500) 6%, transparent);
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in srgb, var(--brand-500) 15%, transparent);
+  animation: batch-in 0.2s var(--ease-out) both;
 }
 .batch-info {
   font-size: 12px;
-  color: var(--el-color-primary);
-  font-weight: 500;
+  color: var(--brand-500);
+  font-weight: 600;
   margin-right: 8px;
 }
-
-.delay-cell {
-  font-variant-numeric: tabular-nums;
-  font-size: 12px;
-  /* 原来写 var(--status-*, #hex) 形式：--status-* 只在 pages/server 的 tokens.css 里
-     定义且没有暗色变体，兜底 hex 才是实际生效值。直接换成 EP 语义色令牌 */
-  &.is-fast { color: var(--el-color-success); font-weight: 500; }
-  &.is-slow { color: var(--el-color-warning); }
-  &.is-down { color: var(--el-color-danger); font-weight: 500; }
-  &.is-info { color: var(--el-text-color-secondary); }
-}
-
-.ports-wrap {
-  display: flex;
-  flex-wrap: wrap;
-  line-height: 1.4;
-}
-
-.ports-empty {
-  color: var(--el-text-color-secondary);
-  font-size: 12px;
-}
-
-.cfg-form :deep(.el-form-item) {
-  margin-bottom: 14px;
-}
-.prom-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.prom-dl { font-size: 13px; color: var(--el-color-primary); text-decoration: none; }
-.prom-dl:hover { text-decoration: underline; }
-/* 原生 a 链接：去掉浏览器默认轮廓，改用全站统一的自绘焦点环 */
-.prom-dl:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent); border-radius: var(--el-radius-xs, 4px); }
-.prom-tip { font-size: 12px; color: var(--el-text-color-secondary); }
-
 @keyframes batch-in {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: none; }
 }
 
-/* 尊重系统「减少动态效果」偏好 */
+/* ===== 主机卡片网格 ===== */
+.host-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+}
+.host-card {
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  border-left: 3px solid var(--status-color, var(--status-success));
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: box-shadow 0.2s var(--ease-out), transform 0.2s var(--ease-out), border-color 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.host-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  border-color: var(--border-default);
+}
+.host-card.is-offline {
+  opacity: 0.65;
+  border-left-color: var(--pulse-offline);
+}
+.host-card.is-unknown {
+  border-left-color: var(--pulse-unknown);
+}
+
+.host-card__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.host-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.host-addr {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* ===== 迷你环图 ===== */
+.host-card__metrics {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mini-ring {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: conic-gradient(var(--ring-color) var(--pct), var(--bg-fill) 0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.3s var(--ease-out);
+}
+.mini-ring__val {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.metric-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 10px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+/* ===== 标签 & 端口 ===== */
+.host-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 20px;
+}
+.no-tags {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+.host-card__ports {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  min-height: 20px;
+}
+.ports-empty {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.port-chip {
+  font-size: 11px !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+/* ===== 卡片底部 ===== */
+.host-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+}
+.host-group {
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.host-delay {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+.host-delay.is-down { color: var(--status-error); }
+
+/* ===== 操作按钮组 ===== */
+.host-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-top: 4px;
+}
+
+/* ===== 空状态 ===== */
+.empty-state {
+  display: flex;
+  justify-content: center;
+  padding: 60px 0;
+}
+
+/* ===== 延迟色 ===== */
+.delay-cell {
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  &.is-fast { color: var(--status-success); font-weight: 500; }
+  &.is-slow { color: var(--status-warning); }
+  &.is-down { color: var(--status-error); font-weight: 500; }
+  &.is-info { color: var(--text-tertiary); }
+}
+
+/* ===== 旧 mini-bar（保留兼容） ===== */
+.mini-bar-wrap { display: flex; align-items: center; gap: 6px; }
+.mini-bar { width: 48px; height: 4px; background: var(--bg-fill); border-radius: 2px; overflow: hidden; }
+.mini-bar__fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+.mini-bar__val { font-size: 11px; font-variant-numeric: tabular-nums; min-width: 30px; }
+
+/* ===== 配置表单 ===== */
+.cfg-form :deep(.el-form-item) { margin-bottom: 14px; }
+.prom-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.prom-dl { font-size: 13px; color: var(--brand-500); text-decoration: none; }
+.prom-dl:hover { text-decoration: underline; }
+.prom-dl:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+.prom-tip { font-size: 12px; color: var(--text-tertiary); }
+
+/* ===== 响应式 ===== */
+@media (max-width: 768px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .host-grid { grid-template-columns: 1fr; }
+  .host-card__metrics { gap: 8px; }
+}
+
+/* ===== 减少动态效果 ===== */
 @media (prefers-reduced-motion: reduce) {
-  .batch-bar {
-    animation: none;
-  }
+  .batch-bar, .host-card, .stat-card { animation: none; transition: none; }
 }
 </style>

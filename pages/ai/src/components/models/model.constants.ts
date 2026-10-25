@@ -37,6 +37,11 @@ export const KEY_STRATEGIES: KeyStrategy[] = [
 //   extra.auth_prefix —— 值前缀；留空则不加前缀
 // 后端解析顺序：none → 不发认证头；auth_header 非空 → 发 <auth_header>: <prefix><key>；
 //              否则 → 发 Authorization: Bearer <key>
+//
+// 账号渠道（auth_scheme='oauth'）：
+//   凭据由渠道管理模块（ChannelManagementPage）负责绑定/刷新/落库，
+//   provider 表单不采集 API Key，仅回显已绑定账号并跳转渠道管理页。
+//   识别依据：platform ∈ CHANNEL_PROVIDER_IDS 或 auth_scheme === 'oauth'。
 export interface AuthSchemeOption {
   /** 表单内部值（纯 UI 概念，不落库） */
   value: string
@@ -53,6 +58,14 @@ export interface AuthSchemeOption {
 }
 
 export const AUTH_SCHEMES: AuthSchemeOption[] = [
+  {
+    value: 'oauth_account',
+    label: '账号渠道',
+    authScheme: 'oauth',
+    authHeader: '',
+    authPrefix: '',
+    description: '账号类渠道（Cline / Qoder / Trae / Gemini 等），凭据由渠道管理页统一绑定',
+  },
   {
     value: 'bearer',
     label: 'Authorization: Bearer',
@@ -87,6 +100,45 @@ export const AUTH_SCHEMES: AuthSchemeOption[] = [
   },
 ]
 
+/**
+ * 账号渠道 provider 的 platform 标识集合。
+ *
+ * 渠道类 provider 在 sys_ai_provider 中的 platform 字段值即 channel 标识
+ * （如 cline / qoder / qoder-cn / trae / gemini），与 SPI 注册别名一一对应。
+ * 用于：
+ *   ① ProviderFormDialog 识别「是否渠道类 provider」→ 走账号绑定 UI 而非 API Key 输入
+ *   ② 模型管理过滤：仅允许选择渠道管理中已启用渠道/已启用模型
+ *
+ * 新增渠道 SPI 时须同步加入本集合（否则表单侧无法识别）。
+ */
+export const CHANNEL_PROVIDER_IDS: ReadonlySet<string> = new Set([
+  'cline',
+  'qoder',
+  'qoder-cn',
+  'trae',
+  'gemini',
+  'minimax',
+  'zcode',
+  'raccoon',
+  'loomy',
+  'lobsterai',
+  'opencode',
+])
+
+/**
+ * 判断一个 provider 是否为账号渠道类。
+ *
+ * @param provider provider 对象（来自 /api/providers 或 /api/channels）
+ * @returns platform ∈ CHANNEL_PROVIDER_IDS 或 auth_scheme/authScheme === 'oauth'
+ */
+export function isChannelProvider(provider: any): boolean {
+  if (!provider) return false
+  const platform = String(provider.platform ?? provider.provider ?? '').toLowerCase()
+  if (CHANNEL_PROVIDER_IDS.has(platform)) return true
+  const authScheme = String(provider.auth_scheme ?? provider.authScheme ?? '').toLowerCase()
+  return authScheme === 'oauth'
+}
+
 /** 默认认证方式（无匹配时回退到标准 Bearer） */
 export const DEFAULT_AUTH_SCHEME = 'bearer'
 
@@ -103,7 +155,9 @@ export function deriveAuthMode(
   authHeader?: string | null,
   authPrefix?: string | null,
 ): string {
-  if ((authScheme || '').toLowerCase() === 'none') return 'none'
+  const scheme = (authScheme || '').toLowerCase()
+  if (scheme === 'oauth') return 'oauth_account'
+  if (scheme === 'none') return 'none'
   const header = (authHeader || '').trim()
   if (!header) return 'bearer'
   if (header.toLowerCase() === 'api-key' && !(authPrefix || '').trim()) return 'api_key_header'
@@ -157,6 +211,7 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
   { id: 'openrouter', name: 'OpenRouter', description: '聚合 API，支持数百个模型', protocol: 'openai', defaultApiUrl: 'https://openrouter.ai/api/v1', keywords: ['router'] },
   { id: 'commandcode', name: 'commandcode', description: '聚合 API，支持数百个模型', protocol: 'openai', defaultApiUrl: 'https://api.commandcode.ai/provider/v1', keywords: ['router'] },
   { id: 'agnes', name: 'Agnes AI', description: '聚合 API，免费使用多种模型', protocol: 'openai', defaultApiUrl: 'https://apihub.agnes-ai.cn/v1', keywords: ['apihub'] },
+  { id: 'free-channel', name: '免费渠道', description: '聚合多个免费模型，按模型自动切换上游地址与全局 Key，支持多账号限流切换', protocol: 'openai', defaultApiUrl: 'https://free.nomifun.com/v1', keywords: ['free', 'channel', 'mianfei', '免费渠道'] },
   { id: 'opencode', name: 'OpenCode', description: '免费开源 API，支持多种模型', protocol: 'openai', defaultApiUrl: 'https://opencode.ai/zen/v1', keywords: ['zen'] },
   { id: 'siliconflow', name: 'SiliconFlow 硅基流动', description: '国内 AI 模型平台，支持 DeepSeek、Qwen 等', protocol: 'openai', defaultApiUrl: 'https://api.siliconflow.cn/v1', keywords: ['jiguang', 'silicon'] },
   { id: 'bai', name: 'b.ai', description: '免费 AI 模型平台，支持 DeepSeek 等', protocol: 'openai', defaultApiUrl: 'https://api.b.ai/v1', keywords: [] },
@@ -202,7 +257,174 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
   // Dots Studio 只认 api-key 请求头，不认标准的 Authorization: Bearer
   { id: 'dots', name: 'Dots Studio', description: '小红书 Dots Studio 点点大模型', protocol: 'openai', defaultApiUrl: 'https://note3-prev-api.askdiandian.com/v1', keywords: ['dots', '点点', 'rednote'], defaultAuthMode: 'api_key_header' },
 
+  // ===== Models.dev 扩展厂商（185 家，键与 sys_ai_provider_metric 一致） =====
+  { id: '302ai', name: '302.AI', description: 'Models.dev 收录（125 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.302.ai/v1', keywords: ['302', 'ai'] },
+  { id: 'abacus', name: 'Abacus', description: 'Models.dev 收录（108 个模型）', protocol: 'openai', defaultApiUrl: 'https://routellm.abacus.ai/v1', keywords: ['abacus'] },
+  { id: 'abliteration-ai', name: 'abliteration.ai', description: 'Models.dev 收录（3 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.abliteration.ai/v1', keywords: ['abliteration', 'ai'] },
+  { id: 'above', name: 'above.dev', description: 'Models.dev 收录（10 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.above.dev/v1', keywords: ['above', 'dev'] },
+  { id: 'agentrouter', name: 'AgentRouter', description: 'Models.dev 收录（5 个模型）', protocol: 'openai', defaultApiUrl: 'https://agentrouter.org/v1', keywords: ['agentrouter'] },
+  { id: 'ai-router', name: 'AI-ROUTER', description: 'Models.dev 收录（5 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.ai-router.dev/v1', keywords: ['ai', 'router'] },
+  { id: 'ai21', name: 'AI21 Labs', description: 'Models.dev 收录（2 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.ai21.com/studio/v1', keywords: ['ai21', 'labs'] },
+  { id: 'aiand', name: 'ai&', description: 'Models.dev 收录（13 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.aiand.com/v1', keywords: ['ai'] },
+  { id: 'aimlapi', name: 'AI/ML API', description: 'Models.dev 收录（177 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.aimlapi.com/v1', keywords: ['ai', 'ml', 'api'] },
+  { id: 'ainetcafe', name: 'ainetcafe', description: 'Models.dev 收录（1 个模型）', protocol: 'openai', defaultApiUrl: 'https://microquickjs.com/v1', keywords: ['ainetcafe'] },
+  { id: 'aixy', name: 'Aixy', description: 'Models.dev 收录（13 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.aixy-gateway.com/v1', keywords: ['aixy'] },
+  { id: 'aki-io', name: 'AKI.IO', description: 'Models.dev 收录（7 个模型）', protocol: 'openai', defaultApiUrl: 'https://aki.io/v1', keywords: ['aki', 'io'] },
+  { id: 'ambient', name: 'Ambient', description: 'Models.dev 收录（17 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.ambient.xyz/v1', keywords: ['ambient'] },
+  { id: 'amd', name: 'AMD', description: 'Models.dev 收录（11 个模型）', protocol: 'openai', defaultApiUrl: 'https://developer.amd.com.cn/radeon/api/v1', keywords: ['amd'] },
+  { id: 'anyapi', name: 'AnyAPI', description: 'Models.dev 收录（30 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.anyapi.ai/v1', keywords: ['anyapi'] },
+  { id: 'arcee', name: 'Arcee', description: 'Models.dev 收录（11 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.arcee.ai/api/v1', keywords: ['arcee'] },
+  { id: 'auriko', name: 'Auriko', description: 'Models.dev 收录（15 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.auriko.ai/v1', keywords: ['auriko'] },
+  { id: 'baseten', name: 'Baseten', description: 'Models.dev 收录（26 个模型）', protocol: 'openai', defaultApiUrl: 'https://inference.baseten.co/v1', keywords: ['baseten'] },
+  { id: 'bee', name: 'Bee by HEOSSI', description: 'Models.dev 收录（6 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.bee.heossi.com/bee', keywords: ['bee', 'by', 'heossi'] },
+  { id: 'berget', name: 'Berget.AI', description: 'Models.dev 收录（6 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.berget.ai/v1', keywords: ['berget', 'ai'] },
+  { id: 'blueclaw', name: 'Blue Claw', description: 'Models.dev 收录（1 个模型）', protocol: 'openai', defaultApiUrl: 'https://openai.blueclaw.network/v1', keywords: ['blue', 'claw'] },
+  { id: 'bothub', name: 'Bothub', description: 'Models.dev 收录（8 个模型）', protocol: 'openai', defaultApiUrl: 'https://openai.bothub.ru/v1', keywords: ['bothub'] },
+  { id: 'boundless', name: 'Boundless', description: 'Models.dev 收录（20 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.inference.boundless.network/v1', keywords: ['boundless'] },
+  { id: 'chutes', name: 'Chutes', description: 'Models.dev 收录（14 个模型）', protocol: 'openai', defaultApiUrl: 'https://llm.chutes.ai/v1', keywords: ['chutes'] },
+  { id: 'clarifai', name: 'Clarifai', description: 'Models.dev 收录（12 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.clarifai.com/v2/ext/openai/v1', keywords: ['clarifai'] },
+  { id: 'claudinio', name: 'Claudinio', description: 'Models.dev 收录（2 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.claudin.io/v1', keywords: ['claudinio'] },
+  { id: 'cline', name: 'ClinePass', description: 'Models.dev 收录（18 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.cline.bot/api/v1', keywords: ['clinepass'] },
+  { id: 'cloudferro-sherlock', name: 'CloudFerro Sherlock', description: 'Models.dev 收录（5 个模型）', protocol: 'openai', defaultApiUrl: 'https://api-sherlock.cloudferro.com/openai/v1/', keywords: ['cloudferro', 'sherlock'] },
+  { id: 'coralbricks', name: 'CoralBricks', description: 'Models.dev 收录（1 个模型）', protocol: 'openai', defaultApiUrl: 'https://inference.coralbricks.ai/v1', keywords: ['coralbricks'] },
+  { id: 'cortecs', name: 'Cortecs', description: 'Models.dev 收录（106 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.cortecs.ai/v1', keywords: ['cortecs'] },
+  { id: 'crossmodel', name: 'CrossModel', description: 'Models.dev 收录（68 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.crossmodel.ai/v1', keywords: ['crossmodel'] },
+  { id: 'crusoe', name: 'Crusoe', description: 'Models.dev 收录（11 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.inference.crusoecloud.com/v1', keywords: ['crusoe'] },
+  { id: 'daoxe', name: 'DaoXE', description: 'Models.dev 收录（9 个模型）', protocol: 'openai', defaultApiUrl: 'https://daoxe.com/v1', keywords: ['daoxe'] },
+  { id: 'digitalocean', name: 'DigitalOcean', description: 'Models.dev 收录（105 个模型）', protocol: 'openai', defaultApiUrl: 'https://inference.do-ai.run/v1', keywords: ['digitalocean'] },
+  { id: 'dinference', name: 'DInference', description: 'Models.dev 收录（6 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.dinference.com/v1', keywords: ['dinference'] },
+  { id: 'drun', name: 'D.Run (China)', description: 'Models.dev 收录（3 个模型）', protocol: 'openai', defaultApiUrl: 'https://chat.d.run/v1', keywords: ['d', 'run', 'china'] },
+  { id: 'ebcloud', name: 'EBCloud', description: 'Models.dev 收录（4 个模型）', protocol: 'openai', defaultApiUrl: 'https://maas-api.ebcloud.com/v1', keywords: ['ebcloud'] },
+  { id: 'echo', name: 'Echo', description: 'Models.dev 收录（1 个模型）', protocol: 'openai', defaultApiUrl: 'https://echo.tracerml.ai/v1', keywords: ['echo'] },
+  { id: 'edenai', name: 'Eden AI', description: 'Models.dev 收录（360 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.edenai.run/v3', keywords: ['eden', 'ai'] },
+  { id: 'empiriolabs', name: 'EmpirioLabs AI', description: 'Models.dev 收录（63 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.empiriolabs.ai/v1', keywords: ['empiriolabs', 'ai'] },
+  { id: 'engy', name: 'engy', description: 'Models.dev 收录（9 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.engy.ai/v1', keywords: ['engy'] },
+  { id: 'evroc', name: 'evroc', description: 'Models.dev 收录（16 个模型）', protocol: 'openai', defaultApiUrl: 'https://models.think.evroc.com/v1', keywords: ['evroc'] },
+  { id: 'fastrouter', name: 'FastRouter', description: 'Models.dev 收录（44 个模型）', protocol: 'openai', defaultApiUrl: 'https://go.fastrouter.ai/api/v1', keywords: ['fastrouter'] },
+  { id: 'fireworks-ai', name: 'Fireworks AI', description: 'Models.dev 收录（27 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.fireworks.ai/inference/v1/', keywords: ['fireworks', 'ai'] },
+  { id: 'freemodel', name: 'FreeModel', description: 'Models.dev 收录（10 个模型）', protocol: 'openai', defaultApiUrl: 'https://cc.freemodel.dev/v1', keywords: ['freemodel'] },
+  { id: 'friendli', name: 'Friendli', description: 'Models.dev 收录（6 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.friendli.ai/serverless/v1', keywords: ['friendli'] },
+  { id: 'frogbot', name: 'FrogBot', description: 'Models.dev 收录（26 个模型）', protocol: 'openai', defaultApiUrl: 'https://app.frogbot.ai/api/v1', keywords: ['frogbot'] },
+  { id: 'github-copilot', name: 'GitHub Copilot', description: 'Models.dev 收录（36 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.githubcopilot.com', keywords: ['github', 'copilot'] },
+  { id: 'gmicloud', name: 'GMI Cloud', description: 'Models.dev 收录（17 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.gmi-serving.com/v1', keywords: ['gmi', 'cloud'] },
+  { id: 'greenpt', name: 'GreenPT', description: 'Models.dev 收录（40 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.greenpt.ai/v1', keywords: ['greenpt'] },
+  { id: 'helicone', name: 'Helicone', description: 'Models.dev 收录（90 个模型）', protocol: 'openai', defaultApiUrl: 'https://ai-gateway.helicone.ai/v1', keywords: ['helicone'] },
+  { id: 'hetzner', name: 'Hetzner', description: 'Models.dev 收录（2 个模型）', protocol: 'openai', defaultApiUrl: 'https://inference.hetzner.com/api/v1', keywords: ['hetzner'] },
+  { id: 'hpc-ai', name: 'HPC-AI', description: 'Models.dev 收录（9 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.hpc-ai.com/inference/v1', keywords: ['hpc', 'ai'] },
+  { id: 'hyper', name: 'Charm Hyper', description: 'Models.dev 收录（23 个模型）', protocol: 'openai', defaultApiUrl: 'https://hyper.charm.land/v1', keywords: ['charm', 'hyper'] },
+  { id: 'iflowcn', name: 'iFlow', description: 'Models.dev 收录（14 个模型）', protocol: 'openai', defaultApiUrl: 'https://apis.iflow.cn/v1', keywords: ['iflow'] },
+  { id: 'impossibl', name: 'Impossibl', description: 'Models.dev 收录（76 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.impossibl.com/v1', keywords: ['impossibl'] },
+  { id: 'inception', name: 'Inception', description: 'Models.dev 收录（4 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.inceptionlabs.ai/v1/', keywords: ['inception'] },
+  { id: 'inceptron', name: 'Inceptron', description: 'Models.dev 收录（6 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.inceptron.io/v1', keywords: ['inceptron'] },
+  { id: 'inco', name: 'Inco', description: 'Models.dev 收录（7 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.inco.ai/v1', keywords: ['inco'] },
+  { id: 'infer', name: 'Infer by Flow7', description: 'Models.dev 收录（2 个模型）', protocol: 'openai', defaultApiUrl: 'https://infer.flow7.org/v1', keywords: ['infer', 'by', 'flow7'] },
+  { id: 'inference', name: 'Inference', description: 'Models.dev 收录（9 个模型）', protocol: 'openai', defaultApiUrl: 'https://inference.net/v1', keywords: ['inference'] },
+  { id: 'inferx', name: 'InferX', description: 'Models.dev 收录（12 个模型）', protocol: 'openai', defaultApiUrl: 'https://model.inferx.net/endpoints/v1', keywords: ['inferx'] },
+  { id: 'io-net', name: 'IO.NET', description: 'Models.dev 收录（17 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.intelligence.io.solutions/api/v1', keywords: ['io', 'net'] },
+  { id: 'iteracompute', name: 'IteraCompute', description: 'Models.dev 收录（10 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.iteracompute.com/v1', keywords: ['iteracompute'] },
+  { id: 'jalapeno', name: 'Jalapeno Cloud', description: 'Models.dev 收录（17 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.jalapeno-cloud.ai/v1', keywords: ['jalapeno', 'cloud'] },
+  { id: 'jiekou', name: 'Jiekou.AI', description: 'Models.dev 收录（61 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.jiekou.ai/openai', keywords: ['jiekou', 'ai'] },
+  { id: 'kenari', name: 'Kenari', description: 'Models.dev 收录（64 个模型）', protocol: 'openai', defaultApiUrl: 'https://kenari.id/v1', keywords: ['kenari'] },
+  { id: 'kilo', name: 'Kilo Gateway', description: 'Models.dev 收录（397 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.kilo.ai/api/gateway', keywords: ['kilo', 'gateway'] },
+  { id: 'klokintegration', name: 'klokintegration.se', description: 'Models.dev 收录（3 个模型）', protocol: 'openai', defaultApiUrl: 'https://api-gw.klok.ipaas.se/proxy/kloker-key/v1', keywords: ['klokintegration', 'se'] },
+  { id: 'kosmik', name: 'Kosmik Compute', description: 'Models.dev 收录（1 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.koscompute.com/v1', keywords: ['kosmik', 'compute'] },
+  { id: 'kuae-cloud-coding-plan', name: 'KUAE Cloud Coding Plan', description: 'Models.dev 收录（1 个模型）', protocol: 'openai', defaultApiUrl: 'https://coding-plan-endpoint.kuaecloud.net/v1', keywords: ['kuae', 'cloud', 'coding', 'plan'] },
+  { id: 'lilac', name: 'Lilac', description: 'Models.dev 收录（4 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.getlilac.com/v1', keywords: ['lilac'] },
+  { id: 'liquid', name: 'Liquid Inference', description: 'Models.dev 收录（1 个模型）', protocol: 'openai', defaultApiUrl: 'https://router.inference.ai.exchange/v1', keywords: ['liquid', 'inference'] },
+  { id: 'llama', name: 'Llama', description: 'Models.dev 收录（7 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.llama.com/compat/v1/', keywords: ['llama'] },
+  { id: 'llmgateway', name: 'DevPass (LLM Gateway)', description: 'Models.dev 收录（214 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.llmgateway.io/v1', keywords: ['devpass', 'llm', 'gateway'] },
+  { id: 'llmgateway-providers', name: 'LLM Gateway', description: 'Models.dev 收录（433 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.llmgateway.io/v1', keywords: ['llm', 'gateway'] },
+  { id: 'llmtech', name: 'LLM Tech', description: 'Models.dev 收录（1 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.llmtech.eu/v1', keywords: ['llm', 'tech'] },
+  { id: 'llmtr', name: 'LLMTR', description: 'Models.dev 收录（32 个模型）', protocol: 'openai', defaultApiUrl: 'https://llmtr.com/v1', keywords: ['llmtr'] },
+  { id: 'longcat', name: 'LongCat', description: 'Models.dev 收录（2 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.longcat.chat/openai', keywords: ['longcat'] },
+  { id: 'lowrouter', name: 'LowRouter', description: 'Models.dev 收录（31 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.lowrouter.ai/v1', keywords: ['lowrouter'] },
+  { id: 'lucidquery', name: 'LucidQuery', description: 'Models.dev 收录（4 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.lucidquery.com/v1', keywords: ['lucidquery'] },
+  { id: 'meganova', name: 'Meganova', description: 'Models.dev 收录（19 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.meganova.ai/v1', keywords: ['meganova'] },
+  { id: 'melious', name: 'Melious', description: 'Models.dev 收录（13 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.melious.ai/v1', keywords: ['melious'] },
+  { id: 'merge-gateway', name: 'Merge Gateway', description: 'Models.dev 收录（211 个模型）', protocol: 'openai', defaultApiUrl: 'https://api-gateway.merge.dev/v1/ai-sdk', keywords: ['merge', 'gateway'] },
+  { id: 'meta', name: 'Meta', description: 'Models.dev 收录（6 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.meta.ai/v1', keywords: ['meta'] },
+  { id: 'mixlayer', name: 'Mixlayer', description: 'Models.dev 收录（5 个模型）', protocol: 'openai', defaultApiUrl: 'https://models.mixlayer.ai/v1', keywords: ['mixlayer'] },
+  { id: 'moark', name: 'Moark', description: 'Models.dev 收录（10 个模型）', protocol: 'openai', defaultApiUrl: 'https://moark.com/v1', keywords: ['moark'] },
+  { id: 'modal', name: 'Modal', description: 'Models.dev 收录（8 个模型）', protocol: 'openai', defaultApiUrl: 'https://inference.us-west.modal.direct/v1', keywords: ['modal'] },
+  { id: 'model-oracle-ai', name: 'Model Oracle AI', description: 'Models.dev 收录（15 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.modeloracle.com/api/v1', keywords: ['model', 'oracle', 'ai'] },
+  { id: 'modelis', name: 'Modelis', description: 'Models.dev 收录（9 个模型）', protocol: 'openai', defaultApiUrl: 'https://modelishub.com/v1', keywords: ['modelis'] },
+  { id: 'morph', name: 'Morph', description: 'Models.dev 收录（3 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.morphllm.com/v1', keywords: ['morph'] },
+  { id: 'nan', name: 'NaN', description: 'Models.dev 收录（8 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.nan.builders/v1', keywords: ['nan'] },
+  { id: 'nano-gpt', name: 'NanoGPT', description: 'Models.dev 收录（624 个模型）', protocol: 'openai', defaultApiUrl: 'https://nano-gpt.com/api/v1', keywords: ['nanogpt'] },
+  { id: 'nearai', name: 'NEAR AI Cloud', description: 'Models.dev 收录（57 个模型）', protocol: 'openai', defaultApiUrl: 'https://cloud-api.near.ai/v1', keywords: ['near', 'ai', 'cloud'] },
+  { id: 'nebius', name: 'Nebius Token Factory', description: 'Models.dev 收录（24 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.tokenfactory.nebius.com/v1', keywords: ['nebius', 'token', 'factory'] },
+  { id: 'neosmith', name: 'NeoSmith', description: 'Models.dev 收录（4 个模型）', protocol: 'openai', defaultApiUrl: 'https://router.neosmith.ai/v1', keywords: ['neosmith'] },
+  { id: 'neuralwatt', name: 'Neuralwatt', description: 'Models.dev 收录（31 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.neuralwatt.com/v1', keywords: ['neuralwatt'] },
+  { id: 'novita-ai', name: 'Novita AI', description: 'Models.dev 收录（86 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.novita.ai/openai', keywords: ['novita', 'ai'] },
+  { id: 'oci', name: 'OCI Generative AI', description: 'Models.dev 收录（9 个模型）', protocol: 'openai', defaultApiUrl: 'https://inference.generativeai.us-chicago-1.oci.oraclecloud.com/openai/v1', keywords: ['oci', 'generative', 'ai'] },
+  { id: 'ofox', name: 'Ofox', description: 'Models.dev 收录（154 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.ofox.ai/v1', keywords: ['ofox'] },
+  { id: 'ollama-cloud', name: 'Ollama Cloud', description: 'Models.dev 收录（29 个模型）', protocol: 'openai', defaultApiUrl: 'https://ollama.com/v1', keywords: ['ollama', 'cloud'] },
+  { id: 'opencode-go', name: 'OpenCode Go', description: 'Models.dev 收录（34 个模型）', protocol: 'openai', defaultApiUrl: 'https://opencode.ai/inference/go/openai/v1', keywords: ['opencode', 'go'] },
+  { id: 'openreason', name: 'OpenReason', description: 'Models.dev 收录（3 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.openreason.app/v1', keywords: ['openreason'] },
+  { id: 'opper', name: 'Opper', description: 'Models.dev 收录（57 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.opper.ai/v3/compat', keywords: ['opper'] },
+  { id: 'orcarouter', name: 'OrcaRouter', description: 'Models.dev 收录（117 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.orcarouter.ai/v1', keywords: ['orcarouter'] },
+  { id: 'ovhcloud', name: 'OVHcloud AI Endpoints', description: 'Models.dev 收录（12 个模型）', protocol: 'openai', defaultApiUrl: 'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1', keywords: ['ovhcloud', 'ai', 'endpoints'] },
+  { id: 'pareto', name: 'Pareto Inference', description: 'Models.dev 收录（1 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.paretoinference.com/v1', keywords: ['pareto', 'inference'] },
+  { id: 'pendra', name: 'Pendra', description: 'Models.dev 收录（6 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.pendra.ai/api/v1', keywords: ['pendra'] },
+  { id: 'perplexity-agent', name: 'Perplexity Agent', description: 'Models.dev 收录（47 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.perplexity.ai/v1', keywords: ['perplexity', 'agent'] },
+  { id: 'pioneer', name: 'Pioneer', description: 'Models.dev 收录（117 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.fastino.ai/v1', keywords: ['pioneer'] },
+  { id: 'poe', name: 'Poe', description: 'Models.dev 收录（142 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.poe.com/v1', keywords: ['poe'] },
+  { id: 'poolside', name: 'Poolside', description: 'Models.dev 收录（3 个模型）', protocol: 'openai', defaultApiUrl: 'https://inference.poolside.ai/v1', keywords: ['poolside'] },
+  { id: 'prime', name: 'Prime Inference', description: 'Models.dev 收录（69 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.pinference.ai/api/v1', keywords: ['prime', 'inference'] },
+  { id: 'qihang-ai', name: 'QiHang', description: 'Models.dev 收录（9 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.qhaigc.net/v1', keywords: ['qihang'] },
+  { id: 'qiniu-ai', name: 'Qiniu', description: 'Models.dev 收录（91 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.qnaigc.com/v1', keywords: ['qiniu'] },
+  { id: 'reflection', name: 'Reflection', description: 'Models.dev 收录（1 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.reflection.ai/openai/v1', keywords: ['reflection'] },
+  { id: 'regolo-ai', name: 'Regolo AI', description: 'Models.dev 收录（18 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.regolo.ai/v1', keywords: ['regolo', 'ai'] },
+  { id: 'requesty', name: 'Requesty', description: 'Models.dev 收录（180 个模型）', protocol: 'openai', defaultApiUrl: 'https://router.requesty.ai/v1', keywords: ['requesty'] },
+  { id: 'routing-run', name: 'routing.run', description: 'Models.dev 收录（15 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.routing.run/v1', keywords: ['routing', 'run'] },
+  { id: 'runinfra', name: 'RunInfra', description: 'Models.dev 收录（8 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.runinfra.ai/v1', keywords: ['runinfra'] },
+  { id: 'sakana', name: 'Sakana AI', description: 'Models.dev 收录（4 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.sakana.ai/v1', keywords: ['sakana', 'ai'] },
+  { id: 'sambanova', name: 'SambaNova', description: 'Models.dev 收录（6 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.sambanova.ai/v1', keywords: ['sambanova'] },
+  { id: 'sarvam', name: 'Sarvam AI', description: 'Models.dev 收录（2 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.sarvam.ai/v1', keywords: ['sarvam', 'ai'] },
+  { id: 'scaleway', name: 'Scaleway', description: 'Models.dev 收录（17 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.scaleway.ai/v1', keywords: ['scaleway'] },
+  { id: 'scnet-token-plan', name: 'SCNet Token Plan', description: 'Models.dev 收录（19 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.scnet.cn/api/llm/v1', keywords: ['scnet', 'token', 'plan'] },
+  { id: 'scx-ai', name: 'SCX.ai', description: 'Models.dev 收录（4 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.scx.ai/v1', keywords: ['scx', 'ai'] },
+  { id: 'stackit', name: 'STACKIT', description: 'Models.dev 收录（8 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.openai-compat.model-serving.eu01.onstackit.cloud/v1', keywords: ['stackit'] },
+  { id: 'standardcompute', name: 'Standard Compute', description: 'Models.dev 收录（40 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.stdcmpt.com/v1', keywords: ['standard', 'compute'] },
+  { id: 'subconscious', name: 'Subconscious', description: 'Models.dev 收录（2 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.subconscious.dev/v1', keywords: ['subconscious'] },
+  { id: 'submodel', name: 'submodel', description: 'Models.dev 收录（9 个模型）', protocol: 'openai', defaultApiUrl: 'https://llm.submodel.ai/v1', keywords: ['submodel'] },
+  { id: 'synthetic', name: 'Synthetic', description: 'Models.dev 收录（12 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.synthetic.new/openai/v1', keywords: ['synthetic'] },
+  { id: 'tempr', name: 'Tempr Gateway', description: 'Models.dev 收录（82 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.temprhq.io/v1', keywords: ['tempr', 'gateway'] },
+  { id: 'tencent-coding-plan', name: 'Tencent Coding Plan (China)', description: 'Models.dev 收录（8 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.lkeap.cloud.tencent.com/coding/v3', keywords: ['tencent', 'coding', 'plan', 'china'] },
+  { id: 'tencent-token-plan', name: 'Tencent Token Plan', description: 'Models.dev 收录（2 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.lkeap.cloud.tencent.com/plan/v3', keywords: ['tencent', 'token', 'plan'] },
+  { id: 'tencent-tokenhub', name: 'Tencent TokenHub', description: 'Models.dev 收录（3 个模型）', protocol: 'openai', defaultApiUrl: 'https://tokenhub.tencentmaas.com/v1', keywords: ['tencent', 'tokenhub'] },
+  { id: 'tensorx', name: 'TensorX', description: 'Models.dev 收录（25 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.tensorx.ai/v1', keywords: ['tensorx'] },
+  { id: 'the-grid-ai', name: 'The Grid AI', description: 'Models.dev 收录（17 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.thegrid.ai/v1', keywords: ['the', 'grid', 'ai'] },
+  { id: 'thinkingmachines', name: 'Thinking Machines', description: 'Models.dev 收录（38 个模型）', protocol: 'openai', defaultApiUrl: 'https://tinker.thinkingmachines.dev/services/tinker-prod/anthropic/api/v1', keywords: ['thinking', 'machines'] },
+  { id: 'tinfoil', name: 'Tinfoil', description: 'Models.dev 收录（8 个模型）', protocol: 'openai', defaultApiUrl: 'https://inference.tinfoil.sh/v1', keywords: ['tinfoil'] },
+  { id: 'tokengo', name: 'TokenGo', description: 'Models.dev 收录（13 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.tokengo.com/v1', keywords: ['tokengo'] },
+  { id: 'tokenrouter', name: 'TokenRouter', description: 'Models.dev 收录（1 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.tokenrouter.com/v1', keywords: ['tokenrouter'] },
+  { id: 'trustedrouter', name: 'TrustedRouter', description: 'Models.dev 收录（7 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.trustedrouter.com/v1', keywords: ['trustedrouter'] },
+  { id: 'umans-ai', name: 'Umans AI', description: 'Models.dev 收录（8 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.code.umans.ai/v1', keywords: ['umans', 'ai'] },
+  { id: 'umans-ai-coding-plan', name: 'Umans AI Coding Plan', description: 'Models.dev 收录（9 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.code.umans.ai/v1', keywords: ['umans', 'ai', 'coding', 'plan'] },
+  { id: 'unorouter', name: 'UnoRouter', description: 'Models.dev 收录（23 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.unorouter.com/v1', keywords: ['unorouter'] },
+  { id: 'upstage', name: 'Upstage', description: 'Models.dev 收录（5 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.upstage.ai/v1/solar', keywords: ['upstage'] },
+  { id: 'vancine', name: 'Vancine', description: 'Models.dev 收录（8 个模型）', protocol: 'openai', defaultApiUrl: 'https://vancine.com/v1', keywords: ['vancine'] },
+  { id: 'vispark', name: 'Vispark', description: 'Models.dev 收录（3 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.lab.vispark.in/v1', keywords: ['vispark'] },
+  { id: 'vivgrid', name: 'Vivgrid', description: 'Models.dev 收录（37 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.vivgrid.com/v1', keywords: ['vivgrid'] },
+  { id: 'vultr', name: 'Vultr', description: 'Models.dev 收录（15 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.vultrinference.com/v1', keywords: ['vultr'] },
+  { id: 'wafer.ai', name: 'Wafer', description: 'Models.dev 收录（5 个模型）', protocol: 'openai', defaultApiUrl: 'https://pass.wafer.ai/v1', keywords: ['wafer'] },
+  { id: 'wallaby', name: 'Wallaby', description: 'Models.dev 收录（1 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.wallabytoken.com/v1', keywords: ['wallaby'] },
+  { id: 'wandb', name: 'CoreWeave', description: 'Models.dev 收录（23 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.inference.wandb.ai/v1', keywords: ['coreweave'] },
+  { id: 'xiaomi', name: 'Xiaomi', description: 'Models.dev 收录（9 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.xiaomimimo.com/v1', keywords: ['xiaomi'] },
+  { id: 'xiaomi-token-plan-ams', name: 'Xiaomi Token Plan (Europe)', description: 'Models.dev 收录（9 个模型）', protocol: 'openai', defaultApiUrl: 'https://token-plan-ams.xiaomimimo.com/v1', keywords: ['xiaomi', 'token', 'plan', 'europe'] },
+  { id: 'xiaomi-token-plan-cn', name: 'Xiaomi Token Plan (China)', description: 'Models.dev 收录（9 个模型）', protocol: 'openai', defaultApiUrl: 'https://token-plan-cn.xiaomimimo.com/v1', keywords: ['xiaomi', 'token', 'plan', 'china'] },
+  { id: 'xiaomi-token-plan-sgp', name: 'Xiaomi Token Plan (Singapore)', description: 'Models.dev 收录（9 个模型）', protocol: 'openai', defaultApiUrl: 'https://token-plan-sgp.xiaomimimo.com/v1', keywords: ['xiaomi', 'token', 'plan', 'singapore'] },
+  { id: 'xpersona', name: 'Xpersona', description: 'Models.dev 收录（13 个模型）', protocol: 'openai', defaultApiUrl: 'https://www.xpersona.co/v1', keywords: ['xpersona'] },
+  { id: 'zai', name: 'Z.AI', description: 'Models.dev 收录（18 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.z.ai/api/paas/v4', keywords: ['z', 'ai'] },
+  { id: 'zai-coding-plan', name: 'Z.AI Coding Plan', description: 'Models.dev 收录（7 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.z.ai/api/coding/paas/v4', keywords: ['z', 'ai', 'coding', 'plan'] },
+  { id: 'zeldoc', name: 'Zeldoc', description: 'Models.dev 收录（1 个模型）', protocol: 'openai', defaultApiUrl: 'https://api.zeldoc.ai/v1', keywords: ['zeldoc'] },
+  { id: 'zenifra', name: 'Zenifra', description: 'Models.dev 收录（1 个模型）', protocol: 'openai', defaultApiUrl: 'https://ai.zenifra.com/v1', keywords: ['zenifra'] },
+  { id: 'zenmux', name: 'ZenMux', description: 'Models.dev 收录（137 个模型）', protocol: 'openai', defaultApiUrl: 'https://zenmux.ai/api/v1', keywords: ['zenmux'] },
+
   // ===== 自定义 =====
+
+
   { id: 'custom', name: '自定义供应商', description: '自定义 OpenAI 兼容协议的供应商', protocol: 'openai', defaultApiUrl: '', keywords: ['custom'] },
 ]
 
@@ -227,6 +449,37 @@ export const MODEL_TYPE_OPTIONS = [
   { value: 'tts', label: '语音合成', icon: Speaker224Regular },
 ]
 
+/**
+ * 规范类型 → 图标。
+ *
+ * <p>由 {@link MODEL_TYPE_OPTIONS} 派生，不另维护一份：类型下拉与卡片/弹框里的
+ * 标签图标必须同源，否则加类型时两边会走散。</p>
+ */
+export const MODEL_TYPE_ICON: Record<string, any> = Object.fromEntries(
+  MODEL_TYPE_OPTIONS.map((o) => [o.value, o.icon]),
+)
+
+/**
+ * 规范类型 → 标签配色类别（供 ModelTagStrip 的图标着色）。
+ *
+ * <p>与模型卡片 `cap-i.kind-*` 的语义分类保持一致：对话类走主色、视觉类走警告色、
+ * 音频类走信息色、视频类走危险色、向量类走成功色。</p>
+ */
+export const MODEL_TYPE_KIND: Record<string, string> = {
+  text: 'chat',
+  embedding: 'vector',
+  rerank: 'vector',
+  image: 'image',
+  video: 'video',
+  image_cv: 'image',
+  detection: 'vision',
+  ocr: 'doc',
+  face: 'vision',
+  layout: 'doc',
+  asr: 'audio',
+  tts: 'audio',
+}
+
 // 规范类型 → 后端 capability.task（保存模型时写入 capabilities）
 export const TYPE_TO_TASK: Record<string, string> = {
   text: 'chat',
@@ -242,6 +495,14 @@ export const TYPE_TO_TASK: Record<string, string> = {
   asr: 'speech_recognition',
   tts: 'speech_synthesis',
 }
+
+/**
+ * 思考强度档位全集（模型配置可勾选、会话选择器可选）。
+ *
+ * <p>六档：none（不思考）/ minimal（最小）/ low / medium / high / max。
+ * 文案统一走 {@code common.thinkingEffort.<key>}。</p>
+ */
+export const THINKING_EFFORT_LEVELS = ['none', 'minimal', 'low', 'medium', 'high', 'max'] as const
 
 /**
  * 行内三态提示：模型名里带这些关键词时，在弹窗行内直接标出它的管线角色。

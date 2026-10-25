@@ -1,18 +1,20 @@
 <template>
   <div class="search-menu-trigger">
+    <!-- 命令面板入口：icons-animated 动画放大镜（hover/focus 播放）。
+         去掉 koi-pulse-i——它是 hover 期间无限脉动，会与图标自带动画持续抢帧。 -->
     <div
-      class="hover:bg-[--el-header-icon-hover-bg-color] koi-icon w-36px h-36px rounded-md flex flex-justify-center flex-items-center koi-pulse-i"
+      class="hover:bg-[--el-header-icon-hover-bg-color] koi-icon w-36px h-36px rounded-md flex flex-justify-center flex-items-center"
       @click="isShowSearch = true"
     >
-      <el-tooltip :content="$t('header.searchMenu')">
-        <ReIcon name="koi-search" size="18" />
+      <el-tooltip :content="$t('header.commandPalette.tip')">
+        <ReIcon name="anim:tabler:search" size="18" />
       </el-tooltip>
     </div>
 
     <ReDialog
       v-model="isShowSearch"
       class="search-menu-dialog"
-      width="520"
+      width="560"
       :show-close="false"
       top="10vh"
       append-to-body
@@ -22,8 +24,8 @@
         <div class="search-menu__search">
           <el-input
             ref="menuInputRef"
-            v-model="searchMenu"
-            :placeholder="$t('header.menuSearch')"
+            v-model="keyword"
+            :placeholder="$t('header.commandPalette.placeholder')"
             size="large"
             clearable
           >
@@ -34,33 +36,34 @@
         </div>
 
         <div class="search-menu__content">
-          <div v-if="!searchMenu.trim()" class="search-menu__placeholder">
+          <div v-if="!keyword.trim() && !resultList.length" class="search-menu__placeholder">
             <div class="search-menu__placeholder-icon">
               <ReIcon name="koi-search" size="28" />
             </div>
-            <p class="search-menu__placeholder-title">{{ $t("header.searchMenu") }}</p>
-            <p class="search-menu__placeholder-desc">{{ $t("header.searchMenuHint") }}</p>
+            <p class="search-menu__placeholder-title">{{ $t("header.commandPalette.title") }}</p>
+            <p class="search-menu__placeholder-desc">{{ $t("header.commandPalette.hint") }}</p>
           </div>
 
-          <el-scrollbar v-else-if="searchList.length" max-height="360">
+          <el-scrollbar v-else-if="resultList.length" max-height="380">
             <div ref="menuListRef" class="search-menu__list">
-              <div
-                v-for="item in searchList"
-                :key="item.path"
-                :class="['search-menu__item', { 'is-active': item.path === activePath }]"
-                @mouseenter="activePath = item.path"
-                @click="handleClickMenuItem(item)"
-              >
-                <div class="search-menu__item-icon">
-                  <ReIcon v-if="item.meta.icon" :name="item.meta.icon" size="16" />
-                  <el-icon v-else :size="16"><Menu /></el-icon>
+              <template v-for="item in resultList" :key="item.id">
+                <div v-if="item.groupLabel" class="search-menu__group">{{ item.groupLabel }}</div>
+                <div
+                  :class="['search-menu__item', { 'is-active': item.id === activeId }]"
+                  @mouseenter="activeId = item.id"
+                  @click="invoke(item)"
+                >
+                  <div class="search-menu__item-icon">
+                    <ReIcon v-if="item.icon" :name="item.icon" size="16" />
+                    <el-icon v-else :size="16"><Menu /></el-icon>
+                  </div>
+                  <div class="search-menu__item-meta">
+                    <span class="search-menu__item-title">{{ item.title }}</span>
+                    <span class="search-menu__item-path">{{ item.hint }}</span>
+                  </div>
+                  <span v-if="item.id === activeId" class="search-menu__item-enter">↵</span>
                 </div>
-                <div class="search-menu__item-meta">
-                  <span class="search-menu__item-title">{{ item.localizedTitle }}</span>
-                  <span class="search-menu__item-path">{{ item.path }}</span>
-                </div>
-                <span v-if="item.path === activePath" class="search-menu__item-enter">↵</span>
-              </div>
+              </template>
             </div>
           </el-scrollbar>
 
@@ -87,19 +90,63 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, watch } from "vue";
+/**
+ * 命令面板（原「搜索菜单」升级版）
+ *
+ * <p>三合一：**菜单跳转 + 动作执行 + 最近访问**，一个输入框搞定。
+ * 之所以不新开一个顶栏组件，是因为搜索入口已经存在——再挂一个图标只会让
+ * 顶栏变挤，而两者的交互形态本来就是一回事（输入 → 选中 → 执行）。</p>
+ *
+ * <p>结果统一成 {@link PaletteItem}：`kind=menu|recent` 走路由跳转，
+ * `kind=action` 直接执行。空输入时给出「最近访问 + 动作」的默认面板，
+ * 输入后对三类一起过滤。</p>
+ *
+ * <p>快捷键 Cmd/Ctrl+K 全局唤起（再按一次关闭）。</p>
+ */
+import { ref, computed, nextTick, watch, onMounted, onBeforeUnmount } from "vue";
 import { Menu, Search } from "@element-plus/icons-vue";
 import type { InputInstance } from "element-plus";
 import useAuthStore from "@repo/pinia/modules/auth";
+import useTabsStore from "@repo/pinia/modules/tabs";
+import useGlobalStore from "@repo/pinia/modules/global";
 import { useRouter } from "vue-router";
-import { useDebounceFn } from "@vueuse/core";
+import { useDebounceFn, useFullscreen } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 import { getMenuLanguage } from "@repo/languages";
+import { useTheme } from "@repo/theme";
+import { mittBus } from "@repo/utils";
 import ReDialog from "@repo/ui/re-dialog";
+import {
+  clearSessionStorage,
+  clearAuthCacheKeepToken,
+} from "@repo/utils";
 
 const router = useRouter();
 const authStore = useAuthStore();
-const { locale } = useI18n();
+const tabsStore = useTabsStore();
+const globalStore = useGlobalStore();
+const { locale, t } = useI18n();
+const { changeThemeMode } = useTheme();
+const { toggle: toggleFullscreen } = useFullscreen();
+
+/** 一条面板结果 */
+interface PaletteItem {
+  /** 唯一键：菜单/最近用 path，动作用 action:key */
+  id: string;
+  kind: "menu" | "recent" | "action";
+  title: string;
+  /** 次要说明（路径 / 动作说明） */
+  hint: string;
+  icon?: string;
+  /** 新窗口打开（菜单 linkUrl） */
+  linkUrl?: string;
+  /** 导航目标 */
+  path?: string;
+  /** 动作执行体（kind=action） */
+  run?: () => void;
+  /** 分组标题（渲染时插在该项之前，仅在有值的那一项上） */
+  groupLabel?: string;
+}
 
 /**
  * 与侧边栏一致：只收录可见菜单；有可见子节点则继续递归，仅叶子（可点击项）进入搜索。
@@ -126,50 +173,163 @@ const localizedMenuList = computed(() => {
   return menuList.value.map((item: any) => ({
     ...item,
     localizedTitle: getMenuLanguage(item.meta?.title ?? ""),
-    originalTitle: item.meta?.title ?? ""
+    originalTitle: item.meta?.title ?? "",
   }));
 });
 
-const activePath = ref("");
+/** 刷新路由：清空菜单/布局/用户信息缓存（保留 token）后重新拉取并 reload */
+async function runRefresh(): Promise<void> {
+  clearSessionStorage();
+  clearAuthCacheKeepToken();
+  globalStore.$reset();
+  try {
+    await Promise.allSettled([authStore.listRouters(), authStore.getLoginUserInfo()]);
+  } catch {
+    /* 拉取失败不阻塞刷新 */
+  }
+  window.location.reload();
+}
+
+/** 动作集：全部走已有公共 API，不新增跨组件耦合 */
+const ACTIONS = computed<PaletteItem[]>(() => [
+  {
+    id: "action:refresh",
+    kind: "action",
+    title: t("header.refreshCache"),
+    hint: t("header.commandPalette.actionHint.refresh"),
+    icon: "anim:tabler:refresh",
+    run: () => void runRefresh(),
+  },
+  {
+    id: "action:theme-light",
+    kind: "action",
+    title: t("header.lightMode"),
+    hint: t("header.commandPalette.actionHint.theme"),
+    icon: "anim:tabler:sun",
+    run: () => void changeThemeMode("light"),
+  },
+  {
+    id: "action:theme-dark",
+    kind: "action",
+    title: t("header.darkMode"),
+    hint: t("header.commandPalette.actionHint.theme"),
+    icon: "anim:tabler:moon",
+    run: () => void changeThemeMode("dark"),
+  },
+  {
+    id: "action:theme-auto",
+    kind: "action",
+    title: t("header.autoMode"),
+    hint: t("header.commandPalette.actionHint.theme"),
+    icon: "anim:tabler:sun-moon",
+    run: () => void changeThemeMode("auto"),
+  },
+  {
+    id: "action:fullscreen",
+    kind: "action",
+    title: t("header.fullScreen"),
+    hint: t("header.commandPalette.actionHint.fullscreen"),
+    icon: "anim:tabler:arrows-maximize",
+    run: () => void toggleFullscreen(),
+  },
+  {
+    id: "action:settings",
+    kind: "action",
+    title: t("header.settings"),
+    hint: t("header.commandPalette.actionHint.settings"),
+    icon: "anim:tabler:settings",
+    run: () => mittBus.emit("handleThemeConfig"),
+  },
+]);
+
+/** 最近访问：已打开的标签，取最后 5 个（排除当前页） */
+const recentItems = computed<PaletteItem[]>(() => {
+  // 触碰 locale：标签里存的是 i18n key（menu.xxx），切语言后这里要重算
+  locale.value;
+  const current = router.currentRoute.value.path;
+  const list = (tabsStore.tabList ?? []).filter((tab: any) => tab?.path && tab.path !== current);
+  return list
+    .slice(-5)
+    .reverse()
+    .map((tab: any) => ({
+      id: `recent:${tab.path}`,
+      kind: "recent" as const,
+      // 标签 title 可能是 i18n key（menu.home.work.name）也可能是普通标题，
+      // getMenuLanguage 只对 menu. 前缀走翻译，其余原样返回
+      title: getMenuLanguage(String(tab.title ?? "")) || String(tab.path),
+      hint: String(tab.path),
+      icon: "anim:tabler:clock",
+      path: String(tab.path),
+    }));
+});
+
+const activeId = ref("");
 const menuInputRef = ref<InputInstance | null>(null);
 const menuListRef = ref<HTMLElement | null>(null);
 const isShowSearch = ref(false);
-const searchMenu = ref("");
-const searchList = ref<any[]>([]);
+const keyword = ref("");
+const resultList = ref<PaletteItem[]>([]);
 
-const updateSearchList = () => {
-  const keyword = searchMenu.value.trim();
-  searchList.value = keyword
-    ? localizedMenuList.value.filter((item: any) => {
-        const searchText = keyword.toLowerCase();
-        const titleMatch = item.localizedTitle.toLowerCase().includes(searchText);
-        const originalTitleMatch = item.originalTitle.toLowerCase().includes(searchText);
-        const pathMatch = item.path.toLowerCase().includes(searchText);
-        return (titleMatch || originalTitleMatch || pathMatch) && item.meta?.isVisible === "1";
-      })
-    : [];
-  activePath.value = searchList.value[0]?.path ?? "";
-};
+/** 结果组装：菜单 → 动作 → 最近；空输入时只给「动作 + 最近」 */
+function buildResults(): void {
+  const kw = keyword.value.trim().toLowerCase();
+  const withGroup = (items: PaletteItem[], label: string): PaletteItem[] =>
+    items.map((item, i) => (i === 0 ? { ...item, groupLabel: label } : item));
 
-const debouncedUpdateSearchList = useDebounceFn(updateSearchList, 200);
+  const menuAll: PaletteItem[] = localizedMenuList.value.map((item: any) => ({
+    id: `menu:${item.path}`,
+    kind: "menu",
+    title: item.localizedTitle,
+    hint: item.path,
+    icon: item.meta?.icon,
+    linkUrl: item.meta?.linkUrl,
+    path: item.path,
+  }));
 
-watch(searchMenu, debouncedUpdateSearchList);
+  if (!kw) {
+    resultList.value = [
+      ...withGroup(recentItems.value, t("header.commandPalette.recent")),
+      ...withGroup(ACTIONS.value, t("header.commandPalette.actions")),
+    ];
+    activeId.value = resultList.value[0]?.id ?? "";
+    return;
+  }
+
+  const match = (text: string) => text.toLowerCase().includes(kw);
+  const menus = menuAll.filter(
+    (m) => match(m.title) || match(m.hint) || match(m.id),
+  );
+  const actions = ACTIONS.value.filter((a) => match(a.title) || match(a.hint));
+  const recents = recentItems.value.filter((r) => match(r.title) || match(r.hint));
+
+  resultList.value = [
+    ...withGroup(menus, t("header.commandPalette.menus")),
+    ...withGroup(actions, t("header.commandPalette.actions")),
+    ...withGroup(recents, t("header.commandPalette.recent")),
+  ];
+  activeId.value = resultList.value[0]?.id ?? "";
+}
+
+const debouncedBuild = useDebounceFn(buildResults, 150);
+
+watch(keyword, debouncedBuild);
 
 watch(locale, () => {
-  if (isShowSearch.value) updateSearchList();
+  if (isShowSearch.value) buildResults();
 });
 
-watch(isShowSearch, val => {
+watch(isShowSearch, (val) => {
   if (val) {
+    buildResults();
     document.addEventListener("keydown", keyboardOperation);
     nextTick(() => {
       setTimeout(() => menuInputRef.value?.focus(), 50);
     });
   } else {
     document.removeEventListener("keydown", keyboardOperation);
-    searchMenu.value = "";
-    searchList.value = [];
-    activePath.value = "";
+    keyword.value = "";
+    resultList.value = [];
+    activeId.value = "";
   }
 });
 
@@ -179,46 +339,65 @@ const scrollActiveIntoView = () => {
   });
 };
 
-const keyPressUpOrDown = (direction: number) => {
-  const length = searchList.value.length;
+const moveActive = (direction: number) => {
+  const length = resultList.value.length;
   if (length === 0) return;
-  const index = searchList.value.findIndex((item: any) => item.path === activePath.value);
+  const index = resultList.value.findIndex((item) => item.id === activeId.value);
   const newIndex = (index + direction + length) % length;
-  activePath.value = searchList.value[newIndex].path;
+  activeId.value = resultList.value[newIndex].id;
   scrollActiveIntoView();
 };
 
 const keyboardOperation = (event: KeyboardEvent) => {
   if (event.key === "ArrowUp") {
     event.preventDefault();
-    keyPressUpOrDown(-1);
+    moveActive(-1);
   } else if (event.key === "ArrowDown") {
     event.preventDefault();
-    keyPressUpOrDown(1);
+    moveActive(1);
   } else if (event.key === "Enter") {
     event.preventDefault();
-    handleClickMenu();
+    invokeActive();
   } else if (event.key === "Escape") {
     event.preventDefault();
     isShowSearch.value = false;
   }
 };
 
-const handleClickMenuItem = (item: any) => {
-  if (!item) return;
-  activePath.value = item.path;
+/** 执行一条结果：动作直接跑，菜单/最近走路由（或新窗口） */
+function invoke(item: PaletteItem): void {
+  if (item.kind === "action") {
+    isShowSearch.value = false;
+    // 关面板后再执行：刷新/全屏这类动作会改布局，先让 dialog 退出更稳
+    setTimeout(() => item.run?.(), 120);
+    return;
+  }
+  activeId.value = item.id;
   setTimeout(() => {
-    if (item.meta?.linkUrl) window.open(item.meta.linkUrl, "_blank");
-    else router.push(item.path);
+    if (item.linkUrl) window.open(item.linkUrl, "_blank");
+    else if (item.path) void router.push(item.path);
     isShowSearch.value = false;
   }, 120);
+}
+
+const invokeActive = () => {
+  const item = resultList.value.find((i) => i.id === activeId.value);
+  if (item) invoke(item);
 };
 
-const handleClickMenu = () => {
-  const menu = searchList.value.find((item: any) => item.path === activePath.value);
-  if (!menu) return;
-  handleClickMenuItem(menu);
-};
+/** 全局快捷键 Cmd/Ctrl+K：开/关面板 */
+function onGlobalKeydown(event: KeyboardEvent): void {
+  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+    event.preventDefault();
+    isShowSearch.value = !isShowSearch.value;
+  }
+}
+
+onMounted(() => document.addEventListener("keydown", onGlobalKeydown));
+onBeforeUnmount(() => {
+  document.removeEventListener("keydown", onGlobalKeydown);
+  document.removeEventListener("keydown", keyboardOperation);
+});
 </script>
 
 <style lang="scss" scoped>
@@ -287,6 +466,15 @@ const handleClickMenu = () => {
   font-size: 13px;
   line-height: 1.5;
   color: var(--el-text-color-secondary);
+}
+
+/* 分组标题：动作 / 菜单 / 最近访问 */
+.search-menu__group {
+  padding: 10px 12px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: var(--el-text-color-placeholder);
 }
 
 .search-menu__list {

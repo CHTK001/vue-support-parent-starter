@@ -766,7 +766,7 @@ export function listForService() {
 }
 
 /** 操作日志分页列表 */
-export function pageForSysLog(params: { page?: number; pageSize?: number; sysLogUsername?: string; sysLogFrom?: string; sysLogStatus?: number }) {
+export function pageForSysLog(params: { page?: number; pageSize?: number; sysLogUsername?: string; sysLogFrom?: string; sysLogStatus?: number; level?: string }) {
   return http()
     .get("/v2/log/page")
     .query(params as Record<string, unknown>)

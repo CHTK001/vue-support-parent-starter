@@ -41,6 +41,18 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   (e: "ready", chart: echarts.ECharts): void;
   (e: "click", params: echarts.ECElementEvent): void;
+  /**
+   * 扇区/图形悬停进入。
+   *
+   * <p>共享组件此前只透传 click，页面想做「悬停扇区 → 同步刷新中心数值」只能
+   * 自己拿实例再绑一次；这里补上 mouseover / mouseout 两个事件，调用方直接
+   * {@code @mouseover="onSliceHover"} 即可。</p>
+   */
+  (e: "mouseover", params: echarts.ECElementEvent): void;
+  /** 扇区/图形悬停离开 */
+  (e: "mouseout", params: echarts.ECElementEvent): void;
+  /** 移出整个图表（含从扇区直接移出画布的情况，ECharts 会派发 globalout） */
+  (e: "globalout"): void;
 }>();
 
 const chartRef = ref<HTMLDivElement | null>(null);
@@ -80,6 +92,11 @@ const init = () => {
   chartInstance.value.setOption(injectTheme(props.option), props.notMerge);
   emit("ready", chartInstance.value);
   chartInstance.value.on("click", (params) => emit("click", params));
+  // 悬停事件：供页面做「hover 扇区 → 中心数值联动」。ECharts 的 mouseover 在进入
+  // 图形时派发一次，mouseout 在离开时派发；globalout 覆盖「直接从扇区移出画布」。
+  chartInstance.value.on("mouseover", (params) => emit("mouseover", params));
+  chartInstance.value.on("mouseout", (params) => emit("mouseout", params));
+  chartInstance.value.on("globalout", () => emit("globalout"));
 
   if (props.autoResize) {
     resizeHandler = () => chartInstance.value?.resize();

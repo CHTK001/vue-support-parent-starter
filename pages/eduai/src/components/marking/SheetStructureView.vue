@@ -1,161 +1,199 @@
 <template>
   <div class="sheet-structure">
-    <div class="ss-toolbar">
-      <el-radio-group v-if="pageCount > 1" v-model="page" size="small">
-        <el-radio-button v-for="p in pageCount" :key="p" :value="p">第 {{ p }} 页</el-radio-button>
-      </el-radio-group>
-      <!-- 原始试卷 / 版面解析：原卷纯看，版面解析做分数复核（老师分为最终成绩） -->
-      <el-radio-group v-model="mode" size="small">
-        <el-radio-button value="layout">版面解析</el-radio-button>
-        <el-radio-button value="original">原始试卷</el-radio-button>
-      </el-radio-group>
-      <div v-if="mode === 'layout'" class="ss-legend">
-        <span class="ss-dot ss-correct"></span>正确
-        <span class="ss-dot ss-partial"></span>部分分
-        <span class="ss-dot ss-wrong"></span>错误
-        <span class="ss-tip">点击题号标记可定位到右侧题目</span>
+    <header class="ss-toolbar">
+      <div class="ss-toolbar__left">
+        <span class="ss-eyebrow">阅卷详情</span>
+        <el-radio-group v-model="mode" size="small" class="ss-mode">
+          <el-radio-button value="layout">版面解析</el-radio-button>
+          <el-radio-button value="original">原始试卷</el-radio-button>
+        </el-radio-group>
+        <div v-if="recognizedStudent" class="ss-student">
+          卷面识别：<b>{{ recognizedStudent.name || '（姓名未识别）' }}</b>
+          <span v-if="recognizedStudent.no">· 学号 {{ recognizedStudent.no }}</span>
+        </div>
       </div>
-      <!-- 卷面识别到的学生（ANY 链路扫描时从卷头「姓名/学号」栏抽取）：与任务学生标识互补 -->
-      <div v-if="recognizedStudent" class="ss-student">
-        卷面识别：<b>{{ recognizedStudent.name || '（姓名未识别）' }}</b>
-        <span v-if="recognizedStudent.no">· 学号 {{ recognizedStudent.no }}</span>
+      <div v-if="pageCount > 1" class="ss-pager">
+        <el-button size="small" :disabled="page <= 1" @click="changePage(-1)">上一页</el-button>
+        <span class="ss-pager__text">第 {{ page }} / {{ pageCount }} 页</span>
+        <el-button size="small" :disabled="page >= pageCount" @click="changePage(1)">下一页</el-button>
       </div>
+    </header>
+
+    <div v-if="mode === 'layout'" class="ss-legend">
+      <span class="ss-dot ss-correct"></span>正确
+      <span class="ss-dot ss-partial"></span>部分分
+      <span class="ss-dot ss-wrong"></span>错误
+      <span class="ss-tip">点击卷面题号可定位右侧题目，点击表格行可定位卷面位置</span>
     </div>
 
     <div class="ss-body" :class="{ 'ss-body--original': mode === 'original' }">
-      <div class="ss-stage-wrap" ref="stageWrapRef">
-        <button
-          v-if="pageCount > 1 && page > 1"
-          class="ss-nav ss-nav--stage ss-nav--prev"
-          title="上一页"
-          @click="changePage(page - 1)"
-        >
-          <el-icon><ArrowLeft /></el-icon>
-        </button>
-        <button
-          v-if="pageCount > 1 && page < pageCount"
-          class="ss-nav ss-nav--stage ss-nav--next"
-          title="下一页"
-          @click="changePage(page + 1)"
-        >
-          <el-icon><ArrowRight /></el-icon>
-        </button>
-        <div class="ss-stage">
-          <img v-if="imageUrl" ref="imageRef" :src="imageUrl" class="ss-image" alt="答卷" />
-          <div v-if="imageUrl && mode === 'layout'" class="ss-overlay">
-            <div
-              v-for="(b, i) in currentLayout"
-              :key="'layout-' + i"
-              class="ss-layout"
-              :class="{ 'ss-layout-active': activeLayout === i }"
-              :style="boxStyle(b)"
-              @click="activeLayout = activeLayout === i ? -1 : i"
-            >
-              <span class="ss-layout-label">{{ b.label }}</span>
-            </div>
-            <div
-              v-for="a in boundAnchors"
-              :key="'anchor-' + a.page + '-' + a.no + '-' + a.x + '-' + a.y"
-              class="ss-anchor"
-              :class="[anchorClass(a), { 'ss-anchor-selected': isAnchorSelected(a) }]"
-              :style="boxStyle(a)"
-              @click="selectAnchor(a)"
-            >
-              <span class="ss-badge">{{ anchorText(a) }}</span>
-            </div>
+      <section class="ss-stage-card">
+        <div class="ss-stage-head">
+          <div>
+            <strong>答卷扫描</strong>
+            <span class="ss-muted">{{ mode === 'layout' ? '版面解析' : '原始试卷' }}</span>
           </div>
-          <el-empty v-else-if="!imageUrl" description="未取到答卷图片" :image-size="80" />
-        </div>
-      </div>
-
-      <div v-if="mode === 'layout'" class="ss-panel">
-        <button
-          v-if="pageCount > 1 && page > 1"
-          class="ss-nav ss-nav--panel ss-nav--prev"
-          title="上一页"
-          @click="changePage(page - 1)"
-        >
-          <el-icon><ArrowLeft /></el-icon>
-        </button>
-        <button
-          v-if="pageCount > 1 && page < pageCount"
-          class="ss-nav ss-nav--panel ss-nav--next"
-          title="下一页"
-          @click="changePage(page + 1)"
-        >
-          <el-icon><ArrowRight /></el-icon>
-        </button>
-        <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM；
-             原表 height="100%" → :layout-table="{ height: '100%' }"（带 height 即走固定高度分支，
-             按规格无需再补 minHeight）；原表没有 border → :settings="{ border: false }"；
-             分页/工具栏关闭（原表没有）。 -->
-        <ReTable
-          ref="questionTable"
-          :data="currentQuestions"
-          :columns="questionColumns"
-          engine="element"
-          :pagination="false"
-          :toolbar="false"
-          :layout-table="{ height: '100%' }"
-          :settings="{ border: false }"
-          @row-click="(row: any) => selectRow(row)"
-        >
-          <template #col-no="{ row }">
-            <span :class="{ 'ss-row-active': Number(row.resultId) === selectedId }">{{ row.no || '-' }}</span>
-          </template>
-          <template #col-score="{ row }">
-            <span class="ss-ai-score">{{ row.score ?? '-' }}</span>
-          </template>
-          <template #col-editScore="{ row }">
-            <ReInputNumber
-              v-model="row.editScore"
-              :min="0"
-              :max="row.maxScore ?? 100"
-              :disabled="isVirtual(row)"
-              controls-position="right"
+          <div class="ss-stage-actions">
+            <el-switch
+              v-model="showMarkers"
               size="small"
-              @update:model-value="onScoreChange(row)"
+              inline-prompt
+              active-text="标记"
+              inactive-text="隐藏"
             />
-          </template>
-          <template #col-studentAnswer="{ row }">{{ row.studentAnswer || '—' }}</template>
-          <template #col-comment="{ row }">{{ row.comment || '—' }}</template>
-          <!-- 老师评语：窄表格列里只放「文本 + 图标」，点图标开专注模式大框编辑，
-               避免原来的内联多行 textarea 把每行撑高、挤占版面 -->
-          <template #col-editComment="{ row }">
-            <div class="ss-comment-cell">
-              <span class="ss-comment-text" :title="row.editComment || ''">{{ row.editComment || '—' }}</span>
-              <el-icon
-                class="ss-comment-edit"
-                :class="{ 'ss-comment-edit--filled': !!row.editComment }"
-                :title="row.editComment ? '编辑老师评语' : '添加老师评语'"
-                @click.stop="openCommentEditor(row)"
+            <span class="ss-stage-page">第 {{ page }} / {{ pageCount || 1 }} 页</span>
+          </div>
+        </div>
+        <div class="ss-stage-viewport" ref="stageWrapRef">
+          <button
+            v-if="pageCount > 1 && page > 1"
+            class="ss-nav ss-nav--stage ss-nav--prev"
+            title="上一页"
+            @click="changePage(-1)"
+          >
+            <el-icon><ArrowLeft /></el-icon>
+          </button>
+          <button
+            v-if="pageCount > 1 && page < pageCount"
+            class="ss-nav ss-nav--stage ss-nav--next"
+            title="下一页"
+            @click="changePage(1)"
+          >
+            <el-icon><ArrowRight /></el-icon>
+          </button>
+          <div class="ss-stage">
+            <img v-if="imageUrl" ref="imageRef" :src="imageUrl" class="ss-image" alt="答卷" />
+            <div v-if="imageUrl && showMarkers" class="ss-overlay">
+              <div
+                v-for="(b, i) in currentLayout"
+                :key="'layout-' + i"
+                class="ss-layout"
+                :class="{ 'ss-layout-active': activeLayout === i }"
+                :style="boxStyle(b)"
+                @click="activeLayout = activeLayout === i ? -1 : i"
               >
-                <EditPen />
-              </el-icon>
+                <span class="ss-layout-label">{{ b.label }}</span>
+              </div>
+              <div
+                v-for="a in boundAnchors"
+                :key="'anchor-' + a.page + '-' + a.no + '-' + a.x + '-' + a.y"
+                class="ss-anchor"
+                :class="[anchorClass(a), { 'ss-anchor-selected': isAnchorSelected(a) }]"
+                :style="boxStyle(a)"
+                @click="selectAnchor(a)"
+              >
+                <span class="ss-badge">{{ anchorText(a) }}</span>
+              </div>
             </div>
-          </template>
-          <template #col-knowledgePoints="{ row }">
-            <template v-if="kpList(row).length">
-              <ReTag
-                v-for="kp in kpList(row)"
-                :key="kp.id"
-                size="small"
-                class="ss-kp"
-                @click.stop="openKp(kp)"
-              >{{ kp.name }}</ReTag>
+            <el-empty v-else-if="!imageUrl" description="未取到答卷图片" :image-size="80" />
+          </div>
+        </div>
+      </section>
+
+      <aside v-if="mode === 'layout'" class="ss-panel">
+        <div class="ss-panel-head">
+          <div>
+            <strong>题目解析</strong>
+            <span class="ss-muted">{{ currentQuestions.length }} / {{ questions.length }} 题</span>
+          </div>
+          <div v-if="pageCount > 1" class="ss-panel-pager">
+            <el-button link size="small" :disabled="page <= 1" @click="changePage(-1)">
+              <el-icon><ArrowLeft /></el-icon>上一页
+            </el-button>
+            <el-button link size="small" :disabled="page >= pageCount" @click="changePage(1)">
+              下一页<el-icon><ArrowRight /></el-icon>
+            </el-button>
+          </div>
+        </div>
+        <div class="ss-panel-table">
+          <ReTable
+            ref="questionTable"
+            :data="currentQuestions"
+            :columns="questionColumns"
+            engine="element"
+            :layout-table="{ fill: true }"
+            :settings="{ border: false }"
+            @row-click="(row: any) => selectRow(row)"
+            :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+          >
+            <template #col-no="{ row }">
+              <span :class="{ 'ss-row-active': Number(row.resultId) === selectedId }">
+                {{ row.no || '-' }}
+                <el-tag v-if="isUnrecognized(row)" size="small" :type="unrecTagType"
+                  effect="dark" class="ss-unrec-tag" :title="unrecTagTitle">
+                  {{ unrecLabel }}
+                </el-tag>
+              </span>
             </template>
-            <span v-else class="ss-muted">无</span>
-          </template>
-          <template #col-toBank="{ row }">
-            <el-button size="small" type="primary" link @click.stop="openToBank(row)">入题库</el-button>
-          </template>
-        </ReTable>
-        <div class="ss-actions">
+            <template #col-stem="{ row }">
+              <span class="ss-stem">{{ row.stem || '—' }}</span>
+            </template>
+            <template #col-score="{ row }">
+              <span class="ss-ai-score">
+                {{ row.score ?? '-' }}{{ row.maxScore != null && row.maxScore !== '' ? `/${row.maxScore}` : '' }}
+              </span>
+            </template>
+            <template #col-editScore="{ row }">
+              <ReInputNumber
+                v-model="row.editScore"
+                :min="0"
+                :max="row.maxScore ?? 100"
+                :disabled="isVirtual(row)"
+                controls-position="right"
+                size="small"
+                @update:model-value="onScoreChange(row)"
+              />
+            </template>
+            <template #col-studentAnswer="{ row }">
+              <span v-if="isUnrecognized(row)" class="ss-unrec-answer" :title="row.comment">
+                {{ unrecLabel }}·请老师补录作答
+              </span>
+              <span v-else-if="isBlankAnswer(row)" class="ss-no-answer">未作答</span>
+              <span v-else>{{ row.studentAnswer }}</span>
+            </template>
+            <template #col-standardAnswer="{ row }">
+              <span class="ss-standard-answer">{{ row.standardAnswer || '—' }}</span>
+            </template>
+            <template #col-comment="{ row }">{{ row.comment || '—' }}</template>
+            <template #col-editComment="{ row }">
+              <div class="ss-comment-cell">
+                <span class="ss-comment-text" :title="row.editComment || ''">{{ row.editComment || '—' }}</span>
+                <el-button size="small" type="primary" link :disabled="isVirtual(row) || !row.score && !row.comment" @click.stop="applyAi(row)">采用AI</el-button>
+                <el-icon
+                  class="ss-comment-edit"
+                  :class="{ 'ss-comment-edit--filled': !!row.editComment }"
+                  :title="row.editComment ? '编辑老师评语' : '添加老师评语（真实老师填写）'"
+                  @click.stop="openCommentEditor(row)"
+                >
+                  <EditPen />
+                </el-icon>
+              </div>
+            </template>
+            <template #col-knowledgePoints="{ row }">
+              <template v-if="kpList(row).length">
+                <ReTag
+                  v-for="kp in kpList(row)"
+                  :key="kp.id"
+                  size="small"
+                  class="ss-kp"
+                  @click.stop="openKp(kp)"
+                >{{ kp.name }}</ReTag>
+              </template>
+              <span v-else class="ss-muted">无</span>
+            </template>
+            <template #col-toBank="{ row }">
+              <el-button v-if="!isUnrecognized(row)" size="small" type="primary" link @click.stop="openToBank(row)">入题库</el-button>
+              <span v-else class="ss-muted" title="未识别出题干，无法入题库">—</span>
+            </template>
+          </ReTable>
+        </div>
+        <footer class="ss-actions">
           <el-button type="primary" :disabled="!dirty" :loading="saving" @click="save">保存老师分</el-button>
+          <el-button type="success" :disabled="applyAllDisabled" @click="applyAllAi">全部采用AI</el-button>
           <span class="ss-hint">AI 分保留不动，老师分为最终成绩</span>
           <span v-if="selectedQuestion" class="ss-sel">已选中第 {{ selectedQuestion.no }} 题</span>
-        </div>
-      </div>
+        </footer>
+      </aside>
     </div>
 
     <ReDrawer v-model="kpDrawer" title="知识点详情" size="360px">
@@ -172,8 +210,6 @@
       </template>
     </ReDrawer>
 
-    <!-- 老师评语专注模式：点表格里的图标弹出独立大框编辑（可留空 = 清空）。
-         弹框内只是草稿，点「确定」写回该行，仍随「保存老师分」一起提交，避免误触即时落库。 -->
     <ReDialog v-model="commentEditor.visible" :title="commentEditorTitle" width="560px" top="10vh">
       <ReInput
         ref="commentInputRef"
@@ -193,7 +229,6 @@
       </template>
     </ReDialog>
 
-    <!-- 入题库：把扫描解析出的题目预填进编辑框，老师修正后保存（题干/答案来自 OCR，务必核对） -->
     <ReDialog v-model="bankDialog.visible" title="解析题目加入题库" width="640" top="6vh">
       <el-form label-width="72px" size="small" class="ss-bank-form">
         <div class="ss-bank-row">
@@ -254,7 +289,7 @@
 
 <script setup lang="ts">
 import { message } from "@repo/core";
-import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import { eduaiApi } from '../../api/eduaiApi';
 import { failToast } from '../../api/errorText';
@@ -268,33 +303,28 @@ import ReDialog from "@repo/ui/re-dialog";
 import { EditPen } from '@element-plus/icons-vue';
 
 const props = defineProps<{ taskId: string }>();
-/** 老师分保存成功后广播：父级（阅卷记录详情 / 教师端）据此刷新总分 */
 const emit = defineEmits<{ (e: 'saved'): void }>();
 
 const structure = ref<Record<string, any> | null>(null);
 const page = ref(1);
-/** layout=版面解析（图 + 版面框 + 题目面板），original=原始试卷（纯原图全宽） */
+/** 左侧答卷扫描是否显示版面框/题号锚点（版面解析与原始试卷均可用） */
+const showMarkers = ref(true);
 const mode = ref<'layout' | 'original'>('layout');
 const imageUrl = ref('');
 const activeLayout = ref(-1);
-/**
- * 当前选中题（按 resultId 精确到单题，不用题号）：
- * 同一卷面里「填空 2 / 判断 2 / 选择 2」题号都会是「2.」，
- * 按题号选中会让同号锚点全部点亮、定位歧义，因此锚点与行都以 resultId 关联。
- */
 const selectedId = ref<number | null>(null);
 const dirty = ref(false);
 const saving = ref(false);
 const questions = ref<any[]>([]);
-/** 题目表格实例：双向联动时用它拿 DOM 把选中行滚进可视区 */
 const questionTable = ref();
 
-/** 题目表列配置（原模板里的 el-table-column 收敛到数组；带 #default 的列配 slot + #col-<slot>） */
 const questionColumns: ReTableColumn[] = [
   { prop: 'no', label: '题号', width: 56, slot: 'no' },
+  { prop: 'stem', label: '题目', minWidth: 150, showOverflowTooltip: true, slot: 'stem' },
   { prop: 'score', label: 'AI 分', width: 64, slot: 'score' },
   { prop: 'editScore', label: '老师分', width: 120, slot: 'editScore' },
-  { prop: 'studentAnswer', label: '作答', minWidth: 96, showOverflowTooltip: true, slot: 'studentAnswer' },
+  { prop: 'studentAnswer', label: '学生作答', minWidth: 110, showOverflowTooltip: true, slot: 'studentAnswer' },
+  { prop: 'standardAnswer', label: '标准答案', minWidth: 110, showOverflowTooltip: true, slot: 'standardAnswer' },
   { prop: 'comment', label: 'AI 评语', minWidth: 130, showOverflowTooltip: true, slot: 'comment' },
   { prop: 'editComment', label: '老师评语', minWidth: 170, slot: 'editComment' },
   { prop: 'knowledgePoints', label: '知识点', minWidth: 130, slot: 'knowledgePoints' },
@@ -308,19 +338,78 @@ const kpDetail = ref<any[]>([]);
 
 let objectUrl = '';
 
-/** 逐页结构（pages 下标从 0 开始，页码从 1 开始） */
 const pageCount = computed(() => Number(structure.value?.pageCount || 0));
 const currentPage = computed(() => (structure.value?.pages || [])[page.value - 1] || { layout: [], blocks: [] });
 const currentLayout = computed(() => currentPage.value.layout || []);
 const currentAnchors = computed(() =>
   (structure.value?.questionAnchors || []).filter((a: any) => Number(a.page) === page.value),
 );
+const currentQuestions = computed(() => {
+  const ids = new Set<string>();
+  for (const a of currentAnchors.value) {
+    const no = String(a.no ?? '').trim().replace(/[.、．]\s*$/, '');
+    if (no) ids.add(no);
+  }
+  if (ids.size === 0) return [];
+  const seen = new Set<number>();
+  return questions.value.filter((q) => {
+    const no = String(q.no ?? '').trim().replace(/[.、．]\s*$/, '');
+    if (!no || !ids.has(no) || seen.has(Number(q.resultId))) return false;
+    seen.add(Number(q.resultId));
+    return true;
+  });
+});
+const changePage = (delta: number) => {
+  const next = Math.min(Math.max(page.value + delta, 1), pageCount.value);
+  if (next !== page.value) page.value = next;
+};
 
 /**
- * 锚点 ↔ 题目按下标绑定：同号题（「一、二、三」各节都会从 1. 重新编号）不能按题号找题，
- * 否则锚点颜色/徽章永远只反映第一个同号题。同号锚点组内按 y 坐标（卷面从上到下）排序后，
- * 与同号题目序列（判分结果顺序即卷面顺序）一一对应；锚点多于题数时多出的锚点不绑定。
+ * 键盘导航：
+ *  - ← / →  （无修饰键）直接切换上一页 / 下一页；
+ *  - Alt+↑ / Alt+↓ 在当前页题目里上下移动选中行（数据已在后端按 account 作用域过滤，
+ *    教师端只能在本人可见的任务题目内切换，不越权）。
+ * 焦点在输入框/文本域/下拉等可编辑控件时不抢键盘（避免干扰老师分/评语录入）。
  */
+const isEditableTarget = (e: KeyboardEvent) => {
+  const el = e.target as HTMLElement | null;
+  if (!el) return false;
+  const tag = (el.tagName || '').toUpperCase();
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
+};
+
+const onKeydown = (e: KeyboardEvent) => {
+  if (isEditableTarget(e)) return;
+  // Alt+方向键：上下切换题目行
+  if (e.altKey && !e.ctrlKey && !e.shiftKey && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+    e.preventDefault();
+    const list = currentQuestions.value;
+    if (!list.length) return;
+    const idx = list.findIndex((q) => Number(q.resultId) === selectedId.value);
+    const nextIdx = e.key === 'ArrowDown'
+      ? (idx < 0 ? 0 : (idx + 1) % list.length)
+      : (idx < 0 ? list.length - 1 : (idx - 1 + list.length) % list.length);
+    selectRow(list[nextIdx]);
+    return;
+  }
+  // 左右方向键：翻页
+  if (!e.altKey && !e.ctrlKey && !e.shiftKey) {
+    if (e.key === 'ArrowLeft' && page.value > 1) {
+      e.preventDefault();
+      changePage(-1);
+    } else if (e.key === 'ArrowRight' && page.value < pageCount.value) {
+      e.preventDefault();
+      changePage(1);
+    }
+  }
+};
+
+onMounted(() => window.addEventListener('keydown', onKeydown, true));
+onUnmounted(() => {
+  window.removeEventListener('keydown', onKeydown, true);
+  if (objectUrl) URL.revokeObjectURL(objectUrl);
+});
+
 const boundAnchors = computed(() =>
   currentAnchors.value.map((a: any) => {
     const same = currentAnchors.value
@@ -335,13 +424,73 @@ const selectedQuestion = computed(() =>
   selectedId.value == null ? null : questions.value.find((q) => Number(q.resultId) === selectedId.value) ?? null,
 );
 
-/** 历史聚合任务的只读拆分行：负数 resultId 不落库，仅用于展示逐题结构 */
 const isVirtual = (row: any) => row?.virtual === true;
 
-/** 卷面识别到的学生（ANY 链路：模型/正则从卷头「姓名/学号」栏抽取） */
-const recognizedStudent = computed(() => (structure.value?.recognizedStudent ?? null) as { name?: string; no?: string } | null);
+/** 识别失败占位行：OCR 有题号锚点但无作答结果，后端补行待老师协助 */
+const isUnrecognized = (row: any) => row?.unrecognized === true;
 
-/** 归一化坐标 → 百分比定位；版面区域与题号锚点共用 */
+/** 卷型：自有卷 SELF（有题库可核对）vs 外来卷 ANY（无题库，靠人工判分） */
+const markingMode = computed(() => String(structure.value?.mode || '').toUpperCase());
+
+/**
+ * 识别失败标记按卷型区分效果：
+ * - SELF 自有卷：橙色「待协助」——题库有题，请核对题号
+ * - ANY  外来卷：红色「人工判分」——无题库对照，请老师人工判分
+ */
+const isExternalPaper = computed(() => markingMode.value === 'ANY');
+const unrecLabel = computed(() => (isExternalPaper.value ? '人工判分' : '待协助'));
+const unrecTagType = computed(() => (isExternalPaper.value ? 'danger' : 'warning'));
+const unrecTagTitle = computed(() =>
+  isExternalPaper.value
+    ? 'OCR 未识别出本题（外来卷无题库可核对），请老师按卷面人工判分'
+    : 'OCR 未识别出本题，请对照题库核对题号后补录',
+);
+
+/** 题目/作答文本统一净化：去括号对、书名号、引号、下划线空位与全半角标点、空白，只留核心字 */
+const normalizeCore = (s: string) =>
+  String(s || '')
+    .replace(/[（(][^（）()]*[）)]/g, '')
+    .replace(/[《》「」『』“”‘’]/g, '')
+    .replace(/[\s\u3000_＿，。、；：？！,.;:?!·-]/g, '')
+    .trim();
+
+/** 判断题作答是否含判定符号（对/错/√/×/T/F 等） */
+const hasJudgeSymbol = (s: string) => /[对错√×✓✗TFtf]/.test(s);
+
+/** 是否未作答：作答为空，或作答经净化后与题干（同样净化）重合 —— OCR 把题目行当成作答的兜底 */
+const isBlankAnswer = (row: any) => {
+  const ans = String(row?.studentAnswer ?? '').replace(/\s+/g, '').trim();
+  if (!ans) return true;
+  const stem = String(row?.stem ?? '').replace(/\s+/g, '').trim();
+  if (!stem) return false;
+  const a = normalizeCore(ans);
+  if (!a) return true;
+  const s = normalizeCore(stem);
+  if (!s) return false;
+  // 判断题：作答净化为整行题干（无判定符号）→ 未作答
+  if (/判断|正误/.test(s) && !hasJudgeSymbol(a)) {
+    return true;
+  }
+  // 作答是题干（去空位/出处后）的子串；「明显短于题干」或「与题干几乎等长」
+  // （OCR 把整行题干当成作答，如判断题）都判未作答
+  return s.includes(a) && (a.length <= s.length * 0.92 || Math.abs(a.length - s.length) <= 2);
+};
+
+/** 卷头栏位标签词（后端识别兜底后仍可能落库的服务端数据，前端同样不当作真实姓名） */
+const HEADER_LABEL_WORDS = new Set(['姓名', '班级', '学号', '性别', '学校', '年级', '考试', '科目', '考场', '座位', '准考证']);
+
+const recognizedStudent = computed(() => {
+  const raw = (structure.value?.recognizedStudent ?? null) as { name?: string; no?: string } | null;
+  if (!raw) return null;
+  const name = String(raw.name || '').trim();
+  const no = String(raw.no || '').trim();
+  if (HEADER_LABEL_WORDS.has(name) || !name) {
+    // 姓名栏空白/识别到栏位名：视为未识别，学号仍可展示
+    return { name: '', no: no || (raw.no as any) };
+  }
+  return raw;
+});
+
 const boxStyle = (b: any) => ({
   left: `${(Number(b.x) || 0) * 100}%`,
   top: `${(Number(b.y) || 0) * 100}%`,
@@ -356,24 +505,25 @@ const scoreClass = (row: any) => {
   if (s <= 0) return 'ss-score-wrong';
   return 'ss-score-partial';
 };
-/** 锚点外观跟随「绑定题」的得分状态，无绑定题才退回 unknown */
 const anchorClass = (a: any) => {
   const q = a.bound;
+  if (isUnrecognized(q)) return 'ss-anchor-unrec';
   if (!q) return 'ss-anchor-unknown';
   return scoreClass(q).replace('ss-score-', 'ss-anchor-');
 };
 const anchorText = (a: any) => {
   const q = a.bound;
-  return q ? `${q.editScore}` : '?';
+  const answer = String(a.answer ?? '').trim().replace(/\s+/g, ' ');
+  const brief = answer.length > 8 ? `${answer.slice(0, 8)}…` : answer;
+  if (isUnrecognized(q)) return `${unrecLabel.value}${q.editScore ? '·' + q.editScore : ''}`;
+  return q ? `${q.editScore}·${brief || '—'}` : '?';
 };
 const isAnchorSelected = (a: any) =>
   a.bound != null && selectedId.value != null && Number(a.bound.resultId) === selectedId.value;
 
 const kpList = (row: any): Array<{ id: any; name: string; description?: string }> => {
-  // 后端已把知识点 id 解析成 {id,name,description}，直接渲染名称、点开即出描述。
   const list = row?.knowledgePoints;
   if (Array.isArray(list) && list.length) return list;
-  // 兼容仅返回 id 串的旧结构：退化成显示 id，仍可点击
   const raw = row?.knowledgePointIds;
   if (raw === null || raw === undefined || raw === '') return [];
   const arr = Array.isArray(raw) ? raw : String(raw).split(/[,，\s]+/);
@@ -383,11 +533,9 @@ const kpList = (row: any): Array<{ id: any; name: string; description?: string }
 const selectRow = (row: any) => {
   if (!row) return;
   selectedId.value = Number(row.resultId) || null;
-  // 双向联动：把对应表格行滚进可视区
   void scrollToRow(selectedId.value);
 };
 
-/** 锚点点击：优先选中绑定题；锚点没绑定到题（版面多识别）时退化选第一个同号题 */
 const selectAnchor = (a: any) => {
   const q = a.bound ?? questions.value.find((x) => String(x.no) === String(a.no));
   if (!q) return;
@@ -395,7 +543,6 @@ const selectAnchor = (a: any) => {
   void scrollToRow(selectedId.value);
 };
 
-/** 把选中题对应的表格行滚动到可视区（el-table 内部滚动容器） */
 const scrollToRow = async (id: number | null) => {
   if (id == null) return;
   await nextTick();
@@ -406,25 +553,54 @@ const scrollToRow = async (id: number | null) => {
   rows?.[index]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 };
 
-/** 老师分改动即标脏：只有动过的行才进保存载荷（AI 分永远不被覆盖） */
 const onScoreChange = (row: any) => {
   row.dirty = Number(row.editScore ?? 0) !== Number(row.origScore ?? 0)
     || String(row.editComment ?? '').trim() !== String(row.origComment ?? '').trim();
   dirty.value = questions.value.some((q) => q.dirty);
 };
 
-/** 老师评语改动同样标脏：分数与评语任一变化都算该行有改动 */
 const onCommentChange = (row: any) => {
   row.dirty = Number(row.editScore ?? 0) !== Number(row.origScore ?? 0)
     || String(row.editComment ?? '').trim() !== String(row.origComment ?? '').trim();
   dirty.value = questions.value.some((q) => q.dirty);
 };
 
-/**
- * 老师评语专注模式编辑：表格列只展示文本 + 图标，点图标弹出独立大框。
- * 弹框里是草稿（draft），点「确定」才写回该行；写回后只标脏、不落库，
- * 与老师分一起走「保存老师分」提交。
- */
+/** 一键采用 AI 判分：把 AI 分与 AI 评语落到老师分与老师评语，待保存 */
+const applyAi = (row: any) => {
+  if (isVirtual(row)) {
+    message.warning('历史聚合题不能一键采用 AI 判分');
+    return;
+  }
+  row.editScore = Number(row.score ?? 0);
+  row.editComment = String(row.comment ?? '');
+  row.dirty = true;
+  dirty.value = questions.value.some((q) => q.dirty);
+  message.success(`已采用 AI 判分：第 ${row.no || '?'} 题`);
+};
+
+/** 是否有可批量采用的 AI 判分（非历史聚合、且 AI 分或评语不为空） */
+const applyAllDisabled = computed(() =>
+  !questions.value.some((q) => !isVirtual(q) && (Number(q.score ?? 0) > 0 || String(q.comment ?? '').trim() !== '')),
+);
+
+/** 全部采用 AI 判分：把当前试卷所有可用 AI 分/评语一次性落到老师分/评语 */
+const applyAllAi = () => {
+  const targets = questions.value.filter(
+    (q) => !isVirtual(q) && (Number(q.score ?? 0) > 0 || String(q.comment ?? '').trim() !== ''),
+  );
+  if (targets.length === 0) {
+    message.info('当前没有可采用的 AI 判分');
+    return;
+  }
+  for (const row of targets) {
+    row.editScore = Number(row.score ?? 0);
+    row.editComment = String(row.comment ?? '');
+    row.dirty = true;
+  }
+  dirty.value = true;
+  message.success(`已为 ${targets.length} 道题采用 AI 判分`);
+};
+
 const commentEditor = ref<{ visible: boolean; row: any; draft: string }>({ visible: false, row: null, draft: '' });
 const commentInputRef = ref();
 const commentEditorTitle = computed(() => {
@@ -442,7 +618,6 @@ const openCommentEditor = async (row: any) => {
   (commentInputRef.value?.$el as HTMLElement | undefined)?.querySelector('textarea')?.focus();
 };
 
-/** 确定：草稿写回行 → 标脏；清空（空串）同样写回，保存时后端按「显式空串」清空评语 */
 const confirmCommentEditor = () => {
   const { row, draft } = commentEditor.value;
   if (row) {
@@ -453,18 +628,15 @@ const confirmCommentEditor = () => {
 };
 
 const openKp = (kp: any) => {
-  // 名称与描述已随结构返回，无需再按 id 反查（按 id 搜关键字搜不到，点开会是空的）
   kpKeyword.value = kp?.name || '';
   kpDetail.value = kp ? [kp] : [];
   kpDrawer.value = true;
   kpLoading.value = false;
 };
 
-/* ==================== 解析题目入题库 ==================== */
 const bankDialog = ref({
   visible: false,
   saving: false,
-  /** 来源题的作答（只展示提醒核对，不入库——入库的是「标准答案」栏） */
   studentAnswer: '',
   form: {
     questionType: 'FILL',
@@ -480,14 +652,12 @@ const bankDialog = ref({
   } as Record<string, any>,
 });
 
-/** 按解析出的题干粗猜题型：有 A./B. 选项→单选，√/× →判断，其余→填空 */
 const guessType = (stem: string): string => {
   if (/[A-DＡ-Ｄ][.、．]/.test(stem) && /[BＢ][.、．]/.test(stem)) return 'SINGLE_CHOICE';
   if (/[√✓×✗]/.test(stem) || /判断/.test(stem)) return 'JUDGE';
   return 'FILL';
 };
 
-/** 从选项行拼 questionOptions（每行一个），题干里剥掉选项尾巴避免重复 */
 const splitOptions = (stem: string): { stem: string; options: string } => {
   const lines = stem.split(/[\n；;]+/).map((s) => s.trim()).filter(Boolean);
   const optLines = lines.filter((s) => /^[A-DＡ-Ｄ][.、．]/.test(s));
@@ -496,7 +666,6 @@ const splitOptions = (stem: string): { stem: string; options: string } => {
   return { stem: kept || stem, options: optLines.join('\n') };
 };
 
-/** 打开入题库弹框：预填解析结果，标准答案留空由老师补（学生作答不是标准答案） */
 const openToBank = (row: any) => {
   if (isVirtual(row)) {
     message.warning('历史聚合题已按版面拆分展示，暂不能直接入库');
@@ -520,7 +689,6 @@ const openToBank = (row: any) => {
   bankDialog.value.visible = true;
 };
 
-/** 保存入题库：走题库正常新增（questionSource 标记「扫描识别」便于溯源） */
 const saveToBank = async () => {
   const f = bankDialog.value.form;
   if (!String(f.questionStem ?? '').trim()) {
@@ -581,11 +749,11 @@ const load = async (taskId: string) => {
   try {
     const data = await eduaiApi.getMarkingStructure(taskId);
     structure.value = data || null;
-    // 老师分初值 = 已有老师分，否则回落 AI 分；origScore 记初值做脏判断。
-    // 老师评语初值 = 已有老师评语，否则回落 AI 评语（只做展示初值，保存时仍显式提交）。
     questions.value = (data?.questions || []).map((q: any) => {
       const initial = Number(q.teacherScore ?? q.score ?? 0);
-      const initialComment = String(q.teacherComment ?? q.comment ?? '');
+      // 老师评语只取真实老师已填写的值；AI 评语留在「AI 评语」列，不回落成老师评语。
+      // 老师未填写时保持空白（表格显示 —），由真实老师来填。
+      const initialComment = String(q.teacherComment ?? '');
       return {
         ...q,
         editScore: initial,
@@ -617,15 +785,21 @@ watch(page, async (p) => {
 const save = async () => {
   if (!props.taskId) return;
   const adjustments = questions.value
-    .filter((q) => q.dirty && Number(q.resultId) > 0)
+    .filter((q) => {
+      if (!q.dirty) return false;
+      // 常规行：已有结果行才有保存意义；识别失败占位行 resultId<=0 也要补录
+      if (isUnrecognized(q)) return true;
+      return Number(q.resultId) > 0;
+    })
     .map((q) => {
-      const item: { resultId: number; score: number; comment?: string } = {
-        resultId: Number(q.resultId),
-        // 只回传分数、不传评语：后端「不传评语 = 不改评语」，
-        // 只有老师分（或评语）动过的行才进载荷，避免覆盖其他行
+      const item: { resultId: number; score: number; comment?: string; no?: string } = {
+        resultId: isUnrecognized(q) ? -1 : Number(q.resultId),
         score: Number(q.editScore ?? 0),
       };
-      // 评语改动才带 comment（含「清空评语」——显式空串即清空，后端 != null 判定覆盖）
+      // 识别失败补录：带上题号，后端据此新建结果行
+      if (isUnrecognized(q)) {
+        item.no = String(q.no ?? '').replace(/\s+$/g, '');
+      }
       const comment = String(q.editComment ?? '').trim();
       if (comment !== String(q.origComment ?? '').trim()) {
         item.comment = comment;
@@ -650,9 +824,6 @@ const save = async () => {
   }
 };
 
-onUnmounted(() => {
-  if (objectUrl) URL.revokeObjectURL(objectUrl);
-});
 </script>
 
 <style scoped>
@@ -660,21 +831,47 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-height: 420px;
+  min-height: 460px;
+  gap: 10px;
+  padding: 12px;
+  background: var(--el-bg-color-page);
+  border-radius: 8px;
 }
 .ss-toolbar {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 8px 4px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+}
+.ss-toolbar__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.ss-eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--el-text-color-secondary);
+  letter-spacing: 0.08em;
+}
+.ss-mode .el-radio-button__inner {
+  font-size: 12px;
 }
 .ss-legend {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  padding: 0 4px;
   font-size: 12px;
   color: var(--el-text-color-secondary);
+  flex-wrap: wrap;
 }
 .ss-dot {
   width: 10px;
@@ -686,51 +883,104 @@ onUnmounted(() => {
 .ss-partial { background: var(--el-color-warning); }
 .ss-wrong { background: var(--el-color-danger); }
 .ss-tip { margin-left: 8px; }
-/* 卷面识别学生提示（工具栏右侧） */
 .ss-student {
-  margin-left: auto;
   font-size: 12px;
   color: var(--el-text-color-secondary);
   white-space: nowrap;
 }
 .ss-student b { color: var(--el-color-primary); }
-/* 入题库弹框 */
-.ss-bank-row { display: flex; gap: 12px; }
-.ss-bank-row .el-form-item { flex: 1; }
-.ss-bank-grade { display: flex; gap: 8px; width: 100%; }
-.ss-bank-hint {
+.ss-pager {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ss-pager__text {
+  min-width: 76px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
   font-size: 12px;
-  color: var(--el-text-color-secondary);
-  background: var(--el-fill-color-light);
-  border-radius: 4px;
-  padding: 6px 10px;
-  margin: 4px 0;
+  color: var(--el-text-color-regular);
+  font-weight: 600;
 }
 
 .ss-body {
   flex: 1;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(360px, 44%) minmax(0, 1fr);
   gap: 12px;
   min-height: 0;
-  padding-top: 12px;
 }
-/* 原始试卷模式：没有右侧题目面板，原图占满整行 */
-.ss-body--original .ss-stage-wrap { flex: 1 1 auto; }
-.ss-stage-wrap {
-  flex: 0 0 46%;
-  overflow: auto;
+.ss-body--original {
+  grid-template-columns: 1fr;
+}
+.ss-stage-card,
+.ss-panel {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-base);
-  background: var(--el-fill-color-blank);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.ss-stage-head,
+.ss-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.ss-stage-head strong,
+.ss-panel-head strong {
+  font-size: 14px;
+  color: var(--el-text-color-primary);
+}
+.ss-stage-head > div,
+.ss-panel-head > div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.ss-stage-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ss-stage-actions .el-switch {
+  --el-switch-on-color: var(--el-color-primary);
+}
+.ss-stage-page {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.ss-stage-viewport {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 8px;
+  padding: 12px;
+  background:
+    linear-gradient(45deg, var(--el-fill-color-lighter) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--el-fill-color-lighter) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--el-fill-color-lighter) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--el-fill-color-lighter) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  background-color: var(--el-fill-color-blank);
 }
 .ss-stage {
   position: relative;
   display: inline-block;
   max-width: 100%;
+  align-self: flex-start;
+  box-shadow: 0 8px 24px -15px rgba(0, 0, 0, 0.35);
 }
 .ss-image {
   display: block;
@@ -785,7 +1035,7 @@ onUnmounted(() => {
 .ss-anchor-partial { background: color-mix(in srgb, var(--el-color-warning) 22%, transparent); border: 1px solid var(--el-color-warning); }
 .ss-anchor-wrong { background: color-mix(in srgb, var(--el-color-danger) 22%, transparent); border: 1px solid var(--el-color-danger); }
 .ss-anchor-unknown { background: color-mix(in srgb, var(--el-text-color-secondary) 18%, transparent); border: 1px dashed var(--el-text-color-secondary); }
-/* 选中锚点：放大 + 高亮描边，与右侧题目表行联动 */
+.ss-anchor-unrec { background: color-mix(in srgb, var(--el-color-warning) 30%, transparent); border: 1px solid var(--el-color-warning); box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 55%, transparent); }
 .ss-anchor-selected {
   z-index: 2;
   transform: scale(1.25);
@@ -797,29 +1047,65 @@ onUnmounted(() => {
 .ss-anchor-partial .ss-badge { background: var(--el-color-warning); }
 .ss-anchor-wrong .ss-badge { background: var(--el-color-danger); }
 .ss-anchor-unknown .ss-badge { background: var(--el-text-color-secondary); }
+.ss-anchor-unrec .ss-badge { background: var(--el-color-warning); animation: ss-unrec-pulse 1.6s ease-in-out infinite; }
+@keyframes ss-unrec-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+.ss-nav {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 50%;
+  background: var(--el-bg-color);
+  color: var(--el-text-color-regular);
+  cursor: pointer;
+  box-shadow: 0 4px 14px -8px rgba(0, 0, 0, 0.28);
+}
+.ss-nav:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+}
+.ss-nav--prev { left: 10px; }
+.ss-nav--next { right: 10px; }
 
-.ss-panel {
+.ss-panel-head {
+  flex: none;
+}
+.ss-panel-table {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
+  min-height: 0;
 }
 .ss-actions {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-top: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  flex-wrap: wrap;
 }
 .ss-hint { font-size: 12px; color: var(--el-text-color-secondary); }
 .ss-sel { font-size: 12px; color: var(--el-text-color-secondary); }
 .ss-ai-score { color: var(--el-text-color-secondary); font-weight: 600; }
+.ss-standard-answer { color: var(--el-color-success); font-weight: 500; }
+.ss-unrec-tag { margin-left: 6px; vertical-align: 1px; }
+.ss-unrec-answer { color: var(--el-color-warning); font-weight: 600; }
+.ss-no-answer { color: var(--el-text-color-placeholder); font-style: italic; font-size: 12px; }
 .ss-score-correct { color: var(--el-color-success); font-weight: 600; }
 .ss-score-partial { color: var(--el-color-warning); font-weight: 600; }
 .ss-score-wrong { color: var(--el-color-danger); font-weight: 600; }
 .ss-row-active { color: var(--el-color-primary); font-weight: 600; }
 .ss-kp { margin-right: 4px; cursor: pointer; }
 .ss-muted { color: var(--el-text-color-placeholder); font-size: 12px; }
-/* 老师评语列：文本 + 专注编辑图标（窄列不再放多行输入框，行高更稳） */
+
 .ss-comment-cell {
   display: flex;
   align-items: center;
@@ -854,7 +1140,6 @@ onUnmounted(() => {
 .ss-comment-edit--filled {
   color: var(--el-color-primary);
 }
-/* 专注编辑弹框里的 AI 评语参考 */
 .ss-comment-dialog-tip {
   margin-top: 8px;
   padding: 6px 10px;
@@ -869,4 +1154,28 @@ onUnmounted(() => {
 .ss-kp-list li { padding: 8px 0; border-bottom: 1px solid var(--el-border-color-lighter); }
 .ss-kp-name { font-weight: 600; }
 .ss-kp-desc { font-size: 12px; color: var(--el-text-color-secondary); }
+.ss-bank-row { display: flex; gap: 12px; }
+.ss-bank-row .el-form-item { flex: 1; }
+.ss-bank-grade { display: flex; gap: 8px; width: 100%; }
+.ss-bank-hint {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  border-radius: 4px;
+  padding: 6px 10px;
+  margin: 4px 0;
+}
+
+@media (max-width: 1100px) {
+  .ss-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(420px, 58%) minmax(320px, 42%);
+  }
+  .ss-stage-viewport {
+    align-items: center;
+  }
+  .ss-stage {
+    max-height: 100%;
+  }
+}
 </style>

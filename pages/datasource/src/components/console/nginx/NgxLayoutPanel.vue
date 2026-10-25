@@ -69,9 +69,6 @@
           </ReButton>
         </div>
       </div>
-      <template #footer>
-        <ReButton type="primary" data-testid="ngl-btn-embed-close" @click="embedVisible = false">关闭</ReButton>
-      </template>
     </ReDialog>
   </div>
 </template>

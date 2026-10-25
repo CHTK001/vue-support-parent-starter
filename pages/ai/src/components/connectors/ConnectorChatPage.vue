@@ -1,5 +1,5 @@
 <template>
-  <div class="connector-chat">
+  <div class="connector-chat" data-page="connector-chat">
     <!-- 顶部栏 -->
     <header class="chat-topbar">
       <div class="topbar-left">

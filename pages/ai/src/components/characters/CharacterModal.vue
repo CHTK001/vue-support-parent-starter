@@ -1,5 +1,5 @@
 <template>
-    <LDialog v-model="visible" :close-on-click-modal="false" width="900px"
+    <ReDialog v-model="visible" :close-on-click-modal="false" width="900px"
         :style="{ height: '70vh', maxWidth: '90vw' }" class="character-setting-dialog" destroy-on-close append-to-body>
         <template #header>
             <div class="dialog-header">
@@ -15,7 +15,7 @@
             <el-button @click="handleClose">{{ t('common.cancel') }}</el-button>
             <el-button type="primary" @click="handleSave" :loading="saving" :disabled="!panelHasChanges">{{ t('characters.modal.applyAll') }}</el-button>
         </template>
-    </LDialog>
+    </ReDialog>
 </template>
 
 <script setup lang="ts">
@@ -25,7 +25,7 @@ import { ElButton } from 'element-plus'
 import CharacterSettingPanel from './CharacterSettingPanel.vue'
 import { apiService } from '../../services/ApiService'
 import { usePopup } from '@/composables/usePopup'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 
 const { toast } = usePopup()
 const { t } = useI18n()

@@ -10,6 +10,7 @@
 import { onBeforeUnmount, shallowRef, watch } from "vue";
 import { authHeaders, objectUrl } from "../../api/filestorageApi";
 import { extensionOf } from "../../utils/officeRenderer";
+import { TEXT_EXTENSIONS } from "../../utils/previewEntryRenderers";
 import FvPanelBase from "./FvPanelBase.vue";
 
 const props = defineProps<{
@@ -81,22 +82,28 @@ async function fetchBytes(): Promise<ArrayBuffer> {
 
 /**
  * 校正交给 file-viewer 的文件名（包内条目以外层 fileName 为准、扩展名以 inner 为准）。
- * 文本侧 file-viewer 按扩展名在 code/markdown 渲染间自选，故扩展名必须真实。
+ * 文本侧 file-viewer 按扩展名在 code/markdown 渲染间自选，故扩展名必须真实；
+ * 白名单外的扩展名（如 {@code MANIFEST.MF}）renderer-text 不识别，统一规整为
+ * {@code .txt} 按纯文本渲染。
  */
 function resolveViewerFileName(): string {
-  if (props.inner) {
-    const innerBase = props.inner.split("/").pop() || props.inner;
-    const innerExt = extensionOf(innerBase);
-    if (innerExt) {
-      const outerExt = extensionOf(props.fileName);
-      if (outerExt && outerExt.toLowerCase() !== innerExt.toLowerCase()) {
-        const dot = props.fileName.lastIndexOf(".");
-        return `${dot > 0 ? props.fileName.slice(0, dot) : props.fileName}.${innerExt}`;
+  const base = (() => {
+    if (props.inner) {
+      const innerBase = props.inner.split("/").pop() || props.inner;
+      const innerExt = extensionOf(innerBase);
+      if (innerExt) {
+        const outerExt = extensionOf(props.fileName);
+        if (outerExt && outerExt.toLowerCase() !== innerExt.toLowerCase()) {
+          const dot = props.fileName.lastIndexOf(".");
+          return `${dot > 0 ? props.fileName.slice(0, dot) : props.fileName}.${innerExt}`;
+        }
+        if (!outerExt) return `${props.fileName}.${innerExt}`;
       }
-      if (!outerExt) return `${props.fileName}.${innerExt}`;
     }
-  }
-  return props.fileName;
+    return props.fileName;
+  })();
+  const ext = extensionOf(base).toLowerCase();
+  return ext && TEXT_EXTENSIONS.has(ext) ? base : `${base}.txt`;
 }
 
 /** 文本类 MIME（猜不到走 text/plain，渲染选择只看扩展名） */

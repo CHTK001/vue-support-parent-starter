@@ -64,6 +64,39 @@ export interface NodeFilter {
   keyword?: string;
   /** 协议精确匹配，空串表示不过滤 */
   protocol?: string;
+  /**
+   * 状态精确匹配，空串表示不过滤。
+   *
+   * <p>{@code UNKNOWN} 是合法取值：它匹配所有既非 RUNNING 也非 STOPPED /
+   * ERROR 的节点（后端写入的非枚举状态、字段缺失）。状态页签的「未知」档
+   * 必须能选中这类节点，否则它们会在页签计数里被统计却点不到。</p>
+   */
+  status?: string;
+}
+
+/**
+ * 判断节点是否属于某个状态档。
+ *
+ * <p>与 {@link summarizeNodes} 用同一套判定规则，保证「页签上的计数」
+ * 和「点进去看到的行数」永远一致。两处若各写一套，未知状态这类边界
+ * 就会出现计数是 3、点开却只有 1 行的矛盾。</p>
+ *
+ * @param node 节点
+ * @param status 状态档（RUNNING / STOPPED / ERROR / UNKNOWN）
+ * @return 是否属于该档
+ */
+export function matchStatusSlot(
+  node: ServerNodeView | null | undefined,
+  status: string,
+): boolean {
+  const actual = node?.status ?? "";
+  if (!actual) {
+    return status === "UNKNOWN";
+  }
+  if (status === "UNKNOWN") {
+    return !(actual in STATUS_TEXT);
+  }
+  return actual === status;
 }
 
 /** 状态文案表：未知状态走 unknown 兜底，不复用任何已有文案 */
@@ -186,8 +219,12 @@ export function filterNodes(
   }
   const keyword = (filter.keyword ?? "").trim().toLowerCase();
   const protocol = filter.protocol ?? "";
+  const status = filter.status ?? "";
   return nodes.filter(node => {
     if (protocol && node?.protocol !== protocol) {
+      return false;
+    }
+    if (status && !matchStatusSlot(node, status)) {
       return false;
     }
     if (!keyword) {

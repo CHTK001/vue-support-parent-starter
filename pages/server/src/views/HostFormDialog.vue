@@ -14,7 +14,10 @@ import { ReFormItem } from "@repo/ui/re-kit";
 import { getHost, listBoundIdentities, bindIdentity, saveHost, testPrometheusHost, fetchLocalAddress } from "../api";
 import { osIconSvg } from "../utils/osIcon";
 /** 主机表单结构（与 AssetsView.Host 保持一致——避免跨 .vue 文件的类型导入解析问题） */
-interface Host {
+// eslint-disable-next-line no-unused-vars -- 保留 import 便于日后与 AssetsView.Host 统一
+import type { Host as HostRow } from "./AssetsView.vue";
+type Host = HostRow;
+interface LegacyHostForm {
   id?: number;
   serverHostName?: string;
   serverHostAddress?: string;
@@ -78,7 +81,89 @@ const emit = defineEmits<{
 const formSaving = ref(false);
 /** 标签编辑用文本（逗号分隔），提交时写成 serverHostTags */
 const tagsText = ref("");
+/**
+ * 解析一条 ssh 命令，拆出地址 / 端口 / 账号。
+ *
+ * <p>用户手上通常只有运维给的一行命令（{@code ssh -p 2222 user@host}），
+ * 让他自己拆成三个输入框既慢又容易把端口填进地址里。这里做一次宽松解析：
+ * 认不出的部分原样忽略，绝不抛错 —— 粘贴的内容可能压根不是 ssh 命令。</p>
+ *
+ * <p>支持的写法：{@code -p 2222}、{@code -p2222}、{@code ssh://user@host:2222}、
+ * 以及末尾的 {@code user@host}。{@code -i} 私钥路径无法内联成私钥内容，不处理。</p>
+ *
+ * @param raw 粘贴的原始文本
+ * @returns 解析出的字段；一个都没认出来时返回 null
+ */
+function parseSshCommand(raw: string): { address: string; port?: number; account?: string } | null {
+  const text = raw.trim();
+  if (!text) return null;
+  // 只接受以 ssh 开头的命令或 ssh:// 形式，避免把任意文本里的 a@b 当成主机
+  if (!/^ssh\s/i.test(text) && !/^ssh:\/\//i.test(text)) return null;
+
+  let rest = text.replace(/^ssh\s+/i, "").replace(/^ssh:\/\//i, "");
+
+  let port: number | undefined;
+  // -p 2222 / -p2222
+  const pMatch = rest.match(/(?:^|\s)-p\s*(\d{1,5})(?=\s|$)/);
+  if (pMatch) {
+    const n = Number(pMatch[1]);
+    if (n >= 1 && n <= 65535) port = n;
+    rest = rest.replace(pMatch[0], " ");
+  }
+
+  // 丢掉其余选项及其值（-o Key=Value、-i path、-L 等），只留位置参数
+  const tokens = rest
+    .split(/\s+/)
+    .filter(Boolean)
+    .filter(t => !t.startsWith("-"));
+
+  // 末位才是目标：ssh 命令里选项可能带路径参数，目标永远在最后
+  const target = tokens[tokens.length - 1];
+  if (!target) return null;
+
+  let account: string | undefined;
+  let hostPart = target;
+  const at = target.lastIndexOf("@");
+  if (at > 0) {
+    account = target.slice(0, at);
+    hostPart = target.slice(at + 1);
+  }
+  // ssh:// 形式可能带 :port
+  const colon = hostPart.lastIndexOf(":");
+  if (colon > 0) {
+    const maybePort = Number(hostPart.slice(colon + 1));
+    if (Number.isInteger(maybePort) && maybePort >= 1 && maybePort <= 65535) {
+      port = port ?? maybePort;
+      hostPart = hostPart.slice(0, colon);
+    }
+  }
+  if (!hostPart) return null;
+  return { address: hostPart, port, account };
+}
+
+/** 从 ssh 命令填充表单：地址/端口/账号，命中后提示，未命中不打扰 */
+function fillFromSshCommand(): void {
+  const parsed = parseSshCommand(sshCommandText.value);
+  if (!parsed) {
+    message.warning("没能识别，示例：ssh -p 2222 user@example.com");
+    return;
+  }
+  form.value.serverHostAddress = parsed.address;
+  if (parsed.port) form.value.serverHostPort = parsed.port;
+  if (parsed.account) {
+    formAccount.value = parsed.account;
+    // 给了账号说明要自己填凭据，切到账号密码比留在「绑定身份」更顺
+    if (formAuthMethod.value === "IDENTITY") formAuthMethod.value = "PASSWORD";
+  }
+  // 主机名留空时用地址兜底，省得用户再想一个名字
+  if (!form.value.serverHostName?.trim()) form.value.serverHostName = parsed.address;
+  message.success(`已从命令填充：${parsed.address}${parsed.port ? ":" + parsed.port : ""}`);
+}
+
 const form = ref<Partial<Host>>({ serverHostName: "", serverHostAddress: "", serverHostPort: 22, serverHostOsType: "LINUX", serverHostSshEnabled: 1, serverHostCollectMode: "AGENT" });
+
+/** 粘贴的 ssh 命令原文（只用于一键填充，不参与提交） */
+const sshCommandText = ref("");
 
 /** 平台选项（只表达操作系统；图标统一走 utils/osIcon 的常规单色图标） */
 const osOptions = [
@@ -499,6 +584,22 @@ watch(() => props.modelValue, (v) => {
       <div class="form-grid">
         <!-- ─── 基本信息 ─── -->
         <div class="form-section full">基本信息</div>
+        <!-- 粘贴 ssh 命令一键拆分：运维给的通常只有一行命令，手工拆地址/端口/账号容易填错 -->
+        <ReFormItem label="从 SSH 命令填充" class="col-span-2">
+          <div class="ssh-cmd">
+            <ReInput
+              v-model="sshCommandText"
+              class="ssh-cmd__input"
+              placeholder="粘贴 ssh 命令，如 ssh -p 2222 user@ssh.example.com"
+              clearable
+              @keyup.enter="fillFromSshCommand"
+            />
+            <ReButton type="primary" :show-text="true" @click="fillFromSshCommand">识别</ReButton>
+          </div>
+          <div class="ssh-cmd__hint">
+            支持 <code>ssh -p 端口 账号@地址</code> 与 <code>ssh://账号@地址:端口</code>，识别后自动填下面三项
+          </div>
+        </ReFormItem>
         <ReFormItem label="主机名称" class="col-span-2" required>
           <ReInput v-model="form.serverHostName" placeholder="如 prod-nginx-01" style="width:100%" />
         </ReFormItem>
@@ -860,5 +961,32 @@ watch(() => props.modelValue, (v) => {
   font-size: 12px;
   line-height: 1.5;
   color: var(--el-text-color-secondary, #909399);
+}
+
+/* SSH 命令一键填充 */
+.ssh-cmd {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.ssh-cmd__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.ssh-cmd__hint {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary, #909399);
+}
+
+.ssh-cmd__hint code {
+  padding: 1px 4px;
+  font-family: var(--el-font-family-mono, ui-monospace, monospace);
+  font-size: 11.5px;
+  background: var(--el-fill-color-light);
+  border-radius: 3px;
 }
 </style>

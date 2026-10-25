@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full overflow-hidden flex flex-col">
+  <div class="h-full overflow-hidden flex flex-col" data-page="models">
     <PageHeader :title="t('settings.models.title')" />
     <div class="flex-1 min-h-0">
       <div class="models-workspace h-full flex">
@@ -85,13 +85,14 @@
     </div>
 
     <!-- 弹窗 -->
-    <ProviderFormDialog ref="formRef" @saved="handleSaved" @back="openCatalog" />
+    <ProviderFormDialog ref="formRef" @saved="handleSaved" @back="openCatalog" @goToChannelManagement="handleGoToChannelManagement" />
     <TemplateCatalogDialog ref="catalogRef" :templates="availableTemplates" @select="handleTemplateClick" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { AddOutlined, CloudOutlined, StorefrontOutlined, DeleteOutlined } from '@vicons/material'
 import PageHeader from '@/components/PageHeader.vue'
@@ -108,6 +109,7 @@ import ProviderLogo from './ProviderLogo.vue'
 import { mapProvider, mapModel } from './model.utils'
 
 const { t } = useI18n()
+const router = useRouter()
 const { confirm } = usePopup()
 
 const providers = ref<any[]>([])
@@ -196,6 +198,11 @@ const handleTemplateClick = (template: any) => formRef.value.openFromTemplate(te
 
 const handleSaved = async () => {
   await reload()
+}
+
+// 账号渠道 provider 表单内「前往渠道管理页绑定账号」的跳转入口
+const handleGoToChannelManagement = () => {
+  router.push({ name: 'SystemSettings', params: { tab: 'channels' } })
 }
 
 onMounted(async () => {

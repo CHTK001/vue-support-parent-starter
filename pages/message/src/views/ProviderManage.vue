@@ -12,10 +12,16 @@ import { ElMessageBox } from "element-plus";
 import { OfficeBuilding, Message, Document, Plus, Search, Refresh, Memo } from "@element-plus/icons-vue";
 import { deleteProvider, listChannels, pageForLog, pageForProvider, pageForTemplate, updateProvider } from "../api/messageApi";
 import type { MessageProvider } from "../api/types";
-import ReStatCard from "../components/ReStatCard.vue";
 import ReProviderFormDialog from "../components/ReProviderFormDialog.vue";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
+import ReButton from "@repo/ui/re-button";
+import ReInput from "@repo/ui/re-input";
+import ReSelect from "@repo/ui/re-select";
+import ReEmpty from "@repo/ui/re-empty";
+import ReSectionHead from "@repo/ui/re-section-head";
+import ReSkeleton from "@repo/ui/re-skeleton";
+import ReTag from "@repo/ui/re-tag";
 
 const router = useRouter();
 
@@ -246,69 +252,70 @@ onMounted(() => {
 });
 </script>
 
-<template>
-  <div class="p-6">
-    <!-- 页面头部 -->
-    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
-      <div>
-        <h2 class="text-xl font-semibold tracking-tight text-[--el-text-color-primary]">
-          消息提供商
-        </h2>
-        <p class="mt-1 text-sm text-[--el-text-color-secondary]">
-          统一管理推送渠道，维护渠道下的消息模板与发送日志
-        </p>
-      </div>
-      <el-button type="primary" :icon="Plus" @click="handleAdd">新增提供商</el-button>
-    </div>
+<!--
+  现代化视图：ReSectionHead 页头 + koi 令牌统计概览条 + 筛选卡 + 表格卡片外壳 + ReEmpty 空态。
 
-    <!-- 统计概览 -->
-    <div v-loading="statsLoading" class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-      <ReStatCard
-        v-for="card in statCards"
-        :key="card.label"
-        :label="card.label"
-        :value="card.value"
-        :desc="card.desc"
-        :icon="card.icon"
-        @click="card.onClick"
-      />
-    </div>
+  ReTable 的列 slot（col-sysMessageProviderName / col-* 等）、分页回调、统计卡 onClick 全部原样保留，
+  仅重排外壳与样式；表内启停 el-switch 保持受控（:model-value + @change）不变。
+  统计概览改用 koi 令牌的「大数字 + 顶部色条」卡片表达，整卡可点击沿用 statCards 的 onClick。
+-->
+<template>
+  <div class="mp-page">
+    <ReSectionHead
+      class="mp-head"
+      title="消息提供商"
+      description="统一管理推送渠道，维护渠道下的消息模板与发送日志"
+    >
+      <template #actions>
+        <ReButton show-text icon="Plus" type="primary" size="small" tip="新增提供商" @click="handleAdd">新增提供商</ReButton>
+      </template>
+    </ReSectionHead>
+
+    <!-- 统计概览：koi 令牌 + 大数字 + 顶部色条，整卡可点击 -->
+    <ReSkeleton :loading="statsLoading" :rows="2" :count="3" animated>
+      <div class="stat-grid" role="group" aria-label="消息提供商概览">
+        <div
+          v-for="(card, i) in statCards"
+          :key="card.label"
+          class="stat-card"
+          role="button"
+          tabindex="0"
+          @click="card.onClick"
+          @keydown.enter="card.onClick"
+        >
+          <span class="stat-label">{{ card.label }}</span>
+          <span class="stat-value">{{ card.value }}</span>
+          <span class="stat-trend">{{ card.desc }}</span>
+        </div>
+      </div>
+    </ReSkeleton>
 
     <!-- 查询区域 -->
-    <el-card shadow="never" class="mt-6 rounded-xl border border-solid border-[--el-border-color-lighter]">
-      <div class="flex flex-wrap items-center gap-3">
-        <el-input
-          v-model="query.sysMessageProviderName"
-          placeholder="提供商名称"
-          clearable
-          class="!w-56"
-          @keyup.enter="loadList"
-        />
-        <el-select
-          v-model="query.sysMessageProviderType"
-          placeholder="提供商类型"
-          clearable
-          class="!w-44"
-        >
-          <el-option
-            v-for="opt in providerTypeOptions"
-            :key="opt.value"
-            :label="opt.label"
-            :value="opt.value"
-          />
-        </el-select>
-        <div class="flex-1" />
-        <el-button type="primary" :icon="Search" @click="loadList">查询</el-button>
-        <el-button :icon="Refresh" @click="handleReset">重置</el-button>
-      </div>
-    </el-card>
+    <div class="filter-card">
+      <ReInput
+        v-model="query.sysMessageProviderName"
+        class="filter-field filter-field--search"
+        prefix-icon="Search"
+        placeholder="提供商名称"
+        clearable
+        @keyup.enter="loadList"
+      />
+      <ReSelect
+        v-model="query.sysMessageProviderType"
+        class="filter-field filter-field--select"
+        placeholder="提供商类型"
+        clearable
+        :data="providerTypeOptions"
+      />
+      <div class="filter-spacer" />
+      <ReButton icon="Search" size="small" type="primary" tip="按条件查询" @click="loadList">查询</ReButton>
+      <ReButton icon="Refresh" size="small" tip="重置查询条件" @click="handleReset">重置</ReButton>
+    </div>
 
     <!-- 提供商列表 -->
-    <el-card shadow="never" class="mt-6 rounded-xl border border-solid border-[--el-border-color-lighter]">
-      <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM；
-           原表没有 border → :settings="{ border: false }"；stripe 同名保留；v-loading → :loading；
-           分页仍由下方 el-pagination 自管，ReTable 自带分页/工具栏关闭；minHeight:0 关掉 fill
-           与空态 440px 强撑。 -->
+    <div class="table-card">
+      <!-- 表格统一 ReTable（engine="element" 沿用原 el-table 的 DOM）；
+           原表没有 border → :settings="{ border: false }"；分页仍由下方 el-pagination 自管。 -->
       <ReTable
         :loading="loading"
         :data="list"
@@ -320,40 +327,39 @@ onMounted(() => {
         :toolbar="false"
         :layout-table="{ minHeight: 0 }"
         :settings="{ border: false }"
+        empty-text="暂无提供商"
       >
         <template #col-sysMessageProviderName="{ row }">
-          <div class="flex items-center gap-3">
-            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-[--el-fill-color-light]">
-              <el-icon :size="16" color="var(--el-color-primary)"><OfficeBuilding /></el-icon>
+          <div class="provider-name">
+            <div class="provider-name__icon">
+              <el-icon :size="16" color="var(--brand-500)"><OfficeBuilding /></el-icon>
             </div>
             <div>
-              <div class="text-sm font-medium text-[--el-text-color-primary]">
-                {{ row.sysMessageProviderName }}
-              </div>
-              <div class="text-xs text-[--el-text-color-secondary]">{{ row.sysMessageProviderCode }}</div>
+              <div class="provider-name__main">{{ row.sysMessageProviderName }}</div>
+              <div class="provider-name__sub">{{ row.sysMessageProviderCode }}</div>
             </div>
           </div>
         </template>
         <template #col-sysMessageProviderType="{ row }">
-          <el-tag effect="plain">{{ row.sysMessageProviderType }}</el-tag>
+          <ReTag effect="plain" type="info">{{ row.sysMessageProviderType }}</ReTag>
         </template>
         <template #col-sysMessageProviderVender="{ row }">
-          <span class="text-[--el-text-color-secondary]">
+          <span class="cell-sub">
             {{ channelLabel(row.sysMessageProviderVender) }}
           </span>
         </template>
         <template #col-sysMessageProviderEndpoint="{ row }">
-          <span class="text-[--el-text-color-secondary]">{{ endpointOf(row) || "-" }}</span>
+          <span class="cell-sub">{{ endpointOf(row) || "-" }}</span>
         </template>
         <template #col-interval="{ row }">
           <template v-if="row.sysMessageProviderInterval && row.sysMessageProviderInterval > 0">
-            <span class="text-[--el-text-color-secondary]">{{ row.sysMessageProviderInterval }} 分钟</span>
+            <span class="cell-sub">{{ row.sysMessageProviderInterval }} 分钟</span>
           </template>
           <template v-else-if="row.sysMessageProviderInterval === 0">
-            <span class="text-xs text-[--el-text-color-secondary]">不限</span>
+            <span class="cell-sub cell-sub--small">不限</span>
           </template>
           <template v-else>
-            <span class="text-xs text-[--el-text-color-secondary]">默认 1 分钟</span>
+            <span class="cell-sub cell-sub--small">默认 1 分钟</span>
           </template>
         </template>
         <template #col-status="{ row }">
@@ -363,17 +369,25 @@ onMounted(() => {
           />
         </template>
         <template #col-actions="{ row }">
-          <el-button link type="primary" @click="openTemplates(row.sysMessageProviderId)">
-            <el-icon class="mr-0.5" :size="14"><Memo /></el-icon>模板
-          </el-button>
-          <el-button link type="primary" @click="openLogs(row.sysMessageProviderId)">
-            <el-icon class="mr-0.5" :size="14"><Document /></el-icon>日志
-          </el-button>
-          <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
-          <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+          <div class="row-actions">
+            <ReButton show-text icon="Memo" size="small" type="primary" tip="管理该提供商的模板" @click="openTemplates(row.sysMessageProviderId)">
+              模板
+            </ReButton>
+            <ReButton show-text icon="Document" size="small" type="primary" tip="查看该提供商的推送日志" @click="openLogs(row.sysMessageProviderId)">
+              日志
+            </ReButton>
+            <ReButton show-text size="small" tip="编辑提供商" @click="handleEdit(row)">编辑</ReButton>
+            <ReButton show-text size="small" type="danger" tip="删除提供商" @click="handleDelete(row)">删除</ReButton>
+          </div>
+        </template>
+        <!-- 空态走 ReEmpty：表格内的空态换成扁平空态，提示语仍由 empty-text 驱动 -->
+        <template #empty="{ description }">
+          <ReEmpty v-if="!loading" layout="modern" :description="description">
+            <ReButton show-text icon="Plus" type="primary" size="small" @click="handleAdd">新增第一个提供商</ReButton>
+          </ReEmpty>
         </template>
       </ReTable>
-      <div class="mt-4 flex justify-end">
+      <div class="table-card__pager">
         <el-pagination
           :total="pagination.total"
           :current-page="pagination.page"
@@ -382,7 +396,7 @@ onMounted(() => {
           @current-change="handlePageChange"
         />
       </div>
-    </el-card>
+    </div>
 
     <!-- 新增/编辑弹窗 -->
     <ReProviderFormDialog
@@ -393,3 +407,187 @@ onMounted(() => {
     />
   </div>
 </template>
+
+<style scoped lang="scss">
+.mp-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ===== 统计概览条 ===== */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+  padding: 14px 16px;
+  cursor: pointer;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+}
+.stat-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent, var(--brand-500));
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.stat-card:nth-child(1) { --accent: var(--brand-500); }
+.stat-card:nth-child(2) { --accent: var(--status-info); }
+.stat-card:nth-child(3) { --accent: var(--status-warning); }
+.stat-label {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+}
+.stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.stat-trend {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== 筛选卡 ===== */
+.filter-card {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.filter-field--search {
+  width: 240px;
+}
+.filter-field--select {
+  width: 180px;
+}
+.filter-spacer {
+  flex: 1 1 auto;
+}
+
+/* ===== 表格壳 ===== */
+.table-card {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.table-card > :deep(.re-table) {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.table-card :deep(.rm-empty) {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 0;
+}
+.table-card__pager {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+/* ===== 表内单元格 ===== */
+.provider-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.provider-name__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--bg-fill);
+  flex-shrink: 0;
+}
+.provider-name__main {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+.provider-name__sub {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.cell-sub {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.cell-sub--small {
+  font-size: 12px;
+}
+.row-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+/* ===== 响应式：移动端 2 列概览 + 筛选占满 ===== */
+@media (max-width: 768px) {
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .stat-card:nth-child(3) {
+    grid-column: span 2;
+  }
+  .filter-field--search,
+  .filter-field--select {
+    width: 100%;
+  }
+  .filter-spacer {
+    flex: none;
+    width: 100%;
+  }
+}
+
+/* ===== 减少动态效果 ===== */
+@media (prefers-reduced-motion: reduce) {
+  .stat-card {
+    transition: none;
+  }
+  .stat-card:hover {
+    transform: none;
+  }
+}
+</style>

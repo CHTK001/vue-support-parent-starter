@@ -74,7 +74,16 @@ export const useAuthStore = defineStore('auth', () => {
         if (!accessToken) {
             throw new Error(t('common.auth.loginFailed'))
         }
-        remember(accessToken, payload.user ?? payload)
+        // ⚠️ 登录响应把角色放在与 user 平级的 roles 上
+        // （{ accessToken, user: {userId...}, roles: ["SUPER_ADMIN","ADMIN"] }），
+        // 而 user 对象本身不含 roles。只取 payload.user 会让存进 storage 的
+        // roles 恒为 []，isAdmin() 判否 —— 管理员登录后被渠道管理这类 adminOnly
+        // 页面挡在「仅管理员可访问」，要再刷新一次（走 /v2/user/me）才恢复。
+        const profile: MePayload = { ...(payload.user ?? payload) }
+        if (!profile.roles?.length && payload.roles?.length) {
+            profile.roles = payload.roles
+        }
+        remember(accessToken, profile)
         startAuthRefreshTimer()
         return true
     }

@@ -87,7 +87,7 @@
       </main>
     </div>
 
-    <el-dialog v-model="detailVisible" :title="detailTitle" width="640px" destroy-on-close>
+    <ReDialog v-model="detailVisible" :title="detailTitle" width="640px" destroy-on-close>
       <div class="text-sm space-y-2">
         <div>设备编码：{{ selected?.deviceInfoCode || '-' }}</div>
         <div>厂商 / 型号：{{ selected?.deviceInfoVendor || '-' }} / {{ selected?.deviceInfoModel || '-' }}</div>
@@ -95,10 +95,7 @@
         <div>负责人：{{ selected?.deviceInfoOwnerName || '-' }}</div>
         <div>地址：{{ selected?.deviceInfoAddress || '-' }}</div>
       </div>
-      <template #footer>
-        <el-button @click="detailVisible = false">关闭</el-button>
-      </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -106,6 +103,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import ReMap from '@pages/device/src/components/ReMap.vue'
+import ReDialog from '@repo/ui/re-dialog'
 import { deviceApi } from '@pages/device/src/api/deviceApi'
 import { CATEGORY_LABELS, getCategoryLabel } from '@pages/device/src/utils/deviceCategory'
 import type { DeviceInfo } from '@pages/device/src/types/device'

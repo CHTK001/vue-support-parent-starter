@@ -1,40 +1,42 @@
 <template>
-  <div class="app-keys-page">
-    <div class="page-header">
-      <h2>AppKey管理</h2>
-      <div class="header-actions">
-        <el-input
-          v-model="searchKeyword"
-          placeholder="搜索AppKey名称"
-          clearable
-          style="width: 240px; margin-right: 12px"
-          @keyup.enter="loadData"
-          @clear="loadData"
-        >
-          <template #prefix><el-icon><Search /></el-icon></template>
-        </el-input>
-        <el-button type="primary" @click="openCreateDialog">
-          <el-icon><Plus /></el-icon> 新增AppKey
-        </el-button>
-        <el-button @click="loadData"><el-icon><Refresh /></el-icon> 刷新</el-button>
-      </div>
-    </div>
+  <RePage data-page="app-keys" title="AppKey管理">
+    <template #actions>
+      <el-input
+        v-model="searchKeyword"
+        placeholder="搜索AppKey名称"
+        clearable
+        @keyup.enter="loadData"
+        @clear="loadData"
+      >
+        <template #prefix><el-icon><Search /></el-icon></template>
+      </el-input>
+      <el-button type="primary" @click="openCreateDialog">
+        <el-icon><Plus /></el-icon> 新增AppKey
+      </el-button>
+      <el-button @click="loadData"><el-icon><Refresh /></el-icon> 刷新</el-button>
+    </template>
 
     <div class="panel-card">
-    <!-- 表格统一 ReTable（替换裸 el-table）：engine="element"；分页由下方 el-pagination 自管；
+    <!-- 表格统一 ReTable：默认引擎已是 vxe（不再显式写）。
+         分页改用 ReTable 自带的 RePagination —— 此前是 :pagination="false" + 页面自写
+         el-pagination；现在受控传 page/page-size/total，组件发 update:page 后本页去取数。
          原表没有 border → :settings="{ border: false }"；v-loading → :loading。 -->
     <ReTable
       :data="filteredData"
       :columns="appKeyColumns"
       :loading="loading"
-      engine="element"
-      :pagination="false"
+      :pagination="true"
+      :total="filteredData.length"
+      :page="currentPage"
+      :page-size="pageSize"
+      :page-sizes="[10, 20, 50]"
       :toolbar="false"
       :layout-table="{ minHeight: 0 }"
       :settings="{ border: false }"
       stripe
       class="flat-table"
       style="width: 100%"
+      @update:page="onPageChange"
     >
       <template #col-appKey="{ row }">
         <span class="key-text">{{ row.appKey }}</span>
@@ -45,21 +47,14 @@
           {{ row.status === 1 ? '启用' : '禁用' }}
         </el-tag>
       </template>
+      <!-- 操作列统一 ReButton square（纯图标 + tooltip），与知识库等页面一致 -->
       <template #col-actions="{ row }">
-        <el-button type="primary" link @click="openEditDialog(row)">编辑</el-button>
-        <el-button type="danger" link @click="deleteItem(row)">删除</el-button>
+        <div class="row-actions">
+          <ReButton layout="square" type="primary" :icon="Edit" tip="编辑" @click="openEditDialog(row)" />
+          <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click="deleteItem(row)" />
+        </div>
       </template>
     </ReTable>
-
-    <div class="pagination-wrapper">
-      <el-pagination
-        v-model:current-page="currentPage"
-        v-model:page-size="pageSize"
-        :page-sizes="[10, 20, 50]"
-        :total="dataList.length"
-        layout="total, sizes, prev, pager, next"
-      />
-    </div>
     </div>
 
     <ReDialog v-model="dialogVisible" :title="isEdit ? '编辑AppKey' : '新增AppKey'" width="500px" append-to-body>
@@ -92,18 +87,20 @@
         <el-button type="primary" @click="submitForm" :loading="submitting">保存</el-button>
       </template>
     </ReDialog>
-  </div>
+  </RePage>
 </template>
 
 <script setup lang="ts">
 import { message } from "@repo/core";
 import { ref, computed, onMounted } from 'vue';
 import { ElMessageBox } from 'element-plus';
-import { Search, Plus, Refresh } from '@element-plus/icons-vue';
+import { Search, Plus, Refresh, Edit, Delete } from '@element-plus/icons-vue';
 import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn } from '@repo/ui/re-table';
 import { appKeyApi } from '@/services/javaApi';
 import ReDialog from '@repo/ui/re-dialog';
+import RePage from '@/components/re/RePage.vue';
+import ReButton from '@repo/ui/re-button';
 
 /**
  * 列配置：原模板里的 6 个 el-table-column 收敛为数组。
@@ -136,14 +133,24 @@ const rules = {
   provider: [{ required: true, message: '请选择提供商', trigger: 'change' }],
 };
 
+/**
+ * 过滤后的全量数据（**不再自己切片**）。
+ *
+ * <p>分页已交给 ReTable 内部完成：页面此前自己 slice + 配一页 el-pagination，
+ * 两处都要维护页码/页长/总数，现已收口到组件内。</p>
+ */
 const filteredData = computed(() => {
   let result = dataList.value;
   if (searchKeyword.value) {
     result = result.filter((item) => item.appName?.includes(searchKeyword.value));
   }
-  const start = (currentPage.value - 1) * pageSize.value;
-  return result.slice(start, start + pageSize.value);
+  return result;
 });
+
+/** ReTable 分页页码变化（前端分页：组件自己切片，这里只需同步页码态） */
+function onPageChange(page: number) {
+  currentPage.value = page;
+}
 
 const loadData = async () => {
   loading.value = true;
@@ -213,26 +220,15 @@ onMounted(() => loadData());
 </script>
 
 <style scoped>
-.app-keys-page { padding: 22px 24px; height: 100%; overflow: auto; }
-.page-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
-.page-header h2 {
-  position: relative; margin: 0; font-size: 21px; font-weight: 700;
-  color: var(--el-text-color-primary); padding-left: 12px;
-}
-.page-header h2::before {
-  content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
-  width: 4px; height: 19px;
-  /* 原值 4px，恰为 19px 高的半径即胶囊；用 full 令牌表达同一种形状 */
-  border-radius: var(--el-radius-full, 9999px);
-  background: linear-gradient(180deg, var(--el-color-primary), var(--el-color-primary-light-3));
-}
-.header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+/* 页面外壳（留白 / 标题 / 操作区）已收口到 RePage：
+   原来这里的 .app-keys-page 自带 padding + overflow，与 RePage 叠加会出现
+   「双层留白 + 双滚动条」，所以整段删掉，只留内容区样式。 */
 
 .panel-card {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  /* 原值 18px → xl 档 */
-  border-radius: var(--el-radius-xl, 16px);
+  /* 与用量页看板统一：8px 圆角（原来这里是 16px，一页一个圆角标准） */
+  border-radius: var(--u-radius, 8px);
   padding: 16px 18px 14px;
   /* 表格容器是页面区块，不加投影 */
 }
@@ -243,5 +239,5 @@ onMounted(() => loadData());
   font-weight: 600;
 }
 .key-text { font-family: ui-monospace, monospace; font-size: 13px; color: var(--el-text-color-secondary); margin-right: 8px; }
-.pagination-wrapper { margin-top: 16px; display: flex; justify-content: flex-end; }
+/* 注：原 .pagination-wrapper（页面自写 el-pagination 的容器）已随分页收口到 ReTable 内部而移除。 */
 </style>

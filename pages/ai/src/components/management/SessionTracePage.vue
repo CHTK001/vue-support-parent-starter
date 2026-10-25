@@ -8,7 +8,7 @@
     - 会话消息：GET /v2/sessions/{id}/messages
     轨迹顺序由 flattenContentsForTimeline(messages.contents) 决定，即原始发生顺序。
   -->
-  <div class="trace-page">
+  <div class="trace-page" data-page="trace">
     <!-- 左：会话列表 -->
     <aside class="trace-aside">
       <div class="aside-head">

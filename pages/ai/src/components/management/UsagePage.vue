@@ -1,105 +1,335 @@
 <template>
-  <div class="usage-page">
-    <div class="page-hero">
-      <div class="hero-text">
-        <h2 class="page-title">用量管理</h2>
-        <p class="page-subtitle">
-          <span class="sub-dot"></span>{{ rangeLabel }}
-        </p>
-      </div>
-      <div class="quick-filters">
-        <div class="seg-pills" role="tablist">
-          <button v-for="f in quickFilters" :key="f.key" type="button" class="pill"
-            role="tab" :class="{ active: activeFilter === f.key }"
-            :aria-selected="activeFilter === f.key" @click="setQuickFilter(f.key)">{{ f.label }}</button>
+  <div class="usage-page" data-page="usage">
+    <!-- §1 页面头：统一用 RePageHead（全站共用一份实现） -->
+    <RePageHead title="用量管理">
+      <template #meta>
+        <!-- 实时状态：微呼吸绿点 + 文案；有流量时补一枚速率胶囊 -->
+        <div class="live-status" :class="`is-${liveState}`" :title="liveState === 'error' ? '实时连接失败，已退回手动刷新' : rangeLabel">
+          <span class="live-dot" :class="{ 'is-pulsing': liveState === 'live' }" />
+          <span class="live-text">{{ liveLabel }}</span>
+          <span v-if="liveRate > 0" class="live-rate">{{ fmtToken(liveRate) }}/分</span>
+          <!-- 暂停/恢复：图标开关，不占横向空间 -->
+          <button type="button" class="live-toggle" :class="{ 'is-off': !liveEnabled }"
+            :title="liveEnabled ? '暂停实时推送' : '恢复实时推送'" :aria-pressed="liveEnabled"
+            @click="liveEnabled = !liveEnabled">
+            <svg v-if="liveEnabled" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <rect x="7" y="5.5" width="3.4" height="13" rx="1.2" />
+              <rect x="13.6" y="5.5" width="3.4" height="13" rx="1.2" />
+            </svg>
+            <svg v-else viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M8.5 5.6a1 1 0 0 1 1.52-.85l8.2 6.4a1 1 0 0 1 0 1.7l-8.2 6.4a1 1 0 0 1-1.52-.85V5.6Z" />
+            </svg>
+          </button>
         </div>
+      </template>
+      <template #actions>
+        <!-- 胶囊时间切换 -->
+        <div class="time-pills" role="tablist">
+          <button v-for="f in quickFilters" :key="f.key" type="button" class="time-pill"
+            role="tab" :class="{ active: activeFilter === f.key }"
+            :aria-selected="activeFilter === f.key" @click="setQuickFilter(f.key)">
+            {{ f.label }}
+          </button>
+        </div>
+        <!-- 日历图标日期框 (已废弃，保留以兼容后续迁移) -->
         <el-date-picker
           v-model="customRange"
           type="daterange"
           range-separator="至"
           start-placeholder="开始日期"
           end-placeholder="结束日期"
-          class="hero-date"
+          class="date-picker"
           value-format="YYYY-MM-DD"
           @change="onCustomRange"
         />
+        <!-- 导出 & 刷新图标按钮 -->
+        <div class="action-buttons">
+          <button type="button" class="icon-btn" title="导出当前区间用量" aria-label="导出" @click="handleExport">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3.5v11.2M7.6 10.4 12 14.8l4.4-4.4M4.5 19.5h15" />
+            </svg>
+          </button>
+          <button type="button" class="icon-btn" title="刷新数据" aria-label="刷新" @click="refreshAll">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20 12a8 8 0 1 1-2.4-5.7M20 4.2v4.6h-4.6" />
+            </svg>
+          </button>
+        </div>
+      </template>
+      <!-- 刷新进度条：贴页面头底边的一条 2px 流光。请求进行时才出现，
+           解决「点完刷新后页面没有任何反馈」的问题（此前只有表格内有转圈，
+           而 KPI 数字也要等接口回来才变，中间这几秒像没反应）。 -->
+      <template #foot>
+        <div class="refresh-bar" :class="{ 'is-on': refreshing }" aria-hidden="true"><i /></div>
+      </template>
+    </RePageHead>
+
+    <!-- §3 1 主 3 辅指标卡矩阵 -->
+    <div class="stats-grid">
+      <!-- 主卡：总 Token (宽度 2×) -->
+      <div class="kpi-card kpi-primary" :class="`tone-${statCards[0].tone}`">
+        <div class="kpi-top">
+          <span class="kpi-icon-wrapper">
+            <span class="kpi-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+                <path d="M12 2.8 19 6.4v6.2c0 4.3-2.9 6.7-7 8.6-4.1-1.9-7-4.3-7-8.6V6.4L12 2.8Z M9.2 11.6l2 2 3.8-4" />
+              </svg>
+            </span>
+          </span>
+          <span class="kpi-label">{{ statCards[0].label }}</span>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-main-value" :class="statCards[0].cls">
+            <span class="value-anim">{{ statCards[0].value }}</span>
+            <span class="unit">tokens</span>
+          </div>
+          <div class="kpi-mini-ring">
+            <ReEcharts :option="miniRingOption('input')" height="60px" width="80px" notMerge />
+          </div>
+        </div>
+        <div class="kpi-sub">
+          <span class="sub-item sub-input">输入 <b>{{ fmtToken(stats.totalPromptTokens) }}</b></span>
+          <span class="sub-item sub-output">输出 <b>{{ fmtToken(stats.totalCompletionTokens) }}</b></span>
+        </div>
+      </div>
+
+      <!-- 辅卡：总请求数 -->
+      <div class="kpi-card" :class="`tone-${statCards[1].tone}`">
+        <div class="kpi-top">
+          <span class="kpi-icon-wrapper">
+            <span class="kpi-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+                <path d="M2 12h3.2l2.4 7.5 4.2-15 3.3 9.2H14M15 12h7" />
+              </svg>
+            </span>
+          </span>
+          <span class="kpi-label">{{ statCards[1].label }}</span>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-main-value" :class="statCards[1].cls">
+            <span class="value-anim">{{ statCards[1].value }}</span>
+          </div>
+        </div>
+        <div class="kpi-sub">
+          <span class="sub-item sub-cached">缓存 <b>{{ fmtToken(stats.totalCachedTokens) }} tokens</b></span>
+        </div>
+      </div>
+
+      <!-- 辅卡：总消费 -->
+      <div class="kpi-card" :class="`tone-${statCards[2].tone}`">
+        <div class="kpi-top">
+          <span class="kpi-icon-wrapper">
+            <span class="kpi-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+                <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5.5A2.5 2.5 0 0 1 3 14.5v-7ZM3 9.5h18M15 12h3.2" />
+              </svg>
+            </span>
+          </span>
+          <span class="kpi-label">{{ statCards[2].label }}</span>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-main-value cost">
+            <span class="value-anim">{{ statCards[2].value }}</span>
+          </div>
+        </div>
+        <div class="kpi-sub">
+          <span class="sub-item sub-standard">标准价 <b>{{ statCards[2].sub[0] }}</b></span>
+        </div>
+      </div>
+
+      <!-- 辅卡：平均耗时 -->
+      <div class="kpi-card" :class="`tone-${statCards[3].tone}`">
+        <div class="kpi-top">
+          <span class="kpi-icon-wrapper">
+            <span class="kpi-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+                <path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM12 7.5V12l3 2" />
+              </svg>
+            </span>
+          </span>
+          <span class="kpi-label">{{ statCards[3].label }}</span>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-main-value">
+            <span class="value-anim">{{ statCards[3].value }}</span>
+            <span class="unit">ms</span>
+          </div>
+        </div>
+        <div class="kpi-sub">
+          <span class="sub-item sub-first">首字 <b>{{ statCards[3].sub[0] }}</b></span>
+        </div>
       </div>
     </div>
+
 
     <!--
-      实时用量条（SSE）。
+      §4 双栏看板：左「模型用量分析」/ 右「分组用量分析」。
 
-      为什么需要它：页面此前只在「切筛选 / 点刷新」时拉一次快照，一次真实调用在界面上
-      完全看不出来 —— 盯着不动的数字，用户根本判断不了系统到底在不在跑。这里挂一条
-      SSE，由后端按秒**合并**推送重算后的快照（不是增量），前端直接替换即可。
+      每栏是一张**整卡**，上半「环形总览 + 右侧图例」、下半「明细表」，
+      不再像此前那样把图和表拆成两个互不相干的块 —— 图和表回答的是同一个问题，
+      拆开后用户得自己在两块之间对账。
+
+      环形中心直接内嵌 Top1 占比：不读图例也能一眼拿到「谁占大头、占多少」。
     -->
-    <div class="live-bar" :class="`is-${liveState}`">
-      <span class="live-dot" :class="{ 'is-pulsing': liveState === 'live' }" />
-      <span class="live-label">{{ liveLabel }}</span>
-      <span class="live-metrics">
-        <span class="live-metric">今日 Token <b>{{ fmtToken(liveTodayTokens) }}</b></span>
-        <span class="live-metric">区间 Token <b>{{ fmtToken(liveRangeTokens) }}</b></span>
-        <span v-if="liveRate > 0" class="live-metric is-rate">速率 <b>{{ fmtToken(liveRate) }}</b>/分</span>
-      </span>
-      <el-switch v-model="liveEnabled" size="small" inline-prompt active-text="实时" inactive-text="暂停" />
-    </div>
-
-    <!-- 顶部 KPI 卡片 -->
-    <div class="stats-grid">
-      <div v-for="s in statCards" :key="s.label" class="kpi-card" :class="`tone-${s.tone}`">
-        <div class="kpi-top">
-          <span class="kpi-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
-              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path :d="s.icon" /></svg>
-          </span>
-          <span class="kpi-label">{{ s.label }}</span>
-        </div>
-        <div class="kpi-value" :class="s.cls">{{ s.value }}<span v-if="s.unit" class="unit">{{ s.unit }}</span></div>
-        <div class="kpi-sub"><span v-for="(sub, i) in s.sub" :key="i">{{ sub }}</span></div>
-      </div>
-    </div>
-
-    <!-- 模型 / 分组 分布 -->
-    <div class="dist-grid">
-      <ReCard title="模型分布">
-        <template #extra>
-          <div class="seg-toggle">
-            <button class="seg-btn" :class="{ active: modelChartType === 'token' }" @click="modelChartType = 'token'">按 Token</button>
-            <button class="seg-btn" :class="{ active: modelChartType === 'cost' }" @click="modelChartType = 'cost'">按费用</button>
+    <div class="board-grid board-grid--analysis">
+      <!-- ===== 左栏：模型用量分析 ===== -->
+      <section class="board-card">
+        <header class="board-head">
+          <div class="board-title-wrap">
+            <h3 class="board-title">模型用量分析</h3>
+            <span class="board-hint">{{ modelBoard.items.length }} 个模型</span>
           </div>
-        </template>
-        <ReEcharts :option="modelPieOption" height="260px" not-merge />
-        <ReTable :data="modelPaged" :columns="modelDistColumns" :show-index="false" :stripe="false" class="dist-table" :row-style="distRowStyle(modelDist, modelChartType)">
-          <template #col-name="{ row }"><span class="model-name">{{ row.name }}</span></template>
-          <template #col-requests="{ row }">{{ formatNumber(row.requests) }}</template>
-          <template #col-totalTokens="{ row }">{{ fmtToken(row.totalTokens) }}</template>
-          <template #col-cost="{ row }">{{ money(row.cost) }}</template>
-          <template #col-percent="{ row }">{{ percent(row, modelDist, modelChartType) }}</template>
-        </ReTable>
-        <div class="pager-row" v-if="modelDist.length > distPageSize">
-          <el-pagination background small layout="prev, pager, next" :total="modelDist.length" :page-size="distPageSize" v-model:current-page="modelPage" />
-        </div>
-      </ReCard>
-
-      <ReCard title="分组分布">
-        <template #extra>
-          <div class="seg-toggle">
-            <button class="seg-btn" :class="{ active: groupChartType === 'token' }" @click="groupChartType = 'token'">按 Token</button>
-            <button class="seg-btn" :class="{ active: groupChartType === 'cost' }" @click="groupChartType = 'cost'">按费用</button>
+          <div class="board-tabs" role="tablist">
+            <button v-for="t in boardTabs" :key="t.key" type="button" class="board-tab"
+              role="tab" :class="{ active: modelChartType === t.key }"
+              :aria-selected="modelChartType === t.key" @click="modelChartType = t.key">{{ t.label }}</button>
           </div>
-        </template>
-        <ReEcharts :option="groupPieOption" height="260px" not-merge />
-        <ReTable :data="groupPaged" :columns="groupDistColumns" :show-index="false" :stripe="false" class="dist-table" :row-style="distRowStyle(groupDist, groupChartType)">
-          <template #col-name="{ row }"><span class="model-name">{{ row.name }}</span></template>
-          <template #col-requests="{ row }">{{ formatNumber(row.requests) }}</template>
-          <template #col-totalTokens="{ row }">{{ fmtToken(row.totalTokens) }}</template>
-          <template #col-cost="{ row }">{{ money(row.cost) }}</template>
-          <template #col-percent="{ row }">{{ percent(row, groupDist, groupChartType) }}</template>
-        </ReTable>
-        <div class="pager-row" v-if="groupDist.length > distPageSize">
-          <el-pagination background small layout="prev, pager, next" :total="groupDist.length" :page-size="distPageSize" v-model:current-page="groupPage" />
+        </header>
+
+        <div class="board-viz">
+          <div class="board-ring">
+            <!-- hover 扇区 → 环心数值同步（§6）。mouseout / globalout 都要复位：
+                 从扇区直接移出画布时只会派发 globalout。 -->
+            <ReEcharts :option="modelRingOption" height="176px" notMerge
+              @mouseover="(p: any) => onRingHover('model', p)"
+              @mouseout="() => onRingHover('model', null)"
+              @globalout="() => onRingHover('model', null)" />
+            <div class="ring-center">
+              <span class="ring-pct">{{ ringTop(modelBoard, modelHover).pct }}</span>
+              <span class="ring-name" :title="ringTop(modelBoard, modelHover).name">{{ ringTop(modelBoard, modelHover).name }}</span>
+            </div>
+          </div>
+          <ul class="board-legend">
+            <!-- 与环形图的 slices 同源同序：环上几个扇区，图例就几行 -->
+            <li v-for="it in modelBoard.slices" :key="it.name" class="legend-item"
+              :class="{ 'is-top': it === modelBoard.slices[0], 'is-hover': modelHover?.name === it.name, 'is-other': it.color === OTHER_SLICE_COLOR }"
+              @mouseenter="onLegendHover('model', it)" @mouseleave="onLegendHover('model', null)">
+              <i class="legend-dot" :style="{ background: it.color }" />
+              <span class="legend-name" :title="it.name">{{ it.name }}</span>
+              <span class="legend-pct">{{ it.pct.toFixed(1) }}%</span>
+            </li>
+            <li v-if="modelBoard.slices.length === 0" class="legend-empty">
+              <el-empty description="暂无数据" :image-size="40" />
+            </li>
+          </ul>
         </div>
-      </ReCard>
+
+        <div class="board-table">
+          <ReTable
+            :data="modelDist"
+            :columns="boardColumns('模型')"
+            :show-index="false"
+            :stripe="false"
+            size="small"
+            :pagination="false"
+            empty-text="暂无模型用量"
+          >
+            <template #col-name="{ row }">
+              <div class="name-cell" :class="{ 'is-zero': isZeroCost(row, modelChartType) }">
+                <i class="name-dot" :style="{ background: boardColorOf(modelBoard, row.name) }" />
+                <span class="name-text" :title="row.name">{{ row.name }}</span>
+              </div>
+            </template>
+            <template #col-requests="{ row }">
+              <span class="num-cell" :class="{ 'is-zero': isZeroCost(row, modelChartType) }">{{ formatNumber(row.requests) }}</span>
+            </template>
+            <template #col-totalTokens="{ row }">
+              <span class="num-cell" :class="{ 'is-zero': isZeroCost(row, modelChartType) }">{{ fmtToken(row.totalTokens) }}</span>
+            </template>
+            <template #col-cost="{ row }">
+              <span class="num-cell" :class="{ 'is-zero': isZeroCost(row, modelChartType) }">{{ money(row.cost) }}</span>
+            </template>
+            <template #col-percent="{ row }">
+              <div class="pct-cell">
+                <span class="pct-track">
+                  <i class="pct-fill"
+                    :style="{ width: barWidth(percentNum(row, modelDist, modelChartType)), background: boardColorOf(modelBoard, row.name) }" />
+                </span>
+                <span class="pct-text">{{ percent(row, modelDist, modelChartType) }}</span>
+              </div>
+            </template>
+          </ReTable>
+        </div>
+      </section>
+
+      <!-- ===== 右栏：分组用量分析 ===== -->
+      <section class="board-card">
+        <header class="board-head">
+          <div class="board-title-wrap">
+            <h3 class="board-title">分组用量分析</h3>
+            <span class="board-hint">{{ groupBoard.items.length }} 个分组</span>
+          </div>
+          <div class="board-tabs" role="tablist">
+            <button v-for="t in boardTabs" :key="t.key" type="button" class="board-tab"
+              role="tab" :class="{ active: groupChartType === t.key }"
+              :aria-selected="groupChartType === t.key" @click="groupChartType = t.key">{{ t.label }}</button>
+          </div>
+        </header>
+
+        <div class="board-viz">
+          <div class="board-ring">
+            <ReEcharts :option="groupRingOption" height="176px" notMerge
+              @mouseover="(p: any) => onRingHover('group', p)"
+              @mouseout="() => onRingHover('group', null)"
+              @globalout="() => onRingHover('group', null)" />
+            <div class="ring-center">
+              <span class="ring-pct">{{ ringTop(groupBoard, groupHover).pct }}</span>
+              <span class="ring-name" :title="ringTop(groupBoard, groupHover).name">{{ ringTop(groupBoard, groupHover).name }}</span>
+            </div>
+          </div>
+          <ul class="board-legend">
+            <li v-for="it in groupBoard.slices" :key="it.name" class="legend-item"
+              :class="{ 'is-top': it === groupBoard.slices[0], 'is-hover': groupHover?.name === it.name, 'is-other': it.color === OTHER_SLICE_COLOR }"
+              @mouseenter="onLegendHover('group', it)" @mouseleave="onLegendHover('group', null)">
+              <i class="legend-dot" :style="{ background: it.color }" />
+              <span class="legend-name" :title="it.name">{{ it.name }}</span>
+              <span class="legend-pct">{{ it.pct.toFixed(1) }}%</span>
+            </li>
+            <li v-if="groupBoard.slices.length === 0" class="legend-empty">
+              <el-empty description="暂无数据" :image-size="40" />
+            </li>
+          </ul>
+        </div>
+
+        <div class="board-table">
+          <ReTable
+            :data="groupDist"
+            :columns="boardColumns('分组')"
+            :show-index="false"
+            :stripe="false"
+            size="small"
+            :pagination="false"
+            empty-text="暂无分组用量"
+          >
+            <template #col-name="{ row }">
+              <div class="name-cell" :class="{ 'is-zero': isZeroCost(row, groupChartType) }">
+                <i class="name-dot" :style="{ background: boardColorOf(groupBoard, row.name) }" />
+                <span class="name-text" :title="row.name">{{ row.name }}</span>
+              </div>
+            </template>
+            <template #col-requests="{ row }">
+              <span class="num-cell" :class="{ 'is-zero': isZeroCost(row, groupChartType) }">{{ formatNumber(row.requests) }}</span>
+            </template>
+            <template #col-totalTokens="{ row }">
+              <span class="num-cell" :class="{ 'is-zero': isZeroCost(row, groupChartType) }">{{ fmtToken(row.totalTokens) }}</span>
+            </template>
+            <template #col-cost="{ row }">
+              <span class="num-cell" :class="{ 'is-zero': isZeroCost(row, groupChartType) }">{{ money(row.cost) }}</span>
+            </template>
+            <template #col-percent="{ row }">
+              <div class="pct-cell">
+                <span class="pct-track">
+                  <i class="pct-fill"
+                    :style="{ width: barWidth(percentNum(row, groupDist, groupChartType)), background: boardColorOf(groupBoard, row.name) }" />
+                </span>
+                <span class="pct-text">{{ percent(row, groupDist, groupChartType) }}</span>
+              </div>
+            </template>
+          </ReTable>
+        </div>
+      </section>
     </div>
 
     <!--
@@ -108,84 +338,153 @@
       「应用」= 消耗模型的软件：opencode / claude-code / codex 这类三方工具，
       以及本控制台自己（对话 + 机器人合并）。口径见下方 appDist 注释。
     -->
-    <div class="dist-grid">
-      <ReCard title="模型排行 Top5">
-        <template #extra>
-          <div class="seg-toggle">
-            <button class="seg-btn" :class="{ active: rankMetric === 'token' }" @click="rankMetric = 'token'">按 Token</button>
-            <button class="seg-btn" :class="{ active: rankMetric === 'cost' }" @click="rankMetric = 'cost'">按费用</button>
+    <div class="board-grid">
+      <section class="board-card panel">
+        <header class="board-head">
+          <div class="board-title-wrap">
+            <h3 class="board-title">模型排行 Top5</h3>
           </div>
-        </template>
-        <ol class="rank-list">
-          <li v-for="(r, i) in modelRankTop5" :key="r.name" class="rank-item">
-            <span class="rank-no" :class="`is-${i + 1}`">{{ i + 1 }}</span>
-            <span class="rank-name" :title="r.name">{{ r.name }}</span>
-            <span class="rank-bar">
-              <span class="rank-bar-fill" :style="{ width: rankBarWidth(r, modelRankTop5) }" />
-            </span>
-            <span class="rank-value">{{ rankValue(r) }}</span>
-            <span class="rank-pct">{{ rankPct(r, modelRankTop5) }}</span>
-          </li>
-        </ol>
-        <el-empty v-if="modelRankTop5.length === 0" description="暂无模型用量" class="lib-empty" :image-size="60" />
-      </ReCard>
+          <div class="board-tabs" role="tablist">
+            <button v-for="t in boardTabs" :key="t.key" type="button" class="board-tab"
+              role="tab" :class="{ active: rankMetric === t.key }"
+              :aria-selected="rankMetric === t.key" @click="rankMetric = t.key">{{ t.label }}</button>
+          </div>
+        </header>
+        <div class="panel-body">
+          <ol class="rank-list">
+            <li v-for="(r, i) in modelRankTop5" :key="r.name" class="rank-item">
+              <span class="rank-no" :class="`is-${i + 1}`">{{ i + 1 }}</span>
+              <span class="rank-name" :title="r.name">{{ r.name }}</span>
+              <span class="rank-bar">
+                <span class="rank-bar-fill" :style="{ width: rankBarWidth(r, modelRankTop5) }" />
+              </span>
+              <span class="rank-value">{{ rankValue(r) }}</span>
+              <span class="rank-pct">{{ rankPct(r, modelRankTop5) }}</span>
+            </li>
+          </ol>
+          <div v-if="modelRankTop5.length === 0" class="legend-empty">
+            <el-empty description="暂无模型用量" :image-size="56" />
+          </div>
+        </div>
+      </section>
 
-      <ReCard title="应用排行 Top5">
-        <template #extra>
-          <div class="seg-toggle">
-            <button class="seg-btn" :class="{ active: rankMetric === 'token' }" @click="rankMetric = 'token'">按 Token</button>
-            <button class="seg-btn" :class="{ active: rankMetric === 'cost' }" @click="rankMetric = 'cost'">按费用</button>
+      <section class="board-card panel">
+        <header class="board-head">
+          <div class="board-title-wrap">
+            <h3 class="board-title">应用排行 Top5</h3>
           </div>
-        </template>
-        <ol class="rank-list">
-          <li v-for="(r, i) in appRankTop5" :key="r.name" class="rank-item">
-            <span class="rank-no" :class="`is-${i + 1}`">{{ i + 1 }}</span>
-            <span class="rank-name" :title="r.name">{{ appLabel(r.name) }}</span>
-            <span class="rank-bar">
-              <span class="rank-bar-fill" :style="{ width: rankBarWidth(r, appRankTop5) }" />
-            </span>
-            <span class="rank-value">{{ rankValue(r) }}</span>
-            <span class="rank-pct">{{ rankPct(r, appRankTop5) }}</span>
-          </li>
-        </ol>
-        <el-empty v-if="appRankTop5.length === 0" description="暂无应用用量" class="lib-empty" :image-size="60" />
-      </ReCard>
+          <div class="board-tabs" role="tablist">
+            <button v-for="t in boardTabs" :key="t.key" type="button" class="board-tab"
+              role="tab" :class="{ active: rankMetric === t.key }"
+              :aria-selected="rankMetric === t.key" @click="rankMetric = t.key">{{ t.label }}</button>
+          </div>
+        </header>
+        <div class="panel-body">
+          <ol class="rank-list">
+            <li v-for="(r, i) in appRankTop5" :key="r.name" class="rank-item">
+              <span class="rank-no" :class="`is-${i + 1}`">{{ i + 1 }}</span>
+              <span class="rank-name" :title="r.name">{{ appLabel(r.name) }}</span>
+              <span class="rank-bar">
+                <span class="rank-bar-fill" :style="{ width: rankBarWidth(r, appRankTop5) }" />
+              </span>
+              <span class="rank-value">{{ rankValue(r) }}</span>
+              <span class="rank-pct">{{ rankPct(r, appRankTop5) }}</span>
+            </li>
+          </ol>
+          <div v-if="appRankTop5.length === 0" class="legend-empty">
+            <el-empty description="暂无应用用量" :image-size="56" />
+          </div>
+        </div>
+      </section>
     </div>
 
     <!-- 每日模型用量：一天一个柱，柱内按模型分段（每模型一色，段高按用量占比） -->
-    <ReCard title="每日模型用量">
-      <template #extra>
-        <div class="seg-toggle">
-          <button class="seg-btn" :class="{ active: modelBarMetric === 'token' }" @click="modelBarMetric = 'token'">按 Token</button>
-          <button class="seg-btn" :class="{ active: modelBarMetric === 'cost' }" @click="modelBarMetric = 'cost'">按费用</button>
+    <section class="board-card panel">
+      <header class="board-head">
+        <div class="board-title-wrap">
+          <h3 class="board-title">每日模型用量</h3>
+          <span class="board-hint">柱内分段 = 该模型当天占比</span>
         </div>
-      </template>
-      <p class="chart-hint">
-        每根柱代表一天，柱内按模型分段着色；分段高度即该模型当天的用量占比。
-      </p>
-      <ReEcharts v-if="modelBarDates.length > 0" :option="modelBarOption" height="360px" not-merge />
-      <div v-else class="chart-empty">暂无按天模型用量数据</div>
-    </ReCard>
+        <div class="board-tabs" role="tablist">
+          <button v-for="t in boardTabs" :key="t.key" type="button" class="board-tab"
+            role="tab" :class="{ active: modelBarMetric === t.key }"
+            :aria-selected="modelBarMetric === t.key" @click="modelBarMetric = t.key">{{ t.label }}</button>
+        </div>
+      </header>
+      <div class="panel-body">
+        <ReEcharts v-if="modelBarDates.length > 0" :option="modelBarOption" height="360px" not-merge />
+        <div v-else class="chart-empty"><el-empty description="暂无按天模型用量数据" :image-size="72" /></div>
+      </div>
+    </section>
 
-    <!-- Token 趋势 -->
-    <ReCard title="Token 趋势">
-      <ReEcharts :option="trendOption" height="320px" not-merge v-if="trendData.length > 0" />
-      <div v-else class="chart-empty">暂无趋势数据</div>
-    </ReCard>
+    <!-- Token 趋势 + 模型延迟：两列并排；窄屏自动堆叠（见 .trend-row 的媒体查询） -->
+    <div class="trend-row">
+      <section class="board-card panel">
+        <header class="board-head">
+          <div class="board-title-wrap">
+            <h3 class="board-title">Token 趋势</h3>
+            <span class="board-hint">缓存读取属输入子集，不相加</span>
+          </div>
+        </header>
+        <div class="panel-body">
+          <ReEcharts :option="trendOption" height="320px" not-merge v-if="trendData.length > 0" />
+          <div v-else class="chart-empty"><el-empty description="暂无趋势数据" :image-size="72" /></div>
+        </div>
+      </section>
+
+      <section class="board-card panel">
+        <header class="board-head">
+          <div class="board-title-wrap">
+            <h3 class="board-title">模型延迟</h3>
+            <span class="board-hint">按天平均首字延迟，缺测断线不补 0</span>
+          </div>
+        </header>
+        <div class="panel-body">
+          <ReEcharts :option="latencyOption" height="320px" not-merge v-if="latencyDates.length && latencyModelCount > 0" />
+          <div v-else class="chart-empty"><el-empty description="暂无延迟数据" :image-size="72" /></div>
+        </div>
+      </section>
+    </div>
 
     <!-- 用量明细 -->
-    <ReCard title="用量明细">
-      <template #extra>
-        <el-input v-model="detailModelFilter" placeholder="按模型筛选" clearable class="filter-input" @keyup.enter="reloadDetails" @clear="reloadDetails" />
-        <!-- 敏感数据（费用）显示开关：默认隐藏，点眼睛才露出金额 -->
-        <el-button link type="primary" class="cost-toggle" @click="costVisible = !costVisible"
-          :title="costVisible ? '隐藏费用等敏感数据' : '显示费用等敏感数据'">
-          <el-icon><Eye24Regular v-if="costVisible" /><EyeOff24Regular v-else /></el-icon>
-          {{ costVisible ? '隐藏费用' : '显示费用' }}
-        </el-button>
-      </template>
-      <ReTable :data="detailRecords" :loading="detailLoading" :columns="detailColumns" :show-index="false" class="detail-table" row-key="sysAiUsageId">
-        <template #col-time="{ row }"><span class="time-cell">{{ formatTime(row.sysAiUsageCallTime) }}</span></template>
+    <section class="board-card panel">
+      <header class="board-head">
+        <div class="board-title-wrap">
+          <h3 class="board-title">用量明细</h3>
+          <span class="board-hint">{{ rangeLabel }}</span>
+        </div>
+        <div class="board-actions">
+          <!-- 模型过滤：值进了 detailQueryParams，ReTable 会 watch params 变化
+               自动回到第 1 页重新取数，无需再手动触发（此前 @keyup/@clear 手动拉，
+               与组件的自动重载叠加会打两次接口）。 -->
+          <el-input v-model="detailModelFilter" placeholder="按模型筛选" clearable class="filter-input" />
+          <!-- 敏感数据（费用）显示开关：默认隐藏，点眼睛才露出金额 -->
+          <el-button link type="primary" class="cost-toggle" @click="costVisible = !costVisible"
+            :title="costVisible ? '隐藏费用等敏感数据' : '显示费用等敏感数据'">
+            <el-icon><Eye24Regular v-if="costVisible" /><EyeOff24Regular v-else /></el-icon>
+            {{ costVisible ? '隐藏费用' : '显示费用' }}
+          </el-button>
+        </div>
+      </header>
+      <div class="panel-body panel-body--table">
+        <!-- 明细表：分页交给 ReTable 自带的 RePagination（不再自写 el-pagination）。
+             后端分页走 ReTable 的 **loader 模式**：传 loader 后组件进入远程模式，
+             把 data 当作「当前页数据」直接渲染，页数按 loader 返回的 total 算。
+             （此前传 data + total 而不传 loader → 被当成本地分页再切一遍，
+               点页码无反应。） -->
+        <ReTable
+          :data="detailRecords"
+          :loading="detailLoading"
+          :columns="detailColumns"
+          :show-index="false"
+          class="detail-table"
+          row-key="sysAiUsageId"
+          :pagination="true"
+          :loader="loadDetailPage"
+          :params="detailQueryParams"
+          :page-sizes="[10, 20, 50, 100, 200, 500]"
+        >
+          <template #col-time="{ row }"><span class="time-cell">{{ formatTime(row.sysAiUsageCallTime) }}</span></template>
         <template #col-model="{ row }">
           <div class="model-cell">
             <span class="model-name" :title="row.sysAiUsageModel || '-'">{{ row.sysAiUsageModel || '-' }}</span>
@@ -351,11 +650,9 @@
         <template #col-callType="{ row }">
           <ReTag :type="callModeTag(row)" >{{ callModeLabel(row) }}</ReTag>
         </template>
-      </ReTable>
-      <div class="pager-row">
-        <el-pagination background layout="total, prev, pager, next, jumper" :total="detailTotal" :page-size="detailPageSize" v-model:current-page="detailPage" @current-change="reloadDetails" />
+        </ReTable>
       </div>
-    </ReCard>
+    </section>
   </div>
 </template>
 <script setup lang="ts">
@@ -365,11 +662,10 @@ import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, nextTick } 
 import ReEcharts from '@repo/ui/re-echarts';
 import { http } from '@repo/utils';
 import type { EChartsOption } from 'echarts';
-import ReCard from '@/components/re/ReCard.vue';
 import ReTable from '@/components/re/ReTable.vue';
 import type { ReTableColumn } from '@repo/ui/re-table';
 import ReTag from '@/components/re/ReTag.vue';
-import ReButton from '@/components/re/ReButton.vue';
+import RePageHead from '@/components/re/RePageHead.vue';
 import ReIpText from '@repo/ui/re-ip-text';
 import { Eye24Regular, EyeOff24Regular } from '@vicons/fluent';
 import { usageApi } from '@/services/javaApi';
@@ -384,8 +680,6 @@ interface DistRow {
   cost: number;
 }
 
-const distPageSize = 8;
-
 const stats = reactive({
   totalCalls: 0,
   totalPromptTokens: 0,
@@ -398,19 +692,89 @@ const stats = reactive({
   avgFirstTokenLatency: 0,
 });
 
+/**
+ * 数字滚动递增进场（§6 交互）。
+ *
+ * <p>KPI 数字直接从 0 跳到终值会显得"页面卡了一下才出数"，也看不出数据是新来的；
+ * 用 rAF 在 ~520ms 内插值到目标值，既提示"这是刚更新的"，又不至于让人等动画。</p>
+ *
+ * <p>只对**数值型**指标做动画（Token / 请求数）；费用与耗时是格式化字符串，
+ * 动画中间态会出现 ¥0.0、0.0ms 这类无意义读数，反而干扰，直接给终值。</p>
+ */
+const COUNT_UP_MS = 520;
+const animatedTokens = ref('—');
+const animatedCalls = ref('—');
+let countUpRaf = 0;
+
+/** 尊重系统「减少动态效果」偏好：关掉动画时直接落终值 */
+function prefersReducedMotion(): boolean {
+  return typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function runCountUp() {
+  if (countUpRaf) cancelAnimationFrame(countUpRaf);
+  const toTokens = Number(stats.totalTokens) || 0;
+  const toCalls = Number(stats.totalCalls) || 0;
+  if (prefersReducedMotion() || (toTokens === 0 && toCalls === 0)) {
+    animatedTokens.value = fmtToken(toTokens);
+    animatedCalls.value = formatNumber(toCalls);
+    return;
+  }
+  // 起点取**当前显示值的数值近似**：连续刷新时从屏幕上的数继续往上走，
+  // 而不是每次都从 0 重来（后者在实时推送下会一直闪烁）。
+  const fromTokens = parseCompact(animatedTokens.value);
+  const fromCalls = parseCompact(animatedCalls.value);
+  const t0 = performance.now();
+  const tick = (now: number) => {
+    const p = Math.min(1, (now - t0) / COUNT_UP_MS);
+    // easeOutCubic：开头快、收尾缓，读数停得稳
+    const e = 1 - Math.pow(1 - p, 3);
+    animatedTokens.value = fmtToken(fromTokens + (toTokens - fromTokens) * e);
+    animatedCalls.value = formatNumber(Math.round(fromCalls + (toCalls - fromCalls) * e));
+    if (p < 1) countUpRaf = requestAnimationFrame(tick);
+    else countUpRaf = 0;
+  };
+  countUpRaf = requestAnimationFrame(tick);
+}
+
+/** 把 fmtToken 的紧凑读数（3.85M / 145.02K / 453）反解成数值，作为滚动起点 */
+function parseCompact(text: string): number {
+  const s = String(text || '').replace(/,/g, '').trim();
+  const m = /^(-?\d+(?:\.\d+)?)\s*([KMBT])?$/i.exec(s);
+  if (!m) return 0;
+  const n = Number(m[1]);
+  if (!Number.isFinite(n)) return 0;
+  const unit = (m[2] || '').toUpperCase();
+  const scale = unit === 'K' ? 1e3 : unit === 'B' ? 1e9 : unit === 'M' ? 1e6 : unit === 'T' ? 1e12 : 1;
+  return n * scale;
+}
+
+/**
+ * 指标卡数据。
+ *
+ * <p><b>顺序即权重</b>：第 0 项是主卡（宽度 2×、28px 等宽数字、带迷你环形图），
+ * 其余三项为辅卡。总 Token 放主位 —— 它是这个页面唯一"必须一眼看到"的量，
+ * 请求数/费用/耗时都是围绕它的解释性指标。</p>
+ */
 const statCards = computed(() => [
-  { label: '总请求数', value: formatNumber(stats.totalCalls), unit: '', cls: '', tone: 'primary',
-    icon: 'M2 12h3.2l2.4 7.5 4.2-15 3.3 9.2H14M15 12h7',
-    sub: ['缓存 ' + fmtToken(stats.totalCachedTokens) + ' tokens'] },
-  { label: '总 Token', value: fmtToken(stats.totalTokens), unit: '', cls: '', tone: 'info',
-    icon: 'M12 2.8 19 6.4v6.2c0 4.3-2.9 6.7-7 8.6-4.1-1.9-7-4.3-7-8.6V6.4L12 2.8Z M9.2 11.6l2 2 3.8-4',
-    sub: ['输入 ' + fmtToken(stats.totalPromptTokens), '输出 ' + fmtToken(stats.totalCompletionTokens)] },
-  { label: '总消费', value: currencySymbol.value + money(stats.totalCost), unit: '', cls: 'cost', tone: 'success',
-    icon: 'M3 7.5A2.5 2.5 0 0 1 5.5 5H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5.5A2.5 2.5 0 0 1 3 14.5v-7ZM3 9.5h18M15 12h3.2',
-    sub: ['标准价 ' + currencySymbol.value + money(stats.standardCost)] },
-  { label: '平均耗时', value: money(stats.avgLatency), unit: 'ms', cls: '', tone: 'warning',
-    icon: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM12 7.5V12l3 2',
-    sub: ['首字 ' + money(stats.avgFirstTokenLatency) + 'ms'] },
+  {
+    key: 'token', label: '总 Token', value: animatedTokens.value, unit: 'tokens', cls: '', tone: 'primary',
+    sub: ['输入 ' + fmtToken(stats.totalPromptTokens), '输出 ' + fmtToken(stats.totalCompletionTokens)],
+  },
+  {
+    key: 'requests', label: '总请求数', value: animatedCalls.value, unit: '', cls: '', tone: 'info',
+    sub: ['缓存 ' + fmtToken(stats.totalCachedTokens) + ' tokens'],
+  },
+  {
+    key: 'cost', label: '总消费', value: currencySymbol.value + money(stats.totalCost), unit: '', cls: 'cost', tone: 'success',
+    sub: ['标准价 ' + currencySymbol.value + money(stats.standardCost)],
+  },
+  {
+    key: 'latency', label: '平均耗时', value: money(stats.avgLatency), unit: 'ms', cls: '', tone: 'warning',
+    sub: ['首字 ' + money(stats.avgFirstTokenLatency) + 'ms'],
+  },
 ]);
 
 // 当前时间范围的人类可读描述（头部副标题）
@@ -424,19 +788,15 @@ const rangeLabel = computed(() => {
 });
 
 const summaryRows = ref<any[]>([]);
-const trendData = ref<Array<{ date: string; input: number; output: number; total: number }>>([]);
+const trendData = ref<Array<{ date: string; input: number; output: number; cached: number; total: number }>>([]);
 
 const modelChartType = ref<ChartType>('token');
 const groupChartType = ref<ChartType>('token');
-const modelPage = ref(1);
-const groupPage = ref(1);
 
 // 明细
 const detailRecords = ref<any[]>([]);
 const detailLoading = ref(false);
 const detailTotal = ref(0);
-const detailPage = ref(1);
-const detailPageSize = 20;
 const detailModelFilter = ref('');
 /**
  * 费用等敏感数据是否可见（默认隐藏）。
@@ -548,8 +908,66 @@ function onCustomRange(val: [string, string] | null) {
 
 function refreshAll() {
   loadData();
-  detailPage.value = 1;
-  reloadDetails();
+  // 明细表不用在这里再拉一次：loader 模式下 ReTable 会 watch params 变化
+  // （时间范围 / 模型过滤都在 detailQueryParams 里）并自动回到第 1 页重新取数。
+  // 此处再调 reloadDetails 会打两次接口。
+}
+
+/**
+ * 导出当前区间的用量明细（顶部操作栏最右侧图标）。
+ *
+ * <p>走 `/usage/export` 拿 blob，再触发一次 `<a download>`。为什么不用
+ * `window.open(url)`：该接口要带鉴权头，直接开新窗口拿不到 token，只会下回一个
+ * 401 的 JSON。这里复用已装配的请求管线（含鉴权拦截器），拿到二进制后本地存盘。</p>
+ *
+ * <p>文件名带上时间范围：连续导几个区间时不会互相覆盖，也省得回头猜是哪个区间。</p>
+ */
+const exporting = ref(false);
+/**
+ * 是否正在拉数（驱动顶栏底边的 2px 流光条）。
+ *
+ * <p>只覆盖 {@link loadData}（KPI/图表/分布这几路并行请求）；明细表有自己的
+ * 表格内 loading，不重复提示。</p>
+ */
+const refreshing = ref(false);
+async function handleExport() {
+  if (exporting.value) return;
+  exporting.value = true;
+  try {
+    const res: any = await usageApi.export({ ...timeParams.value });
+    // createClient(unwrap:false) 返回的是 axios 的 body；responseType=blob 时即 Blob。
+    // 后端若因鉴权/参数返回 JSON 错误，body 也会是 Blob（type=application/json），
+    // 这里读出来当错误处理，避免"下载了一个坏文件却毫无提示"。
+    const blob: Blob = res instanceof Blob ? res : new Blob([res]);
+    if (blob.type.includes('json')) {
+      const text = await blob.text();
+      let msg = text;
+      try {
+        const parsed = JSON.parse(text);
+        msg = parsed?.msg || parsed?.message || text;
+      } catch { /* 非 JSON 就原样展示 */ }
+      throw new Error(msg || '导出失败');
+    }
+    const suffix = (() => {
+      const { startTime, endTime } = timeParams.value;
+      if (startTime && endTime) return `${startTime.slice(0, 10)}_${endTime.slice(0, 10)}`;
+      return 'all';
+    })();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `usage_${suffix}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // 立刻 revoke 会让部分浏览器来不及读流，延后一拍更稳
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    message.success('导出已开始下载');
+  } catch (e: any) {
+    message.error('导出失败: ' + (e?.message || e));
+  } finally {
+    exporting.value = false;
+  }
 }
 
 // 按 key 把后端聚合行 roll up
@@ -578,12 +996,8 @@ const groupDist = computed<DistRow[]>(() =>
   rollUp(summaryRows.value, (r) => r.group || '默认'),
 );
 
-const modelPaged = computed(() =>
-  modelDist.value.slice((modelPage.value - 1) * distPageSize, modelPage.value * distPageSize),
-);
-const groupPaged = computed(() =>
-  groupDist.value.slice((groupPage.value - 1) * distPageSize, groupPage.value * distPageSize),
-);
+// 注：模型/分组分布表的前端分页已交给 ReTable 内部完成
+// （页面此前自己 slice + 自写 el-pagination，两处都要维护，现已收口到组件内）。
 
 // ==================== Top5 排行（模型 / 应用） ====================
 const rankMetric = ref<ChartType>('token');
@@ -833,44 +1247,272 @@ onBeforeUnmount(() => {
   closeLiveStream();
 });
 
-function pieOption(dist: DistRow[], type: ChartType): EChartsOption {
-  const sorted = [...dist].sort((a, b) =>
-    type === 'token' ? b.totalTokens - a.totalTokens : b.cost - a.cost,
-  );
-  const top = sorted.slice(0, 9);
-  const rest = sorted.slice(9);
-  const data = top.map((x) => ({
-    name: x.name,
-    value: type === 'token' ? x.totalTokens : Number(x.cost.toFixed(4)),
+/* ==================== §4 双栏看板：环形总览 + 图例 ==================== */
+
+/**
+ * 看板调色板（§5 视觉体系指定色值）。
+ *
+ * <p>为什么不用 `--el-color-primary` 这类 CSS 变量：ECharts 是 canvas 渲染，
+ * `var()` 在 canvas 语境里不生效，必须给真实色值。这里集中一处，
+ * 图例色点、明细表进度条、环形扇区取同一个函数 —— 三处颜色永远一致。</p>
+ */
+const BOARD_PALETTE = [
+  '#165DFF', // 主色蓝
+  '#00B42A', // 成功绿
+  '#FF7D00', // 警示橙
+  '#722ED1', // 辅助紫
+  '#F53F3F', // 危险红
+  '#14C9C9', // 青
+  '#F7BA1E', // 黄
+  '#3491FA', // 浅蓝
+  '#9FDB1D', // 黄绿
+  '#D91AD9', // 品红
+];
+/** 第 n 项的稳定配色：按**排序后的名次**取色，不按数组下标，切指标时不跳色 */
+function boardColorByIndex(i: number): string {
+  return BOARD_PALETTE[i % BOARD_PALETTE.length];
+}
+
+const boardTabs = [
+  { key: 'token' as ChartType, label: '按 Token' },
+  { key: 'cost' as ChartType, label: '按费用' },
+];
+
+interface BoardItem {
+  name: string;
+  value: number;
+  pct: number;
+  color: string;
+  row: DistRow;
+}
+interface BoardData {
+  /** 全部条目（明细表用，按当前指标降序） */
+  items: BoardItem[];
+  /**
+   * 环形图/图例共用的切片（Top N + 「其他」聚合）。
+   *
+   * <p>为什么单独一份：环形图只画前 8 个扇区，再多就分不清了；但图例此前渲染的是
+   * <b>全部</b>条目 —— 于是「图例 14 行、环上 9 个扇区」对不上，用户按图例找扇区会找不到。
+   * 切片列表让图例与环严格一一对应，「其他」显示聚合后的项数与占比。</p>
+   */
+  slices: BoardItem[];
+  total: number;
+}
+
+/** 环形图最多画几个扇区（其余聚合成「其他」） */
+const RING_TOP_N = 8;
+/** 「其他」扇区的固定色（中性灰，不占调色板名次） */
+const OTHER_SLICE_COLOR = '#C9CDD4';
+
+/**
+ * 把分布数据整理成看板要的形状：按当前指标降序、算占比、分配稳定颜色。
+ *
+ * <p>图例按降序排（§4 要求），所以「颜色 = 名次」是稳定的：切「按 Token / 按费用」
+ * 时同一名次换人，但颜色位置不变，视觉不会整片跳。</p>
+ */
+function buildBoard(rows: DistRow[], type: ChartType): BoardData {
+  const metric = (r: DistRow) => (type === 'token' ? r.totalTokens : r.cost);
+  const sorted = [...rows].sort((a, b) => metric(b) - metric(a));
+  const total = sorted.reduce((s, r) => s + Math.max(0, metric(r)), 0);
+  const items = sorted.map((r, i) => ({
+    name: r.name,
+    value: metric(r),
+    pct: total > 0 ? (Math.max(0, metric(r)) / total) * 100 : 0,
+    color: boardColorByIndex(i),
+    row: r,
   }));
+  const slices = items.slice(0, RING_TOP_N);
+  const rest = items.slice(RING_TOP_N);
   if (rest.length) {
-    const rv = rest.reduce((s, x) => s + (type === 'token' ? x.totalTokens : x.cost), 0);
-    if (rv > 0) data.push({ name: '其他', value: type === 'token' ? rv : Number(rv.toFixed(4)) });
+    slices.push({
+      name: `其他 ${rest.length} 项`,
+      value: rest.reduce((s, it) => s + it.value, 0),
+      pct: rest.reduce((s, it) => s + it.pct, 0),
+      color: OTHER_SLICE_COLOR,
+      row: rest[0].row,
+    });
   }
+  return { items, slices, total };
+}
+
+const modelBoard = computed(() => buildBoard(modelDist.value, modelChartType.value));
+const groupBoard = computed(() => buildBoard(groupDist.value, groupChartType.value));
+
+/** 当前悬停的扇区（null = 没悬停，环心回落到 Top1） */
+interface HoverSlice { name: string; pct: number }
+const modelHover = ref<HoverSlice | null>(null);
+const groupHover = ref<HoverSlice | null>(null);
+
+/**
+ * 环形图 hover → 环心数值联动（§6）。
+ *
+ * <p>为什么要联动：环心平时显示 Top1 占比，但用户真正想问的是"我现在指着的这块占多少"。
+ * 让他去右侧图例里对名字太绕，直接把指着的这块写进环心。</p>
+ *
+ * <p>{@code params.componentType} 过滤掉非扇区事件（标题、图例等），
+ * 否则 hover 到空白也会把环心改成空。</p>
+ */
+function onRingHover(which: 'model' | 'group', params: any) {
+  const target = which === 'model' ? modelHover : groupHover;
+  if (!params || params.componentType !== 'series' || params.name == null) {
+    target.value = null;
+    return;
+  }
+  const pct = Number(params.percent);
+  target.value = { name: String(params.name), pct: Number.isFinite(pct) ? pct : 0 };
+}
+
+/**
+ * 图例 → 环心联动（与 {@link onRingHover} 反向）。
+ *
+ * <p>只挂鼠标、不挂环上的高亮：从环移到图例的瞬间环会先派发 mouseout 把状态清掉，
+ * 紧接着图例的 mouseenter 又设回来 —— 顺序天然正确，不需要额外去抖。</p>
+ */
+function onLegendHover(which: 'model' | 'group', item: BoardItem | null) {
+  const target = which === 'model' ? modelHover : groupHover;
+  target.value = item ? { name: item.name, pct: item.pct } : null;
+}
+
+/** 环心显示内容：有 hover 用 hover 的，否则用 Top1；空数据给占位符 */
+function ringTop(board: BoardData, hover: HoverSlice | null): { pct: string; name: string } {
+  if (hover) return { pct: hover.pct.toFixed(1) + '%', name: hover.name };
+  if (!board.items.length) return { pct: '—', name: '暂无数据' };
+  const top = board.items[0];
+  return { pct: top.pct.toFixed(1) + '%', name: top.name };
+}
+
+/** 环心 Top1 占比（旧入口，保留给测试与外部引用） */
+function topPct(b: BoardData): string {
+  return b.items.length ? b.items[0].pct.toFixed(1) + '%' : '—';
+}
+function topName(b: BoardData): string {
+  return b.items.length ? b.items[0].name : '暂无数据';
+}
+
+/** 名次 → 颜色（明细表用；找不到按末档兜底，避免 undefined 让背景变透明） */
+function boardColorOf(b: BoardData, name: string): string {
+  const idx = b.items.findIndex((it) => it.name === name);
+  return idx >= 0 ? b.items[idx].color : BOARD_PALETTE[BOARD_PALETTE.length - 1];
+}
+
+/** 占比条宽度：0% 也留 2px，否则「有一点点」和「真的没有」看起来一样 */
+function barWidth(pct: number): string {
+  const v = Math.min(100, Math.max(0, pct));
+  if (v <= 0) return '0%';
+  return Math.max(2, v) + '%';
+}
+
+/** 该行在当前指标下是否为 0（¥0 / 0 token 的行按 §4 要求淡化成浅灰） */
+function isZeroCost(row: DistRow, type: ChartType): boolean {
+  const v = type === 'token' ? row.totalTokens : row.cost;
+  return !(Number(v) > 0);
+}
+
+/**
+ * 看板环形图。
+ *
+ * <p>三点与旧饼图不同：</p>
+ * <ol>
+ *   <li><b>不要图例</b>：图例改由右侧 DOM 列表承担 —— 能放百分比、能对齐行高、
+ *       还能跟着表格行高严格对齐，canvas 图例做不到。</li>
+ *   <li><b>中心留空</b>：留给 DOM 覆盖层显示 Top1 占比（内嵌在环里，不读图例也懂）。</li>
+ *   <li><b>只画 {@link RING_TOP_N} 项</b>：再多扇区就分不清了，其余并成「其他」保留总量口径；
+ *       右侧图例渲染的是<b>同一份</b> {@code b.slices}，两者永远一一对应。</li>
+ * </ol>
+ */
+function ringOption(b: BoardData, type: ChartType): EChartsOption {
+  const data = b.slices.map((it) => ({
+    name: it.name,
+    value: Number(it.value.toFixed(4)),
+    itemStyle: { color: it.color },
+  }));
   return {
     tooltip: {
       trigger: 'item',
       confine: true,
-      valueFormatter: (v: any) => (type === 'token' ? fmtToken(v) : `${currencySymbol.value}${money(v)}`),
+      backgroundColor: 'rgba(255,255,255,0.98)',
+      borderColor: '#E5E6EB',
+      borderWidth: 1,
+      textStyle: { color: '#1D2129', fontSize: 12 },
+      extraCssText: 'box-shadow:0 6px 20px rgba(15,23,42,.12);border-radius:8px;padding:8px 10px;',
+      formatter: (p: any) => {
+        const v = type === 'token' ? fmtToken(p.value) : `${currencySymbol.value}${money(p.value)}`;
+        return `${p.marker}${p.name}<br/><b style="font-size:13px">${v}</b>&nbsp;&nbsp;<span style="color:#86909C">${Number(p.percent).toFixed(1)}%</span>`;
+      },
     },
-    legend: { type: 'scroll', orient: 'vertical', right: 0, top: 'middle', icon: 'circle' },
+    // 关掉图例：右侧 DOM 列表即图例
+    legend: { show: false },
     series: [
       {
         type: 'pie',
-        radius: ['38%', '58%'],
-        center: ['32%', '50%'],
-        avoidLabelOverlap: true,
-        itemStyle: { borderColor: surfaceBg.value, borderWidth: 2, borderRadius: 6 },
+        radius: ['62%', '86%'],
+        center: ['50%', '50%'],
+        avoidLabelOverlap: false,
+        // 扇区间隙用页面卡片色（不写死白色，深色模式下才不会露出一圈白边）
+        itemStyle: { borderColor: surfaceBg.value, borderWidth: 2, borderRadius: 4 },
         label: { show: false },
-        emphasis: { itemStyle: { shadowBlur: 12, shadowColor: 'rgba(0,0,0,0.15)' } },
+        labelLine: { show: false },
+        emphasis: {
+          scaleSize: 6,
+          itemStyle: { shadowBlur: 14, shadowColor: 'rgba(22,93,255,0.22)' },
+        },
         data,
       },
     ],
   };
 }
 
-const modelPieOption = computed(() => pieOption(modelDist.value, modelChartType.value));
-const groupPieOption = computed(() => pieOption(groupDist.value, groupChartType.value));
+const modelRingOption = computed(() => ringOption(modelBoard.value, modelChartType.value));
+const groupRingOption = computed(() => ringOption(groupBoard.value, groupChartType.value));
+
+/**
+ * 主卡右下角的迷你环形图：输入 / 输出占比。
+ *
+ * <p>主卡数字回答「总共多少」，这只小环回答「里面怎么分的」——
+ * 两个问题挨着放，比让用户在下面找副标题读两个数字快得多。</p>
+ */
+function miniRingOption(_kind: 'input'): EChartsOption {
+  const input = Math.max(0, Number(stats.totalPromptTokens) || 0);
+  const output = Math.max(0, Number(stats.totalCompletionTokens) || 0);
+  const rest = Math.max(0, input + output);
+  const data = rest > 0
+    ? [
+      { name: '输入', value: input, itemStyle: { color: '#165DFF' } },
+      { name: '输出', value: output, itemStyle: { color: '#00B42A' } },
+    ]
+    : [{ name: '暂无', value: 1, itemStyle: { color: '#E5E6EB' } }];
+  return {
+    tooltip: {
+      trigger: 'item',
+      confine: true,
+      formatter: (p: any) => `${p.marker}${p.name} ${fmtToken(p.value)}（${Number(p.percent).toFixed(1)}%）`,
+    },
+    legend: { show: false },
+    series: [
+      {
+        type: 'pie',
+        radius: ['66%', '92%'],
+        center: ['50%', '50%'],
+        silent: true,
+        itemStyle: { borderColor: surfaceBg.value, borderWidth: 1.5 },
+        label: { show: false },
+        labelLine: { show: false },
+        data,
+      },
+    ],
+  };
+}
+
+/** 看板明细表的列定义（比原分布表更紧凑；占比列由插槽画进度条） */
+function boardColumns(nameLabel: string): ReTableColumn[] {
+  return [
+    { prop: 'name', label: nameLabel, minWidth: 120, showOverflowTooltip: true, slot: 'name' },
+    { prop: 'requests', label: '请求', width: 76, align: 'right', slot: 'requests', sortable: true },
+    { prop: 'totalTokens', label: 'Token', width: 92, align: 'right', slot: 'totalTokens', sortable: true },
+    { prop: 'cost', label: `费用(${currencySymbol.value})`, width: 92, align: 'right', slot: 'cost', sortable: true },
+    { prop: 'percent', label: '占比', width: 132, slot: 'percent' },
+  ];
+}
 
 function percentNum(row: { totalTokens?: number; cost?: number }, all: DistRow[], type: ChartType): number {
   const total = all.reduce((s, x) => s + (type === 'token' ? x.totalTokens : x.cost), 0);
@@ -879,18 +1521,8 @@ function percentNum(row: { totalTokens?: number; cost?: number }, all: DistRow[]
   return (v / total) * 100;
 }
 
-/** row 来自 el-table 的默认插槽，类型被弱化；这里用结构化类型直接接收，避免断言 */
 function percent(row: { totalTokens?: number; cost?: number }, all: DistRow[], type: ChartType): string {
   return percentNum(row, all, type).toFixed(1) + '%';
-}
-
-function distRowStyle(all: DistRow[], type: ChartType) {
-  return ({ row }: any) => {
-    const pct = Math.min(100, Math.max(0, percentNum(row, all, type)));
-    return {
-      background: 'linear-gradient(to right, var(--el-color-primary-light-9) ' + pct + '%, transparent ' + pct + '%)',
-    };
-  };
 }
 
 // ==================== 每日模型用量（堆叠柱状图） ====================
@@ -898,7 +1530,15 @@ function distRowStyle(all: DistRow[], type: ChartType) {
  * 后端按「天 + 模型」返回多行，这里归并成「一天一根柱、柱内按模型分段」。
  * 数据形态：{ date -> Map<model, number> }，metric 决定取 Token 还是费用。
  */
-const modelTrendRows = ref<Array<{ date: string; model: string; provider: string; totalTokens: number; totalCost: number }>>([]);
+/**
+ * 延迟字段保留 null 语义：后端 AVG 在没有实测样本时返回 null，
+ * 这里不要 `Number(x) || 0` 兜成 0 —— 0ms 会被画成「延迟极低」的假象。
+ */
+const modelTrendRows = ref<Array<{
+  date: string; model: string; provider: string;
+  totalTokens: number; totalCost: number;
+  avgFirstTokenLatency: number | null; avgTotalLatency: number | null;
+}>>([]);
 const modelBarMetric = ref<ChartType>('token');
 
 /** 同一模型在不同日期必须拿到同一个颜色，故颜色按模型名做稳定映射而非按下标 */
@@ -1019,7 +1659,7 @@ const trendOption = computed<EChartsOption>(() => {
       axisPointer: { type: 'line', lineStyle: { type: 'dashed' } },
       valueFormatter: (v: any) => fmtToken(v),
     },
-    legend: { data: ['输入 Token', '输出 Token'], top: 0 },
+    legend: { data: ['输入 Token', '输出 Token', '缓存读取'], top: 0 },
     grid: { left: 56, right: 24, top: 40, bottom: 32 },
     xAxis: { type: 'category', boundaryGap: false, data: rows.map((r) => r.date.length > 10 ? r.date.slice(11, 16) : r.date) },
     yAxis: {
@@ -1043,11 +1683,95 @@ const trendOption = computed<EChartsOption>(() => {
         data: rows.map((r) => r.output),
         areaStyle: { opacity: 0.12 },
       },
+      {
+        // 缓存读取是「输入 Token 里命中缓存的那部分」，属于输入的子集，
+        // 不是额外叠加的量。所以用虚线单独画、不堆叠 —— 堆叠会让人以为
+        // 总量 = 输入 + 输出 + 缓存，凭空多算一笔。
+        name: '缓存读取',
+        type: 'line',
+        smooth: true,
+        showSymbol: false,
+        data: rows.map((r) => r.cached),
+        lineStyle: { type: 'dashed', width: 2 },
+        areaStyle: { opacity: 0.06 },
+      },
     ],
   };
 });
 
+/**
+ * 模型延迟图：一天一个点、一个模型一条线，纵轴为「平均首字延迟（ms）」。
+ *
+ * 为什么画首字延迟而不是总耗时：总耗时随输出长度线性增长，同一个模型写得长一点
+ * 就会显得「更慢」，跨模型比较没有意义；首字延迟衡量的是「多久开始响应」，
+ * 与生成长度无关，才是用户真正感知到的那个「卡不卡」。
+ *
+ * 缺测的格子返回 null 而不是 0：ECharts 遇 null 会断线，正好表达「这天没测到」；
+ * 填 0 会画出一条贴着底部的假线。
+ */
+const MODEL_LATENCY_TOP_N = 6;
+
+const latencyMatrix = computed(() => {
+  /** 模型 -> 区间内 Token 总量，只用来挑「画哪几条线」 */
+  const weight = new Map<string, number>();
+  /** 日期 -> 模型 -> 平均首字延迟（ms） */
+  const cell = new Map<string, Map<string, number>>();
+  for (const r of modelTrendRows.value) {
+    const date = String(r.date || '').slice(0, 10);
+    const model = String(r.model || '').trim() || '未知模型';
+    if (!date) continue;
+    weight.set(model, (weight.get(model) || 0) + (Number(r.totalTokens) || 0));
+    const v = r.avgFirstTokenLatency;
+    if (v == null || !Number.isFinite(v) || v <= 0) continue;
+    let day = cell.get(date);
+    if (!day) { day = new Map(); cell.set(date, day); }
+    day.set(model, Math.round(v));
+  }
+  const keep = [...weight.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, MODEL_LATENCY_TOP_N)
+    .map(([m]) => m);
+  const dates = [...cell.keys()].sort();
+  const series = keep.map((model) => ({
+    model,
+    data: dates.map((d) => cell.get(d)?.get(model) ?? null),
+  }));
+  return { dates, series };
+});
+
+const latencyDates = computed(() => latencyMatrix.value.dates);
+/** 有延迟样本的模型数（用来区分「没数据」与「有数据但都没测到延迟」） */
+const latencyModelCount = computed(() => latencyMatrix.value.series.length);
+
+const latencyOption = computed<EChartsOption>(() => {
+  const { dates, series } = latencyMatrix.value;
+  return {
+    tooltip: {
+      trigger: 'axis',
+      confine: true,
+      valueFormatter: (v: any) => (v == null ? '—' : formatLatency(v)),
+    },
+    // 模型名可能很长，用 scroll 图例避免挤成两行把图压扁
+    legend: { top: 0, type: 'scroll' },
+    grid: { left: 56, right: 24, top: 40, bottom: 32 },
+    xAxis: { type: 'category', boundaryGap: false, data: dates.map((d) => (d.length > 10 ? d.slice(11, 16) : d)) },
+    yAxis: { type: 'value', name: 'ms', axisLabel: { formatter: (v: number) => `${v}` } },
+    series: series.map((s) => ({
+      name: s.model,
+      type: 'line',
+      smooth: true,
+      showSymbol: true,
+      symbolSize: 5,
+      // 断点保留：中间缺测不要用直线连过去，那会掩盖「这段没数据」
+      connectNulls: false,
+      data: s.data,
+      color: colorOfModel(s.model),
+    })),
+  };
+});
+
 async function loadData() {
+  refreshing.value = true;
   try {
     // 服务商名称映射与用量快照并行：映射失败不阻断表格（providerDisplay 兜底显示原始 id）。
     // 注意：http.get 会拼 /v2 前缀（v2Http），AiProviderController 挂在 /v2/providers 下，
@@ -1073,6 +1797,8 @@ async function loadData() {
       usageApi.modelTrend(timeParams.value),
     ]);
     Object.assign(stats, statRes.data || {});
+    // 数字滚动：数据落定后再动画，否则会滚到一半被下一次刷新打断
+    runCountUp();
     summaryRows.value = sumRes.data || [];
     modelTrendRows.value = (modelTrendRes?.data || []).map((r: any) => ({
       date: String(r?.date || '').slice(0, 10),
@@ -1080,47 +1806,73 @@ async function loadData() {
       provider: r?.provider,
       totalTokens: Number(r?.totalTokens) || 0,
       totalCost: Number(r?.totalCost) || 0,
+      // null 保持 null（而不是 0）：没实测样本时延迟图应断点，不能画成 0ms
+      avgFirstTokenLatency: r?.avgFirstTokenLatency == null ? null : Number(r.avgFirstTokenLatency),
+      avgTotalLatency: r?.avgTotalLatency == null ? null : Number(r.avgTotalLatency),
     }));
     const dailyRows: any[] = trendRes.data || [];
-    const map = new Map<string, { date: string; input: number; output: number; total: number }>();
+    const map = new Map<string, { date: string; input: number; output: number; cached: number; total: number }>();
     for (const r of dailyRows) {
       const raw = String(r.date || ''); const d = raw.length > 10 && raw.includes(':') ? raw.slice(0, 13) : raw.slice(0, 10);
       if (!d) continue;
-      if (!map.has(d)) map.set(d, { date: d, input: 0, output: 0, total: 0 });
+      if (!map.has(d)) map.set(d, { date: d, input: 0, output: 0, cached: 0, total: 0 });
       const a = map.get(d)!;
       a.input += Number(r.promptTokens) || 0;
       a.output += Number(r.completionTokens) || 0;
+      // cachedTokens 后端 /usage/trend 早就返回了，只是之前没接进图里
+      a.cached += Number(r.cachedTokens) || 0;
       a.total += Number(r.totalTokens) || 0;
     }
     trendData.value = [...map.values()].sort((a, b) => (a.date < b.date ? -1 : 1));
-    modelPage.value = 1;
-    groupPage.value = 1;
   } catch (e: any) {
     message.error('加载用量数据失败: ' + (e?.message || e));
+  } finally {
+    refreshing.value = false;
   }
 }
 
-async function reloadDetails() {
+/**
+ * 明细表的查询参数（时间范围 + 模型过滤）。
+ *
+ * <p>作为 ReTable 的 {@code params} 传下去，loader 收到的 {@code params} 里
+ * 会带上它（组件会把 params 与 page/pageSize 合并后交给 loader）。</p>
+ */
+const detailQueryParams = computed(() => {
+  const p: Record<string, unknown> = { ...timeParams.value };
+  if (detailModelFilter.value) {
+    p.model = detailModelFilter.value;
+  }
+  return p;
+});
+
+/**
+ * ReTable 的 loader（后端分页）。
+ *
+ * <p>组件在远程模式下会自己调它取当前页数据，并按返回的 total 算页数 ——
+ * 这才是后端分页的正确接法。返回 {@code { total, records }}。</p>
+ */
+async function loadDetailPage({ page, pageSize, params }: { page: number; pageSize: number; params: Record<string, unknown> }) {
   detailLoading.value = true;
   try {
-    const params: any = {
-      page: detailPage.value,
-      size: detailPageSize,
-      ...timeParams.value,
-    };
-    if (detailModelFilter.value) {
-      params.model = detailModelFilter.value;
-    }
-    const res: any = await usageApi.detailList(params);
-    const payload = res.data || {};
-    detailRecords.value = payload.records || [];
-    detailTotal.value = payload.total || 0;
+    // 组件给的 params 里已含 page / pageSize（它把二者写进 params 一起传），
+    // 这里只透传业务参数，避免请求里同时出现 pageSize 与 size 两份。
+    const { page: _p, pageSize: _ps, ...rest } = params as Record<string, unknown>;
+    const res: any = await usageApi.detailList({ ...rest, page, size: pageSize });
+    const payload = res.data || res || {};
+    const records = payload.records || payload.data || payload.list || [];
+    detailRecords.value = Array.isArray(records) ? records : [];
+    detailTotal.value = Number(payload.total ?? res?.total ?? 0) || 0;
+    return { total: detailTotal.value, records: detailRecords.value };
   } catch (e: any) {
     message.error('加载明细失败: ' + (e?.message || e));
+    return { total: 0, records: [] };
   } finally {
     detailLoading.value = false;
   }
 }
+
+// 注：loader 模式下明细表的数据由 ReTable 自己管（首屏 + 翻页 + params 变化），
+// 页面不再需要 reloadDetails —— 保留它会与组件的自动重载叠加、打两次接口。
 
 // ---------- 数字格式化 ----------
 function money(v: number | null | undefined): string {
@@ -1348,26 +2100,12 @@ const fmtToken = (v: number | null | undefined): string =>
   tokenScale.value === 'raw' ? formatNumber(v) : formatCompact(v);
 
 // ---------- ReTable 列配置（统一走 :columns + #col-* 插槽） ----------
-function distColumnDefs(nameLabel: string): ReTableColumn[] {
-  return [
-    {
-      prop: 'name',
-      label: nameLabel,
-      minWidth: 140,
-      showOverflowTooltip: true,
-      slot: 'name',
-    },
-    { prop: 'requests', label: '请求', width: 90, align: 'right', slot: 'requests' },
-    { prop: 'totalTokens', label: 'Token', width: 110, align: 'right', slot: 'totalTokens' },
-    { prop: 'cost', label: `费用(${currencySymbol.value})`, width: 100, align: 'right', slot: 'cost' },
-    { prop: 'percent', label: '占比', width: 90, align: 'right', slot: 'percent' },
-  ];
-}
-const modelDistColumns = computed<ReTableColumn[]>(() => distColumnDefs('模型'));
-const groupDistColumns = computed<ReTableColumn[]>(() => distColumnDefs('分组'));
+// 分布表的列定义已收口到 boardColumns()（见「双栏看板」段），此处只留明细表。
 
 const detailColumns = computed<ReTableColumn[]>(() => [
-  { prop: 'time', label: '时间', width: 160, slot: 'time' },
+  // 时间列固定在左侧：明细表有 13 列、横滚是常态，时间不钉住的话滚到右边
+  // 就不知道这一行是什么时候的记录了。
+  { prop: 'time', label: '时间', width: 160, slot: 'time', fixed: 'left' },
   { prop: 'model', label: '模型', minWidth: 180, showOverflowTooltip: true, slot: 'model' },
   { prop: 'group', label: '分组', width: 140, showOverflowTooltip: true, slot: 'group' },
   { prop: 'user', label: '账号', width: 90, slot: 'user' },
@@ -1451,6 +2189,30 @@ onMounted(() => {
    属于刻意保留，不得令牌化。
    ============================================================================ */
 .usage-page {
+  /* ===== 页面级色板（§5 + 精修）=====
+     此前这套色值是散落在各条规则里的字面量（#165DFF 出现十余次、rgba(22,93,255,…)
+     若干次、#00B42A/#FF7D00 各几处）。散落有两个后果：
+       ① 改一处色号要全页搜索，容易漏；
+       ② 暗色模式下这些字面量**不会提亮** —— #165DFF 压在 #161C27 上对比度只有
+          ~2.9，蓝色小字（速率、Tabs 选中态）在暗色里几乎读不出来。
+     这里收成一组 --u-* 令牌，暗色只在下面覆盖一次，全页自动跟随。 */
+  --u-primary: #165dff;
+  --u-primary-weak: rgba(22, 93, 255, 0.08);
+  --u-primary-weak-2: rgba(22, 93, 255, 0.12);
+  --u-primary-shadow: rgba(22, 93, 255, 0.28);
+  --u-success: #00b42a;
+  --u-warning: #ff7d00;
+  --u-danger: #f53f3f;
+  --u-purple: #722ed1;
+  --u-page: #f5f7fa;
+  --u-card: #ffffff;
+  --u-border: #e5e6eb;
+  --u-text: #1d2129;
+  --u-text-2: #4e5969;
+  --u-text-3: #86909c;
+  --u-radius: 8px;
+  --u-hover-lift: 0 6px 18px rgba(15, 23, 42, 0.09);
+
   height: 100%;
   box-sizing: border-box;
   overflow-y: auto;
@@ -1462,73 +2224,210 @@ onMounted(() => {
   padding: 20px 24px;
 }
 
+/* 暗色：只覆盖令牌。主色必须提亮（深底上的 #165DFF 对比度不足），
+   弱底色改用「白叠一层」而不是蓝叠一层 —— 深底上蓝色叠加会发灰绿。 */
+html.dark .usage-page {
+  --u-primary: #4080ff;
+  --u-primary-weak: rgba(64, 128, 255, 0.16);
+  --u-primary-weak-2: rgba(64, 128, 255, 0.24);
+  --u-primary-shadow: rgba(64, 128, 255, 0.3);
+  --u-success: #23c343;
+  --u-warning: #ff9a2e;
+  --u-danger: #f76560;
+  --u-purple: #8d4eda;
+  --u-page: #0f172a;
+  --u-card: #161c27;
+  --u-border: rgba(255, 255, 255, 0.12);
+  --u-text: #e2e8f0;
+  --u-text-2: #a9b6c8;
+  --u-text-3: #7c8899;
+  --u-hover-lift: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+
 .usage-page > * {
   flex-shrink: 0;
 }
 
-/* ===== 英雄区 ===== */
-.page-hero {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 14px;
-}
-.hero-text { display: flex; flex-direction: column; gap: 6px; }
-.page-title {
-  font-size: 22px; font-weight: 700; margin: 0;
-  letter-spacing: -0.01em; color: var(--el-text-color-primary);
-}
-.page-subtitle {
-  margin: 0; display: inline-flex; align-items: center; gap: 7px;
-  font-size: 12.5px; color: var(--el-text-color-secondary);
-}
-.sub-dot {
-  width: 7px; height: 7px;
-  /* 原值 50%（正圆）→ full 档 */
-  border-radius: var(--el-radius-full, 9999px);
-  background: var(--el-color-primary);
-  box-shadow: 0 0 0 3px var(--el-color-primary-light-9);
-}
-.quick-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+/* ===== §1 页面头 =====
+   头部本体已统一到 RePageHead（浅灰通栏、标题 16px 半粗、右侧控制器一行对齐）。
+   这里只保留头部内部的子元素（实时状态、时间胶囊、图标按钮）样式。 */
 
-.seg-pills {
-  display: inline-flex; align-items: center; gap: 2px; padding: 3px;
-  background: var(--el-fill-color-light);
-  /* 原值 10px（距 8/12 等距，本仓统一取 lg 档） */
-  border-radius: var(--el-radius-lg, 12px);
+/* 刷新流光：贴在顶栏底边内侧，不占布局（absolute），只在请求期间出现。
+   用「一段高光从左滑到右」而不是转圈，是因为它表达的是「进度未知但还在动」，
+   而且贴边的一条不会遮住任何内容。 */
+.refresh-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  overflow: hidden;
+  opacity: 0;
+  border-bottom-left-radius: var(--u-radius);
+  border-bottom-right-radius: var(--u-radius);
+  transition: opacity 0.2s var(--ease-out, ease);
+  pointer-events: none;
 }
-.pill {
+.refresh-bar.is-on { opacity: 1; }
+.refresh-bar > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 34%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--u-primary) 45%,
+    var(--u-primary) 55%,
+    transparent 100%
+  );
+  animation: refresh-slide 1.1s ease-in-out infinite;
+}
+@keyframes refresh-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(320%); }
+}
+
+/* 实时状态：绿点微呼吸 + 文案 + 速率胶囊 + 暂停/恢复按钮 */
+.live-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px 3px 8px;
+  border-radius: 999px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+}
+.live-dot {
+  width: 7px; height: 7px; flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--el-text-color-placeholder);
+}
+.live-dot.is-pulsing {
+  background: var(--u-success);
+  animation: live-breathe 2.2s ease-in-out infinite;
+}
+@keyframes live-breathe {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--u-success) 42%, transparent);
+  }
+  50% {
+    opacity: 0.68;
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--u-success) 0%, transparent);
+  }
+}
+.live-status.is-error { border-color: color-mix(in srgb, var(--u-warning) 48%, transparent); }
+.live-status.is-error .live-dot { background: var(--u-warning); }
+.live-status.is-paused { opacity: 0.75; }
+.live-text { font-weight: 600; color: var(--el-text-color-primary); }
+.live-rate {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--u-primary) 12%, transparent);
+  color: var(--u-primary);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.live-toggle {
   appearance: none; border: 0; cursor: pointer;
-  /* 原值 8px → md 档 */
-  padding: 6px 14px; border-radius: var(--el-radius-md, 8px);
-  font-size: 12.5px; font-weight: 500; white-space: nowrap;
-  color: var(--el-text-color-secondary); background: transparent;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; padding: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  transition: color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.live-toggle svg { width: 11px; height: 11px; }
+.live-toggle:hover { color: var(--u-primary); background: color-mix(in srgb, var(--u-primary) 12%, transparent); }
+.live-toggle.is-off { color: var(--u-warning); }
+
+
+/* 胶囊时间切换：选中态为实底 + 白字（§2） */
+.time-pills {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 8px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+}
+.time-pill {
+  appearance: none; border: 0; cursor: pointer;
+  padding: 5px 13px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--el-text-color-secondary);
+  background: transparent;
   transition:
     color var(--el-transition-duration-fast, 0.2s) ease,
-    background-color var(--el-transition-duration-fast, 0.2s) ease,
-    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
+    background-color var(--el-transition-duration-fast, 0.2s) ease;
 }
-.pill:hover { color: var(--el-text-color-primary); }
-.pill.active {
-  color: var(--el-color-primary); background: var(--el-bg-color);
+.time-pill:hover { color: var(--u-primary); background: color-mix(in srgb, var(--u-primary) 8%, transparent); }
+.time-pill.active {
+  background: var(--u-primary);
+  color: #fff;
   font-weight: 600;
-  /* 分段控件的「选中」指示：1px 描边 + 极浅投影，属于允许的选中态标识而非卡片投影 */
-  box-shadow:
-    0 1px 2px color-mix(in srgb, var(--el-text-color-primary) 8%, transparent),
-    0 0 0 1px var(--el-border-color-lighter);
+  box-shadow: 0 2px 6px var(--u-primary-shadow);
 }
-.hero-date { width: 268px; }
-/* 原值 9px（离 8 更近）→ md 档 */
-.hero-date :deep(.el-range-editor.el-input__wrapper) { height: 34px; border-radius: var(--el-radius-md, 8px); }
 
-/* ===== KPI 卡 ===== */
-.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+/* 单个日期框：日历图标 + 区间文本合成一个输入框（§2 合并为一个组合输入） */
+.date-picker { width: 250px; }
+.date-picker :deep(.el-range-editor.el-input__wrapper) {
+  height: 32px;
+  border-radius: 8px;
+  background: var(--el-bg-color);
+  box-shadow: 0 0 0 1px var(--el-border-color-lighter) inset;
+}
+.date-picker :deep(.el-range-editor.el-input__wrapper.is-active) {
+  box-shadow: 0 0 0 1px var(--u-primary) inset;
+}
+.date-picker :deep(.el-range-input) { font-size: 12.5px; }
+.date-picker :deep(.el-range-separator) { font-size: 12px; color: var(--el-text-color-placeholder); }
+
+/* 导出 / 刷新图标按钮 */
+.action-buttons { display: inline-flex; align-items: center; gap: 6px; }
+.icon-btn {
+  appearance: none; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; padding: 0;
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color);
+  color: var(--el-text-color-secondary);
+  transition: color var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.icon-btn svg { width: 16px; height: 16px; }
+.icon-btn:hover {
+  color: var(--u-primary);
+  border-color: color-mix(in srgb, var(--u-primary) 40%, transparent);
+  background: color-mix(in srgb, var(--u-primary) 6%, var(--el-bg-color));
+}
+.icon-btn:active { transform: translateY(1px); }
+
+/* ===== §3 1 主 3 辅指标卡矩阵 =====
+   主卡（总 Token）占 2 列宽，其余三张各占 1 列 —— 一眼就能分出"主指标"和"解释性指标"。
+   四张卡等宽时，用户得逐个读标题才知道哪个最重要。 */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 14px;
+}
+
 .kpi-card {
-  position: relative; overflow: hidden;
-  padding: 16px 18px 15px 20px;
-  /* 原值 var(--mp-radius, 14px)：--mp-radius 是空令牌，实为 14px → xl 档 */
-  border-radius: var(--el-radius-xl, 16px);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 18px;
+  border-radius: 8px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   transition:
@@ -1536,115 +2435,396 @@ onMounted(() => {
     box-shadow var(--el-transition-duration-fast, 0.2s) ease,
     border-color var(--el-transition-duration-fast, 0.2s) ease;
 }
-.kpi-card::before {
-  content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 3px;
-  background: var(--kpi-accent, var(--el-color-primary)); opacity: 0.9;
-}
+/* hover 轻微上浮 + 阴影加深（§3）；不用大位移，避免整屏数字跟着晃 */
 .kpi-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--el-box-shadow-light);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--el-text-color-primary) 9%, transparent);
   border-color: var(--el-border-color);
 }
-.kpi-top { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
-.kpi-icon {
-  width: 30px; height: 30px; display: inline-flex;
-  align-items: center; justify-content: center;
-  /* 原值 9px（离 8 更近）→ md 档 */
-  border-radius: var(--el-radius-md, 8px); color: var(--kpi-accent);
-  background: var(--kpi-accent-soft, var(--el-color-primary-light-9));
+
+.kpi-top { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+/* 渐变图标块：从本色到本色浅档，深色下依然有层次（纯色块在深色里会糊成一片） */
+.kpi-icon-wrapper {
+  display: inline-flex;
+  padding: 1px;
+  border-radius: 8px;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--kpi-accent) 26%, transparent),
+    color-mix(in srgb, var(--kpi-accent) 8%, transparent));
 }
-.kpi-icon svg { width: 17px; height: 17px; }
-.kpi-label { font-size: 12.5px; color: var(--el-text-color-secondary); font-weight: 500; }
-.kpi-value {
-  font-size: 25px; font-weight: 700; line-height: 1.15;
-  color: var(--el-text-color-primary); letter-spacing: -0.01em;
+.kpi-icon {
+  width: 28px; height: 28px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 7px;
+  color: #fff;
+  background: linear-gradient(135deg,
+    var(--kpi-accent) 0%,
+    color-mix(in srgb, var(--kpi-accent) 72%, #fff) 100%);
+}
+.kpi-icon svg { width: 16px; height: 16px; }
+.kpi-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--el-text-color-secondary);
+}
+
+.kpi-value-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+/* 28px 等宽粗体数字（§5）：等宽保证刷新时数字不左右跳 */
+.kpi-main-value {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+.kpi-main-value.cost { color: var(--u-success); }
+.kpi-main-value .unit {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--el-text-color-placeholder);
+}
+.kpi-mini-ring { flex-shrink: 0; }
+
+/* 辅助信息 12px 浅灰（§5） */
+.kpi-sub {
+  margin-top: auto;
+  padding-top: 12px;
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
+.kpi-sub b {
+  font-weight: 600;
+  color: var(--el-text-color-regular);
   font-variant-numeric: tabular-nums;
 }
-.kpi-value.cost { color: var(--el-color-success); }
-.kpi-value .unit {
-  font-size: 13px; font-weight: 500;
-  color: var(--el-text-color-secondary); margin-left: 3px;
-}
-.kpi-sub {
-  margin-top: 10px; display: flex; gap: 12px; flex-wrap: wrap;
-  font-size: 11.5px; color: var(--el-text-color-secondary);
-}
+.kpi-sub .sub-input b { color: var(--u-primary); }
+.kpi-sub .sub-output b { color: var(--u-success); }
+.kpi-sub .sub-cached b { color: var(--u-purple); }
+.kpi-sub .sub-standard b { color: var(--el-text-color-regular); }
+.kpi-sub .sub-first b { color: var(--u-warning); }
 
-/* KPI 语义色 */
-.tone-primary { --kpi-accent: var(--el-color-primary); --kpi-accent-soft: var(--el-color-primary-light-9); }
-.tone-success { --kpi-accent: var(--el-color-success); --kpi-accent-soft: var(--el-color-success-light-9); }
-.tone-warning { --kpi-accent: var(--el-color-warning); --kpi-accent-soft: var(--el-color-warning-light-9); }
-.tone-info { --kpi-accent: var(--el-color-info); --kpi-accent-soft: var(--el-color-info-light-9); }
+/* KPI 语义色（§5 指定的四个色值） */
+.tone-primary { --kpi-accent: var(--u-primary); }
+.tone-info { --kpi-accent: var(--u-primary); }
+.tone-success { --kpi-accent: var(--u-success); }
+.tone-warning { --kpi-accent: var(--u-warning); }
 
-.dist-grid {
+/* 数字滚动动画：宽度变化时用 tabular-nums 已能稳住，这里只做淡入提示"这是新数据" */
+.value-anim { display: inline-block; }
+
+/* ==================== §4 双栏看板 ====================
+   左「模型用量分析」/ 右「分组用量分析」—— 两栏等高（grid 默认 stretch），
+   每栏内部「环形总览 + 图例」在上、「明细表」在下，图与表回答同一个问题。
+
+   为什么不做成「图表块 + 表格块」两个独立卡片（此前的做法）：拆开后用户得自己
+   在上下两块之间对账「图里那个大扇区到底是表里哪一行」，而现在图例和表格行
+   共用同一套配色与名次，扫一眼就对上了。 */
+.board-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: stretch;
 }
 
-.page-card {
+.board-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-radius: var(--u-radius);
   background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-light);
-  /* 原值 12px → lg 档 */
-  border-radius: var(--el-radius-lg, 12px);
-  padding: 18px 20px;
+  border: 1px solid var(--el-border-color-lighter);
+  overflow: hidden;
+  /* 只描边变化、不做位移/投影：大卡片浮起会晃眼，而边框一深就足够提示"指针在这块" */
+  transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.board-card:hover { border-color: var(--el-border-color); }
+
+/* 通用面板：排行榜 / 每日用量 / 趋势 / 明细都用它，与看板两栏同一套头与身 */
+.board-card.panel > .panel-body { padding: 0 16px 16px; }
+.board-card.panel > .panel-body--table { padding: 0 6px 8px; }
+
+.board-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
-.card-header {
+.board-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
-  gap: 12px;
+  gap: 10px;
+  padding: 14px 16px 12px;
 }
-
-.section-title {
-  font-size: 15px;
-  font-weight: 600;
+.board-title-wrap { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+/* 16px 半粗标题（§5） */
+.board-title {
   margin: 0;
-}
-
-.seg-toggle {
-  display: inline-flex;
-  background: var(--el-fill-color-light);
-  /* 原值 8px → md 档 */
-  border-radius: var(--el-radius-md, 8px);
-  padding: 2px;
-}
-
-.seg-btn {
-  border: none;
-  background: transparent;
-  padding: 4px 12px;
-  font-size: 12px;
-  /* 原值 6px → sm 档 */
-  border-radius: var(--el-radius-sm, 6px);
-  color: var(--el-text-color-secondary);
-  cursor: pointer;
-  transition: all var(--el-transition-duration-fast, 0.2s);
-}
-
-.seg-btn.active {
-  background: var(--el-bg-color);
-  color: var(--el-color-primary);
+  font-size: 16px;
   font-weight: 600;
-  box-shadow: 0 1px 3px color-mix(in srgb, var(--el-text-color-primary) 8%, transparent);
+  letter-spacing: -0.01em;
+  color: var(--el-text-color-primary);
+  white-space: nowrap;
+}
+.board-hint {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+  white-space: nowrap;
 }
 
-.dist-table-wrap,
-.detail-table-wrap {
-  overflow-x: auto;
-  margin-top: 12px;
+/* 胶囊 Tabs：选中态平滑过渡（§6） */
+.board-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--el-fill-color-light);
+  flex-shrink: 0;
+}
+.board-tab {
+  appearance: none; border: 0; cursor: pointer;
+  padding: 4px 11px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--el-text-color-secondary);
+  background: transparent;
+  transition:
+    color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
+}
+.board-tab:hover { color: var(--u-primary); }
+.board-tab.active {
+  background: var(--el-bg-color);
+  color: var(--u-primary);
+  font-weight: 600;
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--el-text-color-primary) 9%, transparent);
 }
 
-.dist-table,
+/* 环形总览区：左侧圆环（中心内嵌 Top1 占比）+ 右侧图例列表 */
+.board-viz {
+  display: grid;
+  grid-template-columns: 176px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px 12px;
+}
+.board-ring { position: relative; width: 176px; height: 176px; }
+/* 环心覆盖层：绝对定位在圆心，指针事件放行（否则挡住扇区 hover） */
+.ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  pointer-events: none;
+  text-align: center;
+  padding: 0 22px;
+}
+.ring-pct {
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+.ring-name {
+  max-width: 100%;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--el-text-color-placeholder);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 图例：按当前指标降序（§4），只有色点 + 名称 + 占比 */
+.board-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  max-height: 176px;
+  overflow-y: auto;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 4px;
+  border-radius: 6px;
+  font-size: 12px;
+  min-width: 0;
+  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.legend-item:hover { background: var(--el-fill-color-light); }
+.legend-item.is-top .legend-name { font-weight: 600; color: var(--el-text-color-primary); }
+/* 与环心联动：hover 的扇区在图例里同高亮，两处指向同一项 */
+.legend-item.is-hover {
+  background: color-mix(in srgb, var(--u-primary) 8%, transparent);
+}
+.legend-item.is-hover .legend-name { color: var(--u-primary); font-weight: 600; }
+/* 「其他 N 项」是聚合行，弱化成辅助色，避免被当成某个具体模型 */
+.legend-item.is-other .legend-name { color: var(--el-text-color-placeholder); }
+.legend-item.is-other .legend-pct { color: var(--el-text-color-placeholder); }
+.legend-dot {
+  width: 8px; height: 8px;
+  flex-shrink: 0;
+  border-radius: 2px;
+}
+.legend-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--el-text-color-regular);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.legend-pct {
+  flex: 0 0 auto;
+  color: var(--el-text-color-secondary);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+/* 空态一律 el-empty（插图 + 描述）。图表区的空态给一个与图表相近的最小高度，
+   否则「有数据 → 没数据」切换时卡片会突然塌下去一大截。 */
+.legend-empty {
+  padding: 4px 0;
+}
+.chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+}
+.legend-empty :deep(.el-empty) {
+  padding: 8px 0;
+}
+.legend-empty :deep(.el-empty__description) {
+  margin-top: 2px;
+  font-size: 12px;
+}
+.legend-empty :deep(.el-empty__description p) {
+  margin: 0;
+  color: var(--el-text-color-placeholder);
+}
+
+/* 明细表：去掉外边框，只留表头细线与行分隔线（§5） */
+.board-table { padding: 0 6px 8px; }
+.board-table :deep(.re-table-wrapper) { border-radius: 0; }
+.board-table :deep(.vxe-table--border-line),
+.board-table :deep(.vxe-table--render-default) { border: 0; }
+.board-table :deep(.vxe-table--header-wrapper) { background: transparent; }
+/* 表头：深灰半粗 + 一条细下划线，不用浅灰块（§4「深灰加粗表头」） */
+.board-table :deep(.vxe-header--column) {
+  background: transparent;
+  color: var(--el-text-color-regular);
+  font-weight: 600;
+  font-size: 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.board-table :deep(.vxe-body--column) {
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.board-table :deep(.vxe-body--row:last-child .vxe-body--column) { border-bottom: 0; }
+/* 行高收紧：用组件自带的 compact 档（size="small" → .re-table--compact），
+   而不是在页面里 :deep 覆盖单元格内边距 —— 基础 ReTable 的行高由
+   `.re-table .vxe-body--column { padding: 10px 0 !important }` 决定，页面侧想压
+   就得打一场 !important 特异性官司；组件既然提供了档位，就用档位。 */
+.board-table :deep(.re-table--compact .vxe-body--column) {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+}
+.board-table :deep(.vxe-body--column .vxe-cell) {
+  line-height: 1.4;
+}
+.board-table :deep(.vxe-header--column) {
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
+}
+/* 行 hover → 浅蓝底（§4） */
+.board-table :deep(.vxe-body--row.row--hover),
+.board-table :deep(.vxe-body--row:hover) {
+  background: color-mix(in srgb, var(--u-primary) 5%, transparent);
+}
+
+/* 名称单元格：色点与图例同色，便于把行和图例对上 */
+.name-cell {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.name-dot { width: 7px; height: 7px; border-radius: 2px; flex-shrink: 0; }
+.name-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--el-text-color-primary);
+  font-size: 12.5px;
+}
+.num-cell {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  font-size: 12.5px;
+  color: var(--el-text-color-primary);
+}
+/* ¥0 / 0 token 行整体淡化成浅灰（§4）：一眼看出"这行没花钱" */
+.name-cell.is-zero .name-text,
+.num-cell.is-zero { color: var(--el-text-color-placeholder); }
+
+/* 占比列：彩色进度条 + 百分比（§4） */
+.pct-cell { display: flex; align-items: center; gap: 8px; }
+.pct-track {
+  flex: 1 1 auto;
+  min-width: 30px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--el-fill-color);
+  overflow: hidden;
+}
+.pct-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.35s var(--ease-out, cubic-bezier(0.4, 0, 0.2, 1));
+}
+.pct-text {
+  flex: 0 0 auto;
+  min-width: 42px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
 .detail-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 12.5px;
 }
 
-.dist-table th,
 .detail-table th {
   text-align: left;
   padding: 8px 10px;
@@ -1655,7 +2835,6 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-.dist-table td,
 .detail-table td {
   padding: 8px 10px;
   border-bottom: 1px solid var(--el-border-color-lighter);
@@ -1663,7 +2842,6 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-.dist-table tbody tr:hover,
 .detail-table tbody tr:hover {
   background: var(--el-fill-color-light);
 }
@@ -1679,84 +2857,6 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-.time-cell {
-  font-variant-numeric: tabular-nums;
-  color: var(--el-text-color-secondary);
-}
-
-.empty-cell,
-.chart-empty {
-  text-align: center;
-  color: var(--el-text-color-secondary);
-  padding: 28px 0;
-  font-size: 13px;
-}
-
-/* ==================== 实时用量条 ====================
-   常驻页头下方而非塞进 KPI 卡片：它是一个「状态」而不是一个「统计值」，
-   需要一个能被一眼扫到的位置（连接断开时颜色会变），不能混在数字里。 */
-.live-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
-  padding: 8px 14px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
-  background: var(--el-bg-color);
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-.live-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  background: var(--el-color-info);
-}
-
-.live-dot.is-pulsing {
-  background: var(--el-color-success);
-  animation: live-pulse 1.4s ease-in-out infinite;
-}
-
-@keyframes live-pulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 color-mix(in srgb, var(--el-color-success) 60%, transparent); }
-  50% { opacity: 0.55; box-shadow: 0 0 0 5px transparent; }
-}
-
-/* 连接断开时整条转为警示色：静默失效的「实时」比没有实时更糟，
-   必须让用户一眼看出数字不再更新 */
-.live-bar.is-error {
-  border-color: color-mix(in srgb, var(--el-color-warning) 45%, transparent);
-  background: color-mix(in srgb, var(--el-color-warning) 8%, var(--el-bg-color));
-}
-.live-bar.is-error .live-dot { background: var(--el-color-warning); }
-.live-bar.is-paused { opacity: 0.72; }
-
-.live-label {
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.live-metrics {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-left: auto;
-}
-
-.live-metric b {
-  margin-left: 4px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-.live-metric.is-rate b { color: var(--el-color-primary); }
 
 /* ==================== Top5 排行 ==================== */
 .rank-list {
@@ -1834,31 +2934,61 @@ onMounted(() => {
   color: var(--el-text-color-secondary);
 }
 
-/* 图表读法说明，压在图上方，避免用户误把堆叠段当成绝对值 */
-.chart-hint {
-  margin: 0 0 10px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  line-height: 1.6;
+/* Token 趋势 + 模型延迟两列并排。
+   用 minmax(0, 1fr) 而不是 1fr：flex/grid 子项默认 min-width:auto，
+   ECharts 的 canvas 撑出来的宽度会让两列互相挤压、右侧被裁掉。 */
+.trend-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
 }
 
-.pager-row {
-  display: flex;
-  justify-content: center;
-  margin-top: 14px;
+@media (max-width: 1100px) {
+  /* 窄屏堆叠：两列并排时每侧不到 400px，坐标轴标签会挤成一团 */
+  .trend-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .filter-input {
   width: 180px;
 }
 
+@media (max-width: 1280px) {
+  /* 主卡 2 列在 1280 以下会和辅卡一起挤窄，回到 2×2（主卡仍占整行） */
+  .stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .kpi-card.kpi-primary {
+    grid-column: span 3;
+  }
+}
+
 @media (max-width: 1100px) {
   .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .dist-grid {
-    grid-template-columns: 1fr;
+  .kpi-card.kpi-primary {
+    grid-column: span 2;
   }
+  .board-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .board-viz {
+    grid-template-columns: 160px minmax(0, 1fr);
+  }
+  .board-ring { width: 160px; height: 160px; }
+}
+
+/* 手机/极窄屏：全部改单列，顶栏控件换行后左对齐（否则右对齐会留一大块空洞） */
+@media (max-width: 760px) {
+  .usage-page { padding: 14px; gap: 12px; }
+  .stats-grid { grid-template-columns: minmax(0, 1fr); }
+  .kpi-card.kpi-primary { grid-column: auto; }
+  .board-viz { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+  .board-legend { width: 100%; max-height: none; }
+  .date-picker { width: 100%; }
+  .time-pills { flex-wrap: wrap; }
 }
 /* 耗时列（截图口径）：竖条 + 右侧两行 首字/总耗，着色沿用首字/总耗时阈值 */
 .latency-inline { display: inline-flex; align-items: stretch; gap: 8px; cursor: default; }
@@ -2014,12 +3144,18 @@ onMounted(() => {
 .td-est-note { margin-top: 6px; font-size: 11px; line-height: 1.4; color: var(--el-color-warning); }
 
 /* 尊重系统「减少动态效果」偏好。
-   KPI 卡与分段按钮的选中态都靠底色 + 1px 描边表达，关掉过渡后依然可辨。 */
+   指标卡、时间胶囊、看板 Tabs 的选中态都靠底色 + 描边表达，关掉过渡后依然可辨；
+   数字滚动动画在脚本里已经跳过（prefersReducedMotion），这里只收过渡与呼吸动画。 */
 @media (prefers-reduced-motion: reduce) {
   .kpi-card,
-  .pill,
-  .seg-btn {
+  .time-pill,
+  .board-tab,
+  .legend-item,
+  .pct-fill,
+  .icon-btn,
+  .live-dot.is-pulsing {
     transition: none;
+    animation: none;
   }
 }
 </style>

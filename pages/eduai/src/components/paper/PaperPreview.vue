@@ -5,19 +5,31 @@
         <div class="pp-page" :style="pageStyle">
           <!-- 首页页头：页头富文本优先，否则回落到「大标题 + 信息行」 -->
           <div v-if="pi === 0" class="pp-header">
-            <div v-if="hasHeaderContent" class="pp-header__rich" v-html="headerHtml" />
+            <div v-if="hasHeaderContent" class="pp-header__rich" v-html="headerHtmlAt(pi)" />
             <template v-else>
               <div class="pp-header__title" :class="`is-${header.titleStyle || 'classic'}`">
                 {{ header.name || "未命名试卷" }}
               </div>
               <div class="pp-header__meta">{{ metaLine }}</div>
             </template>
+            <!-- 姓名 / 学号填写栏：供阅卷识别学生，防止归属造假 -->
+            <div class="pp-header__student" v-if="activeMode !== 'answer-key'">
+              <span class="pp-header__student-item">
+                姓名：<span class="pp-header__blank">＿＿＿＿＿＿</span>
+              </span>
+              <span class="pp-header__student-item">
+                班级：<span class="pp-header__blank">＿＿＿＿＿＿</span>
+              </span>
+              <span class="pp-header__student-item">
+                学号：<span class="pp-header__blank">＿＿＿＿＿＿＿＿</span>
+              </span>
+            </div>
           </div>
 
           <div class="pp-body">
             <!-- 答题卡：只保留题号与作答区，像正式答题卡一样整页留空 -->
             <div v-if="activeMode === 'answer-sheet'" class="pp-answer-sheet">
-              <div v-for="item in page" :key="item.key" class="pp-answer-sheet__row">
+              <div v-for="item in page" :key="item.key" class="pp-answer-sheet__row" :data-qkey="item.key">
                 <span class="pp-answer-sheet__no">{{ item.no }}.</span>
                 <div class="pp-answer-sheet__lines">
                   <div v-for="n in answerSheetLineCount(item)" :key="n" class="pp-answer-sheet__line" />
@@ -28,7 +40,7 @@
 
             <!-- 参考答案：题号 + 答案 + 解析，便于核对 -->
             <div v-else-if="activeMode === 'answer-key'" class="pp-answer-key">
-              <div v-for="item in page" :key="item.key" class="pp-answer-key__row">
+              <div v-for="item in page" :key="item.key" class="pp-answer-key__row" :data-qkey="item.key">
                 <span class="pp-answer-key__no">{{ item.no }}.</span>
                 <div class="pp-answer-key__main">
                   <div class="pp-answer-key__answer">
@@ -46,7 +58,7 @@
 
             <!-- 试卷 / 已作答：正常题目版式；已作答额外叠写答案痕迹 -->
             <template v-else>
-              <div v-for="item in page" :key="item.key" class="pp-question">
+              <div v-for="item in page" :key="item.key" class="pp-question" :data-qkey="item.key">
                 <div class="pp-question__stem">
                   <span class="pp-question__no">{{ item.no }}.</span>
                   <span v-if="item.stemHtml" class="pp-question__html" v-html="item.stemHtml" />
@@ -68,7 +80,7 @@
                   <div
                     v-if="activeMode === 'answered' && item.writtenAnswer"
                     class="pp-answer__written"
-                    v-html="renderMixedText(item.writtenAnswer)"
+                    v-html="handwrittenText(item.writtenAnswer)"
                   />
                 </div>
                 <!-- 客观题也给一个显式作答行，卷面看起来更接近真实试卷 -->
@@ -90,7 +102,15 @@
           </div>
 
           <div class="pp-footer">
-            <div v-if="hasFooterContent" class="pp-footer__rich" v-html="footerHtml" />
+            <!-- 整卷二维码：内容 = PAPER:{paperId}[;STUDENT:{学号}][;EXAM:{考试ID}]，阅卷识别后归回内置卷并完成身份/考试绑定 -->
+            <img
+              v-if="paperQr"
+              class="pp-footer__qr"
+              :src="paperQr"
+              :alt="`整卷二维码（试卷 ${header.paperId ?? ''}）`"
+              title="整卷识别二维码"
+            />
+            <div v-if="hasFooterContent" class="pp-footer__rich" v-html="footerHtmlAt(pi)" />
             <div class="pp-footer__page">第 {{ pi + 1 }} 页 / 共 {{ pages.length }} 页</div>
           </div>
         </div>
@@ -112,6 +132,7 @@
  * 好处是无需等待浏览器测量即可稳定出页数，代价是与打印结果可能有极小出入。</p>
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import QRCode from "qrcode";
 import { htmlToMathText, renderMixedText, renderRichWithMath } from "../../utils/mathText";
 
 /** 导出 / 预览内容模式 */
@@ -119,6 +140,12 @@ export type PaperExportMode = "paper" | "answer-sheet" | "answer-key" | "answere
 
 /** 卷头 / 纸张 / 模板设置（只保留预览用到的字段，其余忽略） */
 export interface PreviewHeader {
+  /** 试卷 ID；用于整卷二维码（内容 = PAPER:{paperId}）与阅卷识别内置卷归属 */
+  paperId?: number | string | null;
+  /** 试卷所属学生学号；非空时写入整卷二维码，阅卷扫码后自动绑定学生 */
+  studentNo?: string;
+  /** 考试 ID；非空时写入整卷二维码，阅卷扫码后绑定考试并参与防重复提交 */
+  examId?: number | string | null;
   /** 试卷名称；为空时显示「未命名试卷」 */
   name?: string;
   /** 学科，进入首页信息行 */
@@ -155,6 +182,10 @@ export interface PreviewQuestion {
   paperQuestionNo?: string;
   /** 标准答案（试卷详情带 answer 字段时用于参考答案/已作答导出） */
   answer?: string;
+  /** 主观题答题区自定义高度（px）；缺省按题型默认行高 */
+  answerHeight?: number;
+  /** 主观题答题区默认行数（用于把默认高度换算成行高一致的配置值） */
+  answerLines?: number;
   /** 题目解析（答案页导出） */
   analysis?: string;
 }
@@ -210,9 +241,9 @@ const PAPER_SIZES: Record<string, { width: number; height: number }> = {
 
 /** 分页估算参数（px） */
 const PAGE_PADDING = 40;
-const HEADER_HEIGHT_RICH = 132;
-const HEADER_HEIGHT_DEFAULT = 88;
-const FOOTER_HEIGHT = 56;
+const HEADER_HEIGHT_RICH = 176;
+const HEADER_HEIGHT_DEFAULT = 132;
+const FOOTER_HEIGHT = 86;
 
 /** 答题卡每题的固定行数（主观题多留空，客观题一行即可） */
 const ANSWER_SHEET_LINES_BY_TYPE: Record<string, number> = {
@@ -294,23 +325,25 @@ function parseOptions(raw?: string): string[] {
   }
 }
 
-/** 主观题作答留白高度：客观题在题干处作答，不额外留白 */
-function answerSpaceHeight(type?: string): number {
-  if (type === "FILL") {
-    return 34;
+/** 主观作答区行高（组卷页调整答题区高度时以行为单位，视觉与打印一致） */
+const ANSWER_LINE_HEIGHT = 28;
+
+/** 主观题默认作答行数：客观题 0 行 */
+const DEFAULT_ANSWER_LINES_BY_TYPE: Record<string, number> = {
+  SHORT_ANSWER: 3,
+  SUBJECTIVE: 3,
+  ESSAY: 6,
+};
+
+/** 主观题作答留白高度：优先使用组卷时配置的自定义高度，否则按题型默认行数 */
+function resolveAnswerHeight(q: PreviewQuestion): number {
+  if (typeof q.answerHeight === "number" && Number.isFinite(q.answerHeight) && q.answerHeight > 0) {
+    return Math.round(q.answerHeight);
   }
-  if (type === "SHORT_ANSWER") {
-    return 60;
+  if (typeof q.answerLines === "number" && Number.isFinite(q.answerLines) && q.answerLines > 0) {
+    return Math.round(q.answerLines * ANSWER_LINE_HEIGHT);
   }
-  // 后端「SUBJECTIVE」是另一套主观题型码（如翻译句子），与 SHORT_ANSWER 同级留白；
-  // 不识别它会导致这类题既没有留白区、又没有选项兜底行，卷面上完全看不到作答区。
-  if (type === "SUBJECTIVE") {
-    return 60;
-  }
-  if (type === "ESSAY") {
-    return 96;
-  }
-  return 0;
+  return (DEFAULT_ANSWER_LINES_BY_TYPE[q.type ?? ""] ?? 0) * ANSWER_LINE_HEIGHT;
 }
 
 /** 各题型的单题基准高度 */
@@ -347,6 +380,56 @@ const footerHtml = computed(() => renderRichWithMath(props.header.footer));
 const hasHeaderContent = computed(() => htmlToMathText(props.header.header).length > 0);
 const hasFooterContent = computed(() => htmlToMathText(props.header.footer).length > 0);
 
+/** 页头富文本：把模板占位符替换成真实页码（首页固定第 1 页） */
+function headerHtmlAt(pageIndex: number): string {
+  return renderRichWithMath(
+    String(props.header.header ?? "")
+      .replace(/\{page\}/gi, String(pageIndex + 1))
+      .replace(/\{total\}/gi, String(pages.value.length)),
+  );
+}
+
+/** 页脚富文本：把模板占位符替换成真实页码与总页数 */
+function footerHtmlAt(pageIndex: number): string {
+  return renderRichWithMath(
+    String(props.header.footer ?? "")
+      .replace(/\{page\}/gi, String(pageIndex + 1))
+      .replace(/\{total\}/gi, String(pages.value.length)),
+  );
+}
+
+/** 整卷识别二维码：PAPER:{paperId} 归卷，可追加 STUDENT/EXAM 做身份与考试绑定 */
+const paperQr = ref("");
+
+async function renderPaperQr(): Promise<void> {
+  const paperId = props.header.paperId;
+  if (paperId == null || String(paperId).trim() === "") {
+    paperQr.value = "";
+    return;
+  }
+  const parts = [`PAPER:${paperId}`];
+  const studentNo = String(props.header.studentNo ?? "").trim();
+  if (studentNo) parts.push(`STUDENT:${studentNo}`);
+  const examId = String(props.header.examId ?? "").trim();
+  if (examId) parts.push(`EXAM:${examId}`);
+  try {
+    paperQr.value = await QRCode.toDataURL(parts.join(";"), {
+      width: 132,
+      margin: 1,
+      errorCorrectionLevel: "M",
+      color: { dark: "#000000ff", light: "#ffffffff" },
+    });
+  } catch {
+    paperQr.value = "";
+  }
+}
+
+watch(
+  () => [props.header.paperId, props.header.studentNo, props.header.examId] as const,
+  () => { void renderPaperQr(); },
+  { immediate: true },
+);
+
 /** 首页信息行：学科 · 学段年级 · 题数 · 满分 */
 const metaLine = computed(() => {
   const parts: string[] = [];
@@ -369,6 +452,26 @@ const metaLine = computed(() => {
 });
 
 /** 组装单题预览数据 */
+/** 手写体逐字渲染：把主观题作答拆成单字，按确定性随机数做轻微旋转/上下偏移/大小深浅，模拟人手写的不规整 */
+function handwrittenText(text: string): string {
+  const escapeHtml = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const chars = Array.from(text);
+  let seed = 7;
+  const rand = () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    return ((seed % 1000) / 1000);
+  };
+  return chars.map((ch) => {
+    const rot = Math.round((rand() - 0.5) * 6 * 10) / 10;
+    const dy = Math.round((rand() - 0.5) * 4 * 10) / 10;
+    const dx = Math.round((rand() - 0.5) * 3 * 10) / 10;
+    const size = Math.round((100 + (rand() - 0.5) * 8) * 10) / 10;
+    const alpha = Math.round((0.9 + rand() * 0.1) * 100) / 100;
+    return `<span class="hw-char" style="--hw-rot:${rot}deg;--hw-dy:${dy}px;--hw-dx:${dx}px;--hw-size:${size}%;--hw-alpha:${alpha}">${escapeHtml(ch)}</span>`;
+  }).join('');
+}
+
 function buildItem(q: PreviewQuestion, index: number): PreviewItem {
   const byNo = q.paperQuestionNo ? activeAnswers.value[q.paperQuestionNo] : "";
   const byId = activeAnswers.value[String(q.questionId)];
@@ -378,7 +481,7 @@ function buildItem(q: PreviewQuestion, index: number): PreviewItem {
     no: index + 1,
     options: parseOptions(q.options),
     stemHtml: renderRichWithMath(q.stem),
-    answerHeight: answerSpaceHeight(q.type),
+    answerHeight: resolveAnswerHeight(q),
     answerContent: q.answer || "",
     writtenAnswer: byNo || byId || "",
   };
@@ -496,8 +599,53 @@ const pageStyle = computed(() => ({
   transform: `scale(${scale.value})`,
 }));
 
-// 页数与缩放倍率供调用方显示（如工具栏的「共 N 页」与缩放百分比）
-defineExpose({ pageCount, scale, exportA4Images });
+/**
+ * 定位到某道题：把纸张预览滚动到该题所在位置并短暂高亮。
+ *
+ * <p>供组卷页左侧题目清单点击联动：题目行被点击时，中栏纸张预览滚动到对应题目，
+ * 避免「点了题却不知道在哪一页」。key 即题目渲染 key（paperQuestionNo 或 Q{questionId}）。</p>
+ *
+ * @param key 题目渲染 key（buildItem 的 key 字段）
+ * @return true 表示找到目标并已滚动；false 表示未匹配到任何题目行
+ */
+function scrollToQuestion(key: string | number): boolean {
+  const k = String(key);
+  const root = viewportRef.value;
+  if (!root) {
+    return false;
+  }
+  const target = Array.from(root.querySelectorAll<HTMLElement>("[data-qkey]")).find((el) => el.dataset.qkey === k);
+  if (!target) {
+    return false;
+  }
+  // 纸张预览自身不滚动（overflow: visible），滚动由外层调用方的卡片 body 承担：
+  // 向上找第一个真正可滚动的祖先（含组件外的容器），把目标滚到其视口内偏上方。
+  let scroller: HTMLElement | null = null;
+  let node: HTMLElement | null = target.parentElement;
+  while (node && node !== document.documentElement) {
+    const style = getComputedStyle(node);
+    if ((style.overflowY === "auto" || style.overflowY === "scroll" || style.overflowY === "overlay") && node.scrollHeight > node.clientHeight + 1) {
+      scroller = node;
+      break;
+    }
+    node = node.parentElement;
+  }
+  if (scroller) {
+    const top = target.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
+    scroller.scrollTo({ top: Math.max(0, top - 16), behavior: "smooth" });
+  } else {
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+  // 短暂高亮提示定位目标
+  target.classList.remove("is-qkey-target");
+  void target.offsetWidth;
+  target.classList.add("is-qkey-target");
+  window.setTimeout(() => target.classList.remove("is-qkey-target"), 1800);
+  return true;
+}
+
+// 页数 / 缩放倍率 / 按题定位 / A4 导出供调用方使用（如工具栏「共 N 页」、缩放百分比与题目联动）
+defineExpose({ pageCount, scale, scrollToQuestion, exportA4Images });
 
 /** 导出所有 A4 页为 PNG，逐页触发下载 */
 async function exportA4Images(options: {
@@ -662,6 +810,30 @@ watch(() => props.fitWidth, () => {
   color: #6b7280;
 }
 
+/* 姓名 / 班级 / 学号填写栏：供阅卷识别学生归属，禁止造假 */
+.pp-header__student {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 26px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+  line-height: 22px;
+  color: #374151;
+}
+
+.pp-header__student-item {
+  white-space: nowrap;
+}
+
+.pp-header__blank {
+  display: inline-block;
+  min-width: 6em;
+  border-bottom: 1px solid #9ca3af;
+  letter-spacing: 0.2em;
+}
+
 .pp-header__rich {
   font-size: 14px;
 }
@@ -698,6 +870,28 @@ watch(() => props.fitWidth, () => {
   color: #6b7280;
 }
 
+/* 题目定位高亮：组卷页左侧题行点击 → 中栏预览滚动并闪烁提示该题位置 */
+.pp-question.is-qkey-target,
+.pp-answer-sheet__row.is-qkey-target,
+.pp-answer-key__row.is-qkey-target {
+  animation: pp-qkey-flash 1.6s ease;
+}
+
+@keyframes pp-qkey-flash {
+  0% {
+    box-shadow: 0 0 0 3px rgba(64, 158, 255, 0);
+  }
+  30% {
+    box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 0 3px rgba(64, 158, 255, 0);
+  }
+}
+
 .pp-question__empty {
   color: #9ca3af;
 }
@@ -722,16 +916,25 @@ watch(() => props.fitWidth, () => {
 
 .pp-question__answer {
   margin-top: 6px;
-  border: 1px dashed #d0d3d9;
-  border-radius: 4px;
+  /* 主观题答题区：不画虚线框，直接留出整块空白书写区，
+     高度由组卷配置/题型默认行数决定（见 answerSpaceHeight / resolveAnswerHeight） */
 }
 
 .pp-answer__written {
   padding: 8px 12px;
   font-family: "Kaiti SC", "STKaiti", "KaiTi", "SimSun", serif;
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 15px;
+  line-height: 1.6;
   color: #1a1a1a;
+  /* 手写体逐字模拟：每字轻微旋转/上下偏移/大小深浅不一 */
+}
+
+.pp-answer__written :deep(.hw-char) {
+  display: inline-block;
+  transform: rotate(var(--hw-rot, 0deg)) translate(var(--hw-dx, 0px), var(--hw-dy, 0px));
+  font-size: var(--hw-size, 100%);
+  opacity: var(--hw-alpha, 1);
+  transition: none;
 }
 
 .pp-question__objective-answer {
@@ -843,19 +1046,32 @@ watch(() => props.fitWidth, () => {
 
 .pp-footer {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px solid #e5e6eb;
   font-size: 11px;
   color: #6b7280;
-  text-align: center;
+}
+
+.pp-footer__qr {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  image-rendering: pixelated;
 }
 
 .pp-footer__rich {
-  margin-bottom: 4px;
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
 }
 
 .pp-footer__page {
+  flex-shrink: 0;
   letter-spacing: 1px;
 }
 

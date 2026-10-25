@@ -38,7 +38,10 @@
         <span class="stats-skeleton stats-skeleton--w-cache"></span>
       </div>
       <div class="stats-cluster stats-cluster--right">
-        <span class="stats-ring stats-ring--pending"></span>
+        <!-- 等待态：只画底环（占用率还不知道），靠轻微呼吸表示"正在等" -->
+        <svg class="stats-ring stats-ring--pending" viewBox="0 0 20 20" width="14" height="14" aria-hidden="true">
+          <circle class="stats-ring__track" cx="10" cy="10" r="8" />
+        </svg>
         <span class="stats-skeleton stats-skeleton--w-percent"></span>
       </div>
     </template>
@@ -89,7 +92,12 @@
     <el-popover trigger="hover" placement="top-start" :width="272" :show-arrow="true">
       <template #reference>
         <div class="stats-cluster stats-cluster--shrink stats-cluster--hoverable">
-          <el-icon class="stats-icon"><DataLine20Regular /></el-icon>
+          <svg class="stats-icon" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor"
+            stroke-width="1.3" stroke-linecap="round" aria-hidden="true">
+            <ellipse cx="8" cy="4" rx="5" ry="2.1" />
+            <path d="M3 4v4c0 1.16 2.24 2.1 5 2.1s5-.94 5-2.1V4" />
+            <path d="M3 8v4c0 1.16 2.24 2.1 5 2.1s5-.94 5-2.1V8" />
+          </svg>
           <span class="stats-item">{{ tokensText }}</span>
           <span class="stats-sep">·</span>
           <span class="stats-item">{{ cacheHitText }}</span>
@@ -128,7 +136,16 @@
     <el-popover trigger="hover" placement="top-end" :width="272" :show-arrow="true">
       <template #reference>
         <div class="stats-cluster stats-cluster--right stats-cluster--hoverable">
-          <span class="stats-ring" :style="ringStyle" role="img" :aria-label="contextHint"></span>
+          <!--
+            环形进度用 SVG 圆周而不是 conic-gradient：
+            conic-gradient + radial mask 挖空出来的环边是**硬边、没有圆头**，
+            设计稿要的是「圆头粗弧」（stroke-linecap: round）。颜色仍按危险/警告/正常分档。
+          -->
+          <svg class="stats-ring" viewBox="0 0 20 20" width="14" height="14" role="img" :aria-label="contextHint">
+            <circle class="stats-ring__track" cx="10" cy="10" r="8" />
+            <circle v-if="ringArc" class="stats-ring__bar" cx="10" cy="10" r="8" :stroke="ringColor"
+              :stroke-dasharray="ringArc" transform="rotate(-90 10 10)" />
+          </svg>
           <span class="stats-item">{{ contextPctText }}</span>
         </div>
       </template>
@@ -159,19 +176,58 @@
         </div>
       </div>
     </el-popover>
+
+    <!--
+      链路追踪入口：点开弹框，用关系图把这次运行走了哪几步串起来。
+
+      为什么放在底部状态条：它和「轮数 / 步数 / Token / 上下文」是同一层信息 ——
+      都是「这一轮到底怎么跑的」；用户看完速度/命中率，下一步就想知道步骤怎么走的。
+      1.0 版起改为**纯图标按钮**：正文指标拥挤，露出「链路追踪」四个字反而喧宾夺主，
+      图标（两个节点 + 连线）配 title/aria-label 表达语义，悬停高亮说明可点。
+    -->
+    <button
+      type="button"
+      class="stats-trace-btn"
+      :title="'查看本次运行的链路追踪关系图'"
+      aria-label="链路追踪"
+      @click="traceVisible = true"
+    >
+      <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"
+        stroke-linecap="round" aria-hidden="true">
+        <circle cx="3" cy="4" r="1.8" />
+        <circle cx="13" cy="12" r="1.8" />
+        <path d="M4.6 5.2 11.4 10.8" />
+      </svg>
+    </button>
+
+    <!-- 弹框挂在状态条内部，避免把会话面板/消息列的模板再撑一层。
+         上下文占用一并透传：弹框头部要显示「上下文已用」，且必须与状态条同源，
+         否则两处各拉一次 /token-stats 会出现两个数字。 -->
+    <TraceFlowDialog v-model="traceVisible" :session-id="sessionId" :live-traces="liveTraces"
+      :context-used="contextUsed" :context-total="contextTotal" :context-percent="contextPercent" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Timer } from '@element-plus/icons-vue';
+/*
+ * 这个图标**不能删**：等待态骨架行与 Token 用量浮层仍在用它
+ * （模板 L35 / L110）。上一版为了替换中间那个图标把 import 删了，
+ * 结果组件解析失败 → 整个会话页白屏（实测 bodyLen 只有 171）。
+ * 主状态条的中间图标已改为内联「数据库堆叠」SVG，与本 import 互不影响。
+ */
 import { DataLine20Regular } from '@vicons/fluent';
 import { useTurnStats } from '@/composables/useTurnStats';
+import TraceFlowDialog from './trace/TraceFlowDialog.vue';
+import { normalizeLiveTrace, type SessionTrace } from './trace/traceTypes';
 
 const props = defineProps<{
   /** 当前会话的全部消息（activeMessages） */
   messages?: any[];
+  /** 会话 id：链路追踪弹框按会话拉 /traces */
+  sessionId?: string | number | null;
   /**
    * 上下文占用（已用 Token / 窗口 Token / 占用率）。
    *
@@ -190,6 +246,31 @@ const props = defineProps<{
    */
   contextBreakdown?: Record<string, number> | null;
 }>();
+
+/** 链路追踪弹框开关 */
+const traceVisible = ref(false);
+
+/**
+ * WS 实时轨迹：从当前会话消息的 traceLog 里抽出来。
+ *
+ * <p>用途见 TraceFlowDialog 的 liveTraces 注释 —— 让关系图在流式过程中就能长出来，
+ * 而不是等 `/traces` 落库后才看得到。这里做纯抽取 + 归一（normalizeLiveTrace），
+ * 不排序也不去重，交给下游统一处理，避免两处各有一套排序规则。</p>
+ */
+const liveTraces = computed<SessionTrace[]>(() => {
+  const out: SessionTrace[] = [];
+  for (const msg of props.messages ?? []) {
+    for (const content of (msg?.contents ?? [])) {
+      const log = (content as any)?.traceLog;
+      if (!Array.isArray(log)) continue;
+      for (const raw of log) {
+        const trace = normalizeLiveTrace(raw);
+        if (trace) out.push(trace);
+      }
+    }
+  }
+  return out;
+});
 
 const { t } = useI18n();
 
@@ -298,11 +379,20 @@ const contextPctText = computed(() => {
   return t('chat.runStats.percent', { pct: contextPct.value });
 });
 
-/** 已用 / 窗口：~755K / 1M */
+/**
+ * 已用 / 窗口：~755K / 1M。
+ *
+ * <p>窗口未知（模型没配上下文窗口，实测 27/31 个模型如此）时**至少要显示已用**：
+ * 原先 `if (!window) return '—'` 会因为一个缺失的分母，把本来已知的分子一起藏掉 ——
+ * 用户看到整块「—」，误以为"没有数据"，实际后端给的 usedTokens 是有的。</p>
+ */
 const contextAmountText = computed(() => {
+  const used = usedTokens.value;
   const window = num(props.contextTotal);
-  if (!window) return '—';
-  return `${formatApprox(usedTokens.value)} / ${formatCount(window)}`;
+  if (!window) {
+    return used > 0 ? `${formatApprox(used)} / 窗口未知` : '—';
+  }
+  return `${formatApprox(used)} / ${formatCount(window)}`;
 });
 
 /** Token 用量卡的命中率（纯数字，不带「缓存命中」前缀，因为行首已标） */
@@ -342,9 +432,13 @@ const modelTimeText = computed(() => formatSeconds(stats.value.modelDuration));
 const toolTimeText = computed(() => formatSeconds(stats.value.toolDuration));
 const ttftText = computed(() => formatSeconds(stats.value.ttftAvg));
 
-const contextHint = computed(
-  () => `${t('chat.runStats.contextUsage')} ${formatCount(usedTokens.value)} / ${formatCount(num(props.contextTotal))}`,
-);
+const contextHint = computed(() => {
+  const used = formatCount(usedTokens.value);
+  const window = num(props.contextTotal);
+  return window
+    ? `${t('chat.runStats.contextUsage')} ${used} / ${formatCount(window)}`
+    : `${t('chat.runStats.contextUsage')} ${used}（窗口未配置，去模型管理填上下文窗口）`;
+});
 
 /** 环形进度：conic-gradient 直接由占用率驱动，颜色按危险/警告/正常分档 */
 const ringColor = computed(() => {
@@ -356,11 +450,19 @@ const ringColor = computed(() => {
       : 'var(--el-color-primary)';
 });
 
-const ringStyle = computed(() => {
+/** 环形周长（viewBox 20 / r=8）：dasharray 用它换算弧长 */
+const RING_CIRCUM = 2 * Math.PI * 8;
+
+/**
+ * 弧长 dasharray；**占用率未知时返回空串** → 只画底环、不画弧。
+ *
+ * <p>窗口未配置时（实测 27/31 个模型如此）百分比本身没有意义，
+ * 画一段 0% 的弧等于告诉用户「上下文是空的」。宁可只留一圈底环。</p>
+ */
+const ringArc = computed(() => {
+  if (!num(props.contextTotal)) return '';
   const percent = Math.max(0, Math.min(100, contextPct.value));
-  return {
-    background: `conic-gradient(${ringColor.value} ${percent}%, var(--el-fill-color) ${percent}% 100%)`,
-  };
+  return `${(percent / 100) * RING_CIRCUM} ${RING_CIRCUM}`;
 });
 </script>
 
@@ -379,8 +481,10 @@ const ringStyle = computed(() => {
   gap: 18px;
   height: 30px;
   padding: 0 14px;
-  border-top: 1px solid var(--el-border-color-lighter);
-  /* 与对话区同底色（浅色默认主题为白），只靠上边框分隔，不额外铺一层灰。
+  /* 不要上边框：这条统计条是常驻的会话状态，不是一块独立分区。
+     画一条分界线会把它从对话背景里"切"出来，看起来像页面上多挂了一条东西；
+     去掉之后它与对话区同一底色，自然融入（内容与输入框对齐由父容器的限宽负责）。 */
+  /* 与对话区同底色（浅色默认主题为白），不额外铺一层灰。
      同样乘 --content-opacity：带壁纸时不能铺一块不透明的底把壁纸盖掉。 */
   background: color-mix(
     in srgb,
@@ -467,6 +571,41 @@ const ringStyle = computed(() => {
   font-weight: 600;
 }
 
+/*
+  链路追踪入口：低调的描边图标按钮，不抢三段数据的主视觉。
+  与状态条同高（22px），hover 才出现底色 —— 常驻但不喧宾夺主。
+*/
+.stats-trace-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  margin-left: 6px;
+  padding: 0;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-gray, var(--el-text-color-secondary));
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.stats-trace-btn:hover {
+  border-color: color-mix(in srgb, var(--el-color-primary) 40%, transparent);
+  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  color: var(--el-color-primary);
+}
+
+/* 动效降级：只关本按钮自己的 transition，不影响 Element Plus 组件内部过渡 */
+@media (prefers-reduced-motion: reduce) {
+  .stats-trace-btn {
+    transition: none;
+  }
+}
+
 .stats-sep {
   opacity: 0.45;
 }
@@ -505,10 +644,8 @@ const ringStyle = computed(() => {
   100% { background-position: 0 50%; }
 }
 
-/* 等待态的环形：不画 conic-gradient（占用率还不知道），只留一圈淡淡的底，
-   配合轻微呼吸表示「正在等」。 */
+/* 等待态的环形：不画弧（占用率还不知道），只留底环，靠轻微呼吸表示「正在等」 */
 .stats-ring--pending {
-  background: var(--el-fill-color);
   animation: stats-pulse 1.4s ease-in-out infinite;
 }
 
@@ -517,17 +654,44 @@ const ringStyle = computed(() => {
   50%      { opacity: 1; }
 }
 
-/* 12px 环形进度：外层 conic-gradient 由内联 style 给色。
-   挖空用 mask 而不是「叠一个内圈色块」—— 内圈色块必须知道背后是什么底色，
-   而这条栏的底色是半透明的（乘了 --content-opacity），叠色块会在壁纸下露出灰芯。 */
+/*
+  14px 环形进度（SVG）：底环 + 圆头弧。
+
+  设计稿的关键特征是「圆头粗弧」（stroke-linecap: round）—— conic-gradient 做不到圆头，
+  边也是硬的，所以从「渐变 + radial mask 挖空」换成 SVG 圆周。
+  viewBox 20、r=8、实际渲染 14px ⇒ 壁厚 = 3.2 × (14/20) ≈ 2.2px。
+*/
 .stats-ring {
   display: inline-block;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
-  border-radius: var(--el-radius-full, 9999px);
-  -webkit-mask: radial-gradient(closest-side, transparent 58%, #000 60%);
-  mask: radial-gradient(closest-side, transparent 58%, #000 60%);
+  /* 与同行 12px 文字视觉居中对齐 */
+  vertical-align: -1px;
+}
+
+.stats-ring__track {
+  fill: none;
+  stroke: var(--el-fill-color);
+  stroke-width: 3.2;
+}
+
+.stats-ring__bar {
+  fill: none;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.3s ease;
+}
+
+/* 动效降级：呼吸与弧长过渡都停，但环的形状本身仍然可见 */
+@media (prefers-reduced-motion: reduce) {
+  .stats-ring--pending {
+    animation: none;
+  }
+
+  .stats-ring__bar {
+    transition: none;
+  }
 }
 
 /* 浮层内容：标签左、数值右，等宽数字避免两行数字左右跳动 */

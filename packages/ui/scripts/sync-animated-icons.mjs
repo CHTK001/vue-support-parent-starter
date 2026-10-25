@@ -28,12 +28,37 @@ const UPSTREAM_REPO = "ln-dev7/icons-animated";
 const UPSTREAM_REF = "3561aea87c239ade543a6388e69ea2f2edaa6ac6";
 const RAW_BASE = `https://raw.githubusercontent.com/${UPSTREAM_REPO}/${UPSTREAM_REF}`;
 
-/** 图标清单：lib → 图标文件名（不含 .vue）。改这里即可增删。 */
+/**
+ * 图标清单：lib → 图标文件名（不含 .vue）。改这里即可增删。
+ *
+ * tabler 后半段是顶栏（ReToolbar 一排）用到的图标：刷新/搜索/暗黑/语言/全屏/
+ * 主题设置/大屏/计时器/台风。顶栏组件以 `anim:tabler:<icon>` 引用，仅在 hover
+ * 或键盘聚焦时播放动画，静止时不产生任何常驻开销。
+ * 台风取 propeller（三叶旋转，最贴近台风气旋符号；同族 tornado 实测渲染成几条横线）。
+ */
 const ICON_MANIFEST = {
   heroicons: ["bell", "heart", "plus", "trash"],
   hugeicons: ["bell", "heart", "plus", "trash"],
   phosphor: ["bell", "heart", "plus", "trash"],
-  tabler: ["bell", "heart", "plus", "trash"],
+  tabler: [
+    "bell",
+    "heart",
+    "plus",
+    "trash",
+    "refresh",
+    "search",
+    "sun",
+    "moon",
+    "sun-moon",
+    "settings",
+    "layout-grid",
+    "clock",
+    "propeller",
+    "language",
+    "arrows-maximize",
+    "arrows-minimize",
+    "user",
+  ],
 };
 
 /** 需要随组件一起再分发的许可证文件（MIT 要求保留版权与许可声明） */

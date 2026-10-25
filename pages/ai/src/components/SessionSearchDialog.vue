@@ -1,5 +1,5 @@
 <template>
-  <LDialog v-model="dialogVisible" width="520px" :close-on-click-modal="true" :show-close="false"
+  <ReDialog v-model="dialogVisible" width="520px" :close-on-click-modal="true" :show-close="false"
     append-to-body class="session-search-dialog" @open="handleOpen">
     <!-- 搜索输入 -->
     <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
@@ -68,7 +68,7 @@
         <span class="text-xs">{{ t('session.search.initial') }}</span>
       </div>
     </div>
-  </LDialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
@@ -82,7 +82,7 @@ import { apiService } from '@/services/ApiService'
 import { useSessionGroupStore } from '@/stores/sessionGroup'
 import { UNGROUPED_ID } from '@/stores/session'
 import type { SearchSessionResult } from '@/types/session'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog';
 
 const props = defineProps<{ modelValue: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()

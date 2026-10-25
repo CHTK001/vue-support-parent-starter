@@ -17,12 +17,11 @@
       :data="channels"
       :columns="channelColumns"
       engine="element"
-      :pagination="false"
-      :toolbar="false"
       :loading="loading"
       :layout-table="{ minHeight: 0 }"
       :settings="{ border: false }"
       style="width: 100%"
+      :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
     >
       <template #col-deviceChannelType="{ row }">
         <el-tag effect="plain">{{ channelTypeLabel(channelOf(row).deviceChannelType) }}</el-tag>

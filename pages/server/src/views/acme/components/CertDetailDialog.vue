@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import ReDialog from "@repo/ui/re-dialog";
 import { getCertDetail, certStatusInfo, serverLabel, type AcmeCertificateDetail } from "../../../api/acmeApi";
 
 const props = defineProps<{
@@ -79,7 +80,7 @@ function progressPercent(): number {
 </script>
 
 <template>
-  <el-dialog v-model="dialogVisible" :title="`证书详情 · ${detail?.certificate?.acmeCertPrimaryDomain || '加载中...'}`" width="780px" append-to-body>
+  <ReDialog v-model="dialogVisible" :title="`证书详情 · ${detail?.certificate?.acmeCertPrimaryDomain || '加载中...'}`" width="780px" append-to-body>
     <el-skeleton v-if="loading" :rows="6" animated />
     <template v-else>
       <el-alert v-if="error" type="error" :closable="false" class="mb12" :title="error" />
@@ -144,6 +145,44 @@ function progressPercent(): number {
           <div v-for="(c, idx) in detail.curlCommands" :key="idx" class="code-line">{{ c }}</div>
         </div>
 
+        <div v-if="detail.verification" class="block">
+          <div class="block-title">证书合法性校验</div>
+          <el-alert
+            :type="detail.verification.overallValid ? 'success' : 'error'"
+            :closable="false"
+            :title="detail.verification.overallValid ? '证书合法，可正常使用' : '证书校验未通过，请检查'"
+            class="mb12"
+          >
+            <div class="verify-msg">{{ detail.verification.message || "" }}</div>
+          </el-alert>
+          <div class="verify-grid">
+            <div class="verify-item" :class="{ pass: detail.verification.pemParsable }">
+              <span class="vi-mark">{{ detail.verification.pemParsable ? "✓" : "✗" }}</span>
+              <span class="vi-label">PEM 可解析</span>
+            </div>
+            <div class="verify-item" :class="{ pass: detail.verification.inValidWindow }">
+              <span class="vi-mark">{{ detail.verification.inValidWindow ? "✓" : "✗" }}</span>
+              <span class="vi-label">在有效期内</span>
+            </div>
+            <div class="verify-item" :class="{ pass: detail.verification.domainsCovered }">
+              <span class="vi-mark">{{ detail.verification.domainsCovered ? "✓" : "✗" }}</span>
+              <span class="vi-label">域名已覆盖</span>
+            </div>
+            <div class="verify-item" :class="{ pass: detail.verification.privateKeyMatches }">
+              <span class="vi-mark">{{ detail.verification.privateKeyMatches ? "✓" : "✗" }}</span>
+              <span class="vi-label">私钥匹配</span>
+            </div>
+            <div class="verify-item" :class="{ pass: detail.verification.chainComplete }">
+              <span class="vi-mark">{{ detail.verification.chainComplete ? "✓" : "✗" }}</span>
+              <span class="vi-label">证书链完整</span>
+            </div>
+            <div class="verify-item" :class="{ pass: !detail.verification.revoked }">
+              <span class="vi-mark">{{ detail.verification.revoked ? "✗" : "✓" }}</span>
+              <span class="vi-label">未吊销</span>
+            </div>
+          </div>
+        </div>
+
         <div v-if="detail.stepDescription" class="block">
           <div class="block-title">当前步骤</div>
           <el-tag effect="plain">{{ detail.currentStep || "" }} · {{ detail.stepDescription }}</el-tag>
@@ -162,11 +201,7 @@ function progressPercent(): number {
         </div>
       </div>
     </template>
-
-    <template #footer>
-      <el-button @click="dialogVisible = false">关闭</el-button>
-    </template>
-  </el-dialog>
+  </ReDialog>
 </template>
 
 <style scoped>
@@ -251,5 +286,39 @@ function progressPercent(): number {
   background: var(--el-fill-color-lighter);
   color: var(--el-text-color-secondary);
   word-break: break-all;
+}
+.verify-msg {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  word-break: break-all;
+}
+.verify-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+.verify-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  background: var(--el-fill-color-lighter);
+  color: var(--el-text-color-secondary);
+}
+.vi-mark {
+  font-weight: 700;
+  color: var(--el-color-danger);
+}
+.verify-item.pass .vi-mark {
+  color: var(--el-color-success);
+}
+.verify-item.pass {
+  border-color: var(--el-color-success-light-5);
+  background: var(--el-color-success-light-9);
+}
+.vi-label {
+  font-size: 12px;
 }
 </style>

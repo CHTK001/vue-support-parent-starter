@@ -198,7 +198,6 @@
         />
       </div>
       <template #footer>
-        <el-button @click="detailVisible = false">关闭</el-button>
         <el-button
           type="primary"
           icon="Picture"
@@ -310,7 +309,6 @@
       <el-empty v-if="!printSheets.length && !printLoading" description="没有可打印的试卷" :image-size="60" />
 
       <template #footer>
-        <el-button @click="printVisible = false">关闭</el-button>
         <el-button type="primary" :icon="Printer" :disabled="!printSheets.length" @click="doPrint">打印</el-button>
       </template>
     </ReDialog>
@@ -435,6 +433,7 @@ const DETAIL_PREVIEW_WIDTH = 620;
  * 这里直接透传给 PaperPreview，缺省值由组件内部兜底（A4 纵向 / classic 标题）。</p>
  */
 const detailHeader = computed(() => ({
+  paperId: detail.value?.paperId ?? '',
   name: detail.value?.paperName ?? '',
   subject: detail.value?.paperSubject ?? '',
   gradeLevel: detail.value?.paperGradeLevel ?? '',

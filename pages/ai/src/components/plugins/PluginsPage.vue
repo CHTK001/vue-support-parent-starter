@@ -1,5 +1,5 @@
 <template>
-    <div class="h-full overflow-hidden flex flex-col">
+    <div class="h-full overflow-hidden flex flex-col" data-page="plugins">
         <PageHeader :title="t('plugins.page.title')" />
         <div class="flex-1 flex flex-col overflow-hidden">
             <!-- 页签栏：跟随「设置 → 显示」窄屏/满屏，满屏时 MainLayout 注入 --content-max-width: none 撑满 -->

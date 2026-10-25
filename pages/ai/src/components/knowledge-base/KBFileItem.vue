@@ -85,7 +85,7 @@
  * <p>风格与系统一致：容器表面用组件库基线 {@code re-surface}（含 hover 态），
  * 标签与按钮用应用本地 koi 封装 {@code ReTag} / {@code ReButton}；
  * 颜色只用 koi 令牌 {@code --rm-*}，原先满屏的硬编码暗色值
- * （{@code dark:bg-[#232428]} / {@code dark:border-[#2e3035]} / {@code dark:text-[#8b8d95]} 等）
+ * （{@code dark:bg-gray-800} / {@code dark:border-gray-800} / {@code dark:text-gray-400} 等）
  * 已全部移除，暗色改由令牌自动跟随。</p>
  */
 import { computed } from 'vue'

@@ -20,6 +20,7 @@ import ReDialog from "@repo/ui/re-dialog";
 import ReInput from "@repo/ui/re-input";
 import ReSelect from "@repo/ui/re-select";
 import ReSwitch from "@repo/ui/re-switch";
+import ReSectionHead from "@repo/ui/re-section-head";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import { formatDuration } from "@repo/ui/re-time";
@@ -251,23 +252,34 @@ function showHelp(): void {
 </script>
 
 <template>
-  <div class="collect-page">
+  <div class="collect-page notice-page">
+    <!-- 页头：标题/描述与「查看模板变量」抽到表格之外，表格工具栏只留主操作（新建通知） -->
+    <ReSectionHead
+      class="notice-head"
+      title="执行通知配置"
+      description="所有采集器共用一份通知清单 · 任务进入终态后按时机异步投递，投递失败只记在「最近结果」，不改任务终态"
+    >
+      <template #actions>
+        <ReButton size="small" icon="QuestionFilled" title="查看标题与正文可用的模板变量" @click="showHelp">
+          查看标题与正文可用的模板变量
+        </ReButton>
+      </template>
+    </ReSectionHead>
+
     <ReTable
       class="collect-card"
       table-id="collect-notice"
       :loading="loading"
       :data="rows"
       :columns="columns"
-      :pagination="false"
       row-key="collectNoticeId"
       empty-text="暂无通知配置"
       stripe
       @refresh="reload"
+      :config="{ pagination: { enable: false } }"
     >
       <template #toolbar>
-        <ReButton icon="QuestionFilled" title="查看标题与正文可用的模板变量" @click="showHelp">查看标题与正文可用的模板变量</ReButton>
-        <ReButton icon="Plus" type="primary" title="新建通知" @click="openCreate">新建通知</ReButton>
-        <span class="collect-hint">这份清单对所有采集器生效；任务进入终态后按命中时机异步投递，投递失败只记在「最近结果」，不改任务终态</span>
+        <ReButton size="small" type="primary" icon="Plus" title="新建通知" @click="openCreate">新建通知</ReButton>
       </template>
 
       <template #channel="{ row }">
@@ -358,21 +370,85 @@ function showHelp(): void {
         </div>
       </div>
       <template #footer="{ cancel }">
-        <ReButton  @click="cancel">取消</ReButton>
-        <ReButton  type="primary" :loading="saving" @click="save">保存</ReButton>
+        <ReButton size="small" @click="cancel">取消</ReButton>
+        <ReButton size="small" type="primary" :loading="saving" @click="save">保存</ReButton>
       </template>
     </ReDialog>
   </div>
 </template>
 
 <style scoped>
-.content-input :deep(textarea) {
-  font-family: var(--el-font-family-mono, monospace);
+/*
+ * 现代化改造的范围说明：本页是 ReTable（受控列 + 多个具名单元格插槽）+ ReDialog 表单，
+ * 模板结构重写成卡片网格会拆掉 #channel/#timing/#enabled/#last/#action 这些脚本绑定的插槽，
+ * 所以模板只做「页头 ReSectionHead + 小号按钮」的挂载，数据与插槽原样保留。
+ * 样式一律走 koi 令牌，不再写死字体 / 颜色。
+ */
+.notice-page {
+  gap: var(--gap-md, 12px);
+}
+
+/* 页头：标题 / 描述走 koi 文字令牌，留白交给 .notice-page 的 gap，不再叠一层 margin */
+.notice-head {
+  margin-bottom: 0;
+}
+
+.notice-head :deep(.re-section-head__title) {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.notice-head :deep(.re-section-head__desc) {
   font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.notice-head :deep(.re-section-head__actions) {
+  flex-wrap: wrap;
+}
+
+.content-input :deep(textarea) {
+  font-family: ui-monospace, sfmono-regular, consolas, "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background: var(--bg-fill);
+  border-radius: var(--radius-sm);
 }
 
 .collect-vars {
-  font-family: var(--el-font-family-mono, monospace);
+  font-family: ui-monospace, sfmono-regular, consolas, "Courier New", monospace;
   word-break: break-all;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+/* ===== 响应式：窄屏页头竖排，按钮靠左换行 ===== */
+@media (max-width: 768px) {
+  .notice-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .notice-head :deep(.re-section-head__actions) {
+    width: 100%;
+  }
+}
+
+/* ===== 尊重减少动态效果 ===== */
+@media (prefers-reduced-motion: reduce) {
+  .notice-head,
+  .collect-vars,
+  .content-input :deep(textarea) {
+    animation: none;
+    transition: none;
+  }
+
+  .notice-head * {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 </style>

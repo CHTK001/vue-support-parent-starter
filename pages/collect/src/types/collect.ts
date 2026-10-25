@@ -143,6 +143,7 @@ export interface CollectEdge {
 export interface CollectDsl {
   name?: string | null;
   threadCount?: number | null;
+  timeoutMs?: number | null;
   headers: CollectParam[];
   cookies: CollectParam[];
   variables: CollectParam[];

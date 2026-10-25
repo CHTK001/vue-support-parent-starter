@@ -13,7 +13,7 @@
   依赖说明：
     - 拖拽：pages/eduai 未声明任何拖拽库（sortablejs 只在仓库根与 packages/ui 声明），
       按任务约定使用原生 HTML5 drag 事件实现，不新增依赖。
-    - 二维码：使用 qrcode（仓库内 packages/theme 与 apps/vue-support-ai-guada 早已在用），
+    - 二维码：使用 qrcode（仓库内 packages/theme 与 apps/vue-support-ai-starter 早已在用），
       以题项唯一编号 paperQuestionNo 为内容本地渲染成 PNG dataURL，
       扫码内容即后端 GET /v2/edu/paper/qr/{paperQuestionNo} 的定位凭据。
     - 接口：统一走 src/api/eduaiApi.ts（不另建请求层）。
@@ -93,6 +93,21 @@
           :description="readOnlyReason"
         />
 
+        <!-- 卷面题型/分值占比汇总：组卷时快速核对结构与分值 -->
+        <div v-if="composeQuestions.length" class="compose-type-stats">
+          <div
+            v-for="item in typeStats"
+            :key="item.type"
+            class="compose-type-stats__item"
+            :title="`${item.label}：${item.count} 题 / ${item.score} 分 / ${item.rate}%`"
+          >
+            <span class="compose-type-stats__name">{{ item.label }}</span>
+            <span class="compose-type-stats__score">{{ item.score }}分</span>
+            <span class="compose-type-stats__count">{{ item.count }}题</span>
+            <span class="compose-type-stats__rate">{{ item.rate }}%</span>
+          </div>
+        </div>
+
         <div
           class="compose-dropzone"
           :class="{ 'is-cart-over': cartDropOver }"
@@ -111,6 +126,8 @@
               class="compose-row"
               :class="{ 'is-dragging': dragIndex === idx, 'is-over': dragOverIndex === idx && dragIndex !== idx }"
               draggable="true"
+              title="点击定位到纸张预览的对应题目"
+              @click="onLocateQuestion(q, $event)"
               @dragstart="onDragStart($event, idx)"
               @dragover="onDragOver($event, idx)"
               @drop="onDrop($event, idx)"
@@ -162,15 +179,38 @@
                   <span v-else class="qr-slot__text">{{ q.paperQuestionNo }}</span>
                 </div>
                 <div class="compose-row__actions">
-                  <ReInputNumber
-                    v-model="q.score"
-                    :min="1"
-                    :max="maxQuestionScore"
-                    class="compose-row__score"
-                  />
                   <el-button type="primary" link :icon="EditPen" title="编辑此题" @click="openEditQuestion(idx)" />
                   <el-button type="danger" link :icon="Delete" title="移出试卷" @click="removeComposeQuestion(idx)" />
                 </div>
+              </div>
+              <!-- 右下角独立行：分值 + 主观题答题区行数 -->
+              <div class="compose-row__footer">
+                <span class="compose-row__footer-label">分值</span>
+                <ReInputNumber
+                  v-model="q.score"
+                  :min="1"
+                  :max="maxQuestionScore"
+                  class="compose-row__score"
+                />
+                <template v-if="isSubjective(q.type)">
+                  <span class="compose-row__footer-label">答题行数</span>
+                  <ReInputNumber
+                    :model-value="q.answerLines"
+                    :min="1"
+                    :max="12"
+                    controls-position="right"
+                    :step="1"
+                    style="width: 78px"
+                    class="compose-row__answer-lines"
+                    @update:model-value="onAnswerLinesChange(q, $event)"
+                  />
+                  <span class="compose-row__preset">
+                    <el-button size="small" :type="q.answerLines === 3 ? 'primary' : 'default'" @click="onAnswerLinesChange(q, 3)">少</el-button>
+                    <el-button size="small" :type="q.answerLines === 6 ? 'primary' : 'default'" @click="onAnswerLinesChange(q, 6)">中</el-button>
+                    <el-button size="small" :type="q.answerLines === 10 ? 'primary' : 'default'" @click="onAnswerLinesChange(q, 10)">多</el-button>
+                  </span>
+                </template>
+                <span class="compose-row__footer-hint" v-if="isSubjective(q.type)">每行 28px，可在预览中查看留白高度</span>
               </div>
             </div>
           </div>
@@ -209,61 +249,89 @@
       </el-card>
 
     <!-- ==================== 右栏：试卷购物车 ==================== -->
-    <aside class="cart-panel">
+    <aside class="cart-panel" :class="{ 'is-collapsed': cartCollapsed }">
       <el-card shadow="never" class="cart-card">
         <template #header>
           <div class="panel-head">
-            <span class="panel-head__title">试卷购物车</span>
+            <span v-if="!cartCollapsed" class="panel-head__title">试卷购物车</span>
             <span class="panel-head__actions">
-              <ReButton v-if="cartItems.length" type="primary" @click="addAllCartItemsToPaper">全部加入</ReButton>
-              <ReButton layout="square" type="primary" icon="Plus" tip="题库市场" @click="openMarket" />
-              <ReButton v-if="cartItems.length" layout="square" type="danger" icon="Delete" tip="清空购物车" @click="clearCart" />
+              <ReButton
+                v-if="!cartCollapsed && cartItems.length"
+                type="primary"
+                @click="addAllCartItemsToPaper"
+              >全部加入</ReButton>
+              <ReButton
+                v-if="!cartCollapsed"
+                layout="square"
+                type="primary"
+                icon="Plus"
+                tip="题库市场"
+                @click="openMarket"
+              />
+              <ReButton
+                v-if="!cartCollapsed && cartItems.length"
+                layout="square"
+                type="danger"
+                icon="Delete"
+                tip="清空购物车"
+                @click="clearCart"
+              />
+              <ReButton
+                layout="square"
+                :icon="cartCollapsed ? 'Expand' : 'Fold'"
+                :tip="cartCollapsed ? '展开购物车' : '折叠购物车'"
+                @click="cartCollapsed = !cartCollapsed"
+              />
             </span>
           </div>
         </template>
 
-        <div class="cart-summary">
-          已选 {{ cartCount }} 题 · 合计 {{ cartTotalScore }} 分
-        </div>
-
-        <div class="cart-list">
-          <div v-if="!cartItems.length" class="cart-empty">
-            <el-empty :image-size="64" description="购物车是空的，点击「题库」挑题加入" />
+        <template v-if="!cartCollapsed">
+          <div class="cart-summary">
+            已选 {{ cartCount }} 题 · 合计 {{ cartTotalScore }} 分
           </div>
 
-          <div
-            v-for="item in cartItems"
-            :key="item.questionId"
-            class="cart-row"
-            :class="{ 'is-dragging': draggingCartId === item.questionId }"
-            draggable="true"
-            @dragstart="onCartDragStart($event, item)"
-            @dragend="onCartDragEnd"
-          >
-            <div class="cart-row__head">
-              <el-icon class="cart-row__handle" title="拖拽到左侧题目清单加入试卷"><Rank /></el-icon>
-              <el-tag  type="info">{{ typeLabel(item.type) }}</el-tag>
-              <span v-if="item.difficulty != null" class="diff-pill" :class="diffClass(item.difficulty)">{{ diffLabel(item.difficulty) }}</span>
-              <span v-if="item.subject" class="cart-row__subject">{{ item.subject }}</span>
+          <div class="cart-list">
+            <div v-if="!cartItems.length" class="cart-empty">
+              <el-empty :image-size="64" description="购物车是空的，点击「题库」挑题加入" />
             </div>
-            <div class="cart-row__stem" v-html="renderMathSummary(item.stem, 56) || '（题干为空）'" />
-            <div class="cart-row__foot">
-              <ReInputNumber
-                :model-value="item.score"
-                :min="1"
-                :max="maxQuestionScore"
-                
-                controls-position="right"
-                class="cart-row__score"
-                @update:model-value="onCartScoreChange(item, $event)"
-              />
-              <ReButton  type="primary" icon="Plus" @click="addCartItemToPaper(item)">加入</ReButton>
-              <el-button type="danger" link :icon="Delete" title="从购物车移除" @click="removeFromCart(item.questionId)" />
+
+            <div
+              v-for="item in cartItems"
+              :key="item.questionId"
+              class="cart-row"
+              :class="{ 'is-dragging': draggingCartId === item.questionId }"
+              draggable="true"
+              @dragstart="onCartDragStart($event, item)"
+              @dragend="onCartDragEnd"
+            >
+              <div class="cart-row__head">
+                <el-icon class="cart-row__handle" title="拖拽到左侧题目清单加入试卷"><Rank /></el-icon>
+                <el-tag type="info">{{ typeLabel(item.type) }}</el-tag>
+                <span v-if="item.difficulty != null" class="diff-pill" :class="diffClass(item.difficulty)">{{ diffLabel(item.difficulty) }}</span>
+                <span v-if="item.subject" class="cart-row__subject">{{ item.subject }}</span>
+              </div>
+              <div class="cart-row__stem" v-html="renderMathSummary(item.stem, 56) || '（题干为空）'" />
+              <div class="cart-row__foot">
+                <ReInputNumber
+                  :model-value="item.score"
+                  :min="1"
+                  :max="maxQuestionScore"
+                  controls-position="right"
+                  class="cart-row__score"
+                  @update:model-value="onCartScoreChange(item, $event)"
+                />
+                <ReButton type="primary" icon="Plus" @click="addCartItemToPaper(item)">加入</ReButton>
+                <el-button type="danger" link :icon="Delete" title="从购物车移除" @click="removeFromCart(item.questionId)" />
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="cart-tip">提示：把购物车条目拖到左侧题目清单，或点「加入」一键上卷；上卷后自动从购物车移除。</div>
+          <div class="cart-tip">提示：把购物车条目拖到左侧题目清单，或点「加入」一键上卷；上卷后自动从购物车移除。</div>
+        </template>
+        <div v-else class="cart-collapsed-tip">
+          <el-icon><Expand /></el-icon>
+        </div>
       </el-card>
     </aside>
 
@@ -557,6 +625,10 @@ interface ComposeQuestion {
   analysis?: string;
   score: number;
   paperQuestionNo: string;
+  /** 主观题答题区高度（px）；组卷页调整，0 表示用题型默认 */
+  answerHeight?: number;
+  /** 主观题答题区行数；行内编辑用，换算成 answerHeight */
+  answerLines?: number;
   /** 题目难度 1-5（来自题库，用于在画布上显示更详细的信息） */
   difficulty?: number;
   /** 来源（题库原始值，可能是 MANUAL/AI 等码值） */
@@ -611,6 +683,7 @@ interface PaperDetail {
 
 /** 卷头 / 纸张 / 模板设置（工具栏与设置弹框共用的状态形状） */
 interface PaperHeader {
+  paperId: number | null;
   name: string;
   subject: string;
   gradeLevel: string;
@@ -692,6 +765,23 @@ const levelLabel = (code?: string) => GRADE_LEVELS.find((lv) => lv.code === code
 /** 学段中文标签 → 码值（levelLabel 的反向；卷头与后端回传的是中文标签，弹框下拉绑码值） */
 const levelCodeOf = (label?: string) => GRADE_LEVELS.find((lv) => lv.label === label)?.code ?? "";
 const typeLabel = (t?: string) => QUESTION_TYPES.find((x) => x.value === t)?.label ?? t ?? "-";
+
+/** 主观题类型（这类题在组卷页允许调整答题区行数，默认留 3 行） */
+const isSubjective = (type?: string) => type === "SHORT_ANSWER" || type === "SUBJECTIVE" || type === "ESSAY";
+
+/** 主观题默认答题行数：简答/主观 3 行，作文 6 行 */
+function defaultAnswerLines(type?: string): number {
+  if (type === "ESSAY") return 6;
+  if (isSubjective(type)) return 3;
+  return 0;
+}
+
+/** 主观题答题行数变更 → 同步答题区高度（px） */
+function onAnswerLinesChange(q: ComposeQuestion, value?: number) {
+  const lines = Math.max(0, Math.round(Number(value ?? q.answerLines) || 0));
+  q.answerLines = lines;
+  q.answerHeight = lines * 28;
+}
 const optionLetter = (i: number) => String.fromCharCode(65 + i);
 
 const diffLabel = (n?: number) => {
@@ -837,12 +927,35 @@ const readOnlyReason = computed(() =>
     : '试卷已归档，只读留档，不能再修改或发布。',
 );
 const composeQuestions = ref<ComposeQuestion[]>([]);
+
+/** 卷面题型/分值占比：按题型聚合题数与分值，标题显示百分比 */
+const typeStats = computed(() => {
+  const groups = new Map<string, { type: string; label: string; count: number; score: number }>();
+  for (const q of composeQuestions.value) {
+    const type = String(q.type || '');
+    const label = typeLabel(type) || '其他';
+    const cur = groups.get(type) ?? { type, label, count: 0, score: 0 };
+    cur.count += 1;
+    cur.score += Number(q.score ?? 0);
+    groups.set(type, cur);
+  }
+  const total = composeQuestions.value.reduce((s, q) => s + Number(q.score ?? 0), 0) || 1;
+  return Array.from(groups.values()).map((g) => ({
+    ...g,
+    score: Math.round(g.score * 10) / 10,
+    rate: Math.round((g.score / total) * 1000) / 10,
+  }));
+});
+
+/** 右栏购物车是否折叠（折叠后只留一条窄边，节省画布空间） */
+const cartCollapsed = ref(false);
 /** 已从画布移除但仍需通知服务端删除的题项 */
 const removedServerItems = ref<RemovedQuestion[]>([]);
 /** 服务端已确认的分值快照（questionId → score），用于找出本地改过的分值 */
 const savedScores = new Map<number, number>();
 
 const header = reactive<PaperHeader>({
+  paperId: null,
   name: "",
   subject: "",
   gradeLevel: "",
@@ -1303,6 +1416,8 @@ function addCartItemToPaper(item: CartItem) {
     analysis: item.analysis,
     score: clampScore(item.score),
     paperQuestionNo: nextTmpNo(),
+    answerLines: defaultAnswerLines(item.type),
+    answerHeight: defaultAnswerLines(item.type) * 28,
     difficulty: item.difficulty,
     source: item.source,
   });
@@ -1451,6 +1566,26 @@ function onDragEnd() {
   dragIndex.value = -1;
   dragOverIndex.value = -1;
   draggingCartId.value = null;
+  lastDragEndAt = Date.now();
+}
+
+/** 行内交互控件（编辑/删除/分值输入/答题行数/拖拽条等）：点击它们不触发预览定位 */
+let lastDragEndAt = 0;
+
+/** 左侧题目行点击 → 中栏纸张预览定位到对应题（拖拽刚结束时忽略，避免拖完误触发跳跃） */
+function onLocateQuestion(q: ComposeQuestion, event: MouseEvent) {
+  if (Date.now() - lastDragEndAt < 300) {
+    return;
+  }
+  const target = event.target as HTMLElement | null;
+  if (target && target.closest("button, input, .compose-row__handle, .el-input-number, .el-radio, .el-checkbox, .el-select")) {
+    return;
+  }
+  const key = q.paperQuestionNo || `Q${q.questionId}`;
+  const ok = previewRef.value?.scrollToQuestion?.(key) ?? false;
+  if (!ok) {
+    message.warning("预览中未找到该题，请确认页面已渲染");
+  }
 }
 
 function moveQuestion(from: number, to: number) {
@@ -1781,6 +1916,7 @@ async function publishPaper() {
 async function loadDetail(id: number) {
   const detail = (await eduaiApi.getPaper(id)) as unknown as PaperDetail;
   paperId.value = id;
+  header.paperId = id;
   // 业务口径「发布=冻结」：已发布/已归档的卷不可编辑，页面转为只读提示
   paperStatus.value = Number(detail.status ?? detail.paperStatus ?? 0);
   header.name = detail.name ?? detail.paperName ?? header.name;
@@ -1808,6 +1944,8 @@ async function loadDetail(id: number) {
     score: clampScore(item.score),
     // 后端 QuestionVO 的题项编号字段名为 questionNo
     paperQuestionNo: item.questionNo || nextTmpNo(),
+    answerLines: defaultAnswerLines(item.type),
+    answerHeight: defaultAnswerLines(item.type) * 28,
     // 说明：后端 QuestionVO 未返回 difficulty/source，从服务端回读的题这两项为空，
     // 画布上按「有值才显示」处理；从题库加入的题（购物车路径）带得到这两项。
   }));
@@ -1869,6 +2007,7 @@ function onBack(): void {
 const previewRef = ref<{
   pageCount: number;
   scale: number;
+  scrollToQuestion: (key: string | number) => boolean;
   exportA4Images: (options?: {
     mode?: PaperExportMode;
     answers?: Record<string, string>;
@@ -1892,17 +2031,56 @@ function openExport() {
   exportVisible.value = true;
 }
 
-/** 已作答模式：用题目自带答案模拟学生书写/勾选痕迹 */
+/** 主观题模拟作答文案池：按题号取确定性短句，避免整卷导出全是同一条规整说明 */
+const SUBJECTIVE_MOCK_POOL = [
+  "先读题，把已知条件写在旁边，再代入公式算。这里应该是这样算，过程我列在下面了。",
+  "我认为答案是这一种，因为题干里说得很清楚，其他选项都不太符合。",
+  "第一步先化简，第二步看单位，最后检查一遍有没有漏条件。",
+  "这道题我以前错过一次，这次写的是另个思路，结果算出来是这个。",
+  "根据所学知识，这个情况应该先分类讨论，然后取交集。",
+  "书写有点乱，但过程是按老师讲过的方法写的，结论放在最后。",
+  "画了图之后比较容易看，阴影部分就是要求的部分，面积按公式算。",
+];
+
+/** 主观题模拟作答：按题号确定性挑选并做轻微涂改/截断，模拟真实手写作答 */
+function buildSubjectiveMock(seedKey: string): string {
+  let seed = Array.from(String(seedKey || "")).reduce((s, ch) => s + ch.charCodeAt(0) * 31 + 17, 7);
+  const pick = () => {
+    seed = (seed * 9301 + 49297) % 233280;
+    return seed;
+  };
+  const text = SUBJECTIVE_MOCK_POOL[pick() % SUBJECTIVE_MOCK_POOL.length];
+  const shouldCut = pick() % 5 === 0;
+  const shouldFlip = pick() % 7 === 0;
+  const trimmed = shouldCut && text.length > 2 ? text.slice(0, Math.max(12, text.length - pick() % 18)) : text;
+  if (!shouldFlip) return trimmed;
+  const idx = Math.min(text.length, 2 + pick() % Math.max(1, text.length - 4));
+  return text.slice(0, idx) + "（划掉）" + text.slice(idx);
+}
+
+/**
+ * 已作答模式：模拟学生真实作答，而不是把标准答案贴进去。
+ *
+ * <p><b>为什么不能贴标准答案</b>：已作答卷是用来模拟「学生做完的卷子」，
+ * 若把标准答案原样写上，主观题全对、客观题全选对，导出的卷子拿去扫/判
+ * 一题都不错、错题本永远空 —— 模拟不了真人。这里客观题随机勾一个选项、
+ * 主观题写一段「学生口吻」的作答（不是标准答案），还原真实答卷的错漏分布。</p>
+ */
 function buildExportAnswers(): Record<string, string> {
   const answers: Record<string, string> = {};
+  const letters = ["A", "B", "C", "D"];
+  let seed = 1;
   for (const q of composeQuestions.value) {
     const key = q.paperQuestionNo || String(q.questionId);
-    const raw = q.answer?.trim();
-    if (raw) {
-      answers[key] = raw;
+    seed = (seed * 9301 + 49297) % 233280;
+    const pick = letters[seed % letters.length];
+    if (q.type === "SINGLE_CHOICE" || q.type === "MULTIPLE_CHOICE" || q.type === "JUDGE") {
+      // 客观题：随机勾选，模拟学生真实勾选（含答错的）
+      answers[key] = q.type === "JUDGE" ? (seed % 2 === 0 ? "对" : "错") : pick;
       continue;
     }
-    answers[key] = q.type === "SINGLE_CHOICE" || q.type === "MULTIPLE_CHOICE" ? "A" : "略";
+    // 主观题：写模拟学生手写作答（非标准答案），填空/简答/翻译/作文统一走这里
+    answers[key] = buildSubjectiveMock(key);
   }
   return answers;
 }
@@ -2037,6 +2215,33 @@ onMounted(() => {
   flex: 0 0 340px;
   min-height: 0;
   display: flex;
+}
+
+/* 购物车折叠：缩成一条窄边，只留标题与展开按钮 */
+.cart-panel.is-collapsed {
+  flex: 0 0 46px;
+}
+
+.cart-panel.is-collapsed .cart-card :deep(.el-card__header) {
+  padding: 8px 4px;
+}
+
+.cart-panel.is-collapsed .cart-card :deep(.el-card__body) {
+  padding: 6px;
+}
+
+.cart-collapsed-tip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+  text-align: center;
+  padding: 4px;
 }
 
 /* ---------- 卡片通用 ---------- */
@@ -2197,6 +2402,50 @@ onMounted(() => {
   padding: 10px 0;
 }
 
+/* 卷面题型/分值占比汇总条 */
+.compose-type-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  background: var(--el-fill-color-light);
+}
+
+.compose-type-stats__item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--el-bg-color);
+  white-space: nowrap;
+}
+
+.compose-type-stats__name {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.compose-type-stats__score {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-color-primary);
+}
+
+.compose-type-stats__count {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+}
+
+.compose-type-stats__rate {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--el-color-success);
+}
+
 .compose-list {
   display: flex;
   flex-direction: column;
@@ -2205,6 +2454,7 @@ onMounted(() => {
 
 .compose-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: stretch;
   gap: 12px;
   padding: 10px 12px;
@@ -2492,6 +2742,49 @@ onMounted(() => {
 
 .compose-row__score {
   width: 118px;
+}
+
+/* 行底部独立行：分值 + 主观题答题行数，固定右下角右对齐 */
+.compose-row__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px 10px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--el-border-color-lighter);
+  flex: 1 1 100%;
+}
+
+.compose-row__footer-label {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+}
+
+.compose-row__footer-hint {
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+  white-space: nowrap;
+}
+
+/* 主观题答区留白三档预设：少/中/多 */
+.compose-row__preset {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 2px;
+}
+
+.compose-row__preset .el-button {
+  min-width: 30px;
+  margin: 0;
+  padding: 4px 6px;
+}
+
+.compose-row__answer-lines {
+  width: 78px;
 }
 
 /* 每题唯一二维码：扫码内容为题项唯一编号 paperQuestionNo */

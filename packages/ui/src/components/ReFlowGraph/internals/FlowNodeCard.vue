@@ -39,6 +39,10 @@ interface CardState {
   strokeColor: string;
   /** 回放/校验描边粗细（px） */
   strokeWidth: number;
+  /** 卡片第二行状态文本（重播时显示「开始时间 · 耗时」）；空串不渲染 */
+  stateText: string;
+  /** 正在循环/当前执行：蓝色虚线动画边框 */
+  looping: boolean;
 }
 
 const state = ref<CardState>({
@@ -50,6 +54,8 @@ const state = ref<CardState>({
   image: "",
   strokeColor: "",
   strokeWidth: 1.5,
+  stateText: "",
+  looping: false,
 });
 
 /** 从节点 data 读出卡片状态 */
@@ -63,6 +69,8 @@ function read(): CardState {
     flowImage?: string;
     flowStrokeColor?: string;
     flowStrokeWidth?: number;
+    flowStateText?: string;
+    flowLooping?: boolean;
   };
   return {
     type: data.flowType ?? "default",
@@ -73,6 +81,8 @@ function read(): CardState {
     image: data.flowImage || "",
     strokeColor: data.flowStrokeColor ?? "",
     strokeWidth: data.flowStrokeWidth ?? 1.5,
+    stateText: data.flowStateText ?? "",
+    looping: Boolean(data.flowLooping),
   };
 }
 
@@ -137,7 +147,7 @@ watch(() => props.node, sync);
     官方 CSS 是 `.node`；这里用 `flow-node-card` 以免与宿主页面样式串味。
     宽度/高度必须写死成 100%：foreignObject 内的根元素要铺满 X6 给的 180×36 盒子。
   -->
-  <div class="flow-node-card" :style="cardStyle">
+  <div class="flow-node-card" :class="{ 'flow-node-card--looping': state.looping }" :style="cardStyle">
     <span class="flow-node-icon" :style="{ background: state.color }">
       <!--
         图片优先于 SVG path：内部业务图（应用/处理器图标）用 <img> 比硬凑 24×24
@@ -168,6 +178,7 @@ watch(() => props.node, sync);
     </span>
     <span class="flow-node-label" :title="state.label">{{ state.label }}</span>
     <span v-if="kindOf()" class="flow-node-kind" :title="state.type">{{ kindOf() }}</span>
+    <span v-if="state.stateText" class="flow-node-state">{{ state.stateText }}</span>
   </div>
 </template>
 
@@ -178,6 +189,8 @@ watch(() => props.node, sync);
  */
 .flow-node-card {
   display: flex;
+  flex-wrap: wrap;
+  align-content: center;
   align-items: center;
   box-sizing: border-box;
   width: 100%;
@@ -196,6 +209,18 @@ watch(() => props.node, sync);
 }
 .flow-node-card:active {
   cursor: grabbing;
+}
+/* 正在循环/当前执行：蓝色虚线动画边框，回放追踪时一眼定位 */
+.flow-node-card--looping {
+  border-color: transparent;
+  border-style: dashed;
+  animation: flow-node-looping 1.2s linear infinite;
+  box-shadow: 0 0 0 2px var(--el-color-primary, #4f7cff) inset;
+}
+@keyframes flow-node-looping {
+  0% { outline-color: var(--el-color-primary, #4f7cff); }
+  50% { outline-color: rgba(79, 124, 255, 0.25); }
+  100% { outline-color: var(--el-color-primary, #4f7cff); }
 }
 .flow-node-icon {
   display: grid;
@@ -222,6 +247,24 @@ watch(() => props.node, sync);
   color: #4e5969;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/*
+ * 状态文本：重播时在节点卡片第二行显示「开始时间 · 耗时」。
+ * 36px 高度塞不下，改成卡片整体纵向两行布局，宽高由 X6 容器决定。
+ */
+.flow-node-state {
+  flex: 1 1 100%;
+  min-width: 0;
+  margin-left: 4px;
+  padding-left: 28px;
+  padding-top: 1px;
+  overflow: hidden;
+  font-family: var(--rm-font-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-size: 10px;
+  line-height: 1.2;
+  color: var(--el-text-color-secondary, #909399);
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 /*
  * 类型标签：与 label 重复时（调色板里就那几个类型，name 常常等于 label）不再占位，

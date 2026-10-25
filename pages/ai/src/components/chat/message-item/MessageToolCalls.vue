@@ -14,7 +14,7 @@
       -->
       <div class="tool-row-line flex items-center min-w-0">
         <div
-          class="tool-row flex items-center flex-1 min-w-0 text-sm text-gray-700 dark:text-[#8b8d95] cursor-pointer font-medium transition-colors duration-200"
+          class="tool-row flex items-center flex-1 min-w-0 text-sm text-gray-700 dark:text-gray-400 cursor-pointer font-medium transition-colors duration-200"
           :class="{ 'is-expanded': isExpanded(toolIndex) }" role="button" tabindex="0"
           :aria-expanded="isExpanded(toolIndex)" @click.stop="toggleTool(toolIndex)"
           @keydown.enter.prevent="toggleTool(toolIndex)" @keydown.space.prevent="toggleTool(toolIndex)">
@@ -97,7 +97,7 @@
 
 
   <!-- 单个工具详情对话框（保留入口：超长参数/结果的完整视图） -->
-  <LDialog v-if="keepElement && selectedToolIndex !== null" v-model="showDialog"
+  <ReDialog v-if="keepElement && selectedToolIndex !== null" v-model="showDialog"
     :title="t('chat.toolCalls.detailTitle', { index: selectedToolIndex + 1 })" width="700px" :close-on-click-modal="true" destroy-on-close
     :append-to-body="true" class="tool-dialog" @closed="keepElement = false">
     <div class="tool-dialog-content">
@@ -125,21 +125,15 @@
           :executing="isExecuting" />
       </div>
     </div>
-
-    <template #footer>
-      <span class="dialog-footer">
-        <el-button @click="closeDialog">关闭</el-button>
-      </span>
-    </template>
-  </LDialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { ElIcon, ElButton } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { Info24Regular, ChevronRight12Regular, Open16Regular } from '@vicons/fluent';
-import LDialog from '@/components/ui/LDialog.vue';
+import ReDialog from '@repo/ui/re-dialog';
 import ToolCallDetail from './ToolCallDetail.vue';
 import {
   type ToolCall,
@@ -308,6 +302,56 @@ const isToolExecuting = (tool: ToolCall, index: number): boolean => {
   if (props.toolResponses && props.toolResponses[index]) return false;
   return true;
 };
+
+/**
+ * 运行中的行自动展开、跑完自动收起（用户要求 2026-10-24）。
+ *
+ * 交互口径：
+ *   正在执行 → 自动展开，让用户看到「此刻在做什么」；
+ *   执行结束 → 自动收起成一行，把版面让给下一步，同一时刻只留正在跑的那条张开。
+ *   后续步骤开始时会自己展开，于是形成「下一条展开、上一条收起」的接力观感。
+ *
+ * 不抢用户的手：只自动收起**由本逻辑展开**的行（autoExpandedIndexes），
+ * 用户手动点开的历史行保持原样，否则读到一半会被自动收起打断。
+ */
+const autoExpandedIndexes = ref<number[]>([]);
+
+/**
+ * 执行态指纹：每行「在跑 / 已停」拼成一个字符串，任一行状态翻转都会触发 watch。
+ * 直接 watch props.toolCalls 不够——流式期间数组是就地增改的，
+ * 引用可能不变；指纹变化才是可靠的「执行态变了」信号。
+ */
+const executingSignature = computed(() =>
+  (props.toolCalls || []).map((tc, i) => (isToolExecuting(tc, i) ? '1' : '0')).join(''),
+);
+
+watch(executingSignature, () => {
+  const running = new Set<number>();
+  (props.toolCalls || []).forEach((tc, i) => {
+    if (isToolExecuting(tc, i)) running.add(i);
+  });
+
+  const next = new Set(expandedIndexes.value);
+
+  // 新进入运行态 → 自动展开
+  running.forEach((i) => {
+    if (!next.has(i)) {
+      next.add(i);
+      if (!autoExpandedIndexes.value.includes(i)) {
+        autoExpandedIndexes.value = [...autoExpandedIndexes.value, i];
+      }
+    }
+  });
+
+  // 已停止执行 → 自动收起（仅限自动展开的那些）
+  autoExpandedIndexes.value = autoExpandedIndexes.value.filter((i) => {
+    if (running.has(i)) return true;
+    next.delete(i);
+    return false;
+  });
+
+  expandedIndexes.value = [...next];
+}, { immediate: true });
 
 // ── 展示文案 ──
 
@@ -496,10 +540,10 @@ const closeDialog = () => {
   color: var(--el-text-color-primary);
 }
 
-/* ── 行内展开区：左侧细线缩进，与「过程行」层级一致 ── */
+/* ── 行内展开区：细导轨 + 文本，与思考 / 检索行同一套极简口径（用户 2026-10-24）── */
 .tool-inline {
-  margin: 4px 0 2px 16px;
-  padding-left: 12px;
+  margin: 4px 0 2px 7px;
+  padding-left: 16px;
   border-left: 2px solid var(--el-border-color-lighter);
 }
 

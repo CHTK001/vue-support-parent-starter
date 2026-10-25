@@ -31,6 +31,9 @@ export interface ProcessInfo {
   memoryBytes?: number;
   command?: string;
   parentPid?: number;
+  /** 线程数（后端 ProcessRowVO 字段名为 threads） */
+  threads?: number;
+  /** 线程数别名，部分采集通道以此命名 */
   threadCount?: number;
   description?: string;
   elapsedTime?: string;
@@ -260,6 +263,73 @@ export const closeNetProcess = (pid: number, port?: number, hostId?: number) =>
   http().post("/ms/system/netproc/close").query({ pid, ...(port ? { port } : {}), ...(hostId ? { hostId } : {}) })
     .timeout(60_000)
     .then(r => unwrap<string>(r));
+
+/** 端口占用行（后端 NetProcessRowVO，各采集通道字段已归一） */
+export interface NetProcessInfo {
+  /** 协议小写：tcp / tcp4 / udp */
+  protocol?: string;
+  /** 协议别名，与 protocol 同值 */
+  type?: string;
+  /** 本地地址展示串 addr:port */
+  local?: string;
+  localAddr?: string;
+  localPort?: number;
+  /** 远端地址展示串 addr:port */
+  remote?: string;
+  remoteAddr?: string;
+  remotePort?: number;
+  /** 端口别名，与 localPort 同值 */
+  port?: number;
+  /** 连接状态：LISTEN / ESTABLISHED / UNCONN */
+  state?: string;
+  /** 占用进程号，未知为 0 */
+  pid?: number;
+  /** 占用进程名，未知为空 */
+  process?: string;
+  [key: string]: unknown;
+}
+
+/** 获取本机（或指定主机）的端口占用详情，含占用 PID / 进程名 */
+export const fetchNetProcesses = (hostId?: number) =>
+  http()
+    .get("/ms/system/netproc")
+    .query(hostId ? { hostId } : {})
+    .timeout(60_000)
+    .then(r => unwrap<NetProcessInfo[]>(r));
+
+/**
+ * 从端口占用明细里挑出监听行对应的 PID。
+ *
+ * <p>只认 LISTEN（TCP）与 UNCONN（UDP）行：客户端连出去的 ESTABLISHED 连接
+ * 端口相同但 PID 是对端发起者，误取会把「谁在连」当成「谁在服务」。
+ * 抽成纯函数便于单测，网络请求留在 {@link resolvePortPid}。</p>
+ *
+ * @param rows 端口占用明细
+ * @param port 目标监听端口
+ * @returns 占用该端口的进程号；找不到或未取到返回 0
+ */
+export const pickListenPid = (rows: NetProcessInfo[], port: number): number => {
+  if (!port || !rows?.length) return 0;
+  const hit = rows.find(r => Number(r.port ?? r.localPort) === port
+    && (r.state === "LISTEN" || r.state === "UNCONN"));
+  return Number(hit?.pid) || 0;
+};
+
+/**
+ * 按监听端口反查占用它的进程 PID。
+ *
+ * <p>服务节点只存了 host/port，没有 PID；要展示节点进程的 CPU / 内存就必须先由
+ * 端口反查 PID。判定规则见 {@link pickListenPid}。</p>
+ *
+ * @param port   节点监听端口
+ * @param hostId 目标主机，undefined 表示本机
+ * @returns 占用该端口的进程号；找不到返回 0
+ */
+export const resolvePortPid = async (port: number, hostId?: number): Promise<number> => {
+  if (!port) return 0;
+  const rows = await fetchNetProcesses(hostId);
+  return pickListenPid(rows, port);
+};
 
 /* ---------- 环境变量 增/删（系统级，按平台经 SPI 下发） ---------- */
 

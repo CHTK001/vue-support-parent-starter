@@ -70,3 +70,75 @@
 .main-content {
   padding: 8px;
 }
+
+/* ==================== 全局表格体验增强 ==================== */
+
+/* 表格行悬停高亮（全局生效，不需要每个页面单独写） */
+.el-table__body > tr:hover > td,
+.vxe-table .vxe-body--row:hover > td,
+.re-table-view__body > tr:hover > td {
+  background-color: var(--el-fill-color-light) !important;
+  transition: background-color 0.12s ease;
+}
+
+/* 表格行悬停时，光标移动到可点击单元格时变为手型 */
+.el-table__body td.has-click:hover,
+.vxe-body--row td.has-click:hover {
+  cursor: pointer;
+}
+
+/* 表格列悬停高亮（帮助定位当前列） */
+.el-table__body td:hover,
+.vxe-body--row td:hover {
+  background-color: var(--el-fill-color-lighter) !important;
+}
+
+/* 全局减少动画偏好（无障碍） */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ElEmpty 空态大图标（所有页面的 ReEmpty / el-empty 默认图标统一替换为友好风格） */
+.el-empty__image {
+  opacity: 0.7;
+}
+.el-empty__description {
+  font-size: 14px;
+  color: var(--el-text-color-secondary);
+}
+
+/* 表格操作列按钮间距 */
+.el-table__cell .el-button + .el-button,
+.vxe-body--row .el-button + .el-button {
+  margin-left: 4px;
+}
+
+/* ReButton tip 默认内联（已注册，无需额外处理） */
+.el-tooltip__trigger {
+  outline: none;
+}
+
+/* 批量操作区样式（批量重置密码 / 批量导入 等场景通用） */
+.batch-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 20%, transparent);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--el-color-primary);
+  margin-bottom: 8px;
+  transition: background-color 0.15s ease;
+}
+.batch-actions:hover {
+  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+}

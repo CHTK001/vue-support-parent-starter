@@ -1,5 +1,5 @@
 <template>
-  <LDialog
+  <ReDialog
     :model-value="visible"
     @update:model-value="onVisibleChange"
     width="480px"
@@ -68,14 +68,14 @@
         </div>
       </div>
     </template>
-  </LDialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElButton, ElCheckbox } from 'element-plus'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 
 const props = defineProps<{
   visible: boolean

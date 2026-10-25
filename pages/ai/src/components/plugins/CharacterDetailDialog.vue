@@ -1,5 +1,5 @@
 <template>
-  <LDialog
+  <ReDialog :close-on-click-modal="true"
     :model-value="modelValue"
     width="600px"
     align-center
@@ -71,14 +71,14 @@
         </el-button>
       </div>
     </template>
-  </LDialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { Loading } from '@element-plus/icons-vue'
 import { ArrowRight24Regular, Apps20Regular } from '@vicons/fluent'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 import { apiService } from '@/services/ApiService'
 import type { CharacterCatalogDetail } from '@/services/modules/character.api'
 

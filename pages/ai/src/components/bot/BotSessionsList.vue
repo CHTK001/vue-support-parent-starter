@@ -3,8 +3,8 @@
     <!-- 标题区 -->
     <div class="flex items-center justify-between gap-4 mb-8 mt-2">
       <div class="min-w-0">
-        <h1 class="text-xl font-bold text-gray-900 dark:text-[#e8e9ed]">{{ t('bot.sessions.title') }}</h1>
-        <p class="text-sm text-gray-500 dark:text-[#8b8d95] mt-1">{{ t('bot.sessions.subtitle') }}</p>
+        <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ t('bot.sessions.title') }}</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('bot.sessions.subtitle') }}</p>
       </div>
     </div>
 
@@ -40,7 +40,7 @@
       <el-icon class="is-loading" :size="32">
         <Loading />
       </el-icon>
-      <span class="ml-2 text-gray-500 dark:text-[#8b8d95]">{{ t('bot.sessions.loading') }}</span>
+      <span class="ml-2 text-gray-500 dark:text-gray-400">{{ t('bot.sessions.loading') }}</span>
     </div>
 
     <!-- 会话列表 -->
@@ -52,7 +52,6 @@
         :data="sessions"
         :columns="sessionColumns"
         style="width: 100%"
-        engine="element"
         :pagination="false"
         :toolbar="false"
         :layout-table="{ minHeight: 0 }"
@@ -71,39 +70,37 @@
         </template>
 
         <template #col-botId="{ row }">
-          <span class="text-sm text-gray-600 dark:text-[#8b8d95]">
+          <span class="text-sm text-gray-600 dark:text-gray-400">
             {{ getBotName(row.botId) || t('bot.sessions.unknownBot') }}
           </span>
         </template>
 
         <template #col-lastActiveAt="{ row }">
-          <span class="text-sm text-gray-500 dark:text-[#8b8d95]">
+          <span class="text-sm text-gray-500 dark:text-gray-400">
             {{ formatTime(row.lastActiveAt) }}
           </span>
         </template>
 
+        <!-- 操作列统一 ReButton square（纯图标 + tooltip）；文案走 i18n 的 tip -->
         <template #col-actions="{ row }">
-          <div class="flex gap-2">
-            <el-button link type="primary" @click.stop="handleViewChat(row as Session)">
-              {{ t('bot.sessions.viewChat') }}
-            </el-button>
-            <el-button link type="warning" @click.stop="handleClearMessages(row as Session)">
-              {{ t('bot.sessions.clearMessages') }}
-            </el-button>
-            <el-button link type="danger" @click.stop="handleDeleteSession(row as Session)">
-              {{ t('bot.sessions.delete') }}
-            </el-button>
+          <div class="row-actions">
+            <ReButton layout="square" type="primary" :icon="ChatDotRound" :tip="t('bot.sessions.viewChat')"
+              @click.stop="handleViewChat(row as Session)" />
+            <ReButton layout="square" type="warning" :icon="Brush" :tip="t('bot.sessions.clearMessages')"
+              @click.stop="handleClearMessages(row as Session)" />
+            <ReButton layout="square" type="danger" :icon="Delete" :tip="t('bot.sessions.delete')"
+              @click.stop="handleDeleteSession(row as Session)" />
           </div>
         </template>
       </ReTable>
 
       <!-- 空状态 -->
       <div v-else class="text-center py-12">
-        <el-icon size="48" class="text-gray-300 dark:text-[#3e4046] mb-3">
+        <el-icon size="48" class="text-gray-300 dark:text-gray-600 mb-3">
           <ChatDotRound />
         </el-icon>
-        <p class="text-lg text-gray-500 dark:text-[#8b8d95]">{{ t('bot.sessions.empty') }}</p>
-        <p class="text-sm mt-1 text-gray-400 dark:text-[#6b6d75]">{{ t('bot.sessions.emptyHint') }}</p>
+        <p class="text-lg text-gray-500 dark:text-gray-400">{{ t('bot.sessions.empty') }}</p>
+        <p class="text-sm mt-1 text-gray-400 dark:text-gray-400">{{ t('bot.sessions.emptyHint') }}</p>
       </div>
 
       <!-- 分页 -->
@@ -124,7 +121,7 @@ import { message } from "@repo/core";
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessageBox } from 'element-plus';
-import { Loading, ChatDotRound } from '@element-plus/icons-vue'
+import { Loading, ChatDotRound, Brush, Delete } from '@element-plus/icons-vue'
 import { apiService } from '@/services/ApiService'
 import { useBotStore } from '@/stores/bot'
 import BotSessionDialog from './BotSessionDialog.vue'
@@ -133,6 +130,7 @@ import { useRoute, useRouter } from 'vue-router'
 // ReTable 换算：仓库标准表格组件与列类型
 import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
+import ReButton from '@repo/ui/re-button'
 
 const botStore = useBotStore()
 const route = useRoute()

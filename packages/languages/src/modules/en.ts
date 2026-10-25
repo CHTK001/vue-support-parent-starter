@@ -931,7 +931,35 @@ export default {
     searchMenuEnter: "Open",
     searchMenuEsc: "Close",
     pinMenu: "Pin submenu",
-    unpinMenu: "Unpin"
+    unpinMenu: "Unpin",
+    envBadge: {
+      prod: "PROD",
+      test: "TEST",
+      dev: "DEV",
+      mode: "Runtime mode",
+      backend: "Backend",
+      sameOrigin: "same origin"
+    },
+    alerts: {
+      none: "No open alerts",
+      open: "{n} open alert(s)",
+      empty: "Nothing needs attention right now"
+    },
+    commandPalette: {
+      tip: "Command palette (Ctrl/⌘ + K)",
+      placeholder: "Search menus or type an action…",
+      title: "Command palette",
+      hint: "Jump to a page or run an action. Ctrl/⌘ + K anytime",
+      recent: "Recent",
+      actions: "Actions",
+      menus: "Menus",
+      actionHint: {
+        refresh: "Clear cache and reload",
+        theme: "Switch theme mode",
+        fullscreen: "Toggle fullscreen",
+        settings: "Open theme settings drawer"
+      }
+    }
   },
   msg: {
     success: "Operation successful",

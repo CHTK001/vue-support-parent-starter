@@ -35,10 +35,11 @@ import {
   ElCol,
   ElIcon,
 } from "element-plus";
-import { ArrowDown, ArrowUp, Setting, Refresh, Search } from "@element-plus/icons-vue";
+import { ArrowDown, ArrowUp } from "@element-plus/icons-vue";
 import type { ModelValueType, SelectProps } from "element-plus";
 import type { ReFilterItem } from "./types";
 import ReSelect from "../ReSelect/ReSelect.vue";
+import ReButton from "../ReButton/ReButton.vue";
 import type { ReSelectLoader } from "../ReSelect/types";
 
 defineOptions({ name: "ReFilter", inheritAttrs: true });
@@ -343,14 +344,14 @@ defineExpose({
           </ElCol>
         </template>
 
-        <!-- 操作按钮 -->
+        <!-- 操作按钮：动画图标（hover 播上游动效；loading 态保留图标并整体旋转） -->
         <ElCol v-if="showActions" :span="getItemSpan({ prop: '', label: '' })" class="re-filter__actions">
-          <ElButton type="primary" :icon="Search" @click="onSearch">
+          <ReButton type="primary" icon="anim:tabler:search" :anim-icon-size="16" @click="onSearch">
             {{ searchText }}
-          </ElButton>
-          <ElButton :icon="Refresh" @click="onReset">
+          </ReButton>
+          <ReButton icon="anim:tabler:refresh" :anim-icon-size="16" @click="onReset">
             {{ resetText }}
-          </ElButton>
+          </ReButton>
           <ElButton
             v-if="hasCollapsedItems"
             text
@@ -363,14 +364,15 @@ defineExpose({
               <ArrowUp v-else />
             </ElIcon>
           </ElButton>
-          <ElButton
+          <ReButton
             v-if="drawerEnabled"
-            :icon="Setting"
+            icon="anim:tabler:settings"
+            :anim-icon-size="16"
             text
             @click="openDrawer"
           >
             高级
-          </ElButton>
+          </ReButton>
         </ElCol>
       </ElRow>
     </ElForm>

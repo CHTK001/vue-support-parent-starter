@@ -12,6 +12,9 @@
   "dependencies": {
     "vue": "catalog:",
     "vue-i18n": "catalog:",
+    "vue-router": "catalog:",
+    "pinia": "catalog:",
+    "axios": "catalog:",
     "element-plus": "catalog:",
     "@element-plus/icons-vue": "catalog:",
     "@repo/core": "workspace:*",

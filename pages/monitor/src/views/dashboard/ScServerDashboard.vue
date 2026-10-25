@@ -330,6 +330,12 @@
         <ReThree :height="260" :render="renderMetrics3D" :animate="animateMetrics3D" :auto-rotate="true" :auto-rotate-speed="0.8" />
       </div>
     </ReCard>
+
+    <SoftwareMetricTable
+      v-if="selectedMonitorId"
+      :monitor-id="selectedMonitorId"
+      :refresh-key="swRefreshKey"
+    />
   </div>
 </template>
 
@@ -348,9 +354,12 @@ import {
   getLatestJvm, getJvmHistory,
   getMetricSeries,
 } from '../../api'
+import SoftwareMetricTable from '../../software/SoftwareMetricTable.vue'
 
 const servers = ref<any[]>([])
 const selectedMonitorId = ref<number | null>(null)
+/** 软件指标表的外层刷新信号：变化即重新拉取软件识别结果 */
+const swRefreshKey = ref(0)
 const lastCollect = ref('—')
 
 const currentServer = computed(() => servers.value.find(s => s.id === selectedMonitorId.value))
@@ -563,6 +572,7 @@ const onResize = () => {
 
 const onMonitorChange = () => {
   loadMetrics(selectedMonitorId.value || 0)
+  swRefreshKey.value++
 }
 
 const ringColor = (value: number, warn: boolean = false): string => {
@@ -672,6 +682,7 @@ function initLivePush(): void {
 
 const refresh = () => {
   if (selectedMonitorId.value) loadMetrics(selectedMonitorId.value)
+  swRefreshKey.value++
   lastCollect.value = new Date().toLocaleTimeString()
 }
 

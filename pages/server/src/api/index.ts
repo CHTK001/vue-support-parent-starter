@@ -25,6 +25,9 @@ export const scanPorts = (id: number) =>
   http().post(`${B}/host/${id}/scan-ports`).then(r => unwrapResult<any>(r));
 export const testPrometheusHost = (id: number) =>
   http().post(`${B}/host/${id}/test-prometheus`).then(r => unwrapResult<string>(r));
+/** 安装 nginx（仅支持 SSH 开启的 Linux/macOS 主机；成功回显 nginx -v 输出） */
+export const installNginxHost = (id: number) =>
+  http().post(`${B}/host/${id}/install-nginx`).then(r => unwrapResult<string>(r));
 export const refreshHostPublicIp = (id: number) =>
   http().post(`${B}/host/${id}/refresh-public-ip`).then(r => unwrapResult<string>(r));
 export const pushAgentData = (agentKey: string, payload: Record<string, unknown>) =>

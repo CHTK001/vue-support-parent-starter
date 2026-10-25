@@ -1,5 +1,5 @@
 <template>
-  <LDialog :model-value="visible" @update:model-value="(v: boolean) => emit('update:visible', v)"
+  <ReDialog :close-on-click-modal="true" :model-value="visible" @update:model-value="(v: boolean) => emit('update:visible', v)"
     :title="isEdit ? '编辑 MCP 服务器' : '添加 MCP 服务器'" width="600px" align-center destroy-on-close
     append-to-body>
     <el-form label-position="top" class="mf-form" @submit.prevent>
@@ -82,14 +82,14 @@
         <el-button class="mf-btn" type="primary" :loading="saving" @click="handleSave">确定</el-button>
       </div>
     </template>
-  </LDialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
 import { message } from "@repo/core";
 import { reactive, watch } from 'vue'
 
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 import {
   Info24Regular, PlugConnected24Regular, Checkmark24Regular,
   Globe24Regular, WindowConsole20Regular,

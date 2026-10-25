@@ -10,6 +10,7 @@
  */
 import "../../shared/modern-vars.css";
 import ReIcon from "../../ReIcon/theme/default/ReIcon.vue";
+import StateIcon from "../../ReStateIcon/StateIcon.vue";
 import { ElIcon } from "element-plus";
 import { computed, type Component } from "vue";
 
@@ -23,6 +24,13 @@ const props = withDefaults(
     loading?: boolean;
     disabled?: boolean;
     icon?: string | Component;
+    /**
+     * 动画图标（{@code anim:<lib>:<icon>}）的尺寸 px。
+     *
+     * <p>动画图标是内联 SVG，尺寸必须显式给（普通图标由字体决定，无需此值）。
+     * 不给就用 ReIcon 的默认 18px。</p>
+     */
+    animIconSize?: number;
     nativeType?: "button" | "submit" | "reset";
     /**
      * 纯装饰：不渲染成可交互控件。
@@ -38,6 +46,14 @@ const props = withDefaults(
      * 不再可点、也不再吃悬停/按压反馈 —— 该图标本来就只是视觉装饰。
      */
     decorative?: boolean;
+    /** 两态图标：激活态图标名 */
+    activeIcon?: string;
+    /** 两态图标：非激活态图标名 */
+    inactiveIcon?: string;
+    /** 内置图标集名（sunmoon / check / star / bell / arrow / anim）；"none" 关闭内置回落 */
+    preset?: string;
+    /** 当前是否激活（配合两态图标使用） */
+    active?: boolean;
   }>(),
   {
     type: "",
@@ -46,8 +62,13 @@ const props = withDefaults(
     loading: false,
     disabled: false,
     icon: "",
+    animIconSize: undefined,
     nativeType: "button",
     decorative: false,
+    activeIcon: "",
+    inactiveIcon: "",
+    preset: undefined,
+    active: false,
   },
 );
 
@@ -62,6 +83,20 @@ function onClick(e: MouseEvent): void {
 
 const iconIsComponent = computed<boolean>(() => typeof props.icon !== "string" && props.icon != null);
 const iconName = computed<string>(() => (typeof props.icon === "string" ? props.icon : ""));
+
+/** 图标是不是动画图标（`anim:<lib>:<icon>`） */
+const isAnimIcon = computed<boolean>(() => iconName.value.startsWith("anim:"));
+
+/**
+ * 是否启用两态图标动画。
+ *
+ * 需要「至少一个能区分两态的来源」：activeIcon / inactiveIcon / preset 任一非空即启用，
+ * 通用 `icon` 作为两态的最终兜底；只传 `icon` 时两态相同，交给 ReIcon 即可（不动画）。
+ * 组件对象形态的图标（{@code iconIsComponent}）不参与两态解析。
+ */
+const useStateIcon = computed<boolean>(
+  () => !iconIsComponent.value && Boolean(props.activeIcon || props.inactiveIcon || props.preset),
+);
 </script>
 
 <template>
@@ -87,13 +122,42 @@ const iconName = computed<string>(() => (typeof props.icon === "string" ? props.
     v-bind="$attrs"
     v-on="decorative ? {} : { click: onClick }"
   >
-    <span v-if="loading" class="rs-btn__spinner">
+    <!-- loading 态：
+         · 普通图标 → 换成 spinner（图标让位，两者是互斥的 v-if/v-else）
+         · 两态/动画图标 → **保留图标并让它转起来**：上游动画图标自带 hover 动效，
+           加载中再叠一个持续旋转，比「图标消失、换成另一个圈」更连贯，
+           也让用户一眼看出「还是这个按钮，正在转」。
+         两者都保留 spinner 的语义（旋转 = 进行中），只是形态不同。 -->
+    <span v-if="loading && (useStateIcon || isAnimIcon)" class="rs-btn__spinner rs-btn__spinner--icon">
+      <StateIcon
+        v-if="useStateIcon"
+        :active="active"
+        :icon="iconName"
+        :active-icon="activeIcon"
+        :inactive-icon="inactiveIcon"
+        :preset="preset"
+        :size="animIconSize"
+        class="rs-btn__icon"
+      />
+      <ReIcon v-else :name="iconName" :size="animIconSize" class="rs-btn__icon" />
+    </span>
+    <span v-else-if="loading" class="rs-btn__spinner">
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-dasharray="30 70" stroke-linecap="round" />
       </svg>
     </span>
     <template v-else>
-      <ReIcon v-if="icon && !iconIsComponent" :name="iconName" class="rs-btn__icon" />
+      <StateIcon
+        v-if="useStateIcon"
+        :active="active"
+        :icon="iconName"
+        :active-icon="activeIcon"
+        :inactive-icon="inactiveIcon"
+        :preset="preset"
+        :size="animIconSize"
+        class="rs-btn__icon"
+      />
+      <ReIcon v-else-if="icon && !iconIsComponent" :name="iconName" :size="animIconSize" class="rs-btn__icon" />
       <ElIcon v-else-if="iconIsComponent" class="rs-btn__icon">
         <component :is="icon" />
       </ElIcon>
@@ -207,6 +271,16 @@ const iconName = computed<string>(() => (typeof props.icon === "string" ? props.
 .rs-btn__spinner {
   display: inline-flex;
   animation: rs-spin 0.8s linear infinite;
+}
+/* 动画图标在 loading 态：保留图标本体，外层套一个旋转。
+   上游动画图标自己也会动（hover 时），两层动效叠在一个元素上会打架 ——
+   所以这里把上游的 hover 动效在 loading 期间压掉，只留整体的旋转。 */
+.rs-btn__spinner--icon {
+  animation: rs-spin 0.9s linear infinite;
+
+  :deep(.re-icon__anim) {
+    animation: none;
+  }
 }
 /* 尺寸写死并禁止收缩：spinner 是按钮里唯一的图形，尺寸必须与它替换掉的图标一致（14px），
    否则 loading 切换时按钮内容会跳一下 */

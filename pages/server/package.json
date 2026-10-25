@@ -19,11 +19,13 @@
   "dependencies": {
     "@element-plus/icons-vue": "catalog:",
     "@novnc/novnc": "^1.5.0",
+    "@pages/monitor": "workspace:*",
     "@repo/app": "workspace:*",
     "@repo/assets": "workspace:*",
     "@repo/core": "workspace:*",
     "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",
+    "echarts": "catalog:",
     "element-plus": "catalog:",
     "guacamole-common-js": "^1.5.0",
     "vue": "catalog:",

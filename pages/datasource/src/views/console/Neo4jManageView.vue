@@ -121,7 +121,7 @@
 
           <div class="dsm-section">
             <div class="dsm-section-title">标签统计</div>
-            <ReTable :data="nodeLabels" :columns="labelColumns" :loading="loading" :pagination="false" stripe border height="260px" />
+            <ReTable :data="nodeLabels" :columns="labelColumns" :loading="loading" stripe border height="260px" :config="{ pagination: { enable: false } }"/>
           </div>
         </div>
 
@@ -171,13 +171,13 @@
             :data="nodes"
             :columns="nodeColumns"
             :loading="nodeLoading"
-            :pagination="false"
             stripe
             border
             height="400px"
             :context-menu="nodeTableMenu"
             @context-menu-select="onNodeTableMenuSelect"
             @row-click="onNodeClick"
+            :config="{ pagination: { enable: false } }"
           />
           <div v-if="!activeLabel" class="ngv-hint">从左侧选择一个节点标签后查询其节点</div>
         </div>
@@ -190,7 +190,7 @@
               <template #icon><ReIcon name="Plus" /></template>新建关系
             </ReButton>
           </div>
-          <ReTable :data="relTypes" :columns="relColumns" :loading="loading" :pagination="false" stripe border height="400px" />
+          <ReTable :data="relTypes" :columns="relColumns" :loading="loading" stripe border height="400px" :config="{ pagination: { enable: false } }"/>
         </div>
       </div>
     </div>
@@ -232,7 +232,7 @@
               <span v-if="queryResult.truncated" class="dsm-query-warn">已截断，服务端共 {{ queryResult.totalRows }} 行，请加 LIMIT 收窄结果</span>
             </span>
           </div>
-          <ReTable v-if="queryResult.columns.length > 0" :data="queryResult.rows" :columns="queryResult.columns" :pagination="false" stripe border height="200px" />
+          <ReTable v-if="queryResult.columns.length > 0" :data="queryResult.rows" :columns="queryResult.columns" stripe border height="200px" :config="{ pagination: { enable: false } }"/>
           <ReEmpty v-else description="执行查询后显示结果" />
         </div>
       </div>
@@ -948,7 +948,7 @@ onMounted(async () => {
 .dsm-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
 .dsm-toolbar-left { display: flex; align-items: center; gap: 10px; }
 .dsm-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
-.dsm-neo4j-icon { color: #a78bfa; }
+.dsm-neo4j-icon { color: var(--brand-500, var(--apm-brand-500)); }
 .dsm-toolbar-right { display: flex; gap: 8px; }
 .dsm-body { display: flex; flex: 1; gap: 16px; overflow: hidden; }
 .dsm-sidebar { width: 260px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); overflow-y: auto; flex-shrink: 0; }
@@ -978,20 +978,20 @@ onMounted(async () => {
 .neo4j-view-tabs {
   display: flex;
   gap: 4px;
-  border-bottom: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.2));
+  border-bottom: 1px solid var(--border-subtle, var(--apm-border-subtle));
   padding-bottom: 8px;
 }
 .nvt-btn {
   padding: 6px 16px;
   border: none;
   background: transparent;
-  color: var(--text-secondary, #64748b);
+  color: var(--text-secondary, var(--apm-text-secondary));
   font-size: 13px;
   cursor: pointer;
   border-radius: 6px;
   transition: all 0.15s;
 }
-.nvt-btn:hover { background: var(--bg-hover, #f1f5f9); }
+.nvt-btn:hover { background: var(--bg-hover, var(--apm-bg-hover)); }
 .nvt-btn.active {
   background: var(--primary, #3b82f6);
   color: white;
@@ -999,8 +999,8 @@ onMounted(async () => {
 
 /* 图可视化 */
 .neo4j-graph-view {
-  background: var(--bg-container, #ffffff);
-  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.2));
+  background: var(--bg-container, var(--apm-bg-container));
+  border: 1px solid var(--border-subtle, var(--apm-border-subtle));
   border-radius: 8px;
   overflow: hidden;
 }
@@ -1010,9 +1010,9 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.2));
+  border-bottom: 1px solid var(--border-subtle, var(--apm-border-subtle));
   font-size: 13px;
-  color: var(--text-secondary, #64748b);
+  color: var(--text-secondary, var(--apm-text-secondary));
 }
 /* 图节点悬停提示（ReRelationGraph #hover 插槽） */
 .ngv-tip-title { font-weight: 600; margin-bottom: 2px; }
@@ -1022,14 +1022,14 @@ onMounted(async () => {
   flex-wrap: wrap;
   gap: 12px;
   padding: 8px 12px;
-  border-top: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.2));
+  border-top: 1px solid var(--border-subtle, var(--apm-border-subtle));
 }
 .ngv-legend-item {
   display: flex;
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  color: var(--text-secondary, #64748b);
+  color: var(--text-secondary, var(--apm-text-secondary));
 }
 .ngv-legend-dot {
   width: 10px;
@@ -1042,13 +1042,13 @@ onMounted(async () => {
 .nd-row {
   display: flex;
   padding: 6px 0;
-  border-bottom: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.1));
+  border-bottom: 1px solid var(--border-subtle, var(--apm-border-subtle));
 }
-.nd-label { width: 80px; color: var(--text-secondary, #64748b); font-size: 13px; }
+.nd-label { width: 80px; color: var(--text-secondary, var(--apm-text-secondary)); font-size: 13px; }
 .nd-value { flex: 1; font-size: 13px; font-family: monospace; }
 .nd-props {
   background: var(--bg-subtle, #f8fafc);
-  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.2));
+  border: 1px solid var(--border-subtle, var(--apm-border-subtle));
   border-radius: 6px;
   padding: 12px;
   font-family: monospace;
@@ -1061,11 +1061,11 @@ onMounted(async () => {
 /* 查询工具栏：对齐 jdbc 查询页（方钮 + 弹性占位 + 提示文案） */
 .dsm-query-toolbar { display: flex; align-items: center; gap: 8px; }
 .dsm-spacer { flex: 1; }
-.dsm-query-hint { font-size: 12px; color: var(--text-secondary, var(--el-text-color-secondary)); }
+.dsm-query-hint { font-size: 12px; color: var(--text-secondary, var(--apm-text-secondary)); }
 .dsm-query-editor { width: 100%; padding: 12px; font-family: "JetBrains Mono", "Consolas", monospace; font-size: 13px; border: 1px solid var(--border-default); border-radius: 6px; background: var(--bg-elevated); color: var(--text-primary); resize: vertical; outline: none; }
 .dsm-query-editor:focus { border-color: var(--brand-400); box-shadow: var(--focus-ring); }
 .dsm-query-result { border: 1px solid var(--border-subtle); border-radius: 6px; overflow: hidden; }
 .dsm-query-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; font-size: 13px; font-weight: 500; color: var(--text-secondary); background: var(--bg-fill); border-bottom: 1px solid var(--border-subtle); }
 .dsm-query-meta { font-size: 12px; font-weight: 400; color: var(--text-tertiary); }
-.dsm-query-warn { margin-left: 8px; color: var(--el-color-warning, #e6a23c); }
+.dsm-query-warn { margin-left: 8px; color: var(--status-warning, var(--apm-status-warning)); }
 </style>

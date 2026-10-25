@@ -46,7 +46,7 @@
         <el-icon size="18" class="shrink-0 text-(--color-text-gray) dark:text-(--color-text-disabled)">
           <Folder20Regular />
         </el-icon>
-        <span class="flex-1 text-sm font-medium text-(--color-text) dark:text-[#e5e7eb]">{{ g.label }}</span>
+        <span class="flex-1 text-sm font-medium text-(--color-text) dark:text-gray-100">{{ g.label }}</span>
         <el-icon v-if="selectedGroupId === g.value" size="14" class="shrink-0 text-(--el-color-primary)">
           <Checkmark16Filled />
         </el-icon>

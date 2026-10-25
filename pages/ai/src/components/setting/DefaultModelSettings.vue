@@ -10,8 +10,8 @@
         :label="getFieldLabel(item)"
         :description="item.description"
         :tip="getFieldTip(item)"
-        :risk="getFieldRisk(item)"
-        :risk-tip="getFieldRiskTip(item)"
+        :risk="getFieldRisk(item, group.group)"
+        :risk-tip="getFieldRiskTip(item, group.group)"
         control-flex
       >
         <!-- STRING：模型选择器 -->
@@ -129,8 +129,8 @@
             :label="getFieldLabel(item)"
             :description="item.description"
             :tip="getFieldTip(item)"
-            :risk="getFieldRisk(item)"
-            :risk-tip="getFieldRiskTip(item)"
+            :risk="getFieldRisk(item, group.group)"
+            :risk-tip="getFieldRiskTip(item, group.group)"
             control-flex
           >
             <!-- usage_sync_providers 多选 -->
@@ -172,7 +172,7 @@
     </SettingsCard>
 
     <!-- 模型选择对话框 -->
-    <LDialog v-model="modelDialogVisible" title="选择模型" width="600px">
+    <ReDialog :close-on-click-modal="true" v-model="modelDialogVisible" title="选择模型" width="600px">
       <div class="md-body">
         <el-input v-model="modelSearchText" placeholder="搜索模型..." clearable>
           <template #prefix>
@@ -211,7 +211,7 @@
       <template #footer>
         <ReButton type="default" @click="clearModelField">清空（使用默认）</ReButton>
       </template>
-    </LDialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -226,7 +226,7 @@ import { apiService } from '@/services/ApiService'
 import { adminApi } from '@/framework/context'
 import { usePopup } from '@/composables/usePopup'
 import { useModelConfigStore } from '@/stores/modelConfig'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 import ReButton from '@/components/re/ReButton.vue'
 import ReTag from '@/components/re/ReTag.vue'
 import ReNumberInput from '@/components/re/ReNumberInput.vue'
@@ -270,6 +270,18 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  /**
+   * 是否以「全局层」保存（管理员系统配置页用）。
+   *
+   * <p>默认 false：保存写「本人覆盖层」（会话/模型的个人默认）。传 true 且当前为管理员时，
+   * 改走 {@code PUT /v2/settings/{group}} 写入全局默认层 —— 因为 runtime/paper 这类系统分组的
+   * 运行时读取（{@code GlobalSettingReader#getStrDirect}）只认全局层，若写覆盖层会「保存了
+   * 却不生效」。非管理员即便传 true 也仍写自己的覆盖层（接口层有白名单与管理员专属字段守卫）。</p>
+   */
+  globalSave: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 /**
@@ -282,9 +294,19 @@ const props = defineProps({
  * 本就是「会话」语义，与整页的模型选择混在一起反而更难找，已挪到会话配置页。
  * <p>语音识别（asr）与语音合成（tts）同样在此列：它们的字段是 provider / 密钥 / 地址 /
  * 模型 / 音色等，与文本对话模型并排时既看不出「这是音频能力」，也容易被当成又一个聊天模型；
- * 拆出后与左侧导航的「音频识别」能力页一一对应。</p>
+ * 拆出后与左侧导航的「音频识别」能力页一一对应。
+ * <p>联网搜索（search）也在此列：SystemSettings 已有专门的「搜索设置」页
+ * （SearchSettings.vue，读取同一批 provider / apiKey / endpoint 字段），
+ * 默认模型整页再渲染「联网搜索」分组就是两个入口两份表单；拆出后只保留专用入口，
+ * 避免「这里填了、搜索设置里没显示」这类错位。</p>
+ *
+ * <p><b>试卷（paper）必须在此列</b>：它的独立菜单是<b>管理员专属</b>
+ * （{@code adminOnly: true}），而「默认模型」整页对所有登录用户开放。
+ * 漏在这里的后果不是「多一个入口」，而是<b>越权</b> —— 普通用户能在默认模型页里
+ * 改到试卷管线配置（保存会被接口层拒，但界面给了他们可编辑的假象，
+ * 也暴露了管理员专属的管线参数）。</p>
  */
-const SPLIT_GROUPS = ['face', 'image_search', 'layout', 'rag', 'ocr', 'bot', 'language', 'runtime', 'asr', 'tts']
+const SPLIT_GROUPS = ['face', 'image_search', 'layout', 'rag', 'ocr', 'bot', 'language', 'runtime', 'asr', 'tts', 'search', 'paper', 'reid']
 
 /** 传入 groups 时只渲染指定分组（设置中心拆出的独立菜单复用同一套交互与保存逻辑） */
 const displayGroups = computed(() => {
@@ -647,6 +669,10 @@ const requiredTypeFor = (group, field) => {
     const f = String(field || '').toLowerCase()
     // CV / ONNX 管线分组（非 OpenAI 兼容接口模型）
     if (g === 'face') return 'face'
+    // 人脸重识别与人脸识别**共用同一批 ONNX 模型**（SCRFD 检测 + ArcFace 特征），
+    // 分组名不同但模型类型完全一致。不在这里归类的话，detector_model / feature_model
+    // 会一路落到末尾的 'text'（对话模型），弹框里只剩 LLM，真正的检测/特征模型一个都选不到。
+    if (g === 'reid') return 'face'
     if (g === 'ocr') return 'ocr'
     if (g === 'layout') return 'layout'
     // 图片识别组里的检测模型是独立类型，分类/分割等仍归 image_cv
@@ -717,6 +743,9 @@ const SUBTYPE_FOR_FIELD = {
     'face.deepfake_model': ['face_deepfake'],
     'face.recognizer_model': ['face_recognition'],
     'face.pose_model': ['face_pose'],
+    // 人脸重识别与人脸识别共用模型，细分类型沿用 face_*（见 requiredTypeFor 的说明）
+    'reid.detector_model': ['face_detection'],
+    'reid.feature_model': ['face_feature'],
     'image.detect_model': ['object_detection', 'defect_detection'],
 }
 
@@ -933,36 +962,55 @@ const MEDIUM_RISK_FIELDS = new Set([
   'deepfake_model', 'direction_model',
 ])
 
+/**
+ * 真正拥有「底库」的分组白名单 —— 只有它们换模型才会让已入库向量失效。
+ *
+ * <p>此前这里只特判了 {@code ocr}（「OCR 组无底库概念」），其余分组一律套底库话术，
+ * 于是出现了错位提示：<b>图片识别（image 组）</b>的
+ * {@code segment_model} / {@code captioning_model} 命中 {@link #MEDIUM_RISK_FIELDS}，
+ * 被拿以图搜图的图像底库条数去提示「底库已有 N 条…建议重登底库」——
+ * 可图片识别的分割/描述模型与以图搜图的向量库毫无关系，用户按提示去「重登底库」
+ * 完全是白做。同理，新拆出的 {@code reid} 分组也有 {@code feature_model}，
+ * 会误判成「换特征模型要重登人脸底库」，而重识别用的是实时轨迹、没有底库。</p>
+ *
+ * <p>改为白名单后语义是正的：不在表里的分组，换任何模型都不影响任何向量库。</p>
+ */
+const LIBRARY_GROUPS = new Set(['face', 'image_search'])
+
 /** 人脸底库 / 图像底库条目数；0 表示空库。加载失败按 0 处理（不打扰用户） */
 const faceLibraryCount = ref(0)
 const imageLibraryCount = ref(0)
 
-const getFieldRisk = (item) => {
+const getFieldRisk = (item, group) => {
+  // 没有底库的分组不产生「变更风险」——那里的模型改动不影响任何已入库向量
+  if (!LIBRARY_GROUPS.has(group)) return ''
   const field = String(item?.field ?? '')
+  if (group === 'image_search') {
+    // 以图搜图：换图像特征模型 = 换嵌入空间，图像底库旧向量全部失配
+    return field === 'default_image_feature_model' && imageLibraryCount.value > 0 ? 'high' : ''
+  }
+  // face 分组：特征/识别模型换坐标系（红），其余只影响新登记（黄）
   if (HIGH_RISK_FIELDS.has(field)) {
     return faceLibraryCount.value > 0 ? 'high' : ''
   }
   if (MEDIUM_RISK_FIELDS.has(field)) {
-    const count = groupIsFace(item) ? faceLibraryCount.value : imageLibraryCount.value
-    return count > 0 ? 'medium' : ''
+    return faceLibraryCount.value > 0 ? 'medium' : ''
   }
   return ''
 }
 
-/** 该字段属于人脸底库还是图像底库：face 分组里混了图像侧的字段，不能一概而论 */
-const groupIsFace = (item) => {
-  const f = String(item?.field ?? '')
-  return !['captioning_model', 'segment_model'].includes(f)
-}
-
-const getFieldRiskTip = (item) => {
+const getFieldRiskTip = (item, group) => {
+  if (!LIBRARY_GROUPS.has(group)) return ''
   const field = String(item?.field ?? '')
+  if (group === 'image_search') {
+    return `图像底库已有 ${imageLibraryCount.value} 条。换图像特征模型后，旧向量与新模型不在同一嵌入空间，` +
+      '以图搜图会对所有历史图片失配，必须重新登记整库。'
+  }
   if (HIGH_RISK_FIELDS.has(field)) {
     return `人脸底库已有 ${faceLibraryCount.value} 条。换特征模型后，旧人脸向量与新模型不在同一嵌入空间，` +
       '1:N 检索会对所有历史条目失配，必须重新登记整库。若只是想微调阈值，请改「相似度阈值」而不是换模型。'
   }
-  const count = groupIsFace(item) ? faceLibraryCount.value : imageLibraryCount.value
-  return `${count > 0 ? '底库已有 ' + count + ' 条。' : ''}更换该模型只影响之后新登记/新检索的处理过程，` +
+  return `人脸底库已有 ${faceLibraryCount.value} 条。更换该模型只影响之后新登记/新检索的处理过程，` +
     '已入库的向量仍然可用；但新旧模型混用会让部分条目的效果不一致，建议换模型后重登一遍底库。'
 }
 
@@ -1135,6 +1183,23 @@ const modelFieldDisplay = (group, field) => {
     return meta && meta.overridden === false ? `继承全局：${value}` : value
 }
 
+/**
+ * ONNX / 本地推理管线的模型槽位（人脸、OCR、版面、图片 CV）。
+ *
+ * <p>这类字段的值必须写**裸模型名**：后端 FaceClientManager / OCR 管线用
+ * {@code ModelRegistry} 的裸 key 查找会话（如 {@code scrfd-face-detector}），
+ * 不接受 {@code onnx:scrfd-face-detector} 这种复合键。此前选择器把
+ * {@code providerId:modelName} 原样入库，登记时才在第一步报「模型未注册」。</p>
+ */
+const BARE_MODEL_GROUPS = new Set(['face', 'ocr', 'layout', 'image', 'image_search'])
+
+/** 该设置字段是否应存裸模型名（ONNX 本地管线）；其余字段保留 providerId:modelName 复合键 */
+const shouldStoreBareModel = (group, field) => {
+    if (!BARE_MODEL_GROUPS.has(String(group))) return false
+    if (String(group) === 'image_search' && String(field) === 'keyword_model') return false
+    return true
+}
+
 // 取字段当前所选模型的提供商 logo（字段值形如 providerId:modelName）
 const getFieldModelLogo = (group, field) => {
     const v = getFieldValue(group, field)
@@ -1182,7 +1247,12 @@ const openModelDialog = async (group, field) => {
 // 选择模型
 const selectModel = (modelId) => {
     if (!modelId) return
-    updateFieldValue(currentDialogGroup.value, currentDialogField.value, modelId)
+    const model = models.value.find((m) => m.id === modelId)
+    // ONNX 本地管线（人脸/OCR/版面/图片 CV）存裸模型名；LLM/嵌入等保持 providerId:modelName
+    const value = model && shouldStoreBareModel(currentDialogGroup.value, currentDialogField.value)
+        ? model.model || modelId
+        : modelId
+    updateFieldValue(currentDialogGroup.value, currentDialogField.value, value)
     modelDialogVisible.value = false
 }
 
@@ -1329,7 +1399,11 @@ const loadModels = () => {
                 const isOnnxProvider = provider.provider_id === 'onnx' || provider.platform === 'onnx'
                 const providerModels = (provider.models || [])
                     .filter(m => m.enabled !== false)
-                    .filter(m => isOnnxProvider ? m.external === true : true)
+                    // ONNX 提供商：external=true（绑定外部目录）或 available=true（已注册、权重在）
+                    // 的模型都可选。此前只认 external，导致 ModelRegistry 里已注册的内置模型
+                    // （scrfd-face-detector / arc-face / resnet 等，available=true 但 external=false）
+                    // 在「人脸识别/检测」「图像特征」等弹框里一个都选不到，门禁永远不亮。
+                    .filter(m => isOnnxProvider ? (m.external === true || m.available === true) : true)
                     .map((m) => {
                         const meta = resolveModelMeta(m.model, m.capabilities)
                         return {
@@ -1512,7 +1586,13 @@ const saveGroupSettings = async (group) => {
         payload[field] = value === '' || value === null || value === undefined ? null : value
     }
     try {
-        await apiService.updateUserGroupOverrides(group, payload)
+        // 全局层保存（管理员系统配置）：runtime/paper 这类系统分组的运行时读取只认全局层，
+        // 写覆盖层会出现「界面保存了却不生效」。配置中心页传 globalSave=true 走全局出口。
+        if (props.globalSave && isAdmin()) {
+            await apiService.updateGroupSettings(group, payload)
+        } else {
+            await apiService.updateUserGroupOverrides(group, payload)
+        }
         notify.success('设置已保存')
         // 重新拉取合并视图：拿回 overridden/defaultValue，界面上「继承全局」状态才会刷新
         await loadGroupValues(group)

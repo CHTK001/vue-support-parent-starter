@@ -116,7 +116,13 @@ export interface ServerNodeView {
   remark?: string;
   config?: Record<string, any>;
   filters?: ServerFilterDescriptor[];
-  status: 'RUNNING' | 'STOPPED' | 'ERROR';
+  /**
+   * 运行状态。声明成 {@code string} 而非三值字面量联合，是因为这是后端下发的字段：
+   * 服务进程可能处于 STARTING / STOPPING 等过渡态，甚至因版本差异给出未知值，
+   * 前端无法穷举。窄化会让「容错分支」变成不可测的死代码——deriveStatusMeta 与
+   * countBySlot 的 UNKNOWN 档正是为这类值准备的。判定请统一走 deriveStatusMeta。
+   */
+  status: string;
   error?: string;
   serverUrl?: string;
 }

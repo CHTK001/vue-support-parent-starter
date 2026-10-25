@@ -88,18 +88,12 @@ export function createDatasourceManageRoutes(
   const activeMenu = options.activeMenu || "/datasource";
   const common = { showLink: false, activeMenu } as const;
 
-  return [
+  const routes: RouteConfigsTable[] = [
     {
       path: "/kafka",
       name: "Kafka",
       component: () => import("./views/console/KafkaManageView.vue"),
       meta: { title: "Kafka 管理", icon: "Coin", ...common },
-    },
-    {
-      path: "/elasticsearch",
-      name: "Elasticsearch",
-      component: () => import("./views/console/ElasticsearchManageView.vue"),
-      meta: { title: "Elasticsearch 管理", icon: "Coin", ...common },
     },
     {
       // 数据库管理：数据源中心里点进去的全功能控制台（右键菜单、DDL、文档导出都在里面）
@@ -174,6 +168,8 @@ export function createDatasourceManageRoutes(
       // 字段可增 / 删 / 改（删改走后端重建索引）；图谱是「集群 → 节点」拓扑。
       // 此前只有视图与后端接口、没有路由，数据源中心点「打开管理」会稳定弹「未注册」
       // —— 正是本文件开头记的那类缺项，所以补上并纳进 MANAGER_ROUTE_MAP。
+      // 注意：/elasticsearch 与 name=Elasticsearch 只在此处声明一次，重复声明会被
+      // vue-router 静默丢弃后者，且 name 是 registerRoutesUnderLayout 的幂等键。
       path: "/elasticsearch",
       name: "Elasticsearch",
       component: () => import("./views/console/ElasticsearchManageView.vue"),
@@ -186,6 +182,26 @@ export function createDatasourceManageRoutes(
       meta: { title: "Prometheus 看板", showLink: false, standalone: true },
     },
   ];
+
+  // 每个管理页追加一条「/full」全屏变体：数据源中心右键「打开管理（新标签）」的落地页。
+  // standalone=true 注册为顶层路由（不套 layout），新标签打开时无顶部/左侧导航，
+  // 打开的就是整个控制台本身。embed 看板已是 standalone，不重复生成。
+  const managerPaths = new Set(Object.values(MANAGER_ROUTE_MAP));
+  const fullVariants: RouteConfigsTable[] = routes
+    .filter(r => managerPaths.has(r.path) && !r.meta?.standalone)
+    .map(r => ({
+      ...r,
+      path: `${r.path}/full`,
+      name: `${r.name as string}Full`,
+      component: r.component,
+      meta: {
+        ...r.meta,
+        title: `${(r.meta as { title?: string }).title ?? "管理"}（全屏）`,
+        showLink: false,
+        standalone: true,
+      },
+    }));
+  return [...routes, ...fullVariants];
 }
 
 /**
@@ -196,3 +212,30 @@ export function createDatasourceManageRoutes(
  * 否则模块里补了新类型，脚本反而会漏检。</p>
  */
 export const MANAGER_ROUTE_PATHS: string[] = Object.values(MANAGER_ROUTE_MAP);
+
+/**
+ * 数据同步任务页的叶子路由。
+ *
+ * <p>数据同步（源 jdbc 按 SQL 读 → 字段映射 → 目标 jdbc 表）的视图与 API 都收进
+ * {@code @pages/datasource}（视图 {@code views/sync/SyncTaskView.vue}，API
+ * {@code api/syncTaskApi.ts}），路由也由本包声明，宿主只做合并。</p>
+ *
+ * <p>与 {@link createDatasourceManageRoutes} 不同，这里产出一条<b>顶层叶子</b>
+ * {@code showLink:true}（要进侧边栏，宿主可把它并入自己的「数据中心」分组 children，
+ * 此前监控台就放在 {@code /grp-data} 下）。本包不声明分组父节点 —— 列表页各宿主不同，
+ * 分组归属是宿主的拼装职责（见本文件头注）。</p>
+ *
+ * @returns 可直接展开进宿主路由树的数组（单叶）
+ */
+export function createSyncTaskRoutes(): RouteConfigsTable[] {
+  return [
+    {
+      path: "/sync-tasks",
+      name: "SyncTasks",
+      // 数据同步：源 jdbc 数据源按 SQL 读 → 字段映射 → 目标 jdbc 数据源的表，
+      // 执行由后端复用 datasync 引擎完成（源读取 / 字段映射转换 / Sink 契约）。
+      component: () => import("./views/sync/SyncTaskView.vue"),
+      meta: { title: "数据同步", icon: "Refresh", showLink: true, rank: 2 },
+    },
+  ];
+}

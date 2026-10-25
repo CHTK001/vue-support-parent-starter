@@ -15,7 +15,7 @@
         </el-button>
 
         <!-- 模型选择对话框 -->
-        <LDialog v-model="dialogVisible" :title="t('ui.embeddingModel.dialogTitle')" :width="isMobile ? '90%' : '600px'" :append-to-body="true"
+        <ReDialog :close-on-click-modal="true" v-model="dialogVisible" :title="t('ui.embeddingModel.dialogTitle')" :width="isMobile ? '90%' : '600px'" :append-to-body="true"
             destroy-on-close>
             <!-- 搜索框 -->
             <div class="mb-4">
@@ -77,7 +77,7 @@
                     <el-button type="primary" @click="confirmSelection">{{ t('common.ok') }}</el-button>
                 </div>
             </template>
-        </LDialog>
+        </ReDialog>
     </div>
 </template>
 
@@ -89,7 +89,7 @@ import { useI18n } from 'vue-i18n'
 import { ScienceOutlined, SearchFilled, CheckCircleFilled, ArrowDropDownTwotone } from '@vicons/material'
 import { useBreakpoints, breakpointsTailwind } from '@vueuse/core'
 import { apiService } from '@/services/ApiService'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 
 
 interface Model {

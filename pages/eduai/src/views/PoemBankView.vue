@@ -1,8 +1,9 @@
 <template>
   <!--
     版式与 IdiomBankView 保持一致（page-container / top-zone / stats-row /
-    filter-card / table-card / table-toolbar / table-footer），两页同属"数据配置"，
-    视觉与操作习惯统一：页头+悬浮方卡统计、筛选卡、工具条+表格卡、底部"共 N 条"。
+    filter-card / table-card），两页同属"数据配置"，
+    视觉与操作习惯统一：页头+悬浮方卡统计、筛选卡、工具条+表格卡。
+    新增按钮进 ReTable 工具栏左侧；总条数只保留分页栏里那处，不再另起底部行。
 
     仍用 ReTable（不另做业务封装）：它提供 table/view 布局切换，
     诗页默认表格且不持久化（:layout-persist="false"），右上角切换器可随时切到视图看整段正文。
@@ -59,12 +60,6 @@
     </el-card>
 
     <el-card shadow="never" class="table-card">
-      <div class="table-toolbar">
-        <div class="table-toolbar__left">
-          <el-button type="primary" :icon="Plus" @click="openCreate">新增古诗</el-button>
-        </div>
-      </div>
-
       <!--
         直接使用 ReTable，不另做业务封装：
         - layout=table：默认表格（与成语库一致，横向一屏看全字段）
@@ -73,24 +68,32 @@
           切换在本会话内始终可用
         - #view 插槽接管视图模式单条；列插槽接管表格模式的两列摘要与操作列
       -->
-      <div v-loading="loading" class="table-wrap">
+      <div class="table-wrap">
         <ReTable
-          :data="poemRows"
+          ref="tableRef"
+          :loader="loadRows"
           :columns="poemColumns"
-          :loading="loading"
+          :params="appliedParams"
           :row-key="'poemId'"
           layout="table"
           :layout-switch="true"
           :layout-persist="false"
           :layouts="['table', 'view']"
           :layout-labels="LAYOUT_LABELS"
-          :pagination="false"
+          v-model:page="pageNo"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 50, 100]"
           :toolbar="false"
           border
           stripe
           empty-text="暂无古诗数据：可在「采集管理」启用古诗采集，或点右上角手工新增"
+          @load="onLoad"
+          @load-error="pageLoadError"
           @row-click="(row: Record<string, unknown>) => openPoem(row as unknown as Poem, 'view')"
         >
+          <template #toolbar>
+            <el-button type="primary" :icon="Plus" @click="openCreate">新增古诗</el-button>
+          </template>
           <template #col-poemContent="{ row }">
             <span class="pb-cell">{{ contentPreview(row.poemContent) }}</span>
           </template>
@@ -171,20 +174,6 @@
           </template>
         </ReTable>
       </div>
-
-      <div class="table-footer">
-        <span class="table-footer__total">共 {{ total }} 条</span>
-        <el-pagination
-          v-model:current-page="pageNo"
-          v-model:page-size="pageSize"
-          :total="total"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="sizes, prev, pager, next, jumper"
-          background
-          @current-change="load"
-          @size-change="load"
-        />
-      </div>
     </el-card>
 
     <ReDialog
@@ -194,6 +183,7 @@
       destroy-on-close
       class="q-dialog poem-dialog"
       :show-close="false"
+      :show-window-shell="false"
     >
       <template #header>
         <div class="dialog-head">
@@ -333,18 +323,12 @@
         </div>
       </div>
 
-      <template #footer>
+      <template v-if="dialogMode !== 'view'" #footer>
         <div class="dialog-foot">
-          <template v-if="dialogMode === 'view'">
-            <!-- 纯预览：只留关闭，不放编辑入口（编辑在列表每行的操作列里） -->
-            <el-button @click="dialogVisible = false">关闭</el-button>
-          </template>
-          <template v-else>
-            <el-button @click="dialogVisible = false">取消</el-button>
-            <el-button class="dialog-foot__save" type="primary" :loading="saving" @click="save">
-              保存古诗
-            </el-button>
-          </template>
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button class="dialog-foot__save" type="primary" :loading="saving" @click="save">
+            保存古诗
+          </el-button>
         </div>
       </template>
     </ReDialog>
@@ -365,6 +349,7 @@ import { Close, Delete, EditPen, Plus, Reading, RefreshLeft, Search, View } from
 import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
 import type { ReTableColumn, ReTableSwitchLayout } from "@repo/ui/components/ReTable/types";
 import { eduaiApi } from "../api/eduaiApi";
+import { createPageLoader, pageLoadError, strParam } from "../api/pageLoader";
 import type { Poem } from "../api/types";
 import ScPoemPreview from "../components/ScPoemPreview.vue";
 import { DYNASTY_OPTIONS, POEM_TAG_OPTIONS } from "../constants/dimensions";
@@ -383,14 +368,34 @@ const GRADES_BY_LEVEL: Record<string, string[]> = {
 const loading = ref(false);
 const saving = ref(false);
 const rows = ref<Poem[]>([]);
+const tableRef = ref();
 const total = ref(0);
 const pageNo = ref(1);
 const pageSize = ref(20);
 const search = reactive({ gradeLevel: "", keyword: "" });
 
+/** 筛选参数：提交后交给后端 pageQuery */
+const appliedParams = computed(() => ({
+  gradeLevel: strParam(search.gradeLevel),
+  keyword: strParam(search.keyword),
+}));
+
+/** 古诗分页 loader（后端筛选） */
+const loadRows = createPageLoader((page, size, params) =>
+  eduaiApi.pagePoems({
+    ...params,
+    pageNum: page,
+    pageSize: size,
+  }),
+);
+
+/** ReTable 每页加载完成后同步当前页行与总数 */
+function onLoad(r: { data: unknown[]; total?: number }) {
+  rows.value = (r.data ?? []) as Poem[];
+  total.value = r?.total ?? rows.value.length;
+}
+
 const dialogVisible = ref(false);
-/** 列表数据（ReTable 的 data 期望索引签名类型，Poem 是具名接口，这里显式收窄） */
-const poemRows = computed(() => rows.value as unknown as Record<string, unknown>[]);
 
 /** 布局切换器文案（Re 组件通用，文案由业务侧给） */
 const LAYOUT_LABELS: Partial<Record<ReTableSwitchLayout, string>> = {
@@ -413,7 +418,7 @@ const poemColumns: ReTableColumn[] = [
     align: "center",
     formatter: (_row, _col, value) => difficultyLabel(value),
   },
-  { prop: "actions", label: "操作", width: 110, align: "center", fixed: "right", slot: "col-actions" },
+  { prop: "actions", label: "操作", width: 160, align: "center", fixed: "right", slot: "col-actions" },
 ];
 
 /**
@@ -529,32 +534,9 @@ function splitCount(content?: string) {
   return content.split(/[。！？!?；;]/).map((s) => s.trim()).filter(Boolean).length;
 }
 
-async function load() {
-  loading.value = true;
-  try {
-    // 服务端分页：全唐诗补采后库内数万首，前端全量拉取（旧实现 count=5000）
-    // 会撞上「共 5000 条」天花板；关键字与学段过滤一并交给后端，total 即全库口径。
-    const res = await eduaiApi.pagePoems({
-      keyword: search.keyword.trim() || undefined,
-      gradeLevel: search.gradeLevel || undefined,
-      pageNum: pageNo.value,
-      pageSize: pageSize.value,
-    });
-    rows.value = res?.data ?? [];
-    total.value = res?.total ?? 0;
-  } catch {
-    rows.value = [];
-    total.value = 0;
-    message.error("加载古诗失败");
-  } finally {
-    loading.value = false;
-  }
-}
-
 /** 提交筛选：回到第 1 页并按当前条件重新取数 */
 function commitSearch() {
-  pageNo.value = 1;
-  void load();
+  void tableRef.value?.goto(1);
 }
 
 function resetSearch() {
@@ -620,7 +602,7 @@ async function save() {
     });
     message.success("保存成功");
     dialogVisible.value = false;
-    await load();
+    void tableRef.value?.reload();
   } catch {
     message.error("保存失败");
   } finally {
@@ -637,14 +619,14 @@ async function remove(row: Poem) {
   try {
     await eduaiApi.deletePoem(row.poemId);
     message.success("已删除");
-    await load();
+    void tableRef.value?.reload();
   } catch {
     message.error("删除失败");
   }
 }
 
 onMounted(() => {
-  void load();
+  // 表格 loader 自动加载首屏，无需手动触发
 });
 </script>
 
@@ -807,19 +789,7 @@ onMounted(() => {
 .table-card :deep(.el-card__body) {
   padding: 16px 20px 18px;
 }
-.table-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-.table-toolbar__left .el-button {
-  border-radius: var(--el-radius-lg, 12px);
-  font-weight: 600;
-}
-.table-wrap {
-  /* 固定容器高度（同汉字库）：表格高度不再随页面滚动位置重算，消除滚动条液面高度抖动。
+.table-wrap {  /* 固定容器高度（同汉字库）：表格高度不再随页面滚动位置重算，消除滚动条液面高度抖动。
      503 = 实测值 wrap.top 427 + 分页与间距 50 + 卡片 body 底部内边距 18 + 余量 8，
      与汉字库同版式故同值；页面不纵向滚动，只留表格内部滚动。
      contain: layout size 声明「本盒尺寸与内容无关」，ReTable 据此走 height:100%，
@@ -830,18 +800,6 @@ onMounted(() => {
   overflow: hidden;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-lg, 12px);
-}
-.table-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 14px;
-  flex-wrap: wrap;
-}
-.table-footer__total {
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
 }
 
 @media (max-width: 1200px) {

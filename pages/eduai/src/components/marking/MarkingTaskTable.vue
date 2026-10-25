@@ -12,7 +12,10 @@ import ReButton from '@repo/ui/re-button';
 import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn, ReTableLoader } from '@repo/ui/re-table';
 import ReTag from '@repo/ui/re-tag';
-import type { Paper, TeacherMarkingTask } from '../../api/types';
+import PaperPreview from '../paper/PaperPreview.vue';
+import { eduaiApi } from '../../api/eduaiApi';
+import { failToast } from '../../api/errorText';
+import type { Paper, PaperQuestionItem, TeacherMarkingTask } from '../../api/types';
 
 const props = withDefaults(
   defineProps<{
@@ -22,6 +25,8 @@ const props = withDefaults(
     /** 任务号 → 总分快照 */
     scores: Record<string, { ai: number; final: number }>;
     loading?: boolean;
+    /** 是否显示多选框（批量完成/撤销用） */
+    selectable?: boolean;
     /**
      * 远程分页加载器（ReTable 的 :loader）。传了就走 ReTable 自带的分页与刷新，
      * 父组件不再自己写「刷新」按钮与 el-pagination —— 否则一个页面两套分页。
@@ -30,7 +35,7 @@ const props = withDefaults(
     /** 记录总数（ReTable 远端分页回传，用于卡片头部「N 份」） */
     total?: number;
   }>(),
-  { papers: () => [], scores: () => ({}), loading: false, loader: undefined, total: 0 },
+  { papers: () => [], scores: () => ({}), loading: false, selectable: false, loader: undefined, total: 0 },
 );
 
 /** ReTable 的 data 约定 Record<string, unknown>[]（与 StudentManageView 同口径） */
@@ -38,6 +43,12 @@ const tableData = computed(() => props.tasks as unknown as Record<string, unknow
 
 const emit = defineEmits<{
   (e: 'view', task: TeacherMarkingTask): void;
+  /** 下载该任务对应的试卷 */
+  (e: 'paper', task: TeacherMarkingTask): void;
+  /** 打开内置卷的试卷模板（组卷页）；仅自有卷(SELF)关联了 paperId 时触发 */
+  (e: 'paper-template', task: TeacherMarkingTask): void;
+  /** 多选变化（批量操作用；未勾选时传空数组） */
+  (e: 'selection-change', rows: TeacherMarkingTask[]): void;
   /** 远端加载后回传总数，父级卡片头部「N 份」由 ReTable 的 update:total 驱动 */
   (e: 'update:total', total: number): void;
 }>();
@@ -57,8 +68,9 @@ const columns: ReTableColumn[] = [
   { prop: 'markingTaskStatus', label: '状态', width: 90, slot: 'status' },
   { prop: 'taskAiScore', label: 'AI 总分', width: 80, slot: 'aiScore' },
   { prop: 'taskFinalScore', label: '老师总分', width: 90, slot: 'finalScore' },
+  { prop: 'teacherFinished', label: '完成', width: 90, slot: 'teacherFinished' },
   { prop: 'markingTaskStartTime', label: '创建时间', minWidth: 150 },
-  { prop: 'taskActions', label: '操作', width: 64, slot: 'actions' },
+  { prop: 'taskActions', label: '操作', width: 104, slot: 'actions' },
 ];
 
 const modeLabel = (task: TeacherMarkingTask) =>
@@ -106,6 +118,64 @@ const studentName = (task: TeacherMarkingTask): string => {
 
 const scoreOf = (task: TeacherMarkingTask) =>
   task.markingTaskTaskId ? props.scores[task.markingTaskTaskId] ?? null : null;
+
+/* ==================== 试卷列 popover 预览 ==================== */
+
+/** 当前弹开的试卷预览（popover 内容）；null = 未展开 */
+const previewPaper = ref<Paper | null>(null);
+const previewLoading = ref(false);
+
+/** 试卷 popover 用的卷头（与 PaperPreview 的 PreviewHeader 对齐） */
+const previewHeader = computed(() => ({
+  paperId: previewPaper.value?.paperId ?? '',
+  name: previewPaper.value?.paperName ?? '',
+  subject: previewPaper.value?.paperSubject ?? '',
+  gradeLevel: previewPaper.value?.paperGradeLevel ?? '',
+  grade: previewPaper.value?.paperGrade ?? '',
+  pageSize: previewPaper.value?.paperPageSize ?? 'A4',
+  pageOrientation: previewPaper.value?.paperPageOrientation ?? 'PORTRAIT',
+  titleStyle: previewPaper.value?.paperTitleStyle ?? 'classic',
+  header: previewPaper.value?.paperHeader ?? '',
+  footer: previewPaper.value?.paperFooter ?? '',
+}));
+
+/** 试卷 popover 用的题目列表，按 order 升序（与阅卷详情/下载试卷同口径） */
+const previewQuestions = computed(() =>
+  [...(previewPaper.value?.questions ?? [])]
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    .map((q) => ({
+      questionId: q.id,
+      type: q.type,
+      stem: q.stem,
+      options: q.options,
+      score: q.score,
+      paperQuestionNo: q.questionNo,
+      answer: q.answer,
+      analysis: q.analysis,
+    })),
+);
+
+/** 点击试卷名：拉试卷详情，popover 内直接预览组好的试卷（不再跳组卷编辑页） */
+const onOpenPaperPreview = async (task: TeacherMarkingTask) => {
+  const paperId = task.markingTaskPaperId;
+  if (paperId == null) return;
+  if (previewLoading.value) return;
+  previewLoading.value = true;
+  previewPaper.value = null;
+  try {
+    const detail = await eduaiApi.getPaper(paperId);
+    previewPaper.value = detail;
+  } catch (e) {
+    failToast('加载试卷预览失败', e);
+  } finally {
+    previewLoading.value = false;
+  }
+};
+
+/** popover 关闭：清空已加载的详情，避免下回打开闪旧内容 */
+const clearPreview = () => {
+  previewPaper.value = null;
+};
 </script>
 
 <template>
@@ -127,14 +197,63 @@ const scoreOf = (task: TeacherMarkingTask) =>
     :pagination="!!loader"
     :toolbar="!!loader"
     :loading="loading"
+    :show-selection="selectable"
+    row-key="markingTaskTaskId"
     border
     stripe
     @update:total="emit('update:total', $event)"
+    @selection-change="emit('selection-change', ($event as Record<string, unknown>[]) as unknown as TeacherMarkingTask[])"
   >
     <template #col-mode="{ row }">
       <ReTag size="small" type="primary">{{ modeLabel(row as TeacherMarkingTask) }}</ReTag>
     </template>
-    <template #col-paper="{ row }">{{ paperName(row as TeacherMarkingTask) }}</template>
+    <template #col-paper="{ row }">
+      <el-popover
+        v-if="(row as TeacherMarkingTask).markingTaskPaperId != null"
+        placement="right"
+        :width="520"
+        trigger="click"
+        :persistent="false"
+        @show="onOpenPaperPreview(row as TeacherMarkingTask)"
+        @hide="clearPreview"
+      >
+        <template #reference>
+          <el-button
+            link
+            type="primary"
+            class="mt-paper-link"
+            title="预览试卷"
+            @click.stop
+          >
+            {{ paperName(row as TeacherMarkingTask) }}
+          </el-button>
+        </template>
+        <div class="mt-paper-preview">
+          <div v-if="previewLoading" class="mt-paper-preview__loading">正在加载试卷…</div>
+          <template v-else-if="previewPaper">
+            <PaperPreview
+              :header="previewHeader"
+              :questions="previewQuestions"
+              :fit-width="480"
+              mode="paper"
+              empty-text="试卷还没有题目"
+            />
+            <div class="mt-paper-preview__foot">
+              <el-button
+                link
+                type="primary"
+                size="small"
+                @click="emit('paper-template', row as TeacherMarkingTask)"
+              >
+                打开组卷编辑页
+              </el-button>
+            </div>
+          </template>
+          <div v-else class="mt-paper-preview__loading">—</div>
+        </div>
+      </el-popover>
+      <span v-else>{{ paperName(row as TeacherMarkingTask) }}</span>
+    </template>
     <template #col-student="{ row }">
       <!-- 姓名为主、学号作副标题：老师扫一眼先认人，要核对学号再看第二行。
            匿名阅卷（后端兜底 anonymous）没有姓名，此时主行直接显示该标识。 -->
@@ -154,14 +273,30 @@ const scoreOf = (task: TeacherMarkingTask) =>
     <template #col-finalScore="{ row }">
       <b class="mt-final">{{ scoreOf(row as TeacherMarkingTask)?.final ?? '—' }}</b>
     </template>
+    <template #col-teacherFinished="{ row }">
+      <template v-if="(row as TeacherMarkingTask).markingTaskTeacherFinished">
+        <ReTag size="small" type="info">已完成</ReTag>
+      </template>
+      <template v-else>
+        <ReTag size="small" type="info" plain>待完成</ReTag>
+      </template>
+    </template>
     <template #col-actions="{ row }">
-      <ReButton
-        layout="square"
-        type="primary"
-        icon="View"
-        tip="查看"
-        @click.stop="emit('view', row as TeacherMarkingTask)"
-      />
+      <span class="mt-actions">
+        <ReButton
+          layout="square"
+          type="primary"
+          icon="View"
+          tip="查看"
+          @click.stop="emit('view', row as TeacherMarkingTask)"
+        />
+        <ReButton
+          layout="square"
+          icon="Download"
+          tip="下载试卷"
+          @click.stop="emit('paper', row as TeacherMarkingTask)"
+        />
+      </span>
     </template>
   </ReTable>
 </template>
@@ -182,5 +317,37 @@ const scoreOf = (task: TeacherMarkingTask) =>
 .mt-student__no {
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+/* 操作列：两个按钮并排，不允许换行堆叠 */
+.mt-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+/* 试卷列（内置卷）：按钮化链接，颜色沿用 primary，单行不换行 */
+.mt-paper-link {
+  padding: 0;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 试卷 popover：预览区带最大高度滚动，防止整卷超高撑爆弹层 */
+.mt-paper-preview {
+  max-height: 60vh;
+  overflow: auto;
+}
+.mt-paper-preview__loading {
+  padding: 40px 0;
+  text-align: center;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+}
+.mt-paper-preview__foot {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  text-align: right;
 }
 </style>

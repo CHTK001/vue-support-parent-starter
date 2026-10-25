@@ -41,7 +41,7 @@
 
     <section class="tp-body">
       <!-- 未绑定：先绑定工号 -->
-      <div v-if="needBind" class="tp-bind">
+      <div v-if="needBind === true" class="tp-bind">
         <h2 class="tp-bind__title">先绑定教师工号</h2>
         <p class="tp-bind__sub">绑定后才能管理你的班级、组卷与阅卷。</p>
         <el-form :model="bindForm" label-width="70px" @submit.prevent>
@@ -63,7 +63,7 @@
         <p v-if="bindError" class="tp-bind__err">{{ bindError }}</p>
       </div>
 
-      <el-tabs v-else v-model="tab" class="tp-tabs">
+      <el-tabs v-else-if="needBind === false" v-model="tab" class="tp-tabs">
         <!-- ==================== 我的班级 ==================== -->
         <el-tab-pane label="我的班级" name="class">
           <div class="tp-class">
@@ -108,9 +108,8 @@
                 size="small"
                 class="tp-table"
                 engine="element"
-                :pagination="false"
-                :toolbar="false"
                 :layout-table="{ minHeight: 0 }"
+                :config="{ toolbar: { enable: false } }"
               >
                 <template #col-studentAccount="{ row }">
                   <span v-if="row.studentAccount">{{ row.studentAccount }}</span>
@@ -154,9 +153,8 @@
             size="small"
             class="tp-table"
             engine="element"
-            :pagination="false"
-            :toolbar="false"
             :layout-table="{ minHeight: 0 }"
+            :config="{ toolbar: { enable: false } }"
           >
             <template #col-paperGradeLevel="{ row }">{{ gradeLevelLabel(row.paperGradeLevel) }}</template>
             <template #col-paperSource="{ row }">
@@ -195,9 +193,8 @@
               size="small"
               class="tp-table"
               engine="element"
-              :pagination="false"
-              :toolbar="false"
               :layout-table="{ minHeight: 0 }"
+              :config="{ toolbar: { enable: false } }"
             >
               <template #col-assignGradeLevel="{ row }">{{ gradeLevelLabel(row.paperGradeLevel) }}</template>
               <template #col-assignStatus="{ row }">
@@ -432,7 +429,8 @@ const tab = ref<"class" | "paper" | "mark">("class");
 /* ==================== 绑定 / 概览 ==================== */
 const binding = ref(false);
 const bindError = ref("");
-const needBind = ref(false);
+/** null = 绑定态未知（/teacher/me 尚未返回），此期间不挂载 Tabs，避免抢发只对已绑定教师开放的接口 */
+const needBind = ref<boolean | null>(null);
 const overview = ref<TeacherOverview | null>(null);
 const bindForm = reactive({ teacherNo: "", teacherName: "", subjectCode: "" });
 const dropdown = ref<DimensionDropdown>({ gradeLevels: [], subjects: [], grades: [] });
@@ -535,6 +533,11 @@ async function doBind() {
     });
     message.success("绑定完成");
     await load();
+    if (needBind.value === false) {
+      void loadPapers();
+      void loadAssigns();
+      void loadAiCapability();
+    }
   } catch (e) {
     bindError.value = e instanceof Error ? e.message : String(e);
   } finally {
@@ -997,11 +1000,13 @@ async function submitTeacherQuestions() {
   }
 }
 
-onMounted(() => {
-  void load();
-  void loadPapers();
-  void loadAssigns();
-  void loadAiCapability();
+onMounted(async () => {
+  await load();
+  if (needBind.value === false) {
+    void loadPapers();
+    void loadAssigns();
+    void loadAiCapability();
+  }
 });
 </script>
 

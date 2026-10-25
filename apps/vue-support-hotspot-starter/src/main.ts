@@ -1,56 +1,79 @@
 /**
  * vue-support-hotspot-starter 入口 — APM 热点观测台（前后端分离独立应用）
  *
- * 不依赖 @repo/app / koi 框架（避免拉入登录/鉴权路由），
- * 直接装配 Element Plus + 路由 + Pinia，最小化独立可构建。
+ * 单页模式（mode="single"）：
+ *   - 不挂 koi 主题 / 登录守卫，保持独立应用形态；
+ *   - ElementPlus、图标、指令等仍由最小主题安装器完成；
+ *   - Re* 组件清单交给 @repo/app 的 .ui() 链安装，不再在 main.ts 手写组件装配。
+ *
+ * 样式策略（方案 C · koi 渐变数据台）：
+ *   页面与令牌全部来自 @pages/hotsport 包（tokens.css 以系统 koi 变量为基底，
+ *   浅色卡片 + 品牌渐变点缀，html[data-theme="dark"] 时自动切深色）。本文件
+ *   只加载 Element Plus 基础样式，不再持有私有 tokens/layout 双份 —— 改主题
+ *   只需改包，独立应用与其他集成方同步获得最新视觉。
  *
  * 样式加载顺序有依赖关系，不可调整：
  *   1. element-plus index.css      组件基础样式
- *   2. dark/css-vars.css           Element 暗色变量表（本应用固定深色皮肤）
- *   3. styles/tokens.css           覆盖 Element 的 --el-* 为观测台色板
- *                                  —— 必须在 dark 之后，否则会被暗色表覆盖回默认蓝
- *   4. styles/layout.css           14 个视图共用的骨架与语义类
+ *   2. @pages/hotsport 的 tokens.css / layout.css（经 router 间接引入，
+ *      覆盖 Element 的 --el-* 为 koi 观测台色板，必须在 element 基础之后）
  */
-import { createApp } from "vue";
-import { createPinia } from "pinia";
+import { createContextApp } from "@repo/app";
+import type { App as VueApp } from "vue";
 import ElementPlus from "element-plus";
+import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import "element-plus/dist/index.css";
-import "element-plus/theme-chalk/dark/css-vars.css";
-import "./styles/tokens.css";
-import "./styles/layout.css";
+import { setupCommonDirectives } from "@repo/core";
+import { setupSvgSprite } from "@repo/assets";
 import zhCn from "element-plus/es/locale/lang/zh-cn";
 
 import App from "./App.vue";
 import router from "./router";
 
-/** 启用 Element Plus 暗色模式（APM 固定深色皮肤，配合上面的 dark/css-vars.css） */
-document.documentElement.classList.add("dark");
+/** 本应用使用的 Re* 组件 */
+const RE_COMPONENTS = [
+  "ReIcon",
+  "ReButton",
+  "ReInput",
+  "ReInputNumber",
+  "ReSelect",
+  "ReSwitch",
+  "ReTable",
+  "ReTag",
+  "ReStatCard",
+  "ReDrawer",
+  "ReDialog",
+  "ReSkeleton",
+  "ReEmpty",
+  "ReTab",
+  "ReTimeline",
+  "ReEcharts",
+];
 
 /**
- * 移除全仓共用的启动遮罩 `#app-loader`。
- *
- * 遮罩由 public/loader.js 在 index.html 里同步挂载（position:fixed、
- * z-index:9999、盖满全屏），设计上要求应用挂载完成后调用
- * window.hideAppLoader() 移除。
- *
- * 其它 app 走 @repo/app 的 createContextApp，那里已在挂载后统一调用；
- * 本应用刻意不引入 @repo/app（见文件头注释），因此必须自己调，
- * 否则遮罩会永远盖住整个界面。
+ * 独立应用默认浅色（方案 C 数据台视觉）。深色由宿主或调用方在
+ * html 上设置 data-theme="dark" 时自动生效（包 tokens.css 内置覆盖）。
+ * Element Plus 的暗色变量表不再强制 .dark —— 避免与浅色令牌割裂。
  */
-function hideAppLoader(): void {
-  const hide = (window as unknown as { hideAppLoader?: () => void }).hideAppLoader;
-  if (typeof hide === "function") {
-    hide();
+
+/** 单页面应用最小化主题安装器：只做 ElementPlus / 图标 / 指令 / SVG sprite */
+async function installSinglePage(app: VueApp): Promise<void> {
+  setupSvgSprite();
+  app.use(ElementPlus, { locale: zhCn });
+  for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+    app.component(key, component);
   }
+  setupCommonDirectives(app);
 }
 
-const app = createApp(App);
-
-app.use(createPinia());
-app.use(ElementPlus, { locale: zhCn });
-app.use(router);
-
-app.mount("#app");
-hideAppLoader();
-
-export default app;
+await createContextApp({
+  appName: "vue-support-hotspot-starter",
+  title: "APM 热点观测台",
+  mode: "single",
+  install: installSinglePage,
+})
+  .app(App)
+  // Re* 组件清单交给 @repo/app 的 .ui() 链安装（installUi 在主题安装器之后执行）。
+  // .ui() 只做全局注册补充；视图里显式 deep import 的 Re 组件不受影响。
+  .ui({ components: RE_COMPONENTS })
+  .use(router)
+  .mount("#app");

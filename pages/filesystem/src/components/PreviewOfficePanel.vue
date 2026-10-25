@@ -204,6 +204,104 @@ const viewerOptions = computed(() => ({
 /** 加载失败信息（渲染错误时展示，便于定位） */
 const failReason = ref("");
 
+/**
+ * 可走后端 Word→PDF 转换的 Word 家族扩展名。
+ *
+ * <p>与后端 {@code FileConvertSystem} SPI 的 aspose-word 覆盖范围对齐
+ * （doc/docx/wps；docm/dotx/dotm/dot 与 docx/doc 同 OOXML/OLE2 家族，
+ * 加载器一致）。rtf/odt 亦由 Aspose.Words 加载器支持。仅这些格式
+ * 显示「PDF 视图」切换入口。</p>
+ */
+const WORD_PDF_EXTS: ReadonlySet<string> = new Set([
+  "doc", "docx", "docm", "dot", "dotx", "dotm", "wps", "rtf", "odt",
+]);
+
+/** 当前文件是否为 Word 家族（决定是否显示「PDF 视图」切换） */
+const isWordDocument = computed(() => WORD_PDF_EXTS.has(extensionOf(props.fileName)));
+
+/**
+ * 后端 Word→PDF 转换是否可用。
+ *
+ * <p>null=尚未探测；true=后端有转换依赖（aspose-word），显示切换入口；
+ * false=后端无依赖，不显示（需后端「有依赖才会显示 pdf」）。</p>
+ */
+const pdfAvailable = ref<boolean | null>(null);
+
+/**
+ * 当前视图：false=客户端原样渲染（file-viewer）；true=PDF 视图
+ * （后台 {@code ?format=pdf} 转换出的 PDF 由 renderer-pdf 渲染）。
+ */
+const pdfMode = ref(false);
+
+/** 探测用的实例级防抖令牌（避免并发重复探测同一文件） */
+let pdfProbeToken = 0;
+
+/**
+ * 静默探测后端是否支持把当前 Word 文件转成 PDF。
+ *
+ * <p>读响应头而不消费响应体（{@code X-FileStorage-Convert: pdf} 或
+ * {@code application/pdf}），随后立即释放连接 —— 转换发生在服务端写响应体
+ * 之前，这里只需知道「能不能转」，不需要真的拉回整份 PDF。失败一律按
+ * 「不可用」处理（不显示切换入口，绝不臆测放行）。</p>
+ *
+ * <p>父组件已带 format=pdf（.doc 等 previewUsePdf 强制 PDF 通道）时
+ * 不重复探测、不显示切换（本就渲染 PDF，切换无意义）。</p>
+ */
+async function probePdfAvailable(): Promise<void> {
+  if (!props.src || props.src.includes("format=pdf") || pdfAvailable.value !== null || pdfMode.value) {
+    return;
+  }
+  const token = ++pdfProbeToken;
+  const sep = props.src.includes("?") ? "&" : "?";
+  try {
+    const res = await fetch(`${props.src}${sep}format=pdf`);
+    if (token !== pdfProbeToken) return;
+    const ct = res.headers.get("content-type") ?? "";
+    const ok = res.ok && (res.headers.get("X-FileStorage-Convert") === "pdf" || ct.startsWith("application/pdf"));
+    pdfAvailable.value = ok;
+    // 释放响应体流，避免为探测白拉整份 PDF 传输
+    void res.body?.cancel().catch(() => {});
+  } catch {
+    if (token === pdfProbeToken) pdfAvailable.value = false;
+  }
+}
+
+/** 切换视图：client=原样渲染；pdf=后台转 PDF 渲染 */
+/**
+ * PDF 视图直链：当前文件交给浏览器原生 PDF 阅读器的地址。
+ *
+ * <p>后端 {@code ?format=pdf} 把 Word 转换出的 PDF 经 {@code application/pdf}
+ * 直出（含 {@code Content-Disposition} 预览头）。iframe 直挂该地址后由浏览器
+ * 内置 pdfium 渲染 —— 不走 file-viewer 的 renderer-pdf（其 worker/字体资源在
+ * 本仓库会加载失败并抛未捕获异常导致弹框关闭，见 OFD 先例），也更省资源。</p>
+ */
+const pdfSrc = computed(() => {
+  if (!props.src) return "";
+  const sep = props.src.includes("?") ? "&" : "?";
+  return `${props.src}${sep}format=pdf`;
+});
+
+/** 切换视图：client=原样渲染；pdf=后台转 PDF 交给浏览器原生阅读器 */
+function switchView(mode: "client" | "pdf"): void {
+  if (mode === "pdf" && pdfAvailable.value !== true) {
+    return;
+  }
+  pdfMode.value = mode === "pdf";
+  failReason.value = "";
+  // pdf 视图不调 load()：改成渲染 <iframe :src="pdfSrc">（浏览器原生渲染）。
+  // 只在切回 client 时重新走一次客户端渲染。
+  if (!pdfMode.value) void load();
+}
+
+/**
+ * 重置 Word PDF 切换状态（切换文件时调用）
+ */
+function resetPdfSwitch(): void {
+  pdfMode.value = false;
+  pdfAvailable.value = null;
+  pdfProbeToken++;
+}
+
 /* ------------------------------------------------------------------ *
  *  Excel 选区统计（求和 / 平均值 / 计数 / 最小值 / 最大值 + 复制）
  *
@@ -525,6 +623,8 @@ async function load(): Promise<void> {
     // x-oauth-token 与请求头承担，不依赖 cookie。一旦写 credentials:"include"，
     // 浏览器会强制要求响应带 Access-Control-Allow-Credentials: true，
     // 而存储服务不返回该头 → 请求直接被 CORS 拦掉（预览整条链路失败）。
+    // 注：PDF 视图（pdfMode=true）不经过本函数 —— 由 <iframe :src=pdfSrc>
+    // 直接把 Word→PDF 转换结果交给浏览器原生阅读器（见 switchView / pdfSrc）。
     const res = await fetch(props.src);
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
@@ -699,8 +799,29 @@ async function probeFallback(): Promise<"server" | "pdf" | null> {
 
 watch(() => [props.src, props.fileName], () => void load(), { immediate: true });
 
+// 切文件：重置 Word PDF 切换状态。探测改在客户端渲染成功后进行
+// （见 onRendered），避免为每个文件白白触发一次后端转换。
+watch(
+  () => props.fileName,
+  () => resetPdfSwitch(),
+);
+
 /** file-viewer 渲染完成 */
 function onRendered(): void {
+  emit("rendered");
+  // 客户端原样渲染成功后，静默探测后端 Word→PDF 转换是否可用；
+  // 可用才显示「PDF 视图」切换入口（需后台有依赖才会显示）。
+  if (isWordDocument.value && pdfAvailable.value === null && !pdfMode.value) {
+    void probePdfAvailable();
+  }
+}
+
+/**
+ * PDF 视图 iframe 加载完成：通知父组件收起骨架屏，并把面板 loading 复位。
+ * （PDF 由浏览器原生阅读器渲染，这里只负责状态同步，不解析内容。）
+ */
+function onPdfFrameLoad(): void {
+  loading.value = false;
   emit("rendered");
 }
 
@@ -750,6 +871,33 @@ defineExpose({ wrapRef });
 
 <template>
   <div class="preview-office-panel">
+    <!-- Word 家族「PDF 视图」切换：仅当后端有 Word→PDF 转换依赖
+         （pdfAvailable=true）且文档渲染成功时显示，支持在「原样渲染」与
+         「后台转 PDF」之间来回切换。父组件已强制 PDF 通道（src 带
+         format=pdf，如 .doc）时不显示 —— 本就渲染 PDF，切换无意义。 -->
+    <div
+      v-if="isWordDocument && pdfAvailable === true && !props.src.includes('format=pdf') && !failReason"
+      class="preview-office-panel__viewbar"
+    >
+      <button
+        type="button"
+        class="preview-office-panel__viewbtn"
+        :class="{ 'preview-office-panel__viewbtn--on': !pdfMode }"
+        :disabled="loading"
+        @click="switchView('client')"
+      >
+        文档视图
+      </button>
+      <button
+        type="button"
+        class="preview-office-panel__viewbtn"
+        :class="{ 'preview-office-panel__viewbtn--on': pdfMode }"
+        :disabled="loading"
+        @click="switchView('pdf')"
+      >
+        PDF 视图
+      </button>
+    </div>
     <!-- Excel 选区统计工具条（求和 / 平均值 / 计数 / 最值 + 复制选区） -->
     <div v-if="showStatsBar" class="preview-office-panel__toolbar">
       <template v-if="excelSelection">
@@ -798,7 +946,16 @@ defineExpose({ wrapRef });
     <!-- 不再对 wrap 做 transform: scale()：那会连同遮罩与边框一起缩放，
          表现为「缩放时整个弹框都在动」。缩放工具条已按产品要求移除。 -->
     <div ref="wrapRef" class="preview-office-panel__wrap">
-      <div v-if="loading" class="preview-office-panel__mask">
+      <!-- PDF 视图：Word→PDF 由后端转换，交给浏览器原生阅读器（pdfium）渲染。
+           iframe 直挂 format=pdf 直链：加载与渲染由浏览器负责，不经过 file-viewer。 -->
+      <iframe
+        v-if="pdfMode && pdfSrc"
+        :key="`pdf:${pdfSrc}`"
+        class="preview-office-panel__pdf-frame"
+        :src="pdfSrc"
+        @load="onPdfFrameLoad"
+      />
+      <div v-else-if="loading" class="preview-office-panel__mask">
         <span class="preview-office-panel__mask-text">加载中…</span>
       </div>
 
@@ -857,6 +1014,17 @@ defineExpose({ wrapRef });
   background: var(--el-bg-color-page);
 }
 
+/* PDF 视图：浏览器原生阅读器 iframe 吃满 wrap */
+.preview-office-panel__pdf-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: none;
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-bg-color-page);
+}
+
 .preview-office-panel__mask {
   display: flex;
   align-items: center;
@@ -873,6 +1041,81 @@ defineExpose({ wrapRef });
 .preview-office-panel__mask-text {
   color: var(--el-text-color-secondary);
   font-size: 13px;
+}
+
+/* ---- Word 家族 PDF 视图切换条 ---- */
+.preview-office-panel__viewbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--el-radius-md, 8px);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--el-color-primary, #409eff) 7%, var(--el-bg-color, #fff)) 0%,
+      color-mix(in srgb, var(--el-color-primary, #409eff) 2%, var(--el-bg-color, #fff)) 100%
+    );
+  box-shadow:
+    0 1px 0 0 color-mix(in srgb, var(--el-color-primary, #409eff) 25%, var(--el-border-color-lighter, #ebeef5)),
+    0 4px 16px color-mix(in srgb, var(--el-color-primary, #409eff) 8%, transparent);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.preview-office-panel__viewbtn {
+  all: unset;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  padding: 6px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--el-border-color, #dcdfe6);
+  background: var(--el-bg-color, #fff);
+  color: var(--el-text-color-primary, #303133);
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.1s ease;
+}
+
+.preview-office-panel__viewbtn:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--el-color-primary, #409eff) 60%, var(--el-border-color, #dcdfe6));
+  color: var(--el-color-primary, #409eff);
+}
+
+.preview-office-panel__viewbtn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.preview-office-panel__viewbtn--on {
+  border-color: var(--el-color-primary, #409eff);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary, #409eff) 0%,
+    color-mix(in srgb, var(--el-color-primary, #409eff) 70%, var(--el-color-info, #909399)) 100%
+  );
+  color: #fff;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--el-color-primary, #409eff) 35%, transparent);
+}
+
+.preview-office-panel__viewbtn:disabled {
+  color: var(--el-text-color-placeholder, #c0c4cc);
+  cursor: default;
+  border-color: var(--el-border-color-lighter, #ebeef5);
+  background: transparent;
+  box-shadow: none;
+}
+
+.preview-office-panel__viewbtn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--el-color-primary, #409eff) 60%, transparent);
+  outline-offset: 2px;
 }
 
 /* ---- Excel 选区统计工具条 ---- */

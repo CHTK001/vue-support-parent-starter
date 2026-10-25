@@ -107,6 +107,20 @@ function stepBy(dir: 1 | -1): void {
   model.value = props.stepStrictly ? Math.round(next / props.step) * props.step : next;
   draft.value = undefined;
 }
+
+/** 聚焦时方向键步进：↑ 加、↓ 减（配合无按钮的紧凑模式，是调值的主要手段）。
+ *  步进基于当前草稿（输入框里正在编辑的值）或已提交的 model，光标不移动。 */
+function onKeydown(e: KeyboardEvent): void {
+  if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+  e.preventDefault();
+  if (props.disabled || props.readonly) return;
+  const raw = draft.value !== undefined ? draft.value : "";
+  const base = raw === "" ? (model.value ?? 0) : Number(raw);
+  const dir = e.key === "ArrowUp" ? 1 : -1;
+  const next = roundPrecision(clamp((Number.isNaN(base) ? 0 : base) + dir * props.step));
+  model.value = props.stepStrictly ? Math.round(next / props.step) * props.step : next;
+  draft.value = undefined;
+}
 </script>
 
 <template>
@@ -152,6 +166,7 @@ function stepBy(dir: 1 | -1): void {
         @input="(e: Event) => (draft = (e.target as HTMLInputElement).value)"
         @focus="focused = true"
         @blur="focused = false; commit()"
+        @keydown="onKeydown"
         @keydown.enter.prevent="commit()"
       />
     </div>

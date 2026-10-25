@@ -623,7 +623,6 @@ onMounted(() => {
             <el-icon><ArrowRight /></el-icon>
           </button>
           <div class="ann-preview__actions">
-            <ReButton class="ann-preview__btn-ghost" @click="previewVisible = false">关闭</ReButton>
             <ReButton
               type="primary"
               class="ann-preview__btn-primary"
