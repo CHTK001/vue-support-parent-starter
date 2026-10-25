@@ -122,13 +122,16 @@ interface Screen {
 }
 
 const screens = ref<Screen[]>([]);
+/** 屏幕 id 自增序列（不能用 Date.now()：种子三屏在同一毫秒创建会撞 id，导致画布位置互相覆盖、拖动分不清哪块） */
+let screenSeq = 0;
 /** 画布坐标（百分比） */
 const canvasPos = ref<Record<number, { x: number; y: number; w: number; h: number }>>({});
 
 function buildScreen(h: Host, protocol?: string): Screen {
   const proto = protocol || defaultProtocolOf(h);
+  const sid = ++screenSeq;
   return {
-    id: Date.now(),
+    id: sid,
     hostId: h.id,
     hostName: h.serverHostName ?? `#${h.id}`,
     hostAddress: h.serverHostAddress ?? "",
@@ -278,6 +281,83 @@ function pickHostForNewScreen(h: Host): void {
   addScreenFromHost(h);
   closeCtx();
 }
+
+/* ==================== 屏幕拖动排布（画布版式） ==================== */
+
+/** 画布元素（拖动换算百分比坐标用） */
+const canvasEl = ref<HTMLElement | null>(null);
+/** 拖动中的状态：屏幕 id + 起始指针坐标 + 起始百分比坐标 */
+const dragState = ref<{ sid: number; startX: number; startY: number; origX: number; origY: number } | null>(null);
+
+/**
+ * 按下屏幕头开始拖动。
+ *
+ * <p>换算口径：指针像素差 → 画布百分比差。拖动过程持续更新 {@code canvasPos[sid]}
+ * 的 x/y（百分比），并夹在画布内（不能拖出可视区、不能盖住画布顶部标题）。</p>
+ *
+ * @param e   指针事件
+ * @param sid 屏幕 id
+ */
+function onHeadDown(e: MouseEvent, sid: number): void {
+  // 右键忽略（右键是屏幕头菜单）；点按钮（关闭）不触发拖动
+  if (e.button !== 0) return;
+  if ((e.target as HTMLElement | null)?.closest("button")) return;
+  const pos = canvasPos.value[sid];
+  if (!pos) return;
+  e.preventDefault();
+  dragState.value = { sid, startX: e.clientX, startY: e.clientY, origX: pos.x, origY: pos.y };
+  window.addEventListener("mousemove", onHeadMove);
+  window.addEventListener("mouseup", onHeadUp);
+}
+
+function canvasRect(): { w: number; h: number } {
+  const el = canvasEl.value;
+  if (!el) return { w: window.innerWidth, h: window.innerHeight };
+  const r = el.getBoundingClientRect();
+  return { w: r.width, h: r.height };
+}
+
+/** 拖动中：更新百分比坐标 */
+function onHeadMove(e: MouseEvent): void {
+  const d = dragState.value;
+  if (!d) return;
+  const pos = canvasPos.value[d.sid];
+  if (!pos) return;
+  const { w, h } = canvasRect();
+  if (!w || !h) return;
+  const dx = ((e.clientX - d.startX) / w) * 100;
+  const dy = ((e.clientY - d.startY) / h) * 100;
+  pos.x = clamp(d.origX + dx, 0, Math.max(0, 100 - pos.w));
+  pos.y = clamp(d.origY + dy, 0, Math.max(0, 100 - pos.h));
+}
+
+/** 结束拖动：清理监听 */
+function onHeadUp(): void {
+  dragState.value = null;
+  window.removeEventListener("mousemove", onHeadMove);
+  window.removeEventListener("mouseup", onHeadUp);
+}
+
+/** 数值夹取 */
+function clamp(v: number, min: number, max: number): number {
+  return Math.min(Math.max(v, min), max);
+}
+
+/**
+ * 「新增屏幕」入口：把右键菜单定位到按钮下方（之前硬编码 0,0 导致弹框落到浏览器左上角）。
+ *
+ * @param e 点击事件
+ */
+function openAddMenu(e: MouseEvent): void {
+  const rect = (e.currentTarget as HTMLElement | null)?.getBoundingClientRect();
+  ctx.value = {
+    x: rect ? rect.left : 24,
+    y: rect ? rect.bottom + 4 : 24,
+    visible: true,
+    screenId: null,
+    isCanvas: true,
+  };
+}
 </script>
 
 <template>
@@ -291,7 +371,7 @@ function pickHostForNewScreen(h: Host): void {
         type="button"
         class="lb-btn"
         title="从主机列表挑一台开新屏"
-        @click="ctx = { ...ctx, x: 0, y: 0, visible: true, screenId: null, isCanvas: true }"
+        @click="openAddMenu($event)"
       >
         <ReIcon name="Plus" :size="11" />新增屏幕
       </button>
@@ -303,16 +383,22 @@ function pickHostForNewScreen(h: Host): void {
     <div v-if="error" class="scr-error">{{ error }}</div>
     <div v-else-if="loading && !hosts.length" class="lb-loading">正在读取主机…</div>
 
-    <div v-else class="scr-canvas" @contextmenu.prevent="onCanvasContext" @click="closeCtx">
+    <div v-else ref="canvasEl" class="scr-canvas" @contextmenu.prevent="onCanvasContext" @click="closeCtx">
       <!-- 画布：真实 viewer 屏幕 -->
       <div
         v-for="s in screens"
         :key="s.id"
         class="scr-window"
+        :class="{ 'is-dragging': dragState?.sid === s.id }"
         :style="{ left: canvasPos[s.id]?.x + '%', top: canvasPos[s.id]?.y + '%', width: canvasPos[s.id]?.w + '%', height: canvasPos[s.id]?.h + '%' }"
         @click.stop
       >
-        <div class="scr-window__head" @contextmenu.prevent="onScreenContext($event, s.id)">
+        <div
+          class="scr-window__head"
+          :class="{ 'is-dragging': dragState?.sid === s.id }"
+          @mousedown="onHeadDown($event, s.id)"
+          @contextmenu.prevent="onScreenContext($event, s.id)"
+        >
           <ReIcon name="Rank" :size="11" class="scr-drag" />
           <span class="scr-window__label">{{ labelOf(s) }}</span>
           <span class="scr-window__addr">{{ s.hostAddress }}</span>
@@ -485,7 +571,12 @@ function pickHostForNewScreen(h: Host): void {
   background: #1b1d23;
   border-bottom: 1px solid #2a2d35;
   cursor: grab;
+  user-select: none;
+  touch-action: none;
 }
+.scr-window__head:hover { background: #22252d; }
+.scr-window__head.is-dragging, .scr-window.is-dragging { cursor: grabbing; }
+.scr-window.is-dragging { box-shadow: 0 10px 30px rgba(17, 17, 20, 0.55); z-index: 30; }
 .scr-window__label { font-size: 12px; font-weight: 600; color: #e8eaf0; white-space: nowrap; }
 .scr-window__addr { font-size: 10.5px; color: #8a909c; }
 .scr-window__dot {
