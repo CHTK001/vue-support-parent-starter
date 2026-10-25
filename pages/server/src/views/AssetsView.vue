@@ -769,12 +769,26 @@ const ctxSub = ref<string | null>(null);
 type CtxSubKey = "profile" | "workspace" | "workbench";
 
 /**
- * 切换二级菜单（点击与悬停共用）。
+ * 二级菜单（hover 弹出浮层）。
+ *
+ * <p>经典右键交互：鼠标悬停到「工作台 / 主机画像 / 运维台」上，子菜单
+ * 在右侧弹出浮层；移开光标时子菜单跟随收起。点击分组项本身只是展开/收起，
+ * 不触发任何命令（命令在子项上）。</p>
  *
  * @param key 分组标识
  */
 function toggleCtxSub(key: CtxSubKey): void {
   ctxSub.value = ctxSub.value === key ? null : key;
+}
+
+/** hover 进入分组项：立即展开该分组（并收起其它分组） */
+function hoverCtxSub(key: CtxSubKey): void {
+  ctxSub.value = key;
+}
+
+/** hover 离开分组项：若没有进入子菜单则收起 */
+function leaveCtxSub(key: CtxSubKey): void {
+  if (ctxSub.value === key) ctxSub.value = null;
 }
 
 /**
@@ -2261,11 +2275,12 @@ function onGlobalKeydown(e: KeyboardEvent): void {
           class="host-ctx-item has-sub"
           :class="{ 'is-open': ctxSub === 'workbench' }"
           @click="toggleCtxSub('workbench')"
+          @mouseenter="hoverCtxSub('workbench')"
         >
           <ReIcon name="Box" /><span>工作台</span>
           <ReIcon name="ArrowRight" class="host-ctx-arrow" />
         </div>
-        <div v-if="ctxSub === 'workbench'" class="host-ctx-sub">
+        <div v-if="ctxSub === 'workbench'" class="host-ctx-sub" @mouseenter="hoverCtxSub('workbench')" @mouseleave="leaveCtxSub('workbench')">
           <div class="host-ctx-item" @click="ctxCommand('tab-workbench')">
             <ReIcon name="Monitor" /><span>分屏终端</span>
           </div>
@@ -2287,11 +2302,12 @@ function onGlobalKeydown(e: KeyboardEvent): void {
           class="host-ctx-item has-sub"
           :class="{ 'is-open': ctxSub === 'profile' }"
           @click="toggleCtxSub('profile')"
+          @mouseenter="hoverCtxSub('profile')"
         >
           <ReIcon name="Grid" /><span>主机画像</span>
           <ReIcon name="ArrowRight" class="host-ctx-arrow" />
         </div>
-        <div v-if="ctxSub === 'profile'" class="host-ctx-sub">
+        <div v-if="ctxSub === 'profile'" class="host-ctx-sub" @mouseenter="hoverCtxSub('profile')" @mouseleave="leaveCtxSub('profile')">
           <div class="host-ctx-item" @click="ctxCommand('tab-ports')">
             <ReIcon name="Connection" /><span>监听端口</span>
           </div>
@@ -2324,11 +2340,12 @@ function onGlobalKeydown(e: KeyboardEvent): void {
           class="host-ctx-item has-sub"
           :class="{ 'is-open': ctxSub === 'workspace' }"
           @click="toggleCtxSub('workspace')"
+          @mouseenter="hoverCtxSub('workspace')"
         >
           <ReIcon name="Operation" /><span>运维台</span>
           <ReIcon name="ArrowRight" class="host-ctx-arrow" />
         </div>
-        <div v-if="ctxSub === 'workspace'" class="host-ctx-sub">
+        <div v-if="ctxSub === 'workspace'" class="host-ctx-sub" @mouseenter="hoverCtxSub('workspace')" @mouseleave="leaveCtxSub('workspace')">
           <div class="host-ctx-item" @click="ctxGoPage('/sessions')">
             <ReIcon name="Document" /><span>会话审计</span>
           </div>
@@ -3451,7 +3468,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   background: var(--el-color-danger-light-9, #fef0f0);
   color: var(--el-color-danger, #f56c6c);
 }
-/* 带二级菜单的条目：右侧一个箭头，展开后旋转朝下 */
+/* 带二级菜单的条目：右侧一个箭头，hover 展开 */
 .host-ctx-item.has-sub {
   position: relative;
 }
@@ -3469,14 +3486,23 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   transform: rotate(90deg);
   color: var(--el-color-primary, #409eff);
 }
-/* 二级菜单：缩进 + 左侧竖线，读起来是「这一组的子项」而不是平级 */
+/* hover 弹出浮层：子菜单固定在分组项右侧（经典右键交互），与内嵌缩进不同 */
 .host-ctx-sub {
-  margin: 2px 0 2px 17px;
-  padding-left: 6px;
-  border-left: 1px solid var(--el-border-color-lighter, #eceef1);
+  position: absolute;
+  left: calc(100% + 2px);
+  top: -6px;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  min-width: 178px;
+  padding: 5px;
+  background: var(--el-bg-color-overlay, #fff);
+  border: 1px solid var(--el-border-color-lighter, #e6e8eb);
+  border-radius: var(--el-border-radius-base, 8px);
+  box-shadow: var(--el-box-shadow-light, 0 8px 24px rgba(15, 23, 42, 0.16));
 }
 .host-ctx-sub .host-ctx-item {
-  height: 29px;
+  height: 31px;
   font-size: 12.5px;
 }
 .host-ctx-sub .host-ctx-item .re-icon,
@@ -3515,9 +3541,10 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   color: var(--el-text-color-placeholder, #a8abb2);
   text-transform: uppercase;
 }
-/* 菜单可能比视口还高（小屏笔记本），超出时可滚 */
+/* 菜单项数量有限（顶层十几条），右键定位已做视口翻转；
+   overflow 必须可见，否则 hover 浮层子菜单会被菜单容器裁掉 */
 .host-ctx-menu {
   max-height: calc(100vh - 24px);
-  overflow-y: auto;
+  overflow: visible;
 }
 </style>
