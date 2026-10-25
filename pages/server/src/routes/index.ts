@@ -144,13 +144,16 @@ export function createServerHostRoutes(options: ServerManageRoutesOptions = {}):
         },
         {
           // 远程控制：Guacamole / SSH 直连 / VNC 直连 / SFTP。
+          // 已收进「主机资产」右键（右侧工作区页签），左侧不再单列；
+          // 路由保留，AssetsView 的 ctxCommand("tab-remote") 与旧书签仍可直达。
           path: "/terminal",
           name: "Terminal",
           component: () => import("../views/TerminalView.vue"),
-          meta: { title: "远程控制", icon: "Position", showLink: true, activeMenu },
+          meta: { title: "远程控制", icon: "Position", showLink: false, activeMenu },
         },
         {
           // ACME 证书：独立 ACME 后端的账户 / 申请 / 续期 / 下载。
+          // 未并入主机资产右键，保留左侧独立入口。
           path: "/acme",
           name: "AcmeCert",
           component: () => import("../views/acme/index.vue"),
@@ -160,34 +163,37 @@ export function createServerHostRoutes(options: ServerManageRoutesOptions = {}):
           // 主机账号：主机登录凭据（口令 / 公钥 / 邮箱 / Token）+ SSH 密钥库。
           // 原挂在「系统管理 → 账号管理」下，但它维护的是「哪台主机用哪个账号登」，
           // 与系统配置无关，故归入主机管理并改名。
+          // 已收进「主机资产」右键（凭据库按主机过滤），左侧不再单列。
           path: "/host-accounts",
           name: "HostAccounts",
           component: () => import("../views/hostaccount/HostAccountView.vue"),
-          meta: { title: "主机账号", icon: "User", showLink: true, activeMenu },
+          meta: { title: "主机账号", icon: "User", showLink: false, activeMenu },
         },
         {
+          // 运维四页已收进「主机资产 → 运维台」二级菜单，左侧不再单列；
+          // 路由保留，HostAccountView 的 ctxGoPage 按主机过滤跳转仍可达。
           path: "/sessions",
           name: "ServerSessions",
           component: () => import("../views/ScSessionTab.vue"),
-          meta: { title: "会话审计", icon: "Document", showLink: true },
+          meta: { title: "会话审计", icon: "Document", showLink: false, activeMenu: "/assets" },
         },
         {
           path: "/exec",
           name: "ServerExec",
           component: () => import("../views/ScExecTab.vue"),
-          meta: { title: "批量作业", icon: "Promotion", showLink: true },
+          meta: { title: "批量作业", icon: "Promotion", showLink: false, activeMenu: "/assets" },
         },
         {
           path: "/snippets",
           name: "ServerSnippets",
           component: () => import("../views/ScTerminalSnippetManager.vue"),
-          meta: { title: "片段管理", icon: "DocumentCopy", showLink: true },
+          meta: { title: "片段管理", icon: "DocumentCopy", showLink: false, activeMenu: "/assets" },
         },
         {
           path: "/maintenance",
           name: "ServerMaintenance",
           component: () => import("../views/ScMaintenancePlan.vue"),
-          meta: { title: "维护计划", icon: "Clock", showLink: true },
+          meta: { title: "维护计划", icon: "Clock", showLink: false, activeMenu: "/assets" },
         },
         {
           path: "/release",
