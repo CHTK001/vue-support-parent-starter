@@ -9,31 +9,18 @@
   数据来源：@pages/filesystem/api/filestorageApi 的 uploadTask* 系列（Spring 侧接口，
   走应用登录态，与文件服务器直连通道无关）。
 
-  【重构 2026-10-24 · 主从工作台 Master-Detail】（增强版）
-    布局：左列任务列表（搜索/筛选/分组/多选/速率） + 右列详情（完整元数据/下载/重传/取消）。
+  【重构 2026-10-25 · 详情中心 Detail Hub】文件记录区改为「窄文件导航栏 + 宽焦点档案卡」：
+    左导航：按状态分组的紧凑文件导航（类型色点、文件名、百分比、速率、多选批量）。
+    右焦点：大类型图标 + 文件名 + 状态徽章、渐变大进度条、元数据网格
+            （大小/分片/任务号/创建时间/objectKey/桶路径）、失败原因、下载/重传/取消。
     数据点零丢失：文件名/大小/bucket/分片/进度/状态/说明(objectKey/message)/取消全部保留，
     并新增展示：chunkSize(分片大小)、bucket(桶路径)、createdAt(相对时间)、实时传输速率。
-    交互新增：文件名搜索、状态筛选、列表按状态分组、多选批量取消、
-             失败一键重传（File 引用缓存）、已完成文件下载（objectUrl/resolveObjectUrl）。
+    交互：文件名搜索、状态筛选、分组导航、多选批量取消、失败一键重传、
+          已完成文件下载（objectUrl/resolveObjectUrl）。
 -->
 
 <template>
   <div class="upload-task-page">
-    <ReSectionHead
-      class="upload-head"
-      title="上传任务"
-      description="任务化分片上传的管理视图：选文件与 bucket 创建任务，后台分片合并，本页只负责轮询展示状态"
-    >
-      <template #actions>
-        <el-button
-          size="small"
-          text
-          :loading="listLoading"
-          @click="refreshTasks"
-        ><el-icon><Refresh /></el-icon>刷新</el-button>
-      </template>
-    </ReSectionHead>
-
     <!-- 概览条：任务计数 + 传输总量（koi 令牌大数字 + 顶部色条） -->
     <div class="stat-grid" role="group" aria-label="上传任务概览">
       <div class="stat-card" style="--accent: var(--brand-500)">
@@ -92,6 +79,9 @@
           <el-icon><Upload /></el-icon><span>{{ dragOver ? "松开即可上传" : "选择文件上传" }}</span>
         </el-button>
         <el-button size="small" :disabled="uploading" @click="taskInputRef?.click()">批量文件</el-button>
+        <el-button size="small" text :icon="Refresh" :loading="listLoading" class="ut-refresh-btn" @click="refreshTasks">
+          刷新
+        </el-button>
         <span class="ut-drop-hint" aria-hidden="true">或拖拽文件到此处</span>
         <input
           ref="singleInputRef"
@@ -117,12 +107,12 @@
       />
     </div>
 
-    <!-- 文件记录（主从工作台：左列表 + 右详情，点选联动） -->
-    <div class="md-wrap">
-      <!-- 左：任务列表 -->
-      <div class="md-list-card koi-card">
+    <!-- 文件记录（详情中心：窄文件导航栏 + 宽焦点档案卡，点选联动） -->
+    <div class="dh-wrap">
+      <!-- 左：窄文件导航栏 -->
+      <div class="dh-rail koi-card">
         <div class="md-card-hd">
-          <span class="md-card-title">任务列表</span>
+          <span class="md-card-title">文件导航</span>
           <el-button size="small" text :icon="Refresh" :loading="listLoading" @click="refreshTasks" />
         </div>
 
@@ -146,59 +136,50 @@
           </el-select>
         </div>
 
-        <div v-if="tasks.length === 0" class="md-list-empty">
-          <ReEmpty v-if="!listLoading" layout="modern" description="暂无上传任务，从上方发起上传">
+        <div v-if="tasks.length === 0" class="dh-rail-empty">
+          <ReEmpty v-if="!listLoading" layout="modern" description="暂无上传任务">
             <el-button size="small" type="primary" @click="pickFiles">选择文件上传</el-button>
           </ReEmpty>
         </div>
         <template v-else>
-          <div v-loading="listLoading" class="md-list-scroll">
-            <!-- 分组渲染：进行中 / 已完成 / 失败 / 已取消 -->
-            <div v-for="g in groupedTasks" :key="g.key" class="md-group">
-              <div class="md-group-hd">
+          <div v-loading="listLoading" class="dh-rail-scroll">
+            <!-- 分组导航：进行中 / 已完成 / 失败 / 已取消 -->
+            <div v-for="g in groupedTasks" :key="g.key" class="dh-group">
+              <div class="dh-group-hd">
                 <span class="md-dot" :class="g.dotClass"></span>
-                <span class="md-group-name">{{ g.label }}</span>
-                <span class="md-group-cnt">{{ g.tasks.length }}</span>
+                <span class="dh-group-name">{{ g.label }}</span>
+                <span class="dh-group-cnt">{{ g.tasks.length }}</span>
               </div>
-              <ul class="md-list" role="listbox" :aria-label="g.label">
-                <li
-                  v-for="t in g.tasks"
-                  :key="t.taskId"
-                  class="md-item"
-                  :class="{ 'is-selected': t.taskId === selectedTaskId }"
-                  role="option"
-                  :aria-selected="t.taskId === selectedTaskId"
-                  @click="selectedTaskId = t.taskId"
-                >
-                  <el-checkbox
-                    size="small"
-                    :model-value="selectedIds.includes(t.taskId)"
-                    @click.stop
-                    @change="(v: boolean | string | number) => toggleSelect(t.taskId, Boolean(v))"
-                    aria-label="选择任务"
-                  />
-                  <div class="md-item-main">
-                    <div class="md-item-name" :title="t.fileName">{{ t.fileName }}</div>
-                    <div class="md-item-sub">
-                      {{ t.provider || "默认" }}<template v-if="t.bucket"> / {{ t.bucket }}</template>
-                      · {{ t.receivedChunks }}/{{ t.totalChunks }} 片
-                    </div>
-                  </div>
-                  <div class="md-item-side">
-                    <span class="md-item-pct">{{ taskPercent(t) }}%</span>
-                    <div class="md-mini-bar"><i :class="progClass(t.state)" :style="{ width: taskPercent(t) + '%' }" /></div>
-                    <span v-if="speeds[t.taskId]" class="md-item-spd">{{ speeds[t.taskId] }}</span>
-                  </div>
-                  <span class="md-chev" aria-hidden="true">›</span>
-                </li>
-              </ul>
+              <div
+                v-for="t in g.tasks"
+                :key="t.taskId"
+                class="dh-rail-it"
+                :class="{ 'is-selected': t.taskId === selectedTaskId }"
+                role="option"
+                :aria-selected="t.taskId === selectedTaskId"
+                @click="selectedTaskId = t.taskId"
+              >
+                <el-checkbox
+                  size="small"
+                  :model-value="selectedIds.includes(t.taskId)"
+                  @click.stop
+                  @change="(v: boolean | string | number) => toggleSelect(t.taskId, Boolean(v))"
+                  aria-label="选择任务"
+                />
+                <span class="dh-rail-dot" :class="stateDotClass(t.state)" aria-hidden="true"></span>
+                <span class="dh-rail-name" :title="t.fileName">{{ t.fileName }}</span>
+                <div class="dh-rail-side">
+                  <span class="dh-rail-pct">{{ taskPercent(t) }}%</span>
+                  <span v-if="speeds[t.taskId]" class="dh-rail-spd">{{ speeds[t.taskId] }}</span>
+                </div>
+              </div>
             </div>
           </div>
 
           <!-- 批量操作条 -->
           <div v-if="selectedIds.length" class="md-bulk">
             <span class="md-bulk-info">已选 {{ selectedIds.length }} 个任务</span>
-            <el-button size="small" text type="primary" @click="selectAllFiltered">全选当前筛选</el-button>
+            <el-button size="small" text type="primary" @click="selectAllFiltered">全选</el-button>
             <el-popconfirm title="确定批量取消选中的可取消任务？" @confirm="batchCancel">
               <template #reference>
                 <el-button size="small" text type="danger">批量取消</el-button>
@@ -209,115 +190,116 @@
         </template>
       </div>
 
-      <!-- 右：选中任务详情 -->
-      <div class="md-detail-card koi-card">
+      <!-- 右：宽焦点档案卡 -->
+      <div class="dh-focus">
         <template v-if="selectedTask">
-          <div class="md-detail-hd">
-            <span class="md-card-title">任务详情</span>
+          <!-- 档案卡头：大类型图标 + 文件名 + 状态徽章 -->
+          <div class="dh-focus-hd">
+            <span class="dh-big-ic" :class="fileTypeMeta(selectedTask.fileName).cls" aria-hidden="true">
+              {{ fileTypeMeta(selectedTask.fileName).ext }}
+            </span>
+            <div class="dh-focus-t">
+              <h3 class="dh-fn" :title="selectedTask.fileName">{{ selectedTask.fileName }}</h3>
+              <div class="dh-fn-sub">
+                {{ selectedTask.provider || "默认" }}<template v-if="selectedTask.bucket"> / {{ selectedTask.bucket }}</template>
+                <span class="md-dot" :class="stateDotClass(selectedTask.state)" style="margin: 0 2px 0 8px"></span>
+                {{ stateLabel(selectedTask.state) }}
+              </div>
+            </div>
             <span class="md-state-badge" :class="stateBadgeClass(selectedTask.state)">
-              <span class="md-dot" :class="stateDotClass(selectedTask.state)"></span>{{ stateLabel(selectedTask.state) }}
+              <span class="md-dot" :class="stateDotClass(selectedTask.state)"></span>{{ taskPercent(selectedTask) }}%
             </span>
           </div>
-          <div class="md-detail-body">
-            <h3 class="md-detail-name" :title="selectedTask.fileName">{{ selectedTask.fileName }}</h3>
 
-            <div class="md-progress">
-              <div class="md-progress-bar">
-                <i :class="progClass(selectedTask.state)" :style="{ width: taskPercent(selectedTask) + '%' }" />
-              </div>
-              <div class="md-progress-meta">
-                {{ selectedTask.receivedChunks }}/{{ selectedTask.totalChunks }} 片 · {{ taskPercent(selectedTask) }}%
-                <span v-if="isActive(selectedTask.state)" class="md-live" aria-hidden="true"></span>
-                <span v-if="speeds[selectedTask.taskId]" class="md-live-spd">{{ speeds[selectedTask.taskId] }}</span>
-              </div>
+          <!-- 渐变大进度条 -->
+          <div class="dh-bigp">
+            <i :class="progClass(selectedTask.state)" :style="{ width: taskPercent(selectedTask) + '%' }" />
+          </div>
+          <div class="dh-bigp-meta">
+            <span>{{ selectedTask.receivedChunks }}/{{ selectedTask.totalChunks }} 片 · {{ taskPercent(selectedTask) }}%</span>
+            <span v-if="speeds[selectedTask.taskId]" class="dh-live-spd">{{ speeds[selectedTask.taskId] }}</span>
+            <span v-if="isActive(selectedTask.state)" class="md-live" aria-hidden="true"></span>
+          </div>
+
+          <!-- 元数据网格 -->
+          <div class="dh-kv">
+            <div class="dh-kv-item">
+              <span class="dh-kv-label">大小</span>
+              <span class="dh-kv-value">{{ formatSize(selectedTask.totalSize) }}</span>
             </div>
-
-            <div class="md-kv">
-              <div class="md-kv-item">
-                <span class="md-kv-label">大小</span>
-                <span class="md-kv-value">{{ formatSize(selectedTask.totalSize) }}</span>
-              </div>
-              <div class="md-kv-item">
-                <span class="md-kv-label">分片大小</span>
-                <span class="md-kv-value">{{ selectedTask.chunkSize > 0 ? formatSize(selectedTask.chunkSize) : "-" }}</span>
-              </div>
-              <div class="md-kv-item">
-                <span class="md-kv-label">提供者</span>
-                <span class="md-bucket" :class="{ 'is-default': !selectedTask.provider }">{{ selectedTask.provider || "默认" }}</span>
-              </div>
-              <div class="md-kv-item">
-                <span class="md-kv-label">桶路径</span>
-                <span class="md-kv-value md-kv-ellipsis" :title="selectedTask.bucket || '-'">{{ selectedTask.bucket || "-" }}</span>
-              </div>
-              <div class="md-kv-item">
-                <span class="md-kv-label">objectKey</span>
-                <span class="md-kv-value md-kv-ellipsis" :title="selectedTask.objectKey || '-'">{{ selectedTask.objectKey || "-" }}</span>
-              </div>
-              <div class="md-kv-item">
-                <span class="md-kv-label">任务号</span>
-                <span class="md-kv-value md-kv-ellipsis" :title="selectedTask.taskId">{{ selectedTask.taskId }}</span>
-              </div>
-              <div class="md-kv-item">
-                <span class="md-kv-label">创建时间</span>
-                <span class="md-kv-value">{{ formatRelTime(selectedTask.createdAt) }}</span>
-              </div>
-              <div class="md-kv-item">
-                <span class="md-kv-label">任务状态</span>
-                <span class="md-kv-value">{{ stateLabel(selectedTask.state) }}</span>
-              </div>
+            <div class="dh-kv-item">
+              <span class="dh-kv-label">分片</span>
+              <span class="dh-kv-value">
+                {{ selectedTask.chunkSize > 0 ? formatSize(selectedTask.chunkSize) : "-" }} × {{ selectedTask.totalChunks }}
+              </span>
             </div>
-
-            <div v-if="selectedTask.message" class="md-msg" :class="{ 'is-error': selectedTask.state === 'FAILED' }">
-              {{ selectedTask.message }}
+            <div class="dh-kv-item">
+              <span class="dh-kv-label">任务号</span>
+              <span class="dh-kv-value dh-kv-ellipsis" :title="selectedTask.taskId">{{ selectedTask.taskId }}</span>
             </div>
-
-            <div class="md-detail-actions">
-              <!-- 已完成：下载 -->
-              <el-button
-                v-if="selectedTask.state === 'COMPLETED' && selectedTask.objectKey"
-                type="success"
-                plain
-                size="small"
-                @click="downloadObject(selectedTask)"
-              >
-                <el-icon><Download /></el-icon>下载文件
-              </el-button>
-              <!-- 失败：一键重传 -->
-              <el-tooltip
-                v-if="selectedTask.state === 'FAILED'"
-                :disabled="canRetry(selectedTask)"
-                content="本地无该文件的字节缓存（本会话上传/选择的文件可重传），或需重新选择文件"
-                placement="top"
-              >
-                <span>
-                  <el-button
-                    type="primary"
-                    plain
-                    size="small"
-                    :disabled="!canRetry(selectedTask)"
-                    :loading="retrying === selectedTask.taskId"
-                    @click="retryTask(selectedTask)"
-                  >
-                    <el-icon><RefreshRight /></el-icon>重新上传
-                  </el-button>
-                </span>
-              </el-tooltip>
-              <!-- 取消（进行中/失败后可清分片） -->
-              <el-popconfirm
-                v-if="isActive(selectedTask.state) || selectedTask.state === 'FAILED'"
-                :title="isActive(selectedTask.state) ? '确定取消该任务？' : '取消并清理分片？'"
-                @confirm="onCancel(selectedTask)"
-              >
-                <template #reference>
-                  <el-button type="danger" plain size="small" :disabled="!isActive(selectedTask.state) && selectedTask.state !== 'FAILED'">
-                    取消任务
-                  </el-button>
-                </template>
-              </el-popconfirm>
+            <div class="dh-kv-item">
+              <span class="dh-kv-label">创建时间</span>
+              <span class="dh-kv-value">{{ formatRelTime(selectedTask.createdAt) }}</span>
+            </div>
+            <div class="dh-kv-item">
+              <span class="dh-kv-label">objectKey</span>
+              <span class="dh-kv-value dh-kv-ellipsis" :title="selectedTask.objectKey || '-'">{{ selectedTask.objectKey || "-" }}</span>
+            </div>
+            <div class="dh-kv-item">
+              <span class="dh-kv-label">桶路径</span>
+              <span class="dh-kv-value dh-kv-ellipsis" :title="selectedTask.bucket || '-'">{{ selectedTask.bucket || "-" }}</span>
             </div>
           </div>
+
+          <!-- 说明 / 失败原因 -->
+          <div v-if="selectedTask.message" class="md-msg" :class="{ 'is-error': selectedTask.state === 'FAILED' }">
+            {{ selectedTask.message }}
+          </div>
+
+          <!-- 操作区 -->
+          <div class="dh-acts">
+            <el-button
+              v-if="selectedTask.state === 'COMPLETED' && selectedTask.objectKey"
+              type="success"
+              plain
+              size="small"
+              @click="downloadObject(selectedTask)"
+            >
+              <el-icon><Download /></el-icon>下载文件
+            </el-button>
+            <el-tooltip
+              v-if="selectedTask.state === 'FAILED'"
+              :disabled="canRetry(selectedTask)"
+              content="本地无该文件的字节缓存（本会话上传/选择的文件可重传），或需重新选择文件"
+              placement="top"
+            >
+              <span>
+                <el-button
+                  type="primary"
+                  plain
+                  size="small"
+                  :disabled="!canRetry(selectedTask)"
+                  :loading="retrying === selectedTask.taskId"
+                  @click="retryTask(selectedTask)"
+                >
+                  <el-icon><RefreshRight /></el-icon>重新上传
+                </el-button>
+              </span>
+            </el-tooltip>
+            <el-popconfirm
+              v-if="isActive(selectedTask.state) || selectedTask.state === 'FAILED'"
+              :title="isActive(selectedTask.state) ? '确定取消该任务？' : '取消并清理分片？'"
+              @confirm="onCancel(selectedTask)"
+            >
+              <template #reference>
+                <el-button type="danger" plain size="small" :disabled="!isActive(selectedTask.state) && selectedTask.state !== 'FAILED'">
+                  取消任务
+                </el-button>
+              </template>
+            </el-popconfirm>
+          </div>
         </template>
-        <div v-else class="md-detail-empty">从左侧选择一条任务查看详情</div>
+        <div v-else class="dh-focus-empty">从左侧选择一条任务查看详情</div>
       </div>
     </div>
   </div>
@@ -328,7 +310,6 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { Download, Refresh, RefreshRight, Search, Upload } from "@element-plus/icons-vue";
 import ReEmpty from "@repo/ui/re-empty";
-import ReSectionHead from "@repo/ui/re-section-head";
 import {
   SIMPLE_SYNC_MAX_MB,
   cancelUploadTask,
@@ -832,6 +813,20 @@ function formatRelTime(ts: number): string {
   const dd = String(d.getDate()).padStart(2, "0");
   return `${d.getFullYear()}-${mm}-${dd}`;
 }
+
+/** 文件类型图标：按扩展名返回色块 class 与显示文本（供大类型图标/导航栏识别） */
+function fileTypeMeta(fileName: string): { ext: string; cls: string } {
+  const dot = fileName.lastIndexOf(".");
+  const raw = dot >= 0 ? fileName.slice(dot + 1).toLowerCase() : "";
+  const ext = (raw || "file").slice(0, 4).toUpperCase();
+  let cls = "fi-oth";
+  if (["xlsx", "xls", "csv"].includes(raw)) cls = "fi-xlsx";
+  else if (["zip", "rar", "7z", "gz", "tar", "tgz"].includes(raw)) cls = "fi-zip";
+  else if (["dump", "sql", "db", "bak", "dat"].includes(raw)) cls = "fi-dump";
+  else if (["pem", "key", "crt", "cer", "pfx"].includes(raw)) cls = "fi-pem";
+  else if (["exe", "msi", "bin"].includes(raw)) cls = "fi-exe";
+  return { ext, cls };
+}
 </script>
 
 <style scoped lang="scss">
@@ -841,13 +836,6 @@ function formatRelTime(ts: number): string {
   gap: 14px;
   background: var(--bg-page, var(--el-bg-color-page, #f5f7fa));
   min-height: 100%;
-}
-
-/* ===== 页头（ReSectionHead 容器层） ===== */
-.upload-head :deep(.re-section-head__title) { color: var(--text-primary); }
-.upload-head :deep(.re-section-head__desc) { color: var(--text-secondary); }
-.upload-head :deep(.re-section-head__actions) {
-  flex-wrap: wrap;
 }
 
 /* ===== 概览条（koi 大数字 + 顶部色条） ===== */
@@ -992,10 +980,10 @@ function formatRelTime(ts: number): string {
   border-radius: var(--radius-md, 8px);
 }
 
-/* ===== 文件记录 · 主从工作台 ===== */
-.md-wrap {
+/* ===== 文件记录 · 详情中心 ===== */
+.dh-wrap {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2.1fr);
   gap: 12px;
   align-items: stretch;
 }
@@ -1019,7 +1007,15 @@ function formatRelTime(ts: number): string {
   color: var(--text-secondary, var(--el-text-color-secondary, #909399));
 }
 
-/* ===== 左列：搜索 / 筛选工具栏 ===== */
+/* ===== 左：窄文件导航栏 ===== */
+.dh-rail {
+  padding: 12px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 搜索 / 筛选工具栏 */
 .md-toolbar {
   display: flex;
   align-items: center;
@@ -1031,19 +1027,20 @@ function formatRelTime(ts: number): string {
   min-width: 0;
 }
 .md-filter {
-  width: 128px;
+  width: 118px;
   flex: none;
 }
 
-/* ===== 左列：分组列表 ===== */
-.md-list-scroll {
-  max-height: 520px;
+/* 导航滚动区 */
+.dh-rail-scroll {
+  max-height: 560px;
   overflow-y: auto;
+  flex: 1;
 }
-.md-group + .md-group {
+.dh-group + .dh-group {
   margin-top: 10px;
 }
-.md-group-hd {
+.dh-group-hd {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1051,12 +1048,12 @@ function formatRelTime(ts: number): string {
   border-bottom: 1px dashed var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
   margin-bottom: 2px;
 }
-.md-group-name {
+.dh-group-name {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary, var(--el-text-color-secondary, #606266));
 }
-.md-group-cnt {
+.dh-group-cnt {
   margin-left: auto;
   font-size: 10.5px;
   color: var(--text-tertiary, #a8abb2);
@@ -1066,36 +1063,234 @@ function formatRelTime(ts: number): string {
   line-height: 1.6;
 }
 
-.md-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.md-item {
+/* 导航项（紧凑一行） */
+.dh-rail-it {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 8px;
+  gap: 7px;
+  padding: 8px 8px;
   border-radius: var(--el-radius-md, 8px);
   border: 1px solid transparent;
   cursor: pointer;
   transition: background-color 0.15s var(--ease-out, ease), border-color 0.15s;
 }
-.md-item:hover {
+.dh-rail-it:hover {
   background: var(--el-fill-color-light, #f5f7fa);
 }
-.md-item.is-selected {
+.dh-rail-it.is-selected {
   background: var(--el-color-primary-light-9, #ecf5ff);
   border-color: var(--el-color-primary-light-7, #b3d8ff);
 }
-.md-item + .md-item {
-  margin-top: 2px;
-}
-.md-item :deep(.el-checkbox) {
+.dh-rail-it :deep(.el-checkbox) {
   flex: none;
 }
+.dh-rail-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--el-color-primary, #409eff);
+}
+.dh-rail-dot.is-success { background: var(--status-success, #67c23a); }
+.dh-rail-dot.is-danger { background: var(--status-error, #f56c6c); }
+.dh-rail-dot.is-warning { background: var(--status-warning, #e6a23c); }
+.dh-rail-dot.is-info { background: var(--text-tertiary, #909399); }
 
-/* 列表色点 */
+.dh-rail-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dh-rail-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  flex: none;
+}
+.dh-rail-pct {
+  font-size: 10.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+}
+.dh-rail-spd {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--status-success, #67c23a);
+}
+.dh-rail-empty {
+  padding: 24px 8px;
+}
+
+/* 批量操作条 */
+.md-bulk {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  border: 1px solid var(--el-color-primary-light-7, #b3d8ff);
+  border-radius: var(--el-radius-md, 8px);
+  flex-wrap: wrap;
+}
+.md-bulk-info {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--el-color-primary, #409eff);
+}
+
+/* ===== 文件类型图标色块 ===== */
+.dh-big-ic {
+  width: 52px;
+  height: 52px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.02em;
+  flex: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+.fi-xlsx { background: linear-gradient(135deg, #67c23a, #95d475); }
+.fi-zip { background: linear-gradient(135deg, #e6a23c, #f0c78a); }
+.fi-dump { background: linear-gradient(135deg, #409eff, #79bbff); }
+.fi-pem { background: linear-gradient(135deg, #b37feb, #c8a8f2); }
+.fi-exe { background: linear-gradient(135deg, #f56c6c, #f89898); }
+.fi-oth { background: linear-gradient(135deg, #909399, #b3b6bb); }
+
+/* ===== 右：宽焦点档案卡 ===== */
+.dh-focus {
+  min-width: 0;
+  background: linear-gradient(160deg, var(--bg-container, #fff), var(--el-fill-color-lighter, #f6f9ff));
+  border: 1px solid var(--el-color-primary-light-7, #dbe7f7);
+  border-radius: var(--radius-lg, 14px);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.dh-focus-hd {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.dh-focus-t {
+  flex: 1;
+  min-width: 0;
+}
+.dh-fn {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+  line-height: 1.4;
+  word-break: break-all;
+}
+.dh-fn-sub {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+  margin-top: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 渐变大进度条 */
+.dh-bigp {
+  height: 10px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--bg-subtle, var(--el-fill-color-light, #e8e8e8));
+  overflow: hidden;
+}
+.dh-bigp i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--brand-gradient, linear-gradient(90deg, #409eff, #79bbff));
+  transition: width 0.3s var(--ease-out, ease);
+}
+.dh-bigp i.is-success { background: linear-gradient(90deg, #67c23a, #95d475); }
+.dh-bigp i.is-danger { background: linear-gradient(90deg, #f56c6c, #f89898); }
+.dh-bigp i.is-warning { background: linear-gradient(90deg, #e6a23c, #f0c78a); }
+.dh-bigp-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary, var(--el-text-color-secondary, #606266));
+}
+.dh-live-spd {
+  color: var(--status-success, #67c23a);
+  font-weight: 600;
+}
+
+/* 元数据网格 */
+.dh-kv {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.dh-kv-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--bg-container, #fff);
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #eef0f3));
+  border-radius: var(--el-radius-md, 8px);
+  padding: 8px 10px;
+  min-width: 0;
+}
+.dh-kv-label {
+  font-size: 10.5px;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+}
+.dh-kv-value {
+  font-size: 12.5px;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+  font-variant-numeric: tabular-nums;
+}
+.dh-kv-ellipsis {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 状态徽章 */
+.md-state-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: var(--el-radius-full, 9999px);
+  border: 1px solid transparent;
+  white-space: nowrap;
+  flex: none;
+}
+.md-state-badge.is-primary { color: var(--el-color-primary, #409eff); background: var(--el-color-primary-light-9, #ecf5ff); border-color: var(--el-color-primary-light-7, #b3d8ff); }
+.md-state-badge.is-success { color: var(--status-success, #67c23a); background: #f0f9eb; border-color: #c2e7b0; }
+.md-state-badge.is-danger { color: var(--status-error, #f56c6c); background: #fef0f0; border-color: #fbc4c4; }
+.md-state-badge.is-warning { color: var(--status-warning, #e6a23c); background: #fdf6ec; border-color: #f5dab1; }
+.md-state-badge.is-info { color: var(--text-secondary, #909399); background: #f4f4f5; border-color: #e4e7ed; }
+
+/* 通用色点 */
 .md-dot {
   width: 7px;
   height: 7px;
@@ -1107,238 +1302,6 @@ function formatRelTime(ts: number): string {
 .md-dot.is-danger { background: var(--status-error, #f56c6c); }
 .md-dot.is-warning { background: var(--status-warning, #e6a23c); }
 .md-dot.is-info { background: var(--text-tertiary, #909399); }
-
-.md-item-main {
-  flex: 1;
-  min-width: 0;
-}
-.md-item-name {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-primary, var(--el-text-color-primary, #303133));
-  line-height: 1.35;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.md-item-sub {
-  font-size: 11px;
-  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
-  margin-top: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.md-item-side {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 3px;
-  flex: none;
-}
-.md-item-pct {
-  font-size: 11px;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
-}
-.md-item-spd {
-  font-size: 10.5px;
-  font-variant-numeric: tabular-nums;
-  color: var(--status-success, #67c23a);
-}
-.md-mini-bar {
-  width: 56px;
-  height: 5px;
-  border-radius: var(--el-radius-full, 9999px);
-  background: var(--bg-subtle, var(--el-fill-color-light, #e8e8e8));
-  overflow: hidden;
-}
-.md-mini-bar i {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--el-color-primary, #409eff);
-  transition: width 0.3s var(--ease-out, ease);
-}
-.md-mini-bar i.is-success { background: var(--status-success, #67c23a); }
-.md-mini-bar i.is-danger { background: var(--status-error, #f56c6c); }
-.md-mini-bar i.is-warning { background: var(--status-warning, #e6a23c); }
-.md-mini-bar i.is-info { background: var(--text-tertiary, #909399); }
-.md-chev {
-  color: var(--text-tertiary, #c0c4cc);
-  font-size: 15px;
-  flex: none;
-}
-.md-item.is-selected .md-chev {
-  color: var(--el-color-primary, #409eff);
-}
-.md-list-empty {
-  padding: 24px 8px;
-}
-
-/* ===== 批量操作条 ===== */
-.md-bulk {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 8px;
-  padding: 8px 10px;
-  background: var(--el-color-primary-light-9, #ecf5ff);
-  border: 1px solid var(--el-color-primary-light-7, #b3d8ff);
-  border-radius: var(--el-radius-md, 8px);
-}
-.md-bulk-info {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--el-color-primary, #409eff);
-}
-
-/* ===== 右列：任务详情 ===== */
-.md-detail-card {
-  padding: 12px;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-.md-detail-hd {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding-bottom: 10px;
-  margin-bottom: 10px;
-  border-bottom: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
-}
-.md-state-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 2px 10px;
-  border-radius: var(--el-radius-full, 9999px);
-  border: 1px solid transparent;
-  white-space: nowrap;
-}
-.md-state-badge.is-primary { color: var(--el-color-primary, #409eff); background: var(--el-color-primary-light-9, #ecf5ff); border-color: var(--el-color-primary-light-7, #b3d8ff); }
-.md-state-badge.is-success { color: var(--status-success, #67c23a); background: #f0f9eb; border-color: #c2e7b0; }
-.md-state-badge.is-danger { color: var(--status-error, #f56c6c); background: #fef0f0; border-color: #fbc4c4; }
-.md-state-badge.is-warning { color: var(--status-warning, #e6a23c); background: #fdf6ec; border-color: #f5dab1; }
-.md-state-badge.is-info { color: var(--text-secondary, #909399); background: #f4f4f5; border-color: #e4e7ed; }
-
-.md-detail-body {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.md-detail-name {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary, var(--el-text-color-primary, #303133));
-  line-height: 1.4;
-  word-break: break-all;
-}
-
-/* 大进度条 */
-.md-progress {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.md-progress-bar {
-  height: 8px;
-  border-radius: var(--el-radius-full, 9999px);
-  background: var(--bg-subtle, var(--el-fill-color-light, #e8e8e8));
-  overflow: hidden;
-}
-.md-progress-bar i {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--el-color-primary, #409eff);
-  transition: width 0.3s var(--ease-out, ease);
-}
-.md-progress-bar i.is-success { background: var(--status-success, #67c23a); }
-.md-progress-bar i.is-danger { background: var(--status-error, #f56c6c); }
-.md-progress-bar i.is-warning { background: var(--status-warning, #e6a23c); }
-.md-progress-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
-}
-.md-live {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--el-color-primary, #409eff);
-  animation: md-pulse 1.2s ease-in-out infinite;
-}
-.md-live-spd {
-  color: var(--status-success, #67c23a);
-  font-weight: 600;
-}
-@keyframes md-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.75); }
-}
-
-/* 信息网格 */
-.md-kv {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-.md-kv-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  background: var(--bg-subtle, var(--el-fill-color-lighter, #fafbfc));
-  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
-  border-radius: var(--el-radius-md, 8px);
-  padding: 8px 10px;
-  min-width: 0;
-}
-.md-kv-label {
-  font-size: 11px;
-  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
-}
-.md-kv-value {
-  font-size: 12.5px;
-  color: var(--text-primary, var(--el-text-color-primary, #303133));
-  font-variant-numeric: tabular-nums;
-}
-.md-kv-ellipsis {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.md-bucket {
-  display: inline-flex;
-  align-items: center;
-  align-self: flex-start;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--el-color-primary, #409eff);
-  background: var(--el-color-primary-light-9, #ecf5ff);
-  border: 1px solid var(--el-color-primary-light-7, #b3d8ff);
-  border-radius: var(--el-radius-sm, 6px);
-  padding: 0 8px;
-  line-height: 1.7;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.md-bucket.is-default {
-  color: var(--text-secondary, #909399);
-  background: var(--bg-subtle, #f4f4f5);
-  border-color: var(--border-subtle, #e4e7ed);
-}
 
 /* 说明 / 失败原因 */
 .md-msg {
@@ -1358,19 +1321,33 @@ function formatRelTime(ts: number): string {
   background: #fef0f0;
 }
 
-.md-detail-actions {
+/* 操作区 */
+.dh-acts {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
-.md-detail-empty {
+.dh-focus-empty {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
   font-size: 13px;
-  min-height: 200px;
+  min-height: 260px;
+}
+
+/* 进行中脉冲点 */
+.md-live {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--el-color-primary, #409eff);
+  animation: md-pulse 1.2s ease-in-out infinite;
+}
+@keyframes md-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.75); }
 }
 
 /* ===== 响应式 ===== */
@@ -1382,14 +1359,14 @@ function formatRelTime(ts: number): string {
   .ut-chunk-select {
     width: 100%;
   }
-  .md-wrap {
+  .dh-wrap {
     grid-template-columns: minmax(0, 1fr);
   }
-  .md-list-scroll {
+  .dh-rail-scroll {
     max-height: 320px;
   }
-  .md-kv {
-    grid-template-columns: minmax(0, 1fr);
+  .dh-kv {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1403,8 +1380,7 @@ function formatRelTime(ts: number): string {
   .koi-card:hover {
     transform: none;
   }
-  .md-mini-bar i,
-  .md-progress-bar i {
+  .dh-bigp i {
     transition: none;
   }
   .md-live {
