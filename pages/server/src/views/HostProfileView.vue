@@ -112,16 +112,22 @@ const sections: Array<{ name: SectionKey; label: string }> = [
   { name: "firewall", label: "防火墙" },
 ];
 
-/** 自动刷新周期（毫秒） */
-const AUTO_REFRESH_MILLIS = 10000;
-/** 自动刷新周期（秒，倒计时显示用） */
-const AUTO_REFRESH_SECONDS = 10;
+/** 每页条数在 localStorage 里的键（与主机资产「画像偏好」共用） */
+const IPROF_PAGE_SIZE_KEY = "monitor:host-profile:page-size";
+const IPROF_AUTO_REFRESH_KEY = "monitor:host-profile:auto-refresh";
+const IPROF_REFRESH_SEC_KEY = "monitor:host-profile:refresh-seconds";
+/** 自动刷新间隔（秒，画像偏好可配，默认 10） */
+const autoRefreshSeconds = ref(Number(localStorage.getItem(IPROF_REFRESH_SEC_KEY)) || 10);
+/** 自动刷新周期（毫秒，跟随画像偏好） */
+const AUTO_REFRESH_MILLIS = computed(() => Math.max(5, autoRefreshSeconds.value) * 1000);
 /** 每页条数档位（可配置，默认 50） */
 const PAGE_SIZE_OPTIONS = [20, 50, 100, 200];
-/** 每页条数在 localStorage 里的键 */
-const IPROF_PAGE_SIZE_KEY = "monitor:host-profile:page-size";
 /** 每页条数（localStorage 记忆，默认 50） */
 const pageSize = ref(Number(localStorage.getItem(IPROF_PAGE_SIZE_KEY)) || 50);
+/** 自动刷新默认开关（画像偏好可配，默认关） */
+const autoRefresh = ref(localStorage.getItem(IPROF_AUTO_REFRESH_KEY) === "true");
+/** 自动刷新剩余秒（倒计时显示，0 时刷新并复位） */
+const countdown = ref(0);
 
 /** 左侧选中的主机 id */
 const selectedId = ref<number | null>(props.embedded ? (props.hostId ?? null) : null);
@@ -205,8 +211,8 @@ const loadingProfile = ref(false);
 const loadingSection = ref(false);
 const profileError = ref("");
 const sectionError = ref("");
-const autoRefresh = ref(false);
 let timer: number | undefined;
+let ticker: number | undefined;
 /** 异步加载请求代次：切换主机 / 分区 / 重开时 +1，迟到的旧响应据此丢弃，避免慢通道覆盖新数据 */
 let profileReq = 0;
 let sectionReq = 0;
@@ -695,11 +701,6 @@ onBeforeUnmount(() => {
 
 /* ================== 自动刷新（默认关；开启后数字倒计时） ================== */
 
-/** 自动刷新剩余秒（倒计时显示，0 时刷新并复位） */
-const countdown = ref(0);
-/** 1 秒记时器（倒计时驱动，刷新仍按 AUTO_REFRESH_MILLIS 周期） */
-let ticker: number | undefined;
-
 function restartTimer(): void {
   if (timer) {
     window.clearInterval(timer);
@@ -711,12 +712,12 @@ function restartTimer(): void {
   }
   countdown.value = 0;
   if (!autoRefresh.value) return;
-  countdown.value = AUTO_REFRESH_SECONDS;
+  countdown.value = autoRefreshSeconds.value;
   // 秒级记时：倒数到 0 → 执行一次刷新并复位
   ticker = window.setInterval(() => {
     countdown.value -= 1;
     if (countdown.value <= 0) {
-      countdown.value = AUTO_REFRESH_SECONDS;
+      countdown.value = autoRefreshSeconds.value;
       if (!selectedHost.value || document.hidden) return;
       loadProfile();
       loadSection();
@@ -725,13 +726,13 @@ function restartTimer(): void {
   // 兜底周期刷新（与倒计时同频，避免页面 hidden 期间倒计时空跑导致刷新漂移）
   timer = window.setInterval(() => {
     if (document.hidden) return;
-    if (countdown.value === AUTO_REFRESH_SECONDS) {
+    if (countdown.value === autoRefreshSeconds.value) {
       if (selectedHost.value) {
         loadProfile();
         loadSection();
       }
     }
-  }, AUTO_REFRESH_MILLIS);
+  }, AUTO_REFRESH_MILLIS.value);
 }
 watch(autoRefresh, restartTimer);
 watch(selectedId, () => { if (autoRefresh.value && !timer) restartTimer(); });
@@ -742,6 +743,10 @@ watch(pageSize, v => {
   } catch {
     // 隐私模式 / 配额满：记忆失效不影响功能
   }
+});
+/** 自动刷新间隔（画像偏好变更时重算倒计时与周期） */
+watch(autoRefreshSeconds, () => {
+  if (autoRefresh.value) restartTimer();
 });
 onBeforeUnmount(() => {
   if (ticker) window.clearInterval(ticker);
