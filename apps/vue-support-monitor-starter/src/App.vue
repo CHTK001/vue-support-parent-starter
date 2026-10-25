@@ -93,6 +93,7 @@ const groups = computed(() => {
       title: "资产",
       items: [
         { path: "/assets", label: "主机资产", icon: "Monitor" },
+        { path: "/host-accounts", label: "主机账号", icon: "User" },
         { path: "/files", label: "文件资产", icon: "Document" },
         { path: "/datasource", label: "数据源管理", icon: "Coin" },
         { path: "/db-manager", label: "数据库管理", icon: "Coin" },
@@ -112,7 +113,6 @@ const groups = computed(() => {
         { path: "/proxy", label: "代理管理", icon: "Connection" },
         { path: "/system-config", label: "系统配置", icon: "Tools" },
         { path: "/groups", label: "分组管理", icon: "FolderOpened" },
-        { path: "/account", label: "账号管理", icon: "Key" },
       ],
     },
   ];

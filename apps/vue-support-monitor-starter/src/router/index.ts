@@ -200,6 +200,22 @@ export const monitorRoutes: RouteConfigsTable[] = [
     ],
   },
 
+  // ==================== 临时账号 ====================
+  // 随机虚拟身份：虚拟号码（接码）+ 临时邮箱，收到的验证码短信 / 邮件经 SSE 实时推送。
+  {
+    path: "/grp-temp-account",
+    name: "GroupTempAccount",
+    meta: { title: "临时账号", icon: "UserFilled", showLink: true, rank: 10 },
+    children: [
+      {
+        path: "/temp-accounts",
+        name: "TempAccounts",
+        component: () => import("@pages/monitor/src/views/temp-account/ScTempAccountView.vue"),
+        meta: { title: "临时账号", icon: "Message", showLink: true, rank: 10 },
+      },
+    ],
+  },
+
   // ==================== 系统管理 ====================
   // 跨包拼装的本地分组（监控配置/代理/分组/账号/系统配置来自多个 pages 包），
   // 需要 stack 本地排版，故保留在壳内。
@@ -227,16 +243,18 @@ export const monitorRoutes: RouteConfigsTable[] = [
         meta: { title: "分组管理", icon: "Menu", showLink: false, rank: 32 },
       },
       {
-        path: "/account",
-        name: "Account",
-        component: () => import("@pages/server/src/views/identity/IdentityManageView.vue"),
-        meta: { title: "账号管理", icon: "User", showLink: true, rank: 33 },
-      },
-      {
         path: "/system-config",
         name: "SystemConfig",
         component: () => import("@pages/monitor/src/views/SystemConfigView.vue"),
         meta: { title: "系统配置", icon: "Tools", showLink: true, rank: 34 },
+      },
+      {
+        // 兼容旧链接：账号管理已迁到「主机管理 → 主机账号」，
+        // 旧书签 / 外部引用仍打 /account，这里静默改道，不留 404。
+        path: "/account",
+        name: "AccountLegacy",
+        redirect: "/host-accounts",
+        meta: { title: "主机账号", showLink: false, rank: 35 },
       },
     ],
   },

@@ -193,6 +193,26 @@ export const getBookmarks = (hostId: number) =>
 export const createBookmark = (d: any) => http().post(`${B}/terminal/bookmark`).data(d).then(r => unwrapResult<any>(r));
 export const delBookmark = (id: number) => http().delete(`${B}/terminal/bookmark/${id}`).then(r => unwrapResult<boolean>(r));
 
+/* ===== 主机工作台：Docker/K8s 能力与资源（接口约定见 src/workbench-api-contract.md） ===== */
+export const dockerCapability = (hostId: number) =>
+  http().get(`${B}/host/${hostId}/docker/capability`).then(r => unwrapResult<any>(r));
+export const listDockerContainers = (hostId: number) =>
+  http().get(`${B}/host/${hostId}/docker/containers`).query({ all: true }).then(r => unwrapResult<any[]>(r));
+export const startDockerContainer = (hostId: number, containerId: string) =>
+  http().post(`${B}/host/${hostId}/docker/containers/${containerId}/start`).then(r => unwrapResult<boolean>(r));
+export const stopDockerContainer = (hostId: number, containerId: string) =>
+  http().post(`${B}/host/${hostId}/docker/containers/${containerId}/stop`).then(r => unwrapResult<boolean>(r));
+
+/* ===== 主机工作台：隧道 / 反向隧道（接口约定见 src/workbench-api-contract.md） ===== */
+export const listTunnels = (hostId: number) =>
+  http().get(`${B}/host/${hostId}/tunnel`).then(r => unwrapResult<any[]>(r));
+export const createTunnel = (hostId: number, d: any) =>
+  http().post(`${B}/host/${hostId}/tunnel`).data(d).then(r => unwrapResult<any>(r));
+export const updateTunnelState = (hostId: number, id: number, state: "RUNNING" | "STOPPED") =>
+  http().put(`${B}/host/${hostId}/tunnel/${id}/state?state=${state}`).then(r => unwrapResult<any>(r));
+export const delTunnel = (hostId: number, id: number) =>
+  http().delete(`${B}/host/${hostId}/tunnel/${id}`).then(r => unwrapResult<boolean>(r));
+
 /**
  * 构造远控 WebSocket 地址
  *

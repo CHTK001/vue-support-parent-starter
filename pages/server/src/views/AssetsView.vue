@@ -20,6 +20,7 @@ import HostFormDialog from "./HostFormDialog.vue";
 import HostConfigDialog from "./HostConfigDialog.vue";
 import HostProfileView from "./HostProfileView.vue";
 import HostDetailView from "./HostDetailView.vue";
+import ScHostWorkbench from "./ScHostWorkbench.vue";
 import TerminalView from "./TerminalView.vue";
 import HostFileManager from "../components/HostFileManager.vue";
 import ScHostMetricsBar from "../components/ScHostMetricsBar.vue";
@@ -536,7 +537,8 @@ type TabKind =
   | "firewall"
   | "remote"
   | "files"
-  | "metrics";
+  | "metrics"
+  | "workbench";
 
 /** 功能定义：名称 / 图标 / 是否为画像分区 */
 interface TabKindMeta {
@@ -557,6 +559,7 @@ const TAB_KINDS: Record<TabKind, TabKindMeta> = {
   remote: { label: "远控", icon: "Position" },
   files: { label: "文件管理", icon: "FolderOpened" },
   metrics: { label: "指标监控", icon: "TrendCharts" },
+  workbench: { label: "工作台", icon: "Box" },
 };
 
 /** 工作区页签（比 ReTabsItem 多带主机上下文，便于渲染内容） */
@@ -567,6 +570,8 @@ interface WorkTab extends ReTabsItem {
   path?: string;
   /** 远控页签使用的登录身份（空 = 默认凭据） */
   identityId?: number | null;
+  /** 工作台页签初始面板（screen / docker / tunnel） */
+  startPanel?: "screen" | "docker" | "tunnel";
 }
 
 /** 已打开的页签 */
@@ -580,12 +585,17 @@ const activeTab = ref("");
  * <p>同一个「主机 + 功能」只开一次：重复点同一个动作是切过去，不是再开一个副本。
  * 否则用户点两下「进程」就会看到两个内容一模一样的页签，关闭时还要关两次。</p>
  *
+ * <p>工作台比较特殊：分屏 / Docker / 隧道是三种不同面板，各开各的页签；
+ * 同名面板（同一主机 + 同一面板）仍只开一次。页签名由
+ * {@code `${host.id}:workbench:${panel}`} 承载去重，不同面板互不冲突。</p>
+ *
  * @param host 目标主机
  * @param kind 功能类型
- * @param opts 附加参数（文件管理初始路径 / 远控登录身份）
+ * @param opts 附加参数（文件管理初始路径 / 远控登录身份 / 工作台初始面板）
  */
-function openTab(host: Host, kind: TabKind, opts?: { path?: string; identityId?: number | null }): void {
-  const name = `${host.id}:${kind}`;
+function openTab(host: Host, kind: TabKind, opts?: { path?: string; identityId?: number | null; startPanel?: "screen" | "docker" | "tunnel" }): void {
+  const base = `${host.id}:${kind}`;
+  const name = kind === "workbench" && opts?.startPanel ? `${base}:${opts.startPanel}` : base;
   const exist = openTabs.value.find(t => t.name === name);
   if (exist) {
     if (opts?.path) exist.path = opts.path;
@@ -599,16 +609,17 @@ function openTab(host: Host, kind: TabKind, opts?: { path?: string; identityId?:
     hostId: host.id,
     kind,
     label: host.serverHostName,
-    hint: meta.label,
+    hint: opts?.startPanel && kind === "workbench" ? `${meta.label} · ${opts.startPanel === "docker" ? "Docker" : opts.startPanel === "tunnel" ? "隧道" : "分屏"}` : meta.label,
     icon: meta.icon,
     status: liveOnlineState(host) === 1 ? "online" : "offline",
     closable: true,
     path: opts?.path,
     identityId: opts?.identityId ?? null,
+    startPanel: kind === "workbench" ? (opts?.startPanel ?? "screen") : undefined,
   };
   openTabs.value = [...openTabs.value, tab];
   activeTab.value = name;
-  pushActivity(`打开 ${host.serverHostName} · ${meta.label}`, meta.icon, host.id);
+  pushActivity(`打开 ${host.serverHostName} · ${tab.hint}`, meta.icon, host.id);
 }
 
 /**
@@ -741,10 +752,30 @@ const ctxMenu = reactive<{ visible: boolean; x: number; y: number; host: Host | 
 
 /** 菜单估算尺寸（仅在菜单尚未挂载、量不到真实高度时兜底） */
 const CTX_MENU_W = 214;
-const CTX_MENU_H = 470;
+const CTX_MENU_H = 430;
 
 /** 菜单根节点：挂载后按真实尺寸贴边翻转，比估算值可靠 */
 const ctxMenuEl = ref<HTMLElement | null>(null);
+
+/**
+ * 当前展开的二级菜单。
+ *
+ * <p>菜单原来一口气摊了三十多条，用户找不到东西；现在把「画像七个分区」和
+ * 「会话 / 作业 / 片段 / 维护」各收进一个二级菜单，顶层只剩十来个常用动作。</p>
+ */
+const ctxSub = ref<string | null>(null);
+
+/** 二级菜单分组标识 */
+type CtxSubKey = "profile" | "workspace" | "workbench";
+
+/**
+ * 切换二级菜单（点击与悬停共用）。
+ *
+ * @param key 分组标识
+ */
+function toggleCtxSub(key: CtxSubKey): void {
+  ctxSub.value = ctxSub.value === key ? null : key;
+}
 
 /**
  * 打开主机右键菜单。
@@ -759,6 +790,7 @@ const ctxMenuEl = ref<HTMLElement | null>(null);
 async function openCtxMenuAt(x: number, y: number, h: Host): Promise<void> {
   // 右键/按钮同时选中：用户接下来要操作的机器，底部状态条也该跟着它
   selectHost(h);
+  ctxSub.value = null;
   ctxMenu.host = h;
   ctxMenu.x = Math.max(8, x);
   ctxMenu.y = Math.max(8, y);
@@ -803,6 +835,22 @@ async function openCtxMenuFromButton(event: MouseEvent, h: Host): Promise<void> 
 function closeCtxMenu(): void {
   ctxMenu.visible = false;
   ctxMenu.host = null;
+  ctxSub.value = null;
+}
+
+/**
+ * 从右键菜单跳到主机资产这一族的其它页面（会话审计 / 批量作业 / 片段管理 / 维护计划）。
+ *
+ * <p>这些页面是整站级视图，不是某台主机的页签；但从「主机」出发时用户
+ * 想的就是「这台机器的会话 / 作业 / 片段 / 计划」，所以入口也收在这里。
+ * 跳转时带上主机过滤参数，落地页能直接聚焦到这台机器。</p>
+ *
+ * @param path 目标路由
+ */
+function ctxGoPage(path: string): void {
+  const h = ctxMenu.host;
+  closeCtxMenu();
+  router.push(h ? { path, query: { hostId: String(h.id) } } : path);
 }
 
 /**
@@ -830,10 +878,16 @@ function ctxCommand(cmd: string): void {
     "tab-network": "network",
     "tab-env": "env",
     "tab-firewall": "firewall",
+    "tab-workbench": "workbench",
   };
   const kind = tabCmds[cmd];
   if (kind) {
     openTab(h, kind);
+    return;
+  }
+  // 工作台直达面板：Docker / 隧道各自开自己的工作台页签
+  if (cmd === "tab-docker" || cmd === "tab-tunnel") {
+    openTab(h, "workbench", { startPanel: cmd === "tab-docker" ? "docker" : "tunnel" });
     return;
   }
   switch (cmd) {
@@ -1665,6 +1719,32 @@ function toggleDock(): void {
   localStorage.setItem("assets-dock-open", dockOpen.value ? "1" : "0");
 }
 
+/**
+ * 左侧主机栏是否折叠。
+ *
+ * <p>折叠后只剩一条 44px 竖条（主机数 + 在线/离线点 + 展开按钮），
+ * 中间工作区一次性多出 224px —— 指标 / 进程 / 端口这些页签本来就吃宽度。</p>
+ */
+const railCollapsed = ref(localStorage.getItem("assets-rail-collapsed") === "1");
+
+/** 展开/收起左侧主机栏，并记住选择 */
+function toggleRail(): void {
+  railCollapsed.value = !railCollapsed.value;
+  localStorage.setItem("assets-rail-collapsed", railCollapsed.value ? "1" : "0");
+}
+
+/**
+ * 在独立窗口里打开主机资产。
+ *
+ * <p>走 {@code meta.standalone} 路由：新窗口只渲染主机资产本身，
+ * 不带侧边栏与顶栏，方便单独摆到第二块屏幕上盯着机器。</p>
+ */
+function openStandalone(): void {
+  const url = `${location.origin}${location.pathname}#/assets-standalone`;
+  const win = window.open(url, "_blank", "width=1480,height=920");
+  if (!win) message.warning("浏览器拦截了弹出窗口，请允许后重试");
+}
+
 /** 清空最近活动 */
 function clearActivities(): void {
   activities.value = [];
@@ -1740,8 +1820,24 @@ function onGlobalKeydown(e: KeyboardEvent): void {
 
     <div class="as-body">
       <!-- ==================== 左侧：主机资源栏 ==================== -->
-      <aside class="as-rail">
-        <div class="rail-head">
+      <aside class="as-rail" :class="{ 'is-collapsed': railCollapsed }">
+        <!-- 折叠态：只留一条竖条，展开按钮压在底部 -->
+        <div v-if="railCollapsed" class="rail-strip">
+          <button type="button" class="rail-strip__count" title="展开主机列表" @click="toggleRail">
+            <b>{{ filtered.length }}</b>
+            <span>/{{ hosts.length }}</span>
+          </button>
+          <span class="rail-strip__dots">
+            <i class="is-on" :title="`在线 ${onlineCount}`" />
+            <i class="is-off" :title="`离线 ${offlineCount}`" />
+          </span>
+          <span class="rail-strip__gap" />
+          <button type="button" class="rail-strip__toggle" title="展开主机列表" @click="toggleRail">
+            <ReIcon name="ArrowRight" :size="13" />
+          </button>
+        </div>
+
+        <div v-show="!railCollapsed" class="rail-head">
           <div class="rail-head__row">
             <span class="rail-head__title">主机资产</span>
             <span class="rail-head__count">{{ filtered.length }}<i>/{{ hosts.length }}</i></span>
@@ -1765,6 +1861,9 @@ function onGlobalKeydown(e: KeyboardEvent): void {
             </button>
             <button type="button" class="rail-tool" title="刷新列表" :disabled="loading" @click="fetchAll">
               <ReIcon name="RefreshRight" :size="12" />
+            </button>
+            <button type="button" class="rail-tool" title="独立窗口打开（只显示主机资产）" @click="openStandalone">
+              <ReIcon name="TopRight" :size="12" />
             </button>
             <button type="button" class="rail-tool is-primary" title="新增主机" @click="openAdd">
               <ReIcon name="Plus" :size="12" />
@@ -1802,7 +1901,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
           </div>
         </div>
 
-        <ReScrollbar class="rail-list">
+        <ReScrollbar v-show="!railCollapsed" class="rail-list">
           <div v-for="g in groupedHosts" :key="g.id" class="rail-group">
             <button type="button" class="rail-group__head" @click="toggleGroup(g.id)">
               <ReIcon :name="collapsedGroups.has(g.id) ? 'ArrowRight' : 'ArrowDown'" :size="11" />
@@ -1875,8 +1974,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
           </div>
         </ReScrollbar>
 
-        <div class="rail-foot">
-          <span class="rail-foot__hint"><ReIcon name="Mouse" :size="11" />右键主机打开功能</span>
+        <div v-show="!railCollapsed" class="rail-foot">
           <div class="rail-foot__row">
             <button
               type="button"
@@ -1893,6 +1991,10 @@ function onGlobalKeydown(e: KeyboardEvent): void {
               <i class="is-off" />{{ offlineCount }}
             </span>
           </div>
+          <!-- 折叠按钮：贴在左栏右下角，收起来后中间工作区直接多出 224px -->
+          <button type="button" class="rail-foot__fold" title="收起主机列表" @click="toggleRail">
+            <ReIcon name="ArrowLeft" :size="12" />
+          </button>
         </div>
       </aside>
 
@@ -1950,6 +2052,12 @@ function onGlobalKeydown(e: KeyboardEvent): void {
               embedded
               :host-id="tabHostIdOf(tab.name)"
             />
+            <!-- 主机工作台：分屏终端 + Docker/K8s + 隧道 -->
+            <ScHostWorkbench
+              v-else-if="tabKindOf(tab.name) === 'workbench'"
+              :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
+              :start="tabOf(tab.name)?.startPanel ?? 'screen'"
+            />
           </template>
 
           <template #empty>
@@ -1988,9 +2096,6 @@ function onGlobalKeydown(e: KeyboardEvent): void {
       <aside v-if="dockOpen" class="as-dock">
         <div class="dock-head">
           <span class="dock-head__title">快捷操作</span>
-          <button type="button" class="dock-head__x" title="收起侧栏" @click="toggleDock">
-            <ReIcon name="ArrowRight" :size="12" />
-          </button>
         </div>
 
         <div class="dock-quick">
@@ -2046,9 +2151,17 @@ function onGlobalKeydown(e: KeyboardEvent): void {
           <span><b>{{ onlineCount }}</b> 在线</span>
           <span><b>{{ offlineCount }}</b> 离线</span>
         </div>
+
+        <!-- 收起按钮落在 Dock 底部：和左栏一样，「收起/展开」都压在下方 -->
+        <div class="dock-foot">
+          <button type="button" class="dock-foot__fold" title="收起快捷操作" @click="toggleDock">
+            <ReIcon name="ArrowRight" :size="12" />
+            <span>收起</span>
+          </button>
+        </div>
       </aside>
 
-      <!-- Dock 收起后的窄条：留一个可点回来的入口 -->
+      <!-- Dock 收起后的窄条：按钮压在底部，与展开方向一致 -->
       <button v-else type="button" class="as-dock-open" title="展开快捷操作" @click="toggleDock">
         <ReIcon name="ArrowLeft" :size="12" />
       </button>
@@ -2076,7 +2189,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
           ...identities.filter(x => !hostBoundIdentities.includes(x.id)).map(i => ({ label: `${i.msServerIdentityName}（${i.msServerIdentityUsername}）`, value: i.id, group: '全部身份' })),
         ]" />
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">
-          <ReButton icon="Key" :show-text="true" plain title="统一在左侧「账号管理」维护" @click="router.push('/account')">账号管理</ReButton>
+          <ReButton icon="Key" :show-text="true" plain title="统一在「主机账号」维护" @click="router.push('/host-accounts')">主机账号</ReButton>
           <template v-for="b in hostBoundIdentities" :key="b">
             <ReButton icon="Unlink" :show-text="true" type="warning" plain :title="`解绑 ${identities.find(i => i.id === b)?.msServerIdentityName ?? ''}`" @click="toggleBind(connectTarget!.id, b, false)">解绑 {{ identities.find(i => i.id === b)?.msServerIdentityName }}</ReButton>
           </template>
@@ -2131,31 +2244,91 @@ function onGlobalKeydown(e: KeyboardEvent): void {
           <ReIcon name="TrendCharts" /><span>指标监控</span>
         </div>
 
-        <div class="host-ctx-sep" />
-        <div class="host-ctx-label">主机画像</div>
-        <div class="host-ctx-item" @click="ctxCommand('tab-ports')">
-          <ReIcon name="Connection" /><span>监听端口</span>
+        <!-- 主机工作台：分屏终端 / Docker / 隧道 三个面板各自开页签 -->
+        <div
+          class="host-ctx-item has-sub"
+          :class="{ 'is-open': ctxSub === 'workbench' }"
+          @click="toggleCtxSub('workbench')"
+        >
+          <ReIcon name="Box" /><span>工作台</span>
+          <ReIcon name="ArrowRight" class="host-ctx-arrow" />
         </div>
-        <div class="host-ctx-item" @click="ctxCommand('tab-processes')">
-          <ReIcon name="Cpu" /><span>进程</span>
+        <div v-if="ctxSub === 'workbench'" class="host-ctx-sub">
+          <div class="host-ctx-item" @click="ctxCommand('tab-workbench')">
+            <ReIcon name="Monitor" /><span>分屏终端</span>
+          </div>
+          <div class="host-ctx-item" @click="ctxCommand('tab-docker')">
+            <ReIcon name="Box" /><span>Docker · K8s</span>
+          </div>
+          <div class="host-ctx-item" @click="ctxCommand('tab-tunnel')">
+            <ReIcon name="Connection" /><span>隧道</span>
+          </div>
         </div>
-        <div class="host-ctx-item" @click="ctxCommand('tab-services')">
-          <ReIcon name="SetUp" /><span>服务</span>
+
+        <!-- 主机账号：这台机器能用哪些账号登（凭据库按主机过滤） -->
+        <div class="host-ctx-item" @click="ctxGoPage('/host-accounts')">
+          <ReIcon name="User" /><span>主机账号</span>
         </div>
-        <div class="host-ctx-item" @click="ctxCommand('tab-disks')">
-          <ReIcon name="Coin" /><span>磁盘</span>
+
+        <!-- 主机画像：七个分区收进二级菜单，顶层只留一个入口 -->
+        <div
+          class="host-ctx-item has-sub"
+          :class="{ 'is-open': ctxSub === 'profile' }"
+          @click="toggleCtxSub('profile')"
+        >
+          <ReIcon name="Grid" /><span>主机画像</span>
+          <ReIcon name="ArrowRight" class="host-ctx-arrow" />
         </div>
-        <div class="host-ctx-item" @click="ctxCommand('tab-network')">
-          <ReIcon name="Share" /><span>网络</span>
+        <div v-if="ctxSub === 'profile'" class="host-ctx-sub">
+          <div class="host-ctx-item" @click="ctxCommand('tab-ports')">
+            <ReIcon name="Connection" /><span>监听端口</span>
+          </div>
+          <div class="host-ctx-item" @click="ctxCommand('tab-processes')">
+            <ReIcon name="Cpu" /><span>进程</span>
+          </div>
+          <div class="host-ctx-item" @click="ctxCommand('tab-services')">
+            <ReIcon name="SetUp" /><span>服务</span>
+          </div>
+          <div class="host-ctx-item" @click="ctxCommand('tab-disks')">
+            <ReIcon name="Coin" /><span>磁盘</span>
+          </div>
+          <div class="host-ctx-item" @click="ctxCommand('tab-network')">
+            <ReIcon name="Share" /><span>网络</span>
+          </div>
+          <div class="host-ctx-item" @click="ctxCommand('tab-env')">
+            <ReIcon name="Document" /><span>环境变量</span>
+          </div>
+          <div class="host-ctx-item" @click="ctxCommand('tab-firewall')">
+            <ReIcon name="Lock" /><span>防火墙</span>
+          </div>
+          <div class="host-ctx-sep" />
+          <div class="host-ctx-item" @click="ctxCommand('open-all-profile')">
+            <ReIcon name="Files" /><span>一次全部展开</span>
+          </div>
         </div>
-        <div class="host-ctx-item" @click="ctxCommand('tab-env')">
-          <ReIcon name="Document" /><span>环境变量</span>
+
+        <!-- 运维台：会话审计 / 批量作业 / 片段管理 / 维护计划，同样收进二级菜单 -->
+        <div
+          class="host-ctx-item has-sub"
+          :class="{ 'is-open': ctxSub === 'workspace' }"
+          @click="toggleCtxSub('workspace')"
+        >
+          <ReIcon name="Operation" /><span>运维台</span>
+          <ReIcon name="ArrowRight" class="host-ctx-arrow" />
         </div>
-        <div class="host-ctx-item" @click="ctxCommand('tab-firewall')">
-          <ReIcon name="Lock" /><span>防火墙</span>
-        </div>
-        <div class="host-ctx-item" @click="ctxCommand('open-all-profile')">
-          <ReIcon name="Grid" /><span>展开全部画像分区</span>
+        <div v-if="ctxSub === 'workspace'" class="host-ctx-sub">
+          <div class="host-ctx-item" @click="ctxGoPage('/sessions')">
+            <ReIcon name="Document" /><span>会话审计</span>
+          </div>
+          <div class="host-ctx-item" @click="ctxGoPage('/exec')">
+            <ReIcon name="Promotion" /><span>批量作业</span>
+          </div>
+          <div class="host-ctx-item" @click="ctxGoPage('/snippets')">
+            <ReIcon name="DocumentCopy" /><span>片段管理</span>
+          </div>
+          <div class="host-ctx-item" @click="ctxGoPage('/maintenance')">
+            <ReIcon name="Clock" /><span>维护计划</span>
+          </div>
         </div>
 
         <div class="host-ctx-sep" />
@@ -2257,6 +2430,85 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-xl, 16px);
   box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  transition: width 0.18s ease;
+}
+
+/* 折叠态：268px → 44px，中间工作区净增 224px。只留计数、在线/离线点
+   和底部展开按钮，不保留任何需要横向空间的内容。 */
+.as-rail.is-collapsed {
+  width: 44px;
+}
+
+.rail-strip {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0 10px;
+}
+
+.rail-strip__count {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 2px 0;
+  font-size: 10px;
+  line-height: 1.1;
+  color: var(--el-text-color-placeholder);
+  font-variant-numeric: tabular-nums;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.rail-strip__count b {
+  font-size: 13px;
+  color: var(--el-color-primary);
+}
+
+.rail-strip__dots {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.rail-strip__dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.rail-strip__dots i.is-on {
+  background: var(--el-color-success);
+}
+
+.rail-strip__dots i.is-off {
+  background: var(--el-text-color-placeholder);
+}
+
+.rail-strip__gap {
+  flex: 1;
+}
+
+.rail-strip__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.rail-strip__toggle:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
 }
 
 .rail-head {
@@ -2730,23 +2982,40 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   color: var(--el-text-color-placeholder);
 }
 
-/* 左栏底部：提示 + 在线/离线小结 */
+/* 左栏底部：实时开关 + 在线/离线小结 + 收起按钮 */
 .rail-foot {
   display: flex;
   flex: none;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 8px 8px 8px 12px;
   font-size: 11px;
   color: var(--el-text-color-placeholder);
   border-top: 1px solid var(--el-border-color-lighter);
 }
 
-.rail-foot__hint {
+/* 收起按钮：贴左栏右下角。收起后这一整列变成 44px 竖条，
+   展开按钮落在竖条底部（即「右侧下方」），位置保持一致不会跳。 */
+.rail-foot__fold {
   display: inline-flex;
+  flex: none;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-left: auto;
+  color: var(--el-text-color-placeholder);
+  background: transparent;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-sm, 6px);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.rail-foot__fold:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
 }
 
 .rail-foot__sum {
@@ -2858,13 +3127,47 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   background: var(--el-fill-color-light);
 }
 
-/* Dock 收起后的窄条：贴在工作区右边，12px 宽也够点回来 */
+/* Dock 收起后的窄条：贴在工作区右边，按钮压在底部 */
 .as-dock-open {
   flex: none;
   align-self: stretch;
   width: 14px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-md, 8px);
+  /* 竖排 + 底部对齐：展开按钮落在窄条下方，与 Dock 收起按钮同一位置 */
+  flex-direction: column;
+  justify-content: flex-end;
+  padding-bottom: 12px;
+}
+
+/* Dock 底部：收起按钮 */
+.dock-foot {
+  display: flex;
+  flex: none;
+  justify-content: flex-end;
+  padding: 8px 10px 10px;
+  margin-top: auto;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.dock-foot__fold {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--el-text-color-placeholder);
+  background: transparent;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-full, 9999px);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.dock-foot__fold:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
 }
 
 .dock-quick {
@@ -3135,6 +3438,38 @@ function onGlobalKeydown(e: KeyboardEvent): void {
 .host-ctx-item.is-danger:hover {
   background: var(--el-color-danger-light-9, #fef0f0);
   color: var(--el-color-danger, #f56c6c);
+}
+/* 带二级菜单的条目：右侧一个箭头，展开后旋转朝下 */
+.host-ctx-item.has-sub {
+  position: relative;
+}
+.host-ctx-item.has-sub .host-ctx-arrow {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--el-text-color-placeholder, #a8abb2);
+  transition: transform 0.15s ease;
+}
+.host-ctx-item.has-sub.is-open {
+  color: var(--el-color-primary, #409eff);
+  background: var(--el-fill-color-light, #f3f4f6);
+}
+.host-ctx-item.has-sub.is-open .host-ctx-arrow {
+  transform: rotate(90deg);
+  color: var(--el-color-primary, #409eff);
+}
+/* 二级菜单：缩进 + 左侧竖线，读起来是「这一组的子项」而不是平级 */
+.host-ctx-sub {
+  margin: 2px 0 2px 17px;
+  padding-left: 6px;
+  border-left: 1px solid var(--el-border-color-lighter, #eceef1);
+}
+.host-ctx-sub .host-ctx-item {
+  height: 29px;
+  font-size: 12.5px;
+}
+.host-ctx-sub .host-ctx-item .re-icon,
+.host-ctx-sub .host-ctx-item svg {
+  font-size: 13.5px;
 }
 .host-ctx-sep {
   height: 1px;

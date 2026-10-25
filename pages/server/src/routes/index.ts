@@ -157,6 +157,15 @@ export function createServerHostRoutes(options: ServerManageRoutesOptions = {}):
           meta: { title: "ACME 证书", icon: "Key", showLink: true, activeMenu },
         },
         {
+          // 主机账号：主机登录凭据（口令 / 公钥 / 邮箱 / Token）+ SSH 密钥库。
+          // 原挂在「系统管理 → 账号管理」下，但它维护的是「哪台主机用哪个账号登」，
+          // 与系统配置无关，故归入主机管理并改名。
+          path: "/host-accounts",
+          name: "HostAccounts",
+          component: () => import("../views/hostaccount/HostAccountView.vue"),
+          meta: { title: "主机账号", icon: "User", showLink: true, activeMenu },
+        },
+        {
           path: "/sessions",
           name: "ServerSessions",
           component: () => import("../views/ScSessionTab.vue"),
@@ -203,6 +212,15 @@ export function createServerHostRoutes(options: ServerManageRoutesOptions = {}):
       name: "HostDetail",
       component: () => import("../views/HostDetailView.vue"),
       meta: { title: "主机监控详情", icon: "Monitor", showLink: false, activeMenu },
+    },
+    {
+      // 主机资产 · 独立窗口：由资产页头部按钮 window.open 打开。
+      // standalone 让 registerRoutesUnderLayout 注册为顶层路由（不套 layout），
+      // 新窗口里只有主机资产，没有侧边栏 / 顶栏 / 面包屑。
+      path: "/assets-standalone",
+      name: "AssetsStandalone",
+      component: () => import("../views/AssetsStandaloneView.vue"),
+      meta: { title: "主机资产", icon: "Monitor", showLink: false, standalone: true },
     },
   ];
 }
