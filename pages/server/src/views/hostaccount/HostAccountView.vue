@@ -246,7 +246,6 @@ const accounts = computed<HaAccount[]>(() =>
       keyFp: keyFingerprint(key?.msServerKeyPublicKey),
       remark: i.msServerIdentityRemark ?? "",
       hostIds: bindCache.value[i.id] ?? [],
-      hostKind: normAuth(type) === "PASSWORD" || normAuth(type) === "PUBLIC_KEY",
     };
   }),
 );

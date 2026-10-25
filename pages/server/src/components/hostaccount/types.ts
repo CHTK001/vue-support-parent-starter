@@ -34,8 +34,6 @@ export interface HaAccount {
   remark: string;
   /** 绑定的主机主键 */
   hostIds: number[];
-  /** 是否主机登录类（口令 / 公钥），用于和通用凭据区分 */
-  hostKind: boolean;
 }
 
 /** 主机（页面里只用到这几个字段） */

@@ -35,7 +35,7 @@
     <section class="detail-section">
       <div class="section-head">
         <h2 class="section-title">基本信息</h2>
-        <ReTag :class="['mode-tag', modeColor, { 'mode-pulse': mode === '单机模式' || mode === 'cluster' }]" effect="light">
+        <ReTag :class="['mode-tag', modeColor, { 'mode-pulse': mode === '单机模式' }]" effect="light">
           <span class="mode-dot"></span>
           {{ mode }}
         </ReTag>
@@ -151,8 +151,20 @@ const detailCells = ref([
   { label: '总命令处理数', value: '—' },
 ])
 
-/** 关键指标统计 */
-const stats = computed(() => {
+/** 关键指标统计（_ 前缀为原始数值，供进度条/告警使用） */
+interface RedisStatView {
+  commandsPerSec: string;
+  hitRate: string;
+  expiredKeys: string;
+  evictedKeys: string;
+  _commandsPerSec: number;
+  _hitRate: number;
+  _expiredKeys: number;
+  _evictedKeys: number;
+  /** 动态取原始值（进度条/告警共用），键 = 'commandsPerSec' | 'hitRate' | ... */
+  [key: string]: string | number;
+}
+const stats = computed<RedisStatView>(() => {
   const s = snapshot.value
   const fmt = (n: number | undefined): string => (n == null ? '—' : Number(n).toLocaleString())
   const pct = (n: number | undefined): string => (n == null ? '—' : `${Number(n).toFixed(1)}%`)

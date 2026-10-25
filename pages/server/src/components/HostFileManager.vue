@@ -730,7 +730,8 @@ const emptyHint = computed(() => {
 });
 const displayFiles = computed<HostFileItem[]>(() => {
   const kw = filterText.value.trim().toLowerCase();
-  let list = files.value;
+  // 兜底：后端异常返回 null/非数组时不要把空态当成崩溃（filter 会直接抛）
+  let list = Array.isArray(files.value) ? files.value : [];
   if (kw) list = list.filter(f => f.name.toLowerCase().includes(kw));
   return [...list].sort((a, b) => {
     if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
@@ -739,6 +740,32 @@ const displayFiles = computed<HostFileItem[]>(() => {
 });
 
 /* ---------- 加载 / 导航 ---------- */
+/**
+ * 把后端抛的加载错误收敛成可执行的短提示。
+ *
+ * <p>后端在 Agent 通道不可用时返回形如
+ * {@code 列目录失败：无可用 Provider for host: MsServerHost(id=3, name=..., cpu=2核, ...)}
+ * 的整段主机详情 JSON。直接渲染会把机器配置（IP / 内存 / 磁盘）抖到界面上，而且
+ * 没有告诉用户下一步做什么。这里只保留「通道不可用」这一句，补一句处置指引，
+ * 完整原始错误留在 console 供排查。</p>
+ *
+ * @param raw 后端原始错误（message 或异常对象）
+ * @returns 收敛后的可读提示
+ */
+function convergeLoadError(raw: unknown): string {
+  const msg = String((raw as any)?.message ?? raw ?? "");
+  // 常见链路：无可用 Provider / Agent 未就绪 / 采集通道不可用
+  if (/无可用 Provider|无 available provider|provider unavailable/i.test(msg)) {
+    return "该主机的文件通道尚未就绪（Agent 未安装 / 未上线）。请先在「主机资产」检查 Agent 状态，或在主机编辑里启用 SFTP / 采集通道后重试。";
+  }
+  if (/agent|未就绪|offline|不可达/i.test(msg)) {
+    return "该主机 Agent 未就绪，暂时无法读取文件。确认 Agent 在线后重试。";
+  }
+  // 其它错误：截掉接在 while|failed|caused by 之后的整段对象 dump，最多保留前 120 字
+  const cut = msg.split(/\n?(\s*(while|failed|caused by|at |: MsServerHost|\{)).*/i)[0] ?? msg;
+  return cut.length > 120 ? cut.slice(0, 120) + "…" : cut;
+}
+
 async function load() {
   loading.value = true;
   selected.value = "";
@@ -746,9 +773,11 @@ async function load() {
     files.value = await fetchHostFiles(props.hostId, currentPath.value);
     loadError.value = "";
   } catch (e: any) {
-    message.error("加载目录失败: " + (e?.message || e));
+    const friendly = convergeLoadError(e);
+    console.error("[HostFileManager] 列目录失败:", e?.message ?? e);
+    message.error("加载目录失败: " + friendly);
     files.value = [];
-    loadError.value = e?.message || String(e);
+    loadError.value = friendly;
   } finally {
     loading.value = false;
   }

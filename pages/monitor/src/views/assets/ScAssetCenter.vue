@@ -370,7 +370,7 @@ async function openDetail(row: AssetBrief) {
   }
 }
 
-const onOff = (v: boolean) => (v ? '开启' : '关闭')
+const onOff = (v?: boolean) => (v ? '开启' : '关闭')
 const vendorLabel = (v?: string) =>
   ({ hikvision: '海康威视', dahua: '大华' } as Record<string, string>)[v || ''] || v || '—'
 const fmtTime = (t?: string) => (t ? t.slice(0, 19).replace('T', ' ') : '—')
