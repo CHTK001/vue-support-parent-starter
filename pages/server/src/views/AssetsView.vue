@@ -2279,16 +2279,16 @@ function onGlobalKeydown(e: KeyboardEvent): void {
         >
           <ReIcon name="Box" /><span>工作台</span>
           <ReIcon name="ArrowRight" class="host-ctx-arrow" />
-        </div>
-        <div v-if="ctxSub === 'workbench'" class="host-ctx-sub" @mouseenter="hoverCtxSub('workbench')" @mouseleave="leaveCtxSub('workbench')">
-          <div class="host-ctx-item" @click="ctxCommand('tab-workbench')">
-            <ReIcon name="Monitor" /><span>分屏终端</span>
-          </div>
-          <div class="host-ctx-item" @click="ctxCommand('tab-docker')">
-            <ReIcon name="Box" /><span>Docker · K8s</span>
-          </div>
-          <div class="host-ctx-item" @click="ctxCommand('tab-tunnel')">
-            <ReIcon name="Connection" /><span>隧道</span>
+          <div v-if="ctxSub === 'workbench'" class="host-ctx-sub" @mouseenter="hoverCtxSub('workbench')" @mouseleave="leaveCtxSub('workbench')">
+            <div class="host-ctx-item" @click="ctxCommand('tab-workbench')">
+              <ReIcon name="Monitor" /><span>分屏终端</span>
+            </div>
+            <div class="host-ctx-item" @click="ctxCommand('tab-docker')">
+              <ReIcon name="Box" /><span>Docker · K8s</span>
+            </div>
+            <div class="host-ctx-item" @click="ctxCommand('tab-tunnel')">
+              <ReIcon name="Connection" /><span>隧道</span>
+            </div>
           </div>
         </div>
 
@@ -2306,32 +2306,32 @@ function onGlobalKeydown(e: KeyboardEvent): void {
         >
           <ReIcon name="Grid" /><span>主机画像</span>
           <ReIcon name="ArrowRight" class="host-ctx-arrow" />
-        </div>
-        <div v-if="ctxSub === 'profile'" class="host-ctx-sub" @mouseenter="hoverCtxSub('profile')" @mouseleave="leaveCtxSub('profile')">
-          <div class="host-ctx-item" @click="ctxCommand('tab-ports')">
-            <ReIcon name="Connection" /><span>监听端口</span>
-          </div>
-          <div class="host-ctx-item" @click="ctxCommand('tab-processes')">
-            <ReIcon name="Cpu" /><span>进程</span>
-          </div>
-          <div class="host-ctx-item" @click="ctxCommand('tab-services')">
-            <ReIcon name="SetUp" /><span>服务</span>
-          </div>
-          <div class="host-ctx-item" @click="ctxCommand('tab-disks')">
-            <ReIcon name="Coin" /><span>磁盘</span>
-          </div>
-          <div class="host-ctx-item" @click="ctxCommand('tab-network')">
-            <ReIcon name="Share" /><span>网络</span>
-          </div>
-          <div class="host-ctx-item" @click="ctxCommand('tab-env')">
-            <ReIcon name="Document" /><span>环境变量</span>
-          </div>
-          <div class="host-ctx-item" @click="ctxCommand('tab-firewall')">
-            <ReIcon name="Lock" /><span>防火墙</span>
-          </div>
-          <div class="host-ctx-sep" />
-          <div class="host-ctx-item" @click="ctxCommand('open-all-profile')">
-            <ReIcon name="Files" /><span>一次全部展开</span>
+          <div v-if="ctxSub === 'profile'" class="host-ctx-sub" @mouseenter="hoverCtxSub('profile')" @mouseleave="leaveCtxSub('profile')">
+            <div class="host-ctx-item" @click="ctxCommand('tab-ports')">
+              <ReIcon name="Connection" /><span>监听端口</span>
+            </div>
+            <div class="host-ctx-item" @click="ctxCommand('tab-processes')">
+              <ReIcon name="Cpu" /><span>进程</span>
+            </div>
+            <div class="host-ctx-item" @click="ctxCommand('tab-services')">
+              <ReIcon name="SetUp" /><span>服务</span>
+            </div>
+            <div class="host-ctx-item" @click="ctxCommand('tab-disks')">
+              <ReIcon name="Coin" /><span>磁盘</span>
+            </div>
+            <div class="host-ctx-item" @click="ctxCommand('tab-network')">
+              <ReIcon name="Share" /><span>网络</span>
+            </div>
+            <div class="host-ctx-item" @click="ctxCommand('tab-env')">
+              <ReIcon name="Document" /><span>环境变量</span>
+            </div>
+            <div class="host-ctx-item" @click="ctxCommand('tab-firewall')">
+              <ReIcon name="Lock" /><span>防火墙</span>
+            </div>
+            <div class="host-ctx-sep" />
+            <div class="host-ctx-item" @click="ctxCommand('open-all-profile')">
+              <ReIcon name="Files" /><span>一次全部展开</span>
+            </div>
           </div>
         </div>
 
@@ -2344,19 +2344,19 @@ function onGlobalKeydown(e: KeyboardEvent): void {
         >
           <ReIcon name="Operation" /><span>运维台</span>
           <ReIcon name="ArrowRight" class="host-ctx-arrow" />
-        </div>
-        <div v-if="ctxSub === 'workspace'" class="host-ctx-sub" @mouseenter="hoverCtxSub('workspace')" @mouseleave="leaveCtxSub('workspace')">
-          <div class="host-ctx-item" @click="ctxGoPage('/sessions')">
-            <ReIcon name="Document" /><span>会话审计</span>
-          </div>
-          <div class="host-ctx-item" @click="ctxGoPage('/exec')">
-            <ReIcon name="Promotion" /><span>批量作业</span>
-          </div>
-          <div class="host-ctx-item" @click="ctxGoPage('/snippets')">
-            <ReIcon name="DocumentCopy" /><span>片段管理</span>
-          </div>
-          <div class="host-ctx-item" @click="ctxGoPage('/maintenance')">
-            <ReIcon name="Clock" /><span>维护计划</span>
+          <div v-if="ctxSub === 'workspace'" class="host-ctx-sub" @mouseenter="hoverCtxSub('workspace')" @mouseleave="leaveCtxSub('workspace')">
+            <div class="host-ctx-item" @click="ctxGoPage('/sessions')">
+              <ReIcon name="Document" /><span>会话审计</span>
+            </div>
+            <div class="host-ctx-item" @click="ctxGoPage('/exec')">
+              <ReIcon name="Promotion" /><span>批量作业</span>
+            </div>
+            <div class="host-ctx-item" @click="ctxGoPage('/snippets')">
+              <ReIcon name="DocumentCopy" /><span>片段管理</span>
+            </div>
+            <div class="host-ctx-item" @click="ctxGoPage('/maintenance')">
+              <ReIcon name="Clock" /><span>维护计划</span>
+            </div>
           </div>
         </div>
 
