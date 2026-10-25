@@ -17,4 +17,6 @@ export interface MetricRow {
   value: string;
   /** 是否用等宽字体（IP / MAC / 编码这类逐字符比对的字段） */
   mono?: boolean;
+  /** hover 提示（如端口扫描结果明细，title 气泡展示） */
+  tip?: string;
 }

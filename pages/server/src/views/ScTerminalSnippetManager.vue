@@ -1,31 +1,34 @@
 <script setup lang="ts">
 /**
- * 片段管理 —— 编排层
+ * 片段管理 —— 命令片段的检索台
  *
  * <p>重构前这一页只能看到「编号 / 名称 / 备注」三列，命令正文一个字都没有；
- * 而片段这个概念的全部内容就是那段命令。同一份数据在四个方向里都会把正文摊出来，
- * 区别只是摊在哪里：卡片上、表格的一列里、右栏里、还是图表下的紧凑行里。</p>
+ * 而片段这个概念的全部内容就是那段命令。这里把正文当成主角：三个档位都在
+ * 第一屏就把正文摊出来，区别只是摊在哪。</p>
  *
- * <p>为什么没有「节奏」方向：这个方向的画布是时间轴，前提是数据本身有起止时刻。
- * 片段没有生命周期，硬画一条轴只会得到一排长度相同的装饰条。少一个不适用的方向，
- * 比多一个骗人的方向好。</p>
- *
- * <p>默认方向选「卡片墙」：片段是「一段可读的内容」，而不是「一行可扫的记录」。</p>
+ * <ul>
+ *   <li><b>三栏指挥台</b>（默认）：分面栏按正文形态分档，中间密集列表（首行命令），
+ *       右侧常驻全文。找一条命令时不用点进编辑框。</li>
+ *   <li><b>状态看板</b>：单行命令 / 多行脚本 / 空正文三列 —— 单行命令可以直接
+ *       粘到终端，脚本要先读一遍，这两类混在一列里会误操作。</li>
+ *   <li><b>泳道 / 矩阵不开</b>：片段没有起止时刻，硬画时间轴只会得到一排等长装饰条。
+ *       少一个不适用的档位，比多一个骗人的档位好。</li>
+ * </ul>
  *
  * @author CH
  * @since 4.0.0
  */
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { message } from '@repo/core'
-import { usePageVariant } from '@repo/ui/components/RePageKit/usePageVariant'
-import {
-  ReCanvasCards,
-  ReCanvasSplit,
-  ReCanvasTable,
-  ReCanvasTelemetry,
-  RePageStage,
-} from '@repo/ui/components/RePageKit'
-import type { CanvasColumn, CanvasGroup, PageVariantId, TabItem } from '@repo/ui/components/RePageKit'
+import OpsDesk from '../components/opsdesk/OpsDesk.vue'
+import type {
+  OpsFacetGroup,
+  OpsFilterField,
+  OpsItem,
+  OpsMode,
+  OpsModeMeta,
+  OpsTone,
+} from '../components/opsdesk/types'
 import {
   getSnippets,
   saveSnippet as apiSaveSnippet,
@@ -42,14 +45,57 @@ import {
   type SnippetView,
 } from './snippet/snippetView'
 
+/** 工作区页签嵌入：hostId 用于从「主机」出发时的过滤入口（页面内暂不消费，保留占位） */
+defineProps<{ hostId?: number }>()
+
+/* ==================== 档位 ==================== */
+
+const MODES: OpsModeMeta[] = [
+  { id: 'deck', label: '三栏指挥台', thesis: '分面栏 + 密集列表 + 常驻全文，找命令不用点开编辑框' },
+  { id: 'kanban', label: '形态看板', thesis: '单行命令 / 多行脚本 / 空正文三列，误粘风险一眼可见' },
+]
+
+/** 档位记忆键（按页持久化） */
+const MODE_KEY = 'ops-mode:server.snippets'
+
+/**
+ * 读取已存档位。
+ *
+ * <p>收窄档位后旧值可能落在开放集外（此前这一页开过四个方向），
+ * 这里收敛而不是直接信任。</p>
+ */
+function readMode(): OpsMode {
+  try {
+    const raw = localStorage.getItem(MODE_KEY)
+    return MODES.some(m => m.id === raw) ? (raw as OpsMode) : 'deck'
+  } catch {
+    return 'deck'
+  }
+}
+
+const mode = ref<OpsMode>(readMode())
+watch(mode, v => {
+  try {
+    localStorage.setItem(MODE_KEY, v)
+  } catch {
+    /* 无痕模式忽略 */
+  }
+})
+
+/* ==================== 数据 ==================== */
+
 /** 后端原样行 */
 const rows = ref<SnippetRow[]>([])
 
 /** 加载态 */
 const loading = ref(false)
 
-/** 筛选模型：键与舞台声明的 FilterField.key 对应 */
-const filters = reactive<Record<string, string>>({ keyword: '' })
+/** 错误文案 */
+const error = ref('')
+
+/** 筛选：关键字 + 正文形态分面 */
+const keyword = ref('')
+const shape = ref('')
 
 /** 新增 / 编辑弹窗 */
 const dialogVisible = ref(false)
@@ -60,22 +106,30 @@ const formData = ref<TerminalSnippetPayload>({
   msTerminalSnippetRemark: '',
 })
 
-/** 档案柜方向的选中项 */
-const pickedId = ref<number | null>(null)
-
-/** 开放的方向：节奏不适用于没有起止时刻的数据 */
-const ALLOWED: PageVariantId[] = ['wall', 'console', 'dossier', 'instrument']
-
-const { variant, items, dockVisible, setVariant } = usePageVariant({
-  pageKey: 'server.snippets',
-  allowed: ALLOWED,
-})
+/* ==================== 派生 ==================== */
 
 /** 全量展示行 */
 const allViews = computed(() => toSnippetViews(rows.value))
 
+/**
+ * 形态判定。
+ *
+ * <p>三档刻意是「空 / 单行 / 多行」而不是按行数连续分：这三种在用法上是
+ * 完全不同的事 —— 空的不能用、单行的可以直接粘、多行的必须先读。</p>
+ *
+ * @param v 展示行
+ */
+function shapeOf(v: SnippetView): string {
+  if (v.empty) return 'empty'
+  return v.lines <= 1 ? 'one' : 'multi'
+}
+
 /** 已筛选的展示行 */
-const views = computed(() => filterSnippets(allViews.value, filters.keyword ?? ''))
+const views = computed(() => {
+  let list = filterSnippets(allViews.value, keyword.value)
+  if (shape.value) list = list.filter(v => shapeOf(v) === shape.value)
+  return list
+})
 
 /** 统计（全量口径） */
 const stats = computed(() => snippetStats(allViews.value))
@@ -83,78 +137,170 @@ const stats = computed(() => snippetStats(allViews.value))
 /** 行数分布（全量口径） */
 const buckets = computed(() => lineBuckets(allViews.value))
 
-/** 分布图的峰值，用于归一柱高 */
-const bucketPeak = computed(() => Math.max(1, ...buckets.value.map(b => b.count)))
-
-/** 舞台筛选项 */
-const stageFilters = [
-  { key: 'keyword', kind: 'search' as const, placeholder: '搜索名称 / 命令内容 / 备注', width: 260 },
+/** 控制栏筛选项 */
+const FILTER_FIELDS: OpsFilterField[] = [
+  { key: 'keyword', kind: 'search', placeholder: '搜索名称 / 命令内容 / 备注', width: 240 },
 ]
 
-/** 无分段（片段没有状态） */
-const stageTabs: TabItem[] = []
-
-/** 遥测 */
-const teleCells = computed(() => [
-  { label: '片段总数', value: stats.value.total },
-  { label: '有正文', value: stats.value.withContent },
-  { label: '平均行数', value: stats.value.avgLines },
-  { label: '最长片段', value: `${stats.value.maxLines} 行` },
-])
+/** 控制栏筛选模型 */
+const filterModel = computed<Record<string, string>>(() => ({ keyword: keyword.value }))
 
 /**
- * 工单台列定义
+ * 展示行 → 外壳条目。
  *
- * <p>正文列拿到 2fr：它是这一页的主角，其余列都是它的注脚。</p>
+ * <p>tone 用「空正文 = 警告色」：一条没有正文的片段插进终端不会做任何事，
+ * 这是数据缺陷而不是中性状态，得让人看见。</p>
+ *
+ * @param v 展示行
  */
-const consoleCols: CanvasColumn[] = [
-  { key: 'name', label: '片段名称', width: 'minmax(0, 1.1fr)' },
-  { key: 'content', label: '命令内容', width: 'minmax(0, 2fr)' },
-  { key: 'lines', label: '行数', width: '64px', align: 'right' },
-]
+function toItem(v: SnippetView): OpsItem {
+  const s = shapeOf(v)
+  return {
+    id: v.id,
+    title: v.name,
+    sub: v.empty ? '（无正文）' : v.firstLine,
+    tone: (v.empty ? 'warn' : s === 'one' ? 'info' : 'brand') as OpsTone,
+    statusText: v.empty ? '无正文' : `${v.lines} 行`,
+    badge: v.remark || '',
+    column: s,
+    meta: [
+      { label: '行数', value: String(v.lines) },
+      { label: '字符数', value: String(v.chars) },
+      { label: '形态', value: v.empty ? '无正文' : s === 'one' ? '单行命令' : '多行脚本' },
+      { label: '备注', value: v.remark || '—' },
+    ],
+    code: v.empty ? '' : v.content,
+    searchText: `${v.name} ${v.content} ${v.remark}`,
+  }
+}
 
-/** 仪表方向的紧凑列（去掉备注与行数，只留「找得到」这件事） */
-const instrumentCols: CanvasColumn[] = [
-  { key: 'name', label: '片段名称', width: 'minmax(0, 1fr)' },
-  { key: 'content', label: '命令内容', width: 'minmax(0, 1.8fr)' },
-  { key: 'lines', label: '行数', width: '60px', align: 'right' },
-]
-
-/** 档案柜分组：单行命令与脚本片段的用法完全不同，先分开 */
-const groups = computed<CanvasGroup[]>(() => [
-  { key: 'one', label: '单行命令', rows: views.value.filter(v => v.lines <= 1) as unknown as CanvasGroup['rows'] },
-  { key: 'multi', label: '脚本片段', rows: views.value.filter(v => v.lines > 1) as unknown as CanvasGroup['rows'] },
-])
-
-/** 档案柜当前详情 */
-const picked = computed(() => views.value.find(v => v.id === pickedId.value) ?? views.value[0] ?? null)
+/* ==================== 分面栏 ==================== */
 
 /**
- * 行键
+ * 分面栏：正文形态 + 长度档。
  *
- * @param row 行
+ * <p>计数用全量口径（不受自身筛选影响），否则点进「单行」后其它档位数字
+ * 变 0，用户再也点不回去。</p>
  */
-function rowKey(row: Record<string, unknown>): number {
-  return Number(row.id)
+const facets = computed<OpsFacetGroup[]>(() => {
+  const all = allViews.value
+  const one = all.filter(v => shapeOf(v) === 'one').length
+  const multi = all.filter(v => shapeOf(v) === 'multi').length
+  const empty = all.length - one - multi
+  return [
+    {
+      key: 'shape',
+      label: '正文形态',
+      options: [
+        { value: '', label: '全部', count: all.length },
+        { value: 'one', label: '单行命令', count: one, tone: 'info' as OpsTone },
+        { value: 'multi', label: '多行脚本', count: multi, tone: 'brand' as OpsTone },
+        { value: 'empty', label: '无正文', count: empty, tone: 'warn' as OpsTone },
+      ],
+    },
+    {
+      key: 'lines',
+      label: '长度',
+      options: [
+        { value: '', label: '全部', count: all.length },
+        ...buckets.value.map((b, i) => ({
+          value: String(i),
+          label: b.label,
+          count: b.count,
+        })),
+      ],
+    },
+  ]
+})
+
+/** 长度档过滤值 */
+const lineBand = ref('')
+
+/** 分面模型 */
+const facetModel = computed<Record<string, string>>(() => ({
+  shape: shape.value,
+  lines: lineBand.value,
+}))
+
+/** 看板列 */
+const columns = [
+  { key: 'one', label: '单行命令', tone: 'info' as OpsTone },
+  { key: 'multi', label: '多行脚本', tone: 'brand' as OpsTone },
+  { key: 'empty', label: '无正文', tone: 'warn' as OpsTone },
+]
+
+/* ==================== 交互 ==================== */
+
+/**
+ * 分面筛选变化。
+ *
+ * @param key   字段（shape / lines）
+ * @param value 值
+ */
+function onFacet(key: string, value: string): void {
+  if (key === 'shape') shape.value = value
+  else if (key === 'lines') lineBand.value = value
 }
 
 /**
- * 舞台筛选变化
+ * 长度档过滤。
+ *
+ * <p>分面栏只给档位序号，真实判定在展示行上：与 {@link lineBuckets} 的分档
+ * 保持同一口径（1 / 2–3 / 4–10 / 10 以上）。</p>
+ */
+const bandedViews = computed(() => {
+  const band = lineBand.value
+  if (!band) return views.value
+  const index = Number(band)
+  return views.value.filter(v => {
+    if (v.lines <= 0) return false
+    if (index === 0) return v.lines === 1
+    if (index === 1) return v.lines >= 2 && v.lines <= 3
+    if (index === 2) return v.lines >= 4 && v.lines <= 10
+    return v.lines > 10
+  })
+})
+
+/** 最终展示行（形态 + 长度 + 关键字） */
+const shownViews = computed(() => bandedViews.value)
+
+/** 最终条目 */
+const shownItems = computed<OpsItem[]>(() => shownViews.value.map(toItem))
+
+/**
+ * 控制栏筛选变化。
  *
  * @param key   字段
  * @param value 值
  */
-function onFilter(key: string, value: string): void {
-  filters[key] = value
+function onFilterField(key: string, value: string): void {
+  if (key === 'keyword') keyword.value = value
+}
+
+/** 清除全部条件 */
+function clearFilters(): void {
+  keyword.value = ''
+  shape.value = ''
+  lineBand.value = ''
+}
+
+/**
+ * 由条目找展示行（详情栏按钮只拿到 OpsItem）
+ *
+ * @param item 条目
+ */
+function viewOf(item: OpsItem): SnippetView | null {
+  return allViews.value.find(v => v.id === Number(item.id)) ?? null
 }
 
 /** 加载列表 */
 async function load(): Promise<void> {
   loading.value = true
+  error.value = ''
   try {
     rows.value = (await getSnippets()) ?? []
   } catch (e) {
-    message.error((e as Error).message)
+    error.value = (e as Error).message
   } finally {
     loading.value = false
   }
@@ -173,6 +319,16 @@ function openEditor(view?: SnippetView): void {
     msTerminalSnippetRemark: view?.remark ?? '',
   }
   dialogVisible.value = true
+}
+
+/**
+ * 详情栏编辑
+ *
+ * @param item 条目
+ */
+function onEditItem(item: OpsItem): void {
+  const view = viewOf(item)
+  if (view) openEditor(view)
 }
 
 /** 保存 */
@@ -217,338 +373,97 @@ async function remove(view: SnippetView): Promise<void> {
   }
 }
 
+/**
+ * 详情栏删除
+ *
+ * @param item 条目
+ */
+function onRemoveItem(item: OpsItem): void {
+  const view = viewOf(item)
+  if (view) void remove(view)
+}
+
 onMounted(load)
 </script>
 
 <template>
-  <RePageStage
-    :variant="variant"
+  <OpsDesk
+    v-model:mode="mode"
     title="片段管理"
     desc="常用终端命令片段：按命令内容找，而不只是按你当年起的名字找。"
-    :variant-items="items"
-    :dock-visible="dockVisible"
-    :tabs="stageTabs"
-    :filters="stageFilters"
-    :filter-model="filters"
-    :count-text="views.length === stats.total ? `共 ${stats.total} 个片段` : `筛选出 ${views.length} / ${stats.total} 个`"
+    :modes="MODES"
+    :items="shownItems"
+    :facets="facets"
+    :facet-model="facetModel"
+    :filters="FILTER_FIELDS"
+    :filter-model="filterModel"
+    :columns="columns"
+    :count-text="shownItems.length === stats.total ? `共 ${stats.total} 个片段` : `筛选出 ${shownItems.length} / ${stats.total} 个`"
     :loading="loading"
-    refresh-tip="刷新片段列表"
-    @update:variant="setVariant"
-    @filter="onFilter"
+    :error="error"
+    empty-text="还没有命令片段"
+    empty-hint="点右上角「新增片段」把常用的命令存下来，之后在批量作业里可以直接插入。"
+    @facet="onFacet"
+    @filter="onFilterField"
     @refresh="load"
   >
-    <template #head-actions>
-      <ReButton type="primary" icon="Plus" @click="openEditor()">新增片段</ReButton>
-    </template>
-
-    <!-- ==================== 卡片墙：正文直接读 ==================== -->
-    <template #wall>
-      <ReCanvasCards
-        :rows="views as unknown as Array<Record<string, unknown>>"
-        :row-key="rowKey"
-        :min-width="248"
-        clickable
-        :loading="loading"
-        empty-text="还没有命令片段"
-        empty-hint="点右上角「新增片段」把常用的命令存下来，之后在批量作业里可以直接插入。"
-        @row-click="(r) => openEditor(r as unknown as SnippetView)"
+    <template #actions>
+      <button
+        v-if="keyword || shape || lineBand"
+        type="button"
+        class="op-btn"
+        @click="clearFilters"
       >
-        <template #card="{ row }">
-          <header class="pk-card__head">
-            <span class="pk-card__title">{{ (row as unknown as SnippetView).name }}</span>
-            <span class="pk-pill">{{ (row as unknown as SnippetView).lines }} 行</span>
-          </header>
-
-          <div v-if="!(row as unknown as SnippetView).empty" class="pk-card__payload">{{ (row as unknown as SnippetView).content }}</div>
-          <div v-else class="card__no-content">这条片段还没有正文</div>
-
-          <footer class="pk-card__foot">
-            <span class="pk-ellipsis">{{ (row as unknown as SnippetView).remark || '无备注' }}</span>
-            <span class="card__ops">
-              <button type="button" class="pk-link" @click.stop="openEditor(row as unknown as SnippetView)">编辑</button>
-              <button type="button" class="pk-link pk-link--danger" @click.stop="remove(row as unknown as SnippetView)">删除</button>
-            </span>
-          </footer>
-        </template>
-      </ReCanvasCards>
+        清除筛选
+      </button>
+      <button type="button" class="op-btn is-primary" @click="openEditor()">新增片段</button>
     </template>
 
-    <!-- ==================== 工单台：一屏尽量多的片段 ==================== -->
-    <template #console>
-      <ReCanvasTable
-        :rows="views as unknown as Array<Record<string, unknown>>"
-        :columns="consoleCols"
-        :row-key="rowKey"
-        clickable
-        :loading="loading"
-        empty-text="还没有命令片段"
-        empty-hint="点右上角「新增片段」创建第一条。"
-        @row-click="(r) => openEditor(r as unknown as SnippetView)"
-      >
-        <template #cell-name="{ row }">
-          <div class="pk-strong pk-ellipsis">{{ (row as unknown as SnippetView).name }}</div>
-          <div class="pk-sub pk-ellipsis">{{ (row as unknown as SnippetView).remark || '无备注' }}</div>
-        </template>
-        <template #cell-content="{ row }">
-          <span
-            v-if="!(row as unknown as SnippetView).empty"
-            class="pk-mono pk-ellipsis cmd-ellipsis"
-          >{{ (row as unknown as SnippetView).firstLine }}</span>
-          <span v-else class="pk-faint">（无正文）</span>
-        </template>
-        <template #cell-lines="{ row }">
-          <span class="pk-num pk-dim">{{ (row as unknown as SnippetView).lines }}</span>
-        </template>
-        <template #row-actions="{ row }">
-          <button type="button" class="pk-link" @click="openEditor(row as unknown as SnippetView)">编辑</button>
-          <button type="button" class="pk-link pk-link--danger" @click="remove(row as unknown as SnippetView)">删除</button>
-        </template>
-      </ReCanvasTable>
+    <template #detail="{ item }">
+      <button type="button" class="op-btn" @click="onEditItem(item)">编辑</button>
+      <button type="button" class="op-btn is-bad" @click="onRemoveItem(item)">删除</button>
+      <span class="op-dim" style="font-size: 11px">片段 #{{ item.id }}</span>
     </template>
+  </OpsDesk>
 
-    <!-- ==================== 仪表：先看这些片段是什么形状 ==================== -->
-    <template #instrument>
-      <ReCanvasTelemetry :cells="teleCells" />
-
-      <div class="dist">
-        <div class="dist__head">
-          <span class="dist__title">片段长度分布</span>
-          <span class="dist__note">按正文非空行数分档 · 一眼看出这里是「一堆单行命令」还是「几段脚本」</span>
-        </div>
-        <div class="dist__bars">
-          <div v-for="b in buckets" :key="b.label" class="dist__col">
-            <span class="dist__val">{{ b.count || '' }}</span>
-            <span
-              class="dist__bar"
-              :style="{ height: `${b.count ? Math.max((b.count / bucketPeak) * 52, 3) : 0}px` }"
-            />
-            <span class="dist__label">{{ b.label }}</span>
-          </div>
-        </div>
-      </div>
-
-      <ReCanvasTable
-        :rows="views as unknown as Array<Record<string, unknown>>"
-        :columns="instrumentCols"
-        :row-key="rowKey"
-        clickable
-        :loading="loading"
-        empty-text="还没有命令片段"
-        @row-click="(r) => openEditor(r as unknown as SnippetView)"
-      >
-        <template #cell-name="{ row }">
-          <span class="pk-strong pk-ellipsis">{{ (row as unknown as SnippetView).name }}</span>
-        </template>
-        <template #cell-content="{ row }">
-          <span
-            v-if="!(row as unknown as SnippetView).empty"
-            class="pk-mono pk-ellipsis cmd-ellipsis"
-          >{{ (row as unknown as SnippetView).firstLine }}</span>
-          <span v-else class="pk-faint">（无正文）</span>
-        </template>
-        <template #cell-lines="{ row }">
-          <span class="pk-num pk-dim">{{ (row as unknown as SnippetView).lines }}</span>
-        </template>
-      </ReCanvasTable>
-    </template>
-
-    <!-- ==================== 档案柜：左栏找，右栏读全文 ==================== -->
-    <template #dossier>
-      <ReCanvasSplit
-        :rows="views as unknown as Array<Record<string, unknown>>"
-        :groups="groups"
-        :row-key="rowKey"
-        :active-key="picked?.id ?? null"
-        :rail-width="236"
-        :loading="loading"
-        empty-text="没有匹配的片段"
-        empty-hint="清掉搜索词试试，搜索会同时匹配名称、命令内容和备注。"
-        @pick="(k) => (pickedId = Number(k))"
-      >
-        <template #rail-item="{ row }">
-          <span class="pk-rail__title pk-ellipsis">{{ (row as unknown as SnippetView).name }}</span>
-          <span class="pk-rail__meta">
-            <span class="pk-num">{{ (row as unknown as SnippetView).lines }} 行</span>
-            <span v-if="(row as unknown as SnippetView).remark" class="pk-ellipsis">· {{ (row as unknown as SnippetView).remark }}</span>
-          </span>
-        </template>
-
-        <template #detail-head="{ row }">
-          <div style="min-width: 0">
-            <div class="detail__title pk-ellipsis">{{ (row as unknown as SnippetView).name }}</div>
-            <div class="pk-sub">
-              {{ (row as unknown as SnippetView).lines }} 行 · {{ (row as unknown as SnippetView).chars }} 字符
-            </div>
-          </div>
-        </template>
-
-        <template #detail="{ row }">
-          <pre v-if="!(row as unknown as SnippetView).empty" class="detail__code">{{ (row as unknown as SnippetView).content }}</pre>
-          <div v-else class="pk-empty" style="padding: 20px 0">
-            <span>这条片段没有正文</span>
-            <span class="pk-empty__hint">只有名称与备注，插入到终端里不会有任何动作。</span>
-          </div>
-          <div class="pk-kv">
-            <span class="pk-kv__label">备注</span>
-            <span class="pk-kv__value">{{ (row as unknown as SnippetView).remark || '—' }}</span>
-          </div>
-        </template>
-
-        <template #detail-actions="{ row }">
-          <ReButton @click="openEditor(row as unknown as SnippetView)">编辑</ReButton>
-          <ReButton type="danger" @click="remove(row as unknown as SnippetView)">删除</ReButton>
-        </template>
-      </ReCanvasSplit>
-    </template>
-
-    <!-- 新增 / 编辑 -->
-    <ReDialog
-      v-model="dialogVisible"
-      :title="editingId ? '编辑片段' : '新增片段'"
-      width="560"
-      :height="420"
-      confirm-text="保存"
-      cancel-text="取消"
-      :footer-hidden="false"
-      @confirm="save"
-      @cancel="dialogVisible = false"
-    >
-      <ReForm :model="formData" label-width="90px" label-position="right">
-        <ReFormItem label="片段名称" required>
-          <ReInput v-model="formData.msTerminalSnippetName" placeholder="例如：重启 Nginx" />
-        </ReFormItem>
-        <ReFormItem label="命令内容">
-          <ReInput
-            v-model="formData.msTerminalSnippetContent"
-            type="textarea"
-            :rows="7"
-            placeholder="粘贴或输入要执行的命令，支持多行"
-          />
-        </ReFormItem>
-        <ReFormItem label="备注">
-          <ReInput v-model="formData.msTerminalSnippetRemark" placeholder="什么时候用它" />
-        </ReFormItem>
-      </ReForm>
-    </ReDialog>
-  </RePageStage>
+  <!-- 新增 / 编辑 -->
+  <ReDialog
+    v-model="dialogVisible"
+    :title="editingId ? '编辑片段' : '新增片段'"
+    width="560"
+    :height="420"
+    confirm-text="保存"
+    cancel-text="取消"
+    :footer-hidden="false"
+    @confirm="save"
+    @cancel="dialogVisible = false"
+  >
+    <ReForm :model="formData" label-width="90px" label-position="right">
+      <ReFormItem label="片段名称" required>
+        <ReInput v-model="formData.msTerminalSnippetName" placeholder="例如：重启 Nginx" />
+      </ReFormItem>
+      <ReFormItem label="命令内容">
+        <ReInput
+          v-model="formData.msTerminalSnippetContent"
+          type="textarea"
+          :rows="7"
+          placeholder="粘贴或输入要执行的命令，支持多行"
+        />
+      </ReFormItem>
+      <ReFormItem label="备注">
+        <ReInput v-model="formData.msTerminalSnippetRemark" placeholder="什么时候用它" />
+      </ReFormItem>
+    </ReForm>
+  </ReDialog>
 </template>
 
-<style scoped>
-/* 表格里的单行命令：等宽 + 单行省略，悬停由 title 兜底（整行可点进编辑看全文） */
-.cmd-ellipsis {
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+<style scoped lang="scss">
+@use "../components/opsdesk/_ops-kit.scss";
 
-/* 卡片里没有正文时的占位：不能空着，否则卡片看上去像加载失败 */
-.card__no-content {
-  padding: 8px;
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-  background: var(--el-fill-color-lighter, var(--el-fill-color-light));
-  border-left: 2px solid var(--el-border-color);
-  border-radius: var(--el-radius-xs, 4px);
-}
-
-.card__ops {
-  display: inline-flex;
-  gap: 10px;
-  flex: none;
-}
-
-/* ===== 长度分布图 ===== */
-.dist {
-  flex: none;
-  padding: 10px 12px;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-lg, 12px);
-}
-
-.dist__head {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 6px;
-}
-
-.dist__title {
-  font-size: 13px;
+.op-btn.is-primary {
+  color: var(--el-color-primary, #5a4bd9);
+  border-color: var(--el-color-primary-light-5, #b3a9fe);
+  background: var(--el-color-primary-light-9, #f6f4ff);
   font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.dist__note {
-  font-size: 11px;
-  color: var(--el-text-color-secondary);
-}
-
-.dist__bars {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  padding-top: 14px;
-}
-
-.dist__col {
-  flex: 1 1 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-}
-
-.dist__val {
-  height: 13px;
-  font-size: 10px;
-  line-height: 13px;
-  color: var(--el-text-color-secondary);
-  font-variant-numeric: tabular-nums;
-}
-
-.dist__bar {
-  width: 100%;
-  max-width: 52px;
-  background: var(--el-color-primary);
-  border-radius: 2px 2px 0 0;
-  transition: height var(--el-transition-duration-fast, 0.2s);
-}
-
-.dist__label {
-  font-size: 10px;
-  color: var(--el-text-color-placeholder);
-  white-space: nowrap;
-}
-
-/* ===== 档案柜右栏 ===== */
-.detail__title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-/* 命令全文：保留换行与缩进，长行横向滚动而不是折行
-   （折行会把 `&&` 与参数断在不同行，读起来像两条命令） */
-.detail__code {
-  margin: 0;
-  padding: 10px 12px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 12px;
-  line-height: 1.7;
-  color: var(--el-text-color-regular);
-  background: var(--el-fill-color-light);
-  border-radius: var(--el-radius-sm, 6px);
-  overflow: auto;
-  white-space: pre;
-  tab-size: 2;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .dist__bar {
-    transition: none;
-  }
 }
 </style>

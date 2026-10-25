@@ -143,7 +143,7 @@ const bars = computed(() => [
             <span class="hmb__pop-sub">{{ hostName }}</span>
           </div>
           <div v-if="rows.length" class="hmb__pop-rows">
-            <div v-for="r in rows" :key="r.label" class="hmb__pop-row">
+            <div v-for="r in rows" :key="r.label" class="hmb__pop-row" :title="r.tip || ''">
               <span class="hmb__pop-label">{{ r.label }}</span>
               <span class="hmb__pop-val" :class="{ 'is-mono': r.mono, 'is-dim': r.value === '—' }">{{ r.value }}</span>
             </div>

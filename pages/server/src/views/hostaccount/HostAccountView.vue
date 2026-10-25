@@ -56,6 +56,9 @@ import {
 const route = useRoute();
 const router = useRouter();
 
+/** 工作区页签嵌入：hostId 表示当前主机上下文（账号页本身是全量账本 + 按主机筛选，页签场景保持全量） */
+defineProps<{ hostId?: number }>();
+
 /* ==================== 原始行 ==================== */
 
 /** 身份接口返回的行（脱敏：不含口令 / 私钥） */

@@ -12,7 +12,7 @@
  * @author CH
  * @since 4.0.0
  */
-import { computed, nextTick, onMounted, onBeforeUnmount, ref, reactive, watch } from "vue";
+import { computed, nextTick, onMounted, onBeforeUnmount, ref, reactive, watch, defineAsyncComponent } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessageBox } from "element-plus";
 import { queryHosts, delHost, switchHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity, scanPorts } from "../api";
@@ -23,6 +23,12 @@ import HostDetailView from "./HostDetailView.vue";
 import ScHostWorkbench from "./ScHostWorkbench.vue";
 import TerminalView from "./TerminalView.vue";
 import HostFileManager from "../components/HostFileManager.vue";
+// 运维台四页 + 主机账号：右键打开时内嵌为工作区页签（懒加载，避免拖慢首屏）
+const OpsSessionTab = defineAsyncComponent(() => import("./ScSessionTab.vue"));
+const OpsExecTab = defineAsyncComponent(() => import("./ScExecTab.vue"));
+const OpsSnippetTab = defineAsyncComponent(() => import("./ScTerminalSnippetManager.vue"));
+const OpsMaintenanceTab = defineAsyncComponent(() => import("./ScMaintenancePlan.vue"));
+const HostAccountTab = defineAsyncComponent(() => import("./hostaccount/HostAccountView.vue"));
 import ScHostMetricsBar from "../components/ScHostMetricsBar.vue";
 import type { MetricRow } from "../components/ScHostMetricsBar.types";
 import HostCommandPalette from "../components/HostCommandPalette.vue";
@@ -271,6 +277,15 @@ function parsePorts(raw?: string | null): PortItem[] {
     const arr = JSON.parse(raw);
     return Array.isArray(arr) ? arr : [];
   } catch { return []; }
+}
+
+/** 已扫描端口的 hover 明细（多行标题气泡；未扫描/空时返回空串不弹） */
+function portTip(h: Host): string {
+  const list = parsePorts(h.serverHostPorts);
+  if (!list.length) return "";
+  return list.slice(0, 60).map(p =>
+    `${p.port}${p.protocol ? "/" + p.protocol : ""}${p.service ? " " + p.service : ""}${p.state ? ` (${p.state})` : ""}`,
+  ).join("，") + (list.length > 60 ? ` 等 ${list.length} 个` : "");
 }
 
 /** 端口扫描（后台异步，完成后由 host-portscan socket 事件回填，不阻塞/轮询） */
@@ -538,7 +553,12 @@ type TabKind =
   | "remote"
   | "files"
   | "metrics"
-  | "workbench";
+  | "workbench"
+  | "ops-sessions"
+  | "ops-exec"
+  | "ops-snippets"
+  | "ops-maintenance"
+  | "host-accounts";
 
 /** 功能定义：名称 / 图标 / 是否为画像分区 */
 interface TabKindMeta {
@@ -560,6 +580,11 @@ const TAB_KINDS: Record<TabKind, TabKindMeta> = {
   files: { label: "文件管理", icon: "FolderOpened" },
   metrics: { label: "指标监控", icon: "TrendCharts" },
   workbench: { label: "工作台", icon: "Box" },
+  "ops-sessions": { label: "会话审计", icon: "Document" },
+  "ops-exec": { label: "批量作业", icon: "Promotion" },
+  "ops-snippets": { label: "片段管理", icon: "DocumentCopy" },
+  "ops-maintenance": { label: "维护计划", icon: "Clock" },
+  "host-accounts": { label: "主机账号", icon: "User" },
 };
 
 /** 工作区页签（比 ReTabsItem 多带主机上下文，便于渲染内容） */
@@ -853,18 +878,18 @@ function closeCtxMenu(): void {
 }
 
 /**
- * 从右键菜单跳到主机资产这一族的其它页面（会话审计 / 批量作业 / 片段管理 / 维护计划）。
+ * 从右键菜单打开运维台 / 主机账号：在工作区内嵌为页签（不离开主机资产页）。
  *
- * <p>这些页面是整站级视图，不是某台主机的页签；但从「主机」出发时用户
- * 想的就是「这台机器的会话 / 作业 / 片段 / 计划」，所以入口也收在这里。
- * 跳转时带上主机过滤参数，落地页能直接聚焦到这台机器。</p>
+ * <p>这些页面是整站级视图（会话审计 / 批量作业 / 片段管理 / 维护计划 / 主机账号），
+ * 但用户的起点是「这台主机」，所以收在工作区页签里并带上主机过滤参数，
+ * 落地页能直接聚焦到这台机器。</p>
  *
- * @param path 目标路由
+ * @param kind 页签类型
  */
-function ctxGoPage(path: string): void {
+function ctxOpenTab(kind: Extract<TabKind, "ops-sessions" | "ops-exec" | "ops-snippets" | "ops-maintenance" | "host-accounts">): void {
   const h = ctxMenu.host;
   closeCtxMenu();
-  router.push(h ? { path, query: { hostId: String(h.id) } } : path);
+  if (h) openTab(h, kind);
 }
 
 /**
@@ -1303,7 +1328,7 @@ const statusOverviewRows = computed<MetricRow[]>(() => {
     { label: "分组", value: groupName(h.msServerGroupId) },
     { label: "标签", value: dash(splitTags(h.serverHostTags).join(" / ")) },
     { label: "最近采集", value: dash(h.serverHostLastCollectTime) },
-    { label: "已扫描端口", value: parsePorts(h.serverHostPorts).length ? `${parsePorts(h.serverHostPorts).length} 个` : "未扫描" },
+    { label: "已扫描端口", value: parsePorts(h.serverHostPorts).length ? `${parsePorts(h.serverHostPorts).length} 个` : "未扫描", tip: portTip(h) },
     { label: "Agent", value: h.serverHostAgentInstalled === 1 ? `v${h.serverHostAgentVersion || "?"}` : "未安装" },
   ];
   if (h.serverHostDescription) {
@@ -2293,7 +2318,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
         </div>
 
         <!-- 主机账号：这台机器能用哪些账号登（凭据库按主机过滤） -->
-        <div class="host-ctx-item" @click="ctxGoPage('/host-accounts')">
+        <div class="host-ctx-item" @click="ctxOpenTab('host-accounts')">
           <ReIcon name="User" /><span>主机账号</span>
         </div>
 
@@ -2345,16 +2370,16 @@ function onGlobalKeydown(e: KeyboardEvent): void {
           <ReIcon name="Operation" /><span>运维台</span>
           <ReIcon name="ArrowRight" class="host-ctx-arrow" />
           <div v-if="ctxSub === 'workspace'" class="host-ctx-sub" @mouseenter="hoverCtxSub('workspace')" @mouseleave="leaveCtxSub('workspace')">
-            <div class="host-ctx-item" @click="ctxGoPage('/sessions')">
+            <div class="host-ctx-item" @click="ctxOpenTab('ops-sessions')">
               <ReIcon name="Document" /><span>会话审计</span>
             </div>
-            <div class="host-ctx-item" @click="ctxGoPage('/exec')">
+            <div class="host-ctx-item" @click="ctxOpenTab('ops-exec')">
               <ReIcon name="Promotion" /><span>批量作业</span>
             </div>
-            <div class="host-ctx-item" @click="ctxGoPage('/snippets')">
+            <div class="host-ctx-item" @click="ctxOpenTab('ops-snippets')">
               <ReIcon name="DocumentCopy" /><span>片段管理</span>
             </div>
-            <div class="host-ctx-item" @click="ctxGoPage('/maintenance')">
+            <div class="host-ctx-item" @click="ctxOpenTab('ops-maintenance')">
               <ReIcon name="Clock" /><span>维护计划</span>
             </div>
           </div>
