@@ -9,6 +9,8 @@
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
+import { favorites } from "@/utils/library";
+
 const route = useRoute();
 const router = useRouter();
 
@@ -21,8 +23,11 @@ const NAV_ITEMS = [
   { label: "电视剧", to: "/channel/tv" },
   { label: "动漫", to: "/channel/anime" },
   { label: "综艺", to: "/channel/variety" },
+  { label: "纪录片", to: "/channel/documentary" },
   { label: "直播", to: "/live" },
   { label: "CCTV直播", to: "/live/cctv" },
+  { label: "排行榜", to: "/rank" },
+  { label: "专题", to: "/topics" },
   { label: "直链播放", to: "/play" },
   { label: "配置", to: "/config" },
 ] as const;
@@ -33,10 +38,16 @@ const activeTo = computed(() => {
   if (route.name === "channel") return route.path;
   if (route.name === "live") return "/live";
   if (route.name === "live-cctv") return "/live/cctv";
+  if (route.name === "rank") return "/rank";
+  if (route.name === "topics") return "/topics";
   if (route.name === "play") return "/play";
   if (route.name === "config") return "/config";
-  return "";
+  return route.name === "home" ? "/" : "";
 });
+
+/** 片库两个入口的选中态 */
+const onMine = computed(() => route.name === "mine");
+const mineTab = computed(() => (route.query.tab === "history" ? "history" : "fav"));
 
 function onSearch() {
   const kw = keyword.value.trim();
@@ -82,6 +93,46 @@ function onSearch() {
           />
         </div>
       </div>
+
+      <div class="vds-user">
+        <router-link
+          class="vds-user-link"
+          :class="{ 'is-active': onMine && mineTab === 'fav' }"
+          :to="{ name: 'mine' }"
+        >
+          <svg class="vds-user-icon" viewBox="0 0 16 16" aria-hidden="true">
+            <path
+              d="M4 2.5h8v11l-4-2.6-4 2.6z"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.4"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <span class="vds-user-text">收藏</span>
+          <span v-if="favorites.length" class="vds-user-count">{{ favorites.length }}</span>
+        </router-link>
+
+        <span class="vds-user-sep" aria-hidden="true" />
+
+        <router-link
+          class="vds-user-link"
+          :class="{ 'is-active': onMine && mineTab === 'history' }"
+          :to="{ name: 'mine', query: { tab: 'history' } }"
+        >
+          <svg class="vds-user-icon" viewBox="0 0 16 16" aria-hidden="true">
+            <circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" stroke-width="1.4" />
+            <path
+              d="M8 4.8v3.4l2.3 1.4"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.4"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span class="vds-user-text">历史</span>
+        </router-link>
+      </div>
     </div>
   </header>
 </template>
@@ -113,7 +164,8 @@ function onSearch() {
   margin-left: -15px;
   flex: 0 0 auto;
   min-width: 0;
-  max-width: 60%;
+  /* 不设上限：菜单项必须完整显示，空间不足时改用两行布局（见下方断点） */
+  max-width: none;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -199,32 +251,131 @@ function onSearch() {
   color: var(--vd-text-3);
 }
 
-@media (max-width: 900px) {
-  .vds-header-inner {
-    gap: 10px;
+/* ── 右侧片库入口（收藏 / 历史） ── */
+.vds-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.vds-user-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--vd-text-2);
+  white-space: nowrap;
+  transition: color var(--vd-fast) var(--vd-ease);
+}
+
+.vds-user-link:hover,
+.vds-user-link.is-active {
+  color: var(--vd-primary);
+}
+
+.vds-user-link.is-active {
+  font-weight: 600;
+}
+
+.vds-user-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.vds-user-count {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--vd-primary-soft);
+  color: var(--vd-primary);
+  font-size: 11px;
+  line-height: 16px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.vds-user-sep {
+  width: 1px;
+  height: 12px;
+  background: var(--vd-border);
+}
+
+/* 中等宽度：导航项收紧内边距，让 1200 一档仍是一行 */
+@media (max-width: 1360px) {
+  .vds-nav-link {
+    padding: 0 12px;
   }
+}
+
+/* ── 窄屏：导航独占一行，搜索与片库入口换到第二行，避免菜单被裁切 ── */
+@media (max-width: 1160px) {
+  .vds-header-inner {
+    height: auto;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0;
+    padding: 0 12px;
+  }
+
+  .vds-nav {
+    flex: 0 0 100%;
+    width: 100%;
+    max-width: none;
+    margin: 0 -12px;
+    padding: 0 12px;
+    box-sizing: border-box;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    /* 右侧渐隐，提示还可以横向滑动 */
+    mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent);
+  }
+
+  .vds-nav-link {
+    padding: 0 12px;
+    font-size: 15px;
+  }
+
+  .vds-search-wrap {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    justify-content: stretch;
+    padding-bottom: 10px;
+  }
+
+  .vds-search {
+    max-width: none;
+  }
+
+  .vds-user {
+    padding-bottom: 10px;
+  }
+}
+
+@media (max-width: 860px) {
   .vds-nav-link {
     padding: 0 10px;
     font-size: 14px;
   }
-  .vds-nav {
-    margin-left: -10px;
-    max-width: 55%;
-  }
-  .vds-search-wrap {
-    justify-content: flex-end;
-  }
-  .vds-search {
-    max-width: 220px;
-  }
 }
 
 @media (max-width: 560px) {
-  .vds-search-wrap {
-    justify-content: flex-end;
+  .vds-nav-link {
+    padding: 0 9px;
+    font-size: 14px;
   }
   .vds-search {
-    max-width: 140px;
+    height: 32px;
+  }
+  .vds-user {
+    gap: 6px;
+  }
+  .vds-user-link {
+    font-size: 13px;
   }
 }
 

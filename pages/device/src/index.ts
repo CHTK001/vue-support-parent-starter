@@ -15,6 +15,7 @@
  */
 export { default as DeviceView } from './views/DeviceView.vue'
 export { default as DeviceProviderView } from './views/DeviceProviderView.vue'
+export { default as DeviceGroupView } from './views/DeviceGroupView.vue'
 export { deviceRoutes, deviceMenus } from './router'
 export { deviceApi } from './api/deviceApi'
 export * from './types/device'

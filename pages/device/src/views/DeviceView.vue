@@ -92,6 +92,16 @@
         />
       </el-select>
 
+      <el-select v-model="filters.groupId" clearable placeholder="设备分组" class="filter-select" @change="applyFilters">
+        <el-option label="未分组" value="__none__" />
+        <el-option
+          v-for="node in groupOptions"
+          :key="node.groupId"
+          :label="node.label"
+          :value="node.groupId"
+        />
+      </el-select>
+
       <el-cascader
         v-model="filters.orgId"
         class="filter-org"
@@ -117,6 +127,7 @@
       <div class="flex items-center gap-2">
         <el-button size="small" type="primary" plain @click="openVideoWizard">视频预览</el-button>
         <el-button size="small" @click="batchReconnect">批量重连</el-button>
+        <el-button size="small" @click="openBatchGroups">设置分组</el-button>
         <el-button size="small" type="danger" plain @click="batchRemove">批量删除</el-button>
       </div>
     </section>
@@ -187,6 +198,25 @@
           </template>
         </el-table-column>
 
+        <el-table-column label="分组" min-width="150">
+          <template #default="{ row }">
+            <div v-if="groupBadgesOf(row.deviceInfoId).length" class="flex flex-wrap gap-1">
+              <el-tag
+                v-for="g in groupBadgesOf(row.deviceInfoId)"
+                :key="g.groupId"
+                size="small"
+                effect="plain"
+                type="info"
+                class="cursor-pointer"
+                @click.stop="filters.groupId = g.groupId; applyFilters()"
+              >
+                {{ g.groupName }}
+              </el-tag>
+            </div>
+            <span v-else class="text-xs text-el-text-secondary">未分组</span>
+          </template>
+        </el-table-column>
+
         <el-table-column label="码流" width="120">
           <template #default="{ row }">
             <DeviceStreamTags :device="row" @preview="(streamType) => previewStream(row, streamType)" />
@@ -220,6 +250,7 @@
                 <el-dropdown-menu>
                   <el-dropdown-item command="reconnect">重新连接</el-dropdown-item>
                   <el-dropdown-item command="refresh">刷新状态</el-dropdown-item>
+                  <el-dropdown-item command="groups">设置分组</el-dropdown-item>
                   <el-dropdown-item command="remove" divided>删除设备</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
@@ -334,6 +365,27 @@
         <el-button type="primary" @click="confirmVideoWizard">打开预览</el-button>
       </template>
     </el-dialog>
+
+    <!-- 设置分组（单台 / 批量） -->
+    <el-dialog v-model="groupDialogVisible" :title="groupDialogTitle" width="460px" destroy-on-close>
+      <div class="text-xs text-el-text-secondary mb-3">
+        一台设备可以同时属于多个分组；保存会用勾选结果整体替换{{ groupDialogDeviceIds.length > 1 ? '这些设备' : '该设备' }}的分组。
+      </div>
+      <div v-if="groupOptions.length" class="max-h-[360px] overflow-auto">
+        <el-checkbox-group v-model="groupDialogChecked" class="flex flex-col gap-2">
+          <el-checkbox v-for="node in groupOptions" :key="node.groupId" :value="node.groupId">
+            {{ node.label }}
+          </el-checkbox>
+        </el-checkbox-group>
+      </div>
+      <div v-else class="py-6 text-center text-sm text-el-text-secondary">
+        还没有分组，先到「设备分组」页创建。
+      </div>
+      <template #footer>
+        <el-button @click="groupDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="groupSaving" @click="saveDeviceGroups">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -376,6 +428,7 @@ import {
   statusMeta
 } from '@pages/device/src/utils/deviceFormat'
 import type {
+  DeviceGroupNode,
   DeviceInfo,
   DevicePageQuery,
   DeviceStatusEvent,
@@ -388,8 +441,16 @@ const router = useRouter()
 const rows = ref<DeviceInfo[]>([])
 const vendors = ref<DeviceVendorDescriptor[]>([])
 const orgTree = ref<OrgNode[]>([])
+const groups = ref<DeviceGroupNode[]>([])
+const assignments = ref<Array<{ deviceId: string; groupId: string }>>([])
 const loading = ref(false)
 const selection = ref<DeviceInfo[]>([])
+
+/** 设置分组弹窗 */
+const groupDialogVisible = ref(false)
+const groupDialogDeviceIds = ref<string[]>([])
+const groupDialogChecked = ref<string[]>([])
+const groupSaving = ref(false)
 
 /** 视频布局向导：多选设备 → 选择布局/打开方式 → 视频预览页 */
 const videoWizardVisible = ref(false)
@@ -434,6 +495,7 @@ const filters = reactive({
   category: '',
   online: '',
   status: '',
+  groupId: '',
   orgId: ''
 })
 
@@ -445,6 +507,46 @@ const orgCascaderProps = {
   children: 'children',
   emitPath: false
 } as const
+
+/** 分组树拍平（带层级缩进），用于筛选与勾选 */
+const groupOptions = computed(() => {
+  const out: Array<{ groupId: string; groupName: string; label: string }> = []
+  const walk = (nodes: DeviceGroupNode[], depth: number) => {
+    for (const node of nodes || []) {
+      if (!node.groupId) continue
+      out.push({
+        groupId: node.groupId,
+        groupName: node.groupName,
+        label: `${'　'.repeat(depth)}${node.groupName}`
+      })
+      if (node.children?.length) walk(node.children, depth + 1)
+    }
+  }
+  walk(groups.value, 0)
+  return out
+})
+
+const groupNameMap = computed(() => {
+  const map = new Map<string, string>()
+  for (const node of groupOptions.value) map.set(node.groupId, node.groupName)
+  return map
+})
+
+const groupDialogTitle = computed(() =>
+  groupDialogDeviceIds.value.length > 1
+    ? `设置分组（${groupDialogDeviceIds.value.length} 台设备）`
+    : '设置分组'
+)
+
+function groupBadgesOf(deviceId: string) {
+  const ids = assignments.value
+    .filter((item) => item.deviceId === deviceId)
+    .map((item) => item.groupId)
+  return ids.map((groupId) => ({
+    groupId,
+    groupName: groupNameMap.value.get(groupId) || '未知分组'
+  }))
+}
 
 const formVisible = ref(false)
 const editingDevice = ref<DeviceInfo | null>(null)
@@ -527,6 +629,8 @@ function buildQuery(): DevicePageQuery {
     orgId: filters.orgId || undefined,
     status: filters.status || undefined,
     online: filters.online === 'online' ? true : filters.online === 'offline' ? false : undefined,
+    groupId: filters.groupId && filters.groupId !== '__none__' ? filters.groupId : undefined,
+    ungrouped: filters.groupId === '__none__' ? true : undefined,
     sortBy: 'updatedAt',
     sortOrder: 'desc'
   }
@@ -588,6 +692,20 @@ async function fetchOrgTree() {
   }
 }
 
+async function fetchGroups() {
+  try {
+    const [tree, links] = await Promise.all([
+      deviceApi.groupTree(),
+      deviceApi.groupAssignments()
+    ])
+    groups.value = tree || []
+    assignments.value = links || []
+  } catch {
+    groups.value = []
+    assignments.value = []
+  }
+}
+
 function applyFilters() {
   page.pageNo = 1
   fetchPage()
@@ -600,6 +718,7 @@ function resetFilters() {
   filters.category = ''
   filters.online = ''
   filters.status = ''
+  filters.groupId = ''
   filters.orgId = ''
   applyFilters()
 }
@@ -670,8 +789,67 @@ function onRowCommand(command: string, row: DeviceInfo) {
     reconnect(row)
   } else if (command === 'refresh') {
     refreshStatus(row)
+  } else if (command === 'groups') {
+    openDeviceGroups(row)
   } else if (command === 'remove') {
     removeDevice(row)
+  }
+}
+
+/** 单台设备设置分组 */
+async function openDeviceGroups(row: DeviceInfo) {
+  groupDialogDeviceIds.value = [row.deviceInfoId]
+  groupDialogChecked.value = assignments.value
+    .filter((item) => item.deviceId === row.deviceInfoId)
+    .map((item) => item.groupId)
+  if (!groupDialogChecked.value.length) {
+    try {
+      groupDialogChecked.value = (await deviceApi.deviceGroups(row.deviceInfoId)) || []
+    } catch {
+      // 回显失败不阻断弹窗
+    }
+  }
+  groupDialogVisible.value = true
+}
+
+/** 批量设置分组：以所选设备的共同分组为初始值 */
+function openBatchGroups() {
+  const ids = selection.value.map((item) => item.deviceInfoId).filter(Boolean)
+  if (!ids.length) {
+    message.warning('请先选择设备')
+    return
+  }
+  groupDialogDeviceIds.value = ids
+  const [first, ...rest] = ids
+  const common = new Set(
+    assignments.value.filter((item) => item.deviceId === first).map((item) => item.groupId)
+  )
+  for (const id of rest) {
+    const own = new Set(
+      assignments.value.filter((item) => item.deviceId === id).map((item) => item.groupId)
+    )
+    for (const groupId of [...common]) {
+      if (!own.has(groupId)) common.delete(groupId)
+    }
+  }
+  groupDialogChecked.value = [...common]
+  groupDialogVisible.value = true
+}
+
+async function saveDeviceGroups() {
+  const ids = groupDialogDeviceIds.value
+  if (!ids.length) return
+  groupSaving.value = true
+  try {
+    await Promise.all(ids.map((id) => deviceApi.assignDeviceGroups(id, groupDialogChecked.value)))
+    message.success(ids.length > 1 ? `已更新 ${ids.length} 台设备的分组` : '分组已更新')
+    groupDialogVisible.value = false
+    await fetchGroups()
+    if (filters.groupId) fetchPage()
+  } catch (err) {
+    message.error('设置分组失败：' + errorText(err))
+  } finally {
+    groupSaving.value = false
   }
 }
 
@@ -804,7 +982,7 @@ function errorText(err: unknown): string {
 }
 
 onMounted(async () => {
-  await Promise.all([fetchVendors(), fetchOrgTree()])
+  await Promise.all([fetchVendors(), fetchOrgTree(), fetchGroups()])
   refreshAll()
 })
 </script>

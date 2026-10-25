@@ -10,7 +10,7 @@
  * @since 4.0.0.42
  */
 import ReProcessTask from "@repo/ui/components/ReProcessTask/ReProcessTask.vue";
-import { getProcessTasks, removeTask } from "../utils/processTasks";
+import { getProcessTasks, removeTask } from "@pages/server/src/utils/processTasks";
 
 const tasks = getProcessTasks();
 </script>

@@ -96,6 +96,10 @@ export interface DevicePageQuery {
   status?: string
   ownerId?: string
   tag?: string
+  /** 所属分组 ID */
+  groupId?: string
+  /** 仅看未分组设备 */
+  ungrouped?: boolean
   sortBy?: 'updatedAt' | 'createdAt' | 'lastOnlineAt' | 'name'
   sortOrder?: 'asc' | 'desc'
 }
@@ -242,4 +246,24 @@ export interface ProviderCredential {
   deviceCredentialRemark?: string
   deviceCredentialCreatedAt?: string
   deviceCredentialUpdatedAt?: string
+}
+
+/** 设备分组树节点 */
+export interface DeviceGroupNode {
+  groupId: string
+  groupName: string
+  groupParent?: string
+  groupOrder?: number
+  groupRemark?: string
+  /** 分组直属设备数（-1 表示「未分组」占位节点，不展示） */
+  deviceCount: number
+  children?: DeviceGroupNode[]
+}
+
+/** 设备分组新建/更新请求 */
+export interface DeviceGroupRequest {
+  groupName: string
+  groupParent?: string
+  groupOrder?: number
+  groupRemark?: string
 }

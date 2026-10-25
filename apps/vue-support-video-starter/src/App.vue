@@ -15,7 +15,13 @@ import SiteHeader from "@/components/SiteHeader.vue";
   <footer class="vd-footer">
     <div class="vd-footer-inner">
       <span class="vd-footer-brand">视频资源中心</span>
-      <span>多源聚合检索 · 电视直播 · 直链播放</span>
+      <nav class="vd-footer-links" aria-label="页脚导航">
+        <router-link to="/topics">专题</router-link>
+        <router-link to="/rank">排行榜</router-link>
+        <router-link :to="{ name: 'mine' }">我的片库</router-link>
+        <router-link to="/live">电视直播</router-link>
+        <router-link to="/play">直链播放</router-link>
+      </nav>
     </div>
   </footer>
 </template>

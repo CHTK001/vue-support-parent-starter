@@ -101,7 +101,7 @@ export const monitorRoutes: RouteConfigsTable[] = [
       {
         path: "/datasource",
         name: "DataSource",
-        component: () => import("./views/ScDataCenterView.vue"),
+        component: () => import("@pages/datasource/src/views/ScDataSourceView.vue"),
         meta: { title: "数据源中心", icon: "Coin", showLink: true, rank: 1 },
       },
       {
@@ -109,7 +109,7 @@ export const monitorRoutes: RouteConfigsTable[] = [
         name: "SyncTasks",
         // 数据同步：源 jdbc 数据源按 SQL 读 → 字段映射 → 目标 jdbc 数据源的表，
         // 执行由后端复用 datasync 引擎完成（源读取 / 字段映射转换 / Sink 契约）。
-        component: () => import("./views/SyncTaskView.vue"),
+        component: () => import("@pages/datasource/src/views/sync/SyncTaskView.vue"),
         meta: { title: "数据同步", icon: "Refresh", showLink: true, rank: 2 },
       },
     ],
@@ -223,6 +223,12 @@ export const monitorRoutes: RouteConfigsTable[] = [
         component: () => import("@pages/device/src/views/DeviceProviderView.vue"),
         meta: { title: "提供商配置", icon: "Setting", showLink: true, rank: 15 },
       },
+      {
+        path: "/device-groups",
+        name: "DeviceGroups",
+        component: () => import("@pages/device/src/views/DeviceGroupView.vue"),
+        meta: { title: "设备分组", icon: "FolderOpened", showLink: true, rank: 16 },
+      },
     ],
   },
 
@@ -235,7 +241,7 @@ export const monitorRoutes: RouteConfigsTable[] = [
       {
         path: "/release",
         name: "Release",
-        component: () => import("./views/ReleaseView.vue"),
+        component: () => import("@pages/server/src/views/release/ReleaseView.vue"),
         meta: { title: "发布管理", icon: "Box", showLink: true, rank: 20 },
       },
     ],
@@ -248,7 +254,7 @@ export const monitorRoutes: RouteConfigsTable[] = [
     // 直接删掉路由会让那两个入口变成死链。
     path: "/projects",
     name: "Projects",
-    component: () => import("./views/ProjectsView.vue"),
+    component: () => import("@pages/server/src/views/release/ProjectsView.vue"),
     meta: { title: "项目管理", icon: "Folder", showLink: false, activeMenu: "/release" },
   },
 
@@ -279,7 +285,7 @@ export const monitorRoutes: RouteConfigsTable[] = [
       {
         path: "/account",
         name: "Account",
-        component: () => import("./views/IdentityManageView.vue"),
+        component: () => import("@pages/server/src/views/identity/IdentityManageView.vue"),
         meta: { title: "账号管理", icon: "Key", showLink: true, rank: 33 },
       },
       {

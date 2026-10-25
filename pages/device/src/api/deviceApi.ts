@@ -155,7 +155,31 @@ export const deviceApi = {
 
   // ==================== 设备离线阈值 ====================
   updateOfflineThreshold: (deviceId: string, threshold: number) =>
-    http.put(`/${deviceId}/offline-threshold?threshold=${threshold}`).then(unwrap)
+    http.put(`/${deviceId}/offline-threshold?threshold=${threshold}`).then(unwrap),
+
+  // ==================== 设备分组 ====================
+  /** 分组树（含每个分组的直接设备数） */
+  groupTree: () => http.get("/group/tree").then(unwrap) as Promise<import('@pages/device/src/types/device').DeviceGroupNode[]>,
+  createGroup: (req: Record<string, any>) =>
+    http.post("/group").data(req).then(unwrap),
+  updateGroup: (groupId: string, req: Record<string, any>) =>
+    http.put(`/group/${groupId}`).data(req).then(unwrap),
+  deleteGroup: (groupId: string) => http.delete(`/group/${groupId}`).then(unwrap),
+  /** 分组下的设备 */
+  groupDevices: (groupId: string) =>
+    http.get(`/group/${groupId}/devices`).then(unwrap) as Promise<DeviceInfo[]>,
+  /** 分配设备到分组（全量替换） */
+  assignGroupDevices: (groupId: string, deviceIds: string[]) =>
+    http.put(`/group/${groupId}/devices`).data(deviceIds).then(unwrap),
+  /** 设备所属分组ID */
+  deviceGroups: (deviceId: string) =>
+    http.get(`/group/device/${deviceId}/groups`).then(unwrap) as Promise<string[]>,
+  /** 设置设备所属分组（全量替换该设备的关联） */
+  assignDeviceGroups: (deviceId: string, groupIds: string[]) =>
+    http.put(`/group/device/${deviceId}/groups`).data(groupIds).then(unwrap),
+  /** 所有设备-分组关联（列表批量回显） */
+  groupAssignments: () =>
+    http.get("/group/assignments").then(unwrap) as Promise<Array<{ deviceId: string; groupId: string }>>
 }
 
 export default deviceApi

@@ -17,8 +17,8 @@ import { useRoute } from "vue-router";
 
 import { fetchVideoDetail, fetchVideoList } from "@/api/videoApi";
 import type { VideoDetail, VideoInfo } from "@/types/video";
-import VdPlayer from "@/components/VdPlayer.vue";
 import VideoCard from "@/components/VideoCard.vue";
+import { isFavorite, pushHistory, toggleFavorite } from "@/utils/library";
 
 const route = useRoute();
 
@@ -28,16 +28,12 @@ const error = ref(false);
 const lastError = ref("");
 const detail = ref<VideoDetail | null>(null);
 const activeLine = ref(0);
-const activeEpisode = ref(0);
 const activeTab = ref<"play" | "pan" | "cl">("play");
 const related = ref<VideoInfo[]>([]);
 const summaryOpen = ref(false);
 
 /** 当前线路的集数列表 */
 const episodes = computed(() => detail.value?.playLines?.[activeLine.value]?.episodes ?? []);
-
-/** 当前播放地址 */
-const currentUrl = computed(() => episodes.value[activeEpisode.value]?.url ?? "");
 
 /** 网盘 / 直链资源 */
 const panList = computed(() => (detail.value?.downloads ?? []).filter((d) => d.type === "pan"));
@@ -62,17 +58,25 @@ const tabs = computed(() => [
   { key: "cl" as const, label: "直链资源", count: clList.value.length },
 ]);
 
+/** 是否已收藏（读写 localStorage，切换后立即反映到按钮） */
+const faved = computed(() => (detail.value ? isFavorite(detail.value.id) : false));
+
+function onToggleFavorite() {
+  if (!detail.value) return;
+  const added = toggleFavorite(detail.value);
+  message.success(added ? "已加入收藏，可在右上角「收藏」查看" : "已取消收藏");
+}
+
 /* ── 数据加载 ─────────────────────────────── */
-async function load() {
-  loading.value = true;
+async function load() {  loading.value = true;
   error.value = false;
   try {
     const data = await fetchVideoDetail(String(route.params.id));
     detail.value = data;
     activeLine.value = 0;
-    activeEpisode.value = 0;
     activeTab.value = "play";
     summaryOpen.value = false;
+    pushHistory(data);
     void loadRelated(data);
   } catch (e) {
     lastError.value = e instanceof Error ? e.message : "视频详情加载失败，请确认后端服务已启动";
@@ -94,15 +98,29 @@ async function loadRelated(data: VideoDetail) {
   }
 }
 
-/** 切换线路时重置到第 1 集 */
+/** 切换线路时回到第 1 集（列表顺序不变） */
 watch(activeLine, () => {
-  activeEpisode.value = 0;
+  activeTab.value = "play";
 });
 
-/** 切换集数 */
-function playEpisode(index: number) {
-  activeEpisode.value = index;
-  if (!currentUrl.value) message.info("该集暂无可播放的地址");
+/**
+ * 新页面播放地址：本站 /play 路由 + url 查询参数。
+ * 详情页只展示「名称 + 地址」，播放放到新标签页，避免详情页被播放器占满。
+ */
+function playHref(url: string) {
+  const { origin, pathname } = window.location;
+  return `${origin}${pathname}#/play?url=${encodeURIComponent(url)}`;
+}
+
+/** 顶栏「立即播放」：打开第一条可用地址 */
+function openFirstPlay() {
+  const first = episodes.value.find((ep) => ep.url);
+  if (!first) {
+    activeTab.value = "play";
+    message.info("该影片暂无可用的播放地址");
+    return;
+  }
+  window.open(playHref(first.url), "_blank", "noopener");
 }
 
 /** 复制资源地址 */
@@ -113,11 +131,6 @@ async function copyUrl(url: string) {
   } catch {
     message.error("复制失败，请手动选择");
   }
-}
-
-/** 播放器错误提示 */
-function onPlayerError(msg: string) {
-  message.error(msg || "视频播放失败");
 }
 
 onMounted(() => void load());
@@ -166,8 +179,8 @@ watch(
               {{ detail.name }}<template v-if="detail.year"> ({{ detail.year }})</template>
             </h1>
 
-            <div v-if="detail.continueInfo || detail.updateTime" class="vdw-update-chip">
-              最后更新于 {{ detail.updateTime || detail.continueInfo }}
+            <div v-if="detail.updateTime || detail.continueInfo" class="vdw-update-chip">
+              {{ detail.updateTime ? `最后更新于 ${detail.updateTime}` : detail.continueInfo }}
             </div>
 
             <div v-if="typeLabel" class="vdw-field"><span>类型：</span>{{ typeLabel }}</div>
@@ -183,15 +196,16 @@ watch(
             </div>
 
             <div class="vdw-actions">
-              <button type="button" class="vdw-btn-primary" @click="activeTab = 'play'">
+              <button type="button" class="vdw-btn-primary" @click="openFirstPlay">
                 立即播放
               </button>
               <button
                 type="button"
                 class="vdw-btn-ghost"
-                @click="message.success('已加入收藏（示例）')"
+                :class="{ 'is-on': faved }"
+                @click="onToggleFavorite"
               >
-                添加收藏
+                {{ faved ? "已收藏" : "添加收藏" }}
               </button>
             </div>
           </div>
@@ -201,7 +215,7 @@ watch(
             <div class="vdw-rating-card">
               <div class="vdw-rating-label">评分</div>
               <div class="vdw-rating-value">
-                {{ typeof detail.score === "number" ? detail.score.toFixed(1) : "暂无" }}
+                {{ detail.score ? detail.score.toFixed(1) : "暂无" }}
               </div>
             </div>
             <div class="vdw-rating-card">
@@ -250,54 +264,62 @@ watch(
             </li>
           </ul>
 
-          <!-- 在线播放 -->
+          <!-- 在线播放：只列「名称 + 地址」，点击「播放」在新页面播放 -->
           <div v-show="activeTab === 'play'" class="vdw-panel">
             <h2 class="vdw-h2">在线播放</h2>
-            <div v-if="currentUrl" class="vdw-player">
-              <VdPlayer
-                :url="currentUrl"
-                :poster="detail.cover"
-                :autoplay="true"
-                @error="onPlayerError"
-              />
+
+            <div v-if="(detail.playLines?.length ?? 0) > 1" class="vdw-line-row">
+              <span class="vdw-row-label">线路：</span>
+              <div class="vdw-episodes">
+                <button
+                  v-for="(line, li) in detail.playLines"
+                  :key="line.line"
+                  type="button"
+                  class="vd-chip"
+                  :class="{ 'is-active': activeLine === li }"
+                  @click="activeLine = li"
+                >
+                  {{ line.line }}
+                </button>
+              </div>
             </div>
+
+            <table v-if="episodes.length" class="vdw-table">
+              <thead>
+                <tr>
+                  <th width="200">名称</th>
+                  <th>地址</th>
+                  <th width="130" class="vdw-table-ops">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="ep in episodes" :key="ep.index">
+                  <td class="vdw-table-name">{{ ep.name || `第 ${ep.index} 集` }}</td>
+                  <td class="vdw-table-url">
+                    <span v-if="ep.url" :title="ep.url">{{ ep.url }}</span>
+                    <span v-else>—</span>
+                  </td>
+                  <td class="vdw-table-ops">
+                    <template v-if="ep.url">
+                      <a
+                        :href="playHref(ep.url)"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="vdw-play-link"
+                        >播放</a
+                      >
+                      <a href="#" @click.prevent="copyUrl(ep.url)">复制</a>
+                    </template>
+                    <span v-else>—</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
             <div v-else class="vdw-inline-empty">该影片暂无可用的在线播放地址</div>
 
-            <div v-if="episodes.length" class="vdw-play-rows">
-              <div v-if="(detail.playLines?.length ?? 0) > 1" class="vdw-line-row">
-                <span class="vdw-row-label">线路：</span>
-                <div>
-                  <button
-                    v-for="(line, li) in detail.playLines"
-                    :key="line.line"
-                    type="button"
-                    class="vd-chip"
-                    :class="{ 'is-active': activeLine === li }"
-                    @click="activeLine = li"
-                  >
-                    {{ line.line }}
-                  </button>
-                </div>
-              </div>
-
-              <div class="vdw-line-row">
-                <span class="vdw-row-label">选集：</span>
-                <div class="vdw-episodes">
-                  <button
-                    v-for="ep in episodes"
-                    :key="ep.index"
-                    type="button"
-                    class="vd-chip"
-                    :class="{ 'is-active': activeEpisode === ep.index - 1 }"
-                    @click="playEpisode(ep.index - 1)"
-                  >
-                    {{ ep.name || `第 ${ep.index} 集` }}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <p class="vdw-tip">若未自动播放，请点击播放器上的播放按钮。</p>
+            <p class="vdw-tip">
+              「播放」会在新标签页打开播放器；也可以复制地址到本地播放器使用。
+            </p>
           </div>
 
           <!-- 网盘资源 / 直链资源 -->
@@ -314,18 +336,23 @@ watch(
             <table v-if="group.list.length" class="vdw-table">
               <thead>
                 <tr>
-                  <th>资源名称</th>
-                  <th width="120">提取码</th>
-                  <th width="120">操作</th>
+                  <th width="240">名称</th>
+                  <th>地址</th>
+                  <th width="90" class="vdw-table-ops">提取码</th>
+                  <th width="120" class="vdw-table-ops">操作</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="(dl, i) in group.list" :key="i">
-                  <td class="vdw-table-name">{{ dl.name || dl.url }}</td>
-                  <td>{{ dl.password || "—" }}</td>
-                  <td>
+                  <td class="vdw-table-name">{{ dl.name || "未命名资源" }}</td>
+                  <td class="vdw-table-url">
+                    <a :href="dl.url" target="_blank" rel="noreferrer noopener" :title="dl.url">{{
+                      dl.url
+                    }}</a>
+                  </td>
+                  <td class="vdw-table-ops">{{ dl.password || "—" }}</td>
+                  <td class="vdw-table-ops">
                     <a :href="dl.url" target="_blank" rel="noreferrer noopener">打开</a>
-                    ·
                     <a href="#" @click.prevent="copyUrl(dl.url)">复制</a>
                   </td>
                 </tr>
@@ -471,6 +498,12 @@ watch(
 
 .vdw-btn-ghost:hover {
   background: var(--vd-border-2);
+}
+
+/* 已收藏状态：浅蓝底 + 主色文字 */
+.vdw-btn-ghost.is-on {
+  background: var(--vd-primary-soft);
+  color: var(--vd-primary);
 }
 
 /* ── 右侧评分卡区（264 宽 / 浅灰圆角容器） ── */
@@ -621,23 +654,11 @@ watch(
   padding: 0 0 10px;
 }
 
-.vdw-player {
-  width: min(100%, calc(var(--vd-player-h) * 16 / 9));
-  aspect-ratio: 16 / 9;
-  margin: 0 auto;
-  background: #000;
-  border-radius: var(--vd-radius);
-  overflow: hidden;
-}
-
+/* 详情页不做内嵌播放，播放统一在新标签页的 /play 页进行 */
 .vdw-inline-empty {
   padding: 24px 0;
   font-size: 16px;
   color: var(--vd-text-2);
-}
-
-.vdw-play-rows {
-  padding-top: 10px;
 }
 
 .vdw-line-row {
@@ -667,9 +688,10 @@ watch(
   color: var(--vd-text-2);
 }
 
-/* ── 资源表（参照站 table.bit_list） ── */
+/* ── 资源表（参照站 table.bit_list）：名称 / 地址 / 操作 ── */
 .vdw-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 16px;
 }
@@ -689,9 +711,39 @@ watch(
   color: var(--vd-text-2);
 }
 
-.vdw-table th:nth-child(n + 2),
-.vdw-table td:nth-child(n + 2) {
+/* 地址列：单行省略，悬停看完整地址 */
+.vdw-table-url {
+  overflow: hidden;
+  font-size: 14px;
+  color: var(--vd-text-2);
+}
+
+.vdw-table-url > * {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 操作 / 提取码列居中（需要压过 .vdw-table th 的左对齐） */
+.vdw-table th.vdw-table-ops,
+.vdw-table td.vdw-table-ops {
   text-align: center;
+  white-space: nowrap;
+}
+
+.vdw-table-ops a {
+  margin: 0 6px;
+  color: var(--vd-link);
+}
+
+.vdw-table-ops a:hover {
+  color: var(--vd-primary);
+  text-decoration: underline;
+}
+
+.vdw-play-link {
+  font-weight: 600;
 }
 
 .vdw-table tbody tr:hover {
@@ -792,6 +844,20 @@ watch(
   }
   .vdw-info {
     padding-left: 12px;
+  }
+  /* 评分卡在手机上横排太挤，改为纵向排列并压缩高度 */
+  .vdw-ratings {
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+  }
+  .vdw-rating-card {
+    flex: none;
+    padding: 10px 14px;
+  }
+  .vdw-rating-value {
+    font-size: 26px;
+    line-height: 34px;
   }
   .vdw-grid-7 {
     grid-template-columns: repeat(2, minmax(0, 1fr));

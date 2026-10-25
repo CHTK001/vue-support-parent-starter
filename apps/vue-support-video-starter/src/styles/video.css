@@ -319,6 +319,7 @@ a:hover {
 }
 
 .vd-sort-right {
+  margin-left: auto;
   font-size: 16px;
   line-height: 25px;
   color: var(--vd-text-2);
@@ -815,6 +816,22 @@ a:hover {
 .vd-footer-brand {
   color: var(--vd-text);
   font-weight: 500;
+}
+
+.vd-footer-links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.vd-footer-links a {
+  color: var(--vd-text-2);
+  transition: color var(--vd-fast) var(--vd-ease);
+}
+
+.vd-footer-links a:hover {
+  color: var(--vd-primary);
 }
 
 /* ═══════════════════════════════════════════

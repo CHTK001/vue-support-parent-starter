@@ -28,6 +28,7 @@ const SECTIONS = [
   { key: "tv", label: "最近更新的剧集", type: "tv" },
   { key: "anime", label: "人气动漫", type: "anime" },
   { key: "variety", label: "综艺娱乐", type: "variety" },
+  { key: "documentary", label: "纪录片精选", type: "documentary" },
 ] as const;
 
 let heroTimer: ReturnType<typeof setInterval> | null = null;
@@ -147,8 +148,8 @@ onUnmounted(stopHeroLoop);
                 </div>
                 <div class="detail">
                   <div class="title">{{ item.name }}</div>
-                  <div class="info">{{ heroMeta(item) }}</div>
-                  <div class="info">{{ item.continueInfo || item.remark }}</div>
+                  <div class="info info--meta">{{ heroMeta(item) }}</div>
+                  <div class="info info--desc">{{ item.continueInfo || item.remark }}</div>
                 </div>
               </a>
             </li>
@@ -338,11 +339,20 @@ onUnmounted(stopHeroLoop);
   text-overflow: ellipsis;
 }
 
+/* 副信息：元信息单行省略，简介两行省略——两行合计不能超过 145px 卡片高度 */
 .vd-hero-aside .info {
   font-size: 13px;
   line-height: 19.5px;
   color: var(--vd-text-2);
   overflow: hidden;
+}
+
+.vd-hero-aside .info--meta {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.vd-hero-aside .info--desc {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -381,6 +391,14 @@ onUnmounted(stopHeroLoop);
   }
   .vd-hero-main {
     inset: 0 340px 0 0;
+  }
+  /* 侧栏每格只剩 120px 高：收紧内边距，简介只留一行，避免文字被截断 */
+  .vd-hero-aside .detail {
+    padding: 16px;
+    gap: 8px;
+  }
+  .vd-hero-aside .info--desc {
+    -webkit-line-clamp: 1;
   }
 }
 

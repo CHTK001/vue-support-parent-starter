@@ -37,6 +37,19 @@ export const deviceRoutes: RouteConfigsTable[] = [
     }
   },
   {
+    path: '/device/groups',
+    name: 'DeviceGroup',
+    component: () => import('../views/DeviceGroupView.vue'),
+    meta: {
+      title: '设备分组',
+      icon: 'FolderOpened',
+      showLink: true,
+      keepAlive: true,
+      isVisible: '1',
+      rank: 13
+    }
+  },
+  {
     path: '/device/video-wall',
     name: 'DeviceVideoWall',
     component: () => import('../views/DeviceVideoWallView.vue'),
@@ -45,7 +58,7 @@ export const deviceRoutes: RouteConfigsTable[] = [
       showLink: false,
       keepAlive: false,
       isVisible: '0',
-      rank: 13
+      rank: 14
     }
   },
   {
@@ -57,7 +70,7 @@ export const deviceRoutes: RouteConfigsTable[] = [
       showLink: false,
       keepAlive: false,
       isVisible: '0',
-      rank: 14
+      rank: 15
     }
   }
 ]
@@ -85,6 +98,11 @@ export const deviceMenus = [
         path: '/device/provider',
         name: 'DeviceProvider',
         meta: { title: '厂商接入', icon: 'Connection', isVisible: '1' }
+      },
+      {
+        path: '/device/groups',
+        name: 'DeviceGroup',
+        meta: { title: '设备分组', icon: 'FolderOpened', isVisible: '1' }
       }
     ]
   }

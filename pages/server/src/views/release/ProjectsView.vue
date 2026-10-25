@@ -425,7 +425,7 @@ import { ElMessageBox } from 'element-plus';
 import {getGlobalSocketService, message} from '@repo/core';
 import { http, unwrapResult } from '@repo/utils';
 import { fillTemplate, listTemplates } from '@repo/ui/components/ReCommand/templates';
-import { trackTask } from '../utils/processTasks';
+import { trackTask } from '../../utils/processTasks';
 
 const BASE = '/ms/server/release';
 

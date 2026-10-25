@@ -43,6 +43,24 @@ const routes: RouteRecordRaw[] = [
     meta: { title: "搜索" },
   },
   {
+    path: "/rank",
+    name: "rank",
+    component: () => import("./views/RankView.vue"),
+    meta: { title: "排行榜" },
+  },
+  {
+    path: "/topics",
+    name: "topics",
+    component: () => import("./views/TopicView.vue"),
+    meta: { title: "专题" },
+  },
+  {
+    path: "/mine",
+    name: "mine",
+    component: () => import("./views/MineView.vue"),
+    meta: { title: "我的片库" },
+  },
+  {
     path: "/live",
     name: "live",
     component: () => import("./views/LiveView.vue"),
@@ -70,4 +88,10 @@ const routes: RouteRecordRaw[] = [
 export default createRouter({
   history: createWebHashHistory(),
   routes,
+  /** 切页回到顶部；同一页只改 query（如片库切页签）时保持当前位置 */
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) return savedPosition;
+    if (to.path === from.path) return false;
+    return { top: 0 };
+  },
 });

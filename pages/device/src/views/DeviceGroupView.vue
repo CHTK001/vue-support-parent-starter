@@ -2,7 +2,7 @@
   <div class="dvg">
     <!-- KPI -->
     <section class="dvg-kpis">
-      <ReStatCard size="compact" title="分组总数" :value="String(groupTree.length - 1)" icon="FolderOpened" icon-color="var(--el-color-primary)" />
+      <ReStatCard size="compact" title="分组总数" :value="String(flatTree.filter((n) => n.groupId).length)" icon="FolderOpened" icon-color="var(--el-color-primary)" />
       <ReStatCard size="compact" title="已分配设备" :value="String(assignedCount)" icon="Grid" icon-color="var(--el-color-success)" />
       <ReStatCard size="compact" title="未分组设备" :value="String(unassignedCount)" icon="QuestionFilled" icon-color="var(--el-color-warning)" />
     </section>
@@ -13,7 +13,7 @@
         <header class="dvg-tree-panel__head">
           <span class="dvg-tree-panel__bar" />
           <span>设备分组</span>
-          <span class="dvg-tree-panel__count">{{ groupTree.length - 1 }}</span>
+          <span class="dvg-tree-panel__count">{{ flatTree.filter((n) => n.groupId).length }}</span>
           <div class="dvg-tree-panel__ops">
             <ReButton icon="Plus" layout="square" tip="新建分组" type="primary" @click="openCreate(null)" />
             <ReButton icon="RefreshRight" layout="square" tip="刷新" :loading="loading" @click="fetchTree" />
@@ -22,10 +22,11 @@
 
         <div class="dvg-tree">
           <div
-            v-for="node in groupTree"
-            :key="node.groupId"
+            v-for="node in flatTree"
+            :key="node.groupId || '__ungrouped'"
             class="dvg-tree-node"
             :class="{ 'is-active': activeGroupId === node.groupId }"
+            :style="{ paddingLeft: `${10 + (node.depth || 0) * 14}px` }"
             @click="selectGroup(node)"
           >
             <span class="dvg-tree-node__icon">
@@ -34,7 +35,7 @@
             <span class="dvg-tree-node__name">{{ node.groupName }}</span>
             <span v-if="node.deviceCount >= 0" class="dvg-tree-node__badge">{{ node.deviceCount }}</span>
             <span class="dvg-tree-node__ops">
-              <el-dropdown trigger="click" placement="bottom-end" @command="(cmd: string) => onNodeCommand(cmd, node)">
+              <el-dropdown v-if="node.groupId" trigger="click" placement="bottom-end" @command="(cmd: string) => onNodeCommand(cmd, node)">
                 <el-icon class="dvg-tree-node__more" @click.stop><MoreFilled /></el-icon>
                 <template #dropdown>
                   <el-dropdown-menu>
@@ -75,16 +76,11 @@
                 v-for="d in unassignedDevices"
                 :key="d.deviceInfoId"
                 class="dvg-device-card"
-                :class="{ 'is-assigned': assigned.has(d.deviceInfoId || '') }"
-                @click="toggleAssign(d)"
               >
                 <div class="dvg-device-card__head">
                   <el-icon class="dvg-device-card__icon"><VideoCamera /></el-icon>
                   <span class="dvg-device-card__name">{{ d.deviceInfoName }}</span>
-                  <el-icon class="dvg-device-card__check">
-                    <CircleCheck v-if="assigned.has(d.deviceInfoId || '')" />
-                    <CirclePlus v-else />
-                  </el-icon>
+                  <span class="dvg-device-card__tag">未分组</span>
                 </div>
                 <div class="dvg-device-card__meta">{{ d.deviceInfoVendor }} · {{ d.deviceInfoIp || '无 IP' }}</div>
               </article>
@@ -103,7 +99,6 @@
                 v-for="d in groupDevices"
                 :key="d.deviceInfoId"
                 class="dvg-device-card"
-                @click="toggleAssign(d)"
               >
                 <div class="dvg-device-card__head">
                   <el-icon class="dvg-device-card__icon"><VideoCamera /></el-icon>
@@ -196,33 +191,40 @@ const allDevices = ref<DeviceInfo[]>([])
 const activeGroupId = ref('')
 const assigned = ref<Set<string>>(new Set())
 
-/** 当前选中分组名 */
-const activeGroupName = computed(() =>
-  groupTree.value.find((n) => n.groupId === activeGroupId.value)?.groupName || '选择分组',
-)
-
-/** 已分配设备（所有分组汇总） */
-const assignedCount = computed(() => {
-  let n = 0
-  for (const g of groupTree.value) {
-    if (g.deviceCount > 0) n += g.deviceCount
+/** 树扁平化（带层级深度），用于渲染缩进列表 */
+const flatTree = computed(() => {
+  const out: Array<DeviceGroupNode & { depth: number }> = []
+  const walk = (nodes: DeviceGroupNode[], depth: number) => {
+    for (const n of nodes) {
+      out.push({ ...n, depth })
+      if (n.children?.length) walk(n.children, depth + 1)
+    }
   }
-  return n
+  walk(groupTree.value, 0)
+  return out
 })
 
-/** 未分组设备数 */
-const unassignedCount = computed(() => allDevices.value.length - assignedCount.value)
+/** 当前选中分组名 */
+const activeGroupName = computed(() =>
+  flatTree.value.find((n) => n.groupId === activeGroupId.value)?.groupName || '选择分组',
+)
 
-/** 当前分组的设备（已分配的） */
+/** 已分配设备（去重，跨分组不重复计数） */
+const assignedCount = computed(() => assigned.value.size)
+
+/** 未分组设备数 */
+const unassignedCount = computed(() => Math.max(0, allDevices.value.length - assignedCount.value))
+
+/** 未分配设备列表 */
 const unassignedDevices = computed(() =>
   allDevices.value.filter((d) => !assigned.value.has(d.deviceInfoId || '')),
 )
 
-/** 分组选项（下拉用） */
+/** 分组选项（下拉用，带层级缩进） */
 const groupOptions = computed(() =>
-  groupTree.value
-    .filter((n) => n.groupId !== activeGroupId.value)
-    .map((n) => ({ value: n.groupId, label: n.groupName })),
+  flatTree.value
+    .filter((n) => n.groupId && n.groupId !== activeGroupId.value)
+    .map((n) => ({ value: n.groupId, label: `${'　'.repeat(n.depth || 0)}${n.groupName}` })),
 )
 
 /** dialog state */
@@ -241,7 +243,7 @@ async function fetchTree() {
   try {
     groupTree.value = await deviceApi.groupTree()
     await fetchAllDevices()
-    refreshAssignedSet()
+    await refreshAssignedSet()
   } finally {
     loading.value = false
   }
@@ -251,17 +253,18 @@ async function fetchAllDevices() {
   allDevices.value = (await deviceApi.list()) as DeviceInfo[]
 }
 
-function refreshAssignedSet() {
-  assigned.value = new Set()
-  for (const node of groupTree.value) {
-    if (!node.groupId || node.deviceCount <= 0) continue
-    // 每个分组单独拉一次
-    void deviceApi.groupDevices(node.groupId).then((devs: unknown) => {
-      for (const d of devs as DeviceInfo[]) {
-        assigned.value.add(d.deviceInfoId || '')
-      }
-    })
+async function refreshAssignedSet() {
+  const next = new Set<string>()
+  const groups = flatTree.value.filter((n) => n.groupId && n.deviceCount > 0)
+  for (const node of groups) {
+    try {
+      const devs = (await deviceApi.groupDevices(node.groupId)) as DeviceInfo[]
+      for (const d of devs) next.add(d.deviceInfoId || '')
+    } catch {
+      // 某个分组查询失败不影响其它分组
+    }
   }
+  assigned.value = next
 }
 
 async function selectGroup(node: DeviceGroupNode) {
@@ -297,7 +300,7 @@ async function onSubmit() {
   dialogSaving.value = true
   try {
     if (editingId.value) {
-      await deviceApi.updateGroup(editingId.value, { groupName: form.groupName, groupParent: form.groupParent || undefined, groupRemark: form.groupRemark || undefined })
+      await deviceApi.updateGroup(editingId.value, { groupName: form.groupName, groupParent: form.groupParent, groupRemark: form.groupRemark })
       ElMessage.success('分组已更新')
     } else {
       await deviceApi.createGroup({ groupName: form.groupName, groupParent: form.groupParent || undefined, groupRemark: form.groupRemark || undefined })
@@ -499,7 +502,6 @@ onMounted(() => { void fetchTree() })
   border: 1.5px solid transparent;
   border-radius: 10px;
   padding: 10px 12px;
-  cursor: pointer;
   transition: all 0.18s ease;
   user-select: none;
 }
@@ -509,6 +511,13 @@ onMounted(() => { void fetchTree() })
 .dvg-device-card__icon { color: var(--el-color-primary); font-size: 16px; }
 .dvg-device-card__name { flex: 1; font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dvg-device-card__check { color: var(--el-color-success); font-size: 16px; }
+.dvg-device-card__tag {
+  font-size: 10.5px;
+  padding: 1px 6px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--el-color-warning) 14%, transparent);
+  color: var(--el-color-warning);
+}
 .dvg-device-card__meta { font-size: 11.5px; color: var(--el-text-color-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .dvg-empty {
@@ -534,4 +543,5 @@ onMounted(() => { void fetchTree() })
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 8px;
 }
+.dvg-assign-list .dvg-device-card { cursor: pointer; }
 </style>
