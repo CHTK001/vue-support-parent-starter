@@ -1,8 +1,8 @@
 <!--
-  会话列表的五个方向 —— 抓包分析与 PCAP 分析共用的画布集。
+  会话列表的节奏视图 —— 抓包分析与 PCAP 分析共用的画布。
 
   **抽出来的理由**：这两页看的是同一类数据（一次抓包或一次导入就是一个会话），
-  差别只在「来源」与「能做什么」。如果各自写五套画布，就是 2 × 5 = 10 套，
+  差别只在「来源」与「能做什么」。各自写一套就是 2 套，
   键盘可达性、空态引导、分道算法会立刻分叉 —— 正是这次重构要消灭的东西。
   两页各自只保留自己的动作按钮（新增会话 / 导入）与会话详情弹层。
 
@@ -10,17 +10,21 @@
   塞进页面再传进来只会多一层透传。页面若想知道当前筛选结果，用 `filters-change`。
 
   **不渲染页头**（`no-head`）：两页的标题在标签页与面包屑里已经说过一遍，
-  再顶一行「大标题 + 一句说明」只是把控制栏往下推。标题仍然作为方向坞的
-  无障碍标签传下去，只是不再画出来。页面的动作按钮走 `bar-actions`，
-  与控制栏同处一张卡 —— 这是 RePageStage 约定的位置，页头右侧不再挂按钮。
+  再顶一行「大标题 + 一句说明」只是把控制栏往下推。页面的动作按钮走
+  `bar-actions`，与控制栏同处一张卡 —— 这是 RePageStage 约定的位置。
+
+  **只有一个方向：节奏**（时间轴 + 明细表），也不再挂方向坞。
+  抓包与导入的会话都带起止时刻，「什么时候抓的、抓了多久」是这两页最该先回答的
+  问题；其余四个方向（工单台 / 仪表 / 档案柜 / 卡片墙）只是把同一批会话换个排法，
+  摆出来只会让人在「怎么看」上分心。`variant` 固定传 `rhythm`、`variant-items`
+  传空数组，方向坞因此整块不渲染 —— 与 ACME 证书页同一套写法。
 -->
 <template>
   <RePageStage
-    :variant="variant"
+    variant="rhythm"
     :title="title"
     no-head
-    :variant-items="items"
-    :dock-visible="dockVisible"
+    :variant-items="[]"
     :tabs="tabs"
     :tab-value="filters.status"
     :filters="stageFilters"
@@ -28,7 +32,6 @@
     :count-text="countText"
     :loading="loading"
     refresh-tip="刷新列表"
-    @update:variant="setVariant"
     @update:tab-value="onTab"
     @filter="(k, v) => (filters[k as 'keyword'] = v)"
     @refresh="emit('refresh')"
@@ -43,48 +46,50 @@
 
     <!-- ==================== 节奏：这些抓包落在一天的什么位置 ==================== -->
     <template #rhythm>
-      <div class="day-picker">
-        <button
-          v-for="d in days"
-          :key="d.dayKey"
-          type="button"
-          class="day-chip"
-          :class="{ 'is-active': d.dayKey === activeDay }"
-          :aria-pressed="d.dayKey === activeDay"
-          @click="activeDay = d.dayKey"
-        >
-          {{ dayLabel(d.dayKey) }}
-          <span class="day-chip__count">{{ d.count }}</span>
-        </button>
-        <span v-if="!days.length" class="pk-faint">还没有带时间的会话</span>
-      </div>
+      <!-- 没有任何会话时，空轴和「— 的抓包时刻」只是噪音，整段让位给下面的空态表 -->
+      <template v-if="days.length">
+        <div class="day-picker">
+          <button
+            v-for="d in days"
+            :key="d.dayKey"
+            type="button"
+            class="day-chip"
+            :class="{ 'is-active': d.dayKey === activeDay }"
+            :aria-pressed="d.dayKey === activeDay"
+            @click="activeDay = d.dayKey"
+          >
+            {{ dayLabel(d.dayKey) }}
+            <span class="day-chip__count">{{ d.count }}</span>
+          </button>
+        </div>
 
-      <ReCanvasBand
-        :items="bandItems"
-        :height="axisHeight"
-        :ticks="['00', '04', '08', '12', '16', '20', '24']"
-        :now-percent="nowPercent"
-        :axis-clickable="false"
-        @bar-click="(item) => (pickedId = Number(item.key))"
-      >
-        <template #head>
-          <span class="band__title">
-            {{ activeDay || '—' }} 的抓包时刻
-            <span>每根标记是一份会话的开始时刻；时长在下面的表里</span>
-          </span>
-          <span class="pk-band__legend">
-            <span class="pk-band__legend-item">
-              <i class="pk-band__legend-chip" :style="{ background: runColor }" />{{ runningLabel }}
+        <ReCanvasBand
+          :items="bandItems"
+          :height="axisHeight"
+          :ticks="['00', '04', '08', '12', '16', '20', '24']"
+          :now-percent="nowPercent"
+          :axis-clickable="false"
+          @bar-click="(item) => openOf({ id: Number(item.key) }, 'packet')"
+        >
+          <template #head>
+            <span class="band__title">
+              {{ activeDay || '—' }} 的抓包时刻
+              <span>每根标记是一份会话的开始时刻；时长在下面的表里</span>
             </span>
-            <span class="pk-band__legend-item">
-              <i class="pk-band__legend-chip" :style="{ background: errColor }" />异常
+            <span class="pk-band__legend">
+              <span class="pk-band__legend-item">
+                <i class="pk-band__legend-chip" :style="{ background: runColor }" />{{ runningLabel }}
+              </span>
+              <span class="pk-band__legend-item">
+                <i class="pk-band__legend-chip" :style="{ background: errColor }" />异常
+              </span>
+              <span class="pk-band__legend-item">
+                <i class="pk-band__legend-chip" :style="{ background: stopColor }" />已停止
+              </span>
             </span>
-            <span class="pk-band__legend-item">
-              <i class="pk-band__legend-chip" :style="{ background: stopColor }" />已停止
-            </span>
-          </span>
-        </template>
-      </ReCanvasBand>
+          </template>
+        </ReCanvasBand>
+      </template>
 
       <ReCanvasTable
         :rows="dayViews as unknown as Array<Record<string, unknown>>"
@@ -92,8 +97,8 @@
         :row-key="rowKey"
         clickable
         :loading="loading"
-        empty-text="这一天没有会话"
-        empty-hint="换一个日期，或确认抓包是否已经结束并落库。"
+        :empty-text="tableEmptyText"
+        :empty-hint="tableEmptyHint"
         @row-click="(r) => openOf(r, 'packet')"
       >
         <template #cell-name="{ row }">
@@ -113,42 +118,6 @@
         <template #cell-durationText="{ row }">
           <span class="pk-num pk-dim">{{ viewOf(row).durationText }}</span>
         </template>
-      </ReCanvasTable>
-    </template>
-
-    <!-- ==================== 工单台：一屏尽量多的会话 ==================== -->
-    <template #console>
-      <ReCanvasTable
-        :rows="filtered as unknown as Array<Record<string, unknown>>"
-        :columns="consoleCols"
-        :row-key="rowKey"
-        clickable
-        :loading="loading"
-        :empty-text="emptyMain"
-        :empty-hint="emptyHint"
-        @row-click="(r) => openOf(r, 'packet')"
-      >
-        <template #cell-name="{ row }">
-          <div class="pk-strong pk-ellipsis">{{ viewOf(row).name }}</div>
-          <div class="pk-sub pk-ellipsis">{{ viewOf(row).rangeText }}</div>
-        </template>
-        <template #cell-ifaceText="{ row }">
-          <span class="pk-dim pk-ellipsis" :title="viewOf(row).iface">{{ viewOf(row).ifaceText }}</span>
-        </template>
-        <template #cell-statusText="{ row }">
-          <span class="sstate" :class="`is-${viewOf(row).statusTone}`">
-            <i class="pk-dot" />{{ statusTextOf(viewOf(row)) }}
-          </span>
-        </template>
-        <template #cell-packetCount="{ row }">
-          <span class="pk-num">{{ viewOf(row).packetCount.toLocaleString() }}</span>
-        </template>
-        <template #cell-sizeText="{ row }">
-          <span class="pk-num pk-dim" :title="viewOf(row).sizeTitle">{{ viewOf(row).sizeText }}</span>
-        </template>
-        <template #cell-durationText="{ row }">
-          <span class="pk-num pk-dim">{{ viewOf(row).durationText }}</span>
-        </template>
         <template #row-actions="{ row }">
           <TsharkSessionActions
             :session="viewOf(row)"
@@ -162,200 +131,13 @@
       </ReCanvasTable>
     </template>
 
-    <!-- ==================== 仪表：先看总量与状态分布 ==================== -->
-    <template #instrument>
-      <ReCanvasTelemetry :cells="teleCells" />
-
-      <div class="dist">
-        <div class="dist__head">
-          <span class="dist__title">状态分布</span>
-          <span class="dist__note">{{ noun }}按状态归档 · 异常计数不为 0 说明有抓包进程没正常收尾</span>
-        </div>
-        <div class="dist__rows">
-          <div v-for="row in distRows" :key="row.label" class="dist__row">
-            <span class="dist__label">
-              <i class="pk-dot" :style="{ background: row.color }" />{{ row.label }}
-            </span>
-            <span class="dist__track">
-              <span
-                class="dist__fill"
-                :style="{ width: `${row.percent}%`, background: row.color }"
-              />
-            </span>
-            <span class="dist__value pk-num">{{ row.count }}</span>
-          </div>
-        </div>
-      </div>
-
-      <ReCanvasTable
-        :rows="filtered as unknown as Array<Record<string, unknown>>"
-        :columns="instrumentCols"
-        :row-key="rowKey"
-        clickable
-        :loading="loading"
-        :empty-text="emptyMain"
-        @row-click="(r) => openOf(r, 'stats')"
-      >
-        <template #cell-name="{ row }">
-          <span class="pk-strong pk-ellipsis">{{ viewOf(row).name }}</span>
-        </template>
-        <template #cell-statusText="{ row }">
-          <span class="sstate" :class="`is-${viewOf(row).statusTone}`">
-            <i class="pk-dot" />{{ statusTextOf(viewOf(row)) }}
-          </span>
-        </template>
-        <template #cell-packetCount="{ row }">
-          <span class="pk-num">{{ viewOf(row).packetCount.toLocaleString() }}</span>
-        </template>
-        <template #cell-sizeText="{ row }">
-          <span class="pk-num pk-dim">{{ viewOf(row).sizeText }}</span>
-        </template>
-      </ReCanvasTable>
-    </template>
-
-    <!-- ==================== 档案柜：左栏列会话，右栏常驻会话参数 ==================== -->
-    <template #dossier>
-      <ReCanvasSplit
-        :rows="filtered as unknown as Array<Record<string, unknown>>"
-        :groups="groups"
-        :row-key="rowKey"
-        :active-key="picked?.id ?? null"
-        :rail-width="250"
-        :loading="loading"
-        :empty-text="emptyMain"
-        :empty-hint="emptyHint || '清掉搜索词或换一个状态页签试试。'"
-        @pick="(k) => (pickedId = Number(k))"
-      >
-        <template #rail-item="{ row }">
-          <span class="pk-rail__title">
-            <i class="pk-dot" :class="viewOf(row).running ? 'pk-dot--live' : ''" />
-            <span class="pk-ellipsis">{{ viewOf(row).name }}</span>
-          </span>
-          <span class="pk-rail__meta pk-num">{{ viewOf(row).startText }}</span>
-        </template>
-
-        <template #detail-head="{ row }">
-          <div style="min-width: 0">
-            <div class="detail__title pk-ellipsis">{{ viewOf(row).name }}</div>
-            <div class="pk-sub">
-              <span class="sstate" :class="`is-${viewOf(row).statusTone}`">
-                <i class="pk-dot" />{{ statusTextOf(viewOf(row)) }}
-              </span>
-              <span class="detail__gap">{{ viewOf(row).packetCount.toLocaleString() }} 条报文</span>
-            </div>
-          </div>
-        </template>
-
-        <template #detail="{ row }">
-          <div class="pk-kv">
-            <span class="pk-kv__label">网卡</span>
-            <span class="pk-kv__value pk-ellipsis" :title="viewOf(row).iface">{{ viewOf(row).ifaceText }}</span>
-            <span class="pk-kv__label">开始</span>
-            <span class="pk-kv__value pk-num">{{ viewOf(row).startText }}</span>
-            <span class="pk-kv__label">结束</span>
-            <span class="pk-kv__value pk-num">{{ viewOf(row).endText }}</span>
-            <span class="pk-kv__label">时长</span>
-            <span class="pk-kv__value pk-num">{{ viewOf(row).durationText }}</span>
-            <span class="pk-kv__label">报文</span>
-            <span class="pk-kv__value pk-num">{{ viewOf(row).packetCount.toLocaleString() }}</span>
-            <span class="pk-kv__label">大小</span>
-            <span class="pk-kv__value pk-num" :title="viewOf(row).sizeTitle">{{ viewOf(row).sizeText }}</span>
-            <span class="pk-kv__label">来源</span>
-            <span class="pk-kv__value">{{ viewOf(row).source === 'import' ? '导入文件' : '网卡实时' }}</span>
-            <span class="pk-kv__label">状态说明</span>
-            <span class="pk-kv__value" :class="{ 'is-err': viewOf(row).lastError }">
-              {{ viewOf(row).lastError || '—' }}
-            </span>
-          </div>
-        </template>
-
-        <template #detail-actions="{ row }">
-          <TsharkSessionActions
-            :session="viewOf(row)"
-            :can-stop="canStop"
-            mode="full"
-            @open="(tab) => openOf(row, tab)"
-            @download="emit('download', viewOf(row).id, viewOf(row).name)"
-            @stop="emit('stop', viewOf(row).id)"
-            @remove="emit('remove', viewOf(row).id)"
-          />
-        </template>
-      </ReCanvasSplit>
-    </template>
-
-    <!-- ==================== 卡片墙：会话参数直接摊在卡上 ==================== -->
-    <template #wall>
-      <ReCanvasCards
-        :rows="filtered as unknown as Array<Record<string, unknown>>"
-        :row-key="rowKey"
-        :min-width="286"
-        clickable
-        :loading="loading"
-        :empty-text="emptyMain"
-        :empty-hint="emptyHint"
-        @row-click="(r) => openOf(r, 'packet')"
-      >
-        <template #card="{ row }">
-          <header class="pk-card__head">
-            <span class="pk-card__title">{{ viewOf(row).name }}</span>
-            <span class="sstate" :class="`is-${viewOf(row).statusTone}`">
-              <i class="pk-dot" />{{ statusTextOf(viewOf(row)) }}
-            </span>
-          </header>
-
-          <span class="pk-card__payload pk-ellipsis" :title="viewOf(row).iface">
-            {{ viewOf(row).ifaceText }}
-          </span>
-
-          <div class="card__fields">
-            <span class="card__k">报文</span>
-            <span class="card__v pk-num">{{ viewOf(row).packetCount.toLocaleString() }}</span>
-
-            <span class="card__k">大小</span>
-            <span class="card__v pk-num" :title="viewOf(row).sizeTitle">{{ viewOf(row).sizeText }}</span>
-
-            <span class="card__k">开始</span>
-            <span class="card__v pk-num">{{ viewOf(row).startText }}</span>
-
-            <span class="card__k">时长</span>
-            <span class="card__v pk-num">{{ viewOf(row).durationText }}</span>
-          </div>
-
-          <footer class="pk-card__foot">
-            <span class="pk-faint pk-num">{{ viewOf(row).endText === '—' ? '进行中' : `止于 ${viewOf(row).endText}` }}</span>
-            <TsharkSessionActions
-              :session="viewOf(row)"
-              :can-stop="canStop"
-              @open="(tab) => openOf(row, tab)"
-              @download="emit('download', viewOf(row).id, viewOf(row).name)"
-              @stop="emit('stop', viewOf(row).id)"
-              @remove="emit('remove', viewOf(row).id)"
-            />
-          </footer>
-        </template>
-      </ReCanvasCards>
-    </template>
   </RePageStage>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
-import { usePageVariant } from '@repo/ui/components/RePageKit/usePageVariant'
-import {
-  ReCanvasBand,
-  ReCanvasCards,
-  ReCanvasSplit,
-  ReCanvasTable,
-  ReCanvasTelemetry,
-  RePageStage,
-} from '@repo/ui/components/RePageKit'
-import type {
-  BandItem,
-  CanvasColumn,
-  CanvasGroup,
-  PageVariantId,
-  TabItem,
-} from '@repo/ui/components/RePageKit'
+import { ReCanvasBand, ReCanvasTable, RePageStage } from '@repo/ui/components/RePageKit'
+import type { BandItem, CanvasColumn, TabItem } from '@repo/ui/components/RePageKit'
 import type { TsharkTabKey } from './types'
 import TsharkSessionActions from './TsharkSessionActions.vue'
 import {
@@ -363,11 +145,9 @@ import {
   countSessions,
   dayLabel,
   filterSessions,
-  formatSize,
   sessionDays,
   sessionTicks,
   toSessionViews,
-  totalBytes,
   type SessionFilters,
   type SessionRow,
   type SessionView,
@@ -378,9 +158,7 @@ const props = withDefaults(
   defineProps<{
     /** 后端会话行（该来源的全量） */
     rows: SessionRow[]
-    /** 方向记忆键 */
-    pageKey: string
-    /** 页面标题（不再画在页头，仅作为方向坞的无障碍标签） */
+    /** 页面标题（不画在页头，只进控制栏与无障碍标签） */
     title: string
     /** 会话的量词与名词（`抓包会话` / `导入记录`），用于空态与图注文案 */
     noun?: string
@@ -447,14 +225,6 @@ const emit = defineEmits<{
   (e: 'update:keyword', value: string): void
 }>()
 
-/** 方向：默认「工单台」—— 这一页最常做的事是找到某个会话点进去看报文 */
-const ALLOWED: PageVariantId[] = ['console', 'rhythm', 'instrument', 'dossier', 'wall']
-
-const { variant, items, dockVisible, setVariant } = usePageVariant({
-  pageKey: props.pageKey,
-  allowed: ALLOWED,
-})
-
 // ==================== 筛选 ====================
 
 const filters = reactive<SessionFilters>({ ...EMPTY_SESSION_FILTERS, keyword: props.keyword })
@@ -500,18 +270,7 @@ const countText = computed(() =>
     : `筛选出 ${filtered.value.length} / ${allViews.value.length} 个`,
 )
 
-const teleCells = computed(() => [
-  { label: `${props.noun}总数`, value: counts.value.total },
-  {
-    label: props.runningLabel,
-    value: counts.value.running,
-    tone: (counts.value.running > 0 ? 'hot' : undefined) as 'hot' | undefined,
-  },
-  { label: '报文累计', value: counts.value.packets.toLocaleString() },
-  { label: '已落盘', value: formatSize(totalBytes(props.rows)) },
-])
-
-/** 状态档配色（图例、分布条、时间带共用一份，免得三处颜色跑偏） */
+/** 状态档配色（图例、时间带共用一份，免得两处颜色跑偏） */
 const runColor = 'var(--el-color-primary)'
 const errColor = 'var(--el-color-danger)'
 const stopColor = 'var(--el-text-color-disabled)'
@@ -538,16 +297,6 @@ function toneColor(tone: SessionTone): string {
 function statusTextOf(view: SessionView): string {
   return view.statusCode === 1 ? props.runningLabel : view.statusText
 }
-
-/** 状态分布（仪表方向） */
-const distRows = computed(() => {
-  const total = Math.max(1, counts.value.total)
-  return [
-    { label: props.runningLabel, count: counts.value.running, color: runColor },
-    { label: '已停止', count: counts.value.stopped, color: stopColor },
-    { label: '异常', count: counts.value.error, color: errColor },
-  ].map(row => ({ ...row, percent: Math.round((row.count / total) * 100) }))
-})
 
 // ==================== 时间轴 ====================
 
@@ -612,26 +361,19 @@ const showIface = computed(() => filtered.value.some(v => v.ifaceText && v.iface
 /** 空态主文案 */
 const emptyMain = computed(() => props.emptyText || `还没有${props.noun}`)
 
-const consoleCols = computed<CanvasColumn[]>(() => {
-  const cols: CanvasColumn[] = [
-    { key: 'name', label: '会话 / 时间范围', width: 'minmax(0, 1.5fr)' },
-  ]
-  if (showIface.value) cols.push({ key: 'ifaceText', label: '网卡', width: 'minmax(0, 1fr)' })
-  cols.push(
-    { key: 'statusText', label: '状态', width: '84px' },
-    { key: 'packetCount', label: '报文', width: '84px', align: 'right' },
-    { key: 'sizeText', label: '大小', width: '78px', align: 'right' },
-    { key: 'durationText', label: '时长', width: '84px', align: 'right' },
-  )
-  return cols
-})
+/**
+ * 表格空态：区分「一条会话都没有」和「这一天没有」。
+ *
+ * <p>整个列表都空时，正确的引导是页面的 empty-hint（去新增会话 / 选文件）；
+ * 只有「有会话但今天这一天没有」才该劝用户换日期。</p>
+ */
+const tableEmptyText = computed(() =>
+  days.value.length ? '这一天没有会话' : emptyMain.value,
+)
 
-const instrumentCols: CanvasColumn[] = [
-  { key: 'name', label: '会话', width: 'minmax(0, 1.6fr)' },
-  { key: 'statusText', label: '状态', width: '84px' },
-  { key: 'packetCount', label: '报文', width: '84px', align: 'right' },
-  { key: 'sizeText', label: '大小', width: '84px', align: 'right' },
-]
+const tableEmptyHint = computed(() =>
+  days.value.length ? '换一个日期，或确认抓包是否已经结束并落库。' : props.emptyHint,
+)
 
 const rhythmCols = computed<CanvasColumn[]>(() => {
   const cols: CanvasColumn[] = [{ key: 'name', label: '会话', width: 'minmax(0, 1.4fr)' }]
@@ -645,33 +387,6 @@ const rhythmCols = computed<CanvasColumn[]>(() => {
 })
 
 // ==================== 交互 ====================
-
-const pickedId = ref<number | null>(null)
-
-/** 档案柜当前详情：选中项不在了就退回第一条 */
-const picked = computed<SessionView | null>(() => {
-  const hit = filtered.value.find(v => v.id === pickedId.value)
-  return hit ?? filtered.value[0] ?? null
-})
-
-/** 档案柜分组：按状态档 */
-const groups = computed<CanvasGroup[]>(() => [
-  {
-    key: 'run',
-    label: props.runningLabel,
-    rows: filtered.value.filter(v => v.statusCode === 1) as unknown as CanvasGroup['rows'],
-  },
-  {
-    key: 'err',
-    label: '异常',
-    rows: filtered.value.filter(v => v.statusCode === 2) as unknown as CanvasGroup['rows'],
-  },
-  {
-    key: 'stop',
-    label: '已停止',
-    rows: filtered.value.filter(v => v.statusCode !== 1 && v.statusCode !== 2) as unknown as CanvasGroup['rows'],
-  },
-])
 
 /**
  * 行键
@@ -793,73 +508,6 @@ function onTab(value: string): void {
   color: var(--el-color-primary);
 }
 
-/* ===== 状态分布 ===== */
-.dist {
-  flex: none;
-  padding: 10px 12px;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-lg, 12px);
-}
-
-.dist__head {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 8px;
-}
-
-.dist__title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.dist__note {
-  font-size: 11px;
-  color: var(--el-text-color-secondary);
-}
-
-.dist__rows {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.dist__row {
-  display: grid;
-  grid-template-columns: 76px minmax(0, 1fr) 46px;
-  align-items: center;
-  gap: 10px;
-  font-size: 12px;
-}
-
-.dist__label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--el-text-color-regular);
-}
-
-.dist__track {
-  height: 6px;
-  background: var(--el-fill-color-light);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.dist__fill {
-  display: block;
-  height: 100%;
-  border-radius: 3px;
-}
-
-.dist__value {
-  text-align: right;
-  color: var(--el-text-color-primary);
-}
-
 /* ===== 时间带标题 ===== */
 .band__title {
   font-size: 13px;
@@ -872,43 +520,6 @@ function onTab(value: string): void {
   font-size: 11px;
   font-weight: 400;
   color: var(--el-text-color-secondary);
-}
-
-/* ===== 档案柜 ===== */
-.detail__title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.detail__gap {
-  margin-left: 8px;
-  font-variant-numeric: tabular-nums;
-}
-
-.pk-kv__value.is-err {
-  color: var(--el-color-danger);
-}
-
-/* ===== 卡片 ===== */
-.card__fields {
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  gap: 5px 10px;
-  font-size: 12px;
-  align-items: baseline;
-}
-
-.card__k {
-  color: var(--el-text-color-placeholder);
-}
-
-.card__v {
-  min-width: 0;
-  color: var(--el-text-color-regular);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 @media (prefers-reduced-motion: reduce) {
