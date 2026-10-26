@@ -698,11 +698,35 @@ const LAYOUT_BASE_OPTIONS: Record<string, Record<string, unknown>> = {
  *
  * <p>「分组布局」和「鱼骨布局」都返回 undefined —— 这两种的位置由本组件自己算
  * （写在节点数据的 style.x / style.y 里），不交给 G6。</p>
+ *
+ * <p>树类布局（@antv/hierarchy）有两处契约差异要在这里抹平：</p>
+ * <ul>
+ *   <li>{@code getVGap / getHGap} 要的是 {@code (node) => number} 函数，
+ *       面板里给的是数字 —— 不转会在布局里抛 {@code getHGap is not a function}，
+ *       整个布局静默失败、节点全叠在原点；</li>
+ *   <li>{@code nodeSize} 要的是 {@code [宽, 高]} 数组，数字会被当成单边长度。</li>
+ * </ul>
  */
 const buildLayout = (): Record<string, unknown> | undefined => {
   const { type, options } = resolveLayout();
   if (isGroupLayout(type) || type === "fishbone") return undefined;
-  return { type, ...(LAYOUT_BASE_OPTIONS[type] ?? {}), ...options };
+  const merged: Record<string, unknown> = { type, ...(LAYOUT_BASE_OPTIONS[type] ?? {}), ...options };
+  if (isTreeLayoutType(type)) {
+    // 数字 → 函数（面板给的是数字）
+    for (const key of ["getVGap", "getHGap"] as const) {
+      const raw = merged[key];
+      if (typeof raw === "number") {
+        const gap = raw;
+        merged[key] = () => gap;
+      }
+    }
+    // 数字 → [宽, 高]
+    if (typeof merged.nodeSize === "number") {
+      const side = merged.nodeSize;
+      merged.nodeSize = [side, side];
+    }
+  }
+  return merged;
 };
 
 /**
@@ -3632,6 +3656,8 @@ defineExpose({
   },
   /** 用当前选中的两个节点算最短路径 */
   shortestPathFromSelection,
+  /** 设定路径起点 / 终点（右键菜单用；两端齐了自动出结果） */
+  setPathEndpoint,
   /** 清空所有元素状态 */
   clearStates,
   /** 清空选择 */
