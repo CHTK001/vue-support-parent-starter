@@ -330,7 +330,9 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 16px 20px 20px;
+  /* 不自带内边距：外层路由容器 .main-content 已有 padding（koi 主题 8px），
+     这里再加 16/20/20 会让整页多出一圈留白、内容被挤窄。 */
+  padding: 0;
 }
 
 /* ---------- 页头卡片 ---------- */
@@ -470,7 +472,7 @@ onMounted(async () => {
 
 /* ---------- 响应式 ---------- */
 @media (max-width: 720px) {
-  .flow-page { padding: 14px 12px 16px; }
+  .flow-page { padding: 0; }
   .flow-filters { flex-wrap: wrap; overflow-x: visible; }
   .flow-filter-task, .flow-filter-trigger { width: 100%; }
   .flow-filters-hint { margin-left: 0; }

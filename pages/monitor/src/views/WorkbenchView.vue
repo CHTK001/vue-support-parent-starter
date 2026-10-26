@@ -201,7 +201,8 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 4px;
+  /* 不自带内边距：外层 .main-content 已有 padding（koi 主题 8px） */
+  padding: 0;
 }
 
 .page-head { margin-bottom: 4px; }

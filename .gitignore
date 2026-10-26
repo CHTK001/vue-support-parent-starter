@@ -360,3 +360,12 @@ apps/*/dist.tgz
 
 # 临时账户 lab 演示页（无人引用的验收残留，非源码）
 apps/vue-support-monitor-starter/public/temp-accounts-lab.html
+
+# 一次性 Playwright 验收/取证脚本（并行会话产物，跑完即弃）
+**/accept-fm*.mjs
+**/_verifyfix*.mjs
+# apps 下同类的 .cjs 探针（measure-*/probe-*/shot-*）：都是跑完即弃的取证脚本，
+# 留在工作区可复用，但不入库 —— 否则每次 git status 都要眼过一遍噪声。
+apps/*/measure-*.cjs
+apps/*/probe-*.cjs
+apps/*/shot-*.cjs
