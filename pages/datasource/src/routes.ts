@@ -239,3 +239,27 @@ export function createSyncTaskRoutes(): RouteConfigsTable[] {
     },
   ];
 }
+
+/**
+ * 同步日志页的叶子路由。
+ *
+ * <p>「同步日志」= 跨任务汇总每一次数据同步执行的旅程与过程日志（落库
+ * {@code ms_sync_task_run_log}，保留 30 天），视图 {@code views/sync/SyncTaskLogView.vue}，
+ * API 与「数据同步」共用 {@code api/syncTaskApi.ts}（{@code fetchSyncRunLogs} /
+ * {@code fetchSyncRunLogDetail}），路由由本包声明，宿主只做合并。</p>
+ *
+ * <p>与 {@link createSyncTaskRoutes} 同构：产出一条<b>顶层叶子</b>{@code showLink:true}，
+ * 宿主把它并入「数据中心」分组 children（监控台 {@code /grp-data}）。</p>
+ *
+ * @returns 可直接展开进宿主路由树的数组（单叶）
+ */
+export function createSyncTaskLogRoutes(): RouteConfigsTable[] {
+  return [
+    {
+      path: "/sync-task-logs",
+      name: "SyncTaskLogs",
+      component: () => import("./views/sync/SyncTaskLogView.vue"),
+      meta: { title: "同步日志", icon: "Tickets", showLink: true, rank: 3 },
+    },
+  ];
+}

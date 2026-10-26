@@ -116,6 +116,14 @@ export const monitorRoutes: RouteConfigsTable[] = [
         component: () => import("@pages/datasource/src/views/sync/SyncTaskView.vue"),
         meta: { title: "数据同步", icon: "Refresh", showLink: true, rank: 2 },
       },
+      {
+        path: "/sync-task-logs",
+        name: "SyncTaskLogs",
+        // 同步日志：跨任务汇总每一次同步执行的旅程与过程日志（落库 ms_sync_task_run_log，
+        // 保留 30 天），与「数据同步」页里按单任务查的内存日志弹窗互补。
+        component: () => import("@pages/datasource/src/views/sync/SyncTaskLogView.vue"),
+        meta: { title: "同步日志", icon: "Tickets", showLink: true, rank: 3 },
+      },
     ],
   },
 

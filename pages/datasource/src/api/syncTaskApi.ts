@@ -182,6 +182,50 @@ export interface SyncTaskRunLog {
 }
 
 /**
+ * 跨任务「同步日志」列表行（落库表 ms_sync_task_run_log，不含过程行）。
+ *
+ * <p>与 {@link SyncTaskRunLog}（单任务弹窗、内存缓冲）不同：本结构面向「所有任务的所有执行」，
+ * 带日志主键 {@code id} 与任务名 {@code taskName}，供独立「同步日志」菜单页分页展示，
+ * 点开按 {@code id} 取详情。后端 {@code GET /ms/monitor/datasync/logs} 返回。</p>
+ */
+export interface SyncTaskRunLogItem {
+  /** 日志主键（ms_sync_task_run_log.id） */
+  id: number;
+  /** 任务 ID */
+  taskId: number | null;
+  /** 任务名（任务已删除时为「（任务已删除）」回退文案） */
+  taskName: string;
+  /** MANUAL 手动 / SCHEDULED 定时 / REALTIME 实时录入 */
+  trigger: string;
+  /** SUCCESS 成功 / FAILED 失败 */
+  status: string;
+  /** 执行开始时刻 yyyy-MM-dd HH:mm:ss */
+  runTime: string;
+  /** 本次总耗时（毫秒） */
+  costMs: number | null;
+  /** 过程日志行数（列表展示用，免解析正文） */
+  lineCount: number;
+}
+
+/** 一次执行的日志详情（记录 + 完整过程行）。后端 {@code GET /ms/monitor/datasync/logs/{id}} 返回 */
+export interface SyncTaskRunLogDetail extends SyncTaskRunLogItem {
+  /** 逐步过程行（执行先后顺序） */
+  lines: SyncTaskRunLogLine[];
+}
+
+/** 「同步日志」分页查询入参 */
+export interface SyncRunLogQuery {
+  page: number;
+  pageSize: number;
+  /** 任务 ID 过滤 */
+  taskId?: number | null;
+  /** 状态过滤 SUCCESS / FAILED */
+  status?: string | null;
+  /** 触发方式过滤 MANUAL / SCHEDULED / REALTIME */
+  trigger?: string | null;
+}
+
+/**
  * 任务列表
  */
 export const fetchSyncTasks = () =>
@@ -229,6 +273,35 @@ export const runSyncTask = (id: number) =>
  */
 export const fetchSyncTaskLogs = (id: number) =>
   http().get(`/ms/monitor/datasync/tasks/${id}/logs`).then(r => unwrap<SyncTaskRunLog[]>(r));
+
+/**
+ * 分页查询全部同步执行日志（跨任务汇总，落库 ms_sync_task_run_log，新在前）。
+ *
+ * <p>与 {@link fetchSyncTaskLogs}（单任务、内存缓冲）不同：本接口面向「同步日志」独立菜单页，
+ * 跨所有任务分页，可按任务 / 状态 / 触发方式过滤。返回后端 MyBatis-Plus IPage 结构
+ * （{@code records} + {@code total}），列表行不带过程行，点开按 id 取详情。</p>
+ *
+ * @param query 分页与过滤入参
+ * @returns IPage 结构：records 为列表行，total 为总条数
+ */
+export const fetchSyncRunLogs = (query: SyncRunLogQuery) =>
+  http()
+    .get("/ms/monitor/datasync/logs")
+    .query({
+      page: query.page,
+      size: query.pageSize,
+      taskId: query.taskId ?? undefined,
+      status: query.status ?? undefined,
+      trigger: query.trigger ?? undefined,
+    })
+    .then(r => unwrap<{ records?: SyncTaskRunLogItem[]; total?: number }>(r));
+
+/**
+ * 查询单条执行日志详情（记录 + 完整过程行）
+ * @param logId 日志主键（ms_sync_task_run_log.id）
+ */
+export const fetchSyncRunLogDetail = (logId: number) =>
+  http().get(`/ms/monitor/datasync/logs/${logId}`).then(r => unwrap<SyncTaskRunLogDetail>(r));
 
 /**
  * 启用定时
