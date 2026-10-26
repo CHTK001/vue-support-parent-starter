@@ -139,8 +139,10 @@
             <ReIcon name="Close" size="12" class="dsm-tab-close" @click.stop="closeQueryTab(t.id)" />
           </div>
         </div>
+        <!-- 总览（对齐 jdbc 单卡片：整块可滚动，内部区块不再各自悬浮成卡） -->
+        <div v-show="activeWorkspaceTab === 'overview'" class="dsm-overview">
         <!-- 连接信息 -->
-        <div v-if="activeWorkspaceTab === 'overview'" class="dsm-info-card">
+        <div class="dsm-info-card">
           <div class="dsm-info-row">
             <span class="dsm-info-label">数据源</span>
             <span class="dsm-info-value">{{ source ? source.name : "未选择" }}</span>
@@ -167,7 +169,7 @@
         </div>
 
         <!-- 存储桶列表 -->
-        <div v-if="activeWorkspaceTab === 'overview'" class="dsm-section">
+        <div class="dsm-section">
           <div class="dsm-section-title">{{ databaseModel ? "数据库列表" : "存储桶列表" }}</div>
           <ReTable
             :data="buckets"
@@ -189,7 +191,7 @@
         </div>
 
         <!-- 测量列表 -->
-        <div class="dsm-section" v-if="activeWorkspaceTab === 'overview' && activeBucket">
+        <div class="dsm-section" v-if="activeBucket">
           <div class="dsm-section-title">
             {{ activeBucket }} - 测量列表
             <ReButton text @click="loadMeasurements">
@@ -209,7 +211,7 @@
         </div>
 
         <!-- 最近数据 -->
-        <div class="dsm-section" v-if="activeWorkspaceTab === 'overview' && activeBucket">
+        <div class="dsm-section" v-if="activeBucket">
           <div class="dsm-section-title">
             {{ activeBucket }} - 最近数据
             <ReButton text @click="loadBucketData">
@@ -227,9 +229,10 @@
         </div>
 
         <!-- 空状态 -->
-        <div v-if="activeWorkspaceTab === 'overview' && !activeBucket && buckets.length === 0" class="dsm-empty">
+        <div v-if="!activeBucket && buckets.length === 0" class="dsm-empty">
           <ReIcon name="Collection" size="48" class="dsm-empty-icon" />
           <p>{{ gap ? (databaseModel ? "未读取到真实数据库" : "未读取到真实存储桶") : (databaseModel ? "暂无数据库，点击「刷新」重新加载" : "暂无存储桶，点击「刷新」重新加载") }}</p>
+        </div>
         </div>
 
         <!-- 打开表页签内容（对齐 jdbc 表数据 tab：时间窗 + field 过滤 + 数据表格） -->
@@ -281,52 +284,97 @@
           />
         </div>
 
-        <!-- 设计表页签内容（对齐 jdbc 设计表 tab：测量字段结构 —— field 键含类型 + tag 键） -->
+        <!-- 设计表页签内容（对齐 jdbc 设计表：单个可编辑字段网格 + 增删改查；InfluxDB 字段只增不改） -->
         <div
           v-for="t in designTabs"
           v-show="activeWorkspaceTab === t.id"
           :key="t.id"
-          class="dsm-design-tab"
+          class="dsm-design-view"
         >
           <div class="dsm-design-toolbar">
-            <span class="dsm-design-name mono">{{ activeBucket }}.{{ t.measurement }}</span>
+            <span class="dsm-table-name">{{ activeBucket }}.{{ t.measurement }}</span>
+            <span class="dsm-kind-chip" :class="designChipTone()">{{ designChipText() }}</span>
             <span class="dsm-spacer" />
-            <ReButton text @click="runDesignTabQuery(t)">
-              <template #icon><ReIcon name="Refresh" size="12" /></template>刷新结构
-            </ReButton>
+            <ReButton
+              layout="square"
+              type="primary"
+              icon="Plus"
+              tip="新增字段（保存时写入样例点创建，v1/v2/v3 通用）"
+              data-testid="dsm-design-add"
+              @click="addDesignField(t)"
+            />
+            <ReButton
+              layout="square"
+              icon="Check"
+              :tip="dirtyDesignCount(t) > 0 ? `保存 ${dirtyDesignCount(t)} 处新字段` : '保存（无待创建的新字段）'"
+              :disabled="dirtyDesignCount(t) === 0"
+              data-testid="dsm-design-save"
+              @click="saveDesign(t)"
+            />
+            <ReButton
+              layout="square"
+              type="danger"
+              plain
+              icon="Delete"
+              :tip="`删除测量「${t.measurement}」（删除该测量全部数据，不可恢复）`"
+              data-testid="dsm-design-drop"
+              @click="confirmDeleteMeasurement(t.measurement)"
+            />
+            <ReButton layout="square" icon="Refresh" tip="刷新结构" @click="runDesignTabQuery(t)" />
           </div>
-          <div class="dsm-design-grid">
-            <div class="dsm-design-col">
-              <div class="dsm-design-col-title">字段（Fields）</div>
-              <ReTable
-                :data="t.fields"
-                :columns="designFieldColumns"
-                :loading="t.loading"
-                stripe
-                border
-                size="mini"
-                :layout-table="{ height: '260px' }"
-                empty-text="无字段"
+          <div class="dsm-col-hint">InfluxDB 字段只增不改：已存在字段不可重命名 / 改类型 / 单独删除（引擎限制），只能整测量删除；新增字段 = 保存时写入一条含该字段的样例数据点</div>
+          <ReTable
+            :data="designRowsOf(t)"
+            :columns="designColumns"
+            :loading="t.loading"
+            engine="element"
+            stripe
+            border
+            size="mini"
+            :layout-table="{ maxHeight: 'calc(100% - 54px)' }"
+            empty-text="暂未读取到字段"
+          >
+            <template #col-name="{ row }">
+              <ReInput
+                v-if="row.isNew"
+                v-model="row.name"
+                size="small"
+                class="dsm-mono-editor"
+                placeholder="新字段名（如 temp）"
+                @change="markDesignDirty(t, row)"
               />
-            </div>
-            <div class="dsm-design-col">
-              <div class="dsm-design-col-title">标签（Tags）</div>
-              <ReTable
-                :data="t.tags.map(k => ({ key: k }))"
-                :columns="designTagColumns"
-                :loading="t.loading"
-                stripe
-                border
-                size="mini"
-                :layout-table="{ height: '260px' }"
-                empty-text="无标签"
-              />
-            </div>
-          </div>
-          <p class="dsm-design-hint">
-            InfluxDB 测量没有固定列结构：字段（field）为数值/字符串类型，标签（tag）为索引字符串；
-            v3 由 <code>information_schema.columns</code> 提供，v1/v2 走 <code>SHOW FIELD/TAG KEYS</code>。
-          </p>
+              <span v-else class="dsm-field-name" :title="'不可重命名（InfluxDB 只增不改）'">{{ row.name }}</span>
+            </template>
+            <template #col-kind="{ row }">
+              <span class="dsm-kind-badge" :class="row.kind === 'field' ? 'is-field' : 'is-tag'">
+                {{ row.kind === "field" ? "field" : "tag" }}
+              </span>
+            </template>
+            <template #col-type="{ row }">
+              <ReSelect
+                v-if="row.isNew && row.kind === 'field'"
+                v-model="row.type"
+                size="small"
+                style="width: 110px"
+                @change="markDesignDirty(t, row)"
+              >
+                <ReOption v-for="tp in INFLUX_FIELD_TYPES" :key="tp.value" :label="tp.label" :value="tp.value" />
+              </ReSelect>
+              <span v-else class="dsm-type-chip">{{ row.type || (row.kind === "tag" ? "string" : "—") }}</span>
+            </template>
+            <template #col-actions="{ row }">
+              <template v-if="row.isNew">
+                <ReButton
+                  layout="square"
+                  type="danger"
+                  icon="Delete"
+                  tip="移除该行（未保存，不会入库）"
+                  @click="removeDesignRow(t, row)"
+                />
+              </template>
+              <span v-else class="dsm-lock" :title="'InfluxDB 不支持删除单个字段'">🔒</span>
+            </template>
+          </ReTable>
         </div>
 
         <!-- Flux 查询页签内容（对齐 jdbc 查询页：方钮工具栏 + 编辑器 + 结果表；多开、切换保留） -->
@@ -680,16 +728,6 @@ const measurementColumns: Column[] = [
 ];
 const dataColumns = computed<Column[]>(() => deriveColumns(recentData.value));
 
-/** 设计表「字段」列：键 + 类型 */
-const designFieldColumns: Column[] = [
-  { prop: "key", label: "字段名", minWidth: 180 },
-  { prop: "type", label: "类型", width: 140 },
-];
-/** 设计表「标签」列 */
-const designTagColumns: Column[] = [
-  { prop: "key", label: "标签名", minWidth: 200 },
-];
-
 // Flux 查询（工作区页签：jdbc「查询 N」式，可多开、各自保留编辑器与结果）
 interface QueryTab {
   id: string;
@@ -723,20 +761,165 @@ interface TableTab {
 const tableTabs = ref<TableTab[]>([]);
 let tableTabSeq = 0;
 
-// ---------- 「设计表」页签（对齐 jdbc design tab：测量字段结构） ----------
+// ---------- 「设计表」页签（对齐 jdbc 设计表：可编辑字段网格 + 增删改查） ----------
+
+/** 设计表的一行：一个字段（field）或标签（tag）定义 */
+interface DesignFieldRow {
+  /** 行唯一 id（ReTable row-key） */
+  key: string;
+  name: string;
+  kind: "field" | "tag";
+  /** 类型：field 为 v3/influxql SHOW FIELD KEYS 给出的类型；tag 恒为 string */
+  type: string;
+  /** 是否是未落库的新增行（可改名/改类型/删除；保存后转已存在行） */
+  isNew: boolean;
+  /** 行是否被改动（新增行默认 true） */
+  dirty: boolean;
+}
 
 /** 设计表页签状态 */
 interface DesignTab {
   id: string;
   measurement: string;
-  /** field 键与类型（SHOW FIELD KEYS / information_schema） */
-  fields: { key: string; type: string }[];
-  /** tag 键 */
-  tags: string[];
+  /** 字段网格行（单列清单：field 在前、tag 在后，统一渲染） */
+  rows: DesignFieldRow[];
   loading: boolean;
 }
 const designTabs = ref<DesignTab[]>([]);
 let designTabSeq = 0;
+
+/** 可新增字段类型（保存时按类型生成样例数据点；InfluxDB SQL 字段类型） */
+const INFLUX_FIELD_TYPES = [
+  { label: "float", value: "float" },
+  { label: "integer", value: "integer" },
+  { label: "uinteger", value: "uinteger" },
+  { label: "boolean", value: "boolean" },
+  { label: "string", value: "string" },
+] as const;
+
+/** 设计表网格列（对齐 jdbc 表结构单表：名称 / 归属 / 类型 / 操作） */
+const designColumns: Column[] = [
+  { prop: "name", label: "名称", minWidth: 200, slot: "name" },
+  { prop: "kind", label: "归属", width: 90, align: "center" as const, slot: "kind" },
+  { prop: "type", label: "类型", width: 130, slot: "type" },
+  { prop: "actions", label: "操作", width: 80, align: "center" as const, slot: "actions" },
+];
+
+/** ReTable 数据桥接：DesignFieldRow 没有索引签名，直接传会报 TS2322 */
+function designRowsOf(tab: DesignTab): Array<Record<string, unknown>> {
+  return tab.rows as unknown as Array<Record<string, unknown>>;
+}
+
+/** 行是否改动（新增行恒为脏；已存在行目前只读不可改） */
+function isDesignRowDirty(row: DesignFieldRow): boolean {
+  return row.dirty || row.isNew;
+}
+
+/** 页签里待保存的改动数（只会是新增行） */
+function dirtyDesignCount(tab: DesignTab): number {
+  return tab.rows.filter(r => isDesignRowDirty(r)).length;
+}
+
+/** 设计表能力角标文案（按服务端模型区分） */
+function designChipText(): string {
+  if (isV3.value) return "v3 SQL · 字段来自 information_schema（只增不改）";
+  if (isV1.value) return "v1 InfluxQL · 字段随写入自动创建（只增不改）";
+  return "v2 · schema-less · 字段随写入自动创建（只增不改）";
+}
+
+/** 设计表能力角标色调 */
+function designChipTone(): "ok" | "muted" {
+  return isV3.value ? "ok" : "muted";
+}
+
+/** 新增一行字段（未落库，可改名/改类型/删除） */
+function addDesignField(tab: DesignTab) {
+  tab.rows.push({
+    key: `n${++designTabSeq}`,
+    name: "",
+    kind: "field",
+    type: "float",
+    isNew: true,
+    dirty: true,
+  });
+}
+
+/** 移除一行（只有新增行允许删除；已存在字段受引擎「只增不改」限制） */
+function removeDesignRow(tab: DesignTab, row: DesignFieldRow) {
+  if (!row.isNew) return;
+  const idx = tab.rows.findIndex(r => r === row);
+  if (idx >= 0) tab.rows.splice(idx, 1);
+}
+
+/** 新增行被改动：标记脏（名称/类型变更后生效） */
+function markDesignDirty(_tab: DesignTab, row: DesignFieldRow) {
+  row.dirty = true;
+}
+
+/**
+ * 保存设计表：把新增行转成一条 line protocol 样例数据点写入，落库后刷新结构。
+ *
+ * <p>InfluxDB 没有列级 DDL（v3 也是 additive-only，且 SQL 无 ALTER TABLE），
+ * 在 schema-less 模型里「新增字段」= 写入一条含该字段的数据点，字段随之出现。
+ * 因此保存 = 构造一条点到 Write API，而不是发 ALTER TABLE。已存在字段
+ * 不可改不可删（引擎限制），保存按钮只处理新增行。</p>
+ */
+async function saveDesign(tab: DesignTab) {
+  if (!activeBucket.value) return;
+  const drafts = tab.rows.filter(r => r.isNew);
+  if (drafts.length === 0) return;
+  // 新增行必须是「已命名 + 类型已选」：未命名直接拦截，提醒补名
+  const unnamed = drafts.filter(d => !String(d.name || "").trim());
+  if (unnamed.length > 0) {
+    message.warning("新增字段必须先填写名称");
+    return;
+  }
+  // 构造 line protocol：measurement,tag=... field=...；数字给 0、字符串给空串、
+  // 布尔给 false —— 值类型必须与声明的字段类型一致，否则 InfluxDB 会按值推断类型
+  const tabName = tab.measurement.replace(/,/g, "\\,").replace(/ /g, "\\ ");
+  const tagParts = drafts.filter(d => d.kind === "tag").map(d =>
+    `${d.name.trim().replace(/,/g, "\\,").replace(/ /g, "\\ ")}=probe`);
+  const fieldParts = drafts.filter(d => d.kind === "field").map(d => {
+    const key = d.name.trim().replace(/,/g, "\\,").replace(/ /g, "\\ ");
+    return `${key}=${sampleValue(d.type)}`;
+  });
+  if (fieldParts.length === 0 && tagParts.length === 0) return;
+  let line = tabName;
+  if (tagParts.length) line += "," + tagParts.join(",");
+  if (fieldParts.length) line += " " + fieldParts.join(",");
+  tab.loading = true;
+  try {
+    await writeInfluxdbPoints({
+      datasourceId: datasourceId.value,
+      bucket: activeBucket.value,
+      precision: "ns",
+      lines: line,
+    });
+    message.success(`已创建 ${drafts.length} 个新字段，正在刷新结构…`);
+    // 落库后新增行转已存在行，随后整表重取 schema
+    await runDesignTabQuery(tab);
+  } catch (e) {
+    fail(e, "/ms/monitor/influxdb/write");
+  } finally {
+    tab.loading = false;
+  }
+}
+
+/** 按字段类型生成写样例点的值（与 InfluxDB 字段类型一一对应） */
+function sampleValue(type: string): string {
+  switch (type) {
+    case "integer":
+      return "0i";
+    case "uinteger":
+      return "0u";
+    case "boolean":
+      return "false";
+    case "string":
+      return "\"\"";
+    default:
+      return "0.0";
+  }
+}
 
 /** 查询分隔条拖拽状态 */
 const splitDragging = ref(false);
@@ -1304,7 +1487,7 @@ function openDesignTab(measurement: string) {
     return;
   }
   const id = `d${++designTabSeq}`;
-  const tab: DesignTab = { id, measurement, fields: [], tags: [], loading: false };
+  const tab: DesignTab = { id, measurement, rows: [], loading: false };
   designTabs.value.push(tab);
   activeWorkspaceTab.value = id;
   void runDesignTabQuery(tab);
@@ -1322,38 +1505,46 @@ function closeDesignTab(id: string) {
 }
 
 /**
- * 执行设计表查询：拉取测量的 field 键（含类型）与 tag 键。
+ * 执行设计表查询：拉取测量的 field 键（含类型）与 tag 键，统一进网格行。
+ *
+ * <p>v3 走 {@code information_schema.columns}（data_type 即字段类型）；
+ * v1/v2 走 {@code SHOW FIELD KEYS}（field + 类型）与 {@code SHOW TAG KEYS}
+ * （tag，类型恒为 string）。已存在行全部只读（InfluxDB 只增不改）。</p>
+ *
  * @param tab 页签
  */
 async function runDesignTabQuery(tab: DesignTab) {
   if (!activeBucket.value || !tab.measurement) return;
   tab.loading = true;
   try {
+    const rows: DesignFieldRow[] = [];
     if (isV3.value) {
       const safe = tab.measurement.replace(/'/g, "''");
-      const { rows } = await runQuery(
+      const { rows: cols } = await runQuery(
         `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '${safe}' ORDER BY ordinal_position`,
       );
-      tab.fields = rows
-        .filter(r => r.column_name && String(r.column_name).toLowerCase() !== "time")
-        .map(r => ({ key: String(r.column_name), type: String(r.data_type ?? "") }));
-      tab.tags = [];
+      for (const r of cols) {
+        const name = String(r.column_name ?? "");
+        if (!name || name.toLowerCase() === "time") continue;
+        rows.push({ key: `c${rows.length}`, name, kind: "field", type: String(r.data_type ?? ""), isNew: false, dirty: false });
+      }
     } else {
       const { rows: fieldRows } = await runQuery(`SHOW FIELD KEYS FROM ${sqlIdentifier(tab.measurement)}`);
-      tab.fields = fieldRows.map(r => {
-        const key = String(r.fieldKey ?? r[""] ?? r.name ?? "");
+      for (const r of fieldRows) {
+        const name = String(r.fieldKey ?? r[""] ?? r.name ?? "");
         const type = String(r.fieldType ?? r.type ?? "");
-        return { key, type };
-      }).filter(f => f.key);
+        if (name) rows.push({ key: `f${rows.length}`, name, kind: "field", type, isNew: false, dirty: false });
+      }
       const { rows: tagRows } = await runQuery(`SHOW TAG KEYS FROM ${sqlIdentifier(tab.measurement)}`);
-      tab.tags = tagRows
-        .map(r => String(r.tagKey ?? r[""] ?? r.name ?? ""))
-        .filter(Boolean);
+      for (const r of tagRows) {
+        const name = String(r.tagKey ?? r[""] ?? r.name ?? "");
+        if (name) rows.push({ key: `t${rows.length}`, name, kind: "tag", type: "string", isNew: false, dirty: false });
+      }
     }
+    tab.rows = rows;
     ready();
   } catch (e) {
-    tab.fields = [];
-    tab.tags = [];
+    tab.rows = [];
     fail(e, "/ms/monitor/influxdb/query");
   } finally {
     tab.loading = false;
@@ -1603,46 +1794,54 @@ watch(source, applyConnectionInfo);
   display: flex;
   flex: 1;
   gap: 16px;
+  min-height: 0;
+}
+
+/* 左侧连接树卡（对齐 jdbc .dbm-sidebar） */
+.dsm-sidebar {
+  width: 280px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
   overflow: hidden;
 }
 
-.dsm-sidebar {
-  width: 260px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  background: var(--bg-container);
-  overflow-y: auto;
-  flex-shrink: 0;
-}
-
 .dsm-tree {
-  padding: 8px 0;
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 8px 12px;
 }
 
 .dsm-tree-node {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
+  padding: 6px 8px;
+  border-radius: var(--el-radius-md, 8px);
   cursor: pointer;
   transition: background 0.15s;
 }
 
 .dsm-tree-node:hover {
-  background: var(--bg-hover);
+  background: var(--el-fill-color-light);
 }
 
 .dsm-tree-node.active {
-  background: var(--brand-50);
-  color: var(--brand-600);
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
 }
 
 .dsm-tree-root {
   font-weight: 600;
+  color: var(--el-text-color-primary);
 }
 
 .dsm-tree-children {
-  padding-left: 16px;
+  padding-left: 14px;
 }
 
 .dsm-tree-icon {
@@ -1650,7 +1849,7 @@ watch(source, applyConnectionInfo);
 }
 
 .dsm-influx-icon {
-  color: var(--brand-500, var(--apm-brand-500));
+  color: var(--el-color-primary, var(--brand-500, var(--apm-brand-500)));
 }
 
 .dsm-tree-label {
@@ -1659,13 +1858,13 @@ watch(source, applyConnectionInfo);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--text-primary);
+  color: var(--el-text-color-regular, var(--text-primary));
 }
 
 .dsm-tree-count {
   font-size: 11px;
-  color: var(--text-tertiary);
-  background: var(--bg-fill);
+  color: var(--el-text-color-placeholder, var(--text-tertiary));
+  background: var(--el-fill-color-light, var(--bg-fill));
   padding: 1px 6px;
   border-radius: 10px;
 }
@@ -1675,7 +1874,7 @@ watch(source, applyConnectionInfo);
   display: flex;
   gap: 4px;
   padding: 10px 12px 0;
-  border-bottom: 1px solid var(--border-subtle, var(--apm-border-subtle));
+  border-bottom: 1px solid var(--el-border-color-lighter);
   overflow-x: auto;
   flex-shrink: 0;
 }
@@ -1686,47 +1885,64 @@ watch(source, applyConnectionInfo);
   gap: 6px;
   padding: 6px 12px;
   font-size: 12.5px;
-  color: var(--text-secondary, var(--apm-text-secondary));
+  color: var(--el-text-color-secondary);
   border: 1px solid transparent;
   border-bottom: none;
-  border-radius: var(--radius-md, 8px) var(--radius-md, 8px) 0 0;
+  border-radius: var(--el-radius-md, 8px) var(--el-radius-md, 8px) 0 0;
   white-space: nowrap;
   cursor: pointer;
   user-select: none;
   transition: background 0.15s ease, color 0.15s ease;
 }
 
-.dsm-tab:hover { background: var(--bg-hover, var(--apm-bg-hover)); color: var(--text-primary, var(--apm-text-primary)); }
+.dsm-tab:hover { background: var(--el-fill-color-light); color: var(--el-text-color-primary); }
 
 .dsm-tab.active {
-  color: var(--brand-500, var(--apm-brand-500));
-  background: var(--bg-hover, var(--apm-bg-hover));
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
   font-weight: 600;
-  border-color: var(--border-subtle, var(--apm-border-subtle));
+  border-color: var(--el-border-color-lighter);
 }
 
 .dsm-tab-title { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .dsm-tab-close { opacity: 0.5; transition: opacity 0.15s ease; }
 
-.dsm-tab-close:hover { opacity: 1; color: var(--status-error, var(--apm-status-error)); }
+.dsm-tab-close:hover { opacity: 1; color: var(--el-color-danger); }
 
+/* 右侧内容区（对齐 jdbc .dbm-content）：单张 16px 卡，内部各视图整块滚动 */
 .dsm-content {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  overflow-y: auto;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  overflow: hidden;
 }
 
+/* 总览（卡内整块滚动） */
+.dsm-overview {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  padding: 12px 14px 2px;
+}
+
+/* 连接信息：卡内顶部浅底信息条（不再是独立浮卡） */
 .dsm-info-card {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
-  padding: 14px 16px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  background: var(--bg-container);
+  padding: 12px 14px;
+  border: 1px solid var(--el-border-color-extra-light, var(--border-subtle));
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-fill-color-extra-light, var(--bg-container));
 }
 
 .dsm-info-row {
@@ -1737,13 +1953,13 @@ watch(source, applyConnectionInfo);
 
 .dsm-info-label {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--el-text-color-placeholder, var(--text-tertiary));
 }
 
 .dsm-info-value {
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-primary);
+  color: var(--el-text-color-primary, var(--text-primary));
 }
 
 .dsm-info-status {
@@ -1754,24 +1970,24 @@ watch(source, applyConnectionInfo);
 
 .dsm-info-sub {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--el-text-color-placeholder, var(--text-tertiary));
 }
 
 .dsm-section-hint {
   font-size: 12px;
   font-weight: 400;
-  color: var(--text-tertiary);
+  color: var(--el-text-color-placeholder, var(--text-tertiary));
 }
 
 .dsm-query-warn {
   margin-left: 8px;
-  color: var(--status-warning, var(--apm-status-warning));
+  color: var(--el-color-warning, var(--status-warning, var(--apm-status-warning)));
 }
 
 .dsm-section {
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  background: var(--bg-container);
+  border: 1px solid var(--el-border-color-extra-light, var(--border-subtle));
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color, var(--bg-container));
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -1783,8 +1999,8 @@ watch(source, applyConnectionInfo);
   padding: 10px 14px;
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary);
-  border-bottom: 1px solid var(--border-subtle);
+  color: var(--el-text-color-primary, var(--text-primary));
+  border-bottom: 1px solid var(--el-border-color-extra-light, var(--border-subtle));
 }
 
 .dsm-empty {
@@ -1807,6 +2023,7 @@ watch(source, applyConnectionInfo);
   gap: 12px;
   min-height: 0;
   flex: 1;
+  padding: 12px 14px 2px;
 }
 
 /* 查询/结果上下拖拽分栏 */
@@ -1951,54 +2168,93 @@ watch(source, applyConnectionInfo);
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  padding-top: 2px;
+  padding: 12px 14px 2px;
 }
 
-/* 设计表页签（对齐 jdbc 设计表 tab） */
-.dsm-design-tab {
+/* 设计表页签（对齐 jdbc 设计表：工具条 + 说明行 + 可编辑字段网格） */
+.dsm-design-view {
   display: flex;
   flex-direction: column;
   gap: 10px;
   height: 100%;
   min-height: 0;
+  padding: 12px 14px 2px;
 }
 .dsm-design-toolbar {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
+  flex: none;
 }
-.dsm-design-name {
+/* 表名与能力角标（对齐 jdbc .dbm-table-name / .dbm-kind-chip） */
+.dsm-table-name {
+  flex: 0 1 auto;
+  min-width: 60px;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
   font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
+  color: var(--el-text-color-primary);
 }
-.dsm-design-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  align-items: start;
+.dsm-kind-chip {
+  flex: none;
+  font-size: 11px;
+  line-height: 1;
+  padding: 4px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
 }
-.dsm-design-col {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.dsm-kind-chip.ok {
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  color: var(--el-color-primary, #409eff);
 }
-.dsm-design-col-title {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--text-secondary);
+.dsm-kind-chip.muted {
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-secondary);
 }
-.dsm-design-hint {
-  margin: 4px 0 0;
+/* 说明行（对齐 jdbc .dbm-col-hint） */
+.dsm-col-hint {
   font-size: 12px;
-  color: var(--text-tertiary);
-  line-height: 1.6;
-  code {
-    font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
-    background: var(--bg-hover);
-    border-radius: 4px;
-    padding: 1px 6px;
-  }
+  color: var(--el-text-color-placeholder);
+  padding: 2px 0;
+  flex: none;
+}
+/* 字段网格单元格 */
+.dsm-mono-editor {
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+}
+.dsm-field-name {
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-size: 12.5px;
+  color: var(--el-text-color-primary);
+}
+.dsm-kind-badge {
+  display: inline-block;
+  font-size: 10.5px;
+  line-height: 1;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+.dsm-kind-badge.is-field {
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  color: var(--el-color-primary, #409eff);
+}
+.dsm-kind-badge.is-tag {
+  background: #f6ffed;
+  color: #389e0d;
+}
+.dsm-type-chip {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.dsm-lock {
+  font-size: 12px;
+  opacity: 0.45;
+  cursor: default;
 }
 .mono {
   font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
