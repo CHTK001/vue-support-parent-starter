@@ -67,6 +67,8 @@ class RealtimeService {
   private es: EventSource | null = null;
   /** 日志流专用 SSE：后端的日志推送是独立端点，与 stats 快照流不是同一条 */
   private esLogs: EventSource | null = null;
+  /** 当前 "log" 订阅者数量，用于按需开关日志流 */
+  private logSubs = 0;
   private wsTimer: ReturnType<typeof setInterval> | null = null;
   private reconnectDelay = 3000;
   private reconnectAttempts = 0;
@@ -119,7 +121,8 @@ class RealtimeService {
   private connect() {
     this.connectWs();
     this.connectSse();
-    this.connectSseLogs();
+    // 日志流不在这里建连：它只在有 "log" 订阅者时才开，否则首帧（含历史）
+    // 会在页面订阅之前被丢弃，页面看起来永远是空的。
   }
 
   /** WebSocket 连接（告警推送、配置变更） */
@@ -254,6 +257,13 @@ class RealtimeService {
   on(type: RealtimeEventType, handler: RealtimeEventHandler) {
     this.ensureConnected();
     this.bus.on(type, handler);
+    // 日志流按订阅懒建连：订阅者出现时才连，才能拿到服务端首帧里的历史增量
+    if (type === "log") {
+      this.logSubs++;
+      if (!this.esLogs) {
+        this.connectSseLogs();
+      }
+    }
   }
 
   /** 全局订阅 */
@@ -265,6 +275,14 @@ class RealtimeService {
   /** 取消订阅 */
   off(type: RealtimeEventType, handler: RealtimeEventHandler) {
     this.bus.off(type, handler);
+    // 最后一个日志订阅者离开时关闭日志流，避免空转
+    if (type === "log") {
+      this.logSubs = Math.max(0, this.logSubs - 1);
+      if (this.logSubs === 0) {
+        this.esLogs?.close();
+        this.esLogs = null;
+      }
+    }
   }
 
   offAll(handler: RealtimeEventHandler) {
@@ -281,6 +299,7 @@ class RealtimeService {
     this.es = null;
     this.esLogs = null;
     this.started = false;
+    this.logSubs = 0;
     this.connected.value = false;
     this.wsConnected.value = false;
   }
