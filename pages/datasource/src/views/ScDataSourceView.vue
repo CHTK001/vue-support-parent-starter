@@ -1616,12 +1616,15 @@ const statusFilters = computed<StatusFilterItem[]>(() => {
 /**
  * 「操作日志」页签入口开关。
  *
- * <p>操作日志的落库与查询链路（后端 DatasourceOperLogController + 前端面板）已就位，
- * 但还没在验收环境端到端跑通，按约定**先做功能、不露入口**：置 false 时页签条上
- * 不出现该项，概览里的「查看操作日志」按钮一并隐藏，避免留下一个点了没反应的入口。
- * 验收通过后把这里改成 true 即两处一起放开。</p>
+ * <p>2026-10-26 验收通过：后端 {@code GET /ms/datasource/oper-log/{id}} 返回真实数据
+ * （实测 4 条 TOGGLETOP/TEST/DELETE），面板能渲染、能按操作码过滤、能翻页，
+ * 因此放开入口（页签条 + 概览里的「查看操作日志」按钮同时出现）。</p>
+ *
+ * <p>已知限制：操作人来自令牌还原（{@code AuthClientExecute.getUserResult}），
+ * 而令牌→用户的映射在进程内存里 —— <b>应用重启后、用户重新登录前，新写日志的
+ * 操作人为空</b>。其余字段（动作/对象/结果/耗时/IP）不受影响。</p>
  */
-const OPER_LOG_ENTRY_VISIBLE = false;
+const OPER_LOG_ENTRY_VISIBLE = true;
 
 /** 右栏页签定义：内置页签 + 宿主注入页签（extraTabs 追加在后面） */
 const tabItems = computed<ReTabItem[]>(() => [
