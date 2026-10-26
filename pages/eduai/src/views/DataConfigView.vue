@@ -1,228 +1,200 @@
 <template>
   <div class="page-container">
-    <!-- 上区：页头 + 右侧悬浮正方形统计卡（一半压在上区、一半盖住内容区） -->
-    <div class="top-zone">
-      <div class="page-header">
+    <!-- 左：维度脊柱 —— 学段 → 年级 的只读层级；点学段筛右侧学科，点年级直接编辑 -->
+    <aside class="taxo">
+      <div class="taxo__head">
+        <div class="taxo__title">教学维度</div>
+        <div class="taxo__figs">
+          <div><b>{{ subjects.length }}</b><span>学科</span></div>
+          <div><b>{{ grades.length }}</b><span>年级</span></div>
+          <div><b>{{ classes.length }}</b><span>班级</span></div>
+        </div>
+      </div>
+
+      <div class="taxo__spine">
+        <div
+          v-for="opt in gradeLevelOptions"
+          :key="opt.value"
+          class="band"
+          :class="{ 'is-on': levelFilter === opt.value }"
+        >
+          <span class="band__tick" />
+          <button
+            type="button"
+            class="band__head"
+            :aria-pressed="levelFilter === opt.value"
+            :title="levelFilter === opt.value ? '取消学段筛选' : `只看${opt.label}`"
+            @click="toggleLevelFilter(opt.value)"
+          >
+            <span class="band__name">{{ opt.label }}</span>
+            <span class="band__code">{{ opt.value }}</span>
+            <span class="band__stat">{{ levelSubjectCount(opt.value) }} 学科 · {{ gradeCount(opt.value) }} 年级</span>
+          </button>
+
+          <div class="band__grades">
+            <button
+              v-for="g in gradesOfLevel(opt.value)"
+              :key="g.gradeId"
+              type="button"
+              class="gchip"
+              :title="`排序 ${g.gradeOrder ?? 0} · 创建于 ${g.createTime || '—'}`"
+              @click="openGradeEdit(g)"
+            >
+              {{ g.gradeName }}
+            </button>
+            <button
+              type="button"
+              class="gchip gchip--add"
+              :title="`在${opt.label}新增年级`"
+              @click="openGradeCreate(opt.value)"
+            >
+              +
+            </button>
+            <span v-if="!gradesOfLevel(opt.value).length" class="gchip gchip--empty">暂无年级</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="taxo__foot">
+        学段为系统内置枚举（{{ gradeLevelOptions.length }} 个），不落库、只读；点学段可筛选学科，点年级可编辑
+      </div>
+    </aside>
+
+    <!-- 右：主区 —— 学科 / 班级 / 组卷模板 一屏铺开，不再分 Tab -->
+    <div class="main">
+      <header class="page-header">
         <div class="page-header__left">
           <h1 class="page-header__title">维度数据</h1>
           <p class="page-header__sub">管理学科、学段、年级、班级等教学基础维度</p>
         </div>
-      </div>
+        <div class="metrics">
+          <div class="metric">
+            <b>{{ subjects.length }}</b>
+            <span>学科总数</span>
+            <em>{{ subjectCoverHint }}</em>
+          </div>
+          <div class="metric">
+            <b>{{ gradeLevelOptions.length }}</b>
+            <span>学段数</span>
+            <em>系统内置</em>
+          </div>
+          <div class="metric">
+            <b>{{ enableRate }}%</b>
+            <span>启用率</span>
+            <em>{{ enableRateHint }}</em>
+          </div>
+        </div>
+      </header>
 
-      <div class="stats-row">
-        <div class="stat-card">
-          <div class="stat-card__body">
-            <div class="stat-card__title">学科总数</div>
-            <div class="stat-card__value">{{ subjects.length }}</div>
-            <div class="stat-card__hint">{{ subjectCoverHint }}</div>
-          </div>
-          <div class="stat-card__icon" style="background: var(--el-color-primary)">
-            <el-icon :size="22"><Grid /></el-icon>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-card__body">
-            <div class="stat-card__title">学段数</div>
-            <div class="stat-card__value">{{ gradeLevelOptions.length }}</div>
-            <div class="stat-card__hint">小学/初中/高中/大学</div>
-          </div>
-          <div class="stat-card__icon" style="background: var(--el-color-primary)">
-            <el-icon :size="22"><Collection /></el-icon>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-card__body">
-            <div class="stat-card__title">启用率</div>
-            <div class="stat-card__value">{{ enableRate }}%</div>
-            <div class="stat-card__hint">{{ enableRateHint }}</div>
-          </div>
-          <div class="stat-card__icon" style="background: var(--el-color-success)">
-            <el-icon :size="22"><CircleCheckFilled /></el-icon>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <el-card shadow="never" class="panel-card">
-      <div class="dim-toolbar">
-        <div class="pill-tabs" role="tablist">
-          <button
-            v-for="t in tabs"
-            :key="t.name"
-            type="button"
-            class="pill-tabs__btn"
-            :class="{ 'is-active': activeTab === t.name }"
-            role="tab"
-            :aria-selected="activeTab === t.name"
-            @click="onTabChange(t.name)"
-          >
-            {{ t.label }}
-          </button>
-        </div>
-    
-      </div>
-
-      <!-- ==================== 学科管理 ==================== -->
-      <section v-show="activeTab === 'subject'" class="tab-panel">
-        <div class="subject-actions">
-          <el-input
-            v-model="subjectKeyword"
-            class="subject-search"
-            clearable
-            placeholder="搜索学科..."
-            :prefix-icon="Search"
-          />
-          <div class="subject-actions__right">
-            <el-button class="ghost-btn" :icon="Upload" @click="onImport">批量导入</el-button>
+      <!-- ==================== 学科 ==================== -->
+      <section class="block">
+        <div class="block__head">
+          <h2 class="block__title">
+            学科
+            <span class="block__count">{{ filteredSubjects.length }}</span>
+            <button v-if="levelFilter" type="button" class="filter-tag" @click="levelFilter = ''">
+              {{ levelLabel(levelFilter) }}学段 ×
+            </button>
+          </h2>
+          <div class="block__ops">
+            <el-input
+              v-model="subjectKeyword"
+              class="subject-search"
+              clearable
+              placeholder="搜索学科 / 编码"
+              :prefix-icon="Search"
+            />
+            <el-button :icon="Upload" @click="onImport">批量导入</el-button>
             <el-button type="primary" :icon="Plus" @click="openSubjectCreate">新增学科</el-button>
           </div>
         </div>
 
-        <div v-loading="subjectLoading" class="subject-grid">
-          <article
+        <div v-loading="subjectLoading" class="rows">
+          <div
             v-for="s in filteredSubjects"
             :key="s.subjectId"
-            class="subject-card"
+            class="row"
+            role="button"
+            tabindex="0"
+            :title="`编辑学科「${s.subjectName}」`"
+            @click="openSubjectEdit(s)"
+            @keydown.enter.prevent="openSubjectEdit(s)"
           >
-            <div class="subject-card__head">
-              <div class="subject-card__icon" :style="{ background: subjectTheme(s).bg }">
-                <el-icon :size="24"><component :is="subjectTheme(s).icon" /></el-icon>
-              </div>
-              <div class="subject-card__meta">
-                <div class="subject-card__name">{{ s.subjectName }}</div>
-                <div class="subject-card__code">{{ s.subjectCode }}</div>
-              </div>
-              <el-dropdown trigger="click" @command="(cmd: string) => onSubjectMenu(cmd, s)">
-                <button type="button" class="subject-card__more" aria-label="更多操作">
-                  <el-icon><MoreFilled /></el-icon>
-                </button>
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item command="edit">编辑</el-dropdown-item>
-                    <el-dropdown-item command="toggle">
-                      {{ s.subjectStatus === 1 ? "停用" : "启用" }}
-                    </el-dropdown-item>
-                    <el-dropdown-item command="delete" divided>删除</el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
-            </div>
+            <span class="row__icon" :style="{ background: subjectTheme(s).bg }">
+              <el-icon :size="17"><component :is="subjectTheme(s).icon" /></el-icon>
+            </span>
 
-            <div class="subject-card__tags">
-              <span v-for="lv in splitLevels(s.subjectGradeLevels)" :key="lv" class="level-chip">
-                {{ levelLabel(lv) }}
-              </span>
-              <span v-if="!splitLevels(s.subjectGradeLevels).length" class="level-chip level-chip--muted">未配置</span>
-            </div>
+            <span class="row__id">
+              <span class="row__name">{{ s.subjectName }}</span>
+              <span class="row__code">{{ s.subjectCode }}</span>
+            </span>
 
-            <div class="subject-card__footer">
-              <span class="status-pill" :class="s.subjectStatus === 1 ? 'is-on' : 'is-off'">
-                <i class="status-dot" />
-                {{ s.subjectStatus === 1 ? "启用中" : "已停用" }}
-              </span>
-              <div class="subject-card__ops">
-                <button type="button" class="icon-btn" title="编辑" @click="openSubjectEdit(s)">
-                  <el-icon><EditPen /></el-icon>
-                </button>
-                <el-popconfirm :title="`确认删除学科「${s.subjectName}」?`" @confirm="removeSubject(s)">
-                  <template #reference>
-                    <button type="button" class="icon-btn is-danger" title="删除">
-                      <el-icon><Delete /></el-icon>
-                    </button>
-                  </template>
-                </el-popconfirm>
-              </div>
-            </div>
-          </article>
+            <span class="row__levels">
+              <span
+                v-for="opt in gradeLevelOptions"
+                :key="opt.value"
+                class="lvdot"
+                :class="{ 'is-on': splitLevels(s.subjectGradeLevels).includes(opt.value) }"
+                :title="opt.label"
+              >{{ opt.label.slice(0, 1) }}</span>
+            </span>
 
-          <div v-if="!subjectLoading && !filteredSubjects.length" class="empty-panel">
-            暂无学科，点击「新增学科」创建
-          </div>
-        </div>
-      </section>
+            <span class="row__sort">排序 <b>{{ s.subjectSortOrder ?? 0 }}</b></span>
 
-      <!-- ==================== 学段管理（只读） ==================== -->
-      <section v-show="activeTab === 'level'" class="tab-panel">
-        <div class="hint-row">
-          学段为系统内置枚举（PRIMARY / JUNIOR / SENIOR / UNIVERSITY），不落库、不提供增删改，此处只读展示。
-        </div>
-        <div class="level-grid">
-          <div v-for="opt in gradeLevelOptions" :key="opt.value" class="level-card">
-            <div class="level-card__head">
-              <div class="level-card__icon" :style="{ background: levelTheme(opt.value).bg }">
-                <span>{{ opt.label.slice(0, 1) }}</span>
-              </div>
-              <div>
-                <div class="level-card__title">{{ opt.label }}</div>
-                <div class="level-card__code">{{ opt.value }}</div>
-              </div>
-            </div>
-            <div class="level-card__count">
-              <span class="num">{{ gradeCount(opt.value) }}</span>
-              <span class="unit">个年级</span>
-            </div>
-            <div class="level-card__grades">
-              <span v-for="g in gradesOfLevel(opt.value)" :key="g.gradeId" class="level-chip level-chip--soft">
-                {{ g.gradeName }}
-              </span>
-              <span v-if="!gradesOfLevel(opt.value).length" class="text-muted">暂无年级</span>
-            </div>
-          </div>
-        </div>
-      </section>
+            <span class="status-pill" :class="s.subjectStatus === 1 ? 'is-on' : 'is-off'">
+              <i class="status-dot" />{{ s.subjectStatus === 1 ? "启用中" : "已停用" }}
+            </span>
 
-      <!-- ==================== 年级管理 ==================== -->
-      <section v-show="activeTab === 'grade'" class="tab-panel">
-        <div class="subject-actions">
-          <el-select
-            v-model="gradeLevelFilter"
-            clearable
-            placeholder="全部学段"
-            style="width: 160px"
-            @change="loadGrades"
-          >
-            <el-option
-              v-for="opt in gradeLevelOptions"
-              :key="opt.value"
-              :label="opt.label"
-              :value="opt.value"
-            />
-          </el-select>
-          <div class="subject-actions__right">
-            <el-button type="primary" :icon="Plus" @click="openGradeCreate">新增年级</el-button>
-          </div>
-        </div>
-
-        <div v-loading="gradeLoading" class="grade-list">
-          <div
-            v-for="g in grades"
-            :key="g.gradeId"
-            class="grade-row"
-          >
-            <span class="level-chip">{{ levelLabel(g.gradeLevel) }}</span>
-            <span class="grade-row__name">{{ g.gradeName }}</span>
-            <span class="grade-row__order">顺序 {{ g.gradeOrder ?? 0 }}</span>
-            <span class="grade-row__time">{{ g.createTime || "—" }}</span>
-            <div class="subject-card__ops">
-              <button type="button" class="icon-btn" title="编辑" @click="openGradeEdit(g)">
+            <span class="row__ops">
+              <button type="button" class="icon-btn" title="编辑" @click.stop="openSubjectEdit(s)">
                 <el-icon><EditPen /></el-icon>
               </button>
-              <el-popconfirm :title="`确认删除年级「${g.gradeName}」?`" @confirm="removeGrade(g)">
-                <template #reference>
-                  <button type="button" class="icon-btn is-danger" title="删除">
-                    <el-icon><Delete /></el-icon>
-                  </button>
-                </template>
-              </el-popconfirm>
-            </div>
+              <button
+                type="button"
+                class="icon-btn"
+                :title="s.subjectStatus === 1 ? '停用' : '启用'"
+                @click.stop="toggleSubject(s)"
+              >
+                <el-icon><component :is="s.subjectStatus === 1 ? CircleCheckFilled : Close" /></el-icon>
+              </button>
+              <button type="button" class="icon-btn is-danger" title="删除" @click.stop="confirmDeleteSubject(s)">
+                <el-icon><Delete /></el-icon>
+              </button>
+            </span>
           </div>
-          <div v-if="!gradeLoading && !grades.length" class="empty-panel">暂无年级，点击「新增年级」创建</div>
+
+          <div v-if="!subjectLoading && !filteredSubjects.length" class="empty-panel">
+            {{ levelFilter ? "该学段下暂无学科，点击「新增学科」创建" : "暂无学科，点击「新增学科」创建" }}
+          </div>
         </div>
       </section>
 
-      <!-- ==================== 班级管理 ==================== -->
-      <section v-show="activeTab === 'class'" class="tab-panel">
-        <!-- 班级列表：前端数据（学段筛选在 loader 之外，切学段直接重拉全量） -->
+      <!-- ==================== 班级 ==================== -->
+      <section class="block">
+        <div class="block__head">
+          <h2 class="block__title">
+            班级
+            <span class="block__count">{{ classes.length }}</span>
+          </h2>
+          <div class="block__ops">
+            <el-select
+              v-model="classLevelFilter"
+              clearable
+              placeholder="全部学段"
+              style="width: 150px"
+              @change="loadClasses"
+            >
+              <el-option
+                v-for="opt in gradeLevelOptions"
+                :key="opt.value"
+                :label="opt.label"
+                :value="opt.value"
+              />
+            </el-select>
+            <el-button type="primary" :icon="Plus" @click="openClassCreate">新增班级</el-button>
+          </div>
+        </div>
+
         <ReTable
           v-loading="classLoading"
           :data="classes"
@@ -235,23 +207,6 @@
           @row-click="(row: Record<string, unknown>) => openClassEdit(row as unknown as EduClass)"
           :config="{ toolbar: { enable: false } }"
         >
-          <template #toolbar>
-            <el-select
-              v-model="classLevelFilter"
-              clearable
-              placeholder="全部学段"
-              style="width: 160px"
-              @change="loadClasses"
-            >
-              <el-option
-                v-for="opt in gradeLevelOptions"
-                :key="opt.value"
-                :label="opt.label"
-                :value="opt.value"
-              />
-            </el-select>
-            <el-button type="primary" :icon="Plus" @click="openClassCreate">新增班级</el-button>
-          </template>
           <template #empty>
             <el-empty :image-size="80" description="暂无班级，点击「新增班级」创建" />
           </template>
@@ -283,25 +238,28 @@
         </ReTable>
       </section>
 
-      <!-- ==================== 组卷模板管理 ==================== -->
-      <section v-show="activeTab === 'template'" class="tab-panel">
-        <div class="subject-actions">
-          <el-input
-            v-model="templateKeyword"
-            class="subject-search"
-            clearable
-            placeholder="搜索模板名称..."
-            :prefix-icon="Search"
-          />
-          <div class="subject-actions__right">
+      <!-- ==================== 组卷模板 ==================== -->
+      <section class="block">
+        <div class="block__head">
+          <h2 class="block__title">
+            组卷模板
+            <span class="block__count">{{ filteredTemplates.length }}</span>
+          </h2>
+          <div class="block__ops">
+            <el-input
+              v-model="templateKeyword"
+              class="subject-search"
+              clearable
+              placeholder="搜索模板名称"
+              :prefix-icon="Search"
+            />
             <el-button type="primary" :icon="Plus" @click="openTemplateCreate">新增模板</el-button>
           </div>
         </div>
 
-        <!-- 组卷模板：改用 ReTable 的 view 模式（一行一块：左边信息、右边操作同屏）。
-             fill:false —— 本页 .el-card__body 是内容撑高的滚动容器，
-             参与「撑满视口」计算会与 ResizeObserver 形成高度正反馈（行高一路涨到上千、
-             整页滚动条反复抖动）。改为整页滚动，由外层统一滚。 -->
+        <!-- 组卷模板：ReTable 的 view 模式（一行一块：左边信息、右边操作同屏）。
+             fill:false —— 本页是整页滚动容器，参与「撑满视口」计算会与 ResizeObserver
+             形成高度正反馈（行高一路涨到上千、整页滚动条反复抖动）。 -->
         <ReTable
           v-loading="templateLoading"
           :data="filteredTemplates"
@@ -341,7 +299,7 @@
           </template>
         </ReTable>
       </section>
-    </el-card>
+    </div>
 
     <!-- 新增/编辑学科（对齐原型） -->
     <ReDialog
@@ -726,11 +684,12 @@
 
 <script setup lang="ts">
 /**
- * 维度数据 —— 按原型重构：
- * - 渐变页头 + 玻璃统计卡（学科总数 / 学段数 / 启用率）
- * - 胶囊 Tab：学科管理 / 学段管理 / 年级管理 / 组卷模板
- * - 学科：搜索 + 卡片网格（图标/编码/学段标签/启停状态/编辑删除）
- * - 学段：只读卡片；年级：列表 CRUD；组卷模板：列表 CRUD（页眉页脚富文本）
+ * 维度数据 —— 彻底重构（2026-10）：
+ * - 取消 5 个 Tab：整条层级链（学段 → 年级 → 班级，学科按「适用学段」挂靠）一屏铺开
+ * - 左「维度脊柱」：学段为节点、年级为挂片；点学段筛右侧学科，点年级直接进编辑，+ 就地新增
+ * - 右主区：页头内联读数（学科总数 / 学段数 / 启用率）+ 学科行 + 班级表 + 组卷模板
+ * - 学科行：图标/编码/学段字母块/排序/启停/编辑删除，整行可点（表格同款 row-click 约定）
+ * - 学段仍为系统内置枚举，只读；年级 / 班级 / 组卷模板仍是弹框 CRUD
  */
 import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
@@ -752,7 +711,6 @@ import {
   Grid,
   Lightning,
   Monitor,
-  MoreFilled,
   Plus,
   Reading,
   Search,
@@ -794,32 +752,29 @@ const ICON_OPTIONS: { key: string; label: string; icon: Component; bg: string; f
 /** 对话框颜色选项（对齐原型 8 色） */
 const COLOR_OPTIONS = ["#3b82f6", "#8b5cf6", "#22c55e", "#f97316", "#14b8a6", "#facc15", "#ec4899", "#ef4444"];
 
-const levelLabel = (v?: string | null) =>
-  gradeLevelOptions.value.find((o) => o.value === v)?.label || v || "";
+/**
+ * 年级表里 gradeLevel 存的是**中文标签**（小学/初中/高中/大学），学科表里存的是
+ * **学段码**（PRIMARY/JUNIOR/...）。历史数据两种都出现过，所以统一先归一成码再比较，
+ * 否则左侧脊柱按码分组会一个年级都匹配不上。
+ */
+const levelOf = (v?: string | null) => {
+  const s = String(v ?? "").trim();
+  if (!s) return "";
+  const hit = gradeLevelOptions.value.find((o) => o.value === s || o.label === s);
+  return hit ? hit.value : s;
+};
 
-const tabs: { name: DimensionTab; label: string }[] = [
-  { name: "subject", label: "学科管理" },
-  { name: "level", label: "学段管理" },
-  { name: "grade", label: "年级管理" },
-  // 班级也是教学基础维度（学生挂班级、教师带班级），原先这里漏了它
-  { name: "class", label: "班级管理" },
-  { name: "template", label: "组卷模板" },
-];
+const levelLabel = (v?: string | null) => {
+  const code = levelOf(v);
+  return gradeLevelOptions.value.find((o) => o.value === code)?.label || v || "";
+};
 
-/** 维度数据 Tab 名 */
-type DimensionTab = "subject" | "level" | "grade" | "class" | "template";
+/** 左侧脊柱的学段筛选：空串＝全部学段 */
+const levelFilter = ref("");
 
-const activeTab = ref<DimensionTab>("subject");
-
-/** 切 Tab；组卷模板 / 班级为懒加载，切过去时才拉列表 */
-const onTabChange = (name: DimensionTab) => {
-  activeTab.value = name;
-  if (name === "template") {
-    void loadTemplates();
-  }
-  if (name === "class") {
-    void loadClasses();
-  }
+/** 再点一次同一学段即取消筛选 */
+const toggleLevelFilter = (level: string) => {
+  levelFilter.value = levelFilter.value === level ? "" : level;
 };
 
 // ==================== 统计 ====================
@@ -851,9 +806,12 @@ const subjectLevels = ref<string[]>([]);
 const subjectKeyword = ref("");
 
 const filteredSubjects = computed(() => {
+  const lv = levelFilter.value;
+  // 学段筛选先收窄池子，再叠关键字；两者都不改原数组
+  const pool = lv ? subjects.value.filter((s) => splitLevels(s.subjectGradeLevels).includes(lv)) : subjects.value;
   const kw = subjectKeyword.value.trim().toLowerCase();
-  if (!kw) return subjects.value;
-  return subjects.value.filter(
+  if (!kw) return pool;
+  return pool.filter(
     (s) =>
       String(s.subjectName ?? "").toLowerCase().includes(kw) ||
       String(s.subjectCode ?? "").toLowerCase().includes(kw),
@@ -861,6 +819,10 @@ const filteredSubjects = computed(() => {
 });
 
 const splitLevels = (v?: string) => (v ? v.split(",").map((s) => s.trim()).filter(Boolean) : []);
+
+/** 某学段下的学科数（左侧脊柱上的「N 学科」） */
+const levelSubjectCount = (level: string) =>
+  subjects.value.filter((s) => splitLevels(s.subjectGradeLevels).includes(level)).length;
 
 /** 学科卡片配色与图标（优先用存储的 subjectColor/subjectIcon） */
 const subjectTheme = (s: EduSubject): { bg: string; icon: Component } => {
@@ -898,13 +860,6 @@ const subjectTheme = (s: EduSubject): { bg: string; icon: Component } => {
   if (code.includes("politic") || name.includes("政") || name.includes("道")) return { bg: "var(--el-color-danger-dark-2)", icon: Flag };
   if (name.includes("科")) return { bg: "var(--el-color-info-dark-2)", icon: Edit };
   return { bg: "var(--el-color-primary)", icon: Grid };
-};
-
-const levelTheme = (v: string) => {
-  if (v === "PRIMARY") return { bg: "var(--el-color-primary)" };
-  if (v === "JUNIOR") return { bg: "var(--el-color-primary-dark-2)" };
-  if (v === "SENIOR") return { bg: "var(--el-color-warning)" };
-  return { bg: "var(--el-color-info)" };
 };
 
 const loadGradeLevels = async () => {
@@ -956,12 +911,6 @@ const toggleSubjectLevel = (value: string) => {
   const i = subjectLevels.value.indexOf(value);
   if (i >= 0) subjectLevels.value.splice(i, 1);
   else subjectLevels.value.push(value);
-};
-
-const onSubjectMenu = (cmd: string, row: EduSubject) => {
-  if (cmd === "edit") openSubjectEdit(row);
-  else if (cmd === "toggle") void toggleSubject(row);
-  else if (cmd === "delete") void confirmDeleteSubject(row);
 };
 
 const saveSubject = async () => {
@@ -1037,12 +986,15 @@ const gradeLoading = ref(false);
 const gradeSaving = ref(false);
 const gradeDialogVisible = ref(false);
 const gradeForm = reactive<Partial<EduGrade>>({});
-const gradeLevelFilter = ref("");
 
+/**
+ * 年级全量拉取：左侧脊柱要按学段分组展示，所以不再按学段过滤请求；
+ * 筛选改由脊柱点击驱动学科列表（年级本就该全量可见）。
+ */
 const loadGrades = async () => {
   gradeLoading.value = true;
   try {
-    const res = await eduaiApi.listGrades(gradeLevelFilter.value || undefined);
+    const res = await eduaiApi.listGrades();
     grades.value = Array.isArray(res) ? res : [];
   } catch {
     message.error("加载年级失败");
@@ -1051,7 +1003,7 @@ const loadGrades = async () => {
   }
 };
 
-const gradesOfLevel = (level: string) => grades.value.filter((g) => g.gradeLevel === level);
+const gradesOfLevel = (level: string) => grades.value.filter((g) => levelOf(g.gradeLevel) === level);
 const gradeCount = (level: string) => gradesOfLevel(level).length;
 
 /** 各学段快捷年级名（对齐原型） */
@@ -1068,10 +1020,11 @@ const onGradeLevelPick = (value: string) => {
   gradeForm.gradeLevel = value;
 };
 
-const openGradeCreate = () => {
+/** level 由脊柱上的「+」传入；不传则回落到第一个学段 */
+const openGradeCreate = (level?: string) => {
   Object.assign(gradeForm, {
     gradeId: undefined,
-    gradeLevel: gradeLevelFilter.value || "PRIMARY",
+    gradeLevel: level || gradeLevelOptions.value[0]?.value || "PRIMARY",
     gradeName: "",
     gradeOrder: grades.value.length || 10,
   });
@@ -1079,7 +1032,8 @@ const openGradeCreate = () => {
 };
 
 const openGradeEdit = (row: EduGrade) => {
-  Object.assign(gradeForm, { ...row, gradeLevel: row.gradeLevel || "PRIMARY" });
+  // 老数据 gradeLevel 是中文标签，进弹框前归一成学段码，否则单选组一个都选不中
+  Object.assign(gradeForm, { ...row, gradeLevel: levelOf(row.gradeLevel) || "PRIMARY" });
   gradeDialogVisible.value = true;
 };
 
@@ -1334,377 +1288,483 @@ onMounted(() => {
   void loadGradeLevels();
   void loadSubjects();
   void loadGrades();
+  // 一屏全铺之后班级 / 组卷模板不再是「切 Tab 才拉」，进页面即加载
+  void loadClasses();
+  void loadTemplates();
 });
 </script>
 
 <style scoped>
-/* ---------- 页头 / 统计（对齐知识库） ---------- */
+/* ---------- 页面骨架：左脊柱 + 右主区（整页滚动，不再分 Tab） ---------- */
 .page-container {
   height: 100%;
   overflow: auto;
   background: var(--el-bg-color-page);
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr);
+  align-items: start;
 }
 
-/* 上区：页头 + 右侧悬浮统计卡 */
-.top-zone {
+/* ---------- 左：维度脊柱 ---------- */
+.taxo {
+  position: sticky;
+  top: 0;
+  align-self: start;
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  flex-direction: column;
+  padding: 18px 0 0;
+  background: var(--el-bg-color);
+}
+
+.taxo__head {
+  padding: 0 16px 10px;
+}
+
+.taxo__title {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--el-text-color-placeholder);
+  text-transform: uppercase;
+}
+
+.taxo__figs {
+  display: flex;
   gap: 16px;
-  /* 负 margin 让下半张卡压进 panel-card */
-  margin-bottom: -74px;
+  margin-top: 8px;
+}
+
+.taxo__figs div {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.taxo__figs b {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.taxo__figs span {
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+}
+
+/* 脊柱线 + 学段节点 */
+.taxo__spine {
   position: relative;
-  z-index: 2;
+  padding: 2px 0 8px 16px;
+}
+
+.taxo__spine::before {
+  content: "";
+  position: absolute;
+  left: 21px;
+  top: 14px;
+  bottom: 14px;
+  width: 1px;
+  background: var(--el-border-color-lighter);
+}
+
+.band {
+  position: relative;
+  padding: 7px 10px 9px 18px;
+  border-radius: 0 10px 10px 0;
+  transition: background var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+.band:hover {
+  background: var(--el-fill-color-light);
+}
+
+.band.is-on {
+  background: var(--el-color-primary-light-9);
+}
+
+/* 选中态用右侧短竖条，避免整块高亮压过内容 */
+.band.is-on::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--el-color-primary);
+}
+
+.band__tick {
+  position: absolute;
+  left: 0;
+  top: 13px;
+  width: 9px;
+  height: 9px;
+  border-radius: var(--el-border-radius-circle, 50%);
+  background: var(--el-bg-color);
+  border: 1.5px solid var(--el-border-color);
+}
+
+.band.is-on .band__tick {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary);
+}
+
+.band__head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  outline: none;
+}
+
+.band__head:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 14%, transparent);
+  border-radius: 4px;
+}
+
+.band__name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+}
+
+.band__code {
+  font-family: var(--el-font-family-mono, ui-monospace, Menlo, monospace);
+  font-size: 9.5px;
+  color: var(--el-text-color-placeholder);
+}
+
+.band__stat {
+  margin-left: auto;
+  font-size: 10.5px;
+  color: var(--el-text-color-placeholder);
+  white-space: nowrap;
+}
+
+.band__grades {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.gchip {
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-regular);
+  font: inherit;
+  font-size: 11.5px;
+  line-height: 1.75;
+  cursor: pointer;
+  outline: none;
+  transition:
+    color var(--el-transition-duration-fast, 0.2s) ease,
+    background var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+.gchip:hover {
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary-light-7);
+}
+
+.gchip:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 14%, transparent);
+}
+
+.gchip--add {
+  color: var(--el-text-color-placeholder);
+  background: transparent;
+  border: 1px dashed var(--el-border-color);
+}
+
+.gchip--empty {
+  color: var(--el-text-color-placeholder);
+  background: transparent;
+  border: 1px dashed var(--el-border-color-lighter);
+  cursor: default;
+}
+
+.gchip--empty:hover {
+  color: var(--el-text-color-placeholder);
+  background: transparent;
+  border-color: var(--el-border-color-lighter);
+}
+
+.taxo__foot {
+  margin-top: auto;
+  padding: 12px 16px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--el-text-color-placeholder);
+}
+
+/* ---------- 右：主区 ---------- */
+.main {
+  min-width: 0;
+  padding: 18px 20px 26px;
+  border-left: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color-page);
 }
 
 .page-header {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 0;
-  padding-top: 4px;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding-bottom: 14px;
 }
+
 .page-header__title {
   margin: 0;
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 700;
-  color: var(--el-text-color-primary);
   line-height: 1.25;
+  color: var(--el-text-color-primary);
 }
+
 .page-header__sub {
   margin: 4px 0 0;
   font-size: 13px;
   color: var(--el-text-color-placeholder);
 }
 
-/* 正方形统计卡：右侧并排，浮在页头/内容分界 */
-.stats-row {
+/* 统计改为页头内联读数：不再用「半张卡压进内容区」的悬浮块 */
+.metrics {
   display: flex;
-  flex-shrink: 0;
-  gap: 14px;
-  margin-bottom: 0;
+  gap: 24px;
 }
-.stat-card {
-  width: 148px;
-  height: 148px;
-  background: var(--el-bg-color);
-  border-radius: var(--el-radius-xl, 16px);
-  padding: 16px;
+
+.metric {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-  /* koi 卡片不加投影：两层 slate 常驻投影换成一条主题边框。
-     原来的 rgb(255 255 255 / 80%) 白边在浅色主题下等于隐形 */
-  border: 1px solid var(--el-border-color-lighter);
-  transition:
-    transform var(--el-transition-duration-fast, 0.2s) ease,
-    box-shadow var(--el-transition-duration-fast, 0.2s) ease,
-    border-color var(--el-transition-duration-fast, 0.2s) ease;
-}
-.stat-card:hover {
-  transform: translateY(-2px);
-  border-color: var(--el-color-primary-light-7);
-  /* 浮起反馈是 koi 唯一允许的卡片投影 */
-  box-shadow: 0 16px 36px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
-}
-.stat-card__body {
-  min-width: 0;
-  width: 100%;
-}
-.stat-card__title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-color-secondary);
-  margin-bottom: 6px;
-}
-.stat-card__value {
-  font-size: 30px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
-  line-height: 1.1;
-}
-.stat-card__hint {
-  margin-top: 4px;
-  font-size: 11px;
-  color: var(--el-text-color-placeholder);
-  line-height: 1.35;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.stat-card__icon {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--el-radius-lg, 12px);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--el-color-white);
-  flex-shrink: 0;
-  align-self: flex-end;
+  line-height: 1.3;
 }
 
-.panel-card {
-  /* 原 14px，最近档 12px（lg） */
-  border-radius: var(--el-radius-lg, 12px);
-  border: 0;
-  /* 让内容区顶部被统计卡下半压住，同时自身仍从上区下沿开始 */
-  position: relative;
-  z-index: 1;
-  margin-top: 0;
-}
-.panel-card :deep(.el-card__body) {
-  /* 上半被统计卡盖住约 74px，顶部多留白避免工具栏被压 */
-  padding: 92px 20px 22px;
-}
-
-.dim-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
-  padding: 6px;
-}
-
-.pill-tabs {
-  display: inline-flex;
-  gap: 4px;
-  padding: 5px;
-  background: var(--el-fill-color-light);
-  border-radius: var(--el-radius-full, 9999px);
-}
-
-.pill-tabs__btn {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  padding: 10px 26px;
-  border-radius: var(--el-radius-full, 9999px);
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--el-text-color-secondary);
-  cursor: pointer;
-  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
-  outline: none;
-  transition:
-    background var(--el-transition-duration-fast, 0.2s) ease,
-    color var(--el-transition-duration-fast, 0.2s) ease,
-    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
-}
-
-.pill-tabs__btn:hover {
-  color: var(--el-color-primary);
-}
-
-.pill-tabs__btn:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-}
-
-.pill-tabs__btn.is-active {
-  background: var(--el-bg-color);
-  color: var(--el-color-primary);
-  /* 选中标签从灰色轨道上「浮起」，属于浮起反馈，不是卡片投影 */
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-primary) 14%, transparent);
-}
-
-.quick-add {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
-  cursor: pointer;
-  padding: 6px 4px;
-}
-
-.quick-add__plus {
-  width: 34px;
-  height: 34px;
-  /* 纯圆形图标底用圆形令牌 */
-  border-radius: var(--el-border-radius-circle, 50%);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--el-color-primary);
-  color: var(--el-color-white);
+.metric b {
   font-size: 22px;
-  font-weight: 600;
-  line-height: 1;
-  /* 原投影去掉：主色实心圆自身已足够突出 */
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
 }
 
-.quick-add:hover .quick-add__plus {
-  background: var(--el-color-primary-dark-2);
+.metric span {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 
-/* ---------- 学科工具条 ---------- */
-.subject-actions {
+.metric em {
+  margin-top: 2px;
+  font-size: 11px;
+  font-style: normal;
+  color: var(--el-text-color-placeholder);
+}
+
+/* ---------- 分区（学科 / 班级 / 组卷模板） ---------- */
+.block {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.block:first-of-type {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.block__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: 14px;
   flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.block__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+}
+
+.block__count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-placeholder);
+  font-variant-numeric: tabular-nums;
+}
+
+.filter-tag {
+  margin-left: 4px;
+  padding: 1px 8px;
+  border: 1px solid var(--el-color-primary-light-7);
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+}
+
+.filter-tag:hover {
+  background: var(--el-color-primary-light-8);
+}
+
+.block__ops {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .subject-search {
-  width: min(360px, 100%);
+  width: 220px;
 }
 
-.subject-search :deep(.el-input__wrapper) {
-  border-radius: var(--el-radius-full, 9999px);
-  padding: 2px 14px 2px 8px;
-  box-shadow: 0 0 0 1px var(--el-border-color-lighter) inset;
-}
-
-.subject-actions__right {
-  display: inline-flex;
-  gap: 10px;
-}
-
-.ghost-btn {
-  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
-  border-radius: var(--el-radius-lg, 12px);
-  font-weight: 600;
-}
-
-/* ---------- 学科卡片网格 ---------- */
-.subject-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  min-height: 160px;
-}
-
-.subject-card {
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
-  padding: 18px 18px 14px;
-  /* koi 卡片不加投影：已有一条边框承载边界 */
+/* ---------- 学科行 ---------- */
+.rows {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  transition:
-    transform var(--el-transition-duration-fast, 0.2s) ease,
-    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
+  min-height: 80px;
 }
 
-.subject-card:hover {
-  transform: translateY(-2px);
-  /* 浮起反馈是 koi 唯一允许的卡片投影 */
-  box-shadow: 0 10px 24px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
-}
-
-.subject-card__head {
+.row {
   display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 12px;
+  grid-template-columns: 34px minmax(120px, 1.4fr) auto 84px 96px 108px;
   align-items: center;
+  gap: 14px;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+  transition: background var(--el-transition-duration-fast, 0.2s) ease;
 }
 
-.subject-card__icon {
-  width: 52px;
-  height: 52px;
-  /* 原 14px，最近档 12px（lg） */
-  border-radius: var(--el-radius-lg, 12px);
-  color: var(--el-color-white);
+.row:last-child {
+  border-bottom: 0;
+}
+
+.row:hover {
+  background: var(--el-fill-color-light);
+}
+
+.row:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 14%, transparent);
+}
+
+.row__icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  /* 原投影去掉：图标底色由 subjectTheme 数据驱动下发，投影只是脏边 */
-}
-
-.subject-card__name {
-  font-size: 20px;
-  font-weight: 800;
-  color: var(--el-text-color-primary);
-  line-height: 1.2;
-}
-
-.subject-card__code {
-  margin-top: 2px;
-  font-size: 13px;
-  color: var(--el-text-color-placeholder);
-}
-
-.subject-card__more {
   width: 32px;
   height: 32px;
-  border: 0;
   border-radius: var(--el-radius-md, 8px);
-  background: transparent;
+  color: var(--el-color-white);
+}
+
+.row__id {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.row__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row__code {
+  font-family: var(--el-font-family-mono, ui-monospace, Menlo, monospace);
+  font-size: 11px;
   color: var(--el-text-color-placeholder);
-  cursor: pointer;
+}
+
+.row__levels {
+  display: inline-flex;
+  gap: 4px;
+}
+
+/* 学段字母块：实心=适用，描边灰=不适用（比一排文字标签更省空间） */
+.lvdot {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
-  outline: none;
-}
-
-.subject-card__more:hover {
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-regular);
-}
-
-.subject-card__more:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-}
-
-.subject-card__tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.level-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 12px;
-  border-radius: var(--el-radius-md, 8px);
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
-  font-size: 13px;
-  font-weight: 600;
-  border: 1px solid var(--el-color-primary-light-5);
-}
-
-.level-chip--muted {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
   background: var(--el-fill-color-light);
   color: var(--el-text-color-placeholder);
-  border-color: var(--el-border-color-lighter);
+  font-size: 10.5px;
+  font-weight: 600;
 }
 
-.level-chip--soft {
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-regular);
-  border-color: var(--el-border-color-lighter);
+.lvdot.is-on {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  box-shadow: inset 0 0 0 1px var(--el-color-primary-light-7);
 }
 
-.subject-card__footer {
+.row__sort {
+  font-size: 11.5px;
+  color: var(--el-text-color-placeholder);
+  white-space: nowrap;
+}
+
+.row__sort b {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-secondary);
+}
+
+.row__ops {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--el-border-color-lighter);
+  justify-content: flex-end;
+  gap: 6px;
+  opacity: 0.45;
+  transition: opacity var(--el-transition-duration-fast, 0.2s) ease;
 }
 
+.row:hover .row__ops,
+.row:focus-within .row__ops {
+  opacity: 1;
+}
+
+/* ---------- 状态 / 图标按钮（学科行与表格插槽共用） ---------- */
 .status-pill {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 700;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .status-pill.is-on {
@@ -1716,30 +1776,23 @@ onMounted(() => {
 }
 
 .status-dot {
-  width: 9px;
-  height: 9px;
-  /* 状态圆点用圆形令牌 */
+  width: 8px;
+  height: 8px;
   border-radius: var(--el-border-radius-circle, 50%);
   background: currentColor;
 }
 
-.subject-card__ops {
-  display: inline-flex;
-  gap: 8px;
-}
-
 .icon-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: var(--el-radius-md, 8px);
-  border: 1px solid var(--el-border-color-lighter);
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-secondary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-secondary);
   cursor: pointer;
-  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
   outline: none;
   transition:
     border-color var(--el-transition-duration-fast, 0.2s) ease,
@@ -1764,132 +1817,15 @@ onMounted(() => {
 }
 
 .empty-panel {
-  grid-column: 1 / -1;
-  min-height: 160px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--el-text-color-placeholder);
-  background: var(--el-bg-color);
-  border: 1px dashed var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
-}
-
-/* ---------- 学段 ---------- */
-.hint-row {
-  margin-bottom: 14px;
-  padding: 10px 14px;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-  background: var(--el-fill-color-light);
-  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
-  border-radius: var(--el-radius-lg, 12px);
-}
-
-.level-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 14px;
-}
-
-.level-card {
-  padding: 18px;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.level-card__head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.level-card__icon {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--el-radius-lg, 12px);
-  color: var(--el-color-white);
-  font-weight: 800;
-  font-size: 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.level-card__title {
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--el-text-color-primary);
-}
-
-.level-card__code {
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-}
-
-.level-card__count .num {
-  font-size: 28px;
-  font-weight: 800;
-  color: var(--el-color-primary);
-}
-
-.level-card__count .unit {
-  margin-left: 6px;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-}
-
-.level-card__grades {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.text-muted {
-  color: var(--el-text-color-placeholder);
-  font-size: 13px;
-}
-
-/* ---------- 年级列表 ---------- */
-.grade-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
   min-height: 120px;
-}
-
-.grade-row {
-  display: grid;
-  grid-template-columns: 90px 1fr 110px 170px auto;
-  gap: 12px;
-  align-items: center;
-  padding: 14px 16px;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  /* 原 14px，最近档 12px（lg） */
+  margin-top: 8px;
+  border: 1px dashed var(--el-border-color-lighter);
   border-radius: var(--el-radius-lg, 12px);
-}
-
-.grade-row__name {
-  font-weight: 700;
-  color: var(--el-text-color-primary);
-}
-
-.grade-row__order,
-.grade-row__time {
-  color: var(--el-text-color-secondary);
-  font-size: 13px;
-}
-
-/* 班级编码：与年级的次要信息同款弱化样式 */
-.grade-row__code {
-  color: var(--el-text-color-secondary);
-  font-size: 13px;
-  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  background: var(--el-bg-color);
+  color: var(--el-text-color-placeholder);
 }
 
 /* ---------- 组卷模板 ReTable view 模式：一行一块 ---------- */
@@ -1901,12 +1837,14 @@ onMounted(() => {
   width: 100%;
   min-width: 0;
 }
+
 .tpl-view__main {
-  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
+
 .tpl-view__name {
   font-weight: 700;
   color: var(--el-text-color-primary);
@@ -1914,12 +1852,14 @@ onMounted(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 .tpl-view__meta {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
 }
+
 .tpl-chip {
   padding: 1px 8px;
   border-radius: var(--el-radius-sm, 6px);
@@ -1928,11 +1868,97 @@ onMounted(() => {
   font-size: 12px;
   line-height: 1.8;
 }
+
 .tpl-view__ops {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 1240px) {
+  .page-container {
+    grid-template-columns: 208px minmax(0, 1fr);
+  }
+
+  .row {
+    grid-template-columns: 34px minmax(96px, 1fr) auto 96px 108px;
+  }
+
+  .row__sort {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .page-container {
+    grid-template-columns: 1fr;
+  }
+
+  .taxo {
+    position: static;
+    padding-top: 14px;
+  }
+
+  .taxo__spine {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 8px;
+    padding-left: 12px;
+  }
+
+  .taxo__spine::before {
+    display: none;
+  }
+
+  .taxo__foot {
+    display: none;
+  }
+
+  .main {
+    padding: 14px 14px 22px;
+    border-left: 0;
+    border-top: 1px solid var(--el-border-color-lighter);
+  }
+
+  .metrics {
+    gap: 18px;
+  }
+
+  .row {
+    grid-template-columns: 34px minmax(80px, 1fr) auto 96px;
+    gap: 10px;
+  }
+
+  .row__sort,
+  .row .status-pill {
+    display: none;
+  }
+
+  .subject-search {
+    width: 160px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .band,
+  .gchip,
+  .row,
+  .row__ops,
+  .icon-btn,
+  .filter-tag,
+  .dlg-close,
+  .icon-opt,
+  .color-dot,
+  .level-pill {
+    transition: none;
+  }
+
+  .icon-opt:hover,
+  .color-dot:hover {
+    transform: none;
+  }
 }
 
 /* ---------- 对话框（严格对齐「新增学科」原型） ---------- */
@@ -2357,71 +2383,5 @@ onMounted(() => {
 /* ---------- 组卷模板 ---------- */
 .template-dialog .block-title ~ .block-title {
   margin-top: 14px;
-}
-
-/* ---------- 响应式 ---------- */
-@media (max-width: 1200px) {
-  .subject-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .grade-row {
-    grid-template-columns: 80px 1fr auto;
-  }
-
-  .grade-row__order,
-  .grade-row__time {
-    display: none;
-  }
-}
-
-@media (max-width: 768px) {
-  .top-zone {
-    flex-direction: column;
-    margin-bottom: 0;
-    z-index: auto;
-  }
-
-  .stats-row {
-    width: 100%;
-  }
-
-  .stat-card {
-    flex: 1;
-    width: auto;
-    min-width: 0;
-    height: auto;
-    min-height: 120px;
-  }
-
-  .subject-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .pill-tabs__btn {
-    padding: 8px 14px;
-    font-size: 14px;
-  }
-}
-
-/* ============ 无障碍：尊重系统「减少动态效果」偏好 ============ */
-@media (prefers-reduced-motion: reduce) {
-  .stat-card,
-  .subject-card,
-  .pill-tabs__btn,
-  .dlg-close,
-  .icon-btn,
-  .icon-opt,
-  .color-dot,
-  .level-pill {
-    transition: none;
-  }
-  /* 位移/缩放也是动效：关掉后 :hover / 选中态只剩颜色与边框反馈 */
-  .stat-card:hover,
-  .subject-card:hover,
-  .icon-opt:hover,
-  .color-dot:hover {
-    transform: none;
-  }
 }
 </style>
