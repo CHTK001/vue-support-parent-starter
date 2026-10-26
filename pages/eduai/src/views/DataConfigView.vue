@@ -510,23 +510,24 @@
 
       <template #footer>
         <div class="dialog-footer">
-          <!-- 年级在脊柱上只是挂片，没有表格行可放删除按钮，删除入口收进编辑弹框 -->
-          <span v-if="gradeForm.gradeId" class="dialog-footer__left">
-            <el-button v-if="!gradeConfirmDelete" class="dialog-btn is-danger" @click="askDeleteGrade">
-              删除年级
+          <!-- 二次确认时整条底栏换成「提示 + 取消 + 确认删除」，避免出现两个「取消」 -->
+          <template v-if="gradeConfirmDelete">
+            <span class="del-confirm__text">删除「{{ gradeForm.gradeName }}」后不可恢复</span>
+            <el-button class="dialog-btn" @click="cancelDeleteGrade">取消</el-button>
+            <el-button class="dialog-btn is-danger-solid" :loading="gradeSaving" @click="confirmDeleteGrade">
+              确认删除
             </el-button>
-            <span v-else class="del-confirm">
-              <span class="del-confirm__text">删除后不可恢复</span>
-              <el-button class="dialog-btn" @click="cancelDeleteGrade">取消</el-button>
-              <el-button class="dialog-btn is-danger-solid" :loading="gradeSaving" @click="confirmDeleteGrade">
-                确认删除
-              </el-button>
+          </template>
+          <template v-else>
+            <!-- 年级在脊柱上只是挂片，没有表格行可放删除按钮，删除入口收进编辑弹框 -->
+            <span v-if="gradeForm.gradeId" class="dialog-footer__left">
+              <el-button class="dialog-btn is-danger" @click="askDeleteGrade">删除年级</el-button>
             </span>
-          </span>
-          <el-button class="dialog-btn" @click="gradeDialogVisible = false">取消</el-button>
-          <el-button class="dialog-btn is-primary" type="primary" :loading="gradeSaving" @click="saveGrade">
-            保存年级
-          </el-button>
+            <el-button class="dialog-btn" @click="gradeDialogVisible = false">取消</el-button>
+            <el-button class="dialog-btn is-primary" type="primary" :loading="gradeSaving" @click="saveGrade">
+              保存年级
+            </el-button>
+          </template>
         </div>
       </template>
     </ReDialog>
@@ -2140,8 +2141,10 @@ onMounted(() => {
 }
 
 .del-confirm__text {
+  margin-right: auto;
   font-size: 12.5px;
   color: var(--el-color-danger);
+  white-space: nowrap;
 }
 
 .dialog-btn.is-danger {
