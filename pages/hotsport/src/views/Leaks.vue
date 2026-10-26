@@ -1,19 +1,14 @@
 <template>
   <div class="view">
-    <div class="view-toolbar">
-      <div class="toolbar-left">
-        <span class="section-label">资源泄漏</span>
-        <span class="match-hint">
-          <template v-if="!loading">{{ total.toLocaleString() }} 条 · 第 {{ page }} 页</template>
-          <template v-else>加载中…</template>
-        </span>
-      </div>
-      <div class="toolbar-right">
+    <!-- 操作条：无标题大卡 -->
+    <div class="view-bar">
+      <span class="match-hint">
+        <template v-if="!loading">{{ total.toLocaleString() }} 条 · 第 {{ page }} 页</template>
+        <template v-else>加载中…</template>
+      </span>
+      <div class="view-bar__actions">
         <el-button round @click="exportCsvFull">
           <el-icon class="btn-icon"><Download /></el-icon>导出 CSV
-        </el-button>
-        <el-button type="primary" round :loading="injecting" @click="doInjectLeak">
-          <el-icon class="btn-icon"><Plus /></el-icon>制造一条泄漏
         </el-button>
         <el-button round :loading="loading" @click="load">
           <el-icon class="btn-icon"><Refresh /></el-icon>刷新
@@ -178,7 +173,6 @@ import {
   CircleClose,
   Download,
   Files,
-  Plus,
   Refresh,
   Timer,
   Warning,
@@ -186,7 +180,7 @@ import {
 import ReTable from "@repo/ui/re-table";
 import ReStatCard from "@repo/ui/re-stat-card";
 import type { ReTableColumn } from "@repo/ui/re-table";
-import { pageLeaks, exportLeaksCsv, injectLeak } from "../api/apmApi";
+import { pageLeaks, exportLeaksCsv } from "../api/apmApi";
 import type { LeakRecord, LeakQuery } from "../api/apmApi";
 
 const items = ref<LeakRecord[]>([]);
@@ -315,26 +309,6 @@ watch(
     load();
   },
 );
-
-// ---- 注入 ----
-const injecting = ref(false);
-const leakSeq = ref(0);
-
-async function doInjectLeak() {
-  injecting.value = true;
-  try {
-    leakSeq.value++;
-    const kinds = ["File", "Socket", "Connection", "Thread"];
-    const kind = kinds[leakSeq.value % kinds.length];
-    await injectLeak(kind, `${kind.toLowerCase()}-manual-${leakSeq.value}`);
-    message.success(`已制造一条 ${kind} 泄漏记录`);
-    await load();
-  } catch {
-    message.error("写入失败");
-  } finally {
-    injecting.value = false;
-  }
-}
 
 /** 后端全量 CSV 导出（带当前全部筛选条件） */
 function exportCsvFull() {

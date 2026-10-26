@@ -1,14 +1,12 @@
 <template>
   <div class="view">
-    <!-- 工具栏：Agent 状态总览 -->
-    <div class="view-toolbar">
-      <div class="toolbar-left">
-        <span class="section-label">Agent 管理中心</span>
+    <!-- 操作条：无标题大卡 -->
+    <div class="view-bar">
+      <span class="match-hint">
         <ReTag :type="agentStatusTagType" round>{{ agentStatusLabel }}</ReTag>
-        <span class="match-hint">Agent 配置、健康状态与采样能力总览</span>
-      </div>
+      </span>
 
-      <div class="toolbar-right">
+      <div class="view-bar__actions">
         <ReButton
           :icon="store.agentEnabled ? CircleClose : CircleCheck"
           show-text
@@ -106,11 +104,6 @@
         <div class="filter-field">
           <label class="filter-label">日志级别</label>
           <ReSelect v-model="configDraft.logLevel" :data="logLevelOptions" :disabled="configSaving" />
-        </div>
-
-        <div class="filter-field">
-          <label class="filter-label">注入模式</label>
-          <ReSelect v-model="configDraft.injectMode" :data="injectModeOptions" :disabled="configSaving" />
         </div>
 
         <div class="filter-field">
@@ -388,7 +381,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import {
   DataAnalysis,
   Connection,
@@ -433,7 +426,7 @@ import type {
   TracePhaseStat,
   SkywalkingSegment,
 } from "../api/apmApi";
-import { useRealtimeStatus } from "../composables/useRealtime";
+import { useRealtimeStatus, useRealtimeEvent } from "../composables/useRealtime";
 
 const store = useApmStore();
 const rt = useRealtimeStatus();
@@ -454,19 +447,12 @@ const logLevelOptions: ReOption[] = [
   { label: "ERROR", value: "ERROR" },
 ];
 
-const injectModeOptions: ReOption[] = [
-  { label: "禁止注入", value: "DISABLED" },
-  { label: "仅监控", value: "MONITOR" },
-  { label: "模拟注入", value: "SIMULATE" },
-];
-
 /** 本地演示配置草稿（后端无接口时也可操作） */
 const configDraft = reactive<AgentConfig>({
   samplingRate: 100,
   slowThresholdMs: 500,
   logLevel: "INFO",
   enabled: true,
-  injectMode: "SIMULATE",
 });
 
 /** 后端读取到配置后同步到草稿 */
@@ -482,7 +468,6 @@ function restoreDefaults() {
     slowThresholdMs: 500,
     logLevel: "INFO",
     enabled: true,
-    injectMode: "SIMULATE",
   };
   Object.assign(configDraft, cfg);
 }
@@ -500,7 +485,6 @@ const configChanged = computed(
     (configDraft.samplingRate !== store.agentConfig.samplingRate ||
       configDraft.slowThresholdMs !== store.agentConfig.slowThresholdMs ||
       configDraft.logLevel !== store.agentConfig.logLevel ||
-      configDraft.injectMode !== store.agentConfig.injectMode ||
       configDraft.enabled !== store.agentConfig.enabled),
 );
 
@@ -697,7 +681,6 @@ async function saveConfig() {
       samplingRate: configDraft.samplingRate,
       slowThresholdMs: configDraft.slowThresholdMs,
       logLevel: configDraft.logLevel,
-      injectMode: configDraft.injectMode,
       enabled: configDraft.enabled,
     });
     store.agentConfig = saved;
@@ -731,21 +714,14 @@ function resetConfigForm() {
   restoreDefaults();
 }
 
-let pollTimer: number | undefined;
-
 onMounted(async () => {
   await refreshAll();
   await Promise.all([loadHandles(), loadSysOut(), loadMemoryDiagnostics(), loadThreadDump(), loadTraceAnalysis()]);
-  pollTimer = window.setInterval(() => {
-    store.pollStatus();
-  }, 15000);
 });
 
-onBeforeUnmount(() => {
-  if (pollTimer) {
-    window.clearInterval(pollTimer);
-    pollTimer = undefined;
-  }
+// Agent 状态随整站实时通道更新，不再单独 setInterval 轮询
+useRealtimeEvent("stats", () => {
+  if (!statusLoading.value) store.pollStatus();
 });
 </script>
 

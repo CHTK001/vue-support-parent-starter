@@ -1,13 +1,11 @@
 <template>
   <div class="view">
-    <div class="view-toolbar">
-      <div class="toolbar-left">
-        <span class="section-label">服务列表</span>
-        <span class="match-hint" v-if="!loading">
-          共 {{ items.length }} 个服务 · 点行下钻详情 · 5s 自动刷新
-        </span>
-      </div>
-      <div class="toolbar-right">
+    <!-- 操作条：无标题大卡，实时推送驱动 -->
+    <div class="view-bar">
+      <span class="match-hint" v-if="!loading">
+        共 {{ items.length }} 个服务 · 点行下钻详情 · 实时推送
+      </span>
+      <div class="view-bar__actions">
         <ReButton icon="Refresh" show-text round :loading="loading" @click="load">刷新</ReButton>
       </div>
     </div>
@@ -111,9 +109,10 @@
 
 <script setup lang="ts">
 import { message } from "@repo/core";
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ROUTE_PREFIX } from "../config";
+import { useRealtimeEvent } from "../composables/useRealtime";
 import {
   Connection,
   Histogram,
@@ -135,7 +134,6 @@ const items = ref<ApmService[]>([]);
 const loading = ref(false);
 const keyword = ref("");
 const errorOnly = ref(false);
-let timer: number | undefined;
 const router = useRouter();
 
 /** 行下钻 → 服务详情页 */
@@ -205,11 +203,11 @@ const tableColumns: ReTableColumn[] = [
 
 onMounted(() => {
   load();
-  timer = window.setInterval(load, 5000);
 });
 
-onBeforeUnmount(() => {
-  if (timer) window.clearInterval(timer);
+// 实时推送：整站共用一条 WS/SSE，收到 stats 事件即静默刷新，不再各自 setInterval 轮询
+useRealtimeEvent("stats", () => {
+  if (!loading.value) load();
 });
 </script>
 

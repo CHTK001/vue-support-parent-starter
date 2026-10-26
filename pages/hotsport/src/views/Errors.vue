@@ -1,11 +1,9 @@
 <template>
   <div class="view">
-    <div class="view-toolbar">
-      <div class="toolbar-left">
-        <span class="section-label">错误排行</span>
-        <span class="match-hint" v-if="!loading">{{ items.length }} 种错误 · 5s 自动刷新</span>
-      </div>
-      <div class="toolbar-right">
+    <!-- 操作条：无标题大卡，实时推送驱动 -->
+    <div class="view-bar">
+      <span class="match-hint" v-if="!loading">{{ items.length }} 种错误 · 实时推送</span>
+      <div class="view-bar__actions">
         <ReButton icon="Refresh" show-text round :loading="loading" @click="load">刷新</ReButton>
       </div>
     </div>
@@ -122,7 +120,7 @@
 
 <script setup lang="ts">
 import { message } from "@repo/core";
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { Warning, Timer, Document, Search } from "@element-plus/icons-vue";
 
 import ReButton from "@repo/ui/re-button";
@@ -134,13 +132,13 @@ import ReEmpty from "@repo/ui/re-empty";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import { getErrorRanking, getSlowCalls, getSlowSql } from "../api/apmApi";
 import type { ErrorRanking, SlowCall, SlowSqlItem } from "../api/apmApi";
+import { useRealtimeEvent } from "../composables/useRealtime";
 
 const items = ref<ErrorRanking[]>([]);
 const slowCalls = ref<SlowCall[]>([]);
 const slowSqlItems = ref<SlowSqlItem[]>([]);
 const loading = ref(false);
 const keyword = ref("");
-let timer: number | undefined;
 
 /** 关键词过滤（错误类型 / 消息），纯前端筛选，不额外打接口 */
 const filteredItems = computed(() => {
@@ -214,11 +212,11 @@ async function load() {
 
 onMounted(() => {
   load();
-  timer = window.setInterval(load, 5000);
 });
 
-onBeforeUnmount(() => {
-  if (timer) window.clearInterval(timer);
+// 实时推送驱动（整站共用一条 WS/SSE），不再 setInterval 轮询
+useRealtimeEvent("stats", () => {
+  if (!loading.value) load();
 });
 </script>
 

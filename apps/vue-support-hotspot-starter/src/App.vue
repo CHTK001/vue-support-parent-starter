@@ -190,7 +190,6 @@ const searchFocused = ref(false);
 const searchInput = ref<HTMLInputElement | null>(null);
 
 const clockText = ref("");
-let statsTimer: number | undefined;
 let clockTimer: number | undefined;
 
 /* ------------------------------------------------------------------
@@ -233,6 +232,7 @@ const navGroups: NavGroup[] = [
       { path: `${ROUTE_PREFIX}/leaks`, label: "资源泄漏", icon: DataLine },
       { path: `${ROUTE_PREFIX}/jvm`, label: "JVM 指标", icon: Odometer },
       { path: `${ROUTE_PREFIX}/logs`, label: "日志", icon: Tickets },
+      { path: `${ROUTE_PREFIX}/realtime-log`, label: "实时日志", icon: Monitor },
     ],
   },
   {
@@ -240,7 +240,6 @@ const navGroups: NavGroup[] = [
     items: [
       { path: `${ROUTE_PREFIX}/alerts`, label: "告警中心", icon: Bell },
       { path: `${ROUTE_PREFIX}/agent`, label: "Agent 中心", icon: Monitor },
-      { path: `${ROUTE_PREFIX}/injector`, label: "数据注入器", icon: DataLine },
     ],
   },
 ];
@@ -328,27 +327,35 @@ function toggleLang() {
   setLang(currentLang.value === "zh" ? "en" : "zh");
 }
 
-/** 统一拉 Agent 状态 + 未处置告警数（复用 apmStore.pollStatus，15s 一次） */
+/** 统一拉 Agent 状态 + 未处置告警数（复用 apmStore.pollStatus） */
 async function pollStatus() {
   await apmStore.pollStatus();
 }
+
+/**
+ * 实时通道驱动的状态同步。
+ *
+ * <p>整站只有一条 WS/SSE 通道，壳层不再用 15s 定时器轮询：
+ * 收到 stats 事件即静默同步一次 Agent 状态与未处置告警数。</p>
+ */
+function onRealtimeStats() {
+  void apmStore.pollStatus();
+}
+realtimeService.on("stats", onRealtimeStats);
 
 onMounted(async () => {
   await nextTick();
   await pollStatus();
   tickClock();
-  statsTimer = window.setInterval(pollStatus, 15000);
   clockTimer = window.setInterval(tickClock, 1000);
   window.addEventListener("keydown", handleKeyDown);
 });
 
 onBeforeUnmount(() => {
-  if (statsTimer) {
-    window.clearInterval(statsTimer);
-  }
   if (clockTimer) {
     window.clearInterval(clockTimer);
   }
+  realtimeService.off("stats", onRealtimeStats);
   window.removeEventListener("keydown", handleKeyDown);
 });
 </script>

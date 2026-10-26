@@ -1,25 +1,16 @@
-<!-- 现代化视图：ReSectionHead 页头 + koi 令牌筛选卡 / 图例卡 / 表格壳 / 空态。
+<!-- 依赖拓扑：操作条 + koi 令牌筛选卡 / 图例卡 / 表格壳 / 空态。
      力导向图容器（ref="graphRef"）、ReTable（列定义 edgeColumns、7 个具名插槽、
-     row-class-name）、v-model 绑定（mode / keyword / listErrorOnly / injectProto /
-     injectTarget）与全部 click 处理函数均原样保留，仅重排结构与样式。 -->
+     row-class-name）、v-model 绑定（mode / keyword / listErrorOnly）与全部 click
+     处理函数均原样保留，仅重排结构与样式。 -->
 <template>
   <div class="view deps-page">
-    <!-- 页头：标题 + 规模摘要 + 全局动作 -->
-    <ReSectionHead
-      class="deps-head"
-      title="依赖拓扑"
-      description="服务间调用关系与错误率，图形视图看结构、列表视图看明细"
-    >
-      <template #actions>
-        <span class="head-stat">
-          <span class="head-stat__num">{{ nodeCount }}</span> 节点
-          <i class="head-stat__sep" aria-hidden="true" />
-          <span class="head-stat__num">{{ edges.length }}</span> 边
-          <template v-if="errorEdgeCount">
-            <i class="head-stat__sep" aria-hidden="true" />
-            <span class="head-stat__num is-error">{{ errorEdgeCount }}</span> 异常
-          </template>
-        </span>
+    <!-- 操作条：无标题大卡，只留动作与规模摘要，内容吃满 -->
+    <div class="view-bar">
+      <span class="match-hint">
+        {{ nodeCount }} 节点 · {{ edges.length }} 边
+        <template v-if="errorEdgeCount"> · <span class="err-text">{{ errorEdgeCount }} 异常</span></template>
+      </span>
+      <div class="view-bar__actions">
         <el-radio-group v-model="mode" size="small" class="mode-switch">
           <el-radio-button value="graph">图形</el-radio-button>
           <el-radio-button value="table">列表</el-radio-button>
@@ -27,13 +18,12 @@
         <el-button size="small" round :loading="loading" @click="load">
           <el-icon class="btn-icon"><Refresh /></el-icon>刷新
         </el-button>
-      </template>
-    </ReSectionHead>
+      </div>
+    </div>
 
-    <!-- 筛选 + 注入操作：查询条件与动作分离，窄屏自然换行 -->
+    <!-- 筛选：只保留查询条件，注入类操作已全部移除 -->
     <div class="filter-bar deps-filter">
       <div class="filter-field search-field">
-        <label class="filter-label" for="dep-keyword">节点 / 边</label>
         <el-input
           id="dep-keyword"
           v-model="keyword"
@@ -45,32 +35,13 @@
       </div>
 
       <div v-if="mode === 'table'" class="filter-field check-field">
-        <label class="filter-label">异常</label>
         <el-checkbox v-model="listErrorOnly">仅看错误边</el-checkbox>
-      </div>
-
-      <div class="filter-field protocol-field">
-        <label class="filter-label" for="dep-proto">注入协议</label>
-        <el-select id="dep-proto" v-model="injectProto">
-          <el-option v-for="p in PROTOCOLS" :key="p" :label="p" :value="p" />
-        </el-select>
-      </div>
-
-      <div class="filter-field target-field">
-        <label class="filter-label" for="dep-target">注入目标</label>
-        <el-input id="dep-target" v-model="injectTarget" placeholder="目标 host:port" clearable />
       </div>
 
       <div class="filter-actions">
         <span v-if="mode === 'table'" class="match-hint">
           聚合后 {{ filteredEdges.length }} / {{ edges.length }} 条边
         </span>
-        <el-button size="small" round :loading="batching" @click="doBatch">
-          <el-icon class="btn-icon"><MagicStick /></el-icon>批量×20
-        </el-button>
-        <el-button size="small" type="primary" round :loading="injecting" @click="doInject">
-          <el-icon class="btn-icon"><Plus /></el-icon>注入一条调用
-        </el-button>
       </div>
     </div>
 
@@ -104,12 +75,8 @@
       <div v-else class="panel-empty-body">
         <ReEmpty
           :image-size="72"
-          :description="loading ? '正在加载依赖数据…' : '暂无依赖数据'"
-        >
-          <el-button v-if="!loading" size="small" round type="primary" @click="doInject">
-            <el-icon class="btn-icon"><Plus /></el-icon>注入一条调用
-          </el-button>
-        </ReEmpty>
+          :description="loading ? '正在加载依赖数据…' : '暂无依赖数据：尚未采集到服务间调用'"
+        />
       </div>
     </div>
 
@@ -119,12 +86,8 @@
         <div class="panel-empty-body">
           <ReEmpty
             :image-size="72"
-            :description="loading ? '正在加载依赖数据…' : '暂无依赖数据'"
-          >
-            <el-button v-if="!loading" size="small" round type="primary" @click="doInject">
-              <el-icon class="btn-icon"><Plus /></el-icon>注入一条调用
-            </el-button>
-          </ReEmpty>
+            :description="loading ? '正在加载依赖数据…' : '暂无依赖数据：尚未采集到服务间调用'"
+          />
         </div>
       </div>
 
@@ -187,12 +150,11 @@ import { message } from "@repo/core";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import * as echarts from "echarts";
 
-import { MagicStick, Plus, Refresh, Search } from "@element-plus/icons-vue";
+import { Refresh, Search } from "@element-plus/icons-vue";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import ReEmpty from "@repo/ui/re-empty";
-import ReSectionHead from "@repo/ui/re-section-head";
-import { getDependenciesAggregated, injectTransmission, injectBatch } from "../api/apmApi";
+import { getDependenciesAggregated } from "../api/apmApi";
 import type { DependencyEdge } from "../api/apmApi";
 import {
   chartCanvas,
@@ -204,8 +166,6 @@ import {
   okColor,
   tooltipStyle,
 } from "../styles/chartTheme";
-
-const PROTOCOLS = ["HTTP", "REDIS", "MYSQL", "GRPC", "KAFKA"];
 
 const mode = ref<"graph" | "table">("graph");
 const edges = ref<DependencyEdge[]>([]);
@@ -339,46 +299,6 @@ function nodeHasError(name: unknown): boolean {
 /** 节点错误率（%）：关联错误数 / 关联调用量，阈值与列表错误率同口径 */
 function nodeErrorRate(st: NodeStat): number {
   return st.calls > 0 ? (st.errors / st.calls) * 100 : 0;
-}
-
-// ---- 注入：页面操作产生真实数据 ----
-const injectProto = ref("HTTP");
-const injectTarget = ref("");
-const injecting = ref(false);
-const batching = ref(false);
-
-async function doInject() {
-  injecting.value = true;
-  try {
-    const target = injectTarget.value.trim() || "manual-target:8080";
-    const source = "manual-client:40000";
-    await injectTransmission({
-      source,
-      target,
-      protocol: injectProto.value,
-      operation: "manual inject",
-      error: false,
-    });
-    message.success(`已注入 ${injectProto.value} 调用：${source} → ${target}`);
-    await load();
-  } catch {
-    message.error("注入失败");
-  } finally {
-    injecting.value = false;
-  }
-}
-
-async function doBatch() {
-  batching.value = true;
-  try {
-    const r = await injectBatch(20);
-    message.success(`批量注入 ${r.count ?? 20} 条调用，多条依赖边已生成`);
-    await load();
-  } catch {
-    message.error("批量注入失败");
-  } finally {
-    batching.value = false;
-  }
 }
 
 async function load() {
@@ -539,7 +459,7 @@ async function renderGraph() {
   await nextTick();
   if (!graphRef.value) return;
   if (!chart) {
-    chart = echarts.init(graphRef.value, "dark");
+    chart = echarts.init(graphRef.value, "light");
   }
   chart.setOption(buildGraphOption(), true);
   applyHighlight();
@@ -606,63 +526,21 @@ watch(keyword, () => applyHighlight());
   gap: 16px;
 }
 
-/* ---- 页头 ---- */
-.deps-head {
-  flex-wrap: wrap;
-  padding: 14px 18px;
-  background: var(--bg-container, var(--apm-panel));
-  border: 1px solid var(--border-subtle, var(--apm-border-soft));
-  border-radius: var(--radius-lg, var(--apm-radius-lg));
-  box-shadow: var(--shadow-sm, var(--apm-shadow-card));
-}
-
-.deps-head :deep(.re-section-head__title) {
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 0.2px;
-  color: var(--text-primary, var(--apm-fg));
-}
-
-.deps-head :deep(.re-section-head__desc) {
-  color: var(--text-tertiary, var(--apm-muted));
-  line-height: 1.5;
-}
-
-.deps-head :deep(.re-section-head__actions) {
-  flex-wrap: wrap;
+/* ---- 操作条（无标题大卡，内容吃满）---- */
+.view-bar {
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 0 2px;
 }
 
-/* 规模摘要胶囊 */
-.head-stat {
-  display: inline-flex;
+.view-bar__actions {
+  display: flex;
   align-items: center;
-  gap: 4px;
-  height: 28px;
-  padding: 0 12px;
-  font-size: 12px;
-  white-space: nowrap;
-  color: var(--text-secondary, var(--apm-fg-regular));
-  background: var(--bg-fill, var(--apm-panel-raised));
-  border: 1px solid var(--border-subtle, var(--apm-border-soft));
-  border-radius: 999px;
-  font-variant-numeric: tabular-nums;
-}
-
-.head-stat__num {
-  font-weight: 700;
-  color: var(--text-primary, var(--apm-fg));
-}
-
-.head-stat__num.is-error {
-  color: var(--status-error, var(--apm-danger));
-}
-
-.head-stat__sep {
-  width: 1px;
-  height: 10px;
-  margin: 0 4px;
-  background: var(--border-default, var(--apm-border));
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .mode-switch {
@@ -694,15 +572,9 @@ watch(keyword, () => applyHighlight());
   justify-content: flex-end;
 }
 
-/* 筛选栏字段宽度：搜索与注入目标更宽，协议一档够用 */
+/* 筛选栏字段宽度 */
 .search-field {
   width: 240px;
-}
-.protocol-field {
-  width: 120px;
-}
-.target-field {
-  width: 200px;
 }
 .check-field {
   width: auto;
@@ -887,30 +759,11 @@ watch(keyword, () => applyHighlight());
 
 /* ---- 响应式 ---- */
 @media (max-width: 768px) {
-  .deps-head {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 12px 14px;
-  }
-
-  .deps-head :deep(.re-section-head__actions) {
-    width: 100%;
-  }
-
-  /* 窄屏下胶囊与开关各占一行，按钮与开关并排 */
-  .head-stat {
-    width: 100%;
-    justify-content: center;
-  }
-
   .deps-filter {
     padding: 10px 12px;
   }
 
   .search-field,
-  .protocol-field,
-  .target-field,
   .check-field {
     width: 100%;
   }

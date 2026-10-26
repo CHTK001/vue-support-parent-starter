@@ -1,14 +1,14 @@
 <template>
   <div class="view">
-    <div class="view-toolbar">
-      <div class="toolbar-left">
-        <span class="section-label">告警中心</span>
+    <!-- 操作条：无标题大卡，实时推送驱动 -->
+    <div class="view-bar">
+      <span class="match-hint">
         <ReTag :type="criticalCount ? 'danger' : 'success'" round>
           {{ criticalCount ? `${criticalCount} 个 CRITICAL` : "全部正常" }}
         </ReTag>
-        <span class="match-hint" v-if="!loading">最近 {{ items.length }} 条事件 · 10s 自动刷新</span>
-      </div>
-      <div class="toolbar-right">
+        <template v-if="!loading"> · 最近 {{ items.length }} 条事件 · 实时推送</template>
+      </span>
+      <div class="view-bar__actions">
         <ReSelect v-model="severityFilter" :options="severityOptions" placeholder="严重级别" clearable class="sev-filter" />
         <ReSelect v-model="statusFilter" :options="statusOptions" placeholder="状态" clearable class="sev-filter" />
         <ReButton icon="SetUp" show-text round @click="openRules">规则管理</ReButton>
@@ -194,7 +194,7 @@
 
 <script setup lang="ts">
 import { message } from "@repo/core";
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { Bell, BellFilled, Warning, Plus } from "@element-plus/icons-vue";
 
 import ReButton from "@repo/ui/re-button";
@@ -212,6 +212,7 @@ import ReDrawer from "@repo/ui/re-drawer";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import { getAlerts, getAlertRules, addAlertRule, toggleAlertRule, deleteAlertRule, acknowledgeAlert, muteAlert, ignoreAlert } from "../api/apmApi";
 import type { ApmAlert, AlertRule } from "../api/apmApi";
+import { useRealtimeEvent } from "../composables/useRealtime";
 
 /** ReTimeline items（@repo/ui/re-timeline 未导出该接口，与 index.vue 中定义对齐） */
 interface TimelineItem {
@@ -230,7 +231,6 @@ const loading = ref(false);
 const view = ref("table");
 const severityFilter = ref("");
 const statusFilter = ref("");
-let timer: number | undefined;
 
 const severityOptions = [
   { label: "CRITICAL", value: "CRITICAL" },
@@ -491,11 +491,11 @@ async function handleAction(row: Record<string, unknown>, action: "acknowledge" 
 
 onMounted(() => {
   load();
-  timer = window.setInterval(load, 10000);
 });
 
-onBeforeUnmount(() => {
-  if (timer) window.clearInterval(timer);
+// 实时推送驱动（整站共用一条 WS/SSE），不再 setInterval 轮询
+useRealtimeEvent("alert", () => {
+  if (!loading.value) load();
 });
 </script>
 

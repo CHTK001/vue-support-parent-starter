@@ -21,14 +21,18 @@
  * ============================================================ */
 
 /* ---------- 作用域根 ----------
-   迁入平台后本包只是内容区的一块，必须自绘画布与内距；
-   令牌与通用类全部收敛到本类之下，避免污染宿主。 */
+   迁入平台后本包只是内容区的一块，必须自绘内距；
+   令牌与通用类全部收敛到本类之下，避免污染宿主。
+
+   背景刻意保持透明：宿主系统所有页面都是白底内容区，观测台若自绘一层
+   #fafbfc 画布 + 圆角，就会和其余页面「白底卡片」的观感割裂（这正是
+   「很多页面和现有的不一致」的根因）。透明后卡片白底直接落在宿主白底上，
+   靠发丝线描边区分层次。 */
 .hotsport-scope {
   padding: var(--apm-space-5);
   min-height: calc(100vh - 160px);
-  background: var(--apm-canvas);
+  background: transparent;
   color: var(--apm-fg-regular);
-  border-radius: var(--apm-radius-xl);
   font-family: var(--apm-font-sans);
 }
 
@@ -40,7 +44,26 @@
   min-width: 0;
 }
 
-/* 工具栏：左标题组 / 右操作组 */
+/* 操作条（替代旧的大标题 header）：
+   左摘要 / 右动作，无卡片底、无标题字，让内容区直接吃满。 */
+.hotsport-scope .view-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--apm-space-2);
+  min-height: 32px;
+}
+
+.hotsport-scope .view-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--apm-space-2);
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+/* 兼容旧结构：保留工具栏类，但不再自带任何「页头卡」观感 */
 .hotsport-scope .view-toolbar {
   display: flex;
   align-items: center;

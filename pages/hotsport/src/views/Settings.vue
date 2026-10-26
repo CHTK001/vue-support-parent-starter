@@ -1,14 +1,14 @@
 <template>
   <div class="view">
-    <div class="view-toolbar">
-      <div class="toolbar-left">
-        <span class="section-label">接口设置</span>
+    <!-- 操作条：无标题大卡 -->
+    <div class="view-bar">
+      <span class="match-hint">
         <ReTag :type="info && info.available ? 'success' : 'warning'" round>
           {{ info ? `数据源 ${info.mode}` : "未连接" }}
         </ReTag>
-        <span class="match-hint" v-if="info">{{ info.reason }}</span>
-      </div>
-      <div class="toolbar-right">
+        <template v-if="info"> · {{ info.reason }}</template>
+      </span>
+      <div class="view-bar__actions">
         <ReButton icon="Refresh" show-text :loading="probing" @click="probe">重新检测</ReButton>
       </div>
     </div>

@@ -136,6 +136,14 @@ const PAGES: HotsportPageDef[] = [
     menu: true,
   },
   {
+    path: "/realtime-log",
+    name: "HotsportRealtimeLog",
+    title: "实时日志",
+    icon: "Monitor",
+    component: () => import("../views/RealtimeLog.vue"),
+    menu: true,
+  },
+  {
     path: "/alerts",
     name: "HotsportAlerts",
     title: "告警中心",
@@ -149,14 +157,6 @@ const PAGES: HotsportPageDef[] = [
     title: "Agent 中心",
     icon: "Monitor",
     component: () => import("../views/AgentCenter.vue"),
-    menu: true,
-  },
-  {
-    path: "/injector",
-    name: "HotsportInjector",
-    title: "数据注入器",
-    icon: "MagicStick",
-    component: () => import("../views/Injector.vue"),
     menu: true,
   },
   {

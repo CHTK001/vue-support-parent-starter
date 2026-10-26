@@ -40,8 +40,8 @@ const zh: Record<string, string> = {
   nav_leaks: "资源泄漏",
   nav_jvm: "JVM 指标",
   nav_logs: "日志",
+  nav_realtime_log: "实时日志",
   nav_alerts: "告警中心",
-  nav_injector: "数据注入器",
   // 通用
   action_refresh: "刷新",
   action_search: "查询",
@@ -92,8 +92,8 @@ const en: Record<string, string> = {
   nav_leaks: "Resource Leaks",
   nav_jvm: "JVM Metrics",
   nav_logs: "Logs",
+  nav_realtime_log: "Realtime Logs",
   nav_alerts: "Alerts",
-  nav_injector: "Data Injector",
   // 通用
   action_refresh: "Refresh",
   action_search: "Search",

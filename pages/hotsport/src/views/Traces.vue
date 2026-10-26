@@ -1,15 +1,14 @@
 <template>
   <div class="view">
-    <!-- 工具栏：标题 + 记录数 + 全局动作 -->
-    <div class="view-toolbar">
-      <div class="toolbar-left">
-        <span class="section-label">调用链路</span>
-        <span class="match-hint">
-          <template v-if="!loading">{{ total.toLocaleString() }} 条 · 第 {{ page }} 页</template>
-          <template v-else>加载中…</template>
-        </span>
-      </div>
-      <div class="toolbar-right">
+    <!-- 操作条：无标题大卡 -->
+    <div class="view-bar">
+      <span class="match-hint">
+        <template v-if="!loading">
+          {{ total.toLocaleString() }} 条 · 第 {{ page }} 页 · 展开行看 span 甘特
+        </template>
+        <template v-else>加载中…</template>
+      </span>
+      <div class="view-bar__actions">
         <el-button round @click="exportCsvFull">
           <el-icon class="btn-icon"><Download /></el-icon>导出 CSV
         </el-button>
@@ -107,7 +106,7 @@
 
     <div class="table-panel">
       <ReTable
-        :data="items as unknown as Record<string, unknown>[]"
+        :data="tableRows as unknown as Record<string, unknown>[]"
         :columns="traceColumns"
         :loading="loading"
         engine="element"
@@ -116,10 +115,17 @@
         :settings="{ border: false }"
         :layout-table="{ minHeight: 0 }"
         :row-class-name="rowClass"
+        row-key="_key"
+        expandable
         class="apm-table trace-table"
         empty-text="暂无传输记录（Agent 未注入或无数据）"
         @row-click="openDetail"
       >
+        <!-- 展开行：懒加载该 traceId 的 span，按甘特条对齐时间轴 -->
+        <template #expand="{ row }">
+          <TraceSpanBars :trace-id="traceIdOf(row)" />
+        </template>
+
         <template #col-traceId="{ row }">
           <div class="trace-id-cell">
             <code class="mono trace-link" @click.stop="openWaterfall(traceIdOf(row))">
@@ -250,6 +256,7 @@ import {
 } from "@element-plus/icons-vue";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
+import TraceSpanBars from "../components/TraceSpanBars.vue";
 import { pageTransmissions, getTraceDetail, exportTransmissionsCsv } from "../api/apmApi";
 import type { TransmissionQuery, TransmissionRecord } from "../api/apmApi";
 
@@ -262,6 +269,16 @@ const page = ref(1);
 const size = ref(20);
 const loading = ref(false);
 const traceSearch = ref("");
+
+/**
+ * 表格行：在原记录上补一个稳定 `_key`。
+ *
+ * <p>展开行（el-table expand）靠 row-key 记住展开状态，而传输记录没有天然主键，
+ * 同一 traceId 也可能出现多行，因此用「traceId + 序号」构造。</p>
+ */
+const tableRows = computed(() =>
+  items.value.map((r, i) => ({ ...r, _key: `${r.traceId || "t"}-${i}` })),
+);
 
 const traceColumns: ReTableColumn[] = [
   { prop: "traceId", label: "Trace ID", width: 220, slot: "traceId" },

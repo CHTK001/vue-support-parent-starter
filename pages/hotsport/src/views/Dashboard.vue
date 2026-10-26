@@ -1,28 +1,25 @@
 <template>
   <div class="view">
-    <!-- 左：健康状态；右：实时指示 + 刷新 -->
-    <div class="view-toolbar">
-      <div class="toolbar-left">
-        <!-- 健康徽章：三态各自有独立配色，文字 + 色块双编码（不只靠颜色区分） -->
+    <!-- 操作条：无标题大卡 -->
+    <div class="view-bar">
+      <span class="match-hint">
         <div v-if="healthType" class="health-chip" :class="healthType">
           <span class="health-chip-dot" />
           <span class="health-chip-label">{{ healthLabel }}</span>
         </div>
 
         <template v-if="healthType">
-          <div class="health-metrics">
-            <div v-for="m in healthMetrics" :key="m.label" class="health-metric">
-              <span class="health-metric-value mono-lg">{{ m.value }}</span>
-              <span class="health-metric-label">{{ m.label }}</span>
-            </div>
-          </div>
+          <span v-for="m in healthMetrics" :key="m.label" class="health-metric">
+            <span class="health-metric-value mono-lg">{{ m.value }}</span>
+            <span class="health-metric-label">{{ m.label }}</span>
+          </span>
         </template>
 
         <span class="live-dot">实时</span>
         <span v-if="lastRefresh" class="last-refresh muted">上次刷新 {{ lastRefresh }}</span>
-      </div>
+      </span>
 
-      <div class="toolbar-right">
+      <div class="view-bar__actions">
         <el-select v-model="refreshInterval" size="small" class="interval-select" title="趋势图刷新间隔">
           <el-option v-for="opt in intervalOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
         </el-select>
@@ -296,7 +293,8 @@ const errorRanking = ref<ErrorRanking[]>([]);
 const sla = ref<SlaStats | null>(null);
 
 let sseWatch: { close: () => void } | null = null;
-let trendTimer: number | undefined;
+/** 上次趋势聚合时间（用于实时事件驱动的节流） */
+let lastTrendAt = 0;
 
 /* ---------------- 刷新间隔控制 ---------------- */
 const refreshInterval = ref(15);
@@ -692,27 +690,24 @@ onMounted(async () => {
   await load();
   await loadTrend();
   await loadErrorTrend();
+  lastTrendAt = Date.now();
 
-  // 趋势聚合较重，按用户设定间隔刷新；快照走 SSE（3s）
-  startTrendTimer();
-
+  // 快照与趋势全部由整站唯一实时通道驱动，不再各自 setInterval 轮询
   sseWatch = watchStats((snapshot) => {
     Object.assign(stats.value, snapshot);
+    // 趋势聚合较重：按用户设定间隔节流，避免每条 stats 事件都重算
+    const elapsed = Date.now() - lastTrendAt;
+    if (elapsed >= refreshInterval.value * 1000) {
+      lastTrendAt = Date.now();
+      loadTrend();
+      loadErrorTrend();
+    }
   });
 });
 
-// watch 趋势图刷新间隔，切换时重建 timer
-watch(refreshInterval, () => {
-  startTrendTimer();
+onBeforeUnmount(() => {
+  sseWatch?.close();
 });
-
-function startTrendTimer() {
-  if (trendTimer) window.clearInterval(trendTimer);
-  trendTimer = window.setInterval(() => {
-    loadTrend();
-    loadErrorTrend();
-  }, refreshInterval.value * 1000);
-}
 
 // stats 变化时刷新协议分布（计数变了，占比就变了）
 watch(
@@ -722,13 +717,6 @@ watch(
   },
   { deep: true },
 );
-
-onBeforeUnmount(() => {
-  sseWatch?.close();
-  if (trendTimer) {
-    window.clearInterval(trendTimer);
-  }
-});
 </script>
 
 <style scoped>
@@ -784,14 +772,6 @@ onBeforeUnmount(() => {
 }
 
 /* ---- 健康指标组 ---- */
-.health-metrics {
-  display: flex;
-  align-items: center;
-  gap: var(--apm-space-5);
-  padding-left: var(--apm-space-4);
-  border-left: 1px solid var(--border-default, var(--apm-border));
-}
-
 .health-metric {
   display: flex;
   align-items: baseline;
@@ -946,13 +926,13 @@ onBeforeUnmount(() => {
 
 /* ---- 响应式 ---- */
 @media (max-width: 1100px) {
-  .health-metrics {
+  .health-metric {
     display: none;
   }
 }
 
 @media (max-width: 640px) {
-  .view-toolbar {
+  .view-bar {
     align-items: flex-start;
     flex-direction: column;
   }

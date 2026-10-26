@@ -1,13 +1,13 @@
 <template>
   <div class="view">
-    <div class="view-toolbar">
-      <div class="toolbar-left">
-        <span class="section-label">JVM 实时指标</span>
+    <!-- 操作条：无标题大卡，实时推送驱动 -->
+    <div class="view-bar">
+      <span class="match-hint">
         <ReStatusIndicator :type="live ? 'success' : 'info'" :pulse="live" />
-        <span class="live-hint" v-if="live">5s 自动刷新中</span>
-        <span class="match-hint" v-if="snapshot">快照 {{ snapshotTime }}</span>
-      </div>
-      <div class="toolbar-right">
+        <template v-if="live"> 实时推送中</template>
+        <template v-if="snapshot"> · 快照 {{ snapshotTime }}</template>
+      </span>
+      <div class="view-bar__actions">
         <ReRadioGroup v-model="metricsWindow" @change="onWindowChange">
           <ReRadioButton v-for="w in windowOptions" :key="w.value" :value="w.value" :label="w.label" />
         </ReRadioGroup>
@@ -217,6 +217,35 @@
           </ReTable>
         </div>
       </div>
+
+      <!-- 文件句柄：OS 级 FD + Agent 跟踪句柄（真实数据，来自 /agent/handles） -->
+      <div class="panel">
+        <div class="panel-head">
+          <span>文件句柄</span>
+          <span class="panel-sub">
+            OS 级 FD {{ handleSnapshot?.fileDescriptors?.length ?? 0 }} 个 ·
+            跟踪句柄 {{ handleSnapshot?.trackedHandles?.length ?? 0 }} 个
+            <template v-if="openHandleCount"> · 未关闭 {{ openHandleCount }}</template>
+          </span>
+        </div>
+        <ReTable
+          :data="fdRows as unknown as Record<string, unknown>[]"
+          :columns="fdColumns"
+          engine="element"
+          :settings="{ border: false }"
+          :layout-table="{ minHeight: 0 }"
+          class="apm-table"
+          empty-text="暂无文件句柄数据（/agent/handles 未开放或当前平台不支持）"
+          :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+        >
+          <template #col-fd="{ row }">
+            <span class="mono">{{ row.fd }}</span>
+          </template>
+          <template #col-target="{ row }">
+            <span class="mono fd-target" :title="row.target">{{ row.target }}</span>
+          </template>
+        </ReTable>
+      </div>
     </template>
   </div>
 </template>
@@ -234,8 +263,9 @@ import ReEcharts from "@repo/ui/re-echarts";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import { ReDescriptions, ReDescriptionsItem, ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
-import { getJvmSnapshot, getJvmMetrics, getThreadPools, getConnectionPools } from "../api/apmApi";
-import type { JvmSnapshot, JvmMetricPoint, ThreadPoolStat, ConnectionPoolStat, ThreadStateSample } from "../api/apmApi";
+import { getJvmSnapshot, getJvmMetrics, getThreadPools, getConnectionPools, getHandleInventory } from "../api/apmApi";
+import type { JvmSnapshot, JvmMetricPoint, ThreadPoolStat, ConnectionPoolStat, ThreadStateSample, HandleInventorySnapshot } from "../api/apmApi";
+import { useRealtimeEvent } from "../composables/useRealtime";
 import {
   areaGradient,
   axisTextColor,
@@ -251,9 +281,10 @@ const snapshot = ref<JvmSnapshot | null>(null);
 const loading = ref(false);
 const initialized = ref(false);
 const live = ref(false);
-let timer: number | undefined;
+/** 文件句柄快照（/agent/handles） */
+const handleSnapshot = ref<HandleInventorySnapshot | null>(null);
 
-/** 线程池 / 连接池（2026 增强 R3，随 5s 轮询静默刷新） */
+/** 线程池 / 连接池（随实时推送静默刷新） */
 const threadPools = ref<ThreadPoolStat[]>([]);
 const connectionPools = ref<ConnectionPoolStat[]>([]);
 
@@ -479,17 +510,43 @@ async function loadPoolStats() {
   } catch {
     connectionPools.value = [];
   }
+  try {
+    handleSnapshot.value = await getHandleInventory(200);
+  } catch {
+    handleSnapshot.value = null;
+  }
 }
+
+// ---- 文件句柄（4.7）----
+
+/** 未关闭的跟踪句柄数：句柄泄漏的直接信号 */
+const openHandleCount = computed(
+  () => (handleSnapshot.value?.trackedHandles || []).filter((h) => !h.closed).length,
+);
+
+/** FD 行：fd → 目标路径，按 fd 序号自然排序 */
+const fdRows = computed(() => {
+  const list = handleSnapshot.value?.fileDescriptors || [];
+  return [...list].sort((a, b) => Number(a.fd) - Number(b.fd));
+});
+
+const fdColumns: ReTableColumn[] = [
+  { prop: "fd", label: "FD", width: 90, slot: "fd" },
+  { prop: "target", label: "目标", minWidth: 320, slot: "target" },
+];
 
 onMounted(() => {
   load();
   live.value = true;
-  timer = window.setInterval(load, 5000);
+});
+
+// 实时推送驱动（整站共用一条 WS/SSE），不再 setInterval 轮询
+useRealtimeEvent("stats", () => {
+  if (!loading.value) load();
 });
 
 onBeforeUnmount(() => {
   live.value = false;
-  if (timer) window.clearInterval(timer);
 });
 </script>
 

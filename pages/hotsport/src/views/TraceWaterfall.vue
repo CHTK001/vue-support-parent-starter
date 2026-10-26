@@ -1,14 +1,14 @@
 <template>
   <div class="view">
-    <!-- 顶部工具栏 -->
-    <div class="view-toolbar">
-      <div class="toolbar-left">
+    <!-- 顶部操作条（无标题大卡） -->
+    <div class="view-bar">
+      <span class="match-hint">
         <ReButton icon="ArrowLeft" show-text @click="goBack">返回</ReButton>
         <ReTag v-if="traceId" type="info" round>
           <code class="mono">{{ traceId }}</code>
         </ReTag>
-      </div>
-      <div class="toolbar-right">
+      </span>
+      <div class="view-bar__actions">
         <ReButton icon="Refresh" show-text :loading="loading" @click="load">刷新</ReButton>
       </div>
     </div>
@@ -57,11 +57,11 @@
         />
       </div>
 
-      <!-- 瀑布图 -->
+      <!-- 甘特图 -->
       <div class="panel waterfall-panel">
         <div class="panel-head">
-          <span>Span 瀑布图</span>
-          <span class="panel-sub">颜色 = spanKind · 红边 = 异常 · 悬停看耗时，点击图形定位明细</span>
+          <span>Span 甘特图</span>
+          <span class="panel-sub">横向长度 = 耗时，横向位置 = 起始时刻 · 颜色 = spanKind · 红边 = 异常 · 点击条形定位明细</span>
         </div>
         <ReEcharts
           :option="waterfallOption"
@@ -462,6 +462,11 @@ function indentWidth(s: WaterfallSpan): number {
   return Math.min(8, Math.max(0, Number(s.depth) || 0)) * 10;
 }
 
+/** 甘特图 y 轴缩进档数（同样封顶 8 档） */
+function indentLevel(s: WaterfallSpan): number {
+  return Math.min(8, Math.max(0, Number(s.depth) || 0));
+}
+
 function offsetPercent(s: WaterfallSpan): number {
   const total = waterfall.value?.totalMs ?? 0;
   if (total <= 0) return 0;
@@ -503,8 +508,8 @@ const waterfallOption = computed<EChartsOption>(() => {
   const s = spans.value;
   const totalMs = waterfall.value?.totalMs ?? 1;
 
-  // y 轴：每个 span 一行
-  const rowLabels = s.map((sp) => spanName(sp));
+  // y 轴：每个 span 一行，按层级缩进（甘特图靠缩进表达调用深度）
+  const rowLabels = s.map((sp) => "　".repeat(indentLevel(sp)) + spanName(sp));
 
   // 每个 span 的数据坐标 [yIndex, offsetMs, offsetMs + durationMs]
   const seriesData = s.map((sp, i) => [i, sp.offsetMs, sp.offsetMs + sp.durationMs]);

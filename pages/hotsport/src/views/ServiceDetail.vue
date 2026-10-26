@@ -1,15 +1,15 @@
 <template>
   <div class="view">
-    <!-- 顶部工具栏 -->
-    <div class="view-toolbar">
-      <div class="toolbar-left">
+    <!-- 顶部操作条（无标题大卡） -->
+    <div class="view-bar">
+      <span class="match-hint">
         <ReButton icon="ArrowLeft" show-text @click="goBack">返回</ReButton>
         <ReTag v-if="service" type="info" round>
           <code class="mono">{{ service }}</code>
         </ReTag>
-        <span v-if="detail" class="match-hint">10s 自动刷新 · 聚合窗口由后端决定</span>
-      </div>
-      <div class="toolbar-right">
+        <template v-if="detail"> · 实时推送 · 聚合窗口由后端决定</template>
+      </span>
+      <div class="view-bar__actions">
         <ReButton icon="Refresh" show-text :loading="loading" @click="load">刷新</ReButton>
       </div>
     </div>
@@ -290,7 +290,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ROUTE_PREFIX } from "../config";
 import { DataLine, Timer, Warning, Connection } from "@element-plus/icons-vue";
@@ -308,6 +308,7 @@ import {
   getEndpointStats,
   getServiceDetail,
 } from "../api/apmApi";
+import { useRealtimeEvent } from "../composables/useRealtime";
 import type {
   ApmEndpoint,
   DependencyEdge,
@@ -339,8 +340,6 @@ const endpoints = ref<ApmEndpoint[]>([]);
 const endpointLoading = ref(false);
 const endpointStats = ref<EndpointStatPoint[]>([]);
 const tab = ref("overview");
-
-let timer: number | undefined;
 
 function goBack() {
   if (window.history.length > 1) router.back();
@@ -602,11 +601,11 @@ const trendOption = computed<EChartsOption>(() => {
 
 onMounted(() => {
   load();
-  timer = window.setInterval(load, 10000);
 });
 
-onBeforeUnmount(() => {
-  if (timer) window.clearInterval(timer);
+// 实时推送驱动（整站共用一条 WS/SSE），不再 setInterval 轮询
+useRealtimeEvent("stats", () => {
+  if (!loading.value) load();
 });
 </script>
 

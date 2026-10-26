@@ -33,9 +33,9 @@ registerMenuViewModules({
   "views/hotsport/jvm/index.vue": () => import("./views/Jvm.vue"),
   "views/hotsport/topology/index.vue": () => import("./views/Topology.vue"),
   "views/hotsport/logs/index.vue": () => import("./views/Logs.vue"),
+  "views/hotsport/realtime-log/index.vue": () => import("./views/RealtimeLog.vue"),
   "views/hotsport/alerts/index.vue": () => import("./views/Alerts.vue"),
   "views/hotsport/agent/index.vue": () => import("./views/AgentCenter.vue"),
-  "views/hotsport/injector/index.vue": () => import("./views/Injector.vue"),
   "views/hotsport/settings/index.vue": () => import("./views/Settings.vue"),
 });
 

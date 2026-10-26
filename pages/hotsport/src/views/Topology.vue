@@ -1,13 +1,14 @@
 <template>
   <div class="view">
-    <div class="view-toolbar">
-      <div class="toolbar-left">
-        <span class="section-label">系统拓扑（真实运行值）</span>
-        <ReTag v-if="topology" type="success" round>
+    <!-- 操作条：无标题大卡 -->
+    <div class="view-bar">
+      <span class="match-hint">
+        <template v-if="topology">
           {{ topology.center }} · PID {{ topology.jvmPid }}
-        </ReTag>
-      </div>
-      <div class="toolbar-right">
+        </template>
+        <template v-else>系统拓扑</template>
+      </span>
+      <div class="view-bar__actions">
         <ReButton icon="Refresh" show-text :loading="loading" @click="load">刷新</ReButton>
       </div>
     </div>
@@ -19,7 +20,7 @@
       <div class="panel graph-panel">
         <div class="panel-head">
           <span>进程网络拓扑</span>
-          <span class="panel-sub">中心 = 本机主机，连线 = 监听端口 / 网络接口 / 加载模块（真实值）</span>
+          <span class="panel-sub">中心 = 本机主机，连线 = 监听端口 / 网络接口 / 加载模块</span>
         </div>
         <div ref="graphRef" class="graph-body" />
       </div>
@@ -134,7 +135,7 @@ function portColor(p: { port: number; protocol: string }): string {
 
 function renderGraph() {
   if (!topology.value || !graphRef.value) return;
-  if (!chart) chart = echarts.init(graphRef.value, "dark");
+  if (!chart) chart = echarts.init(graphRef.value, "light");
   const t = topology.value;
   const centerColor = chartColor(0);
   const nodes = [

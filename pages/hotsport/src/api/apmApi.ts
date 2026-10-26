@@ -284,7 +284,6 @@ export interface AgentConfig {
   slowThresholdMs: number;
   logLevel: "TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR";
   enabled: boolean;
-  injectMode: "DISABLED" | "MONITOR" | "SIMULATE";
   updatedAt?: number;
 }
 
@@ -349,6 +348,10 @@ export interface ApmEndpoint {
   p95Ms: number;
   p99Ms: number;
   maxMs: number;
+  /** 访问客户端来源数（真实 sourceHost 去重） */
+  clientCount?: number;
+  /** 访问客户端来源列表（按调用量降序，真实 sourceHost） */
+  clients?: string[];
 }
 
 /** 服务聚合（software@host） */
@@ -1008,44 +1011,3 @@ export default {
   ignoreAlert,
 };
 
-// ---- 数据注入（写操作：页面操作产生真实数据）----
-
-export function injectTransmission(params: {
-  source?: string; target?: string; protocol?: string; operation?: string; error?: boolean;
-}): Promise<Record<string, unknown>> {
-  return unwrap(instance.post<Record<string, unknown>>("/inject/transmission", null, { params }));
-}
-
-export function injectBatch(count: number): Promise<Record<string, unknown>> {
-  return unwrap(instance.post<Record<string, unknown>>("/inject/batch", null, { params: { count } }));
-}
-
-export function injectLeak(resourceType?: string, resourceName?: string): Promise<Record<string, unknown>> {
-  return unwrap(instance.post<Record<string, unknown>>("/inject/leak", null, { params: { resourceType, resourceName } }));
-}
-
-export function injectLog(level?: string, message?: string): Promise<Record<string, unknown>> {
-  return unwrap(instance.post<Record<string, unknown>>("/inject/log", null, { params: { level, message } }));
-}
-
-/** 注入慢调用（指定耗时 ms，后端按慢调用阈值判断） */
-export function injectSlowCall(
-  params: { source?: string; target?: string; protocol?: string; durationMs?: number; error?: boolean },
-): Promise<Record<string, unknown>> {
-  return unwrap(instance.post<Record<string, unknown>>("/inject/slow", null, { params }));
-}
-
-/** 注入自定义 Span 树（一条 trace 多个 span，验证瀑布图） */
-export function injectSpanTree(params: {
-  traceId?: string;
-  spans?: number;
-  depth?: number;
-  errorSpan?: boolean;
-}): Promise<Record<string, unknown>> {
-  return unwrap(instance.post<Record<string, unknown>>("/inject/span-tree", null, { params }));
-}
-
-/** 注入 JVM 压力（模拟线程 / CPU 压力，制造 JVM 指标变化） */
-export function injectJvmPressure(params: { threads?: number; cpuPercent?: number; durationMs?: number }): Promise<Record<string, unknown>> {
-  return unwrap(instance.post<Record<string, unknown>>("/inject/jvm-pressure", null, { params }));
-}

@@ -1,16 +1,16 @@
-<!-- 现代化视图：ReSectionHead 页头 + koi 令牌统计卡 / 表格壳 / 图表面板 / 空态。
-     ReTable（列定义 tableColumns、8 个具名插槽、row-click）、ReEcharts 图表容器
-     （durationOption / endpointTrendOption）及 script 内全部 computed / 轮询逻辑
-     原样保留，仅重排结构与样式。 -->
+<!-- 端点分析：操作条 + koi 令牌统计卡 / 表格壳 / 图表面板 / 空态。
+     ReTable（列定义 tableColumns、9 个具名插槽、row-click）、ReEcharts 图表容器
+     （durationOption / endpointTrendOption）及 script 内全部 computed 原样保留，
+     刷新改由整站实时推送驱动，仅重排结构与样式。 -->
 <template>
   <div class="view endpoints-page">
-    <!-- 页头：标题 + 命中摘要 + 全局动作 -->
-    <ReSectionHead
-      class="endpoints-head"
-      title="端点分析"
-      description="按端点聚合调用量、错误率与耗时分位，点击行查看耗时分布与调用量趋势"
-    >
-      <template #actions>
+    <!-- 操作条：无标题大卡 -->
+    <div class="view-bar">
+      <span class="match-hint">
+        <template v-if="keyword">命中 {{ filteredItems.length }} / {{ items.length }}</template>
+        <template v-else>{{ items.length }} 个端点</template>
+      </span>
+      <div class="view-bar__actions">
         <ReInput
           v-model="keyword"
           placeholder="过滤端点名称…"
@@ -18,14 +18,11 @@
           class="filter-input"
           prefix-icon="Search"
         />
-        <span v-if="keyword" class="head-stat">
-          命中 <b>{{ filteredItems.length }}</b> / {{ items.length }}
-        </span>
         <ReButton size="small" icon="Refresh" show-text round :loading="loading" @click="load">
           刷新
         </ReButton>
-      </template>
-    </ReSectionHead>
+      </div>
+    </div>
 
     <!-- 统计卡：4 列网格，顶部 3px 色条 -->
     <div class="stat-grid" v-if="!loading && items.length">
@@ -95,6 +92,21 @@
             <i class="row-dot" aria-hidden="true" />
             {{ row.endpoint }}
           </span>
+        </template>
+        <template #col-clients="{ row }">
+          <el-tooltip
+            v-if="(row as unknown as ApmEndpoint).clients?.length"
+            placement="top"
+            :content="((row as unknown as ApmEndpoint).clients || []).join(' · ')"
+          >
+            <span class="mono client-cell">
+              {{ (row as unknown as ApmEndpoint).clients?.[0] }}
+              <i v-if="((row as unknown as ApmEndpoint).clientCount ?? 0) > 1" class="client-more">
+                +{{ ((row as unknown as ApmEndpoint).clientCount ?? 0) - 1 }}
+              </i>
+            </span>
+          </el-tooltip>
+          <span v-else class="muted">—</span>
         </template>
         <template #col-callCount="{ row }">
           <span class="muted mono">{{ row.callCount.toLocaleString() }}</span>
@@ -166,7 +178,7 @@
 
 <script setup lang="ts">
 import { message } from "@repo/core";
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 
 import { DataLine, Timer, Warning } from "@element-plus/icons-vue";
 import ReInput from "@repo/ui/re-input";
@@ -177,11 +189,11 @@ import ReSkeleton from "@repo/ui/re-skeleton";
 import ReStatCard from "@repo/ui/re-stat-card";
 import ReEcharts from "@repo/ui/re-echarts";
 import ReEmpty from "@repo/ui/re-empty";
-import ReSectionHead from "@repo/ui/re-section-head";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import type { EChartsOption } from "echarts";
 import { getEndpoints, getEndpointStats } from "../api/apmApi";
 import type { ApmEndpoint, EndpointStatPoint } from "../api/apmApi";
+import { useRealtimeEvent } from "../composables/useRealtime";
 import {
   areaGradient,
   axisTextColor,
@@ -248,6 +260,7 @@ const callSharePercent = computed(() => {
 
 const tableColumns: ReTableColumn[] = [
   { prop: "endpoint", label: "端点", minWidth: 220, slot: "endpoint" },
+  { prop: "clientCount", label: "客户端", width: 110, align: "center", slot: "clients" },
   { prop: "callCount", label: "调用量", width: 100, align: "right", slot: "callCount" },
   { prop: "errorCount", label: "错误数", width: 90, align: "center", slot: "errorCount" },
   { prop: "errorRate", label: "错误率 %", width: 90, align: "center", slot: "errorRate" },
@@ -357,20 +370,20 @@ const endpointTrendOption = computed<EChartsOption>(() => {
   };
 });
 
-let trendTimer: number | undefined;
-
 function onRowClick(row: Record<string, unknown>) {
   selected.value = row as unknown as ApmEndpoint;
 }
 
+// 实时推送驱动（整站共用一条 WS/SSE）：列表与趋势都随 stats 事件刷新，不再 setInterval
 onMounted(() => {
   load();
-  // 复用现有 15s 轮询节奏，趋势数据随 load 追加刷新
-  trendTimer = window.setInterval(loadEndpointTrend, 15000);
 });
 
-onBeforeUnmount(() => {
-  if (trendTimer) window.clearInterval(trendTimer);
+useRealtimeEvent("stats", () => {
+  if (!loading.value) {
+    load();
+    loadEndpointTrend();
+  }
 });
 
 /** 耗时分布图（4 柱：avg / p95 / p99 / max）—— 颜色走 chartTheme，不硬编码 hex */
@@ -420,16 +433,6 @@ const durationOption = computed<EChartsOption>(() => {
     ],
   } as EChartsOption;
 });
-
-onMounted(() => {
-  load();
-  // 复用现有 15s 轮询节奏，趋势数据随 load 追加刷新
-  trendTimer = window.setInterval(loadEndpointTrend, 15000);
-});
-
-onBeforeUnmount(() => {
-  if (trendTimer) window.clearInterval(trendTimer);
-});
 </script>
 
 <style scoped>
@@ -445,55 +448,28 @@ onBeforeUnmount(() => {
   gap: 16px;
 }
 
-/* ---- 页头 ---- */
-.endpoints-head {
-  flex-wrap: wrap;
-  padding: 14px 18px;
-  background: var(--bg-container, var(--apm-panel));
-  border: 1px solid var(--border-subtle, var(--apm-border-soft));
-  border-radius: var(--radius-lg, var(--apm-radius-lg));
-  box-shadow: var(--shadow-sm, var(--apm-shadow-card));
-}
-
-.endpoints-head :deep(.re-section-head__title) {
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 0.2px;
-  color: var(--text-primary, var(--apm-fg));
-}
-
-.endpoints-head :deep(.re-section-head__desc) {
-  color: var(--text-tertiary, var(--apm-muted));
-  line-height: 1.5;
-}
-
-.endpoints-head :deep(.re-section-head__actions) {
-  flex-wrap: wrap;
-  align-items: center;
-}
-
+/* ---- 操作条 ---- */
 .filter-input {
   width: 240px;
 }
 
-/* 命中摘要胶囊 */
-.head-stat {
+/* 访问客户端单元格：主来源 + 其余来源计数 */
+.client-cell {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  height: 28px;
-  padding: 0 12px;
   font-size: 12px;
-  white-space: nowrap;
-  color: var(--text-secondary, var(--apm-fg-regular));
-  background: var(--bg-fill, var(--apm-panel-raised));
-  border: 1px solid var(--border-subtle, var(--apm-border-soft));
-  border-radius: 999px;
-  font-variant-numeric: tabular-nums;
+  color: var(--text-primary, var(--apm-fg));
 }
 
-.head-stat b {
-  color: var(--text-primary, var(--apm-fg));
+.client-more {
+  font-style: normal;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--text-tertiary, var(--apm-muted));
+  background: var(--bg-fill, var(--apm-panel-raised));
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
 }
 
 /* ---- 统计卡：4 列网格 + 顶部 3px 色条 ----
@@ -727,24 +703,8 @@ onBeforeUnmount(() => {
 
 /* ---- 响应式：≤768px 2 列统计 + 单列堆叠 ---- */
 @media (max-width: 768px) {
-  .endpoints-head {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 12px 14px;
-  }
-
-  .endpoints-head :deep(.re-section-head__actions) {
-    width: 100%;
-  }
-
   .filter-input {
     width: 100%;
-  }
-
-  /* 窄屏隐藏胶囊，命中数已由表格行数体现，避免挤压输入框 */
-  .head-stat {
-    display: none;
   }
 
   .stat-grid {

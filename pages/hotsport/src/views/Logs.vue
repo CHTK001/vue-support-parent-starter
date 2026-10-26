@@ -1,26 +1,20 @@
 <template>
   <div class="view">
-    <!-- 工具栏：标题 + 记录数 + 全局动作 -->
-    <div class="view-toolbar">
-      <div class="toolbar-left">
-        <span class="section-label">日志</span>
-        <span class="match-hint">
-          <template v-if="!loading">{{ total.toLocaleString() }} 条 · 第 {{ page }} 页</template>
-          <template v-else>加载中…</template>
-        </span>
-      </div>
-      <div class="toolbar-right">
+    <!-- 操作条：无标题大卡 -->
+    <div class="view-bar">
+      <span class="match-hint">
+        <template v-if="!loading">{{ total.toLocaleString() }} 条 · 第 {{ page }} 页</template>
+        <template v-else>加载中…</template>
+      </span>
+      <div class="view-bar__actions">
         <el-switch
           v-model="autoRefresh"
           class="auto-switch"
-          active-text="自动刷新"
+          active-text="跟随实时推送"
           :disabled="liveStream"
         />
         <el-button round @click="exportCsvFull">
           <el-icon class="btn-icon"><Download /></el-icon>导出 CSV（全量）
-        </el-button>
-        <el-button type="primary" round :loading="injecting" @click="doInjectLog">
-          <el-icon class="btn-icon"><Plus /></el-icon>写入一条日志
         </el-button>
         <el-button round :loading="loading" @click="doServerSearch">
           <el-icon class="btn-icon"><Refresh /></el-icon>刷新
@@ -201,12 +195,13 @@ import { onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { ROUTE_PREFIX } from "../config";
 
-import { Refresh, Download, Search, Plus } from "@element-plus/icons-vue";
+import { Refresh, Download, Search } from "@element-plus/icons-vue";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
-import { pageLogs, exportLogsCsv, injectLog, getLogStats, getTraceDetail } from "../api/apmApi";
+import { pageLogs, exportLogsCsv, getLogStats, getTraceDetail } from "../api/apmApi";
 import type { LogRecord, LogLevelStat } from "../api/apmApi";
 import { useRealtimeLog } from "../composables/useRealtime";
+import { realtimeService } from "../services/realtimeService";
 
 const router = useRouter();
 const route = useRoute();
@@ -317,25 +312,6 @@ async function load(silent = false) {
   }
 }
 
-// ---- 注入 ----
-const injecting = ref(false);
-const logSeq = ref(0);
-
-async function doInjectLog() {
-  injecting.value = true;
-  try {
-    logSeq.value++;
-    const lv = ["INFO", "WARN", "ERROR"][logSeq.value % 3];
-    await injectLog(lv, `手动写入的${lv}日志 #${logSeq.value}`);
-    message.success(`已写入一条 ${lv} 日志`);
-    await load();
-  } catch {
-    message.error("写入失败");
-  } finally {
-    injecting.value = false;
-  }
-}
-
 /** 后端全量 CSV 导出（带当前全部筛选条件） */
 function exportCsvFull() {
   exportLogsCsv({
@@ -360,20 +336,23 @@ function resetFilters() {
   }
 }
 
-// ---- 自动刷新（默认关闭） ----
+// ---- 跟随实时推送（整站共用一条 WS/SSE，不再 setInterval 轮询）----
 const autoRefresh = ref(false);
-let autoTimer: number | undefined;
 
-/** 开关切换：开启后每 5s 静默拉取一次，关闭立即停表 */
+/**
+ * 开关切换：开启后订阅实时通道的 stats 事件静默刷新当前页。
+ *
+ * <p>这里直接用 realtimeService 而不是 useRealtimeEvent：开关回调执行时
+ * 已脱离 setup 的组件实例上下文，composable 内部的 onBeforeUnmount 会失效。</p>
+ */
 watch(autoRefresh, (on) => {
-  if (autoTimer) {
-    window.clearInterval(autoTimer);
-    autoTimer = undefined;
-  }
-  if (on) {
-    autoTimer = window.setInterval(() => load(true), 5000);
-  }
+  realtimeService.off("stats", onStatsEvent);
+  if (on) realtimeService.on("stats", onStatsEvent);
 });
+
+function onStatsEvent() {
+  if (!loading.value) load(true);
+}
 
 // ---- 级别分布 ----
 const logStats = ref<LogLevelStat[]>([]);
@@ -413,10 +392,7 @@ function toggleLiveStream(on: boolean) {
 
 onBeforeUnmount(() => {
   stopLiveStream();
-  if (autoTimer) {
-    window.clearInterval(autoTimer);
-    autoTimer = undefined;
-  }
+  realtimeService.off("stats", onStatsEvent);
 });
 
 /** 级别 → 语义色档位（ERROR/WARN/INFO/DEBUG 四档，其余按 DEBUG 处理） */
