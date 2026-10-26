@@ -16,7 +16,7 @@
  * @since 4.0.0.42
  */
 import { message } from "@repo/core";
-import { computed, onMounted, reactive, ref, watch } from "vue";
+import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { ElCheckbox, ElMessageBox } from "element-plus";
 import { CircleCheck, Clock, Timer } from "@element-plus/icons-vue";
@@ -37,6 +37,7 @@ import ReTab from "@repo/ui/re-tab";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import { ReFormItem } from "@repo/ui/re-kit";
+import { loader } from "@repo/ui/re-loader";
 import { formatDuration } from "@repo/ui/re-time";
 import { costMs } from "@repo/utils";
 // 左栏右键菜单：同包内组件，采集台/监控台都能用（不能 import 宿主应用的东西）
@@ -93,7 +94,7 @@ import {
   statusCounts,
   type DataSourceStatusKey
 } from "../datasourceStatus";
-import { hasRoutePath, nearbyRoutePaths } from "../managerRoutes";
+import { hasRoutePath, nearbyRoutePaths, preloadRouteComponent } from "../managerRoutes";
 import { managerRouteFor } from "../routes";
 import { copyToClipboard } from "../utils/clipboard";
 
@@ -946,6 +947,13 @@ const onItemContextMenu = (e: MouseEvent, item: DataSourceInfo) => {
   selectSource(item);
   // 能力清单按需探测：菜单先按缓存/方言兜底渲染，接口返回后 computed 会自动补上/去掉入口
   void probeCapabilities(item);
+  // 顺手预取该类型管理页的 chunk：菜单停留的这几百毫秒正好够 36~209KB 下完，
+  // 等点「打开管理」时几乎瞬时（详见 openManager 的说明）。
+  // 失败静默：预取只是加速，真打开时 openManager 会重新取并给出可重试的失败态。
+  const managerRoute = managerRouteFor(item.type);
+  if (managerRoute && hasRoutePath(router, managerRoute)) {
+    void preloadRouteComponent(router, managerRoute).catch(() => undefined);
+  }
   Object.assign(ctxMenu, { visible: true, x: e.clientX, y: e.clientY, item });
 };
 
@@ -1370,6 +1378,16 @@ function describeLatency(result: DataSourceTestResult): string {
  * <p><strong>提示必须自带定位信息</strong>：只说「未注册 /prometheus 管理页」，
  * 这句话在「路由真的没有」和「路由有但路径写法不一致」两种情况下长得一模一样，
  * 而两者的修法完全不同。失败时把同前缀的已注册路径一并报出来（见 {@link managerRoutes}）。</p>
+ *
+ * <p><strong>为什么先取包再跳</strong>：管理页都是懒路由，首次打开才现拉 chunk ——
+ * 实测公共链路下 JDBC 控制台 209KB JS 要 2.7s，其它 36~73KB 要 1.0~1.2s。
+ * 原先直接 {@code router.push}，这段时间界面毫无变化（用户以为没点上，重复点击）。
+ * 现在点击当帧先用 {@code loader} 盖一层遮罩（早于任何重活，遮罩必然先画出来），
+ * 再把目标路由的组件 chunk 取回来，最后才跳，路由确认并完成一次渲染后收遮罩。</p>
+ *
+ * <p><strong>取包失败也要有出口</strong>：发版后旧 chunk 变 404 是最常见的失败，
+ * 原实现这种情况下点完就是彻底没反应。现在遮罩切成失败态并给「重试」，
+ * 同时补一条 toast 说明原因。</p>
  */
 const openManager = (item: DataSourceInfo) => {
   const route = managerRouteFor(item.type);
@@ -1385,8 +1403,47 @@ const openManager = (item: DataSourceInfo) => {
     );
     return;
   }
-  // router 模式：应用内跳转，保留顶部/左侧导航与标签页
-  void router.push({ path: route, query: { datasourceId: item.id } });
+
+  /**
+   * 一次完整的「取包 → 跳转 → 等新页渲染」。
+   *
+   * <p>单独抽出来是因为它同时是遮罩的「重试」动作：{@code retryable} 的重试
+   * 必须重跑这一整段，而不只是重跑 import。</p>
+   */
+  const go = async (): Promise<void> => {
+    await preloadRouteComponent(router, route);
+    await router.push({ path: route, query: { datasourceId: item.id } });
+    // push 只保证「导航已确认」，此刻新页面还没渲染出来；
+    // 立刻收遮罩会露出旧页面一帧，所以等一次渲染。
+    await nextTick();
+  };
+
+  const handle = loader.open({
+    text: `正在打开「${item.name ?? item.type}」管理台…`,
+    // 与请求层遮罩同款（见 @repo/ui/re-loader 的 loaderRequestDefaults）
+    variant: "spin",
+    size: "lg",
+    // 120ms 内就绪的不闪：chunk 已缓存时本来就不该出现遮罩
+    delay: 120,
+    // 最短展示时长，避免「闪一下就没」的抖动
+    minDuration: 320,
+    // 兜底：chunk 一直下不来时不要把界面永久盖住
+    timeout: 20000,
+    // 标记为路由级：用户中途点侧栏切走时由 attachRouterLoader 收掉，
+    // 否则遮罩会盖在新页面上（见 @repo/ui/re-loader 的 router.ts 事故说明）
+    routerScoped: true,
+    retryable: true,
+    onRetry: go,
+  });
+
+  go().then(
+    () => handle.close("auto"),
+    (e: unknown) => {
+      // 遮罩切失败态（自带「重试」入口），这里只补一条可读原因
+      handle.error(e);
+      message.error(`打开「${item.type}」管理台失败：${(e as Error)?.message ?? String(e)}`);
+    },
+  );
 };
 
 /**

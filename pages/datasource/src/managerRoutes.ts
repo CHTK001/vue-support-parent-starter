@@ -43,6 +43,34 @@ export function hasRoutePath(router: Router, path: string): boolean {
 }
 
 /**
+ * 预取某条路由的异步组件（不改路由、不渲染，只把 chunk 拉进模块缓存）。
+ *
+ * <p><strong>为什么需要</strong>：管理页全部是懒路由（{@code () => import(...)}）。
+ * 首次点「打开管理」时浏览器才去取 chunk —— 实测公共链路下 JDBC 控制台
+ * 209KB JS 要 2.7s、其它 36~73KB 要 1.0~1.2s。这段时间 {@code router.push}
+ * 还没把新页面渲染出来，界面毫无变化，用户以为没点上于是重复点击。
+ * 先把 chunk 取回来，跳转时就只剩「挂载」这一小段。</p>
+ *
+ * <p>幂等：vue-router 在组件加载完成后会把路由记录里的 loader 换成已解析的
+ * 组件对象，因此这里只有「还是函数」时才真的去取包，重复调用没有额外开销
+ * （浏览器与模块缓存也都会命中）。</p>
+ *
+ * @param router 路由实例
+ * @param path   目标路径
+ * @returns 取包完成的 Promise（组件已加载或路由不存在时立即 resolve）
+ */
+export async function preloadRouteComponent(router: Router, path: string): Promise<void> {
+  const want = normalizeRoutePath(path);
+  const record = router.getRoutes().find((r) => normalizeRoutePath(r.path) === want);
+  const components = record?.components as Record<string, unknown> | null | undefined;
+  const lazy = components?.default;
+  if (typeof lazy !== "function") {
+    return;
+  }
+  await (lazy as () => Promise<unknown>)();
+}
+
+/**
  * 找出与目标路径最接近的已注册路径，用于失败提示。
  *
  * <p>只取同一层的第一段相同者（例如目标是 {@code /prometheus} 就找所有

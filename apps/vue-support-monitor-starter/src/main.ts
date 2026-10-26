@@ -13,6 +13,8 @@
  */
 import { createContextApp } from "@repo/app";
 import { useGlobalStore } from "@repo/pinia";
+// 路由级加载态兜底（见文件末的 attachRouterLoader 说明）
+import { attachRouterLoader } from "@repo/ui/re-loader";
 // ── 本应用壳级布局 / 遥测样式（app 私有，见 src/styles） ─────────────
 import "./styles/pages.css";
 import "./styles/telemetry.css";
@@ -54,3 +56,12 @@ const app = await createContextApp({
 //   - 设值放在 mount 之后，保证 pinia 实例已就绪，也避免 before mount 与布局组件读取
 //     同一 store 时产生时序竞争。
 useGlobalStore(app.pinia).setGlobalState("layout", "group");
+
+// 把 ReLoader 挂到路由上：切页时收掉「路由级」加载态。
+//
+// 要防的事故：数据源中心点「打开管理」会先盖一层遮罩再去取目标页 chunk
+// （见 ScDataSourceView 的 openManager）。若用户在这期间点了侧栏跳到别处，
+// 发起加载的那个组件已被卸载，而遮罩是**全局单例** —— 它不会跟着组件消失，
+// 会一直盖在新页面上，全站不可点。打了 routerScoped 的遮罩正是由这里在
+// 路由切换后统一收掉的；页面内的局部加载态不受影响（否则切回来会看到永远转圈）。
+attachRouterLoader(app.context.router);
