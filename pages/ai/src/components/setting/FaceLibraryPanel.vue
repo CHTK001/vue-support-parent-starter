@@ -377,6 +377,15 @@ interface Row {
   restored: boolean
   /** 登记时的档案字段原样保留：修复后重新入库必须整体回写，否则姓名/身份证会被清空 */
   meta: Record<string, unknown>
+  /**
+   * 登记地点纬度（非必填）。
+   *
+   * <p>服务端放在条目**顶层**（{@code sys_ai_face_library_lat} 列），不在 metadata 里——
+   * 列是唯一真相，meta 里可能残留历史副本。故这里显式建模，不走 {@code pick()}。</p>
+   */
+  lat: number | null
+  /** 登记地点经度（非必填），语义同 {@link lat} */
+  lng: number | null
 }
 
 const loading = ref(false)
@@ -525,8 +534,26 @@ function toRow(s: Record<string, unknown>): Row {
     // 修复标记存在元数据里（由「修复并重新入库」写入）。元数据会被本机登记簿覆盖，
     // 所以两侧都认：服务端没写但本机写了也算已修复，避免换浏览器后标签消失。
     restored: meta.restored === true || meta.restored === 'true' || (local as any)?.restored === true,
+    // 经纬度取条目顶层（服务端以列为准）；本机登记簿作为兜底，保证刚登记还没刷新时也能显示
+    lat: numberOrNull(s.lat ?? (local as any)?.lat),
+    lng: numberOrNull(s.lng ?? (local as any)?.lng),
     meta,
   }
+}
+
+/**
+ * 把任意入参转成数字或 null。
+ *
+ * <p>后端用 BigDecimal 序列化成数字，但本机登记簿可能存的是字符串，
+ * 这里统一掉，避免 `'31.23'` 让坐标判断/格式化出错。</p>
+ *
+ * @param v 入参
+ * @returns 数字；非法或空值返回 null
+ */
+function numberOrNull(v: unknown): number | null {
+  if (v == null || v === '') return null
+  const n = typeof v === 'number' ? v : Number(v)
+  return Number.isFinite(n) ? n : null
 }
 
 /**
@@ -628,13 +655,31 @@ const tableParams = computed(() => ({
   sortOrder: sortOrder.value,
 }))
 
-/** 元信息一行：年龄段 · 性别 · 发型 · 身份证(脱敏) */
+/** 元信息一行：年龄段 · 性别 · 发型 · 身份证(脱敏) · 经纬度 */
 function formatMeta(item: Row): string {
   const parts = [ageBucket(item.age), item.gender || '未知']
   if (item.hair) parts.push(item.hair)
   const id = maskIdCard(item.idCard)
   if (id) parts.push(id)
+  // 经纬度是选填项，只有真的填了才显示，避免空库每条都拖一个「-」
+  const geo = formatGeo(item)
+  if (geo) parts.push(geo)
   return parts.join(' · ')
+}
+
+/**
+ * 格式化经纬度。
+ *
+ * <p>保留 7 位小数与数据库 DECIMAL(10,7) 精度对齐，不做四舍五入截断——
+ * 短于 7 位会在地图上错位到相邻街区。</p>
+ *
+ * @param item 展示行
+ * @returns 形如 `121.4737000, 31.2304000`；两者都为空返回空串
+ */
+function formatGeo(item: Row): string {
+  if (item.lat == null && item.lng == null) return ''
+  const fmt = (v: number | null): string => (v == null ? '-' : v.toFixed(7))
+  return `${fmt(item.lng)}, ${fmt(item.lat)}`
 }
 
 /**
@@ -824,6 +869,10 @@ function openEdit(item: Row) {
     idCard: item.idCard,
     photogenic: item.photogenic,
     note: item.note,
+    // 经纬度必须回填：编辑弹窗保存时会整体回写档案元数据，
+    // 少了这两项就等于把用户填过的坐标静默清空。
+    lat: item.lat,
+    lng: item.lng,
     thumb: item.thumb,
     enrolledAt: 0,
   }

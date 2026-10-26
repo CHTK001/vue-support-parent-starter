@@ -32,6 +32,15 @@ export interface FaceRecord {
   /** 头像缩略图 dataURL */
   thumb: string
   enrolledAt: number
+  /**
+   * 登记地点纬度（选填）。
+   *
+   * <p>可选是有意的：这是后来才加的非必填字段，历史登记记录里没有它。
+   * undefined 表示「未填写」，与填了 0 区分开 —— 0 是几内亚湾上的合法坐标。</p>
+   */
+  lat?: number | null
+  /** 登记地点经度（选填），语义同 {@link lat} */
+  lng?: number | null
 }
 
 const STORAGE_KEY = 'face_registry_v1'
