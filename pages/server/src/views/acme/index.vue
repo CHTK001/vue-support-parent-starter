@@ -18,16 +18,14 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { message } from '@repo/core'
-import { ElMessageBox } from 'element-plus'
+import { ElDropdown, ElDropdownItem, ElDropdownMenu, ElMessageBox } from 'element-plus'
 import {
   ReCanvasBand,
-  ReCanvasTable,
   RePageStage,
 } from '@repo/ui/components/RePageKit'
-import type {
-  BandItem,
-  CanvasColumn,
-} from '@repo/ui/components/RePageKit'
+import type { BandItem } from '@repo/ui/components/RePageKit'
+import ReTable from '@repo/ui/re-table'
+import type { ReTableColumn } from '@repo/ui/re-table'
 import ReTab from '@repo/ui/re-tab'
 import type { ReTabItem } from '@repo/ui/components/ReTab/types'
 import {
@@ -48,7 +46,6 @@ import ApplyCertDialog, { type AcmeHostPrefill } from './components/ApplyCertDia
 import AccountDialog from './components/AccountDialog.vue'
 import CertDetailDialog from './components/CertDetailDialog.vue'
 import DownloadDialog from './components/DownloadDialog.vue'
-import CertRowActions from './CertRowActions.vue'
 import {
   EMPTY_CERT_FILTERS,
   URGENCY_LABEL,
@@ -189,12 +186,13 @@ const nowPercent = computed(() => {
   return ratio >= 0 && ratio <= 100 ? ratio : null
 })
 
-/** 节奏方向的列 */
-const rhythmCols: CanvasColumn[] = [
-  { key: 'domain', label: '主域名', width: 'minmax(0, 1.4fr)' },
-  { key: 'status', label: '状态', width: '84px' },
-  { key: 'window', label: '有效期', width: 'minmax(0, 1.3fr)' },
-  { key: 'daysLeft', label: '剩余', width: '86px', align: 'right' },
+/** 证书表列（ReTable vxe 引擎） */
+const rhythmCols: ReTableColumn[] = [
+  { prop: 'domain', label: '主域名', slot: 'domain', minWidth: 160 },
+  { prop: 'status', label: '状态', slot: 'status', width: 90 },
+  { prop: 'window', label: '有效期', slot: 'window', minWidth: 200 },
+  { prop: 'daysLeft', label: '剩余', slot: 'daysLeft', width: 92, align: 'right' },
+  { prop: 'actions', label: '操作', width: 132, fixed: 'right', align: 'center' },
 ]
 
 // ==================== 工具 ====================
@@ -217,15 +215,6 @@ function urgencyColor(urgency: CertUrgency): string {
     default:
       return 'var(--el-text-color-disabled)'
   }
-}
-
-/**
- * 行键
- *
- * @param row 行
- */
-function rowKey(row: Record<string, unknown>): number {
-  return Number(row.id)
 }
 
 /**
@@ -505,25 +494,30 @@ async function confirmDeleteAccount(row: AcmeAccount): Promise<void> {
   }
 }
 
+/**
+ * 「更多」下拉命令分发
+ *
+ * @param command 命令名
+ * @param view 证书展示行
+ */
+function onMoreCommand(command: string, view: CertView): void {
+  if (command === 'download') openDownload(view)
+  else if (command === 'retry') void confirmRetry(view)
+  else if (command === 'revoke') void confirmRevoke(view)
+  else if (command === 'delete') void confirmDelete(view)
+}
+
 // ==================== 生命周期 ====================
 
-/** 账户表列（账户段是简单表格，不需要方向） */
-const accountCols: CanvasColumn[] = [
-  { key: 'acmeAccountEmail', label: '邮箱', width: 'minmax(0, 1.4fr)' },
-  { key: 'server', label: 'ACME 服务商', width: 'minmax(0, 1.4fr)' },
-  { key: 'status', label: '状态', width: '90px' },
-  { key: 'updateTime', label: '更新时间', width: '150px' },
-  { key: 'remark', label: '备注', width: 'minmax(0, 1fr)' },
+/** 账户表列（账户段是简单表格，不需分页） */
+const accountCols: ReTableColumn[] = [
+  { prop: 'acmeAccountEmail', label: '邮箱', slot: 'acmeAccountEmail', minWidth: 160 },
+  { prop: 'server', label: 'ACME 服务商', slot: 'server', minWidth: 140 },
+  { prop: 'status', label: '状态', slot: 'status', width: 90 },
+  { prop: 'updateTime', label: '更新时间', width: 160 },
+  { prop: 'remark', label: '备注', minWidth: 120 },
+  { prop: 'actions', label: '操作', width: 104, fixed: 'right', align: 'center' },
 ]
-
-/**
- * 账户行键
- *
- * @param row 行
- */
-function accountKey(row: Record<string, unknown>): number {
-  return Number(row.acmeAccountId ?? 0)
-}
 
 watch(activeTab, tab => {
   now.value = new Date()
@@ -636,49 +630,70 @@ onUnmounted(() => {
         </ReCanvasBand>
       </div>
 
-      <ReCanvasTable
-        :rows="views as unknown as Array<Record<string, unknown>>"
+      <ReTable
+        :data="views as unknown as Array<Record<string, unknown>>"
         :columns="rhythmCols"
-        :row-key="rowKey"
-        clickable
+        row-key="id"
         :loading="certLoading"
+        :page-size="8"
+        :page-sizes="[8, 20, 50]"
+        :toolbar="false"
+        stripe
+        table-id="acme-cert-list"
         empty-text="还没有证书"
-        empty-hint="点右上角「申请证书」签发第一张。"
         @row-click="(r) => viewCert(r as unknown as CertView)"
       >
-        <template #cell-domain="{ row }">
+        <template #col-domain="{ row }">
           <span class="pk-strong pk-ellipsis">{{ (row as unknown as CertView).domain }}</span>
         </template>
-        <template #cell-status="{ row }">
+        <template #col-status="{ row }">
           <span class="sstate" :class="`is-${(row as unknown as CertView).urgency}`">
             <i class="pk-dot" :class="(row as unknown as CertView).urgency === 'urgent' ? 'pk-dot--live' : ''" />
             {{ (row as unknown as CertView).statusLabel }}
           </span>
         </template>
-        <template #cell-window="{ row }">
+        <template #col-window="{ row }">
           <span class="pk-num pk-dim pk-ellipsis">
             {{ (row as unknown as CertView).notBeforeText }} → {{ (row as unknown as CertView).notAfterText }}
           </span>
         </template>
-        <template #cell-daysLeft="{ row }">
+        <template #col-daysLeft="{ row }">
           <span class="days" :class="`is-${(row as unknown as CertView).urgency}`">
             {{ (row as unknown as CertView).daysLeftText }}
           </span>
         </template>
-        <template #row-actions="{ row }">
-          <CertRowActions
-            :cert="row as unknown as CertView"
-            :renewing="renewingId === (row as unknown as CertView).id"
-            :retrying="retryingId === (row as unknown as CertView).id"
-            @detail="viewCert(row as unknown as CertView)"
-            @renew="confirmRenew(row as unknown as CertView)"
-            @download="openDownload(row as unknown as CertView)"
-            @retry="confirmRetry(row as unknown as CertView)"
-            @revoke="confirmRevoke(row as unknown as CertView)"
-            @delete="confirmDelete(row as unknown as CertView)"
-          />
+        <!-- 操作列：统一 ReButton square 纯图标按钮（详情 / 续签 / 更多），
+             tip 即悬浮提示；下载 / 重新验证 / 吊销 / 删除收进「更多」下拉，
+             避免一整排红按钮（吊销与删除不可恢复）。 -->
+        <template #col-actions="{ row }">
+          <div class="row-acts">
+            <ReButton layout="square" icon="View" tip="详情" @click.stop="viewCert(row as unknown as CertView)" />
+            <ReButton
+              layout="square" icon="RefreshRight" tip="续签"
+              :loading="renewingId === (row as unknown as CertView).id"
+              :disabled="renewingId === (row as unknown as CertView).id"
+              @click.stop="confirmRenew(row as unknown as CertView)"
+            />
+            <ElDropdown trigger="click" placement="bottom-end" @command="(cmd) => onMoreCommand(cmd, row as unknown as CertView)">
+              <ReButton
+                layout="square" icon="MoreFilled" tip="下载 / 重新验证 / 吊销 / 删除"
+                :loading="retryingId === (row as unknown as CertView).id"
+                @click.stop
+              />
+              <template #dropdown>
+                <ElDropdownMenu>
+                  <ElDropdownItem command="download">下载证书</ElDropdownItem>
+                  <ElDropdownItem v-if="(row as unknown as CertView).statusCode === 'validating'" command="retry">
+                    {{ retryingId === (row as unknown as CertView).id ? '重新验证中…' : '重新验证' }}
+                  </ElDropdownItem>
+                  <ElDropdownItem command="revoke" divided>吊销</ElDropdownItem>
+                  <ElDropdownItem command="delete">删除</ElDropdownItem>
+                </ElDropdownMenu>
+              </template>
+            </ElDropdown>
+          </div>
         </template>
-      </ReCanvasTable>
+      </ReTable>
     </template>
 
   </RePageStage>
@@ -700,39 +715,43 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <ReCanvasTable
-      :rows="accountRows as unknown as Array<Record<string, unknown>>"
+    <ReTable
+      :data="accountRows as unknown as Array<Record<string, unknown>>"
       :columns="accountCols"
-      :row-key="accountKey"
+      row-key="acmeAccountId"
       :loading="accountLoading"
+      :page-size="8"
+      :page-sizes="[8, 20, 50]"
+      :toolbar="false"
+      stripe
+      table-id="acme-account-list"
       empty-text="还没有 ACME 账户"
-      empty-hint="点右上角「添加账户」注册一个。申请证书前必须先有账户。"
     >
-      <template #cell-acmeAccountEmail="{ row }">
+      <template #col-acmeAccountEmail="{ row }">
         <span class="pk-strong">{{ (row as unknown as AcmeAccount).acmeAccountEmail }}</span>
       </template>
-      <template #cell-server="{ row }">
+      <template #col-server="{ row }">
         <span class="pk-ellipsis">{{ serverLabel((row as unknown as AcmeAccount).acmeAccountServer) }}</span>
       </template>
-      <template #cell-status="{ row }">
+      <template #col-status="{ row }">
         <span class="pk-state">
           <i class="pk-dot" />
           {{ accountStatusInfo((row as unknown as AcmeAccount).acmeAccountStatus).label }}
         </span>
       </template>
-      <template #cell-updateTime="{ row }">
+      <template #col-updateTime="{ row }">
         <span class="pk-num pk-dim">{{ (row as unknown as AcmeAccount).updateTime || '—' }}</span>
       </template>
-      <template #cell-remark="{ row }">
+      <template #col-remark="{ row }">
         <span class="pk-ellipsis">{{ (row as unknown as AcmeAccount).acmeAccountRemark || '—' }}</span>
       </template>
-      <template #row-actions="{ row }">
-        <button type="button" class="pk-link" @click="editAccount(row as unknown as AcmeAccount)">编辑</button>
-        <button type="button" class="pk-link pk-link--danger" @click="confirmDeleteAccount(row as unknown as AcmeAccount)">
-          删除
-        </button>
+      <template #col-actions="{ row }">
+        <div class="row-acts">
+          <ReButton layout="square" icon="EditPen" tip="编辑" @click="editAccount(row as unknown as AcmeAccount)" />
+          <ReButton layout="square" icon="Delete" type="danger" tip="删除" @click="confirmDeleteAccount(row as unknown as AcmeAccount)" />
+        </div>
       </template>
-    </ReCanvasTable>
+    </ReTable>
   </div>
 
   <ApplyCertDialog
@@ -841,6 +860,13 @@ onUnmounted(() => {
 
 .sstate.is-ok {
   color: var(--el-color-success);
+}
+
+/* 操作列按钮组：三个 square 图标按钮并排，间距紧凑 */
+.row-acts {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 @media (prefers-reduced-motion: reduce) {

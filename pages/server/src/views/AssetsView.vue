@@ -13,6 +13,7 @@
  * @since 4.0.0
  */
 import { computed, nextTick, onMounted, onBeforeUnmount, ref, reactive, watch, defineAsyncComponent } from "vue";
+import type { Component } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessageBox } from "element-plus";
 import { queryHosts, delHost, switchHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity, scanPorts } from "../api";
@@ -29,11 +30,11 @@ const OpsExecTab = defineAsyncComponent(() => import("./ScExecTab.vue"));
 const OpsSnippetTab = defineAsyncComponent(() => import("./ScTerminalSnippetManager.vue"));
 const OpsMaintenanceTab = defineAsyncComponent(() => import("./ScMaintenancePlan.vue"));
 const HostAccountTab = defineAsyncComponent(() => import("./hostaccount/HostAccountView.vue"));
+const SoftwareTab = defineAsyncComponent(() => import("../components/lab/ScSoftwareManager.vue"));
 import ScHostMetricsBar from "../components/ScHostMetricsBar.vue";
 import type { MetricRow } from "../components/ScHostMetricsBar.types";
 import HostCommandPalette from "../components/HostCommandPalette.vue";
 import type { PaletteItem } from "../components/HostCommandPalette.types";
-import ScInstallDialog from "../components/ScInstallDialog.vue";
 import { useDialogPrerender } from "../utils/dialogPrerender";
 import { osIconSvg } from "../utils/osIcon";
 import {useSocketService, message} from "@repo/core";
@@ -558,7 +559,8 @@ type TabKind =
   | "ops-exec"
   | "ops-snippets"
   | "ops-maintenance"
-  | "host-accounts";
+  | "host-accounts"
+  | "software";
 
 /** 功能定义：名称 / 图标 / 是否为画像分区 */
 interface TabKindMeta {
@@ -585,6 +587,7 @@ const TAB_KINDS: Record<TabKind, TabKindMeta> = {
   "ops-snippets": { label: "片段管理", icon: "DocumentCopy" },
   "ops-maintenance": { label: "维护计划", icon: "Clock" },
   "host-accounts": { label: "主机账号", icon: "User" },
+  software: { label: "软件管理", icon: "Box" },
 };
 
 /** 工作区页签（比 ReTabsItem 多带主机上下文，便于渲染内容） */
@@ -939,8 +942,8 @@ function ctxCommand(cmd: string): void {
     case "scan":
       scanHostPorts(h);
       break;
-    case "install-nginx":
-      onOpenInstall(h);
+    case "software":
+      openTab(h, "software");
       break;
     case "agent-install":
       openDeploy(h, "install");
@@ -1171,21 +1174,6 @@ const deployTask = ref<any>({
   startedAt: Date.now(),
   history: [],
 });
-
-/** 软件安装（nginx）对话框状态 */
-const installVisible = ref(false);
-const installHost = ref<Host | null>(null);
-
-/** 打开软件安装对话框 */
-function onOpenInstall(h: Host): void {
-  installHost.value = h;
-  installVisible.value = true;
-}
-
-/** 安装完成回调：刷新主机列表 */
-function onInstalled(): void {
-  fetchAll();
-}
 
 /**
  * 重置左侧检索与筛选条件。
@@ -1468,6 +1456,37 @@ function tabSectionOf(name: string): string {
   const kind = tabKindOf(name);
   if (!kind) return "";
   return TAB_KINDS[kind]?.section ?? "";
+}
+
+/**
+ * 懒加载页签对应的异步组件（运维台四页 + 主机账号 + 软件管理）。
+ *
+ * <p>这些页面是整站级视图但收在工作区页签里；组件定义在文件头用
+ * {@code defineAsyncComponent} 懒加载，这里把页签 kind 映射到组件。
+ * 映射不到的页签由前面的 {@code v-if/v-else-if} 分支渲染（画像/远控/文件等），
+ * 这里只兜「本文件没有专属模板」的懒加载页。</p>
+ *
+ * @param name 页签 name
+ */
+function lazyTabOf(name: string): Component | null {
+  const kind = tabKindOf(name);
+  if (!kind) return null;
+  switch (kind) {
+    case "ops-sessions":
+      return OpsSessionTab;
+    case "ops-exec":
+      return OpsExecTab;
+    case "ops-snippets":
+      return OpsSnippetTab;
+    case "ops-maintenance":
+      return OpsMaintenanceTab;
+    case "host-accounts":
+      return HostAccountTab;
+    case "software":
+      return SoftwareTab;
+    default:
+      return null;
+  }
 }
 
 /**
@@ -2139,6 +2158,15 @@ function onGlobalKeydown(e: KeyboardEvent): void {
               :host-id="tabHostIdOf(tab.name)"
               :host-name="hostNameOf(tabHostIdOf(tab.name))"
             />
+            <!-- 运维台四页 + 主机账号 + 软件管理：懒加载页面收进工作区页签 -->
+            <component
+              :is="lazyTabOf(tab.name)"
+              v-else-if="tabKindOf(tab.name) && lazyTabOf(tab.name)"
+              :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
+              :host-id="tabHostIdOf(tab.name)"
+              :host-name="hostNameOf(tabHostIdOf(tab.name))"
+              :platform="platformOf(tabHostIdOf(tab.name))"
+            />
           </template>
 
           <template #empty>
@@ -2322,9 +2350,6 @@ function onGlobalKeydown(e: KeyboardEvent): void {
       :logs="deployLogs.map(l => ({ time: new Date().toLocaleTimeString(), msg: l }))"
     />
 
-    <!-- 软件安装（nginx）对话框 -->
-    <ScInstallDialog v-model="installVisible" :host="installHost" :hosts="hosts" @installed="onInstalled" />
-
     <!-- 主机右键菜单：左侧主机列表的唯一功能总入口 -->
     <Teleport to="body">
       <div v-if="ctxMenu.visible" class="host-ctx-backdrop" @mousedown="closeCtxMenu" @contextmenu.prevent="closeCtxMenu" />
@@ -2448,8 +2473,9 @@ function onGlobalKeydown(e: KeyboardEvent): void {
         <div class="host-ctx-item" @click="ctxCommand('scan')">
           <ReIcon name="Aim" /><span>端口扫描</span>
         </div>
-        <div class="host-ctx-item" @click="ctxCommand('install-nginx')">
-          <ReIcon name="Box" /><span>安装 Nginx</span>
+        <!-- 软件管理：系统包管理器安装 / 卸载 / 升级 / 检索 -->
+        <div class="host-ctx-item" @click="ctxCommand('software')">
+          <ReIcon name="Box" /><span>软件管理</span>
         </div>
         <div class="host-ctx-item" @click="ctxCommand('toggle-remote')">
           <ReIcon name="SwitchButton" />
@@ -3570,6 +3596,14 @@ function onGlobalKeydown(e: KeyboardEvent): void {
 /* 带二级菜单的条目：右侧一个箭头，hover 展开 */
 .host-ctx-item.has-sub {
   position: relative;
+}
+/* 二级菜单对应的一级菜单图标：hover 时保持默认色，不随整行变主题蓝。
+   图标是分组入口的「静态记号」，子菜单展开已足够提示可交互，变色反而分神。 */
+.host-ctx-item.has-sub:hover .re-icon,
+.host-ctx-item.has-sub:hover svg,
+.host-ctx-item.has-sub.is-open .re-icon,
+.host-ctx-item.has-sub.is-open svg {
+  color: var(--el-text-color-regular, #4b5563);
 }
 .host-ctx-item.has-sub .host-ctx-arrow {
   margin-left: auto;
