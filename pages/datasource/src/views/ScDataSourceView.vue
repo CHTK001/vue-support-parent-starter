@@ -1404,11 +1404,11 @@ const openManager = (item: DataSourceInfo) => {
     return;
   }
 
+  /** 目标地址（失败恢复时整页刷新直接落到它） */
+  const target = `${route}?datasourceId=${encodeURIComponent(String(item.id))}`;
+
   /**
    * 一次完整的「取包 → 跳转 → 等新页渲染」。
-   *
-   * <p>单独抽出来是因为它同时是遮罩的「重试」动作：{@code retryable} 的重试
-   * 必须重跑这一整段，而不只是重跑 import。</p>
    */
   const go = async (): Promise<void> => {
     await preloadRouteComponent(router, route);
@@ -1416,6 +1416,26 @@ const openManager = (item: DataSourceInfo) => {
     // push 只保证「导航已确认」，此刻新页面还没渲染出来；
     // 立刻收遮罩会露出旧页面一帧，所以等一次渲染。
     await nextTick();
+  };
+
+  /**
+   * 取包失败后的恢复动作：**整页刷新**，而不是再 import 一次。
+   *
+   * <p>浏览器会按 URL 记住「这个模块加载失败」，同一个 document 里再 import
+   * 同一个地址必然立刻再失败 —— 2026-10 实测：把目标 chunk 拦成 404 后，
+   * 解开拦截点「重试」仍然秒失败，只有刷新页面才恢复。所以「重试」必须走刷新，
+   * 否则发版后旧 chunk 变 404 的用户会卡在一个永远重试失败的按钮上。</p>
+   *
+   * <p>刷新前先把目标地址写进 hash：刷新完直接落在用户想去的那一页，
+   * 不用回到列表再点一次。</p>
+   */
+  const recover = (): void => {
+    const url = new URL(location.href);
+    if (url.hash !== `#${target}`) {
+      url.hash = target;
+      location.replace(url.toString());
+    }
+    location.reload();
   };
 
   const handle = loader.open({
@@ -1433,15 +1453,22 @@ const openManager = (item: DataSourceInfo) => {
     // 否则遮罩会盖在新页面上（见 @repo/ui/re-loader 的 router.ts 事故说明）
     routerScoped: true,
     retryable: true,
-    onRetry: go,
+    onRetry: recover,
   });
 
   go().then(
     () => handle.close("auto"),
     (e: unknown) => {
-      // 遮罩切失败态（自带「重试」入口），这里只补一条可读原因
-      handle.error(e);
-      message.error(`打开「${item.type}」管理台失败：${(e as Error)?.message ?? String(e)}`);
+      // 遮罩切失败态（自带「重试」入口），这里只补一条可读原因。
+      // 浏览器原文（Failed to fetch dynamically imported module: <整条 URL>）
+      // 对使用者没有信息量，而这条的真实成因九成是「发版后旧资源已不存在」。
+      const raw = (e as Error)?.message ?? String(e);
+      const stale = /dynamically imported module|module script failed/i.test(raw);
+      const friendly = stale
+        ? "管理台资源加载失败（多为版本已更新），点「重试」会刷新页面后重新打开"
+        : raw;
+      handle.error(new Error(friendly));
+      message.error(`打开「${item.type}」管理台失败：${friendly}`);
     },
   );
 };
