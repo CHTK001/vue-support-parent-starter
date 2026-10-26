@@ -60,7 +60,7 @@
       </div>
     </aside>
 
-    <!-- 右：主区 —— 学科 / 班级 / 组卷模板 一屏铺开，不再分 Tab -->
+    <!-- 右：主区 —— 学科 / 班级 / 组卷模板 用页签切换，学段与年级留在左侧脊柱 -->
     <div class="main">
       <header class="page-header">
         <div class="page-header__left">
@@ -86,17 +86,24 @@
         </div>
       </header>
 
+      <!-- 三块内容分页签切换：全铺开时班级与组卷模板两张空表会把整页顶到 1600px 以上，
+           且三块之间没有主次。nav-only 只渲染页签条，内容留在下面按 activeBlock 显隐。
+           用 v-show 而不是 v-if：切回时表格滚动位置、搜索词与已拉取的数据都还在。 -->
+      <ReTab
+        v-model="activeBlock"
+        variant="underline"
+        :tabs="blockTabs"
+        nav-only
+        class="dim-tabs"
+      />
+
       <!-- ==================== 学科 ==================== -->
-      <section class="block">
+      <section v-show="activeBlock === 'subject'" class="block">
         <div class="block__head">
-          <h2 class="block__title">
-            学科
-            <span class="block__count">{{ filteredSubjects.length }}</span>
+          <div class="block__ops">
             <button v-if="levelFilter" type="button" class="filter-tag" @click="levelFilter = ''">
               {{ levelLabel(levelFilter) }}学段 ×
             </button>
-          </h2>
-          <div class="block__ops">
             <el-input
               v-model="subjectKeyword"
               class="subject-search"
@@ -170,12 +177,8 @@
       </section>
 
       <!-- ==================== 班级 ==================== -->
-      <section class="block">
+      <section v-show="activeBlock === 'classes'" class="block">
         <div class="block__head">
-          <h2 class="block__title">
-            班级
-            <span class="block__count">{{ classes.length }}</span>
-          </h2>
           <div class="block__ops">
             <el-select
               v-model="classLevelFilter"
@@ -202,7 +205,7 @@
           row-key="classId"
           layout="table"
           :layout-switch="false"
-          :layout-table="{ fill: false }"
+          :layout-table="{ fill: false, minHeight: 168 }"
           stripe
           @row-click="(row: Record<string, unknown>) => openClassEdit(row as unknown as EduClass)"
           :config="{ toolbar: { enable: false } }"
@@ -239,12 +242,8 @@
       </section>
 
       <!-- ==================== 组卷模板 ==================== -->
-      <section class="block">
+      <section v-show="activeBlock === 'templates'" class="block">
         <div class="block__head">
-          <h2 class="block__title">
-            组卷模板
-            <span class="block__count">{{ filteredTemplates.length }}</span>
-          </h2>
           <div class="block__ops">
             <el-input
               v-model="templateKeyword"
@@ -735,6 +734,8 @@ import { eduaiApi } from "../api/eduaiApi";
 import type { EduClass, EduGrade, EduStudent, EduSubject, GradeLevelOption, PaperTemplate } from "../api/types";
 import ReRichText from "@repo/ui/re-rich-text";
 import ReDialog from "@repo/ui/re-dialog";
+import ReTab from "@repo/ui/re-tab";
+import type { ReTabItem } from "@repo/ui/re-tab";
 import ReInputNumber from "@repo/ui/re-input-number";
 import type { ReTableColumn } from "@repo/ui/re-table";
 
@@ -1241,6 +1242,18 @@ const filteredTemplates = computed(() => {
   return templates.value.filter((t) => String(t.templateName ?? "").toLowerCase().includes(kw));
 });
 
+/**
+ * 右侧三块内容用 ReTab 分段切换（nav-only，只出页签条，面板由本页 v-show 控制）。
+ *
+ * <p>学段/年级不占页签：它们是左侧脊柱上的层级，切页签时仍然要看得到。</p>
+ */
+const activeBlock = ref<"subject" | "classes" | "templates">("subject");
+const blockTabs = computed<ReTabItem[]>(() => [
+  { name: "subject", label: "学科", badge: subjects.value.length },
+  { name: "classes", label: "班级", badge: classes.value.length },
+  { name: "templates", label: "组卷模板", badge: templates.value.length },
+]);
+
 const loadTemplates = async () => {
   templateLoading.value = true;
   try {
@@ -1612,43 +1625,24 @@ onMounted(() => {
   color: var(--el-text-color-placeholder);
 }
 
-/* ---------- 分区（学科 / 班级 / 组卷模板） ---------- */
+/* ---------- 分区（页签面板：学科 / 班级 / 组卷模板） ---------- */
+/* 页签条自带底线，这里不再给面板补 border-top，否则切换后tab 下会出现两条线 */
 .block {
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid var(--el-border-color-lighter);
+  margin-top: 4px;
 }
 
-.block:first-of-type {
-  margin-top: 0;
-  padding-top: 0;
-  border-top: 0;
+/* 页签条与页头之间留一点气口；nav-only 时 ReTab 只渲染这一条 */
+.dim-tabs {
+  margin-top: 2px;
 }
 
 .block__head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 14px;
   flex-wrap: wrap;
   margin-bottom: 8px;
-}
-
-.block__title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
-}
-
-.block__count {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--el-text-color-placeholder);
-  font-variant-numeric: tabular-nums;
 }
 
 .filter-tag {
@@ -1673,9 +1667,13 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .subject-search {
+  flex: 0 1 220px;
+  min-width: 160px;
   width: 220px;
 }
 
