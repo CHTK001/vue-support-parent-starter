@@ -596,6 +596,13 @@ const isPlainVisibleField = (group, field) =>
     (group === 'generate'
     && (String(field || '').startsWith('media_') || String(field || '') === 'task_timeout_minutes'))
     || (group === 'image_search' && String(field || '') === 'keyword_extractor')
+    // 人脸重识别的归并参数**必须常驻**：同人判定阈值、归并时间窗、轨迹容量、保留时长
+    // 才是这页真正要调的东西。分组里只要有模型字段，常驻区就只放模型选择器，
+    // 其余全部塞进「高级选项」—— 结果是用户打开配置页只能看到两个模型下拉，
+    // 最关键的阈值要点开折叠才找得到，与「人脸识别配置」把阈值平铺的做法也不一致。
+    || (group === 'reid'
+    && ['track_threshold', 'track_gap_seconds', 'track_max_tracks', 'track_ttl_seconds',
+        'top_k', 'match_threshold'].includes(String(field || '')))
 
 /** 始终显示且不是选模型的字段 */
 const plainVisibleFields = (group) =>
