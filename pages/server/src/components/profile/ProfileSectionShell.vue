@@ -118,15 +118,21 @@ const canNext = computed(() => props.paged && !props.loading && props.page * pro
           @clear="(onInput(''), commitSearch())"
         />
         <template v-if="paged">
-          <button class="pf-btn" :disabled="loading" @click="commitSearch">搜索</button>
-          <button class="pf-btn" :disabled="!canPrev" @click="emit('page', -1)">上一页</button>
+          <ReButton icon="Search" layout="square" :show-text="false" :disabled="loading" title="搜索" tip="搜索" @click="commitSearch" />
+          <ReButton icon="ArrowLeft" layout="square" :show-text="false" :disabled="!canPrev" title="上一页" tip="上一页" @click="emit('page', -1)" />
           <span class="pfs-page pf-mono">{{ page }}</span>
-          <button class="pf-btn" :disabled="!canNext" @click="emit('page', 1)">下一页</button>
+          <ReButton icon="ArrowRight" layout="square" :show-text="false" :disabled="!canNext" title="下一页" tip="下一页" @click="emit('page', 1)" />
         </template>
         <slot name="tools" />
-        <button class="pf-btn" :disabled="loading" @click="emit('refresh')">
-          {{ loading ? "刷新中…" : "刷新" }}
-        </button>
+        <ReButton
+          icon="Refresh"
+          layout="square"
+          :show-text="false"
+          :disabled="loading"
+          :title="loading ? '刷新中…' : '刷新'"
+          tip="刷新"
+          @click="emit('refresh')"
+        />
       </div>
     </div>
 

@@ -12,6 +12,20 @@ appConfig:
   # 所以不是越权漏洞，但用户会看到空菜单、刷新即掉登录态）。
   # 历史上曾为了绕开「白名单路由没被消费」的守卫 bug 而置 false，
   # 该 bug 已修（guard.ts 现已实际消费 route.whiteList），无需再关。
+
+# 权限角色标识（v-admin / v-superadmin 等指令按此判定当前用户是否管理员）。
+# 必须与后端下发的角色字面量完全一致（含大小写与下划线）：
+# 后端 OAuth 登录返回的 superadmin 角色是 "SUPER_ADMIN"、admin 是 "ADMIN"，
+# 而 app.example.yaml 模板里写的是小写 "superadmin"/"admin"（无下划线），
+# hasRole 只忽略大小写、不忽略下划线，模板值会判定失败 ——
+# 导致 SUPER_ADMIN 登录后所有 v-admin 按钮被隐藏（岗位/消息等页新增按钮不可见）。
+# 本应用显式覆盖为后端真实角色名。
+permissionConfig:
+  superadmin: "SUPER_ADMIN"
+  admin:
+    - "ADMIN"
+    - "SUPER_ADMIN"
+
 # 站内消息
 messageConfig:
   # 开启站内消息 HTTP 查询（头部铃铛 / 消息面板拉历史、未读、已读）

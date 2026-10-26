@@ -1,0 +1,558 @@
+<script setup lang="ts">
+/**
+ * 进程分区 —— 排名条 + 可展开详情。
+ *
+ * <p>设计意图：进程页最常见的问题是「谁在吃 CPU / 内存」，所以默认按占用降序排成横向条，
+ * 一眼看出头部；条长按当前指标的最大值归一，而不是按 100%，否则 CPU 5% 的进程会全部看起来一样长。
+ * 点击行展开命令行、路径、父进程、启动时间，并给出重启 / 结束 / 内存分析入口。</p>
+ *
+ * <p>字段来自 {@code ProcessRowVO}：pid / ppid / name / user / cpu / memory / threads / startTime / command / path。</p>
+ *
+ * @author CH
+ * @since 4.0.0.42
+ */
+import { computed, ref } from "vue";
+import {
+  fmt1,
+  fmtMemory,
+  leadTileOf,
+  numOf,
+  processTone,
+  type Tone,
+} from "../../utils/hostProfileUi";
+import ProfileSectionShell from "./ProfileSectionShell.vue";
+import type { StripItem } from "./types";
+
+interface Props {
+  rows: Record<string, any>[];
+  keyword?: string;
+  loading?: boolean;
+  error?: string;
+  /** 后端分页状态，透传给外壳 */
+  paged?: boolean;
+  page?: number;
+  pageSize?: number;
+  total?: number;
+  truncated?: boolean;
+  /** 正在执行动作的行键（restart-<pid> / kill-<pid>），用于禁用按钮 */
+  busyKey?: string;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  keyword: "",
+  loading: false,
+  error: "",
+  paged: true,
+  page: 1,
+  pageSize: 10,
+  total: 0,
+  truncated: false,
+  busyKey: "",
+});
+
+const emit = defineEmits<{
+  (e: "search", keyword: string): void;
+  (e: "commit", keyword: string): void;
+  (e: "page", delta: number): void;
+  (e: "refresh"): void;
+  (e: "restart", row: Record<string, any>): void;
+  (e: "kill", row: Record<string, any>): void;
+  (e: "analyze"): void;
+}>();
+
+/** 排名依据：CPU 还是内存 */
+const metric = ref<"cpu" | "mem">("cpu");
+
+/** 展开的行（同一时刻只展开一个，避免长命令行把列表撑散） */
+const expandedPid = ref<number | null>(null);
+
+/** 行视图：把等级、图标、当前指标值一次算好 */
+interface ProcView {
+  raw: Record<string, any>;
+  pid: number;
+  tone: Tone;
+  tile: { brand: string; bg: string; glyph: string; letter: string };
+  value: number;
+  valueText: string;
+  ratio: number;
+  /** 子进程树层级（仅展开区子进程行使用） */
+  _depth?: number;
+}
+
+const view = computed<ProcView[]>(() => {
+  const list = props.rows.map(raw => {
+    const pid = numOf(raw.pid);
+    const value = metric.value === "cpu" ? numOf(raw.cpu) : numOf(raw.memory);
+    return {
+      raw,
+      pid,
+      tone: processTone(raw),
+      tile: leadTileOf("processes", raw),
+      value,
+      valueText: metric.value === "cpu" ? `${fmt1(raw.cpu)}%` : fmtMemory(raw.memory),
+      ratio: 0,
+    };
+  });
+  // 按当前指标降序：后端已按页返回，这里只保证「当前页内」头部靠前
+  list.sort((a, b) => b.value - a.value);
+  const max = list.length ? list[0].value : 0;
+  // 条长按最大值归一：头部满格，尾部才看得出差距；最大值为 0 时全部空条
+  list.forEach(it => { it.ratio = max > 0 ? it.value / max * 100 : 0; });
+  return list;
+});
+
+/**
+ * 某进程的子进程（当前页内 ppid 关联）。
+ *
+ * <p>展开区展示的是「进程树的下层」而非详情文本：谁的 ppid 指向该 pid，
+ * 谁就是它的子进程。当前页是后端按页返回的，跨页父子装配不到，这里只输出页内
+ * 可见的子树；详情文本移到 hover 浮层。</p>
+ *
+ * @param pid 父进程 pid
+ */
+function childrenOf(pid: number): ProcView[] {
+  if (!pid || pid <= 0) return [];
+  const seen = new Set<number>();
+  const children: ProcView[] = [];
+  // 递归搜集：子进程还有自己的子进程（孙进程）也一并列出来，形成缩进层级
+  const walk = (parent: number, depth: number): void => {
+    if (depth > 4) return;
+    for (const v of view.value) {
+      if (seen.has(v.pid)) continue;
+      if (numOf(v.raw.ppid) === parent) {
+        seen.add(v.pid);
+        children.push({ ...v, _depth: depth });
+        walk(v.pid, depth + 1);
+      }
+    }
+  };
+  walk(pid, 0);
+  return children;
+}
+
+/** 聚合条：进程数、内存合计、最高 CPU、最高内存 */
+const strip = computed<StripItem[]>(() => {
+  const rows = props.rows;
+  let memTotal = 0;
+  let cpuMax = 0;
+  let memMax = 0;
+  for (const r of rows) {
+    memTotal += numOf(r.memory);
+    cpuMax = Math.max(cpuMax, numOf(r.cpu));
+    memMax = Math.max(memMax, numOf(r.memory));
+  }
+  const count = props.paged ? props.total : rows.length;
+  return [
+    { label: "进程数", value: `${count} 个` },
+    { label: "本页内存合计", value: fmtMemory(memTotal) },
+    { label: "最高 CPU", value: `${fmt1(cpuMax)}%`, tone: cpuMax >= 85 ? "bad" : cpuMax >= 50 ? "warn" : "" },
+    { label: "最高内存", value: fmtMemory(memMax), tone: memMax >= 4096 ? "bad" : memMax >= 1024 ? "warn" : "" },
+  ];
+});
+
+function toggleRow(pid: number): void {
+  expandedPid.value = expandedPid.value === pid ? null : pid;
+}
+
+/** 可重启的前提是拿得到命令行：拿不到就没法按原样拉起 */
+function canRestart(row: Record<string, any>): boolean {
+  return numOf(row.pid) > 0 && String(row.command ?? "").trim() !== "";
+}
+</script>
+
+<template>
+  <ProfileSectionShell
+    :strip="strip"
+    :keyword="keyword"
+    keyword-placeholder="PID / 进程名 / 用户 / 命令行"
+    :loading="loading"
+    :error="error"
+    :has-rows="view.length > 0"
+    empty-text="该主机未上报进程信息"
+    unit="个进程"
+    :paged="paged"
+    :page="page"
+    :page-size="pageSize"
+    :total="total"
+    :truncated="truncated"
+    @search="(kw: string) => emit('search', kw)"
+    @commit="(kw: string) => emit('commit', kw)"
+    @page="(d: number) => emit('page', d)"
+    @refresh="emit('refresh')"
+  >
+    <template #tools>
+      <div class="proc-metric">
+        <button :class="['proc-metric-btn', { on: metric === 'cpu' }]" @click="metric = 'cpu'">CPU</button>
+        <button :class="['proc-metric-btn', { on: metric === 'mem' }]" @click="metric = 'mem'">内存</button>
+      </div>
+      <ReButton icon="DataAnalysis" layout="square" :show-text="false" title="内存分析" tip="内存分析" @click="emit('analyze')" />
+    </template>
+
+    <div class="proc-list">
+      <div
+        v-for="p in view"
+        :key="p.pid"
+        :class="['proc-row', p.tone ? `t-${p.tone}` : '', { open: expandedPid === p.pid }]"
+      >
+        <el-popover
+          placement="right"
+          :width="380"
+          trigger="hover"
+          popper-class="proc-detail-pop"
+          :disabled="!p.raw"
+        >
+          <template #reference>
+            <div class="proc-main" @click="toggleRow(p.pid)">
+              <span class="proc-caret">{{ expandedPid === p.pid ? "▾" : "▸" }}</span>
+
+              <span v-if="p.tile.brand" class="proc-tile proc-tile--brand" v-html="p.tile.brand"></span>
+              <span v-else class="proc-tile" :style="{ background: p.tile.bg }">
+                <span v-if="p.tile.glyph" class="proc-glyph" v-html="p.tile.glyph"></span>
+                <template v-else>{{ p.tile.letter }}</template>
+              </span>
+
+              <span class="proc-name pf-mono pf-ellipsis">{{ p.raw.name || "—" }}</span>
+
+              <span class="proc-bar-wrap">
+                <span class="pf-bar"><i :style="{ width: p.ratio + '%' }" /></span>
+              </span>
+
+              <b class="proc-val pf-mono">{{ p.valueText }}</b>
+              <span class="proc-pid pf-mono pf-dim">PID {{ p.pid }}</span>
+              <span class="proc-user pf-dim pf-ellipsis">{{ p.raw.user || "—" }}</span>
+            </div>
+          </template>
+          <!-- hover 浮层：当前详情 -->
+          <div class="proc-detail-pop__head">
+            <b class="pf-mono pf-ellipsis">{{ p.raw.name || "—" }}</b>
+            <span class="pf-mono pf-dim">PID {{ p.pid }}</span>
+          </div>
+          <div class="proc-detail-pop__grid">
+            <div class="proc-f"><i>内存</i><b class="pf-mono">{{ fmtMemory(p.raw.memory) }}</b></div>
+            <div class="proc-f"><i>线程</i><b class="pf-mono">{{ p.raw.threads ?? "—" }}</b></div>
+            <div class="proc-f"><i>父进程</i><b class="pf-mono">{{ p.raw.ppid ?? "—" }}</b></div>
+            <div class="proc-f"><i>启动时间</i><b class="pf-mono">{{ p.raw.startTime || "—" }}</b></div>
+          </div>
+          <div class="proc-detail-pop__label">命令行</div>
+          <div class="pf-code proc-detail-pop__code">{{ p.raw.command || "—" }}</div>
+        </el-popover>
+
+        <div v-if="expandedPid === p.pid" class="proc-detail">
+          <div class="proc-children">
+            <div class="proc-children__cap">
+              <span>子进程</span>
+              <template v-if="childrenOf(p.pid).length">
+                <b class="pf-mono">{{ childrenOf(p.pid).length }}</b> 个
+              </template>
+            </div>
+            <template v-if="childrenOf(p.pid).length">
+              <div
+                v-for="c in childrenOf(p.pid)"
+                :key="c.pid"
+                class="proc-child"
+                :class="c.tone ? `t-${c.tone}` : ''"
+                :style="{ '--child-depth': c._depth ?? 0 }"
+              >
+                <span class="proc-child__tile" :style="{ background: leadTileOf('processes', c.raw).bg }">
+                  <template v-if="leadTileOf('processes', c.raw).glyph" v-html="leadTileOf('processes', c.raw).glyph"></template>
+                  <template v-else>{{ leadTileOf('processes', c.raw).letter }}</template>
+                </span>
+                <span class="proc-child__name pf-mono pf-ellipsis">{{ c.raw.name || "—" }}</span>
+                <span class="proc-child__pid pf-mono pf-dim">PID {{ c.pid }}</span>
+                <b class="proc-child__val pf-mono">{{ c.valueText }}</b>
+              </div>
+            </template>
+            <div v-else class="proc-children__empty">没有检测到子进程（或无权限读取）</div>
+          </div>
+          <div class="pf-actions proc-acts">
+            <button
+              class="pf-btn"
+              :disabled="!canRestart(p.raw) || busyKey === `restart-${p.pid}`"
+              :title="canRestart(p.raw) ? '' : '该进程读不到命令行，无法按原样重启'"
+              @click="emit('restart', p.raw)"
+            >{{ busyKey === `restart-${p.pid}` ? "重启中…" : "重启进程" }}</button>
+            <button
+              class="pf-btn is-bad"
+              :disabled="p.pid <= 0 || busyKey === `kill-${p.pid}`"
+              @click="emit('kill', p.raw)"
+            >{{ busyKey === `kill-${p.pid}` ? "结束中…" : "结束进程" }}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ProfileSectionShell>
+</template>
+
+<style scoped lang="scss">
+@use "./_profile-kit.scss";
+
+.proc-metric {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 7px;
+  background: var(--el-fill-color-light, #f5f7fa);
+}
+.proc-metric-btn {
+  padding: 2px 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--el-text-color-secondary, #5c6270);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: background 0.16s, color 0.16s, box-shadow 0.16s;
+}
+.proc-metric-btn.on {
+  background: var(--el-bg-color, #fff);
+  color: var(--el-text-color-primary, #1f2430);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(31, 36, 48, 0.1);
+}
+
+.proc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.proc-row {
+  border-radius: 8px;
+  transition: background 0.14s;
+}
+.proc-row:hover {
+  background: var(--el-color-primary-light-9, #f6f4ff);
+}
+.proc-row.open {
+  background: var(--el-color-primary-light-9, #f6f4ff);
+}
+.proc-main {
+  display: grid;
+  grid-template-columns: 14px 28px minmax(96px, 150px) 1fr 82px 76px minmax(60px, 92px);
+  gap: 10px;
+  align-items: center;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+.proc-caret {
+  font-size: 10px;
+  color: var(--el-text-color-placeholder, #a8abb2);
+  text-align: center;
+}
+.proc-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  flex: none;
+}
+.proc-tile--brand {
+  background: var(--el-bg-color, #fff);
+  border: 1px solid var(--el-border-color-extra-light, #eef0f6);
+}
+.proc-tile :deep(svg) {
+  display: block;
+}
+.proc-glyph {
+  display: inline-flex;
+  line-height: 0;
+}
+.proc-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--el-text-color-primary, #1f2430);
+}
+.proc-bar-wrap {
+  display: block;
+  min-width: 0;
+}
+.proc-bar-wrap .pf-bar {
+  height: 7px;
+}
+.proc-val {
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: right;
+  color: var(--tone, var(--el-text-color-primary, #1f2430));
+}
+.proc-pid {
+  font-size: 11px;
+  text-align: right;
+}
+.proc-user {
+  font-size: 11px;
+  text-align: right;
+}
+
+.proc-detail {
+  padding: 2px 12px 11px 52px;
+}
+.proc-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px 16px;
+  margin-bottom: 10px;
+}
+.proc-f {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.proc-f i {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--el-text-color-placeholder, #a8abb2);
+}
+.proc-f b {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--el-text-color-primary, #1f2430);
+}
+.proc-label {
+  margin: 8px 0 4px;
+  font-size: 11px;
+  color: var(--el-text-color-placeholder, #a8abb2);
+}
+.proc-acts {
+  margin-top: 10px;
+}
+
+/* ===== 展开区：子进程树 ===== */
+.proc-children {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  background: var(--el-fill-color-light, #f5f7fa);
+  border-radius: 8px;
+}
+.proc-children__cap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: var(--el-text-color-placeholder, #a8abb2);
+}
+.proc-children__cap b {
+  color: var(--el-text-color-secondary, #5c6270);
+}
+.proc-children__empty {
+  padding: 10px 2px;
+  font-size: 11.5px;
+  color: var(--el-text-color-placeholder, #a8abb2);
+}
+.proc-child {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 6px 4px calc(8px + (var(--child-depth, 0) * 18px));
+  border-radius: 6px;
+  transition: background 0.14s;
+}
+.proc-child:hover {
+  background: var(--el-bg-color, #fff);
+}
+.proc-child__tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+}
+.proc-child__name {
+  min-width: 0;
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-primary, #1f2430);
+}
+.proc-child__pid {
+  flex: none;
+  font-size: 10.5px;
+}
+.proc-child__val {
+  flex: none;
+  width: 62px;
+  font-size: 11.5px;
+  text-align: right;
+  color: var(--tone, var(--el-text-color-primary, #1f2430));
+}
+
+@media (max-width: 720px) {
+  .proc-main {
+    grid-template-columns: 14px 28px 1fr 74px;
+  }
+  .proc-bar-wrap,
+  .proc-pid,
+  .proc-user {
+    display: none;
+  }
+  .proc-detail {
+    padding-left: 12px;
+  }
+}
+</style>
+
+<style>
+/* hover 浮层（el-popover 弹到 body，scoped 样式作用不到，独立全局块） */
+.proc-detail-pop__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--el-border-color-lighter, #eef0f6);
+}
+.proc-detail-pop__head b {
+  min-width: 0;
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary, #1f2430);
+}
+.proc-detail-pop__head span {
+  flex: none;
+  font-size: 11px;
+  color: var(--el-text-color-placeholder, #a8abb2);
+}
+.proc-detail-pop__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px 16px;
+  margin-bottom: 10px;
+}
+.proc-detail-pop__grid .proc-f i {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--el-text-color-placeholder, #a8abb2);
+}
+.proc-detail-pop__grid .proc-f b {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--el-text-color-primary, #1f2430);
+}
+.proc-detail-pop__label {
+  margin: 8px 0 4px;
+  font-size: 11px;
+  color: var(--el-text-color-placeholder, #a8abb2);
+}
+.proc-detail-pop__code {
+  max-height: 150px;
+  overflow-y: auto;
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--el-text-color-regular, #4a5162);
+  word-break: break-all;
+}
+</style>

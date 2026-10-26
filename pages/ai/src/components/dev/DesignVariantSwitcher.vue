@@ -1,7 +1,7 @@
 <template>
   <!-- 设计探索期切换器：右下角浮动胶囊。
        只在 DEV 下渲染，Phase 3 会整体删除。 -->
-  <div v-if="visible" class="dv-switch" role="group" aria-label="设计变体切换">
+  <div v-if="visible" class="dv-switch" role="group">
     <button
       v-for="v in VARIANTS"
       :key="v.key"

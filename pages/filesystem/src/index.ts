@@ -34,6 +34,14 @@ export { default as FileStorageManage } from "./views/FileStorageManage.vue";
  * 上传任务页组件。
  *
  * 供其它应用（而非仅后端菜单路由）直接嵌入使用，
- * 例如宿主侧栏「文件管理 → 上传任务」二级菜单项。
+ * 例如宿主侧栏「文件管理 → 文件管理」二级菜单项。
  */
 export { default as UploadTaskView } from "./views/UploadTaskView.vue";
+
+/**
+ * 文件日志页组件。
+ *
+ * 供其它应用（而非仅后端菜单路由）直接嵌入使用，
+ * 例如宿主侧栏「文件管理 → 文件日志」二级菜单项。
+ */
+export { default as FileLogView } from "./views/FileLogView.vue";

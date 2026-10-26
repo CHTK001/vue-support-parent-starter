@@ -1,0 +1,259 @@
+/**
+ * 主机画像分区 —— 共用视觉语言（方向 A「仪表」）
+ *
+ * <p>7 个分区（磁盘 / 进程 / 服务 / 监听端口 / 网络 / 环境变量 / 防火墙）各自形态不同，
+ * 但顶部聚合条、容量环、内联条形、状态胶囊必须是同一套。本文件被各分区组件
+ * 以 `@use` 引入，随 `<style scoped>` 一起加作用域，样式只落在引入它的组件内。</p>
+ *
+ * <p>颜色一律取 Element Plus 语义变量并带兜底：主题切换时不需要改本文件。</p>
+ *
+ * @author CH
+ * @since 4.0.0.42
+ */
+
+/* ---------- 语义等级：把等级落到 --tone，子元素统一引用 ---------- */
+.t-ok { --tone: var(--el-color-success, #2fbf71); }
+.t-warn { --tone: var(--el-color-warning, #f59e0b); }
+.t-bad { --tone: var(--el-color-danger, #e5534b); }
+.t-mute { --tone: var(--el-text-color-placeholder, #a8abb2); }
+.t-brand { --tone: var(--el-color-primary, #6d5dfc); }
+
+/* ---------- 基础 ---------- */
+.pf-mono {
+  font-family: var(--el-font-family-mono, ui-monospace, "SF Mono", Consolas, monospace);
+  font-variant-numeric: tabular-nums;
+}
+.pf-dim { color: var(--el-text-color-placeholder, #a8abb2); }
+.pf-ellipsis {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- 聚合条：每个分区顶部的「先看数字」 ---------- */
+.pf-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+  gap: 1px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  background: var(--el-border-color-extra-light, #eef0f6);
+  border: 1px solid var(--el-border-color-extra-light, #eef0f6);
+  border-radius: 10px;
+}
+.pf-stat {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-height: 52px;
+  min-width: 0;
+  padding: 10px 12px;
+  background: var(--el-bg-color, #fff);
+}
+.pf-stat-l {
+  font-size: 11px;
+  color: var(--el-text-color-placeholder, #a8abb2);
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pf-stat-v {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-primary, #1f2430);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pf-stat-s {
+  font-size: 11px;
+  color: var(--el-text-color-placeholder, #a8abb2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- 容量环 ---------- */
+.pf-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  border-radius: 50%;
+  background: conic-gradient(var(--tone, #6d5dfc) calc(var(--p, 0) * 1%), var(--el-border-color-extra-light, #eceef4) 0);
+}
+.pf-ring::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  background: var(--el-bg-color, #fff);
+}
+.pf-ring b {
+  position: relative;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-primary, #1f2430);
+}
+
+/* ---------- 内联条形 ---------- */
+.pf-bar {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--el-border-color-extra-light, #eef0f6);
+}
+.pf-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--tone, var(--el-color-primary, #6d5dfc));
+  transition: width 0.3s;
+}
+
+/* ---------- 状态胶囊 ---------- */
+.pf-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.6;
+  white-space: nowrap;
+  color: var(--el-text-color-secondary, #5c6270);
+  background: var(--el-fill-color-light, #f5f7fa);
+  border-color: var(--el-border-color-lighter, #e3e6ef);
+}
+.pf-pill.t-ok {
+  color: var(--el-color-success, #2fbf71);
+  background: var(--el-color-success-light-9, rgba(47, 191, 113, 0.1));
+  border-color: var(--el-color-success-light-7, rgba(47, 191, 113, 0.25));
+}
+.pf-pill.t-warn {
+  color: var(--el-color-warning, #b8741a);
+  background: var(--el-color-warning-light-9, rgba(245, 158, 11, 0.11));
+  border-color: var(--el-color-warning-light-7, rgba(245, 158, 11, 0.26));
+}
+.pf-pill.t-bad {
+  color: var(--el-color-danger, #c9403a);
+  background: var(--el-color-danger-light-9, rgba(229, 83, 75, 0.09));
+  border-color: var(--el-color-danger-light-7, rgba(229, 83, 75, 0.22));
+}
+.pf-pill.t-brand {
+  color: var(--el-color-primary, #5a4bd9);
+  background: var(--el-color-primary-light-9, #f6f4ff);
+  border-color: var(--el-color-primary-light-7, #ece9ff);
+}
+
+/* ---------- 状态点 ---------- */
+.pf-dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--tone, var(--el-text-color-placeholder, #a8abb2));
+}
+
+/* ---------- 卡片网格 ---------- */
+.pf-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(206px, 1fr));
+}
+.pf-card {
+  min-width: 0;
+  padding: 11px;
+  border: 1px solid var(--el-border-color-extra-light, #eef0f6);
+  border-radius: 10px;
+  background: var(--el-bg-color, #fff);
+  transition: border-color 0.16s, box-shadow 0.16s, transform 0.16s;
+}
+.pf-card:hover {
+  border-color: var(--el-border-color-light, #e3e6ef);
+  box-shadow: 0 2px 10px rgba(31, 36, 48, 0.06);
+  transform: translateY(-1px);
+}
+
+/* ---------- 小按钮 ---------- */
+.pf-btn {
+  padding: 3px 9px;
+  border: 1px solid var(--el-border-color-light, #e3e6ef);
+  border-radius: 6px;
+  background: var(--el-bg-color, #fff);
+  color: var(--el-text-color-secondary, #5c6270);
+  font: inherit;
+  font-size: 11.5px;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: color 0.16s, border-color 0.16s, background 0.16s;
+}
+.pf-btn:hover {
+  color: var(--el-color-primary, #5a4bd9);
+  border-color: var(--el-color-primary-light-5, #b3a9fe);
+  background: var(--el-color-primary-light-9, #f6f4ff);
+}
+.pf-btn.is-bad:hover {
+  color: var(--el-color-danger, #c9403a);
+  border-color: var(--el-color-danger-light-5, rgba(229, 83, 75, 0.4));
+  background: var(--el-color-danger-light-9, rgba(229, 83, 75, 0.07));
+}
+.pf-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.pf-actions {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ---------- 代码块 ---------- */
+.pf-code {
+  padding: 7px 9px;
+  border: 1px solid var(--el-border-color-extra-light, #eef0f6);
+  border-radius: 7px;
+  background: var(--el-fill-color-light, #f5f7fa);
+  font-family: var(--el-font-family-mono, ui-monospace, Consolas, monospace);
+  font-size: 11.5px;
+  line-height: 1.55;
+  word-break: break-all;
+  color: var(--el-text-color-regular, #4a5162);
+}
+
+/* ---------- 空态 ---------- */
+.pf-empty {
+  padding: 26px 16px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--el-text-color-placeholder, #a8abb2);
+}
+.pf-loading {
+  padding: 26px 16px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--el-text-color-placeholder, #a8abb2);
+}
+.pf-error {
+  margin-bottom: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--el-color-danger-light-7, rgba(229, 83, 75, 0.25));
+  border-radius: 8px;
+  background: var(--el-color-danger-light-9, rgba(229, 83, 75, 0.08));
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--el-color-danger, #c9403a);
+}

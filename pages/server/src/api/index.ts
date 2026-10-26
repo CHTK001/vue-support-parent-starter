@@ -25,9 +25,17 @@ export const scanPorts = (id: number) =>
   http().post(`${B}/host/${id}/scan-ports`).then(r => unwrapResult<any>(r));
 export const testPrometheusHost = (id: number) =>
   http().post(`${B}/host/${id}/test-prometheus`).then(r => unwrapResult<string>(r));
-/** 安装 nginx（仅支持 SSH 开启的 Linux/macOS 主机；成功回显 nginx -v 输出） */
-export const installNginxHost = (id: number) =>
-  http().post(`${B}/host/${id}/install-nginx`).then(r => unwrapResult<string>(r));
+// ===== 软件管理（包管理器：检索 / 安装 / 卸载 / 升级 / 已安装） =====
+export const searchSoftware = (hostId: number, keyword: string) =>
+  http().get(`${B}/release/software/search`).query({ hostId, keyword }).timeout(30000).then(r => unwrapResult<any[]>(r));
+export const listInstalledSoftware = (hostId: number) =>
+  http().get(`${B}/release/software/installed`).query({ hostId }).timeout(60000).then(r => unwrapResult<any[]>(r));
+export const installSoftwarePkg = (hostId: number, name: string) =>
+  http().post(`${B}/release/software/install`).query({ hostId, name }).timeout(30000).then(r => unwrapResult<string>(r));
+export const uninstallSoftwarePkg = (hostId: number, name: string) =>
+  http().post(`${B}/release/software/uninstall`).query({ hostId, name }).timeout(30000).then(r => unwrapResult<string>(r));
+export const upgradeSoftwarePkg = (hostId: number, name: string) =>
+  http().post(`${B}/release/software/upgrade`).query({ hostId, name }).timeout(30000).then(r => unwrapResult<string>(r));
 export const refreshHostPublicIp = (id: number) =>
   http().post(`${B}/host/${id}/refresh-public-ip`).then(r => unwrapResult<string>(r));
 export const pushAgentData = (agentKey: string, payload: Record<string, unknown>) =>

@@ -18,14 +18,12 @@ import {
   batchMoveGroup,
   scanPorts,
   testPrometheusHost,
-  installNginxHost,
 } from '../api';
 import ScHostFormDialog from '../components/ScHostFormDialog.vue';
 import ScConnectDialog from '../components/ScConnectDialog.vue';
 import ScGuacViewer from '../components/ScGuacViewer.vue';
 import ScSftpPanel from '../components/ScSftpPanel.vue';
 import ScHostDetail from '../components/ScHostDetail.vue';
-import ScInstallDialog from '../components/ScInstallDialog.vue';
 
 /** 主机行 */
 interface HostRow {
@@ -159,9 +157,6 @@ const detailHost = ref<HostRow | null>(null);
 const configVisible = ref(false);
 const configHost = ref<HostRow | null>(null);
 
-/** 软件安装对话框状态 */
-const installVisible = ref(false);
-const installHost = ref<HostRow | null>(null);
 const cfgForm = reactive({
   serverHostOnlineEnabled: 1,
   serverHostOnlineInterval: 60,
@@ -221,17 +216,6 @@ function openConfig(row: HostRow) {
   cfgForm.serverHostDelayEnabled = row.serverHostDelayEnabled ?? 0;
   cfgForm.serverHostDelayInterval = row.serverHostDelayInterval ?? 60;
   configVisible.value = true;
-}
-
-/** 打开软件安装对话框 */
-function onOpenInstall(row: HostRow): void {
-  installHost.value = row;
-  installVisible.value = true;
-}
-
-/** 安装完成回调：刷新主机列表 */
-function onInstalled(): void {
-  refresh();
 }
 
 /** 保存更多配置 */
@@ -653,7 +637,6 @@ function diskColor(v?: number): string {
         <ReButton show-text icon="FolderOpened" type="primary" size="small" @click="onOpenSftp(row)">文件</ReButton>
         <ReButton show-text icon="Aim" size="small" @click="onTestConnect(row)">测连</ReButton>
         <ReButton show-text icon="Search" type="warning" size="small" @click="onScanPorts(row)">扫端口</ReButton>
-        <ReButton show-text icon="Box" type="success" size="small" @click="onOpenInstall(row)">安装</ReButton>
         <ReButton show-text icon="Edit" size="small" @click="openEdit(row)">编辑</ReButton>
         <ReButton show-text icon="MoreFilled" size="small" @click="openConfig(row)">更多</ReButton>
         <ReButton show-text icon="Delete" type="danger" size="small" @click="onDelete(row)">删除</ReButton>
@@ -694,7 +677,6 @@ function diskColor(v?: number): string {
     </ReForm>
   </ReDialog>
   <ScHostDetail v-model="detailVisible" :host="detailHost" @updated="refresh" />
-  <ScInstallDialog v-model="installVisible" :host="installHost" :hosts="hosts" @installed="onInstalled" />
 </div>
 </template>
 

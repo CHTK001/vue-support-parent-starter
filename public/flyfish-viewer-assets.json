@@ -3,40 +3,21 @@
   "generatedBy": "@file-viewer/vite-plugin",
   "rendererIds": [
     "pdf",
-    "ofd",
-    "cad",
-    "typst",
-    "office-presentation-binary",
-    "office-presentation",
     "office-word-openxml",
     "office-word-binary",
     "open-document",
     "spreadsheet-openxml",
     "spreadsheet-dbf",
+    "office-presentation-binary",
+    "office-presentation",
+    "ofd",
     "apple-pages",
     "apple-numbers",
     "apple-keynote",
     "office-wordperfect",
-    "office-hangul",
-    "drawing",
-    "model",
-    "archive",
-    "chm",
-    "email",
-    "epub",
-    "ebook-fb2",
-    "umd",
-    "code",
-    "markdown",
-    "image",
-    "audio",
-    "video",
-    "mindmap",
-    "geo",
-    "data-asset",
-    "eda"
+    "office-hangul"
   ],
-  "copiedAt": "2026-10-24T05:19:35.509Z",
+  "copiedAt": "2026-10-25T23:45:27.060Z",
   "assets": [
     {
       "rendererId": "pdf",
@@ -174,144 +155,6 @@
       "copied": true,
       "sourcePackage": "@file-viewer/renderer-spreadsheet",
       "sourceVersion": "3.1.2"
-    },
-    {
-      "rendererId": "cad",
-      "id": "cad-wasm-directory",
-      "to": "D:\\ch\\project\\vue-support-parent-starter\\public\\wasm\\cad",
-      "copied": true,
-      "sourcePackage": "@flyfish-dev/cad-viewer",
-      "sourceVersion": "0.8.2"
-    },
-    {
-      "rendererId": "model",
-      "id": "model-occt-worker",
-      "to": "D:\\ch\\project\\vue-support-parent-starter\\public\\wasm\\model\\occt-worker.js",
-      "copied": true
-    },
-    {
-      "rendererId": "model",
-      "id": "model-occt-runtime",
-      "to": "D:\\ch\\project\\vue-support-parent-starter\\public\\wasm\\model\\occt-import-js.js",
-      "copied": true,
-      "sourcePackage": "occt-import-js",
-      "sourceVersion": "0.0.23"
-    },
-    {
-      "rendererId": "model",
-      "id": "model-occt-wasm",
-      "to": "D:\\ch\\project\\vue-support-parent-starter\\public\\wasm\\model\\occt-import-js.wasm",
-      "copied": true,
-      "sourcePackage": "occt-import-js",
-      "sourceVersion": "0.0.23"
-    },
-    {
-      "rendererId": "model",
-      "id": "model-occt-license",
-      "to": "D:\\ch\\project\\vue-support-parent-starter\\public\\wasm\\model\\LICENSE.occt.txt",
-      "copied": true,
-      "sourcePackage": "occt-import-js",
-      "sourceVersion": "0.0.23"
-    },
-    {
-      "rendererId": "model",
-      "id": "model-occt-import-license",
-      "to": "D:\\ch\\project\\vue-support-parent-starter\\public\\wasm\\model\\LICENSE.occt-import-js.txt",
-      "copied": true,
-      "sourcePackage": "occt-import-js",
-      "sourceVersion": "0.0.23"
-    },
-    {
-      "rendererId": "typst",
-      "id": "typst-compiler-wasm",
-      "to": "D:\\ch\\project\\vue-support-parent-starter\\public\\wasm\\typst\\typst_ts_web_compiler_bg.wasm",
-      "copied": true
-    },
-    {
-      "rendererId": "typst",
-      "id": "typst-renderer-wasm",
-      "to": "D:\\ch\\project\\vue-support-parent-starter\\public\\wasm\\typst\\typst_ts_renderer_bg.wasm",
-      "copied": true
-    },
-    {
-      "rendererId": "typst",
-      "id": "typst-font-assets",
-      "to": "D:\\ch\\project\\vue-support-parent-starter\\public\\wasm\\typst\\fonts",
-      "copied": true
-    },
-    {
-      "rendererId": "archive",
-      "id": "libarchive-worker",
-      "to": "D:\\ch\\project\\vue-support-parent-starter\\public\\vendor\\libarchive\\worker-bundle.js",
-      "copied": true
-    },
-    {
-      "rendererId": "archive",
-      "id": "libarchive-wasm",
-      "to": "D:\\ch\\project\\vue-support-parent-starter\\public\\vendor\\libarchive\\libarchive.wasm",
-      "copied": true
-    },
-    {
-      "rendererId": "chm",
-      "id": "chm-worker",
-      "to": "D:\\ch\\project\\vue-support-parent-starter\\public\\vendor\\chm\\chm.worker.js",
-      "copied": true,
-      "sourcePackage": "@file-viewer/renderer-chm",
-      "sourceVersion": "3.1.2"
-    },
-    {
-      "rendererId": "chm",
-      "id": "chm-wasm-module",
-      "to": "D:\\ch\\project\\vue-support-parent-starter\\public\\vendor\\chm\\chm_wasm.js",
-      "copied": true,
-      "sourcePackage": "@file-viewer/renderer-chm",
-      "sourceVersion": "3.1.2"
-    },
-    {
-      "rendererId": "chm",
-      "id": "chm-wasm",
-      "to": "D:\\ch\\project\\vue-support-parent-starter\\public\\vendor\\chm\\chm_wasm_bg.wasm",
-      "copied": true,
-      "sourcePackage": "@file-viewer/renderer-chm",
-      "sourceVersion": "3.1.2"
-    },
-    {
-      "rendererId": "chm",
-      "id": "chm-license",
-      "to": "D:\\ch\\project\\vue-support-parent-starter\\public\\vendor\\chm\\LICENSE",
-      "copied": true,
-      "sourcePackage": "@file-viewer/renderer-chm",
-      "sourceVersion": "3.1.2"
-    },
-    {
-      "rendererId": "chm",
-      "id": "chm-third-party-notices",
-      "to": "D:\\ch\\project\\vue-support-parent-starter\\public\\vendor\\chm\\THIRD_PARTY_NOTICES.md",
-      "copied": true,
-      "sourcePackage": "@file-viewer/renderer-chm",
-      "sourceVersion": "3.1.2"
-    },
-    {
-      "rendererId": "chm",
-      "id": "chm-rust-notice",
-      "to": "D:\\ch\\project\\vue-support-parent-starter\\public\\vendor\\chm\\RUST_NOTICE.md",
-      "copied": true,
-      "sourcePackage": "@file-viewer/renderer-chm",
-      "sourceVersion": "3.1.2"
-    },
-    {
-      "rendererId": "chm",
-      "id": "chm-rust-third-party-licenses",
-      "to": "D:\\ch\\project\\vue-support-parent-starter\\public\\vendor\\chm\\RUST_THIRD_PARTY_LICENSES.md",
-      "copied": true,
-      "sourcePackage": "@file-viewer/renderer-chm",
-      "sourceVersion": "3.1.2"
-    },
-    {
-      "rendererId": "data-asset",
-      "id": "data-sql-wasm",
-      "to": "D:\\ch\\project\\vue-support-parent-starter\\public\\wasm\\data\\sql-wasm.wasm",
-      "copied": true
     }
   ]
 }

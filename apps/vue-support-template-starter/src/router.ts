@@ -76,6 +76,19 @@ const routes: RouteRecordRaw[] = [
     meta: { title: "ReGraphG6 · 关系图（G6 原生）" },
   },
   {
+    /*
+     * ReDialog 拖拽对照组。
+     *
+     * <p>回归「弹窗能不能拖」：Element 的 useDraggable 在 overflow=false 时会把位移
+     * 钳制成「整个弹窗留在视口内」，近满高弹窗的竖向余量趋近 0，表现为完全拖不动。
+     * 本页把普通 / modern / 近满高 / headless 四种规格摆在一起，逐个拖一遍即可验收。</p>
+     */
+    path: "/lab/re-dialog-drag",
+    name: "lab-re-dialog-drag",
+    component: () => import("./views/ReDialogDragLab.vue"),
+    meta: { title: "ReDialog 拖拽对照组" },
+  },
+  {
     path: "/:pathMatch(.*)*",
     redirect: "/home",
   },

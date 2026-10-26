@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI 页面重构 · 版式选择</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0b0d10;
+    --panel: #12151a;
+    --panel-2: #171b21;
+    --line: #262b33;
+    --text: #e8eaed;
+    --muted: #98a0ac;
+    --brand: #4f8cff;
+    --brand-soft: rgba(79, 140, 255, .14);
+    --ok: #34d399;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+  body {
+    font: 14px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  header {
+    position: sticky; top: 0; z-index: 20;
+    background: rgba(11, 13, 16, .92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  .bar {
+    max-width: 1400px; margin: 0 auto; padding: 14px 24px;
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: baseline; gap: 10px; }
+  .brand b { font-size: 15px; letter-spacing: .2px; }
+  .brand span { font-size: 12px; color: var(--muted); }
+
+  nav { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+  nav button {
+    border: 1px solid transparent; background: transparent; color: var(--muted);
+    padding: 7px 13px; border-radius: 999px; cursor: pointer;
+    font: inherit; font-size: 13px; transition: .15s;
+  }
+  nav button:hover { color: var(--text); background: var(--panel-2); }
+  nav button[aria-selected="true"] {
+    color: #fff; background: var(--brand-soft); border-color: rgba(79,140,255,.45);
+  }
+  nav button i {
+    font-style: normal; font-size: 11px; margin-left: 6px;
+    color: var(--muted); opacity: .9;
+  }
+  nav button[aria-selected="true"] i { color: #9dc0ff; }
+
+  main { max-width: 1400px; margin: 0 auto; padding: 26px 24px 140px; }
+
+  .intro { margin: 0 0 22px; }
+  .intro h1 { font-size: 20px; margin: 0 0 6px; font-weight: 650; letter-spacing: .2px; }
+  .intro p { margin: 0; color: var(--muted); font-size: 13px; }
+  .intro p b { color: #cdd3dc; font-weight: 600; }
+
+  .grid {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px;
+  }
+  @media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    overflow: hidden; display: flex; flex-direction: column;
+    transition: border-color .18s, transform .18s, box-shadow .18s;
+  }
+  .card:hover { border-color: #3a424e; transform: translateY(-2px); }
+  .card[data-picked="1"] {
+    border-color: rgba(79,140,255,.75);
+    box-shadow: 0 0 0 1px rgba(79,140,255,.35), 0 12px 32px rgba(0,0,0,.5);
+  }
+
+  .shot { position: relative; background: #05070a; cursor: zoom-in; }
+  .shot img { display: block; width: 100%; height: auto; }
+  .shot::after {
+    content: "点击放大"; position: absolute; right: 10px; bottom: 10px;
+    font-size: 11px; color: #dbe3ee; background: rgba(0,0,0,.62);
+    border: 1px solid rgba(255,255,255,.16); padding: 3px 8px; border-radius: 999px;
+    opacity: 0; transition: .15s;
+  }
+  .shot:hover::after { opacity: 1; }
+
+  .body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .title { display: flex; align-items: center; gap: 9px; }
+  .tag {
+    width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center;
+    font-size: 12px; font-weight: 700; background: var(--panel-2); color: #b9c2cf;
+    border: 1px solid var(--line); flex: none;
+  }
+  .card[data-picked="1"] .tag { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .title h3 { margin: 0; font-size: 14px; font-weight: 620; }
+  .title small { color: var(--muted); font-size: 12px; }
+
+  ul.pts { margin: 0; padding: 0; list-style: none; display: grid; gap: 5px; }
+  ul.pts li { position: relative; padding-left: 14px; font-size: 12.5px; color: #b7bfca; }
+  ul.pts li::before {
+    content: ""; position: absolute; left: 2px; top: 8px;
+    width: 4px; height: 4px; border-radius: 50%; background: #4a5563;
+  }
+
+  .pick {
+    margin-top: auto; border: 1px solid var(--line); background: var(--panel-2);
+    color: var(--text); border-radius: 9px; padding: 9px 12px; cursor: pointer;
+    font: inherit; font-size: 13px; transition: .15s;
+  }
+  .pick:hover { border-color: #3a424e; background: #1c2128; }
+  .card[data-picked="1"] .pick {
+    background: var(--brand); border-color: var(--brand); color: #fff;
+  }
+  .card[data-picked="1"] .pick::after { content: " ✓"; }
+
+  footer {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    background: rgba(11,13,16,.95); backdrop-filter: blur(12px);
+    border-top: 1px solid var(--line);
+  }
+  .foot {
+    max-width: 1400px; margin: 0 auto; padding: 12px 24px;
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+  .status { font-size: 13px; color: var(--muted); }
+  .status b { color: var(--text); font-weight: 600; }
+  .status .done { color: var(--ok); }
+  .foot .spacer { flex: 1; }
+  .btn {
+    border: 1px solid var(--line); background: var(--panel-2); color: var(--text);
+    border-radius: 9px; padding: 9px 14px; cursor: pointer; font: inherit; font-size: 13px;
+    transition: .15s;
+  }
+  .btn:hover { border-color: #3a424e; }
+  .btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .btn[disabled] { opacity: .45; cursor: not-allowed; }
+
+  dialog {
+    border: 1px solid var(--line); background: #05070a; padding: 0;
+    border-radius: 12px; max-width: 96vw; max-height: 94vh;
+  }
+  dialog::backdrop { background: rgba(0,0,0,.82); }
+  dialog img { display: block; max-width: 96vw; max-height: 92vh; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="bar">
+    <div class="brand">
+      <b>AI 页面重构 · 版式选择</b>
+      <span>每页 3 个方向，选定后落地到真实页面</span>
+    </div>
+    <nav id="tabs"></nav>
+  </div>
+</header>
+
+<main>
+  <div class="intro">
+    <h1 id="pageTitle">会话</h1>
+    <p id="pageDesc"></p>
+  </div>
+  <div class="grid" id="grid"></div>
+</main>
+
+<footer>
+  <div class="foot">
+    <div class="status" id="status">已选 <b>0</b> / 4 页</div>
+    <div class="spacer"></div>
+    <button class="btn" id="reset">清空</button>
+    <button class="btn primary" id="copy">复制选择结果</button>
+  </div>
+</footer>
+
+<dialog id="lightbox"><img id="lightboxImg" alt="" /></dialog>
+
+<script>
+  const BASE = "/pv-shots/";
+
+  const PAGES = [
+    {
+      id: "chat",
+      name: "会话",
+      desc: "主对话工作台。三版差异在「输入框放哪、上下文信息露出多少、切换会话多快」。",
+      variants: [
+        {
+          key: "A", name: "沉浸式", sub: "单列聚焦",
+          file: "chat-a.png",
+          pts: [
+            "54px 图标条，导航不抢注意力",
+            "720px 单列正文，唯一输入框贴底居中",
+            "顶部只留会话标题与模型切换"
+          ]
+        },
+        {
+          key: "B", name: "双栏", sub: "列表 + 对话",
+          file: "chat-b.png",
+          pts: [
+            "288px 会话列表常驻，切换零跳转",
+            "气泡式消息，时间与角色一眼分清",
+            "输入框在右栏底部，工具栏在框上方"
+          ]
+        },
+        {
+          key: "C", name: "三栏", sub: "含上下文面板",
+          file: "chat-c.png",
+          pts: [
+            "236 会话 / 对话 / 292 上下文",
+            "右栏放待办、改动文件、用量",
+            "适合长任务，过程信息不打断正文"
+          ]
+        }
+      ]
+    },
+    {
+      id: "models",
+      name: "模型管理",
+      desc: "模型台账。三版差异在「看清单、看卡片、还是看单模型详情」。",
+      variants: [
+        {
+          key: "A", name: "台账", sub: "全宽表格",
+          file: "models-a.png",
+          pts: [
+            "贴边工具条：搜索、筛选、批量操作一行放完",
+            "全宽表格，列密度高，一屏看更多",
+            "底部无框读数带，翻页与统计同排"
+          ]
+        },
+        {
+          key: "B", name: "卡片墙", sub: "实体卡片",
+          file: "models-b.png",
+          pts: [
+            "大标题 + 读数字带压住整页",
+            "实体卡片栅格，模型能力用标签露出",
+            "卡片内直接挂启停、编辑、更多"
+          ]
+        },
+        {
+          key: "C", name: "主从", sub: "列表 + 详情",
+          file: "models-c.png",
+          pts: [
+            "左侧模型列常驻，点选即换详情",
+            "右侧详情分区：参数、能力、渠道绑定",
+            "最右最近活动侧栏，改动可追溯"
+          ]
+        }
+      ]
+    },
+    {
+      id: "channel",
+      name: "渠道管理",
+      desc: "上游渠道。三版差异在「健康状态怎么露、密钥与配额怎么放」。",
+      variants: [
+        {
+          key: "A", name: "台账", sub: "全宽表格",
+          file: "channel-a.png",
+          pts: [
+            "状态点 + 成功率直接进表格首列",
+            "配额、余额、延迟按列对齐便于横比",
+            "批量启停、批量测试收进工具条"
+          ]
+        },
+        {
+          key: "B", name: "卡片墙", sub: "健康卡片",
+          file: "channel-b.png",
+          pts: [
+            "每渠道一张卡，健康度用色条表达",
+            "密钥脱敏显示，一键复制/轮换",
+            "卡片底部挂用量与最近失败原因"
+          ]
+        },
+        {
+          key: "C", name: "主从", sub: "渠道 + 配额详情",
+          file: "channel-c.png",
+          pts: [
+            "左列渠道清单，带实时状态点",
+            "右侧详情放密钥、端点、限流与配额",
+            "底部最近调用记录，排障不用跳页"
+          ]
+        }
+      ]
+    },
+    {
+      id: "connectors",
+      name: "连接器",
+      desc: "外部连接。三版差异在「连接状态与配置项怎么组织」。",
+      variants: [
+        {
+          key: "A", name: "台账", sub: "全宽表格",
+          file: "connectors-a.png",
+          pts: [
+            "协议、地址、状态、最近同步按列排开",
+            "批量启用/停用与筛选同排",
+            "适合连接器数量多、只看结果的场景"
+          ]
+        },
+        {
+          key: "B", name: "卡片墙", sub: "图标卡片",
+          file: "connectors-b.png",
+          pts: [
+            "每连接器一张卡，图标 + 名称 + 状态",
+            "卡片上直接放测试连接与配置入口",
+            "空白态引导新建，入口显眼"
+          ]
+        },
+        {
+          key: "C", name: "主从", sub: "列表 + 配置",
+          file: "connectors-c.png",
+          pts: [
+            "左列连接器，按分组折叠",
+            "右侧配置表单分组：基础、鉴权、映射",
+            "侧栏显示最近同步与错误日志"
+          ]
+        }
+      ]
+    }
+  ];
+
+  const STORE = "pv-gallery-picks-v1";
+  let picked = {};
+  try { picked = JSON.parse(localStorage.getItem(STORE) || "{}") || {}; } catch { picked = {}; }
+  const save = () => { try { localStorage.setItem(STORE, JSON.stringify(picked)); } catch {} };
+  let active = PAGES[0].id;
+
+  const $tabs = document.getElementById("tabs");
+  const $grid = document.getElementById("grid");
+  const $title = document.getElementById("pageTitle");
+  const $desc = document.getElementById("pageDesc");
+  const $status = document.getElementById("status");
+
+  function renderTabs() {
+    $tabs.innerHTML = "";
+    PAGES.forEach(p => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.setAttribute("aria-selected", String(p.id === active));
+      b.innerHTML = p.name + (picked[p.id] ? "<i>" + picked[p.id] + "</i>" : "<i>·</i>");
+      b.onclick = () => { active = p.id; renderTabs(); renderPage(); };
+      $tabs.appendChild(b);
+    });
+  }
+
+  function renderPage() {
+    const page = PAGES.find(p => p.id === active);
+    $title.textContent = page.name;
+    $desc.innerHTML = page.desc + ' <b>点任意卡片底部按钮即为选择，可点图放大。</b>';
+    $grid.innerHTML = "";
+
+    page.variants.forEach(v => {
+      const card = document.createElement("article");
+      card.className = "card";
+      card.dataset.picked = picked[page.id] === v.key ? "1" : "0";
+
+      const shot = document.createElement("div");
+      shot.className = "shot";
+      const img = document.createElement("img");
+      img.src = BASE + v.file;
+      img.alt = page.name + " " + v.key + " " + v.name;
+      img.loading = "lazy";
+      shot.appendChild(img);
+      shot.onclick = () => {
+        document.getElementById("lightboxImg").src = img.src;
+        document.getElementById("lightbox").showModal();
+      };
+
+      const body = document.createElement("div");
+      body.className = "body";
+
+      const title = document.createElement("div");
+      title.className = "title";
+      title.innerHTML =
+        '<span class="tag">' + v.key + '</span>' +
+        '<h3>' + v.name + '</h3>' +
+        '<small>' + v.sub + '</small>';
+
+      const ul = document.createElement("ul");
+      ul.className = "pts";
+      v.pts.forEach(t => {
+        const li = document.createElement("li");
+        li.textContent = t;
+        ul.appendChild(li);
+      });
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "pick";
+      btn.textContent = picked[page.id] === v.key ? "已选 " + v.key : "选这个";
+      btn.onclick = () => {
+        picked[page.id] = v.key;
+        save();
+        renderTabs(); renderPage(); renderStatus();
+      };
+
+      body.append(title, ul, btn);
+      card.append(shot, body);
+      $grid.appendChild(card);
+    });
+  }
+
+  function renderStatus() {
+    const n = PAGES.filter(p => picked[p.id]).length;
+    const detail = PAGES.map(p => p.name + "=" + (picked[p.id] || "—")).join("  ");
+    $status.innerHTML = '已选 <b class="' + (n === PAGES.length ? "done" : "") + '">' + n + '</b> / ' + PAGES.length + ' 页' +
+      '<span style="margin-left:12px;opacity:.75">' + detail + '</span>';
+    document.getElementById("copy").disabled = n === 0;
+  }
+
+  document.getElementById("reset").onclick = () => {
+    PAGES.forEach(p => delete picked[p.id]);
+    save();
+    renderTabs(); renderPage(); renderStatus();
+  };
+
+  document.getElementById("copy").onclick = async () => {
+    const text = PAGES.map(p => p.name + "：" + (picked[p.id] || "未选")).join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      document.getElementById("copy").textContent = "已复制";
+      setTimeout(() => (document.getElementById("copy").textContent = "复制选择结果"), 1600);
+    } catch {
+      alert(text);
+    }
+  };
+
+  document.getElementById("lightbox").onclick = e => {
+    if (e.target.id === "lightbox") e.target.close();
+  };
+
+  renderTabs();
+  renderPage();
+  renderStatus();
+</script>
+</body>
+</html>

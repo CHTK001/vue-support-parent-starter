@@ -1838,4 +1838,67 @@ export function subscribeUploadTasks(
   };
 }
 
+// ==================== 文件日志（运行期操作流水） ====================
+
+/** 文件日志接口前缀（Spring 侧，与上传任务同通道） */
+const FILE_LOG_BASE = "/v2/file/log";
+
+/** 文件操作日志条目（后端 FileLogStore.FileLogEntry） */
+export interface FileLogEntry {
+  /** 自增标识（新→旧） */
+  id: number;
+  /** 记录时间（毫秒时间戳） */
+  time: number;
+  /** 操作类型（UPLOAD / DOWNLOAD / DELETE / MKDIR / RENAME / TASK_CREATE 等） */
+  operation: string;
+  /** 操作目标（文件路径 / 任务文件名） */
+  target: string;
+  /** HTTP 状态码 */
+  status: number;
+  /** 耗时（毫秒） */
+  durationMs: number;
+  /** 补充说明（失败原因等，可为空） */
+  detail?: string | null;
+}
+
+/**
+ * 列出文件操作日志（新→旧）。
+ *
+ * @param options 过滤条件：operation 操作类型、keyword 目标关键字、limit 条数上限
+ * @return 日志条目列表
+ */
+export async function listFileLogs(options?: {
+  operation?: string;
+  keyword?: string;
+  limit?: number;
+}): Promise<FileLogEntry[]> {
+  try {
+    const params = new URLSearchParams();
+    if (options?.operation) params.set("operation", options.operation);
+    if (options?.keyword) params.set("keyword", options.keyword);
+    if (options?.limit != null) params.set("limit", String(options.limit));
+    const qs = params.toString();
+    return await uploadTaskHttp()
+      .get(`${FILE_LOG_BASE}/list${qs ? `?${qs}` : ""}`)
+      .then<FileLogEntry[]>((r) => unwrapTask<FileLogEntry[]>(r) ?? []);
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "获取文件日志"));
+  }
+}
+
+/**
+ * 清空文件操作日志（仅内存流水）。
+ *
+ * @return 被清空的条数
+ */
+export async function clearFileLogs(): Promise<number> {
+  try {
+    return await uploadTaskHttp()
+      .delete(`${FILE_LOG_BASE}/clear`)
+      .then<number>((r) => unwrapTask<number>(r) ?? 0);
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "清空文件日志"));
+  }
+}
+
 

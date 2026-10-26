@@ -27,7 +27,7 @@ function pick(key: string) {
 </script>
 
 <template>
-  <div class="mvp-switcher" role="tablist" aria-label="设计变体切换">
+  <div class="mvp-switcher" role="tablist">
     <button
       v-for="v in VARIANTS"
       :key="v.key"

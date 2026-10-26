@@ -3609,16 +3609,13 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   margin-left: auto;
   font-size: 12px;
   color: var(--el-text-color-placeholder, #a8abb2);
-  transition: transform 0.15s ease;
 }
 .host-ctx-item.has-sub.is-open {
   color: var(--el-color-primary, #409eff);
   background: var(--el-fill-color-light, #f3f4f6);
 }
-.host-ctx-item.has-sub.is-open .host-ctx-arrow {
-  transform: rotate(90deg);
-  color: var(--el-color-primary, #409eff);
-}
+/* 二级菜单对应的一级菜单箭头：无论 hover / 展开都保持原样。
+   箭头只是「有子菜单」的静态记号，旋转与变色都是多余动效。 */
 /* hover 弹出浮层：子菜单固定在分组项右侧（经典右键交互），与内嵌缩进不同 */
 .host-ctx-sub {
   position: absolute;

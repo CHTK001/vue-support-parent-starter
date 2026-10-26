@@ -144,11 +144,19 @@ export const monitorRoutes: RouteConfigsTable[] = [
         meta: { title: "文件资产", icon: "FolderOpened", showLink: true, rank: 1 },
       },
       {
-        // 文件记录：任务化分片上传的发起与状态展示（后台时间轮 + 虚拟线程合并）
+        // 文件记录页更名「文件管理」：任务化分片上传的发起与状态展示
+        // （后台时间轮 + 虚拟线程合并）。分组名同为「文件管理」，接受两级同名。
         path: "/upload-tasks",
         name: "UploadTasks",
         component: () => import("@pages/filesystem/src/views/UploadTaskView.vue"),
-        meta: { title: "文件记录", icon: "Upload", showLink: true, rank: 2 },
+        meta: { title: "文件管理", icon: "Upload", showLink: true, rank: 2 },
+      },
+      {
+        // 文件日志：文件服务器操作 + 上传任务生命周期的运行期流水（内存环形缓冲）
+        path: "/file-logs",
+        name: "FileLogs",
+        component: () => import("@pages/filesystem/src/views/FileLogView.vue"),
+        meta: { title: "文件日志", icon: "Tickets", showLink: true, rank: 3 },
       },
     ],
   },

@@ -336,3 +336,21 @@ apps/*/@*
 /_assets-*.cjs
 /_deliver-*.mjs
 /_assets-*.mjs
+
+# --- 2026-10-26 补充：构建/部署产物与一次性诊断脚本（非源码，勿入库） ---
+# 前端已构建的打包产物（部署上传用，每个 110MB+；源码才是真身）
+dist.tgz
+**/dist.tgz
+apps/*/dist.tgz
+# 一次性浏览器诊断/探针脚本（playwright 直连验证，跑完即弃）
+/_diag*.mjs
+**/_diag*.mjs
+/.wb-splitpatch.mjs
+# 本地技能目录 / 端侧 OAuth 白名单配置（非本仓库代码）
+/skills/
+/config/
+
+# 设计变体验收截图/一次性验收脚本（非源码）
+**/pv-shots/
+**/page-variants-shots.mjs
+**/variants-shots/pages/

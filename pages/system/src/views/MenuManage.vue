@@ -123,7 +123,6 @@ interface MenuVM {
   isNewTab?: number;      // 1新标签 0当前页
   isHideTab?: number;     // 1隐藏 0显示
   isFixed?: number;       // 1固钉 0否
-  menuStatus?: number;    // 1启用 0禁用
   isTag?: number;         // 菜单徽标: 1开启 0关闭
   tagType?: string;       // 徽标类型: danger/success/info/warning/primary
   tagName?: string;       // 徽标名称(留空显示圆点)
@@ -193,7 +192,6 @@ function toVM(m: SysMenu): MenuVM {
     showValue: m.sysMenuShowValue,
     showSwitch: m.sysMenuShowSwitch ?? 1,
     showKey: m.sysMenuShowKey,
-    menuStatus: 1,
     children: m.children?.map(toVM),
   };
 }
@@ -380,9 +378,8 @@ async function handleMove(dir: "up" | "down") {
 /** 树节点动态类（目标站 tn()） */
 function nodeClass(data: MenuVM): Record<string, boolean> {
   return {
-    "is-disabled": String(data.menuStatus) === "0",
-    "is-hidden": String(data.isVisible) === "0" && String(data.menuStatus) === "1",
-    "is-link": isLink(data) && String(data.menuStatus) === "1",
+    "is-hidden": String(data.isVisible) === "0",
+    "is-link": isLink(data),
     "is-iframe": isIframe(data),
   };
 }
@@ -543,7 +540,6 @@ function handleAdd(parent?: MenuVM) {
     isVisible: 1,
     isRemind: 0,
     position: "standard",
-    menuStatus: 1,
     sort: 0,
     isKeepAlive: 0,
     isExpanded: 1,
@@ -660,7 +656,6 @@ function handleAddButton() {
     menuType: 3,
     icon: "",
     isVisible: 0,
-    menuStatus: 1,
     sort: 0,
   };
   dialogVisible.value = true;
@@ -694,7 +689,6 @@ function onButtonSelectionChange(rows: MenuVM[] | Record<string, unknown>[]) {
 const buttonPermColumns: ReTableColumn[] = [
   { prop: "menuName", label: "按钮名称", minWidth: 160, showOverflowTooltip: true, slot: "menuName" },
   { prop: "auth", label: "权限字符", minWidth: 180, showOverflowTooltip: true, slot: "auth" },
-  { prop: "menuStatus", label: "状态", width: "120px", align: "center", slot: "menuStatus" },
   { prop: "createTime", label: "创建时间", width: "180px", align: "center" },
   { prop: "action", label: "操作", align: "center", width: 130, fixed: "right", slot: "action" },
 ];
@@ -1136,9 +1130,6 @@ onMounted(() => {
                     <span class="menu-detail-hero__title">{{ current.menuName }}</span>
                     <div class="menu-detail-hero__meta">
                       <el-tag  effect="light">{{ typeLabels[current.menuType ?? 0] ?? '-' }}</el-tag>
-                      <el-tag  :type="current.menuStatus === 1 ? 'success' : 'danger'" effect="plain">
-                        {{ current.menuStatus === 1 ? '启用' : '禁用' }}
-                      </el-tag>
                       <el-tag  :type="current.isVisible === 1 ? 'primary' : 'warning'" effect="plain">
                         {{ current.isVisible === 1 ? '显示' : '隐藏' }}
                       </el-tag>
@@ -1170,16 +1161,6 @@ onMounted(() => {
                     <span><em>权限</em><strong>{{ current.auth || '-' }}</strong></span>
                     <span><em>按钮</em><strong>{{ buttonPerms.length }} 个</strong></span>
                   </div>
-                </div>
-                <div class="menu-detail-hero__actions">
-                  <el-switch
-                    v-model="current.menuStatus"
-                    active-text="启用"
-                    inactive-text="停用"
-                    :active-value="1"
-                    :inactive-value="0"
-                    inline-prompt
-                  />
                 </div>
               </div>
 
@@ -1296,16 +1277,6 @@ onMounted(() => {
               </template>
               <template #col-auth="{ row }">
                 <el-tag effect="plain" type="info">{{ row.auth }}</el-tag>
-              </template>
-              <template #col-menuStatus="{ row }">
-                <el-switch
-                  v-model="row.menuStatus"
-                  active-text="启用"
-                  inactive-text="停用"
-                  :active-value="1"
-                  :inactive-value="0"
-                  inline-prompt
-                />
               </template>
               <template #col-action="{ row }">
                 <div class="menu-table-actions">
