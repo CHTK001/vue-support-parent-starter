@@ -912,6 +912,8 @@ export function getThreadDump(): Promise<ThreadDumpInfo[]> {
 export interface TraceHotspot {
   className: string;
   methodName: string;
+  /** 展示名：Agent 方法级 Span 为「类.方法」，真实请求记录回落为「方法 路径」 */
+  displayName?: string;
   phase: string;
   count: number;
   totalMs: number;

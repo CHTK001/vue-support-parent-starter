@@ -277,7 +277,7 @@ onMounted(refresh);
 <style scoped lang="scss">
 @use "../../components/lab/_lab-kit.scss";
 
-.tu { display: flex; flex-direction: column; height: 100%; min-height: 0; gap: 8px; }
+.tu { display: flex; flex-direction: column; height: 100%; min-height: 0; gap: 8px; padding: 12px 14px; box-sizing: border-box; }
 .tu-head { display: flex; align-items: center; gap: 8px; }
 .tu-title { font-size: 13px; font-weight: 700; }
 

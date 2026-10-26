@@ -61,6 +61,9 @@ export function generateTemplateCode(meta: TemplateMeta, state: TemplateState): 
 
   for (const field of meta.props) {
     if (field.isSlot) continue; // 插槽不进 attrs
+    // dataset 只是调试面板的分段控件，不是组件 prop：它把档位写进 nodes/edges 等
+    // 真实字段，自己不该出现在生成的代码里。
+    if (field.type === "dataset") continue;
     const value = state.values[field.key];
     if (isDefault(field, value)) continue;
     attrs.push(`${kebab(field.key)}=${formatValue(value)}`);
@@ -110,6 +113,7 @@ export function formatPropsForDebug(meta: TemplateMeta, state: TemplateState): s
   const out: string[] = [];
   for (const field of meta.props) {
     if (field.isSlot) continue;
+    if (field.type === "dataset") continue;
     const value = state.values[field.key];
     out.push(`${field.key}: ${JSON.stringify(value)}`);
   }

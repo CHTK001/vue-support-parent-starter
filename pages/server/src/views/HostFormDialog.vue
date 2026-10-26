@@ -62,6 +62,15 @@ interface LegacyHostForm {
   serverHostOnlineTime?: string | null;
 }
 
+/**
+ * 顶部模式：正常输入表单 / 解析 ssh 命令。
+ *
+ * <p>运维给的通常是一整行 {@code ssh -p 2222 user@host}，手工拆成地址 / 端口 / 账号
+ * 既慢又容易把端口填进地址里。所以顶部给一个二选一：要么按表单逐项填，
+ * 要么把命令粘进解析页由系统拆。</p>
+ */
+type HostFormMode = "manual" | "parse";
+
 const props = defineProps<{
   modelValue: boolean;
   isEdit: boolean;
@@ -69,6 +78,13 @@ const props = defineProps<{
   host: Host | null;
   identityOptions: { label: string; value: number }[];
   groupOptions: { label: string; value: number | null }[];
+  /**
+   * 打开时默认停在哪个顶部模式。
+   *
+   * <p>外部入口如果本来就是「拿一条 ssh 命令来建主机」（从工单 / 剪贴板进来），
+   * 传 {@code "parse"} 就直接落在解析页，省得用户再点一次。</p>
+   */
+  initialMode?: HostFormMode;
 }>();
 const router = useRouter();
 const emit = defineEmits<{
@@ -158,12 +174,23 @@ function fillFromSshCommand(): void {
   // 主机名留空时用地址兜底，省得用户再想一个名字
   if (!form.value.serverHostName?.trim()) form.value.serverHostName = parsed.address;
   message.success(`已从命令填充：${parsed.address}${parsed.port ? ":" + parsed.port : ""}`);
+  // 识别成功即跳回表单页：解析页只有粘贴框，留在这里看不到填了什么
+  formMode.value = "manual";
 }
 
-const form = ref<Partial<Host>>({ serverHostName: "", serverHostAddress: "", serverHostPort: 22, serverHostOsType: "LINUX", serverHostSshEnabled: 1, serverHostCollectMode: "AGENT" });
+const form = ref<Partial<Host>>({ serverHostName: "", serverHostAddress: "", serverHostPort: 22, serverHostOsType: "LINUX", serverHostSshEnabled: 1, serverHostCollectMode: "OPENSSH", serverHostRemoteEnabled: 1, serverHostRemoteProtocol: "SSH", serverHostRemoteMode: "DIRECT", serverHostRemotePort: 22 });
 
 /** 粘贴的 ssh 命令原文（只用于一键填充，不参与提交） */
 const sshCommandText = ref("");
+
+/** 顶部模式选项（el-segmented 走全等比较，值用字符串常量） */
+const FORM_MODE_OPTIONS: { label: string; value: HostFormMode }[] = [
+  { label: "正常输入", value: "manual" },
+  { label: "解析", value: "parse" },
+];
+
+/** 当前顶部模式：正常输入 / 解析 */
+const formMode = ref<HostFormMode>("manual");
 
 /** 平台选项（只表达操作系统；图标统一走 utils/osIcon 的常规单色图标） */
 const osOptions = [
@@ -243,12 +270,16 @@ function selectPlatform(value: string): void {
     return;
   }
   form.value.serverHostOsType = value;
-  // 「开启 SSH」默认值随平台切换：Linux/macOS 默认开，Windows 默认关（可手动覆盖）
-  form.value.serverHostSshEnabled = value === "WINDOWS" ? 0 : 1;
-  // 离开本机：LOCAL 采集只适用于被管对象即服务端自身，必须切走
-  if (form.value.serverHostCollectMode === "LOCAL") {
-    form.value.serverHostCollectMode = "AGENT";
+  if (props.isEdit) {
+    // 编辑态不动用户已有配置，只跟随平台修正「开启 SSH」默认值；
+    // LOCAL 采集只适用于被管对象即服务端自身，必须切走
+    form.value.serverHostSshEnabled = (value || "").toUpperCase().includes("WIN") ? 0 : 1;
+    if (form.value.serverHostCollectMode === "LOCAL") form.value.serverHostCollectMode = "OPENSSH";
+    return;
   }
+  // 新建态：切平台即套用该平台的默认采集 / 远控配置
+  // （Linux → OpenSSH 采集 + SSH 直连 22；Windows → 不采集、不开远控）
+  applyPlatformDefaults(value);
 }
 /**
  * 平台项是否选中：本机以采集方式判定，其余以操作系统判定。
@@ -312,6 +343,43 @@ const effectiveRemoteProtocol = computed(() => {
 const REMOTE_DEFAULT_PORT: Record<string, number> = { SSH: 22, RDP: 3389, VNC: 5900 };
 /** 端口占位提示（留空即按默认端口连接） */
 const remotePortPlaceholder = computed(() => `默认 ${REMOTE_DEFAULT_PORT[effectiveRemoteProtocol.value]}`);
+
+/**
+ * 按平台套用「新增主机」的默认值。
+ *
+ * <p>口径（用户约定）：</p>
+ * <ul>
+ *   <li><b>Linux / macOS</b>：采集方式默认 <b>OpenSSH</b>；远控协议 <b>SSH</b>、
+ *       通道<b>平台直连</b>、端口 <b>22</b>；开启 SSH；</li>
+ *   <li><b>Windows</b>：默认<b>不采集</b>、<b>不开远控</b>（Windows 侧要先启用
+ *       OpenSSH / WinRM 才谈得上采集），远控字段预置成 RDP 走 guacd。</li>
+ * </ul>
+ *
+ * <p>只写与「默认」相关的字段，不动主机名称、地址、分组、标签等用户已填内容；
+ * 新建与切平台都走这里，避免默认值在多处字面量里各写一遍然后漂移。</p>
+ *
+ * @param osType 操作系统（LINUX / WINDOWS / MACOS）
+ */
+function applyPlatformDefaults(osType: string): void {
+  const isWindows = (osType || "").toUpperCase().includes("WIN");
+  // 开启 SSH：Linux/macOS 默认开，Windows 默认关（需先启用 OpenSSH）
+  form.value.serverHostSshEnabled = isWindows ? 0 : 1;
+  if (isWindows) {
+    form.value.serverHostCollectMode = "NONE";
+    form.value.serverHostCollectEnabled = 0;
+    form.value.serverHostRemoteEnabled = 0;
+    form.value.serverHostRemoteProtocol = "RDP";
+    form.value.serverHostRemoteMode = "GUACD";
+    form.value.serverHostRemotePort = REMOTE_DEFAULT_PORT.RDP;
+    return;
+  }
+  form.value.serverHostCollectMode = "OPENSSH";
+  form.value.serverHostCollectEnabled = 1;
+  form.value.serverHostRemoteEnabled = 1;
+  form.value.serverHostRemoteProtocol = "SSH";
+  form.value.serverHostRemoteMode = "DIRECT";
+  form.value.serverHostRemotePort = REMOTE_DEFAULT_PORT.SSH;
+}
 /** 平台自研直连通道覆盖 SSH（MINA SSHD）与 VNC（RFB）；RDP 必须经 guacd */
 const DIRECT_SUPPORTED = ["SSH", "VNC"];
 const directSupported = computed(() => DIRECT_SUPPORTED.includes(effectiveRemoteProtocol.value));
@@ -332,7 +400,15 @@ const channelOptions = computed(() => {
 });
 
 // 协议切换即纠正通道，避免下拉已锁定却仍提交后端会拒绝的组合
-watch(effectiveRemoteProtocol, (protocol) => {
+watch(effectiveRemoteProtocol, (protocol, prevProtocol) => {
+  // 端口跟着协议走：原来端口一直是 null、输入框只剩占位提示，用户以为「没填」，
+  // 实际提交的也是 null。这里在「留空」或「仍是上一个协议的默认端口」时直接补成新协议默认值，
+  // 用户自己填过的非默认端口不动。
+  const prevDefault = prevProtocol ? REMOTE_DEFAULT_PORT[prevProtocol] : undefined;
+  const current = form.value.serverHostRemotePort;
+  if (current == null || current === prevDefault) {
+    form.value.serverHostRemotePort = REMOTE_DEFAULT_PORT[protocol] ?? null;
+  }
   if (protocol === "RDP") {
     form.value.serverHostRemoteMode = "GUACD";
   } else if (form.value.serverHostRemoteMode === "GUACD") {
@@ -444,16 +520,18 @@ function splitTags(tags?: string | null): string[] {
 function resetForm(): void {
   form.value = {
     serverHostName: "", serverHostAddress: "", serverHostPort: 22,
-    serverHostOsType: "LINUX", serverHostSshEnabled: 1, serverHostCollectMode: "AGENT",
+    serverHostOsType: "LINUX",
     msServerGroupId: null, serverHostTags: "", serverHostDescription: "",
     serverHostCode: "",
-    // 采集（开关用 1/0 number，与后端一致）
-    serverHostCollectEnabled: 1, serverHostCollectInterval: 15,
+    // 采集间隔与各类开关（开关用 1/0 number，与后端一致）
+    serverHostCollectInterval: 15,
     serverHostOnlineEnabled: 1, serverHostOnlineInterval: 60,
-    // 远控
-    serverHostRemoteEnabled: 1, serverHostRemoteProtocol: "", serverHostRemoteMode: "GUACD", serverHostRemotePort: null, serverHostVncPassword: "",
+    serverHostVncPassword: "",
     serverHostAgentEnabled: 0, serverHostDelayEnabled: 1, serverHostDelayInterval: 60,
   };
+  // 平台相关默认值（采集方式 / 远控协议·通道·端口 / 开启 SSH）统一由这里套用，
+  // 不再在上面字面量里重复一遍 —— 两处各写一份必然漂移
+  applyPlatformDefaults("LINUX");
   tagsText.value = "";
   formAuthMethod.value = "IDENTITY";
   formIdentityId.value = null;
@@ -537,6 +615,10 @@ async function submitForm(): Promise<void> {
 // 打开时初始化：编辑 → 行数据立即填充 + 详情异步回填；新增 → 重置表单
 watch(() => props.modelValue, (v) => {
   if (!v) return;
+  // 每次打开都把顶部模式归位：默认「正常输入」，外部指定解析则直接落在解析页。
+  // 顺手清掉上一次残留的命令文本，避免把上一条粘贴内容当成这一次的输入。
+  formMode.value = props.initialMode ?? "manual";
+  sshCommandText.value = "";
   if (props.isEdit && props.host) {
     form.value = { ...(props.host as any) };
     // 开关字段保持后端 number(1/0)，ReSwitch 用 active-value=1/inactive-value=0 绑定
@@ -566,6 +648,11 @@ watch(() => props.modelValue, (v) => {
       if (!props.modelValue) return; // 弹窗已关闭则丢弃回填
       form.value = { ...(form.value as any), ...((full as any) ?? {}) };
       tagsText.value = splitTags(form.value.serverHostTags).join(", ");
+      // 历史数据里远控端口常是 null，表单上空着只剩占位提示，看起来像「没填」。
+      // 开启远控时补成协议默认端口（SSH 22 / RDP 3389 / VNC 5900）。
+      if (form.value.serverHostRemotePort == null && form.value.serverHostRemoteEnabled === 1) {
+        form.value.serverHostRemotePort = REMOTE_DEFAULT_PORT[effectiveRemoteProtocol.value] ?? null;
+      }
       const bindList = Array.isArray(bound) ? bound : [];
       if (formIdentityId.value == null && bindList.length > 0) {
         formIdentityId.value = bindList[0];
@@ -592,26 +679,38 @@ watch(() => props.modelValue, (v) => {
     :height="900"
     :close-on-click-modal="false"
   >
+    <!-- 顶部模式：正常输入 / 解析。解析页只放粘贴框，识别成功自动跳回表单 -->
+    <div class="form-mode">
+      <el-segmented v-model="formMode" :options="FORM_MODE_OPTIONS" />
+      <span class="form-mode__hint">
+        {{ formMode === "parse" ? "粘贴运维给的 ssh 命令，识别后自动填进表单" : "逐项填写主机信息" }}
+      </span>
+    </div>
+
+    <div v-if="formMode === 'parse'" class="parse-panel">
+      <el-input
+        v-model="sshCommandText"
+        type="textarea"
+        :rows="4"
+        resize="none"
+        placeholder="粘贴 ssh 命令，如 ssh -p 2222 user@ssh.example.com"
+        @keyup.ctrl.enter="fillFromSshCommand"
+        @keyup.meta.enter="fillFromSshCommand"
+      />
+      <div class="parse-panel__hint">
+        支持 <code>ssh -p 端口 账号@地址</code> 与 <code>ssh://账号@地址:端口</code>；
+        识别出的地址 / 端口 / 账号会写进表单，<code>Ctrl + Enter</code> 可直接识别
+      </div>
+      <div class="parse-panel__actions">
+        <ReButton type="primary" :show-text="true" @click="fillFromSshCommand">识别并填入表单</ReButton>
+        <ReButton @click="formMode = 'manual'">直接手填</ReButton>
+      </div>
+    </div>
+
     <ReForm :model="form" label-position="top" class="form-vertical">
-      <div class="form-grid">
+      <div v-show="formMode === 'manual'" class="form-grid">
         <!-- ─── 基本信息 ─── -->
         <div class="form-section full">基本信息</div>
-        <!-- 粘贴 ssh 命令一键拆分：运维给的通常只有一行命令，手工拆地址/端口/账号容易填错 -->
-        <ReFormItem label="从 SSH 命令填充" class="col-span-2">
-          <div class="ssh-cmd">
-            <ReInput
-              v-model="sshCommandText"
-              class="ssh-cmd__input"
-              placeholder="粘贴 ssh 命令，如 ssh -p 2222 user@ssh.example.com"
-              clearable
-              @keyup.enter="fillFromSshCommand"
-            />
-            <ReButton type="primary" :show-text="true" @click="fillFromSshCommand">识别</ReButton>
-          </div>
-          <div class="ssh-cmd__hint">
-            支持 <code>ssh -p 端口 账号@地址</code> 与 <code>ssh://账号@地址:端口</code>，识别后自动填下面三项
-          </div>
-        </ReFormItem>
         <ReFormItem label="主机名称" class="col-span-2" required>
           <ReInput v-model="form.serverHostName" placeholder="如 prod-nginx-01" style="width:100%" />
         </ReFormItem>
@@ -978,30 +1077,48 @@ watch(() => props.modelValue, (v) => {
   color: var(--el-text-color-secondary, #909399);
 }
 
-/* SSH 命令一键填充 */
-.ssh-cmd {
+/* ─── 顶部模式切换：正常输入 / 解析 ─── */
+.form-mode {
   display: flex;
-  gap: 8px;
-  width: 100%;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 0 8px 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle, #e4e7ed);
 }
 
-.ssh-cmd__input {
-  flex: 1;
-  min-width: 0;
-}
-
-.ssh-cmd__hint {
-  margin-top: 4px;
+.form-mode__hint {
   font-size: 12px;
   line-height: 1.6;
-  color: var(--el-text-color-secondary, #909399);
+  color: var(--text-tertiary, #909399);
 }
 
-.ssh-cmd__hint code {
+/* ─── 解析页：粘贴 ssh 命令，识别成功自动跳回表单 ─── */
+.parse-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 8px 16px;
+}
+
+.parse-panel__hint {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-secondary, #909399);
+}
+
+.parse-panel__hint code {
   padding: 1px 4px;
   font-family: var(--el-font-family-mono, ui-monospace, monospace);
   font-size: 11.5px;
-  background: var(--el-fill-color-light);
+  background: var(--el-fill-color-light, #f5f7fa);
   border-radius: 3px;
+}
+
+.parse-panel__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 </style>

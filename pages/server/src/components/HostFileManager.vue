@@ -758,6 +758,11 @@ function convergeLoadError(raw: unknown): string {
   if (/无可用 Provider|无 available provider|provider unavailable/i.test(msg)) {
     return "该主机的文件通道尚未就绪（Agent 未安装 / 未上线）。请先在「主机资产」检查 Agent 状态，或在主机编辑里启用 SFTP / 采集通道后重试。";
   }
+  // 主机未绑定登录身份/凭据：陈述事实 + 给处置路径（不预设必须配置密码——
+  // 主机可本就没设密码，改用密钥 / 免密登入等对应身份即可）
+  if (/未绑定登录身份|未绑定.*凭据|未绑定.*身份|未配置.*凭据|无法解析主机登录凭据/i.test(msg)) {
+    return "该主机未绑定登录身份，远程文件通道无法取得登录凭据。请右键该主机 →「编辑主机 → 身份」，为该主机绑定一个登录账号（密码、SSH 密钥或免密登入对应的身份均可，取决于该主机实际支持的登录方式），保存后重试。";
+  }
   if (/agent|未就绪|offline|不可达/i.test(msg)) {
     return "该主机 Agent 未就绪，暂时无法读取文件。确认 Agent 在线后重试。";
   }

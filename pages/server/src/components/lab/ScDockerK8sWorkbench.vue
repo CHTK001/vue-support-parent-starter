@@ -342,6 +342,9 @@ onMounted(refresh);
   height: 100%;
   min-height: 0;
   gap: 8px;
+  /* 工作台页签渲染在工作区内：四周留白避免顶到边框 */
+  padding: 12px 14px;
+  box-sizing: border-box;
 }
 .dk-head {
   display: flex;

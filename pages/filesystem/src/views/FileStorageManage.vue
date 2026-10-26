@@ -204,6 +204,57 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   rb: FvTextPanel,
   swift: FvTextPanel,
   kt: FvTextPanel,
+  // 文本兜底：脚本 / 配置 / 字幕 / 标记文档（非 renderer-text 白名单时按纯文本渲染）
+  ps1: FvTextPanel,
+  bat: FvTextPanel,
+  cmd: FvTextPanel,
+  zsh: FvTextPanel,
+  fish: FvTextPanel,
+  lua: FvTextPanel,
+  pl: FvTextPanel,
+  pm: FvTextPanel,
+  hs: FvTextPanel,
+  r: FvTextPanel,
+  dart: FvTextPanel,
+  scala: FvTextPanel,
+  vb: FvTextPanel,
+  vbs: FvTextPanel,
+  fs: FvTextPanel,
+  ex: FvTextPanel,
+  exs: FvTextPanel,
+  erl: FvTextPanel,
+  clj: FvTextPanel,
+  properties: FvTextPanel,
+  conf: FvTextPanel,
+  env: FvTextPanel,
+  cfg: FvTextPanel,
+  gradle: FvTextPanel,
+  kts: FvTextPanel,
+  gitignore: FvTextPanel,
+  // shell / 工具 dotfile（.zshrc / .bashrc 等，按纯文本渲染）
+  zshrc: FvTextPanel,
+  bashrc: FvTextPanel,
+  bash_profile: FvTextPanel,
+  profile: FvTextPanel,
+  gitconfig: FvTextPanel,
+  editorconfig: FvTextPanel,
+  npmrc: FvTextPanel,
+  dockerignore: FvTextPanel,
+  srt: FvTextPanel,
+  vtt: FvTextPanel,
+  ass: FvTextPanel,
+  ssa: FvTextPanel,
+  rst: FvTextPanel,
+  adoc: FvTextPanel,
+  org: FvTextPanel,
+  less: FvTextPanel,
+  scss: FvTextPanel,
+  cxx: FvTextPanel,
+  pyi: FvTextPanel,
+  svelte: FvTextPanel,
+  astro: FvTextPanel,
+  xsl: FvTextPanel,
+  xsd: FvTextPanel,
   // .mf（Java MANIFEST.MF / METAFONT 源文件）为纯文本，按文本渲染
   mf: FvTextPanel,
   // renderer-doc
@@ -494,10 +545,21 @@ function resolveBucket(): string {
     const qb = (qs.get("bucket") || "").trim();
     if (qb) return qb;
     const serverBase = getServerBase();
-    if (serverBase && window.location.origin !== new URL(serverBase).origin) {
+    if (!serverBase) return "";
+    const sbUrl = new URL(serverBase);
+    // 页面与文件服务器不同源：不可能是文件服务器提供的壳页面（standalone 跨服务）
+    if (sbUrl.origin !== (window.location.origin || sbUrl.origin)) return "";
+    // 关键：embedded 时 serverBase 是相对路径拼当前 origin，origin 恒相同，
+    // 单看 origin 会把宿主内嵌页（/{appBase}/manage/filestorage）误判为壳页面，
+    // 进而把应用前缀（如 system）当成桶名 → 桶不存在 → 文件服务器兜底 404。
+    // 补充判断：页面路径必须位于文件服务器路径前缀（serverBase.pathname）之下，
+    // 才是由文件服务器自身提供的壳页面；否则视为宿主内嵌，走默认桶。
+    const sbPath = sbUrl.pathname;
+    const pagePath = (window.location.pathname || "").split("#")[0];
+    if (!sbPath || sbPath === "/" || !pagePath.startsWith(sbPath)) {
       return "";
     }
-    const seg = (window.location.pathname || "").split("/").filter((s) => s.length > 0);
+    const seg = pagePath.slice(sbPath.length).split("/").filter((s) => s.length > 0);
     const first = (seg[0] || "").trim();
     if (first && !["fs", "assets", "ot", "config"].includes(first.toLowerCase())) {
       return first;

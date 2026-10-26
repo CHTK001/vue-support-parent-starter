@@ -118,7 +118,7 @@
         row-key="_key"
         expandable
         class="apm-table trace-table"
-        empty-text="暂无传输记录（Agent 未注入或无数据）"
+        empty-text="暂无传输记录：本进程还没有产生任何真实请求"
         @row-click="openDetail"
       >
         <!-- 展开行：懒加载该 traceId 的 span，按甘特条对齐时间轴 -->

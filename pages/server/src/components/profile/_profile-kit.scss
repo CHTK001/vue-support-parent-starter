@@ -49,10 +49,13 @@
   flex-direction: column;
   justify-content: center;
   gap: 2px;
-  min-height: 52px;
+  /* 固定高度：统计卡四块必须等高，且内容不挤不裁（此前仅 min-height 会随内容撑高、被相邻块挤出） */
+  height: 62px;
+  flex: 1 1 0;
   min-width: 0;
-  padding: 10px 12px;
+  padding: 8px 12px;
   background: var(--el-bg-color, #fff);
+  overflow: hidden;
 }
 .pf-stat-l {
   font-size: 11px;

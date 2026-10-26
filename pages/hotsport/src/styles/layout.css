@@ -45,14 +45,19 @@
 }
 
 /* 操作条（替代旧的大标题 header）：
-   左摘要 / 右动作，无卡片底、无标题字，让内容区直接吃满。 */
+   左摘要 / 右动作。做成一张与其它卡片同规格的白底发丝线卡片，
+   不再裸放在背景上——裸放时页面顶部会是一条没有边界的浮动文字，观感很差。 */
 .hotsport-scope .view-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: var(--apm-space-2);
-  min-height: 32px;
+  gap: var(--apm-space-3);
+  min-height: 48px;
+  padding: 8px var(--apm-space-4);
+  background: var(--bg-container, var(--apm-panel));
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
+  border-radius: var(--radius-lg, var(--apm-radius-lg));
 }
 
 .hotsport-scope .view-bar__actions {
@@ -61,6 +66,16 @@
   gap: var(--apm-space-2);
   flex-wrap: wrap;
   margin-left: auto;
+}
+
+/* 操作条左侧摘要：允许内嵌状态徽章 / 按钮 / 下拉，统一按 flex 行排列，
+   避免多个元素挤在一行纯文本里错位。 */
+.hotsport-scope .view-bar > .match-hint {
+  display: flex;
+  align-items: center;
+  gap: var(--apm-space-2);
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 /* 兼容旧结构：保留工具栏类，但不再自带任何「页头卡」观感 */

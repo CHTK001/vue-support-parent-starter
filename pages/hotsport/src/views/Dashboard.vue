@@ -733,18 +733,20 @@ watch(
   white-space: nowrap;
 }
 
+/* 健康胶囊：背景用状态实色 12% 稀释，前景用实色。
+   不能两处都写 --status-*：那是实色令牌，同色会让文字完全看不见。 */
 .health-chip.success {
-  background: var(--status-success, var(--apm-success-bg));
+  background: color-mix(in srgb, var(--status-success, var(--apm-success)) 12%, transparent);
   color: var(--status-success, var(--apm-success));
 }
 
 .health-chip.warning {
-  background: var(--status-warning, var(--apm-warning-bg));
+  background: color-mix(in srgb, var(--status-warning, var(--apm-warning)) 12%, transparent);
   color: var(--status-warning, var(--apm-warning));
 }
 
 .health-chip.danger {
-  background: var(--status-error, var(--apm-danger-bg));
+  background: color-mix(in srgb, var(--status-error, var(--apm-danger)) 12%, transparent);
   color: var(--status-error, var(--apm-danger));
 }
 

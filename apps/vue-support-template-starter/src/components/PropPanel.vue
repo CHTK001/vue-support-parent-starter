@@ -6,8 +6,9 @@
     </div>
     <div class="prop-panel__body">
       <el-form label-position="top" >
+        <!-- 常用字段 -->
         <el-form-item
-          v-for="field in meta.props"
+          v-for="field in normalFields"
           :key="field.key"
           :label="field.label"
           :class="`prop-field prop-field--${field.type}`"
@@ -22,58 +23,49 @@
             </div>
           </template>
 
-          <!-- boolean -->
-          <ReSwitch
-            v-if="field.type === 'boolean'"
-            layout="square"
-            :title="field.label"
-            :model-value="Boolean(state.values[field.key] ?? field.default)"
-            @update:model-value="(val: boolean | string | number) => updateField(field.key, Boolean(val))"
-          />
-
-          <!-- string -->
-          <el-input
-            v-else-if="field.type === 'string'"
-            :model-value="stringValue(state.values[field.key] ?? field.default)"
-            :placeholder="field.description || '输入文字'"
-            @update:model-value="(val: string) => updateField(field.key, val)"
-          />
-
-          <!-- number -->
-          <el-input-number
-            v-else-if="field.type === 'number'"
-            :model-value="numberValue(state.values[field.key] ?? field.default)"
-            :placeholder="field.description || '输入数字'"
-            @update:model-value="(val: number) => updateField(field.key, val)"
-          />
-
-          <!-- json -->
-          <el-input
-            v-else-if="field.type === 'json'"
-            :model-value="jsonValue(state.values[field.key] ?? field.default)"
-            type="textarea"
-            :rows="3"
-            :placeholder="field.description || 'JSON 格式数据'"
-            @update:model-value="(val: string) => updateJson(field.key, val)"
-          />
-
-          <!-- select：统一使用 ReSelect square 布局 -->
-          <ReSelect
-            v-else-if="field.type === 'select'"
-            layout="square"
-            :model-value="String(state.values[field.key] ?? field.default)"
-            :options="selectOptions(field)"
-            :size="16"
-            @update:model-value="(val: any) => updateField(field.key, val)"
-          />
-
-          <!-- color -->
-          <el-color-picker
-            v-else-if="field.type === 'color'"
-            :model-value="(state.values[field.key] as string) ?? (field.default as string)"
-            @update:model-value="(val: string) => updateField(field.key, val)"
+          <PropFieldControl
+            :field="field"
+            :value="state.values[field.key]"
+            @change="(val: unknown) => updateField(field.key, val)"
+            @json="(text: string) => updateJson(field.key, text)"
+            @dataset="(label: string) => applyDataset(field, label)"
           />
         </el-form-item>
+
+        <!-- 高级参数：默认折叠，展开才显示（如关系图的 nodes / edges 原始 JSON） -->
+        <el-collapse v-if="advancedFields.length" v-model="advancedOpen" class="prop-advanced">
+          <el-collapse-item name="advanced">
+            <template #title>
+              <span class="prop-advanced__title">
+                高级参数
+                <el-tag type="info" effect="plain" round size="small">{{ advancedFields.length }}</el-tag>
+              </span>
+            </template>
+            <el-form-item
+              v-for="field in advancedFields"
+              :key="field.key"
+              :label="field.label"
+              :class="`prop-field prop-field--${field.type}`"
+            >
+              <template #label>
+                <div class="prop-field-label">
+                  <span class="prop-field-name">{{ field.label }}</span>
+                  <el-tooltip v-if="field.description" :content="field.description" placement="top">
+                    <el-icon class="prop-field-tip"><QuestionFilled /></el-icon>
+                  </el-tooltip>
+                </div>
+              </template>
+
+              <PropFieldControl
+                :field="field"
+                :value="state.values[field.key]"
+                @change="(val: unknown) => updateField(field.key, val)"
+                @json="(text: string) => updateJson(field.key, text)"
+                @dataset="(label: string) => applyDataset(field, label)"
+              />
+            </el-form-item>
+          </el-collapse-item>
+        </el-collapse>
 
         <!-- v-model 控件 -->
         <el-form-item v-if="meta.modelable" label="v-model">
@@ -96,8 +88,10 @@
 </template>
 
 <script setup lang="ts">
+import { computed, ref } from "vue";
 import type { PropField, TemplateMeta, TemplateState } from "../templates";
 import { QuestionFilled } from "@element-plus/icons-vue";
+import PropFieldControl from "./PropFieldControl.vue";
 
 const props = defineProps<{
   meta: TemplateMeta;
@@ -108,24 +102,19 @@ const emit = defineEmits<{
   (e: "update", state: TemplateState): void;
 }>();
 
-const stringValue = (v: unknown) => (v === undefined || v === null ? "" : String(v));
-const numberValue = (v: unknown) => (typeof v === "number" ? v : 0);
+/**
+ * 字段分两段渲染：
+ *   - 常用字段：直接铺在面板上
+ *   - 高级字段（field.advanced）：折进「高级参数」，默认收起
+ *
+ * <p>典型用法是关系图的 nodes / edges —— 平时用分段控件选示例数据就够了，
+ * 只有要试自定义结构时才展开手改 JSON。折叠起来能让面板一屏放得下。</p>
+ */
+const normalFields = computed(() => props.meta.props.filter((f) => !f.advanced));
+const advancedFields = computed(() => props.meta.props.filter((f) => f.advanced));
 
-/** 将模板选项转换为 ReSelect 选项（保留图标，无图标时由布局自身 fallback 显示首字符） */
-const selectOptions = (field: PropField) =>
-  (field.options ?? []).map((opt) => ({
-    label: opt.label,
-    value: opt.value,
-    icon: opt.icon,
-  }));
-const jsonValue = (v: unknown) => {
-  if (v === undefined || v === null || v === "") return "";
-  try {
-    return JSON.stringify(v, null, 2);
-  } catch {
-    return String(v);
-  }
-};
+/** 高级参数折叠状态：默认收起 */
+const advancedOpen = ref<string[]>([]);
 
 const updateField = (key: string, val: unknown) => {
   const values = { ...props.state.values, [key]: val };
@@ -150,6 +139,34 @@ function isDefaultValue(field: PropField, value: unknown): boolean {
   if (typeof value === "object") return JSON.stringify(value) === JSON.stringify(field.default);
   return value === field.default;
 }
+
+/* ==================== dataset（分段切换示例数据） ==================== */
+
+/** 分段按钮文案 */
+const datasetLabels = (field: PropField) => (field.datasets ?? []).map((d) => d.label);
+
+/**
+ * 应用数据集：把该档声明的多个字段一次性写入参数状态。
+ *
+ * <p>多个 key 必须<b>一次 emit</b>，不能逐个 updateField —— 逐个发会让中间态
+ * （比如节点已换、边还是旧的）被渲染一帧，图上会出现引用了不存在节点的边。</p>
+ *
+ * @param field dataset 类型字段
+ * @param label 选中的档位 label
+ */
+const applyDataset = (field: PropField, label: string) => {
+  const target = (field.datasets ?? []).find((d) => d.label === label);
+  if (!target) return;
+  emit("update", {
+    ...props.state,
+    values: {
+      ...props.state.values,
+      // 档位 label 也要落库：分段控件靠它回显当前选中项
+      [field.key]: label,
+      ...target.values,
+    },
+  });
+};
 
 const updateJson = (key: string, val: string | number) => {
   const text = String(val ?? "");
@@ -230,6 +247,38 @@ const setModelType = (type: "boolean" | "string" | "number") => {
   font-size: 13px;
   font-weight: 600;
   color: var(--el-text-color-primary);
+}
+
+/* ---------- 高级参数折叠区 ---------- */
+.prop-advanced {
+  margin-top: 4px;
+  border-top: 1px dashed var(--el-border-color-lighter);
+  border-bottom: none;
+}
+
+.prop-advanced :deep(.el-collapse-item__header) {
+  height: 38px;
+  padding-left: 2px;
+  border-bottom: none;
+  background: transparent;
+}
+
+.prop-advanced :deep(.el-collapse-item__wrap) {
+  border-bottom: none;
+  background: transparent;
+}
+
+.prop-advanced :deep(.el-collapse-item__content) {
+  padding-bottom: 8px;
+}
+
+.prop-advanced__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
 }
 
 .prop-field-key {

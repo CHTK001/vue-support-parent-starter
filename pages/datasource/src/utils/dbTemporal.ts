@@ -117,6 +117,11 @@ export function resolveTemporalKind(
  *
  * <p>下界取 1970-01-01（含 0），上界取 2100 年：真实业务时间戳都在这个区间。</p>
  *
+ * <p><b>为什么不覆盖 TIME</b>：{@code java.sql.Time} 的 epoch 是「1970-01-01 当日时刻」，
+ * 最大值 {@code 86_399_999 + 时区偏移}，也就是 8–9 位数字 —— 掉不进这里的
+ * 10–13 位区间。所以 TIME 列另走 {@link isTimeOfDayMillis}，别把它并进来：
+ * 把下界放宽到 1 位会让任何小整数（如 {@code id=3}）都被当成时间。</p>
+ *
  * @param raw 数据库原样取值
  * @returns 是 epoch 毫秒数返回 true
  */
@@ -129,6 +134,36 @@ export function isEpochMillis(raw: unknown): boolean {
     return n >= 0 && n < 4_102_444_800_000;
   }
   return false;
+}
+
+/**
+ * TIME 列的「当日毫秒数」判定。
+ *
+ * <p><b>为什么单独一个函数</b>：后端 {@code DbTransferCodec} 把所有数值转成文本
+ * 下发（避免 JS 精度丢失），于是 {@code TIME '08:30:00'} 到前端是字符串
+ * {@code "1800000"}。{@link isEpochMillis} 要求 10–13 位，而当日毫秒最多
+ * {@code 86_399_999}（8 位）+ 时区偏移（9 位），永远命中不了 ——
+ * 结果 TIME 列被当成「无法识别的文本」，选择器显示空白，
+ * 用户一打开面板 Element Plus 就填入当前时间，等于静默改值。</p>
+ *
+ * <p>上界取 {@code 1e9}：覆盖 23:59:59.999 加任意正负时区偏移；
+ * 同时把「看起来像年份的 4 位数」等小整数挡在外面 —— 只有 TIME 列才会走到这里，
+ * 而 TIME 列不存在「合法的小整数文本值」。</p>
+ *
+ * @param kind 选择器形态
+ * @param raw  数据库原样取值
+ * @returns 是当日毫秒数返回 true
+ */
+function isTimeOfDayMillis(kind: DbTemporalKind, raw: unknown): boolean {
+  if (kind !== "time") {
+    return false;
+  }
+  const s = typeof raw === "number" ? String(raw) : String(raw).trim();
+  if (!/^\d{1,9}$/.test(s)) {
+    return false;
+  }
+  const n = Number(s);
+  return n >= 0 && n < 1_000_000_000;
 }
 
 /**
@@ -150,7 +185,7 @@ export function toTemporalPickerValue(kind: DbTemporalKind, raw: unknown): strin
   if (raw === null || raw === undefined) {
     return "";
   }
-  if (isEpochMillis(raw)) {
+  if (isEpochMillis(raw) || isTimeOfDayMillis(kind, raw)) {
     return fromEpochMillis(kind, Number(raw));
   }
   const s = String(raw).trim();

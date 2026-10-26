@@ -143,7 +143,30 @@ function serveFileViewerOfficeWorkers(): PluginOption {
 // 端口：29612 是 socket.io 推送端口（与 --plugin.socket.room[0].port=29612 一致）。
 // 注意此前缺省写的 29181 是**错的端口**，即使把主机改成远端，socket 推送仍然连不上。
 const apiTarget = process.env.MS_API_TARGET ?? "http://192.168.50.198:8081";
-const socketTarget = process.env.MS_SOCKET_TARGET ?? "http://192.168.50.198:29612";
+
+/**
+ * 由 API 目标推导 socket.io 目标：同主机 + 29612 端口。
+ *
+ * <p>主机必须跟着 MS_API_TARGET 走。以前这里把主机也硬编码成 192.168.50.198，
+ * 于是只要 MS_API_TARGET 指到别处（SSH 隧道、另一台机器），`/socket.io`
+ * 仍然打向那台不可达的 LAN 机器，浏览器控制台里就是一条
+ * `http://localhost:8848/socket.io/?EIO=4&transport=polling ... 502`，
+ * 而且看不出是代理指错了 —— 与 API 已经切到隧道这一事实完全对不上。</p>
+ *
+ * <p>解析失败时退回历史默认值，行为与改动前一致。</p>
+ *
+ * @param api API 代理目标
+ */
+function deriveSocketTarget(api: string): string {
+  try {
+    const u = new URL(api);
+    return `${u.protocol}//${u.hostname}:29612`;
+  } catch {
+    return "http://192.168.50.198:29612";
+  }
+}
+
+const socketTarget = process.env.MS_SOCKET_TARGET ?? deriveSocketTarget(apiTarget);
 /** 独立 ACME 后端：/monitor/api/** 的专用前缀（见 pages/server acmeApi.ts 的 BASE） */
 const acmeTarget = process.env.ACME_API_TARGET ?? "http://101.200.205.64:19170";
 
@@ -188,6 +211,10 @@ const apiTargetSelfCheck = (): PluginOption => ({
     const tag = explicit ? "[api-target]" : "[api-target][默认]";
     // eslint-disable-next-line no-console
     console.log(`\n${tag} dev 代理指向 ${apiTarget}${explicit ? "（来自 MS_API_TARGET）" : "（默认值，未设 MS_API_TARGET）"}`);
+    // socket.io 推送（tshark 抓包实时流）是**独立端口**，与 API 主机同源但端口不同，
+    // 浏览器里它表现为「/socket.io 502」而 API 一切正常 —— 这条日志就是给人对照用的。
+    // eslint-disable-next-line no-console
+    console.log(`${tag} /socket.io 代理指向 ${socketTarget}${process.env.MS_SOCKET_TARGET ? "（来自 MS_SOCKET_TARGET）" : "（默认由 API 主机推导）"} —— 若该实例未启用 plugin.socket.room，此路径必然连不上，属预期`);
     try {
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), 5000);

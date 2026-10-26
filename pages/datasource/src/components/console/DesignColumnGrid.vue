@@ -335,8 +335,8 @@ function rowClassName(arg: { row: Record<string, unknown> }): string {
       </template>
 
       <template #col-comment="{ row }">
-        <!-- 注释列：modern 布局 + 右侧专注模式 —— 列窄（120px），聚焦时输入框向右
-             展开成浮层，编辑长注释不再被单元格宽度逼成横向滚动。 -->
+        <!-- 注释列：modern 布局 + 右侧专注图标 —— 列窄（120px），点输入框内的专注
+             图标才弹出编辑框；输入框自身尺寸/定位不变，不会撑乱表格布局。 -->
         <ReInput
           v-model="asRow(row).comment"
           layout="modern"

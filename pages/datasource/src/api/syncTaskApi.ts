@@ -205,6 +205,10 @@ export interface SyncTaskRunLogItem {
   costMs: number | null;
   /** 过程日志行数（列表展示用，免解析正文） */
   lineCount: number;
+  /** 本轮读取行数（执行结束时解析入库；存量行为 null） */
+  readCount: number | null;
+  /** 本轮写入行数（执行结束时解析入库；存量行为 null） */
+  writeCount: number | null;
 }
 
 /** 一次执行的日志详情（记录 + 完整过程行）。后端 {@code GET /ms/monitor/datasync/logs/{id}} 返回 */
@@ -223,6 +227,46 @@ export interface SyncRunLogQuery {
   status?: string | null;
   /** 触发方式过滤 MANUAL / SCHEDULED / REALTIME */
   trigger?: string | null;
+  /** 过程日志正文关键词过滤（LIKE 匹配） */
+  keyword?: string | null;
+}
+
+/** 一小时窗口内的执行分布 */
+export interface SyncRunLogHourly {
+  /** 整点时刻 yyyy-MM-dd HH:00 */
+  hour: string;
+  total: number;
+  success: number;
+  failed: number;
+}
+
+/** 一类失败原因 */
+export interface SyncRunLogFailureGroup {
+  label: string;
+  count: number;
+}
+
+/** 同步执行日志健康度总览 */
+export interface SyncRunLogStats {
+  total: number;
+  success: number;
+  failed: number;
+  /** 成功率 0~100，一位小数 */
+  successRate: number;
+  avgCostMs: number;
+  hourly: SyncRunLogHourly[];
+  failureGroups: SyncRunLogFailureGroup[];
+}
+
+/** 单任务执行耗时趋势 */
+export interface SyncRunLogTrend {
+  taskId: number;
+  taskName: string;
+  points: Array<{
+    runTime: string;
+    costMs: number | null;
+    status: string;
+  }>;
 }
 
 /**
@@ -293,6 +337,7 @@ export const fetchSyncRunLogs = (query: SyncRunLogQuery) =>
       taskId: query.taskId ?? undefined,
       status: query.status ?? undefined,
       trigger: query.trigger ?? undefined,
+      keyword: query.keyword ?? undefined,
     })
     .then(r => unwrap<{ records?: SyncTaskRunLogItem[]; total?: number }>(r));
 
@@ -302,6 +347,31 @@ export const fetchSyncRunLogs = (query: SyncRunLogQuery) =>
  */
 export const fetchSyncRunLogDetail = (logId: number) =>
   http().get(`/ms/monitor/datasync/logs/${logId}`).then(r => unwrap<SyncTaskRunLogDetail>(r));
+
+/**
+ * 查询同步执行日志健康度总览（「同步日志」页顶部统计卡 + 24h 趋势 + 失败归类）。
+ * 后端 {@code GET /ms/monitor/datasync/logs/stats}
+ */
+export const fetchSyncRunLogStats = () =>
+  http().get("/ms/monitor/datasync/logs/stats").then(r => unwrap<SyncRunLogStats>(r));
+
+/**
+ * 查询单个任务的执行耗时趋势（最近 limit 次落盘执行，升序）。
+ * @param taskId 任务 ID
+ * @param limit  最多返回点数（默认 30）
+ */
+export const fetchSyncRunLogTrend = (taskId: number, limit = 30) =>
+  http()
+    .get("/ms/monitor/datasync/logs/trend")
+    .query({ taskId, limit })
+    .then(r => unwrap<SyncRunLogTrend>(r));
+
+/**
+ * 从某条执行日志重跑对应任务（「失败一键重跑」）。
+ * @param logId 日志主键
+ */
+export const rerunSyncRunLog = (logId: number) =>
+  http().post(`/ms/monitor/datasync/logs/${logId}/rerun`).noToast(true).then(r => unwrap<SyncTaskRunResult>(r));
 
 /**
  * 启用定时

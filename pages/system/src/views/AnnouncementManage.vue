@@ -340,7 +340,6 @@ onMounted(() => {
       :loader="loadAnnouncements"
       :columns="columns"
       :pagination="true"
-      :layout-table="{ minHeight: 0 }"
       :params="{}"
       row-key="sysAnnouncementId"
       v-model:page="query.page"

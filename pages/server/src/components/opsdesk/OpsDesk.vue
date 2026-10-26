@@ -481,7 +481,7 @@ const detailMeta = computed(() => picked.value?.meta ?? []);
       <div v-if="loading && !items.length" class="op-loading">正在读取…</div>
 
       <template v-else-if="!items.length">
-        <div class="op-empty">
+        <div class="op-empty op-empty--page">
           {{ emptyText }}
           <template v-if="emptyHint"><br />{{ emptyHint }}</template>
         </div>

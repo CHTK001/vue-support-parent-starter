@@ -32,10 +32,6 @@ const props = defineProps<{
   platform?: string;
 }>();
 
-const emit = defineEmits<{
-  (e: "back"): void;
-}>();
-
 /* ==================== 已安装清单（左栏） ==================== */
 
 interface SoftwarePkg {
@@ -183,9 +179,6 @@ watch(() => props.hostId, loadInstalled);
   <div class="sw">
     <!-- 页头 -->
     <div class="sw-head">
-      <button type="button" class="lb-btn" @click="emit('back')">
-        <ReIcon name="Back" :size="11" />返回
-      </button>
       <span class="sw-title">软件管理</span>
       <span class="lb-pill lb-pill--plain">{{ hostName }}</span>
       <span v-if="platform" class="lb-pill" :class="platform === 'WINDOWS' ? 'lb-info' : 'lb-ok'">
@@ -364,6 +357,9 @@ watch(() => props.hostId, loadInstalled);
   height: 100%;
   min-height: 0;
   gap: 8px;
+  /* 与工作台各面板一致：页签内四周留白，避免内容顶到边框 */
+  padding: 12px 14px;
+  box-sizing: border-box;
 }
 .sw-head {
   display: flex;

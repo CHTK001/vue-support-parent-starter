@@ -5,19 +5,17 @@
  * 实际业务参考数据格式：节点 `{ id, label, group, type, size }`，边 `{ source, target }`。
  */
 import type { TemplateMeta } from "./types";
-// 三国数据：ReRelationGraph 集成示例（按势力分组）
-import { sanguoNodes, sanguoEdges } from "../data/sanguo";
+// 关系图示例数据：三国势力 / 小圈子 / 压力测试（三档规模，分段切换）
+import { relationGraphDatasets, defaultDataset } from "../data/relationGraphDatasets";
 
-/** ReRelationGraph 默认数据：三国势力分组（nodes: id/label/group/type/size，edges: source/target） */
+/**
+ * ReRelationGraph 默认数据：三国势力分组（nodes: id/label/group/type/size，edges: source/target）
+ *
+ * @deprecated 数据已由 {@link relationGraphDatasets} 统一管理，此处仅保留兼容入口
+ */
 export const relationGraphData = () => ({
-  nodes: sanguoNodes.map((n) => ({
-    id: n.id,
-    label: n.id,
-    group: n.data.cluster,
-    type: n.data.type === "person" ? "circle" : n.data.type,
-    size: n.style.size ?? 40,
-  })),
-  edges: sanguoEdges.map((e) => ({ source: e.source, target: e.target })),
+  nodes: defaultDataset.nodes,
+  edges: defaultDataset.edges,
 });
 
 /**
@@ -56,8 +54,36 @@ export const reRelationGraphMeta: TemplateMeta = {
     "G6 5.1.1 原生：气泡集 / Hull 双分组轮廓 + 分组布局（每组独立区域）+ 19 种布局（含自研鱼骨）+ 内置工具栏（布局/分组/参数）+ 最短路径 / 撤销重做 / 节点内容插槽",
   modelable: false,
   props: [
-    { key: "nodes", label: "节点（RelationNode[]）", type: "json", default: relationGraphData().nodes },
-    { key: "edges", label: "边（RelationEdge[]）", type: "json", default: relationGraphData().edges },
+    {
+      key: "dataset",
+      label: "示例数据",
+      type: "dataset",
+      default: defaultDataset.label,
+      description: "点一下直接换图，不用再手贴 JSON",
+      datasets: relationGraphDatasets.map((d) => ({
+        label: d.label,
+        hint: d.hint,
+        values: { nodes: d.nodes, edges: d.edges },
+      })),
+    },
+    {
+      key: "nodes",
+      label: "节点（RelationNode[]）",
+      type: "json",
+      default: defaultDataset.nodes,
+      advanced: true,
+      description:
+        "无需手填：由上方「示例数据」自动写入。仅在要试自定义结构时才展开改。每个节点：{ id 唯一标识, label 显示文字, group 分组名（决定配色与轮廓）, type 形状（circle / rect …）, size 直径 }",
+    },
+    {
+      key: "edges",
+      label: "边（RelationEdge[]）",
+      type: "json",
+      default: defaultDataset.edges,
+      advanced: true,
+      description:
+        "无需手填：由上方「示例数据」自动写入。每条边：{ source 起点 id, target 终点 id }，两端都必须指向已存在的节点 id，否则该边会被 G6 丢弃",
+    },
     {
       key: "layout",
       label: "布局",

@@ -1742,10 +1742,17 @@ const connectionRows = computed(() => {
   if (!item) {
     return [];
   }
+  // 版本口径与概览一致：influxdb 用台账的 v2/v3，其余类型用最近一次「立即检测」的探测结果
+  // （后端从 DatabaseMetaData / INFO 取，不落台账 —— 台账 datasource_version 只服务 influxdb）
+  const versionText = item.type === "influxdb"
+    ? influxVersionLabel(item.version)
+    : detectedVersion.value
+      ? `${detectedVersion.value}（检测）`
+      : "—";
   return [
     { label: "数据源 ID", value: item.id != null ? String(item.id) : "—", mono: true },
     { label: "地址", value: formatAddress(item), mono: true },
-    { label: "版本", value: item.type === "influxdb" ? influxVersionLabel(item.version) : "—", mono: false },
+    { label: "版本", value: versionText, mono: false },
     { label: "配置路径", value: item.database || "—", mono: true },
     { label: "用户", value: item.username || "—", mono: false },
     { label: "驱动类", value: item.driverClassName || "—", mono: true },

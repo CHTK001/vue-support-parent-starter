@@ -65,6 +65,8 @@ class RealtimeService {
   private bus = new EventBus();
   private ws: WebSocket | null = null;
   private es: EventSource | null = null;
+  /** 日志流专用 SSE：后端的日志推送是独立端点，与 stats 快照流不是同一条 */
+  private esLogs: EventSource | null = null;
   private wsTimer: ReturnType<typeof setInterval> | null = null;
   private reconnectDelay = 3000;
   private reconnectAttempts = 0;
@@ -104,9 +106,20 @@ class RealtimeService {
     return apiUrl("/stream?intervalMs=3000");
   }
 
+  /**
+   * 日志流地址。
+   *
+   * <p>后端的实时日志是**独立端点** {@code /stream/logs}，只推 {@code log} 事件；
+   * stats 流永远不会有 log 事件，所以必须单独订阅，否则实时日志页永远是空的。</p>
+   */
+  private getSseLogsUrl(): string {
+    return apiUrl("/stream/logs");
+  }
+
   private connect() {
     this.connectWs();
     this.connectSse();
+    this.connectSseLogs();
   }
 
   /** WebSocket 连接（告警推送、配置变更） */
@@ -187,6 +200,33 @@ class RealtimeService {
     } catch { /* SSE 不可用 */ }
   }
 
+  /**
+   * SSE 连接（实时日志）。
+   *
+   * <p>订阅 {@code /stream/logs}，把服务端 {@code log} 事件（真实标准输出增量）
+   * 转成总线事件，供实时日志页消费。</p>
+   */
+  private connectSseLogs() {
+    try {
+      this.esLogs = new EventSource(this.getSseLogsUrl());
+
+      this.esLogs.onopen = () => {
+        this.connected.value = true;
+      };
+
+      this.esLogs.addEventListener("log", (ev: MessageEvent) => {
+        try {
+          const data = JSON.parse(ev.data as string);
+          this.bus.emit({ type: "log", data, ts: Date.now() });
+        } catch { /* 忽略 */ }
+      });
+
+      this.esLogs.onerror = () => {
+        // EventSource 会自动重连
+      };
+    } catch { /* 日志流不可用 */ }
+  }
+
   private startHeartbeat() {
     this.stopHeartbeat();
     this.wsTimer = setInterval(() => {
@@ -236,8 +276,10 @@ class RealtimeService {
     this.stopHeartbeat();
     this.ws?.close();
     this.es?.close();
+    this.esLogs?.close();
     this.ws = null;
     this.es = null;
+    this.esLogs = null;
     this.started = false;
     this.connected.value = false;
     this.wsConnected.value = false;

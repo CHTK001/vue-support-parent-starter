@@ -53,8 +53,12 @@ const props = withDefaults(
     /** 输入回写格式化（与 formatter 配合使用） */
     parser?: (value: string) => string;
     /**
-     * 右侧专注模式（仅 modern 布局生效）：聚焦时输入框锚定当前位置向右展开成浮层，
-     * 用于窄列（如表设计网格的注释列）编辑长文本；失焦还原。
+     * 专注编辑（仅 modern 布局生效）：输入框右侧出现一个专注图标，
+     * 点击图标弹出编辑框（textarea + 确定/取消），用于窄列
+     * （如表设计网格的注释列）编辑长文本。
+     *
+     * <p>输入框自身的尺寸与定位始终不变 —— 不再「聚焦即展开成浮层」，
+     * 避免临时改定位盖住相邻单元格、让表格行列对齐抖动。</p>
      */
     focusRight?: boolean;
   }>(),
@@ -213,12 +217,18 @@ function onClear(): void {
    inner 内容高度 = 34 - 8(padding) - 2(border) = 24px，由 flex 垂直居中，box 总高恒为 34。 */
 .re-input .el-input {
   --el-input-height: 34px;
+  /* 圆角放大：Element 默认 --el-input-border-radius 落到 --el-border-radius-base（4px），
+     在 34px 高的输入框上偏方。这里统一到 10px，与卡片/按钮的圆角语言一致。
+     用变量下发而不是直接改 border-radius，方便业务侧单独调（--re-input-radius）。 */
+  --el-input-border-radius: var(--re-input-radius, 10px);
 }
 .re-input .el-input.el-input--small {
   --el-input-height: 24px;
+  --el-input-border-radius: var(--re-input-radius, 8px);
 }
 .re-input .el-input.el-input--large {
   --el-input-height: 40px;
+  --el-input-border-radius: var(--re-input-radius, 12px);
 }
 .re-input .el-input .el-input__wrapper {
   box-sizing: border-box;

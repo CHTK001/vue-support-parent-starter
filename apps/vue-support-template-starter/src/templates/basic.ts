@@ -106,7 +106,38 @@ export const reSwitchMeta: TemplateMeta = {
       label: "隐藏开关",
       type: "boolean",
       default: false,
-      description: "card 布局：隐藏内部 el-switch，仅展示卡片信息",
+      description: "card 布局：隐藏内部 el-switch，仅展示卡片信息（点击卡片整体切换）",
+    },
+    {
+      key: "preset",
+      label: "图标集（preset）",
+      type: "select",
+      default: "",
+      description:
+        "square 布局的两态图标集；不选则用内置默认（sunmoon：激活太阳 / 非激活月亮）。选 none 关闭内置回落",
+      options: [
+        { label: "内置默认 sunmoon", value: "", icon: "Sunny" },
+        { label: "check（对勾/叉）", value: "check", icon: "Select" },
+        { label: "star（实心/空心星）", value: "star", icon: "StarFilled" },
+        { label: "bell（实心/空心铃）", value: "bell", icon: "BellFilled" },
+        { label: "arrow（上/下箭头）", value: "arrow", icon: "ArrowUp" },
+        { label: "anim（上游动画图标）", value: "anim", icon: "MagicStick" },
+        { label: "none（关闭内置）", value: "none", icon: "Hide" },
+      ],
+    },
+    {
+      key: "activeIcon",
+      label: "激活态图标",
+      type: "string",
+      default: "",
+      description: "square 布局：激活态图标名（如 Sunny / ep:star / ri:xxx）；留空则走 preset",
+    },
+    {
+      key: "inactiveIcon",
+      label: "非激活态图标",
+      type: "string",
+      default: "",
+      description: "square 布局：非激活态图标名（如 Moon / ep:star）；留空则走 preset",
     },
   ],
   generate(state) {
@@ -120,6 +151,9 @@ export const reSwitchMeta: TemplateMeta = {
       props.push(`description="${values.description}"`);
     if (values.sub && values.sub !== "顶部标签栏") props.push(`sub="${values.sub}"`);
     if (values.cardHideSwitch) props.push(`card-hide-switch`);
+    if (values.preset) props.push(`preset="${values.preset}"`);
+    if (values.activeIcon) props.push(`active-icon="${values.activeIcon}"`);
+    if (values.inactiveIcon) props.push(`inactive-icon="${values.inactiveIcon}"`);
     const vmodel = state.model !== true ? ` v-model="${state.model}"` : ` v-model`;
     const propStr = props.length ? "\n  " + props.join("\n  ") + vmodel : ` v-model`;
     return `<ReSwitch${propStr}
@@ -177,13 +211,30 @@ export const reInputMeta: TemplateMeta = {
   modelable: true,
   modelDefault: "Hello Template",
   props: [
-    { key: "layout", label: "布局", type: "select", default: "default", options: [{ label: "default", value: "default", icon: "Switch" }] },
+    {
+      key: "layout",
+      label: "布局",
+      type: "select",
+      default: "el",
+      options: [
+        { label: "el（原生 el-input）", value: "el", icon: "Switch" },
+        { label: "modern（扁平 + 专注编辑）", value: "modern", icon: "MagicStick" },
+      ],
+    },
     { key: "placeholder", label: "占位符", type: "string", default: "请输入内容" },
     { key: "clearable", label: "可清空", type: "boolean", default: true },
     { key: "disabled", label: "禁用", type: "boolean", default: false },
     { key: "readonly", label: "只读", type: "boolean", default: false },
     { key: "showPassword", label: "密码框", type: "boolean", default: false },
     { key: "prefixIcon", label: "前缀图标", type: "string", default: "" },
+    {
+      key: "focusRight",
+      label: "专注模式",
+      type: "boolean",
+      default: false,
+      description:
+        "modern 布局生效：输入框右侧出现专注图标，点开弹出编辑框（textarea + 确定/取消），适合窄列里编辑长文本",
+    },
     {
       key: "maxlength",
       label: "最大长度",
@@ -290,6 +341,14 @@ export const reTextMeta: TemplateMeta = {
   modelable: false,
   props: [
     { key: "layout", label: "布局", type: "select", default: "default", options: [{ label: "default", value: "default", icon: "Switch" }] },
+    {
+      key: "text",
+      label: "文本内容",
+      type: "string",
+      default: "这是一段用于预览的文本内容",
+      description:
+        "组件同时支持 text 属性与默认插槽；这里填什么，预览区就显示什么。留空则预览区没有内容可看",
+    },
     {
       key: "type",
       label: "类型",

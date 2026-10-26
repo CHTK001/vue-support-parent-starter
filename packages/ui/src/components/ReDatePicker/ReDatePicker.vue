@@ -10,12 +10,30 @@
  * 说明：原 `layout="modern"` 变体（layouts/Modern.vue）经审计确认全仓无人使用，
  * 已随统一表面方案移除；需要时从 backups/ui-unused-layouts-retire-20260926/ 取回。
  */
+import { ref } from "vue";
 import { ElDatePicker } from "element-plus";
 
 defineOptions({ name: "ReDatePicker", inheritAttrs: true });
 
 const model = defineModel<string | number | Date | (string | number | Date)[] | null>({
   default: null,
+});
+
+/**
+ * 内层 ElDatePicker 实例。
+ *
+ * <p>用途：数据库控制台的格内编辑要在挂载后「先聚焦再开面板」，
+ * 必须能命令式调用 {@code focus()} / {@code handleOpen()}。
+ * 本组件是纯透传壳，不暴露的话外层只能靠 CSS 选择器去点内部 input ——
+ * 那既不可靠（面板是 teleport 的）也没法保证展开时机。</p>
+ */
+const pickerRef = ref<any>(null);
+
+defineExpose({
+  focus: () => pickerRef.value?.focus?.(),
+  blur: () => pickerRef.value?.blur?.(),
+  handleOpen: () => pickerRef.value?.handleOpen?.(),
+  handleClose: () => pickerRef.value?.handleClose?.(),
 });
 
 withDefaults(
@@ -55,6 +73,7 @@ withDefaults(
 <template>
   <!-- 透传 el-date-picker 全部能力 -->
   <ElDatePicker
+    ref="pickerRef"
     v-model="model"
     v-bind="$attrs"
     :type="type"

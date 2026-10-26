@@ -527,19 +527,21 @@ onMounted(() => {
   background: currentColor;
 }
 
+/* 级别标签：前景用状态实色，背景用同色 12% 稀释。
+   注意不能把 background 也写成 --status-*：那是实色，会和前景同色导致文字看不见。 */
 .lvl-error {
   color: var(--status-error, var(--apm-danger));
-  background: var(--status-error, var(--apm-danger-bg));
+  background: color-mix(in srgb, var(--status-error, var(--apm-danger)) 12%, transparent);
 }
 
 .lvl-warn {
   color: var(--status-warning, var(--apm-warning));
-  background: var(--status-warning, var(--apm-warning-bg));
+  background: color-mix(in srgb, var(--status-warning, var(--apm-warning)) 12%, transparent);
 }
 
 .lvl-info {
   color: var(--brand-500, var(--apm-accent));
-  background: var(--brand-500, var(--apm-accent-subtle));
+  background: color-mix(in srgb, var(--brand-500, var(--apm-accent)) 12%, transparent);
 }
 
 .lvl-debug {

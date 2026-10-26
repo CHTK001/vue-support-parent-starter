@@ -1,6 +1,6 @@
 <template>
   <div class="flow-page">
-    <!-- 页头卡片 -->
+    <!-- 页头卡片：标题 + 健康度统计 -->
     <header class="flow-hero">
       <div class="flow-hero-main">
         <div class="flow-hero-icon">
@@ -16,7 +16,7 @@
       </div>
       <div class="flow-hero-side">
         <div class="flow-hero-stat">
-          <span class="flow-hero-stat-val">{{ total }}</span>
+          <span class="flow-hero-stat-val">{{ stats.total }}</span>
           <span class="flow-hero-stat-key">次执行</span>
         </div>
         <ReButton :loading="loading" @click="reload">
@@ -25,7 +25,62 @@
       </div>
     </header>
 
-    <!-- 筛选卡片：任务 / 状态 / 触发方式 一行 -->
+    <!-- 健康度总览：统计卡 + 24h 趋势 + 失败归类 -->
+    <section v-if="statsLoaded" class="flow-health">
+      <div class="flow-health-stats">
+        <div class="flow-health-card">
+          <span class="flow-health-key">成功率</span>
+          <span class="flow-health-val" :class="stats.successRate >= 95 ? 'is-good' : stats.successRate >= 80 ? 'is-warn' : 'is-bad'">
+            {{ stats.successRate.toFixed(1) }}<small>%</small>
+          </span>
+          <span class="flow-health-desc">成功 {{ stats.success }} / 共 {{ stats.total }}</span>
+        </div>
+        <div class="flow-health-card">
+          <span class="flow-health-key">失败</span>
+          <span class="flow-health-val" :class="stats.failed ? 'is-bad' : 'is-good'">{{ stats.failed }}</span>
+          <span class="flow-health-desc">最近 30 天</span>
+        </div>
+        <div class="flow-health-card">
+          <span class="flow-health-key">平均耗时</span>
+          <span class="flow-health-val">{{ stats.avgCostMs }}<small> ms</small></span>
+          <span class="flow-health-desc">近 30 天落盘执行</span>
+        </div>
+      </div>
+
+      <!-- 近 24 小时执行分布（SVG 柱状：绿=成功 红=失败） -->
+      <div class="flow-health-chart">
+        <div class="flow-health-chart-head">
+          <span class="flow-health-chart-title">近 24 小时执行</span>
+          <span class="flow-health-chart-hint">绿=成功 · 红=失败</span>
+        </div>
+        <div class="flow-bars">
+          <div v-for="(h, i) in stats.hourly" :key="h.hour" class="flow-bar-col" :title="`${h.hour} · ${h.total} 次（成功 ${h.success} / 失败 ${h.failed}）`">
+            <div class="flow-bar-stack">
+              <div v-if="h.failed" class="flow-bar-seg is-fail" :style="{ height: barHeight(h.failed, maxHour) }" />
+              <div v-if="h.success" class="flow-bar-seg is-ok" :style="{ height: barHeight(h.success, maxHour) }" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 失败原因归类：点击某类 → 以该关键词搜索 -->
+      <div v-if="stats.failureGroups.length" class="flow-health-fail">
+        <span class="flow-health-chart-title">失败原因归类</span>
+        <button
+          v-for="g in stats.failureGroups"
+          :key="g.label"
+          type="button"
+          class="flow-fail-chip"
+          :class="{ 'is-active': keyword === g.label }"
+          @click="applyFailureFilter(g.label)"
+        >
+          {{ g.label }}
+          <span class="flow-fail-chip-count">{{ g.count }}</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 筛选卡片：任务 / 状态 / 触发 / 关键词 一行 -->
     <section class="flow-filters">
       <ReSelect
         v-model="filters.taskId"
@@ -45,6 +100,19 @@
         :options="TRIGGER_OPTIONS"
         @change="applyFilters"
       />
+      <el-input
+        v-model="keywordInput"
+        class="flow-filter-keyword"
+        placeholder="搜过程日志：SQL / 任务名 / 错误文本…"
+        clearable
+        :prefix-icon="SearchIcon"
+        @keyup.enter="applyKeyword"
+        @clear="applyKeyword"
+      >
+        <template #append>
+          <ReButton :loading="loading" class="flow-filter-search-btn" @click="applyKeyword">搜索</ReButton>
+        </template>
+      </el-input>
       <span class="flow-filters-hint">保留 30 天 · 每天 03:30 自动清理过期记录</span>
     </section>
 
@@ -83,7 +151,6 @@
           {{ row.status === "SUCCESS" ? "成功" : "失败" }}
         </span>
       </template>
-      <!-- 旅程迷你列：读源 → 映射 → 写入，颜色即结果 -->
       <template #journey="{ row }">
         <div
           class="flow-mini"
@@ -97,6 +164,12 @@
           <span class="flow-mini-node">3</span>
         </div>
       </template>
+      <template #rw="{ row }">
+        <span v-if="row.readCount != null || row.writeCount != null" class="flow-rw">
+          读 <b class="flow-mono">{{ row.readCount ?? "—" }}</b> / 写 <b class="flow-mono">{{ row.writeCount ?? "—" }}</b> 行
+        </span>
+        <span v-else class="flow-rw flow-rw--empty">—</span>
+      </template>
       <template #costMs="{ row }">
         <span class="flow-mono">{{ row.costMs ?? "—" }} ms</span>
       </template>
@@ -108,11 +181,11 @@
       </template>
     </ReTable>
 
-    <!-- 详情抽屉：某一次执行的旅程 + 过程日志 -->
+    <!-- 详情弹窗：旅程瀑布 + 摘要（读/写）+ 过程日志 + 耗时趋势 + 失败重跑 -->
     <ReDialog
       v-model="detailVisible"
       class="flow-detail-dlg"
-      width="820px"
+      width="860px"
       title="执行日志详情"
       :subtitle="detail?.taskName || ''"
       :icon="DocumentIcon"
@@ -134,7 +207,7 @@
           </template>
         </div>
 
-        <!-- 摘要条 -->
+        <!-- 摘要条：状态 + 时间 + 触发 + 耗时 + 行数 + 读/写 -->
         <div class="flow-detail-summary">
           <span class="flow-status" :class="detail.status === 'SUCCESS' ? 'ok' : 'bad'">
             {{ detail.status === "SUCCESS" ? "成功" : "失败" }}
@@ -143,6 +216,54 @@
           <span class="flow-detail-meta">{{ triggerLabel(detail.trigger) }}</span>
           <span class="flow-detail-meta">{{ detail.costMs ?? "—" }} ms</span>
           <span class="flow-detail-meta">{{ detail.lineCount }} 行</span>
+          <span v-if="detail.readCount != null || detail.writeCount != null" class="flow-detail-meta flow-rw">
+            读 <b class="flow-mono">{{ detail.readCount ?? "—" }}</b> / 写 <b class="flow-mono">{{ detail.writeCount ?? "—" }}</b> 行
+          </span>
+        </div>
+
+        <!-- 阶段瀑布：按真实时间比例定位的过程分段 -->
+        <div v-if="phases.length" class="flow-waterfall">
+          <div class="flow-detail-block-head">
+            <span class="flow-detail-block-title">执行阶段瀑布</span>
+            <span class="flow-detail-block-hint">每段按真实时间比例定位，悬停看起止</span>
+          </div>
+          <div class="flow-waterfall-rows">
+            <button
+              v-for="(p, i) in phases"
+              :key="p.key"
+              type="button"
+              class="flow-waterfall-row"
+              :class="`is-${p.tone}`"
+              :style="{ left: p.leftPct + '%', width: p.widthPct + '%' }"
+              :title="`${p.name} · 起点 ${p.fromMs} ms · 跨度 ${p.spanMs} ms · ${p.count} 行`"
+            >
+              <span class="flow-waterfall-name">{{ p.name }}</span>
+              <span class="flow-waterfall-meta">{{ p.spanMs }} ms</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 该任务耗时趋势（最近 30 次，失败标红） -->
+        <div v-if="trendPoints.length > 1" class="flow-trend">
+          <div class="flow-detail-block-head">
+            <span class="flow-detail-block-title">该任务耗时趋势</span>
+            <span class="flow-detail-block-hint">最近 {{ trendPoints.length }} 次执行 · 红点=失败</span>
+          </div>
+          <div class="flow-trend-chart">
+            <svg :viewBox="`0 0 ${trendW} ${trendH}`" preserveAspectRatio="none" class="flow-trend-svg">
+              <polyline
+                class="flow-trend-line"
+                :points="trendPolyline"
+                fill="none"
+              />
+              <circle
+                v-for="(pt, i) in trendDots"
+                :key="i"
+                :cx="pt.x" :cy="pt.y" r="2.6"
+                :class="pt.status === 'FAILED' ? 'flow-trend-dot is-fail' : 'flow-trend-dot is-ok'"
+              />
+            </svg>
+          </div>
         </div>
 
         <!-- 过程日志 -->
@@ -167,6 +288,16 @@
         </div>
       </div>
       <div v-else-if="detailLoading" class="flow-detail-loading">加载中…</div>
+
+      <!-- footer：失败一键重跑 -->
+      <template #footer>
+        <div v-if="detail && detail.status === 'FAILED' && detail.taskId != null" class="flow-detail-actions">
+          <ReButton type="primary" :loading="rerunning" :icon="RefreshIcon" @click="rerun(detail)">
+            <template #icon><ReIcon name="Refresh" /></template>重新执行该任务
+          </ReButton>
+          <span class="flow-detail-actions-hint">重跑会生成一次新的执行记录</span>
+        </div>
+      </template>
     </ReDialog>
   </div>
 </template>
@@ -175,42 +306,54 @@
 /**
  * 同步日志页 —— 跨任务汇总每次数据同步执行的旅程与过程详情。
  *
- * <p>设计取向：把「一次同步」表达为一段旅程——读源 → 字段映射 → 写入目标。
- * 列表用 ReTable 承载执行记录，「旅程」列以三节点走线用颜色直接传达结果
- * （绿=顺利走完 / 红=以失败告终）；点开某次执行看完整过程日志，定位卡在哪一步。</p>
- *
- * <p>与「数据同步」列表页里的「日志」弹窗（按任务查、含进行中实时追加）不同，
- * 本页是独立菜单入口，面向「所有任务的所有执行」：后端
- * {@code GET /ms/monitor/datasync/logs} 分页返回每一次执行（带任务名），点开
- * {@code GET /ms/monitor/datasync/logs/{id}} 查看该次执行的完整过程日志。</p>
- *
  * <p>数据来自 {@code ms_sync_task_run_log}（执行结束时落库，保留 30 天、每天
  * 03:30 由调度器清理）。任务删除后日志仍保留，任务名位置显示回退文案。</p>
+ *
+ * <p>本页在基础列表之外聚合了几层排障能力：</p>
+ * <ul>
+ *   <li><b>健康度总览</b>：成功率 / 失败数 / 平均耗时统计卡 + 近 24h 逐小时执行分布（SVG 柱状）；</li>
+ *   <li><b>失败原因归类</b>：按 ERROR 行稳定关键段分组，点某类即以该关键词搜索；</li>
+ *   <li><b>过程日志检索</b>：关键词 LIKE 匹配正文（SQL / 任务名 / 错误文本）；</li>
+ *   <li><b>读 / 写行数</b>：执行结束解析入库，列表与详情直接展示；</li>
+ *   <li><b>阶段瀑布</b>：详情按真实时间比例定位各执行阶段（读源 / 映射 / 写入 / 收尾 / 其他）；</li>
+ *   <li><b>耗时趋势</b>：详情内展示该任务最近 N 次执行耗时（失败标红）；</li>
+ *   <li><b>失败一键重跑</b>：失败详情底部可直接重跑该任务，生成新执行记录。</li>
+ * </ul>
  *
  * @author CH
  * @since 4.0.0.44
  */
 import { computed, onMounted, reactive, ref } from "vue";
-import { Document as DocumentIcon } from "@element-plus/icons-vue";
+import { Document as DocumentIcon, Refresh as RefreshIcon, Search as SearchIcon } from "@element-plus/icons-vue";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 import ReTable from "@repo/ui/re-table";
 import ReSelect from "@repo/ui/re-select";
 import ReButton from "@repo/ui/re-button";
 import ReIcon from "@repo/ui/re-icon";
 import ReDialog from "@repo/ui/re-dialog";
+import { message } from "@repo/core";
 import {
   fetchSyncTasks,
   fetchSyncRunLogs,
   fetchSyncRunLogDetail,
+  fetchSyncRunLogStats,
+  fetchSyncRunLogTrend,
+  rerunSyncRunLog,
   type SyncTask,
   type SyncTaskRunLogItem,
   type SyncTaskRunLogDetail,
+  type SyncTaskRunLogLine,
+  type SyncRunLogStats,
+  type SyncRunLogTrend,
 } from "../../api/syncTaskApi";
 
 /** 旅程三阶段（数据同步的真实流程：读源 → 字段映射 → 写入目标） */
 const JOURNEY_STEPS = ["读源", "映射", "写入"] as const;
 
-/** 状态分段：全部 / 成功 / 失败（value 与后端一致，"" 表示不过滤） */
+/** 每页条数 */
+const PAGE_SIZE = 12;
+
+/** 状态分段 */
 const STATUS_SEGMENTS = [
   { label: "全部", value: "" },
   { label: "成功", value: "SUCCESS" },
@@ -224,43 +367,52 @@ const TRIGGER_OPTIONS = [
   { label: "实时", value: "REALTIME" },
 ];
 
-/** 查询参数（ReTable 远程 loader 传参；page/pageSize 由 v-model 双向绑定） */
+/** 查询参数（ReTable 远程 loader 传参） */
 const pageQuery = reactive<{
   page: number;
   pageSize: number;
   taskId?: number | null;
   status?: string;
   trigger?: string;
-}>({ page: 1, pageSize: 12, taskId: null, status: "", trigger: "" });
+  keyword?: string;
+}>({ page: 1, pageSize: PAGE_SIZE, taskId: null, status: "", trigger: "", keyword: "" });
 
-/** 筛选面板状态（与 pageQuery 分离：只在此处改动，应用后统一回第一页） */
+/** 筛选面板状态 */
 const filters = reactive<{ taskId?: number | null; status: string; trigger?: string }>({
   taskId: null,
   status: "",
   trigger: "",
 });
 
+/** 关键词输入框（独立于 pageQuery.keyword：回车/搜索/清空时才应用） */
+const keywordInput = ref("");
+const keyword = ref("");
+
 const tableRef = ref();
 const loading = ref(false);
-const total = ref(0);
 
-/** 任务下拉：全部任务名（供按任务过滤） */
+/** 健康度总览 */
+const stats = ref<SyncRunLogStats>({ total: 0, success: 0, failed: 0, successRate: 0, avgCostMs: 0, hourly: [], failureGroups: [] });
+const statsLoaded = ref(false);
+
+/** 任务下拉 */
 const tasks = ref<SyncTask[]>([]);
 const taskOptions = computed(() => tasks.value.map(t => ({ label: t.syncTaskName, value: t.id })));
 
 /** 表格列定义 */
 const columns: ReTableColumn[] = [
-  { prop: "runTime", label: "执行时间", width: 170, slot: "runTime" },
-  { prop: "taskName", label: "任务", minWidth: 180, slot: "taskName" },
-  { prop: "trigger", label: "触发", width: 90, slot: "trigger", align: "center" },
-  { prop: "status", label: "状态", width: 90, slot: "status", align: "center" },
-  { prop: "journey", label: "旅程", width: 150, slot: "journey", align: "center" },
-  { prop: "costMs", label: "耗时", width: 90, slot: "costMs", align: "center" },
-  { prop: "lineCount", label: "行数", width: 80, slot: "lineCount", align: "center" },
+  { prop: "runTime", label: "执行时间", width: 165, slot: "runTime" },
+  { prop: "taskName", label: "任务", minWidth: 160, slot: "taskName" },
+  { prop: "trigger", label: "触发", width: 84, slot: "trigger", align: "center" },
+  { prop: "status", label: "状态", width: 84, slot: "status", align: "center" },
+  { prop: "journey", label: "旅程", width: 130, slot: "journey", align: "center" },
+  { prop: "rw", label: "读/写", width: 120, slot: "rw", align: "center" },
+  { prop: "costMs", label: "耗时", width: 86, slot: "costMs", align: "center" },
+  { prop: "lineCount", label: "行数", width: 76, slot: "lineCount", align: "center" },
   { prop: "action", label: "操作", width: 80, slot: "action", fixed: "right", align: "center" },
 ];
 
-/** 远程分页 loader：后端 /logs 分页，返回 { total, data } */
+/** 远程分页 loader */
 async function loadLogs({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
   loading.value = true;
   try {
@@ -270,10 +422,9 @@ async function loadLogs({ page, pageSize, params }: ReTableLoadParams): Promise<
       taskId: (params.taskId as number) ?? null,
       status: (params.status as string) || null,
       trigger: (params.trigger as string) || null,
+      keyword: (params.keyword as string) || null,
     });
-    const list = res?.records ?? [];
-    total.value = res?.total ?? 0;
-    return { total: res?.total ?? 0, data: list as unknown as Record<string, unknown>[] };
+    return { total: res?.total ?? 0, data: (res?.records ?? []) as unknown as Record<string, unknown>[] };
   } finally {
     loading.value = false;
   }
@@ -288,24 +439,207 @@ function applyFilters() {
   void tableRef.value?.reload();
 }
 
-/** 重新拉取（保留筛选与当前页） */
-function reload() {
+/** 应用关键词（搜索 / 回车 / 清空） */
+function applyKeyword() {
+  keyword.value = keywordInput.value.trim();
+  pageQuery.keyword = keyword.value || "";
+  pageQuery.page = 1;
   void tableRef.value?.reload();
 }
 
-/** 详情 */
+/** 失败归类点击 → 以该标签为关键词搜索 */
+function applyFailureFilter(label: string) {
+  keywordInput.value = label;
+  keyword.value = label;
+  pageQuery.keyword = label;
+  pageQuery.page = 1;
+  void tableRef.value?.reload();
+}
+
+/** 刷新（保留筛选与当前页） */
+function reload() {
+  void tableRef.value?.reload();
+  void loadStats();
+}
+
+/** 加载健康度总览 */
+async function loadStats() {
+  try {
+    const s = await fetchSyncRunLogStats();
+    if (s) stats.value = s;
+    else stats.value = { total: 0, success: 0, failed: 0, successRate: 0, avgCostMs: 0, hourly: [], failureGroups: [] };
+  } catch {
+    stats.value = { total: 0, success: 0, failed: 0, successRate: 0, avgCostMs: 0, hourly: [], failureGroups: [] };
+  } finally {
+    statsLoaded.value = true;
+  }
+}
+
+/** 24h 柱状：最大计数（归一化用） */
+const maxHour = computed(() => Math.max(1, ...stats.value.hourly.map(h => h.total)));
+const barHeight = (n: number, max: number) => `${Math.max(2, Math.round((n / max) * 100))}%`;
+
+/** ===== 阶段瀑布（详情内，从过程日志解析） ===== */
+interface Phase {
+  key: string;
+  name: string;
+  tone: "read" | "map" | "write" | "final" | "other";
+  fromMs: number;
+  spanMs: number;
+  count: number;
+  leftPct: number;
+  widthPct: number;
+}
+
+/** 阶段关键词：命中即归属该阶段（顺序即优先级） */
+const PHASE_RULES: Array<{ name: string; tone: Phase["tone"]; keys: string[] }> = [
+  { name: "读源 / 连接", tone: "read", keys: ["连接", "读取", "读源", "源 SQL", "解析", "字段"] },
+  { name: "映射", tone: "map", keys: ["映射", "配对", "自动配对", "显式字段"] },
+  { name: "写入", tone: "write", keys: ["写入", "写 ", "写N", "INSERT", "UPSERT", "REPLACE", "OVERWRITE", "目标", "批量"] },
+  { name: "收尾 / 完成", tone: "final", keys: ["完成", "结束", "执行完成", "留档"] },
+];
+
+function phaseOf(message: string): Phase["tone"] {
+  for (const rule of PHASE_RULES) {
+    if (rule.keys.some(k => message.includes(k))) return rule.tone;
+  }
+  return "other";
+}
+
+const PHASE_NAMES: Record<Phase["tone"], string> = {
+  read: "读源 / 连接",
+  map: "映射",
+  write: "写入",
+  final: "收尾 / 完成",
+  other: "其它",
+};
+
+/** 详情弹窗里解析出的阶段瀑布 */
+const phases = ref<Phase[]>([]);
+
+/** 把 HH:mm:ss.SSS 转成当日毫秒 */
+function timeToMs(t: string): number {
+  const parts = t.split(":");
+  if (parts.length !== 3) return 0;
+  const secs = parts[2].split(".");
+  return (+parts[0] * 3600 + +parts[1] * 60 + +secs[0]) * 1000 + +(secs[1] ?? "0");
+}
+
+/** 从过程日志行构建阶段瀑布（按真实时间比例） */
+function buildPhases(lines: SyncTaskRunLogLine[]): Phase[] {
+  if (!lines.length) return [];
+  const stamps = lines.map(l => timeToMs(l.time)).filter(n => Number.isFinite(n));
+  if (!stamps.length) return [];
+  const start = Math.min(...stamps);
+  const end = Math.max(...stamps);
+  const total = Math.max(end - start, 1);
+
+  const groups: Record<Phase["tone"], { from: number; to: number; count: number }> = {
+    read: { from: Number.POSITIVE_INFINITY, to: Number.NEGATIVE_INFINITY, count: 0 },
+    map: { from: Number.POSITIVE_INFINITY, to: Number.NEGATIVE_INFINITY, count: 0 },
+    write: { from: Number.POSITIVE_INFINITY, to: Number.NEGATIVE_INFINITY, count: 0 },
+    final: { from: Number.POSITIVE_INFINITY, to: Number.NEGATIVE_INFINITY, count: 0 },
+    other: { from: Number.POSITIVE_INFINITY, to: Number.NEGATIVE_INFINITY, count: 0 },
+  };
+  lines.forEach((line, idx) => {
+    const ms = timeToMs(line.time);
+    const tone = phaseOf(line.message);
+    const g = groups[tone];
+    g.from = Math.min(g.from, ms);
+    g.to = Math.max(g.to, ms);
+    g.count++;
+    void idx;
+  });
+
+  const order: Phase["tone"][] = ["read", "map", "write", "final", "other"];
+  const result: Phase[] = [];
+  for (const tone of order) {
+    const g = groups[tone];
+    if (g.count === 0) continue;
+    const from = Math.max(g.from, start);
+    const to = Math.min(g.to, end);
+    result.push({
+      key: tone,
+      name: PHASE_NAMES[tone],
+      tone,
+      fromMs: from - start,
+      spanMs: Math.max(to - from, 0),
+      count: g.count,
+      leftPct: ((from - start) / total) * 100,
+      widthPct: Math.max((Math.max(to - from, 1) / total) * 100, 2.5),
+    });
+  }
+  return result;
+}
+
+/** ===== 耗时趋势（详情内） ===== */
+const trendPoints = ref<Array<{ runTime: string; costMs: number | null; status: string }>>([]);
+const trendW = 480;
+const trendH = 64;
+
+const trendDots = computed(() => {
+  const pts = trendPoints.value;
+  if (pts.length < 2) return [];
+  const costs = pts.map(p => p.costMs ?? 0);
+  const max = Math.max(...costs, 1);
+  const min = Math.min(...costs, 0);
+  const range = Math.max(max - min, 1);
+  return pts.map((p, i) => ({
+    x: 4 + (i * (trendW - 8)) / (pts.length - 1),
+    y: trendH - 6 - ((p.costMs ?? 0) - min) * ((trendH - 12) / range),
+    status: p.status,
+  }));
+});
+
+const trendPolyline = computed(() =>
+  trendDots.value.map(d => `${d.x.toFixed(1)},${d.y.toFixed(1)}`).join(" ")
+);
+
+/** ===== 详情 ===== */
 const detailVisible = ref(false);
 const detail = ref<SyncTaskRunLogDetail | null>(null);
 const detailLoading = ref(false);
+const rerunning = ref(false);
 
 async function openDetail(row: SyncTaskRunLogItem) {
   detailVisible.value = true;
   detailLoading.value = true;
   detail.value = null;
+  phases.value = [];
+  trendPoints.value = [];
   try {
-    detail.value = await fetchSyncRunLogDetail(row.id);
+    const d = await fetchSyncRunLogDetail(row.id);
+    detail.value = d;
+    phases.value = d ? buildPhases(d.lines) : [];
+    if (d?.taskId != null) {
+      try {
+        const t: SyncRunLogTrend = await fetchSyncRunLogTrend(d.taskId, 30);
+        trendPoints.value = t?.points ?? [];
+      } catch {
+        trendPoints.value = [];
+      }
+    }
   } finally {
     detailLoading.value = false;
+  }
+}
+
+/** 失败一键重跑 */
+async function rerun(row: SyncTaskRunLogDetail) {
+  rerunning.value = true;
+  try {
+    const result = await rerunSyncRunLog(row.id);
+    const ok = result?.status !== "FAILED";
+    if (ok) {
+      message.success(`已重新执行：读 ${result.readCount ?? 0} 行，写 ${result.writeCount ?? 0} 行，${result.costMs}ms`);
+    } else {
+      message.error(`重跑失败：${result.message || "执行失败"}`);
+    }
+  } catch (e) {
+    message.error((e as Error)?.message ?? "重跑失败");
+  } finally {
+    rerunning.value = false;
+    void reload();
   }
 }
 
@@ -317,6 +651,7 @@ function triggerLabel(trigger: string): string {
 }
 
 onMounted(async () => {
+  void loadStats();
   try {
     tasks.value = (await fetchSyncTasks()) ?? [];
   } catch {
@@ -330,9 +665,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  /* 不自带内边距：外层路由容器 .main-content 已有 padding（koi 主题 8px），
-     这里再加 16/20/20 会让整页多出一圈留白、内容被挤窄。 */
-  padding: 0;
+  padding: 16px 20px 20px;
 }
 
 /* ---------- 页头卡片 ---------- */
@@ -371,7 +704,72 @@ onMounted(async () => {
 .flow-hero-stat-val { font-size: 22px; font-weight: 700; color: var(--brand-600); font-variant-numeric: tabular-nums; }
 .flow-hero-stat-key { font-size: 12px; color: var(--text-tertiary); }
 
-/* ---------- 筛选卡片（一行） ---------- */
+/* ---------- 健康度总览 ---------- */
+.flow-health {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--bg-container);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+}
+.flow-health-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.flow-health-card {
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.flow-health-key { font-size: 11px; color: var(--text-tertiary); }
+.flow-health-val { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.flow-health-val small { font-size: 13px; font-weight: 600; color: var(--text-tertiary); }
+.flow-health-val.is-good { color: var(--status-success); }
+.flow-health-val.is-warn { color: var(--status-warning); }
+.flow-health-val.is-bad { color: var(--status-error); }
+.flow-health-desc { font-size: 10.5px; color: var(--text-tertiary); }
+
+.flow-health-chart-head, .flow-detail-block-head { display: flex; align-items: baseline; gap: 10px; }
+.flow-health-chart-title { font-size: 12.5px; font-weight: 700; color: var(--text-primary); }
+.flow-health-chart-hint { font-size: 11px; color: var(--text-tertiary); }
+
+.flow-bars { display: flex; align-items: flex-end; gap: 3px; height: 58px; margin-top: 6px; }
+.flow-bar-col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; }
+.flow-bar-stack { display: flex; flex-direction: column-reverse; width: 100%; }
+.flow-bar-seg { width: 100%; border-radius: 2px 2px 0 0; }
+.flow-bar-seg.is-ok { background: var(--status-success); }
+.flow-bar-seg.is-fail { background: var(--status-error); }
+
+.flow-health-fail { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; border-top: 1px dashed var(--border-subtle); padding-top: 10px; }
+.flow-fail-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-fill);
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .15s var(--ease-out);
+}
+.flow-fail-chip:hover { border-color: var(--brand-500); color: var(--brand-600); }
+.flow-fail-chip.is-active { border-color: var(--brand-500); background: var(--brand-50); color: var(--brand-600); }
+.flow-fail-chip-count {
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  background: var(--bg-container);
+  border-radius: 999px;
+  padding: 0 6px;
+  line-height: 1.6;
+}
+
+/* ---------- 筛选卡片 ---------- */
 .flow-filters {
   display: flex;
   align-items: center;
@@ -384,8 +782,10 @@ onMounted(async () => {
   box-shadow: var(--shadow-sm);
   overflow-x: auto;
 }
-.flow-filter-task { width: 240px; flex: none; }
-.flow-filter-trigger { width: 180px; flex: none; }
+.flow-filter-task { width: 200px; flex: none; }
+.flow-filter-trigger { width: 160px; flex: none; }
+.flow-filter-keyword { width: 260px; flex: none; }
+.flow-filter-search-btn { height: 100%; }
 .flow-seg { flex: none; }
 .flow-filters-hint { margin-left: auto; flex: none; font-size: 11.5px; color: var(--text-tertiary); white-space: nowrap; }
 
@@ -394,8 +794,10 @@ onMounted(async () => {
 .flow-mono { font-family: var(--el-font-family-mono, "JetBrains Mono", "Consolas", monospace); font-variant-numeric: tabular-nums; }
 .flow-task { font-weight: 600; color: var(--text-primary); }
 .flow-task.is-deleted { color: var(--text-tertiary); font-style: italic; font-weight: 500; }
+.flow-rw { font-size: 12px; color: var(--text-secondary); }
+.flow-rw b { color: var(--text-primary); }
+.flow-rw--empty { color: var(--text-tertiary); }
 
-/* 触发 / 状态胶囊 */
 .flow-trigger {
   display: inline-block;
   font-size: 11px; font-weight: 600; border-radius: 999px; padding: 1px 8px; line-height: 1.7;
@@ -408,36 +810,26 @@ onMounted(async () => {
 .flow-status.ok { background: var(--status-success); }
 .flow-status.bad { background: var(--status-error); }
 
-/* 旅程迷你列 */
 .flow-mini { display: inline-flex; align-items: center; }
-.flow-mini-node {
-  width: 18px; height: 18px; border-radius: 50%; flex: none;
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 700; color: #fff;
-}
+.flow-mini-node { width: 18px; height: 18px; border-radius: 50%; flex: none; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; }
 .flow-mini-line { width: 16px; height: 2px; flex: none; border-radius: 2px; }
 .flow-mini.ok .flow-mini-node { background: var(--status-success); }
 .flow-mini.ok .flow-mini-line { background: var(--status-success); }
 .flow-mini.bad .flow-mini-node { background: var(--status-error); }
 .flow-mini.bad .flow-mini-line { background: var(--status-error); }
 
-/* 空态 */
 .flow-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 30px 0; }
 .flow-empty-icon { color: var(--brand-500); opacity: .7; }
 .flow-empty-title { font-weight: 600; color: var(--text-primary); }
 .flow-empty-desc { font-size: 12px; color: var(--text-secondary); max-width: 420px; text-align: center; }
 .flow-empty > :last-child { margin-top: 6px; }
 
-/* ---------- 详情抽屉 ---------- */
+/* ---------- 详情弹窗 ---------- */
 .flow-detail { display: flex; flex-direction: column; gap: 12px; }
 .flow-journey { display: flex; align-items: flex-start; }
 .flow-journey--detail { margin: 2px 0 4px; padding: 12px; background: var(--bg-fill); border-radius: 10px; }
 .flow-step { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: none; }
-.flow-node {
-  width: 26px; height: 26px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 700; color: #fff;
-}
+.flow-node { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; }
 .flow-node.ok { background: var(--status-success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-success) 16%, transparent); }
 .flow-node.bad { background: var(--status-error); box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-error) 16%, transparent); }
 .flow-node-label { font-size: 10.5px; color: var(--text-tertiary); }
@@ -447,11 +839,49 @@ onMounted(async () => {
 
 .flow-detail-summary { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .flow-detail-meta { font-size: 12px; color: var(--text-secondary); }
+
 .flow-detail-block { display: flex; flex-direction: column; gap: 8px; }
-.flow-detail-block-head { display: flex; align-items: baseline; gap: 10px; }
 .flow-detail-block-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
 .flow-detail-block-hint { font-size: 11.5px; color: var(--text-tertiary); }
 .flow-detail-loading { padding: 30px 0; text-align: center; font-size: 12.5px; color: var(--text-tertiary); }
+
+/* 阶段瀑布 */
+.flow-waterfall { display: flex; flex-direction: column; gap: 6px; }
+.flow-waterfall-rows { position: relative; height: 30px; background: var(--bg-fill); border-radius: 8px; overflow: hidden; }
+.flow-waterfall-row {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  border: 0;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 0 8px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: default;
+  white-space: nowrap;
+  overflow: hidden;
+  color: #fff;
+}
+.flow-waterfall-row.is-read { background: color-mix(in srgb, var(--brand-500) 78%, #fff); }
+.flow-waterfall-row.is-map { background: color-mix(in srgb, var(--info, #0ea5e9) 80%, #fff); }
+.flow-waterfall-row.is-write { background: color-mix(in srgb, var(--status-success) 82%, #fff); }
+.flow-waterfall-row.is-final { background: color-mix(in srgb, var(--status-warning) 80%, #fff); }
+.flow-waterfall-row.is-other { background: color-mix(in srgb, var(--text-tertiary) 70%, #fff); }
+.flow-waterfall-name { overflow: hidden; text-overflow: ellipsis; }
+.flow-waterfall-meta { font-variant-numeric: tabular-nums; opacity: .85; }
+
+/* 耗时趋势 */
+.flow-trend { display: flex; flex-direction: column; gap: 6px; }
+.flow-trend-chart { border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-fill); padding: 4px; }
+.flow-trend-svg { width: 100%; height: 64px; display: block; }
+.flow-trend-line { stroke: var(--brand-400); stroke-width: 1.4; }
+.flow-trend-dot.is-ok { fill: var(--status-success); }
+.flow-trend-dot.is-fail { fill: var(--status-error); }
 
 .flow-lines {
   max-height: 55vh; overflow: auto;
@@ -470,14 +900,20 @@ onMounted(async () => {
 .flow-line-row.is-error .flow-line-msg { color: var(--status-error); }
 .flow-lines-empty { padding: 16px 4px; font-size: 12px; color: var(--text-tertiary); }
 
+/* footer 重跑 */
+.flow-detail-actions { display: flex; align-items: center; gap: 10px; }
+.flow-detail-actions-hint { font-size: 11.5px; color: var(--text-tertiary); }
+
 /* ---------- 响应式 ---------- */
 @media (max-width: 720px) {
-  .flow-page { padding: 0; }
+  .flow-page { padding: 14px 12px 16px; }
   .flow-filters { flex-wrap: wrap; overflow-x: visible; }
-  .flow-filter-task, .flow-filter-trigger { width: 100%; }
+  .flow-filter-task, .flow-filter-trigger, .flow-filter-keyword { width: 100%; }
   .flow-filters-hint { margin-left: 0; }
+  .flow-health-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .flow-hero-side { width: 100%; justify-content: space-between; }
   .flow-line-row { flex-wrap: wrap; row-gap: 1px; }
   .flow-line-msg { flex: 1 0 100%; }
+  .flow-waterfall-row { font-size: 10px; padding: 0 5px; }
 }
 </style>

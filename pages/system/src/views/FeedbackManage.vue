@@ -470,6 +470,7 @@ onMounted(() => {
       :params="{}"
       row-key="sysFeedbackId"
       :row-class-name="rowClassName"
+      :layout-table="{ minHeight: 420 }"
       v-model:page="query.page"
       v-model:page-size="query.pageSize"
       :search="{ filters: searchFilters, title: '搜索', btnMode: 'text' }"

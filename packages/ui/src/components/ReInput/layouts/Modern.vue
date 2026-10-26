@@ -8,7 +8,7 @@
  *   - 大圆角（8px）
  *   - 平滑过渡动画
  */
-import { ref, computed, useAttrs, onBeforeUnmount } from "vue";
+import { ref, computed, useAttrs, nextTick } from "vue";
 import "../../shared/modern-vars.css";
 
 defineOptions({ name: "ReInputModern", inheritAttrs: true });
@@ -63,15 +63,16 @@ const props = withDefaults(
     formatter?: (value: string | number | undefined) => string;
     parser?: (value: string) => string;
     /**
-     * 右侧专注模式（默认关闭）。
+     * 专注编辑（默认关闭）：输入框右侧出现一个专注图标，点击弹出编辑框。
      *
-     * <p>窄列（如表设计网格的「注释」列只有 ~120px）里编辑长文本很吃力：
-     * 开启后聚焦时输入框会**锚定当前位置、向右展开**成一块浮层（约 360px 宽，
-     * 悬浮在表格之上，z-index 提权），失焦即还原回单元格宽度。</p>
+     * <p>窄列（如表设计网格的「注释」列只有 ~120px）里编辑长文本很吃力。
+     * 早先的实现是「聚焦即把输入框改成 position:fixed 向右展开成浮层」，
+     * 那样会临时改变元素定位、盖住相邻单元格，行列对齐在展开/收起瞬间抖动，
+     * 表格整体样式也跟着乱。</p>
      *
-     * <p>实现要点：聚焦时读取 input 的 {@code getBoundingClientRect}，把 wrapper
-     * 切到 {@code position: fixed} 铺回同一位置并加宽；滚动时跟随（window scroll
-     * 监听重新定位），失焦 / 卸载时清理，不做成「跳走」的分离弹层。</p>
+     * <p>现在改成「图标 + 弹层」：输入框自身尺寸与定位永远不变，只有用户
+     * 主动点图标时才打开一个居中的编辑框（textarea + 确定/取消），
+     * 编辑大段文本不受单元格宽度限制，也不会打扰表格布局。</p>
      */
     focusRight?: boolean;
   }>(),
@@ -99,53 +100,52 @@ const props = withDefaults(
 
 const focused = ref(false);
 const passwordVisible = ref(false);
-const floatRect = ref<{ left: number; top: number; width: number } | null>(null);
-const wrapRef = ref<HTMLDivElement | null>(null);
-/** 专注模式下的浮动定位：null=未展开 */
-const floatPos = computed(() => (props.focusRight && focused.value ? floatRect.value : null));
 
-/** 聚焦：切到固定定位铺回原位置并向右展开（展开宽度参考设计表里能用的横向空间） */
-function onWrapFocus(e: FocusEvent): void {
+/** 专注编辑弹层是否打开 */
+const focusOpen = ref(false);
+/** 弹层里的草稿值：确定才回写，取消即丢弃 */
+const focusDraft = ref("");
+/** 弹层 textarea，打开后自动聚焦 */
+const focusAreaRef = ref<HTMLTextAreaElement | null>(null);
+
+function onFocus(): void {
   focused.value = true;
-  if (!props.focusRight) return;
-  window.addEventListener("scroll", onScrollSync, true);
-  const input = e.target as HTMLElement | null;
-  const rect = input?.getBoundingClientRect?.();
-  const vw = window.innerWidth;
-  if (rect) {
-    floatRect.value = {
-      left: rect.left,
-      top: rect.top,
-      // 向右展开：原宽基础上尽量吃到视口右侧留白，最大 360px，最小 260px
-      width: Math.min(360, Math.max(260, vw - rect.left - 16)),
-    };
-  }
 }
 
-function onWrapBlur(): void {
+function onBlur(): void {
   focused.value = false;
-  floatRect.value = null;
-  window.removeEventListener("scroll", onScrollSync, true);
 }
 
-/** 专注态滚动跟随：fixed 定位不随页面滚，滚动时把输入框钉回 input 当前视口位置 */
-function onScrollSync(): void {
-  if (!props.focusRight || !focused.value) return;
-  const input = wrapRef.value?.querySelector<HTMLElement>(".rm-input__inner, .rm-input__textarea");
-  const rect = input?.getBoundingClientRect?.();
-  if (rect) {
-    const vw = window.innerWidth;
-    floatRect.value = {
-      left: rect.left,
-      top: rect.top,
-      width: Math.min(360, Math.max(260, vw - rect.left - 16)),
-    };
+/** 打开专注编辑框，草稿从当前值起步 */
+async function openFocusEditor(): Promise<void> {
+  if (props.disabled || props.readonly) return;
+  focusDraft.value = String(model.value ?? "");
+  focusOpen.value = true;
+  await nextTick();
+  focusAreaRef.value?.focus();
+}
+
+/** 取消：丢弃草稿 */
+function cancelFocusEditor(): void {
+  focusOpen.value = false;
+}
+
+/** 确定：把草稿回写成模型值 */
+function applyFocusEditor(): void {
+  model.value = focusDraft.value as never;
+  focusOpen.value = false;
+}
+
+/** 弹层里的键盘：Esc 取消、Ctrl/Cmd+Enter 确定 */
+function onFocusKeydown(e: KeyboardEvent): void {
+  if (e.key === "Escape") {
+    e.stopPropagation();
+    cancelFocusEditor();
+  } else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    applyFocusEditor();
   }
 }
-
-onBeforeUnmount(() => {
-  window.removeEventListener("scroll", onScrollSync, true);
-});
 
 const isTextarea = computed(() => props.type === "textarea");
 const inputType = computed(() => {
@@ -177,7 +177,6 @@ function togglePassword(): void {
 
 <template>
   <div
-    ref="wrapRef"
     :class="[
       'rm-input-wrap',
       `rm-input-wrap--${size || 'default'}`,
@@ -187,10 +186,8 @@ function togglePassword(): void {
         'rm-input-wrap--readonly': readonly,
         [`rm-input-wrap--${status}`]: status,
         'rm-input-wrap--textarea': isTextarea,
-        'rm-input-wrap--focus-right': props.focusRight,
       },
     ]"
-    :style="floatPos ? { position: 'fixed', left: `${floatPos.left}px`, top: `${floatPos.top}px`, width: `${floatPos.width}px`, zIndex: 3001 } : undefined"
     v-bind="$attrs"
   >
     <div v-if="$slots.prefix || prefixIcon" class="rm-input__prefix">
@@ -211,8 +208,8 @@ function togglePassword(): void {
       class="rm-input__textarea"
       v-bind="ariaAttrs"
       @input="onInput"
-      @focus="onWrapFocus"
-      @blur="onWrapBlur"
+      @focus="onFocus"
+      @blur="onBlur"
     />
     <input
       v-else
@@ -226,8 +223,8 @@ function togglePassword(): void {
       class="rm-input__inner"
       v-bind="ariaAttrs"
       @input="onInput"
-      @focus="onWrapFocus"
-      @blur="onWrapBlur"
+      @focus="onFocus"
+      @blur="onBlur"
     />
 
     <div class="rm-input__suffix">
@@ -237,6 +234,23 @@ function togglePassword(): void {
       <span v-if="showWordLimit && maxlength" class="rm-input__count">
         {{ String(model ?? '').length }}/{{ maxlength }}
       </span>
+
+      <!-- 专注编辑：点图标弹编辑框，输入框自身尺寸/定位不变 -->
+      <button
+        v-if="focusRight && !disabled && !readonly"
+        class="rm-input__focus"
+        type="button"
+        aria-label="专注编辑"
+        title="专注编辑"
+        @click.stop="openFocusEditor"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 3h6v6" />
+          <path d="M9 21H3v-6" />
+          <path d="M21 3l-7 7" />
+          <path d="M3 21l7-7" />
+        </svg>
+      </button>
 
       <!-- 密码切换 -->
       <button v-if="showPassword" class="rm-input__eye" type="button" @click="togglePassword">
@@ -252,6 +266,32 @@ function togglePassword(): void {
       <slot name="append" />
     </div>
   </div>
+
+  <!-- 专注编辑弹层：挂在 body 上，不受表格单元格裁剪与层级影响 -->
+  <Teleport to="body">
+    <div v-if="focusOpen" class="rm-focus-mask" @click.self="cancelFocusEditor">
+      <div class="rm-focus-panel" role="dialog" aria-modal="true" aria-label="专注编辑">
+        <div class="rm-focus-head">
+          <span class="rm-focus-title">专注编辑</span>
+          <button class="rm-focus-close" type="button" aria-label="关闭" @click="cancelFocusEditor">×</button>
+        </div>
+        <textarea
+          ref="focusAreaRef"
+          v-model="focusDraft"
+          class="rm-focus-textarea"
+          rows="10"
+          :placeholder="placeholder || '请输入内容'"
+          @keydown="onFocusKeydown"
+        />
+        <div class="rm-focus-foot">
+          <span class="rm-focus-count">{{ focusDraft.length }} 字符</span>
+          <span class="rm-focus-spacer" />
+          <button class="rm-focus-btn" type="button" @click="cancelFocusEditor">取消</button>
+          <button class="rm-focus-btn rm-focus-btn--primary" type="button" @click="applyFocusEditor">确定</button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -283,16 +323,6 @@ function togglePassword(): void {
 /* Focus */
 .rm-input-wrap--focused {
   box-shadow: 0 0 0 1px var(--rm-border-focus, var(--rm-primary)) inset, 0 0 0 4px var(--rm-primary-light-9);
-}
-
-/* 右侧专注模式：聚焦时是浮在页面上的编辑层（position:fixed + z-index 由内联样式给），
-   需要投影把它和底下的表格/单元格区分开，否则浮层和表格融为一体、看不出宽度扩展了。 */
-.rm-input-wrap--focus-right.rm-input-wrap--focused {
-  box-shadow:
-    0 0 0 1px var(--rm-border-focus, var(--rm-primary)) inset,
-    0 0 0 4px var(--rm-primary-light-9),
-    0 4px 16px rgba(15, 23, 42, 0.16);
-  background: var(--rm-bg, #fff);
 }
 
 /* Status */
@@ -371,6 +401,32 @@ function togglePassword(): void {
 .rm-input__clear:hover { color: var(--rm-text); }
 .rm-input__clear svg { width: 14px; height: 14px; }
 
+/* Focus-mode icon：常态低对比，hover / focus 才提亮，避免抢走输入内容的注意力 */
+.rm-input__focus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--rm-text-disabled);
+  border-radius: var(--el-radius-xs, 4px);
+  transition: color var(--rm-transition), background var(--rm-transition);
+}
+.rm-input__focus:hover {
+  color: var(--rm-primary);
+  background: var(--rm-primary-light-9);
+}
+.rm-input__focus:focus-visible {
+  outline: none;
+  color: var(--rm-primary);
+  box-shadow: 0 0 0 2px var(--rm-primary-light-9);
+}
+.rm-input__focus svg { width: 13px; height: 13px; }
+
 /* Eye */
 .rm-input__eye {
   display: inline-flex;
@@ -390,8 +446,125 @@ function togglePassword(): void {
 
 /* Count */
 .rm-input__count {
-  font-size: var(--rm-font-xs);
+  font-size: var(--rm-font-sm, 12px);
   color: var(--rm-text-secondary);
   white-space: nowrap;
+}
+
+/* ---------- 专注编辑弹层 ---------- */
+.rm-focus-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--rm-overlay);
+}
+
+.rm-focus-panel {
+  width: min(720px, 100%);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px 12px;
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--rm-bg-overlay);
+  box-shadow: var(--rm-shadow-lg);
+  box-sizing: border-box;
+}
+
+.rm-focus-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rm-focus-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rm-text);
+}
+
+.rm-focus-close {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--rm-text-secondary);
+  border-radius: var(--el-radius-xs, 4px);
+  transition: color var(--rm-transition), background var(--rm-transition);
+}
+.rm-focus-close:hover {
+  color: var(--rm-text);
+  background: var(--rm-bg-hover);
+}
+
+.rm-focus-textarea {
+  flex: 1;
+  min-height: 160px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid var(--rm-border);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--rm-bg);
+  color: var(--rm-text);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  transition: border-color var(--rm-transition);
+}
+.rm-focus-textarea:focus { border-color: var(--rm-border-focus); }
+
+.rm-focus-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rm-focus-count {
+  font-size: 11px;
+  color: var(--rm-text-secondary);
+}
+
+.rm-focus-spacer { flex: 1; }
+
+.rm-focus-btn {
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--rm-border);
+  border-radius: var(--el-radius-sm, 6px);
+  background: var(--rm-bg);
+  color: var(--rm-text-regular);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color var(--rm-transition), color var(--rm-transition), background var(--rm-transition);
+}
+.rm-focus-btn:hover {
+  border-color: var(--rm-border-hover);
+  color: var(--rm-text);
+}
+
+.rm-focus-btn--primary {
+  border-color: var(--rm-primary);
+  background: var(--rm-primary);
+  color: var(--rm-text-white);
+}
+.rm-focus-btn--primary:hover {
+  border-color: var(--rm-primary-hover);
+  background: var(--rm-primary-hover);
+  color: var(--rm-text-white);
 }
 </style>

@@ -109,36 +109,64 @@ export function useRealtimeLog(options: UseRealtimeLogOptions = {}): UseRealtime
   function onLogEvent(event: RealtimeEvent) {
     if (!active.value) return;
     try {
-      const raw = event.data;
-      const rec = normalizeLogRecord(raw);
-      if (!rec || (!rec.level && !rec.message)) return;
-      receivedCount.value += 1;
-
-      const list = items.value;
-      // 去重：同 timestamp + message 视为重复帧，忽略
-      if (
-        list.length &&
-        list[0].timestamp === rec.timestamp &&
-        list[0].message === rec.message
-      ) {
-        return;
+      const batch = normalizeLogBatch(event.data);
+      if (!batch.length) return;
+      let list = items.value;
+      for (const rec of batch) {
+        receivedCount.value += 1;
+        // 去重：与当前最新一条完全相同的帧不重复入列
+        if (
+          list.length &&
+          list[0].timestamp === rec.timestamp &&
+          list[0].message === rec.message
+        ) {
+          continue;
+        }
+        list = [rec, ...list];
       }
-      const next = [rec, ...list];
-      if (next.length > maxItems) next.length = maxItems;
+      if (list.length > maxItems) list = list.slice(0, maxItems);
       // shallowRef 整体替换触发更新，避免深响应开销
-      items.value = next;
+      items.value = list;
     } catch {
       /* 忽略畸形帧 */
     }
   }
 
+  /**
+   * 归一化一帧日志负载。
+   *
+   * <p>服务端 {@code /stream/logs} 每帧是 {@code { items: [...], lastSeq }}，
+   * items 是这一轮新增的**全部**日志行；只取第一条会丢日志，必须整批展开。</p>
+   */
+  function normalizeLogBatch(raw: unknown): LogRecordLike[] {
+    if (!raw || typeof raw !== "object") return [];
+    const obj = raw as { items?: unknown[] } & LogRecordLike;
+    const frames = Array.isArray(obj.items) ? obj.items : [obj];
+    const out: LogRecordLike[] = [];
+    for (const frame of frames) {
+      const rec = normalizeLogRecord(frame);
+      if (rec && (rec.level || rec.message)) {
+        out.push(rec);
+      }
+    }
+    return out;
+  }
+
+  /**
+   * 归一化单条日志记录。
+   *
+   * <p>服务端标准输出帧的字段是 {@code { seq, timestamp, source, level, line }}，
+   * 正文在 {@code line} 上，需要映射到统一契约的 {@code message}。</p>
+   */
   function normalizeLogRecord(raw: unknown): LogRecordLike | null {
     if (!raw || typeof raw !== "object") return null;
-    const obj = raw as { items?: unknown[] } & LogRecordLike;
-    // 兼容后端 `{ items: [rec] }` 批量帧
-    if (Array.isArray(obj.items) && obj.items.length) {
-      const first = obj.items[0];
-      return first && typeof first === "object" ? (first as LogRecordLike) : null;
+    const obj = raw as LogRecordLike & { line?: unknown; source?: unknown };
+    if (obj.message == null && typeof obj.line === "string") {
+      return {
+        ...obj,
+        message: obj.line,
+        logger: obj.logger ?? (typeof obj.source === "string" ? obj.source : undefined),
+      };
     }
     return obj;
   }

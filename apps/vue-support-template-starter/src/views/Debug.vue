@@ -172,6 +172,9 @@ const vBindProps = computed(() => {
   const out: Record<string, unknown> = {};
   for (const field of templateMeta.value.props) {
     if (field.isSlot) continue;
+    // dataset 字段只是「分段控件」，它把自己的档位写进 nodes/edges 等真实字段，
+    // 自身不是组件 prop —— 透给组件只会多一个未声明的 attr。
+    if (field.type === "dataset") continue;
     out[field.key] = state.value.values[field.key];
   }
   return out;

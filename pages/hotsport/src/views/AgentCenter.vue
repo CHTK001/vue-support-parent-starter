@@ -345,7 +345,7 @@
       </div>
       <div v-if="traceLoading" class="panel-empty">正在聚合链路数据…</div>
       <div v-else-if="!traceHotspots.length && !tracePhases.length && !skywalkingSegments.length" class="panel-empty">
-        暂无链路 Span 数据，可到数据注入器产生调用后再查看。
+        暂无链路数据：本进程还没有产生任何真实请求记录。
       </div>
       <div v-else class="trace-analysis">
         <div v-if="tracePhases.length" class="phase-grid">
@@ -356,8 +356,8 @@
           </div>
         </div>
         <div v-if="traceHotspots.length" class="hotspot-list">
-          <div v-for="h in traceHotspots.slice(0, 10)" :key="h.className + '.' + h.methodName + h.phase" class="hotspot-row">
-            <span class="hotspot-name mono" :title="h.className + '.' + h.methodName">{{ shortText(h.className + "." + h.methodName, 42) }}</span>
+          <div v-for="h in traceHotspots.slice(0, 10)" :key="hotspotName(h) + h.phase" class="hotspot-row">
+            <span class="hotspot-name mono" :title="hotspotName(h)">{{ shortText(hotspotName(h), 42) }}</span>
             <ReTag size="small" round>{{ h.phase }}</ReTag>
             <span class="hotspot-bar-wrap"><i class="hotspot-bar" :style="{ width: hotspotWidth(h) + '%' }" /></span>
             <span class="hotspot-avg mono">{{ h.avgMs.toFixed(1) }}ms</span>
@@ -650,6 +650,14 @@ function formatAge(ms: number): string {
 function shortText(s: string, max: number): string {
   if (!s) return "";
   return s.length <= max ? s : s.slice(0, max - 1) + "…";
+}
+
+/** 热点展示名：优先用后端给的真实展示名，回落「类.方法」 */
+function hotspotName(h: TraceHotspot): string {
+  if (h.displayName) return h.displayName;
+  const cls = h.className || "";
+  const mtd = h.methodName || "";
+  return cls && mtd ? cls + "." + mtd : cls || mtd;
 }
 
 function hotspotWidth(h: TraceHotspot): number {

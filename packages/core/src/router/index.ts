@@ -49,7 +49,7 @@ export interface CreateAppRouterOptions {
   routes?: RouteConfigsTable[];
   /** 默认路由（fallback 404 等） */
   fallback?: RouteConfigsTable[];
-  /** 路由模式（history / hash），默认 history */
+  /** 路由模式（history / hash），默认 hash */
   mode?: "history" | "hash";
   /** 获取 accessToken 的函数（守卫用） */
   getAccessToken?: TokenProvider;
@@ -83,7 +83,7 @@ export function createAppRouter(options: CreateAppRouterOptions = {}) {
     layoutRoutes = [],
     routes = [],
     fallback = defaultFallback,
-    mode = "history",
+    mode = "hash",
     resolveBaseRoutes,
   } = options;
   const config = getConfig();

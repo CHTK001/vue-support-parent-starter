@@ -854,10 +854,8 @@ onBeforeUnmount(destroySortables);
   align-items: center;
   gap: 14px;
   flex-shrink: 0;
-  margin-bottom: 14px;
-  padding: 10px 14px;
+  padding: 10px 10px;
   background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
   border-radius: 14px;
 }
 .console__search {

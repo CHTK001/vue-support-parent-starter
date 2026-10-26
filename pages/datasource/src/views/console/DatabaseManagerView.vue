@@ -359,7 +359,22 @@
           >
             <template v-for="col in tableData.columns" :key="'cell-' + col" #[`col-${col}`]="{ row, value }">
               <div v-if="editingCell && editingCell.row === row && editingCell.column === col" class="dbm-cell-edit" @click.stop>
+                <!-- 日期 / 时间列：弹选择器、选完即存（autoCommit）。
+                     以前这里一律是文本框，DATETIME / TIME 得手敲 "2026-10-26 12:00:00"，
+                     格式敲错就直接写进库或报错。 -->
+                <DbTemporalEditor
+                  v-if="temporalKindOf(col, editingCell.value)"
+                  :type="columnTypes.get(col)"
+                  :model-value="editingCell.value"
+                  size="small"
+                  autofocus
+                  auto-commit
+                  @update:model-value="setEditingCellValue"
+                  @commit="saveCell(row, col)"
+                  @cancel="cancelCell"
+                />
                 <ReInput
+                  v-else
                   :model-value="editingCell.value"
 
                   autofocus
@@ -662,78 +677,28 @@
           </div>
         </div>
 
-        <!-- ER 图页签（Navicat 的表关系可视化） -->
-        <div v-if="activeTabObj && activeTabObj.type === 'er'" class="dbm-er-view">
-          <div class="dbm-er-toolbar">
-            <span class="dbm-table-name">{{ qualifiedEr }}</span>
-            <ReInput
-              v-model="erTableFilter"
-              class="dbm-mono dbm-er-filter"
-              placeholder="只画匹配这些表的图（支持 % 与 _，留空为全部）"
-              clearable
-              @keyup.enter="loadErDiagram"
-            />
-            <ReButton layout="square" type="primary" icon="Search" tip="按过滤条件重画" @click="loadErDiagram" />
-            <span class="dbm-spacer" />
-            <span class="dbm-er-stat">{{ erStatText }}</span>
-            <ReSelect v-model="erLayout" class="dbm-er-layout" placeholder="布局">
-              <ReOption v-for="l in ER_LAYOUT_CHOICES" :key="l.value" :label="l.label" :value="l.value" />
-            </ReSelect>
-            <ReButton
-              layout="square"
-              :type="erShowLabels ? 'primary' : ''"
-              icon="Label"
-              tip="显示 / 隐藏关系名"
-              @click="erShowLabels = !erShowLabels"
-            />
-            <ReButton layout="square" icon="Refresh" tip="重新读取元数据" @click="loadErDiagram" />
-            <ReButton layout="square" icon="Download" tip="导出为 DOT（Graphviz）" @click="exportErDot" />
-          </div>
-          <div v-if="erLoading" class="dbm-er-mask">正在读取表与外键…</div>
-          <ReEmpty
-            v-else-if="erError"
-            class="dbm-er-empty"
-            :description="erError"
-          />
-          <ReEmpty
-            v-else-if="erNodes.length === 0"
-            class="dbm-er-empty"
-            :description="erTableFilter ? '没有匹配的表' : '这个库里还没有表'"
-          />
-          <ReRelationGraph
-            v-else
-            ref="erGraphRef"
-            class="dbm-er-graph"
-            :nodes="erNodes"
-            :edges="erEdges"
-            :layout="erLayout"
-            :toolbar="true"
-            :minimap="true"
-            @node-dblclick="onErNodeDblClick"
-          >
-            <template #node-content="{ node }">
-              <ErTableCard :node="node" @open-cols="openErColumns" />
-            </template>
-          </ReRelationGraph>
-          <!-- 表清单侧栏：图上双击要靠坐标命中，100 张表时图本身就没法导航。
-               清单给出确定的入口，也让「这张表有几条关系」一眼可见。 -->
-          <div class="dbm-er-list">
-            <div
-              v-for="t in erTables"
-              :key="t.name"
-              class="dbm-er-list-row"
-              :class="{ missing: erMissingTables.has(t.name) }"
-              :title="t.comment || t.name"
-              @click="highlightErNode(t.name)"
-              @dblclick="openErColumns(t.name)"
-            >
-              <span class="dbm-er-list-name">{{ t.name }}</span>
-              <span class="dbm-spacer" />
-              <span class="dbm-er-list-deg">{{ erDegree(t.name) }}</span>
-            </div>
-          </div>
-          <!-- 双击节点后的列清单：ER 图上看列才能定位到具体字段（弹窗已上移到两个 ER 视图公共位置） -->
-        </div>
+        <!-- ER 图页签：三栏 Inspector（左表清单 · 中画布 · 右检查器） -->
+        <ErWorkspace
+          v-if="activeTabObj && activeTabObj.type === 'er'"
+          class="dbm-er-workspace"
+          :tables="erTables"
+          :relations="erRelations"
+          :cols="erTableCols"
+          :loading="erLoading"
+          :error="erError"
+          :qualified="qualifiedEr"
+          :filter="erTableFilter"
+          :layout="erLayout"
+          :show-labels="erShowLabels"
+          :layout-choices="ER_LAYOUT_CHOICES"
+          @update:filter="erTableFilter = $event"
+          @update:layout="erLayout = $event"
+          @update:show-labels="erShowLabels = $event"
+          @reload="loadErDiagram"
+          @export="exportErDot"
+          @ensure-cols="ensureErCols"
+          @open-cols="openErColumns"
+        />
 
         <!-- 右键「ER 图」弹框：筛选 + 按钮一行，图工具栏全部方形图标按钮，无底部删除 -->
         <ReDialog
@@ -743,74 +708,27 @@
           top="6vh"
           class="dbm-er-dialog"
         >
-          <div class="dbm-er-view">
-            <div class="dbm-er-toolbar dbm-er-toolbar--dialog">
-              <span class="dbm-table-name">{{ qualifiedEr }}</span>
-              <ReInput
-                v-model="erTableFilter"
-                class="dbm-mono dbm-er-filter"
-                placeholder="只画匹配这些表的图（支持 % 与 _，留空为全部）"
-                clearable
-                @keyup.enter="loadErDiagram"
-              />
-              <ReButton layout="square" type="primary" icon="Search" tip="按过滤条件重画" @click="loadErDiagram" />
-              <span class="dbm-er-stat">{{ erStatText }}</span>
-              <ReSelect v-model="erLayout" class="dbm-er-layout" placeholder="布局">
-                <ReOption v-for="l in ER_LAYOUT_CHOICES" :key="l.value" :label="l.label" :value="l.value" />
-              </ReSelect>
-              <ReButton
-                layout="square"
-                :type="erShowLabels ? 'primary' : ''"
-                icon="Label"
-                tip="显示 / 隐藏关系名"
-                @click="erShowLabels = !erShowLabels"
-              />
-              <ReButton layout="square" icon="Refresh" tip="重新读取元数据" @click="loadErDiagram" />
-              <ReButton layout="square" icon="Download" tip="导出为 DOT（Graphviz）" @click="exportErDot" />
-            </div>
-            <div v-if="erLoading" class="dbm-er-mask">正在读取表与外键…</div>
-            <ReEmpty
-              v-else-if="erError"
-              class="dbm-er-empty"
-              :description="erError"
-            />
-            <ReEmpty
-              v-else-if="erNodes.length === 0"
-              class="dbm-er-empty"
-              :description="erTableFilter ? '没有匹配的表' : '这个库里还没有表'"
-            />
-            <ReRelationGraph
-              v-else
-              ref="erGraphRef"
-              class="dbm-er-graph dbm-er-graph--dialog"
-              :nodes="erNodes"
-              :edges="erEdges"
-              :layout="erLayout"
-              :toolbar="true"
-              :minimap="true"
-              @node-dblclick="onErNodeDblClick"
-            >
-              <template #node-content="{ node }">
-                <ErTableCard :node="node" @open-cols="openErColumns" />
-              </template>
-            </ReRelationGraph>
-            <!-- 表清单侧栏：与 ER 页签一致，图上双击要靠坐标命中，清单给确定入口 -->
-            <div class="dbm-er-list">
-              <div
-                v-for="t in erTables"
-                :key="t.name"
-                class="dbm-er-list-row"
-                :class="{ missing: erMissingTables.has(t.name) }"
-                :title="t.comment || t.name"
-                @click="highlightErNode(t.name)"
-                @dblclick="openErColumns(t.name)"
-              >
-                <span class="dbm-er-list-name">{{ t.name }}</span>
-                <span class="dbm-spacer" />
-                <span class="dbm-er-list-deg">{{ erDegree(t.name) }}</span>
-              </div>
-            </div>
-          </div>
+          <ErWorkspace
+            class="dbm-er-workspace dbm-er-workspace--dialog"
+            compact
+            :tables="erTables"
+            :relations="erRelations"
+            :cols="erTableCols"
+            :loading="erLoading"
+            :error="erError"
+            :qualified="qualifiedEr"
+            :filter="erTableFilter"
+            :layout="erLayout"
+            :show-labels="erShowLabels"
+            :layout-choices="ER_LAYOUT_CHOICES"
+            @update:filter="erTableFilter = $event"
+            @update:layout="erLayout = $event"
+            @update:show-labels="erShowLabels = $event"
+            @reload="loadErDiagram"
+            @export="exportErDot"
+            @ensure-cols="ensureErCols"
+            @open-cols="openErColumns"
+          />
           <template #footer>
             <ReButton type="primary" icon="Download" :show-text="true" @click="exportErDot">导出 DOT</ReButton>
           </template>
@@ -1825,7 +1743,13 @@
       <ReFormItem v-for="col in tableData.columns" :key="col" :label="col">
         <span v-if="rowDialogMode === 'add' && isAutoIncrement(col)" class="dbm-auto-hint">自增，留空自动生成</span>
         <ReInputNumber v-else-if="isNumericCol(col)" v-model="rowForm[col]" :placeholder="`输入 ${col}`" style="width: 100%" />
-        <ReInput v-else-if="isDateCol(col)" v-model="rowForm[col]" type="date" :placeholder="`输入 ${col}`" />
+        <DbTemporalEditor
+          v-else-if="temporalKindOf(col, rowForm[col])"
+          :type="columnTypes.get(col)"
+          :model-value="rowForm[col]"
+          clearable
+          @update:model-value="rowForm[col] = $event"
+        />
         <ReInput v-else-if="longTextColumns.has(col)" v-model="rowForm[col]" type="textarea" :rows="3" :placeholder="`输入 ${col}`" />
         <ReInput v-else v-model="rowForm[col]" :placeholder="`输入 ${col}`" />
       </ReFormItem>
@@ -2180,12 +2104,15 @@ import ReSelect from "@repo/ui/re-select";
 import ReSwitch from "../../components/console/ConsoleSwitch.vue";
 import BooleanSegmented from "../../components/console/BooleanSegmented.vue";
 import DesignColumnGrid from "../../components/console/DesignColumnGrid.vue";
-import ErTableCard from "../../components/console/ErTableCard.vue";
+import ErWorkspace from "../../components/console/ErWorkspace.vue";
+import DbTemporalEditor from "../../components/console/DbTemporalEditor.vue";
 import type { DesignColumnRow } from "../../components/console/designColumnModel";
 // 类型分组与长度/小数位/UNSIGNED 适用范围：与「设计表」建表对话框共用一份
 import { COLUMN_TYPE_GROUPS, SCALE_ALLOWED, SIZE_REQUIRED, UNSIGNED_ALLOWED } from "../../utils/columnTypes";
+// 日期 / 时间列的形态识别：格内编辑与行弹窗共用同一份判定，避免两处漂移
+import { resolveTemporalKind, toTemporalPickerValue } from "../../utils/dbTemporal";
+import type { DbTemporalKind } from "../../utils/dbTemporal";
 import ReTable from "@repo/ui/re-table";
-import ReRelationGraph from "@repo/ui/re-relation-graph";
 import { ReFormItem, ReOption, ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 import DbSqlEditor from "../../components/console/DbSqlEditor.vue";
 import CreateTableDialog from "../../components/console/CreateTableDialog.vue";
@@ -3526,8 +3453,11 @@ const openAddRowDialog = () => {
 
 const openEditRowDialog = (row: Record<string, any>) => {
   rowDialogMode.value = 'edit';
-  rowForm.value = { ...row };
-  editingRow.value = row;
+  // 表单值与「定位原值」都换成可读的时间格式串：SET 与 WHERE 必须同源，
+  // 否则 WHERE 里的毫秒数在 MySQL 上永远匹配不到（详见 normalizeRowValues）
+  const normalized = normalizeRowValues(row);
+  rowForm.value = { ...normalized };
+  editingRow.value = normalized;
   rowDialogVisible.value = true;
 };
 
@@ -4740,8 +4670,53 @@ function normalizeCellValue(col: string, raw: string) {
 function isNumericCol(col: string) {
   return /INT|DECIMAL|NUMERIC|FLOAT|DOUBLE/.test(columnTypes.value.get(col) || "");
 }
-function isDateCol(col: string) {
-  return /DATE|TIME|YEAR/.test(columnTypes.value.get(col) || "");
+/**
+ * 该列 + 该取值是否该用日期 / 时间选择器。
+ *
+ * <p>口径统一到 {@code utils/dbTemporal.resolveTemporalKind}，格内编辑与
+ * 行弹窗都走它 —— 以前格内编辑压根不看类型（时间列只能当文本框手敲），
+ * 弹窗则是另一份正则 {@code isDateCol}，两处判定必然漂移。</p>
+ *
+ * <p>{@code resolveTemporalKind} 还会做一次修正：类型名是 {@code DATE}
+ * 但值里带非零时刻（Oracle DATE 是「日期 + 时刻」）时升级成 datetime，
+ * 否则用户一选值就把时刻清零了，而界面上完全看不出丢了东西。</p>
+ *
+ * @param col   列名
+ * @param value 当前取值（数据库原样下发）
+ * @returns 选择器形态；不是日期时间类返回 null
+ */
+function temporalKindOf(col: string, value: unknown): DbTemporalKind | null {
+  return resolveTemporalKind(columnTypes.value.get(col), value);
+}
+
+/**
+ * 把一整行的日期 / 时间列收敛成选择器格式串。
+ *
+ * <p><b>为什么必须在父层做</b>：后端把 {@code DATE / TIME / TIMESTAMP / YEAR}
+ * 序列化成 epoch 毫秒数（{@code d_col: 1792944000000}），原样带进行弹窗会出两种错：</p>
+ * <ul>
+ *   <li>{@code SET d_col = 1792944000000} —— 把毫秒数写进 DATE 列；</li>
+ *   <li>{@code WHERE d_col = 1792944000000} —— MySQL 拿 DATE 列按数字比较
+ *       （{@code 20261026}），永远匹配不到，UPDATE 静默影响 0 行，
+ *       用户还以为保存成功了。</li>
+ * </ul>
+ *
+ * <p>以前把希望寄托在子组件挂载时回写表单值上，但弹窗不销毁时子组件根本不会
+ * 重新挂载，回写只发生在「第一次打开」—— 第二次打开就退回毫秒数。
+ * 在这里一次性收敛，SET 与 WHERE 拿到的就是同一份可读值。</p>
+ *
+ * @param row 表格行原值
+ * @returns 新对象，日期时间列已换成 {@code YYYY-MM-DD HH:mm:ss} 之类的格式串
+ */
+function normalizeRowValues(row: Record<string, any>): Record<string, any> {
+  const out: Record<string, any> = { ...row };
+  for (const col of Object.keys(out)) {
+    const kind = resolveTemporalKind(columnTypes.value.get(col), out[col]);
+    if (kind) {
+      out[col] = toTemporalPickerValue(kind, out[col]);
+    }
+  }
+  return out;
 }
 /** 自增主键：主键列且为整数类型，新增行时留空由数据库生成 */
 function isAutoIncrement(col: string) {
@@ -5984,7 +5959,15 @@ const ER_LAYOUT_CHOICES = [
   { value: "circular" as const, label: "环形" },
   { value: "grid" as const, label: "网格" },
 ];
-const erLayout = ref<(typeof ER_LAYOUT_CHOICES)[number]["value"]>("dagre");
+/**
+ * 当前布局。
+ *
+ * <p>刻意放宽成 {@code string} 而不是 {@code ER_LAYOUT_CHOICES} 的取值联合：
+ * 布局控件现在由 {@code ErWorkspace} 渲染，它对外只承诺「字符串」，图组件那边
+ * 才把它收窄成 {@code LayoutType}。这里保留联合类型只会让 {@code update:layout}
+ * 的回传值（string）赋不回去。</p>
+ */
+const erLayout = ref<string>("dagre");
 const erLoading = ref(false);
 const erError = ref("");
 const erTables = ref<DbErTable[]>([]);
@@ -6019,105 +6002,6 @@ async function ensureErCols(name: string): Promise<void> {
     erTableCols.set(name, []);
   }
 }
-
-/** 图上每张表的关联列线索（该表在外键里出现的列名集合） */
-function erRelColumns(name: string): string[] {
-  const out = new Set<string>();
-  for (const r of erRelations.value) {
-    if (r.fromTable === name && r.fromColumn) out.add(r.fromColumn);
-    if (r.toTable === name && r.toColumn) out.add(r.toColumn);
-  }
-  return [...out];
-}
-
-/** 图上的节点：有关系的表展开为「表卡」（html 节点，列预览 + 关系数徽标），
- *  孤立表收敛为精简圆点（画布只对有内容的表花钱）。 */
-const erNodes = computed(() => erTables.value.map(t => {
-  const missing = erMissingTables.value.has(t.name);
-  const degree = erDegree(t.name);
-  if (degree > 0) {
-    return {
-      id: t.name,
-      label: t.name,
-      type: "html" as const,
-      size: [210, 132] as [number, number],
-      data: {
-        tableName: t.name,
-        comment: t.comment,
-        degree,
-        missing,
-        relCols: erRelColumns(t.name),
-        cols: erTableCols.get(t.name),
-      },
-    };
-  }
-  return {
-    id: t.name,
-    label: t.name,
-    type: "circle" as const,
-    size: 30,
-    style: {
-      fill: missing ? "var(--el-color-warning-light-9)" : "var(--el-bg-color-overlay)",
-      stroke: missing ? "var(--el-color-warning)" : "var(--el-border-color-lighter)",
-      lineWidth: 1,
-      labelFill: "var(--el-text-color-secondary)",
-      labelFontSize: 10,
-      cursor: "pointer",
-    },
-  };
-}));
-
-/** 只被外键引用、却不在表清单里的表（跨库外键等） */
-const erMissingTables = computed(() => new Set(
-  erTables.value.filter(t => t.comment?.startsWith("（")).map(t => t.name),
-));
-
-/** 外键规则码 → 中文（JDBC 规范：0=RESTRICT 1=CASCADE 2=SET NULL 3=NO ACTION 4=SET DEFAULT） */
-function fkRuleText(code?: number): string {
-  switch (code) {
-    case 0: return "限制";
-    case 1: return "级联";
-    case 2: return "置空";
-    case 3: return "无动作";
-    case 4: return "设默认";
-    default: return "";
-  }
-}
-
-/** 图上的边：一条外键一条边，指向被引用的表 */
-const erEdges = computed(() => erRelations.value.map((r, i) => {
-  const label = [
-    r.fromColumn ? `${r.fromColumn} → ${r.toColumn ?? "?"}` : "",
-    r.name ?? "",
-    fkRuleText(r.deleteRule) ? `删除:${fkRuleText(r.deleteRule)}` : "",
-  ].filter(Boolean).join("  ");
-  return {
-    id: `fk-${i}-${r.fromTable}-${r.toTable}`,
-    source: r.fromTable,
-    target: r.toTable,
-    label: erShowLabels.value ? label : undefined,
-    // 复合外键会产生多条同名边，靠列名区分开，否则 id 冲突
-    type: "cubic-horizontal" as const,
-    directed: true,
-    style: {
-      stroke: "var(--el-color-primary-light-3)",
-      lineWidth: 1.2,
-      endArrow: true,
-      labelFill: "var(--el-text-color-secondary)",
-      labelFontSize: 10,
-      labelBackground: true,
-      labelBackgroundFill: "var(--el-bg-color-overlay)",
-      labelBackgroundRadius: 2,
-    },
-    data: r,
-  };
-}));
-
-/** 工具条右侧的统计文本 */
-const erStatText = computed(() => {
-  if (erLoading.value) return "";
-  return `${erTables.value.length} 张表 · ${erRelations.value.length} 条外键`;
-});
 
 /** 页签标题里的库名 */
 const qualifiedEr = computed(() => {
@@ -7047,14 +6931,6 @@ async function loadErDiagram(): Promise<void> {
   }
 }
 
-/** ER 图组件实例（用于从清单跳转时高亮/居中） */
-const erGraphRef = ref<unknown>(null);
-
-/** 双击图上的节点：列出该表的列 */
-async function onErNodeDblClick(detail: { id?: string }): Promise<void> {
-  await openErColumns(String(detail?.id ?? ""));
-}
-
 /** 打开某张表的列清单 */
 async function openErColumns(name: string): Promise<void> {
   if (!name) return;
@@ -7067,21 +6943,6 @@ async function openErColumns(name: string): Promise<void> {
   } catch (e) {
     message.error(`读取列失败: ${String((e as Error)?.message ?? e)}`);
   }
-}
-
-/** 每张表参与的外键条数（清单上显示，一眼看出「这张表是孤立的」） */
-function erDegree(name: string): number {
-  return erRelations.value.filter(r => r.fromTable === name || r.toTable === name).length;
-}
-
-/** 点清单里的一行：在图上高亮该节点并居中 */
-function highlightErNode(name: string): void {
-  const api = erGraphRef.value as {
-    highlightElements?: (ids: string[]) => void;
-    centerOn?: (id: string) => void;
-  } | null;
-  api?.highlightElements?.([name]);
-  api?.centerOn?.(name);
 }
 
 /** 从 ER 图打开该表的数据页签 */
@@ -9223,34 +9084,10 @@ onBeforeUnmount(() => {
   word-break: break-all;
 }
 
-/* ER 图视图 */
-.dbm-er-view {
-  display: flex;
-  flex-direction: column;
+/* ER 图工作区：外壳样式全在 ErWorkspace 组件内，
+   这里只管「页签里怎么占位」和「弹框里多高」 */
+.dbm-er-workspace {
   height: 100%;
-  min-height: 0;
-}
-.dbm-er-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  /* 筛选与按钮保持一行（2.1）：空间不足时横向滚动，绝不把按钮挤到第二行 */
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  padding-bottom: 8px;
-}
-.dbm-er-filter { width: 280px; flex: 0 1 auto; min-width: 160px; }
-.dbm-er-layout { width: 150px; flex: none; }
-.dbm-er-toolbar--dialog {
-  /* 2.1：弹框里筛选输入与按钮必须有间隔地排在一行（不换行不挤成两行） */
-  flex-wrap: nowrap;
-  row-gap: 0;
-}
-.dbm-er-toolbar--dialog .dbm-er-stat { white-space: nowrap; flex: none; }
-.dbm-er-toolbar--dialog .dbm-er-filter { width: 220px; flex: none; }
-.dbm-er-toolbar--dialog .dbm-er-layout { width: 130px; flex: none; }
-.dbm-er-dialog .dbm-er-view {
-  height: 68vh;
   min-height: 0;
 }
 /* 弹框正文去 padding：图要尽量撑满，四周留白交给对话框自身 */
@@ -9258,73 +9095,9 @@ onBeforeUnmount(() => {
   padding: 8px 16px 0;
   overflow: hidden;
 }
-.dbm-er-graph--dialog {
-  min-height: 320px;
-}
-/* 2.4：节点/边文字使用主题主文字色，暗色主题下不再黑底黑字 */
-.dbm-er-view :deep(.g6-node .g6-node-label),
-.dbm-er-view :deep(.g6-edge .g6-edge-label) {
-  fill: var(--el-text-color-primary);
-  color: var(--el-text-color-primary);
-}
-.dbm-er-stat {
-  font-size: 12.5px;
-  color: var(--el-text-color-secondary);
-  white-space: nowrap;
-}
-.dbm-er-mask,
-.dbm-er-empty {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--el-text-color-secondary);
-}
-/* 图本身撑满剩余高度：ER 图是「整体视图」，
-   给固定高度会让 40 张表的图挤成一团且没法滚 */
-.dbm-er-graph {
-  flex: 1;
-  min-height: 320px;
-}
-/* 表清单侧栏：100 张表时图本身没法导航，给一个确定入口 */
-.dbm-er-list {
-  flex: 0 0 240px;
-  max-height: 200px;
-  overflow-y: auto;
-  margin-top: 8px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-base, 4px);
-  background: var(--el-bg-color-overlay);
-}
-.dbm-er-list-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 10px;
-  font-size: 12.5px;
-  cursor: pointer;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-}
-.dbm-er-list-row:hover { background: var(--el-fill-color-light); }
-.dbm-er-list-row.missing {
-  color: var(--el-color-warning);
-  background: var(--el-color-warning-light-9, transparent);
-}
-.dbm-er-list-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: var(--el-font-family-mono, monospace);
-}
-/* 关系条数：0 表示孤立表，一眼可辨 */
-.dbm-er-list-deg {
-  flex-shrink: 0;
-  padding: 0 6px;
-  font-size: 11px;
-  line-height: 17px;
-  color: var(--el-text-color-secondary);
-  background: var(--el-fill-color-light);
-  border-radius: 8px;
+.dbm-er-dialog .dbm-er-workspace--dialog {
+  height: 68vh;
+  min-height: 0;
 }
 .dbm-er-cols {
   max-height: 360px;

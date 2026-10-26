@@ -143,9 +143,26 @@ const bars = computed(() => [
             <span class="hmb__pop-sub">{{ hostName }}</span>
           </div>
           <div v-if="rows.length" class="hmb__pop-rows">
-            <div v-for="r in rows" :key="r.label" class="hmb__pop-row" :title="r.tip || ''">
+            <div v-for="r in rows" :key="r.label" class="hmb__pop-row">
               <span class="hmb__pop-label">{{ r.label }}</span>
               <span class="hmb__pop-val" :class="{ 'is-mono': r.mono, 'is-dim': r.value === '—' }">{{ r.value }}</span>
+              <!-- 已扫描端口明细：hover 浮出端口列表（原 title 改为 popover，长列表可读） -->
+              <el-popover
+                v-if="r.tip"
+                placement="top"
+                :width="320"
+                :show-after="250"
+                trigger="hover"
+                popper-class="hmb-port-pop"
+              >
+                <template #reference>
+                  <ReIcon name="View" :size="12" class="hmb__tip-ico" />
+                </template>
+                <div class="hmb__port-list">
+                  <b>已扫描端口明细</b>
+                  <span>{{ r.tip }}</span>
+                </div>
+              </el-popover>
             </div>
           </div>
           <div v-else class="hmb__pop-empty">暂无概要数据（等待采集通道返回）</div>
@@ -324,6 +341,38 @@ const bars = computed(() => [
 
 .hmb__pop-val.is-dim {
   color: var(--el-text-color-placeholder);
+}
+
+/* 概要行内的端口明细入口图标：纯 hover 提示，不占行高 */
+.hmb__tip-ico {
+  flex: none;
+  cursor: help;
+  color: var(--el-text-color-placeholder);
+  transition: color 0.14s;
+}
+.hmb__tip-ico:hover {
+  color: var(--el-color-primary, #409eff);
+}
+
+/* 已扫描端口明细 popover：浮层渲染在 body，需全局选择器 */
+:global(.hmb-port-pop) {
+  max-width: 340px;
+}
+:global(.hmb__port-list) {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--el-text-color-regular);
+  word-break: break-all;
+}
+:global(.hmb__port-list b) {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 .hmb__pop-empty {

@@ -198,7 +198,10 @@ const handleLogin = async (): Promise<void> => {
 }
 
 :deep(.el-input.is-focus .el-input__wrapper) {
-  box-shadow: 0 0 0 1px var(--el-color-primary) inset;
+  /* 聚焦不再显示主色边框：refactor.css 的全局聚焦环（--color-primary 1px + --color-primary-100 3px）
+     带更高优先级作用于所有 .el-input__wrapper.is-focus，这里用 !important 在登录页压掉它。
+     保留 transparent 占位，避免 1px 内描边消失造成布局跳动。 */
+  box-shadow: 0 0 0 1px transparent inset !important;
 }
 
 :deep(.el-form-item) {
@@ -217,9 +220,8 @@ const handleLogin = async (): Promise<void> => {
 
 /* 动效降级：系统开启「减少动态效果」时，输入框的描边变化改为瞬间切换。
    输入框本体是 Element Plus 组件，必须用 :deep() 才够得到它的内部 DOM。
-   特别说明：上面 .el-input.is-focus 那条 inset 主色描边是焦点指示本身，
-   它是静态 box-shadow 声明 —— 关掉 transition 只会让光环瞬间出现，不会消失，
-   键盘用户的焦点可见性完全不受影响。 */
+   聚焦指示已按需求去掉（主色边框 → transparent），保留 transition 仅影响
+   常态边框的过渡，不影响任何焦点可见性。 */
 @media (prefers-reduced-motion: reduce) {
   :deep(.el-input__wrapper) {
     transition: none;

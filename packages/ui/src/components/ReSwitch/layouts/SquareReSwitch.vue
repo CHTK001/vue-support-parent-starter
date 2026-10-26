@@ -1,97 +1,59 @@
 <template>
-  <ElTooltip v-if="title" :content="title" placement="top">
-    <button
-      :class="[
-        're-switch-square',
-        `re-switch-square--${size}`,
-        { 're-switch-square--active': isActive, 're-switch-square--disabled': disabled },
-      ]"
-      :disabled="disabled"
-      type="button"
-      role="switch"
-      :aria-checked="isActive"
-      :aria-label="accessibleName"
-      @click="toggle"
-    >
-      <span class="re-switch-square__label">
-        <slot v-if="useNamedSlot" :name="isActive ? 'active' : 'inactive'" />
-        <StateIcon
-          v-else-if="hasIconConfig"
-          :active="isActive"
-          :icon="icon"
-          :active-icon="activeIcon"
-          :inactive-icon="inactiveIcon"
-          :preset="preset"
-          :size="iconSize"
-        />
-        <slot v-else-if="hasSlotContent" />
-        <svg
-          v-else
-          class="re-switch-square__default-icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <rect x="3" y="7" width="18" height="10" rx="5"/>
-          <circle cx="17" cy="12" r="2.5" fill="currentColor" stroke="none"/>
-        </svg>
-      </span>
-      <span v-if="isActive" class="re-switch-square__check">
-        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="2 6 5 9 10 3" />
-        </svg>
-      </span>
-    </button>
-  </ElTooltip>
-  <button
-    v-else
-    :class="[
-      're-switch-square',
-      `re-switch-square--${size}`,
-      { 're-switch-square--active': isActive, 're-switch-square--disabled': disabled },
-    ]"
-    :disabled="disabled"
-    type="button"
-    role="switch"
-    :aria-checked="isActive"
-    :aria-label="accessibleName"
-    @click="toggle"
-  >
-    <span class="re-switch-square__label">
-      <slot v-if="useNamedSlot" :name="isActive ? 'active' : 'inactive'" />
-      <StateIcon
-        v-else-if="hasIconConfig"
-        :active="isActive"
-        :icon="icon"
-        :active-icon="activeIcon"
-        :inactive-icon="inactiveIcon"
-        :preset="preset"
-        :size="iconSize"
-      />
-      <slot v-else-if="hasSlotContent" />
-      <svg
-        v-else
-        class="re-switch-square__default-icon"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+  <div class="re-switch-square-wrap" :class="{ 're-switch-square-wrap--with-label': hasLabel }">
+    <!-- 用 disabled 控制 tooltip 而不是复制两份按钮：
+         原来 v-if / v-else 各写一遍整块按钮，任何改动都要同步两处，
+         而且根节点在不同分支下类型不同，$attrs 的落点也跟着变。 -->
+    <ElTooltip :content="title" placement="top" :disabled="!title">
+      <button
+        v-bind="$attrs"
+        :class="[
+          're-switch-square',
+          `re-switch-square--${size}`,
+          { 're-switch-square--active': isActive, 're-switch-square--disabled': disabled },
+        ]"
+        :disabled="disabled"
+        type="button"
+        role="switch"
+        :aria-checked="isActive"
+        :aria-label="accessibleName"
+        @click="toggle"
       >
-        <rect x="3" y="7" width="18" height="10" rx="5"/>
-        <circle cx="17" cy="12" r="2.5" fill="currentColor" stroke="none"/>
-      </svg>
-    </span>
-    <span v-if="isActive" class="re-switch-square__check">
-      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="2 6 5 9 10 3" />
-      </svg>
-    </span>
-  </button>
+        <span class="re-switch-square__label">
+          <slot v-if="useNamedSlot" :name="isActive ? 'active' : 'inactive'" />
+          <StateIcon
+            v-else-if="hasIconConfig"
+            :active="isActive"
+            :icon="icon"
+            :active-icon="activeIcon"
+            :inactive-icon="inactiveIcon"
+            :preset="preset"
+            :size="iconSize"
+          />
+          <slot v-else-if="hasSlotContent" />
+          <!-- 默认：内置两态图标（sunmoon，激活 Sunny / 非激活 Moon）。
+               此前这里是一枚写死的静态 SVG，两态长得一模一样，
+               用户看不出开关到底开没开；现在默认就有「两套图标」。 -->
+          <StateIcon v-else :active="isActive" :size="iconSize" />
+        </span>
+        <span v-if="isActive" class="re-switch-square__check">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="2 6 5 9 10 3" />
+          </svg>
+        </span>
+      </button>
+    </ElTooltip>
+
+    <!-- 文案块：square 是纯图标按钮，标题/小标题/提示/副标题放在按钮右侧。
+         没有文案时不渲染，保持「一颗方块」的原样。 -->
+    <SwitchLabel
+      v-if="hasLabel"
+      :title="title"
+      :sub="sub"
+      :tip="tip"
+      :description="description"
+      inline
+    />
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -117,8 +79,9 @@
 import { computed, useSlots } from "vue";
 import { ElTooltip } from "element-plus";
 import StateIcon from "../../ReStateIcon/StateIcon.vue";
+import SwitchLabel from "../shared/SwitchLabel.vue";
 
-defineOptions({ name: "SquareReSwitch", inheritAttrs: true });
+defineOptions({ name: "SquareReSwitch", inheritAttrs: false });
 
 const slots = useSlots();
 
@@ -142,8 +105,14 @@ const hasInactiveSlot = computed(() => hasNamedSlot("inactive"));
 
 const props = withDefaults(
   defineProps<{
-    /** 主标题（tooltip） */
+    /** 主标题：既当 tooltip 文案，也在按钮右侧作为标题显示 */
     title?: string;
+    /** 灰色小标题（按钮右侧，圆角小标签） */
+    sub?: string;
+    /** 提示文案（按钮右侧标题旁的问号，hover 出浮层） */
+    tip?: string;
+    /** 副标题说明（按钮右侧次要文字） */
+    description?: string;
     /**
      * 无障碍名称。
      *
@@ -161,15 +130,18 @@ const props = withDefaults(
     inactiveValue?: boolean | string | number;
     /** 通用图标名（激活/非激活都用它，如 ep:star）；配置后两态相同 */
     icon?: string;
-    /** 激活态图标名（缺省回退到 icon） */
+    /** 激活态图标名（缺省回退到 icon，再回退到内置 sunmoon） */
     activeIcon?: string;
-    /** 非激活态图标名（缺省回退到 icon） */
+    /** 非激活态图标名（缺省回退到 icon，再回退到内置 sunmoon） */
     inactiveIcon?: string;
     /** 内置图标集名（sunmoon / check / star / bell / arrow / anim）；"none" 关闭内置回落 */
     preset?: string;
   }>(),
   {
     title: "",
+    sub: "",
+    tip: "",
+    description: "",
     ariaLabel: "",
     disabled: false,
     size: "default",
@@ -181,6 +153,9 @@ const props = withDefaults(
     preset: undefined,
   },
 );
+
+/** 是否需要在按钮右侧渲染文案块 */
+const hasLabel = computed(() => Boolean(props.sub || props.tip || props.description));
 
 const modelValue = defineModel<boolean | string | number>({ default: false });
 
@@ -214,6 +189,23 @@ function toggle() {
 </script>
 
 <style scoped>
+/* 外壳：默认只包一颗方块（inline-flex 不影响既有布局）；
+   带文案时变成「方块 + 文案块」的横向组合。 */
+.re-switch-square-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  vertical-align: middle;
+}
+
+.re-switch-square-wrap--with-label {
+  align-items: flex-start;
+}
+
+.re-switch-square-wrap--with-label .re-switch-square {
+  flex-shrink: 0;
+}
+
 .re-switch-square {
   display: inline-flex;
   align-items: center;
@@ -261,14 +253,6 @@ function toggle() {
 }
 .re-switch-square__label :deep(.el-icon) {
   font-size: 18px;
-}
-.re-switch-square__default-icon {
-  width: 18px;
-  height: 18px;
-  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.re-switch-square--active .re-switch-square__default-icon {
-  transform: scale(1.08);
 }
 .re-switch-square__fallback {
   font-size: 16px;
@@ -331,14 +315,10 @@ function toggle() {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .re-switch-square,
-  .re-switch-square__default-icon {
+  .re-switch-square {
     transition: none;
   }
   .re-switch-square:active:not(.re-switch-square--disabled) {
-    transform: none;
-  }
-  .re-switch-square--active .re-switch-square__default-icon {
     transform: none;
   }
 }
