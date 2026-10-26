@@ -620,7 +620,7 @@ const bindEvents = (g: Graph, isAlive: () => boolean) => {
   /* ---------- 右键（contextmenu）：回参 + 可选浮层 ---------- */
   // 最短路径模式（拾取中或已在看结果）下右键 = 取消，不再弹业务菜单：
   // 开启期间右键只服务最短路径，避免两套手势互相打架。
-  const pathBusy = () => pathPickState.value || pathModeState.value;
+  // （pathBusy 是模块级的：框选的 pointerdown 也要用它让位）
   g.on("node:contextmenu", (ev) => {
     if (pathBusy()) {
       cancelPathPick(ev);
@@ -1753,6 +1753,16 @@ const pathToState = ref("");
  */
 const pathPickState = ref(false);
 
+/**
+ * 最短路径是否正在「占用」左键与右键。
+ *
+ * <p>拾取中（等端点）和已出结果（在看路径）都算 —— 这两种状态下常规的
+ * 点选 / 框选 / 悬停高亮 / 右键菜单都要让位，否则两套手势会互相打架。</p>
+ *
+ * <p>用函数而不是 computed：它在事件回调里被调用，不需要响应式依赖追踪。</p>
+ */
+const pathBusy = (): boolean => pathPickState.value || pathModeState.value;
+
 /** 路径选择模式下已点中的端点高亮（不改选中集合，只做视觉提示） */
 const paintPathPicks = () => {
   if (!graph || !graphAlive) return;
@@ -2052,6 +2062,8 @@ const drawBrush = () => {
 
 const onBrushDown = (ev: { targetType?: string; canvas?: unknown; button?: number }) => {
   if (!brushSelectState.value || !graph || !graphAlive) return;
+  // 最短路径模式（拾取中或已出结果）期间左键只服务端点拾取，框选必须让位
+  if (pathBusy()) return;
   if ((ev.targetType ?? "canvas") !== "canvas") return; // 从节点/边上按下不启动框选
   if (typeof ev.button === "number" && ev.button !== 0) return; // 右键 / 中键不拉框
   brushFrom = pointOf(ev.canvas);
