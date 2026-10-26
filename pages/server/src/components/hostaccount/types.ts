@@ -71,6 +71,7 @@ export function authLabelOf(type: string | null | undefined): string {
   switch (normAuth(type)) {
     case "PASSWORD": return "密码登录";
     case "PUBLIC_KEY": return "公钥登录";
+    case "NONE": return "免密登录";
     case "MAILBOX": return "邮箱账号";
     case "TOKEN": return "Token";
     case "API_KEY": return "API Key";
@@ -99,6 +100,7 @@ export function authToneOf(type: string | null | undefined): string {
   switch (normAuth(type)) {
     case "PASSWORD": return "a-info";
     case "PUBLIC_KEY": return "a-warn";
+    case "NONE": return "a-ok";
     case "MAILBOX": return "a-ok";
     case "TOKEN":
     case "API_KEY": return "a-brand";
@@ -109,7 +111,7 @@ export function authToneOf(type: string | null | undefined): string {
 /** 认证方式分组（四个版式共用同一套分面口径） */
 export function authGroupOf(type: string | null | undefined): "password" | "key" | "generic" {
   const t = normAuth(type);
-  if (t === "PASSWORD") return "password";
+  if (t === "PASSWORD" || t === "NONE") return "password";
   if (t === "PUBLIC_KEY") return "key";
   return "generic";
 }

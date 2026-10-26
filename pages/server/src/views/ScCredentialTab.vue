@@ -71,6 +71,7 @@ const keyGenTypeOptions = [
 const authTypeOptions = [
   { value: 'PASSWORD', label: '密码登录', group: '主机' },
   { value: 'PUBLIC_KEY', label: '公钥登录', group: '主机' },
+  { value: 'NONE', label: '免密登录', group: '主机' },
   { value: 'MAILBOX', label: '邮箱账号', group: '通用' },
   { value: 'TOKEN', label: 'Token', group: '通用' },
   { value: 'API_KEY', label: 'API Key', group: '通用' },
@@ -88,6 +89,7 @@ function authTypeLabel(v: string): string {
 function authTypeTagType(v: string): 'success' | 'info' | 'warning' | 'primary' {
   if (v === 'PUBLIC_KEY') return 'warning';
   if (v === 'PASSWORD') return 'info';
+  if (v === 'NONE') return 'success';
   if (v === 'MAILBOX') return 'success';
   return 'primary';
 }
@@ -584,8 +586,11 @@ async function viewMessage(email: any): Promise<void> {
         <ReFormItem v-if="identityForm.msServerIdentityAuthType === 'MAILBOX' && identityForm.msServerIdentityEmailSource !== 'TEMP'" label="IMAP 端口">
           <ReInput v-model.number="identityForm.msServerIdentityImapPort" placeholder="默认 993" />
         </ReFormItem>
-        <ReFormItem v-if="identityForm.msServerIdentityAuthType !== 'MAILBOX' && identityForm.msServerIdentityAuthType !== 'PASSWORD'" label="引用密钥">
+        <ReFormItem v-if="identityForm.msServerIdentityAuthType !== 'MAILBOX' && identityForm.msServerIdentityAuthType !== 'PASSWORD' && identityForm.msServerIdentityAuthType !== 'NONE'" label="引用密钥">
           <ReSelect v-model="identityForm.msServerIdentityKeyId" :data="keyRefOptions" style="width: 100%" placeholder="选择密钥库条目" clearable />
+        </ReFormItem>
+        <ReFormItem v-if="identityForm.msServerIdentityAuthType === 'NONE'" label="免密说明">
+          <span class="type-hint">目标主机需已放行该账号（authorized_keys 已配置平台公钥，或 sshd 允许空口令）。平台只凭用户名连接，不保存密码 / 私钥。</span>
         </ReFormItem>
       </ReForm>
     </ReDialog>
@@ -672,6 +677,17 @@ async function viewMessage(email: any): Promise<void> {
   font-size: 11px;
   color: var(--el-text-color-secondary);
   font-family: ui-monospace, SFMono-Regular, monospace;
+}
+/* 免密登录说明 */
+.type-hint {
+  display: block;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light, #f5f7fa);
+  border: 1px solid var(--el-border-color-extra-light, #eef0f6);
+  border-radius: 8px;
+  padding: 8px 10px;
 }
 .mailbox { display: flex; flex-direction: column; gap: 10px; }
 .mailbox-toolbar { display: flex; align-items: center; gap: 8px; }

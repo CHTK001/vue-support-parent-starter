@@ -483,6 +483,7 @@ function exportCsv(): void {
 const authTypeOptions = [
   { value: "PASSWORD", label: "密码登录", group: "主机" },
   { value: "PUBLIC_KEY", label: "公钥登录", group: "主机" },
+  { value: "NONE", label: "免密登录", group: "主机" },
   { value: "MAILBOX", label: "邮箱账号", group: "通用" },
   { value: "TOKEN", label: "Token", group: "通用" },
   { value: "API_KEY", label: "API Key", group: "通用" },
@@ -502,6 +503,7 @@ const authTypeLabel = (t?: string | null): string => {
 const authTypeTagType = (t?: string | null): "success" | "info" | "warning" | "primary" => {
   if (t === "PUBLIC_KEY") return "warning";
   if (t === "MAILBOX") return "success";
+  if (t === "NONE") return "success";
   if (t === "PASSWORD") return "info";
   return "primary";
 };
@@ -517,8 +519,8 @@ function onFilterReset(): void {
 
 // ==================== KPI 统计卡（每个 tab 一组） ====================
 
-/** 主机类身份数（口令 / 公钥两种主机登录方式） */
-const hostCount = computed(() => list.value.filter((i) => i.msServerIdentityAuthType === "PASSWORD" || i.msServerIdentityAuthType === "PUBLIC_KEY").length);
+/** 主机类身份数（口令 / 公钥 / 免密三种主机登录方式） */
+const hostCount = computed(() => list.value.filter((i) => i.msServerIdentityAuthType === "PASSWORD" || i.msServerIdentityAuthType === "PUBLIC_KEY" || i.msServerIdentityAuthType === "NONE").length);
 /** 非主机类身份数（邮箱 / Token 等） */
 const genericCount = computed(() => list.value.length - hostCount.value);
 /** 走公钥登录的身份数 */
@@ -914,6 +916,9 @@ async function submitAdd(): Promise<void> {
         <ReFormItem v-if="addForm.msServerIdentityAuthType === 'PASSWORD'" label="登录密码">
           <ReInput v-model="addForm.msServerIdentityPassword" type="password" show-password placeholder="SSH 口令" style="width:100%" />
         </ReFormItem>
+        <ReFormItem v-if="addForm.msServerIdentityAuthType === 'NONE'" label="免密说明">
+          <span class="idm-hint">目标主机需已放行该账号（authorized_keys 已配置平台公钥，或 sshd 允许空口令）。平台只凭用户名连接，不保存密码 / 私钥。</span>
+        </ReFormItem>
         <ReFormItem label="备注">
           <ReInput v-model="addForm.msServerIdentityRemark" placeholder="用途说明（可选）" style="width:100%" />
         </ReFormItem>
@@ -1075,6 +1080,17 @@ async function submitAdd(): Promise<void> {
   /* 紧凑档单卡很窄，用 auto-fit 让 4 张按可用宽度自动换行，无需断点硬切 */
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
+}
+/* 免密登录说明 */
+.idm-hint {
+  display: block;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light, #f5f7fa);
+  border: 1px solid var(--el-border-color-extra-light, #eef0f6);
+  border-radius: 8px;
+  padding: 8px 10px;
 }
 
 /* ---------- 数据卡片：吃满剩余高度 ---------- */

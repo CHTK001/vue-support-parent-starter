@@ -3,10 +3,12 @@
     <!-- 操作条：无标题大卡 -->
     <div class="view-bar">
       <span class="match-hint">
-        <ReTag :type="info && info.available ? 'success' : 'warning'" round>
-          {{ info ? `数据源 ${info.mode}` : "未连接" }}
+        <ReTag :type="storage && storage.available ? 'success' : 'warning'" round>
+          {{ storage ? `存储 ${storage.type}` : "未连接" }}
         </ReTag>
-        <template v-if="info"> · {{ info.reason }}</template>
+        <template v-if="storage">
+          · 引擎{{ storage.engineActive ? "已激活" : "未激活" }}
+        </template>
       </span>
       <div class="view-bar__actions">
         <ReButton icon="Refresh" show-text :loading="probing" @click="probe">重新检测</ReButton>
@@ -54,37 +56,42 @@
 
     <div class="panel">
       <div class="panel-head">
-        <span>数据源探测</span>
-        <span class="panel-sub">后端按 auto 顺序探测，全部不可用时降级为 none（返回空数据）</span>
+        <span>存储状态</span>
+        <span class="panel-sub">
+          后端 <code>/storage/status</code> 实测：实际生效的存储类型与配置键值
+        </span>
       </div>
 
-      <ReSkeleton v-if="probing && !info" :loading="true" :rows="3" animated />
-      <div class="panel-empty" v-else-if="!info">
+      <ReSkeleton v-if="probing && !storage" :loading="true" :rows="3" animated />
+      <div class="panel-empty" v-else-if="!storage">
         无法连接观测接口<br />请检查上面的地址是否正确，或后端是否已启动
       </div>
-      <ReTable
-        v-else
-        :data="candidateRows"
-        :columns="candidateColumns"
-        engine="element"
-        :settings="{ border: false }"
-        :layout-table="{ minHeight: 0 }"
-        class="apm-table"
-        empty-text="无数据源候选"
-        :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
-      >
-        <template #col-name="{ row }">
-          <span class="mono">{{ row.name }}</span>
-        </template>
-        <template #col-available="{ row }">
-          <ReTag :type="row.available ? 'success' : 'info'" round>
-            {{ row.available ? "可用" : "不可用" }}
+      <template v-else>
+        <div class="storage-summary">
+          <ReTag :type="storage.available ? 'success' : 'info'" round>
+            {{ storage.available ? "可用" : "不可用" }}
           </ReTag>
-        </template>
-        <template #col-description="{ row }">
-          <span class="muted">{{ row.description }}</span>
-        </template>
-      </ReTable>
+          <span class="mono">类型 {{ storage.type }}</span>
+          <span class="muted">引擎{{ storage.engineActive ? "已激活" : "未激活" }}</span>
+        </div>
+        <ReTable
+          :data="configRows"
+          :columns="configColumns"
+          engine="element"
+          :settings="{ border: false }"
+          :layout-table="{ minHeight: 0 }"
+          class="apm-table"
+          empty-text="后端未返回存储配置项"
+          :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+        >
+          <template #col-key="{ row }">
+            <span class="mono">{{ row.key }}</span>
+          </template>
+          <template #col-value="{ row }">
+            <span class="mono muted">{{ row.value || "—" }}</span>
+          </template>
+        </ReTable>
+      </template>
     </div>
   </div>
 </template>
@@ -108,7 +115,7 @@ import { APM_PREFIX, getApiBase, resetApiBase, setApiBase, wsUrl } from "../conf
  */
 
 const draftBase = ref(getApiBase());
-const info = ref<ApmProviderInfo | null>(null);
+const storage = ref<ApmStorageStatus | null>(null);
 const probing = ref(false);
 const saving = ref(false);
 
@@ -118,29 +125,30 @@ const displayBase = computed(() => getApiBase() || "同源（跟随当前页面�
 /** WebSocket 地址，同样受地址设置影响 */
 const displayWs = computed(() => wsUrl());
 
-/** 数据源候选表行：直接来自后端探测结果，不做任何填充 */
-const candidateRows = computed(() => (info.value?.candidates ?? []) as unknown as Record<string, unknown>[]);
+/** 存储配置键值表行：直接展开后端返回的 configured，不做任何填充 */
+const configRows = computed(() =>
+  Object.entries(storage.value?.configured ?? {}).map(([key, value]) => ({ key, value })),
+);
 
-const candidateColumns: ReTableColumn[] = [
-  { prop: "name", label: "数据源", minWidth: 160, slot: "name" },
-  { prop: "available", label: "状态", width: 110, slot: "available" },
-  { prop: "description", label: "说明", minWidth: 320, slot: "description" },
+const configColumns: ReTableColumn[] = [
+  { prop: "key", label: "配置项", minWidth: 260, slot: "key" },
+  { prop: "value", label: "当前值", minWidth: 200, slot: "value" },
 ];
 
 /**
- * 探测后端数据源：成功后把结果渲染到候选表。
+ * 探测后端存储状态：成功后把结果渲染到配置表。
  *
  * @param quiet 为 true 时不弹成功提示（用于页面首次加载）
  */
 async function probe(quiet = false): Promise<void> {
   probing.value = true;
   try {
-    info.value = await getProvider();
+    storage.value = await getStorageStatus();
     if (!quiet) {
-      message.success(`连接正常，数据源 ${info.value.mode}`);
+      message.success(`连接正常，存储 ${storage.value.type}`);
     }
   } catch (error) {
-    info.value = null;
+    storage.value = null;
     if (!quiet) {
       message.error(`连接失败：${(error as Error)?.message || "无法访问观测接口"}`);
     }
@@ -188,8 +196,8 @@ onMounted(() => {
 </script>
 
 <script lang="ts">
-import type { ApmProviderInfo } from "../api/apmApi";
-import { getProvider, resetApiClient } from "../api/apmApi";
+import type { ApmStorageStatus } from "../api/apmApi";
+import { getStorageStatus, resetApiClient } from "../api/apmApi";
 </script>
 
 <style scoped>
@@ -239,6 +247,15 @@ import { getProvider, resetApiClient } from "../api/apmApi";
 .fact code {
   font-size: 12px;
   word-break: break-all;
+}
+
+/* 存储状态摘要行：可用性徽章 + 类型 + 引擎状态，横排一行 */
+.storage-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
 }
 
 </style>

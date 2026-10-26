@@ -17,6 +17,8 @@
           <!-- 显示模式这一排可以收起：两组胶囊加起来占掉一整行高度，而它们都是
                「设置一次就不再动」的偏好。收起后功能不丢 —— 表头右键菜单里是同一组开关
                （同一个 headerMode / rowMode 状态源，不是两份实现）。
+               按钮带「显示模式」字样而不是光一个箭头：之前只有箭头时它紧贴表名，
+               被读成面包屑分隔符（表名 › 子级），没人会想到那是折叠开关。
                默认展开：既有验收脚本按 .dbm-subtab 定位，折叠态是可选路径。 -->
           <button
             type="button"
@@ -24,9 +26,10 @@
             :class="{ 'is-collapsed': modeRowCollapsed }"
             :aria-expanded="!modeRowCollapsed"
             :title="modeRowCollapsed ? '展开显示模式' : '收起显示模式（右键表头同样可切换）'"
-            @click="modeRowCollapsed = !modeRowCollapsed"
+            @click="toggleModeRow"
           >
-            <ReIcon name="ArrowDown" :size="12" />
+            <span class="dbm-mode-toggle-text">显示模式</span>
+            <ReIcon name="ArrowDown" :size="12" class="dbm-mode-toggle-chevron" />
           </button>
           <!-- 表头显示模式：字段 / 注释 / 字段+注释 / 类型 -->
           <div v-show="!modeRowCollapsed" class="dbm-subtabs">
@@ -352,10 +355,13 @@
             />
           </div>
           <!-- 行/单元格操作走右键菜单（无操作列）；列可拖拽调序 —— ReTable 默认关闭，控制台这里开 -->
-          <!-- @contextmenu 是原生监听：ReTable 是 inheritAttrs:true 的单根组件，
-               监听会落在它的 .re-table 根上。表头区域由 onGridHeaderContextMenu 接管，
-               单元格区域直接放行 —— ReTable 自己的 .re-ctx-menu 还要用这次事件。 -->
+          <!-- 表头右键用 ReTable 的 @header-contextmenu 事件（不是原生 @contextmenu）：
+               它把「右键的是哪一列」一起给出来，「设置列宽…」「调整列宽以适应内容」
+               都需要知道目标列；而且两套引擎（vxe / element）都会走到同一个事件上。
+               ReTable 自己不 preventDefault，浏览器默认菜单要在这里拦。
+               单元格区域不受影响 —— ReTable 自己的 .re-ctx-menu 照旧走 context-menu-select。 -->
           <ReTable
+            ref="dataGridRef"
             :data="tableData.rows"
             :columns="tableColumns"
             :row-key="gridRowKey"
@@ -370,7 +376,7 @@
             size="mini"
             height="calc(100% - 56px)"
             :context-menu="gridMenuItems"
-            @contextmenu="onGridHeaderContextMenu"
+            @header-contextmenu="onGridHeaderContextMenu"
             @selection-change="onSelectionChange"
             @sort-change="onSortChange"
             @context-menu-select="onGridMenuSelect"
@@ -845,6 +851,17 @@
         <div class="dbm-context-item" @click="openColumnViewFromHeaderMenu">
           <ReIcon name="Paperclip" :size="14" />冻结列…
           <span class="dbm-context-hint">固定在左侧</span>
+        </div>
+        <div class="dbm-context-divider" />
+        <div class="dbm-context-item" @click="openColumnWidthFromHeaderMenu">
+          <ReIcon name="Setting" :size="14" />设置列宽…
+        </div>
+        <div class="dbm-context-item" @click="autoFitFromHeaderMenu('column')">
+          <ReIcon name="FullScreen" :size="14" />调整列宽以适应内容
+          <span class="dbm-context-hint">{{ headerMenu.columnLabel || "" }}</span>
+        </div>
+        <div class="dbm-context-item" @click="autoFitFromHeaderMenu('all')">
+          <ReIcon name="Rank" :size="14" />调整所有列的适合大小
         </div>
         <div class="dbm-context-divider" />
         <div class="dbm-context-group">表头显示</div>
@@ -1476,6 +1493,40 @@
         <ReButton type="danger" plain @click="resetColumnViewSettings">恢复默认</ReButton>
         <ReButton @click="columnViewDialogVisible = false">取消</ReButton>
         <ReButton type="primary" @click="applyColumnViewSettings">应用</ReButton>
+      </template>
+    </ReDialog>
+
+    <!-- 设置列宽（对齐 Navicat 的「设置列宽…」）
+         网格本来只有拖拽调宽一条路：想把 8 列对齐成一样宽得拖 8 次，还不准。
+         这里给数字输入，宽度由 ReTable 落盘（与拖拽同一个存档键，按「库.表」分）。 -->
+    <ReDialog v-model="colWidthDialogVisible" title="设置列宽" width="460px">
+      <div class="dbm-colset">
+        <div class="dbm-colset-head">
+          <span class="dbm-colset-hint">
+            单位像素，范围 {{ COL_WIDTH_MIN }}–{{ COL_WIDTH_MAX }}。偏好按「库.表」保存。
+          </span>
+          <span class="dbm-spacer" />
+          <ReButton size="small" @click="fillColWidthDraftByContent">按内容填一遍</ReButton>
+        </div>
+        <div class="dbm-colset-list">
+          <label v-for="c in colWidthDraft" :key="c.prop" class="dbm-colset-row">
+            <span class="dbm-colset-name">{{ c.label }}</span>
+            <span class="dbm-spacer" />
+            <ReInputNumber
+              v-model="c.width"
+              :min="COL_WIDTH_MIN"
+              :max="COL_WIDTH_MAX"
+              :step="10"
+              size="small"
+              class="dbm-colwidth-input"
+            />
+          </label>
+        </div>
+      </div>
+      <template #footer>
+        <ReButton type="danger" plain @click="resetColWidthSettings">恢复默认</ReButton>
+        <ReButton @click="colWidthDialogVisible = false">取消</ReButton>
+        <ReButton type="primary" @click="applyColWidthSettings">应用</ReButton>
       </template>
     </ReDialog>
 
@@ -3742,7 +3793,13 @@ const tableColumns = computed<Column[]>(() => {
       // 不画的后果是「点完表头看不出当前排的是哪一列、朝哪边」——
       // 页码都变了却不知道按什么排的，等于没有排序反馈。
       label: headerLabel(col) + sortMark(col),
-      minWidth: 130,
+      // 默认宽度 130：与改动前完全一致（以前只写 minWidth: 130，vxe 在没有显式宽度时
+      // 正是按 minWidth 排版，所以观感不变）。
+      // 但下限必须放到 60，否则「调整列宽以适应内容」永远只能缩到 130 ——
+      // 一个只存 1 的 id 列也占 130，那条菜单项等于摆设。
+      // 现在：默认还是 130，用户主动适应内容才允许更窄。
+      width: 130,
+      minWidth: 60,
       showOverflowTooltip: true,
       sortable: "custom" as const,
       ...(pinned.has(col) ? { fixed: "left" as const } : {}),
@@ -7857,10 +7914,35 @@ function closeContextMenu() {
  * 顶部折叠起来之后，这两个开关就靠它（同一个 headerMode / rowMode 状态源，
  * 不是两份实现，不会出现顶部显示「字段」而菜单勾着「类型」的错位）。</p>
  */
-const headerMenu = reactive({ visible: false, x: 0, y: 0 });
+const headerMenu = reactive({
+  visible: false,
+  x: 0,
+  y: 0,
+  /** 右键落在哪一列（列 prop）：设置列宽 / 只调整这一列时要用 */
+  columnProp: "",
+  /** 该列的显示名（菜单里做提示用，避免用户分不清「适应内容」针对谁） */
+  columnLabel: "",
+});
 
 /** 顶部显示模式那一排是否收起（默认展开，见 dbViewPref.modeRowCollapsed 注释） */
 const modeRowCollapsed = ref(viewPref.modeRowCollapsed);
+
+/** 收起提示是否已经弹过：只在本会话弹一次，否则每次点都弹等于骚扰 */
+let modeRowHintShown = false;
+
+/**
+ * 展开 / 收起顶部显示模式那一排。
+ *
+ * <p>收起后开关只剩表头右键菜单这一个入口，用户很容易以为功能没了 ——
+ * 首次收起时给一次提示，之后靠按钮上的「显示模式」字样和 title 自解释。</p>
+ */
+function toggleModeRow(): void {
+  modeRowCollapsed.value = !modeRowCollapsed.value;
+  if (modeRowCollapsed.value && !modeRowHintShown) {
+    modeRowHintShown = true;
+    message.info("显示模式已收起，右键表头可随时切回");
+  }
+}
 
 /** 表头菜单定位（位置在打开时已按真实尺寸夹过视口，这里只做直出） */
 const headerMenuStyle = computed<Record<string, string>>(() => ({
@@ -7874,21 +7956,29 @@ function closeHeaderMenu(): void {
 }
 
 /**
- * 表头右键：只在表头区域接管，其余一律放行。
+ * 表头右键：接 ReTable 的 {@code header-contextmenu}。
  *
- * <p>判据是 vxe 的表头容器 `.vxe-table--header`。单元格 / 表体不能拦：
- * ReTable 自己的 `.re-ctx-menu` 还要靠这次 contextmenu 打开。</p>
+ * <p>用组件事件而不是原生 contextmenu：载荷里带「右键的是哪一列」，
+ * 「设置列宽…」「调整列宽以适应内容」都靠它定位目标列；而且 element / vxe
+ * 两套引擎都会走到这里，不像原生监听只认 vxe 的 `.vxe-table--header`。</p>
  *
- * @param e 原生右键事件（挂在 ReTable 根元素上，由它冒泡上来）
+ * <p>ReTable 刻意不替宿主 preventDefault（它不知道宿主想不想弹菜单），
+ * 所以浏览器默认菜单要在这里拦。</p>
+ *
+ * @param payload ReTable 抛上来的列信息 + 原生事件
  */
-function onGridHeaderContextMenu(e: MouseEvent): void {
-  const target = e.target as HTMLElement | null;
-  if (!target || !target.closest(".vxe-table--header")) return;
-  e.preventDefault();
-  // 拦下冒泡：否则 vxe 的全局 contextmenu 处理还会再走一遍单元格那条路径
-  e.stopPropagation();
-  headerMenu.x = e.clientX;
-  headerMenu.y = e.clientY;
+function onGridHeaderContextMenu(payload: {
+  columnProp?: string;
+  columnLabel?: string;
+  event?: PointerEvent;
+}): void {
+  const event = payload?.event;
+  if (!event) return;
+  event.preventDefault();
+  headerMenu.columnProp = payload.columnProp ?? "";
+  headerMenu.columnLabel = payload.columnLabel ?? "";
+  headerMenu.x = event.clientX;
+  headerMenu.y = event.clientY;
   headerMenu.visible = true;
   void nextTick(clampHeaderMenuPosition);
 }
@@ -7897,7 +7987,7 @@ function onGridHeaderContextMenu(e: MouseEvent): void {
  * 按真实渲染尺寸把表头菜单夹回视口。
  *
  * <p>与树菜单 {@link clampContextMenuPosition} 同一套做法：首帧只能靠估算，
- * 而这里项数固定（7 项 + 2 分组标题 + 2 分割线），仍按实测校正一次更稳。</p>
+ * 而这里项数固定（11 项 + 2 分组标题 + 3 分割线），仍按实测校正一次更稳。</p>
  */
 async function clampHeaderMenuPosition(): Promise<void> {
   await nextTick();
@@ -7924,6 +8014,129 @@ function setRowModeFromMenu(mode: "data" | "data-comment"): void {
 function openColumnViewFromHeaderMenu(): void {
   closeHeaderMenu();
   openColumnViewDialog();
+}
+
+// ==================== 列宽（设置列宽… / 调整列宽以适应内容） ====================
+
+/**
+ * 列宽可调区间。
+ *
+ * <p>下限 60 是「再窄就看不见内容」的经验值，上限 520 是「再宽一列就吃掉整个视口」。
+ * 列定义里写了 minWidth / maxWidth 的列以列定义为准（ReTable 内部再夹一次）。</p>
+ */
+const COL_WIDTH_MIN = 60;
+const COL_WIDTH_MAX = 520;
+
+/**
+ * 数据网格 ReTable 暴露出来的列宽接口。
+ *
+ * <p>刻意不写 {@code InstanceType<typeof ReTable>}：宽度这件事归 ReTable 管
+ * （存档键、按表分键、拖拽落盘都在它里面），这里只声明「我要用哪几个方法」，
+ * 组件加别的方法不影响这里，少一个方法则编译期就报错。</p>
+ */
+interface DataGridWidthApi {
+  setColumnWidth(prop: string, width: number): void;
+  setColumnWidths(widths: Record<string, number>): void;
+  getColumnWidths(): Record<string, number>;
+  resetColumnWidths(): void;
+  autoFitColumns(propsList?: string[]): Record<string, number>;
+}
+
+/** 数据网格实例（只用到列宽那几个方法） */
+const dataGridRef = ref<DataGridWidthApi | null>(null);
+
+/** 「设置列宽」弹窗是否打开 */
+const colWidthDialogVisible = ref(false);
+
+/** 弹窗草稿：每列的显示名 + 宽度输入值 */
+const colWidthDraft = ref<{ prop: string; label: string; width: number | undefined }[]>([]);
+
+/** 表头菜单里打开「设置列宽」 */
+function openColumnWidthFromHeaderMenu(): void {
+  closeHeaderMenu();
+  openColWidthDialog();
+}
+
+/**
+ * 打开「设置列宽」弹窗。
+ *
+ * <p>只列**当前可见**的列：隐藏列看不见，给它设宽度没有任何可见效果，
+ * 放进来只会让人以为设错了。宽度回填 ReTable 的当前生效值。</p>
+ */
+function openColWidthDialog(): void {
+  if (!activeTabObj.value?.tableName) {
+    message.info("先打开一张表");
+    return;
+  }
+  const current = dataGridRef.value?.getColumnWidths() ?? {};
+  const hidden = hiddenColumns.value;
+  colWidthDraft.value = tableData.columns
+    .filter(col => !hidden.has(col))
+    .map(col => ({
+      prop: col,
+      label: headerLabel(col),
+      width: current[col] ?? tableColumns.value.find(c => c.prop === col)?.width ?? COL_WIDTH_MIN,
+    }));
+  colWidthDialogVisible.value = true;
+}
+
+/**
+ * 「按内容填一遍」：把自适应结果填进草稿，**不直接应用**。
+ *
+ * <p>先填后应用是刻意的：自适应是猜的，猜完让人看一眼再决定，
+ * 比点一下就直接改掉全部列宽更符合「设置列宽」这个弹窗的语义。</p>
+ */
+function fillColWidthDraftByContent(): void {
+  const fitted = dataGridRef.value?.autoFitColumns() ?? {};
+  colWidthDraft.value = colWidthDraft.value.map(c => ({
+    ...c,
+    width: fitted[c.prop] ?? c.width,
+  }));
+}
+
+/** 应用列宽 */
+function applyColWidthSettings(): void {
+  const widths: Record<string, number> = {};
+  for (const c of colWidthDraft.value) {
+    if (typeof c.width === "number" && Number.isFinite(c.width)) {
+      widths[c.prop] = c.width;
+    }
+  }
+  dataGridRef.value?.setColumnWidths(widths);
+  colWidthDialogVisible.value = false;
+}
+
+/** 恢复默认列宽（清掉落盘的宽度，回到列定义） */
+function resetColWidthSettings(): void {
+  dataGridRef.value?.resetColumnWidths();
+  colWidthDialogVisible.value = false;
+}
+
+/**
+ * 表头菜单里调整列宽。
+ *
+ * @param scope {@code column} 只调右键那一列；{@code all} 全部可见列
+ */
+function autoFitFromHeaderMenu(scope: "column" | "all"): void {
+  const targetProp = headerMenu.columnProp;
+  const targetLabel = headerMenu.columnLabel;
+  closeHeaderMenu();
+  const api = dataGridRef.value;
+  if (!api) return;
+  // 右键落在「表头空白区 / 占位列」时拿不到列 prop：退回全部列，
+  // 否则「调整列宽以适应内容」会静默什么都不做，看起来像坏了
+  const onlyColumn = scope === "column" && Boolean(targetProp);
+  const widths = api.autoFitColumns(onlyColumn ? [targetProp] : undefined);
+  const count = Object.keys(widths).length;
+  if (count === 0) {
+    message.warning("没有可调整的列");
+    return;
+  }
+  message.success(
+    onlyColumn
+      ? `已按内容调整「${targetLabel || targetProp}」的宽度`
+      : `已按内容调整 ${count} 列宽度`,
+  );
 }
 
 /** 右键菜单估算高度（项高 32 + 上下内边距 + 按节点类型的分割线） */
@@ -8145,6 +8358,9 @@ async function resetViewSettings(): Promise<void> {
   }
   resetAllPrefs();
   columnPrefs.value = {};
+  // 列宽不在 columnPrefs 里 —— 它由 ReTable 自己按「库.表」存档，
+  // 所以「恢复默认」必须显式清一次，否则宽度是唯一清不掉的偏好
+  dataGridRef.value?.resetColumnWidths();
   headerMode.value = "name";
   rowMode.value = "data";
   modeRowCollapsed.value = false;
@@ -9313,6 +9529,11 @@ onBeforeUnmount(() => {
   text-decoration: line-through;
 }
 .dbm-colset-check { cursor: pointer; }
+/* 「设置列宽」弹窗里的数字输入：宽度输入框固定 120px，
+   否则每行的输入框会被 .dbm-spacer 挤到右边不齐。
+   120 是算出来的：两边步进按钮各 28px + 边框，剩下的才给数字 ——
+   96px 时「130」会被截成「13(」。 */
+.dbm-colwidth-input { width: 120px; flex: none; }
 .dbm-colset-name {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -9624,29 +9845,33 @@ onBeforeUnmount(() => {
 }
 .dbm-context-item.is-checked { color: var(--el-color-primary); font-weight: 600; }
 
-/* 顶部「显示模式」那一排的收起按钮 */
+/* 顶部「显示模式」那一排的收起按钮
+   带文字而不是光一个箭头：贴在表名后面时，光箭头会被读成面包屑分隔符。
+   收起后仍留「显示模式」四个字 —— 那一排没了，这四个字就是它存在过的唯一线索。 */
 .dbm-mode-toggle {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
+  gap: 4px;
+  height: 22px;
   flex: none;
-  padding: 0;
+  padding: 0 7px;
+  font-size: 12px;
   color: var(--el-text-color-secondary);
   background: transparent;
   border: 1px solid transparent;
   border-radius: var(--el-radius-sm, 6px);
   cursor: pointer;
-  transition: transform 0.16s ease, background 0.12s ease, color 0.12s ease;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
 }
 .dbm-mode-toggle:hover {
   color: var(--el-color-primary);
   background: var(--el-fill-color-light);
   border-color: var(--el-border-color-lighter);
 }
-/* 收起后箭头转向，一眼看出点一下能展开 */
-.dbm-mode-toggle.is-collapsed { transform: rotate(-90deg); }
+/* 收起后箭头转向（只转箭头，文字不跟着转 —— 转文字等于让人歪着头读） */
+.dbm-mode-toggle-chevron { transition: transform 0.16s ease; }
+.dbm-mode-toggle.is-collapsed .dbm-mode-toggle-chevron { transform: rotate(-90deg); }
+.dbm-mode-toggle.is-collapsed { color: var(--el-text-color-regular); }
 
 /* 弹窗表单 */
 .dbm-create-form { display: flex; flex-direction: column; gap: 14px; padding: 16px 20px 4px; }

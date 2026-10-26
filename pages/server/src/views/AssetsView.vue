@@ -251,9 +251,17 @@ function toggleGroup(gid: number): void {
   collapsedGroups.value = next;
 }
 
+/** 身份认证方式后缀（列表里紧跟在用户名后的短标签） */
+function identityAuthSuffix(type: string | null | undefined): string {
+  const t = String(type ?? "").toUpperCase();
+  if (t === "PUBLIC_KEY") return "私钥";
+  if (t === "NONE") return "免密";
+  return "密码";
+}
+
 /** 弹窗内 ReSelect 选项（computed 缓存，避免每次渲染重算） */
 const identityOptions = computed(() => identities.value.map(i => ({
-  label: `${i.msServerIdentityName}（${i.msServerIdentityUsername}）${i.msServerIdentityAuthType === "PUBLIC_KEY" ? "私钥" : "密码"}`,
+  label: `${i.msServerIdentityName}（${i.msServerIdentityUsername}）${identityAuthSuffix(i.msServerIdentityAuthType)}`,
   value: i.id,
 })));
 const groupOptions = computed(() => groups.value.map(g => ({ label: g.msServerGroupName, value: g.id })));

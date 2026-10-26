@@ -53,9 +53,11 @@
 
     <!-- 趋势：调用量 / 错误数（主图，占满宽） -->
     <div class="panel">
-      <div class="panel-head">
-        <span>调用趋势</span>
-        <span class="panel-sub">最近 30 分钟 · 每分钟聚合</span>
+      <div class="panel-head-row">
+        <div class="panel-head">
+          <span>调用趋势</span>
+          <span class="panel-sub">最近 30 分钟 · 每分钟聚合</span>
+        </div>
         <el-button text size="small" class="chart-export-btn" title="导出 PNG" @click="exportChart('trend')">
           <el-icon :size="14"><Download /></el-icon>导出
         </el-button>
@@ -72,9 +74,11 @@
     <!-- 双图：错误率&耗时 + 协议分布 -->
     <div class="chart-grid">
       <div class="panel">
-        <div class="panel-head">
-          <span>错误率 & 平均耗时</span>
-          <span class="panel-sub">双轴 · 每分钟分桶</span>
+        <div class="panel-head-row">
+          <div class="panel-head">
+            <span>错误率 & 平均耗时</span>
+            <span class="panel-sub">双轴 · 每分钟分桶</span>
+          </div>
           <el-button text size="small" class="chart-export-btn" title="导出 PNG" @click="exportChart('error')">
             <el-icon :size="14"><Download /></el-icon>导出
           </el-button>
@@ -807,7 +811,6 @@ watch(
 
 /* 图表导出按钮 */
 .chart-export-btn {
-  margin-left: auto;
   font-size: 12px;
   color: var(--text-tertiary, var(--apm-muted));
 }

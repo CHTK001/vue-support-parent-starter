@@ -2305,13 +2305,32 @@ function onVxeCellMenu(payload: VxeCellEvent): void {
 }
 
 /**
- * 表头右键（vxe 的 {@code header-cell-context-menu}）：
+ * 表头右键（vxe 的 {@code header-cell-menu}）：
  * 载荷里没有行数据，只有列与事件，转成与 element 引擎一致的
  * {@code header-contextmenu} 载荷抛给宿主。
+ *
+ * <p><b>事件名是 {@code header-cell-menu}，不是 {@code header-cell-context-menu}</b>：
+ * vxe 4.x 的 {@code emits.js} 里只有前者（表头/表体/表尾共用 {@code <layout>-cell-menu}
+ * 这套命名，{@code typePrefix = layout + "-"}）。早前这里绑的是
+ * {@code header-cell-context-menu} —— 一个不存在的名字，Vue 不会报错，只是永远不触发，
+ * 于是「表头右键无人接管」看起来像 vxe 不支持，实际是这个监听从来没接上。</p>
+ *
+ * <p>另外这段派发只发生在 {@code menuConfig} 启用时（vxe 的 menu 模块整块在
+ * {@code if (isEnableConf(menuConfig))} 里）。ReTable 在宿主配了单元格菜单时
+ * 就会打开 {@code enabled: true}，所以数据网格上这条路是通的；没配菜单的表格
+ * 不会收到这个事件 —— 表头右键那种表格本来也不需要菜单。</p>
  */
-function onVxeHeaderCellContextMenu(payload: { column?: { property?: string; title?: string }; $event?: PointerEvent }): void {
+function onVxeHeaderCellMenu(payload: {
+  // title 在 vxe 里是 string | number（列头可配数字），这里跟着放宽 ——
+  // 收窄成 string 会让整个 handler 与 vxe 的 HeaderCellMenu 类型不兼容（TS2322）
+  column?: { property?: string; title?: string | number };
+  // $event 在 vxe 的类型里是 Event（不是 PointerEvent），同样跟着放宽
+  $event?: Event;
+}): void {
   const column = (payload.column ?? {}) as unknown as TableColumnCtx<Record<string, unknown>>;
-  const event = payload.$event ?? ({} as PointerEvent);
+  // vxe 给的 $event 静态类型是 Event；对外契约（header-contextmenu）用的是 PointerEvent，
+  // 实际派发的是原生 contextmenu 事件（属于 PointerEvent 子类），这里按契约收口
+  const event = (payload.$event ?? {}) as PointerEvent;
   onHeaderContextMenu(column, event);
 }
 
@@ -2797,6 +2816,204 @@ const visibleColumns = computed<ReTableColumn[]>(() => {
   }
   return ordered.filter((c) => !hidden.has(c.prop) && !c.hidden);
 });
+
+/** ========== 列宽：程序化设置 / 按内容自适应 ========== */
+
+/**
+ * 列宽兜底区间。
+ *
+ * <p>列定义自己写了 {@code minWidth / maxWidth} 时以列为准（页面已经表过态），
+ * 没写才用这里的兜底 —— 否则「适应内容」能把一列压到 12px，或者撑掉半个屏幕。</p>
+ */
+const COL_WIDTH_FALLBACK_MIN = 60;
+const COL_WIDTH_FALLBACK_MAX = 520;
+
+/**
+ * 自适应列宽最多采样多少行。
+ *
+ * <p>首屏那几十行已经能代表这一列的内容宽度，把 5000 行全量量一遍纯属浪费 ——
+ * 而且长文本列（BLOB / JSON）里随便一行就能把列撑到上限，多采样没有信息增量。</p>
+ */
+const AUTO_FIT_SAMPLE_ROWS = 200;
+
+/**
+ * 量不到真实单元格时的兜底内边距。
+ *
+ * <p>实测值从单元格的 computedStyle 取（见 {@link resolveMeasureStyle}）；
+ * 这个常量只在表格还没渲染出单元格时用。</p>
+ */
+const CELL_HORIZONTAL_FALLBACK = 28;
+
+/**
+ * 可排序列表头要额外留出的宽度。
+ *
+ * <p>vxe 会在可排序列表头右侧画排序箭头（升/降/双箭头），那是图标不是文本，
+ * 量文本量不到。不留这一截，表头文字就会被截断 —— 而表头恰恰是「适应内容」
+ * 最该看准的地方。</p>
+ */
+const HEADER_SORT_ICON_WIDTH = 22;
+
+/**
+ * 自适应宽度的安全余量。
+ *
+ * <p>单元格里通常还有宿主自己的一层包装（这里是 `.dbm-cell-value` 的 2/6 padding、
+ * 主键图标、双行注释），那层的宽度量文本量不出来 —— 少了这一截，「2026-10-26」
+ * 会正好被截成「2026-10-2」。宁可略宽一点：宽一格只是留白，窄一格是截字。</p>
+ */
+const AUTO_FIT_SAFETY = 14;
+
+/** 把宽度夹回该列的合法区间（以列定义为准，缺省用兜底值） */
+function clampWidthForColumn(col: ReTableColumn, width: number): number {
+  const min = typeof col.minWidth === "number" ? col.minWidth : COL_WIDTH_FALLBACK_MIN;
+  const max = typeof col.maxWidth === "number" ? col.maxWidth : COL_WIDTH_FALLBACK_MAX;
+  return Math.round(Math.min(Math.max(min, width), Math.max(min, max)));
+}
+
+/** 列宽变了让 vxe 重排一次：它自己也跟 width 变化，这里只是保证首帧就对齐 */
+function recalculateVxe(): void {
+  const inst = vxeTableRef.value as unknown as { recalculate?: (refull?: boolean) => unknown } | null;
+  inst?.recalculate?.();
+}
+
+/**
+ * 程序化设置单列宽度。
+ *
+ * <p>与拖拽走同一条落盘路径（{@link persistColumnWidth}），所以刷新后仍在，
+ * 也天然按「库.表」分键 —— 不需要宿主自己再存一份。</p>
+ *
+ * @param prop  列 prop
+ * @param width 目标宽度（会被夹回该列合法区间）
+ */
+function setColumnWidth(prop: string, width: number): void {
+  if (!prop || !Number.isFinite(width)) return;
+  const col = visibleColumns.value.find((c) => c.prop === prop);
+  if (!col) return;
+  persistColumnWidth(prop, clampWidthForColumn(col, width));
+  void nextTick(recalculateVxe);
+}
+
+/**
+ * 批量设置列宽。
+ *
+ * <p>一次落盘而不是逐列调 {@link setColumnWidth}：后者每列都要重写一次
+ * localStorage + 触发一次重排，十几列就是十几次。</p>
+ *
+ * @param widths 列 prop → 宽度
+ */
+function setColumnWidths(widths: Record<string, number>): void {
+  const next: Record<string, number> = { ...(columnState.value.widths ?? {}) };
+  let touched = false;
+  for (const [prop, width] of Object.entries(widths)) {
+    if (!Number.isFinite(width)) continue;
+    const col = visibleColumns.value.find((c) => c.prop === prop);
+    if (!col) continue;
+    next[prop] = clampWidthForColumn(col, width);
+    touched = true;
+  }
+  if (!touched) return;
+  columnState.value = { ...columnState.value, widths: next };
+  saveColumnState();
+  void nextTick(recalculateVxe);
+}
+
+/**
+ * 当前生效的列宽（键为列 prop）。
+ *
+ * <p>返回的是「这一列配置的宽度」，不是实测像素：拖过的是落盘值，没拖过的是
+ * 列定义里的 {@code width}，两者都没有就退回 {@code minWidth}（vxe 在无显式宽度时
+ * 正是按它排版）。宿主的「设置列宽」弹窗要回填的正是这个值 —— 用户不动它就等于不变。</p>
+ */
+function getColumnWidths(): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const col of visibleColumns.value) {
+    if (!col.prop) continue;
+    const raw = colWidth(col);
+    const num = typeof raw === "number" ? raw : Number(raw);
+    if (Number.isFinite(num) && num > 0) {
+      out[col.prop] = Math.round(num);
+    } else if (typeof col.minWidth === "number") {
+      out[col.prop] = col.minWidth;
+    }
+  }
+  return out;
+}
+
+/** 清空全部列宽（回到列定义里的默认宽度） */
+function resetColumnWidths(): void {
+  if (!columnState.value.widths) return;
+  columnState.value = { ...columnState.value, widths: undefined };
+  saveColumnState();
+  void nextTick(recalculateVxe);
+}
+
+/** 量文本宽度用的 canvas 上下文（懒建；每列都新建一个太浪费） */
+let measureCtx: CanvasRenderingContext2D | null = null;
+
+/** 用给定字体量一段文本的像素宽 */
+function measureTextWidth(text: string, font: string): number {
+  if (!text) return 0;
+  if (!measureCtx) measureCtx = document.createElement("canvas").getContext("2d");
+  if (!measureCtx) return 0;
+  measureCtx.font = font;
+  return measureCtx.measureText(text).width;
+}
+
+/**
+ * 取表格正文的测量口径：字体 + 单元格左右内边距。
+ *
+ * <p>量宽度必须用渲染时的同一套字体 —— 拿 14px 无衬线去量一个 12px 等宽表格，
+ * 结果会差出两三成，量出来的宽度还不如不量。内边距同理：写死一个数必然
+ * 在某些 size 下偏窄（mini 档实测左右各 16px + 边框，28 根本不够，量出来会截字）。</p>
+ *
+ * @returns font 供 canvas 用；pad 为左右内边距之和（含边框）
+ */
+function resolveMeasureStyle(): { font: string; pad: number } {
+  const root =
+    (vxeTableRef.value as unknown as { $el?: HTMLElement } | null)?.$el
+    ?? (elTableRef.value as unknown as { $el?: HTMLElement } | null)?.$el
+    ?? null;
+  const sample = root?.querySelector<HTMLElement>(".vxe-body--column, .el-table__cell, .cell");
+  if (!sample) return { font: "14px sans-serif", pad: CELL_HORIZONTAL_FALLBACK };
+  const st = getComputedStyle(sample);
+  const pad = Math.round((parseFloat(st.paddingLeft) || 0) + (parseFloat(st.paddingRight) || 0)) + 2;
+  return {
+    font: `${st.fontWeight} ${st.fontSize} ${st.fontFamily}`,
+    pad: Math.max(pad, CELL_HORIZONTAL_FALLBACK),
+  };
+}
+
+/**
+ * 按内容自适应列宽（表头 + 已加载行里最长的那条）。
+ *
+ * <p>量的是**文本**宽度：走 slot 渲染的自定义内容（按钮、图标、双行注释）
+ * 量不准，靠 {@code minWidth} 兜底 —— 量准的列一定不会比现在更难看，
+ * 量不准的列最多是「宽度没变」。这也是不直接读 DOM 单元格宽度的原因：
+ * 读回来的是当前宽度，等于什么都没做。</p>
+ *
+ * @param propsList 只处理这些列；不传 = 全部可见列
+ * @returns 实际应用的宽度（键为列 prop）
+ */
+function autoFitColumns(propsList?: string[]): Record<string, number> {
+  const only = propsList && propsList.length > 0 ? new Set(propsList) : null;
+  const { font, pad } = resolveMeasureStyle();
+  const rows = (pagedRows.value ?? []).slice(0, AUTO_FIT_SAMPLE_ROWS);
+  const widths: Record<string, number> = {};
+  for (const col of visibleColumns.value) {
+    if (!col.prop) continue;
+    if (only && !only.has(col.prop)) continue;
+    // 表头：文字 + 可排序时的箭头图标
+    let widest = measureTextWidth(col.label ?? "", font) + (col.sortable ? HEADER_SORT_ICON_WIDTH : 0);
+    for (const row of rows) {
+      const value = row[col.prop];
+      if (value === null || value === undefined) continue;
+      const w = measureTextWidth(String(value), font);
+      if (w > widest) widest = w;
+    }
+    widths[col.prop] = clampWidthForColumn(col, Math.ceil(widest) + pad + AUTO_FIT_SAFETY);
+  }
+  setColumnWidths(widths);
+  return widths;
+}
 
 /** 列设置面板使用：含所有列（隐藏列也展示） */
 const allColumnsForSettings = computed<ReTableColumn[]>(() => {
@@ -4656,6 +4873,13 @@ defineExpose({
   clearCache,
   clearAllSelection,
   toggleBatchSelect,
+  // 列宽：宿主（数据源控制台的「设置列宽…」「调整列宽以适应内容」）只调这几个，
+  // 宽度本身仍由本组件落盘 —— 宿主不需要知道存档在哪、按什么分键
+  setColumnWidth,
+  setColumnWidths,
+  getColumnWidths,
+  resetColumnWidths,
+  autoFitColumns,
   getSelectedRows: () => allSelectedRows.value,
   getEditCache: () => editCache.value,
   getEditedRows: () => editedRows.value,
@@ -5320,7 +5544,7 @@ const iconSelect = Select;
       :row-style="rowDraggable || dragMode ? { cursor: 'grab' } : undefined"
       @cell-click="onVxeCellClick"
       @cell-menu="onVxeCellMenu"
-      @header-cell-context-menu="onVxeHeaderCellContextMenu"
+      @header-cell-menu="onVxeHeaderCellMenu"
       @checkbox-change="onVxeCheckboxChange"
       @checkbox-all="onVxeCheckboxAll"
       @sort-change="onVxeSortChange"

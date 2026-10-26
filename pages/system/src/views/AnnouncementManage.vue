@@ -638,7 +638,12 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .system-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   padding: 0;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 /* ReTable 的卡片外壳（1px 描边 / 卡片圆角 / 卡片投影 / focus-within 转主色）

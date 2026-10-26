@@ -58,9 +58,11 @@
 
     <!-- Agent 配置面板 -->
     <div class="panel">
-      <div class="panel-head">
-        <span>Agent 配置</span>
-        <span class="panel-sub">采样率、慢调用阈值、日志级别</span>
+      <div class="panel-head-row">
+        <div class="panel-head">
+          <span>Agent 配置</span>
+          <span class="panel-sub">采样率、慢调用阈值、日志级别</span>
+        </div>
         <el-button
           v-if="agentConfig"
           text
@@ -191,9 +193,11 @@
 
     <!-- 句柄检测：当前进程全量句柄 + 分配堆栈 + FD + 线程 -->
     <div class="panel">
-      <div class="panel-head">
-        <span>句柄检测</span>
-        <span class="panel-sub">文件 / Socket / 线程 / JDBC 连接全量清单</span>
+      <div class="panel-head-row">
+        <div class="panel-head">
+          <span>句柄检测</span>
+          <span class="panel-sub">文件 / Socket / 线程 / JDBC 连接全量清单</span>
+        </div>
         <ReButton text size="small" :loading="handleLoading" @click="loadHandles">刷新</ReButton>
       </div>
       <div v-if="handleLoading" class="panel-empty">正在扫描句柄…</div>
@@ -204,7 +208,7 @@
           <span class="handle-kind">{{ kind }}</span>
         </div>
       </div>
-      <div v-if="handleSnapshot?.trackedHandles.length" class="handle-table-wrap">
+      <div v-if="handleSnapshot" class="handle-table-wrap">
         <ReTable
           :data="handleRows"
           :columns="handleColumns"
@@ -242,9 +246,11 @@
 
     <!-- System.out / System.err 实时捕获 -->
     <div class="panel">
-      <div class="panel-head">
-        <span>系统输出捕获</span>
-        <span class="panel-sub">System.out / System.err 实时流</span>
+      <div class="panel-head-row">
+        <div class="panel-head">
+          <span>系统输出捕获</span>
+          <span class="panel-sub">System.out / System.err 实时流</span>
+        </div>
         <ReButton text size="small" :loading="sysOutLoading" @click="loadSysOut">刷新</ReButton>
       </div>
       <div v-if="sysOutLoading" class="panel-empty">正在读取系统输出…</div>
@@ -260,9 +266,11 @@
 
     <!-- JVM 内存诊断：对象内存池 + 手动 GC + 类加载 -->
     <div class="panel">
-      <div class="panel-head">
-        <span>JVM 内存诊断</span>
-        <span class="panel-sub">对象内存池 / 手动 GC / 类加载统计</span>
+      <div class="panel-head-row">
+        <div class="panel-head">
+          <span>JVM 内存诊断</span>
+          <span class="panel-sub">对象内存池 / 手动 GC / 类加载统计</span>
+        </div>
         <ReButton text size="small" :loading="memoryLoading" @click="loadMemoryDiagnostics">刷新</ReButton>
       </div>
       <div v-if="memoryLoading" class="panel-empty">正在读取内存诊断…</div>
@@ -312,9 +320,11 @@
 
     <!-- 线程 Dump：全量线程栈定位死锁 / 阻塞 -->
     <div class="panel">
-      <div class="panel-head">
-        <span>线程 Dump</span>
-        <span class="panel-sub">全量线程栈 / 锁状态 / 死锁排查</span>
+      <div class="panel-head-row">
+        <div class="panel-head">
+          <span>线程 Dump</span>
+          <span class="panel-sub">全量线程栈 / 锁状态 / 死锁排查</span>
+        </div>
         <ReButton text size="small" :loading="threadDumpLoading" @click="loadThreadDump">刷新</ReButton>
       </div>
       <div v-if="threadDumpLoading" class="panel-empty">正在抓取线程 Dump…</div>
@@ -344,9 +354,11 @@
 
     <!-- 链路分析：方法热点 / 阶段耗时 / SkyWalking 兼容导出 -->
     <div class="panel">
-      <div class="panel-head">
-        <span>链路分析</span>
-        <span class="panel-sub">方法热点 / 阶段耗时 / SkyWalking Segment</span>
+      <div class="panel-head-row">
+        <div class="panel-head">
+          <span>链路分析</span>
+          <span class="panel-sub">方法热点 / 阶段耗时 / SkyWalking Segment</span>
+        </div>
         <ReButton text size="small" :loading="traceLoading" @click="loadTraceAnalysis">刷新</ReButton>
       </div>
       <div v-if="traceLoading" class="panel-empty">正在聚合链路数据…</div>
@@ -790,7 +802,6 @@ useRealtimeEvent("stats", () => {
 }
 
 .config-reset-btn {
-  margin-left: auto;
   font-size: 12px;
 }
 

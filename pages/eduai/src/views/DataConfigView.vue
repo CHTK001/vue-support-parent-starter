@@ -510,6 +510,19 @@
 
       <template #footer>
         <div class="dialog-footer">
+          <!-- 年级在脊柱上只是挂片，没有表格行可放删除按钮，删除入口收进编辑弹框 -->
+          <span v-if="gradeForm.gradeId" class="dialog-footer__left">
+            <el-button v-if="!gradeConfirmDelete" class="dialog-btn is-danger" @click="askDeleteGrade">
+              删除年级
+            </el-button>
+            <span v-else class="del-confirm">
+              <span class="del-confirm__text">删除后不可恢复</span>
+              <el-button class="dialog-btn" @click="cancelDeleteGrade">取消</el-button>
+              <el-button class="dialog-btn is-danger-solid" :loading="gradeSaving" @click="confirmDeleteGrade">
+                确认删除
+              </el-button>
+            </span>
+          </span>
           <el-button class="dialog-btn" @click="gradeDialogVisible = false">取消</el-button>
           <el-button class="dialog-btn is-primary" type="primary" :loading="gradeSaving" @click="saveGrade">
             保存年级
@@ -1022,6 +1035,7 @@ const onGradeLevelPick = (value: string) => {
 
 /** level 由脊柱上的「+」传入；不传则回落到第一个学段 */
 const openGradeCreate = (level?: string) => {
+  gradeConfirmDelete.value = false;
   Object.assign(gradeForm, {
     gradeId: undefined,
     gradeLevel: level || gradeLevelOptions.value[0]?.value || "PRIMARY",
@@ -1033,6 +1047,7 @@ const openGradeCreate = (level?: string) => {
 
 const openGradeEdit = (row: EduGrade) => {
   // 老数据 gradeLevel 是中文标签，进弹框前归一成学段码，否则单选组一个都选不中
+  gradeConfirmDelete.value = false;
   Object.assign(gradeForm, { ...row, gradeLevel: levelOf(row.gradeLevel) || "PRIMARY" });
   gradeDialogVisible.value = true;
 };
@@ -1055,13 +1070,36 @@ const saveGrade = async () => {
   }
 };
 
+/**
+ * 弹框内两步确认删除：ElMessageBox 的层级会被 ReDialog 遮罩压住（点不到按钮），
+ * 所以年级删除改成就地二次确认，不弹 MessageBox。
+ */
+const gradeConfirmDelete = ref(false);
+const askDeleteGrade = () => {
+  gradeConfirmDelete.value = true;
+};
+const cancelDeleteGrade = () => {
+  gradeConfirmDelete.value = false;
+};
+
+const confirmDeleteGrade = async () => {
+  const row = gradeForm as EduGrade;
+  if (!row.gradeId) return;
+  await removeGrade(row);
+};
+
 const removeGrade = async (row: EduGrade) => {
+  gradeSaving.value = true;
   try {
     await eduaiApi.deleteGrade(row.gradeId as number);
     message.success("删除成功");
+    gradeConfirmDelete.value = false;
+    gradeDialogVisible.value = false;
     void loadGrades();
   } catch {
     message.error("删除失败");
+  } finally {
+    gradeSaving.value = false;
   }
 };
 
@@ -2088,6 +2126,46 @@ onMounted(() => {
 .dialog-btn.is-primary:hover {
   background: var(--el-color-primary-dark-2);
   border-color: var(--el-color-primary-dark-2);
+}
+
+/* 弹框左下的删除入口（年级没有表格行可挂删除按钮） */
+.dialog-footer__left {
+  margin-right: auto;
+}
+
+.del-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.del-confirm__text {
+  font-size: 12.5px;
+  color: var(--el-color-danger);
+}
+
+.dialog-btn.is-danger {
+  color: var(--el-color-danger);
+  border-color: var(--el-color-danger-light-5);
+  background: var(--el-color-danger-light-9);
+}
+
+.dialog-btn.is-danger:hover {
+  color: var(--el-color-white);
+  border-color: var(--el-color-danger);
+  background: var(--el-color-danger);
+}
+
+.dialog-btn.is-danger-solid {
+  color: var(--el-color-white);
+  border-color: var(--el-color-danger);
+  background: var(--el-color-danger);
+}
+
+.dialog-btn.is-danger-solid:hover {
+  color: var(--el-color-white);
+  border-color: var(--el-color-danger-dark-2);
+  background: var(--el-color-danger-dark-2);
 }
 
 /* ---------- 新增学科对话框（对齐详细原型） ---------- */

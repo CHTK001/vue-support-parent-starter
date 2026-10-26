@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-full">
+  <div class="flex flex-col h-full lp-root">
     <CustomTitlebar />
     <div class="flex-1 flex items-center justify-center bg-surface p-5">
       <!-- 统一表面卡片（re-surface = 组件库 ReStatCard 规格：16px 圆角 / 无边框 / 双层柔光） -->
@@ -186,10 +186,11 @@ const handleLogin = async (): Promise<void> => {
 }
 </script>
 
-<style scoped>
-/* Element Plus 控件外观统一到本应用的表面/边框变量（暗色模式自动跟随） */
-:deep(.el-input__wrapper) {
-  box-shadow: 0 0 0 1px var(--el-border-color-lighter) inset;
+<style>
+/* 登录页控件外观（作用域 .lp-root，不依赖组件 scoped 的 data-v，
+   跨 dev server / 构建产物都稳定命中；只影响登录页，不污染全局）。 */
+.lp-root .el-input__wrapper {
+  box-shadow: 0 0 0 1px var(--el-border-color-lighter) inset !important;
   /* 原值 var(--size-surface-radius)（=20px）→ xl 档 */
   border-radius: var(--el-radius-xl, 16px);
   background-color: var(--el-bg-color);
@@ -197,33 +198,32 @@ const handleLogin = async (): Promise<void> => {
   padding: 4px 12px;
 }
 
-:deep(.el-input.is-focus .el-input__wrapper) {
-  /* 聚焦不再显示主色边框：refactor.css 的全局聚焦环（--color-primary 1px + --color-primary-100 3px）
-     带更高优先级作用于所有 .el-input__wrapper.is-focus，这里用 !important 在登录页压掉它。
-     保留 transparent 占位，避免 1px 内描边消失造成布局跳动。 */
+/* 聚焦不再显示主色/淡蓝描边（refactor.css 全局聚焦环用 !important 强制，
+   这里同样 !important + 更长选择器在登录页压掉它，保留 transparent 占位防跳动）。
+   注意：Element Plus 的 is-focus 类加在 .el-input__wrapper 上（不是 .el-input 容器）。 */
+.lp-root .el-input__wrapper.is-focus {
   box-shadow: 0 0 0 1px transparent inset !important;
 }
 
-:deep(.el-form-item) {
+.lp-root .el-form-item {
   margin-bottom: 0;
 }
 
-:deep(.el-form-item__error) {
+.lp-root .el-form-item__error {
   padding-top: 4px;
   font-size: 12px;
 }
 
-:deep(.el-checkbox__label) {
+.lp-root .el-checkbox__label {
   font-size: 14px;
   color: var(--color-text-gray);
 }
 
 /* 动效降级：系统开启「减少动态效果」时，输入框的描边变化改为瞬间切换。
-   输入框本体是 Element Plus 组件，必须用 :deep() 才够得到它的内部 DOM。
    聚焦指示已按需求去掉（主色边框 → transparent），保留 transition 仅影响
    常态边框的过渡，不影响任何焦点可见性。 */
 @media (prefers-reduced-motion: reduce) {
-  :deep(.el-input__wrapper) {
+  .lp-root .el-input__wrapper {
     transition: none;
   }
 }

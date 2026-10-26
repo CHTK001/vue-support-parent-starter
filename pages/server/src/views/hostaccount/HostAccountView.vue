@@ -263,7 +263,7 @@ const stats = computed(() => {
   const list = accounts.value;
   const hostLogin = list.filter((a) => {
     const t = normAuth(a.authType);
-    return t === "PASSWORD" || t === "PUBLIC_KEY";
+    return t === "PASSWORD" || t === "PUBLIC_KEY" || t === "NONE";
   }).length;
   const publicKey = list.filter((a) => normAuth(a.authType) === "PUBLIC_KEY").length;
   const bound = list.filter((a) => a.hostIds.length > 0).length;
@@ -512,6 +512,7 @@ function exportCsv(): void {
 const AUTH_TYPE_OPTIONS = [
   { value: "PASSWORD", label: "密码登录", group: "主机登录" },
   { value: "PUBLIC_KEY", label: "公钥登录", group: "主机登录" },
+  { value: "NONE", label: "免密登录", group: "主机登录" },
   { value: "MAILBOX", label: "邮箱账号", group: "通用凭据" },
   { value: "TOKEN", label: "Token", group: "通用凭据" },
   { value: "API_KEY", label: "API Key", group: "通用凭据" },
@@ -1489,6 +1490,9 @@ function isMailbox(a: HaAccount): boolean {
             :options="keyOptions"
           />
         </ReFormItem>
+        <ReFormItem v-if="normAuth(form.msServerIdentityAuthType) === 'NONE'" label="免密说明">
+          <span class="ha-form-hint">目标主机需已放行该账号（authorized_keys 已配置平台公钥，或 sshd 允许空口令）。平台只凭用户名连接，不保存密码 / 私钥。</span>
+        </ReFormItem>
         <ReFormItem label="备注">
           <ReInput v-model="form.msServerIdentityRemark" placeholder="用途说明（可选）" style="width: 100%" />
         </ReFormItem>
@@ -1655,4 +1659,15 @@ function isMailbox(a: HaAccount): boolean {
 
 <style scoped lang="scss">
 @use "../../components/hostaccount/_ha-kit.scss";
+/* 免密登录说明（本页局部样式，跟随弹窗渲染） */
+.ha-form-hint {
+  display: block;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light, #f5f7fa);
+  border: 1px solid var(--el-border-color-extra-light, #eef0f6);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
 </style>

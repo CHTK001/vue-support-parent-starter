@@ -135,6 +135,17 @@
   min-width: 0;
 }
 
+/* 带动作的面板头：标题块与动作按钮同一行，动作靠右。
+   必须包一层——直接把按钮塞进 .panel-head（竖排）会被 flex 拉满整行，
+   按钮文字居中浮在面板中间，看起来像一块放错位置的东西。 */
+.hotsport-scope .panel-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--apm-space-3);
+  flex-wrap: wrap;
+}
+
 .hotsport-scope .panel-head > span:first-child {
   font-size: 14px;
   font-weight: 600;
