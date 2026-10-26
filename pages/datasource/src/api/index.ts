@@ -113,7 +113,15 @@ export interface DataSourceInfo {
    */
   jdbcUrl?: string | null;
   username?: string | null;
+  /**
+   * 口令明文。
+   *
+   * <p>后端<b>不再回传</b>这个字段（出参统一清空），编辑弹窗里是空的，
+   * 留空保存即「不修改」。这里保留声明只为兼容旧后端/旧缓存。</p>
+   */
   password?: string | null;
+  /** 是否已设置口令。后端只回这个标记，页面据此提示「已设置 / 未设置」 */
+  passwordSet?: boolean | null;
   remark?: string | null;
   /** 状态，0 停用、1 启用 */
   status?: number | null;

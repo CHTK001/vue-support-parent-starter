@@ -2461,8 +2461,18 @@ onMounted(load);
             <ReFormItem label="用户名" required>
               <ReInput v-model="form.username" placeholder="数据库用户名" />
             </ReFormItem>
-            <ReFormItem label="密码" required>
-              <ReInput v-model="form.password" type="password" show-password placeholder="数据库密码" />
+            <ReFormItem label="密码" :required="!editing">
+              <ReInput
+                v-model="form.password"
+                type="password"
+                show-password
+                :placeholder="editing ? '留空表示不修改' : '数据库密码'"
+              />
+              <!-- 口令不回显（接口出参已清空），编辑时必须说清「留空=不改」，
+                   否则用户以为口令丢了，或者以为空着会清空口令 -->
+              <p v-if="editing" class="ds-form-hint">
+                {{ editing.passwordSet ? "当前已设置口令，留空保存则保持不变" : "当前未设置口令" }}
+              </p>
             </ReFormItem>
             <ReFormItem :label="form.type === 'neo4j' ? '图数据库名' : '数据库/库名'" class="is-full">
               <ReInput
@@ -3509,6 +3519,13 @@ onMounted(load);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   column-gap: 18px;
+}
+/* 表单项下的说明行：口令不回显，必须讲清「留空=不修改」 */
+.ds-form-hint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
 }
 .ds-sub-title {
   margin: 4px 0 12px;
