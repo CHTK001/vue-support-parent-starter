@@ -64,16 +64,16 @@ const routes: RouteRecordRaw[] = [
   },
   {
     /*
-     * ReGraphG6 · 关系图（G6 v5.1.1 原生）验收页。
+     * ReRelationGraph · 关系图（G6 v5.1.1 原生）集成示例页。
      *
-     * <p>以 G6 官方 bubble-sets 示例为地基，逐步添加功能。
-     * 独立路由而非模板体系：G6 直接实例化，不经过 @repo/ui 包装层，
-     * 便于对照官方示例逐版验收。</p>
+     * <p>以三国演义数据演示新组件的全部能力：19 种布局（含自研鱼骨）、
+     * 气泡集 / Hull 双分组轮廓、分组折叠、最短路径、撤销重做、右键菜单、
+     * 场景预设与边交叉统计。独立路由而非模板体系，便于逐项对照验收。</p>
      */
-    path: "/lab/re-graph-g6",
-    name: "lab-re-graph-g6",
-    component: () => import("./views/ReGraphG6Lab.vue"),
-    meta: { title: "ReGraphG6 · 关系图（G6 原生）" },
+    path: "/lab/re-relation-graph",
+    name: "lab-re-relation-graph",
+    component: () => import("./views/ReRelationGraphLab.vue"),
+    meta: { title: "ReRelationGraph · 关系图（G6 原生）" },
   },
   {
     /*
@@ -87,6 +87,19 @@ const routes: RouteRecordRaw[] = [
     name: "lab-re-dialog-drag",
     component: () => import("./views/ReDialogDragLab.vue"),
     meta: { title: "ReDialog 拖拽对照组" },
+  },
+  {
+    /*
+     * http.useQuery / useMutation 运行时验证台。
+     *
+     * <p>验证 `http.get(url).useQuery(key)` 确实走通了 Http + unwrapResult + vue-query 全链路：
+     * 缓存命中、同 key 去重、staleTime 抑制重取、mutation 后 invalidate 重取。
+     * 用内存 adapter 顶替后端，因此无需启动任何服务即可验收。</p>
+     */
+    path: "/lab/query",
+    name: "lab-query",
+    component: () => import("./views/QueryLab.vue"),
+    meta: { title: "http.useQuery 验证台" },
   },
   {
     path: "/:pathMatch(.*)*",

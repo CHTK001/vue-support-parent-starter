@@ -66,11 +66,13 @@
   "dependencies": {
     "@microsoft/fetch-event-source": "^2.0.1",
     "@repo/config": "workspace:*",
+    "@tanstack/vue-query": "catalog:",
     "@vueuse/core": "catalog:",
     "axios": "^1.7.9",
     "crypto-js": "^4.2.0",
     "dexie": "^4.4.6",
-    "mitt": "^3.0.1"
+    "mitt": "^3.0.1",
+    "vue": "catalog:"
   },
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",

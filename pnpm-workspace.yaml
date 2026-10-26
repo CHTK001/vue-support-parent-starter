@@ -55,6 +55,10 @@ catalog:
   "@unocss/transformer-variant-group": ^66.0.0
   pinia-plugin-persistedstate: ^4.7.1
   "@vueuse/core": ^14.3.0
+  # 服务端状态缓存层（useQuery/useMutation）。@repo/utils 的 http 链式终态
+  # .useQuery()/.useMutation() 依赖它，故统一锁版，避免各 app 各引一个版本
+  # 导致 QueryClient 上下文与类型不匹配。
+  "@tanstack/vue-query": ^5.104.5
   devtools-detector: ^2.0.22
   socket.io-client: ^4.8.1
   vite: ^8.2.0

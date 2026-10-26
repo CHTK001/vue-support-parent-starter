@@ -9,6 +9,14 @@ import axios, {
   ResponseType,
   InternalAxiosRequestConfig,
 } from "axios";
+import { useQuery as useVueQuery, useMutation as useVueMutation } from "@tanstack/vue-query";
+import type {
+  QueryKey,
+  UseMutationOptions,
+  UseMutationReturnType,
+  UseQueryOptions,
+  UseQueryReturnType,
+} from "@tanstack/vue-query";
 import { getConfig } from "@repo/config";
 import type {
   ChainableRequest,
@@ -293,6 +301,66 @@ class RequestBuilder implements ChainableRequest, PromiseLike<AxiosResponse> {
 
   private execute(): Promise<AxiosResponse> {
     return this.instance.request(this.config);
+  }
+
+  /**
+   * 终态：交给 vue-query 的 useQuery 托管（缓存 / 去重 / 后台刷新）。
+   *
+   * <p><b>调用点必须在组件 setup() 内</b>：useQuery 把订阅挂到当前组件作用域，
+   * 卸载时自动取消订阅；在事件回调 / 普通函数里调用会丢掉响应式绑定。</p>
+   *
+   * <p>请求依旧走本实例的 axios 管线（加密 / 签名 / 第一方头 / 401 / retry 全在
+   * httpCrypto 的拦截器里），vue-query 只接管「何时发、缓存多久、要不要重取」。
+   * `queryFn` 拿到 vue-query 给的 AbortSignal 后透传给 axios，组件卸载/切 key
+   * 时能真正中断在途请求，而不是放任它回来再改一个已销毁组件的状态。</p>
+   *
+   * <p>结果经 {@link unwrapResult} 剥掉 `{code,data,msg}` 信封，`data` 即业务数据。</p>
+   *
+   * @param queryKey 缓存标识与失效依据，如 `['user', id]`
+   * @param options vue-query 选项（staleTime / enabled / placeholderData ...）；
+   *                queryKey 与 queryFn 由本方法接管，不从 options 读取
+   * @returns 响应式查询结果（data / isPending / isError / refetch ...）
+   */
+  useQuery<T = unknown>(
+    queryKey: QueryKey,
+    options: Omit<UseQueryOptions<T, Error, T, T, QueryKey>, "queryKey" | "queryFn"> = {},
+  ): UseQueryReturnType<T, Error> {
+    return useVueQuery<T, Error, T, QueryKey>({
+      ...options,
+      queryKey,
+      queryFn: ({ signal }) => {
+        // 让 axios 跟随 vue-query 的生命周期：切 key / 卸载时中断在途请求。
+        if (signal) {
+          this.config.signal = signal;
+        }
+        return this.execute().then((res) => unwrapResult<T>(res));
+      },
+    });
+  }
+
+  /**
+   * 终态：交给 vue-query 的 useMutation 托管（写操作 + 缓存失效联动）。
+   *
+   * <p>与 useQuery 相反，这里<b>不会立即发请求</b>：等调用返回对象的
+   * `mutate(variables)` 才发；`variables` 会覆盖链式 `.data()` 设过的请求体，
+   * 不传（undefined）则沿用链上已设的值。</p>
+   *
+   * @param options vue-query mutation 选项（onSuccess / onMutate / retry ...）；
+   *                mutationFn 由本方法接管
+   * @returns mutation 结果（mutate / mutateAsync / isPending / error ...）
+   */
+  useMutation<T = unknown, TVariables = unknown>(
+    options: Omit<UseMutationOptions<T, Error, TVariables, unknown>, "mutationFn"> = {},
+  ): UseMutationReturnType<T, Error, TVariables, unknown> {
+    return useVueMutation<T, Error, TVariables, unknown>({
+      ...options,
+      mutationFn: (variables) => {
+        if (variables !== undefined) {
+          this.config.data = variables as RequestBody;
+        }
+        return this.execute().then((res) => unwrapResult<T>(res));
+      },
+    });
   }
 
   then<TResult1 = AxiosResponse, TResult2 = never>(

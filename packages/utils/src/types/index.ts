@@ -11,6 +11,13 @@ import type {
   InternalAxiosRequestConfig,
   ResponseType,
 } from "axios";
+import type {
+  QueryKey,
+  UseMutationOptions,
+  UseMutationReturnType,
+  UseQueryOptions,
+  UseQueryReturnType,
+} from "@tanstack/vue-query";
 
 /* ==================== http.ts（axios 链式封装） ==================== */
 
@@ -64,6 +71,39 @@ export interface ChainableRequest {
    * ```
    */
   sse<T = unknown>(sseOptions?: Omit<SseClientOptions<T>, "method" | "headers" | "body">): SseClient;
+  /**
+   * 终态：把当前链式请求交给 @tanstack/vue-query 的 useQuery 托管（缓存 / 去重 / 后台刷新）。
+   *
+   * <p><b>必须在组件 setup() 内调用</b>（useQuery 依赖当前组件作用域的生命周期与响应式）。
+   * 请求本身仍走本实例的 axios 管线 —— 加密 / 签名 / 第一方头 / 401 / retry 一个都不少，
+   * 只是「何时发、发完缓存多久、要不要重取」交给 vue-query。</p>
+   *
+   * <p>与等待式的区别：`await http.get(u)` 每次都真的打一次网络；`.useQuery(key)`
+   * 在 staleTime 内命中缓存不发请求，多个组件用同一个 key 只会发一次。</p>
+   *
+   * @param queryKey 缓存标识与失效依据（如 `['user', id]`）
+   * @param options vue-query 选项（staleTime / enabled / placeholderData 等），
+   *                queryKey 与 queryFn 由本方法接管，不接受外部传入
+   * @returns vue-query 的响应式查询结果（data / isPending / isError / refetch ...），
+   *          其中 `data` 已通过 unwrapResult 剥掉 `{code,data,msg}` 信封
+   */
+  useQuery<T = unknown>(
+    queryKey: QueryKey,
+    options?: Omit<UseQueryOptions<T, Error, T, T, QueryKey>, "queryKey" | "queryFn">,
+  ): UseQueryReturnType<T, Error>;
+  /**
+   * 终态：把当前链式请求交给 @tanstack/vue-query 的 useMutation 托管（增删改 + 失效联动）。
+   *
+   * <p>与 useQuery 不同，这里<b>不会立即发请求</b>：等到调用返回对象的 `mutate(variables)`
+   * 才发送，`variables` 会作为请求体覆盖链式 `.data()` 设过的值（不传则沿用原样）。</p>
+   *
+   * @param options vue-query 的 mutation 选项（onSuccess / onMutate / retry 等），
+   *                mutationFn 由本方法接管
+   * @returns vue-query 的 mutation 结果（mutate / mutateAsync / isPending / error ...）
+   */
+  useMutation<T = unknown, TVariables = unknown>(
+    options?: Omit<UseMutationOptions<T, Error, TVariables, unknown>, "mutationFn">,
+  ): UseMutationReturnType<T, Error, TVariables, unknown>;
   then<TResult1 = AxiosResponse, TResult2 = never>(
     onfulfilled?: ((value: AxiosResponse) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
