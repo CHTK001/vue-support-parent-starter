@@ -4,16 +4,21 @@
   **抽出来的理由**：这两页看的是同一类数据（一次抓包或一次导入就是一个会话），
   差别只在「来源」与「能做什么」。如果各自写五套画布，就是 2 × 5 = 10 套，
   键盘可达性、空态引导、分道算法会立刻分叉 —— 正是这次重构要消灭的东西。
-  两页各自只保留自己的页头动作（新增会话 / 导入条）与会话详情弹层。
+  两页各自只保留自己的动作按钮（新增会话 / 导入）与会话详情弹层。
 
   筛选项由这个组件持有：会话名 / 网卡关键字是两页共同的唯一筛法，
   塞进页面再传进来只会多一层透传。页面若想知道当前筛选结果，用 `filters-change`。
+
+  **不渲染页头**（`no-head`）：两页的标题在标签页与面包屑里已经说过一遍，
+  再顶一行「大标题 + 一句说明」只是把控制栏往下推。标题仍然作为方向坞的
+  无障碍标签传下去，只是不再画出来。页面的动作按钮走 `bar-actions`，
+  与控制栏同处一张卡 —— 这是 RePageStage 约定的位置，页头右侧不再挂按钮。
 -->
 <template>
   <RePageStage
     :variant="variant"
     :title="title"
-    :desc="desc"
+    no-head
     :variant-items="items"
     :dock-visible="dockVisible"
     :tabs="tabs"
@@ -28,8 +33,8 @@
     @filter="(k, v) => (filters[k as 'keyword'] = v)"
     @refresh="emit('refresh')"
   >
-    <template v-if="$slots['head-actions']" #head-actions>
-      <slot name="head-actions" />
+    <template v-if="$slots['bar-actions']" #bar-actions>
+      <slot name="bar-actions" />
     </template>
 
     <template v-if="$slots.alerts" #alerts>
@@ -375,10 +380,8 @@ const props = withDefaults(
     rows: SessionRow[]
     /** 方向记忆键 */
     pageKey: string
-    /** 页面标题 */
+    /** 页面标题（不再画在页头，仅作为方向坞的无障碍标签） */
     title: string
-    /** 一句话说明 */
-    desc?: string
     /** 会话的量词与名词（`抓包会话` / `导入记录`），用于空态与图注文案 */
     noun?: string
     /**
@@ -411,7 +414,6 @@ const props = withDefaults(
     ifaceLabel?: (value?: string | null) => string
   }>(),
   {
-    desc: '',
     noun: '会话',
     runningLabel: '抓包中',
     canStop: false,

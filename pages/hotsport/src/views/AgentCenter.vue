@@ -205,26 +205,32 @@
         </div>
       </div>
       <div v-if="handleSnapshot?.trackedHandles.length" class="handle-table-wrap">
-        <table class="apm-mini-table">
-          <thead>
-            <tr>
-              <th>类型</th>
-              <th>名称</th>
-              <th>持有线程</th>
-              <th>创建时间</th>
-              <th>存活</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="h in handleSnapshot.trackedHandles.slice(0, 12)" :key="h.handleId">
-              <td><ReTag size="small" round>{{ h.kind }}</ReTag></td>
-              <td class="mono" :title="h.name">{{ shortText(h.name, 30) }}</td>
-              <td>{{ h.ownerThread }}</td>
-              <td class="mono muted">{{ formatTime(h.createdAt) }}</td>
-              <td class="mono">{{ h.closed ? "已关闭" : formatAge(Date.now() - h.createdAt) }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <ReTable
+          :data="handleRows"
+          :columns="handleColumns"
+          engine="element"
+          :settings="{ border: false }"
+          :layout-table="{ minHeight: 0 }"
+          class="apm-table"
+          empty-text="暂无句柄记录"
+          :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+        >
+          <template #col-kind="{ row }">
+            <ReTag size="small" round>{{ row.kind }}</ReTag>
+          </template>
+          <template #col-name="{ row }">
+            <span class="mono" :title="String(row.name ?? '')">{{ shortText(String(row.name ?? ""), 30) }}</span>
+          </template>
+          <template #col-ownerThread="{ row }">
+            <span class="muted">{{ row.ownerThread || "—" }}</span>
+          </template>
+          <template #col-createdAt="{ row }">
+            <span class="mono muted">{{ formatTime(Number(row.createdAt ?? 0)) }}</span>
+          </template>
+          <template #col-closed="{ row }">
+            <span class="mono">{{ row.closed ? "已关闭" : formatAge(Date.now() - Number(row.createdAt ?? 0)) }}</span>
+          </template>
+        </ReTable>
       </div>
       <div v-if="handleSnapshot?.fileDescriptors.length" class="fd-list">
         <span class="fd-title muted">FD 近览（{{ handleSnapshot.fileDescriptors.length }}）</span>
@@ -398,6 +404,8 @@ import ReTag from "@repo/ui/re-tag";
 import ReStatCard from "@repo/ui/re-stat-card";
 import ReSelect from "@repo/ui/re-select";
 import ReSwitch from "@repo/ui/re-switch";
+import ReTable from "@repo/ui/re-table";
+import type { ReTableColumn } from "@repo/ui/re-table";
 import type { ReOption } from "@repo/ui/re-select";
 import { message } from "@repo/core";
 import { useApmStore } from "../stores/apmStore";
@@ -516,6 +524,19 @@ const realtimeConnected = computed(() => rt.wsConnected.value || rt.connected.va
 /* ---- 句柄检测 ---- */
 const handleLoading = ref(false);
 const handleSnapshot = ref<HandleInventorySnapshot | null>(null);
+
+/** 句柄表格行（截取前 12 条，与原有原生表格一致） */
+const handleRows = computed(
+  () => (handleSnapshot.value?.trackedHandles.slice(0, 12) ?? []) as unknown as Record<string, unknown>[],
+);
+
+const handleColumns: ReTableColumn[] = [
+  { prop: "kind", label: "类型", width: 110, slot: "kind" },
+  { prop: "name", label: "名称", minWidth: 240, slot: "name" },
+  { prop: "ownerThread", label: "持有线程", minWidth: 150, slot: "ownerThread" },
+  { prop: "createdAt", label: "创建时间", width: 160, slot: "createdAt" },
+  { prop: "closed", label: "存活", width: 110, slot: "closed" },
+];
 
 async function loadHandles() {
   handleLoading.value = true;
@@ -759,7 +780,7 @@ useRealtimeEvent("stats", () => {
   min-width: 48px;
   text-align: right;
   font-size: 12px;
-  color:\ var\(--text-primary,\ var\(--apm-fg\)\);
+  color: var(--text-primary, var(--apm-fg));
 }
 
 .config-actions {
@@ -804,11 +825,11 @@ useRealtimeEvent("stats", () => {
 }
 
 .health-key {
-  color:\ var\(--text-tertiary,\ var\(--apm-muted\)\);
+  color: var(--text-tertiary, var(--apm-muted));
 }
 
 .health-value {
-  color:\ var\(--text-primary,\ var\(--apm-fg\)\);
+  color: var(--text-primary, var(--apm-fg));
   font-variant-numeric: tabular-nums;
 }
 
@@ -837,15 +858,15 @@ useRealtimeEvent("stats", () => {
 }
 
 .channel-dot.ok {
-  background:\ var\(--status-success,\ var\(--apm-success\)\);
+  background: var(--status-success, var(--apm-success));
 }
 
 .channel-dot.warn {
-  background:\ var\(--status-warning,\ var\(--apm-warning\)\);
+  background: var(--status-warning, var(--apm-warning));
 }
 
 .channel-dot.off {
-  background:\ var\(--status-error,\ var\(--apm-danger\)\);
+  background: var(--status-error, var(--apm-danger));
 }
 
 /* ---- 句柄检测 ---- */
@@ -862,43 +883,23 @@ useRealtimeEvent("stats", () => {
   align-items: center;
   gap: 2px;
   padding: var(--apm-space-2) var(--apm-space-4);
-  background:\ var\(--bg-elevated,\ var\(--apm-panel-raised\)\);
-  border:\ 1px\ solid\ var\(--border-subtle,\ var\(--apm-border-soft\)\);
+  background: var(--bg-elevated, var(--apm-panel-raised));
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
   border-radius: var(--apm-radius-md);
 }
 
 .handle-count {
   font-size: 20px;
-  color:\ var\(--text-primary,\ var\(--apm-fg\)\);
+  color: var(--text-primary, var(--apm-fg));
 }
 
 .handle-kind {
   font-size: 11px;
-  color:\ var\(--text-tertiary,\ var\(--apm-muted\)\);
+  color: var(--text-tertiary, var(--apm-muted));
 }
 
 .handle-table-wrap {
-  overflow-x: auto;
   margin-bottom: var(--apm-space-3);
-}
-
-.apm-mini-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-
-.apm-mini-table th,
-.apm-mini-table td {
-  text-align: left;
-  padding: 6px 10px;
-  border-bottom:\ 1px\ solid\ var\(--border-subtle,\ var\(--apm-border-soft\)\);
-  white-space: nowrap;
-}
-
-.apm-mini-table th {
-  color:\ var\(--text-tertiary,\ var\(--apm-muted\)\);
-  font-weight: 600;
 }
 
 .fd-list {
@@ -915,10 +916,10 @@ useRealtimeEvent("stats", () => {
 
 .fd-chip {
   padding: 2px 8px;
-  border:\ 1px\ solid\ var\(--border-subtle,\ var\(--apm-border-soft\)\);
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
   border-radius: 999px;
   font-size: 11px;
-  color:\ var\(--text-secondary,\ var\(--apm-fg-regular\)\);
+  color: var(--text-secondary, var(--apm-fg-regular));
 }
 
 /* ---- System.out / System.err ---- */
@@ -934,14 +935,14 @@ useRealtimeEvent("stats", () => {
   align-items: flex-start;
   gap: var(--apm-space-2);
   padding: 5px 0;
-  border-bottom:\ 1px\ solid\ var\(--border-subtle,\ var\(--apm-border-soft\)\);
+  border-bottom: 1px solid var(--border-subtle, var(--apm-border-soft));
   font-size: 12px;
 }
 
 .sysout-line {
   flex: 1;
   word-break: break-all;
-  color:\ var\(--text-secondary,\ var\(--apm-fg-regular\)\);
+  color: var(--text-secondary, var(--apm-fg-regular));
 }
 
 /* ---- JVM 内存诊断 ---- */
@@ -951,7 +952,7 @@ useRealtimeEvent("stats", () => {
   justify-content: space-between;
   gap: var(--apm-space-4);
   padding-bottom: var(--apm-space-3);
-  border-bottom:\ 1px\ solid\ var\(--border-subtle,\ var\(--apm-border-soft\)\);
+  border-bottom: 1px solid var(--border-subtle, var(--apm-border-soft));
   margin-bottom: var(--apm-space-3);
 }
 
@@ -963,7 +964,7 @@ useRealtimeEvent("stats", () => {
 
 .memory-summary-value {
   font-size: 20px;
-  color:\ var\(--text-primary,\ var\(--apm-fg\)\);
+  color: var(--text-primary, var(--apm-fg));
 }
 
 .memory-summary-desc {
@@ -979,7 +980,7 @@ useRealtimeEvent("stats", () => {
 }
 
 .gc-freed {
-  color:\ var\(--status-success,\ var\(--apm-success\)\);
+  color: var(--status-success, var(--apm-success));
 }
 
 .memory-pool-list {
@@ -1008,14 +1009,14 @@ useRealtimeEvent("stats", () => {
 .memory-pool-bar {
   height: 6px;
   border-radius: 999px;
-  background:\ var\(--bg-elevated,\ var\(--apm-panel-raised\)\);
+  background: var(--bg-elevated, var(--apm-panel-raised));
   overflow: hidden;
 }
 
 .memory-pool-bar > i {
   display: block;
   height: 100%;
-  background:\ var\(--brand-500,\ var\(--apm-accent\)\);
+  background: var(--brand-500, var(--apm-accent));
   border-radius: 999px;
   transition: width var(--apm-t-fast);
 }
@@ -1026,7 +1027,7 @@ useRealtimeEvent("stats", () => {
   align-items: center;
   gap: var(--apm-space-2);
   padding-top: var(--apm-space-3);
-  border-top:\ 1px\ solid\ var\(--border-subtle,\ var\(--apm-border-soft\)\);
+  border-top: 1px solid var(--border-subtle, var(--apm-border-soft));
   font-size: 12px;
   margin-top: var(--apm-space-3);
 }
@@ -1047,9 +1048,9 @@ useRealtimeEvent("stats", () => {
 }
 
 .thread-dump-item {
-  border:\ 1px\ solid\ var\(--border-subtle,\ var\(--apm-border-soft\)\);
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
   border-radius: var(--apm-radius-md);
-  background:\ var\(--bg-elevated,\ var\(--apm-panel-raised\)\);
+  background: var(--bg-elevated, var(--apm-panel-raised));
 }
 
 .thread-dump-item summary {
@@ -1068,7 +1069,7 @@ useRealtimeEvent("stats", () => {
 .thread-dump-name {
   flex: 1;
   font-weight: 500;
-  color:\ var\(--text-primary,\ var\(--apm-fg\)\);
+  color: var(--text-primary, var(--apm-fg));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1089,7 +1090,7 @@ useRealtimeEvent("stats", () => {
   overflow-y: auto;
   font-size: 11px;
   line-height: 1.5;
-  color:\ var\(--text-secondary,\ var\(--apm-fg-regular\)\);
+  color: var(--text-secondary, var(--apm-fg-regular));
   white-space: pre-wrap;
   word-break: break-all;
 }
@@ -1107,21 +1108,21 @@ useRealtimeEvent("stats", () => {
   flex-direction: column;
   gap: 2px;
   padding: var(--apm-space-3);
-  border:\ 1px\ solid\ var\(--border-subtle,\ var\(--apm-border-soft\)\);
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
   border-radius: var(--apm-radius-md);
-  background:\ var\(--bg-elevated,\ var\(--apm-panel-raised\)\);
+  background: var(--bg-elevated, var(--apm-panel-raised));
 }
 
 .phase-label {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color:\ var\(--text-tertiary,\ var\(--apm-muted\)\);
+  color: var(--text-tertiary, var(--apm-muted));
 }
 
 .phase-value {
   font-size: 18px;
-  color:\ var\(--text-primary,\ var\(--apm-fg\)\);
+  color: var(--text-primary, var(--apm-fg));
 }
 
 .phase-count {
@@ -1147,14 +1148,14 @@ useRealtimeEvent("stats", () => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color:\ var\(--text-primary,\ var\(--apm-fg\)\);
+  color: var(--text-primary, var(--apm-fg));
 }
 
 .hotspot-bar-wrap {
   flex: 1;
   height: 6px;
   border-radius: 999px;
-  background:\ var\(--bg-elevated,\ var\(--apm-panel-raised\)\);
+  background: var(--bg-elevated, var(--apm-panel-raised));
   overflow: hidden;
 }
 
@@ -1162,14 +1163,14 @@ useRealtimeEvent("stats", () => {
   display: block;
   height: 100%;
   border-radius: 999px;
-  background:\ var\(--status-error,\ var\(--apm-danger\)\);
+  background: var(--status-error, var(--apm-danger));
   transition: width var(--apm-t-fast);
 }
 
 .hotspot-avg {
   min-width: 64px;
   text-align: right;
-  color:\ var\(--text-primary,\ var\(--apm-fg\)\);
+  color: var(--text-primary, var(--apm-fg));
 }
 
 .hotspot-count {
@@ -1179,7 +1180,7 @@ useRealtimeEvent("stats", () => {
 
 .sw-section {
   margin-top: var(--apm-space-4);
-  border-top:\ 1px\ solid\ var\(--border-subtle,\ var\(--apm-border-soft\)\);
+  border-top: 1px solid var(--border-subtle, var(--apm-border-soft));
   padding-top: var(--apm-space-3);
 }
 
@@ -1203,11 +1204,11 @@ useRealtimeEvent("stats", () => {
 
 .sw-trace {
   min-width: 120px;
-  color:\ var\(--text-primary,\ var\(--apm-fg\)\);
+  color: var(--text-primary, var(--apm-fg));
 }
 
 .sw-count {
-  color:\ var\(--text-tertiary,\ var\(--apm-muted\)\);
+  color: var(--text-tertiary, var(--apm-muted));
 }
 
 @media (prefers-reduced-motion: reduce) {

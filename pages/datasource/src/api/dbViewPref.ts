@@ -49,6 +49,13 @@ const ER_LAYOUTS = ["dagre", "antv-dagre", "force", "d3-force", "circular", "gri
 export interface DbViewPref {
   headerMode: (typeof HEADER_MODES)[number];
   rowMode: (typeof ROW_MODES)[number];
+  /**
+   * 顶部「表头显示 / 行显示」那一排是否收起。
+   *
+   * <p>收起后功能不丢：表头右键菜单里是同一组开关（同一个 headerMode / rowMode
+   * 状态源）。它跟 headerMode 一样属于「设置一次就不动」的偏好，所以一并落盘。</p>
+   */
+  modeRowCollapsed: boolean;
   pageSize: number;
   showTotal: boolean;
   erLayout: string;
@@ -86,6 +93,7 @@ export interface DbFilterCondition {
 export const DEFAULT_VIEW_PREF: DbViewPref = {
   headerMode: "name",
   rowMode: "data",
+  modeRowCollapsed: false,
   pageSize: 50,
   showTotal: true,
   erLayout: "dagre",
@@ -146,6 +154,9 @@ export function loadViewPref(): DbViewPref {
   return {
     headerMode: pick(bag.headerMode, HEADER_MODES, DEFAULT_VIEW_PREF.headerMode),
     rowMode: pick(bag.rowMode, ROW_MODES, DEFAULT_VIEW_PREF.rowMode),
+    modeRowCollapsed: typeof bag.modeRowCollapsed === "boolean"
+      ? bag.modeRowCollapsed
+      : DEFAULT_VIEW_PREF.modeRowCollapsed,
     pageSize: PAGE_SIZES.includes(pageSizeRaw) ? pageSizeRaw : DEFAULT_VIEW_PREF.pageSize,
     showTotal: typeof bag.showTotal === "boolean" ? bag.showTotal : DEFAULT_VIEW_PREF.showTotal,
     erLayout: pick(bag.erLayout, ER_LAYOUTS, DEFAULT_VIEW_PREF.erLayout),

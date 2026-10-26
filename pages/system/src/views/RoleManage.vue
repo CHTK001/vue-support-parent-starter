@@ -489,7 +489,6 @@ onMounted(() => {
         :loader="loadRoles"
         :columns="columns"
         :pagination="true"
-        :layout-table="{ minHeight: 0 }"
         :params="query"
         row-key="sysRoleId"
         v-model:page="query.page"

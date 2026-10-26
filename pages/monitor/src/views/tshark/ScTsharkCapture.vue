@@ -2,17 +2,17 @@
   抓包分析（TShark）
 
   页面结构：
-    ① 会话列表：交给 TsharkSessionStage —— 页头 + 控制栏 + 五个方向
+    ① 会话列表：交给 TsharkSessionStage —— 控制栏 + 五个方向
        （工单台 / 节奏 / 仪表 / 档案柜 / 卡片墙），方向由右下角方向坞切换。
-    ② 顶部只有两个动作：「新增会话」（抓包参数全在弹层里）与「执行日志」式的
-       环境状态点；刷新在控制栏里。
+    ② 动作只有两个：「新增会话」（抓包参数全在弹层里）与「执行日志」式的
+       环境状态点，都挂在控制栏右端（`bar-actions`），不另占一行页头；刷新在控制栏里。
     ③ 报文 / 统计 / 会话流 / 诊断在会话详情弹层里看，不常驻占满整页。
        诊断页把重置、ICMP 不可达、重传、乱序、零窗口、DNS / HTTP / TLS 异常列成体检表，
        点一行即回填等价显示过滤并切到报文页。
 
   为什么列表让共用组件画：PCAP 分析（ScTsharkPcapAnalysis.vue）看的是同一类数据，
   两页各自写五个方向就是十套画布，键盘可达性与空态引导会立刻分叉。共用组件只负责
-  「怎么把会话摆开」，这一页仍然独占自己的页头动作与详情弹层。
+  「怎么把会话摆开」，这一页仍然独占自己的动作按钮与详情弹层。
 
   报文右键「查看生命周期」仍在详情弹层的报文页里：按四元组还原整条 TCP 流
   （HTTP / TLS / SSH 等 TCP 上的协议同样支持），时序图 + ReTable 明细。
@@ -23,12 +23,11 @@
       :rows="sessions"
       page-key="monitor.tshark-capture"
       title="抓包分析"
-      desc="在选定网卡上实时抓包并按会话入库；报文 / 统计 / 会话流在详情里看。"
       noun="抓包会话"
       can-stop
       search-placeholder="搜索会话名 / 网卡"
       empty-text="还没有抓包会话"
-      empty-hint="点右上角「新增会话」选择网卡开始抓包。"
+      empty-hint="点搜索栏里的「新增会话」选择网卡开始抓包。"
       :loading="loadingSessions"
       :iface-label="ifaceLabel"
       @open="openDetail"
@@ -37,7 +36,7 @@
       @remove="deleteSession"
       @refresh="refresh"
     >
-      <template #head-actions>
+      <template #bar-actions>
         <span class="tshark-status" :class="tsharkOk ? 'tshark-status--ok' : 'tshark-status--bad'">
           <span class="tshark-status__dot" />
           <span>{{ tsharkOk ? 'TShark 可用' : 'TShark 未就绪' }}</span>

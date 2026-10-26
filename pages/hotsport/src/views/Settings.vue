@@ -62,26 +62,29 @@
       <div class="panel-empty" v-else-if="!info">
         无法连接观测接口<br />请检查上面的地址是否正确，或后端是否已启动
       </div>
-      <table class="candidate-table" v-else>
-        <thead>
-          <tr>
-            <th>数据源</th>
-            <th>状态</th>
-            <th>说明</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="c in info.candidates" :key="c.name">
-            <td>{{ c.name }}</td>
-            <td>
-              <ReTag :type="c.available ? 'success' : 'info'" round>
-                {{ c.available ? "可用" : "不可用" }}
-              </ReTag>
-            </td>
-            <td class="muted">{{ c.description }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <ReTable
+        v-else
+        :data="candidateRows"
+        :columns="candidateColumns"
+        engine="element"
+        :settings="{ border: false }"
+        :layout-table="{ minHeight: 0 }"
+        class="apm-table"
+        empty-text="无数据源候选"
+        :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+      >
+        <template #col-name="{ row }">
+          <span class="mono">{{ row.name }}</span>
+        </template>
+        <template #col-available="{ row }">
+          <ReTag :type="row.available ? 'success' : 'info'" round>
+            {{ row.available ? "可用" : "不可用" }}
+          </ReTag>
+        </template>
+        <template #col-description="{ row }">
+          <span class="muted">{{ row.description }}</span>
+        </template>
+      </ReTable>
     </div>
   </div>
 </template>
@@ -92,6 +95,8 @@ import ReButton from "@repo/ui/re-button";
 import ReTag from "@repo/ui/re-tag";
 import ReInput from "@repo/ui/re-input";
 import ReSkeleton from "@repo/ui/re-skeleton";
+import ReTable from "@repo/ui/re-table";
+import type { ReTableColumn } from "@repo/ui/re-table";
 import { message } from "@repo/core";
 import { APM_PREFIX, getApiBase, resetApiBase, setApiBase, wsUrl } from "../config";
 
@@ -112,6 +117,15 @@ const displayBase = computed(() => getApiBase() || "同源（跟随当前页面�
 
 /** WebSocket 地址，同样受地址设置影响 */
 const displayWs = computed(() => wsUrl());
+
+/** 数据源候选表行：直接来自后端探测结果，不做任何填充 */
+const candidateRows = computed(() => (info.value?.candidates ?? []) as unknown as Record<string, unknown>[]);
+
+const candidateColumns: ReTableColumn[] = [
+  { prop: "name", label: "数据源", minWidth: 160, slot: "name" },
+  { prop: "available", label: "状态", width: 110, slot: "available" },
+  { prop: "description", label: "说明", minWidth: 320, slot: "description" },
+];
 
 /**
  * 探测后端数据源：成功后把结果渲染到候选表。
@@ -227,25 +241,4 @@ import { getProvider, resetApiClient } from "../api/apmApi";
   word-break: break-all;
 }
 
-.candidate-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
-.candidate-table th,
-.candidate-table td {
-  padding: 8px 12px;
-  text-align: left;
-  border-bottom: 1px solid var(--apm-border);
-}
-
-.candidate-table th {
-  font-weight: 500;
-  color: var(--apm-muted);
-}
-
-.candidate-table tbody tr:last-child td {
-  border-bottom: none;
-}
 </style>

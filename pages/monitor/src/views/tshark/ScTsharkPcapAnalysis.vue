@@ -7,10 +7,12 @@
 
   所以这一页做成「目录 → 详情」两级，同一时刻只出现一级：
 
-    ① 目录（默认）：导入条 + 导入记录列表。整页只有这一块列表，不摆任何别的标签 ——
+    ① 目录（默认）：控制栏 + 导入记录列表。整页只有这一块列表，不摆任何别的标签 ——
        一个还没有文件的页面如果铺开「报文 / 统计 / 会话流」三个空标签，只会稀释
        「先导入一个文件」这个当下唯一的动作。列表本身交给 TsharkSessionStage
-       （与抓包分析共用五个方向），这一页只提供自己的页头动作与导入条。
+       （与抓包分析共用五个方向），这一页只提供自己的动作按钮（选文件 / 导入），
+       且与搜索框同处控制栏一张卡 —— 不另占一行页头。
+       导入不再单独问「会话名」：留空即由后端回退成原始文件名，多问一步只是拦路。
     ② 详情：点某一行（整行可点）后整块换成这份文件的报文 / 统计 / 会话流。
        头部条负责交代「这是哪一份、解到哪了、原件能不能下」，「返回」回到目录，
        并保留目录上的搜索词（词放在页面上，见 script 里的 listKeyword）。
@@ -32,13 +34,12 @@
         :rows="sessions"
         page-key="monitor.tshark-pcap"
         title="PCAP 分析"
-        desc="导入 pcap / pcapng，由 tshark 离线解析成报文；点任意一行看它的报文 / 统计 / 会话流。"
         noun="导入记录"
         running-label="解析中"
         search-placeholder="搜索文件名 / 会话名"
         v-model:keyword="listKeyword"
         empty-text="还没有导入过 pcap"
-        empty-hint="点右上角「选择文件」，或直接把文件拖到页面上。"
+        empty-hint="点搜索栏里的「选择文件」，或直接把文件拖到页面上。"
         :loading="loadingSessions"
         :iface-label="ifaceLabel"
         @open="openSessionTab"
@@ -46,7 +47,7 @@
         @remove="deleteSession"
         @refresh="loadSessions(false)"
       >
-        <template #head-actions>
+        <template #bar-actions>
           <span class="tshark-status" :class="tsharkOk ? 'tshark-status--ok' : 'tshark-status--bad'">
             <span class="tshark-status__dot" />
             <span>{{ tsharkOk ? 'TShark 可用' : 'TShark 未就绪' }}</span>
@@ -60,6 +61,15 @@
             @change="onPickFile"
           />
           <ReButton icon="FolderOpened" show-text @click="chooseFile">选择文件</ReButton>
+
+          <!-- 已选文件：只在选了之后出现（空态不占位），点 × 取消选择 -->
+          <span v-if="file" class="pcap-file-chip" :title="`${file.name}（${fmtSize(file.size)}）`">
+            <span class="pcap-file-chip__name">{{ file.name }}</span>
+            <button type="button" class="pcap-file-chip__x" title="取消选择" @click="clearFile">
+              <ReIcon name="Close" />
+            </button>
+          </span>
+
           <ReButton
             type="primary"
             icon="Upload"
@@ -73,20 +83,9 @@
           </ReButton>
         </template>
 
-        <!-- 导入条：会话名 + 已选文件 + 拖拽提示 + 加载范围说明 -->
-        <template #alerts>
-          <div class="import-strip">
-            <ReInput
-              class="import-strip__name"
-              :model-value="importName"
-              placeholder="会话名（可空，默认用文件名）"
-              clearable
-              @update:model-value="onName"
-            />
-            <span class="import-strip__file" :title="file?.name || ''">{{ fileText }}</span>
-            <span class="pk-faint">也可以把文件直接拖到页面里</span>
-            <span v-if="loadedNote" class="pk-faint">{{ loadedNote }}</span>
-          </div>
+        <!-- 加载范围说明：列表只拉最近若干条，搜索范围要交代清楚 -->
+        <template v-if="loadedNote" #alerts>
+          <p class="pcap-note">{{ loadedNote }}</p>
         </template>
       </TsharkSessionStage>
     </template>
@@ -265,7 +264,6 @@ const activeTab = ref<TsharkTabKey>('packet')
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const file = ref<File | null>(null)
-const importName = ref('')
 
 /**
  * 目录列表的搜索词。
@@ -324,9 +322,6 @@ const parsing = computed(() => activeSession.value?.captureStatus === 1)
 const packetEmptyText = computed(() =>
   packetFilter.value.trim() ? '没有匹配的报文，试试清除或修改过滤' : '这条导入记录还没有解析出报文')
 
-const fileText = computed(() =>
-  file.value ? `${file.value.name}（${fmtSize(file.value.size)}）` : '未选择文件，也可直接拖入')
-
 /** tshark 是解析器：没有它，文件传上去也解析不出报文，所以一并卡住导入按钮 */
 const canImport = computed(() => !!file.value && tsharkOk.value && !importing.value)
 const importTip = computed(() => {
@@ -337,6 +332,11 @@ const importTip = computed(() => {
 
 function chooseFile() {
   fileInput.value?.click()
+}
+
+/** 取消已选文件：导入按钮随之回到禁用态 */
+function clearFile() {
+  file.value = null
 }
 
 function onPickFile(e: Event) {
@@ -370,12 +370,12 @@ async function onImport() {
     message.warning('请先选择 pcap 文件')
     return
   }
+  // 会话名留空：后端回退用原始文件名，页面不再多问一步
   // autoSelect=false：上传成功停在目录上，看新那行的报文数往上涨；不跳进还空着的报文页
-  const ok = await importPcap(f, importName.value, false)
+  const ok = await importPcap(f, '', false)
   if (!ok) return
   // 清掉已选文件：上传成功后它会占着提示位，而下一次导入必然换文件
   file.value = null
-  importName.value = ''
 }
 
 /** 进详情：目录里点某一行（或那一行的操作）时，默认停在用户点的那一页 */
@@ -401,10 +401,6 @@ function onTabChange(name: string) {
   activeTab.value = (name || 'packet') as TsharkTabKey
 }
 
-function onName(v: unknown) {
-  importName.value = v === null || v === undefined ? '' : String(v)
-}
-
 /** 统计面板点协议：填进报文关键字并切过去，省掉「记住协议名 → 回头手打」那一步 */
 function onPickProtocol(protocol: string) {
   filterByProtocol(protocol)
@@ -427,28 +423,60 @@ onMounted(init)
 </script>
 
 <style scoped>
-/* 导入条：会话名 + 已选文件 + 提示 */
-.import-strip {
-  display: flex;
+/* 已选文件：只占一个小胶囊，紧跟在「选择文件」后面 —— 用户点了按钮之后
+   总得看见自己选的是哪一份，但空着的时候不占位（不写「未选择文件」这种废话） */
+.pcap-file-chip {
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 8px 11px;
+  gap: 2px;
+  max-width: 260px;
+  height: 28px;
+  padding: 0 4px 0 9px;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
   background: var(--el-fill-color-light);
   border-radius: var(--el-radius-sm, 6px);
 }
 
-.import-strip__name {
-  width: 236px;
-}
-
-.import-strip__file {
-  max-width: 320px;
+.pcap-file-chip__name {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.pcap-file-chip__x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  color: var(--el-text-color-placeholder);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
   font-size: 12px;
-  color: var(--el-text-color-regular);
+}
+
+.pcap-file-chip__x:hover {
+  color: var(--el-text-color-primary);
+  background: var(--el-fill-color);
+}
+
+.pcap-file-chip__x:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 1px;
+}
+
+/* 加载范围说明：控制栏与列表之间的一行小字，没有内容时整行不渲染 */
+.pcap-note {
+  margin: 0;
+  padding: 0 2px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 
 /* 文件选择框由 tshark.css 里的 .pcap-file-input 隐藏；

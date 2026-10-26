@@ -14,8 +14,22 @@
       <template v-if="activeTabObj && activeTabObj.type === 'table'">
         <div class="dbm-toolbar-left dbm-table-toolbar">
           <span class="dbm-table-name">{{ qualified(activeTabObj) }}</span>
+          <!-- 显示模式这一排可以收起：两组胶囊加起来占掉一整行高度，而它们都是
+               「设置一次就不再动」的偏好。收起后功能不丢 —— 表头右键菜单里是同一组开关
+               （同一个 headerMode / rowMode 状态源，不是两份实现）。
+               默认展开：既有验收脚本按 .dbm-subtab 定位，折叠态是可选路径。 -->
+          <button
+            type="button"
+            class="dbm-mode-toggle"
+            :class="{ 'is-collapsed': modeRowCollapsed }"
+            :aria-expanded="!modeRowCollapsed"
+            :title="modeRowCollapsed ? '展开显示模式' : '收起显示模式（右键表头同样可切换）'"
+            @click="modeRowCollapsed = !modeRowCollapsed"
+          >
+            <ReIcon name="ArrowDown" :size="12" />
+          </button>
           <!-- 表头显示模式：字段 / 注释 / 字段+注释 / 类型 -->
-          <div class="dbm-subtabs">
+          <div v-show="!modeRowCollapsed" class="dbm-subtabs">
             <span
               v-for="m in HEADER_MODES"
               :key="m.value"
@@ -25,7 +39,7 @@
             >{{ m.label }}</span>
           </div>
           <!-- 行显示模式：数据 / 数据+注释 -->
-          <div class="dbm-subtabs">
+          <div v-show="!modeRowCollapsed" class="dbm-subtabs">
             <span
               v-for="m in ROW_MODES"
               :key="m.value"
@@ -338,6 +352,9 @@
             />
           </div>
           <!-- 行/单元格操作走右键菜单（无操作列）；列可拖拽调序 —— ReTable 默认关闭，控制台这里开 -->
+          <!-- @contextmenu 是原生监听：ReTable 是 inheritAttrs:true 的单根组件，
+               监听会落在它的 .re-table 根上。表头区域由 onGridHeaderContextMenu 接管，
+               单元格区域直接放行 —— ReTable 自己的 .re-ctx-menu 还要用这次事件。 -->
           <ReTable
             :data="tableData.rows"
             :columns="tableColumns"
@@ -353,6 +370,7 @@
             size="mini"
             height="calc(100% - 56px)"
             :context-menu="gridMenuItems"
+            @contextmenu="onGridHeaderContextMenu"
             @selection-change="onSelectionChange"
             @sort-change="onSortChange"
             @context-menu-select="onGridMenuSelect"
@@ -810,6 +828,48 @@
         </div>
       </div>
     </div>
+
+    <!-- 表头右键菜单（对齐 Navicat 的表头菜单，砍掉复制/粘贴那组：那是单元格的活儿，
+         表头上复制整列值没有明确语义）。外观与树菜单同一套 .dbm-context-* 皮。 -->
+    <Teleport to="body">
+      <div
+        v-if="headerMenu.visible"
+        class="dbm-context-menu dbm-hmenu"
+        :style="headerMenuStyle"
+        @click.stop
+        @contextmenu.prevent
+      >
+        <div class="dbm-context-item" @click="openColumnViewFromHeaderMenu">
+          <ReIcon name="Operation" :size="14" />显示或隐藏列…
+        </div>
+        <div class="dbm-context-item" @click="openColumnViewFromHeaderMenu">
+          <ReIcon name="Paperclip" :size="14" />冻结列…
+          <span class="dbm-context-hint">固定在左侧</span>
+        </div>
+        <div class="dbm-context-divider" />
+        <div class="dbm-context-group">表头显示</div>
+        <div
+          v-for="m in HEADER_MODES"
+          :key="'hm-' + m.value"
+          class="dbm-context-item"
+          :class="{ 'is-checked': headerMode === m.value }"
+          @click="setHeaderModeFromMenu(m.value)"
+        >
+          <span class="dbm-context-check">{{ headerMode === m.value ? "✓" : "" }}</span>{{ m.label }}
+        </div>
+        <div class="dbm-context-divider" />
+        <div class="dbm-context-group">行显示</div>
+        <div
+          v-for="m in ROW_MODES"
+          :key="'rm-' + m.value"
+          class="dbm-context-item"
+          :class="{ 'is-checked': rowMode === m.value }"
+          @click="setRowModeFromMenu(m.value)"
+        >
+          <span class="dbm-context-check">{{ rowMode === m.value ? "✓" : "" }}</span>{{ m.label }}
+        </div>
+      </div>
+    </Teleport>
 
     <!-- 右键菜单（对齐 Navicat：表 / 库 / 空白 三套动作） -->
     <Teleport to="body">
@@ -7787,6 +7847,85 @@ function closeContextMenu() {
   contextMenu.visible = false;
 }
 
+/**
+ * 表头右键菜单。
+ *
+ * <p>vxe 的右键只覆盖**单元格**：ReTable 的 contextMenu 走 vxe 的 cell-menu 事件，
+ * 表头没有任何人接管，右键表头弹的是浏览器默认菜单 —— 和树菜单那套 koi 皮完全两样。</p>
+ *
+ * <p>这里补一套同皮的表头菜单，并把顶部那排「表头显示 / 行显示」也放进来：
+ * 顶部折叠起来之后，这两个开关就靠它（同一个 headerMode / rowMode 状态源，
+ * 不是两份实现，不会出现顶部显示「字段」而菜单勾着「类型」的错位）。</p>
+ */
+const headerMenu = reactive({ visible: false, x: 0, y: 0 });
+
+/** 顶部显示模式那一排是否收起（默认展开，见 dbViewPref.modeRowCollapsed 注释） */
+const modeRowCollapsed = ref(viewPref.modeRowCollapsed);
+
+/** 表头菜单定位（位置在打开时已按真实尺寸夹过视口，这里只做直出） */
+const headerMenuStyle = computed<Record<string, string>>(() => ({
+  left: headerMenu.x + "px",
+  top: headerMenu.y + "px",
+}));
+
+/** 关表头菜单 */
+function closeHeaderMenu(): void {
+  headerMenu.visible = false;
+}
+
+/**
+ * 表头右键：只在表头区域接管，其余一律放行。
+ *
+ * <p>判据是 vxe 的表头容器 `.vxe-table--header`。单元格 / 表体不能拦：
+ * ReTable 自己的 `.re-ctx-menu` 还要靠这次 contextmenu 打开。</p>
+ *
+ * @param e 原生右键事件（挂在 ReTable 根元素上，由它冒泡上来）
+ */
+function onGridHeaderContextMenu(e: MouseEvent): void {
+  const target = e.target as HTMLElement | null;
+  if (!target || !target.closest(".vxe-table--header")) return;
+  e.preventDefault();
+  // 拦下冒泡：否则 vxe 的全局 contextmenu 处理还会再走一遍单元格那条路径
+  e.stopPropagation();
+  headerMenu.x = e.clientX;
+  headerMenu.y = e.clientY;
+  headerMenu.visible = true;
+  void nextTick(clampHeaderMenuPosition);
+}
+
+/**
+ * 按真实渲染尺寸把表头菜单夹回视口。
+ *
+ * <p>与树菜单 {@link clampContextMenuPosition} 同一套做法：首帧只能靠估算，
+ * 而这里项数固定（7 项 + 2 分组标题 + 2 分割线），仍按实测校正一次更稳。</p>
+ */
+async function clampHeaderMenuPosition(): Promise<void> {
+  await nextTick();
+  const el = document.querySelector<HTMLElement>(".dbm-hmenu");
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  headerMenu.x = Math.min(Math.max(8, headerMenu.x), Math.max(8, window.innerWidth - rect.width - 8));
+  headerMenu.y = Math.min(Math.max(8, headerMenu.y), Math.max(8, window.innerHeight - rect.height - 8));
+}
+
+/** 表头菜单里切表头显示模式 */
+function setHeaderModeFromMenu(mode: "name" | "comment" | "both" | "type"): void {
+  headerMode.value = mode;
+  closeHeaderMenu();
+}
+
+/** 表头菜单里切行显示模式 */
+function setRowModeFromMenu(mode: "data" | "data-comment"): void {
+  rowMode.value = mode;
+  closeHeaderMenu();
+}
+
+/** 表头菜单里打开「列显示设置」（显示或隐藏列 / 冻结列都落在那个弹窗里） */
+function openColumnViewFromHeaderMenu(): void {
+  closeHeaderMenu();
+  openColumnViewDialog();
+}
+
 /** 右键菜单估算高度（项高 32 + 上下内边距 + 按节点类型的分割线） */
 function menuEstimatedHeight(): number {
   // 项数必须与模板四套菜单实际条目同步：表 12 项/3 分割线、**视图 10 项/3 分割线**、
@@ -7945,11 +8084,12 @@ watch(showTotal, value => {
  * 各写一遍的必然结果是漏掉某个（早先 `dbm-show-total` 就是单独写的）。</p>
  */
 watch(
-  [headerMode, rowMode, erLayout, erShowLabels, erTableFilter],
+  [headerMode, rowMode, modeRowCollapsed, erLayout, erShowLabels, erTableFilter],
   () => {
     saveViewPref({
       headerMode: headerMode.value,
       rowMode: rowMode.value,
+      modeRowCollapsed: modeRowCollapsed.value,
       erLayout: erLayout.value,
       erShowLabels: erShowLabels.value,
       erTableFilter: erTableFilter.value,
@@ -8007,6 +8147,7 @@ async function resetViewSettings(): Promise<void> {
   columnPrefs.value = {};
   headerMode.value = "name";
   rowMode.value = "data";
+  modeRowCollapsed.value = false;
   showTotal.value = true;
   tableData.pageSize = 50;
   erLayout.value = "dagre";
@@ -8311,6 +8452,9 @@ function exportQueryCsv(format: "csv" | "tsv" | "json" | "xml" = "csv"): void {
 
 onMounted(() => {
   document.addEventListener("click", closeContextMenu);
+  // 表头菜单也吃这一下：点空白处 / 点别处右键都要收起来。
+  // 用同一个 click 监听而不是另起一套，免得两个菜单的开关逻辑走岔。
+  document.addEventListener("click", closeHeaderMenu);
   void adoptOrphanTx();
 });
 
@@ -8324,6 +8468,7 @@ watch(currentDatasourceId, () => {
 
 onBeforeUnmount(() => {
   document.removeEventListener("click", closeContextMenu);
+  document.removeEventListener("click", closeHeaderMenu);
   // 开着事务离开页面就等于把改动留在后端那条连接上，
   // 用户既看不见也关不掉（要等空闲超时才被回收）—— 这里兜底回滚。
   void releaseTxOnUnmount();
@@ -9459,6 +9604,49 @@ onBeforeUnmount(() => {
 .dbm-context-item.dbm-danger:hover { background: var(--el-color-danger-light-9); color: var(--el-color-danger); }
 .dbm-context-hint { margin-left: auto; font-size: 11px; color: var(--el-text-color-placeholder); }
 .dbm-context-divider { height: 1px; margin: 5px 7px; background: var(--el-border-color-lighter); }
+
+/* 表头右键菜单：分组小标题 + 勾选态（与树菜单共用 .dbm-context-* 皮） */
+.dbm-hmenu { min-width: 208px; }
+.dbm-context-group {
+  padding: 4px 9px 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--el-text-color-placeholder);
+}
+.dbm-context-check {
+  display: inline-block;
+  width: 12px;
+  flex: none;
+  color: var(--el-color-primary);
+  font-size: 12px;
+  line-height: 1;
+}
+.dbm-context-item.is-checked { color: var(--el-color-primary); font-weight: 600; }
+
+/* 顶部「显示模式」那一排的收起按钮 */
+.dbm-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  padding: 0;
+  color: var(--el-text-color-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--el-radius-sm, 6px);
+  cursor: pointer;
+  transition: transform 0.16s ease, background 0.12s ease, color 0.12s ease;
+}
+.dbm-mode-toggle:hover {
+  color: var(--el-color-primary);
+  background: var(--el-fill-color-light);
+  border-color: var(--el-border-color-lighter);
+}
+/* 收起后箭头转向，一眼看出点一下能展开 */
+.dbm-mode-toggle.is-collapsed { transform: rotate(-90deg); }
 
 /* 弹窗表单 */
 .dbm-create-form { display: flex; flex-direction: column; gap: 14px; padding: 16px 20px 4px; }

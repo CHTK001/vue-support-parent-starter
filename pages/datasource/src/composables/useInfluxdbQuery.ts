@@ -61,10 +61,14 @@ export function useInfluxdbQuery(options: {
    * @returns 行数据与元信息
    */
   async function runQuery(statement: string): Promise<InfluxdbQueryResult> {
+    // 库名一律带上：Flux 语句的桶名写在语句里，后端不会用这个字段；
+    // 但 v2 上的 InfluxQL（设计表的 SHOW FIELD KEYS / SHOW TAG KEYS）必须靠它定位 db，
+    // 早先只在 SQL 方言下才传，导致这类语句落到实例的第一个桶（_monitoring）上查，
+    // 表现为设计表恒空。
     const result = await executeInfluxdbQuery(
       statement,
       datasourceId.value,
-      useSql.value ? activeBucket.value : undefined,
+      activeBucket.value || undefined,
     );
     return {
       rows: displayRows(result?.rows || []),

@@ -457,16 +457,18 @@ const submitLogin = async (otpCode: string) => {
 
 .login-input {
   :deep(.el-input__wrapper) {
-    border: 1px solid var(--el-border-color-lighter);
+    border: 1px solid var(--el-border-color-lighter) !important;
     border-radius: 10px;
-    background: var(--el-fill-color-blank);
-    box-shadow: none;
+    background: var(--el-fill-color-blank) !important;
+    box-shadow: none !important;
     transition: all 0.3s;
 
     &:hover,
     &.is-focus {
-      border-color: var(--el-color-primary);
-      box-shadow: 0 0 0 3px rgba(var(--el-color-primary-rgb), 0.1);
+      /* 压过应用级 telemetry.css 的全局聚焦环（--brand-500 + --focus-ring）：
+         登录页聚焦保持统一浅描边，不出现品牌色光圈 */
+      border-color: var(--el-color-primary) !important;
+      box-shadow: 0 0 0 3px rgba(var(--el-color-primary-rgb), 0.1) !important;
     }
   }
 }
