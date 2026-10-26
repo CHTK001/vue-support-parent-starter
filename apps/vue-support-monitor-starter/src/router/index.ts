@@ -41,26 +41,48 @@ import { createServerHostRoutes } from "@pages/server/src/routes";
 import { createMonitorRoutes, createMonitorManageRoutes } from "@pages/monitor/src/routes";
 
 export const monitorRoutes: RouteConfigsTable[] = [
-  // ==================== 监控管理 ====================
-  // 跨 @pages/monitor 多视图拼装的本地分组（监控概览隐藏，告警可见）。
+  // ==================== 告警管理 ====================
+  // 「告警管理」从「监控管理」里独立成一级分组。
+  //
+  // 告警的数据全部来自主机：每条事件都是某台被监控主机（ms_monitor）的某个指标
+  // 越过了策略里配的阈值 —— 没有主机就没有告警。把它留在「监控管理」下，
+  // 会让人以为告警是「监控平台自己的事」；独立成组之后，
+  // 「主机 → 策略 → 告警 → 处理」这条链在菜单上就是一条直线。
+  //
+  // 组内两页是同一件事的两端：
+  //   告警中心 = 正在发生什么（事件流 + 处理）
+  //   告警策略 = 什么情况下该响（策略 / 规则 / 维护窗口）
+  // 「因」与「果」分开摆，改策略时不会被一堆正在响的告警分心。
   {
-    path: "/grp-monitor",
-    name: "GroupMonitor",
-    meta: { title: "监控管理", icon: "Odometer", showLink: true, rank: 1 },
+    path: "/grp-alarm",
+    name: "GroupAlarm",
+    meta: { title: "告警管理", icon: "Bell", showLink: true, rank: 9 },
     children: [
-      {
-        path: "/workbench",
-        name: "Workbench",
-        component: () => import("@pages/monitor/src/views/WorkbenchView.vue"),
-        meta: { title: "监控概览", icon: "DataBoard", showLink: false, rank: 1 },
-      },
       {
         path: "/alarms",
         name: "Alarms",
         component: () => import("@pages/monitor/src/views/AlarmsView.vue"),
-        meta: { title: "告警中心", icon: "Bell", showLink: true, rank: 2 },
+        meta: { title: "告警中心", icon: "Bell", showLink: true, rank: 1 },
+      },
+      {
+        path: "/alarm-policies",
+        name: "AlarmPolicies",
+        // 原「系统管理 → 监控配置」：该页本来就只做策略 / 规则 / 维护窗口，
+        // 归到告警管理下才名副其实。视图与 API 不动，只改入口归属。
+        component: () => import("@pages/monitor/src/views/ConfigView.vue"),
+        meta: { title: "告警策略", icon: "SetUp", showLink: true, rank: 2 },
       },
     ],
+  },
+
+  // ==================== 监控概览 ====================
+  // 工作台原先挂在「监控管理」分组下且 showLink:false。告警中心迁走后该分组已空，
+  // 因此把工作台摊到顶层做隐藏路由：它本来就不进侧边栏，扁平之后行为与之前一致。
+  {
+    path: "/workbench",
+    name: "Workbench",
+    component: () => import("@pages/monitor/src/views/WorkbenchView.vue"),
+    meta: { title: "监控概览", icon: "DataBoard", showLink: false, rank: 1 },
   },
 
   // ==================== 分析管理 ====================
@@ -233,7 +255,7 @@ export const monitorRoutes: RouteConfigsTable[] = [
   },
 
   // ==================== 系统管理 ====================
-  // 跨包拼装的本地分组（监控配置/代理/分组/账号/系统配置来自多个 pages 包），
+  // 跨包拼装的本地分组（代理/分组/账号/系统配置来自多个 pages 包），
   // 需要 stack 本地排版，故保留在壳内。
   {
     path: "/grp-system",
@@ -241,10 +263,12 @@ export const monitorRoutes: RouteConfigsTable[] = [
     meta: { title: "系统管理", icon: "Setting", showLink: true, rank: 30 },
     children: [
       {
+        // 原「监控配置」：内容（策略 / 规则 / 维护窗口）整体并入
+        // 「告警管理 → 告警策略」，这里只留一条跳转，老书签不会 404。
         path: "/config",
         name: "Config",
-        component: () => import("@pages/monitor/src/views/ConfigView.vue"),
-        meta: { title: "监控配置", icon: "Operation", showLink: true, rank: 30 },
+        redirect: "/alarm-policies",
+        meta: { title: "监控配置", icon: "Operation", showLink: false, rank: 30 },
       },
       {
         path: "/proxy",

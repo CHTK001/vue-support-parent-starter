@@ -773,6 +773,11 @@
   flex: 1 1 0;
   min-height: 0;
   display: flex;
+  /* 必须显式写 row：本元素同时带 .pk-grow，而 .pk-grow 声明的是 column。
+     两者选择器优先级相同、.pk-grow 在前，于是「谁声明了 flex-direction」就归谁 ——
+     .pk-split 若不声明，左栏 + 右栏会竖着摞起来（2026-11 实测：档案柜方向整块塌成上下两段）。
+     下面 900px 的媒体查询正是把它翻成 column，前提也是这里默认 row。 */
+  flex-direction: row;
   gap: 10px;
 }
 

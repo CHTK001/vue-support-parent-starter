@@ -348,8 +348,8 @@ onUnmounted(() => {
   <div class="cf tel-page">
     <div class="page-header">
       <div>
-        <h1 class="page-title">监控配置</h1>
-        <p class="page-desc">告警策略 · 规则 · 维护窗口管理 · 通知渠道当前仅日志实现（webhook/邮件待补）</p>
+        <h1 class="page-title">告警策略</h1>
+        <p class="page-desc">策略 · 规则 · 维护窗口 —— 决定「什么情况下该响」；通知渠道当前仅日志实现（webhook/邮件待补）</p>
       </div>
       <div class="page-actions">
         <ReButton icon="RefreshRight" :show-text="true"  :loading="loading" @click="fetchAll">刷新</ReButton>
