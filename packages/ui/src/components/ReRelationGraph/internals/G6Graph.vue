@@ -1,576 +1,342 @@
 <script setup lang="ts">
 /**
- * ReRelationGraph 核心画布（G6 v5）
+ * ReRelationGraph · G6 5.1.1 原生核心画布
  *
- * <p>与主题无关：只负责 G6 实例的生命周期、数据映射、交互行为与对外 API；
- * 外观由 theme/default 与 theme/koi 两个包装层决定。</p>
+ * <p>以 G6 官方示例
+ * {@link https://g6.antv.antgroup.com/zh/examples/plugin/bubble-sets/basic/ Bubblesets 气泡集}
+ * 为地基，逐行对照官方写法（Graph + force 布局防重叠 + bubble-sets 分组 +
+ * 缩放/拖拽行为 + autoFit），不做任何包装层。</p>
  *
- * <p><strong>数据映射约定</strong>：业务字段进 G6 的 {@code data}，视觉属性进 {@code style}，
- * 与 G6 v5 的 {@code { id, type, data, style }} 结构对齐，避免业务与渲染参数混在一起。
- * 组件对外仍暴露 {@code label/size/group/fixed/image/directed/animated} 这类业务-friendly 字段，
- * 由本文件统一翻译。</p>
+ * <p>分组轮廓支持两种包裹方式（{@code groupType}）：bubble-sets 气泡集 与
+ * plugin/hull 凹包轮廓（{@link https://g6.antv.antgroup.com/zh/examples/plugin/hull/basic/}）；
+ * 内置工具栏见 {@link ./GraphToolbar.vue}，布局参数表见 {@link ./layoutSettings}。</p>
  *
- * @author CH
- * @since 4.0.0.42
+ * <p>对外数据契约（与业务端一致）：</p>
+ * <ul>
+ *   <li>{@code nodes}: {@code { id, label, group, type, size }} ——
+ *       {@code group} 即势力/分组字段，驱动分组轮廓与节点配色；</li>
+ *   <li>{@code edges}: {@code { source, target, label }}。</li>
+ * </ul>
+ *
+ * <p>后续功能（悬停高亮、小地图、右键菜单、图例、入场动画…）
+ * 在本文件上逐个添加，每加一个都过一遍验收。</p>
  */
 import {
-  computed,
-  defineAsyncComponent,
   Fragment,
+  computed,
+  createVNode,
   h,
   nextTick,
   onBeforeUnmount,
   onMounted,
   ref,
   render,
-  shallowRef,
   useSlots,
   watch,
 } from "vue";
-import { Graph, Minimap, register, ExtensionCategory } from "@antv/g6";
-import { useDebounceFn } from "@vueuse/core";
-import { getStorageKey } from "@repo/config";
-import ReButton from "../../ReButton";
-import ReIcon from "../../ReIcon";
-import ReInput from "../../ReInput";
-import ReSelect from "../../ReSelect";
-import ReSwitch from "../../ReSwitch";
-import { t, tLayout } from "./i18n";
+import { Graph } from "@antv/g6";
 import {
-  type RelationContextMenuContext,
-  type RelationContextMenuItem,
-  type RelationEdge,
-  type RelationGraphApi,
-  type RelationGraphData,
-  type RelationGraphSettings,
-  type RelationHighlightMode,
-  type RelationLayoutName,
-  type RelationNode,
-  type RelationToolbarItem,
-  type RelationToolbarPosition,
-  type RelationViewMode,
-  RELATION_LAYOUTS,
-} from "./types";
-import GraphHoverTip from "./components/GraphHoverTip.vue";
-import GraphDetailPanel from "./components/GraphDetailPanel.vue";
-import GraphContextMenu from "./components/GraphContextMenu.vue";
-import GraphToolbar from "./components/GraphToolbar.vue";
-import GraphTuningPanel from "./components/GraphTuningPanel.vue";
+  DEFAULT_LAYOUT,
+  isGroupLayout,
+  isTreeLayoutType,
+  type GroupType,
+  type LayoutType,
+} from "./layouts";
+import { GROUP_PALETTE, groupColorOf } from "./palette";
+import GraphToolbar from "./GraphToolbar.vue";
 
-// Minimap 不在 G6 的 build-in 注册表里（build-in 只注册了 bubble-sets / edge-bundling /
-// edge-filter-lens / grid-line），必须显式注册后才能用 { type: 'minimap' } 声明。
-// 另：Minimap 的构造函数是 (context, options) 两参，不能在这里预构造实例。
-// 加 once 守卫：热更新会重复执行模块体，重复注册会刷 "[G6] extension ... registered before" 警告。
-let minimapRegistered = false;
-if (!minimapRegistered) {
-  register(ExtensionCategory.PLUGIN, "minimap", Minimap);
-  minimapRegistered = true;
+/** 对外节点契约 */
+export interface RelationNode {
+  id: string;
+  label?: string;
+  /** 势力 / 分组字段：驱动气泡集分组与配色 */
+  group?: string;
+  /** 节点类型：circle / image / rect …（缺省 circle；给了 {@code image} 时自动按 image 画） */
+  type?: string;
+  /** 节点尺寸（直径，缺省取组件级 {@code nodeSize}）；html 节点可给 [宽, 高] */
+  size?: number | [number, number];
+  /**
+   * 头像 / 图标地址（http(s) 或 data URI）。给了就按图片节点渲染
+   * （圆形裁剪由 {@code imageRadius} 控制，缺省自动取一半 = 圆形）。
+   */
+  image?: string;
+  /** 图片节点的圆角（px，缺省按 size 的一半 = 圆形） */
+  imageRadius?: number;
+  /** 徽标文字（画在节点右上角，如「主公」「军师」） */
+  badge?: string;
+  /** 徽标背景色（缺省按分组色） */
+  badgeColor?: string;
+  [key: string]: unknown;
+}
+
+/** 对外边契约 */
+export interface RelationEdge {
+  /**
+   * 边 id（缺省 `${source}-${target}`）。
+   *
+   * <p>同一对节点之间有多条边时必须显式给（例如数据库的复合外键：同一对表之间
+   * 会有多条 FK）。G6 的边 id 必须唯一，缺省值重复时后一条会被静默丢弃
+   * （控制台报 {@code Edge already exists}）。</p>
+   */
+  id?: string;
+  source: string;
+  target: string;
+  label?: string;
+  /** 线宽（缺省取组件级 {@code edgeWidth}） */
+  width?: number;
+  /** 虚线（缺省取组件级 {@code edgeDashed}） */
+  dashed?: boolean;
+  /** 箭头：true = 终点箭头，`"both"` = 双向（缺省取组件级 {@code edgeArrow}） */
+  arrow?: boolean | "both";
+  /** 线色（缺省用主题默认描边色） */
+  color?: string;
+  [key: string]: unknown;
 }
 
 /**
- * 分组聚簇的布局名（原生 {@code combo-combined} 的语义别名）
+ * 右键菜单（contextmenu）的回参。
  *
- * <p>势力/分组聚簇完全交给 G6 自带能力，不再自研坐标算法：
- * 每个分组是一个 {@code circle} 组合（圆形容器，尺寸由子节点包围盒自动推导），
- * 组内跑 {@code concentric} 同心环，组与组之间跑 {@code force} 排斥排开。</p>
- *
- * <p>保留 {@code rrg-cluster} 这个名字，是为了让已有业务的
- * {@code layout="rrg-cluster"} / {@code grouped-layout} 继续有效——它现在只是
- * G6 原生 {@code combo-combined} 的别名，没有任何自定义布局代码。</p>
+ * <p>右键永远会 emit {@code contextmenu}；只有在给了 {@code #context-menu} 插槽时，
+ * 组件才会额外在光标位置浮出一层容器，把这份对象原样喂给插槽，业务想画什么菜单都行。</p>
  */
-const GROUPED_LAYOUT = "rrg-cluster";
+export interface ContextMenuDetail {
+  /** 右键命中的元素类型（空白处 = canvas） */
+  targetType: "node" | "edge" | "combo" | "canvas";
+  /** 元素 id（canvas 时为 ""）；combo 用的是带前缀的内部 id（__group__蜀汉），分组名见 group */
+  id: string;
+  /** 边专用：起点 */
+  source?: string;
+  /** 边专用：终点 */
+  target?: string;
+  /** combo 专用：分组名（如「蜀汉」） */
+  group?: string;
+  /** 业务数据：节点 → RelationNode；边 → RelationEdge；combo → { group }；canvas → undefined */
+  data?: unknown;
+  /** 右键瞬间的选中集合（右键元素会自动加入选择，见 rightClickSelect） */
+  selection: { nodes: string[]; edges: string[]; combos: string[] };
+  /** 光标位置：相对组件根元素的像素坐标（浮层直接用这个定位） */
+  client: { x: number; y: number };
+  /** 光标位置：相对浏览器视口的 clientX / clientY */
+  page: { x: number; y: number };
+  /** 光标位置：画布坐标系 */
+  canvas: { x: number; y: number };
+  /** 原始 DOM 事件（要读 shiftKey / 阻止默认行为时用） */
+  native?: MouseEvent | null;
+}
 
 /**
- * 把 {@code rrg-cluster} 翻译成 G6 原生布局描述（combo-combined）。
- *
- * <p>根层（无组合的散点 + 各组合整体）用力导向，组内（每个组合）用同心环——
- * 这正是「每组聚成一团、组间不重叠」的原生表达。业务显式给出的参数
- * （{@code nodeSpacing}/{@code comboPadding}/{@code comboSpacing}）原样透传。</p>
- *
- * @param options 业务 / 调参面板给出的参数
- * @return G6 布局描述
+ * 编辑历史状态（`history-change` 事件的载荷，也是 `canUndo` / `canRedo` 的取数来源）。
  */
-const toGroupedLayoutDesc = (options?: Record<string, unknown>): Record<string, unknown> => ({
-  type: "combo-combined",
-  nodeSize: 40,
-  nodeSpacing: 12,
-  comboPadding: 18,
-  comboSpacing: 40,
-  ...(options ?? {}),
-  layout: (comboId: string | null) =>
-    comboId
-      // 组内：同心环，preventOverlap 保证同组节点不叠
-      ? { type: "concentric", preventOverlap: true, nodeSize: 40, minNodeSpacing: 24, sortBy: "degree" }
-      // 根层：力导向把各组合推开，用组合包围盒当碰撞半径
-      : { type: "force", preventOverlap: true, nodeSize: 40, linkDistance: 220 },
-});
+export interface HistoryState {
+  /** 还能撤销吗 */
+  canUndo: boolean;
+  /** 还能重做吗 */
+  canRedo: boolean;
+  /** 撤销栈深度 */
+  undoCount: number;
+  /** 重做栈深度 */
+  redoCount: number;
+  /** 栈顶这次改动做了什么（`add-node` / `remove-nodes` / `delete-selection` …） */
+  lastAction: string;
+}
 
-defineOptions({ name: "ReRelationGraphCore" });
+/** 分组调色板与取色（唯一来源见 {@link ./palette}） */
+const CLUSTER_COLORS = GROUP_PALETTE;
+
+/** 分组 → combo id（加前缀，避免和业务节点 id 撞车） */
+const comboIdOf = (group: string) => `__group__${group}`;
+
+/** 组名 hash → 调色板颜色（同组同色，改数据也不会变色） */
+const colorOf = (group: string, palette: readonly string[]): string => groupColorOf(group, palette);
 
 const props = withDefaults(
   defineProps<{
-    /** 完整图数据 */
-    data?: RelationGraphData;
-    /** 节点（与 data.nodes 二选一，便于兼容旧调用方） */
+    /** 节点列表 */
     nodes?: RelationNode[];
-    /** 边（与 data.edges 二选一） */
+    /** 边列表 */
     edges?: RelationEdge[];
-    /** 边（旧调用方用的名字） */
-    lines?: RelationEdge[];
-    /** 布局名，缺省 force */
-    layout?: RelationLayoutName;
-    /** 布局参数（覆盖默认） */
-    layoutOptions?: Record<string, unknown>;
-    /** 按 group 分区布局：开启后同 group 节点被分配到画布同一区块的初始坐标，
-     *  力导向从分区起点散开，同组自然聚成区块（适合按类别/势力分组的图） */
-    groupedLayout?: boolean;
-    /** 高度 */
+    /** 画布高度（px 或 css 长度，缺省 100%） */
     height?: string | number;
-    /** 宽度 */
-    width?: string | number;
-    /** 是否显示工具栏 */
+    /**
+     * 布局：缺省 {@code "group"}（分组布局，每组自动占据画布独立区域）；
+     * 也可传 G6 全部内置布局名（force / d3-force / circular / grid / dagre …），
+     * 或传完整对象 {@code { type: "force", linkDistance: 150 }}。
+     */
+    layout?: LayoutType | { type: string; [key: string]: unknown };
+    /**
+     * 布局参数：透传给 G6 对应布局（按布局类型不同）；
+     * 分组布局支持 spacing（组内间距）/ gap（组间留白）/ minRadius（单组最小半径）。
+     */
+    layoutOptions?: Record<string, unknown>;
+    /**
+     * 分组轮廓包裹方式：
+     * - {@code "bubble"}（默认）BubbleSets 云状气泡集；
+     * - {@code "hull"} Hull 轮廓（凹包，贴合节点集形状）；
+     * - {@code "none"} 不画轮廓（节点仍按 group 配色）。
+     */
+    groupType?: GroupType;
+    /** 分组轮廓是否显示（关掉只留配色，类型与参数保留） */
+    groupVisible?: boolean;
+    /**
+     * 非分组布局下自动隐藏分组轮廓（默认开启）。
+     *
+     * <p>轮廓是「按 group 圈节点」画出来的：只有分组布局会把同一势力聚成一块，
+     * 换成 force / grid / circular 等布局后各组节点互相穿插，轮廓必然彼此重叠、
+     * 还会把别组节点圈进来。默认在非分组布局下自动不画（节点仍按势力配色）；
+     * 确实需要在散布局里看轮廓时置 false。</p>
+     */
+    groupAutoHide?: boolean;
+    /**
+     * 分组轮廓参数：hull 支持 padding / concavity，bubble 支持 nodeR1，
+     * 两者共用 fillOpacity / lineWidth / strokeOpacity。
+     */
+    groupOptions?: Record<string, unknown>;
+    /** 是否显示内置工具栏（布局 / 分组 / 布局设置 / 适应画布） */
     toolbar?: boolean;
-    /** 是否显示小地图 */
-    minimap?: boolean;
-    /** 是否允许滚轮/双指缩放 */
-    zoom?: boolean;
-    /** 是否允许拖拽节点 */
-    drag?: boolean;
-    /** 悬停高亮模式：none/group/adjacent/both */
-    highlight?: RelationHighlightMode;
-    /** 是否允许 ctrl+左键多选 */
-    multiSelect?: boolean;
-    /** 是否显示右键菜单 */
-    contextMenu?: boolean;
-    /** 是否可编辑（右键菜单里的增删） */
-    editable?: boolean;
-    /** 节点缺省原型 */
-    nodeType?: string;
-    /** 边缺省类型 */
-    edgeType?: string;
-    /** 节点缺省大小 */
-    nodeSize?: number;
-    /** 边缺省是否带方向箭头 */
-    directed?: boolean;
-    /** 空数据时的提示 */
-    emptyText?: string;
-    /** 是否输出调试日志 */
-    debug?: boolean;
-    /** 视图模式：2d（G6 画布，默认）/ 3d（vue-force-graph-3d 力导向） */
-    mode?: RelationViewMode;
-    /** 是否在工具栏显示节点搜索框（search/locate） */
-    searchable?: boolean;
-    /** 是否在工具栏显示图片导出 */
-    exportable?: boolean;
-    /**
-     * 边标签的显示策略。
-     *
-     * <p>大图（几百条边）里每条边都常显标签会糊成一片，实测 248 节点/387 边的
-     * 三国知识图谱有近一半标签互相压字。因此提供 onHover：默认全部隐藏，
-     * 只有鼠标悬停/选中某条边时才显示那一条的标签；图面立刻干净，
-     * 信息改为按需呈现。可用“显示全部标签”开关随时切回常显。</p>
-     */
-    edgeLabelMode?: "always" | "onHover";
-    /**
-     * 是否允许「布局调参」面板。
-     *
-     * <p>与 {@link toolbar} 解耦：KB 图谱这类自带工具栏的调用方传 {@code toolbar=false}
-     * 仍可开启本面板，通过 {@link RelationGraphApi.openTuning} 等方法开合，
-     * 面板浮在画布右上角，不占用任何布局空间。</p>
-     */
-    tunable?: boolean;
-    /**
-     * 工具栏定位：默认右上角。类似地图工具条，支持四角与顶部居中。
-     */
-    toolbarPosition?: RelationToolbarPosition;
-    /**
-     * 工具栏按钮集合；缺省显示全部按钮。
-     *
-     * <p>传数组后只渲染数组里的按钮，方便调用方按业务隐藏/显示。
-     * 搜索/导出/布局调参还受 {@code searchable} / {@code exportable} / {@code tunable} 控制。</p>
-     */
-    toolbarItems?: RelationToolbarItem[];
-    /** 是否显示分组容器（按节点 group 包一层浅色背景） */
-    showGroups?: boolean;
-    /** 分组容器原型：circle / rect */
-    groupShape?: "circle" | "rect";
-    /** 悬停高亮时是否隐藏其它节点（默认只淡出） */
-    hoverFocus?: boolean;
-    /** 是否启用右键详情入口 */
-    details?: boolean;
-    /** 详情属性是否延迟加载（默认开；未配置 loadNodeDetail 时直接展示节点 data） */
-    lazyDetails?: boolean;
-    /** 详情属性加载函数：右键详情时调用，返回的字段会展示在详情面板 */
-    loadNodeDetail?: (node: RelationNode) => Promise<Record<string, unknown> | null | undefined>;
-    /** 右键扩线数据加载函数：返回待合并的邻居节点与边 */
-    loadNeighbors?: (node: RelationNode, depth?: number) => Promise<RelationGraphData | null | undefined>;
-    /** 部分加载（Neo4j 式）：挂载后按 depth 只加载局部子图，后续靠右键扩线 */
-    loadPartial?: (depth: number) => Promise<RelationGraphData | null | undefined>;
-    /** 右键扩线默认深度 */
-    expandDepth?: number;
-    /** 最大加载深度 */
-    maxDepth?: number;
-    /** 是否开启部分加载（Neo4j 式），默认只加载局部数据 */
-    partial?: boolean;
-    /** 是否启用 G6 官方 tooltip（鼠标悬停节点/边时显示内容） */
+    /** 工具栏外观变体：pill（悬浮胶囊）/ card（卡片）/ rail（竖向轨） */
+    toolbarVariant?: "pill" | "card" | "rail";
+    /** 工具栏停靠角（四个角）；rail 变体可选左右两侧 */
+    toolbarPosition?: "top-left" | "top-right" | "bottom-left" | "bottom-right" | "left" | "right";
+    /** 工具栏是否可折叠（折叠后只留一个展开按钮） */
+    toolbarCollapsible?: boolean;
+    /** 是否启用节点/边悬浮提示的总开关（默认开启；关掉 = 两者都不显示） */
     tooltip?: boolean;
-    /** 是否显示左上角悬浮信息（GraphHoverTip；KB 图谱关闭后只保留节点自带 label） */
-    hoverTip?: boolean;
-    /** 是否启用 G6 官方框选（brush-select） */
+    /**
+     * 节点悬浮提示独立开关（默认开启）。与 {@code tooltip} 是「与」关系：
+     * {@code tooltip=false} 时这里就算 true 也不显示。
+     */
+    nodeTooltip?: boolean;
+    /** 边悬浮提示独立开关（默认开启），规则同 {@code nodeTooltip} */
+    edgeTooltip?: boolean;
+    /**
+     * Tooltip 配置：透传 G6 tooltip 插件
+     * （position / offset / enterable / enable…），另支持：
+     * {@code getContent?: (data, kind) => string} 自定义内容。
+     *
+     * <p>内容优先级：{@code #node-tooltip / #edge-tooltip} 插槽 &gt;
+     * 这里的 {@code getContent} &gt; 内置模板。</p>
+     */
+    tooltipOptions?: {
+      getContent?: (data: Record<string, unknown>, kind: "node" | "edge") => string;
+      [key: string]: unknown;
+    };
+    /**
+     * 右键时是否把命中的元素加入选中集合（默认开启）。
+     * 右键回参里的 {@code selection} 就是「加入之后」的集合，业务菜单可直接用。
+     */
+    rightClickSelect?: boolean;
+    /* ---------------- 节点 / 边 外观 ---------------- */
+    /** 节点缺省直径（px）；节点数据里给了 {@code size} 时以数据为准。默认 40 */
+    nodeSize?: number;
+    /** 画布为空（无节点）时显示的占位文案；空字符串表示不显示 */
+    emptyText?: string;
+    /** 是否显示节点徽标（数据里给了 {@code badge} 才有效，默认开） */
+    nodeBadge?: boolean;
+    /** 边是否画箭头：false / true（终点）/ "both"（双向），缺省 false */
+    edgeArrow?: boolean | "both";
+    /** 边是否虚线（缺省 false） */
+    edgeDashed?: boolean;
+    /** 边线宽（缺省 1.4） */
+    edgeWidth?: number;
+    /** 是否显示边标签（边数据里有 {@code label} 才有效，缺省 true） */
+    edgeLabel?: boolean;
+    /** 点选：单击节点 / 边 / combo 选中（G6 click-select 行为） */
+    clickSelect?: boolean;
+    /** 框选：拖拽空白处拉框多选（G6 brush-select 行为） */
     brushSelect?: boolean;
-    /** 是否启用 G6 官方拉索选择（lasso-select） */
-    lassoSelect?: boolean;
-    /** 是否启用 G6 官方 hull 轮廓（按 group 生成外围轮廓） */
-    hull?: boolean;
-    /** 是否启用 G6 官方 bubble-sets 分组描边 */
-    bubbleSets?: boolean;
-    /** 大数据量性能优化（启用 optimize-viewport-transform；缺省自动按节点数启用） */
-    performance?: boolean;
-    /** 自定义右键菜单项 */
-    menuItems?: RelationContextMenuItem[];
-    /** 偏好保存回调：用户调布局/开关后把当前设置写入后台 */
-    saveSettings?: (settings: RelationGraphSettings) => Promise<void> | void;
-    /** 偏好加载回调：挂载后可主动应用后台已存设置 */
-    loadSettings?: () => Promise<RelationGraphSettings | null | undefined>;
+    /**
+     * 悬停高亮：鼠标移到节点上时高亮它和它的 1 度邻居，其余元素淡化
+     * （G6 hover-activate 行为），默认开启。
+     */
+    highlight?: boolean;
+    /** 小地图（G6 minimap 插件），默认关闭 */
+    minimap?: boolean;
+    /**
+     * 分组折叠：把每个 group 渲染成 combo 容器，点击 combo 可折叠 / 展开组内节点。
+     * 默认关闭（= 不折叠，节点平铺展示）。
+     */
+    combo?: boolean;
+    /**
+     * 初始就折叠的分组名列表（配合 {@code combo} 使用），
+     * 例如 {@code ["曹魏", "东吴"]}。默认空 = 全部展开（不折叠）。
+     */
+    collapsedGroups?: string[];
+    /* ---------------- 编辑体验：撤销/重做 + 键盘快捷键 ---------------- */
+    /**
+     * 是否记录编辑历史（撤销 / 重做）。默认开。
+     *
+     * <p>所有命令式增删改（addNode / removeNode / updateNode / addEdge / … / clear，
+     * 以及快捷键删除）都会在改动前压一份快照，关掉就不占内存也不响应撤销。</p>
+     */
+    history?: boolean;
+    /** 历史栈深度上限（超出丢弃最老的），默认 50 */
+    historyLimit?: number;
+    /** 是否开启组件内键盘快捷键（容器获得焦点时生效），默认开 */
+    keyboard?: boolean;
+    /**
+     * 快捷键映射覆盖：动作 → 组合键（`false` 表示关掉该动作）。
+     *
+     * <p>内置动作：`undo` / `redo` / `redo-alt` / `select-all` / `delete` /
+     * `clear-selection`。组合键写法：`mod+z`（mod = Ctrl 或 ⌘）、`ctrl+shift+k`、
+     * `delete`（Delete 或 Backspace）、`esc`。</p>
+     */
+    shortcuts?: Record<string, string | false>;
   }>(),
   {
-    data: undefined,
-    nodes: undefined,
-    edges: undefined,
-    lines: undefined,
-    layout: "force",
-    layoutOptions: undefined,
-    groupedLayout: false,
+    nodes: () => [],
+    edges: () => [],
     height: "100%",
-    width: "100%",
-    toolbar: true,
-    minimap: false,
-    zoom: true,
-    drag: true,
-    highlight: "adjacent",
-    multiSelect: true,
-    contextMenu: true,
-    editable: false,
-    nodeType: "circle",
-    edgeType: "line",
-    nodeSize: 32,
-    directed: true,
-    emptyText: "暂无数据",
-    debug: false,
-    mode: "2d",
-    searchable: true,
-    exportable: true,
-    tunable: true,
-    edgeLabelMode: "always",
+    layout: DEFAULT_LAYOUT,
+    layoutOptions: () => ({}),
+    groupType: "bubble",
+    groupVisible: true,
+    groupAutoHide: true,
+    groupOptions: () => ({}),
+    toolbar: false,
+    toolbarVariant: "pill",
     toolbarPosition: "top-right",
-    toolbarItems: undefined,
-    showGroups: false,
-    groupShape: "circle",
-    hoverFocus: false,
-    details: true,
-    lazyDetails: true,
-    loadNodeDetail: undefined,
-    loadNeighbors: undefined,
-    loadPartial: undefined,
-    expandDepth: 3,
-    maxDepth: 3,
-    partial: false,
-    menuItems: undefined,
+    toolbarCollapsible: true,
     tooltip: true,
-    hoverTip: true,
+    nodeTooltip: true,
+    edgeTooltip: true,
+    tooltipOptions: () => ({}),
+    rightClickSelect: true,
+    nodeSize: 40,
+    emptyText: "暂无数据",
+    nodeBadge: true,
+    edgeArrow: false,
+    edgeDashed: false,
+    edgeWidth: 1.4,
+    edgeLabel: true,
+    clickSelect: false,
     brushSelect: false,
-    lassoSelect: false,
-    hull: false,
-    bubbleSets: false,
-    performance: false,
-    saveSettings: undefined,
-    loadSettings: undefined,
+    highlight: true,
+    minimap: false,
+    combo: false,
+    collapsedGroups: () => [],
+    history: true,
+    historyLimit: 50,
+    keyboard: true,
+    shortcuts: () => ({}),
   },
 );
 
-const emit = defineEmits<{
-  (e: "ready", graph: unknown): void;
-  (e: "node-click", node: RelationNode, ev: unknown): void;
-  (e: "node-right-click", node: RelationNode, ev: unknown): void;
-  (e: "node-dblclick", node: RelationNode, ev: unknown): void;
-  (e: "node-hover", node: RelationNode | null, ev: unknown): void;
-  (e: "edge-click", edge: RelationEdge, ev: unknown): void;
-  (e: "edge-right-click", edge: RelationEdge, ev: unknown): void;
-  (e: "edge-dblclick", edge: RelationEdge, ev: unknown): void;
-  (e: "canvas-click", ev: unknown): void;
-  (e: "selection-change", ids: string[]): void;
-  (e: "layout-change", name: string): void;
-  (e: "data-change", data: RelationGraphData): void;
-  (e: "mode-change", mode: RelationViewMode): void;
-  /** 拖边连线完成一个新边时 —— data 与 model 已同步，携带 business 边数据 */
-  (e: "edge-created", edge: RelationEdge): void;
-  /** 撤销 / 重做 / 清栈 / 编辑操作后 */
-  (e: "history-change", state: { canUndo: boolean; canRedo: boolean }): void;
-  /** 连线模式开关 */
-  (e: "connect-mode-change", on: boolean): void;
-  /** 悬停/显示开关或布局参数变化后派发，调用方接事件写后台 */
-  (e: "settings-change", settings: RelationGraphSettings): void;
-  /** 打开详情面板（可在面板内懒加载） */
-  (e: "node-detail", node: RelationNode, data: Record<string, unknown> | null): void;
-  /** 请求扩线：未配置 loadNeighbors 时由调用方处理 */
-  (e: "node-expand", node: RelationNode, depth: number): void;
-  /** 最短路径状态变化（空数组=恢复） */
-  (e: "path-change", ids: string[]): void;
-  /** 自定义菜单项被点击 */
-  (e: "menu-item-click", item: RelationContextMenuItem, ctx: RelationContextMenuContext): void;
-}>();
+const containerRef = ref<HTMLDivElement | null>(null);
+/** 组件根元素（右键浮层按它做定位基准） */
+const rootRef = ref<HTMLDivElement | null>(null);
+let graph: Graph | null = null;
 
-const wrapRef = ref<HTMLElement | null>(null);
-const containerRef = ref<HTMLElement | null>(null);
-const graphRef = shallowRef<Graph | null>(null);
-const ready = ref(false);
-/** 生效布局：groupedLayout 开启时强制用分组圆形聚簇（rrg-cluster），否则跟随 props.layout */
-const currentLayout = ref<string>(props.groupedLayout ? "rrg-cluster" : props.layout);
-const empty = ref(true);
-
-/** 右键菜单状态 */
-const menu = ref<{ visible: boolean; x: number; y: number; kind: "node" | "edge" | "canvas"; id: string }>(
-  { visible: false, x: 0, y: 0, kind: "canvas", id: "" },
-);
-/** 悬浮详情（供父级 tooltip 或内置气泡使用） */
-const hovered = ref<RelationNode | null>(null);
-
-// ==================== 2026-10-13 显示开关 / 扩线 / 详情 / 设置 ====================
-
-/** 是否显示分组容器（combo） */
-/**
- * 组合容器开关（combo）。
- *
- * <p>{@code groupedLayout} 是分组聚簇布局，它必须建立在组合容器之上：G6 原生
- * {@code combo-combined} 靠 combo 分组排布。所以开了聚簇布局就自动打开组合容器，
- * 否则布局拿不到任何分组信息，只能把节点挤成一圈（互相压盖）。</p>
- */
-const showGroupsOn = ref(props.showGroups || props.groupedLayout || currentLayout.value === GROUPED_LAYOUT);
-/** 悬停高亮模式运行时状态（首值来自 prop，工具栏可切） */
-const highlightMode = ref<RelationHighlightMode>(props.highlight);
-/** 悬停时是否隐藏其它节点（而非淡出） */
-const hoverFocusOn = ref(props.hoverFocus);
-/** 是否显示左上角悬浮信息（GraphHoverTip；KB 图谱大数据场景关闭） */
-const hoverTipOn = ref(props.hoverTip);
-/** 右键扩线默认深度 */
-const expandDepthOn = ref(props.expandDepth);
-/** 最大加载深度 */
-const maxDepthOn = ref(props.maxDepth);
-/** 是否开启 Neo4j 式部分加载 */
-const partialOn = ref(props.partial);
-
-/** 右侧详情面板当前节点 */
-const detailNode = ref<RelationNode | null>(null);
-const detailLoading = ref(false);
-const detailData = ref<Record<string, unknown> | null>(null);
-
-/** 正在扩线的节点 id，菜单项显示 loading 状态 */
-const expandingIds = ref<string[]>([]);
-/** 已经扩线过的节点 id，避免重复请求 */
-const expandedIds = ref<Set<string>>(new Set());
-
-/** 最短路径当前高亮节点；空表示未显示 */
-const pathIds = ref<string[]>([]);
-/** 最短路径高亮前的元素状态快照（用于恢复原图） */
-let pathStateSnapshot: Record<string, string[]> = {};
-
-/** 是否已执行过 Neo4j 式部分加载（只执行一次） */
-const partialLoaded = ref(false);
-
-/** 应用后台设置期间，避免 emitSettingsChange 反向触发保存 */
-const applyingSettings = ref(false);
-
-// ==================== 2D/3D 双模式状态 ====================
-
-/**
- * 当前视图模式。
- *
- * <p>2D 与 3D **同时活着**：切到 3D 时 G6 实例不销毁，只用 visibility 隐藏
- * （display:none 会让 G6 的 autoResize 量到 0 尺寸，切回来画布就花了），
- * G6 仍是唯一数据源，3D 层只是它的一份快照视图。</p>
- */
-const mode = ref<RelationViewMode>(props.mode);
-const is3d = computed(() => mode.value === "3d");
-
-/** 3D 层数据：从 G6 模型导出的快照（保留 style 色值，exportData 会丢 style 所以不复用它） */
-const data3d = ref<RelationGraphData>({ nodes: [], edges: [] });
-/** 3D 选中节点 id（G6 的 selected 状态在 3D 层没有对应物，单独维护） */
-const selected3d = ref<string[]>([]);
-/** 3D 高亮节点 id；null 表示不高亮 */
-const highlight3d = ref<string[] | null>(null);
-/** 3D 悬停产生的临时高亮（与 highlight3d 叠加：任一命中即高亮） */
-const hoverHl3d = ref<string[] | null>(null);
-/** 懒加载 3D 组件：three.js 体积大，不切 3D 就不进首屏 */
-const ForceGraph3DComp = defineAsyncComponent(() => import("./ForceGraph3D.vue"));
-const fg3dRef = ref<any>(null);
-
-// ==================== 2026-10-07 补齐 feature #3/#5/#6/#7 ====================
-
-/** G6 History 插件实例（key 取 'history'）。null 仅在未挂载前。 */
-const historyInst = shallowRef<any>(null);
-const canUndo = ref(false);
-const canRedo = ref(false);
-
-/**「拖边连线」模式（2D+editable） */
-const connectMode = ref(false);
-/**
- * 进入/退出「拖边连线」模式。 behaviors 的 enable() 闭包会即时感知到 ref 变化，
- * 无需调用 setBehaviors / setActiveMethod（后者 v5 不存在）。
- */
-function setConnectMode(on: boolean) {
-  connectMode.value = !!on;
-  if (on) {
-    clear2dState();
-  }
-  emit("connect-mode-change", connectMode.value);
-}
-function getConnectMode(): boolean {
-  return connectMode.value;
-}
-
-/** 清除 2D 上的选中 / 搜索高亮 */
-function clear2dState() {
-  const g = graphRef.value;
-  if (g) {
-    g.setElementState({} as any, false);
-  }
-  selectedIds.value = [];
-  searchMatches.value = [];
-  searchMatchIndex.value = -1;
-}
-
-// ==================== search / locate (#3) ====================
-
-/** 搜索框 & 命中高亮 */
-const searchText = ref("");
-const searchMatches = ref<string[]>([]);
-const searchMatchIndex = ref(-1);
-
-/** 命中节点 id（模糊匹配 label / id，不区分大小写） */
-const searchNodes = (keyword: string): string[] => {
-  if (!keyword.trim()) {
-    return [];
-  }
-  const kw = keyword.trim().toLowerCase();
-  const g = graphRef.value;
-  const nodes = g?.getNodeData() ?? graphData.value.nodes ?? [];
-  return (nodes as any[])
-    .filter(n => {
-      if (!n || n.id === undefined) return false;
-      const d = n.data ?? {};
-      const label = d.__label ?? d.label ?? n.id;
-      const idStr = String(n.id);
-      return String(label).toLowerCase().includes(kw) || idStr.toLowerCase().includes(kw);
-    })
-    .map(n => String(n.id));
-};
-
-/** 高亮命中节点并聚焦首个 */
-const highlightMatches = (ids: string[]) => {
-  searchMatches.value = ids;
-  searchMatchIndex.value = ids.length ? 0 : -1;
-  if (is3d.value) {
-    // 3D 层没有 G6 的 element state，用 highlight 集合 + centerOn 达到同样效果
-    highlight3d.value = ids.length ? [...ids] : null;
-    if (ids[0]) {
-      fg3dRef.value?.centerOn?.(ids[0]);
-    }
-    return;
-  }
-  const g = graphRef.value;
-  if (ids.length) {
-    g?.setElementState({} as any, false); // 先清已有选中
-    const map: Record<string, string[]> = {};
-    ids.forEach(id => {
-      map[id] = ["active"];
-    });
-    void safeSetElementState(g, map, true);
-  } else {
-    g?.setElementState({} as any, false);
-  }
-  if (ids[0]) {
-    g?.focusElement(ids[0], true as any).catch(() => {});
-  }
-};
-
-const runSearch = (keyword: string) => {
-  searchText.value = keyword;
-  highlightMatches(searchNodes(keyword));
-};
-
-/** 清除搜索 */
-const clearSearch = () => {
-  searchText.value = "";
-  if (is3d.value) {
-    highlight3d.value = null;
-  } else {
-    graphRef.value?.setElementState({} as any, false);
-  }
-  searchMatches.value = [];
-  searchMatchIndex.value = -1;
-};
-
-/** 跳转到下一个/上一个命中 */
-const nextMatch = (dir = 1) => {
-  const ids = searchMatches.value;
-  if (!ids.length) {
-    runSearch(searchText.value);
-    return;
-  }
-  let i = (searchMatchIndex.value + dir + ids.length) % ids.length;
-  searchMatchIndex.value = i;
-  void safeFocusElement(graphRef.value, ids[i], true);
-  void safeSetElementState(graphRef.value, { [ids[i]]: ["active"] } as Record<string, string[]>, true);
-};
-
-/** 定位 + 选中一个节点 */
-async function locateNode(id: string) {
-  const g = graphRef.value;
-  if (!g || is3d.value) {
-    return;
-  }
-  await safeFocusElement(g, id, true);
-  g.setElementState({} as any, false);
-  void safeSetElementState(g, { [id]: ["selected"] } as Record<string, string[]>, true);
-  selectedIds.value = [id];
-  emit("selection-change", [id]);
-}
-
-// ==================== 导出图片 (#4) ====================
-
-/** 导出图片为 dataURL。2D 用 G6 toDataURL，3D 用 three 渲染器截帧。 */
-async function exportImage(
-  type: "png" | "jpeg" = "png",
-  quality = 1,
-): Promise<string> {
-  if (is3d.value) {
-    return fg3dRef.value?.toDataURL?.(type, quality) ?? "";
-  }
-  const g = graphRef.value;
-  if (!g) return "";
-  return g.toDataURL({ type, quality } as any);
-}
-
-/** 下载 dataURL */
-function downloadDataURL(dataURL: string, name = "relation-graph") {
-  const a = document.createElement("a");
-  a.href = dataURL;
-  a.download = `${name}.png`;
-  a.style.display = "none";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
-
-// ==================== 节点内容插槽 (#6) ====================
-
+/** 插槽：node-content / node-tooltip / edge-tooltip / context-menu / toolbar-extra */
 const slots = useSlots();
-const hasNodeSlot = computed(() => !!slots["node-content"]);
-const slotEls = new Map<string, HTMLElement>();
-/** 2D 选中节点 id 列表（插槽 scope + 外部 select 同步） */
-const selectedIds = ref<string[]>([]);
 
-/** 取/建用于某个节点的 slot 容器元素（G6 html 节点的 innerHTML）。 */
+/* ---------------- 节点内容插槽（#node-content → G6 html 节点） ---------------- */
+
+const hasNodeSlot = computed(() => !!slots["node-content"]);
+
+/** 每个节点对应的 Vue 渲染容器（G6 html 节点只当挂载点用） */
+const slotEls = new Map<string, HTMLElement>();
+
+/** 取 / 建某个节点的插槽容器元素 */
 const ensureSlotEl = (id: string): HTMLElement => {
   let el = slotEls.get(id);
   if (!el) {
@@ -581,3942 +347,3535 @@ const ensureSlotEl = (id: string): HTMLElement => {
   return el;
 };
 
-/** 把 #node-content 插槽渲染到某个节点的 G6 html 容器里。 */
+/** 把 #node-content 插槽渲染进某个节点的容器 */
 const renderSlotNode = (node: RelationNode) => {
   if (!hasNodeSlot.value) return;
-  const el = ensureSlotEl(node.id);
-  const sel = selectedIds.value.includes(node.id);
-  // 让插槽函数在当前组件作用域下执行，拿到最新的 vnodes；G6 html 节点自身负责
-  // transform（节点坐标 + 视口），我们只管把内容塞进容器、居中显示。
-  const vnodes = slots["node-content"]!({ node, selected: sel });
-  render(vnodes.length ? h(Fragment, null, vnodes as any) : h(Fragment), el);
+  const el = ensureSlotEl(String(node.id));
+  const selected = selectedNodes.value.includes(String(node.id));
+  const vnodes = slots["node-content"]!({ node, id: String(node.id), selected });
+  render(vnodes.length ? h(Fragment, null, vnodes as never) : h(Fragment), el);
 };
 
-/** 卸载某个节点的插槽容器（节点被移除 / 组件卸载时） */
+/** 卸载某个节点的插槽容器（节点被移除 / 组件卸载） */
 const unmountSlot = (id: string) => {
-  const el = slotEls.get(id);
-  if (el) {
-    render(null as unknown as Parameters<typeof render>[0], el);
-    el.remove();
-    slotEls.delete(id);
-  }
+  const el = slotEls.get(String(id));
+  if (!el) return;
+  render(null, el);
+  el.remove();
+  slotEls.delete(String(id));
 };
 
 /**
  * 把已渲染的插槽容器挂进 G6 html 节点的关键图形 DOM。
  *
- * <p>不能通过 node style.innerHTML 传 DOM 元素：History 插件的 alignFields 会深度
- * 遍历命令数据，DOM 的循环引用会让它无限递归爆栈。所以 model 里 innerHTML 只存
- * 字符串，真正的 DOM 在这里按元素实例 {@code getShape('key').getDomElement()} 挂载。</p>
+ * <p>不能通过 style.innerHTML 传 DOM 元素：History 插件会深度遍历命令数据，
+ * DOM 的循环引用会让它无限递归爆栈。所以模型里 innerHTML 只放字符串，
+ * 真正的 DOM 在这里按元素实例 {@code getShape('key').getDomElement()} 挂载。</p>
  */
 const attachSlots = () => {
-  const g: any = graphRef.value;
-  if (!hasNodeSlot.value || !g) return;
-  const nodeData = (g.getNodeData?.() ?? []) as any[];
-  for (const d of nodeData) {
-    if (d.type !== "html") continue;
-    const el = ensureSlotEl(d.id);
-    renderSlotNode({
-      id: d.id,
-      label: d.data?.__label,
-      group: d.data?.__group,
-      type: d.type,
-      data: d.data,
-    } as RelationNode);
+  if (!hasNodeSlot.value || !graph || !graphAlive) return;
+  for (const n of nodesState.value) {
+    const id = String(n.id);
+    if ((n.type ?? "") !== "html") continue;
+    const el = ensureSlotEl(id);
+    renderSlotNode(n);
     try {
-      const inst = g.context?.element?.getElement?.(d.id);
-      const host: HTMLElement | undefined = inst?.getShape?.("key")?.getDomElement?.();
-      if (host && el.parentElement !== host) {
-        host.appendChild(el);
-      }
-    } catch (e) {
-      log("attachSlots 失败", d.id, e);
+      const inst = (graph as unknown as {
+        context?: { element?: { getElement?: (id: string) => unknown } };
+      }).context?.element?.getElement?.(id) as
+        | { getShape?: (key: string) => { getDomElement?: () => HTMLElement | undefined } }
+        | undefined;
+      const host = inst?.getShape?.("key")?.getDomElement?.();
+      if (host && el.parentElement !== host) host.appendChild(el);
+    } catch {
+      /* 元素还没 draw 完时取不到 DOM，下次 render 完会再挂 */
     }
   }
 };
 
-const log = (...args: unknown[]) => {
-  if (props.debug) {
-    console.log("[ReRelationGraph]", ...args);
-  }
-};
-
-/** 归一化输入数据：data 优先，其次 nodes/edges/lines */
 /**
- * 兼容旧（X6 版 ReGraphRelation）命名的节点：{@code text} → {@code label}。
- *
- * @param n 原始节点
- * @return 补齐 label 的节点；本来就带 label 时原样返回
+ * 当前布局（可被 {@code setLayout} 命令式覆盖；props.layout 变化时同步）
+ * 用 ref 而非直接读 props，是因为 setLayout 需要在不改父组件数据的情况下切布局。
  */
-const aliasNode = (n: any): RelationNode => {
-  if (n?.label !== undefined || n?.text === undefined) {
-    return n as RelationNode;
-  }
-  return { ...n, label: n.text } as RelationNode;
-};
+const layoutState = ref<LayoutType | { type: string; [key: string]: unknown }>(
+  props.layout ?? DEFAULT_LAYOUT,
+);
+
+/** 当前布局参数（工具栏可在运行中改，父组件传值优先同步） */
+const layoutOptionsState = ref<Record<string, unknown>>({ ...(props.layoutOptions ?? {}) });
+
+/** 当前分组轮廓类型 / 显隐 / 参数 */
+const groupTypeState = ref<GroupType>(props.groupType ?? "bubble");
+const groupVisibleState = ref<boolean>(props.groupVisible ?? true);
+const groupOptionsState = ref<Record<string, unknown>>({ ...(props.groupOptions ?? {}) });
 
 /**
- * 兼容旧（X6 版 ReGraphRelation）命名的边：{@code from/to} → {@code source/target}，
- * {@code text} → {@code label}。
+ * 内部数据副本。
  *
- * @param e 原始边
- * @return 补齐 source/target/label 的边
+ * <p>为什么不全用 props：组件要对外提供节点/边的增删改（{@code addNode} 等），
+ * 命令式改动先落到这份副本上并立即重绘，父组件若用 {@code :nodes} 单向绑定也能看到
+ * 效果；父组件改了 props 时再由 watch 回灌。</p>
  */
-const aliasEdge = (e: any): RelationEdge => {
-  const out: any = { ...e };
-  if (out.source === undefined && e?.from !== undefined) {
-    out.source = e.from;
-  }
-  if (out.target === undefined && e?.to !== undefined) {
-    out.target = e.to;
-  }
-  if (out.label === undefined && e?.text !== undefined) {
-    out.label = e.text;
-  }
-  return out as RelationEdge;
+const nodesState = ref<RelationNode[]>([...(props.nodes ?? [])]);
+const edgesState = ref<RelationEdge[]>([...(props.edges ?? [])]);
+
+/**
+ * 交互开关的状态副本（工具栏切了就改这里，父组件用 v-model:xxx 也能同步）。
+ * 这些都是「要重建 Graph 才生效」的开关：behavior / plugin 只能在实例上挂。
+ */
+const tooltipState = ref<boolean>(props.tooltip ?? true);
+/** 节点 / 边悬浮提示的独立开关（与总开关是「与」关系） */
+const nodeTooltipState = ref<boolean>(props.nodeTooltip ?? true);
+const edgeTooltipState = ref<boolean>(props.edgeTooltip ?? true);
+const clickSelectState = ref<boolean>(props.clickSelect ?? false);
+const brushSelectState = ref<boolean>(props.brushSelect ?? false);
+const highlightState = ref<boolean>(props.highlight ?? true);
+const minimapState = ref<boolean>(props.minimap ?? false);
+const comboState = ref<boolean>(props.combo ?? false);
+
+/**
+ * 对外事件（已接通 G6 底层）：
+ * - node-mouseover / node-mouseout：节点鼠标移入/移出（G6 node:pointerenter/pointerleave）
+ * - edge-mouseover / edge-mouseout：边鼠标移入/移出（G6 edge:pointerenter/pointerleave）
+ *
+ * 事件载荷统一为 { id, data, ... }：id 是元素 id，data 是元素业务数据
+ * （节点为 { cluster, __label, ... }，边为 { label }）。
+ */
+const emit = defineEmits<{
+  /** 首帧渲染完成（参数为底层 G6 Graph 实例），可在此后调用 centerOn / fitView 等 */
+  (e: "ready", graph: Graph): void;
+  (e: "node-click", detail: { id: string; data?: unknown }): void;
+  (e: "node-dblclick", detail: { id: string; data?: unknown }): void;
+  (e: "edge-click", detail: { id: string; source: string; target: string; data?: unknown }): void;
+  (e: "node-mouseover", detail: { id: string; data?: unknown }): void;
+  (e: "node-mouseout", detail: { id: string; data?: unknown }): void;
+  (e: "edge-mouseover", detail: { id: string; source: string; target: string; data?: unknown }): void;
+  (e: "edge-mouseout", detail: { id: string; source: string; target: string; data?: unknown }): void;
+  /** 工具栏/命令式改动后的同步事件（配合 v-model:xxx 使用） */
+  (e: "update:layout", value: string): void;
+  (e: "update:layoutOptions", value: Record<string, unknown>): void;
+  (e: "update:groupType", value: GroupType): void;
+  (e: "update:groupVisible", value: boolean): void;
+  (e: "update:groupOptions", value: Record<string, unknown>): void;
+  (e: "update:tooltip", value: boolean): void;
+  (e: "update:nodeTooltip", value: boolean): void;
+  (e: "update:edgeTooltip", value: boolean): void;
+  (e: "update:clickSelect", value: boolean): void;
+  (e: "update:brushSelect", value: boolean): void;
+  (e: "update:highlight", value: boolean): void;
+  (e: "update:minimap", value: boolean): void;
+  (e: "update:combo", value: boolean): void;
+  /** 选中集合变化（点选 / 框选 / 命令式 select 都走这里） */
+  (e: "selection-change", detail: { nodes: string[]; edges: string[]; combos: string[] }): void;
+  /** 分组折叠状态变化（点 combo / 命令式 collapseGroup 都会发） */
+  (e: "combo-collapse-change", detail: { group: string; collapsed: boolean }): void;
+  /** 最短路径计算结果 */
+  (e: "path-change", detail: { from: string; to: string; found: boolean; nodes: string[]; edges: string[] }): void;
+  /** 「最短路径」选择模式开关变化（工具栏按钮 / 右键取消都会发） */
+  (e: "update:pathPick", value: boolean): void;
+  /** 右键菜单回参（命中元素 + 当前选中集合 + 三套坐标） */
+  (e: "contextmenu", detail: ContextMenuDetail): void;
+  /** 右键浮层被关闭（点空白 / Esc / 点了菜单里的按钮调 close 都走这里） */
+  (e: "context-menu-close"): void;
+  /** 数据变更通知（命令式增删改后发出，父组件可据此同步自己的数据源） */
+  (e: "nodes-change", nodes: RelationNode[]): void;
+  (e: "edges-change", edges: RelationEdge[]): void;
+  /** 编辑历史状态变化（能不能撤销 / 重做、栈深、最近一次动作） */
+  (e: "history-change", detail: HistoryState): void;
+  /** 命中并执行了一条内置快捷键（业务可据此做埋点或额外联动） */
+  (e: "shortcut", detail: { action: string; combo: string; native: KeyboardEvent }): void;
+}>();
+
+/** 绑定 G6 事件 → Vue emit（在 graph 创建后调用一次） */
+const bindEvents = (g: Graph, isAlive: () => boolean) => {
+  // 动画型布局（force / d3-force / fruchterman …）在 render 时 autoFit 算的是
+  // 初始位置，布局跑完后节点会跑到视口外 —— 布局结束再补一次 fitView，
+  // 且只在内容确实超框时缩放（when: 'overflow'），不打扰用户手动缩放后的视图。
+  g.on("afterlayout", () => {
+    // 布局是异步的：切布局/切分组会整图重建，旧实例的 afterlayout 仍会触发，
+    // 此时再调 fitView 会打 G6 的「graph has been destroyed」错误，先判存活
+    if (!isAlive()) return;
+    // 树类布局在「图不连通」时会把每个连通分量都从原点开始排 → 叠在一起，这里摊开
+    separateComponents(g);
+    // 兜底：仍有精确重合的节点（MDS 等）绕圈错开，避免叠成一团
+    nudgeCoincidentNodes(g);
+    // 通用防重叠后处理：只沿圆心连线推开重叠对，保留布局原本的形状。
+    // 分组布局不跑 G6 布局（afterlayout 不会来）；四种 @antv/hierarchy 树由布局自己
+    // 按 nodeSize / nodeSep 保证间距，再推会把层级推歪；鱼骨是自研坐标，节点会挤，
+    // 所以要跑。
+    const layoutType = resolveLayout().type;
+    const skipRelax =
+      isGroupLayout(layoutType) ||
+      (isTreeLayoutType(layoutType) && layoutType !== "fishbone");
+    if (!skipRelax) relaxOverlaps(g);
+    g.fitView({ when: "overflow" }).catch(() => {});
+    // 轮廓插件只在 AFTER_RENDER 时按「当时」的节点位置算一次路径；
+    // 动画型布局渲染完还会继续挪节点，不刷新的话轮廓会留在初始位置 ——
+    // 表现为轮廓与节点错位、相邻两组的轮廓叠在一起。布局落定后强制重算一次。
+    refreshContours();
+  });
+  // 真实 G6 事件里 ev.target 是 shape 对象（Circle / Line）：
+  // - 元素 id 在 target.id（节点=节点 id；边=以 "source-target" 命名的 id）
+  // - 业务数据不在 target 顶层，需用 graph.getNodeData / getEdgeData 回查
+  g.on("node:pointerenter", (ev) => {
+    const id = String(((ev as { target?: { id?: unknown } }).target ?? {}).id ?? "");
+    emit("node-mouseover", { id, data: g.getNodeData(id) as unknown });
+    hoverNode(id);
+  });
+  g.on("node:pointerleave", (ev) => {
+    const id = String(((ev as { target?: { id?: unknown } }).target ?? {}).id ?? "");
+    emit("node-mouseout", { id, data: g.getNodeData(id) as unknown });
+    clearHoverHighlight(id);
+  });
+  g.on("edge:pointerenter", (ev) => {
+    const id = String(((ev as { target?: { id?: unknown } }).target ?? {}).id ?? "");
+    // 边的两端从业务边表反查（业务 id 可能自带连字符，不能直接拆）
+    const { source, target } = edgeEndsOf(id);
+    emit("edge-mouseover", {
+      id,
+      source,
+      target,
+      data: g.getEdgeData(id) as unknown,
+    });
+    hoverEdge(id);
+  });
+  g.on("edge:pointerleave", (ev) => {
+    const id = String(((ev as { target?: { id?: unknown } }).target ?? {}).id ?? "");
+    const { source, target } = edgeEndsOf(id);
+    emit("edge-mouseout", {
+      id,
+      source,
+      target,
+      data: g.getEdgeData(id) as unknown,
+    });
+    clearHoverHighlight(id);
+  });
+
+  /* ---------- 点选（自研：单击加入选择 / 再点取消 / 点空白清空） ---------- */
+  const targetIdOf = (ev: unknown) =>
+    String(((ev as { target?: { id?: unknown } })?.target ?? {}).id ?? "");
+
+  g.on("node:click", (ev) => {
+    if (consumeBrushClick()) return;
+    const id = targetIdOf(ev);
+    // 最短路径模式：左键只用来点起点 / 终点，点选让位
+    if (pathPickState.value) {
+      if (!id) return;
+      pickPathEndpoint(id);
+      return;
+    }
+    if (id) emit("node-click", { id, data: g.getNodeData(id) as unknown });
+    if (!clickSelectState.value) return;
+    // 追加式多选：点第二个节点不会把第一个顶掉（算最短路径要选两个）
+    if (id) toggleSelect(id, "node", true);
+  });
+  g.on("node:dblclick", (ev) => {
+    if (pathPickState.value) return;
+    const id = targetIdOf(ev);
+    if (id) emit("node-dblclick", { id, data: g.getNodeData(id) as unknown });
+  });
+  g.on("edge:click", (ev) => {
+    if (consumeBrushClick()) return;
+    // 最短路径模式：边不参与端点选择，左键直接忽略
+    if (pathPickState.value) return;
+    const id = targetIdOf(ev);
+    if (id) {
+      const { source, target } = edgeEndsOf(id);
+      emit("edge-click", { id, source, target, data: g.getEdgeData(id) as unknown });
+    }
+    if (!clickSelectState.value) return;
+    if (id) toggleSelect(id, "edge", true);
+  });
+  g.on("combo:click", (ev) => {
+    if (consumeBrushClick()) return;
+    if (pathPickState.value) return;
+    const id = targetIdOf(ev);
+    if (!id) return;
+    // 点 combo：折叠 / 展开该分组（开启分组折叠时）
+    if (comboState.value) toggleGroupCollapsed(id.replace(/^__group__/, ""));
+    else if (clickSelectState.value) toggleSelect(id, "combo", true);
+  });
+  g.on("canvas:click", () => {
+    if (consumeBrushClick()) return;
+    if (pathPickState.value) return;
+    if (clickSelectState.value || brushSelectState.value) clearSelection();
+  });
+
+  /* ---------- 框选（自研覆盖层）---------- */
+  g.on("pointerdown", onBrushDown as never);
+  g.on("pointermove", onBrushMove as never);
+  g.on("pointerup", onBrushUp as never);
+  // 鼠标移出画布时兜底清一次悬停态，避免「移出去还留着高亮」
+  g.on("canvas:pointerleave", () => clearHoverHighlight());
+
+  /* ---------- 右键（contextmenu）：回参 + 可选浮层 ---------- */
+  // 最短路径模式下右键 = 取消，不再弹业务菜单
+  g.on("node:contextmenu", (ev) => {
+    if (pathPickState.value) {
+      cancelPathPick(ev);
+      return;
+    }
+    handleContextMenu(ev, "node");
+  });
+  g.on("edge:contextmenu", (ev) => {
+    if (pathPickState.value) {
+      cancelPathPick(ev);
+      return;
+    }
+    handleContextMenu(ev, "edge");
+  });
+  g.on("combo:contextmenu", (ev) => {
+    if (pathPickState.value) {
+      cancelPathPick(ev);
+      return;
+    }
+    handleContextMenu(ev, "combo");
+  });
+  g.on("canvas:contextmenu", (ev) => {
+    if (pathPickState.value) {
+      cancelPathPick(ev);
+      return;
+    }
+    handleContextMenu(ev, "canvas");
+  });
+  // 右键同时按下左键拖拽开始 / 关掉菜单时，都把浮层收掉
+  g.on("pointerdown", () => closeContextMenu());
 };
 
-const GROUP_COLOR_PALETTE = ["#409eff", "#f56c6c", "#67c23a", "#e6a23c", "#909399", "#b37feb"];
+/** 分组布局可调参数 */
+interface GroupLayoutOptions {
+  /** 组内节点间距基准（px），决定单组区域半径 */
+  spacing?: number;
+  /** 组与组之间的留白（px） */
+  gap?: number;
+  /** 单组最小半径（px） */
+  minRadius?: number;
+}
 
-/** 由 group 名称生成稳定的 combo id */
-const groupComboId = (group: string): string => `rrg-group:${group}`;
+/**
+ * 归一化布局配置：{@code layout} 支持字符串或 { type, ...options } 对象，
+ * {@code layoutOptions} 中的同名键优先。
+ */
+const resolveLayout = (): { type: string; options: Record<string, unknown> } => {
+  const raw = layoutState.value ?? DEFAULT_LAYOUT;
+  const base: Record<string, unknown> =
+    typeof raw === "string" ? { type: raw } : { ...(raw as Record<string, unknown>) };
+  const type = String(base.type ?? DEFAULT_LAYOUT);
+  delete base.type;
+  return { type, options: { ...base, ...(layoutOptionsState.value ?? {}) } };
+};
 
-/** 生成分组容器的浅色背景样式（v2：提升可见性，势力区块一眼可辨） */
-const groupComboStyle = (group: string, index: number): Record<string, unknown> => {
-  const base = GROUP_COLOR_PALETTE[index % GROUP_COLOR_PALETTE.length];
+/**
+ * 各 G6 布局的推荐默认参数。
+ *
+ * <p>原则：**不覆盖 G6 自身默认值**（force 的 nodeStrength=1000 是斥力正值，
+ * 之前误写成负值会导致节点全部吸到一起），只在 G6 默认不开启防重叠的布局上补
+ * {@code preventOverlap}。用户 {@code layoutOptions} 仍可覆盖任意键。</p>
+ */
+const LAYOUT_BASE_OPTIONS: Record<string, Record<string, unknown>> = {
+  // force / grid / fruchterman / force-atlas2 / mds 的 G6 默认值已可用
+  "d3-force": { preventOverlap: true, nodeSize: 30 },
+  circular: { preventOverlap: true, nodeSize: 30 },
+  concentric: { preventOverlap: true, nodeSize: 30 },
+  radial: { preventOverlap: true, nodeSize: 30 },
+  dagre: { nodesep: 30, ranksep: 60 },
+  "antv-dagre": { nodesep: 30, ranksep: 60 },
+};
+
+/**
+ * 组装 G6 layout 配置。
+ *
+ * <p>「分组布局」和「鱼骨布局」都返回 undefined —— 这两种的位置由本组件自己算
+ * （写在节点数据的 style.x / style.y 里），不交给 G6。</p>
+ */
+const buildLayout = (): Record<string, unknown> | undefined => {
+  const { type, options } = resolveLayout();
+  if (isGroupLayout(type) || type === "fishbone") return undefined;
+  return { type, ...(LAYOUT_BASE_OPTIONS[type] ?? {}), ...options };
+};
+
+/**
+ * 【鱼骨布局】自研实现。
+ *
+ * <p>为什么不用 G6 的 {@code fishbone}：它读 {@code model.getRootsData()} 拿树根、
+ * 再调 {@code getRelatedEdgesData(id,'in')} 找父边，在「边表 + 环形关系」的业务数据上
+ * 直接算不出坐标（实测 44 个节点全部落在 (0,0)，也就是用户看到的「鱼骨不显示」）。
+ * 这里用同一棵 BFS 生成树自己排：鱼头在左，一级节点沿脊柱左右交替，二级节点沿 45°
+ * 长成肋骨，更深的继续往外延伸 —— 效果稳定、与数据无关。</p>
+ */
+const computeFishbonePositions = (options: Record<string, unknown>) => {
+  const pos = new Map<string, { x: number; y: number }>();
+  const tree = buildTreeChildren();
+  if (!tree.size) return { pos };
+
+  // 骨头沿脊柱的间距 / 肋骨长度（都可在「布局设置」里调）
+  const hGap = Number(options.hGap ?? 90);
+  const vGap = Number(options.vGap ?? 70);
+  const step = hGap + vGap * 1.4;
+
+  const childIds = new Set<string>();
+  tree.forEach((kids) => kids.forEach((k) => childIds.add(k)));
+  const root = [...tree.keys()].find((id) => !childIds.has(id)) ?? [...tree.keys()][0];
+
+  const place = (id: string, x: number, y: number) =>
+    pos.set(id, { x: Math.round(x), y: Math.round(y) });
+
+  // 鱼头
+  place(root, 0, 0);
+
+  const bones = tree.get(root) ?? [];
+  bones.forEach((boneId, i) => {
+    const dir = i % 2 === 0 ? -1 : 1; // 上下交替，避免全挤在一侧
+    const bx = (i + 1) * step;
+    place(boneId, bx, 0);
+
+    const ribs = tree.get(boneId) ?? [];
+    ribs.forEach((ribId, j) => {
+      const d = (j + 1) * vGap;
+      const rx = bx - d * 0.6; // 45° 斜向：往回退一点，视觉上挂到脊柱上
+      const ry = dir * d;
+      place(ribId, rx, ry);
+
+      // 三级及更深的节点：沿同一条肋骨方向继续往外
+      let subY = ry;
+      let subX = rx;
+      let level: string[] = tree.get(ribId) ?? [];
+      let k = 0;
+      while (level.length && k < 40) {
+        const s = vGap * 0.8;
+        subX -= s * 0.6;
+        subY += dir * s;
+        level.forEach((id, index) => place(id, subX - index * vGap * 0.9, subY));
+        level = level.flatMap((id) => tree.get(id) ?? []);
+        k += 1;
+      }
+    });
+  });
+
+  // 兜底：理论上生成树覆盖所有节点，万一有漏的排到脊柱尾部
+  let extra = 0;
+  for (const n of nodesState.value) {
+    const id = String(n.id);
+    if (!pos.has(id)) place(id, (bones.length + 1) * step + extra++ * (hGap * 0.5), 0);
+  }
+  return { pos };
+};
+
+/**
+ * 【分组布局】确定性布局：每个 group 占据画布网格中的一个独立单元，
+ * 组内节点按黄金角螺旋均布在圆面内，组间留 gap。
+ *
+ * <p>与力导向不同，这里不跑任何模拟：位置算一次即定，因此不会出现
+ * 「地点 / 事件这类跨势力枢纽节点被多组边拉散」的问题 —— 每组必定成团，
+ * 且各组区域互不重叠，随后由 autoFit 统一缩放居中。</p>
+ */
+const computeGroupPositions = (raw: Record<string, unknown>) => {
+  const opts = raw as GroupLayoutOptions;
+  const spacing = Number(opts.spacing ?? 100);
+  const gap = Number(opts.gap ?? 170);
+  const minRadius = Number(opts.minRadius ?? 70);
+
+  // 按 group 归集节点 id（保持数据中的势力顺序）
+  const grouped = new Map<string, string[]>();
+  for (const n of nodesState.value) {
+    const g = n.group || "";
+    if (!grouped.has(g)) grouped.set(g, []);
+    grouped.get(g)!.push(String(n.id));
+  }
+  const entries = [...grouped.entries()];
+  const empty = { pos: new Map<string, { x: number; y: number }>(), width: 0, height: 0 };
+  if (!entries.length) return empty;
+
+  // 单组半径随组内节点数增长（面积随人数增长 → 半径 ∝ √k）
+  const radiusOf = (k: number) => Math.max(minRadius, spacing * Math.sqrt(Math.max(k, 1)) * 0.85);
+
+  // 大势力先放（视觉重心靠前），每组占一块 (2r+gap) 见方的专属区域
+  const items = entries
+    .map(([, ids]) => {
+      const r = radiusOf(ids.length);
+      return { ids, r, w: 2 * r + gap, h: 2 * r + gap };
+    })
+    .sort((a, b) => b.r - a.r);
+
+  // 货架式装箱：行宽目标按画布宽高比反推，整体形状贴近视口，
+  // 避免 autoFit 后为迁就超宽/超高而把内容缩得过小。
+  const w = containerRef.value?.clientWidth || 1200;
+  const h = containerRef.value?.clientHeight || 800;
+  const aspect = w > 0 && h > 0 ? w / h : 1.6;
+  const totalArea = items.reduce((s, it) => s + it.w * it.h, 0);
+  const targetRowW = Math.max(
+    items[0].w,
+    Math.sqrt(totalArea * aspect) * 1.05,
+  );
+
+  const rows: Array<{ items: typeof items; h: number }> = [];
+  let rowItems: typeof items = [];
+  let rowW = 0;
+  for (const it of items) {
+    if (rowItems.length && rowW + it.w > targetRowW) {
+      rows.push({ items: rowItems, h: Math.max(...rowItems.map((c) => c.h)) });
+      rowItems = [];
+      rowW = 0;
+    }
+    rowItems.push(it);
+    rowW += it.w;
+  }
+  if (rowItems.length) rows.push({ items: rowItems, h: Math.max(...rowItems.map((c) => c.h)) });
+
+  // 平衡末行：若最后一行只剩一个组而上行还有富余，下移一个，避免底部孤零零一行
+  if (rows.length > 1) {
+    const last = rows[rows.length - 1];
+    const prev = rows[rows.length - 2];
+    if (last.items.length === 1 && prev.items.length > 2) {
+      const moved = prev.items.pop()!;
+      last.items.unshift(moved);
+      prev.h = Math.max(...prev.items.map((c) => c.h));
+      last.h = Math.max(...last.items.map((c) => c.h));
+    }
+  }
+
+  const totalWidth = Math.max(...rows.map((r) => r.items.reduce((s, i) => s + i.w, 0)));
+
+  const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5)); // ≈ 2.399963，黄金角
+  const pos = new Map<string, { x: number; y: number }>();
+  let y = 0;
+  for (const row of rows) {
+    const usedW = row.items.reduce((s, i) => s + i.w, 0);
+    let x = (totalWidth - usedW) / 2; // 行内居中，整体更对称
+    for (const it of row.items) {
+      const cx = x + it.w / 2;
+      const cy = y + row.h / 2;
+      it.ids.forEach((id, j) => {
+        // t ∈ (0,1)：面积均匀 → 半径取 √t；角度用黄金角错开，避免对齐成放射状
+        const t = (j + 0.5) / it.ids.length;
+        const r = it.r * Math.sqrt(t);
+        const angle = j * GOLDEN_ANGLE;
+        pos.set(id, {
+          x: Math.round(cx + Math.cos(angle) * r),
+          y: Math.round(cy + Math.sin(angle) * r),
+        });
+      });
+      x += it.w;
+    }
+    y += row.h;
+  }
+  return { pos, width: totalWidth, height: y };
+};
+
+/** G6 5 内置节点类型白名单（业务类型名如 person / location 一律回落 circle） */
+const G6_NODE_TYPES = new Set([
+  "circle",
+  "rect",
+  "ellipse",
+  "diamond",
+  "hexagon",
+  "star",
+  "triangle",
+  "donut",
+  "image",
+  "html",
+]);
+
+/** 单个业务节点 → G6 节点（分组布局时带上预算坐标） */
+const toG6Node = (
+  n: RelationNode,
+  p?: { x: number; y: number },
+  extra?: { children?: string[]; combo?: string },
+) => {
+  const palette = CLUSTER_COLORS;
+  const cluster = n.group || "";
+  const businessType = n.type || "circle";
+  // html 节点：给了 #node-content 插槽就用自定义 DOM，否则回落到纯文本块
+  const isHtml = businessType === "html";
+  const size = n.size ?? (isHtml ? ([160, 64] as [number, number]) : (props.nodeSize ?? 40));
+  const clusterColor = cluster ? colorOf(cluster, palette) : "";
+  // 业务 type（person / location …）只用来展示；画什么形状走形状白名单，
+  // 否则 G6 建不出元素（未知类型会被静默跳过，连带分组轮廓报错）
+  const shapeType = isHtml
+    ? "html"
+    : n.image
+      ? "image"
+      : G6_NODE_TYPES.has(businessType)
+        ? businessType
+        : "circle";
+  const badgeText = String(n.badge ?? "");
   return {
-    fill: `${base}26`,
-    stroke: `${base}aa`,
-    lineWidth: 2,
-    lineDash: [5, 4],
-    radius: 8,
-    labelText: String(group ?? ""),
-    labelFill: base,
+    id: String(n.id),
+    type: shapeType,
+    // children 只给树类布局用（G6 据此建 TREE 结构，鱼骨/树图都依赖它）
+    ...(extra?.children ? { children: extra.children } : {}),
+    // combo 只在「分组折叠」模式给（节点归属到势力 combo）
+    ...(extra?.combo ? { combo: extra.combo } : {}),
+    data: { cluster, type: businessType, shape: shapeType, __label: n.label ?? n.id },
+    style: {
+      size,
+      // 分组布局：坐标直接写在数据里，G6 不再跑布局
+      ...(p ? { x: p.x, y: p.y } : {}),
+      // html 节点不设 label*：G6 的 HTML 关键图形自带 label 定位，和自定义 DOM
+      // 互相递归会抛 "Maximum call stack size exceeded"，名称交给插槽内容渲染
+      ...(isHtml
+        ? {
+            // 模型里只存字符串占位，真正的 DOM 由 attachSlots() 挂上去
+            innerHTML: hasNodeSlot.value
+              ? ""
+              : `<div class="rrg__node-content rrg__node-content--plain">${escapeHtml(
+                  String(n.label ?? n.id),
+                )}</div>`,
+          }
+        : {
+            labelText: n.label ?? n.id,
+            labelPlacement: "bottom",
+            labelBackground: true,
+            labelBackgroundFill: "rgba(0,0,0,0.55)",
+            labelBackgroundRadius: 4,
+            labelPadding: [2, 6],
+            labelFill: "#fff",
+            labelFontSize: 11,
+          }),
+      ...(clusterColor ? { fill: clusterColor, stroke: clusterColor } : {}),
+      // 图片节点：src + 圆角（缺省圆形裁剪）+ 分组色描边环
+      ...(n.image
+        ? {
+            src: n.image,
+            img: n.image,
+            radius: n.imageRadius ?? (typeof size === "number" ? size / 2 : 20),
+            lineWidth: 2,
+            ...(clusterColor ? { stroke: clusterColor } : {}),
+          }
+        : {}),
+      // 徽标：右上角小标签（文字 + 分组色底）
+      ...(badgeText && props.nodeBadge
+        ? {
+            badge: true,
+            badges: [
+              {
+                text: badgeText,
+                placement: "right-top",
+                fill: "#fff",
+                backgroundFill: n.badgeColor || clusterColor || "#1677ff",
+                backgroundRadius: 4,
+                fontSize: 9,
+                padding: [1, 4],
+                offsetX: 2,
+                offsetY: 2,
+              },
+            ],
+          }
+        : {}),
+    },
+  } as any;
+};
+
+/**
+ * 从边推一棵 BFS 生成树（树类布局需要）。
+ *
+ * <p>为什么必须有：G6 的 TREE 层次结构只由节点数据上的 {@code children} 建立，
+ * 鱼骨布局读的是 {@code model.getRootsData()}，拿不到根就整张图不画 ——
+ * 这是「鱼骨布局不显示」的根因。根默认取度数最大的枢纽节点，
+ * 也可用 {@code layoutOptions.root} 指定。</p>
+ */
+const buildTreeChildren = (): Map<string, string[]> => {
+  const children = new Map<string, string[]>();
+  const nodes = nodesState.value;
+  if (!nodes.length) return children;
+
+  const adj = new Map<string, string[]>();
+  for (const n of nodes) adj.set(String(n.id), []);
+  for (const e of edgesState.value) {
+    const s = String(e.source);
+    const t = String(e.target);
+    adj.get(s)?.push(t);
+    adj.get(t)?.push(s);
+  }
+
+  const wanted = String((layoutOptionsState.value ?? {}).root ?? "");
+  const root =
+    wanted && adj.has(wanted)
+      ? wanted
+      : [...adj.entries()].sort((a, b) => b[1].length - a[1].length)[0]?.[0];
+  if (!root) return children;
+
+  const seen = new Set<string>([root]);
+  const queue: string[] = [root];
+  while (queue.length) {
+    const id = queue.shift()!;
+    const kids: string[] = [];
+    for (const next of adj.get(id) ?? []) {
+      if (seen.has(next)) continue;
+      seen.add(next);
+      kids.push(next);
+      queue.push(next);
+    }
+    children.set(id, kids);
+  }
+  return children;
+};
+
+/**
+ * 树类布局的「多连通分量」修复。
+ *
+ * <p>G6 的树布局（compact-box / mindmap / dendrogram / indented）在
+ * {@code runtime/layout.ts} 里是「对每个根各跑一次布局、结果直接堆在一起」，
+ * 而每个分量的坐标都从原点起算 —— 图一旦不连通（三国数据里「赤壁」就没有边），
+ * 几个分量就会精确叠在同一个点上（实测 4 个节点同坐标）。</p>
+ *
+ * <p>这里用并查集算出连通分量：节点最多的主分量不动，其余分量整体平移成
+ * 主分量下方的一行行。重复调用是幂等的（平移后再算一次偏移为 0）。</p>
+ */
+const separateComponents = (g: Graph) => {
+  const { type } = resolveLayout();
+  if (!isTreeLayoutType(type)) return;
+  const ids = g.getNodeData().map((n) => String(n.id));
+  if (ids.length < 2) return;
+
+  const parentOf = new Map<string, string>(ids.map((id) => [id, id]));
+  const find = (id: string): string => {
+    let cur = id;
+    while (parentOf.get(cur) !== cur) cur = parentOf.get(cur) as string;
+    return cur;
+  };
+  for (const e of g.getEdgeData()) {
+    const ra = find(String(e.source));
+    const rb = find(String(e.target));
+    if (ra !== rb) parentOf.set(ra, rb);
+  }
+
+  const buckets = new Map<string, string[]>();
+  for (const id of ids) {
+    const root = find(id);
+    buckets.set(root, [...(buckets.get(root) ?? []), id]);
+  }
+  if (buckets.size <= 1) return;
+
+  const bboxOf = (list: string[]) => {
+    const pts = list.map((id) => g.getElementPosition(id));
+    return {
+      minX: Math.min(...pts.map((p) => p[0])),
+      maxX: Math.max(...pts.map((p) => p[0])),
+      minY: Math.min(...pts.map((p) => p[1])),
+      maxY: Math.max(...pts.map((p) => p[1])),
+    };
+  };
+
+  const groups = [...buckets.values()].sort((a, b) => b.length - a.length);
+  const main = bboxOf(groups[0]);
+  let cursorY = main.maxY + 140;
+  const patches: Array<{ id: string; style: { x: number; y: number } }> = [];
+
+  for (const list of groups.slice(1)) {
+    const box = bboxOf(list);
+    const dx = main.minX - box.minX;
+    const dy = cursorY - box.minY;
+    for (const id of list) {
+      const [x, y] = g.getElementPosition(id);
+      patches.push({ id, style: { x: Math.round(x + dx), y: Math.round(y + dy) } });
+    }
+    cursorY += box.maxY - box.minY + 120;
+  }
+  if (patches.length) g.updateNodeData(patches as never);
+};
+
+/**
+ * 兜底：把「坐标完全重合」的节点轻微错开。
+ *
+ * <p>个别布局（MDS 尤其明显）会把多个节点算到同一个点上，叠成一个看不出数量的团。
+ * 这里只对精确重合的节点按固定半径绕圈错开 —— 本来分开的节点一个都不动。</p>
+ */
+const nudgeCoincidentNodes = (g: Graph) => {
+  const buckets = new Map<string, string[]>();
+  for (const n of g.getNodeData()) {
+    const id = String(n.id);
+    const [x, y] = g.getElementPosition(id);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+    const key = `${Math.round(x)},${Math.round(y)}`;
+    buckets.set(key, [...(buckets.get(key) ?? []), id]);
+  }
+  const patches: Array<{ id: string; style: { x: number; y: number } }> = [];
+  for (const [, list] of buckets) {
+    if (list.length < 2) continue;
+    const [cx, cy] = g.getElementPosition(list[0]);
+    const radius = Math.max(24, 12 + list.length * 6);
+    list.slice(1).forEach((id, i) => {
+      const angle = (Math.PI * 2 * i) / Math.max(1, list.length - 1);
+      patches.push({
+        id,
+        style: {
+          x: Math.round(cx + Math.cos(angle) * radius),
+          y: Math.round(cy + Math.sin(angle) * radius),
+        },
+      });
+    });
+  }
+  if (patches.length) g.updateNodeData(patches as never);
+};
+
+/**
+ * 节点重叠消除（布局落定后的通用后处理）。
+ *
+ * <p>G6 各布局对「防重叠」的支持参差不齐：只有部分布局认 {@code preventOverlap}，
+ * 树类布局只看 {@code nodeSize / nodeSep}，而 MDS / fruchterman 这类迭代布局即使开了
+ * 也仍会残留重叠（实测 dagre 在节点很多时也会压在一起）。</p>
+ *
+ * <p>做法刻意保守：<b>只沿两节点圆心连线把重叠的一对推开</b>，不做任何吸引、
+ * 不拉直边、不夹回画布边界 —— 这样环形 / 分层 / 辐射的形状全部保留，
+ * 只是把挤在一起的节点顶开一点点；溢出画布的部分交给 {@code fitView({ when: "overflow" })}。
+ * 迭代有上限（{@code maxRounds}），节点很多时不会卡住。</p>
+ *
+ * @param g 目标画布
+ * @param gap 额外的间距留白（px），默认 6
+ * @param maxRounds 最大迭代轮数，默认 60
+ * @returns 实际发生位移的节点数
+ */
+const relaxOverlaps = (g: Graph, gap = 6, maxRounds = 60): number => {
+  const nodes = g.getNodeData();
+  if (nodes.length < 2) return 0;
+
+  /** 节点半径：业务 size 优先（数组取较大边的一半），否则用组件级 nodeSize */
+  const radiusOf = (n: (typeof nodes)[number]): number => {
+    const size = (n as { style?: { size?: unknown } }).style?.size;
+    if (Array.isArray(size)) return Math.max(Number(size[0]) || 0, Number(size[1]) || 0) / 2;
+    const num = Number(size);
+    if (Number.isFinite(num) && num > 0) return num / 2;
+    return (props.nodeSize ?? 40) / 2;
+  };
+
+  const items = nodes
+    .map((n) => {
+      const id = String(n.id);
+      const [x, y] = g.getElementPosition(id);
+      return { id, x, y, r: radiusOf(n) };
+    })
+    .filter((it) => Number.isFinite(it.x) && Number.isFinite(it.y));
+
+  const moved = new Set<string>();
+  for (let round = 0; round < maxRounds; round++) {
+    let pushed = false;
+    for (let i = 0; i < items.length; i++) {
+      for (let j = i + 1; j < items.length; j++) {
+        const a = items[i];
+        const b = items[j];
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const minDist = a.r + b.r + gap;
+        const dist = Math.hypot(dx, dy);
+        if (dist >= minDist) continue;
+        // 完全重合：给一个确定性的方向，避免两节点原地抖动
+        const angle =
+          dist > 1e-6 ? Math.atan2(dy, dx) : ((i * 37 + j * 71) % 360) * (Math.PI / 180);
+        const need = (minDist - dist) / 2 + 0.5;
+        const ux = Math.cos(angle);
+        const uy = Math.sin(angle);
+        a.x -= ux * need;
+        a.y -= uy * need;
+        b.x += ux * need;
+        b.y += uy * need;
+        moved.add(a.id);
+        moved.add(b.id);
+        pushed = true;
+      }
+    }
+    if (!pushed) break;
+  }
+
+  if (!moved.size) return 0;
+  g.updateNodeData(
+    items
+      .filter((it) => moved.has(it.id))
+      .map((it) => ({ id: it.id, style: { x: it.x, y: it.y } })) as never,
+  );
+  return moved.size;
+};
+
+/**
+ * 业务边的稳定 id。
+ *
+ * <p>优先用业务显式给的 {@code id}（同一对节点之间有多条边时必需），
+ * 缺省退化成 {@code source-target}。所有内部记账（选中 / 路径 / CRUD / 事件回参）
+ * 一律走这里，避免「给了 id 但别处还按 source-target 找」的错位。</p>
+ */
+const edgeIdOf = (e: RelationEdge) => String(e.id ?? `${e.source}-${e.target}`);
+
+/**
+ * 由边 id 反查两端节点 id。
+ *
+ * <p>不能再用 {@code id.split("-")}：业务给的 id（如 {@code fk-datasync-3}）
+ * 里本身带连字符，拆出来会把两端节点名截断。这里先按业务边表精确匹配，
+ * 匹配不到才退回 {@code source-target} 的拆分（兼容外部直接传内部 id 的场景）。</p>
+ */
+const edgeEndsOf = (id: string): { source: string; target: string } => {
+  const hit = edgesState.value.find((e) => edgeIdOf(e) === id);
+  if (hit) return { source: String(hit.source), target: String(hit.target) };
+  const dash = id.indexOf("-");
+  if (dash < 0) return { source: id, target: "" };
+  return { source: id.slice(0, dash), target: id.slice(dash + 1) };
+};
+
+/**
+ * 计算每个节点到 BFS 根的层数（与 {@link buildTreeChildren} 用同一套规则）。
+ *
+ * <p>树类布局要靠它给边「定方向」：G6 的 {@code createTreeStructure} 只是把每条边
+ * 的 source 记成 target 的父节点（后写覆盖先写），于是**所有没有入边的节点都会变成
+ * 一棵新的树根**，每棵树又都从原点起排 —— 表现为若干节点精确叠在同一个点上
+ * （三国数据里「袁绍」就是个只有出边的枢纽，和「刘备」叠在一起）。</p>
+ *
+ * <p>把每条边重定向成「层数小的当 source」，整张图就变成一个以 BFS 根为唯一根的
+ * DAG：除根以外人人有父节点、且父节点层数严格更小 → 不可能成环、只剩一个根。</p>
+ */
+const buildBfsDepths = () => {
+  const depths = new Map<string, number>();
+  const adj = new Map<string, string[]>();
+  for (const n of nodesState.value) adj.set(String(n.id), []);
+  for (const e of edgesState.value) {
+    const s = String(e.source);
+    const t = String(e.target);
+    adj.get(s)?.push(t);
+    adj.get(t)?.push(s);
+  }
+  const wanted = String((layoutOptionsState.value ?? {}).root ?? "");
+  const root =
+    wanted && adj.has(wanted)
+      ? wanted
+      : [...adj.entries()].sort((a, b) => b[1].length - a[1].length)[0]?.[0];
+  if (!root) return depths;
+
+  depths.set(root, 0);
+  const queue: string[] = [root];
+  while (queue.length) {
+    const id = queue.shift() as string;
+    const d = depths.get(id) as number;
+    for (const next of adj.get(id) ?? []) {
+      if (depths.has(next)) continue;
+      depths.set(next, d + 1);
+      queue.push(next);
+    }
+  }
+  return depths;
+};
+
+/**
+ * 单条业务边 → G6 边。
+ *
+ * <p>{@code depths} 非空时（树类布局）按层数重定向：视觉完全不变（不画箭头，
+ * 直线两端还是那两个点），但能让 G6 建出「只有一个根」的树，避免多棵树叠在原点。</p>
+ *
+ * <p>样式优先级：边数据上的 {@code width / dashed / arrow / color}
+ * 高于组件级 {@code edgeWidth / edgeDashed / edgeArrow}。重定向过的边若要求箭头，
+ * 箭头改画在 start 端，保证方向仍然是业务的 source → target。</p>
+ */
+const toG6Edge = (e: RelationEdge, depths?: Map<string, number> | null) => {
+  let source = String(e.source);
+  let target = String(e.target);
+  let flipped = false;
+  if (depths) {
+    const ds = depths.get(source) ?? Number.MAX_SAFE_INTEGER;
+    const dt = depths.get(target) ?? Number.MAX_SAFE_INTEGER;
+    if (ds > dt) {
+      const swapped = source;
+      source = target;
+      target = swapped;
+      flipped = true;
+    }
+  }
+
+  const arrow = e.arrow ?? props.edgeArrow;
+  const dashed = e.dashed ?? props.edgeDashed;
+  const width = e.width ?? props.edgeWidth;
+  const label = String(e.label ?? "");
+  const showLabel = props.edgeLabel && !!label;
+
+  const arrowStyle =
+    arrow === "both"
+      ? { startArrow: true, endArrow: true, startArrowType: "triangle", endArrowType: "triangle" }
+      : arrow
+        ? flipped
+          ? { startArrow: true, startArrowType: "triangle" }
+          : { endArrow: true, endArrowType: "triangle" }
+        : {};
+
+  return {
+    id: edgeIdOf(e),
+    source,
+    target,
+    data: { label },
+    style: {
+      lineWidth: width,
+      ...(dashed ? { lineDash: [6, 4] } : {}),
+      ...(e.color ? { stroke: e.color } : {}),
+      ...arrowStyle,
+      ...(showLabel
+        ? {
+            labelText: label,
+            labelFontSize: 10,
+            labelFill: "#5b6470",
+            labelBackground: true,
+            labelBackgroundFill: "rgba(255,255,255,0.92)",
+            labelBackgroundRadius: 3,
+            labelPadding: [1, 4],
+          }
+        : {}),
+    },
+  } as any;
+};
+
+/** 把业务节点归一化成 G6 数据（id / data.cluster / style.size / style.labelText / 分组坐标） */
+const toG6Data = () => {
+  const { type, options } = resolveLayout();
+  // 自研布局（分组 / 鱼骨）把坐标直接写进数据，G6 不再跑布局
+  const ownLayout = isGroupLayout(type)
+    ? computeGroupPositions(options)
+    : type === "fishbone"
+      ? computeFishbonePositions(options)
+      : null;
+  // 树类布局：先把生成树写进 children，G6 才建得出 TREE 结构（否则鱼骨 / 树图空白）；
+  // 同时按 BFS 层数重定向边，保证 G6 只认一个根（多根会叠在原点）
+  const treeLayout = isTreeLayoutType(type) && type !== "fishbone";
+  const tree = isTreeLayoutType(type) ? buildTreeChildren() : null;
+  const depths = treeLayout ? buildBfsDepths() : null;
+  // 分组折叠模式：按势力生成 combo，节点归属到对应 combo
+  // 路径模式下不建 combo —— 容器仍按全体子节点算包围盒，子节点被隐藏后会留下一个空壳方框
+  const combos = comboState.value && !pathModeState.value
+    ? membersByGroup().map(([group]) => ({
+        id: comboIdOf(group),
+        data: { cluster: group },
+        style: {
+          labelText: group,
+          labelPlacement: "top",
+          labelFill: colorOf(group, CLUSTER_COLORS),
+          labelFontSize: 12,
+          labelFontWeight: "bold",
+          stroke: colorOf(group, CLUSTER_COLORS),
+          fill: "rgba(255,255,255,0.55)",
+          lineWidth: 1.5,
+          radius: 12,
+          padding: 18,
+          collapsedMarker: true,
+          collapsedMarkerType: "child-count",
+          collapsedMarkerFill: colorOf(group, CLUSTER_COLORS),
+        },
+      }))
+    : [];
+
+  return {
+    nodes: nodesState.value.map((n) =>
+      toG6Node(n, ownLayout?.pos.get(String(n.id)), {
+        children: tree?.get(String(n.id)),
+        combo: comboState.value && !pathModeState.value && n.group ? comboIdOf(n.group) : undefined,
+      }),
+    ),
+    edges: edgesState.value.map((e) => toG6Edge(e, depths)),
+    ...(combos.length ? { combos } : {}),
+  } as any;
+};
+
+/** 按 group 归组节点 id（保持数据中的势力顺序） */
+const membersByGroup = (): Array<[string, string[]]> => {
+  const grouped = new Map<string, string[]>();
+  for (const n of nodesState.value) {
+    const g = n.group || "";
+    if (!g) continue;
+    if (!grouped.has(g)) grouped.set(g, []);
+    grouped.get(g)!.push(String(n.id));
+  }
+  return [...grouped.entries()];
+};
+
+/**
+ * 生成分组轮廓插件：同一种包裹方式（bubble-sets / hull）按 group 各建一份。
+ *
+ * <p>两种插件的「胖瘦」机制不同，所以参数分开给：
+ * bubble-sets 靠等值线场（{@code nodeR1} / {@code morphBuffer}），
+ * hull 靠外包多边形的 {@code padding} + 凹度 {@code concavity}。
+ * 共用的是配色与描边（fill / fillOpacity / stroke / lineWidth）。</p>
+ *
+ * <p>{@code groupVisible=false} 或 {@code groupType="none"} 时返回空数组，
+ * 节点仍按 group 配色，只是不画轮廓。非分组布局 + {@code groupAutoHide} 同样返回空数组。</p>
+ */
+const buildGroupPlugins = () => {
+  if (groupTypeState.value === "none" || !groupVisibleState.value) return [];
+  // 分组折叠模式用 combo 容器表达分组，不再叠轮廓
+  if (comboState.value) return [];
+  // 路径模式只留一条链路，轮廓是按 group 圈全体成员的 —— 留着会圈住一堆已隐藏的节点，
+  // 成员缺失时算包围盒还会直接抛错，所以干脆不挂
+  if (pathModeState.value) return [];
+  // 散布局（force / grid / circular …）里各组节点互相穿插，轮廓圈出来必然互相重叠，
+  // 还会把别组节点圈进来 —— 默认干脆不画，只保留势力配色
+  if (props.groupAutoHide && !isGroupLayout(resolveLayout().type)) return [];
+  const entries = membersByGroup();
+  if (!entries.length) return [];
+
+  const opts = groupOptionsState.value ?? {};
+  const num = (key: string, fallback: number) => {
+    const n = Number(opts[key]);
+    return Number.isFinite(n) ? n : fallback;
+  };
+  const palette = CLUSTER_COLORS;
+
+  // 轮廓公共外观 + 标签固定在轮廓上方（Contour 默认贴边旋转，缩放后难辨认）
+  const common = {
+    fillOpacity: num("fillOpacity", 0.16),
+    strokeOpacity: num("strokeOpacity", 0.9),
+    lineWidth: num("lineWidth", 2),
+    labelPlacement: "top",
+    labelCloseToPath: false,
+    labelAutoRotate: false,
+    labelOffsetY: -6,
+    labelPadding: 2,
+    labelBackgroundFill: "#ffffff",
+    labelBackgroundRadius: 5,
     labelFontSize: 12,
     labelFontWeight: "bold",
-    labelPlacement: "left-top",
-    labelOffsetY: -14,
-    labelPadding: [2, 6],
-    labelBackground: true,
-    labelBackgroundFill: "#fff",
-  };
-};
+  } as const;
 
-/**
- * 归一化输入数据：data 优先，其次 nodes/edges/lines。
- *
- * <p>本组件是 G6 内核版，对外契约是 {@code label} 与 {@code source/target}；而它替换掉的
- * 上一版（X6 内核的 {@code ReGraphRelation}）用的是 {@code text} 与 {@code from/to}，
- * 仓库里其它图组件（{@code ReGraph} / {@code ReGraphForce} / {@code ReGraphMind} …）
- * 也都沿用旧命名。调用方照旧写法传参时，若不做兼容会出现**边画不出来（source/target 为
- * undefined）、节点名显示成 id（label 缺失）**——两种都是"没报错但图不对"的静默故障，
- * 所以两种写法都接受。</p>
- *
- * <p><strong>显示分组开关</strong>：{@code showGroups=true} 时，把有 {@code group} 字段的
- * 节点自动归入按组生成的 combo 容器，并给每组配一种浅色背景。节点自身已显式声明
- * {@code combo} 时优先尊重调用方，不重复归组。</p>
- *
- * @return 归一化后的图数据
- */
-const graphData = computed<RelationGraphData>(() => {
-  const rawNodes = props.data?.nodes ?? props.nodes ?? [];
-  const rawEdges = props.data?.edges ?? props.edges ?? props.lines ?? [];
-  const rawCombos = props.data?.combos ?? [];
-  const nodes = rawNodes.map(aliasNode).map((n) => {
-    if (showGroupsOn.value && !n.combo && n.group) {
-      return { ...n, combo: groupComboId(n.group) };
+  return entries.map(([group, members], index) => {
+    const color = colorOf(group, palette);
+    // 注意：fill 必须 6 位 hex（8 位 #rrggbbaa 不被 G6 颜色解析器识别，会变透明）
+    const paint = {
+      fill: color,
+      stroke: color,
+      labelFill: color,
+      ...common,
+    };
+    if (groupTypeState.value === "hull") {
+      return {
+        key: `hull-${index}`,
+        type: "hull",
+        members,
+        labelText: group,
+        // 凹包默认 concavity=Infinity（凸包），贴不住散开的节点集；
+        // 700 左右沿节点外缘凹进去又不至于扎成星形，corner 用平滑圆角更像"势力范围"
+        concavity: num("concavity", 700),
+        corner: "smooth",
+        padding: num("padding", 18),
+        ...paint,
+      };
     }
-    return n;
-  });
-  const combos = [...rawCombos];
-  if (showGroupsOn.value) {
-    const groupNames = [...new Set(nodes.map((n) => n.group).filter((g): g is string => !!g))];
-    groupNames.forEach((group, index) => {
-      const cid = groupComboId(group);
-      if (!combos.some((c) => c.id === cid)) {
-        combos.push({ id: cid, label: group, type: props.groupShape, style: groupComboStyle(group, index) });
-      }
-    });
-  }
-  const result = { nodes, edges: rawEdges.map(aliasEdge), combos };
-  // 可观测性：把「真正交给 G6 的分组/组合规模」暴露出来，便于自动化验收断言
-  // 组合确实生成了（而不是只在 props 里配了 grouped-layout）。
-  if (typeof window !== "undefined") {
-    (window as any).__RRG_GRAPH_INFO__ = {
-      layout: currentLayout.value,
-      showGroups: showGroupsOn.value,
-      nodes: nodes.length,
-      combos: combos.length,
-      comboTypes: [...new Set(combos.map((c: any) => c.type ?? "(default)"))],
-      comboCapped: nodes.filter((n) => !!n.combo).length,
-      groups: [...new Set(nodes.map((n) => n.group).filter(Boolean))].slice(0, 20),
-      at: Date.now(),
+    return {
+      key: `bubble-${index}`,
+      type: "bubble-sets",
+      members,
+      labelText: group,
+      nodeR1: num("nodeR1", 90),
+      ...paint,
     };
-  }
-  return result;
-});
-
-/**
- * 事件对象里取元素 id。
- *
- * <p>G6 v5 的 {@code e.target} 是元素实例而不是 id 字符串，不同小版本还出现过
- * 字符串形态，这里统一兼容，避免版本差异把取值打翻。</p>
- *
- * @param ev G6 事件
- * @return 元素 id，取不到为空串
- */
-const idOf = (ev: any): string => {
-  const t = ev?.target;
-  if (typeof t === "string") {
-    return t;
-  }
-  return t?.id ?? t?.attributes?.id ?? "";
+  });
 };
 
-/** 节点 -> G6 NodeData */
-const toNodeData = (n: RelationNode) => {
-  const isHtml = (n.type ?? props.nodeType) === "html" || (n.style as any)?.__htmlSlot === true;
-  const size = n.size ?? (isHtml ? [160, 64] : props.nodeSize);
-  // HTML 节点默认关闭画布 label（G6 HTML.defaultStyleProps.label=false）：
-  // 一旦再设 labelText，label 定位会和 HTML 关键图形互相递归，抛
-  // "Maximum call stack size exceeded"（alignFields）。故 html 节点不设 label* 字段，
-  // 名称直接在插槽内容里渲染。
-  const style: Record<string, unknown> = isHtml
-    ? { size, label: false }
-    : {
-      size,
-      labelText: n.label ?? n.id,
-      labelPlacement: "bottom",
-      labelBackground: true,
-      labelBackgroundFill: "rgba(0,0,0,0.55)",
-      labelBackgroundRadius: 4,
-      labelPadding: [2, 6],
-      labelFill: "#fff",
-      labelFontSize: 11,
-    };
-  if (n.image) {
-    style.src = n.image;
+/** HTML 转义（tooltip 内容是 innerHTML 渲染的） */
+const escapeHtml = (s: string): string =>
+  s.replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c,
+  );
+
+/** 行：label + 值 */
+const tooltipRow = (label: string, value: string) =>
+  `<div style="display:flex;gap:8px;line-height:1.7"><span style="color:#909399">${escapeHtml(label)}</span><span style="color:#303133">${escapeHtml(value)}</span></div>`;
+
+/** 默认节点 tooltip 内容：标题 + 势力 + 类型 */
+const defaultNodeTooltip = (data: Record<string, unknown>): string => {
+  const title = String(data.__label ?? data.id ?? "");
+  const cluster = String(data.cluster ?? "");
+  const type = String(data.type ?? "");
+  return `<div style="min-width:96px;font-size:12px">
+    <div style="font-size:13px;font-weight:700;margin-bottom:2px">${escapeHtml(title)}</div>
+    ${cluster ? tooltipRow("势力", cluster) : ""}
+    ${type ? tooltipRow("类型", type) : ""}
+  </div>`;
+};
+
+/** 默认边 tooltip 内容：两端 + 关系名 */
+const defaultEdgeTooltip = (data: Record<string, unknown>, meta: Record<string, unknown>): string => {
+  const source = String(meta.source ?? "");
+  const target = String(meta.target ?? "");
+  const label = String(data.label ?? "");
+  return `<div style="min-width:96px;font-size:12px">
+    <div style="font-size:13px;font-weight:700;margin-bottom:2px">${escapeHtml(source)} → ${escapeHtml(target)}</div>
+    ${label ? tooltipRow("关系", label) : ""}
+  </div>`;
+};
+
+/** 业务节点（按 id 回查；找不到退回空对象） */
+const businessNodeOf = (id: string): Record<string, unknown> =>
+  (nodesState.value.find((n) => String(n.id) === id) ?? {}) as unknown as Record<string, unknown>;
+
+/** 业务边（按边 id 回查，见 {@link edgeIdOf}） */
+const businessEdgeOf = (id: string): Record<string, unknown> =>
+  (edgesState.value.find((e) => edgeIdOf(e) === id) ?? {}) as unknown as Record<string, unknown>;
+
+/** 节点 / 边悬浮提示是否生效（总开关 tooltip + 各自开关，与关系） */
+const nodeTooltipOn = () => tooltipState.value && nodeTooltipState.value;
+const edgeTooltipOn = () => tooltipState.value && edgeTooltipState.value;
+
+/**
+ * 把插槽内容渲染成 HTML 字符串。
+ *
+ * <p>G6 的 tooltip 插件 {@code getContent} 只吃 HTML 字符串，而 Vue 插槽产出的是 VNode，
+ * 所以这里挂一个游离容器渲染出 VNode 再取 {@code innerHTML}，取完立刻卸载。</p>
+ *
+ * <p>插槽若直接返回字符串，则原样当 HTML 用（想自己拼富文本时最省事）。
+ * 注意 tooltip 的 HTML 是注入到画布容器里的，样式请用内联 style 或全局 class ——
+ * 父组件的 {@code scoped} 样式对深层结构不一定命中。</p>
+ */
+const slotToHtml = async (
+  name: "node-tooltip" | "edge-tooltip",
+  slotProps: Record<string, unknown>,
+): Promise<string | null> => {
+  const slot = slots[name];
+  if (!slot) return null;
+  const raw = slot(slotProps);
+  if (raw.length === 1 && typeof (raw[0] as { children?: unknown }).children === "string") {
+    return (raw[0] as { children: string }).children;
   }
-  // HTML 节点（节点内容插槽）：innerHTML 保持字符串占位（不能塞 DOM 元素——
-  // History 插件的 alignFields 会深度遍历数据，遇到 DOM 的循环引用直接爆栈）。
-  // 真正的 DOM 内容在 draw 之后由 attachSlots() 通过元素实例挂上去。
-  if (isHtml) {
-    style.innerHTML = hasNodeSlot.value ? "" : `<div class="rrg__node-content rrg__node-content--plain">${escapeHtml(n.label ?? n.id)}</div>`;
-  }
+  const host = document.createElement("div");
+  render(createVNode({ render: () => slot(slotProps) }), host);
+  await nextTick();
+  const html = host.innerHTML;
+  render(null, host);
+  return html;
+};
+
+/**
+ * Tooltip 插件。
+ *
+ * <p>开关：{@code tooltip}（总）× {@code nodeTooltip} / {@code edgeTooltip}（各自），
+ * 三者都要为真才出提示 —— 只想给节点配提示、边不要，就把 {@code :edge-tooltip="false"}。</p>
+ *
+ * <p>内容优先级：{@code #node-tooltip / #edge-tooltip} 插槽 &gt;
+ * {@code tooltipOptions.getContent} &gt; 内置模板；
+ * 其余 {@code tooltipOptions} 原样透传给 G6 tooltip 插件（position / offset / enterable…）。</p>
+ */
+const buildTooltipPlugin = () => {
+  if (!nodeTooltipOn() && !edgeTooltipOn()) return null;
+  const { getContent: customContent, ...rest } = props.tooltipOptions ?? {};
   return {
-    id: n.id,
-    type: n.type ?? (n.image ? "image" : props.nodeType),
-    combo: n.combo,
-    data: { ...(n.data ?? {}), __label: n.label ?? n.id, __group: n.group, __fixed: n.fixed === true, __image: n.image },
-    style: { ...style, ...(n.style ?? {}) },
+    type: "tooltip",
+    key: "tooltip",
+    ...rest,
+    enable: (ev: { targetType?: string }) =>
+      (ev.targetType === "node" && nodeTooltipOn()) || (ev.targetType === "edge" && edgeTooltipOn()),
+    getContent: async (ev: { targetType?: string }, items: Array<Record<string, unknown>>) => {
+      const item = items?.[0] ?? {};
+      const data = (item.data ?? {}) as Record<string, unknown>;
+      const isEdge = ev.targetType === "edge";
+      const id = String(item.id ?? (isEdge ? `${item.source}-${item.target}` : data.id ?? ""));
+      const slotted = await slotToHtml(
+        isEdge ? "edge-tooltip" : "node-tooltip",
+        isEdge
+          ? {
+              edge: businessEdgeOf(id),
+              id,
+              source: String(item.source ?? ""),
+              target: String(item.target ?? ""),
+              data,
+            }
+          : { node: businessNodeOf(id), id, data },
+      );
+      if (slotted != null) return slotted;
+      if (typeof customContent === "function") return customContent(data, isEdge ? "edge" : "node");
+      return isEdge ? defaultEdgeTooltip(data, item) : defaultNodeTooltip(data);
+    },
   };
 };
 
-/** 无插槽时，html 类型节点的兜底渲染（纯文本块） */
-const escapeHtml = (s: string): string =>
-  String(s).replace(/[&<>"']/g, c => (
-    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string
-  ));
+/** 当前实例是否仍存活（G6 destroy 后异步回调仍可能触发） */
+let graphAlive = false;
 
 /**
- * 当前是否让所有边的标签常显。
+ * 首帧渲染是否已落地。
  *
- * <p>初值取自 {@link ReRelationGraphCore.props.edgeLabelMode}，之后由面板上的
- * 「显示全部标签」开关在运行时改写——用局部 ref 而非直接改 prop，
- * 因为 prop 是只读的，且允许调用方保持默认值不变。</p>
+ * <p>G6 的 {@code render()} 是异步的：在它 resolve 之前，元素还没 draw，
+ * 此时调 {@code setElementState} 会抛 {@code Cannot read properties of undefined
+ * (reading 'draw')}（实测）。父组件常在 {@code onMounted} 里就 {@code select()}
+ * 一批元素，正好撞在这个窗口里 —— 所以未渲染完的状态写入先排队，
+ * render 落地后统一补写。</p>
  */
-const edgeLabelsShownOverride = ref<boolean | null>(null);
+let renderSettled = false;
 
-/** 实际生效的边标签策略（override 优先于 prop） */
-const edgeLabelsShown = computed(
-  () => edgeLabelsShownOverride.value ?? props.edgeLabelMode === "always"
+/** 渲染完成前累积的状态写入（id → 状态数组，同 id 以后写的为准） */
+let pendingStates: Record<string, string[]> | null = null;
+
+/**
+ * 写元素状态（统一入口）。
+ *
+ * <p>所有状态写入都必须走这里，不要直接调 {@code graph.setElementState}：
+ * 渲染未完成时排队，避免「组件刚挂载就点选」打出的 G6 内部异常。</p>
+ */
+const setElementStates = (states: Record<string, string[]>, silence = false) => {
+  if (!graph || !graphAlive) return;
+  if (!renderSettled) {
+    pendingStates = { ...(pendingStates ?? {}), ...states };
+    return;
+  }
+  graph.setElementState(states, silence);
+};
+
+/** 把渲染完成前排队的状态一次性补写进去 */
+const flushPendingStates = () => {
+  if (!pendingStates || !graph || !graphAlive) return;
+  const states = pendingStates;
+  pendingStates = null;
+  setElementStates(states);
+};
+
+/** 小地图插件（开关由 minimapState 控制） */
+const buildMinimapPlugin = () =>
+  minimapState.value
+    ? {
+        type: "minimap",
+        key: "minimap",
+        size: [180, 120],
+        position: "right-bottom",
+        padding: 8,
+        // 小地图里不画轮廓与边标签，保持干净
+        filter: (id: string, elementType: string) => elementType !== "edge",
+      }
+    : null;
+
+/**
+ * 交互行为（behavior）只保留「画布级」的三件：缩放、拖拽元素、拖拽画布平移。
+ *
+ * <p><b>悬停高亮 / 点选 / 框选一律不用 G6 的 behavior</b>，改成下面自研的实现。
+ * 原因都是实测复现出来的 bug：</p>
+ * <ul>
+ *   <li>{@code hover-activate}：状态是增量叠加的，第一个悬停过的节点会一直留着
+ *       active 光晕，之后再悬停别的节点就不响应了 —— 就是用户反馈的
+ *       「第一个节点还是高亮，其它都不再生效，像蒙版没删掉」；</li>
+ *   <li>{@code brush-select} / {@code click-select}：无修饰键的 {@code trigger: []}
+ *       依赖内部的 Shortcut 按键记录，真实鼠标操作下时灵时不灵（框选框都出不来）。</li>
+ * </ul>
+ *
+ * <p>自研实现每次都「整图重设一遍状态」，只碰悬停 / 选中两个维度，
+ * 其它状态（最短路径的 highlight）原样保留。</p>
+ */
+const buildBehaviors = () => {
+  const list: unknown[] = ["zoom-canvas", "drag-element"];
+  // 框选模式下拖拽 = 框选，所以不挂 drag-canvas（滚轮缩放仍在）
+  if (!brushSelectState.value) list.push("drag-canvas");
+  return list;
+};
+
+/** 节点 / 边 / combo 的交互态样式（selected / active / inactive / highlight） */
+const NODE_STATE_STYLES = {
+  active: { lineWidth: 3, halo: true, haloLineWidth: 14, haloStrokeOpacity: 0.22 },
+  inactive: { opacity: 0.14, labelOpacity: 0.14 },
+  selected: {
+    lineWidth: 3,
+    stroke: "#1677ff",
+    halo: true,
+    haloStroke: "#1677ff",
+    haloLineWidth: 18,
+    haloStrokeOpacity: 0.35,
+  },
+  highlight: {
+    lineWidth: 3,
+    stroke: "#fa541c",
+    halo: true,
+    haloStroke: "#fa541c",
+    haloLineWidth: 16,
+    haloStrokeOpacity: 0.35,
+  },
+};
+const EDGE_STATE_STYLES = {
+  active: { stroke: "#1677ff", lineWidth: 2.5 },
+  inactive: { opacity: 0.1 },
+  selected: { stroke: "#1677ff", lineWidth: 3 },
+  highlight: { stroke: "#fa541c", lineWidth: 3 },
+};
+const COMBO_STATE_STYLES = {
+  selected: { lineWidth: 2.5, stroke: "#1677ff" },
+  inactive: { opacity: 0.35 },
+};
+
+/** 选中集合（点选 / 框选 / 命令式都会写这里） */
+const selectedNodes = ref<string[]>([]);
+const selectedEdges = ref<string[]>([]);
+const selectedCombos = ref<string[]>([]);
+
+/** 最近一次最短路径计算的文字结果（工具栏面板里显示） */
+const pathInfoState = ref("");
+
+/**
+ * 当前「路径模式」是否生效（算完路径、正在只看路径）。
+ *
+ * <p>路径模式下<b>只显示路径上的元素</b>：路径上的节点/边保留，
+ * 其余节点/边、以及分组轮廓全部隐藏 —— 不是调透明度「淡化」，
+ * 是真的从画面上拿掉，避免「淡化的那些还在抢注意力」。</p>
+ */
+const pathModeState = ref(false);
+/**
+ * 路径模式下的起终点。
+ *
+ * <p>面板里的两个下拉直接读写这两个值，所以「算路径」不需要用户先去图上点选，
+ * 清除之后也保留着 —— 接着算下一条不用重新选。</p>
+ */
+const pathFromState = ref("");
+const pathToState = ref("");
+/**
+ * 「最短路径模式」开关（工具栏按钮控制）。
+ *
+ * <p>开启后画布进入<b>独占路径选择</b>状态：左键点节点 = 依次指定起点 / 终点
+ * （两个都点齐自动算），右键 = 取消当前模式。此时点选、框选、悬停高亮、
+ * 右键菜单这些常规左 / 右键功能<b>全部让位</b>，避免两套手势互相打架。</p>
+ */
+const pathPickState = ref(false);
+
+/** 路径选择模式下已点中的端点高亮（不改选中集合，只做视觉提示） */
+const paintPathPicks = () => {
+  if (!graph || !graphAlive) return;
+  const ids = [pathFromState.value, pathToState.value].filter(Boolean);
+  if (!ids.length) return;
+  highlightElements(ids);
+};
+
+/**
+ * 左键点节点 → 依次指定起点 / 终点；两端齐了立刻算路径并退出选择模式。
+ *
+ * <p>点第一个节点是起点，点第二个是终点。已算完一次后再点，从「重新指定起点」开始，
+ * 这样连着看几条链路不用先去右键取消。</p>
+ */
+const pickPathEndpoint = (id: string) => {
+  const key = String(id);
+  if (!key) return;
+  // 上一轮已经算完（路径模式生效）→ 这一下当作新的一轮起点
+  if (pathModeState.value) {
+    clearPath();
+  }
+  if (!pathFromState.value || pathToState.value) {
+    pathFromState.value = key;
+    pathToState.value = "";
+    pathInfoState.value = `起点：${key}，再点一个节点作为终点`;
+    paintPathPicks();
+    return;
+  }
+  if (pathFromState.value === key) {
+    pathInfoState.value = "起点和终点不能是同一个节点";
+    return;
+  }
+  pathToState.value = key;
+  const result = shortestPath(pathFromState.value, key);
+  // 两端都点齐 → 自动出结果，选择模式收工（结果由路径模式负责展示）
+  if (result.found) {
+    pathPickState.value = false;
+    emit("update:pathPick", false);
+  }
+};
+
+/**
+ * 右键取消：退出「最短路径」状态。
+ *
+ * <p>选择中 → 清掉端点、退出选择模式；已在看结果 → 恢复全部元素。
+ * 两种情况都吞掉浏览器右键菜单，避免顺手弹出系统菜单。</p>
+ */
+const cancelPathPick = (ev?: unknown) => {
+  const native = (ev as { native?: MouseEvent; nativeEvent?: MouseEvent })?.native
+    ?? (ev as { nativeEvent?: MouseEvent })?.nativeEvent
+    ?? null;
+  native?.preventDefault?.();
+  const wasPicking = pathPickState.value;
+  const wasPath = pathModeState.value;
+  pathPickState.value = false;
+  pathFromState.value = "";
+  pathToState.value = "";
+  pathInfoState.value = "";
+  if (wasPath) clearPath();
+  else clearSelection();
+  if (wasPicking) emit("update:pathPick", false);
+  emit("path-change", { from: "", to: "", found: false, nodes: [], edges: [] });
+};
+
+/** 工具栏按钮：开 / 关「最短路径」选择模式 */
+const togglePathPick = () => {
+  if (pathPickState.value || pathModeState.value) {
+    cancelPathPick();
+    return;
+  }
+  pathPickState.value = true;
+  pathFromState.value = "";
+  pathToState.value = "";
+  pathInfoState.value = "最短路径：左键点两个节点（起点 → 终点），右键取消";
+  clearSelection();
+  emit("update:pathPick", true);
+};
+/** 路径上的节点 / 边 id（路径模式下据此判定「谁留下」） */
+const pathNodesState = ref<string[]>([]);
+const pathEdgesState = ref<string[]>([]);
+/**
+ * 重建画布后是否要聚焦路径。
+ *
+ * <p>进入路径模式且当时挂着分组轮廓时只能整图重建（插件在 initGraph 挂载），
+ * 旧实例马上被销毁，此刻调 focus 会打在废弃实例上，所以把意图记下来、
+ * 等新实例 render 完成再执行。</p>
+ */
+let pendingPathFocus = false;
+
+/** 当前折叠的分组名（工具栏面板显示 + 重建后恢复用） */
+const collapsedGroupsState = ref<string[]>([...(props.collapsedGroups ?? [])]);
+
+/** 全部分组名（工具栏「分组折叠」面板用） */
+const groupNames = computed(() => membersByGroup().map(([group]) => group));
+/** 全部节点 id（工具栏最短路径面板的两个下拉用） */
+const pathNodeIds = computed(() => nodesState.value.map((n) => String(n.id)));
+const emitSelection = () => {
+  emit("selection-change", {
+    nodes: [...selectedNodes.value],
+    edges: [...selectedEdges.value],
+    combos: [...selectedCombos.value],
+  });
+};
+
+/* ================= 自研交互：悬停高亮 / 点选 / 框选 / 分组折叠 ================= */
+
+/** 当前图上的所有元素 id（节点 + 边 + combo） */
+const allElementIds = (): string[] => {
+  const ids: string[] = [
+    ...nodesState.value.map((n) => String(n.id)),
+    ...edgesState.value.map((e) => edgeIdOf(e)),
+  ];
+  // 路径模式下 combo 容器没有建出来，别把不存在的 id 塞给 setElementState
+  if (comboState.value && !pathModeState.value) {
+    for (const [group] of membersByGroup()) ids.push(comboIdOf(group));
+  }
+  return ids;
+};
+
+/** 元素当前状态去掉「悬停维度」（active / inactive），selected / highlight 原样保留 */
+const statesWithoutHover = (id: string): string[] => {
+  try {
+    return (graph?.getElementState(id) ?? []).filter((s) => s !== "active" && s !== "inactive");
+  } catch {
+    return [];
+  }
+};
+
+/** 1 度邻居：节点集合 + 相连的边集合 */
+const neighborsOf = (id: string) => {
+  const nodes = new Set<string>([id]);
+  const edges = new Set<string>();
+  for (const e of edgesState.value) {
+    const s = String(e.source);
+    const t = String(e.target);
+    if (s === id || t === id) {
+      nodes.add(s);
+      nodes.add(t);
+      edges.add(edgeIdOf(e));
+    }
+  }
+  return { nodes, edges };
+};
+
+/** 把「悬停高亮」整图重设一遍：hot 的高亮（active），其余淡化（inactive） */
+const setHoverStates = (hotNodes: Set<string>, hotEdges: Set<string>) => {
+  if (!graph || !graphAlive) return;
+  const states: Record<string, string[]> = {};
+  for (const nid of nodesState.value.map((n) => String(n.id))) {
+    const rest = statesWithoutHover(nid);
+    states[nid] = hotNodes.has(nid) ? [...rest, "active"] : [...rest, "inactive"];
+  }
+  for (const e of edgesState.value) {
+    const eid = edgeIdOf(e);
+    const rest = statesWithoutHover(eid);
+    states[eid] = hotEdges.has(eid) ? [...rest, "active"] : [...rest, "inactive"];
+  }
+  if (comboState.value) {
+    for (const [group] of membersByGroup()) {
+      const cid = comboIdOf(group);
+      const keep = statesWithoutHover(cid);
+      if (!keep.includes("selected")) states[cid] = keep;
+    }
+  }
+  setElementStates(states);
+};
+
+/** 当前悬停中的元素 id（节点或边）。用于挡掉「快速从 A 划到 B 时 A 的 pointerleave 迟到」 */
+let hoverTarget = "";
+
+/** 悬停节点：高亮它 + 1 度邻居 + 相连边 */
+const hoverNode = (id: string) => {
+  if (!highlightState.value) return;
+  // 最短路径模式：悬停高亮让位给端点选择，避免「点一个节点满屏变色」
+  if (pathPickState.value) return;
+  hoverTarget = id;
+  const { nodes, edges } = neighborsOf(id);
+  setHoverStates(nodes, edges);
+};
+
+/** 悬停边：高亮边的两端 + 这条边 */
+const hoverEdge = (id: string) => {
+  if (!highlightState.value) return;
+  if (pathPickState.value) return;
+  hoverTarget = id;
+  const { source, target } = edgeEndsOf(id);
+  setHoverStates(new Set([source, target]), new Set([id]));
+};
+
+/**
+ * 取消悬停：把 active / inactive 全摘掉（其它状态保留）。
+ *
+ * <p>{@code onlyIfCurrent}：G6 的元素事件在快速划动时顺序不保证 ——
+ * 从 A 划到 B，{@code pointerleave(A)} 可能晚于 {@code pointerenter(B)} 到达，
+ * 这时候如果无条件清一遍，就会把刚点亮的 B 整片抹掉（表现为「悬停没反应」）。
+ * 所以离开时只在「离开的正是当前悬停对象」时才清。</p>
+ */
+const clearHoverHighlight = (onlyIfCurrent?: string) => {
+  if (!graph || !graphAlive) return;
+  if (onlyIfCurrent !== undefined) {
+    // 迟到的事件：当前已经悬停到别的元素上了，忽略
+    if (hoverTarget && hoverTarget !== onlyIfCurrent) return;
+    if (hoverTarget === onlyIfCurrent) hoverTarget = "";
+  } else {
+    hoverTarget = "";
+  }
+  const states: Record<string, string[]> = {};
+  for (const id of allElementIds()) states[id] = statesWithoutHover(id);
+  setElementStates(states);
+};
+
+/** 清空选择（点空白处 / 命令式） */
+const clearSelection = () => {
+  if (!graph || !graphAlive) return;
+  const states: Record<string, string[]> = {};
+  for (const id of allElementIds()) {
+    states[id] = statesWithoutHover(id).filter((s) => s !== "selected");
+  }
+  setElementStates(states);
+  selectedNodes.value = [];
+  selectedEdges.value = [];
+  selectedCombos.value = [];
+  emitSelection();
+};
+
+/** 点选：单击选中 / 再点取消；additive（按住 Shift）= 追加多选 */
+const toggleSelect = (id: string, kind: "node" | "edge" | "combo", additive = false) => {
+  if (!graph || !graphAlive) return;
+  const wasSelected = statesWithoutHover(id).includes("selected");
+  const states: Record<string, string[]> = {};
+
+  if (!additive) {
+    for (const other of [...selectedNodes.value, ...selectedEdges.value, ...selectedCombos.value]) {
+      if (other === id) continue;
+      states[other] = statesWithoutHover(other).filter((s) => s !== "selected");
+    }
+    selectedNodes.value = [];
+    selectedEdges.value = [];
+    selectedCombos.value = [];
+  }
+
+  const rest = statesWithoutHover(id).filter((s) => s !== "selected");
+  states[id] = wasSelected ? rest : [...rest, "selected"];
+
+  const flip = (list: string[]) =>
+    wasSelected ? list.filter((x) => x !== id) : [...list.filter((x) => x !== id), id];
+  if (kind === "edge") selectedEdges.value = flip(selectedEdges.value);
+  else if (kind === "combo") selectedCombos.value = flip(selectedCombos.value);
+  else selectedNodes.value = flip(selectedNodes.value);
+
+  setElementStates(states);
+  emitSelection();
+};
+
+/* ---------- 框选：覆盖层 div + 包含判定（不依赖 brush-select） ---------- */
+let brushEl: HTMLDivElement | null = null;
+let brushFrom: [number, number] | null = null;
+let brushTo: [number, number] | null = null;
+/**
+ * 刚结束一次「真正的框选」，下一次 click 事件要吃掉。
+ *
+ * <p>G6 的 click 是在 pointerup 之后补发的，而且它的 targetType 取决于
+ * <b>松开瞬间指针落在哪</b>：落在空白就是 {@code canvas:click}，
+ * 落在节点上就是 {@code node:click}。两种情况都会把刚框中的结果冲掉
+ * （canvas:click 直接 clearSelection；node:click 走 toggleSelect 把节点取消掉），
+ * 表现为「框选时灵时不灵、有时框住了又没了」。</p>
+ */
+let brushClickGuard = false;
+
+/** 消费一次框选后的「幽灵 click」；返回 true 表示这次 click 应当忽略 */
+const consumeBrushClick = (): boolean => {
+  if (!brushClickGuard) return false;
+  brushClickGuard = false;
+  return true;
+};
+
+/** G6 的点既可能是 [x, y] 也可能是 { x, y }，统一取值 */
+const pointOf = (p: unknown): [number, number] => {
+  if (Array.isArray(p)) return [Number(p[0]) || 0, Number(p[1]) || 0];
+  const o = (p ?? {}) as { x?: number; y?: number };
+  return [Number(o.x) || 0, Number(o.y) || 0];
+};
+
+/** 把画布坐标系里的框换算成容器内的 DOM 位置，画出蓝色选框 */
+const drawBrush = () => {
+  if (!brushEl || !brushFrom || !brushTo || !graph) return;
+  const [ax, ay] = pointOf(graph.getViewportByCanvas(brushFrom));
+  const [bx, by] = pointOf(graph.getViewportByCanvas(brushTo));
+  brushEl.style.left = `${Math.min(ax, bx)}px`;
+  brushEl.style.top = `${Math.min(ay, by)}px`;
+  brushEl.style.width = `${Math.abs(bx - ax)}px`;
+  brushEl.style.height = `${Math.abs(by - ay)}px`;
+};
+
+const onBrushDown = (ev: { targetType?: string; canvas?: unknown; button?: number }) => {
+  if (!brushSelectState.value || !graph || !graphAlive) return;
+  if ((ev.targetType ?? "canvas") !== "canvas") return; // 从节点/边上按下不启动框选
+  if (typeof ev.button === "number" && ev.button !== 0) return; // 右键 / 中键不拉框
+  brushFrom = pointOf(ev.canvas);
+  brushTo = brushFrom;
+  if (!brushEl && containerRef.value) {
+    brushEl = document.createElement("div");
+    brushEl.className = "rrg__brush";
+    containerRef.value.appendChild(brushEl);
+  }
+  if (brushEl) brushEl.style.display = "block";
+  drawBrush();
+};
+
+const onBrushMove = (ev: { canvas?: unknown }) => {
+  if (!brushFrom || !brushEl) return;
+  brushTo = pointOf(ev.canvas);
+  drawBrush();
+};
+
+const onBrushUp = () => {
+  if (!brushFrom || !brushTo || !graph) return;
+  const [x1, y1] = brushFrom;
+  const [x2, y2] = brushTo;
+  brushFrom = null;
+  brushTo = null;
+  if (brushEl) brushEl.style.display = "none";
+
+  // 拖得太小当作点击，不动选择
+  if (Math.abs(x2 - x1) < 6 && Math.abs(y2 - y1) < 6) return;
+
+  // 真正的框选：挡住 G6 随后补发的那个 click（否则会把刚选中的结果冲掉）
+  brushClickGuard = true;
+  setTimeout(() => {
+    brushClickGuard = false;
+  }, 400);
+
+  const minX = Math.min(x1, x2);
+  const maxX = Math.max(x1, x2);
+  const minY = Math.min(y1, y2);
+  const maxY = Math.max(y1, y2);
+  const inside = (id: string) => {
+    const [px, py] = pointOf(graph!.getElementPosition(id));
+    return px >= minX && px <= maxX && py >= minY && py <= maxY;
+  };
+
+  const pickedNodes = nodesState.value.map((n) => String(n.id)).filter(inside);
+  const pickedEdges = edgesState.value
+    .filter((e) => pickedNodes.includes(String(e.source)) && pickedNodes.includes(String(e.target)))
+    .map((e) => edgeIdOf(e));
+
+  const states: Record<string, string[]> = {};
+  for (const id of allElementIds()) states[id] = statesWithoutHover(id).filter((s) => s !== "selected");
+  for (const id of [...pickedNodes, ...pickedEdges]) {
+    states[id] = [...(states[id] ?? []).filter((s) => s !== "selected"), "selected"];
+  }
+  setElementStates(states);
+
+  selectedNodes.value = pickedNodes;
+  selectedEdges.value = pickedEdges;
+  selectedCombos.value = [];
+  emitSelection();
+};
+
+/* ---------- 右键菜单（contextmenu）---------- */
+
+/** 右键浮层当前的回参（非空 = 浮层打开） */
+const contextMenuState = ref<ContextMenuDetail | null>(null);
+const contextMenuEl = ref<HTMLDivElement | null>(null);
+
+/** 关闭右键浮层 */
+const closeContextMenu = () => {
+  if (!contextMenuState.value) return;
+  contextMenuState.value = null;
+  emit("context-menu-close");
+};
+
+/** 定位浮层：贴光标，靠近右/下边缘时向左/上翻，避免出框 */
+const placeContextMenu = async () => {
+  await nextTick();
+  const root = rootRef.value;
+  const box = contextMenuEl.value;
+  const detail = contextMenuState.value;
+  if (!root || !box || !detail) return;
+  const rect = root.getBoundingClientRect();
+  const w = box.offsetWidth;
+  const h = box.offsetHeight;
+  let x = detail.client.x;
+  let y = detail.client.y;
+  if (x + w > rect.width - 4) x = Math.max(4, rect.width - w - 4);
+  if (y + h > rect.height - 4) y = Math.max(4, rect.height - h - 4);
+  box.style.left = `${x}px`;
+  box.style.top = `${y}px`;
+};
+
+/** 点别处关浮层（capture 阶段，避免被画布自己的事件吞掉） */
+const onDocPointerDown = (e: Event) => {
+  if (!contextMenuState.value) return;
+  const box = contextMenuEl.value;
+  if (box && e.target instanceof Node && box.contains(e.target)) return;
+  closeContextMenu();
+};
+const onDocKeydown = (e: KeyboardEvent) => {
+  if (e.key === "Escape") closeContextMenu();
+};
+
+/**
+ * 右键统一入口：拼回参 →（可选）把命中元素补进选择 → emit → 有 `#context-menu` 插槽时开浮层。
+ *
+ * <p>画布内的浏览器原生右键菜单已在 {@code initGraph} 里拦掉（否则会盖在我们的浮层上），
+ * 组件外的右键不受影响。</p>
+ */
+const handleContextMenu = (ev: unknown, targetType: ContextMenuDetail["targetType"]) => {
+  if (!graph || !graphAlive) return;
+  const e = ev as {
+    target?: { id?: unknown };
+    client?: unknown;
+    canvas?: unknown;
+    native?: MouseEvent;
+    nativeEvent?: MouseEvent;
+  };
+  const native = e.native ?? e.nativeEvent ?? null;
+  native?.preventDefault?.();
+
+  const rawId = String(e.target?.id ?? "");
+  const isCombo = targetType === "combo";
+  const id = targetType === "canvas" ? "" : rawId;
+  const group = isCombo ? rawId.replace(/^__group__/, "") : "";
+  const edgeEnds = targetType === "edge" ? edgeEndsOf(id) : { source: "", target: "" };
+  const edgeSource = edgeEnds.source;
+  const edgeTarget = edgeEnds.target;
+
+  // 右键元素默认把它补进选择 —— 用户右键时指的就是「这个」
+  if (props.rightClickSelect && id) {
+    const picked = [...selectedNodes.value, ...selectedEdges.value, ...selectedCombos.value];
+    if (!picked.includes(id)) {
+      toggleSelect(id, targetType === "edge" ? "edge" : isCombo ? "combo" : "node", true);
+    }
+  }
+
+  const root = rootRef.value;
+  const rect = root?.getBoundingClientRect();
+  const fallback = pointOf(e.client);
+  const page = {
+    x: native?.clientX ?? fallback[0],
+    y: native?.clientY ?? fallback[1],
+  };
+  const [canvasX, canvasY] = pointOf(e.canvas);
+
+  const detail: ContextMenuDetail = {
+    targetType,
+    id,
+    source: targetType === "edge" ? edgeSource : undefined,
+    target: targetType === "edge" ? edgeTarget : undefined,
+    group: isCombo ? group : undefined,
+    data:
+      targetType === "node"
+        ? businessNodeOf(id)
+        : targetType === "edge"
+          ? businessEdgeOf(id)
+          : isCombo
+            ? { group }
+            : undefined,
+    selection: {
+      nodes: [...selectedNodes.value],
+      edges: [...selectedEdges.value],
+      combos: [...selectedCombos.value],
+    },
+    client: { x: page.x - (rect?.left ?? 0), y: page.y - (rect?.top ?? 0) },
+    page,
+    canvas: { x: canvasX, y: canvasY },
+    native,
+  };
+
+  emit("contextmenu", detail);
+  if (slots["context-menu"]) {
+    contextMenuState.value = detail;
+    placeContextMenu().catch(() => {});
+  }
+};
+
+/* ---------- 分组折叠（combo）---------- */
+
+/** 某个分组当前是否折叠 */
+const isGroupCollapsed = (group: string): boolean => {
+  if (!graph || !graphAlive) return false;
+  try {
+    const data = graph.getElementData(comboIdOf(group)) as
+      | { style?: { collapsed?: boolean } }
+      | undefined;
+    return Boolean(data?.style?.collapsed);
+  } catch {
+    return false;
+  }
+};
+
+/** 折叠 / 展开指定分组（group = 业务分组名，如「蜀汉」） */
+const setGroupCollapsed = async (group: string, collapsed: boolean) => {
+  if (!graph || !graphAlive) return;
+  if (collapsed === isGroupCollapsed(group)) {
+    syncCollapsedState(group, collapsed);
+    return;
+  }
+  try {
+    if (collapsed) await graph.collapseElement(comboIdOf(group), false);
+    else await graph.expandElement(comboIdOf(group), false);
+    syncCollapsedState(group, collapsed);
+    emit("combo-collapse-change", { group, collapsed });
+  } catch {
+    // 当前布局没有 combo（未开启分组折叠）时忽略
+  }
+};
+
+/** 维护内部折叠清单（工具栏面板据此显示开关状态） */
+const syncCollapsedState = (group: string, collapsed: boolean) => {
+  const set = new Set(collapsedGroupsState.value);
+  if (collapsed) set.add(group);
+  else set.delete(group);
+  collapsedGroupsState.value = [...set];
+};
+
+const collapseGroup = (group: string) => setGroupCollapsed(group, true);
+const expandGroup = (group: string) => setGroupCollapsed(group, false);
+const toggleGroupCollapsed = (group: string) => setGroupCollapsed(group, !isGroupCollapsed(group));
+
+/** 当前被折叠的分组名列表 */
+const getCollapsedGroups = (): string[] =>
+  membersByGroup()
+    .map(([group]) => group)
+    .filter((group) => isGroupCollapsed(group));
+
+/** 初始折叠：combo 建好后按 collapsedGroups 折叠一次（重建后也会恢复） */
+const applyInitialCollapsed = async () => {
+  if (!graph || !graphAlive || !comboState.value) return;
+  for (const group of [...collapsedGroupsState.value]) await setGroupCollapsed(group, true);
+};
+
+/**
+ * 当前是否因为「散布局 / 分组折叠模式 / groupAutoHide」而不画轮廓。
+ *
+ * <p>工具栏据此在分组面板里给一句说明，免得用户以为轮廓功能坏了。</p>
+ */
+const contoursAutoHidden = computed(
+  () =>
+    groupVisibleState.value &&
+    groupTypeState.value !== "none" &&
+    (comboState.value ||
+      (Boolean(props.groupAutoHide) && !isGroupLayout(resolveLayout().type))),
 );
 
-/** 边 -> G6 EdgeData */
-const toEdgeData = (e: RelationEdge) => {
-  const directed = e.directed ?? props.directed;
-  // onHover 模式下默认把标签文本留空，只留一个占位样式；
-  // 悬停时由 setEdgeLabelVisible 临时把 labelText 填回去。
-  const labelText = edgeLabelsShown.value ? (e.label ?? "") : "";
-  const style: Record<string, unknown> = {
-    labelText,
-    labelBackground: true,
-    labelBackgroundFill: "rgba(0,0,0,0.55)",
-    labelBackgroundRadius: 4,
-    labelPadding: [2, 6],
-    labelFill: "#fff",
-    labelFontSize: 10,
-    endArrow: directed,
-    endArrowSize: 8,
-  };
-  if (e.animated) {
-    style.lineDash = [8, 6];
-  }
-  return {
-    id: e.id ?? `${e.source}->${e.target}`,
-    source: e.source,
-    target: e.target,
-    type: e.type ?? props.edgeType,
-    data: { ...(e.data ?? {}), __label: e.label, __group: e.group, __directed: directed, __animated: e.animated === true },
-    style: { ...style, ...(e.style ?? {}) },
-  };
-};
-
-/** 按 id 找回业务节点（事件回调要把业务对象交回给调用方）。
- *  先查 props 派生的业务数据，查不到再回退到 G6 实时模型（含 API 新增的节点）。 */
-const nodeById = (id: string): RelationNode | undefined => {
-  const fromProps = graphData.value.nodes?.find(n => n.id === id);
-  if (fromProps) {
-    return fromProps;
-  }
-  const d: any = graphRef.value?.getElementData?.(id);
-  if (!d) {
-    return undefined;
-  }
-  return {
-    id: d.id,
-    label: d.data?.__label,
-    group: d.data?.__group,
-    fixed: d.data?.__fixed,
-    image: d.data?.__image,
-    type: d.type,
-    data: d.data,
-  } as RelationNode;
-};
-const edgeById = (id: string): RelationEdge | undefined => {
-  const fromProps = (graphData.value.edges ?? []).find(
-    e => (e.id ?? `${e.source}->${e.target}`) === id,
-  );
-  if (fromProps) {
-    return fromProps;
-  }
-  const d: any = graphRef.value?.getElementData?.(id);
-  if (!d) {
-    return undefined;
-  }
-  return {
-    id: d.id,
-    source: typeof d.source === "object" ? d.source?.id : d.source,
-    target: typeof d.target === "object" ? d.target?.id : d.target,
-    label: d.data?.__label,
-    directed: d.data?.__directed,
-    animated: d.data?.__animated,
-    type: d.type,
-    data: d.data,
-  } as RelationEdge;
-};
-
-/** 判断 id 是否为（普通）节点：先查 props 业务数据，再问 G6 模型。
- *  G6 的 getElementType 对未知 id 会抛异常，这里兜底为 false；combo 不算节点。 */
-const isNodeId = (id: string): boolean => {
-  if ((graphData.value.nodes ?? []).some(n => n.id === id)) {
-    return true;
-  }
-  try {
-    return graphRef.value?.getElementType?.(id) === "node";
-  } catch {
-    return false;
-  }
-};
-
-/** 判断 id 是否为边：语义与 {@link isNodeId} 对称。 */
-const isEdgeId = (id: string): boolean => {
-  if ((graphData.value.edges ?? []).some(e => (e.id ?? `${e.source}->${e.target}`) === id)) {
-    return true;
-  }
-  try {
-    return graphRef.value?.getElementType?.(id) === "edge";
-  } catch {
-    return false;
-  }
-};
-
-/** 构建 behaviors */
-const buildBehaviors = () => {
-  const list: any[] = ["drag-canvas"];
-  if (props.zoom) {
-    list.push("zoom-canvas");
-  }
-  if (props.drag) {
-    // enable 是「每次 pointerdown 才求值」的闭包：进入连线模式时即时让位给 create-edge，
-    // 无需 setBehaviors（v5 的 setBehaviors 不会在运行期实例化新行为，改它反而不生效）。
-    list.push({
-      type: "drag-element",
-      shadow: true,
-      enable: (ev: any) =>
-        !connectMode.value &&
-        ["node", "combo"].includes(ev?.targetType),
-    });
-  }
-  list.push({
-    type: "click-select",
-    multiple: props.multiSelect,
-    // ShortcutKey 是 string[]（默认 ['shift']）；写成字符串 "ctrl" 会让
-    // Shortcut.match -> lowerCaseKeys 里 keys.map 抛 "keys.map is not a function"。
-    // 注意值必须是 event.key 的小写："control"（不是 "ctrl"，后者永不命中）。
-    trigger: ["control"],
-    state: "selected",
-    unselectedState: undefined,
-  });
-  // G6 官方框选：按住并拖出矩形选区，配合 click-select 的 ctrl 多选互补
-  if (props.brushSelect) {
-    list.push({
-      type: "brush-select",
-      key: "brush-select",
-      // drag 拖拽选区（默认）；shift 按住时可追加到现有选区
-      trigger: ["drag"],
-      onSelect: (ids: string[]) => {
-        selectedIds.value = ids;
-        emit("selection-change", ids);
-      },
-    });
-  }
-  // G6 官方拉索选择：自由曲线圈选
-  if (props.lassoSelect) {
-    list.push({
-      type: "lasso-select",
-      key: "lasso-select",
-      onSelect: (ids: string[]) => {
-        selectedIds.value = ids;
-        emit("selection-change", ids);
-      },
-    });
-  }
-  if (highlightMode.value !== "none") {
-    // 高亮由 node:pointerenter/leave → applyHoverHighlight 手动 setElementState 承担
-    // （G6 内置 hover-activate 在图片/密集大图上触发不稳定，用户实测无反馈），
-    // 这里不再 push behavior，避免双路状态互相覆盖。
-  }
-  // 大数据量性能优化：节点数多时只重绘视口内元素，避免拖拽/缩放全量更新
-  const nodeCount = graphData.value.nodes?.length ?? 0;
-  if (props.performance || nodeCount >= 3000) {
-    list.push({ type: "optimize-viewport-transform", key: "optimize-viewport-transform" });
-  }
-  // 拖边连线：仅 2D 且开启 editable、且处于连线模式时生效。
-  // trigger='drag' 时它监听 node:dragstart / pointerup —— 与 drag-element 互斥（上面的 enable）。
-  list.push({
-    type: "create-edge",
-    key: "create-edge",
-    trigger: "drag",
-    enable: () => props.editable && connectMode.value,
-    style: { endArrow: props.directed, stroke: "var(--el-color-primary, #409eff)" },
-    // 返回 undefined 会取消创建；这里补上业务字段（label/方向等）后放行
-    onCreate: (edge: any) => toEdgeData(edge as RelationEdge) as any,
-    onFinish: (edge: any) => {
-      // G6 已经把边加进 model；这里把业务对象交回并同步 3D / 空态
-      const rel = edgeById(edge.id) ?? {
-        id: edge.id,
-        source: edge.source,
-        target: edge.target,
-        label: edge.data?.__label,
-        directed: edge.data?.__directed,
-        data: edge.data,
-      } as RelationEdge;
-      log("create-edge finished", rel);
-      emit("edge-created", rel);
-      emitDataChange();
-      empty.value = false;
-      sync3d();
-      refreshHistoryState();
-    },
-  });
-  return list;
-};
-
-/** 构建 plugins */
-const buildPlugins = () => {
-  const list: any[] = [];
-  if (minimapOn.value) {
-    list.push({ type: "minimap", size: [200, 128], padding: 8, position: "right-bottom" });
-  }
-  // G6 官方 tooltip：悬停节点/边时显示名称（不绑定任何自定义 DOM，随画布销毁）。
-  // 做成无白底的轻量名签（pointer-events:none 穿透），避免「节点上多一层背景」遮挡画布。
-  if (props.tooltip) {
-    list.push({
-      type: "tooltip",
-      key: "tooltip",
-      trigger: "hover",
-      getContent: (event: any, items: any[]) => {
-        const it = items?.[0];
-        const label = it?.style?.labelText ?? it?.data?.label ?? it?.data?.labelText ?? it?.id ?? "";
-        const div = document.createElement("div");
-        div.textContent = String(label ?? "");
-        div.style.cssText = "padding:2px 6px;font-size:12px;line-height:1.4;color:var(--el-text-color-primary,#303133);background:transparent;border:none;box-shadow:none;border-radius:4px;pointer-events:none;";
-        return div;
-      },
-      // G6 TooltipComponent 外层自带白底圆角容器，这里抹掉，只留名字本身
-      style: {
-        background: "transparent",
-        border: "none",
-        boxShadow: "none",
-        padding: "2px 6px",
-        borderRadius: "4px",
-        color: "var(--el-text-color-primary,#303133)",
-      },
-    });
-  }
-  // G6 官方 hull / bubble-sets：按 group 生成分组轮廓，成员在数据装载后由 syncSetPlugins 刷新
-  if (props.hull || props.bubbleSets) {
-    for (const [group, ids] of groupMembers()) {
-      if (ids.length < 2) continue;
-      if (props.hull) {
-        list.push({
-          type: "hull",
-          key: `hull-${group}`,
-          members: ids,
-          style: { fill: "rgba(64,158,255,0.08)", stroke: "var(--el-color-primary,#409eff)", lineWidth: 1 },
-          padding: 8,
-        });
-      }
-      if (props.bubbleSets) {
-        list.push({
-          type: "bubble-sets",
-          key: `bs-${group}`,
-          members: ids,
-          style: { fill: "rgba(103,194,58,0.08)", stroke: "var(--el-color-success,#67c23a)", lineWidth: 1 },
-        });
-      }
-    }
-  }
-  // history 必须在「初始 config」里，运行期 setPlugins 不会实例化新插件。
-  list.push({ type: "history", key: "history", stackSize: 50, beforeAddCommand: beforeAddHistory });
-  return list;
-};
-
-/** 按 group 收集节点 id（用于 hull / bubble-sets 成员） */
-const groupMembers = (): Map<string, string[]> => {
-  const map = new Map<string, string[]>();
-  for (const n of graphData.value.nodes ?? []) {
-    const g = n.group;
-    if (!g) continue;
-    const arr = map.get(g) ?? [];
-    arr.push(n.id);
-    map.set(g, arr);
-  }
-  return map;
-};
-
-/** 数据装载后刷新 set 插件的成员（hull / bubble-sets 不监听 data 变化，需手动 updateMember） */
-const syncSetPlugins = (graph: any) => {
-  if (!props.hull && !props.bubbleSets) return;
-  const groups = groupMembers();
-  for (const [group, ids] of groups) {
-    if (ids.length < 2) continue;
-    for (const pfx of [props.hull ? "hull" : "", props.bubbleSets ? "bs" : ""].filter(Boolean)) {
-      const inst = graph?.getPluginInstance?.(`${pfx}-${group}`);
-      if (inst) {
-        inst.updateMember?.(ids);
-      }
+/**
+ * 强制重算所有分组轮廓路径。
+ *
+ * <p>hull / bubble-sets 只在 {@code AFTER_RENDER} 时按当时的节点坐标算一次路径，
+ * 渲染之后节点还会被动画型布局搬走（force / d3-force / fruchterman …），
+ * 轮廓就停在初始位置上 —— 视觉上表现为「轮廓跟节点错位」「几组轮廓堆在一起」。
+ * 布局结束（{@code afterlayout}）时调一次插件的 {@code updateMember}，
+ * 让它按新坐标重画。</p>
+ */
+const refreshContours = () => {
+  if (!graph || !graphAlive) return;
+  if (groupTypeState.value === "none" || !groupVisibleState.value) return;
+  if (contoursAutoHidden.value) return;
+  const prefix = groupTypeState.value === "hull" ? "hull-" : "bubble-";
+  for (let index = 0; index < membersByGroup().length; index++) {
+    try {
+      const plugin = graph.getPluginInstance(`${prefix}${index}`) as {
+        getMember?: () => string[];
+        updateMember?: (members: string[]) => void;
+      } | null;
+      const members = plugin?.getMember?.();
+      if (members?.length) plugin?.updateMember?.(members);
+    } catch {
+      // 插件没挂上（分组关闭 / 重建中间态）时忽略
     }
   }
 };
 
-/**
- * 过滤纯「位置变化」命令：拖拽节点 / 布局产生的 x,y 改动不进撤销栈，
- * 否则一次布局就能塞满 50 步、把真正的数据编辑冲掉。
- *
- * @param cmd 待入库命令
- * @return false 表示不入库
- */
-const beforeAddHistory = (cmd: any): boolean => {
-  const categories = ["nodes", "edges", "combos"];
-  const operations = ["add", "update", "remove"];
-  const isAssist = (item: any) => String(item?.id ?? "").startsWith("g6-create-edge-");
+/** 拦掉容器内的原生右键菜单（右键功能由 {@link handleContextMenu} 接管） */
+const preventNativeContextMenu = (e: Event) => e.preventDefault();
 
-  // create-edge 把临时 assist node/edge 与真实边放进同一个 G6 batch。
-  // 只过滤辅助项，不能把整条 command 丢掉，否则用户新建的边也无法撤销。
-  for (const side of [cmd?.current, cmd?.original]) {
-    for (const operation of operations) {
-      for (const category of categories) {
-        const items = side?.[operation]?.[category];
-        if (Array.isArray(items)) {
-          side[operation][category] = items.filter((item: any) => !isAssist(item));
-        }
-      }
-    }
-  }
-
-  const c = cmd?.current;
-  const o = cmd?.original;
-  if (!c || !o) return true;
-
-  const hasChanges = (side: any) => operations.some(operation =>
-    categories.some(category => (side?.[operation]?.[category]?.length ?? 0) > 0),
-  );
-  if (!hasChanges(c)) return false;
-
-  const stripPosition = (changes: any) => {
-    const out: any = {};
-    for (const category of categories) {
-      out[category] = (changes?.[category] ?? []).map((item: any) => {
-        const style = { ...(item.style ?? {}) };
-        delete style.x;
-        delete style.y;
-        return { ...item, style };
-      });
-    }
-    return out;
-  };
-  const same = (a: any, b: any) => JSON.stringify(stripPosition(a)) === JSON.stringify(stripPosition(b));
-
-  // 只有 update 且去掉 x/y 后完全一致 = 纯位移，剔除。
-  const noAdd = !(c.add?.nodes?.length || c.add?.edges?.length || c.add?.combos?.length);
-  const noRemove = !(c.remove?.nodes?.length || c.remove?.edges?.length || c.remove?.combos?.length);
-  const updateIsPosOnly =
-    (c.update?.nodes?.length || c.update?.edges?.length || c.update?.combos?.length) &&
-    same(c.update, o.update);
-  return !(noAdd && noRemove && updateIsPosOnly);
-};
-
-/** 安全读取元素状态：id 不在模型时返回空数组（getElementState 对缺失 id 会抛 "Node not found for id"） */
-const safeGetElementState = (graph: any, id: string): string[] => {
-  if (!graph || !id) {
-    return [];
-  }
-  try {
-    return (graph.getElementState?.(id) ?? []) as string[];
-  } catch (e) {
-    return [];
-  }
-};
-
-/** 取节点上除高亮状态外的既有状态（如 selected），避免整表替换时被抹掉 */
-const baseStates = (graph: any, id: string): string[] =>
-  safeGetElementState(graph, id).filter((s: string) => s !== "active" && s !== "inactive");
-
-/**
- * 安全地批量设置元素状态。
- *
- * <p>setElementState 对「不在模型里的 id」会抛 "Node not found for id: xxx"。
- * 组件里多处状态表是异步构建的（悬停高亮、3D 回写、路径快照等），
- * 与 doSetData 的「先删后加」存在竞态：删节点刚完成、状态表还在飞过来时，
- * 旧 id 就会命中这个异常（KB 刷新图谱时偶发）。这里先按当前模型过滤，
- * 再包一层兜底，让竞态只丢一次状态更新而不是把整个交互打断。</p>
- */
-const safeSetElementState = async (graph: any, map: Record<string, string[]>, enable: boolean) => {
-  if (!graph || !map || !Object.keys(map).length) {
-    return;
-  }
-  const live = new Set<string>([
-    ...(graph.getNodeData?.() ?? []).map((x: any) => x.id),
-    ...(graph.getEdgeData?.() ?? []).map((x: any) => x.id),
-    ...(graph.getComboData?.() ?? []).map((x: any) => x.id),
-  ]);
-  const filtered: Record<string, string[]> = {};
-  for (const [id, states] of Object.entries(map)) {
-    if (live.has(id)) {
-      filtered[id] = states;
-    }
-  }
-  if (!Object.keys(filtered).length) {
-    return;
-  }
-  try {
-    await graph.setElementState(filtered as any, enable);
-  } catch (e) {
-    log("设置元素状态失败（元素可能已变更）", e);
-  }
-};
-
-/** 安全地聚焦元素：id 已不在模型时静默跳过（focusElement 对缺失 id 会 reject） */
-const safeFocusElement = async (graph: any, id: string, animate: boolean) => {
-  if (!graph || !id) {
-    return;
-  }
-  try {
-    const live = (graph.getNodeData?.() ?? []).some((x: any) => x.id === id);
-    if (!live) {
-      return;
-    }
-    await graph.focusElement(id, animate as any);
-  } catch (e) {
-    log("聚焦元素失败", e);
-  }
-};
-
-/**
- * 依据 highlight 配置，在悬停时高亮相关元素（相邻节点 / 同组节点）并淡出其余。
- *
- * <p>早期实现依赖 G6 内置 {@code hover-activate} behavior，但在图片节点 / 密集
- * 大图上事件触发不稳定（用户实测三国图谱无高亮反馈）。这里改为 node :pointerenter/leave
- * 上手动计算目标集合并 {@code setElementState}——与 3D 分支同一套思路，效果确定。</p>
- *
- * <p>高亮目标：命中节点本身 + 相邻节点（adjacent）和/或同 group 节点（group）。
- * 仅相邻时额外把命中节点相连的边置亮；其余节点/边置 inactive（淡出）。</p>
- */
-const applyHoverHighlight = async (nodeId: string | null, on: boolean) => {
-  const graph = graphRef.value;
-  if (!graph) return;
-  const mode = highlightMode.value;
-  if (mode === "none" || !on || !nodeId) {
-    // 只清除高亮状态（active/inactive），保留 selected 等其它状态：
-    // setElementState 是「整表替换」语义，早先的 setElementState({}) 实际是空操作，
-    // 而进入分支的整体替换会把选中态一并抹掉。
-    const clearMap: Record<string, string[]> = {};
-    (graphData.value.nodes ?? []).forEach(n => {
-      const cur: string[] = safeGetElementState(graph, n.id);
-      if (cur.includes("active") || cur.includes("inactive")) {
-        clearMap[n.id] = baseStates(graph, n.id);
-      }
-    });
-    (graphData.value.edges ?? []).forEach(e => {
-      const eid = e.id ?? `${e.source}->${e.target}`;
-      const cur: string[] = safeGetElementState(graph, eid);
-      if (cur.includes("active") || cur.includes("inactive")) {
-        clearMap[eid] = baseStates(graph, eid);
-      }
-    });
-    if (Object.keys(clearMap).length) {
-      await safeSetElementState(graph, clearMap, false);
-    }
-    return;
-  }
-
-  const node = nodeById(nodeId);
-  const hoverGroup = node?.group;
-  const wantAdj = mode === "adjacent" || mode === "both";
-  const wantGroup = mode === "group" || mode === "both";
-
-  const nodeTargets = new Set<string>([nodeId]);
-  const edgeTargets = new Set<string>();
-  const groupNodes = new Set<string>();
-  for (const e of graphData.value.edges ?? []) {
-    const s = e.source;
-    const t = e.target;
-    const sideOther = s === nodeId ? t : (t === nodeId ? s : undefined);
-    const eid = e.id ?? `${s}->${t}`;
-    if (sideOther !== undefined && wantAdj) {
-      // 相邻：命中节点与邻居都亮，相邻边亮
-      nodeTargets.add(sideOther);
-      nodeTargets.add(nodeId);
-      edgeTargets.add(eid);
-      // 相邻节点的同组也纳入（both 才有意义；adjacent 只做一行时跳过）
-      if (wantGroup && hoverGroup && (nodeById(sideOther)?.group === hoverGroup)) {
-        groupNodes.add(sideOther);
-      }
-    }
-    if (wantGroup && hoverGroup) {
-      const sGroup = nodeById(s)?.group;
-      const tGroup = nodeById(t)?.group;
-      if ((s === nodeId && tGroup === hoverGroup) || (t === nodeId && sGroup === hoverGroup)) {
-        groupNodes.add(s);
-        groupNodes.add(t);
-        edgeTargets.add(eid);
-      }
-    }
-  }
-  if (wantGroup) groupNodes.forEach(id => nodeTargets.add(id));
-
-  const stateMap: Record<string, string[]> = {};
-  (graphData.value.nodes ?? []).forEach(n => {
-    const base = baseStates(graph, n.id);
-    stateMap[n.id] = nodeTargets.has(n.id) ? [...base, "active"] : [...base, "inactive"];
-  });
-  (graphData.value.edges ?? []).forEach(e => {
-    const eid = e.id ?? `${e.source}->${e.target}`;
-    const base = baseStates(graph, eid);
-    stateMap[eid] = edgeTargets.has(eid) ? [...base, "active"] : [...base, "inactive"];
-  });
-  await safeSetElementState(graph, stateMap, false);
-};
-
-/**
- * 显示/隐藏单条边的标签（edgeLabelMode="onHover" 时用）。
- *
- * <p>G6 v5 里改元素样式要走 {@code updateEdgeData} 再触发重绘，
- * 直接改 data.style 不会立即反映到画布。</p>
- *
- * @param id 边 id
- * @param visible 是否显示标签
- */
-const setEdgeLabelVisible = async (id: string, visible: boolean) => {
-  const graph = graphRef.value;
-  if (!graph || edgeLabelsShown.value) {
-    return;
-  }
-  const edge = edgeById(id);
-  if (!edge) {
-    return;
-  }
-  const text = visible ? (edge.label ?? "") : "";
-  graph.updateEdgeData([{ id, style: { labelText: text } }]);
-};
-
-/** 边标签显隐的当前目标（记录以便移出时还原） */
-let lastRevealedEdge: string | null = null;
-
-/**
- * 悬停/移出边时切换该边标签的显隐。
- *
- * @param id 边 id（移出时传 null 表示清除）
- */
-const revealEdgeLabel = async (id: string | null) => {
-  if (edgeLabelsShown.value) {
-    return;
-  }
-  if (lastRevealedEdge && lastRevealedEdge !== id) {
-    await setEdgeLabelVisible(lastRevealedEdge, false);
-  }
-  lastRevealedEdge = id;
-  if (id) {
-    await setEdgeLabelVisible(id, true);
-  }
-};
-
-/**
- * 切换「全部边标签常显」。
- *
- * <p>打开时给每条边补回 labelText；关闭时清空，并把当前悬停揭示的那条也一并收回。</p>
- *
- * @param v 开关新值（ReSwitch 的 update 事件签名是 string | number | boolean）
- */
-const onToggleAllEdgeLabels = async (v: string | number | boolean) => {
-  const next = v === true || v === "true";
-  edgeLabelsShownOverride.value = next;
-  const graph = graphRef.value;
-  if (!graph) {
-    return;
-  }
-  if (!next) {
-    lastRevealedEdge = null;
-  }
-  const updates = (graphData.value.edges ?? []).map((e) => {
-    const id = e.id ?? `${e.source}->${e.target}`;
-    return { id, style: { labelText: next ? (e.label ?? "") : "" } };
-  });
-  if (updates.length) {
-    graph.updateEdgeData(updates);
-  }
-};
-
-/** 把已固定节点在布局后钉回原位（G6 的固定语义靠节点自身 x/y 保持） */
-const pinFixedNodes = async () => {
-  const graph = graphRef.value;
-  if (!graph) {
-    return;
-  }
-  const fixed = (graphData.value.nodes ?? []).filter(n => n.fixed);
-  if (!fixed.length) {
-    return;
-  }
-  const pins: any[] = [];
-  fixed.forEach(n => {
-    const d: any = graph.getElementData(n.id);
-    const x = d?.style?.x ?? d?.x;
-    const y = d?.style?.y ?? d?.y;
-    if (x != null && y != null) {
-      pins.push({ id: n.id, style: { x, y } });
-    }
-  });
-  if (pins.length) {
-    log("pin fixed nodes", pins.length);
-  }
-};
-
-/** 节点/边状态样式。用函数生成，让 hoverFocus 开关重建图实例时生效。 */
-const buildStateStyle = () => ({
-  node: {
-    selected: { lineWidth: 3, stroke: "var(--el-color-primary)", halo: true },
-    active: { lineWidth: 2, stroke: "var(--el-color-primary)", halo: true, haloOpacity: 0.3 },
-    inactive: { opacity: hoverFocusOn.value ? 0.04 : 0.1 },
-  },
-  edge: {
-    selected: { lineWidth: 2, stroke: "var(--el-color-primary)" },
-    active: { lineWidth: 2, opacity: 1 },
-    inactive: { opacity: hoverFocusOn.value ? 0.02 : 0.08 },
-  },
-});
-
-/** 创建图实例 */
-/** 已装载数据的指纹（节点 id 列表 + 边 id 列表），用于跳过无实质变化的更新 */
-let appliedKey = "";
-
-/**
- * 模型代数：每次模型被整体重装（initGraph 首装 / doSetData 重装 / 扩线追加）
- * 或被就地变更（增删改、G6 用户编辑）后自增。
- *
- * <p>布局指纹带上它：模型重装后即使数据指纹与布局参数都没变，节点坐标也已被
- * G6 重置为默认随机位，必须重排；而「同一份模型 + 同一套布局参数」的重复
- * 请求（典型如页面 ready 回调里再 setLayout 一次、后台设置回放 applyLayoutTuning）
- * 纯属重复劳动——248 节点 force-atlas2 同步布局一次要阻塞主线程约 2s，
- * 初始化链路上叠 6 次就是 12s 的「非常卡」。</p>
- */
-let modelGeneration = 0;
-
-/**
- * 上一次成功布局的指纹：模型代数 + 数据指纹 + 布局名 + 生效参数。
- *
- * <p>三者全同的下一次布局请求直接跳过（仍会走 fitView 等轻量收尾）。
- * 调用方确需强制重排时传 {@code force}。</p>
- */
-let lastLayoutStamp = "";
-
-/**
- * 布局执行链：把 layoutForGraph 的所有调用串行化。
- *
- * <p>初始化窗口内 loadData / applyLayoutTuning / setLayout 可能交叉到达，
- * G6 在同一实例上并发 setLayout + layout 会让先到的请求执行后到的配置，
- * 指纹比较也会读到中间态。串行化后每次请求都在上一次真正结束后求值。</p>
- */
-let layoutChain: Promise<unknown> = Promise.resolve();
-
-/**
- * 计算数据指纹。
- *
- * @param d 图数据
- * @return 指纹字符串
- */
-const keyOf = (d: RelationGraphData) =>
-  (d.nodes ?? []).map(n => n.id).join("|") + "#" +
-  (d.edges ?? []).map(e => e.id ?? `${e.source}->${e.target}`).join("|");
-
-/**
- * 力导向（force 系）布局的默认细分参数。
- *
- * <p>底层 d3-force 的默认值节点斥力很弱（{@code manyBody.strength:-30}）、
- * 且默认 {@code preventOverlap:false}、{@code nodeSpacing:0}——连了边的节点
- * 会因为斥力不足、又不防重叠而紧紧挤成一团。这里给一组更松、更防重叠的默认值，
- * 让「连接线」两侧节点保持可读间距；调用方仍可用 {@code layoutOptions} 覆盖任意项。</p>
- *
- * <p><b>力导向系判定</b>：{@code force} / {@code force-atlas2} / {@code d3-force} /
- * {@code d3-force-directed} 都是 d3 力的变体，必须共享同一套防重叠默认值。
- * 早期实现只判全等 {@code === "force"}，导致业务侧改用 {@code force-atlas2}
- * （知识图谱 248 节点即用此布局）时默认值全部失效、节点挤成一团。</p>
- */
-const FORCE_LAYOUT_DEFAULTS: Record<string, unknown> = {
-  // 连接距离：一条边两端的目标间距（越大越松）
-  linkDistance: 120,
-  // ---- d3-force 系（force / d3-force / d3-force-directed）----
-  // 节点斥力（顶层入口，等价 manyBody.strength，默认仅 -30）：负值越大彼此推得越开
-  nodeStrength: -600,
-  // ---- atlas2 系（force-atlas2）----
-  // 注意：atlas2 并不认 nodeRepulsion / edgeRepulsion / preventOverlapLayout / maxIterations
-  // 这类从旧版 G6 v4 传下来的参数名，它真正的力学旋钮是 kr（斥力，越大越松散）
-  // 与 kg（重力，越大越向中心聚）。kr 大 + kg 小 = 图铺开；反之挤成一团。
-  kr: 60,
-  kg: 3,
-  // 关掉自动剪枝：G6 在节点数 >100 时会默认 prune=true，
-  // 而 prune 的行为是「把出度≤1 的叶子节点坐标直接写成父节点坐标」——
-  // 248 节点的关系图里叶子占多数，一开剪枝它们就全部叠在父节点上，
-  // 这才是节点糊成一团的真正元凶（调 kr/kg 根本救不回来）。
-  prune: false,
-  // ---- 收敛上限（大图防卡）----
-  // force-atlas2 默认 maxIteration=0（自动迭代到 minMovement 收敛），
-  // 300+ 节点在桌面浏览器上要跑上万步、阻塞主线程十几秒。
-  // 这里给一个合理上限，让布局「够用即可收敛」：宁可多留一点距离感，
-  // 也不能让首屏卡死在物理迭代里。首帧渲染 → 布局快速铺开 → fitView。
-  maxIteration: 800,
-  minMovement: 1.2,
-  // ---- 两者共用 ----
-  // 防重叠：按 nodeSize + nodeSpacing 做碰撞分离，避免节点/边叠在一起。
-  // atlas2 的 preventOverlap 必须同时给 nodeSize 才会真正做碰撞检测，这里已给。
-  preventOverlap: true,
-  nodeSize: 40,
-  nodeSpacing: 24,
-};
-
-/**
- * 是否为 d3 力导向系布局（force / force-atlas2 / d3-force / d3-force-directed）。
- *
- * <p>用包含匹配而非全等：G6 v5 注册的力导向布局还有 {@code d3-force}、
- * {@code d3-force-directed} 等变体，全等判断会让它们拿不到
- * {@link FORCE_LAYOUT_DEFAULTS} 的防重叠参数。</p>
- *
- * @param layoutType 布局类型
- * @return 是否属于力导向系
- */
-const isForceLayout = (layoutType: string): boolean =>
-  typeof layoutType === "string" && layoutType.includes("force");
-
-/**
- * 合并布局参数：把 force 默认值与调用方 layoutOptions 做深合并（调用方可覆盖任意项）。
- *
- * <p>只对 force 系布局注入默认值；其它布局（radial/circular/...）原样透传，
- * 避免给不相关的布局塞进无效参数。</p>
- *
- * @param layoutType 布局类型
- * @param override 调用方传入的 layoutOptions
- * @return 合并后的布局参数
- */
-const resolveLayoutOptions = (layoutType: string, override?: Record<string, unknown>): Record<string, unknown> => {
-  // 分组聚簇：交给 G6 原生 combo-combined（参数默认值在 toGroupedLayoutDesc 里兜）
-  if (layoutType === GROUPED_LAYOUT) {
-    return toGroupedLayoutDesc(override);
-  }
-  const base = isForceLayout(layoutType) ? FORCE_LAYOUT_DEFAULTS : {};
-  if (!override) {
-    return base;
-  }
-  const out: Record<string, unknown> = { ...base };
-  for (const k of Object.keys(override)) {
-    const bv = base[k];
-    const ov = override[k];
-    out[k] = bv && ov && typeof bv === "object" && typeof ov === "object" && !Array.isArray(bv)
-      ? { ...(bv as object), ...(ov as object) }
-      : ov;
-  }
-  return out;
-};
-
-/**
- * 元素数阈值：超过它就放弃布局动画，改走同步布局。
- *
- * <p>G6 v5 的「动画布局」每个 tick 都会 {@code getLayoutResult + updateElementPosition}
- * 全量重绘全部节点与边——几百个元素时单 tick 即几十毫秒、300 次迭代要分钟级，
- * 组件表现为永远停在「暂无数据」（{@code empty} 一直是 true、{@code @ready} 不触发）。</p>
- */
-const LAYOUT_ANIMATION_MAX_ELEMENTS = 150;
-
-/**
- * 大图布局降级：元素数超过 {@link LAYOUT_ANIMATION_MAX_ELEMENTS} 时，
- * 显式给布局参数补 {@code animation:false}，让 G6 走 execute/stop/tick 的同步分支——
- * 纯物理迭代（实测 298 节点 + 487 边约 1s）+ 一次终态重绘，收敛结果与动画路径一致。
- * 小图保持动画布局（观察力导收敛过程）不变。
- *
- * @param graph 本次要执行布局的 G6 实例
- */
-/**
- * 计算当前图模型的布局指纹（数据指纹 + 布局名 + 生效参数，剔除随运行态变化的
- * {@code animation} 开关——大图降级会给布局补 {@code animation:false}，
- * 同一份配置首次运行前后只有这一位不同，不应影响指纹判定）。
- *
- * @param graph 本次要执行布局的 G6 实例
- * @return 指纹字符串
- */
-const layoutStampOf = (graph: Graph): string => {
-  const nodes = graph.getNodeData?.() ?? [];
-  const edges = graph.getEdgeData?.() ?? [];
-  const dataKey = keyOf({ nodes, edges } as any);
-  const cur = graph.getLayout?.();
-  const first: any = Array.isArray(cur) ? cur[0] : cur;
-  const optsKey = first && typeof first === "object"
-    ? Object.keys(first)
-      .filter(k => k !== "animation")
-      .sort()
-      .map(k => `${k}=${JSON.stringify(first[k])}`)
-      .join(",")
-    : "";
-  return `${modelGeneration}|${dataKey}|${first?.type ?? ""}|${optsKey}`;
-};
-
-/**
- * 执行一次布局（内部实现）。
- *
- * <p>指纹未变且未显式 force 时直接跳过：模型没变、参数没变的重排是纯浪费。</p>
- *
- * @param graph 本次要执行布局的 G6 实例
- * @param from 调用来源（仅用于日志）
- * @param force 忽略指纹强制重排
- */
-const runLayoutForGraph = async (graph: Graph, from: string, force: boolean): Promise<void> => {
-  const nodes = graph.getNodeData?.() ?? [];
-  const edges = graph.getEdgeData?.() ?? [];
-  const stamp = layoutStampOf(graph);
-  if (!force && stamp === lastLayoutStamp) {
-    log(`布局指纹未变（${from}），跳过重复重排`);
-    return;
-  }
-  // 分组聚簇布局（groupedLayout=true）由自定义布局 rrg-cluster 一次算好终态坐标，
-  // 无需预写力导向种子坐标。
-  if (nodes.length + edges.length <= LAYOUT_ANIMATION_MAX_ELEMENTS) {
-    await graph.layout();
-    lastLayoutStamp = stamp;
-    return;
-  }
-  const cur = graph.getLayout?.();
-  const withAnimationOff = Array.isArray(cur)
-    ? cur.map((l: any) => ({ ...l, animation: false }))
-    : { ...(cur && typeof cur === "object" ? cur : {}), animation: false };
-  await graph.layout(withAnimationOff as any);
-  lastLayoutStamp = stamp;
-};
-
-const layoutForGraph = (graph: Graph, from = "?", force = false): Promise<void> => {
-  const run = layoutChain.then(() => runLayoutForGraph(graph, from, force));
-  layoutChain = run.catch(() => {});
-  return run;
-};
-
-/**
- * 装载数据：走 addNodeData / addEdgeData 追加路径。
- *
- * @param d 图数据
- */
-const loadData = async (d: RelationGraphData) => {
-  const graph = graphRef.value;
-  if (!graph) {
-    return;
-  }
-  // 模型重装：坐标已被 G6 重置，后续布局必须真正执行
-  modelGeneration++;
-  const nodes = (d.nodes ?? []).map(toNodeData);
-  const edges = (d.edges ?? []).map(toEdgeData);
-  // combo 必须先于节点注册：节点通过 combo 字段引用容器（rrg-group:*），
-  // G6 v5 若先 addNodeData 再 addComboData，draw/render 解析节点 combo 引用时会抛
-  // "Node not found for id: rrg-group:xxx"。故先补 combo，再节点，最后边。
-  (d.combos ?? []).forEach(c => graph.addComboData([c as any]));
-  if (nodes.length) {
-    graph.addNodeData(nodes as any);
-  }
-  if (edges.length) {
-    graph.addEdgeData(edges as any);
-  }
-  await graph.draw();
-  // 装载后必须真跑一次布局：draw() 只画不排，节点坐标一直缺省（全堆在图原点），
-  // 随后的 fitView 会把这一小簇按「适配」放大到 maxZoom——观感就是巨大的节点与边互相重叠。
-  // setLayout 走的正是 layout() → fitView 这条链路，这里对齐它。
-  try {
-    await layoutForGraph(graph, "loadData");
-  } catch (e) {
-    // 树布局（dendrogram / indented / mindmap / compact-box）要求树形数据，
-    // 用在普通关系图上 G6 会抛 "Tree structure not found"：如实记日志，不让它变成未捕获异常
-    log("装载后布局失败（树布局需要树形数据）：", e);
-  }
-  appliedKey = keyOf(d);
-  empty.value = nodes.length === 0;
-  await fitAfterLoad(graph);
-  pinFixedNodes();
-  // 首装 / 重装不属于「可撤销的编辑」：清空撤销栈，保证 undo 回到的是本次装载前的状态。
-  clearHistoryStack();
-  // 节点内容插槽：装载后把每个 html 节点的 DOM 容器渲染并挂载好
-  attachSlots();
-  // 放在 loadData 末尾而非各 mutator：initGraph 首装、doSetData 重装都走这里，
-  // 保证「以 mode=3d 首次挂载」时 3D 层也能拿到首份快照
-  sync3d();
-  syncSetPlugins(graph);
-};
-
-/** 取得 History 插件实例（key='history'）并挂上 change 监听 */
-const setupHistory = (graph: Graph) => {
-  try {
-    historyInst.value = (graph as any).getPluginInstance?.("history") ?? null;
-  } catch {
-    historyInst.value = null;
-  }
-  const h = historyInst.value;
-  if (h?.on) {
-    h.on("change", () => {
-      refreshHistoryState();
-    });
-  }
-  refreshHistoryState();
-};
-
-/** 刷新 canUndo / canRedo + 对外事件 */
-const refreshHistoryState = () => {
-  const h = historyInst.value;
-  canUndo.value = !!h?.canUndo?.();
-  canRedo.value = !!h?.canRedo?.();
-  emit("history-change", { canUndo: canUndo.value, canRedo: canRedo.value });
-};
-
-/** 清空撤销 / 重做栈（不可撤销的装载后调用） */
-const clearHistoryStack = () => {
-  historyInst.value?.clear?.();
-  refreshHistoryState();
-};
-
-/** 创建图实例 */
-const initGraph = async () => {
-  if (!containerRef.value) {
-    return;
-  }
-  const graph = new Graph({
+const initGraph = () => {
+  if (!containerRef.value || graph) return;
+  // 画布内的浏览器原生右键菜单会盖在我们的浮层上，先拦掉（组件外部右键不受影响）
+  containerRef.value.addEventListener("contextmenu", preventNativeContextMenu);
+  graph = new Graph({
     container: containerRef.value,
-    autoResize: true,
-    // 关键：不要开 autoFit: "view"。它在**每次 render** 都按当前包围盒执行 fitView，
-    // 而空图（数据未到 / 弹窗 v-loading 期间先挂载）的包围盒是原点处的零面积簇，
-    // G6 会把它「适配」放大到接近 maxZoom（实测 zoom 4.7~10）——业务页看到的巨大点边重叠。
-    // 更糟的是 G6 v5 的 fitView 默认 when:'overflow'：一旦被放大到「填满视口」，后续真数据
-    // render 时判定「内容不超出、无需适配」，缩放就永久卡在那个放大值上。
-    // 视口适配改由 loadData 末尾的 fitAfterLoad（when:'always' + 空数据守卫）统一负责。
-    autoFit: false,
-    animation: true,
-    data: { nodes: [], edges: [], combos: [] },
+    data: toG6Data(),
+    behaviors: buildBehaviors() as any[],
     node: {
-      style: { fill: "#e8f3ff", stroke: "#2992ff", lineWidth: 1.5 },
-      // G6 v5 的状态样式必须挂在 node.state（顶层 nodeState 是无效键，悬停高亮才不生效）
-      state: buildStateStyle().node,
+      palette: { field: "cluster" },
+      // G6 5.1.1 的坑：状态样式是「合并叠加」的，摘掉状态时并不会把上一次
+      // 状态写进去的属性回滚 —— 它只是不再参与合并，元素身上那份旧值还在。
+      // inactive 的 opacity: 0.14 一旦写进去就永久留着，于是「悬停过一次的
+      // 节点移开后永远是灰的」（实测：state 已清空，opacity 仍是 0.14）。
+      // 解法：把 normal 值写进默认样式，让它每次合并都参与，从而能盖掉残留值。
+      // 用回调按节点自己的数据取值，业务给节点写了 opacity 也不会被这里抹平。
+      // 只放状态里用到的键，别碰 size / fill（会盖掉节点自己的数据样式）。
+      style: {
+        opacity: function (this: unknown, d: { style?: Record<string, unknown> }) {
+          return (d?.style?.opacity as number) ?? 1;
+        },
+        labelOpacity: function (this: unknown, d: { style?: Record<string, unknown> }) {
+          return (d?.style?.labelOpacity as number) ?? 1;
+        },
+      } as any,
+      // 交互态样式：悬停高亮 / 点选 / 框选 / 最短路径共用这套
+      state: NODE_STATE_STYLES as any,
     },
     edge: {
-      style: { stroke: "#c3cbd8", lineWidth: 1.2 },
-      state: buildStateStyle().edge,
+      // 同上：EDGE_STATE_STYLES.inactive 会写 opacity，这里给个可复位的基线
+      style: {
+        opacity: function (this: unknown, d: { style?: Record<string, unknown> }) {
+          return (d?.style?.opacity as number) ?? 1;
+        },
+      } as any,
+      state: EDGE_STATE_STYLES as any,
     },
     combo: {
-      // 原生圆形组合：容器尺寸由子节点包围盒自动推导（CircleCombo），
-      // 视觉上是一团一气泡，不是矩形框
-      type: "circle",
-      style: { fill: "rgba(109,93,252,0.06)", stroke: "#c9c2ff", lineWidth: 1.5, lineDash: [4, 6] },
+      type: "rect",
+      style: {
+        radius: 12,
+        padding: 18,
+        lineWidth: 1.5,
+        fillOpacity: 0.5,
+        // 同上：COMBO_STATE_STYLES.inactive 会写 opacity，这里给个可复位的基线
+        opacity: 1,
+        collapsedMarker: true,
+        collapsedMarkerType: "child-count",
+        labelFontSize: 12,
+        labelFontWeight: "bold",
+        labelPlacement: "top",
+      },
+      state: COMBO_STATE_STYLES as any,
     },
-    // 分组聚簇的布局描述自带 type（combo-combined），不能再前置 { type } 展开覆盖
-    layout: (currentLayout.value === GROUPED_LAYOUT
-      ? toGroupedLayoutDesc(props.layoutOptions)
-      : { type: currentLayout.value, ...resolveLayoutOptions(currentLayout.value, props.layoutOptions) }) as any,
-    behaviors: buildBehaviors(),
-    plugins: buildPlugins(),
-  } as any);
-
-  graphRef.value = graph;
-  bindEvents(graph);
-  bindAssistCleanup();
-  await graph.render();
-  // history 插件在 render 时实例化，取出实例用于 undo/redo 与状态刷新
-  setupHistory(graph);
-  await loadData(graphData.value);
-  ready.value = true;
-  // 初始化是异步的：父组件若在 render 期间取到数并更新了 props，那次更新会落在 ready 之前，
-  // 被 watcher 跳过（实测就是这里丢了节点）。这里按指纹补一次最终同步。
-  if (keyOf(graphData.value) !== appliedKey) {
-    log("init 期间数据已更新，补一次同步");
-    await setData(graphData.value);
-  }
-  // Neo4j 式部分加载：只拉 depth 层局部子图，后续靠右键扩线继续展开。
-  // 只在「配置了 loadPartial 且尚未加载过」时执行一次，避免和 props 数据来回重装。
-  if (props.partial && props.loadPartial && !partialLoaded.value) {
-    try {
-      const partialData = await props.loadPartial(props.expandDepth);
-      partialLoaded.value = true;
-      if (partialData) {
-        await setData(partialData);
-      }
-    } catch (e) {
-      log("部分加载失败", e);
-    }
-  }
-  log("rendered; model", (graph.getNodeData?.() ?? []).length, "nodes");
-  emit("ready", graph);
-};
-
-/**
- * 装载（首装 / 换数据）完成后的视口适配。
- *
- * <p>调用时机在 layout() resolve 之后（见 loadData），此时布局已把节点铺开，
- * fitView 计算的是真实内容包围盒。此前是 400ms 定时抢跑：布局尚未铺开，
- * 会把聚簇包围盒按「适配」放大到 maxZoom（10），观感即巨大的点边重叠。</p>
- *
- * <p><strong>when:'always'</strong>：G6 v5 的 fitView 默认 {@code when:'overflow'}，
- * 只在内容超出视口时才适配。空图阶段（数据未到 / 弹窗先挂载）包围盒是原点零面积簇，
- * 一旦被放大到「填满视口」，后续真数据来了会被判定「不超出、无需适配」而原样卡死——
- * 这正是业务页看到节点巨大且缩放再也回不去的根因。这里强制按真实包围盒重算。</p>
- *
- * @param graph 本次装载使用的 G6 实例（identity 守卫：期间若被 rebuild 替换则跳过）
- */
-const fitAfterLoad = async (graph: Graph) => {
-  if (graphRef.value !== graph) {
-    log("装载后适配跳过：graph 实例已被替换或已卸载");
-    return;
-  }
-  // 空图不 fit：没有节点时包围盒退化到原点零面积簇，G6 会把它放大到接近 maxZoom，
-  // 反而制造出「巨大点」的假象。等数据真正进来再 fit。
-  if (!(graph.getNodeData?.() ?? []).length) {
-    return;
-  }
-  try {
-    await graph.fitView?.({ when: "always" } as any, false)?.catch?.(() => {});
-    pinFixedNodes();
-  } catch (e) {
-    log("装载后适配失败", e);
-  }
-};
-
-const syncSelected = (graph: Graph) => {
-  // click-select 行为的状态应用是异步的（先同步 updateData，再 yield 等待渲染动画），
-  // 在 node:click / canvas:click 里同步读会读到点击前的旧状态（永远慢一拍、发空数组）。
-  // 推迟到微任务：事件分发结束时行为的同步段已完成，读到的是本次交互后的真实选中。
-  // 节点与边都要读：点击边时 G6 同样会打 selected 态（并清掉节点选中），
-  // 只读 node 会让「删除边 / 更新边」按钮永不出现、selection-change 收不到边 id。
-  queueMicrotask(() => {
-    const nodeIds = graph.getElementDataByState?.("node", "selected")?.map((x: any) => x.id) ?? [];
-    const edgeIds = graph.getElementDataByState?.("edge", "selected")?.map((x: any) => x.id) ?? [];
-    const ids = [...nodeIds, ...edgeIds];
-    selectedIds.value = ids;
-    emit("selection-change", ids);
-    // 选中态变了：让插槽 scope 里的 selected 跟着更新
-    attachSlots();
+    // 分组布局返回 undefined：G6 不跑布局，直接使用数据里的 style.x / style.y
+    layout: buildLayout() as any,
+    plugins: [
+      ...buildGroupPlugins(),
+      buildTooltipPlugin(),
+      buildMinimapPlugin(),
+    ].filter(Boolean) as any[],
+    // "view" = 缩放到完整可见（"center" 只居中不缩放，内容大会超出视口）
+    autoFit: "view",
+    // 视口留白：气泡上方的分组标签不会被画布边缘裁掉
+    padding: 28,
   });
-};
-
-/** 绑定交互事件 */
-const bindEvents = (graph: Graph) => {
-  graph.on("node:click", (ev: any) => {
-    const n = nodeById(idOf(ev));
-    if (n) {
-      emit("node-click", n, ev);
-    }
-    syncSelected(graph);
-  });
-  graph.on("node:contextmenu", (ev: any) => {
-    const n = nodeById(idOf(ev));
-    if (n) {
-      emit("node-right-click", n, ev);
-      if (props.contextMenu) {
-        openMenu(ev, "node", n.id);
+  graphAlive = true;
+  renderSettled = false;
+  pendingStates = null;
+  bindEvents(graph, () => graphAlive);
+  graph.render().then(() => {
+    if (!graphAlive) return;
+    renderSettled = true;
+    flushPendingStates();
+    // combo 建好之后按 collapsedGroups 折叠初始分组（默认不折叠）
+    applyInitialCollapsed().catch(() => {});
+    // 路径模式重建（进入 / 退出时摘挂轮廓）后，可见性要按当前模式补一次
+    if (pathModeState.value) {
+      applyPathVisibilityNow();
+      if (pendingPathFocus) {
+        pendingPathFocus = false;
+        focusElements(pathNodesState.value);
       }
     }
-  });
-  graph.on("node:dblclick", (ev: any) => {
-    const n = nodeById(idOf(ev));
-    if (n) {
-      emit("node-dblclick", n, ev);
-    }
-  });
-  graph.on("node:pointerenter", async (ev: any) => {
-    const n = nodeById(idOf(ev)) ?? null;
-    hovered.value = n;
-    emit("node-hover", n, ev);
-    // 指针转到节点上时收起边标签，否则上一条边的标签会一直挂着
-    void revealEdgeLabel(null);
-    await applyHoverHighlight(n?.id ?? null, true);
-  });
-  graph.on("node:pointerleave", async (ev: any) => {
-    hovered.value = null;
-    emit("node-hover", null, ev);
-    await applyHoverHighlight(null, false);
-  });
-  graph.on("edge:click", (ev: any) => {
-    const e = edgeById(idOf(ev));
-    if (e) {
-      emit("edge-click", e, ev);
-    }
-    // 点击边同样要同步选中态：否则 selectedIds 停留在上一个节点，
-    // 「删除边 / 更新边」工具栏按钮（依赖 selectedIds + isEdgeId）永远不出现，
-    // 父组件也收不到 selection-change。
-    syncSelected(graph);
-  });
-  graph.on("edge:pointerenter", (ev: any) => {
-    void revealEdgeLabel(idOf(ev));
-  });
-  graph.on("edge:pointerleave", () => {
-    void revealEdgeLabel(null);
-  });
-  graph.on("edge:contextmenu", (ev: any) => {
-    const e = edgeById(idOf(ev));
-    if (e) {
-      emit("edge-right-click", e, ev);
-      if (props.contextMenu) {
-        openMenu(ev, "edge", e.id ?? `${e.source}->${e.target}`);
-      }
-    }
-  });
-  graph.on("edge:dblclick", (ev: any) => {
-    const e = edgeById(idOf(ev));
-    if (e) {
-      emit("edge-dblclick", e, ev);
-    }
-  });
-  graph.on("canvas:click", (ev: any) => {
-    menu.value.visible = false;
-    emit("canvas-click", ev);
-    syncSelected(graph);
-  });
-  graph.on("canvas:contextmenu", (ev: any) => {
-    if (props.contextMenu && props.editable) {
-      openMenu(ev, "canvas", "");
-    }
+    if (graph) emit("ready", graph);
   });
 };
 
-/** 打开右键菜单（坐标取客户端坐标，菜单用 fixed 定位） */
-const openMenu = (ev: any, kind: "node" | "edge" | "canvas", id: string) => {
-  const oe = ev?.originalEvent ?? ev;
-  const x = (oe?.clientX ?? oe?.canvas?.x ?? 0) as number;
-  const y = (oe?.clientY ?? oe?.canvas?.y ?? 0) as number;
-  menu.value = { visible: true, x, y, kind, id };
-};
-
-// ==================== 对外 API ====================
-
-/** 应用一份新数据（保持布局与视口） */
-/** 装载串行化链：并发装载会重复 addNodeData，抛 "Node already exists" */
-let applyChain: Promise<void> = Promise.resolve();
-
-/**
- * 清空并重新装载（对外 setData 的实现体）。
- *
- * @param d 图数据
- */
-const doSetData = async (d: RelationGraphData) => {
-  const graph = graphRef.value;
-  if (!graph) {
-    return;
-  }
-  // 显式先删后加：实测 setData({nodes:[],...}) 并不会真正把已有节点清掉，
-  // 紧接着 addNodeData 会报 "Node already exists"。
-  const prevEdges = (graph.getEdgeData?.() ?? []).map((x: any) => x.id);
-  const prevNodes = (graph.getNodeData?.() ?? []).map((x: any) => x.id);
-  const prevCombos = (graph.getComboData?.() ?? []).map((x: any) => x.id);
-  if (prevEdges.length) {
-    graph.removeEdgeData(prevEdges);
-  }
-  if (prevNodes.length) {
-    graph.removeNodeData(prevNodes);
-  }
-  if (prevCombos.length) {
-    graph.removeComboData(prevCombos);
-  }
-  // 被移除节点的插槽容器要显式卸载：否则 slotEls / 手工 render 的实例会随每次
-  // setData 累积（G6 只销毁自己的 html DOM，不管我们挂进去的子元素与 Vue 实例）。
-  prevNodes.forEach(id => unmountSlot(id));
-  await graph.draw();
-  await loadData(d);
-  clearHistoryStack();
-  emit("data-change", d);
+/** 重建画布：布局切换时必须整图重建，否则 G6 会沿用上一次布局的算法状态 */
+const recreateGraph = () => {
+  graphAlive = false;
+  graph?.destroy();
+  graph = null;
+  initGraph();
 };
 
 /**
- * 更新整图数据（串行执行，避免与初始化补同步并发）。
- *
- * @param d 图数据
+ * 合并同一帧内的多次重建请求（拖参数滑块会每帧发一次改动）：
+ * 逐次销毁重建既浪费，又容易让上一实例的异步回调落在已销毁的画布上。
  */
-const setData = async (d: RelationGraphData) => {
-  const run = applyChain.then(() => doSetData(d)).catch(e => {
-    log("setData 失败", e);
-  });
-  applyChain = run;
-  return run;
-};
-
-const addNode = async (n: RelationNode) => {
-  const graph = graphRef.value;
-  if (!graph) {
-    return;
-  }
-  graph.addNodeData([toNodeData(n)]);
-  empty.value = false;
-  // 先广播数据变更再等渲染：draw() 会等状态过渡动画播完（默认约 1s），
-  // 把 emitDataChange 排在它后面等于给 data-change 事件人为加一秒延迟
-  emitDataChange();
-  sync3d();
-  await graph.draw();
-  attachSlots();
-};
-
-const addEdge = async (e: RelationEdge) => {
-  const graph = graphRef.value;
-  if (!graph) {
-    return;
-  }
-  graph.addEdgeData([toEdgeData(e)]);
-  emitDataChange();
-  sync3d();
-  await graph.draw();
-};
-
-const updateNode = async (n: RelationNode) => {
-  const graph = graphRef.value;
-  if (!graph) {
-    return;
-  }
-  graph.updateNodeData([toNodeData(n)] as any);
-  // 先广播数据变更再等渲染：draw() 会等状态过渡动画播完（默认约 1s），
-  // 把 emitDataChange 排在它后面等于给 data-change 事件人为加一秒延迟
-  emitDataChange();
-  sync3d();
-  await graph.draw();
-  attachSlots();
-};
-
-const updateEdge = async (e: RelationEdge) => {
-  const graph = graphRef.value;
-  if (!graph) {
-    return;
-  }
-  graph.updateEdgeData([toEdgeData(e)] as any);
-  emitDataChange();
-  sync3d();
-  await graph.draw();
-};
-
-const removeNode = async (id: string) => {
-  const graph = graphRef.value;
-  if (!graph) {
-    return;
-  }
-  graph.removeNodeData([id]);
-  unmountSlot(id);
-  empty.value = (graph.getNodeData?.() ?? []).length === 0;
-  // 先广播数据变更再等渲染：draw() 会等状态过渡动画播完（默认约 1s），
-  // 把 emitDataChange 排在它后面等于给 data-change 事件人为加一秒延迟
-  emitDataChange();
-  sync3d();
-  await graph.draw();
-};
-
-const removeEdge = async (id: string) => {
-  const graph = graphRef.value;
-  if (!graph) {
-    return;
-  }
-  graph.removeEdgeData([id]);
-  emitDataChange();
-  sync3d();
-  await graph.draw();
-};
-
-/**
- * 更新当前选中的单个节点（工具栏「更新节点」按钮）。
- *
- * <p>内联编辑的最小实现：label 追加 _udt 并写入 __updated 标记，
- * 全程复用公开 API {@link updateNode}（含撤销栈与 3D 同步）；
- * 业务需要自定义编辑表单时，按同样方式调用 updateNode 即可。</p>
- */
-const updateSelectedNode = async () => {
-  const ids = selectedIds.value;
-  if (ids.length !== 1) {
-    return;
-  }
-  const node = nodeById(ids[0]);
-  if (!node) {
-    return;
-  }
-  await updateNode({
-    ...node,
-    label: `${node.label ?? node.id}_udt`,
-    data: { ...(node.data ?? {}), __updated: true },
+let recreateScheduled = false;
+const scheduleRecreate = () => {
+  if (recreateScheduled) return;
+  recreateScheduled = true;
+  requestAnimationFrame(() => {
+    recreateScheduled = false;
+    if (!graph) return;
+    recreateGraph();
   });
 };
 
-/**
- * 更新当前选中的单条边（工具栏「更新边」按钮）。
- *
- * <p>语义与 {@link updateSelectedNode} 对称。</p>
- */
-const updateSelectedEdge = async () => {
-  const ids = selectedIds.value;
-  if (ids.length !== 1) {
-    return;
-  }
-  const edge = edgeById(ids[0]);
-  if (!edge) {
-    return;
-  }
-  await updateEdge({
-    ...edge,
-    label: `${edge.label ?? edge.id}_udt`,
-    data: { ...(edge.data ?? {}), __updated: true },
-  });
+/** 切换布局（等价于改 layout prop；供业务/工具栏命令式调用） */
+const setLayout = (type: string, options?: Record<string, unknown>) => {
+  layoutState.value = options ? { type, ...options } : (type as LayoutType);
+  emit("update:layout", type);
 };
 
-/** 删除当前选中的单个节点（工具栏「删除节点」按钮） */
-const removeSelectedNode = async () => {
-  const ids = selectedIds.value;
-  if (ids.length !== 1) {
-    return;
-  }
-  await removeNode(ids[0]);
+/** 切换分组轮廓类型（等价于改 groupType prop） */
+const setGroupType = (type: GroupType) => {
+  groupTypeState.value = type;
+  emit("update:groupType", type);
 };
 
-/** 删除当前选中的单条边（工具栏「删除边」按钮） */
-const removeSelectedEdge = async () => {
-  const ids = selectedIds.value;
-  if (ids.length !== 1) {
-    return;
-  }
-  await removeEdge(ids[0]);
+/** 显示 / 隐藏分组轮廓 */
+const setGroupVisible = (visible: boolean) => {
+  groupVisibleState.value = visible;
+  emit("update:groupVisible", visible);
 };
 
-/** 切换布局 */
-const setLayout = async (name: RelationLayoutName, options?: Record<string, unknown>, force = false) => {
-  const graph = graphRef.value;
-  if (!graph) {
-    return;
-  }
-  currentLayout.value = name;
-  try {
-    const desc: any = name === GROUPED_LAYOUT
-      ? toGroupedLayoutDesc(options ?? perLayoutTuningValues.value[name] ?? props.layoutOptions)
-      : { type: name, ...resolveLayoutOptions(name, options ?? perLayoutTuningValues.value[name] ?? props.layoutOptions) };
-    graph.setLayout(desc);
-    await layoutForGraph(graph, "setLayout", force);
-  } catch (e) {
-    // 树布局（dendrogram / indented / mindmap / compact-box）要求树形数据，
-    // 用在普通关系图上 G6 会抛 "Tree structure not found"。这里优雅失败并如实记日志，
-    // 不让它变成一个未捕获异常。
-    log("布局失败（树布局需要树形数据）：" + name, e);
-    emit("layout-change", name + ":failed");
-    return;
-  }
-  await graph.fitView?.({ when: "always" } as any, false)?.catch?.(() => {});
-  pinFixedNodes();
-  emit("layout-change", name);
-};
+/* ---------- 交互开关（点选 / 框选 / 高亮 / 小地图 / tooltip / 分组折叠） ---------- */
 
-/**
- * 「布局调参」面板的状态。
- *
- * <p>面板里的每个参数都直接对应 {@link FORCE_LAYOUT_DEFAULTS} 的同名项；
- * 改动后调用 {@link applyLayoutTuning} 以新参数重跑一次布局，做到实时生效。
- * 非力向布局下列表为空，面板会自动提示「当前布局不支持调参」。</p>
- */
-interface LayoutTuningField {
-  /** 传给 G6 布局的参数键 */
-  key: string;
-  /** 界面标签 */
-  label: string;
-  /** range 控件范围 */
-  min?: number;
-  max?: number;
-  step?: number;
-  /**
-   * 控件类型。
-   *
-   * <p>不能靠 {@code step === 1} 判定「是否开关」——{@code kr}/{@code kg}
-   * 的步长也是 1 却是有界数值，会被误渲染成 on/off 开关而丢掉全部调节能力。</p>
-   */
-  control: "switch" | "range" | "select";
-  /** 默认值；缺省时按 range 取 min */
-  defaultValue?: number | string;
-  /** select 控件的选项 */
-  options?: Array<{ label: string; value: string }>;
-}
-
-/**
- * 各布局独立的面板调参表。
- *
- * <p>布局切换后面板只显示当前布局自己的字段；每个布局的参数单独保存，
- * 切走再切回仍在原值上。</p>
- */
-const LAYOUT_SETTING_FIELDS: Record<string, LayoutTuningField[]> = {
-  "force": [
-    { key: "nodeStrength", label: "节点斥力", min: -2000, max: -100, step: 100, control: "range" },
-    { key: "linkDistance", label: "连线距离", min: 40, max: 400, step: 10, control: "range" },
-    { key: "nodeSize", label: "碰撞半径", min: 10, max: 120, step: 5, control: "range" },
-    { key: "preventOverlap", label: "防重叠", min: 0, max: 1, step: 1, control: "switch", defaultValue: 0 },
-  ],
-  "d3-force": [
-    { key: "nodeStrength", label: "节点斥力", min: -2000, max: -100, step: 100, control: "range" },
-    { key: "linkDistance", label: "连线距离", min: 40, max: 400, step: 10, control: "range" },
-    { key: "nodeSize", label: "碰撞半径", min: 10, max: 120, step: 5, control: "range" },
-    { key: "preventOverlap", label: "防重叠", min: 0, max: 1, step: 1, control: "switch", defaultValue: 0 },
-  ],
-  "force-atlas2": [
-    { key: "kr", label: "斥力系数", min: 1, max: 200, step: 1, control: "range" },
-    { key: "kg", label: "重力系数", min: 1, max: 100, step: 1, control: "range" },
-    { key: "prune", label: "剪枝贴附", min: 0, max: 1, step: 1, control: "switch", defaultValue: 0 },
-  ],
-  "fruchterman": [
-    { key: "gravity", label: "重力系数", min: 1, max: 20, step: 1, control: "range" },
-    { key: "linkDistance", label: "连线距离", min: 40, max: 400, step: 10, control: "range" },
-    { key: "nodeSize", label: "节点尺寸", min: 10, max: 120, step: 5, control: "range" },
-  ],
-  "circular": [
-    { key: "radius", label: "圆半径", min: 60, max: 800, step: 20, control: "range" },
-    { key: "startAngle", label: "起始角度", min: 0, max: 360, step: 10, control: "range" },
-    { key: "endAngle", label: "结束角度", min: 0, max: 360, step: 10, control: "range" },
-    { key: "clockwise", label: "顺时针", min: 0, max: 1, step: 1, control: "switch", defaultValue: 1 },
-  ],
-  "grid": [
-    { key: "cols", label: "列数", min: 1, max: 20, step: 1, control: "range" },
-    { key: "rows", label: "行数", min: 1, max: 20, step: 1, control: "range" },
-    { key: "nodeSize", label: "节点尺寸", min: 10, max: 120, step: 5, control: "range" },
-    { key: "preventOverlap", label: "防重叠", min: 0, max: 1, step: 1, control: "switch", defaultValue: 1 },
-  ],
-  "concentric": [
-    { key: "minNodeSpacing", label: "最小间距", min: 0, max: 200, step: 5, control: "range" },
-    { key: "nodeSpacing", label: "节点间距", min: 0, max: 120, step: 2, control: "range" },
-    { key: "nodeSize", label: "节点尺寸", min: 10, max: 120, step: 5, control: "range" },
-    { key: "preventOverlap", label: "防重叠", min: 0, max: 1, step: 1, control: "switch", defaultValue: 1 },
-  ],
-  "radial": [
-    { key: "linkDistance", label: "连线距离", min: 40, max: 400, step: 10, control: "range" },
-    { key: "nodeSize", label: "节点尺寸", min: 10, max: 120, step: 5, control: "range" },
-    { key: "preventOverlap", label: "防重叠", min: 0, max: 1, step: 1, control: "switch", defaultValue: 1 },
-  ],
-  "dagre": [
-    { key: "rankdir", label: "方向", control: "select", defaultValue: "TB", options: [
-      { label: "上→下", value: "TB" }, { label: "下→上", value: "BT" }, { label: "左→右", value: "LR" }, { label: "右→左", value: "RL" },
-    ] },
-    { key: "nodesep", label: "同级间距", min: 10, max: 200, step: 5, control: "range" },
-    { key: "ranksep", label: "层级间距", min: 10, max: 240, step: 5, control: "range" },
-    { key: "nodeSize", label: "节点尺寸", min: 10, max: 120, step: 5, control: "range" },
-  ],
-  "antv-dagre": [
-    { key: "rankdir", label: "方向", control: "select", defaultValue: "TB", options: [
-      { label: "上→下", value: "TB" }, { label: "下→上", value: "BT" }, { label: "左→右", value: "LR" }, { label: "右→左", value: "RL" },
-    ] },
-    { key: "nodesep", label: "同级间距", min: 10, max: 200, step: 5, control: "range" },
-    { key: "ranksep", label: "层级间距", min: 10, max: 240, step: 5, control: "range" },
-  ],
-  // 原生 combo-combined 的三个旋钮：组内节点间距、组合内边距、组间间距
-  "rrg-cluster": [
-    { key: "nodeSpacing", label: "组内节点间距", min: 0, max: 80, step: 2, control: "range", defaultValue: 12 },
-    { key: "comboPadding", label: "组内边距", min: 0, max: 80, step: 2, control: "range", defaultValue: 18 },
-    { key: "comboSpacing", label: "组间间距", min: 0, max: 240, step: 4, control: "range", defaultValue: 40 },
-  ],
-};
-
-/**
- * 当前布局实际支持的调参项。
- *
- * <p>atlas2 的力学旋钮是 {@code kr}/{@code kg}，d3-force 是 {@code nodeStrength}，
- * 两者互不通用；只暴露当前布局真正认的那个，
- * 免得用户拖了一个被 G6 静默忽略的参数还以为没生效。</p>
- */
-const availableTuningFields = computed(
-  () => LAYOUT_SETTING_FIELDS[currentLayout.value] ?? [],
-);
-
-/** 面板展开状态 */
-const tuningOpen = ref(false);
-/** 每个布局独立保存的调参值（未改动时为空，表示用默认值） */
-const perLayoutTuningValues = ref<Record<string, Record<string, number | string>>>({});
-
-/** 当前布局生效的调参值 */
-const tuningValues = computed(() => perLayoutTuningValues.value[currentLayout.value] ?? {});
-
-/** 当前布局是否支持面板调参 */
-const tuningAvailable = computed(() => availableTuningFields.value.length > 0);
-
-/**
- * 面板上每个输入框的显示值：优先当前布局用户调过的值，否则回落到字段默认值。
- *
- * @param f 参数字段定义
- * @returns 显示值
- */
-const tuningValueOf = (f: LayoutTuningField): number | string => {
-  const v = tuningValues.value[f.key];
-  if (v !== undefined) return v;
-  if (f.defaultValue !== undefined) return f.defaultValue;
-  return f.min ?? 0;
-};
-
-/**
- * 写入当前布局的某个调参值（每个布局独立备份）。
- */
-const setTuningValue = (key: string, val: number | string) => {
-  perLayoutTuningValues.value = {
-    ...perLayoutTuningValues.value,
-    [currentLayout.value]: {
-      ...(perLayoutTuningValues.value[currentLayout.value] ?? {}),
-      [key]: val,
-    },
+/** 通用开关构造：改状态 + 回传父组件（重建由监听统一处理） */
+const toggleOf = <K extends string>(
+  state: { value: boolean },
+  key: K,
+) => {
+  return (value: boolean) => {
+    state.value = value;
+    emit(`update:${key}` as never, value as never);
   };
 };
 
-/**
- * 重置某一项调参（回到 G6 默认值）。
- *
- * @param key 参数键
- */
-const resetTuningOne = (key: string) => {
-  const next = { ...(perLayoutTuningValues.value[currentLayout.value] ?? {}) };
-  delete next[key];
-  perLayoutTuningValues.value = {
-    ...perLayoutTuningValues.value,
-    [currentLayout.value]: next,
-  };
-};
-
-/** 重置当前布局全部调参 */
-const resetTuningAll = () => {
-  const next = { ...perLayoutTuningValues.value };
-  delete next[currentLayout.value];
-  perLayoutTuningValues.value = next;
-};
+const setClickSelect = toggleOf(clickSelectState, "clickSelect");
+const setBrushSelect = toggleOf(brushSelectState, "brushSelect");
+const setHighlight = toggleOf(highlightState, "highlight");
+const setMinimap = toggleOf(minimapState, "minimap");
+const setCombo = toggleOf(comboState, "combo");
+const setTooltip = toggleOf(tooltipState, "tooltip");
 
 /**
- * 展开调参面板。
- *
- * <p>对外暴露给自带工具栏的调用方（{@code toolbar=false}），
- * 让它们在自己的工具栏上放一个「调参」按钮来驱动本组件的面板。</p>
+ * 节点 / 边提示开关：单独关一边不影响另一边。
+ * 总开关「tooltip」是关闭态时，打开任意一边会自动把总开关也打开（否则开关像是失灵）。
  */
-const openTuning = () => {
-  if (!props.tunable) {
-    return;
-  }
-  tuningOpen.value = true;
+const setNodeTooltip = (value: boolean) => {
+  nodeTooltipState.value = value;
+  emit("update:nodeTooltip", value);
+  if (value && !tooltipState.value) setTooltip(true);
 };
-
-/** 收起调参面板 */
-const closeTuning = () => {
-  tuningOpen.value = false;
-};
-
-/** 切换调参面板开合 */
-const toggleTuning = () => {
-  if (tuningOpen.value) {
-    closeTuning();
-  } else {
-    openTuning();
-  }
+const setEdgeTooltip = (value: boolean) => {
+  edgeTooltipState.value = value;
+  emit("update:edgeTooltip", value);
+  if (value && !tooltipState.value) setTooltip(true);
 };
 
 /**
- * 以当前调参值重跑一次布局，实现「改参数 → 立刻看到效果」。
+ * 最短路径（BFS，按边数最少）。
  *
- * <p>大图（元素数超 {@link LAYOUT_ANIMATION_MAX_ELEMENTS}）走同步布局，
- * 避免动画布局的分钟级卡顿；结束后 {@code fitView} 把新布局重新框进视口，
- * 否则节点散开后会跑到画布外看不见。</p>
+ * <p>参考 G6 {@code examples/algorithm/case/shortest-path}：图上算出一条路径，
+ * 然后把「不在路径上」的元素<b>隐藏掉</b>，只留这条链路 —— 不是调透明度淡化，
+ * 是真的从画面拿掉，路径之外的东西不再抢注意力。</p>
+ *
+ * <p>起终点由调用方直接给（工具栏面板里两个下拉 / 右键菜单「以它为起点」），
+ * 不依赖「先点选两个节点」—— 点选是交互，路径是独立功能，两者不该耦合。</p>
+ *
+ * @param source 起点 id
+ * @param target 终点 id
+ * @param options.highlight 是否进入路径模式（默认 true）
+ * @param options.directed 是否只沿边方向走（默认无向）
+ * @param options.focus 是否自动缩放到路径（默认 true）
+ * @returns 路径上的节点 id（按顺序）与边 id（"source-target"）；找不到返回空
  */
-const applyLayoutTuning = async () => {
-  const graph = graphRef.value;
-  if (!graph || !tuningAvailable.value) {
-    return;
-  }
-  graph.setLayout((currentLayout.value === GROUPED_LAYOUT
-    ? toGroupedLayoutDesc(tuningValues.value)
-    : {
-      type: currentLayout.value,
-      ...resolveLayoutOptions(currentLayout.value, tuningValues.value),
-    }) as any);
-  await layoutForGraph(graph, "tuning");
-  await graph.fitView?.({ when: "always" } as any, false)?.catch?.(() => {});
-  pinFixedNodes();
-  // 调参改动也要持久化到后台（每布局独立）。这里经 scheduleTuningApply 220ms 防抖，
-  // 连续拖动滑块只会在停下来后保存一次；applyingSettings 期间 emitSettingsChange 会
-  // 自行跳过，避免「应用后台设置 → 反存」的回路。
-  emitSettingsChange();
-};
+const shortestPath = (
+  source: string,
+  target: string,
+  options?: { highlight?: boolean; directed?: boolean; focus?: boolean },
+) => {
+  const from = String(source);
+  const to = String(target);
+  const result = { nodes: [] as string[], edges: [] as string[], found: false };
 
-/**
- * 单个参数变化回调：写入值后防抖重排。
- *
- * <p>滑块连续拖动会产生大量 input 事件，直接重排会让 G6 每帧全量重绘；
- * 用 220ms 防抖把一串拖动合并成最后一次重排。</p>
- *
- * @param key 参数键
- * @param val 新值
- */
-const onTuningInput = (key: string, val: number | string) => {
-  setTuningValue(key, val);
-  scheduleTuningApply();
-};
+  if (!graph || !graphAlive || !from || !to) return result;
 
-const scheduleTuningApply = useDebounceFn(() => {
-  void applyLayoutTuning();
-}, 220);
-
-/**
- * G6 create-edge 行为的内部辅助元素 id 前缀。
- *
- * <p>拖拽连线过程中 G6 会放一条预览边（assist edge）；松手落在无效目标
- * （如画布外）时它的清理不会触发，这条边会残留在模型里。它不属于业务数据，
- * 一旦漏进 exportData 快照就会以幽灵边出现在详情面板 / 计数 / 导出结果里，
- * 所以导出处一律过滤。</p>
- */
-const G6_INTERNAL_ID_PREFIX = 'g6-create-edge-assist-';
-
-const isG6InternalId = (id: unknown): boolean =>
-  typeof id === 'string' && id.startsWith(G6_INTERNAL_ID_PREFIX);
-
-/** 清掉模型里残留的 G6 内部辅助元素（如拖拽连线中断留下的预览边/预览节点） */
-const purgeG6InternalElements = (graph: any) => {
-  if (!graph) {
-    return;
-  }
-  try {
-    // 逐个删并容错：删辅助边可能触发 G6 create-edge 行为连带清理辅助节点，
-    // 此时再删该节点会抛 "Node not found"——元素已不在即为目的达成，忽略即可
-    (graph.getNodeData?.() ?? [])
-      .filter((d: any) => isG6InternalId(d.id))
-      .forEach((d: any) => {
-        try {
-          graph.removeNodeData([d.id]);
-        } catch (e) {
-          /* 已被 G6 自身清理 */
-        }
-      });
-    (graph.getEdgeData?.() ?? [])
-      .filter((d: any) => isG6InternalId(d.id) || isG6InternalId(d.source) || isG6InternalId(d.target))
-      .forEach((d: any) => {
-        try {
-          graph.removeEdgeData([d.id]);
-        } catch (e) {
-          /* 已被 G6 自身清理 */
-        }
-      });
-  } catch (e) {
-    log("清理 G6 内部辅助元素失败", e);
-  }
-};
-
-/**
- * 延迟调度辅助元素清理。
- *
- * <p>成功连线后 G6 会在 onFinish 之后自行清理预览节点/边；同步抢删会与它的清理
- * 竞态并让它二次删除时抛 "Node not found"。延迟 500ms 执行，等 G6 清理落地后
- * 再兜底——此时成功连线场景下已无残留（no-op），只有拖拽中止（G6 不清理）的
- * 幽灵元素会被真正移除。多次变更只跑一次，避免高频拖拽下反复触发。</p>
- */
-let purgeTimer: ReturnType<typeof setTimeout> | null = null;
-/** 指针是否处于按下状态：拖拽进行中时不清辅助元素，避免打断正在画的连线 */
-let pointerActive = false;
-/** 文档级监听的卸载函数，组件销毁时统一摘除 */
-const assistCleanupFns: Array<() => void> = [];
-const schedulePurgeG6Internal = () => {
-  if (purgeTimer) {
-    clearTimeout(purgeTimer);
-  }
-  purgeTimer = setTimeout(() => {
-    purgeTimer = null;
-    // 新一轮按下进行中（可能正在拖拽连线）：预览元素属于活跃交互，不扰动
-    if (pointerActive) {
-      return;
-    }
-    purgeG6InternalElements(graphRef.value);
-  }, 500);
-};
-
-/**
- * 挂文档级指针监听，兜底「连线拖拽松手落在画布外」的残留清理。
- *
- * <p>G6 的 create-edge 只在画布内收 pointerup：用户把连线拖到工具栏 / 侧栏 /
- * 甚至窗口外松手时，预览边与预览节点不会收到清理事件，会以幽灵元素留在模型里
- * （画布上可见、可被点选）。落点在画布外时延迟调度清理；与 emitDataChange 的
- * 调度共用同一防抖定时器，成功连线（G6 自清）场景下均为 no-op。</p>
- */
-const bindAssistCleanup = () => {
-  const canvasOf = () => wrapRef.value?.querySelector(".rrg__canvas") ?? null;
-  const onPointerDown = () => {
-    pointerActive = true;
-  };
-  const onPointerUp = (ev: PointerEvent) => {
-    pointerActive = false;
-    const el = canvasOf();
-    if (el && ev.target instanceof Node && el.contains(ev.target)) {
-      // 松手在画布内：成功连线由 G6 自行清理，中止拖拽也会触发其它路径，无需抢删
-      return;
-    }
-    schedulePurgeG6Internal();
-  };
-  document.addEventListener("pointerdown", onPointerDown, true);
-  document.addEventListener("pointerup", onPointerUp, true);
-  assistCleanupFns.push(() => {
-    document.removeEventListener("pointerdown", onPointerDown, true);
-    document.removeEventListener("pointerup", onPointerUp, true);
-  });
-};
-
-const exportData = (): RelationGraphData => ({
-  nodes: (graphRef.value?.getNodeData?.() ?? [])
-    .filter((d: any) => !isG6InternalId(d.id))
-    .map((d: any) => ({
-      id: d.id,
-      label: d.data?.__label,
-      group: d.data?.__group,
-      fixed: d.data?.__fixed,
-      image: d.data?.__image,
-      type: d.type,
-      data: d.data,
-    })) as RelationNode[],
-  edges: (graphRef.value?.getEdgeData?.() ?? [])
-    .filter((d: any) => !isG6InternalId(d.id) && !isG6InternalId(d.source) && !isG6InternalId(d.target))
-    .map((d: any) => ({
-      id: d.id,
-      source: d.source,
-      target: d.target,
-      label: d.data?.__label,
-      directed: d.data?.__directed,
-      animated: d.data?.__animated,
-      type: d.type,
-      data: d.data,
-    })) as RelationEdge[],
-});
-
-/**
- * 广播一次数据变更。
- *
- * <p>把 G6 实时模型导出为业务快照后 emit，并同步 id 指纹（appliedKey）。
- * 两个细节：</p>
- * <ul>
- *   <li>不能 emit props 派生数据 —— add/update/remove 之后父组件拿到的
- *       必须是包含本次变更的完整模型，否则回写 props 会丢掉动态节点/边；</li>
- *   <li>appliedKey 跟着模型走，让「父组件把回调数据原样回传 props」的
- *       回声不会触发整图重装（重装会清空撤销栈）。</li>
- * </ul>
- */
-const emitDataChange = () => {
-  // 模型被就地变更（增删改 / G6 用户编辑）：坐标指纹已过期，后续布局必须真正执行
-  modelGeneration++;
-  // 辅助元素清理交给延迟调度：成功连线时 G6 自身会在 onFinish 之后清理预览元素，
-  // 同步抢删会让它的二次删除抛 "Node not found"；拖拽中止（松手在画布外）时 G6 不清理，
-  // 此时延迟 purge 负责兜底移除残留，避免幽灵边/幽灵节点留在画布上
-  schedulePurgeG6Internal();
-  const snapshot = exportData();
-  appliedKey = keyOf(snapshot);
-  emit("data-change", snapshot);
-};
-
-// ==================== 3D 视图 ====================
-
-/**
- * 从 G6 模型导出 3D 快照（**带 style 色值**）。
- *
- * <p>不复用 {@link exportData}：它刻意丢掉 style（对外契约是纯业务字段），
- * 而 3D 层需要 style.fill/stroke 还原球体与边的颜色，否则切到 3D 会全变默认色。</p>
- *
- * @return 3D 层可用的图数据（combos 不支持 3D，丢弃）
- */
-const build3dData = (): RelationGraphData => {
-  const g = graphRef.value;
-  if (!g) {
-    return { nodes: [...(graphData.value.nodes ?? [])], edges: [...(graphData.value.edges ?? [])] };
-  }
-  return {
-    // 与 exportData 一致过滤 G6 内部辅助元素：3D 快照同样不能带幽灵节点/边
-    nodes: (g.getNodeData?.() ?? [])
-      .filter((d: any) => !isG6InternalId(d.id))
-      .map((d: any) => ({
-        id: d.id,
-        label: d.data?.__label,
-        group: d.data?.__group,
-        fixed: d.data?.__fixed,
-        image: d.data?.__image,
-        type: d.type,
-        size: typeof d.style?.size === "number" ? d.style.size : undefined,
-        style: d.style ? { fill: d.style.fill, stroke: d.style.stroke } : undefined,
-        data: d.data,
-      })) as RelationNode[],
-    edges: (g.getEdgeData?.() ?? [])
-      .filter((d: any) => !isG6InternalId(d.id) && !isG6InternalId(d.source) && !isG6InternalId(d.target))
-      .map((d: any) => ({
-        id: d.id,
-        source: typeof d.source === "object" ? (d.source as any)?.id ?? "" : d.source,
-        target: typeof d.target === "object" ? (d.target as any)?.id ?? "" : d.target,
-        label: d.data?.__label,
-        directed: d.data?.__directed,
-        animated: d.data?.__animated,
-        style: d.style ? { stroke: d.style.stroke } : undefined,
-        data: d.data,
-      })) as RelationEdge[],
-  };
-};
-
-/**
- * 把 G6 最新模型同步进 3D 层（仅 3D 模式下有实际动作）。
- *
- * <p>所有数据变更入口（doSetData / add* / update* / remove*）末尾都会调它，
- * 保证 3D 层与 G6 单一数据源一致。</p>
- */
-const sync3d = () => {
-  if (!is3d.value) {
-    return;
-  }
-  data3d.value = build3dData();
-};
-
-/**
- * 切换 2D/3D 视图。
- *
- * <p>2D→3D：先做快照再显示；3D→2D：直接隐藏 3D 层，G6 全程保活无需恢复。
- * 切到 3D 时顺带把 G6 的选中状态搬过来，切回去时把 3D 的选中写回 G6，
- * 两个模式的选中语义保持连续。</p>
- *
- * @param m 目标模式
- */
-const setMode = async (m: RelationViewMode) => {
-  if (m === mode.value) {
-    return;
-  }
-  if (m === "3d") {
-    // 快照要在 G6 可见（有真实尺寸）时做：此时模型里已带最新坐标与样式
-    data3d.value = build3dData();
-    selected3d.value = graphRef.value?.getElementDataByState?.("node", "selected")?.map((x: any) => x.id) ?? [];
-    mode.value = "3d";
-    await nextTick();
-    // 3D 力导收敛后自动适配一次（组件内部 onEngineStop 兜底，这里再补一次）
-    window.setTimeout(() => {
-      try {
-        fg3dRef.value?.fitView?.(600);
-      } catch (e) {
-        log("3D fitView 失败", e);
-      }
-    }, 500);
-  } else {
-    // 回 2D：把 3D 期间的选中写回 G6。merge=false —— 传空表即全清，
-    // 避免「3D 里清空了选中、切回 2D 还残留旧高亮」的错位
-    const m2: Record<string, string[]> = {};
-    selected3d.value.forEach(id => {
-      m2[id] = ["selected"];
-    });
-    void safeSetElementState(graphRef.value, m2, false);
-    hovered.value = null;
-    highlight3d.value = null;
-    hoverHl3d.value = null;
-    menu.value.visible = false;
-    mode.value = "2d";
-    await nextTick();
-    // 隐藏期间 G6 尺寸没变（visibility 不触发 resize），这里只需重新适配一次视角
-    graphRef.value?.fitView?.({ when: "always" } as any, false)?.catch?.(() => {});
-  }
-  emit("mode-change", m);
-  log("mode ->", m);
-};
-
-/**
- * 3D 层的高亮集合：API 高亮与悬停高亮取并集。
- *
- * <p>分开维护是因为 2D 下 hover-activate 是 G6 自己管的，而 3D 需要手动算。</p>
- */
-const highlight3dEff = computed(() => {
-  const a = highlight3d.value;
-  const b = hoverHl3d.value;
-  if (!a && !b) {
-    return null;
-  }
-  return [...new Set([...(a ?? []), ...(b ?? [])])];
-});
-
-/**
- * 悬停时按 highlight 模式算出 3D 高亮集合（group/adjacent/both 的 3D 等价实现）。
- *
- * @param n 悬停节点，null 表示离开
- */
-const apply3dHoverHighlight = (n: RelationNode | null) => {
-  if (!n || highlightMode.value === "none") {
-    hoverHl3d.value = null;
-    return;
-  }
-  const wantGroup = highlightMode.value === "group" || highlightMode.value === "both";
-  const wantAdj = highlightMode.value === "adjacent" || highlightMode.value === "both";
-  const ids = new Set<string>();
-  if (wantGroup && n.group) {
-    (data3d.value.nodes ?? []).forEach(x => {
-      if (x.group === n.group) {
-        ids.add(x.id);
-      }
-    });
-  }
-  if (wantAdj) {
-    ids.add(n.id);
-    (data3d.value.edges ?? []).forEach(e => {
-      if (e.source === n.id) {
-        ids.add(e.target);
-      }
-      if (e.target === n.id) {
-        ids.add(e.source);
-      }
-    });
-  }
-  hoverHl3d.value = ids.size ? [...ids] : null;
-};
-
-// ==================== 3D 事件（复用 2D 的对外事件契约） ====================
-
-const on3dNodeClick = (n: RelationNode, ev: any) => {
-  emit("node-click", n, ev);
-  if (n) {
-    selected3d.value = [n.id];
-  }
-  emit("selection-change", [...selected3d.value]);
-};
-
-const on3dNodeRightClick = (n: RelationNode, ev: any) => {
-  emit("node-right-click", n, ev);
-  if (props.contextMenu && n) {
-    openMenu(ev, "node", n.id);
-  }
-};
-
-const on3dNodeHover = (n: RelationNode | null) => {
-  hovered.value = n;
-  emit("node-hover", n, null);
-  apply3dHoverHighlight(n);
-};
-
-const on3dEdgeClick = (e: RelationEdge, ev: any) => {
-  emit("edge-click", e, ev);
-};
-
-const on3dEdgeRightClick = (e: RelationEdge, ev: any) => {
-  emit("edge-right-click", e, ev);
-  if (props.contextMenu && e) {
-    openMenu(ev, "edge", e.id ?? `${e.source}->${e.target}`);
-  }
-};
-
-const on3dCanvasClick = (ev: any) => {
-  menu.value.visible = false;
-  emit("canvas-click", ev);
-  emit("selection-change", []);
-};
-
-const on3dCanvasRightClick = (ev: any) => {
-  if (props.contextMenu && props.editable) {
-    openMenu(ev, "canvas", "");
-  }
-};
-
-const api = {
-  addNode,
-  addEdge,
-  updateNode,
-  updateEdge,
-  removeNode,
-  removeEdge,
-  setData,
-  getData: exportData,
-  setLayout,
-  getLayout: () => currentLayout.value,
-  openTuning,
-  closeTuning,
-  toggleTuning,
-  applyLayoutTuning,
-  setMode,
-  getMode: () => mode.value,
-  fitView: async () => {
-    if (is3d.value) {
-      fg3dRef.value?.fitView?.(600);
-      return;
-    }
-    await graphRef.value?.fitView?.({ when: "always" } as any, true as any);
-  },
-  zoomIn: async () => {
-    if (is3d.value) {
-      fg3dRef.value?.zoomBy?.(1.25);
-      return;
-    }
-    await graphRef.value?.zoomBy?.(1.2, true as any);
-  },
-  zoomOut: async () => {
-    if (is3d.value) {
-      fg3dRef.value?.zoomBy?.(0.8);
-      return;
-    }
-    await graphRef.value?.zoomBy?.(0.8, true as any);
-  },
-  zoomTo: async (r: number) => {
-    if (is3d.value) {
-      fg3dRef.value?.zoomTo?.(r);
-      return;
-    }
-    await graphRef.value?.zoomTo?.(r, true as any);
-  },
-  centerOn: async (id: string) => {
-    if (is3d.value) {
-      fg3dRef.value?.centerOn?.(id);
-      return;
-    }
-    await graphRef.value?.focusElement?.(id, true as any);
-  },
-  select: (ids: string[]) => {
-    if (is3d.value) {
-      selected3d.value = [...ids];
-      return;
-    }
-    const m: Record<string, string[]> = {};
-    ids.forEach(id => {
-      m[id] = ["selected"];
-    });
-    void safeSetElementState(graphRef.value, m, false);
-    selectedIds.value = [...ids];
-    attachSlots();
-  },
-  getSelection: () => {
-    if (is3d.value) {
-      return [...selected3d.value];
-    }
-    // 节点与边的选中态都要返回：点击边时 G6 打的是 edge 的 selected
-    const g = graphRef.value;
-    const nodeIds = g?.getElementDataByState?.("node", "selected")?.map((x: any) => x.id) ?? [];
-    const edgeIds = g?.getElementDataByState?.("edge", "selected")?.map((x: any) => x.id) ?? [];
-    return [...nodeIds, ...edgeIds];
-  },
-  clearSelection: () => {
-    if (is3d.value) {
-      selected3d.value = [];
-      return;
-    }
-    graphRef.value?.setElementState({} as any, false);
-    selectedIds.value = [];
-    attachSlots();
-  },
-  highlight: (ids: string[]) => {
-    if (is3d.value) {
-      highlight3d.value = ids.length ? [...ids] : null;
-      return;
-    }
-    const set = new Set(ids);
-    const m: Record<string, string[]> = {};
-    (graphData.value.nodes ?? []).forEach(n => {
-      m[n.id] = set.has(n.id) ? ["active"] : ["inactive"];
-    });
-    void safeSetElementState(graphRef.value, m, false);
-  },
-  clearHighlight: () => {
-    if (is3d.value) {
-      highlight3d.value = null;
-      return;
-    }
-    graphRef.value?.setElementState({} as any, false);
-  },
-  getInstance: () => (is3d.value ? (fg3dRef.value?.getInstance?.() ?? graphRef.value) : graphRef.value),
-
-  // ===== 2026-10-07 补齐 =====
-  search: (keyword: string) => {
-    runSearch(keyword);
-    return [...searchMatches.value];
-  },
-  locate: async (id: string) => {
-    if (is3d.value) {
-      fg3dRef.value?.centerOn?.(id);
-      selected3d.value = [id];
-      emit("selection-change", [id]);
-      return;
-    }
-    await locateNode(id);
-  },
-  exportImage: (type = "png", quality = 1) => exportImage(type, quality),
-  setConnectMode,
-  getConnectMode,
-  undo: async () => {
-    if (is3d.value || !historyInst.value?.canUndo?.()) {
-      return;
-    }
-    historyInst.value.undo();
-    await nextTick();
-    refreshHistoryState();
-    syncSelected(graphRef.value as Graph);
-    sync3d();
-    emitDataChange();
-  },
-  redo: async () => {
-    if (is3d.value || !historyInst.value?.canRedo?.()) {
-      return;
-    }
-    historyInst.value.redo();
-    await nextTick();
-    refreshHistoryState();
-    syncSelected(graphRef.value as Graph);
-    sync3d();
-    emitDataChange();
-  },
-  canUndo: () => canUndo.value,
-  canRedo: () => canRedo.value,
-  clearHistory: () => clearHistoryStack(),
-} as RelationGraphApi;
-
-defineExpose(api);
-
-// ==================== 工具栏动作 ====================
-
-// 布局名走 i18n（tLayout 未命中时回退到 zh 标签），随应用语言切换
-const layoutOptions = computed(() =>
-  RELATION_LAYOUTS.map(l => ({ label: tLayout(l.value, l.label), value: l.value })),
-);
-const layoutValue = ref<string>(props.layout);
-
-watch(currentLayout, v => {
-  layoutValue.value = v;
-});
-
-const onLayoutChange = async (v: unknown) => {
-  const name = String(v) as RelationLayoutName;
-  layoutValue.value = name;
-  await setLayout(name);
-};
-
-/** 工具栏 2D/3D 切换 */
-const toggleMode = async () => {
-  await setMode(is3d.value ? "2d" : "3d");
-};
-
-/** 工具栏导出：生成 dataURL 并触发下载 */
-const onExport = async () => {
-  try {
-    const url = await exportImage("png", 1);
-    if (url) {
-      downloadDataURL(url, "relation-graph");
-    }
-  } catch (e) {
-    log("导出失败", e);
-  }
-};
-
-/** 工具栏键盘无障碍：左右方向键在控件间移动焦点（roving tabindex） */
-const rovingFocus = (dir: number, ev?: Event) => {
-  const bar = (ev?.currentTarget as HTMLElement | undefined)
-    ?? wrapRef.value?.querySelector<HTMLElement>(".rrg__toolbar");
-  if (!bar) return;
-  const items = Array.from(
-    bar.querySelectorAll<HTMLElement>(
-      'button, input, [tabindex]:not([tabindex="-1"])',
-    ),
-  ).filter(el => !el.hasAttribute("disabled") && el.offsetParent !== null);
-  if (!items.length) return;
-  const active = document.activeElement as HTMLElement;
-  const idx = items.indexOf(active);
-  const next = items[(idx + dir + items.length) % items.length];
-  next?.focus();
-};
-
-/** Esc：退出连线模式 / 清空搜索 / 关闭菜单 */
-const onEsc = () => {
-  if (connectMode.value) {
-    setConnectMode(false);
-    return;
-  }
-  if (searchText.value) {
-    clearSearch();
-    return;
-  }
-  menu.value.visible = false;
-};
-
-/** Ctrl+F：聚焦搜索框（键盘可达） */
-const focusSearch = () => {
-  wrapRef.value?.querySelector<HTMLInputElement>(".rrg__search input")?.focus();
-};
-
-/** Alt+方向键：键盘平移画布（无障碍） */
-const panBy = async (dx: number, dy: number) => {
-  const g = graphRef.value;
-  if (!g || is3d.value) return;
-  const pos = g.getPosition?.();
-  if (pos) {
-    await g.translateTo?.([pos[0] + dx, pos[1] + dy], true as any);
-  }
-};
-
-const toggleMinimap = async (on: boolean) => {
-  const graph = graphRef.value;
-  if (!graph) {
-    return;
-  }
-  // setPlugins 会让 G6 走 setExtensions → arrayDiff → destroyExtensions(exit)，
-  // 也就是**内部**把旧插件实例 destroy() 掉（插件基类会把 context 清成 {}）。
-  // 那条路径不经过我们的 safeDestroy，所以这里必须自己先把挂起的
-  // debounce 尾随调用取消掉，否则小地图那一帧会在 context 已被清空后执行 ->
-  // "Cannot read properties of undefined (reading 'getData')"（未捕获异常）。
-  for (const plugin of collectPluginInstances(graph)) {
-    cancelPluginPending(plugin);
-  }
-  graph.setPlugins(buildPluginsFor(on));
-};
-
-const minimapOn = ref(props.minimap);
-const buildPluginsFor = (withMinimap: boolean) => {
-  const list: any[] = [];
-  if (withMinimap) {
-    list.push({ type: "minimap", size: [200, 128], padding: 8, position: "right-bottom" });
-  }
-  // history 必须留在列表里：setPlugins 走 ExtensionController.setExtensions，
-  // 列表里没有的扩展会被 destroyExtensions(exit) 真正销毁（instance.destroy() 且
-  // context 被清空），此后 undo/redo 静默失效。若这里漏掉 history，
-  // 用户点一次内置工具栏的「小地图」按钮就会丢掉撤销能力。
-  list.push({ type: "history", key: "history", stackSize: 50, beforeAddCommand: beforeAddHistory });
-  return list;
-};
-
-/**
- * 安全销毁 G6 实例。
- *
- * <p><b>为什么不能直接 {@code graph.destroy()}</b>：{@code @antv/g6@5.1.1} 的
- * {@code Minimap} 用 debounce 把自己挂在 {@code AFTER_RENDER}/{@code AFTER_ANIMATE} 上：</p>
- *
- * <pre>{@code
- * this.onRender = debounce(() => { this.renderMinimap(); this.renderMask(); }, delay);
- * graph.on(GraphEvent.AFTER_ANIMATE, this.onRender);
- * }</pre>
- *
- * <p>而它的 {@code destroy()} 只做了 {@code unbindEvents()}（拦住**后续**事件），
- * <b>从不取消已经排好的 debounce 尾随调用</b>。力导布局 + {@code animation:true}
- * 是异步的，所以完全可能：动画结束排下尾随调用 → 组件卸载把 graph 销毁
- * （{@code super.destroy()} 已把 {@code context.model} 置空）→ 定时器才到点执行
- * {@code renderMinimap()} → {@code getElements()} 里 {@code model.getData()}
- * 抛 {@code "Cannot read properties of undefined (reading 'getData')"}。</p>
- *
- * <p>那是**未捕获**的异步异常，会直接冒泡成页面级 PAGEERROR。
- * 低负载下偶发、负载高时更容易撞上（ER 图批量验收里 6 次里能碰 1~2 次）。</p>
- *
- * <p>所以销毁前先把插件身上挂起的 debounce/throttle 定时器取消掉：
- * lodash 的 debounce/throttle 都带 {@code .cancel()}。
- * 这里是「拆除」，没必要把尾随那一帧补渲染出来（画在一个正在消失的 DOM 上也没意义）。</p>
- *
- * @param graph 待销毁的实例，可为空
- */
-/**
- * 取出图上**插件实例**列表。
- *
- * <p><b>坑：{@code graph.getPlugins()} 返回的是配置数组，不是实例。</b>
- * G6 源码里就是 {@code return this.options.plugins || []} ——
- * 拿到的是 {@code [{ type: 'minimap', size: [200, 128], ... }]} 这种纯配置对象，
- * 上面当然没有 debounce 函数的 {@code .cancel}。
- * 本组件第一版 {@code safeDestroy} 就栽在这里：遍历了一堆配置对象、
- * 一个 cancel 都没找到、**静默什么都没做**，于是「已修复」的假象一直持续到
- * 压测仍然偶发才暴露出来。</p>
- *
- * <p>真正的实例在 {@code graph.context.plugin.extensionMap} 里，
- * 官方也提供了 {@code graph.getPluginInstance(key)}。两条路都留着，
- * 前者优先（一次拿全），后者兜底。</p>
- *
- * @param graph G6 实例
- * @return 插件实例数组（取不到时为空数组）
- */
-const collectPluginInstances = (graph: any): any[] => {
-  const out: any[] = [];
-  const map = graph?.context?.plugin?.extensionMap;
-  if (map && typeof map === "object") {
-    for (const k of Object.keys(map)) {
-      if (map[k]) {
-        out.push(map[k]);
-      }
-    }
-    return out;
-  }
-  for (const cfg of graph?.getPlugins?.() ?? []) {
-    const inst = graph?.getPluginInstance?.(cfg?.key ?? cfg?.type);
-    if (inst) {
-      out.push(inst);
+  // 邻接表（默认无向，directed=true 时只走 source → target）
+  const adj = new Map<string, Array<{ id: string; next: string }>>();
+  for (const e of edgesState.value) {
+    const s = String(e.source);
+    const t = String(e.target);
+    const edgeId = edgeIdOf(e);
+    if (!adj.has(s)) adj.set(s, []);
+    adj.get(s)!.push({ id: edgeId, next: t });
+    if (!options?.directed) {
+      if (!adj.has(t)) adj.set(t, []);
+      adj.get(t)!.push({ id: edgeId, next: s });
     }
   }
-  return out;
-};
 
-/** 取消插件身上所有挂起的 debounce/throttle 定时器 */
-const cancelPluginPending = (plugin: any) => {
-  for (const key of Object.keys(plugin ?? {})) {
-    const fn = plugin?.[key];
-    // lodash debounce/throttle 才有 cancel；普通方法没有，正好天然跳过
-    if (typeof fn?.cancel === "function") {
-      fn.cancel();
-    }
-  }
-};
-
-/**
- * 安全销毁 G6 实例。
- *
- * <p><b>为什么不能直接 {@code graph.destroy()}</b>：{@code @antv/g6@5.1.1} 的
- * {@code Minimap} 用 debounce 把自己挂在 {@code AFTER_RENDER}/{@code AFTER_ANIMATE} 上：</p>
- *
- * <pre>{@code
- * this.onRender = debounce(() => { this.renderMinimap(); this.renderMask(); }, delay);
- * graph.on(GraphEvent.AFTER_ANIMATE, this.onRender);
- * }</pre>
- *
- * <p>而它的 {@code destroy()} 只做了 {@code unbindEvents()}（拦住**后续**事件），
- * <b>从不取消已经排好的 debounce 尾随调用</b>。力导布局 + {@code animation:true}
- * 是异步的，所以完全可能：动画结束排下尾随调用 → 图被销毁
- * （插件基类 {@code destroy()} 里 {@code this.context = {}}，{@code model} 变 undefined）
- * → 定时器才到点执行 {@code renderMinimap()} → {@code getElements()} 里
- * {@code model.getData()} 抛
- * {@code "Cannot read properties of undefined (reading 'getData')"}。</p>
- *
- * <p>那是**未捕获**的异步异常，会直接冒泡成页面级 PAGEERROR。
- * 低负载下偶发、负载高时更容易撞上（实测 8 次里能碰 1 次）。</p>
- *
- * <p>所以销毁前先取消插件挂起的定时器：lodash 的 debounce/throttle 都带
- * {@code .cancel()}。这里是「拆除」，没必要把尾随那一帧补渲染出来
- * （画在一个正在消失的 DOM 上也没意义）。</p>
- *
- * @param graph 待销毁的实例，可为空
- */
-const safeDestroy = (graph: any) => {
-  if (!graph) {
-    return;
-  }
-  try {
-    for (const plugin of collectPluginInstances(graph)) {
-      cancelPluginPending(plugin);
-    }
-  } catch (e) {
-    log("取消插件挂起任务失败", e);
-  }
-  try {
-    graph.destroy?.();
-  } catch (e) {
-    log("destroy 失败", e);
-  }
-  // G6 v5 实测 destroy() 不会移除容器里的 canvas 节点：连续 rebuild（切换高亮 /
-  // 悬停聚焦 / 小地图、回放后台设置）后容器内 canvas 逐个堆积，最新实例新建的
-  // 空白画布盖在旧实例有内容的画布之上——用户看到的就是整屏空白的知识图谱。
-  // 这里显式清空容器内全部子节点，保证新实例从干净容器起步。
-  const el = containerRef.value;
-  if (el) {
-    while (el.firstChild) {
-      el.removeChild(el.firstChild);
-    }
-  }
-};
-
-/**
- * 重建图实例（小地图这类「只能在创建时生效」的配置变更走这里）。
- */
-const rebuild = async () => {
-  const old = graphRef.value;
-  graphRef.value = null;
-  ready.value = false;
-  appliedKey = "";
-  safeDestroy(old);
-  await nextTick();
-  await initGraph();
-};
-
-// ==================== 2026-10-13 新能力：地图式工具栏 / 分组 / 高亮 / 扩线 / 详情 / 设置 ====================
-
-/** 工具栏按钮过滤：toolbarItems 缺省时全部显示 */
-const toolbarItemVisible = (name: RelationToolbarItem): boolean =>
-  !Array.isArray(props.toolbarItems) || props.toolbarItems.includes(name);
-
-/**
- * 工具栏收缩状态：写入 localStorage（per-user key），刷新/重载后保持。
- *
- * <p>默认展开；仅在用户显式点过收缩钮后才写入。读写在 try/catch 内，
- * 隐私模式 / SSR 下静默降级为「仅本次会话生效、默认展开」。</p>
- */
-const TOOLBAR_COLLAPSE_KEY = getStorageKey("rrg-toolbar-collapsed");
-const toolbarCollapsed = ref(false);
-try {
-  const saved = localStorage.getItem(TOOLBAR_COLLAPSE_KEY);
-  if (saved !== null) toolbarCollapsed.value = saved === "true";
-} catch {
-  /* 隐私模式 / SSR：忽略读取，默认展开 */
-}
-
-/** 切换工具栏收缩并持久化 */
-const toggleToolbarCollapse = (): void => {
-  toolbarCollapsed.value = !toolbarCollapsed.value;
-  try {
-    localStorage.setItem(TOOLBAR_COLLAPSE_KEY, String(toolbarCollapsed.value));
-  } catch {
-    /* 隐私模式：忽略写入失败，仅本次会话生效 */
-  }
-};
-
-/** 高亮模式循环顺序：相邻 -> 分组 -> 两者 -> 关闭 -> 相邻 */
-const HIGHLIGHT_MODE_CYCLE: RelationHighlightMode[] = ["adjacent", "group", "both", "none"];
-
-/**
- * 切换「显示分组容器」。
- *
- * <p>开启时把带 {@code group} 的节点归入浅色背景 combo，关闭后回到普通节点图。
- * 因为 combo 是图数据的一部分，这里走一次 {@code setData} 重装，确保 G6 模型里
- * 既没有残留容器也没有缺容器。</p>
- */
-const toggleGroups = async (on: boolean) => {
-  showGroupsOn.value = on;
-  emitSettingsChange();
-  if (graphRef.value) {
-    await setData(graphData.value);
-  }
-};
-
-/** 循环切换悬停高亮模式 */
-const toggleHighlightMode = async () => {
-  const idx = HIGHLIGHT_MODE_CYCLE.indexOf(highlightMode.value);
-  await setHighlightMode(HIGHLIGHT_MODE_CYCLE[(idx + 1) % HIGHLIGHT_MODE_CYCLE.length]);
-};
-
-/** 设置悬停高亮模式（重建图实例，让 hover-activate 行为生效） */
-const setHighlightMode = async (mode: RelationHighlightMode) => {
-  highlightMode.value = mode;
-  emitSettingsChange();
-  if (graphRef.value) {
-    await rebuild();
-  }
-};
-
-/** 切换「悬停隐藏其它节点」（重建图实例，让 inactive 状态样式生效） */
-const setHoverFocus = async (on: boolean) => {
-  hoverFocusOn.value = on;
-  emitSettingsChange();
-  if (graphRef.value) {
-    await rebuild();
-  }
-};
-
-/** 设置小地图开关（重建图实例，G6 v5 运行期无法实例化新插件） */
-const setMinimap = async (on: boolean) => {
-  minimapOn.value = on;
-  emitSettingsChange();
-  if (graphRef.value) {
-    await rebuild();
-  }
-};
-
-/** 工具栏小地图按钮 */
-const toggleMinimapButton = async () => {
-  await setMinimap(!minimapOn.value);
-};
-
-/**
- * 取一份元素状态快照（用于最短路径恢复）。
- */
-const snapshotElementStates = (graph: any): Record<string, string[]> => {
-  const out: Record<string, string[]> = {};
-  for (const d of graph.getNodeData?.() ?? []) {
-    out[d.id] = graph.getElementState?.(d.id) ?? [];
-  }
-  for (const d of graph.getEdgeData?.() ?? []) {
-    out[d.id] = graph.getElementState?.(d.id) ?? [];
-  }
-  return out;
-};
-
-/**
- * 在多选节点之间显示最短路径。
- *
- * <p>以第一个节点为源、其余选中节点为目标做 BFS，找到最近的目标后回推路径。
- * 找到后先快照当前元素状态，再整体替换为「路径节点高亮 / 其它节点置灰」，
- * 供 {@link restorePath} 原样恢复。</p>
- */
-const showShortestPath = async (ids?: string[]): Promise<string[]> => {
-  const graph = graphRef.value;
-  if (!graph) {
-    return [];
-  }
-  const targets = (ids ?? selectedIds.value).filter(Boolean);
-  if (targets.length < 2) {
-    return [];
-  }
-  const source = targets[0];
-  const goals = new Set(targets.slice(1));
-  const adjacency = new Map<string, Array<{ id: string; edgeId: string }>>();
-  for (const e of graph.getEdgeData?.() ?? []) {
-    const s = typeof e.source === "object" ? (e.source as any)?.id : e.source;
-    const t = typeof e.target === "object" ? (e.target as any)?.id : e.target;
-    const eid = e.id ?? `${s}->${t}`;
-    if (!adjacency.has(s)) adjacency.set(s, []);
-    if (!adjacency.has(t)) adjacency.set(t, []);
-    adjacency.get(s)!.push({ id: t, edgeId: eid });
-    adjacency.get(t)!.push({ id: s, edgeId: eid });
-  }
-
-  const prev = new Map<string, { id: string; edgeId: string } | null>();
-  const queue = [source];
-  prev.set(source, null);
-  let found: string | null = null;
+  // BFS：parents 记录 (上一跳节点, 边 id)
+  const parents = new Map<string, { prev: string; edge: string }>();
+  const seen = new Set<string>([from]);
+  const queue = [from];
   while (queue.length) {
     const cur = queue.shift()!;
-    if (goals.has(cur)) {
-      found = cur;
-      break;
-    }
-    for (const next of adjacency.get(cur) ?? []) {
-      if (!prev.has(next.id)) {
-        prev.set(next.id, { id: cur, edgeId: next.edgeId });
-        queue.push(next.id);
-      }
+    if (cur === to) break;
+    for (const { id, next } of adj.get(cur) ?? []) {
+      if (seen.has(next)) continue;
+      seen.add(next);
+      parents.set(next, { prev: cur, edge: id });
+      queue.push(next);
     }
   }
-  if (!found) {
-    return [];
+  if (!seen.has(to)) {
+    pathInfoState.value = `没有找到 ${from} → ${to} 的路径`;
+    emit("path-change", { from, to, found: false, nodes: [], edges: [] });
+    return result;
   }
 
-  const nodePath: string[] = [found];
-  const edgePath: string[] = [];
-  let cursor = found;
-  while (true) {
-    const p = prev.get(cursor);
-    if (!p) break;
-    nodePath.push(p.id);
-    if (p.edgeId) edgePath.push(p.edgeId);
-    cursor = p.id;
+  // 回溯路径
+  const nodes: string[] = [to];
+  const edges: string[] = [];
+  let cursor = to;
+  while (cursor !== from) {
+    const step = parents.get(cursor);
+    if (!step) break;
+    edges.unshift(step.edge);
+    nodes.unshift(step.prev);
+    cursor = step.prev;
   }
-  nodePath.reverse();
 
-  pathStateSnapshot = snapshotElementStates(graph);
-  const pathNodeSet = new Set(nodePath);
-  const pathEdgeSet = new Set(edgePath);
-  const map: Record<string, string[]> = {};
-  for (const d of graph.getNodeData?.() ?? []) {
-    map[d.id] = pathNodeSet.has(d.id) ? ["active"] : ["inactive"];
-  }
-  for (const d of graph.getEdgeData?.() ?? []) {
-    map[d.id!] = pathEdgeSet.has(d.id!) ? ["active"] : ["inactive"];
-  }
-  void safeSetElementState(graph, map, false);
-  pathIds.value = [...nodePath];
-  emit("path-change", [...nodePath]);
-  return [...nodePath];
-};
+  result.nodes = nodes;
+  result.edges = edges;
+  result.found = true;
 
-/** 清除最短路径高亮，恢复原图显示 */
-const restorePath = async () => {
-  const graph = graphRef.value;
-  if (!graph) {
-    return;
-  }
-  if (Object.keys(pathStateSnapshot).length) {
-    void safeSetElementState(graph, pathStateSnapshot, false);
-  } else {
-    // 没有快照时至少把 active/inactive 清掉，不影响 selected 等状态
-    const map: Record<string, string[]> = {};
-    for (const d of graph.getNodeData?.() ?? []) {
-      const cur: string[] = graph.getElementState?.(d.id) ?? [];
-      if (cur.includes("active") || cur.includes("inactive")) {
-        map[d.id] = cur.filter(s => s !== "active" && s !== "inactive");
-      }
-    }
-    for (const d of graph.getEdgeData?.() ?? []) {
-      const cur: string[] = graph.getElementState?.(d.id!) ?? [];
-      if (cur.includes("active") || cur.includes("inactive")) {
-        map[d.id!] = cur.filter(s => s !== "active" && s !== "inactive");
-      }
-    }
-    if (Object.keys(map).length) {
-      void safeSetElementState(graph, map, false);
+  if (options?.highlight !== false) {
+    pathFromState.value = from;
+    pathToState.value = to;
+    pathNodesState.value = [...nodes];
+    pathEdgesState.value = [...edges];
+    pathModeState.value = true;
+    // 轮廓插件与 combo 容器都是「按全体成员算包围盒」的，路径模式下成员被隐藏后
+    // 会留下空壳；两者都只能在 initGraph 时决定，所以要重建画布
+    const contourOn =
+      groupTypeState.value !== "none" &&
+      groupVisibleState.value &&
+      !contoursAutoHidden.value &&
+      !comboState.value;
+    if (contourOn || comboState.value) {
+      pendingPathFocus = options?.focus !== false;
+      recreateGraph();
+    } else {
+      applyPathVisibilityNow();
+      if (options?.focus !== false) focusElements(nodes);
     }
   }
-  pathStateSnapshot = {};
-  pathIds.value = [];
-  emit("path-change", []);
-};
 
-/** 打开节点详情面板（默认开启懒加载） */
-const openDetail = async (id: string) => {
-  const node = nodeById(id);
-  if (!node) {
-    return;
-  }
-  detailNode.value = node;
-  detailData.value = null;
-  if (props.lazyDetails && props.loadNodeDetail) {
-    detailLoading.value = true;
-    try {
-      const loaded = await props.loadNodeDetail(node);
-      detailData.value = loaded ?? node.data ?? {};
-    } catch (e) {
-      log("节点详情加载失败", e);
-      detailData.value = node.data ?? {};
-    } finally {
-      detailLoading.value = false;
-    }
-  } else {
-    detailData.value = node.data ?? {};
-  }
-  emit("node-detail", node, detailData.value);
-};
-
-/** 关闭节点详情面板 */
-const closeDetail = () => {
-  detailNode.value = null;
-  detailData.value = null;
-  detailLoading.value = false;
-};
-
-/** 详情面板默认展示值的格式化（数组/对象/原始值都能安全显示） */
-const displayDetailValue = (v: unknown): string => {
-  if (v === null || v === undefined) {
-    return "";
-  }
-  if (Array.isArray(v)) {
-    return v.map(displayDetailValue).join("、");
-  }
-  if (typeof v === "object") {
-    return JSON.stringify(v);
-  }
-  return String(v);
-};
-
-/**
- * 把扩线返回的邻居子图合并进当前 G6 模型。
- *
- * <p>不做全量 setData：先过滤已存在的节点/边/容器，再 addNodeData/addEdgeData/addComboData，
- * 避免 "Node already exists"，并保留已有的布局与选中状态。</p>
- */
-const mergeNeighborData = async (incoming: RelationGraphData) => {
-  const graph = graphRef.value;
-  if (!graph) {
-    return;
-  }
-  const existingNodes = new Set((graph.getNodeData?.() ?? []).map((x: any) => x.id));
-  const existingEdges = new Set((graph.getEdgeData?.() ?? []).map((x: any) => x.id));
-  const existingCombos = new Set((graph.getComboData?.() ?? []).map((x: any) => x.id));
-
-  const incomingNodes = (incoming.nodes ?? []).map(aliasNode).map((n) => {
-    if (showGroupsOn.value && !n.combo && n.group) {
-      return { ...n, combo: groupComboId(n.group) };
-    }
-    return n;
-  }).filter(n => !existingNodes.has(n.id));
-
-  const incomingEdges = (incoming.edges ?? []).map(aliasEdge).map((e) => ({
-    ...e,
-    id: e.id ?? `${e.source}->${e.target}`,
-  })).filter(e => !existingEdges.has(e.id!));
-
-  const incomingCombos = [...(incoming.combos ?? [])];
-  if (showGroupsOn.value) {
-    const groups = [...new Set(incomingNodes.map(n => n.group).filter((g): g is string => !!g))];
-    groups.forEach((group, index) => {
-      const cid = groupComboId(group);
-      if (!existingCombos.has(cid)) {
-        incomingCombos.push({ id: cid, label: group, type: props.groupShape, style: groupComboStyle(group, index) });
-      }
-    });
-  }
-  incomingCombos.push(...(graphData.value.combos ?? []).filter(c => !existingCombos.has(c.id)));
-
-  if (incomingNodes.length) {
-    graph.addNodeData(incomingNodes.map(toNodeData) as any);
-  }
-  if (incomingEdges.length) {
-    graph.addEdgeData(incomingEdges.map(toEdgeData) as any);
-  }
-  if (incomingCombos.length) {
-    graph.addComboData(incomingCombos as any);
-  }
-  await graph.draw();
-  // 扩线追加了新节点：坐标是 G6 默认位，必须重排
-  modelGeneration++;
-  try {
-    await layoutForGraph(graph, "expand");
-  } catch (e) {
-    log("扩线后布局失败", e);
-  }
-  await graph.fitView?.({ when: "always" } as any, false)?.catch?.(() => {});
-  pinFixedNodes();
-  attachSlots();
-  sync3d();
-  emitDataChange();
-  empty.value = (graph.getNodeData?.() ?? []).length === 0;
-  syncSetPlugins(graph);
-};
-
-/**
- * 右键扩线：拉取某节点的邻居数据并合并进当前子图。
- */
-const expandNode = async (id: string, depth = 1): Promise<boolean> => {
-  const node = nodeById(id);
-  if (!node) {
-    return false;
-  }
-  if (expandingIds.value.includes(id)) {
-    return false;
-  }
-  if (!props.loadNeighbors) {
-    emit("node-expand", node, depth);
-    return false;
-  }
-  expandingIds.value = [...expandingIds.value, id];
-  try {
-    const incoming = await props.loadNeighbors(node, depth);
-    if (incoming) {
-      await mergeNeighborData(incoming);
-      expandedIds.value = new Set(expandedIds.value).add(id);
-      return true;
-    }
-    return false;
-  } catch (e) {
-    log("扩线失败", e);
-    return false;
-  } finally {
-    expandingIds.value = expandingIds.value.filter(x => x !== id);
-  }
-};
-
-/** 当前右键菜单上下文（供自定义菜单项使用） */
-const menuContext = computed<RelationContextMenuContext>(() => ({
-  kind: menu.value.kind,
-  id: menu.value.id,
-  node: menu.value.kind === "node" ? (nodeById(menu.value.id) ?? null) : null,
-  edge: menu.value.kind === "edge" ? (edgeById(menu.value.id) ?? null) : null,
-  selectedIds: [...selectedIds.value],
-  api,
-}));
-
-/** 当前应显示的自定义菜单项 */
-const visibleMenuItems = computed(() => {
-  const ctx = menuContext.value;
-  return (props.menuItems ?? []).filter((item) => {
-    const show = item.show;
-    return typeof show === "function" ? show(ctx) : show !== false;
+  pathInfoState.value = `${from} → ${to}：${result.nodes.length} 节点 / ${result.edges.length} 边（${result.nodes.join(" → ")}）`;
+  emit("path-change", {
+    from,
+    to,
+    found: result.found,
+    nodes: result.nodes,
+    edges: result.edges,
   });
-});
 
-/** 菜单项是否禁用 */
-const menuItemDisabled = (item: RelationContextMenuItem): boolean => {
-  const disabled = item.disabled;
-  return typeof disabled === "function" ? disabled(menuContext.value) : !!disabled;
-};
-
-/** 点击自定义菜单项 */
-const onMenuItemClick = async (item: RelationContextMenuItem) => {
-  if (menuItemDisabled(item)) {
-    return;
-  }
-  await item.handler?.(menuContext.value);
-  emit("menu-item-click", item, menuContext.value);
-  menu.value.visible = false;
+  return result;
 };
 
 /**
- * 收集当前视图偏好（可持久化到后台）。
+ * 设置最短路径的起点 / 终点（右键菜单「以它为起点 / 终点」用）。
+ *
+ * <p>两端都齐了就直接算一次 —— 用户右键设完两个端点，期望是路径自己出来，
+ * 不该再让他去工具栏点「计算」。只设了一端就静默等着，不算失败。</p>
+ *
+ * @param id 节点 id
+ * @param end 设为哪一端
+ * @returns 两端齐全时返回路径结果，否则 null
  */
-const collectSettings = (): RelationGraphSettings => ({
-  layout: currentLayout.value as RelationLayoutName,
-  layoutOptions: { ...tuningValues.value },
-  layoutSettingsByLayout: { ...perLayoutTuningValues.value },
-  showGroups: showGroupsOn.value,
-  minimap: minimapOn.value,
-  highlight: highlightMode.value,
-  hoverFocus: hoverFocusOn.value,
-  expandDepth: expandDepthOn.value,
-  maxDepth: maxDepthOn.value,
-  partial: partialOn.value,
-});
+const setPathEndpoint = (id: string, end: "from" | "to") => {
+  const key = String(id);
+  if (end === "from") pathFromState.value = key;
+  else pathToState.value = key;
+  const from = pathFromState.value;
+  const to = pathToState.value;
+  if (!from || !to || from === to) return null;
+  return shortestPath(from, to);
+};
 
-/** 对外派发设置变化，同时按需触发 saveSettings 回调 */
-const emitSettingsChange = () => {
-  const settings = collectSettings();
-  emit("settings-change", settings);
-  if (applyingSettings.value || !props.saveSettings) {
+/**
+ * 按「路径模式」重设可见性（不重建画布，供重建后的回调与无轮廓场景复用）。
+ *
+ * <p>用 {@code setElementVisibility} 而不是改 opacity：淡化的元素仍然占着画布、
+ * 仍然能被鼠标命中，视觉上也还是一片东西；用户要的是「只看到路径」。</p>
+ */
+const applyPathVisibilityNow = () => {
+  if (!graph || !graphAlive) return;
+  const keepNodes = new Set(pathNodesState.value);
+  const keepEdges = new Set(pathEdgesState.value);
+  const vis: Record<string, "visible" | "hidden"> = {};
+  for (const n of nodesState.value) {
+    const id = String(n.id);
+    vis[id] = keepNodes.has(id) ? "visible" : "hidden";
+  }
+  for (const e of edgesState.value) {
+    const id = edgeIdOf(e);
+    vis[id] = keepEdges.has(id) ? "visible" : "hidden";
+  }
+  graph.setElementVisibility(vis, false).catch(() => {});
+};
+
+/** 恢复所有元素的可见性（退出路径模式时调用） */
+const restoreAllVisibility = () => {
+  if (!graph || !graphAlive) return;
+  const vis: Record<string, "visible"> = {};
+  for (const n of nodesState.value) vis[String(n.id)] = "visible";
+  for (const e of edgesState.value) vis[edgeIdOf(e)] = "visible";
+  graph.setElementVisibility(vis, false).catch(() => {});
+};
+
+/**
+ * 清除路径模式：恢复全部元素、重新挂回轮廓 / combo、适配视口。
+ *
+ * <p>如果进入路径模式时因为摘轮廓或摘 combo 重建过画布，退出时也要重建一次挂回去。</p>
+ *
+ * <p>面板里选好的起点 / 终点保留 —— 用户多半还要再算另一条，
+ * 每次都清空等于强迫他重新点两遍下拉。</p>
+ *
+ * @returns 是否重建了画布（重建后新元素尚未 draw 完，调用方不能再 setElementState）
+ */
+const clearPath = () => {
+  if (!pathModeState.value) {
+    pathInfoState.value = "";
+    return false;
+  }
+  pathModeState.value = false;
+  pathNodesState.value = [];
+  pathEdgesState.value = [];
+  pathInfoState.value = "";
+  const contourShouldBeOn =
+    groupTypeState.value !== "none" &&
+    groupVisibleState.value &&
+    !contoursAutoHidden.value &&
+    !comboState.value;
+  // 进入时摘了什么，退出就补回来
+  if (contourShouldBeOn || comboState.value) {
+    recreateGraph();
+    emit("path-change", { from: "", to: "", found: false, nodes: [], edges: [] });
+    return true;
+  }
+  restoreAllVisibility();
+  fitView();
+  emit("path-change", { from: "", to: "", found: false, nodes: [], edges: [] });
+  return false;
+};
+
+/**
+ * 用当前选中的两个节点算最短路径（保留给右键菜单 / 业务调用）。
+ *
+ * <p>工具栏面板已改成自己选起终点，这里只是便捷入口，不再是唯一路径。</p>
+ */
+const shortestPathFromSelection = () => {
+  const picks = selectedNodes.value;
+  if (picks.length < 2) {
+    pathInfoState.value = "先在图上点选两个节点（开启「点选」后单击即可），或用工具栏面板自己选起终点";
+    return { nodes: [] as string[], edges: [] as string[], found: false };
+  }
+  return shortestPath(picks[0], picks[1]);
+};
+
+/** 清掉所有元素状态（高亮 / 选中 / 淡化），并退出路径模式 */
+const clearStates = () => {
+  if (!graph || !graphAlive) return;
+  // 路径模式下元素是「隐藏」而非「淡化」，只清状态恢复不出来；且 clearPath 可能重建画布，
+  // 重建后新元素还没 draw 完，此刻 setElementState 会抛 "reading 'draw'"，
+  // 所以先退出路径模式，重建过就直接收尾（新画布本来就没有状态）
+  if (pathModeState.value && clearPath()) {
+    selectedNodes.value = [];
+    selectedEdges.value = [];
+    selectedCombos.value = [];
+    pathInfoState.value = "";
+    emitSelection();
     return;
   }
-  void Promise.resolve(props.saveSettings(settings)).catch((e) => {
-    log("保存图谱设置失败", e);
+  const states: Record<string, string[]> = {};
+  for (const id of allElementIds()) states[id] = [];
+  setElementStates(states);
+  selectedNodes.value = [];
+  selectedEdges.value = [];
+  selectedCombos.value = [];
+  pathInfoState.value = "";
+  emitSelection();
+};
+
+/**
+ * 统计当前布局下「边与边交叉」的数量。
+ *
+ * <p>「能不能做到边完全不交叉」—— 只有当图是<b>平面图</b>时才可能；
+ * 三国这种含大量跨势力枢纽的图是非平面的，几何上不可能零交叉。
+ * 能做的就是「尽量少」：分层布局（dagre / antv-dagre）按层做交叉最小化，
+ * 树类布局只有树边，交叉自然少。这个计数用来横向比较各布局。</p>
+ */
+const countEdgeCrossings = () => {
+  if (!graph || !graphAlive) return 0;
+  const segments = edgesState.value
+    .map((e) => {
+      const [x1, y1] = pointOf(graph!.getElementPosition(String(e.source)));
+      const [x2, y2] = pointOf(graph!.getElementPosition(String(e.target)));
+      return {
+        id: edgeIdOf(e),
+        ends: [String(e.source), String(e.target)] as const,
+        a: [x1, y1] as const,
+        b: [x2, y2] as const,
+      };
+    })
+    .filter((s) => Number.isFinite(s.a[0]) && Number.isFinite(s.b[0]));
+
+  const cross = (
+    p1: readonly [number, number],
+    p2: readonly [number, number],
+    p3: readonly [number, number],
+    p4: readonly [number, number],
+  ) => {
+    const d = (p2[0] - p1[0]) * (p4[1] - p3[1]) - (p2[1] - p1[1]) * (p4[0] - p3[0]);
+    if (Math.abs(d) < 1e-9) return false;
+    const t = ((p3[0] - p1[0]) * (p4[1] - p3[1]) - (p3[1] - p1[1]) * (p4[0] - p3[0])) / d;
+    const u = ((p3[0] - p1[0]) * (p2[1] - p1[1]) - (p3[1] - p1[1]) * (p2[0] - p1[0])) / d;
+    return t > 0.02 && t < 0.98 && u > 0.02 && u < 0.98;
+  };
+
+  let total = 0;
+  for (let i = 0; i < segments.length; i++) {
+    for (let j = i + 1; j < segments.length; j++) {
+      const s1 = segments[i];
+      const s2 = segments[j];
+      // 共用端点的两条边不算交叉（按两端节点 id 判定，边 id 里可能自带连字符）
+      if (s1.ends.some((id) => s2.ends.includes(id))) continue;
+      if (cross(s1.a, s1.b, s2.a, s2.b)) total += 1;
+    }
+  }
+  return total;
+};
+
+/** 命令式选中一批元素（配合点选 / 框选的高亮态） */
+const select = (ids: string[], state: "selected" | "highlight" | "inactive" = "selected") => {
+  if (!graph || !graphAlive) return;
+  const states: Record<string, string[]> = {};
+  for (const id of ids.map(String)) {
+    states[id] = [...statesWithoutHover(id).filter((s) => s !== state), state];
+  }
+  setElementStates(states);
+  selectedNodes.value = [...ids];
+  emitSelection();
+};
+
+/** 当前选中集合 */
+const getSelection = () => ({
+  nodes: [...selectedNodes.value],
+  edges: [...selectedEdges.value],
+  combos: [...selectedCombos.value],
+});
+
+/**
+ * 只给这批元素上 {@code active} 态（不动选择集合）。
+ *
+ * <p>和 {@link select} 的区别：{@code select} 是「选中」，会改 selection-change 回参；
+ * 这里只做视觉强调（业务侧点清单某一行 → 图上那一块亮一下），
+ * 用户的选中集合不该被这种「看一眼」的动作改写。</p>
+ */
+const highlightElements = (ids: string[]) => {
+  if (!graph || !graphAlive) return;
+  const states: Record<string, string[]> = {};
+  for (const id of ids.map(String)) {
+    states[id] = [...statesWithoutHover(id).filter((s) => s !== "highlight"), "highlight"];
+  }
+  setElementStates(states);
+};
+
+/**
+ * 平移到某个元素（不缩放）。
+ *
+ * <p>要连缩放一起做用 {@link focusElements}；这里只挪视口 ——
+ * 「点侧栏清单，图上跟着走」这种场景不该突然放大。</p>
+ */
+const centerOn = async (id: string) => {
+  if (!graph || !graphAlive) return;
+  const key = String(id);
+  if (!key) return;
+  await graph.focusElement([key], false).catch(() => {});
+};
+
+/** 适应画布 */
+const fitView = () => {
+  if (!graph || !graphAlive) return;
+  graph.fitView({ when: "always" }).catch(() => {});
+};
+
+/**
+ * 聚焦一组节点：先按子集包围盒定缩放，再平移到视口中心。
+ *
+ * <p>G6 的 {@code focusElement} 只做平移（{@code viewport.focus} 内部只有
+ * translate，不改 zoom），所以这里先 {@code zoomTo} 再 {@code focusElement}，
+ * 否则「聚焦某势力」只会把视口挪过去、节点依旧很小。</p>
+ */
+const focusElements = async (id: string | string[]) => {
+  if (!graph || !graphAlive) return;
+  const ids = Array.isArray(id) ? id : [id];
+  const boxes = ids
+    .map((el) => graph?.getElementRenderBounds(el))
+    .filter((b): b is NonNullable<typeof b> => Boolean(b));
+  if (!boxes.length) return;
+  const minX = Math.min(...boxes.map((b) => b.min[0]));
+  const minY = Math.min(...boxes.map((b) => b.min[1]));
+  const maxX = Math.max(...boxes.map((b) => b.max[0]));
+  const maxY = Math.max(...boxes.map((b) => b.max[1]));
+  const [cw, ch] = graph.getSize();
+  const pad = 70;
+  const zoom = Math.min(
+    2,
+    Math.max(0.05, Math.min((cw - pad * 2) / Math.max(maxX - minX, 1), (ch - pad * 2) / Math.max(maxY - minY, 1))),
+  );
+  await graph.zoomTo(zoom, false).catch(() => {});
+  await graph.focusElement(ids, false).catch(() => {});
+};
+
+/* ============================ 编辑历史（撤销 / 重做）与键盘快捷键 ============================ */
+
+/**
+ * 一条历史快照。
+ *
+ * <p>只存节点 + 边，不存选中态和视口：撤销一次「删节点」不该把用户的缩放、平移、
+ * 选中一起回退（那个体验非常糟）。所以历史 = 纯数据历史。</p>
+ */
+export interface HistoryEntry {
+  nodes: RelationNode[];
+  edges: RelationEdge[];
+  /** 这条快照对应的动作（`add-node` / `remove-nodes` …，撤销时回显用） */
+  action: string;
+}
+
+const undoStack = ref<HistoryEntry[]>([]);
+const redoStack = ref<HistoryEntry[]>([]);
+/** 撤销 / 重做过程中不再记新历史（否则「撤销」这个动作自己又变成一条新历史，栈会爆） */
+let historyLock = false;
+
+const snapshotOf = (action: string): HistoryEntry => ({
+  nodes: nodesState.value.map((n) => ({ ...n })),
+  edges: edgesState.value.map((e) => ({ ...e })),
+  action,
+});
+
+const historyState = (): HistoryState => ({
+  canUndo: undoStack.value.length > 0,
+  canRedo: redoStack.value.length > 0,
+  undoCount: undoStack.value.length,
+  redoCount: redoStack.value.length,
+  lastAction: undoStack.value[undoStack.value.length - 1]?.action ?? "",
+});
+
+const emitHistory = () => emit("history-change", historyState());
+
+/**
+ * 改动前压栈。必须**在状态被改之前**调用（存的是改动前的样子）。
+ *
+ * <p>关掉 {@code history} 或正在撤销 / 重做时什么都不做，所以同一个 API 既能被业务
+ * 命令式调用、也能被快捷键调用，不用到处判断「这次要不要记」。</p>
+ */
+const recordHistory = (action: string) => {
+  if (!props.history || historyLock) return;
+  const limit = Math.max(1, props.historyLimit);
+  undoStack.value = [...undoStack.value, snapshotOf(action)].slice(-limit);
+  // 产生新分支：重做栈作废（标准编辑器语义）
+  redoStack.value = [];
+  emitHistory();
+};
+
+/**
+ * 只清选择记账，不碰画布。
+ *
+ * <p>撤销 / 删除选中时数据已经换成新的一份，而画布还是旧的 —— 这时候如果走
+ * {@code clearSelection()} 去 {@code setElementState}，G6 会因为「新 id 在旧模型里
+ * 不存在」抛 {@code Unknown element type}。所以这里先只改记账，等数据推完再让
+ * 画布自然重建。</p>
+ */
+const resetSelectionState = () => {
+  selectedNodes.value = [];
+  selectedEdges.value = [];
+  selectedCombos.value = [];
+  emitSelection();
+};
+
+/** 把快照灌回内部状态并整体重绘（撤销 / 重做共用一条路径） */
+const applyHistoryEntry = (entry: HistoryEntry) => {
+  nodesState.value = entry.nodes.map((n) => ({ ...n }));
+  edgesState.value = entry.edges.map((e) => ({ ...e }));
+  // 快照里可能没有刚才选中的元素了，先把选择记账清掉避免悬空 id
+  resetSelectionState();
+  pushFullData();
+  emit("nodes-change", nodesState.value.map((n) => ({ ...n })));
+  emit("edges-change", edgesState.value.map((e) => ({ ...e })));
+};
+
+/** 撤销一步；返回是否真的撤销了（快捷键据此决定要不要 preventDefault） */
+const undo = (): boolean => {
+  if (!props.history || !undoStack.value.length) return false;
+  const stack = [...undoStack.value];
+  const entry = stack.pop()!;
+  historyLock = true;
+  redoStack.value = [...redoStack.value, snapshotOf(entry.action)];
+  undoStack.value = stack;
+  applyHistoryEntry(entry);
+  historyLock = false;
+  emitHistory();
+  return true;
+};
+
+/** 重做一步 */
+const redo = (): boolean => {
+  if (!props.history || !redoStack.value.length) return false;
+  const stack = [...redoStack.value];
+  const entry = stack.pop()!;
+  historyLock = true;
+  undoStack.value = [...undoStack.value, snapshotOf(entry.action)];
+  redoStack.value = stack;
+  applyHistoryEntry(entry);
+  historyLock = false;
+  emitHistory();
+  return true;
+};
+
+/** 清空历史（父组件整体换数据后建议调一次，避免撤销跳回上一份数据） */
+const clearHistory = () => {
+  undoStack.value = [];
+  redoStack.value = [];
+  emitHistory();
+};
+
+/** 工具栏 / 模板用：历史总开关与两端可用性 */
+const historyEnabled = computed(() => props.history);
+const canUndo = computed(() => undoStack.value.length > 0);
+const canRedo = computed(() => redoStack.value.length > 0);
+
+/** 点组件任意位置就把焦点收到容器上 —— 快捷键需要一个接收者 */
+const focusRoot = () => {
+  const el = rootRef.value;
+  if (!el || document.activeElement === el) return;
+  el.focus({ preventScroll: true });
+};
+
+/** 删除当前选中元素（节点连带其边），一条历史记录搞定 */
+const deleteSelection = (): boolean => {
+  const nodeIds = new Set(selectedNodes.value.map(String));
+  const edgeKeys = new Set(selectedEdges.value.map(String));
+  if (!nodeIds.size && !edgeKeys.size) return false;
+  recordHistory("delete-selection");
+  if (nodeIds.size) {
+    nodesState.value = nodesState.value.filter((n) => !nodeIds.has(String(n.id)));
+    edgesState.value = edgesState.value.filter(
+      (e) => !nodeIds.has(String(e.source)) && !nodeIds.has(String(e.target)),
+    );
+  }
+  if (edgeKeys.size) {
+    edgesState.value = edgesState.value.filter((e) => !edgeKeys.has(edgeIdOf(e)));
+  }
+  // 同上：数据已经变了，画布还没推，别再拿新 id 去 setElementState
+  resetSelectionState();
+  pushFullData();
+  emit("nodes-change", nodesState.value.map((n) => ({ ...n })));
+  emit("edges-change", edgesState.value.map((e) => ({ ...e })));
+  return true;
+};
+
+/** 全选（节点 + 边） */
+const selectAll = (): boolean => {
+  if (!graph || !graphAlive) return false;
+  const nodeIds = nodesState.value.map((n) => String(n.id));
+  const edgeIds = edgesState.value.map((e) => edgeIdOf(e));
+  const states: Record<string, string[]> = {};
+  for (const id of [...nodeIds, ...edgeIds]) states[id] = ["selected"];
+  setElementStates(states);
+  selectedNodes.value = nodeIds;
+  selectedEdges.value = edgeIds;
+  emitSelection();
+  return true;
+};
+
+/**
+ * 内置快捷键（业务可用 {@code shortcuts} 覆盖任意一条，或设 false 关掉）。
+ *
+ * <p>`mod` = Ctrl（Windows/Linux）或 ⌘（macOS），其它写法：`ctrl` / `meta` / `shift` / `alt`。</p>
+ */
+const DEFAULT_SHORTCUTS: Record<string, string | false> = {
+  undo: "mod+z",
+  redo: "mod+shift+z",
+  "redo-alt": "mod+y",
+  "select-all": "mod+a",
+  delete: "delete",
+  "clear-selection": "esc",
+};
+
+/** 这些键名有多个物理键写法，统一成一组别名比对 */
+const KEY_ALIASES: Record<string, string[]> = {
+  delete: ["delete", "backspace"],
+  del: ["delete", "backspace"],
+  esc: ["escape"],
+  escape: ["escape"],
+  enter: ["enter"],
+  space: [" ", "spacebar"],
+  up: ["arrowup"],
+  down: ["arrowdown"],
+  left: ["arrowleft"],
+  right: ["arrowright"],
+};
+
+/** 判断一次 keydown 是否命中某个组合键写法（如 `mod+shift+z`） */
+const matchShortcut = (e: KeyboardEvent, combo: string): boolean => {
+  const parts = combo
+    .toLowerCase()
+    .split("+")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (!parts.length) return false;
+  const keyToken = parts[parts.length - 1];
+  const mods = new Set(parts.slice(0, -1));
+
+  const wantMod = mods.has("mod");
+  const wantCtrl = mods.has("ctrl") || mods.has("control");
+  const wantMeta = mods.has("meta") || mods.has("cmd") || mods.has("command");
+  const wantShift = mods.has("shift");
+  const wantAlt = mods.has("alt") || mods.has("option");
+
+  // mod 是「Ctrl 或 ⌘」；显式写了 ctrl / meta 就精确匹配那一个
+  const modOk = wantMod ? e.ctrlKey || e.metaKey : e.ctrlKey === wantCtrl && e.metaKey === wantMeta;
+  if (!modOk || e.shiftKey !== wantShift || e.altKey !== wantAlt) return false;
+
+  const pressed = String(e.key ?? "").toLowerCase();
+  const aliases = KEY_ALIASES[keyToken];
+  return aliases ? aliases.includes(pressed) : pressed === keyToken;
+};
+
+/** 执行一个内置动作；返回 false 表示这次没什么可做（此时不拦浏览器默认行为） */
+const runShortcut = (action: string, combo: string, e: KeyboardEvent) => {
+  let handled = false;
+  if (action === "undo") handled = undo();
+  else if (action === "redo" || action === "redo-alt") handled = redo();
+  else if (action === "select-all") handled = selectAll();
+  else if (action === "delete" || action === "delete-selection") handled = deleteSelection();
+  else if (action === "clear-selection") {
+    closeContextMenu();
+    clearSelection();
+    handled = true;
+  }
+  if (!handled) return;
+  e.preventDefault();
+  e.stopPropagation();
+  emit("shortcut", { action, combo, native: e });
+};
+
+/**
+ * 组件内 keydown 处理。
+ *
+ * <p>绑在组件根节点上（根节点有 {@code tabindex="0"}，点画布即获得焦点），
+ * 不用 window 级监听，避免同一页面多个图谱互相抢 Ctrl+Z；输入框 / 可编辑区域内
+ * 一律不拦（否则在搜索框里按退格会删掉图上的节点）。</p>
+ */
+const handleKeydown = (e: KeyboardEvent) => {
+  if (!props.keyboard || e.defaultPrevented) return;
+  const t = e.target as HTMLElement | null;
+  if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName ?? ""))) return;
+  const map: Record<string, string | false> = { ...DEFAULT_SHORTCUTS, ...(props.shortcuts ?? {}) };
+  for (const [action, combo] of Object.entries(map)) {
+    if (!combo) continue;
+    if (!matchShortcut(e, combo)) continue;
+    runShortcut(action, combo, e);
+    return;
+  }
+};
+
+/* ============================ 节点 / 边 的增删改查 ============================ */
+
+/** 当前是否分组布局（分组布局的位置由本组件算，任何数据变化都要重算坐标） */
+const isGroupMode = () => isGroupLayout(resolveLayout().type);
+
+/** 整图数据重推（分组布局改数据后必须重算坐标，只能整体重推） */
+const pushFullData = () => {
+  if (!graph || !graphAlive) return;
+  // 数据可能刚删掉一些元素：先把选中记账里已经不存在的 id 剔掉，
+  // 否则后续 setElementState / 右键回参里会出现悬空 id
+  pruneSelection();
+  graph.setData(toG6Data());
+  // setData 会按数据里的 style 重建元素，可见性回到默认值 —— 路径模式下要补一次，
+  // 否则一改数据（拖动、增删、撤销）路径之外的节点就全冒出来了
+  graph.render().then(() => {
+    if (!graphAlive) return;
+    if (pathModeState.value) applyPathVisibilityNow();
   });
 };
 
 /**
- * 应用一份从后台读出的偏好设置。
- *
- * <p><b>批量应用，不要逐个触发</b>：早期实现把每个开关都走各自的 setter
- * （{@code toggleGroups} → 整图 setData 重装、{@code setMinimap} /
- * {@code setHighlightMode} / {@code setHoverFocus} → 销毁重建图实例），
- * 248 节点的知识图谱上每个都是 2-3s 的全量主线程阻塞，串起来就是十几秒的卡顿。
- * 现在先把所有开关一次写入（纯 ref 赋值，无副作用），再统一决定需要哪种
- * 昂贵操作：涉及行为/插件类开关（高亮 / 悬停聚焦 / 小地图）只需一次
- * {@link rebuild}；只涉及分组展示时一次 {@code setData} 重装即可；
- * 两者都无需时零成本。布局放最后应用——重建 / 重装内部已经跑过一次布局，
- * 参数与已跑过的相同时会被布局指纹去重跳过。</p>
+ * 把选中记账裁剪到「当前数据里真实存在的 id」（只改记账，不动画布）。
+ * @returns 是否真的裁掉了东西（有变化才 emit，避免每次重推都刷一次 selection-change）
  */
-const applySettings = async (settings: RelationGraphSettings) => {
-  if (!settings) {
-    return;
-  }
-  applyingSettings.value = true;
-  try {
-    if (settings.layoutSettingsByLayout) {
-      perLayoutTuningValues.value = { ...perLayoutTuningValues.value, ...settings.layoutSettingsByLayout };
-    }
-    // ---- 第一步：所有开关一次写入，暂不触发各自的重建 / 重装 ----
-    let needRebuild = false;
-    let needReload = false;
-    // 聚簇布局依赖组合容器：这种模式下后台存的 showGroups 一律不采纳，强制为真，
-    // 否则旧设置（showGroups:false）会把组拆掉，布局退化成一圈互相压盖的散点。
-    const wantGroups = props.groupedLayout || currentLayout.value === GROUPED_LAYOUT ? true : settings.showGroups;
-    if (wantGroups !== undefined && wantGroups !== showGroupsOn.value) {
-      showGroupsOn.value = wantGroups;
-      needReload = true;
-    }
-    if (settings.minimap !== undefined && settings.minimap !== minimapOn.value) {
-      minimapOn.value = settings.minimap;
-      needRebuild = true;
-    }
-    if (settings.highlight !== undefined && settings.highlight !== highlightMode.value) {
-      highlightMode.value = settings.highlight;
-      needRebuild = true;
-    }
-    if (settings.hoverFocus !== undefined && settings.hoverFocus !== hoverFocusOn.value) {
-      hoverFocusOn.value = settings.hoverFocus;
-      needRebuild = true;
-    }
-    // ---- 第二步：统一执行最多一次昂贵操作 ----
-    // groupedLayout 是业务方显式指定的聚簇布局，优先级最高：忽略后台保存的 layout
-    // 偏好（否则旧偏好如 d3-force 会把聚簇覆盖掉，看起来「没生效」）。
-    const desiredLayout = props.groupedLayout ? ("rrg-cluster" as string) : settings.layout;
-    if (needRebuild) {
-      // 布局名先落到 currentLayout：initGraph 用它建图，避免重建后再跑一次布局
-      if (desiredLayout && desiredLayout !== currentLayout.value) {
-        currentLayout.value = desiredLayout;
-      }
-      await rebuild();
-    } else if (needReload) {
-      await setData(graphData.value);
-    }
-    // ---- 第三步：布局放最后（指纹相同则被去重跳过）----
-    if (desiredLayout && desiredLayout !== currentLayout.value) {
-      await setLayout(desiredLayout as RelationLayoutName, settings.layoutSettingsByLayout?.[desiredLayout] ?? settings.layoutOptions);
-    } else if (settings.layoutOptions) {
-      const next = { ...(perLayoutTuningValues.value[currentLayout.value] ?? {}) };
-      for (const [k, v] of Object.entries(settings.layoutOptions)) {
-        next[k] = v as number | string;
-      }
-      perLayoutTuningValues.value = { ...perLayoutTuningValues.value, [currentLayout.value]: next };
-      await applyLayoutTuning();
-    }
-
-    if (settings.expandDepth !== undefined) expandDepthOn.value = settings.expandDepth;
-    if (settings.maxDepth !== undefined) maxDepthOn.value = settings.maxDepth;
-    if (settings.partial !== undefined) partialOn.value = settings.partial;
-  } finally {
-    applyingSettings.value = false;
-  }
+const pruneSelection = (): boolean => {
+  const nodeIds = new Set(nodesState.value.map((n) => String(n.id)));
+  const edgeIds = new Set(edgesState.value.map((e) => edgeIdOf(e)));
+  const nodes = selectedNodes.value.filter((id) => nodeIds.has(id));
+  const edges = selectedEdges.value.filter((id) => edgeIds.has(id));
+  const changed = nodes.length !== selectedNodes.value.length || edges.length !== selectedEdges.value.length;
+  if (!changed) return false;
+  selectedNodes.value = nodes;
+  selectedEdges.value = edges;
+  emitSelection();
+  return true;
 };
 
-/** 保存当前偏好到后台 */
-const saveSettings = async () => {
-  const settings = collectSettings();
-  emit("settings-change", settings);
-  if (props.saveSettings) {
-    await Promise.resolve(props.saveSettings(settings));
-  }
+/** 数据变更后的统一收尾：重绘 + 通知父组件 */
+const afterDataChange = () => {
+  if (isGroupMode()) pushFullData();
+  else if (graph && graphAlive) graph.render();
+  emit("nodes-change", nodesState.value.map((n) => ({ ...n })));
+  emit("edges-change", edgesState.value.map((e) => ({ ...e })));
 };
 
-/** 加载并应用后台偏好 */
-const loadAndApplySettings = async () => {
-  if (!props.loadSettings) {
-    return;
-  }
-  try {
-    const settings = await props.loadSettings();
-    if (settings) {
-      await applySettings(settings);
+/** 覆盖式设置节点（等价于改 nodes prop） */
+const setNodes = (nodes: RelationNode[]) => {
+  recordHistory("set-nodes");
+  nodesState.value = nodes.map((n) => ({ ...n }));
+  // 清掉悬空的边
+  const existed = new Set(nodesState.value.map((n) => String(n.id)));
+  edgesState.value = edgesState.value.filter(
+    (e) => existed.has(String(e.source)) && existed.has(String(e.target)),
+  );
+  if (graph && graphAlive) pushFullData();
+  emit("nodes-change", nodesState.value.map((n) => ({ ...n })));
+  emit("edges-change", edgesState.value.map((e) => ({ ...e })));
+};
+
+/** 覆盖式设置边（等价于改 edges prop） */
+const setEdges = (edges: RelationEdge[]) => {
+  recordHistory("set-edges");
+  edgesState.value = edges.map((e) => ({ ...e }));
+  if (graph && graphAlive) pushFullData();
+  emit("edges-change", edgesState.value.map((e) => ({ ...e })));
+};
+
+/** 新增节点（单个或数组，id 已存在则跳过） */
+const addNodes = (input: RelationNode | RelationNode[]) => {
+  const list = (Array.isArray(input) ? input : [input]).filter(Boolean);
+  if (!list.length) return;
+  const existed = new Set(nodesState.value.map((n) => String(n.id)));
+  const fresh = list.filter((n) => !existed.has(String(n.id))).map((n) => ({ ...n }));
+  if (!fresh.length) return;
+  recordHistory(fresh.length > 1 ? "add-nodes" : "add-node");
+  nodesState.value = [...nodesState.value, ...fresh];
+  if (graph && graphAlive) {
+    if (isGroupMode()) pushFullData();
+    else {
+      // 增量加节点：非分组布局下保留其余节点当前位置，不重跑布局
+      graph.addNodeData(fresh.map((n) => toG6Node(n)) as any);
+      graph.render();
     }
-  } catch (e) {
-    log("读取图谱设置失败", e);
   }
+  emit("nodes-change", nodesState.value.map((n) => ({ ...n })));
 };
 
-Object.assign(api, {
-  setShowGroups: toggleGroups,
-  getShowGroups: () => showGroupsOn.value,
-  setMinimap,
-  getMinimap: () => minimapOn.value,
-  setHighlightMode,
-  getHighlightMode: () => highlightMode.value,
-  setHoverFocus,
-  getHoverFocus: () => hoverFocusOn.value,
-  expandNode,
-  showShortestPath,
-  restorePath,
-  openDetail,
-  closeDetail,
-  getSettings: collectSettings,
-  applySettings,
-  saveSettings,
+/** 删除节点（连带删除与它相连的边），支持 id 数组 */
+const removeNodes = (id: string | string[]) => {
+  const ids = new Set((Array.isArray(id) ? id : [id]).map(String));
+  if (!ids.size) return;
+  // 先看一眼「真的要删东西吗」，没命中就不该留下一条空历史
+  if (!nodesState.value.some((n) => ids.has(String(n.id)))) return;
+  recordHistory(ids.size > 1 ? "remove-nodes" : "remove-node");
+  nodesState.value = nodesState.value.filter((n) => !ids.has(String(n.id)));
+  edgesState.value = edgesState.value.filter(
+    (e) => !ids.has(String(e.source)) && !ids.has(String(e.target)),
+  );
+  if (graph && graphAlive) {
+    if (isGroupMode()) pushFullData();
+    else {
+      graph.removeNodeData([...ids] as any);
+      graph.render();
+    }
+  }
+  emit("nodes-change", nodesState.value.map((n) => ({ ...n })));
+  emit("edges-change", edgesState.value.map((e) => ({ ...e })));
+};
+
+/** 更新节点（浅合并 patch；不能改 id） */
+const updateNode = (id: string, patch: Partial<RelationNode>) => {
+  const key = String(id);
+  if (!nodesState.value.some((n) => String(n.id) === key)) return;
+  recordHistory("update-node");
+  nodesState.value = nodesState.value.map((n) => {
+    if (String(n.id) !== key) return n;
+    return { ...n, ...patch, id: n.id };
+  });
+  const next = nodesState.value.find((n) => String(n.id) === key)!;
+  if (graph && graphAlive) {
+    if (isGroupMode()) pushFullData();
+    else {
+      graph.updateNodeData([toG6Node(next)] as any);
+      graph.render();
+    }
+  }
+  emit("nodes-change", nodesState.value.map((n) => ({ ...n })));
+};
+
+/** 新增边（source/target 必须存在；同向重复边跳过） */
+const addEdges = (input: RelationEdge | RelationEdge[]) => {
+  const list = (Array.isArray(input) ? input : [input]).filter(Boolean);
+  if (!list.length) return;
+  const nodeIds = new Set(nodesState.value.map((n) => String(n.id)));
+  const existed = new Set(edgesState.value.map((e) => edgeIdOf(e)));
+  const fresh = list
+    .filter((e) => nodeIds.has(String(e.source)) && nodeIds.has(String(e.target)))
+    .filter((e) => !existed.has(edgeIdOf(e)))
+    .map((e) => ({ ...e }));
+  if (!fresh.length) return;
+  recordHistory(fresh.length > 1 ? "add-edges" : "add-edge");
+  edgesState.value = [...edgesState.value, ...fresh];
+  if (graph && graphAlive) {
+    if (isGroupMode()) pushFullData();
+    else {
+      graph.addEdgeData(fresh.map((e) => toG6Edge(e)));
+      graph.render();
+    }
+  }
+  emit("edges-change", edgesState.value.map((e) => ({ ...e })));
+};
+
+/**
+ * 把「边定位参数」统一成边 id。
+ *
+ * <p>支持三种写法：边 id（{@link edgeIdOf} 的结果）、{@code "source-target"} 简写、
+ * {@code { source, target }} 对象。对象写法按两端反查业务边表 —— 边 id 可能自带
+ * 连字符（如 {@code fk-3-datasync-x}），不能靠拆字符串。</p>
+ */
+const edgeIdForTarget = (target: string | { source: string; target: string }): string => {
+  if (typeof target === "string") {
+    const exact = edgesState.value.find((e) => edgeIdOf(e) === target);
+    return exact ? edgeIdOf(exact) : target;
+  }
+  const hit = edgesState.value.find(
+    (e) => String(e.source) === String(target.source) && String(e.target) === String(target.target),
+  );
+  return hit ? edgeIdOf(hit) : `${String(target.source)}-${String(target.target)}`;
+};
+
+/** 删除边：可传边 id（"source-target"）或 { source, target } */
+const removeEdges = (target: string | Array<string | { source: string; target: string }>) => {
+  const arr = Array.isArray(target) ? target : [target];
+  const keys = new Set(arr.map((t) => edgeIdForTarget(t)));
+  // 先判断「真能删掉东西吗」，命中才压历史（压的是改动前的样子）
+  const hit = edgesState.value.some((e) => keys.has(edgeIdOf(e)));
+  if (!hit) return;
+  recordHistory(keys.size > 1 ? "remove-edges" : "remove-edge");
+  edgesState.value = edgesState.value.filter((e) => !keys.has(edgeIdOf(e)));
+  if (graph && graphAlive) {
+    if (isGroupMode()) pushFullData();
+    else {
+      graph.removeEdgeData([...keys] as any);
+      graph.render();
+    }
+  }
+  emit("edges-change", edgesState.value.map((e) => ({ ...e })));
+};
+
+/** 更新边（按边 id / source-target / { source, target } 定位） */
+const updateEdge = (
+  target: string | { source: string; target: string },
+  patch: Partial<RelationEdge>,
+) => {
+  const key = edgeIdForTarget(target);
+  if (!edgesState.value.some((e) => edgeIdOf(e) === key)) return;
+  recordHistory("update-edge");
+  edgesState.value = edgesState.value.map((e) => {
+    if (edgeIdOf(e) !== key) return e;
+    return { ...e, ...patch, source: e.source, target: e.target };
+  });
+  if (graph && graphAlive) pushFullData();
+  emit("edges-change", edgesState.value.map((e) => ({ ...e })));
+};
+
+/** 清空图 */
+const clear = () => {
+  if (nodesState.value.length || edgesState.value.length) recordHistory("clear");
+  nodesState.value = [];
+  edgesState.value = [];
+  if (graph && graphAlive) pushFullData();
+  emit("nodes-change", []);
+  emit("edges-change", []);
+};
+
+/** 读取当前节点 / 边（返回副本，避免外部直接改内部状态） */
+const getNodes = () => nodesState.value.map((n) => ({ ...n }));
+const getEdges = () => edgesState.value.map((e) => ({ ...e }));
+const getNode = (id: string) => nodesState.value.find((n) => String(n.id) === String(id)) ?? null;
+
+/** 一次性替换整图数据 */
+const setData = (data: { nodes?: RelationNode[]; edges?: RelationEdge[] }) => {
+  recordHistory("set-data");
+  if (data.nodes) nodesState.value = data.nodes.map((n) => ({ ...n }));
+  if (data.edges) edgesState.value = data.edges.map((e) => ({ ...e }));
+  if (graph && graphAlive) pushFullData();
+  emit("nodes-change", nodesState.value.map((n) => ({ ...n })));
+  emit("edges-change", edgesState.value.map((e) => ({ ...e })));
+};
+
+/** 工具栏回传：布局 */
+const onToolbarLayout = (value: string) => {
+  if (layoutState.value === value) return;
+  setLayout(value);
+};
+
+/** 工具栏回传：布局参数 */
+const onToolbarLayoutOptions = (value: Record<string, unknown>) => {
+  layoutOptionsState.value = { ...value };
+  emit("update:layoutOptions", { ...value });
+};
+
+/** 工具栏回传：分组轮廓类型 */
+const onToolbarGroupType = (value: GroupType) => {
+  if (groupTypeState.value === value) return;
+  setGroupType(value);
+};
+
+/** 工具栏回传：分组轮廓显隐 */
+const onToolbarGroupVisible = (value: boolean) => {
+  if (groupVisibleState.value === value) return;
+  setGroupVisible(value);
+};
+
+/** 工具栏回传：分组轮廓参数 */
+const onToolbarGroupOptions = (value: Record<string, unknown>) => {
+  groupOptionsState.value = { ...value };
+  emit("update:groupOptions", { ...value });
+};
+
+/**
+ * 工具栏回传：最短路径按钮。
+ *
+ * <p>按钮是「开关」：没开 → 进入选择模式（左键点两个节点自动出结果），
+ * 开着 / 正在看结果 → 退出并恢复全部元素。</p>
+ */
+const onToolbarPathToggle = () => {
+  togglePathPick();
+};
+
+/** 工具栏回传：退出路径模式，恢复显示全部元素 */
+const onToolbarPathClear = () => {
+  cancelPathPick();
+};
+
+onMounted(() => {
+  // 右键浮层：点别处 / Esc 收起
+  document.addEventListener("pointerdown", onDocPointerDown, true);
+  document.addEventListener("keydown", onDocKeydown);
+  // 等容器尺寸就绪再建图（分组布局要用容器宽高比决定网格列数）
+  requestAnimationFrame(() => initGraph());
 });
 
-/** 生命周期 */
-
-// ==================== 生命周期 ====================
-
-// 外部通过 mode prop 控制切换（组件内部工具栏走 setMode，两条路都收敛到这里）
+/** props.layout 变化 → 同步内部布局状态 */
 watch(
-  () => props.mode,
-  async v => {
-    if (v !== mode.value) {
-      await setMode(v);
-    }
+  () => props.layout,
+  (v) => {
+    if (v != null) layoutState.value = v;
   },
 );
 
+/** props 中的布局参数 / 分组设置变化 → 同步内部状态（父组件是唯一数据源时） */
 watch(
-  () => [props.data, props.nodes, props.edges, props.lines],
-  async () => {
-    const d = graphData.value;
-    if (!graphRef.value) {
-      return;
-    }
-    if (keyOf(d) === appliedKey) {
-      return;
-    }
-    await setData(d);
+  () => props.layoutOptions,
+  (v) => {
+    layoutOptionsState.value = { ...(v ?? {}) };
+  },
+  { deep: true },
+);
+watch(
+  () => props.groupType,
+  (v) => {
+    if (v) groupTypeState.value = v;
+  },
+);
+watch(
+  () => props.groupVisible,
+  (v) => {
+    if (v != null) groupVisibleState.value = v;
+  },
+);
+watch(
+  () => props.groupOptions,
+  (v) => {
+    groupOptionsState.value = { ...(v ?? {}) };
   },
   { deep: true },
 );
 
-onMounted(async () => {
-  await nextTick();
-  await initGraph();
-  // 后台已存偏好：挂载后应用一次，避免每次都从默认布局重新开始
-  await loadAndApplySettings();
-});
-
-// groupedLayout 切换：原生 combo-combined 依赖 combo 容器，所以分组容器随之一并开关
-watch(() => props.groupedLayout, async v => {
-  if (v && !showGroupsOn.value) {
-    await toggleGroups(true);
-  }
-  const want = v ? GROUPED_LAYOUT : props.layout;
-  if (want !== currentLayout.value) {
-    await setLayout(want as any);
-  }
-});
-
-// 外部 prop 变化时同步到运行时开关（避免调用方改了 prop 但界面还是旧状态）
-watch(() => props.highlight, async v => {
-  if (v !== highlightMode.value) {
-    await setHighlightMode(v);
-  }
-});
-
-watch(() => props.showGroups, async v => {
-  if (v !== showGroupsOn.value) {
-    await toggleGroups(v);
-  }
-});
-
-watch(() => props.hoverFocus, async v => {
-  if (v !== hoverFocusOn.value) {
-    await setHoverFocus(v);
-  }
-});
-
-watch(() => props.minimap, async v => {
-  if (v !== minimapOn.value) {
-    await setMinimap(v);
-  }
-});
-
-// 节点内容插槽：数据变化后重新把 slot 渲染并挂载到各 html 节点容器，
-// 保证 scope 里的 node 数据是最新的（选中态变化在 syncSelected 里同步）。
+/** props 里的交互开关 → 同步内部状态（父组件传值优先） */
 watch(
-  () => graphData.value,
+  () => props.tooltip,
+  (v) => {
+    if (v != null) tooltipState.value = v;
+  },
+);
+watch(
+  () => props.nodeTooltip,
+  (v) => {
+    if (v != null) nodeTooltipState.value = v;
+  },
+);
+watch(
+  () => props.edgeTooltip,
+  (v) => {
+    if (v != null) edgeTooltipState.value = v;
+  },
+);
+watch(
+  () => props.clickSelect,
+  (v) => {
+    if (v != null) clickSelectState.value = v;
+  },
+);
+watch(
+  () => props.brushSelect,
+  (v) => {
+    if (v != null) brushSelectState.value = v;
+  },
+);
+watch(
+  () => props.highlight,
+  (v) => {
+    if (v != null) highlightState.value = v;
+  },
+);
+watch(
+  () => props.minimap,
+  (v) => {
+    if (v != null) minimapState.value = v;
+  },
+);
+watch(
+  () => props.combo,
+  (v) => {
+    if (v != null) comboState.value = v;
+  },
+);
+watch(
+  () => props.collapsedGroups,
+  (v) => {
+    collapsedGroupsState.value = [...(v ?? [])];
+  },
+  { deep: true },
+);
+
+/** props 数据变化 → 回灌内部副本并重绘（命令式改动只管自己那一份，不回写 props） */
+watch(
+  () => props.nodes,
+  (v) => {
+    nodesState.value = [...(v ?? [])];
+    pushFullData();
+  },
+  { deep: true },
+);
+watch(
+  () => props.edges,
+  (v) => {
+    edgesState.value = [...(v ?? [])];
+    pushFullData();
+  },
+  { deep: true },
+);
+
+/**
+ * 布局 / 布局参数 / 分组轮廓 / tooltip 变化 → 整图重建。
+ * 布局与插件都挂在 Graph 实例上，G6 5 没有「清空插件 + 换算法」的干净入口，
+ * 重建最稳；图规模不大，重建代价可接受。
+ */
+watch(
+  () => [
+    layoutState.value,
+    layoutOptionsState.value,
+    groupTypeState.value,
+    groupVisibleState.value,
+    groupOptionsState.value,
+    props.groupAutoHide,
+    tooltipState.value,
+    nodeTooltipState.value,
+    edgeTooltipState.value,
+    props.tooltipOptions,
+    props.nodeBadge,
+    props.edgeArrow,
+    props.edgeDashed,
+    props.edgeWidth,
+    props.edgeLabel,
+    clickSelectState.value,
+    brushSelectState.value,
+    highlightState.value,
+    minimapState.value,
+    comboState.value,
+    props.collapsedGroups,
+  ],
   () => {
-    if (ready.value) {
-      attachSlots();
-    }
+    if (!graph) return;
+    scheduleRecreate();
   },
   { deep: true },
 );
 
 onBeforeUnmount(() => {
-  // 走 safeDestroy：直接 destroy() 会漏掉插件挂起的 debounce 尾随调用，
-  // 那会在 context 已被拆掉之后炸出未捕获异常（详见 safeDestroy 的注释）。
-  safeDestroy(graphRef.value);
-  graphRef.value = null;
-  // 挂起的辅助元素清理不再需要，避免卸载后还触发一次无谓的模型操作
-  if (purgeTimer) {
-    clearTimeout(purgeTimer);
-    purgeTimer = null;
-  }
-  // 摘掉文档级指针监听，避免组件销毁后还挂在 document 上
-  assistCleanupFns.forEach((fn) => fn());
-  assistCleanupFns.length = 0;
-  // 卸载手工挂载进 G6 的插槽，避免内存泄漏
-  for (const id of Array.from(slotEls.keys())) {
-    unmountSlot(id);
-  }
+  document.removeEventListener("pointerdown", onDocPointerDown, true);
+  document.removeEventListener("keydown", onDocKeydown);
+  graphAlive = false;
+  graph?.destroy();
+  graph = null;
+});
+
+/** 对外暴露的实例 API（供工具栏 / 验收脚本使用） */
+defineExpose({
+  /** 底层 G6 Graph 实例（只读句柄，用于高级调用） */
+  get graph() {
+    return graph;
+  },
+  /** 当前布局名 */
+  get layout() {
+    return resolveLayout().type;
+  },
+  /** 命令式切换布局 */
+  setLayout,
+  /** 当前布局参数 */
+  get layoutOptions() {
+    return layoutOptionsState.value;
+  },
+  /** 当前分组轮廓类型 */
+  get groupType() {
+    return groupTypeState.value;
+  },
+  /** 当前分组轮廓显隐 */
+  get groupVisible() {
+    return groupVisibleState.value;
+  },
+  /** 非分组布局下是否已自动隐藏轮廓 */
+  get groupAutoHidden() {
+    return contoursAutoHidden.value;
+  },
+  /** 命令式切换分组轮廓类型 */
+  setGroupType,
+  /** 命令式显示 / 隐藏分组轮廓 */
+  setGroupVisible,
+  /* ---- 交互开关 ---- */
+  /** 点选状态 */
+  get clickSelect() {
+    return clickSelectState.value;
+  },
+  /** 框选状态 */
+  get brushSelect() {
+    return brushSelectState.value;
+  },
+  /** 悬停高亮状态 */
+  get highlight() {
+    return highlightState.value;
+  },
+  /** 小地图状态 */
+  get minimap() {
+    return minimapState.value;
+  },
+  /** 分组折叠（combo）状态 */
+  get combo() {
+    return comboState.value;
+  },
+  /** tooltip 状态（总开关） */
+  get tooltip() {
+    return tooltipState.value;
+  },
+  /** 节点悬浮提示开关 */
+  get nodeTooltip() {
+    return nodeTooltipState.value;
+  },
+  /** 边悬浮提示开关 */
+  get edgeTooltip() {
+    return edgeTooltipState.value;
+  },
+  setClickSelect,
+  setBrushSelect,
+  setHighlight,
+  setMinimap,
+  setCombo,
+  setTooltip,
+  setNodeTooltip,
+  setEdgeTooltip,
+  /* ---- 选择 / 状态 / 算法 ---- */
+  /** 最短路径（BFS，按边数最少），算完只显示路径 */
+  shortestPath,
+  /** 退出路径模式，恢复显示全部元素 */
+  clearPath,
+  /** 是否正处在「只显示路径」模式 */
+  get pathActive() {
+    return pathModeState.value;
+  },
+  /** 用当前选中的两个节点算最短路径 */
+  shortestPathFromSelection,
+  /** 清空所有元素状态 */
+  clearStates,
+  /** 清空选择 */
+  clearSelection,
+  /** 命令式选中一批元素 */
+  select,
+  /** 当前选中集合 */
+  getSelection,
+  /** 当前布局下的边交叉数（用于比较「谁更不交叉」） */
+  countEdgeCrossings,
+  /** 最近一次路径计算结果文字 */
+  get pathInfo() {
+    return pathInfoState.value;
+  },
+  /* ---- 右键 ---- */
+  /** 关闭右键浮层 */
+  closeContextMenu,
+  /** 当前右键浮层的回参（未打开为 null） */
+  get contextMenu() {
+    return contextMenuState.value;
+  },
+  /* ---- 分组折叠 ---- */
+  /** 折叠某个分组（group = 业务分组名，如「蜀汉」） */
+  collapseGroup,
+  /** 展开某个分组 */
+  expandGroup,
+  /** 折叠 / 展开切换 */
+  toggleGroupCollapsed,
+  /** 当前被折叠的分组列表 */
+  getCollapsedGroups,
+  /** 当前折叠状态（按分组名） */
+  isGroupCollapsed,
+  /** 适应画布 */
+  fitView,
+  /* ---- 数据 CRUD（外部方法） ---- */
+  /** 当前节点（副本） */
+  getNodes,
+  /** 当前边（副本） */
+  getEdges,
+  /** 取单个节点 */
+  getNode,
+  /** 覆盖式设置节点（同时清理悬空边） */
+  setNodes,
+  /** 覆盖式设置边 */
+  setEdges,
+  /** 一次性替换 { nodes, edges } */
+  setData,
+  /** 新增节点（单个 / 数组；id 已存在则跳过） */
+  addNode: (node: RelationNode) => addNodes(node),
+  /** 批量新增节点 */
+  addNodes,
+  /** 删除节点（连带其边） */
+  removeNode: (id: string) => removeNodes(id),
+  /** 批量删除节点 */
+  removeNodes,
+  /** 更新节点（浅合并 patch，id 不可改） */
+  updateNode,
+  /** 新增边（两端节点必须存在） */
+  addEdge: (edge: RelationEdge) => addEdges(edge),
+  /** 批量新增边 */
+  addEdges,
+  /** 删除边（id "source-target" 或 { source, target }） */
+  removeEdge: (target: string | { source: string; target: string }) => removeEdges([target]),
+  /** 批量删除边 */
+  removeEdges,
+  /** 更新边（按 source-target 定位） */
+  updateEdge,
+  /** 清空全部节点与边 */
+  clear,
+  /* ---- 编辑历史（撤销 / 重做） ---- */
+  /** 撤销一步（返回是否真的撤销了） */
+  undo,
+  /** 重做一步（返回是否真的重做了） */
+  redo,
+  /** 清空撤销 / 重做栈（父组件整体换数据后建议调一次） */
+  clearHistory,
+  /** 能否撤销 */
+  canUndo,
+  /** 能否重做 */
+  canRedo,
+  /** 当前历史状态（栈深 + 最近动作） */
+  get history() {
+    return historyState();
+  },
+  /** 当前生效的快捷键映射（内置 + props.shortcuts 覆盖后的结果） */
+  get shortcuts() {
+    return { ...DEFAULT_SHORTCUTS, ...(props.shortcuts ?? {}) };
+  },
+  /** 删除当前选中元素（一条历史记录） */
+  deleteSelection,
+  /** 全选节点与边 */
+  selectAll,
+  /** 聚焦一组节点（实现见 focusElements） */
+  focus: focusElements,
 });
 </script>
 
 <template>
-  <div ref="wrapRef" class="rrg" :style="{ width: typeof width === 'number' ? width + 'px' : width, height: typeof height === 'number' ? height + 'px' : height }">
-    <!-- 悬浮提示 / 详情面板 / 右键菜单已拆分为 internals/components -->
+  <!-- tabindex：让容器可聚焦，点一下画布后 Ctrl+Z / Delete 才收得到（不用 window 级监听抢键） -->
+  <div
+    ref="rootRef"
+    class="rrg"
+    tabindex="0"
+    :style="{ height: typeof height === 'number' ? height + 'px' : height }"
+    @keydown="handleKeydown"
+    @pointerdown.capture="focusRoot"
+  >
+    <div ref="containerRef" class="rrg__canvas"></div>
     <GraphToolbar
       v-if="toolbar"
-      :collapsed="toolbarCollapsed"
-      :position="toolbarPosition"
-      :layout-value="layoutValue"
-      :layout-select-options="layoutOptions"
-      :layout-disabled="is3d"
-      :search-text="searchText"
-      :searchable="searchable"
-      :search-placeholder="t('toolbar.searchPlaceholder', '搜索节点…')"
-      :tunable="tunable"
-      :tuning-open="tuningOpen"
-      :show-groups-on="showGroupsOn"
-      :highlight-mode="highlightMode"
-      :hover-focus-on="hoverFocusOn"
+      class="rrg__toolbar"
+      :class="[`rrg__toolbar--p-${toolbarPosition}`, `rrg__toolbar--v-${toolbarVariant}`]"
+      :layout="resolveLayout().type"
+      :layout-options="layoutOptionsState"
+      :group-type="groupTypeState"
+      :group-visible="groupVisibleState"
+      :group-options="groupOptionsState"
+      :group-auto-hidden="contoursAutoHidden"
+      :variant="toolbarVariant"
+      :collapsible="toolbarCollapsible"
+      :history="historyEnabled"
       :can-undo="canUndo"
       :can-redo="canRedo"
-      :connect-mode="connectMode"
-      :editable="editable"
-      :exportable="exportable"
-      :minimap-on="minimapOn"
-      :is-3d="is3d"
-      :selected-ids="selectedIds"
-      :selected-is-node="selectedIds.length === 1 && isNodeId(selectedIds[0])"
-      :selected-is-edge="selectedIds.length === 1 && isEdgeId(selectedIds[0])"
-      :toolbar-items="toolbarItems"
-      :slot-api="api"
-      :slot-nodes="graphData.nodes"
-      :slot-mode="mode"
-      @toggle-collapse="toggleToolbarCollapse"
-      @layout-change="onLayoutChange"
-      @search="(kw: unknown) => runSearch(String(kw))"
-      @search-clear="clearSearch"
-      @toggle-tuning="toggleTuning()"
-      @toggle-groups="(on: boolean) => toggleGroups(on)"
-      @toggle-highlight="toggleHighlightMode()"
-      @toggle-hover-focus="(on: boolean) => setHoverFocus(on)"
-      @fit="api.fitView()"
-      @undo="api.undo()"
-      @redo="api.redo()"
-      @toggle-connect="setConnectMode(!connectMode)"
-      @export="onExport"
-      @toggle-minimap="toggleMinimapButton()"
-      @toggle-mode="toggleMode"
-      @update-selected-node="updateSelectedNode"
-      @update-selected-edge="updateSelectedEdge"
-      @remove-selected-node="removeSelectedNode"
-      @remove-selected-edge="removeSelectedEdge"
+      :click-select="clickSelectState"
+      :brush-select="brushSelectState"
+      :highlight="highlightState"
+      :minimap="minimapState"
+      :tooltip="tooltipState"
+      :node-tooltip="nodeTooltipState"
+      :edge-tooltip="edgeTooltipState"
+      :combo="comboState"
+      :collapsed-groups="collapsedGroupsState"
+      :groups="groupNames"
+      :position="toolbarPosition"
+      :path-nodes="pathNodeIds"
+      :path-from="pathFromState"
+      :path-to="pathToState"
+      :path-active="pathModeState"
+      :path-picking="pathPickState"
+      :path-info="pathInfoState"
+      @update:layout="onToolbarLayout"
+      @update:layoutOptions="onToolbarLayoutOptions"
+      @update:groupType="onToolbarGroupType"
+      @update:groupVisible="onToolbarGroupVisible"
+      @update:groupOptions="onToolbarGroupOptions"
+      @update:clickSelect="setClickSelect"
+      @update:brushSelect="setBrushSelect"
+      @update:highlight="setHighlight"
+      @update:minimap="setMinimap"
+      @update:tooltip="setTooltip"
+      @update:nodeTooltip="setNodeTooltip"
+      @update:edgeTooltip="setEdgeTooltip"
+      @update:combo="setCombo"
+      @toggle-group="(g: string) => toggleGroupCollapsed(g)"
+      @update:pathFrom="(v: string) => (pathFromState = v)"
+      @update:pathTo="(v: string) => (pathToState = v)"
+      @path-toggle="onToolbarPathToggle"
+      @path-clear="onToolbarPathClear"
+      @undo="undo"
+      @redo="redo"
+      @fit="fitView"
     >
-      <template #toolbar-extra="{ api, nodes, mode }">
-        <slot name="toolbar-extra" :api="api" :nodes="nodes" :mode="mode" />
+      <!-- 业务自定义工具位：透传到内置工具栏右侧 -->
+      <template v-if="$slots['toolbar-extra']" #extra>
+        <slot name="toolbar-extra" />
       </template>
     </GraphToolbar>
 
-    <!-- 布局调参面板：已拆分为 internals/components/GraphTuningPanel.vue -->
-    <GraphTuningPanel
-      :open="tunable && tuningOpen"
-      :available="tuningAvailable"
-      :fields="availableTuningFields"
-      :edge-labels-shown="edgeLabelsShown"
-      :get-value="(f: any) => tuningValueOf(f)"
-      @close="closeTuning()"
-      @input="(key: string, value: unknown) => onTuningInput(key, value as any)"
-      @apply="applyLayoutTuning()"
-      @reset-one="(key: string) => resetTuningOne(key)"
-      @reset-all="resetTuningAll()"
-      @toggle-edge-labels="(on: boolean) => onToggleAllEdgeLabels(on)"
-    />
-
-    <!-- 画布：2D(G6) 与 3D(vue-force-graph-3d) 双层，未激活的一层隐藏但不销毁 -->
+    <!--
+      右键浮层：只有业务给了 #context-menu 插槽才渲染。
+      插槽回参：menu = 右键回参（命中元素 + 选中集合 + 三套坐标）、close = 关掉浮层。
+      菜单长什么样、点什么按钮，全由业务决定；组件只负责定位 / 点外关闭 / Esc 关闭。
+    -->
     <div
-      class="rrg__canvas"
-      tabindex="0"
-      role="application"
-      :aria-label="t('canvas.aria', '关系图画布，Ctrl+加号放大、Ctrl+减号缩小、Ctrl+Z 撤销、Ctrl+Y 重做、Ctrl+F 搜索、Esc 取消')"
-      @keydown.esc="onEsc"
-      @keydown.ctrl.z.prevent="api.undo()"
-      @keydown.ctrl.y.prevent="api.redo()"
-      @keydown.ctrl.f.prevent="focusSearch"
-      @keydown.alt.left.prevent="panBy(80, 0)"
-      @keydown.alt.right.prevent="panBy(-80, 0)"
-      @keydown.alt.up.prevent="panBy(0, 80)"
-      @keydown.alt.down.prevent="panBy(0, -80)"
+      v-if="contextMenuState && $slots['context-menu']"
+      ref="contextMenuEl"
+      class="rrg__ctx"
+      :style="{ left: `${contextMenuState.client.x}px`, top: `${contextMenuState.client.y}px` }"
+      @contextmenu.prevent
     >
-      <div ref="containerRef" class="rrg__g6" :class="{ 'is-hidden': is3d }" />
-      <ForceGraph3DComp
-        v-if="is3d"
-        ref="fg3dRef"
-        :data="data3d"
-        :node-size="nodeSize"
-        :directed="directed"
-        :drag="drag"
-        :zoom="zoom"
-        :selected-ids="selected3d"
-        :highlight-ids="highlight3dEff"
-        @node-click="on3dNodeClick"
-        @node-right-click="on3dNodeRightClick"
-        @node-hover="on3dNodeHover"
-        @edge-click="on3dEdgeClick"
-        @edge-right-click="on3dEdgeRightClick"
-        @canvas-click="on3dCanvasClick"
-        @canvas-right-click="on3dCanvasRightClick"
-      />
-      <div v-if="empty" class="rrg__empty">{{ emptyText }}</div>
-
-      <!-- 悬浮提示：由子组件 GraphHoverTip 渲染，支持 #hover 插槽穿透。
-           KB 图谱等大数据场景关闭（hoverTip=false），只保留节点自带 label，避免左上角浮层 -->
-      <GraphHoverTip v-if="hoverTipOn" :node="hovered">
-        <template #hover="{ node }">
-          <slot name="hover" :node="node" />
-        </template>
-      </GraphHoverTip>
-
-      <!-- 节点详情面板：由子组件 GraphDetailPanel 渲染，支持 #node-detail 插槽穿透 -->
-      <GraphDetailPanel
-        :node="detailNode"
-        :loading="detailLoading"
-        :data="detailData"
-        @close="closeDetail()"
-      >
-        <template #node-detail="{ node, data, loading, close }">
-          <slot name="node-detail" :node="node" :data="data" :loading="loading" :close="close">
-            <div class="rrg__detail-body">
-              <div v-for="(v, k) in data ?? {}" :key="String(k)" class="rrg__detail-row">
-                <span class="rrg__detail-key">{{ k }}</span>
-                <span class="rrg__detail-value">{{ displayDetailValue(v) }}</span>
-              </div>
-            </div>
-          </slot>
-        </template>
-      </GraphDetailPanel>
+      <slot name="context-menu" :menu="contextMenuState" :close="closeContextMenu" />
     </div>
-
-    <!-- 右键菜单：由子组件 GraphContextMenu 渲染，菜单项/事件从父级传入 -->
-    <GraphContextMenu
-      v-if="contextMenu"
-      :menu="menu"
-      :details="details"
-      :load-neighbors="!!props.loadNeighbors"
-      :expanded-ids="expandedIds"
-      :expanding-ids="expandingIds"
-      :selected-count="selectedIds.length"
-      :has-path="pathIds.length > 0"
-      :editable="editable"
-      :node="menu.kind === 'node' ? (nodeById(menu.id) ?? null) : null"
-      :items="visibleMenuItems.map((item) => ({
-        key: item.key,
-        label: item.label,
-        icon: item.icon,
-        danger: false,
-        disabled: menuItemDisabled(item),
-      }))"
-      @close="menu.visible = false"
-      @node-right-click="(n: RelationNode | null) => n && emit('node-right-click', n, null)"
-      @item-click="(item) => { const src = visibleMenuItems.find((x) => x.key === item.key); if (src) void onMenuItemClick(src); }"
-      @detail="(id: string) => { openDetail(id); menu.visible = false; }"
-      @expand="(id: string) => { void expandNode(id, expandDepthOn); menu.visible = false; }"
-      @shortest-path="() => { void showShortestPath(); menu.visible = false; }"
-      @restore-path="() => { void restorePath(); menu.visible = false; }"
-      @remove-node="(id: string) => { void removeNode(id); menu.visible = false; }"
-      @remove-edge="(id: string) => { void removeEdge(id); menu.visible = false; }"
-    >
-      <template #menu="{ kind, id }">
-        <slot name="menu" :kind="kind" :id="id" :api="api" />
-      </template>
-    </GraphContextMenu>
   </div>
 </template>
 
-<style scoped lang="scss">
+<style lang="scss" scoped>
 .rrg {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  min-height: 120px;
-  background: var(--el-bg-color, #fff);
-  border: 1px solid var(--el-border-color-lighter, #ebeef5);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-/* 地图式浮岛工具栏：半透明毛玻璃底 + 圆角 + 投影，所有控件收进一颗"悬浮药丸"。
-   收缩后除收缩钮外的控件全部 display:none，整条收成角上一颗圆钮（见下方 is-collapsed）。 */
-.rrg__toolbar {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 4px;
-  max-width: calc(100% - 24px);
-  padding: 4px;
-  border: 1px solid var(--el-border-color-lighter, #ebeef5);
-  border-radius: 10px;
-  /* 半透明毛玻璃底：color-mix 从主题底色调出 82% 不透明度，配合 blur 透出画布；
-     不支持 color-mix 的浏览器回落为上一行的不透明白，观感仍是浮岛药丸。 */
-  background: var(--el-bg-color-overlay, #fff);
-  background: color-mix(in srgb, var(--el-bg-color-overlay, #fff) 82%, transparent);
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.14);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  transition: box-shadow 0.25s ease, padding 0.25s ease;
-}
-
-/* 收缩态：只留收缩钮，其余控件收起（display:none 不占位、不进 tab 序） */
-.rrg__toolbar.is-collapsed {
-  padding: 3px;
-}
-
-.rrg__toolbar.is-collapsed > *:not(.rrg__toolbar-collapse) {
-  display: none;
-}
-
-/* 收缩开关：圆形图标钮，箭头随状态旋转 180° */
-.rrg__toolbar-collapse {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--el-text-color-regular, #475569);
-  cursor: pointer;
-  transition:
-    color 0.2s ease,
-    background-color 0.2s ease,
-    transform 0.18s ease;
-}
-
-.rrg__toolbar-collapse:hover {
-  color: var(--el-color-primary, #409eff);
-  background: var(--el-fill-color-light, #f1f5f9);
-  transform: translateY(-1px);
-}
-
-.rrg__toolbar-collapse:active {
-  transform: translateY(0);
-  transition-duration: 0.06s;
-}
-
-.rrg__toolbar-collapse:focus-visible {
-  outline: 2px solid var(--el-color-primary, #409eff);
-  outline-offset: 1px;
-}
-
-.rrg__toolbar-collapse svg {
-  transition: transform 0.25s ease;
-}
-
-.rrg__toolbar-collapse.is-collapsed svg {
-  transform: rotate(180deg);
-}
-
-/* 折叠后只剩这一颗钮：主色填充 + 白箭头，明确提示"可点击展开" */
-.rrg__toolbar.is-collapsed .rrg__toolbar-collapse {
-  color: #fff;
-  background: var(--el-color-primary, #409eff);
-}
-
-.rrg__toolbar.is-collapsed .rrg__toolbar-collapse:hover {
-  color: #fff;
-  background: var(--el-color-primary-light-3, #79bbff);
-}
-
-/* 工具栏定位：地图式工具条支持四角与顶部居中 */
-.rrg__toolbar--top-left {
-  top: 12px;
-  left: 12px;
-  right: auto;
-  justify-content: flex-start;
-}
-
-.rrg__toolbar--bottom-left {
-  top: auto;
-  right: auto;
-  left: 12px;
-  bottom: 12px;
-  justify-content: flex-start;
-}
-
-.rrg__toolbar--bottom-right {
-  top: auto;
-  right: 12px;
-  bottom: 12px;
-  justify-content: flex-end;
-}
-
-.rrg__toolbar--top-center {
-  top: 12px;
-  left: 50%;
-  right: auto;
-  transform: translateX(-50%);
-  justify-content: center;
-}
-
-/* 节点详情面板 */
-.rrg__detail {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 18;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 280px;
-  max-height: calc(100% - 24px);
-  overflow: auto;
-  padding: 12px;
-  border: 1px solid var(--el-border-color-lighter, #ebeef5);
-  border-radius: 8px;
-  background: var(--el-bg-color-overlay, #fff);
-  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.18);
-  font-size: 12px;
-  color: var(--el-text-color-primary, #0f172a);
-}
-
-.rrg__detail-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.rrg__detail-title {
-  font-weight: 600;
-  font-size: 13px;
-  color: var(--el-text-color-primary, #0f172a);
-}
-
-.rrg__detail-close {
-  border: none;
-  background: transparent;
-  color: var(--el-text-color-secondary, #94a3b8);
-  font-size: 13px;
-  line-height: 1;
-  padding: 4px 6px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: color 0.2s, background-color 0.2s;
-}
-
-.rrg__detail-close:hover {
-  color: var(--el-color-primary, #3b82f6);
-  background: var(--el-fill-color-light, #f1f5f9);
-}
-
-.rrg__detail-body {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.rrg__detail-row {
-  display: grid;
-  grid-template-columns: 76px 1fr;
-  gap: 8px;
-  align-items: start;
-}
-
-.rrg__detail-key {
-  color: var(--el-text-color-secondary, #64748b);
-  white-space: nowrap;
-}
-
-.rrg__detail-value {
-  color: var(--el-text-color-primary, #0f172a);
-  word-break: break-word;
-}
-
-/* 右键菜单图标与禁用态 */
-.rrg__menu-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.rrg__menu-item.is-disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* 布局调参面板：浮在画布右上角，独立于工具栏，toolbar=false 时同样可用 */
-.rrg__tuning {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 20;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 300px;
-  padding: 14px 14px 12px;
-  border: 1px solid var(--el-border-color, #dcdfe6);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--el-bg-color-overlay, #fff) 96%, transparent);
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16), 0 2px 8px rgba(15, 23, 42, 0.08);
-  backdrop-filter: blur(6px);
-  font-size: 12px;
-  color: var(--el-text-color-primary, #0f172a);
-}
-
-.rrg__tuning-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
-}
-
-.rrg__tuning-title {
-  font-weight: 600;
-  font-size: 13px;
-  color: var(--el-text-color-primary, #0f172a);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.rrg__tuning-title::before {
-  content: "";
-  display: inline-block;
-  width: 3px;
-  height: 14px;
-  border-radius: 2px;
-  background: var(--el-color-primary, #409eff);
-}
-
-.rrg__tuning-close {
-  border: none;
-  background: transparent;
-  color: var(--el-text-color-secondary, #94a3b8);
-  font-size: 13px;
-  line-height: 1;
-  padding: 4px 6px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: color 0.2s, background-color 0.2s;
-}
-
-.rrg__tuning-close:hover {
-  color: var(--el-color-primary, #3b82f6);
-  background: var(--el-fill-color-light, #f1f5f9);
-}
-
-.rrg__tuning-close:focus-visible {
-  outline: 2px solid var(--el-color-primary, #3b82f6);
-  outline-offset: 1px;
-}
-
-.rrg__tuning-tip {
-  margin: 0;
-  line-height: 1.6;
-  color: var(--el-text-color-secondary, #64748b);
-}
-
-/* label / 控件 / 数值 / 重置 四列网格，控件行与滑块行对齐 */
-.rrg__tuning-row {
-  display: grid;
-  grid-template-columns: 62px 1fr auto 24px;
-  align-items: center;
-  gap: 8px;
-  padding: 3px 6px;
-  margin: 0 -6px;
-  border-radius: 8px;
-  transition: background-color 0.15s;
-}
-
-.rrg__tuning-row:hover {
-  background: color-mix(in srgb, var(--el-fill-color-light, #f1f5f9) 60%, transparent);
-}
-
-.rrg__tuning-label {
-  white-space: nowrap;
-  color: var(--el-text-color-regular, #475569);
-}
-
-/* 滑块：accent-color 跟随主题色，避免为原生控件写整套暗色样式 */
-.rrg__tuning-range {
   width: 100%;
-  height: 16px;
-  margin: 0;
-  accent-color: var(--el-color-primary, #3b82f6);
-  cursor: pointer;
+  min-height: 300px;
 }
 
-.rrg__tuning-range:focus-visible {
-  outline: 2px solid var(--el-color-primary, #3b82f6);
-  outline-offset: 2px;
-}
-
-.rrg__tuning-value {
-  min-width: 38px;
-  text-align: right;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
-  color: var(--el-color-primary, #3b82f6);
-  background: color-mix(in srgb, var(--el-color-primary, #3b82f6) 8%, transparent);
-  border-radius: 5px;
-  padding: 1px 4px;
-}
-
-.rrg__tuning-reset {
-  border: none;
-  background: transparent;
-  color: var(--el-text-color-placeholder, #94a3b8);
-  font-size: 13px;
-  line-height: 1;
-  padding: 4px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: color 0.2s, background-color 0.2s;
-}
-
-.rrg__tuning-reset:hover {
-  color: var(--el-color-primary, #3b82f6);
-  background: var(--el-fill-color-light, #f1f5f9);
-}
-
-.rrg__tuning-reset:focus-visible {
-  outline: 2px solid var(--el-color-primary, #3b82f6);
-  outline-offset: 1px;
-}
-
-.rrg__tuning-toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
-  color: var(--el-text-color-regular, #475569);
-  cursor: pointer;
-}
-
-.rrg__tuning-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 6px;
-  padding-top: 8px;
-  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
-}
-
-/* ReSelect / ReInput 的根节点带上的是子组件自己的 scope 标记，
-   普通 scoped 选择器打不中；用 :deep 强制宽度，避免两个控件在悬浮工具栏里各占满一行。 */
-.rrg__toolbar :deep(.rrg__layout) {
-  width: 132px;
-}
-
-.rrg__toolbar :deep(.rrg__search) {
-  width: 132px;
-}
-
-/* Element Plus 给相邻按钮加 margin-left:12px，和 flex gap 会叠加成 18px 并挤出一行；
-   悬浮工具栏统一交给 gap 控制间距。 */
-.rrg__toolbar :deep(.el-button + .el-button) {
-  margin-left: 0;
-}
-
-/* 按钮微交互（对齐地图工具栏质感）：hover 轻微抬升、按下快速回落 */
-.rrg__toolbar :deep(.el-button) {
-  transition:
-    transform 0.18s ease,
-    box-shadow 0.18s ease,
-    background-color 0.2s ease,
-    border-color 0.2s ease,
-    color 0.2s ease;
-}
-
-.rrg__toolbar :deep(.el-button:hover:not(:disabled):not(.is-loading)) {
-  transform: translateY(-1px);
-}
-
-.rrg__toolbar :deep(.el-button:active:not(:disabled):not(.is-loading)) {
-  transform: translateY(0);
-  transition-duration: 0.06s;
-}
-
-/* 激活(primary)态柔和脉冲：提示"该模式已开启"，仅作强调不改变布局 */
-.rrg__toolbar :deep(.el-button--primary:not(:disabled)) {
-  animation: rrg-toolbar-pulse 3s ease-out infinite;
-}
-
-@keyframes rrg-toolbar-pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(64, 158, 255, 0.18);
-  }
-  70% {
-    box-shadow: 0 0 0 4px rgba(64, 158, 255, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(64, 158, 255, 0);
-  }
-}
-
-/* 减少动态偏好：关掉脉冲与箭头旋转 */
-@media (prefers-reduced-motion: reduce) {
-  .rrg__toolbar :deep(.el-button--primary:not(:disabled)) {
-    animation: none;
-  }
-
-  .rrg__toolbar-collapse svg {
-    transition: none;
-  }
-}
-
-/* 工具栏键盘可达：给可聚焦控件一个清晰的 focus ring */
-.rrg__toolbar :deep(button:focus-visible),
-.rrg__toolbar :deep(input:focus-visible) {
-  outline: 2px solid var(--el-color-primary, #409eff);
-  outline-offset: 1px;
-}
-
-.rrg__canvas:focus-visible {
-  outline: 2px solid var(--el-color-primary, #409eff);
-  outline-offset: -2px;
-}
-
-/* 节点内容插槽（G6 html 节点）：
-   G6 把外层 div 的左上角定位到节点坐标（原点），并给它设置 transform(视口+节点)；
-   我们的插槽容器作为其子元素，用 -50% 偏移把内容盒中心对齐到节点坐标。 */
-.rrg__node-content {
-  position: absolute;
-  left: -50%;
-  top: -50%;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  font-size: 12px;
-  color: var(--el-text-color-primary, #303133);
-  pointer-events: auto;
-  user-select: none;
-}
-
-.rrg__node-content--plain {
-  padding: 6px 10px;
-  border-radius: 6px;
-  background: var(--el-bg-color-overlay, #fff);
-  border: 1px solid var(--el-border-color, #dcdfe6);
-  white-space: nowrap;
+/* 容器可聚焦只是为了接收键盘快捷键，不需要焦点框 */
+.rrg:focus,
+.rrg:focus-visible {
+  outline: none;
 }
 
 .rrg__canvas {
-  position: relative;
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
-.rrg__g6 {
   width: 100%;
   height: 100%;
+  min-height: 300px;
+  overflow: hidden;
 }
 
-/* 3D 模式下隐藏 2D 层：用 visibility 而非 display:none ——
-   G6 的 autoResize 观察容器尺寸，display:none 会量到 0×0 把画布搞花，
-   visibility:hidden 保留布局尺寸，切回 2D 无需重建实例。pointer-events 由 hidden 自动断开。 */
-.rrg__g6.is-hidden {
-  visibility: hidden;
+/* tooltip：G6 默认是一块内联样式的白卡，这里对齐设计语言（圆角 / 细边 / 轻阴影） */
+.rrg__canvas :deep(.tooltip) {
+  padding: 8px 10px !important;
+  border: 1px solid var(--el-border-color-lighter, #e4e7ed) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14) !important;
+  font-family: inherit !important;
+  line-height: 1.5 !important;
+  color: var(--el-text-color-primary, #303133) !important;
 }
 
-.rrg__empty {
+/* 框选覆盖层：自研框选的蓝色选框（纯 DOM，画在画布之上、工具栏之下）。
+   注意这里必须用 :deep() —— 选框是 JS 里 createElement 出来的，
+   拿不到 Vue 的 scoped 属性，普通 scoped 选择器对它完全不生效（实测 computed
+   position 仍是 static，选框被排到画布底边外面去）。 */
+.rrg__canvas :deep(.rrg__brush) {
   position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--el-text-color-placeholder, #a8abb2);
-  font-size: 13px;
+  display: none;
+  z-index: 5;
   pointer-events: none;
+  border: 1px dashed var(--el-color-primary, #409eff);
+  background: color-mix(in srgb, var(--el-color-primary, #409eff) 12%, transparent);
+  border-radius: 2px;
 }
 
-.rrg__tip {
+/* 右键浮层：定位由组件算（贴光标、靠边翻转），外观交给插槽内容，
+   这里只给一个「不挡事件、能滚动、在画布与工具栏之上」的容器 */
+.rrg__ctx {
   position: absolute;
-  right: 12px;
-  top: 12px;
-  max-width: 260px;
-  padding: 8px 10px;
-  border-radius: 6px;
-  background: var(--el-bg-color-overlay, #fff);
-  border: 1px solid var(--el-border-color-lighter, #ebeef5);
-  box-shadow: var(--el-box-shadow-light, 0 0 12px rgba(0, 0, 0, 0.12));
-  font-size: 12px;
-  color: var(--el-text-color-primary, #303133);
-  pointer-events: none;
-}
-
-.rrg__tip-title {
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.rrg__tip-row {
-  color: var(--el-text-color-regular, #606266);
-}
-
-.rrg__menu {
-  position: fixed;
-  z-index: 3000;
-  min-width: 148px;
+  z-index: 20;
+  max-width: 280px;
+  max-height: 70%;
+  overflow: auto;
+  border-radius: 10px;
+  background: var(--el-bg-color, #fff);
+  border: 1px solid var(--el-border-color-lighter, #e4e7ed);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
   padding: 4px;
-  border-radius: 6px;
-  background: var(--el-bg-color-overlay, #fff);
-  border: 1px solid var(--el-border-color-lighter, #ebeef5);
-  box-shadow: var(--el-box-shadow-light, 0 0 12px rgba(0, 0, 0, 0.12));
-  font-size: 13px;
+  font-size: 12px;
 }
 
-.rrg__menu-item {
-  padding: 6px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  color: var(--el-text-color-regular, #606266);
-
-  &:hover {
-    background: var(--el-fill-color-light, #f5f7fa);
-    color: var(--el-color-primary, #2992ff);
-  }
-
-  &.is-danger:hover {
-    background: var(--el-color-danger-light-9, #fef0f0);
-    color: var(--el-color-danger, #f56c6c);
-  }
+/* 工具栏浮在画布之上，停靠角由 toolbarPosition 决定（四个角 + 左右侧）。
+   间距从 12px 收到 4px —— 工具贴住组件边框，不占画布有效区域。 */.rrg__toolbar {
+  position: absolute;
+  z-index: 10;
+}
+.rrg__toolbar--p-top-left {
+  top: 4px;
+  left: 4px;
+}
+.rrg__toolbar--p-top-right {
+  top: 4px;
+  right: 4px;
+}
+.rrg__toolbar--p-bottom-left {
+  bottom: 4px;
+  left: 4px;
+}
+.rrg__toolbar--p-bottom-right {
+  bottom: 4px;
+  right: 4px;
+}
+.rrg__toolbar--p-left {
+  top: 50%;
+  left: 4px;
+  transform: translateY(-50%);
+}
+.rrg__toolbar--p-right {
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
 }
 </style>

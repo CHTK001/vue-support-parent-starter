@@ -101,6 +101,8 @@ const props = withDefaults(
     pathTo?: string;
     /** 是否正处在「只显示路径」模式 */
     pathActive?: boolean;
+    /** 「最短路径」选择模式是否开启（左键点两个节点定起终点） */
+    pathPicking?: boolean;
     /** 最近一次最短路径结果文字 */
     pathInfo?: string;
     /** 全部分组名（分组折叠面板用） */
@@ -137,6 +139,7 @@ const props = withDefaults(
     pathFrom: "",
     pathTo: "",
     pathActive: false,
+    pathPicking: false,
     pathInfo: "",
     groups: () => [],
     history: false,
@@ -190,10 +193,12 @@ const currentLayout = computed(
  * 激活时点它是「退出、显示全部」。所以提示也得跟着说清楚下一步该做什么。</p>
  */
 const pathTip = computed(() => {
+  if (props.pathPicking) {
+    if (props.pathFrom) return `已设起点「${props.pathFrom}」，再左键点一个节点作终点（右键取消）`;
+    return "最短路径：左键点起点，再点终点；右键取消";
+  }
   if (props.pathActive) return "正在只看路径（点一下恢复全部）";
-  if (props.pathFrom && props.pathTo) return `算最短路径：${props.pathFrom} → ${props.pathTo}`;
-  if (props.pathFrom) return `已设起点「${props.pathFrom}」，右键节点设为终点`;
-  return "最短路径：右键节点设为起点 / 终点";
+  return "最短路径：开启后左键点两个节点（起点 → 终点）";
 });
 
 /** 折叠状态：折叠后整条工具栏缩成一个按钮，把画布让出来 */
@@ -689,12 +694,12 @@ const dockLeft = computed(() => props.position.includes("left"));
       </div>
     </ElPopover>
 
-    <!-- 最短路径：一个按钮。端点由右键菜单指定，按钮只负责「算 / 退出」 -->
+    <!-- 最短路径：开关。开启后左键依次点起点 / 终点自动出结果，右键取消 -->
     <ReButton
       data-tool="path"
       layout="square"
       :icon="Share"
-      :active="pathActive"
+      :active="pathActive || pathPicking"
       :tip="pathTip"
       @click="emit('path-toggle')"
     />

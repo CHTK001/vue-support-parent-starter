@@ -135,45 +135,9 @@
       "types": "./src/components/ReFlowGraph/index.ts",
       "default": "./src/components/ReFlowGraph/index.ts"
     },
-    "./re-graph": {
-      "types": "./src/components/ReGraph/index.ts",
-      "default": "./src/components/ReGraph/index.ts"
-    },
-    "./re-graph-force": {
-      "types": "./src/components/ReGraphForce/index.ts",
-      "default": "./src/components/ReGraphForce/index.ts"
-    },
-    "./re-graph-mind": {
-      "types": "./src/components/ReGraphMind/index.ts",
-      "default": "./src/components/ReGraphMind/index.ts"
-    },
-    "./re-graph-tree": {
-      "types": "./src/components/ReGraphTree/index.ts",
-      "default": "./src/components/ReGraphTree/index.ts"
-    },
-    "./re-graph-circle": {
-      "types": "./src/components/ReGraphCircle/index.ts",
-      "default": "./src/components/ReGraphCircle/index.ts"
-    },
-    "./re-graph-center": {
-      "types": "./src/components/ReGraphCenter/index.ts",
-      "default": "./src/components/ReGraphCenter/index.ts"
-    },
-    "./re-graph-fixed": {
-      "types": "./src/components/ReGraphFixed/index.ts",
-      "default": "./src/components/ReGraphFixed/index.ts"
-    },
-    "./re-graph-3d": {
-      "types": "./src/components/ReGraph3D/index.ts",
-      "default": "./src/components/ReGraph3D/index.ts"
-    },
     "./re-relation-graph": {
       "types": "./src/components/ReRelationGraph/index.ts",
       "default": "./src/components/ReRelationGraph/index.ts"
-    },
-    "./re-relation-graph-v2": {
-      "types": "./src/components/ReRelationGraphV2/index.ts",
-      "default": "./src/components/ReRelationGraphV2/index.ts"
     },
     "./re-echarts": {
       "types": "./src/components/ReEcharts/index.ts",
