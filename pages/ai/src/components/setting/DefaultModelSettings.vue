@@ -1880,4 +1880,73 @@ onMounted(async () => {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
+/* ==================== Ledger 布局：左锚点导航 + 右卡片列 ==================== */
+.dms-root {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.dms-maint {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dms-toolbar__search { max-width: 300px; }
+
+.dms-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  scroll-margin-top: 12px;
+}
+
+.dms-group {
+  scroll-margin-top: 12px;
+}
+
+/* 分组卡片当前锚定高亮：左侧沿一条主色描边，提示「当前分组」 */
+.dms-group:target {
+  animation: dms-flash 1.2s ease;
+}
+
+@keyframes dms-flash {
+  0% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 25%, transparent); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* 锚点导航默认隐藏侧栏，仅在多分组模式显示（单分组独立页面不留空栏） */
+.dms-groupstate {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.dms-groupstate[data-state='on'] {
+  color: var(--el-color-success);
+  background: color-mix(in srgb, var(--el-color-success) 12%, transparent);
+}
+.dms-groupstate[data-state='off'] {
+  color: var(--el-text-color-disabled);
+  background: var(--el-fill-color-light);
+}
+
+/* 关注视口内分组卡片高亮（配合滚动跟随） */
+.dms-group.is-in-view .set-card-wrap {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+}
+
+@media (max-width: 820px) {
+  /* 窄屏：锚点退成顶部横向滚动条 */
+  .dms-root { flex-direction: column; }
+  .dms-toolbar__search { max-width: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dms-group:target { animation: none; }
+}
+
 </style>

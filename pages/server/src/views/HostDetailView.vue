@@ -2438,42 +2438,6 @@ function onProfileCommit(kw: string): void {
   background: transparent; border: 1px solid var(--p-line-2); border-radius: 999px; cursor: pointer;
 }
 .pp-tab.on { color: var(--el-color-primary); border-color: var(--el-color-primary); background: var(--el-color-primary-light-9); }
-.pp-bar {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
-  padding: 10px 14px;
-}
-.pp-pager { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.pp-search { width: 200px; }
-.page-no { font-size: 12px; color: var(--p-text-2); }
-.pp-error { margin: 0 14px 12px; padding: 9px 12px; font-size: 12.5px; color: var(--status-error-text); background: var(--status-error-bg); border: 1px solid var(--status-error-border); border-radius: 8px; }
-.pp-loading { padding: 22px 0; text-align: center; }
-.pp-scroll { max-height: 420px; overflow: auto; border-top: 1px solid var(--p-line-2); }
-.pp-net { border-top: 1px solid var(--p-line-2); padding: 4px 14px 14px; }
-.pp-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.pp-table th, .pp-table td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--p-line-2); white-space: nowrap; }
-.pp-table th { font-size: 11px; font-weight: 600; color: var(--p-text-2); background: var(--p-bg); position: sticky; top: 0; }
-.pp-table th.sortable { cursor: pointer; user-select: none; }
-.pp-table th.sortable:hover, .pp-table th.sort-on { color: var(--el-color-primary); }
-.pp-table th.right { text-align: right; }
-.pp-table td.right { text-align: right; }
-/* 端口开放情况：浅灰底圆角块 + 圆点 + 同色大写半粗文字（图片 1 的标记样式） */
-.port-status {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 2px 10px; border-radius: 999px;
-  background: var(--el-fill-color-light, #f3f4f6);
-  border: 1px solid var(--el-border-color-lighter, #e4e7ed);
-  font-size: 12px; font-weight: 600; letter-spacing: 0.4px;
-  line-height: 1.5;
-  font-family: var(--p-mono, monospace);
-}
-.ps-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.4);
-}
-.ps-open { color: var(--el-color-success, #67c23a); }
-.ps-open .ps-dot { background: var(--el-color-success, #67c23a); box-shadow: 0 0 0 1.5px rgba(103, 194, 58, 0.45); }
-.ps-closed { color: var(--el-color-danger, #f56c6c); }
-.ps-closed .ps-dot { background: var(--el-color-danger, #f56c6c); box-shadow: 0 0 0 1.5px rgba(245, 108, 108, 0.45); }
 .sub-label { font-size: 12px; color: var(--el-text-color-secondary); margin: 8px 0 4px; }
 
 /* ---------- 磁盘 ---------- */
