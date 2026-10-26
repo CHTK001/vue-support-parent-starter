@@ -110,8 +110,14 @@
                 <span v-if="queryResult.truncated" class="dsm-query-warn">已截断，服务端共 {{ queryResult.totalRows }} 行，请加 .limit(n) 收窄结果</span>
               </span>
             </div>
-            <ReTable v-if="queryResult.columns.length > 0" :data="queryResult.rows" :columns="queryResult.columns" stripe border height="280px" @row-click="onRowClick" :config="{ pagination: { enable: false } }"/>
-            <ReEmpty v-else description="点击左侧集合或输入 db.<集合>.find() 执行查询；点击结果行可查看完整文档" />
+            <!-- 高度交给 ReTable 的 fill 模式（缺省开启）：本面板是 flex 列，表头在上、
+                 表体吃掉剩余高度并在内部滚动。原来这里写 height="280px"，那是**普通 HTML 属性**，
+                 ReTable 只认 layout-table 里的 height —— 它既没生效，又让人误以为表格被钉死在 280px。 -->
+            <ReTable v-if="queryResult.columns.length > 0" :data="queryResult.rows" :columns="queryResult.columns" stripe border @row-click="onRowClick" :config="{ pagination: { enable: false } }"/>
+            <!-- 空状态收小：el-empty 默认 image-size 160，加上上下 40px padding 整体接近 300px，
+                 塞进这个 260px 起的面板会被 overflow:hidden 从底部切掉 —— 截图里连「暂无数据」的
+                 说明文字都看不见。收小插图 + 允许极窄时自己滚，就不再被裁。 -->
+            <ReEmpty v-else :image-size="88" description="点击左侧集合或输入 db.<集合>.find() 执行查询；点击结果行可查看完整文档" />
           </div>
         </div>
       </div>
@@ -553,6 +559,11 @@ onBeforeUnmount(() => {
 .dsm-query-error { padding: 10px 14px; font-size: 13px; color: var(--status-error, var(--apm-danger)); background: color-mix(in srgb, var(--status-error, var(--apm-danger)) 8%, transparent); border: 1px solid color-mix(in srgb, var(--status-error, var(--apm-danger)) 30%, transparent); border-radius: 6px; word-break: break-all; flex-shrink: 0; }
 .dsm-query-result { flex: 1; display: flex; flex-direction: column; min-height: 260px; border: 1px solid var(--border-subtle, var(--apm-border-soft)); border-radius: var(--radius-md, var(--apm-radius-md)); background: var(--bg-container, var(--apm-panel)); overflow: hidden; }
 .dsm-query-result :deep(.dsm-table-wrap) { flex: 1; min-height: 0; }
+/* 空状态也必须能装下：它是 flex 子项，默认 flex-shrink:1 但内容（插图 + 说明）撑得比面板高，
+   面板又是 overflow:hidden，结果就是说明文字被从底部切掉。这里让它吃满剩余高度、
+   装不下时自己滚，而不是被静默裁掉。 */
+.dsm-query-result :deep(.re-empty),
+.dsm-query-result :deep(.el-empty) { flex: 1 1 0; min-height: 0; overflow: auto; padding: 12px 0; }
 .dsm-query-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; font-size: 13px; font-weight: 500; color: var(--text-secondary, var(--apm-fg-regular)); background: var(--bg-fill, var(--apm-neutral-bg)); border-bottom: 1px solid var(--border-subtle, var(--apm-border-soft)); flex-shrink: 0; }
 .dsm-query-meta { font-size: 12px; font-weight: 400; color: var(--text-tertiary, var(--apm-muted)); }
 .dsm-query-warn { margin-left: 8px; color: var(--status-warning, var(--apm-warning)); }

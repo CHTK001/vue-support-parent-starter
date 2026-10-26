@@ -90,6 +90,7 @@ import {
   getFileServerConfigError,
 } from "../api/filestorageApi";
 import type { BucketConfig, CapabilitiesResponse, StorageObject, TreeItem } from "../api/filestorageApi";
+import { createFileCollab } from "../api/filestorageApi";
 import PreviewIframePanel from "../components/PreviewIframePanel.vue";
 import PreviewImagePanel from "../components/PreviewImagePanel.vue";
 import PreviewOfficePanel from "../components/PreviewOfficePanel.vue";
@@ -3077,6 +3078,9 @@ function ctxAction(action: string) {
     case "distribute":
       if (row && !row.directory) openDistribute(row);
       break;
+    case "createCollab":
+      if (row && !row.directory) void onCreateCollab(row);
+      break;
     case "favorite":
       if (row && row.directory) toggleFavorite(fullKey(row.name));
       break;
@@ -3126,6 +3130,59 @@ function ctxAction(action: string) {
 }
 
 document.addEventListener("click", closeContextMenu);
+
+/* ================== 协同（创建协同文档） ================== */
+
+/**
+ * 协同表格文件扩展名（Univer 在线表格支持，右键「创建协同」的显隐条件）。
+ * FortuneSheet 支持的表格类：Excel xlsx/xls/xlsm/csv/ods。
+ */
+const COLLAB_FILE_EXTS = new Set(["xlsx", "xls", "xlsm", "csv", "ods"]);
+
+/**
+ * 判断文件名是否可创建协同（表格类文件）。
+ *
+ * @param name 文件名
+ * @return true = 表格文件
+ */
+function isCollabFile(name: string): boolean {
+  const dot = name.lastIndexOf(".");
+  if (dot < 0) return false;
+  return COLLAB_FILE_EXTS.has(name.slice(dot + 1).toLowerCase());
+}
+
+/**
+ * 右键「创建协同」：对当前选中文件创建协同文档，成功后在协同管理列表展示。
+ *
+ * @param row 右键目标文件
+ */
+async function onCreateCollab(row: StorageObject): Promise<void> {
+  try {
+    const created = await createFileCollab({
+      // 创建者：取登录用户名（内部功能，走应用登录态）
+      fileName: row.name,
+      bucket: currentBucketName(),
+      objectKey: fullKey(row.name),
+      visibility: "PUBLIC",
+    });
+    // 创建成功 → 提示并跳转协同管理页
+    // eslint-disable-next-line no-console
+    console.info("[collab] 已创建协同", created.id);
+    // 跳转协同管理（hash 路由）
+    const before = window.location.hash;
+    if (!before.includes("/file-collabs")) {
+      window.location.hash = "#/file-collabs";
+    }
+  } catch (e) {
+    // 创建失败：沿用页面 message 体系（ElMessage 已在页面引入）
+    message.error(e instanceof Error ? e.message : "创建协同失败");
+  }
+}
+
+/** 当前桶名（列表页当前浏览的桶） */
+function currentBucketName(): string {
+  return bucket.value || getDefaultBucket();
+}
 
 /* ================== 上传（点击 + 拖拽） ================== */
 
@@ -5000,6 +5057,16 @@ onUnmounted(() => {
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>
             分发到服务器
+          </button>
+          <button
+            v-if="!ctxMenu.row!.directory && isCollabFile(ctxMenu.row!.name)"
+            type="button"
+            class="fs-ctx__item"
+            role="menuitem"
+            @click="ctxAction('createCollab')"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M16 3h5v5"/><path d="M8 21H3v-5"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
+            创建协同
           </button>
           <button
             v-if="!ctxMenu.row!.directory"

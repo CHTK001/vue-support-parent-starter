@@ -154,8 +154,8 @@ import { Refresh, Search } from "@element-plus/icons-vue";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import ReEmpty from "@repo/ui/re-empty";
-import { getDependenciesAggregated } from "../api/apmApi";
-import type { DependencyEdge } from "../api/apmApi";
+import { getDependenciesAggregated, getAgentSelf } from "../api/apmApi";
+import type { AgentSelf, DependencyEdge } from "../api/apmApi";
 import {
   chartCanvas,
   chartColor,
@@ -173,6 +173,37 @@ const loading = ref(false);
 const graphRef = ref<HTMLElement | null>(null);
 const keyword = ref("");
 const listErrorOnly = ref(false);
+
+/**
+ * 本进程自身标识（真实主机名 / 地址 / 监听端口）。
+ *
+ * <p>依赖边的 target 就是服务端自己记录的 {@code host:port}，把与之匹配的节点
+ * 标成「当前主机」，读者才能分清哪个节点是本应用。端口未知时为 null，
+ * 此时不标记任何节点 —— 不靠猜。</p>
+ */
+const self = ref<AgentSelf | null>(null);
+
+/**
+ * 该节点是否就是本进程。
+ *
+ * <p>判定只用真实值：地址/主机名 + 实际监听端口完全一致；或端口一致且主机段是
+ * 回环地址 / localhost / 本机主机名 —— 这三种情况下请求确实是打到本进程。</p>
+ */
+function isSelfNode(name: string): boolean {
+  const s = self.value;
+  if (!s || !(s.port > 0)) return false;
+  const n = String(name ?? "").trim();
+  if (!n) return false;
+  const suffix = `:${s.port}`;
+  if (!n.endsWith(suffix)) return false;
+  const host = n.slice(0, n.length - suffix.length).toLowerCase();
+  return (
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === String(s.hostName ?? "").toLowerCase() ||
+    host === String(s.address ?? "").toLowerCase()
+  );
+}
 
 /** 边的错误率：后端未给时用 errorCount / callCount 兜底（与后端同口径） */
 function edgeErrorRate(e: DependencyEdge): number {

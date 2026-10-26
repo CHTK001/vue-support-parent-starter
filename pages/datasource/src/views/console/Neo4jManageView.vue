@@ -513,6 +513,10 @@ async function runCypher(cypher: string): Promise<{ rows: Record<string, unknown
 
 /**
  * 加载标签与关系类型
+ *
+ * <p>两个接口互相独立，必须各自结算：以前每个接口成功后都调一次 {@code ready()}，
+ * 后一个接口的成功会把前一个接口的失败从提示条上抹掉——实例连不上时页面上只剩「relationships」一条，
+ * 使用者看不出 labels 也一起失败了。现在只有两个都成功才整页清空，否则所有失败的接口都留在提示条上。</p>
  */
 async function refresh() {
   if (!source.value) {
@@ -521,18 +525,26 @@ async function refresh() {
   }
   loading.value = true;
   try {
-    nodeLabels.value = (await fetchNeo4jLabels(datasourceId.value)) || [];
-    ready();
-  } catch (e) {
-    nodeLabels.value = [];
-    fail(e, "/ms/monitor/neo4j/labels");
-  }
-  try {
-    relTypes.value = (await fetchNeo4jRelationships(datasourceId.value)) || [];
-    ready();
-  } catch (e) {
-    relTypes.value = [];
-    fail(e, "/ms/monitor/neo4j/relationships");
+    const [labels, relations] = await Promise.allSettled([
+      fetchNeo4jLabels(datasourceId.value),
+      fetchNeo4jRelationships(datasourceId.value),
+    ]);
+    let allOk = true;
+    if (labels.status === "fulfilled") {
+      nodeLabels.value = labels.value || [];
+    } else {
+      nodeLabels.value = [];
+      fail(labels.reason, "/ms/monitor/neo4j/labels");
+      allOk = false;
+    }
+    if (relations.status === "fulfilled") {
+      relTypes.value = relations.value || [];
+    } else {
+      relTypes.value = [];
+      fail(relations.reason, "/ms/monitor/neo4j/relationships");
+      allOk = false;
+    }
+    if (allOk) ready();
   } finally {
     loading.value = false;
   }
@@ -550,7 +562,7 @@ async function testConnection() {
     if (result?.connected) {
       neo4jVersion.value = result.version || "";
       neo4jEdition.value = result.edition || "";
-      ready();
+      ready("/ms/monitor/neo4j/test");
       message.success(result.version ? `连接成功 · Neo4j ${result.version}` : "连接成功");
     } else {
       message.error(result?.message || "连接失败");
@@ -615,7 +627,7 @@ async function loadNodes() {
     );
     nodes.value = rows;
     nodeColumns.value = toColumns(rows);
-    ready();
+    ready("/ms/monitor/neo4j/query");
   } catch (e) {
     nodes.value = [];
     nodeColumns.value = [];
@@ -713,7 +725,7 @@ async function loadGraph() {
       graphNodes.value = [];
       graphEdges.value = [];
       graphNote.value = "采样查询未返回关系数据";
-      ready();
+      ready("/ms/monitor/neo4j/query");
       return;
     }
     const missing = ["fromId", "toId", "rel"].filter(k => !(k in rows[0]));
@@ -761,7 +773,7 @@ async function loadGraph() {
     graphEdges.value = edges;
     nodeColors.value = colorMap;
     graphNote.value = edges.length > 0 ? `采样 ${list.length} 个节点 / ${edges.length} 条关系` : "采样节点间无直接关系";
-    ready();
+    ready("/ms/monitor/neo4j/query");
   } catch (e) {
     graphNodes.value = [];
     graphEdges.value = [];
@@ -796,7 +808,7 @@ async function executeCypher() {
     const { rows, elapsed, truncated, totalRows } = await runCypher(cypherQuery.value);
     queryResult.value = { columns: toColumns(rows), rows, truncated, totalRows };
     cypherElapsed.value = elapsed;
-    ready();
+    ready("/ms/monitor/neo4j/query");
   } catch (e) {
     queryResult.value = { columns: [], rows: [], truncated: false, totalRows: 0 };
     fail(e, "/ms/monitor/neo4j/query");
@@ -888,7 +900,7 @@ async function createNode() {
     if (rows.length === 0) throw new Error("后端未返回新建节点 ID");
     message.success(`节点已创建，Element ID=${rows[0].id}`);
     createNodeVisible.value = false;
-    ready();
+    ready("/ms/monitor/neo4j/query");
     await refresh();
   } catch (e) {
     fail(e, "/ms/monitor/neo4j/query");
@@ -923,7 +935,7 @@ async function createRel() {
     if (rows.length === 0) throw new Error("未匹配到起止节点，关系未创建");
     message.success(`关系已创建，Element ID=${rows[0].id}`);
     createRelVisible.value = false;
-    ready();
+    ready("/ms/monitor/neo4j/query");
     await refresh();
   } catch (e) {
     fail(e, "/ms/monitor/neo4j/query");
@@ -969,7 +981,16 @@ onMounted(async () => {
 .dsm-stat-card { padding: 16px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); text-align: center; }
 .dsm-stat-value { font-size: 24px; font-weight: 700; color: var(--brand-600); }
 .dsm-stat-label { font-size: 12px; color: var(--text-tertiary); margin-top: 4px; }
-.dsm-section { border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); overflow: hidden; }
+/* flex-shrink: 0 不能省（理由见 NacosManageView 同名规则）：.dsm-content 是可滚 flex 列，
+   默认会被压扁到刚好不溢出，卡片底部内容（节点/关系列表最后几行）被 overflow:hidden
+   静默裁掉且不出滚动条。 */
+.dsm-section {
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-container);
+  overflow: hidden;
+  flex-shrink: 0;
+}
 .dsm-section-title { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; font-size: 14px; font-weight: 600; color: var(--text-primary); border-bottom: 1px solid var(--border-subtle); }
 .ngv-hint { padding: 10px 14px; font-size: 12px; color: var(--text-tertiary); }
 

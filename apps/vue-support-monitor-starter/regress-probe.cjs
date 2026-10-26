@@ -8,7 +8,7 @@ const fs = require("fs");
 const path = require("path");
 const { chromium } = require("playwright");
 
-const BASE = "http://127.0.0.1:8848";
+const BASE = process.env.MS_APP || "http://127.0.0.1:8848";
 const DB = "hotsport";
 const OUT = process.env.TEMP || ".";
 const LOG = path.join(OUT, "regress-probe.log");

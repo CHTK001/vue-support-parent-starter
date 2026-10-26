@@ -188,6 +188,13 @@ export const monitorRoutes: RouteConfigsTable[] = [
         component: () => import("@pages/filesystem/src/views/FileLogView.vue"),
         meta: { title: "文件日志", icon: "Tickets", showLink: true, rank: 3 },
       },
+      {
+        // 协同管理：在线表格协同（Univer）文档的列表与权限管理
+        path: "/file-collabs",
+        name: "FileCollabs",
+        component: () => import("@pages/filesystem/src/views/FileCollabManage.vue"),
+        meta: { title: "协同管理", icon: "Grid", showLink: true, rank: 4 },
+      },
     ],
   },
 

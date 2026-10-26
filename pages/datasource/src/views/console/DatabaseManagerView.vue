@@ -2223,6 +2223,8 @@ import { COLUMN_TYPE_GROUPS, SCALE_ALLOWED, SIZE_REQUIRED, UNSIGNED_ALLOWED } fr
 // 日期 / 时间列的形态识别：格内编辑与行弹窗共用同一份判定，避免两处漂移
 import { resolveTemporalKind, toTemporalPickerValue } from "../../utils/dbTemporal";
 import type { DbTemporalKind } from "../../utils/dbTemporal";
+// 「走 JDBC 协议」的类型判定：jdbc / clickhouse / duckdb 共用同一套元数据管线
+import { isJdbcFamilyType } from "../../jdbcTypes";
 import ReTable from "@repo/ui/re-table";
 import { ReFormItem, ReOption, ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 import DbSqlEditor from "../../components/console/DbSqlEditor.vue";
@@ -3892,7 +3894,14 @@ const COLUMN_TYPE_ALIAS: Record<string, string> = {
  * @param type 元数据类型名
  */
 function normalizeColumnType(type?: string | null): string {
-  const raw = String(type ?? "").toUpperCase().trim();
+  let raw = String(type ?? "").toUpperCase().trim();
+  // ClickHouse 的可空列在元数据里是 Nullable(Int32) 这种包装：
+  // 不剥掉的话整串不在下拉项里，会被兜底成 VARCHAR，用户看到的是错类型。
+  // 可空性本身由行上的 nullable 字段表达，不靠类型名。
+  const wrapped = /^NULLABLE\((.+)\)$/.exec(raw);
+  if (wrapped) {
+    raw = wrapped[1].trim();
+  }
   const mapped = COLUMN_TYPE_ALIAS[raw] ?? raw;
   return columnTypeOptions.includes(mapped) ? mapped : "VARCHAR";
 }
@@ -5799,7 +5808,10 @@ function resolveDatasourceId(): number {
 async function loadDatasources() {
   try {
     const list = await fetchDataSources();
-    const jdbc = list.filter(d => d.type === "jdbc");
+    // 按「JDBC 家族」过滤，不是只看 type === "jdbc"：ClickHouse / DuckDB 的
+    // 打开表、设计表、查询走的是同一套 JDBC 管线，漏掉它们会让这两个类型
+    // 在管理台里彻底消失，并静默回落到默认 MySQL 主数据源。
+    const jdbc = list.filter(d => isJdbcFamilyType(d.type));
     datasources.value = [DEFAULT_DATASOURCE, ...jdbc];
     let requested = resolveDatasourceId();
     // F5：没有显式指定（路由没带 datasourceId、也不是内嵌模式）时，
@@ -6239,9 +6251,9 @@ interface StructureSyncLine {
   error?: string;
 }
 
-/** 可比较的数据源选项（默认主数据源 + JDBC），源/目标两侧共用 */
+/** 可比较的数据源选项（默认主数据源 + JDBC 家族），源/目标两侧共用 */
 const syncDsOptions = computed(() =>
-  datasources.value.filter(d => d.type === "jdbc" || (d.id ?? 0) === 0),
+  datasources.value.filter(d => isJdbcFamilyType(d.type) || (d.id ?? 0) === 0),
 );
 
 /** 数据源展示名 */

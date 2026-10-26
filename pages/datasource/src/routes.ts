@@ -33,6 +33,10 @@ export const MANAGER_ROUTE_MAP: Record<string, string> = {
   kafka: "/kafka",
   elasticsearch: "/elasticsearch",
   jdbc: "/db-manager",
+  // ClickHouse 与 DuckDB 都走 JDBC，打开表/设计表/查询/表结构全部复用数据库管理台，
+  // 不另写一套管理面（另写一套必然出现「能连上但功能半通」的分叉）
+  clickhouse: "/db-manager",
+  duckdb: "/db-manager",
   redis: "/redis-manage",
   influxdb: "/influxdb",
   neo4j: "/neo4j",

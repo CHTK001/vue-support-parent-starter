@@ -1901,4 +1901,168 @@ export async function clearFileLogs(): Promise<number> {
   }
 }
 
+// ==================== 协同文档（在线表格协同） ====================
+
+/** 协同文档接口前缀（Spring 侧，与上传任务同通道） */
+const FILE_COLLAB_BASE = "/v2/file/collab";
+
+/** 协同文档可见性 */
+export type CollabVisibility = "PUBLIC" | "PRIVATE";
+
+/** 协同文档（后端 FileCollabStore.FileCollab） */
+export interface FileCollabInfo {
+  /** 协同文档号 */
+  id: string;
+  /** 源文件所在桶 */
+  bucket: string;
+  /** 源文件对象键 */
+  objectKey: string;
+  /** 展示文件名（含扩展名） */
+  fileName: string;
+  /** 创建者用户标识 */
+  owner: string;
+  /** 可见性 */
+  visibility: CollabVisibility;
+  /** 私有时的授权用户集合 */
+  allowedUserIds: string[];
+  /** 创建时间戳 */
+  createdAt: number;
+  /** 最后更新时间戳 */
+  updatedAt: number;
+  /** 快照版本（乐观锁计数） */
+  version: number;
+  /** 当前表格快照（Univer 工作簿 JSON；空串 = 未保存） */
+  snapshot: string;
+}
+
+/**
+ * 创建协同文档（文件资产右键入口）。
+ *
+ * @param options 创建参数
+ * @return 新创建的协同文档
+ */
+export async function createFileCollab(options: {
+  userId?: string;
+  bucket?: string;
+  objectKey?: string;
+  fileName: string;
+  visibility?: CollabVisibility;
+  userIds?: string[];
+}): Promise<FileCollabInfo> {
+  try {
+    const params = new URLSearchParams();
+    if (options.userId) params.set("userId", options.userId);
+    if (options.bucket) params.set("bucket", options.bucket);
+    if (options.objectKey) params.set("objectKey", options.objectKey);
+    params.set("fileName", options.fileName);
+    params.set("visibility", options.visibility ?? "PUBLIC");
+    if (options.userIds?.length) params.set("userIds", options.userIds.join(","));
+    const qs = params.toString();
+    return await uploadTaskHttp()
+      .post(`${FILE_COLLAB_BASE}/create${qs ? `?${qs}` : ""}`)
+      .then<FileCollabInfo>((r) => unwrapTask<FileCollabInfo>(r));
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "创建协同文档"));
+  }
+}
+
+/**
+ * 列出当前用户可见的协同文档（新→旧）。
+ *
+ * @param userId 当前用户标识
+ * @return 协同文档列表
+ */
+export async function listFileCollabs(userId?: string): Promise<FileCollabInfo[]> {
+  try {
+    const params = new URLSearchParams();
+    if (userId) params.set("userId", userId);
+    const qs = params.toString();
+    return await uploadTaskHttp()
+      .get(`${FILE_COLLAB_BASE}/list${qs ? `?${qs}` : ""}`)
+      .then<FileCollabInfo[]>((r) => unwrapTask<FileCollabInfo[]>(r) ?? []);
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "获取协同文档列表"));
+  }
+}
+
+/**
+ * 协同文档详情（含当前快照与版本）。
+ *
+ * @param id 协同文档号
+ * @return 协同文档
+ */
+export async function getFileCollab(id: string): Promise<FileCollabInfo> {
+  try {
+    return await uploadTaskHttp()
+      .get(`${FILE_COLLAB_BASE}/${id}`)
+      .then<FileCollabInfo>((r) => unwrapTask<FileCollabInfo>(r));
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "获取协同文档"));
+  }
+}
+
+/**
+ * 保存协同快照（版本乐观锁）。
+ *
+ * @param id              协同文档号
+ * @param snapshot        Univer 工作簿快照 JSON
+ * @param expectedVersion 期望的当前版本
+ * @return 更新后的文档（含新版本）
+ */
+export async function saveFileCollabSnapshot(
+  id: string,
+  snapshot: string,
+  expectedVersion: number,
+): Promise<FileCollabInfo> {
+  try {
+    return await uploadTaskHttp()
+      .put(`${FILE_COLLAB_BASE}/${id}/snapshot?expectedVersion=${expectedVersion}`)
+      .data(snapshot)
+      .then<FileCollabInfo>((r) => unwrapTask<FileCollabInfo>(r));
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "保存协同快照"));
+  }
+}
+
+/**
+ * 更新协同可见性与授权用户。
+ *
+ * @param id         协同文档号
+ * @param visibility 可见性
+ * @param userIds    私有时的授权用户
+ * @return 更新后的文档
+ */
+export async function updateFileCollabAccess(
+  id: string,
+  visibility: CollabVisibility,
+  userIds?: string[],
+): Promise<FileCollabInfo> {
+  try {
+    const params = new URLSearchParams();
+    params.set("visibility", visibility);
+    if (userIds?.length) params.set("userIds", userIds.join(","));
+    return await uploadTaskHttp()
+      .put(`${FILE_COLLAB_BASE}/${id}/access?${params.toString()}`)
+      .then<FileCollabInfo>((r) => unwrapTask<FileCollabInfo>(r));
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "更新协同权限"));
+  }
+}
+
+/**
+ * 删除协同文档。
+ *
+ * @param id 协同文档号
+ * @return 是否删除成功
+ */
+export async function deleteFileCollab(id: string): Promise<boolean> {
+  try {
+    return await uploadTaskHttp()
+      .delete(`${FILE_COLLAB_BASE}/${id}`)
+      .then<boolean>((r) => unwrapTask<boolean>(r) ?? false);
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "删除协同文档"));
+  }
+}
+
 

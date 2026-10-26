@@ -194,7 +194,9 @@ const handleLogin = async (): Promise<void> => {
   /* 原值 var(--size-surface-radius)（=20px）→ xl 档 */
   border-radius: var(--el-radius-xl, 16px);
   background-color: var(--el-bg-color);
-  transition: all 0.2s ease;
+  /* 只过渡实际变化的属性：transition: all 会让输入内容宽度/内边距等
+     无关属性也逐帧走过渡，连续打字时产生重绘顿挫 */
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
   padding: 4px 12px;
 }
 

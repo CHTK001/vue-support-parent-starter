@@ -23,10 +23,30 @@ export const COLUMN_TYPE_GROUPS: Array<{ label: string; types: string[] }> = [
   { label: "日期时间", types: ["DATE", "TIME", "DATETIME", "TIMESTAMP", "YEAR"] },
   { label: "枚举 / 集合", types: ["ENUM", "SET"] },
   { label: "JSON", types: ["JSON"] },
+  // ClickHouse 原生类型：与后端 DbColumnDef.SUPPORTED_TYPES 一一对应。
+  // 其它内核不认这些类型（由内核报「类型不存在」），这里用分组标题标出来源，
+  // 避免用户以为 VARCHAR 和 STRING 在所有库上都通用。
+  {
+    label: "ClickHouse",
+    types: [
+      "STRING", "FIXEDSTRING",
+      "UINT8", "UINT16", "UINT32", "UINT64",
+      "INT8", "INT16", "INT32", "INT64",
+      "FLOAT32", "FLOAT64",
+      "DATE32", "DATETIME64",
+      "UUID", "IPV4", "IPV6",
+    ],
+  },
 ];
 
-/** 需要长度输入的类型（镜像后端 SIZE_REQUIRED：CHAR/VARCHAR/BINARY/VARBINARY/DECIMAL/NUMERIC）。 */
-export const SIZE_REQUIRED = new Set(["CHAR", "VARCHAR", "BINARY", "VARBINARY", "DECIMAL", "NUMERIC"]);
+/**
+ * 需要长度输入的类型（镜像后端 SIZE_REQUIRED）。
+ *
+ * <p>FIXEDSTRING 是 ClickHouse 的定长字符串，长度必填（{@code FixedString(N)}）。</p>
+ */
+export const SIZE_REQUIRED = new Set([
+  "CHAR", "VARCHAR", "BINARY", "VARBINARY", "DECIMAL", "NUMERIC", "FIXEDSTRING",
+]);
 
 /** 允许小数位的类型（镜像后端 SCALE_ALLOWED）。 */
 export const SCALE_ALLOWED = new Set(["DECIMAL", "NUMERIC", "FLOAT", "DOUBLE", "REAL"]);

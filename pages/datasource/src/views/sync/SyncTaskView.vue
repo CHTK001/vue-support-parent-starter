@@ -877,13 +877,7 @@
       <template #footer>
         <div class="st-dlg-actions">
           <ReButton v-if="logFetchError && logEntries.length" @click="clearLogEntries">清空本机记录</ReButton>
-          <ReButton v-if="logTask" @click="openEditFromLog">编辑任务</ReButton>
-          <ReButton
-            v-if="logTask" type="primary"
-            :loading="runningId === logTask.id"
-            :disabled="runningId === logTask.id"
-            @click="runFromLog"
-          >立即执行</ReButton>
+          <ReButton v-else-if="logRuns.length || logEntries.length" type="primary" @click="fetchLogRuns">刷新日志</ReButton>
         </div>
       </template>
     </ReDialog>
@@ -2950,31 +2944,6 @@ const clearLogEntries = (): void => {
     // 存储不可用时列表本来就为空，清不掉也不影响
   }
   logEntries.value = [];
-};
-
-/** 弹窗内直接执行一次：run() 负责刷新任务行与本机记录，随后立刻拉服务端调试日志对齐最新 */
-const runFromLog = async (): Promise<void> => {
-  const task = logTask.value;
-  if (!task) {
-    return;
-  }
-  await run(task);
-  logEntries.value = readLogEntries(task.id);
-  const fresh = tasks.value.find(t => t.id === task.id);
-  if (fresh) {
-    logTask.value = fresh;
-  }
-  await fetchLogRuns();
-};
-
-/** 从日志弹窗跳到编辑（先关日志；任务可能已在别处删除，拿不到最新行就用弹窗里的快照） */
-const openEditFromLog = (): void => {
-  const current = logTask.value;
-  if (!current) {
-    return;
-  }
-  logVisible.value = false;
-  openEdit(tasks.value.find(t => t.id === current.id) ?? current);
 };
 
 /** 拉取当前任务的服务端调试日志；失败时进入降级展示（错误原文如实显示给用户） */

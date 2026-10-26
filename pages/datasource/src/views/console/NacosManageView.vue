@@ -1030,7 +1030,18 @@ onMounted(async () => {
 .dsm-info-value { font-size: 14px; font-weight: 500; color: var(--text-primary); }
 .dsm-info-status { display: flex; align-items: center; gap: 8px; }
 .dsm-info-sub { font-size: 12px; color: var(--text-tertiary); }
-.dsm-section { border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); overflow: hidden; }
+/* flex-shrink: 0 不能省。本页 .dsm-content 是「可滚的 flex 列」（flex:1 + overflow-y:auto），
+   .dsm-section 默认 flex-shrink:1 会被压扁到刚好不溢出容器，于是卡片底部（配置列表的翻页条、
+   表格最后几行）被 overflow:hidden 静默裁掉，同时整块区域不会产生任何滚动条 ——
+   用户只能看到「底下有些看不到」，没有任何可操作的线索。
+   保持自然高度，让 .dsm-content 真正滚起来。与 InfluxDB / ZooKeeper 两页写法一致。 */
+.dsm-section {
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-container);
+  overflow: hidden;
+  flex-shrink: 0;
+}
 .dsm-section-title { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; font-size: 14px; font-weight: 600; color: var(--text-primary); border-bottom: 1px solid var(--border-subtle); }
 .dsm-section-actions { display: flex; gap: 8px; }
 .dsm-config-form { display: flex; flex-direction: column; gap: 14px; }

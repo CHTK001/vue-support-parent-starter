@@ -274,13 +274,19 @@
               <template #icon><ReIcon name="Refresh" size="12" /></template>刷新
             </ReButton>
           </div>
+          <!-- 高度不写死：ReTable 的 fill 模式（缺省开启）会吃满本页签剩余高度、
+               表头固定、表体内部滚动。原来这里传 height: calc(100vh - 220px)，
+               那是「按视口猜容器高度」——220 这个数既不含页签条也不含本页自己的
+               工具栏，猜大了几十像素，而 .dsm-content 是 overflow: hidden，
+               多出来的部分直接被裁掉且不产生任何滚动条：底下几行数据永远看不到。
+               父容器 .dsm-browser-tab 有确定高度（flex:1 + min-height:0），
+               fill 判定得出可用高度，不需要再猜。 -->
           <ReTable
             :data="t.rows"
             :columns="t.columns"
             :loading="t.loading"
             stripe
             border
-            :layout-table="{ height: 'calc(100vh - 220px)' }"
           />
         </div>
 
@@ -323,6 +329,9 @@
             <ReButton layout="square" icon="Refresh" tip="刷新结构" @click="runDesignTabQuery(t)" />
           </div>
           <div class="dsm-col-hint">InfluxDB 字段只增不改：已存在字段不可重命名 / 改类型 / 单独删除（引擎限制），只能整测量删除；新增字段 = 保存时写入一条含该字段的样例数据点</div>
+          <!-- 同「打开表」页签：高度交给 ReTable 的 fill（吃满剩余高度 + 表体内滚），
+               不再用 maxHeight: calc(100% - 54px) 猜「工具条 + 说明行」有多高 ——
+               说明行会换行，54 这个数一换行就不够，多出来的字段行会被裁掉。 -->
           <ReTable
             :data="designRowsOf(t)"
             :columns="designColumns"
@@ -331,7 +340,6 @@
             stripe
             border
             size="mini"
-            :layout-table="{ maxHeight: 'calc(100% - 54px)' }"
             empty-text="暂未读取到字段"
           >
             <template #col-name="{ row }">
@@ -1224,7 +1232,11 @@ function openQueryTab(flux?: string): QueryTab {
   };
   queryTabs.value.push(tab);
   activeWorkspaceTab.value = tab.id;
-  return tab;
+  // 返回数组里的**响应式代理**，不是上面那个原始对象。
+  // ref([]) 的 push 存的是原始对象，之后往原始对象上写（tab.result = …）不会触发重渲染，
+  // 查询结果就永远停在初始的空结果上 —— 表现为「执行完查询还是空的」，
+  // 直到别的响应式变化顺带把这一帧刷出来才突然出现。
+  return queryTabs.value[queryTabs.value.length - 1]!;
 }
 
 /**
@@ -1433,7 +1445,10 @@ function openTableTab(measurement: string) {
   };
   tableTabs.value.push(tab);
   activeWorkspaceTab.value = id;
-  runTableTabQuery(tab);
+  // 用数组里的响应式代理跑查询（理由见 openQueryTab 的注释）：
+  // 传 push 前的原始对象，tab.rows / tab.columns 的写入不会触发重渲染，
+  // 「查看」页签会一直显示「0 行」的空表。
+  runTableTabQuery(tableTabs.value[tableTabs.value.length - 1]!);
 }
 
 /** 关闭打开表页签 */
@@ -1490,7 +1505,8 @@ function openDesignTab(measurement: string) {
   const tab: DesignTab = { id, measurement, rows: [], loading: false };
   designTabs.value.push(tab);
   activeWorkspaceTab.value = id;
-  void runDesignTabQuery(tab);
+  // 同样传响应式代理（见 openQueryTab 注释）
+  void runDesignTabQuery(designTabs.value[designTabs.value.length - 1]!);
 }
 
 /** 关闭设计表页签 */
@@ -2162,21 +2178,25 @@ watch(source, applyConnectionInfo);
   color: var(--text-tertiary);
 }
 
-/* 打开表页签（对齐 jdbc 表数据 tab） */
+/* 打开表页签（对齐 jdbc 表数据 tab）
+   flex: 1 + min-height: 0 而不是 height: 100%：页签条是它的兄弟节点，
+   100% 会把页签条那 40 多像素也算进来，撑出父容器后又被 overflow: hidden 裁掉。
+   flex: 1 拿的是「页签条之外剩下的高度」，这才是表格真正可用的高度。 */
 .dsm-browser-tab {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
   min-height: 0;
   padding: 12px 14px 2px;
 }
 
-/* 设计表页签（对齐 jdbc 设计表：工具条 + 说明行 + 可编辑字段网格） */
+/* 设计表页签（对齐 jdbc 设计表：工具条 + 说明行 + 可编辑字段网格）
+   与 .dsm-browser-tab 同理：flex: 1 吃剩余高度，不用 height: 100% */
 .dsm-design-view {
   display: flex;
   flex-direction: column;
+  flex: 1;
   gap: 10px;
-  height: 100%;
   min-height: 0;
   padding: 12px 14px 2px;
 }

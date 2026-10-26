@@ -909,7 +909,15 @@ onMounted(refresh);
 .dsm-info-row { display: flex; flex-direction: column; gap: 4px; }
 .dsm-info-label { font-size: 12px; color: var(--text-tertiary); }
 .dsm-info-value { font-size: 14px; font-weight: 500; color: var(--text-primary); }
-.dsm-section { border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); overflow: hidden; }
+/* flex-shrink: 0 不能省（理由见 NacosManageView 同名规则）：.dsm-content 是可滚 flex 列，
+   默认会被压扁到刚好不溢出，卡片底部内容被 overflow:hidden 静默裁掉且不出滚动条。 */
+.dsm-section {
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-container);
+  overflow: hidden;
+  flex-shrink: 0;
+}
 .dsm-section-title { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; font-size: 14px; font-weight: 600; color: var(--text-primary); border-bottom: 1px solid var(--border-subtle); }
 .dsm-section-actions { display: flex; gap: 4px; }
 .dsm-tabs { display: flex; gap: 4px; margin-bottom: 10px; border-bottom: 1px solid var(--border-subtle); }

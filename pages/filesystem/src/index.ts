@@ -18,6 +18,7 @@ import "./styles/upload.css";
 registerMenuViewModules({
   "views/filesystem/filestorage/index.vue": () => import("./views/FileStorageManage.vue"),
   "views/filesystem/uploadtask/index.vue": () => import("./views/UploadTaskView.vue"),
+  "views/filesystem/collab/index.vue": () => import("./views/FileCollabManage.vue"),
 });
 
 export * from "./api/filestorageApi";
@@ -45,3 +46,11 @@ export { default as UploadTaskView } from "./views/UploadTaskView.vue";
  * 例如宿主侧栏「文件管理 → 文件日志」二级菜单项。
  */
 export { default as FileLogView } from "./views/FileLogView.vue";
+
+/**
+ * 协同管理页组件。
+ *
+ * 供其它应用（而非仅后端菜单路由）直接嵌入使用，
+ * 例如宿主侧栏「文件管理 → 协同管理」二级菜单项。
+ */
+export { default as FileCollabManage } from "./views/FileCollabManage.vue";

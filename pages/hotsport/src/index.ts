@@ -2,7 +2,7 @@
  * @pages/hotsport 入口。
  *
  * <p>本包是一套完整的 APM 观测台页面（总览 / 链路 / 依赖 / 服务 / JVM / 日志 / 告警 /
- * Agent / 注入器等 15 个视图），原为独立应用 {@code vue-support-hotspot-starter} 的
+ * Agent / 设置等 16 个视图），原为独立应用 {@code vue-support-hotspot-starter} 的
  * 全部界面，现整体迁入以便被任意宿主复用。</p>
  *
  * <p>样式在这里统一引入：{@code tokens.css} 只定义 {@code --apm-*} 令牌与

@@ -447,9 +447,9 @@ const applyJdbcExtraParams = (): boolean => {
 const testing = ref<number | null>(null);
 /** 正在置顶/取消置顶的数据源 ID（切换按钮加载态） */
 const tryingTop = ref<number | null>(null);
-/** 最近一次「立即检测」识别出的服务端版本（jdbc 等；未识别为 null）。
- *  检测结果即填即显：右侧面板的「版本」行与测试提示共用它。 */
-const detectedVersion = ref<string | null>(null);
+// 说明：这里原先有一个会话级 ref（detectedVersion）存「最近一次检测到的版本」。
+// 它不随选中数据源重置，导致切到别的源时版本行仍显示上一个源的版本；
+// 现在版本由后端回写台账 datasource_version，展示统一走 versionLabel(item)。
 
 // 左栏筛选 / 右栏选中（纯前端交互状态）
 /** 左栏与页头共享的搜索关键词 */
@@ -494,6 +494,10 @@ const TYPE_META: Record<
   prometheus: { icon: "DataLine", mark: "PR", color: "#e6522c", label: "Prometheus", brand: "M12 0C5.373 0 0 5.372 0 12c0 6.627 5.373 12 12 12s12-5.373 12-12c0-6.628-5.373-12-12-12zm0 22.46c-1.885 0-3.414-1.26-3.414-2.814h6.828c0 1.553-1.528 2.813-3.414 2.813zm5.64-3.745H6.36v-2.046h11.28v2.046zm-.04-3.098H6.391c-.037-.043-.075-.086-.111-.13-1.155-1.401-1.427-2.133-1.69-2.879-.005-.025 1.4.287 2.395.511 0 0 .513.119 1.262.255-.72-.843-1.147-1.915-1.147-3.01 0-2.406 1.845-4.508 1.18-6.207.648.053 1.34 1.367 1.387 3.422.689-.951.977-2.69.977-3.755 0-1.103.727-2.385 1.454-2.429-.648 1.069.168 1.984.894 4.256.272.854.237 2.29.447 3.201.07-1.892.395-4.652 1.595-5.605-.529 1.2.079 2.702.494 3.424.671 1.164 1.078 2.047 1.078 3.716a4.642 4.642 0 01-1.11 2.996c.792-.149 1.34-.283 1.34-.283l2.573-.502s-.374 1.538-1.81 3.019z" },
   mongodb: { icon: "Coin", mark: "MO", color: "#4DB33D", label: "MongoDB", brand: "M17.193 9.555c-1.264-5.58-4.252-7.414-4.573-8.115-.28-.394-.53-.954-.735-1.44-.036.495-.055.685-.523 1.184-.723.566-4.438 3.682-4.74 10.02-.282 5.912 4.27 9.435 4.888 9.884l.07.05A73.49 73.49 0 0111.91 24h.481c.114-1.032.284-2.056.51-3.07.417-.296.604-.463.85-.693a11.342 11.342 0 003.639-8.464c.01-.814-.103-1.662-.197-2.218zm-5.336 8.195s0-8.291.275-8.29c.213 0 .49 10.695.49 10.695-.381-.045-.765-1.76-.765-2.405z" },
   elasticsearch: { icon: "Coin", mark: "ES", color: "#00bfb3", label: "Elasticsearch", brand: "M13.394 0C8.683 0 4.609 2.716 2.644 6.667h15.641a4.77 4.77 0 0 0 3.073-1.11c.446-.375.864-.785 1.247-1.243l.001-.002A11.974 11.974 0 0 0 13.394 0zM1.804 8.889a12.009 12.009 0 0 0 0 6.222h14.7a3.111 3.111 0 1 0 0-6.222zm.84 8.444C4.61 21.283 8.684 24 13.395 24c3.701 0 7.011-1.677 9.212-4.312l-.001-.002a9.958 9.958 0 0 0-1.247-1.243 4.77 4.77 0 0 0-3.073-1.11z" },
+  // ClickHouse 与 DuckDB 都走 JDBC，管理台复用 /db-manager（打开表/设计表/查询同一套），
+  // 所以这里只需补类型标识与配色；未收录品牌图时用 mark 缩写徽标兜底（同 nacos/zookeeper）。
+  clickhouse: { icon: "Coin", mark: "CH", color: "#ffcc01", label: "ClickHouse" },
+  duckdb: { icon: "Coin", mark: "DU", color: "#f0c808", label: "DuckDB 文件库" },
 };
 
 /** 类型有没有真实品牌 logo（无则用 mark 缩写徽标兜底） */
@@ -519,6 +523,31 @@ const influxVersionLabel = (version?: string | null): string =>
     : version === "3"
       ? "3.x（SQL / InfluxQL / Database）"
       : version || "未设置";
+
+/**
+ * 台账 version 字段的展示文案（右栏「版本」行与「连接配置」页签共用）。
+ *
+ * <p>同一列承担两种语义，按类型分开读：</p>
+ * <ul>
+ *   <li>influxdb：用户选的大版本 {@code 2}/{@code 3}，决定走 Flux 还是 InfluxQL，
+ *       用 {@link influxVersionLabel} 译成人话；</li>
+ *   <li>其余类型：最近一次「立即检测」探测到的服务端版本
+ *       （{@code MySQL 8.4.13} / {@code ClickHouse 24.8.14.39} / {@code DuckDB v1.5.6}）。</li>
+ * </ul>
+ *
+ * <p>⚠ 这里曾经读的是前端会话级 ref（{@code detectedVersion}）：切换数据源时不重置，
+ * 于是「检测过 ClickHouse 之后点任何别的源，版本行都显示 ClickHouse 的版本」。
+ * 版本已落台账，每条记录各存各的，刷新页面也不丢。</p>
+ *
+ * @param item 数据源台账条目
+ * @returns 展示文案；无版本时为「—」
+ */
+const versionLabel = (item: DataSourceInfo): string => {
+  if (item.type === "influxdb") {
+    return influxVersionLabel(item.version);
+  }
+  return item.version?.trim() ? item.version.trim() : "—";
+};
 
 /** 数据源类型徽标：InfluxDB 额外显示 v2/v3，避免新增后分不清查询语法 */
 const sourceTypeChip = (item: DataSourceInfo): string => {
@@ -566,6 +595,8 @@ const typeDesc = (type: string): string => {
     prometheus: "连接 Prometheus 监控服务，用于指标查询",
     mongodb: "连接 MongoDB 文档数据库，用于集合查询与文档查看",
     elasticsearch: "连接 Elasticsearch 集群（HTTP 接口），用于索引/字段浏览与只读查询",
+    clickhouse: "连接 ClickHouse 列式分析库（HTTP 8123），打开表/设计表/查询复用数据库管理台",
+    duckdb: "连接 DuckDB 单文件库（填磁盘路径），可直查 Parquet/CSV；没有主机与端口",
   };
   return desc[type] ?? "填写连接信息以接入该类型的数据源";
 };
@@ -691,6 +722,12 @@ const save = async () => {
   }
   if (form.value.type === "influxdb" && !editing.value && !form.value.version) {
     message.warning("请选择 InfluxDB 版本（2.x Flux / 3.x SQL）");
+    return;
+  }
+  // DuckDB 没有主机/端口，库「名」就是磁盘路径：空着提交只会得到后端一句
+  // 「必须填写库文件路径」，不如在前端当场说清
+  if (form.value.type === "duckdb" && !form.value.database?.trim()) {
+    message.warning("请填写 DuckDB 库文件路径（如 /data/warehouse.db 或 :memory:）");
     return;
   }
   if (!applyJdbcExtraParams()) return;
@@ -862,6 +899,10 @@ const jdbcDialect = (database: string): string => {
   if (lower.startsWith("jdbc:postgresql:")) return "postgresql";
   if (lower.startsWith("jdbc:oracle:")) return "oracle";
   if (lower.startsWith("jdbc:sqlserver:")) return "sqlserver";
+  // 新加的两个 JDBC 家族类型：单独给标识，避免被归到 other 后
+  // 「显示进程 / 慢查询」等 SPI 能力判断拿到含糊输入
+  if (lower.startsWith("jdbc:clickhouse:")) return "clickhouse";
+  if (lower.startsWith("jdbc:duckdb:")) return "duckdb";
   return "other";
 };
 
@@ -1305,11 +1346,9 @@ const test = async (item: DataSourceInfo) => {
   testing.value = item.id;
   try {
     const result = await testDataSource(item.id);
-    // 后端在测试时把连接延迟/会话延迟回写台账，这里重新拉一次，让概览卡片显示最新值
+    // 后端在测试时把连接延迟/会话延迟/服务端版本回写台账，这里重新拉一次：
+    // 概览卡片与「版本」行都从台账取，保证显示的就是这一条自己的数据
     await load();
-    // 检测回填：仅对刚测过的这一条生效，切换数据源后即失效；
-    // 版本是探测结果，右栏「版本」行与测试提示共用它。
-    detectedVersion.value = result?.version || null;
     if (result?.success) {
       const detail = describeLatency(result);
       const versionHint = result?.version ? `，服务端版本 ${result.version}` : "";
@@ -1542,6 +1581,11 @@ const defaultPort = (type: string): number => {
     prometheus: 9090,
     mongodb: 27017,
     elasticsearch: 9200,
+    // clickhouse-jdbc 走 HTTP 协议，默认 8123（不是原生 TCP 的 9000）
+    clickhouse: 8123,
+    // duckdb 是单文件库，没有端口；这里给 0 只是让表单不填一个假端口，
+    // 该类型的端口输入框本来就不渲染
+    duckdb: 0,
   };
   return ports[type] ?? 3306;
 };
@@ -1705,6 +1749,11 @@ const lastTestText = computed<string>(() => {
 
 /** 地址展示：host(:port)；缺省时回落占位符 */
 const formatAddress = (item: DataSourceInfo): string => {
+  // DuckDB 是单文件库：没有主机与端口，卡片上的「地址」就是磁盘路径。
+  // 不特殊处理的话会渲染出一个孤零零的冒号（host 空 + port 空）。
+  if (item.type === "duckdb") {
+    return item.database?.trim() || "—";
+  }
   if (!item.host) {
     return "—";
   }
@@ -1717,19 +1766,18 @@ const configRows = computed(() => {
   if (!item) {
     return [];
   }
-  // 版本行口径：influxdb 用台账上的 v2/v3；其余类型用最近一次「立即检测」的探测结果。
-  // 探测结果只在本次会话内存活（右栏面板展示 + 提示用），不落台账 ——
-  // 台账的 datasource_version 字段只服务 influxdb（后端 copy 有类型闸门）。
-  let versionText = "—";
-  if (item.type === "influxdb") {
-    versionText = influxVersionLabel(item.version);
-  } else if (detectedVersion.value) {
-    versionText = `${detectedVersion.value}（检测）`;
-  }
+  // 版本行口径（两类语义，各存各的，互不串台）：
+  //  - influxdb：台账存用户选的大版本 2/3（决定走 Flux 还是 InfluxQL）；
+  //  - 其余类型：台账存「立即检测」探测到的服务端版本（MySQL 8.4.13 / ClickHouse 24.8.14.39）。
+  // 曾经这里读的是前端一个会话级 ref：切数据源不重置，于是检测过 ClickHouse 之后
+  // 点任何别的源都显示 ClickHouse 的版本 —— 现在统一读台账，切谁显示谁的。
+  const versionText = versionLabel(item);
   return [
-    { label: "地址", value: formatAddress(item), mono: true },
+    // DuckDB 没有主机与端口：地址行如实写「本地文件」，路径单独占一行（否则
+    // 地址与配置路径会重复显示同一串路径，看着像渲染 bug）
+    { label: "地址", value: item.type === "duckdb" ? "本地文件（无主机端口）" : formatAddress(item), mono: item.type !== "duckdb" },
     { label: "版本", value: versionText, mono: false },
-    { label: "配置路径", value: item.database || "—", mono: true },
+    { label: item.type === "duckdb" ? "库文件路径" : "配置路径", value: item.database || "—", mono: true },
     { label: "用户", value: item.username || "—", mono: false },
     { label: "备注", value: item.remark || "—", mono: false },
     { label: "来源类型", value: typeMeta(item.type).label, mono: false },
@@ -1742,18 +1790,13 @@ const connectionRows = computed(() => {
   if (!item) {
     return [];
   }
-  // 版本口径与概览一致：influxdb 用台账的 v2/v3，其余类型用最近一次「立即检测」的探测结果
-  // （后端从 DatabaseMetaData / INFO 取，不落台账 —— 台账 datasource_version 只服务 influxdb）
-  const versionText = item.type === "influxdb"
-    ? influxVersionLabel(item.version)
-    : detectedVersion.value
-      ? `${detectedVersion.value}（检测）`
-      : "—";
+  // 版本口径与概览一致，统一从台账字段取（influxdb 是 2/3，其余是探测到的服务端版本）
+  const versionText = versionLabel(item);
   return [
     { label: "数据源 ID", value: item.id != null ? String(item.id) : "—", mono: true },
-    { label: "地址", value: formatAddress(item), mono: true },
+    { label: "地址", value: item.type === "duckdb" ? "本地文件（无主机端口）" : formatAddress(item), mono: item.type !== "duckdb" },
     { label: "版本", value: versionText, mono: false },
-    { label: "配置路径", value: item.database || "—", mono: true },
+    { label: item.type === "duckdb" ? "库文件路径" : "配置路径", value: item.database || "—", mono: true },
     { label: "用户", value: item.username || "—", mono: false },
     { label: "驱动类", value: item.driverClassName || "—", mono: true },
     { label: "状态", value: item.status === 0 ? "已停用" : "启用", mono: false },
@@ -2047,7 +2090,7 @@ onMounted(load);
                     <span v-if="item.topFlag === 1" class="ds-item__pin" title="已置顶">顶</span>
                     <span class="ds-item__chip" :style="{ '--tile': typeMeta(item.type).color }">{{ sourceTypeChip(item) }}</span>
                   </span>
-                  <span class="ds-item__addr mono">{{ item.host }}:{{ item.port }}</span>
+                  <span class="ds-item__addr mono">{{ formatAddress(item) }}</span>
                 </span>
                 <i
                   class="ds-item__dot"
@@ -2453,35 +2496,56 @@ onMounted(load);
             <ReFormItem label="名称" required class="is-full">
               <ReInput v-model="form.name" placeholder="例如：生产 MySQL" />
             </ReFormItem>
-            <ReFormItem label="主机地址" required>
-              <ReInput v-model="form.host" placeholder="127.0.0.1" />
-            </ReFormItem>
-            <ReFormItem :label="form.type === 'neo4j' ? '端口 (HTTP)' : '端口'" required>
-              <ReInputNumber
-                :model-value="form.port ?? undefined"
-                :min="1"
-                :max="65535"
-                style="width: 100%"
-                @update:model-value="form.port = $event"
-              />
-            </ReFormItem>
-            <ReFormItem label="用户名" required>
-              <ReInput v-model="form.username" placeholder="数据库用户名" />
-            </ReFormItem>
-            <ReFormItem label="密码" :required="!editing">
-              <ReInput
-                v-model="form.password"
-                type="password"
-                show-password
-                :placeholder="editing ? '留空表示不修改' : '数据库密码'"
-              />
-              <!-- 口令不回显（接口出参已清空），编辑时必须说清「留空=不改」，
-                   否则用户以为口令丢了，或者以为空着会清空口令 -->
-              <p v-if="editing" class="ds-form-hint">
-                {{ editing.passwordSet ? "当前已设置口令，留空保存则保持不变" : "当前未设置口令" }}
+            <!-- DuckDB 是单文件嵌入式库：没有主机、端口、账号，只填库文件路径。
+                 其余类型保持「主机 + 端口 + 账号」那一套。 -->
+            <template v-if="form.type !== 'duckdb'">
+              <ReFormItem label="主机地址" required>
+                <ReInput v-model="form.host" placeholder="127.0.0.1" />
+              </ReFormItem>
+              <ReFormItem :label="form.type === 'neo4j' ? '端口 (HTTP)' : '端口'" required>
+                <ReInputNumber
+                  :model-value="form.port ?? undefined"
+                  :min="1"
+                  :max="65535"
+                  style="width: 100%"
+                  @update:model-value="form.port = $event"
+                />
+              </ReFormItem>
+              <ReFormItem label="用户名" required>
+                <ReInput v-model="form.username" placeholder="数据库用户名" />
+              </ReFormItem>
+              <ReFormItem label="密码" :required="!editing">
+                <ReInput
+                  v-model="form.password"
+                  type="password"
+                  show-password
+                  :placeholder="editing ? '留空表示不修改' : '数据库密码'"
+                />
+                <!-- 口令不回显（接口出参已清空），编辑时必须说清「留空=不改」，
+                     否则用户以为口令丢了，或者以为空着会清空口令 -->
+                <p v-if="editing" class="ds-form-hint">
+                  {{ editing.passwordSet ? "当前已设置口令，留空保存则保持不变" : "当前未设置口令" }}
+                </p>
+              </ReFormItem>
+            </template>
+            <ReFormItem
+              v-if="form.type === 'duckdb'"
+              label="库文件路径"
+              required
+              class="is-full"
+              data-testid="ds-duckdb-path-field"
+            >
+              <ReInput v-model="form.database" placeholder="/data/warehouse.db 或 :memory:" />
+              <p class="ds-form-hint">
+                绝对路径指向磁盘上的 .db 文件（不存在则建连时创建）；也可填 <code>:memory:</code> 建临时库。
+                路径须落在应用允许的目录内，越界会被拒绝保存。
               </p>
             </ReFormItem>
-            <ReFormItem :label="form.type === 'neo4j' ? '图数据库名' : '数据库/库名'" class="is-full">
+            <ReFormItem
+              v-if="form.type !== 'duckdb'"
+              :label="form.type === 'neo4j' ? '图数据库名' : '数据库/库名'"
+              class="is-full"
+            >
               <ReInput
                 v-model="form.database"
                 :placeholder="form.type === 'neo4j' ? '留空按 neo4j；填完整 http(s):// 地址时按反向代理前缀处理' : '数据库名 / Redis DB 编号 / Kafka 可选上下文'"

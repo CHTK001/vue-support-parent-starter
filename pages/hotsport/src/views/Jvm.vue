@@ -150,7 +150,7 @@
           </span>
         </div>
         <div v-if="!metrics.length" class="panel-empty">
-          该时间窗内暂无指标采样<br />5s 轮询开始后会逐步累积
+          该时间窗内暂无指标采样<br />采样随宿主运行逐步累积
         </div>
         <ReEcharts v-else :option="trendOption" theme="light" height="240px" />
       </div>

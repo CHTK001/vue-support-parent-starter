@@ -287,7 +287,7 @@ function doServerSearch() {
 
 /**
  * 拉取日志列表。
- * @param silent 自动刷新/轮询时置 true：不显示加载遮罩、不弹错误提示，避免每 5s 闪一下。
+ * @param silent 收到实时推送时置 true：不显示加载遮罩、不弹错误提示，避免推送频繁时闪屏。
  */
 async function load(silent = false) {
   if (!silent) loading.value = true;
@@ -381,7 +381,7 @@ const {
 
 function toggleLiveStream(on: boolean) {
   if (on) {
-    // 实时流走全站单例通道，关掉轮询避免两路同时刷新
+    // 实时流走全站单例通道，关掉随推送刷新避免两路同时刷新
     autoRefresh.value = false;
     clearLiveStream();
     startLiveStream();

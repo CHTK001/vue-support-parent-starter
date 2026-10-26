@@ -1494,6 +1494,7 @@ onMounted(() => {
   width: 100%;
   display: inline-flex;
   align-items: center;
+  justify-content: flex-end;
   padding: 6px 8px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);

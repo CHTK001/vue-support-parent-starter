@@ -504,6 +504,26 @@ export function getSystemTopology(): Promise<SystemTopology> {
   return unwrap(instance.get<SystemTopology>("/system/topology"));
 }
 
+// ---- 本进程自身标识（/agent/self）----
+
+/**
+ * 本进程自身标识。全部为真实值：主机名与地址来自本机 InetAddress，
+ * 端口来自实际绑定的 WebServer。
+ */
+export interface AgentSelf {
+  hostName: string;
+  address: string;
+  /** 实际监听端口；未知为 -1 */
+  port: number;
+  software: string;
+  display: string;
+}
+
+/** 本进程自身标识（依赖拓扑标「当前主机」用） */
+export function getAgentSelf(): Promise<AgentSelf> {
+  return unwrap(instance.get<AgentSelf>("/agent/self"));
+}
+
 // ---- Trace 瀑布（SkyWalking 风格）----
 
 export interface WaterfallSpan {
@@ -1022,6 +1042,7 @@ export default {
   getJvmSnapshot,
   getJvmMetrics,
   getSystemTopology,
+  getAgentSelf,
   getTraceWaterfall,
   getAlerts,
   getHandleInventory,
