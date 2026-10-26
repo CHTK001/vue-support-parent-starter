@@ -25,7 +25,7 @@
  * （会触发 "Failed to resolve component"、引用角标整块不渲染），且 {@code Loading}
  * 导入后从未使用；本次补齐与清理。</p>
  */
-import { computed, defineAsyncComponent, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Promotion, Search, Position, ChatLineSquare, Document, Delete, WarningFilled } from '@element-plus/icons-vue'
 import { apiService } from '@/services/ApiService'
 import { usePopup } from '@/composables/usePopup'
@@ -35,13 +35,11 @@ import ReButton from '@/components/re/ReButton.vue'
 import ReSquareButton from '@repo/ui/re-button'
 import ReTag from '@/components/re/ReTag.vue'
 
-// 关系图用 G6 内核的 ReRelationGraph（@repo/ui 提供）。
-// 必须显式引入：本应用没有全局注册它（vite 的 Components() 只扫本应用 src/components，
-// 该组件在 packages/ui 下），漏了会让 <ReRelationGraph> 解析失败、迷你图谱整块空白，
-// 且只有控制台一条 "Failed to resolve component" 警告。
-const ReRelationGraph = defineAsyncComponent(() =>
-  import('@repo/ui/re-relation-graph').then((m) => m.default),
-)
+// 关系图谱使用 G6 内核的 ReRelationGraph（@repo/ui 已提供）。
+// 该包导出的默认值本身就是 defineAsyncComponent 包过的异步组件（按主题懒加载），
+// 这里直接引入即可，不要再套一层 defineAsyncComponent —— 两层会让类型退化成联合类型，
+// 而且内层 loader 的返回值与 AsyncComponentLoader 契约不匹配。
+import ReRelationGraph from '@repo/ui/re-relation-graph'
 
 const props = defineProps<{
   /** 知识库ID */
@@ -157,8 +155,20 @@ const miniGraph = computed(() => {
   const ids = new Set(hit.map((n) => n.id))
   const edges = (props.graphEdges || []).filter((e) => ids.has(e.from) && ids.has(e.to))
   return {
-    nodes: hit.map((n) => ({ ...n, size: 44 })),
-    edges: edges.map((e) => ({ ...e, size: 1 })),
+    nodes: hit.map((n) => ({
+      id: n.id,
+      // label 供 G6 渲染；text 保留给上方来源标签列表复用
+      label: String(n.text || n.id),
+      text: String(n.text || n.id),
+      size: 44,
+      group: "hit",
+    })),
+    // 后端契约是 from/to，G6 契约是 source/target（缺 id 时组件按 source-target 生成）
+    edges: edges.map((e) => ({
+      source: String(e.from),
+      target: String(e.to),
+      label: String(e.text ?? ""),
+    })),
   }
 })
 

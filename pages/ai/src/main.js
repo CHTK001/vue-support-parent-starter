@@ -43,14 +43,6 @@ import "./styles/page-title-unify.css";
 import "nprogress/nprogress.css";
 // 组件库统一卡片视觉基线（ReStatCard 风格：re-surface / --hover / --dense）
 import "@repo/ui/surface";
-// 【设计探索临时样式 — 落地后只保留选中的一份】全站美化变体：
-// 全部规则由 html[data-dv="…"] 限定作用域，未选变体时零影响。
-import "./styles/design-variants/var-base.css";
-import "./styles/design-variants/var-console.css";
-import "./styles/design-variants/var-brief.css";
-import "./styles/design-variants/var-metrics.css";
-import "./styles/design-variants/var-workspace.css";
-import "./styles/design-variants/var-calm.css";
 
 import { apiService } from "@/services/ApiService";
 import { bootstrapFramework, hasToken } from "@/framework/context";
@@ -287,13 +279,6 @@ const routes = [
     meta: { title: "模型管理", requiresAuth: true, embed: true },
     // 独立顶层路由：iframe 嵌入时不带 MainLayout / GlobalSidebar / FloatingChatPanel
     component: () => import("./components/models/ModelsEmbedPage.vue"),
-  },
-  {
-    // 【设计探索临时路由 — 验证完即删】模型选择变体独立预览：/preview/models?variant=catalog
-    path: "/preview/models",
-    name: "VariantsPreview",
-    meta: { title: "模型选择器 · 设计探索" },
-    component: () => import("./components/dev/VariantsPreviewPage.vue"),
   },
   {
     path: "/login",

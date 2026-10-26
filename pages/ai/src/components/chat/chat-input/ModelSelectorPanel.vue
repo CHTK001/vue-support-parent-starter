@@ -1,14 +1,5 @@
 <template>
-  <!-- 探索稿：?variant=catalog|briefing|terminal|aurora|ledger 时渲染变体容器 + 右下角浮动切换器。
-       Phase 3 选定后删除本块与 ModelSelectorPanel.variants/ 目录。 -->
-  <div v-if="explorationMode" class="mvp" :class="[`mvp--${variant}`, { 'mvp--inline': inlineStage }]">
-    <div class="mvp__stage">
-      <component :is="variantComponent" :key="variant" />
-    </div>
-    <VariantSwitcher :current="variant" />
-  </div>
-
-  <CustomPopover v-else :show="visible" @update:show="onMainShowChange" :width="320" :max-height="400" :anchor-el="anchorEl"
+  <CustomPopover :show="visible" @update:show="onMainShowChange" :width="320" :max-height="400" :anchor-el="anchorEl"
     popper-class="model-popover simple-model-popover">
     <div class="model-panel">
       <!-- 当前选中模型 -->
@@ -95,20 +86,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElIcon } from 'element-plus'
 import { Checkmark24Regular, Add24Regular, Search16Filled, Dismiss16Regular } from '@vicons/fluent'
 import CustomPopover from '../../ui/CustomPopover.vue'
 import Avatar from '../../ui/Avatar.vue'
 import ModelInfoCard from './ModelInfoCard.vue'
-// 设计探索（Phase 2）：5 个变体 + 浮动切换器。选定后删除这些 import。
-import VariantSwitcher from './ModelSelectorPanel.variants/VariantSwitcher.vue'
-import Catalog from './ModelSelectorPanel.variants/Catalog.vue'
-import Briefing from './ModelSelectorPanel.variants/Briefing.vue'
-import Terminal from './ModelSelectorPanel.variants/Terminal.vue'
-import Aurora from './ModelSelectorPanel.variants/Aurora.vue'
-import Ledger from './ModelSelectorPanel.variants/Ledger.vue'
 import {
   getModelDisplayName, getModelAvatarPath,
   getModelContextWindow, formatContextSize,
@@ -154,11 +138,6 @@ const props = defineProps<{
   models: Model[]
   providers: Provider[]
   currentModelId: string | null
-  /**
-   * 探索模式是否内联渲染（Phase 2 预览页用）。
-   * 默认 false：浮层盖住页面；true 时交给父容器布局，避免 fixed 在卡片里塌成 0 高。
-   */
-  inlineStage?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -168,47 +147,6 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-
-/* ==================== 设计探索（Phase 2，选定后删除本段） ==================== */
-/** 带 ?variant=xxx 参数进入「探索模式」：渲染 5 个变体之一 + 浮动切换器。 */
-const VARIANTS = ['catalog', 'briefing', 'terminal', 'aurora', 'ledger'] as const
-type VariantKey = (typeof VARIANTS)[number]
-
-/** 启动时的 URL 参数（决定探索模式开/关与初始变体；切换器只改 variant，不退出探索） */
-const initialVariant = ((): VariantKey => {
-  if (typeof window === 'undefined') return 'catalog'
-  const v = new URLSearchParams(window.location.search).get('variant') as string | null
-  return v && (VARIANTS as readonly string[]).includes(v) ? (v as VariantKey) : 'catalog'
-})()
-const explorationMode = computed(() =>
-  typeof window !== 'undefined'
-  && new URLSearchParams(window.location.search).has('variant'),
-)
-/** 当前变体：切换器通过 dispatchEvent 驱动，URL 同步供刷新/分享 */
-const variant = ref<VariantKey>(initialVariant)
-const variantComponent = computed(() => {
-  const key = variant.value
-  if (key === 'catalog') return Catalog
-  if (key === 'briefing') return Briefing
-  if (key === 'terminal') return Terminal
-  if (key === 'aurora') return Aurora
-  return Ledger
-})
-
-/** 切换器把 URL 改好后 dispatch 该事件；这里只更新本地响应式状态（URL 已由切换器同步） */
-const mvpListener = (e: Event) => {
-  const key = (e as CustomEvent<string>).detail as VariantKey
-  if ((VARIANTS as readonly string[]).includes(key)) {
-    variant.value = key
-  }
-}
-onMounted(() => {
-  if (explorationMode.value) window.addEventListener('mvp-variant-change', mvpListener)
-})
-onUnmounted(() => {
-  window.removeEventListener('mvp-variant-change', mvpListener)
-})
-/* ==================== 设计探索结束 ==================== */
 
 const currentModel = computed(() => {
   if (!props.currentModelId) return null
@@ -632,77 +570,5 @@ watch(searchKw, () => {
 .model-item:focus-visible,
 .add-model-btn:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-}
-
-/* 设计探索容器（Phase 2）：把变体渲染在页面中央舞台，脱离弹窗定位；
-   变体自带的 fixed 信息卡（如 Terminal / Aurora）直接挂在 body 上。
-   .mvp--inline 必须排在 .mvp 之后（同权重，靠顺序覆盖 fixed）。 */
-.mvp {
-  position: fixed;
-  inset: 0;
-  z-index: 4001;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: color-mix(in srgb, var(--bg-page, #f6f7fb) 55%, transparent);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-  padding: 16px;
-}
-
-/* 内联模式：独立预览页（VariantsPreviewPage）用。
-   fixed 定位在预览卡片里会塌成 0 高（卡片只剩 2px 边框，实测 2026-10-23），
-   故改为普通流式布局、去掉遮罩与居中。 */
-.mvp--inline {
-  position: static;
-  inset: auto;
-  z-index: auto;
-  display: block;
-  padding: 0;
-  background: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
-.mvp__stage {
-  width: 480px;
-  max-width: 100%;
-  max-height: 80vh;
-  overflow: hidden;
-  background: var(--bg-container, var(--el-bg-color, #fff));
-  border: 1px solid var(--border-default, var(--el-border-color-lighter, #e3e6ef));
-  border-radius: var(--el-radius-xl, 16px);
-  box-shadow: var(--shadow-lg, 0 8px 24px rgba(15, 18, 33, 0.08));
-}
-
-/* 内联模式：舞台交给预览页的卡片承载，去掉重复的边框与阴影 */
-.mvp--inline .mvp__stage {
-  width: auto;
-  max-width: none;
-  max-height: none;
-  overflow: visible;
-  background: none;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-}
-
-/* 终端变体自带深色底，舞台同步压暗，避免白框包深块 */
-.mvp--terminal .mvp__stage {
-  background: var(--terminal-bg, #0d1117);
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
-/* 暗色主题：舞台底色跟随 koi 暗色令牌 */
-html.dark .mvp {
-  background: color-mix(in srgb, var(--bg-page, #0f1117) 55%, transparent);
-}
-html.dark .mvp__stage {
-  background: var(--bg-container, #1a1d27);
-  border-color: var(--border-default, rgba(255, 255, 255, 0.12));
-}
-html.dark .mvp--terminal .mvp__stage {
-  background: var(--terminal-bg, #0d1117);
-  border-color: rgba(255, 255, 255, 0.12);
 }
 </style>

@@ -71,13 +71,6 @@ const ALL_RE_COMPONENTS = [
   "ReImageGen",
   "ReVideoGen",
   "ReEcharts",
-  "ReGraph",
-  "ReGraphForce",
-  "ReGraphMind",
-  "ReGraphTree",
-  "ReGraphCircle",
-  "ReGraphCenter",
-  "ReGraphFixed",
   "ReRelationGraph",
   "ReTagFilter",
   "ReAvatar3D",
@@ -93,8 +86,6 @@ const ALL_RE_COMPONENTS = [
   "ReUploadChunk",
   "ReIconSelect",
   "ReImageCompare",
-  "ReGraph3D",
-  "ReRelationGraphV2",
 ];
 
 /** 单页面应用最小化主题安装器：只做 ElementPlus / 图标 / 指令 / SVG sprite */

@@ -169,9 +169,10 @@
             </label>
             <label class="iw-field">
               <span class="iw-field-label">字段分隔符</span>
-              <ReSelect v-model="delimiter" style="width: 100%">
+              <ReSelect v-model="delimiterModel" filterable allow-create style="width: 100%">
                 <ReOption v-for="d in DELIMITERS" :key="d.value" :label="d.label" :value="d.value" />
               </ReSelect>
+              <span class="iw-field-hint">可直接输入任意单个字符；默认分隔符也可清空交给后端探测</span>
             </label>
             <label class="iw-field">
               <span class="iw-field-label">文本识别符号</span>
@@ -366,7 +367,14 @@
             <span class="iw-mono">{{ row.source }}</span>
           </template>
           <template #col-target="{ row }">
-            <ReSelect v-model="row.target" clearable placeholder="（不导入）" style="width: 100%">
+            <ReSelect
+              v-model="row.target"
+              filterable
+              allow-create
+              clearable
+              placeholder="（不导入）"
+              style="width: 100%"
+            >
               <ReOption label="（不导入）" value="" />
               <ReOption v-for="c in targetColumns" :key="c.name" :label="columnLabel(c)" :value="c.name" />
             </ReSelect>
@@ -380,6 +388,10 @@
           </template>
         </ReTable>
         <div v-if="mappingConflict" class="iw-note is-error">映射冲突：{{ mappingConflict }}</div>
+        <p class="iw-hint">
+          「目标字段」可直接输入新名字：勾了「新建表」时按输入的名字建列；
+          目标是现有表时，输入的名称必须是表里已有的列，否则执行阶段会报「列不存在」。
+        </p>
         <div class="iw-row">
           <span class="iw-label">匹配方式</span>
           <span class="iw-hint">
@@ -693,6 +705,33 @@ const excelAvailable = ref(true);
 /** 源选项（第 3 步） */
 const recordDelimiter = ref("CRLF");
 const delimiter = ref(",");
+
+/**
+ * 字段分隔符的读写代理（支持自定义输入）。
+ *
+ * <p>下拉候选只有逗号/分号/制表符等常用值，但真实文件里还会出现 {@code #}、{@code ~}、
+ * {@code :} 这类单字符分隔符，所以下拉开了 {@code allow-create} 让用户直接输入。</p>
+ *
+ * <p><b>必须卡死单字符</b>：后端 {@code DbImportDTO.delimiterChar()} 用
+ * {@code delimiter.charAt(0)} 取首字符解析，多字符（如 {@code ||}）会被静默截成
+ * {@code |} —— 界面上写着 {@code ||}、实际按 {@code |} 切分，属于最难排查的一类错。
+ * 因此在写入前拦截并提示，而不是让它悄悄生效。</p>
+ *
+ * <p>清空是合法状态（{@code ""}）：表示不指定，由后端按内容自动探测。</p>
+ */
+const delimiterModel = computed<string>({
+  get: () => delimiter.value,
+  set: (value: string) => {
+    const text = value ?? "";
+    if (text.length > 1) {
+      message.warning("字段分隔符只能是单个字符");
+      // 不写入：让下拉回弹到上一次的合法值，避免半截输入留下来
+      delimiter.value = delimiter.value;
+      return;
+    }
+    delimiter.value = text;
+  },
+});
 const textQualifier = ref('"');
 const decimalSymbol = ref(".");
 const fieldNamesLine = ref(1);
@@ -1041,11 +1080,14 @@ async function onFilePicked(event: Event): Promise<void> {
 function applyPreview(result: DbImportPreview): void {
   preview.value = result;
   excelAvailable.value = result.excelAvailable !== false;
-  if (result.sheets?.length) {
-    sheets.value = result.sheets;
+  // 先收窄成局部常量：`result.sheets?.length` 的判定不会保留到回调里，
+  // 直接写 `result.sheets.includes` 会被 TS 判成 possibly undefined
+  const sheetNames = result.sheets ?? [];
+  if (sheetNames.length) {
+    sheets.value = sheetNames;
     // 已勾选的保持不变（重解析不该把用户的选择清掉），只保证至少勾一张
-    const kept = selectedSheets.value.filter(s => result.sheets.includes(s));
-    selectedSheets.value = kept.length ? kept : [result.activeSheet ?? result.sheets[0]];
+    const kept = selectedSheets.value.filter(s => sheetNames.includes(s));
+    selectedSheets.value = kept.length ? kept : [result.activeSheet ?? sheetNames[0]];
     activeSheet.value = result.activeSheet ?? selectedSheets.value[0] ?? "";
   }
 }
@@ -1474,7 +1516,7 @@ function runOne(
       ignoreForeignKey: advanced.value.ignoreForeignKey,
       continueOnError: advanced.value.continueOnError,
     };
-    abortRun = runDbImport(options, {
+    const client = runDbImport(options, {
       onEvent: event => {
         switch (event.type) {
           case "phase":
@@ -1533,6 +1575,9 @@ function runOne(
         settle("failed");
       },
     });
+    // runDbImport 返回的是 SSE 客户端，不是关闭函数：
+    // 包一层再存，中断时调 close() 即可，避免把客户端实例当函数调用
+    abortRun = () => client.close();
   });
 }
 

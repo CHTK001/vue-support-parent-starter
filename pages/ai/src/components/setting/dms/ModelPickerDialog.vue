@@ -60,7 +60,7 @@ const props = defineProps<{
   /** 当前临时选中的模型 id */
   selectedId?: string | null
   emptyText?: string
-  logoFor?: (model: any) => string | null
+  logoFor?: (model: any) => string | undefined | null
 }>()
 
 const emit = defineEmits<{
@@ -80,7 +80,7 @@ const filteredProviders = computed(() => {
     .filter((p) => p.models.length > 0)
 })
 
-const modelLogo = (model: any) => (props.logoFor ? props.logoFor(model) : null)
+const modelLogo = (model: any): string | undefined => (props.logoFor ? props.logoFor(model) ?? undefined : undefined)
 
 function pick(id: string) {
   if (!id) return

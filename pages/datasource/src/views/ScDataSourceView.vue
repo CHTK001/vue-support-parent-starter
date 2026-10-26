@@ -95,6 +95,7 @@ import {
 } from "../datasourceStatus";
 import { hasRoutePath, nearbyRoutePaths } from "../managerRoutes";
 import { managerRouteFor } from "../routes";
+import { copyToClipboard } from "../utils/clipboard";
 
 /**
  * 宿主应用注入的额外页签（如监控台的「数据表」= 数据库管理器内嵌）。
@@ -1227,12 +1228,32 @@ const openSlowQueries = async (item: DataSourceInfo) => {
 
 /** 慢查询列定义 */
 const slowQueryColumns: ReTableColumn[] = [
-  { prop: "digest", label: "语句（摘要）", minWidth: 320 },
+  { prop: "digest", label: "语句（摘要）", minWidth: 320, slot: "col-digest" },
   { prop: "avgMs", label: "平均耗时(ms)", width: 120, align: "right" },
   { prop: "maxMs", label: "最大耗时(ms)", width: 120, align: "right" },
   { prop: "calls", label: "次数", width: 90, align: "right" },
   { prop: "lastAt", label: "最近执行", width: 170, slot: "col-last", align: "center" },
 ];
+
+/**
+ * 复制慢查询语句。
+ *
+ * <p>慢查询的语句是**摘要**（{@code performance_schema} 把字面量替换成 {@code ?}），
+ * 长度经常超出列宽被省略号截断，没法手动选中复制；给一个复制图标比让用户
+ * 拖宽列再 Ctrl+C 现实得多。</p>
+ *
+ * @param text 语句摘要
+ */
+async function copySlowQuery(text: string): Promise<void> {
+  if (!text) {
+    return;
+  }
+  if (await copyToClipboard(text)) {
+    message.success("语句已复制");
+  } else {
+    message.warning("复制失败，请手动选中复制");
+  }
+}
 
 /** 刷新慢查询列表 */
 const reloadSlowQueries = async () => {
@@ -2666,6 +2687,20 @@ onMounted(load);
           border
           :layout-table="{ height: '420px' }"
         >
+          <template #col-digest="{ row }">
+            <span class="ds-slow-stmt">
+              <span class="ds-slow-stmt__text mono" :title="row.digest">{{ row.digest }}</span>
+              <button
+                type="button"
+                class="ds-slow-stmt__copy"
+                :aria-label="`复制语句：${row.digest}`"
+                title="复制语句"
+                @click.stop="copySlowQuery(row.digest)"
+              >
+                <ReIcon name="CopyDocument" :size="13" />
+              </button>
+            </span>
+          </template>
           <template #col-last="{ row }">
             <span v-if="row.lastAt" class="mono">{{ row.lastAt }}</span>
             <span v-else class="ds-process__muted">—</span>
@@ -3685,6 +3720,46 @@ onMounted(load);
 }
 .ds-process__muted {
   color: var(--el-text-color-placeholder);
+}
+/* 慢查询语句格：语句可能很长，必须让省略号生效，复制图标固定在右侧不参与压缩。
+   图标默认半透明，hover 行或图标本身才提亮 —— 常显会喧宾夺主，看不见也不影响发现。 */
+.ds-slow-stmt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  width: 100%;
+}
+.ds-slow-stmt__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ds-slow-stmt__copy {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--el-text-color-placeholder);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.ds-slow-stmt:hover .ds-slow-stmt__copy,
+.ds-slow-stmt__copy:focus-visible {
+  opacity: 1;
+}
+.ds-slow-stmt__copy:hover {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
 }
 .ds-pill { border-radius: var(--el-radius-full, 9999px) !important; }
 

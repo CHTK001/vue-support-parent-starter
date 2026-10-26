@@ -32,11 +32,18 @@ const props = defineProps<{
   hostId: number;
   /** 当前上下文主机名（展示用） */
   hostName: string;
+  /** 渲染域：docker 只显示容器、k8s 只显示工作负载、both 同屏（兼容旧用法） */
+  domain?: "docker" | "k8s" | "both";
 }>();
 
-const emit = defineEmits<{
-  (e: "back"): void;
-}>();
+const domain = computed<"docker" | "k8s" | "both">(() => props.domain ?? "both");
+/** 是否只渲染 Docker 域 */
+const dockerOnly = computed(() => domain.value === "docker");
+/** 是否只渲染 K8s 域 */
+const k8sOnly = computed(() => domain.value === "k8s");
+/** 标题 */
+const title = computed(() =>
+  dockerOnly.value ? "Docker 工作台" : k8sOnly.value ? "Kubernetes 工作台" : "Docker · Kubernetes 工作台");
 
 /* ==================== 真实能力与数据 ==================== */
 
@@ -69,14 +76,17 @@ const k8sData = ref({
 /** 容器总数与运行数 */
 const runningCount = computed(() => containers.value.filter((c) => c.state === "running").length);
 
-/** 卡片墙分段（K8s 只在有集群能力时出现） */
+/** 卡片墙分段（按域展开：docker 只列容器状态，k8s 只列工作负载，both 全列） */
 const cardsActive = ref("running");
 const cardsSeg = computed(() => {
-  const segs: Array<{ key: string; label: string; n: number }> = [
-    { key: "running", label: "运行中", n: runningCount.value },
-    { key: "stopped", label: "已停止", n: containers.value.length - runningCount.value },
-  ];
-  if (cap.value.k8s) segs.push({ key: "k8s", label: "K8s 工作负载", n: k8sData.value.workloads.length });
+  const segs: Array<{ key: string; label: string; n: number }> = [];
+  if (!k8sOnly.value) {
+    segs.push({ key: "running", label: "运行中", n: runningCount.value });
+    segs.push({ key: "stopped", label: "已停止", n: containers.value.length - runningCount.value });
+  }
+  if (!dockerOnly.value && cap.value.k8s) {
+    segs.push({ key: "k8s", label: "K8s 工作负载", n: k8sData.value.workloads.length });
+  }
   return segs;
 });
 
@@ -86,13 +96,17 @@ function readyOk(ready: string): boolean {
   return a === b;
 }
 
-/** 未安装的空态文案 */
+/** 未安装的空态文案（按域） */
 const emptyHint = computed(() => {
   const lines: string[] = [];
-  if (!cap.value.docker) lines.push("Docker 未安装");
-  if (!cap.value.k8s) lines.push("Kubernetes 未检测到集群");
+  if (!k8sOnly.value && !cap.value.docker) lines.push("Docker 未安装");
+  if (!dockerOnly.value && !cap.value.k8s) lines.push("Kubernetes 未检测到集群");
   return lines.join(" · ") || "已全部安装";
 });
+
+/** 本域是否「无可用服务」（决定整页空态） */
+const noService = computed(() =>
+  dockerOnly.value ? !cap.value.docker : k8sOnly.value ? !cap.value.k8s : (!cap.value.docker && !cap.value.k8s));
 
 /** 无有效主机上下文（不应调接口） */
 const noHost = computed(() => !props.hostId);
@@ -112,13 +126,15 @@ async function refresh(): Promise<void> {
     return;
   }
   loading.value = true;
-  // 能力探测彼此独立：Docker 挂了不影响 K8s 门控
+  // 按域名只探测对应能力：Docker 页不查 K8s，反之亦然，减少无谓 SSH 调用
+  const probeDocker = !k8sOnly.value;
+  const probeK8s = !dockerOnly.value;
   const [dkRes, k8Res] = await Promise.allSettled([
-    dockerCapability(props.hostId),
-    k8sCapability(props.hostId),
+    probeDocker ? dockerCapability(props.hostId) : Promise.resolve(null),
+    probeK8s ? k8sCapability(props.hostId) : Promise.resolve(null),
   ]);
-  const dk = dkRes.status === "fulfilled" ? dkRes.value : null;
-  const k8 = k8Res.status === "fulfilled" ? k8Res.value : null;
+  const dk = dkRes.status === "fulfilled" ? (dkRes.value as any) : null;
+  const k8 = k8Res.status === "fulfilled" ? (k8Res.value as any) : null;
 
   cap.value = {
     docker: !!dk?.installed,
@@ -204,10 +220,7 @@ onMounted(refresh);
 <template>
   <div class="dk">
     <div class="dk-head">
-      <button type="button" class="lb-btn" title="返回分屏终端" @click="emit('back')">
-        <ReIcon name="Back" :size="11" />返回
-      </button>
-      <span class="dk-title">Docker · Kubernetes 工作台</span>
+      <span class="dk-title">{{ title }}</span>
       <span class="lb-pill lb-pill--plain">{{ hostName }}</span>
       <span class="lb-spacer" />
       <span class="lb-dim" style="font-size: 11px">
@@ -217,14 +230,14 @@ onMounted(refresh);
 
     <!-- ============ 能力状态条 ============ -->
     <div class="dk-cap">
-      <span class="lb-pill" :class="cap.docker ? 'lb-ok' : 'lb-bad'">
+      <span v-if="!k8sOnly" class="lb-pill" :class="cap.docker ? 'lb-ok' : 'lb-bad'">
         <ReIcon :name="cap.docker ? 'CircleCheck' : 'CircleClose'" :size="11" />
         Docker {{ cap.docker ? "已安装" : "未安装" }}
       </span>
-      <span class="lb-pill" :class="cap.compose ? 'lb-brand' : 'lb-mute'">
+      <span v-if="!k8sOnly" class="lb-pill" :class="cap.compose ? 'lb-brand' : 'lb-mute'">
         Compose {{ cap.compose ? "已安装" : "未安装" }}
       </span>
-      <span class="lb-pill" :class="cap.k8s ? 'lb-ok' : 'lb-mute'">
+      <span v-if="!dockerOnly" class="lb-pill" :class="cap.k8s ? 'lb-ok' : 'lb-mute'">
         <ReIcon :name="cap.k8s ? 'CircleCheck' : 'CircleClose'" :size="11" />
         Kubernetes {{ cap.k8s ? `已连接 · ${k8sData.version}` : "未检测到集群" }}
       </span>
@@ -241,16 +254,16 @@ onMounted(refresh);
       <span>请从左侧主机列表进入工作台。</span>
     </div>
 
-    <div v-else-if="!cap.docker && !cap.k8s" class="lb-empty lb-pane" style="flex: 1">
+    <div v-else-if="noService" class="lb-empty lb-pane" style="flex: 1">
       <ReIcon name="Warning" :size="34" color="var(--el-text-color-placeholder)" />
-      <b>这台主机没有检测到容器 / 编排服务</b>
-      <span>Docker 与 Kubernetes 工具条入口已隐藏。安装 Docker 或 K8s 后此页自动出现。</span>
+      <b>这台主机没有检测到{{ dockerOnly ? ' Docker' : k8sOnly ? ' Kubernetes' : '容器 / 编排' }}服务</b>
+      <span>对应工具条入口已隐藏。安装对应服务后此页自动出现。</span>
     </div>
 
     <!-- ============ 卡片推进（已选定版式） ============ -->
     <div v-else class="dk-cards-mode" v-loading="loading">
       <div class="dk-cards-head">
-        <div class="lb-seg">
+        <div v-if="cardsSeg.length > 1" class="lb-seg">
           <button
             v-for="s in cardsSeg"
             :key="s.key"
@@ -266,7 +279,8 @@ onMounted(refresh);
         <span class="lb-dim" style="font-size: 11px">卡片 = 一个容器 / 工作负载，点右下角动作直接操作</span>
       </div>
 
-      <template v-if="cardsActive === 'k8s'">
+      <!-- K8s 工作负载（k8s 页恒显；both 页在 k8s 分段显） -->
+      <template v-if="k8sOnly || cardsActive === 'k8s'">
         <div class="dk-wl-cards">
           <article v-for="w in k8sData.workloads" :key="w.name" class="dk-wcard" :class="readyOk(w.ready) ? 'lb-ok' : 'lb-warn'">
             <header>

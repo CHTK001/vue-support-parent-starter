@@ -20,7 +20,7 @@
         <section v-for="group in displayGroups" :key="group.group" :ref="setGroupRef(group.group)"
           v-show="!fieldSearch || groupMatchesSearch(group)" class="dms-group">
           <SettingsCard :title="group.groupName" :subtitle="groupSubtitle(group)">
-      <!-- 模型字段：始终显示 -->
+      <!-- 模型字段 + 常驻字段：统一走 FieldControl 控件发射器（组件化） -->
       <SettingsRow
         v-for="item in visibleFields(group)"
         :key="item.field"
@@ -31,105 +31,38 @@
         :risk-tip="getFieldRiskTip(item, group.group)"
         control-flex
       >
-        <!-- STRING：模型选择器 -->
-        <el-input
-          v-if="item.valueType === 'STRING' && isModelField(group.group, item.field)"
-          :model-value="modelFieldDisplay(group.group, item.field)"
-          readonly
-          class="cursor-pointer"
-          @click="openModelDialog(group.group, item.field)"
-        >
-          <template #prefix>
-            <img v-if="getFieldModelLogo(group.group, item.field)" :src="getFieldModelLogo(group.group, item.field)"
-              alt="" class="w-4 h-4 object-contain" />
-            <OpenAI v-else class="w-4 h-4" />
-          </template>
-          <template #suffix>
-            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-          </template>
-        </el-input>
-        <!-- STRING：枚举下拉 -->
-        <el-select v-else-if="item.valueType === 'STRING' && isEnumField(item)"
-          :model-value="getFieldValue(group.group, item.field)"
-          @update:model-value="updateFieldValue(group.group, item.field, $event)"
-          class="w-full">
-          <el-option v-for="opt in optionsOf(item)" :key="opt" :label="opt" :value="opt" />
-        </el-select>
-        <!-- STRING：普通文本 -->
-        <el-input v-else-if="item.valueType === 'STRING'"
-          :model-value="getFieldValue(group.group, item.field)"
-          @input="updateFieldValue(group.group, item.field, $event)" />
-        <!-- NUMBER -->
-        <ReNumberInput v-else-if="item.valueType === 'NUMBER'"
-          :model-value="Number(getFieldValue(group.group, item.field))"
-          @change="(val) => updateFieldValue(group.group, item.field, val)"
-          :step="numberStep(group.group, item.field)" :precision="numberPrecision(group.group, item.field)" />
-        <!-- BOOLEAN -->
-        <el-switch v-else-if="item.valueType === 'BOOLEAN'"
-          :model-value="getFieldValue(group.group, item.field) === 'true'"
-          @update:model-value="updateFieldValue(group.group, item.field, $event ? 'true' : 'false')" />
+        <FieldControl
+          :item="item"
+          :value="getFieldValue(group.group, item.field)"
+          :is-model-field="isModelField(group.group, item.field)"
+          :is-enum-field="isEnumField(item)"
+          :is-prompt-field="isPromptField(item.field)"
+          :logo="getFieldModelLogo(group.group, item.field)"
+          :model-display="modelFieldDisplay(group.group, item.field)"
+          :options="optionsOf(item)"
+          :step="numberStep(group.group, item.field)"
+          :precision="numberPrecision(group.group, item.field)"
+          @change="updateFieldValue(group.group, item.field, $event)"
+          @pick-model="openModelDialog(group.group, item.field)"
+        />
       </SettingsRow>
 
       <!-- 向量库配置：仅 RAG 组 + 管理员（描述器驱动的动态表单，保存到全局层）。
            后端 /v2/rag/options.vectorStorageOptions 返回每个 SPI 的字段声明，
            前端据此渲染表单；新增向量库实现无需再改这里。
-
-           样式说明：这块原先是手搓的 .vs-head/.vs-title 虚线子块，与同卡片的
-           「高级选项」折叠面板完全是两套视觉语言，看着像另一个功能的残渣。
-           这里改为复用同一个 el-collapse + .adv-head 外观，只在标题上挂一个
-           「管理员」徽标以说明作用域——折叠交互、箭头、字号、间距全部与高级选项一致。 -->
-      <el-collapse v-if="group.group === 'rag' && isAdmin()" v-model="activeAdvanced"
-        class="adv-collapse">
-        <el-collapse-item name="vector-storage">
-          <template #title>
-            <div class="adv-head">
-              <span class="adv-title">向量库配置</span>
-              <span class="adv-badge">管理员专属 · 保存到全局</span>
-              <el-icon class="adv-chevron"><ArrowDown /></el-icon>
-            </div>
-          </template>
-          <SettingsRow label="向量库实现" :description="selectedDescriptor?.description" control-flex>
-            <el-select v-model="selectedVectorStorage" class="w-full">
-              <el-option v-for="desc in vectorStorageOptions" :key="desc.name"
-                :label="desc.displayName || desc.name" :value="desc.name">
-                <div class="vs-opt-row">
-                  <span>{{ desc.displayName || desc.name }}</span>
-                  <span class="vs-opt-sub">{{ desc.name }}</span>
-                </div>
-              </el-option>
-            </el-select>
-          </SettingsRow>
-          <SettingsRow v-for="field in selectedVectorFields" :key="field.key"
-            :label="field.label" :description="field.description"
-            :tip="fieldTip(field)"
-            :badge="field.required ? '必填' : undefined" control-flex>
-            <!-- 密码/敏感字段：保存后不回显，留空=保持不变 -->
-            <el-input v-if="field.secret || field.type === 'PASSWORD'"
-              v-model="vectorFormValues[field.key]"
-              type="password" show-password clearable
-              :placeholder="secretPlaceholder(field)" />
-            <!-- 数字 -->
-            <ReNumberInput v-else-if="field.type === 'NUMBER'"
-              v-model="vectorFormValues[field.key]" />
-            <!-- 开关 -->
-            <el-switch v-else-if="field.type === 'BOOLEAN'"
-              v-model="vectorFormValues[field.key]" />
-            <!-- 下拉 -->
-            <el-select v-else-if="field.type === 'SELECT'" v-model="vectorFormValues[field.key]"
-              class="w-full" clearable>
-              <el-option v-for="opt in (field.options || [])" :key="opt" :label="opt" :value="opt" />
-            </el-select>
-            <!-- 文本（含 PATH：服务器路径，暂以文本输入） -->
-            <el-input v-else v-model="vectorFormValues[field.key]"
-              :placeholder="field.placeholder || ''" clearable />
-          </SettingsRow>
-          <div class="vs-actions">
-            <ReButton type="primary" :loading="vectorConfigSaving" @click="saveVectorConfig">
-              保存向量库配置
-            </ReButton>
-          </div>
-        </el-collapse-item>
-      </el-collapse>
+           已组件化为 VectorStorageConfig，折叠外观与「高级选项」保持一致。 -->
+      <VectorStorageConfig
+        v-if="group.group === 'rag' && isAdmin()"
+        :vector-storage-options="vectorStorageOptions"
+        :selected-vector-storage="selectedVectorStorage"
+        :selected-vector-fields="selectedVectorFields"
+        :field-values="vectorFormValues"
+        :secret-placeholder="secretPlaceholder"
+        :saving="vectorConfigSaving"
+        @update:selected="selectedVectorStorage = $event"
+        @update="updateVectorFormValue"
+        @save="saveVectorConfig"
+      />
 
       <!-- 高级选项：折叠显示 -->
       <el-collapse v-if="hasAdvancedSettings(group)" v-model="activeAdvanced" class="adv-collapse">
@@ -150,38 +83,28 @@
             :risk-tip="getFieldRiskTip(item, group.group)"
             control-flex
           >
-            <!-- usage_sync_providers 多选 -->
+            <!-- usage_sync_providers 多选（逐字段特判，其余走 FieldControl） -->
             <el-select v-if="item.field === 'usage_sync_providers'"
               :model-value="getFieldValue(group.group, item.field) ? getFieldValue(group.group, item.field).split(',') : []"
               @update:model-value="(val) => updateFieldValue(group.group, item.field, val.join(','))"
               multiple clearable placeholder="留空=全部启用" class="w-full">
               <el-option v-for="parser in usageParsers" :key="parser.name" :label="parser.name" :value="parser.name" />
             </el-select>
-            <!-- 系统提示词：多行文本 -->
-            <el-input v-else-if="item.valueType === 'STRING' && isPromptField(item.field)"
-              :model-value="getFieldValue(group.group, item.field)"
-              type="textarea" :rows="4" maxlength="2000" show-word-limit
-              @input="updateFieldValue(group.group, item.field, $event)" />
-            <!-- 枚举下拉 -->
-            <el-select v-else-if="item.valueType === 'STRING' && isEnumField(item)"
-              :model-value="getFieldValue(group.group, item.field)"
-              @update:model-value="updateFieldValue(group.group, item.field, $event)"
-              class="w-full">
-              <el-option v-for="opt in optionsOf(item)" :key="opt" :label="opt" :value="opt" />
-            </el-select>
-            <!-- 普通文本 -->
-            <el-input v-else-if="item.valueType === 'STRING'"
-              :model-value="getFieldValue(group.group, item.field)"
-              @input="updateFieldValue(group.group, item.field, $event)" />
-            <!-- NUMBER -->
-            <ReNumberInput v-else-if="item.valueType === 'NUMBER'"
-              :model-value="Number(getFieldValue(group.group, item.field))"
-              @change="(val) => updateFieldValue(group.group, item.field, val)"
-              :step="numberStep(group.group, item.field)" :precision="numberPrecision(group.group, item.field)" />
-            <!-- BOOLEAN -->
-            <el-switch v-else-if="item.valueType === 'BOOLEAN'"
-              :model-value="getFieldValue(group.group, item.field) === 'true'"
-              @update:model-value="updateFieldValue(group.group, item.field, $event ? 'true' : 'false')" />
+            <FieldControl
+              v-else
+              :item="item"
+              :value="getFieldValue(group.group, item.field)"
+              :is-model-field="false"
+              :is-enum-field="isEnumField(item)"
+              :is-prompt-field="isPromptField(item.field)"
+              :logo="getFieldModelLogo(group.group, item.field)"
+              :model-display="modelFieldDisplay(group.group, item.field)"
+              :options="optionsOf(item)"
+              :step="numberStep(group.group, item.field)"
+              :precision="numberPrecision(group.group, item.field)"
+              @change="updateFieldValue(group.group, item.field, $event)"
+              @pick-model="openModelDialog(group.group, item.field)"
+            />
           </SettingsRow>
         </el-collapse-item>
       </el-collapse>
@@ -191,47 +114,17 @@
 
     </div><!-- /dms-groups -->
 
-    <!-- 模型选择对话框 -->
-    <ReDialog :close-on-click-modal="true" v-model="modelDialogVisible" title="选择模型" width="600px">
-      <div class="md-body">
-        <el-input v-model="modelSearchText" placeholder="搜索模型..." clearable>
-          <template #prefix>
-            <el-icon><Search /></el-icon>
-          </template>
-        </el-input>
-
-        <div class="md-list">
-          <div v-for="provider in filteredProviders" :key="provider.id">
-            <div class="md-provider">{{ provider.name }}</div>
-            <div v-for="model in provider.models" :key="model.id" class="md-row"
-              @click="selectModel(model.id)">
-              <div class="md-row-left">
-                <img v-if="getModelRowLogo(model)" :src="getModelRowLogo(model)" alt=""
-                  class="w-4 h-4 object-contain shrink-0" />
-                <span class="md-name">{{ model.model }}</span>
-                <span class="md-tags">
-                  <ReTag v-for="tag in model.displayTags" :key="tag.value" :type="tag.tagType" >
-                    {{ tag.label }}
-                  </ReTag>
-                </span>
-              </div>
-              <el-icon v-if="tempModelId === model.id" class="md-check" :size="18">
-                <CheckCircleFilled />
-              </el-icon>
-            </div>
-          </div>
-
-          <!-- 空状态 -->
-          <div v-if="filteredProviders.length === 0" class="md-empty">
-            <div class="md-empty-main">没有匹配「{{ currentTypeLabel }}」类型的模型</div>
-            <div class="md-empty-sub">请先在「模型管理」中添加对应类型的模型</div>
-          </div>
-        </div>
-      </div>
-      <template #footer>
-        <ReButton type="default" @click="clearModelField">清空（使用默认）</ReButton>
-      </template>
-    </ReDialog>
+    <!-- 模型选择对话框（组件化：搜索/供应商分组/标签/清空由 ModelPickerDialog 承载） -->
+    <ModelPickerDialog
+      :visible="modelDialogVisible"
+      :providers="filteredProviders"
+      :selected-id="tempModelId"
+      :empty-text="`没有匹配「${currentTypeLabel}」类型的模型`"
+      :logo-for="getModelRowLogo"
+      @update:visible="(v) => (modelDialogVisible = v)"
+      @select="selectModel"
+      @clear="clearModelField"
+    />
     </div><!-- /dms-maint -->
   </div><!-- /dms-root -->
 </template>
@@ -239,20 +132,17 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { OpenAI } from "@/components/icons";
 import { ArrowDown, Search } from "@element-plus/icons-vue";
-import { CheckCircleFilled } from "@vicons/material";
 
 import { apiService } from '@/services/ApiService'
 import { adminApi } from '@/framework/context'
 import { usePopup } from '@/composables/usePopup'
 import { useModelConfigStore } from '@/stores/modelConfig'
-import ReDialog from '@repo/ui/re-dialog'
-import ReButton from '@/components/re/ReButton.vue'
-import ReTag from '@/components/re/ReTag.vue'
-import ReNumberInput from '@/components/re/ReNumberInput.vue'
 import SettingsCard from './SettingsCard.vue'
 import SettingsRow from './SettingsRow.vue'
+import FieldControl from './dms/FieldControl.vue'
+import ModelPickerDialog from './dms/ModelPickerDialog.vue'
+import VectorStorageConfig from './dms/VectorStorageConfig.vue'
 import ImageLibraryPanel from './ImageLibraryPanel.vue'
 import { isAdmin } from '@repo/core'
 import { getModelAvatarPath } from '@/utils/modelUtils'
@@ -528,6 +418,12 @@ const resetVectorFormValues = () => {
 
 // 切换实现时表单跟着切（描述器变了，字段集合不同）
 watch(selectedVectorStorage, () => resetVectorFormValues())
+
+// 向量库表单字段值更新（VectorStorageConfig 组件回调；保持 reactive 对象追踪）
+const updateVectorFormValue = (key, value) => {
+    if (key == null) return
+    vectorFormValues[key] = value
+}
 
 // 保存：PUT /v2/global-settings（DTO 部分更新；后端拒绝未注册 SPI/未知字段、
 // 敏感字段留空自动保留原值、两层增量合并不抹其它库的配置）。

@@ -825,10 +825,10 @@ onMounted(() => {
 
 <template>
   <div class="system-page">
-    <!-- 页签：ReTab 胶囊分段（与 ACME 证书页 / 账号管理同一套外观）。
-         此前是 variant="icon" + tab-position="right" + collapsible 的右侧竖排图标栏，
-         在该页只有 3 项时显得笨重，且与其它系统页不一致。 -->
-    <div class="system-tabs">
+    <!-- 页签：ReTab 胶囊分段，置于顶部卡片内（不撑满，左对齐限宽，与搜索条卡片同族）。
+         曾尝试并入 ReSearch #nav slot —— 三个 Tab 用 v-if 互斥挂载，切到第二个 Tab 时
+         页签随表格卸载消失、无法切回，故保持独立顶部容器。 -->
+    <div class="system-tabs-card">
       <ReTab v-model="activeTab" :tabs="mainTabs" nav-only />
     </div>
 
@@ -840,7 +840,7 @@ onMounted(() => {
             ref="msgTableRef"
             table-id="system-message-admin"
             :search="{ filters: msgSearchFilters, title: '搜索', btnMode: 'text' }"
-            :search-gap="16"
+            :search-gap="2"
             v-model:search-model="msgQuery"
             @search-reset="handleMsgReset"
             :loader="loadMessages"
@@ -937,7 +937,7 @@ onMounted(() => {
             table-id="system-message-template"
             engine="vxe"
             :search="{ filters: tplSearchFilters, title: '搜索', btnMode: 'text' }"
-            :search-gap="16"
+            :search-gap="2"
             v-model:search-model="tplQuery"
             @search-reset="handleTplReset"
             :loader="loadTemplatesPage"
@@ -999,7 +999,7 @@ onMounted(() => {
             table-id="system-message-log"
             engine="vxe"
             :search="{ filters: logSearchFilters, title: '搜索', btnMode: 'text' }"
-            :search-gap="16"
+            :search-gap="2"
             v-model:search-model="logQuery"
             @search-reset="handleLogReset"
             :loader="loadLogs"
@@ -1476,19 +1476,30 @@ onMounted(() => {
 .system-page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 2px;
   padding: 0;
   height: 100%;
+  box-sizing: border-box;
+
+  /* 收窄 ReTable 外壳与搜索区的间距/内边距：搜索条与表格更贴、更紧凑 */
+  --rt-gap: 4px;
+  --rt-gap-lg: 6px;
+  --rt-padding: 8px;
 }
 
-/* 页签条：ReTab capsule 自身 width:100%（多项均分），这里约束成内容宽度，
-   与 ACME 证书页 / 账号管理左对齐的胶囊条一致。 */
-.system-tabs {
+/* 页签卡片：卡片容器撑满整行，内部 ReTab 胶囊条保持内容宽度（不撑满）。
+   卡片白底 + 1px 描边 + 6px 圆角，视觉上与下方搜索条/表格卡片同族。 */
+.system-tabs-card {
   flex: none;
-  align-self: flex-start;
-  max-width: 100%;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 8px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
 }
-.system-tabs :deep(.re-tab--capsule) { width: auto; }
+.system-tabs-card :deep(.re-tab--capsule) { width: auto; }
 
 /* 内容面板：吃满页签条之外的剩余高度，表格才能正确内部滚动。
    内容用 v-if 切换（复用改造前「只渲染激活插槽」的语义），各 tab 的查询条件随挂载重建。 */
@@ -1497,6 +1508,48 @@ onMounted(() => {
   min-height: 0;
   display: flex;
   flex-direction: column;
+}
+
+/* ===== 搜索区 / 表格区收窄（仅本页生效）=====
+   koi-search 的默认字段列宽 min 220px、topbar 下边距 12px 偏大，
+   ReTable 的搜索区下边距 16px、主卡内边距 16px 也偏大；
+   在消息管理这种「页签 + 搜索 + 表格」紧凑页面里统一收窄。 */
+.system-panel :deep(.koi-search) {
+  margin-top: 0;
+  /* padding 由 ReSearch 以 inline style 注入，需 !important 才能覆盖 */
+  padding: 8px 12px !important;
+}
+.system-panel :deep(.koi-search__topbar) {
+  margin-bottom: 6px;
+}
+.system-panel :deep(.koi-search__fields) {
+  grid-template-columns: repeat(auto-fill, minmax(min(160px, 100%), 1fr));
+  gap: 6px 8px;
+}
+.system-panel :deep(.koi-search__field) {
+  gap: 2px;
+}
+.system-panel :deep(.koi-search__badge) {
+  padding: 2px 8px;
+}
+
+/* ReTable 搜索区 ↔ 表格：间距压到 2px、内边距收窄 */
+.system-panel :deep(.re-table__search) {
+  margin-bottom: 2px;
+  padding: 6px;
+}
+/* 主卡内边距（原 16px）收窄，表格更贴边 */
+.system-panel :deep(.re-table__main) {
+  padding: 8px;
+}
+/* 工具栏行下边距（原 12px）收窄 */
+.system-panel :deep(.re-table__toolbar-row) {
+  margin-bottom: 6px;
+}
+/* 表头单元格上下 padding（原 9px）收窄，行高更紧凑 */
+.system-panel :deep(.vxe-header--column) {
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
 }
 
 /* ===== 本页行内视觉精修 ===== */

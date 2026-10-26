@@ -393,16 +393,20 @@ function filterLoader(filter: SearchFilter): ReSelectLoader | undefined {
     :class="{ 'koi-search--bordered': bordered }"
     :style="containerStyle"
   >
-    <!-- 顶部条：徽标（左）+ 折叠切换（右上角） -->
+    <!-- 顶部条：左侧（导航 slot + 徽标）+ 右上折叠切换 -->
     <div class="koi-search__topbar">
-      <div class="koi-search__badge">
-        <span class="koi-search__badge-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-            <circle cx="11" cy="11" r="7" />
-            <line x1="21" y1="21" x2="16.5" y2="16.5" />
-          </svg>
-        </span>
-        <span>{{ title }}</span>
+      <div class="koi-search__topbar-left">
+        <!-- 左侧导航插槽：调用方把页签 / 切换菜单放进来，与「搜索」徽标并排 -->
+        <slot name="nav" />
+        <div class="koi-search__badge">
+          <span class="koi-search__badge-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <circle cx="11" cy="11" r="7" />
+              <line x1="21" y1="21" x2="16.5" y2="16.5" />
+            </svg>
+          </span>
+          <span>{{ title }}</span>
+        </div>
       </div>
       <button
         v-if="hasOverflow"
@@ -598,13 +602,25 @@ function filterLoader(filter: SearchFilter): ReSelectLoader | undefined {
   box-shadow: var(--rs-shadow-xs);
 }
 
-/* 顶部条：徽标（左）+ 折叠切换（右上角） */
+/* 顶部条：左侧簇（导航 slot + 徽标）+ 折叠切换（右上角） */
 .koi-search__topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   margin-bottom: 12px;
   min-height: 26px;
+}
+.koi-search__topbar-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.koi-search__topbar-left :deep(.re-tab) {
+  flex-shrink: 0;
+  max-width: 100%;
 }
 .koi-search__badge {
   display: inline-flex;

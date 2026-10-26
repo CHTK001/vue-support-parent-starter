@@ -372,11 +372,9 @@
                 <div v-loading="graphLoading" class="kb-graph__canvas kb-graph__stage" style="height: 100%">
                   <ReRelationGraph v-if="graphEverMounted || (graphNodes.length > 0 && activeTab === 'graph')"
                     v-show="activeTab === 'graph'" ref="graphCompRef" :nodes="graphNodes" :edges="graphEdges"
-                    toolbar toolbar-position="top-left" :toolbar-items="graphToolbarItems" highlight="adjacent"
-                    details lazy-details :load-node-detail="loadGraphEntityDetail" :load-neighbors="loadGraphNeighbors"
-                    :menu-items="graphMenuItems" :load-settings="loadGraphLayoutSettings" :save-settings="saveGraphLayoutSettings"
-                    edge-label-mode="onHover" :layout="GRAPH_LAYOUT" :layout-options="GRAPH_LAYOUT_OPTIONS" height="100%"
-                    :hover-tip="false" :tooltip="false" grouped-layout
+                    toolbar toolbar-position="top-left" :layout="GRAPH_LAYOUT" :layout-options="GRAPH_LAYOUT_OPTIONS"
+                    :group-type="GRAPH_GROUP_TYPE" height="100%"
+                    :node-size="36" empty-text="该知识库还没有可展示的实体关系"
                     @ready="handleGraphReady" @node-click="handleGraphNodeClick" />
 
                   <div v-if="!graphLoading && graphView.nodes.length > 0 && graphNodes.length === 0"
@@ -801,7 +799,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted, computed, watch, nextTick, defineAsyncComponent } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   Plus, Search, FolderOpened, Document, Share, Connection,
@@ -829,10 +827,9 @@ import coverIdiom from '@/assets/kb/tpl-idiom.png'
 import coverQuestion from '@/assets/kb/tpl-question.png'
 import KBAskPanel from './KBAskPanel.vue'
 import KBFilePreview from './KBFilePreview.vue'
-// 关系图谱使用 G6 内核的 ReRelationGraph（@repo/ui 已提供），异步加载避免拖慢知识库首屏
-const ReRelationGraph = defineAsyncComponent(() =>
-  import('@repo/ui/re-relation-graph').then((m) => m.default),
-)
+// 关系图谱使用 G6 内核的 ReRelationGraph（@repo/ui 已提供）。
+// 默认导出本身就是按主题懒加载的异步组件，再套一层 defineAsyncComponent 只会退化成联合类型。
+import ReRelationGraph from '@repo/ui/re-relation-graph'
 import { useStorage, useDebounceFn } from '@vueuse/core'
 import { usePopup } from '@/composables/usePopup'
 import { ArrowLeft24Filled, Globe24Regular, LockClosed24Regular } from '@vicons/fluent'
@@ -2248,13 +2245,17 @@ const selectedNodeRelations = computed(() => {
     })
 })
 
-function handleGraphNodeClick(node: any) {
-  const clickId = String(node?.id ?? '')
-  // G6 回传的是原始 RelationNode（nodeById 优先回 props 里的节点）：
-  // 名字在 node.label / node.text 上，node.data.__label 是 G6 模型节点才有的字段，
-  // 原始节点并不带 —— 原先只读 __label 会一路落到 clickId（哈希），
-  // 导致详情头部、来源文档检索都用的是实体 ID 而非实体名。
-  const name = String(node?.label ?? node?.text ?? node?.data?.__label ?? node?.data?.name ?? clickId)
+function handleGraphNodeClick(detail: { id: string; data?: unknown }) {
+  const node = (detail?.data ?? {}) as {
+    id?: string
+    label?: string
+    text?: string
+    data?: { degree?: number; entityType?: string; name?: string }
+  }
+  const clickId = String(detail?.id ?? node?.id ?? '')
+  // 事件回参的 data 是业务节点本身：名字在 node.label / node.text 上，
+  // 实体类型与度数在业务自己塞的 node.data 里（decorateGraphNode 产出）。
+  const name = String(node?.label ?? node?.text ?? node?.data?.name ?? clickId)
   const degree = Number(node?.data?.degree)
     || graphEdges.value.filter((e) => e.source === clickId || e.target === clickId).length
   const type = node?.data?.entityType ? String(node.data.entityType) : undefined
@@ -2308,61 +2309,29 @@ const graphCompRef = ref<any>(null)
  */
 const graphEverMounted = ref(false)
 
-/** 知识图谱布局：分组聚簇（rrg-cluster → G6 原生 force 聚类）。
- *  <p>同势力节点在原生向心力下向簇心聚集、异势力之间被斥力推开，{@code preventOverlap}
- *  保证节点不压盖；每个势力再套一个原生 {@code circle} 组合容器（位置随成员包围盒自动推导，
- *  画出来是贴合内容的气泡圆，不是矩形框）→ 参考图「蜀 / 刘备 / 诸葛亮…按势力分组」形态。
- *  <p>由组件通用能力 {@code grouped-layout} 承担：任何给节点标 {@code group}=势力名的
- *  业务直接开聚簇布局即可，业务页只负责数据语义。
+/**
+ * 知识图谱布局：分组布局（每组独立区域 + 气泡轮廓）。
+ *
+ * <p>组 = 实体类型 / 势力（业务在 {@code decorateGraphNode} 里写进 {@code node.group}）。
+ * 组内节点按给定间距铺开、组与组之间留出空隙，再叠一层气泡集轮廓 ——
+ * 形态就是「蜀 / 魏 / 吴按势力成团」，而不用依赖任何私有布局名。</p>
  */
-const GRAPH_LAYOUT = 'rrg-cluster'
+const GRAPH_LAYOUT = 'group'
 
-/** 聚簇参数（原生 force clustering）：节点斥力 / 簇心吸力 / 连线长度 / 防重叠 */
+/** 分组布局参数：组内间距 / 组间空隙 / 单组最小半径 */
 const GRAPH_LAYOUT_OPTIONS: Record<string, unknown> = {
-  clustering: true,
-  nodeStrength: 800,
-  linkDistance: 160,
-  clusterNodeStrength: 25,
+  spacing: 110,
+  gap: 200,
+  minRadius: 80,
 }
 
-/** 组件工具栏只放图谱视图相关按钮；页面右上角仍负责刷新/生成/管理实体等动作 */
-const graphToolbarItems = [
-  'layout',
-  'layoutSettings',
-  'highlight',
-  'hoverFocus',
-  'minimap',
-] as const
-
-/**
- * 右键自定义菜单：在组件内置「详情/扩线/最短路径」之外补一个「查看来源文档」。
- *
- * <p>演示 menuItems 的 name/icon/callback 契约；show 只在节点右键时出现。</p>
- */
-const graphMenuItems = [
-  {
-    key: 'view-source-docs',
-    label: '查看来源文档',
-    icon: 'Search',
-    show: (ctx: { kind: string; node: any }) => ctx.kind === 'node' && !!ctx.node,
-    handler: async (ctx: { kind: string; node: any }) => {
-      const node = ctx.node
-      if (!node) return
-      const clickId = String(node?.id ?? '')
-      const name = String(node?.label ?? node?.text ?? clickId)
-      const degree = Number(node?.data?.degree)
-        || graphEdges.value.filter((e) => e.source === clickId || e.target === clickId).length
-      const type = node?.data?.entityType ? String(node.data.entityType) : undefined
-      selectedGraphNode.value = { id: clickId, name, type, degree }
-      await viewSourceDocs()
-    },
-  },
-]
+/** 分组轮廓：气泡集（比 Hull 凹包更贴合「按势力成团」的观感） */
+const GRAPH_GROUP_TYPE = 'bubble'
 
 /**
  * 右键扩线：后端查询某实体的直接邻居，返回 RelationNode/RelationEdge 契约数据。
  *
- * <p>返回后由组件内部合并进 G6 模型（不整图重装，保留布局与选中状态）。</p>
+ * <p>业务点「查看来源文档」等自定义动作走页面自己的右键菜单，组件只负责画图。</p>
  */
 async function loadGraphNeighbors(node: any, depth = 1) {
   const kbId = store.activeKnowledgeBaseId
@@ -2374,18 +2343,18 @@ async function loadGraphNeighbors(node: any, depth = 1) {
       id: String(e.id ?? `${e.from}->${e.to}`),
       from: String(e.from),
       to: String(e.to),
-      text: String(e.text ?? e.label ?? ''),
       source: String(e.from),
       target: String(e.to),
       label: String(e.text ?? e.label ?? ''),
-      style: { endArrow: true },
       data: e.data ?? {},
     })),
   }
 }
 
 /**
- * 节点详情懒加载：后端拉取实体属性，返回给组件详情面板。
+ * 节点详情懒加载：后端拉取实体属性。
+ *
+ * <p>新内核不再内置「详情面板」，这里保留查询能力供页面自己的详情卡使用。</p>
  */
 async function loadGraphEntityDetail(node: any) {
   const kbId = store.activeKnowledgeBaseId
@@ -2400,37 +2369,6 @@ async function loadGraphEntityDetail(node: any) {
     description: r.description,
     properties: r.properties,
   }
-}
-
-/**
- * 读取后台已存布局设置（按知识库持久化）。
- */
-async function loadGraphLayoutSettings() {
-  const kbId = store.activeKnowledgeBaseId
-  if (!kbId) return null
-  const r = await apiService.fetchGraphLayoutSettings(kbId)
-  if (!r?.settings) return null
-  try {
-    const s = JSON.parse(r.settings)
-    // 分组聚簇走 G6 原生 d3-force 聚类：每个势力是一个圆形组合容器，show-groups 负责
-    // 生成 combo；关掉它等于把组拆了，聚簇会退化成一圈互相压盖的散点。
-    if (s && typeof s === 'object') {
-      s.showGroups = true
-      s.layout = GRAPH_LAYOUT
-    }
-    return s
-  } catch {
-    return null
-  }
-}
-
-/**
- * 保存布局设置到后台（按知识库持久化）。
- */
-async function saveGraphLayoutSettings(settings: any) {
-  const kbId = store.activeKnowledgeBaseId
-  if (!kbId) return
-  await apiService.saveGraphLayoutSettings(kbId, JSON.stringify(settings))
 }
 
 /**
@@ -2451,7 +2389,7 @@ function handleGraphReady() {
     window.setTimeout(async () => {
       const comp = graphCompRef.value as {
         setLayout?: (name: string, options?: unknown, force?: boolean) => Promise<void>
-        getInstance?: () => unknown
+        get graph(): unknown
         fitView?: () => Promise<void>
       } | null
       if (!comp) {
@@ -2469,16 +2407,15 @@ function handleGraphReady() {
         return
       }
       try {
-        await comp.setLayout(GRAPH_LAYOUT, undefined, true)
+        await comp.setLayout(GRAPH_LAYOUT, GRAPH_LAYOUT_OPTIONS, true)
       } catch {
         // 布局失败不阻断：至少保留组件自身的首帧适配
       }
-      // 力导是异步迭代：布局中途触发 fitView，可能正好落在「节点还没散开」的一瞬，
-      // 把视口缩放到极近（整图只剩一两个大圆）。等迭代收敛后再适配一次视口。
+      // 分组布局是同步铺开的，重排后再适配一次视口即可
       window.setTimeout(() => {
         const api = graphCompRef.value as { fitView?: () => Promise<void> } | null
         void api?.fitView?.()
-      }, 700)
+      }, 320)
     }, 120)
   })
 }
@@ -2490,12 +2427,12 @@ function handleGraphReady() {
  * @param comp 图谱组件实例
  * @return 是否退化
  */
-function graphLooksDegenerate(comp: { getInstance?: () => unknown }): boolean {
+function graphLooksDegenerate(comp: { graph?: unknown }): boolean {
   try {
-    const inst = comp.getInstance?.() as {
+    const inst = (comp.graph ?? null) as {
       getNodeData?: () => Array<{ id: string }>
       getElementPosition?: (id: string) => number[] | { x: number; y: number } | null
-    } | undefined
+    } | null
     const nodes = inst?.getNodeData?.() ?? []
     if (nodes.length < 2) {
       return false

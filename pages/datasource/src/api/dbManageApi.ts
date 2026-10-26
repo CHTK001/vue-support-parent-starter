@@ -300,6 +300,13 @@ export const setDbTablePrimaryKey = (
 
 /** 导入预览结果（解析文件但不写库） */
 export interface DbImportPreview {
+  /**
+   * 上传令牌。
+   *
+   * <p>只有 {@code import/upload} 返回它；第 3～7 步靠它复用同一份上传文件，
+   * 不再重传。走 {@code import/preview}（旧端点）时没有这个字段。</p>
+   */
+  token?: string;
   /** 解析出的列名（文件里的表头顺序） */
   columns: string[];
   /** 预览行 */
@@ -312,6 +319,18 @@ export interface DbImportPreview {
   delimiter: string;
   /** 实际使用的字符集 */
   encoding: string;
+  /** 实际解析出的格式（csv / excel / sql / json） */
+  format?: string;
+  /** Excel 的全部工作表名（CSV 为空数组） */
+  sheets?: string[];
+  /** Excel 当前工作表 */
+  activeSheet?: string;
+  /** 解析过程中的非致命告警 */
+  warnings?: string[];
+  /** 后端是否装配了 Excel 能力（缺 POI 时为 false） */
+  excelAvailable?: boolean;
+  /** 原始文件名 */
+  fileName?: string;
 }
 
 /**
@@ -628,3 +647,261 @@ export const dropDbForeignKey = (tableName: string, fkName: string, datasourceId
     .noToast(true)
     .query({ datasourceId, database })
     .then(r => unwrap<boolean>(r));
+
+/* ==================== 导入向导（Navicat 七步流程） ==================== */
+
+/**
+ * 导入向导的源选项。
+ *
+ * <p>字段名必须与后端 {@code DbImportDTO} 一一对应：后端用 Jackson 按名反序列化，
+ * 拼错一个键不会报错，只会静默退化成默认值 —— 表现为「界面上选了分隔符，
+ * 解析结果却仍是逗号」。</p>
+ */
+export type DbImportSourceOptions = {
+  /** 上传令牌：第 2 步上传后返回，第 3～7 步复用同一个文件，不再重传 */
+  token?: string;
+  fileName?: string;
+  /** csv / excel / sql / json */
+  format?: string;
+  /** 字符集名；不传等于交给后端按内容探测 */
+  encoding?: string;
+  /** Excel 工作表名（format=excel 时有效） */
+  sheetName?: string;
+  delimiter?: string;
+  /** 记录分隔符：CRLF / LF / CR */
+  recordDelimiter?: string;
+  /** 文本识别符（引号），空串表示不识别 */
+  textQualifier?: string;
+  /** 字段名称所在行号（1 起，0 = 没有表头） */
+  fieldNamesLine?: number;
+  /** 第一个数据行号（1 起） */
+  firstDataLine?: number;
+  /** 最后一个数据行号（1 起，0 = 读到末尾） */
+  lastDataLine?: number;
+  decimalSymbol?: string;
+  /** 日期顺序：YMD / DMY / MDY（仅 Excel 分支） */
+  dateOrder?: string;
+  dateTimeOrder?: string;
+  dateSeparator?: string;
+  yearSeparator?: string;
+  timeSeparator?: string;
+};
+
+/**
+ * 导入模式。
+ *
+ * <p>取值必须与后端 {@code ImportMode} 的 code 完全一致：后端按 code 匹配，
+ * 匹配不上会退化成 {@code APPEND}，表现为「选了更新却全变成了追加」。</p>
+ */
+export type DbImportMode = "append" | "update" | "upsert" | "insert-ignore" | "delete" | "copy";
+
+/** 导入模式候选（顺序与 Navicat 一致） */
+export const DB_IMPORT_MODES: { value: DbImportMode; label: string; hint: string }[] = [
+  { value: "append", label: "追加", hint: "无条件插入全部记录" },
+  { value: "update", label: "更新", hint: "只更新已存在的行，不存在则跳过" },
+  { value: "upsert", label: "追加或更新", hint: "存在则更新，不存在则插入" },
+  { value: "insert-ignore", label: "不更新追加", hint: "存在则跳过，不存在则插入" },
+  { value: "delete", label: "删除", hint: "只删除目标表里与源匹配的行" },
+  { value: "copy", label: "复制", hint: "先清空目标表，再全量插入" },
+];
+
+/** 导入高级选项 */
+export type DbImportAdvanced = {
+  /** 是否使用扩展插入（一条 INSERT 带多行） */
+  extendedInsert: boolean;
+  /** 最大语句大小（KB），0 = 不限制 */
+  maxStatementKb: number;
+  /** 空串是否写成 NULL */
+  nullForEmpty: boolean;
+  /** 是否忽略外键约束 */
+  ignoreForeignKey: boolean;
+  /** 遇到错误是否继续 */
+  continueOnError: boolean;
+};
+
+/** 高级选项出厂默认（与后端 {@code ImportAdvanced} 的缺省保持一致） */
+export const DB_IMPORT_ADVANCED_DEFAULTS: DbImportAdvanced = {
+  extendedInsert: true,
+  maxStatementKb: 0,
+  nullForEmpty: false,
+  ignoreForeignKey: false,
+  continueOnError: true,
+};
+
+/**
+ * 上传文件并解析（向导第 2 步）。
+ *
+ * <p>只上传一次即拿到 {@code token}，后续第 3～7 步都用它，不再重传文件。</p>
+ *
+ * @param file   上传的文件
+ * @param option 源选项（可只带 format / encoding）
+ * @returns 令牌 + 解析结果
+ */
+export const uploadDbImportFile = (file: File, option: DbImportSourceOptions = {}) => {
+  const form = new FormData();
+  form.append("file", file, file.name);
+  form.append("option", JSON.stringify({ ...option, fileName: file.name }));
+  return http()
+    .post("/ms/monitor/db/import/upload")
+    .noToast(true)
+    .data(form)
+    .then(r => unwrap<DbImportPreview>(r));
+};
+
+/**
+ * 带新选项重新解析已上传的文件（向导第 3 步）。
+ *
+ * <p>用户每改一次分隔符 / 编码就重解析一次，比让他重传文件快得多。</p>
+ *
+ * @param option 源选项（必须带 token）
+ * @returns 解析结果
+ */
+export const parseDbImport = (option: DbImportSourceOptions) =>
+  http()
+    .post("/ms/monitor/db/import/parse")
+    .noToast(true)
+    .data({ option })
+    .then(r => unwrap<DbImportPreview>(r));
+
+/** 新建表建议（向导第 4 步） */
+export interface DbImportTablePlan {
+  /** 建议的表名（已清洗成合法标识符） */
+  tableName: string;
+  /** 建议的列清单 */
+  columns: { name: string; source: string }[];
+}
+
+/**
+ * 按源列生成建表建议（向导第 4 步）。
+ *
+ * <p>表名由后端按文件名去后缀并清洗成合法标识符，前端不再自己拼 ——
+ * 早期在前端拼表名时，中文文件名会直接变成一堆下划线。</p>
+ *
+ * @param sourceColumns 源列名
+ * @param fileName      原始文件名（用来推导表名）
+ * @returns 建表建议
+ */
+export const planDbImportTable = (sourceColumns: string[], fileName: string) =>
+  http()
+    .post("/ms/monitor/db/import/table-plan")
+    .noToast(true)
+    .data({ sourceColumns, fileName })
+    .then(r => unwrap<DbImportTablePlan>(r));
+
+/** 导入执行请求（向导第 7 步） */
+export type DbImportRunOptions = DbImportSourceOptions & {
+  database?: string;
+  tableName: string;
+  /** 源列名 → 目标列名；未列出的源列忽略 */
+  columnMapping?: Record<string, string>;
+  mode?: DbImportMode;
+  /** 用于匹配的键列（空 = 按目标表主键） */
+  keyColumns?: string[];
+  /** 目标表不存在时按源列自动建表 */
+  createTable?: boolean;
+  /** 导入前清空目标表（copy 模式由后端自动置位） */
+  truncateFirst?: boolean;
+  batchSize?: number;
+  datasourceId?: number;
+  extendedInsert?: boolean;
+  maxStatementKb?: number;
+  nullForEmpty?: boolean;
+  ignoreForeignKey?: boolean;
+  continueOnError?: boolean;
+};
+
+/** 导入执行事件（SSE） */
+export type DbImportEvent =
+  | { type: "phase"; message: string }
+  | { type: "progress"; done: number; total: number }
+  | { type: "log"; no: number; ok: boolean; affected: number; error: string }
+  | { type: "error"; message: string }
+  | {
+      type: "done";
+      table?: string;
+      total: number;
+      inserted: number;
+      updated: number;
+      skipped: number;
+      deleted: number;
+      errors: number;
+      errorDetails?: string[];
+      elapsedMs: number;
+      failed?: boolean;
+    };
+
+/**
+ * 执行导入（向导第 7 步，SSE 流式）。
+ *
+ * <p>走 {@code http().sse()} 而不是裸 {@code fetch}：统一 API 前缀、鉴权头、
+ * {@code x-oauth-token} query 与错误处理都在 http 客户端里，自己拼一份必然漏。
+ * 与结构同步（{@code structure-sync-run}）走同一条 SSE 通道，行为一致。</p>
+ *
+ * @param options  完整请求
+ * @param handlers 事件回调
+ * @returns 关闭函数（用户点「关闭」时中断）
+ */
+export const runDbImport = (
+  options: DbImportRunOptions,
+  handlers: {
+    onEvent: (event: DbImportEvent) => void;
+    onError?: (message: string) => void;
+  },
+) =>
+  http()
+    .post("/ms/monitor/db/import/run")
+    .noToast(true)
+    .data({ option: options })
+    .sse<Record<string, unknown>>({
+      // 导入是一次性的写操作：断了不能重连，否则同一批数据会被写两遍
+      reconnect: false,
+      onMessage: (e) => {
+        const data = (e.data ?? {}) as Record<string, unknown>;
+        switch (e.event) {
+          case "phase":
+            handlers.onEvent({ type: "phase", message: String(data.message ?? "") });
+            break;
+          case "progress":
+            handlers.onEvent({
+              type: "progress",
+              done: Number(data.done ?? 0),
+              total: Number(data.total ?? 0),
+            });
+            break;
+          case "log":
+            handlers.onEvent({
+              type: "log",
+              no: Number(data.no ?? 0),
+              ok: data.ok === true,
+              affected: Number(data.affected ?? 0),
+              error: String(data.error ?? ""),
+            });
+            break;
+          case "error":
+            handlers.onEvent({ type: "error", message: String(data.message ?? "导入失败") });
+            break;
+          case "done":
+            handlers.onEvent({
+              type: "done",
+              table: data.table === undefined ? undefined : String(data.table),
+              total: Number(data.total ?? 0),
+              inserted: Number(data.inserted ?? 0),
+              updated: Number(data.updated ?? 0),
+              skipped: Number(data.skipped ?? 0),
+              deleted: Number(data.deleted ?? 0),
+              errors: Number(data.errors ?? 0),
+              errorDetails: Array.isArray(data.errorDetails)
+                ? data.errorDetails.map(v => String(v))
+                : undefined,
+              elapsedMs: Number(data.elapsedMs ?? 0),
+              failed: data.failed === true,
+            });
+            break;
+          default:
+            break;
+        }
+      },
+      onError: (err) => {
+        handlers.onError?.(String((err as Error)?.message ?? err));
+      },
+    });

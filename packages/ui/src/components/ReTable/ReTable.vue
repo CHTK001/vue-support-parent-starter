@@ -4892,7 +4892,12 @@ const iconSelect = Select;
             @update:filter-visible="searchVisible = $event"
             @search="onBuiltinSearch"
             @reset="onBuiltinSearchReset"
-          />
+          >
+            <!-- 搜索条左侧导航插槽：把顶部页签 / 切换菜单合并进来 -->
+            <template v-if="$slots['search-nav']" #nav>
+              <slot name="search-nav" />
+            </template>
+          </ReSearch>
         </div>
       </template>
       <template v-else>

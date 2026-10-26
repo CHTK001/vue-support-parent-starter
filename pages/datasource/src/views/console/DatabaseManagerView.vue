@@ -707,7 +707,6 @@
             :nodes="erNodes"
             :edges="erEdges"
             :layout="erLayout"
-            highlight="adjacent"
             :toolbar="true"
             :minimap="true"
             @node-dblclick="onErNodeDblClick"
@@ -787,11 +786,8 @@
               :nodes="erNodes"
               :edges="erEdges"
               :layout="erLayout"
-              highlight="adjacent"
               :toolbar="true"
               :minimap="true"
-              :editable="false"
-              :context-menu="false"
               @node-dblclick="onErNodeDblClick"
             >
               <template #node-content="{ node }">
@@ -1705,146 +1701,14 @@
       </template>
     </ReDialog>
 
-    <!-- 导入数据弹窗 -->
-    <ReDialog v-model="importVisible" title="导入向导" width="920px">
-      <div class="dbm-import">
-        <!-- 第 1 步：选文件 + 解析参数 -->
-        <div class="dbm-import-step">
-          <span class="dbm-import-step-no">1</span>
-          <span class="dbm-import-step-title">选择文件</span>
-          <ReButton
-            layout="square"
-            icon="Upload"
-            :tip="importFile ? '重新选择文件' : '选择文件'"
-            @click="importFileInput?.click()"
-          />
-          <input
-            ref="importFileInput"
-            type="file"
-            class="dbm-file-input"
-            accept=".csv,.tsv,.tab,.json,.sql,.txt"
-            @change="onImportFilePicked"
-          />
-          <span v-if="importFile" class="dbm-import-file">
-            {{ importFile.name }}
-            <em>（{{ importFile.size }} 字节）</em>
-          </span>
-          <span v-else class="dbm-hint">支持 CSV / TSV / JSON 数组 / SQL 脚本</span>
-        </div>
-        <div class="dbm-import-params">
-          <div class="dbm-form-item">
-            <label>格式</label>
-            <!-- ReSelect 只发 update:modelValue，不发 change；用 watch 触发重新解析 -->
-            <ReSelect v-model="importFormat" style="width: 150px">
-              <ReOption label="自动识别" value="auto" />
-              <ReOption label="CSV" value="csv" />
-              <ReOption label="TSV" value="tsv" />
-              <ReOption label="JSON 数组" value="json" />
-              <ReOption label="SQL 脚本" value="sql" />
-            </ReSelect>
-          </div>
-          <div class="dbm-form-item">
-            <label>首行是表头</label>
-            <ReSwitch v-model="importHasHeader" aria-label="首行是表头" @change="runImportPreview" />
-          </div>
-          <div class="dbm-form-item">
-            <label>字符集</label>
-            <ReSelect v-model="importEncoding" style="width: 150px">
-              <ReOption label="UTF-8" value="" />
-              <ReOption label="GBK" value="GBK" />
-              <ReOption label="GB18030" value="GB18030" />
-              <ReOption label="ISO-8859-1" value="ISO-8859-1" />
-            </ReSelect>
-          </div>
-        </div>
-
-        <!-- 第 2 步：目标与映射 -->
-        <div class="dbm-import-step">
-          <span class="dbm-import-step-no">2</span>
-          <span class="dbm-import-step-title">目标与字段映射</span>
-        </div>
-        <div class="dbm-import-params">
-          <div class="dbm-form-item">
-            <label>目标表</label>
-            <ReSelect v-model="importTableName" filterable placeholder="选择表" style="width: 240px">
-              <ReOption v-for="t in getTablesForDb(importDatabase)" :key="t.name" :label="t.name" :value="t.name" />
-            </ReSelect>
-            <span class="dbm-hint">库：{{ importDatabase }}</span>
-          </div>
-          <div class="dbm-form-item">
-            <label>冲突策略</label>
-            <ReSelect v-model="importConflict" style="width: 190px">
-              <ReOption label="跳过冲突行" value="skip" />
-              <ReOption label="替换冲突行" value="replace" />
-            </ReSelect>
-          </div>
-          <div class="dbm-form-item">
-            <label>每批行数</label>
-            <ReInputNumber v-model="importBatchSize" :min="1" :max="5000" controls-position="right" style="width: 120px" />
-          </div>
-          <div class="dbm-form-item">
-            <label>导入前清空表</label>
-            <ReSwitch v-model="importTruncate" aria-label="导入前清空表" />
-            <span v-if="importTruncate" class="dbm-danger-hint">会删除目标表全部现有数据</span>
-          </div>
-        </div>
-
-        <!-- 预览 + 映射 -->
-        <div v-if="importPreviewing" class="dbm-import-preview-hint">正在解析文件…</div>
-        <div v-else-if="importPreview && importPreview.columns.length" class="dbm-import-preview">
-          <div class="dbm-import-preview-head">
-            已解析 <strong>{{ importPreview.rowCount }}</strong> 行、
-            <strong>{{ importPreview.columns.length }}</strong> 列
-            <span class="dbm-hint">下方逐列配置映射，示例值取自前 {{ importPreview.rows.length }} 行</span>
-            <ReButton layout="square" icon="Refresh" tip="重新解析文件" @click="runImportPreview" />
-          </div>
-          <ReTable
-            :data="importPreviewRows"
-            :columns="importPreviewColumns"
-            :pagination="false"
-            stripe
-            border
-            size="mini"
-            column-draggable
-            height="240px"
-          >
-            <template #col-mapping="{ row }">
-              <div class="dbm-mapping-cell">
-                <span class="dbm-mapping-src">{{ row.__src }}</span>
-                <span class="dbm-mapping-arrow">→</span>
-                <ReSelect v-model="importMapping[row.__src]" size="small" placeholder="不导入" style="width: 130px">
-                  <ReOption label="（不导入）" value="" />
-                  <ReOption v-for="c in importTargetColumns" :key="c" :label="c" :value="c" />
-                </ReSelect>
-              </div>
-            </template>
-          </ReTable>
-          <div v-if="importMappingConflict" class="dbm-danger-hint">映射冲突：{{ importMappingConflict }}</div>
-        </div>
-
-        <!-- 结果与错误报告 -->
-        <div v-if="importResult" class="dbm-import-result">
-          <div class="dbm-import-result-head">
-            总行数 <strong>{{ importResult.totalRows }}</strong>，
-            新增 <strong>{{ importResult.inserted }}</strong>，
-            替换 <strong>{{ importResult.replaced }}</strong>，
-            跳过 <strong>{{ importResult.skipped }}</strong>
-          </div>
-          <div v-if="importResult.errors.length" class="dbm-import-errors">
-            <div class="dbm-import-errors-title">错误明细（最多 50 条）</div>
-            <div v-for="(err, i) in importResult.errors" :key="i" class="dbm-import-error">{{ err }}</div>
-          </div>
-        </div>
-      </div>
-      <template #footer>
-        <ReButton
-          type="primary"
-          :loading="importing"
-          :disabled="!importReady"
-          @click="doImportData"
-        >开始导入</ReButton>
-      </template>
-    </ReDialog>
+    <!-- 导入向导：七步流程（对齐 Navicat），具体交互全在 DbImportWizard 里 -->
+    <DbImportWizard
+      v-model="importVisible"
+      :datasource-id="currentDatasourceId"
+      :database="importDatabase"
+      :table-name="importTableName"
+      @done="onImportDone"
+    />
 
     <!-- 导出向导 -->
     <ReDialog v-model="exportVisible" title="导出向导" width="560px">
@@ -1883,7 +1747,7 @@
         <div v-if="exportScope !== 'structure'" class="dbm-form-item">
           <label>排序</label>
           <ReSelect v-model="exportOrderBy" filterable clearable placeholder="不排序" style="width: 190px">
-            <ReOption v-for="c in importTargetColumns" :key="c" :label="c" :value="c" />
+            <ReOption v-for="c in exportColumns" :key="c" :label="c" :value="c" />
           </ReSelect>
           <ReSelect v-model="exportOrderDir" style="width: 100px">
             <ReOption label="升序" value="ASC" />
@@ -2326,6 +2190,7 @@ import { ReFormItem, ReOption, ReRadioGroup, ReRadioButton } from "@repo/ui/re-k
 import DbSqlEditor from "../../components/console/DbSqlEditor.vue";
 import CreateTableDialog from "../../components/console/CreateTableDialog.vue";
 import DbUserManagePanel from "../../components/console/DbUserManagePanel.vue";
+import DbImportWizard from "../../components/console/DbImportWizard.vue";
 // 数据源下拉走共享件：中文口径与停用项剔除规则全站一份
 import { DatasourceSelect } from "@pages/datasource";
 import type { CollectOption } from "@pages/datasource";
@@ -2377,8 +2242,6 @@ import {
   addDbColumn,
   modifyDbColumn,
   dropDbColumn,
-  previewDbImport,
-  importDbFile,
   exportDbTable,
   DB_OBJECT_CATEGORIES,
   fetchDbObjectSummary,
@@ -2389,8 +2252,6 @@ import {
   addDbForeignKey,
   dropDbForeignKey,
   type DbIndexInfo,
-  type DbImportPreview,
-  type DbImportResult,
   type DbObjectCategory,
   type DbObjectInfo,
   type DbCollationItem,
@@ -3414,43 +3275,21 @@ const createUser = async () => {
  * 类型转换，也让「一行坏数据」会中断整批，且 CSV 引号/换行解析不正确。</p>
  */
 const importVisible = ref(false);
+/** 从右键入口带进来的目标表（可空：库节点/空白处进来时为空） */
 const importTableName = ref("");
+/** 从右键入口带进来的库 */
 const importDatabase = ref("");
-/** 选中的文件（原生 File，不落 base64，省内存） */
-const importFile = ref<File | null>(null);
-/** 格式：auto 让后端按后缀与内容探测 */
-const importFormat = ref("auto");
-/** 首行是否为表头 */
-const importHasHeader = ref(true);
-/** 字符集，空表示 UTF-8 */
-const importEncoding = ref("");
-/** 预览结果（解析但不写库） */
-const importPreview = ref<DbImportPreview | null>(null);
-/** 预览中（调后端解析） */
-const importPreviewing = ref(false);
-/**
- * 源列名 → 目标列名。
- *
- * <p>用 {@code ref} 包普通对象（而非 {@code reactive}）：预填时要**整体替换**这个对象，
- * {@code ref} 天然支持；改成 {@code reactive} 后逐键赋值不会让已渲染的下拉重算选中值。</p>
- */
-const importMapping = ref<Record<string, string>>({});
-/** 导入前清空目标表（破坏性） */
-const importTruncate = ref(false);
-/** 冲突策略 */
-const importConflict = ref<"skip" | "replace">("skip");
-/** 每批行数 */
-const importBatchSize = ref(500);
-/** 执行中 */
-const importing = ref(false);
-/** 导入结果（用于展示错误报告） */
-const importResult = ref<DbImportResult | null>(null);
-/** 原生 file input 的 DOM 引用 */
-const importFileInput = ref<HTMLInputElement | null>(null);
-/** 目标表的列（映射下拉候选），按「库.表」缓存 */
-const importColumns = ref<DbColumnInfo[]>([]);
-const importColumnsKey = ref("");
 
+/**
+ * 打开导入向导。
+ *
+ * <p>这里只负责「从哪个库/哪张表进来的」，七步流程、文件解析、字段映射、
+ * 导入模式与执行日志全在 {@code DbImportWizard} 里 —— 早期把整套流程内联在
+ * 本视图里，既让文件膨胀，也因为前端自己拼 SQL 而无法支持导入模式与批量写入。</p>
+ *
+ * @param tableName 预填的目标表，可为空
+ * @param database  目标库，为空时取当前选中的库
+ */
 const openImportData = async (tableName?: string, database?: string) => {
   const db = database || activeDatabase.value;
   if (!db) {
@@ -3458,47 +3297,28 @@ const openImportData = async (tableName?: string, database?: string) => {
     return;
   }
   importDatabase.value = db;
-  // 表列表是展开树节点时才缓存的，未展开过要补一次，否则目标表下拉是空的
+  // 表列表是展开树节点时才缓存的，未展开过要补一次，否则向导第 4 步的目标表下拉是空的
   if (!tablesByDb[db]?.length) {
     await loadTables(db);
   }
-  const list = tablesByDb[db] || [];
-  importTableName.value = tableName || list[0]?.name || "";
-  importFormat.value = "auto";
-  importFile.value = null;
-  importPreview.value = null;
-  importResult.value = null;
-  importTruncate.value = false;
-  importConflict.value = "skip";
-  importBatchSize.value = 500;
+  // 只有从「某张表」的右键进来才预填表名。从根节点/空白处进来时不能拿库里
+  // 第一张表兜底 —— 那会让用户毫无察觉地把数据追加进一张不相干的表。
+  importTableName.value = tableName || "";
   importVisible.value = true;
-  // 必须主动拉一次结构：映射下拉的候选来自目标表列，
-  // 而列只在**树节点展开**时才缓存。从右键进来时目标表未必展开过，
-  // 不拉一次就会拿到空候选 → 映射全落「不导入」→ 「开始导入」常灰。
-  await loadImportTargetColumns();
 };
 
 /**
- * 拉取目标表的列，作为字段映射的候选。
+ * 导入成功后的收尾：刷新该库的表清单（新建表时要能立刻看到）并打开展示数据。
  *
- * <p>按「库.表」缓存，已缓存直接复用，避免每次开向导都打接口。</p>
+ * @param payload 向导回传的目标表与库
  */
-async function loadImportTargetColumns(): Promise<void> {
-  const db = importDatabase.value;
-  const table = importTableName.value;
-  if (!db || !table) {
-    return;
+function onImportDone(payload: { table: string; database: string }): void {
+  const db = payload.database || importDatabase.value;
+  if (db) {
+    void loadTables(db);
   }
-  const key = `${db}.${table}`;
-  if (importColumnsKey.value === key && importColumns.value.length) {
-    return;
-  }
-  try {
-    importColumns.value = (await fetchTableColumns(table, currentDatasourceId.value, db)) || [];
-    importColumnsKey.value = key;
-  } catch (e) {
-    importColumns.value = [];
-    message.warning(`读取目标表结构失败：${String((e as Error)?.message ?? e)}`);
+  if (payload.table) {
+    openTableData(payload.table, db);
   }
 }
 
@@ -3540,89 +3360,6 @@ function refreshTableInTree(database?: string): void {
   void loadTables(database);
 }
 
-/**
- * 目标表的列（映射下拉的候选）。
- *
- * <p>用 {@link loadImportTargetColumns} 主动拉的缓存，而不是树节点的展开缓存 ——
- * 后者只在用户展开过该表节点时有值，从右键入口进来时是空的。</p>
- */
-const importTargetColumns = computed<string[]>(() => importColumns.value.map(c => c.name));
-
-/**
- * 是否允许提交导入。
- *
- * <p>SQL 脚本没有列概念，只要求「选了文件 + 选了表」；其余格式必须先解析出列，
- * 否则等于盲写。</p>
- */
-const importReady = computed(() => {
-  if (!importFile.value || !importTableName.value) return false;
-  if (importFormat.value === "sql" || /\.sql$/i.test(importFile.value.name)) return true;
-  return (importPreview.value?.columns.length ?? 0) > 0;
-});
-
-/** 映射里已选中的目标列（检测两个源列映射到同一目标列） */
-const importMappingConflict = computed(() => {
-  const used = new Map<string, string>();
-  for (const [source, target] of Object.entries(importMapping.value)) {
-    if (!target) continue;
-    if (used.has(target)) return `${used.get(target)} 与 ${source} 都映射到 ${target}`;
-    used.set(target, source);
-  }
-  return "";
-});
-
-/**
- * 选中文件后自动触发一次预览（用户能立刻看到解析对不对）。
- * @param event input 的 change 事件
- */
-function onImportFilePicked(event: Event) {
-  const input = event.target as HTMLInputElement;
-  importFile.value = input.files?.[0] ?? null;
-  importPreview.value = null;
-  importResult.value = null;
-  if (importFile.value) {
-    void runImportPreview();
-  }
-}
-
-/**
- * 请求后端解析文件（不写库），并按同名列自动预填字段映射。
- */
-async function runImportPreview(): Promise<void> {
-  const file = importFile.value;
-  if (!file) {
-    message.warning("请先选择文件");
-    return;
-  }
-  importPreviewing.value = true;
-  try {
-    const preview = await previewDbImport(file, importFormat.value, importHasHeader.value, importEncoding.value || undefined);
-    importPreview.value = preview;
-    // 整体替换成新对象：逐键删除/赋值不会让已渲染的 ReSelect 重算选中值
-    const next: Record<string, string> = {};
-    for (const col of preview.columns) {
-      next[col] = importTargetColumns.value.find(c => c === col) ?? "";
-    }
-    importMapping.value = next;
-  } catch (e) {
-    importPreview.value = null;
-    message.error(`解析失败: ${String((e as Error)?.message ?? e)}`);
-  } finally {
-    importPreviewing.value = false;
-  }
-}
-
-/**
- * 切换目标表后重跑映射预填（列集合变了）。
- */
-/**
- * 目标表变了 → 拉新表结构并按同名重新预填映射。
- */
-watch(importTableName, async () => {
-  await loadImportTargetColumns();
-  prefillImportMapping();
-});
-
 /** 切换数据源 → 重载树与库列表 */
 watch(currentDatasourceId, () => {
   void onDatasourceChange();
@@ -3631,182 +3368,6 @@ watch(currentDatasourceId, () => {
 /** 新建库对话框里选了字符集 → 刷新可选排序规则 */
 watch(newDbCharset, () => {
   onCharsetChange();
-});
-
-/**
- * 解析参数变了 → 自动重新解析。
- *
- * <p>用 watch 而不是模板上的 {@code @change}：{@code ReSelect} 只发
- * {@code update:modelValue}，**不发 {@code change}**（见 packages/ui 的 ReSelect
- * 两个 layout 都只 emit 了 update:modelValue）。挂 {@code @change} 会静默不触发，
- * 表现为「换了格式/字符集但预览不变」。</p>
- */
-watch([importFormat, importEncoding], () => {
-  if (importFile.value) {
-    void runImportPreview();
-  }
-});
-
-/**
- * 预览结果或目标列变化时按同名预填映射。
- *
- * <p>必须双向兜底：选文件触发的 {@link runImportPreview} 与开向导时的
- * {@link loadImportTargetColumns} 是**并行**的，预览先回来时目标列还没到。
- * 只在预览里写一次映射会让下拉停在「不导入」——而后端会按同名列兜底，
- * 于是**界面显示不导入、实际却导入了**，属于误导性 UI。</p>
- */
-watch([importPreview, importColumns], () => {
-  prefillImportMapping();
-});
-
-/**
- * 按同名规则预填字段映射（已配置的不覆盖）。
- *
- * <p>用 {@code importMapping.value = next} **整体替换**而不是逐键赋值：映射对象是
- * {@code reactive} 的普通对象，键在渲染之后才动态加进来时，逐键赋值不会让已渲染的
- * {@code ReSelect} 重算选中值，表现为「下拉里有目标列、当前值却还停在「不导入」」。</p>
- */
-function prefillImportMapping(): void {
-  const preview = importPreview.value;
-  if (!preview) return;
-  const targets = importTargetColumns.value;
-  const next: Record<string, string> = { ...importMapping.value };
-  let changed = false;
-  for (const col of preview.columns) {
-    if (next[col]) continue;
-    const hit = targets.find(c => c === col);
-    if (hit) {
-      next[col] = hit;
-      changed = true;
-    }
-  }
-  if (changed) {
-    importMapping.value = next;
-  }
-}
-
-/**
- * 预览表格的数据：**一行一个源列**（左侧是映射下拉，右侧是该列在各预览行里的取值）。
- *
- * <p><b>不能直接渲染 {@code preview.rows}</b>：那些行是「数据行」，一行里含所有列，
- * 而字段映射是「一个源列 → 一个目标列」，粒度不同。直接渲染会让
- * {@code row.__src} 取到 undefined，映射全写到 {@code "undefined"} 键上，
- * 界面停在「不导入」而后端却按同名列兜底导入 —— 界面与实际行为不一致。</p>
- */
-const importPreviewRows = computed(() => {
-  const preview = importPreview.value;
-  if (!preview) return [];
-  const sample = preview.rows[0] ?? {};
-  return preview.columns.map(column => ({
-    __src: column,
-    __sample: sample[column] === null || sample[column] === undefined ? "" : String(sample[column]),
-  }));
-});
-
-/** 预览表的列定义 */
-const importPreviewColumns = computed(() => [
-  { prop: "__src", label: "源列 → 目标列", minWidth: 230, slot: "mapping", fixed: "left" as const },
-  { prop: "__sample", label: "示例值", minWidth: 180, showOverflowTooltip: true },
-]);
-
-/**
- * 执行导入。
- */
-async function doImportData(): Promise<void> {
-  if (!importTableName.value) {
-    message.warning("请选择目标表");
-    return;
-  }
-  if (!importFile.value) {
-    message.warning("请选择要导入的文件");
-    return;
-  }
-  // SQL 脚本自带完整语句，**不需要也不应该**配字段映射；
-  // 拿映射去要求用户配置会把它挡在门外（实测报「请至少配置一个字段映射」）。
-  const isSqlScript = importFormat.value === "sql" || /\.sql$/i.test(importFile.value.name);
-  const mapping: Record<string, string> = {};
-  for (const [source, target] of Object.entries(importMapping.value)) {
-    if (target) mapping[source] = target;
-  }
-  if (!isSqlScript) {
-    if (Object.keys(mapping).length === 0) {
-      message.warning("请至少配置一个字段映射");
-      return;
-    }
-    if (importMappingConflict.value) {
-      message.warning(`字段映射有冲突：${importMappingConflict.value}`);
-      return;
-    }
-  }
-  if (importTruncate.value) {
-    try {
-      await ElMessageBox.confirm(
-        `导入前会**清空目标表 ${importTableName.value} 的全部数据**，此操作不可撤销。确定继续？`,
-        "确认清空并导入",
-        { type: "warning", confirmButtonText: "清空并导入", cancelButtonText: "取消" }
-      );
-    } catch {
-      return;
-    }
-  }
-  importing.value = true;
-  importResult.value = null;
-  try {
-    const result = await importDbFile(importFile.value, {
-      fileName: importFile.value.name,
-      format: importFormat.value,
-      hasHeader: importHasHeader.value,
-      encoding: importEncoding.value || undefined,
-      database: importDatabase.value,
-      tableName: importTableName.value,
-      columnMapping: mapping,
-      truncateFirst: importTruncate.value,
-      onConflict: importConflict.value,
-      batchSize: importBatchSize.value,
-      datasourceId: currentDatasourceId.value,
-    });
-    importResult.value = result;
-    const done = result.inserted + result.replaced;
-    if (result.skipped > 0) {
-      message.warning(`导入完成：成功 ${done} 行，跳过 ${result.skipped} 行（见下方错误报告）`);
-    } else {
-      message.success(`导入完成：成功 ${done} 行`);
-    }
-    openTableData(importTableName.value, importDatabase.value);
-  } catch (e) {
-    message.error(`导入失败: ${String((e as Error)?.message ?? e)}`);
-  } finally {
-    importing.value = false;
-  }
-}
-
-/** 关闭向导并清掉临时状态 */
-function closeImportWizard(): void {
-  importVisible.value = false;
-  resetImportWizard();
-}
-
-/**
- * 清空向导的临时状态。
- *
- * <p>不能挂在 ReDialog 的关闭事件上：该组件只发 {@code ok / cancel / update:modelValue /
- * close-fab / fullscreen-change}，**没有 {@code closed}**，挂上去不会触发。
- * 改为 watch 可见性，点右上角 ×、按 ESC、点遮罩都能清干净。</p>
- */
-function resetImportWizard(): void {
-  importFile.value = null;
-  importPreview.value = null;
-  importResult.value = null;
-  if (importFileInput.value) {
-    // 清掉已选文件，否则同名文件再选一次不会触发 change
-    importFileInput.value.value = "";
-  }
-}
-
-watch(importVisible, visible => {
-  if (!visible) {
-    resetImportWizard();
-  }
 });
 
 // ==================== 导出向导 ====================
@@ -3826,8 +3387,19 @@ const exportOrderBy = ref("");
 const exportOrderDir = ref<"ASC" | "DESC">("ASC");
 const exportLimit = ref(10000);
 const exporting = ref(false);
+/**
+ * 导出对话框里「排序列」的候选。
+ *
+ * <p>不能复用导入向导的列：两者来自不同的目标表，导出的排序列必须是被导出表的列，
+ * 否则下拉里出现的是另一张表的字段，后端会报「未知列」。</p>
+ */
+const exportColumns = ref<string[]>([]);
 
-/** 从工具栏/右键打开导出对话框 */
+/**
+ * 从工具栏/右键打开导出对话框
+ * @param tableName 表名
+ * @param database  库名
+ */
 function openExportDialog(tableName?: string, database?: string): void {
   if (!tableName) {
     message.warning("请先选择要导出的表");
@@ -3841,7 +3413,33 @@ function openExportDialog(tableName?: string, database?: string): void {
   exportOrderBy.value = "";
   exportOrderDir.value = "ASC";
   exportLimit.value = 10000;
+  exportColumns.value = columnsOf(exportDatabase.value, tableName).map(c => c.name);
   exportVisible.value = true;
+  // 树节点没展开过就没有列缓存，补一次，否则排序列下拉是空的
+  if (!exportColumns.value.length) {
+    void loadExportColumns();
+  }
+}
+
+/**
+ * 补拉导出目标表的列，供排序列下拉使用。
+ */
+async function loadExportColumns(): Promise<void> {
+  const table = exportTable.value;
+  const db = exportDatabase.value;
+  if (!table || !db) {
+    return;
+  }
+  try {
+    const columns = await fetchTableColumns(table, currentDatasourceId.value, db);
+    // 请求回来时用户可能已经换了目标表，丢弃过期结果
+    if (exportTable.value === table && exportDatabase.value === db) {
+      exportColumns.value = (columns || []).map(c => c.name);
+    }
+  } catch {
+    // 拿不到列不影响导出本身，排序列留空即可
+    exportColumns.value = [];
+  }
 }
 
 /** 把后端返回的内容落盘为文件 */
@@ -7453,8 +7051,8 @@ async function loadErDiagram(): Promise<void> {
 const erGraphRef = ref<unknown>(null);
 
 /** 双击图上的节点：列出该表的列 */
-async function onErNodeDblClick(node: { id?: string }): Promise<void> {
-  await openErColumns(String(node?.id ?? ""));
+async function onErNodeDblClick(detail: { id?: string }): Promise<void> {
+  await openErColumns(String(detail?.id ?? ""));
 }
 
 /** 打开某张表的列清单 */
@@ -7479,10 +7077,10 @@ function erDegree(name: string): number {
 /** 点清单里的一行：在图上高亮该节点并居中 */
 function highlightErNode(name: string): void {
   const api = erGraphRef.value as {
-    highlight?: (ids: string[]) => void;
+    highlightElements?: (ids: string[]) => void;
     centerOn?: (id: string) => void;
   } | null;
-  api?.highlight?.([name]);
+  api?.highlightElements?.([name]);
   api?.centerOn?.(name);
 }
 

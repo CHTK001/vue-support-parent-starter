@@ -27,6 +27,7 @@ export const CORE_GETTERS = [
   "pathActive",
   "pathFrom",
   "pathTo",
+  "pathPicking",
   "canUndo",
   "canRedo",
   "history",

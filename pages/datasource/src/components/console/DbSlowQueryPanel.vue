@@ -14,9 +14,12 @@
  */
 import { onMounted, ref, watch } from "vue";
 import ReButton from "@repo/ui/re-button";
+import ReIcon from "@repo/ui/re-icon";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
+import { message } from "@repo/core";
 import { fetchDbSlowQueries, type DbSlowQueryRow } from "../../api";
+import { copyToClipboard } from "../../utils/clipboard";
 
 const props = withDefaults(
   defineProps<{
@@ -47,12 +50,30 @@ const rows = ref<DbSlowQueryRow[]>([]);
 
 /** 慢查询列定义 */
 const columns: ReTableColumn[] = [
-  { prop: "digest", label: "语句（摘要）", minWidth: 320 },
+  { prop: "digest", label: "语句（摘要）", minWidth: 320, slot: "col-digest" },
   { prop: "avgMs", label: "平均耗时(ms)", width: 120, align: "right" },
   { prop: "maxMs", label: "最大耗时(ms)", width: 120, align: "right" },
   { prop: "calls", label: "次数", width: 90, align: "right" },
   { prop: "lastAt", label: "最近执行", width: 190, slot: "col-last", align: "center" },
 ];
+
+/**
+ * 复制慢查询语句。
+ *
+ * <p>语句是摘要且常被省略号截断，给一个复制图标比让用户拖宽列再手动选中现实。</p>
+ *
+ * @param text 语句摘要
+ */
+async function copyStatement(text: string): Promise<void> {
+  if (!text) {
+    return;
+  }
+  if (await copyToClipboard(text)) {
+    message.success("语句已复制");
+  } else {
+    message.warning("复制失败，请手动选中复制");
+  }
+}
 
 /** 加载慢查询 */
 const load = async () => {
@@ -112,6 +133,20 @@ defineExpose({ reload: load });
         border
         :layout-table="tableHeight ? { height: tableHeight } : undefined"
       >
+        <template #col-digest="{ row }">
+          <span class="dbs-stmt">
+            <span class="dbs-stmt__text dbs-mono" :title="row.digest">{{ row.digest }}</span>
+            <button
+              type="button"
+              class="dbs-stmt__copy"
+              :aria-label="`复制语句：${row.digest}`"
+              title="复制语句"
+              @click.stop="copyStatement(row.digest)"
+            >
+              <ReIcon name="CopyDocument" :size="13" />
+            </button>
+          </span>
+        </template>
         <template #col-last="{ row }">
           <span v-if="row.lastAt" class="dbs-mono">{{ row.lastAt }}</span>
           <span v-else class="dbs-muted">—</span>
@@ -176,5 +211,45 @@ defineExpose({ reload: load });
 
 .dbs-muted {
   color: var(--el-text-color-placeholder);
+}
+
+/* 语句格：省略号生效 + 复制图标固定右侧不参与压缩 */
+.dbs-stmt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  width: 100%;
+}
+.dbs-stmt__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dbs-stmt__copy {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--el-text-color-placeholder);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.dbs-stmt:hover .dbs-stmt__copy,
+.dbs-stmt__copy:focus-visible {
+  opacity: 1;
+}
+.dbs-stmt__copy:hover {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
 }
 </style>

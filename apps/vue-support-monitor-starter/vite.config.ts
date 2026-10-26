@@ -532,6 +532,15 @@ export default createVite({
     // 动画也没了——被误判成「有的格式没接 file-viewer」，实际是依赖被优化掉了。
     // 显式 include 后启动即预打包，运行期不再变更。
     optimizeDeps: {
+      // @repo/assets 提供 koi 本地图标 sprite（svgSprite.ts 用 import.meta.glob 收集
+      // icons/*.svg）。它是 workspace 源码，绝不能进依赖预构建：预构建（esbuild/rolldown）
+      // 不处理 `import.meta.glob` 这种 Vite 编译期表达式，产物里会残留原样调用、运行时返回
+      // 空对象 —— setupSvgSprite 于是注入一个「空 sprite」并把 injected 置 true，此后所有
+      // <use xlink:href="#icon-koi-*"> 都引不到 symbol，表现为菜单图标 / 面包屑图标 /
+      // 标签页固定(pin)图标全部空白（而 element-plus 图标、Iconify 图标正常）。
+      // @repo/theme 也在 include 里且会内联 assets，故一并排除，确保 framework → assets
+      // 整条链都走源码、glob 才能正常展开。
+      exclude: ["@repo/assets", "@repo/theme"],
       include: [
       "element-plus",
       "@repo/theme",

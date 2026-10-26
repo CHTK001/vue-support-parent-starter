@@ -16,9 +16,6 @@
         onClick: item.action || (() => { }),
     }))" @close="globalMenuVisible = false" />
 
-    <!-- 设计探索临时组件 — 落地后删除 -->
-    <DesignVariantSwitcher v-if="isDev" />
-
 </template>
 
 <script setup>
@@ -32,20 +29,16 @@ import { useTheme } from './composables/useTheme'
 import { useTrayStats } from './composables/useTrayStats'
 import { i18n, getLocale } from './locales'
 import { useLanguage } from './composables/useLanguage'
-import MockControlPanel from './components/dev/MockControlPanel.vue'
 import ContextMenuManager from './utils/ContextMenuManager'
 // 模板里用了 <ContextMenu>，此前**漏了 import** —— Vue 解析不到该组件会抛
 // "Failed to resolve component: ContextMenu" 警告并把该节点的渲染中断，
 // 连带整个 App 子树变空白（表现为路由能跳转但页面全白、无任何报错）。
 import ContextMenu from './components/ui/ContextMenu.vue'
-// 设计探索临时组件 — 落地后删除
-import DesignVariantSwitcher from './components/dev/DesignVariantSwitcher.vue'
 
 const router = useRouter()
 const title = useTitle()
 const theme = useTheme() //不要删除，这里会执行dark模式设置
 useTrayStats() // 托盘悬浮窗统计推送（仅 Electron 生效）
-const isDev = import.meta.env.DEV
 const { initLanguage } = useLanguage()
 
 // Element Plus 组件内置文案随语言切换

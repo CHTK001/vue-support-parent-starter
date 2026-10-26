@@ -25,7 +25,7 @@
   </el-select>
 
   <!-- STRING：多行提示词 -->
-  <el-input v-else-if="isPromptField && textarea"
+  <el-input v-else-if="isPromptField"
     :model-value="value"
     type="textarea" :rows="4" maxlength="2000" show-word-limit
     @input="$emit('change', $event)" />
@@ -55,7 +55,6 @@
  * 配置字段控件发射器：按后端定义渲染 model / enum / text / number / boolean / prompt。
  * 纯展示组件：不持有状态，全部由父级托管。是「彻底重构 + 组件化」的单元之一。
  */
-import { computed } from 'vue'
 import { OpenAI } from "@/components/icons"
 import { ArrowDown } from "@element-plus/icons-vue"
 import ReNumberInput from '@/components/re/ReNumberInput.vue'
@@ -80,8 +79,6 @@ const props = defineProps<{
   step?: number
   /** 数值精度（小数位） */
   precision?: number
-  /** 提示词字段是否以 textarea 渲染；默认定义里本就派生 */
-  textarea?: boolean
 }>()
 
 defineEmits<{

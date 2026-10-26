@@ -519,12 +519,17 @@ const bindEvents = (g: Graph, isAlive: () => boolean) => {
   // - 业务数据不在 target 顶层，需用 graph.getNodeData / getEdgeData 回查
   g.on("node:pointerenter", (ev) => {
     const id = String(((ev as { target?: { id?: unknown } }).target ?? {}).id ?? "");
-    emit("node-mouseover", { id, data: g.getNodeData(id) as unknown });
+    // 事件回参里的 data 一律是「业务节点」本身（不是 G6 内部 datum），
+    // 业务侧才能直接读自己塞进去的字段（kind / role / props …）
+    emit("node-mouseover", { id, data: businessNodeOf(id) });
+    // 最短路径模式期间悬停高亮让位：拾取端点靠 highlightElements 单独点亮
+    if (pathPickState.value || pathModeState.value) return;
     hoverNode(id);
   });
   g.on("node:pointerleave", (ev) => {
     const id = String(((ev as { target?: { id?: unknown } }).target ?? {}).id ?? "");
-    emit("node-mouseout", { id, data: g.getNodeData(id) as unknown });
+    emit("node-mouseout", { id, data: businessNodeOf(id) });
+    if (pathPickState.value || pathModeState.value) return;
     clearHoverHighlight(id);
   });
   g.on("edge:pointerenter", (ev) => {
@@ -535,8 +540,9 @@ const bindEvents = (g: Graph, isAlive: () => boolean) => {
       id,
       source,
       target,
-      data: g.getEdgeData(id) as unknown,
+      data: businessEdgeOf(id),
     });
+    if (pathPickState.value || pathModeState.value) return;
     hoverEdge(id);
   });
   g.on("edge:pointerleave", (ev) => {
@@ -546,8 +552,9 @@ const bindEvents = (g: Graph, isAlive: () => boolean) => {
       id,
       source,
       target,
-      data: g.getEdgeData(id) as unknown,
+      data: businessEdgeOf(id),
     });
+    if (pathPickState.value || pathModeState.value) return;
     clearHoverHighlight(id);
   });
 
@@ -558,30 +565,31 @@ const bindEvents = (g: Graph, isAlive: () => boolean) => {
   g.on("node:click", (ev) => {
     if (consumeBrushClick()) return;
     const id = targetIdOf(ev);
-    // 最短路径模式：左键只用来点起点 / 终点，点选让位
-    if (pathPickState.value) {
+    // 最短路径模式（拾取中 / 已在看结果）：左键只用来点起点 / 终点，点选让位。
+    // 看结果时再点一个节点 = 开始新一轮（见 pickPathEndpoint）。
+    if (pathPickState.value || pathModeState.value) {
       if (!id) return;
       pickPathEndpoint(id);
       return;
     }
-    if (id) emit("node-click", { id, data: g.getNodeData(id) as unknown });
+    if (id) emit("node-click", { id, data: businessNodeOf(id) });
     if (!clickSelectState.value) return;
     // 追加式多选：点第二个节点不会把第一个顶掉（算最短路径要选两个）
     if (id) toggleSelect(id, "node", true);
   });
   g.on("node:dblclick", (ev) => {
-    if (pathPickState.value) return;
+    if (pathPickState.value || pathModeState.value) return;
     const id = targetIdOf(ev);
-    if (id) emit("node-dblclick", { id, data: g.getNodeData(id) as unknown });
+    if (id) emit("node-dblclick", { id, data: businessNodeOf(id) });
   });
   g.on("edge:click", (ev) => {
     if (consumeBrushClick()) return;
     // 最短路径模式：边不参与端点选择，左键直接忽略
-    if (pathPickState.value) return;
+    if (pathPickState.value || pathModeState.value) return;
     const id = targetIdOf(ev);
     if (id) {
       const { source, target } = edgeEndsOf(id);
-      emit("edge-click", { id, source, target, data: g.getEdgeData(id) as unknown });
+      emit("edge-click", { id, source, target, data: businessEdgeOf(id) });
     }
     if (!clickSelectState.value) return;
     if (id) toggleSelect(id, "edge", true);
@@ -597,7 +605,8 @@ const bindEvents = (g: Graph, isAlive: () => boolean) => {
   });
   g.on("canvas:click", () => {
     if (consumeBrushClick()) return;
-    if (pathPickState.value) return;
+    // 最短路径模式期间点空白不清选中（此时本来就没有选中集合）
+    if (pathPickState.value || pathModeState.value) return;
     if (clickSelectState.value || brushSelectState.value) clearSelection();
   });
 
@@ -609,30 +618,32 @@ const bindEvents = (g: Graph, isAlive: () => boolean) => {
   g.on("canvas:pointerleave", () => clearHoverHighlight());
 
   /* ---------- 右键（contextmenu）：回参 + 可选浮层 ---------- */
-  // 最短路径模式下右键 = 取消，不再弹业务菜单
+  // 最短路径模式（拾取中或已在看结果）下右键 = 取消，不再弹业务菜单：
+  // 开启期间右键只服务最短路径，避免两套手势互相打架。
+  const pathBusy = () => pathPickState.value || pathModeState.value;
   g.on("node:contextmenu", (ev) => {
-    if (pathPickState.value) {
+    if (pathBusy()) {
       cancelPathPick(ev);
       return;
     }
     handleContextMenu(ev, "node");
   });
   g.on("edge:contextmenu", (ev) => {
-    if (pathPickState.value) {
+    if (pathBusy()) {
       cancelPathPick(ev);
       return;
     }
     handleContextMenu(ev, "edge");
   });
   g.on("combo:contextmenu", (ev) => {
-    if (pathPickState.value) {
+    if (pathBusy()) {
       cancelPathPick(ev);
       return;
     }
     handleContextMenu(ev, "combo");
   });
   g.on("canvas:contextmenu", (ev) => {
-    if (pathPickState.value) {
+    if (pathBusy()) {
       cancelPathPick(ev);
       return;
     }
@@ -1743,6 +1754,9 @@ const pickPathEndpoint = (id: string) => {
     pathFromState.value = key;
     pathToState.value = "";
     pathInfoState.value = `起点：${key}，再点一个节点作为终点`;
+    // 等终点期间仍算「拾取中」：右键取消、工具栏点亮都要靠这个状态
+    pathPickState.value = true;
+    emit("update:pathPick", true);
     paintPathPicks();
     return;
   }
@@ -2368,6 +2382,8 @@ const initGraph = () => {
     if (!graphAlive) return;
     renderSettled = true;
     flushPendingStates();
+    // html 节点的 DOM 宿主在首次渲染后才存在，插槽内容此刻才能挂上去
+    attachSlots();
     // combo 建好之后按 collapsedGroups 折叠初始分组（默认不折叠）
     applyInitialCollapsed().catch(() => {});
     // 路径模式重建（进入 / 退出时摘挂轮廓）后，可见性要按当前模式补一次
@@ -3095,6 +3111,9 @@ const pushFullData = () => {
   // 否则一改数据（拖动、增删、撤销）路径之外的节点就全冒出来了
   graph.render().then(() => {
     if (!graphAlive) return;
+    // 元素重建后 html 节点的 DOM 宿主是新的，插槽内容要重新挂一遍，
+    // 否则 ER 表卡 / 自定义节点会在数据变更后变成空白占位
+    attachSlots();
     if (pathModeState.value) applyPathVisibilityNow();
   });
 };
@@ -3599,6 +3618,18 @@ defineExpose({
   get pathActive() {
     return pathModeState.value;
   },
+  /** 是否正处在「最短路径拾取」模式（工具栏开关已点亮、等左键点两个节点） */
+  get pathPicking() {
+    return pathPickState.value;
+  },
+  /** 当前路径起点（未指定为空串） */
+  get pathFrom() {
+    return pathFromState.value;
+  },
+  /** 当前路径终点（未指定为空串） */
+  get pathTo() {
+    return pathToState.value;
+  },
   /** 用当前选中的两个节点算最短路径 */
   shortestPathFromSelection,
   /** 清空所有元素状态 */
@@ -3611,6 +3642,10 @@ defineExpose({
   getSelection,
   /** 当前布局下的边交叉数（用于比较「谁更不交叉」） */
   countEdgeCrossings,
+  /** 只点亮一组元素（active 态），不改选中集合 */
+  highlightElements,
+  /** 把某个元素平移到视口中心（不改缩放） */
+  centerOn,
   /** 最近一次路径计算结果文字 */
   get pathInfo() {
     return pathInfoState.value;
@@ -3709,6 +3744,8 @@ defineExpose({
     @pointerdown.capture="focusRoot"
   >
     <div ref="containerRef" class="rrg__canvas"></div>
+    <!-- 空态：只在「真的没有节点」时出现，不遮工具栏与右键浮层 -->
+    <div v-if="!nodesState.length" class="rrg__empty">{{ emptyText }}</div>
     <GraphToolbar
       v-if="toolbar"
       class="rrg__toolbar"
@@ -3804,6 +3841,37 @@ defineExpose({
   height: 100%;
   min-height: 300px;
   overflow: hidden;
+}
+
+/* 空态占位：居中、不拦截鼠标（画布仍可拖动平移） */
+.rrg__empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px;
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+  color: var(--el-text-color-secondary, #909399);
+  pointer-events: none;
+}
+
+/* #node-content 自定义 DOM：G6 html 节点只提供宿主，尺寸由业务卡片自己撑开 */
+.rrg__node-content {
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+}
+
+.rrg__node-content--plain {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  font-size: 12px;
+  color: var(--el-text-color-primary, #303133);
 }
 
 /* tooltip：G6 默认是一块内联样式的白卡，这里对齐设计语言（圆角 / 细边 / 轻阴影） */

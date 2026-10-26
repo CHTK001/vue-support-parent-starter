@@ -508,12 +508,11 @@
                   :edges="graphEdges"
                   layout="radial"
                   height="460px"
-                  highlight="adjacent"
                   :minimap="graphNodes.length > 2"
                   :node-size="38"
                   empty-text="未取到集群节点"
                   data-testid="es-graph"
-                  @node-hover="onGraphNodeHover"
+                  @node-mouseover="onGraphNodeHover"
                 />
                 <!-- 悬浮详情固定在图区右下角：跟在光标处会与右上角工具栏/节点重叠 -->
                 <div v-if="graphHover" class="dsm-graph-detail" data-testid="es-graph-detail">
@@ -2269,7 +2268,8 @@ type GraphHover = {
 
 const graphHover = ref<GraphHover | null>(null);
 
-function onGraphNodeHover(node: { label?: string; data?: GraphHover } | null) {
+function onGraphNodeHover(detail: { id: string; data?: unknown } | null) {
+  const node = detail?.data as { label?: string; data?: GraphHover } | undefined;
   graphHover.value = node ? { label: node.label, ...(node.data || {}) } : null;
 }
 

@@ -139,14 +139,13 @@
             :edges="relationEdges"
             layout="force"
             height="450px"
-            highlight="both"
             :minimap="relationNodes.length > 3"
             :node-size="44"
             empty-text="采样图无关系可绘制"
             data-testid="dsm-neo4j-graph"
             @node-click="onGraphNodeClick"
           >
-            <template #hover="{ node }">
+            <template #node-tooltip="{ node }">
               <div class="ngv-tip-title">{{ node.label }}</div>
               <div class="ngv-tip-row">id：{{ node.id }}</div>
             </template>
@@ -691,8 +690,8 @@ const relationEdges = computed(() =>
  * 图上节点点击：复用节点详情弹窗（先查节点列表，再退回采样缓存）
  * @param node 图插件回传的节点（含 id）
  */
-function onGraphNodeClick(node: { id: string }) {
-  showNode(node.id);
+function onGraphNodeClick(detail: { id: string }) {
+  showNode(detail.id);
 }
 
 /** 采样用的关系查询，列别名即渲染契约 */

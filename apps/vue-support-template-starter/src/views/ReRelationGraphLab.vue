@@ -219,22 +219,26 @@ const pathTo = ref("");
 const pathActive = ref(false);
 /** 计算结果 */
 const pathInfo = ref("（右键节点设为起点，再右键一个设为终点；也可以点上面的「算路径」）");
-
-/** 两个端点都齐了才允许算 */
-const canRunPath = computed(() => Boolean(pathFrom.value && pathTo.value && pathFrom.value !== pathTo.value));
+/** 当前选中的节点（「算路径」在没设端点时退化为用选中的两个节点） */
+const selectionNodes = ref<string[]>([]);
 
 const runShortestPath = () => {
-  if (!canRunPath.value) {
-    pathInfo.value = "先右键两个节点，分别设为起点和终点";
-    return;
-  }
   const cmp = graphComp.value as unknown as {
     shortestPath?: (s: string, t: string) => { nodes: string[]; edges: string[]; found: boolean };
+    shortestPathFromSelection?: () => { nodes: string[]; edges: string[]; found: boolean };
   } | null;
-  const res = cmp?.shortestPath?.(pathFrom.value, pathTo.value);
-  pathActive.value = Boolean(res?.found);
-  pathInfo.value = res?.found
-    ? `${pathFrom.value} → ${pathTo.value}：${res.nodes.length} 个节点 / ${res.edges.length} 条边（${res.nodes.join(" → ")}）`
+  // 没手动设端点 → 用当前选中的两个节点（别让按钮变成「点了没反应」）
+  const res =
+    pathFrom.value && pathTo.value && pathFrom.value !== pathTo.value
+      ? cmp?.shortestPath?.(pathFrom.value, pathTo.value)
+      : cmp?.shortestPathFromSelection?.();
+  if (!res) {
+    pathInfo.value = "先右键两个节点分别设为起点和终点，或在图上选中两个节点";
+    return;
+  }
+  pathActive.value = Boolean(res.found);
+  pathInfo.value = res.found
+    ? `${pathFrom.value || "选中节点"} → ${pathTo.value || ""}：${res.nodes.length} 个节点 / ${res.edges.length} 条边（${res.nodes.join(" → ")}）`
     : `没有找到 ${pathFrom.value} 到 ${pathTo.value} 的路径`;
 };
 
@@ -246,6 +250,7 @@ const clearPath = () => {
 
 /** 选中集合变化（点选 / 框选 / 工具栏算路径都会触发） */
 const onSelectionChange = (d: { nodes: string[]; edges: string[] }) => {
+  selectionNodes.value = d.nodes;
   const names = d.nodes.slice(0, 8).join("、");
   hoverInfo.value = d.nodes.length
     ? `选中 ${d.nodes.length} 个节点${d.edges.length ? ` / ${d.edges.length} 条边` : ""}：${names}${d.nodes.length > 8 ? "…" : ""}`
@@ -472,7 +477,7 @@ onMounted(() => {
         <div class="rrg-lab__title">ReRelationGraph · 三国演义知识图谱（G6 5.1.1 原生）</div>
         <div class="rrg-lab__controls">
           <span class="rrg-lab__layout-label">布局</span>
-          <el-select v-model="layout" size="small" style="width: 190px">
+          <el-select v-model="layout" size="small" style="width: 190px" data-testid="lab-layout">
             <el-option
               v-for="opt in LAYOUT_OPTIONS"
               :key="opt.value"
@@ -482,13 +487,13 @@ onMounted(() => {
           </el-select>
 
           <span class="rrg-lab__layout-label">分组轮廓</span>
-          <el-select v-model="groupType" size="small" style="width: 140px">
+          <el-select v-model="groupType" size="small" style="width: 140px" data-testid="lab-group-type">
             <el-option label="气泡集 bubble-sets" value="bubble" />
             <el-option label="Hull 轮廓" value="hull" />
             <el-option label="不分组" value="none" />
           </el-select>
 
-          <el-switch v-model="groupVisible" size="small" active-text="显示分组" />
+          <el-switch v-model="groupVisible" size="small" active-text="显示分组" data-testid="lab-group-visible" />
 
           <el-divider direction="vertical" />
 
@@ -553,7 +558,7 @@ onMounted(() => {
           <el-tag size="small" effect="plain" type="info">
             {{ pathFrom || "未选起点" }} → {{ pathTo || "未选终点" }}
           </el-tag>
-          <el-button size="small" type="primary" :disabled="!canRunPath" @click="runShortestPath">
+          <el-button size="small" type="primary" @click="runShortestPath">
             算路径
           </el-button>
           <el-button size="small" :disabled="!pathActive" @click="clearPath">显示全部</el-button>

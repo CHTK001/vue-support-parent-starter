@@ -12,14 +12,7 @@
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import {
-  Aim,
-  Connection,
-  MagicStick,
-  Promotion,
-  Search,
-  Share,
-} from "@element-plus/icons-vue";
+import { Connection, MagicStick, Promotion, Search, Share } from "@element-plus/icons-vue";
 import {
   categoryLabel,
   categoryOrder,
@@ -62,11 +55,11 @@ const grouped = computed(() => {
 /** 匹配总数 */
 const matched = computed(() => grouped.value.reduce((n, g) => n + g.items.length, 0));
 
-/** 总数 / 已配置 schema / ReGraph 系列 */
+/** 总数 / 已配置 schema / 关系图组件数 */
 const stats = computed(() => ({
   total: registry.length,
   configured: registry.filter((item) => templateMap.has(item.name)).length,
-  graphSeries: registry.filter((i) => i.name.startsWith("ReGraph")).length,
+  graphSeries: registry.filter((i) => i.name === "ReRelationGraph").length,
 }));
 
 /** 跳到调试页 */
@@ -145,7 +138,7 @@ onBeforeUnmount(() => observer?.disconnect());
             </div>
             <div class="hero__stat">
               <div class="hero__stat-value">{{ stats.graphSeries }}</div>
-              <div class="hero__stat-label">ReGraph 系列</div>
+              <div class="hero__stat-label">关系图组件</div>
             </div>
           </div>
         </div>
@@ -186,30 +179,31 @@ onBeforeUnmount(() => observer?.disconnect());
 
       <!-- 右侧内容 -->
       <section class="content">
-        <!-- ReGraph 高亮（搜索时隐藏） -->
+        <!-- ReRelationGraph 高亮（搜索时隐藏） -->
         <div v-if="!keyword.trim()" class="spotlight">
           <div class="spotlight__head">
             <div class="spotlight__title">
               <el-icon><MagicStick /></el-icon>
-              <span>ReGraph 系列高亮</span>
+              <span>ReRelationGraph 高亮</span>
               <el-tag type="success" effect="plain" round>新功能</el-tag>
             </div>
-            <el-button text @click="goDebug('ReGraph')">全部关系图 →</el-button>
+            <el-button text @click="goDebug('ReRelationGraph')">组件详情 →</el-button>
           </div>
           <div class="spotlight__cards">
             <div
               class="spotlight-card"
               role="button"
               tabindex="0"
-              @click="goDebug('ReGraphForce')"
-              @keydown.enter="goDebug('ReGraphForce')"
-              @keydown.space.prevent="goDebug('ReGraphForce')"
+              @click="goDebug('ReRelationGraph')"
+              @keydown.enter="goDebug('ReRelationGraph')"
+              @keydown.space.prevent="goDebug('ReRelationGraph')"
             >
               <div class="spotlight-card__icon"><el-icon><Connection /></el-icon></div>
               <div class="spotlight-card__body">
-                <div class="spotlight-card__title">ReGraphForce · 力导向</div>
+                <div class="spotlight-card__title">ReRelationGraph · 关系图谱</div>
                 <div class="spotlight-card__desc">
-                  社交网络示例，14 节点 / 16 关系，支持搜索、右键扩线、折叠、锁定、历史回溯。
+                  G6 5.1.1 原生内核：19 种布局（含自研鱼骨）+ 气泡集 / Hull 双分组轮廓 +
+                  内置工具栏 + 最短路径 + 撤销重做。
                 </div>
                 <div class="spotlight-card__meta">
                   <el-tag effect="plain" type="success">已配置</el-tag>
@@ -223,69 +217,21 @@ onBeforeUnmount(() => observer?.disconnect());
               class="spotlight-card"
               role="button"
               tabindex="0"
-              @click="goDebug('ReGraphTree')"
-              @keydown.enter="goDebug('ReGraphTree')"
-              @keydown.space.prevent="goDebug('ReGraphTree')"
+              @click="router.push('/lab/re-relation-graph')"
+              @keydown.enter="router.push('/lab/re-relation-graph')"
+              @keydown.space.prevent="router.push('/lab/re-relation-graph')"
             >
               <div class="spotlight-card__icon spotlight-card__icon--tree">
                 <el-icon><Share /></el-icon>
               </div>
               <div class="spotlight-card__body">
-                <div class="spotlight-card__title">ReGraphTree · 组织架构</div>
+                <div class="spotlight-card__title">三国演义知识图谱 · 集成示例</div>
                 <div class="spotlight-card__desc">
-                  树形布局演示：18 节点公司架构（CEO / 总监 / 部门 / 员工）。
+                  44 节点按势力分组：19 布局对照、分组折叠、场景预设、边交叉统计与右键菜单全览。
                 </div>
                 <div class="spotlight-card__meta">
                   <el-tag effect="plain" type="success">已配置</el-tag>
-                  <span class="spotlight-card__cat">图表 / 关系图</span>
-                </div>
-              </div>
-              <el-icon class="spotlight-card__arrow"><Promotion /></el-icon>
-            </div>
-
-            <div
-              class="spotlight-card"
-              role="button"
-              tabindex="0"
-              @click="goDebug('ReGraphCenter')"
-              @keydown.enter="goDebug('ReGraphCenter')"
-              @keydown.space.prevent="goDebug('ReGraphCenter')"
-            >
-              <div class="spotlight-card__icon spotlight-card__icon--center">
-                <el-icon><Aim /></el-icon>
-              </div>
-              <div class="spotlight-card__body">
-                <div class="spotlight-card__title">ReGraphCenter · 中心辐射</div>
-                <div class="spotlight-card__desc">
-                  微服务架构示例：API 网关为中心 + 5 业务服务 + 3 数据存储。
-                </div>
-                <div class="spotlight-card__meta">
-                  <el-tag effect="plain" type="success">已配置</el-tag>
-                  <span class="spotlight-card__cat">图表 / 关系图</span>
-                </div>
-              </div>
-              <el-icon class="spotlight-card__arrow"><Promotion /></el-icon>
-            </div>
-
-            <div
-              class="spotlight-card"
-              role="button"
-              tabindex="0"
-              @click="goDebug('ReGraph3D')"
-              @keydown.enter="goDebug('ReGraph3D')"
-              @keydown.space.prevent="goDebug('ReGraph3D')"
-            >
-              <div class="spotlight-card__icon spotlight-card__icon--3d">
-                <el-icon><MagicStick /></el-icon>
-              </div>
-              <div class="spotlight-card__body">
-                <div class="spotlight-card__title">ReGraph3D · 3D 力导向</div>
-                <div class="spotlight-card__desc">
-                  three.js + d3-force，AI 知识图谱 15 节点，自动旋转 / 拖拽缩放。
-                </div>
-                <div class="spotlight-card__meta">
-                  <el-tag effect="plain" type="success">已配置</el-tag>
-                  <el-tag effect="plain" type="warning">3D</el-tag>
+                  <el-tag effect="plain">验收页</el-tag>
                   <span class="spotlight-card__cat">图表 / 关系图</span>
                 </div>
               </div>

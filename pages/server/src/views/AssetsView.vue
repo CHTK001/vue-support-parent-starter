@@ -598,8 +598,8 @@ interface WorkTab extends ReTabsItem {
   path?: string;
   /** 远控页签使用的登录身份（空 = 默认凭据） */
   identityId?: number | null;
-  /** 工作台页签初始面板（screen / docker / tunnel） */
-  startPanel?: "screen" | "docker" | "tunnel";
+  /** 工作台页签初始面板（screen / docker / k8s / tunnel / tunnel-reverse） */
+  startPanel?: "screen" | "docker" | "k8s" | "tunnel" | "tunnel-reverse";
 }
 
 /** 已打开的页签 */
@@ -621,7 +621,7 @@ const activeTab = ref("");
  * @param kind 功能类型
  * @param opts 附加参数（文件管理初始路径 / 远控登录身份 / 工作台初始面板）
  */
-function openTab(host: Host, kind: TabKind, opts?: { path?: string; identityId?: number | null; startPanel?: "screen" | "docker" | "tunnel" }): void {
+function openTab(host: Host, kind: TabKind, opts?: { path?: string; identityId?: number | null; startPanel?: "screen" | "docker" | "k8s" | "tunnel" | "tunnel-reverse" }): void {
   const base = `${host.id}:${kind}`;
   const name = kind === "workbench" && opts?.startPanel ? `${base}:${opts.startPanel}` : base;
   const exist = openTabs.value.find(t => t.name === name);
@@ -637,7 +637,9 @@ function openTab(host: Host, kind: TabKind, opts?: { path?: string; identityId?:
     hostId: host.id,
     kind,
     label: host.serverHostName,
-    hint: opts?.startPanel && kind === "workbench" ? `${meta.label} · ${opts.startPanel === "docker" ? "Docker" : opts.startPanel === "tunnel" ? "隧道" : "分屏"}` : meta.label,
+    hint: opts?.startPanel && kind === "workbench"
+      ? `${meta.label} · ${panelLabelOf(opts.startPanel)}`
+      : meta.label,
     icon: meta.icon,
     status: liveOnlineState(host) === 1 ? "online" : "offline",
     closable: true,
@@ -648,6 +650,14 @@ function openTab(host: Host, kind: TabKind, opts?: { path?: string; identityId?:
   openTabs.value = [...openTabs.value, tab];
   activeTab.value = name;
   pushActivity(`打开 ${host.serverHostName} · ${tab.hint}`, meta.icon, host.id);
+}
+
+/** 工作台面板的展示名（页签 hint / 右键菜单共用） */
+function panelLabelOf(p: "screen" | "docker" | "k8s" | "tunnel" | "tunnel-reverse"): string {
+  return p === "screen" ? "分屏终端"
+    : p === "docker" ? "Docker"
+    : p === "k8s" ? "K8s"
+    : p === "tunnel" ? "隧道" : "反向隧道";
 }
 
 /**
@@ -896,6 +906,28 @@ function ctxOpenTab(kind: Extract<TabKind, "ops-sessions" | "ops-exec" | "ops-sn
 }
 
 /**
+ * 分屏终端里点某屏的 Docker / K8s / 隧道工具条：以该屏主机为上下文开独立面板页签。
+ *
+ * @param panel   面板类型
+ * @param hostId  该屏主机 id
+ * @param hostName 该屏主机名
+ */
+function onWorkbenchOpenPanel(
+  panel: "docker" | "k8s" | "tunnel" | "tunnel-reverse",
+  hostId: number,
+  hostName: string,
+): void {
+  const host = hosts.value.find((h) => h.id === hostId);
+  if (host) {
+    openTab(host, "workbench", { startPanel: panel });
+    return;
+  }
+  // 找不到台账（例如临时屏）时以页签绑定主机兜底
+  const any = openTabs.value.find((t) => t.kind === "workbench") && hosts.value[0];
+  if (any) openTab(hosts.value[0], "workbench", { startPanel: panel });
+}
+
+/**
  * 右键命令分发。
  *
  * <p>左侧主机行的右键菜单是<b>唯一</b>的功能总入口：远控 / 文件 / 指标 / 画像各分区
@@ -920,16 +952,23 @@ function ctxCommand(cmd: string): void {
     "tab-network": "network",
     "tab-env": "env",
     "tab-firewall": "firewall",
-    "tab-workbench": "workbench",
   };
   const kind = tabCmds[cmd];
   if (kind) {
     openTab(h, kind);
     return;
   }
-  // 工作台直达面板：Docker / 隧道各自开自己的工作台页签
-  if (cmd === "tab-docker" || cmd === "tab-tunnel") {
-    openTab(h, "workbench", { startPanel: cmd === "tab-docker" ? "docker" : "tunnel" });
+  // 工作台直达面板：分屏 / Docker / K8s / 隧道 / 反向隧道 各自开独立页签
+  const panelMap: Record<string, "screen" | "docker" | "k8s" | "tunnel" | "tunnel-reverse"> = {
+    "tab-workbench": "screen",
+    "tab-docker": "docker",
+    "tab-k8s": "k8s",
+    "tab-tunnel": "tunnel",
+    "tab-tunnel-reverse": "tunnel-reverse",
+  };
+  const startPanel = panelMap[cmd];
+  if (startPanel) {
+    openTab(h, "workbench", { startPanel });
     return;
   }
   switch (cmd) {
@@ -2150,13 +2189,14 @@ function onGlobalKeydown(e: KeyboardEvent): void {
               embedded
               :host-id="tabHostIdOf(tab.name)"
             />
-            <!-- 主机工作台：分屏终端 + Docker/K8s + 隧道 -->
+            <!-- 主机工作台：分屏 / Docker / K8s / 隧道 / 反向隧道 各开独立页签 -->
             <ScHostWorkbench
               v-else-if="tabKindOf(tab.name) === 'workbench'"
               :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
               :start="tabOf(tab.name)?.startPanel ?? 'screen'"
               :host-id="tabHostIdOf(tab.name)"
               :host-name="hostNameOf(tabHostIdOf(tab.name))"
+              @open-panel="onWorkbenchOpenPanel"
             />
             <!-- 运维台四页 + 主机账号 + 软件管理：懒加载页面收进工作区页签 -->
             <component
@@ -2376,7 +2416,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
           <ReIcon name="TrendCharts" /><span>指标监控</span>
         </div>
 
-        <!-- 主机工作台：分屏终端 / Docker / 隧道 三个面板各自开页签 -->
+        <!-- 主机工作台：分屏 / Docker / K8s / 隧道 / 反向隧道 五个独立页签 -->
         <div
           class="host-ctx-item has-sub"
           :class="{ 'is-open': ctxSub === 'workbench' }"
@@ -2390,10 +2430,16 @@ function onGlobalKeydown(e: KeyboardEvent): void {
               <ReIcon name="Monitor" /><span>分屏终端</span>
             </div>
             <div class="host-ctx-item" @click="ctxCommand('tab-docker')">
-              <ReIcon name="Box" /><span>Docker · K8s</span>
+              <ReIcon name="Box" /><span>Docker</span>
+            </div>
+            <div class="host-ctx-item" @click="ctxCommand('tab-k8s')">
+              <ReIcon name="Coin" /><span>K8s</span>
             </div>
             <div class="host-ctx-item" @click="ctxCommand('tab-tunnel')">
               <ReIcon name="Connection" /><span>隧道</span>
+            </div>
+            <div class="host-ctx-item" @click="ctxCommand('tab-tunnel-reverse')">
+              <ReIcon name="RefreshLeft" /><span>反向隧道</span>
             </div>
           </div>
         </div>

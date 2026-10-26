@@ -241,14 +241,13 @@
           :edges="clusterGraph.edges"
           layout="radial"
           height="360px"
-          highlight="group"
           :minimap="clusterGraph.nodes.length > 2"
           :node-size="38"
           empty-text="未取到集群节点（检查 4lw.commands.whitelist 是否放开 mntr）"
           @node-click="onClusterNodeClick"
-          @node-hover="onClusterNodeHover"
+          @node-mouseover="onClusterNodeHover"
         >
-          <template #hover="{ node }">
+          <template #node-tooltip="{ node }">
             <div class="zk-cluster__tip-title">{{ node.label }}</div>
             <div class="zk-cluster__tip-row">角色：{{ node.data?.role || "—" }}</div>
             <div class="zk-cluster__tip-row">版本：{{ node.data?.zkVersion || "—" }}</div>
@@ -518,14 +517,16 @@ const clusterGraph = computed(() => {
 });
 
 /** 点击节点：把 mntr 原始行钉到详情面板 */
-const onClusterNodeClick = (node: { data?: ZkClusterNode & { kind?: string } }) => {
-  clusterActive.value = node?.data?.kind === "server" ? (node.data as ZkClusterNode) : null;
+const onClusterNodeClick = (detail: { id: string; data?: unknown }) => {
+  const row = (detail?.data as { data?: ZkClusterNode & { kind?: string } } | undefined)?.data;
+  clusterActive.value = row?.kind === "server" ? (row as ZkClusterNode) : null;
 };
 
 /** 鼠标经过节点：临时显示详情（离开时若没点选则清空） */
-const onClusterNodeHover = (node: { data?: ZkClusterNode & { kind?: string } } | null) => {
-  if (node?.data?.kind === "server") {
-    clusterActive.value = node.data as ZkClusterNode;
+const onClusterNodeHover = (detail: { id: string; data?: unknown } | null) => {
+  const row = (detail?.data as { data?: ZkClusterNode & { kind?: string } } | undefined)?.data;
+  if (row?.kind === "server") {
+    clusterActive.value = row as ZkClusterNode;
   }
 };
 
