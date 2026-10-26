@@ -54,11 +54,16 @@ export interface TransmissionRecord {
   statusCode: number;
   startTime: string;
   endTime: string;
+  /** 真实毫秒时间戳（ISO 串只有秒精度，时间轴用它算偏移） */
+  startEpochMs?: number;
+  endEpochMs?: number;
   durationMs: number;
   bytesOut: number;
   bytesIn: number;
   errorType: string;
   errorMessage: string;
+  /** 采集到的真实标签（含 class.name / method.name / method.duration） */
+  attributes?: Record<string, string>;
 }
 
 /** 依赖边 */
@@ -313,7 +318,7 @@ export function setAgentEnabled(enabled: boolean): Promise<{ enabled: boolean }>
   return unwrap(instance.post<{ enabled: boolean }>("/agent/enabled", null, { params: { enabled } }));
 }
 
-/** 链路树（trace → span 两级，ReTree 数据源） */
+/** 链路树（首层真实 HTTP 请求，子层真实 class.method，按 parentSpanId 嵌套） */
 export function getTracesTree(limit = 50): Promise<TraceTreeItem[]> {
   return unwrap(instance.get<TraceTreeItem[]>("/agent/traces/tree", { params: { limit } }));
 }
@@ -516,6 +521,9 @@ export interface WaterfallSpan {
   statusCode?: number;
   startTime: string;
   endTime?: string;
+  /** 真实毫秒时间戳（时间轴偏移以此为准） */
+  startEpochMs?: number;
+  endEpochMs?: number;
   durationMs: number;
   offsetMs: number;
   depth: number;
@@ -744,20 +752,54 @@ export function getConnectionPools(): Promise<ConnectionPoolStat[]> {
   return unwrap(instance.get<ConnectionPoolStat[]>("/connection-pools"));
 }
 
-// ---- 链路树节点（/agent/traces/tree 返回结构，与 ReTree 兼容）----
+// ---- 链路树节点（/agent/traces/tree 返回结构，与 ReTable 树形兼容）----
 
+/**
+ * 链路树节点。
+ *
+ * <p>后端按真实 {@code parentSpanId} 递归嵌套：首层是真实 HTTP 请求
+ * （{@code kind="http"}，{@code label} 即 {@code METHOD URL}），子层是真实方法级记录
+ * （{@code kind="method"}，{@code label} 即 {@code class.method}）。所有耗时与时间轴
+ * 比例都是实测值。</p>
+ */
 export interface TraceTreeItem {
   id: string;
+  /** 展示名：首层 `METHOD URL`，子层 `class.method` */
   label: string;
+  /** 节点类型：http = 真实请求；method = 真实方法级记录 */
+  kind?: string;
   traceId?: string;
-  spanCount?: number;
-  totalMs?: number;
   spanId?: string;
+  parentSpanId?: string;
+  className?: string;
+  methodName?: string;
   operation?: string;
+  protocol?: string;
+  software?: string;
+  source?: string;
+  target?: string;
+  /** 本节点真实耗时（ms） */
   durationMs?: number;
+  /** 相对所在 trace 起点的真实偏移（ms） */
+  offsetMs?: number;
+  /** 偏移占 trace 总耗时百分比（甘特条 left） */
+  offsetPercent?: number;
+  /** 耗时占 trace 总耗时百分比（甘特条 width） */
+  percentWidth?: number;
+  /** 所在 trace 的真实总耗时（ms） */
+  traceTotalMs?: number;
   status?: string;
+  statusCode?: number;
   startTime?: string;
+  endTime?: string;
   error?: boolean;
+  errorType?: string;
+  errorMessage?: string;
+  bytesOut?: number;
+  bytesIn?: number;
+  /** 子树节点总数（含自身） */
+  spanCount?: number;
+  selfTimeMs?: number;
   children?: TraceTreeItem[];
 }
 

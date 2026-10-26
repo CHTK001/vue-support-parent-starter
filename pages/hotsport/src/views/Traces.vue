@@ -4,11 +4,15 @@
     <div class="view-bar">
       <span class="match-hint">
         <template v-if="!loading">
-          {{ total.toLocaleString() }} 条 · 第 {{ page }} 页 · 展开行看 span 甘特
+          {{ total.toLocaleString() }} 条链路 · {{ methodNodeCount.toLocaleString() }} 个方法层节点 ·
+          第 {{ page }} 页
         </template>
         <template v-else>加载中…</template>
       </span>
       <div class="view-bar__actions">
+        <el-button round @click="toggleExpandAll">
+          {{ expandAll ? "收起全部" : "展开全部" }}
+        </el-button>
         <el-button round @click="exportCsvFull">
           <el-icon class="btn-icon"><Download /></el-icon>导出 CSV
         </el-button>
@@ -18,6 +22,14 @@
       </div>
     </div>
 
+    <!-- 数据来源说明：树层级全部来自真实记录，没有方法层数据时如实说明 -->
+    <div v-if="!loading && !total && filters.traceId" class="tree-hint">
+      最近 {{ TRACE_LIMIT }} 条链路里没有 traceId 含「{{ filters.traceId }}」的记录。
+    </div>
+    <div v-else-if="!loading && !methodNodeCount && total" class="tree-hint">
+      首层是真实 HTTP 请求；本进程暂未产生 class.method 级记录，因此暂无子层节点。
+    </div>
+
     <!-- 筛选栏：查询条件与动作分离，窄屏自然换行 -->
     <div class="filter-bar">
       <div class="filter-field trace-search-field">
@@ -25,7 +37,7 @@
         <el-input
           id="tr-trace"
           v-model="traceSearch"
-          placeholder="按 traceId 精确搜索"
+          placeholder="按 traceId 搜索"
           clearable
           @keyup.enter="applyTraceSearch"
         />
@@ -33,7 +45,7 @@
 
       <div class="filter-field">
         <label class="filter-label" for="tr-source">源端</label>
-        <el-input id="tr-source" v-model="filters.source" placeholder="如 payment" clearable />
+        <el-input id="tr-source" v-model="filters.source" placeholder="如 127.0.0.1" clearable />
       </div>
 
       <div class="filter-field">
@@ -43,7 +55,7 @@
 
       <div class="filter-field">
         <label class="filter-label" for="tr-op">操作</label>
-        <el-input id="tr-op" v-model="filters.operation" placeholder="如 /pay/callback" clearable />
+        <el-input id="tr-op" v-model="filters.operation" placeholder="如 /api/apm/stats" clearable />
       </div>
 
       <div class="filter-field">
@@ -105,8 +117,13 @@
     </div>
 
     <div class="table-panel">
+      <!--
+        可展开树表：首层 = 真实 HTTP 请求（METHOD URL），子层 = 真实 class.method。
+        层级由后端按真实 parentSpanId 嵌套，前端不做任何补造。
+      -->
       <ReTable
-        :data="tableRows as unknown as Record<string, unknown>[]"
+        :key="treeKey"
+        :data="pagedRoots as unknown as Record<string, unknown>[]"
         :columns="traceColumns"
         :loading="loading"
         engine="element"
@@ -115,49 +132,36 @@
         :settings="{ border: false }"
         :layout-table="{ minHeight: 0 }"
         :row-class-name="rowClass"
-        row-key="_key"
-        expandable
+        row-key="id"
+        :tree-props="{ children: 'children' }"
+        :default-expand-all="expandAll"
         class="apm-table trace-table"
-        empty-text="暂无传输记录：本进程还没有产生任何真实请求"
-        @row-click="openDetail"
+        empty-text="暂无调用链路：本进程还没有产生任何真实请求"
       >
-        <!-- 展开行：懒加载该 traceId 的 span，按甘特条对齐时间轴 -->
-        <template #expand="{ row }">
-          <TraceSpanBars :trace-id="traceIdOf(row)" />
-        </template>
-
-        <template #col-traceId="{ row }">
-          <div class="trace-id-cell">
-            <code class="mono trace-link" @click.stop="openWaterfall(traceIdOf(row))">
-              {{ shortId(traceIdOf(row)) }}
-            </code>
-            <el-tooltip content="复制完整 traceId" placement="top" :show-after="400">
-              <el-icon class="copy-btn" @click.stop="copyId(traceIdOf(row))">
-                <CopyDocument />
-              </el-icon>
-            </el-tooltip>
-            <el-button link type="primary" @click.stop="openWaterfall(traceIdOf(row))">
-              瀑布
-            </el-button>
+        <!-- 首层：METHOD URL cost xxx ms；子层：class.method cost xxx ms -->
+        <template #col-label="{ row }">
+          <div class="call-cell" :class="row.kind === 'http' ? 'is-root' : 'is-method'">
+            <span class="call-dot" :class="row.kind === 'http' ? 'dot-http' : 'dot-method'" aria-hidden="true" />
+            <code class="mono call-name" :title="String(row.label ?? '')">{{ displayName(row) }}</code>
+            <span class="call-cost mono" :class="durClass(row.durationMs)">
+              cost {{ fmtMs(row.durationMs) }} ms
+            </span>
           </div>
         </template>
 
-        <template #col-route="{ row }">
-          <div class="edge">
-            <span class="edge-endpoint">{{ row.source || "—" }}</span>
-            <el-icon class="edge-arrow"><Right /></el-icon>
-            <span class="edge-endpoint target">{{ row.target || "—" }}</span>
-          </div>
+        <!-- 甘特条：left/width 全部按真实 offsetPercent/percentWidth 定位 -->
+        <template #col-gantt="{ row }">
+          <span class="gantt-track" :title="ganttTitle(row)">
+            <i
+              class="gantt-bar"
+              :class="row.kind === 'http' ? 'bar-http' : 'bar-method'"
+              :style="{ left: (row.offsetPercent ?? 0) + '%', width: (row.percentWidth ?? 0) + '%' }"
+            />
+          </span>
         </template>
 
         <template #col-protocol="{ row }">
           <el-tag effect="plain" round size="small">{{ row.protocol || "—" }}</el-tag>
-        </template>
-
-        <template #col-durationMs="{ row }">
-          <span class="mono dur-val" :class="durClass(row.durationMs)">
-            {{ row.durationMs }}
-          </span>
         </template>
 
         <template #col-status="{ row }">
@@ -170,10 +174,27 @@
           <span class="muted">{{ row.startTime || "—" }}</span>
         </template>
 
-        <template #col-errorMessage="{ row }">
-          <span v-if="row.errorMessage" class="err-text" :title="row.errorMessage">
-            {{ row.errorType }}: {{ row.errorMessage }}
-          </span>
+        <template #col-traceId="{ row }">
+          <div v-if="row.kind === 'http' && row.traceId" class="trace-id-cell">
+            <el-tooltip :content="String(row.traceId)" placement="top" :show-after="400">
+              <code class="mono trace-link" @click.stop="openWaterfall(String(row.traceId))">
+                {{ shortId(String(row.traceId)) }}
+              </code>
+            </el-tooltip>
+            <el-icon class="copy-btn" @click.stop="copyId(String(row.traceId))">
+              <CopyDocument />
+            </el-icon>
+          </div>
+          <span v-else class="muted">—</span>
+        </template>
+
+        <template #col-actions="{ row }">
+          <div v-if="row.kind === 'http' && row.traceId" class="row-actions">
+            <el-button link type="primary" @click.stop="openWaterfall(String(row.traceId))">
+              瀑布
+            </el-button>
+            <el-button link type="primary" @click.stop="openDetail(row)">详情</el-button>
+          </div>
           <span v-else class="muted">—</span>
         </template>
       </ReTable>
@@ -185,18 +206,14 @@
           :total="total"
           :page-sizes="[20, 50, 100]"
           layout="total, sizes, prev, pager, next"
-          @size-change="load"
-          @current-change="load"
+          @size-change="onSizeChange"
+          @current-change="onPageChange"
         />
       </div>
     </div>
 
-    <!-- Trace 详情抽屉：点击行打开，展示整条链路全部 span -->
-    <el-drawer
-      v-model="detailVisible"
-      :title="`链路详情 · ${detailTraceId || ''}`"
-      size="640px"
-    >
+    <!-- Trace 详情抽屉：展示该链路全部真实传输记录 -->
+    <el-drawer v-model="detailVisible" :title="`链路详情 · ${detailTraceId || ''}`" size="640px">
       <div v-if="detailTraceId" class="drawer-actions">
         <el-button round type="primary" @click="openWaterfall(detailTraceId)">
           <el-icon class="btn-icon"><Right /></el-icon>查看瀑布图
@@ -208,10 +225,7 @@
       </div>
 
       <div v-loading="detailLoading" class="detail-body">
-        <el-empty
-          v-if="!detailLoading && detailSpans.length === 0"
-          description="该链路无 span 数据"
-        />
+        <el-empty v-if="!detailLoading && detailSpans.length === 0" description="该链路无 span 数据" />
         <div v-for="(span, i) in detailSpans" :key="span.spanId || i" class="span-card">
           <div class="span-head">
             <span class="span-idx">#{{ i + 1 }}</span>
@@ -242,7 +256,7 @@
 
 <script setup lang="ts">
 import { message } from "@repo/core";
-import { computed, onMounted, reactive, ref, watch } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { ROUTE_PREFIX } from "../config";
 
@@ -256,58 +270,23 @@ import {
 } from "@element-plus/icons-vue";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
-import TraceSpanBars from "../components/TraceSpanBars.vue";
-import { pageTransmissions, getTraceDetail, exportTransmissionsCsv } from "../api/apmApi";
-import type { TransmissionQuery, TransmissionRecord } from "../api/apmApi";
+import { getTracesTree, getTraceWaterfall, exportTransmissionsCsv } from "../api/apmApi";
+import type { TraceTreeItem, TransmissionQuery, WaterfallSpan } from "../api/apmApi";
 
 const router = useRouter();
 const route = useRoute();
 
-const items = ref<TransmissionRecord[]>([]);
-const total = ref(0);
+/** 一次拉取的链路条数上限：树要在前端整体成树，故一次取够再本地分页 */
+const TRACE_LIMIT = 500;
+
+const roots = ref<TraceTreeItem[]>([]);
+const loading = ref(false);
 const page = ref(1);
 const size = ref(20);
-const loading = ref(false);
 const traceSearch = ref("");
-
-/**
- * 表格行：在原记录上补一个稳定 `_key`。
- *
- * <p>展开行（el-table expand）靠 row-key 记住展开状态，而传输记录没有天然主键，
- * 同一 traceId 也可能出现多行，因此用「traceId + 序号」构造。</p>
- */
-const tableRows = computed(() =>
-  items.value.map((r, i) => ({ ...r, _key: `${r.traceId || "t"}-${i}` })),
-);
-
-const traceColumns: ReTableColumn[] = [
-  { prop: "traceId", label: "Trace ID", width: 220, slot: "traceId" },
-  { prop: "route", label: "源 → 目标", minWidth: 260, slot: "route" },
-  { prop: "protocol", label: "协议", width: 110, slot: "protocol" },
-  { prop: "durationMs", label: "耗时", width: 100, align: "right", slot: "durationMs", sortable: true },
-  { prop: "status", label: "状态", width: 90, align: "center", slot: "status" },
-  { prop: "startTime", label: "开始时间", width: 160, slot: "startTime" },
-  { prop: "errorMessage", label: "错误", minWidth: 180, slot: "errorMessage" },
-];
-
-/** 插槽 / 行事件里的 row 是宽类型（unknown）：取 traceId 前先收窄成 string */
-function traceIdOf(row: Record<string, unknown>): string {
-  return String(row.traceId ?? "");
-}
-
-/** 按 traceId 服务端搜索（后端 /transmissions 已支持 traceId 参数过滤） */
-function applyTraceSearch() {
-  filters.traceId = traceSearch.value.trim();
-  page.value = 1;
-  load();
-}
-
-/** 跳瀑布详情页 */
-function openWaterfall(traceId: string) {
-  if (!traceId) return;
-  detailVisible.value = false;
-  router.push({ path: ROUTE_PREFIX + "/traces/detail", query: { traceId } });
-}
+/** 展开状态：el-table 的 default-expand-all 只在挂载时生效，切换时靠 key 重建 */
+const expandAll = ref(false);
+const treeKey = ref(0);
 
 const filters = reactive({
   source: "",
@@ -320,12 +299,108 @@ const filters = reactive({
   range: null as [Date, Date] | null,
 });
 
-/** 组装查询条件：load 与 CSV 导出共用，避免两处筛选逻辑漂移 */
-function buildQuery(): TransmissionQuery {
-  const q: TransmissionQuery = {
-    page: page.value,
-    size: size.value,
-  };
+const traceColumns: ReTableColumn[] = [
+  { prop: "label", label: "调用（METHOD URL / class.method）", minWidth: 330, slot: "label" },
+  { prop: "gantt", label: "时间轴", minWidth: 180, slot: "gantt" },
+  { prop: "protocol", label: "协议", width: 96, slot: "protocol" },
+  { prop: "status", label: "状态", width: 80, align: "center", slot: "status" },
+  { prop: "startTime", label: "开始时间", width: 160, slot: "startTime" },
+  { prop: "traceId", label: "Trace ID", minWidth: 190, slot: "traceId" },
+  { prop: "actions", label: "操作", width: 112, align: "center", slot: "actions" },
+];
+
+/** 遍历整棵树，统计子层（方法级）节点数 */
+function countMethodNodes(nodes: TraceTreeItem[]): number {
+  let n = 0;
+  for (const node of nodes) {
+    if (node.kind === "method") n += 1;
+    if (node.children?.length) n += countMethodNodes(node.children);
+  }
+  return n;
+}
+
+const methodNodeCount = computed(() => countMethodNodes(roots.value));
+
+/** 客户端筛选：全部条件都作用在首层（链路）节点上，子层随父节点一起展示 */
+const filteredRoots = computed<TraceTreeItem[]>(() => {
+  const lower = (v: string) => v.trim().toLowerCase();
+  const tid = lower(filters.traceId);
+  const src = lower(filters.source);
+  const proto = lower(filters.protocol);
+  const op = lower(filters.operation);
+  const min = filters.durationMin;
+  const max = filters.durationMax;
+  const range = filters.range;
+  const t0 = range && range.length === 2 ? new Date(range[0]).getTime() : null;
+  const t1 = range && range.length === 2 ? new Date(range[1]).getTime() : null;
+
+  return roots.value.filter((row) => {
+    if (tid && !String(row.traceId ?? "").toLowerCase().includes(tid)) return false;
+    if (src && !String(row.source ?? "").toLowerCase().includes(src)) return false;
+    if (proto && !String(row.protocol ?? "").toLowerCase().includes(proto)) return false;
+    if (op && !String(row.operation ?? row.label ?? "").toLowerCase().includes(op)) return false;
+    if (min != null && Number(row.durationMs ?? 0) < min) return false;
+    if (max != null && Number(row.durationMs ?? 0) > max) return false;
+    if (filters.errorOnly && !row.error) return false;
+    if (t0 != null && t1 != null) {
+      const ts = row.startTime ? new Date(row.startTime).getTime() : 0;
+      if (!(ts >= t0 && ts <= t1)) return false;
+    }
+    return true;
+  });
+});
+
+const total = computed(() => filteredRoots.value.length);
+
+const pagedRoots = computed<TraceTreeItem[]>(() => {
+  const start = (page.value - 1) * size.value;
+  return filteredRoots.value.slice(start, start + size.value);
+});
+
+/** 按 traceId 搜索（本地过滤，无需再打接口） */
+function applyTraceSearch() {
+  filters.traceId = traceSearch.value.trim();
+  page.value = 1;
+}
+
+function onPageChange() {
+  // 换页时保持展开状态不变
+}
+
+function onSizeChange() {
+  page.value = 1;
+}
+
+function toggleExpandAll() {
+  expandAll.value = !expandAll.value;
+  treeKey.value += 1;
+}
+
+/** 跳瀑布详情页 */
+function openWaterfall(traceId: string) {
+  if (!traceId) return;
+  detailVisible.value = false;
+  router.push({ path: ROUTE_PREFIX + "/traces/detail", query: { traceId } });
+}
+
+async function load() {
+  loading.value = true;
+  try {
+    roots.value = (await getTracesTree(TRACE_LIMIT)) || [];
+    // 首层变少时把页码收回到有效范围
+    const maxPage = Math.max(1, Math.ceil(filteredRoots.value.length / size.value));
+    if (page.value > maxPage) page.value = maxPage;
+  } catch {
+    message.error("加载调用链路失败");
+    roots.value = [];
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function exportCsvFull() {
+  // 导出仍走传输记录接口：一条记录一行，保留全部筛选条件
+  const q: TransmissionQuery = {};
   if (filters.source) q.source = filters.source;
   if (filters.protocol) q.protocol = filters.protocol;
   if (filters.errorOnly) q.errorOnly = true;
@@ -337,27 +412,6 @@ function buildQuery(): TransmissionQuery {
     q.startTime = new Date(filters.range[0]).getTime();
     q.endTime = new Date(filters.range[1]).getTime();
   }
-  return q;
-}
-
-async function load() {
-  loading.value = true;
-  try {
-    const res = await pageTransmissions(buildQuery());
-    items.value = res.items;
-    total.value = res.total;
-  } catch {
-    message.error("加载调用链路失败");
-  } finally {
-    loading.value = false;
-  }
-}
-
-async function exportCsvFull() {
-  // 导出不带分页，只带筛选条件
-  const q: TransmissionQuery = { ...buildQuery() };
-  delete q.page;
-  delete q.size;
   exportTransmissionsCsv(q);
 }
 
@@ -373,7 +427,6 @@ function resetFilters() {
   filters.durationMax = null;
   filters.range = null;
   page.value = 1;
-  load();
 }
 
 /* ---- 筛选收藏 ---- */
@@ -383,7 +436,9 @@ const savedFilterNames = computed<string[]>(() => {
     const raw = localStorage.getItem(`apm-saved-filters-traces`);
     if (!raw) return [];
     return (JSON.parse(raw) as { name: string }[]).map((f) => f.name);
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 });
 
 /** 保存当前筛选条件到 localStorage */
@@ -392,14 +447,22 @@ function saveCurrentFilter() {
   if (!name?.trim()) return;
   try {
     const raw = localStorage.getItem(`apm-saved-filters-traces`);
-    const list: { name: string; source: string; protocol: string; operation: string; errorOnly: boolean }[] = raw ? JSON.parse(raw) : [];
-    // 覆盖同名，追加新名
+    const list: { name: string; source: string; protocol: string; operation: string; errorOnly: boolean }[] =
+      raw ? JSON.parse(raw) : [];
     const idx = list.findIndex((f) => f.name === name.trim());
-    const entry = { name: name.trim(), source: filters.source, protocol: filters.protocol, operation: filters.operation, errorOnly: filters.errorOnly };
+    const entry = {
+      name: name.trim(),
+      source: filters.source,
+      protocol: filters.protocol,
+      operation: filters.operation,
+      errorOnly: filters.errorOnly,
+    };
     if (idx >= 0) list[idx] = entry;
     else list.push(entry);
     localStorage.setItem(`apm-saved-filters-traces`, JSON.stringify(list));
-  } catch { /* 忽略 */ }
+  } catch {
+    /* 忽略 */
+  }
 }
 
 /** 恢复已保存的筛选 */
@@ -407,7 +470,13 @@ function applySavedFilter(name: string) {
   try {
     const raw = localStorage.getItem(`apm-saved-filters-traces`);
     if (!raw) return;
-    const list = JSON.parse(raw) as { name: string; source: string; protocol: string; operation: string; errorOnly: boolean }[];
+    const list = JSON.parse(raw) as {
+      name: string;
+      source: string;
+      protocol: string;
+      operation: string;
+      errorOnly: boolean;
+    }[];
     const saved = list.find((f) => f.name === name);
     if (!saved) return;
     filters.source = saved.source ?? "";
@@ -415,12 +484,40 @@ function applySavedFilter(name: string) {
     filters.operation = saved.operation ?? "";
     filters.errorOnly = saved.errorOnly ?? false;
     page.value = 1;
-    load();
-  } catch { /* 忽略 */ }
+  } catch {
+    /* 忽略 */
+  }
 }
 
 function shortId(id: string) {
-  return id ? id.slice(0, 12) : "—";
+  if (!id) return "—";
+  // traceId 形如 trace-http-<hex>，前段全部相同，只截头会让每行看起来一样
+  if (id.length <= 24) return id;
+  return `${id.slice(0, 10)}…${id.slice(-10)}`;
+}
+
+/**
+ * 调用列展示名。
+ *
+ * <p>首层就是真实请求行（{@code METHOD URL}）；子层用真实 {@code class.method}，
+ * 类名取简名以免整列被包名挤掉方法名，完整全限定名放在 title 里。</p>
+ */
+function displayName(row: Record<string, unknown>): string {
+  const label = String(row.label ?? "");
+  if (row.kind === "method" && row.className) {
+    const full = String(row.className);
+    const simple = full.slice(full.lastIndexOf(".") + 1);
+    const method = String(row.methodName ?? "");
+    return method ? `${simple}.${method}` : simple;
+  }
+  return label;
+}
+
+/** 耗时展示：<10ms 保留一位小数，其余取整 */
+function fmtMs(ms: number | undefined): string {
+  const v = Number(ms ?? 0);
+  if (!Number.isFinite(v)) return "0";
+  return v < 10 ? v.toFixed(1) : String(Math.round(v));
 }
 
 /** 耗时四档：正常 / 偏慢 / 慢 / 严重（阈值按 APM 常用口径） */
@@ -430,6 +527,14 @@ function durClass(ms: number | undefined): string {
   if (v >= 1000) return "slow";
   if (v >= 300) return "mid";
   return "fast";
+}
+
+/** 甘特条悬浮说明：真实偏移与耗时 */
+function ganttTitle(row: Record<string, unknown>): string {
+  const offset = Number(row.offsetMs ?? 0);
+  const duration = Number(row.durationMs ?? 0);
+  const totalMs = Number(row.traceTotalMs ?? 0);
+  return `偏移 ${offset} ms · 耗时 ${duration} ms · 链路总计 ${totalMs} ms`;
 }
 
 async function copyId(id: string) {
@@ -442,8 +547,8 @@ async function copyId(id: string) {
   }
 }
 
-function rowClass({ row }: { row: TransmissionRecord }) {
-  return row.errorMessage ? "row-error" : "row-clickable";
+function rowClass({ row }: { row: Record<string, unknown> }) {
+  return row.error ? "row-error" : "";
 }
 
 // ---- Trace 详情抽屉 ----
@@ -451,33 +556,25 @@ function rowClass({ row }: { row: TransmissionRecord }) {
 const detailVisible = ref(false);
 const detailLoading = ref(false);
 const detailTraceId = ref("");
-const detailSpans = ref<TransmissionRecord[]>([]);
+const detailSpans = ref<WaterfallSpan[]>([]);
 
 async function openDetail(row: Record<string, unknown>) {
-  const traceId = traceIdOf(row);
+  const traceId = String(row.traceId ?? "");
   if (!traceId) return;
   detailTraceId.value = traceId;
   detailVisible.value = true;
   detailLoading.value = true;
   detailSpans.value = [];
   try {
-    detailSpans.value = (await getTraceDetail(traceId)) || [];
+    // 用瀑布接口：与树/瀑布页同一份数据，含真实方法层 span
+    const wf = await getTraceWaterfall(traceId);
+    detailSpans.value = wf?.spans ?? [];
   } catch {
     message.error("加载链路详情失败");
   } finally {
     detailLoading.value = false;
   }
 }
-
-// 只有"会改变结果集"的条件才自动重查；traceId/耗时/时间由「查询」按钮显式提交，
-// 否则每敲一个字符都会打一次接口。
-watch(
-  () => [filters.source, filters.protocol, filters.errorOnly],
-  () => {
-    page.value = 1;
-    load();
-  },
-);
 
 onMounted(() => {
   // 从全局搜索进入：/traces?traceId=xxx 自动应用
@@ -497,6 +594,17 @@ onMounted(() => {
 .btn-icon {
   margin-right: 4px;
   vertical-align: -2px;
+}
+
+/* 数据来源提示：只在确实没有子层数据时出现 */
+.tree-hint {
+  padding: 8px 12px;
+  border-radius: var(--radius-md, var(--apm-radius-md));
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
+  background: color-mix(in srgb, var(--status-warning, #d97706) 10%, transparent);
+  color: var(--text-secondary, var(--apm-fg-regular));
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 /* 筛选字段宽度：Trace ID 更长，时间范围独占一档，其余等宽 */
@@ -524,11 +632,110 @@ onMounted(() => {
   color: var(--text-tertiary, var(--apm-muted));
 }
 
-/* ---- 表格单元 ---- */
+/* ---- 调用树单元格 ---- */
+.call-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.call-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot-http {
+  background: var(--brand-500, var(--apm-accent));
+}
+
+.dot-method {
+  background: color-mix(in srgb, var(--brand-500, #2563eb) 45%, transparent);
+}
+
+.call-name {
+  font-family: var(--apm-font-mono);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.call-cell.is-root .call-name {
+  font-weight: 600;
+  color: var(--text-primary, var(--apm-fg));
+}
+
+.call-cell.is-method .call-name {
+  color: var(--text-secondary, var(--apm-fg-regular));
+}
+
+.call-cost {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+.call-cost.fast {
+  color: var(--status-success, var(--apm-success));
+}
+.call-cost.mid {
+  color: var(--text-secondary, var(--apm-fg-regular));
+}
+.call-cost.slow {
+  color: var(--status-warning, var(--apm-warning));
+}
+.call-cost.crit {
+  color: var(--status-error, var(--apm-danger));
+  font-weight: 600;
+}
+
+/* ---- 甘特条 ---- */
+.gantt-track {
+  position: relative;
+  display: block;
+  height: 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-primary, #0f172a) 8%, transparent);
+}
+
+.gantt-bar {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  min-width: 3px;
+  border-radius: 999px;
+}
+
+.bar-http {
+  background: var(--brand-500, var(--apm-accent));
+}
+
+.bar-method {
+  background: color-mix(in srgb, var(--brand-500, #2563eb) 55%, transparent);
+}
+
+/* ---- Trace ID 单元格 ---- */
 .trace-id-cell {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+}
+
+.trace-id-cell .trace-link {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
 }
 
 /* <code> 承载点击跳转：可点元素必须有手型光标与键盘焦点环 */
@@ -563,56 +770,9 @@ onMounted(() => {
   color: var(--brand-500, var(--apm-accent));
 }
 
-.edge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.edge-endpoint {
-  font-family: var(--apm-font-mono);
-  font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 150px;
-}
-
-.edge-endpoint.target {
-  color: var(--brand-500, var(--apm-accent));
-}
-
-.edge-arrow {
-  color: var(--text-tertiary, var(--apm-muted));
-  flex-shrink: 0;
-}
-
-/* 耗时四档着色：扫一眼就能定位慢请求 */
-.dur-val {
-  font-variant-numeric: tabular-nums;
-}
-.dur-val.fast {
-  color: var(--status-success, var(--apm-success));
-}
-.dur-val.mid {
-  color: var(--text-secondary, var(--apm-fg-regular));
-}
-.dur-val.slow {
-  color: var(--status-warning, var(--apm-warning));
-}
-.dur-val.crit {
-  color: var(--status-error, var(--apm-danger));
-  font-weight: 600;
-}
-
-.trace-table :deep(.row-clickable) {
-  cursor: pointer;
-}
-
-/* 错误行：淡红底承载语义，行本身仍可点 */
+/* 错误行：淡红底承载语义 */
 .trace-table :deep(.row-error) {
-  cursor: pointer;
-  background: var(--apm-danger-bg);
+  background: color-mix(in srgb, var(--status-error, #dc2626) 10%, transparent);
 }
 
 /* ---- 详情抽屉 ---- */

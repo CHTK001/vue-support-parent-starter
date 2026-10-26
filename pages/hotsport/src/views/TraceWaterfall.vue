@@ -251,6 +251,7 @@ import {
   axisTextColor,
   chartCanvas,
   chartColor,
+  colorWithAlpha,
   dangerColor,
   mutedColor,
   neutralColor,
@@ -329,9 +330,17 @@ function fullSpanName(s: WaterfallSpan): string {
   return s.className ? `${s.className}.${s.methodName ?? s.operation}` : s.operation ?? "unknown";
 }
 
+/**
+ * 展示名：方法层用 {@code SimpleClass.method}（全限定名会把方法名挤出可视区），
+ * 首层 HTTP 直接用真实请求行。完整名放在 tooltip 里。
+ */
 function spanName(s: WaterfallSpan): string {
-  const name = fullSpanName(s);
-  return name.length > 20 ? name.slice(0, 20) + "…" : name;
+  const full = fullSpanName(s);
+  if (s.className) {
+    const simple = s.className.slice(s.className.lastIndexOf(".") + 1);
+    return s.methodName ? `${simple}.${s.methodName}` : simple;
+  }
+  return full.length > 20 ? full.slice(0, 20) + "…" : full;
 }
 
 /** 毫秒：整数不带小数点，非整数保留 1 位，避免 12.0 ms 这种噪音 */
@@ -486,7 +495,7 @@ function selfPercent(s: WaterfallSpan): number {
   return Math.min(100, Math.max(0, (selfTimeMs(s) / dur) * 100));
 }
 
-/** spanKind → 令牌色：服务端蓝 / 客户端琥珀 / 生产靛蓝 / 消费翡翠 / 内部灰 */
+/** spanKind → 令牌色：服务端蓝 / 客户端琥珀 / 生产靛蓝 / 消费翡翠 / 内部同源浅蓝 */
 function spanKindColor(kind: string | undefined): string {
   switch ((kind || "").toUpperCase()) {
     case "SERVER":
@@ -498,7 +507,8 @@ function spanKindColor(kind: string | undefined): string {
     case "CONSUMER":
       return okColor();
     case "INTERNAL":
-      return mutedColor();
+      // 方法层与服务端同源：同一品牌色降一档透明度，层级靠明度区分而非换色
+      return colorWithAlpha(chartColor(0), 0.55);
     default:
       return neutralColor();
   }
@@ -558,7 +568,8 @@ const waterfallOption = computed<EChartsOption>(() => {
       min: 0,
       max: totalMs,
       name: "时间 (ms)",
-      nameTextStyle: { color: axisTextColor(), fontSize: 11 },
+      nameLocation: "start",
+      nameTextStyle: { color: axisTextColor(), fontSize: 11, align: "left" },
       axisLabel: { color: axisTextColor(), fontSize: 11 },
       splitLine: { lineStyle: { color: splitLineColor() } },
       axisLine: { show: false },
@@ -600,21 +611,41 @@ const waterfallOption = computed<EChartsOption>(() => {
 
           const [x0, y0] = api.coord([start, yIndex]);
           const [w, h] = api.size([dur, 1]);
+          const [trackX] = api.coord([0, yIndex]);
+          const [trackW] = api.size([totalMs, 1]);
+          // 细条甘特：条形高度固定在一个细档位，行内留白，视觉上是一根时间条而非色块
+          const barH = Math.max(10, Math.min(22, Math.round(h * 0.5)));
 
           return {
-            type: "rect",
-            shape: {
-              x: x0,
-              y: y0 - h / 2,
-              width: Math.max(w, 2),
-              height: h,
-              r: [2, 2, 2, 2],
-            },
-            style: api.style({
-              fill: spanKindColor(sp?.spanKind),
-              stroke: error ? dangerColor() : "transparent",
-              lineWidth: error ? 2 : 0,
-            }),
+            type: "group",
+            children: [
+              {
+                type: "rect",
+                shape: {
+                  x: trackX,
+                  y: y0 - barH / 2,
+                  width: trackW,
+                  height: barH,
+                  r: barH / 2,
+                },
+                style: { fill: splitLineColor() },
+              },
+              {
+                type: "rect",
+                shape: {
+                  x: x0,
+                  y: y0 - barH / 2,
+                  width: Math.max(w, 3),
+                  height: barH,
+                  r: barH / 2,
+                },
+                style: api.style({
+                  fill: spanKindColor(sp?.spanKind),
+                  stroke: error ? dangerColor() : "transparent",
+                  lineWidth: error ? 2 : 0,
+                }),
+              },
+            ],
           };
         },
       },

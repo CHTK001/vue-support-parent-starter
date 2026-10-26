@@ -59,7 +59,9 @@
         :data="filteredItems as unknown as Record<string, unknown>[]"
         :columns="tableColumns"
         :loading="loading"
+        engine="element"
         :layout-table="{ minHeight: 300 }"
+        :settings="{ border: false }"
         empty-text="没有符合关键词的错误"
         :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
       >
@@ -93,7 +95,9 @@
         :data="slowCalls as unknown as Record<string, unknown>[]"
         :columns="slowColumns"
         :loading="loading"
+        engine="element"
         :layout-table="{ minHeight: 160 }"
+        :settings="{ border: false }"
         empty-text="暂无慢调用"
         :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
       >

@@ -32,9 +32,9 @@
           <ReTable
             :data="topology.ports as unknown as Record<string, unknown>[]"
             :columns="portColumns"
+            engine="element"
             :layout-table="{ minHeight: 0 }"
-            border
-
+            :settings="{ border: false }"
             :loading="loading"
             :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
           />
@@ -45,9 +45,9 @@
           <ReTable
             :data="topology.connections as unknown as Record<string, unknown>[]"
             :columns="connColumns"
+            engine="element"
             :layout-table="{ minHeight: 0 }"
-            border
-
+            :settings="{ border: false }"
             :loading="loading"
             :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
           />

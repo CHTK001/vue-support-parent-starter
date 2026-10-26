@@ -53,7 +53,9 @@
             :data="filteredItems as unknown as Record<string, unknown>[]"
             :columns="tableColumns"
             :loading="loading"
+            engine="element"
             :layout-table="{ minHeight: 260 }"
+            :settings="{ border: false }"
             :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
           >
             <template #col-ts="{ row }">

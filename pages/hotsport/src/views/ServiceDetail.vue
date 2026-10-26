@@ -130,7 +130,9 @@
               :data="endpoints as unknown as Record<string, unknown>[]"
               :columns="tableColumns"
               :loading="endpointLoading"
+              engine="element"
               :layout-table="{ minHeight: 200 }"
+              :settings="{ border: false }"
               empty-text="该服务暂无端点数据"
               :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
             >
@@ -190,7 +192,9 @@
               :data="serviceDepRows as unknown as Record<string, unknown>[]"
               :columns="depColumns"
               :loading="depsLoading"
+              engine="element"
               :layout-table="{ minHeight: 160 }"
+              :settings="{ border: false }"
               empty-text="未匹配到该服务的依赖边"
               :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
             >
@@ -249,7 +253,9 @@
               :data="errorEndpoints as unknown as Record<string, unknown>[]"
               :columns="errorColumns"
               :loading="endpointLoading"
+              engine="element"
               :layout-table="{ minHeight: 140 }"
+              :settings="{ border: false }"
               empty-text="该服务当前无错误记录"
               :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
             >
