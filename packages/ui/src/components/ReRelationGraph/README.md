@@ -237,6 +237,7 @@ groupColorOf("蜀汉"); // → 稳定的 6 位 hex（同组同色、跨渲染不
 | 小地图 | `minimap` | 关 | 右下角缩略图，点击可定位 |
 | 分组折叠 | `combo` / `collapsedGroups` | 关 / `[]` | 每个 group 画成 combo，单击折叠 / 展开；`collapsedGroups` 指定**初始就折叠**的分组 |
 | 右键菜单 | `rightClickSelect` + `#context-menu` | 开 | 右键回传命中元素 + 选中集合；给了插槽就在光标处浮出业务菜单 |
+| 连线建边 | `startConnect(from)` | — | 见下方「连线模式」：左键点另一个节点即建边并抛 `edge-created` |
 | 撤销 / 重做 | `history` / `historyLimit` | 开 / 50 | 所有命令式增删改都压一份快照，`undo()` / `redo()` 或 Ctrl+Z / Ctrl+Shift+Z |
 | 键盘快捷键 | `keyboard` / `shortcuts` | 开 / 内置 6 条 | 容器聚焦时生效，见下表；输入框内一律不拦 |
 
@@ -245,6 +246,30 @@ groupColorOf("蜀汉"); // → 稳定的 6 位 hex（同组同色、跨渲染不
 > `brush-select` / `click-select` 的 `trigger: []` 依赖内部 Shortcut 按键记录，真实鼠标下时灵时不灵。
 > 自研实现每次整图重设状态、只碰「悬停 / 选中」两个维度；最短路径走的是可见性而不是状态，
 > 与它们互不干扰。
+
+### 连线模式（橡皮筋建边）
+
+组件**不提供「拖拽手柄」**，连线由业务侧发起：右键菜单里放一个「创建关系」按钮，
+点了调 `startConnect(menu.id)`，之后就由用户左键点另一个节点完成建边。
+
+| 阶段 | 行为 |
+| --- | --- |
+| 进入 | `startConnect(from)` → `connecting = true`、`connectFrom = from`，抛 `connect-change`；画布上出现虚线橡皮筋（`.rrg__rubber`，`pointer-events: none`，不挡命中） |
+| 跟随 | 橡皮筋起点固定在源节点中心，终点跟光标实时更新（滚动 / 缩放后自动按新视口重算） |
+| 完成 | **左键点另一个节点** → 建边、退出连线、抛 `edge-created`；点到源节点自己或空白不算 |
+| 取消 | 右键 / `Esc` / 点空白 / 再调一次 `cancelConnect()`，都只退出不建边 |
+| 互斥 | 连线期间临时摘掉 `drag-element`（`setBehaviors(["zoom-canvas","drag-canvas"])`），避免按下即拖动；退出后按 `buildBehaviors()` 原样恢复。与最短路径拾取互斥（进一个自动退另一个），点选 / 框选 / 悬停 / 右键菜单在连线期间一律让位 |
+
+```ts
+// 业务侧典型写法：右键菜单
+const onMenu = (menu) => {
+  if (menu.targetType === "node") graph.startConnect(menu.id);
+};
+```
+
+> 重复的边不会建：边 id 缺省是 `"source-target"`，`addEdges` 按 id 去重，
+> 所以点到一个**已经同向连过**的目标只会静默退出连线，不抛 `edge-created`；
+> 反方向（A→B 已存在时再连 B→A）算另一条边，允许建。
 
 ## 八、对外方法（实例 expose）
 
@@ -313,6 +338,19 @@ g.removeNode("客串");            // 连带删除相连的边
 g.removeNodes(["a", "b"]);
 g.clear();
 
+// 边 CRUD（id 缺省 "source-target"）
+g.addEdge({ id: "刘备-魏延", source: "刘备", target: "魏延", label: "结义" });
+g.addEdges([...]);                // 同向重复（source/target 与已有边完全一致）会被跳过，不重复建
+g.updateEdge("刘备-魏延", { label: "改标签" });
+g.removeEdge("刘备-魏延");        // 只删这条边，不动两端节点
+g.removeEdges(["a-b", "c-d"]);
+
+// 连线模式（橡皮筋拖拽建边）：先 startConnect，再由用户左键点目标节点
+g.startConnect("刘备");           // 进入连线；右键菜单里「创建关系」就是调它
+g.cancelConnect();                // 退出连线（右键 / Esc / 点空白内部已自动调）
+g.connecting;                     // 是否正在连线（boolean）
+g.connectFrom;                    // 连线起点 id（未连线时为 ""）
+
 // 撤销 / 重做（所有上面的增删改都记历史，包括 setNodes / setData / clear）
 g.undo();                        // → true / false（没得撤时为 false）
 g.redo();
@@ -363,7 +401,7 @@ g.shortcuts;                     // 当前生效的快捷键表（内置 + props
 | `redo-alt` | `Ctrl/⌘ + Y` | 重做的另一个写法（Windows 习惯） |
 | `select-all` | `Ctrl/⌘ + A` | 全选节点 + 边 |
 | `delete` | `Delete` / `Backspace` | 删除选中（节点连带其边，一条历史） |
-| `clear-selection` | `Esc` | 清空选择 + 关掉右键浮层 |
+| `clear-selection` | `Esc` | 清空选择 + 关掉右键浮层；正在连线时先只退出连线 |
 
 ```ts
 // 改键：只覆盖想改的那几条，其余保持内置
@@ -395,6 +433,14 @@ g.shortcuts;                     // 当前生效的快捷键表（内置 + props
 | `contextmenu` | `{ targetType, id, source?, target?, group?, data, selection, client, page, canvas, native }`（右键节点的完整回参见下） |
 | `context-menu-close` | 无载荷（点空白 / Esc / 插槽里调 `close()` 都会发） |
 | `nodes-change` / `edges-change` | 变更后的完整数组 |
+| `node-created` | `{ node }`（命令式 `addNode` / `addNodes` 新建的节点，每个一条） |
+| `edge-created` | `{ edge }`（命令式 `addEdge` / `addEdges` **以及连线模式建边**产生的边；被去重跳过的不会发） |
+| `node-deleted` | `{ id, node }`（`removeNode(s)` / `deleteSelection` 删掉的节点；连带删的边先各自发 `edge-deleted`） |
+| `edge-deleted` | `{ id, edge }`（`removeEdge(s)` / `deleteSelection` / 删节点连带删边） |
+| `connect-change` | `{ active, from }`（进入连线 `active: true`；退出 / 完成 / 取消都是 `active: false, from: ""`） |
+
+> `setNodes` / `setEdges` / `setData` / `clear` 属于**整体换数据**，只发 `nodes-change` / `edges-change`，
+> 不逐条发上面四个增删事件（否则一次换源会喷出成百上千条「删除」）。
 | `history-change` | `{ canUndo, canRedo, undoCount, redoCount, lastAction }`（每次压栈 / 撤销 / 重做 / 清空都会发） |
 | `shortcut` | `{ action, combo, native }`（命中并执行了一条内置快捷键） |
 | `update:layout` / `update:layoutOptions` / `update:groupType` / `update:groupVisible` / `update:groupOptions` / `update:clickSelect` / `update:brushSelect` / `update:highlight` / `update:minimap` / `update:tooltip` / `update:nodeTooltip` / `update:edgeTooltip` / `update:combo` | 新值（`v-model:xxx` 用） |

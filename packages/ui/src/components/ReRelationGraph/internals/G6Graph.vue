@@ -484,6 +484,17 @@ const emit = defineEmits<{
   (e: "history-change", detail: HistoryState): void;
   /** 命中并执行了一条内置快捷键（业务可据此做埋点或额外联动） */
   (e: "shortcut", detail: { action: string; combo: string; native: KeyboardEvent }): void;
+  /* ---------------- 增删回调：业务侧监听即可同步自己的数据源 ---------------- */
+  /** 新增了节点（含命令式 addNode / addNodes） */
+  (e: "node-created", detail: { node: RelationNode }): void;
+  /** 新增了边（拖拽连线 / 命令式 addEdge 都会抛） */
+  (e: "edge-created", detail: { edge: RelationEdge }): void;
+  /** 删除了节点（因删节点而连带删掉的边，会另外单独抛 edge-deleted） */
+  (e: "node-deleted", detail: { id: string; node: RelationNode }): void;
+  /** 删除了边 */
+  (e: "edge-deleted", detail: { id: string; edge: RelationEdge }): void;
+  /** 连线模式状态变化（进入 / 建成一条 / 取消） */
+  (e: "connect-change", detail: { active: boolean; from: string }): void;
 }>();
 
 /** 绑定 G6 事件 → Vue emit（在 graph 创建后调用一次） */
@@ -565,6 +576,12 @@ const bindEvents = (g: Graph, isAlive: () => boolean) => {
   g.on("node:click", (ev) => {
     if (consumeBrushClick()) return;
     const id = targetIdOf(ev);
+    // 连线模式：左键点另一个节点 = 把关系落到它身上（点自己则取消）
+    if (connectFromState.value) {
+      if (!id) return;
+      finishConnect(id);
+      return;
+    }
     // 最短路径模式（拾取中 / 已在看结果）：左键只用来点起点 / 终点，点选让位。
     // 看结果时再点一个节点 = 开始新一轮（见 pickPathEndpoint）。
     if (pathPickState.value || pathModeState.value) {
@@ -605,6 +622,11 @@ const bindEvents = (g: Graph, isAlive: () => boolean) => {
   });
   g.on("canvas:click", () => {
     if (consumeBrushClick()) return;
+    // 连线模式下点空白 = 取消拉线
+    if (connectFromState.value) {
+      cancelConnect();
+      return;
+    }
     // 最短路径模式期间点空白不清选中（此时本来就没有选中集合）
     if (pathPickState.value || pathModeState.value) return;
     if (clickSelectState.value || brushSelectState.value) clearSelection();
@@ -622,6 +644,12 @@ const bindEvents = (g: Graph, isAlive: () => boolean) => {
   // 开启期间右键只服务最短路径，避免两套手势互相打架。
   // （pathBusy 是模块级的：框选的 pointerdown 也要用它让位）
   g.on("node:contextmenu", (ev) => {
+    // 连线模式：右键 = 取消拉线（不再弹业务菜单）
+    if (connectFromState.value) {
+      ((ev as { native?: MouseEvent }).native)?.preventDefault?.();
+      cancelConnect();
+      return;
+    }
     if (pathBusy()) {
       cancelPathPick(ev);
       return;
@@ -629,6 +657,11 @@ const bindEvents = (g: Graph, isAlive: () => boolean) => {
     handleContextMenu(ev, "node");
   });
   g.on("edge:contextmenu", (ev) => {
+    if (connectFromState.value) {
+      ((ev as { native?: MouseEvent }).native)?.preventDefault?.();
+      cancelConnect();
+      return;
+    }
     if (pathBusy()) {
       cancelPathPick(ev);
       return;
@@ -643,6 +676,11 @@ const bindEvents = (g: Graph, isAlive: () => boolean) => {
     handleContextMenu(ev, "combo");
   });
   g.on("canvas:contextmenu", (ev) => {
+    if (connectFromState.value) {
+      ((ev as { native?: MouseEvent }).native)?.preventDefault?.();
+      cancelConnect();
+      return;
+    }
     if (pathBusy()) {
       cancelPathPick(ev);
       return;
@@ -651,6 +689,14 @@ const bindEvents = (g: Graph, isAlive: () => boolean) => {
   });
   // 右键同时按下左键拖拽开始 / 关掉菜单时，都把浮层收掉
   g.on("pointerdown", () => closeContextMenu());
+  // 连线模式：橡皮筋线跟着光标走（pointermove 在画布任意位置都要跟）
+  g.on("pointermove", (ev) => {
+    if (!connectFromState.value) return;
+    const p = (ev as { canvas?: unknown }).canvas;
+    if (!p) return;
+    rubberPointer = pointOf(p);
+    drawRubber();
+  });
 };
 
 /** 分组布局可调参数 */
@@ -1763,11 +1809,37 @@ const pathPickState = ref(false);
  */
 const pathBusy = (): boolean => pathPickState.value || pathModeState.value;
 
+/**
+ * 上一轮由 {@link paintPathPicks} 画过橙框的端点。
+ *
+ * <p>元素状态是「往 G6 里写」而不是「替换整张表」，所以每次重画都必须先把
+ * 上一次画的那批 highlight 摘掉，否则端点会一轮一轮积累下来：
+ * 换起点后旧起点还亮着，退出模式后也还亮着（用户看到的就是「橙框残留」）。</p>
+ */
+let paintedPathPicks: string[] = [];
+
+/** 摘掉 {@link paintPathPicks} 画过的橙框（不动其它 highlight 来源） */
+const clearPathPicks = () => {
+  if (!graph || !graphAlive || !paintedPathPicks.length) {
+    paintedPathPicks = [];
+    return;
+  }
+  const states: Record<string, string[]> = {};
+  for (const id of paintedPathPicks) {
+    // 只去掉我们自己加的那个 highlight；业务方另外打的 highlight 保留
+    states[id] = statesWithoutHover(id).filter((s) => s !== "highlight");
+  }
+  paintedPathPicks = [];
+  setElementStates(states);
+};
+
 /** 路径选择模式下已点中的端点高亮（不改选中集合，只做视觉提示） */
 const paintPathPicks = () => {
   if (!graph || !graphAlive) return;
+  clearPathPicks();
   const ids = [pathFromState.value, pathToState.value].filter(Boolean);
   if (!ids.length) return;
+  paintedPathPicks = ids.map(String);
   highlightElements(ids);
 };
 
@@ -1783,6 +1855,8 @@ const pickPathEndpoint = (id: string) => {
   // 上一轮已经算完（路径模式生效）→ 这一下当作新的一轮起点
   if (pathModeState.value) {
     clearPath();
+    // 上一轮的端点橙框要跟着一起清：新一轮的起点马上会重新画
+    clearPathPicks();
   }
   if (!pathFromState.value || pathToState.value) {
     pathFromState.value = key;
@@ -1802,6 +1876,9 @@ const pickPathEndpoint = (id: string) => {
   const result = shortestPath(pathFromState.value, key);
   // 两端都点齐 → 自动出结果，选择模式收工（结果由路径模式负责展示）
   if (result.found) {
+    // 端点橙框是「挑选过程中」的提示，出结果后要让位给路径本身，
+    // 否则会和路径高亮叠在一起、退出模式后还挂在上面
+    clearPathPicks();
     pathPickState.value = false;
     emit("update:pathPick", false);
   }
@@ -1824,6 +1901,9 @@ const cancelPathPick = (ev?: unknown) => {
   pathFromState.value = "";
   pathToState.value = "";
   pathInfoState.value = "";
+  // 端点橙框先摘掉再清路径：clearPath 可能重建画布，重建后旧实例上的状态已经没了，
+  // 但没重建的那条路上必须显式清，否则橙框会一直留在画面上
+  clearPathPicks();
   if (wasPath) clearPath();
   else clearSelection();
   if (wasPicking) emit("update:pathPick", false);
@@ -1832,6 +1912,8 @@ const cancelPathPick = (ev?: unknown) => {
 
 /** 工具栏按钮：开 / 关「最短路径」选择模式 */
 const togglePathPick = () => {
+  // 连线与最短路径互斥：开这个先把拉线收掉
+  if (connectFromState.value) cancelConnect();
   if (pathPickState.value || pathModeState.value) {
     cancelPathPick();
     return;
@@ -1840,9 +1922,138 @@ const togglePathPick = () => {
   pathFromState.value = "";
   pathToState.value = "";
   pathInfoState.value = "最短路径：左键点两个节点（起点 → 终点），右键取消";
+  // 开一轮新的：上一轮如果留了端点橙框，这里先摘干净
+  clearPathPicks();
   clearSelection();
   emit("update:pathPick", true);
 };
+
+/* ---------------- 连线创建（右键「创建关系」→ 拖线到目标节点） ---------------- */
+
+/**
+ * 连线模式的起点节点 id（空串 = 未在连线）。
+ *
+ * <p>交互：右键节点选「创建关系」进入 —— 从该节点拉出一条跟随光标的虚线，
+ * 左键点另一个节点即建立关系（并抛 {@code edge-created}），点空白 / 右键 / Esc 取消。
+ * 这条线只画视觉，真正的数据写入走 {@link addEdges}，所以历史、增量渲染、
+ * {@code edges-change} 都与命令式加边完全一致。</p>
+ */
+const connectFromState = ref("");
+/** 是否正处在连线模式 */
+const connecting = computed(() => Boolean(connectFromState.value));
+
+/** 橡皮筋线（SVG overlay，pointer-events: none 不挡住画布事件） */
+let rubberEl: SVGSVGElement | null = null;
+let rubberLine: SVGLineElement | null = null;
+/** 最近一次光标位置（**画布坐标系**，画线时再换算成容器坐标） */
+let rubberPointer: [number, number] | null = null;
+
+/** 建 / 取橡皮筋覆盖层 */
+const ensureRubber = () => {
+  const host = containerRef.value;
+  if (!host) return;
+  if (!rubberEl || rubberEl.parentElement !== host) {
+    const NS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("class", "rrg__rubber");
+    svg.setAttribute("width", "100%");
+    svg.setAttribute("height", "100%");
+    const line = document.createElementNS(NS, "line");
+    line.setAttribute("class", "rrg__rubber-line");
+    svg.appendChild(line);
+    host.appendChild(svg);
+    rubberEl = svg;
+    rubberLine = line;
+  }
+};
+
+/** 按「起点节点中心 → 当前光标」重画橡皮筋 */
+const drawRubber = () => {
+  if (!rubberLine || !graph || !graphAlive) return;
+  const from = connectFromState.value;
+  if (!from) {
+    rubberLine.setAttribute("visibility", "hidden");
+    return;
+  }
+  if (!rubberPointer) {
+    rubberLine.setAttribute("visibility", "hidden");
+    return;
+  }
+  const [sx, sy] = pointOf(graph.getViewportByCanvas(graph.getElementPosition(from)));
+  // 光标位置也是画布坐标，要跟起点走同一套换算，否则缩放后线头会偏
+  const [ex, ey] = pointOf(graph.getViewportByCanvas(rubberPointer));
+  rubberLine.setAttribute("x1", String(sx));
+  rubberLine.setAttribute("y1", String(sy));
+  rubberLine.setAttribute("x2", String(ex));
+  rubberLine.setAttribute("y2", String(ey));
+  rubberLine.setAttribute("visibility", "visible");
+};
+
+/** 移除橡皮筋覆盖层 */
+const destroyRubber = () => {
+  rubberEl?.remove();
+  rubberEl = null;
+  rubberLine = null;
+  rubberPointer = null;
+};
+
+/**
+ * 进入连线模式（右键菜单「创建关系」调它）。
+ *
+ * <p>进入后临时摘掉 {@code drag-element}：否则从起点节点上划过会把节点拖走，
+ * 而不是拉线。退出时按 {@link buildBehaviors} 原样恢复。</p>
+ */
+const startConnect = (from: string) => {
+  const id = String(from ?? "");
+  if (!id || !graph || !graphAlive) return;
+  if (!nodesState.value.some((n) => String(n.id) === id)) return;
+  // 与最短路径互斥：两套独占手势不能同时开着
+  if (pathBusy()) cancelPathPick();
+  connectFromState.value = id;
+  // 起点自身留一个选中的视觉锚点，其余选择清掉，避免「到底连的是谁」看不清
+  selectedNodes.value = [id];
+  selectedEdges.value = [];
+  selectedCombos.value = [];
+  const states: Record<string, string[]> = {};
+  states[id] = [...statesWithoutHover(id).filter((s) => s !== "selected"), "selected"];
+  setElementStates(states);
+  emitSelection();
+  if (graph) graph.setBehaviors(["zoom-canvas", "drag-canvas"]);
+  ensureRubber();
+  // 线头先压在起点上，等第一次 pointermove 再跟手（不然会先闪一条从 (0,0) 拉出来的线）
+  rubberPointer = graph ? pointOf(graph.getElementPosition(id)) : null;
+  drawRubber();
+  emit("connect-change", { active: true, from: id });
+};
+
+/** 退出连线模式（点空白 / 右键 / Esc / 建成一条之后都走这里） */
+const cancelConnect = () => {
+  if (!connectFromState.value) return;
+  connectFromState.value = "";
+  destroyRubber();
+  // 恢复节点可拖拽
+  if (graph && graphAlive) graph.setBehaviors(buildBehaviors() as any[]);
+  clearSelection();
+  emit("connect-change", { active: false, from: "" });
+};
+
+/**
+ * 连线落点：在目标节点上松手 / 点击 → 建一条边。
+ *
+ * <p>不去重、不写死 label：重复边由 {@link addEdges} 自己跳过，
+ * 业务要带关系名就在 {@code edge-created} 里给（或先改数据再连）。</p>
+ */
+const finishConnect = (to: string) => {
+  const from = connectFromState.value;
+  const target = String(to ?? "");
+  if (!from || !target) return;
+  // 自己连自己没意义：留在连线模式，等用户点别的节点（或右键取消）
+  if (from === target) return;
+  addEdges({ source: from, target });
+  cancelConnect();
+};
+
+
 /** 路径上的节点 / 边 id（路径模式下据此判定「谁留下」） */
 const pathNodesState = ref<string[]>([]);
 const pathEdgesState = ref<string[]>([]);
@@ -2064,6 +2275,8 @@ const onBrushDown = (ev: { targetType?: string; canvas?: unknown; button?: numbe
   if (!brushSelectState.value || !graph || !graphAlive) return;
   // 最短路径模式（拾取中或已出结果）期间左键只服务端点拾取，框选必须让位
   if (pathBusy()) return;
+  // 连线模式期间左键只服务「落点」，框选同样让位
+  if (connectFromState.value) return;
   if ((ev.targetType ?? "canvas") !== "canvas") return; // 从节点/边上按下不启动框选
   if (typeof ev.button === "number" && ev.button !== 0) return; // 右键 / 中键不拉框
   brushFrom = pointOf(ev.canvas);
@@ -2430,6 +2643,12 @@ const initGraph = () => {
         focusElements(pathNodesState.value);
       }
     }
+    // 连线模式重建后：橡皮筋覆盖层跟着新容器重挂，起点选中态补回
+    if (connectFromState.value) {
+      ensureRubber();
+      drawRubber();
+      setElementStates({ [connectFromState.value]: ["selected"] });
+    }
     if (graph) emit("ready", graph);
   });
 };
@@ -2439,6 +2658,8 @@ const recreateGraph = () => {
   graphAlive = false;
   graph?.destroy();
   graph = null;
+  // 画布重建后橡皮筋要按新实例重挂（否则它还挂在被清空的旧容器里）
+  destroyRubber();
   initGraph();
 };
 
@@ -3008,6 +3229,12 @@ const deleteSelection = (): boolean => {
   const edgeKeys = new Set(selectedEdges.value.map(String));
   if (!nodeIds.size && !edgeKeys.size) return false;
   recordHistory("delete-selection");
+  // 先记下要删的对象，删完才能把完整数据抛给业务回调
+  const removedNodes = nodesState.value.filter((n) => nodeIds.has(String(n.id)));
+  const removedEdges = edgesState.value.filter(
+    (e) =>
+      nodeIds.has(String(e.source)) || nodeIds.has(String(e.target)) || edgeKeys.has(edgeIdOf(e)),
+  );
   if (nodeIds.size) {
     nodesState.value = nodesState.value.filter((n) => !nodeIds.has(String(n.id)));
     edgesState.value = edgesState.value.filter(
@@ -3022,6 +3249,8 @@ const deleteSelection = (): boolean => {
   pushFullData();
   emit("nodes-change", nodesState.value.map((n) => ({ ...n })));
   emit("edges-change", edgesState.value.map((e) => ({ ...e })));
+  for (const e of removedEdges) emit("edge-deleted", { id: edgeIdOf(e), edge: { ...e } });
+  for (const n of removedNodes) emit("node-deleted", { id: String(n.id), node: { ...n } });
   return true;
 };
 
@@ -3102,8 +3331,14 @@ const runShortcut = (action: string, combo: string, e: KeyboardEvent) => {
   else if (action === "delete" || action === "delete-selection") handled = deleteSelection();
   else if (action === "clear-selection") {
     closeContextMenu();
-    clearSelection();
-    handled = true;
+    // 连线模式优先消化 Esc：先退出拉线，再清选择
+    if (connectFromState.value) {
+      cancelConnect();
+      handled = true;
+    } else {
+      clearSelection();
+      handled = true;
+    }
   }
   if (!handled) return;
   e.preventDefault();
@@ -3219,14 +3454,25 @@ const addNodes = (input: RelationNode | RelationNode[]) => {
     }
   }
   emit("nodes-change", nodesState.value.map((n) => ({ ...n })));
+  for (const n of fresh) emit("node-created", { node: { ...n } });
 };
 
-/** 删除节点（连带删除与它相连的边），支持 id 数组 */
+/**
+ * 删除节点（连带删除与它相连的边），支持 id 数组。
+ *
+ * <p>业务回调分两类：{@code node-deleted} 每个被删的节点抛一次，
+ * 因它而连带删掉的边另外抛 {@code edge-deleted} —— 业务侧能把两边数据都同步干净。</p>
+ */
 const removeNodes = (id: string | string[]) => {
   const ids = new Set((Array.isArray(id) ? id : [id]).map(String));
   if (!ids.size) return;
   // 先看一眼「真的要删东西吗」，没命中就不该留下一条空历史
-  if (!nodesState.value.some((n) => ids.has(String(n.id)))) return;
+  const removedNodes = nodesState.value.filter((n) => ids.has(String(n.id)));
+  if (!removedNodes.length) return;
+  // 连带删掉的边：先收集出来，删完再抛，业务才能拿到完整对象
+  const removedEdges = edgesState.value.filter(
+    (e) => ids.has(String(e.source)) || ids.has(String(e.target)),
+  );
   recordHistory(ids.size > 1 ? "remove-nodes" : "remove-node");
   nodesState.value = nodesState.value.filter((n) => !ids.has(String(n.id)));
   edgesState.value = edgesState.value.filter(
@@ -3241,6 +3487,13 @@ const removeNodes = (id: string | string[]) => {
   }
   emit("nodes-change", nodesState.value.map((n) => ({ ...n })));
   emit("edges-change", edgesState.value.map((e) => ({ ...e })));
+  // ---- 业务回调：先边后节点，语义上「边随节点而亡」----
+  for (const e of removedEdges) {
+    emit("edge-deleted", { id: edgeIdOf(e), edge: { ...e } });
+  }
+  for (const n of removedNodes) {
+    emit("node-deleted", { id: String(n.id), node: { ...n } });
+  }
 };
 
 /** 更新节点（浅合并 patch；不能改 id） */
@@ -3284,6 +3537,7 @@ const addEdges = (input: RelationEdge | RelationEdge[]) => {
     }
   }
   emit("edges-change", edgesState.value.map((e) => ({ ...e })));
+  for (const e of fresh) emit("edge-created", { edge: { ...e } });
 };
 
 /**
@@ -3309,8 +3563,8 @@ const removeEdges = (target: string | Array<string | { source: string; target: s
   const arr = Array.isArray(target) ? target : [target];
   const keys = new Set(arr.map((t) => edgeIdForTarget(t)));
   // 先判断「真能删掉东西吗」，命中才压历史（压的是改动前的样子）
-  const hit = edgesState.value.some((e) => keys.has(edgeIdOf(e)));
-  if (!hit) return;
+  const removedEdges = edgesState.value.filter((e) => keys.has(edgeIdOf(e)));
+  if (!removedEdges.length) return;
   recordHistory(keys.size > 1 ? "remove-edges" : "remove-edge");
   edgesState.value = edgesState.value.filter((e) => !keys.has(edgeIdOf(e)));
   if (graph && graphAlive) {
@@ -3321,6 +3575,7 @@ const removeEdges = (target: string | Array<string | { source: string; target: s
     }
   }
   emit("edges-change", edgesState.value.map((e) => ({ ...e })));
+  for (const e of removedEdges) emit("edge-deleted", { id: edgeIdOf(e), edge: { ...e } });
 };
 
 /** 更新边（按边 id / source-target / { source, target } 定位） */
@@ -3531,7 +3786,11 @@ watch(
 /**
  * 布局 / 布局参数 / 分组轮廓 / tooltip 变化 → 整图重建。
  * 布局与插件都挂在 Graph 实例上，G6 5 没有「清空插件 + 换算法」的干净入口，
- * 重建最稳；图规模不大，重建代价可接受。
+ * 重建最稳。
+ *
+ * <p><b>小地图刻意不在这里</b>：它只增删一个插件，用 graph.setPlugins() 就地改即可
+ * （见下方 minimapState 的独立 watch）。放在这里会导致每点一次小地图就把整张图
+ * 拆掉重画 —— 节点一多就是几秒白屏，正是「开启小地图会卡」的原因。</p>
  */
 watch(
   () => [
@@ -3553,7 +3812,6 @@ watch(
     clickSelectState.value,
     brushSelectState.value,
     highlightState.value,
-    minimapState.value,
     comboState.value,
     props.collapsedGroups,
   ],
@@ -3564,12 +3822,40 @@ watch(
   { deep: true },
 );
 
+/**
+ * 小地图开关 → 就地增删插件（不重建整图）
+ *
+ * <p>用 {@code graph.setPlugins} 把当前插件列表里的小地图替换/移除，
+ * 其它插件（分组轮廓、tooltip）原样保留。整图重建会重跑布局、重绘全部节点，
+ * 400 节点量级下是明显的卡顿源；这里只动一个 180×120 的小地图面板。</p>
+ *
+ * <p><b>为什么还要一次 {@code graph.render()}</b>：{@code setPlugins} 只会把插件
+ * 配置写进 {@code options.plugins} 并构造实例，插件的 DOM（小地图面板）是在渲染
+ * 阶段挂上去的 —— 实测只调 setPlugins 时画布 DOM 完全不变、小地图根本不出现。
+ * 补一次 render() 让渲染管线把新插件挂载即可。</p>
+ *
+ * <p>与整图重建的区别：这里不新建 Graph、不重跑布局、不重建元素树，
+ * 只是让渲染管线重新走一遍挂载流程，代价远小于 recreate。</p>
+ */
+watch(minimapState, (on) => {
+  if (!graph || !graphAlive) return;
+  const plugin = buildMinimapPlugin();
+  graph.setPlugins((prev: any[]) => {
+    const rest = (prev ?? []).filter((p) => p && p.key !== "minimap");
+    return plugin ? [...rest, plugin] : rest;
+  });
+  // 让渲染管线把新插件挂上（或把已移除插件的 DOM 摘掉）
+  void graph.render().catch(() => {});
+  void on;
+});
+
 onBeforeUnmount(() => {
   document.removeEventListener("pointerdown", onDocPointerDown, true);
   document.removeEventListener("keydown", onDocKeydown);
   graphAlive = false;
   graph?.destroy();
   graph = null;
+  destroyRubber();
 });
 
 /** 对外暴露的实例 API（供工具栏 / 验收脚本使用） */
@@ -3645,6 +3931,19 @@ defineExpose({
   setTooltip,
   setNodeTooltip,
   setEdgeTooltip,
+  /* ---- 连线创建（右键「创建关系」→ 拖线到目标节点）---- */
+  /** 进入连线模式：从该节点拉一条线，左键点另一个节点即建立关系 */
+  startConnect,
+  /** 退出连线模式（取消拉线） */
+  cancelConnect,
+  /** 是否正处在连线模式 */
+  get connecting() {
+    return Boolean(connectFromState.value);
+  },
+  /** 连线模式的起点节点 id（未在连线为空串） */
+  get connectFrom() {
+    return connectFromState.value;
+  },
   /* ---- 选择 / 状态 / 算法 ---- */
   /** 最短路径（BFS，按边数最少），算完只显示路径 */
   shortestPath,
@@ -3894,6 +4193,20 @@ defineExpose({
   text-align: center;
   color: var(--el-text-color-secondary, #909399);
   pointer-events: none;
+}
+
+/* 连线模式的橡皮筋线：覆盖在画布上但完全不拦截指针事件 */
+.rrg__rubber {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.rrg__rubber-line {
+  stroke: var(--el-color-primary, #409eff);
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+  stroke-linecap: round;
 }
 
 /* #node-content 自定义 DOM：G6 html 节点只提供宿主，尺寸由业务卡片自己撑开 */

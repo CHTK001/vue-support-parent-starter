@@ -173,6 +173,14 @@ const menuAction = (action: string, menu: { id?: string; targetType?: string }, 
   if (action === "focus" && menu.id) {
     graphComp.value?.focus?.([menu.id]);
     hoverInfo.value = `菜单「聚焦」→ ${menu.id}`;
+  } else if (action === "connect" && menu.targetType === "node" && menu.id) {
+    // 右键「创建关系」→ 进入连线模式：线跟着光标走，左键点另一个节点即建立关系
+    graphComp.value?.startConnect?.(menu.id);
+    hoverInfo.value = `已从「${menu.id}」拉线：左键点另一个节点建立关系（右键 / Esc 取消）`;
+  } else if (action === "remove-edge" && menu.targetType === "edge" && menu.id) {
+    graphComp.value?.removeEdge?.(menu.id);
+    syncCount();
+    hoverInfo.value = `菜单「删除这条边」→ ${menu.id}`;
   } else if (action === "path-from" && menu.id) {
     // 组件内部会记下端点；两端齐了它就直接算，这里同步页面上的显示
     const done = graphComp.value?.setPathEndpoint?.(menu.id, "from");
@@ -284,8 +292,10 @@ const graphComp = ref<{
   groupVisible?: boolean;
   focus?: (id: string[]) => void;
   getNodes?: () => Array<{ id: string; label?: string; group?: string }>;
+  getEdges?: () => Array<{ id?: string; source: string; target: string }>;
   addNode?: (node: { id: string; label?: string; group?: string; size?: number }) => void;
   removeNode?: (id: string) => void;
+  removeEdge?: (id: string) => void;
   updateNode?: (id: string, patch: Record<string, unknown>) => void;
   countEdgeCrossings?: () => number;
   collapseGroup?: (group: string) => Promise<void>;
@@ -295,6 +305,10 @@ const graphComp = ref<{
   shortestPath?: (s: string, t: string) => { nodes: string[]; edges: string[]; found: boolean };
   setPathEndpoint?: (id: string, role: "from" | "to") => boolean;
   clearPath?: () => void;
+  startConnect?: (from: string) => void;
+  cancelConnect?: () => void;
+  connecting?: boolean;
+  connectFrom?: string;
   pathActive?: boolean;
   pathFrom?: string;
   pathTo?: string;
@@ -341,6 +355,61 @@ const expandAll = async () => {
 
 /** 最近一次 hover 事件（验证 mouseover / mouseout 已接通） */
 const hoverInfo = ref("（把鼠标移到节点或边上，这里会实时显示）");
+
+/* ---------------- 增删回调（组件把「谁被建了 / 谁被删了」抛回业务） ---------------- */
+
+interface CrudLog {
+  /** 事件名：node-created / edge-created / node-deleted / edge-deleted */
+  event: string;
+  /** 一句话摘要 */
+  text: string;
+  /** 原始载荷（业务侧就是靠它同步数据源） */
+  payload: unknown;
+  /** 收到时间 */
+  at: string;
+}
+
+/** 最近的增删回调（新的在前，最多留 30 条） */
+const crudLogs = ref<CrudLog[]>([]);
+/** 各类回调计数（页面上一眼看得到「到底抛了几次」） */
+const crudCounts = ref({ created: 0, deleted: 0, edgeCreated: 0, edgeDeleted: 0 });
+
+const pushCrud = (event: string, text: string, payload: unknown) => {
+  crudLogs.value = [
+    { event, text, payload, at: new Date().toLocaleTimeString("zh-CN", { hour12: false }) },
+    ...crudLogs.value,
+  ].slice(0, 30);
+};
+
+const onNodeCreated = (d: { node: { id: string } }) => {
+  crudCounts.value.created += 1;
+  pushCrud("node-created", `节点创建：${d.node.id}`, d);
+};
+const onEdgeCreated = (d: { edge: { source: string; target: string; id?: string } }) => {
+  crudCounts.value.edgeCreated += 1;
+  pushCrud("edge-created", `关系创建：${d.edge.source} → ${d.edge.target}`, d);
+};
+const onNodeDeleted = (d: { id: string; node: unknown }) => {
+  crudCounts.value.deleted += 1;
+  pushCrud("node-deleted", `节点删除：${d.id}`, d);
+};
+const onEdgeDeleted = (d: { id: string; edge: { source: string; target: string } }) => {
+  crudCounts.value.edgeDeleted += 1;
+  pushCrud("edge-deleted", `边删除：${d.edge.source} → ${d.edge.target}`, d);
+};
+
+/** 清空回调日志（只看新的一批） */
+const clearCrudLogs = () => {
+  crudLogs.value = [];
+  crudCounts.value = { created: 0, deleted: 0, edgeCreated: 0, edgeDeleted: 0 };
+};
+
+/** 连线模式状态（页面右下角提示「现在在拉线」） */
+const connectingFrom = ref("");
+const onConnectChange = (d: { active: boolean; from: string }) => {
+  connectingFrom.value = d.active ? d.from : "";
+  if (d.active) hoverInfo.value = `连线中：从「${d.from}」拉出，左键点另一个节点建立关系`;
+};
 
 /** 自定义工具示例：一键聚焦某个势力 */
 const quickFocusGroups = ["蜀汉", "曹魏", "东吴"];
@@ -472,6 +541,8 @@ onMounted(() => {
 
 <template>
   <div class="rrg-lab">
+    <!-- 左：属性 / 操作面板 · 右：画布效果 —— 参数改完立刻在右边看到结果 -->
+    <aside class="rrg-lab__side">
     <div class="rrg-lab__head">
       <div class="rrg-lab__row">
         <div class="rrg-lab__title">ReRelationGraph · 三国演义知识图谱（G6 5.1.1 原生）</div>
@@ -633,6 +704,38 @@ onMounted(() => {
           <el-tag size="small" type="warning" effect="plain">{{ lastShortcut }}</el-tag>
         </div>
       </div>
+      <!-- 增删回调：节点创建 / 关系创建 / 节点删除 / 边删除 -->
+      <div class="rrg-lab__calls">
+        <div class="rrg-lab__calls-head">
+          <span class="rrg-lab__calls-title">增删回调</span>
+          <span class="rrg-lab__calls-counts">
+            节点+{{ crudCounts.created }} · 关系+{{ crudCounts.edgeCreated }} ·
+            节点-{{ crudCounts.deleted }} · 边-{{ crudCounts.edgeDeleted }}
+          </span>
+          <button type="button" class="rrg-lab__calls-clear" @click="clearCrudLogs">清空</button>
+        </div>
+        <ol v-if="crudLogs.length" class="rrg-lab__calls-list" data-testid="lab-crud-log">
+          <li v-for="(log, i) in crudLogs" :key="`${log.at}-${i}`">
+            <code>{{ log.event }}</code>
+            <span>{{ log.text }}</span>
+            <time>{{ log.at }}</time>
+          </li>
+        </ol>
+        <div v-else class="rrg-lab__calls-empty">
+          右键节点 →「创建关系」，再左键点另一个节点；或右键节点 / 边删除，这里会实时收到回调
+        </div>
+      </div>
+
+      <!-- 交互 / 回调回执：hover、路径结果、右键回参、连线状态 -->
+      <div class="rrg-lab__logbox">
+        <div class="rrg-lab__hover">{{ hoverInfo }}</div>
+        <div class="rrg-lab__hover rrg-lab__hover--path">{{ pathInfo }}</div>
+        <div class="rrg-lab__hover">{{ ctxInfo }}</div>
+        <div v-if="connectingFrom" class="rrg-lab__hover rrg-lab__hover--connect">
+          连线中：{{ connectingFrom }} —— 左键点另一个节点建立关系（右键 / Esc 取消）
+        </div>
+      </div>
+
       <div class="rrg-lab__desc">
         以 G6 官方 bubble-sets 示例为地基：三国人物按势力分组（蜀汉 / 曹魏 / 东吴 / 吕布集团 /
         董卓集团 / 袁绍集团 / 东汉朝廷），<b>分组轮廓</b>可选「气泡集」或「Hull 轮廓」包裹同势力节点。
@@ -642,7 +745,9 @@ onMounted(() => {
         <code>#node-tooltip</code> / <code>#edge-tooltip</code> 插槽里）/ 小地图 / 分组折叠）、
         <b>分组折叠</b>（逐个分组折叠，可指定初始折叠）与<b>最短路径</b>
         （右键节点设为起点 / 终点，算完只显示这条链路、其余节点与边全部隐藏）。
-        在节点 / 边 / 分组 / 空白处<b>右键</b>，会把命中元素和选中集合当入参浮出业务菜单。
+        在节点 / 边 / 分组 / 空白处<b>右键</b>，会把命中元素和选中集合当入参浮出业务菜单；
+        <b>右键节点 →「创建关系」</b>后进入连线模式，左键点另一个节点即建立关系，
+        右键 / <b>Esc</b> / 点空白取消。
         节点支持<b>头像</b>（image 节点）与<b>右上角徽标</b>（主公 / 军师 / 猛将），边支持
         <b>箭头 / 虚线 / 线宽 / 关系标签</b>（逐条边可覆盖组件级默认值）。
         「场景预设」下拉可一键套用知识图谱 / 组织架构 / 流程拓扑 / 社交关系 / 家族谱系五套参数。
@@ -652,9 +757,10 @@ onMounted(() => {
         右上角「边交叉」实时显示当前布局的边-边交叉数，方便挑「最少交叉」的布局。
       </div>
     </div>
-    <div class="rrg-lab__hover">{{ hoverInfo }}</div>
-    <div class="rrg-lab__hover rrg-lab__hover--path">{{ pathInfo }}</div>
-    <div class="rrg-lab__hover">{{ ctxInfo }}</div>
+    </aside>
+
+    <!-- 右：画布效果 -->
+    <section class="rrg-lab__main">
     <ReRelationGraph
       ref="graphComp"
       v-model:layout="layout"
@@ -697,6 +803,11 @@ onMounted(() => {
       @contextmenu="onContextmenu"
       @history-change="onHistoryChange"
       @shortcut="onShortcut"
+      @node-created="onNodeCreated"
+      @edge-created="onEdgeCreated"
+      @node-deleted="onNodeDeleted"
+      @edge-deleted="onEdgeDeleted"
+      @connect-change="onConnectChange"
     >
       <!-- 自定义工具位：业务自己的按钮可直接塞进内置工具栏 -->
       <template #toolbar-extra>
@@ -750,6 +861,15 @@ onMounted(() => {
             v-if="menu.targetType === 'node'"
             type="button"
             class="rrg-ctxdemo__item"
+            data-ctx="connect"
+            @click="menuAction('connect', menu, close)"
+          >
+            创建关系（拖线到目标节点）
+          </button>
+          <button
+            v-if="menu.targetType === 'node'"
+            type="button"
+            class="rrg-ctxdemo__item"
             @click="menuAction('path-from', menu, close)"
           >
             设为路径起点{{ pathFrom === menu.id ? "（当前）" : "" }}
@@ -766,22 +886,34 @@ onMounted(() => {
             v-if="menu.targetType === 'node'"
             type="button"
             class="rrg-ctxdemo__item is-danger"
+            data-ctx="remove-node"
             @click="menuAction('remove', menu, close)"
           >
             删除这个节点
+          </button>
+          <button
+            v-if="menu.targetType === 'edge'"
+            type="button"
+            class="rrg-ctxdemo__item is-danger"
+            data-ctx="remove-edge"
+            @click="menuAction('remove-edge', menu, close)"
+          >
+            删除这条边
           </button>
           <button type="button" class="rrg-ctxdemo__item" @click="close()">关闭</button>
         </div>
       </template>
     </ReRelationGraph>
+    </section>
   </div>
 </template>
 
 <style lang="scss" scoped>
+/* 左属性 · 右效果 */
 .rrg-lab {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  flex-direction: row;
+  gap: 12px;
   width: 100%;
   height: 100%;
   min-height: 480px;
@@ -789,10 +921,46 @@ onMounted(() => {
   box-sizing: border-box;
 }
 
+/* 左侧属性面板：占定量宽度，内部自己纵向滚动，长文档不挤压画布 */
+.rrg-lab__side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 0 0 400px;
+  min-width: 320px;
+  max-width: 46%;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* 右侧画布区 */
+.rrg-lab__main {
+  flex: 1 1 auto;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* 窄屏（平板竖屏 / 手机）：退回上下结构，画布仍保底高度 */
+@media (max-width: 900px) {
+  .rrg-lab {
+    flex-direction: column;
+  }
+  .rrg-lab__side {
+    flex: 0 0 auto;
+    max-width: none;
+    max-height: 46%;
+  }
+  .rrg-lab__main {
+    min-height: 380px;
+  }
+}
+
 .rrg-lab__head {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
 .rrg-lab__row {
@@ -862,6 +1030,110 @@ onMounted(() => {
   color: var(--el-color-danger);
 }
 
+/* 连线模式提示：主色，和「正在拉线」这条独占手势对应 */
+.rrg-lab__hover--connect {
+  color: var(--el-color-primary);
+  border-style: solid;
+  border-color: var(--el-color-primary-light-7);
+  background: var(--el-color-primary-light-9);
+}
+
+/* 回执行分组：三条状态行纵向排，避免横排把左侧面板挤成一行长条 */
+.rrg-lab__logbox {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ---------- 增删回调面板 ---------- */
+.rrg-lab__calls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-fill-color-blank);
+}
+
+.rrg-lab__calls-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rrg-lab__calls-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+}
+
+.rrg-lab__calls-counts {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-secondary);
+}
+
+.rrg-lab__calls-clear {
+  margin-left: auto;
+  padding: 0;
+  font-size: 11px;
+  color: var(--el-color-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.rrg-lab__calls-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 168px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.rrg-lab__calls-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--el-text-color-regular);
+}
+
+.rrg-lab__calls-list code {
+  flex: none;
+  padding: 0 4px;
+  font-size: 10px;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  border-radius: 3px;
+}
+
+.rrg-lab__calls-list span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rrg-lab__calls-list time {
+  flex: none;
+  font-size: 10px;
+  color: var(--el-text-color-placeholder);
+}
+
+.rrg-lab__calls-empty {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+
 /* 起终点之间的箭头（保留：业务自定义面板里可能还在用） */
 .rrg-lab__arrow {
   font-size: 12px;
@@ -876,6 +1148,8 @@ onMounted(() => {
 
 .rrg-lab__canvas {
   flex: 1;
+  width: 100%;
+  min-width: 0;
   min-height: 400px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-lg, 12px);

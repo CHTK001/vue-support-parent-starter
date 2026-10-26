@@ -28,6 +28,8 @@ export const CORE_GETTERS = [
   "pathFrom",
   "pathTo",
   "pathPicking",
+  "connecting",
+  "connectFrom",
   "canUndo",
   "canRedo",
   "history",
@@ -64,6 +66,9 @@ export const CORE_METHODS = [
   "shortestPathFromSelection",
   "clearPath",
   "setPathEndpoint",
+  // 连线创建
+  "startConnect",
+  "cancelConnect",
   "countEdgeCrossings",
   // 分组折叠
   "collapseGroup",
