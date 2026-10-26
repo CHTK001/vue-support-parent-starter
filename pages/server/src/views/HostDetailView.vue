@@ -29,6 +29,13 @@ import {
   type AssetMonitorRef, type SoftwareInstance,
 } from "@pages/monitor/src/api";
 import { getHost, fetchHostProfile, fetchHostProfileSection, closeNetProcess, killProcess, restartHostProcess, startService, stopService, restartService, setHostEnvVar, deleteHostEnvVar, type HostProfile } from "../api";
+import ProfileDisks from "../components/profile/ProfileDisks.vue";
+import ProfileProcesses from "../components/profile/ProfileProcesses.vue";
+import ProfileServices from "../components/profile/ProfileServices.vue";
+import ProfilePorts from "../components/profile/ProfilePorts.vue";
+import ProfileNetwork from "../components/profile/ProfileNetwork.vue";
+import ProfileEnv from "../components/profile/ProfileEnv.vue";
+import ProfileFirewall from "../components/profile/ProfileFirewall.vue";
 import HostNetworkAdapters from "../components/HostNetworkAdapters.vue";
 
 const route = useRoute();
