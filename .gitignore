@@ -354,3 +354,9 @@ apps/*/dist.tgz
 **/pv-shots/
 **/page-variants-shots.mjs
 **/variants-shots/pages/
+# 但 pv-gallery.html（ai 变体展示页）引用了 /pv-shots/ 配图，属正式交付物，逐级放行
+!apps/vue-support-ai-starter/public/pv-shots/
+!apps/vue-support-ai-starter/public/pv-shots/**
+
+# 临时账户 lab 演示页（无人引用的验收残留，非源码）
+apps/vue-support-monitor-starter/public/temp-accounts-lab.html

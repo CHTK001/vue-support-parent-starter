@@ -43,7 +43,7 @@ import type {
   SysRole,
   TemplatePreviewResponse,
 } from "../api/types";
-import type { ReTableColumn, ReTableLoadParams, RePageResult, ReTableRowSortPayload } from "@repo/ui/re-table";
+import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 import type { ReTabItem } from "@repo/ui/re-tab";
 
 /* ================== 字典 ================== */
@@ -228,24 +228,9 @@ const msgActionLoading = ref<number>(0);
 /**
  * 消息记录的表格引擎。
  *
- * <p>用 vxe-table；本页给 ReTable 开了 {@code debug}，工具栏会多出「引擎切换器」
- * （Element / VXE 分段控件），切换通过 {@code v-model:engine} 写回这里，
- * 便于在同一份数据上对照两个引擎的渲染差异。</p>
- *
- * <p>{@code debug} 只在验收 / 排查期开，定稿后应移除。</p>
+ * <p>用 vxe-table（与模板 / 日志页一致，统一渲染外观）。
+ * 此前开过的 {@code debug} 引擎切换器（Element / VXE）已移除——那是验收 / 排查期的临时工具。</p>
  */
-const msgEngine = ref<"element" | "vxe">("vxe");
-
-/**
- * 行拖拽排序的落点（仅用于验收拖拽交互）。
- *
- * <p>消息记录后端没有排序字段可写回，这里只把新顺序记到本地并提示，
- * <b>不做持久化</b> —— 刷新后仍按接口返回的顺序。真要落地需要后端补一个
- * 排序字段 + 保存接口。</p>
- */
-function onMsgRowSort(payload: ReTableRowSortPayload): void {
-  message.success(`拖拽排序已确认，本次共 ${payload.newData.length} 行（未持久化，仅供验收）`);
-}
 
 async function loadMessages({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
   const res = await pageForMessageAdmin({
@@ -780,7 +765,7 @@ async function doLogClean() {
 
 /* ================== 列定义 ================== */
 const msgColumns: ReTableColumn[] = [
-  { prop: "sysMessageTitle", label: "标题", minWidth: 200, showOverflowTooltip: true },
+  { prop: "sysMessageTitle", label: "标题", minWidth: 200, showOverflowTooltip: true, slot: "mtitle" },
   { prop: "sysMessageType", label: "类型", width: 90, slot: "type", align: "center" },
   { prop: "sysMessageChannel", label: "渠道", width: 90, slot: "mchannel", align: "center" },
   { prop: "sysMessageLevel", label: "级别", width: 80, slot: "level", align: "center" },
@@ -854,8 +839,6 @@ onMounted(() => {
         <ReTable
             ref="msgTableRef"
             table-id="system-message-admin"
-            v-model:engine="msgEngine"
-            debug
             :search="{ filters: msgSearchFilters, title: '搜索', btnMode: 'text' }"
             :search-gap="16"
             v-model:search-model="msgQuery"
@@ -867,8 +850,6 @@ onMounted(() => {
             row-key="sysMessageId"
             v-model:page="msgQuery.page"
             v-model:page-size="msgQuery.pageSize"
-            row-draggable
-            @row-sort="onMsgRowSort"
             class="mt-2"
           >
             <template #toolbar>
@@ -893,6 +874,9 @@ onMounted(() => {
             <template #type="{ row }">
               <ReTag type="primary" effect="light" round >{{ typeLabel(row.sysMessageType) }}</ReTag>
             </template>
+            <template #mtitle="{ row }">
+              <span class="msg-title" :title="row.sysMessageTitle">{{ row.sysMessageTitle || '--' }}</span>
+            </template>
             <template #mchannel="{ row }">
               <ReTag :type="msgChannelTagType(row.sysMessageChannel)" effect="light" round >
                 {{ msgChannelLabel(row.sysMessageChannel) }}
@@ -906,10 +890,10 @@ onMounted(() => {
               </ReTag>
             </template>
             <template #receiver="{ row }">
-              <span v-if="!row.sysMessageReceiverId || row.sysMessageReceiverId === 0" class="text-xs text-[--el-text-color-secondary]">
-                全体用户
+              <span v-if="!row.sysMessageReceiverId || row.sysMessageReceiverId === 0" class="msg-receiver-all">
+                <ReIcon name="User" size="12" class="msg-receiver-all__icon" />全体用户
               </span>
-              <span v-else>{{ row.sysMessageReceiverName || row.sysMessageReceiverId }}</span>
+              <span v-else class="msg-receiver">{{ row.sysMessageReceiverName || row.sysMessageReceiverId }}</span>
             </template>
             <template #sendTime="{ row }">
               <ReTime :value="row.sysMessageSendTime" format="YYYY-MM-DD HH:mm:ss" relative />

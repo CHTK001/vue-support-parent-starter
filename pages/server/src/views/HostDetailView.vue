@@ -36,7 +36,6 @@ import ProfilePorts from "../components/profile/ProfilePorts.vue";
 import ProfileNetwork from "../components/profile/ProfileNetwork.vue";
 import ProfileEnv from "../components/profile/ProfileEnv.vue";
 import ProfileFirewall from "../components/profile/ProfileFirewall.vue";
-import HostNetworkAdapters from "../components/HostNetworkAdapters.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -1150,62 +1149,6 @@ const PROFILE_SECTIONS: Array<{ name: ProfileSection; label: string }> = [
   { name: "env", label: "环境变量" },
   { name: "firewall", label: "防火墙" },
 ];
-/** 各分区的列定义（与 HostProfileView.COLUMNS 同口径，防火墙按后端 FirewallRuleRowVO 补列） */
-const PROFILE_COLUMNS: Record<ProfileSection, Array<{ key: string; label: string; sortable?: boolean; align?: 'left' | 'center' | 'right' }>> = {
-  ports: [
-    { key: "protocol", label: "协议" },
-    { key: "local", label: "监听地址" },
-    { key: "port", label: "端口", sortable: true, align: "right" },
-    { key: "state", label: "状态" },
-    { key: "pid", label: "PID", sortable: true, align: "right" },
-    { key: "process", label: "进程" },
-  ],
-  processes: [
-    { key: "pid", label: "PID", sortable: true, align: "right" },
-    { key: "name", label: "进程名" },
-    { key: "cpu", label: "CPU%", sortable: true, align: "right" },
-    { key: "memory", label: "内存", sortable: true, align: "right" },
-    { key: "threads", label: "线程", sortable: true, align: "right" },
-    { key: "command", label: "命令行" },
-  ],
-  services: [
-    { key: "name", label: "服务名" },
-    { key: "displayName", label: "显示名" },
-    { key: "state", label: "状态" },
-    { key: "startType", label: "启动类型" },
-    { key: "pid", label: "PID", sortable: true, align: "right" },
-  ],
-  disks: [
-    { key: "mount", label: "挂载点" },
-    { key: "name", label: "名称" },
-    { key: "fsType", label: "类型" },
-    { key: "totalGb", label: "容量(GB)", sortable: true, align: "right" },
-    { key: "usedGb", label: "已用(GB)", sortable: true, align: "right" },
-    { key: "availGb", label: "可用(GB)", sortable: true, align: "right" },
-    { key: "usage", label: "使用率%", sortable: true, align: "right" },
-  ],
-  network: [
-    { key: "name", label: "网卡" },
-    { key: "status", label: "状态" },
-    { key: "mac", label: "MAC" },
-    { key: "ipv4", label: "IPv4" },
-    { key: "ipv6", label: "IPv6" },
-    { key: "mtu", label: "MTU", sortable: true, align: "right" },
-    { key: "speed", label: "速率" },
-  ],
-  env: [
-    { key: "name", label: "变量" },
-    { key: "value", label: "值" },
-  ],
-  firewall: [
-    { key: "name", label: "规则名", sortable: true },
-    { key: "direction", label: "方向", sortable: true },
-    { key: "action", label: "动作", sortable: true },
-    { key: "protocol", label: "协议", sortable: true },
-    { key: "localPort", label: "端口", sortable: true, align: "right" },
-    { key: "program", label: "程序" },
-  ],
-};
 /** 当前分区 */
 const profileTab = ref<ProfileSection>("disks");
 /** 分页（仅 ports/processes/services/firewall 走后端分页） */
@@ -1245,29 +1188,12 @@ const profileVisibleRows = computed(() => {
   });
 });
 
-/** 排序列名（为空表示未排序） */
-const profileSortKey = ref("");
-/** 排序方向：asc | desc */
-const profileSortDir = ref<"asc" | "desc">("asc");
-/** 点击表头切换排序：未排→升序→降序→取消 */
-function toggleProfileSort(key: string): void {
-  if (profileSortKey.value === key) {
-    if (profileSortDir.value === "asc") profileSortDir.value = "desc";
-    else profileSortKey.value = "";
-  } else {
-    profileSortKey.value = key;
-    profileSortDir.value = "asc";
-  }
-}
-
-/** 切分区先归零页码、关键字与排序 */
+/** 切分区先归零页码与关键字 */
 function resetProfilePager(): void {
   profilePage.value = 1;
   profileKeyword.value = "";
   profileTotal.value = 0;
   profileTruncated.value = false;
-  profileSortKey.value = "";
-  profileSortDir.value = "asc";
 }
 /** 拉取当前分区 */
 async function loadProfileSection(): Promise<void> {
@@ -1305,25 +1231,11 @@ function pickProfileTab(name: ProfileSection): void {
   profileRows.value = [];
   void loadProfileSection();
 }
-function applyProfileKeyword(): void {
-  profilePage.value = 1;
-  void loadProfileSection();
-}
 function changeProfilePage(delta: number): void {
   const next = profilePage.value + delta;
   if (next < 1) return;
   profilePage.value = next;
   void loadProfileSection();
-}
-
-/** 端口状态 → OPEN/CLOSED 标记：监听/运行中视为 OPEN（绿点），其余视为 CLOSED（红点），空值不标记 */
-function portStatus(state: unknown): { open: boolean | null; text: string } {
-  const raw = String(state ?? "").trim();
-  const s = raw.toLowerCase();
-  if (!s || s === "-" || s === "—") return { open: null, text: "" };
-  const openWords = ["listen", "listening", "open", "running", "active", "established"];
-  if (openWords.some(w => s === w || s.includes(w))) return { open: true, text: "OPEN" };
-  return { open: false, text: "CLOSED" };
 }
 
 /** 正在执行动作的行键（同一时刻只允许一个远端写操作） */
@@ -1366,6 +1278,75 @@ async function submitProfileEnv(): Promise<void> {
   const ok = await runProfileAction(`env-set-${name}`,
     setHostEnvVar(hostId.value, name, profileEnvForm.value.value));
   if (ok) { profileEnvDialog.value = false; profileEnvForm.value = { name: "", value: "" }; }
+}
+
+/** 删除环境变量（ProfileEnv @remove） */
+async function onProfileDeleteEnv(row: Record<string, any>): Promise<void> {
+  const name = String(row.name ?? "");
+  if (!await confirmProfileAction(`确定删除系统级环境变量 ${name}？`)) return;
+  await runProfileAction(`env-del-${name}`, deleteHostEnvVar(hostId.value, name));
+}
+
+/** 复制文本（ProfileEnv @copy；剪贴板 API 不可用时回退到临时 textarea） */
+async function copyText(text: string, label: string): Promise<void> {
+  const ok = (() => {
+    const el = document.createElement("textarea");
+    el.value = text;
+    el.style.position = "fixed";
+    el.style.opacity = "0";
+    document.body.appendChild(el);
+    el.select();
+    try {
+      document.execCommand("copy");
+      return true;
+    } catch { return false; }
+    finally { document.body.removeChild(el); }
+  })();
+  if (ok) message.success(`${label || "内容"}已复制`);
+  else message.warning("复制失败，请手动选择文本");
+}
+
+/** 结束进程（ProfileProcesses @kill） */
+async function onProfileKill(row: Record<string, any>): Promise<void> {
+  if (!await confirmProfileAction(`确定结束进程 ${row.name ?? ""}（PID ${row.pid}）？该操作不可恢复。`)) return;
+  await runProfileAction(`kill-${row.pid}`, killProcess(Number(row.pid), hostId.value));
+}
+
+/** 重启进程（ProfileProcesses @restart） */
+async function onProfileRestart(row: Record<string, any>): Promise<void> {
+  if (!await confirmProfileAction(`确定重启进程 ${row.name ?? ""}（PID ${row.pid}）？`)) return;
+  await runProfileAction(`restart-${row.pid}`, restartHostProcess(Number(row.pid), hostId.value));
+}
+
+/** 服务启停（ProfileServices @start/@stop/@restart） */
+async function onProfileService(row: Record<string, any>, action: "start" | "stop" | "restart"): Promise<void> {
+  const label = action === "start" ? "启动" : action === "stop" ? "停止" : "重启";
+  if (action !== "start" && !await confirmProfileAction(`确定${label}服务 ${row.displayName || row.name}？`)) return;
+  const call = action === "start" ? startService : action === "stop" ? stopService : restartService;
+  await runProfileAction(`service-${action}-${row.name}`, call(String(row.name), hostId.value));
+}
+
+/** 关闭占用端口的进程（ProfilePorts @close） */
+async function onProfileClosePort(row: Record<string, any>): Promise<void> {
+  if (!await confirmProfileAction(`确定结束 PID ${row.pid}？它正占用 ${row.protocol ?? ""} ${row.port}。`)) return;
+  await runProfileAction(`netproc-${row.pid}-${row.port}`,
+    closeNetProcess(Number(row.pid), Number(row.port) || undefined, hostId.value));
+}
+
+/** 网卡配置下发后重拉分区（ProfileNetwork @applied） */
+function onProfileNetworkApplied(): void {
+  void loadProfileSection();
+}
+
+/** 检索输入过程：只更新本地关键字（非分页分区立即前端过滤），不触发请求（Profile* @search） */
+function onProfileSearch(kw: string): void {
+  profileKeyword.value = kw;
+}
+/** 检索确认（回车/点搜索/清空）：分页分区重发请求（Profile* @commit） */
+function onProfileCommit(kw: string): void {
+  profileKeyword.value = kw;
+  profilePage.value = 1;
+  void loadProfileSection();
 }
 </script>
 
@@ -1712,7 +1693,7 @@ async function submitProfileEnv(): Promise<void> {
         </div>
       </section>
 
-      <!-- 画像分区（与 HostProfileView 同口径：走 /ms/server/host/profile/{hostId}/{section}） -->
+      <!-- 画像分区（复用 HostProfileView 同款 Profile* 组件，走 /ms/server/host/profile/{hostId}/{section}） -->
       <section class="profile-panel">
         <div class="pp-head">
           <span class="pp-title">画像分区</span>
@@ -1724,82 +1705,128 @@ async function submitProfileEnv(): Promise<void> {
             >{{ s.label }}</button>
           </div>
         </div>
-        <div class="pp-bar">
-          <span v-if="profileTab !== 'network'" class="dim">
-            <template v-if="profilePaged">
-              {{ profileKeyword.trim() ? `命中 ${profileTotal} 条` : `共 ${profileTotal} 条` }}
-              <template v-if="profileTruncated">，已达采集上限，仅显示前 500 条</template>
-            </template>
-            <template v-else>
-              {{ profileKeyword.trim() ? `命中 ${profileVisibleRows.length} 条` : `共 ${profileVisibleRows.length} 条` }}
-            </template>
-          </span>
-          <span v-else class="dim">Windows 网络连接视图</span>
-          <div class="pp-pager">
-            <ReInput v-if="profileTab !== 'network'" v-model="profileKeyword" class="pp-search" placeholder="关键字过滤" clearable @keyup.enter="applyProfileKeyword" @clear="applyProfileKeyword" />
-            <template v-if="profilePaged">
-              <ReButton @click="applyProfileKeyword">搜索</ReButton>
-              <ReButton :disabled="profilePage <= 1 || profileLoading" @click="changeProfilePage(-1)">上一页</ReButton>
-              <span class="mono page-no">{{ profilePage }}</span>
-              <ReButton :disabled="profileLoading || profilePage * profilePageSize >= profileTotal" @click="changeProfilePage(1)">下一页</ReButton>
-            </template>
-            <ReButton v-if="profileTab === 'env'" type="primary" icon="Plus" @click="profileEnvDialog = true">新增变量</ReButton>
-            <ReButton type="primary" icon="Refresh" :loading="profileLoading" @click="loadProfileSection">刷新</ReButton>
-          </div>
-        </div>
-        <div v-if="profileError" class="pp-error">{{ profileError }}</div>
-        <div v-else-if="profileTab === 'network'" class="pp-net">
-          <HostNetworkAdapters
-            :host-id="hostId"
-            :rows="profileRows"
-            :platform="hostRecord?.serverHostOsType"
-            @applied="loadProfileSection"
-          />
-        </div>
-        <div v-else-if="profileLoading && !profileRows.length" class="dim pp-loading">正在拉取…</div>
-        <div v-else-if="!profileVisibleRows.length" class="dim pp-loading">{{ profileKeyword.trim() ? "关键字未命中任何一行" : "该分区无数据" }}</div>
-        <div v-else class="pp-scroll">
-          <table class="pp-table">
-            <thead>
-              <tr>
-                <th
-                  v-for="col in PROFILE_COLUMNS[profileTab]" :key="col.key"
-                  :class="['pp-th', { sortable: col.sortable, 'sort-on': profileSortKey === col.key, right: col.align === 'right' }]"
-                  @click="col.sortable && toggleProfileSort(col.key)"
-                >{{ col.label }}</th>
-                <th v-if="profileTab === 'ports' || profileTab === 'processes' || profileTab === 'services' || profileTab === 'env'">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(r, idx) in profileVisibleRows" :key="idx">
-                <td v-for="col in PROFILE_COLUMNS[profileTab]" :key="col.key" :class="['mono', { right: col.align === 'right' }]">
-                  <template v-if="profileTab === 'ports' && col.key === 'state'">
-                    <span v-if="portStatus(r.state).open !== null" class="port-status" :class="portStatus(r.state).open ? 'ps-open' : 'ps-closed'">
-                      <i class="ps-dot"></i>{{ portStatus(r.state).text }}
-                    </span>
-                    <span v-else>—</span>
-                  </template>
-                  <template v-else>{{ r[col.key] ?? "—" }}</template>
-                </td>
-                <td v-if="profileTab === 'processes'">
-                  <ReButton icon="RefreshRight" :loading="profileBusyRow === `restart-${r.pid}`" :disabled="!Number(r.pid)" @click="confirmProfileAction(`确定重启进程 ${r.name ?? ''}（PID ${r.pid}）？`).then(ok => ok && runProfileAction(`restart-${r.pid}`, restartHostProcess(Number(r.pid), hostId)))">重启</ReButton>
-                  <ReButton icon="CircleClose" type="danger" :loading="profileBusyRow === `kill-${r.pid}`" :disabled="!Number(r.pid)" @click="confirmProfileAction(`确定结束进程 ${r.name ?? ''}（PID ${r.pid}）？该操作不可恢复。`).then(ok => ok && runProfileAction(`kill-${r.pid}`, killProcess(Number(r.pid), hostId)))">结束</ReButton>
-                </td>
-                <td v-else-if="profileTab === 'services'">
-                  <ReButton icon="VideoPlay" type="primary" :loading="profileBusyRow === `service-start-${r.name}`" @click="runProfileAction(`service-start-${r.name}`, startService(String(r.name), hostId))">启动</ReButton>
-                  <ReButton icon="VideoPause" type="danger" :loading="profileBusyRow === `service-stop-${r.name}`" @click="confirmProfileAction(`确定停止服务 ${r.displayName || r.name}？`).then(ok => ok && runProfileAction(`service-stop-${r.name}`, stopService(String(r.name), hostId)))">停止</ReButton>
-                  <ReButton icon="RefreshRight" :loading="profileBusyRow === `service-restart-${r.name}`" @click="confirmProfileAction(`确定重启服务 ${r.displayName || r.name}？`).then(ok => ok && runProfileAction(`service-restart-${r.name}`, restartService(String(r.name), hostId)))">重启</ReButton>
-                </td>
-                <td v-else-if="profileTab === 'ports'">
-                  <ReButton icon="CircleClose" type="danger" :loading="profileBusyRow === `netproc-${r.pid}-${r.port}`" :disabled="!Number(r.pid)" @click="confirmProfileAction(`确定结束 PID ${r.pid}？它正占用 ${r.protocol ?? ''} ${r.port}。`).then(ok => ok && runProfileAction(`netproc-${r.pid}-${r.port}`, closeNetProcess(Number(r.pid), Number(r.port) || undefined, hostId)))">结束</ReButton>
-                </td>
-                <td v-else-if="profileTab === 'env'">
-                  <ReButton icon="Delete" type="danger" :loading="profileBusyRow === `env-del-${r.name}`" @click="confirmProfileAction(`确定删除系统级环境变量 ${r.name}？`).then(ok => ok && runProfileAction(`env-del-${r.name}`, deleteHostEnvVar(hostId, String(r.name))))">删除</ReButton>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+
+        <!-- 磁盘：容量环卡片，点卡片打开该盘根目录 -->
+        <ProfileDisks
+          v-if="profileTab === 'disks'"
+          :rows="profileVisibleRows"
+          :keyword="profileKeyword"
+          :loading="profileLoading"
+          :error="profileError"
+          :total="profileVisibleRows.length"
+          @search="onProfileSearch"
+          @commit="onProfileCommit"
+          @refresh="loadProfileSection"
+        />
+
+        <!-- 进程：排名条 + 展开详情 -->
+        <ProfileProcesses
+          v-else-if="profileTab === 'processes'"
+          :rows="profileVisibleRows"
+          :keyword="profileKeyword"
+          :loading="profileLoading"
+          :error="profileError"
+          paged
+          :page="profilePage"
+          :page-size="profilePageSize"
+          :total="profileTotal"
+          :truncated="profileTruncated"
+          :busy-key="profileBusyRow"
+          @search="onProfileSearch"
+          @commit="onProfileCommit"
+          @page="changeProfilePage"
+          @refresh="loadProfileSection"
+          @restart="onProfileRestart"
+          @kill="onProfileKill"
+        />
+
+        <!-- 服务：运行中 / 已停止 双列 -->
+        <ProfileServices
+          v-else-if="profileTab === 'services'"
+          :rows="profileVisibleRows"
+          :keyword="profileKeyword"
+          :loading="profileLoading"
+          :error="profileError"
+          paged
+          :page="profilePage"
+          :page-size="profilePageSize"
+          :total="profileTotal"
+          :truncated="profileTruncated"
+          :busy-key="profileBusyRow"
+          @search="onProfileSearch"
+          @commit="onProfileCommit"
+          @page="changeProfilePage"
+          @refresh="loadProfileSection"
+          @start="(r: Record<string, any>) => onProfileService(r, 'start')"
+          @stop="(r: Record<string, any>) => onProfileService(r, 'stop')"
+          @restart="(r: Record<string, any>) => onProfileService(r, 'restart')"
+        />
+
+        <!-- 监听端口：按协议分组的端口块 -->
+        <ProfilePorts
+          v-else-if="profileTab === 'ports'"
+          :rows="profileVisibleRows"
+          :keyword="profileKeyword"
+          :loading="profileLoading"
+          :error="profileError"
+          paged
+          :page="profilePage"
+          :page-size="profilePageSize"
+          :total="profileTotal"
+          :truncated="profileTruncated"
+          :busy-key="profileBusyRow"
+          @search="onProfileSearch"
+          @commit="onProfileCommit"
+          @page="changeProfilePage"
+          @refresh="loadProfileSection"
+          @close="onProfileClosePort"
+        />
+
+        <!-- 网络：网卡总览卡 + 原有配置能力 -->
+        <ProfileNetwork
+          v-else-if="profileTab === 'network'"
+          :host-id="hostId"
+          :rows="profileRows"
+          :platform="hostRecord?.serverHostOsType"
+          :loading="profileLoading"
+          :error="profileError"
+          @refresh="loadProfileSection"
+          @applied="onProfileNetworkApplied"
+        />
+
+        <!-- 环境变量：键值台账 -->
+        <ProfileEnv
+          v-else-if="profileTab === 'env'"
+          :rows="profileVisibleRows"
+          :keyword="profileKeyword"
+          :loading="profileLoading"
+          :error="profileError"
+          :busy-key="profileBusyRow"
+          @search="onProfileSearch"
+          @commit="onProfileCommit"
+          @refresh="loadProfileSection"
+          @add="profileEnvDialog = true"
+          @remove="onProfileDeleteEnv"
+          @copy="copyText"
+        />
+
+        <!-- 防火墙：方向优先的规则行 -->
+        <ProfileFirewall
+          v-else
+          :rows="profileVisibleRows"
+          :keyword="profileKeyword"
+          :loading="profileLoading"
+          :error="profileError"
+          paged
+          :page="profilePage"
+          :page-size="profilePageSize"
+          :total="profileTotal"
+          :truncated="profileTruncated"
+          @search="onProfileSearch"
+          @commit="onProfileCommit"
+          @page="changeProfilePage"
+          @refresh="loadProfileSection"
+        />
       </section>
 
       <!-- 磁盘（Windows「此电脑」风格驱动器磁片，响应式自适应） -->

@@ -1,8 +1,25 @@
 <template>
-  <div class="flex-1">
-    <!-- 动态渲染所有配置分组 -->
-    <SettingsCard v-for="group in displayGroups" :key="group.group" :title="group.groupName"
-      v-show="!fieldSearch || groupMatchesSearch(group)">
+  <div class="dms-root">
+    <!-- Ledger 布局：左锚点导航 + 右卡片列 -->
+    <GroupNavRail v-if="!singleGroupMode"
+      :groups="navGroups" :active="activeGroup"
+      :total="displayGroups.length" :configured="configuredCount"
+      @select="jumpToGroup" />
+    <GroupNavRail v-else single
+      :groups="navGroups" :active="activeGroup"
+      @select="jumpToGroup" />
+
+    <div class="dms-maint">
+      <div v-if="!singleGroupMode" class="dms-toolbar">
+        <el-input v-model="fieldSearch" placeholder="搜索配置项..." clearable class="dms-toolbar__search">
+          <template #prefix><el-icon><Search /></el-icon></template>
+        </el-input>
+      </div>
+
+      <div class="dms-groups">
+        <section v-for="group in displayGroups" :key="group.group" :ref="setGroupRef(group.group)"
+          v-show="!fieldSearch || groupMatchesSearch(group)" class="dms-group">
+          <SettingsCard :title="group.groupName" :subtitle="groupSubtitle(group)">
       <!-- 模型字段：始终显示 -->
       <SettingsRow
         v-for="item in visibleFields(group)"
@@ -170,6 +187,9 @@
       </el-collapse>
 
     </SettingsCard>
+    </section>
+
+    </div><!-- /dms-groups -->
 
     <!-- 模型选择对话框 -->
     <ReDialog :close-on-click-modal="true" v-model="modelDialogVisible" title="选择模型" width="600px">
@@ -212,11 +232,12 @@
         <ReButton type="default" @click="clearModelField">清空（使用默认）</ReButton>
       </template>
     </ReDialog>
-  </div>
+    </div><!-- /dms-maint -->
+  </div><!-- /dms-root -->
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { OpenAI } from "@/components/icons";
 import { ArrowDown, Search } from "@element-plus/icons-vue";
@@ -346,6 +367,100 @@ const usageParsers = ref([])
 
 // 高级选项展开的分组
 const activeAdvanced = ref([])
+
+// ===================== Ledger 布局：锚点导航 + 搜索 + 分组定位 =====================
+// 即席字段搜索：命中分组名或任一可见字段的标签/说明/字段名
+const fieldSearch = ref('')
+
+/** 当前锚点命中的分组（滚动跟随；无滚动时取第一个分组） */
+const activeGroup = ref('')
+
+/** 分组 DOM 引用表（锚点点击时平滑滚到对应卡片） */
+const groupEls = new Map()
+
+/** 单分组模式（独立配置页复用本组件）：不显示锚点导航条与全局统计 */
+const singleGroupMode = computed(() => isSplitGroupMode())
+
+/** 分组的副标题：默认给「N 项配置」，比纯标题多了信息量 */
+const groupSubtitle = (group) => {
+    const items = (group.items || []).filter((it) => notAdminOnly(it) && shouldShowField(group.group, it.field))
+    return items.length > 0 ? `${items.length} 项配置` : ''
+}
+
+/** 分组是否已配置（任一可见字段有非空值）→ 锚点圆点用 */
+const groupConfigured = (group) =>
+    (group.items || []).some((item) => {
+        if (!notAdminOnly(item) || !shouldShowField(group.group, item.field)) return false
+        const v = groupValues[group.group]?.[item.field]
+        return v !== undefined && v !== null && String(v).trim() !== ''
+    })
+
+/** 锚点导航数据：分组名 + 配置状态 */
+const navGroups = computed(() =>
+    displayGroups.value.map((g) => ({
+        group: g.group,
+        groupName: g.groupName,
+        configured: groupConfigured(g),
+    })))
+
+/** 已配置分组数（锚点头部统计） */
+const configuredCount = computed(() => navGroups.value.filter((g) => g.configured).length)
+
+/** 分组搜索过滤：命中分组名或任一可见字段 */
+const groupMatchesSearch = (group) => {
+    const q = fieldSearch.value.trim().toLowerCase()
+    if (!q) return true
+    if (String(group.groupName || '').toLowerCase().includes(q)) return true
+    return (group.items || []).some((item) => {
+        if (!notAdminOnly(item) || !shouldShowField(group.group, item.field)) return false
+        const label = String(getFieldLabel(item) || '').toLowerCase()
+        const desc = String(item.description || '').toLowerCase()
+        const name = String(item.field || '').toLowerCase()
+        return label.includes(q) || desc.includes(q) || name.includes(q)
+    })
+}
+
+/** 分组卡片 DOM 注册（模板 :ref 回调） */
+const setGroupRef = (key) => (el) => {
+    if (el) groupEls.set(key, el)
+    else groupEls.delete(key)
+}
+
+/** 锚点点击：滚动到对应分组卡片并更新高亮 */
+const jumpToGroup = (key) => {
+    activeGroup.value = key
+    const el = groupEls.get(key)
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+/** 滚动跟随：内容滚动时更新锚点高亮（取视口内最靠上的分组） */
+const onScrollSync = () => {
+    const keys = [...groupEls.keys()]
+    if (keys.length === 0) return
+    let current = keys[0]
+    for (const key of keys) {
+        const el = groupEls.get(key)
+        if (!el) continue
+        const rect = el.getBoundingClientRect()
+        // 分组卡片顶部进入视口上方 1/3 以内即视为当前
+        if (rect.top <= Math.min(window.innerHeight * 0.4, 220)) {
+            current = key
+        } else {
+            break
+        }
+    }
+    activeGroup.value = current
+}
+
+onMounted(() => {
+    window.addEventListener('scroll', onScrollSync, { passive: true })
+    // 首屏数据就绪后校准一次锚点（卡片高度随内容展开而变）
+    nextTick(onScrollSync)
+})
+
+onBeforeUnmount(() => {
+    window.removeEventListener('scroll', onScrollSync)
+})
 
 // ===================== 向量库配置（描述器驱动的动态表单） =====================
 // 后端 VectorStorageProvider SPI 的 descriptor() 声明每个实现的配置项（键/类型/必填/敏感），
@@ -1626,6 +1741,9 @@ onMounted(async () => {
     if (isAdmin()) {
         await loadVectorGlobalSettings()
     }
+    // 分组卡片渲染完成后校准锚点（数据刚到，卡片高度才稳定）
+    await nextTick()
+    onScrollSync()
 })
 </script>
 
