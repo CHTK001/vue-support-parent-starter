@@ -1168,24 +1168,12 @@ let profileReq = 0;
 const profilePaged = computed(() =>
   profileTab.value === "processes" || profileTab.value === "services"
   || profileTab.value === "ports" || profileTab.value === "firewall");
-/** 分页分区由后端返回当前页；非分页分区在前端过滤 + 排序 */
+/** 分页分区由后端返回当前页；非分页分区在前端过滤（排序由 Profile* 组件内部处理） */
 const profileVisibleRows = computed(() => {
   const kw = profileKeyword.value.trim().toLowerCase();
-  const base = profilePaged.value || !kw
-    ? profileRows.value
-    : profileRows.value.filter(r => Object.values(r).some(v =>
-        v !== null && v !== undefined && String(v).toLowerCase().includes(kw)));
-  if (!profileSortKey.value) return base;
-  const key = profileSortKey.value!;
-  const dir = profileSortDir.value === "asc" ? 1 : -1;
-  return [...base].sort((a, b) => {
-    const av = a?.[key], bv = b?.[key];
-    if (av == null || av === "") return dir;
-    if (bv == null || bv === "") return -dir;
-    const an = Number(av), bn = Number(bv);
-    if (!Number.isNaN(an) && !Number.isNaN(bn) && typeof av !== "string") return (an - bn) * dir;
-    return String(av).localeCompare(String(bv), "zh-Hans-CN") * dir;
-  });
+  if (profilePaged.value || !kw) return profileRows.value;
+  return profileRows.value.filter(r => Object.values(r).some(v =>
+    v !== null && v !== undefined && String(v).toLowerCase().includes(kw)));
 });
 
 /** 切分区先归零页码与关键字 */

@@ -1499,6 +1499,40 @@ onMounted(() => {
   flex-direction: column;
 }
 
+/* ===== 本页行内视觉精修 ===== */
+
+/* 消息标题：加粗 + 主色 hover（hover 移到 ReTable 行内 a / [role=button] 的焦点环一致） */
+.msg-title {
+  display: inline-block;
+  max-width: 100%;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+/* 接收者：「全体用户」用小徽标区分广播，具体接收者用常规文字 */
+.msg-receiver-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 19px;
+  padding: 0 7px;
+  border-radius: var(--el-radius-xs, 4px);
+  font-size: 12px;
+  line-height: 1;
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+}
+.msg-receiver-all__icon { color: var(--el-text-color-secondary); }
+.msg-receiver {
+  color: var(--el-text-color-primary);
+  white-space: nowrap;
+}
+
 /* 本页不再覆盖 ReTable 的卡片外观：1px 描边、卡片圆角与投影、hover / focus-within
    反馈全部由 ReTable 与 ReTableToolbar 自身提供（见 packages/ui ReTable/shared/table-vars.css
    与 ReTable.vue 的 .re-table--separated 规则），换模块无需重写。 */
