@@ -353,6 +353,7 @@ import { apiService } from '@/services/ApiService'
 import { useFaceRegistry, ageBucket, maskIdCard, type FaceRecord } from '@/composables/useFaceRegistry'
 import { createAuthImageLoader, pendingPlaceholder } from '@/utils/authImage'
 import { configuredValue } from '@/utils/modelConfigStatus'
+import { toErrorMessage } from '@/utils/errors'
 import { useModelConfigStore } from '@/stores/modelConfig'
 import FaceEnrollDialog from '../management/FaceEnrollDialog.vue'
 import FaceLandmarkDialog from '../management/FaceLandmarkDialog.vue'
@@ -731,7 +732,7 @@ async function load(target = 1) {
       tableRef.value?.reload()
     }
   } catch (e: any) {
-    message.error('加载人脸底库失败：' + (e?.message ?? e))
+    message.error('加载人脸底库失败：' + toErrorMessage(e))
   } finally {
     loading.value = false
   }

@@ -308,6 +308,7 @@ import type { ReTableColumn, ReTableLoadParams, RePageResult } from '@repo/ui/re
 import { apiService } from '@/services/ApiService'
 import { resolveImageUrl } from '@/utils/imageSearchUrl'
 import { createAuthImageLoader } from '@/utils/authImage'
+import { toErrorMessage } from '@/utils/errors'
 import { usePopup } from '@/composables/usePopup'
 import { useModelConfigStore } from '@/stores/modelConfig'
 
@@ -923,7 +924,7 @@ async function load(target = 1) {
   } catch (e: any) {
     items.value = []
     total.value = 0
-    toast.error(e?.message || '加载图像底库失败')
+    toast.error(toErrorMessage(e, '加载图像底库失败'))
   } finally {
     loading.value = false
   }
