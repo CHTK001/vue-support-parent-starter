@@ -16,10 +16,11 @@ import {
   getTsharkProtocolStats, getTsharkTopFlows, tsharkPcapUrl, importTsharkPcap,
   getTsharkTimeline, getTsharkAnomalies,
   openTsharkPacketStream,
+  getTsharkStatus, installTshark, openTsharkInstallStream,
 } from '../../api'
 import type {
   TsharkAnomaly, TsharkFlow, TsharkInterface, TsharkPacket, TsharkProtocolStat,
-  TsharkSession, TsharkSessionFilter, TsharkTimelinePoint,
+  TsharkRuntimeStatus, TsharkSession, TsharkSessionFilter, TsharkTimelinePoint,
 } from './types'
 
 /** 会话列表每页条数（前端分页） */
@@ -68,7 +69,39 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
 
   // ===== TShark 环境 =====
   const tsharkOk = ref(false)
+  /**
+   * 运行时状态：比 tsharkOk 多带「在下载 / 解压 / 失败原因 / 能否实时抓包」。
+   *
+   * <p>服务端启动时就会自己补一次，页面做的只是「把这件事显示出来，并在失败时给重试」。</p>
+   */
+  const runtime = ref<TsharkRuntimeStatus | null>(null)
   const interfaces = ref<TsharkInterface[]>([])
+
+  /** 是否正处于「安装中」的可见阶段（决定页面要不要弹进度框） */
+  const installActive = computed(() => {
+    const state = runtime.value?.state
+    return state === 'CHECKING' || state === 'DOWNLOADING' || state === 'EXTRACTING'
+  })
+
+  /** 能否实时抓包；缺 Npcap / libpcap 时为 false */
+  const captureReady = computed(() => !!runtime.value?.captureReady)
+
+  /**
+   * 状态标文案。
+   *
+   * <p>安装中直接显示进度：比一律写「未就绪」有用得多 —— 运维一眼能分清
+   * 「正在装」「装不上」和「已经装好了」。</p>
+   */
+  const statusText = computed(() => {
+    const s = runtime.value
+    if (!s) return tsharkOk.value ? 'TShark 可用' : 'TShark 未就绪'
+    if (s.state === 'DOWNLOADING') return `TShark 下载中 ${Math.round(s.progress)}%`
+    if (s.state === 'EXTRACTING') return 'TShark 解压中'
+    if (s.state === 'CHECKING') return 'TShark 探测中'
+    if (s.state === 'FAILED') return 'TShark 安装失败'
+    if (s.state === 'MISSING') return 'TShark 未安装'
+    return s.ready ? 'TShark 可用' : 'TShark 未就绪'
+  })
 
   // ===== 抓包参数 =====
   const iface = ref('')
@@ -305,12 +338,108 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
 
   // ==================== 初始化 ====================
   async function init() {
-    try {
-      tsharkOk.value = await checkTshark()
-    } catch {
-      tsharkOk.value = false
+    await refreshRuntime()
+    if (!runtime.value?.ready) {
+      // 服务端已经在自己补了，这里接上进度流；中途打开页面也能看到真实进度
+      openInstallStream()
     }
     await Promise.allSettled([loadInterfaces(), loadSessions()])
+  }
+
+  /**
+   * 拉一次运行时状态。
+   *
+   * <p>后端未升级（没有 /status）时回落到旧的 /check，页面不至于因为探测失败而整块不可用。</p>
+   */
+  async function refreshRuntime() {
+    try {
+      applyRuntime(await getTsharkStatus())
+    } catch {
+      try {
+        tsharkOk.value = await checkTshark()
+      } catch {
+        tsharkOk.value = false
+      }
+    }
+  }
+
+  /**
+   * 应用一份运行时状态。
+   *
+   * @param next 状态；为空表示没取到
+   */
+  function applyRuntime(next: TsharkRuntimeStatus | null | undefined) {
+    if (!next) return
+    runtime.value = next
+    tsharkOk.value = !!next.ready
+    if (next.ready) {
+      closeInstallStream()
+      stopInstallPoll()
+    }
+  }
+
+  /**
+   * 触发一次安装 / 重试。
+   *
+   * <p>失败后不需要重启服务：后端接口是幂等的，这里重新接上进度流即可。</p>
+   */
+  async function installNow() {
+    try {
+      applyRuntime(await installTshark())
+      openInstallStream()
+    } catch (e) {
+      message.error('触发安装失败: ' + errorText(e))
+    }
+  }
+
+  // ==================== 安装进度 SSE ====================
+  let installStream: { close?: () => void } | null = null
+  let installPollTimer: ReturnType<typeof setInterval> | null = null
+
+  /** 关掉安装进度流 */
+  function closeInstallStream() {
+    installStream?.close?.()
+    installStream = null
+  }
+
+  /**
+   * 接上安装进度流。
+   *
+   * <p>SSE 断线（代理掐长连接、后端重启）时退回 3s 轮询：进度条停住不动比没有进度条更糟。</p>
+   */
+  function openInstallStream() {
+    closeInstallStream()
+    installStream = openTsharkInstallStream({
+      onMessage: (event: { event?: string; data?: any }) => {
+        if (event.event === 'progress' || event.event === 'ready') {
+          applyRuntime(event.data as TsharkRuntimeStatus)
+        }
+      },
+      onError: () => {
+        installStream = null
+        startInstallPoll()
+      },
+    })
+  }
+
+  /** 兜底轮询：只在 SSE 不可用时启动 */
+  function startInstallPoll() {
+    if (installPollTimer) return
+    installPollTimer = setInterval(async () => {
+      try {
+        applyRuntime(await getTsharkStatus())
+      } catch {
+        /* 轮询失败保持现状，等下一轮 */
+      }
+    }, 3000)
+  }
+
+  /** 停掉兜底轮询 */
+  function stopInstallPoll() {
+    if (installPollTimer) {
+      clearInterval(installPollTimer)
+      installPollTimer = null
+    }
   }
 
   async function loadInterfaces() {
@@ -721,12 +850,14 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
   onBeforeUnmount(() => {
     socketUnsubs.forEach(fn => fn?.())
     closePacketStream()
+    closeInstallStream()
+    stopInstallPoll()
     if (liveRefreshTimer) clearTimeout(liveRefreshTimer)
   })
 
   return {
     // 环境
-    tsharkOk, interfaces, ifaceOptions,
+    tsharkOk, runtime, installActive, captureReady, statusText, installNow, interfaces, ifaceOptions,
     // 抓包参数
     iface, filter, filterType, captureName, count, timeout, maxSizeMb, starting, importing,
     // 会话
@@ -744,6 +875,7 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     liveCount, liveConnected,
     // 动作
     init, loadInterfaces, loadSessions, selectSession, setSessionKeyword, setSessionFilter,
+    refreshRuntime,
     clearActiveSession, loadPackets, applyPacketFilter, clearPacketFilter,
     filterByProtocol, filterByFlow, refresh, exportCsv,
     downloadPcap, loadStats, loadTimeline, startCapture, stopSession, deleteSession, openPacketDetail,

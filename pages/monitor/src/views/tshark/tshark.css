@@ -74,6 +74,11 @@
   gap: 7px;
   flex: none;
   padding: 5px 12px;
+  /* 可点击（打开安装进度框），因此要把按钮的默认描边与底色清掉 */
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
   border-radius: var(--el-radius-full, 9999px);
   font-size: 12px;
   font-weight: 600;
@@ -82,6 +87,11 @@
   transition:
     color var(--el-transition-duration-fast, 0.2s) ease,
     background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.tshark-status:hover { filter: brightness(0.96); }
+.tshark-status:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 2px;
 }
 .tshark-status--ok {
   color: var(--el-color-success);

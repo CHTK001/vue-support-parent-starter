@@ -47,10 +47,16 @@
         @refresh="loadSessions(false)"
       >
         <template #bar-actions>
-          <span class="tshark-status" :class="tsharkOk ? 'tshark-status--ok' : 'tshark-status--bad'">
+          <button
+            type="button"
+            class="tshark-status"
+            :class="tsharkOk ? 'tshark-status--ok' : 'tshark-status--bad'"
+            :title="runtime?.message || '查看 TShark 安装状态'"
+            @click="installVisible = true"
+          >
             <span class="tshark-status__dot" />
-            <span>{{ tsharkOk ? 'TShark 可用' : 'TShark 未就绪' }}</span>
-          </span>
+            <span>{{ statusText }}</span>
+          </button>
 
           <input
             ref="fileInput"
@@ -197,11 +203,18 @@
       :packet="lifecyclePacket"
       @open-detail="openPacketDetailById"
     />
+
+    <!-- 安装进度：与「抓包分析」页共用同一个组件与同一份状态 -->
+    <ScTsharkInstallDialog
+      v-model="installVisible"
+      :status="runtime"
+      @retry="installNow"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { message } from '@repo/core'
 import { useTshark } from './useTshark'
 import TsharkSessionStage from './TsharkSessionStage.vue'
@@ -212,6 +225,7 @@ import ScTsharkFlowPanel from './ScTsharkFlowPanel.vue'
 import ScTsharkInsightsPanel from './ScTsharkInsightsPanel.vue'
 import ScTsharkPacketDetail from './ScTsharkPacketDetail.vue'
 import ScTsharkLifecycleDialog from './ScTsharkLifecycleDialog.vue'
+import ScTsharkInstallDialog from './ScTsharkInstallDialog.vue'
 import { sessionName, statusOf, timeRange, fmtDuration, fmtSize } from './tsharkFormat'
 import type { TsharkFlow, TsharkPacket, TsharkTabKey } from './types'
 import './tshark.css'
@@ -230,7 +244,7 @@ const MAX_UPLOAD_BYTES = 2048 * 1024 * 1024
  * 「目录 / 详情」这一级状态 —— 不另设 showDetail 标志，少一处能与真实选中项不一致的状态。
  */
 const {
-  tsharkOk, ifaceOptions, importing,
+  tsharkOk, runtime, installActive, statusText, installNow, ifaceOptions, importing,
   loadingSessions, sessions, sessionBackendTotal,
   activeSessionId, activeSession,
   runningCount: parsingCount,
@@ -243,6 +257,16 @@ const {
   loadTimeline,
   exportCsv, downloadPcap, deleteSession, openPacketDetail, openPacketDetailById, importPcap,
 } = useTshark({ source: 'import', autoSelectFirst: false })
+
+/** 安装进度框：两个页面共用同一个组件与同一份状态 */
+const installVisible = ref(false)
+const installDismissed = ref(false)
+watch(installActive, (active) => {
+  if (active && !installDismissed.value) installVisible.value = true
+}, { immediate: true })
+watch(installVisible, (visible) => {
+  if (!visible && installActive.value) installDismissed.value = true
+})
 
 /** 生命周期弹层：右键报文触发，与「抓包分析」页同一套组件 */
 const lifecycleVisible = ref(false)

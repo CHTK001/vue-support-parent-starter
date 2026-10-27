@@ -510,7 +510,50 @@ export const getAgentConfig = (monitorId: number) =>
   http().get(`${B}/agent/config/${monitorId}`).then(r => unwrap<{ collectIntervalMs: number; tasks: { taskName: string; taskType: string; taskCron: string }[] }>(r));
 
 // ===== TShark 网络抓包 =====
+/**
+ * tshark 运行时状态。
+ *
+ * <p>对应 {@code GET /tshark/status} 与安装进度 SSE 的载荷：比布尔型的
+ * {@code /tshark/check} 多回答三件事 —— 卡在哪一步、能不能实时抓包、不能时为什么。</p>
+ */
+export interface TsharkRuntimeStatus {
+  /** CHECKING / MISSING / DOWNLOADING / EXTRACTING / READY / FAILED */
+  state: 'CHECKING' | 'MISSING' | 'DOWNLOADING' | 'EXTRACTING' | 'READY' | 'FAILED'
+  /** 进度百分比 0-100 */
+  progress: number
+  /** 面向运维的一句话说明 */
+  message: string
+  /** 可执行且版本探测通过：能解析 / 导入 pcap */
+  ready: boolean
+  /** 存在可用抓包接口：能实时抓包（缺 Npcap 时为 false） */
+  captureReady: boolean
+  /** 实际使用的可执行文件 */
+  binPath: string
+  /** 版本首行 */
+  version: string
+  /** 来源：env / property / installed / system / path */
+  source: string
+  /** 状态更新时间（epoch 毫秒） */
+  updatedAt: number
+}
 export const checkTshark = () => http().get(`${B}/tshark/check`).then(r => unwrap<boolean>(r));
+/**
+ * tshark 运行时状态。
+ *
+ * <p>比 {@link checkTshark} 多带安装进度与「能否实时抓包」，页面据此决定是显示进度条、
+ * 提示装抓包驱动，还是直接放行。</p>
+ */
+export const getTsharkStatus = () => http().get(`${B}/tshark/status`).then(r => unwrap<TsharkRuntimeStatus>(r));
+/** 触发服务端异步补齐 tshark（幂等，失败可重试） */
+export const installTshark = () => http().post(`${B}/tshark/install`).then(r => unwrap<TsharkRuntimeStatus>(r));
+/**
+ * 安装进度推送（SSE）。
+ *
+ * <p>事件名 {@code progress}，载荷同 {@link getTsharkStatus}；建连即回一帧当前状态，
+ * 所以中途打开页面也能看到真实进度。</p>
+ */
+export const openTsharkInstallStream = (options: Record<string, any> = {}) =>
+  http().get(`${B}/tshark/install/stream`).sse<any>({ reconnect: true, ...options });
 export const getTsharkInterfaces = () => http().get(`${B}/tshark/interfaces`).then(r => unwrap<string[]>(r));
 export const startTsharkCapture = (d: any) =>
   http().post(`${B}/tshark/capture`).data(d).then(r => unwrap<any>(r));

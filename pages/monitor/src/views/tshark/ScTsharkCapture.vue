@@ -36,15 +36,28 @@
       @refresh="refresh"
     >
       <template #bar-actions>
-        <span class="tshark-status" :class="tsharkOk ? 'tshark-status--ok' : 'tshark-status--bad'">
+        <button
+          type="button"
+          class="tshark-status"
+          :class="tsharkOk ? 'tshark-status--ok' : 'tshark-status--bad'"
+          :title="runtime?.message || '查看 TShark 安装状态'"
+          @click="installVisible = true"
+        >
           <span class="tshark-status__dot" />
-          <span>{{ tsharkOk ? 'TShark 可用' : 'TShark 未就绪' }}</span>
-        </span>
+          <span>{{ statusText }}</span>
+        </button>
         <ReButton type="primary" icon="Plus" :disabled="!tsharkOk" @click="createVisible = true">
           新增会话
         </ReButton>
       </template>
     </TsharkSessionStage>
+
+    <!-- 安装进度：服务端自动补齐时自动弹出，失败可重试 -->
+    <ScTsharkInstallDialog
+      v-model="installVisible"
+      :status="runtime"
+      @retry="onRetryInstall"
+    />
 
     <!-- 新增会话 -->
     <ScTsharkCreateDialog
@@ -57,6 +70,7 @@
       v-model:timeout="timeout"
       v-model:max-size-mb="maxSizeMb"
       :tshark-ok="tsharkOk"
+      :capture-ready="captureReady"
       :iface-options="ifaceOptions"
       :starting="starting"
       @start="onCreate"
@@ -160,6 +174,7 @@ import ScTsharkFlowPanel from './ScTsharkFlowPanel.vue'
 import ScTsharkInsightsPanel from './ScTsharkInsightsPanel.vue'
 import ScTsharkPacketDetail from './ScTsharkPacketDetail.vue'
 import ScTsharkLifecycleDialog from './ScTsharkLifecycleDialog.vue'
+import ScTsharkInstallDialog from './ScTsharkInstallDialog.vue'
 import type { TsharkFlow, TsharkPacket, TsharkTabKey } from './types'
 import './tshark.css'
 
@@ -168,7 +183,8 @@ import './tshark.css'
  * 自动选中会让 SSE 在没人看的时候也一直连着。
  */
 const {
-  tsharkOk, ifaceOptions, iface, filter, filterType, captureName, count, timeout, maxSizeMb, starting,
+  tsharkOk, runtime, installActive, captureReady, statusText, installNow,
+  ifaceOptions, iface, filter, filterType, captureName, count, timeout, maxSizeMb, starting,
   loadingSessions, sessions,
   activeSessionId, activeSession,
   loadingPackets, packets, packetPage, packetTotal, packetFilter, filterError, packetPageSize,
@@ -184,6 +200,25 @@ const {
 const createVisible = ref(false)
 const detailVisible = ref(false)
 const detailTab = ref<TsharkTabKey>('packet')
+
+/** 安装进度框；服务端自动补齐时由 watch 打开 */
+const installVisible = ref(false)
+/** 用户主动关过就不再自动弹，避免一进页面就被反复弹窗打扰 */
+const installDismissed = ref(false)
+
+// 自动弹进度框：只在「真的在装」时弹；手动关掉后不再弹
+watch(installActive, (active) => {
+  if (active && !installDismissed.value) installVisible.value = true
+}, { immediate: true })
+watch(installVisible, (visible) => {
+  if (!visible && installActive.value) installDismissed.value = true
+})
+
+/** 重试：重新触发服务端补齐并继续看进度 */
+function onRetryInstall() {
+  installDismissed.value = false
+  void installNow()
+}
 
 const lifecycleVisible = ref(false)
 const lifecyclePacket = ref<TsharkPacket | null>(null)
