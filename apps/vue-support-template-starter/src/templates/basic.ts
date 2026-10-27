@@ -114,9 +114,9 @@ export const reSwitchMeta: TemplateMeta = {
       type: "select",
       default: "bulb",
       description:
-        "square 布局的两态图标集。bulb = 亮灯泡 / 灭灯泡（默认，MDI 现成图标，无动画、无中间态）；sunmoon = 太阳/月亮",
+        "square 布局的两态图标集。bulb = 实心 / 空心灯泡（默认，MDI 现成图标，无动画、无中间态）；sunmoon = 太阳/月亮",
       options: [
-        { label: "bulb（灯泡亮/灭，默认）", value: "bulb", icon: "Opportunity" },
+        { label: "bulb（实心/空心灯泡，默认）", value: "bulb", icon: "Opportunity" },
         { label: "sunmoon（太阳/月亮）", value: "sunmoon", icon: "Sunny" },
         { label: "check（对勾/叉）", value: "check", icon: "Select" },
         { label: "star（实心/空心星）", value: "star", icon: "StarFilled" },

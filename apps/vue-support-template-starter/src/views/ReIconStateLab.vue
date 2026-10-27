@@ -3,7 +3,7 @@
 
   <p>这一页把本次改动的**全部新能力**摆出来，供人工验收：</p>
   <ul>
-    <li><b>ReStateIcon</b>：内置多套图标集（sunmoon / check / star / bell / arrow / anim），
+    <li><b>ReStateIcon</b>：内置多套图标集（bulb / sunmoon / check / star / bell / arrow / anim），
         激活 / 非激活各一套，切换时做交叉过渡（fade / scale / slide / rotate）。</li>
     <li><b>ReSwitch</b>：square 布局两态图标 + 预设；popover 触发器同样支持。</li>
     <li><b>ReSelect</b>：square 布局按选项 / 组件级配置两态图标；只传 preset 时用内置集。</li>
@@ -230,6 +230,7 @@ import type { ReOption } from "@repo/ui/components/ReSelect/types";
 
 /* ── 内置预设清单 ────────────────────────────────────────── */
 const presetList = [
+  { key: "bulb", desc: "亮 / 灭灯泡 · 开关默认" },
   { key: "sunmoon", desc: "日光 / 月光 · 通用开关" },
   { key: "check", desc: "对勾 / 叉 · 选中语义" },
   { key: "star", desc: "实心 / 空心 · 收藏" },
@@ -246,11 +247,11 @@ const modeList = [
 ];
 
 /* ── 受控状态（默认值刻意避开首项，让「已选中」与「未选中」都能被看到） ──── */
-const primitiveActive = ref<Record<string, boolean>>({ sunmoon: false, check: true, star: false, bell: true, arrow: false, anim: true });
+const primitiveActive = ref<Record<string, boolean>>({ bulb: true, sunmoon: false, check: true, star: false, bell: true, arrow: false, anim: true });
 const modeActive = ref<Record<string, boolean>>({ fade: false, scale: true, slide: false, rotate: true });
 const customActive = ref(true);
 
-const switchState = ref<Record<string, boolean>>({ sunmoon: true, check: false, star: true, bell: false, arrow: true, anim: false });
+const switchState = ref<Record<string, boolean>>({ bulb: true, sunmoon: true, check: false, star: true, bell: false, arrow: true, anim: false });
 const switchCustom = ref(true);
 
 const selectState = ref<Record<string, string>>({ star: "fav", bell: "on", weather: "sunny", interval: "5s" });

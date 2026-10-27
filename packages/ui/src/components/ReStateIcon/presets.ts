@@ -15,9 +15,9 @@
  * `motion` 动画库；动画切换由 ReStateIcon 自身的 CSS 完成，与上游无关。
  * 想要上游动画图标，直接传 `preset="anim"` 或自定义 `anim:...` 即可。
  *
- * <p><b>关于 bulb</b>：它也是两张图 —— 实心亮灯泡 / 空心灭灯泡（Material Design
- * Icons）。不再自己描灯泡路径：手绘的曲线和圆角很难和图标库对齐，缩到 16px
- * 就像个歪掉的梨。两枚现成图标在小尺寸下依然一眼可辨，且切换是瞬时的。</p>
+ * <p><b>关于 bulb</b>：它也是两张图 —— 同一个灯泡的实心 / 空心两版（Material
+ * Design Icons）。不再自己描灯泡路径：手绘的曲线和圆角很难和图标库对齐，
+ * 缩到 16px 就像个歪掉的梨。两枚现成图标在小尺寸下依然一眼可辨，且切换是瞬时的。</p>
  */
 
 /** 一组状态图标：激活态 / 非激活态 */
@@ -35,12 +35,18 @@ export const STATE_ICON_PRESETS: Readonly<Record<string, StateIconSet>> = {
   /**
    * 灯泡亮 / 灯泡灭 —— 开关类控件的默认两态。
    *
-   * <p>用 Material Design Icons 的实心亮灯泡（带光线）配空心灭灯泡：
-   * 实心 vs 空心在小尺寸下也一眼可辨，且两枚都是现成图标，不用自己描路径。
-   * 图标数据离线内置在 app 侧（见 turbo/app/src/icons/builtinIcons.ts），
+   * <p>用 Material Design Icons 的<b>同一个灯泡图形</b>做实心 / 空心两态，
+   * 与其它几套预设同一路子（star = StarFilled/Star、bell = BellFilled/Bell）。
+   * 实心 vs 空心在小尺寸下也一眼可辨，而且不用自己描路径。</p>
+   *
+   * <p>不用 {@code mdi:lightbulb-on}（带一圈光线）：16px 下那几道光线会碎成
+   * 一圈小点，比灯泡本身还抢眼。想要「发光」观感时显式写
+   * {@code active-icon="mdi:lightbulb-on"} 即可。</p>
+   *
+   * <p>图标数据离线内置在 app 侧（见 {@code turbo/app/src/icons/builtinIcons.ts}），
    * 不依赖 Iconify 在线接口。</p>
    */
-  bulb: { activeIcon: "mdi:lightbulb-on", inactiveIcon: "mdi:lightbulb-outline" },
+  bulb: { activeIcon: "mdi:lightbulb", inactiveIcon: "mdi:lightbulb-outline" },
   /** 对勾 / 叉：用于「选中 / 未选中」的单选、复选语义 */
   check: { activeIcon: "Select", inactiveIcon: "Remove" },
   /** 星标实心 / 空心：收藏、评分、收藏类开关 */
