@@ -147,7 +147,7 @@ import ImageLibraryPanel from './ImageLibraryPanel.vue'
 import { isAdmin } from '@repo/core'
 import { getModelAvatarPath } from '@/utils/modelUtils'
 import { MODEL_SUBTYPE_LABELS } from '@/components/models/model.constants'
-import { inferSubType } from '@/components/models/model.utils'
+import { inferSubType, deriveModelTraits } from '@/components/models/model.utils'
 
 // Element Plus 组件导入
 import {
@@ -707,6 +707,15 @@ const requiredTypeFor = (group, field) => {
     if (g === 'image_search' && f === 'keyword_model') return 'text'
     if (g === 'image_search') return 'image_cv'
     if (f === 'default_image_feature_model') return 'image_cv'
+    // 试卷（paper）分组：layout_model → 版面分析模型；ocr_detector_model /
+    // ocr_recognizer_model → OCR；llm_provider / llm_model 是结构化大模型 → 对话。
+    // 此前没有 paper 分组映射，layout_model 一路落到末尾的 'text'（对话模型），
+    // 弹框里只有 MiniMax 等 LLM，真正的版面分析模型一个都选不到。
+    if (g === 'paper') {
+        if (f.includes('layout')) return 'layout'
+        if (f.includes('ocr')) return 'ocr'
+        return 'text'
+    }
     // RAG / 其它字段按名称判断
     if (f.includes('embedding')) return 'embedding'
     if (f.includes('ocr')) return 'ocr'
@@ -765,6 +774,12 @@ const SUBTYPE_FOR_FIELD = {
     'reid.detector_model': ['face_detection'],
     'reid.feature_model': ['face_feature'],
     'image.detect_model': ['object_detection', 'defect_detection'],
+    // 试卷（paper）分组复用 ocr / layout 分组的模型槽位与细分类型：
+    // ocr_detector_model → 文字检测（与 ConfigPanel 的 ocr.detector_model 同批模型），
+    // ocr_recognizer_model → 文字识别；layout_model 无细分类型（版面模型不限定），
+    // llm_provider / llm_model 走对话模型（类型映射已处理）。
+    'paper.ocr_detector_model': ['ocr_detection'],
+    'paper.ocr_recognizer_model': ['ocr_recognition'],
 }
 
 // 判断是否是模型字段（包含 model 关键词）
@@ -1101,6 +1116,12 @@ const shouldShowField = (group, field) => {
     if (ENGINE_FIELDS.includes(field)) {
         return false
     }
+    // 试卷识别引擎（paper.engine）：已改为按模型配置推导（配了 llm_provider/llm_model
+    // → ocr+llm，否则 ocr），不再提供手动选择。后端新定义已移除该字段；这里额外拦截是
+    // 为了兼容旧后端/旧配置表里残留的定义行，避免「识别引擎」下拉复活。
+    if (group === 'paper' && field === 'engine') {
+        return false
+    }
     // RAG 向量库选择：由「向量库配置」动态表单接管（保存到全局层而非个人覆盖），
     // 这里隐藏通用行，避免出现双入口（下拉值与动态表单各自保存会互相打架）
     if (group === 'rag' && field === 'rag_vector_storage') {
@@ -1228,6 +1249,13 @@ const getFieldModelLogo = (group, field) => {
 
 // 取弹框模型行的提供商 logo
 const getModelRowLogo = (model) => getModelAvatarPath(model?.model || '')
+
+// 宽松数值解析：空值 / 非数字一律返回 null（区分「未采集」与 0）
+const numOrNull = (v) => {
+    if (v === null || v === undefined || v === '') return null
+    const n = Number(v)
+    return Number.isNaN(n) ? null : n
+}
 
 // 更新字段值
 const updateFieldValue = (group, field, value) => {
@@ -1363,12 +1391,19 @@ const loadLocalModels = async () => {
                 const id = typeof it === 'string' ? it : (it?.id || it?.model)
                 if (!id) return
                 const meta = resolveModelMeta(id, [{ task }])
+                // 本地模型行只有 task 没有 capabilities[].traits：deriveModelTraits
+                // 会按规范类型走 FLOW_BY_TYPE 兜底（如 embedding → 文本入/向量出）。
+                const traits = deriveModelTraits({ model: id, capabilities: [{ task }] }, meta.primaryType)
                 local.push({
                     id: `onnx:${id}`,
                     modelName: `本地/${id}`,
                     model: id,
                     providerId: 'onnx',
                     providerName: 'ONNX 本地推理',
+                    inputKinds: traits.inputCapabilities,
+                    outputKinds: traits.outputCapabilities,
+                    // 本地推理不走远端 HTTP 延迟测试，无指标，弹框不显示延迟
+                    latencyMs: null,
                     ...meta
                 })
             })
@@ -1424,12 +1459,26 @@ const loadModels = () => {
                     .filter(m => isOnnxProvider ? (m.external === true || m.available === true) : true)
                     .map((m) => {
                         const meta = resolveModelMeta(m.model, m.capabilities)
+                        // 输入 / 输出种类：来自 capabilities[].traits（input:image / output:text 等），
+                        // 供模型弹框行内展示「支持什么进、出什么」。capabilities 缺失或没 traits 时
+                        // deriveModelTraits 按规范类型兜底（FLOW_BY_TYPE）。
+                        const traits = deriveModelTraits(m, meta.primaryType)
+                        // 延迟：优先最近一次实测（modelLastLatency / probe_latency_ms / latency_ms），
+                        // 都没有时回退指标表的官方首字延迟（latency_first_token_seconds，秒*1000→ms）。
+                        // 云端 OpenAI 兼容行 metrics 大多是官方评测源，只有后者。
+                        const metrics = m.metrics || {}
+                        const officialLatencySec = numOrNull(metrics.latency_first_token_seconds)
+                        const latencyMs = numOrNull(m.modelLastLatency ?? metrics.probe_latency_ms ?? metrics.latency_ms)
+                            ?? (officialLatencySec != null ? officialLatencySec * 1000 : null)
                         return {
                             id: `${provider.provider_id}:${m.model}`,
                             modelName: `${provider.name}/${m.model}`,
                             model: m.model,
                             providerId: provider.provider_id,
                             providerName: provider.name,
+                            inputKinds: traits.inputCapabilities,
+                            outputKinds: traits.outputCapabilities,
+                            latencyMs,
                             ...meta
                         }
                     })

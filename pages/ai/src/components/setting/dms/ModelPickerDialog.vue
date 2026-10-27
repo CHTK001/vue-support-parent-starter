@@ -16,12 +16,17 @@
             <div class="dms-mp-row-left">
               <img v-if="modelLogo(model)" :src="modelLogo(model)" alt=""
                 class="w-4 h-4 object-contain shrink-0" />
-              <span class="dms-mp-name">{{ model.model }}</span>
-              <span class="dms-mp-tags">
-                <ReTag v-for="tag in model.displayTags" :key="tag.value" :type="tag.tagType">
-                  {{ tag.label }}
-                </ReTag>
-              </span>
+              <div class="dms-mp-main">
+                <div class="dms-mp-line">
+                  <span class="dms-mp-name">{{ model.model }}</span>
+                  <span class="dms-mp-tags">
+                    <ReTag v-for="tag in model.displayTags" :key="tag.value" :type="tag.tagType">
+                      {{ tag.label }}
+                    </ReTag>
+                  </span>
+                </div>
+                <div v-if="rowMeta(model)" class="dms-mp-meta">{{ rowMeta(model) }}</div>
+              </div>
             </div>
             <el-icon v-if="selectedId === model.id" class="dms-mp-check" :size="18">
               <CheckCircleFilled />
@@ -82,6 +87,40 @@ const filteredProviders = computed(() => {
 
 const modelLogo = (model: any): string | undefined => (props.logoFor ? props.logoFor(model) ?? undefined : undefined)
 
+// 输入 / 输出种类的中文标签（与模型管理卡片 ModelInfoCard 的 KIND_LABELS 一致）
+const KIND_LABELS: Record<string, string> = {
+  text: '文本',
+  image: '图片',
+  audio: '音频',
+  video: '视频',
+  vector: '向量',
+  file: '文档',
+}
+
+/**
+ * 行内副信息：输入 / 输出种类 + 延迟。
+ *
+ * <p>「入 X 出 Y」告诉用户这个模型支持什么输入、产出什么（text / image / audio /
+ * video / vector / file）；延迟取最近一次实测（Host 侧 loadModels 已把
+ * metrics.probe_latency_ms 等归一到 latencyMs），未采集时不显示。</p>
+ */
+const rowMeta = (model: any): string => {
+  const parts: string[] = []
+  const ins = Array.isArray(model?.inputKinds) && model.inputKinds.length
+    ? model.inputKinds.map((k: string) => KIND_LABELS[k] || k).join('/')
+    : ''
+  const outs = Array.isArray(model?.outputKinds) && model.outputKinds.length
+    ? model.outputKinds.map((k: string) => KIND_LABELS[k] || k).join('/')
+    : ''
+  const io = [ins && `入 ${ins}`, outs && `出 ${outs}`].filter(Boolean).join(' · ')
+  if (io) parts.push(io)
+  const latency = Number(model?.latencyMs)
+  if (Number.isFinite(latency) && latency > 0) {
+    parts.push(`延迟 ${Math.round(latency)}ms`)
+  }
+  return parts.join(' · ')
+}
+
 function pick(id: string) {
   if (!id) return
   search.value = ''
@@ -101,6 +140,10 @@ function pick(id: string) {
 .dms-mp-row:hover { background: var(--el-fill-color-light); }
 .dms-mp-row:focus-visible { box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent); }
 .dms-mp-row-left { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+/* 副信息（输入/输出/延迟）与模型名、标签纵向排列，不挤压弹框行宽 */
+.dms-mp-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.dms-mp-line { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+.dms-mp-meta { font-size: 12px; color: var(--el-text-color-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dms-mp-name { font-size: 13px; color: var(--el-text-color-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dms-mp-tags { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .dms-mp-check { color: var(--el-color-primary); flex-shrink: 0; }
