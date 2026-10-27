@@ -27,13 +27,15 @@
             :active-icon="activeIcon"
             :inactive-icon="inactiveIcon"
             :preset="preset"
+            :animate="iconAnimate"
             :size="iconSize"
           />
           <slot v-else-if="hasSlotContent" />
-          <!-- 默认：内置两态图标（sunmoon，激活 Sunny / 非激活 Moon）。
+          <!-- 默认：内置灯泡图标（点亮 = 激活，熄灭 = 非激活）。
                此前这里是一枚写死的静态 SVG，两态长得一模一样，
-               用户看不出开关到底开没开；现在默认就有「两套图标」。 -->
-          <StateIcon v-else :active="isActive" :size="iconSize" />
+               用户看不出开关到底开没开；现在默认就有「两套图标」。
+               灯泡用的是同一张图 + 点亮/熄灭，不做交叉淡入，故无中间态。 -->
+          <StateIcon v-else :active="isActive" preset="bulb" :size="iconSize" />
         </span>
         <span v-if="isActive" class="re-switch-square__check">
           <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -134,8 +136,10 @@ const props = withDefaults(
     activeIcon?: string;
     /** 非激活态图标名（缺省回退到 icon，再回退到内置 sunmoon） */
     inactiveIcon?: string;
-    /** 内置图标集名（sunmoon / check / star / bell / arrow / anim）；"none" 关闭内置回落 */
+    /** 内置图标集名（bulb / sunmoon / check / star / bell / arrow / anim）；"none" 关闭内置回落 */
     preset?: string;
+    /** 两态图标是否播放切换动画（默认 false —— 状态即时生效，无中间态） */
+    iconAnimate?: boolean;
   }>(),
   {
     title: "",
@@ -151,6 +155,7 @@ const props = withDefaults(
     activeIcon: "",
     inactiveIcon: "",
     preset: undefined,
+    iconAnimate: false,
   },
 );
 

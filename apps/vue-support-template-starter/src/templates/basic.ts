@@ -112,11 +112,12 @@ export const reSwitchMeta: TemplateMeta = {
       key: "preset",
       label: "图标集（preset）",
       type: "select",
-      default: "",
+      default: "bulb",
       description:
-        "square 布局的两态图标集；不选则用内置默认（sunmoon：激活太阳 / 非激活月亮）。选 none 关闭内置回落",
+        "square 布局的两态图标集。bulb = 同一颗灯泡点亮/熄灭（默认，无动画、无中间态）；sunmoon = 太阳/月亮两套图形交叉切换",
       options: [
-        { label: "内置默认 sunmoon", value: "", icon: "Sunny" },
+        { label: "bulb（灯泡亮/灭，默认）", value: "bulb", icon: "Opportunity" },
+        { label: "sunmoon（太阳/月亮）", value: "sunmoon", icon: "Sunny" },
         { label: "check（对勾/叉）", value: "check", icon: "Select" },
         { label: "star（实心/空心星）", value: "star", icon: "StarFilled" },
         { label: "bell（实心/空心铃）", value: "bell", icon: "BellFilled" },
@@ -139,6 +140,14 @@ export const reSwitchMeta: TemplateMeta = {
       default: "",
       description: "square 布局：非激活态图标名（如 Moon / ep:star）；留空则走 preset",
     },
+    {
+      key: "iconAnimate",
+      label: "图标切换动画",
+      type: "boolean",
+      default: false,
+      description:
+        "两态图标是否交叉淡入切换。默认关闭 —— 开关是高频控件，状态应当即时生效；交叉淡入会让人看到两个图形叠在一起的中间态",
+    },
   ],
   generate(state) {
     const props: string[] = [];
@@ -154,6 +163,7 @@ export const reSwitchMeta: TemplateMeta = {
     if (values.preset) props.push(`preset="${values.preset}"`);
     if (values.activeIcon) props.push(`active-icon="${values.activeIcon}"`);
     if (values.inactiveIcon) props.push(`inactive-icon="${values.inactiveIcon}"`);
+    if (values.iconAnimate) props.push(`icon-animate`);
     const vmodel = state.model !== true ? ` v-model="${state.model}"` : ` v-model`;
     const propStr = props.length ? "\n  " + props.join("\n  ") + vmodel : ` v-model`;
     return `<ReSwitch${propStr}

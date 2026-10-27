@@ -41,6 +41,7 @@ const PORT_BY_OS: Record<string, number> = {
 const authTypeOptions = [
   { value: 'password', label: '账号密码' },
   { value: 'key', label: 'PEM 私钥' },
+  { value: 'none', label: '免密登录' },
 ];
 
 /** 表单数据 */
@@ -55,7 +56,7 @@ const form = reactive({
   tags: [] as string[],
   tagsInput: '',
   serverHostDescription: '',
-  authType: 'password' as 'password' | 'key',
+  authType: 'password' as 'password' | 'key' | 'none',
   serverHostAccount: '',
   serverHostPassword: '',
   serverHostPrivateKey: '',
@@ -227,9 +228,14 @@ function onSubmit(): void {
   const hasKey = form.serverHostPrivateKey.trim();
   // 密码非必填：选「账号密码」时只填账号、不填密码也允许保存。
   // 后端 autoCreateIdentity 仅在账号+密码齐全时自动建身份，密码缺失则回落默认凭据；
-  // 「key」方式保留私钥必填（有私钥必须能关联账号）。
+  // 「key」方式保留私钥必填（有私钥必须能关联账号）；
+  // 「none」免密登录仅需账号，不填密码/私钥，后端创建免密（NONE）身份。
   if (form.authType === 'key' && !hasAccount && hasKey) {
     message.warning('请填写登录账号');
+    return;
+  }
+  if (form.authType === 'none' && !form.serverHostAccount.trim()) {
+    message.warning('免密登录也需填写登录账号');
     return;
   }
   const submit = {
@@ -251,6 +257,10 @@ function onSubmit(): void {
   } else if (form.authType === 'key' && hasAccount && hasKey) {
     submit.serverHostAccount = form.serverHostAccount.trim();
     submit.serverHostPrivateKey = form.serverHostPrivateKey.trim();
+  } else if (form.authType === 'none' && form.serverHostAccount.trim()) {
+    // 免密登录：只提交账号 + 免密类型标记，后端创建免密（NONE）身份
+    submit.serverHostAccount = form.serverHostAccount.trim();
+    submit.serverHostAuthType = 'none';
   }
   emit('submit', submit);
 }
@@ -387,6 +397,19 @@ function onSubmit(): void {
                   class="pem-textarea"
                 />
               </div>
+            </div>
+          </div>
+        </template>
+        <template v-else-if="form.authType === 'none'">
+          <div class="form-row">
+            <div class="form-field">
+              <label class="field-label">登录账号</label>
+              <ReInput v-model="form.serverHostAccount" placeholder="如 root（目标主机已放行该账号免密登录）" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-field field-wide">
+              <ReText type="info">免密登录：目标主机不校验密码（SSH 空口令登录或已配置密钥放行），平台只凭登录账号连接，无需填写密码或私钥。</ReText>
             </div>
           </div>
         </template>

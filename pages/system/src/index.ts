@@ -26,6 +26,7 @@ registerMenuViewModules({
   "views/system/announcement/index.vue": () => import("./views/AnnouncementManage.vue"),
   "views/system/post/index.vue": () => import("./views/PostManage.vue"),
   "views/system/message/index.vue": () => import("./views/MessageManage.vue"),
+  "views/system/online/index.vue": () => import("./views/OnlineUserManage.vue"),
   "views/system/monitor/redis/index.vue": () => import("./views/monitor/RedisMonitor.vue"),
   "views/system/monitor/cache/index.vue": () => import("./views/monitor/CacheMonitor.vue"),
   "views/system/monitor/server/index.vue": () => import("./views/monitor/ServerMonitor.vue"),

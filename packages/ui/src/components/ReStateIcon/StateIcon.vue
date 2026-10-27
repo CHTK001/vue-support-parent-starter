@@ -20,9 +20,17 @@
  *   - 动画只走 `opacity` / `transform`（合成层属性），不触发布局；
  *   - 两态图标相同或只有一态时不会做无意义切换（调用方通常直接用 ReIcon）；
  *   - 尊重 `prefers-reduced-motion`。
+ *
+ * <p><b>层与图标的对应关系（易错点）</b>：层是<b>固定的</b> ——
+ * {@code --active} 层永远渲染「激活态图标名」，{@code --inactive} 层永远渲染
+ * 「非激活态图标名」，两者不随 {@code active} 翻转。只有 opacity 在换。
+ * 早期版本反过来：层名固定但层内图标名跟着当前态走，于是两层内容互换、
+ * 而 opacity 规则仍按层位置走 —— 结果两态显示的是同一个图标（都是激活态那个），
+ * 只有过渡的一瞬才看得到另一个。</p>
  */
 import { computed } from "vue";
 import ReIcon from "../ReIcon";
+import BulbIcon from "./builtin/BulbIcon.vue";
 import { resolveStateIcons } from "./presets";
 
 defineOptions({ name: "ReStateIcon", inheritAttrs: true });
@@ -41,10 +49,24 @@ const props = withDefaults(
     preset?: string;
     /** 尺寸（px 数字或 CSS 长度字符串） */
     size?: number | string;
-    /** 切换动画方式 */
+    /**
+     * 切换动画方式
+     *
+     * <p>只有两态图形<b>不同</b>时才有意义：两张图交叉淡入淡出。
+     * 若两态是同一张图（如内置灯泡的「亮 / 灭」），这个参数不起作用 ——
+     * 亮灭是图形自身的状态，不是图与图之间的过渡。</p>
+     */
     mode?: "fade" | "scale" | "slide" | "rotate";
     /** 切换时长（ms） */
     duration?: number;
+    /**
+     * 是否播放切换动画。
+     *
+     * <p>默认 {@code false} —— 开关是个高频控件，状态本该「即时生效」；
+     * 交叉淡入会让用户在一瞬间看到两个图形叠加（图标发虚），反而读不准状态。
+     * 需要动效的场合（如首屏入场）再显式打开。</p>
+     */
+    animate?: boolean;
   }>(),
   {
     active: false,
@@ -55,10 +77,17 @@ const props = withDefaults(
     size: 18,
     mode: "fade",
     duration: 260,
+    animate: false,
   },
 );
 
-/** 两态图标名（含内置回落） */
+/**
+ * 两态图标名（含内置回落）。
+ *
+ * <p><b>两层各绑定固定的图标名</b>：{@code --active} 层永远是激活态图标，
+ * {@code --inactive} 层永远是非激活态图标。切换只发生在 opacity 上，
+ * 图标名不跟着当前态走 —— 这样任何时刻渲染的都是「层所代表的那个图标」。</p>
+ */
 const icons = computed(() =>
   resolveStateIcons({
     icon: props.icon,
@@ -68,14 +97,25 @@ const icons = computed(() =>
   }),
 );
 
-/** 当前态应显示的图标：激活态用 activeIcon，否则 inactiveIcon */
-const activeName = computed(() => (props.active ? icons.value.activeIcon : icons.value.inactiveIcon));
-/** 非当前态应显示的图标（始终渲染，用于交叉过渡） */
-const otherName = computed(() => (props.active ? icons.value.inactiveIcon : icons.value.activeIcon));
+/**
+ * 激活态图标名（固定绑到 --active 层） */
+const activeName = computed(() => icons.value.activeIcon);
+/** 非激活态图标名（固定绑到 --inactive 层） */
+const inactiveName = computed(() => icons.value.inactiveIcon);
 
-/** 是否只有一态有图标（此时只渲染一层，不做交叉） */
+/** 是否走内置渲染器（目前只有灯泡：一张图，靠点亮/熄灭表达两态） */
+const builtinRenderer = computed(() => icons.value.builtin);
+
+/**
+ * 是否只有一态有图标（此时只渲染一层，不做交叉）。
+ *
+ * <p>内置渲染器（灯泡）除外：它两态用的是同一张图，只是点亮与否不同，
+ * 所以始终由组件自己处理，不需要分层交叉。</p>
+ */
 const onlyOneLayer = computed(
-  () => !activeName.value || !otherName.value || activeName.value === otherName.value,
+  () =>
+    !builtinRenderer.value &&
+    (!activeName.value || !inactiveName.value || activeName.value === inactiveName.value),
 );
 
 /** 尺寸写法：数字补 px，字符串原样 */
@@ -85,7 +125,10 @@ const sizeStyle = computed(() => (typeof props.size === "number" ? `${props.size
 <template>
   <span
     class="re-state-icon"
-    :class="[`re-state-icon--${mode}`, { 'is-active': active }]"
+    :class="[
+      `re-state-icon--${mode}`,
+      { 'is-active': active, 're-state-icon--static': !animate },
+    ]"
     :style="{
       width: sizeStyle,
       height: sizeStyle,
@@ -93,14 +136,17 @@ const sizeStyle = computed(() => (typeof props.size === "number" ? `${props.size
     }"
     v-bind="$attrs"
   >
+    <!-- 内置渲染器：灯泡的「亮 / 灭」是同一张图，组件内部自己处理，
+         不需要分层交叉，也就没有中间态。 -->
+    <BulbIcon v-if="builtinRenderer === 'bulb'" :active="active" :size="size" />
     <!-- 只有一态有图标：直接渲染，不叠层（否则非激活态会因 active 层 opacity:0 而消失） -->
-    <ReIcon v-if="onlyOneLayer" :name="activeName" :size="size" />
+    <ReIcon v-else-if="onlyOneLayer" :name="active ? activeName : inactiveName" :size="size" />
     <template v-else>
       <span class="re-state-icon__layer re-state-icon__layer--active">
         <ReIcon v-if="activeName" :name="activeName" :size="size" />
       </span>
       <span class="re-state-icon__layer re-state-icon__layer--inactive">
-        <ReIcon v-if="otherName" :name="otherName" :size="size" />
+        <ReIcon v-if="inactiveName" :name="inactiveName" :size="size" />
       </span>
     </template>
   </span>
@@ -162,6 +208,24 @@ const sizeStyle = computed(() => (typeof props.size === "number" ? `${props.size
 }
 .re-state-icon--rotate {
   --rsi-out: rotate(-100deg) scale(0.55);
+}
+
+/* 静态模式（默认）：两态之间瞬时切换，不做交叉过渡。
+   没有过渡就没有「两个图形叠在一起」的中间态，状态一眼可辨。 */
+.re-state-icon--static .re-state-icon__layer {
+  transition: none;
+}
+.re-state-icon--static .re-state-icon__layer--active {
+  transform: none;
+}
+.re-state-icon--static .re-state-icon__layer--inactive {
+  transform: none;
+}
+.re-state-icon--static.is-active .re-state-icon__layer--active {
+  transform: none;
+}
+.re-state-icon--static.is-active .re-state-icon__layer--inactive {
+  transform: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

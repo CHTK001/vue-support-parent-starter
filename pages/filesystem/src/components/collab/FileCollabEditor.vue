@@ -38,7 +38,7 @@ import {
   getFileCollab,
   saveFileCollabSnapshot,
   type FileCollabInfo,
-} from "../api/filestorageApi";
+} from "../../api/filestorageApi";
 
 const props = defineProps<{
   /** 协同文档号 */

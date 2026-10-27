@@ -316,6 +316,19 @@ export function fetchDataSourceTypes(): Promise<string[]> {
 }
 
 /**
+ * 列出后端已装配的中间件类型（类型名 → 展示名）。
+ *
+ * <p>这份清单同时包含「宿主自带实现」与「用户上传 jar 后装配的」两类。
+ * 数据源表单据此判断：选中的类型不在清单里，就需要传客户端 jar；
+ * 在清单里就不该让使用者去折腾驱动。</p>
+ *
+ * @returns 类型名到展示名的映射，未装配任何实现时为空对象
+ */
+export function fetchInstalledMiddlewareTypes(): Promise<Record<string, string>> {
+  return get<Record<string, string>>("/ms/monitor/middleware/types");
+}
+
+/**
  * 读取指定类型数据源的运行时信息（版本、模式、状态行等）。
  *
  * <p>走类型专属控制器：{@code /ms/datasource/{type}/{id}/info}。
@@ -874,7 +887,7 @@ export interface JdbcDriverJar {
   jarName: string;
   /** 落盘文件名 */
   storedName: string;
-  /** 驱动类全名，如 org.h2.Driver */
+  /** 入口类全名：JDBC 驱动类（如 org.h2.Driver）或中间件 SPI 实现类 */
   driverClassName: string;
   /** 字节数 */
   jarSize?: number | null;
@@ -884,10 +897,14 @@ export interface JdbcDriverJar {
   remark?: string | null;
   /** 上传时间 */
   createTime?: string | null;
+  /** jar 类别：jdbc（缺省）/ middleware */
+  kind?: string | null;
+  /** 中间件类型名（kafka 等），仅 kind=middleware 有值 */
+  providerName?: string | null;
 }
 
 /**
- * 列出已上传的 JDBC 驱动 jar。
+ * 列出已上传的驱动 jar。
  *
  * @returns 驱动 jar 列表
  */
@@ -896,25 +913,31 @@ export function fetchJdbcDriverJars(): Promise<JdbcDriverJar[]> {
 }
 
 /**
- * 上传 JDBC 驱动 jar。
+ * 上传驱动 jar。
  *
- * <p>后端在上传的当下就会尝试加载一次驱动类，失败会连文件带台账一起回滚，
+ * <p>后端在上传的当下就会尝试加载一次入口类，失败会连文件带台账一起回滚，
  * 所以这里拿到成功响应就等于「这个 jar 确实能用」。</p>
  *
- * @param file            jar 文件
- * @param driverClassName 驱动类全名
- * @param remark          备注
+ * <p>{@code kind=middleware} 时后端会把 jar 单独建类加载器并立即并入中间件注册表，
+ * 不需要重启；Jar 必须是自带全部依赖的单 jar。</p>
+ *
+ * @param file             jar 文件
+ * @param driverClassName  入口类全名
+ * @param remark           备注
+ * @param kind             jar 类别，缺省 jdbc
  * @returns 落库后的驱动 jar
  */
 export function uploadJdbcDriverJar(
   file: File,
   driverClassName: string,
   remark?: string,
+  kind: "jdbc" | "middleware" = "jdbc",
 ): Promise<JdbcDriverJar> {
   const form = new FormData();
   form.append("file", file);
   form.append("driverClassName", driverClassName);
   if (remark) form.append("remark", remark);
+  form.append("kind", kind);
   return post<JdbcDriverJar>(`${hubBase}/jdbc-driver`, form);
 }
 

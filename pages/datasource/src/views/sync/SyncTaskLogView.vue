@@ -1,49 +1,39 @@
 <template>
   <div class="flow-page">
-    <!-- 页头卡片：标题 + 健康度统计 -->
-    <header class="flow-hero">
-      <div class="flow-hero-main">
-        <div class="flow-hero-icon">
-          <ReIcon name="Refresh" :size="20" />
+    <!-- 页头：与数据同步页同款 toolbar（标题 + 徽标 + 副标题 / 右侧刷新），非卡片 -->
+    <div class="flow-toolbar">
+      <div class="flow-toolbar-left">
+        <div class="flow-title">
+          同步日志
+          <span class="flow-badge">● 每次执行留档</span>
         </div>
-        <div class="flow-hero-text">
-          <h2 class="flow-title">
-            同步日志
-            <span class="flow-badge">● 每次执行留档</span>
-          </h2>
-          <p class="flow-sub">跨任务汇总每一次数据同步执行的旅程与过程日志（保留 30 天，后端重启不丢）</p>
-        </div>
+        <div class="flow-sub">跨任务汇总每一次数据同步执行的旅程与过程日志（保留 30 天，后端重启不丢）</div>
       </div>
-      <div class="flow-hero-side">
-        <div class="flow-hero-stat">
-          <span class="flow-hero-stat-val">{{ stats.total }}</span>
-          <span class="flow-hero-stat-key">次执行</span>
-        </div>
+      <div class="flow-toolbar-right">
+        <span class="flow-refreshed">共 {{ stats.total }} 条记录</span>
         <ReButton :loading="loading" @click="reload">
           <template #icon><ReIcon name="Refresh" /></template>刷新
         </ReButton>
       </div>
-    </header>
+    </div>
 
-    <!-- 健康度总览：统计卡 + 24h 趋势 + 失败归类 -->
+    <!-- 健康度总览：ReStatCard 四卡（与数据同步 KPI 同款）+ 24h 趋势 + 失败归类 -->
     <section v-if="statsLoaded" class="flow-health">
       <div class="flow-health-stats">
-        <div class="flow-health-card">
-          <span class="flow-health-key">成功率</span>
-          <span class="flow-health-val" :class="stats.successRate >= 95 ? 'is-good' : stats.successRate >= 80 ? 'is-warn' : 'is-bad'">
-            {{ stats.successRate.toFixed(1) }}<small>%</small>
-          </span>
-          <span class="flow-health-desc">成功 {{ stats.success }} / 共 {{ stats.total }}</span>
-        </div>
-        <div class="flow-health-card">
-          <span class="flow-health-key">失败</span>
-          <span class="flow-health-val" :class="stats.failed ? 'is-bad' : 'is-good'">{{ stats.failed }}</span>
-          <span class="flow-health-desc">最近 30 天</span>
-        </div>
-        <div class="flow-health-card">
-          <span class="flow-health-key">平均耗时</span>
-          <span class="flow-health-val">{{ stats.avgCostMs }}<small> ms</small></span>
-          <span class="flow-health-desc">近 30 天落盘执行</span>
+        <div v-for="k in kpiCards" :key="k.key" class="flow-health-cell">
+          <ReStatCard
+            size="compact" :title="k.title" :value="k.value" :desc="k.desc"
+            :icon="k.icon" :icon-color="k.color"
+          />
+          <svg
+            v-if="k.spark.length > 1" class="flow-spark"
+            viewBox="0 0 120 32" preserveAspectRatio="none" aria-hidden="true"
+          >
+            <polyline
+              class="flow-spark-line" :style="{ stroke: k.color }"
+              :points="sparkPoints(k.spark)"
+            />
+          </svg>
         </div>
       </div>
 
@@ -324,13 +314,24 @@
  * @since 4.0.0.44
  */
 import { computed, onMounted, reactive, ref } from "vue";
-import { Document as DocumentIcon, Refresh as RefreshIcon, Search as SearchIcon } from "@element-plus/icons-vue";
+import {
+  CircleCheck,
+  CircleCheckFilled,
+  Document as DocumentIcon,
+  Files,
+  Refresh as RefreshIcon,
+  Search as SearchIcon,
+  Timer,
+  Warning,
+} from "@element-plus/icons-vue";
+import type { Component } from "vue";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 import ReTable from "@repo/ui/re-table";
 import ReSelect from "@repo/ui/re-select";
 import ReButton from "@repo/ui/re-button";
 import ReIcon from "@repo/ui/re-icon";
 import ReDialog from "@repo/ui/re-dialog";
+import ReStatCard from "@repo/ui/re-stat-card";
 import { message } from "@repo/core";
 import {
   fetchSyncTasks,

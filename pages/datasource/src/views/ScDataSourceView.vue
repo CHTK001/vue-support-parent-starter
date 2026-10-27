@@ -65,6 +65,7 @@ import {
   deleteJdbcDriverJar,
   fetchDbProcesses,
   fetchDbSlowQueries,
+  fetchInstalledMiddlewareTypes,
   fetchJdbcDriverJars,
   killDbProcess,
   killDbProcesses,
@@ -141,19 +142,68 @@ const editing = ref<DataSourceInfo | null>(null);
 const form = ref<Partial<DataSourceInfo>>({});
 const saving = ref(false);
 
-/** JDBC 驱动 jar 库（后端管理的目录，本页只上传与选用） */
+/** JDBC 驱动 / 中间件客户端 jar 库（后端管理的目录，本页只上传与选用） */
 const driverJars = ref<JdbcDriverJar[]>([]);
 /** 隐藏的文件选择 input 的 ref */
 const driverJarInput = ref<HTMLInputElement | null>(null);
 /** 正在上传的 jar 文件名，用于按钮上的等待态 */
 const driverJarUploading = ref(false);
 
-/** 驱动 jar 下拉项：显示「文件名 + 驱动类」，两者都要能看到 */
+/**
+ * 宿主自带实现的中间件类型兜底清单。
+ *
+ * <p>真正判断「要不要传 jar」以后端返回的已装配清单为准（含上传 jar 装配的）；
+ * 这份常量只在后端清单还没取回来、或某个版本没有该接口时兜底，
+ * 避免把自带的中间件误显示成「缺驱动」。</p>
+ */
+const BUILTIN_MIDDLEWARE_TYPES = new Set([
+  "redis",
+  "nacos",
+  "neo4j",
+  "influxdb",
+  "etcd",
+  "zookeeper",
+  "mongodb",
+  "nginx",
+  "prometheus",
+  "elasticsearch",
+]);
+
+/**
+ * 走 JDBC 协议的类型。
+ *
+ * <p>与后端 {@code DatasourceHubConstants.DS_JDBC_TYPES} 对齐：这几种只差 URL 前缀，
+ * 共用同一套管理台。它们不是中间件，不能落到「上传中间件客户端」那个分支上。</p>
+ */
+const JDBC_FAMILY_TYPES = new Set(["jdbc", "clickhouse", "duckdb"]);
+
+/** 后端已装配的中间件类型（自带实现 + 上传 jar 装配的） */
+const installedMiddlewareTypes = ref<Record<string, string>>({});
+
+/** 当前类型是否需要「上传驱动 jar」（仅 jdbc，保持既有表单行为不变） */
+const needsDriverJar = computed(() => form.value.type === "jdbc");
+
+/** 当前类型是中间件，且宿主已自带实现 */
+const isBuiltinMiddleware = computed(() => {
+  const type = form.value.type;
+  if (!type || JDBC_FAMILY_TYPES.has(type)) return false;
+  return Object.prototype.hasOwnProperty.call(installedMiddlewareTypes.value, type)
+    || BUILTIN_MIDDLEWARE_TYPES.has(type);
+});
+
+/** 当前类型是中间件，且宿主没有内置实现 —— 需要上传单 jar 客户端 */
+const needsMiddlewareJar = computed(
+  () => !!form.value.type && !JDBC_FAMILY_TYPES.has(form.value.type) && !isBuiltinMiddleware.value,
+);
+
+/** 驱动 jar 下拉项：只列 JDBC 驱动，显示「文件名 + 入口类」，两者都要能看到 */
 const driverJarOptions = computed(() =>
-  driverJars.value.map((jar) => ({
-    label: `${jar.jarName} · ${jar.driverClassName}`,
-    value: jar.id,
-  })),
+  driverJars.value
+    .filter((jar) => (jar.kind ?? "jdbc") === "jdbc")
+    .map((jar) => ({
+      label: `${jar.jarName} · ${jar.driverClassName}`,
+      value: jar.id,
+    })),
 );
 
 /**
@@ -167,6 +217,21 @@ const loadDriverJars = async () => {
     driverJars.value = await fetchJdbcDriverJars();
   } catch (error) {
     message.warning(`读取驱动 jar 列表失败: ${String((error as Error)?.message ?? error)}`);
+  }
+};
+
+/**
+ * 拉取「后端已装配的中间件类型」。
+ *
+ * <p>用于判断某个中间件要不要上传客户端 jar：在清单里就是自带的（含刚上传的），
+ * 不在清单里才提示上传。取不到时退回内置兜底名单，不阻断表单。</p>
+ */
+const loadInstalledMiddlewareTypes = async () => {
+  try {
+    installedMiddlewareTypes.value = await fetchInstalledMiddlewareTypes();
+  } catch {
+    // 该接口可能尚未部署到当前后端；用内置名单兜底，不打扰使用者
+    installedMiddlewareTypes.value = {};
   }
 };
 
@@ -185,17 +250,33 @@ const onPickDriverJar = async (event: Event) => {
   input.value = "";
   if (!file) return;
   const driverClass = (form.value.driverClassName ?? "").trim();
+  const forMiddleware = needsMiddlewareJar.value;
   if (!driverClass) {
-    message.warning("先填驱动类名，再上传 jar（后端要当场验证这个类能不能加载）");
+    message.warning(
+      forMiddleware
+        ? "先填中间件实现类全名，再上传 jar（后端要当场实例化这个类）"
+        : "先填驱动类名，再上传 jar（后端要当场验证这个类能不能加载）",
+    );
     return;
   }
   driverJarUploading.value = true;
   try {
-    const saved = await uploadJdbcDriverJar(file, driverClass, file.name);
+    const saved = await uploadJdbcDriverJar(
+      file,
+      driverClass,
+      file.name,
+      forMiddleware ? "middleware" : "jdbc",
+    );
     await loadDriverJars();
+    // 中间件 jar 上传后后端会立即装配，刷新一次清单，让「已内置」的状态马上正确
+    if (forMiddleware) await loadInstalledMiddlewareTypes();
     form.value.driverJarId = saved.id;
     form.value.driverClassName = saved.driverClassName;
-    message.success(`已上传并选中驱动 ${saved.jarName}`);
+    message.success(
+      saved.providerName
+        ? `已上传并启用 ${saved.providerName} 客户端 ${saved.jarName}`
+        : `已上传并选中驱动 ${saved.jarName}`,
+    );
   } catch (error) {
     message.error(`上传驱动 jar 失败: ${String((error as Error)?.message ?? error)}`);
   } finally {
@@ -690,6 +771,7 @@ const openCreate = () => {
   // 新建弹窗也要能选**已登记**的 jar：不加载的话下拉是空的，
   // 同一个驱动每次建数据源都得重传一遍（编辑弹窗 openEdit 已加载）
   void loadDriverJars();
+  void loadInstalledMiddlewareTypes();
   dialogVisible.value = true;
 };
 
@@ -705,6 +787,7 @@ const openEdit = (item: DataSourceInfo) => {
   // 编辑既有数据源时也要能选 jar：老数据源没有这个字段，
   // 但用户可能正想给它换一个上传的驱动
   void loadDriverJars();
+  void loadInstalledMiddlewareTypes();
   advancedOpen.value = false;
   dialogTestResult.value = null;
   dialogVisible.value = true;
@@ -2563,11 +2646,11 @@ onMounted(load);
                 v2 使用 Flux 与 Bucket；v3 使用 SQL/InfluxQL 与 Database，两者语法不通用。
               </div>
             </ReFormItem>
-            <!-- JDBC 驱动：本机不可能备齐所有数据库的驱动包（ojdbc / mssql-jdbc /
-                 各类国产库驱动体积都在数 MB、许可各异），所以允许按数据源上传 jar。
-                 上传时后端会**当场加载一次驱动类**，失败就连文件带台账一起回滚，
-                 不会留下「传上去了、一连就报 ClassNotFound」的半成品。 -->
-            <template v-if="form.type === 'jdbc'">
+            <!-- 驱动 jar：JDBC 驱动与「单 jar 的中间件客户端」共用同一条上传通道。
+                 上传时后端会**当场加载一次入口类**，失败就连文件带台账一起回滚，
+                 不会留下「传上去了、一用就报 ClassNotFound」的半成品。
+                 宿主自带的中间件（Redis / Nacos / Neo4j …）不显示上传入口。 -->
+            <template v-if="needsDriverJar">
               <ReFormItem label="驱动类名" class="is-full">
                 <ReInput v-model="form.driverClassName" placeholder="org.h2.Driver（留空则用所选 jar 上登记的类名）" />
               </ReFormItem>
@@ -2587,6 +2670,36 @@ onMounted(load);
                   文件库（H2 / SQLite）也要在这里选驱动：它们不在应用 classpath 上。
                 </div>
               </ReFormItem>
+            </template>
+            <!-- 中间件客户端：产物里不带这些依赖（体积与许可各异），由使用者传单 jar。
+                 后端会把上传的 jar 单独建类加载器并立刻并入中间件注册表；
+                 实现按自身 name() 全局装配，所以这里不给"选哪个 jar"的下拉，
+                 免得让人以为选中的那个才有用。 -->
+            <template v-else-if="needsMiddlewareJar">
+              <ReFormItem label="实现类全名" class="is-full">
+                <ReInput
+                  v-model="form.driverClassName"
+                  placeholder="实现 MiddlewareClientProvider 的类，如 com.example.KafkaClientProvider"
+                />
+              </ReFormItem>
+              <ReFormItem label="客户端 jar" class="is-full">
+                <div class="ds-driver-jar">
+                  <span class="ds-driver-jar-state">尚未装配该类型的客户端</span>
+                  <input ref="driverJarInput" class="ds-driver-jar-file" type="file" accept=".jar" @change="onPickDriverJar" />
+                  <ReButton size="small" :loading="driverJarUploading" @click="driverJarInput?.click()">上传 jar</ReButton>
+                </div>
+                <div class="ds-form-hint">
+                  只接受「自带全部依赖的单 jar」；上传后立即生效，不需要重启。
+                </div>
+              </ReFormItem>
+            </template>
+            <ReFormItem v-else-if="isBuiltinMiddleware" label="客户端" class="is-full">
+              <div class="ds-form-hint ds-form-hint--inline">
+                宿主已内置该中间件的客户端，无需上传 jar。
+              </div>
+            </ReFormItem>
+            <!-- 额外连接参数只对 JDBC 有意义（并入连接串 query），其它类型不显示 -->
+            <template v-if="form.type === 'jdbc'">
               <!-- 额外连接参数：MySQL 等的扩展参数（useSSL / serverTimezone / …）。
                    左 ReSelect 选常用参数名，右填值；保存时并入 JDBC 连接串：
                    整串 URL 原地合并 query，三段式按后端同款模板补默认参数后再叠加。 -->
@@ -3598,6 +3711,13 @@ onMounted(load);
   line-height: 1.5;
   color: var(--el-text-color-secondary);
 }
+
+/* 单独占一行、不带表单控件的提示（如「宿主已内置客户端」）：
+   去掉上边距，避免和 ReFormItem 的 label 之间出现一段没来由的空档 */
+.ds-form-hint--inline {
+  margin: 0;
+  padding: 6px 0;
+}
 .ds-sub-title {
   margin: 4px 0 12px;
   font-size: 12px;
@@ -4075,6 +4195,15 @@ onMounted(load);
 .ds-driver-jar-select {
   flex: 1;
   min-width: 0;
+}
+
+/* 中间件客户端：没有「选哪个 jar」的下拉，用一段状态文字占住左侧，
+   让上传按钮靠右对齐，和 JDBC 那行的视觉节奏一致 */
+.ds-driver-jar-state {
+  flex: 1;
+  min-width: 0;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
 }
 
 /* 文件 input 只作为「点击上传」的触发点，不直接暴露给用户：

@@ -335,12 +335,16 @@ export interface OnlineUser {
   userId?: string;
   username?: string;
   nickname?: string;
+  /** 部门名称 */
+  deptName?: string;
   ip?: string;
   address?: string;
   browser?: string;
   os?: string;
   loginTime?: string;
   lastAccessTime?: string;
+  /** 登录类型（WEB / APP / GITEE 等） */
+  loginType?: string;
   status?: string;
 }
 

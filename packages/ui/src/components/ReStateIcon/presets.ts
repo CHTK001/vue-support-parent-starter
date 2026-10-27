@@ -22,12 +22,22 @@ export interface StateIconSet {
   activeIcon: string;
   /** 非激活态图标名 */
   inactiveIcon: string;
+  /**
+   * 内置渲染器名（可选）。
+   *
+   * <p>取值 {@code "bulb"} 时，{@link activeIcon} / {@link inactiveIcon} 不再是
+   * 图标库里的名字，而是交给内置的 {@link ./builtin/BulbIcon.vue} 渲染 ——
+   * 它用<b>同一张</b>灯泡图，靠「点亮 / 熄灭」表达两态。</p>
+   */
+  builtin?: "bulb";
 }
 
 /** 内置图标集（两套起步，名字即 preset key） */
 export const STATE_ICON_PRESETS: Readonly<Record<string, StateIconSet>> = {
   /** 日光 / 月光：最通用的开关两态 */
   sunmoon: { activeIcon: "Sunny", inactiveIcon: "Moon" },
+  /** 灯泡亮 / 灯泡灭：同一颗灯泡点亮与否，最贴合「开/关」直觉 */
+  bulb: { activeIcon: "bulb", inactiveIcon: "bulb", builtin: "bulb" },
   /** 对勾 / 叉：用于「选中 / 未选中」的单选、复选语义 */
   check: { activeIcon: "Select", inactiveIcon: "Remove" },
   /** 星标实心 / 空心：收藏、评分、收藏类开关 */
@@ -62,6 +72,10 @@ function resolveBuiltin(preset?: string): StateIconSet | undefined {
  *   - 什么都没传 → 用内置默认集（sunmoon），满足「内置默认的两套」；
  *   - `preset="none"` → 只用显式图标，缺哪个就空哪个。
  *
+ * <p><b>内置渲染器</b>：内置集里若带 {@code builtin}（目前只有 bulb），
+ * 解析结果会带上它 —— 调用方据此改用内置组件渲染，而不是当成图标库名字。
+ * 此时 {@code activeIcon} / {@code inactiveIcon} 两个字段都是占位名。</p>
+ *
  * @returns 两态图标名；两者都为空串表示没有可用图标（调用方应回退到文字/占位）
  */
 export function resolveStateIcons(options: {
@@ -75,8 +89,19 @@ export function resolveStateIcons(options: {
   const hasExplicit = Boolean(options.activeIcon || options.inactiveIcon || fallback);
   const useDefault = !hasExplicit && options.preset === undefined;
   const defaultSet = STATE_ICON_PRESETS[DEFAULT_STATE_ICON_PRESET];
+  // 显式指定的两态优先于内置集；若显式给了图标名，就不该再走内置渲染器
+  const explicitOverridesBuiltin = Boolean(options.activeIcon || options.inactiveIcon);
   return {
-    activeIcon: options.activeIcon || builtin?.activeIcon || fallback || (useDefault ? defaultSet.activeIcon : ""),
-    inactiveIcon: options.inactiveIcon || builtin?.inactiveIcon || fallback || (useDefault ? defaultSet.inactiveIcon : ""),
+    activeIcon:
+      options.activeIcon ||
+      builtin?.activeIcon ||
+      fallback ||
+      (useDefault ? defaultSet.activeIcon : ""),
+    inactiveIcon:
+      options.inactiveIcon ||
+      builtin?.inactiveIcon ||
+      fallback ||
+      (useDefault ? defaultSet.inactiveIcon : ""),
+    builtin: !explicitOverridesBuiltin ? builtin?.builtin : undefined,
   };
 }

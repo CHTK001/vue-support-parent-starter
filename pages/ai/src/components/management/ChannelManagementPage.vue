@@ -443,6 +443,28 @@ function submitBindInput() {
   startSse(channel)
 }
 
+// api-key 输入：直接写响应式状态（模板里用 $event 取 target，避免用未定义变量）
+function onApiKeyInput(event: Event) {
+  const channel = bindChannel.value
+  const state = bindState[channel]
+  if (!state) return
+  state.input.apiKey = (event.target as HTMLInputElement).value
+}
+
+// 模型开关：从 $event 取 checked
+function onModelToggle(model: string, event: Event) {
+  const enabled = (event.target as HTMLInputElement).checked
+  void toggleModel(activeChannel.value, model, enabled)
+}
+
+// 回调地址兜底输入：同样写响应式状态
+function onCallbackUrlInput(event: Event) {
+  const channel = bindChannel.value
+  const state = bindState[channel]
+  if (!state) return
+  state.handle.callbackUrl = (event.target as HTMLInputElement).value
+}
+
 // ---------- 账号刷新 / 签到 / 删除 ----------
 async function refreshAccount(channel: string, label: string) {
   const b = busyOf(channel)
@@ -736,7 +758,7 @@ const pendingCallbackFor = (channel: string) => pendingCallback.value[channel] ?
               :class="{ 'is-off': !m.enabled }"
             >
               <input type="checkbox" :checked="m.enabled"
-                     @change="(e) => toggleModel(activeChannel, m.model, (e as any).target.checked)" />
+                     @change="onModelToggle(m.model, $event)" />
               <span class="chm-model__name" :title="m.model">{{ m.model }}</span>
               <span v-if="m.contextWindow" class="chm-model__ctx">{{ m.contextWindow }}</span>
             </label>
@@ -874,7 +896,7 @@ const pendingCallbackFor = (channel: string) => pendingCallback.value[channel] ?
             <div class="chm-bind__row">
               <input
                 :value="bindState[bindChannel]?.input?.apiKey ?? ''"
-                @input="(bindState[bindChannel]!.input.apiKey = (e as any).target.value)"
+                @input="onApiKeyInput($event)"
                 class="chm-input"
                 placeholder="Zen API key（匿名通道填 public）"
               />
@@ -888,7 +910,7 @@ const pendingCallbackFor = (channel: string) => pendingCallback.value[channel] ?
             <div class="chm-bind__row">
               <input
                 :value="bindState[bindChannel]?.handle?.callbackUrl ?? ''"
-                @input="(bindState[bindChannel]!.handle.callbackUrl = (e as any).target.value)"
+                @input="onCallbackUrlInput($event)"
                 class="chm-input"
                 placeholder="http://127.0.0.1:…/authorize?…"
               />

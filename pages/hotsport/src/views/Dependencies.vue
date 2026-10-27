@@ -9,6 +9,7 @@
       <span class="match-hint">
         {{ nodeCount }} 节点 · {{ edges.length }} 边
         <template v-if="errorEdgeCount"> · <span class="err-text">{{ errorEdgeCount }} 异常</span></template>
+        <template v-if="self"> · 当前主机 {{ self.display }}</template>
       </span>
       <div class="view-bar__actions">
         <el-radio-group v-model="mode" size="small" class="mode-switch">
@@ -64,6 +65,9 @@
         <span class="legend-item"><i class="legend-dot caller" />调用方</span>
         <span class="legend-item"><i class="legend-dot callee" />被调方</span>
         <span class="legend-item"><i class="legend-dot both" />双向节点</span>
+        <span v-if="self" class="legend-item">
+          <i class="legend-dot self" />当前主机（{{ self.display }}）
+        </span>
         <span class="legend-item"><i class="legend-dot error" />异常节点（错误率 &gt; 1%）</span>
         <span class="legend-item"><i class="legend-line" />正常调用</span>
         <span class="legend-item"><i class="legend-line error" />错误调用</span>
@@ -335,7 +339,13 @@ function nodeErrorRate(st: NodeStat): number {
 async function load() {
   loading.value = true;
   try {
-    edges.value = await getDependenciesAggregated(100);
+    // 自身标识与依赖边并行拉取：自身标识失败不影响依赖图主体
+    const [edgeList, selfInfo] = await Promise.all([
+      getDependenciesAggregated(100),
+      getAgentSelf().catch(() => null),
+    ]);
+    edges.value = edgeList;
+    self.value = selfInfo;
   } catch {
     message.error("加载依赖拓扑失败");
   } finally {
@@ -389,8 +399,12 @@ function graphTooltip(p: GraphTooltipParam): string {
   if (!st) return escapeHtml(name);
   const role = st.outDegree > 0 && st.inDegree > 0 ? "双向" : st.outDegree > 0 ? "调用方" : "被调方";
   const rate = nodeErrorRate(st);
+  const selfLine = isSelfNode(name)
+    ? `<div style="font-size:12px;color:var(--apm-accent);font-weight:600">当前主机（本进程，端口 ${self.value?.port ?? "—"}）</div>`
+    : "";
   return [
     `<div style="font-size:13px;font-weight:600;margin-bottom:6px">${escapeHtml(name)}</div>`,
+    selfLine,
     `<div style="font-size:12px;color:${muted}">角色：${role} · 关联调用 ${st.calls.toLocaleString()} 次</div>`,
     `<div style="font-size:12px;color:${muted}">出边 ${st.outDegree} / 入边 ${st.inDegree}</div>`,
     `<div style="font-size:12px;color:${rate > 1 ? "var(--apm-danger)" : muted}">关联错误 ${st.errors} 次 · 错误率 ${rate.toFixed(2)}%</div>`,
@@ -409,24 +423,34 @@ function buildGraphOption(): echarts.EChartsOption {
   const maxCalls = Math.max(1, ...[...stats.values()].map((s) => s.calls));
   const nodes = [...stats.entries()].map(([name, st]) => {
     const hasError = nodeErrorRate(st) > 1;
+    const isSelf = isSelfNode(name);
     return {
       name,
       category: st.outDegree > 0 && st.inDegree > 0 ? 2 : st.outDegree > 0 ? 0 : 1,
-      symbolSize: 28 + Math.round(22 * Math.sqrt(st.calls / maxCalls)),
+      symbolSize: 28 + Math.round(22 * Math.sqrt(st.calls / maxCalls)) + (isSelf ? 8 : 0),
       itemStyle: {
         color: nodeColor(st),
-        borderColor: hasError ? dangerColor() : colorWithAlpha(fgColor(), 0.18),
-        borderWidth: hasError ? 2.5 : 1,
-        shadowBlur: hasError ? 16 : 8,
-        shadowColor: colorWithAlpha(hasError ? dangerColor() : chartColor(0), hasError ? 0.45 : 0.22),
+        borderColor: hasError
+          ? dangerColor()
+          : isSelf
+            ? chartColor(0)
+            : colorWithAlpha(fgColor(), 0.18),
+        borderWidth: isSelf ? 3 : hasError ? 2.5 : 1,
+        shadowBlur: hasError ? 16 : isSelf ? 14 : 8,
+        shadowColor: colorWithAlpha(
+          hasError ? dangerColor() : chartColor(0),
+          hasError ? 0.45 : isSelf ? 0.35 : 0.22,
+        ),
       },
       label: {
         show: true,
         position: "bottom" as const,
         color: hasError ? dangerColor() : fgColor(),
         fontSize: 11,
-        width: 120,
+        width: isSelf ? 180 : 120,
         overflow: "truncate" as const,
+        // 本进程节点直接标出来，否则图上只有一堆 IP，看不出哪个是自己
+        formatter: isSelf ? `${name} · 当前主机` : undefined,
       },
     };
   });
@@ -689,6 +713,13 @@ watch(keyword, () => applyHighlight());
 .legend-dot.error {
   background: transparent;
   border: 2px solid var(--status-error, var(--apm-danger));
+}
+
+/* 当前主机：本进程节点用实心 + 外环，与「角色色」并存不冲突 */
+.legend-dot.self {
+  background: transparent;
+  border: 2px solid var(--brand-500, var(--apm-accent));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand-500, #2563eb) 22%, transparent);
 }
 
 .legend-line {
