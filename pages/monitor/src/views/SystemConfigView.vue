@@ -292,6 +292,21 @@ onMounted(load);
 </template>
 
 <style scoped lang="scss">
+/*
+ * 页面根容器：本页是**卡片**（`tel-page` 自带白底 + 1px 边框 + 12px 圆角 + 投影），
+ * 所以必须有内边距 —— 否则标题与卡片内容会直接贴着边框，看上去像被裁掉了。
+ *
+ * 全局 `.tel-page` 把 padding 归零，是为了那些**透明**的页面容器（如代理管理页
+ * 去掉误加的 `px` 工具类后就是纯透明根）：那些页面的留白由外层 `.main-content`
+ * 提供，再叠一层就是重复。但卡片型页面没有这层「外层留白」可依赖 ——
+ * 容器自己画了边框，内容离边框多远只能由自己决定。
+ *
+ * 16px 与页内节奏对齐（`.sc-card` 的 body padding 16px、`.sc-grid-2` 的 gap 16px）。
+ */
+.sc {
+  padding: 16px;
+}
+
 .sc-grid-2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -406,5 +421,10 @@ onMounted(load);
   word-break: break-all;
   display: block;
   line-height: 1.5;
+}
+
+/* 窄屏收紧页边距：16px 在手机上会让可用宽度明显变窄 */
+@media (max-width: 720px) {
+  .sc { padding: 12px; }
 }
 </style>

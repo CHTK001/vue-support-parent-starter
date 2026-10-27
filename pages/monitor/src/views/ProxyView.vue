@@ -390,7 +390,7 @@ onMounted(loadList);
 </script>
 
 <template>
-  <div class="px">
+  <div class="proxy-page">
     <!-- KPI 卡：总代理数 / Http / Socks5 / 可用率
          用 ReStatCard 紧凑档——横排密集概览（图标在左、数值+标题+描述在右），
          四张并排只占一行，把纵向空间让给下面的表格。 -->
@@ -555,7 +555,19 @@ onMounted(loadList);
    代理管理 —— 全部走 koi / Element Plus 变量
    布局：整页 flex 列（KPI / 筛选条 固定高，表格卡 flex:1 吃满剩余高度）
    ============================================================ */
-.px {
+/*
+ * 根容器：注意类名**不能**叫 `px`。
+ *
+ * 项目里启用了 UnoCSS，它把 `px` 注册成 `px-4` 的别名
+ * （`.px, .px-4, [px=""] { padding-left: 1rem; padding-right: 1rem }`）。
+ * 早先这里叫 `class="px"`，于是页面根容器凭空多了左右各 16px 内边距 ——
+ * 外层 `.main-content` 已经给了 8px，两者叠加成 24px，内容两侧白留一圈，
+ * 而且报错时很难看出这 16px 从哪来（自己的 scoped 样式里根本没有 padding）。
+ *
+ * 子元素沿用 `px-` 前缀是安全的：`px-kpis` / `px-panel` 这类带字母后缀的名字
+ * 不是合法工具类，UnoCSS 不会为它们生成规则。
+ */
+.proxy-page {
   display: flex;
   flex-direction: column;
   gap: 14px;

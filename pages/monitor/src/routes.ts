@@ -44,24 +44,6 @@ export function createMonitorRoutes(options: MonitorRoutesOptions = {}): RouteCo
   const activeMenu = options.activeMenu || "/services";
 
   return [
-    // ==================== 指标看板 ====================
-    // 单台服务器的实时指标大盘：CPU / 内存 / 磁盘 / 网络 / JVM + 3D 可视化，
-    // 下方挂「软件识别结果」表（SoftwareMetricTable，按 monitorId 聚合已安装软件指标）。
-    // 此前该视图一直没进路由表，属于「编译绿、页面打不开」的死页，故在此显式声明。
-    {
-      path: "/grp-metrics",
-      name: "GroupMetrics",
-      meta: { title: "指标看板", icon: "DataLine", showLink: true, rank: 16 },
-      children: [
-        {
-          path: "/server-dashboard",
-          name: "ServerDashboard",
-          component: () => import("./views/dashboard/ScServerDashboard.vue"),
-          meta: { title: "服务器指标", icon: "Monitor", showLink: true, rank: 16 },
-        },
-      ],
-    },
-
     // ==================== 服务管理 ====================
     // 协议服务器节点（Server 接口 + ServerFilter 编排）的增删改查、启停与热更新。
     // 视图与 API 都在本包，宿主只挂路由。

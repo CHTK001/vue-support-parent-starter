@@ -178,7 +178,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="temp-account sc-page">
+  <div class="temp-account">
     <!-- 运行概览 -->
     <div class="stats-grid" title="随机虚拟身份：虚拟号码（接码）+ 临时邮箱，收到的验证码短信 / 邮件实时推送">
       <ReStatCard size="compact" title="账号总数" :value="stats.accounts" desc="随机虚拟身份" :icon="User" icon-color="var(--metric-cpu)">
@@ -344,12 +344,25 @@ onUnmounted(() => {
 </template>
 
 <style scoped lang="scss">
+/*
+ * 页面根容器：透明、无卡片。
+ *
+ * 此前这里挂了全局的 .sc-page（白底 + 16px 圆角 + 阴影 + 12px 内边距），
+ * 于是整页被包进一张大卡片里，里面又套着 4 张 KPI 卡、一张工具条卡和一张表格卡 ——
+ * 卡片套卡片，层级多出一层，页面显得闷、也挤。
+ *
+ * 现改为与同应用「工作台 / 告警中心 / 抓包分析」一致的透明根：
+ * 背景交给外层 .main-content，卡片只留给真正独立的内容块（KPI 卡 / 表格）。
+ */
 .temp-account {
   display: flex;
   flex-direction: column;
   gap: 12px;
   height: 100%;
   min-height: 0;
+  /* 不自带内边距：外层 .main-content 已有 padding（koi 主题 8px） */
+  padding: 0;
+  background: transparent;
 }
 
 .stats-grid,
@@ -363,12 +376,15 @@ onUnmounted(() => {
   gap: 12px;
 }
 
-.stats-grid :deep(.re-stat-card) {
-  background: color-mix(in srgb, var(--el-color-primary) 4%, var(--el-bg-color));
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 18%, var(--el-border-color-lighter));
-  border-left: 3px solid var(--el-color-primary);
-  border-radius: var(--el-radius-lg);
-}
+/*
+ * KPI 卡不再做本地覆写。
+ *
+ * 此前这里给 ReStatCard 强加了「浅蓝底 + 主色左边框」，让四张统计卡变成一排
+ * 带色条的色块 —— 但页面外层的大卡片去掉后，这层色底就成了整页唯一的蓝色块，
+ * 和同应用「工作台 / 告警中心」的白底统计卡对不上。
+ * 现回到 ReStatCard 自带的 re-surface 基线（白底 + 细边框 + 柔和投影），
+ * 颜色只留给图标圆，四张卡的差异靠图标色区分。
+ */
 
 .temp-account :deep(.re-table) {
   flex: 1 1 0;
@@ -387,13 +403,24 @@ onUnmounted(() => {
   background-color: color-mix(in srgb, var(--el-color-primary) 5%, transparent) !important;
 }
 
+/*
+ * 工具条：裸行，不做卡片。
+ *
+ * 外层大卡片去掉后，这行若还保留白底圆角，就成了页面里一张「只有一行高」的卡片 ——
+ * 层级没带来信息量，只增加边框与阴影。改为裸行，顶部渐变线保留作为区块分隔。
+ *
+ * 背景/边框/阴影必须显式关掉：全局 `.page-toolbar`（pages/server/src/styles/page.css）
+ * 给这个类名定义了白底 + 1px 边框 + 12px 圆角 + 投影，而 scoped 样式只声明
+ * padding 是覆盖不掉那几项的 —— 不管就还是张卡片。
+ */
 .page-toolbar {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: var(--el-bg-color);
-  border-radius: var(--el-radius-lg, 12px);
-  padding: 8px 12px;
+  padding: 2px 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
   position: relative;
   overflow: hidden;
   &::before {
