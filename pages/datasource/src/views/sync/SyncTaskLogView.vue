@@ -316,7 +316,6 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import {
   CircleCheck,
-  CircleCheckFilled,
   Document as DocumentIcon,
   Files,
   Refresh as RefreshIcon,
@@ -479,6 +478,79 @@ async function loadStats() {
 /** 24h 柱状：最大计数（归一化用） */
 const maxHour = computed(() => Math.max(1, ...stats.value.hourly.map(h => h.total)));
 const barHeight = (n: number, max: number) => `${Math.max(2, Math.round((n / max) * 100))}%`;
+
+/* ==================== 顶部 KPI 四卡（与数据同步页 ReStatCard 同款） ==================== */
+
+/** sparkline 折点：把序列归一化到 120×32 视框 */
+function sparkPoints(data: number[]): string {
+  if (data.length < 2) return "";
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  return data
+    .map((v, i) => {
+      const x = (i / (data.length - 1)) * 120;
+      const y = 30 - ((v - min) / range) * 26;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+}
+
+interface KpiCard {
+  key: string;
+  title: string;
+  value: string;
+  desc: string;
+  icon: Component;
+  color: string;
+  spark: number[];
+}
+
+/** 四张顶部 KPI 卡：执行总数 / 成功率 / 失败 / 平均耗时（全部由 stats 聚合得出） */
+const kpiCards = computed<KpiCard[]>(() => {
+  const s = stats.value;
+  const hourlyTotals = s.hourly.map(h => h.total);
+  const hourlySuccess = s.hourly.map(h => h.success);
+  const hourlyFailed = s.hourly.map(h => h.failed);
+  return [
+    {
+      key: "total",
+      title: "执行总数",
+      value: String(s.total),
+      desc: `成功 ${s.success} · 失败 ${s.failed}`,
+      icon: Files,
+      color: "var(--el-color-primary)",
+      spark: hourlyTotals,
+    },
+    {
+      key: "rate",
+      title: "成功率",
+      value: s.total ? `${s.successRate.toFixed(1)}%` : "—",
+      desc: s.total ? `近 30 天落盘执行` : "暂无执行记录",
+      icon: CircleCheck,
+      color: "var(--el-color-success)",
+      spark: hourlySuccess.map((n, i) => (hourlyTotals[i] ? Math.round((n / hourlyTotals[i]) * 100) : 0)),
+    },
+    {
+      key: "failed",
+      title: "失败",
+      value: String(s.failed),
+      desc: s.failed ? "需人工介入" : "暂无失败任务",
+      icon: Warning,
+      color: "var(--el-color-danger)",
+      spark: hourlyFailed,
+    },
+    {
+      key: "avgCost",
+      title: "平均耗时",
+      value: String(s.avgCostMs),
+      desc: "近 30 天落盘执行",
+      icon: Timer,
+      color: "var(--el-color-warning)",
+      spark: hourlyTotals,
+    },
+  ];
+});
 
 /** ===== 阶段瀑布（详情内，从过程日志解析） ===== */
 interface Phase {
@@ -669,70 +741,87 @@ onMounted(async () => {
   padding: 16px 20px 20px;
 }
 
-/* ---------- 页头卡片 ---------- */
-.flow-hero {
+/* ---------- 页头：与数据同步页同款 toolbar（非卡片） ---------- */
+.flow-toolbar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  flex-wrap: wrap;
-  padding: 16px 18px;
-  background: var(--bg-container);
-  border: 1px solid var(--border-default);
-  border-radius: 12px;
-  box-shadow: var(--shadow-sm);
+  padding: 8px 0 4px;
 }
-.flow-hero-main { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.flow-hero-icon {
-  flex: none;
-  width: 40px; height: 40px; border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  color: #fff;
-  background: var(--brand-gradient, linear-gradient(135deg, var(--brand-500), var(--brand-400)));
-  box-shadow: var(--shadow-brand);
+.flow-toolbar-left,
+.flow-toolbar-right { flex: none; }
+.flow-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
 }
-.flow-title { font-size: 18px; font-weight: 700; color: var(--text-primary); display: inline-flex; align-items: center; gap: 8px; }
 .flow-badge {
-  display: inline-flex; align-items: center; gap: 4px;
-  font-size: 11px; font-weight: 600; color: var(--status-success);
-  background: color-mix(in srgb, var(--status-success) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--status-success) 34%, transparent);
-  border-radius: 999px; padding: 2px 9px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--el-color-success);
+  background: var(--el-color-success-light-9);
+  border: 1px solid var(--el-color-success-light-7);
+  border-radius: 999px;
+  padding: 2px 10px;
 }
-.flow-sub { margin-top: 3px; font-size: 12.5px; color: var(--text-tertiary); }
-.flow-hero-side { display: flex; align-items: center; gap: 16px; }
-.flow-hero-stat { display: inline-flex; align-items: baseline; gap: 4px; }
-.flow-hero-stat-val { font-size: 22px; font-weight: 700; color: var(--brand-600); font-variant-numeric: tabular-nums; }
-.flow-hero-stat-key { font-size: 12px; color: var(--text-tertiary); }
+.flow-sub {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+.flow-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.flow-refreshed {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
 
-/* ---------- 健康度总览 ---------- */
+/* ---------- 健康度总览（ReStatCard 四卡，与数据同步 KPI 同款） ---------- */
 .flow-health {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 14px 16px;
-  background: var(--bg-container);
-  border: 1px solid var(--border-default);
-  border-radius: 12px;
-  box-shadow: var(--shadow-sm);
+  padding: 14px 0 16px;
 }
-.flow-health-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.flow-health-card {
-  border: 1px solid var(--border-subtle);
-  border-radius: 10px;
-  padding: 10px 12px;
-  background: var(--bg-elevated);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+/* 四卡一行（窄屏折行）。每格 = ReStatCard + 叠在卡内右下角的迷你趋势线 */
+.flow-health-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
 }
-.flow-health-key { font-size: 11px; color: var(--text-tertiary); }
-.flow-health-val { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.flow-health-val small { font-size: 13px; font-weight: 600; color: var(--text-tertiary); }
-.flow-health-val.is-good { color: var(--status-success); }
-.flow-health-val.is-warn { color: var(--status-warning); }
-.flow-health-val.is-bad { color: var(--status-error); }
-.flow-health-desc { font-size: 10.5px; color: var(--text-tertiary); }
+.flow-health-cell { position: relative; min-width: 0; }
+.flow-spark {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 120px;
+  height: 32px;
+  opacity: 0.85;
+  pointer-events: none;
+}
+.flow-spark-line {
+  fill: none;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+@media (max-width: 1100px) {
+  .flow-health-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 620px) {
+  .flow-health-stats { grid-template-columns: 1fr; }
+}
 
 .flow-health-chart-head, .flow-detail-block-head { display: flex; align-items: baseline; gap: 10px; }
 .flow-health-chart-title { font-size: 12.5px; font-weight: 700; color: var(--text-primary); }
@@ -911,8 +1000,7 @@ onMounted(async () => {
   .flow-filters { flex-wrap: wrap; overflow-x: visible; }
   .flow-filter-task, .flow-filter-trigger, .flow-filter-keyword { width: 100%; }
   .flow-filters-hint { margin-left: 0; }
-  .flow-health-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .flow-hero-side { width: 100%; justify-content: space-between; }
+  .flow-health-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .flow-line-row { flex-wrap: wrap; row-gap: 1px; }
   .flow-line-msg { flex: 1 0 100%; }
   .flow-waterfall-row { font-size: 10px; padding: 0 5px; }

@@ -1,24 +1,27 @@
 <script setup lang="ts">
 /**
- * ReStateIcon —— 两态图标切换（带动画）
+ * ReStateIcon —— 两态图标切换
  *
- * 同一个图标位在「激活 / 非激活」两态间切换，两套图标各占一层、
- * 用 CSS 交叉过渡完成切换。两态图标来源：
+ * 同一个图标位在「激活 / 非激活」两态间切换。两态图形的来源：
  *
  *   激活态   = activeIcon ?? 内置集.activeIcon ?? icon
  *   非激活态 = inactiveIcon ?? 内置集.inactiveIcon ?? icon
  *
- * 内置图标集见 {@link ./presets} 的 {@link STATE_ICON_PRESETS}（两套起步），
+ * 内置图标集见 {@link ./presets} 的 {@link STATE_ICON_PRESETS}，
  * 传 `preset` 选用；`preset="none"` 可关闭内置回落。
  *
  * 用法：
  *   <ReStateIcon :active="on" active-icon="Sunny" inactive-icon="Moon" />
  *   <ReStateIcon :active="on" preset="star" />
+ *   <ReStateIcon :active="on" preset="bulb" />   <!-- 同一颗灯泡点亮/熄灭 -->
  *   <ReStateIcon :active="on" icon="ep:star" />
  *
  * 说明：
- *   - 动画只走 `opacity` / `transform`（合成层属性），不触发布局；
- *   - 两态图标相同或只有一态时不会做无意义切换（调用方通常直接用 ReIcon）；
+ *   - 两态图形<b>不同</b>时各占一层，用 CSS 交叉过渡切换（`opacity` / `transform`，
+ *     合成层属性，不触发布局）；`animate` 默认关闭，瞬时切换；
+ *   - 两态图形<b>相同</b>（如内置灯泡的「亮 / 灭」）时不做交叉 —— 一张图由
+ *     内置渲染器自己表达点亮与否，没有中间态；
+ *   - 只有一态有图标时不叠层（否则非激活态会因 active 层 opacity:0 而消失）；
  *   - 尊重 `prefers-reduced-motion`。
  *
  * <p><b>层与图标的对应关系（易错点）</b>：层是<b>固定的</b> ——

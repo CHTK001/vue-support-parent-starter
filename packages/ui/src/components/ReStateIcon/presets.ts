@@ -2,7 +2,7 @@
  * ReStateIcon 内置图标集
  *
  * 每个「图标集」是一对图标：激活态 / 非激活态。用于 ReSwitch / ReSelect / ReRadio
- * 这类「同一个控件、两态可辨」的场景 —— 激活与非激活各用一套图标，切换时做动画。
+ * 这类「同一个控件、两态可辨」的场景 —— 激活与非激活各一套图形。
  *
  * 内置多套（{@link STATE_ICON_PRESETS}），调用方传 `preset` 名字即可选用；
  * 不传 `preset` 时回落到 `sunmoon`。图标名一律走 ReIcon 的多源解析：
@@ -14,6 +14,11 @@
  * 之所以默认用 Element Plus 的 Sunny / Moon：它们是纯静态图标，不会拉入
  * `motion` 动画库；动画切换由 ReStateIcon 自身的 CSS 完成，与上游无关。
  * 想要上游动画图标，直接传 `preset="anim"` 或自定义 `anim:...` 即可。
+ *
+ * <p><b>例外：bulb</b>。它不是两张图，而是<b>同一张</b>灯泡图 ——
+ * 「亮」与「灭」的差别就是有没有光。所以它带 {@link StateIconSet.builtin}，
+ * 交给内置的 {@link ./builtin/BulbIcon.vue} 渲染，而不是当成图标库名字。
+ * 这样切换是瞬时的（无交叉淡入），也就没有「两个图形叠在一起」的中间态。</p>
  */
 
 /** 一组状态图标：激活态 / 非激活态 */
