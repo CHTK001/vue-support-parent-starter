@@ -1,6 +1,6 @@
 import { fileViewerRenderers } from "@file-viewer/vite-plugin";
 import { createVite, SHARED_PUBLIC_DIR } from "../../turbo/vite/createVite.ts";
-import type { PluginOption } from "vite";
+import type { PluginOption, ProxyOptions } from "vite";
 
 const sharedPublicDir = SHARED_PUBLIC_DIR.replace(/\\/g, "/").replace(/\/+$/, "");
 
@@ -43,6 +43,31 @@ function systemProxyHeaders(): PluginOption {
           req.headers["x-requested-with"] = `XMLHttpRequest${FIRST_PARTY_MARKER}`;
         }
         next();
+      });
+    },
+  };
+}
+
+/**
+ * dev 代理响应剥掉 Set-Cookie 的 Secure 标志（仅 serve 生效）。
+ *
+ * <p>后端经公网 https 访问时 `request.isSecure()=true`，OauthCsrfFilter 下发的
+ * XSRF-TOKEN cookie 会带 Secure 属性；dev 页面跑在 http://localhost:8096，
+ * 浏览器按规范丢弃 Secure cookie，登录 POST 缺 cookie 必然 403。这里在代理
+ * 回写前剥掉 Secure，令 dev 浏览器能保存该 cookie（配合前端 double-submit
+ * 注入 X-CSRF-TOKEN 头完成 CSRF 校验）。生产前端同样走 https，不受影响。</p>
+ */
+function stripSecureCookie(proxy: ProxyOptions): ProxyOptions {
+  const configure = proxy.configure;
+  return {
+    ...proxy,
+    configure(proxyServer, options) {
+      configure?.(proxyServer, options);
+      proxyServer.on("proxyRes", (proxyRes) => {
+        const setCookie = proxyRes.headers["set-cookie"];
+        if (Array.isArray(setCookie)) {
+          proxyRes.headers["set-cookie"] = setCookie.map((c) => c.replace(/;\s*Secure/gi, ""));
+        }
       });
     },
   };
@@ -109,30 +134,30 @@ export default createVite({
       // 前端本地跑，后端在 198，故代理指向远端而不是 localhost。
       // SYSTEM_API_TARGET 可覆盖：本机若有 18170 隧道/本地实例保持默认，
       // E2E 等直连 198 场景用 SYSTEM_API_TARGET=http://192.168.50.198:18170。
-      "/system/api": {
+      "/system/api": stripSecureCookie({
         target: process.env.SYSTEM_API_TARGET ?? "http://127.0.0.1:18170",
         changeOrigin: true,
-      },
+      }),
       // AI 提供商管理（pages/ai 的模型管理页）内嵌后，其 apiService 以 `/v2` 为基址
       // （web 模式见 pages/ai/src/services/ApiService.ts）。系统后端 context-path 为
       // /system/api，ai-starter 的 /v2/** 端点落在 /system/api/v2/** 下，故把 /v2 代理到
       // 系统后端并补上 context-path。仅 pages/ai 子树用 /v2；本应用自身走 /system/api，
       // 两者前缀不重叠。/v2 与 /system/api 都指向同一 SYSTEM_API_TARGET。
-      "/v2": {
+      "/v2": stripSecureCookie({
         target: process.env.SYSTEM_API_TARGET ?? "http://127.0.0.1:18170",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/v2/, "/system/api/v2"),
-      },
+      }),
       // pages/ai 模型管理页的 adminApi（rootHttp，baseURL 为空）直接调 `/api/providers`
       // 等管理端点（见 pages/ai/src/services/modules/model.api.ts），这些端点在 ai-starter
       // 的 manage/api 控制器下（@RequestMapping("/api")）。内嵌到系统后端后它们落在
       // /system/api/api/** 下，故 /api 代理到系统后端并补 context-path 与 /api 前缀。
       // 仅 pages/ai 子树用 /api；本应用自身走 /system/api 与 /v2，前缀不重叠。
-      "/api": {
+      "/api": stripSecureCookie({
         target: process.env.SYSTEM_API_TARGET ?? "http://127.0.0.1:18170",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, "/system/api/api"),
-      },
+      }),
       // 天气：Open-Meteo 免费天气 API（无需 key）
       "/weather-api": {
         target: "https://api.open-meteo.com",

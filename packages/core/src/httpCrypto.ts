@@ -35,6 +35,25 @@ import { ElMessageBox } from "element-plus";
 /** 后端配置版本响应头：配置变更时后端返回新版本号，前端据此触发热重载 */
 const CONFIG_VERSION_HEADER = "x-response-version";
 
+/** oauth-server CSRF double-submit：cookie 名（OauthCsrfFilter 下发）与请求头名 */
+const CSRF_COOKIE_NAME = "XSRF-TOKEN";
+const CSRF_HEADER_NAME = "X-CSRF-TOKEN";
+
+/**
+ * 读取指定 cookie 值（CSRF double-submit 用）。
+ *
+ * <p>后端 OauthCsrfFilter 在 GET 响应中下发 XSRF-TOKEN cookie（HttpOnly=false），
+ * 前端从 cookie 读到令牌后放进 X-CSRF-TOKEN 请求头，后端比对两者一致且 Redis
+ * 有值即通过。cookie 缺失时返回空串，调用方据此跳过注入。</p>
+ */
+function readCookie(name: string): string {
+  if (typeof document === "undefined") return "";
+  const m = document.cookie.match(
+    new RegExp("(?:^|;\\s*)" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "=([^;]*)")
+  );
+  return m ? decodeURIComponent(m[1]) : "";
+}
+
 /** 加密标记头：值为 "1" 表示请求体已加密 */
 export const ENCRYPT_HEADER = "x-ec";
 /** 随机 AES key 头（base64） */
@@ -364,6 +383,20 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
       const token = getAccessToken();
       if (token) {
         config.headers.set("Authorization", `Bearer ${token}`);
+      }
+    }
+
+    // ── CSRF double-submit 适配（oauth-server 的 OauthCsrfFilter） ──
+    // 后端对状态变更请求（POST/PUT/PATCH/DELETE）校验 X-CSRF-TOKEN 请求头与
+    // XSRF-TOKEN cookie 一致且 Redis 有值（GET 响应已下发该 cookie）。
+    // axios 原生 xsrfHeaderName 默认是 X-XSRF-TOKEN，与后端契约 X-CSRF-TOKEN
+    // 不一致，登录等匿名 POST 会因此 403；此处显式从 cookie 取值注入。
+    // cookie 不存在（非 oauth 后端、或已带凭据头被后端豁免）时不注入，
+    // 不影响其它部署的安全行为。
+    if (!config.headers.has(CSRF_HEADER_NAME)) {
+      const xsrfToken = readCookie(CSRF_COOKIE_NAME);
+      if (xsrfToken) {
+        config.headers.set(CSRF_HEADER_NAME, xsrfToken);
       }
     }
 
