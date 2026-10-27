@@ -136,7 +136,7 @@ import ReEmpty from "@repo/ui/re-empty";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import { getErrorRanking, getSlowCalls, getSlowSql } from "../api/apmApi";
 import type { ErrorRanking, SlowCall, SlowSqlItem } from "../api/apmApi";
-import { useRealtimeEvent } from "../composables/useRealtime";
+import { useRealtimeEvent, useStatsChanged } from "../composables/useRealtime";
 
 const items = ref<ErrorRanking[]>([]);
 const slowCalls = ref<SlowCall[]>([]);
@@ -219,7 +219,7 @@ onMounted(() => {
 });
 
 // 实时推送驱动（整站共用一条 WS/SSE），不再 setInterval 轮询
-useRealtimeEvent("stats", () => {
+useStatsChanged(["errorCount"], () => {
   if (!loading.value) load();
 });
 </script>

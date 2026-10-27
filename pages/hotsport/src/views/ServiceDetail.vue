@@ -314,7 +314,7 @@ import {
   getEndpointStats,
   getServiceDetail,
 } from "../api/apmApi";
-import { useRealtimeEvent } from "../composables/useRealtime";
+import { useRealtimeEvent, useStatsChanged } from "../composables/useRealtime";
 import type {
   ApmEndpoint,
   DependencyEdge,
@@ -610,7 +610,7 @@ onMounted(() => {
 });
 
 // 实时推送驱动（整站共用一条 WS/SSE），不再 setInterval 轮询
-useRealtimeEvent("stats", () => {
+useStatsChanged(["transmissionCount"], () => {
   if (!loading.value) load();
 });
 </script>

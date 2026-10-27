@@ -114,7 +114,7 @@ import { message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ROUTE_PREFIX } from "../config";
-import { useRealtimeEvent } from "../composables/useRealtime";
+import { useRealtimeEvent, useStatsChanged } from "../composables/useRealtime";
 import {
   Connection,
   Histogram,
@@ -208,7 +208,7 @@ onMounted(() => {
 });
 
 // 实时推送：整站共用一条 WS/SSE，收到 stats 事件即静默刷新，不再各自 setInterval 轮询
-useRealtimeEvent("stats", () => {
+useStatsChanged(["transmissionCount"], () => {
   if (!loading.value) load();
 });
 </script>

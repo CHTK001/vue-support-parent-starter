@@ -178,8 +178,13 @@ class RealtimeService {
 
       this.es.addEventListener("stats", (ev: MessageEvent) => {
         try {
-          const data = JSON.parse(ev.data as string);
-          this.bus.emit({ type: "stats", data, ts: Date.now() });
+          const parsed = JSON.parse(ev.data as string) as { ts?: number; data?: unknown };
+          // 服务端帧结构是 { ts, data: <stats> }。总线只传内层 <stats>，
+          // 否则每个订阅者都要各自再拆一层，漏拆的订阅者会把信封当快照用。
+          const payload = parsed && typeof parsed === "object" && parsed.data && typeof parsed.data === "object"
+            ? { ...(parsed.data as Record<string, unknown>), ts: parsed.ts }
+            : parsed;
+          this.bus.emit({ type: "stats", data: payload, ts: Date.now() });
         } catch { /* 忽略 */ }
       });
 

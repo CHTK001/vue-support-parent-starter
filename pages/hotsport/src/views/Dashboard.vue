@@ -20,9 +20,6 @@
       </span>
 
       <div class="view-bar__actions">
-        <el-select v-model="refreshInterval" size="small" class="interval-select" title="趋势图刷新间隔">
-          <el-option v-for="opt in intervalOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-        </el-select>
         <el-button round :loading="loading" @click="load">
           <el-icon class="refresh-icon"><Refresh /></el-icon>
           刷新
@@ -192,11 +189,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { ROUTE_PREFIX } from "../config";
 import { message } from "@repo/core";
 import { ArrowRight, DataAnalysis, Document, Refresh, Share, Warning, Download } from "@element-plus/icons-vue";
+import { useRealtimeEvent } from "../composables/useRealtime";
 
 import ReEcharts from "@repo/ui/re-echarts";
 import ReTable from "@repo/ui/re-table";
@@ -204,13 +202,10 @@ import type { ReTableColumn } from "@repo/ui/re-table";
 
 import {
   getStats,
-  watchStats,
-  pageTransmissions,
   getServices,
   getSlowCalls,
   getErrorRanking,
   getSla,
-  getTrend,
 } from "../api/apmApi";
 import type {
   ApmStats,
@@ -296,18 +291,6 @@ const slowCalls = ref<SlowCall[]>([]);
 const errorRanking = ref<ErrorRanking[]>([]);
 const sla = ref<SlaStats | null>(null);
 
-let sseWatch: { close: () => void } | null = null;
-/** 上次趋势聚合时间（用于实时事件驱动的节流） */
-let lastTrendAt = 0;
-
-/* ---------------- 刷新间隔控制 ---------------- */
-const refreshInterval = ref(15);
-const intervalOptions = [
-  { label: "5s", value: 5 },
-  { label: "15s", value: 15 },
-  { label: "30s", value: 30 },
-  { label: "1 分钟", value: 60 },
-];
 const lastRefresh = ref("");
 
 function formatLastRefresh() {
@@ -456,8 +439,34 @@ const trendBuckets = ref<{ xs: string[]; totals: number[]; errors: number[] }>({
   errors: [],
 });
 const errorTrendPoints = ref<TrendPoint[]>([]);
-/** 最近一次传输记录，用于推导协议分布 */
-const recentItems = ref<{ startTime: string; status: string; protocol?: string }[]>([]);
+
+/**
+ * 用推送帧里的 30 分钟趋势重绘两张趋势图。
+ *
+ * <p>聚合在后端完成（{@code /stream} 每 15s 随帧下发 {@code trend}），
+ * 前端不再按分钟自行分桶，也不再定时请求 {@code /trend} 和 500 条传输记录。</p>
+ *
+ * @param points 后端聚合好的趋势点
+ */
+function applyTrend(points: TrendPoint[]) {
+  errorTrendPoints.value = points;
+  const byMinute = new Map<number, TrendPoint>();
+  for (const p of points) {
+    byMinute.set(Math.floor(Number(p.bucketStart) / 60_000), p);
+  }
+  const nowMin = Math.floor(Date.now() / 60_000);
+  const xs: string[] = [];
+  const totals: number[] = [];
+  const errors: number[] = [];
+  for (let i = 29; i >= 0; i--) {
+    const key = nowMin - i;
+    const b = byMinute.get(key);
+    xs.push(hm(key * 60_000));
+    totals.push(b?.callCount ?? 0);
+    errors.push(b?.errorCount ?? 0);
+  }
+  trendBuckets.value = { xs, totals, errors };
+}
 
 /* ---------------- 图表 option（令牌驱动，无硬编码色） ---------------- */
 const trendOption = computed<EChartsOption>(() => {
@@ -639,78 +648,29 @@ async function loadRanks() {
   }
 }
 
-/** 拉最近传输记录：既喂趋势图，也留作协议分布数据源 */
-async function loadTrend() {
-  try {
-    const res = await pageTransmissions({ page: 1, size: 500 });
-    recentItems.value = res.items || [];
-    bucketTrend(recentItems.value);
-  } catch {
-    /* 趋势降级为空 */
-  }
-}
-
-/** 按 startTime 分钟分桶（最近 30 分钟），生成调用量 / 错误数两条序列 */
-function bucketTrend(items: { startTime: string; status: string }[]) {
-  const now = Date.now();
-  const buckets = new Map<number, { total: number; errors: number }>();
-  for (let i = 29; i >= 0; i--) {
-    buckets.set(Math.floor((now - i * 60_000) / 60_000), { total: 0, errors: 0 });
-  }
-  for (const it of items) {
-    const t = Date.parse(it.startTime);
-    if (Number.isNaN(t)) {
-      continue;
-    }
-    const b = buckets.get(Math.floor(t / 60_000));
-    if (b) {
-      b.total++;
-      if ((it.status || "").toUpperCase() !== "OK") {
-        b.errors++;
-      }
-    }
-  }
-  const xs: string[] = [];
-  const totals: number[] = [];
-  const errors: number[] = [];
-  for (const [key, b] of [...buckets.entries()].sort((a, c) => a[0] - c[0])) {
-    xs.push(hm(key * 60_000));
-    totals.push(b.total);
-    errors.push(b.errors);
-  }
-  trendBuckets.value = { xs, totals, errors };
-}
-
-async function loadErrorTrend() {
-  try {
-    errorTrendPoints.value = (await getTrend(30, 60)) || [];
-  } catch {
-    /* 降级为空 */
-  }
-}
-
 /* ---------------- 生命周期 ---------------- */
-onMounted(async () => {
-  await load();
-  await loadTrend();
-  await loadErrorTrend();
-  lastTrendAt = Date.now();
-
-  // 快照与趋势全部由整站唯一实时通道驱动，不再各自 setInterval 轮询
-  sseWatch = watchStats((snapshot) => {
-    Object.assign(stats.value, snapshot);
-    // 趋势聚合较重：按用户设定间隔节流，避免每条 stats 事件都重算
-    const elapsed = Date.now() - lastTrendAt;
-    if (elapsed >= refreshInterval.value * 1000) {
-      lastTrendAt = Date.now();
-      loadTrend();
-      loadErrorTrend();
-    }
-  });
+/**
+ * 整站唯一实时通道：stats 帧直接落到本地快照。
+ *
+ * <p>原先这里自建了一条 EventSource（watchStats），与壳层的 WS/SSE 并行，
+ * 等于整站跑两条长连接。现在统一订阅共享通道；帧里已含 stats/health，
+ * 趋势也会每 15s 随帧带上，因此<b>不再有任何周期性 HTTP 请求</b>。</p>
+ */
+useRealtimeEvent("stats", (ev) => {
+  const frame = ev?.data as (ApmStats & { connected?: boolean }) | undefined;
+  if (!frame || typeof frame !== "object" || frame.connected === true) {
+    return;
+  }
+  Object.assign(stats.value, frame);
+  formatLastRefresh();
+  // 趋势：后端每 15s 随帧下发一次；没有该字段的帧说明还没到聚合周期，沿用上一份
+  if (Array.isArray(frame.trend)) {
+    applyTrend(frame.trend);
+  }
 });
 
-onBeforeUnmount(() => {
-  sseWatch?.close();
+onMounted(async () => {
+  await load();
 });
 
 // stats 变化时刷新协议分布（计数变了，占比就变了）

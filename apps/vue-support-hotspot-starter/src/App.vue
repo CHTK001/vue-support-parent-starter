@@ -167,7 +167,7 @@ import type { Component } from "vue";
 import { useApmStore } from "./stores/apmStore";
 import ShortcutsPanel from "./components/ShortcutsPanel.vue";
 import { currentLang, setLang } from "./i18n";
-import { realtimeService } from "./services/realtimeService";
+import { realtimeService, type RealtimeEvent } from "./services/realtimeService";
 import { ROUTE_PREFIX } from "@pages/hotsport";
 
 const route = useRoute();
@@ -335,11 +335,14 @@ async function pollStatus() {
 /**
  * 实时通道驱动的状态同步。
  *
- * <p>整站只有一条 WS/SSE 通道，壳层不再用 15s 定时器轮询：
- * 收到 stats 事件即静默同步一次 Agent 状态与未处置告警数。</p>
+ * <p>整站只有一条 WS/SSE 通道。帧里已经带齐 stats + recentAlerts +
+ * openAlertCount，这里只做赋值，<b>不再回头请求 /stats 与 /alerts</b>——
+ * 那样每 3 秒就会把推送变成两次轮询。</p>
+ *
+ * @param ev 实时事件；WebSocket 建连的 { connected: true } 会被 store 忽略
  */
-function onRealtimeStats() {
-  void apmStore.pollStatus();
+function onRealtimeStats(ev: RealtimeEvent) {
+  apmStore.applySnapshot(ev.data as Parameters<typeof apmStore.applySnapshot>[0]);
 }
 realtimeService.on("stats", onRealtimeStats);
 

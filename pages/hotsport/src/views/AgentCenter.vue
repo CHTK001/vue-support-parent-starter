@@ -760,9 +760,10 @@ onMounted(async () => {
   await Promise.all([loadHandles(), loadSysOut(), loadMemoryDiagnostics(), loadThreadDump(), loadTraceAnalysis()]);
 });
 
-// Agent 状态随整站实时通道更新，不再单独 setInterval 轮询
-useRealtimeEvent("stats", () => {
-  if (!statusLoading.value) store.pollStatus();
+// Agent 状态随整站实时通道更新：帧里已带 agentActive/agentEnabled 与告警计数，
+// 直接落到 store，不必再发 /stats 与 /alerts（那是每帧两次请求）
+useRealtimeEvent("stats", (ev) => {
+  store.applySnapshot(ev.data as Parameters<typeof store.applySnapshot>[0]);
 });
 </script>
 

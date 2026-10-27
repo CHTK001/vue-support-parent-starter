@@ -33,6 +33,32 @@ export function useRealtimeAll(handler: RealtimeEventHandler): () => void {
   return off;
 }
 
+/**
+ * 仅在快照里的关键计数发生变化时才执行回调。
+ *
+ * <p>stats 帧默认每 3s 一帧。若每个页面都在每帧无条件重新拉取自己的列表，
+ * 等于把轮询提速到 3s，与「整站一条推送通道、不设定时刷新」相悖。这里用
+ * 计数当变更信号：计数没动就不请求，空闲系统保持 0 请求。</p>
+ *
+ * @param keys    作为变更信号的字段名（来自 stats 快照）
+ * @param handler 计数变化时执行；首帧不触发（页面刚完成首屏加载）
+ */
+export function useStatsChanged(keys: string[], handler: () => void): void {
+  let signature = "";
+  useRealtimeEvent("stats", (ev) => {
+    const snapshot = (ev?.data ?? {}) as Record<string, unknown>;
+    const next = keys.map((k) => String(snapshot[k] ?? "")).join("|");
+    if (next === signature) {
+      return;
+    }
+    const isFirstFrame = signature === "";
+    signature = next;
+    if (!isFirstFrame) {
+      handler();
+    }
+  });
+}
+
 /** 当前单例的连接状态（模板可直接使用） */
 export function useRealtimeStatus() {
   return {

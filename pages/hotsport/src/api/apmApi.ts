@@ -37,6 +37,10 @@ export interface ApmStats {
   errorRate?: number;
   activeLeaks?: number;
   recentAlerts?: ApmAlert[];
+  /** 未处置告警总数（SSE 帧下发，侧栏红点直接用它，无需再轮询 /alerts） */
+  openAlertCount?: number;
+  /** 30 分钟趋势（SSE 帧每 15s 随带一次，前端无需再定时请求 /trend） */
+  trend?: TrendPoint[];
 }
 
 /** 传输记录 */
@@ -168,27 +172,6 @@ export interface LogQuery {
 }
 
 // ---- SSE 实时流（增强）----
-
-/** 打开 /api/apm/stream，回调每次 stats 快照。返回 close() 终止。 */
-export function watchStats(onSnapshot: (stats: ApmStats & { ts: number }) => void, onError?: (e: Event) => void): { close: () => void } {
-  const es = new EventSource(apiUrl("/stream?intervalMs=3000"));
-  es.addEventListener("stats", (ev: MessageEvent) => {
-    try {
-      const parsed = JSON.parse(ev.data as string) as { ts?: number; data?: ApmStats } & Partial<ApmStats>;
-      // 后端帧结构 { ts, data: stats }；兼容平铺 { ...stats, ts }
-      const snapshot = (parsed.data && typeof parsed.data === "object")
-        ? ({ ...parsed.data, ts: parsed.ts } as ApmStats & { ts: number })
-        : (parsed as unknown as ApmStats & { ts: number });
-      onSnapshot(snapshot);
-    } catch {
-      /* 跳过畸形帧 */
-    }
-  });
-  if (onError) es.addEventListener("error", onError);
-  return {
-    close: () => es.close(),
-  };
-}
 
 // ---- 导出工具（增强）----
 

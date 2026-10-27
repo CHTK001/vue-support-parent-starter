@@ -57,9 +57,19 @@ export const useApmStore = defineStore("apm", () => {
 
   /* ---- 告警 ---- */
   const alerts = ref<ApmAlert[]>([]);
-  const activeAlertCount = computed(
-    () => alerts.value.filter((a) => a.status === "OPEN").length,
-  );
+  /**
+   * 侧栏红点：未处置告警数。
+   *
+   * <p>优先用 SSE 帧里的 {@code openAlertCount}——那是后端的全量计数。
+   * {@code alerts} 本身只装最近几条，用它 filter 会少算，仅作为推送里没有该字段时的兜底。</p>
+   */
+  const activeAlertCount = computed(() => {
+    const exact = stats.value.openAlertCount;
+    if (typeof exact === "number") {
+      return exact;
+    }
+    return alerts.value.filter((a) => a.status === "OPEN").length;
+  });
   const criticalAlertCount = computed(
     () => alerts.value.filter((a) => a.severity === "CRITICAL" && a.status === "OPEN").length,
   );
@@ -166,6 +176,33 @@ export const useApmStore = defineStore("apm", () => {
     }
   }
 
+  /**
+   * 应用实时通道推送的 stats 快照 —— 不发任何 HTTP 请求。
+   *
+   * <p>整站只有一条 WS/SSE 通道，帧里已带齐 stats + health + recentAlerts +
+   * openAlertCount。壳层收到帧只需赋值；若在回调里再调 {@link pollStatus}，
+   * 就等于把推送退化成了每帧一次的轮询（/stats + /alerts 各一发）。</p>
+   *
+   * <p>WebSocket 建连成功时总线会发一条 {@code { connected: true }}，那不是快照，
+   * 这里按「必须含 stats 字段」识别并忽略。</p>
+   *
+   * @param snapshot 帧内 data
+   */
+  function applySnapshot(snapshot: Partial<ApmStats> | null | undefined) {
+    if (!snapshot || typeof snapshot !== "object") {
+      return;
+    }
+    if (typeof snapshot.agentActive !== "boolean" && typeof snapshot.transmissionCount !== "number") {
+      return;
+    }
+    stats.value = snapshot as ApmStats;
+    agentActive.value = !!snapshot.agentActive;
+    agentEnabled.value = !!snapshot.agentEnabled;
+    if (Array.isArray(snapshot.recentAlerts)) {
+      alerts.value = snapshot.recentAlerts;
+    }
+  }
+
   /** 拉取健康状态（不参与主轮询，页面进入时手动调用） */
   async function loadHealth() {
     try {
@@ -212,6 +249,7 @@ export const useApmStore = defineStore("apm", () => {
     notificationChannels,
     // 方法
     pollStatus,
+    applySnapshot,
     loadHealth,
     loadAgentConfig,
     saveFilter,

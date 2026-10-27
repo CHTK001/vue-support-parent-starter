@@ -200,7 +200,7 @@ import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import { pageLogs, exportLogsCsv, getLogStats, getTraceDetail } from "../api/apmApi";
 import type { LogRecord, LogLevelStat } from "../api/apmApi";
-import { useRealtimeLog } from "../composables/useRealtime";
+import { useRealtimeLog, useStatsChanged } from "../composables/useRealtime";
 import { realtimeService } from "../services/realtimeService";
 
 const router = useRouter();
@@ -350,7 +350,24 @@ watch(autoRefresh, (on) => {
   if (on) realtimeService.on("stats", onStatsEvent);
 });
 
-function onStatsEvent() {
+/** 上一次刷新时的日志条数签名：计数没变就不重复拉取 */
+let lastLogSignature = "";
+
+/**
+ * 静默刷新当前页。
+ *
+ * <p>stats 帧每 3s 一帧，若无条件刷新等于 3s 轮询；这里用日志条数当变更信号，
+ * 没有新日志就不发请求。</p>
+ *
+ * @param ev 实时事件
+ */
+function onStatsEvent(ev?: { data?: unknown }) {
+  const snapshot = (ev?.data ?? {}) as Record<string, unknown>;
+  const signature = String(snapshot.logs ?? "");
+  if (signature === lastLogSignature) {
+    return;
+  }
+  lastLogSignature = signature;
   if (!loading.value) load(true);
 }
 

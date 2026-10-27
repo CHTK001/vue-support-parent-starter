@@ -265,7 +265,7 @@ import type { ReTableColumn } from "@repo/ui/re-table";
 import { ReDescriptions, ReDescriptionsItem, ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 import { getJvmSnapshot, getJvmMetrics, getThreadPools, getConnectionPools, getHandleInventory } from "../api/apmApi";
 import type { JvmSnapshot, JvmMetricPoint, ThreadPoolStat, ConnectionPoolStat, ThreadStateSample, HandleInventorySnapshot } from "../api/apmApi";
-import { useRealtimeEvent } from "../composables/useRealtime";
+import { useRealtimeEvent, useStatsChanged } from "../composables/useRealtime";
 import {
   areaGradient,
   axisTextColor,
@@ -540,8 +540,9 @@ onMounted(() => {
   live.value = true;
 });
 
-// 实时推送驱动（整站共用一条 WS/SSE），不再 setInterval 轮询
-useRealtimeEvent("stats", () => {
+// 实时推送驱动（整站共用一条 WS/SSE）：只有真的产生了新流量才重新采样，
+// 空闲时保持 0 请求——否则等于把轮询提速到每帧一次（3s）
+useStatsChanged(["transmissionCount"], () => {
   if (!loading.value) load();
 });
 

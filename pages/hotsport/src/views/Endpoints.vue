@@ -195,7 +195,7 @@ import type { ReTableColumn } from "@repo/ui/re-table";
 import type { EChartsOption } from "echarts";
 import { getEndpoints, getEndpointStats } from "../api/apmApi";
 import type { ApmEndpoint, EndpointStatPoint } from "../api/apmApi";
-import { useRealtimeEvent } from "../composables/useRealtime";
+import { useRealtimeEvent, useStatsChanged } from "../composables/useRealtime";
 import {
   areaGradient,
   axisTextColor,
@@ -381,7 +381,7 @@ onMounted(() => {
   load();
 });
 
-useRealtimeEvent("stats", () => {
+useStatsChanged(["transmissionCount"], () => {
   if (!loading.value) {
     load();
     loadEndpointTrend();
