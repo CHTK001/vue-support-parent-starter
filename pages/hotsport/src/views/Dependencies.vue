@@ -107,6 +107,7 @@
             class="apm-table dep-table"
             empty-text="没有匹配的依赖边"
             :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+            @row-click="(row) => openEdgeDetail(row as never)"
           >
             <template #col-source="{ row }">
               <span
@@ -142,10 +143,76 @@
                 {{ numOf(row.errorRate).toFixed(2) }}%
               </span>
             </template>
+            <template #col-actions="{ row }">
+              <el-button
+                text
+                size="small"
+                :loading="detailLoading && detailEdge?.source === row.source && detailEdge?.target === row.target"
+                @click.stop="openEdgeDetail(row as never)"
+              >
+                <el-icon class="btn-icon"><View /></el-icon>调用序列
+              </el-button>
+            </template>
           </ReTable>
         </div>
       </div>
     </template>
+
+    <!-- 依赖边下钻：该边 source→target 的真实调用记录（服务端过滤） -->
+    <div v-if="detailEdge" class="panel drill-panel">
+      <div class="panel-head drill-head">
+        <div class="panel-head__main">
+          <span class="panel-title">调用序列</span>
+          <span class="panel-sub">
+            <span class="mono dep-node">{{ detailEdge.source }}</span>
+            <span class="drill-arrow">→</span>
+            <span class="mono dep-node target">{{ detailEdge.target }}</span>
+            <span class="match-hint"> · 最近 {{ detailItems.length }} 条调用（真实采集）</span>
+          </span>
+        </div>
+        <div class="graph-actions">
+          <el-button size="small" round @click="closeEdgeDetail">关闭</el-button>
+        </div>
+      </div>
+
+      <div v-if="!detailItems.length" class="panel-empty-body">
+        <ReEmpty :image-size="56" description="该边暂无传输记录" />
+      </div>
+      <div v-else class="drill-table-wrap">
+        <ReTable
+          :data="detailItems"
+          :columns="drillColumns"
+          engine="element"
+          :settings="{ border: false }"
+          :layout-table="{ minHeight: 0 }"
+          class="apm-table"
+          :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+        >
+          <template #col-traceId="{ row }">
+            <span class="mono muted">{{ String(row.traceId ?? "—").slice(0, 24) }}</span>
+          </template>
+          <template #col-operation="{ row }">
+            <span class="mono muted drill-op">{{ row.operation }}</span>
+          </template>
+          <template #col-status="{ row }">
+            <el-tag
+              :type="row.status === 'ERROR' ? 'danger' : 'success'"
+              effect="plain"
+              round
+              size="small"
+            >{{ row.status }}</el-tag>
+          </template>
+          <template #col-durationMs="{ row }">
+            <span class="mono" :class="{ 'warn-text': numOf(row.durationMs) > 1000 }">
+              {{ numOf(row.durationMs).toFixed(1) }} ms
+            </span>
+          </template>
+          <template #col-startedAt="{ row }">
+            <span class="mono muted">{{ row.startTime }}</span>
+          </template>
+        </ReTable>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -154,12 +221,12 @@ import { message } from "@repo/core";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import * as echarts from "echarts";
 
-import { Refresh, Search } from "@element-plus/icons-vue";
+import { Refresh, Search, View } from "@element-plus/icons-vue";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import ReEmpty from "@repo/ui/re-empty";
-import { getDependenciesAggregated, getAgentSelf } from "../api/apmApi";
-import type { AgentSelf, DependencyEdge } from "../api/apmApi";
+import { getDependenciesAggregated, getAgentSelf, pageTransmissions } from "../api/apmApi";
+import type { AgentSelf, DependencyEdge, TransmissionRecord } from "../api/apmApi";
 import {
   chartCanvas,
   chartColor,
@@ -253,7 +320,58 @@ const edgeColumns: ReTableColumn[] = [
   { prop: "p95Ms", label: "P95 耗时", width: 110, align: "right", sortable: true, slot: "p95Ms" },
   { prop: "errorCount", label: "错误", width: 80, align: "center", sortable: true, slot: "errorCount" },
   { prop: "errorRate", label: "错误率", width: 100, align: "right", sortable: true, slot: "errorRate" },
+  { prop: "actions", label: "", width: 110, align: "center", slot: "actions" },
 ];
+
+/** 下钻：当前选中的依赖边（source→target）与其真实调用序列 */
+const detailEdge = ref<DependencyEdge | null>(null);
+const detailItems = ref<TransmissionRecord[]>([]);
+const detailLoading = ref(false);
+
+const drillColumns: ReTableColumn[] = [
+  { prop: "traceId", label: "Trace ID", minWidth: 180, slot: "traceId" },
+  { prop: "operation", label: "Operation", minWidth: 200, slot: "operation" },
+  { prop: "status", label: "状态", width: 90, align: "center", slot: "status" },
+  { prop: "durationMs", label: "耗时", width: 100, align: "right", slot: "durationMs" },
+  { prop: "startTime", label: "开始时间", width: 170, slot: "startedAt" },
+];
+
+/** 解析依赖边节点名 → host（下钻查询按主机过滤：依赖边 target 形如 host:port） */
+function hostOf(node: string): string {
+  const s = String(node ?? "").trim();
+  const idx = s.lastIndexOf(":");
+  if (idx > 0 && /^\d+$/.test(s.slice(idx + 1))) {
+    return s.slice(0, idx);
+  }
+  return s;
+}
+
+/** 点开一条边的调用序列：按 source/target 主机过滤真实传输记录 */
+async function openEdgeDetail(edge: DependencyEdge): Promise<void> {
+  if (!edge) return;
+  detailEdge.value = edge;
+  detailLoading.value = true;
+  detailItems.value = [];
+  try {
+    const page = await pageTransmissions({
+      page: 1,
+      size: 20,
+      source: hostOf(edge.source),
+      target: hostOf(edge.target),
+    });
+    detailItems.value = page.items ?? [];
+  } catch {
+    message.error("加载调用序列失败");
+    detailItems.value = [];
+  } finally {
+    detailLoading.value = false;
+  }
+}
+
+function closeEdgeDetail(): void {
+  detailEdge.value = null;
+  detailItems.value = [];
+}
 
 /** 插槽里的 row 是宽类型（unknown）：数值列统一收窄 */
 function numOf(v: unknown): number {
@@ -817,6 +935,43 @@ watch(keyword, () => applyHighlight());
 
 .dep-table :deep(.row-error:hover > td.el-table__cell) {
   background: color-mix(in srgb, var(--status-error, var(--apm-danger)) 14%, transparent) !important;
+}
+
+/* ---- 依赖边下钻面板 ---- */
+.drill-panel {
+  padding: 12px 14px;
+  gap: 10px;
+  background: var(--bg-container, var(--apm-panel));
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
+  border-radius: var(--radius-lg, var(--apm-radius-lg));
+  box-shadow: var(--shadow-sm, var(--apm-shadow-card));
+}
+
+.drill-head {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.drill-arrow {
+  margin: 0 6px;
+  color: var(--text-tertiary, var(--apm-muted));
+}
+
+.drill-op {
+  word-break: break-all;
+}
+
+.drill-table-wrap .apm-table {
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  --el-table-row-hover-bg-color: var(--bg-hover, var(--apm-panel-active));
+  --el-table-border-color: var(--border-subtle, var(--apm-border-soft));
+  --el-table-header-bg-color: transparent;
+  --el-table-header-text-color: var(--text-tertiary, var(--apm-muted));
+  --el-table-text-color: var(--text-primary, var(--apm-fg));
 }
 
 /* ---- 响应式 ---- */

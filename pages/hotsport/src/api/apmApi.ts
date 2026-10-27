@@ -325,6 +325,14 @@ export interface ApmService {
   errorCount: number;
   /** 错误率（%），后端从 callCount/errorCount 计算 */
   errorRate?: number;
+  /** 平均耗时（ms） */
+  avgMs?: number;
+  /** 95 分位耗时（ms） */
+  p95Ms?: number;
+  /** 99 分位耗时（ms） */
+  p99Ms?: number;
+  /** 最大耗时（ms） */
+  maxMs?: number;
 }
 
 export interface ApmEndpoint {
@@ -1012,6 +1020,47 @@ export function getSkywalkingExport(): Promise<SkywalkingSegment[]> {
   return unwrap(instance.get<SkywalkingSegment[]>("/agent/skywalking/export"));
 }
 
+/**
+ * 一键诊断包 —— 后端把 agent / stats / health / jvm / threadDump / slowCalls /
+ * slowSql / errorRanking / handles / systemOut / traceHotspots / skywalking / alerts
+ * 全部真实数据聚合为一份 JSON，运维排查时一键导出留存或转发。
+ */
+export interface DiagnosticBundle {
+  exportedAt: number;
+  agent?: unknown;
+  stats?: ApmStats;
+  health?: ApmHealth;
+  jvm?: JvmSnapshot;
+  threadDump?: ThreadDumpInfo[];
+  memoryPools?: MemoryPoolsSnapshot;
+  classLoading?: ClassLoadingInfo;
+  slowCalls?: SlowCall[];
+  slowSql?: SlowSqlItem[];
+  errorRanking?: ErrorRanking[];
+  handles?: unknown;
+  systemOut?: SystemOutEntry[];
+  traceHotspots?: TraceHotspot[];
+  tracePhases?: TracePhaseStat[];
+  skywalking?: SkywalkingSegment[];
+  alerts?: ApmAlert[];
+}
+
+export async function getDiagnosticBundle(): Promise<DiagnosticBundle> {
+  return unwrap(instance.get<DiagnosticBundle>("/diagnostics/bundle"));
+}
+
+/** 下载诊断包为本地 JSON 文件（浏览器触发下载） */
+export async function downloadDiagnosticBundle(label?: string): Promise<void> {
+  const bundle = await getDiagnosticBundle();
+  const stamp = new Date(bundle.exportedAt)
+    .toISOString()
+    .replace(/[:T]/g, "-")
+    .slice(0, 19);
+  download(`hotsport-diagnostic-${stamp}${label ? "-" + label : ""}.json`,
+    JSON.stringify(bundle, null, 2),
+    "application/json");
+}
+
 export default {
   getStats,
   pageTransmissions,
@@ -1045,6 +1094,8 @@ export default {
   getSlowSql,
   getErrorRanking,
   getSla,
+  getDiagnosticBundle,
+  downloadDiagnosticBundle,
   cleanup,
   getTrend,
   getLogStats,

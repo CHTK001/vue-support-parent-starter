@@ -11,7 +11,7 @@
         </template>
       </span>
       <div class="view-bar__actions">
-        <ReButton icon="Refresh" show-text :loading="probing" @click="probe">重新检测</ReButton>
+        <ReButton icon="Refresh" show-text :loading="probing" @click="() => probe()">重新检测</ReButton>
       </div>
     </div>
 
@@ -93,6 +93,52 @@
         </ReTable>
       </template>
     </div>
+
+    <!-- 运维工具：健康自检 / 诊断包导出 / 数据清理 / 线程转储下载 -->
+    <div class="panel">
+      <div class="panel-head">
+        <span>运维工具</span>
+        <span class="panel-sub">排查 / 归档 / 清理，全部走真实观测接口</span>
+      </div>
+
+      <div class="ops-grid">
+        <button class="ops-card" type="button" :disabled="diagnosing" @click="runHealthCheck">
+          <span class="ops-icon">⚕️</span>
+          <span class="ops-body">
+            <span class="ops-title">健康自检</span>
+            <span class="ops-desc">执行后端 /health，输出告警源健康状态</span>
+          </span>
+          <span class="ops-arrow">→</span>
+        </button>
+
+        <button class="ops-card" type="button" :disabled="exporting" @click="exportDiagnostic">
+          <span class="ops-icon">📦</span>
+          <span class="ops-body">
+            <span class="ops-title">导出诊断包</span>
+            <span class="ops-desc">agent / JVM / 慢调用 / 错误排行 / SkyWalking 段等一键打包 JSON</span>
+          </span>
+          <span class="ops-arrow">→</span>
+        </button>
+
+        <button class="ops-card" type="button" :disabled="cleaning" @click="runCleanup">
+          <span class="ops-icon">🧹</span>
+          <span class="ops-body">
+            <span class="ops-title">清理过期数据</span>
+            <span class="ops-desc">按保留时长删除老记录，释放存储空间</span>
+          </span>
+          <span class="ops-arrow">→</span>
+        </button>
+
+        <button class="ops-card" type="button" :disabled="dumping" @click="downloadThreadDump">
+          <span class="ops-icon">🧵</span>
+          <span class="ops-body">
+            <span class="ops-title">下载线程转储</span>
+            <span class="ops-desc">导出全量线程栈文本，供性能分析</span>
+          </span>
+          <span class="ops-arrow">→</span>
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -106,6 +152,13 @@ import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import { message } from "@repo/core";
 import { APM_PREFIX, getApiBase, resetApiBase, setApiBase, wsUrl } from "../config";
+import {
+  getHealth,
+  getThreadDump,
+  cleanup,
+  downloadDiagnosticBundle,
+  download,
+} from "../api/apmApi";
 
 /**
  * 接口设置页：把 `config.ts` 里的运行时地址真正暴露给使用者。
@@ -118,6 +171,10 @@ const draftBase = ref(getApiBase());
 const storage = ref<ApmStorageStatus | null>(null);
 const probing = ref(false);
 const saving = ref(false);
+const diagnosing = ref(false);
+const exporting = ref(false);
+const cleaning = ref(false);
+const dumping = ref(false);
 
 /** 当前生效地址（空串显示为「同源」） */
 const displayBase = computed(() => getApiBase() || "同源（跟随当前页面）");
@@ -134,6 +191,88 @@ const configColumns: ReTableColumn[] = [
   { prop: "key", label: "配置项", minWidth: 260, slot: "key" },
   { prop: "value", label: "当前值", minWidth: 200, slot: "value" },
 ];
+
+/**
+ * 运维工具 —— 健康自检：调用后端 /health，弹窗展示关键健康指标。
+ */
+async function runHealthCheck(): Promise<void> {
+  diagnosing.value = true;
+  try {
+    const health = await getHealth();
+    message.success(`健康自检完成：${health.health ?? "HEALTHY"}`);
+    // 汇总展示：把健康快照里的关键项打印出来
+    const lines = Object.entries(health)
+      .map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : String(v)}`)
+      .join("\n");
+    console.info("[Hotsport] 健康自检结果:\n" + lines);
+  } catch (error) {
+    message.error(`健康自检失败：${(error as Error)?.message || "无法访问 /health"}`);
+  } finally {
+    diagnosing.value = false;
+  }
+}
+
+/**
+ * 运维工具 —— 导出诊断包：拉取 /diagnostics/bundle 全量真实数据为 JSON 下载。
+ */
+async function exportDiagnostic(): Promise<void> {
+  exporting.value = true;
+  try {
+    await downloadDiagnosticBundle();
+    message.success("诊断包已导出（JSON）");
+  } catch (error) {
+    message.error(`诊断包导出失败：${(error as Error)?.message || "无法访问 /diagnostics/bundle"}`);
+  } finally {
+    exporting.value = false;
+  }
+}
+
+/**
+ * 运维工具 —— 清理过期数据：默认保留最近 7 天，可传参覆盖。
+ */
+async function runCleanup(): Promise<void> {
+  cleaning.value = true;
+  try {
+    // 保留最近 7 天（与后端默认 retention 一致）
+    const result = await cleanup(7 * 24 * 60 * 60 * 1000);
+    const cleaned = (result as Record<string, unknown>).cleaned;
+    message.success(`已清理过期记录：${String(cleaned ?? "0")} 条`);
+  } catch (error) {
+    message.error(`清理失败：${(error as Error)?.message || "无法访问 /cleanup"}`);
+  } finally {
+    cleaning.value = false;
+  }
+}
+
+/**
+ * 运维工具 —— 下载线程转储：拉取 /jvm/thread-dump 全量线程栈，导出为文本文件。
+ */
+async function downloadThreadDump(): Promise<void> {
+  dumping.value = true;
+  try {
+    const threads = await getThreadDump();
+    const lines: string[] = [];
+    lines.push(`Hotsport JVM 线程转储 @ ${new Date().toISOString()}`);
+    lines.push(`线程总数: ${threads.length}`);
+    lines.push("=".repeat(72));
+    for (const t of threads) {
+      lines.push(`"${t.name}" #${t.threadId} state=${t.state} daemon=${t.isDaemon} native=${t.isInNative}`);
+      if (t.lockName) lines.push(`  - waiting on: ${t.lockName}${t.lockOwnerName ? ` (owned by: ${t.lockOwnerName})` : ""}`);
+      for (const frame of t.stackTrace ?? []) lines.push(`\t${frame}`);
+      lines.push("");
+    }
+    download(
+      `hotsport-thread-dump-${new Date().toISOString().replace(/[:T]/g, "-").slice(0, 19)}.txt`,
+      lines.join("\n"),
+      "text/plain",
+    );
+    message.success(`线程转储已导出（${threads.length} 个线程）`);
+  } catch (error) {
+    message.error(`线程转储失败：${(error as Error)?.message || "无法访问 /jvm/thread-dump"}`);
+  } finally {
+    dumping.value = false;
+  }
+}
 
 /**
  * 探测后端存储状态：成功后把结果渲染到配置表。
@@ -256,6 +395,70 @@ import { getStorageStatus, resetApiClient } from "../api/apmApi";
   gap: 12px;
   flex-wrap: wrap;
   font-size: 12px;
+}
+
+/* 运维工具卡片：四宫格，每个动作一个卡片 */
+.ops-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.ops-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--apm-border);
+  border-radius: var(--apm-radius-md, 10px);
+  background: var(--apm-panel-raised);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  text-align: left;
+  font: inherit;
+  color: var(--apm-fg);
+}
+
+.ops-card:hover:not(:disabled) {
+  border-color: var(--apm-accent);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+}
+
+.ops-card:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ops-icon {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.ops-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.ops-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ops-desc {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--apm-muted);
+}
+
+.ops-arrow {
+  flex-shrink: 0;
+  color: var(--apm-muted);
+  font-size: 14px;
 }
 
 </style>

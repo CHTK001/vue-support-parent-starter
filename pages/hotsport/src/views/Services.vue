@@ -85,6 +85,15 @@
         <template #col-callCount="{ row }">
           <span class="mono">{{ row.callCount.toLocaleString() }}</span>
         </template>
+        <template #col-avgMs="{ row }">
+          <span class="mono">{{ fmtMs(row.avgMs) }}</span>
+        </template>
+        <template #col-p95Ms="{ row }">
+          <span class="mono" :class="latencyClass(row.p95Ms)">{{ fmtMs(row.p95Ms) }}</span>
+        </template>
+        <template #col-p99Ms="{ row }">
+          <span class="mono" :class="latencyClass(row.p99Ms)">{{ fmtMs(row.p99Ms) }}</span>
+        </template>
         <template #col-errorCount="{ row }">
           <ReTag v-if="row.errorCount > 0" type="danger" round>
             {{ row.errorCount }}
@@ -199,9 +208,28 @@ const tableColumns: ReTableColumn[] = [
   { prop: "service", label: "服务名", minWidth: 220, slot: "service" },
   { prop: "endpointCount", label: "端点数", width: 100, align: "center", slot: "endpointCount", sortable: true },
   { prop: "callCount", label: "调用次数", width: 110, align: "right", slot: "callCount", sortable: true },
+  { prop: "avgMs", label: "平均 ms", width: 100, align: "right", slot: "avgMs", sortable: true },
+  { prop: "p95Ms", label: "P95 ms", width: 100, align: "right", slot: "p95Ms", sortable: true },
+  { prop: "p99Ms", label: "P99 ms", width: 100, align: "right", slot: "p99Ms", sortable: true },
   { prop: "errorCount", label: "错误数", width: 90, align: "center", slot: "errorCount", sortable: true },
   { prop: "errorRate", label: "错误率", width: 150, align: "right", slot: "errorRate", sortable: true },
 ];
+
+/** 毫秒格式化：>=1000 显示秒，否则整数毫秒 */
+function fmtMs(v: unknown): string {
+  const n = Number(v ?? 0);
+  if (!Number.isFinite(n)) return "—";
+  return n >= 1000 ? `${(n / 1000).toFixed(2)}s` : `${Math.round(n)}ms`;
+}
+
+/** 延迟分档：与 Dependencies 页 P95 阈值同口径 */
+function latencyClass(v: unknown): string {
+  const n = Number(v ?? 0);
+  if (!Number.isFinite(n)) return "muted";
+  if (n >= 1000) return "err-text";
+  if (n >= 300) return "warn-text";
+  return "";
+}
 
 onMounted(() => {
   load();
