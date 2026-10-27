@@ -46,6 +46,36 @@
 
       <p v-if="data.handshake.detail" class="lc-detail">{{ data.handshake.detail }}</p>
 
+      <!-- ==================== 这一次请求的时间花在哪 ==================== -->
+      <div v-if="breakdown.phases.length" class="lc-phases">
+        <div class="lc-phases__head">
+          <span class="lc-phases__title">一次请求的阶段耗时</span>
+          <span class="lc-meta">总计 {{ formatMs(breakdown.totalMs) }}</span>
+        </div>
+
+        <div class="lc-phases__bar">
+          <span
+            v-for="phase in breakdown.phases"
+            :key="phase.key"
+            class="lc-phases__seg"
+            :class="`seg-${phase.key}`"
+            :style="{ flexGrow: Math.max(phase.share, 0.008) }"
+            :title="`${phase.label} ${formatMs(phase.ms)}（${Math.round(phase.share * 100)}%）`"
+          />
+        </div>
+
+        <div class="lc-phases__legend">
+          <span v-for="phase in breakdown.phases" :key="phase.key" class="lc-phases__item">
+            <i class="lc-dot" :class="`seg-${phase.key}`" />
+            <span class="lc-phases__label">{{ phase.label }}</span>
+            <span class="lc-phases__ms tshark-mono">{{ formatMs(phase.ms) }}</span>
+            <span class="lc-phases__share">{{ Math.round(phase.share * 100) }}%</span>
+          </span>
+        </div>
+
+        <p v-if="breakdown.verdict" class="lc-phases__verdict">{{ breakdown.verdict }}</p>
+      </div>
+
       <div class="lc-tools">
         <ReButton link type="primary" @click="hideAck = !hideAck">
           {{ hideAck ? '显示全部报文' : '隐藏纯 ACK' }}
@@ -166,6 +196,7 @@ import ReIcon from '@repo/ui/re-icon'
 import ReTable from '@repo/ui/re-table'
 import ReTag from '@repo/ui/re-tag'
 import { getTsharkHandshake } from '../../api'
+import { buildLifecycleBreakdown } from './lifecyclePhases'
 import type { TsharkHandshake, TsharkPacket, TsharkStep } from './types'
 
 /** 时序图每步的行高（px）：箭头 + 标签要放得下，又不能把几十步拉成一条长卷 */
@@ -192,6 +223,14 @@ const steps = computed<TsharkStep[]>(() => data.value?.steps ?? [])
 const visibleSteps = computed<TsharkStep[]>(() =>
   hideAck.value ? steps.value.filter(s => !isPureAck(s)) : steps.value)
 const durationMs = computed(() => steps.value.length ? steps.value[steps.value.length - 1].relativeMs : 0)
+
+/**
+ * 阶段耗时。
+ *
+ * <p>用「全部报文」而不是过滤掉纯 ACK 之后的集合：纯 ACK 虽然不承载数据，
+ * 但它的到达时刻正是握手/传输的真实终点，滤掉会让各段都偏短。</p>
+ */
+const breakdown = computed(() => buildLifecycleBreakdown(steps.value))
 const seqHeight = computed(() => Math.max(120, 10 + visibleSteps.value.length * STEP_H + 12))
 
 /** 纯 ACK：只带 ACK 标志、无载荷、且不是 HTTP/TLS 语义帧 */
@@ -317,6 +356,81 @@ function formatMs(ms: number): string {
   margin: 0 0 10px;
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+
+/* ===== 一次请求的阶段耗时 ===== */
+.lc-phases {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--el-fill-color-lighter);
+}
+.lc-phases__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.lc-phases__title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.lc-phases__bar {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+  margin-bottom: 10px;
+}
+.lc-phases__seg {
+  flex-basis: 0;
+  min-width: 3px;
+  border-radius: 2px;
+  background: var(--lc-seg-c, var(--el-color-info));
+}
+.lc-phases__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-bottom: 8px;
+}
+.lc-phases__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+}
+.lc-phases__label { color: var(--el-text-color-regular); }
+.lc-phases__ms {
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+.lc-phases__share {
+  color: var(--el-text-color-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.lc-phases__verdict {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+/* 阶段配色：与时间线上的 phase-* 保持同一套语义 */
+.seg-connect { --lc-seg-c: var(--ts-run); background: var(--ts-run); }
+.seg-tls { --lc-seg-c: var(--el-color-primary); background: var(--el-color-primary); }
+.seg-request { --lc-seg-c: var(--el-color-success); background: var(--el-color-success); }
+.seg-wait {
+  --lc-seg-c: var(--el-color-warning);
+  background: var(--el-color-warning);
+}
+.seg-transfer { --lc-seg-c: var(--metric-jvm, #14b8a6); background: var(--metric-jvm, #14b8a6); }
+.seg-close { --lc-seg-c: var(--metric-disk, #f59e0b); background: var(--metric-disk, #f59e0b); }
+.lc-phases__item .lc-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--lc-seg-c, var(--el-color-info));
 }
 
 .lc-metric {

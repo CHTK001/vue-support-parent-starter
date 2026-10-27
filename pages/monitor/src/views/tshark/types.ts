@@ -174,6 +174,14 @@ export interface TsharkFlow {
 }
 
 /**
+ * tshark 运行时状态。
+ *
+ * <p>类型只有一份，定义在 {@code api/index.ts}（接口的返回类型在那里），这里转出，
+ * 让视图层仍然从 {@code ./types} 取，不破坏既有的引用习惯。</p>
+ */
+export type { TsharkRuntimeStatus } from '../../api'
+
+/**
  * 网卡信息。
  *
  * 后端接口的 TS 声明写的是 `string[]`，但实现返回的是对象（Windows 上直接展示

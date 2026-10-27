@@ -93,11 +93,21 @@
       <p v-if="!tsharkOk" class="create-warn">
         tshark 未就绪（未安装或不在 PATH 中），暂时无法抓包。
       </p>
+      <p v-else-if="captureReady === false" class="create-warn">
+        未检测到抓包驱动（Windows 需 Npcap，Linux 需 libpcap 与抓包权限）。
+        tshark 已就绪，但<b>实时抓包不可用</b>——装好驱动后重新打开本页即可。
+      </p>
     </div>
 
     <template #footer>
       <ReButton @click="emit('update:modelValue', false)">取消</ReButton>
-      <ReButton type="primary" icon="VideoPlay" :loading="starting" :disabled="!tsharkOk" @click="emit('start')">
+      <ReButton
+        type="primary"
+        icon="VideoPlay"
+        :loading="starting"
+        :disabled="!tsharkOk || captureReady === false"
+        @click="emit('start')"
+      >
         开始抓包
       </ReButton>
     </template>
@@ -115,6 +125,8 @@ import ReSelect from '@repo/ui/re-select'
 const props = defineProps<{
   modelValue: boolean
   tsharkOk: boolean
+  /** 是否存在可用抓包接口；缺 Npcap / libpcap 时为 false */
+  captureReady?: boolean
   ifaceOptions: Array<{ label: string; value: string }>
   iface: string
   filter: string
