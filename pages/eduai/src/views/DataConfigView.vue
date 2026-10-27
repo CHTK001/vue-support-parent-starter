@@ -86,218 +86,213 @@
         </div>
       </header>
 
-      <!-- 三块内容分页签切换：全铺开时班级与组卷模板两张空表会把整页顶到 1600px 以上，
-           且三块之间没有主次。nav-only 只渲染页签条，内容留在下面按 activeBlock 显隐。
-           用 v-show 而不是 v-if：切回时表格滚动位置、搜索词与已拉取的数据都还在。 -->
-      <ReTab
-        v-model="activeBlock"
-        variant="underline"
-        :tabs="blockTabs"
-        nav-only
-        class="dim-tabs"
-      />
-
-      <!-- ==================== 学科 ==================== -->
-      <section v-show="activeBlock === 'subject'" class="block">
-        <div class="block__head">
-          <div class="block__ops">
-            <button v-if="levelFilter" type="button" class="filter-tag" @click="levelFilter = ''">
-              {{ levelLabel(levelFilter) }}学段 ×
-            </button>
-            <el-input
-              v-model="subjectKeyword"
-              class="subject-search"
-              clearable
-              placeholder="搜索学科 / 编码"
-              :prefix-icon="Search"
-            />
-            <el-button :icon="Upload" @click="onImport">批量导入</el-button>
-            <el-button type="primary" :icon="Plus" @click="openSubjectCreate">新增学科</el-button>
-          </div>
-        </div>
-
-        <div v-loading="subjectLoading" class="rows">
-          <div
-            v-for="s in filteredSubjects"
-            :key="s.subjectId"
-            class="row"
-            role="button"
-            tabindex="0"
-            :title="`编辑学科「${s.subjectName}」`"
-            @click="openSubjectEdit(s)"
-            @keydown.enter.prevent="openSubjectEdit(s)"
-          >
-            <span class="row__icon" :style="{ background: subjectTheme(s).bg }">
-              <el-icon :size="17"><component :is="subjectTheme(s).icon" /></el-icon>
-            </span>
-
-            <span class="row__id">
-              <span class="row__name">{{ s.subjectName }}</span>
-              <span class="row__code">{{ s.subjectCode }}</span>
-            </span>
-
-            <span class="row__levels">
-              <span
-                v-for="opt in gradeLevelOptions"
-                :key="opt.value"
-                class="lvdot"
-                :class="{ 'is-on': splitLevels(s.subjectGradeLevels).includes(opt.value) }"
-                :title="opt.label"
-              >{{ opt.label.slice(0, 1) }}</span>
-            </span>
-
-            <span class="row__sort">排序 <b>{{ s.subjectSortOrder ?? 0 }}</b></span>
-
-            <span class="status-pill" :class="s.subjectStatus === 1 ? 'is-on' : 'is-off'">
-              <i class="status-dot" />{{ s.subjectStatus === 1 ? "启用中" : "已停用" }}
-            </span>
-
-            <span class="row__ops">
-              <button type="button" class="icon-btn" title="编辑" @click.stop="openSubjectEdit(s)">
-                <el-icon><EditPen /></el-icon>
-              </button>
-              <button
-                type="button"
-                class="icon-btn"
-                :title="s.subjectStatus === 1 ? '停用' : '启用'"
-                @click.stop="toggleSubject(s)"
-              >
-                <el-icon><component :is="s.subjectStatus === 1 ? CircleCheckFilled : Close" /></el-icon>
-              </button>
-              <button type="button" class="icon-btn is-danger" title="删除" @click.stop="confirmDeleteSubject(s)">
-                <el-icon><Delete /></el-icon>
-              </button>
-            </span>
-          </div>
-
-          <div v-if="!subjectLoading && !filteredSubjects.length" class="empty-panel">
-            {{ levelFilter ? "该学段下暂无学科，点击「新增学科」创建" : "暂无学科，点击「新增学科」创建" }}
-          </div>
-        </div>
-      </section>
-
-      <!-- ==================== 班级 ==================== -->
-      <section v-show="activeBlock === 'classes'" class="block">
-        <div class="block__head">
-          <div class="block__ops">
-            <el-select
-              v-model="classLevelFilter"
-              clearable
-              placeholder="全部学段"
-              style="width: 150px"
-              @change="loadClasses"
-            >
-              <el-option
-                v-for="opt in gradeLevelOptions"
-                :key="opt.value"
-                :label="opt.label"
-                :value="opt.value"
-              />
-            </el-select>
-            <el-button type="primary" :icon="Plus" @click="openClassCreate">新增班级</el-button>
-          </div>
-        </div>
-
-        <ReTable
-          v-loading="classLoading"
-          :data="classes"
-          :columns="classColumns"
-          row-key="classId"
-          layout="table"
-          :layout-switch="false"
-          :layout-table="{ fill: false, minHeight: 168 }"
-          stripe
-          @row-click="(row: Record<string, unknown>) => openClassEdit(row as unknown as EduClass)"
-          :config="{ toolbar: { enable: false } }"
-        >
-          <template #empty>
-            <el-empty :image-size="80" description="暂无班级，点击「新增班级」创建" />
-          </template>
-          <template #col-classGradeLevel="{ row }">{{ levelLabel(row.classGradeLevel) }}</template>
-          <template #col-studentCount="{ row }">{{ classStudentCount(row.classId) }} 人</template>
-          <template #col-classStatus="{ row }">
-            <span class="status-pill" :class="row.classStatus === 1 ? 'is-on' : 'is-off'">
-              <i class="status-dot" />
-              {{ row.classStatus === 1 ? "启用" : "停用" }}
-            </span>
-          </template>
-          <template #col-actions="{ row }">
-            <!-- .stop：ReTable 绑了 @row-click="openClassEdit"，不挡冒泡会顺带打开编辑 -->
-            <ReButton
-              layout="square"
-              type="primary"
-              :icon="EditPen"
-              tip="编辑"
-              @click.stop="openClassEdit(row as unknown as EduClass)"
-            />
-            <ReButton
-              layout="square"
-              type="danger"
-              :icon="Delete"
-              tip="删除"
-              @click.stop="removeClass(row as unknown as EduClass)"
-            />
-          </template>
-        </ReTable>
-      </section>
-
-      <!-- ==================== 组卷模板 ==================== -->
-      <section v-show="activeBlock === 'templates'" class="block">
-        <div class="block__head">
-          <div class="block__ops">
-            <el-input
-              v-model="templateKeyword"
-              class="subject-search"
-              clearable
-              placeholder="搜索模板名称"
-              :prefix-icon="Search"
-            />
-            <el-button type="primary" :icon="Plus" @click="openTemplateCreate">新增模板</el-button>
-          </div>
-        </div>
-
-        <!-- 组卷模板：ReTable 的 view 模式（一行一块：左边信息、右边操作同屏）。
-             fill:false —— 本页是整页滚动容器，参与「撑满视口」计算会与 ResizeObserver
-             形成高度正反馈（行高一路涨到上千、整页滚动条反复抖动）。 -->
-        <ReTable
-          v-loading="templateLoading"
-          :data="filteredTemplates"
-          row-key="templateId"
-          layout="view"
-          :layout-table="{ fill: false }"
-          empty-text="暂无组卷模板，点击「新增模板」创建"
-        >
-          <ReTableColumn prop="templateName" label="模板名称" />
-          <ReTableColumn label="大标题风格" />
-          <ReTableColumn label="纸张" />
-          <ReTableColumn label="方向" />
-          <ReTableColumn label="状态" />
-          <template #view="{ row }">
-            <div class="tpl-view">
-              <div class="tpl-view__main">
-                <div class="tpl-view__name">{{ asTpl(row).templateName }}</div>
-                <div class="tpl-view__meta">
-                  <span class="tpl-chip">{{ templateStyleLabel(asTpl(row).templateStyle) }}</span>
-                  <span class="tpl-chip">{{ asTpl(row).templatePageSize || "A4" }}</span>
-                  <span class="tpl-chip">{{ templateOrientationLabel(asTpl(row).templateOrientation) }}</span>
-                  <span class="status-pill" :class="asTpl(row).templateStatus === 1 ? 'is-on' : 'is-off'">
-                    <i class="status-dot" />{{ asTpl(row).templateStatus === 1 ? "启用" : "停用" }}
-                  </span>
-                </div>
-              </div>
-              <!-- 操作用 .stop：view 行本身绑了 row-click，不阻止会连点两下 -->
-              <div class="tpl-view__ops">
-                <el-button link type="primary" @click.stop="openTemplateEdit(asTpl(row))">编辑</el-button>
-                <el-popconfirm :title="`确认删除模板「${asTpl(row).templateName}」?`" @confirm="removeTemplate(asTpl(row))">
-                  <template #reference>
-                    <el-button link type="danger" @click.stop>删除</el-button>
-                  </template>
-                </el-popconfirm>
+      <!-- 三块内容各自一个页签：ReTabs 负责页签条与面板外壳，面板常驻（v-show），
+           切走再切回不丢滚动位置、搜索词与已拉取的数据。面板内容按 tab.name 只挂一份。 -->
+      <ReTabs v-model="activeBlock" :tabs="blockTabs" :closable="false" class="dim-tabs">
+        <template #default="{ tab }">
+          <!-- ==================== 学科 ==================== -->
+          <section v-if="tab.name === 'subject'" class="block">
+            <div class="block__head">
+              <div class="block__ops">
+                <button v-if="levelFilter" type="button" class="filter-tag" @click="levelFilter = ''">
+                  {{ levelLabel(levelFilter) }}学段 ×
+                </button>
+                <el-input
+                  v-model="subjectKeyword"
+                  class="subject-search"
+                  clearable
+                  placeholder="搜索学科 / 编码"
+                  :prefix-icon="Search"
+                />
+                <el-button :icon="Upload" @click="onImport">批量导入</el-button>
+                <el-button type="primary" :icon="Plus" @click="openSubjectCreate">新增学科</el-button>
               </div>
             </div>
-          </template>
-        </ReTable>
-      </section>
+
+            <div v-loading="subjectLoading" class="rows">
+              <div
+                v-for="s in filteredSubjects"
+                :key="s.subjectId"
+                class="row"
+                role="button"
+                tabindex="0"
+                :title="`编辑学科「${s.subjectName}」`"
+                @click="openSubjectEdit(s)"
+                @keydown.enter.prevent="openSubjectEdit(s)"
+              >
+                <span class="row__icon" :style="{ background: subjectTheme(s).bg }">
+                  <el-icon :size="17"><component :is="subjectTheme(s).icon" /></el-icon>
+                </span>
+
+                <span class="row__id">
+                  <span class="row__name">{{ s.subjectName }}</span>
+                  <span class="row__code">{{ s.subjectCode }}</span>
+                </span>
+
+                <span class="row__levels">
+                  <span
+                    v-for="opt in gradeLevelOptions"
+                    :key="opt.value"
+                    class="lvdot"
+                    :class="{ 'is-on': splitLevels(s.subjectGradeLevels).includes(opt.value) }"
+                    :title="opt.label"
+                  >{{ opt.label.slice(0, 1) }}</span>
+                </span>
+
+                <span class="row__sort">排序 <b>{{ s.subjectSortOrder ?? 0 }}</b></span>
+
+                <span class="status-pill" :class="s.subjectStatus === 1 ? 'is-on' : 'is-off'">
+                  <i class="status-dot" />{{ s.subjectStatus === 1 ? "启用中" : "已停用" }}
+                </span>
+
+                <span class="row__ops">
+                  <button type="button" class="icon-btn" title="编辑" @click.stop="openSubjectEdit(s)">
+                    <el-icon><EditPen /></el-icon>
+                  </button>
+                  <button
+                    type="button"
+                    class="icon-btn"
+                    :title="s.subjectStatus === 1 ? '停用' : '启用'"
+                    @click.stop="toggleSubject(s)"
+                  >
+                    <el-icon><component :is="s.subjectStatus === 1 ? CircleCheckFilled : Close" /></el-icon>
+                  </button>
+                  <button type="button" class="icon-btn is-danger" title="删除" @click.stop="confirmDeleteSubject(s)">
+                    <el-icon><Delete /></el-icon>
+                  </button>
+                </span>
+              </div>
+
+              <div v-if="!subjectLoading && !filteredSubjects.length" class="empty-panel">
+                {{ levelFilter ? "该学段下暂无学科，点击「新增学科」创建" : "暂无学科，点击「新增学科」创建" }}
+              </div>
+            </div>
+          </section>
+
+          <!-- ==================== 班级 ==================== -->
+          <section v-else-if="tab.name === 'classes'" class="block">
+            <div class="block__head">
+              <div class="block__ops">
+                <el-select
+                  v-model="classLevelFilter"
+                  clearable
+                  placeholder="全部学段"
+                  style="width: 150px"
+                  @change="loadClasses"
+                >
+                  <el-option
+                    v-for="opt in gradeLevelOptions"
+                    :key="opt.value"
+                    :label="opt.label"
+                    :value="opt.value"
+                  />
+                </el-select>
+                <el-button type="primary" :icon="Plus" @click="openClassCreate">新增班级</el-button>
+              </div>
+            </div>
+
+            <ReTable
+              v-loading="classLoading"
+              :data="classes"
+              :columns="classColumns"
+              row-key="classId"
+              layout="table"
+              :layout-switch="false"
+              :layout-table="{ fill: false, minHeight: 168 }"
+              stripe
+              @row-click="(row: Record<string, unknown>) => openClassEdit(row as unknown as EduClass)"
+              :config="{ toolbar: { enable: false } }"
+            >
+              <template #empty>
+                <el-empty :image-size="80" description="暂无班级，点击「新增班级」创建" />
+              </template>
+              <template #col-classGradeLevel="{ row }">{{ levelLabel(row.classGradeLevel) }}</template>
+              <template #col-studentCount="{ row }">{{ classStudentCount(row.classId) }} 人</template>
+              <template #col-classStatus="{ row }">
+                <span class="status-pill" :class="row.classStatus === 1 ? 'is-on' : 'is-off'">
+                  <i class="status-dot" />
+                  {{ row.classStatus === 1 ? "启用" : "停用" }}
+                </span>
+              </template>
+              <template #col-actions="{ row }">
+                <!-- .stop：ReTable 绑了 @row-click="openClassEdit"，不挡冒泡会顺带打开编辑 -->
+                <ReButton
+                  layout="square"
+                  type="primary"
+                  :icon="EditPen"
+                  tip="编辑"
+                  @click.stop="openClassEdit(row as unknown as EduClass)"
+                />
+                <ReButton
+                  layout="square"
+                  type="danger"
+                  :icon="Delete"
+                  tip="删除"
+                  @click.stop="removeClass(row as unknown as EduClass)"
+                />
+              </template>
+            </ReTable>
+          </section>
+
+          <!-- ==================== 组卷模板 ==================== -->
+          <section v-else class="block">
+            <div class="block__head">
+              <div class="block__ops">
+                <el-input
+                  v-model="templateKeyword"
+                  class="subject-search"
+                  clearable
+                  placeholder="搜索模板名称"
+                  :prefix-icon="Search"
+                />
+                <el-button type="primary" :icon="Plus" @click="openTemplateCreate">新增模板</el-button>
+              </div>
+            </div>
+
+            <!-- 组卷模板：ReTable 的 view 模式（一行一块：左边信息、右边操作同屏）。
+                 fill:false —— 本页是整页滚动容器，参与「撑满视口」计算会与 ResizeObserver
+                 形成高度正反馈（行高一路涨到上千、整页滚动条反复抖动）。 -->
+            <ReTable
+              v-loading="templateLoading"
+              :data="filteredTemplates"
+              row-key="templateId"
+              layout="view"
+              :layout-table="{ fill: false }"
+              empty-text="暂无组卷模板，点击「新增模板」创建"
+            >
+              <ReTableColumn prop="templateName" label="模板名称" />
+              <ReTableColumn label="大标题风格" />
+              <ReTableColumn label="纸张" />
+              <ReTableColumn label="方向" />
+              <ReTableColumn label="状态" />
+              <template #view="{ row }">
+                <div class="tpl-view">
+                  <div class="tpl-view__main">
+                    <div class="tpl-view__name">{{ asTpl(row).templateName }}</div>
+                    <div class="tpl-view__meta">
+                      <span class="tpl-chip">{{ templateStyleLabel(asTpl(row).templateStyle) }}</span>
+                      <span class="tpl-chip">{{ asTpl(row).templatePageSize || "A4" }}</span>
+                      <span class="tpl-chip">{{ templateOrientationLabel(asTpl(row).templateOrientation) }}</span>
+                      <span class="status-pill" :class="asTpl(row).templateStatus === 1 ? 'is-on' : 'is-off'">
+                        <i class="status-dot" />{{ asTpl(row).templateStatus === 1 ? "启用" : "停用" }}
+                      </span>
+                    </div>
+                  </div>
+                  <!-- 操作用 .stop：view 行本身绑了 row-click，不阻止会连点两下 -->
+                  <div class="tpl-view__ops">
+                    <el-button link type="primary" @click.stop="openTemplateEdit(asTpl(row))">编辑</el-button>
+                    <el-popconfirm :title="`确认删除模板「${asTpl(row).templateName}」?`" @confirm="removeTemplate(asTpl(row))">
+                      <template #reference>
+                        <el-button link type="danger" @click.stop>删除</el-button>
+                      </template>
+                    </el-popconfirm>
+                  </div>
+                </div>
+              </template>
+            </ReTable>
+          </section>
+        </template>
+      </ReTabs>
     </div>
 
     <!-- 新增/编辑学科（对齐原型） -->
@@ -734,8 +729,8 @@ import { eduaiApi } from "../api/eduaiApi";
 import type { EduClass, EduGrade, EduStudent, EduSubject, GradeLevelOption, PaperTemplate } from "../api/types";
 import ReRichText from "@repo/ui/re-rich-text";
 import ReDialog from "@repo/ui/re-dialog";
-import ReTab from "@repo/ui/re-tab";
-import type { ReTabItem } from "@repo/ui/re-tab";
+import ReTabs from "@repo/ui/re-tabs";
+import type { ReTabsItem } from "@repo/ui/re-tabs";
 import ReInputNumber from "@repo/ui/re-input-number";
 import type { ReTableColumn } from "@repo/ui/re-table";
 
@@ -1243,12 +1238,12 @@ const filteredTemplates = computed(() => {
 });
 
 /**
- * 右侧三块内容用 ReTab 分段切换（nav-only，只出页签条，面板由本页 v-show 控制）。
+ * 右侧三块内容各占 ReTabs 的一个页签（面板常驻，切换只改可见性）。
  *
  * <p>学段/年级不占页签：它们是左侧脊柱上的层级，切页签时仍然要看得到。</p>
  */
 const activeBlock = ref<"subject" | "classes" | "templates">("subject");
-const blockTabs = computed<ReTabItem[]>(() => [
+const blockTabs = computed<ReTabsItem[]>(() => [
   { name: "subject", label: "学科", badge: subjects.value.length },
   { name: "classes", label: "班级", badge: classes.value.length },
   { name: "templates", label: "组卷模板", badge: templates.value.length },
@@ -1631,9 +1626,16 @@ onMounted(() => {
   margin-top: 4px;
 }
 
-/* 页签条与页头之间留一点气口；nav-only 时 ReTab 只渲染这一条 */
+/* 页签条与页头之间留一点气口。
+   ReTabs 默认是「工作区」外观：页签条铺白底 + 左右 4px 内边距。本页页头是浅灰底，
+   白条会像贴在页头下面的一道亮带，所以把条压成透明、内边距归零。 */
 .dim-tabs {
   margin-top: 2px;
+}
+
+.dim-tabs :deep(.re-tabs__bar) {
+  padding: 0;
+  background: transparent;
 }
 
 .block__head {
