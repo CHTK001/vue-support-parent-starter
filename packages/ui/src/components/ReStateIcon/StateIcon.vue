@@ -13,14 +13,12 @@
  * 用法：
  *   <ReStateIcon :active="on" active-icon="Sunny" inactive-icon="Moon" />
  *   <ReStateIcon :active="on" preset="star" />
- *   <ReStateIcon :active="on" preset="bulb" />   <!-- 同一颗灯泡点亮/熄灭 -->
+ *   <ReStateIcon :active="on" preset="bulb" />   <!-- 亮灯泡 / 灭灯泡 -->
  *   <ReStateIcon :active="on" icon="ep:star" />
  *
  * 说明：
- *   - 两态图形<b>不同</b>时各占一层，用 CSS 交叉过渡切换（`opacity` / `transform`，
+ *   - 两态图形各占一层，用 CSS 交叉过渡切换（`opacity` / `transform`，
  *     合成层属性，不触发布局）；`animate` 默认关闭，瞬时切换；
- *   - 两态图形<b>相同</b>（如内置灯泡的「亮 / 灭」）时不做交叉 —— 一张图由
- *     内置渲染器自己表达点亮与否，没有中间态；
  *   - 只有一态有图标时不叠层（否则非激活态会因 active 层 opacity:0 而消失）；
  *   - 尊重 `prefers-reduced-motion`。
  *
@@ -33,7 +31,6 @@
  */
 import { computed } from "vue";
 import ReIcon from "../ReIcon";
-import BulbIcon from "./builtin/BulbIcon.vue";
 import { resolveStateIcons } from "./presets";
 
 defineOptions({ name: "ReStateIcon", inheritAttrs: true });
@@ -100,25 +97,14 @@ const icons = computed(() =>
   }),
 );
 
-/**
- * 激活态图标名（固定绑到 --active 层） */
+/** 激活态图标名（固定绑到 --active 层） */
 const activeName = computed(() => icons.value.activeIcon);
 /** 非激活态图标名（固定绑到 --inactive 层） */
 const inactiveName = computed(() => icons.value.inactiveIcon);
 
-/** 是否走内置渲染器（目前只有灯泡：一张图，靠点亮/熄灭表达两态） */
-const builtinRenderer = computed(() => icons.value.builtin);
-
-/**
- * 是否只有一态有图标（此时只渲染一层，不做交叉）。
- *
- * <p>内置渲染器（灯泡）除外：它两态用的是同一张图，只是点亮与否不同，
- * 所以始终由组件自己处理，不需要分层交叉。</p>
- */
+/** 是否只有一态有图标（此时只渲染一层，不做交叉） */
 const onlyOneLayer = computed(
-  () =>
-    !builtinRenderer.value &&
-    (!activeName.value || !inactiveName.value || activeName.value === inactiveName.value),
+  () => !activeName.value || !inactiveName.value || activeName.value === inactiveName.value,
 );
 
 /** 尺寸写法：数字补 px，字符串原样 */
@@ -139,11 +125,8 @@ const sizeStyle = computed(() => (typeof props.size === "number" ? `${props.size
     }"
     v-bind="$attrs"
   >
-    <!-- 内置渲染器：灯泡的「亮 / 灭」是同一张图，组件内部自己处理，
-         不需要分层交叉，也就没有中间态。 -->
-    <BulbIcon v-if="builtinRenderer === 'bulb'" :active="active" :size="size" />
     <!-- 只有一态有图标：直接渲染，不叠层（否则非激活态会因 active 层 opacity:0 而消失） -->
-    <ReIcon v-else-if="onlyOneLayer" :name="active ? activeName : inactiveName" :size="size" />
+    <ReIcon v-if="onlyOneLayer" :name="active ? activeName : inactiveName" :size="size" />
     <template v-else>
       <span class="re-state-icon__layer re-state-icon__layer--active">
         <ReIcon v-if="activeName" :name="activeName" :size="size" />
