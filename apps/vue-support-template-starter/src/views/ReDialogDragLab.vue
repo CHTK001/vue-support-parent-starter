@@ -12,6 +12,7 @@
       <el-button data-dd-open="modern" @click="openModern = true">打开 modern 布局（draggable）</el-button>
       <el-button data-dd-open="tall" @click="openTall = true">打开近满高（模拟预览弹层）</el-button>
       <el-button data-dd-open="headless" @click="openHeadless = true">打开 headless（draggable）</el-button>
+      <el-button data-dd-open="plain" @click="openPlain = true">打开普通（未传 draggable）</el-button>
     </div>
 
     <div class="ddl__row">
@@ -19,6 +20,7 @@
       <span data-dd-state="modern">modern: {{ openModern }}</span>
       <span data-dd-state="tall">tall: {{ openTall }}</span>
       <span data-dd-state="headless">headless: {{ openHeadless }}</span>
+      <span data-dd-state="plain">plain: {{ openPlain }}</span>
     </div>
 
     <ReDialog
@@ -63,6 +65,15 @@
     >
       <div class="ddl__body" data-dd-body="headless">headless 模式，顶部 44px 为拖拽热区</div>
     </ReDialog>
+
+    <ReDialog
+      v-model="openPlain"
+      title="不可拖拽 · 默认"
+      width="480px"
+      top="12vh"
+    >
+      <div class="ddl__body" data-dd-body="plain">未传 draggable，不应可拖（对照）</div>
+    </ReDialog>
   </div>
 </template>
 
@@ -74,6 +85,7 @@ const openEl = ref(false);
 const openModern = ref(false);
 const openTall = ref(false);
 const openHeadless = ref(false);
+const openPlain = ref(false);
 </script>
 
 <style scoped>

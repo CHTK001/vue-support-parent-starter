@@ -17,7 +17,7 @@
  * 说明：原 `layout="windows"` 变体（layouts/WindowsLayout.vue）经跨行审计确认
  * 全仓无人使用，已移除；需要时从 backups/ui-unused-layouts-retire-20260926/ 取回。
  */
-import { computed, defineAsyncComponent, ref, watch } from "vue";
+import { computed, defineAsyncComponent, onBeforeUnmount, ref, watch } from "vue";
 import type { CSSProperties } from "vue";
 import { ElDialog, ElButton } from "element-plus";
 import { FullScreen, Crop } from "@element-plus/icons-vue";
@@ -50,6 +50,21 @@ const props = withDefaults(
     modal?: boolean;
     /** 是否可拖拽 */
     draggable?: boolean;
+    /**
+     * 是否允许拖拽越出视口（透传 el-dialog 的 `overflow`）。
+     *
+     * <p><b>为什么需要它</b>：el-dialog 的 `useDraggable` 在 `overflow` 为假时会把位移
+     * 钳制成「整个弹窗留在视口内」——竖向上限是
+     * {@code maxTop = clientHeight - targetTop - (targetHeight < clientHeight ? targetHeight : 0)}
+     * （element-plus 2.14 的 use-draggable/index.mjs）。弹窗**略矮于视口**时这个上限几乎为 0，
+     * 表现就是<b>拖不动</b>。历史缺陷：default 主题此前**不透传 overflow**，近满高弹窗
+     * （如文件预览弹层 `height: calc(100vh - 20px)`）完全拖不动；同缺陷 koi 主题已修
+     * （见 theme/koi/ReDialog.vue 的 overflow 说明）。</p>
+     *
+     * <p>三态（与 koi 对齐）：显式传 true/false 即覆盖；<b>未传时跟随 {@link draggable}</b>，
+     * 即开了拖拽就默认放开钳制。显式传 false 可退回 Element 的严格视口包含行为。</p>
+     */
+    overflow?: boolean;
     /** 是否可全屏 */
     fullscreenable?: boolean;
     /** 初始全屏 */
@@ -99,6 +114,9 @@ const props = withDefaults(
     destroyOnClose: false,
     modal: true,
     draggable: false,
+    // overflow 三态（未传=跟随 draggable）。Boolean prop「未传且无默认值」会被 Vue 强转成
+    // false，三态里的「未传」会不可达，必须显式 default: undefined（同 showFooter 注释）。
+    overflow: undefined,
     fullscreenable: false,
     fullscreen: false,
     confirmLoading: false,
@@ -196,7 +214,61 @@ const resolved = computed(() => {
  * 原生 draggable 用 hooks/use-draggable，把 mousedown 绑在 headerRef 上、
  * 以 transform: translate() 位移，并带视口边界 clamp，行为正确且不会跑出屏幕。
  * 因此 el 布局只负责把 draggable 透传下去，不再自绘位移。
+ *
+ * overflow（放开视口钳制）：default 主题对齐 koi —— 显式 overflow 优先，
+ * 未传则跟随 draggable（开了拖拽就放开 clamp，近满高弹窗才拖得动）。
  * ========================================================================== */
+
+/** 传给 el-dialog 的 `overflow`：显式配置优先，否则跟随 {@link draggable} */
+const effectiveOverflow = computed<boolean>(() => props.overflow ?? props.draggable);
+
+/**
+ * el-dialog 实例句柄（取弹窗 DOM / 调 resetPosition 归零）。
+ *
+ * <p>与 koi 主题一致：放开 {@link effectiveOverflow} 后弹窗可以被拖到任意位置，
+ * 也就可能被拖出视口而无法再抓到；这里在拖拽结束（document mouseup）后检查
+ * 是否越出「保留区」，越界就用官方 {@code resetPosition} 归零。</p>
+ */
+const dialogInstance = ref<ElDialogExposed | null>(null);
+
+/** ElDialog 通过 `defineExpose` 暴露的成员（只用到的两个），同 koi 主题的 DialogExposed */
+interface ElDialogExposed {
+  dialogContentRef?: { $el?: HTMLElement } | null;
+  resetPosition?: () => void;
+}
+
+/** 拖拽结束后至少留在视口内的像素数（同 koi 的 DRAG_KEEP_VISIBLE） */
+const DRAG_KEEP_VISIBLE = 56;
+
+/** 拖拽兜底：只对「未全屏 + 可拖拽」时有效（全屏时 transform 会被清空，无需归零） */
+function onDocumentMouseUp(): void {
+  if (!props.draggable || isFullscreen.value) return;
+  const el = dialogInstance.value?.dialogContentRef?.$el ?? null;
+  if (!el) return;
+
+  const rect = el.getBoundingClientRect();
+  const vw = document.documentElement.clientWidth;
+  const vh = document.documentElement.clientHeight;
+  const lost =
+    rect.right < DRAG_KEEP_VISIBLE ||
+    rect.left > vw - DRAG_KEEP_VISIBLE ||
+    rect.bottom < DRAG_KEEP_VISIBLE ||
+    rect.top > vh - DRAG_KEEP_VISIBLE;
+  if (lost) dialogInstance.value?.resetPosition?.();
+}
+
+/* 弹窗可见期间监听 document 的 mouseup；关闭即摘，避免常驻全局监听 */
+watch(visible, (open) => {
+  if (typeof document === "undefined") return;
+  if (open) document.addEventListener("mouseup", onDocumentMouseUp);
+  else document.removeEventListener("mouseup", onDocumentMouseUp);
+});
+
+onBeforeUnmount(() => {
+  if (typeof document !== "undefined") {
+    document.removeEventListener("mouseup", onDocumentMouseUp);
+  }
+});
 
 /* ===== 操作 ===== */
 function onOk(): void {
@@ -300,6 +372,7 @@ const showCloseFab = computed(() => props.headless);
   <!-- 默认 el-dialog 布局 -->
   <ElDialog
     v-else
+    ref="dialogInstance"
     v-model="visible"
     v-bind="$attrs"
     :title="headless ? '' : title"
@@ -313,6 +386,7 @@ const showCloseFab = computed(() => props.headless);
     :destroy-on-close="destroyOnClose"
     :modal="modal"
     :draggable="draggable && !isFullscreen"
+    :overflow="effectiveOverflow"
     :style="fullscreenStyle"
     class="re-dialog"
     :class="{
@@ -350,6 +424,12 @@ const showCloseFab = computed(() => props.headless);
           </ElButton>
         </div>
       </div>
+    </template>
+
+    <!-- headless + draggable：只留一条 44px 透明拖拽热区（el-dialog 原生 draggable 挂在 .el-dialog__header 上），
+         不占内容高度；与 koi 主题的 .koi-dialog-header-drag 同规格 -->
+    <template v-else-if="headless && draggable" #header>
+      <div class="re-dialog__drag-strip" />
     </template>
 
     <slot />
@@ -399,10 +479,6 @@ const showCloseFab = computed(() => props.headless);
   height: calc(100vh - 120px);
   overflow: auto;
 }
-/* headless 不显示原生 header，但留出 body 顶部留白，避免被 FAB 挡住 */
-.re-dialog--headless :deep(.el-dialog__header) {
-  display: none;
-}
 .re-dialog :deep(.el-dialog__body) {
   padding: 8px 20px 12px;
 }
@@ -411,13 +487,57 @@ const showCloseFab = computed(() => props.headless);
   max-height: calc(84vh - 96px);
   overflow-y: auto;
 }
-.re-dialog--headless :deep(.el-dialog__body) {
-  padding-top: 24px;
-}
 /* compact 模式下 footer 按钮进一步缩小（使用共享令牌） */
 .re-dialog--compact :deep(.el-dialog__footer .el-button) {
   height: var(--rm-compact-btn-height);
   padding: var(--rm-compact-btn-padding);
   font-size: var(--rm-compact-btn-font-size);
+}
+</style>
+
+<!--
+  headless 拖拽热区必须放在「非 scoped」样式块里：
+
+  ElDialog 的根节点是 <Teleport>，Vue 不会把本组件（ReDialog）的 scope id 加到
+  teleport 出去的 .el-dialog 元素上 —— 因此 <style scoped> 里所有 :deep(.el-dialog__*)
+  规则在实际产物体里【从未命中】。headless 布局又依赖这些内部选择器把 header 变成
+  热区，所以这里单独用全局选择器书写（以 .re-dialog--headless 前缀限定作用域，
+  不会污染其他弹窗）。koi 主题与 DragLab 的 .ddl-tall.el-dialog 都是这个做法。
+-->
+<style>
+/* headless 不显示原生 header，但留出 body 顶部留白，避免被 CloseFab 挡住 */
+.re-dialog--headless .el-dialog__header {
+  display: none;
+}
+.re-dialog--headless .el-dialog__body {
+  padding-top: 24px;
+}
+/* headless + draggable：把 header 恢复成一条悬浮于顶部的 44px 透明拖拽热区。
+   el-dialog 原生 draggable 的 mousedown 绑在 .el-dialog__header 上 —— 若把它
+   display:none，可拖拽的 headless 弹窗就没有任何可按住拖的把手。与 koi 的
+   .koi-dialog-header-drag 同规格（44px、绝对定位、z-index 位于 CloseFab 之下）。 */
+.re-dialog--headless.re-dialog--draggable {
+  position: relative;
+}
+.re-dialog--headless.re-dialog--draggable .el-dialog__header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0;
+  display: block;
+  height: 44px;
+  overflow: hidden;
+  z-index: 6;
+}
+.re-dialog--headless.re-dialog--draggable .re-dialog__drag-strip {
+  display: block;
+  width: 100%;
+  height: 44px;
+}
+/* 热区悬浮在内容上方、不占高度，body 顶部不再留白（避免内容被往下推） */
+.re-dialog--headless.re-dialog--draggable .el-dialog__body {
+  padding-top: 0;
 }
 </style>

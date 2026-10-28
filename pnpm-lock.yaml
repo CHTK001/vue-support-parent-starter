@@ -1243,6 +1243,9 @@ importers:
       '@repo/utils':
         specifier: workspace:*
         version: link:../../packages/utils
+      '@tanstack/vue-query':
+        specifier: 'catalog:'
+        version: 5.104.5(vue@3.5.44(typescript@5.9.3))
       element-plus:
         specifier: 'catalog:'
         version: 2.14.7(vue@3.5.44(typescript@5.9.3))
@@ -3047,6 +3050,9 @@ importers:
       '@iconify/vue':
         specifier: 'catalog:'
         version: 4.3.0(vue@3.5.44(typescript@5.9.3))
+      '@repo/assets':
+        specifier: workspace:*
+        version: link:../../packages/assets
       '@repo/config':
         specifier: workspace:*
         version: link:../../packages/config

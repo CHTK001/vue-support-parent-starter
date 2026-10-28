@@ -98,22 +98,32 @@ const resolvedOkText = computed(() => props.confirmText ?? props.okText);
 const resolvedCancelText = computed(() => props.cancelButtonText ?? props.cancelText);
 
 const dialogStyle = ref<Record<string, string>>({});
-const dragState = ref<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null);
+const dragState = ref<{ startX: number; startY: number; tx: number; ty: number } | null>(null);
 
+/**
+ * modern 弹窗拖拽：用 transform: translate() 位移，而不是 left/top。
+ *
+ * <p>为什么：.rm-dialog 是 overlay（flex 居中容器）的直接子元素，自身没有 position
+ * 定位（居中靠 overlay 的 align-items/justify-content）。left/top 写入 style 对
+ * 非定位元素不生效 —— 与 2026-10-23 修的 el 布局手写位移缺陷（.el-dialog 也是普通
+ * 块级元素，left/top 无效）同款，表现为拖拽完全无反应。transform 对 flex 子元素
+ * 生效且不破坏居中布局，与 el-dialog 原生 useDraggable 的位移方式一致。</p>
+ */
 function onHeaderMouseDown(e: MouseEvent): void {
   if (!props.draggable || isFullscreen.value) return;
-  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-  dragState.value = { x: e.clientX, y: e.clientY, offsetX: rect.left, offsetY: rect.top };
+  const el = (e.currentTarget as HTMLElement).closest<HTMLElement>(".rm-dialog");
+  const tx = el ? Number(/translate\(([-\d.]+)px/.exec(el.style.transform ?? "")?.[1] ?? 0) : 0;
+  const ty = el ? Number(/translate\([-\d.]+px,\s*([-\d.]+)px/.exec(el.style.transform ?? "")?.[1] ?? 0) : 0;
+  dragState.value = { startX: e.clientX, startY: e.clientY, tx, ty };
   document.addEventListener("mousemove", onMouseMove);
   document.addEventListener("mouseup", onMouseUp);
 }
 function onMouseMove(e: MouseEvent): void {
   if (!dragState.value) return;
-  dialogStyle.value = {
-    left: `${dragState.value.offsetX + e.clientX - dragState.value.x}px`,
-    top: `${dragState.value.offsetY + e.clientY - dragState.value.y}px`,
-    marginLeft: "0", marginTop: "0",
-  };
+  const s = dragState.value;
+  const dx = s.tx + (e.clientX - s.startX);
+  const dy = s.ty + (e.clientY - s.startY);
+  dialogStyle.value = { transform: `translate(${dx}px, ${dy}px)` };
 }
 function onMouseUp(): void {
   dragState.value = null;
