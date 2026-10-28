@@ -1,85 +1,146 @@
 <template>
-  <div class="px tel-page">
-    <ReSectionHead description="项目管理 · 启动/停止/重启/升级/备份/回滚，支持拖拽安装包到卡片升级">
+  <div class="px tel-page project-page">
+    <ReSectionHead class="pj-head" description="启动 / 停止 / 重启 / 升级 / 备份 / 回滚 · 把安装包拖到某一行即可升级该项目">
       <template #title>
-        <ReButton icon="Back" layout="square" title="返回发布管理" @click="goBack" style="margin-right: 8px" />
-        项目管理
+        <div class="pj-head-title">
+          <ReButton icon="Back" layout="square" tip="返回发布管理" @click="goBack" />
+          <span class="pj-head-name">项目管理</span>
+          <span class="pj-head-count">{{ list.length }}</span>
+        </div>
       </template>
       <template #actions>
+        <ReButton icon="Refresh" layout="square" tip="刷新列表" :loading="loading" @click="loadList" />
         <ReButton icon="Plus" :show-text="true" type="primary" @click="openCreateDialog">新增项目</ReButton>
       </template>
     </ReSectionHead>
 
-    <div class="projects-wrap">
-      <ReEmpty v-if="!list.length" description="点击右上角「新增项目」创建项目" :image-size="80" style="padding: 48px 0" />
-      <div v-else class="card-grid">
-        <div
-          v-for="item in list"
-          :key="item.id"
-          class="project-card"
-          :class="{ 'is-dragover': dragOverId === item.id, 'is-disabled': item.enabled === false }"
-          @dragover.prevent="item.enabled !== false && (dragOverId = item.id)"
-          @dragleave.prevent="dragOverId = null"
-          @drop.prevent="onDropFile(item, $event)"
+    <!-- 工具条：状态筛选 + 关键字搜索 -->
+    <div class="pj-toolbar">
+      <div class="pj-filters">
+        <button
+          v-for="f in statusFilters"
+          :key="f.key"
+          type="button"
+          class="pj-filter"
+          :class="{ active: statusFilter === f.key }"
+          @click="statusFilter = f.key"
         >
-          <div class="card-left">
-            <div class="big-icon-wrap" :class="item.status === 'running' ? 'running' : 'stopped'">
-              <ReIcon :name="displayIcon(item)" class="big-icon" />
-            </div>
-            <span class="status-dot" :class="item.status === 'running' ? 'running' : 'stopped'"></span>
-          </div>
+          <span v-if="f.key !== 'all'" class="pj-filter-dot" :class="f.key"></span>
+          {{ f.label }}
+          <b class="pj-filter-num">{{ f.count }}</b>
+        </button>
+      </div>
+      <ReInput v-model="keyword" class="pj-search" placeholder="搜索项目名称 / 路径" clearable prefix-icon="Search" />
+    </div>
 
-          <div class="card-right">
-            <div class="card-header">
-              <div class="title-row">
-                <h3 :title="item.projectName">{{ item.projectName }}</h3>
-                <el-tag v-if="item.enabled === false" type="info" effect="plain" round>已禁用</el-tag>
-                <el-tag v-if="apmLabel(item)" type="warning" effect="plain" round>{{ apmLabel(item) }}</el-tag>
+    <div class="pj-body">
+      <ReEmpty v-if="!list.length" description="点击右上角「新增项目」创建项目" :image-size="80" style="padding: 48px 0" />
+      <ReEmpty
+        v-else-if="!visibleCount"
+        description="没有符合筛选条件的项目，试试换个关键词或状态"
+        :image-size="72"
+        style="padding: 48px 0"
+      />
+
+      <template v-else>
+        <div class="pj-grid">
+          <article
+            v-for="item in visibleList"
+            :key="item.id"
+            class="pj-card"
+            :class="{
+              'is-running': statusKey(item) === 'running',
+              'is-disabled': item.enabled === false,
+              'is-dragover': dragOverId === item.id,
+            }"
+            @dragover.prevent="item.enabled !== false && (dragOverId = item.id)"
+            @dragleave.prevent="dragOverId = null"
+            @drop.prevent="onDropFile(item, $event)"
+          >
+            <div class="pj-card-top">
+              <span class="pj-card-icon" :class="statusKey(item)">
+                <ReIcon :name="displayIcon(item)" />
+              </span>
+              <div class="pj-card-title">
+                <div class="pj-card-name-row">
+                  <h3 :title="item.projectName">{{ item.projectName }}</h3>
+                  <span class="pj-card-type">{{ typeLabel(item.projectType) }}</span>
+                </div>
+                <div class="pj-card-chips">
+                  <span v-if="item.enabled === false" class="pj-chip is-muted">已禁用</span>
+                  <span v-if="apmLabel(item)" class="pj-chip is-warn">{{ apmLabel(item) }}</span>
+                  <span v-if="item.serviceName" class="pj-chip is-info">系统服务</span>
+                  <span v-if="item.gitUrl" class="pj-chip is-success">Git 发布</span>
+                </div>
               </div>
-              <el-tag effect="plain" round>{{ typeLabel(item.projectType) }}</el-tag>
+              <span class="pj-card-status" :class="statusKey(item)">
+                <span class="pj-status-dot"></span>{{ statusLabel(item) }}
+              </span>
+              <span v-if="item.projectType === 'separated' && item.libDir" class="pj-lib-badge" :title="`依赖库: ${item.libDir}`">
+                <ReIcon name="Files" class="pj-lib-badge-ic" />
+                <span class="pj-lib-badge-num">{{ libCountMap[item.id] ?? '—' }}</span>
+              </span>
             </div>
 
-            <div class="card-body">
-              <div class="info-row">
-                <ReIcon name="FolderOpened" class="info-ic" />
-                <span class="info-val" :title="item.projectPath">{{ item.projectPath || '未设置' }}</span>
+            <div class="pj-card-info">
+              <div class="pj-card-info-row" :title="item.projectPath">
+                <ReIcon name="FolderOpened" class="pj-card-info-ic" />
+                <span class="pj-card-info-val">{{ item.projectPath || '未设置项目地址' }}</span>
               </div>
-              <div class="info-row">
-                <ReIcon name="Document" class="info-ic" />
-                <span class="info-val" :title="item.logPath">{{ item.logPath || '未设置' }}</span>
-              </div>
-              <div v-if="item.status === 'running' && item.pid" class="info-row">
-                <ReIcon name="Cpu" class="info-ic" />
-                <span class="info-val">PID：<b class="pid-val">{{ item.pid }}</b></span>
-              </div>
-              <div v-if="item.status === 'running' && item.runningSince" class="info-row">
-                <ReIcon name="Timer" class="info-ic" />
-                <span class="info-val">运行时长：<b class="runtime-val">{{ formatRuntime(item) }}</b></span>
-              </div>
-              <div v-if="item.serviceName" class="info-row">
-                <ReIcon name="Connection" class="info-ic" />
-                <span class="info-val service-badge">已挂载系统服务</span>
+              <div class="pj-card-info-row" :title="item.logPath">
+                <ReIcon name="Document" class="pj-card-info-ic" />
+                <span class="pj-card-info-val">{{ item.logPath || '未设置日志地址' }}</span>
               </div>
             </div>
 
-            <div class="drop-hint">
-              <ReIcon name="Upload" />
-              拖拽安装包到此卡片即可升级
-            </div>
+            <div v-if="item.description" class="pj-card-desc" :title="item.description">{{ item.description }}</div>
 
-            <div class="card-footer">
-              <div v-if="item.enabled !== false" class="actions-group">
-                <ReButton v-if="item.status !== 'running'" icon="VideoPlay" layout="square" title="启动" @click="handleStart(item)" />
-                <template v-else>
-                  <ReButton icon="VideoPause" layout="square" title="停止" @click="handleStop(item)" />
-                  <ReButton icon="RefreshRight" layout="square" title="重启" @click="handleRestart(item)" />
+            <div class="pj-card-bottom">
+              <div class="pj-card-metrics">
+                <template v-if="statusKey(item) === 'running'">
+                  <span class="pj-metrics-seg">
+                    <span class="pj-metrics-k">PID</span>
+                    <span class="pj-metrics-v">{{ item.pid || '—' }}</span>
+                  </span>
+                  <span class="pj-metrics-sep"></span>
+                  <span class="pj-metrics-seg">
+                    <span class="pj-metrics-k">运行</span>
+                    <span class="pj-metrics-v">{{ runtimeLabel(item) }}</span>
+                  </span>
                 </template>
-                <ReButton icon="Top" layout="square" title="升级" @click="openUpgradeDialog(item)" />
+                <span v-else class="pj-metrics-note">{{ statusSub(item) }}</span>
               </div>
-              <div v-else class="disabled-tip">该项目已禁用，激活后可操作</div>
-              <div class="actions-group">
-                <el-dropdown trigger="click" placement="top" @command="(c: string) => onMoreCommand(item, c)">
-                  <ReButton icon="MoreFilled" layout="square" title="更多" />
+              <div class="pj-card-actions">
+                <template v-if="item.enabled !== false">
+                  <ReButton
+                    v-if="item.status !== 'running'"
+                    icon="VideoPlay"
+                    type="primary"
+                    :show-text="true"
+                    @click="handleStart(item)"
+                  >启动</ReButton>
+                  <template v-else>
+                    <ReButton icon="VideoPause" :show-text="true" @click="handleStop(item)">停止</ReButton>
+                    <ReButton icon="RefreshRight" layout="square" tip="重启" @click="handleRestart(item)" />
+                  </template>
+                  <ReButton icon="Top" layout="square" tip="升级" @click="openUpgradeDialog(item)" />
+                  <ReButton
+                    v-if="isJavaProject(item)"
+                    icon="Monitor"
+                    layout="square"
+                    tip="Arthas 诊断"
+                    @click="openArthasDialog(item)"
+                  />
+                  <ReButton
+                    v-if="item.gitUrl"
+                    icon="GitBranch"
+                    layout="square"
+                    tip="从 Git 拉取最新代码并自动构建发布"
+                    @click="handleGitDeploy(item)"
+                  />
+                </template>
+                <el-dropdown trigger="click" placement="bottom-end" @command="(c: string) => onMoreCommand(item, c)">
+                  <ReButton icon="MoreFilled" layout="square" tip="更多操作" />
                   <template #dropdown>
                     <el-dropdown-menu>
                       <el-dropdown-item command="edit">
@@ -94,6 +155,9 @@
                       <el-dropdown-item v-if="item.enabled !== false" command="rollback">
                         <ReIcon name="RefreshLeft" :size="15" class="dd-ic" />回滚
                       </el-dropdown-item>
+                      <el-dropdown-item v-if="item.enabled !== false && item.gitUrl" command="git-deploy">
+                        <ReIcon name="GitBranch" :size="15" class="dd-ic dd-success" />从 Git 更新
+                      </el-dropdown-item>
                       <el-dropdown-item command="toggle">
                         <ReIcon :name="item.enabled === false ? 'Unlock' : 'Lock'" :size="15" class="dd-ic" />{{ item.enabled === false ? '激活' : '禁用' }}
                       </el-dropdown-item>
@@ -105,9 +169,18 @@
                 </el-dropdown>
               </div>
             </div>
-          </div>
+
+            <div v-if="dragOverId === item.id" class="pj-drop">
+              <ReIcon name="Upload" />松开即可用安装包升级「{{ item.projectName }}」
+            </div>
+          </article>
         </div>
-      </div>
+
+        <div v-if="!visibleCount" class="pj-no-match">
+          <ReIcon name="Search" :size="20" />
+          <span>没有匹配的项目，换个关键字或切回「全部」</span>
+        </div>
+      </template>
     </div>
 
     <!-- 新增/编辑对话框 -->
@@ -125,6 +198,7 @@
                   <ReOption label="SpringBoot 单体" value="springboot" />
                   <ReOption label="FatJar" value="fatjar" />
                   <ReOption label="分离式部署" value="separated" />
+                  <ReOption label="模型" value="model" />
                   <ReOption label="静态页面" value="static" />
                   <ReOption label="Nginx" value="nginx" />
                 </ReSelect>
@@ -152,6 +226,22 @@
               </ReFormItem>
               <ReFormItem v-if="form.projectType === 'nginx'" label="Nginx 目录（nginx 安装 / 配置目录）">
                 <ReInput v-model="form.nginxDir" placeholder="如：/usr/local/nginx 或 ./nginx" style="width:100%" />
+              </ReFormItem>
+              <ReFormItem v-if="form.projectType === 'model'" label="上传目标目录（相对项目地址，如 models/onnx）" required>
+                <ReInput v-model="form.uploadTargetDir" placeholder="如：models/onnx" style="width:100%" />
+              </ReFormItem>
+              <ReFormItem v-if="form.projectType === 'model'" label="上传时是否解压">
+                <ReSelect v-model="form.uploadExtract" style="width:100%">
+                  <ReOption label="解压（jar/zip/tar 自动解压）" :value="true" />
+                  <ReOption label="不解压（保留原文件结构）" :value="false" />
+                </ReSelect>
+              </ReFormItem>
+              <ReFormItem v-if="form.projectType === 'separated'" label="默认部署类型">
+                <ReSelect v-model="form.deployType" style="width:100%">
+                  <ReOption label="仅主包" value="main" />
+                  <ReOption label="仅依赖" value="lib" />
+                  <ReOption label="全部" value="both" />
+                </ReSelect>
               </ReFormItem>
               <ReFormItem label="项目图标">
                 <ReIconSelect v-model="form.icon" placeholder="留空则按类型使用默认图标" style="width:100%" />
@@ -311,6 +401,7 @@
                   <ReOption label="不启用" value="none" />
                   <ReOption label="平台自有 APM（runtime-agent）" value="platform" />
                   <ReOption label="SkyWalking" value="skywalking" />
+                  <ReOption label="Arthas 诊断" value="arthas" />
                 </ReSelect>
               </ReFormItem>
 
@@ -338,8 +429,88 @@
                 </ReFormItem>
               </template>
 
+              <template v-if="form.apmType === 'arthas'">
+                <ReFormItem label="Arthas agent jar 路径（目标主机绝对路径）">
+                  <ReInput v-model="form.arthasJarPath" placeholder="如 /opt/arthas/arthas-agent.jar" style="width:100%" />
+                </ReFormItem>
+                <ReFormItem label="Telnet 端口（Arthas 交互端口）">
+                  <ReInput v-model.number="form.arthasTelnetPort" type="number" style="width:100%" />
+                </ReFormItem>
+                <ReFormItem label="HTTP 端口（Arthas Web 控制台端口）">
+                  <ReInput v-model.number="form.arthasHttpPort" type="number" style="width:100%" />
+                </ReFormItem>
+                <div class="apm-tip" style="margin-top:8px">
+                  <ReIcon name="InfoFilled" />
+                  <span>Arthas 通过 javaagent 挂载后，提供 telnet 交互式诊断（dashboard / thread / jvm 等命令）。也可在 Arthas 管理页运行时 attach，无需重启项目。</span>
+                </div>
+              </template>
+
               <ReFormItem v-if="form.apmType !== 'none'" label="启动命令预览">
                 <pre class="apm-preview">java {{ apmPreviewArgs }} -jar {{ form.mainEntry || '&lt;主入口&gt;' }} ...</pre>
+              </ReFormItem>
+            </ReForm>
+          </div>
+        </template>
+
+        <!-- Git 自动发布 -->
+        <template #git>
+          <div class="git-pane">
+            <div class="git-tip">
+              <ReIcon name="GitBranch" class="git-tip-ic" />
+              <div>
+                <div class="git-tip-title">Git 自动发布</div>
+                <div class="git-tip-sub">
+                  配置 Git 仓库地址后，可在项目卡片上一键「从 Git 更新」：拉取最新代码 → Maven 构建 → 上传产物 → 备份+重启。
+                  管理端无需预装 Maven，系统会自动检测并在缺失时下载。也可自定义 Maven 路径与版本。
+                </div>
+              </div>
+            </div>
+            <ReForm label-position="top" class="git-form">
+              <ReFormItem label="Git 仓库地址" required>
+                <ReInput
+                  v-model="form.gitUrl"
+                  placeholder="如 https://github.com/org/repo.git"
+                  style="width:100%"
+                />
+              </ReFormItem>
+              <ReFormItem label="Git 分支">
+                <ReInput v-model="form.gitBranch" placeholder="默认 main" style="width:100%" />
+              </ReFormItem>
+              <ReFormItem label="认证方式">
+                <ReSelect v-model="form.gitAuthType" style="width:100%">
+                  <ReOption label="无认证（公开仓库）" value="none" />
+                  <ReOption label="Token 认证（Personal Access Token）" value="token" />
+                </ReSelect>
+              </ReFormItem>
+              <ReFormItem v-if="form.gitAuthType === 'token'" label="访问令牌" required>
+                <ReInput
+                  v-model="form.gitToken"
+                  type="password"
+                  show-password
+                  placeholder="粘贴 Personal Access Token"
+                  style="width:100%"
+                />
+              </ReFormItem>
+              <ReFormItem label="Maven 构建目标">
+                <ReInput
+                  v-model="form.gitBuildGoals"
+                  placeholder="逗号分隔，默认 clean,package"
+                  style="width:100%"
+                />
+              </ReFormItem>
+              <ReFormItem label="跳过测试">
+                <el-switch v-model="form.gitSkipTests" />
+                <span class="git-skip-hint">构建时跳过单元测试，加快发布速度</span>
+              </ReFormItem>
+              <ReFormItem label="Maven 安装路径（可选，留空则自动检测 / 自动下载）">
+                <ReInput
+                  v-model="form.mavenHome"
+                  placeholder="如 /opt/maven 或 C:/apache-maven-3.9.9"
+                  style="width:100%"
+                />
+              </ReFormItem>
+              <ReFormItem label="Maven 版本（自动下载时使用）">
+                <ReInput v-model="form.mavenVersion" placeholder="默认 3.9.9" style="width:100%" />
               </ReFormItem>
             </ReForm>
           </div>
@@ -428,6 +599,19 @@
           <ReFormItem label="安装包路径（主机上的绝对路径，jar / tar.gz / zip；为空则仅执行重启）">
             <ReInput v-model="upgForm.packagePath" placeholder="如：/home/ubuntu/uploads/app.tar.gz" />
           </ReFormItem>
+          <ReFormItem v-if="upgProject?.projectType === 'separated'" label="部署类型">
+            <ReSelect v-model="upgForm.deployType" style="width:100%">
+              <ReOption label="仅主包" value="main" />
+              <ReOption label="仅依赖" value="lib" />
+              <ReOption label="全部" value="both" />
+            </ReSelect>
+          </ReFormItem>
+          <ReFormItem v-if="upgProject?.projectType === 'model'" label="是否解压">
+            <ReSelect v-model="upgForm.uploadExtract" style="width:100%">
+              <ReOption label="解压（jar/zip/tar 自动解压）" :value="true" />
+              <ReOption label="不解压（保留原文件结构）" :value="false" />
+            </ReSelect>
+          </ReFormItem>
         </ReForm>
         <div class="upg-switches">
           <label class="upg-switch"><el-checkbox v-model="upgForm.autoBackup" />自动备份</label>
@@ -460,11 +644,49 @@
         </transition>
       </div>
     </ReDialog>
+
+    <!-- Arthas 诊断对话框 -->
+    <ReDialog v-model="arthasDialogVisible" :title="`Arthas 诊断 - ${arthasProject?.projectName || ''}`" width="860px" :close-on-click-modal="false" :footer-hidden="true">
+      <div class="arthas-wrap">
+        <!-- 状态栏 -->
+        <div class="arthas-status-bar">
+          <span class="arthas-badge" :class="{ 'arthas-badge-on': arthasRunning }">
+            {{ arthasRunning ? '运行中' : '已停止' }}
+          </span>
+          <span v-if="arthasPid" class="arthas-pid">PID: {{ arthasPid }}</span>
+          <div class="arthas-status-actions">
+            <ReButton v-if="!arthasRunning" size="small" type="primary" :loading="arthasAttaching" @click="doArthasAttach">Attach</ReButton>
+            <ReButton v-else size="small" type="danger" :loading="arthasDetaching" @click="doArthasDetach">Detach</ReButton>
+            <ReButton size="small" @click="loadArthasConsole">刷新输出</ReButton>
+          </div>
+        </div>
+
+        <!-- 终端输出 -->
+        <div class="arthas-terminal" ref="arthasTerminalEl">
+          <pre>{{ arthasConsoleOutput || '（无输出，请先 Attach Arthas）' }}</pre>
+        </div>
+
+        <!-- 命令输入 -->
+        <div class="arthas-input-row">
+          <ReInput
+            v-model="arthasCommand"
+            placeholder="输入 Arthas 命令，如 dashboard / thread / jvm"
+            @keyup.enter="doArthasExec"
+          />
+          <ReButton type="primary" :loading="arthasExecLoading" @click="doArthasExec">执行</ReButton>
+        </div>
+
+        <!-- 快捷命令 -->
+        <div class="arthas-quick">
+          <button v-for="cmd in arthasQuickCommands" :key="cmd" class="arthas-quick-cmd" @click="execArthasQuick(cmd)">{{ cmd }}</button>
+        </div>
+      </div>
+    </ReDialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { ElMessageBox } from 'element-plus';
 import {getGlobalSocketService, message} from '@repo/core';
@@ -506,9 +728,21 @@ interface Project {
   libDir: string;
   nginxDir: string;
   runningSince?: string;
+  gitUrl?: string;
+  gitBranch?: string;
+  gitAuthType?: string;
+  gitToken?: string;
+  gitBuildGoals?: string;
+  gitSkipTests?: boolean;
+  mavenHome?: string;
+  mavenVersion?: string;
+  uploadExtract?: boolean;
+  uploadTargetDir?: string;
+  deployType?: string;
 }
 
 const list = ref<Project[]>([]);
+const libCountMap = ref<Record<number, number>>({});
 const loading = ref(false);
 const dialogVisible = ref(false);
 const editingId = ref<number | null>(null);
@@ -516,6 +750,59 @@ const releaseId = ref(Number(route.query.releaseId) || 0);
 const activeTab = ref('basic');
 
 const hostOs = ref<'linux' | 'windows'>('linux');
+
+// ---- 状态分组 / 筛选 / 搜索（纯前端，不额外发请求） ----
+type StatusKey = 'running' | 'stopped' | 'disabled';
+const statusFilter = ref<'all' | StatusKey>('all');
+const keyword = ref('');
+
+/** 一个项目归到哪一组：禁用优先，其次看进程状态 */
+function statusKey(item: Project): StatusKey {
+  if (item.enabled === false) return 'disabled';
+  return item.status === 'running' ? 'running' : 'stopped';
+}
+
+function statusLabel(item: Project): string {
+  const k = statusKey(item);
+  if (k === 'running') return '运行中';
+  return k === 'stopped' ? '已停止' : '已禁用';
+}
+
+/**
+ * 非运行项目的状态补充说明（运行中项目的 PID / 运行时长已挪到行尾指标条）
+ */
+function statusSub(item: Project): string {
+  return statusKey(item) === 'disabled' ? '激活后可操作' : '进程未运行';
+}
+
+const STATUS_GROUPS: { key: StatusKey; label: string }[] = [
+  { key: 'running', label: '运行中' },
+  { key: 'stopped', label: '已停止' },
+  { key: 'disabled', label: '已禁用' },
+];
+
+const statusFilters = computed(() => {
+  const counts: Record<StatusKey, number> = { running: 0, stopped: 0, disabled: 0 };
+  list.value.forEach((i) => { counts[statusKey(i)] += 1; });
+  return [
+    { key: 'all' as const, label: '全部', count: list.value.length },
+    ...STATUS_GROUPS.map((g) => ({ key: g.key, label: g.label, count: counts[g.key] })),
+  ];
+});
+
+/** 扁平化过滤列表：按状态筛选 + 关键字搜索（纯前端，不额外发请求） */
+const visibleList = computed(() => {
+  const kw = keyword.value.trim().toLowerCase();
+  return list.value.filter((i) => {
+    if (statusFilter.value !== 'all' && statusKey(i) !== statusFilter.value) return false;
+    if (!kw) return true;
+    return i.projectName.toLowerCase().includes(kw)
+      || (i.projectPath || '').toLowerCase().includes(kw)
+      || (i.logPath || '').toLowerCase().includes(kw);
+  });
+});
+
+const visibleCount = computed(() => visibleList.value.length);
 
 // 运行时长：前端每秒 tick 实时计算（不轮询后端），基准为项目 runningSince
 const nowTs = ref(Date.now());
@@ -539,6 +826,11 @@ function formatRuntime(item: Project) {
   const s = sec - m * 60;
   const clock = `${pad2(h)}:${pad2(m)}:${pad2(s)}`;
   return days > 0 ? `${days}天 ${clock}` : clock;
+}
+
+/** 指标条运行时长文案：运行中但缺少 runningSince 基准时退化为「运行中」 */
+function runtimeLabel(item: Project): string {
+  return item.runningSince ? formatRuntime(item) : '运行中';
 }
 
 interface EnvVar { key: string; value: string; }
@@ -569,14 +861,31 @@ const form = ref({
   configDir: '',
   libDir: '',
   nginxDir: '',
-  // APM 高级选项：none=不注入，platform=平台自有 APM，skywalking=SkyWalking
-  apmType: 'none' as 'none' | 'platform' | 'skywalking',
+  // Git 自动发布配置
+  gitUrl: '',
+  gitBranch: 'main',
+  gitAuthType: 'none',
+  gitToken: '',
+  gitBuildGoals: 'clean,package',
+  gitSkipTests: true,
+  // Maven 配置
+  mavenHome: '',
+  mavenVersion: '3.9.9',
+  // 上传配置
+  uploadExtract: true,
+  uploadTargetDir: '',
+  deployType: 'main',
+  // APM 高级选项：none=不注入，platform=平台自有 APM，skywalking=SkyWalking，arthas=Arthas 诊断
+  apmType: 'none' as 'none' | 'platform' | 'skywalking' | 'arthas',
   apmJarPath: '',
   apmOptions: 'port=4567',
   swJarPath: '',
   swServiceName: '',
   swBackendService: '',
   swExtraArgs: '',
+  arthasJarPath: '',
+  arthasTelnetPort: 3658,
+  arthasHttpPort: 8563,
 });
 
 /** Java 类项目类型（启动脚本走 java -jar，支持 -javaagent 挂载） */
@@ -592,6 +901,10 @@ const editTabs = computed(() => {
   // APM 注入属高级选项，仅 Java 类项目（启动脚本走 java -jar）提供
   if (JAVA_APM_TYPES.includes(form.value.projectType)) {
     tabs.push({ name: 'apm', label: 'APM 注入', icon: 'Cpu' });
+  }
+  // Git 自动发布属高级选项，仅 Java 类项目（Maven 构建）提供
+  if (JAVA_APM_TYPES.includes(form.value.projectType)) {
+    tabs.push({ name: 'git', label: 'Git 发布', icon: 'GitBranch' });
   }
   // 备份记录仅在编辑已存在项目时可用（新建项目尚无 backups/）
   if (editingId.value != null) {
@@ -609,7 +922,8 @@ const entryPlaceholder = computed(() => {
       return '如：app（可执行文件名）或 app.js';
     case 'static':
     case 'nginx':
-      return '静态站点通常无需主入口';
+    case 'model':
+      return '此类型无需主入口';
     default:
       return '请先选择项目类型';
   }
@@ -617,8 +931,8 @@ const entryPlaceholder = computed(() => {
 
 const MAIN_ENTRY_REQUIRED_TYPES = ['springboot', 'separated'];
 const mainEntryRequired = computed(() => MAIN_ENTRY_REQUIRED_TYPES.includes(form.value.projectType));
-// 静态页面 / Nginx 无主入口；其余类型显示主入口
-const needsEntry = computed(() => !['static', 'nginx'].includes(form.value.projectType));
+// 静态页面 / Nginx / 模型无主入口；其余类型显示主入口
+const needsEntry = computed(() => !['static', 'nginx', 'model'].includes(form.value.projectType));
 
 const scriptContext = computed(() => ({
   entry: form.value.mainEntry,
@@ -637,6 +951,9 @@ const apmPreviewArgs = computed(() => {
     swServiceName: form.value.swServiceName,
     swBackendService: form.value.swBackendService,
     swExtraArgs: form.value.swExtraArgs,
+    arthasJarPath: form.value.arthasJarPath,
+    arthasTelnetPort: form.value.arthasTelnetPort,
+    arthasHttpPort: form.value.arthasHttpPort,
   };
   return materializeApmArgs(apm, []).join(' ');
 });
@@ -646,6 +963,7 @@ function typeLabel(t: string) {
     springboot: 'SpringBoot',
     fatjar: 'FatJar',
     separated: '分离式',
+    model: '模型',
     static: '静态页面',
     nginx: 'Nginx',
   } as Record<string, string>)[t] || t || '未知';
@@ -658,6 +976,8 @@ function defaultIconByType(t: string) {
       return 'Cpu';
     case 'separated':
       return 'Box';
+    case 'model':
+      return 'Files';
     case 'static':
       return 'Picture';
     case 'nginx':
@@ -675,10 +995,27 @@ async function loadList() {
   try {
     const res = await http().get(`${BASE}/${releaseId.value}/projects`);
     list.value = unwrapResult<Project[]>(res) || [];
+    fetchLibCounts();
   } catch (e) {
     message.error('加载项目列表失败');
   } finally {
     loading.value = false;
+  }
+}
+
+async function fetchLibCounts() {
+  const separated = list.value.filter((p) => p.projectType === 'separated' && p.libDir);
+  if (separated.length === 0) return;
+  for (const p of separated) {
+    try {
+      const res = await http().get(`${BASE}/project/${p.id}/lib/count`);
+      const count = unwrapResult<number>(res);
+      if (typeof count === 'number') {
+        libCountMap.value[p.id] = count;
+      }
+    } catch {
+      // 忽略单个项目计数失败
+    }
   }
 }
 
@@ -727,13 +1064,27 @@ function resetForm() {
     configDir: '',
     libDir: '',
     nginxDir: '',
-    apmType: 'none' as 'none' | 'platform' | 'skywalking',
+    gitUrl: '',
+    gitBranch: 'main',
+    gitAuthType: 'none',
+    gitToken: '',
+    gitBuildGoals: 'clean,package',
+    gitSkipTests: true,
+    mavenHome: '',
+    mavenVersion: '3.9.9',
+    uploadExtract: true,
+    uploadTargetDir: '',
+    deployType: 'main',
+    apmType: 'none' as 'none' | 'platform' | 'skywalking' | 'arthas',
     apmJarPath: '',
     apmOptions: 'port=4567',
     swJarPath: '',
     swServiceName: '',
     swBackendService: '',
     swExtraArgs: '',
+    arthasJarPath: '',
+    arthasTelnetPort: 3658,
+    arthasHttpPort: 8563,
   };
 }
 
@@ -775,6 +1126,17 @@ function openEditDialog(item: Project) {
     configDir: item.configDir || '',
     libDir: item.libDir || '',
     nginxDir: item.nginxDir || '',
+    gitUrl: item.gitUrl || '',
+    gitBranch: item.gitBranch || 'main',
+    gitAuthType: item.gitAuthType || 'none',
+    gitToken: item.gitToken || '',
+    gitBuildGoals: item.gitBuildGoals || 'clean,package',
+    gitSkipTests: item.gitSkipTests === undefined ? true : !!item.gitSkipTests,
+    mavenHome: item.mavenHome || '',
+    mavenVersion: item.mavenVersion || '3.9.9',
+    uploadExtract: item.uploadExtract === undefined ? true : !!item.uploadExtract,
+    uploadTargetDir: item.uploadTargetDir || '',
+    deployType: item.deployType || 'main',
     ...parseApmConfig(parseJson<string>(item.jvmArgs, [])),
   };
   activeTab.value = 'basic';
@@ -782,7 +1144,7 @@ function openEditDialog(item: Project) {
 }
 
 /** APM 类型描述（仅现有 jvmArgs 中的 javaagent 项会出现在这里） */
-type ApmType = 'none' | 'platform' | 'skywalking';
+type ApmType = 'none' | 'platform' | 'skywalking' | 'arthas';
 
 interface ApmForm {
   apmType: ApmType;
@@ -792,6 +1154,9 @@ interface ApmForm {
   swServiceName: string;
   swBackendService: string;
   swExtraArgs: string;
+  arthasJarPath: string;
+  arthasTelnetPort: number;
+  arthasHttpPort: number;
 }
 
 /**
@@ -802,13 +1167,14 @@ function apmLabel(item: Project): string {
   if (!JAVA_APM_TYPES.includes(item.projectType)) return '';
   const cfg = parseApmConfig(parseJson<string>(item.jvmArgs, []));
   if (cfg.apmType === 'skywalking') return 'SkyWalking';
+  if (cfg.apmType === 'arthas') return 'Arthas';
   if (cfg.apmType === 'platform') return 'APM';
   return '';
 }
 
 /**
  * 从项目持久化后的 jvmArgs 反解 APM 高级配置。
- * SkyWalking 依据 agent 文件/参数标记识别；其余 javaagent 视为平台自有 APM。
+ * SkyWalking 依据 agent 文件/参数标记识别；Arthas 依据 agent 文件名识别；其余 javaagent 视为平台自有 APM。
  */
 function parseApmConfig(jvm: string[]): ApmForm {
   const agent = jvm.find((a) => a.startsWith('-javaagent:'));
@@ -823,6 +1189,7 @@ function parseApmConfig(jvm: string[]): ApmForm {
     .filter((a) => a.startsWith('-Dskywalking.') && a !== swName && a !== swBackend)
     .join(' ');
   const isSkyWalking = /skywalking|sky-agent/i.test(path) || !!swName || !!swBackend;
+  const isArthas = /arthas/i.test(path);
   if (isSkyWalking) {
     return {
       apmType: 'skywalking',
@@ -832,6 +1199,23 @@ function parseApmConfig(jvm: string[]): ApmForm {
       swServiceName: swName ? swName.split('=').slice(1).join('=') : '',
       swBackendService: swBackend ? swBackend.split('=').slice(1).join('=') || '' : '',
       swExtraArgs: swExtra,
+      arthasJarPath: '',
+      arthasTelnetPort: 3658,
+      arthasHttpPort: 8563,
+    };
+  }
+  if (isArthas) {
+    return {
+      apmType: 'arthas',
+      apmJarPath: '',
+      apmOptions: '',
+      swJarPath: '',
+      swServiceName: '',
+      swBackendService: '',
+      swExtraArgs: '',
+      arthasJarPath: path,
+      arthasTelnetPort: 3658,
+      arthasHttpPort: 8563,
     };
   }
   if (agent) {
@@ -843,6 +1227,9 @@ function parseApmConfig(jvm: string[]): ApmForm {
       swServiceName: '',
       swBackendService: '',
       swExtraArgs: '',
+      arthasJarPath: '',
+      arthasTelnetPort: 3658,
+      arthasHttpPort: 8563,
     };
   }
   return {
@@ -853,6 +1240,9 @@ function parseApmConfig(jvm: string[]): ApmForm {
     swServiceName: '',
     swBackendService: '',
     swExtraArgs: '',
+    arthasJarPath: '',
+    arthasTelnetPort: 3658,
+    arthasHttpPort: 8563,
   };
 }
 
@@ -874,6 +1264,12 @@ function materializeApmArgs(apm: ApmForm, jvm: string[]): string[] {
     if (apm.swServiceName?.trim()) out.push(`-Dskywalking.agent.service_name=${apm.swServiceName.trim()}`);
     if (apm.swBackendService?.trim()) out.push(`-Dskywalking.collector.backend_service=${apm.swBackendService.trim()}`);
     out.push(...(apm.swExtraArgs || '').split(/\s+/).map((x) => x.trim()).filter(Boolean));
+    return out;
+  }
+  if (apm.apmType === 'arthas' && apm.arthasJarPath.trim()) {
+    const out = [`-javaagent:${apm.arthasJarPath.trim()}`, ...rest];
+    if (apm.arthasTelnetPort) out.push(`-Darthas.telnet.port=${apm.arthasTelnetPort}`);
+    if (apm.arthasHttpPort) out.push(`-Darthas.http.port=${apm.arthasHttpPort}`);
     return out;
   }
   return rest;
@@ -1082,10 +1478,13 @@ async function handleSave() {
         swServiceName: form.value.swServiceName,
         swBackendService: form.value.swBackendService,
         swExtraArgs: form.value.swExtraArgs,
+        arthasJarPath: form.value.arthasJarPath,
+        arthasTelnetPort: form.value.arthasTelnetPort,
+        arthasHttpPort: form.value.arthasHttpPort,
       },
       form.value.jvmArgs,
     );
-    const { apmType, apmJarPath, apmOptions, swJarPath, swServiceName, swBackendService, swExtraArgs, ...projectForm } = form.value;
+    const { apmType, apmJarPath, apmOptions, swJarPath, swServiceName, swBackendService, swExtraArgs, arthasJarPath, arthasTelnetPort, arthasHttpPort, ...projectForm } = form.value;
     const payload = {
       ...projectForm,
       envVars: JSON.stringify(form.value.envVars),
@@ -1133,6 +1532,9 @@ function onMoreCommand(item: Project, command: string) {
     case 'rollback':
       handleRollback(item);
       break;
+    case 'git-deploy':
+      handleGitDeploy(item);
+      break;
     case 'toggle':
       toggleEnabled(item);
       break;
@@ -1163,6 +1565,9 @@ function handleStop(row: Project) {
 }
 function handleRestart(row: Project) {
   return runOperation(row, 'restart', `/project/${row.id}/restart`);
+}
+function handleGitDeploy(row: Project) {
+  return runOperation(row, 'deploy', `/project/${row.id}/git/deploy`);
 }
 function handleBackup(row: Project) {
   return runOperation(row, 'backup', `/project/${row.id}/backup`);
@@ -1523,7 +1928,7 @@ async function onDropFile(item: Project, ev: DragEvent) {
 // ---- 手动升级弹窗 ----
 const upgVisible = ref(false);
 const upgProject = ref<Project | null>(null);
-const upgForm = ref({ autoBackup: true, autoExtract: true, autoRestart: true, autoRollback: false, packagePath: '' });
+const upgForm = ref({ autoBackup: true, autoExtract: true, autoRestart: true, autoRollback: false, packagePath: '', deployType: '', uploadExtract: true });
 
 async function openUpgradeDialog(item: Project) {
   upgProject.value = item;
@@ -1537,6 +1942,8 @@ async function openUpgradeDialog(item: Project) {
       autoRestart: base.autoRestart ?? true,
       autoRollback: base.autoRollback ?? false,
       packagePath: base.packagePath ?? '',
+      deployType: item.deployType || '',
+      uploadExtract: item.uploadExtract ?? true,
     };
   } catch {
     // 使用默认
@@ -1631,6 +2038,151 @@ watch(logLines, () => {
     logBoxEl.value.scrollTop = logBoxEl.value.scrollHeight;
   }
 });
+
+// ---- Arthas 诊断 ----
+const arthasDialogVisible = ref(false);
+const arthasProject = ref<Project | null>(null);
+const arthasRunning = ref(false);
+const arthasPid = ref('');
+const arthasConsoleOutput = ref('');
+const arthasAttaching = ref(false);
+const arthasDetaching = ref(false);
+const arthasExecLoading = ref(false);
+const arthasCommand = ref('');
+const arthasTerminalEl = ref<HTMLElement>();
+const arthasQuickCommands = ['dashboard', 'thread', 'jvm', 'sysprop', 'sc *Service*', 'jad --source-only', 'trace', 'watch'];
+let arthasPollTimer: number | null = null;
+
+watch(arthasDialogVisible, (visible) => {
+  if (!visible) stopArthasPoll();
+});
+
+function isJavaProject(item: Project): boolean {
+  return JAVA_APM_TYPES.includes(item.projectType);
+}
+
+async function openArthasDialog(item: Project) {
+  arthasProject.value = item;
+  arthasConsoleOutput.value = '';
+  arthasCommand.value = '';
+  arthasDialogVisible.value = true;
+  await loadArthasStatus();
+  await loadArthasConsole();
+  startArthasPoll();
+}
+
+function closeArthasDialog() {
+  arthasDialogVisible.value = false;
+  stopArthasPoll();
+}
+
+async function loadArthasStatus() {
+  if (!arthasProject.value) return;
+  try {
+    const res = await http().get(`/ms/server/arthas/project/${arthasProject.value.id}/status`);
+    const data = unwrapResult<any>(res);
+    if (data) {
+      arthasRunning.value = !!data.arthasRunning;
+      arthasPid.value = data.jvmPid || '';
+    }
+  } catch (e) {
+    // 静默失败
+  }
+}
+
+async function doArthasAttach() {
+  if (!arthasProject.value) return;
+  arthasAttaching.value = true;
+  try {
+    const res = await http().post(`/ms/server/arthas/project/${arthasProject.value.id}/attach`).query({
+      telnetPort: 3658,
+    });
+    message.success(unwrapResult<string>(res));
+    await loadArthasStatus();
+    await loadArthasConsole();
+  } catch (e) {
+    message.error('Attach 失败');
+  } finally {
+    arthasAttaching.value = false;
+  }
+}
+
+async function doArthasDetach() {
+  if (!arthasProject.value) return;
+  arthasDetaching.value = true;
+  try {
+    await http().post(`/ms/server/arthas/project/${arthasProject.value.id}/detach`);
+    message.success('Arthas 已卸载');
+    await loadArthasStatus();
+  } catch (e) {
+    message.error('卸载失败');
+  } finally {
+    arthasDetaching.value = false;
+  }
+}
+
+async function loadArthasConsole() {
+  if (!arthasProject.value) return;
+  try {
+    const res = await http().get(`/ms/server/arthas/project/${arthasProject.value.id}/console`).query({ lines: 100 });
+    const data = unwrapResult<string>(res);
+    arthasConsoleOutput.value = data || '';
+    await nextTick();
+    scrollArthasTerminal();
+  } catch (e) {
+    arthasConsoleOutput.value += '\n[获取输出失败]\n';
+  }
+}
+
+async function doArthasExec() {
+  if (!arthasProject.value || !arthasCommand.value.trim()) return;
+  arthasExecLoading.value = true;
+  const cmd = arthasCommand.value.trim();
+  arthasConsoleOutput.value += `\n$ ${cmd}\n`;
+  try {
+    const res = await http().post(`/ms/server/arthas/project/${arthasProject.value.id}/exec`).query({ command: cmd });
+    const data = unwrapResult<string>(res);
+    arthasConsoleOutput.value += data + '\n';
+  } catch (e) {
+    arthasConsoleOutput.value += `[错误: 执行失败]\n`;
+  } finally {
+    arthasExecLoading.value = false;
+    arthasCommand.value = '';
+    await nextTick();
+    scrollArthasTerminal();
+  }
+}
+
+async function execArthasQuick(cmd: string) {
+  arthasCommand.value = cmd;
+  await doArthasExec();
+}
+
+function clearArthasConsole() {
+  arthasConsoleOutput.value = '';
+}
+
+function scrollArthasTerminal() {
+  if (arthasTerminalEl.value) {
+    arthasTerminalEl.value.scrollTop = arthasTerminalEl.value.scrollHeight;
+  }
+}
+
+function startArthasPoll() {
+  stopArthasPoll();
+  arthasPollTimer = window.setInterval(() => {
+    if (arthasRunning.value) {
+      loadArthasConsole();
+    }
+  }, 5000);
+}
+
+function stopArthasPoll() {
+  if (arthasPollTimer) {
+    clearInterval(arthasPollTimer);
+    arthasPollTimer = null;
+  }
+}
 
 async function handleDelete(row: Project) {
   try {
@@ -1745,184 +2297,412 @@ onMounted(() => {
 onBeforeUnmount(() => {
   cleanupLog();
   unsubTaskRefresh?.();
+  stopArthasPoll();
   if (runtimeTimer) { clearInterval(runtimeTimer); runtimeTimer = null; }
 });
 </script>
 
 <style scoped>
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(430px, 1fr));
-  gap: 16px;
-  padding: 16px 4px;
+/* ===== 页面骨架 ===== */
+.project-page {
+  padding: 24px 28px 30px;
+  box-sizing: border-box;
 }
-.project-card {
+.pj-head {
+  margin-bottom: 16px;
+}
+.pj-head-title {
   display: flex;
-  flex-direction: row;
-  padding: 16px;
-  background: var(--bg-container, #fff);
-  border: 1px solid var(--border-subtle, #eef0f6);
-  border-radius: var(--radius-lg, 12px);
-  box-shadow: var(--shadow-sm, 0 1px 2px rgba(16, 24, 40, 0.04));
-  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s, opacity 0.2s;
-}
-.project-card:hover {
-  border-color: var(--border-default, #e3e6ef);
-  box-shadow: var(--shadow-md, 0 6px 16px rgba(16, 24, 40, 0.08));
-  transform: translateY(-2px);
-}
-.project-card.is-dragover {
-  border-color: var(--brand-500, #6d5dfc);
-  box-shadow: 0 0 0 3px var(--brand-100, #ece9ff);
-}
-.project-card.is-disabled {
-  background: var(--bg-fill, #f7f8fa);
-  opacity: 0.72;
-}
-.project-card.is-disabled:hover {
-  transform: none;
-}
-
-/* 左侧图标 */
-.card-left {
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding-right: 14px;
-  margin-right: 14px;
-  border-right: 1px solid var(--border-subtle, #eef0f6);
+  gap: 10px;
+  min-width: 0;
 }
-.big-icon-wrap {
+.pj-head-name {
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: 0.2px;
+}
+.pj-head-count {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 12px;
-}
-.big-icon-wrap.running {
-  background: var(--brand-50, #f6f4ff);
-}
-.big-icon-wrap.stopped {
-  background: var(--bg-fill, #f7f8fa);
-}
-.big-icon {
-  font-size: 28px;
-  color: var(--brand-500, #6d5dfc);
-}
-.is-disabled .big-icon {
-  color: var(--el-text-color-secondary);
-}
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-.status-dot.running {
-  background: var(--pulse-online, #2fbf71);
-  box-shadow: 0 0 0 3px rgba(47, 191, 113, 0.18);
-}
-.status-dot.stopped {
-  background: var(--pulse-offline, #9aa3b2);
+  min-width: 22px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--bg-fill);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
-/* 右侧详情 */
-.card-right {
+/* ===== 工具条：状态筛选 + 搜索 ===== */
+.pj-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.pj-filters {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-fill);
+  border-radius: 10px;
+}
+.pj-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s var(--ease-out);
+}
+.pj-filter:hover {
+  color: var(--text-primary);
+}
+.pj-filter.active {
+  background: var(--bg-container);
+  color: var(--brand-600);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+.pj-filter-num {
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+.pj-filter-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+}
+.pj-filter-dot.running { background: var(--status-success); }
+.pj-filter-dot.stopped { background: var(--text-tertiary); }
+.pj-filter-dot.disabled { background: var(--status-warning); }
+.pj-search { width: 268px; }
+
+/* ===== 卡片网格 ===== */
+.pj-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+/* ===== 项目卡片 ===== */
+.pj-card {
+  position: relative;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  transition: border-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+  overflow: hidden;
+}
+.pj-card:hover {
+  border-color: var(--brand-400);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+.pj-card.is-disabled {
+  background: var(--bg-fill);
+  border-style: dashed;
+}
+.pj-card.is-disabled:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--border-subtle);
+}
+.pj-card.is-dragover {
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 3px var(--brand-100);
+  background: var(--brand-50);
+}
+
+/* Card top: icon + title + status */
+.pj-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.pj-card-icon {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  background: var(--bg-fill);
+  color: var(--brand-500);
+  font-size: 22px;
+}
+.pj-card-icon.running {
+  background: var(--brand-50);
+  color: var(--brand-600);
+}
+.pj-card-icon.disabled {
+  color: var(--text-tertiary);
+  background: transparent;
+  border: 1px dashed var(--border-default);
+}
+
+.pj-card-title {
   flex: 1;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
 }
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-.title-row {
+.pj-card-name-row {
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
 }
-.title-row h3 {
+.pj-card-name-row h3 {
   margin: 0;
   font-size: 15px;
   font-weight: 600;
-  color: var(--text-primary, #1f2430);
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.card-body {
+.pj-card-type {
+  flex-shrink: 0;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: var(--bg-fill);
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  line-height: 18px;
+}
+.pj-card-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.pj-card-status {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pj-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.pj-card-status.running {
+  color: #0f6e3a;
+  background: #ecfdf3;
+  border-color: #bbe5c8;
+}
+.pj-card-status.stopped {
+  color: var(--text-secondary);
+  background: var(--bg-fill);
+  border-color: var(--border-subtle);
+}
+.pj-card-status.disabled {
+  color: #8a5a00;
+  background: #fff7e6;
+  border-color: #fde2a4;
+}
+
+/* 分离式依赖数正方形徽章 */
+.pj-lib-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: #f0f5ff;
+  border: 1px solid #d6e4ff;
+  color: #1d39c4;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.pj-lib-badge-ic {
+  font-size: 14px;
+}
+.pj-lib-badge-num {
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* Card info section */
+.pj-card-info {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: 8px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 12px;
 }
-.info-row {
+.pj-card-info-row {
   display: flex;
   align-items: center;
-  gap: 7px;
-  font-size: 12.5px;
+  gap: 6px;
   min-width: 0;
+  color: var(--text-tertiary);
+  font-size: 12px;
 }
-.info-ic {
-  color: var(--el-text-color-secondary);
+.pj-card-info-ic {
+  font-size: 14px;
   flex-shrink: 0;
+  opacity: 0.7;
 }
-.info-val {
-  color: var(--el-text-color-regular);
+.pj-card-info-val {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  font-weight: 400;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.service-badge {
-  color: var(--brand-600, #5a4bd9);
-  font-weight: 600;
+
+.pj-card-desc {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 12px;
 }
-.drop-hint {
-  display: none;
+
+/* Card bottom: metrics + actions */
+.pj-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.pj-card-metrics {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  min-width: 0;
+}
+.pj-metrics-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.pj-metrics-k {
+  color: var(--text-tertiary);
+  font-size: 10.5px;
+}
+.pj-metrics-v {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.pj-metrics-sep {
+  width: 1px;
+  height: 10px;
+  background: var(--border-secondary);
+}
+.pj-metrics-note {
+  white-space: nowrap;
+}
+
+.pj-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Chips */
+.pj-chip {
+  flex-shrink: 0;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 11.5px;
+  line-height: 18px;
+}
+.pj-chip.is-muted {
+  color: var(--text-tertiary);
+  background: var(--bg-fill-secondary);
+}
+.pj-chip.is-warn {
+  color: var(--sev-p2-text);
+  background: var(--sev-p2-bg);
+  border-color: var(--sev-p2-border);
+}
+.pj-chip.is-info {
+  color: var(--sev-p4-text);
+  background: var(--sev-p4-bg);
+  border-color: var(--sev-p4-border);
+}
+.pj-chip.is-success {
+  color: var(--sev-p1-text, #15803d);
+  background: var(--sev-p1-bg, #dcfce7);
+  border-color: var(--sev-p1-border, #bbf7d0);
+}
+
+.pj-drop {
+  position: absolute;
+  inset: 0;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 8px;
-  margin-bottom: 8px;
-  font-size: 12px;
-  color: var(--brand-600, #5a4bd9);
-  background: var(--brand-50, #f6f4ff);
-  border: 1px dashed var(--brand-500, #6d5dfc);
-  border-radius: 8px;
-}
-.project-card.is-dragover .drop-hint {
-  display: flex;
-}
-.card-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   gap: 8px;
-  margin-top: auto;
-  padding-top: 10px;
-  border-top: 1px solid var(--border-subtle, #eef0f6);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--brand-50) 88%, transparent);
+  color: var(--brand-600);
+  font-size: 12.5px;
+  font-weight: 600;
+  pointer-events: none;
 }
-.actions-group {
+
+.pj-no-match {
   display: flex;
-  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 56px 0;
+  color: var(--text-tertiary);
+  font-size: 13px;
 }
-.disabled-tip {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-.dd-ic {
-  margin-right: 6px;
-  vertical-align: -2px;
-  color: var(--el-text-color-regular);
-}
-.dd-danger {
-  color: var(--el-color-danger);
+
+/* 窄屏：卡片网格自适应 */
+@media (max-width: 720px) {
+  .project-page { padding: 14px 12px 20px; }
+  .pj-search { width: 100%; }
+  .pj-filters { overflow-x: auto; }
+  .pj-grid { grid-template-columns: 1fr; }
 }
 
 /* 编辑 tab */
@@ -1971,15 +2751,6 @@ onBeforeUnmount(() => {
   font-size: 12px;
   color: var(--el-text-color-secondary);
   margin-top: 2px;
-}
-.pid-val {
-  font-family: "Cascadia Code", Consolas, monospace;
-  color: var(--brand-600, #5a4bd9);
-}
-.runtime-val {
-  font-family: "Cascadia Code", Consolas, monospace;
-  color: var(--brand-600, #5a4bd9);
-  font-weight: 600;
 }
 .acfg-tip {
   font-size: 12.5px;
@@ -2310,6 +3081,31 @@ onBeforeUnmount(() => {
   line-height: 1.6;
 }
 
+/* ---- Git 自动发布 ---- */
+.git-pane { display: flex; flex-direction: column; gap: 14px; max-width: 640px; }
+.git-tip {
+  display: flex; gap: 12px; align-items: flex-start;
+  font-size: 12.5px; line-height: 1.6; color: var(--text-secondary, #6b7280);
+  padding: 12px 14px;
+  background: var(--bg-fill, #f7f8fa);
+  border: 1px solid var(--border-subtle, #eef0f6);
+  border-radius: var(--radius-md, 8px);
+}
+.git-tip-ic { color: #2563eb; flex-shrink: 0; margin-top: 1px; }
+.git-tip-title { font-weight: 600; color: var(--text-primary, #1f2430); margin-bottom: 2px; }
+.git-tip-sub code {
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 11.5px;
+  background: var(--bg-fill-secondary, #eef0f6);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.git-form { display: flex; flex-direction: column; gap: 4px; }
+.git-skip-hint {
+  margin-left: 10px; font-size: 12px; color: var(--text-tertiary, #9ca3af);
+}
+.dd-success { color: #2563eb; }
+
 .log-container {
   height: 420px;
   overflow-y: auto;
@@ -2377,4 +3173,59 @@ onBeforeUnmount(() => {
 .log-resume:hover { background: var(--brand-600, #5a4bd9); }
 .ls-fade-enter-active, .ls-fade-leave-active { transition: opacity 0.2s, transform 0.2s; }
 .ls-fade-enter-from, .ls-fade-leave-to { opacity: 0; transform: translateX(-50%) translateY(6px); }
+
+/* Arthas 诊断 */
+.arthas-wrap { display: flex; flex-direction: column; gap: 12px; }
+.arthas-status-bar { display: flex; align-items: center; gap: 12px; }
+.arthas-badge {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+.arthas-badge-on {
+  background: var(--success);
+  color: white;
+}
+.arthas-pid {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  font-family: 'Courier New', monospace;
+}
+.arthas-status-actions { margin-left: auto; display: flex; gap: 8px; }
+.arthas-terminal {
+  background: #1a1a2e;
+  color: #00ff88;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  padding: 16px;
+  height: 380px;
+  overflow-y: auto;
+  border-radius: 8px;
+}
+.arthas-terminal pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.arthas-input-row { display: flex; gap: 8px; }
+.arthas-input-row :deep(.el-input) { flex: 1; }
+.arthas-quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.arthas-quick-cmd {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.arthas-quick-cmd:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
 </style>

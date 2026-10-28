@@ -1,5 +1,5 @@
 <template>
-  <div class="px tel-page">
+  <div class="px tel-page release-page">
     <ReSectionHead description="管理服务器发布与项目 · 支持启动/停止/重启/升级/备份/回滚">
       <template #title>发布管理</template>
       <template #actions>
@@ -46,7 +46,7 @@
               {{ item.description || '暂无描述，点击卡片添加项目' }}
             </p>
             <div class="card-footer" @click.stop>
-              <button class="ghost-ico" title="软件仓库" @click="openInstallDialog(item)">
+              <button class="ghost-ico" title="软件仓库" @click="goToHost(item)">
                 <el-icon><Box /></el-icon><span>软件仓库</span>
               </button>
               <button class="enter-link" @click="goToProjects(item)">
@@ -65,8 +65,11 @@
           <ReInput v-model="form.releaseName" placeholder="如：生产环境发布" style="width:100%" />
         </ReFormItem>
         <ReFormItem label="主机">
-          <ReSelect v-model="form.hostId" placeholder="选择主机" style="width:100%" filterable>
-            <ReOption v-for="host in hosts" :key="host.id" :label="host.serverHostName + ' (' + host.serverHostAddress + ')'" :value="host.id" />
+          <ReSelect v-model="form.hostId" placeholder="选择主机" style="width:100%" filterable :teleported="true" popper-class="host-select-popper">
+            <ReOption v-for="host in hosts" :key="host.id" :label="host.serverHostName" :value="host.id">
+              <span style="float:left">{{ host.serverHostName }}</span>
+              <span style="float:right;color:var(--el-text-color-secondary);font-size:12px">{{ host.serverHostAddress }}</span>
+            </ReOption>
           </ReSelect>
         </ReFormItem>
         <ReFormItem label="描述">
@@ -82,48 +85,17 @@
       </template>
     </ReDialog>
 
-    <!-- 软件仓库检索对话框 -->
-    <ReDialog v-model="installDialogVisible" title="软件仓库" width="750px" :close-on-click-modal="false" :footer-hidden="true">
-      <div class="software-repo">
-        <!-- 顶部搜索栏（主机固定为当前发布绑定的主机） -->
-        <div class="search-bar">
-          <el-tag size="large" type="info" effect="plain" class="host-tag">
-            <el-icon style="vertical-align:-2px;margin-right:4px"><Monitor /></el-icon>{{ currentHostLabel }}
-          </el-tag>
-          <ReInput v-model="searchForm.keyword" placeholder="输入软件名称，如 nginx" style="flex: 1" @keyup.enter="handleSearch" />
-          <ReButton type="primary" icon="Search" @click="handleSearch">查询</ReButton>
-        </div>
-
-        <!-- 搜索结果列表 -->
-        <div class="software-list">
-          <ReEmpty v-if="!searchResults.length && !searching" :description="searchForm.hostId ? '输入关键词搜索软件包' : '该发布未绑定主机'" :image-size="60" />
-          <div v-if="searching" class="loading-tip">
-            <el-icon class="is-loading"><Loading /></el-icon>
-            <span>正在搜索软件包...</span>
-          </div>
-          <div v-for="pkg in searchResults" :key="pkg.name" class="software-item">
-            <div class="software-info">
-              <div class="software-name">{{ pkg.name }}</div>
-              <div class="software-desc">{{ pkg.summary || '暂无描述' }}</div>
-              <div class="software-version" v-if="pkg.version">版本: {{ pkg.version }}</div>
-            </div>
-            <ReButton type="primary" icon="Download" @click="handleInstall(pkg)">安装</ReButton>
-          </div>
-        </div>
-      </div>
-    </ReDialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { message } from "@repo/core";
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessageBox } from 'element-plus';
-import { Loading, Monitor, Files, Box, ArrowRight, EditPen, Delete } from '@element-plus/icons-vue';
+import { Files, Box, ArrowRight, EditPen, Delete } from '@element-plus/icons-vue';
 import { http, unwrapResult } from '@repo/utils';
 import { osIconSvg, osLabel } from '../../utils/osIcon';
-import { trackTask } from '../../utils/processTasks';
 
 const BASE = '/ms/server/release';
 
@@ -150,41 +122,17 @@ interface Host {
   serverHostOsType?: string;
 }
 
-interface SoftwarePackage {
-  name: string;
-  summary: string;
-  version: string;
-}
-
 const list = ref<Release[]>([]);
 const hosts = ref<Host[]>([]);
 const counts = ref<Record<number, number>>({});
 const dialogVisible = ref(false);
 const editingId = ref<number | null>(null);
-const installDialogVisible = ref(false);
-const currentRelease = ref<Release | null>(null);
-const searching = ref(false);
-const searchResults = ref<SoftwarePackage[]>([]);
-
-/** 软件仓库对话框中固定显示的主机（当前发布绑定的主机） */
-const currentHostLabel = computed(() => {
-  const h = hosts.value.find((x) => x.id === searchForm.value.hostId);
-  if (h) {
-    return h.serverHostName + ' (' + h.serverHostAddress + ')';
-  }
-  return currentRelease.value?.hostIp || '未绑定主机';
-});
 
 const form = ref({
   releaseName: '',
   hostId: undefined as number | undefined,
   description: '',
   backgroundImage: '',
-});
-
-const searchForm = ref({
-  hostId: undefined as number | undefined,
-  keyword: '',
 });
 
 /** 平台类型 -> 样式类 */
@@ -308,57 +256,12 @@ function goToProjects(item: Release) {
   router.push(`/projects?releaseId=${item.id}`);
 }
 
-async function openInstallDialog(item: Release) {
-  await ensureHosts();
-  currentRelease.value = item;
-  searchForm.value = { hostId: item.hostId, keyword: '' };
-  searchResults.value = [];
-  installDialogVisible.value = true;
-}
-
-async function handleSearch() {
-  if (!searchForm.value.hostId) {
-    message.warning('该发布未绑定主机，请先在编辑中选择主机');
+function goToHost(item: Release) {
+  if (!item.hostId) {
+    message.warning('该发布未绑定主机');
     return;
   }
-  if (!searchForm.value.keyword) {
-    message.warning('请输入软件名称');
-    return;
-  }
-
-  searching.value = true;
-  searchResults.value = [];
-
-  try {
-    const res = await http()
-      .get(BASE + '/software/search')
-      .query({ hostId: searchForm.value.hostId, keyword: searchForm.value.keyword })
-      .timeout(30000);
-    searchResults.value = unwrapResult(res) || [];
-  } catch (e) {
-    message.error('搜索失败，请检查主机连接');
-  } finally {
-    searching.value = false;
-  }
-}
-
-async function handleInstall(pkg: SoftwarePackage) {
-  if (!searchForm.value.hostId) {
-    message.warning('该发布未绑定主机，请先在编辑中选择主机');
-    return;
-  }
-  try {
-    const res = await http()
-      .post(BASE + '/software/install')
-      .query({ hostId: searchForm.value.hostId, name: pkg.name })
-      .timeout(30000);
-    const taskId = unwrapResult<string>(res);
-    if (taskId) {
-      trackTask(taskId, pkg.name, 'install');
-    }
-  } catch (e) {
-    message.error('安装触发失败');
-  }
+  router.push(`/host/${item.hostId}`);
 }
 
 onMounted(() => {
@@ -368,11 +271,21 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 页面内边距：.tel-page 全局归零，发布管理自己补一圈留白，
+   否则标题、按钮、卡片都贴在容器边上（本次「内部添加间距」的根因）。 */
+.release-page {
+  padding: 24px 28px 30px;
+  box-sizing: border-box;
+}
+.release-page :deep(.re-section-head) {
+  margin-bottom: 18px;
+}
+
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 16px;
-  padding: 18px;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 20px;
+  padding: 0;
 }
 
 /* ===== 发布卡片（左右结构） ===== */
@@ -385,7 +298,7 @@ onMounted(() => {
   cursor: pointer;
   display: flex;
   flex-direction: row;
-  min-height: 158px;
+  min-height: 172px;
   transition: transform 0.22s var(--ease-out), box-shadow 0.22s var(--ease-out), border-color 0.22s;
 }
 .release-card:hover {
@@ -397,8 +310,8 @@ onMounted(() => {
 /* 左侧媒体：平台色块 / 背景图 */
 .card-media {
   position: relative;
-  flex: 0 0 104px;
-  width: 104px;
+  flex: 0 0 112px;
+  width: 112px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -469,7 +382,7 @@ onMounted(() => {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  padding: 14px 16px 10px;
+  padding: 18px 18px 12px;
 }
 .content-top {
   display: flex;
@@ -501,8 +414,8 @@ onMounted(() => {
 .host-line {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 9px 0 7px;
+  gap: 10px;
+  margin: 11px 0 9px;
 }
 .host-chip {
   font-size: 12.5px;
@@ -520,7 +433,7 @@ onMounted(() => {
 .release-desc {
   margin: 0;
   font-size: 12.5px;
-  line-height: 1.5;
+  line-height: 1.6;
   color: var(--text-secondary);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -535,7 +448,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
 }
 .ghost-ico {
   border: none;
@@ -568,71 +482,14 @@ onMounted(() => {
 .enter-link:hover { background: var(--brand-50); }
 .enter-link .el-icon { font-size: 14px; }
 
-/* ===== 软件仓库样式 ===== */
-.software-repo {
-  display: flex;
-  flex-direction: column;
-  height: 500px;
+/* ===== 主机下拉框宽度限制 ===== */
+:deep(.host-select-popper) {
+  width: 320px !important;
+  max-width: 320px !important;
 }
-.search-bar {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-  flex-shrink: 0;
-  align-items: center;
-}
-.host-tag {
-  flex-shrink: 0;
-  max-width: 300px;
+:deep(.host-select-popper .el-select-dropdown__item) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.software-list {
-  flex: 1;
-  overflow-y: auto;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 8px;
-}
-.loading-tip {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 40px;
-  color: var(--text-secondary);
-}
-.software-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px;
-  border-radius: var(--radius-sm);
-  transition: background-color 0.2s;
-}
-.software-item:hover {
-  background-color: var(--bg-fill);
-}
-.software-info {
-  flex: 1;
-  min-width: 0;
-}
-.software-name {
-  font-weight: 600;
-  font-size: 14px;
-  margin-bottom: 4px;
-}
-.software-desc {
-  font-size: 12px;
-  color: var(--text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.software-version {
-  font-size: 12px;
-  color: var(--text-tertiary);
-  margin-top: 4px;
 }
 </style>
