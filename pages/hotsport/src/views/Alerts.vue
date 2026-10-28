@@ -199,7 +199,7 @@
     <!-- 规则管理抽屉 -->
     <ReDrawer v-model="rulesVisible" title="告警规则管理" size="560px" direction="rtl">
       <div class="rule-form">
-        <ReInput v-model="newRule.metric" placeholder="指标名：heap_percent / error_rate / cpu_percent / thread_count / transmission_rate / active_leaks" class="grow" />
+        <ReInput v-model="newRule.metric" placeholder="指标名：heap_percent / error_rate / cpu_percent / thread_count / transmission_rate / active_leaks / physical_used_percent / system_cpu_load" class="grow" />
         <ReInputNumber v-model="newRule.threshold" placeholder="阈值" class="grow" :min="0" />
         <ReSelect v-model="newRule.severity" :data="severityOptions" placeholder="级别" class="grow" />
         <ReInputNumber v-model="newRule.debounceMs" placeholder="去抖(ms)" class="grow" :min="0" />
