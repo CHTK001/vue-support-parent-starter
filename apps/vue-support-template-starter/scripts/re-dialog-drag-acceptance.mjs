@@ -2,7 +2,8 @@
  * ReDialog 拖拽 —— 生产级验收。
  *
  * <p>需求原话：「ReDialog 为什么没法拖拽」。根因三叠：
- * ① default 主题的 {@code draggable} 默认 false（历史受控化，需显式传 true）；
+ * ① default 主题的 {@code draggable} 默认 false（历史受控化，需显式传 true；
+ *    2026-10-28 已改为默认 true「默认可拖」）；
  * ② element-plus 2.14 的 {@code useDraggable} 在 overflow=false 时把位移钳制进视口，
  *    弹窗略矮于视口时上限≈0，近满高弹窗拖不动 —— default 主题此前不透传
  *    {@code overflow}（koi 主题已修）；
@@ -12,13 +13,15 @@
  *
  * <p>本次修复（对齐 koi）：
  * - default {@code ReDialog} 新增强 {@code overflow} 三态 prop，未传时跟随 draggable；
- * - headless 拖拽热区 CSS 移入「非 scoped」样式块（ElDialog 根是 Tel
-eport，
+ * - headless 拖拽热区 CSS 移入「非 scoped」样式块（ElDialog 根是 Teleport，
  *   Vue 不传 scope id，scoped :deep 从未命中）—— 44px 透明热区，不占内容高度；
- * - 拖拽结束后检查是否越出「保留区」，越界用官方 {@code resetPosition} 归零。</p>
+ * - 拖拽结束后检查是否越出「保留区」，越界用官方 {@code resetPosition} 归零；
+ * - {@code draggable} 默认值改为 {@code true}（2026-10-28 用户决策）：未传即可拖，
+ *   显式 {@code :draggable="false"} 才不可拖 —— 两主题一致。</p>
  *
- * <p><b>验收在 /lab/re-dialog-drag 对照组页上真实拖拽</b>，并对
- * 「未传 draggable 的普通弹窗」做负向判别（不该被拖走），避免判据恒真。</p>
+ * <p><b>验收在 /lab/re-dialog-drag 对照组页上真实拖拽</b>：
+ * 未传 draggable 的普通弹窗做<b>正向</b>判别（默认可拖），显式
+ * {@code :draggable="false"} 的弹窗做<b>负向</b>判别（不该被拖走），避免判据恒真。</p>
  *
  * <p><b>怎么跑</b>（需先构建 + 起产物在跑，本脚本不起服务）：</p>
  * <pre>
@@ -118,9 +121,9 @@ async function run() {
       await page.reload({ waitUntil: "domcontentloaded", timeout: 120000 }).catch(() => {});
       await page.waitForSelector(".ddl", { state: "attached", timeout: 45000 });
     });
-    check("对照组页渲染出 5 个弹窗按钮", (await page.locator("[data-dd-open]").count()) >= 5);
+    check("对照组页渲染出 6 个弹窗按钮", (await page.locator("[data-dd-open]").count()) >= 6);
 
-    console.log("=== 2. 负向判别：未传 draggable 的普通弹窗不该被拖走 ===");
+    console.log("=== 2. 默认值契约：未传 draggable 默认可拖（正向）；显式 false 不可拖（负向） ===");
     const plain0 = await openDialog(page, "plain");
     check("plain 弹窗是 el-dialog（default 主题）", plain0.cls.includes("re-dialog"), plain0.cls.slice(0, 60));
     const plainCursor = await page.evaluate(() => {
@@ -128,7 +131,7 @@ async function run() {
       const hdr = d?.querySelector(".el-dialog__header");
       return hdr ? getComputedStyle(hdr).cursor : "n/a";
     });
-    check("未传 draggable 时 header 无 move 光标", plainCursor !== "move", `cursor=${plainCursor}`);
+    check("未传 draggable 时 header 有 move 光标（默认值=可拖）", plainCursor === "move", `cursor=${plainCursor}`);
     const phdr = await page.evaluate(() => {
       const d = [...document.querySelectorAll(".el-dialog")].find((x) => x.offsetParent !== null);
       const hdr = d?.querySelector(".el-dialog__header");
@@ -140,7 +143,30 @@ async function run() {
     const plainMoved = Math.round(
       Math.abs(plain1.rect.x - plain0.rect.x) + Math.abs(plain1.rect.y - plain0.rect.y),
     );
-    check("普通弹窗拖拽后位置不动（判别力：判据不是恒真）", plainMoved === 0, `位移 ${plainMoved}px`);
+    check("未传 draggable 的普通弹窗实际可拖（默认值=可拖）", plainMoved > 40, `位移 ${plainMoved}px`);
+    await resetPage(page);
+
+    console.log("=== 2b. 显式 :draggable=false 不可拖（负向判别，判据非恒真） ===");
+    const nd0 = await openDialog(page, "nondrag");
+    check("nondrag 弹窗是 el-dialog（default 主题）", nd0.cls.includes("re-dialog"), nd0.cls.slice(0, 60));
+    const ndCursor = await page.evaluate(() => {
+      const d = [...document.querySelectorAll(".el-dialog")].find((x) => x.offsetParent !== null);
+      const hdr = d?.querySelector(".el-dialog__header");
+      return hdr ? getComputedStyle(hdr).cursor : "n/a";
+    });
+    check("显式 draggable=false 时 header 无 move 光标", ndCursor !== "move", `cursor=${ndCursor}`);
+    const ndHdr = await page.evaluate(() => {
+      const d = [...document.querySelectorAll(".el-dialog")].find((x) => x.offsetParent !== null);
+      const hdr = d?.querySelector(".el-dialog__header");
+      const r = hdr.getBoundingClientRect();
+      return { x: r.x, y: r.y, w: r.width, h: r.height };
+    });
+    await dragByMouse(page, ndHdr.x + ndHdr.w / 2, ndHdr.y + ndHdr.h / 2, 160, 90);
+    const nd1 = await dialogState(page);
+    const ndMoved = Math.round(
+      Math.abs(nd1.rect.x - nd0.rect.x) + Math.abs(nd1.rect.y - nd0.rect.y),
+    );
+    check("显式 draggable=false 弹窗拖拽后位置不动（判别力）", ndMoved === 0, `位移 ${ndMoved}px`);
     await resetPage(page);
 
     console.log("=== 3. el 布局：拖拽产生 transform 位移 ===");
@@ -241,6 +267,8 @@ async function run() {
     console.log("=== 8. 源码契约：修复必须落在已提交源码 ===");
     const srcPath = path.resolve(APP_ROOT, "../../packages/ui/src/components/ReDialog/ReDialog.vue");
     const src = readFileSync(srcPath, "utf8");
+    const koiPath = path.resolve(APP_ROOT, "../../packages/ui/src/components/ReDialog/theme/koi/ReDialog.vue");
+    const koiSrc = readFileSync(koiPath, "utf8");
     const modernPath = path.resolve(APP_ROOT, "../../packages/ui/src/components/ReDialog/layouts/Modern.vue");
     const modernSrc = readFileSync(modernPath, "utf8");
     check("ReDialog.vue 透传 overflow 到 ElDialog", src.includes(':overflow="effectiveOverflow"'));
@@ -253,6 +281,8 @@ async function run() {
         src.includes(".re-dialog--headless .el-dialog__header {\n  display: none;"));
     check("Modern 布局拖拽已改 transform 位移（left/top 对非定位 .rm-dialog 无效）",
       modernSrc.includes("transform: `translate(") && modernSrc.includes("closest<HTMLElement>(\".rm-dialog\")"));
+    check("default 主题 draggable 默认 true（默认可拖）", /draggable:\s*true/.test(src));
+    check("koi 主题 draggable 默认 true（两主题一致）", /draggable:\s*true/.test(koiSrc));
   } finally {
     await browser.close();
   }

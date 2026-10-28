@@ -31,12 +31,13 @@ const props = withDefaults(
     /** 弹窗是否在视口中水平、垂直居中 */
     alignCenter?: boolean;
     /**
-     * 是否可拖拽（默认 false，与 default 主题一致）。
+     * 是否可拖拽（默认 true：未传即可按住标题栏拖动）。
      *
-     * <p>koi 版历史是把 draggable 钉死为 true，导致所有弹窗（含不应拖拽的对话框）
-     * 头部都可拖；且 headless / 自定义 header 场景拖拽把手不直观。改为受控 prop
-     * 后：需要拖拽的弹窗显式传 true（element-plus 以 transform 位移，与 align-center
-     * 的 flex 居中兼容，两者可同时开启），其余弹窗保持居中不可拖。</p>
+     * <p>历史沿革：koi 版早期把 draggable 钉死为 true（所有弹窗头部都可拖，
+     * 含不应拖的对话框），后改为受控 prop 默认 false；2026-10-28 依用户决策
+     * 恢复为<b>默认 true</b>，与 default 主题一致 —— 需显式不可拖的弹窗
+     * 传 {@code :draggable="false"}。element-plus 以 transform 位移，与
+     * align-center 的 flex 居中兼容，两者可同时开启。</p>
      */
     draggable?: boolean;
     /**
@@ -127,7 +128,7 @@ const props = withDefaults(
     destroyOnClose: false,
     fullscreen: false,
     loading: false,
-    draggable: false,
+    draggable: true,
     // 三态：未传 = 跟随 draggable（见 props.overflow 说明）；显式 true/false 覆盖。
     // 与 footerHidden 同理，必须给 default: undefined —— Boolean prop「未传且无默认值」
     // 会被 Vue 强转成 false，三态里的「未传」将永远不可达。
