@@ -121,6 +121,74 @@
             </ReTimeline>
           </div>
         </template>
+        <template #history>
+          <div class="history-panel">
+            <div class="history-head">
+              <span class="muted history-hint">
+                DB 全量历史（超出内存 100 条环形缓冲）
+                <template v-if="persistence">
+                  · <ReTag :type="persistence.active ? 'success' : 'info'" round size="small">
+                    {{ persistence.active ? `持久化 ${persistence.type}` : "内存态" }}
+                  </ReTag>
+                </template>
+              </span>
+              <ReButton text size="small" :loading="historyLoading" @click="loadHistory">
+                刷新
+              </ReButton>
+            </div>
+            <ReTable
+              :data="historyItems as unknown as Record<string, unknown>[]"
+              :columns="tableColumns"
+              :loading="historyLoading"
+              engine="element"
+              :layout-table="{ minHeight: 220 }"
+              :settings="{ border: false }"
+              :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+            >
+              <template #col-ts="{ row }">
+                <span class="muted mono">{{ formatTime(row.ts) }}</span>
+              </template>
+              <template #col-metric="{ row }">
+                <span class="mono metric-text">{{ (row as unknown as ApmAlert).metric }}</span>
+              </template>
+              <template #col-current="{ row }">
+                <span class="mono">{{ (row as unknown as ApmAlert).current }}</span>
+              </template>
+              <template #col-threshold="{ row }">
+                <span class="mono muted">{{ (row as unknown as ApmAlert).threshold }}</span>
+              </template>
+              <template #col-severity="{ row }">
+                <ReTag :type="sevTag((row as unknown as ApmAlert).severity)" round>
+                  {{ (row as unknown as ApmAlert).severity }}
+                </ReTag>
+              </template>
+              <template #col-status="{ row }">
+                <ReTag :type="statusTag((row as unknown as ApmAlert).status)" round>
+                  {{ (row as unknown as ApmAlert).status || "OPEN" }}
+                </ReTag>
+              </template>
+              <template #col-message="{ row }">
+                <span class="msg-text">{{ (row as unknown as ApmAlert).message }}</span>
+              </template>
+              <template #col-actions>
+                <span class="mono muted">只读归档</span>
+              </template>
+            </ReTable>
+            <div class="history-pager">
+              <ReButton text size="small" :disabled="historyOffset <= 0" @click="pageHistory(-1)">
+                上一页
+              </ReButton>
+              <span class="muted mono">
+                第 {{ historyOffset / HISTORY_PAGE + 1 }} 页 · 每页 {{ HISTORY_PAGE }} 条
+                <template v-if="persistence"> · 库内共 {{ persistence.rows }} 条</template>
+              </span>
+              <ReButton text size="small" :disabled="historyItems.length < HISTORY_PAGE" @click="pageHistory(1)">
+                下一页
+              </ReButton>
+            </div>
+            <ReEmpty v-if="!historyLoading && !historyItems.length" description="历史归档为空（持久化未启用或尚无事件落库）" />
+          </div>
+        </template>
       </ReTab>
     </div>
 
@@ -196,7 +264,7 @@
 
 <script setup lang="ts">
 import { message } from "@repo/core";
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { Bell, BellFilled, Warning, Plus } from "@element-plus/icons-vue";
 
 import ReButton from "@repo/ui/re-button";
@@ -212,7 +280,7 @@ import ReInput from "@repo/ui/re-input";
 import ReInputNumber from "@repo/ui/re-input-number";
 import ReDrawer from "@repo/ui/re-drawer";
 import type { ReTableColumn } from "@repo/ui/re-table";
-import { getAlerts, getAlertRules, addAlertRule, toggleAlertRule, deleteAlertRule, acknowledgeAlert, muteAlert, ignoreAlert, getAlertChannels, addAlertChannel, deleteAlertChannel, toggleAlertChannel } from "../api/apmApi";
+import { getAlerts, getAlertRules, addAlertRule, toggleAlertRule, deleteAlertRule, acknowledgeAlert, muteAlert, ignoreAlert, getAlertChannels, addAlertChannel, deleteAlertChannel, toggleAlertChannel, getAlertHistory, getAlertPersistence } from "../api/apmApi";
 import type { ApmAlert, AlertRule, AlertChannel } from "../api/apmApi";
 import { useRealtimeEvent } from "../composables/useRealtime";
 
@@ -271,6 +339,7 @@ function statusTag(status?: string): "success" | "warning" | "info" | "danger" {
 const tabItems = [
   { name: "table", label: "表格视图" },
   { name: "timeline", label: "事件时间线" },
+  { name: "history", label: "历史归档" },
 ];
 
 const criticalCount = computed(() => items.value.filter((a) => a.severity === "CRITICAL").length);
@@ -330,6 +399,50 @@ async function load() {
     loading.value = false;
   }
 }
+
+// ---- 历史归档（DB 全量分页，只读）----
+
+/** 每页条数 */
+const HISTORY_PAGE = 50;
+
+const historyItems = ref<ApmAlert[]>([]);
+const historyLoading = ref(false);
+const historyOffset = ref(0);
+
+/** 持久化层状态（操作条指示：mysql 落库 / 内存态） */
+const persistence = ref<{ type: string; active: boolean; url: string; rows: number } | null>(null);
+
+/** 拉取历史页 */
+async function loadHistory() {
+  historyLoading.value = true;
+  try {
+    const [list, p] = await Promise.all([
+      getAlertHistory(HISTORY_PAGE, historyOffset.value),
+      getAlertPersistence(),
+    ]);
+    historyItems.value = list || [];
+    persistence.value = p;
+  } catch {
+    historyItems.value = [];
+    message.error("加载历史归档失败");
+  } finally {
+    historyLoading.value = false;
+  }
+}
+
+/** 翻页 */
+function pageHistory(dir: 1 | -1) {
+  const next = Math.max(0, historyOffset.value + dir * HISTORY_PAGE);
+  historyOffset.value = next;
+  loadHistory();
+}
+
+/** 切到历史 tab 时自动加载 */
+watch(view, (v) => {
+  if (v === "history") {
+    loadHistory();
+  }
+});
 
 // ---- 规则管理 ----
 
@@ -557,6 +670,36 @@ useRealtimeEvent("alert", () => {
 }
 
 .timeline-values {
+  font-size: 12px;
+}
+
+/* ---- 历史归档面板 ---- */
+.history-panel {
+  padding: var(--apm-space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--apm-space-3);
+}
+
+.history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--apm-space-3);
+}
+
+.history-hint {
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: var(--apm-space-2);
+}
+
+.history-pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--apm-space-3);
   font-size: 12px;
 }
 

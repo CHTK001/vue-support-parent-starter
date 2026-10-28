@@ -589,6 +589,21 @@ export function getAlerts(limit = 100): Promise<ApmAlert[]> {
   return unwrap(instance.get<ApmAlert[]>("/alerts", { params: { limit } }));
 }
 
+/** 告警历史事件（DB 全量分页，时间倒序；持久化未启用时返回空表） */
+export function getAlertHistory(limit = 50, offset = 0): Promise<ApmAlert[]> {
+  return unwrap(instance.get<ApmAlert[]>("/alerts/history", { params: { limit, offset } }));
+}
+
+/** 告警持久化层状态（是否落库 / 事件库行数） */
+export function getAlertPersistence(): Promise<{
+  type: string;
+  active: boolean;
+  url: string;
+  rows: number;
+}> {
+  return unwrap(instance.get<{ type: string; active: boolean; url: string; rows: number }>("/alerts/persistence"));
+}
+
 /** 告警规则列表 */
 export function getAlertRules(): Promise<AlertRule[]> {
   return unwrap(instance.get<AlertRule[]>("/alerts/rules"));
@@ -1140,6 +1155,8 @@ export default {
   getAlertRules,
   addAlertRule,
   toggleAlertRule,
+  getAlertHistory,
+  getAlertPersistence,
   acknowledgeAlert,
   muteAlert,
   getAlertChannels,
