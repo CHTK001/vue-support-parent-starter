@@ -626,6 +626,40 @@ export function ignoreAlert(id: number): Promise<boolean> {
   return unwrap(instance.post<boolean>(`/alerts/${id}/ignore`));
 }
 
+// ---- 通知渠道（Webhook 推送目标，2026 增强）----
+
+/** 通知渠道（触发告警时异步推送 Webhook） */
+export interface AlertChannel {
+  id: number;
+  name: string;
+  type: "webhook" | "dingtalk" | "feishu" | "email";
+  url: string;
+  secret?: string;
+  enabled: boolean;
+}
+
+/** 通知渠道列表 */
+export function getAlertChannels(): Promise<AlertChannel[]> {
+  return unwrap(instance.get<AlertChannel[]>("/alerts/channels"));
+}
+
+/** 新增通知渠道 */
+export function addAlertChannel(params: {
+  name: string; type?: string; url: string; secret?: string; enabled?: boolean;
+}): Promise<AlertChannel> {
+  return unwrap(instance.post<AlertChannel>("/alerts/channels", null, { params }));
+}
+
+/** 删除通知渠道 */
+export function deleteAlertChannel(id: number): Promise<boolean> {
+  return unwrap(instance.delete<boolean>(`/alerts/channels/${id}`));
+}
+
+/** 启停通知渠道 */
+export function toggleAlertChannel(id: number, enabled: boolean): Promise<boolean> {
+  return unwrap(instance.post<boolean>("/alerts/channels/toggle", null, { params: { id, enabled } }));
+}
+
 // ---- 慢调用 / 错误排行 / SLA / 数据清理（2026 增强）----
 
 /** 慢调用 Top N */
@@ -1108,6 +1142,10 @@ export default {
   toggleAlertRule,
   acknowledgeAlert,
   muteAlert,
+  getAlertChannels,
+  addAlertChannel,
+  deleteAlertChannel,
+  toggleAlertChannel,
   ignoreAlert,
 };
 

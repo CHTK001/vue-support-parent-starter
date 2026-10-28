@@ -131,7 +131,7 @@
     <!-- 规则管理抽屉 -->
     <ReDrawer v-model="rulesVisible" title="告警规则管理" size="560px" direction="rtl">
       <div class="rule-form">
-        <ReInput v-model="newRule.metric" placeholder="指标名（如 heap_percent / error_rate / active_leaks）" class="grow" />
+        <ReInput v-model="newRule.metric" placeholder="指标名：heap_percent / error_rate / cpu_percent / thread_count / transmission_rate / active_leaks" class="grow" />
         <ReInputNumber v-model="newRule.threshold" placeholder="阈值" class="grow" :min="0" />
         <ReSelect v-model="newRule.severity" :data="severityOptions" placeholder="级别" class="grow" />
         <ReInputNumber v-model="newRule.debounceMs" placeholder="去抖(ms)" class="grow" :min="0" />
@@ -170,7 +170,7 @@
           <ReInput v-model="newChannel.name" placeholder="渠道名称，如：值班群" class="grow" />
         </div>
         <ReInput v-model="newChannel.webhookUrl" placeholder="Webhook URL 或邮箱地址" class="grow" />
-        <el-button type="primary" :icon="Plus" show-text @click="addChannel" text>添加渠道</el-button>
+        <el-button type="primary" :icon="Plus" show-text :loading="addingChannel" @click="addChannel" text>添加渠道</el-button>
       </div>
       <div class="channel-list">
         <div v-for="ch in channels" :key="ch.id" class="channel-item">
@@ -179,7 +179,7 @@
               <el-tag size="small" round>{{ ch.type }}</el-tag>
               <span class="mono">{{ ch.name }}</span>
             </div>
-            <div class="channel-url muted">{{ ch.webhookUrl || ch.config?.url || "—" }}</div>
+            <div class="channel-url muted">{{ ch.url || "—" }}</div>
           </div>
           <div class="rule-actions">
             <ReButton text size="small" @click="toggleChannel(ch)">
@@ -212,8 +212,8 @@ import ReInput from "@repo/ui/re-input";
 import ReInputNumber from "@repo/ui/re-input-number";
 import ReDrawer from "@repo/ui/re-drawer";
 import type { ReTableColumn } from "@repo/ui/re-table";
-import { getAlerts, getAlertRules, addAlertRule, toggleAlertRule, deleteAlertRule, acknowledgeAlert, muteAlert, ignoreAlert } from "../api/apmApi";
-import type { ApmAlert, AlertRule } from "../api/apmApi";
+import { getAlerts, getAlertRules, addAlertRule, toggleAlertRule, deleteAlertRule, acknowledgeAlert, muteAlert, ignoreAlert, getAlertChannels, addAlertChannel, deleteAlertChannel, toggleAlertChannel } from "../api/apmApi";
+import type { ApmAlert, AlertRule, AlertChannel } from "../api/apmApi";
 import { useRealtimeEvent } from "../composables/useRealtime";
 
 /** ReTimeline items（@repo/ui/re-timeline 未导出该接口，与 index.vue 中定义对齐） */
@@ -401,19 +401,11 @@ async function deleteRule(r: AlertRule) {
   }
 }
 
-// ---- 通知渠道 ----
-
-interface NotificationChannel {
-  id: string;
-  type: "email" | "dingtalk" | "feishu" | "webhook";
-  name: string;
-  enabled: boolean;
-  webhookUrl?: string;
-  config?: Record<string, string>;
-}
+// ---- 通知渠道（后端 Webhook 推送目标，2026 增强）----
 
 const channelsVisible = ref(false);
-const channels = ref<NotificationChannel[]>([]);
+const channels = ref<AlertChannel[]>([]);
+const addingChannel = ref(false);
 const newChannel = ref<{ type: string; name: string; webhookUrl: string }>({
   type: "dingtalk",
   name: "",
@@ -421,54 +413,61 @@ const newChannel = ref<{ type: string; name: string; webhookUrl: string }>({
 });
 
 /** 打开渠道抽屉并加载 */
-function openChannels() {
+async function openChannels() {
   channelsVisible.value = true;
-  loadChannels();
-}
-
-function loadChannels() {
   try {
-    const raw = localStorage.getItem("apm-notification-channels");
-    channels.value = raw ? JSON.parse(raw) : [];
+    channels.value = (await getAlertChannels()) || [];
   } catch {
     channels.value = [];
+    message.error("加载通知渠道失败");
   }
 }
 
-function saveChannels() {
-  try {
-    localStorage.setItem("apm-notification-channels", JSON.stringify(channels.value));
-  } catch { /* 忽略 */ }
-}
-
-function addChannel() {
+async function addChannel() {
   const name = newChannel.value.name.trim();
   if (!name) { message.warning("请输入渠道名称"); return; }
   const webhookUrl = newChannel.value.webhookUrl.trim();
   if (!webhookUrl) { message.warning("请输入 URL 或地址"); return; }
-  const ch: NotificationChannel = {
-    id: `ch-${Date.now()}`,
-    type: newChannel.value.type as NotificationChannel["type"],
-    name,
-    enabled: true,
-    webhookUrl,
-  };
-  channels.value.push(ch);
-  saveChannels();
-  newChannel.value.name = "";
-  newChannel.value.webhookUrl = "";
-  message.success(`已添加渠道「${name}」`);
+  addingChannel.value = true;
+  try {
+    await addAlertChannel({
+      name,
+      type: newChannel.value.type,
+      url: webhookUrl,
+    });
+    message.success(`已添加渠道「${name}」`);
+    newChannel.value.name = "";
+    newChannel.value.webhookUrl = "";
+    channels.value = (await getAlertChannels()) || [];
+  } catch {
+    message.error("添加渠道失败，请检查 URL");
+  } finally {
+    addingChannel.value = false;
+  }
 }
 
-function toggleChannel(ch: NotificationChannel) {
-  ch.enabled = !ch.enabled;
-  saveChannels();
+/** 启停渠道（前端乐观更新，失败回滚） */
+async function toggleChannel(ch: AlertChannel) {
+  const target = !ch.enabled;
+  const prev = ch.enabled;
+  ch.enabled = target;
+  try {
+    await toggleAlertChannel(ch.id, target);
+    message.success(`${ch.name} 已${target ? "启用" : "停用"}`);
+  } catch {
+    ch.enabled = prev;
+    message.error("操作失败");
+  }
 }
 
-function deleteChannel(ch: NotificationChannel) {
-  channels.value = channels.value.filter((x) => x.id !== ch.id);
-  saveChannels();
-  message.success(`已删除渠道「${ch.name}」`);
+async function deleteChannel(ch: AlertChannel) {
+  try {
+    await deleteAlertChannel(ch.id);
+    channels.value = channels.value.filter((x) => x.id !== ch.id);
+    message.success(`已删除渠道「${ch.name}」`);
+  } catch {
+    message.error("删除失败");
+  }
 }
 
 // ---- 事件处置 ----
