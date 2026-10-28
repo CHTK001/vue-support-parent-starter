@@ -12,7 +12,8 @@
       <el-button data-dd-open="modern" @click="openModern = true">打开 modern 布局（draggable）</el-button>
       <el-button data-dd-open="tall" @click="openTall = true">打开近满高（模拟预览弹层）</el-button>
       <el-button data-dd-open="headless" @click="openHeadless = true">打开 headless（draggable）</el-button>
-      <el-button data-dd-open="plain" @click="openPlain = true">打开普通（未传 draggable）</el-button>
+      <el-button data-dd-open="plain" @click="openPlain = true">打开普通（未传 draggable，默认可拖）</el-button>
+      <el-button data-dd-open="nondrag" @click="openNonDrag = true">打开显式不可拖（:draggable=false）</el-button>
     </div>
 
     <div class="ddl__row">
@@ -21,6 +22,7 @@
       <span data-dd-state="tall">tall: {{ openTall }}</span>
       <span data-dd-state="headless">headless: {{ openHeadless }}</span>
       <span data-dd-state="plain">plain: {{ openPlain }}</span>
+      <span data-dd-state="nondrag">nondrag: {{ openNonDrag }}</span>
     </div>
 
     <ReDialog
@@ -68,11 +70,21 @@
 
     <ReDialog
       v-model="openPlain"
-      title="不可拖拽 · 默认"
+      title="默认可拖拽 · 未传 draggable"
       width="480px"
       top="12vh"
     >
-      <div class="ddl__body" data-dd-body="plain">未传 draggable，不应可拖（对照）</div>
+      <div class="ddl__body" data-dd-body="plain">未传 draggable，默认即可拖（对照）</div>
+    </ReDialog>
+
+    <ReDialog
+      v-model="openNonDrag"
+      title="不可拖拽 · 显式 draggable=false"
+      :draggable="false"
+      width="480px"
+      top="12vh"
+    >
+      <div class="ddl__body" data-dd-body="nondrag">显式传 :draggable=false，不可拖（对照）</div>
     </ReDialog>
   </div>
 </template>
@@ -86,6 +98,7 @@ const openModern = ref(false);
 const openTall = ref(false);
 const openHeadless = ref(false);
 const openPlain = ref(false);
+const openNonDrag = ref(false);
 </script>
 
 <style scoped>

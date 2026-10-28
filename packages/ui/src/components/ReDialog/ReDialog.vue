@@ -5,7 +5,7 @@
  * 透传 el-dialog 全部能力，v-model 控制显隐。
  * 增强：
  *   - layout："el"（默认 el-dialog）/ "modern"（现代化扁平弹窗，异步加载）
- *   - draggable：可拖拽头部移动弹窗
+ *   - draggable：可拖拽头部移动弹窗（默认 true，未传即可拖）
  *   - fullscreenable：右上角显示全屏切换
  *   - confirmLoading：确认按钮 loading 态（常用于提交场景）
  *   - cancelText / okText：确认/取消按钮文案
@@ -48,7 +48,7 @@ const props = withDefaults(
     beforeClose?: (done: () => void) => void;
     destroyOnClose?: boolean;
     modal?: boolean;
-    /** 是否可拖拽 */
+    /** 是否可拖拽（默认 true：未传即可按住标题栏拖动） */
     draggable?: boolean;
     /**
      * 是否允许拖拽越出视口（透传 el-dialog 的 `overflow`）。
@@ -113,7 +113,7 @@ const props = withDefaults(
     beforeClose: undefined,
     destroyOnClose: false,
     modal: true,
-    draggable: false,
+    draggable: true,
     // overflow 三态（未传=跟随 draggable）。Boolean prop「未传且无默认值」会被 Vue 强转成
     // false，三态里的「未传」会不可达，必须显式 default: undefined（同 showFooter 注释）。
     overflow: undefined,
