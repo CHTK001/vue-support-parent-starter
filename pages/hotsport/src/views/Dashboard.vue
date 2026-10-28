@@ -53,11 +53,21 @@
       <div class="panel-head-row">
         <div class="panel-head">
           <span>调用趋势</span>
-          <span class="panel-sub">最近 30 分钟 · 每分钟聚合</span>
+          <span class="panel-sub">{{ trendRangeLabel }} · 每分钟聚合{{ trendRangeMin === 30 ? "（实时推送）" : "" }}</span>
         </div>
-        <el-button text size="small" class="chart-export-btn" title="导出 PNG" @click="exportChart('trend')">
-          <el-icon :size="14"><Download /></el-icon>导出
-        </el-button>
+        <div class="trend-actions">
+          <el-radio-group v-model="trendRangeMin" size="small" class="trend-range">
+            <el-radio-button :value="5">5m</el-radio-button>
+            <el-radio-button :value="15">15m</el-radio-button>
+            <el-radio-button :value="30">30m</el-radio-button>
+            <el-radio-button :value="60">1h</el-radio-button>
+            <el-radio-button :value="360">6h</el-radio-button>
+            <el-radio-button :value="1440">24h</el-radio-button>
+          </el-radio-group>
+          <el-button text size="small" class="chart-export-btn" title="导出 PNG" @click="exportChart('trend')">
+            <el-icon :size="14"><Download /></el-icon>导出
+          </el-button>
+        </div>
       </div>
       <ReEcharts
         ref="trendChartRef"
@@ -206,6 +216,7 @@ import {
   getSlowCalls,
   getErrorRanking,
   getSla,
+  getTrend,
 } from "../api/apmApi";
 import type {
   ApmStats,
@@ -441,14 +452,41 @@ const trendBuckets = ref<{ xs: string[]; totals: number[]; errors: number[] }>({
 const errorTrendPoints = ref<TrendPoint[]>([]);
 
 /**
- * 用推送帧里的 30 分钟趋势重绘两张趋势图。
- *
- * <p>聚合在后端完成（{@code /stream} 每 15s 随帧下发 {@code trend}），
- * 前端不再按分钟自行分桶，也不再定时请求 {@code /trend} 和 500 条传输记录。</p>
- *
- * @param points 后端聚合好的趋势点
+ * 趋势时间范围（分钟）。30 分钟走 SSE 推送帧，其余范围手动拉 /trend。
  */
-function applyTrend(points: TrendPoint[]) {
+const trendRangeMin = ref(30);
+
+/** 时间范围展示文案 */
+const trendRangeLabel = computed(() => {
+  const m = trendRangeMin.value;
+  if (m < 60) return `最近 ${m} 分钟`;
+  if (m === 60) return "最近 1 小时";
+  if (m === 360) return "最近 6 小时";
+  if (m === 1440) return "最近 24 小时";
+  return `最近 ${m} 分钟`;
+});
+
+/** 手动拉取指定范围趋势（30 分钟以外才需要，SSE 只带 30m） */
+async function fetchTrend(minutes: number) {
+  try {
+    const points = await getTrend(minutes, 60);
+    applyTrend(points, minutes);
+  } catch {
+    /* 趋势失败静默，保留上一份 */
+  }
+}
+
+/**
+ * 用趋势点重绘两张趋势图。
+ *
+ * <p>30 分钟由后端 {@code /stream} 随帧下发（每 15s）；更长范围由
+ * {@link #fetchTrend} 手动拉取。分桶窗口由 {@code windowMinutes} 决定，
+ * 保证 X 轴覆盖所选范围。</p>
+ *
+ * @param points        后端聚合好的趋势点
+ * @param windowMinutes 时间窗（分钟），缺省 30
+ */
+function applyTrend(points: TrendPoint[], windowMinutes = 30) {
   errorTrendPoints.value = points;
   const byMinute = new Map<number, TrendPoint>();
   for (const p of points) {
@@ -458,7 +496,7 @@ function applyTrend(points: TrendPoint[]) {
   const xs: string[] = [];
   const totals: number[] = [];
   const errors: number[] = [];
-  for (let i = 29; i >= 0; i--) {
+  for (let i = windowMinutes - 1; i >= 0; i--) {
     const key = nowMin - i;
     const b = byMinute.get(key);
     xs.push(hm(key * 60_000));
@@ -663,14 +701,22 @@ useRealtimeEvent("stats", (ev) => {
   }
   Object.assign(stats.value, frame);
   formatLastRefresh();
-  // 趋势：后端每 15s 随帧下发一次；没有该字段的帧说明还没到聚合周期，沿用上一份
-  if (Array.isArray(frame.trend)) {
-    applyTrend(frame.trend);
+  // 趋势：后端每 15s 随帧下发一次（固定 30 分钟）；没有该字段的帧说明还没到
+  // 聚合周期，沿用上一份。非 30m 范围不走这里，见下方 watch(trendRangeMin)。
+  if (Array.isArray(frame.trend) && trendRangeMin.value === 30) {
+    applyTrend(frame.trend, 30);
   }
 });
 
 onMounted(async () => {
   await load();
+});
+
+// 趋势时间范围切换：30m 由 SSE 推送帧喂数，其它范围手动拉 /trend
+watch(trendRangeMin, (min) => {
+  if (min !== 30) {
+    fetchTrend(min);
+  }
 });
 
 // stats 变化时刷新协议分布（计数变了，占比就变了）
@@ -777,6 +823,22 @@ watch(
 
 .chart-export-btn:hover {
   color: var(--brand-500, var(--apm-accent));
+}
+
+/* 趋势时间范围切换 */
+.trend-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.trend-range {
+  flex-shrink: 0;
+}
+
+.trend-range :deep(.el-radio-button__inner) {
+  padding: 6px 10px;
+  font-size: 12px;
 }
 
 /* 图表导出：让 ECharts 实例可被 exportChart 定位 */
