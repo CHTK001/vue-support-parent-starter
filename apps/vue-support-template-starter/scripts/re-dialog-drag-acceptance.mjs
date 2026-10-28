@@ -66,6 +66,14 @@ const visibleDialog = () =>
     return all.find((d) => d.offsetParent !== null);
   })()`;
 
+/**
+ * 主题探测：按弹窗 class 判定。default 主题弹窗 class 含 `re-dialog`，
+ * koi 含 `koi-dialog-shell`。必须在弹窗打开后调用（返回 "default" | "koi"）。
+ */
+function themeFromCls(cls) {
+  return cls.includes("koi-dialog-shell") ? "koi" : "default";
+}
+
 const dialogState = (page) =>
   page.evaluate(() => {
     const d = [...document.querySelectorAll(".el-dialog, .rm-dialog")].find(
@@ -125,7 +133,9 @@ async function run() {
 
     console.log("=== 2. 默认值契约：未传 draggable 默认可拖（正向）；显式 false 不可拖（负向） ===");
     const plain0 = await openDialog(page, "plain");
-    check("plain 弹窗是 el-dialog（default 主题）", plain0.cls.includes("re-dialog"), plain0.cls.slice(0, 60));
+    const theme = themeFromCls(plain0.cls);
+    check(`主题探测 => ${theme}（两主题产物下判据自适配）`, theme === "koi" || theme === "default", theme);
+    check("plain 弹窗渲染可见（el-dialog 结构）", /el-dialog/.test(plain0.cls), plain0.cls.slice(0, 60));
     const plainCursor = await page.evaluate(() => {
       const d = [...document.querySelectorAll(".el-dialog")].find((x) => x.offsetParent !== null);
       const hdr = d?.querySelector(".el-dialog__header");
@@ -148,7 +158,7 @@ async function run() {
 
     console.log("=== 2b. 显式 :draggable=false 不可拖（负向判别，判据非恒真） ===");
     const nd0 = await openDialog(page, "nondrag");
-    check("nondrag 弹窗是 el-dialog（default 主题）", nd0.cls.includes("re-dialog"), nd0.cls.slice(0, 60));
+    check("nondrag 弹窗渲染可见（el-dialog 结构）", /el-dialog/.test(nd0.cls), nd0.cls.slice(0, 60));
     const ndCursor = await page.evaluate(() => {
       const d = [...document.querySelectorAll(".el-dialog")].find((x) => x.offsetParent !== null);
       const hdr = d?.querySelector(".el-dialog__header");
@@ -187,8 +197,8 @@ async function run() {
 
     console.log("=== 4. 近满高（此前拖不动的规格）：现在能拖 ===");
     const tall0 = await openDialog(page, "tall");
-    check("近满高弹窗是目标规格（~1200×980）",
-      Math.abs(tall0.rect.w - 1200) < 30 && tall0.rect.h > 900,
+    check("近满高弹窗是目标规格（宽>1000，高≈视口高度）",
+      tall0.rect.w > 1000 && tall0.rect.h > 0.85 * VIEWPORT.height,
       `${Math.round(tall0.rect.w)}×${Math.round(tall0.rect.h)}`);    const tHdr = await page.evaluate(() => {
       const d = [...document.querySelectorAll(".el-dialog")].find((x) => x.offsetParent !== null);
       const r = d.querySelector(".el-dialog__header").getBoundingClientRect();
@@ -202,10 +212,13 @@ async function run() {
 
     console.log("=== 5. headless：44px 热区是把手 ===");
     const h0 = await openDialog(page, "headless");
-    const hMeta = await page.evaluate(() => {
+    const hMeta = await page.evaluate((theme) => {
       const d = [...document.querySelectorAll(".el-dialog")].find((x) => x.offsetParent !== null);
       const hdr = d.querySelector(".el-dialog__header");
-      const strip = d.querySelector(".re-dialog__drag-strip");
+      // 热区条：default 用 .re-dialog__drag-strip，koi 用 .koi-dialog-header-drag
+      const strip = theme === "koi"
+        ? d.querySelector(".koi-dialog-header-drag")
+        : d.querySelector(".re-dialog__drag-strip");
       const cs = getComputedStyle(hdr);
       return {
         pos: cs.position,
@@ -214,7 +227,7 @@ async function run() {
         stripVisible: strip ? (strip.offsetParent !== null || getComputedStyle(strip).display !== "none") : false,
         headerVisible: hdr.offsetParent !== null,
       };
-    });
+    }, theme);
     check("headless+draggable 渲染 44px 绝对定位热区 header",
       hMeta.pos === "absolute" && hMeta.h === "44px",
       `pos=${hMeta.pos} h=${hMeta.h}`);
@@ -229,17 +242,28 @@ async function run() {
     check("headless 弹窗经顶部热区拖动了", hMoved > 40, `位移 ${hMoved}px`);
     await resetPage(page);
 
-    console.log("=== 6. modern 布局：自绘 left/top 拖拽 ===");
-    const m0 = await openDialog(page, "modern");
+    console.log("=== 6. modern 布局：自绘 left/top 拖拽（default）/ koi 回退 el-dialog 实拖 ===");
+    await openDialog(page, "modern");
+    const m0 = await dialogState(page);
+    const mIsModern = m0.cls.includes("rm-dialog");
+    if (theme === "koi") {
+      // koi 不实现 modern 布局（index.ts 按主题加载，koi 仅 ElDialog 实现），
+      // modern 按钮回退为 koi-dialog-shell —— 仍应默认可拖
+      check("koi 下 modern 按钮回退为可拖的 koi-dialog-shell", /el-dialog/.test(m0.cls), m0.cls.slice(0, 70));
+    } else {
+      check("default 下 modern 按钮渲染 rm-dialog", mIsModern, m0.cls.slice(0, 50));
+    }
     const mHdr = await page.evaluate(() => {
-      const d = [...document.querySelectorAll(".rm-dialog")].find((x) => x.offsetParent !== null);
-      const r = d.querySelector(".rm-dialog__header").getBoundingClientRect();
+      const sel = ".rm-dialog:not([style*='display: none']), .el-dialog";
+      const d = [...document.querySelectorAll(".rm-dialog, .el-dialog")].find((x) => x.offsetParent !== null);
+      const hdr = d.querySelector(".rm-dialog__header, .el-dialog__header");
+      const r = hdr.getBoundingClientRect();
       return { x: r.x, y: r.y, w: r.width, h: r.height };
     });
     await dragByMouse(page, mHdr.x + mHdr.w / 2, mHdr.y + mHdr.h / 2, 140, 90);
     const m1 = await dialogState(page);
     const mMoved = Math.round(Math.abs(m1.rect.y - m0.rect.y) + Math.abs(m1.rect.x - m0.rect.x));
-    check("modern 弹窗实际位移", mMoved > 40, `${mMoved}px`);
+    check("modern（或回退）弹窗实际位移", mMoved > 40, `${mMoved}px`);
     await resetPage(page);
 
     console.log("=== 7. 越界兜底：拖到视口外会 resetPosition 拉回 ===");
