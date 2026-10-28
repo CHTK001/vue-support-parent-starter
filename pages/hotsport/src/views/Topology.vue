@@ -5,6 +5,8 @@
       <span class="match-hint">
         <template v-if="topology">
           {{ topology.center }} · PID {{ topology.jvmPid }}
+          · {{ topology.modules.length }} 个 classpath 组件
+          <template v-if="topology.peerCount"> · {{ topology.peerCount }} 个外部调用方</template>
         </template>
         <template v-else>系统拓扑</template>
       </span>
@@ -16,11 +18,11 @@
     <ReSkeleton :loading="loading" :rows="4" animated v-if="!topology" />
 
     <template v-else>
-      <!-- 中心节点 + 端口/模块 关系图 -->
+      <!-- 中心节点 + 端口/模块/外部调用方 关系图 -->
       <div class="panel graph-panel">
         <div class="panel-head">
           <span>进程网络拓扑</span>
-          <span class="panel-sub">中心 = 本机主机，连线 = 监听端口 / 网络接口 / 加载模块</span>
+          <span class="panel-sub">中心 = 本机主机 · 连线 = 监听端口 / 外部调用方（真实依赖聚合）</span>
         </div>
         <div ref="graphRef" class="graph-body" />
       </div>
@@ -54,12 +56,15 @@
         </div>
       </div>
 
-      <!-- 加载模块 -->
+      <!-- 真实 classpath 组件 -->
       <div class="panel">
-        <div class="panel-head"><span>核心模块（classpath 入口）</span><span class="panel-sub">{{ topology.modules.length }} 个</span></div>
+        <div class="panel-head">
+          <span>classpath 组件（JVM 实际加载的 jar）</span>
+          <span class="panel-sub">{{ topology.modules.length }} 个 · 取文件名去版本号展示</span>
+        </div>
         <div class="module-chips">
           <ReTag
-            v-for="m in topology.modules.slice(0, 24)"
+            v-for="m in topology.modules.slice(0, 48)"
             :key="m.id"
             type="info"
             effect="plain"
@@ -67,19 +72,56 @@
           >
             {{ m.label }}
           </ReTag>
-          <ReTag v-if="topology.modules.length > 24" type="info" round>+{{ topology.modules.length - 24 }}</ReTag>
+          <ReTag v-if="topology.modules.length > 48" type="info" round>+{{ topology.modules.length - 48 }}</ReTag>
         </div>
+      </div>
+
+      <!-- 外部调用方（真实依赖聚合） -->
+      <div class="panel">
+        <div class="panel-head">
+          <span>外部调用方（真实依赖聚合）</span>
+          <span class="panel-sub">{{ depRows.length }} 条调用关系 · 来自依赖图 / 真实传输记录</span>
+        </div>
+        <ReTable
+          v-if="depRows.length"
+          :data="depRows as unknown as Record<string, unknown>[]"
+          :columns="depColumns"
+          engine="element"
+          :layout-table="{ minHeight: 0 }"
+          :settings="{ border: false }"
+          :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+        >
+          <template #col-source="{ row }">
+            <span class="mono dep-src">{{ row.source }}</span>
+          </template>
+          <template #col-target="{ row }">
+            <span class="mono muted">{{ row.target }}</span>
+          </template>
+          <template #col-callCount="{ row }">
+            <span class="mono">{{ numOf(row.callCount) }}</span>
+          </template>
+          <template #col-errorRate="{ row }">
+            <span class="mono" :class="rateClass(numOf(row.errorRate))">
+              {{ numOf(row.errorRate).toFixed(2) }}%
+            </span>
+          </template>
+          <template #col-avgDurationMs="{ row }">
+            <span class="mono">{{ numOf(row.avgDurationMs).toFixed(1) }} ms</span>
+          </template>
+        </ReTable>
+        <ReEmpty v-else :image-size="56" description="暂无外部调用记录（存储为空或尚未采集到传输）" />
       </div>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import * as echarts from "echarts";
 import ReTag from "@repo/ui/re-tag";
 import ReButton from "@repo/ui/re-button";
 import ReTable from "@repo/ui/re-table";
+import ReEmpty from "@repo/ui/re-empty";
 import ReSkeleton from "@repo/ui/re-skeleton";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import { getSystemTopology } from "../api/apmApi";
@@ -114,6 +156,33 @@ const connColumns: ReTableColumn[] = [
   { prop: "mac", label: "MAC", minWidth: 140 },
 ];
 
+const depColumns: ReTableColumn[] = [
+  { prop: "source", label: "调用方", minWidth: 160, slot: "source" },
+  { prop: "target", label: "目标", minWidth: 160, slot: "target" },
+  { prop: "protocol", label: "协议", width: 90 },
+  { prop: "callCount", label: "调用次数", width: 100, align: "right", slot: "callCount" },
+  { prop: "errorRate", label: "错误率", width: 100, align: "right", slot: "errorRate" },
+  { prop: "avgDurationMs", label: "平均耗时", width: 110, align: "right", slot: "avgDurationMs" },
+];
+
+/** 外部调用方汇总行（按调用量降序，全部真实聚合值） */
+const depRows = computed(() =>
+  topology.value
+    ? [...topology.value.deps].sort((a, b) => (b.callCount ?? 0) - (a.callCount ?? 0))
+    : [],
+);
+
+function numOf(v: unknown): number {
+  const n = Number(v ?? 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function rateClass(v: number): string {
+  if (v > 10) return "err-text";
+  if (v > 0) return "warn-text";
+  return "muted";
+}
+
 async function load() {
   loading.value = true;
   try {
@@ -133,11 +202,25 @@ function portColor(p: { port: number; protocol: string }): string {
   return chartColor(2);
 }
 
+/** 外部调用方是否带错误（卫星节点着色：有错琥珀、全绿翡翠） */
+function peerMeta(source: string): { errorCount: number; callCount: number } {
+  let errorCount = 0;
+  let callCount = 0;
+  for (const d of topology.value?.deps ?? []) {
+    if (d.source === source) {
+      errorCount += numOf(d.errorCount);
+      callCount += numOf(d.callCount);
+    }
+  }
+  return { errorCount, callCount };
+}
+
 function renderGraph() {
   if (!topology.value || !graphRef.value) return;
   if (!chart) chart = echarts.init(graphRef.value, "light");
   const t = topology.value;
   const centerColor = chartColor(0);
+  const peerColor = chartColor(3);
   const nodes = [
     {
       name: t.center,
@@ -163,6 +246,19 @@ function renderGraph() {
       label: { color: colorWithAlpha(fgColor(), 0.6), fontSize: 10 },
       category: "module",
     })),
+    ...t.deps
+      .map((d) => d.source)
+      .filter((s, i, all) => all.indexOf(s) === i)
+      .map((s) => {
+        const meta = peerMeta(s);
+        return {
+          name: s,
+          symbolSize: 26,
+          itemStyle: { color: meta.errorCount > 0 ? warningColor() : peerColor },
+          label: { color: fgColor(), fontSize: 10 },
+          category: "peer",
+        };
+      }),
   ];
   const links = [
     ...t.ports.map((p) => ({
@@ -179,10 +275,37 @@ function renderGraph() {
         type: "dashed" as const,
       },
     })),
+    ...[...new Set(t.deps.map((d) => d.source))].map((s) => ({
+      source: s,
+      target: t.center,
+      lineStyle: { color: colorWithAlpha(peerColor, 0.7), width: 1.4 },
+    })),
   ];
   chart.setOption({
     ...chartCanvas(),
-    tooltip: { trigger: "item", ...tooltipStyle() },
+    tooltip: {
+      trigger: "item",
+      ...tooltipStyle(),
+      formatter: (params: echarts.TooltipComponentFormatterCallbackParams) => {
+        const p = params as { dataType?: string; name: string; data?: { category?: string } };
+        if (p.dataType === "edge") return p.name;
+        const cat = p.data?.category;
+        if (cat === "peer") {
+          const meta = peerMeta(p.name);
+          return `${p.name}<br/>调用次数 <b>${meta.callCount}</b> · 错误 ${meta.errorCount}`;
+        }
+        return p.name;
+      },
+    },
+    legend: {
+      bottom: 0,
+      icon: "circle",
+      itemWidth: 10,
+      itemHeight: 10,
+      textStyle: { color: mutedColor(), fontSize: 11 },
+      data: ["中心", "端口", "外部调用方"],
+      selected: { module: false },
+    },
     series: [
       {
         type: "graph",
@@ -197,7 +320,12 @@ function renderGraph() {
           { name: "center" },
           { name: "port" },
           { name: "module" },
+          { name: "peer" },
         ],
+        emphasis: {
+          focus: "adjacency",
+          lineStyle: { width: 2.5 },
+        },
       },
     ],
   });
@@ -240,6 +368,16 @@ function onResize() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.dep-src {
+  color: var(--apm-fg, inherit);
+  font-weight: 600;
+}
+.warn-text {
+  color: var(--apm-warning, #d99000);
+}
+.err-text {
+  color: var(--apm-danger, #d03050);
 }
 
 /* 尊重系统「减少动态效果」偏好：

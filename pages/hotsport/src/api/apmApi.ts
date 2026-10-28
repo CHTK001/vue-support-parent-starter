@@ -483,11 +483,28 @@ export function getJvmMetrics(minutes = 30): Promise<JvmMetricPoint[]> {
 export interface SystemTopology {
   center: string;
   jvmPid: number;
-  modules: { id: string; label: string; kind: string }[];
+  modules: { id: string; label: string; jar: string; kind: string }[];
   ports: { port: number; label: string; protocol: string; software: string }[];
   connections: { iface: string; local: string; mac: string }[];
-  nodes: { id: string; label: string; symbolSize: number }[];
-  edges: { source: string; target: string }[];
+  nodes: { id: string; label: string; symbolSize: number; category?: string }[];
+  edges: { source: string; target: string; category?: string }[];
+  /** 真实外部依赖（source → target 聚合边，来自依赖图 / 真实传输） */
+  deps: {
+    source: string;
+    target: string;
+    protocol: string;
+    software: string;
+    callCount: number;
+    errorCount: number;
+    avgDurationMs: number;
+    lastError: string;
+    lastCallAt: string;
+    edgeId: string;
+    errorRate?: number;
+    p95Ms?: number;
+  }[];
+  /** 外部调用方卫星节点数 */
+  peerCount: number;
 }
 
 /** 系统拓扑（真实运行值） */
