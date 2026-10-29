@@ -37,7 +37,8 @@ import HostCommandPalette from "../components/HostCommandPalette.vue";
 import type { PaletteItem } from "../components/HostCommandPalette.types";
 import { useDialogPrerender } from "../utils/dialogPrerender";
 import { osIconSvg } from "../utils/osIcon";
-import {useSocketService, message} from "@repo/core";
+import { useSocketService, message } from "@repo/core";
+import { privateIpTextOf } from "../utils/hostProfileUi";
 import AgentDeployDialog from "../components/AgentDeployDialog.vue";
 import { submitAgentAction } from "../api";
 import ReTabs from "@repo/ui/re-tabs";
@@ -1431,7 +1432,7 @@ const statusOverviewRows = computed<MetricRow[]>(() => {
     { label: "内存", value: h.serverHostMemoryMb ? `${(h.serverHostMemoryMb / 1024).toFixed(1)} GB` : "—" },
     { label: "磁盘", value: h.serverHostDiskGb ? `${h.serverHostDiskGb} GB` : "—" },
     { label: "地址", value: dash(`${h.serverHostAddress}:${h.serverHostPort}`), mono: true },
-    { label: "内网 IP", value: dash(h.serverHostPrivateIp), mono: true },
+    { label: "内网 IP", value: privateIpTextOf(h.serverHostPrivateIp) || "—", mono: true },
     { label: "公网 IP", value: dash(h.serverHostPublicIp), mono: true },
     { label: "协议", value: protocolOf(h).toUpperCase() },
     { label: "采集方式", value: collectModeLabel(h.serverHostCollectMode) },

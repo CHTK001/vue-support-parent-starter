@@ -17,7 +17,7 @@
  * @since 4.0.0.46
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useRoute } from "vue-router";
 import { ElMessageBox } from "element-plus";
 import { message } from "@repo/core";
 // 自带样式：路由工厂可能被宿主直接深导入（不经过包根 index.ts），
@@ -47,7 +47,6 @@ type PageTab = "containers" | "images" | "networks" | "volumes" | "registries" |
 type WorkspaceTab = "overview" | "logs" | "terminal" | "env" | "mounts";
 
 const route = useRoute();
-const router = useRouter();
 
 /* ==================== 主机 ==================== */
 
@@ -406,7 +405,11 @@ watch(hostId, (id) => {
   void loadContainers();
   if (tab.value === "networks") void loadNetworks();
   if (tab.value === "volumes") void loadVolumes();
-  void router.replace({ query: { ...route.query, hostId: String(id) } });
+  // 注意：这里**不能**把 hostId 回写进路由 query。
+  // 布局用 `<component :key="route.fullPath">` 挂载页面，回写 query 会改变 fullPath，
+  // 触发整页销毁重建 —— 于是 loadHosts / loadCapability / loadContainers 又各发一遍
+  // （真机实测：host、docker/4/capability、docker/4/containers 全部成对重复），
+  // 顺带把 tab 重置回「容器」。query 里的 hostId 只作为进入本页时的初值提示读取。
 });
 
 /** 仅显示运行中 / 全部 */

@@ -145,7 +145,7 @@ const bars = computed(() => [
           <div v-if="rows.length" class="hmb__pop-rows">
             <div v-for="r in rows" :key="r.label" class="hmb__pop-row">
               <span class="hmb__pop-label">{{ r.label }}</span>
-              <span class="hmb__pop-val" :class="{ 'is-mono': r.mono, 'is-dim': r.value === '—' }">{{ r.value }}</span>
+              <span class="hmb__pop-val" :class="{ 'is-multiline': r.value.includes('\n'), 'is-mono': r.mono, 'is-dim': r.value === '—' }">{{ r.value }}</span>
               <!-- 已扫描端口明细：hover 浮出端口列表（原 title 改为 popover，长列表可读） -->
               <el-popover
                 v-if="r.tip"
@@ -341,6 +341,14 @@ const bars = computed(() => [
 
 .hmb__pop-val.is-dim {
   color: var(--el-text-color-placeholder);
+}
+
+/* 多行文本（如多个内网 IP）一行一个，换行保留，过长浮层可滚动 */
+.hmb__pop-val.is-multiline {
+  white-space: pre-line;
+  text-overflow: clip;
+  max-height: 5.6em;
+  line-height: 1.6;
 }
 
 /* 概要行内的端口明细入口图标：纯 hover 提示，不占行高 */

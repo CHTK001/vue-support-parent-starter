@@ -76,6 +76,43 @@ export function diskTight(r: Record<string, any>): boolean {
   return numOf(r?.availGb) / total < 0.1;
 }
 
+/* ==================== 主机网络 ==================== */
+
+/**
+ * 标准 IPv4 字面（每段 0-255），专用于从逗号/空格/换行拼接的报文中挑出 IP；
+ * 同一字段里可能还夹着 IPv6 地址
+ */
+const IPV4 = /^(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)$/;
+/** 轻薄版 IPv6 字面（同一字段里可能夹着 IPv6 地址） */
+const IPV6 = /^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$/;
+
+/**
+ * 把后端存的内网 IP 拆成列表。
+ *
+ * <p>Agent/SSH 探测时代码只取第一个 IP 落库（如 `hostname -I | awk '{print $1}'`），
+ * 但历史存量数据、HTTP 采集重载、CSV 导入等场景可能把多个 IP 用
+ * 逗号 / 空格 / 换行 拼在一个字段里。这里只做纯函数拆分，不碰数据库。</p>
+ *
+ * @param v 后端字段 `serverHostPrivateIp`
+ */
+export function privateIpRowsOf(v: string | null | undefined): string[] {
+  if (!v) return [];
+  return String(v)
+    .split(/[,\s\n]+/)
+    .map(s => s.trim())
+    .filter(Boolean)
+    .filter(s => IPV4.test(s) || IPV6.test(s));
+}
+
+/**
+ * 内网 IP 文本：全部 IP 一行一个，一个没有时返回空串。
+ *
+ * @param v 后端字段 `serverHostPrivateIp`
+ */
+export function privateIpTextOf(v: string | null | undefined): string {
+  return privateIpRowsOf(v).join('\n');
+}
+
 /* ==================== 进程 / 服务 ==================== */
 
 /** 进程等级：CPU ≥85% 或内存 ≥4GB 危险；≥50% 或 ≥1GB 偏高。Idle(pid=0) 不参与判定 */
