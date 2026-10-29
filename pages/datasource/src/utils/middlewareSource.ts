@@ -47,8 +47,13 @@ export interface MiddlewareSourceState {
   source: Ref<DataSourceInfo | null>;
   /** 非空即「读不到真实数据」的原因，页面据此提示 */
   gap: Ref<string>;
-  /** 解析数据源：优先路由参数 datasourceId，宽松模式下缺省取该类型的第一个数据源 */
-  bind: (type: string) => Promise<void>;
+  /**
+   * 解析数据源：优先路由参数 datasourceId，宽松模式下缺省取该类型的第一个数据源。
+   *
+   * @param preloaded 页面已经拉到的数据源列表。Nginx / Prometheus 进页面时要先用列表填下拉，
+   *                  再调用本方法；把那份列表传进来即可省掉一次完全相同的 {@code /datasource/list}
+   */
+  bind: (type: string, preloaded?: DataSourceInfo[]) => Promise<void>;
   /** 记录一次接口失败原因 */
   fail: (error: unknown, api: string) => void;
   /**
@@ -165,7 +170,7 @@ export function useMiddlewareSource(options: MiddlewareSourceOptions = {}): Midd
     return fallback;
   };
 
-  const bind = async (type: string) => {
+  const bind = async (type: string, preloaded?: DataSourceInfo[]) => {
     sourceType = type;
     try {
       if (datasourceId.value) {
@@ -182,7 +187,7 @@ export function useMiddlewareSource(options: MiddlewareSourceOptions = {}): Midd
         gap.value = `请先在「数据源管理」中新增一个 ${type} 数据源，再从列表点击进入本页面`;
         return;
       }
-      const all = await fetchDataSources();
+      const all = preloaded ?? (await fetchDataSources());
       const picked = (all || []).find(d => d.type === type);
       if (!picked) {
         gap.value = `尚未登记 ${type} 数据源，请先在「数据源管理」新增后再回到本页`;

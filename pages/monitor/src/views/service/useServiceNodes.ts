@@ -132,6 +132,14 @@ export function useServiceNodes(): ServiceNodesVm {
 
   const notice = ref<MetaLoadNotice>({ show: false, tone: 'warning', text: '' })
 
+  /**
+   * 协议 / 插件元数据是否已经拿到。
+   *
+   * <p>这两份清单由后端启动时的内置项 + SPI 扫描结果决定，运行期不会变；
+   * 10 秒一轮的自动刷新只该刷节点状态，把元数据也每轮重拉一遍属于空跑。</p>
+   */
+  const metaLoaded = ref(false)
+
   const stats = computed(() => summarizeNodes(nodes.value))
 
   const cards = computed(() => toServiceNodeCards(nodes.value, filterTypes.value))
@@ -178,20 +186,27 @@ export function useServiceNodes(): ServiceNodesVm {
    * 拉取列表与元数据。
    *
    * @param silent 静默模式：自动刷新用，不弹 toast（后端故障期间每 10 秒一条会把界面糊满），
-   *               失败信息由 notice 承载
+   *               也不点亮刷新按钮的转圈——否则每轮轮询都会闪一下，看着像页面在不停重载
    */
   async function refresh(silent = false): Promise<void> {
-    loading.value = true
+    if (!silent) loading.value = true
     try {
+      // 元数据只在还没拿到时请求：轮询 / 切回标签页的补拉都只刷节点状态
+      const nodesPromise = listServerNodes()
+      const protocolsPromise = metaLoaded.value ? Promise.resolve(protocols.value) : listProtocols()
+      const filtersPromise = metaLoaded.value ? Promise.resolve(filterTypes.value) : listFilterTypes()
       const [nodesResult, protocolsResult, filtersResult] = await Promise.allSettled([
-        listServerNodes(),
-        listProtocols(),
-        listFilterTypes(),
+        nodesPromise,
+        protocolsPromise,
+        filtersPromise,
       ])
 
       if (nodesResult.status === 'fulfilled') nodes.value = nodesResult.value ?? []
       if (protocolsResult.status === 'fulfilled') protocols.value = protocolsResult.value ?? []
       if (filtersResult.status === 'fulfilled') filterTypes.value = filtersResult.value ?? []
+      // 两份都拿到了才认「元数据已就绪」；缺一份下轮继续补，避免永久空下拉
+      metaLoaded.value =
+        protocolsResult.status === 'fulfilled' && filtersResult.status === 'fulfilled'
 
       notice.value = describeMetaLoad({
         nodesOk: nodesResult.status === 'fulfilled',
@@ -212,7 +227,7 @@ export function useServiceNodes(): ServiceNodesVm {
     } catch (e) {
       if (!silent) message.error(reasonText(e))
     } finally {
-      loading.value = false
+      if (!silent) loading.value = false
     }
   }
 

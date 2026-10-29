@@ -192,6 +192,7 @@ const batchDeleteProviders = async () => {
     const deleted = res?.deletedCount ?? res?.data?.deletedCount ?? ids.length
     if (deleted > 0) message.success(`已删除 ${deleted} 个供应商`)
     else message.error(res?.data?.msg || '删除失败')
+    await reload()
     exitMultiSelect()
   } catch (e: any) {
     console.error('批量删除供应商失败:', e)

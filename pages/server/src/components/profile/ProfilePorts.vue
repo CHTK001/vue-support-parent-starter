@@ -166,12 +166,26 @@ const listView = computed<PortView[]>(() => {
   >
     <template #tools>
       <div class="port-view-toggle">
-        <button :class="['port-view-btn', { on: viewMode === 'card' }]" @click="viewMode = 'card'" title="卡片视图">
-          <ReIcon name="Grid" :size="14" />
-        </button>
-        <button :class="['port-view-btn', { on: viewMode === 'list' }]" @click="viewMode = 'list'" title="列表视图">
-          <ReIcon name="Menu" :size="14" />
-        </button>
+        <ReButton
+          class="port-view-btn"
+          layout="square"
+          size="small"
+          icon="Grid"
+          tip="卡片视图"
+          :class="{ on: viewMode === 'card' }"
+          @click="viewMode = 'card'"
+        >
+        </ReButton>
+        <ReButton
+          class="port-view-btn"
+          layout="square"
+          size="small"
+          icon="Menu"
+          tip="列表视图"
+          :class="{ on: viewMode === 'list' }"
+          @click="viewMode = 'list'"
+        >
+        </ReButton>
       </div>
     </template>
 
@@ -331,7 +345,7 @@ const listView = computed<PortView[]>(() => {
   font-size: 10.5px;
 }
 
-/* 视图切换按钮 */
+/* 视图切换按钮：ReButton 方钮 + 本地开关状态（高特定性，盖过 rs-btn 的自带样式） */
 .port-view-toggle {
   display: inline-flex;
   gap: 2px;
@@ -339,12 +353,13 @@ const listView = computed<PortView[]>(() => {
   border-radius: 7px;
   background: var(--el-fill-color-light, #f5f7fa);
 }
-.port-view-btn {
+.port-view-toggle .port-view-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 28px;
-  height: 24px;
+  height: 28px;
+  margin: 0;
   padding: 0;
   border: 0;
   border-radius: 5px;
@@ -353,7 +368,7 @@ const listView = computed<PortView[]>(() => {
   cursor: pointer;
   transition: background 0.16s, color 0.16s, box-shadow 0.16s;
 }
-.port-view-btn.on {
+.port-view-toggle .port-view-btn.on {
   background: var(--el-bg-color, #fff);
   color: var(--el-text-color-primary, #1f2430);
   box-shadow: 0 1px 2px rgba(31, 36, 48, 0.1);

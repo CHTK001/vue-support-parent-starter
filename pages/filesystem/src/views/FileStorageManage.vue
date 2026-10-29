@@ -53,6 +53,7 @@ import {
   Key,
   Link,
   Lock,
+  List,
   Menu,
   Operation,
   Picture,
@@ -922,6 +923,8 @@ const RECENT_KEY = "filestorage.recent";
 const FAVORITE_KEY = "filestorage.favorites";
 /** localStorage：界面状态键前缀，后面拼桶名——按桶分别记忆 */
 const UI_STATE_PREFIX = "filestorage.ui.";
+/** 合法的视图模式白名单（用于校验持久化值，防止旧版本遗留的非法值） */
+const VIEW_MODES: ViewMode[] = ["columns", "details", "largeIcons", "mediumIcons", "smallIcons"];
 /** 合法的排序字段白名单 */
 const SORT_KEYS: SortKey[] = ["name", "size", "lastModified"];
 /** 合法的排序方向 */
@@ -1018,8 +1021,8 @@ function writeUiState(bucketName: string): void {
  */
 function applyUiState(bucketName: string): void {
   const saved = readUiState(bucketName);
-  // 视图已收敛为单一分栏图标卡：固定 columns，忽略持久化的旧视图模式
-  viewMode.value = "columns";
+  // 视图模式：白名单校验后恢复上次选择（默认分栏），不整体信任持久化数据
+  viewMode.value = VIEW_MODES.includes(saved.viewMode as ViewMode) ? (saved.viewMode as ViewMode) : "columns";
   currentPath.value = typeof saved.currentPath === "string" ? saved.currentPath : "";
   sortKey.value = SORT_KEYS.includes(saved.sortKey as SortKey) ? (saved.sortKey as SortKey) : "name";
   sortOrder.value = SORT_ORDERS.includes(saved.sortOrder as SortOrder) ? (saved.sortOrder as SortOrder) : "asc";
@@ -1267,6 +1270,11 @@ function switchNav(key: NavKey): void {
     void loadObjects();
   }
   if (key === "recycle") void loadRecycle();
+}
+
+/** 视图模式切换（状态栏「查看方式」按钮） */
+function setView(mode: ViewMode): void {
+  viewMode.value = mode;
 }
 
 /**
@@ -3175,9 +3183,6 @@ function ctxAction(action: string) {
     case "paste":
       void onPaste();
       break;
-    case "zip":
-      if (row) void smartDownload([fullKey(row.name)]);
-      break;
     case "unzip":
       void onUnzip(row);
       break;
@@ -5045,11 +5050,53 @@ onUnmounted(() => {
             </div>
           </div>
         </div>
-        <!-- 状态栏：项数（视图切换已按需求收敛移除，仅保留默认分栏图标卡） -->
+        <!-- 状态栏：项数 + 查看方式切换（分栏/详细信息/大图标/中图标/小图标） -->
         <div class="fs-statusbar">
           <span class="fs-statusbar__info">
             {{ nav === 'recycle' ? recycleCount : sortedObjects.length }} 个项{{ selectedCount > 0 ? `（已选 ${selectedCount} 项）` : '' }}
           </span>
+          <div class="fs-statusbar__views" role="group" aria-label="查看方式">
+            <button
+              type="button"
+              class="fs-view-btn"
+              :class="{ 'is-active': viewMode === 'columns' }"
+              title="分栏"
+              aria-label="分栏"
+              @click="setView('columns')"
+            ><el-icon :size="15"><Operation /></el-icon></button>
+            <button
+              type="button"
+              class="fs-view-btn"
+              :class="{ 'is-active': viewMode === 'details' }"
+              title="详细信息"
+              aria-label="详细信息"
+              @click="setView('details')"
+            ><el-icon :size="15"><List /></el-icon></button>
+            <button
+              type="button"
+              class="fs-view-btn"
+              :class="{ 'is-active': viewMode === 'largeIcons' }"
+              title="大图标"
+              aria-label="大图标"
+              @click="setView('largeIcons')"
+            ><el-icon :size="15"><Grid /></el-icon></button>
+            <button
+              type="button"
+              class="fs-view-btn"
+              :class="{ 'is-active': viewMode === 'mediumIcons' }"
+              title="中图标"
+              aria-label="中图标"
+              @click="setView('mediumIcons')"
+            ><el-icon :size="15"><Menu /></el-icon></button>
+            <button
+              type="button"
+              class="fs-view-btn"
+              :class="{ 'is-active': viewMode === 'smallIcons' }"
+              title="小图标"
+              aria-label="小图标"
+              @click="setView('smallIcons')"
+            ><el-icon :size="15"><Tickets /></el-icon></button>
+          </div>
         </div>
       </main>
     </div>
@@ -5090,8 +5137,9 @@ onUnmounted(() => {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
             预览（新窗口）
           </button>
+          <!-- 需求 4：文件直下、目录打包，合并为一条「下载」，统一走 smartDownload（单机走直链，多文件/目录走 zip） -->
           <button
-            v-if="!ctxMenu.row!.directory && allowDownload"
+            v-if="allowDownload"
             type="button"
             class="fs-ctx__item"
             role="menuitem"
@@ -5173,16 +5221,6 @@ onUnmounted(() => {
           <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('properties')">
             <el-icon class="fs-ctx__icon" aria-hidden="true"><InfoFilled /></el-icon>
             <span class="fs-ctx__label">属性</span>
-          </button>
-          <button
-            v-if="allowDownload"
-            type="button"
-            class="fs-ctx__item"
-            role="menuitem"
-            @click="ctxAction('zip')"
-          >
-            <el-icon class="fs-ctx__icon" aria-hidden="true"><Files /></el-icon>
-            压缩下载
           </button>
           <div class="fs-ctx__sep" aria-hidden="true" />
           <button
@@ -8480,6 +8518,36 @@ onUnmounted(() => {
   flex: 1;
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+
+.fs-statusbar__views {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.fs-view-btn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--el-radius-sm, 6px);
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  transition: background var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s);
+}
+
+.fs-view-btn:hover {
+  background: var(--el-fill-color-light);
+  color: var(--el-color-primary);
+}
+
+.fs-view-btn.is-active {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
 }
 
 /* 空状态：在内容区居中 */

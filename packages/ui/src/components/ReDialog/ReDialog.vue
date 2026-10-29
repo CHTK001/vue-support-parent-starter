@@ -53,17 +53,13 @@ const props = withDefaults(
     /**
      * 是否允许拖拽越出视口（透传 el-dialog 的 `overflow`）。
      *
-     * <p><b>为什么需要它</b>：el-dialog 的 `useDraggable` 在 `overflow` 为假时会把位移
-     * 钳制成「整个弹窗留在视口内」——竖向上限是
-     * {@code maxTop = clientHeight - targetTop - (targetHeight < clientHeight ? targetHeight : 0)}
-     * （element-plus 2.14 的 use-draggable/index.mjs）。弹窗**略矮于视口**时这个上限几乎为 0，
-     * 表现就是<b>拖不动</b>。历史缺陷：default 主题此前**不透传 overflow**，近满高弹窗
-     * （如文件预览弹层 `height: calc(100vh - 20px)`）完全拖不动；同缺陷 koi 主题已修
-     * （见 theme/koi/ReDialog.vue 的 overflow 说明）。</p>
+     * <p><b>为什么需要它</b>：el-dialog 的 `useDraggable` 只在 `overflow` 为假时 clamp，
+     * 位移上限 {@code maxTop = clientHeight - targetTop - (targetHeight < clientHeight ? targetHeight : 0)}，
+     * 弹窗**略矮于视口**时这个上限约等于 0，表现就是 <b>拖不动</b>
+     * （element-plus 2.14 的 `use-draggable/index.mjs`）。</p>
      *
-     * <p>三态：显式传 true/false 即覆盖；<b>未传时回到 element-plus 的严格视口包含行为</b>，
-     * 弹窗只能被拖到视口边，不会拖出视口也不会再弹回来；
-     * 业务要自由空间就显式传 true（放开钳制就接受弹窗可能被拖出视口）。</p>
+     * <p>直接透传 props.overflow（不传 = `overflow="false"`）：拖拽按 el-dialog 原生语义——只到视口边，
+     * 到边就停，不会越出视口，也不会回弹；业务真要自由空间就显式传 <code>overflow="true"</code>（放开钳制）。</p>
      */
     overflow?: boolean;
     /** 是否可全屏 */
@@ -115,8 +111,9 @@ const props = withDefaults(
     destroyOnClose: false,
     modal: true,
     draggable: true,
-    // overflow 三态（未传=跟随 draggable）。Boolean prop「未传且无默认值」会被 Vue 强转成
-    // false，三态里的「未传」会不可达，必须显式 default: undefined（同 showFooter 注释）。
+    // overflow：跟 draggable 无关——直接透传 props.overflow（el-dialog 自己按 globalConfig 决定 clamp），
+    // 同 showFooter，Boolean prop「未传且无默认值」会被 Vue 强转成 false，
+    // 三态里的「未传」将永远不可达，必须显式 default: undefined 透传。
     overflow: undefined,
     fullscreenable: false,
     fullscreen: false,
@@ -203,36 +200,22 @@ const resolved = computed(() => {
 });
 
 /* ==========================================================================
- * 拖拽：el 布局交给 el-dialog 原生 draggable，modern 布局用自己的实现。
+ * 拖拽：el 布局只做透传——拖拽与视口 clamp 由 el-dialog 原生的 `draggable`
+ * + `useDraggable`（el-dialog 内部 `props.draggable ?? globalConfig?.draggable ?? false && !fullscreen`、
+ *   `props.overflow ?? globalConfig?.overflow ?? false`）负责。
  *
- * 历史缺陷（2026-10-23 修复）：此前 el 布局也在这层手写 mousedown，
+ * 历史缺陷（2026-10-23 修复）：此前代码在 ReDialog 这一层手写了 mousedown，
  * 把位移写进 <ElDialog :style="{ left, top, marginLeft: 0, marginTop: 0 }">。
  * 但 el-dialog 的 `style` 由 useDialog 计算后只产出 CSS 变量
  * （--el-dialog-margin-top / --el-dialog-width）合并到 .el-dialog 上，
  * 而 .el-dialog 本身是「非定位」的普通块级元素（居中靠 margin: ... auto），
  * 于是 left/top 完全不生效 —— 表现为拖拽完全无反应。
  *
- * 原生 draggable 用 hooks/use-draggable，把 mousedown 绑在 headerRef 上、
- * 以 transform: translate() 位移，并带视口边界 clamp，行为正确且不会跑出屏幕。
- * 因此 el 布局只负责把 draggable 透传下去，不再自绘位移。
+ * 现在拖拽完全交给 el-dialog 原生实现：mousedown 绑在 headerRef 上、以
+ * transform: translate() 位移，到视口边就停，不越界、不回弹、不缩小。
  *
- * overflow（放开视口钳制）：默认回到 el-dialog 的原始 clamp（不允许拖出视口，
- * 拖到视口边就停住），可以用显式 `overflow` 覆盖开关。
+ * overflow：直接透传 props.overflow，clamp 开关由 el-dialog 决定。
  * ========================================================================== */
-
-/**
- * 传给 el-dialog 的 `overflow`：显式配置优先，否则回到 el-dialog 的原始钳制——
- * 拖拽只允许把弹窗磨到视口边，不会磨出视口，也不会再弹回来。
- *
- * <p>element-plus 的 `useDraggable` 在 {@code overflow} 为假时，把位移（`translate`）
- * 钳制在 `minLeft/maxLeft` / `minTop/maxTop` 范围内，其中
- * {@code maxTop = clientHeight - targetTop - (targetHeight < clientHeight ? targetHeight : 0)}
- * ——弹窗可以拖出居中的空白，但移不进视口之外；拖到边界就停住，是 el-dialog 原本的
- * 「不允许拖出视口」语义，没有回弹。</p>
- */
-const effectiveOverflow = computed<boolean>(() => props.overflow ?? false);
-
-
 
 /* ===== 操作 ===== */
 function onOk(): void {
@@ -348,8 +331,8 @@ const showCloseFab = computed(() => props.headless);
     :before-close="beforeClose"
     :destroy-on-close="destroyOnClose"
     :modal="modal"
-    :draggable="draggable && !isFullscreen"
-    :overflow="effectiveOverflow"
+    :draggable="draggable"
+    :overflow="props.overflow"
     :style="fullscreenStyle"
     class="re-dialog"
     :class="{

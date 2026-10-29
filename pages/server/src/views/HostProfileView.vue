@@ -18,7 +18,7 @@
  * @since 4.0.0
  */
 import { message } from "@repo/core";
-import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ElMessageBox } from "element-plus";
 import {
   closeNetProcess,
@@ -120,12 +120,10 @@ const IPROF_REFRESH_SEC_KEY = "monitor:host-profile:refresh-seconds";
 const autoRefreshSeconds = ref(Number(localStorage.getItem(IPROF_REFRESH_SEC_KEY)) || 10);
 /** 自动刷新周期（毫秒，跟随画像偏好） */
 const AUTO_REFRESH_MILLIS = computed(() => Math.max(5, autoRefreshSeconds.value) * 1000);
-/** 每页条数档位（可配置，默认 50） */
-const PAGE_SIZE_OPTIONS = [20, 50, 100, 200];
-/** 每页条数（localStorage 记忆，默认 50） */
-const pageSize = ref(Number(localStorage.getItem(IPROF_PAGE_SIZE_KEY)) || 50);
 /** 自动刷新默认开关（画像偏好可配，默认关） */
 const autoRefresh = ref(localStorage.getItem(IPROF_AUTO_REFRESH_KEY) === "true");
+/** 每页条数（localStorage 记忆，默认 50） */
+const pageSize = ref(Number(localStorage.getItem(IPROF_PAGE_SIZE_KEY)) || 50);
 /** 自动刷新剩余秒（倒计时显示，0 时刷新并复位） */
 const countdown = ref(0);
 
@@ -163,14 +161,27 @@ function applyKeyword(): void {
   loadSection();
 }
 
-/** 修改每页条数：记忆到 localStorage 并从第一页重拉 */
-function changePageSize(n: number): void {
-  const next = Number(n) || 50;
-  if (next === pageSize.value) return;
-  pageSize.value = next;
-  localStorage.setItem(IPROF_PAGE_SIZE_KEY, String(next));
-  page.value = 1;
-  loadSection();
+/**
+ * 偏好读回：画像页面「自动刷新开关 / 刷新间隔 / 每页条数」现在只由右键菜单的「系统设置」弹窗设置，
+ * 画像页签本身只负责展示并实时跟随弹窗写回的 localStorage（`monitor:host-profile:*`）。
+ */
+function syncPrefs(): void {
+  const ar = localStorage.getItem(IPROF_AUTO_REFRESH_KEY) === "true";
+  if (ar !== autoRefresh.value) autoRefresh.value = ar;
+  const sec = Number(localStorage.getItem(IPROF_REFRESH_SEC_KEY)) || 10;
+  if (sec !== autoRefreshSeconds.value) autoRefreshSeconds.value = sec;
+  const size = Number(localStorage.getItem(IPROF_PAGE_SIZE_KEY)) || 50;
+  if (size !== pageSize.value) pageSize.value = size;
+}
+
+/**
+ * 偏好同步循环（2 秒轮询一次 localStorage）：只读回、不写回（每页条数的写回归弹窗）；
+ * 偏好变更时通过 watcher 自动重启动自动刷新并更新每页条数。
+ */
+let syncTicker: number | undefined;
+function startPrefSync(): void {
+  if (syncTicker) return;
+  syncTicker = window.setInterval(syncPrefs, 2000);
 }
 
 /**
@@ -702,6 +713,9 @@ onBeforeUnmount(() => {
 /* ================== 自动刷新（默认关；开启后数字倒计时） ================== */
 
 function restartTimer(): void {
+  // 偏好可能在「系统设置」弹窗里被改写：先读回再启动（自动刷新 / 间隔立即生效）
+  syncPrefs();
+  startPrefSync();
   if (timer) {
     window.clearInterval(timer);
     timer = undefined;
@@ -736,21 +750,24 @@ function restartTimer(): void {
 }
 watch(autoRefresh, restartTimer);
 watch(selectedId, () => { if (autoRefresh.value && !timer) restartTimer(); });
-/** 每页条数写回本地：注释承诺了「localStorage 记忆」，不写回等于每次刷新都重置 */
-watch(pageSize, v => {
-  try {
-    localStorage.setItem(IPROF_PAGE_SIZE_KEY, String(v));
-  } catch {
-    // 隐私模式 / 配额满：记忆失效不影响功能
-  }
-});
 /** 自动刷新间隔（画像偏好变更时重算倒计时与周期） */
 watch(autoRefreshSeconds, () => {
   if (autoRefresh.value) restartTimer();
 });
+/**
+ * 偏好变更在 2 秒内读回（系统设置弹窗是 `monitor:host-profile:*` 的唯一写入口），
+ * 同时启动已开启的自动刷新定时器（watcher 不响应初始值）。
+ */
+onMounted(() => {
+  syncPrefs();
+  startPrefSync();
+  if (autoRefresh.value && !timer) restartTimer();
+});
 onBeforeUnmount(() => {
   if (ticker) window.clearInterval(ticker);
   if (timer) window.clearInterval(timer);
+  if (syncTicker) window.clearInterval(syncTicker);
+  syncTicker = undefined;
 });
 
 /* ================== 展示辅助 ================== */
@@ -941,11 +958,10 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
             <ReButton v-if="selectedHost?.serverHostRemoteEnabled === 1" icon="Connection" layout="square" @click="emit('connect', selectedHost)">连接</ReButton>
             <ReButton icon="TrendCharts" layout="square" @click="emit('detail', selectedHost)">监控详情</ReButton>
             <ReButton icon="EditPen" layout="square" @click="emit('edit', selectedHost)">编辑</ReButton>
-            <label class="auto-switch">
-              <ReSwitch v-model="autoRefresh" />
-              <span>{{ autoRefresh ? `自动刷新 ${countdown}s` : '自动刷新' }}</span>
+            <label class="auto-switch" title="由「系统设置」弹窗设定">
+              <span>{{ autoRefresh ? `自动刷新 ${countdown}s` : `自动刷新（${autoRefreshSeconds}s）` }}</span>
             </label>
-            <ReSelect v-if="pagedSection" :model-value="pageSize" :options="PAGE_SIZE_OPTIONS.map(n => ({ label: `每页 ${n}`, value: n }))" style="width: 104px" @update:model-value="changePageSize" />
+            <span v-if="pagedSection" class="ph-pagesize" title="由「系统设置」弹窗设定">每页 {{ pageSize }} 条</span>
           </div>
         </div>
 
@@ -968,11 +984,10 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
               @click="loadProfile(true)">刷新</ReButton>
             <ReButton v-if="isAgentMode && !agentReady && selectedHost?.serverHostSshEnabled === 1" icon="Download" layout="square" type="success"
               @click="emit('deploy-agent', selectedHost)">安装 Agent</ReButton>
-            <label class="auto-switch">
-              <ReSwitch v-model="autoRefresh" />
-              <span>{{ autoRefresh ? `自动刷新 ${countdown}s` : '自动刷新' }}</span>
+            <label class="auto-switch" title="由「系统设置」弹窗设定">
+              <span>{{ autoRefresh ? `自动刷新 ${countdown}s` : `自动刷新（${autoRefreshSeconds}s）` }}</span>
             </label>
-            <ReSelect v-if="pagedSection" :model-value="pageSize" :options="PAGE_SIZE_OPTIONS.map(n => ({ label: `每页 ${n}`, value: n }))" style="width: 104px" @update:model-value="changePageSize" />
+            <span v-if="pagedSection" class="ph-pagesize" title="由「系统设置」弹窗设定">每页 {{ pageSize }} 条</span>
           </div>
         </div>
 
@@ -1244,6 +1259,8 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
 .pill-agent { color: var(--brand-600, #6d5ce7); border-color: var(--brand-200, #d5ccff); background: var(--brand-50, #f3f1ff); }
 .ph-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .auto-switch { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-tertiary); margin-left: 4px; }
+.ph-pagesize { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-tertiary);
+  padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border-subtle); background: var(--bg-fill, #f5f6fa); }
 
 .alert { margin: 12px 0 0; padding: 10px 12px; border-radius: 8px; font-size: 12.5px; line-height: 1.7; }
 .alert-error { background: rgba(245, 108, 108, .1); border: 1px solid rgba(245, 108, 108, .3); color: var(--status-error-text, #d9484b); }

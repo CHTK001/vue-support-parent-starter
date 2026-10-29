@@ -142,7 +142,17 @@ function serveFileViewerOfficeWorkers(): PluginOption {
 //
 // 端口：29612 是 socket.io 推送端口（与 --plugin.socket.room[0].port=29612 一致）。
 // 注意此前缺省写的 29181 是**错的端口**，即使把主机改成远端，socket 推送仍然连不上。
-const apiTarget = process.env.MS_API_TARGET ?? "http://192.168.50.198:8081";
+// 当前真实环境是 instabox sandbox：后端跑在 agqwy3tplnv4xakvlmllio7goq 那台机器的 8082，
+// 对外通过 published 端口域名暴露（https://<port>-<machineId>.instabox.tech）。
+//
+// 关于用户提到的 https://18082-agqwy3tplnv4xakvlmllio7goq.instabox.tech：
+// 实测该端口**已发布但 sandbox 内没有进程在监听**，任意路径都返回
+//   502 Nothing is listening on this port in the sandbox. Start an HTTP server on port 18082.
+// 同一台机器的 8082 才是真正在跑的后端（/v2/user/login 200、/ms/server/host 返回真实主机）。
+// 所以这里默认指向 8082；等那台机器的 18082 起了服务（前端/网关），
+// 用 MS_API_TARGET=https://18082-agqwy3tplnv4xakvlmllio7goq.instabox.tech 覆盖即可。
+const INSTABOX_BACKEND = "https://8082-agqwy3tplnv4xakvlmllio7goq.instabox.tech";
+const apiTarget = process.env.MS_API_TARGET ?? INSTABOX_BACKEND;
 
 /**
  * 由 API 目标推导 socket.io 目标：同主机 + 29612 端口。
@@ -160,6 +170,11 @@ const apiTarget = process.env.MS_API_TARGET ?? "http://192.168.50.198:8081";
 function deriveSocketTarget(api: string): string {
   try {
     const u = new URL(api);
+    // instabox 的 published 域名把端口编码在子域里（<port>-<machineId>.instabox.tech），
+    // 这种主机名**不能再拼 :29612**（会变成 https://xxx:29612 的非法地址），
+    // 而要换成 29612 对应的 published 域名。普通主机仍按 host:29612 推导。
+    const m = /^(\d+)-(.+\.instabox\.tech)$/i.exec(u.hostname);
+    if (m) return `${u.protocol}//29612-${m[2]}`;
     return `${u.protocol}//${u.hostname}:29612`;
   } catch {
     return "http://192.168.50.198:29612";
@@ -171,7 +186,7 @@ const socketTarget = process.env.MS_SOCKET_TARGET ?? deriveSocketTarget(apiTarge
 const acmeTarget = process.env.ACME_API_TARGET ?? "http://101.200.205.64:19170";
 
 /** APM 观测后端地址；实测 8582 无监听，故不预置远端缺省，详见下方注释 */
-const apmTarget = process.env.APM_TARGET ?? "http://127.0.0.1:8582";
+const apmTarget = process.env.APM_TARGET ?? INSTABOX_BACKEND;
 
 // 文件存储服务器（FileStorageServerFilter）。
 //
@@ -186,7 +201,7 @@ const apmTarget = process.env.APM_TARGET ?? "http://127.0.0.1:8582";
 // 保留 18082 默认会让 /localFileStorage 探测直接 502。桶名需与目标服务的 Bean 名一致：
 //   18080（system-api）→ local ；18082（监控内嵌）→ localFileStorage
 // 桶名由 app.yaml otherConfig.filestorage.bucket 决定，两者要配套改。
-const fileStorageTarget = process.env.FS_API_TARGET ?? "http://192.168.50.198:28080";
+const fileStorageTarget = process.env.FS_API_TARGET ?? INSTABOX_BACKEND;
 
 /**
  * 启动自检：把「代理指错后端」从静默变成可见。

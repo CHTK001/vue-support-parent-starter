@@ -226,7 +226,13 @@ const displayGroups = computed(() => {
   if (!props?.groups?.length) {
     return all.filter((g) => !SPLIT_GROUPS.includes(g.group))
   }
-  return all.filter((g) => props.groups.includes(g.group))
+  // 按调用方声明的顺序排，而不是按后端返回的顺序 filter。
+  // 分组定义没有「组级 sort」（GlobalSettingDefinitions.build 按 SPI 发现顺序输出，
+  // 跨 jar 的注册顺序不稳定），直接 filter 会让「试卷识别」这类分组漂到卡片列表末尾，
+  // 同一个页面两次启动都可能不一样。groups 在这里是阅读顺序，不是集合。
+  return props.groups
+    .map((name) => all.find((g) => g.group === name))
+    .filter((g) => Boolean(g))
 })
 
 /**

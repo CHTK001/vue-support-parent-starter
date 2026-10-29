@@ -49,7 +49,10 @@ apps/*/index.html
 .env.production.local
 
 # 日志
+*.tgz
 *.log
+*.mjs
+*.ps1
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -60,6 +63,8 @@ pnpm-debug.log*
 Thumbs.db
 
 # IDE
+.tmp*/
+dist*/
 .idea/
 .vscode/
 *.suo

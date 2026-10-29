@@ -2782,6 +2782,57 @@ function persistColumnWidth(prop: string, width: number): void {
 }
 
 /**
+ * 拖完列宽之后，浏览器延后派发的那一次「表头点击」必须吞掉。
+ *
+ * <p>vxe 自带一层防误触：{@code _lastResizeTime} + 300ms 窗口，窗口内的表头点击
+ * 不算排序（table.js 的 {@code triggerHeaderCellClickEvent}）。但这层窗口**不够**：
+ * 拖宽落盘要改 {@code :width}，vxe 随即列重建（handleInitColumn → 重排 + 重新布局），
+ * 主线程被占住几百毫秒，mouseup 之后浏览器才把 click 派发出去。</p>
+ *
+ * <p>实测（sys_setting 表，mini 档，48 列）：mouseup 在 1793276584515，
+ * {@code _lastResizeTime} 同一毫秒写入，click 却在 1793276585011 才到 ——
+ * 相隔 495ms，早已越过 300ms 窗口，于是这次点击被当成「点表头排序」：
+ * 派发 sort-change → 页面重新取数（/data + 2×/columns）→ 表格中间转圈。
+ * 用户的感受正是「拖完列宽松手，表格自己转圈刷新了一下」。</p>
+ *
+ * <p>所以这里在**捕获阶段**吃掉这一次点击：拦在 .re-table 根节点上，vxe 的
+ * th onClick 在冒泡阶段，捕获先到，stopPropagation 之后它根本收不到。
+ * 只吃「紧跟在拖宽之后、落在表头上的第一次点击」，另有 1s 兜底超时 ——
+ * 正常点表头排序不会紧跟在拖宽之后，因此不受影响。</p>
+ */
+let swallowHeaderClickAfterResize = false;
+let swallowHeaderClickTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** 拖宽结束时上膛：下一次落在表头上的点击要被吞掉 */
+function armHeaderClickGuard(): void {
+  swallowHeaderClickAfterResize = true;
+  if (swallowHeaderClickTimer) clearTimeout(swallowHeaderClickTimer);
+  swallowHeaderClickTimer = setTimeout(() => {
+    swallowHeaderClickAfterResize = false;
+    swallowHeaderClickTimer = null;
+  }, 1000);
+}
+
+/**
+ * 捕获阶段拦表头点击（见 {@link armHeaderClickGuard}）。
+ * @param e 根节点捕获到的点击事件
+ */
+function onRootClickCapture(e: MouseEvent): void {
+  if (!swallowHeaderClickAfterResize) return;
+  const target = e.target as Element | null;
+  if (!target || typeof target.closest !== "function") return;
+  // 只拦表头；表体里的点击（进编辑、选行）不受影响
+  if (!target.closest(".vxe-header--column, .el-table__header-wrapper thead")) return;
+  swallowHeaderClickAfterResize = false;
+  if (swallowHeaderClickTimer) {
+    clearTimeout(swallowHeaderClickTimer);
+    swallowHeaderClickTimer = null;
+  }
+  e.stopPropagation();
+  e.preventDefault();
+}
+
+/**
  * element 引擎：表头拖宽结束（header-dragend）。
  * newWidth 为最终宽度；column.property 即列 prop（选择/序号等内置列 property 为空，被入口挡掉）。
  */
@@ -2790,6 +2841,7 @@ function onElementHeaderDragend(
   _oldWidth: number,
   column: TableColumnCtx<Record<string, unknown>>,
 ): void {
+  armHeaderClickGuard();
   persistColumnWidth((column as { property?: string })?.property ?? "", newWidth);
 }
 
@@ -2797,6 +2849,8 @@ function onElementHeaderDragend(
 function onVxeResizableChange(params: {
   column?: { field?: string; resizeWidth?: number; width?: number | string };
 }): void {
+  // 先上膛再落盘：落盘会触发列重建，重建占住主线程，随后那次 click 才派发
+  armHeaderClickGuard();
   const col = params?.column;
   if (!col?.field) return;
   const w = typeof col.resizeWidth === "number" ? col.resizeWidth : Number(col.width);
@@ -5122,6 +5176,7 @@ const iconSelect = Select;
   <div
     ref="rootRef"
     class="re-table"
+    @click.capture="onRootClickCapture"
     @mouseover="onCrosshairOver"
     @mouseenter="onRootMouseenter"
     @mouseleave="onRootMouseleave"

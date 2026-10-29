@@ -1694,7 +1694,14 @@ async function runOperation(item: Project, operation: string, path: string) {
     const res = await http().post(BASE + path);
     const taskId = unwrapResult<string>(res);
     if (taskId) {
-      trackTask(taskId, item.projectName, operation);
+      const task = trackTask(taskId, item.projectName, operation);
+      // Socket 未连接时（网络受限/代理环境）任务事件收不到，列表会一直停在旧状态，
+      // 按钮也不翻转；任务结束后主动刷新一次，与备份/回滚的处理保持一致。
+      const stopWatch = watch(() => task.finished, (fin) => {
+        if (fin) { stopWatch(); loadList(); }
+      });
+    } else {
+      message.warning('项目有操作正在进行，请稍后再试');
     }
   } catch (e) {
     message.error('操作触发失败');

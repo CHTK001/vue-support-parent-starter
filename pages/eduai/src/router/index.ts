@@ -193,7 +193,10 @@ export const eduaiRoutes: RouteConfigsTable[] = [
     {
       path: "/edu/ai-config-center",
       name: "EduAiConfigCenter",
-      component: () => import("../views/AiConfigCenterView.vue"),
+      // 页面归 AI 模块（pages/ai），本应用只做路由依赖：
+      // 试卷配置的组件、页壳、以及三个分组（paper / marking / compose）的定义
+      // 都在 ai 模块，eduai 不再自建一份。
+      component: () => import("@pages/ai/components/setting/PaperConfigPage.vue"),
       meta: { title: "AI 配置中心", icon: "Setting", showLink: true, keepAlive: true, isVisible: "1" },
     },
   ]),

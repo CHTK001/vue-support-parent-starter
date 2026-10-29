@@ -248,11 +248,32 @@ export interface CollectTable {
 }
 
 /**
+ * 在途的数据源列表请求。
+ *
+ * <p>Nginx / Prometheus 这类控制台进页面时是「先拉列表填下拉，再 bind() 解析数据源」，
+ * 而 bind() 没拿到路由 datasourceId 时会自己再拉一次列表——两次调用几乎同时发生，
+ * 后端因此收到两条一模一样的 {@code /list}。这里只合并<b>同一时刻</b>的重复请求：
+ * 请求一结束就清空，新增/修改数据源后的刷新仍然拿最新数据。</p>
+ */
+let dataSourcesInflight: { base: string; promise: Promise<DataSourceInfo[]> } | null = null;
+
+/**
  * 获取所有数据源。
  * @return 数据源列表
  */
 export function fetchDataSources(): Promise<DataSourceInfo[]> {
-  return get<DataSourceInfo[]>(`${hubBase}/list`);
+  // base 变更（多入口共用同一封装）时不复用别的入口的在途请求
+  if (dataSourcesInflight && dataSourcesInflight.base === hubBase) {
+    return dataSourcesInflight.promise;
+  }
+  const promise = get<DataSourceInfo[]>(`${hubBase}/list`);
+  const entry = { base: hubBase, promise };
+  dataSourcesInflight = entry;
+  const clear = () => {
+    if (dataSourcesInflight === entry) dataSourcesInflight = null;
+  };
+  promise.then(clear, clear);
+  return promise;
 }
 
 /**

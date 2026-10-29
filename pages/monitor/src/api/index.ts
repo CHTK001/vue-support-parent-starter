@@ -595,11 +595,16 @@ export const getTsharkPacketDetail = (id: number) =>
 /**
  * 某报文所属 TCP 流的握手 / 关闭生命周期。
  *
- * <p>该接口直接返回 VO（不是 ReturnResult 信封），所以取 r.data；404 表示协议
- * 不跑在 TCP 上（UDP / ICMP / ARP），调用方按「不支持」提示。</p>
+ * <p>Controller 返回实体被全局响应包装成 `{code,data,msg}` 信封（后端返回
+ * `ResponseEntity<TsharkHandshakeVO>` 时同样被包），所以要像其它 tshark 接口一样
+ * unwrap 取业务 data —— 曾因直接取 r.data 拿到整个信封，弹层 steps 永远为空，
+ * 表现为「这条流还没有可展示的报文」。</p>
+ *
+ * <p>404 表示协议不跑在 TCP 上（UDP / ICMP / ARP）：http 层对非 2xx 先行 reject，
+ * 这里不会执行 unwrap，调用方按「不支持」提示。</p>
  */
 export const getTsharkHandshake = (packetId: number) =>
-  http().get(`${B}/tshark/packets/${packetId}/handshake`).then(r => r.data as any);
+  http().get(`${B}/tshark/packets/${packetId}/handshake`).then(r => unwrap<any>(r));
 
 /**
  * 抓包会话的报文实时流（SSE）。

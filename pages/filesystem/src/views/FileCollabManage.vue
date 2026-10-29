@@ -566,6 +566,13 @@ async function reloadAll(): Promise<void> {
   } finally {
     listLoading.value = false;
   }
+  // 根目录 + 无关键字时，allDocs 就是 docs 的全集：
+  // 再调一次 loadDocs() 会打出与上面完全相同的 /collab/list，纯属重复请求。
+  if (!keyword.value.trim() && !globalSearch.value && !currentPath.value) {
+    loadSeq += 1; // 让在途的旧请求结果作废
+    docs.value = allDocs.value;
+    return;
+  }
   await loadDocs();
 }
 
@@ -590,9 +597,14 @@ function formatTime(ts: number): string {
 
 const userOptions = ref<Array<{ userId: string; label: string }>>([]);
 
+/** 用户下拉只在真正打开「新建 / 权限」对话框时才需要，且同一会话内拉一次即可 */
+let usersLoaded = false;
+
 async function loadUsers(): Promise<void> {
+  if (usersLoaded) return;
   try {
     userOptions.value = await listUsersForPicker();
+    usersLoaded = true;
   } catch {
     userOptions.value = [];
   }
@@ -1079,7 +1091,7 @@ function closeFocus(): void {
 
 onMounted(() => {
   void reloadAll();
-  void loadUsers();
+  // 用户下拉延后到打开「新建 / 权限」对话框时再拉，进页面不需要它
 });
 
 onBeforeUnmount(() => {

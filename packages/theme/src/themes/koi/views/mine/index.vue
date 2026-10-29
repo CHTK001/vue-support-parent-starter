@@ -589,13 +589,28 @@ const {
   defaultStyle: defaultFrame,
 } = useWornAvatarFrame(() => mine.value);
 
-/** 读取登录用户信息到展示区与表单 */
-const refreshMine = async () => {
-  // 直接调用 /me 接口获取最新用户信息
+/**
+ * 框架 storage 里缓存的 /me 原始报文（authStore.getLoginUserInfo 写入）。
+ *
+ * <p>进入本页时 onMounted 已经 await 过一次 getLoginUserInfo()，再直接打 /me
+ * 就是同一份数据的第二次请求；这里优先复用缓存，只有缓存为空时才补一次。</p>
+ */
+const readCachedMine = (): Record<string, any> | null => {
+  const cached = getUserInfo<Record<string, any>>();
+  if (!cached) return null;
+  // 零值占位（只有 key 没有主体）不算命中，避免展示空白资料
+  return cached.sysUserId || cached.sysUserUsername || cached.username ? cached : null;
+};
+
+/** 读取登录用户信息到展示区与表单；force=true 时跳过缓存重新拉 /me */
+const refreshMine = async (force = false) => {
   try {
-    const { getApiHttp } = await import("@repo/core");
-    const res = await getApiHttp().get("/v2/user/me").then((r) => r.data);
-    const data = res?.data ?? {};
+    let data = force ? null : readCachedMine();
+    if (!data) {
+      const { getApiHttp } = await import("@repo/core");
+      const res = await getApiHttp().get("/v2/user/me").then((r) => r.data);
+      data = res?.data ?? {};
+    }
     
     mine.value = {
       avatar: data.avatar || getConfig()?.login?.avatarUrl || "",

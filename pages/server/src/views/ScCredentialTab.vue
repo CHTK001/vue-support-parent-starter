@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { message } from '@repo/core';
 import { getKeys, saveKey, delKey, getIdentities, saveIdentity, delIdentity, generateKeyPair, listMailbox, getMailboxMessage, createTempEmail, registerMailbox, unregisterMailbox } from '../api';
+import { realtimeChannel, type RealtimeEventHandler } from '../services/realtime';
 
 /** SSH 密钥（脱敏返回：无私钥/口令字段） */
 interface KeyRow {
@@ -190,6 +191,11 @@ async function doGenerate() {
 
 onMounted(refresh);
 
+/** 页签级关停：断开通道化的邮箱 SSE 推送连接、回收通道订阅 */
+onBeforeUnmount(() => {
+  disconnectMailboxSse();
+});
+
 /**
  * 刷新密钥与身份列表
  */
@@ -322,8 +328,65 @@ const selectedEmail = ref<any>(null);
 const mailboxDetailLoading = ref(false);
 /** SSE 连接 clientId */
 const mailboxClientId = ref<string>('');
-/** SSE EventSource 实例 */
-const mailboxEventSource = ref<EventSource | null>(null);
+/** 通道处理器（与 realtimeChannel.on 返回） */
+let mailboxChannelHandler: RealtimeEventHandler | null = null;
+/** 邮件箱对话框关闭回调(断开 SSE) */
+function onMailboxDialogClosed(): void {
+  selectedEmail.value = null;
+  mailboxNewEmailCount.value = 0;
+  disconnectMailboxSse();
+}
+
+/**
+ * 建立邮箱 SSE 连接(实时推送新邮件)
+ *
+ * <p>通道化了：{@code ScCredentialTab} 不再自建 EventSource，
+ * 而是把连接交给 {@code realtimeChannel} 共享通道，
+ * 按 {@code mailbox} topic 注册 'connected'（用于注册推送连接）和 'mailbox'（新邮件推送）事件。</p>
+ *
+ * @param identityId 邮箱身份 ID
+ */
+function connectMailboxSse(identityId: number): void {
+  disconnectMailboxSse();
+  const clientId = 'mailbox-' + identityId + '-' + Date.now();
+  mailboxClientId.value = clientId;
+  mailboxSseStatus.value = 'connecting';
+
+  const handler: RealtimeEventHandler = (event) => {
+    try {
+      if (event.type === 'connected') {
+        mailboxSseStatus.value = 'connected';
+        registerMailbox(identityId, clientId).catch(() => {});
+      } else if (event.type === 'mailbox') {
+        const emails = JSON.parse(String(event.data ?? '[]'));
+        if (Array.isArray(emails) && emails.length > 0) {
+          const list = mailboxEmails.value;
+          mailboxEmails.value = [...emails, ...list].slice(0, 100);
+          mailboxNewEmailCount.value += emails.length;
+          message.info('收到 ' + emails.length + ' 封新邮件');
+        }
+      } else if (event.type === 'error') {
+        mailboxSseStatus.value = 'closed';
+      }
+    } catch { /* 忽略事件解析异常 */ }
+  };
+
+  mailboxChannelHandler = handler;
+  realtimeChannel.on('mailbox', handler, '/sse/connect?clientId=' + encodeURIComponent(clientId), ['connected', 'mailbox']);
+}
+
+/** 断线时通道路径回收（否则手动关闭对应 topic 的连接） */
+function disconnectMailboxSse(): void {
+  if (mailboxChannelHandler) {
+    realtimeChannel.off('mailbox', mailboxChannelHandler);
+    mailboxChannelHandler = null;
+  }
+  if (mailboxClientId.value) {
+    unregisterMailbox(mailboxClientId.value).catch(() => {});
+  }
+  mailboxClientId.value = '';
+  mailboxSseStatus.value = 'closed';
+}
 /** SSE 连接状态(connecting/connected/closed) */
 const mailboxSseStatus = ref<string>('closed');
 /** SSE 推送的新邮件计数(未读红点) */
@@ -343,62 +406,6 @@ async function openMailbox(row: IdentityRow): Promise<void> {
   mailboxDialogVisible.value = true;
   await loadMailboxList();
   connectMailboxSse(row.id);
-}
-
-/**
- * 建立邮箱 SSE 连接(实时推送新邮件)
- *
- * @param identityId 邮箱身份 ID
- */
-function connectMailboxSse(identityId: number): void {
-  disconnectMailboxSse();
-  const clientId = 'mailbox-' + identityId + '-' + Date.now();
-  mailboxClientId.value = clientId;
-  mailboxSseStatus.value = 'connecting';
-  const es = new EventSource('/sse/connect?clientId=' + encodeURIComponent(clientId));
-  mailboxEventSource.value = es;
-  es.addEventListener('connected', () => {
-    mailboxSseStatus.value = 'connected';
-    registerMailbox(identityId, clientId).catch(() => {});
-  });
-  es.addEventListener('mailbox', (evt: MessageEvent) => {
-    try {
-      const emails = JSON.parse(evt.data || '[]');
-      if (Array.isArray(emails) && emails.length > 0) {
-        const list = mailboxEmails.value;
-        mailboxEmails.value = [...emails, ...list].slice(0, 100);
-        mailboxNewEmailCount.value += emails.length;
-        message.info('收到 ' + emails.length + ' 封新邮件');
-      }
-    } catch { /* 忽略解析异常 */ }
-  });
-  es.onerror = () => {
-    mailboxSseStatus.value = 'closed';
-  };
-}
-
-/**
- * 邮件箱对话框关闭回调(断开 SSE)
- */
-function onMailboxDialogClosed(): void {
-  selectedEmail.value = null;
-  mailboxNewEmailCount.value = 0;
-  disconnectMailboxSse();
-}
-
-/**
- * 断开邮箱 SSE 连接
- */
-function disconnectMailboxSse(): void {
-  if (mailboxEventSource.value) {
-    mailboxEventSource.value.close();
-    mailboxEventSource.value = null;
-  }
-  if (mailboxClientId.value) {
-    unregisterMailbox(mailboxClientId.value).catch(() => {});
-  }
-  mailboxClientId.value = '';
-  mailboxSseStatus.value = 'closed';
 }
 
 /**

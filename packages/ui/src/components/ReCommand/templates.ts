@@ -148,6 +148,40 @@ const LINUX_ENTER = `cd '__PATH__' 2>/dev/null || true;
 `;
 
 /**
+ * Linux 启动前补齐日志目录。
+ *
+ * 首次部署时 logs/ 往往还不存在，而 `> logs/app.log` 在 shell 打开文件阶段就失败，
+ * 进程根本没起来；脚本末尾的 `echo $!` 却仍返回 0，任务于是报「成功且 running」。
+ * 与后端 ProjectScripts#linuxLogDir 保持一致。
+ */
+const LINUX_LOG_DIR = `mkdir -p "$(dirname "__LOG__")" 2>/dev/null || true
+`;
+
+/**
+ * Linux 写 PID 后校验进程存活，再回显运行 PID。
+ *
+ * 与后端 ProjectScripts 的 LINUX_PID_ECHO 保持一致：只写 app.pid 不校验，
+ * 启动即崩时也会留下一个死 PID，状态于是显示 running（实测 git 首次发布踩到）。
+ * 注意 TS 模板字符串里 `${__pid:-unknown}` 必须转义，否则会被 JS 当插值。
+ */
+const LINUX_PID_ECHO = `echo $! > app.pid
+__pid=$(cat app.pid 2>/dev/null || true)
+__ok=0
+for __i in 1 2 3 4; do
+  sleep 1
+  if [ -n "$__pid" ] && kill -0 "$__pid" 2>/dev/null; then __ok=1; else __ok=0; break; fi
+done
+if [ "$__ok" = "1" ]; then
+  echo "running pid=$__pid"
+else
+  echo "启动校验失败: 进程未运行 pid=\${__pid:-unknown}" >&2
+  echo "---- 日志尾部 __LOG__ ----" >&2
+  tail -n 20 "__LOG__" >&2 2>/dev/null
+  rm -f app.pid
+  exit 1
+fi`;
+
+/**
  * Linux 下 Nginx 的控制前缀。
  *
  * 必须显式给出 `-p`（前缀目录=项目目录）与 `-c conf/nginx.conf`：
@@ -202,13 +236,13 @@ const LINUX_TEMPLATES: CommandTemplate[] = [
     os: 'linux',
     types: ['springboot'],
     needEntry: true,
-    start: `${LINUX_ENTER}nohup java __JVMARGS__ -jar __ENTRY__ --spring.profiles.active=prod __ARGS__ __LOGOP__ __LOG__ 2>&1 &
-echo $! > app.pid`,
+    start: `${LINUX_ENTER}${LINUX_LOG_DIR}nohup java __JVMARGS__ -jar __ENTRY__ --spring.profiles.active=prod __ARGS__ __LOGOP__ __LOG__ 2>&1 &
+${LINUX_PID_ECHO}`,
     stop: LINUX_PID_STOP,
     restart: `${LINUX_PID_STOP}
 sleep 2
-${LINUX_ENTER}nohup java __JVMARGS__ -jar __ENTRY__ --spring.profiles.active=prod __ARGS__ __LOGOP__ __LOG__ 2>&1 &
-echo $! > app.pid`,
+${LINUX_ENTER}${LINUX_LOG_DIR}nohup java __JVMARGS__ -jar __ENTRY__ --spring.profiles.active=prod __ARGS__ __LOGOP__ __LOG__ 2>&1 &
+${LINUX_PID_ECHO}`,
     status: LINUX_PID_STATUS,
   },
   {
@@ -218,13 +252,13 @@ echo $! > app.pid`,
     os: 'linux',
     types: ['fatjar', 'springboot', 'git'],
     needEntry: true,
-    start: `${LINUX_ENTER}nohup java __JVMARGS__ -jar __ENTRY__ __ARGS__ __LOGOP__ __LOG__ 2>&1 &
-echo $! > app.pid`,
+    start: `${LINUX_ENTER}${LINUX_LOG_DIR}nohup java __JVMARGS__ -jar __ENTRY__ __ARGS__ __LOGOP__ __LOG__ 2>&1 &
+${LINUX_PID_ECHO}`,
     stop: LINUX_PID_STOP,
     restart: `${LINUX_PID_STOP}
 sleep 2
-${LINUX_ENTER}nohup java __JVMARGS__ -jar __ENTRY__ __ARGS__ __LOGOP__ __LOG__ 2>&1 &
-echo $! > app.pid`,
+${LINUX_ENTER}${LINUX_LOG_DIR}nohup java __JVMARGS__ -jar __ENTRY__ __ARGS__ __LOGOP__ __LOG__ 2>&1 &
+${LINUX_PID_ECHO}`,
     status: LINUX_PID_STATUS,
   },
   {
@@ -234,15 +268,15 @@ echo $! > app.pid`,
     os: 'linux',
     types: ['separated'],
     needEntry: true,
-    start: `${LINUX_ENTER}chmod +x __ENTRY__;
+    start: `${LINUX_ENTER}${LINUX_LOG_DIR}chmod +x __ENTRY__;
 nohup ./__ENTRY__ __ARGS__ __LOGOP__ __LOG__ 2>&1 &
-echo $! > app.pid`,
+${LINUX_PID_ECHO}`,
     stop: LINUX_PID_STOP,
     restart: `${LINUX_PID_STOP}
 sleep 2
-${LINUX_ENTER}chmod +x __ENTRY__;
+${LINUX_ENTER}${LINUX_LOG_DIR}chmod +x __ENTRY__;
 nohup ./__ENTRY__ __ARGS__ __LOGOP__ __LOG__ 2>&1 &
-echo $! > app.pid`,
+${LINUX_PID_ECHO}`,
     status: LINUX_PID_STATUS,
   },
   {

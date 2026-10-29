@@ -1172,34 +1172,34 @@ const connectTarget = ref<Host | null>(null);
 const connectIdentityId = ref<number | null>(null);
 const hostBoundIdentities = ref<number[]>([]);
 
-// ---- 画像偏好（分页数量 / 自动刷新间隔 / 默认自动刷新），与 HostProfileView 共用 localStorage 键 ----
+// ---- 系统设置（画像偏好 / 自动刷新 / 分页 三组开关统一收到弹窗），与 HostProfileView 共用 localStorage 键 ----
 const PREF_PAGE_SIZE_KEY = "monitor:host-profile:page-size";
 const PREF_AUTO_REFRESH_KEY = "monitor:host-profile:auto-refresh";
 const PREF_REFRESH_SEC_KEY = "monitor:host-profile:refresh-seconds";
-const prefsVisible = ref(false);
-useDialogPrerender(prefsVisible);
-const prefs = reactive({
+const systemSettingsVisible = ref(false);
+useDialogPrerender(systemSettingsVisible);
+const systemSettings = reactive({
   pageSize: Number(localStorage.getItem(PREF_PAGE_SIZE_KEY)) || 50,
   autoRefresh: localStorage.getItem(PREF_AUTO_REFRESH_KEY) === "true",
   refreshSeconds: Number(localStorage.getItem(PREF_REFRESH_SEC_KEY)) || 10,
 });
 
-/** 打开「画像偏好」弹窗（右键入口） */
-function openProfilePrefs(): void {
+/** 打开「系统设置」弹窗（右键入口，画像偏好 / 自动刷新 / 分页三组统一入到一个弹窗） */
+function openSystemSettings(): void {
   closeCtxMenu();
-  prefs.pageSize = Number(localStorage.getItem(PREF_PAGE_SIZE_KEY)) || 50;
-  prefs.autoRefresh = localStorage.getItem(PREF_AUTO_REFRESH_KEY) === "true";
-  prefs.refreshSeconds = Number(localStorage.getItem(PREF_REFRESH_SEC_KEY)) || 10;
-  prefsVisible.value = true;
+  systemSettings.pageSize = Number(localStorage.getItem(PREF_PAGE_SIZE_KEY)) || 50;
+  systemSettings.autoRefresh = localStorage.getItem(PREF_AUTO_REFRESH_KEY) === "true";
+  systemSettings.refreshSeconds = Number(localStorage.getItem(PREF_REFRESH_SEC_KEY)) || 10;
+  systemSettingsVisible.value = true;
 }
 
-/** 保存画像偏好：写 localStorage，已打开的画像页签下次打开/刷新时生效 */
-function saveProfilePrefs(): void {
-  localStorage.setItem(PREF_PAGE_SIZE_KEY, String(prefs.pageSize || 50));
-  localStorage.setItem(PREF_AUTO_REFRESH_KEY, String(!!prefs.autoRefresh));
-  localStorage.setItem(PREF_REFRESH_SEC_KEY, String(prefs.refreshSeconds || 10));
-  prefsVisible.value = false;
-  message.success("画像偏好已保存，重新打开画像页签生效");
+/** 保存系统设置：写 localStorage，已打开的画像页签下次打开/刷新时生效 */
+function saveSystemSettings(): void {
+  localStorage.setItem(PREF_PAGE_SIZE_KEY, String(systemSettings.pageSize || 50));
+  localStorage.setItem(PREF_AUTO_REFRESH_KEY, String(!!systemSettings.autoRefresh));
+  localStorage.setItem(PREF_REFRESH_SEC_KEY, String(systemSettings.refreshSeconds || 10));
+  systemSettingsVisible.value = false;
+  message.success("系统设置已保存，重新打开画像页签生效");
 }
 
 /**
@@ -2403,29 +2403,46 @@ function onGlobalKeydown(e: KeyboardEvent): void {
       </template>
     </ReDialog>
 
-    <!-- 画像偏好弹窗：分页数量 / 自动刷新间隔 / 默认开关（localStorage，画像页签读取） -->
-    <ReDialog v-model="prefsVisible" title="画像偏好" width="460px">
-      <div class="pref-row">
-        <span class="pref-row__label">每页条数</span>
-        <ReSelect v-model="prefs.pageSize" style="width:140px" :options="[
-          { label: '20 条', value: 20 },
-          { label: '50 条（默认）', value: 50 },
-          { label: '100 条', value: 100 },
-          { label: '200 条', value: 200 },
-        ]" />
+    <!-- 系统设置弹窗：画像偏好 / 自动刷新 / 分页 三组开关统一收口（localStorage，画像页签共读） -->
+    <ReDialog v-model="systemSettingsVisible" title="系统设置" width="460px">
+      <div class="ss-body">
+        <!-- 画像偏好：轮询类配置 -- 自动刷新间隔 -->
+        <section class="ss-group">
+          <h5 class="ss-group__title">画像偏好</h5>
+          <div class="ss-row">
+            <span class="ss-row__label">自动刷新间隔（秒）</span>
+            <ReInputNumber v-model="systemSettings.refreshSeconds" :min="5" :max="600" style="width:140px" />
+          </div>
+        </section>
+
+        <!-- 自动刷新：默认开关 -->
+        <section class="ss-group">
+          <h5 class="ss-group__title">自动刷新</h5>
+          <div class="ss-row">
+            <span class="ss-row__label">默认自动刷新</span>
+            <ReSwitch v-model="systemSettings.autoRefresh" />
+            <span class="ss-row__hint">{{ systemSettings.autoRefresh ? '画像页签打开时自动定时刷新' : '默认关闭，手动刷新' }}</span>
+          </div>
+        </section>
+
+        <!-- 分页：每页条数（画像页签的分页宽度） -->
+        <section class="ss-group">
+          <h5 class="ss-group__title">分页</h5>
+          <div class="ss-row">
+            <span class="ss-row__label">每页条数</span>
+            <ReSelect v-model="systemSettings.pageSize" style="width:140px" :options="[
+              { label: '20 条', value: 20 },
+              { label: '50 条（默认）', value: 50 },
+              { label: '100 条', value: 100 },
+              { label: '200 条', value: 200 },
+            ]" />
+          </div>
+        </section>
       </div>
-      <div class="pref-row">
-        <span class="pref-row__label">自动刷新间隔（秒）</span>
-        <ReInputNumber v-model="prefs.refreshSeconds" :min="5" :max="600" style="width:140px" />
-      </div>
-      <div class="pref-row">
-        <span class="pref-row__label">默认自动刷新</span>
-        <ReSwitch v-model="prefs.autoRefresh" />
-        <span class="pref-row__hint">{{ prefs.autoRefresh ? '画像页签打开时自动定时刷新' : '默认关闭，手动刷新' }}</span>
-      </div>
+
       <template #footer>
-        <ReButton @click="prefsVisible = false">取消</ReButton>
-        <ReButton type="primary" @click="saveProfilePrefs">保存</ReButton>
+        <ReButton @click="systemSettingsVisible = false">取消</ReButton>
+        <ReButton type="primary" @click="saveSystemSettings">保存</ReButton>
       </template>
     </ReDialog>
 
@@ -2566,8 +2583,8 @@ function onGlobalKeydown(e: KeyboardEvent): void {
         </div>
 
         <div class="host-ctx-sep" />
-        <div class="host-ctx-item" @click="openProfilePrefs()">
-          <ReIcon name="Setting" /><span>画像偏好</span>
+        <div class="host-ctx-item" @click="openSystemSettings()">
+          <ReIcon name="Setting" /><span>系统设置</span>
         </div>
         <div class="host-ctx-item" @click="ctxCommand('scan')">
           <ReIcon name="Aim" /><span>端口扫描</span>
@@ -3631,19 +3648,42 @@ function onGlobalKeydown(e: KeyboardEvent): void {
 </style>
 
 <style lang="scss">
-/* 主机右键菜单：Teleport 到 body，scoped 样式作用不到，只能放全局块 */
-.pref-row {
+/* ---- 系统设置在弹窗：主机右键菜单的弹窗被 Teleport 到 body，只能放全局块 ---- */
+.ss-body {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 9px 0;
+  flex-direction: column;
+  gap: 14px;
 }
-.pref-row__label {
+.ss-group {
+  background: var(--el-fill-color-lighter, #fafbfc);
+  border: 1px solid var(--el-border-color-lighter, #e6e8eb);
+  border-radius: var(--el-radius-base, 8px);
+  padding: 10px 14px 12px;
+}
+.ss-group__title {
+  max-width: 100%;
+  margin: 0 0 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--el-text-color-placeholder, #a8abb2);
+  letter-spacing: 0.4px;
+}
+.ss-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 0;
+}
+.ss-row + .ss-row {
+  border-top: 1px dashed var(--el-border-color-extra-light, #f0f2f5);
+}
+.ss-row__label {
   min-width: 128px;
   font-size: 13px;
   color: var(--el-text-color-regular, #4b5563);
+  padding-top: 1px;
 }
-.pref-row__hint {
+.ss-row__hint {
   font-size: 12px;
   color: var(--el-text-color-placeholder, #a8abb2);
 }

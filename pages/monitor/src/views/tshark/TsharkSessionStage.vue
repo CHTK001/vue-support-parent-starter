@@ -302,20 +302,34 @@ function statusTextOf(view: SessionView): string {
 
 const activeDay = ref('')
 
+/** 上一次渲染时的日期键集合，用于识别「冒出新的一天」（跨零点开始的新抓包） */
+const prevDayKeys = ref<string[]>([])
+
 const days = computed(() => sessionDays(filtered.value))
 
 // 数据变了以后选中的那天可能已经不在列表里（换了筛选、或当天会话被删），
-// 这时退到最近的一天，而不是留着一个空轴
+// 这时退到最近的一天，而不是留着一个空轴。
+//
+// 另外有一种情况也得切天：新抓包正好跨过零点（比如 00:0x 点「开始抓包」），
+// 新会话落在「新的一天」，而选中的还是昨天 —— 昨天的会话仍在列表里，上面的
+// 「选中天消失才回退」逻辑不会触发，结果新会话的整行都不渲染，用户以为抓包
+// 没开始。这里只在「日期集合真的冒出一个更晚的新天」时切过去（此刻通常是刚
+// 开始的新抓包），普通刷新（同一天计数变化）不打扰用户手动选中的天。
 watch(
   days,
   list => {
+    const keys = list.map(d => d.dayKey)
     if (!list.length) {
       activeDay.value = ''
+      prevDayKeys.value = []
       return
     }
-    if (!list.some(d => d.dayKey === activeDay.value)) {
-      activeDay.value = list[list.length - 1]!.dayKey
+    const newest = list[list.length - 1]!.dayKey
+    const gainedNewerDay = keys.some(k => !prevDayKeys.value.includes(k) && k > activeDay.value)
+    if (gainedNewerDay || !list.some(d => d.dayKey === activeDay.value)) {
+      activeDay.value = newest
     }
+    prevDayKeys.value = keys
   },
   { immediate: true },
 )

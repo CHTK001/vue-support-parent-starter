@@ -2787,7 +2787,8 @@ async function toggleTable(table: string, db: string): Promise<void> {
     tableColumnsCache[key] = [];
     columnLoading[key] = true;
     try {
-      tableColumnsCache[key] = await fetchTableColumns(table, currentDatasourceId.value, db);
+      // 与数据网格共用同一份列元数据缓存：刚浏览过的表再展开字段时不再重新请求
+      tableColumnsCache[key] = await loadTableColumnsCached(db, table);
     } catch (e) {
       message.error(`加载字段失败: ${String((e as Error)?.message ?? e)}`);
     } finally {
@@ -3034,6 +3035,11 @@ async function saveColumnRemark(db: string, tableName: string, column: string, r
     const cached = tableColumnsCache[tableNodeKey(db, tableName)];
     const target = cached?.find(c => c.name === column);
     if (target) target.remark = remark;
+    // 元数据缓存里那份也同步改掉：注释刚写进库，没必要为它再取一次列清单
+    const metaItem = tableMetaCache
+      .get(tableMetaKey(db, tableName))
+      ?.find(c => c.name === column);
+    if (metaItem) metaItem.remark = remark;
     message.success("备注已保存");
     return true;
   } catch (e) {
@@ -3186,7 +3192,8 @@ const filterColumns = ref<{ name: string; type?: string; remark?: string }[]>([]
 async function loadFilterColumns(tab: Tab): Promise<void> {
   if (!tab.tableName) return;
   try {
-    const cols = await fetchTableColumns(tab.tableName, currentDatasourceId.value, tab.database);
+    // 筛选面板要的列名 / 类型 / 注释，和表头用的是同一份元数据，直接复用缓存
+    const cols = await loadTableColumnsCached(tab.database || activeDatabase.value, tab.tableName);
     filterColumns.value = cols.map(c => ({ name: c.name, type: c.type, remark: c.remark }));
   } catch {
     filterColumns.value = [];
@@ -3727,6 +3734,8 @@ function refreshTableInTree(database?: string): void {
 
 /** 切换数据源 → 重载树与库列表 */
 watch(currentDatasourceId, () => {
+  // 启动 / 内嵌宿主切换时的赋值由 loadDatasources 自己收尾，这里不再重拉一次树
+  if (loadingDatasources) return;
   void onDatasourceChange();
 });
 
@@ -3796,7 +3805,7 @@ async function loadExportColumns(): Promise<void> {
     return;
   }
   try {
-    const columns = await fetchTableColumns(table, currentDatasourceId.value, db);
+    const columns = await loadTableColumnsCached(db, table);
     // 请求回来时用户可能已经换了目标表，丢弃过期结果
     if (exportTable.value === table && exportDatabase.value === db) {
       exportColumns.value = (columns || []).map(c => c.name);
@@ -4330,6 +4339,8 @@ async function saveColumnOrder(): Promise<void> {
       });
     }
     message.success("列顺序已更新");
+    // 列序变了，数据网格的列序也跟着变：作废元数据与数据快照，切回数据页签时按新结构取
+    invalidateTableMeta(tab.database, tab.tableName);
     await loadTableDesign(tab);
   } catch (e) {
     message.error(`保存列顺序失败: ${String((e as Error)?.message ?? e)}`);
@@ -4426,6 +4437,7 @@ async function saveDesignRow(row: DesignColumnRow): Promise<void> {
   try {
     await modifyDbColumn(tab.tableName, full.originalName, { ...designPayload(full), database: tab.database });
     message.success(`字段 ${row.name} 已保存`);
+    invalidateTableMeta(tab.database, tab.tableName);
     await loadTableDesign(tab);
   } catch (e) {
     message.error(`保存失败: ${String((e as Error)?.message ?? e)}`);
@@ -4444,6 +4456,7 @@ async function saveDesignAll(): Promise<void> {
       await modifyDbColumn(tab.tableName, row.originalName, { ...designPayload(row), database: tab.database });
     }
     message.success(`已保存 ${dirty.length} 个字段变更`);
+    invalidateTableMeta(tab.database, tab.tableName);
     await loadTableDesign(tab);
   } catch (e) {
     message.error(`保存失败: ${String((e as Error)?.message ?? e)}`);
@@ -4535,7 +4548,8 @@ async function loadForeignKeyRefColumns(table: string): Promise<void> {
     return;
   }
   try {
-    fkRefColumns.value = (await fetchTableColumns(table, currentDatasourceId.value, db)) || [];
+    // 引用表往往刚从数据页签看过，元数据缓存里就有，不必再取一次
+    fkRefColumns.value = (await loadTableColumnsCached(db, table)) || [];
   } catch (e) {
     fkRefColumns.value = [];
     message.warning(`读取引用表结构失败：${String((e as Error)?.message ?? e)}`);
@@ -4874,31 +4888,164 @@ const gridRowKey = computed<string>(() => {
   return tableData.columns.length > 0 ? tableData.columns[0] : "id";
 });
 
-/** 拉取当前表的主键列与列类型元数据（单元格编辑/新增行按类型渲染依赖它） */
-async function loadPkInfo(tab: Tab | undefined) {
+/* ==================== 表列元数据（注释 / 类型 / 长度精度 / 主键） ==================== */
+
+/**
+ * 表列元数据缓存：键 = {@code 数据源.库.表}。
+ *
+ * <p>列清单只在**结构可能变**的时候才有必要重取。翻页、排序、改每页条数、
+ * 开关「统计总数」、切回已打开的页签，全都不改变列定义 —— 以前每一条数据请求
+ * 后面都跟着两次 {@code /columns}（注释一次、主键类型一次），于是一次翻页变成
+ * 三个请求，而 {@code /columns} 在大表上要读 information_schema，比 {@code /data}
+ * 还慢。这里按「库.表」做会话内缓存，DDL 之后由 {@link invalidateTableMeta} 清掉。</p>
+ */
+const tableMetaCache = new Map<string, DbColumnInfo[]>();
+
+/** 正在飞的列清单请求：并发调同一张表时只打一次，避免「两份元数据互相覆盖」 */
+const tableMetaInflight = new Map<string, Promise<DbColumnInfo[]>>();
+
+/** 已经把元数据写进表格状态的那张表（键同 {@link tableMetaKey}），翻页时据此跳过重写 */
+let tableMetaAppliedKey = "";
+
+/**
+ * 列元数据缓存键
+ * @param db    库名（SQLite 这类无库概念的内核传空串）
+ * @param table 表名
+ */
+function tableMetaKey(db: string, table: string): string {
+  return `${currentDatasourceId.value}.${db || ""}.${table}`;
+}
+
+/**
+ * 取某张表的列元数据（带缓存 + 并发合并）。
+ *
+ * @param db    库名
+ * @param table 表名
+ * @param force 强制重取（显式刷新 / DDL 之后）
+ * @returns 列清单
+ */
+function loadTableColumnsCached(db: string, table: string, force = false): Promise<DbColumnInfo[]> {
+  const key = tableMetaKey(db, table);
+  if (!force) {
+    const cached = tableMetaCache.get(key);
+    if (cached) return Promise.resolve(cached);
+    const flying = tableMetaInflight.get(key);
+    if (flying) return flying;
+  }
+  const pending = fetchTableColumns(table, currentDatasourceId.value, db)
+    .then(cols => {
+      const list = cols || [];
+      tableMetaCache.set(key, list);
+      return list;
+    })
+    .finally(() => {
+      // 只清理自己那一条：force 重取可能已经把这个键换成了新的请求
+      if (tableMetaInflight.get(key) === pending) tableMetaInflight.delete(key);
+    });
+  tableMetaInflight.set(key, pending);
+  return pending;
+}
+
+/**
+ * 丢弃列元数据缓存（DDL 之后必须调用）。
+ *
+ * <p>加列 / 改列 / 删列 / 改主键 / 改备注 / 删表 / 改表名之后若不清，
+ * 表头、格内编辑控件、主键定位还会按旧结构算 —— 现象是「列都删了表头还在」，
+ * 或者「新增的自增列被当成普通列要求填值」。</p>
+ *
+ * @param db    库名；省略表示当前数据源的全部库
+ * @param table 表名；省略表示整库
+ */
+function invalidateTableMeta(db?: string, table?: string): void {
+  if (db !== undefined && table !== undefined) {
+    // 元数据可能没取到（请求失败），但快照照样存在：按库表名直删，不依赖缓存键是否存在
+    tabDataCache.delete(`table-${db}.${table}`);
+  }
+  const prefix = `${currentDatasourceId.value}.`;
+  for (const key of [...tableMetaCache.keys()]) {
+    if (!key.startsWith(prefix)) continue;
+    const rest = key.slice(prefix.length);
+    const dot = rest.indexOf(".");
+    const keyDb = rest.slice(0, dot);
+    const keyTable = rest.slice(dot + 1);
+    if (db !== undefined && keyDb !== db) continue;
+    if (table !== undefined && keyTable !== table) continue;
+    tableMetaCache.delete(key);
+    // 数据快照里的行是按旧列取的，结构变了它就不再可信
+    tabDataCache.delete(`table-${keyDb}.${keyTable}`);
+    if (tableMetaAppliedKey === key) tableMetaAppliedKey = "";
+  }
+}
+
+/**
+ * 把列元数据 / 数据快照这几份「按库表缓存」的状态整个清空。
+ *
+ * <p>换数据源时不能按当前数据源前缀去挑：切换那一刻 {@code currentDatasourceId}
+ * 已经变成新值，按前缀清只会清到「还没存过东西的新库」，旧数据源的键反倒留着。</p>
+ */
+function resetTableCaches(): void {
+  tableMetaCache.clear();
+  tableMetaInflight.clear();
+  tableMetaAppliedKey = "";
+  tabDataCache.clear();
+  sqlColumnCache.clear();
+}
+
+/**
+ * 把列元数据写进表格状态（表头注释 / 类型 / 长度精度 / 主键 / 长文本）。
+ *
+ * <p>注释按列名存，所以换表时必须整体替换而不是累加：
+ * 否则两张表有同名列时，上一张表的注释会串到新表头上去。</p>
+ *
+ * @param cols 列清单
+ */
+function applyTableMeta(cols: DbColumnInfo[]): void {
+  const pk = new Set<string>();
+  const types = new Map<string, string>();
+  const labels = new Map<string, string>();
+  const long = new Set<string>();
+  const comments: Record<string, string> = {};
+  cols.forEach(c => {
+    const t = (c.type || "").toUpperCase();
+    types.set(c.name, t);
+    // 展示文本带长度 / 精度（VARCHAR(255)、DECIMAL(10,2)），裸类型名不动
+    labels.set(c.name, formatColumnTypeLabel(t, c.size, c.scale));
+    if (c.isPrimaryKey) pk.add(c.name);
+    if (t.includes("TEXT") || t.includes("BLOB") || t.includes("CLOB")) long.add(c.name);
+    if (c.remark) comments[c.name] = c.remark;
+  });
+  pkColumns.value = pk;
+  columnTypes.value = types;
+  columnTypeLabels.value = labels;
+  longTextColumns.value = long;
+  Object.keys(columnComments).forEach(k => delete columnComments[k]);
+  Object.assign(columnComments, comments);
+}
+
+/**
+ * 加载并应用当前表的列元数据（注释 / 主键 / 类型，一次请求全部到位）。
+ *
+ * <p>元数据是「随表走」的，不是「随请求走」的：同一张表已经应用过就直接返回，
+ * 于是一次翻页、一次排序不再顺带发两次 {@code /columns}。
+ * 显式刷新与 DDL 之后传 {@code force} 重取。</p>
+ *
+ * @param tab   当前表页签
+ * @param force 强制重取
+ */
+async function loadTableMeta(tab: Tab | undefined, force = false): Promise<void> {
   if (!tab?.tableName) return;
+  const key = tableMetaKey(tab.database || activeDatabase.value, tab.tableName);
+  if (!force && tableMetaAppliedKey === key) return;
   try {
-    const cols = await fetchTableColumns(tab.tableName, currentDatasourceId.value, tab.database);
+    const cols = await loadTableColumnsCached(tab.database || activeDatabase.value, tab.tableName, force);
     // 期间可能已切表：过期响应会把主键集合/列类型写成上一张表的，必须丢弃
     if (activeTab.value !== tab.id) {
       return;
     }
-    const pk = new Set<string>();
-    const types = new Map<string, string>();
-    const labels = new Map<string, string>();
-    const long = new Set<string>();
-    cols.forEach(c => {
-      const t = (c.type || "").toUpperCase();
-      types.set(c.name, t);
-      // 展示文本带长度 / 精度（VARCHAR(255)、DECIMAL(10,2)），裸类型名不动
-      labels.set(c.name, formatColumnTypeLabel(t, c.size, c.scale));
-      if (c.isPrimaryKey) pk.add(c.name);
-      if (t.includes("TEXT") || t.includes("BLOB") || t.includes("CLOB")) long.add(c.name);
-    });
-    pkColumns.value = pk;
-    columnTypes.value = types;
-    columnTypeLabels.value = labels;
-    longTextColumns.value = long;
+    applyTableMeta(cols);
+    tableMetaAppliedKey = key;
+    // 注释 / 类型补齐后表头会从 1 行变 2~3 行，必须重量一次高度
+    void nextTick(refreshHeaderHeight);
   } catch {
     // 元数据加载失败不阻塞数据展示
   }
@@ -5506,7 +5653,9 @@ async function saveIndex() {
     indexDialogVisible.value = false;
     await loadIndexes();
     await loadTableDesign(tab);
-    loadPkInfo(tab);
+    // 主键变了 → 列元数据（主键集合 / 自增列）必须重算，否则单元格编辑还按旧主键定位
+    invalidateTableMeta(tab.database, tab.tableName);
+    void loadTableMeta(tab, true);
   } catch (e) {
     message.error(`${indexForm.primary ? "设置主键" : "创建索引"}失败: ${String((e as Error)?.message ?? e)}`);
   }
@@ -5580,11 +5729,15 @@ async function saveTableOptions() {
   }
 }
 
-/** 打开主键设置弹窗，并回填当前主键（按列序，复合主键的顺序不能乱） */
+/**
+ * 打开主键设置弹窗，并回填当前主键（按列序，复合主键的顺序不能乱）。
+ *
+ * <p>回填只用设计视图已经加载好的 {@link designColumns} —— 主键信息本就在列清单里，
+ * 以前为了这个再单独请求一次 {@code /columns} 纯属重复。</p>
+ */
 async function openPkDialog() {
   const tab = activeTabObj.value;
   if (!tab?.tableName) return;
-  await loadPkInfo(tab);
   const ordered = designColumns.value.filter(c => c.isPrimaryKey).map(c => c.name);
   pkDialogColumns.value = ordered;
   pkDialogVisible.value = true;
@@ -5617,7 +5770,10 @@ async function savePrimaryKey() {
     message.success(clearing ? "主键已清除" : "主键已保存");
     pkDialogVisible.value = false;
     await loadTableDesign(tab);
-    loadPkInfo(tab);
+    // 主键变了 → 数据网格的主键集合 / 可编辑性必须跟着变，否则「主键列不可编辑」或
+    // 「按旧主键定位更新」会一直错下去
+    invalidateTableMeta(tab.database, tab.tableName);
+    void loadTableMeta(tab, true);
   } catch (e) {
     message.error(`设置主键失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
@@ -5769,7 +5925,7 @@ async function saveColumn() {
     }
     columnDialogVisible.value = false;
     await loadTableDesign(tab);
-    loadPkInfo(tab);
+    // 列结构变了：refreshTableData 会作废元数据并按新结构重取（表头 / 编辑控件 / 主键跟着变）
     refreshTableData();
   } catch (e) {
     message.error(`保存列失败: ${String((e as Error)?.message ?? e)}`);
@@ -6075,8 +6231,34 @@ const aiContextHint = computed(() => {
   return `${db}：${names.slice(0, 8).join(", ")}${names.length > 8 ? ` 等 ${names.length} 张表` : ""}`;
 });
 /** 探测 text2sql 可用性（fetchDbAiStatus 内部已兜底，失败即隐藏入口） */
-async function refreshAiStatus(): Promise<void> {
-  dbAi.value = await fetchDbAiStatus();
+/** 能力探测是否已有结论：这是**全局**能力，整个会话探一次就够 */
+let aiStatusLoaded = false;
+/** 正在飞的探测：并发调用合并成一次请求（启动与切数据源可能同时触发） */
+let aiStatusPending: Promise<void> | null = null;
+
+/**
+ * 探测 text2sql 可用性。
+ *
+ * <p>能力是后端全局的，不随数据源变化；已经有结论时直接返回，
+ * 免得每次换数据源都白打一次 {@code /ai/status}。</p>
+ *
+ * @param force 强制重探（用户显式要求刷新能力状态时）
+ */
+async function refreshAiStatus(force = false): Promise<void> {
+  if (aiStatusLoaded && !force) return;
+  if (aiStatusPending) {
+    await aiStatusPending;
+    if (!force) return;
+  }
+  aiStatusPending = fetchDbAiStatus().then(status => {
+    dbAi.value = status;
+    aiStatusLoaded = true;
+  });
+  try {
+    await aiStatusPending;
+  } finally {
+    aiStatusPending = null;
+  }
 }
 function openAiDialog(): void {
   aiPrompt.value = "";
@@ -6183,6 +6365,9 @@ onMounted(async () => {
   }
   // text2sql 入口按后端能力显隐（未集成/未配置 = 隐藏），失败已在 API 内兜底
   void refreshAiStatus();
+  // 孤儿事务自检放在数据源解析之后：按数据源过滤，早于解析就查等于查了个 0 号，
+  // 真出事的那个库反而漏掉。
+  void adoptOrphanTx();
 });
 
 /**
@@ -6205,7 +6390,17 @@ function resolveDatasourceId(): number {
   return DEFAULT_DATASOURCE.id ?? 0;
 }
 
+/**
+ * 当前是否正在由 {@link loadDatasources} 初始化数据源。
+ *
+ * <p>初始化时会给 {@code currentDatasourceId} 赋值，而它挂着「切换数据源」的
+ * watcher。如果不管，启动时就会把整棵树拉两遍（watcher 一遍、loadDatasources
+ * 收尾一遍）—— {@code /databases} 与 {@code /tables} 各多一次。</p>
+ */
+let loadingDatasources = false;
+
 async function loadDatasources() {
+  loadingDatasources = true;
   try {
     const list = await fetchDataSources();
     // 按「JDBC 家族」过滤，不是只看 type === "jdbc"：ClickHouse / DuckDB 的
@@ -6236,7 +6431,15 @@ async function loadDatasources() {
     console.error("加载数据源失败", e);
     datasources.value = [DEFAULT_DATASOURCE];
   }
-  await loadTree();
+  // 标志要罩住 loadTree 才算数：给 currentDatasourceId 赋值排队的 watcher
+  // 是微任务，若在 finally 里就置 false，它会赶在下面这次 loadTree 之前
+  // 看到 false 并调 onDatasourceChange() —— 整棵树（/databases + /tables）
+  // 白拉两遍。
+  try {
+    await loadTree();
+  } finally {
+    loadingDatasources = false;
+  }
 }
 
 /**
@@ -6250,7 +6453,10 @@ async function pruneStaleTablePrefs(): Promise<void> {
   const db = activeDatabase.value;
   if (!db) return;
   try {
-    const tables = await fetchDbTables(currentDatasourceId.value, db);
+    // 优先用树上已经加载好的清单：为清理偏好再打一次 /tables 不值当，
+    // 而且换数据源时 activeDatabase 还指着**上一个库**，那次请求问的是错的库。
+    const loaded = tablesByDb[db];
+    const tables = loaded ?? (await fetchDbTables(currentDatasourceId.value, db));
     const exist = new Set((tables || []).map(t => `${db}.${t.name}`));
     if (exist.size === 0) return;
     const removed = pruneTablePrefs(exist);
@@ -6263,15 +6469,15 @@ async function pruneStaleTablePrefs(): Promise<void> {
   }
 }
 
-/** 数据源切换后：记住它，并清掉该数据源下已失效的每表筛选偏好 */
+/** 数据源切换后：记住它（树 / 表清单 / 偏好的清理都在 loadDatasources → loadTree 里做） */
 watch(currentDatasourceId, id => {
   if (id > 0) {
     saveViewPref({ lastDatasourceId: id });
   }
-  // 换数据源意味着「库.表」这套键全部换了含义，
-  // 上一批偏好对这里一张表都不适用，按真实存在的表清理掉。
-  void pruneStaleTablePrefs();
-  // 顺带重探 AI 能力（后端可能在会话期间重新部署/配置）
+  // 换数据源意味着「库.表」这套键全部换了含义：列元数据缓存与页签快照一起作废
+  resetTableCaches();
+  // 顺带重探 AI 能力（后端可能在会话期间重新部署/配置）。探测本身是全局的，
+  // 已有结论就不再重复打 —— 换数据源不该额外产生一次 /ai/status。
   void refreshAiStatus();
 });
 
@@ -6290,6 +6496,7 @@ watch(
     // 直接整体重置：清空树缓存、库选中、已打开的表页签，再重新拉树。
     Object.keys(tablesByDb).forEach(k => delete tablesByDb[k]);
     Object.keys(tableColumnsCache).forEach(k => delete tableColumnsCache[k]);
+    resetTableCaches();
     expandedNodes.value = new Set(["root"]);
     expandedTables.value = new Set();
     activeDatabase.value = "";
@@ -6302,6 +6509,7 @@ watch(
 
 async function onDatasourceChange() {
   Object.keys(tablesByDb).forEach(k => delete tablesByDb[k]);
+  resetTableCaches();
   activeDatabase.value = "";
   tabs.value = [];
   activeTab.value = "";
@@ -6324,6 +6532,9 @@ async function loadTree() {
     if (databases.value.length > 0) {
       expandedNodes.value.add("db:" + databases.value[0]);
       await loadTables(databases.value[0]);
+      // 表清单刚到，顺手按它清理已失效的每表偏好 —— 复用刚才那份清单，
+      // 不要再单独打一次 /tables。
+      await pruneStaleTablePrefs();
     }
   } catch (e) {
     message.error(`加载数据库树失败: ${String((e as Error)?.message ?? e)}`);
@@ -6379,10 +6590,12 @@ function toggleNode(key: string) {
       const db = key.replace("db:", "");
       activeDatabase.value = db;
       activeTable.value = "";
-      loadTables(db);
+      // 收/展是纯本地交互：清单与对象计数已经在手上就不再问一次后端。
+      // 想拿最新清单有树上方的刷新按钮（走 loadTree → 强制重取）。
+      if (!tablesByDb[db]) void loadTables(db);
       // 展开库时把四类对象的计数一起拉回来（树上要显示角标）；
       // 各类的**清单**仍然等到展开该分类节点时才拉，避免一次打满 4 个请求。
-      void loadDbObjects(db);
+      if (!objectCounts[db]) void loadDbObjects(db);
     }
   }
 }
@@ -6428,13 +6641,24 @@ function openTableData(tableName: string, database = activeDatabase.value) {
   // 但不能只清不恢复 —— 用户为这张表配好的条件会白配。
   restoreTablePref(tab);
   tableData.page = 1;
-  // 后端看 count 参数：关闭统计总数（showTotal=false）时跳过 COUNT(*) ——
+  // 元数据（注释 / 类型 / 主键）随表走：命中缓存时这里一次请求都不发，
+  // 但必须重新应用一次 —— 否则 B 表的表头注释与主键会留在 A 表上。
+  void loadTableMeta(tab);
+  // 这张表已经取过数据就直接还原（连排序一起），不再问一遍后端：
+  // 「打开自己刚看过的表」要的是回到原处，不是重新查一次。
+  if (restoreTabDataSnapshot(tab)) return;
+  // 后端看 count 参数：关闭统计总数（showTotal=false）时跳过 COUNT(*)；
   // COUNT 是全表扫描，关掉后翻页请求只剩 SELECT+LIMIT/OFFSET（DbConsoleController.getTableData）。
   loadTableData(tab);
 }
 
 /**
- * 切换到指定页签：表数据与设计列是共享状态，换页签必须重新加载
+ * 切换到指定页签：表数据与设计列是共享状态，换页签时必须换成该页签自己的内容。
+ *
+ * <p>表数据走本地快照还原（{@link restoreTabDataSnapshot}），只有这张表还从没取过
+ * 数据时才真正请求 —— 页签之间来回切是纯本地导航，不该每切一次就重查一次库。
+ * 要看最新数据有右上角刷新按钮。</p>
+ *
  * @param id 页签 ID
  */
 function selectTab(id: string) {
@@ -6442,7 +6666,12 @@ function selectTab(id: string) {
   const tab = activeTabObj.value;
   if (tab?.type === "table") {
     resetTableQueryState();
+    // 与 openTableData 对齐：切回某张表的页签时把它自己的筛选条件恢复回来，
+    // 否则「带筛选看的表」切走再切回就变成了全表数据，和快照里的行对不上。
+    restoreTablePref(tab, false);
     tableData.page = 1;
+    void loadTableMeta(tab);
+    if (restoreTabDataSnapshot(tab)) return;
     loadTableData(tab);
   } else if (tab?.type === "design") {
     loadTableDesign(tab);
@@ -6467,7 +6696,8 @@ function openTableDesign(tableName: string, database = activeDatabase.value) {
     tabs.value.push(tab);
   }
   activeTab.value = id;
-  loadTableDesign(tab);
+  // 用户显式点「设计表」才算「要看现在的结构」：这里强制重取一次
+  loadTableDesign(tab, true);
 }
 
 /**
@@ -6524,11 +6754,9 @@ const erTableCols = reactive(new Map<string, DbColumnInfo[]>());
 async function ensureErCols(name: string): Promise<void> {
   if (erTableCols.has(name)) return;
   try {
-    const cols = await fetchTableColumns(
-      name,
-      currentDatasourceId.value,
-      erDialogDatabase.value || activeTabObj.value?.database,
-    );
+    const db = erDialogDatabase.value || activeTabObj.value?.database || activeDatabase.value;
+    // 与数据网格共用列元数据缓存：刚看过的表直接命中，不重复打 /columns
+    const cols = await loadTableColumnsCached(db, name);
     erTableCols.set(name, cols || []);
   } catch {
     erTableCols.set(name, []);
@@ -7470,8 +7698,8 @@ async function openErColumns(name: string): Promise<void> {
   erColumnsVisible.value = true;
   erPickedColumns.value = [];
   try {
-    const cols = await fetchTableColumns(name, currentDatasourceId.value, erDialogDatabase.value || activeTabObj.value?.database);
-    erPickedColumns.value = cols || [];
+    const db = erDialogDatabase.value || activeTabObj.value?.database || activeDatabase.value;
+    erPickedColumns.value = (await loadTableColumnsCached(db, name)) || [];
   } catch (e) {
     message.error(`读取列失败: ${String((e as Error)?.message ?? e)}`);
   }
@@ -7555,6 +7783,8 @@ function closeTab(id: string) {
   const idx = tabs.value.findIndex(t => t.id === id);
   if (idx >= 0) {
     tabs.value.splice(idx, 1);
+    // 页签没了，快照也没有再用的机会，顺手放掉（否则关一堆表后内存一直涨）
+    tabDataCache.delete(id);
     if (activeTab.value === id) {
       const next = tabs.value[Math.min(idx, tabs.value.length - 1)];
       if (next) {
@@ -7593,8 +7823,12 @@ let tabPrefRestoring = false;
  *
  * <p>不恢复的话，用户为宽表配了 5 个条件、刷新一次就得重配一遍 ——
  * 而筛选条件往往是「排查了半小时才凑出来」的。</p>
+ *
+ * @param tab    目标表
+ * @param notify 是否提示「已恢复筛选条件」。页签来回切时传 false：
+ *               每次切换弹一条 toast 会盖住表格，而用户并没有要求恢复什么。
  */
-function restoreTablePref(tab: { tableName?: string; database?: string }): void {
+function restoreTablePref(tab: { tableName?: string; database?: string }, notify = true): void {
   const pref = loadTablePref(tablePrefKey(tab));
   // 恢复成「无筛选」而不是保留上一张表的：把 A 表的条件留在 B 表上
   // 会让 B 表直接报错，而用户完全不知道条件是哪来的。
@@ -7605,7 +7839,7 @@ function restoreTablePref(tab: { tableName?: string; database?: string }): void 
   } finally {
     tabPrefRestoring = false;
   }
-  if (pref && (pref.filterWhere || pref.filters.length > 0)) {
+  if (notify && pref && (pref.filterWhere || pref.filters.length > 0)) {
     message.info(`已恢复该表的筛选条件（${pref.filters.length} 个条件）`);
   }
 }
@@ -7652,10 +7886,10 @@ async function loadTableData(tab: Tab | undefined, page?: number) {
       // COUNT 是全表扫描，大表关掉后翻页请求只剩 SELECT+LIMIT/OFFSET。
       tableData.total = -1;
     }
-    // 注释 / 类型是异步到的：表头从 1 行变 2~3 行的这一刻必须重量一次表头高度，
-    // 否则 vxe 还按挂载时的高度裁，注释行、类型行会被切掉半截。
-    void loadColumnComments(tab).then(() => nextTick(refreshHeaderHeight));
-    void loadPkInfo(tab).then(() => nextTick(refreshHeaderHeight));
+    rememberTabData(tab, result);
+    // 列元数据与数据分开取：同一张表已经应用过就直接返回，翻页 / 排序不再重取列清单。
+    // 元数据补齐后表头会从 1 行变 2~3 行，高度由 loadTableMeta 内部重量。
+    void loadTableMeta(tab);
   } catch (e) {
     if (seq === tableDataReqSeq.value) {
       message.error(`加载表数据失败: ${String((e as Error)?.message ?? e)}`);
@@ -7665,24 +7899,6 @@ async function loadTableData(tab: Tab | undefined, page?: number) {
     if (seq === tableDataReqSeq.value) {
       tableLoading.value = false;
     }
-  }
-}
-
-/**
- * 加载列注释（表头/行「+注释」显示模式使用）
- * @param tab 当前表页签
- */
-async function loadColumnComments(tab: Tab | undefined): Promise<void> {
-  if (!tab?.tableName) return;
-  try {
-    const cols = await fetchTableColumns(tab.tableName, currentDatasourceId.value, tab.database);
-    for (const c of cols) {
-      if (c.remark) {
-        columnComments[c.name] = c.remark;
-      }
-    }
-  } catch {
-    // 注释加载失败不影响数据浏览
   }
 }
 
@@ -7700,13 +7916,99 @@ function onPageSizeChange(size: number) {
 }
 
 /**
- * 刷新当前表数据
+ * 刷新当前表数据（显式刷新按钮 / 右键「刷新」）。
+ *
+ * <p>显式刷新同时重取列元数据：用户点刷新往往正是因为「刚才在外面改了表结构」，
+ * 只刷数据会让表头继续显示已经不存在的列。</p>
  */
 function refreshTableData() {
   const tab = activeTabObj.value;
   if (tab?.tableName) {
+    invalidateTableMeta(tab.database || activeDatabase.value, tab.tableName);
+    void loadTableMeta(tab, true);
     loadTableData(tab);
   }
+}
+
+/**
+ * 每个表页签最近一次取到的数据快照。
+ *
+ * <p>切页签、重复点同一张表**不该再问一遍后端**：数据刚刚才取过，用户要的是
+ * 「回到刚才那张表」，不是「重新查一次」。以前切回来会重发 {@code /data}
+ * （外加两次 {@code /columns}），大表上就是几百毫秒的转圈，而屏幕上的数据
+ * 其实一秒前就在。</p>
+ *
+ * <p>快照随每次成功加载覆盖，所以它永远等于「这张表最后一次看到的样子」；
+ * 想拿最新数据有刷新按钮，也有翻页/排序这些天然会对齐的操作。</p>
+ */
+interface TabDataSnapshot {
+  data: DbTableDataResult;
+  /** 快照对应的排序：恢复时必须一起恢复，否则表头箭头与行内容对不上 */
+  sortProp: string;
+  sortOrder: "ASC" | "DESC" | "";
+  /** 快照对应的筛选条件指纹：条件变了（用户改了筛选）就不能拿旧行糊弄 */
+  filterSig: string;
+}
+
+/** 当前筛选条件指纹（WHERE 文本 + 结构化条件） */
+function currentFilterSignature(): string {
+  return JSON.stringify({ where: filterWhere.value, filters: activeFilters.value });
+}
+
+/** 表页签数据快照：键为页签 id */
+const tabDataCache = new Map<string, TabDataSnapshot>();
+
+/**
+ * 记下某页签刚取到的数据。
+ *
+ * <p>行 / 列都**复制一份**再存：快照与网格共用同一批行对象时，恢复另一张表
+ * 的快照会把那张表的字段写进这张表的行上（同名列被覆盖、多余的键留下），
+ * 反过来也会污染这张表的快照。</p>
+ *
+ * @param tab    页签
+ * @param result 接口返回
+ */
+function rememberTabData(tab: Tab, result: DbTableDataResult): void {
+  tabDataCache.set(tab.id, {
+    data: {
+      rows: result.rows.map(r => ({ ...r })),
+      columns: [...result.columns],
+      total: result.total,
+      page: result.page,
+      pageSize: result.pageSize,
+    },
+    sortProp: sortState.prop,
+    sortOrder: sortState.order,
+    filterSig: currentFilterSignature(),
+  });
+}
+
+/**
+ * 把页签快照写回表格。
+ *
+ * <p>走 {@link writeBackSilently} 原地写回：同行数时数组与行对象引用不变，
+ * vxe 的 data watch 不触发，切页签不会闪一下内部 loading 遮罩。</p>
+ *
+ * @param tab 页签
+ * @returns 恢复成功返回 true；没有快照返回 false（调用方去正常取数）
+ */
+function restoreTabDataSnapshot(tab: Tab): boolean {
+  const snap = tabDataCache.get(tab.id);
+  if (!snap) return false;
+  // 筛选条件变了（用户刚改过筛选）：快照里的行已经不是他要看的结果，去重新取
+  if (snap.filterSig !== currentFilterSignature()) return false;
+  // 每页条数是全局视图偏好（改了会落盘并重新取数）：和快照不一致就说明
+  // 这份快照是旧页大小下的行，直接还原会和分页器显示对不上，去重新取。
+  if (snap.data.pageSize !== tableData.pageSize) return false;
+  sortState.prop = snap.sortProp;
+  sortState.order = snap.sortOrder;
+  // 再复制一层：writeBackSilently 在行数不同时会直接采用传入的数组，
+  // 那样网格就和快照共用了行对象，之后任何一次格内编辑都会改到快照上。
+  writeBackSilently(tableData, {
+    ...snap.data,
+    rows: snap.data.rows.map(r => ({ ...r })),
+  });
+  return true;
 }
 
 /**
@@ -7759,10 +8061,9 @@ function writeBackSilently(cur: DbTableDataResult, next: DbTableDataResult): voi
  * loading 遮罩数帧（isRowLoading / isColLoading），那一下闪烁
  * 正是本函数要避免的。</p>
  *
- * <p>列注释 / 类型 / 主键不随单元格保存变化，这里不再
- * loadColumnComments / loadPkInfo —— 它们会重算 tableColumns
- * 换掉 columns prop，同样触发 vxe 列重建遮罩；首次开表时
- * loadTableData 已载好。</p>
+ * <p>列注释 / 类型 / 主键不随单元格保存变化，这里不再取列元数据 —— 它们会重算
+ * tableColumns、换掉 columns prop，同样触发 vxe 列重建遮罩；首次开表时
+ * {@link loadTableMeta} 已把它们载好。</p>
  *
  * <p>切表/换页签的竞态照抄 loadTableData 的序号守卫：静默刷新飞在路上时
  * 用户切了表，过期响应直接丢弃。</p>
@@ -7792,17 +8093,61 @@ async function silentRefreshTableData(tab: Tab | undefined) {
     if (!showTotal.value) {
       tableData.total = -1;
     }
+    // 快照跟着对齐：格内编辑保存后立刻切走再切回，看到的不该还是改之前的值
+    syncSnapshotSilently(tab, result);
   } catch {
     // 静默刷新的失败不打断主流程：单元格的值已经乐观写进去了，
     // 刷不出来顶多是过期数据，下一次切页/排序/显式刷新会自然对齐。
   }
 }
 
-async function loadTableDesign(tab: Tab) {
+/**
+ * 静默刷新成功后同步一份快照。
+ *
+ * <p>快照里的行是独立副本（见 {@link rememberTabData}），所以必须显式更新，
+ * 否则切页签回来会还原成编辑前的行。这里同样传副本进去，
+ * 避免行数变化时 writeBackSilently 直接采用数组、让快照与网格共用行对象。</p>
+ *
+ * @param tab    页签
+ * @param result 接口返回
+ */
+function syncSnapshotSilently(tab: Tab, result: DbTableDataResult): void {
+  const snap = tabDataCache.get(tab.id);
+  if (!snap) return;
+  writeBackSilently(snap.data, {
+    ...result,
+    rows: result.rows.map(r => ({ ...r })),
+  });
+  snap.sortProp = sortState.prop;
+  snap.sortOrder = sortState.order;
+  snap.filterSig = currentFilterSignature();
+}
+
+/**
+ * 加载表结构（设计页签）。
+ *
+ * <p>结构页签要的是「库里的真实结构」，但**不是每次切回页签都要重查**：
+ * 用户点「设计表」显式打开时传 {@code force} 重取一次；页签之间来回切走缓存，
+ * 由 DDL 保存路径的 {@link invalidateTableMeta} 保证缓存不会过期。</p>
+ *
+ * <p>取到的这一份同时写回 {@link tableMetaCache}，数据网格就不必再为同一张表
+ * 打第二次 {@code /columns}。</p>
+ *
+ * @param tab   表页签
+ * @param force 强制重取（用户显式打开设计页签时）
+ */
+async function loadTableDesign(tab: Tab, force = false) {
   if (!tab.tableName) return;
   designLoading.value = true;
   try {
-    const cols = await fetchTableColumns(tab.tableName, currentDatasourceId.value, tab.database);
+    const db = tab.database || activeDatabase.value;
+    const cols = await loadTableColumnsCached(db, tab.tableName, force);
+    // 设计页看到的最新结构，顺手同步给数据网格（主键 / 类型 / 注释 / 长度精度），
+    // 免得切回数据页签时还按旧结构渲染单元格编辑控件。
+    if (activeTabObj.value?.tableName === tab.tableName) {
+      applyTableMeta(cols);
+      tableMetaAppliedKey = tableMetaKey(db, tab.tableName);
+    }
     designRows.value = cols.map(c => {
       const origin = {
         name: c.name,
@@ -8351,6 +8696,10 @@ function onTabContextMenu(e: MouseEvent, tabId: string) {
 function closeOtherTabs(tabId: string) {
   const keep = tabs.value.find(t => t.id === tabId);
   tabs.value = tabs.value.filter(t => t.id === tabId);
+  // 只留一个页签：其余页签的数据快照一起作废
+  for (const key of [...tabDataCache.keys()]) {
+    if (key !== tabId) tabDataCache.delete(key);
+  }
   if (keep) {
     selectTab(keep.id);
   } else {
@@ -8362,6 +8711,7 @@ function closeOtherTabs(tabId: string) {
 function closeAllTabs() {
   tabs.value = [];
   activeTab.value = "";
+  tabDataCache.clear();
 }
 
 function closeContextMenu() {
@@ -8707,6 +9057,8 @@ async function deleteView(viewName: string, database?: string) {
   try {
     await dropDbView(viewName, currentDatasourceId.value, db);
     message.success(`视图 ${viewName} 已删除`);
+    // 视图没了：它的列元数据与数据快照都不该再被命中
+    invalidateTableMeta(db, viewName);
     if (db) {
       await loadTables(db);
     } else {
@@ -8731,6 +9083,8 @@ async function deleteTable(tableName: string, database?: string) {
   try {
     await dropDbTable(tableName, currentDatasourceId.value, db);
     message.success(`表 ${tableName} 已删除`);
+    // 表没了：列元数据与数据快照一起作废（同名表被重建时不能拿旧结构顶上）
+    invalidateTableMeta(db, tableName);
     if (db) {
       await loadTables(db);
     } else {
@@ -8758,6 +9112,8 @@ async function deleteDatabase(database: string) {
   try {
     await dropDbDatabase(database, currentDatasourceId.value);
     message.success(`数据库 ${database} 已删除`);
+    // 整个库没了：该库下所有表的列元数据与数据快照一并作废
+    invalidateTableMeta(database);
     delete tablesByDb[database];
     tabs.value = tabs.value.filter(t => (t.database || "") !== database);
     if (!tabs.value.some(t => t.id === activeTab.value)) {
@@ -8909,7 +9265,8 @@ async function resolveColumnsForTable(table: string): Promise<string[]> {
   const cached = sqlColumnCache.get(key);
   if (cached) return cached;
   try {
-    const cols = await fetchTableColumns(table, currentDatasourceId.value, activeDatabase.value);
+    // 补全只是「列名」用途：共享同一份列元数据缓存，刚浏览过的表不再打一次 /columns
+    const cols = await loadTableColumnsCached(activeDatabase.value, table);
     const names = cols.map(c => c.name);
     sqlColumnCache.set(key, names);
     return names;
@@ -9040,6 +9397,9 @@ async function renameTable(tableName: string, database?: string): Promise<void> 
   try {
     await renameDbTable(tableName, name, currentDatasourceId.value, db);
     message.success(`表已重命名为 ${name}`);
+    // 旧名作废；新名也清一次 —— 万一之前存在同名表（重命名前已删）的陈旧缓存
+    invalidateTableMeta(db, tableName);
+    invalidateTableMeta(db, name);
     tabs.value = tabs.value.filter(t => !(t.tableName === tableName && (t.database || "") === (db || "")));
     if (!tabs.value.some(t => t.id === activeTab.value)) {
       activeTab.value = tabs.value[0]?.id || "";
@@ -9189,12 +9549,14 @@ onMounted(() => {
   document.addEventListener("click", closeHeaderMenu);
   // 备注 popover 是 manual 触发，点别处得自己收
   document.addEventListener("click", onDocumentClickCloseRemark);
-  void adoptOrphanTx();
 });
 
 // 切数据源时也要查：孤儿事务是「用户忘了提交」留下的，
 // 而用户很可能正是在切回那个数据源时才想把它收拾掉。
 watch(currentDatasourceId, () => {
+  // 启动时那次赋值由 loadDatasources 收尾后统一探一次（见其末尾），
+  // 这里再探就是同一秒里的第二个 /tx/status。
+  if (loadingDatasources) return;
   if (!txId.value) {
     void adoptOrphanTx();
   }

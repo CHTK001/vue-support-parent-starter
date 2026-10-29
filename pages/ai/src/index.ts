@@ -21,4 +21,5 @@ export { default as ModelsPage } from "./components/models/ModelsPage.vue";
 export { default as SystemSettings } from "./components/setting/SystemSettings.vue";
 export { default as DefaultModelSettings } from "./components/setting/DefaultModelSettings.vue";
 export { default as PaperConfigPanel } from "./components/setting/PaperConfigPanel.vue";
+export { default as PaperConfigPage } from "./components/setting/PaperConfigPage.vue";
 export { default as ModelsProviderList } from "./components/setting/ModelsProviderList.vue";

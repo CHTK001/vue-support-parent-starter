@@ -25,3 +25,4 @@ export { default as ScGuacViewer } from "./components/ScGuacViewer.vue";
 export { default as ScSftpPanel } from "./components/ScSftpPanel.vue";
 export { default as ScTerminal } from "./components/ScGuacViewer.vue";
 export * from "./api";
+export * from "./services";

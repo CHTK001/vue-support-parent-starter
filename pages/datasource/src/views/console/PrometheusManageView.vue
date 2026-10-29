@@ -197,7 +197,7 @@ onMounted(async () => {
   } catch {
     // 列表拿不到时下拉为空，不影响已选数据源的使用
   }
-  await bind("prometheus");
+  await bind("prometheus", sources.value);
   if (datasourceId.value) {
     await reloadOverview();
   }

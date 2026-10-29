@@ -155,7 +155,10 @@ export const eduaiApi = {
    * {@code default_score_per_question} / {@code max_total_score}。取的是「全局默认 +
    * 本人覆盖」的合并视图，与配置中心界面上看到的值一致，避免两处默认值各说各话。</p>
    *
-   * <p>后端 merged 接口返回的是「配置项数组」，这里摊平成 field -> value，方便表单直接用。</p>
+   * <p>后端 merged 接口返回的是「配置项数组」，但外面可能还套着一层
+   * {@code { success: true, data: [...] }}（业务包装）或 {@code { items: [...] }}。
+   * 这里按这几种已知形态取到数组，再摊平成 field -> value，避免外层包装变化时
+   * 静默退化成「取不到配置」，让页面悄悄用回写死的默认值。</p>
    *
    * @returns compose 分组配置键值对（值为后端下发的字符串）
    */
@@ -163,12 +166,16 @@ export const eduaiApi = {
     http()
       .get("/v2/settings/compose/merged")
       .then<Record<string, any>>((r) => {
-        const data = unwrap<any>(r);
-        const items: any[] = Array.isArray(data)
-          ? data
-          : Array.isArray((data as any)?.items)
-            ? (data as any).items
-            : [];
+        const payload = unwrap<any>(r);
+        const items: any[] = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.items)
+            ? payload.items
+            : Array.isArray(payload?.data)
+              ? payload.data
+              : Array.isArray(payload?.data?.data)
+                ? payload.data.data
+                : [];
         const map: Record<string, any> = {};
         for (const item of items) {
           if (item && typeof item === 'object' && item.field) {

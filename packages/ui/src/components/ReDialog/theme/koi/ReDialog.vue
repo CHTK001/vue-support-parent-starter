@@ -43,17 +43,14 @@ const props = withDefaults(
     /**
      * 是否允许拖拽越出视口（透传 el-dialog 的 `overflow`）。
      *
-     * <p><b>为什么需要它</b>：el-dialog 的 `useDraggable` 在 `overflow` 为假时会把位移
-     * 钳制成「整个弹窗留在视口内」——竖向上限是
-     * {@code maxTop = clientHeight - targetTop - targetHeight}。
-     * 弹窗**略矮于视口**时这个上限几乎为 0，表现就是<b>拖不动</b>
-     * （element-plus 2.14 的 `use-draggable/index.mjs`：
-     * {@code maxTop = clientHeight - targetTop - (targetHeight < clientHeight ? targetHeight : 0)}
-     * ——只有弹窗比视口还高时才放开）。koi 弹窗多为近满高的配置面板，正好落在拖不动的区间。</p>
+     * <p><b>为什么需要它</b>：el-dialog 的 `useDraggable` 只在 `overflow` 为假时 clamp，
+     * 位移上限 {@code maxTop = clientHeight - targetTop - (targetHeight < clientHeight ? targetHeight : 0)}，
+     * 弹窗**略矮于视口**时这个上限约等于 0，表现就是 <b>拖不动</b>
+     * （element-plus 2.14 的 `use-draggable/index.mjs`）。koi 弹窗多为近满高的配置面板，
+     * 正好落在拖不动的区间。</p>
      *
-     * <p>默认跟随 {@link draggable}：开了拖拽就放开钳制，让用户真能拖到任意位置。
-     * 放开后由 {@link onDocumentMouseUp} 兜底，保证弹窗不会被拖到视口外找不回来；
-     * 显式传 {@code false} 可退回 Element 的严格包含行为。</p>
+     * <p>未传值时就等于 `overflow="false"`：弹窗只在拖到视口边后停止，不会拖出视口、也不会回弹；
+     * 业务真要自由空间就显式传 <code>overflow="true"</code>（放开钳制，接受弹窗被拖出视口）。</p>
      */
     overflow?: boolean;
     height?: number;
@@ -129,7 +126,7 @@ const props = withDefaults(
     fullscreen: false,
     loading: false,
     draggable: true,
-    // 三态：未传 = 跟随 draggable（见 props.overflow 说明）；显式 true/false 覆盖。
+    // overflow：跟 draggable 无关——直接透传 props.overflow（el-dialog 自己按 globalConfig 决定 clamp），
     // 与 footerHidden 同理，必须给 default: undefined —— Boolean prop「未传且无默认值」
     // 会被 Vue 强转成 false，三态里的「未传」将永远不可达。
     overflow: undefined,
@@ -184,37 +181,6 @@ watch(localOpen, (v) => {
 });
 
 const dialogFullscreen = computed(() => windowFullscreen.value);
-
-
-
-/**
- * 传给 el-dialog 的 `overflow`：显式配置优先，否则回到 el-dialog 的原始钳制——
- * 拖拽只允许把弹窗磨到视口边，不会磨出视口，也不会再弹回来。
- *
- * <p>element-plus 的 `useDraggable` 在 {@code overflow} 为假时，把位移（`translate`）
- * 钳制在 `minLeft/maxLeft` / `minTop/maxTop` 范围内，其中
- * {@code maxTop = clientHeight - targetTop - (targetHeight < clientHeight ? targetHeight : 0)}
- * ——弹窗可以拖出居中的空白，但移不进视口之外；拖到边界就停住，是 el-dialog 原本的
- * 「不允许拖出视口」语义，没有回弹。</p>
- */
-const effectiveOverflow = computed<boolean>(() => props.overflow ?? false);
-
-/** el-dialog 实例句柄（取弹窗 DOM / 调 resetPosition） */
-const dialogInstance = ref<DialogExposed | null>(null);
-
-/**
- * ElDialog 通过 `defineExpose` 暴露的成员（这里只声明用到的两个）。
- *
- * <p>element-plus 的 `dialog.vue` 里 {@code __expose({ visible, dialogContentRef, resetPosition, handleClose })}，
- * 且 `expose` 经 `proxyRefs` 包装，故 {@code dialogContentRef} 取到的是已解包的 dialog-content
- * 组件实例（其 `$el` 即 `.el-dialog` 元素），不是 Ref。</p>
- */
-interface DialogExposed {
-  /** 内部 dialog-content 组件实例；其 $el 即 .el-dialog 元素 */
-  dialogContentRef?: { $el?: HTMLElement } | null;
-  /** 把拖拽位移归零（同时清掉 useDraggable 内部的 offset 记账） */
-  resetPosition?: () => void;
-}
 
 
 
@@ -305,7 +271,7 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
     append-to-body
     modal-class="koi-dialog-modal"
     :draggable="draggable"
-    :overflow="effectiveOverflow"
+    :overflow="props.overflow"
     :destroy-on-close="destroyOnClose"
     :fullscreen="dialogFullscreen"
     :z-index="props.zIndex"

@@ -1139,10 +1139,9 @@ function onFileContextMenu(e: MouseEvent, file: HostFileItem) {
     if (isTextLike(file.name)) {
       items.push({ label: "编辑", icon: Edit, action: () => { closeMenu(); openEditor(file.name, full()); } });
     }
-    items.push({ label: "下载", icon: Download, action: () => { closeMenu(); doDownload(file.name, full(), false); } });
-  } else {
-    items.push({ label: "打包下载(zip)", icon: Download, action: () => { closeMenu(); doDownload(file.name, full(), true); } });
   }
+  /* 下载：文件直下，目录打包 — 合并为一条，避免菜单里重复出现下载 */
+  items.push({ label: "下载", icon: Download, action: () => { closeMenu(); doDownload(file.name, full(), file.isDir); } });
   if (!isWindows.value) {
     items.push({ label: "权限", icon: Key, action: () => { closeMenu(); openPerms(file); } });
   }
