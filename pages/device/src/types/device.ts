@@ -124,6 +124,33 @@ export interface CredentialFieldDescriptor {
   placeholder?: string
 }
 
+/** 同步统计（created / updated / skipped） */
+export interface SyncResult {
+  created: number
+  updated: number
+  skipped: number
+}
+
+/** 厂商侧人员（同步到 device_person 表） */
+export interface DevicePerson {
+  devicePersonId?: string
+  devicePersonName: string
+  /** 职称 */
+  devicePersonTitle?: string
+  /** 手机 */
+  devicePersonPhone?: string
+  /** 邮箱 */
+  devicePersonEmail?: string
+  /** 厂商侧组织标识（挂接 device_organization） */
+  devicePersonOrgId?: string
+  devicePersonVendor: string
+  /** 厂商侧人员唯一标识 */
+  devicePersonExternalId: string
+  devicePersonDeleted?: boolean
+  devicePersonCreatedAt?: string
+  devicePersonUpdatedAt?: string
+}
+
 /** 平台描述 */
 export interface PlatformDescriptor {
   code: string
@@ -240,6 +267,10 @@ export interface ProviderCredential {
   deviceCredentialAppSecretConfigured?: boolean
   /** 平台 endpoint 覆盖，留空用内置默认 */
   deviceCredentialBaseUrl?: string
+  /** 云曜产品编码（ProductCode），云曜平台必填 */
+  deviceCredentialProductCode?: string
+  /** 云曜项目 ID（ProjectID），云曜平台必填 */
+  deviceCredentialProjectId?: string
   deviceCredentialOfflineThreshold?: number
   deviceCredentialIsDefault?: boolean
   deviceCredentialEnabled?: boolean

@@ -166,16 +166,30 @@
             <template #col-actions="{ row }">
               <span class="dpv-ops" @click.stop>
                 <ReButton
-                  link
+                  layout="square"
                   type="primary"
                   size="small"
+                  icon="Connection"
                   :loading="testingId === row.deviceCredentialId"
+                  tip="测试连接"
                   @click="testCredential(asCredential(row))"
-                >
-                  测试
-                </ReButton>
-                <ReButton link type="primary" size="small" @click="openEdit(asCredential(row))">编辑</ReButton>
-                <ReButton link type="danger" size="small" @click="removeCredential(asCredential(row))">删除</ReButton>
+                />
+                <ReButton
+                  layout="square"
+                  type="primary"
+                  size="small"
+                  icon="EditPen"
+                  tip="编辑"
+                  @click="openEdit(asCredential(row))"
+                />
+                <ReButton
+                  layout="square"
+                  type="danger"
+                  size="small"
+                  icon="Delete"
+                  tip="删除"
+                  @click="removeCredential(asCredential(row))"
+                />
               </span>
             </template>
 
@@ -234,6 +248,38 @@
               <span>{{ activeCredential.deviceCredentialOfflineThreshold ?? '—' }} 秒</span>
             </span>
             <span class="dpv-grow" />
+            <span class="dpv-foot__tools">
+              <ReButton
+                v-if="syncEntry.device"
+                layout="square"
+                size="small"
+                type="primary"
+                icon="Refresh"
+                :loading="credSyncLoading('device')"
+                tip="同步设备"
+                @click="syncCredential('device')"
+              />
+              <ReButton
+                v-if="syncEntry.org"
+                layout="square"
+                size="small"
+                type="primary"
+                icon="Grid"
+                :loading="credSyncLoading('org')"
+                tip="同步组织"
+                @click="syncCredential('org')"
+              />
+              <ReButton
+                v-if="syncEntry.person"
+                layout="square"
+                size="small"
+                type="primary"
+                icon="User"
+                :loading="credSyncLoading('person')"
+                tip="同步人员"
+                @click="syncCredential('person')"
+              />
+            </span>
             <ReButton
               icon="Connection"
               size="small"
@@ -300,20 +346,25 @@
         </el-form-item>
 
         <div class="dpv-form__grid">
-          <el-form-item label="AppKey（AK）" required>
-            <el-input v-model="form.deviceCredentialAppKey" maxlength="128" placeholder="平台应用的 AppKey" @keyup.enter="submit" />
-          </el-form-item>
-          <el-form-item label="AppSecret（SK）" :required="!editingCredentialId">
+          <el-form-item
+            v-for="field in currentCredentialFields"
+            :key="field.key"
+            :label="field.label"
+            :required="fieldFormRequired(field)"
+          >
             <el-input
-              v-model="form.deviceCredentialAppSecret"
-              type="password"
-              show-password
-              maxlength="256"
-              :placeholder="editingCredentialId ? '已配置，留空表示不修改' : '平台应用的 AppSecret'"
+              :model-value="fieldFormValue(field)"
+              @update:model-value="(v: string) => form[fieldFormKey(field)] = v"
+              :type="field.secret ? 'password' : 'text'"
+              :show-password="field.secret"
+              :maxlength="256"
+              :placeholder="field.placeholder"
+              @keyup.enter="submit"
+              class="dpv-w"
             />
           </el-form-item>
         </div>
-        <p class="dpv-form__hint">凭证由后端加密存储，接口不回传明文；编辑时留空即保持原值。</p>
+        <p class="dpv-form__hint">凭证由后端加密存储，接口不回传明文；编辑时留空即保持原值。字段由厂商描述符（credentialFields）驱动，新增厂商无需改前端。</p>
 
         <el-form-item label="Base URL">
           <el-input v-model="form.deviceCredentialBaseUrl" maxlength="255" placeholder="留空使用平台默认地址" />
@@ -390,9 +441,11 @@ import ReTag from '@repo/ui/re-tag'
 import { deviceApi } from '@pages/device/src/api/deviceApi'
 import { formatDateTime } from '@pages/device/src/utils/deviceFormat'
 import type {
+  CredentialFieldDescriptor,
   DeviceCapability,
   DeviceVendorDescriptor,
-  ProviderCredential
+  ProviderCredential,
+  SyncResult
 } from '@pages/device/src/types/device'
 
 const router = useRouter()
@@ -425,13 +478,20 @@ const editingCredentialId = ref('')
 /** 底部条跟随的凭据 */
 const activeCredentialId = ref('')
 
-const form = reactive({
+/** 凭据表单：描述符字段通过索引签名回填到同一 object 里 */
+interface FormPayload extends ProviderCredential {
+  [key: string]: unknown
+}
+
+const form = reactive<FormPayload>({
   deviceCredentialVendor: '',
   deviceCredentialPlatformType: '',
   deviceCredentialName: '',
   deviceCredentialAppKey: '',
   deviceCredentialAppSecret: '',
   deviceCredentialBaseUrl: '',
+  deviceCredentialProductCode: '',
+  deviceCredentialProjectId: '',
   deviceCredentialOfflineThreshold: 60,
   deviceCredentialIsDefault: false,
   deviceCredentialEnabled: true,
@@ -442,6 +502,43 @@ const currentVendor = computed(() =>
   vendors.value.find((item) => item.vendor === form.deviceCredentialVendor)
 )
 const currentPlatforms = computed(() => currentVendor.value?.platforms || [])
+
+/** 描述符字段 key → form 属性名（字段名以 deviceCredential 为前缀） */
+const CREDENTIAL_FIELD_BIND: Record<string, string> = {
+  appKey: 'deviceCredentialAppKey',
+  appSecret: 'deviceCredentialAppSecret',
+  productCode: 'deviceCredentialProductCode',
+  projectId: 'deviceCredentialProjectId',
+  baseUrl: 'deviceCredentialBaseUrl'
+}
+
+/** 描述符字段 → form 中绑定的属性名 */
+function fieldFormKey(field: CredentialFieldDescriptor): string {
+  return CREDENTIAL_FIELD_BIND[field.key]
+    ?? `deviceCredential${field.key.charAt(0).toUpperCase() + field.key.slice(1)}`
+}
+
+/** 字段的只读值 */
+function fieldFormValue(field: CredentialFieldDescriptor): string {
+  return String(form[fieldFormKey(field)] ?? '')
+}
+
+/** 字段是否必填（编辑时密钥留空即不修改） */
+function fieldFormRequired(field: CredentialFieldDescriptor): boolean {
+  if (!field.required) return false
+  if (editingCredentialId.value && field.secret) return false
+  return true
+}
+
+/** 当前平台描述符驱动的字段（不再写死 AK / SK） */
+const currentCredentialFields = computed<CredentialFieldDescriptor[]>(
+  () =>
+    currentVendor.value?.platforms.find((item) => item.code === form.deviceCredentialPlatformType)
+      ?.credentialFields || []
+)
+
+/** 凭据维度同步的加载态（device / org / person） */
+const syncLoading = reactive({ device: false, org: false, person: false })
 
 /** 当前过滤的厂商（「全部」时为 null） */
 const activeVendor = computed(() =>
@@ -596,6 +693,8 @@ function resetForm() {
   form.deviceCredentialAppKey = ''
   form.deviceCredentialAppSecret = ''
   form.deviceCredentialBaseUrl = vendors.value[0]?.platforms[0]?.defaultBaseUrl || ''
+  form.deviceCredentialProductCode = ''
+  form.deviceCredentialProjectId = ''
   form.deviceCredentialOfflineThreshold = vendors.value[0]?.defaultOfflineThreshold ?? 60
   form.deviceCredentialIsDefault = false
   form.deviceCredentialEnabled = true
@@ -623,6 +722,8 @@ function openEdit(row: ProviderCredential) {
   form.deviceCredentialAppKey = row.deviceCredentialAppKey || ''
   form.deviceCredentialAppSecret = ''
   form.deviceCredentialBaseUrl = row.deviceCredentialBaseUrl || ''
+  form.deviceCredentialProductCode = row.deviceCredentialProductCode || ''
+  form.deviceCredentialProjectId = row.deviceCredentialProjectId || ''
   form.deviceCredentialOfflineThreshold = row.deviceCredentialOfflineThreshold ?? 60
   form.deviceCredentialIsDefault = !!row.deviceCredentialIsDefault
   form.deviceCredentialEnabled = row.deviceCredentialEnabled !== false
@@ -651,13 +752,12 @@ async function submit() {
     message.warning('请填写凭据名称')
     return
   }
-  if (!form.deviceCredentialAppKey.trim()) {
-    message.warning('请填写 AppKey')
-    return
-  }
-  if (!editingCredentialId.value && !form.deviceCredentialAppSecret.trim()) {
-    message.warning('请填写 AppSecret')
-    return
+  /** 描述符驱动的必填字段：任何 platform 的字段都走统一验证 */
+  for (const field of currentCredentialFields.value) {
+    if (fieldFormRequired(field) && !fieldFormValue(field)) {
+      message.warning(`请填写 ${field.label}`)
+      return
+    }
   }
 
   submitting.value = true
@@ -666,15 +766,17 @@ async function submit() {
       deviceCredentialVendor: form.deviceCredentialVendor,
       deviceCredentialPlatformType: form.deviceCredentialPlatformType || null,
       deviceCredentialName: form.deviceCredentialName.trim(),
-      deviceCredentialAppKey: form.deviceCredentialAppKey.trim(),
-      deviceCredentialBaseUrl: form.deviceCredentialBaseUrl.trim() || null,
+      deviceCredentialBaseUrl: String(form.deviceCredentialBaseUrl || '').trim() || null,
       deviceCredentialOfflineThreshold: form.deviceCredentialOfflineThreshold,
       deviceCredentialIsDefault: form.deviceCredentialIsDefault,
       deviceCredentialEnabled: form.deviceCredentialEnabled,
-      deviceCredentialRemark: form.deviceCredentialRemark.trim() || null
+      deviceCredentialRemark: String(form.deviceCredentialRemark || '').trim() || null
     }
-    if (form.deviceCredentialAppSecret.trim()) {
-      payload.deviceCredentialAppSecret = form.deviceCredentialAppSecret.trim()
+    /** 描述符驱动的字段：非空即回填，未提交的字段不加 key（不传 null） */
+    for (const field of currentCredentialFields.value) {
+      const value = fieldFormValue(field)
+      if (!value) continue
+      payload[fieldFormKey(field)] = value
     }
 
     if (editingCredentialId.value) {
@@ -740,6 +842,68 @@ async function syncOrg() {
   } finally {
     orgSyncing.value = false
   }
+}
+
+/** 厂商侧能力位：决定凭据维度同步入口的显隐 */
+function canSyncVendor(vendor: string, kind: 'device' | 'org' | 'person'): boolean {
+  const descriptor = vendors.value.find((item) => item.vendor === vendor)
+  if (!descriptor) return false
+  switch (kind) {
+    case 'device': return descriptor.capabilities.includes('DEVICE')
+    case 'org':
+    case 'person': return descriptor.capabilities.includes('ORG')
+    default: return false
+  }
+}
+
+/** 当前凭据身上有能力的入 textBox（device / org / person） */
+const syncEntry = computed<{ device: boolean; org: boolean; person: boolean }>(() => {
+  const credential = activeCredential.value
+  if (!credential || !credential.deviceCredentialVendor) return { device: false, org: false, person: false }
+  return {
+    device: canSyncVendor(credential.deviceCredentialVendor, 'device'),
+    org: canSyncVendor(credential.deviceCredentialVendor, 'org'),
+    person: canSyncVendor(credential.deviceCredentialVendor, 'person')
+  }
+})
+
+/** 凭据维度同步（按该套凭据建连，拉取设备的目录/组织/人员，不触其他厂商） */
+async function syncCredential(kind: 'device' | 'org' | 'person') {
+  const credential = activeCredential.value
+  if (!credential || !credential.deviceCredentialId) {
+    message.warning('请先选择一条凭据')
+    return
+  }
+  syncLoading[kind] = true
+  try {
+    let result: SyncResult
+    switch (kind) {
+      case 'device':
+        result = await deviceApi.syncDevicesByCredential(credential.deviceCredentialId)
+        break
+      case 'org':
+        result = await deviceApi.syncOrgByCredential(credential.deviceCredentialId)
+        break
+      case 'person':
+        result = await deviceApi.syncPersonsByCredential(credential.deviceCredentialId)
+        break
+      default:
+        throw new Error('未知的同步方向')
+    }
+    message.success(
+      `「${credential.deviceCredentialName}」同步完成：新增 ${result.created}，更新 ${result.updated}，跳过 ${result.skipped}`
+    )
+    await fetchCredentials()
+  } catch (err) {
+    message.error(`凭据维度同步失败：${errorText(err)}`)
+  } finally {
+    syncLoading[kind] = false
+  }
+}
+
+/** 底部条 / 导轨的加载态 */
+function credSyncLoading(kind: 'device' | 'org' | 'person'): boolean {
+  return syncLoading[kind]
 }
 
 function refreshAll() {
@@ -1226,6 +1390,14 @@ onMounted(() => {
   overflow: hidden;
 }
 
+/** 凭据维度的同步入口：与 AK / SK 行分组的内联按钮组 */
+.dpv-foot__tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 6px;
+  border-left: 1px solid var(--el-border-color-lighter);
+}
 .dpv-foot__item--url .dpv-mono {
   overflow: hidden;
   text-overflow: ellipsis;

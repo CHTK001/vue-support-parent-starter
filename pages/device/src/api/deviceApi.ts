@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 设备管理 API 封装
  *
  * 与设备后端服务对接：设备/通道增删改查、视频拉流 URL、云台控制、门禁、事件、Excel 导出等。
@@ -11,7 +11,7 @@
  */
 
 import { createModuleHttp } from "@repo/core";
-import type { DevicePageQuery, PageResult, DeviceInfo, DeviceVendorDescriptor } from '@pages/device/src/types/device'
+import type { DevicePageQuery, PageResult, DeviceInfo, DeviceVendorDescriptor, SyncResult } from '@pages/device/src/types/device'
 
 /** 设备模块 Http 客户端（baseUrl 由配置 httpConfig.moduleBaseUrl.device 决定） */
 /**
@@ -144,8 +144,22 @@ export const deviceApi = {
     http.put(`/provider-credential/${id}`).data(credential).then(unwrap),
   deleteCredential: (id: string) => http.delete(`/provider-credential/${id}`).then(unwrap),
   testCredential: (id: string) => http.post(`/provider-credential/${id}/test`).then(unwrap) as Promise<boolean>,
+  /** 按厂商同步设备目录（拉取方向；未指定 vendor 则同步全部厂商） */
   syncDevices: (vendor?: string) =>
-    http.post("/sync").query({ vendor }).then(unwrap) as Promise<{ created: number; updated: number; skipped: number }>,
+    http.post("/sync").query({ vendor }).then(unwrap) as Promise<SyncResult>,
+  // ==================== 凭据维度同步（按 AK/SK 平台的厂商侧账本） ====================
+  /** 按凭据 ID 同步设备目录（落库 device_info，台账行回写 deviceInfoCredentialId） */
+  syncDevicesByCredential: (id: string) =>
+    http.post(`/provider-credential/${id}/sync/devices`).then(unwrap) as Promise<SyncResult>,
+  /** 按凭据 ID 同步组织树 */
+  syncOrgByCredential: (id: string) =>
+    http.post(`/provider-credential/${id}/sync/org`).then(unwrap) as Promise<SyncResult>,
+  /** 按凭据 ID 同步人员列表 */
+  syncPersonsByCredential: (id: string) =>
+    http.post(`/provider-credential/${id}/sync/persons`).then(unwrap) as Promise<SyncResult>,
+  /** 按凭据 ID 全量同步（设备 + 组织 + 人员） */
+  syncCredential: (id: string) =>
+    http.post(`/provider-credential/${id}/sync`).then(unwrap) as Promise<SyncResult[]>,
 
   // ==================== 定时任务状态 ====================
   /** 全部时间轮任务状态（interval / running / lastRunAt） */
