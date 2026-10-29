@@ -77,6 +77,10 @@ export default {
 
     // ThinkingEffortPopover.vue
     thinkingEffortTitle: '思考强度',
+    // 推理强度弹层标题（图片设计稿文案）
+    thinkingEffortSelectorTitle: '选择推理强度',
+    // 滑块当前档位提示
+    thinkingEffortCurrentLevel: '当前强度',
     // 思考等级：把「深度思考开关」与「推理强度档位」合并后的入口标题（用户需求 4.2）
     thinkingLevelTitle: '思考等级',
     // 思考等级里的「关闭」项（对应不思考）

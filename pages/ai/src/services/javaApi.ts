@@ -32,6 +32,7 @@ export const modelApi = {
   create: (data: any) => http.post('/models', data),
   update: (id: string, data: any) => http.put(`/models/${id}`, data),
   delete: (id: string) => http.delete(`/models/${id}`),
+  batchDelete: (ids: number[]) => http.delete('/models/batch', { data: { ids } }),
   testLatency: (id: string) => http.post(`/models/${id}/test-latency`),
   // 模型管理卡片的延迟测试走 provider 复合标识：旧 /models/{modelId} 是
   // sys_ai_model 数字主键，不适用于 /api/providers 返回的 providerId:modelName 行。
@@ -49,6 +50,7 @@ export const appKeyApi = {
   create: (data: any) => http.post('/app-keys', data),
   update: (id: string, data: any) => http.put(`/app-keys/${id}`, data),
   delete: (id: string) => http.delete(`/app-keys/${id}`),
+  batchDelete: (ids: number[]) => http.delete('/app-keys/batch', { data: { ids } }),
 };
 
 /** 厂商目录（厂商 Key 的归属厂商，用于表单选择器） */
@@ -452,6 +454,7 @@ export interface ChannelSummary {
   displayName?: string;
   loginMethod?: string;
   supportsCheckin?: boolean;
+  supportsRefresh?: boolean;
   providerId?: string;
   enabled?: boolean;
   connections?: ChannelConnectionSummary[];

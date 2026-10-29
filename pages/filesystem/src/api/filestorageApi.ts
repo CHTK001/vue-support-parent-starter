@@ -714,6 +714,22 @@ export interface SpiUrlPreviewer {
 }
 
 /**
+ * 远程文件读取器 SPI 实现（FileStorageRemoteReader SPI）
+ */
+export interface SpiRemoteReader {
+  /** 实现名（如 SSH） */
+  name: string;
+  /** 展示名（如「SSH 远程」） */
+  label: string;
+  /** 实现说明 */
+  description?: string;
+  /** 支持的 URL 协议前缀（如 ssh://） */
+  protocol: string;
+  /** 是否支持远程读取 */
+  supported?: boolean;
+}
+
+/**
  * SPI 能力分组（某一 SPI 接口的能力列表）
  */
 export interface SpiCapabilityGroup {
@@ -739,6 +755,8 @@ export interface CapabilitiesResponse {
   imageFilters: SpiCapability[];
   /** 三方 URL 预览能力实现列表（FileStorageUrlPreviewProvider SPI） */
   urlPreviewers: SpiUrlPreviewer[];
+  /** 远程文件读取器实现列表（FileStorageRemoteReader SPI） */
+  remoteReaders: SpiRemoteReader[];
 }
 
 /**
@@ -1570,6 +1588,14 @@ export interface UploadTaskInfo {
   objectKey: string;
   /** 创建时间（毫秒时间戳） */
   createdAt: number;
+  /** 文件扩展名（小写，无点） */
+  ext?: string;
+  /** MIME 类型 */
+  mime?: string;
+  /** 图片宽度（像素；非图片为 0） */
+  width?: number;
+  /** 图片高度（像素；非图片为 0） */
+  height?: number;
 }
 
 /**
@@ -1702,6 +1728,22 @@ export async function cancelUploadTask(taskId: string): Promise<UploadTaskInfo> 
       .then<UploadTaskInfo>((r) => unwrapTask<UploadTaskInfo>(r));
   } catch (e) {
     throw new Error(toErrorMessage(e, "取消上传任务"));
+  }
+}
+
+/**
+ * 删除上传任务：移除任务记录并删除已写入存储的对象。
+ *
+ * @param taskId 任务号
+ * @return true = 已删除；false = 任务不存在
+ */
+export async function deleteUploadTask(taskId: string): Promise<boolean> {
+  try {
+    return await uploadTaskHttp()
+      .delete(`${UPLOAD_TASK_BASE}/task/${taskId}/delete`)
+      .then<boolean>((r) => unwrapTask<boolean>(r) ?? true);
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "删除上传任务"));
   }
 }
 
@@ -1901,6 +1943,35 @@ export async function clearFileLogs(): Promise<number> {
   }
 }
 
+/**
+ * 删除早于指定截止时间的文件操作日志（保留最近 N 天）。
+ *
+ * @param beforeMillis 截止时间戳（毫秒，Unix 时间）；早于它的日志被删除。
+ * @return 被删除的条数
+ */
+export async function cleanFileLogsBefore(beforeMillis: number): Promise<number> {
+  try {
+    return await uploadTaskHttp()
+      .delete(`${FILE_LOG_BASE}/clean?before=${Math.floor(beforeMillis)}`)
+      .then<number>((r) => unwrapTask<number>(r) ?? 0);
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "清理文件日志"));
+  }
+}
+
+/** 文件日志清理范围（对应「删除 一天前/一周前/一月前」） */
+export type FileLogCleanScope = "today" | "week" | "month";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** 把清理范围换算成截止时间戳（毫秒） */
+export function logCleanCutoff(scope: FileLogCleanScope): number {
+  const now = Date.now();
+  if (scope === "today") return now - DAY_MS;
+  if (scope === "week") return now - 7 * DAY_MS;
+  return now - 30 * DAY_MS;
+}
+
 // ==================== 协同文档（在线表格协同） ====================
 
 /** 协同文档接口前缀（Spring 侧，与上传任务同通道） */
@@ -1908,6 +1979,9 @@ const FILE_COLLAB_BASE = "/v2/file/collab";
 
 /** 协同文档可见性 */
 export type CollabVisibility = "PUBLIC" | "PRIVATE";
+
+/** 协同文档类型 */
+export type CollabDocType = "excel" | "word" | "text";
 
 /** 协同文档（后端 FileCollabStore.FileCollab） */
 export interface FileCollabInfo {
@@ -1931,8 +2005,26 @@ export interface FileCollabInfo {
   updatedAt: number;
   /** 快照版本（乐观锁计数） */
   version: number;
-  /** 当前表格快照（Univer 工作簿 JSON；空串 = 未保存） */
+  /** 当前表格快照（Univer 工作簿 JSON / word 富文本 HTML / text 纯文本；空串 = 未保存） */
   snapshot: string;
+  /** 所在目录（空串 = 根目录；"x/y" = 层级目录） */
+  path: string;
+  /** 文档类型：excel / word / text */
+  type: CollabDocType;
+  /** 快照 UTF-8 字节数（文件大小展示） */
+  size?: number;
+}
+
+/** 协同历史版本条目 */
+export interface CollabVersionEntry {
+  /** 版本号 */
+  version: number;
+  /** 保存时间戳 */
+  updatedAt: number;
+  /** 快照内容（word/text 为内容，excel 为 Univer JSON） */
+  snapshot?: string;
+  /** 快照字节数 */
+  size?: number;
 }
 
 /**
@@ -1948,6 +2040,8 @@ export async function createFileCollab(options: {
   fileName: string;
   visibility?: CollabVisibility;
   userIds?: string[];
+  path?: string;
+  type?: CollabDocType;
 }): Promise<FileCollabInfo> {
   try {
     const params = new URLSearchParams();
@@ -1957,6 +2051,8 @@ export async function createFileCollab(options: {
     params.set("fileName", options.fileName);
     params.set("visibility", options.visibility ?? "PUBLIC");
     if (options.userIds?.length) params.set("userIds", options.userIds.join(","));
+    if (options.path) params.set("path", options.path);
+    if (options.type) params.set("type", options.type);
     const qs = params.toString();
     return await uploadTaskHttp()
       .post(`${FILE_COLLAB_BASE}/create${qs ? `?${qs}` : ""}`)
@@ -1969,13 +2065,24 @@ export async function createFileCollab(options: {
 /**
  * 列出当前用户可见的协同文档（新→旧）。
  *
- * @param userId 当前用户标识
+ * <p>支持目录过滤与关键字过滤：path 非空 = 只列该目录下（文件夹内部检索）；
+ * path 为空 = 全部目录（外部 / 全局检索）。keyword 匹配文件名或目录路径。</p>
+ *
+ * @param userId   当前用户标识
+ * @param path     目录过滤（null/空 = 全部目录）
+ * @param keyword  关键字过滤（null/空 = 不过滤）
  * @return 协同文档列表
  */
-export async function listFileCollabs(userId?: string): Promise<FileCollabInfo[]> {
+export async function listFileCollabs(
+  userId?: string,
+  path?: string,
+  keyword?: string,
+): Promise<FileCollabInfo[]> {
   try {
     const params = new URLSearchParams();
     if (userId) params.set("userId", userId);
+    if (path) params.set("path", path);
+    if (keyword) params.set("keyword", keyword);
     const qs = params.toString();
     return await uploadTaskHttp()
       .get(`${FILE_COLLAB_BASE}/list${qs ? `?${qs}` : ""}`)
@@ -2004,6 +2111,13 @@ export async function getFileCollab(id: string): Promise<FileCollabInfo> {
 /**
  * 保存协同快照（版本乐观锁）。
  *
+ * <p><b>必须显式声明 Content-Type 为 text/plain。</b>请求体是 Univer 工作簿快照的
+ * JSON 字符串，但它是作为「原始字符串」发送的，HTTP 客户端对字符串 body 的缺省类型是
+ * {@code application/x-www-form-urlencoded}。后端按 {@code request.getInputStream()}
+ * 读原始字节，而 Servlet 容器在表单类型下会先把 body 当表单解析消费掉，导致读到的
+ * 是空串——表现为「保存成功、版本 +1，但快照长度始终是 0」，刷新后内容全丢。
+ * 实测同一份 541 字节快照：json/text/无类型均能存 541，form-urlencoded 存 0。</p>
+ *
  * @param id              协同文档号
  * @param snapshot        Univer 工作簿快照 JSON
  * @param expectedVersion 期望的当前版本
@@ -2017,6 +2131,8 @@ export async function saveFileCollabSnapshot(
   try {
     return await uploadTaskHttp()
       .put(`${FILE_COLLAB_BASE}/${id}/snapshot?expectedVersion=${expectedVersion}`)
+      // 不能省：省掉就会是 application/x-www-form-urlencoded，后端读到空 body
+      .headers({ "Content-Type": "text/plain;charset=UTF-8" })
       .data(snapshot)
       .then<FileCollabInfo>((r) => unwrapTask<FileCollabInfo>(r));
   } catch (e) {
@@ -2062,6 +2178,76 @@ export async function deleteFileCollab(id: string): Promise<boolean> {
       .then<boolean>((r) => unwrapTask<boolean>(r) ?? false);
   } catch (e) {
     throw new Error(toErrorMessage(e, "删除协同文档"));
+  }
+}
+
+/**
+ * 重命名协同文档。
+ *
+ * @param id        协同文档号
+ * @param fileName  新展示文件名（含扩展名）
+ * @return 更新后的文档
+ */
+export async function renameFileCollab(id: string, fileName: string): Promise<FileCollabInfo> {
+  try {
+    return await uploadTaskHttp()
+      .put(`${FILE_COLLAB_BASE}/${id}/rename?fileName=${encodeURIComponent(fileName)}`)
+      .then<FileCollabInfo>((r) => unwrapTask<FileCollabInfo>(r));
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "重命名协同文档"));
+  }
+}
+
+/**
+ * 复制协同文档（新文档，文件名追加「 副本」）。
+ *
+ * @param id     源协同文档号
+ * @param userId 新文档创建者
+ * @return 新文档
+ */
+export async function copyFileCollab(id: string, userId?: string): Promise<FileCollabInfo> {
+  try {
+    const params = new URLSearchParams();
+    if (userId) params.set("userId", userId);
+    const qs = params.toString();
+    return await uploadTaskHttp()
+      .post(`${FILE_COLLAB_BASE}/${id}/copy${qs ? `?${qs}` : ""}`)
+      .then<FileCollabInfo>((r) => unwrapTask<FileCollabInfo>(r));
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "复制协同文档"));
+  }
+}
+
+/**
+ * 协同文档历史记录（版本快照列表，新→旧）。
+ *
+ * @param id 协同文档号
+ * @return 历史条目列表
+ */
+export async function listCollabHistory(id: string): Promise<CollabVersionEntry[]> {
+  try {
+    return await uploadTaskHttp()
+      .get(`${FILE_COLLAB_BASE}/${id}/history`)
+      .then<CollabVersionEntry[]>((r) => unwrapTask<CollabVersionEntry[]>(r) ?? []);
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "获取协同历史记录"));
+  }
+}
+
+/**
+ * 取指定版本的历史快照（管理员「回退」= 复制该版本出来成为一个新文件）。
+ *
+ * @param id      协同文档号
+ * @param version 版本号
+ * @return 该版本快照内容
+ */
+export async function getCollabHistoryVersion(id: string, version: number): Promise<CollabVersionEntry> {
+  try {
+    return await uploadTaskHttp()
+      .get(`${FILE_COLLAB_BASE}/${id}/history/${version}`)
+      .then<CollabVersionEntry>((r) => unwrapTask<CollabVersionEntry>(r));
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "获取历史版本"));
   }
 }
 

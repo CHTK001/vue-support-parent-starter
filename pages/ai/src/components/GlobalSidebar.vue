@@ -939,6 +939,7 @@ const currentActiveTab = computed(() => {
   if (routeName === 'Characters') return 'characters'
   if (routeName === 'Bots') return 'bots'
   if (routeName === 'Tavern') return 'tavern'
+  if (routeName === 'WorldSim') return 'world-sim'
   if (routeName === 'SystemSettings') {
     // 提供商 / 默认模型已从侧栏移除（仍可从「设置」页进入），
     // 因此这里统一回落到 'setting'，不再为已删除的菜单项保留高亮分支。
@@ -1286,6 +1287,8 @@ const handleNavClick = async (tab: string) => {
     router.replace({ name: 'Characters' })
   } else if (tab === 'tavern') {
     router.replace({ name: 'Tavern' })
+  } else if (tab === 'world-sim') {
+    router.replace({ name: 'WorldSim' })
   } else if (tab === 'bots') {
     router.replace({ name: 'Bots' })
   } else if (tab === 'setting') {

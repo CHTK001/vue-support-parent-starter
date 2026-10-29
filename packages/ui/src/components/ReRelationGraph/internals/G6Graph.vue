@@ -1043,6 +1043,8 @@ const toG6Node = (
             ],
           }
         : {}),
+      // 合并业务侧 style（fill / stroke / lineWidth / fillOpacity …），覆盖分组配色
+      ...((n as { style?: Record<string, unknown> }).style || {}),
     },
   } as any;
 };

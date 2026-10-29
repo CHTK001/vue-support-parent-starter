@@ -57,116 +57,131 @@
             @dragleave.prevent="dragOverId = null"
             @drop.prevent="onDropFile(item, $event)"
           >
-            <div class="pj-card-top">
-              <span class="pj-card-icon" :class="statusKey(item)">
-                <ReIcon :name="displayIcon(item)" />
-              </span>
-              <div class="pj-card-title">
-                <div class="pj-card-name-row">
-                  <h3 :title="item.projectName">{{ item.projectName }}</h3>
-                  <span class="pj-card-type">{{ typeLabel(item.projectType) }}</span>
-                </div>
-                <div class="pj-card-chips">
-                  <span v-if="item.enabled === false" class="pj-chip is-muted">已禁用</span>
-                  <span v-if="apmLabel(item)" class="pj-chip is-warn">{{ apmLabel(item) }}</span>
-                  <span v-if="item.serviceName" class="pj-chip is-info">系统服务</span>
-                  <span v-if="item.gitUrl" class="pj-chip is-success">Git 发布</span>
-                </div>
-              </div>
-              <span class="pj-card-status" :class="statusKey(item)">
+            <!-- 左侧：类型图标 + 类型名 + 状态（与发布管理卡片同构） -->
+            <div class="pj-card-media" :class="[statusKey(item), mediaTone(item)]">
+              <span class="pj-media-ico"><ReIcon :name="displayIcon(item)" /></span>
+              <span class="pj-media-type">{{ typeLabel(item.projectType) }}</span>
+              <span class="pj-media-status" :class="statusKey(item)">
                 <span class="pj-status-dot"></span>{{ statusLabel(item) }}
               </span>
-              <span v-if="item.projectType === 'separated' && item.libDir" class="pj-lib-badge" :title="`依赖库: ${item.libDir}`">
-                <ReIcon name="Files" class="pj-lib-badge-ic" />
-                <span class="pj-lib-badge-num">{{ libCountMap[item.id] ?? '—' }}</span>
-              </span>
             </div>
 
-            <div class="pj-card-info">
-              <div class="pj-card-info-row" :title="item.projectPath">
-                <ReIcon name="FolderOpened" class="pj-card-info-ic" />
-                <span class="pj-card-info-val">{{ item.projectPath || '未设置项目地址' }}</span>
+            <!-- 右侧：信息 -->
+            <div class="pj-card-content">
+              <div class="pj-card-top">
+                <div class="pj-card-title">
+                  <div class="pj-card-name-row">
+                    <h3 :title="item.projectName">{{ item.projectName }}</h3>
+                  </div>
+                  <div class="pj-card-chips">
+                    <span v-if="item.enabled === false" class="pj-chip is-muted">已禁用</span>
+                    <span v-if="apmLabel(item)" class="pj-chip is-warn">{{ apmLabel(item) }}</span>
+                    <span v-if="item.serviceName" class="pj-chip is-info">系统服务</span>
+                    <span v-if="item.gitUrl" class="pj-chip is-success">Git 发布</span>
+                  </div>
+                </div>
+                <span
+                  v-if="item.projectType === 'separated' && item.libDir"
+                  class="pj-lib-badge"
+                  :title="`依赖库: ${item.libDir}`"
+                >
+                  <ReIcon name="Files" class="pj-lib-badge-ic" />
+                  <span class="pj-lib-badge-num">{{ libCountMap[item.id] ?? '—' }}</span>
+                </span>
               </div>
-              <div class="pj-card-info-row" :title="item.logPath">
-                <ReIcon name="Document" class="pj-card-info-ic" />
-                <span class="pj-card-info-val">{{ item.logPath || '未设置日志地址' }}</span>
-              </div>
-            </div>
 
-            <div v-if="item.description" class="pj-card-desc" :title="item.description">{{ item.description }}</div>
-
-            <div class="pj-card-bottom">
-              <div class="pj-card-metrics">
-                <template v-if="statusKey(item) === 'running'">
-                  <span class="pj-metrics-seg">
-                    <span class="pj-metrics-k">PID</span>
-                    <span class="pj-metrics-v">{{ item.pid || '—' }}</span>
-                  </span>
-                  <span class="pj-metrics-sep"></span>
-                  <span class="pj-metrics-seg">
-                    <span class="pj-metrics-k">运行</span>
-                    <span class="pj-metrics-v">{{ runtimeLabel(item) }}</span>
-                  </span>
-                </template>
-                <span v-else class="pj-metrics-note">{{ statusSub(item) }}</span>
+              <div class="pj-card-info">
+                <div class="pj-card-info-row" :title="item.projectPath">
+                  <ReIcon name="FolderOpened" class="pj-card-info-ic" />
+                  <span class="pj-card-info-val">{{ item.projectPath || '未设置项目地址' }}</span>
+                </div>
+                <div class="pj-card-info-row" :title="item.logPath">
+                  <ReIcon name="Document" class="pj-card-info-ic" />
+                  <span class="pj-card-info-val">{{ item.logPath || '未设置日志地址' }}</span>
+                </div>
               </div>
-              <div class="pj-card-actions">
-                <template v-if="item.enabled !== false">
-                  <ReButton
-                    v-if="item.status !== 'running'"
-                    icon="VideoPlay"
-                    type="primary"
-                    :show-text="true"
-                    @click="handleStart(item)"
-                  >启动</ReButton>
-                  <template v-else>
-                    <ReButton icon="VideoPause" :show-text="true" @click="handleStop(item)">停止</ReButton>
-                    <ReButton icon="RefreshRight" layout="square" tip="重启" @click="handleRestart(item)" />
+
+              <div v-if="item.description" class="pj-card-desc" :title="item.description">{{ item.description }}</div>
+
+              <div class="pj-card-bottom">
+                <div class="pj-card-metrics">
+                  <template v-if="statusKey(item) === 'running'">
+                    <span class="pj-metrics-seg">
+                      <span class="pj-metrics-k">PID</span>
+                      <span class="pj-metrics-v">{{ item.pid || '—' }}</span>
+                    </span>
+                    <span class="pj-metrics-sep"></span>
+                    <span class="pj-metrics-seg">
+                      <span class="pj-metrics-k">运行</span>
+                      <span class="pj-metrics-v">{{ runtimeLabel(item) }}</span>
+                    </span>
                   </template>
-                  <ReButton icon="Top" layout="square" tip="升级" @click="openUpgradeDialog(item)" />
-                  <ReButton
-                    v-if="isJavaProject(item)"
-                    icon="Monitor"
-                    layout="square"
-                    tip="Arthas 诊断"
-                    @click="openArthasDialog(item)"
-                  />
-                  <ReButton
-                    v-if="item.gitUrl"
-                    icon="GitBranch"
-                    layout="square"
-                    tip="从 Git 拉取最新代码并自动构建发布"
-                    @click="handleGitDeploy(item)"
-                  />
-                </template>
-                <el-dropdown trigger="click" placement="bottom-end" @command="(c: string) => onMoreCommand(item, c)">
-                  <ReButton icon="MoreFilled" layout="square" tip="更多操作" />
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item command="edit">
-                        <ReIcon name="EditPen" :size="15" class="dd-ic" />编辑
-                      </el-dropdown-item>
-                      <el-dropdown-item v-if="item.enabled !== false && item.logPath" command="log">
-                        <ReIcon name="Tickets" :size="15" class="dd-ic" />实时日志
-                      </el-dropdown-item>
-                      <el-dropdown-item v-if="item.enabled !== false" command="backup">
-                        <ReIcon name="FolderChecked" :size="15" class="dd-ic" />备份
-                      </el-dropdown-item>
-                      <el-dropdown-item v-if="item.enabled !== false" command="rollback">
-                        <ReIcon name="RefreshLeft" :size="15" class="dd-ic" />回滚
-                      </el-dropdown-item>
-                      <el-dropdown-item v-if="item.enabled !== false && item.gitUrl" command="git-deploy">
-                        <ReIcon name="GitBranch" :size="15" class="dd-ic dd-success" />从 Git 更新
-                      </el-dropdown-item>
-                      <el-dropdown-item command="toggle">
-                        <ReIcon :name="item.enabled === false ? 'Unlock' : 'Lock'" :size="15" class="dd-ic" />{{ item.enabled === false ? '激活' : '禁用' }}
-                      </el-dropdown-item>
-                      <el-dropdown-item command="delete" divided>
-                        <ReIcon name="Delete" :size="15" class="dd-ic dd-danger" />删除
-                      </el-dropdown-item>
-                    </el-dropdown-menu>
+                  <span v-else class="pj-metrics-note">{{ statusSub(item) }}</span>
+                </div>
+                <div class="pj-card-actions">
+                  <template v-if="item.enabled !== false">
+                    <ReButton
+                      v-if="item.status !== 'running'"
+                      icon="VideoPlay"
+                      type="primary"
+                      :show-text="true"
+                      @click="handleStart(item)"
+                    >启动</ReButton>
+                    <template v-else>
+                      <ReButton icon="VideoPause" :show-text="true" @click="handleStop(item)">停止</ReButton>
+                      <ReButton icon="RefreshRight" layout="square" tip="重启" @click="handleRestart(item)" />
+                    </template>
+                    <ReButton icon="Top" layout="square" tip="升级" @click="openUpgradeDialog(item)" />
+                    <ReButton
+                      v-if="isJavaProject(item)"
+                      icon="Monitor"
+                      layout="square"
+                      tip="Arthas 诊断"
+                      @click="openArthasDialog(item)"
+                    />
+                    <ReButton
+                      v-if="item.gitUrl"
+                      icon="GitBranch"
+                      layout="square"
+                      tip="从 Git 拉取最新代码并自动构建发布"
+                      @click="handleGitDeploy(item)"
+                    />
                   </template>
-                </el-dropdown>
+                  <el-dropdown trigger="click" placement="bottom-end" @command="(c: string) => onMoreCommand(item, c)">
+                    <ReButton icon="MoreFilled" layout="square" tip="更多操作" />
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <el-dropdown-item command="edit">
+                          <ReIcon name="EditPen" :size="15" class="dd-ic" />编辑
+                        </el-dropdown-item>
+                        <el-dropdown-item v-if="item.enabled !== false && item.logPath" command="log">
+                          <ReIcon name="Tickets" :size="15" class="dd-ic" />实时日志
+                        </el-dropdown-item>
+                        <el-dropdown-item
+                          v-if="item.enabled !== false && item.projectType === 'separated'"
+                          command="update-lib"
+                        >
+                          <ReIcon name="Box" :size="15" class="dd-ic" />更新依赖包
+                        </el-dropdown-item>
+                        <el-dropdown-item v-if="item.enabled !== false" command="backup">
+                          <ReIcon name="FolderChecked" :size="15" class="dd-ic" />备份
+                        </el-dropdown-item>
+                        <el-dropdown-item v-if="item.enabled !== false" command="rollback">
+                          <ReIcon name="RefreshLeft" :size="15" class="dd-ic" />回滚
+                        </el-dropdown-item>
+                        <el-dropdown-item v-if="item.enabled !== false && item.gitUrl" command="git-deploy">
+                          <ReIcon name="GitBranch" :size="15" class="dd-ic dd-success" />从 Git 更新
+                        </el-dropdown-item>
+                        <el-dropdown-item command="toggle">
+                          <ReIcon :name="item.enabled === false ? 'Unlock' : 'Lock'" :size="15" class="dd-ic" />{{ item.enabled === false ? '激活' : '禁用' }}
+                        </el-dropdown-item>
+                        <el-dropdown-item command="delete" divided>
+                          <ReIcon name="Delete" :size="15" class="dd-ic dd-danger" />删除
+                        </el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
+                </div>
               </div>
             </div>
 
@@ -197,6 +212,7 @@
                 <ReSelect v-model="form.projectType" placeholder="选择项目类型" style="width:100%">
                   <ReOption label="SpringBoot 单体" value="springboot" />
                   <ReOption label="FatJar" value="fatjar" />
+                  <ReOption label="Git 源码部署" value="git" />
                   <ReOption label="分离式部署" value="separated" />
                   <ReOption label="模型" value="model" />
                   <ReOption label="静态页面" value="static" />
@@ -206,11 +222,86 @@
               <ReFormItem v-if="needsEntry" label="主入口名称" :required="mainEntryRequired">
                 <ReInput v-model="form.mainEntry" :placeholder="entryPlaceholder" style="width:100%" />
               </ReFormItem>
+              <!-- Git 源码部署：仓库与构建参数属于「项目类型」本身，随类型就地展开 -->
+              <template v-if="showGitSection">
+                <div class="git-tip">
+                  <ReIcon name="GitBranch" class="git-tip-ic" />
+                  <div>
+                    <div class="git-tip-title">Git 源码构建</div>
+                    <div class="git-tip-sub">
+                      配置仓库后可在项目卡片上一键「从 Git 更新」：拉取最新代码 → Maven 构建 → 上传产物 → 备份并重启。
+                      管理端无需预装 Maven，系统会自动检测并在缺失时下载。
+                    </div>
+                  </div>
+                </div>
+                <ReFormItem label="Git 仓库地址" :required="form.projectType === 'git'">
+                  <ReInput
+                    v-model="form.gitUrl"
+                    placeholder="如 https://github.com/org/repo.git"
+                    style="width:100%"
+                  />
+                </ReFormItem>
+                <ReFormItem label="Git 分支">
+                  <ReInput v-model="form.gitBranch" placeholder="默认 main" style="width:100%" />
+                </ReFormItem>
+                <ReFormItem label="认证方式">
+                  <ReSelect v-model="form.gitAuthType" style="width:100%">
+                    <ReOption label="无认证（公开仓库）" value="none" />
+                    <ReOption label="Token 认证（Personal Access Token）" value="token" />
+                  </ReSelect>
+                </ReFormItem>
+                <ReFormItem v-if="form.gitAuthType === 'token'" label="访问令牌" required>
+                  <ReInput
+                    v-model="form.gitToken"
+                    type="password"
+                    show-password
+                    placeholder="粘贴 Personal Access Token"
+                    style="width:100%"
+                  />
+                </ReFormItem>
+                <ReFormItem label="Maven 构建目标">
+                  <ReInput
+                    v-model="form.gitBuildGoals"
+                    placeholder="逗号分隔，默认 clean,package"
+                    style="width:100%"
+                  />
+                </ReFormItem>
+                <ReFormItem label="跳过测试">
+                  <el-switch v-model="form.gitSkipTests" />
+                  <span class="git-skip-hint">构建时跳过单元测试，加快发布速度</span>
+                </ReFormItem>
+                <ReFormItem label="Maven 安装路径（可选，留空则自动检测 / 自动下载）">
+                  <ReInput
+                    v-model="form.mavenHome"
+                    placeholder="如 /opt/maven 或 C:/apache-maven-3.9.9"
+                    style="width:100%"
+                  />
+                </ReFormItem>
+                <ReFormItem label="Maven 版本（自动下载时使用）">
+                  <ReInput v-model="form.mavenVersion" placeholder="默认 3.9.9" style="width:100%" />
+                </ReFormItem>
+              </template>
               <ReFormItem label="项目地址" required>
-                <ReInput v-model="form.projectPath" placeholder="如：/opt/app/user-service" style="width:100%" />
+                <div class="pj-path-field">
+                  <ReInput v-model="form.projectPath" placeholder="如：/opt/app/user-service" style="flex:1;min-width:0" />
+                  <ReButton
+                    icon="FolderOpened"
+                    layout="square"
+                    tip="从主机文件管理选择目录"
+                    @click="openPathPicker('projectPath')"
+                  />
+                </div>
               </ReFormItem>
               <ReFormItem label="日志地址" required>
-                <ReInput v-model="form.logPath" placeholder="如：/opt/app/user-service/logs/app.log" style="width:100%" />
+                <div class="pj-path-field">
+                  <ReInput v-model="form.logPath" placeholder="如：/opt/app/user-service/logs/app.log" style="flex:1;min-width:0" />
+                  <ReButton
+                    icon="Document"
+                    layout="square"
+                    tip="从主机文件管理选择日志文件"
+                    @click="openPathPicker('logPath')"
+                  />
+                </div>
               </ReFormItem>
               <ReFormItem label="重启时日志">
                 <ReSelect v-model="form.logMode" style="width:100%">
@@ -225,7 +316,15 @@
                 <ReInput v-model="form.libDir" placeholder="如：lib" style="width:100%" />
               </ReFormItem>
               <ReFormItem v-if="form.projectType === 'nginx'" label="Nginx 目录（nginx 安装 / 配置目录）">
-                <ReInput v-model="form.nginxDir" placeholder="如：/usr/local/nginx 或 ./nginx" style="width:100%" />
+                <div class="pj-path-field">
+                  <ReInput v-model="form.nginxDir" placeholder="如：/usr/local/nginx 或 ./nginx" style="flex:1;min-width:0" />
+                  <ReButton
+                    icon="FolderOpened"
+                    layout="square"
+                    tip="从主机文件管理选择目录"
+                    @click="openPathPicker('nginxDir')"
+                  />
+                </div>
               </ReFormItem>
               <ReFormItem v-if="form.projectType === 'model'" label="上传目标目录（相对项目地址，如 models/onnx）" required>
                 <ReInput v-model="form.uploadTargetDir" placeholder="如：models/onnx" style="width:100%" />
@@ -451,70 +550,6 @@
             </ReForm>
           </div>
         </template>
-
-        <!-- Git 自动发布 -->
-        <template #git>
-          <div class="git-pane">
-            <div class="git-tip">
-              <ReIcon name="GitBranch" class="git-tip-ic" />
-              <div>
-                <div class="git-tip-title">Git 自动发布</div>
-                <div class="git-tip-sub">
-                  配置 Git 仓库地址后，可在项目卡片上一键「从 Git 更新」：拉取最新代码 → Maven 构建 → 上传产物 → 备份+重启。
-                  管理端无需预装 Maven，系统会自动检测并在缺失时下载。也可自定义 Maven 路径与版本。
-                </div>
-              </div>
-            </div>
-            <ReForm label-position="top" class="git-form">
-              <ReFormItem label="Git 仓库地址" required>
-                <ReInput
-                  v-model="form.gitUrl"
-                  placeholder="如 https://github.com/org/repo.git"
-                  style="width:100%"
-                />
-              </ReFormItem>
-              <ReFormItem label="Git 分支">
-                <ReInput v-model="form.gitBranch" placeholder="默认 main" style="width:100%" />
-              </ReFormItem>
-              <ReFormItem label="认证方式">
-                <ReSelect v-model="form.gitAuthType" style="width:100%">
-                  <ReOption label="无认证（公开仓库）" value="none" />
-                  <ReOption label="Token 认证（Personal Access Token）" value="token" />
-                </ReSelect>
-              </ReFormItem>
-              <ReFormItem v-if="form.gitAuthType === 'token'" label="访问令牌" required>
-                <ReInput
-                  v-model="form.gitToken"
-                  type="password"
-                  show-password
-                  placeholder="粘贴 Personal Access Token"
-                  style="width:100%"
-                />
-              </ReFormItem>
-              <ReFormItem label="Maven 构建目标">
-                <ReInput
-                  v-model="form.gitBuildGoals"
-                  placeholder="逗号分隔，默认 clean,package"
-                  style="width:100%"
-                />
-              </ReFormItem>
-              <ReFormItem label="跳过测试">
-                <el-switch v-model="form.gitSkipTests" />
-                <span class="git-skip-hint">构建时跳过单元测试，加快发布速度</span>
-              </ReFormItem>
-              <ReFormItem label="Maven 安装路径（可选，留空则自动检测 / 自动下载）">
-                <ReInput
-                  v-model="form.mavenHome"
-                  placeholder="如 /opt/maven 或 C:/apache-maven-3.9.9"
-                  style="width:100%"
-                />
-              </ReFormItem>
-              <ReFormItem label="Maven 版本（自动下载时使用）">
-                <ReInput v-model="form.mavenVersion" placeholder="默认 3.9.9" style="width:100%" />
-              </ReFormItem>
-            </ReForm>
-          </div>
-        </template>
       </ReTab>
       <template #footer>
         <ReButton @click="dialogVisible = false">取消</ReButton>
@@ -592,9 +627,40 @@
       </template>
     </ReDialog>
 
-    <!-- 手动升级对话框 -->
-    <ReDialog v-model="upgVisible" :title="`升级项目 · ${upgProject?.projectName || ''}`" width="560px" :close-on-click-modal="false">
-      <div class="upg-pane">
+    <!-- 手动升级对话框：按项目默认配置预填 -->
+    <ReDialog
+      v-model="upgVisible"
+      :title="`升级项目 · ${upgProject?.projectName || ''}`"
+      width="620px"
+      :close-on-click-modal="false"
+    >
+      <div class="upg-pane" v-loading="upgLoading">
+        <!-- 项目级基线：这些值来自项目自身配置，不是全局残留 -->
+        <div class="upg-baseline">
+          <div class="upg-base-row">
+            <span class="upg-base-k">项目类型</span>
+            <span class="upg-base-v">{{ typeLabel(upgProject?.projectType || '') }}</span>
+            <span class="upg-base-k">部署类型</span>
+            <span class="upg-base-v">{{ deployTypeLabel(upgProject?.deployType) }}</span>
+          </div>
+          <div class="upg-base-row">
+            <span class="upg-base-k">主入口</span>
+            <span class="upg-base-v mono">{{ upgProject?.mainEntry || '—' }}</span>
+          </div>
+          <div class="upg-base-row">
+            <span class="upg-base-k">上传目录</span>
+            <span class="upg-base-v mono">{{ upgProject?.uploadTargetDir || '—' }}</span>
+          </div>
+          <div class="upg-base-note">
+            <ReIcon name="InfoFilled" class="upg-base-note-ic" />
+            <span>
+              {{ upgHasProjectCfg
+                ? '已载入该项目保存过的默认配置，可再次调整并保存。'
+                : '当前显示该项目自身配置的默认值（部署类型 / 解压 / 上传目录均取自项目）。' }}
+            </span>
+          </div>
+        </div>
+
         <ReForm label-position="top">
           <ReFormItem label="安装包路径（主机上的绝对路径，jar / tar.gz / zip；为空则仅执行重启）">
             <ReInput v-model="upgForm.packagePath" placeholder="如：/home/ubuntu/uploads/app.tar.gz" />
@@ -606,13 +672,23 @@
               <ReOption label="全部" value="both" />
             </ReSelect>
           </ReFormItem>
-          <ReFormItem v-if="upgProject?.projectType === 'model'" label="是否解压">
+          <ReFormItem
+            v-if="upgProject?.projectType === 'model' || upgProject?.projectType === 'separated'"
+            label="是否解压"
+          >
             <ReSelect v-model="upgForm.uploadExtract" style="width:100%">
               <ReOption label="解压（jar/zip/tar 自动解压）" :value="true" />
               <ReOption label="不解压（保留原文件结构）" :value="false" />
             </ReSelect>
           </ReFormItem>
+          <ReFormItem
+            v-if="upgProject?.projectType === 'model'"
+            label="上传目标目录（相对项目地址）"
+          >
+            <ReInput v-model="upgForm.uploadTargetDir" placeholder="如：models/onnx" />
+          </ReFormItem>
         </ReForm>
+
         <div class="upg-switches">
           <label class="upg-switch"><el-checkbox v-model="upgForm.autoBackup" />自动备份</label>
           <label class="upg-switch"><el-checkbox v-model="upgForm.autoExtract" />自动解压（压缩包）</label>
@@ -622,20 +698,46 @@
       </div>
       <template #footer>
         <ReButton @click="saveGlobalConfig">保存为全局默认</ReButton>
+        <ReButton icon="CollectionTag" @click="saveProjectConfig">保存为项目默认</ReButton>
         <ReButton @click="upgVisible = false">取消</ReButton>
         <ReButton type="primary" @click="executeUpgrade">执行升级</ReButton>
+      </template>
+    </ReDialog>
+
+    <!-- 主机路径选择器：项目地址 / 日志地址 / Nginx 目录 -->
+    <ReDialog
+      v-model="pathPickerVisible"
+      :title="pathPickerTitle"
+      width="900px"
+      :close-on-click-modal="false"
+    >
+      <div class="path-picker-body">
+        <div v-if="!releaseHostId" class="path-picker-empty">该发布未绑定主机，无法浏览主机文件</div>
+        <HostFileManager
+          v-else-if="pathPickerVisible"
+          :host-id="releaseHostId"
+          :platform="hostPlatform"
+          :initial-path="pathPickerInit"
+          pick-mode
+          @pick="onPathPicked"
+        />
+      </div>
+      <template #footer>
+        <ReButton @click="pathPickerVisible = false">取消</ReButton>
       </template>
     </ReDialog>
 
     <!-- 实时日志对话框 -->
     <ReDialog v-model="logDialogVisible" :title="`实时日志 - ${currentLogProject?.projectName || ''}`" width="820px" :close-on-click-modal="false">
       <div class="log-wrap">
+        <div v-if="logNotice" class="log-notice">{{ logNotice }}</div>
         <div ref="logBoxEl" class="log-container" @scroll="onLogScroll">
           <div v-for="(line, i) in logLines" :key="i" class="log-line">{{ line || ' ' }}</div>
           <div v-if="!logLines.length" class="log-tip">等待日志输出…</div>
         </div>
         <div class="log-state" :class="{ paused: !logAutoScroll }">
           <span class="ls-dot"></span>{{ logAutoScroll ? '自动滚动' : '已暂停跟随' }}
+          <span v-if="logPushOffline" class="ls-mode">· 实时推送未连接，快照轮询中</span>
         </div>
         <transition name="ls-fade">
           <div v-if="!logAutoScroll" class="log-resume" @click="resumeLogScroll">
@@ -691,8 +793,9 @@ import { useRouter, useRoute } from 'vue-router';
 import { ElMessageBox } from 'element-plus';
 import {getGlobalSocketService, message} from '@repo/core';
 import { http, unwrapResult } from '@repo/utils';
-import { fillTemplate, listTemplates } from '@repo/ui/components/ReCommand/templates';
+import { fillTemplate, bestTemplate } from '@repo/ui/components/ReCommand/templates';
 import { trackTask } from '../../utils/processTasks';
+import HostFileManager from '../../components/HostFileManager.vue';
 
 const BASE = '/ms/server/release';
 
@@ -750,6 +853,10 @@ const releaseId = ref(Number(route.query.releaseId) || 0);
 const activeTab = ref('basic');
 
 const hostOs = ref<'linux' | 'windows'>('linux');
+/** 发布绑定的主机 ID（路径选择器需要用它连主机）；0 表示未识别到 */
+const releaseHostId = ref(0);
+/** 发布绑定的主机平台（LINUX / WINDOWS），传给文件管理器决定分隔符 */
+const hostPlatform = ref('LINUX');
 
 // ---- 状态分组 / 筛选 / 搜索（纯前端，不额外发请求） ----
 type StatusKey = 'running' | 'stopped' | 'disabled';
@@ -889,7 +996,7 @@ const form = ref({
 });
 
 /** Java 类项目类型（启动脚本走 java -jar，支持 -javaagent 挂载） */
-const JAVA_APM_TYPES = ['springboot', 'fatjar'];
+const JAVA_APM_TYPES = ['springboot', 'fatjar', 'git'];
 
 const editTabs = computed(() => {
   const tabs = [
@@ -902,10 +1009,6 @@ const editTabs = computed(() => {
   if (JAVA_APM_TYPES.includes(form.value.projectType)) {
     tabs.push({ name: 'apm', label: 'APM 注入', icon: 'Cpu' });
   }
-  // Git 自动发布属高级选项，仅 Java 类项目（Maven 构建）提供
-  if (JAVA_APM_TYPES.includes(form.value.projectType)) {
-    tabs.push({ name: 'git', label: 'Git 发布', icon: 'GitBranch' });
-  }
   // 备份记录仅在编辑已存在项目时可用（新建项目尚无 backups/）
   if (editingId.value != null) {
     tabs.push({ name: 'backups', label: '备份记录', icon: 'Files' });
@@ -917,6 +1020,7 @@ const entryPlaceholder = computed(() => {
   switch (form.value.projectType) {
     case 'springboot':
     case 'fatjar':
+    case 'git':
       return '如：user-service.jar';
     case 'separated':
       return '如：app（可执行文件名）或 app.js';
@@ -929,10 +1033,12 @@ const entryPlaceholder = computed(() => {
   }
 });
 
-const MAIN_ENTRY_REQUIRED_TYPES = ['springboot', 'separated'];
+const MAIN_ENTRY_REQUIRED_TYPES = ['springboot', 'separated', 'git'];
 const mainEntryRequired = computed(() => MAIN_ENTRY_REQUIRED_TYPES.includes(form.value.projectType));
 // 静态页面 / Nginx / 模型无主入口；其余类型显示主入口
 const needsEntry = computed(() => !['static', 'nginx', 'model'].includes(form.value.projectType));
+// Git 源码构建参数：类型为 git 时展开；老项目（非 git 类型但配过 gitUrl）保留可编辑，避免升级入口失配
+const showGitSection = computed(() => form.value.projectType === 'git' || !!form.value.gitUrl);
 
 const scriptContext = computed(() => ({
   entry: form.value.mainEntry,
@@ -962,6 +1068,7 @@ function typeLabel(t: string) {
   return ({
     springboot: 'SpringBoot',
     fatjar: 'FatJar',
+    git: 'Git 源码部署',
     separated: '分离式',
     model: '模型',
     static: '静态页面',
@@ -969,11 +1076,27 @@ function typeLabel(t: string) {
   } as Record<string, string>)[t] || t || '未知';
 }
 
+/**
+ * 部署类型的中文标签（升级弹框的项目基线信息用）
+ *
+ * @param t 部署类型
+ * @returns 中文标签；空值显示「未设置」
+ */
+function deployTypeLabel(t?: string): string {
+  return ({
+    main: '仅主包',
+    lib: '仅依赖',
+    both: '主包 + 依赖',
+  } as Record<string, string>)[t || ''] || '未设置';
+}
+
 function defaultIconByType(t: string) {
   switch (t) {
     case 'springboot':
     case 'fatjar':
       return 'Cpu';
+    case 'git':
+      return 'GitBranch';
     case 'separated':
       return 'Box';
     case 'model':
@@ -988,6 +1111,19 @@ function defaultIconByType(t: string) {
 }
 function displayIcon(item: Project) {
   return item.icon || defaultIconByType(item.projectType);
+}
+
+/**
+ * 卡片左侧色块的类型色调类名。
+ *
+ * <p>每种项目类型一个渐变色，让「一眼分辨这是 Java 服务还是静态站」不依赖读文字；
+ * 未知类型落到默认灰蓝色。</p>
+ *
+ * @param item 项目
+ * @returns 色调类名，如 tone-springboot
+ */
+function mediaTone(item: Project): string {
+  return `tone-${item.projectType || 'unknown'}`;
 }
 
 async function loadList() {
@@ -1027,11 +1163,17 @@ async function loadHostOs() {
     if (!rel?.hostId) {
       return;
     }
+    // 路径选择器要用它打开该主机的文件管理，先记住
+    releaseHostId.value = rel.hostId;
     const hostRes = await http().get('/ms/server/host');
     const hosts = unwrapResult<any[]>(hostRes) || [];
     const host = hosts.find((h) => h.id === rel.hostId);
-    if (host && String(host.serverHostOsType).toUpperCase() === 'WINDOWS') {
-      hostOs.value = 'windows';
+    if (host) {
+      const os = String(host.serverHostOsType || '').toUpperCase();
+      hostPlatform.value = os === 'WINDOWS' ? 'WINDOWS' : 'LINUX';
+      if (os === 'WINDOWS') {
+        hostOs.value = 'windows';
+      }
     }
   } catch (e) {
     // 识别失败保持默认 linux
@@ -1098,18 +1240,19 @@ function openCreateDialog() {
 function openEditDialog(item: Project) {
   editingId.value = item.id;
   form.value = {
-    projectName: item.projectName,
-    projectType: item.projectType,
-    mainEntry: item.mainEntry,
-    startScript: item.startScript,
-    stopScript: item.stopScript,
-    restartScript: item.restartScript,
-    statusScript: item.statusScript,
-    projectPath: item.projectPath,
-    logPath: item.logPath,
+    projectName: item.projectName ?? '',
+    projectType: item.projectType ?? '',
+    // 后端对空值字段可能整体省略（非空序列化），一律兜空，避免 handleSave 里 .trim() 抛错
+    mainEntry: item.mainEntry ?? '',
+    startScript: item.startScript ?? '',
+    stopScript: item.stopScript ?? '',
+    restartScript: item.restartScript ?? '',
+    statusScript: item.statusScript ?? '',
+    projectPath: item.projectPath ?? '',
+    logPath: item.logPath ?? '',
     logMode: item.logMode || 'append',
-    description: item.description,
-    icon: item.icon,
+    description: item.description ?? '',
+    icon: item.icon ?? '',
     envVars: parseJson<EnvVar>(item.envVars, [])
       .filter((r) => r && typeof r.key === 'string')
       .map((r) => ({ key: r.key, value: r.value ?? '' })),
@@ -1356,9 +1499,8 @@ function fillScriptsFromTemplate(silent = false): boolean {
     }
     return false;
   }
-  const templates = listTemplates(hostOs.value, form.value.projectType);
-  // 优先精确匹配类型，其次取第一个可用模板
-  const tpl = templates.find((t) => t.types.includes(form.value.projectType)) || templates[0];
+  // 模板按「OS + 类型」精确挑选，不再依赖数组顺序（模型等类型以前会错拿通用模板）
+  const tpl = bestTemplate(hostOs.value, form.value.projectType);
   if (!tpl) {
     if (!silent) message.error('当前类型暂无内置模板');
     return false;
@@ -1399,8 +1541,7 @@ async function autoGenerateScripts() {
     activeTab.value = 'basic';
     return;
   }
-  const templates = listTemplates(hostOs.value, form.value.projectType);
-  const tpl = templates.find((t) => t.types.includes(form.value.projectType)) || templates[0];
+  const tpl = bestTemplate(hostOs.value, form.value.projectType);
   if (!tpl) {
     message.error('当前类型暂无内置模板');
     return;
@@ -1454,7 +1595,7 @@ async function handleSave() {
     message.error('请填写「日志地址」');
     return;
   }
-  if (mainEntryRequired.value && !form.value.mainEntry.trim()) {
+  if (mainEntryRequired.value && !(form.value.mainEntry ?? '').trim()) {
     message.error('当前项目类型必须填写「主入口名称」');
     return;
   }
@@ -1525,6 +1666,9 @@ function onMoreCommand(item: Project, command: string) {
       break;
     case 'log':
       handleViewLog(item);
+      break;
+    case 'update-lib':
+      handleUpdateLib(item);
       break;
     case 'backup':
       handleBackup(item);
@@ -1862,7 +2006,7 @@ function confirmVars() {
 }
 
 // ---- SpringBoot 项目配置 ----
-const supportsAppConfig = computed(() => ['springboot', 'fatjar'].includes(form.value.projectType));
+const supportsAppConfig = computed(() => ['springboot', 'fatjar', 'git'].includes(form.value.projectType));
 const appCfgVisible = ref(false);
 const appCfgRows = ref<KVRow[]>([]);
 function openAppConfigDialog() {
@@ -1904,8 +2048,83 @@ async function handleUninstallService() {
   }
 }
 
+// ---- 主机路径选择器（项目地址 / 日志地址 / Nginx 目录） ----
+/** 路径选择器弹框 */
+const pathPickerVisible = ref(false);
+/** 正在挑选的字段名 */
+const pathPickerField = ref<'projectPath' | 'logPath' | 'nginxDir' | ''>('');
+/** 选择器初始目录 */
+const pathPickerInit = ref('');
+
+const PATH_FIELD_LABELS: Record<string, string> = {
+  projectPath: '项目地址',
+  logPath: '日志地址',
+  nginxDir: 'Nginx 目录',
+};
+
+const pathPickerTitle = computed(
+  () => `选择${PATH_FIELD_LABELS[pathPickerField.value] || '路径'} · 主机文件管理`,
+);
+
+/**
+ * 取路径的父目录。
+ *
+ * <p>日志地址指向的是文件，选择器应当从该文件所在目录开始，
+ * 否则用户一进弹框就停在一个「文件」上，看不到同级文件。</p>
+ *
+ * @param p 路径
+ * @returns 父目录；无分隔符时原样返回
+ */
+function dirOf(p: string): string {
+  const s = (p || '').trim();
+  if (!s) return '';
+  const idx = Math.max(s.lastIndexOf('/'), s.lastIndexOf('\\'));
+  if (idx <= 0) return s;
+  return s.slice(0, idx);
+}
+
+/**
+ * 打开主机文件管理选择路径。
+ *
+ * @param field 要回填的表单字段
+ */
+function openPathPicker(field: 'projectPath' | 'logPath' | 'nginxDir') {
+  if (!releaseHostId.value) {
+    message.warning('未识别到该发布绑定的主机，无法浏览主机文件');
+    return;
+  }
+  pathPickerField.value = field;
+  const cur = String(form.value[field] || '');
+  pathPickerInit.value = field === 'projectPath' ? cur : dirOf(cur);
+  pathPickerVisible.value = true;
+}
+
+/**
+ * 选择器回调：把主机路径写回表单字段。
+ *
+ * @param p 主机上的绝对路径
+ */
+function onPathPicked(p: string) {
+  const field = pathPickerField.value;
+  pathPickerVisible.value = false;
+  if (!field || !p) return;
+  form.value[field] = p;
+  // 选了项目地址后，日志地址若不是以它开头，顺手补一个默认位置，减少手填
+  if (field === 'projectPath' && !form.value.logPath.trim()) {
+    const sep = hostPlatform.value === 'WINDOWS' ? '\\' : '/';
+    form.value.logPath = `${p.replace(/[\\/]+$/, '')}${sep}logs${sep}app.log`;
+  }
+  message.success(`已选择：${p}`);
+}
+
 // ---- 拖拽升级 ----
 const dragOverId = ref<number | null>(null);
+/**
+ * 拖拽上传安装包并按项目默认配置升级。
+ *
+ * @param item 项目
+ * @param ev   拖拽事件
+ */
 async function onDropFile(item: Project, ev: DragEvent) {
   dragOverId.value = null;
   const file = ev.dataTransfer?.files?.[0];
@@ -1925,31 +2144,112 @@ async function onDropFile(item: Project, ev: DragEvent) {
   }
 }
 
+/**
+ * 更新依赖包：只投递依赖（lib），不动主包。
+ *
+ * <p>分离式项目的依赖包与主包是两套文件，拖拽卡片默认按「主包」升级；
+ * 依赖变更时必须在操作里单独选，否则会被当成主包替换，重启后直接起不来。
+ * 这里用一个隐藏的 file input 选包，然后带 {@code deployType=lib} 调用同一个上传接口。</p>
+ *
+ * @param item 项目
+ */
+function handleUpdateLib(item: Project) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.jar,.zip,.tar,.tar.gz,.tgz';
+  input.onchange = async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const res = await http()
+        .post(`${BASE}/project/${item.id}/upload?deployType=lib&autoRestart=false`)
+        .data(fd);
+      const taskId = unwrapResult<string>(res);
+      if (taskId) {
+        trackTask(taskId, `${item.projectName} · 依赖包`, 'upgrade');
+        message.success('依赖包上传中，完成后可手动重启生效');
+      } else {
+        message.error('依赖包更新失败');
+      }
+    } catch {
+      message.error('依赖包更新失败');
+    }
+  };
+  input.click();
+}
+
 // ---- 手动升级弹窗 ----
 const upgVisible = ref(false);
 const upgProject = ref<Project | null>(null);
-const upgForm = ref({ autoBackup: true, autoExtract: true, autoRestart: true, autoRollback: false, packagePath: '', deployType: '', uploadExtract: true });
+const upgLoading = ref(false);
+/** 该项目是否已有显式保存过的项目级默认配置 */
+const upgHasProjectCfg = ref(false);
+const upgForm = ref({
+  autoBackup: true,
+  autoExtract: true,
+  autoRestart: true,
+  autoRollback: false,
+  packagePath: '',
+  deployType: '',
+  uploadExtract: true,
+  uploadTargetDir: '',
+});
 
+/**
+ * 打开升级弹框：按「该项目自己的默认配置」预填。
+ *
+ * <p>以前这里读 last/global，导致给 A 项目调好的选项会带到 B 项目上
+ * （例如分离式项目残留 deployType=lib，Java 项目会只投依赖而不更新主包）。
+ * 现在请求 {@code /upgrade/config?projectId=}，后端以项目自身字段为基线
+ * （deployType / uploadExtract / uploadTargetDir / mainEntry），再叠加用户
+ * 显式保存过的项目级覆盖值。</p>
+ *
+ * @param item 项目
+ */
 async function openUpgradeDialog(item: Project) {
   upgProject.value = item;
+  upgLoading.value = true;
+  // 先用项目自身的字段兜底，接口失败也能用
+  upgForm.value = {
+    autoBackup: true,
+    autoExtract: item.uploadExtract ?? true,
+    autoRestart: true,
+    autoRollback: false,
+    packagePath: '',
+    deployType: item.deployType || '',
+    uploadExtract: item.uploadExtract ?? true,
+    uploadTargetDir: item.uploadTargetDir || '',
+  };
+  upgHasProjectCfg.value = false;
   try {
-    const res = await http().get(`${BASE}/upgrade/config`);
+    const res = await http().get(`${BASE}/upgrade/config?projectId=${item.id}`);
     const cfg = unwrapResult<any>(res) || {};
-    const base = cfg.last || cfg.global || {};
+    const saved = cfg.project || {};
+    upgHasProjectCfg.value = !!saved.__saved;
+    const base = { ...(cfg.global || {}), ...saved };
     upgForm.value = {
       autoBackup: base.autoBackup ?? true,
       autoExtract: base.autoExtract ?? true,
       autoRestart: base.autoRestart ?? true,
       autoRollback: base.autoRollback ?? false,
-      packagePath: base.packagePath ?? '',
-      deployType: item.deployType || '',
-      uploadExtract: item.uploadExtract ?? true,
+      packagePath: '',
+      deployType: base.deployType || item.deployType || '',
+      uploadExtract: base.uploadExtract ?? item.uploadExtract ?? true,
+      uploadTargetDir: base.uploadTargetDir || item.uploadTargetDir || '',
     };
+    // 从配置里带出来的包路径是上一次的，不作为本次默认（避免误升同一个旧包）
+    upgForm.value.packagePath = '';
   } catch {
-    // 使用默认
+    // 使用项目字段兜底
+  } finally {
+    upgLoading.value = false;
+    upgVisible.value = true;
   }
-  upgVisible.value = true;
 }
+
+/** 保存为全局默认（对没有项目级配置的项目生效） */
 async function saveGlobalConfig() {
   try {
     await http().put(`${BASE}/upgrade/config?scope=global`).data(upgForm.value);
@@ -1958,11 +2258,29 @@ async function saveGlobalConfig() {
     message.error('保存失败');
   }
 }
+
+/** 保存为当前项目的默认配置：下次打开这个项目的升级弹框就是这套值 */
+async function saveProjectConfig() {
+  const item = upgProject.value;
+  if (!item) return;
+  try {
+    await http()
+      .put(`${BASE}/upgrade/config?scope=project&projectId=${item.id}`)
+      .data(upgForm.value);
+    upgHasProjectCfg.value = true;
+    message.success(`已保存为「${item.projectName}」的项目默认配置`);
+  } catch {
+    message.error('保存项目默认配置失败');
+  }
+}
+
 async function executeUpgrade() {
   if (!upgProject.value) return;
   try {
     await http().put(`${BASE}/upgrade/config?scope=last`).data(upgForm.value);
-    const res = await http().post(`${BASE}/project/${upgProject.value.id}/upgrade/run`).data(upgForm.value);
+    const res = await http()
+      .post(`${BASE}/project/${upgProject.value.id}/upgrade/run`)
+      .data(upgForm.value);
     const taskId = unwrapResult<string>(res);
     upgVisible.value = false;
     if (taskId) trackTask(taskId, upgProject.value.projectName, 'upgrade');
@@ -1979,33 +2297,101 @@ const logBoxEl = ref<HTMLElement>();
 const logAutoScroll = ref(true);
 let logSessionId: string | null = null;
 let logUnsub: (() => void) | null = null;
+/** tail 快照轮询定时器：Socket 推送不可用时兜底，保证日志一定看得到 */
+let logPollTimer: number | null = null;
+/** 实时推送是否掉线（掉线时状态栏提示走快照轮询） */
+const logPushOffline = ref(false);
+/** 采集失败等提示（不放进 logLines，避免被快照整段替换冲掉） */
+const logNotice = ref('');
+/** 日志来源：socket=实时推送；snapshot=尾部快照轮询 */
+let logMode: 'snapshot' | 'socket' = 'snapshot';
+/** 弹窗内最多保留的日志行数，避免长时间挂机把内存撑爆 */
+const LOG_MAX_LINES = 2000;
+const LOG_POLL_INTERVAL = 2000;
+
+function logPushLine(line: string) {
+  logLines.value.push(line);
+  if (logLines.value.length > LOG_MAX_LINES) {
+    logLines.value.splice(0, logLines.value.length - LOG_MAX_LINES);
+  }
+}
+
+/**
+ * 拉一次日志尾部快照。
+ *
+ * <p>Socket 推送可用时完全让位（推送是精确增量，不会重复也不会漏行）；
+ * 推送不可用（端口/代理不一致、服务未启用）时以快照为唯一数据源整段替换，
+ * 既不会出现重复行，也不会因为「重叠合并」猜错边界而吃掉新行。</p>
+ */
+async function pollLogTail() {
+  const project = currentLogProject.value;
+  if (!project || !logDialogVisible.value) return;
+  const socketAlive = getGlobalSocketService()?.isConnected ?? false;
+  logPushOffline.value = !socketAlive;
+  if (!socketAlive) logMode = 'snapshot';
+  if (logMode === 'socket') return;
+  try {
+    const res = await http().get(`${BASE}/project/${project.id}/log`);
+    const text = unwrapResult<string>(res);
+    if (typeof text !== 'string') return;
+    const lines = text.replace(/\r\n/g, '\n').split('\n');
+    if (lines.length && lines[lines.length - 1] === '') lines.pop();
+    logLines.value = lines.length > LOG_MAX_LINES ? lines.slice(-LOG_MAX_LINES) : lines;
+  } catch {
+    // 静默失败：快照只是兜底通道，报错会掩盖真正的问题
+  }
+}
 
 async function handleViewLog(item: Project) {
+  cleanupLog();
   currentLogProject.value = item;
   logLines.value = [];
+  logNotice.value = '';
+  logMode = 'snapshot';
   logAutoScroll.value = true;
   logDialogVisible.value = true;
 
   const socket = getGlobalSocketService();
   logUnsub = socket?.subscribe('project', 'log', (msg: any) => {
     const data = msg?.data ?? msg;
-    if (!data || data.sessionId !== logSessionId) return;
+    if (!data) return;
+    // sessionId 要等 start 接口返回，返回前先按 projectId 收帧，避免丢掉开头几行
+    const matched = logSessionId
+      ? data.sessionId === logSessionId
+      : String(data.projectId) === String(currentLogProject.value?.id);
+    if (!matched) return;
     if (data.status === 'LINE' && typeof data.line === 'string') {
-      logLines.value.push(data.line);
+      if (logMode !== 'socket') {
+        // tail -n N -F 连接时会先重放最近 N 行，清掉快照内容避免重复
+        logMode = 'socket';
+        logLines.value = [];
+        logNotice.value = '';
+      }
+      logPushLine(data.line);
     } else if (data.status === 'ERROR') {
-      logLines.value.push(`[错误] ${data.message || '日志采集失败'}`);
+      logNotice.value = data.message || '日志采集失败';
     }
   }) ?? null;
+
+  // 先拉一次快照：Socket 连不上（端口/代理不一致）时也能立刻看到日志内容
+  void pollLogTail();
+  logPollTimer = window.setInterval(() => {
+    void pollLogTail();
+  }, LOG_POLL_INTERVAL);
 
   try {
     const res = await http().post(`${BASE}/project/${item.id}/log/start`);
     logSessionId = unwrapResult<string>(res);
-  } catch (e) {
-    logLines.value.push('[错误] 无法启动日志采集');
+  } catch {
+    logNotice.value = '无法启动实时日志采集，已降级为快照轮询';
   }
 }
 
 function cleanupLog() {
+  if (logPollTimer !== null) {
+    clearInterval(logPollTimer);
+    logPollTimer = null;
+  }
   const sessionId = logSessionId;
   if (sessionId) {
     http().post(`${BASE}/project/log/${sessionId}/stop`).catch(() => {});
@@ -2013,6 +2399,7 @@ function cleanupLog() {
   }
   logUnsub?.();
   logUnsub = null;
+  logMode = 'snapshot';
 }
 
 watch(logDialogVisible, (visible) => {
@@ -2398,19 +2785,21 @@ onBeforeUnmount(() => {
 /* ===== 卡片网格 ===== */
 .pj-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(430px, 1fr));
   gap: 16px;
 }
 
-/* ===== 项目卡片 ===== */
+/* ===== 项目卡片：左侧类型色块 + 右侧信息（与发布管理卡片同构） ===== */
 .pj-card {
   position: relative;
+  display: flex;
+  flex-direction: row;
+  min-height: 196px;
   background: var(--bg-container);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: 18px;
-  transition: border-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out), transform 0.2s var(--ease-out);
   overflow: hidden;
+  transition: border-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out), transform 0.2s var(--ease-out);
 }
 .pj-card:hover {
   border-color: var(--brand-400);
@@ -2432,33 +2821,79 @@ onBeforeUnmount(() => {
   background: var(--brand-50);
 }
 
-/* Card top: icon + title + status */
+/* 左侧媒体：项目类型色块（图标 + 类型名 + 状态） */
+.pj-card-media {
+  position: relative;
+  flex: 0 0 106px;
+  width: 106px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #fff;
+  background: linear-gradient(150deg, #64748b, #475569);
+  overflow: hidden;
+}
+/* 类型色调：Java 系蓝紫、Git 源码部署橙、分离式紫、模型青、静态绿、Nginx 蓝绿 */
+.pj-card-media.tone-springboot { background: linear-gradient(150deg, #3b82f6, #2563eb); }
+.pj-card-media.tone-fatjar { background: linear-gradient(150deg, #6366f1, #4f46e5); }
+.pj-card-media.tone-git { background: linear-gradient(150deg, #f97316, #ea580c); }
+.pj-card-media.tone-separated { background: linear-gradient(150deg, #8b5cf6, #7c3aed); }
+.pj-card-media.tone-model { background: linear-gradient(150deg, #0ea5e9, #0284c7); }
+.pj-card-media.tone-static { background: linear-gradient(150deg, #10b981, #059669); }
+.pj-card-media.tone-nginx { background: linear-gradient(150deg, #14b8a6, #0d9488); }
+.pj-card-media:is(.stopped, .disabled) {
+  filter: grayscale(0.55) brightness(0.98);
+}
+.pj-media-ico {
+  font-size: 34px;
+  line-height: 1;
+  display: flex;
+}
+.pj-media-ico :deep(svg) { display: block; }
+.pj-media-type {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: rgba(255, 255, 255, 0.94);
+  max-width: 88px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pj-media-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+}
+.pj-media-status .pj-status-dot {
+  width: 5px;
+  height: 5px;
+}
+
+/* 右侧内容容器 */
+.pj-card-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+}
+
+/* Card top: title + chips + 依赖数徽章 */
 .pj-card-top {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-.pj-card-icon {
-  flex: 0 0 44px;
-  width: 44px;
-  height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 11px;
-  background: var(--bg-fill);
-  color: var(--brand-500);
-  font-size: 22px;
-}
-.pj-card-icon.running {
-  background: var(--brand-50);
-  color: var(--brand-600);
-}
-.pj-card-icon.disabled {
-  color: var(--text-tertiary);
-  background: transparent;
-  border: 1px dashed var(--border-default);
+  gap: 10px;
 }
 
 .pj-card-title {
@@ -2480,53 +2915,17 @@ onBeforeUnmount(() => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.pj-card-type {
-  flex-shrink: 0;
-  padding: 1px 7px;
-  border-radius: 6px;
-  background: var(--bg-fill);
-  color: var(--text-secondary);
-  font-size: 11.5px;
-  line-height: 18px;
-}
 .pj-card-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 8px;
 }
-.pj-card-status {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  border: 1px solid transparent;
-  font-size: 11.5px;
-  font-weight: 600;
-  white-space: nowrap;
-}
 .pj-status-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: currentColor;
-}
-.pj-card-status.running {
-  color: #0f6e3a;
-  background: #ecfdf3;
-  border-color: #bbe5c8;
-}
-.pj-card-status.stopped {
-  color: var(--text-secondary);
-  background: var(--bg-fill);
-  border-color: var(--border-subtle);
-}
-.pj-card-status.disabled {
-  color: #8a5a00;
-  background: #fff7e6;
-  border-color: #fde2a4;
 }
 
 /* 分离式依赖数正方形徽章 */
@@ -2557,11 +2956,8 @@ onBeforeUnmount(() => {
 .pj-card-info {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 10px 0;
-  border-top: 1px solid var(--border-subtle);
-  border-bottom: 1px solid var(--border-subtle);
-  margin-bottom: 12px;
+  gap: 5px;
+  min-width: 0;
 }
 .pj-card-info-row {
   display: flex;
@@ -2592,15 +2988,17 @@ onBeforeUnmount(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-bottom: 12px;
 }
 
-/* Card bottom: metrics + actions */
+/* Card bottom: metrics + actions（贴底对齐，左右信息长度不同也不会错位） */
 .pj-card-bottom {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
 }
 .pj-card-metrics {
   display: flex;
@@ -3010,6 +3408,54 @@ onBeforeUnmount(() => {
 .upg-pane {
   padding-top: 4px;
 }
+/* 项目级基线信息：告诉用户这些默认值来自项目本身，不是上一次的全局残留 */
+.upg-baseline {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--bg-fill);
+}
+.upg-base-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  line-height: 1.9;
+  min-width: 0;
+}
+.upg-base-k {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+.upg-base-v {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.upg-base-v.mono {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 12px;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.upg-base-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-subtle);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+.upg-base-note-ic {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--brand-500);
+}
 .upg-switches {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3023,6 +3469,35 @@ onBeforeUnmount(() => {
   font-size: 13px;
   color: var(--el-text-color-regular);
   cursor: pointer;
+}
+
+/* 表单里「输入框 + 选择按钮」的组合行 */
+.pj-path-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+/* 主机路径选择器弹框：给文件管理器一个稳定高度 */
+.path-picker-body {
+  height: 460px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.path-picker-body > * {
+  flex: 1;
+  min-height: 0;
+}
+.path-picker-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--text-tertiary);
 }
 
 /* 日志 */
@@ -3081,8 +3556,7 @@ onBeforeUnmount(() => {
   line-height: 1.6;
 }
 
-/* ---- Git 自动发布 ---- */
-.git-pane { display: flex; flex-direction: column; gap: 14px; max-width: 640px; }
+/* ---- Git 源码构建（已并入「基础信息」，随项目类型展开） ---- */
 .git-tip {
   display: flex; gap: 12px; align-items: flex-start;
   font-size: 12.5px; line-height: 1.6; color: var(--text-secondary, #6b7280);
@@ -3100,7 +3574,6 @@ onBeforeUnmount(() => {
   padding: 1px 5px;
   border-radius: 4px;
 }
-.git-form { display: flex; flex-direction: column; gap: 4px; }
 .git-skip-hint {
   margin-left: 10px; font-size: 12px; color: var(--text-tertiary, #9ca3af);
 }
@@ -3128,6 +3601,16 @@ onBeforeUnmount(() => {
 }
 /* 实时日志：自动滚动状态 + 回到底部 */
 .log-wrap { position: relative; }
+.log-notice {
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #d29922;
+  background: rgba(210, 153, 34, 0.1);
+  border: 1px solid rgba(210, 153, 34, 0.35);
+  border-radius: 6px;
+}
 .log-state {
   position: absolute;
   top: 10px;
@@ -3153,6 +3636,7 @@ onBeforeUnmount(() => {
 }
 .log-state.paused { color: #d29922; border-color: rgba(210, 153, 34, 0.5); }
 .log-state.paused .ls-dot { background: #d29922; box-shadow: 0 0 0 2px rgba(210, 153, 34, 0.25); }
+.log-state .ls-mode { color: #8b949e; }
 .log-resume {
   position: absolute;
   bottom: 14px;

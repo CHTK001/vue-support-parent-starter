@@ -157,6 +157,9 @@
       "@pages/system/*": ["pages/system/src/*"],
       "@pages/server": ["pages/server/src"],
       "@pages/server/*": ["pages/server/*"],
+      // Docker 独立页面包：页面根 + 深路径（宿主统一写 @pages/docker/src/...）
+      "@pages/docker": ["pages/docker/src"],
+      "@pages/docker/*": ["pages/docker/*"],
       "@pages/collect": ["pages/collect"],
       "@pages/collect/*": ["pages/collect/*"],
       "@pages/ai": ["pages/ai/src"],

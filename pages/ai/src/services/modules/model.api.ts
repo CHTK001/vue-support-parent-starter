@@ -30,6 +30,10 @@ export interface RemoteModelsResponse {
  *
  * <p>{@code skipped} 既包含「库里已存在」也包含「上游条目缺模型名」——
  * 两者都是刻意跳过而非错误，重复点击同一按钮只会补录新模型。</p>
+ *
+ * <p>{@code enriched} 是「已存在模型行被补全元数据」的条数：上游 {@code /models}
+ * 真实声明的上下文窗口、输出上限、能力开关与模态会补进空列（不改别名 / 启用状态 /
+ * 排序），所以重复点击同时起到「刷新元数据」的作用。</p>
  */
 export interface ImportAllModelsResponse {
   /** 上游返回的模型总数 */
@@ -38,6 +42,8 @@ export interface ImportAllModelsResponse {
   imported: number;
   /** 跳过的条数（已存在 / 无模型名 / 上游重复） */
   skipped: number;
+  /** 已存在模型行中被补全元数据的条数 */
+  enriched?: number;
   /** 新写入的模型行 */
   models?: Model[];
 }
@@ -53,11 +59,14 @@ export interface ModelApi {
   createModel(data: any): Promise<Model>;
   updateModel(modelId: string, data: any): Promise<Model>;
   deleteModel(modelId: string): Promise<boolean>;
+  batchDeleteProviderModels(ids: string[]): Promise<{ success: boolean; deletedCount: number }>;
   toggleModelFavorite(modelId: string): Promise<any>;
   toggleModelActive(modelId: string): Promise<any>;
   createProvider(data: any): Promise<any>;
   testProviderConnection(data: any): Promise<{ success: boolean; message: string }>;
   deleteProvider(providerId: string): Promise<boolean>;
+  /** 批量删除供应商行（级联其模型与连接，Body 为 ids 数组，整批拦截） */
+  batchDeleteProviders(ids: string[]): Promise<{ success: boolean; deletedCount: number }>;
   updateProvider(providerId: string, data: any): Promise<any>;
   getProviderTemplates(): Promise<any[]>;
   getModelPresets(): Promise<any[]>;
@@ -207,6 +216,20 @@ export const modelApi: ModelApi = {
     });
   },
 
+  /**
+   * 批量删除该供应商下的模型。
+   *
+   * <p>入参是 {@code providerId:modelName} 复合 id 数组，走后端
+   * {@code DELETE /api/provider-models/batch}（body 为 {ids}）；与 {@link deleteModel}
+   * 的解析规则一致，模型名含冒号时只在第一个冒号处分隔。</p>
+   *
+   * <p>注意用 {@code rawApi}：后端路径是 /api/**（不走 /v2 前缀），_request 会把
+   * URL 拼成 /v2/api/… 导致 404。</p>
+   */
+  async batchDeleteProviderModels(this: ApiContext, ids: string[]) {
+    return await rawApi.delete('/api/provider-models/batch', { data: { ids } });
+  },
+
   async toggleModelFavorite(this: ApiContext, modelId: string) {
     return await this._request(`/models/${encodeURIComponent(modelId)}/favorite`, {
       method: "PUT",
@@ -229,6 +252,19 @@ export const modelApi: ModelApi = {
 
   async deleteProvider(this: ApiContext, providerId: string) {
     return await rawApi.delete(`/api/providers/${encodeURIComponent(providerId)}`);
+  },
+
+  /**
+   * 批量删除供应商行（级联删除其下模型与连接）。
+   *
+   * <p>走后端 {@code DELETE /api/providers/batch}（Body 为 {ids}，id 为 {@code provider_id}
+   * 字符串，空/不存在的 id 整批拦截不部分删除），返回 { success, deletedCount }。</p>
+   *
+   * <p>注意用 {@code rawApi}：后端路径是 /api/**（不走 /v2 前缀），_request 会把
+   * URL 拼成 /v2/api/… 导致 404。</p>
+   */
+  async batchDeleteProviders(this: ApiContext, ids: string[]) {
+    return await rawApi.delete('/api/providers/batch', { data: { ids } });
   },
 
   async updateProvider(this: ApiContext, providerId: string, data: any) {

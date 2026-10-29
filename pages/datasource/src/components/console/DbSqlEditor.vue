@@ -53,6 +53,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   (e: "update:modelValue", value: string): void;
   (e: "execute"): void;
+  (e: "execute-selected", sql: string): void;
 }>();
 
 /** Flux 内置关键字与管道函数（高亮 + 补全共用） */
@@ -400,6 +401,16 @@ onMounted(() => {
       autocompletion(),
       keymap.of([
         { key: "Mod-Enter", run: () => { emit("execute"); return true; } },
+        { key: "Mod-Shift-Enter", run: () => {
+          const v = view.value;
+          if (!v) return false;
+          const { from, to } = v.state.selection.main;
+          if (from === to) return false;
+          const selected = v.state.sliceDoc(from, to);
+          if (!selected.trim()) return false;
+          emit("execute-selected", selected);
+          return true;
+        } },
         ...completionKeymap,
         ...defaultKeymap,
         ...historyKeymap,
@@ -498,6 +509,24 @@ onBeforeUnmount(() => {
   window.clearTimeout(schemaTimer);
   view.value?.destroy();
   view.value = undefined;
+});
+
+/** 暴露给父级：取编辑器中选中的 SQL 文本（无选中返回空串）；设置选中范围 */
+defineExpose({
+  getSelectedSql: () => {
+    const v = view.value;
+    if (!v) return "";
+    const { from, to } = v.state.selection.main;
+    if (from === to) return "";
+    return v.state.sliceDoc(from, to);
+  },
+  setSelection: (startLine: number, endLine: number) => {
+    const v = view.value;
+    if (!v) return;
+    const start = v.state.doc.line(startLine).from;
+    const end = v.state.doc.line(endLine).to;
+    v.dispatch({ selection: { anchor: start, head: end } });
+  },
 });
 </script>
 

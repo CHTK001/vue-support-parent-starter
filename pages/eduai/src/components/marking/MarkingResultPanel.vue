@@ -8,6 +8,7 @@
  * 改分在版面解析里做）。
  */
 import { computed, ref } from 'vue';
+import { Loading } from '@element-plus/icons-vue';
 import { message } from '@repo/core';
 import ReTag from '@repo/ui/re-tag';
 import ReDialog from '@repo/ui/re-dialog';
@@ -19,12 +20,22 @@ import type { MarkingFinishPreview, MarkingPreviewQuestion, MarkingResultVO } fr
 
 const props = withDefaults(
   defineProps<{
-    /** 单份试卷的阅卷结果（null=未选择） */
+    /** 任务号：来自路由 query，不等结果接口就能拿到，面板一挂载就能开始拉结构/卷面图 */
+    taskId: string;
+    /** 单份试卷的阅卷结果（null=还在读） */
     result: MarkingResultVO | null;
     /** 结构视图刷新令牌：任务判完 / 改分后递增，强制重挂载 */
     refreshKey?: number;
+    /**
+     * 父级已发出的结构请求（详情页与结果接口并发拉取）。
+     *
+     * <p>传的是 Promise 而不是结果：结构要 2~3s 才回来，用 Promise 能让结构视图
+     * 一挂载就接上已经在飞的那次请求，既不用等父级、也不用再发一遍。
+     * 为 null 时（工作台内嵌等）结构视图自己拉。</p>
+     */
+    structurePromise?: Promise<Record<string, any>> | null;
   }>(),
-  { result: null, refreshKey: 0 },
+  { result: null, refreshKey: 0, structurePromise: null },
 );
 
 const emit = defineEmits<{
@@ -47,6 +58,8 @@ const totals = computed(() => {
 
 /** 统一确认弹窗（不用原生 ElMessageBox：会破坏老师端全屏布局层级） */
 const confirmDialog = ref<InstanceType<typeof ReConfirmDialog> | null>(null);
+/** 结构视图实例：完成前借它把待存的老师分提交掉 */
+const sheetRef = ref<{ saveIfDirty?: () => Promise<boolean> } | null>(null);
 /** 完成请求进行中 */
 const finishing = ref(false);
 /** 撤销请求进行中 */
@@ -84,14 +97,36 @@ const finishHint = computed(() => {
 });
 
 /**
+ * 完成前先把老师改的分落库。
+ *
+ * <p>「完成」是页面上最显眼的按钮，老师改完分往往直接点它；
+ * 此前这条路只调 finishMarking、不提交老师分，重开页面分数就回到 AI 分。</p>
+ *
+ * @returns 是否已确保老师分已保存（false 时中止完成，避免用旧分登记错题）
+ */
+async function ensureScoresSaved(): Promise<boolean> {
+  try {
+    const ok = await sheetRef.value?.saveIfDirty?.();
+    return ok !== false;
+  } catch (e) {
+    failToast('保存老师分失败', e);
+    return false;
+  }
+}
+
+/**
  * 阅卷完成：先拉预览弹窗，老师可取消勾选剔除部分题，再确认归入错题本。
  *
  * <p>完成是幂等动作，重复点击不会重复累加错题次数；
  * 未识别到学生时后端会拒绝，并提示先设置学生。</p>
  */
 async function finish(): Promise<void> {
-  const taskId = props.result?.taskId;
+  const taskId = props.taskId;
   if (!taskId) {
+    return;
+  }
+  // 先落库老师分：预览里的最终成绩与错题登记都以它为准
+  if (!(await ensureScoresSaved())) {
     return;
   }
   finishing.value = true;
@@ -142,7 +177,7 @@ async function finish(): Promise<void> {
 
 /** 预览弹窗确认：收集未勾选的题做剔除，再调用完成 */
 async function confirmPreviewFinish(): Promise<void> {
-  const taskId = props.result?.taskId;
+  const taskId = props.taskId;
   if (!taskId || !preview.value) {
     return;
   }
@@ -150,6 +185,10 @@ async function confirmPreviewFinish(): Promise<void> {
     .filter((q) => !previewSelected.value[q.questionId])
     .map((q) => q.questionId);
   previewVisible.value = false;
+  // 弹窗开着时老师仍可能在结构视图里改分，确认前再兜一次
+  if (!(await ensureScoresSaved())) {
+    return;
+  }
   finishing.value = true;
   try {
     const res = await eduaiApi.finishMarking(taskId, excluded);
@@ -176,7 +215,7 @@ function togglePreviewQuestion(question: MarkingPreviewQuestion): void {
 
 /** 撤销完成：删除本任务的错题记录，复位完成状态 */
 async function undoFinish(): Promise<void> {
-  const taskId = props.result?.taskId;
+  const taskId = props.taskId;
   if (!taskId) return;
   const ok = await confirmDialog.value?.open(
     '撤销完成后，该任务的错题记录将被全部移除，确定撤销吗？',
@@ -197,38 +236,51 @@ async function undoFinish(): Promise<void> {
 </script>
 
 <template>
-  <div v-if="result" class="mr-panel">
+  <div class="mr-panel">
     <div class="mr-sum">
-      试卷记录 · 任务 {{ result.taskId }} ·
-      状态 {{ statusText }} ·
-      AI 总分 <b>{{ totals.ai }}</b> ·
-      老师总分 <b>{{ totals.final }}</b>
-      <ReTag size="small" type="success">老师分为最终成绩</ReTag>
-      <ReTag v-if="taskFailed" size="small" type="danger">判分失败</ReTag>
-      <span class="mr-spacer" />
-      <ReTag v-if="teacherFinished" size="small" type="info">已完成</ReTag>
-      <el-tooltip v-if="teacherFinished" content="撤销后错题记录将被移除" placement="top">
-        <el-button size="small" type="warning" :loading="undoing" @click="undoFinish">
-          撤销完成
-        </el-button>
-      </el-tooltip>
-      <el-tooltip v-else :content="finishHint" placement="top">
-        <span class="mr-finish-wrap">
-          <el-button
-            size="small"
-            type="primary"
-            :loading="finishing"
-            :disabled="!canFinish"
-            @click="finish"
-          >
-            完成
+      <template v-if="result">
+        试卷记录 · 任务 {{ result.taskId }} ·
+        状态 {{ statusText }} ·
+        AI 总分 <b>{{ totals.ai }}</b> ·
+        老师总分 <b>{{ totals.final }}</b>
+        <ReTag size="small" type="success">老师分为最终成绩</ReTag>
+        <ReTag v-if="taskFailed" size="small" type="danger">判分失败</ReTag>
+        <span class="mr-spacer" />
+        <ReTag v-if="teacherFinished" size="small" type="info">已完成</ReTag>
+        <el-tooltip v-if="teacherFinished" content="撤销后错题记录将被移除" placement="top">
+          <el-button size="small" type="warning" :loading="undoing" @click="undoFinish">
+            撤销完成
           </el-button>
+        </el-tooltip>
+        <el-tooltip v-else :content="finishHint" placement="top">
+          <span class="mr-finish-wrap">
+            <el-button
+              size="small"
+              type="primary"
+              :loading="finishing"
+              :disabled="!canFinish"
+              @click="finish"
+            >
+              完成
+            </el-button>
+          </span>
+        </el-tooltip>
+      </template>
+      <template v-else>
+        <span class="mr-loading">
+          <el-icon class="is-loading"><Loading /></el-icon>
+          正在读取阅卷结果…
         </span>
-      </el-tooltip>
+        <span class="mr-spacer" />
+      </template>
     </div>
+    <!-- 结构视图不等结果接口：任务号一到就挂载，结构/卷面图各自异步到货 -->
     <SheetStructureView
-      :key="`${result.taskId}:${refreshKey}`"
-      :task-id="result.taskId"
+      v-if="taskId"
+      :key="`${taskId}:${refreshKey}`"
+      ref="sheetRef"
+      :task-id="taskId"
+      :structure-promise="structurePromise"
       @saved="emit('saved')"
     />
     <ReConfirmDialog ref="confirmDialog" />
@@ -272,7 +324,6 @@ async function undoFinish(): Promise<void> {
       </template>
     </ReDialog>
   </div>
-  <div v-else class="mr-empty">选择左侧任务查看阅卷结果</div>
 </template>
 
 <style scoped>
@@ -299,6 +350,13 @@ async function undoFinish(): Promise<void> {
 }
 .mr-spacer {
   flex: 1;
+}
+/* 汇总行占位：结果接口还没回来时只转这一行，不挡下面的结构视图 */
+.mr-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--el-text-color-secondary);
 }
 .mr-empty {
   padding: 40px 0;

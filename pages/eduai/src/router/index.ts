@@ -200,14 +200,15 @@ export const eduaiRoutes: RouteConfigsTable[] = [
 
   // ==================== 隐藏路由（不进菜单，仍可访问） ====================
   {
-    // 阅卷详情：入口在阅卷记录行「查看」（/edu/marking），专注查看一份试卷的判分明细。
-    // remind=true 由 registerRoutesUnderLayout 注册为顶层路由（不套 layout），
-    // 根 router-view 直接渲染组件，不受侧边栏 / 顶栏 / 标签栏控制。
+    // 阅卷详情：入口在阅卷记录行「查看」（/edu/marking）。
+    // 走站内标签页（与 /eduai/paper-compose 同一套），不新开浏览器标签：
+    // 新开标签要重新 bootstrap 整个 SPA，实测经网关 4.3s，比数据本身还慢。
+    // 标签页按 path 去重，换卷子只改 query，同一个标签复用。
     // query: taskId（任务号，必填）
     path: "/edu/marking/detail",
     name: "EduMarkingDetail",
     component: () => import("../views/MarkingDetailView.vue"),
-    meta: { title: "阅卷详情", icon: "Reading", showLink: false, remind: true, isVisible: "0", keepAlive: false },
+    meta: { title: "阅卷详情", icon: "Reading", showLink: false, isVisible: "0", keepAlive: false },
   },
   {
     // 手动组卷：入口在 PaperView 列表工具栏（带当前检索的学科/学段跳转），不进侧边栏菜单

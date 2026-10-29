@@ -229,6 +229,7 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
   { id: 'qianfan', name: '百度千帆', description: '百度智能云大模型平台', protocol: 'openai', defaultApiUrl: 'https://qianfan.baidubce.com/v2', keywords: ['ernie', '文心', 'wenxin', 'baidu'] },
   { id: 'baidu', name: '百度智能云', description: '百度智能云文心/千帆模型', protocol: 'openai', defaultApiUrl: 'https://qianfan.baidubce.com/v2', keywords: ['ernie', 'wenxin', 'baidu'] },
   { id: 'sensenova', name: 'SenseNova 商汤', description: '商汤科技大模型平台', protocol: 'openai', defaultApiUrl: 'https://token.sensenova.cn/v1', keywords: ['sensenova', 'sensetime'] },
+  { id: 'moss', name: 'Moss', description: 'Moss 开放平台（mosi.cn），语音合成 / 图像生成', protocol: 'openai', defaultApiUrl: 'https://api.mosi.cn/v1', keywords: ['moss', 'mosi', 'moss-tts'] },
   { id: 'volcengine', name: '火山引擎', description: '字节跳动豆包 Doubao 模型', protocol: 'openai', defaultApiUrl: 'https://ark.cn-beijing.volces.com/api/v3', keywords: ['doubao', 'ark', '豆包'] },
   { id: 'volcengine', name: '火山方舟', description: '火山方舟大模型服务平台（豆包）', protocol: 'openai', defaultApiUrl: 'https://ark.cn-beijing.volces.com/api/v3', keywords: ['doubao', '豆包', 'ep-'] },
   { id: 'spark', name: '讯飞星火', description: '科大讯飞星火大模型', protocol: 'openai', defaultApiUrl: 'https://spark-api.cn-huabei-1.xf-yun.com/v1', keywords: ['spark', 'xfyun', '讯飞'] },

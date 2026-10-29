@@ -141,16 +141,20 @@
             <el-option v-for="g in createGradeOptions" :key="g.gradeId" :label="gradeDisplayName(g.gradeName)" :value="g.gradeName" />
           </el-select>
         </el-form-item>
-        <el-form-item label="总分">
+        <!--
+          总分/难度/组卷模板只有手动建卷会用：AI 组卷接口（PaperGenerateDTO）不接收这三项，
+          总分由后端按「题量 × 每题分值」回写。放在 AI 方式下会变成改了也不生效的假字段。
+        -->
+        <el-form-item v-if="composeMode === 'MANUAL'" label="总分">
           <ReInputNumber v-model="createForm.totalScore" :min="1" :max="1000" />
         </el-form-item>
-        <el-form-item label="难度">
+        <el-form-item v-if="composeMode === 'MANUAL'" label="难度">
           <el-rate v-model="createForm.difficulty" :max="5" />
         </el-form-item>
         <el-form-item label="考试时长">
           <ReInputNumber v-model="createForm.duration" :min="1" :max="600" /> 分钟
         </el-form-item>
-        <el-form-item label="组卷模板">
+        <el-form-item v-if="composeMode === 'MANUAL'" label="组卷模板">
           <el-select v-model="createForm.templateId" placeholder="不使用模板" clearable style="width: 100%">
             <el-option v-for="t in templateOptions" :key="t.templateId" :label="t.templateName" :value="t.templateId" />
           </el-select>
@@ -162,6 +166,15 @@
           <el-form-item label="每题分值">
             <ReInputNumber v-model="aiScorePerQuestion" :min="1" :max="100" />
           </el-form-item>
+          <!--
+            这两个默认值不是写死的：进 AI 方式时从「AI 配置中心 → AI 组卷」的 compose 分组取，
+            在这里改只影响本次组卷（后端优先用请求值）。
+          -->
+          <div class="ai-config-hint">
+            默认值取自「AI 配置中心 → AI 组卷」的试卷配置；按当前设置共
+            <b>{{ aiQuestionCount }}</b> 题、每题 <b>{{ aiScorePerQuestion }}</b> 分，总分
+            <b>{{ aiQuestionCount * aiScorePerQuestion }}</b> 分。
+          </div>
         </template>
       </el-form>
       <template #footer>
@@ -317,7 +330,7 @@
 
 <script setup lang="ts">
 import { message } from "@repo/core";
-import { computed, onBeforeUnmount, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessageBox } from 'element-plus';
 import { Printer, Picture } from '@element-plus/icons-vue';
@@ -752,6 +765,13 @@ const createDialogVisible = ref(false);
 const creating = ref(false);
 /** 组卷方式：AI 组卷是「组卷」按钮的一个功能分支，与手动共用卷头配置 */
 const composeMode = ref<'MANUAL' | 'AI'>('MANUAL');
+/**
+ * AI 组卷的题量/每题分值。
+ *
+ * <p>默认值来自「AI 配置中心 → AI 组卷」（compose 分组），进入 AI 方式时异步刷新；
+ * 取不到配置时才回落到 20 / 5。这里是「本次组卷的覆盖值」——用户改了就以表单为准，
+ * 因为后端对 PaperGenerateDTO 的 questionCount / scorePerQuestion 是请求值优先。</p>
+ */
 const aiQuestionCount = ref(20);
 const aiScorePerQuestion = ref(5);
 const createGrades = ref<EduGrade[]>([]);
@@ -803,6 +823,50 @@ const loadCreateOptions = async () => {
   }
 };
 
+/**
+ * 配置值转正整数；缺失或非法返回 null（表示「沿用内置默认」）。
+ *
+ * @param v 配置里的原始值（后端统一按字符串下发）
+ * @returns 正整数，或 null
+ */
+const toPositiveInt = (v: unknown): number | null => {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+};
+
+/**
+ * 读取「AI 配置中心 → AI 组卷」的试卷配置，并填成 AI 组卷表单的默认值。
+ *
+ * <p>此前这里把题量/分值写死成 20 / 5，而且每次组卷都显式传给后端；后端对
+ * questionCount / scorePerQuestion 是「请求值优先」，于是配置中心里改题量、改分值
+ * 对界面组卷完全不生效，看起来就像「试卷没用上配置」。现在每次进入 AI 方式都重取一次
+ * 合并视图（全局默认 + 本人覆盖），配置中心改完立即生效。</p>
+ *
+ * <p>请求失败只回落内置默认，不打断组卷。</p>
+ */
+const loadComposeConfig = async () => {
+  try {
+    const cfg = await eduaiApi.getPaperComposeConfig();
+    const count = toPositiveInt(cfg?.default_question_count);
+    const perScore = toPositiveInt(cfg?.default_score_per_question);
+    if (count != null) {
+      aiQuestionCount.value = count;
+    }
+    if (perScore != null) {
+      aiScorePerQuestion.value = perScore;
+    }
+  } catch {
+    // 配置中心不可用时按内置默认组卷，不能把入口卡死
+  }
+};
+
+/** 切到 AI 组卷就刷新配置默认值；切回手动不动，避免把手动建卷的字段改掉 */
+watch(composeMode, (mode) => {
+  if (mode === 'AI') {
+    void loadComposeConfig();
+  }
+});
+
 const openCreate = () => {
   Object.assign(createForm, {
     name: '',
@@ -814,6 +878,10 @@ const openCreate = () => {
     duration: 60,
     templateId: undefined,
   });
+  // 弹框可能保留着上次选的 AI 方式：此时 watch 不会再触发，这里补一次取配置
+  if (composeMode.value === 'AI') {
+    void loadComposeConfig();
+  }
   createDialogVisible.value = true;
   void loadCreateOptions();
 };
@@ -1171,6 +1239,25 @@ onBeforeUnmount(stopPrintMode);
 
 <style scoped>
 .page-container { height: 100%; display: flex; flex-direction: column; }
+
+/*
+ * AI 组卷配置提示：跟表单标签对齐（label-width=100），
+ * 让「题量/分值来自配置中心」这件事在弹框里一眼可见。
+ */
+.ai-config-hint {
+  margin: -4px 0 14px 100px;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-lighter);
+  border-radius: 6px;
+}
+
+.ai-config-hint b {
+  color: var(--el-color-primary);
+  font-variant-numeric: tabular-nums;
+}
 
 /* 操作列里「已归档（只读）」的文字占位：归档后没有任何可点的动作 */
 .paper-row__readonly {

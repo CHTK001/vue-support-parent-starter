@@ -103,6 +103,13 @@
               <el-option v-for="ds in jdbcSources" :key="ds.id" :label="ds.name" :value="ds.id" />
             </el-select>
           </div>
+          <div
+            v-if="fastLoadHint(out)"
+            class="bi-form-item bi-fastload-hint"
+            :class="fastLoadEnabledOf(out) ? 'is-ok' : 'is-no'"
+          >
+            {{ fastLoadHint(out) }}
+          </div>
           <div class="bi-form-item">
             <label>目标数据表</label>
             <el-select
@@ -286,7 +293,7 @@ import { fetchDataSources, fetchDatasourceTables, type DataSourceInfo } from "@p
 import ReFilePicker from "@repo/ui/re-file-picker";
 import type { FilePickerItem } from "@repo/ui/components/ReFilePicker/types";
 import ReDialog from "@repo/ui/re-dialog";
-import { fetchLocalFiles, type BulkImportPayload, type BulkImportResult } from "../../api/syncTaskApi";
+import { fetchLocalFiles, bulkImportCsv, bulkPreviewCsv, type BulkImportPayload, type BulkImportResult } from "../../api/syncTaskApi";
 
 defineOptions({ name: "BulkImportDialog" });
 
@@ -355,6 +362,24 @@ const jdbcSources = computed(() =>
 const dsLabel = (id?: number | null): string => {
   const hit = datasources.value.find(ds => ds.id === id);
   return hit ? hit.name : id == null ? "-" : `#${id}`;
+};
+
+/**
+ * 目标数据源快速导入能力提示：按后端回传的 fastLoadEnabled（MySQL/PG 方言自动计算）展示。
+ * 支持 → 绿色提示（本目标走 LOAD/COPY 直灌）；不支持/未知 → 红色提示（本目标将失败或跳过）。
+ */
+const fastLoadHint = (out: BulkTarget): string => {
+  if (out.targetDatasourceId == null) return "";
+  const hit = datasources.value.find(ds => ds.id === out.targetDatasourceId);
+  if (!hit) return "";
+  if (hit.fastLoadEnabled) return "该数据源支持快速导入（LOAD / COPY 直灌）";
+  return "该数据源暂不支持快速导入，导入将失败（当前仅 MySQL / PostgreSQL）";
+};
+
+const fastLoadEnabledOf = (out: BulkTarget): boolean => {
+  if (out.targetDatasourceId == null) return false;
+  const hit = datasources.value.find(ds => ds.id === out.targetDatasourceId);
+  return !!hit?.fastLoadEnabled;
 };
 
 const openPicker = () => {
@@ -455,17 +480,20 @@ const previewCsv = async () => {
     return;
   }
   try {
-    const mockHeaders = ["id", "name", "email", "created_at"];
-    const mockRows = [
-      { id: "1", name: "张三", email: "zhang@example.com", created_at: "2024-01-01" },
-      { id: "2", name: "李四", email: "li@example.com", created_at: "2024-01-02" },
-      { id: "3", name: "王五", email: "wang@example.com", created_at: "2024-01-03" },
-    ];
-    previewRows.value = mockRows;
+    // 真实读取服务端文件：表头 + 前 20 行样例 + 数据总行数（后端读，前端不做 mock）
+    const preview = await bulkPreviewCsv({
+      filePath: form.filePath.trim(),
+      delimiter: form.delimiter,
+      encoding: form.encoding,
+      hasHeader: form.hasHeader,
+      outputs: [],
+    });
+    previewRows.value = preview.rows ?? [];
+    const headers = preview.headers ?? [];
 
     for (const out of form.outputs) {
       await onOutputTargetTableChange(out);
-      out.mapping = mockHeaders.map(h => ({
+      out.mapping = headers.map(h => ({
         source: h,
         target: out.columns.find(c => c.name.toLowerCase() === h.toLowerCase())?.name ?? "",
       }));
@@ -487,23 +515,8 @@ const doImport = async () => {
   importError.value = "";
   try {
     const payload = buildBulkPayload();
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    result.value = {
-      status: "SUCCESS",
-      readCount: previewRows.value.length,
-      writeCount: previewRows.value.length * form.outputs.length,
-      costMs: 342 * form.outputs.length,
-      message: `已并行写入 ${form.outputs.length} 个目标（模拟结果，生产对接真实后端 bulkImportCsv）`,
-      outputs: payload.outputs.map((target, i) => ({
-        targetDatasourceId: target.targetDatasourceId,
-        targetTable: target.targetTable,
-        status: "SUCCESS",
-        readCount: previewRows.value.length,
-        writeCount: previewRows.value.length,
-        costMs: 300 + i * 42,
-        message: `MySQL LOAD DATA INFILE 写入 ${previewRows.value.length} 行`,
-      })),
-    };
+    // 真实调用后端：文件统一转规范 CSV → 按目标库方言 LOAD/COPY 直灌 → 返回每目标结果
+    result.value = await bulkImportCsv(payload);
     step.value = 2;
   } catch (e) {
     importError.value = (e as Error)?.message || "未知错误";
@@ -625,6 +638,22 @@ watch(visible, (val) => {
   font-size: 13px;
   font-weight: 500;
   color: var(--el-text-color-regular);
+}
+.bi-fastload-hint {
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+.bi-fastload-hint.is-ok {
+  color: var(--el-color-success);
+  background: var(--el-color-success-light-9);
+  border: 1px solid var(--el-color-success-light-7);
+}
+.bi-fastload-hint.is-no {
+  color: var(--el-color-danger);
+  background: var(--el-color-danger-light-9);
+  border: 1px solid var(--el-color-danger-light-7);
 }
 .bi-path-field {
   display: flex;

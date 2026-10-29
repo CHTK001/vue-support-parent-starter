@@ -808,27 +808,6 @@ function humanUptime(sec: number): string {
 
 const uptimeText = computed(() => humanUptime(Number(metrics.value.uptimeSec ?? info.value.uptimeSec ?? 0)));
 
-interface Gauge { label: string; percent: number; detail: string; bad: boolean; }
-/** 网络速率格式化：KB/s 自动换算 MB/s */
-const fmtRate = (v: any): string => {
-  const n = num(v);
-  if (n >= 1024) return `${(n / 1024).toFixed(1)} MB/s`;
-  return `${n.toFixed(0)} KB/s`;
-};
-const gauges = computed<Gauge[]>(() => {
-  const m = metrics.value;
-  const cpu = num(m.cpuPercent);
-  const memPct = num(m.memoryPercent);
-  const diskPct = num(m.diskPercent);
-  const netPct = num(m.networkPercent);
-  return [
-    { label: "CPU", percent: cpu, detail: `${m.processCount ?? "—"} 进程 · ${m.threadCount ?? "—"} 线程`, bad: cpu >= 85 },
-    { label: "内存", percent: memPct, detail: `${fmtNum(m.memoryUsedMb)} / ${fmtNum(m.memoryTotalMb)} MB`, bad: memPct >= 90 },
-    { label: "磁盘", percent: diskPct, detail: `${fmtNum(m.diskUsedGb)} / ${fmtNum(m.diskTotalGb)} GB`, bad: diskPct >= 90 },
-    { label: "网络", percent: netPct, detail: `↓ ${fmtRate(m.networkRxKb)} / ↑ ${fmtRate(m.networkTxKb)}`, bad: netPct >= 85 },
-  ];
-});
-
 /** 文件管理器弹窗 */
 const fileManagerVisible = ref(false);
 const fileManagerPath = ref("");
@@ -838,9 +817,6 @@ function openFileManager(root: string): void {
   fileManagerPath.value = root || "/";
   fileManagerVisible.value = true;
 }
-/** 任一通道（Agent / SSH / 本机）拿到真实指标即展示明细，不再仅以 agent 就绪为准 */
-const hasMetrics = computed(() => !profileError.value &&
-  (Number(metrics.value.memoryTotalMb ?? 0) > 0 || Number(metrics.value.diskTotalGb ?? 0) > 0));
 
 const overviewRows = computed<Array<{ label: string; value: string; mono?: boolean }>>(() => {
   const i = info.value;
@@ -960,9 +936,9 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
           <div class="ph-actions">
             <ReButton icon="Refresh" layout="square" type="primary" :loading="loadingProfile"
               @click="loadProfile(true)">刷新主机</ReButton>
-            <ReButton v-if="isAgentMode && !agentReady" icon="Download" layout="square" type="success"
+            <ReButton v-if="isAgentMode && !agentReady && selectedHost?.serverHostSshEnabled === 1" icon="Download" layout="square" type="success"
               @click="emit('deploy-agent', selectedHost)">安装 Agent</ReButton>
-            <ReButton icon="Connection" layout="square" @click="emit('connect', selectedHost)">连接</ReButton>
+            <ReButton v-if="selectedHost?.serverHostRemoteEnabled === 1" icon="Connection" layout="square" @click="emit('connect', selectedHost)">连接</ReButton>
             <ReButton icon="TrendCharts" layout="square" @click="emit('detail', selectedHost)">监控详情</ReButton>
             <ReButton icon="EditPen" layout="square" @click="emit('edit', selectedHost)">编辑</ReButton>
             <label class="auto-switch">
@@ -990,7 +966,7 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
           <div class="ph-actions">
             <ReButton icon="Refresh" layout="square" type="primary" :loading="loadingProfile"
               @click="loadProfile(true)">刷新</ReButton>
-            <ReButton v-if="isAgentMode && !agentReady" icon="Download" layout="square" type="success"
+            <ReButton v-if="isAgentMode && !agentReady && selectedHost?.serverHostSshEnabled === 1" icon="Download" layout="square" type="success"
               @click="emit('deploy-agent', selectedHost)">安装 Agent</ReButton>
             <label class="auto-switch">
               <ReSwitch v-model="autoRefresh" />
@@ -1009,17 +985,7 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
         </div>
         <div v-else-if="osMismatch" class="alert alert-warn">{{ osMismatch }}</div>
 
-        <!-- 资源仪表：嵌入模式已移到工作区底部常驻状态条，这里不再重复 -->
-        <div v-if="!embedded" class="gauges">
-          <div v-for="g in gauges" :key="g.label" class="gauge">
-            <div class="gauge-top">
-              <span class="gauge-label">{{ g.label }}</span>
-              <span :class="['gauge-val', { bad: g.bad }]">{{ g.percent }}%</span>
-            </div>
-            <div class="gauge-bar"><i :class="{ bad: g.bad }" :style="{ width: Math.min(100, g.percent) + '%' }" /></div>
-            <div class="gauge-sub mono">{{ hasMetrics ? g.detail : '等待通道数据' }}</div>
-          </div>
-        </div>
+        <!-- 资源仪表已移除，概览条与分区数据足以反映主机状态 -->
 
         <!-- 分段切换：嵌入模式下每个分区已是独立页签，不再需要二级切换 -->
         <div v-if="!embedded" class="seg">
@@ -1053,6 +1019,7 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
             :keyword="sectionKeyword"
             :loading="loadingSection"
             :error="sectionError"
+            :host-id="selectedHost.id"
             paged
             :page="page"
             :page-size="pageSize"
@@ -1281,17 +1248,6 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
 .alert { margin: 12px 0 0; padding: 10px 12px; border-radius: 8px; font-size: 12.5px; line-height: 1.7; }
 .alert-error { background: rgba(245, 108, 108, .1); border: 1px solid rgba(245, 108, 108, .3); color: var(--status-error-text, #d9484b); }
 .alert-warn { background: rgba(230, 162, 60, .1); border: 1px solid rgba(230, 162, 60, .3); color: var(--status-warning-text, #b8741a); }
-
-.gauges { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 14px 0 4px; }
-.gauge { padding: 12px 14px; border: 1px solid var(--border-subtle); border-radius: 10px; background: var(--bg-fill, #f8f9fc); }
-.gauge-top { display: flex; align-items: baseline; justify-content: space-between; }
-.gauge-label { font-size: 11px; letter-spacing: .4px; text-transform: uppercase; color: var(--text-tertiary); }
-.gauge-val { font-size: 18px; font-weight: 600; &.bad { color: var(--danger, #f56c6c); } }
-.gauge-bar {
-  height: 6px; border-radius: 999px; background: var(--border-subtle); overflow: hidden; margin: 8px 0 6px;
-  i { display: block; height: 100%; background: var(--brand-500, #6d5ce7); transition: width .3s; &.bad { background: var(--danger, #f56c6c); } }
-}
-.gauge-sub { font-size: 11px; color: var(--text-tertiary); }
 
 .seg { display: flex; gap: 4px; flex-wrap: wrap; margin: 16px 0 0; padding: 4px; border-radius: 10px; background: var(--bg-fill, #f5f6fa); }
 .seg-item {

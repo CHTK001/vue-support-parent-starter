@@ -70,6 +70,7 @@ import {
   killDbProcess,
   killDbProcesses,
   toggleDataSourceTop,
+  uploadFileDb,
   uploadJdbcDriverJar,
   type DbProcessListResult,
   type DbProcessRow,
@@ -281,6 +282,53 @@ const onPickDriverJar = async (event: Event) => {
     message.error(`上传驱动 jar 失败: ${String((error as Error)?.message ?? error)}`);
   } finally {
     driverJarUploading.value = false;
+  }
+};
+
+// ------------------------------ 文件库库文件上传 ------------------------------
+// SQLite / DuckDB / H2 是「服务器上一个文件」的库：台账里存的是绝对路径。
+// 让人先自己 scp 上去、再回来手打路径，是最容易出错的一步（路径打错、
+// 目录不在 fileJdbcAllowedDirs 白名单内、文件权限不可写）。这里直接传、
+// 后端落到受管目录、把绝对路径回填进表单，省掉手抄路径。
+
+/** 库文件上传中 */
+const fileDbUploading = ref(false);
+/** 隐藏的库文件选择框 */
+const fileDbInput = ref<HTMLInputElement | null>(null);
+
+/**
+ * 当前表单是不是「文件库」：决定要不要显示库文件上传入口。
+ *
+ * <p>DuckDB 是独立类型；SQLite / H2 挂在 {@code jdbc} 下，只能按驱动类名认
+ * （台账里这两个类型的 database 字段存的是文件路径，没有 {@code jdbc:} 前缀可供判断）。</p>
+ */
+const isFileDbForm = computed(() => {
+  if (form.value.type === "duckdb") return true;
+  if (form.value.type !== "jdbc") return false;
+  const driver = (form.value.driverClassName ?? "").toLowerCase();
+  return driver.includes("sqlite") || driver.includes("org.h2");
+});
+
+/**
+ * 选择库文件后立即上传，并把返回的绝对路径填进「库文件路径」。
+ *
+ * @param event 文件选择事件
+ */
+const onPickFileDb = async (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  // 允许重复上传同一个文件
+  input.value = "";
+  if (!file) return;
+  fileDbUploading.value = true;
+  try {
+    const saved = await uploadFileDb(file);
+    form.value.database = saved.path;
+    message.success(`已上传 ${saved.name}，路径已回填`);
+  } catch (error) {
+    message.error(`上传库文件失败: ${String((error as Error)?.message ?? error)}`);
+  } finally {
+    fileDbUploading.value = false;
   }
 };
 
@@ -1364,6 +1412,7 @@ const openSlowQueries = async (item: DataSourceInfo) => {
 /** 慢查询列定义 */
 const slowQueryColumns: ReTableColumn[] = [
   { prop: "digest", label: "语句（摘要）", minWidth: 320, slot: "col-digest" },
+  { prop: "host", label: "客户端 IP", width: 140, slot: "col-host", align: "center" },
   { prop: "avgMs", label: "平均耗时(ms)", width: 120, align: "right" },
   { prop: "maxMs", label: "最大耗时(ms)", width: 120, align: "right" },
   { prop: "calls", label: "次数", width: 90, align: "right" },
@@ -2630,10 +2679,15 @@ onMounted(load);
               class="is-full"
               data-testid="ds-duckdb-path-field"
             >
-              <ReInput v-model="form.database" placeholder="/data/warehouse.db 或 :memory:" />
+              <div class="ds-driver-jar">
+                <ReInput v-model="form.database" placeholder="/data/warehouse.db 或 :memory:" class="ds-driver-jar-select" />
+                <input ref="fileDbInput" class="ds-driver-jar-file" type="file" accept=".db,.db3,.sqlite,.sqlite3,.duckdb,.mv.db,.h2.db,.sdb" @change="onPickFileDb" />
+                <ReButton size="small" :loading="fileDbUploading" @click="fileDbInput?.click()">上传库文件</ReButton>
+              </div>
               <p class="ds-form-hint">
                 绝对路径指向磁盘上的 .db 文件（不存在则建连时创建）；也可填 <code>:memory:</code> 建临时库。
-                路径须落在应用允许的目录内，越界会被拒绝保存。
+                路径须落在应用允许的目录内，越界会被拒绝保存。上传的库文件落到应用的
+                <code>data/file-db</code> 目录（默认单文件上限 64MB），上传后自动回填路径。
               </p>
             </ReFormItem>
             <ReFormItem
@@ -2641,10 +2695,20 @@ onMounted(load);
               :label="form.type === 'neo4j' ? '图数据库名' : '数据库/库名'"
               class="is-full"
             >
-              <ReInput
-                v-model="form.database"
-                :placeholder="form.type === 'neo4j' ? '留空按 neo4j；填完整 http(s):// 地址时按反向代理前缀处理' : '数据库名 / Redis DB 编号 / Kafka 可选上下文'"
-              />
+              <div :class="{ 'ds-driver-jar': isFileDbForm }">
+                <ReInput
+                  v-model="form.database"
+                  :class="{ 'ds-driver-jar-select': isFileDbForm }"
+                  :placeholder="form.type === 'neo4j' ? '留空按 neo4j；填完整 http(s):// 地址时按反向代理前缀处理' : '数据库名 / Redis DB 编号 / Kafka 可选上下文'"
+                />
+                <template v-if="isFileDbForm">
+                  <input ref="fileDbInput" class="ds-driver-jar-file" type="file" accept=".db,.db3,.sqlite,.sqlite3,.duckdb,.mv.db,.h2.db,.sdb" @change="onPickFileDb" />
+                  <ReButton size="small" :loading="fileDbUploading" @click="fileDbInput?.click()">上传库文件</ReButton>
+                </template>
+              </div>
+              <p v-if="isFileDbForm" class="ds-form-hint">
+                SQLite / H2 文件库这里填服务器上的库文件路径；点「上传库文件」可直接上传并回填绝对路径。
+              </p>
             </ReFormItem>
             <!-- InfluxDB v2/v3 查询语法不通用，新增时必须明确版本 -->
             <ReFormItem v-if="form.type === 'influxdb'" label="InfluxDB 版本" required class="is-full" data-testid="ds-influx-version-field">
@@ -2974,7 +3038,7 @@ onMounted(load);
           :data="slowQueryRows"
           :columns="slowQueryColumns"
           :loading="slowQueryLoading"
-          row-key="digest"
+          row-key="id"
           size="mini"
           stripe
           border
@@ -2993,6 +3057,10 @@ onMounted(load);
                 <ReIcon name="CopyDocument" :size="13" />
               </button>
             </span>
+          </template>
+          <template #col-host="{ row }">
+            <span v-if="row.host" class="mono" :title="row.host">{{ row.host }}</span>
+            <span v-else class="ds-process__muted" title="该来源（按摘要聚合）没有客户端主机">—</span>
           </template>
           <template #col-last="{ row }">
             <span v-if="row.lastAt" class="mono">{{ row.lastAt }}</span>

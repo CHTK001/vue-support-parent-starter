@@ -36,6 +36,12 @@ export const uninstallSoftwarePkg = (hostId: number, name: string) =>
   http().post(`${B}/release/software/uninstall`).query({ hostId, name }).timeout(30000).then(r => unwrapResult<string>(r));
 export const upgradeSoftwarePkg = (hostId: number, name: string) =>
   http().post(`${B}/release/software/upgrade`).query({ hostId, name }).timeout(30000).then(r => unwrapResult<string>(r));
+/** 可升级清单：前端据此决定是否显示「升级」按钮（只有清单内的包才可能真的升级） */
+export const listUpgradableSoftware = (hostId: number) =>
+  http().get(`${B}/release/software/upgradable`).query({ hostId }).timeout(60000).then(r => unwrapResult<any[]>(r));
+/** 依赖关系：软件详情面板按需查询，返回依赖包名列表 */
+export const getSoftwareDependencies = (hostId: number, name: string) =>
+  http().get(`${B}/release/software/dependencies`).query({ hostId, name }).timeout(60000).then(r => unwrapResult<string[]>(r));
 export const refreshHostPublicIp = (id: number) =>
   http().post(`${B}/host/${id}/refresh-public-ip`).then(r => unwrapResult<string>(r));
 export const pushAgentData = (agentKey: string, payload: Record<string, unknown>) =>
@@ -201,7 +207,12 @@ export const getBookmarks = (hostId: number) =>
 export const createBookmark = (d: any) => http().post(`${B}/terminal/bookmark`).data(d).then(r => unwrapResult<any>(r));
 export const delBookmark = (id: number) => http().delete(`${B}/terminal/bookmark/${id}`).then(r => unwrapResult<boolean>(r));
 
-/* ===== 主机工作台：Docker/K8s 能力与资源（接口约定见 src/workbench-api-contract.md） ===== */
+/* ===== 主机工作台：Docker/K8s 能力与资源（接口约定见 src/workbench-api-contract.md） =====
+ *
+ * Docker 的**页面**已迁到独立包 @pages/docker（后端 /ms/server/docker），
+ * 下列 /host/{id}/docker 一组接口仅保留给 ScDockerK8sWorkbench 的 K8s 同屏组件
+ * （其 domain="docker" 分支已无入口）。不要再往这些接口上挂页面。
+ */
 export const dockerCapability = (hostId: number) =>
   http().get(`${B}/host/${hostId}/docker/capability`).then(r => unwrapResult<any>(r));
 export const listDockerContainers = (hostId: number, all = true) =>

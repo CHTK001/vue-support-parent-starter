@@ -107,93 +107,187 @@
       />
     </div>
 
-    <!-- 文件记录（详情中心：窄文件导航栏 + 宽焦点档案卡，点选联动） -->
-    <div class="dh-wrap">
-      <!-- 左：窄文件导航栏 -->
-      <div class="dh-rail koi-card">
+    <!-- 文件记录：左存储桶 · 中文件列表(ReTable) · 右详情(默认折叠) -->
+    <div class="dh-wrap tri">
+      <!-- 左：存储桶 -->
+      <div class="dh-bucket koi-card">
         <div class="md-card-hd">
-          <span class="md-card-title">文件导航</span>
+          <span class="md-card-title">存储桶</span>
           <el-button size="small" text :icon="Refresh" :loading="listLoading" @click="refreshTasks" />
         </div>
-
-        <!-- 搜索 + 状态筛选 -->
-        <div class="md-toolbar">
-          <el-input
-            v-model="searchKeyword"
-            size="small"
-            clearable
-            placeholder="搜索文件名"
-            class="md-search"
+        <div class="bucket-list">
+          <el-dropdown
+            trigger="contextmenu"
+            @command="(cmd: string) => onBucketCmd(cmd, '')"
           >
-            <template #prefix><el-icon><Search /></el-icon></template>
-          </el-input>
-          <el-select v-model="stateFilter" size="small" class="md-filter" aria-label="状态筛选">
-            <el-option label="全部状态" value="all" />
-            <el-option label="进行中" value="active" />
-            <el-option label="已完成" value="completed" />
-            <el-option label="失败" value="failed" />
-            <el-option label="已取消" value="cancelled" />
-          </el-select>
+            <button
+              type="button"
+              class="bucket-it"
+              :class="{ 'is-active': activeBucket === '' }"
+              @click="selectBucket('')"
+            >
+              <el-icon><Folder /></el-icon><span>全部</span>
+            </button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="info" :icon="InfoFilled">信息</el-dropdown-item>
+                <el-dropdown-item command="upload" :icon="Upload">上传</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+          <el-dropdown
+            v-for="b in buckets"
+            :key="b"
+            trigger="contextmenu"
+            @command="(cmd: string) => onBucketCmd(cmd, b)"
+          >
+            <button
+              type="button"
+              class="bucket-it"
+              :class="{ 'is-active': activeBucket === b }"
+              @click="selectBucket(b)"
+            >
+              <el-icon><FolderOpened /></el-icon><span>{{ b }}</span>
+            </button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="info" :icon="InfoFilled">信息</el-dropdown-item>
+                <el-dropdown-item command="upload" :icon="Upload">上传</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+          <div v-if="!buckets.length && !bucketsLoading" class="bucket-empty">后台未开启任何 bucket</div>
         </div>
-
-        <div v-if="tasks.length === 0" class="dh-rail-empty">
-          <ReEmpty v-if="!listLoading" layout="modern" description="暂无上传任务">
-            <el-button size="small" type="primary" @click="pickFiles">选择文件上传</el-button>
-          </ReEmpty>
-        </div>
-        <template v-else>
-          <div v-loading="listLoading" class="dh-rail-scroll">
-            <!-- 分组导航：进行中 / 已完成 / 失败 / 已取消 -->
-            <div v-for="g in groupedTasks" :key="g.key" class="dh-group">
-              <div class="dh-group-hd">
-                <span class="md-dot" :class="g.dotClass"></span>
-                <span class="dh-group-name">{{ g.label }}</span>
-                <span class="dh-group-cnt">{{ g.tasks.length }}</span>
-              </div>
-              <div
-                v-for="t in g.tasks"
-                :key="t.taskId"
-                class="dh-rail-it"
-                :class="{ 'is-selected': t.taskId === selectedTaskId }"
-                role="option"
-                :aria-selected="t.taskId === selectedTaskId"
-                @click="selectedTaskId = t.taskId"
-              >
-                <el-checkbox
-                  size="small"
-                  :model-value="selectedIds.includes(t.taskId)"
-                  @click.stop
-                  @change="(v: boolean | string | number) => toggleSelect(t.taskId, Boolean(v))"
-                  aria-label="选择任务"
-                />
-                <span class="dh-rail-dot" :class="stateDotClass(t.state)" aria-hidden="true"></span>
-                <span class="dh-rail-name" :title="t.fileName">{{ t.fileName }}</span>
-                <div class="dh-rail-side">
-                  <span class="dh-rail-pct">{{ taskPercent(t) }}%</span>
-                  <span v-if="speeds[t.taskId]" class="dh-rail-spd">{{ speeds[t.taskId] }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 批量操作条 -->
-          <div v-if="selectedIds.length" class="md-bulk">
-            <span class="md-bulk-info">已选 {{ selectedIds.length }} 个任务</span>
-            <el-button size="small" text type="primary" @click="selectAllFiltered">全选</el-button>
-            <el-popconfirm title="确定批量取消选中的可取消任务？" @confirm="batchCancel">
-              <template #reference>
-                <el-button size="small" text type="danger">批量取消</el-button>
-              </template>
-            </el-popconfirm>
-            <el-button size="small" text @click="selectedIds = []">清空</el-button>
-          </div>
-        </template>
       </div>
 
-      <!-- 右：宽焦点档案卡 -->
-      <div class="dh-focus">
+      <!-- 中：文件 ReTable（视图模式） -->
+      <div class="dh-files koi-card">
+        <div class="md-card-hd">
+          <span class="md-card-title">文件</span>
+          <div class="md-toolbar file-toolbar">
+            <el-input
+              v-model="searchKeyword"
+              size="small"
+              clearable
+              placeholder="搜索文件名"
+              class="md-search"
+            >
+              <template #prefix><el-icon><Search /></el-icon></template>
+            </el-input>
+            <el-select v-model="stateFilter" size="small" class="md-filter" aria-label="状态筛选">
+              <el-option label="全部状态" value="all" />
+              <el-option label="进行中" value="active" />
+              <el-option label="已完成" value="completed" />
+              <el-option label="失败" value="failed" />
+              <el-option label="已取消" value="cancelled" />
+            </el-select>
+            <ReButton layout="square" icon="Tickets" tip="文件日志" @click="openLogs" />
+            <el-button size="small" text :icon="Refresh" :loading="listLoading" @click="refreshTasks" />
+          </div>
+        </div>
+        <div v-if="tasks.length === 0" class="files-empty">
+          <el-empty v-if="!listLoading" description="暂无上传文件" :image-size="110">
+            <el-button size="small" type="primary" @click="pickFiles">上传文件</el-button>
+          </el-empty>
+        </div>
+        <ReTable
+          v-else
+          :data="fileRows"
+          :columns="fileColumns"
+          layout="view"
+          :layout-view="{ gap: 8, minHeight: 64, hoverable: true }"
+          size="small"
+          class="file-table file-table--view"
+          empty-text="暂无符合条件的文件"
+          :pagination="true"
+          pagination-mode="scroll"
+          :page-size="8"
+          :toolbar="false"
+          show-selection
+          row-key="taskId"
+          selectable
+          @selection-change="onSelectionChange"
+          @row-click="onFileRowClick"
+        >
+          <template #view="{ row, selected }">
+            <div class="fv-row" :class="{ 'is-selected': selected }">
+              <span class="dh-big-ic fv-ic" :class="fileTypeMeta(toTask(row).fileName).cls" aria-hidden="true">
+                {{ fileTypeMeta(toTask(row).fileName).ext }}
+              </span>
+              <div class="fv-main">
+                <span class="fv-name" :title="toTask(row).fileName">{{ toTask(row).fileName }}</span>
+                <span class="fv-sub">
+                  <el-tag size="small" :type="tagType(toTask(row).state)" effect="light">
+                    {{ stateLabel(toTask(row).state) }}
+                  </el-tag>
+                  <span class="fv-size">{{ formatSize(toTask(row).totalSize) }}</span>
+                </span>
+                <div class="fv-prog">
+                  <i
+                    class="dh-rail-prog-fill"
+                    :class="{ 'is-done': toTask(row).state === 'COMPLETED' }"
+                    :style="{ width: taskPercent(toTask(row)) + '%' }"
+                  />
+                  <span class="fv-pct">{{ taskPercent(toTask(row)) }}%</span>
+                </div>
+              </div>
+              <div class="fv-acts" @click.stop>
+                <ReButton
+                  v-if="toTask(row).state === 'COMPLETED' && toTask(row).objectKey"
+                  layout="square"
+                  icon="Download"
+                  tip="下载"
+                  size="small"
+                  type="primary"
+                  @click="downloadObject(toTask(row))"
+                />
+                <ReButton
+                  v-if="toTask(row).state === 'COMPLETED' && toTask(row).objectKey"
+                  layout="square"
+                  icon="Delete"
+                  tip="删除"
+                  size="small"
+                  type="danger"
+                  :disabled="!!deletingId"
+                  @click="onDelete(toTask(row))"
+                />
+                <ReButton
+                  v-if="isActive(toTask(row).state) || toTask(row).state === 'FAILED'"
+                  layout="square"
+                  icon="Close"
+                  tip="取消"
+                  size="small"
+                  type="warning"
+                  @click="onCancel(toTask(row))"
+                />
+              </div>
+            </div>
+          </template>
+        </ReTable>
+        <div v-if="selectedRows.length" class="md-bulk">
+          <span class="md-bulk-info">已选 {{ selectedRows.length }} 个任务</span>
+          <el-button size="small" text @click="clearSelection">清空</el-button>
+          <el-popconfirm title="确定批量取消选中的可取消任务？" @confirm="batchCancel">
+            <template #reference>
+              <el-button size="small" text type="danger">批量取消</el-button>
+            </template>
+          </el-popconfirm>
+          <el-popconfirm title="确定删除选中的已完成文件？将同时移除存储对象。" @confirm="batchDelete">
+            <template #reference>
+              <el-button size="small" text type="danger">批量删除</el-button>
+            </template>
+          </el-popconfirm>
+        </div>
+      </div>
+
+      <!-- 右：文件详情（方案 A · 横向 Hero + 网格，常显不折叠） -->
+      <div class="dh-detail koi-card">
+        <div class="md-card-hd">
+          <span class="md-card-title">文件详情</span>
+          <span v-if="selectedTask" class="detail-subtitle">{{ selectedTask.fileName }}</span>
+        </div>
         <template v-if="selectedTask">
-          <!-- 档案卡头：大类型图标 + 文件名 + 状态徽章 -->
+          <!-- 横向 Hero：大类型图标 + 文件名 + 状态徽章 -->
           <div class="dh-focus-hd">
             <span class="dh-big-ic" :class="fileTypeMeta(selectedTask.fileName).cls" aria-hidden="true">
               {{ fileTypeMeta(selectedTask.fileName).ext }}
@@ -249,6 +343,14 @@
               <span class="dh-kv-label">桶路径</span>
               <span class="dh-kv-value dh-kv-ellipsis" :title="selectedTask.bucket || '-'">{{ selectedTask.bucket || "-" }}</span>
             </div>
+            <div v-if="selectedTask.ext" class="dh-kv-item">
+              <span class="dh-kv-label">类型</span>
+              <span class="dh-kv-value">{{ selectedTask.ext.toUpperCase() }}<template v-if="selectedTask.mime"> · {{ selectedTask.mime }}</template></span>
+            </div>
+            <div v-if="selectedTask.width && selectedTask.height" class="dh-kv-item">
+              <span class="dh-kv-label">图片尺寸</span>
+              <span class="dh-kv-value">{{ selectedTask.width }} × {{ selectedTask.height }} px</span>
+            </div>
           </div>
 
           <!-- 说明 / 失败原因 -->
@@ -297,24 +399,141 @@
                 </el-button>
               </template>
             </el-popconfirm>
+            <el-popconfirm
+              v-if="selectedTask.state === 'COMPLETED' && selectedTask.objectKey"
+              title="确定删除该文件？将同时移除存储对象。"
+              :disabled="!!deletingId"
+              @confirm="onDelete(selectedTask)"
+            >
+              <template #reference>
+                <el-button type="danger" plain size="small" :disabled="!!deletingId">删除文件</el-button>
+              </template>
+            </el-popconfirm>
           </div>
         </template>
-        <div v-else class="dh-focus-empty">从左侧选择一条任务查看详情</div>
+        <div v-else class="dh-focus-empty">从中间列表选择一个文件查看详情</div>
       </div>
     </div>
+
+    <!-- 文件日志抽屉（合并到文件管理，不再单独成页） -->
+    <ReDrawer
+      v-model="logVisible"
+      title="文件日志"
+      size="540px"
+      direction="rtl"
+      :modal="true"
+      :footer-hidden="true"
+      class="ut-log-drawer"
+    >
+      <div v-loading="logLoading" class="log-drawer-body">
+        <div class="log-toolbar">
+          <span class="log-toolbar-title">操作流水</span>
+          <el-popover placement="bottom-end" :width="180" trigger="click" :disabled="logCleaning || !logs.length">
+            <template #reference>
+              <el-button size="small" :disabled="logCleaning || !logs.length">
+                <el-icon :size="14"><Tickets /></el-icon>&nbsp;清理日志
+              </el-button>
+            </template>
+            <template #default>
+              <div class="log-clean-menu">
+                <button type="button" class="log-clean-it" @click="cleanLogs('today')">删除一天前</button>
+                <button type="button" class="log-clean-it" @click="cleanLogs('week')">删除一周前</button>
+                <button type="button" class="log-clean-it" @click="cleanLogs('month')">删除一月前</button>
+                <el-divider style="margin:6px 0" />
+                <button type="button" class="log-clean-it is-danger" @click="cleanLogs('all')">清空全部</button>
+              </div>
+            </template>
+          </el-popover>
+        </div>
+        <ReTable
+          :data="logRows"
+          :columns="logColumns"
+          layout="view"
+          :layout-view="{ gap: 6, minHeight: 52, hoverable: false, showIndex: false }"
+          size="small"
+          empty-text="暂无文件操作日志"
+          :pagination="false"
+          :toolbar="false"
+          row-key="id"
+          class="log-table"
+        >
+          <template #view="{ row }">
+            <div class="lg-row">
+              <el-tag size="small" :type="tagType(toLog(row).operation.startsWith('TASK') ? 'warning' : 'info')" effect="plain">
+                {{ toLog(row).operation }}
+              </el-tag>
+              <span class="lg-target" :title="toLog(row).target">{{ toLog(row).target }}</span>
+              <span class="lg-status" :class="{ 'is-err': toLog(row).status >= 400 }">{{ toLog(row).status }}</span>
+              <span class="lg-time">{{ formatRelTime(toLog(row).time) }}</span>
+            </div>
+          </template>
+        </ReTable>
+      </div>
+    </ReDrawer>
+
+    <!-- 存储桶信息弹窗 -->
+    <ReDialog
+      v-model="bucketInfoVisible"
+      class="ut-bucket-dialog"
+      width="420px"
+      :append-to-body="true"
+      :close-on-click-modal="false"
+    >
+      <template #header>
+        <div class="bucket-dialog-head">
+          <el-icon :size="18"><FolderOpened /></el-icon>
+          <span>存储桶信息 · {{ bucketInfo.name }}</span>
+        </div>
+      </template>
+      <div class="bucket-dialog-body">
+        <div class="bucket-stat-row">
+          <div class="bucket-stat">
+            <span class="bucket-stat-label">文件/任务</span>
+            <span class="bucket-stat-value">{{ bucketInfo.count }}</span>
+          </div>
+          <div class="bucket-stat">
+            <span class="bucket-stat-label">累计大小</span>
+            <span class="bucket-stat-value">{{ formatSize(bucketInfo.totalBytes) }}</span>
+          </div>
+          <div class="bucket-stat">
+            <span class="bucket-stat-label">进行中</span>
+            <span class="bucket-stat-value">{{ bucketInfo.active }}</span>
+          </div>
+          <div class="bucket-stat">
+            <span class="bucket-stat-label">已完成</span>
+            <span class="bucket-stat-value">{{ bucketInfo.completed }}</span>
+          </div>
+          <div class="bucket-stat">
+            <span class="bucket-stat-label">失败</span>
+            <span class="bucket-stat-value">{{ bucketInfo.failed }}</span>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="bucketInfoVisible = false">知道了</el-button>
+      </template>
+    </ReDialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-import { ElMessage } from "element-plus";
-import { Download, Refresh, RefreshRight, Search, Upload } from "@element-plus/icons-vue";
-import ReEmpty from "@repo/ui/re-empty";
+import { message } from "@repo/core";
+import { Download, Folder, FolderOpened, InfoFilled, Refresh, RefreshRight, Search, Upload, Tickets } from "@element-plus/icons-vue";
+import ReButton from "@repo/ui/re-button";
+import ReDialog from "@repo/ui/re-dialog";
+import ReDrawer from "@repo/ui/re-drawer";
+import ReTable from "@repo/ui/re-table";
+import type { ReTableColumn } from "@repo/ui/re-table";
 import {
   SIMPLE_SYNC_MAX_MB,
   cancelUploadTask,
+  cleanFileLogsBefore,
   completeUploadTask,
   createUploadTask,
+  deleteUploadTask,
+  listFileLogs,
+  logCleanCutoff,
   listUploadBuckets,
   listUploadTasks,
   objectUrl,
@@ -322,9 +541,21 @@ import {
   subscribeUploadTasks,
   uploadFileSimple,
   uploadTaskChunk,
+  type FileLogCleanScope,
+  type FileLogEntry,
   type UploadTaskInfo,
   type UploadTaskState,
 } from "../api/filestorageApi";
+
+/** 将 ReTable 插槽里的 row（Record<string, unknown>）转成任务类型 */
+function toTask(r: unknown): UploadTaskInfo {
+  return r as UploadTaskInfo;
+}
+
+/** 将 ReTable 插槽里的 row（Record<string, unknown>）转成日志类型 */
+function toLog(r: unknown): FileLogEntry {
+  return r as FileLogEntry;
+}
 
 /** 可选 bucket（后端 /buckets 下发，不硬编码） */
 const buckets = ref<string[]>([]);
@@ -359,11 +590,10 @@ const dragOver = ref(false);
 const searchKeyword = ref("");
 /** 状态筛选：all|active|completed|failed|cancelled */
 const stateFilter = ref<"all" | "active" | "completed" | "failed" | "cancelled">("all");
-/** 已勾选的任务 id（批量操作） */
-const selectedIds = ref<string[]>([]);
-
 /** 正在重传的任务 id（按钮 loading） */
 const retrying = ref("");
+/** 正在删除的任务 id（删除进行中禁用删除按钮，防止反复点击） */
+const deletingId = ref("");
 
 /** 本会话选择过的文件引用（fileName -> File），供失败重传重放字节 */
 const fileRefs = new Map<string, File>();
@@ -377,9 +607,6 @@ let speedTimer: ReturnType<typeof setInterval> | null = null;
 
 const singleInputRef = ref<HTMLInputElement>();
 const taskInputRef = ref<HTMLInputElement>();
-
-/** 列表轮询句柄（SSE 失效时的兜底） */
-let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 /** SSE 订阅取消函数 */
 let unsubscribeSse: (() => void) | null = null;
@@ -399,20 +626,186 @@ const filteredTasks = computed<UploadTaskInfo[]>(() => {
   });
 });
 
-/** 按状态分组（固定顺序：进行中 → 已完成 → 失败 → 已取消），空组不渲染 */
-const groupedTasks = computed(() => {
-  const groups: Array<{ key: string; label: string; dotClass: string; tasks: UploadTaskInfo[] }> = [
-    { key: "active", label: "进行中", dotClass: "is-primary", tasks: [] },
-    { key: "completed", label: "已完成", dotClass: "is-success", tasks: [] },
-    { key: "failed", label: "失败", dotClass: "is-danger", tasks: [] },
-    { key: "cancelled", label: "已取消", dotClass: "is-info", tasks: [] },
-  ];
-  for (const t of filteredTasks.value) {
-    const g = t.state === "COMPLETED" ? groups[1] : t.state === "FAILED" ? groups[2] : t.state === "CANCELLED" ? groups[3] : groups[0];
-    g.tasks.push(t);
-  }
-  return groups.filter((g) => g.tasks.length > 0);
+/** 当前选中的存储桶（空 = 全部） */
+const activeBucket = ref("");
+
+/** 按存储桶筛选后的文件行（供中间 ReTable 使用） */
+const fileRows = computed<Array<Record<string, unknown>>>(() => {
+  const bucket = activeBucket.value;
+  return filteredTasks.value
+    .filter((t) => !bucket || t.bucket === bucket || t.provider === bucket)
+    .map((t) => ({ ...t }));
 });
+
+/** ReTable 列定义（视图模式：列定义仅用于默认模板兜底，实际渲染走 #view 插槽） */
+const fileColumns: ReTableColumn[] = [
+  { prop: "fileName", label: "文件名" },
+  { prop: "state", label: "状态" },
+  { prop: "progress", label: "进度" },
+];
+
+/** 当前勾选的行（批量操作） */
+const selectedRows = ref<Array<Record<string, unknown>>>([]);
+
+/** 文件日志抽屉状态 */
+const logVisible = ref(false);
+const logLoading = ref(false);
+const logCleaning = ref(false);
+const logs = ref<FileLogEntry[]>([]);
+const logRows = computed<Array<Record<string, unknown>>>(() => logs.value.map((l) => ({ ...l })));
+const logColumns: ReTableColumn[] = [
+  { prop: "operation", label: "操作" },
+  { prop: "target", label: "目标" },
+  { prop: "status", label: "状态" },
+  { prop: "time", label: "时间" },
+];
+
+/** 存储桶信息弹窗 */
+const bucketInfoVisible = ref(false);
+const bucketInfo = ref({ name: "", count: 0, active: 0, completed: 0, failed: 0, totalBytes: 0 });
+
+/** 打开文件日志抽屉 */
+async function openLogs() {
+  logVisible.value = true;
+  logLoading.value = true;
+  try {
+    logs.value = await listFileLogs({ limit: 200 });
+  } catch {
+    logs.value = [];
+  } finally {
+    logLoading.value = false;
+  }
+}
+
+/** 清理日志：today/week/month 删除对应时间点之前的；all 清空全部 */
+async function cleanLogs(scope: FileLogCleanScope | "all") {
+  if (logCleaning.value) return;
+  logCleaning.value = true;
+  try {
+    const removed = scope === "all"
+      ? await cleanFileLogsBefore(0)
+      : await cleanFileLogsBefore(logCleanCutoff(scope));
+    // 本地同步移除对应日志，避免等待刷新
+    if (scope !== "all") {
+      const cutoff = logCleanCutoff(scope);
+      logs.value = logs.value.filter((l) => l.time >= cutoff);
+    } else {
+      logs.value = [];
+    }
+    message.success(`已清理 ${removed} 条日志`);
+  } catch (e) {
+    message.error((e as Error).message);
+  } finally {
+    logCleaning.value = false;
+  }
+}
+
+/** ReTable 勾选变化 → 同步批量选中行 */
+function onSelectionChange(rows: Array<Record<string, unknown>>) {
+  selectedRows.value = rows;
+}
+
+function clearSelection() {
+  selectedRows.value = [];
+}
+
+/** 批量取消：仅取消可取消（进行中/失败）的任务 */
+async function batchCancel() {
+  const targets = selectedRows.value.filter((r) => {
+    const t = toTask(r);
+    return isActive(t.state) || t.state === "FAILED";
+  });
+  if (!targets.length) {
+    message.info("选中的任务均不可取消");
+    clearSelection();
+    return;
+  }
+  try {
+    for (const t of targets) {
+      await cancelUploadTask(toTask(t).taskId);
+    }
+    message.success(`已取消 ${targets.length} 个任务`);
+  } catch (e) {
+    message.error((e as Error).message);
+  } finally {
+    clearSelection();
+    refreshTasks();
+  }
+}
+
+/** 批量删除：仅删除已完成且具备 objectKey 的文件 */
+async function batchDelete() {
+  const targets = selectedRows.value.filter((r) => {
+    const t = toTask(r);
+    return t.state === "COMPLETED" && t.objectKey;
+  });
+  if (!targets.length) {
+    message.info("选中的任务均不可删除（仅已完成文件可删除）");
+    clearSelection();
+    return;
+  }
+  try {
+    for (const t of targets) {
+      await deleteUploadTask(toTask(t).taskId);
+    }
+    message.success(`已删除 ${targets.length} 个文件`);
+  } catch (e) {
+    message.error((e as Error).message);
+  } finally {
+    clearSelection();
+    refreshTasks();
+  }
+}
+
+/** 选择存储桶 */
+function selectBucket(bucket: string) {
+  activeBucket.value = bucket;
+}
+
+/** 存储桶右键菜单：信息 / 上传 */
+function onBucketCmd(cmd: string, bucket: string) {
+  if (cmd === "upload") {
+    // 选择该 bucket 作为上传目标并触发文件选择
+    provider.value = bucket || "";
+    pickFiles();
+    return;
+  }
+  // info：弹 ReDialog 展示桶基本信息
+  const bucketTasks = bucket
+    ? tasks.value.filter((t) => t.bucket === bucket || t.provider === bucket)
+    : tasks.value;
+  bucketInfo.value = {
+    name: bucket || "全部",
+    count: bucketTasks.length,
+    active: bucketTasks.filter((t) => isActive(t.state)).length,
+    completed: bucketTasks.filter((t) => t.state === "COMPLETED").length,
+    failed: bucketTasks.filter((t) => t.state === "FAILED").length,
+    totalBytes: bucketTasks.reduce((sum, t) => sum + (t.receivedBytes || 0), 0),
+  };
+  bucketInfoVisible.value = true;
+}
+
+/** 点击文件行：选中详情 */
+function onFileRowClick(row: Record<string, unknown>) {
+  const taskId = String(toTask(row).taskId || "");
+  selectedTaskId.value = taskId;
+}
+
+/** el-tag type（与状态同步） */
+function tagType(state: string): "success" | "warning" | "danger" | "info" | "primary" {
+  switch (state) {
+    case "COMPLETED":
+      return "success";
+    case "MERGING":
+      return "warning";
+    case "FAILED":
+      return "danger";
+    case "CANCELLED":
+      return "info";
+    default:
+      return "primary";
+  }
+}
 
 /** 累计已收字节（传输总量） */
 const totalUploadedBytes = computed(() => tasks.value.reduce((sum, t) => sum + (t.receivedBytes || 0), 0));
@@ -432,7 +825,8 @@ const totalSpeedBytes = computed(() => {
 onMounted(() => {
   loadBuckets();
   refreshTasks();
-  // 实时推送：任务创建/分片进度/状态变化由后端 SSE 即时下发
+  // 实时推送：任务创建/分片进度/状态变化由后端 SSE 即时下发（不再使用定时轮询），
+  // 进度条因此随分片事件平滑推进，而非整表周期性刷新"一刷一刷"。
   unsubscribeSse = subscribeUploadTasks(
     (snapshot) => {
       tasks.value = snapshot;
@@ -446,19 +840,13 @@ onMounted(() => {
       }
     },
   );
-  // 兜底：SSE 断连重连间隙或推送丢失时，30 秒慢轮询补齐
-  pollTimer = setInterval(refreshTasks, 30000);
-  // 传输速率采样：每 3 秒对上传中的任务差分 receivedBytes
+  // 传输速率采样：每 3 秒对上传中的任务差分 receivedBytes（仅展示用，不刷新列表）
   speedTimer = setInterval(sampleSpeeds, 3000);
 });
 
 onBeforeUnmount(() => {
   unsubscribeSse?.();
   unsubscribeSse = null;
-  if (pollTimer) {
-    clearInterval(pollTimer);
-    pollTimer = null;
-  }
   if (speedTimer) {
     clearInterval(speedTimer);
     speedTimer = null;
@@ -536,9 +924,9 @@ async function pickFilesFromList(files: File[]) {
     for (const file of files) {
       await uploadOne(file);
     }
-    ElMessage.success(files.length === 1 ? "上传完成，后台合并中" : `${files.length} 个文件上传完成，后台合并中`);
+    message.success(files.length === 1 ? "上传完成，后台合并中" : `${files.length} 个文件上传完成，后台合并中`);
   } catch (err) {
-    ElMessage.error((err as Error).message);
+    message.error((err as Error).message);
   } finally {
     uploading.value = false;
     refreshTasks();
@@ -579,10 +967,28 @@ async function uploadLargeAsTask(file: File, providerName: string | undefined, c
 async function onCancel(row: UploadTaskInfo) {
   try {
     await cancelUploadTask(row.taskId);
-    ElMessage.success(row.state === "FAILED" ? "已取消并清理分片" : "任务已取消");
+    message.success(row.state === "FAILED" ? "已取消并清理分片" : "任务已取消");
     refreshTasks();
   } catch (e) {
-    ElMessage.error((e as Error).message);
+    message.error((e as Error).message);
+  }
+}
+
+/** 删除任务（含存储对象） */
+async function onDelete(row: UploadTaskInfo) {
+  if (deletingId.value) return;
+  deletingId.value = row.taskId;
+  try {
+    await deleteUploadTask(row.taskId);
+    message.success(`已删除「${row.fileName}」`);
+    if (selectedTaskId.value === row.taskId) {
+      selectedTaskId.value = "";
+    }
+    refreshTasks();
+  } catch (e) {
+    message.error((e as Error).message);
+  } finally {
+    deletingId.value = "";
   }
 }
 
@@ -595,7 +1001,7 @@ function canRetry(t: UploadTaskInfo): boolean {
 async function retryTask(t: UploadTaskInfo) {
   const file = fileRefs.get(t.fileName);
   if (!file) {
-    ElMessage.warning("本地已无该文件的字节缓存，请重新选择文件上传");
+    message.warning("本地已无该文件的字节缓存，请重新选择文件上传");
     return;
   }
   retrying.value = t.taskId;
@@ -603,64 +1009,37 @@ async function retryTask(t: UploadTaskInfo) {
     // 保持原 bucket/provider 重放；分片大小沿用任务原始 chunkSize
     const chunkMb = t.chunkSize > 0 ? Math.max(1, Math.round(t.chunkSize / (1024 * 1024))) : chunkSizeMb.value;
     await uploadLargeAsTask(file, t.provider || undefined, chunkMb);
-    ElMessage.success("重传完成，后台合并中");
+    message.success("重传完成，后台合并中");
   } catch (e) {
-    ElMessage.error((e as Error).message);
+    message.error((e as Error).message);
   } finally {
     retrying.value = "";
     refreshTasks();
   }
 }
 
-/** 已完成文件下载：优先短时票据 URL，失败退化为无凭据直链 */
+/** 已完成文件下载：优先短时票据 URL，失败退化为无凭据直链；用 <a> 触发规避弹窗拦截 */
 async function downloadObject(t: UploadTaskInfo) {
   if (!t.objectKey) {
-    ElMessage.warning("该任务尚无 objectKey，无法下载");
+    message.warning("该任务尚无 objectKey，无法下载");
     return;
   }
+  if (deletingId.value) return;
   const bucketName = t.bucket || t.provider || "local";
+  let url: string;
   try {
-    const url = await resolveObjectUrl(bucketName, t.objectKey);
-    window.open(url, "_blank", "noopener");
+    url = await resolveObjectUrl(bucketName, t.objectKey);
   } catch {
-    window.open(objectUrl(bucketName, t.objectKey, true), "_blank", "noopener");
+    url = objectUrl(bucketName, t.objectKey, true);
   }
-}
-
-/** 批量取消：仅取消可取消（进行中/失败）的任务 */
-async function batchCancel() {
-  const targets = tasks.value.filter((t) => selectedIds.value.includes(t.taskId) && (isActive(t.state) || t.state === "FAILED"));
-  if (!targets.length) {
-    ElMessage.info("选中的任务均不可取消");
-    selectedIds.value = [];
-    return;
-  }
-  try {
-    for (const t of targets) {
-      await cancelUploadTask(t.taskId);
-    }
-    ElMessage.success(`已取消 ${targets.length} 个任务`);
-  } catch (e) {
-    ElMessage.error((e as Error).message);
-  } finally {
-    selectedIds.value = [];
-    refreshTasks();
-  }
-}
-
-/** 勾选/取消勾选 */
-function toggleSelect(taskId: string, checked: boolean) {
-  if (checked) {
-    if (!selectedIds.value.includes(taskId)) selectedIds.value.push(taskId);
-  } else {
-    selectedIds.value = selectedIds.value.filter((id) => id !== taskId);
-  }
-}
-
-/** 全选当前筛选结果 */
-function selectAllFiltered() {
-  const ids = filteredTasks.value.map((t) => t.taskId);
-  selectedIds.value = Array.from(new Set([...selectedIds.value, ...ids]));
+  const a = document.createElement("a");
+  a.href = url;
+  a.target = "_blank";
+  a.rel = "noopener";
+  a.download = t.fileName || t.objectKey;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
 
 // ==================== 展示辅助 ====================
@@ -835,7 +1214,10 @@ function fileTypeMeta(fileName: string): { ext: string; cls: string } {
   flex-direction: column;
   gap: 14px;
   background: var(--bg-page, var(--el-bg-color-page, #f5f7fa));
-  min-height: 100%;
+  /* 吃满 .el-main 的可用高度（上层布局已有确定高度）：
+     概览条 / 上传条高度固定，剩余空间全给下方的「文件导航 + 档案卡」双栏。 */
+  height: 100%;
+  min-height: 0;
 }
 
 /* ===== 概览条（koi 大数字 + 顶部色条） ===== */
@@ -843,6 +1225,8 @@ function fileTypeMeta(fileName: string): { ext: string; cls: string } {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
+  /* 高度固定，剩余空间留给下方双栏 */
+  flex: 0 0 auto;
 }
 .stat-card {
   display: flex;
@@ -902,6 +1286,14 @@ function fileTypeMeta(fileName: string): { ext: string; cls: string } {
   box-shadow: var(--shadow-sm);
   padding: 12px;
   transition: box-shadow 0.2s var(--ease-out, ease), border-color 0.2s;
+  /* 卡片不参与高度伸缩（伸缩交给 .dh-wrap / .dh-rail 内部滚动区）；
+     否则 flex 列里卡片会被压扁或撑高 */
+  flex: 0 0 auto;
+}
+/* 双栏里的卡片需要跟随列高（左导航栏内部滚动） */
+.dh-rail.koi-card {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 .koi-card:hover {
   box-shadow: var(--shadow-md);
@@ -914,6 +1306,8 @@ function fileTypeMeta(fileName: string): { ext: string; cls: string } {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  /* 上传条高度固定，不参与剩余高度分配 */
+  flex: 0 0 auto;
 }
 
 .upload-card.is-dragover {
@@ -980,12 +1374,16 @@ function fileTypeMeta(fileName: string): { ext: string; cls: string } {
   border-radius: var(--radius-md, 8px);
 }
 
-/* ===== 文件记录 · 详情中心 ===== */
-.dh-wrap {
+/* ===== 文件记录 · 三列详情中心 ===== */
+.dh-wrap.tri {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 2.1fr);
+  grid-template-columns: 190px minmax(0, 2fr) minmax(0, 0.9fr);
   gap: 12px;
   align-items: stretch;
+  /* 吃掉概览条与上传条之外的剩余高度；
+     min-height:0 让三栏内部的滚动区能真正收缩（grid 子项默认 min-height:auto） */
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 /* 卡片通用头 */
@@ -1007,12 +1405,336 @@ function fileTypeMeta(fileName: string): { ext: string; cls: string } {
   color: var(--text-secondary, var(--el-text-color-secondary, #909399));
 }
 
-/* ===== 左：窄文件导航栏 ===== */
-.dh-rail {
+/* ===== 左：存储桶列 ===== */
+.dh-bucket {
   padding: 12px;
   min-width: 0;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+}
+.bucket-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.bucket-it {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--el-radius-md, 8px);
+  background: transparent;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+  font-size: 13px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s var(--ease-out, ease), border-color 0.15s;
+}
+.bucket-it:hover {
+  background: var(--el-fill-color-light, #f5f7fa);
+}
+.bucket-it.is-active {
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  border-color: var(--el-color-primary-light-7, #b3d8ff);
+  color: var(--el-color-primary, #409eff);
+  font-weight: 600;
+}
+.bucket-it .el-icon {
+  flex: none;
+}
+.bucket-empty {
+  padding: 16px 8px;
+  font-size: 12px;
+  color: var(--text-tertiary, #a8abb2);
+  text-align: center;
+}
+
+/* ===== 中：文件 ReTable 列 ===== */
+.dh-files {
+  padding: 12px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.file-toolbar {
+  margin-bottom: 0;
+  flex: 1;
+  justify-content: flex-end;
+}
+.file-toolbar .md-search {
+  max-width: 240px;
+}
+.file-table {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.files-empty {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.file-cell-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.table-prog {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.table-prog .dh-rail-prog-fill {
+  flex: 1;
+}
+.table-prog-pct {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+}
+.table-acts {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* ===== 视图模式行 ===== */
+.file-table--view :deep(.re-table__view-list) {
+  gap: 10px;
+  padding: 2px 2px 4px;
+}
+.file-table--view :deep(.re-table__view-item) {
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #eef0f3));
+  box-shadow: none;
+  padding: 12px 14px;
+}
+.fv-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+.fv-ic {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  font-size: 10px;
+  flex: none;
+}
+.fv-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fv-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fv-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fv-size {
+  font-size: 11px;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+  font-variant-numeric: tabular-nums;
+}
+.fv-prog {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fv-prog .dh-rail-prog-fill {
+  flex: 1;
+  height: 5px;
+}
+.fv-pct {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+  min-width: 34px;
+  text-align: right;
+}
+.fv-acts {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+
+/* ===== 文件日志抽屉 ===== */
+.log-drawer-body {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.log-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 2px 4px;
+}
+.log-toolbar-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+}
+.log-clean-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.log-clean-it {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  border-radius: var(--el-radius-md, 6px);
+  background: transparent;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+  font-size: 13px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s);
+}
+.log-clean-it:hover {
+  background: var(--el-fill-color-light);
+}
+.log-clean-it.is-danger {
+  color: var(--status-error, #f56c6c);
+}
+.log-clean-it.is-danger:hover {
+  background: var(--el-color-danger-light-9);
+}
+.log-table {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* ===== 存储桶信息弹窗 ===== */
+.ut-bucket-dialog :deep(.el-dialog__body) {
+  padding: 4px 4px 0;
+}
+.bucket-dialog-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+}
+.bucket-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.bucket-stat-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.bucket-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: var(--bg-container, #fff);
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #eef0f3));
+  border-radius: var(--el-radius-md, 8px);
+}
+.bucket-stat-label {
+  font-size: 11px;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+}
+.bucket-stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+}
+.log-table :deep(.re-table__view-item) {
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #eef0f3));
+  box-shadow: none;
+}
+.lg-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+}
+.lg-target {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lg-status {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--status-success, #67c23a);
+}
+.lg-status.is-err {
+  color: var(--status-error, #f56c6c);
+}
+.lg-time {
+  font-size: 11px;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+
+/* ===== 右：文件详情（方案 A · 横向 Hero + 网格，常显不折叠） ===== */
+.dh-detail {
+  padding: 14px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  overflow-y: auto;
+  background: linear-gradient(160deg, var(--bg-container, #fff), var(--el-fill-color-lighter, #f6f9ff));
+  border-color: var(--el-color-primary-light-7, #dbe7f7);
+}
+.dh-detail .md-card-hd {
+  margin-bottom: 0;
+}
+.detail-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 60%;
 }
 
 /* 搜索 / 筛选工具栏 */
@@ -1033,9 +1755,9 @@ function fileTypeMeta(fileName: string): { ext: string; cls: string } {
 
 /* 导航滚动区 */
 .dh-rail-scroll {
-  max-height: 560px;
   overflow-y: auto;
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 .dh-group + .dh-group {
   margin-top: 10px;
@@ -1063,11 +1785,11 @@ function fileTypeMeta(fileName: string): { ext: string; cls: string } {
   line-height: 1.6;
 }
 
-/* 导航项（紧凑一行） */
+/* 导航项（紧凑一行 + 进度条） */
 .dh-rail-it {
   display: flex;
-  align-items: center;
-  gap: 7px;
+  flex-direction: column;
+  gap: 5px;
   padding: 8px 8px;
   border-radius: var(--el-radius-md, 8px);
   border: 1px solid transparent;
@@ -1080,6 +1802,11 @@ function fileTypeMeta(fileName: string): { ext: string; cls: string } {
 .dh-rail-it.is-selected {
   background: var(--el-color-primary-light-9, #ecf5ff);
   border-color: var(--el-color-primary-light-7, #b3d8ff);
+}
+.dh-rail-top {
+  display: flex;
+  align-items: center;
+  gap: 7px;
 }
 .dh-rail-it :deep(.el-checkbox) {
   flex: none;
@@ -1125,8 +1852,32 @@ function fileTypeMeta(fileName: string): { ext: string; cls: string } {
   font-variant-numeric: tabular-nums;
   color: var(--status-success, #67c23a);
 }
+
+/* 导航项进度条 */
+.dh-rail-prog {
+  height: 4px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--el-fill-color-light, #f0f2f5);
+}
+.dh-rail-prog-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--el-color-primary, #409eff), var(--el-color-primary-light-3, #79bbff));
+  transition: width 0.3s var(--ease-out, ease);
+}
+.dh-rail-prog-fill.is-done {
+  background: var(--status-success, #67c23a);
+}
 .dh-rail-empty {
   padding: 24px 8px;
+  /* 空态在剩余空间里居中，不把左栏压扁 */
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* 批量操作条 */
@@ -1180,6 +1931,9 @@ function fileTypeMeta(fileName: string): { ext: string; cls: string } {
   flex-direction: column;
   gap: 14px;
   box-shadow: var(--shadow-sm);
+  /* 与左栏等高；内容超出时本卡内部滚动，不把整页顶高 */
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .dh-focus-hd {
@@ -1359,11 +2113,11 @@ function fileTypeMeta(fileName: string): { ext: string; cls: string } {
   .ut-chunk-select {
     width: 100%;
   }
-  .dh-wrap {
+  .dh-wrap.tri {
     grid-template-columns: minmax(0, 1fr);
   }
-  .dh-rail-scroll {
-    max-height: 320px;
+  .dh-bucket {
+    max-height: 200px;
   }
   .dh-kv {
     grid-template-columns: repeat(2, minmax(0, 1fr));

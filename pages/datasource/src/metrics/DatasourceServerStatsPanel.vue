@@ -17,7 +17,7 @@
       </span>
     </header>
 
-    <template v-if="isJdbcMysql">
+    <template v-if="isServerDialect">
       <dl class="ds-server-stats__grid">
         <div v-for="row in rows" :key="row.label" class="ds-server-stats__item" :title="row.hint">
           <dt>{{ row.label }}</dt>
@@ -25,7 +25,7 @@
         </div>
       </dl>
       <p v-if="!hasStats" class="ds-server-stats__note">
-        MySQL 不暴露宿主机 CPU，这里用活跃线程反映 SQL 侧负载
+        {{ sampleNote }}
       </p>
     </template>
 
@@ -63,6 +63,13 @@ import {
   fetchNginxAccessTop,
   type NginxAccessTop,
 } from "../api/nginx/api";
+import {
+  DIALECT_LABEL,
+  EMBEDDED_DIALECTS,
+  SERVER_DIALECTS,
+  detectDialect,
+  type DbDialect,
+} from "../utils/dbDialect";
 
 const props = defineProps<{
   /** 数据源 ID；nginx 类型用于实时拉取 URL 访问统计 */
@@ -79,27 +86,39 @@ const props = defineProps<{
 
 const isNginx = computed(() => props.type === "nginx");
 
-const isJdbcMysql = computed(() => {
-  const u = (props.url || "").trim().toLowerCase();
-  const driver = (props.driverClassName || "").toLowerCase();
-  if (props.type !== "jdbc") {
-    return false;
-  }
-  if (u.startsWith("jdbc:")) {
-    return u.startsWith("jdbc:mysql:") || u.startsWith("jdbc:mariadb:")
-      || driver.includes("mysql") || driver.includes("mariadb");
-  }
-  // 台账只存主机/端口/库名时，后端统一按 jdbc:mysql 拼串（库名若直填完整 URL 走上面分支）
-  return true;
-});
+/**
+ * 数据源方言。
+ *
+ * <p>面板原来只认 {@code type === "jdbc"} 且 URL 是 MySQL，导致 ClickHouse /
+ * DuckDB 这类同样挂在 JDBC 家族里的类型落进「仅支持 MySQL / MariaDB」那句
+ * 兜底文案 —— 而平台本身就支持 Oracle / SQL Server / SQLite 等一族方言。
+ * 判断规则统一在 {@link detectDialect}，与设计表的类型下拉同源。</p>
+ */
+const dialect = computed<DbDialect>(() => detectDialect({
+  type: props.type,
+  url: props.url,
+  driverClassName: props.driverClassName,
+}));
 
-const stats = computed(() => props.latest?.serverStats ?? null);
+const isServerDialect = computed(() => SERVER_DIALECTS.has(dialect.value));
+const isEmbedded = computed(() => EMBEDDED_DIALECTS.has(dialect.value));
+
+const stats = computed(() => {
+  const s = props.latest?.serverStats ?? null;
+  if (!s) return null;
+  // 后端把「全部字段为 null」的记录序列化成 {}（Jackson 的 NON_NULL），
+  // 只判非 null 会把空对象当成「有指标」——标签显示方言名、数值却全是「—」。
+  const keys = ["slowQueries", "threadsRunning", "questions", "uptimeSeconds", "maxUsedConnections"] as const;
+  const bag = s as unknown as Record<string, unknown>;
+  const hasAny = keys.some((k) => bag[k] !== null && bag[k] !== undefined);
+  return hasAny ? s : null;
+});
 const hasStats = computed(() =>
-  isJdbcMysql.value ? stats.value !== null && stats.value !== undefined
+  isServerDialect.value ? stats.value !== null && stats.value !== undefined
     : isNginx.value ? nginxTop.value !== null
       : false,
 );
-const isWaiting = computed(() => (isJdbcMysql.value || isNginx.value) && !hasStats.value);
+const isWaiting = computed(() => (isServerDialect.value || isNginx.value) && !hasStats.value);
 
 const nginxTop = ref<NginxAccessTop | null>(null);
 const nginxLoading = ref(false);
@@ -136,17 +155,35 @@ const tagText = computed(() => {
     if (nginxLoading.value) return "统计中";
     return "等待采集";
   }
-  if (!isJdbcMysql.value) {
+  if (isEmbedded.value) {
+    // 文件型/嵌入式库没有服务器进程：这不是「没采集到」，而是本就没有这一项
+    return "嵌入式库";
+  }
+  if (!isServerDialect.value) {
     return "暂未采集";
   }
   if (!props.latest) {
     return "等待采集";
   }
-  return hasStats.value ? "MySQL / MariaDB" : "暂无指标";
+  return hasStats.value ? (DIALECT_LABEL[dialect.value] ?? "已采集") : "暂无指标";
 });
 
-const unsupportedText = computed(() =>
-  props.latest ? "当前类型暂未采集服务器指标（仅支持 MySQL / MariaDB）" : "正在等待第一次采集（约 1 分钟内）",
+const unsupportedText = computed(() => {
+  if (isEmbedded.value) {
+    const name = DIALECT_LABEL[dialect.value] ?? "该类型";
+    return `${name} 是文件型 / 嵌入式库，没有独立服务器进程，因此不采集服务器指标（连接延迟、表结构与数据照常可用）`;
+  }
+  if (props.latest) {
+    return `当前类型（${DIALECT_LABEL[dialect.value] ?? props.type ?? "未知"}）暂未采集服务器指标`;
+  }
+  return "正在等待第一次采集（约 1 分钟内）";
+});
+
+/** 采样说明：按方言说明「为什么没有 CPU %」，不要写成 MySQL 专属 */
+const sampleNote = computed(() =>
+  isEmbedded.value
+    ? ""
+    : "数据库协议不暴露宿主机 CPU，这里用活跃会话/查询数反映 SQL 侧负载",
 );
 
 function numberText(v: number | null | undefined): string {
@@ -212,7 +249,7 @@ const rows = computed(() => [
   {
     label: "活跃线程",
     value: numberText(stats.value?.threadsRunning),
-    hint: "正在执行的线程数，MySQL 侧负载的近似指标",
+    hint: "正在执行的会话 / 查询数，SQL 侧负载的近似指标",
     mono: true,
     isEmpty: stats.value?.threadsRunning === null || stats.value?.threadsRunning === undefined,
   },
@@ -311,7 +348,7 @@ const nginxRows = computed(() => {
 
 .ds-server-stats__title {
   margin: 0;
-  font-size: 14px;
+  font-size: clamp(13px, 0.85rem + 0.2vw, 14.5px);
   font-weight: 600;
   color: var(--text-primary, #1f2430);
 }
@@ -341,7 +378,7 @@ const nginxRows = computed(() => {
 }
 
 .ds-server-stats__refresh-icon {
-  font-size: 15px;
+  font-size: clamp(13px, 0.9rem + 0.2vw, 15px);
   line-height: 1;
 
   &.is-spinning {
@@ -381,13 +418,13 @@ const nginxRows = computed(() => {
 }
 
 .ds-server-stats__item dt {
-  font-size: 12px;
+  font-size: clamp(11px, 0.7rem + 0.2vw, 12.5px);
   color: var(--text-secondary, #5c6270);
 }
 
 .ds-server-stats__item dd {
   margin: 3px 0 0;
-  font-size: 14px;
+  font-size: clamp(12.5px, 0.85rem + 0.35vw, 15px);
   font-weight: 600;
   color: var(--text-primary, #1f2430);
   overflow: hidden;

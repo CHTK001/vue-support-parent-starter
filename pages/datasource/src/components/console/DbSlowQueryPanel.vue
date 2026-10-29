@@ -51,6 +51,7 @@ const rows = ref<DbSlowQueryRow[]>([]);
 /** 慢查询列定义 */
 const columns: ReTableColumn[] = [
   { prop: "digest", label: "语句（摘要）", minWidth: 320, slot: "col-digest" },
+  { prop: "host", label: "客户端 IP", width: 140, slot: "col-host", align: "center" },
   { prop: "avgMs", label: "平均耗时(ms)", width: 120, align: "right" },
   { prop: "maxMs", label: "最大耗时(ms)", width: 120, align: "right" },
   { prop: "calls", label: "次数", width: 90, align: "right" },
@@ -127,7 +128,7 @@ defineExpose({ reload: load });
         :data="rows"
         :columns="columns"
         :loading="loading"
-        row-key="digest"
+        row-key="id"
         size="mini"
         stripe
         border
@@ -146,6 +147,10 @@ defineExpose({ reload: load });
               <ReIcon name="CopyDocument" :size="13" />
             </button>
           </span>
+        </template>
+        <template #col-host="{ row }">
+          <span v-if="row.host" class="dbs-mono" :title="row.host">{{ row.host }}</span>
+          <span v-else class="dbs-muted" title="该来源（按摘要聚合）没有客户端主机">—</span>
         </template>
         <template #col-last="{ row }">
           <span v-if="row.lastAt" class="dbs-mono">{{ row.lastAt }}</span>

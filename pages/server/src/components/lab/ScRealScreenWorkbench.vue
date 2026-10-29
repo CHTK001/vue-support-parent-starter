@@ -66,6 +66,8 @@ async function loadHosts(): Promise<void> {
     hosts.value = ((await queryHosts()) ?? []) as Host[];
     // 首屏种子：主机到位后自动开屏（仅当画布尚无屏幕时）
     if (!screens.value.length) seedScreens();
+    // 启动延迟模拟
+    startLatencySimulation();
   } catch (e) {
     error.value = String((e as Error)?.message ?? e);
   } finally {
@@ -109,6 +111,8 @@ interface Screen {
   hostAddress: string;
   /** 本会话使用的协议 */
   protocol: string;
+  /** 连接延迟等级：low=低延迟(绿) medium=中延迟(黄) high=高延迟(红) offline=离线(灰) */
+  latencyLevel: "low" | "medium" | "high" | "offline";
   /** 连接对象（传给 viewer） */
   connection: {
     hostId: number;
@@ -126,6 +130,10 @@ const screens = ref<Screen[]>([]);
 let screenSeq = 0;
 /** 画布坐标（百分比） */
 const canvasPos = ref<Record<number, { x: number; y: number; w: number; h: number }>>({});
+/** 当前激活的屏幕 id（点击即置顶，管理 z-index 层级） */
+const activeScreenId = ref<number | null>(null);
+/** z-index 计数器：每次点击递增，确保激活的屏永远在最上层 */
+let zCounter = 10;
 
 function buildScreen(h: Host, protocol?: string): Screen {
   const proto = protocol || defaultProtocolOf(h);
@@ -136,6 +144,7 @@ function buildScreen(h: Host, protocol?: string): Screen {
     hostName: h.serverHostName ?? `#${h.id}`,
     hostAddress: h.serverHostAddress ?? "",
     protocol: proto,
+    latencyLevel: h.serverHostOnline === 1 ? "low" : "offline",
     connection: {
       hostId: h.id,
       hostName: `${h.serverHostName} (${h.serverHostAddress})`,
@@ -151,6 +160,12 @@ function buildScreen(h: Host, protocol?: string): Screen {
 /** 屏幕展示名：web-01 (SSH) */
 function labelOf(s: Screen): string {
   return `${s.hostName} (${s.protocol.toUpperCase()})`;
+}
+
+/** 激活屏幕：点击即置顶，z-index 递增确保永远在最上层 */
+function activateScreen(sid: number): void {
+  activeScreenId.value = sid;
+  zCounter++;
 }
 
 /** 默认开三个屏幕：在线优先，其次按列表顺序补齐，去重后取前 3（参考图三屏布局的落地版） */
@@ -203,6 +218,74 @@ function removeScreen(sid: number): void {
 /** 连接状态按协议分支（与 TerminalView 模板同款） */
 function modeOf(s: Screen): string {
   return s.connection.mode;
+}
+
+/** 连接状态指示灯 CSS class */
+function connectionStatus(mode: string): string {
+  if (mode === "DIRECT") return "is-direct";
+  if (mode === "GUACD") return "is-guacd";
+  return "is-none";
+}
+
+/** 连接状态标签文字 */
+function connectionModeLabel(mode: string): string {
+  if (mode === "DIRECT") return "直连";
+  if (mode === "GUACD") return "Guacd";
+  return "无需通道";
+}
+
+/* ==================== 延迟色条 ==================== */
+
+/** 延迟等级 → 色条颜色 */
+function latencyColor(level: string): string {
+  if (level === "low") return "#22c55e";
+  if (level === "medium") return "#f59e0b";
+  if (level === "high") return "#ef4444";
+  return "#6b7280";
+}
+
+/** 延迟等级 → 中文标签 */
+function latencyLabel(level: string): string {
+  if (level === "low") return "低延迟";
+  if (level === "medium") return "中延迟";
+  if (level === "high") return "高延迟";
+  return "离线";
+}
+
+/** 延迟等级 → 状态点 class */
+function latencyDotClass(level: string): string {
+  if (level === "low") return "is-direct";
+  if (level === "medium") return "is-guacd";
+  if (level === "high") return "is-high";
+  return "is-none";
+}
+
+/** 每 15 秒模拟一次延迟波动（在线主机随机切换 low/medium/high） */
+let latencyTimer: ReturnType<typeof setInterval> | null = null;
+function startLatencySimulation(): void {
+  if (latencyTimer) return;
+  latencyTimer = setInterval(() => {
+    for (const s of screens.value) {
+      if (s.latencyLevel === "offline") continue;
+      const r = Math.random();
+      if (r < 0.7) s.latencyLevel = "low";
+      else if (r < 0.9) s.latencyLevel = "medium";
+      else s.latencyLevel = "high";
+    }
+  }, 15000);
+}
+
+/** 工具条动作分发 */
+function handleToolbarAction(key: string, s: Screen): void {
+  if (key === "files") {
+    toggleSftp(s.id);
+  } else if (key === "docker") {
+    openPanel("docker", s);
+  } else if (key === "tunnel") {
+    openPanel("tunnel", s);
+  } else {
+    openPanel("docker", s);
+  }
 }
 
 /* ==================== 每屏工具条 ==================== */
@@ -362,90 +445,137 @@ function openAddMenu(e: MouseEvent): void {
 
 <template>
   <div class="scr">
-    <div class="scr-head">
-      <span class="scr-title">分屏终端 · {{ screens.length }} 屏</span>
-      <span class="lb-spacer" />
-      <span class="lb-dim" style="font-size: 11px">拖动屏幕头排布 · 右键空白处加屏 / 右键屏幕头操作</span>
-      <button
-        v-if="ctxHosts.length"
-        type="button"
-        class="lb-btn"
-        title="从主机列表挑一台开新屏"
-        @click="openAddMenu($event)"
-      >
-        <ReIcon name="Plus" :size="11" />新增屏幕
-      </button>
-      <button type="button" class="lb-btn" title="重新加载主机" :disabled="loading" @click="loadHosts">
-        <ReIcon name="RefreshRight" :size="11" />刷新
-      </button>
+    <!-- 顶部导航栏 -->
+    <div class="scr-header">
+      <div class="scr-header__left">
+        <span class="scr-header__icon">
+          <ReIcon name="Grid" :size="14" />
+        </span>
+        <span class="scr-header__title">分屏终端</span>
+        <span class="scr-header__count">{{ screens.length }} 屏</span>
+      </div>
+      <div class="scr-header__right">
+        <span class="scr-header__hint">
+          <ReIcon name="Rank" :size="11" />拖动屏幕头排布
+        </span>
+        <span class="scr-header__divider" />
+        <button
+          v-if="ctxHosts.length"
+          type="button"
+          class="scr-btn scr-btn--primary"
+          @click="openAddMenu($event)"
+        >
+          <ReIcon name="Plus" :size="12" />新增屏幕
+        </button>
+        <button type="button" class="scr-btn" :disabled="loading" @click="loadHosts">
+          <ReIcon name="RefreshRight" :size="12" />刷新
+        </button>
+      </div>
     </div>
 
-    <div v-if="error" class="scr-error">{{ error }}</div>
-    <div v-else-if="loading && !hosts.length" class="lb-loading">正在读取主机…</div>
+    <div v-if="error" class="scr-error">
+      <ReIcon name="WarningFilled" :size="14" />
+      <span>{{ error }}</span>
+    </div>
+
+    <div v-else-if="loading && !hosts.length" class="scr-loading-state">
+      <el-empty description="正在读取主机列表…" />
+    </div>
 
     <div v-else ref="canvasEl" class="scr-canvas" @contextmenu.prevent="onCanvasContext" @click="closeCtx">
-      <!-- 画布：真实 viewer 屏幕 -->
+      <!-- 画布网格背景 -->
+      <div class="scr-canvas__grid" />
+
+      <!-- 屏幕窗口 -->
       <div
         v-for="s in screens"
         :key="s.id"
         class="scr-window"
-        :class="{ 'is-dragging': dragState?.sid === s.id }"
-        :style="{ left: canvasPos[s.id]?.x + '%', top: canvasPos[s.id]?.y + '%', width: canvasPos[s.id]?.w + '%', height: canvasPos[s.id]?.h + '%' }"
-        @click.stop
+        :class="{
+          'is-dragging': dragState?.sid === s.id,
+          'is-active': activeScreenId === s.id
+        }"
+        :style="{
+          left: canvasPos[s.id]?.x + '%',
+          top: canvasPos[s.id]?.y + '%',
+          width: canvasPos[s.id]?.w + '%',
+          height: canvasPos[s.id]?.h + '%',
+          zIndex: activeScreenId === s.id ? zCounter : 10
+        }"
+        @click.stop="activateScreen(s.id)"
       >
+        <!-- 左侧延迟色条 -->
         <div
-          class="scr-window__head"
+          class="scr-window__latency-bar"
+          :style="{ background: latencyColor(s.latencyLevel) }"
+          :title="latencyLabel(s.latencyLevel)"
+        />
+        <!-- 窗口头部 -->
+        <div
+          class="scr-window__header"
           :class="{ 'is-dragging': dragState?.sid === s.id }"
           @mousedown="onHeadDown($event, s.id)"
           @contextmenu.prevent="onScreenContext($event, s.id)"
         >
-          <ReIcon name="Rank" :size="11" class="scr-drag" />
-          <span class="scr-window__label">{{ labelOf(s) }}</span>
-          <span class="scr-window__addr">{{ s.hostAddress }}</span>
-          <i class="scr-window__dot" :class="s.connection.mode === 'NONE' ? 'is-none' : ''" :title="`通道 ${s.connection.mode}`" />
-          <span class="lb-spacer" />
-          <span class="lb-dim" style="font-size: 10.5px">{{ s.connection.mode }}</span>
-          <button type="button" class="scr-window__x" title="关闭屏幕" @click="removeScreen(s.id)">
-            <ReIcon name="Close" :size="11" />
+          <div class="scr-window__drag-handle">
+            <ReIcon name="Rank" :size="10" />
+          </div>
+          <div class="scr-window__info">
+            <span class="scr-window__name">{{ s.hostName }}</span>
+            <span class="scr-window__proto">{{ s.protocol.toUpperCase() }}</span>
+          </div>
+          <div class="scr-window__status">
+            <i class="scr-status-dot" :class="latencyDotClass(s.latencyLevel)" />
+            <span class="scr-status-text">{{ latencyLabel(s.latencyLevel) }}</span>
+          </div>
+          <span class="scr-window__spacer" />
+          <button type="button" class="scr-window__close" title="关闭屏幕" @click="removeScreen(s.id)">
+            <ReIcon name="Close" :size="12" />
           </button>
         </div>
 
-        <!-- 真实终端渲染分支（与 TerminalView 同款） -->
-        <div class="scr-window__body">
+        <!-- 终端内容区 -->
+        <div class="scr-window__content">
           <ScSshDirectViewer v-if="s.protocol === 'ssh'" :connection="s.connection" hide-close />
           <ScVncDirectViewer v-else-if="s.protocol === 'vnc' && modeOf(s) === 'DIRECT'" :connection="s.connection" hide-close />
           <ScGuacViewer v-else :connection="s.connection" inline />
-          <div v-if="s.connection.mode === 'NONE'" class="scr-window__none">
-            <ReIcon name="InfoFilled" :size="13" />该主机「无需通道」，请用本机客户端连接
+          <div v-if="s.connection.mode === 'NONE'" class="scr-window__placeholder">
+            <ReIcon name="InfoFilled" :size="16" />
+            <span>该主机无需远程通道，请使用本机客户端连接</span>
           </div>
         </div>
 
-        <!-- 每屏底部工具条：跟着屏幕走 -->
-        <div class="lb-toolbar">
+        <!-- 底部工具条 -->
+        <div class="scr-toolbar">
           <button
             v-for="t in TB"
             :key="t.key"
             type="button"
-            class="lb-tb-btn"
+            class="scr-tool-btn"
             :title="`${t.label}（${s.hostName}）`"
-            @click="t.key === 'files' ? toggleSftp(s.id) : t.key === 'docker' ? openPanel('docker', s) : t.key === 'tunnel' ? openPanel('tunnel', s) : openPanel(t.key === 'service' ? 'docker' : 'docker', s)"
+            @click="handleToolbarAction(t.key, s)"
           >
-            <ReIcon :name="t.icon" :size="11" />{{ t.label }}
+            <ReIcon :name="t.icon" :size="11" />
+            <span>{{ t.label }}</span>
           </button>
-          <span class="lb-tb-sep" />
-          <button type="button" class="lb-tb-btn" title="断开重连（重挂 iframe）" @click="removeScreen(s.id)">
+          <div class="scr-toolbar__divider" />
+          <button type="button" class="scr-tool-btn scr-tool-btn--icon" title="断开重连" @click="removeScreen(s.id)">
             <ReIcon name="RefreshRight" :size="11" />
           </button>
         </div>
       </div>
 
+      <!-- 空状态 -->
       <div v-if="!screens.length" class="scr-canvas__empty">
-        <b>还没有屏幕</b>
-        <span>右键画布空白处，从主机列表挑一台开屏；或点左上角「新增屏幕」。</span>
+        <div class="scr-empty__icon">
+          <ReIcon name="Monitor" :size="32" />
+        </div>
+        <h3>还没有屏幕</h3>
+        <p>右键画布空白处添加主机，或点击左上角「新增屏幕」</p>
       </div>
     </div>
 
-    <!-- SFTP 抽屉（每屏自己的文件管理，同时只开一个） -->
+    <!-- SFTP 抽屉 -->
     <ReDrawer
       :model-value="!!sftpScreen"
       :title="sftpScreen ? `文件管理 · ${sftpScreen.hostName}` : '文件管理'"
@@ -471,21 +601,37 @@ function openAddMenu(e: MouseEvent): void {
         @contextmenu.prevent
       >
         <template v-if="ctx.isCanvas">
-          <div class="scr-ctx__label">新增屏幕 —— 选择主机</div>
+          <div class="scr-ctx__label">新增屏幕</div>
           <template v-if="ctxHosts.length">
-            <div v-for="h in ctxHosts.slice(0, 8)" :key="h.id" class="scr-ctx__item" @click="pickHostForNewScreen(h)">
-              <ReIcon name="Monitor" :size="12" /><span>{{ h.serverHostName }}</span>
-              <span class="lb-dim" style="margin-left:auto;font-size:10.5px">{{ h.serverHostAddress }}</span>
+            <div
+              v-for="h in ctxHosts.slice(0, 8)"
+              :key="h.id"
+              class="scr-ctx__item"
+              @click="pickHostForNewScreen(h)"
+            >
+              <span class="scr-ctx__item-icon">
+                <ReIcon name="Monitor" :size="14" />
+              </span>
+              <div class="scr-ctx__item-info">
+                <span class="scr-ctx__item-name">{{ h.serverHostName }}</span>
+                <span class="scr-ctx__item-addr">{{ h.serverHostAddress }}</span>
+              </div>
             </div>
           </template>
           <div v-else class="scr-ctx__empty">没有更多主机可选</div>
         </template>
         <template v-else>
           <div class="scr-ctx__item" @click="splitScreen(ctx.screenId!)">
-            <ReIcon name="Menu" :size="12" /><span>同主机再开一屏</span>
+            <span class="scr-ctx__item-icon">
+              <ReIcon name="Menu" :size="14" />
+            </span>
+            <span class="scr-ctx__item-name">同主机再开一屏</span>
           </div>
-          <div class="scr-ctx__item is-bad" @click="removeScreen(ctx.screenId!)">
-            <ReIcon name="Close" :size="12" /><span>关闭该屏幕</span>
+          <div class="scr-ctx__item scr-ctx__item--danger" @click="removeScreen(ctx.screenId!)">
+            <span class="scr-ctx__item-icon">
+              <ReIcon name="Delete" :size="14" />
+            </span>
+            <span class="scr-ctx__item-name">关闭该屏幕</span>
           </div>
         </template>
       </div>
@@ -501,43 +647,139 @@ function openAddMenu(e: MouseEvent): void {
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  gap: 8px;
-  /* 工作台页签渲染在工作区内：四周留白避免顶到边框 */
+  gap: 10px;
   padding: 12px 14px;
   box-sizing: border-box;
 }
-.scr-head {
+
+/* ==================== 顶部导航栏 ==================== */
+.scr-header {
   display: flex;
   flex: none;
   align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
-  background: var(--el-bg-color, #fff);
-  border: 1px solid var(--el-border-color-extra-light, #eef0f6);
-  border-radius: 10px;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #1a1d24 0%, #252830 100%);
+  border: 1px solid #2d3038;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
-.scr-title { font-size: 12.5px; font-weight: 700; }
-.scr-error {
-  padding: 9px 12px;
-  font-size: 12.5px;
-  color: var(--el-color-danger);
-  background: var(--el-color-danger-light-9);
-  border: 1px solid var(--el-color-danger-light-7);
+.scr-header__left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.scr-header__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: #6d5dfc;
+  background: rgba(109, 93, 252, 0.15);
   border-radius: 8px;
 }
+.scr-header__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e8eaf0;
+}
+.scr-header__count {
+  font-size: 11px;
+  color: #8a909c;
+  padding: 2px 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+.scr-header__right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.scr-header__hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #8a909c;
+}
+.scr-header__divider {
+  width: 1px;
+  height: 18px;
+  background: #3a3d45;
+}
+.scr-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: #c6cad3;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid #3a3d45;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  &:hover:not(:disabled) {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #4a4d55;
+  }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+.scr-btn--primary {
+  color: #fff;
+  background: linear-gradient(135deg, #6d5dfc 0%, #8b7dff 100%);
+  border-color: transparent;
+  &:hover:not(:disabled) {
+    background: linear-gradient(135deg, #7c6eff 0%, #9c8eff 100%);
+    box-shadow: 0 4px 12px rgba(109, 93, 252, 0.3);
+  }
+}
 
+/* ==================== 错误和加载状态 ==================== */
+.scr-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 10px;
+}
+.scr-loading-state {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ==================== 画布 ==================== */
 .scr-canvas {
   position: relative;
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  background-image:
-    linear-gradient(rgba(31, 36, 48, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(31, 36, 48, 0.05) 1px, transparent 1px);
-  background-size: 22px 22px;
-  border: 1px solid var(--el-border-color-extra-light, #eef0f6);
-  border-radius: 10px;
+  background: #0f1115;
+  border: 1px solid #2d3038;
+  border-radius: 12px;
+  box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.2);
 }
+.scr-canvas__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+}
+
+/* ==================== 空状态 ==================== */
 .scr-canvas__empty {
   position: absolute;
   inset: 0;
@@ -545,12 +787,32 @@ function openAddMenu(e: MouseEvent): void {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  color: var(--el-text-color-placeholder);
-  font-size: 12.5px;
+  gap: 12px;
+  text-align: center;
 }
-.scr-canvas__empty b { color: var(--el-text-color-secondary); }
+.scr-empty__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  color: #4a4d55;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 50%;
+}
+.scr-canvas__empty h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #8a909c;
+}
+.scr-canvas__empty p {
+  margin: 0;
+  font-size: 13px;
+  color: #5a5d65;
+}
 
+/* ==================== 屏幕窗口 ==================== */
 .scr-window {
   position: absolute;
   display: flex;
@@ -558,116 +820,271 @@ function openAddMenu(e: MouseEvent): void {
   min-width: 280px;
   min-height: 160px;
   overflow: hidden;
-  background: #111111;
-  border: 1px solid #333844;
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(17, 17, 20, 0.35);
+  background: #181b21;
+  border: 1px solid #2d3038;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  transition: box-shadow 0.2s, border-color 0.2s;
+  &:hover {
+    border-color: #3a3d45;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  }
+  &.is-active {
+    border-color: #6d5dfc;
+    box-shadow: 0 12px 36px rgba(109, 93, 252, 0.25);
+  }
+  &.is-dragging {
+    border-color: #6d5dfc;
+    box-shadow: 0 16px 48px rgba(109, 93, 252, 0.35);
+    cursor: grabbing;
+  }
 }
-.scr-window__head {
+
+/* ==================== 左侧延迟色条 ==================== */
+.scr-window__latency-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  z-index: 5;
+  border-radius: 12px 0 0 12px;
+  transition: background 0.3s ease;
+}
+
+/* ==================== 窗口头部 ==================== */
+.scr-window__header {
   display: flex;
   flex: none;
   align-items: center;
-  gap: 7px;
-  height: 30px;
-  padding: 0 8px;
-  color: #c6cad3;
-  background: #1b1d23;
-  border-bottom: 1px solid #2a2d35;
+  gap: 10px;
+  height: 36px;
+  padding: 0 12px;
+  background: linear-gradient(180deg, #1f2228 0%, #181b21 100%);
+  border-bottom: 1px solid #2d3038;
   cursor: grab;
   user-select: none;
   touch-action: none;
+  &:hover { background: linear-gradient(180deg, #252830 0%, #1f2228 100%); }
+  &.is-dragging { cursor: grabbing; }
 }
-.scr-window__head:hover { background: #22252d; }
-.scr-window__head.is-dragging, .scr-window.is-dragging { cursor: grabbing; }
-.scr-window.is-dragging { box-shadow: 0 10px 30px rgba(17, 17, 20, 0.55); z-index: 30; }
-.scr-window__label { font-size: 12px; font-weight: 600; color: #e8eaf0; white-space: nowrap; }
-.scr-window__addr { font-size: 10.5px; color: #8a909c; }
-.scr-window__dot {
-  width: 6px;
-  height: 6px;
+.scr-window__drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4a4d55;
+  &:hover { color: #6a6d75; }
+}
+.scr-window__info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.scr-window__name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #e8eaf0;
+  white-space: nowrap;
+}
+.scr-window__proto {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #6d5dfc;
+  padding: 2px 6px;
+  background: rgba(109, 93, 252, 0.15);
+  border-radius: 4px;
+}
+.scr-window__status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.scr-status-dot {
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: var(--el-color-success);
+  background: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+  &.is-direct { background: #22c55e; box-shadow: 0 0 8px rgba(34, 197, 94, 0.5); }
+  &.is-guacd { background: #f59e0b; box-shadow: 0 0 8px rgba(245, 158, 11, 0.5); }
+  &.is-high { background: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.5); }
+  &.is-none { background: #6b7280; }
 }
-.scr-window__dot.is-none { background: var(--el-text-color-placeholder); }
-.scr-window__x {
+.scr-status-text {
+  font-size: 10px;
+  color: #8a909c;
+}
+.scr-window__spacer { flex: 1; }
+.scr-window__close {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   padding: 0;
-  color: #8a909c;
+  color: #6a6d75;
   background: transparent;
   border: none;
-  border-radius: 5px;
+  border-radius: 6px;
   cursor: pointer;
+  transition: all 0.15s;
+  &:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+  }
 }
-.scr-window__x:hover { color: #fff; background: #2a2d35; }
-.scr-window__body {
+
+/* ==================== 终端内容区 ==================== */
+.scr-window__content {
   flex: 1;
   min-height: 0;
   overflow: hidden;
   position: relative;
+  background: #0f1115;
 }
-.scr-window__body > :deep(.ssh-wrap),
-.scr-window__body > :deep(.guac-wrap--inline),
-.scr-window__body > :deep(.vnc-wrap) {
+.scr-window__content > :deep(.ssh-wrap),
+.scr-window__content > :deep(.guac-wrap--inline),
+.scr-window__content > :deep(.vnc-wrap) {
   height: 100%;
   min-height: 0;
 }
-/* SSH viewer 自带的状态条在此隐藏（屏幕头已含主机信息） */
-.scr-window__body > :deep(.ssh-status) { display: none; }
-.scr-window__none {
+.scr-window__content > :deep(.ssh-status) { display: none; }
+.scr-window__placeholder {
   position: absolute;
   inset: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 12px;
-  color: var(--el-text-color-placeholder);
-  background: #111111;
+  color: #6b7280;
+  background: #0f1115;
 }
-.scr-window .lb-toolbar { border-radius: 0 0 10px 10px; }
 
-.scr-ctx-backdrop { position: fixed; inset: 0; z-index: 2000; }
+/* ==================== 底部工具条 ==================== */
+.scr-toolbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+  background: linear-gradient(180deg, #181b21 0%, #1f2228 100%);
+  border-top: 1px solid #2d3038;
+  border-radius: 0 0 12px 12px;
+}
+.scr-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  font: inherit;
+  font-size: 11px;
+  color: #8a909c;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  &:hover {
+    color: #e8eaf0;
+    background: rgba(255, 255, 255, 0.06);
+  }
+}
+.scr-tool-btn--icon {
+  padding: 4px 6px;
+}
+.scr-toolbar__divider {
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: #3a3d45;
+}
+
+/* ==================== 右键菜单 ==================== */
+.scr-ctx-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+}
 .scr-ctx {
   position: fixed;
   z-index: 2001;
   display: flex;
   flex-direction: column;
-  min-width: 210px;
-  max-height: 280px;
+  min-width: 220px;
+  max-height: 300px;
   overflow: auto;
-  padding: 4px;
-  background: var(--el-bg-color, #fff);
-  border: 1px solid var(--el-border-color-extra-light, #eef0f6);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(31, 36, 48, 0.16);
+  padding: 6px;
+  background: #1f2228;
+  border: 1px solid #2d3038;
+  border-radius: 10px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
 }
 .scr-ctx__label {
-  padding: 4px 9px;
-  font-size: 10.5px;
-  letter-spacing: 0.04em;
-  color: var(--el-text-color-placeholder);
+  padding: 6px 10px 8px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b7280;
 }
 .scr-ctx__item {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 5px 9px;
-  font-size: 12px;
-  color: var(--el-text-color-primary);
-  border-radius: 6px;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
   cursor: pointer;
-  white-space: nowrap;
+  transition: background 0.15s;
+  &:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
 }
-.scr-ctx__item:hover { background: var(--el-fill-color-light, #f5f7fa); }
-.scr-ctx__item.is-bad { color: var(--el-color-danger); }
-.scr-ctx__item.is-bad:hover { background: var(--el-color-danger-light-9); }
-.scr-ctx__empty { padding: 8px 9px; font-size: 12px; color: var(--el-text-color-placeholder); }
+.scr-ctx__item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8a909c;
+  &:hover { color: #e8eaf0; }
+}
+.scr-ctx__item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.scr-ctx__item-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #e8eaf0;
+}
+.scr-ctx__item-addr {
+  font-size: 11px;
+  color: #6b7280;
+}
+.scr-ctx__item--danger {
+  &:hover { background: rgba(239, 68, 68, 0.1); }
+  .scr-ctx__item-icon, .scr-ctx__item-name { color: #ef4444; }
+}
+.scr-ctx__empty {
+  padding: 12px;
+  font-size: 12px;
+  text-align: center;
+  color: #6b7280;
+}
 
+/* ==================== 响应式 ==================== */
 @media (max-width: 980px) {
-  .scr-window { position: static; margin-bottom: 8px; min-width: 0; height: 240px !important; }
+  .scr-window {
+    position: static;
+    margin-bottom: 10px;
+    min-width: 0;
+    height: 240px !important;
+  }
+  .scr-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
 }
 </style>

@@ -18,6 +18,10 @@
       <el-button @click="loadModels">
         <el-icon><Refresh /></el-icon> 刷新
       </el-button>
+      <el-button v-if="selectedModels.length > 0" type="danger" plain :loading="batchDeleting"
+        @click="batchDeleteModels">
+        <el-icon><Delete /></el-icon> 批量删除({{ selectedModels.length }})
+      </el-button>
     </template>
 
     <!-- 模型列表表格：裸 el-table → ReTable（默认引擎已是 vxe；原表带 border 走
@@ -30,6 +34,8 @@
       :pagination="false"
       :toolbar="false"
       :layout-table="{ minHeight: 0 }"
+      :show-selection="true"
+      @selection-change="onSelectionChange"
       stripe
       style="width: 100%"
     >
@@ -251,6 +257,54 @@ const modelColumns: ReTableColumn[] = [
 ];
 
 const loading = ref(false);
+/** 当前已选中的模型行（ReTable selection-change 返回跨页缓存的选区） */
+const selectedModels = ref<any[]>([]);
+/** 批量删除进行中（防连点重复提交） */
+const batchDeleting = ref(false);
+
+/** ReTable 多选变化：累计当前所有已选模型行 */
+const onSelectionChange = (rows: any[]) => {
+  selectedModels.value = rows;
+};
+
+/**
+ * 批量删除模型：改走后端一次性批量接口，归集同一批请求的脏活。
+ */
+const batchDeleteModels = async () => {
+  const targets = selectedModels.value.filter((m: any) => !!m);
+  if (!targets.length) return;
+  try {
+    await ElMessageBox.confirm(
+      `确定删除所选 ${targets.length} 个模型吗？删除后将无法恢复。`,
+      '批量删除',
+      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' },
+    );
+  } catch {
+    return;
+  }
+  batchDeleting.value = true;
+  try {
+    const res: any = await modelApi.batchDelete(
+      targets.map((m: any) => m.modelId),
+    );
+    const deleted = res?.data?.deletedCount ?? res?.deletedCount ?? targets.length;
+    selectedModels.value = [];
+    if (deleted === targets.length) {
+      message.success('已删除 ' + targets.length + ' 个模型');
+    } else {
+      message.warning(`已删除 ${deleted} 个模型，${targets.length - deleted} 个失败`);
+    }
+  } finally {
+    batchDeleting.value = false;
+  }
+  loadModels();
+};
+
+/** 搜索/刷新时清空已选区 */
+const clearSelection = () => {
+  selectedModels.value = [];
+};
+
 const models = ref<any[]>([]);
 const searchKeyword = ref('');
 const currentPage = ref(1);
@@ -358,6 +412,8 @@ const loadModels = async () => {
     models.value = [];
   } finally {
     loading.value = false;
+    // 列表刷新后翻页/页长/搜索都会让旧选区失效，直接清空
+    clearSelection();
   }
 };
 
@@ -469,7 +525,8 @@ const testLatency = async (row: any) => {
 };
 
 const handlePageChange = () => {
-  // 分页由computed处理
+  // 分页由computed处理，选区随翻页失效
+  clearSelection();
 };
 
 onMounted(() => {

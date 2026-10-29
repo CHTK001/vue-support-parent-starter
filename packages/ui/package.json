@@ -251,6 +251,10 @@
       "types": "./src/components/ReColorize/index.ts",
       "default": "./src/components/ReColorize/index.ts"
     },
+    "./re-context-menu": {
+      "types": "./src/components/ReContextMenu/index.ts",
+      "default": "./src/components/ReContextMenu/index.ts"
+    },
     "./re-tree": {
       "types": "./src/components/ReTree/index.ts",
       "default": "./src/components/ReTree/index.ts"

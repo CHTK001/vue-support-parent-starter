@@ -50,15 +50,57 @@ export const deviceRoutes: RouteConfigsTable[] = [
     }
   },
   {
-    path: '/device/video-wall',
-    name: 'DeviceVideoWall',
-    component: () => import('../views/DeviceVideoWallView.vue'),
+    path: '/device/preview',
+    name: 'DevicePreview',
+    component: () => import('../views/DevicePreviewView.vue'),
+    props: { standalone: false },
     meta: {
       title: '视频预览',
       showLink: false,
       keepAlive: false,
       isVisible: '0',
       rank: 14
+    }
+  },
+  {
+    // 独立窗口形态：只在页面内留预览墙与工具条，无外壳
+    path: '/device/preview/standalone',
+    name: 'DevicePreviewStandalone',
+    component: () => import('../views/DevicePreviewView.vue'),
+    props: { standalone: true },
+    meta: {
+      title: '视频预览',
+      showLink: false,
+      keepAlive: false,
+      isVisible: '0',
+      remind: true,
+      rank: 14
+    }
+  },
+  {
+    // 兼容旧书签：/device/video-wall 与预览页同源，重定向到统一预览入口
+    path: '/device/video-wall',
+    name: 'DeviceVideoWall',
+    redirect: '/device/preview',
+    meta: {
+      title: '视频预览',
+      showLink: false,
+      keepAlive: false,
+      isVisible: '0',
+      rank: 14
+    }
+  },
+  {
+    path: '/device/tasks',
+    name: 'DeviceTasks',
+    component: () => import('../views/DeviceTaskView.vue'),
+    meta: {
+      title: '定时任务',
+      icon: 'Timer',
+      showLink: true,
+      keepAlive: true,
+      isVisible: '1',
+      rank: 16
     }
   },
   {
@@ -103,6 +145,11 @@ export const deviceMenus = [
         path: '/device/groups',
         name: 'DeviceGroup',
         meta: { title: '设备分组', icon: 'FolderOpened', isVisible: '1' }
+      },
+      {
+        path: '/device/tasks',
+        name: 'DeviceTasks',
+        meta: { title: '定时任务', icon: 'Timer', isVisible: '1' }
       }
     ]
   }

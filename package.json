@@ -61,5 +61,11 @@
     "@microsoft/fetch-event-source": "^2.0.1",
     "sortablejs": "^1.15.7",
     "vue3-slide-verify": "^1.1.8"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "@file-viewer/core@3.1.2": "patches/@file-viewer__core@3.1.2.patch",
+      "@file-viewer/renderer-text@3.1.2": "patches/@file-viewer__renderer-text@3.1.2.patch"
+    }
   }
 }

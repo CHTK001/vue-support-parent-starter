@@ -70,6 +70,8 @@ export interface FaceSettingItem {
 /** 人脸库一条已登记条目（服务端权威列表项；metadata 里是登记时传入的档案字段）。 */
 export interface FaceLibraryItem {
   id: string;
+  /** 所属分组（分组是第一层隔离，每组一套向量库；历史数据为 default） */
+  group?: string;
   /** 登记时传入的元数据（label/name/age/gender/hair/idCard/photogenic/note） */
   [k: string]: unknown;
 }
@@ -88,6 +90,13 @@ export interface FaceListParams {
   sortField?: string;
   /** 排序方向：asc / desc */
   sortOrder?: string;
+  /**
+   * 只列某个分组的条目。
+   *
+   * <p>不传时后端按 {@code default} 处理（历史行 group 为 NULL，逻辑上归属 default），
+   * 与旧调用方的行为一致。</p>
+   */
+  group?: string;
 }
 
 /** 人脸库全库统计（不受 keyword/status/sort 筛选影响）。 */
@@ -133,9 +142,9 @@ export interface FaceApi {
   /** 当前账号人脸库已登记条目（服务端权威：跨浏览器/跨账号以它为准） */
   listFaces(params?: FaceListParams): Promise<FaceListPage>;
   /** 从当前账号人脸库删除一条（后端同步删向量索引与快照） */
-  deleteFace(id: string): Promise<boolean>;
+  deleteFace(id: string, group?: string): Promise<boolean>;
   /** 更新一条人脸的档案字段（不重跑检测、不动特征向量） */
-  updateFace(id: string, metadata: Record<string, unknown>): Promise<boolean>;
+  updateFace(id: string, metadata: Record<string, unknown>, group?: string): Promise<boolean>;
   /**
    * 取一条人脸的**登记图**（后端在登记时落存的裁剪脸）二进制。
    *
@@ -143,9 +152,10 @@ export interface FaceApi {
    * 登记时裁剪失败）回 404，这里统一转成 `null`，调用方按「无图」降级展示。</p>
    *
    * @param id 人脸标识
+   * @param group 所属分组，缺省 = default
    * @return PNG 二进制；无图时 null
    */
-  faceImageBlob(id: string): Promise<Blob | null>;
+  faceImageBlob(id: string, group?: string): Promise<Blob | null>;
   /**
    * 取一条人脸**登记时的原图**二进制。
    *
@@ -155,9 +165,10 @@ export interface FaceApi {
    * 的裁剪图并提示用户。</p>
    *
    * @param id 人脸标识
+   * @param group 所属分组，缺省 = default
    * @return 原图二进制；无原图时 null
    */
-  originalImageBlob(id: string): Promise<Blob | null>;
+  originalImageBlob(id: string, group?: string): Promise<Blob | null>;
   /**
    * 人脸修复（超分/去噪/去模糊）。
    *
@@ -185,7 +196,7 @@ export interface FaceApi {
    */
   landmarkFace(file: File | Blob, filename?: string): Promise<FaceLandmarkResult>;
   /** 1:N 识别：拿上传图片与向量库里已登记人脸比对 */
-  identifyFace(file: File | Blob, filename?: string): Promise<FaceIdentifyResult>;
+  identifyFace(file: File | Blob, filename?: string, groups?: string[]): Promise<FaceIdentifyResult>;
   /** 1:1 比对 */
   compareFaces(
     fileA: File | Blob,
@@ -199,7 +210,16 @@ export interface FaceApi {
     file: File | Blob,
     metadata?: Record<string, unknown>,
     filename?: string,
+    /** 落库分组，缺省 = default */
+    group?: string,
   ): Promise<unknown>;
+  /**
+   * 当前账号下已存在数据的分组名（不含 default 的兜底，由调用方自行补）。
+   *
+   * <p>分组是第一层隔离：不同分组各自一套向量库，登记/检索/删除都必须带上分组，
+   * 否则会落到 default 里，用户会看到「明明登记了却搜不到」。</p>
+   */
+  listFaceGroups(): Promise<string[]>;
 }
 
 /** 拆 ReturnResult 信封；兼容部分链路已拆好的情况。 */
@@ -224,6 +244,62 @@ function toForm(file: File | Blob, filename = "face.png"): FormData {
  * 手写 {@code multipart/form-data} 会丢掉 boundary 参数，后端收到的部件全是坏的。</p>
  */
 const MULTIPART: RequestOptions = {};
+
+/**
+ * 分组参数归一化：空白视为「没传」。
+ *
+ * <p>为什么不把空串直接发给后端：Spring 会把空串绑成 {@code ""} 而不是 null，
+ * 于是「用户没选分组」会变成一个不存在的空分组，数据落到谁都看不见的地方。</p>
+ *
+ * @param group 分组名
+ * @returns 去除首尾空白后的分组名；空则 undefined
+ */
+function normalizeGroup(group?: string | null): string | undefined {
+  const g = typeof group === "string" ? group.trim() : "";
+  return g || undefined;
+}
+
+/**
+ * 多分组参数归一化：去空、去重后逗号连接。
+ *
+ * @param groups 分组名数组
+ * @returns 形如 `g1,g2`；无有效项时 undefined（后端按 default 处理）
+ */
+function joinGroups(groups?: string[] | null): string | undefined {
+  if (!Array.isArray(groups)) {
+    return undefined;
+  }
+  const list = [...new Set(groups.map((g) => String(g ?? "").trim()).filter(Boolean))];
+  return list.length ? list.join(",") : undefined;
+}
+
+/**
+ * 拆 `{ groups: string[] }` 信封，顺带把脏数据挡在类型之外。
+ *
+ * @param res 原始返回
+ * @returns 去重后的分组名数组
+ */
+function toGroups(res: unknown): string[] {
+  const data = unwrap<{ groups?: unknown }>(res);
+  const raw = Array.isArray(data?.groups) ? data.groups : [];
+  return [...new Set(raw.map((g) => String(g ?? "").trim()).filter(Boolean))];
+}
+
+/**
+ * 拼「图片/原图」端点地址。
+ *
+ * <p>分组走查询参数：这两个端点与 /list 是同一套分组口径，漏带就会取到 default
+ * 里的同名条目图（同一个 id 在不同分组下是两条完全不同的记录）。</p>
+ *
+ * @param id 人脸标识
+ * @param suffix 端点后缀（image / original）
+ * @param group 分组名
+ * @returns 相对地址（供 fetch 自行拼 baseURL）
+ */
+function imageUrl(id: string, suffix: string, group?: string): string {
+  const g = normalizeGroup(group);
+  return `/face/${encodeURIComponent(id)}/${suffix}${g ? `?group=${encodeURIComponent(g)}` : ""}`;
+}
 
 export const faceApi: FaceApi = {
   async getFaceSettings(this: ApiContext) {
@@ -254,6 +330,7 @@ export const faceApi: FaceApi = {
             status: params.status || undefined,
             sortField: params.sortField || undefined,
             sortOrder: params.sortOrder || undefined,
+            group: normalizeGroup(params.group),
           }
         : undefined,
     });
@@ -263,16 +340,20 @@ export const faceApi: FaceApi = {
     return { items, total, stats: data.stats };
   },
 
-  async deleteFace(this: ApiContext, id: string) {
-    const res = await this._request(`/face/${encodeURIComponent(id)}`, { method: "DELETE" });
+  async deleteFace(this: ApiContext, id: string, group?: string) {
+    const res = await this._request(`/face/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      params: { group: normalizeGroup(group) },
+    });
     return unwrap<boolean>(res) === true;
   },
 
-  async updateFace(this: ApiContext, id: string, metadata: Record<string, unknown>) {
+  async updateFace(this: ApiContext, id: string, metadata: Record<string, unknown>, group?: string) {
     // 后端返回的是 ReturnResult.ok("更新成功") / error("未找到该人脸：…")
     const res = await this._request(`/face/${encodeURIComponent(id)}`, {
       method: "PUT",
       data: metadata,
+      params: { group: normalizeGroup(group) },
     });
     const r = res as any;
     if (r && typeof r === "object" && "code" in r) {
@@ -281,7 +362,7 @@ export const faceApi: FaceApi = {
     return true;
   },
 
-  async faceImageBlob(this: ApiContext, id: string) {
+  async faceImageBlob(this: ApiContext, id: string, group?: string) {
     // 图片端点返回二进制，不能走 JSON 通道；令牌走请求头，绝不进 URL
     // （与 utils/authImage 同一条口径）。
     const token = currentToken();
@@ -289,7 +370,7 @@ export const faceApi: FaceApi = {
       return null;
     }
     const base = (this.baseURL || "").replace(/\/+$/, "");
-    const url = `${base}/face/${encodeURIComponent(id)}/image`;
+    const url = `${base}${imageUrl(id, "image", group)}`;
     try {
       const res = await fetch(url, {
         headers: authHeaders(token, url),
@@ -305,14 +386,14 @@ export const faceApi: FaceApi = {
     }
   },
 
-  async originalImageBlob(this: ApiContext, id: string) {
+  async originalImageBlob(this: ApiContext, id: string, group?: string) {
     // 与 faceImageBlob 同一条口径：令牌走请求头，绝不进 URL
     const token = currentToken();
     if (!token || !id) {
       return null;
     }
     const base = (this.baseURL || "").replace(/\/+$/, "");
-    const url = `${base}/face/${encodeURIComponent(id)}/original`;
+    const url = `${base}${imageUrl(id, "original", group)}`;
     try {
       const res = await fetch(url, {
         headers: authHeaders(token, url),
@@ -359,8 +440,14 @@ export const faceApi: FaceApi = {
     return { count: data?.count ?? 0, faces: data?.faces ?? [] };
   },
 
-  async identifyFace(this: ApiContext, file: File | Blob, filename = "face.png") {
-    const res = await this.client.post("/face/identify", toForm(file, filename), MULTIPART);
+  async identifyFace(this: ApiContext, file: File | Blob, filename = "face.png", groups?: string[]) {
+    const form = toForm(file, filename);
+    // 检索范围：后端收逗号分隔的多分组；没选时不带，由后端按 default 兜底
+    const joined = joinGroups(groups);
+    if (joined) {
+      form.append("groups", joined);
+    }
+    const res = await this.client.post("/face/identify", form, MULTIPART);
     const data = unwrap<FaceIdentifyResult>(res);
     return { matched: !!data?.matched, bestId: data?.bestId, bestScore: data?.bestScore, hits: data?.hits ?? [] };
   },
@@ -396,14 +483,31 @@ export const faceApi: FaceApi = {
     return unwrap<FaceCompareResult>(res);
   },
 
-  async enrollFace(this: ApiContext, id: string, file: File | Blob, metadata?: Record<string, unknown>, filename = "face.png") {
+  async enrollFace(
+    this: ApiContext,
+    id: string,
+    file: File | Blob,
+    metadata?: Record<string, unknown>,
+    filename = "face.png",
+    group?: string,
+  ) {
     const form = new FormData();
     form.append("id", id);
     form.append("file", file, filename);
     if (metadata) {
       form.append("metadata", JSON.stringify(metadata));
     }
+    // 「没选分组」就不带：空串会被后端当成一个空分组名，而不是 default
+    const g = normalizeGroup(group);
+    if (g) {
+      form.append("group", g);
+    }
     const res = await this.client.post("/face/enroll", form, MULTIPART);
     return unwrap<unknown>(res);
+  },
+
+  async listFaceGroups(this: ApiContext): Promise<string[]> {
+    const res = await this._request("/face/groups");
+    return toGroups(res);
   },
 };

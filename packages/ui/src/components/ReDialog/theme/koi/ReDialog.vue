@@ -6,7 +6,7 @@
  * 使用方式与 default 主题对齐（v-model 控制显隐），
  * 额外支持 koi 专属能力：showWindowShell / fullscreen / footerHidden。
  */
-import { ref, toRefs, computed, watch, onMounted, onUnmounted, onBeforeUnmount, type Component } from "vue";
+import { ref, toRefs, computed, watch, onMounted, onUnmounted, type Component } from "vue";
 import { ElDialog, ElButton } from "element-plus";
 import { Aim } from "@element-plus/icons-vue";
 import { useKoiWindowShell } from "./useKoiWindowShell";
@@ -185,19 +185,19 @@ watch(localOpen, (v) => {
 
 const dialogFullscreen = computed(() => windowFullscreen.value);
 
-/**
- * 拖拽结束后至少留在视口内的像素数（保证头部仍可见、可再次抓取）。
- *
- * @see onDocumentMouseUp
- */
-const DRAG_KEEP_VISIBLE = 56;
+
 
 /**
- * 传给 el-dialog 的 `overflow`：显式配置优先，否则跟随 {@link draggable}。
+ * 传给 el-dialog 的 `overflow`：显式配置优先，否则回到 el-dialog 的原始钳制——
+ * 拖拽只允许把弹窗磨到视口边，不会磨出视口，也不会再弹回来。
  *
- * @see props.overflow 的完整说明
+ * <p>element-plus 的 `useDraggable` 在 {@code overflow} 为假时，把位移（`translate`）
+ * 钳制在 `minLeft/maxLeft` / `minTop/maxTop` 范围内，其中
+ * {@code maxTop = clientHeight - targetTop - (targetHeight < clientHeight ? targetHeight : 0)}
+ * ——弹窗可以拖出居中的空白，但移不进视口之外；拖到边界就停住，是 el-dialog 原本的
+ * 「不允许拖出视口」语义，没有回弹。</p>
  */
-const effectiveOverflow = computed<boolean>(() => props.overflow ?? props.draggable);
+const effectiveOverflow = computed<boolean>(() => props.overflow ?? false);
 
 /** el-dialog 实例句柄（取弹窗 DOM / 调 resetPosition） */
 const dialogInstance = ref<DialogExposed | null>(null);
@@ -216,46 +216,7 @@ interface DialogExposed {
   resetPosition?: () => void;
 }
 
-/**
- * 拖拽结束兜底：被拖到视口外的弹窗拉回原位，保证永远抓得到。
- *
- * <p>放开 {@link effectiveOverflow} 之后弹窗可以被拖到任意位置，也就可能被拖出视口而
- * 无法再抓到。这里在每次 mouseup 后检查四个方向：只要有任一边界越出「保留区」，
- * 就用官方 {@code resetPosition} 归零。</p>
- *
- * <p>为什么用官方 {@code resetPosition} 而不是自己改写 {@code transform}：
- * `useDraggable` 内部维护了自己的 offset 记账，外部直接改样式会与它分叉，
- * 下一次拖拽弹窗会先跳一下。</p>
- */
-function onDocumentMouseUp(): void {
-  if (!props.draggable) return;
-  const el = dialogInstance.value?.dialogContentRef?.$el ?? null;
-  if (!el) return;
 
-  const rect = el.getBoundingClientRect();
-  const vw = document.documentElement.clientWidth;
-  const vh = document.documentElement.clientHeight;
-  const lost =
-    rect.right < DRAG_KEEP_VISIBLE ||
-    rect.left > vw - DRAG_KEEP_VISIBLE ||
-    rect.bottom < DRAG_KEEP_VISIBLE ||
-    rect.top > vh - DRAG_KEEP_VISIBLE;
-  if (!lost) return;
-  dialogInstance.value?.resetPosition?.();
-}
-
-/** 弹窗打开期间才监听 document 上的 mouseup（关闭即摘，避免常驻全局监听） */
-watch(visible, (open) => {
-  if (typeof document === "undefined") return;
-  if (open) document.addEventListener("mouseup", onDocumentMouseUp);
-  else document.removeEventListener("mouseup", onDocumentMouseUp);
-});
-
-onBeforeUnmount(() => {
-  if (typeof document !== "undefined") {
-    document.removeEventListener("mouseup", onDocumentMouseUp);
-  }
-});
 
 const windowWidth = ref(window.innerWidth);
 
@@ -330,7 +291,6 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
 
 <template>
   <ElDialog
-    ref="dialogInstance"
     v-bind="$attrs"
     class="koi-dialog-shell"
     :class="{ 'is-headless': headless, 'koi-dialog-compact': compact }"

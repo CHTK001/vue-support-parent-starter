@@ -85,72 +85,70 @@
     <div class="fl-table-wrap koi-card">
       <div class="md-card-hd">
         <span class="md-card-title">操作流水</span>
-        <span class="fl-live-hint" v-if="autoRefresh">
-          <span class="fl-live-dot" />每 {{ refreshSeconds }}s 自动刷新
-        </span>
       </div>
 
-      <el-table
-        :data="filteredLogs"
+      <!--
+        表格统一 ReTable（engine="element" 沿用原 el-table 的 DOM 与视觉）。
+        分页/工具栏关闭：日志是内存环形缓冲的实时流水，不分页、也不需要列设置入口。
+        fill 走 ReTable 缺省的 auto：本卡片已由 flex 分配确定高度，表头固定、表体内部滚动。
+      -->
+      <ReTable
+        :data="tableRows"
+        :columns="logColumns"
+        :loading="listLoading"
+        engine="element"
         size="small"
         class="fl-table"
         empty-text="暂无文件操作日志"
+        :pagination="false"
+        :toolbar="false"
+        :settings="{ border: false }"
       >
-        <el-table-column label="时间" width="168">
-          <template #default="{ row }">
-            <span class="fl-time">{{ formatTime(row.time) }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="132">
-          <template #default="{ row }">
-            <el-tag
-              :type="operationTagType(row.operation)"
-              size="small"
-              effect="light"
-              class="fl-op-tag"
-            >
-              {{ operationLabel(row.operation) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="目标" min-width="220" show-overflow-tooltip>
-          <template #default="{ row }">
-            <span class="fl-target">{{ row.target || "-" }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="96" align="center">
-          <template #default="{ row }">
-            <el-tag
-              :type="statusTagType(row.status)"
-              size="small"
-              effect="plain"
-              class="fl-status-tag"
-            >
-              {{ row.status || "-" }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="耗时" width="96" align="right">
-          <template #default="{ row }">
-            <span class="fl-duration oc-num">{{ formatDuration(row.durationMs) }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="说明" min-width="180" show-overflow-tooltip>
-          <template #default="{ row }">
-            <span class="fl-detail" :class="{ 'is-err': isErrorStatus(row.status) }">
-              {{ row.detail || "" }}
-            </span>
-          </template>
-        </el-table-column>
-      </el-table>
+        <template #col-time="{ row }">
+          <span class="fl-time">{{ formatTime(row.time as number) }}</span>
+        </template>
+        <template #col-operation="{ row }">
+          <el-tag
+            :type="operationTagType(row.operation as string)"
+            size="small"
+            effect="light"
+            class="fl-op-tag"
+          >
+            {{ operationLabel(row.operation as string) }}
+          </el-tag>
+        </template>
+        <template #col-target="{ row }">
+          <span class="fl-target">{{ row.target || "-" }}</span>
+        </template>
+        <template #col-status="{ row }">
+          <el-tag
+            :type="statusTagType(row.status as number)"
+            size="small"
+            effect="plain"
+            class="fl-status-tag"
+          >
+            {{ row.status || "-" }}
+          </el-tag>
+        </template>
+        <template #col-duration="{ row }">
+          <span class="fl-duration oc-num">{{ formatDuration(row.durationMs as number) }}</span>
+        </template>
+        <template #col-detail="{ row }">
+          <span class="fl-detail" :class="{ 'is-err': isErrorStatus(row.status as number) }">
+            {{ row.detail || "" }}
+          </span>
+        </template>
+      </ReTable>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Delete, Refresh, Search } from "@element-plus/icons-vue";
+import ReTable from "@repo/ui/re-table";
+import type { ReTableColumn } from "@repo/ui/re-table";
 import { clearFileLogs, listFileLogs, type FileLogEntry } from "../api/filestorageApi";
 
 /** 日志条目（内存缓冲，服务重启即清空） */
@@ -158,15 +156,25 @@ const logEntries = ref<FileLogEntry[]>([]);
 const listLoading = ref(false);
 const clearing = ref(false);
 
+/**
+ * 日志表格列定义（原 el-table-column 收敛为数组）。
+ *
+ * <p>带自定义渲染的列配 {@code slot}，模板里用 {@code #col-<slot>} 承接；
+ * 其余列（时间 / 目标 / 状态 / 耗时 / 说明）全部走 slot，因为值都需要二次格式化。</p>
+ */
+const logColumns: ReTableColumn[] = [
+  { prop: "time", label: "时间", width: 168, slot: "time" },
+  { prop: "operation", label: "操作", width: 132, slot: "operation" },
+  { prop: "target", label: "目标", minWidth: 220, showOverflowTooltip: true, slot: "target" },
+  { prop: "status", label: "状态", width: 96, align: "center", slot: "status" },
+  { prop: "duration", label: "耗时", width: 96, align: "right", slot: "duration" },
+  { prop: "detail", label: "说明", minWidth: 180, showOverflowTooltip: true, slot: "detail" },
+];
+
 /** 操作类型筛选（空 = 全部） */
 const operationFilter = ref("");
 /** 目标关键字搜索 */
 const keyword = ref("");
-
-/** 自动刷新间隔（秒） */
-const refreshSeconds = 5;
-const autoRefresh = ref(true);
-let timer: ReturnType<typeof setInterval> | null = null;
 
 /** 操作类型选项（前端映射栏） */
 const operationOptions = [
@@ -184,8 +192,13 @@ const operationOptions = [
   { value: "TASK_CREATE", label: "创建上传任务" },
   { value: "TASK_COMPLETE", label: "任务合并完成" },
   { value: "TASK_CANCEL", label: "取消任务" },
+  { value: "TASK_DELETE", label: "删除任务" },
   { value: "SET_CONFIG", label: "修改配置" },
   { value: "HEAD", label: "探测" },
+  { value: "COLLAB_CREATE", label: "创建协同" },
+  { value: "COLLAB_SAVE", label: "保存协同" },
+  { value: "COLLAB_ACCESS", label: "协同权限" },
+  { value: "COLLAB_DELETE", label: "删除协同" },
 ];
 
 /** 操作类型 → 中文标签（后端只回码，展示层映射；未知码原样显示） */
@@ -196,9 +209,9 @@ function operationLabel(op: string): string {
 
 /** 操作类型 → el-tag type（任务/上传类走警告色，删除/失败类走错误色） */
 function operationTagType(op: string): "success" | "warning" | "danger" | "info" | "primary" {
-  if (op === "UPLOAD" || op === "TASK_CREATE" || op === "TASK_COMPLETE") return "success";
-  if (op === "DELETE" || op === "TASK_CANCEL") return "danger";
-  if (op === "RENAME" || op === "COPY" || op === "MOVE" || op === "UNZIP") return "warning";
+  if (op === "UPLOAD" || op === "TASK_CREATE" || op === "TASK_COMPLETE" || op === "COLLAB_CREATE") return "success";
+  if (op === "DELETE" || op === "TASK_CANCEL" || op === "COLLAB_DELETE") return "danger";
+  if (op === "RENAME" || op === "COPY" || op === "MOVE" || op === "UNZIP" || op === "COLLAB_SAVE") return "warning";
   if (op === "DOWNLOAD" || op === "LIST" || op === "HEAD") return "primary";
   return "info";
 }
@@ -237,6 +250,17 @@ const filteredLogs = computed<FileLogEntry[]>(() => {
     return true;
   });
 });
+
+/**
+ * 表格行数据。
+ *
+ * <p>ReTable 的 {@code data} 收 {@code Array<Record<string, unknown>>}，而
+ * {@link FileLogEntry} 是具名接口（无索引签名），不能直接赋给它。这里做一次浅拷贝
+ * 并补上 {@code duration} 列（列 prop 名与接口字段 durationMs 不同，单独映射）。</p>
+ */
+const tableRows = computed<Array<Record<string, unknown>>>(() =>
+  filteredLogs.value.map((e) => ({ ...e, duration: e.durationMs })),
+);
 
 /** 时间显示（MM-DD HH:mm:ss） */
 function formatTime(ts: number): string {
@@ -290,13 +314,6 @@ async function onClear() {
 
 onMounted(() => {
   loadLogs();
-  timer = setInterval(() => {
-    if (autoRefresh.value && !listLoading.value) loadLogs();
-  }, refreshSeconds * 1000);
-});
-
-onBeforeUnmount(() => {
-  if (timer) clearInterval(timer);
 });
 </script>
 
@@ -305,6 +322,11 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  /* 吃满 .el-main 的可用高度：上层 layout 的 .el-main 已有确定高度，
+     这里用 100% 继承，再由下面 fl-table-wrap 的 flex:1 把剩余空间全给表格。
+     不加 overflow:hidden —— 窄屏下内容超出时让 .el-main 自己滚动。 */
+  height: 100%;
+  min-height: 0;
 }
 
 /* ===== 概览条（koi 大数字 + 顶部色条） ===== */
@@ -312,6 +334,8 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
+  /* 固定内容高度，剩余高度全留给表格 */
+  flex: 0 0 auto;
 }
 .stat-card {
   position: relative;
@@ -356,6 +380,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  flex: 0 0 auto;
 }
 .fl-op-select {
   width: 150px;
@@ -368,8 +393,18 @@ onBeforeUnmount(() => {
 /* ===== 日志表格 ===== */
 .fl-table-wrap {
   padding: 12px;
-  min-height: 260px;
+  /* 吃掉概览条与工具栏之外的全部剩余高度；min-height:0 让内部表格能真正收缩滚动 */
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
+/* ReTable 根节点撑满卡片剩余区域（表头固定 / 表体内部滚动由 ReTable 的 fill 负责） */
+.fl-table-wrap > :deep(.re-table) {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+/* 卡片标题条不参与伸缩 */
 .md-card-hd {
   display: flex;
   align-items: center;
@@ -378,6 +413,7 @@ onBeforeUnmount(() => {
   padding-bottom: 10px;
   margin-bottom: 6px;
   border-bottom: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
+  flex: 0 0 auto;
 }
 .md-card-title {
   font-weight: 600;

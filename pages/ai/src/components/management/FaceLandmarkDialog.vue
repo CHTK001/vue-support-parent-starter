@@ -100,6 +100,13 @@ const props = defineProps<{
   faceName?: string
   /** 本浏览器本地缩略图（data URL），服务端没图时兜底 */
   fallbackThumb?: string
+  /**
+   * 所属分组。
+   *
+   * <p>取图端点按「id + 分组」定位：同一个 id 可能同时存在于多个分组，
+   * 不带分组会拿到 default 里的同名条目图，画出来的人脸与当前行对不上。</p>
+   */
+  group?: string
 }>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void }>()
 
@@ -168,11 +175,11 @@ async function load() {
     // 优先原图：关键点是原图像素坐标，只有画在原图上，点的偏移才反映真实的
     // 检测/对齐误差。画在裁剪脸上永远是正的（裁剪时已按框对齐过），
     // 无论模型准不准都看不出问题，这个功能就等于在自欺欺人。
-    let blob = await apiService.originalImageBlob(props.faceId)
+    let blob = await apiService.originalImageBlob(props.faceId, props.group)
     let source = '登记原图'
     if (!blob) {
       // 改造前登记的老数据只落了裁剪脸，没有原图
-      blob = await apiService.faceImageBlob(props.faceId)
+      blob = await apiService.faceImageBlob(props.faceId, props.group)
       source = '登记裁剪脸'
       fellBackToCrop.value = !!blob
     }

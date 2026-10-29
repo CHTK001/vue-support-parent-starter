@@ -110,6 +110,7 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
   ReKit: () => import("./components/ReKit"),
   ReStateIcon: () => import("./components/ReStateIcon"),
   ReCommand: () => import("./components/ReCommand"),
+  ReContextMenu: () => import("./components/ReContextMenu"),
 };
 
 /**

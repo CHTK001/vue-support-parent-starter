@@ -8,6 +8,22 @@
         </p>
       </div>
       <div class="reid-lib-actions">
+        <!--
+          分组筛选：分组是第一层隔离（每组一套轨迹库），本面板只在当前分组内查看/删除。
+          allow-create 与识别页一致：允许直接敲一个还没数据的分组名。
+        -->
+        <el-select
+          v-model="group"
+          class="reid-lib-group"
+          filterable
+          allow-create
+          default-first-option
+          placeholder="选择或输入分组"
+          title="分组是第一层隔离：不同分组各有一套轨迹库"
+          @change="load"
+        >
+          <el-option v-for="g in groupOptions" :key="g" :label="g" :value="g" />
+        </el-select>
         <el-button :disabled="loading" @click="load">
           <el-icon><Refresh /></el-icon>刷新
         </el-button>
@@ -28,6 +44,11 @@
 
     <el-table v-else v-loading="loading" :data="items" size="small" stripe empty-text="暂无观测记录">
       <el-table-column prop="trackId" label="轨迹 ID" width="150" />
+      <el-table-column prop="group" label="分组" width="120" show-overflow-tooltip>
+        <template #default="{ row }">
+          <span>{{ row.group || 'default' }}</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="cameraId" label="摄像头" width="140" />
       <el-table-column prop="name" label="记录名" min-width="160" show-overflow-tooltip />
       <el-table-column prop="faceName" label="关联人脸" width="120">
@@ -59,6 +80,7 @@ import { onMounted, ref } from 'vue'
 import { message } from '@repo/core'
 import { Delete, Refresh } from '@element-plus/icons-vue'
 import { apiService } from '@/services/ApiService'
+import { useLibraryGroups } from '@/composables/useLibraryGroups'
 
 /**
  * 重识别库管理面板（设置中心「底库」分组）。
@@ -75,6 +97,8 @@ import { apiService } from '@/services/ApiService'
 interface ReidLibraryItem {
   id: string
   trackId?: string | null
+  /** 所属分组（历史数据缺失时按 default 展示） */
+  group?: string | null
   cameraId?: string | null
   name?: string | null
   faceName?: string | null
@@ -89,13 +113,25 @@ const items = ref<ReidLibraryItem[]>([])
 /** 加载中。 */
 const loading = ref(false)
 
+/**
+ * 当前分组。
+ *
+ * <p>与识别页同源：分组是第一层隔离，列表/删除/清空都只作用于当前分组 ——
+ * 「清空」尤其不能越界，别把别的分组的观测一起抹掉。</p>
+ */
+const { group, groupOptions, loadGroups, rememberGroups } = useLibraryGroups('reid')
+
 /** 加载列表。 */
 async function load() {
   loading.value = true
   try {
-    const res: any = await (apiService as any)._request('/reid/library')
+    const res: any = await (apiService as any)._request('/reid/library', {
+      params: { group: group.value },
+    })
     const data = res && typeof res === 'object' && 'data' in res ? res.data : res
     items.value = Array.isArray(data?.items) ? data.items : []
+    // 记录里带回的分组名一并并进下拉：后端 groups 接口没列到的历史分组也不该缺席
+    rememberGroups(items.value.map((it) => it.group))
   } catch (e) {
     message.error(`加载重识别库失败：${(e as Error)?.message ?? e}`)
     items.value = []
@@ -121,7 +157,10 @@ async function remove(row: any) {
     return
   }
   try {
-    await (apiService as any)._request(`/reid/library/${encodeURIComponent(id)}`, { method: 'DELETE' })
+    await (apiService as any)._request(`/reid/library/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      params: { group: group.value },
+    })
     message.success('已删除')
     await load()
   } catch (e) {
@@ -129,12 +168,15 @@ async function remove(row: any) {
   }
 }
 
-/** 清空当前账号的全部观测。 */
+/** 清空当前分组的全部观测。 */
 async function clearAll() {
   try {
-    const res: any = await (apiService as any)._request('/reid/tracks', { method: 'DELETE' })
+    const res: any = await (apiService as any)._request('/reid/tracks', {
+      method: 'DELETE',
+      params: { group: group.value },
+    })
     const data = res && typeof res === 'object' && 'data' in res ? res.data : res
-    message.success(`已清空 ${data?.cleared ?? 0} 条轨迹`)
+    message.success(`已清空分组「${group.value}」的 ${data?.cleared ?? 0} 条轨迹`)
     await load()
   } catch (e) {
     message.error(`清空失败：${(e as Error)?.message ?? e}`)
@@ -153,7 +195,11 @@ function formatTime(value?: string | null) {
   return String(value).replace('T', ' ')
 }
 
-onMounted(load)
+onMounted(async () => {
+  // 先拉分组选项再拉列表：否则下拉里只有 default，用户看不到自己已有的分组
+  await loadGroups()
+  void load()
+})
 </script>
 
 <style scoped>

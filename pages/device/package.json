@@ -19,6 +19,7 @@
     "flv.js": "catalog:",
     "@repo/core": "workspace:*",
     "@repo/utils": "workspace:*",
-    "@repo/ui": "workspace:*"
+    "@repo/ui": "workspace:*",
+    "@repo/re-map": "workspace:*"
   }
 }

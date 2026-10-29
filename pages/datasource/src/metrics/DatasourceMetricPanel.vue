@@ -1,24 +1,37 @@
 <template>
   <div class="ds-metrics" :class="{ 'is-embedded': embedded }">
-    <div v-if="!embedded" class="ds-metrics__bar">
-      <div class="ds-metrics__stat">
-        <span class="ds-metrics__stat-label">连通性</span>
-        <span class="ds-metrics__stat-value" :class="statusClass">{{ statusText }}</span>
-      </div>
-      <div class="ds-metrics__stat">
-        <span class="ds-metrics__stat-label">建连延迟</span>
-        <span class="ds-metrics__stat-value mono">{{ connectText }}</span>
-      </div>
-      <div class="ds-metrics__stat">
-        <span class="ds-metrics__stat-label">会话延迟</span>
-        <span class="ds-metrics__stat-value mono">{{ sessionText }}</span>
-      </div>
-      <div class="ds-metrics__stat">
-        <span class="ds-metrics__stat-label">链路</span>
-        <span class="ds-metrics__stat-value">{{ tunneledText }}</span>
-      </div>
-      <div class="ds-metrics__spacer" />
+    <div v-if="!embedded" class="ds-metrics__head">
+      <h3 class="ds-metrics__title">指标监控</h3>
+      <span class="ds-metrics__conn" :class="statusClass">{{ statusText }}</span>
+      <span class="ds-metrics__tunnel">{{ tunneledText }}</span>
+      <span class="ds-metrics__spacer" />
       <span class="ds-metrics__stream" :class="streamClass">{{ streamText }}</span>
+    </div>
+
+    <!-- 指标卡：第一行 3 列（建连/会话延迟 + 连接数），第二行 2 列（活跃线程 + 实例内存）。
+         CPU 卡取的是 SQL 侧负载近似（活跃线程），内存卡是 performance_schema 统计的
+         MySQL 进程内部内存——两者口径都在卡上如实标注，不冒充宿主机 CPU/内存。 -->
+    <div v-if="!embedded" class="ds-metrics__cards">
+      <div class="ds-metrics__card">
+        <span class="ds-metrics__card-label">建连延迟</span>
+        <span class="ds-metrics__card-value mono">{{ connectText }}</span>
+      </div>
+      <div class="ds-metrics__card">
+        <span class="ds-metrics__card-label">会话延迟</span>
+        <span class="ds-metrics__card-value mono">{{ sessionText }}</span>
+      </div>
+      <div class="ds-metrics__card">
+        <span class="ds-metrics__card-label">连接数</span>
+        <span class="ds-metrics__card-value mono">{{ connectionText }}</span>
+      </div>
+      <div class="ds-metrics__card">
+        <span class="ds-metrics__card-label">CPU <i>· 活跃线程</i></span>
+        <span class="ds-metrics__card-value mono">{{ threadsText }}</span>
+      </div>
+      <div class="ds-metrics__card">
+        <span class="ds-metrics__card-label">内存 <i>· 实例</i></span>
+        <span class="ds-metrics__card-value mono">{{ memoryText }}</span>
+      </div>
     </div>
 
     <p v-if="hint" class="ds-metrics__hint">{{ hint }}</p>
@@ -189,6 +202,50 @@ const tunneledText = computed(() => {
   return t ? "SSH 隧道" : "直连";
 });
 
+/** 连接数：从本次推送的 connectionCount 取（首屏历史点也能兜底） */
+const connectionText = computed(() => {
+  let v = latest.value?.connectionCount;
+  if (v === null || v === undefined) {
+    v = points.value.length ? points.value[points.value.length - 1]?.connectionCount ?? null : null;
+  }
+  return v === null || v === undefined ? "—" : `${v}`;
+});
+
+/** CPU 卡：活跃线程数（SQL 侧负载近似，MySQL 协议不暴露宿主机 CPU） */
+const threadsText = computed(() => {
+  const s = latest.value?.serverStats;
+  let v = s?.threadsRunning ?? null;
+  if (v === null || v === undefined) {
+    const tail = points.value.length ? points.value[points.value.length - 1]?.serverStats : null;
+    v = tail?.threadsRunning ?? null;
+  }
+  return v === null || v === undefined ? "—" : `${v} 线程`;
+});
+
+/** 内存卡：MySQL 进程内部内存（performance_schema InnoDB 事件合计，非宿主机内存） */
+const memoryText = computed(() => {
+  const s = latest.value?.serverStats;
+  let v = s?.memoryBytes ?? null;
+  if (v === null || v === undefined) {
+    const tail = points.value.length ? points.value[points.value.length - 1]?.serverStats : null;
+    v = tail?.memoryBytes ?? null;
+  }
+  return formatBytes(v);
+});
+
+function formatBytes(v: number | null | undefined): string {
+  if (v === null || v === undefined || v < 0) return "—";
+  if (v < 1024) return `${v} B`;
+  const units = ["KB", "MB", "GB", "TB"];
+  let n = v;
+  let i = -1;
+  do {
+    n /= 1024;
+    i += 1;
+  } while (n >= 1024 && i < units.length - 1);
+  return `${Number(n.toFixed(1)).toLocaleString("zh-CN")} ${units[i]}`;
+}
+
 /** 采样时刻格式化；解析不了就原样返回，不吞成「—」（原样更利于排查） */
 function formatTime(time: string): string {
   const v = Date.parse(time);
@@ -243,29 +300,24 @@ defineExpose({ close });
   min-height: 0;
 }
 
-.ds-metrics__bar {
+.ds-metrics__head {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 10px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--border-subtle, var(--el-border-color-lighter));
 }
 
-.ds-metrics__stat {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-}
-
-.ds-metrics__stat-label {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-.ds-metrics__stat-value {
+.ds-metrics__title {
+  margin: 0;
   font-size: 14px;
   font-weight: 600;
   color: var(--el-text-color-primary);
+}
+
+.ds-metrics__conn {
+  font-size: 12px;
+  font-weight: 600;
 
   &.is-ok {
     color: var(--status-success, var(--el-color-success));
@@ -279,6 +331,11 @@ defineExpose({ close });
     color: var(--el-text-color-secondary);
     font-weight: 400;
   }
+}
+
+.ds-metrics__tunnel {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 
 .ds-metrics__spacer {
@@ -296,6 +353,48 @@ defineExpose({ close });
   &.is-error {
     color: var(--status-warning, var(--el-color-warning));
   }
+}
+
+/* 指标卡：第一行 3 列、第二行 2 列。网格 3 列铺开，第五张起自动换行占前两格，
+   第二行正好两张。窄屏降到 2 列，小于 380px 单列。 */
+.ds-metrics__cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.ds-metrics__card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter));
+  border-radius: 10px;
+  background: var(--bg-container, #fff);
+}
+
+.ds-metrics__card-label {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  i {
+    font-style: normal;
+    color: var(--el-text-color-tertiary, var(--el-text-color-secondary));
+  }
+}
+
+.ds-metrics__card-value {
+  font-size: clamp(15px, 1.1rem + 0.4vw, 19px);
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ds-metrics__hint {
@@ -333,5 +432,20 @@ defineExpose({ close });
   align-items: center;
   justify-content: center;
   padding: 24px 0;
+}
+
+/* 指标卡响应式：容器不够宽时降列数，数值字号按容器宽度缩放（clamp） */
+@media (max-width: 1180px) {
+  .ds-metrics__cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 520px) {
+  .ds-metrics__cards {
+    grid-template-columns: 1fr;
+  }
+  .ds-metrics__card-value {
+    font-size: 16px;
+  }
 }
 </style>

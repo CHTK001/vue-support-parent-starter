@@ -36,6 +36,7 @@
 /* ---------- 聚合条：每个分区顶部的「先看数字」 ---------- */
 .pf-strip {
   display: grid;
+  min-height: 65px;
   grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
   gap: 1px;
   margin-bottom: 12px;

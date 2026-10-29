@@ -1,28 +1,24 @@
 <template>
-  <CustomPopover :show="visible" @update:show="$emit('update:visible', $event)" :width="180" :anchor-el="anchorEl">
+  <CustomPopover :show="visible" @update:show="$emit('update:visible', $event)" :width="width" :anchor-el="anchorEl">
     <template #header>
-      <div class="flex items-center gap-2">
-        <el-icon size="16" class="text-gray-600 dark:text-gray-400">
-          <LightbulbFilament24Regular />
-        </el-icon>
-        <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ t('chat.input.thinkingLevelTitle') }}</span>
+      <div class="te-header">
+        <div class="te-title-row">
+          <el-icon size="16" class="te-title-icon">
+            <LightbulbFilament24Regular />
+          </el-icon>
+          <span class="te-title">{{ t('chat.input.thinkingEffortSelectorTitle') }}</span>
+        </div>
+        <span class="te-current-badge" :class="{ 'is-off': currentIndex === 0 }">{{ getLabel(currentValue) }}</span>
       </div>
     </template>
-    <div class="popover-content space-y-0.5">
-      <template v-for="item in items" :key="item.effort">
-        <!-- 分组分隔线：把「不思考 / 默认」与「模型配置的档位」分开（对齐设计稿） -->
-        <div v-if="item.divider" class="te-divider" role="separator"></div>
-        <div
-          class="te-item flex items-center justify-between px-2 py-1.5 rounded-(--size-dialog-rounded-radius) cursor-pointer transition-all text-sm"
-          :class="{ 'te-item-active': currentValue === item.effort }" :data-effort="item.effort"
-          @click="handleSelect(item.effort)">
-          <span>{{ getLabel(item.effort) }}</span>
-          <el-icon v-if="currentValue === item.effort" size="14" class="text-primary">
-            <Checkmark24Regular />
-          </el-icon>
-        </div>
-      </template>
-    </div>
+
+    <ThinkingEffortSlider
+      :options="options"
+      :model-value="currentValue"
+      :aria-label="t('chat.input.thinkingEffortSelectorTitle')"
+      @select="handleSliderSelect"
+      @commit="handleSliderCommit"
+    />
   </CustomPopover>
 </template>
 
@@ -30,8 +26,9 @@
 import { computed } from 'vue'
 import { ElIcon } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import { LightbulbFilament24Regular, Checkmark24Regular } from '@vicons/fluent'
+import { LightbulbFilament24Regular } from '@vicons/fluent'
 import CustomPopover from '../../ui/CustomPopover.vue'
+import ThinkingEffortSlider from './ThinkingEffortSlider.vue'
 import { getThinkingEffortLabel } from '@/utils/modelUtils'
 
 const { t } = useI18n()
@@ -41,7 +38,7 @@ const props = withDefaults(defineProps<{
   anchorEl: HTMLElement | null
   options: string[]
   currentValue: string
-  /** 在该档位之后插入分组分隔线（模型配置档位与「默认」之间的视觉分组） */
+  /** 该档位之后曾用于分组分隔线；滑块形态下仅用于定位「默认」位置，无视觉分隔 */
   dividerAfter?: string
 }>(), {
   dividerAfter: 'default',
@@ -52,47 +49,69 @@ const emit = defineEmits<{
   'select': [effort: string]
 }>()
 
-/** 列表项：标记哪些项之前需要画分隔线 */
-const items = computed(() =>
-  props.options.map((effort, index) => ({
-    effort,
-    divider: index > 0 && props.options[index - 1] === props.dividerAfter,
-  })),
-)
+const width = 300
 
-/**
- * 获取思考强度的显示标签
- */
+/** 当前档位下标（找不到时取 0 = 最左「不思考」） */
+const currentIndex = computed(() => {
+  const idx = props.options.indexOf(props.currentValue)
+  return idx === -1 ? 0 : idx
+})
+
 function getLabel(effort: string): string {
   return getThinkingEffortLabel(effort)
 }
 
-/**
- * 处理选择思考强度
- */
-function handleSelect(effort: string) {
+/** 滑块值变更（点击/拖拽/键盘）：转发给父组件 */
+function handleSliderSelect(effort: string): void {
+  emit('select', effort)
+}
+
+/** 滑块完成确定选择（点标签/点轨道/键盘）：转发并收起弹层 */
+function handleSliderCommit(effort: string): void {
   emit('select', effort)
   emit('update:visible', false)
 }
 </script>
 
 <style scoped>
-.popover-content {
-  padding: 4px 0;
+.te-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 2px 2px 10px;
 }
 
-.te-item:hover {
-  background: var(--color-sidebar-bg-hover);
+.te-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
 }
 
-.te-item-active {
-  background: var(--color-sidebar-bg-active);
+.te-title-icon {
+  color: var(--color-primary, var(--el-color-primary));
+  flex-shrink: 0;
 }
 
-/* 分组分隔线：「默认」与模型配置档位之间 */
-.te-divider {
-  height: 1px;
-  margin: 4px 6px;
-  background: var(--el-border-color-extra-light, var(--el-border-color-lighter));
+.te-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text, var(--el-text-color-primary));
+  white-space: nowrap;
+}
+
+.te-current-badge {
+  flex-shrink: 0;
+  font-size: 12px;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: var(--color-primary, var(--el-color-primary));
+  background: var(--color-primary-50, var(--el-color-primary-light-9));
+}
+.te-current-badge.is-off {
+  color: var(--color-text-gray, var(--el-text-color-secondary));
+  background: var(--color-surface-hover, var(--el-fill-color-light));
 }
 </style>

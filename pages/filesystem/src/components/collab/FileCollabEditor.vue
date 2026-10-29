@@ -19,8 +19,11 @@
       <span class="fc-editor-title">{{ fileName }}</span>
       <span class="fc-editor-status" :class="saveState">{{ saveStatusText }}</span>
       <span class="fc-editor-ver">版本 v{{ currentVersion }}</span>
-      <el-button size="small" :loading="saving" @click="saveNow">保存</el-button>
-      <el-button size="small" text @click="refreshSnapshot">从服务器刷新</el-button>
+      <template v-if="!readonly">
+        <el-button size="small" :loading="saving" @click="saveNow">保存</el-button>
+        <el-button size="small" text @click="refreshSnapshot">从服务器刷新</el-button>
+      </template>
+      <span v-else class="fc-editor-readonly">只读分享</span>
     </div>
     <div ref="containerRef" class="fc-editor-container" />
   </div>
@@ -30,7 +33,11 @@
 import { onBeforeUnmount, onMounted, ref, shallowRef } from "vue";
 import { ElMessage } from "element-plus";
 import type { FUniver } from "@univerjs/presets";
-// worker：Univer 公式引擎运行在独立 worker，Vite 用 ?worker&url 打包
+// worker：Univer 公式引擎运行在独立 worker，Vite 用 ?worker&url 打包。
+// 注意：worker.js 是 ESM（顶层 import），但 @univerjs/rpc 的 UniverRPCMainThreadPlugin
+// 内部是 `new Worker(url)`（classic 模式），直接传 URL 会报
+// "Cannot use import statement outside a module"。这里手动按 { type: "module" }
+// 创建 Worker 实例再传入（IUniverRPCMainThreadConfig.workerURL 支持 Worker 实例直通）。
 import workerUrl from "@univerjs/preset-sheets-core/lib/worker.js?worker&url";
 // 样式副作用导入（preset-sheets-core/lib/index.css）
 import "@univerjs/preset-sheets-core/lib/index.css";
@@ -45,6 +52,8 @@ const props = defineProps<{
   collabId: string;
   /** 展示文件名 */
   fileName: string;
+  /** 只读模式（分享视图用）：隐藏保存/刷新按钮，不做轮询同步 */
+  readonly?: boolean;
 }>();
 
 /** Univer 容器引用 */
@@ -61,10 +70,12 @@ const saving = ref(false);
 /** 保存状态：saved / dirty / saving / conflict */
 const saveState = ref<"saved" | "dirty" | "saving" | "conflict">("saved");
 
-const saveStatusText = ref("已同步");
+const saveStatusText = ref(`已同步 · v${initialVersion.value}`);
 
 /** Univer facade 实例（懒加载后持有） */
 const univerAPI = shallowRef<FUniver | null>(null);
+/** Univer 公式 worker（module 模式，随组件卸载一并释放） */
+let univerWorker: Worker | null = null;
 /** 卸载标记 */
 let disposed = false;
 /** 轮询定时器 */
@@ -90,6 +101,24 @@ function renderSaveStatus(): void {
   }
 }
 
+/**
+ * 创建 Univer 公式引擎 worker（module 模式）。
+ *
+ * <p>worker.js 为 ESM（顶层 import），浏览器必须按 {@code { type: "module" }}
+ * 加载；而 {@code UniverRPCMainThreadPlugin} 内部对 string/URL 走 classic
+ * {@code new Worker(e)}，会抛 "Cannot use import statement outside a module"。
+ * 因此这里手动创建 module Worker 实例（{@code IUniverRPCMainThreadConfig.workerURL}
+ * 接受 Worker 实例并直通），并记录引用以便随组件卸载释放。</p>
+ *
+ * @return module Worker 实例
+ */
+function createUniverWorker(): Worker {
+  if (!univerWorker) {
+    univerWorker = new Worker(workerUrl as unknown as string, { type: "module" });
+  }
+  return univerWorker;
+}
+
 /** 懒加载并初始化 Univer */
 async function initUniver(): Promise<FUniver | null> {
   const container = containerRef.value;
@@ -109,13 +138,14 @@ async function initUniver(): Promise<FUniver | null> {
       presets: [
         UniverSheetsCorePreset({
           container,
-          workerURL: workerUrl as unknown as string,
+          workerURL: createUniverWorker(),
         }),
       ],
     });
     // 加载初始快照：有快照用快照重建工作簿，否则空工作簿
-    if (props.initialSnapshot || initialSnapshot.value) {
-      const raw = initialSnapshot.value || props.initialSnapshot;
+    // （initialSnapshot 是 defineModel 的本地 ref，不在 props 上，不能写 props.initialSnapshot）
+    if (initialSnapshot.value) {
+      const raw = initialSnapshot.value;
       try {
         const data = typeof raw === "string" ? JSON.parse(raw) : raw;
         api.createWorkbook(data ?? {});
@@ -199,6 +229,7 @@ async function refreshSnapshot(): Promise<void> {
 onMounted(async () => {
   await initUniver();
   // 轮询兜底（SSE 断连时保同步）：每 5s 对比版本号
+  if (props.readonly) return;
   pollTimer = setInterval(() => {
     if (disposed || saveState.value === "saving") return;
     void refreshSnapshot();
@@ -214,6 +245,14 @@ onBeforeUnmount(() => {
     } catch {
       // 卸载时 dispose 失败可忽略
     }
+  }
+  if (univerWorker) {
+    try {
+      univerWorker.terminate();
+    } catch {
+      // worker 已退出时忽略
+    }
+    univerWorker = null;
   }
 });
 </script>
@@ -268,9 +307,30 @@ onBeforeUnmount(() => {
   font-variant-numeric: tabular-nums;
   margin-left: auto;
 }
+.fc-editor-readonly {
+  font-size: 12px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--el-border-color-lighter, #e8ebf0);
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+  margin-left: auto;
+}
 .fc-editor-container {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  /* Univer 根节点靠 .univer-h-full { height: 100% } 撑满容器。
+     容器若是 display:block + 由 flex 分配高度，该 100% 在部分浏览器/嵌套场景下
+     解析不出基准（实测根节点停在内容高度 141px，表格 canvas 变成 0 高、
+     只剩工具栏），因此这里把容器改成 flex 列，直接用 flex 把根节点撑满，
+     不依赖 Univer 内部的百分比高度。 */
+  display: flex;
+  flex-direction: column;
+}
+/* Univer 的根节点（唯一直接子元素）：吃满容器高度 */
+.fc-editor-container > :deep(*) {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
 }
 </style>

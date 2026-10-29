@@ -21,7 +21,7 @@
     :model-value="value"
     @update:model-value="$emit('change', $event)"
     class="w-full">
-    <el-option v-for="opt in options" :key="opt" :label="opt" :value="opt" />
+    <el-option v-for="opt in options" :key="opt" :label="enumLabel(opt)" :value="opt" />
   </el-select>
 
   <!-- STRING：多行提示词 -->
@@ -58,6 +58,24 @@
 import { OpenAI } from "@/components/icons"
 import { ArrowDown } from "@element-plus/icons-vue"
 import ReNumberInput from '@/components/re/ReNumberInput.vue'
+
+/**
+ * 枚举 key → 中文标签。
+ *
+ * 后端把可选值写在描述括号里，如「匹配模式（strict 严谨 / loose 宽松）」，
+ * 前端 parseEnumOptions 只取空格前的部分作为**值**（strict / loose），直接拿来当
+ * label 就会把英文 key 显示给用户。这里给这类「值是英文但含义不直观」的项补中文；
+ * 未登记的选项原样显示，避免把用户本来认识的取值（模型名、provider）翻错。
+ */
+const ENUM_LABELS: Record<string, string> = {
+  strict: '严谨',
+  loose: '宽松',
+  whole: '整卷',
+  region: '按版面区域分块',
+}
+
+/** 取枚举选项的显示文本 */
+const enumLabel = (opt: string) => ENUM_LABELS[opt] ?? opt
 
 const props = defineProps<{
   item: any

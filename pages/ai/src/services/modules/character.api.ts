@@ -81,6 +81,8 @@ export interface CharacterCatalogItem {
   category: string;
   avatar: string;
   added: boolean;
+  /** 仅管理员可见模板；后端已对非管理员隐藏，前端据此做第二层过滤 */
+  adminOnly?: boolean;
 }
 
 export interface CharacterCatalogSkill {
@@ -100,6 +102,8 @@ export interface CharacterCatalogDetail {
   tags: string[];
   prompts: string[];
   skills: CharacterCatalogSkill[];
+  /** 仅管理员可见模板；非管理员市场卡片据此隐藏 */
+  adminOnly?: boolean;
 }
 
 /**

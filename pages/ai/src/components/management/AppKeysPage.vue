@@ -14,6 +14,10 @@
         <el-icon><Plus /></el-icon> 新增AppKey
       </el-button>
       <el-button @click="loadData"><el-icon><Refresh /></el-icon> 刷新</el-button>
+      <el-button v-if="selectedItems.length > 0" type="danger" plain :loading="batchDeleting"
+        @click="batchDeleteItems">
+        <el-icon><Delete /></el-icon> 批量删除({{ selectedItems.length }})
+      </el-button>
     </template>
 
     <div class="panel-card">
@@ -33,10 +37,12 @@
       :toolbar="false"
       :layout-table="{ minHeight: 0 }"
       :settings="{ border: false }"
+      :show-selection="true"
       stripe
       class="flat-table"
       style="width: 100%"
       @update:page="onPageChange"
+      @selection-change="onSelectionChange"
     >
       <template #col-appKey="{ row }">
         <span class="key-text">{{ row.appKey }}</span>
@@ -116,7 +122,23 @@ const appKeyColumns: ReTableColumn[] = [
 ];
 
 const loading = ref(false);
-const dataList = ref<any[]>([]);
+/** 当前已选中的 AppKey 行（ReTable selection-change 返回跨页缓存的选区） */
+const selectedItems = ref<any[]>([]);
+/** 批量删除进行中（防连点重复提交） */
+const batchDeleting = ref(false);
+
+/** ReTable 多选变化：累计当前所有已选 AppKey 行 */
+const onSelectionChange = (rows: any[]) => {
+  selectedItems.value = rows;
+};
+
+/**
+ * 多选取消/查询切换时清空选区。
+ */
+const clearSelection = () => {
+  selectedItems.value = [];
+};
+
 const searchKeyword = ref('');
 const currentPage = ref(1);
 const pageSize = ref(20);
@@ -150,6 +172,8 @@ const filteredData = computed(() => {
 /** ReTable 分页页码变化（前端分页：组件自己切片，这里只需同步页码态） */
 function onPageChange(page: number) {
   currentPage.value = page;
+  // 翻页时旧行已不在当前页，清空选区避免误删
+  clearSelection();
 }
 
 const loadData = async () => {
@@ -162,6 +186,8 @@ const loadData = async () => {
     dataList.value = [];
   } finally {
     loading.value = false;
+    // 列表刷新后翻页/页长/搜索都会让旧选区失效，直接清空
+    clearSelection();
   }
 };
 
@@ -214,6 +240,39 @@ const deleteItem = async (row: any) => {
   } catch (e) {
     if (e !== 'cancel') message.error('删除失败');
   }
+};
+
+/**
+ * 批量删除 AppKey：改走后端一次性批量接口，归集同一批请求的脏活。
+ */
+const batchDeleteItems = async () => {
+  const targets = selectedItems.value.filter((item: any) => !!item);
+  if (!targets.length) return;
+  try {
+    await ElMessageBox.confirm(
+      `确定删除所选 ${targets.length} 个 AppKey 吗？删除后将无法恢复。`,
+      '批量删除',
+      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' },
+    );
+  } catch {
+    return;
+  }
+  batchDeleting.value = true;
+  try {
+    const res: any = await appKeyApi.batchDelete(
+      targets.map((item: any) => item.id),
+    );
+    const deleted = res?.data?.deletedCount ?? res?.deletedCount ?? targets.length;
+    clearSelection();
+    if (deleted === targets.length) {
+      message.success('已删除 ' + targets.length + ' 个 AppKey');
+    } else {
+      message.warning(`已删除 ${deleted} 个 AppKey，${targets.length - deleted} 个失败`);
+    }
+  } finally {
+    batchDeleting.value = false;
+  }
+  loadData();
 };
 
 onMounted(() => loadData());

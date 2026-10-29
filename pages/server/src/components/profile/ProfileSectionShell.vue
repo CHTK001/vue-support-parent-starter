@@ -105,7 +105,7 @@ const canNext = computed(() => props.paged && !props.loading && props.page * pro
 
     <!-- 工具条 -->
     <div class="pfs-bar">
-      <span class="pfs-count pf-dim">{{ countText }}</span>
+      <span class="pfs-count pf-dim ml-4">{{ countText }}</span>
       <div class="pfs-tools">
         <ReInput
           v-if="searchable"

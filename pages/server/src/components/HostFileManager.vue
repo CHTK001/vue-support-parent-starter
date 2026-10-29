@@ -399,6 +399,17 @@
         ><el-icon><Operation /></el-icon></button>
       </div>
     </div>
+
+    <!-- 选择器模式底部操作条：把当前目录 / 选中文件回填到调用方的输入框 -->
+    <div v-if="pickMode" class="we-pick">
+      <span class="we-pick-path" :title="pickPath">{{ pickPath }}</span>
+      <div class="we-pick-actions">
+        <el-button size="small" @click="pickCurrentDir">选择此目录</el-button>
+        <el-button size="small" type="primary" :disabled="!pickableFile" @click="pickSelectedFile">
+          选择该文件
+        </el-button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -434,11 +445,22 @@ interface Props {
   hostId: number;
   initialPath?: string;
   platform?: string;
+  /**
+   * 选择器模式：底部出现「选择当前目录 / 选择该文件」，用于给项目地址、日志地址等
+   * 输入框挑一个主机路径。默认关闭，不影响资产管理里正常浏览文件的行为。
+   */
+  pickMode?: boolean;
 }
 const props = withDefaults(defineProps<Props>(), {
   initialPath: "",
   platform: "LINUX",
+  pickMode: false,
 });
+
+const emit = defineEmits<{
+  /** pickMode 下用户确认路径：绝对路径字符串 */
+  pick: [path: string];
+}>();
 
 const isWindows = computed(() => "WINDOWS" === (props.platform || "").toUpperCase());
 const sep = computed(() => (isWindows.value ? "\\" : "/"));
@@ -721,6 +743,36 @@ async function loadDrives() {
   } catch {
     drives.value = [];
   }
+}
+
+/* ---------- 选择器模式（pickMode） ---------- */
+/** 选中项（仅图标/列表/详细视图有 selected；列状视图不参与文件选择） */
+const selectedItem = computed<HostFileItem | undefined>(() => {
+  if (!selected.value) return undefined;
+  return displayFiles.value.find((f) => f.name === selected.value);
+});
+
+/** 当前可回填的路径：选中文件优先，否则当前目录 */
+const pickPath = computed(() => {
+  const f = selectedItem.value;
+  return f && !f.isDir ? join(currentPath.value, f.name) : currentPath.value;
+});
+
+/** 只有选中「文件」时才允许「选择该文件」 */
+const pickableFile = computed(() => {
+  const f = selectedItem.value;
+  return !!f && !f.isDir;
+});
+
+function pickCurrentDir() {
+  selected.value = "";
+  emit("pick", currentPath.value);
+}
+
+function pickSelectedFile() {
+  const f = selectedItem.value;
+  if (!f || f.isDir) return;
+  emit("pick", join(currentPath.value, f.name));
 }
 
 /* ---------- 展示列表（过滤 + 文件夹优先排序） ---------- */
@@ -1436,6 +1488,34 @@ loadDrives();
   flex-shrink: 0; height: 30px; padding: 0 10px;
   border-top: 1px solid var(--el-border-color-lighter);
   font-size: 12px; color: var(--el-text-color-secondary);
+}
+
+/* 选择器模式底部操作条 */
+.we-pick {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+  padding: 8px 10px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  background: var(--el-fill-color-lighter);
+}
+.we-pick-path {
+  flex: 1;
+  min-width: 0;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.we-pick-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
 .we-status-views { display: flex; gap: 2px; }
 .we-status-btn {

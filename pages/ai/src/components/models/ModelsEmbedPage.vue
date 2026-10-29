@@ -146,7 +146,7 @@ const handleDeleteProvider = async (p: any) => {
   )
   if (!ok) return
   try {
-    await adminApi.delete(`/api/providers/${p.id}`)
+    await apiService.deleteProvider(p.id)
     message.success(`供应商「${p.name}」已删除`)
     if (currentProviderId.value === p.id) currentProviderId.value = null
     await reload()

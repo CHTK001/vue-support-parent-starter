@@ -43,6 +43,13 @@ const props = withDefaults(
     database?: string;
     /** 数据源 ID */
     datasourceId?: number;
+    /**
+     * 目标库方言（mysql / postgresql / clickhouse …）。
+     *
+     * <p>类型下拉按方言过滤：同一个下拉里同时出现 VARCHAR2（Oracle）与 NVARCHAR
+     * （SQL Server）时，用户只能靠「选一个试试」判断哪个是自己的库认的。</p>
+     */
+    dialect?: string;
     /** 预填表名（数据同步预览发现「表不存在」时把缺失表名带进来；默认空） */
     initialName?: string;
     /** 预填列（目标侧缺表时从源表元数据带入；默认空 = 打开即空白单列，与历史一致） */
@@ -62,6 +69,7 @@ const props = withDefaults(
   {
     database: "",
     datasourceId: undefined,
+    dialect: "mysql",
     initialName: "",
     initialColumns: () => [],
   },
@@ -246,6 +254,7 @@ async function submit(): Promise<void> {
         <DesignColumnGrid
           :rows="rows"
           mode="new"
+          :dialect="props.dialect"
           max-height="40vh"
           empty-text="还没有列，点右上角「添加一列」开始设计"
           @remove-row="removeRow"

@@ -393,27 +393,17 @@ const onQuery = () => {
 };
 
 /**
- * 开「阅卷详情」独立浏览器标签页（专注看一份试卷）。
+ * 打开「阅卷详情」站内标签页（专注看一份试卷）。
  *
- * <p>用 {@code window.open(href, "_blank")} 起新标签页：详情是耗时操作
- * （原卷 + 逐题判分复核），新标签不打断当前记录列表的检索状态，
- * 关掉即回到列表。</p>
+ * <p>为什么不再用 {@code window.open}：新开浏览器标签要重新 bootstrap 整个 SPA，
+ * 实测经网关要 4.3s，比详情数据本身（2.9s）还慢。改成站内标签页后，
+ * 应用已经跑起来了，只剩数据请求，首屏从 ~7s 降到 1s 级。</p>
  *
- * <p>不传 width/height/resizable —— 那组特征串会让浏览器按「弹窗」打开
- * （小窗口、无标签栏），用户要的是正常标签页。同名窗口（"eduai-marking"）
- * 复用已有标签，不会每点一次开一堆。</p>
- *
- * <p>弹窗被浏览器拦截时（非用户手势、iframe 内、或浏览器策略）退回
- * {@code router.push} —— 与 IdiomGameView 开「学习卡片」同一套兜底思路，
- * 保证功能可用，只是少了独立标签页。</p>
+ * <p>标签按 path 去重，换卷子只改 query —— 连点十份卷子也只有一个「阅卷详情」标签，
+ * 组件内部 watch taskId 重新加载，不会堆一屏标签。</p>
  */
 const openDetailWindow = (taskId: string) => {
-  // router.resolve 拿带 base 的真实地址，直接拼 path 在非根路径部署下会 404
-  const href = router.resolve({ path: '/edu/marking/detail', query: { taskId } }).href;
-  const opened = window.open(href, "eduai-marking");
-  if (!opened) {
-    void router.push({ path: '/edu/marking/detail', query: { taskId } });
-  }
+  void router.push({ path: '/edu/marking/detail', query: { taskId } });
 };
 
 /* ==================== 实时进度（SSE） ==================== */
@@ -656,71 +646,6 @@ const openDistribution = async () => {
   }
 };
 
-/* ==================== 阅卷配置（管理端） ==================== */
-const markingSettingsVisible = ref(false);
-const markingSettingsLoading = ref(false);
-const markingSettingsSaving = ref(false);
-const markingSettings = reactive<{
-  markingPrompt: string;
-  retryTimes: number;
-  retryBackoffMillis: number;
-  retryBackoffMultiplier: number;
-  retryMaxBackoffMillis: number;
-  retryOnTransient: boolean;
-  extractStrategy: string;
-}>({
-  markingPrompt: '',
-  retryTimes: 3,
-  retryBackoffMillis: 1000,
-  retryBackoffMultiplier: 2,
-  retryMaxBackoffMillis: 15000,
-  retryOnTransient: true,
-  extractStrategy: 'whole',
-});
-
-/** 打开阅卷配置弹窗：拉取当前生效设置（含判分 Prompt）回填 */
-const openMarkingSettings = async () => {
-  markingSettingsVisible.value = true;
-  markingSettingsLoading.value = true;
-  try {
-    const s = await eduaiApi.getMarkingSettings();
-    markingSettings.markingPrompt = s?.markingPrompt ?? '';
-    markingSettings.retryTimes = s?.retryTimes ?? 3;
-    markingSettings.retryBackoffMillis = s?.retryBackoffMillis ?? 1000;
-    markingSettings.retryBackoffMultiplier = s?.retryBackoffMultiplier ?? 2;
-    markingSettings.retryMaxBackoffMillis = s?.retryMaxBackoffMillis ?? 15000;
-    markingSettings.retryOnTransient = s?.retryOnTransient ?? true;
-    markingSettings.extractStrategy = s?.extractStrategy ?? 'whole';
-  } catch (e) {
-    failToast('读取阅卷配置失败', e);
-    markingSettingsVisible.value = false;
-  } finally {
-    markingSettingsLoading.value = false;
-  }
-};
-
-/** 保存阅卷配置：落库后对后续新提交的判分任务生效（判分 prompt 可自定义） */
-const saveMarkingSettings = async () => {
-  markingSettingsSaving.value = true;
-  try {
-    await eduaiApi.saveMarkingSettings({
-      markingPrompt: markingSettings.markingPrompt,
-      retryTimes: markingSettings.retryTimes,
-      retryBackoffMillis: markingSettings.retryBackoffMillis,
-      retryBackoffMultiplier: markingSettings.retryBackoffMultiplier,
-      retryMaxBackoffMillis: markingSettings.retryMaxBackoffMillis,
-      retryOnTransient: markingSettings.retryOnTransient,
-      extractStrategy: markingSettings.extractStrategy,
-    });
-    message.success('阅卷配置已保存');
-    markingSettingsVisible.value = false;
-  } catch (e) {
-    failToast('保存阅卷配置失败', e);
-  } finally {
-    markingSettingsSaving.value = false;
-  }
-};
-
 /* ==================== 提交答题卡（管理端） ==================== */
 const submitDialogVisible = ref(false);
 const submitting = ref(false);
@@ -845,7 +770,6 @@ onUnmounted(() => {
           {{ isAdmin ? '扫描阅卷' : '上传答卷阅卷' }}
         </ReButton>
         <ReButton icon="TrendCharts" @click="openDistribution">分数分布</ReButton>
-        <ReButton v-if="isAdmin" icon="Setting" @click="openMarkingSettings">阅卷配置</ReButton>
         <template v-if="isAdmin">
           <el-input v-model="taskId" placeholder="任务号直达（可选）" clearable style="width: 260px" />
           <ReButton icon="Search" @click="onQuery">查询</ReButton>
@@ -1052,57 +976,6 @@ onUnmounted(() => {
         </div>
       </div>
     </ReDialog>
-
-    <!-- 阅卷配置：重试曲线 + 识别策略 + 主观题判分 Prompt（管理员专属） -->
-    <ReDialog v-model="markingSettingsVisible" title="阅卷配置" width="720">
-      <div v-loading="markingSettingsLoading" class="mw-settings">
-        <el-form label-position="top">
-          <el-form-item label="阅卷判分 Prompt（主观题 AI 判分指令；留空 = 使用内置默认）">
-            <el-input
-              v-model="markingSettings.markingPrompt"
-              type="textarea"
-              :rows="9"
-              placeholder="你是资深阅卷老师，擅长根据标准答案和题目，对学生的作答进行客观、严格、公正的评分。你必须只返回 JSON，禁止任何解释。（提交后对之后提交的新阅卷任务生效）"
-            />
-            <div class="mw-settings__hint">
-              内置默认要求模型只返回 <code>{"score": 分数, "comment": "评语"}</code> JSON。自定义时请保留该输出约束，
-              模型会拿到：题型 / 题干 / 标准答案 / 学生作答 / 满分。
-            </div>
-          </el-form-item>
-          <el-row :gutter="12">
-            <el-col :span="8">
-              <el-form-item label="模型调用最大重试次数">
-                <el-input-number v-model="markingSettings.retryTimes" :min="0" :max="20" controls-position="right" style="width: 100%" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item label="初始退避（毫秒）">
-                <el-input-number v-model="markingSettings.retryBackoffMillis" :min="0" :step="500" controls-position="right" style="width: 100%" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item label="退避上限（毫秒）">
-                <el-input-number v-model="markingSettings.retryMaxBackoffMillis" :min="0" :step="1000" controls-position="right" style="width: 100%" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row :gutter="12">
-            <el-col :span="8">
-              <el-form-item label="任意卷识别策略">
-                <el-select v-model="markingSettings.extractStrategy" style="width: 100%">
-                  <el-option label="整卷（默认）" value="whole" />
-                  <el-option label="按版面区域分块" value="region" />
-                </el-select>
-              </el-form-item>
-            </el-col>
-          </el-row>
-        </el-form>
-      </div>
-      <template #footer>
-        <el-button @click="markingSettingsVisible = false">取消</el-button>
-        <el-button type="primary" :loading="markingSettingsSaving" @click="saveMarkingSettings">保存</el-button>
-      </template>
-    </ReDialog>
   </div>
 </template>
 
@@ -1188,23 +1061,6 @@ onUnmounted(() => {
   font-size: 12px;
   color: var(--el-color-warning);
   margin-bottom: 8px;
-}
-/* 阅卷配置弹窗 */
-.mw-settings {
-  min-height: 240px;
-}
-.mw-settings__hint {
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--el-text-color-secondary);
-  margin-top: 6px;
-}
-.mw-settings__hint code {
-  background: var(--el-fill-color-light);
-  border-radius: 4px;
-  padding: 1px 5px;
-  font-family: Consolas, Monaco, monospace;
-  font-size: 11px;
 }
 /* 阅卷总览统计卡 */
 .mw-stats {

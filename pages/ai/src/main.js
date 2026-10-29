@@ -125,6 +125,12 @@ const routes = [
         component: () => import("./components/tavern/TavernPage.vue"),
       },
       {
+        path: "world-sim/:worldId?",
+        name: "WorldSim",
+        meta: { title: "模拟人生", requiresAuth: true },
+        component: () => import("./components/world-sim/WorldSimPage.vue"),
+      },
+      {
         path: "setting/:tab?",
         name: "SystemSettings",
         meta: { title: "系统设置", requiresAuth: true },

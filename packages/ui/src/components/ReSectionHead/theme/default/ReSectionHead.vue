@@ -45,6 +45,7 @@ defineOptions({ name: "ReSectionHead", inheritAttrs: true });
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  padding: 4px 0;
   margin-bottom: 12px;
 }
 

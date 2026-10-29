@@ -52,6 +52,8 @@ const form = reactive({
   serverHostAddress: '',
   serverHostPort: 22,
   serverHostOsType: 'LINUX',
+  /** 采集方式：LOCAL 表示本机采集，免密登录校验需放行 */
+  serverHostCollectMode: '',
   msServerGroupId: null as number | null,
   tags: [] as string[],
   tagsInput: '',
@@ -96,6 +98,7 @@ watch(
     form.serverHostAddress = src.serverHostAddress ?? '';
     form.serverHostPort = src.serverHostPort ?? 22;
     form.serverHostOsType = src.serverHostOsType ?? 'LINUX';
+    form.serverHostCollectMode = src.serverHostCollectMode ?? '';
     form.msServerGroupId = src.msServerGroupId ?? null;
     form.tags = parseTags(src.serverHostTags);
     form.tagsInput = '';
@@ -226,6 +229,15 @@ function onSubmit(): void {
   const hasAccount = form.serverHostAccount.trim();
   const hasPassword = !!form.serverHostPassword;
   const hasKey = form.serverHostPrivateKey.trim();
+  // 免密登录允许账号留空：地址写成 user@host 时后端直接取前缀作为账号，
+  // 本机主机则取平台运行账号；只有「既没账号、地址里也没有 user@」才提示。
+  const addressAccount = (() => {
+    const raw = form.serverHostAddress.trim();
+    const at = raw.lastIndexOf('@');
+    if (at <= 0 || at >= raw.length - 1) return '';
+    const host = raw.slice(at + 1);
+    return /[.:/]/.test(host) ? raw.slice(0, at).trim() : '';
+  })();
   // 密码非必填：选「账号密码」时只填账号、不填密码也允许保存。
   // 后端 autoCreateIdentity 仅在账号+密码齐全时自动建身份，密码缺失则回落默认凭据；
   // 「key」方式保留私钥必填（有私钥必须能关联账号）；
@@ -234,8 +246,9 @@ function onSubmit(): void {
     message.warning('请填写登录账号');
     return;
   }
-  if (form.authType === 'none' && !form.serverHostAccount.trim()) {
-    message.warning('免密登录也需填写登录账号');
+  const noneAccount = hasAccount || addressAccount;
+  if (form.authType === 'none' && !noneAccount && form.serverHostCollectMode !== 'LOCAL') {
+    message.warning('免密登录请填写登录账号，或把地址写成 user@host');
     return;
   }
   const submit = {
@@ -257,9 +270,10 @@ function onSubmit(): void {
   } else if (form.authType === 'key' && hasAccount && hasKey) {
     submit.serverHostAccount = form.serverHostAccount.trim();
     submit.serverHostPrivateKey = form.serverHostPrivateKey.trim();
-  } else if (form.authType === 'none' && form.serverHostAccount.trim()) {
-    // 免密登录：只提交账号 + 免密类型标记，后端创建免密（NONE）身份
-    submit.serverHostAccount = form.serverHostAccount.trim();
+  } else if (form.authType === 'none' && noneAccount) {
+    // 免密登录：只提交账号 + 免密类型标记，后端创建免密（NONE）身份；
+    // 账号取自输入框或地址里的 user@ 前缀
+    submit.serverHostAccount = noneAccount;
     submit.serverHostAuthType = 'none';
   }
   emit('submit', submit);
@@ -404,12 +418,12 @@ function onSubmit(): void {
           <div class="form-row">
             <div class="form-field">
               <label class="field-label">登录账号</label>
-              <ReInput v-model="form.serverHostAccount" placeholder="如 root（目标主机已放行该账号免密登录）" />
+              <ReInput v-model="form.serverHostAccount" placeholder="可留空：取地址里的 user@ 前缀 / 本机运行账号" />
             </div>
           </div>
           <div class="form-row">
             <div class="form-field field-wide">
-              <ReText type="info">免密登录：目标主机不校验密码（SSH 空口令登录或已配置密钥放行），平台只凭登录账号连接，无需填写密码或私钥。</ReText>
+              <ReText type="info">免密登录：地址写成 <code>user@host</code> 时平台直接取 user 作为登录账号，账号留空也能保存；本机主机默认用平台运行账号。</ReText>
             </div>
           </div>
         </template>

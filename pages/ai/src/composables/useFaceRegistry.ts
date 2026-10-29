@@ -41,6 +41,28 @@ export interface FaceRecord {
   lat?: number | null
   /** 登记地点经度（选填），语义同 {@link lat} */
   lng?: number | null
+  /**
+   * 所属分组（选填）。
+   *
+   * <p>为什么本地也要记：服务端列表是**按分组**查的，而本登记簿的清理逻辑是
+   * 「服务端没有的就是幽灵条目」。不带分组记这一笔，切到 B 组时就会把 A 组的本地
+   * 缩略图全部当成幽灵删掉。undefined = 改造前登记的档案，视为 default。</p>
+   */
+  group?: string
+}
+
+/** 后端约定的默认分组名；历史数据（group 为 NULL/undefined）也归属它 */
+const FALLBACK_GROUP = 'default'
+
+/**
+ * 归一化分组名：空白视为 default。
+ *
+ * @param group 分组名
+ * @returns 可比较的分组名
+ */
+export function normalizeGroupName(group?: string | null): string {
+  const g = (group ?? '').trim()
+  return g || FALLBACK_GROUP
 }
 
 const STORAGE_KEY = 'face_registry_v1'
@@ -67,16 +89,35 @@ function persist() {
   }
 }
 
-/** 新增或覆盖一条档案（按 id 去重） */
+/**
+ * 新增或覆盖一条档案。
+ *
+ * <p>按 id + 分组去重：同一个 id 可能同时存在于多个分组（两组各登记一次），
+ * 只按 id 覆盖会让另一组的缩略图看起来"串组"了。</p>
+ */
 function upsert(record: FaceRecord) {
-  const i = records.value.findIndex((r) => r.id === record.id)
+  const g = normalizeGroupName(record.group)
+  const i = records.value.findIndex((r) => r.id === record.id && normalizeGroupName(r.group) === g)
   if (i >= 0) records.value[i] = record
   else records.value.unshift(record)
   persist()
 }
 
-function remove(id: string) {
-  records.value = records.value.filter((r) => r.id !== id)
+/**
+ * 删除本地档案。
+ *
+ * @param id 人脸标识
+ * @param group 分组；传了只删该分组的那条，不传则删掉该 id 的全部（兼容旧调用方）
+ */
+function remove(id: string, group?: string) {
+  if (group === undefined) {
+    records.value = records.value.filter((r) => r.id !== id)
+  } else {
+    const g = normalizeGroupName(group)
+    records.value = records.value.filter(
+      (r) => !(r.id === id && normalizeGroupName(r.group) === g),
+    )
+  }
   persist()
 }
 
@@ -85,8 +126,21 @@ function clear() {
   persist()
 }
 
-function byId(id: string): FaceRecord | undefined {
-  return records.value.find((r) => r.id === id)
+/**
+ * 按 id 取档案。
+ *
+ * @param id 人脸标识
+ * @param group 指定分组时优先取该分组的档案（同 id 跨分组时避免取错组的缩略图）
+ * @returns 档案；不存在时 undefined
+ */
+function byId(id: string, group?: string): FaceRecord | undefined {
+  const list = records.value.filter((r) => r.id === id)
+  if (!list.length) return undefined
+  if (group !== undefined) {
+    const g = normalizeGroupName(group)
+    return list.find((r) => normalizeGroupName(r.group) === g) ?? list[0]
+  }
+  return list[0]
 }
 
 /** 身份证脱敏：保留前 4 后 4，中间打码。避免在页面上直接暴露完整证件号。 */

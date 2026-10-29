@@ -39,6 +39,28 @@ export interface ReTableColumn {
   formatter?: (row: Record<string, unknown>, column: ReTableColumn, cellValue: unknown) => string;
   /** 插槽名（表格列自定义插槽） */
   slot?: string;
+  /**
+   * 自定义表头插槽名（父组件用这个名字提供插槽）。
+   *
+   * <p>表头有时不只是「一个字」：两行表头（字段名 + 类型/注释）、排序图标、
+   * 悬浮提示都要参与渲染，纯文本 label 表达不了。给了本项且父组件确有该插槽时，
+   * 两个引擎都把 `<template #header>` 转发给它。</p>
+   */
+  headerSlot?: string;
+  /**
+   * 表头补充行的当前文本（自适应列宽时一并参与测宽）。
+   *
+   * <p>宿主用 {@link headerSlot} 在字段名下面又画了几行（注释、类型）时，那几行
+   * 不在 {@link label} 里：只量 label 就把列宽算窄了，双击手柄「自适应」之后
+   * 补充行照样被省略号截掉，看着像没生效。</p>
+   *
+   * <p>做成**函数**而不是数组：内容随宿主的开关与元数据变化，数组会让宿主在每次
+   * 变化时重建整个 columns 数组，而本组件对 columns 是 deep watch（会连带重载列宽存档）。
+   * 函数只在真正测宽的那一刻取值，宿主不必为了它重建列定义。</p>
+   *
+   * @returns 当前实际显示在表头里的附加行文本；空串会被忽略
+   */
+  headerFitLines?: () => string[];
   /** 单元格内容超出时是否显示 tooltip */
   showOverflowTooltip?: boolean;
   /** 列单元格的 class-name（透传给 el-table-column，如操作列 .op-col 的按钮组样式） */

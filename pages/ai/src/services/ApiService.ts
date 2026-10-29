@@ -45,6 +45,7 @@ import { schedulerApi, type SchedulerApi } from "./modules/scheduler.api";
 import { pluginApi, type PluginApi } from "./modules/plugin.api";
 import { remoteWorkspaceApi, type RemoteWorkspaceApi } from "./modules/remote-workspace.api";
 import { tavernApi, type TavernApi } from "./modules/tavern.api";
+import { worldSimApi, type WorldSimApi } from "./modules/world-sim.api";
 import { generateApi, type GenerateApi } from "./modules/generate.api";
 import { inputApi, type InputApi } from "./modules/input.api";
 import { goalApi, type GoalApi } from "./modules/goal.api";
@@ -81,6 +82,7 @@ interface ApiService
     PluginApi,
     RemoteWorkspaceApi,
     TavernApi,
+    WorldSimApi,
     GenerateApi,
     FaceApi,
     ReidApi,
@@ -353,6 +355,7 @@ Object.assign(
   pluginApi,
   remoteWorkspaceApi,
   tavernApi,
+  worldSimApi,
   generateApi,
   faceApi,
   reidApi,

@@ -1,7 +1,7 @@
 /**
  * pages/server 全局弹窗样式
  * ReDialog/ReDrawer 挂载在 body 下，需全局样式生效。
- * 遮罩轻微模糊 + 弹窗本体 16px 圆角（卡片背景）+ 入场 fade+scale。
+ * 遮罩轻微模糊 + 弹窗本体 16px 圆角（卡片背景）+ 入场 fade+scale（内容包裹层，不占拖拽目标）
  */
 
 /* 遮罩层：轻微模糊 */
@@ -17,13 +17,26 @@
   backdrop-filter: saturate(150%) blur(2px);
 }
 
-/* 弹窗本体：卡片背景 + 16px 圆角 + 柔和阴影 + 入场动画 */
+/* 弹窗本体：卡片背景 + 16px 圆角 + 柔和阴影（入场动画不碰弹窗本体）
+
+  注意：入场动画不能写在弹窗本体（.koi-dialog-shell）上，它正是 element-plus
+  `useDraggable` 往身上写 transform 的拖拽目标。关键帧每帧都在它身上输出
+  `transform: none`（`fill: both` 会一直锁定到动画结束），把拖拽写出的
+  `translate(x, y)` 覆盖掉 —— 表现就是弹窗拖不动（drag 写了不在）。
+
+  动画改写到内容包裹层（.dialog-content-wrapper）上：弹窗本体保持自由可拖拽，
+  视觉的 pop-in 效果（opacity/scale/translate）保留。
+*/
 .koi-dialog-shell {
   border-radius: 16px !important;
   background: var(--bg-container-card);
   box-shadow:
     var(--shadow-elevated),
     0 0 0 1px color-mix(in srgb, var(--bg-container) 6%, transparent);
+}
+
+/* 入场动画目标：弹窗内容包裹层 */
+.koi-dialog-shell .dialog-content-wrapper {
   animation: koi-dialog-in 0.2s var(--ease-out) both;
 }
 
@@ -40,7 +53,8 @@
   border-bottom: 1px solid var(--border-subtle);
 }
 
+/* 关键帧已下到内容包裹层，GA 克减也要对上 */
 @media (prefers-reduced-motion: reduce) {
-  .koi-dialog-shell { animation: none; }
+  .koi-dialog-shell .dialog-content-wrapper { animation: none; }
 }
 

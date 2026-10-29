@@ -1,256 +1,341 @@
 <template>
-  <div class="provider-page flex flex-col h-full">
-    <header class="flex items-start justify-between gap-4 px-5 pt-5">
-      <div class="min-w-0">
-        <h2 class="text-xl font-semibold text-el-text">厂商接入</h2>
-        <p class="text-sm text-el-text-secondary mt-1">
-          登记各厂商平台的 AK/SK 接入凭据。同一厂商可配置多套账号，用于分区域同步设备与组织。
-        </p>
-      </div>
-      <div class="flex items-center gap-2 shrink-0">
-        <el-button @click="refreshAll">
-          <el-icon class="mr-1"><Refresh /></el-icon>刷新
-        </el-button>
-        <el-button @click="goLedger">
-          <el-icon class="mr-1"><Monitor /></el-icon>设备台账
-        </el-button>
-        <el-button :loading="syncing" :disabled="!vendors.length" @click="syncDevices">
-          <el-icon class="mr-1"><Refresh /></el-icon>同步设备
-        </el-button>
-        <el-button type="primary" :disabled="!vendors.length" @click="openCreate()">
-          <el-icon class="mr-1"><Plus /></el-icon>新增凭据
-        </el-button>
-      </div>
-    </header>
+  <div class="dpv">
+    <div class="dpv-body">
+      <!-- ==================== 左：厂商导轨 ==================== -->
+      <aside class="dpv-rail">
+        <header class="dpv-rail__head">
+          <span class="dpv-bar" />
+          <span class="dpv-rail__title">提供商</span>
+          <span class="dpv-count">{{ vendors.length }}</span>
+          <span class="dpv-grow" />
+          <ReButton
+            icon="Plus"
+            layout="square"
+            size="small"
+            type="primary"
+            :disabled="!vendors.length"
+            tip="新增凭据"
+            @click="openCreate()"
+          />
+        </header>
+        <p class="dpv-rail__desc">按厂商归档 AK/SK，同一厂商可按区域配多套账号。</p>
 
-    <!-- 厂商能力卡片 -->
-    <section class="px-5 pt-4">
-      <div class="text-sm font-medium text-el-text mb-2">已接入厂商</div>
-      <div v-if="vendors.length" class="grid grid-cols-1 xl:grid-cols-2 gap-3">
-        <div
-          v-for="vendor in vendors"
-          :key="vendor.vendor"
-          class="vendor-card"
-          :class="{ 'is-active': credentialFilter === vendor.vendor }"
-          @click="filterByVendor(vendor.vendor)"
-        >
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <div class="flex items-center gap-2">
-                <span class="text-base font-semibold text-el-text">{{ vendor.name }}</span>
-                <el-tag size="small" effect="plain" type="info">{{ vendor.vendor }}</el-tag>
+        <div class="dpv-vendors">
+          <button
+            type="button"
+            class="dpv-vendor"
+            :class="{ 'is-active': !credentialFilter }"
+            @click="clearVendorFilter"
+          >
+            <span class="dpv-vendor__tile is-all"><ReIcon name="Grid" :size="14" /></span>
+            <span class="dpv-vendor__body">
+              <span class="dpv-vendor__name">全部厂商</span>
+              <span class="dpv-vendor__meta">{{ vendors.length }} 家 · {{ credentials.length }} 套凭据</span>
+            </span>
+          </button>
+
+          <button
+            v-for="vendor in vendors"
+            :key="vendor.vendor"
+            type="button"
+            class="dpv-vendor"
+            :class="{ 'is-active': credentialFilter === vendor.vendor }"
+            @click="filterByVendor(vendor.vendor)"
+          >
+            <span class="dpv-vendor__tile">{{ monogram(vendor.name) }}</span>
+            <span class="dpv-vendor__body">
+              <span class="dpv-vendor__name">{{ vendor.name }}</span>
+              <span class="dpv-vendor__meta">{{ vendor.vendor }} · {{ credentialsOf(vendor.vendor).length }} 套</span>
+            </span>
+            <span class="dpv-vendor__caps" :title="capabilityTitle(vendor)">
+              <i v-for="cap in CAP_ORDER" :key="cap" :class="{ 'is-on': vendor.capabilities.includes(cap) }" />
+            </span>
+          </button>
+
+          <p v-if="!vendors.length" class="dpv-vendors__empty">
+            未发现已注册的设备厂商，请确认后端 device 模块已启用。
+          </p>
+        </div>
+
+        <footer class="dpv-rail__foot">
+          <span class="dpv-live" />{{ enabledCount }} 启用
+          <span class="dpv-sep" />
+          {{ defaultCount }} 默认
+          <span class="dpv-grow" />
+          <ReButton
+            v-if="canSyncOrg"
+            icon="Connection"
+            layout="square"
+            size="small"
+            :tip="activeVendor ? `同步「${activeVendor.name}」组织` : '同步全部厂商组织'"
+            :loading="orgSyncing"
+            @click="syncOrg"
+          />
+        </footer>
+      </aside>
+
+      <!-- ==================== 右：凭据表 + 底部条 ==================== -->
+      <section class="dpv-work">
+        <header class="dpv-work__head">
+          <span class="dpv-bar" />
+          <span class="dpv-work__title">接入凭据</span>
+          <span class="dpv-count">{{ filteredCredentials.length }}</span>
+          <button v-if="credentialFilter" type="button" class="dpv-filter" @click="clearVendorFilter">
+            {{ vendorLabel(credentialFilter) }}
+            <span class="dpv-filter__x">×</span>
+          </button>
+          <span class="dpv-grow" />
+          <ReButton icon="Refresh" layout="square" size="small" tip="刷新" :loading="loading" @click="refreshAll" />
+          <ReButton icon="Monitor" layout="square" size="small" tip="设备台账" @click="goLedger" />
+          <ReButton
+            icon="Refresh"
+            size="small"
+            :show-text="true"
+            :loading="syncing"
+            :disabled="!vendors.length"
+            @click="syncDevices"
+          >
+            同步设备
+          </ReButton>
+          <ReButton
+            icon="Plus"
+            size="small"
+            type="primary"
+            :show-text="true"
+            :disabled="!vendors.length"
+            @click="openCreate()"
+          >
+            新增凭据
+          </ReButton>
+        </header>
+
+        <div class="dpv-table-wrap">
+          <ReTable
+            class="dpv-table"
+            table-id="device-provider-credentials"
+            :data="tableRows"
+            :columns="columns"
+            :loading="loading"
+            :pagination="false"
+            :toolbar="false"
+            row-key="deviceCredentialId"
+            :layout-table="{ fill: true }"
+            :settings="{ border: false, highlightCurrentRow: true }"
+            stripe
+            @row-click="onRowClick"
+          >
+            <template #col-credential="{ row }">
+              <div class="dpv-cred">
+                <div class="dpv-cred__top">
+                  <span class="dpv-cred__name" :title="String(row.deviceCredentialName || '')">
+                    {{ row.deviceCredentialName }}
+                  </span>
+                  <ReTag v-if="row.deviceCredentialIsDefault" size="small" effect="plain" type="warning">默认</ReTag>
+                </div>
+                <div class="dpv-cred__remark">{{ row.deviceCredentialRemark || '未填写备注' }}</div>
               </div>
-              <p class="text-xs text-el-text-secondary mt-1 line-clamp-2">
-                {{ vendor.description || '暂无厂商说明' }}
-              </p>
-            </div>
-            <el-tag size="small" type="success" effect="plain">
-              {{ credentialsOf(vendor.vendor).length }} 套凭据
-            </el-tag>
-          </div>
+            </template>
 
-          <div class="flex flex-wrap items-center gap-1 mt-3">
-            <el-tag
-              v-for="cap in vendor.capabilities"
-              :key="cap"
-              size="small"
-              effect="plain"
-              type="primary"
-            >
-              {{ capabilityLabel(cap) }}
-            </el-tag>
-          </div>
+            <template #col-vendor="{ row }">
+              <div class="dpv-cell">
+                <span class="dpv-cell__main">{{ vendorLabel(String(row.deviceCredentialVendor || '')) }}</span>
+                <span class="dpv-cell__sub">
+                  {{ platformLabel(String(row.deviceCredentialVendor || ''), row.deviceCredentialPlatformType as string | undefined) }}
+                </span>
+              </div>
+            </template>
 
-          <div class="flex items-center justify-between mt-3 pt-3 border-t border-el-border-lighter">
-            <span class="text-xs text-el-text-secondary">
-              {{ vendor.platforms.length }} 个平台 · 默认离线阈值 {{ vendor.defaultOfflineThreshold }} 秒
-            </span>
-            <div class="flex items-center gap-1">
-              <el-button
-                v-if="vendor.capabilities.includes('ORG')"
-                link
-                size="small"
-                :loading="orgSyncing"
-                @click.stop="syncOrg"
-              >
-                同步组织
-              </el-button>
-              <el-button link type="primary" size="small" @click.stop="openCreate(vendor.vendor)">
-                新增凭据
-              </el-button>
-            </div>
-          </div>
+            <template #col-ak="{ row }">
+              <span class="dpv-mono" :title="String(row.deviceCredentialAppKey || '')">
+                {{ row.deviceCredentialAppKey || '—' }}
+              </span>
+            </template>
+
+            <template #col-status="{ row }">
+              <ReTag :type="row.deviceCredentialEnabled ? 'success' : 'info'" size="small" effect="plain">
+                {{ row.deviceCredentialEnabled ? '启用' : '停用' }}
+              </ReTag>
+            </template>
+
+            <template #col-updated="{ row }">
+              <span class="dpv-time">
+                {{ formatDateTime(row.deviceCredentialUpdatedAt as string | undefined) }}
+              </span>
+            </template>
+
+            <template #col-actions="{ row }">
+              <span class="dpv-ops" @click.stop>
+                <ReButton
+                  link
+                  type="primary"
+                  size="small"
+                  :loading="testingId === row.deviceCredentialId"
+                  @click="testCredential(asCredential(row))"
+                >
+                  测试
+                </ReButton>
+                <ReButton link type="primary" size="small" @click="openEdit(asCredential(row))">编辑</ReButton>
+                <ReButton link type="danger" size="small" @click="removeCredential(asCredential(row))">删除</ReButton>
+              </span>
+            </template>
+
+            <template #empty>
+              <div class="dpv-ghost">
+                <span class="dpv-ghost__icon"><ReIcon name="Connection" :size="20" /></span>
+                <span class="dpv-ghost__title">
+                  {{ credentialFilter ? '该厂商还没有接入凭据' : '还没有接入凭据' }}
+                </span>
+                <span class="dpv-ghost__text">
+                  {{
+                    credentialFilter
+                      ? '同一厂商可以配置多套账号，按区域分别同步设备与组织。'
+                      : '登记厂商平台的 AK/SK 后，就能同步设备、组织与通道。'
+                  }}
+                </span>
+                <ReButton
+                  icon="Plus"
+                  size="small"
+                  type="primary"
+                  :show-text="true"
+                  :disabled="!vendors.length"
+                  @click="openCreate(credentialFilter || undefined)"
+                >
+                  新增凭据
+                </ReButton>
+              </div>
+            </template>
+          </ReTable>
         </div>
-      </div>
-      <el-empty v-else description="未发现已注册的设备厂商，请确认后端 device 模块已启用。" :image-size="80" />
-    </section>
 
-    <!-- 凭据列表 -->
-    <section class="flex-1 min-h-0 mx-5 mt-4 mb-4 flex flex-col">
-      <div class="flex items-center justify-between mb-2">
-        <div class="text-sm font-medium text-el-text">接入凭据</div>
-        <div class="flex items-center gap-2">
-          <el-select v-model="credentialFilter" clearable placeholder="全部厂商" class="w-40" @change="fetchCredentials">
-            <el-option
-              v-for="vendor in vendors"
-              :key="vendor.vendor"
-              :label="vendor.name"
-              :value="vendor.vendor"
-            />
-          </el-select>
-        </div>
-      </div>
-
-      <el-table v-loading="loading" :data="credentials" row-key="deviceCredentialId" height="100%" stripe>
-        <el-table-column label="凭据名称" min-width="170">
-          <template #default="{ row }">
-            <div class="flex items-center gap-2">
-              <span class="font-medium text-el-text">{{ row.deviceCredentialName }}</span>
-              <el-tag v-if="row.deviceCredentialIsDefault" size="small" type="warning" effect="plain">默认</el-tag>
-            </div>
-            <div class="text-xs text-el-text-secondary mt-0.5">{{ row.deviceCredentialRemark || '—' }}</div>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="厂商 / 平台" min-width="170">
-          <template #default="{ row }">
-            <div class="text-sm text-el-text">{{ vendorLabel(row.deviceCredentialVendor) }}</div>
-            <div class="text-xs text-el-text-secondary mt-0.5">
-              {{ platformLabel(row.deviceCredentialVendor, row.deviceCredentialPlatformType) }}
-            </div>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="AK" min-width="170">
-          <template #default="{ row }">
-            <span class="font-mono text-xs text-el-text">{{ row.deviceCredentialAppKey || '—' }}</span>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="SK" min-width="150">
-          <template #default="{ row }">
-            <span class="font-mono text-xs text-el-text-secondary">
-              {{ secretText(row) }}
+        <footer class="dpv-foot">
+          <template v-if="activeCredential">
+            <span class="dpv-foot__name" :title="activeCredential.deviceCredentialName">
+              {{ activeCredential.deviceCredentialName }}
             </span>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="Base URL" min-width="180">
-          <template #default="{ row }">
-            <span class="text-xs text-el-text-secondary break-all">{{ row.deviceCredentialBaseUrl || '默认' }}</span>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="离线阈值" width="100">
-          <template #default="{ row }">
-            <span class="text-xs text-el-text">{{ row.deviceCredentialOfflineThreshold ?? '—' }} 秒</span>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="状态" width="90">
-          <template #default="{ row }">
-            <el-tag :type="row.deviceCredentialEnabled ? 'success' : 'info'" size="small" effect="plain">
-              {{ row.deviceCredentialEnabled ? '启用' : '停用' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="更新时间" width="150">
-          <template #default="{ row }">
-            <span class="text-xs text-el-text-secondary">{{ formatDateTime(row.deviceCredentialUpdatedAt) }}</span>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="操作" width="190" fixed="right">
-          <template #default="{ row }">
-            <el-button
-              link
-              type="primary"
+            <ReTag v-if="activeCredential.deviceCredentialIsDefault" size="small" effect="plain" type="warning">默认</ReTag>
+            <ReTag :type="activeCredential.deviceCredentialEnabled ? 'success' : 'info'" size="small" effect="plain">
+              {{ activeCredential.deviceCredentialEnabled ? '启用' : '停用' }}
+            </ReTag>
+            <span class="dpv-foot__sep" />
+            <span class="dpv-foot__item">
+              <span class="dpv-foot__k">AK</span>
+              <span class="dpv-mono">{{ activeCredential.deviceCredentialAppKey || '—' }}</span>
+            </span>
+            <span class="dpv-foot__item">
+              <span class="dpv-foot__k">SK</span>
+              <span class="dpv-mono">{{ secretText(activeCredential) }}</span>
+            </span>
+            <span class="dpv-foot__item dpv-foot__item--url">
+              <span class="dpv-foot__k">Base URL</span>
+              <span class="dpv-mono">{{ activeCredential.deviceCredentialBaseUrl || '平台默认' }}</span>
+            </span>
+            <span class="dpv-foot__item">
+              <span class="dpv-foot__k">阈值</span>
+              <span>{{ activeCredential.deviceCredentialOfflineThreshold ?? '—' }} 秒</span>
+            </span>
+            <span class="dpv-grow" />
+            <ReButton
+              icon="Connection"
               size="small"
-              :loading="testingId === row.deviceCredentialId"
-              @click="testCredential(row)"
+              :show-text="true"
+              :loading="testingId === activeCredential.deviceCredentialId"
+              @click="testCredential(activeCredential)"
             >
               测试连接
-            </el-button>
-            <el-button link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
-            <el-button link type="danger" size="small" @click="removeCredential(row)">删除</el-button>
+            </ReButton>
+            <ReButton size="small" @click="openEdit(activeCredential)">编辑</ReButton>
           </template>
-        </el-table-column>
 
-        <template #empty>
-          <div class="py-10 text-sm text-el-text-secondary">
-            暂无接入凭据。选择厂商后点击「新增凭据」登记 AK/SK。
-          </div>
-        </template>
-      </el-table>
-    </section>
+          <template v-else>
+            <span class="dpv-foot__name">共 {{ credentials.length }} 套凭据</span>
+            <span class="dpv-foot__sep" />
+            <span class="dpv-foot__item">启用 {{ enabledCount }}</span>
+            <span class="dpv-foot__item">默认 {{ defaultCount }}</span>
+            <span class="dpv-foot__item">厂商 {{ vendors.length }}</span>
+            <span class="dpv-grow" />
+            <span class="dpv-foot__hint">点选一条凭据，在这里查看 AK / SK / Base URL 与阈值</span>
+          </template>
+        </footer>
+      </section>
+    </div>
 
-    <!-- 凭据表单 -->
+    <!-- ==================== 凭据表单 ==================== -->
     <ReDialog
       v-model="dialogVisible"
       :title="editingCredentialId ? '编辑凭据' : '新增凭据'"
-      width="620px"
+      width="640px"
       destroy-on-close
     >
-      <el-form :model="form" label-width="120px" label-position="right">
-        <el-form-item label="厂商" required>
-          <el-select v-model="form.deviceCredentialVendor" class="w-full" @change="onVendorChange">
-            <el-option
-              v-for="vendor in vendors"
-              :key="vendor.vendor"
-              :label="vendor.name"
-              :value="vendor.vendor"
-            />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="平台">
-          <el-select v-model="form.deviceCredentialPlatformType" class="w-full" @change="onPlatformChange">
-            <el-option
-              v-for="platform in currentPlatforms"
-              :key="platform.code"
-              :label="platform.name"
-              :value="platform.code"
-            />
-          </el-select>
-        </el-form-item>
+      <el-form :model="form" label-position="top" class="dpv-form">
+        <div class="dpv-form__grid">
+          <el-form-item label="厂商" required>
+            <el-select v-model="form.deviceCredentialVendor" class="dpv-w" placeholder="选择厂商" @change="onVendorChange">
+              <el-option
+                v-for="vendor in vendors"
+                :key="vendor.vendor"
+                :label="vendor.name"
+                :value="vendor.vendor"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="平台">
+            <el-select
+              v-model="form.deviceCredentialPlatformType"
+              class="dpv-w"
+              placeholder="SDK 直连"
+              @change="onPlatformChange"
+            >
+              <el-option
+                v-for="platform in currentPlatforms"
+                :key="platform.code"
+                :label="platform.name"
+                :value="platform.code"
+              />
+            </el-select>
+          </el-form-item>
+        </div>
 
         <el-form-item label="凭据名称" required>
           <el-input v-model="form.deviceCredentialName" maxlength="64" placeholder="例如：华东区域主账号" @keyup.enter="submit" />
         </el-form-item>
 
-        <el-form-item label="AppKey（AK）" required>
-          <el-input v-model="form.deviceCredentialAppKey" maxlength="128" placeholder="平台应用的 AppKey" @keyup.enter="submit" />
-        </el-form-item>
-
-        <el-form-item label="AppSecret（SK）" :required="!editingCredentialId">
-          <el-input
-            v-model="form.deviceCredentialAppSecret"
-            type="password"
-            show-password
-            maxlength="256"
-            :placeholder="editingCredentialId ? '已配置，留空表示不修改' : '平台应用的 AppSecret'"
-          />
-          <div class="text-xs text-el-text-secondary mt-1">
-            凭证由后端加密存储，接口不再回传明文。
-          </div>
-        </el-form-item>
+        <div class="dpv-form__grid">
+          <el-form-item label="AppKey（AK）" required>
+            <el-input v-model="form.deviceCredentialAppKey" maxlength="128" placeholder="平台应用的 AppKey" @keyup.enter="submit" />
+          </el-form-item>
+          <el-form-item label="AppSecret（SK）" :required="!editingCredentialId">
+            <el-input
+              v-model="form.deviceCredentialAppSecret"
+              type="password"
+              show-password
+              maxlength="256"
+              :placeholder="editingCredentialId ? '已配置，留空表示不修改' : '平台应用的 AppSecret'"
+            />
+          </el-form-item>
+        </div>
+        <p class="dpv-form__hint">凭证由后端加密存储，接口不回传明文；编辑时留空即保持原值。</p>
 
         <el-form-item label="Base URL">
           <el-input v-model="form.deviceCredentialBaseUrl" maxlength="255" placeholder="留空使用平台默认地址" />
         </el-form-item>
 
-        <el-form-item label="离线阈值">
-          <el-input-number v-model="form.deviceCredentialOfflineThreshold" :min="5" :max="86400" :step="5" class="w-full" />
-          <div class="text-xs text-el-text-secondary mt-1">超过该秒数未收到心跳判定为离线。</div>
-        </el-form-item>
-
-        <el-form-item label="选项">
-          <div class="flex items-center gap-4">
-            <el-checkbox v-model="form.deviceCredentialIsDefault">设为厂商默认</el-checkbox>
-            <el-checkbox v-model="form.deviceCredentialEnabled">启用</el-checkbox>
-          </div>
-        </el-form-item>
+        <div class="dpv-form__grid">
+          <el-form-item label="离线阈值（秒，超时判离线）">
+            <el-input-number
+              v-model="form.deviceCredentialOfflineThreshold"
+              :min="5"
+              :max="86400"
+              :step="5"
+              class="dpv-w"
+            />
+          </el-form-item>
+          <el-form-item label="选项">
+            <div class="dpv-checks">
+              <el-checkbox v-model="form.deviceCredentialIsDefault">设为厂商默认</el-checkbox>
+              <el-checkbox v-model="form.deviceCredentialEnabled">启用</el-checkbox>
+            </div>
+          </el-form-item>
+        </div>
 
         <el-form-item label="备注">
           <el-input
@@ -259,25 +344,48 @@
             :rows="2"
             maxlength="255"
             show-word-limit
+            placeholder="选填，例如使用范围"
           />
         </el-form-item>
       </el-form>
 
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="submit">保存</el-button>
+        <ReButton @click="dialogVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="submitting" @click="submit">保存</ReButton>
       </template>
     </ReDialog>
   </div>
 </template>
 
 <script setup lang="ts">
+/**
+ * 提供商配置（Deck 布局，对齐设备资产页）
+ *
+ * 左侧厂商导轨按厂商归档凭据，右侧 ReTable 列出接入凭据；底部常驻条展示
+ * 选中凭据的 AK / SK / Base URL / 阈值，并就近提供「测试连接 / 编辑」。
+ *
+ * 交互约定：
+ *   - 点厂商只切换过滤（点「全部厂商」清空），不重新请求；
+ *   - 点凭据行只选中，底部条跟随；每行仍有测试 / 编辑 / 删除；
+ *   - 厂商能力用 8 点阵表示（设备 / 通道 / 视频 / 云台 / 事件 / 门禁 / 组织 / 停车），
+ *     hover 有完整清单；「同步组织」只在当前厂商（或任一厂商）支持 ORG 时出现。
+ *
+ * 数据仍是一次性全量拉取 + 前端过滤：厂商数、凭据数、启用 / 默认计数在过滤态下
+ * 也必须稳定，交给后端过滤会让左栏统计随筛选跳变。
+ *
+ * @author CH
+ * @since 4.0.0.42
+ */
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { message } from '@repo/core'
+import ReButton from '@repo/ui/re-button'
 import ReDialog from '@repo/ui/re-dialog'
-import { Monitor, Plus, Refresh } from '@element-plus/icons-vue'
+import ReIcon from '@repo/ui/re-icon'
+import ReTable from '@repo/ui/re-table'
+import type { ReTableColumn } from '@repo/ui/re-table'
+import ReTag from '@repo/ui/re-tag'
 
 import { deviceApi } from '@pages/device/src/api/deviceApi'
 import { formatDateTime } from '@pages/device/src/utils/deviceFormat'
@@ -289,7 +397,20 @@ import type {
 
 const router = useRouter()
 
+/** 能力固定顺序：点阵的列位与 tooltip 文案都按它来 */
+const CAP_ORDER: DeviceCapability[] = [
+  'DEVICE',
+  'CHANNEL',
+  'MEDIA',
+  'PTZ',
+  'EVENT',
+  'ACCESS',
+  'ORG',
+  'PARKING'
+]
+
 const vendors = ref<DeviceVendorDescriptor[]>([])
+/** 全量凭据（不再带 vendor 查参，过滤在前端做，统计才稳定） */
 const credentials = ref<ProviderCredential[]>([])
 const credentialFilter = ref('')
 const loading = ref(false)
@@ -300,6 +421,9 @@ const submitting = ref(false)
 const syncing = ref(false)
 const testingId = ref('')
 const editingCredentialId = ref('')
+
+/** 底部条跟随的凭据 */
+const activeCredentialId = ref('')
 
 const form = reactive({
   deviceCredentialVendor: '',
@@ -319,16 +443,72 @@ const currentVendor = computed(() =>
 )
 const currentPlatforms = computed(() => currentVendor.value?.platforms || [])
 
-watch(
-  () => form.deviceCredentialPlatformType,
-  (code) => {
-    const platform = currentPlatforms.value.find((item) => item.code === code)
-    if (platform?.defaultBaseUrl && !form.deviceCredentialBaseUrl) {
-      form.deviceCredentialBaseUrl = platform.defaultBaseUrl
-    }
-  }
+/** 当前过滤的厂商（「全部」时为 null） */
+const activeVendor = computed(() =>
+  vendors.value.find((item) => item.vendor === credentialFilter.value) || null
 )
 
+/** 过滤后的凭据（列表与底部条取值的唯一来源） */
+const filteredCredentials = computed<ProviderCredential[]>(() => {
+  if (!credentialFilter.value) return credentials.value
+  return credentials.value.filter((item) => item.deviceCredentialVendor === credentialFilter.value)
+})
+
+const activeCredential = computed<ProviderCredential | null>(
+  () => credentials.value.find((item) => item.deviceCredentialId === activeCredentialId.value) || null
+)
+
+const enabledCount = computed(() => credentials.value.filter((item) => item.deviceCredentialEnabled !== false).length)
+const defaultCount = computed(() => credentials.value.filter((item) => item.deviceCredentialIsDefault).length)
+
+/** 当前厂商支持 ORG 才给「同步组织」；「全部」时任一厂商支持即可 */
+const canSyncOrg = computed(() =>
+  activeVendor.value
+    ? activeVendor.value.capabilities.includes('ORG')
+    : vendors.value.some((item) => item.capabilities.includes('ORG'))
+)
+
+/* ==================== 凭据表（ReTable） ==================== */
+/** ReTable 只收 Record 数组，真实结构是 ProviderCredential */
+const tableRows = computed<Array<Record<string, unknown>>>(
+  () => filteredCredentials.value as unknown as Array<Record<string, unknown>>
+)
+
+const columns: ReTableColumn[] = [
+  { prop: 'deviceCredentialName', label: '凭据名称', slot: 'credential', minWidth: 230 },
+  { prop: 'deviceCredentialVendor', label: '厂商 / 平台', slot: 'vendor', minWidth: 190 },
+  { prop: 'deviceCredentialAppKey', label: 'AK', slot: 'ak', minWidth: 160 },
+  {
+    prop: 'deviceCredentialOfflineThreshold',
+    label: '阈值',
+    width: 84,
+    align: 'center',
+    formatter: (row) =>
+      row.deviceCredentialOfflineThreshold == null ? '—' : `${row.deviceCredentialOfflineThreshold} 秒`
+  },
+  { prop: 'deviceCredentialEnabled', label: '状态', slot: 'status', width: 84 },
+  { prop: 'deviceCredentialUpdatedAt', label: '更新时间', slot: 'updated', minWidth: 140 },
+  { prop: 'deviceCredentialActions', label: '操作', slot: 'actions', width: 158, fixed: 'right' }
+]
+
+function asCredential(row: Record<string, unknown>): ProviderCredential {
+  return row as unknown as ProviderCredential
+}
+
+function onRowClick(row: Record<string, unknown>): void {
+  activeCredentialId.value = String(row.deviceCredentialId || '')
+}
+
+/** 过滤变化 / 刷新后把选中态落回列表里的第一条，避免底部条指向不存在的行 */
+function syncActiveCredential(): void {
+  const list = filteredCredentials.value
+  if (list.some((item) => item.deviceCredentialId === activeCredentialId.value)) return
+  activeCredentialId.value = list[0]?.deviceCredentialId || ''
+}
+
+watch(credentialFilter, syncActiveCredential)
+
+/* ==================== 展示辅助 ==================== */
 function capabilityLabel(cap: DeviceCapability): string {
   const labels: Record<DeviceCapability, string> = {
     DEVICE: '设备',
@@ -341,6 +521,19 @@ function capabilityLabel(cap: DeviceCapability): string {
     PARKING: '停车'
   }
   return labels[cap] || cap
+}
+
+/** 厂商首字（中文取首字，英文取首字母） */
+function monogram(name?: string): string {
+  const text = (name || '').trim()
+  return text ? text.slice(0, 1) : '?'
+}
+
+/** 8 点阵的悬浮清单：支持 / 不支持都写清楚，避免只靠颜色猜 */
+function capabilityTitle(vendor: DeviceVendorDescriptor): string {
+  return CAP_ORDER.map((cap) => `${capabilityLabel(cap)}${vendor.capabilities.includes(cap) ? ' ✓' : ' ✗'}`).join(
+    ' · '
+  )
 }
 
 function vendorLabel(vendor?: string): string {
@@ -363,11 +556,16 @@ function secretText(row: ProviderCredential): string {
   return row.deviceCredentialAppSecretConfigured ? '已配置' : '未配置'
 }
 
-function filterByVendor(vendor: string) {
+/* ==================== 过滤 ==================== */
+function filterByVendor(vendor: string): void {
   credentialFilter.value = credentialFilter.value === vendor ? '' : vendor
-  fetchCredentials()
 }
 
+function clearVendorFilter(): void {
+  credentialFilter.value = ''
+}
+
+/* ==================== 数据 ==================== */
 async function fetchVendors() {
   try {
     vendors.value = (await deviceApi.listVendors()) || []
@@ -380,9 +578,11 @@ async function fetchVendors() {
 async function fetchCredentials() {
   loading.value = true
   try {
-    credentials.value = (await deviceApi.listCredentials(credentialFilter.value || undefined)) || []
+    credentials.value = (await deviceApi.listCredentials()) || []
+    syncActiveCredential()
   } catch (err) {
     credentials.value = []
+    activeCredentialId.value = ''
     message.error('加载接入凭据失败：' + errorText(err))
   } finally {
     loading.value = false
@@ -578,30 +778,503 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.provider-page {
-  background: var(--el-bg-color);
+/* ============================================================
+   提供商配置（Deck 布局）
+   左：厂商导轨（含「全部厂商」）；右：凭据表 + 底部常驻条。
+   吃满父容器高度，只有导轨与表格各自滚动；外层不再叠卡片/内边距，
+   间距由宿主 .main 与本页 gap 提供。
+   ============================================================ */
+.dpv {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 10px 0 12px;
+  box-sizing: border-box;
+  color: var(--el-text-color-primary);
 }
-.vendor-card {
-  padding: 14px 16px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 14px;
-  background: var(--el-bg-color-overlay);
-  cursor: pointer;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+
+.dpv-body {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 12px;
+  min-height: 0;
 }
-.vendor-card:hover {
-  border-color: var(--el-color-primary-light-5);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
-  transform: translateY(-1px);
-}
-.vendor-card.is-active {
-  border-color: var(--el-color-primary);
-  box-shadow: 0 0 0 3px var(--el-color-primary-light-9);
-}
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+
+/* ============================================================
+   左侧：厂商导轨
+   ============================================================ */
+.dpv-rail {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: 268px;
+  min-height: 0;
   overflow: hidden;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+}
+
+.dpv-rail__head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 12px 6px;
+}
+
+.dpv-bar {
+  width: 4px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--el-color-primary);
+  flex: none;
+}
+
+.dpv-rail__title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.dpv-count {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--el-text-color-secondary);
+  font-family: var(--el-font-family-mono, ui-monospace, monospace);
+}
+
+.dpv-grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.dpv-rail__desc {
+  flex: none;
+  margin: 0;
+  padding: 0 12px 9px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.dpv-vendors {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.dpv-vendor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.dpv-vendor + .dpv-vendor {
+  margin-top: 2px;
+}
+
+.dpv-vendor:hover {
+  background: var(--el-fill-color-light);
+}
+
+.dpv-vendor.is-active {
+  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+}
+
+.dpv-vendor__tile {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  color: var(--el-color-primary);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.dpv-vendor__tile.is-all {
+  background: var(--el-fill-color);
+  color: var(--el-text-color-secondary);
+}
+
+.dpv-vendor.is-active .dpv-vendor__tile {
+  background: var(--el-color-primary);
+  color: var(--el-color-white);
+}
+
+.dpv-vendor__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.dpv-vendor__name {
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dpv-vendor.is-active .dpv-vendor__name {
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+
+.dpv-vendor__meta {
+  font-size: 10.5px;
+  color: var(--el-text-color-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 能力点阵：8 格，亮 = 支持；hover 有完整清单 */
+.dpv-vendor__caps {
+  display: grid;
+  flex: none;
+  grid-template-columns: repeat(4, 5px);
+  gap: 2px;
+}
+
+.dpv-vendor__caps i {
+  width: 5px;
+  height: 5px;
+  border-radius: 2px;
+  background: var(--el-border-color);
+}
+
+.dpv-vendor__caps i.is-on {
+  background: var(--el-color-primary);
+}
+
+.dpv-vendor.is-active .dpv-vendor__caps i {
+  background: color-mix(in srgb, var(--el-color-primary) 22%, transparent);
+}
+
+.dpv-vendor.is-active .dpv-vendor__caps i.is-on {
+  background: var(--el-color-primary);
+}
+
+.dpv-vendors__empty {
+  margin: 0;
+  padding: 22px 12px;
+  font-size: 12px;
+  line-height: 1.7;
+  text-align: center;
+  color: var(--el-text-color-secondary);
+}
+
+.dpv-rail__foot {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px 6px 12px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+}
+
+.dpv-live {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--el-color-success);
+}
+
+.dpv-sep {
+  width: 1px;
+  height: 10px;
+  background: var(--el-border-color);
+}
+
+/* ============================================================
+   右侧：凭据表 + 底部常驻条
+   ============================================================ */
+.dpv-work {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+}
+
+.dpv-work__head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.dpv-work__title {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dpv-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 21px;
+  padding: 0 7px;
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  color: var(--el-color-primary);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.dpv-filter__x {
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.7;
+}
+
+.dpv-table-wrap {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ReTable 自带卡片外壳与内边距，这里由外层卡片提供壳，故把它的壳抹平，
+   避免「卡片套卡片 / 双层 16px 内距」 */
+.dpv-table {
+  flex: 1 1 0;
+  min-height: 0;
+  --rt-padding: 0;
+  --rt-bg: transparent;
+  border: none;
+  border-radius: 0;
+}
+
+.dpv-table :deep(.re-table__main) {
+  padding: 0;
+}
+
+.dpv-cred__top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dpv-cred__name {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dpv-cred__remark {
+  margin-top: 1px;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dpv-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.dpv-cell__main {
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dpv-cell__sub {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dpv-mono {
+  font-family: var(--el-font-family-mono, ui-monospace, monospace);
+  font-size: 11.5px;
+  color: var(--el-text-color-regular);
+}
+
+.dpv-time {
+  font-size: 11.5px;
+  color: var(--el-text-color-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.dpv-ops {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* 空态：与门禁记录的 ghost 卡同一套（虚线 + 浅底 + 图标块） */
+.dpv-ghost {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  margin: 14px;
+  padding: 26px 16px;
+  border: 1px dashed var(--el-border-color);
+  border-radius: var(--el-radius-xl, 16px);
+  background: color-mix(in srgb, var(--el-text-color-primary) 2%, transparent);
+  text-align: center;
+}
+
+.dpv-ghost__icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  color: var(--el-text-color-placeholder);
+  background: color-mix(in srgb, var(--el-text-color-primary) 6%, transparent);
+}
+
+.dpv-ghost__title {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.dpv-ghost__text {
+  max-width: 420px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--el-text-color-secondary);
+}
+
+/* ============================================================
+   底部常驻条
+   ============================================================ */
+.dpv-foot {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
+  padding: 6px 12px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  background: var(--el-fill-color-lighter, #fafafa);
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  overflow: hidden;
+}
+
+.dpv-foot__name {
+  font-weight: 600;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dpv-foot__sep {
+  flex: none;
+  width: 1px;
+  height: 12px;
+  background: var(--el-border-color);
+}
+
+.dpv-foot__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.dpv-foot__item--url {
+  max-width: 260px;
+  overflow: hidden;
+}
+
+.dpv-foot__item--url .dpv-mono {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dpv-foot__k {
+  font-size: 10.5px;
+  color: var(--el-text-color-secondary);
+}
+
+.dpv-foot__hint {
+  font-size: 11.5px;
+  color: var(--el-text-color-secondary);
+}
+
+/* ============================================================
+   表单
+   ============================================================ */
+.dpv-form__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 14px;
+}
+
+.dpv-w {
+  width: 100%;
+}
+
+.dpv-form__hint {
+  margin: -6px 0 10px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+
+.dpv-checks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  min-height: 32px;
+}
+
+@media (max-width: 1100px) {
+  .dpv-rail {
+    width: 232px;
+  }
+  .dpv-foot__item--url {
+    max-width: 160px;
+  }
 }
 </style>

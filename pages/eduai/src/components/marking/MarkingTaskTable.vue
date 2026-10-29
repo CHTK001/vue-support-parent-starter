@@ -70,7 +70,7 @@ const columns: ReTableColumn[] = [
   { prop: 'taskFinalScore', label: '老师总分', width: 90, slot: 'finalScore' },
   { prop: 'teacherFinished', label: '完成', width: 90, slot: 'teacherFinished' },
   { prop: 'markingTaskStartTime', label: '创建时间', minWidth: 150 },
-  { prop: 'taskActions', label: '操作', width: 104, slot: 'actions' },
+  { prop: 'taskActions', label: '操作', width: 114, slot: 'actions' },
 ];
 
 const modeLabel = (task: TeacherMarkingTask) =>

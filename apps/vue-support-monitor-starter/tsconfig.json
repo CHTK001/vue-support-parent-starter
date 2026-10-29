@@ -11,6 +11,8 @@
       // 若这里的目标已含 src，会叠加成 src/src/... 而全部解析失败（TS2307）。
       "@pages/server/*": ["../../pages/server/*"],
       "@pages/server": ["../../pages/server/src/index.ts"],
+      "@pages/docker/*": ["../../pages/docker/*"],
+      "@pages/docker": ["../../pages/docker/src/index.ts"],
       "@pages/monitor/*": ["../../pages/monitor/*"],
       "@pages/monitor": ["../../pages/monitor/src/index.ts"],
       "@pages/filesystem/*": ["../../pages/filesystem/*"],
@@ -18,7 +20,10 @@
       "@pages/datasource/*": ["../../pages/datasource/*"],
       "@pages/datasource": ["../../pages/datasource/src/index.ts"],
       "@pages/device/*": ["../../pages/device/*"],
-      "@pages/device": ["../../pages/device/src/index.ts"]
+      "@pages/device": ["../../pages/device/src/index.ts"],
+      // ReMap 内部用（workspace 包，pages/device 已声明依赖；此处给 TS 提供解析，
+      // 与根 tsconfig 的 "@repo/re-map"、device-starter 同一口径）
+      "@repo/re-map": ["../../packages/ui/re-map"]
     }
   },
   "include": [
@@ -31,6 +36,7 @@
     "../../pages/hotsport/src/**/*.d.ts",
     "../../pages/filesystem/src/**/*.d.ts",
     "../../pages/datasource/src/**/*.d.ts",
+    "../../pages/docker/src/**/*.d.ts",
       "../../pages/device/src/**/*.d.ts"
   ]
 }

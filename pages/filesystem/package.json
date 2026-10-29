@@ -72,6 +72,7 @@
     "jszip": "^3.10.2",
     "leaflet": "catalog:",
     "libheif-js": "^1.23.5",
+    "mammoth": "^1.12.3",
     "occt-import-js": "^0.0.23",
     "rhino3dm": "^8.35.0",
     "sql.js": "^1.14.2",
@@ -79,7 +80,8 @@
     "utif": "^3.1.0",
     "video.js": "^8.24.1",
     "vue": "catalog:",
-    "web-ifc": "^0.0.78"
+    "web-ifc": "^0.0.78",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/leaflet": "^1.9.22",

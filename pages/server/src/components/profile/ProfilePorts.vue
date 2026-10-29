@@ -11,7 +11,7 @@
  * @author CH
  * @since 4.0.0.42
  */
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { numOf, portOpen, stateTone } from "../../utils/hostProfileUi";
 import ProfileSectionShell from "./ProfileSectionShell.vue";
 import type { StripItem } from "./types";
@@ -121,6 +121,27 @@ const strip = computed<StripItem[]>(() => {
     },
   ];
 });
+
+/** 视图模式：卡片 / 列表 */
+const viewMode = ref<"card" | "list">("list");
+
+/** 列表视图排序：默认按端口升序 */
+const listView = computed<PortView[]>(() => {
+  const items = [...view.value];
+  items.sort((a, b) => {
+    // 先按协议（TCP 在前），再按端口号
+    const pa = String(a.raw.protocol ?? "").toUpperCase();
+    const pb = String(b.raw.protocol ?? "").toUpperCase();
+    if (pa !== pb) {
+      const order = ["TCP", "TCP6", "UDP", "UDP6"];
+      const ai = order.indexOf(pa);
+      const bi = order.indexOf(pb);
+      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    }
+    return a.port - b.port;
+  });
+  return items;
+});
 </script>
 
 <template>
@@ -143,7 +164,18 @@ const strip = computed<StripItem[]>(() => {
     @page="(d: number) => emit('page', d)"
     @refresh="emit('refresh')"
   >
-    <div class="port-groups">
+    <template #tools>
+      <div class="port-view-toggle">
+        <button :class="['port-view-btn', { on: viewMode === 'card' }]" @click="viewMode = 'card'" title="卡片视图">
+          <ReIcon name="Grid" :size="14" />
+        </button>
+        <button :class="['port-view-btn', { on: viewMode === 'list' }]" @click="viewMode = 'list'" title="列表视图">
+          <ReIcon name="Menu" :size="14" />
+        </button>
+      </div>
+    </template>
+
+    <div v-if="viewMode === 'card'" class="port-groups">
       <section v-for="g in groups" :key="g.name" class="port-group">
         <header class="port-group-head">
           <span :class="['pf-pill', g.name.startsWith('TCP') ? 't-brand' : 't-warn']">{{ g.name }}</span>
@@ -172,16 +204,56 @@ const strip = computed<StripItem[]>(() => {
                 {{ p.exposed ? "对外" : "仅本机" }}
               </span>
               <span class="port-pid pf-mono pf-dim">PID {{ p.raw.pid ?? "—" }}</span>
-              <button
-                class="pf-btn is-bad port-kill"
-                :disabled="numOf(p.raw.pid) <= 0 || busyKey === `netproc-${p.raw.pid}-${p.port}`"
+              <ReButton
+                layout="square"
+                type="danger"
+                icon="Delete"
+                tip="结束"
                 :title="numOf(p.raw.pid) > 0 ? '' : '该端口无归属进程，无法结束'"
+                :disabled="numOf(p.raw.pid) <= 0 || busyKey === `netproc-${p.raw.pid}-${p.port}`"
                 @click="emit('close', p.raw)"
-              >{{ busyKey === `netproc-${p.raw.pid}-${p.port}` ? "…" : "结束" }}</button>
+              />
             </div>
           </div>
         </div>
       </section>
+    </div>
+
+    <!-- 列表视图：表格行 -->
+    <div v-else class="port-list">
+      <div class="port-list-head">
+        <span class="plh-proto">协议</span>
+        <span class="plh-port">端口</span>
+        <span class="plh-addr">地址</span>
+        <span class="plh-state">状态</span>
+        <span class="plh-proc">进程</span>
+        <span class="plh-pid">PID</span>
+        <span class="plh-scope">范围</span>
+        <span class="plh-action"></span>
+      </div>
+      <div
+        v-for="p in listView"
+        :key="`${p.raw.protocol}-${p.raw.local}-${p.port}`"
+        :class="['port-list-row', p.open === false ? 'is-closed' : '']"
+      >
+        <span class="plh-proto"><span :class="['pf-pill', p.raw.protocol?.toUpperCase().startsWith('TCP') ? 't-brand' : 't-warn']">{{ String(p.raw.protocol ?? 'OTHER').toUpperCase() }}</span></span>
+        <b class="plh-port pf-mono">{{ p.port }}</b>
+        <span class="plh-addr pf-mono pf-dim pf-ellipsis">{{ p.raw.local || "—" }}</span>
+        <span v-if="p.open !== null" :class="['pf-pill', p.open ? 't-ok' : 't-bad']">{{ p.open ? "监听" : "关闭" }}</span>
+        <span v-else class="pf-pill t-mute">未知</span>
+        <span class="plh-proc pf-mono pf-ellipsis" :title="String(p.raw.process ?? '')">{{ p.raw.process || "—" }}</span>
+        <span class="plh-pid pf-mono pf-dim">{{ p.raw.pid ?? "—" }}</span>
+        <span :class="['pf-pill', p.exposed ? 't-warn' : 't-mute']">{{ p.exposed ? "对外" : "仅本机" }}</span>
+        <ReButton
+          layout="square"
+          type="danger"
+          icon="Delete"
+          tip="结束"
+          :title="numOf(p.raw.pid) > 0 ? '' : '该端口无归属进程，无法结束'"
+          :disabled="numOf(p.raw.pid) <= 0 || busyKey === `netproc-${p.raw.pid}-${p.port}`"
+          @click="emit('close', p.raw)"
+        />
+      </div>
     </div>
   </ProfileSectionShell>
 </template>
@@ -258,7 +330,107 @@ const strip = computed<StripItem[]>(() => {
   min-width: 0;
   font-size: 10.5px;
 }
-.port-kill {
-  flex: none;
+
+/* 视图切换按钮 */
+.port-view-toggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 7px;
+  background: var(--el-fill-color-light, #f5f7fa);
+}
+.port-view-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--el-text-color-secondary, #5c6270);
+  cursor: pointer;
+  transition: background 0.16s, color 0.16s, box-shadow 0.16s;
+}
+.port-view-btn.on {
+  background: var(--el-bg-color, #fff);
+  color: var(--el-text-color-primary, #1f2430);
+  box-shadow: 0 1px 2px rgba(31, 36, 48, 0.1);
+}
+
+/* 列表视图 */
+.port-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.port-list-head {
+  display: grid;
+  grid-template-columns: 64px 60px 1fr 60px 120px 64px 60px 52px;
+  gap: 8px;
+  align-items: center;
+  padding: 5px 10px;
+  font-size: 10.5px;
+  color: var(--el-text-color-placeholder, #a8abb2);
+  background: var(--el-fill-color-light, #f5f7fa);
+  border-radius: 6px;
+}
+.port-list-row {
+  display: grid;
+  grid-template-columns: 64px 60px 1fr 60px 120px 64px 60px 52px;
+  gap: 8px;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  transition: background 0.14s;
+}
+.port-list-row:hover {
+  background: var(--el-color-primary-light-9, #f6f4ff);
+}
+.port-list-row.is-closed {
+  opacity: 0.62;
+}
+.plh-proto {
+  display: flex;
+}
+.plh-port {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary, #1f2430);
+}
+.plh-addr {
+  min-width: 0;
+  font-size: 11px;
+}
+.plh-proc {
+  min-width: 0;
+  font-size: 11.5px;
+  color: var(--el-text-color-regular, #4a5162);
+}
+.plh-pid {
+  font-size: 11px;
+  text-align: right;
+}
+.plh-action {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 720px) {
+  .port-list-head,
+  .port-list-row {
+    grid-template-columns: 50px 1fr 50px 50px;
+  }
+  .plh-addr,
+  .plh-proc,
+  .plh-pid,
+  .plh-scope {
+    display: none;
+  }
+  .plh-scope {
+    display: flex;
+  }
 }
 </style>

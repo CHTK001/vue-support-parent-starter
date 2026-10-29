@@ -4,6 +4,29 @@
       <!-- ==================== 左：图片舞台 ==================== -->
       <section class="reid-stage">
         <div class="reid-stage-inner">
+          <!--
+            分组条：分组是第一层隔离（每组一套轨迹库），观测与检索都只发生在当前分组内。
+            用 allow-create 允许直接敲一个新分组名 —— 分组本身没有「建库」这个动作，
+            第一次观测落进去即存在，强制先建库只会多一步无意义的操作。
+          -->
+          <div class="reid-group">
+            <el-icon class="reid-group-icon"><Collection /></el-icon>
+            <span class="reid-group-label">分组</span>
+            <el-select
+              v-model="group"
+              class="reid-group-select"
+              placeholder="选择或输入分组"
+              filterable
+              allow-create
+              default-first-option
+              :disabled="busy"
+              @change="onGroupChange"
+            >
+              <el-option v-for="g in groupOptions" :key="g" :label="g" :value="g" />
+            </el-select>
+            <span class="reid-group-hint">不同分组各有一套轨迹库，互不可见</span>
+          </div>
+
           <!-- 空态：引导上传 -->
           <div v-if="!previewUrl" class="reid-drop" @click="pickImage">
             <el-icon :size="46" class="reid-drop-icon"><Picture /></el-icon>
@@ -36,13 +59,17 @@
                 v-for="(f, i) in faces"
                 :key="i"
                 class="reid-box"
-                :class="{ 'is-new': !f.matched }"
+                :class="{
+                  'is-new': !f.matched,
+                  'is-face': f.matchType === 'FACE',
+                  'is-reid': f.matchType === 'REID',
+                }"
                 :x="f.x"
                 :y="f.y"
                 :width="f.width"
                 :height="f.height"
                 rx="18"
-              />
+              ><title>{{ faceTitle(f) }}</title></rect>
             </svg>
 
             <!-- 处理中遮罩 -->
@@ -58,6 +85,15 @@
               </div>
               <div class="reid-found-sub">
                 检出 {{ observeResult.faceCount }} 张脸 · 命中既有轨迹 {{ observeResult.matched }} · 新建轨迹 {{ observeResult.newTracks }}
+              </div>
+              <!-- 分流统计：清晰脸走识别、模糊脸走重识别，两条路一起跑 -->
+              <div class="reid-found-split">
+                <span class="reid-split-item is-face">
+                  <i class="reid-split-dot" />人脸识别 {{ observeResult.faceMatches ?? 0 }}
+                </span>
+                <span class="reid-split-item is-reid">
+                  <i class="reid-split-dot" />重识别 {{ observeResult.reidMatches ?? 0 }}
+                </span>
               </div>
             </div>
 
@@ -134,8 +170,24 @@
           >
             <div class="reid-card-head">
               <span class="reid-card-id">{{ c.trackId }}</span>
+              <!-- 分流类型标注：清晰脸走人脸识别（给出姓名），模糊脸走重识别（给出轨迹） -->
+              <el-tag
+                v-if="c.matchType"
+                :type="c.matchType === 'FACE' ? 'success' : 'info'"
+                size="small"
+                class="reid-card-type"
+              >
+                {{ c.matchType === "FACE" ? "人脸识别" : "重识别" }}
+              </el-tag>
               <el-tag v-if="c.crossCamera" type="warning" size="small">跨镜</el-tag>
+              <!-- 分组标注：卡片列表是按分组拉回来的，标出来用户才知道「这条属于哪一组」 -->
+              <el-tag v-if="c.group" size="small" effect="plain" class="reid-card-group">{{ c.group }}</el-tag>
             </div>
+            <!-- 认出的姓名（人脸识别命中时） -->
+            <p v-if="c.faceName" class="reid-card-name">
+              <el-icon><User /></el-icon>
+              <b>{{ c.faceName }}</b>
+            </p>
             <p class="reid-card-cams" :title="c.cameraIds.join(' → ')">{{ c.cameraIds.join(' → ') }}</p>
             <p class="reid-card-meta">
               <b class="reid-card-count">{{ c.observations }}</b> 次观测
@@ -160,7 +212,7 @@
           {{ mode === 'observe' ? '切换到以图搜人' : '切换到观测画面' }}
         </el-button>
         <p class="reid-panel-hint">
-          共 <b>{{ tracks.length }}</b> 条轨迹
+          分组 <b>{{ group }}</b> · 共 <b>{{ tracks.length }}</b> 条轨迹
           <span v-if="crossCount"> · 其中跨镜 <b>{{ crossCount }}</b> 条</span>
         </p>
 
@@ -199,10 +251,11 @@
 import { computed, onMounted, ref } from "vue";
 import { message } from "@repo/core";
 import { useRouter } from "vue-router";
-import { Aim, FolderOpened, Picture, Search, Setting, Warning } from "@element-plus/icons-vue";
+import { Aim, Collection, FolderOpened, Picture, Search, Setting, User, Warning } from "@element-plus/icons-vue";
 import ReLoader from "@repo/ui/re-loader";
 import { apiService } from "@/services/ApiService";
-import type { ReidHit, ReidObserveResult, ReidTrack } from "@/services/modules/reid.api";
+import { useLibraryGroups } from "@/composables/useLibraryGroups";
+import type { ReidFaceBox, ReidHit, ReidObserveResult, ReidTrack } from "@/services/modules/reid.api";
 
 /**
  * 人脸重识别页面。
@@ -256,6 +309,14 @@ const searchHits = ref<ReidHit[]>([]);
 /** 轨迹列表。 */
 const tracks = ref<ReidTrack[]>([]);
 
+/**
+ * 当前分组。
+ *
+ * <p>分组是第一层隔离：观测落库、轨迹列表、检索范围、清空都只作用于它。
+ * 默认 default 与后端「不带分组」的语义一致（历史数据也归属 default）。</p>
+ */
+const { group, groupOptions, loadGroups, rememberGroups } = useLibraryGroups("reid");
+
 /** 摄像头 / 来源帧 / 经纬度。 */
 const cameraId = ref("");
 const sourceId = ref("");
@@ -293,6 +354,11 @@ const cards = computed(() => {
       lat: h.track?.lat ?? null,
       lng: h.track?.lng ?? null,
       similarity: h.similarity as number | null,
+      // 分流类型与姓名：FACE = 人脸识别认出了是谁，REID = 模糊脸只知轨迹
+      matchType: h.matchType ?? null,
+      faceName: h.faceName ?? h.track?.faceName ?? null,
+      // 命中项可能不回传 group（跨分组检索时），回落到当前分组
+      group: h.track?.group ?? group.value,
     }));
   }
   const base = activeTab.value === "cross" ? tracks.value.filter((t) => t.crossCamera) : tracks.value;
@@ -305,6 +371,9 @@ const cards = computed(() => {
     lat: t.lat ?? null,
     lng: t.lng ?? null,
     similarity: null as number | null,
+    matchType: null as "FACE" | "REID" | null,
+    faceName: t.faceName ?? null,
+    group: t.group ?? group.value,
   }));
 });
 
@@ -331,6 +400,22 @@ function formatTime(ts: number): string {
   const d = new Date(ts);
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+/**
+ * 检测框的悬浮说明：标出这张脸走了哪条路。
+ *
+ * <p>清晰人脸走人脸识别（能给出姓名），模糊人脸走重识别（只知轨迹）——
+ * 框的颜色与这条说明对应，用户不必猜每个框的含义。</p>
+ *
+ * @param f 人脸框
+ * @returns 说明文本
+ */
+function faceTitle(f: ReidFaceBox): string {
+  const kind = f.matchType === "FACE" ? "人脸识别" : f.matchType === "REID" ? "重识别" : "待分流";
+  const name = f.faceName ? ` · ${f.faceName}` : "";
+  const conf = typeof f.confidence === "number" ? ` · 置信度 ${(f.confidence * 100).toFixed(0)}%` : "";
+  return `${kind}${name}${conf}`;
 }
 
 /** 打开文件选择。 */
@@ -378,6 +463,21 @@ function switchTab(key: string) {
   activeTab.value = key;
 }
 
+/**
+ * 切换分组。
+ *
+ * @param name 新分组名（allow-create 时是用户手输的新名字）
+ */
+async function onGroupChange(name: string) {
+  // 手输的新分组立刻进选项，否则下次打开下拉又选不到它
+  rememberGroups([name]);
+  // 换组 = 换了一整套轨迹库：上一组的观测结果与命中若留在屏幕上，会与右侧卡片自相矛盾
+  searchHits.value = [];
+  observeResult.value = null;
+  faces.value = [];
+  await loadTracks();
+}
+
 /** 观测并归并。 */
 async function runObserve() {
   if (!lastFile.value) {
@@ -394,6 +494,7 @@ async function runObserve() {
       undefined,
       lat.value,
       lng.value,
+      group.value,
     );
     observeResult.value = result;
     faces.value = (result.faces ?? []).map((f) => ({
@@ -423,7 +524,8 @@ async function runSearchFromButton() {
   busy.value = true;
   done.value = true;
   try {
-    searchHits.value = await apiService.searchReid(lastFile.value);
+    // 单分组检索：UI 一次只看一组，多分组（["a","b"]）是 API 侧能力，留给后续批量入口
+    searchHits.value = await apiService.searchReid(lastFile.value, undefined, undefined, [group.value]);
     activeTab.value = "hit";
     if (searchHits.value.length) {
       message.success(`命中 ${searchHits.value.length} 条轨迹`);
@@ -437,20 +539,23 @@ async function runSearchFromButton() {
   }
 }
 
-/** 加载轨迹。 */
+/** 加载当前分组的轨迹。 */
 async function loadTracks() {
   try {
-    tracks.value = await apiService.listReidTracks();
+    tracks.value = await apiService.listReidTracks({ group: group.value });
+    // 轨迹里带回的分组名一并并进下拉：后端 groups 接口没列到的历史分组（或接口不可用）
+    // 也不该在下拉里缺席
+    rememberGroups(tracks.value.map((t) => t.group));
   } catch (e) {
     message.error(`加载轨迹失败：${(e as Error)?.message ?? e}`);
   }
 }
 
-/** 清空轨迹。 */
+/** 清空当前分组的轨迹。 */
 async function clearTracks() {
   try {
-    const cleared = await apiService.clearReidTracks();
-    message.success(`已清空 ${cleared} 条轨迹`);
+    const cleared = await apiService.clearReidTracks(group.value);
+    message.success(`已清空分组「${group.value}」的 ${cleared} 条轨迹`);
     searchHits.value = [];
     observeResult.value = null;
     faces.value = [];
@@ -467,6 +572,8 @@ function gotoSettings() {
 
 /** 初始化。 */
 onMounted(async () => {
+  // 先把分组选项拉回来：下拉要能列出账号下已有的分组，而不是只有 default
+  await loadGroups();
   try {
     const stats = await apiService.getReidStats();
     available.value = stats.available;
@@ -518,6 +625,44 @@ onMounted(async () => {
   height: 100%;
   padding: 24px;
   box-sizing: border-box;
+}
+
+/* ---------------- 分组条 ---------------- */
+/*
+ * 分组是「当前工作库」的选择器，不属于任何一次观测的参数，
+ * 因此独立成条常驻在舞台顶部（不随 mode/previewUrl 显隐）。
+ */
+.reid-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--reid-border);
+  border-radius: var(--reid-radius);
+  background: var(--reid-card);
+}
+
+.reid-group-icon {
+  color: var(--reid-accent);
+}
+
+.reid-group-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--reid-muted);
+}
+
+.reid-group-select {
+  width: 200px;
+  flex: 0 0 200px;
+}
+
+.reid-group-hint {
+  font-size: 12px;
+  color: var(--reid-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ---------------- 左侧舞台 ---------------- */
@@ -614,6 +759,22 @@ onMounted(async () => {
   filter: drop-shadow(0 0 6px var(--reid-brand));
 }
 
+/*
+ * 分流着色：清晰脸走人脸识别（青绿实线），模糊脸走重识别（灰蓝虚线）。
+ * 两者与「新建/既有」是两个正交维度，因此都用独立类名，后写的规则优先。
+ */
+.reid-box.is-face {
+  stroke: #10b981;
+  stroke-dasharray: none;
+  filter: drop-shadow(0 0 6px #10b981);
+}
+
+.reid-box.is-reid {
+  stroke: #64748b;
+  stroke-dasharray: 8 12;
+  filter: drop-shadow(0 0 6px #64748b);
+}
+
 .reid-mask {
   position: absolute;
   inset: 0;
@@ -652,6 +813,37 @@ onMounted(async () => {
   margin-top: 4px;
   font-size: 12px;
   color: var(--reid-muted);
+}
+
+/* 分流统计条：两个小圆点 + 数量，颜色与图上检测框一一对应 */
+.reid-found-split {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.reid-split-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.reid-split-item.is-face {
+  color: #10b981;
+}
+
+.reid-split-item.is-reid {
+  color: #64748b;
+}
+
+.reid-split-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentcolor;
 }
 
 .reid-noface {
@@ -816,6 +1008,28 @@ onMounted(async () => {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 13px;
   font-weight: 600;
+}
+
+/* 分流类型标签：人脸识别（绿）/ 重识别（灰蓝） */
+.reid-card-type {
+  font-weight: 600;
+}
+
+/* 分组标签：纯描边，避免与「分流类型/跨镜」两个实心标签抢注意力 */
+.reid-card-group {
+  margin-left: auto;
+  color: var(--reid-muted);
+}
+
+/* 认出的姓名：人脸识别命中时展示，回答「这个人是谁」 */
+.reid-card-name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 6px 0 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--reid-accent);
 }
 
 .reid-card-cams {

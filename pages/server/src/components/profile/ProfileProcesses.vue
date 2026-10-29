@@ -20,6 +20,7 @@ import {
   processTone,
   type Tone,
 } from "../../utils/hostProfileUi";
+import { fetchProcessChildren, fetchProcessThreads, type ThreadInfo } from "../../api/hostRuntime";
 import ProfileSectionShell from "./ProfileSectionShell.vue";
 import type { StripItem } from "./types";
 
@@ -36,6 +37,8 @@ interface Props {
   truncated?: boolean;
   /** 正在执行动作的行键（restart-<pid> / kill-<pid>），用于禁用按钮 */
   busyKey?: string;
+  /** 目标主机 ID，用于拉取线程/子进程 */
+  hostId?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -48,6 +51,7 @@ const props = withDefaults(defineProps<Props>(), {
   total: 0,
   truncated: false,
   busyKey: "",
+  hostId: undefined as number | undefined,
 });
 
 const emit = defineEmits<{
@@ -63,8 +67,18 @@ const emit = defineEmits<{
 /** 排名依据：CPU 还是内存 */
 const metric = ref<"cpu" | "mem">("cpu");
 
+/** PID 过滤关键字（本地过滤当前页） */
+const pidFilter = ref("");
+
 /** 展开的行（同一时刻只展开一个，避免长命令行把列表撑散） */
 const expandedPid = ref<number | null>(null);
+
+/** 后端线程列表缓存：pid → ThreadInfo[] */
+const threadsMap = ref<Map<number, ThreadInfo[]>>(new Map());
+/** 后端子进程列表缓存：pid → ProcessInfo[] */
+const childrenMap = ref<Map<number, Record<string, any>[]>>(new Map());
+/** 正在拉取详情的 pid（防重复请求） */
+const loadingDetail = ref<number | null>(null);
 
 /** 行视图：把等级、图标、当前指标值一次算好 */
 interface ProcView {
@@ -80,7 +94,12 @@ interface ProcView {
 }
 
 const view = computed<ProcView[]>(() => {
-  const list = props.rows.map(raw => {
+  // PID 过滤：本地过滤当前页
+  const pf = pidFilter.value.trim().toLowerCase();
+  const filteredRows = pf
+    ? props.rows.filter(r => String(numOf(r.pid)).toLowerCase().includes(pf))
+    : props.rows;
+  const list = filteredRows.map(raw => {
     const pid = numOf(raw.pid);
     const value = metric.value === "cpu" ? numOf(raw.cpu) : numOf(raw.memory);
     return {
@@ -151,7 +170,78 @@ const strip = computed<StripItem[]>(() => {
 });
 
 function toggleRow(pid: number): void {
-  expandedPid.value = expandedPid.value === pid ? null : pid;
+  if (expandedPid.value === pid) {
+    expandedPid.value = null;
+    return;
+  }
+  expandedPid.value = pid;
+  loadDetail(pid);
+}
+
+/** 拉取进程的线程与子进程详情（后端 API，跨页可见） */
+async function loadDetail(pid: number): Promise<void> {
+  if (loadingDetail.value === pid) return;
+  // 已缓存则跳过
+  if (threadsMap.value.has(pid) && childrenMap.value.has(pid)) return;
+  loadingDetail.value = pid;
+  try {
+    const [threads, children] = await Promise.all([
+      fetchProcessThreads(pid, props.hostId).catch(() => [] as ThreadInfo[]),
+      fetchProcessChildren(pid, props.hostId).catch(() => [] as Record<string, any>[]),
+    ]);
+    threadsMap.value.set(pid, threads);
+    childrenMap.value.set(pid, children);
+  } catch {
+    // 拉取失败不阻断展开，只是没有详情
+    threadsMap.value.set(pid, []);
+    childrenMap.value.set(pid, []);
+  } finally {
+    loadingDetail.value = null;
+  }
+}
+
+/** 后端子进程优先，本地页内子进程兜底 */
+function backendChildren(pid: number): Record<string, any>[] {
+  return childrenMap.value.get(pid) ?? [];
+}
+
+/** 线程展开开关：超过 15 个线程时先折叠 */
+const threadExpanded = ref(false);
+
+/** 后端线程列表 */
+function threadsOf(pid: number): ThreadInfo[] {
+  return threadsMap.value.get(pid) ?? [];
+}
+
+/** 线程状态色调 */
+function threadStateTone(state?: string): string {
+  const s = String(state ?? "").toUpperCase();
+  if (s === "RUNNABLE") return "t-ok";
+  if (s === "BLOCKED" || s === "WAITING") return "t-warn";
+  if (s === "TIMED_WAITING" || s === "SLEEPING") return "t-mute";
+  return "t-mute";
+}
+
+/** 合并后端子进程与本地页内子进程 */
+function allChildrenOf(pid: number): ProcView[] {
+  const backend = backendChildren(pid);
+  if (backend.length) {
+    // 后端子进程构建 ProcView
+    return backend.map(raw => {
+      const value = metric.value === "cpu" ? numOf(raw.cpu) : numOf(raw.memory);
+      return {
+        raw,
+        pid: numOf(raw.pid),
+        tone: processTone(raw),
+        tile: leadTileOf("processes", raw),
+        value,
+        valueText: metric.value === "cpu" ? `${fmt1(raw.cpu)}%` : fmtMemory(raw.memory),
+        ratio: 0,
+      };
+    });
+  }
+  // 兜底：本地页内子进程
+  return childrenOf(pid);
 }
 
 /** 可重启的前提是拿得到命令行：拿不到就没法按原样拉起 */
@@ -182,8 +272,15 @@ function canRestart(row: Record<string, any>): boolean {
   >
     <template #tools>
       <div class="proc-metric">
-        <button :class="['proc-metric-btn', { on: metric === 'cpu' }]" @click="metric = 'cpu'">CPU</button>
-        <button :class="['proc-metric-btn', { on: metric === 'mem' }]" @click="metric = 'mem'">内存</button>
+        <button :class="['proc-metric-btn', { on: metric === 'cpu' }]" @click="metric = 'cpu'" title="按 CPU 排序">
+          <ReIcon name="Cpu" :size="14" />
+        </button>
+        <button :class="['proc-metric-btn', { on: metric === 'mem' }]" @click="metric = 'mem'" title="按内存排序">
+          <ReIcon name="Histogram" :size="14" />
+        </button>
+      </div>
+      <div class="proc-pid-filter">
+        <ReInput v-model="pidFilter" placeholder="PID" clearable prefix-icon="Search" style="width: 96px" />
       </div>
       <ReButton icon="DataAnalysis" layout="square" :show-text="false" title="内存分析" tip="内存分析" @click="emit('analyze')" />
     </template>
@@ -238,16 +335,49 @@ function canRestart(row: Record<string, any>): boolean {
         </el-popover>
 
         <div v-if="expandedPid === p.pid" class="proc-detail">
+          <!-- 线程列表（后端 API 拉取） -->
+          <div class="proc-threads">
+            <div class="proc-threads__cap">
+              <span>线程</span>
+              <template v-if="threadsOf(p.pid).length">
+                <b class="pf-mono">{{ threadsOf(p.pid).length }}</b> 个
+              </template>
+              <span v-if="loadingDetail === p.pid" class="pf-dim proc-detail-loading">加载中…</span>
+            </div>
+            <template v-if="threadsOf(p.pid).length">
+              <div class="proc-thread-list">
+                <div
+                  v-for="t in threadsOf(p.pid).slice(0, threadExpanded ? undefined : 15)"
+                  :key="t.tid"
+                  class="proc-thread"
+                >
+                  <span class="proc-thread__tid pf-mono pf-dim">T{{ t.tid }}</span>
+                  <span class="proc-thread__name pf-mono pf-ellipsis">{{ t.name || "—" }}</span>
+                  <span class="proc-thread__state pf-pill" :class="threadStateTone(t.state)">{{ t.state || "—" }}</span>
+                  <b class="proc-thread__cpu pf-mono">{{ t.cpu != null ? `${fmt1(t.cpu)}%` : "—" }}</b>
+                  <b class="proc-thread__mem pf-mono">{{ t.memory != null ? fmtMemory(t.memory) : "—" }}</b>
+                </div>
+              </div>
+              <button v-if="threadsOf(p.pid).length > 15" class="proc-thread-toggle pf-btn" @click="threadExpanded = !threadExpanded">
+                {{ threadExpanded ? "收起" : `展开全部 ${threadsOf(p.pid).length} 个` }}
+              </button>
+            </template>
+            <div v-else-if="!loadingDetail || loadingDetail !== p.pid" class="proc-threads__empty">
+              {{ (p.raw.threads ?? p.raw.threadCount) ? `已采集 ${p.raw.threads ?? p.raw.threadCount} 个线程（详情未拉取）` : "无线程信息" }}
+            </div>
+          </div>
+
+          <!-- 子进程（后端 API 优先，本地页内兜底） -->
           <div class="proc-children">
             <div class="proc-children__cap">
               <span>子进程</span>
-              <template v-if="childrenOf(p.pid).length">
-                <b class="pf-mono">{{ childrenOf(p.pid).length }}</b> 个
+              <template v-if="allChildrenOf(p.pid).length">
+                <b class="pf-mono">{{ allChildrenOf(p.pid).length }}</b> 个
               </template>
             </div>
-            <template v-if="childrenOf(p.pid).length">
+            <template v-if="allChildrenOf(p.pid).length">
               <div
-                v-for="c in childrenOf(p.pid)"
+                v-for="c in allChildrenOf(p.pid)"
                 :key="c.pid"
                 class="proc-child"
                 :class="c.tone ? `t-${c.tone}` : ''"
@@ -294,7 +424,12 @@ function canRestart(row: Record<string, any>): boolean {
   background: var(--el-fill-color-light, #f5f7fa);
 }
 .proc-metric-btn {
-  padding: 2px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 26px;
+  padding: 0;
   border: 0;
   border-radius: 5px;
   background: transparent;
@@ -309,6 +444,12 @@ function canRestart(row: Record<string, any>): boolean {
   color: var(--el-text-color-primary, #1f2430);
   font-weight: 600;
   box-shadow: 0 1px 2px rgba(31, 36, 48, 0.1);
+}
+
+.proc-pid-filter {
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
 }
 
 .proc-list {
@@ -487,6 +628,88 @@ function canRestart(row: Record<string, any>): boolean {
   font-size: 11.5px;
   text-align: right;
   color: var(--tone, var(--el-text-color-primary, #1f2430));
+}
+
+/* ===== 展开区：线程列表 ===== */
+.proc-threads {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  background: var(--el-fill-color-light, #f5f7fa);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+.proc-threads__cap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: var(--el-text-color-placeholder, #a8abb2);
+}
+.proc-threads__cap b {
+  color: var(--el-text-color-secondary, #5c6270);
+}
+.proc-detail-loading {
+  font-size: 11px;
+}
+.proc-thread-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.proc-thread {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 3px 4px;
+  border-radius: 5px;
+  font-size: 11.5px;
+}
+.proc-thread:hover {
+  background: var(--el-bg-color, #fff);
+}
+.proc-thread__tid {
+  flex: none;
+  width: 56px;
+  font-size: 10.5px;
+}
+.proc-thread__name {
+  min-width: 0;
+  flex: 1;
+  font-size: 11px;
+  font-weight: 500;
+}
+.proc-thread__state {
+  flex: none;
+  font-size: 9.5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.proc-thread__cpu {
+  flex: none;
+  width: 52px;
+  text-align: right;
+  font-size: 11px;
+}
+.proc-thread__mem {
+  flex: none;
+  width: 56px;
+  text-align: right;
+  font-size: 11px;
+}
+.proc-threads__empty {
+  padding: 6px 2px;
+  font-size: 11.5px;
+  color: var(--el-text-color-placeholder, #a8abb2);
+}
+.proc-thread-toggle {
+  align-self: flex-start;
+  margin-top: 4px;
+  font-size: 11px;
 }
 
 @media (max-width: 720px) {

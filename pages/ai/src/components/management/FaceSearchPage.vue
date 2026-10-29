@@ -4,6 +4,29 @@
       <!-- ==================== 左：图片舞台 ==================== -->
       <section class="fs-stage">
         <div class="fs-stage-inner">
+          <!--
+            分组条：分组是第一层隔离（每组一套向量库），登记/识别/取图都只作用于当前分组。
+            allow-create 允许直接敲一个新分组名 —— 分组没有独立的「建库」动作，
+            第一次登记落进去即存在。
+          -->
+          <div class="fs-group">
+            <el-icon class="fs-group-icon"><Collection /></el-icon>
+            <span class="fs-group-label">分组</span>
+            <el-select
+              v-model="group"
+              class="fs-group-select"
+              placeholder="选择或输入分组"
+              filterable
+              allow-create
+              default-first-option
+              :disabled="busy"
+              @change="onGroupChange"
+            >
+              <el-option v-for="g in groupOptions" :key="g" :label="g" :value="g" />
+            </el-select>
+            <span class="fs-group-hint">不同分组各有一套人脸库，互不可见</span>
+          </div>
+
           <!-- 空态：引导上传 -->
           <div v-if="!previewUrl" class="fs-drop" @click="pickImage">
             <el-icon :size="46" class="fs-drop-icon"><Picture /></el-icon>
@@ -202,7 +225,7 @@
           <el-icon><Star /></el-icon>人脸登记入库
         </el-button>
         <p class="fs-gallery-hint">
-          已登记 <b>{{ serverFaceCount }}</b> 张
+          分组「<b>{{ group }}</b>」已登记 <b>{{ serverFaceCount }}</b> 张
           <span v-if="serverFaceCount && !cards.length && !identifying">· 向量库可能已随服务重启清空，需重新登记</span>
         </p>
 
@@ -247,7 +270,7 @@
     </div>
 
     <input ref="fileInput" type="file" accept="image/*" class="fs-hidden" @change="onFilePicked" />
-    <FaceEnrollDialog v-model="enrollVisible" @enrolled="onEnrolled" />
+    <FaceEnrollDialog v-model="enrollVisible" :group="group" @enrolled="onEnrolled" />
   </div>
 </template>
 
@@ -256,11 +279,12 @@ import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import {
-  Aim, Check, Crop, Delete, FolderOpened, Picture, Refresh, Search, Setting, Star, User, View, Warning,
+  Aim, Check, Collection, Crop, Delete, FolderOpened, Picture, Refresh, Search, Setting, Star, User, View, Warning,
 } from '@element-plus/icons-vue'
 import { apiService } from '@/services/ApiService'
 import type { FaceHit, FaceMatch } from '@/services/modules/face.api'
-import { useFaceRegistry, ageBucket, isSameAgeRange, maskIdCard, type FaceRecord } from '@/composables/useFaceRegistry'
+import { useFaceRegistry, ageBucket, isSameAgeRange, maskIdCard, normalizeGroupName, type FaceRecord } from '@/composables/useFaceRegistry'
+import { useLibraryGroups } from '@/composables/useLibraryGroups'
 import { useModelConfigStore } from '@/stores/modelConfig'
 import { configuredValue } from '@/utils/modelConfigStatus'
 import ReLoader from '@repo/ui/re-loader'
@@ -398,14 +422,22 @@ const serverFaces = ref<Array<{ id: string; name: string; age: number | null }>>
 /** 服务端人脸库总数（服务端权威的「已登记 N 张」） */
 const serverFaceCount = ref(0)
 
+/**
+ * 当前分组。
+ *
+ * <p>分组是第一层隔离：列表、识别、删除、取图都只作用于它。
+ * 默认 default 与后端「不带分组」的语义一致（历史数据也归属 default）。</p>
+ */
+const { group, groupOptions, loadGroups, rememberGroups } = useLibraryGroups('face')
+
 /** 图廊缩略图：优先取本地登记簿（登记该条目的浏览器存过图），没有则回退为 User 占位图标 */
 function galleryThumb(id: string): string {
-  return registry.byId(String(id))?.thumb ?? ''
+  return registry.byId(String(id), group.value)?.thumb ?? ''
 }
 
 async function loadServerMeta() {
   try {
-    const { items, total } = await apiService.listFaces()
+    const { items, total } = await apiService.listFaces({ group: group.value })
     const map: Record<string, Record<string, unknown>> = {}
     const faces: Array<{ id: string; name: string; age: number | null }> = []
     const serverIds = new Set<string>()
@@ -413,10 +445,12 @@ async function loadServerMeta() {
       const id = String((it as Record<string, unknown>)?.id ?? '')
       if (!id) continue
       serverIds.add(id)
+      // 条目带回的分组名一并并进下拉：后端 groups 接口没列到的分组也不该在下拉里缺席
+      rememberGroups([(it as Record<string, unknown>)?.group as string | undefined])
       const md = (it as Record<string, unknown>)?.metadata
       const meta = md && typeof md === 'object' ? (md as Record<string, unknown>) : {}
       map[id] = meta
-      const local = registry.byId(String(id))
+      const local = registry.byId(String(id), group.value)
       const ageRaw = meta.age ?? local?.age
       faces.push({
         id,
@@ -431,11 +465,13 @@ async function loadServerMeta() {
     serverFaceCount.value = typeof total === 'number' && total >= 0 ? total : items.length
     // 以服务端为权威清理本地登记簿幽灵条目（服务端已删、本地 localStorage 残留）——
     // 注意：图廊与「已登记 N 张」都以服务端列表渲染，清理本地不影响计数显示。
+    // 只清**当前分组**：别的分组的档案在服务端同样存在，拿本组列表去比对会把它们误判成幽灵。
     if (items.length > 0 || registry.records.value.length > 0) {
       let changed = false
       for (const r of [...registry.records.value]) {
+        if (normalizeGroupName(r.group) !== normalizeGroupName(group.value)) continue
         if (!serverIds.has(r.id)) {
-          registry.remove(r.id)
+          registry.remove(r.id, group.value)
           changed = true
         }
       }
@@ -445,6 +481,22 @@ async function loadServerMeta() {
     // 拉不到就退回本地登记簿（不阻断识别本身）；计数保持上次值
     serverMeta.value = {}
   }
+}
+
+/**
+ * 切换分组。
+ *
+ * @param name 新分组名（allow-create 时是用户手输的新名字）
+ */
+function onGroupChange(name: string) {
+  // 手输的新分组立刻进选项，否则下次打开下拉又选不到它
+  rememberGroups([name])
+  // 换组 = 换了一整套人脸库：上一组的命中结果留在屏幕上会与「已登记 N 张」自相矛盾
+  matches.value = []
+  hits.value = []
+  pickedId.value = ''
+  identifyDone.value = false
+  void loadServerMeta()
 }
 
 /** 目标人脸（取面积最大的一张） */
@@ -485,7 +537,7 @@ const cards = computed<HitCard[]>(() =>
     // 最后才落到本地登记簿 —— 本地只用来补缩略图。
     const sv = serverMeta.value[String(m.id)] ?? {}
     const meta = (Object.keys(sv).length ? sv : (m.metadata ?? {})) as Record<string, any>
-    const local = registry.byId(String(m.id))
+    const local = registry.byId(String(m.id), group.value)
     const name = String(meta.name ?? meta.label ?? local?.name ?? m.id)
     const age = meta.age ?? local?.age ?? null
     const gender = String(meta.gender ?? local?.gender ?? '')
@@ -531,7 +583,7 @@ const TABS = [
 const activeTab = ref<string>('all')
 
 /** 当前查询图自己的档案（若它也在登记簿里，用于同龄段比较） */
-const queryRecord = computed<FaceRecord | undefined>(() => registry.byId(galleryKey.value))
+const queryRecord = computed<FaceRecord | undefined>(() => registry.byId(galleryKey.value, group.value))
 
 const visibleHits = computed<HitCard[]>(() => {
   const list = cards.value
@@ -857,7 +909,8 @@ async function runIdentify() {
   identifying.value = true
   try {
     const blob = await (await fetch(previewUrl.value)).blob()
-    const res = await apiService.identifyFace(blob, 'query.png')
+    // 单分组检索：UI 一次只看一组，多分组（["a","b"]）是 API 侧能力
+    const res = await apiService.identifyFace(blob, 'query.png', [group.value])
     matches.value = res.hits ?? []
     void loadServerMeta()
     pickedId.value = matches.value.length ? String(matches.value[0].id) : ''
@@ -892,7 +945,7 @@ async function recognizeCrop() {
     const bin = atob(hit.faceImage)
     const buf = new Uint8Array(bin.length)
     for (let i = 0; i < bin.length; i += 1) buf[i] = bin.charCodeAt(i)
-    const res = await apiService.identifyFace(new Blob([buf], { type: 'image/jpeg' }), 'crop.jpg')
+    const res = await apiService.identifyFace(new Blob([buf], { type: 'image/jpeg' }), 'crop.jpg', [group.value])
     matches.value = res.hits ?? []
     void loadServerMeta()
     pickedId.value = matches.value.length ? String(matches.value[0].id) : ''
@@ -905,8 +958,10 @@ async function recognizeCrop() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   void loadModels()
+  // 先拉分组选项再拉列表：否则下拉里只有 default，用户看不到自己已有的分组
+  await loadGroups()
   void loadServerMeta()
 })
 
@@ -982,6 +1037,44 @@ onBeforeUnmount(() => {
   height: 100%;
   padding: 24px;
   box-sizing: border-box;
+}
+
+/* ---------------- 分组条 ---------------- */
+/*
+ * 分组是「当前工作库」的选择器，不属于任何一次识别参数，
+ * 因此独立成条常驻在舞台顶部（不随 previewUrl 显隐）。
+ */
+.fs-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius);
+  background: var(--fs-card);
+}
+
+.fs-group-icon {
+  color: var(--fs-accent);
+}
+
+.fs-group-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fs-muted);
+}
+
+.fs-group-select {
+  width: 200px;
+  flex: 0 0 200px;
+}
+
+.fs-group-hint {
+  font-size: 12px;
+  color: var(--fs-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ---------------- 左侧舞台 ---------------- */

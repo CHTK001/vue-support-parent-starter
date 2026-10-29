@@ -344,6 +344,7 @@ export default createVite({
     "@pages/filesystem": "pages/filesystem",
     "@pages/datasource": "pages/datasource",
     "@pages/device": "pages/device",
+    "@pages/docker": "pages/docker",
   },
   server: {
     port: 8848,

@@ -46,6 +46,13 @@ const props = withDefaults(
     emptyText?: string;
     /** 表格最大高度（existing 模式由宿主给整块高度） */
     maxHeight?: string;
+    /**
+     * 目标库方言：决定类型下拉里出现哪一套类型。
+     *
+     * <p>不传按 MySQL 处理（历史行为）。ClickHouse 传 clickhouse、DuckDB 传 duckdb，
+     * 其它 JDBC 库传 mysql/postgresql/oracle/sqlserver/sqlite/h2。</p>
+     */
+    dialect?: string;
   }>(),
   {
     mode: "new",
@@ -53,6 +60,7 @@ const props = withDefaults(
     isDirty: () => false,
     emptyText: "还没有列",
     maxHeight: "40vh",
+    dialect: "mysql",
   },
 );
 
@@ -69,8 +77,8 @@ const emit = defineEmits<{
   (e: "reorder", from: number, to: number): void;
 }>();
 
-/** 类型下拉项（分组） */
-const typeOptions = computed(() => columnTypeSelectOptions());
+/** 类型下拉项（分组，按当前方言过滤） */
+const typeOptions = computed(() => columnTypeSelectOptions(props.dialect));
 
 const isExisting = computed(() => props.mode === "existing");
 
@@ -141,6 +149,34 @@ function toggleAuto(row: DesignColumnRow, value: unknown): void {
   row.autoIncrement = value === true;
   if (row.autoIncrement) {
     row.nullable = false;
+  }
+  emit("change");
+}
+
+/**
+ * 网格内切换类型：自动设置合理的默认长度 / 小数位。
+ *
+ * <p>切到 DECIMAL / NUMERIC 时长度默认 8、小数位默认 2（MySQL 惯例）；
+ * 切到其它需长度类型时长度默认 255；不支持小数位时清空 scale。</p>
+ *
+ * @param row 被修改的行
+ * @param newType 新的类型名
+ */
+function onTypeChange(row: DesignColumnRow, newType: string): void {
+  const t = newType.toUpperCase();
+  if (typeNeedsSize(t)) {
+    if (!row.size) {
+      row.size = typeAllowsScale(t) ? 8 : 255;
+    }
+  } else {
+    row.size = null;
+  }
+  if (typeAllowsScale(t)) {
+    if (row.scale === null) {
+      row.scale = 2;
+    }
+  } else {
+    row.scale = null;
   }
   emit("change");
 }
@@ -243,7 +279,7 @@ function rowClassName(arg: { row: Record<string, unknown> }): string {
       </template>
 
       <template #col-type="{ row }">
-        <ReSelect v-model="asRow(row).type" :options="typeOptions" filterable />
+        <ReSelect v-model="asRow(row).type" :options="typeOptions" filterable @change="onTypeChange(asRow(row), $event)" />
         <!-- ENUM/SET 取值：收进「类型」单元格里，语义上属于该类型 -->
         <div v-if="ENUM_LIKE_TYPES.has(asRow(row).type)" class="dcg-sub">
           <span class="dcg-sub__label">{{ asRow(row).type }} 取值</span>

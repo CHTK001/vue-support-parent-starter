@@ -6,8 +6,14 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["../../pages/device/src/*"],
-      "@pages/device/*": ["../../pages/device/src/*"],
-      "@pages/device": ["../../pages/device/src/index.ts"]
+      // 通配符落在「页面根」（与根 tsconfig、monitor 宿主同一口径）：
+      // 业务代码统一写 @pages/device/src/... 深路径，若目标已含 src，
+      // 会叠加成 src/src/... 而全部解析失败（TS2307）。
+      "@pages/device/*": ["../../pages/device/*"],
+      "@pages/device": ["../../pages/device/src/index.ts"],
+      // ReMap 内部用（workspace 包，pages/device 已声明依赖；此处给 TS 提供解析，
+      // 与根 tsconfig 的 "@repo/re-map" 同一口径）
+      "@repo/re-map": ["../../packages/ui/re-map"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "app.yaml", "../../packages/core/src/**/*.d.ts"]

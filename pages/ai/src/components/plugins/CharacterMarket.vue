@@ -143,6 +143,8 @@ const { setSelectedCharacter } = useSelectedCharacter()
 const { setPrefill } = usePrefillInput()
 
 const admin = isAdmin()
+/** 仅管理员可见模板：非管理员隐藏市场卡片（后端目录已兜底，这里做第二层保险） */
+const showAdminOnlyTemplates = admin
 const formRef = ref<InstanceType<typeof CharacterFormDialog> | null>(null)
 
 const loading = ref(false)
@@ -163,6 +165,11 @@ const categories = computed(() => {
 const filteredItems = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
   return items.value.filter(item => {
+    // 仅管理员可见模板 / 自建审计角色：非管理员隐藏
+    if (!showAdminOnlyTemplates) {
+      if ((item as any).adminOnly) return false
+      if (item.custom && (item as any).code === 'prompt-auditor') return false
+    }
     const matchCat = activeCategory.value === '全部' || item.category === activeCategory.value
     const matchKw = !kw
       || item.title.toLowerCase().includes(kw)
@@ -181,7 +188,11 @@ async function load() {
     // 拉取当前用户全部角色，内置目录之外的 = 自建角色，归入「我的角色」
     const rolesResp = await apiService.fetchCharacters()
     const builtinIds = new Set(catalog.map(c => c.id))
-    const customRoles = (rolesResp.items as any[]).filter(r => !builtinIds.has(r.code))
+    let customRoles = (rolesResp.items as any[]).filter(r => !builtinIds.has(r.code))
+    // 非管理员：自建角色里命中审计编码的也隐藏（后端 /roles 已兜底，双保险）
+    if (!admin) {
+      customRoles = customRoles.filter(r => r.code !== 'prompt-auditor')
+    }
     customRoles.forEach((r) => {
       merged.push({
         id: `custom-${r.id}`,

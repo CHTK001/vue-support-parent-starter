@@ -14,7 +14,7 @@
  */
 import { computed, nextTick, onMounted, onBeforeUnmount, ref, reactive, watch, defineAsyncComponent } from "vue";
 import type { Component } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { ElMessageBox } from "element-plus";
 import { queryHosts, delHost, switchHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity, scanPorts } from "../api";
 import HostFormDialog from "./HostFormDialog.vue";
@@ -102,6 +102,8 @@ export interface Host {
   serverHostPassword?: string | null;
   /** PEM 私钥（瞬态） */
   serverHostPrivateKey?: string | null;
+  /** 认证类型标记（瞬态，password/key/none）：免密登录置 none，供后端 autoCreateIdentity 决定身份类型 */
+  serverHostAuthType?: string | null;
   /** 远控协议（SSH/RDP/VNC，空表示按平台推断） */
   serverHostRemoteProtocol?: string | null;
   /** 远控端口（空表示按协议默认） */
@@ -116,6 +118,7 @@ export interface Group { id: number; msServerGroupName: string; msServerGroupCol
 interface Identity { id: number; msServerIdentityName: string; msServerIdentityAuthType: string; msServerIdentityUsername: string; msServerIdentityRemark?: string; }
 
 const router = useRouter();
+const route = useRoute();
 const hosts = ref<Host[]>([]);
 const groups = ref<Group[]>([]);
 const identities = ref<Identity[]>([]);
@@ -606,8 +609,8 @@ interface WorkTab extends ReTabsItem {
   path?: string;
   /** 远控页签使用的登录身份（空 = 默认凭据） */
   identityId?: number | null;
-  /** 工作台页签初始面板（screen / docker / k8s / tunnel / tunnel-reverse） */
-  startPanel?: "screen" | "docker" | "k8s" | "tunnel" | "tunnel-reverse";
+  /** 工作台页签初始面板（screen / k8s / tunnel / tunnel-reverse） */
+  startPanel?: "screen" | "k8s" | "tunnel" | "tunnel-reverse";
 }
 
 /** 已打开的页签 */
@@ -621,15 +624,18 @@ const activeTab = ref("");
  * <p>同一个「主机 + 功能」只开一次：重复点同一个动作是切过去，不是再开一个副本。
  * 否则用户点两下「进程」就会看到两个内容一模一样的页签，关闭时还要关两次。</p>
  *
- * <p>工作台比较特殊：分屏 / Docker / 隧道是三种不同面板，各开各的页签；
+ * <p>工作台比较特殊：分屏 / K8s / 隧道是三种不同面板，各开各的页签；
  * 同名面板（同一主机 + 同一面板）仍只开一次。页签名由
  * {@code `${host.id}:workbench:${panel}`} 承载去重，不同面板互不冲突。</p>
+ *
+ * <p>Docker 已拆成独立页面包 {@code @pages/docker}（路由 {@code /docker}），
+ * 不再作为工作台面板打开 —— 见 {@link ctxCommand} 的 {@code tab-docker} 分支。</p>
  *
  * @param host 目标主机
  * @param kind 功能类型
  * @param opts 附加参数（文件管理初始路径 / 远控登录身份 / 工作台初始面板）
  */
-function openTab(host: Host, kind: TabKind, opts?: { path?: string; identityId?: number | null; startPanel?: "screen" | "docker" | "k8s" | "tunnel" | "tunnel-reverse" }): void {
+function openTab(host: Host, kind: TabKind, opts?: { path?: string; identityId?: number | null; startPanel?: "screen" | "k8s" | "tunnel" | "tunnel-reverse" }): void {
   const base = `${host.id}:${kind}`;
   const name = kind === "workbench" && opts?.startPanel ? `${base}:${opts.startPanel}` : base;
   const exist = openTabs.value.find(t => t.name === name);
@@ -658,6 +664,32 @@ function openTab(host: Host, kind: TabKind, opts?: { path?: string; identityId?:
   openTabs.value = [...openTabs.value, tab];
   activeTab.value = name;
   pushActivity(`打开 ${host.serverHostName} · ${tab.hint}`, meta.icon, host.id);
+}
+
+/**
+ * 深链：外部入口直接打开某台主机的功能页签。
+ *
+ * <p>例：发布管理卡片的「软件仓库」跳 {@code /assets?hostId=4&tab=software}，
+ * 落地即打开该主机的「软件管理」页签，而不是停在监控页。主机列表尚未加载时
+ * 先等一次 {@code fetchAll}，避免深链在慢网络下被当成「主机不存在」。</p>
+ */
+async function applyDeepLink(): Promise<void> {
+  const rawHost = route.query.hostId;
+  const rawTab = route.query.tab;
+  if (rawHost == null || rawTab == null) return;
+  const hostId = Number(rawHost);
+  const kind = String(rawTab) as TabKind;
+  if (!Number.isFinite(hostId) || !(kind in TAB_KINDS)) return;
+  if (!hosts.value.length) {
+    await fetchAll();
+  }
+  const host = hosts.value.find(h => h.id === hostId);
+  if (!host) {
+    message.warning("未找到该主机，无法打开对应页签");
+    return;
+  }
+  selectHost(host);
+  openTab(host, kind);
 }
 
 /** 工作台面板的展示名（页签 hint / 右键菜单共用） */
@@ -916,6 +948,9 @@ function ctxOpenTab(kind: Extract<TabKind, "ops-sessions" | "ops-exec" | "ops-sn
 /**
  * 分屏终端里点某屏的 Docker / K8s / 隧道工具条：以该屏主机为上下文开独立面板页签。
  *
+ * <p>Docker 不再是工作台面板：跳独立页面 {@code /docker?hostId=}，
+ * 由 {@code @pages/docker} 接管容器 / 镜像 / 网络 / 卷 / 镜像库 / 模板。</p>
+ *
  * @param panel   面板类型
  * @param hostId  该屏主机 id
  * @param hostName 该屏主机名
@@ -925,6 +960,10 @@ function onWorkbenchOpenPanel(
   hostId: number,
   hostName: string,
 ): void {
+  if (panel === "docker") {
+    void router.push({ path: "/docker", query: { hostId: String(hostId) } });
+    return;
+  }
   const host = hosts.value.find((h) => h.id === hostId);
   if (host) {
     openTab(host, "workbench", { startPanel: panel });
@@ -966,10 +1005,16 @@ function ctxCommand(cmd: string): void {
     openTab(h, kind);
     return;
   }
-  // 工作台直达面板：分屏 / Docker / K8s / 隧道 / 反向隧道 各自开独立页签
-  const panelMap: Record<string, "screen" | "docker" | "k8s" | "tunnel" | "tunnel-reverse"> = {
+  // 工作台直达面板：分屏 / K8s / 隧道 / 反向隧道 各自开独立页签
+  //
+  // Docker 例外：它已拆成独立页面包 @pages/docker（路由 /docker），跳转过去而不是
+  // 在工作区里再开一个页签 —— 一个模块只留一套界面。
+  if (cmd === "tab-docker") {
+    void router.push({ path: "/docker", query: { hostId: String(h.id) } });
+    return;
+  }
+  const panelMap: Record<string, "screen" | "k8s" | "tunnel" | "tunnel-reverse"> = {
     "tab-workbench": "screen",
-    "tab-docker": "docker",
     "tab-k8s": "k8s",
     "tab-tunnel": "tunnel",
     "tab-tunnel-reverse": "tunnel-reverse",
@@ -1576,7 +1621,7 @@ watch([hosts, liveOnline], () => {
 });
 
 onMounted(() => {
-  fetchAll();
+  fetchAll().then(() => applyDeepLink());
   document.addEventListener("keydown", onGlobalKeydown, true);
   // 实时延迟 + 在线状态：socket 推送（后台 HostOnlineScheduler 检测后广播）
   const socket = useSocketService();
@@ -2197,7 +2242,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
               embedded
               :host-id="tabHostIdOf(tab.name)"
             />
-            <!-- 主机工作台：分屏 / Docker / K8s / 隧道 / 反向隧道 各开独立页签 -->
+            <!-- 主机工作台：分屏 / K8s / 隧道 / 反向隧道 各开独立页签（Docker 已拆独立页面） -->
             <ScHostWorkbench
               v-else-if="tabKindOf(tab.name) === 'workbench'"
               :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
@@ -2424,7 +2469,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
           <ReIcon name="TrendCharts" /><span>指标监控</span>
         </div>
 
-        <!-- 主机工作台：分屏 / Docker / K8s / 隧道 / 反向隧道 五个独立页签 -->
+        <!-- 主机工作台：分屏 / K8s / 隧道 / 反向隧道（Docker 是独立页面，见 /docker） -->
         <div
           class="host-ctx-item has-sub"
           :class="{ 'is-open': ctxSub === 'workbench' }"
@@ -2438,7 +2483,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
               <ReIcon name="Monitor" /><span>分屏终端</span>
             </div>
             <div class="host-ctx-item" @click="ctxCommand('tab-docker')">
-              <ReIcon name="Box" /><span>Docker</span>
+              <ReIcon name="Box" /><span>Docker（独立页）</span>
             </div>
             <div class="host-ctx-item" @click="ctxCommand('tab-k8s')">
               <ReIcon name="Coin" /><span>K8s</span>

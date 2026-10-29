@@ -144,6 +144,11 @@ export interface DataSourceInfo {
   config?: Record<string, unknown> | null;
   createTime?: string | null;
   updateTime?: string | null;
+  /**
+   * 是否支持 CSV 快速导入（LOAD/COPY 直灌）。服务端按 JDBC 方言自动计算：
+   * MySQL/PostgreSQL 为 true，其余类型或无法判断为 false/null。
+   */
+  fastLoadEnabled?: boolean | null;
   /** 连接延迟（毫秒），点「测试连接」后由后端回写；从未测试过时为 null */
   connectLatencyMs?: number | null;
   /** 会话延迟（毫秒），点「测试连接」后由后端回写；从未测试过时为 null */
@@ -385,11 +390,15 @@ export function killDbProcesses(id: number, pids: string[]): Promise<DbProcessKi
 
 /** 慢查询条目（后端 DbSlowQueryVO） */
 export interface DbSlowQueryRow {
+  /** 行唯一键（server 端生成：逐条事件下有重复 digest，用作表格 row-key） */
+  id: number;
   digest: string;
   avgMs: number | null;
   maxMs: number | null;
   calls: number | null;
   lastAt: string | null;
+  /** 客户端 IP / 主机；逐条事件 / 慢日志来源有值，聚合来源为 null */
+  host: string | null;
 }
 
 /** 慢查询列表响应：supported=false 表示该内核/实例不支持慢查询 */
@@ -448,7 +457,9 @@ export function deleteDatasourceTunnel(id: number): Promise<boolean> {
  * MySQL/MariaDB 服务器运行指标（随探活顺路采集，取不到为 null）。
  *
  * <p>MySQL 协议不暴露宿主机 CPU 使用率，因此没有 CPU 字段；
- * {@code threadsRunning} 是 SQL 侧负载最接近的公开口径。</p>
+ * {@code threadsRunning} 是 SQL 侧负载最接近的公开口径；
+ * {@code memoryBytes} 是 MySQL 进程<b>内部</b>内存（performance_schema
+ * 统计的 InnoDB 等实例内存），不是宿主机内存。</p>
  */
 export interface DatasourceServerStats {
   /** 累计慢查询数 */
@@ -461,6 +472,8 @@ export interface DatasourceServerStats {
   uptimeSeconds: number | null;
   /** 历史峰值客户端连接数 */
   maxUsedConnections: number | null;
+  /** 实例内存占用（字节）；取不到为 null */
+  memoryBytes: number | null;
 }
 
 export interface DatasourceMetricPoint {
@@ -939,6 +952,33 @@ export function uploadJdbcDriverJar(
   if (remark) form.append("remark", remark);
   form.append("kind", kind);
   return post<JdbcDriverJar>(`${hubBase}/jdbc-driver`, form);
+}
+
+/** 文件库（SQLite / DuckDB / H2）库文件上传结果 */
+export interface FileDbUploadResult {
+  /** 净化后的原始文件名 */
+  name: string;
+  /** 文件大小（字节） */
+  size: number;
+  /** 服务器上的绝对路径（直接填进「库文件路径」） */
+  path: string;
+}
+
+/**
+ * 上传文件库的库文件，返回服务器上的绝对路径。
+ *
+ * <p>为什么不走 filesystem 页那套分片上传：那套落点是对象存储，
+ * 而单文件库要的是本地可写路径，传完还得再搬一次；而且搬过去还得自己
+ * 拼对 {@code fileJdbcAllowedDirs} 白名单内的目录。这里后端直接落到受管目录，
+ * 返回的路径即可建连。</p>
+ *
+ * @param file 库文件（.db / .sqlite / .duckdb / .mv.db …）
+ * @returns 落盘后的绝对路径
+ */
+export function uploadFileDb(file: File): Promise<FileDbUploadResult> {
+  const form = new FormData();
+  form.append("file", file);
+  return post<FileDbUploadResult>(`${hubBase}/file-db/upload`, form);
 }
 
 /**

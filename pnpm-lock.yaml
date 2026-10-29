@@ -268,6 +268,14 @@ catalogs:
       specifier: ^1.0.5
       version: 1.2.6
 
+patchedDependencies:
+  '@file-viewer/core@3.1.2':
+    hash: 62tgp3qfabbxvmqxratygdps5m
+    path: patches/@file-viewer__core@3.1.2.patch
+  '@file-viewer/renderer-text@3.1.2':
+    hash: khptnbqim4lgjk7ijpvxsculu4
+    path: patches/@file-viewer__renderer-text@3.1.2.patch
+
 importers:
 
   .:
@@ -979,6 +987,9 @@ importers:
       '@pages/device':
         specifier: workspace:*
         version: link:../../pages/device
+      '@pages/docker':
+        specifier: workspace:*
+        version: link:../../pages/docker
       '@pages/filesystem':
         specifier: workspace:*
         version: link:../../pages/filesystem
@@ -1243,9 +1254,6 @@ importers:
       '@repo/utils':
         specifier: workspace:*
         version: link:../../packages/utils
-      '@tanstack/vue-query':
-        specifier: 'catalog:'
-        version: 5.104.5(vue@3.5.44(typescript@5.9.3))
       element-plus:
         specifier: 'catalog:'
         version: 2.14.7(vue@3.5.44(typescript@5.9.3))
@@ -2354,6 +2362,9 @@ importers:
       '@repo/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@repo/re-map':
+        specifier: workspace:*
+        version: link:../../packages/ui/re-map
       '@repo/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -2378,6 +2389,43 @@ importers:
       vue-router:
         specifier: 'catalog:'
         version: 4.6.4(vue@3.5.44(typescript@6.0.3))
+
+  pages/docker:
+    dependencies:
+      '@repo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@repo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@repo/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
+      element-plus:
+        specifier: 'catalog:'
+        version: 2.14.7(vue@3.5.44(typescript@5.9.3))
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.44(typescript@5.9.3)
+      vue-router:
+        specifier: 'catalog:'
+        version: 4.6.4(vue@3.5.44(typescript@5.9.3))
+    devDependencies:
+      '@vitejs/plugin-vue':
+        specifier: 'catalog:'
+        version: 6.0.8(vite@8.2.0(@types/node@25.9.6)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.104.1))(vue@3.5.44(typescript@5.9.3))
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.1.3
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vite:
+        specifier: 'catalog:'
+        version: 8.2.0(@types/node@25.9.6)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.104.1)
+      vue-tsc:
+        specifier: 'catalog:'
+        version: 2.2.12(typescript@5.9.3)
 
   pages/eduai:
     dependencies:
@@ -2468,7 +2516,7 @@ importers:
         version: 3.1.2
       '@file-viewer/core':
         specifier: 3.1.2
-        version: 3.1.2
+        version: 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       '@file-viewer/preset-office':
         specifier: 'catalog:'
         version: 3.1.2(pdf-lib@1.17.1)
@@ -2531,7 +2579,7 @@ importers:
         version: 3.1.2
       '@file-viewer/renderer-text':
         specifier: 'catalog:'
-        version: 3.1.2
+        version: 3.1.2(patch_hash=khptnbqim4lgjk7ijpvxsculu4)
       '@file-viewer/renderer-typst':
         specifier: 'catalog:'
         version: 3.1.2
@@ -2601,6 +2649,9 @@ importers:
       libheif-js:
         specifier: ^1.23.5
         version: 1.23.5
+      mammoth:
+        specifier: ^1.12.3
+        version: 1.12.3
       occt-import-js:
         specifier: ^0.0.23
         version: 0.0.23
@@ -2625,6 +2676,9 @@ importers:
       web-ifc:
         specifier: ^0.0.78
         version: 0.0.78
+      xlsx:
+        specifier: ^0.18.5
+        version: 0.18.5
     devDependencies:
       '@types/leaflet':
         specifier: ^1.9.22
@@ -11921,7 +11975,7 @@ snapshots:
 
   '@file-viewer/capability-mermaid@3.1.2':
     dependencies:
-      '@file-viewer/renderer-text': 3.1.2
+      '@file-viewer/renderer-text': 3.1.2(patch_hash=khptnbqim4lgjk7ijpvxsculu4)
       mermaid: 11.17.2
     transitivePeerDependencies:
       - xmllint-wasm
@@ -11955,14 +12009,14 @@ snapshots:
 
   '@file-viewer/capability-text-tools@3.1.2':
     dependencies:
-      '@file-viewer/renderer-text': 3.1.2
+      '@file-viewer/renderer-text': 3.1.2(patch_hash=khptnbqim4lgjk7ijpvxsculu4)
       diff2html: 3.4.56
       pako: 2.2.0
     transitivePeerDependencies:
       - xmllint-wasm
       - xslt-polyfill
 
-  '@file-viewer/core@3.1.2':
+  '@file-viewer/core@3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)':
     dependencies:
       dompurify: 3.4.15
 
@@ -12002,7 +12056,7 @@ snapshots:
       '@file-viewer/capability-rtf': 3.1.2
       '@file-viewer/capability-streaming-media': 3.1.2
       '@file-viewer/capability-text-tools': 3.1.2
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       '@file-viewer/renderer-3d': 3.1.2(esbuild@0.28.1)(web-ifc@0.0.78)
       '@file-viewer/renderer-archive': 3.1.2
       '@file-viewer/renderer-cad': 3.1.2(three@0.185.1)
@@ -12024,7 +12078,7 @@ snapshots:
       '@file-viewer/renderer-pptx': 3.1.2
       '@file-viewer/renderer-presentation': 3.1.2
       '@file-viewer/renderer-spreadsheet': 3.1.2
-      '@file-viewer/renderer-text': 3.1.2
+      '@file-viewer/renderer-text': 3.1.2(patch_hash=khptnbqim4lgjk7ijpvxsculu4)
       '@file-viewer/renderer-typst': 3.1.2
       '@file-viewer/renderer-word': 3.1.2
       '@file-viewer/renderer-wordperfect': 3.1.2
@@ -12043,7 +12097,7 @@ snapshots:
 
   '@file-viewer/preset-office@3.1.2(pdf-lib@1.17.1)':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       '@file-viewer/renderer-hangul': 3.1.2
       '@file-viewer/renderer-iwork': 3.1.2
       '@file-viewer/renderer-ofd': 3.1.2
@@ -12060,7 +12114,7 @@ snapshots:
       '@file-viewer/assets-standard': 3.1.2
       '@file-viewer/capability-pdf-identity-repair': 3.1.2
       '@file-viewer/capability-pptx-charts': 3.1.2
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       '@file-viewer/renderer-archive': 3.1.2
       '@file-viewer/renderer-email': 3.1.2
       '@file-viewer/renderer-image': 3.1.2
@@ -12069,7 +12123,7 @@ snapshots:
       '@file-viewer/renderer-pdf': 3.1.2(pdf-lib@1.17.1)
       '@file-viewer/renderer-pptx': 3.1.2
       '@file-viewer/renderer-spreadsheet': 3.1.2
-      '@file-viewer/renderer-text': 3.1.2
+      '@file-viewer/renderer-text': 3.1.2(patch_hash=khptnbqim4lgjk7ijpvxsculu4)
       '@file-viewer/renderer-word': 3.1.2
     transitivePeerDependencies:
       - pdf-lib
@@ -12078,7 +12132,7 @@ snapshots:
 
   '@file-viewer/renderer-3d@3.1.2(esbuild@0.28.1)(web-ifc@0.0.78)':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       '@file-viewer/geometry-engine': 3.1.2
       three: 0.186.1
     optionalDependencies:
@@ -12087,28 +12141,28 @@ snapshots:
 
   '@file-viewer/renderer-archive@3.1.2':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       jszip: 3.10.2
       libarchive.js: 2.0.2
 
   '@file-viewer/renderer-binary@3.1.2':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
 
   '@file-viewer/renderer-cad@3.1.2(three@0.185.1)':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       '@flyfish-dev/cad-viewer': 0.8.2(three@0.185.1)
     transitivePeerDependencies:
       - three
 
   '@file-viewer/renderer-chm@3.1.2':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
 
   '@file-viewer/renderer-data@3.1.2':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       ag-psd: 30.2.0
       avsc: 5.7.9
       hyparquet: 1.31.2
@@ -12116,7 +12170,7 @@ snapshots:
 
   '@file-viewer/renderer-design@3.1.2':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       '@file-viewer/renderer-data': 3.1.2
       '@paged-media/introspect-wasm': 0.63.0
       '@webtoon/psd': 0.4.0
@@ -12131,7 +12185,7 @@ snapshots:
       '@cornerstonejs/core': 5.8.2(@cornerstonejs/metadata@5.8.2)(autoprefixer@10.5.4(postcss@8.5.31))(wslink@2.5.0)
       '@cornerstonejs/dicom-image-loader': 5.8.2(@cornerstonejs/core@5.8.2(@cornerstonejs/metadata@5.8.2)(autoprefixer@10.5.4(postcss@8.5.31))(wslink@2.5.0))(@cornerstonejs/metadata@5.8.2)(dicom-parser@1.8.21)
       '@cornerstonejs/metadata': 5.8.2
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       dicom-parser: 1.8.21
       pako: 2.2.0
     transitivePeerDependencies:
@@ -12141,7 +12195,7 @@ snapshots:
 
   '@file-viewer/renderer-drawing@3.1.2(bpmn-js@18.31.0)':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       '@panzoom/panzoom': 4.6.2
       dompurify: 3.4.15
       mermaid: 11.17.2
@@ -12152,26 +12206,26 @@ snapshots:
 
   '@file-viewer/renderer-eda@3.1.2':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       '@file-viewer/eda-layout': 3.1.2
       '@file-viewer/eda-orcad': 3.1.2
       cfb: 1.2.2
 
   '@file-viewer/renderer-email@3.1.2':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       '@kenjiuno/msgreader': 1.28.0
       buffer: 6.0.3
       postal-mime: 3.0.1
 
   '@file-viewer/renderer-epub@3.1.2':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       pako: 2.2.0
 
   '@file-viewer/renderer-geo@3.1.2(geotiff@2.1.3)':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       '@tmcw/togeojson': 7.1.2
       maplibre-gl: 6.9.0
       proj4: 2.22.0(geotiff@2.1.3)
@@ -12181,7 +12235,7 @@ snapshots:
 
   '@file-viewer/renderer-hangul@3.1.2':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       '@ssabrojs/hwpxjs': 0.4.0
       '@xmldom/xmldom': 0.9.12
       cfb: 1.2.2
@@ -12190,13 +12244,13 @@ snapshots:
 
   '@file-viewer/renderer-image@3.1.2':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       heic2any: 0.0.4
       utif: 3.1.0
 
   '@file-viewer/renderer-iwork@3.1.2':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       '@xmldom/xmldom': 0.9.12
       jszip: 3.10.2
       keynote-archives: 2.0.1
@@ -12206,51 +12260,51 @@ snapshots:
 
   '@file-viewer/renderer-media@3.1.2':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
 
   '@file-viewer/renderer-mindmap@3.1.2':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       '@ljheee/xmind-parser': 1.1.3
       '@panzoom/panzoom': 4.6.2
       jszip: 3.10.2
 
   '@file-viewer/renderer-ofd@3.1.2':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       jszip: 3.10.2
 
   '@file-viewer/renderer-pdf@3.1.2(pdf-lib@1.17.1)':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       '@fontsource-variable/noto-sans-sc': 5.3.0
     optionalDependencies:
       pdf-lib: 1.17.1
 
   '@file-viewer/renderer-ppt@3.1.2':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       '@file-viewer/ppt': 0.3.4
 
   '@file-viewer/renderer-pptx@3.1.2':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       '@file-viewer/pptx': 3.1.2
 
   '@file-viewer/renderer-presentation@3.1.2':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       '@file-viewer/renderer-ppt': 3.1.2
       '@file-viewer/renderer-pptx': 3.1.2
 
   '@file-viewer/renderer-signature@3.1.2':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       jszip: 3.10.2
 
   '@file-viewer/renderer-spreadsheet@3.1.2':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       '@xmldom/xmldom': 0.9.12
       e-virt-table: 1.4.15
       jszip: 3.10.2
@@ -12258,9 +12312,9 @@ snapshots:
       tinycolor2: 1.6.0
       utif: 3.1.0
 
-  '@file-viewer/renderer-text@3.1.2':
+  '@file-viewer/renderer-text@3.1.2(patch_hash=khptnbqim4lgjk7ijpvxsculu4)':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       '@prettier/plugin-xml': 3.4.2(prettier@3.9.6)
       dompurify: 3.4.15
       highlight.js: 11.12.0
@@ -12269,21 +12323,21 @@ snapshots:
 
   '@file-viewer/renderer-typst@3.1.2':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       '@myriaddreamin/typst-ts-renderer': 0.7.0
       '@myriaddreamin/typst-ts-web-compiler': 0.7.0
       '@myriaddreamin/typst.ts': 0.7.0(@myriaddreamin/typst-ts-renderer@0.7.0)(@myriaddreamin/typst-ts-web-compiler@0.7.0)
 
   '@file-viewer/renderer-word@3.1.2':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       '@file-viewer/doc': 3.1.2
       '@file-viewer/docx': 0.3.32
       jszip: 3.10.2
 
   '@file-viewer/renderer-wordperfect@3.1.2':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
 
   '@file-viewer/vite-plugin@3.1.2(vite@7.3.6(@types/node@25.9.6)(jiti@2.7.0)(lightningcss@1.33.0)(sass@1.104.1))':
     dependencies:
@@ -12313,7 +12367,7 @@ snapshots:
 
   '@file-viewer/vue3@3.1.2(vue@3.5.44(typescript@5.9.3))':
     dependencies:
-      '@file-viewer/core': 3.1.2
+      '@file-viewer/core': 3.1.2(patch_hash=62tgp3qfabbxvmqxratygdps5m)
       vue: 3.5.44(typescript@5.9.3)
 
   '@flatten-js/interval-tree@1.1.3': {}
@@ -12884,7 +12938,7 @@ snapshots:
       detect-libc: 2.1.2
       is-glob: 4.0.3
       node-addon-api: 7.1.1
-      picomatch: 4.0.5
+      picomatch: 4.0.7
     optionalDependencies:
       '@parcel/watcher-android-arm64': 2.6.0
       '@parcel/watcher-darwin-arm64': 2.6.0
@@ -13329,7 +13383,7 @@ snapshots:
     dependencies:
       '@types/estree': 1.0.9
       estree-walker: 2.0.2
-      picomatch: 4.0.5
+      picomatch: 4.0.7
     optionalDependencies:
       rollup: 4.62.3
 
@@ -14913,7 +14967,7 @@ snapshots:
 
   '@types/babel__template@7.4.4':
     dependencies:
-      '@babel/parser': 7.29.8
+      '@babel/parser': 7.29.9
       '@babel/types': 7.29.8
 
   '@types/babel__traverse@7.28.0':
@@ -17254,6 +17308,10 @@ snapshots:
   fdir@6.5.0(picomatch@4.0.5):
     optionalDependencies:
       picomatch: 4.0.5
+
+  fdir@6.5.0(picomatch@4.0.7):
+    optionalDependencies:
+      picomatch: 4.0.7
 
   fecha@4.2.3: {}
 
@@ -19618,8 +19676,8 @@ snapshots:
 
   tinyglobby@0.2.17:
     dependencies:
-      fdir: 6.5.0(picomatch@4.0.5)
-      picomatch: 4.0.5
+      fdir: 6.5.0(picomatch@4.0.7)
+      picomatch: 4.0.7
 
   tinypool@0.8.4: {}
 
@@ -19772,7 +19830,7 @@ snapshots:
       magic-string: 0.30.21
       mlly: 1.8.2
       pathe: 2.0.3
-      picomatch: 4.0.5
+      picomatch: 4.0.7
       pkg-types: 2.3.1
       scule: 1.3.0
       strip-literal: 3.1.0
@@ -19864,7 +19922,7 @@ snapshots:
     dependencies:
       '@jridgewell/remapping': 2.3.5
       acorn: 8.18.0
-      picomatch: 4.0.5
+      picomatch: 4.0.7
       webpack-virtual-modules: 0.6.2
 
   unplugin@3.4.0(esbuild@0.28.1)(rolldown@1.2.1)(rollup@4.62.3)(vite@7.3.6(@types/node@25.9.6)(jiti@2.7.0)(lightningcss@1.33.0)(sass@1.104.1)):
@@ -20093,7 +20151,7 @@ snapshots:
   vite@5.4.21(@types/node@25.9.6)(lightningcss@1.33.0)(sass@1.104.1):
     dependencies:
       esbuild: 0.21.5
-      postcss: 8.5.25
+      postcss: 8.5.31
       rollup: 4.62.3
     optionalDependencies:
       '@types/node': 25.9.6
@@ -20104,9 +20162,9 @@ snapshots:
   vite@6.4.3(@types/node@25.9.6)(jiti@2.7.0)(lightningcss@1.33.0)(sass@1.104.1):
     dependencies:
       esbuild: 0.25.12
-      fdir: 6.5.0(picomatch@4.0.5)
-      picomatch: 4.0.5
-      postcss: 8.5.25
+      fdir: 6.5.0(picomatch@4.0.7)
+      picomatch: 4.0.7
+      postcss: 8.5.31
       rollup: 4.62.3
       tinyglobby: 0.2.17
     optionalDependencies:
@@ -20134,8 +20192,8 @@ snapshots:
   vite@8.2.0(@types/node@22.20.1)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.104.1):
     dependencies:
       lightningcss: 1.33.0
-      picomatch: 4.0.5
-      postcss: 8.5.25
+      picomatch: 4.0.7
+      postcss: 8.5.31
       rolldown: 1.2.1
       tinyglobby: 0.2.17
     optionalDependencies:
@@ -20148,8 +20206,8 @@ snapshots:
   vite@8.2.0(@types/node@25.9.6)(esbuild@0.28.1)(jiti@1.21.7)(sass@1.104.1):
     dependencies:
       lightningcss: 1.33.0
-      picomatch: 4.0.5
-      postcss: 8.5.25
+      picomatch: 4.0.7
+      postcss: 8.5.31
       rolldown: 1.2.1
       tinyglobby: 0.2.17
     optionalDependencies:
@@ -20162,8 +20220,8 @@ snapshots:
   vite@8.2.0(@types/node@25.9.6)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.102.0):
     dependencies:
       lightningcss: 1.33.0
-      picomatch: 4.0.5
-      postcss: 8.5.25
+      picomatch: 4.0.7
+      postcss: 8.5.31
       rolldown: 1.2.1
       tinyglobby: 0.2.17
     optionalDependencies:
@@ -20176,8 +20234,8 @@ snapshots:
   vite@8.2.0(@types/node@25.9.6)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.104.1):
     dependencies:
       lightningcss: 1.33.0
-      picomatch: 4.0.5
-      postcss: 8.5.25
+      picomatch: 4.0.7
+      postcss: 8.5.31
       rolldown: 1.2.1
       tinyglobby: 0.2.17
     optionalDependencies:

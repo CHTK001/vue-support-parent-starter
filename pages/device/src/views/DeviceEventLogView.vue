@@ -121,7 +121,7 @@
  * @author CH
  * @since 4.0.0.42
  */
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Bell, Connection, OfficeBuilding, Tickets } from '@element-plus/icons-vue'
 
@@ -134,6 +134,12 @@ import ReTag from '@repo/ui/re-tag'
 
 import deviceApi from '../api/deviceApi'
 import type { DeviceEvent, DeviceInfo } from '../types/device'
+
+/**
+ * 预置设备：从设备资产右键进入时带入目标设备，自动选中并查询事件。
+ * 独立打开（无 prop）时保持原有手动选择设备的行为。
+ */
+const props = withDefaults(defineProps<{ deviceId?: string }>(), { deviceId: '' })
 
 /** 事件类型（后端 SPI 的取值口径） */
 const EVENT_TYPES = [
@@ -337,6 +343,16 @@ function errText(e: unknown): string {
 }
 
 onMounted(fetchDevices)
+
+watch(
+  () => props.deviceId,
+  (id) => {
+    if (!id) return
+    filters.deviceId = id
+    query()
+  },
+  { immediate: true }
+)
 </script>
 
 <style scoped>

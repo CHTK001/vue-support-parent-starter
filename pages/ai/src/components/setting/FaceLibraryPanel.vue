@@ -95,7 +95,7 @@
       </ul>
     </section>
 
-    <FaceEnrollDialog v-model="enrollVisible" :record="editItem" @enrolled="() => load(page)" />
+    <FaceEnrollDialog v-model="enrollVisible" :record="editItem" :group="group" @enrolled="() => load(page)" />
 
     <!-- 特征点弹窗：仅在关键点模型已配置时按钮可见（openLandmark 里还有一道守卫） -->
     <FaceLandmarkDialog
@@ -103,6 +103,7 @@
       :face-id="lmItem?.id ?? ''"
       :face-name="lmItem?.name"
       :fallback-thumb="lmItem?.localThumb"
+      :group="group"
     />
 
     <!-- ── 列表区 ─────────────────────────────────────────── -->
@@ -112,6 +113,23 @@
           人脸列表
           <span class="lib-panel-count">共 {{ total }} 条</span>
         </div>
+
+        <!--
+          分组筛选：分组是第一层隔离（每组一套向量库），列表/删除/取图都只作用于它。
+          allow-create 允许直接敲一个新分组名 —— 分组没有独立的「建库」动作，
+          第一次登记落进去即存在。
+        -->
+        <el-select
+          v-model="group"
+          class="lib-filter lib-group-filter"
+          filterable
+          allow-create
+          default-first-option
+          placeholder="选择或输入分组"
+          title="分组是第一层隔离：不同分组各有一套人脸库"
+        >
+          <el-option v-for="g in groupOptions" :key="g" :label="g" :value="g" />
+        </el-select>
 
         <el-input v-model="keyword" placeholder="按姓名/身份证检索（服务端）" clearable class="lib-search"
           @input="commitKeyword()" @keyup.enter="commitKeyword(true)" @clear="commitKeyword(true)">
@@ -268,6 +286,9 @@
           <template #idCard="{ row }">
             <span class="lt-mono">{{ maskIdCard(String(row.idCard ?? '')) || '—' }}</span>
           </template>
+          <template #group="{ row }">
+            <span class="lt-group">{{ row.group || 'default' }}</span>
+          </template>
           <template #hasImage="{ row }">
             <span v-if="row.hasImage" class="lib-badge is-ok">有图片</span>
             <span v-else class="lib-badge is-warn">无图片</span>
@@ -350,7 +371,8 @@ import 'viewerjs/dist/viewer.css'
 import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from '@repo/ui/re-table'
 import { apiService } from '@/services/ApiService'
-import { useFaceRegistry, ageBucket, maskIdCard, type FaceRecord } from '@/composables/useFaceRegistry'
+import { useFaceRegistry, ageBucket, maskIdCard, normalizeGroupName, type FaceRecord } from '@/composables/useFaceRegistry'
+import { useLibraryGroups } from '@/composables/useLibraryGroups'
 import { createAuthImageLoader, pendingPlaceholder } from '@/utils/authImage'
 import { configuredValue } from '@/utils/modelConfigStatus'
 import { toErrorMessage } from '@/utils/errors'
@@ -362,6 +384,8 @@ import FaceLandmarkDialog from '../management/FaceLandmarkDialog.vue'
 interface Row {
   id: string
   name: string
+  /** 所属分组（表格「分组」列与元信息行展示用） */
+  group: string
   age: number | null
   gender: string
   hair: string
@@ -408,6 +432,14 @@ const sortField = ref('')
 const sortOrder = ref('')
 const selected = ref<Set<string>>(new Set())
 const serverItems = ref<Array<Record<string, unknown>>>([])
+/**
+ * 当前分组。
+ *
+ * <p>分组是第一层隔离：列表、删除、取图、登记都只作用于它。默认 default 与后端
+ * 「不带分组」的语义一致（历史数据也归属 default）—— 也就是说「没选分组」不代表
+ * 「看全库」，页面必须把当前分组显式标出来。</p>
+ */
+const { group, groupOptions, loadGroups, rememberGroups } = useLibraryGroups('face')
 /** 命中总数（受 keyword/status 影响）与全库统计（不受影响）——都以服务端为准 */
 const total = ref(0)
 const stats = ref({ total: 0, withImage: 0, withIdCard: 0 })
@@ -514,13 +546,15 @@ const faceUnregisteredMsg = computed(() =>
 function toRow(s: Record<string, unknown>): Row {
   const id = String(s.id ?? '')
   const meta = (s.metadata && typeof s.metadata === 'object' ? s.metadata : {}) as Record<string, unknown>
-  const local = registry.byId(id)
+  const local = registry.byId(id, group.value)
   const pick = (k: string): unknown => (meta[k] != null && meta[k] !== '' ? meta[k] : (local as any)?.[k])
   const ageRaw = pick('age')
   const photoRaw = pick('photogenic')
   return {
     id,
     name: String(pick('name') ?? pick('label') ?? ''),
+    // 分组以服务端条目为准（列表本身就是按分组查的），本机登记簿只作兜底
+    group: normalizeGroupName((s.group as string | undefined) ?? local?.group ?? group.value),
     age: typeof ageRaw === 'number' ? ageRaw : ageRaw == null || ageRaw === '' ? null : Number(ageRaw),
     gender: String(pick('gender') ?? ''),
     hair: String(pick('hair') ?? ''),
@@ -529,7 +563,7 @@ function toRow(s: Record<string, unknown>): Row {
     note: String(pick('note') ?? ''),
     // 缩略图优先本地（登记它的浏览器立刻就有），否则取**服务端落存的登记图** ——
     // 换浏览器/换账号也能看到图，这正是「在图上画特征点」的前提。
-    thumb: local?.thumb || authImages.resolve(`/face/${encodeURIComponent(id)}/image`),
+    thumb: local?.thumb || authImages.resolve(faceImagePath(id)),
     localThumb: local?.thumb ?? '',
     hasImage: !!s.hasImage || !!local?.thumb,
     // 修复标记存在元数据里（由「修复并重新入库」写入）。元数据会被本机登记簿覆盖，
@@ -540,6 +574,21 @@ function toRow(s: Record<string, unknown>): Row {
     lng: numberOrNull(s.lng ?? (local as any)?.lng),
     meta,
   }
+}
+
+/**
+ * 服务端登记图地址（按分组定位）。
+ *
+ * <p>必须带分组：同一个 id 可能同时存在于多个分组，不带分组会取到 default 里的
+ * 同名条目图，缩略图与列表行对不上。分组名也参与 authImages 的缓存键，
+ * 因此切组后不会串用上一组解析出来的 blob。</p>
+ *
+ * @param id 人脸标识
+ * @param suffix 端点后缀（image / original）
+ * @returns 相对地址（authImages 会自行拼 baseURL）
+ */
+function faceImagePath(id: string, suffix = 'image'): string {
+  return `/face/${encodeURIComponent(id)}/${suffix}?group=${encodeURIComponent(normalizeGroupName(group.value))}`
 }
 
 /**
@@ -579,7 +628,7 @@ const pageCount = computed(() => Math.max(1, Math.ceil(total.value / pageSize)))
  * @return 可直接给 img.src 的地址（本地优先、服务端图兜底）
  */
 function thumbFor(id: string): string {
-  return registry.byId(id)?.thumb || authImages.resolve(`/face/${encodeURIComponent(id)}/image`)
+  return registry.byId(id, group.value)?.thumb || authImages.resolve(faceImagePath(id))
 }
 
 /**
@@ -643,6 +692,15 @@ watch(statusFilter, () => {
   if (viewMode.value !== 'table') void load(1)
 })
 
+// 切换分组 = 换了一整套向量库：表格视图由 tableParams 变化自动重查，网格/列表手动重载。
+// 顺带清掉勾选：跨分组的选中状态既无意义，批量删除还会删到别的组里去。
+watch(group, () => {
+  selected.value = new Set()
+  tableRef.value?.clearAllSelection()
+  rememberGroups([group.value])
+  if (viewMode.value !== 'table') void load(1)
+})
+
 // 切回网格/列表时用最新检索条件补一次加载（表格期间可能改过条件）
 watch(viewMode, (m) => {
   if (m !== 'table') void load(page.value)
@@ -654,11 +712,15 @@ const tableParams = computed(() => ({
   status: statusFilter.value === 'all' ? '' : statusFilter.value,
   sortField: sortField.value,
   sortOrder: sortOrder.value,
+  // 分组也进参数：切组时 ReTable 自动回第 1 页重查，不必手动 reload
+  group: group.value,
 }))
 
-/** 元信息一行：年龄段 · 性别 · 发型 · 身份证(脱敏) · 经纬度 */
+/** 元信息一行：分组 · 年龄段 · 性别 · 发型 · 身份证(脱敏) · 经纬度 */
 function formatMeta(item: Row): string {
-  const parts = [ageBucket(item.age), item.gender || '未知']
+  // 分组排最前：它是「这条数据属于哪套库」这一层信息，列表已按分组过滤，
+  // 标出来用户才明白「为什么这里看不到另一组的人」
+  const parts = [`分组 ${item.group}`, ageBucket(item.age), item.gender || '未知']
   if (item.hair) parts.push(item.hair)
   const id = maskIdCard(item.idCard)
   if (id) parts.push(id)
@@ -696,9 +758,12 @@ async function load(target = 1) {
       size: pageSize,
       keyword: kwApplied.value || undefined,
       status: statusFilter.value !== 'all' ? statusFilter.value : undefined,
+      group: group.value,
     })
     serverItems.value = data.items as Array<Record<string, unknown>>
     total.value = data.total
+    // 条目带回的分组名一并并进下拉：后端 groups 接口没列到的历史分组也不该缺席
+    rememberGroups(data.items.map((x) => (x as Record<string, unknown>).group as string | undefined))
     if (data.stats) {
       stats.value = data.stats
     } else if (target === 1 && data.items.length === data.total) {
@@ -744,6 +809,7 @@ async function load(target = 1) {
 const tableColumns: ReTableColumn[] = [
   { prop: 'thumb', label: '登记图', width: 76, slot: 'thumb', align: 'center' },
   { prop: 'name', label: '姓名', minWidth: 130, sortable: 'custom', showOverflowTooltip: true },
+  { prop: 'group', label: '分组', width: 120, slot: 'group', showOverflowTooltip: true },
   { prop: 'idCard', label: '身份证', width: 170, sortable: 'custom', slot: 'idCard' },
   { prop: 'age', label: '年龄', width: 80, sortable: 'custom', align: 'center' },
   { prop: 'gender', label: '性别', width: 80, align: 'center' },
@@ -775,6 +841,7 @@ async function tableLoader(p: ReTableLoadParams): Promise<RePageResult> {
     status: st || undefined,
     sortField: String(params.sortField ?? '') || undefined,
     sortOrder: String(params.sortOrder ?? '') || undefined,
+    group: group.value,
   })
   return {
     total: data.total,
@@ -876,6 +943,8 @@ function openEdit(item: Row) {
     lng: item.lng,
     thumb: item.thumb,
     enrolledAt: 0,
+    // 分组随行带走：编辑弹窗保存时会用同一分组回写，避免改完掉进 default
+    group: item.group,
   }
   enrollVisible.value = true
 }
@@ -946,9 +1015,10 @@ async function removeOne(item: Row) {
   } catch { return }
   busy.value = true
   try {
-    const ok = await apiService.deleteFace(item.id)
+    const ok = await apiService.deleteFace(item.id, group.value)
     if (!ok) { message.error('删除失败：底库未确认删除'); return }
-    registry.remove(item.id)
+    // 只删本组的本地档案：同一个 id 在别的分组里也是合法记录
+    registry.remove(item.id, group.value)
     selected.value.delete(item.id)
     selected.value = new Set(selected.value)
     message.success(`已删除：${label}`)
@@ -973,7 +1043,7 @@ async function removeSelected() {
   try {
     for (const id of ids) {
       try {
-        if (await apiService.deleteFace(id)) { registry.remove(id); okCount++ }
+        if (await apiService.deleteFace(id, group.value)) { registry.remove(id, group.value); okCount++ }
       } catch { /* 单条失败继续，最后统一报数 */ }
     }
     message[okCount === ids.length ? 'success' : 'warning'](`已删除 ${okCount}/${ids.length} 条`)
@@ -1003,7 +1073,8 @@ async function repairOne(item: Row) {
   try {
     // 优先原图：修复模型在原图上的效果与用户当初拍到的那张照片一致；
     // 只有老数据没有原图时才退裁剪脸
-    const src = (await apiService.originalImageBlob(item.id)) || (await apiService.faceImageBlob(item.id))
+    const src = (await apiService.originalImageBlob(item.id, group.value))
+      || (await apiService.faceImageBlob(item.id, group.value))
     if (!src) {
       message.error('该条没有可修复的图片，请重新登记一次')
       return
@@ -1014,7 +1085,8 @@ async function repairOne(item: Row) {
       return
     }
     const meta = { ...item.meta, restored: true, restoredAt: Date.now() }
-    await apiService.enrollFace(item.id, repaired, meta, 'face-restored.png')
+    // 重新入库必须回到**同一条记录所在的组**，否则会凭空多出一条 default 里的副本
+    await apiService.enrollFace(item.id, repaired, meta, 'face-restored.png', group.value)
     message.success(`「${label}」已修复并重新入库`)
     await load(page.value)
   } catch (e: any) {
@@ -1024,7 +1096,11 @@ async function repairOne(item: Row) {
   }
 }
 
-onMounted(() => void load(1))
+onMounted(async () => {
+  // 先拉分组选项再拉列表：否则下拉里只有 default，用户看不到自己已有的分组
+  await loadGroups()
+  void load(1)
+})
 onBeforeUnmount(() => {
   viewer?.destroy()
   viewer = null
@@ -1089,6 +1165,18 @@ onBeforeUnmount(() => {
 .lt-mono {
   font-family: var(--el-font-family, monospace);
   font-size: var(--rm-font-sm, var(--el-font-size-small));
+}
+
+/* 分组列：等宽字体便于扫读同名分组，颜色降一级避免抢姓名的主体地位 */
+.lt-group {
+  font-family: var(--el-font-family, monospace);
+  font-size: var(--rm-font-sm, var(--el-font-size-small));
+  color: var(--rm-text-secondary, var(--el-text-color-secondary));
+}
+
+/* 分组筛选：比状态筛选宽一点（分组名通常更长），与状态筛选同一视觉规格 */
+.lib-group-filter {
+  width: 160px;
 }
 
 .lt-actions {

@@ -99,7 +99,9 @@
                             <DefaultModelSettings :groups="['ocr']" />
                         </template>
                         <template v-else-if="currentTabValue === 'paper-config'">
-                            <DefaultModelSettings :groups="['paper']" />
+                            <!-- 试卷配置 = paper（识别）+ marking（阅卷设置）+ compose（AI 组卷）三组，
+                                 与 eduai「AI 配置中心」共用同一个组件，避免两处各有一套表单、各自保存互相打架 -->
+                            <PaperConfigPanel :global-save="true" />
                         </template>
                         <template v-else-if="currentTabValue === 'bot-connector-config'">
                             <DefaultModelSettings :groups="['bot']" />
@@ -224,6 +226,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import DefaultModelSettings from './DefaultModelSettings.vue'
+import PaperConfigPanel from './PaperConfigPanel.vue'
 import GeneralSettings from './GeneralSettings.vue'
 
 import AppearanceSettings from './AppearanceSettings.vue'

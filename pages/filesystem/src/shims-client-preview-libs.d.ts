@@ -96,3 +96,25 @@ declare module "@cornerstonejs/codec-libjxl/decodewasmjs" {
   const createDecoder: (opts?: Record<string, unknown>) => Promise<unknown>;
   export default createDecoder;
 }
+
+/**
+ * mammoth（docx → HTML）没有自带类型声明。
+ *
+ * <p>协同 Word 编辑器（WordCollabEditor.vue）与协同管理页上传转协同
+ * （FileCollabManage.vue）只用 convertToHtml，这里声明最小形状。</p>
+ */
+declare module "mammoth" {
+  /** 转换选项：arrayBuffer 为源文件字节 */
+  interface MammothOptions {
+    arrayBuffer: ArrayBuffer;
+  }
+  /** 转换结果 */
+  interface MammothResult {
+    /** 转换后的 HTML 片段 */
+    value: string;
+    /** 转换过程消息（警告等） */
+    messages?: Array<{ type?: string; message?: string }>;
+  }
+  /** docx → HTML 转换 */
+  export function convertToHtml(options: MammothOptions): Promise<MammothResult>;
+}

@@ -17,6 +17,16 @@
       </div>
     </header>
 
+    <!-- 向导进入的提示条：携带 ids 参数时展示，可一键关闭 -->
+    <div v-if="!standalone && remindBarVisible" class="dpv-remind">
+      <span class="dpv-remind__text">
+        已按所选设备打开预览：{{ remindText }}
+      </span>
+      <div class="dpv-remind__ops">
+        <ReButton icon="Close" layout="square" tip="关闭提示" @click="dismissRemindBar" />
+      </div>
+    </div>
+
     <!-- 概览指标（管理页才有；独立窗口把空间全留给画面） -->
     <section v-if="!standalone" class="dpv-kpis">
       <ReStatCard
@@ -108,7 +118,6 @@
             <el-segmented v-model="layout" :options="layoutSegments" size="small" />
             <ReButton icon="RefreshRight" layout="square" tip="重载全部画面" :disabled="!wall.length" :loading="reloading" @click="reloadAll" />
             <el-segmented v-model="viewMode" :options="viewModeSegments" size="small" />
-            <ReButton
             <ReButton
               v-if="!standalone"
               icon="TopRight"
@@ -283,6 +292,7 @@
  * @since 4.0.0.42
  */
 import { computed, onActivated, onBeforeUnmount, onDeactivated, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   CircleCheck,
@@ -316,6 +326,49 @@ import type { DeviceChannel, DeviceInfo } from '../types/device'
 /** 独立窗口形态：路由 props 注入（/device/preview/standalone） */
 const props = defineProps<{ standalone?: boolean }>()
 const standalone = computed(() => !!props.standalone)
+
+/** 路由（消费向导传入的 ids / layout / remind） */
+const route = useRoute()
+
+const REMIND_BAR_KEY = 'device:preview-remind-dismissed'
+const remindBarVisible = ref(true)
+const remindText = ref('')
+
+/** 从地址栏恢复：ids 为逗号分隔设备 ID；layout 为 1/4/9；remind=false 则不再展示提示条 */
+function applyRouteQuery(): { ids: string[]; layout: string | null; remind: boolean } {
+  const rawIds = String(route.query.ids || '')
+  const ids = rawIds
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  const queryLayout = String(route.query.layout || '')
+  const remind = route.query.remind !== 'false'
+  if (queryLayout && ['1', '4', '9'].includes(queryLayout)) {
+    layout.value = queryLayout
+  }
+  if (ids.length) {
+    // 设备清单可能还没加载，提示文本放到设备就绪后补（见 refreshRemindText）
+    remindText.value = ids.slice(0, 4).join(', ')
+  }
+  // 已主动关闭过提示条，或 URL 显式 remind=false → 不再展示
+  let dismissed = false
+  try {
+    dismissed = localStorage.getItem(REMIND_BAR_KEY) === '1'
+  } catch {
+    /* ignore */
+  }
+  remindBarVisible.value = ids.length > 0 && remind && !dismissed
+  return { ids, layout: queryLayout, remind: remindBarVisible.value }
+}
+
+/** 设备清单就绪后把提示条上的名称补全 */
+function refreshRemindText(ids: string[]): void {
+  if (!ids.length) return
+  const names = videoDevices.value
+    .filter((d) => ids.includes(d.deviceInfoId))
+    .map((d) => d.deviceInfoName || d.deviceInfoId)
+  remindText.value = names.length ? names.slice(0, 4).join('、') : ids.slice(0, 4).join(', ')
+}
 
 type StreamKey = 'main' | 'sub'
 
@@ -925,6 +978,16 @@ function closeWindow(): void {
   window.close()
 }
 
+/** 关闭向导提示条：记住本次选择，下次不再打扰 */
+function dismissRemindBar(): void {
+  remindBarVisible.value = false
+  try {
+    localStorage.setItem(REMIND_BAR_KEY, '1')
+  } catch {
+    /* ignore */
+  }
+}
+
 /* ============================ 装载 ============================ */
 
 async function fetchDevices(): Promise<void> {
@@ -943,15 +1006,28 @@ function firstVideoDevice(): DeviceInfo | undefined {
 
 async function bootstrap(): Promise<void> {
   readRepairs()
+  const { ids, layout: queryLayout, remind } = applyRouteQuery()
   const { tiles, restored } = readWall()
   if (!devices.value.length) await fetchDevices()
   wall.value = materialize(tiles)
   ready.value = true
-  // 本机从没存过墙面（第一次打开）：给一路在线摄像机，墙不至于是空的
-  if (!wall.value.length && !restored) {
+  // 向导进入：把所选设备直接铺进预览墙（覆盖本地缓存，保持“选了就看”的语义）
+  if (ids.length) {
+    const picked = videoDevices.value.filter((d) => ids.includes(d.deviceInfoId))
+    if (queryLayout && ['1', '4', '9'].includes(queryLayout)) {
+      layout.value = queryLayout
+    }
+    if (picked.length) {
+      wall.value = picked.slice(0, layoutSize.value).map(makeTile)
+    }
+    if (remind) refreshRemindText(ids)
+  } else if (!wall.value.length && !restored) {
+    // 本机从没存过墙面（第一次打开）：给一路在线摄像机，墙不至于是空的
     const d = firstVideoDevice()
     if (d) wall.value = [makeTile(d)]
   }
+  // 结构由向导/缓存决定后立刻落缓存，独立窗口同源读取一致
+  persistWall()
   for (const t of wall.value) void ensureChannelNos(t.deviceId)
   await Promise.all(wall.value.map((t) => loadStream(t)))
 }
@@ -1065,6 +1141,34 @@ watch([wall, layout, protocol], persistWall, { deep: true })
 }
 .dpv-std__ops {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 向导进入的提示条 */
+.dpv-remind {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+  background: var(--el-color-primary-light-9, var(--el-color-primary-light-8));
+  border: 1px solid var(--el-color-primary-light-7);
+  border-radius: var(--el-radius-lg, 12px);
+}
+.dpv-remind__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dpv-remind__ops {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 6px;

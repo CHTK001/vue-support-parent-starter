@@ -77,6 +77,10 @@ export default {
 
     // ThinkingEffortPopover.vue
     thinkingEffortTitle: 'Thinking Effort',
+    // Reasoning-effort popover title (from the design shot)
+    thinkingEffortSelectorTitle: 'Reasoning Effort',
+    // Slider current-level hint
+    thinkingEffortCurrentLevel: 'Current level',
     // Thinking level: unified entry merging the deep-thinking toggle and the reasoning-effort levels
     thinkingLevelTitle: 'Thinking Level',
     // The "off" option inside the thinking level control

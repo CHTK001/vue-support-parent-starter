@@ -90,6 +90,7 @@ import { ref, computed, onMounted } from 'vue'
 
 import { Search } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
+import { isAdmin } from '@repo/core'
 import { apiService } from '../../services/ApiService'
 import type { CharacterCatalogItem } from '../../services/modules/character.api'
 
@@ -98,6 +99,10 @@ const emit = defineEmits<{
 }>()
 
 const router = useRouter()
+
+/** 仅管理员可见的内置模板（提示词审计官等）对非管理员做第二层隐藏 */
+const adminOnlyTemplateIds = ['prompt-auditor']
+const showAdminOnly = isAdmin()
 
 const loading = ref(false)
 const adding = ref('')
@@ -112,6 +117,10 @@ const categories = computed(() => {
 
 const filteredTemplates = computed(() => {
   return templates.value.filter(item => {
+    // 仅管理员可见的模板：非管理员直接隐藏（后端已兜底，这里是前端第二层保险）
+    if (!showAdminOnly && (item.adminOnly || adminOnlyTemplateIds.includes(item.id))) {
+      return false
+    }
     const matchCat = activeCategory.value === '全部' || item.category === activeCategory.value
     const matchSearch = !searchKeyword.value ||
       item.title.includes(searchKeyword.value) ||

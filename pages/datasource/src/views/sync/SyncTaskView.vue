@@ -291,20 +291,17 @@
               <el-select v-model="pickedSourceTable" placeholder="选择源库数据表" filterable clearable class="st-full" @change="applySourceTable" @clear="onSourceTableClear">
                 <el-option v-for="t in sourceTables" :key="t" :label="displayTargetTable(t)" :value="t" />
               </el-select>
-              <div class="st-form-hint">选中后自动生成 SELECT（见下方 SQL，只读）；需要微调请切到「自定义 SQL」。</div>
+              <div class="st-form-hint">选中后自动生成只读 SELECT；需要微调请切到「自定义 SQL」。</div>
             </div>
 
-            <div class="st-form-item">
-              <label>{{ sourceMode === 'sql' ? '源读取 SQL（必须以 SELECT 开头）' : '源读取 SQL（由所选数据表生成，只读）' }}</label>
+            <div v-if="sourceMode === 'sql'" class="st-form-item">
+              <label>源读取 SQL（必须以 SELECT 开头）</label>
               <el-input
                 v-model="form.sourceSql" type="textarea" :rows="4" class="mono"
-                :readonly="sourceMode === 'table'"
-                :placeholder="sourceMode === 'table' ? '选好左侧数据表后自动生成' : 'SELECT id, name FROM t_order'"
+                placeholder="SELECT id, name FROM t_order"
               />
               <div class="st-form-hint">
-                {{ sourceMode === 'sql'
-                  ? '只读源库：写语句会被后端挡下；点「下一步」会按当前库方言只取 1 条真实校验（表/列不存在会当场报错）。'
-                  : '切到「自定义 SQL」才能编辑；在该模式下需要自己保证语句以 SELECT 开头。' }}
+                只读源库：写语句会被后端挡下；点「下一步」会按当前库方言只取 1 条真实校验（表/列不存在会当场报错）。
               </div>
             </div>
           </template>
@@ -523,23 +520,36 @@
               <div v-show="isTargetOpen(index)" :id="`st-target-body-${index}`" class="st-target-body">
                 <div class="st-grid">
                   <div class="st-form-item">
-                    <label>目标数据源（jdbc）</label>
+                    <label>目标数据源（jdbc）<span class="st-req">*</span></label>
                     <el-select v-model="activeTarget.targetDatasourceId" placeholder="从数据源中心选择目标数据源" class="st-full" @change="onTargetChange">
                       <el-option v-for="ds in jdbcSources" :key="ds.id" :label="ds.name" :value="ds.id" />
                     </el-select>
                   </div>
                   <div class="st-form-item">
-                    <label>目标数据表</label>
+                    <label>目标数据表<span class="st-req">*</span>
+                      <el-tooltip
+                        content="表清单取自目标数据源，选中值带库前缀（如 ngxacc.device_channel），保证预览/保存与后台查列落在同一库；不在清单中的表名可直接输入。"
+                        placement="top"
+                      >
+                        <ReIcon name="QuestionFilled" :size="13" class="st-label-tip" />
+                      </el-tooltip>
+                    </label>
                     <el-select v-model="activeTarget.targetTable" placeholder="选择或输入目标表名" filterable allow-create default-first-option class="st-full">
                       <el-option v-for="t in targetTables" :key="t" :label="displayTargetTable(t)" :value="t" />
                     </el-select>
-                    <div class="st-form-hint">表清单取自目标数据源，选中值带库前缀（如 ngxacc.device_channel），保证预览/保存与后台查列落在同一库；不在清单中的表名可直接输入。</div>
                   </div>
                 </div>
 
                 <div class="st-grid">
                   <div class="st-form-item">
-                    <label>写入模式</label>
+                    <label>写入模式
+                      <el-tooltip
+                        content="「先清空再插入」与增量水位互斥（每批都会清空目标表），增量模式下不提供该写入模式。"
+                        placement="top"
+                      >
+                        <ReIcon name="QuestionFilled" :size="13" class="st-label-tip" />
+                      </el-tooltip>
+                    </label>
                     <el-select v-model="activeTarget.writeMode" class="st-full">
                       <el-option
                         v-for="m in writeModesFor(activeTarget)"
@@ -548,12 +558,16 @@
                         :value="m.code"
                       />
                     </el-select>
-                    <div class="st-form-hint" v-if="activeTarget.syncMode === 'INCREMENTAL'">
-                      「先清空再插入」与增量水位互斥（每批都会清空目标表），增量模式下不提供该写入模式。
-                    </div>
                   </div>
                   <div class="st-form-item">
-                    <label>同步模式</label>
+                    <label>同步模式
+                      <el-tooltip
+                        content="全量：每次执行读取全部源数据写入目标；增量：按增量字段水位只取新增/变更数据（由后端维护水位）。"
+                        placement="top"
+                      >
+                        <ReIcon name="QuestionFilled" :size="13" class="st-label-tip" />
+                      </el-tooltip>
+                    </label>
                     <el-select v-model="activeTarget.syncMode" class="st-full" @change="onSyncModeChange">
                       <el-option label="全量（每次读取全部源数据）" value="FULL" />
                       <!-- 不支持增量的输入源直接不提供该选项：给一个永远选不了的灰项只会让人反复点 -->
@@ -569,7 +583,14 @@
                 <!-- 增量专属配置：全量模式直接不渲染，避免出现一整片灰控件 -->
                 <div v-if="activeTarget.syncMode === 'INCREMENTAL'" class="st-grid">
                   <div class="st-form-item">
-                    <label>增量字段</label>
+                    <label>增量字段<span class="st-req">*</span>
+                      <el-tooltip
+                        content="按此字段的水位取新增数据；多选时构成复合水位（按选择顺序比较，前一个相等才比后一个）。JDBC 自动包裹进源 SQL（水位条件+升序+每批上限）；HTTP 以查询参数携带上次水位。"
+                        placement="top"
+                      >
+                        <ReIcon name="QuestionFilled" :size="13" class="st-label-tip" />
+                      </el-tooltip>
+                    </label>
                     <el-select
                       v-model="activeTarget.incFields"
                       multiple
@@ -592,36 +613,56 @@
                       <template v-if="activeTarget.incFields.length > 1">
                         复合水位（按此顺序比较）：<b>{{ incFieldOrderText }}</b>；前一个字段相等时才比较后一个，同一时间戳内不会漏行。
                       </template>
-                      JDBC：自动包裹进源 SQL（水位条件+升序+每批上限）；HTTP：以查询参数携带上次水位。
                       <template v-if="activeTarget.lastSeq"><b>当前水位：{{ activeTarget.lastSeq }}</b>（改动字段会清空水位）</template>
                       <template v-else>尚无水位，首跑按升序分批引导。</template>
                     </div>
                   </div>
                   <div class="st-form-item">
-                    <label>每批数量（留空不限）</label>
+                    <label>每批数量（留空不限）
+                      <el-tooltip
+                        content="增量每轮最多同步的源行数（决定一轮取多少、水位推进多少）。留空=不限，一次同步全部积压。与「批量提交条数」不同：本项是增量取数粒度，批量提交条数是写入事务粒度。"
+                        placement="top"
+                      >
+                        <ReIcon name="QuestionFilled" :size="13" class="st-label-tip" />
+                      </el-tooltip>
+                    </label>
                     <el-input-number
                       v-model="activeTarget.incBatchSize" :min="1" :max="100000000" :step="1000"
                       controls-position="right" class="st-full"
                       placeholder="留空表示不限"
                     />
-                    <div class="st-form-hint">
-                      积压数据分轮自动消化：每轮取最老的 N 条并推进水位，下一轮接着往后，不漏不重。
-                    </div>
                   </div>
                 </div>
-                <!-- 全量模式下给一句说明即可，不再摆一排禁用控件 -->
-                <div v-else class="st-form-hint">
-                  <template v-if="incrementalSourceSupported">
-                    当前目标按全量执行；切换为增量后才有增量字段与每批上限可配。
-                  </template>
-                  <template v-else>当前输入源不支持增量（仅 JDBC / HTTP 源可用）。</template>
+                <!-- 全量模式：与「先清空再插入」组合时会清空目标表，用红字提醒避免误删 -->
+                <div v-else>
+                  <ReAlert
+                    v-if="activeTarget.writeMode === 'OVERWRITE'"
+                    class="st-alert"
+                    type="error"
+                    :closable="false"
+                    show-icon
+                    title="全量 + 先清空再插入：每次执行都会清空目标表后重灌"
+                    description="目标表现有数据将被全部删除后写入本次源数据，请确认目标表不需要保留存量数据。"
+                  />
+                  <div v-else class="st-form-hint">
+                    <template v-if="incrementalSourceSupported">
+                      当前目标按全量执行；切换为增量后才有增量字段与每批上限可配。
+                    </template>
+                    <template v-else>当前输入源不支持增量（仅 JDBC / HTTP 源可用）。</template>
+                  </div>
                 </div>
 
                 <div class="st-grid">
                   <div class="st-form-item">
-                    <label>批量提交条数</label>
+                    <label>批量提交条数
+                      <el-tooltip
+                        content="写入目标库时每个事务提交的行数（JDBC 批量提交粒度）：调大提升吞吐，调小降低单事务压力。与「每批数量」不同：本项是写入事务粒度，每批数量是增量取数粒度。"
+                        placement="top"
+                      >
+                        <ReIcon name="QuestionFilled" :size="13" class="st-label-tip" />
+                      </el-tooltip>
+                    </label>
                     <el-input-number v-model="activeTarget.batchSize" :min="1" :max="100000" :step="100" controls-position="right" class="st-full" />
-                    <div class="st-form-hint">每批写入的行数：调大提升吞吐，调小降低单事务压力。</div>
                   </div>
                 </div>
 
@@ -694,10 +735,12 @@
               <ReButton @click="addTarget">
                 <template #icon><ReIcon name="Plus" /></template>添加输出目标
               </ReButton>
-              <span class="st-form-hint">
-                一次采集的结果可同时写入多张表。每个目标有独立的写入模式、同步模式、增量字段与字段映射；
-                某个目标写失败不会影响其它目标推进。
-              </span>
+              <el-tooltip
+                content="一次采集的结果可同时写入多张表。每个目标有独立的写入模式、同步模式、增量字段与字段映射；某个目标写失败不会影响其它目标推进。"
+                placement="top"
+              >
+                <ReIcon name="QuestionFilled" :size="13" class="st-label-tip" />
+              </el-tooltip>
             </div>
           </div>
         </template>
@@ -840,36 +883,31 @@
             <div v-else class="st-log-empty">本机也没有触发过执行</div>
           </template>
 
-          <!-- 服务端调试日志：进行中执行在最前，其后为已完成执行（新 → 旧）；点击条头展开/收起 -->
+          <!-- 服务端调试日志：每次执行一个 ReTabs 页签（面板常驻显示过程行，不必展开） -->
           <div v-else-if="logRuns.length" class="st-log-runs">
-            <div
-              v-for="(entry, index) in logRuns"
-              :key="`${entry.runTime}-${index}`"
-              class="st-log-run"
-              :class="entry.status === 'RUNNING' ? 'is-active' : (entry.status === 'SUCCESS' ? 'is-ok' : 'is-bad')"
+            <ReTabs
+              v-model="activeLogRunName"
+              :tabs="logRunTabs"
+              :closable="false"
+              :show-close-all="false"
+              :context-menu="[]"
+              class="st-log-runs-tabs"
             >
-              <div class="st-log-run-head" @click="expandedLogRun = expandedLogRun === index ? -1 : index">
-                <span class="st-log-run-caret">{{ expandedLogRun === index ? "▾" : "▸" }}</span>
-                <span class="st-log-run-trigger">{{ triggerLabel(entry.trigger) }}</span>
-                <el-tag
-                  :type="entry.status === 'RUNNING' ? 'primary' : (entry.status === 'SUCCESS' ? 'success' : 'danger')"
-                  size="small" effect="dark" round
-                >{{ statusLabel(entry.status) }}</el-tag>
-                <span class="st-log-run-time">{{ entry.runTime }}</span>
-                <span class="st-log-run-cost">{{ entry.costMs ?? "—" }} ms</span>
-                <span class="st-log-run-count">{{ entry.lines.length }} 行</span>
-              </div>
-              <div v-if="expandedLogRun === index" class="st-log-run-body">
-                <div
-                  v-for="(line, li) in entry.lines" :key="li"
-                  class="st-log-line" :class="`is-${line.level.toLowerCase()}`"
-                >
-                  <span class="st-log-line-time">{{ line.time }}</span>
-                  <span class="st-log-line-level">{{ line.level }}</span>
-                  <span class="st-log-line-msg">{{ line.message }}</span>
+              <template #default="{ tab }">
+                <div class="st-log-run-body">
+                  <div
+                    v-for="(line, li) in runOf(tab).lines"
+                    :key="li"
+                    class="st-log-line"
+                    :class="`is-${line.level.toLowerCase()}`"
+                  >
+                    <span class="st-log-line-time">{{ line.time }}</span>
+                    <span class="st-log-line-level">{{ line.level }}</span>
+                    <span class="st-log-line-msg">{{ line.message }}</span>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </template>
+            </ReTabs>
           </div>
           <div v-else class="st-log-empty">服务端暂无调试日志——从本页「立即执行」或等定时触发一次，这里会显示逐步过程日志。</div>
         </div>
@@ -955,6 +993,8 @@ import {
   type SyncWriteMode,
 } from "../../api/syncTaskApi";
 import ReDialog from "@repo/ui/re-dialog";
+import ReTabs from "@repo/ui/re-tabs";
+import type { ReTabsItem } from "@repo/ui/re-tabs";
 import type { ReTableColumn } from "@repo/ui/re-table";
 
 defineOptions({ name: "SyncTaskView" });
@@ -2203,10 +2243,8 @@ const verifySourceReadable = async (): Promise<boolean> => {
   } catch (e) {
     const errText = (e as Error)?.message || "未知错误";
     message.error("源不可用：" + errText);
-    // 源表不存在的典型路径：当场弹设计表，建好后回填源表并继续。
-    if (isSourceTableMissingError(errText) || isTableMissingError(errText)) {
-      void openTableDesigner(errText);
-    }
+    // 源侧缺表只是数据源 / 库名 / 表名配错：光提示即可，不弹设计表。
+    // 源表不归本系统创建，弹建表框会误导用户去建一张本不该建的源表。
     return false;
   } finally {
     sourceVerifying.value = false;
@@ -2506,7 +2544,10 @@ const doPreview = async () => {
     message.error("预览失败：" + errText);
     // 「表不存在」不是配置填错，光提示用户也续不上 —— 直接弹设计表，
     // 在缺表的那一侧库建好后回填表名并自动续跑预览。
-    if (isTableMissingError(errText)) {
+    // 但源侧缺表必须排除：源表不归本系统创建，缺了是数据源 / 库名 / 表名配错，
+    // 弹建表框会误导用户去建一张本不该建的源表（后端源侧文案含「无法读取」，
+    // 会命中 isTableMissingError，必须显式排除）。
+    if (isTableMissingError(errText) && !isSourceTableMissingError(errText)) {
       void openTableDesigner(errText);
     }
   }
@@ -2892,8 +2933,28 @@ const logRuns = ref<SyncTaskRunLog[]>([]);
 const logFetchError = ref("");
 /** 服务端日志拉取中 */
 const logLoading = ref(false);
-/** 当前展开的执行条目下标（默认最新一次；-1 表示全部收起） */
-const expandedLogRun = ref(0);
+/** 当前激活的 ReTabs 页签名（默认最新一次执行；面板常驻显示该次过程日志，切换即显示） */
+const activeLogRunName = ref("");
+
+/** 与 logRunTabs / runOf 同口径的页签名（避免两处拼串漂移） */
+function entryName(entry: SyncTaskRunLog, index: number): string {
+  return `${entry.runTime}-${index}`;
+}
+
+/** 服务端执行调试日志 → ReTabs 页签（进行中在最前，其后已完成执行新 → 旧） */
+const logRunTabs = computed<ReTabsItem[]>(() =>
+  logRuns.value.map((entry, index) => ({
+    name: entryName(entry, index),
+    label: `${triggerLabel(entry.trigger)} · ${statusLabel(entry.status)}`,
+    hint: `${entry.runTime} · ${entry.costMs ?? "—"} ms · ${entry.lines.length} 行`,
+    status: entry.status === "RUNNING" ? ("unknown" as const) : (entry.status === "SUCCESS" ? ("online" as const) : ("alarm" as const)),
+    closable: false,
+  })),
+);
+
+/** 从页签回查对应执行记录（ReTabs 回传的是 ReTabsItem，需按 name 回查拿真实 lines） */
+const runOf = (tab: ReTabsItem): SyncTaskRunLog =>
+  logRuns.value.find((entry, index) => entryName(entry, index) === tab.name) ?? logRuns.value[0];
 /** 弹窗打开期间的轮询句柄 */
 let logPollTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -2928,7 +2989,7 @@ const openLog = (row: SyncTask): void => {
   logEntries.value = readLogEntries(row.id);
   logRuns.value = [];
   logFetchError.value = "";
-  expandedLogRun.value = 0;
+  activeLogRunName.value = "";
   logVisible.value = true;
 };
 
@@ -2957,9 +3018,13 @@ const fetchLogRuns = async (): Promise<void> => {
     logRuns.value = await fetchSyncTaskLogs(task.id);
     logFetchError.value = "";
     await nextTick();
-    // 最新一次正在跑且处于展开状态时，跟随日志尾部滚动（排障时盯着最新行）
-    if (logRuns.value[0]?.status === "RUNNING" && expandedLogRun.value === 0) {
-      const body = document.querySelector(".st-log-dlg .st-log-run.is-active .st-log-run-body");
+    // 打开弹窗时默认激活最新一次执行（排在 logRuns[0]）
+    if (!activeLogRunName.value && logRuns.value.length) {
+      activeLogRunName.value = entryName(logRuns.value[0], 0);
+    }
+    // 最新一次正在跑且正激活它时，跟随日志尾部滚动（排障时盯着最新行）
+    if (logRuns.value[0]?.status === "RUNNING" && activeLogRunName.value === entryName(logRuns.value[0], 0)) {
+      const body = document.querySelector(".st-log-dlg .re-tabs__panel .st-log-run-body");
       if (body) {
         body.scrollTop = body.scrollHeight;
       }
@@ -3458,7 +3523,11 @@ onUnmounted(() => {
 .st-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .st-form-item { display: flex; flex-direction: column; gap: 6px; }
 .st-form-item label { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.st-label-row { display: inline-flex; align-items: center; gap: 4px; }
+.st-label-tip { color: var(--text-tertiary); cursor: help; vertical-align: -1px; }
+.st-req { color: var(--el-color-danger); margin-left: 2px; }
 .st-form-hint { font-size: 12px; line-height: 1.5; color: var(--text-tertiary); }
+.st-alert { margin-top: 2px; }
 .st-full { width: 100%; }
 .st-inline { display: flex; align-items: center; gap: 8px; }
 .st-pick { width: 260px; }

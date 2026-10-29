@@ -515,11 +515,34 @@ export interface BulkImportResult {
 }
 
 /**
+ * 批量导入文件预览（真实读取服务端文件）。
+ *
+ * <p>返回文件表头 + 前 20 行样例 + 数据总行数，供「预览确认」步骤使用。
+ * 数据来自后端真实读取，前端不做 mock。</p>
+ */
+export interface BulkPreview {
+  /** 表头（源文件列名） */
+  headers: string[];
+  /** 前若干行样例（Map<列名, 值>） */
+  rows: Array<Record<string, string>>;
+  /** 数据总行数（不含表头） */
+  total: number;
+}
+
+/**
+ * 批量导入文件预览（真实读取）
+ *
+ * @param data 只用 filePath / delimiter / hasHeader / encoding
+ */
+export const bulkPreviewCsv = (data: BulkImportPayload) =>
+  http().post("/ms/monitor/bulkimport/preview").data(data).noToast(true).then(r => unwrap<BulkPreview>(r));
+
+/**
  * 批量导入 CSV
  *
- * <p>请求体带 {@code outputs[]}。后端建议把原有单目标 bulk load 方法包一层，
- * 用 {@code Executors.newVirtualThreadPerTaskExecutor()} 循环提交每个 output，
- * 等待全部完成后按目标汇总返回。</p>
+ * <p>请求体带 {@code outputs[]}。后端把文件统一转规范 CSV，按目标库方言走
+ * LOAD/COPY 直灌 SPI（MySQL / PostgreSQL），同一文件并行写入多个目标，
+ * 汇总返回每个目标的行数、耗时与错误。</p>
  */
 export const bulkImportCsv = (data: BulkImportPayload) =>
   http().post("/ms/monitor/bulkimport").data(data).noToast(true).then(r => unwrap<BulkImportResult>(r));

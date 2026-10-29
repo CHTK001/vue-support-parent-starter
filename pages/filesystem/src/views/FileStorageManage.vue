@@ -9,11 +9,28 @@
  *  - 弹窗预览（图片/文本/Office/PDF/音视频）
  *  - 一次性链接（自定义过期时间）
  */
+/**
+ * 上传弹框样式（.fs-up*）。
+ *
+ * <p><b>必须在这里 import，不能只靠 pages/filesystem/src/index.ts。</b>
+ * index.ts 里虽然有一行 {@code import "./styles/upload.css"}，但 monitor 的路由
+ * （apps/vue-support-monitor-starter/src/router/index.ts）是直接
+ * {@code import("@pages/filesystem/src/views/FileStorageManage.vue")}，
+ * 从不加载 index.ts —— 于是那条全局样式从未注入。</p>
+ *
+ * <p>症状：上传弹框的所有 .fs-up__* 规则全丢，.fs-up__pick 退回浏览器原生
+ * 按钮外观（2px outset 灰底），拖拽区没有虚线框和内边距，标题不居中。
+ * 2026-10-27 实测：.fs-up__* 精确规则数为 0。放到组件里 import 后，
+ * 无论走路由还是走 index.ts 注册都必然加载。</p>
+ *
+ * <p>文件本身是全局样式（不带 scoped）：弹框 append-to-body 后 DOM 挂在
+ * body 下，scoped 选择器匹配不到。</p>
+ */
+import "../styles/upload.css";
 import { message } from "@repo/core";
 import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, reactive, ref, watch, type Component } from "vue";
 import { ElMessageBox } from "element-plus";
 import {
-  ArrowDown,
   ArrowLeft,
   Box,
   CircleCheck,
@@ -24,7 +41,6 @@ import {
   Delete,
   DeleteFilled,
   Document,
-  DocumentAdd,
   DocumentCopy,
   Download,
   EditPen,
@@ -36,12 +52,12 @@ import {
   InfoFilled,
   Key,
   Link,
-  List,
   Lock,
   Menu,
   Operation,
   Picture,
   Refresh,
+  RefreshLeft,
   RefreshRight,
   Scissor,
   Search,
@@ -68,7 +84,6 @@ import {
   getBucketConfig,
   getCapabilities,
   getDefaultBucket,
-  getQuotaBytes,
   getBucketTree,
   getServerBase,
   isUploadAborted,
@@ -227,6 +242,7 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   clj: FvTextPanel,
   properties: FvTextPanel,
   conf: FvTextPanel,
+  cnf: FvTextPanel,
   env: FvTextPanel,
   cfg: FvTextPanel,
   gradle: FvTextPanel,
@@ -596,7 +612,7 @@ const sortKey = ref<SortKey>("name");
 /** 排序方向：asc 升序 / desc 降序 */
 const sortOrder = ref<SortOrder>("asc");
 /** 当前右键菜单 */
-const ctxMenu = ref<{ visible: boolean; x: number; y: number; row: StorageObject | null }>({ visible: false, x: 0, y: 0, row: null });
+const ctxMenu = ref<{ visible: boolean; x: number; y: number; row: StorageObject | null; path: string | null }>({ visible: false, x: 0, y: 0, row: null, path: null });
 
 /**
  * 右键菜单元素引用
@@ -616,9 +632,10 @@ const ctxMenuRef = ref<HTMLElement | null>(null);
  *
  * @param e   鼠标事件（取 clientX/clientY）
  * @param row 目标对象；空白处右键传 null
+ * @param path 右键空白时所在的目录路径（分栏目录列空白为列路径，其余为当前目录；null 表示未指定）
  */
-async function openMenuAt(e: MouseEvent, row: StorageObject | null): Promise<void> {
-  ctxMenu.value = { visible: true, x: e.clientX, y: e.clientY, row };
+async function openMenuAt(e: MouseEvent, row: StorageObject | null, path: string | null = null): Promise<void> {
+  ctxMenu.value = { visible: true, x: e.clientX, y: e.clientY, row, path };
   await nextTick();
   const el = ctxMenuRef.value;
   if (!el) {
@@ -682,10 +699,6 @@ const sortedObjects = computed(() => {
     return r * dir;
   });
 });
-
-const fileCount = computed(() => objects.value.filter((item) => !item.directory).length);
-const dirCount = computed(() => objects.value.filter((item) => item.directory).length);
-const totalSize = computed(() => objects.value.reduce((sum, item) => sum + (item.directory ? 0 : item.size || 0), 0));
 
 function formatSize(bytes?: number): string {
   if (!bytes) return "-";
@@ -909,8 +922,6 @@ const RECENT_KEY = "filestorage.recent";
 const FAVORITE_KEY = "filestorage.favorites";
 /** localStorage：界面状态键前缀，后面拼桶名——按桶分别记忆 */
 const UI_STATE_PREFIX = "filestorage.ui.";
-/** 合法的视图模式白名单（用于校验持久化值，防止旧版本残留的非法值） */
-const VIEW_MODES: ViewMode[] = ["columns", "details", "largeIcons", "mediumIcons", "smallIcons"];
 /** 合法的排序字段白名单 */
 const SORT_KEYS: SortKey[] = ["name", "size", "lastModified"];
 /** 合法的排序方向 */
@@ -1007,7 +1018,8 @@ function writeUiState(bucketName: string): void {
  */
 function applyUiState(bucketName: string): void {
   const saved = readUiState(bucketName);
-  viewMode.value = VIEW_MODES.includes(saved.viewMode as ViewMode) ? (saved.viewMode as ViewMode) : "columns";
+  // 视图已收敛为单一分栏图标卡：固定 columns，忽略持久化的旧视图模式
+  viewMode.value = "columns";
   currentPath.value = typeof saved.currentPath === "string" ? saved.currentPath : "";
   sortKey.value = SORT_KEYS.includes(saved.sortKey as SortKey) ? (saved.sortKey as SortKey) : "name";
   sortOrder.value = SORT_ORDERS.includes(saved.sortOrder as SortOrder) ? (saved.sortOrder as SortOrder) : "asc";
@@ -1036,25 +1048,28 @@ const recycleLoading = ref(false);
 /** 回收站数量（导航徽标） */
 const recycleCount = computed(() => recycleItems.value.length);
 
-/**
- * 存储配额（字节）。
- *
- * <p>优先级：localStorage 覆盖 ＞ app.yaml {@code otherConfig.filestorage.quotaGb} ＞ 默认 5GB，
- * 由 {@link getQuotaBytes} 统一解析。</p>
- */
-const quotaBytes = computed(() => getQuotaBytes());
+/** 是否为今天（用于回收站分组「今天 / 更早」） */
+function isToday(ts?: number): boolean {
+  if (!ts || ts <= 0) return false;
+  const d = new Date(ts);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear()
+    && d.getMonth() === now.getMonth()
+    && d.getDate() === now.getDate();
+}
 
-/** 配额展示文案（GB，保留 1 位） */
-const quotaText = computed(() => `${(quotaBytes.value / 1024 / 1024 / 1024).toFixed(1)} GB`);
-
-/** 存储用量明细是否展开：默认折叠，只显示占用大小，点箭头才展开明细 */
-const usageOpen = ref(false);
-
-/** 当前目录占用占配额的比例（0-100，用于进度条）；占用取既有的 totalSize（排除目录） */
-const usagePercent = computed(() => {
-  if (quotaBytes.value <= 0) return 0;
-  const pct = (totalSize.value / quotaBytes.value) * 100;
-  return Math.min(100, Math.max(0, Number(pct.toFixed(2))));
+/** 回收站按删除时间分组：今天 / 更早（组内按时间倒序） */
+const groupedRecycle = computed(() => {
+  const today: StorageObject[] = [];
+  const earlier: StorageObject[] = [];
+  for (const it of recycleItems.value) {
+    (isToday(it.lastModified) ? today : earlier).push(it);
+  }
+  const sortDesc = (arr: StorageObject[]) => arr.sort((a, b) => (b.lastModified ?? 0) - (a.lastModified ?? 0));
+  const groups: Array<{ key: string; label: string; items: StorageObject[] }> = [];
+  if (today.length) groups.push({ key: "today", label: "今天", items: sortDesc(today) });
+  if (earlier.length) groups.push({ key: "earlier", label: "更早", items: sortDesc(earlier) });
+  return groups;
 });
 
 /**
@@ -1239,6 +1254,10 @@ async function emptyRecycle(): Promise<void> {
  * @param key 视图 key
  */
 function switchNav(key: NavKey): void {
+  // 已在回收站时再点「回收站」= 退出回收站（回到文件列表根目录）
+  if (key === "recycle" && nav.value === "recycle") {
+    key = "all";
+  }
   nav.value = key;
   clearSelect();
   if (key === "all") {
@@ -1248,11 +1267,6 @@ function switchNav(key: NavKey): void {
     void loadObjects();
   }
   if (key === "recycle") void loadRecycle();
-}
-
-/** 视图下拉切换 */
-function setView(mode: ViewMode): void {
-  viewMode.value = mode;
 }
 
 /**
@@ -1400,12 +1414,6 @@ const canGoBack = computed(() => historyIndex.value > 0);
 /** 历史是否可前进 */
 const canGoForward = computed(() => historyIndex.value < historyStack.value.length - 1);
 
-/** 全选当前目录 */
-function selectAll(): void {
-  selected.value = new Set(sortedObjects.value.map((i) => i.name));
-  lastSelectedIndex = -1;
-}
-
 /** 下载选中文件：单文件直链，含目录或多选时打包 ZIP */
 function downloadSelected(): void {
   if (selectedCount.value === 0) return;
@@ -1543,14 +1551,21 @@ async function refreshAfterAction(): Promise<void> {
   refreshColumns();
 }
 
-/** 新建文件夹 */
-async function onCreateDir(): Promise<void> {
-  const name = await promptInput("请输入新文件夹名称");
-  if (!name) return;
+/** 新建文件夹（支持多级目录：输入 a/b/c 会逐级创建）。path 为空时创建在当前目录 */
+async function onCreateDir(path?: string | null): Promise<void> {
+  const input = await promptInput("请输入新文件夹名称（支持多级，如 a/b/c）");
+  if (!input) return;
   actionRunning.value = true;
   try {
-    await createDirectory(bucket.value, currentPath.value, name);
-    message.success(`文件夹「${name}」已创建`);
+    // 逐级创建：一级不存在就建一级，保证 a/b/c 也能创建成功
+    const segs = input.split("/").map((s) => s.trim()).filter(Boolean);
+    if (segs.length === 0) return;
+    let base = path ?? currentPath.value;
+    for (const seg of segs) {
+      await createDirectory(bucket.value, base, seg);
+      base = base ? `${base}/${seg}` : seg;
+    }
+    message.success(`文件夹「${input}」已创建`);
     await refreshAfterAction();
   } catch (e) {
     message.error((e as Error)?.message ?? "新建文件夹失败");
@@ -1560,12 +1575,29 @@ async function onCreateDir(): Promise<void> {
 }
 
 /** 新建空文件 */
-async function onCreateFile(): Promise<void> {
+async function onCreateFile(path?: string | null): Promise<void> {
   const name = await promptInput("请输入新文件名称");
   if (!name) return;
   actionRunning.value = true;
   try {
-    await createFile(bucket.value, currentPath.value, name);
+    await createFile(bucket.value, path ?? currentPath.value, name);
+    message.success(`文件「${name}」已创建`);
+    await refreshAfterAction();
+  } catch (e) {
+    message.error((e as Error)?.message ?? "新建文件失败");
+  } finally {
+    actionRunning.value = false;
+  }
+}
+
+/** 新建模板文件（text/docx/xlsx，带默认文件名与扩展名）。path 为空时创建在当前目录 */
+async function onCreateTemplateFile(kind: "text" | "docx" | "xlsx", path?: string | null): Promise<void> {
+  const def = kind === "text" ? "未命名.txt" : kind === "docx" ? "未命名.docx" : "未命名.xlsx";
+  const name = await promptInput("请输入新文件名称", def);
+  if (!name) return;
+  actionRunning.value = true;
+  try {
+    await createFile(bucket.value, path ?? currentPath.value, name);
     message.success(`文件「${name}」已创建`);
     await refreshAfterAction();
   } catch (e) {
@@ -1816,9 +1848,17 @@ function onRowDragStart(e: DragEvent, item: StorageObject): void {
   e.dataTransfer.effectAllowed = "copyMove";
 }
 
-/** 目录行拖拽悬停：仅内部拖拽且目标为目录时允许放置 */
+/** 目录行拖拽悬停：目标为目录时允许放置（内部移动/复制，或外部文件拖入） */
 function onRowDragOver(e: DragEvent, item: StorageObject): void {
-  if (!e.dataTransfer || !item.directory || !e.dataTransfer.types.includes(DRAG_MIME)) return;
+  if (!e.dataTransfer || !item.directory) return;
+  if (e.dataTransfer.types.includes("Files")) {
+    // 外部文件拖入目录：允许放置，显示复制光标
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    dragOverDir.value = fullKey(item.name);
+    return;
+  }
+  if (!e.dataTransfer.types.includes(DRAG_MIME)) return;
   e.preventDefault();
   e.dataTransfer.dropEffect = e.ctrlKey ? "copy" : "move";
   dragOverDir.value = fullKey(item.name);
@@ -1867,7 +1907,15 @@ async function dropKeysTo(targetDir: string, e?: DragEvent): Promise<void> {
 
 /** 放置到文件区的目录行 */
 async function onRowDrop(e: DragEvent, item: StorageObject): Promise<void> {
-  if (!item.directory || !e.dataTransfer?.types.includes(DRAG_MIME)) return;
+  if (!item.directory) return;
+  // 外部文件拖到文件夹行：上传进该文件夹（不落到当前目录）
+  if (e.dataTransfer?.types.includes("Files")) {
+    e.preventDefault();
+    e.stopPropagation();
+    await uploadFilesToDir(Array.from(e.dataTransfer.files ?? []), fullKey(item.name));
+    return;
+  }
+  if (!e.dataTransfer?.types.includes(DRAG_MIME)) return;
   e.preventDefault();
   e.stopPropagation();
   const targetDir = fullKey(item.name);
@@ -2085,6 +2133,15 @@ const activeUrlPreviewer = computed(
 /** 选了不支持处理的实现：给显式提示，避免用户以为打开就能用 */
 const urlPreviewerUnsupported = computed(
   () => activeUrlPreviewer.value !== null && !activeUrlPreviewer.value.supported,
+);
+
+/** 远程文件读取器选项（FileStorageRemoteReader SPI，展示可用协议） */
+const remoteReaderOptions = computed(() =>
+  (capabilities.value?.remoteReaders ?? []).filter((r) => r.supported).map((r) => ({
+    label: r.label || r.name,
+    protocol: r.protocol,
+    description: r.description ?? "",
+  })),
 );
 
 /** 服务端是否显示"类型"列 */
@@ -2947,7 +3004,15 @@ function onColumnRowDragLeave(colPath: string, item: StorageObject): void {
  * @param item    目标目录
  */
 async function onColumnDrop(e: DragEvent, colPath: string, item: StorageObject): Promise<void> {
-  if (!item.directory || !e.dataTransfer?.types.includes(DRAG_MIME)) return;
+  if (!item.directory) return;
+  // 外部文件拖到分栏目录：上传进该目录
+  if (e.dataTransfer?.types.includes("Files")) {
+    e.preventDefault();
+    e.stopPropagation();
+    await uploadFilesToDir(Array.from(e.dataTransfer.files ?? []), joinKey(colPath, item.name));
+    return;
+  }
+  if (!e.dataTransfer?.types.includes(DRAG_MIME)) return;
   e.preventDefault();
   e.stopPropagation();
   await dropKeysTo(joinKey(colPath, item.name), e);
@@ -3041,18 +3106,26 @@ function openColumnContextMenu(e: MouseEvent, row: StorageObject, colPath: strin
 }
 
 /** 文件区空白处右键菜单（新建/粘贴/刷新） */
-function openBlankContextMenu(e: MouseEvent): void {
+function openBlankContextMenu(e: MouseEvent, path: string | null = null): void {
   e.preventDefault();
-  void openMenuAt(e, null);
+  void openMenuAt(e, null, path);
+}
+
+/** 分栏目录列空白右键：以该列的目录为操作上下文（新建目录/新建文件落在这列下） */
+function openColumnBlankContextMenu(e: MouseEvent, colPath: string): void {
+  e.preventDefault();
+  void openMenuAt(e, null, colPath);
 }
 
 function closeContextMenu(): void {
   ctxMenu.value.visible = false;
   ctxMenu.value.row = null;
+  ctxMenu.value.path = null;
 }
 
 function ctxAction(action: string) {
   const row = ctxMenu.value.row;
+  const ctxPath = ctxMenu.value.path;
   closeContextMenu();
   switch (action) {
     case "open":
@@ -3109,19 +3182,25 @@ function ctxAction(action: string) {
       void onUnzip(row);
       break;
     case "mkdir":
-      void onCreateDir();
+      void onCreateDir(ctxPath);
       break;
     case "mkfile":
-      void onCreateFile();
+      void onCreateFile(ctxPath);
+      break;
+    case "mktext":
+      void onCreateTemplateFile("text", ctxPath);
+      break;
+    case "mkdocx":
+      void onCreateTemplateFile("docx", ctxPath);
+      break;
+    case "mkxlsx":
+      void onCreateTemplateFile("xlsx", ctxPath);
       break;
     case "refresh":
       void loadObjects();
       break;
     case "upload":
       openUpload();
-      break;
-    case "selectAll":
-      selectAll();
       break;
     case "delete":
       if (row) void handleDelete(row);
@@ -3535,23 +3614,40 @@ function handleFileChange(event: Event): void {
   addUploadFiles(files);
 }
 
-/** 执行上传：支持 FileList 与 DataTransferItem 的文件（页面级拖放，直接开传） */
-async function doUpload(files: File[]): Promise<void> {
+/**
+ * 上传到指定目录（页面级拖放 / 拖到文件夹目录行共用）。
+ *
+ * <p>拖到文件区空白处时 {@code dir} 为当前目录；拖到某个文件夹行上时
+ * 为该文件夹的完整键，保证「放到目录里」与提示一致，不再落到当前目录。</p>
+ *
+ * @param files 文件列表
+ * @param dir   目标目录（桶内相对路径，空表示桶根）
+ */
+async function uploadFilesToDir(files: File[], dir: string): Promise<void> {
   if (!files.length) return;
+  if (uploading.value) {
+    message.warning("正在上传，请稍候");
+    return;
+  }
   uploading.value = true;
   let success = 0;
   try {
     for (const f of files) {
-      await putObject(bucket.value, fullKey(f.name), f);
+      await putObject(bucket.value, joinKey(dir, f.name), f);
       success++;
     }
-    message.success(`上传成功 ${success} 个文件`);
+    message.success(`上传成功 ${success} 个文件到「${dir || "/"}」`);
     await loadObjects();
   } catch (e) {
     message.error((e as Error)?.message ?? "上传失败");
   } finally {
     uploading.value = false;
   }
+}
+
+/** 执行上传：支持 FileList 与 DataTransferItem 的文件（页面级拖放，直接开传） */
+async function doUpload(files: File[]): Promise<void> {
+  await uploadFilesToDir(files, currentPath.value);
 }
 
 /* ================== 拖拽上传 ================== */
@@ -4634,26 +4730,6 @@ onUnmounted(() => {
           >
             <el-icon :size="15"><Download /></el-icon>下载
           </button>
-
-          <!-- 存储统计：紧凑胶囊放路径栏右侧，点箭头展开明细；折叠态只显示当前目录占用大小 -->
-          <div class="fs-stats">
-            <button
-              type="button"
-              class="fs-stat fs-stat--usage"
-              :aria-expanded="usageOpen"
-              aria-label="当前目录占用"
-              @click="usageOpen = !usageOpen"
-            >
-              <span class="fs-stat__label">占用</span>
-              <b class="fs-stat__size">{{ formatSize(totalSize) }}</b>
-              <el-icon class="fs-stat__chev" :class="{ 'is-open': usageOpen }"><ArrowDown /></el-icon>
-            </button>
-            <div v-if="usageOpen" class="fs-stat__detail">
-              <span>当前目录：<b>{{ formatSize(totalSize) }}</b>，共 <b>{{ objects.length }}</b> 项</span>
-              <span>存储配额：<b>{{ quotaText }}</b>，已用 <b>{{ usagePercent }}%</b></span>
-              <span class="fs-stat__bar"><i :style="{ width: usagePercent + '%' }" /></span>
-            </div>
-          </div>
         </div>
 
         <!-- 搜索工具栏整行删除：搜索框已按需求移除，上传/下载并入上方路径栏尾部，
@@ -4673,7 +4749,7 @@ onUnmounted(() => {
               class="fs-col__body"
               @dragover="onColumnBlankDragOver"
               @drop="onColumnBlankDrop($event, colPath)"
-              @contextmenu="openBlankContextMenu"
+              @contextmenu="openColumnBlankContextMenu($event, colPath)"
             >
               <div v-if="colObjects[colPath] === undefined" class="fs-col__hint">加载中…</div>
               <div v-else-if="colError[colPath]" class="fs-col__hint fs-col__hint--error">{{ colError[colPath] }}</div>
@@ -4928,76 +5004,52 @@ onUnmounted(() => {
         </template>
 
         <!-- ===== 回收站 ===== -->
-        <div v-else-if="nav === 'recycle'" class="fs-files fs-files--large" v-loading="recycleLoading">
+        <div v-else-if="nav === 'recycle'" class="fs-files fs-recycle" v-loading="recycleLoading">
           <div class="fs-recycle-head">
-            <span>{{ recycleCount }} 项 · 删除的对象会先进入回收站</span>
+            <span class="fs-recycle-head-title">回收站</span>
+            <span class="fs-recycle-head-sub">{{ recycleCount }} 项 · 删除的对象会先进入回收站</span>
             <button type="button" class="fs-pill-btn fs-pill-btn--danger" :disabled="actionRunning || recycleCount === 0" @click="emptyRecycle">
               <el-icon :size="14"><Delete /></el-icon>清空回收站
             </button>
           </div>
+
           <div v-if="recycleItems.length === 0 && !recycleLoading" class="fs-files__empty">
             <el-icon :size="42"><DeleteFilled /></el-icon>
             <span>回收站为空</span>
           </div>
-          <div v-for="item in recycleItems" :key="item.name" class="fs-lg-card">
-            <div class="fs-lg-card__thumb" :class="fileIconClass(item.name, item.directory)">
-              <span class="fs-typeicon fs-card-icon" v-html="fileSvg(item.name, item.directory)" aria-hidden="true" />
+
+          <!-- 按删除时间分组（今天 / 更早） -->
+          <div v-for="g in groupedRecycle" :key="g.key" class="fs-recycle-group">
+            <div class="fs-recycle-group-hd">
+              <span class="fs-recycle-group-name">{{ g.label }}</span>
+              <span class="fs-recycle-group-cnt">{{ g.items.length }} 项</span>
             </div>
-            <div class="fs-lg-card__label" :title="item.name">{{ item.name }}</div>
-            <div class="fs-lg-card__meta">{{ cardMeta(item) }}</div>
-            <div class="fs-lg-card__ops">
-              <button type="button" class="fs-mini-btn" :disabled="actionRunning" @click="restoreRecycleItem(item)">还原</button>
-              <button type="button" class="fs-mini-btn fs-mini-btn--danger" :disabled="actionRunning" @click="purgeRecycleItem(item)">彻底删除</button>
+            <div class="fs-recycle-list">
+              <div v-for="item in g.items" :key="item.name" class="fs-recycle-row">
+                <div class="fs-recycle-ic" :class="fileIconClass(item.name, item.directory)">
+                  <span class="fs-typeicon" v-html="fileSvg(item.name, item.directory)" aria-hidden="true" />
+                </div>
+                <div class="fs-recycle-main">
+                  <div class="fs-recycle-name" :title="item.name">{{ item.name }}</div>
+                  <div class="fs-recycle-meta">{{ cardMeta(item) }}</div>
+                </div>
+                <div class="fs-recycle-acts">
+                  <button type="button" class="fs-mini-btn" :disabled="actionRunning" @click="restoreRecycleItem(item)">
+                    <el-icon :size="13"><RefreshLeft /></el-icon>还原
+                  </button>
+                  <button type="button" class="fs-mini-btn fs-mini-btn--danger" :disabled="actionRunning" @click="purgeRecycleItem(item)">
+                    <el-icon :size="13"><Delete /></el-icon>彻底删除
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-        <!-- 状态栏：项数 + 视图切换 -->
+        <!-- 状态栏：项数（视图切换已按需求收敛移除，仅保留默认分栏图标卡） -->
         <div class="fs-statusbar">
           <span class="fs-statusbar__info">
             {{ nav === 'recycle' ? recycleCount : sortedObjects.length }} 个项{{ selectedCount > 0 ? `（已选 ${selectedCount} 项）` : '' }}
           </span>
-          <div class="fs-statusbar__views" role="group" aria-label="查看方式">
-            <button
-              type="button"
-              class="fs-view-btn"
-              :class="{ 'is-active': viewMode === 'columns' }"
-              title="分栏"
-              aria-label="分栏"
-              @click="setView('columns')"
-            ><el-icon :size="15"><Operation /></el-icon></button>
-            <button
-              type="button"
-              class="fs-view-btn"
-              :class="{ 'is-active': viewMode === 'details' }"
-              title="详细信息"
-              aria-label="详细信息"
-              @click="setView('details')"
-            ><el-icon :size="15"><List /></el-icon></button>
-            <button
-              type="button"
-              class="fs-view-btn"
-              :class="{ 'is-active': viewMode === 'largeIcons' }"
-              title="大图标"
-              aria-label="大图标"
-              @click="setView('largeIcons')"
-            ><el-icon :size="15"><Grid /></el-icon></button>
-            <button
-              type="button"
-              class="fs-view-btn"
-              :class="{ 'is-active': viewMode === 'mediumIcons' }"
-              title="中图标"
-              aria-label="中图标"
-              @click="setView('mediumIcons')"
-            ><el-icon :size="15"><Menu /></el-icon></button>
-            <button
-              type="button"
-              class="fs-view-btn"
-              :class="{ 'is-active': viewMode === 'smallIcons' }"
-              title="小图标"
-              aria-label="小图标"
-              @click="setView('smallIcons')"
-            ><el-icon :size="15"><Tickets /></el-icon></button>
-          </div>
         </div>
       </main>
     </div>
@@ -5144,37 +5196,31 @@ onUnmounted(() => {
           </button>
         </template>
         <template v-else>
+          <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('mktext')">
+            <el-icon class="fs-ctx__icon" aria-hidden="true"><Document /></el-icon>
+            新建 text
+          </button>
+          <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('mkdocx')">
+            <el-icon class="fs-ctx__icon" aria-hidden="true"><DocumentCopy /></el-icon>
+            新建 docx
+          </button>
+          <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('mkxlsx')">
+            <el-icon class="fs-ctx__icon" aria-hidden="true"><Tickets /></el-icon>
+            新建 xlsx
+          </button>
+          <div class="fs-ctx__sep" aria-hidden="true" />
+          <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('refresh')">
+            <el-icon class="fs-ctx__icon" aria-hidden="true"><Refresh /></el-icon>
+            刷新
+          </button>
           <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('mkdir')">
             <el-icon class="fs-ctx__icon" aria-hidden="true"><FolderAdd /></el-icon>
-            新建文件夹
+            新建目录（多级）
           </button>
-          <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('mkfile')">
-            <el-icon class="fs-ctx__icon" aria-hidden="true"><DocumentAdd /></el-icon>
-            新建文件
-          </button>
+          <div class="fs-ctx__sep" aria-hidden="true" />
           <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('upload')">
             <el-icon class="fs-ctx__icon" aria-hidden="true"><Upload /></el-icon>
             上传
-          </button>
-          <button
-            v-if="clipboard != null"
-            type="button"
-            class="fs-ctx__item"
-            role="menuitem"
-            @click="ctxAction('paste')"
-          >
-            <el-icon class="fs-ctx__icon" aria-hidden="true"><DocumentCopy /></el-icon>
-            <span class="fs-ctx__label">粘贴到此处</span>
-            <kbd class="fs-ctx__kbd">Ctrl+V</kbd>
-          </button>
-          <div class="fs-ctx__sep" aria-hidden="true" />
-          <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('selectAll')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-            全选
-          </button>
-          <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('refresh')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-            刷新
           </button>
         </template>
       </div>
@@ -5249,6 +5295,21 @@ onUnmounted(() => {
                 </span>
                 <el-switch v-model="adminForm[t.key]" />
               </div>
+            </div>
+
+            <!-- 远程文件读取器：SPI 枚举，展示可用协议（ssh:// 等） -->
+            <div v-if="remoteReaderOptions.length" class="fs-admin__field">
+              <span class="fs-admin__label fs-admin__label--field">远程读取协议</span>
+              <div class="fs-admin__remote-readers">
+                <span v-for="r in remoteReaderOptions" :key="r.protocol" class="fs-admin__remote-reader">
+                  <el-icon><Connection /></el-icon>
+                  <code>{{ r.protocol }}</code>
+                  <span class="fs-admin__optdesc">{{ r.description }}</span>
+                </span>
+              </div>
+              <p class="fs-admin__hint">
+                开启「远程文件透传」后，URL 路径以 <code>ssh://</code> 开头的请求将通过 SSH 读取远程文件。
+              </p>
             </div>
 
             <!-- 三方 URL 预览：能力由后台 SPI 枚举，显式选择后才生效（不是开关） -->
@@ -6109,221 +6170,6 @@ onUnmounted(() => {
   transform: translateY(0);
 }
 
-/* ===== 统计卡 ===== */
-/* 存储用量：位于路径栏右侧的紧凑外壳（折叠态只有一枚小胶囊） */
-.fs-stats {
-  position: relative;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-}
-
-.fs-stat {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px 18px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
-  background: var(--el-bg-color, #fff);
-  min-width: 0;
-  text-align: left;
-  font-family: inherit;
-}
-
-button.fs-stat {
-  cursor: pointer;
-  transition: border-color var(--el-transition-duration, 0.2s), box-shadow var(--el-transition-duration, 0.2s);
-}
-
-button.fs-stat:hover {
-  border-color: var(--el-color-primary-light-5);
-  box-shadow: 0 4px 14px rgb(0 0 0 / 5%);
-}
-
-/* 路径栏右侧的紧凑用量胶囊：折叠态只显示占用大小，点箭头展开明细 */
-.fs-stat--usage {
-  gap: 6px;
-  height: 26px;
-  padding: 0 10px;
-  border-radius: var(--el-radius-full, 9999px);
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-.fs-stat--usage:hover {
-  border-color: var(--el-color-primary-light-5);
-  color: var(--el-color-primary);
-  /* 小胶囊不适合大面积投影，压掉基类的 hover 阴影 */
-  box-shadow: none;
-}
-
-.fs-stat--usage .fs-stat__size {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-.fs-stat__avatar {
-  flex-shrink: 0;
-  width: 46px;
-  height: 46px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--el-radius-full, 9999px);
-  color: var(--el-color-white);
-}
-
-.fs-stat__avatar--primary {
-  background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
-  box-shadow: 0 6px 14px color-mix(in srgb, var(--el-color-primary) 28%, transparent);
-}
-
-.fs-stat__avatar--blue {
-  background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
-  box-shadow: 0 6px 14px color-mix(in srgb, var(--el-color-primary) 28%, transparent);
-}
-
-.fs-stat__avatar--green {
-  background: linear-gradient(135deg, var(--el-color-success), var(--el-color-success-light-3));
-  box-shadow: 0 6px 14px color-mix(in srgb, var(--el-color-success) 28%, transparent);
-}
-
-.fs-stat__body {
-  flex: 1;
-  min-width: 0;
-}
-
-.fs-stat__label {
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-}
-
-.fs-stat__value {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--el-text-color-regular);
-  font-variant-numeric: tabular-nums;
-}
-
-.fs-stat__value b {
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
-}
-
-.fs-stat__sep {
-  color: var(--el-text-color-placeholder);
-}
-
-.fs-stat__bar {
-  margin-top: 8px;
-  height: 6px;
-  border-radius: var(--el-radius-full, 9999px);
-  background: var(--el-fill-color);
-  overflow: hidden;
-}
-
-.fs-stat__bar i {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg,
-    var(--el-color-primary),
-    color-mix(in srgb, var(--el-color-primary) 55%, var(--el-color-info)));
-  transition: width var(--el-transition-duration, 0.2s);
-}
-
-.fs-stat__side {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 4px 6px 14px;
-  border: none;
-  border-left: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
-  background: transparent;
-  font-family: inherit;
-  cursor: pointer;
-  color: var(--el-text-color-secondary);
-  font-size: 12px;
-}
-
-.fs-stat__side b {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-.fs-stat__chev {
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-  transition: transform var(--el-transition-duration, 0.2s);
-}
-
-.fs-stat__chev.is-open {
-  transform: rotate(180deg);
-}
-
-.fs-stat__detail {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 40;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 220px;
-  padding: 12px 14px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-lg, 12px);
-  background: var(--el-bg-color-overlay, #fff);
-  box-shadow: 0 10px 30px rgb(0 0 0 / 10%);
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-.fs-stat__detail b {
-  color: var(--el-text-color-primary);
-  word-break: break-all;
-}
-
-.fs-stat__title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.fs-stat__num {
-  margin-left: auto;
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-.fs-stat__badge {
-  margin-left: auto;
-  min-width: 30px;
-  height: 30px;
-  padding: 0 9px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--el-radius-full, 9999px);
-  background: var(--el-color-warning);
-  color: var(--el-color-white);
-  font-size: 14px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
 /* ===== 主体：左导航 + 内容 ===== */
 .fs-body {
   flex: 1;
@@ -7051,15 +6897,120 @@ button.fs-stat:hover {
 }
 
 /* ===== 回收站 ===== */
+.fs-recycle {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
 .fs-recycle-head {
-  grid-column: 1 / -1;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 12px;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.fs-recycle-head-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+}
+.fs-recycle-head-sub {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+  flex: 1;
+  min-width: 0;
+}
+
+.fs-recycle-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fs-recycle-group-hd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
+}
+.fs-recycle-group-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, var(--el-text-color-secondary, #606266));
+}
+.fs-recycle-group-cnt {
+  font-size: 11px;
+  color: var(--text-tertiary, #a8abb2);
+  background: var(--bg-subtle, #f4f4f5);
+  border-radius: 999px;
+  padding: 0 8px;
+  line-height: 1.8;
+}
+
+.fs-recycle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fs-recycle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #eef0f3));
+  border-radius: var(--el-radius-md, 10px);
+  background: var(--bg-container, #fff);
+  transition: border-color var(--el-transition-duration, 0.2s), box-shadow var(--el-transition-duration, 0.2s);
+}
+.fs-recycle-row:hover {
+  border-color: var(--el-color-primary-light-7, #b3d8ff);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 5%);
+}
+.fs-recycle-ic {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--bg-subtle, #f4f4f5);
+  filter: grayscale(0.4);
+  opacity: 0.85;
+}
+.fs-recycle-ic .fs-typeicon {
+  font-size: 26px;
+}
+.fs-recycle-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.fs-recycle-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fs-recycle-meta {
+  font-size: 11px;
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fs-recycle-acts {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+.fs-recycle-acts .fs-mini-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 /* ===== 拖拽放置目标高亮（四种视图通用） ===== */
@@ -8055,10 +8006,6 @@ button.fs-stat:hover {
 
 /* 响应式 */
 @media (max-width: 992px) {
-  /* 窄屏：用量胶囊只留数字，避免与面包屑争宽 */
-  .fs-stat--usage .fs-stat__label {
-    display: none;
-  }
   .fs-nav {
     width: 168px;
   }
@@ -8423,18 +8370,25 @@ button.fs-stat:hover {
   overflow: hidden;
 }
 
+/* 最后一列撑满剩余宽度：解除基类的 max-width 上限，让图标卡网格铺满文件区 */
 .fs-col:last-child {
   flex: 1 1 auto;
+  max-width: none;
   border-right: none;
 }
 
 .fs-col__body {
   height: 100%;
   overflow-y: auto;
-  padding: 2px 6px;
+  padding: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 4px;
 }
 
 .fs-col__hint {
+  width: 100%;
   padding: 12px 10px;
   font-size: 12px;
   color: var(--el-text-color-placeholder);
@@ -8446,17 +8400,22 @@ button.fs-stat:hover {
   word-break: break-all;
 }
 
+/* 列内条目统一为图标卡：图标在上、文件名在下（office 图标 + 下方文件名） */
 .fs-col__row {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  height: 40px;
-  padding: 0 8px;
-  border-radius: var(--el-radius-sm, 6px);
+  justify-content: flex-start;
+  gap: 4px;
+  width: 96px;
+  min-height: 78px;
+  padding: 8px 4px 6px;
+  border-radius: var(--el-radius-md, 8px);
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--el-text-color-regular);
-  white-space: nowrap;
+  text-align: center;
+  white-space: normal;
   overflow: hidden;
   outline: none;
   transition: background var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s);
@@ -8493,15 +8452,18 @@ button.fs-stat:hover {
 }
 
 .fs-col__icon {
-  width: 18px;
-  height: 18px;
-  font-size: 18px;
+  width: 36px;
+  height: 36px;
+  font-size: 36px;
   flex-shrink: 0;
 }
 
 .fs-col__name {
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
+  word-break: break-all;
+  line-height: 1.3;
 }
 
 /* 状态栏 */
@@ -8518,36 +8480,6 @@ button.fs-stat:hover {
   flex: 1;
   font-size: 12px;
   color: var(--el-text-color-secondary);
-}
-
-.fs-statusbar__views {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-}
-
-.fs-view-btn {
-  width: 28px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: var(--el-radius-sm, 6px);
-  background: transparent;
-  color: var(--el-text-color-secondary);
-  cursor: pointer;
-  transition: background var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s);
-}
-
-.fs-view-btn:hover {
-  background: var(--el-fill-color-light);
-  color: var(--el-color-primary);
-}
-
-.fs-view-btn.is-active {
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
 }
 
 /* 空状态：在内容区居中 */
@@ -8959,9 +8891,14 @@ button.fs-stat:hover {
   max-width: 100%;
 }
 
-.fs-inline-rename.fs-col__name,
 .fs-inline-rename.fs-sm-row__name {
   flex: 1;
+}
+
+/* 列内图标卡里重命名时自适应卡片宽：纵向布局下不复用横向 flex 拉伸 */
+.fs-inline-rename.fs-col__name {
+  width: calc(100% - 4px);
+  max-width: 100%;
 }
 
 .fs-inline-rename__input {
@@ -9027,7 +8964,6 @@ button.fs-stat:hover {
 /* 尊重系统「减少动态效果」偏好 */
 @media (prefers-reduced-motion: reduce) {
   .fs-upload-btn,
-  .fs-stat__avatar,
   .fs-col__row,
   .fs-col__row.is-selected {
     transition: none;

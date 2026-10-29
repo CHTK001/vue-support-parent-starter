@@ -282,9 +282,10 @@ onMounted(load)
   border: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color-overlay);
 }
-.screen-map :deep(.map-canvas) {
+.screen-map :deep(.re-map-wrap) {
   height: 100%;
   min-height: 520px;
+  border: none;
 }
 .device-card {
   position: absolute;

@@ -11,7 +11,7 @@ import { useRouter } from "vue-router";
 
 import { http, unwrapResult } from "@repo/utils";
 import { ReFormItem } from "@repo/ui/re-kit";
-import { getHost, listBoundIdentities, bindIdentity, saveHost, testPrometheusHost, fetchLocalAddress } from "../api";
+import { getHost, listBoundIdentities, bindIdentity, saveHost, testPrometheusHost, fetchLocalAddress, getIdentities } from "../api";
 import { osIconSvg } from "../utils/osIcon";
 /** 主机表单结构（与 AssetsView.Host 保持一致——避免跨 .vue 文件的类型导入解析问题） */
 // eslint-disable-next-line no-unused-vars -- 保留 import 便于日后与 AssetsView.Host 统一
@@ -247,6 +247,7 @@ const authMethods = [
   { label: "默认身份（绑定）", value: "IDENTITY" },
   { label: "账号密码", value: "PASSWORD" },
   { label: "SSH 私钥", value: "PUBLIC_KEY" },
+  { label: "免密登录", value: "NONE" },
 ];
 const collectModes = [
   { label: "不采集", value: "NONE" },
@@ -265,7 +266,6 @@ const isLocalCollect = computed(() => form.value.serverHostCollectMode === "LOCA
 function selectPlatform(value: string): void {
   if (value === "LOCAL") {
     form.value.serverHostCollectMode = "LOCAL";
-    form.value.serverHostRemoteProtocol = "VNC";
     void loadLocalAddress();
     return;
   }
@@ -304,10 +304,14 @@ const collectModeOptions = computed(() =>
     ? collectModes.filter(m => m.value === "NONE" || m.value === "LOCAL")
     : collectModes,
 );
-/** 本机远控仅支持 VNC，其余主机显示全部协议 */
+/** 远控协议选项：本机支持 SSH / VNC，其余主机显示全部 */
 const remoteProtocolOptions = computed(() =>
   isLocalCollect.value
-    ? [{ label: "VNC", value: "VNC" }]
+    ? [
+        { label: "自动（按平台）", value: "" },
+        { label: "SSH", value: "SSH" },
+        { label: "VNC", value: "VNC" },
+      ]
     : remoteProtocols,
 );
 /** 识别本机首选网卡 IP（远控不使用回环），写入地址字段 */
@@ -317,10 +321,9 @@ async function loadLocalAddress(): Promise<void> {
     if (ip) form.value.serverHostAddress = ip;
   } catch {}
 }
-// 切到本机：强制远控协议 VNC 并识别本机 IP
+// 切到本机：识别本机 IP（远控协议不强制，按平台推断即可）
 watch(isLocalCollect, (local) => {
   if (local) {
-    form.value.serverHostRemoteProtocol = "VNC";
     void loadLocalAddress();
   }
 });
@@ -341,8 +344,11 @@ const effectiveRemoteProtocol = computed(() => {
 });
 /** 各协议默认端口 */
 const REMOTE_DEFAULT_PORT: Record<string, number> = { SSH: 22, RDP: 3389, VNC: 5900 };
-/** 端口占位提示（留空即按默认端口连接） */
-const remotePortPlaceholder = computed(() => `默认 ${REMOTE_DEFAULT_PORT[effectiveRemoteProtocol.value]}`);
+/** 端口占位提示（留空即按默认端口连接）；SSH 协议下跟随 SSH 端口 */
+const remotePortPlaceholder = computed(() => {
+  if (effectiveRemoteProtocol.value === "SSH") return "与 SSH 端口一致";
+  return `默认 ${REMOTE_DEFAULT_PORT[effectiveRemoteProtocol.value]}`;
+});
 
 /**
  * 按平台套用「新增主机」的默认值。
@@ -416,6 +422,14 @@ watch(effectiveRemoteProtocol, (protocol, prevProtocol) => {
     form.value.serverHostRemoteMode = "DIRECT";
   } else if (form.value.serverHostRemoteMode === "DIRECT" && !DIRECT_SUPPORTED.includes(protocol)) {
     form.value.serverHostRemoteMode = "GUACD";
+  }
+});
+
+// Linux SSH 远控：远控端口跟随 SSH 端口，改 SSH 端口即同步
+// 用户不需要在两个地方分别填同一个端口
+watch(() => form.value.serverHostPort, (port) => {
+  if (effectiveRemoteProtocol.value === "SSH" && port != null) {
+    form.value.serverHostRemotePort = port;
   }
 });
 
@@ -582,14 +596,24 @@ async function submitForm(): Promise<void> {
     form.value.serverHostAccount = formAccount.value || null;
     form.value.serverHostPassword = formPassword.value || null;
     form.value.serverHostPrivateKey = null;
+    form.value.serverHostAuthType = null;
   } else if (formAuthMethod.value === "PUBLIC_KEY") {
     form.value.serverHostAccount = formAccount.value || null;
     form.value.serverHostPassword = null;
     form.value.serverHostPrivateKey = formPrivateKey.value || null;
+    form.value.serverHostAuthType = null;
+  } else if (formAuthMethod.value === "NONE") {
+    // 免密登录：账号可空——地址里的 user@ 前缀或后端本机运行账号都能推导出来，
+    // 只提交类型标记，后端创建免密（NONE）身份
+    form.value.serverHostAccount = formAccount.value || null;
+    form.value.serverHostPassword = null;
+    form.value.serverHostPrivateKey = null;
+    form.value.serverHostAuthType = "none";
   } else {
     form.value.serverHostAccount = null;
     form.value.serverHostPassword = null;
     form.value.serverHostPrivateKey = null;
+    form.value.serverHostAuthType = null;
   }
   formSaving.value = true;
   try {
@@ -640,11 +664,12 @@ watch(() => props.modelValue, (v) => {
     formIdentityChanged.value = false;
     formIdentityId.value = null;
     hostBoundIdentities.value = [];
-    // 并行请求详情 + 已绑定身份，返回后回填（弹窗已先显示，用户可立即看到基础信息）
+    // 并行请求详情 + 已绑定身份 + 全量身份，返回后回填（弹窗已先显示，用户可立即看到基础信息）
     void Promise.all([
       getHost(props.host.id!).catch(() => props.host),
       listBoundIdentities(props.host.id!).catch(() => []),
-    ]).then(([full, bound]) => {
+      getIdentities().catch(() => []),
+    ]).then(([full, bound, identities]) => {
       if (!props.modelValue) return; // 弹窗已关闭则丢弃回填
       form.value = { ...(form.value as any), ...((full as any) ?? {}) };
       tagsText.value = splitTags(form.value.serverHostTags).join(", ");
@@ -658,9 +683,17 @@ watch(() => props.modelValue, (v) => {
         formIdentityId.value = bindList[0];
       }
       hostBoundIdentities.value = bindList;
-      // 本机：详情回填后再次锁定首选网卡 IP（覆盖库中可能残留的回环地址）
+      // 按第一个绑定身份的类型恢复「登录方式」：免密(NONE) → 免密登录 + 回填账号；
+      // 口令/私钥身份保持「默认身份（绑定）」即可（登录方式下拉默认值），不强行切换。
+      const firstBound = (Array.isArray(identities) ? identities : [])
+        .find(i => i.id === bindList[0]);
+      if (firstBound && String(firstBound.msServerIdentityAuthType ?? "").toUpperCase() === "NONE") {
+        formAuthMethod.value = "NONE";
+        formAccount.value = firstBound.msServerIdentityUsername ?? "";
+      }
+      // 本机：详情回填后再次锁定首选网卡 IP（覆盖库中可能残留的回环地址）；
+      // 远控协议不强制 VNC，本机 Linux 也可选 SSH
       if (isLocalCollect.value) {
-        form.value.serverHostRemoteProtocol = "VNC";
         void loadLocalAddress();
       }
     });
@@ -772,6 +805,14 @@ watch(() => props.modelValue, (v) => {
             <ReInput v-model="formPrivateKey" type="textarea" :rows="3" placeholder="粘贴 PEM 格式私钥内容" style="width:100%" />
           </ReFormItem>
         </template>
+        <template v-if="formAuthMethod === 'NONE'">
+          <ReFormItem label="登录账号">
+            <ReInput v-model="formAccount" placeholder="留空则取地址里的 user@ 前缀 / 本机运行账号" style="width:100%" />
+          </ReFormItem>
+          <ReFormItem label="免密说明" class="col-span-2">
+            <ReText type="info">免密登录不需要密码或私钥：地址写成 <code>user@host</code> 时平台直接取 user 作为登录账号，账号留空也能保存；本机主机默认用平台运行账号。</ReText>
+          </ReFormItem>
+        </template>
         </template>
 
         <!-- ─── 分组与标签 ─── -->
@@ -850,7 +891,8 @@ watch(() => props.modelValue, (v) => {
             />
           </ReFormItem>
           <ReFormItem label="远控端口">
-            <ReInputNumber v-model="form.serverHostRemotePort" :min="1" :max="65535" :placeholder="remotePortPlaceholder" style="width:100%" />
+            <ReInputNumber v-model="form.serverHostRemotePort" :min="1" :max="65535" :placeholder="remotePortPlaceholder" :disabled="effectiveRemoteProtocol === 'SSH'" style="width:100%" />
+            <div v-if="effectiveRemoteProtocol === 'SSH'" class="addr-hint">Linux SSH 远控与采集共用同一端口，无需单独配置</div>
           </ReFormItem>
           <ReFormItem v-if="effectiveRemoteProtocol === 'VNC'" label="VNC 密码">
             <ReInput v-model="form.serverHostVncPassword" type="password" show-password placeholder="VNC 服务端口令" style="width:100%" />

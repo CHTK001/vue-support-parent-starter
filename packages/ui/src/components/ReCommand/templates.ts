@@ -147,6 +147,51 @@ fi`;
 const LINUX_ENTER = `cd '__PATH__' 2>/dev/null || true;
 `;
 
+/**
+ * Linux 下 Nginx 的控制前缀。
+ *
+ * 必须显式给出 `-p`（前缀目录=项目目录）与 `-c conf/nginx.conf`：
+ * nginx 裸启动会使用编译期前缀（Debian 为 /usr/share/nginx），读到的是系统配置，
+ * 会抢占系统端口并且 pid 不落在项目目录，表现为「项目状态永远 stopped、端口却被占用」。
+ * 与后端 {@code ProjectScripts#builtinLinux} 的 static/nginx 分支保持一致。
+ */
+const NGINX_CTL = `nginx -p '__PATH__' -c conf/nginx.conf`;
+
+/**
+ * 读取本项目 nginx master pid：先读 logs/nginx.pid（陈旧 pid 视为无效），
+ * 再按前缀找回真实 master。模式用 `[m]aster` 字符类，避免 pgrep -f 匹配到执行脚本的 shell 自身。
+ */
+const NGINX_READ_PID = `pid=$(cat logs/nginx.pid 2>/dev/null || true)
+if [ -n "$pid" ] && ! kill -0 "$pid" 2>/dev/null; then pid=""; fi
+if [ -z "$pid" ]; then pid=$(pgrep -f 'nginx: [m]aster process nginx -p __PATH__' 2>/dev/null | head -1); fi`;
+
+/** Linux nginx 停止片段（先抓 worker 再停 master，避免留下占用端口的孤儿 worker） */
+const LINUX_NGINX_STOP = `${NGINX_READ_PID}
+if [ -n "$pid" ]; then
+  kids=$(pgrep -P $pid 2>/dev/null)
+  ${NGINX_CTL} -s stop 2>/dev/null || true
+  i=0
+  while kill -0 $pid 2>/dev/null && [ $i -lt 5 ]; do
+    sleep 1
+    i=$((i + 1))
+  done
+  kill -9 $pid 2>/dev/null
+  if [ -n "$kids" ]; then kill -9 $kids 2>/dev/null; fi
+fi
+rm -f logs/nginx.pid`;
+
+/** Linux nginx 启动片段：先补齐前缀所需目录，再显式指向前缀启动 */
+const LINUX_NGINX_START = `mkdir -p logs temp/client_body_temp temp/proxy_temp temp/fastcgi_temp temp/uwsgi_temp temp/scgi_temp
+${NGINX_CTL} > /dev/null 2>&1 < /dev/null`;
+
+/** 给多行脚本统一加缩进（重启脚本里嵌套停止/启动段时用） */
+function indentBlock(text: string, prefix: string): string {
+  return text
+    .split('\n')
+    .map((line) => (line ? prefix + line : line))
+    .join('\n');
+}
+
 // ==================== Linux 模板 ====================
 
 const LINUX_TEMPLATES: CommandTemplate[] = [
@@ -171,7 +216,7 @@ echo $! > app.pid`,
     name: 'FatJar (java -jar)',
     desc: '后台运行通用 jar，PID 写入 app.pid（不带 profile）',
     os: 'linux',
-    types: ['fatjar', 'springboot'],
+    types: ['fatjar', 'springboot', 'git'],
     needEntry: true,
     start: `${LINUX_ENTER}nohup java __JVMARGS__ -jar __ENTRY__ __ARGS__ __LOGOP__ __LOG__ 2>&1 &
 echo $! > app.pid`,
@@ -233,20 +278,23 @@ echo $! > app.pid`,
   },
   {
     id: 'linux-static-nginx',
-    name: '静态页面 (Nginx 托管)',
-    desc: '使用本机 Nginx 托管静态站点；状态/停止只认本项目 logs/nginx.pid，避免误杀/误报其它项目的 nginx',
+    name: '静态页面 / Nginx（项目目录内独立托管）',
+    desc: '以项目目录为 nginx 前缀、conf/nginx.conf 为配置启动；状态/停止只认本项目 logs/nginx.pid',
     os: 'linux',
     types: ['static', 'nginx'],
     needEntry: false,
-    start: `nginx`,
-    stop: `nginx -s stop 2>/dev/null
-if [ -f logs/nginx.pid ]; then kill $(cat logs/nginx.pid) 2>/dev/null; rm -f logs/nginx.pid; fi`,
-    restart: `if [ -f logs/nginx.pid ] && kill -0 $(cat logs/nginx.pid) 2>/dev/null; then
-  nginx -s reload
+    start: LINUX_NGINX_START,
+    stop: LINUX_NGINX_STOP,
+    restart: `${NGINX_READ_PID}
+if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+  ${NGINX_CTL} -s reload > /dev/null 2>&1
 else
-  nginx
+${indentBlock(LINUX_NGINX_STOP, '  ')}
+  sleep 2
+${indentBlock(LINUX_NGINX_START, '  ')}
 fi`,
-    status: `if [ -f logs/nginx.pid ] && kill -0 $(cat logs/nginx.pid) 2>/dev/null; then
+    status: `${NGINX_READ_PID}
+if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
   echo running
 else
   echo stopped
@@ -283,6 +331,20 @@ sleep 2
 ${LINUX_ENTER}nohup python3 __ENTRY__ __ARGS__ __LOGOP__ __LOG__ 2>&1 &
 echo $! > app.pid`,
     status: `pgrep -f 'python3 __ENTRY__' >/dev/null 2>&1 && echo running || echo stopped`,
+  },
+  {
+    // 模型项目只管理模型文件，没有常驻进程：仍给出可保存的四段脚本，
+    // 避免「选了模型类型却拿到 ./start.sh 这种与项目毫无关系的模板」。
+    id: 'linux-model',
+    name: '模型仓库（无进程，仅文件管理）',
+    desc: '模型项目只投放模型文件，启动/停止仅输出提示，状态固定为 stopped',
+    os: 'linux',
+    types: ['model'],
+    needEntry: false,
+    start: `${LINUX_ENTER}echo "Model repository - no process to start"`,
+    stop: LINUX_PID_STOP,
+    restart: `${LINUX_ENTER}echo "Model repository - no process to restart"`,
+    status: LINUX_PID_STATUS,
   },
   {
     id: 'linux-docker-compose',
@@ -378,7 +440,7 @@ const WINDOWS_TEMPLATES: CommandTemplate[] = [
     name: 'SpringBoot / FatJar (java -jar)',
     desc: '隐藏窗口运行 jar，按命令行匹配停止进程',
     os: 'windows',
-    types: ['springboot', 'fatjar'],
+    types: ['springboot', 'fatjar', 'git'],
     needEntry: true,
     start: winLaunch('java', `@($JvmArgs) + @('-jar','"__ENTRY__"') + @($AppArgs)`),
     stop: WIN_PID_STOP,
@@ -475,6 +537,19 @@ ${winLaunch('python', `@('"__ENTRY__"') + @(__ARGS__)`)}`,
     restart: `Restart-Service -Name '__APPNAME__' -Force`,
     status: `(Get-Service -Name '__APPNAME__').Status`,
   },
+  {
+    // 模型项目没有常驻进程，仍需四段脚本可保存（与 linux-model 对称）
+    id: 'win-model',
+    name: '模型仓库（无进程，仅文件管理）',
+    desc: '模型项目只投放模型文件，启动/停止仅输出提示，状态固定为 stopped',
+    os: 'windows',
+    types: ['model'],
+    needEntry: false,
+    start: `Write-Output 'Model repository - no process to start'`,
+    stop: `Write-Output 'Model repository - no process to stop'`,
+    restart: `Write-Output 'Model repository - no process to restart'`,
+    status: `'stopped'`,
+  },
 ];
 
 const ALL_TEMPLATES: CommandTemplate[] = [...LINUX_TEMPLATES, ...WINDOWS_TEMPLATES];
@@ -491,6 +566,27 @@ export function listTemplates(os: OsKind, projectType: string): CommandTemplate[
     }
     return t.types.includes(projectType) || t.types.includes('*');
   });
+}
+
+/**
+ * 按「OS + 项目类型」挑选最贴切的模板。
+ *
+ * <p>优先级：精确匹配该类型 → `*` 通用模板 → 列表第一个。
+ * 之前各处直接取 {@code listTemplates(...)[0]}，而通用模板在数组里排在前面，
+ * 于是「模型」这类没有专属模板的类型会拿到 `./start.sh`（与项目毫无关系）。
+ * 现在每一种项目类型都有专属模板，并且挑选结果不再依赖数组顺序。</p>
+ *
+ * @param os 操作系统
+ * @param projectType 项目类型
+ * @returns 最佳模板；无任何候选时返回 undefined
+ */
+export function bestTemplate(os: OsKind, projectType: string): CommandTemplate | undefined {
+  const list = listTemplates(os, projectType);
+  const exact = list.find((t) => t.types.includes(projectType));
+  if (exact) {
+    return exact;
+  }
+  return list.find((t) => t.types.includes('*')) ?? list[0];
 }
 
 export interface FillContext {

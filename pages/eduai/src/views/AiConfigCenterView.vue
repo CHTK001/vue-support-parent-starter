@@ -1,25 +1,26 @@
 <template>
   <!--
-    AI 配置中心（/edu/ai-config-center）—— AI 运行时与试卷识别配置，复用 pages/ai 的配置组件。
+    AI 配置中心（/edu/ai-config-center）—— 试卷识别 + 阅卷设置 + AI 组卷。
 
-    复用边界（2026-10-23 统一，2026-10-24 补 runtime 分组与全局保存）：
-      本页不再自建 AI 运行时表单，直接内嵌 pages/ai 的 DefaultModelSettings，渲染两组：
-        · runtime（对话路由）：provider / provider_api_key / provider_base_url / default_model
-          —— 这是阅卷/组卷真正读取的主链路（sys_ai_global_setting.runtime 分组）。
-        · paper（试卷识别）：OCR / OCR+LLM 双管线的 provider/密钥/地址/模型/阈值等。
-      两组均由 ai-starter 的全局设置 SPI 定义，经 /v2/settings 统一读写 sys_ai_global_setting。
+    复用边界（2026-10-29 对齐）：
+      本页直接内嵌 pages/ai 的「试卷配置」组件 PaperConfigPanel，与「系统设置 → 试卷配置」
+      是同一个组件、同一份数据（sys_ai_global_setting 的 paper / marking / compose 三个分组）。
 
-    保存走全局层（:global-save="true"）：runtime 的运行时读取是 GlobalSettingReader#getStrDirect，
-      只读全局层、不读用户覆盖层；若保存落到覆盖层会「界面保存了却不生效」。管理员在本页保存
-      即写入全局默认层，普通账号仍只写自己的覆盖层（接口层有白名单与管理员专属字段守卫）。
+      此前这里额外渲染了 runtime（对话路由）分组，导致同一个按钮点进去，eduai 侧看到
+      「对话路由 + 试卷配置」两块，而 pages/ai 侧的试卷配置只有一块 —— 那两块本来就是
+      两个设置中心菜单，不该在「试卷配置」里合并出现。对话路由（默认对话模型 / 标题总结 /
+      历史压缩）属于会话语义，入口在 pages/ai 的会话配置页，本页不再重复提供。
+
+    保存走全局层：paper / marking 的运行时读取是 GlobalSettingReader#getStrDirect，
+      只读全局层、不读用户覆盖层；若保存落到覆盖层会「界面保存了却不生效」。
   -->
   <div class="ai-config-center">
-    <DefaultModelSettings :groups="['runtime', 'paper']" :global-save="true" />
+    <PaperConfigPanel :global-save="true" />
   </div>
 </template>
 
 <script setup lang="ts">
-import DefaultModelSettings from "@pages/ai/components/setting/DefaultModelSettings.vue";
+import PaperConfigPanel from "@pages/ai/components/setting/PaperConfigPanel.vue";
 </script>
 
 <style scoped>

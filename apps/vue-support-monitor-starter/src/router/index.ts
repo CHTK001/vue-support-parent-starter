@@ -11,7 +11,7 @@
  *   <tr><td>数据源台账 + 各类数据源管理页</td><td>{@code @pages/datasource}</td></tr>
  *   <tr><td>主机资产 / 远控 / ACME / 会话 / 批量作业 / 片段 / 维护计划 / 发布管理</td><td>{@code @pages/server}</td></tr>
  *   <tr><td>服务管理（协议服务器节点）/ 在线节点 / 服务发现 / 抓包分析 / 告警 / 概览</td><td>{@code @pages/monitor}</td></tr>
- *   <tr><td>设备资产 / 组织 / 通道 / 日志 / 提供商</td><td>{@code @pages/device}</td></tr>
+ *   <tr><td>设备资产 / 提供商 / 分组</td><td>{@code @pages/device}</td></tr>
  *   <tr><td>文件资产</td><td>{@code @pages/filesystem}</td></tr>
  * </table>
  *
@@ -38,6 +38,7 @@ import type { RouteConfigsTable } from "@repo/core";
 // 顶层副作用，会把整个 api/组件桶拖进主 chunk；本文件只需要路由工厂。
 import { createDatasourceManageRoutes } from "@pages/datasource/src/routes";
 import { createServerHostRoutes } from "@pages/server/src/routes";
+import { createDockerRoutes } from "@pages/docker/src/routes";
 import { createMonitorRoutes, createMonitorManageRoutes } from "@pages/monitor/src/routes";
 
 export const monitorRoutes: RouteConfigsTable[] = [
@@ -198,9 +199,17 @@ export const monitorRoutes: RouteConfigsTable[] = [
     ],
   },
 
+  // ==================== Docker ====================
+  // Docker 是独立页面包（@pages/docker），页面内再分容器 / 镜像 / 网络 / 卷 /
+  // 镜像库 / 模板六个页签。资产页右键「工作台 → Docker（独立页）」会带
+  // /docker?hostId= 跳到这里，因此菜单项直接由包的工厂产出，宿主不再维护副本。
+  ...createDockerRoutes(),
+
   // ==================== 设备管理 ====================
   // 从「主机管理」中独立成组：主机与设备是两类平级资产，各自的入口直接可见。
-  // 组名用「设备管理」而非「设备资产」：组内已不止资产台账，还含组织/通道/日志/提供商配置。
+  // 设备资产页已改为左侧组织树 + 右侧设备列表的 Deck 布局（含「全部」根节点），
+  // 独立的「设备组织」页已随改造并入该页左侧；「通道管理」「设备日志」不再
+  // 是独立菜单页，收敛为设备资产行右键菜单项，以抽屉方式嵌入打开。
   {
     path: "/grp-device",
     name: "GroupDevice",
@@ -213,34 +222,42 @@ export const monitorRoutes: RouteConfigsTable[] = [
         meta: { title: "设备资产", icon: "Histogram", showLink: true, rank: 11 },
       },
       {
-        path: "/device-orgs",
-        name: "DeviceOrgs",
-        component: () => import("@pages/device/src/views/DeviceOrganizationView.vue"),
-        meta: { title: "设备组织", icon: "OfficeBuilding", showLink: true, rank: 12 },
-      },
-      {
-        path: "/device-channels",
-        name: "DeviceChannels",
-        component: () => import("@pages/device/src/views/DeviceChannelView.vue"),
-        meta: { title: "通道管理", icon: "Share", showLink: true, rank: 13 },
-      },
-      {
-        path: "/device-events",
-        name: "DeviceEvents",
-        component: () => import("@pages/device/src/views/DeviceEventLogView.vue"),
-        meta: { title: "设备日志", icon: "Tickets", showLink: true, rank: 14 },
-      },
-      {
         path: "/device-providers",
         name: "DeviceProviders",
         component: () => import("@pages/device/src/views/DeviceProviderView.vue"),
-        meta: { title: "提供商配置", icon: "SetUp", showLink: true, rank: 15 },
+        meta: { title: "提供商配置", icon: "SetUp", showLink: true, rank: 12 },
       },
       {
         path: "/device-groups",
         name: "DeviceGroups",
         component: () => import("@pages/device/src/views/DeviceGroupView.vue"),
-        meta: { title: "设备分组", icon: "FolderOpened", showLink: true, rank: 16 },
+        meta: { title: "设备分组", icon: "FolderOpened", showLink: true, rank: 13 },
+      },
+      // 页面内入口：设备资产页的大屏按钮 / 右键「视频预览」/ 预览页的独立窗口，
+      // 都不进侧边栏（showLink: false），只保证这些跳转在宿主里有落点。
+      {
+        path: "/device",
+        redirect: "/device-assets",
+        meta: { title: "设备资产", showLink: false, rank: 11 },
+      },
+      {
+        path: "/device/screen",
+        name: "DeviceScreen",
+        component: () => import("@pages/device/src/views/DeviceScreenView.vue"),
+        meta: { title: "设备大屏", showLink: false, rank: 14 },
+      },
+      {
+        path: "/device/preview",
+        name: "DevicePreview",
+        component: () => import("@pages/device/src/views/DevicePreviewView.vue"),
+        meta: { title: "视频预览", showLink: false, rank: 15 },
+      },
+      {
+        path: "/device/preview/standalone",
+        name: "DevicePreviewStandalone",
+        component: () => import("@pages/device/src/views/DevicePreviewView.vue"),
+        props: { standalone: true },
+        meta: { title: "视频预览", showLink: false, standalone: true, rank: 15 },
       },
     ],
   },

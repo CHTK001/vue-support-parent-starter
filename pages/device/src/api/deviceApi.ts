@@ -147,6 +147,29 @@ export const deviceApi = {
   syncDevices: (vendor?: string) =>
     http.post("/sync").query({ vendor }).then(unwrap) as Promise<{ created: number; updated: number; skipped: number }>,
 
+  // ==================== 定时任务状态 ====================
+  /** 全部时间轮任务状态（interval / running / lastRunAt） */
+  listTaskStates: () =>
+    http.get("/tasks/list").then(unwrap) as Promise<Array<{
+      deviceTaskStateId: string
+      deviceTaskStateName: string
+      deviceTaskStateRunning: boolean
+      deviceTaskStateLastRunAt?: string
+      deviceTaskStateInterval?: number
+      deviceTaskStateDescription?: string
+    }>>,
+  /** 更新任务运行间隔（秒） */
+  updateTaskInterval: (taskName: string, interval: number) =>
+    http.put(`/tasks/${encodeURIComponent(taskName)}/interval?interval=${interval}`).then(unwrap),
+
+  // ==================== 厂商设备目录同步（写回方向） ====================
+  /** 把本地设备写回厂商侧（仅厂商实现写回 SPI 生效） */
+  pushDevice: (deviceId: string) =>
+    http.post(`/sync/${deviceId}/push`).then(unwrap) as Promise<boolean>,
+  /** 删除厂商侧设备（按 externalId） */
+  removeRemoteDevice: (deviceId: string) =>
+    http.delete(`/sync/${deviceId}/remote`).then(unwrap) as Promise<boolean>,
+
   // ==================== 厂商描述符：支持的厂商/平台/能力位由后端 SPI 决定 ====================
   listVendors: () =>
     http.get("/provider/vendors").then(unwrap) as Promise<DeviceVendorDescriptor[]>,

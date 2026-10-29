@@ -141,6 +141,7 @@ import { useModelConfigStore } from '@/stores/modelConfig'
 import SettingsCard from './SettingsCard.vue'
 import SettingsRow from './SettingsRow.vue'
 import FieldControl from './dms/FieldControl.vue'
+import GroupNavRail from './dms/GroupNavRail.vue'
 import ModelPickerDialog from './dms/ModelPickerDialog.vue'
 import VectorStorageConfig from './dms/VectorStorageConfig.vue'
 import ImageLibraryPanel from './ImageLibraryPanel.vue'
@@ -217,7 +218,7 @@ const props = defineProps({
  * 改到试卷管线配置（保存会被接口层拒，但界面给了他们可编辑的假象，
  * 也暴露了管理员专属的管线参数）。</p>
  */
-const SPLIT_GROUPS = ['face', 'image_search', 'layout', 'rag', 'ocr', 'bot', 'language', 'runtime', 'asr', 'tts', 'search', 'paper', 'reid']
+const SPLIT_GROUPS = ['face', 'image_search', 'layout', 'rag', 'ocr', 'bot', 'language', 'runtime', 'asr', 'tts', 'search', 'paper', 'compose', 'reid']
 
 /** 传入 groups 时只渲染指定分组（设置中心拆出的独立菜单复用同一套交互与保存逻辑） */
 const displayGroups = computed(() => {
@@ -708,7 +709,7 @@ const requiredTypeFor = (group, field) => {
     if (g === 'image_search') return 'image_cv'
     if (f === 'default_image_feature_model') return 'image_cv'
     // 试卷（paper）分组：layout_model → 版面分析模型；ocr_detector_model /
-    // ocr_recognizer_model → OCR；llm_provider / llm_model 是结构化大模型 → 对话。
+    // ocr_recognizer_model → OCR；llm_model 是结构化大模型 → 对话。
     // 此前没有 paper 分组映射，layout_model 一路落到末尾的 'text'（对话模型），
     // 弹框里只有 MiniMax 等 LLM，真正的版面分析模型一个都选不到。
     if (g === 'paper') {
@@ -777,7 +778,7 @@ const SUBTYPE_FOR_FIELD = {
     // 试卷（paper）分组复用 ocr / layout 分组的模型槽位与细分类型：
     // ocr_detector_model → 文字检测（与 ConfigPanel 的 ocr.detector_model 同批模型），
     // ocr_recognizer_model → 文字识别；layout_model 无细分类型（版面模型不限定），
-    // llm_provider / llm_model 走对话模型（类型映射已处理）。
+    // llm_model 走对话模型（类型映射已处理）。
     'paper.ocr_detector_model': ['ocr_detection'],
     'paper.ocr_recognizer_model': ['ocr_recognition'],
 }
@@ -792,10 +793,11 @@ const isModelField = (group, field) => {
     return field.toLowerCase().includes('model')
 }
 
-// 判断是否是系统提示词字段（渲染为多行文本框）
+// 判断是否是系统提示词/结构化提示词字段（渲染为多行文本框）
 const isPromptField = (field) => {
     if (!field) return false
     return field === 'system_prompt' || field.toLowerCase().endsWith('system_prompt')
+        || field === 'llm_prompt'
 }
 
 /**
@@ -1116,10 +1118,16 @@ const shouldShowField = (group, field) => {
     if (ENGINE_FIELDS.includes(field)) {
         return false
     }
-    // 试卷识别引擎（paper.engine）：已改为按模型配置推导（配了 llm_provider/llm_model
+    // 试卷识别引擎（paper.engine）：已改为按模型配置推导（配了 llm_model
     // → ocr+llm，否则 ocr），不再提供手动选择。后端新定义已移除该字段；这里额外拦截是
     // 为了兼容旧后端/旧配置表里残留的定义行，避免「识别引擎」下拉复活。
     if (group === 'paper' && field === 'engine') {
+        return false
+    }
+    // 结构化大模型提供者（paper.llm_provider）：已从配置定义移除 ——
+    // 结构化大模型必须来自「模型管理」登记的模型，不允许私自配置供应商。
+    // 这里额外拦截是兼容旧后端/旧配置表里残留的定义行，避免「高级选项」里该行复活。
+    if (group === 'paper' && field === 'llm_provider') {
         return false
     }
     // RAG 向量库选择：由「向量库配置」动态表单接管（保存到全局层而非个人覆盖），

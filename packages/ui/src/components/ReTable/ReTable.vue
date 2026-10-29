@@ -186,6 +186,16 @@ function resolveColSlotName(col: ReTableColumn): string | undefined {
 function hasColSlot(col: ReTableColumn): boolean {
   return Boolean(parentSlots[col.slot || `col-${col.prop}`] || (col.slot && (parentSlots[`col-${col.slot}`] || parentSlots[col.slot])));
 }
+/**
+ * 父组件是否提供了自定义表头插槽。
+ *
+ * <p>{@code col.headerSlot} 直接就是插槽名（父组件写 {@code #[`header-${col}`]}，
+ * 这里就声明 {@code headerSlot: `header-${col}`}），不再拼前缀 —— 拼前缀会让
+ * 「列定义里的名字」与「模板里的名字」多一层推导，错一个字就静默不渲染。</p>
+ */
+function hasHeaderSlot(col: ReTableColumn): boolean {
+  return Boolean(col.headerSlot && parentSlots[col.headerSlot]);
+}
 
 /** 全局可注入 storage（key 与 columnStorage 一致，方便业务注入） */
 const RE_TABLE_STORAGE_KEY = Symbol("ReTableStorage") as unknown as import("vue").InjectionKey<ReTableColumnStorage>;
@@ -2327,7 +2337,14 @@ function onVxeHeaderCellMenu(payload: {
   // $event 在 vxe 的类型里是 Event（不是 PointerEvent），同样跟着放宽
   $event?: Event;
 }): void {
-  const column = (payload.column ?? {}) as unknown as TableColumnCtx<Record<string, unknown>>;
+  const raw = payload.column ?? {};
+  // vxe 的列对象没有 element 的 label，列头文字在 title 上。
+  // 不补这一下，宿主拿到的 columnLabel 永远是空串 —— 表头菜单里
+  // 「排序 · 当前列」「适应内容 · 当前列」这种提示就没有列名可显示。
+  const column = {
+    ...raw,
+    label: raw.title ?? raw.property ?? "",
+  } as unknown as TableColumnCtx<Record<string, unknown>>;
   // vxe 给的 $event 静态类型是 Event；对外契约（header-contextmenu）用的是 PointerEvent，
   // 实际派发的是原生 contextmenu 事件（属于 PointerEvent 子类），这里按契约收口
   const event = (payload.$event ?? {}) as PointerEvent;
@@ -2786,6 +2803,28 @@ function onVxeResizableChange(params: {
   if (Number.isFinite(w)) persistColumnWidth(col.field, w);
 }
 
+/**
+ * vxe 表头双击：**只有双击落在列宽拖拽手柄上**才自适应该列。
+ *
+ * <p>表头文字区不抢：那是排序 / 编辑的地盘，双击改成调宽度只会让人误触。
+ * 手柄是 vxe 自己的 {@code .vxe-cell--col-resizable}（th 的子元素），它的 dblclick
+ * 冒泡到 th，由 vxe 的 {@code header-cell-dblclick} 把 column（含 field）一起带出来，
+ * 不必自己去解析 colid。</p>
+ *
+ * <p>与右键菜单「调整列宽以适应内容」走同一个 {@link autoFitColumns}，
+ * 宽度也走同一条落盘路径（{@link setColumnWidths} → localStorage），
+ * 所以刷新后仍是适配后的宽度。</p>
+ */
+function onVxeHeaderCellDblclick(params: { column?: { field?: string }; $event?: Event }): void {
+  const target = params?.$event?.target as Element | null;
+  if (!target || typeof target.closest !== "function") return;
+  if (!target.closest(".vxe-cell--col-resizable")) return;
+  const prop = params?.column?.field;
+  if (!prop) return;
+  if (!visibleColumns.value.some((c) => c.prop === prop)) return;
+  autoFitColumns([prop]);
+}
+
 /** 监听 tableId / columns 变化时重载列配置 */
 watch(
   () => [activeTableId.value, props.columns] as const,
@@ -3003,6 +3042,13 @@ function autoFitColumns(propsList?: string[]): Record<string, number> {
     if (only && !only.has(col.prop)) continue;
     // 表头：文字 + 可排序时的箭头图标
     let widest = measureTextWidth(col.label ?? "", font) + (col.sortable ? HEADER_SORT_ICON_WIDTH : 0);
+    // 表头补充行（注释 / 类型）：宿主经 headerFitLines 给出当前实际显示的文本。
+    // 不量它们的话，自适应只够放下字段名，补充行仍被省略号截断 —— 等于没适配。
+    for (const line of col.headerFitLines?.() ?? []) {
+      if (!line) continue;
+      const w = measureTextWidth(line, font);
+      if (w > widest) widest = w;
+    }
     for (const row of rows) {
       const value = row[col.prop];
       if (value === null || value === undefined) continue;
@@ -4880,6 +4926,9 @@ defineExpose({
   getColumnWidths,
   resetColumnWidths,
   autoFitColumns,
+  // 表头高度重算：宿主把表头内容改成多行（注释 / 类型补充行）后，vxe 不会自己重新量
+  // thead 高度 —— 它只在数据 / 列变化和容器 resize 时量。多出来的那行会被裁掉。
+  recalculate: recalculateVxe,
   getSelectedRows: () => allSelectedRows.value,
   getEditCache: () => editCache.value,
   getEditedRows: () => editedRows.value,
@@ -5427,6 +5476,9 @@ const iconSelect = Select;
           :show-overflow-tooltip="col.showOverflowTooltip"
           :class-name="col.className"
         >
+          <template v-if="hasHeaderSlot(col)" #header>
+            <slot :name="col.headerSlot" :column="col" />
+          </template>
           <template #default="scope">
             <!-- el-table 会用 {row:{}, $index:-1} 空跑一次默认插槽做列发现，此时不挂载单元格控件，避免脏值回写 -->
             <slot
@@ -5452,6 +5504,9 @@ const iconSelect = Select;
           :show-overflow-tooltip="col.showOverflowTooltip"
           :class-name="col.className"
         >
+          <template v-if="hasHeaderSlot(col)" #header>
+            <slot :name="col.headerSlot" :column="col" />
+          </template>
           <template #default="{ row, $index }">
             <!-- el-table 会用 {row:{}, $index:-1} 空跑一次默认插槽做列发现，此时不挂载单元格控件 -->
             <template v-if="Number($index) > -1">
@@ -5545,6 +5600,7 @@ const iconSelect = Select;
       @cell-click="onVxeCellClick"
       @cell-menu="onVxeCellMenu"
       @header-cell-menu="onVxeHeaderCellMenu"
+      @header-cell-dblclick="onVxeHeaderCellDblclick"
       @checkbox-change="onVxeCheckboxChange"
       @checkbox-all="onVxeCheckboxAll"
       @sort-change="onVxeSortChange"
@@ -5601,6 +5657,10 @@ const iconSelect = Select;
         :edit-render="col.editable ? { enabled: true } : undefined"
         :show-header-overflow="headerShowOverflowTooltip ? 'tooltip' : undefined"
       >
+        <!-- 自定义表头：字段名/类型/注释两行、排序图标、悬浮提示都由宿主的插槽画 -->
+        <template v-if="hasHeaderSlot(col)" #header>
+          <slot :name="col.headerSlot" :column="col" />
+        </template>
         <template v-if="hasColSlot(col)" #default="{ row }">
           <span
             v-if="dragMode && colIdx === 0"
@@ -5707,8 +5767,19 @@ const iconSelect = Select;
            **不是** .vxe-loading--custom-wrapper。
            （实测：DOM 是 .vxe-loading > .vxe-loading--wrapper > .re-table__loading）
            所以定位样式加在 .vxe-loading 上，详见文件末尾的加载态 CSS 块。 -->
+      <!-- ⚠ 只画「真在取数」的转圈。
+           vxe 的 currLoading 把「列重建」也算进去（table.js:
+           `currLoading = isColLoading || isRowLoading || loading`），而 isColLoading
+           由 handleInitColumn 置真 —— 只要列定义变了就会走一次列重建：
+           拖完列宽把宽度写回 :width（watchColumn → handleRefreshColumnQueue →
+           refreshColumn → handleInitColumn）、切列显隐、拖拽调序都是这条路。
+           这种内部重建几十毫秒后自己复位，画成转圈，用户看到的就是
+           「拖一下列宽，松手表格中间转个圈」，像是重新查了表，其实一个请求都没发。
+           所以这里只认 ReTable 自己的两个取数信号：loading（页面传的 props.loading）
+           与 dataLoading（远程 loader）。空内容 = 什么都不画 —— vxe-pc-ui 的样式
+           没有 import，.vxe-loading 本身不带背景色，空插槽完全不可见。 -->
       <template #loading>
-        <div class="re-table__loading">
+        <div v-if="loading || dataLoading" class="re-table__loading">
           <span class="re-table__loading-spinner" aria-hidden="true"></span>
         </div>
       </template>
@@ -6402,9 +6473,10 @@ const iconSelect = Select;
 }
 .re-table--separated > .re-table__search {
   background: var(--rt-bg);
-  border-radius: var(--rt-radius);
-  padding: var(--rt-padding, 12px);
-  border: 1px solid var(--el-border-color-lighter);
+  /** border-radius: var(--rt-radius);
+   padding: var(--rt-padding, 12px);
+   border: 1px solid var(--el-border-color-lighter);
+   */
   transition: box-shadow var(--rt-duration, 200ms) var(--rt-ease, ease);
 }
 .re-table--separated > .re-table__main {
@@ -6624,6 +6696,17 @@ const iconSelect = Select;
   /* 本块目前刻意为空：表头底 / 行 hover / 表体底改由 data-vxe-ui-theme 决定
      （vxe 自带 light/dark 两套），保留位置是为了让「rt 令牌叠 vxe 令牌」这件事
      在文件里仍然可见，将来确需覆盖时按 --vxe-ui-table-* 写。 */
+}
+/* 复选框描边（vxe 默认取 --vxe-ui-input-border-color = #dcdfe6，比表格自身的
+   --rt-border 深一档，在一张浅色表里显得框很重）。
+   ⚠ 这里覆盖的是**变量**，不是 .vxe-checkbox--icon 的 color：
+   vxe 的勾选态 / 半选态 / hover / 禁用态各自用另外四个选择器把 color 写成
+   --vxe-ui-font-primary-color 等值（见 es/table/style.css 的 .vxe-cell--checkbox 段）。
+   若我们直接写 color，就必须在优先级上压过那四条，一旦源序变化就会被反杀，
+   表现为「勾选后变成灰框」。把变量收窄到复选框容器上，只影响未选中的默认态，
+   其余状态仍然读 vxe 自己的变量，天然不受影响。 */
+.re-table .vxe-table--render-default .vxe-cell--checkbox {
+  --vxe-ui-input-border-color: var(--rt-border);
 }
 /* 表头字体（vxe 默认色/字重偏浅，按 rt 令牌覆盖） */
 .re-table .vxe-header--column {
@@ -7280,6 +7363,9 @@ const iconSelect = Select;
   width: 100%;
   height: 100%;
   overflow: hidden;
+  /* 遮罩本身不上色：底色由插槽里的 .re-table__loading 负责。
+     这样「列重建」这类内部 loading（插槽此时不画内容）不会留下一层灰罩。 */
+  background-color: transparent;
 }
 
 /* 遮罩只覆盖「表体可视区」：vxe 把这层挂在表格末尾，靠 absolute 铺满整表；

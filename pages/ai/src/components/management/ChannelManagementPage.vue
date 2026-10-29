@@ -570,6 +570,61 @@ async function toggleModel(channel: string, model: string, enabled: boolean) {
   }
 }
 
+// ---------- 模型批量快捷操作（全选 / 反选 / 全不选） ----------
+//
+// 逐个串行调 setModelEnabled（与单模型开关同一端点），避免并发请求被上游限流；
+// 复用 busyFor(channel, 'models') 标志防止与「拉取模型」互抢。
+async function batchSetModels(
+  channel: string,
+  target: (m: { model: string; enabled: boolean }) => boolean,
+) {
+  const summary = channels.value.find((c) => c.channel === channel)
+  const models = summary?.models ?? []
+  if (!models.length) {
+    ElMessage.info('该渠道暂无模型，请先拉取模型')
+    return
+  }
+  const b = busyOf(channel)
+  if (b.models) return
+  b.models = true
+  let ok = 0
+  let fail = 0
+  try {
+    for (const m of models) {
+      const want = target(m)
+      if (want === m.enabled) continue
+      try {
+        await channelApi.setModelEnabled(channel, m.model, want)
+        m.enabled = want
+        ok++
+      } catch {
+        fail++
+      }
+    }
+  } finally {
+    b.models = false
+  }
+  if (fail > 0) {
+    ElMessage.error(`批量更新完成：成功 ${ok}，失败 ${fail}`)
+  } else if (ok > 0) {
+    ElMessage.success(`已更新 ${ok} 个模型的开关`)
+  } else {
+    ElMessage.info('模型开关已符合目标状态，无需变更')
+  }
+}
+
+function selectAllModels() {
+  void batchSetModels(activeChannel.value, () => true)
+}
+
+function deselectAllModels() {
+  void batchSetModels(activeChannel.value, () => false)
+}
+
+function invertModels() {
+  void batchSetModels(activeChannel.value, (m) => !m.enabled)
+}
+
 watch(activeChannel, () => {
   /* 切换渠道卡片时不做额外操作 */
 }, { immediate: false })
@@ -725,7 +780,8 @@ const pendingCallbackFor = (channel: string) => pendingCallback.value[channel] ?
                 {{ connStateText(conn) }}
               </span>
               <div class="chm-acc__actions">
-                <button class="chm-acc__btn" :disabled="busyFor(activeChannel, 'refresh')"
+                <button v-if="activeSummary()!.supportsRefresh !== false"
+                        class="chm-acc__btn" :disabled="busyFor(activeChannel, 'refresh')"
                         @click.stop="refreshAccount(activeChannel, conn.label ?? '')">刷新</button>
                 <button v-if="activeSummary()!.supportsCheckin" class="chm-acc__btn"
                         :disabled="busyFor(activeChannel, 'sign')"
@@ -749,6 +805,16 @@ const pendingCallbackFor = (channel: string) => pendingCallback.value[channel] ?
                     @click.stop="pullModels(activeChannel)">
               {{ busyFor(activeChannel, 'models') ? '拉取中…' : '拉取模型' }}
             </button>
+          </div>
+          <!-- 批量快捷操作：全选 / 反选 / 全不选 -->
+          <div v-if="(activeSummary()!.models ?? []).length" class="chm-models__ops">
+            <span class="chm-models__ops-title">批量：</span>
+            <button type="button" class="chm-panel__pull" :disabled="busyFor(activeChannel, 'models')"
+                    @click.stop="selectAllModels()">全选</button>
+            <button type="button" class="chm-panel__pull" :disabled="busyFor(activeChannel, 'models')"
+                    @click.stop="invertModels()">反选</button>
+            <button type="button" class="chm-panel__pull" :disabled="busyFor(activeChannel, 'models')"
+                    @click.stop="deselectAllModels()">全不选</button>
           </div>
           <div class="chm-models">
             <label
@@ -1273,6 +1339,16 @@ const pendingCallbackFor = (channel: string) => pendingCallback.value[channel] ?
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+.chm-models__ops {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.chm-models__ops-title {
+  font-size: 12px;
+  color: var(--text-tertiary, #94a3b8);
 }
 .chm-acc {
   display: flex;

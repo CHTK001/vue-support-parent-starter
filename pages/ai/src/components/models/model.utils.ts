@@ -223,7 +223,8 @@ function inferTypeByName(name: any): string {
   if (l.includes('embedding') || l.includes('embed') || l.includes('-bge-')) return 'embedding'
   if (l.includes('rerank')) return 'rerank'
   if (l.includes('tts') || l.includes('speech-synthesis') || l.includes('speech_synthesis')) return 'tts'
-  if (l.includes('whisper') || l.includes('asr') || l.includes('speech-recognition')) return 'asr'
+  if (l.includes('whisper') || l.includes('asr') || l.includes('speech-recognition')
+    || l.includes('transcribe') || l.includes('transcription')) return 'asr'
   if (l.includes('detect') || l.includes('-det-') || l.includes('yolo')
     || l.includes('scrfd') || l.includes('nms')) return 'detection'
   if (l.includes('dall-e') || l.includes('image-gen') || l.includes('cogview') || l.includes('flux') || l.includes('image')) return 'image'

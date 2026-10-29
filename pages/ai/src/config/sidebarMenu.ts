@@ -4,6 +4,7 @@ import {
   Apps20Regular, ImageMultiple20Regular, Image20Regular, Person20Regular, ImageSearch20Regular,
   DocumentText20Regular, DesktopSpeaker24Regular, Headphones24Regular, BrainCircuit20Regular,
   DataBarVertical20Regular, PlugConnected20Regular, ClockAlarm20Regular, Fingerprint24Regular,
+  Earth24Regular,
 } from '@vicons/fluent'
 
 /**
@@ -129,6 +130,12 @@ export function createSidebarMenuItems(ctx: SidebarMenuContext): SidebarMenuItem
       key: 'tavern',
       label: '酒馆',
       icon: ChatMultiple24Regular,
+      alwaysShow: true,
+    },
+    {
+      key: 'world-sim',
+      label: '模拟人生',
+      icon: Earth24Regular,
       alwaysShow: true,
     },
     {

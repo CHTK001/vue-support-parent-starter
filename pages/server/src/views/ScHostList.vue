@@ -49,6 +49,7 @@ interface HostRow {
   serverHostPorts?: string;
   serverHostLastPortScanTime?: string;
   serverHostSshEnabled?: number;
+  serverHostRemoteEnabled?: number;
   /**
    * 实时指标（CPU / 内存 / 磁盘使用率，百分比 0-100）。
    *
@@ -633,10 +634,10 @@ function diskColor(v?: number): string {
 
       <div class="host-card__actions" @click.stop>
         <ReButton show-text icon="View" type="primary" size="small" @click.stop="openDetail(row)">详情</ReButton>
-        <ReButton show-text icon="Connection" type="primary" size="small" @click="onOpenConnect(row)">远控</ReButton>
-        <ReButton show-text icon="FolderOpened" type="primary" size="small" @click="onOpenSftp(row)">文件</ReButton>
-        <ReButton show-text icon="Aim" size="small" @click="onTestConnect(row)">测连</ReButton>
-        <ReButton show-text icon="Search" type="warning" size="small" @click="onScanPorts(row)">扫端口</ReButton>
+        <ReButton v-if="row.serverHostRemoteEnabled === 1" show-text icon="Connection" type="primary" size="small" @click="onOpenConnect(row)">远控</ReButton>
+        <ReButton v-if="row.serverHostSshEnabled === 1" show-text icon="FolderOpened" type="primary" size="small" @click="onOpenSftp(row)">文件</ReButton>
+        <ReButton v-if="row.serverHostSshEnabled === 1" show-text icon="Aim" size="small" @click="onTestConnect(row)">测连</ReButton>
+        <ReButton v-if="row.serverHostSshEnabled === 1" show-text icon="Search" type="warning" size="small" @click="onScanPorts(row)">扫端口</ReButton>
         <ReButton show-text icon="Edit" size="small" @click="openEdit(row)">编辑</ReButton>
         <ReButton show-text icon="MoreFilled" size="small" @click="openConfig(row)">更多</ReButton>
         <ReButton show-text icon="Delete" type="danger" size="small" @click="onDelete(row)">删除</ReButton>

@@ -49,8 +49,9 @@ export interface RendererSpec {
 export const TEXT_EXTENSIONS: ReadonlySet<string> = new Set([
   "md", "markdown", "txt", "json", "js", "mjs", "cjs", "css", "java", "py",
   "html", "htm", "jsx", "ts", "tsx", "xml", "log", "vue", "yaml", "yml",
-  "ini", "sh", "bash", "sql", "go", "rs", "php", "c", "cpp", "cc", "h",
-  "hpp", "cs", "jsonc", "json5", "ipynb", "toml", "proto", "hcl", "tex",
+  "ini", "conf", "cfg", "cnf", "sh", "bash", "sql", "go", "rs", "php",
+  "c", "cpp", "cc", "h", "hpp", "cs", "jsonc", "json5", "ipynb", "toml",
+  "proto", "hcl", "tex",
   "gv", "http", "react", "rb", "swift", "kt",
 ]);
 
@@ -251,6 +252,7 @@ const SPEC_BY_EXT: Record<string, RendererSpec> = {
   clj: TEXT_SPEC,
   properties: TEXT_SPEC,
   conf: TEXT_SPEC,
+  cnf: TEXT_SPEC,
   env: TEXT_SPEC,
   cfg: TEXT_SPEC,
   gradle: TEXT_SPEC,

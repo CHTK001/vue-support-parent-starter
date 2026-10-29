@@ -143,7 +143,7 @@ import { apiService } from '@/services/ApiService'
 import { useFaceRegistry, isValidIdCard, isValidPhone, maskIdCard, type FaceRecord } from '@/composables/useFaceRegistry'
 
 
-import ReDialog from '@repo/ui/re-dialog';const props = defineProps<{ modelValue: boolean; record?: FaceRecord | null }>()
+import ReDialog from '@repo/ui/re-dialog';const props = defineProps<{ modelValue: boolean; record?: FaceRecord | null; group?: string }>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void; (e: 'enrolled', record: FaceRecord): void }>()
 
 /**
@@ -393,7 +393,8 @@ async function submit() {
     if (isEdit.value && props.record) {
       // 编辑：只改档案，不重跑检测、不动向量；照片保持不变
       const id = props.record.id
-      const okUpd = await apiService.updateFace(id, metadata)
+      // 分组必须带上：后端按分组定位这条记录，漏带会去 default 里找一个不存在的 id
+      const okUpd = await apiService.updateFace(id, metadata, props.group)
       if (!okUpd) {
         message.error('更新失败：底库未确认更新')
         return
@@ -407,6 +408,8 @@ async function submit() {
         idCard: form.idCard,
         photogenic: form.photogenic,
         note: form.note,
+        // 分组以调用方传入的为准（编辑窗口始终对着某一组打开）
+        group: props.group ?? props.record.group,
       }
       upsert(updated)
       emit('enrolled', updated)
@@ -417,7 +420,8 @@ async function submit() {
 
     const id = `face-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
     const blob = await (await fetch(form.photo)).blob()
-    await apiService.enrollFace(id, blob, metadata, 'enroll.png')
+    // 登记到当前分组（缺省 default）
+    await apiService.enrollFace(id, blob, metadata, 'enroll.png', props.group)
 
     upsert({
       id,
@@ -430,8 +434,9 @@ async function submit() {
       note: form.note,
       thumb: form.photo,
       enrolledAt: Date.now(),
+      group: props.group,
     })
-    emit('enrolled', { id, name: form.name, age: form.age, gender: form.gender, hair: form.hair, idCard: form.idCard, photogenic: form.photogenic, note: form.note, thumb: form.photo, enrolledAt: Date.now() })
+    emit('enrolled', { id, name: form.name, age: form.age, gender: form.gender, hair: form.hair, idCard: form.idCard, photogenic: form.photogenic, note: form.note, thumb: form.photo, enrolledAt: Date.now(), group: props.group })
     message.success(`已登记：${form.name}`)
     visible.value = false
     reset()

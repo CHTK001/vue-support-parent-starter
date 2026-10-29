@@ -1,6 +1,23 @@
 <template>
   <div class="h-full overflow-hidden flex flex-col" data-page="models">
-    <PageHeader :title="t('settings.models.title')" />
+    <PageHeader :title="t('settings.models.title')">
+      <template #actions>
+        <!-- 供应商行多选/批删：与逐条删除分开，点供应商头像或名称进入该供应商的模型页 -->
+        <button v-if="!multiSelect" class="mw-act" @click="multiSelect = true">多选</button>
+        <template v-else>
+          <span class="mw-act">已选 {{ selectedProviders.length }} 个</span>
+          <button class="mw-act" @click="exitMultiSelect">取消</button>
+          <button
+            v-if="selectedProviders.length > 0"
+            class="mw-act mw-act-del"
+            :disabled="batchDeleting"
+            @click="batchDeleteProviders"
+          >
+            删除供应商
+          </button>
+        </template>
+      </template>
+    </PageHeader>
     <div class="flex-1 min-h-0">
       <div class="models-workspace h-full flex">
         <!-- 左侧：供应商导航 -->
@@ -17,8 +34,8 @@
               v-for="p in providers"
               :key="p.id"
               class="mw-item"
-              :class="{ active: p.id === currentProviderId }"
-              @click="selectProvider(p)"
+              :class="{ active: p.id === currentProviderId, selected: multiSelect && isSelected(p) }"
+              @click="multiSelect ? toggleSelectProvider(p) : selectProvider(p)"
             >
               <ProviderLogo :pid="getProviderIcon(p)" :name="p.name" size="md" />
               <div class="mw-item-text">
@@ -119,6 +136,71 @@ const currentProviderId = ref<string | null>(null)
 const formRef = ref<any>(null)
 const catalogRef = ref<any>(null)
 
+/** 供应商行多选/批量删除 */
+const multiSelect = ref(false)
+const selectedProviders = ref<any[]>([])
+const batchDeleting = ref(false)
+
+/** 多选模式下：点中项切换勾选，不切供应商页 --> */
+const isSelected = (p: any) => selectedProviders.value.some((x: any) => x.id === p.id)
+
+const toggleSelectProvider = (p: any) => {
+  const idx = selectedProviders.value.findIndex((x: any) => x.id === p.id)
+  if (idx > -1) selectedProviders.value.splice(idx, 1)
+  else selectedProviders.value.push(p)
+}
+
+const exitMultiSelect = () => {
+  multiSelect.value = false
+  selectedProviders.value = []
+}
+
+// 删除供应商（后端级联删除模型与连接）
+const handleDeleteProvider = async (p: any) => {
+  if (!p || p.id === 'agent' || p.id === 'onnx') return
+  const modelCount = Array.isArray(p.models) ? p.models.length : 0
+  const ok = await confirm(
+    '删除供应商',
+    `确定删除供应商「${p.name}」吗？其下 ${modelCount} 个模型及连接配置将一并删除，删除后不可恢复。`,
+    { type: 'error', confirmText: '删除' },
+  )
+  if (!ok) return
+  try {
+    await apiService.deleteProvider(p.id)
+    message.success(`供应商「${p.name}」已删除`)
+    if (currentProviderId.value === p.id) currentProviderId.value = null
+    await reload()
+  } catch (e: any) {
+    console.error('删除供应商失败:', e)
+    message.error(e?.message || '请稍后重试')
+  }
+}
+
+// 批量删除供应商（级联删除其模型与连接，后端整批拦截）
+const batchDeleteProviders = async () => {
+  const ids = selectedProviders.value.map((p: any) => p.id).filter((s: any) => s)
+  if (!ids.length) return
+  const ok = await confirm(
+    '批量删除供应商',
+    `确定删除所选 ${ids.length} 个供应商吗？它们每个下的模型与连接配置将一并删除，删除后不可恢复。`,
+    { type: 'error', confirmText: '删除' },
+  )
+  if (!ok) return
+  batchDeleting.value = true
+  try {
+    const res: any = await apiService.batchDeleteProviders(ids)
+    const deleted = res?.deletedCount ?? res?.data?.deletedCount ?? ids.length
+    if (deleted > 0) message.success(`已删除 ${deleted} 个供应商`)
+    else message.error(res?.data?.msg || '删除失败')
+    exitMultiSelect()
+  } catch (e: any) {
+    console.error('批量删除供应商失败:', e)
+    message.error(e?.message || '删除失败')
+  } finally {
+    batchDeleting.value = false
+  }
+}
+
 const getProviderIcon = (item: any) => item.provider || item.id
 
 const enabledOf = (p: any) =>
@@ -174,26 +256,6 @@ const handleEditProvider = () => {
   if (currentProvider.value) formRef.value.openEdit(currentProvider.value)
 }
 
-// 删除供应商（后端级联删除模型与连接）
-const handleDeleteProvider = async (p: any) => {
-  if (!p || p.id === 'agent' || p.id === 'onnx') return
-  const modelCount = Array.isArray(p.models) ? p.models.length : 0
-  const ok = await confirm(
-    '删除供应商',
-    `确定删除供应商「${p.name}」吗？其下 ${modelCount} 个模型及连接配置将一并删除，删除后不可恢复。`,
-    { type: 'error', confirmText: '删除' },
-  )
-  if (!ok) return
-  try {
-    await adminApi.delete(`/api/providers/${p.id}`)
-    message.success(`供应商「${p.name}」已删除`)
-    if (currentProviderId.value === p.id) currentProviderId.value = null
-    await reload()
-  } catch (e: any) {
-    console.error('删除供应商失败:', e)
-    message.error(e?.message || '请稍后重试')
-  }
-}
 const handleTemplateClick = (template: any) => formRef.value.openFromTemplate(template)
 
 const handleSaved = async () => {
@@ -411,4 +473,57 @@ onMounted(async () => {
 }
 .mw-empty-title { margin: 0; font-size: 16px; font-weight: 700; color: var(--color-text); }
 .mw-empty-desc { margin: 6px 0 0; font-size: 13px; color: var(--color-text-gray); }
+
+/* 多选模式下供应商项的勾选态 */
+.mw-item.selected {
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 25%, var(--color-surface-border));
+}
+.mw-item.selected .mw-item-name { color: var(--color-primary); }
+
+/* 页面头部的供应商批删按钮组 */
+.mw-act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-bg-color);
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  flex-shrink: 0;
+}
+.mw-act:hover { background: var(--color-surface-border); }
+.mw-act:disabled { opacity: 0.5; cursor: not-allowed; }
+.mw-act + .mw-act { margin-left: 6px; }
+.mw-act-del {
+  color: var(--el-color-danger);
+  border-color: color-mix(in srgb, var(--el-color-danger) 35%, var(--color-surface-border));
+}
+.mw-act-del:hover {
+  background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
+}
+
+/* 动效降级 */
+@media (prefers-reduced-motion: reduce) {
+  .mw-round,
+  .mw-item,
+  .mw-item-status,
+  .mw-item-del,
+  .mw-store,
+  .mw-act { transition: none; }
+}
+
+/* 键盘焦点可见性：页面头部的批删按钮要可聚焦，补主色环。 */
+.mw-act {
+  outline: none;
+}
+
+.mw-act:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 </style>

@@ -3,7 +3,8 @@
  *
  * <p>两套作用域，刻意分开：</p>
  * <ul>
- *   <li><b>视图偏好</b>（表头模式 / 行模式 / 每页行数 / 统计总数 / ER 图设置 / 上次数据源）：
+ *   <li><b>视图偏好</b>（表头注释/类型 / 行注释 / 左侧树 / 每页行数 / 统计总数 /
+ *       ER 图设置 / 上次数据源）：
  *       全局一份。这是「我怎么读表」的显示偏好，按表各存一份等于
  *       要为每张表重设一遍。</li>
  *   <li><b>每表查询偏好</b>（WHERE 快速筛选 + 高级筛选条件）：<b>按 {@code 库.表} 分键</b>。
@@ -34,12 +35,8 @@ const VIEW_KEY = "dbm-view-pref";
 /** 每表查询偏好存储键（内部按表再分一层） */
 const TABLE_KEY = "dbm-table-pref";
 /** 存储结构版本；结构不兼容时 +1，旧数据直接丢弃而不是尝试迁移 */
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
-/** 允许的表头模式 */
-const HEADER_MODES = ["name", "comment", "both", "type"] as const;
-/** 允许的行显示模式 */
-const ROW_MODES = ["data", "data-comment"] as const;
 /** 允许的每页行数（与界面分页选项一致） */
 const PAGE_SIZES = [20, 50, 100, 200, 500];
 /** 允许的 ER 图布局（非层级：树形布局在普通关系图上会抛 Tree structure not found） */
@@ -47,15 +44,37 @@ const ER_LAYOUTS = ["dagre", "antv-dagre", "force", "d3-force", "circular", "gri
 
 /** 视图偏好 */
 export interface DbViewPref {
-  headerMode: (typeof HEADER_MODES)[number];
-  rowMode: (typeof ROW_MODES)[number];
   /**
-   * 顶部「表头显示 / 行显示」那一排是否收起。
+   * 表头显示注释开关：开启后字段名下方显示列注释（两行表头）。
    *
-   * <p>收起后功能不丢：表头右键菜单里是同一组开关（同一个 headerMode / rowMode
-   * 状态源）。它跟 headerMode 一样属于「设置一次就不动」的偏好，所以一并落盘。</p>
+   * <p>v2 改版：旧的 {@code headerMode}（字段/注释/字段+注释/类型四选一）被拆成
+   * 「显示注释 + 显示类型」两个独立开关 —— 字段名**恒显示**，注释与类型分别作为
+   * 字段名下方的补充行。旧的互斥单选没有「同时看注释和类型」的组合，拆开后能。</p>
    */
-  modeRowCollapsed: boolean;
+  showHeaderComments: boolean;
+  /** 表头显示类型开关：开启后字段名下方显示列数据库类型（与注释同行并存） */
+  showHeaderTypes: boolean;
+  /**
+   * 行显示注释开关：开启后每个数据单元格数值下方显示该列注释。
+   *
+   * <p>v2 改版：旧的 {@code rowMode}（数据/数据+注释两选一）改为单个开关 ——
+   * 数据恒显示，注释作为补充行。与表头两个开关同源同形态。</p>
+   */
+  showRowComments: boolean;
+  /**
+   * 左侧连接树是否显示。
+   *
+   * <p>「隐藏左树」是宽表的救命开关：300px 的树吃掉近三分之一横向空间，
+   * 列一多就只能横向滚。它属于「我怎么看这个控制台」的偏好，与表头/行显示同级，
+   * 所以和它们存在同一份视图偏好里，而不是另开一个裸 key ——
+   * 裸 key 没有版本号，结构一变就是静默读出垃圾。</p>
+   *
+   * <p>默认 {@code true}：升级上来的用户没写过这个字段，必须仍是「看得见树」，
+   * 不能因为新增一个开关就把树藏起来。旧版本的 {@code v: 2} 记录缺这一项，
+   * 由 {@code loadViewPref} 的逐字段回落补成默认值，因此**不需要**升
+   * {@code SCHEMA_VERSION}（升版本会整份丢弃用户已有偏好，代价远大于收益）。</p>
+   */
+  showSidebar: boolean;
   pageSize: number;
   showTotal: boolean;
   erLayout: string;
@@ -91,11 +110,12 @@ export interface DbFilterCondition {
 
 /** 默认视图偏好 */
 export const DEFAULT_VIEW_PREF: DbViewPref = {
-  headerMode: "name",
-  rowMode: "data",
-  modeRowCollapsed: false,
+  showHeaderComments: false,
+  showHeaderTypes: false,
+  showRowComments: false,
+  showSidebar: true,
   pageSize: 50,
-  showTotal: true,
+  showTotal: false,
   erLayout: "dagre",
   erShowLabels: true,
   erTableFilter: "",
@@ -151,18 +171,17 @@ export function loadViewPref(): DbViewPref {
     return { ...DEFAULT_VIEW_PREF };
   }
   const pageSizeRaw = Number(bag.pageSize);
+  const boolField = (v: unknown, fallback: boolean): boolean =>
+    typeof v === "boolean" ? v : fallback;
   return {
-    headerMode: pick(bag.headerMode, HEADER_MODES, DEFAULT_VIEW_PREF.headerMode),
-    rowMode: pick(bag.rowMode, ROW_MODES, DEFAULT_VIEW_PREF.rowMode),
-    modeRowCollapsed: typeof bag.modeRowCollapsed === "boolean"
-      ? bag.modeRowCollapsed
-      : DEFAULT_VIEW_PREF.modeRowCollapsed,
+    showHeaderComments: boolField(bag.showHeaderComments, DEFAULT_VIEW_PREF.showHeaderComments),
+    showHeaderTypes: boolField(bag.showHeaderTypes, DEFAULT_VIEW_PREF.showHeaderTypes),
+    showRowComments: boolField(bag.showRowComments, DEFAULT_VIEW_PREF.showRowComments),
+    showSidebar: boolField(bag.showSidebar, DEFAULT_VIEW_PREF.showSidebar),
     pageSize: PAGE_SIZES.includes(pageSizeRaw) ? pageSizeRaw : DEFAULT_VIEW_PREF.pageSize,
-    showTotal: typeof bag.showTotal === "boolean" ? bag.showTotal : DEFAULT_VIEW_PREF.showTotal,
+    showTotal: boolField(bag.showTotal, DEFAULT_VIEW_PREF.showTotal),
     erLayout: pick(bag.erLayout, ER_LAYOUTS, DEFAULT_VIEW_PREF.erLayout),
-    erShowLabels: typeof bag.erShowLabels === "boolean"
-      ? bag.erShowLabels
-      : DEFAULT_VIEW_PREF.erShowLabels,
+    erShowLabels: boolField(bag.erShowLabels, DEFAULT_VIEW_PREF.erShowLabels),
     erTableFilter: typeof bag.erTableFilter === "string"
       ? bag.erTableFilter.slice(0, 200)
       : DEFAULT_VIEW_PREF.erTableFilter,

@@ -50,8 +50,11 @@ export interface InstallKoiOptions {
 export async function installKoi(app: App, options: InstallKoiOptions = {}): Promise<App> {
   const { router, elementPlus = true, elementIcons = true } = options;
 
-  // koi 图标（#icon-koi-*）依赖全局 SVG sprite，先注入
-  setupKoiSvgSprite();
+  // koi 图标（#icon-koi-*）依赖全局 SVG sprite。在 SSR / 依赖预构建阶段
+  // document.body 可能不存在 → 注入空 sprite + 置 injected=true，
+  // 导致所有 #icon-koi-* 引用失效。由 createVueApp 的 mount 钩子在 app.mount() 后
+  // 再补一次兜底（见 packages/assets/src/svgSprite.ts 中 injected=true 的幂等保护）。
+  // 框架侧保持原样，业务 main.ts 请务必在 mount 后调用一次 setupSvgSprite。
 
   if (elementPlus) {
     app.use(ElementPlus, { locale: zhCn });

@@ -1362,9 +1362,12 @@ const toggleThinkingLevelPopover = () => {
   thinkingLevelPopoverVisible.value = !thinkingLevelPopoverVisible.value;
 };
 /** 档位选项：首位固定「不思考」(none)，其后为模型声明的档位；
- *  模型未声明档位但当前会话/角色支持思考时，至少给一个「默认」档，保证合并后的入口仍然可用。 */
+ *  模型未声明档位但当前会话/角色支持思考时，给整套通用档位（约定俗成的
+ *  default + low/medium/high/max），让滑块始终是多档形态，不会只剩两档。 */
 const thinkingLevelOptions = computed(() => {
-  const levels = thinkingEffortOptions.value.length ? thinkingEffortOptions.value : ['default'];
+  const levels = thinkingEffortOptions.value.length
+    ? thinkingEffortOptions.value
+    : ['default', 'low', 'medium', 'high', 'max'];
   return ['none', ...levels];
 });
 /** 当前值：关闭思考时统一显示为「不思考」 */

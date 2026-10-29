@@ -87,7 +87,7 @@
             </el-input>
 
             <!-- 批量操作工具栏：始终占位，避免选中后把卡片网格往下顶 -->
-            <div class="batch-toolbar" :class="{ 'is-visible': selected.length > 0 }">
+            <div class="batch-toolbar">
               <template v-if="selected.length > 0">
                 <span class="batch-count">已选 {{ selected.length }} 个</span>
                 <span
@@ -97,7 +97,25 @@
                 >{{ selected.length === filteredModels.length ? '取消全选' : '全选当前筛选' }}</span>
                 <el-button size="small" type="success" @click="batchEnable">启用</el-button>
                 <el-button size="small" type="warning" @click="batchDisable">停用</el-button>
-                <el-button size="small" @click="selected = []">取消</el-button>
+                <el-button
+                  size="small"
+                  type="danger"
+                  plain
+                  :loading="batchDeleting"
+                  @click="batchDelete"
+                >批量删除</el-button>
+                <el-button size="small" @click="exitMultiSelect">取消</el-button>
+              </template>
+              <!-- 未选择时显示多选入口，避免批量操作入口缺失 -->
+              <template v-else>
+                <span class="batch-count">多选模型进行批量操作</span>
+                <el-button v-if="!multiSelect" size="small" type="primary" @click="enterMultiSelect">多选</el-button>
+                <span
+                  v-else
+                  class="batch-select-all"
+                  :class="{ 'is-all': selected.length === filteredModels.length && filteredModels.length > 0 }"
+                  @click="toggleSelectAllFiltered"
+                >{{ selected.length === filteredModels.length ? '取消全选' : '全选当前筛选' }}</span>
               </template>
             </div>
           </div>
@@ -140,7 +158,7 @@
         </div>
         <div v-else class="model-grid">
           <article v-for="model in filteredModels" :key="model.id" class="mc"
-            :class="{ 'is-selected': selected.includes(getModelId(model)) }">
+            :class="{ 'is-selected': selected.includes(getModelId(model)), 'is-multi': multiSelect }">
             <div class="mc-head">
               <Avatar class="w-10 h-10 shrink-0 mr-3" :src="getModelAvatar(model)"
                 :name="getModelDisplayName(model.modelName)" type="assistant" :round="false" />
@@ -332,6 +350,21 @@ const typeFilter = ref('')
 
 /** 批量选中的模型 id */
 const selected = ref<string[]>([])
+
+/** 多选模式：仅控制界面显隐，不改变已选中的模型 id */
+const multiSelect = ref(false)
+
+/** 进入多选模式：清空已有选择，准备重新勾选 */
+const enterMultiSelect = () => {
+  selected.value = []
+  multiSelect.value = true
+}
+
+/** 退出多选模式：清空已有选择 */
+const exitMultiSelect = () => {
+  multiSelect.value = false
+  selected.value = []
+}
 
 /**
  * 切换上下文档位标签：已选中则取消，否则加入。
@@ -860,6 +893,53 @@ const batchDisable = async () => {
   )
 }
 
+/** 批量删除进行中（防止连点重复提交） */
+const batchDeleting = ref(false)
+
+/**
+ * 批量删除所选模型。
+ *
+ * <p>只处理带原生 id 的行：{@code batchDeleteProviderModels} 依赖
+ * {@code providerId:modelName} 复合 id 定位复合主键，内置 Agent 之类没有原生记录的行
+ * 删不掉（hasNativeId === false），直接在确认框里说明并跳过，而不是逐条报错。</p>
+ */
+const batchDelete = async () => {
+  const targets = selected.value.map(findModel).filter((m: any) => !!m)
+  const deletable = targets.filter((m: any) => m.hasNativeId !== false && !!m.id)
+  const skipped = targets.length - deletable.length
+  if (!deletable.length) {
+    message.warning('所选模型无原生记录，暂无法删除')
+    return
+  }
+  const ok = await confirm(
+    '批量删除模型',
+    `确定删除所选 ${deletable.length} 个模型吗？删除后将无法恢复。`
+      + (skipped > 0 ? `（另有 ${skipped} 个无原生记录的行会被跳过）` : ''),
+  )
+  if (!ok) return
+  batchDeleting.value = true
+  try {
+    const res: any = await apiService.batchDeleteProviderModels(deletable.map((m: any) => m.id))
+    const deleted = res?.deletedCount ?? res?.data?.deletedCount ?? deletable.length
+    if (deleted > 0) {
+      message.success(`已删除 ${deleted} 个模型` + (deletable.length > deleted ? `（${deletable.length - deleted} 未删除）` : ''))
+    } else {
+      const detail = res?.data?.msg || res?.msg || res?.message || '请稍后重试'
+      message.error(`删除失败：${detail}`)
+    }
+    selected.value = []
+    emit('changed')
+  } catch (error: any) {
+    const detail = error?.response?.data?.msg
+      || error?.response?.data?.message
+      || error?.message
+      || '删除失败'
+    message.error(`删除失败：${detail}`)
+  } finally {
+    batchDeleting.value = false
+  }
+}
+
 const handleRequestFetch = () =>
   // false：这条是从模型表单里点「获取」来的，失败时不要回退 openAdd()，
   // 否则会把表单里已经填好的模型名/参数清空
@@ -956,7 +1036,7 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 .filter-group { display: flex; align-items: center; }
 .type-select { width: 110px; }
 
-/* 批量操作工具栏：默认占位固定高度，选中时淡入，避免卡片网格上下跳动 */
+/* 批量操作工具栏：始终占位固定高度，避免卡片网格上下跳动；多选态/已选态微调背景，未选定态用浅色提示 */
 .batch-toolbar {
   display: flex;
   align-items: center;
@@ -965,19 +1045,17 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   min-height: 34px;
   padding: 4px 8px;
   border-radius: var(--el-radius-base);
-  background: transparent;
-  border: 1px dashed transparent;
-  visibility: hidden;
-  opacity: 0;
-  transition: opacity 0.18s ease, visibility 0.18s, background 0.18s ease, border-color 0.18s ease;
-}
-.batch-toolbar.is-visible {
-  visibility: visible;
-  opacity: 1;
   background: var(--el-fill-color-light);
-  border-color: var(--el-border-color-lighter);
+  border: 1px dashed var(--el-border-color-lighter);
+  transition: background 0.18s ease, border-color 0.18s ease;
 }
-.batch-count { font-size: 12px; color: var(--el-text-color-secondary); }
+.batch-toolbar:hover {
+  background: var(--el-fill-color-dark);
+}
+.batch-count { 
+  font-size: 12px; color: var(--el-text-color-secondary); 
+  border-radius: 4px;
+}
 .batch-select-all {
   font-size: 12px;
   color: var(--el-color-primary);
@@ -1062,6 +1140,12 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
 }
 .mc:hover .mc-check { background: var(--el-fill-color-dark); }
+/* 多选模式下 checkbox 常驻可见，避免未被注意到 */
+.mc.is-multi .mc-check {
+  background: color-mix(in srgb, var(--color-text-disabled) 15%, var(--el-fill-color-light));
+  border: 1px solid var(--el-border-color-lighter);
+}
+.mc.is-multi .mc-check:hover { background: var(--el-fill-color-dark); }
 .mc.is-selected .mc-check {
   color: #fff;
   background: var(--color-primary);

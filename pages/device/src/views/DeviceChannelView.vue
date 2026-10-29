@@ -157,7 +157,7 @@
  * @author CH
  * @since 4.0.0.42
  */
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { CircleCheck, Connection, Grid, Tickets } from '@element-plus/icons-vue'
 
@@ -174,6 +174,12 @@ import ReTag from '@repo/ui/re-tag'
 
 import deviceApi from '../api/deviceApi'
 import type { DeviceChannel, DeviceInfo } from '../types/device'
+
+/**
+ * 预置设备：从设备资产右键进入时带入目标设备，自动选中并拉取通道。
+ * 独立打开（无 prop）时保持原有手动选择设备的行为。
+ */
+const props = withDefaults(defineProps<{ deviceId?: string }>(), { deviceId: '' })
 
 /** 表单里的状态分片（启用 / 禁用） */
 const STATUS_SEGMENTS = [
@@ -389,6 +395,16 @@ function errText(e: unknown): string {
 }
 
 onMounted(fetchDevices)
+
+watch(
+  () => props.deviceId,
+  (id) => {
+    if (!id) return
+    filters.deviceId = id
+    fetchChannels()
+  },
+  { immediate: true }
+)
 </script>
 
 <style scoped>

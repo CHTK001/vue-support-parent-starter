@@ -20,6 +20,7 @@
     "@element-plus/icons-vue": "catalog:",
     "@pages/datasource": "workspace:*",
     "@pages/device": "workspace:*",
+    "@pages/docker": "workspace:*",
     "@pages/filesystem": "workspace:*",
     "@pages/hotsport": "workspace:*",
     "@pages/monitor": "workspace:*",

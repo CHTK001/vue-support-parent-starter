@@ -1,105 +1,212 @@
 <!--
-  协同管理 —— 在线表格协同文档的列表与管理。
+  协同管理 —— 文件管理器样式重构。
 
-  功能：
-    列表（公开 + 我创建的 + 授权给我的，新→旧）、打开协同编辑、
-    权限管理（公开 ⇄ 私有 + 指定用户）、删除。
+  结构：
+    - 左侧目录树：从协同文档的 path 字段聚合出虚拟目录（层级缩进 + 文档数）
+    - 主区卡片网格：真实 Office 图标 + 文件名 + 大小，圆角卡片
+    - 右键菜单：打开 / 重命名 / 复制 / 下载 / 分享连接 / 历史记录 / 权限 / 删除
+    - 新建协同：excel/word/text 三类；支持上传 xlsx/docx/txt 转为协同
+    - 打开协同：ReLoader 加载态 → 全屏专注层（非弹框）
+    - 版本历史：查看 / 「回退」（复制历史版本为新文件）
+
   数据来源：@pages/filesystem/api/filestorageApi 的 fileCollab* 系列。
-
-  打开协同：内嵌 FileCollabEditor（Univer 在线表格 + 快照式协同），
-  从列表行数据带入初始快照与版本，编辑器内部轮询同步。
 -->
 
 <template>
-  <div class="collab-manage-page">
-    <!-- 概览条 -->
-    <div class="stat-grid" role="group" aria-label="协同概览">
-      <div class="stat-card" style="--accent: var(--brand-500)">
-        <span class="stat-label">协同总数</span>
-        <span class="stat-value">{{ collabs.length }}</span>
-        <span class="stat-trend">内存态文档</span>
+  <div class="cm-page">
+    <!-- ===== 左侧目录树 ===== -->
+    <aside class="cm-side">
+      <div class="cm-side-hd">
+        <span>目录</span>
+        <span class="cm-side-sub">按文档所属目录聚合</span>
       </div>
-      <div class="stat-card" style="--accent: var(--status-success)">
-        <span class="stat-label">公开</span>
-        <span class="stat-value">{{ publicCount }}</span>
-        <span class="stat-trend">全员可编辑</span>
+      <div class="cm-tree" role="tree" aria-label="协同目录">
+        <button
+          v-for="node in treeNodes"
+          :key="node.key"
+          type="button"
+          class="cm-node"
+          :class="{ active: node.path === currentPath }"
+          :style="{ paddingLeft: 10 + node.depth * 16 + 'px' }"
+          role="treeitem"
+          :aria-selected="node.path === currentPath"
+          @click="selectDir(node.path)"
+        >
+          <span class="cm-node-icon">{{ node.depth === 0 ? "🗂️" : "📁" }}</span>
+          <span class="cm-node-label">{{ node.label }}</span>
+          <span class="cm-node-count">{{ node.count }}</span>
+        </button>
       </div>
-      <div class="stat-card" style="--accent: var(--status-warning)">
-        <span class="stat-label">私有</span>
-        <span class="stat-value">{{ privateCount }}</span>
-        <span class="stat-trend">创建者 + 授权用户</span>
-      </div>
-      <div class="stat-card" style="--accent: var(--metric-cpu)">
-        <span class="stat-label">我创建的</span>
-        <span class="stat-value">{{ mineCount }}</span>
-        <span class="stat-trend">owner = 当前用户</span>
-      </div>
-    </div>
+    </aside>
 
-    <!-- 工具栏：搜索 + 刷新 + 新建 -->
-    <div class="cm-toolbar koi-card">
-      <el-input
-        v-model="keyword"
-        size="small"
-        clearable
-        placeholder="搜索文件名 / 创建者"
-        class="cm-search"
-      >
-        <template #prefix><el-icon><Search /></el-icon></template>
-      </el-input>
-      <el-select v-model="visFilter" size="small" clearable placeholder="全部可见性" class="cm-filter">
-        <el-option label="公开" value="PUBLIC" />
-        <el-option label="私有" value="PRIVATE" />
-      </el-select>
-      <el-button size="small" text :icon="Refresh" :loading="listLoading" @click="loadCollabs">
-        刷新
-      </el-button>
-      <el-button size="small" type="primary" @click="openCreateDialog">
-        <el-icon><Plus /></el-icon>新建协同
-      </el-button>
-    </div>
-
-    <!-- 协同列表 -->
-    <div class="cm-list-wrap koi-card">
-      <div class="md-card-hd">
-        <span class="md-card-title">协同文档</span>
-        <span class="cm-hint">右键表格文件可在文件资产页创建协同</span>
+    <!-- ===== 主区 ===== -->
+    <section class="cm-main">
+      <!-- 概览条（紧凑） -->
+      <div class="stat-grid" role="group" aria-label="协同概览">
+        <div class="stat-card">
+          <span class="stat-label">协同总数</span>
+          <span class="stat-value">{{ allDocs.length }}</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">公开</span>
+          <span class="stat-value">{{ publicCount }}</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">私有</span>
+          <span class="stat-value">{{ privateCount }}</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">我创建的</span>
+          <span class="stat-value">{{ mineCount }}</span>
+        </div>
       </div>
 
-      <div v-if="collabs.length === 0" class="cm-empty">
-        <span class="cm-empty-icon">📄</span>
-        <span>暂无协同文档</span>
-        <span class="cm-empty-sub">
-          前往「文件管理 → 文件资产」，对 Excel 表格文件右键「创建协同」
-        </span>
-      </div>
+      <!-- 工具栏：面包屑 + 搜索 + 上传 + 新建/刷新 -->
+      <div class="cm-toolbar">
+        <nav class="cm-crumb" aria-label="当前目录">
+          <button type="button" class="cm-crumb-it" :class="{ active: currentPath === '' }" @click="selectDir('')">
+            全部文件
+          </button>
+          <template v-for="(seg, i) in currentSegments" :key="`${seg}-${i}`">
+            <span class="cm-crumb-sep">/</span>
+            <button
+              type="button"
+              class="cm-crumb-it"
+              :class="{ active: i === currentSegments.length - 1 }"
+              @click="selectDir(seg.path)"
+            >
+              {{ seg.label }}
+            </button>
+          </template>
+        </nav>
 
-      <div v-else class="cm-list">
-        <div v-for="c in filteredCollabs" :key="c.id" class="cm-item">
-          <div class="cm-item-main" @dblclick="openEditor(c)">
-            <span class="cm-file-icon">📊</span>
-            <div class="cm-file-meta">
-              <span class="cm-file-name">{{ c.fileName }}</span>
-              <span class="cm-file-sub">
-                {{ visibilityLabel(c) }} · 版本 v{{ c.version }} · {{ formatTime(c.updatedAt) }}
-              </span>
+        <div class="cm-search-wrap">
+          <el-input
+            v-model="keyword"
+            size="small"
+            clearable
+            placeholder="搜索文件名 / 目录"
+            class="cm-search"
+            @input="onKeywordInput"
+          >
+            <template #prefix><el-icon><Search /></el-icon></template>
+          </el-input>
+          <el-tooltip content="全局检索：忽略当前目录，跨全部目录搜索" placement="top">
+            <div class="cm-global-toggle">
+              <el-switch v-model="globalSearch" size="small" @change="onGlobalChange" />
+              <span class="cm-global-label">全局检索</span>
             </div>
-          </div>
-          <div class="cm-item-actions">
-            <el-button size="small" text type="primary" @click="openEditor(c)">打开</el-button>
-            <el-button size="small" text @click="openAccessDialog(c)">权限</el-button>
-            <el-button size="small" text type="danger" @click="onDelete(c)">删除</el-button>
+          </el-tooltip>
+        </div>
+
+        <el-button size="small" text :icon="Upload" @click="openUploadDialog">上传为协同</el-button>
+        <el-button size="small" text :icon="Refresh" :loading="listLoading" @click="reloadAll">
+          刷新
+        </el-button>
+        <el-dropdown @command="openCreateDialog" trigger="click">
+          <el-button size="small" type="primary">
+            <el-icon><Plus /></el-icon>新建协同<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="excel">表格 Excel</el-dropdown-item>
+              <el-dropdown-item command="word">文档 Word</el-dropdown-item>
+              <el-dropdown-item command="text">文本 Text</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </div>
+
+      <!-- 文档列表 -->
+      <div class="cm-body">
+        <div class="cm-body-hd">
+          <span class="cm-body-title">
+            {{ globalSearch && keyword ? "全局检索结果" : currentPath || "全部文件" }}
+          </span>
+          <span class="cm-body-sub">{{ docs.length }} 个文档</span>
+        </div>
+
+        <div v-if="docs.length === 0" class="cm-empty">
+          <span class="cm-empty-icon">📄</span>
+          <span>{{ collabEmptyText }}</span>
+          <span class="cm-empty-sub">
+            在右上角「新建协同」创建文档，或「上传为协同」把 xlsx/docx/txt 转为协同文档
+          </span>
+        </div>
+
+        <div v-else class="cm-grid">
+          <div
+            v-for="c in docs"
+            :key="c.id"
+            class="cm-card"
+            @contextmenu.prevent="openMenuAt($event, c)"
+          >
+            <div class="cm-card-top" @dblclick="openEditor(c)">
+              <span class="cm-card-icon" v-html="collabIcon(c)" />
+            </div>
+            <div class="cm-card-name" :title="c.fileName" @dblclick="openEditor(c)">{{ c.fileName }}</div>
+            <div class="cm-card-sub">{{ formatSize(c.size) }}</div>
+            <div class="cm-card-actions">
+              <el-button size="small" text type="primary" @click.stop="openEditor(c)">打开</el-button>
+              <el-button size="small" text @click.stop="openHistory(c)">历史</el-button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </section>
+
+    <!-- ===== 右键菜单 ===== -->
+    <teleport to="body">
+      <div
+        v-if="ctxMenu.visible"
+        ref="ctxMenuRef"
+        class="cm-ctx"
+        :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }"
+        @contextmenu.prevent
+      >
+        <div class="cm-ctx-item" @click="menuAction('open')"><el-icon><View /></el-icon>打开</div>
+        <div class="cm-ctx-item" @click="menuAction('rename')"><el-icon><EditPen /></el-icon>重命名</div>
+        <div class="cm-ctx-item" @click="menuAction('copy')"><el-icon><CopyDocument /></el-icon>复制</div>
+        <div class="cm-ctx-item" @click="menuAction('download')"><el-icon><Download /></el-icon>下载</div>
+        <div class="cm-ctx-sep" />
+        <div class="cm-ctx-item" @click="menuAction('share')"><el-icon><Link /></el-icon>分享连接</div>
+        <div class="cm-ctx-item" @click="menuAction('history')"><el-icon><Clock /></el-icon>历史记录</div>
+        <div class="cm-ctx-sep" />
+        <div class="cm-ctx-item" @click="menuAction('access')"><el-icon><Lock /></el-icon>权限</div>
+        <div class="cm-ctx-item is-danger" @click="menuAction('delete')"><el-icon><Delete /></el-icon>删除</div>
+      </div>
+    </teleport>
 
     <!-- ===== 新建协同弹窗 ===== -->
-    <el-dialog v-model="createVisible" title="新建协同文档" width="520px" append-to-body>
+    <el-dialog v-model="createVisible" :title="createDialogTitle" width="540px" append-to-body>
       <div class="cm-dialog-body">
         <el-form label-width="90px" label-position="left">
-          <el-form-item label="源文件">
-            <span class="cm-form-file">{{ createForm.fileName || "（空工作簿）" }}</span>
+          <el-form-item label="文档类型">
+            <el-radio-group v-model="createForm.type">
+              <el-radio value="excel">表格 Excel</el-radio>
+              <el-radio value="word">文档 Word</el-radio>
+              <el-radio value="text">文本 Text</el-radio>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item label="文件名">
+            <el-input
+              v-model="createForm.fileName"
+              :placeholder="fileNamePlaceholder"
+              class="cm-form-file-input"
+            />
+            <div class="cm-form-file-hint">留空自动命名</div>
+          </el-form-item>
+          <el-form-item label="目录">
+            <el-input
+              v-model="createForm.path"
+              placeholder="留空 = 根目录；如 项目A/台账"
+              class="cm-form-file-input"
+              list="cm-dir-suggest"
+            />
+            <datalist id="cm-dir-suggest">
+              <option v-for="d in dirOptions" :key="d" :value="d" />
+            </datalist>
+            <div class="cm-form-file-hint">按「/」分隔层级，例如：项目A/台账/2026</div>
           </el-form-item>
           <el-form-item label="可见性">
             <el-radio-group v-model="createForm.visibility">
@@ -128,12 +235,42 @@
       </template>
     </el-dialog>
 
+    <!-- ===== 上传为协同弹窗 ===== -->
+    <el-dialog v-model="uploadVisible" title="上传为协同" width="560px" append-to-body>
+      <div class="cm-dialog-body">
+        <div class="cm-upload-drop" @click="uploadInput?.click()">
+          <el-icon :size="30"><UploadFilled /></el-icon>
+          <span>点击选择 xlsx / xls / csv / docx / doc / txt / md 文件</span>
+        </div>
+        <div v-if="uploadFileName" class="cm-upload-file">
+          <span class="cm-upload-file-name">{{ uploadFileName }}</span>
+          <span class="cm-upload-file-size">{{ formatSize(uploadFileSize) }}</span>
+        </div>
+        <el-form label-width="90px" label-position="left" style="margin-top: 12px">
+          <el-form-item label="文件名">
+            <el-input v-model="uploadForm.fileName" placeholder="留空沿用源文件名" class="cm-form-file-input" />
+          </el-form-item>
+          <el-form-item label="目录">
+            <el-input v-model="uploadForm.path" placeholder="留空 = 根目录" class="cm-form-file-input" list="cm-dir-suggest" />
+          </el-form-item>
+        </el-form>
+        <input ref="uploadInputRef" type="file" accept=".xlsx,.xls,.csv,.docx,.doc,.txt,.md" style="display: none" @change="onUploadFilePicked" />
+      </div>
+      <template #footer>
+        <el-button @click="uploadVisible = false">取消</el-button>
+        <el-button type="primary" :loading="uploading" :disabled="!uploadFile" @click="onUploadConvert">转协同</el-button>
+      </template>
+    </el-dialog>
+
     <!-- ===== 权限管理弹窗 ===== -->
-    <el-dialog v-model="accessVisible" title="协同权限" width="520px" append-to-body>
+    <el-dialog v-model="accessVisible" title="协同权限" width="540px" append-to-body>
       <div class="cm-dialog-body">
         <el-form label-width="90px" label-position="left">
           <el-form-item label="文档">
-            <span class="cm-form-file">{{ accessForm.fileName }}</span>
+            <div class="cm-form-file">
+              <span class="cm-form-file-name">{{ accessForm.fileName }}</span>
+              <span v-if="accessForm.path" class="cm-form-file-dir">📁 {{ accessForm.path }}</span>
+            </div>
           </el-form-item>
           <el-form-item label="可见性">
             <el-radio-group v-model="accessForm.visibility">
@@ -162,76 +299,286 @@
       </template>
     </el-dialog>
 
-    <!-- ===== 协同编辑（Univer）===== -->
-    <el-dialog
-      v-model="editorVisible"
-      :title="editorFileName"
-      width="94%"
-      top="3vh"
-      destroy-on-close
-      append-to-body
-      class="cm-editor-dialog"
-    >
-      <FileCollabEditor
-        v-if="editorCollab"
-        :collab-id="editorCollab.id"
-        :file-name="editorCollab.fileName"
-        v-model:initial-snapshot="editorSnapshot"
-        v-model:initial-version="editorVersion"
-      />
+    <!-- ===== 重命名弹窗 ===== -->
+    <el-dialog v-model="renameVisible" title="重命名" width="420px" append-to-body>
+      <el-input v-model="renameForm.fileName" placeholder="新文件名（含扩展名）" @keyup.enter="onRename" />
+      <template #footer>
+        <el-button @click="renameVisible = false">取消</el-button>
+        <el-button type="primary" :loading="renaming" @click="onRename">确定</el-button>
+      </template>
     </el-dialog>
+
+    <!-- ===== 历史记录弹窗 ===== -->
+    <el-dialog v-model="historyVisible" title="版本历史" width="640px" append-to-body>
+      <div class="cm-history-hd">
+        <span class="cm-history-name">{{ historyCollab?.fileName }}</span>
+        <span class="cm-history-hint">回退会复制所选版本为一个新文件</span>
+      </div>
+      <div v-if="historyLoading" class="cm-history-empty">加载中…</div>
+      <div v-else-if="historyEntries.length === 0" class="cm-history-empty">暂无历史版本</div>
+      <div v-else class="cm-history-list">
+        <div v-for="h in historyEntries" :key="h.version" class="cm-history-item">
+          <span class="cm-history-ver">v{{ h.version }}</span>
+          <span class="cm-history-time">{{ formatTime(h.updatedAt) }}</span>
+          <span class="cm-history-size">{{ formatSize(h.size) }}</span>
+          <el-button size="small" text type="primary" @click="rollbackVersion(h)">回退复制</el-button>
+        </div>
+      </div>
+    </el-dialog>
+
+    <!-- ===== 分享连接弹窗 ===== -->
+    <el-dialog v-model="shareVisible" title="分享连接" width="460px" append-to-body>
+      <div class="cm-share">
+        <div class="cm-share-preview">
+          <span class="cm-share-icon" v-html="collabIcon(shareCollab)" />
+          <div class="cm-share-meta">
+            <span class="cm-share-name">{{ shareCollab?.fileName }}</span>
+            <span class="cm-share-dim">全屏打开 · 只读 · 无返回栏</span>
+          </div>
+        </div>
+        <el-input :model-value="shareUrl" readonly>
+          <template #append>
+            <el-button @click="copyShareUrl">复制</el-button>
+          </template>
+        </el-input>
+        <div class="cm-share-actions">
+          <el-button type="primary" @click="openShareTab">在新标签页打开</el-button>
+        </div>
+      </div>
+    </el-dialog>
+
+    <!-- ===== 全屏专注编辑（非弹框）+ ReLoader 防白屏 ===== -->
+    <div v-if="focusVisible" class="cm-focus" role="dialog" aria-modal="true" aria-label="协同专注编辑">
+      <ReLoader :loading="opening" :text="openingText" fullscreen>
+        <div class="cm-focus">
+          <div class="cm-focus-bar">
+            <button type="button" class="cm-focus-back" @click="closeFocus">
+              <el-icon><ArrowLeft /></el-icon><span>返回</span>
+            </button>
+            <span class="cm-focus-title">
+              <span class="cm-focus-icon" v-html="collabIcon(focusCollab)"></span>
+              {{ focusCollab?.fileName }}
+            </span>
+            <span class="cm-focus-sub">
+              {{ focusCollab ? `${focusCollab.path || "根目录"} · ${visibilityLabel(focusCollab)}` : "" }}
+            </span>
+          </div>
+          <div class="cm-focus-body">
+            <FileCollabEditor
+              v-if="focusCollab && focusCollab.type === 'excel'"
+              :collab-id="focusCollab.id"
+              :file-name="focusCollab.fileName"
+              v-model:initial-snapshot="focusSnapshot"
+              v-model:initial-version="focusVersion"
+            />
+            <WordCollabEditor
+              v-else-if="focusCollab && focusCollab.type === 'word'"
+              :collab-id="focusCollab.id"
+              :file-name="focusCollab.fileName"
+              v-model:initial-snapshot="focusSnapshot"
+              v-model:initial-version="focusVersion"
+            />
+            <TextCollabEditor
+              v-else-if="focusCollab"
+              :collab-id="focusCollab.id"
+              :file-name="focusCollab.fileName"
+              v-model:initial-snapshot="focusSnapshot"
+              v-model:initial-version="focusVersion"
+            />
+          </div>
+        </div>
+      </ReLoader>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
-import { Plus, Refresh, Search } from "@element-plus/icons-vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
+import { ElMessageBox } from "element-plus";
+import {
+  ArrowDown, ArrowLeft, Clock, CopyDocument, Delete, Download, EditPen, Link,
+  Lock, Plus, Refresh, Search, Upload, UploadFilled, View,
+} from "@element-plus/icons-vue";
+import { message } from "@repo/core";
+import ReLoader from "@repo/ui/re-loader";
 import FileCollabEditor from "../components/collab/FileCollabEditor.vue";
+import WordCollabEditor from "../components/collab/WordCollabEditor.vue";
+import TextCollabEditor from "../components/collab/TextCollabEditor.vue";
+import { fileSvg } from "../utils/fileKind";
 import {
   createFileCollab,
   deleteFileCollab,
+  getFileCollab,
   listFileCollabs,
   updateFileCollabAccess,
+  renameFileCollab,
+  copyFileCollab,
+  listCollabHistory,
+  saveFileCollabSnapshot,
+  type CollabDocType,
   type CollabVisibility,
+  type CollabVersionEntry,
   type FileCollabInfo,
 } from "../api/filestorageApi";
 // 用户列表（选择授权用户）：复用系统用户管理页的分页接口
 import { listUsersForPicker } from "./collabUserApi";
 
-/** 协作文档列表 */
-const collabs = ref<FileCollabInfo[]>([]);
+/* ==================== 基础状态 ==================== */
+
+/** 全部文档（用于目录树与概览统计） */
+const allDocs = ref<FileCollabInfo[]>([]);
+/** 当前作用域下展示的文档 */
+const docs = ref<FileCollabInfo[]>([]);
 const listLoading = ref(false);
 
-/** 搜索关键字 */
+/** 搜索关键字（防抖） */
 const keyword = ref("");
-/** 可见性筛选 */
-const visFilter = ref<"" | CollabVisibility>("");
+/** 全局检索开关 */
+const globalSearch = ref(false);
+/** 当前目录（空 = 全部文件 / 根目录） */
+const currentPath = ref("");
 
-/** 当前用户 id（本页从登录态取，内部功能） */
+/** 当前用户 id */
 const currentUserId = ref("admin");
 
-/** 概览统计 */
-const publicCount = computed(() => collabs.value.filter((c) => c.visibility === "PUBLIC").length);
-const privateCount = computed(() => collabs.value.filter((c) => c.visibility === "PRIVATE").length);
-const mineCount = computed(() => collabs.value.filter((c) => c.owner === currentUserId.value).length);
+/* ==================== 统计 ==================== */
 
-/** 搜索 + 筛选后的文档 */
-const filteredCollabs = computed(() => {
-  const kw = keyword.value.trim().toLowerCase();
-  return collabs.value.filter((c) => {
-    if (visFilter.value && c.visibility !== visFilter.value) return false;
-    if (kw && !c.fileName.toLowerCase().includes(kw) && !c.owner.toLowerCase().includes(kw)) return false;
-    return true;
-  });
+const publicCount = computed(() => allDocs.value.filter((c) => c.visibility === "PUBLIC").length);
+const privateCount = computed(() => allDocs.value.filter((c) => c.visibility === "PRIVATE").length);
+const mineCount = computed(() => allDocs.value.filter((c) => c.owner === currentUserId.value).length);
+
+/* ==================== 图标 ==================== */
+
+/** 卡片图标：真实 Office SVG（复用 fileKind 的 Windows 风格图标） */
+function collabIcon(c: FileCollabInfo | null | undefined): string {
+  if (!c) return fileSvg("file.txt", false);
+  const name = c.fileName || "file";
+  const lower = name.toLowerCase();
+  if (c.type === "text" || lower.endsWith(".txt") || lower.endsWith(".md")) return fileSvg("a.txt", false);
+  return fileSvg(name, false);
+}
+
+function formatSize(bytes?: number): string {
+  if (!bytes || bytes <= 0) return "-";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+/* ==================== 目录树 ==================== */
+
+interface DirNode {
+  key: string;
+  label: string;
+  path: string;
+  depth: number;
+  count: number;
+  children: DirNode[];
+}
+
+/** 现有目录选项（datalist 建议用） */
+const dirOptions = computed(() =>
+  [...new Set(allDocs.value.map((c) => c.path).filter(Boolean))].sort(),
+);
+
+/** 从全部文档聚合出层级目录树（拍平成数组供渲染，含中间目录） */
+const treeNodes = computed<DirNode[]>(() => {
+  const root: DirNode = { key: "__root__", label: "全部文件", path: "", depth: 0, count: 0, children: [] };
+  const byPath = new Map<string, DirNode>();
+  byPath.set("", root);
+  for (const c of allDocs.value) {
+    const segs = c.path.split("/").filter(Boolean);
+    let cur = "";
+    let parent = root;
+    for (const s of segs) {
+      cur = cur ? `${cur}/${s}` : s;
+      let node = byPath.get(cur);
+      if (!node) {
+        node = { key: cur, label: s, path: cur, depth: parent.depth + 1, count: 0, children: [] };
+        byPath.set(cur, node);
+        parent.children.push(node);
+      }
+      parent = node;
+    }
+    parent.count += 1;
+  }
+  const flat: DirNode[] = [];
+  const walk = (nodes: DirNode[]): void => {
+    for (const n of nodes) {
+      flat.push(n);
+      walk(n.children);
+    }
+  };
+  walk([root]);
+  return flat;
 });
 
-/** 可见性文字 */
+/** 当前目录层级（面包屑） */
+const currentSegments = computed(() => {
+  const segs = currentPath.value.split("/").filter(Boolean);
+  const out: Array<{ label: string; path: string }> = [];
+  let acc = "";
+  for (const s of segs) {
+    acc = acc ? `${acc}/${s}` : s;
+    out.push({ label: s, path: acc });
+  }
+  return out;
+});
+
+function selectDir(path: string): void {
+  globalSearch.value = false;
+  currentPath.value = path;
+  void loadDocs();
+}
+
+/* ==================== 检索 ==================== */
+
+let keywordTimer: ReturnType<typeof setTimeout> | null = null;
+function onKeywordInput(): void {
+  if (keywordTimer) clearTimeout(keywordTimer);
+  keywordTimer = setTimeout(() => void loadDocs(), 400);
+}
+
+function onGlobalChange(): void {
+  void loadDocs();
+}
+
+let loadSeq = 0;
+async function loadDocs(): Promise<void> {
+  const kw = keyword.value.trim();
+  const path = globalSearch.value ? "" : currentPath.value;
+  loadSeq += 1;
+  const seq = loadSeq;
+  try {
+    const list = await listFileCollabs(currentUserId.value, path || undefined, kw || undefined);
+    if (seq === loadSeq) docs.value = list;
+  } catch (e) {
+    if (seq === loadSeq) message.error(e instanceof Error ? e.message : "获取协同列表失败");
+  }
+}
+
+async function reloadAll(): Promise<void> {
+  listLoading.value = true;
+  try {
+    allDocs.value = await listFileCollabs(currentUserId.value);
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : "获取协同列表失败");
+  } finally {
+    listLoading.value = false;
+  }
+  await loadDocs();
+}
+
+const collabEmptyText = computed(() =>
+  allDocs.value.length === 0 ? "暂无协同文档" : "没有匹配的协同文档",
+);
+
+/* ==================== 展示辅助 ==================== */
+
 function visibilityLabel(c: FileCollabInfo): string {
   return c.visibility === "PUBLIC" ? "公开" : `私有（${c.allowedUserIds?.length ?? 0} 人）`;
 }
 
-/** 时间显示 */
 function formatTime(ts: number): string {
   if (!ts) return "-";
   const d = new Date(ts);
@@ -239,30 +586,14 @@ function formatTime(ts: number): string {
   return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-/** 拉取列表 */
-async function loadCollabs(): Promise<void> {
-  listLoading.value = true;
-  try {
-    collabs.value = await listFileCollabs(currentUserId.value);
-  } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : "获取协同列表失败");
-  } finally {
-    listLoading.value = false;
-  }
-}
-
 /* ==================== 用户选择（授权） ==================== */
 
-/** 用户选项（userId → label） */
 const userOptions = ref<Array<{ userId: string; label: string }>>([]);
 
-/** 加载用户选项（复用系统用户分页接口） */
 async function loadUsers(): Promise<void> {
   try {
-    const users = await listUsersForPicker();
-    userOptions.value = users;
+    userOptions.value = await listUsersForPicker();
   } catch {
-    // 用户列表不可用时授权用户选择降级为空（公开协同不受影响）
     userOptions.value = [];
   }
 }
@@ -272,22 +603,48 @@ async function loadUsers(): Promise<void> {
 const createVisible = ref(false);
 const creating = ref(false);
 const createForm = ref<{
+  type: CollabDocType;
   fileName: string;
+  path: string;
   visibility: CollabVisibility;
   userIds: string[];
-}>({ fileName: "", visibility: "PUBLIC", userIds: [] });
+}>({ type: "excel", fileName: "", path: "", visibility: "PUBLIC", userIds: [] });
 
-function openCreateDialog(): void {
-  createForm.value = { fileName: "", visibility: "PUBLIC", userIds: [] };
+const createDialogTitle = computed(() => {
+  const map: Record<CollabDocType, string> = {
+    excel: "新建协同文档（Excel）",
+    word: "新建协同文档（Word）",
+    text: "新建协同文档（文本）",
+  };
+  return map[createForm.value.type] ?? "新建协同文档";
+});
+
+const fileNamePlaceholder = computed(() => {
+  const map: Record<CollabDocType, string> = {
+    excel: "未命名表格.xlsx",
+    word: "未命名文档.docx",
+    text: "未命名.txt",
+  };
+  return map[createForm.value.type];
+});
+
+function openCreateDialog(type: CollabDocType): void {
+  createForm.value = {
+    type: type ?? "excel",
+    fileName: "",
+    path: globalSearch.value ? "" : currentPath.value,
+    visibility: "PUBLIC",
+    userIds: [],
+  };
   createVisible.value = true;
   void loadUsers();
 }
 
 async function onCreate(): Promise<void> {
-  if (!createForm.value.fileName) {
-    ElMessage.warning("请先填写源文件名（或在文件资产页右键创建）");
-    return;
-  }
+  createForm.value.fileName = (createForm.value.fileName || "").trim()
+    || (createForm.value.type === "word" ? "未命名文档.docx"
+      : createForm.value.type === "text" ? "未命名.txt" : "未命名表格.xlsx");
+  const path = (createForm.value.path || "").trim().replace(/^\/+|\/+$/g, "");
   creating.value = true;
   try {
     const created = await createFileCollab({
@@ -295,16 +652,115 @@ async function onCreate(): Promise<void> {
       fileName: createForm.value.fileName,
       visibility: createForm.value.visibility,
       userIds: createForm.value.visibility === "PRIVATE" ? createForm.value.userIds : [],
+      path,
+      type: createForm.value.type,
     });
     createVisible.value = false;
-    ElMessage.success("协同文档已创建");
-    await loadCollabs();
-    // 创建后直接打开编辑
+    message.success("协同文档已创建");
+    await reloadAll();
     openEditorFromId(created.id);
   } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : "创建协同失败");
+    message.error(e instanceof Error ? e.message : "创建协同失败");
   } finally {
     creating.value = false;
+  }
+}
+
+/* ==================== 上传为协同（xlsx/docx/txt 转换） ==================== */
+
+const uploadVisible = ref(false);
+const uploading = ref(false);
+const uploadInputRef = ref<HTMLInputElement | null>(null);
+const uploadInput = computed(() => uploadInputRef.value);
+const uploadFile = ref<File | null>(null);
+const uploadFileName = ref("");
+const uploadFileSize = ref(0);
+const uploadForm = ref<{ fileName: string; path: string }>({ fileName: "", path: "" });
+
+function openUploadDialog(): void {
+  uploadForm.value = { fileName: "", path: globalSearch.value ? "" : currentPath.value };
+  uploadFile.value = null;
+  uploadFileName.value = "";
+  uploadFileSize.value = 0;
+  uploadVisible.value = true;
+}
+
+function onUploadFilePicked(e: Event): void {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = "";
+  if (!file) return;
+  uploadFile.value = file;
+  uploadFileName.value = file.name;
+  uploadFileSize.value = file.size;
+}
+
+/** 把上传文件转为协同快照：xlsx→Univer JSON（可导入 xlsx），docx→HTML（mammoth），txt/md→文本 */
+async function convertFileToSnapshot(file: File, type: CollabDocType): Promise<string> {
+  const name = file.name.toLowerCase();
+  if (type === "excel") {
+    const XLSX = await import("xlsx");
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: "array" });
+    // SheetJS → Univer 工作表 JSON：构造 Univer createWorkbook 需要的结构
+    const sheetOrder: string[] = [];
+    const sheets: Record<string, unknown> = {};
+    for (const sname of wb.SheetNames) {
+      const sheet = wb.Sheets[sname];
+      sheetOrder.push(sname);
+      const json = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" }) as unknown[][];
+      const cellData: Record<string, unknown> = {};
+      json.forEach((row, r) => {
+        row.forEach((v, c) => {
+          if (v === "" || v === null || v === undefined) return;
+          const col = String.fromCharCode(65 + c);
+          cellData[`${col}${r + 1}`] = { v: String(v) };
+        });
+      });
+      sheets[sname] = { cellData, rowCount: Math.max(json.length, 1), columnCount: Math.max(json[0]?.length ?? 0, 1) };
+    }
+    return JSON.stringify({ id: "", name: file.name, sheetOrder, appVersion: "", sheets });
+  }
+  if (type === "word") {
+    const mammoth = await import("mammoth");
+    const buf = await file.arrayBuffer();
+    const result = await mammoth.convertToHtml({ arrayBuffer: buf });
+    return result.value || "";
+  }
+  // text
+  return await file.text();
+}
+
+async function onUploadConvert(): Promise<void> {
+  const file = uploadFile.value;
+  if (!file) return;
+  const lower = file.name.toLowerCase();
+  let type: CollabDocType;
+  if (/\.(xlsx|xls|csv|ods)$/.test(lower)) type = "excel";
+  else if (/\.(docx?|rtf)$/.test(lower)) type = "word";
+  else type = "text";
+  const fileName = (uploadForm.value.fileName || "").trim() || file.name;
+  const path = (uploadForm.value.path || "").trim().replace(/^\/+|\/+$/g, "");
+  uploading.value = true;
+  try {
+    const snapshot = await convertFileToSnapshot(file, type);
+    const created = await createFileCollab({
+      userId: currentUserId.value,
+      fileName,
+      visibility: "PUBLIC",
+      path: path || undefined,
+      type,
+    });
+    if (snapshot) {
+      await saveFileCollabSnapshot(created.id, snapshot, created.version);
+    }
+    uploadVisible.value = false;
+    message.success("已转为协同文档");
+    await reloadAll();
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : "转换失败");
+  } finally {
+    uploading.value = false;
   }
 }
 
@@ -315,14 +771,16 @@ const savingAccess = ref(false);
 const accessForm = ref<{
   id: string;
   fileName: string;
+  path: string;
   visibility: CollabVisibility;
   userIds: string[];
-}>({ id: "", fileName: "", visibility: "PUBLIC", userIds: [] });
+}>({ id: "", fileName: "", path: "", visibility: "PUBLIC", userIds: [] });
 
 function openAccessDialog(c: FileCollabInfo): void {
   accessForm.value = {
     id: c.id,
     fileName: c.fileName,
+    path: c.path,
     visibility: c.visibility,
     userIds: c.allowedUserIds ?? [],
   };
@@ -339,12 +797,223 @@ async function onSaveAccess(): Promise<void> {
       accessForm.value.visibility === "PRIVATE" ? accessForm.value.userIds : [],
     );
     accessVisible.value = false;
-    ElMessage.success("协同权限已更新");
-    await loadCollabs();
+    message.success("协同权限已更新");
+    await reloadAll();
   } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : "更新权限失败");
+    message.error(e instanceof Error ? e.message : "更新权限失败");
   } finally {
     savingAccess.value = false;
+  }
+}
+
+/* ==================== 右键菜单 ==================== */
+
+const ctxMenu = ref<{ visible: boolean; x: number; y: number; row: FileCollabInfo | null }>({
+  visible: false,
+  x: 0,
+  y: 0,
+  row: null,
+});
+const ctxMenuRef = ref<HTMLElement | null>(null);
+
+/** 右键目标 */
+function openMenuAt(e: MouseEvent, c: FileCollabInfo): void {
+  ctxMenu.value = { visible: true, x: e.clientX, y: e.clientY, row: c };
+  void nextTick().then(() => {
+    const el = ctxMenuRef.value;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const margin = 8;
+    ctxMenu.value.x = Math.max(margin, Math.min(ctxMenu.value.x, window.innerWidth - rect.width - margin));
+    ctxMenu.value.y = Math.max(margin, Math.min(ctxMenu.value.y, window.innerHeight - rect.height - margin));
+  });
+}
+
+async function menuAction(action: string): Promise<void> {
+  const c = ctxMenu.value.row;
+  ctxMenu.value.visible = false;
+  if (!c) return;
+  switch (action) {
+    case "open": await openEditor(c); break;
+    case "rename": openRename(c); break;
+    case "copy": await onCopy(c); break;
+    case "download": onDownload(c); break;
+    case "share": openShare(c); break;
+    case "history": await openHistory(c); break;
+    case "access": openAccessDialog(c); break;
+    case "delete": await onDelete(c); break;
+  }
+}
+
+window.addEventListener("click", () => { ctxMenu.value.visible = false; });
+
+/* ==================== 重命名 ==================== */
+
+const renameVisible = ref(false);
+const renaming = ref(false);
+const renameForm = ref<{ id: string; fileName: string }>({ id: "", fileName: "" });
+
+function openRename(c: FileCollabInfo): void {
+  renameForm.value = { id: c.id, fileName: c.fileName };
+  renameVisible.value = true;
+}
+
+async function onRename(): Promise<void> {
+  const name = renameForm.value.fileName.trim();
+  if (!name) return;
+  renaming.value = true;
+  try {
+    await renameFileCollab(renameForm.value.id, name);
+    renameVisible.value = false;
+    message.success("已重命名");
+    await reloadAll();
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : "重命名失败");
+  } finally {
+    renaming.value = false;
+  }
+}
+
+/* ==================== 复制 ==================== */
+
+async function onCopy(c: FileCollabInfo): Promise<void> {
+  try {
+    const copy = await copyFileCollab(c.id, currentUserId.value);
+    message.success(`已复制为「${copy.fileName}」`);
+    await reloadAll();
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : "复制失败");
+  }
+}
+
+/* ==================== 下载 ==================== */
+
+/** 下载当前快照：excel 导出 xlsx（SheetJS），word 导出 html，text 导出 txt */
+async function onDownload(c: FileCollabInfo): Promise<void> {
+  try {
+    let target = c;
+    if (!c.snapshot && c.version === 0) {
+      target = await getFileCollab(c.id);
+    }
+    const snapshot = target.snapshot ?? "";
+    let blob: Blob;
+    let ext = ".txt";
+    if (target.type === "excel") {
+      const XLSX = await import("xlsx");
+      const json = snapshot ? JSON.parse(snapshot) : null;
+      const wb = XLSX.utils.book_new();
+      const sheets = json?.sheets ?? {};
+      const order = json?.sheetOrder ?? Object.keys(sheets);
+      for (const name of order) {
+        const s = sheets[name];
+        const rows: unknown[][] = [];
+        const cellData = s?.cellData ?? {};
+        const maxRow = s?.rowCount ?? 0;
+        const maxCol = s?.columnCount ?? 0;
+        for (let r = 1; r <= maxRow; r++) {
+          const row: unknown[] = [];
+          for (let cIdx = 0; cIdx < maxCol; cIdx++) {
+            const col = String.fromCharCode(65 + cIdx);
+            row.push(cellData[`${col}${r}`]?.v ?? "");
+          }
+          rows.push(row);
+        }
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, name.slice(0, 31));
+      }
+      const out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+      blob = new Blob([out]);
+      ext = ".xlsx";
+    } else if (target.type === "word") {
+      blob = new Blob([snapshot], { type: "text/html;charset=utf-8" });
+      ext = ".html";
+    } else {
+      blob = new Blob([snapshot], { type: "text/plain;charset=utf-8" });
+      ext = ".txt";
+    }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = (target.fileName.replace(/\.[^.]+$/, "") || "collab") + ext;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : "下载失败");
+  }
+}
+
+/* ==================== 分享连接（全屏只读视图） ==================== */
+
+const shareVisible = ref(false);
+const shareCollab = ref<FileCollabInfo | null>(null);
+const shareUrl = computed(() => {
+  if (!shareCollab.value) return "";
+  const base = window.location.origin + window.location.pathname;
+  return `${base}#/file-collabs/share/${shareCollab.value.id}`;
+});
+
+function openShare(c: FileCollabInfo): void {
+  shareCollab.value = c;
+  shareVisible.value = true;
+}
+
+async function copyShareUrl(): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(shareUrl.value);
+    message.success("连接已复制");
+  } catch {
+    message.info(shareUrl.value);
+  }
+}
+
+function openShareTab(): void {
+  window.open(shareUrl.value, "_blank");
+}
+
+/* ==================== 历史记录 + 版本回退 ==================== */
+
+const historyVisible = ref(false);
+const historyLoading = ref(false);
+const historyCollab = ref<FileCollabInfo | null>(null);
+const historyEntries = ref<CollabVersionEntry[]>([]);
+
+async function openHistory(c: FileCollabInfo): Promise<void> {
+  historyCollab.value = c;
+  historyVisible.value = true;
+  historyLoading.value = true;
+  historyEntries.value = [];
+  try {
+    historyEntries.value = await listCollabHistory(c.id);
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : "获取历史失败");
+  } finally {
+    historyLoading.value = false;
+  }
+}
+
+/** 回退：取历史版本快照，复制成一个新协同文档 */
+async function rollbackVersion(h: CollabVersionEntry): Promise<void> {
+  const c = historyCollab.value;
+  if (!c) return;
+  try {
+    const base = c.fileName.replace(/\.[^.]+$/, "") || "collab";
+    const ext = c.fileName.slice(c.fileName.lastIndexOf(".")) || "";
+    const newName = `${base}-v${h.version}${ext}`;
+    const created = await createFileCollab({
+      userId: currentUserId.value,
+      fileName: newName,
+      visibility: c.visibility,
+      userIds: c.visibility === "PRIVATE" ? (c.allowedUserIds ?? []) : [],
+      path: c.path || undefined,
+      type: c.type,
+    });
+    if (h.snapshot) {
+      await saveFileCollabSnapshot(created.id, h.snapshot, created.version);
+    }
+    historyVisible.value = false;
+    message.success(`已回退为「${newName}」`);
+    await reloadAll();
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : "回退失败");
   }
 }
 
@@ -362,47 +1031,149 @@ async function onDelete(c: FileCollabInfo): Promise<void> {
   }
   try {
     await deleteFileCollab(c.id);
-    ElMessage.success("协同文档已删除");
-    await loadCollabs();
+    message.success("协同文档已删除");
+    await reloadAll();
   } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : "删除协同失败");
+    message.error(e instanceof Error ? e.message : "删除协同失败");
   }
 }
 
-/* ==================== 协同编辑 ==================== */
+/* ==================== 专注编辑（非弹框）+ ReLoader 防白屏 ==================== */
 
-const editorVisible = ref(false);
-const editorFileName = ref("");
-const editorCollab = ref<FileCollabInfo | null>(null);
-const editorSnapshot = ref("");
-const editorVersion = ref(0);
+const focusVisible = ref(false);
+const focusCollab = ref<FileCollabInfo | null>(null);
+const focusSnapshot = ref("");
+const focusVersion = ref(0);
+/** 打开加载中（ReLoader 驱动，避免 Univer/编辑器初始化前白屏） */
+const opening = ref(false);
+const openingText = ref("正在打开协同文档…");
 
-/** 打开协同编辑（列表行） */
-function openEditor(c: FileCollabInfo): void {
-  editorCollab.value = c;
-  editorFileName.value = c.fileName;
-  editorSnapshot.value = c.snapshot ?? "";
-  editorVersion.value = c.version ?? 0;
-  editorVisible.value = true;
+async function openEditor(c: FileCollabInfo): Promise<void> {
+  opening.value = true;
+  let target = c;
+  try {
+    target = await getFileCollab(c.id);
+    if (!target.snapshot && c.snapshot) target = { ...target, snapshot: c.snapshot };
+  } catch {
+    // 详情拉取失败时退回列表快照，不阻断打开
+  }
+  focusCollab.value = target;
+  focusSnapshot.value = target.snapshot ?? "";
+  focusVersion.value = target.version ?? 0;
+  focusVisible.value = true;
+  // ReLoader 需要先渲染容器再结束加载态，避免容器不存在
+  await nextTick();
+  opening.value = false;
 }
 
-/** 按 id 打开（创建后直接进入） */
 async function openEditorFromId(id: string): Promise<void> {
-  const c = collabs.value.find((x) => x.id === id) ?? collabs.value[0];
-  if (c) openEditor(c);
+  const c = allDocs.value.find((x) => x.id === id);
+  if (c) await openEditor(c);
+}
+
+function closeFocus(): void {
+  focusVisible.value = false;
+  focusCollab.value = null;
+  void reloadAll();
 }
 
 onMounted(() => {
-  void loadCollabs();
+  void reloadAll();
   void loadUsers();
+});
+
+onBeforeUnmount(() => {
+  if (keywordTimer) clearTimeout(keywordTimer);
 });
 </script>
 
 <style scoped>
-.collab-manage-page {
+.cm-page {
+  display: flex;
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+}
+
+/* ===== 左侧目录树 ===== */
+.cm-side {
+  flex: 0 0 220px;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
+  background: var(--el-bg-color, #fff);
+  overflow: hidden;
+}
+.cm-side-hd {
+  padding: 12px 14px 8px;
+  border-bottom: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+}
+.cm-side-sub {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+}
+.cm-tree {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cm-node {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 13px;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 0.15s ease;
+}
+.cm-node:hover { background: var(--brand-50, var(--el-fill-color-light, #f5f7fa)); }
+.cm-node.active {
+  background: var(--brand-100, var(--el-color-primary-light-9, #ecf5ff));
+  color: var(--brand-600, var(--el-color-primary, #409eff));
+  font-weight: 600;
+}
+.cm-node-icon { font-size: 15px; flex: 0 0 auto; }
+.cm-node-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cm-node-count {
+  font-size: 11px;
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== 主区 ===== */
+.cm-main {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 0;
 }
 
 /* 概览条 */
@@ -410,172 +1181,348 @@ onMounted(() => {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
+  flex: 0 0 auto;
 }
 .stat-card {
-  position: relative;
-  overflow: hidden;
   border-radius: var(--radius-md, 10px);
   border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
   background: var(--el-bg-color, #fff);
-  padding: 14px 16px 12px;
+  padding: 10px 14px;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: baseline;
+  gap: 8px;
 }
-.stat-card::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  right: 0;
-  height: 3px;
-  background: var(--accent, var(--brand-500, #409eff));
-}
-.stat-label {
-  font-size: 12px;
-  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
-}
+.stat-label { font-size: 12px; color: var(--text-secondary, var(--el-text-color-secondary, #909399)); }
 .stat-value {
-  font-size: 26px;
+  font-size: 20px;
   font-weight: 700;
   line-height: 1.1;
   color: var(--text-primary, var(--el-text-color-primary, #303133));
   font-variant-numeric: tabular-nums;
 }
-.stat-trend {
-  font-size: 11px;
-  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
-}
 
 /* 工具栏 */
 .cm-toolbar {
-  padding: 10px 12px;
+  padding: 8px 12px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
+  flex: 0 0 auto;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
+  background: var(--el-bg-color, #fff);
 }
-.cm-search {
+.cm-crumb {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+.cm-crumb-it {
+  border: 0;
+  background: transparent;
+  padding: 3px 6px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cm-crumb-it:hover { background: var(--brand-50, var(--el-fill-color-light, #f5f7fa)); }
+.cm-crumb-it.active { color: var(--brand-600, var(--el-color-primary, #409eff)); font-weight: 600; }
+.cm-crumb-sep {
+  color: var(--text-tertiary, var(--el-text-color-placeholder, #c0c4cc));
+  font-size: 12px;
+}
+.cm-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   flex: 1;
-  min-width: 200px;
+  min-width: 240px;
+  justify-content: flex-end;
 }
-.cm-filter {
-  width: 130px;
-}
+.cm-search { max-width: 280px; }
+.cm-global-toggle { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.cm-global-label { font-size: 12px; color: var(--text-secondary, var(--el-text-color-secondary, #909399)); }
 
-/* 列表 */
-.cm-list-wrap {
+/* 主体列表 */
+.cm-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   padding: 12px;
-  min-height: 240px;
+  overflow: hidden;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
+  background: var(--el-bg-color, #fff);
 }
-.md-card-hd {
+.cm-body-hd {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   padding-bottom: 10px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   border-bottom: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
 }
-.md-card-title {
+.cm-body-title {
   font-weight: 600;
   font-size: 14px;
-  color: var(--text-primary, var(--el-text-color-primary, #303133));
-}
-.cm-hint {
-  font-size: 11px;
-  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
-}
-.cm-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 48px 0;
-  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
-}
-.cm-empty-icon {
-  font-size: 34px;
-}
-.cm-empty-sub {
-  font-size: 12px;
-  opacity: 0.75;
-}
-.cm-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.cm-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
-  border-radius: var(--radius-md, 8px);
-  background: var(--el-color-primary-light-9, #f8faff);
-  transition: border-color 0.15s;
-}
-.cm-item:hover {
-  border-color: var(--brand-500, #409eff);
-}
-.cm-item-main {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  flex: 1;
-  cursor: pointer;
-}
-.cm-file-icon {
-  font-size: 22px;
-  line-height: 1;
-}
-.cm-file-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.cm-file-name {
-  font-weight: 600;
-  font-size: 13px;
   color: var(--text-primary, var(--el-text-color-primary, #303133));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.cm-file-sub {
-  font-size: 11px;
-  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+.cm-body-sub { font-size: 12px; color: var(--text-secondary, var(--el-text-color-secondary, #909399)); }
+
+/* 卡片网格：大圆角卡片，图标居中 + 下方文件名 */
+.cm-grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+  align-content: start;
+  padding: 4px;
 }
-.cm-item-actions {
+.cm-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 10px 10px;
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
+  border-radius: 16px;
+  background: var(--el-bg-color, #fff);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+.cm-card:hover {
+  border-color: var(--brand-400, var(--el-color-primary-light-5, #79bbff));
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+.cm-card-top {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 8px;
+  cursor: pointer;
+}
+.cm-card-icon {
+  font-size: 56px;
+  line-height: 1;
+  display: inline-flex;
+}
+.cm-card-icon :deep(svg) {
+  width: 56px;
+  height: 56px;
+}
+.cm-card-name {
+  width: 100%;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.cm-card-sub {
+  font-size: 12px;
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+  margin-top: 2px;
+}
+.cm-card-actions {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+/* 右键菜单 */
+.cm-ctx {
+  position: fixed;
+  z-index: 3200;
+  min-width: 150px;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--el-bg-color-overlay, var(--el-bg-color, #fff));
+  border: 1px solid var(--el-border-color-lighter, #e8ebf0);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+  user-select: none;
+}
+.cm-ctx-item {
   display: flex;
   align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.cm-dialog-body {
-  padding-top: 6px;
-}
-.cm-form-file {
+  gap: 8px;
+  padding: 7px 10px;
   font-size: 13px;
   color: var(--text-primary, var(--el-text-color-primary, #303133));
+  border-radius: 6px;
+  cursor: pointer;
 }
-.cm-user-select {
-  width: 100%;
-}
+.cm-ctx-item:hover { background: var(--brand-50, var(--el-fill-color-light, #f5f7fa)); }
+.cm-ctx-item.is-danger { color: var(--status-error, #f56c6c); }
+.cm-ctx-item.is-danger:hover { background: var(--el-color-danger-light-9, #fef0f0); }
+.cm-ctx-sep { height: 1px; background: var(--el-border-color-lighter, #e8ebf0); margin: 4px 6px; }
 
-:deep(.cm-editor-dialog .el-dialog__body) {
-  padding: 10px;
-  height: 72vh;
+/* 空态 */
+.cm-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+  font-size: 14px;
 }
+.cm-empty-icon { font-size: 36px; }
+.cm-empty-sub { font-size: 12px; color: var(--text-tertiary, var(--el-text-color-placeholder, #c0c4cc)); }
 
-@media (max-width: 900px) {
-  .stat-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+/* ===== 对话框 ===== */
+.cm-dialog-body { padding-top: 4px; }
+.cm-form-file-input { width: 100%; }
+.cm-form-file-hint { font-size: 12px; color: var(--text-tertiary, var(--el-text-color-placeholder, #c0c4cc)); margin-top: 4px; }
+.cm-user-select { width: 100%; }
+.cm-form-file { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cm-form-file-name { font-weight: 600; color: var(--text-primary, var(--el-text-color-primary, #303133)); word-break: break-all; }
+.cm-form-file-dir { font-size: 12px; color: var(--text-secondary, var(--el-text-color-secondary, #909399)); }
+
+/* 上传区 */
+.cm-upload-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px 12px;
+  border: 1px dashed var(--el-border-color, #dcdfe6);
+  border-radius: 12px;
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.cm-upload-drop:hover { border-color: var(--el-color-primary, #409eff); color: var(--el-color-primary, #409eff); }
+.cm-upload-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--el-fill-color-lighter, #f5f7fa);
+}
+.cm-upload-file-name { font-size: 13px; color: var(--text-primary, var(--el-text-color-primary, #303133)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cm-upload-file-size { font-size: 12px; color: var(--text-secondary, var(--el-text-color-secondary, #909399)); flex: 0 0 auto; }
+
+/* 历史记录 */
+.cm-history-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.cm-history-name { font-weight: 600; color: var(--text-primary, var(--el-text-color-primary, #303133)); }
+.cm-history-hint { font-size: 12px; color: var(--text-tertiary, var(--el-text-color-placeholder, #c0c4cc)); }
+.cm-history-empty { padding: 20px; text-align: center; color: var(--text-secondary, var(--el-text-color-secondary, #909399)); }
+.cm-history-list { max-height: 360px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.cm-history-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
+}
+.cm-history-ver { font-weight: 600; color: var(--brand-600, var(--el-color-primary, #409eff)); flex: 0 0 40px; }
+.cm-history-time { font-size: 13px; color: var(--text-secondary, var(--el-text-color-secondary, #909399)); flex: 1; }
+.cm-history-size { font-size: 12px; color: var(--text-tertiary, var(--el-text-color-placeholder, #c0c4cc)); flex: 0 0 60px; }
+
+/* 分享 */
+.cm-share { display: flex; flex-direction: column; gap: 12px; }
+.cm-share-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--el-fill-color-lighter, #f5f7fa);
+}
+.cm-share-icon { font-size: 40px; display: inline-flex; }
+.cm-share-icon :deep(svg) { width: 40px; height: 40px; }
+.cm-share-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cm-share-name { font-weight: 600; color: var(--text-primary, var(--el-text-color-primary, #303133)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cm-share-dim { font-size: 12px; color: var(--text-secondary, var(--el-text-color-secondary, #909399)); }
+.cm-share-actions { display: flex; justify-content: flex-end; }
+
+/* ===== 全屏专注编辑 ===== */
+.cm-focus {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  background: var(--el-bg-color-page, #f5f7fa);
+  padding: 14px 18px 18px;
+}
+.cm-focus-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  flex: 0 0 auto;
+}
+.cm-focus-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
+  background: var(--el-bg-color, #fff);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.cm-focus-back:hover { background: var(--brand-50, var(--el-fill-color-light, #f5f7fa)); }
+.cm-focus-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cm-focus-icon { font-size: 18px; display: inline-flex; }
+.cm-focus-icon :deep(svg) { width: 18px; height: 18px; }
+.cm-focus-sub {
+  font-size: 12px;
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+  margin-left: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cm-focus-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.cm-focus-body > :deep(*) {
+  flex: 1;
+  min-width: 0;
 }
 </style>

@@ -14,43 +14,9 @@
       <template v-if="activeTabObj && activeTabObj.type === 'table'">
         <div class="dbm-toolbar-left dbm-table-toolbar">
           <span class="dbm-table-name">{{ qualified(activeTabObj) }}</span>
-          <!-- 显示模式这一排可以收起：两组胶囊加起来占掉一整行高度，而它们都是
-               「设置一次就不再动」的偏好。收起后功能不丢 —— 表头右键菜单里是同一组开关
-               （同一个 headerMode / rowMode 状态源，不是两份实现）。
-               按钮带「显示模式」字样而不是光一个箭头：之前只有箭头时它紧贴表名，
-               被读成面包屑分隔符（表名 › 子级），没人会想到那是折叠开关。
-               默认展开：既有验收脚本按 .dbm-subtab 定位，折叠态是可选路径。 -->
-          <button
-            type="button"
-            class="dbm-mode-toggle"
-            :class="{ 'is-collapsed': modeRowCollapsed }"
-            :aria-expanded="!modeRowCollapsed"
-            :title="modeRowCollapsed ? '展开显示模式' : '收起显示模式（右键表头同样可切换）'"
-            @click="toggleModeRow"
-          >
-            <span class="dbm-mode-toggle-text">显示模式</span>
-            <ReIcon name="ArrowDown" :size="12" class="dbm-mode-toggle-chevron" />
-          </button>
-          <!-- 表头显示模式：字段 / 注释 / 字段+注释 / 类型 -->
-          <div v-show="!modeRowCollapsed" class="dbm-subtabs">
-            <span
-              v-for="m in HEADER_MODES"
-              :key="m.value"
-              class="dbm-subtab"
-              :class="{ active: headerMode === m.value }"
-              @click="headerMode = m.value"
-            >{{ m.label }}</span>
-          </div>
-          <!-- 行显示模式：数据 / 数据+注释 -->
-          <div v-show="!modeRowCollapsed" class="dbm-subtabs">
-            <span
-              v-for="m in ROW_MODES"
-              :key="m.value"
-              class="dbm-subtab"
-              :class="{ active: rowMode === m.value }"
-              @click="rowMode = m.value"
-            >{{ m.label }}</span>
-          </div>
+          <!-- 显示模式不再在顶栏占一排胶囊：表头 / 行显示开关都收进「表头右键」菜单
+               （同一份状态源，不是两份实现）。
+               顶栏只留表名与动作，数据区多出一整行高度。 -->
           <span class="dbm-spacer" />
           <ReButton layout="square" type="primary" icon="Plus" tip="新增行" @click="openAddRowDialog" />
           <ReButton
@@ -78,9 +44,21 @@
       <div class="dbm-toolbar-right">
         <!-- 刷新连接树必须保持 DOM 第一位：套件用 .dbm-toolbar-right .rs-btn :first 命中它 -->
         <ReButton layout="square" icon="Refresh" tip="刷新连接树" data-testid="dsm-btn-refresh" @click="refreshTree" />
+        <!-- 隐藏 / 显示左侧连接树：300px 的树在宽表下吃掉近三分之一横向空间，
+             列一多就只能横向滚。开关状态与表头/行显示同级，落在 dbm-view-pref 里，
+             F5 后保持。放在刷新之后而不是之前 —— 上面的 .rs-btn :first 契约不能破。 -->
+        <ReButton
+          layout="square"
+          :icon="showSidebar ? 'Fold' : 'Expand'"
+          :tip="showSidebar ? '隐藏左侧树' : '显示左侧树'"
+          data-testid="dbm-toggle-sidebar"
+          @click="showSidebar = !showSidebar"
+        />
         <!-- 表视图设置簇：与 .dbm-table-view 同一 v-if 条件，表页签激活才出现。
              表名/模式/动作那簇已上迁到左侧（.dbm-table-toolbar 锚类），
-             分页（统计总数/上一页下一页）也跟上来 —— 网格上方不再留任何工具条。 -->
+             翻页器也跟上来 —— 网格上方不再留任何工具条。
+             每页条数不在这里选：它是分页模式的一部分，收在「分页模式」面板里，
+             同一件事只有一个入口，不会出现「翻页器改成 50、面板里还写着 20」。 -->
         <template v-if="activeTabObj && activeTabObj.type === 'table'">
           <div class="dbm-pager-bar">
             <RePagination
@@ -88,10 +66,8 @@
               v-model:current-page="tableData.page"
               :total="tableData.total"
               :page-size="tableData.pageSize"
-              :page-sizes="[20, 50, 100, 200, 500]"
-              pagination-layout="total, sizes, prev, pager, next"
+              pagination-layout="total, prev, pager, next"
               @current-change="onPageChange"
-              @update:page-size="onPageSizeChange"
             />
             <span v-else class="dbm-simple-pager">
               <ReButton
@@ -113,18 +89,45 @@
           </div>
         </template>
         <!-- 表视图设置簇：与 .dbm-table-view 同一 v-if 条件，表页签激活才出现 -->
-        <!-- 表视图设置簇：与 .dbm-table-view 同一 v-if 条件，表页签激活才出现 -->
         <template v-if="activeTabObj && activeTabObj.type === 'table'">
-          <ReRadioGroup
-            v-model="showTotalValue"
-            class="dbm-total-select"
-            :capsule="false"
-            size="small"
-            aria-label="统计总数"
+          <!-- 分页模式：把「统计总数」「每页条数」收进一个面板，而不是在顶栏摆一排开关。
+               注意这不是「启用分页」的开关 —— 分页始终存在，能切的只有「怎么翻」：
+               统计总数（COUNT，换来总页数）与每页条数。 -->
+          <el-popover
+            v-model:visible="pagerPanelVisible"
+            placement="bottom-end"
+            :width="272"
+            trigger="click"
+            popper-class="dbm-pager-popper"
           >
-            <ReRadioButton value="yes">是</ReRadioButton>
-            <ReRadioButton value="no">否</ReRadioButton>
-          </ReRadioGroup>
+            <template #reference>
+              <ReButton
+                layout="square"
+                icon="Sort"
+                :tip="`分页模式：${showTotal ? '统计总数' : '逐页翻（不统计总数）'} · 每页 ${tableData.pageSize} 条`"
+                data-testid="dbm-pager-mode"
+              />
+            </template>
+            <div class="dbm-pager-config">
+              <div class="dbm-pager-config__title">分页模式</div>
+              <div class="dbm-pager-config__row">
+                <span class="dbm-pager-config__label">统计总数</span>
+                <ReRadioGroup v-model="showTotalValue" :capsule="false" size="small" aria-label="统计总数">
+                  <ReRadioButton value="yes">是</ReRadioButton>
+                  <ReRadioButton value="no">否</ReRadioButton>
+                </ReRadioGroup>
+              </div>
+              <p class="dbm-pager-config__hint">
+                选「否」跳过 COUNT(*)，只保留上一页 / 下一页：大表翻页更快，代价是看不到总页数。
+              </p>
+              <div class="dbm-pager-config__row">
+                <span class="dbm-pager-config__label">每页条数</span>
+                <ReSelect :model-value="tableData.pageSize" style="width: 108px" @change="onPageSizeChange">
+                  <ReOption v-for="s in PAGER_SIZES" :key="s" :label="`${s} 条`" :value="s" />
+                </ReSelect>
+              </div>
+            </div>
+          </el-popover>
           <ReButton layout="square" icon="Operation" tip="列显示设置（显示 / 固定列）" @click="openColumnViewDialog" />
           <ReButton layout="square" icon="SetUp" tip="恢复默认设置（视图偏好与各表筛选条件）" @click="resetViewSettings" />
         </template>
@@ -140,7 +143,8 @@
 
     <div class="dbm-body">
       <!-- 左侧连接树 -->
-      <div class="dbm-sidebar" @contextmenu.prevent="onSidebarContextMenu">
+      <!-- v-show 而非 v-if：保留树的展开状态与滚动位置，切回来不用重新点开 -->
+      <div v-show="showSidebar" class="dbm-sidebar" @contextmenu.prevent="onSidebarContextMenu">
         <div class="dbm-tree" @contextmenu.prevent="onSidebarContextMenu">
           <!-- 数据源根节点 -->
           <div
@@ -170,6 +174,12 @@
               <!-- 表 / 视图（挂在本库之下，Navicat 式平铺：分组计数头「表（N）」第九批按需移除，
                    表用 Grid 图标、视图用 View 图标即可区分） -->
               <div v-if="expandedNodes.has('db:' + db)" class="dbm-tree-children">
+                <!-- 懒加载占位：展开库要等一次网络往返，没有这行时子树是空的，
+                     和「这个库确实没表」长得一模一样 -->
+                <div v-if="tablesLoading[db]" class="dbm-tree-loading">
+                  <span class="dbm-spinner" />
+                  <span>加载表…</span>
+                </div>
                 <template v-for="table in tablesOf(db)" :key="db + '.T.' + table.name">
                   <div
                     class="dbm-tree-node dbm-table-node"
@@ -188,6 +198,10 @@
                     <span v-if="table.remark" class="dbm-tree-remark">{{ table.remark }}</span>
                   </div>
                   <div v-if="expandedTables.has(db + '.' + table.name)" class="dbm-tree-children">
+                    <div v-if="columnLoading[db + '.' + table.name]" class="dbm-tree-loading dbm-tree-loading--nested">
+                      <span class="dbm-spinner" />
+                      <span>加载字段…</span>
+                    </div>
                     <div v-for="col in columnsOf(db, table.name)" :key="col.name" class="dbm-tree-node dbm-column-node">
                       <ReIcon
                         :name="col.isPrimaryKey ? 'Key' : 'Document'"
@@ -197,15 +211,63 @@
                       />
                       <span class="dbm-tree-label" :title="col.remark || col.name">{{ col.name }}</span>
                       <span class="dbm-tree-type">{{ col.type }}</span>
+                      <!-- 字段备注就地编辑：popover 锚在这一行，点哪列在哪列旁边改。
+                           以前用 ElMessageBox.prompt —— 整页压暗、视线要从树挪到屏幕中央，
+                           改完再挪回来，纯属打断。
+                           trigger 必须是 manual：用 click 时「我们的 @click 打开」和
+                           「popover 自己的 click 切换」会各跑一次，点了立刻又收起，
+                           看起来就是闪一下。开关只由 toggleRemarkEditor 负责，
+                           关闭走 取消/保存 或点别处（见 onDocumentClickCloseRemark）。 -->
+                      <el-popover
+                        :visible="remarkEditor.visible && remarkEditor.key === remarkKey(db, table.name, col.name)"
+                        placement="right"
+                        :width="288"
+                        trigger="manual"
+                        popper-class="dbm-remark-popper"
+                        @update:visible="(v: boolean) => onRemarkVisible(db, table.name, col.name, v)"
+                      >
+                        <template #reference>
+                          <button
+                            type="button"
+                            class="dbm-col-remark-btn"
+                            :title="col.remark ? `编辑备注（当前：${col.remark}）` : '编辑备注'"
+                            :aria-label="`编辑 ${col.name} 的备注`"
+                            @click.stop="toggleRemarkEditor(db, table.name, col.name, col.remark || '')"
+                          >
+                            <ReIcon name="EditPen" :size="12" />
+                          </button>
+                        </template>
+                        <div class="dbm-remark-pop" @click.stop>
+                          <div class="dbm-remark-pop__title">{{ table.name }}.{{ col.name }}</div>
+                          <el-input
+                            v-model="remarkEditor.text"
+                            size="small"
+                            type="textarea"
+                            :rows="3"
+                            placeholder="输入字段备注（JDBC 直接改列注释）"
+                            @keyup.ctrl.enter="saveRemarkEditor"
+                          />
+                          <div class="dbm-remark-pop__actions">
+                            <el-button size="small" @click="closeRemarkEditor">取消</el-button>
+                            <el-button size="small" type="primary" :loading="remarkEditor.saving" @click="saveRemarkEditor">保存</el-button>
+                          </div>
+                        </div>
+                      </el-popover>
                     </div>
                   </div>
                 </template>
 
-                <!-- 对象分类节点（存储过程 / 函数 / 触发器 / 事件，Navicat 式分组） -->
-                <template v-for="cat in DB_OBJECT_CATEGORIES" :key="'cat:' + db + '.' + cat.value">
+                <!-- 对象分类节点（存储过程 / 函数 / 触发器 / 事件，Navicat 式分组）。
+                     分类与表同级：这里**不能**带 dbm-tree-children（那个类会加
+                     一层 14px 缩进，看起来就成了「最后一个表的子集」）。
+                     首个分类带 is-first，与上面表清单之间画一条分隔线。 -->
+                <template v-for="(cat, catIndex) in DB_OBJECT_CATEGORIES" :key="'cat:' + db + '.' + cat.value">
                   <div
-                    class="dbm-tree-node dbm-tree-children"
-                    :class="{ active: expandedObjects.has('obj:' + db + ':' + cat.value) }"
+                    class="dbm-tree-node dbm-object-category-node"
+                    :class="{
+                      active: expandedObjects.has('obj:' + db + ':' + cat.value),
+                      'is-first': catIndex === 0,
+                    }"
                     @click="toggleObjectNode(db, cat.value)"
                   >
                     <ReIcon
@@ -225,7 +287,11 @@
                     />
                   </div>
                   <div v-if="objectNodeExpanded(db, cat.value)" class="dbm-tree-children">
-                    <div v-if="objectErrorOf(db, cat.value)" class="dbm-tree-hint">
+                    <div v-if="objectListLoading['obj:' + db + ':' + cat.value]" class="dbm-tree-loading dbm-tree-loading--nested">
+                      <span class="dbm-spinner" />
+                      <span>加载{{ cat.label }}…</span>
+                    </div>
+                    <div v-else-if="objectErrorOf(db, cat.value)" class="dbm-tree-hint">
                       {{ objectErrorOf(db, cat.value) }}
                     </div>
                     <ReEmpty v-else-if="!objectsOf(db, cat.value).length" description="无对象" :image-size="24" />
@@ -280,7 +346,7 @@
       </div>
 
       <!-- 右侧内容区 -->
-      <div class="dbm-content">
+      <div class="dbm-content" @contextmenu="onContentBlankContextMenu">
         <!-- 标签页（第九批：支持右键关闭当前/其他/全部） -->
         <div class="dbm-tabs" v-if="tabs.length > 0" @contextmenu.prevent>
           <div
@@ -427,16 +493,32 @@
               <div v-else class="dbm-cell-box">
                 <span
                   class="dbm-cell-value"
-                  :class="{ 'dbm-cell-pk': pkColumns.has(col) }"
-                  :title="pkColumns.has(col) ? '主键列不可编辑' : '点击编辑 / 右键更多操作'"
+                  :class="{
+                    'dbm-cell-pk': pkColumns.has(col),
+                    'dbm-cell-null': isNullCell(value),
+                    'dbm-cell-empty': isEmptyStringCell(value),
+                  }"
+                  :title="cellTip(col)"
                   @click="startEditCell(row, col, value)"
                 >{{ formatCellValue(value) }}</span>
-                <span v-if="rowMode === 'data-comment' && columnComment(col)" class="dbm-cell-comment">{{ columnComment(col) }}</span>
+                <span v-if="showRowComments && columnComment(col)" class="dbm-cell-comment">{{ columnComment(col) }}</span>
+              </div>
+            </template>
+            <template v-for="col in tableData.columns" :key="'hdr-' + col" #[`header-${col}`]>
+              <div class="dbm-header-main" :title="headerTip(col)">
+                <span class="dbm-header-label">{{ headerLabel(col) }}</span>
+                <span v-if="sortState.prop === col && sortState.order" class="dbm-sort-icon">{{ sortState.order === "ASC" ? "▲" : "▼" }}</span>
+              </div>
+              <!-- 注释 / 类型是补充行，不是字段名的替代：两个开关各自独立，可同时显示 -->
+              <div v-if="showHeaderComments && columnComment(col)" class="dbm-header-sub">
+                {{ columnComment(col) }}
+              </div>
+              <div v-if="showHeaderTypes && columnTypeLabel(col)" class="dbm-header-sub dbm-header-type">
+                {{ columnTypeLabel(col) }}
               </div>
             </template>
           </ReTable>
         </div>
-
         <!-- 表设计视图
              表名 + 子页签 + 动作合成**一行**：此前是「工具条」与「动作条」两行，
              且两个「刷新」按钮指向同一个动作。主内容区因此少掉约 36px。 -->
@@ -853,6 +935,25 @@
           <span class="dbm-context-hint">固定在左侧</span>
         </div>
         <div class="dbm-context-divider" />
+        <div class="dbm-context-group">排序 · {{ headerMenu.columnLabel || "当前列" }}</div>
+        <div
+          class="dbm-context-item"
+          :class="{ 'is-checked': isSortActive('ASC') }"
+          @click="sortFromHeaderMenu('ASC')"
+        >
+          <span class="dbm-context-check">{{ isSortActive("ASC") ? "✓" : "" }}</span>升序
+        </div>
+        <div
+          class="dbm-context-item"
+          :class="{ 'is-checked': isSortActive('DESC') }"
+          @click="sortFromHeaderMenu('DESC')"
+        >
+          <span class="dbm-context-check">{{ isSortActive("DESC") ? "✓" : "" }}</span>降序
+        </div>
+        <div class="dbm-context-item dbm-context-item--hint">
+          再点一次当前方向即取消排序
+        </div>
+        <div class="dbm-context-divider" />
         <div class="dbm-context-item" @click="openColumnWidthFromHeaderMenu">
           <ReIcon name="Setting" :size="14" />设置列宽…
         </div>
@@ -866,24 +967,30 @@
         <div class="dbm-context-divider" />
         <div class="dbm-context-group">表头显示</div>
         <div
-          v-for="m in HEADER_MODES"
-          :key="'hm-' + m.value"
           class="dbm-context-item"
-          :class="{ 'is-checked': headerMode === m.value }"
-          @click="setHeaderModeFromMenu(m.value)"
+          :class="{ 'is-checked': showHeaderComments }"
+          @click="toggleHeaderComments"
         >
-          <span class="dbm-context-check">{{ headerMode === m.value ? "✓" : "" }}</span>{{ m.label }}
+          <span class="dbm-context-check">{{ showHeaderComments ? "✓" : "" }}</span>注释
+          <span class="dbm-context-hint">字段名下方一行</span>
+        </div>
+        <div
+          class="dbm-context-item"
+          :class="{ 'is-checked': showHeaderTypes }"
+          @click="toggleHeaderTypes"
+        >
+          <span class="dbm-context-check">{{ showHeaderTypes ? "✓" : "" }}</span>类型
+          <span class="dbm-context-hint">可与注释同时开</span>
         </div>
         <div class="dbm-context-divider" />
         <div class="dbm-context-group">行显示</div>
         <div
-          v-for="m in ROW_MODES"
-          :key="'rm-' + m.value"
           class="dbm-context-item"
-          :class="{ 'is-checked': rowMode === m.value }"
-          @click="setRowModeFromMenu(m.value)"
+          :class="{ 'is-checked': showRowComments }"
+          @click="toggleRowComments"
         >
-          <span class="dbm-context-check">{{ rowMode === m.value ? "✓" : "" }}</span>{{ m.label }}
+          <span class="dbm-context-check">{{ showRowComments ? "✓" : "" }}</span>注释
+          <span class="dbm-context-hint">数值下方一行</span>
         </div>
       </div>
     </Teleport>
@@ -2219,7 +2326,7 @@ import ErWorkspace from "../../components/console/ErWorkspace.vue";
 import DbTemporalEditor from "../../components/console/DbTemporalEditor.vue";
 import type { DesignColumnRow } from "../../components/console/designColumnModel";
 // 类型分组与长度/小数位/UNSIGNED 适用范围：与「设计表」建表对话框共用一份
-import { COLUMN_TYPE_GROUPS, SCALE_ALLOWED, SIZE_REQUIRED, UNSIGNED_ALLOWED } from "../../utils/columnTypes";
+import { COLUMN_TYPE_GROUPS, SCALE_ALLOWED, SIZE_REQUIRED, UNSIGNED_ALLOWED, formatColumnTypeLabel } from "../../utils/columnTypes";
 // 日期 / 时间列的形态识别：格内编辑与行弹窗共用同一份判定，避免两处漂移
 import { resolveTemporalKind, toTemporalPickerValue } from "../../utils/dbTemporal";
 import type { DbTemporalKind } from "../../utils/dbTemporal";
@@ -2380,6 +2487,15 @@ const databases = ref<string[]>([]);
 /** 按库缓存表列表，避免展开第二个库时显示上一个库的表 */
 const tablesByDb = reactive<Record<string, DbTableInfo[]>>({});
 
+/**
+ * 正在拉表列表的库。
+ *
+ * <p>展开库是懒加载（网络往返），此前展开后既没有占位也没有转圈：几百毫秒里
+ * 子树是空的，看起来和「这个库没有表」一模一样。树上给出「加载中…」一行，
+ * 用户才知道数据在路上。</p>
+ */
+const tablesLoading = reactive<Record<string, boolean>>({});
+
 /* ==================== 数据库对象（存储过程 / 函数 / 触发器 / 事件） ==================== */
 
 /** 每个库的四类对象清单 */
@@ -2388,6 +2504,13 @@ const objectsByDb = reactive<Record<string, Record<string, DbObjectInfo[]>>>({})
 const objectCounts = reactive<Record<string, Record<string, number>>>({});
 /** 某一类读不到时的原因（权限不足 / 内核无此概念），显示在节点上 */
 const objectErrors = reactive<Record<string, Record<string, string>>>({});
+/**
+ * 正在拉清单的对象分类（键为 {@link objectNodeKey}）。
+ *
+ * <p>和 {@link tablesLoading} 同一个理由：展开是懒加载，没有占位的那几百毫秒
+ * 看起来就是「这一类没有任何对象」。</p>
+ */
+const objectListLoading = reactive<Record<string, boolean>>({});
 
 /** 拉取某库的对象清单与计数（展开分类节点时调用）。 */
 async function loadDbObjects(db: string): Promise<void> {
@@ -2406,6 +2529,8 @@ async function loadDbObjects(db: string): Promise<void> {
 async function loadDbObjectList(db: string, category: DbObjectCategory): Promise<void> {
   if (!db) return;
   if (!objectsByDb[db]) objectsByDb[db] = {};
+  const key = objectNodeKey(db, category);
+  objectListLoading[key] = true;
   try {
     objectsByDb[db][category] = await fetchDbObjects(category, currentDatasourceId.value, db);
   } catch (e) {
@@ -2413,6 +2538,8 @@ async function loadDbObjectList(db: string, category: DbObjectCategory): Promise
     const hint = String((e as Error)?.message ?? e);
     if (!objectErrors[db]) objectErrors[db] = {};
     objectErrors[db][category] = hint;
+  } finally {
+    objectListLoading[key] = false;
   }
 }
 
@@ -2632,6 +2759,8 @@ const expandedNodes = ref(new Set<string>(["root"]));
 const expandedTables = ref(new Set<string>());
 /** 表字段缓存（展开表时懒加载） */
 const tableColumnsCache = reactive<Record<string, DbColumnInfo[]>>({});
+/** 正在拉字段的表（键为 {@link tableNodeKey}），树上给「加载中…」占位 */
+const columnLoading = reactive<Record<string, boolean>>({});
 
 /**
  * 表节点 key
@@ -2656,10 +2785,13 @@ async function toggleTable(table: string, db: string): Promise<void> {
   expandedTables.value.add(key);
   if (!tableColumnsCache[key]) {
     tableColumnsCache[key] = [];
+    columnLoading[key] = true;
     try {
       tableColumnsCache[key] = await fetchTableColumns(table, currentDatasourceId.value, db);
     } catch (e) {
       message.error(`加载字段失败: ${String((e as Error)?.message ?? e)}`);
+    } finally {
+      columnLoading[key] = false;
     }
   }
 }
@@ -2724,33 +2856,37 @@ const viewPref = loadViewPref();
 
 const tableData = reactive<DbTableDataResult>({ columns: [], rows: [], total: 0, page: 1, pageSize: viewPref.pageSize });
 
-// ==================== 数据视图：表头/行显示模式 + 总数开关 ====================
-/** 表头显示模式 */
-const HEADER_MODES = [
-  { label: "字段", value: "name" as const },
-  { label: "注释", value: "comment" as const },
-  { label: "字段+注释", value: "both" as const },
-  { label: "类型", value: "type" as const },
-];
-const headerMode = ref<"name" | "comment" | "both" | "type">(viewPref.headerMode);
+// ==================== 数据视图：表头/行显示开关 + 总数开关 ====================
+/**
+ * 表头显示：**字段名恒显示**，注释与类型是两个独立开关，可以同时打开。
+ *
+ * <p>早前是四选一的单选（字段 / 注释 / 字段+注释 / 类型），互斥带来的直接后果
+ * 是「既看注释又看类型」这种再正常不过的组合没有选项 —— 用户选了注释就丢了类型。
+ * 拆成两个开关后四种组合都可达，而且「字段名恒在」：注释不再是替代字段名，
+ * 只是它下面的一行补充信息，表名/字段名永远不会被注释挤掉。</p>
+ */
+const showHeaderComments = ref(viewPref.showHeaderComments);
+/** 表头是否在字段名下方显示列数据库类型（与注释可同时开） */
+const showHeaderTypes = ref(viewPref.showHeaderTypes);
+/** 行显示：数据恒显示，注释作为每个单元格下方的补充行（独立开关） */
+const showRowComments = ref(viewPref.showRowComments);
 
 /**
- * 行显示模式。
+ * 左侧连接树是否显示（工具栏「隐藏左侧树」开关）。
  *
- * <p>只有两档：**数据 / 数据+注释**。三档（字段 / 注释 / 字段+注释）在
- * {@link HEADER_MODES}（表头显示模式）里，那是控制表头文字的；
- * 两者的 label 不要重名 —— {@code jdbc-workbench-acceptance.mjs} 用
- * {@code .dbm-subtab:has-text("字段")} 定位，重名后同一个选择器会命中两个元素，
- * {@code .first()} 拿到哪个取决于渲染顺序，断言就会变得不可预测。</p>
+ * <p>宽表场景下 300px 的树吃掉近三分之一横向空间，列一多就只能横向滚；
+ * 需要看树时再点回来。状态落在 dbViewPref 里，F5 后保持。</p>
  */
-const ROW_MODES = [
-  { label: "数据", value: "data" as const },
-  { label: "数据+注释", value: "data-comment" as const },
-];
-const rowMode = ref<"data" | "data-comment">(viewPref.rowMode);
+const showSidebar = ref(viewPref.showSidebar);
 
 /** 是否统计总数（关闭后跳过 COUNT，走「上一页/下一页」模式） */
 const showTotal = ref(viewPref.showTotal);
+
+/** 可选的每页条数（收在「分页模式」面板里，翻页器不再重复给一份） */
+const PAGER_SIZES = [20, 50, 100, 200, 500];
+
+/** 「分页模式」面板是否展开（点击外面即关闭，由 el-popover 自己管） */
+const pagerPanelVisible = ref(false);
 
 /** 把 boolean 的 showTotal 转成 ReRadio 分段档能用的字符串，双向同步 */
 const showTotalValue = computed<string>({
@@ -2761,6 +2897,150 @@ const showTotalValue = computed<string>({
 });
 /** 列注释映射（表头/行显示模式） */
 const columnComments = reactive<Record<string, string>>({});
+
+/**
+ * 列备注内联编辑状态（popover）。
+ *
+ * <p>用 {@code key}（库.表.列）标识当前正在编辑的节点：树里同时挂着一堆字段节点，
+ * 每个节点都有自己的 popover 实例，靠 key 只让目标那个展开，其余保持关闭。</p>
+ */
+const remarkEditor = reactive({
+  visible: false,
+  key: "",
+  db: "",
+  table: "",
+  column: "",
+  text: "",
+  saving: false,
+});
+
+/**
+ * 备注编辑器的定位键。
+ *
+ * @param db         库名
+ * @param tableName  表名
+ * @param columnName 列名
+ */
+function remarkKey(db: string, tableName: string, columnName: string): string {
+  return `${db}.${tableName}.${columnName}`;
+}
+
+/**
+ * 打开列备注编辑器。
+ *
+ * @param db            库名
+ * @param tableName     表名
+ * @param columnName    列名
+ * @param currentRemark 当前备注
+ */
+function openRemarkEditor(db: string, tableName: string, columnName: string, currentRemark: string): void {
+  remarkEditor.visible = true;
+  remarkEditor.key = remarkKey(db, tableName, columnName);
+  remarkEditor.db = db;
+  remarkEditor.table = tableName;
+  remarkEditor.column = columnName;
+  remarkEditor.text = currentRemark || "";
+}
+
+/**
+ * 点笔图标：同一列再点一次收起，换一列则直接切过去。
+ *
+ * <p>popover 用的是 {@code trigger="manual"}，开关只有这一个入口 ——
+ * 早先 tap 一次会「打开又自动关」：我们的 @click 打开，popover 自己的
+ * click 触发器又切换了一次。</p>
+ *
+ * @param db            库名
+ * @param tableName     表名
+ * @param columnName    列名
+ * @param currentRemark 当前备注（新打开时作为初值）
+ */
+function toggleRemarkEditor(db: string, tableName: string, columnName: string, currentRemark: string): void {
+  if (remarkEditor.visible && remarkEditor.key === remarkKey(db, tableName, columnName)) {
+    remarkEditor.visible = false;
+    return;
+  }
+  openRemarkEditor(db, tableName, columnName, currentRemark);
+}
+
+/**
+ * 点 popover 以外的地方收起备注编辑器（manual 触发器不会自己关）。
+ *
+ * @param e 文档点击事件
+ */
+function onDocumentClickCloseRemark(e: MouseEvent): void {
+  if (!remarkEditor.visible) return;
+  const target = e.target as HTMLElement | null;
+  if (target?.closest(".dbm-remark-popper, .dbm-col-remark-btn")) return;
+  remarkEditor.visible = false;
+}
+
+/**
+ * popover 自己请求显隐时（Esc / 组件内部收起）同步到状态。
+ *
+ * <p>只处理「关闭」：打开由 {@link toggleRemarkEditor} 负责（它要先写 key 与初值）。</p>
+ *
+ * @param db         库名
+ * @param tableName  表名
+ * @param columnName 列名
+ * @param visible    目标可见性
+ */
+function onRemarkVisible(db: string, tableName: string, columnName: string, visible: boolean): void {
+  if (visible) return;
+  if (remarkEditor.key === remarkKey(db, tableName, columnName)) {
+    remarkEditor.visible = false;
+  }
+}
+
+/** 关闭列备注编辑器（不保存） */
+function closeRemarkEditor(): void {
+  remarkEditor.visible = false;
+}
+
+/** 保存 popover 里的备注 */
+async function saveRemarkEditor(): Promise<void> {
+  if (remarkEditor.saving) return;
+  remarkEditor.saving = true;
+  try {
+    const ok = await saveColumnRemark(remarkEditor.db, remarkEditor.table, remarkEditor.column, remarkEditor.text || "");
+    if (ok) closeRemarkEditor();
+  } finally {
+    remarkEditor.saving = false;
+  }
+}
+
+/**
+ * 保存列备注。
+ *
+ * <p>走 {@code MODIFY COLUMN}（列定义里只改 comment）：这是 JDBC 侧唯一能改注释的通道，
+ * 不需要整表重建。类型必须原样带回去，否则 MySQL 会按空类型改列。</p>
+ *
+ * @param db        库名
+ * @param tableName 表名
+ * @param column    列名
+ * @param remark    备注文本
+ * @returns 是否保存成功（失败时保持 popover 打开，用户改完可以直接重试）
+ */
+async function saveColumnRemark(db: string, tableName: string, column: string, remark: string): Promise<boolean> {
+  try {
+    await modifyDbColumn(tableName, column, {
+      columnName: column,
+      type: columnTypes.value.get(column) || "",
+      comment: remark,
+      datasourceId: currentDatasourceId.value,
+      database: db,
+    });
+    columnComments[column] = remark;
+    // 树上的字段节点也要跟着变（否则保存成功、树上仍是旧备注/无备注）
+    const cached = tableColumnsCache[tableNodeKey(db, tableName)];
+    const target = cached?.find(c => c.name === column);
+    if (target) target.remark = remark;
+    message.success("备注已保存");
+    return true;
+  } catch (e) {
+    message.error(`保存备注失败: ${String((e as Error)?.message ?? e)}`);
+    return false;
+  }
+}
 
 /** WHERE 过滤条件（已应用值） */
 const filterWhere = ref("");
@@ -2810,22 +3090,35 @@ function onSelectionChange(rows: Record<string, unknown>[]): void {
 }
 
 /**
+ * 应用排序（表头点击与表头右键菜单**共用同一入口**）。
+ *
+ * <p>两处各写一套 `sortState = ...; refresh()` 的后果是「点表头排了序、
+ * 菜单里却看不到勾、再点一次也不取消」—— 两个入口各自维护同一份状态，
+ * 必然错位。收成一个函数后，联动是结构上成立的，不靠人记。</p>
+ *
+ * @param prop  排序列；空串表示取消排序
+ * @param order 方向；空串表示取消排序
+ */
+function applySortState(prop: string, order: "ASC" | "DESC" | ""): void {
+  sortState.prop = order ? prop : "";
+  sortState.order = order;
+  const tab = activeTabObj.value;
+  if (!tab) return;
+  tableData.page = 1;
+  void loadTableData(tab, 1);
+}
+
+/**
  * 列头排序（服务器端）：切换升/降/取消并重载
  * @param payload ReTable 排序事件
  */
 function onSortChange(payload: { prop: string; order: string | null }): void {
-  if (!payload?.order) {
-    sortState.prop = "";
-    sortState.order = "";
-  } else {
-    sortState.prop = payload.prop;
-    sortState.order = payload.order === "descending" ? "DESC" : "ASC";
+  if (!payload?.prop) return;
+  if (!payload.order) {
+    applySortState(payload.prop, "");
+    return;
   }
-  const tab = activeTabObj.value;
-  if (tab) {
-    tableData.page = 1;
-    void loadTableData(tab, 1);
-  }
+  applySortState(payload.prop, payload.order === "descending" ? "DESC" : "ASC");
 }
 
 /** 应用 WHERE 过滤（回到第一页） */
@@ -3017,21 +3310,53 @@ function columnComment(col: string): string {
 }
 
 /**
- * 表头文案（按显示模式）。
+ * 列类型展示文本（带长度 / 精度）。
  *
- * <p>「类型」档展示列数据库类型而非列名：宽表看类型分布、
- * 排查「为什么这列排不了序 / 存不进值」时一眼可辨。类型取自跟随
- * 数据一起加载的 {@link columnTypes}（loadPkInfo 写入），没拿到时退回列名。</p>
+ * <p>与 {@code columnTypes} 分开：那里是裸类型名，供编辑控件与校验用；
+ * 这里只给「看的」地方用（表头补充行、悬浮提示），例如 {@code VARCHAR(255)}、
+ * {@code DECIMAL(10,2)}。整数 / 日期时间仍显示裸名 —— 元数据给的是 JDBC 显示宽度，
+ * 拼上去是假信息（见 {@link formatColumnTypeLabel}）。</p>
+ *
+ * @param col 列名
+ * @returns 展示文本；没有元数据时为空串
+ */
+function columnTypeLabel(col: string): string {
+  return columnTypeLabels.value.get(col) || columnTypes.value.get(col) || "";
+}
+
+/**
+ * 当前开关下，表头里真正显示的那几行补充文本。
+ *
+ * <p>自适应列宽只量 {@code label}（字段名），不把这两行一起量进去，
+ * 双击手柄之后注释 / 类型照样被省略号截断，看着像「自适应没生效」。</p>
+ *
+ * @param col 列名
+ * @returns 需要参与测宽的文本（空行已过滤）
+ */
+function headerFitLinesFor(col: string): string[] {
+  const lines: string[] = [];
+  if (showHeaderComments.value) {
+    const comment = columnComment(col);
+    if (comment) lines.push(comment);
+  }
+  if (showHeaderTypes.value) {
+    const type = columnTypeLabel(col);
+    if (type) lines.push(type);
+  }
+  return lines;
+}
+
+/**
+ * 表头文案。
+ *
+ * <p>v2 起表头**恒显示字段名**：注释与类型不再抢占字段名的位置，
+ * 而是各自作为下面的补充行（见模板里的 {@code dbm-header-sub}）。
+ * 这里保留函数是为了让「显示名」只有一个来源（列宽弹窗 / 列设置 / 导出都用它）。</p>
  *
  * @param col 列名
  */
 function headerLabel(col: string): string {
-  if (headerMode.value === "type") {
-    return columnTypes.value.get(col) || col;
-  }
-  const comment = columnComment(col);
-  if (headerMode.value === "name" || !comment) return col;
-  return headerMode.value === "comment" ? comment : `${col}（${comment}）`;
+  return col;
 }
 
 /**
@@ -3665,7 +3990,7 @@ const tableLoading = ref(false);
  */
 const tableDataReqSeq = ref(0);
 /** 本地表格列定义（ReTable 的列结构） */
-type Column = { prop: string; label: string; width?: number; minWidth?: number; showOverflowTooltip?: boolean; slot?: string; fixed?: boolean | "left" | "right"; sortable?: boolean | "custom"; formatter?: (row: any) => string };
+type Column = { prop: string; label: string; width?: number; minWidth?: number; showOverflowTooltip?: boolean; slot?: string; fixed?: boolean | "left" | "right"; sortable?: boolean | "custom"; formatter?: (row: any) => string; headerSlot?: string; headerFitLines?: () => string[] };
 
 // ---------- E2 列显示 / 固定列 / 排序标志 ----------
 /**
@@ -3790,11 +4115,15 @@ const tableColumns = computed<Column[]>(() => {
   return cols
     .map(col => ({
       prop: col,
-      // 排序标志自己画：`sortable: "custom"` 是**远程**排序，
-      // ReTable 手里没有排序态（数据是重载回来的），所以它不会显示箭头。
-      // 不画的后果是「点完表头看不出当前排的是哪一列、朝哪边」——
-      // 页码都变了却不知道按什么排的，等于没有排序反馈。
-      label: headerLabel(col) + sortMark(col),
+      // 表头**恒走插槽**：排序图标、悬浮提示（字段名 + 类型 + 注释）都在插槽里画。
+      // `sortable: "custom"` 是**远程**排序，ReTable 手里没有排序态（数据是重载回来的），
+      // 所以它不会显示箭头；箭头与 ▲▼ 只能自己画。而纯文本 label 挂不了 title，
+      // 字段名短的时候鼠标悬上去什么都没有 —— 这正是不够用的地方。
+      label: headerLabel(col),
+      headerSlot: `header-${col}`,
+      // 表头补充行（注释 / 类型）参与「自适应列宽」测宽：只量字段名的话，
+      // 双击拖拽手柄后补充行仍会被省略号截断，看着像没生效。
+      headerFitLines: () => headerFitLinesFor(col),
       // 默认宽度 130：与改动前完全一致（以前只写 minWidth: 130，vxe 在没有显式宽度时
       // 正是按 minWidth 排版，所以观感不变）。
       // 但下限必须放到 60，否则「调整列宽以适应内容」永远只能缩到 130 ——
@@ -3810,14 +4139,34 @@ const tableColumns = computed<Column[]>(() => {
 });
 
 /**
- * 当前排序列的表头标志（升 ▲ / 降 ▼）。
+ * 表头悬浮提示：字段名 + 类型 + 注释。
+ *
+ * <p>以前依赖表格的 overflow tooltip，只有内容被截断才弹 ——
+ * 字段名短的时候鼠标悬上去什么都没出现，用户以为没有提示。
+ * 这里显式给 title，任何时候悬停都能看到完整信息。</p>
  *
  * @param col 列名
- * @returns 标志文本，不排序时是空串
+ * @returns 多行提示文本
  */
-function sortMark(col: string): string {
-  if (sortState.prop !== col) return "";
-  return sortState.order === "ASC" ? " ▲" : " ▼";
+function headerTip(col: string): string {
+  const lines = [col];
+  const type = columnTypeLabel(col);
+  if (type) lines.push(`类型：${type}`);
+  const comment = columnComment(col);
+  if (comment) lines.push(`注释：${comment}`);
+  if (pkColumns.value.has(col)) lines.push("主键列（可直接编辑，改动会按原主键定位）");
+  return lines.join("\n");
+}
+
+/**
+ * 单元格悬浮提示。
+ *
+ * @param col 列名
+ * @returns 提示文本
+ */
+function cellTip(col: string): string {
+  const type = columnTypeLabel(col);
+  return `${col}${type ? ` · ${type}` : ""} — 点击编辑 / 右键更多操作`;
 }
 
 // ==================== 表设计（可编辑网格，Navicat 风格） ====================
@@ -4483,6 +4832,15 @@ function setEditingCellValue(v: string | number | null | undefined): void {
 // 主键列集合 + 列类型映射，用于判断可编辑/自增/数字/日期/长文本
 const pkColumns = ref(new Set<string>());
 const columnTypes = ref(new Map<string, string>());
+/**
+ * 表头 / 提示里显示的类型文本（带长度与精度）。
+ *
+ * <p>必须与 {@link columnTypes} 分开存：后者是**裸类型名**，单元格编辑的
+ * 数字/日期判定、{@code isBinaryCol}、{@code isLongTextCol}、列表单的 type 都按
+ * 裸名匹配 —— 混进 `(255)` 会让 `/INT/` 这类判断全落空，单元格就从数字输入框
+ * 退化成文本框。</p>
+ */
+const columnTypeLabels = ref(new Map<string, string>());
 const longTextColumns = ref(new Set<string>());
 
 /**
@@ -4527,24 +4885,59 @@ async function loadPkInfo(tab: Tab | undefined) {
     }
     const pk = new Set<string>();
     const types = new Map<string, string>();
+    const labels = new Map<string, string>();
     const long = new Set<string>();
     cols.forEach(c => {
-      types.set(c.name, (c.type || "").toUpperCase());
-      if (c.isPrimaryKey) pk.add(c.name);
       const t = (c.type || "").toUpperCase();
+      types.set(c.name, t);
+      // 展示文本带长度 / 精度（VARCHAR(255)、DECIMAL(10,2)），裸类型名不动
+      labels.set(c.name, formatColumnTypeLabel(t, c.size, c.scale));
+      if (c.isPrimaryKey) pk.add(c.name);
       if (t.includes("TEXT") || t.includes("BLOB") || t.includes("CLOB")) long.add(c.name);
     });
     pkColumns.value = pk;
     columnTypes.value = types;
+    columnTypeLabels.value = labels;
     longTextColumns.value = long;
   } catch {
     // 元数据加载失败不阻塞数据展示
   }
 }
 
-/** 单元格值展示：null 显示为空 */
+/**
+ * 单元格值展示。
+ *
+ * <p>三种「没有值」必须能区分，否则运维会把「字段是空的」和「字段存了空串」
+ * 当成同一件事 —— 前者是 NULL（不占长度、不参与 = 比较），后者是长度为 0 的
+ * 真实值（参与比较、能命中索引）。所以空串不显示成空白，而显式写出「空字符串」。</p>
+ *
+ * @param v 原始值
+ * @returns 展示文本
+ */
 function formatCellValue(v: unknown) {
-  return v === null || v === undefined ? "" : String(v);
+  if (v === null || v === undefined) return "null";
+  if (typeof v === "string" && v.length === 0) return "空字符串";
+  return String(v);
+}
+
+/**
+ * 该单元格是不是 SQL NULL。
+ *
+ * <p>只认真正的 null / undefined：空串、0、false 都是有值，不能一起变灰。</p>
+ *
+ * @param v 原始值
+ */
+function isNullCell(v: unknown): boolean {
+  return v === null || v === undefined;
+}
+
+/**
+ * 该单元格是不是长度为 0 的字符串。
+ *
+ * @param v 原始值
+ */
+function isEmptyStringCell(v: unknown): boolean {
+  return typeof v === "string" && v.length === 0;
 }
 
 // ---------- BLOB / 二进制 / 长文本查看器（Navicat 的 Blob Viewer） ----------
@@ -4849,11 +5242,18 @@ function isAutoIncrement(col: string) {
   return pkColumns.value.has(col) && /INT/.test(columnTypes.value.get(col) || "");
 }
 
+/**
+ * 开始编辑单元格。
+ *
+ * <p>主键列同样可编辑：定位用的主键在 {@link saveCell} 里、发请求**之前**从当前行取出，
+ * 因此改主键的语义天然是「按旧主键定位、把新值写进去」，不会因为主键变了而丢失目标行。
+ * 以前在这里拦下主键列，用户只能改用 SQL 控制台改，代价远大于收益。</p>
+ *
+ * @param row   行对象
+ * @param col   列名
+ * @param value 当前值
+ */
 function startEditCell(row: Record<string, any>, col: string, value: unknown) {
-  if (pkColumns.value.has(col)) {
-    message.info("主键列不可编辑");
-    return;
-  }
   editingCell.value = { row, column: col, value: value === null || value === undefined ? "" : String(value) };
 }
 
@@ -5931,11 +6331,14 @@ async function loadTree() {
 }
 
 async function loadTables(db: string) {
+  tablesLoading[db] = true;
   try {
     tablesByDb[db] = await fetchDbTables(currentDatasourceId.value, db);
     activeDatabase.value = db;
   } catch (e) {
     message.error(`加载 ${db} 表列表失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    tablesLoading[db] = false;
   }
 }
 
@@ -7249,8 +7652,10 @@ async function loadTableData(tab: Tab | undefined, page?: number) {
       // COUNT 是全表扫描，大表关掉后翻页请求只剩 SELECT+LIMIT/OFFSET。
       tableData.total = -1;
     }
-    void loadColumnComments(tab);
-    loadPkInfo(tab);
+    // 注释 / 类型是异步到的：表头从 1 行变 2~3 行的这一刻必须重量一次表头高度，
+    // 否则 vxe 还按挂载时的高度裁，注释行、类型行会被切掉半截。
+    void loadColumnComments(tab).then(() => nextTick(refreshHeaderHeight));
+    void loadPkInfo(tab).then(() => nextTick(refreshHeaderHeight));
   } catch (e) {
     if (seq === tableDataReqSeq.value) {
       message.error(`加载表数据失败: ${String((e as Error)?.message ?? e)}`);
@@ -7875,6 +8280,53 @@ function onSidebarContextMenu(e: MouseEvent) {
 }
 
 /**
+ * 内容区空白处右键。
+ *
+ * <p>浏览器默认菜单只会在没人接管的区域弹出来，所以这里要在 `.dbm-content`
+ * 这一层统一接管、{@code preventDefault()}，空白处弹自己的菜单 —— 但**不能**
+ * 抢那些自己就有右键语义的地方，否则一次右键会叠两套菜单：</p>
+ *
+ * <ul>
+ *   <li>网格里的单元格 / 表头：ReTable 的单元格菜单 / 表头菜单走 vxe 事件；</li>
+ *   <li>设计器 / 查询结果 / ER 画布 / 用户管理：各自的右键菜单；</li>
+ *   <li>页签条：{@code .dbm-tabs} 自己 {@code .prevent}，页签关闭菜单也在那里；</li>
+ *   <li>输入框 / 文本域：右键的「粘贴、全选」是浏览器能力，必须留给原生菜单。</li>
+ * </ul>
+ *
+ * <p>网格里只排除「真的落在 td / th 上」的右键，而不是整块 {@code .vxe-table}：
+ * 末行以下的灰底、空数据占位区都没有单元格，那里再弹原生菜单就是同一个问题。</p>
+ *
+ * @param e 右键事件
+ */
+function onContentBlankContextMenu(e: MouseEvent) {
+  const target = e.target as HTMLElement | null;
+  if (!target) return;
+  // 输入类控件：粘贴 / 全选是原生菜单才有的能力，不能拦
+  if (target.closest('input, textarea, select, [contenteditable="true"]')) return;
+  // 网格里的单元格 / 表头：ReTable 自己接了 vxe 的 cell-menu / header-contextmenu。
+  // 只排除「真的落在 td/th 上」的情况 —— 表格内部的留白（末行以下的灰底、
+  // 空数据时的占位区）没有单元格，不应该继续弹原生菜单。
+  if (target.closest('.vxe-table') && target.closest('td, th')) return;
+  if (
+    target.closest(
+      ".dbm-tabs, .dbm-design-view, .dbm-query-view, .dbm-er-workspace, .dbm-object-view, .dbm-users-view",
+    )
+  ) {
+    return;
+  }
+  e.preventDefault();
+  contextMenu.visible = true;
+  contextMenu.x = e.clientX;
+  contextMenu.y = e.clientY;
+  contextMenu.tableName = "";
+  contextMenu.database = "";
+  contextMenu.tabId = "";
+  contextMenu.isView = false;
+  contextMenu.root = false;
+  void clampContextMenuPosition();
+}
+
+/**
  * 页签右键（第九批 item 7：顶部页签支持右键关闭）
  * @param e 右键事件
  * @param tabId 目标页签 ID
@@ -7922,9 +8374,9 @@ function closeContextMenu() {
  * <p>vxe 的右键只覆盖**单元格**：ReTable 的 contextMenu 走 vxe 的 cell-menu 事件，
  * 表头没有任何人接管，右键表头弹的是浏览器默认菜单 —— 和树菜单那套 koi 皮完全两样。</p>
  *
- * <p>这里补一套同皮的表头菜单，并把顶部那排「表头显示 / 行显示」也放进来：
- * 顶部折叠起来之后，这两个开关就靠它（同一个 headerMode / rowMode 状态源，
- * 不是两份实现，不会出现顶部显示「字段」而菜单勾着「类型」的错位）。</p>
+ * <p>这里补一套同皮的表头菜单，并把「表头显示 / 行显示」两组开关放在这里：
+ * 顶栏那排胶囊已经移除，这两个开关只剩右键菜单一个入口（同一个状态源，
+ * 不是两份实现）。表头一组是「注释 / 类型」两个独立开关，可同时开。</p>
  */
 const headerMenu = reactive({
   visible: false,
@@ -7935,26 +8387,6 @@ const headerMenu = reactive({
   /** 该列的显示名（菜单里做提示用，避免用户分不清「适应内容」针对谁） */
   columnLabel: "",
 });
-
-/** 顶部显示模式那一排是否收起（默认展开，见 dbViewPref.modeRowCollapsed 注释） */
-const modeRowCollapsed = ref(viewPref.modeRowCollapsed);
-
-/** 收起提示是否已经弹过：只在本会话弹一次，否则每次点都弹等于骚扰 */
-let modeRowHintShown = false;
-
-/**
- * 展开 / 收起顶部显示模式那一排。
- *
- * <p>收起后开关只剩表头右键菜单这一个入口，用户很容易以为功能没了 ——
- * 首次收起时给一次提示，之后靠按钮上的「显示模式」字样和 title 自解释。</p>
- */
-function toggleModeRow(): void {
-  modeRowCollapsed.value = !modeRowCollapsed.value;
-  if (modeRowCollapsed.value && !modeRowHintShown) {
-    modeRowHintShown = true;
-    message.info("显示模式已收起，右键表头可随时切回");
-  }
-}
 
 /** 表头菜单定位（位置在打开时已按真实尺寸夹过视口，这里只做直出） */
 const headerMenuStyle = computed<Record<string, string>>(() => ({
@@ -8010,15 +8442,54 @@ async function clampHeaderMenuPosition(): Promise<void> {
   headerMenu.y = Math.min(Math.max(8, headerMenu.y), Math.max(8, window.innerHeight - rect.height - 8));
 }
 
-/** 表头菜单里切表头显示模式 */
-function setHeaderModeFromMenu(mode: "name" | "comment" | "both" | "type"): void {
-  headerMode.value = mode;
+/** 表头菜单里切「表头注释」（与「表头类型」互不影响，可同时开） */
+function toggleHeaderComments(): void {
+  showHeaderComments.value = !showHeaderComments.value;
   closeHeaderMenu();
 }
 
-/** 表头菜单里切行显示模式 */
-function setRowModeFromMenu(mode: "data" | "data-comment"): void {
-  rowMode.value = mode;
+/** 表头菜单里切「表头类型」（与「表头注释」互不影响，可同时开） */
+function toggleHeaderTypes(): void {
+  showHeaderTypes.value = !showHeaderTypes.value;
+  closeHeaderMenu();
+}
+
+/**
+ * 菜单里的勾选态：当前右键的这一列是否正按该方向排序。
+ *
+ * <p>勾选必须读**同一份** {@link sortState}，而不是菜单自己的变量 ——
+ * 否则点表头排序后打开菜单看不到勾，用户会以为没排上。</p>
+ *
+ * @param order 方向
+ */
+function isSortActive(order: "ASC" | "DESC"): boolean {
+  return sortState.prop === headerMenu.columnProp && sortState.order === order;
+}
+
+/**
+ * 表头菜单排序。
+ *
+ * <p>与表头点击共用 {@link applySortState}：同方向再点一次 = 取消排序
+ * （这是右键菜单才有的语义 —— 表头点击是 vxe 的三态循环，走到第三态才取消）。</p>
+ *
+ * @param order 方向
+ */
+function sortFromHeaderMenu(order: "ASC" | "DESC"): void {
+  const col = headerMenu.columnProp;
+  if (!col) return;
+  const same = isSortActive(order);
+  closeHeaderMenu();
+  if (same) {
+    applySortState(col, "");
+    message.info("已取消排序");
+    return;
+  }
+  applySortState(col, order);
+}
+
+/** 表头菜单里切行注释（数据恒显示，这个开关只管注释补充行） */
+function toggleRowComments(): void {
+  showRowComments.value = !showRowComments.value;
   closeHeaderMenu();
 }
 
@@ -8052,10 +8523,24 @@ interface DataGridWidthApi {
   getColumnWidths(): Record<string, number>;
   resetColumnWidths(): void;
   autoFitColumns(propsList?: string[]): Record<string, number>;
+  /** 表头内容行数变了（注释 / 类型补充行开关）之后重量表头高度 */
+  recalculate(): void;
 }
 
 /** 数据网格实例（只用到列宽那几个方法） */
 const dataGridRef = ref<DataGridWidthApi | null>(null);
+
+/**
+ * 重量表头高度。
+ *
+ * <p>vxe 只在数据 / 列变化与容器 resize 时量 thead 高度，**不会**因为表头插槽
+ * 多出一行就重量。表头从「字段名」变成「字段名 + 注释 + 类型」时（开关切换、
+ * 注释/类型数据异步到达），不重量就会把多出来的行裁掉 —— 看上去就是
+ * 注释只露半个字、类型整行消失。</p>
+ */
+function refreshHeaderHeight(): void {
+  dataGridRef.value?.recalculate();
+}
 
 /** 「设置列宽」弹窗是否打开 */
 const colWidthDialogVisible = ref(false);
@@ -8304,24 +8789,42 @@ watch(showTotal, value => {
 /**
  * 视图偏好落盘（F5）。
  *
- * <p>表头/行模式、页大小、ER 图设置都是「刷新后应该还在」的东西。
+ * <p>表头/行显示开关、页大小、ER 图设置都是「刷新后应该还在」的东西。
  * 用一个 watcher 统一落，而不是在每个 setter 里各写一遍 ——
  * 各写一遍的必然结果是漏掉某个（早先 `dbm-show-total` 就是单独写的）。</p>
+ *
+ * <p>顺手重量一次表头高度：注释 / 类型补充行会让表头从 1 行变 2~3 行，
+ * 而 vxe 只在数据 / 列变化与容器 resize 时量 thead 高度，不重量就会把
+ * 多出来的那行裁掉（表头看着只有注释、类型被切掉半截）。</p>
  */
 watch(
-  [headerMode, rowMode, modeRowCollapsed, erLayout, erShowLabels, erTableFilter],
+  [showHeaderComments, showHeaderTypes, showRowComments, erLayout, erShowLabels, erTableFilter],
   () => {
     saveViewPref({
-      headerMode: headerMode.value,
-      rowMode: rowMode.value,
-      modeRowCollapsed: modeRowCollapsed.value,
+      showHeaderComments: showHeaderComments.value,
+      showHeaderTypes: showHeaderTypes.value,
+      showRowComments: showRowComments.value,
       erLayout: erLayout.value,
       erShowLabels: erShowLabels.value,
       erTableFilter: erTableFilter.value,
     });
+    void nextTick(refreshHeaderHeight);
   },
   { deep: true },
 );
+
+/**
+ * 左侧树显隐：落盘并重量表格。
+ *
+ * <p>树一收起，表格容器宽度立刻变大，但 vxe 只在「数据 / 列变化 + 容器 resize」
+ * 时重量列宽与表头高度；这里的宽度变化来自同一层 flex 重排，不一定会被它观察到。
+ * 不主动 {@code recalculate()} 的话，表头补充行（注释 / 类型）会按旧宽度算高度，
+ * 收起树后可能被裁掉半截。</p>
+ */
+watch(showSidebar, value => {
+  saveViewPref({ showSidebar: value });
+  void nextTick(refreshHeaderHeight);
+});
 
 /** 每页行数变化：落盘并回到第一页（否则第 N 页可能超出新页大小的范围） */
 watch(() => tableData.pageSize, value => {
@@ -8361,7 +8864,7 @@ watch(
 async function resetViewSettings(): Promise<void> {
   try {
     await ElMessageBox.confirm(
-      "将清空本机保存的视图偏好（表头/行模式、每页行数、ER 图设置）与所有表的筛选条件。列显示偏好也会一并恢复默认。继续？",
+      "将清空本机保存的视图偏好（表头/行模式、左侧树、每页行数、ER 图设置）与所有表的筛选条件。列显示偏好也会一并恢复默认。继续？",
       "恢复默认设置",
       { type: "warning", confirmButtonText: "恢复默认", cancelButtonText: "取消" },
     );
@@ -8373,9 +8876,10 @@ async function resetViewSettings(): Promise<void> {
   // 列宽不在 columnPrefs 里 —— 它由 ReTable 自己按「库.表」存档，
   // 所以「恢复默认」必须显式清一次，否则宽度是唯一清不掉的偏好
   dataGridRef.value?.resetColumnWidths();
-  headerMode.value = "name";
-  rowMode.value = "data";
-  modeRowCollapsed.value = false;
+  showHeaderComments.value = false;
+  showHeaderTypes.value = false;
+  showRowComments.value = false;
+  showSidebar.value = true;
   showTotal.value = true;
   tableData.pageSize = 50;
   erLayout.value = "dagre";
@@ -8683,6 +9187,8 @@ onMounted(() => {
   // 表头菜单也吃这一下：点空白处 / 点别处右键都要收起来。
   // 用同一个 click 监听而不是另起一套，免得两个菜单的开关逻辑走岔。
   document.addEventListener("click", closeHeaderMenu);
+  // 备注 popover 是 manual 触发，点别处得自己收
+  document.addEventListener("click", onDocumentClickCloseRemark);
   void adoptOrphanTx();
 });
 
@@ -8697,6 +9203,7 @@ watch(currentDatasourceId, () => {
 onBeforeUnmount(() => {
   document.removeEventListener("click", closeContextMenu);
   document.removeEventListener("click", closeHeaderMenu);
+  document.removeEventListener("click", onDocumentClickCloseRemark);
   // 开着事务离开页面就等于把改动留在后端那条连接上，
   // 用户既看不见也关不掉（要等空闲超时才被回收）—— 这里兜底回滚。
   void releaseTxOnUnmount();
@@ -8814,9 +9321,35 @@ onBeforeUnmount(() => {
    一旦被压窄就会把「是 / 否」竖着叠成两行，连带把整个工具条顶高 ——
    钉死不缩，胶囊恒定单行，工具条高度才不随页签切换抖动。 */
 .dbm-toolbar-right .dbm-switch { flex: none; }
-/* 统计总数方形档（ReRadio=square）：两个方形分段 是/否，与右侧图标按钮同高 32px */
-.dbm-toolbar-right .dbm-total-select { flex: none; }
-.dbm-total-select { width: auto; }
+
+/* 字段节点的「编辑备注」笔图标：默认几乎透明，hover 该行才显形。
+   常显会让树里每行都挂一个图标，扫表结构时噪音太大；
+   看不见不影响发现 —— 备注已有值时节点 title 里就写着。 */
+.dbm-col-remark-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-left: 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--el-text-color-placeholder);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.dbm-column-node:hover .dbm-col-remark-btn,
+.dbm-col-remark-btn:focus-visible {
+  opacity: 1;
+}
+.dbm-col-remark-btn:hover {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+}
 
 /* 主体 */
 .dbm-body { display: flex; gap: 16px; flex: 1; min-height: 0; }
@@ -8851,16 +9384,65 @@ onBeforeUnmount(() => {
 .dbm-tree-icon { flex: none; }
 .dbm-db-icon { color: var(--el-color-warning); }
 .dbm-table-icon { color: var(--el-color-success); }
+/* 表名 / 视图名优先，备注让位：
+   两者都用 flex-basis:auto 参与自然分配，但备注最多只能吃掉 46% 宽度并省略号截断。
+   早先是标签 flex:1 + min-width:0、备注不设限 —— 备注一长（「提供商接入凭据（AK/SK 等）」）
+   就把表名压成一个「device…」，认不出是哪张表。 */
 .dbm-tree-label {
-  flex: 1;
-  min-width: 0;
+  flex: 0 1 auto;
+  min-width: 3em;
   font-size: 13px;
   color: var(--el-text-color-regular);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.dbm-tree-remark { margin-left: 4px; font-size: 11px; color: var(--el-text-color-placeholder); }
+.dbm-tree-remark {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 46%;
+  margin-left: 4px;
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 懒加载占位：一行转圈 + 文案，高度与普通节点对齐，展开时不会有跳动 */
+.dbm-tree-loading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
+.dbm-tree-loading--nested { padding-left: 26px; }
+.dbm-spinner {
+  flex: none;
+  width: 11px;
+  height: 11px;
+  border: 1.5px solid var(--el-border-color);
+  border-top-color: var(--el-color-primary);
+  border-radius: 50%;
+  animation: dbm-spin 0.7s linear infinite;
+}
+@keyframes dbm-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dbm-spinner { animation-duration: 2.4s; }
+}
+
+/* 对象分类（存储过程 / 函数 / 触发器 / 事件）与表同级；
+   首个分类上方一条分隔线，把「表清单」与「对象清单」两段分开 */
+.dbm-object-category-node.is-first {
+  margin-top: 6px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  padding-top: 8px;
+  border-radius: 0 0 var(--el-radius-md, 8px) var(--el-radius-md, 8px);
+}
 
 /* 右侧内容卡 */
 .dbm-content {
@@ -9856,34 +10438,16 @@ onBeforeUnmount(() => {
   line-height: 1;
 }
 .dbm-context-item.is-checked { color: var(--el-color-primary); font-weight: 600; }
-
-/* 顶部「显示模式」那一排的收起按钮
-   带文字而不是光一个箭头：贴在表名后面时，光箭头会被读成面包屑分隔符。
-   收起后仍留「显示模式」四个字 —— 那一排没了，这四个字就是它存在过的唯一线索。 */
-.dbm-mode-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 22px;
-  flex: none;
-  padding: 0 7px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--el-radius-sm, 6px);
-  cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+/* 纯说明行（如「再点一次当前方向即取消排序」）：不可点、不响应悬停，
+   用来解释它上面那组菜单项的操作语义。 */
+.dbm-context-item--hint {
+  font-size: 11.5px;
+  color: var(--el-text-color-placeholder);
+  cursor: default;
+  padding-top: 0;
+  padding-bottom: 4px;
 }
-.dbm-mode-toggle:hover {
-  color: var(--el-color-primary);
-  background: var(--el-fill-color-light);
-  border-color: var(--el-border-color-lighter);
-}
-/* 收起后箭头转向（只转箭头，文字不跟着转 —— 转文字等于让人歪着头读） */
-.dbm-mode-toggle-chevron { transition: transform 0.16s ease; }
-.dbm-mode-toggle.is-collapsed .dbm-mode-toggle-chevron { transform: rotate(-90deg); }
-.dbm-mode-toggle.is-collapsed { color: var(--el-text-color-regular); }
+.dbm-context-item--hint:hover { background: transparent; }
 
 /* 弹窗表单 */
 .dbm-create-form { display: flex; flex-direction: column; gap: 14px; padding: 16px 20px 4px; }
@@ -9896,10 +10460,24 @@ onBeforeUnmount(() => {
   padding: 2px 6px;
   border-radius: var(--el-radius-sm, 6px);
   cursor: pointer;
+  /* 有值的单元格必须是「正常字色 + 正常体」。
+     以前整格套了斜体灰字，导致正常数据也看着像占位符 ——
+     灰色斜体只留给 null / 空串（见下面两条）。 */
+  color: var(--el-text-color-primary);
+  font-style: normal;
   transition: background 0.15s ease;
 }
 .dbm-cell-value:hover { background: var(--el-color-primary-light-9); }
-.dbm-cell-pk { color: var(--el-text-color-placeholder); cursor: not-allowed; }
+/* 主键列用品牌色区分（可直接编辑，不再是禁用态） */
+.dbm-cell-pk { color: var(--el-color-primary); font-weight: 600; }
+/* NULL 与「空字符串」共用同一套弱化样式：它们都是「没有可用内容」，
+   但又必须能互相区分（文案不同：null / 空字符串）。 */
+.dbm-cell-null,
+.dbm-cell-empty {
+  color: var(--el-text-color-placeholder);
+  font-style: italic;
+  font-size: 0.85em;
+}
 .dbm-cell-edit {
   margin: 0;
   padding: 0;
@@ -9961,9 +10539,12 @@ onBeforeUnmount(() => {
 .dbm-root-icon { color: var(--el-color-primary); }
 .dbm-pk-icon { color: var(--el-color-warning); }
 .dbm-col-icon { color: var(--el-text-color-placeholder); }
-.dbm-column-node { cursor: default; }
+/* 字段节点缩进：表节点 = 箭头(12) + gap(6) 之后才是图标，
+   字段没有箭头，必须自己补上这段，否则字段图标会和表名/箭头撞在同一条竖线上 */
+.dbm-column-node { padding-left: 26px; cursor: default; }
 .dbm-column-node:hover { background: transparent; }
 .dbm-tree-type {
+  flex: none;
   margin-left: 6px;
   font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
   font-size: 11px;
@@ -10226,12 +10807,52 @@ onBeforeUnmount(() => {
 
 .dbm-view-icon { color: var(--metric-net, var(--el-color-info)); }
 .dbm-cell-box { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+/* 行内附注（列注释）：是「解释」不是「数据」，所以弱化成灰色斜体，
+   否则和数据值同色同体，扫一列时会把它读成值的一部分。 */
 .dbm-cell-comment {
   font-size: 11px;
+  font-style: italic;
   color: var(--el-text-color-placeholder);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ==================== 表头（恒走插槽） ====================
+   字段名 + 排序箭头一行放完；悬浮提示由 title 承载（见 headerTip）。 */
+.dbm-header-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+.dbm-header-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dbm-sort-icon {
+  flex: none;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--el-color-primary);
+}
+/* 表头补充行（注释 / 类型）：字段名恒在第一行，这两行是附加信息，
+   小一号、弱化颜色，且单独截断 —— 不参与字段名的省略号计算。
+   两者可同时出现，注释在上、类型在下（类型是元数据，放最后一行不碍扫读）。 */
+.dbm-header-sub {
+  margin-top: 1px;
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--el-text-color-placeholder);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dbm-header-type {
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  opacity: 0.85;
 }
 
 /* ==================== 表设计网格 ====================
@@ -10271,5 +10892,62 @@ onBeforeUnmount(() => {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+}
+
+/* ==================== 字段备注 popover / 分页模式面板 ====================
+   两者都由 Element Plus 渲染到 body（teleport），scoped 的 [data-v-xxx] 落不到
+   弹层节点上，所以样式只能写在这个非 scoped 块里；
+   再用 popper-class 限定作用域，不会影响页面其它地方。 */
+.dbm-remark-popper.el-popover {
+  padding: 10px 12px;
+}
+.dbm-remark-pop {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dbm-remark-pop__title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dbm-remark-pop__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dbm-pager-popper.el-popover {
+  padding: 12px 14px;
+}
+.dbm-pager-config {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dbm-pager-config__title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--el-text-color-primary);
+}
+.dbm-pager-config__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.dbm-pager-config__label {
+  font-size: 12.5px;
+  color: var(--el-text-color-regular);
+}
+.dbm-pager-config__hint {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--el-text-color-placeholder);
 }
 </style>

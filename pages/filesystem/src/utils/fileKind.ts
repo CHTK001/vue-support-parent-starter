@@ -76,7 +76,7 @@ const CODE_EXTS = [
   "java", "kt", "groovy", "scala", "py", "rb", "go", "rs",
   "c", "h", "cpp", "hpp", "cc", "cs", "php", "swift", "dart", "lua", "pl",
   "sql", "sh", "bash", "zsh", "bat", "cmd", "ps1",
-  "properties", "cfg", "conf", "ini", "env", "toml", "gradle",
+  "properties", "cnf", "cfg", "conf", "ini", "env", "toml", "gradle",
   // 文本小格式（与后端 CodePreviewProvider#CODE_EXTS 严格一致）：
   // 字幕 srt/vtt/ass/ssa、补丁 diff/patch、IDL proto/avsc/graphql、har 等
   "srt", "vtt", "ass", "ssa",

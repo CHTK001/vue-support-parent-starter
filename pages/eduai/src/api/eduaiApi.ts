@@ -72,7 +72,6 @@ import type {
   BatchMarkingResult,
   WrongSource,
   MarkingDashboardStats,
-  MarkingSettingsVO,
 } from "./types";
 
 /** 解包 { code, msg, data }（兼容 AxiosResponse 双层包装）为业务负载 */
@@ -148,6 +147,36 @@ export const eduaiApi = {
       .post("/v2/edu/paper/generate")
       .data(data as Record<string, unknown>)
       .then<number>(unwrap),
+
+  /**
+   * 读取「AI 组卷」试卷配置（配置中心 pages/ai 的 compose 分组）。
+   *
+   * <p>返回 field -> value 的键值对：{@code default_question_count} /
+   * {@code default_score_per_question} / {@code max_total_score}。取的是「全局默认 +
+   * 本人覆盖」的合并视图，与配置中心界面上看到的值一致，避免两处默认值各说各话。</p>
+   *
+   * <p>后端 merged 接口返回的是「配置项数组」，这里摊平成 field -> value，方便表单直接用。</p>
+   *
+   * @returns compose 分组配置键值对（值为后端下发的字符串）
+   */
+  getPaperComposeConfig: () =>
+    http()
+      .get("/v2/settings/compose/merged")
+      .then<Record<string, any>>((r) => {
+        const data = unwrap<any>(r);
+        const items: any[] = Array.isArray(data)
+          ? data
+          : Array.isArray((data as any)?.items)
+            ? (data as any).items
+            : [];
+        const map: Record<string, any> = {};
+        for (const item of items) {
+          if (item && typeof item === 'object' && item.field) {
+            map[String(item.field)] = item.value;
+          }
+        }
+        return map;
+      }),
 
   /**
    * 探测 AI 组卷能力是否可用
@@ -370,29 +399,32 @@ export const eduaiApi = {
       .then<Record<string, any>>(unwrap),
 
   /**
-   * 读取阅卷运行时设置（管理员专属）。
+   * 把外来卷（任意卷）识别出的题目加入题库。
    *
-   * <p>返回重试次数/退避曲线 + 任意卷识别策略 + 阅卷判分 Prompt。保存在
-   * {@code edu_app_config} 键值表，未配置的项回落到 application.yml 默认。</p>
+   * <p>仅 {@code mode=ANY} 可用：自有卷的题目本来就来自题库，后端会拒绝。
+   * 题干与学生作答由服务端回读阅卷明细，这里只提交选中行、学科/学段/年级与
+   * 老师补写的标准答案。</p>
    *
-   * @returns 阅卷运行时设置
+   * @param taskId 任务标识
+   * @param data   入题库请求
+   * @returns 逐条容错的入库结果
    */
-  getMarkingSettings: () =>
+  addMarkingToBank: (
+    taskId: string,
+    data: {
+      resultIds: number[];
+      questionSubject: string;
+      questionGradeLevel: string;
+      questionGrade: string;
+      questionDifficulty?: number;
+      questionScore?: number;
+      answers?: Record<number, string>;
+    },
+  ) =>
     http()
-      .get("/v2/edu/marking-settings")
-      .then<MarkingSettingsVO>(unwrap),
-
-  /**
-   * 保存阅卷运行时设置（管理员专属）。
-   *
-   * @param data 阅卷运行时设置
-   * @returns 保存后重新读出的设置（服务端已按兜底规则纠正）
-   */
-  saveMarkingSettings: (data: MarkingSettingsVO) =>
-    http()
-      .post("/v2/edu/marking-settings")
+      .post(`/v2/edu/marking/${taskId}/to-bank`)
       .data(data as unknown as Record<string, unknown>)
-      .then<MarkingSettingsVO>(unwrap),
+      .then<{ successCount: number; duplicateCount: number; failedCount: number; errors: string[]; needAnswerNos: string[] }>(unwrap),
 
   /**
    * 读取 AI 运行时配置（管理员专属，用于 AI 配置中心）。
@@ -428,14 +460,16 @@ export const eduaiApi = {
    *
    * <p>返回 Blob 而非 JSON：该接口输出 PNG 字节，需要带鉴权头请求后由前端转 objectURL。</p>
    *
-   * @param taskId 任务标识
-   * @param page   页码（从 1 开始）
+   * @param taskId  任务标识
+   * @param page    页码（从 1 开始）
+   * @param variant 图片变体：{@code thumb} 取缩略图（最长边 ~900px，体积约 1/3），
+   *                不传取原图
    * @returns 图片 Blob
    */
-  getSheetImageBlob: (taskId: string, page: number) =>
+  getSheetImageBlob: (taskId: string, page: number, variant?: 'thumb') =>
     http()
       .get(`/v2/edu/marking/image/${taskId}`)
-      .query({ page })
+      .query(variant ? { page, variant } : { page })
       .responseType("blob")
       .then<Blob>((resp: any) => resp.data as Blob),
 

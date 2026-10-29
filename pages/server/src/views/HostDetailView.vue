@@ -28,7 +28,7 @@ import {
   aiAnalyzeHost, fetchAiStatus,
   type AssetMonitorRef, type SoftwareInstance,
 } from "@pages/monitor/src/api";
-import { getHost, fetchHostProfile, fetchHostProfileSection, closeNetProcess, killProcess, restartHostProcess, startService, stopService, restartService, setHostEnvVar, deleteHostEnvVar, type HostProfile } from "../api";
+import { getHost, fetchHostProfile, fetchHostProfileSection, closeNetProcess, killProcess, restartHostProcess, startService, stopService, restartService, setHostEnvVar, deleteHostEnvVar, fetchFirewallRules, type HostProfile } from "../api";
 import ProfileDisks from "../components/profile/ProfileDisks.vue";
 import ProfileProcesses from "../components/profile/ProfileProcesses.vue";
 import ProfileServices from "../components/profile/ProfileServices.vue";
@@ -77,6 +77,22 @@ const diskRead = ref(0);
 const diskWrite = ref(0);
 /** 主机上识别到的软件实例（动态，按主机实际存在渲染） */
 const software = ref<SoftwareInstance[]>([]);
+
+/** 主机运行时长（秒，来自台账 serverHostUptimeSec / 画像 info.uptimeSec） */
+const hostUptime = ref(0);
+/** 主机系统信息（来自台账字段，画像刷新时覆盖） */
+const hostOsInfo = ref<{
+  osType: string; osVersion: string; arch: string;
+  cpuCores: number; memoryMb: number; javaVersion: string;
+  hostname: string; gpuModel: string;
+}>({
+  osType: "", osVersion: "", arch: "", cpuCores: 0, memoryMb: 0,
+  javaVersion: "", hostname: "", gpuModel: "",
+});
+
+/** 防火墙状态：规则列表由 /ms/system/firewall/rules 采集 */
+const hostFirewallRules = ref(0);
+const hostFirewallOn = ref(false);
 
 const cpuHist = ref<number[]>([]);
 const memHist = ref<number[]>([]);
@@ -328,6 +344,19 @@ function applyHostRecord(r: any): void {
   if (r.serverHostDiskWriteKbs != null) diskWrite.value = Number(r.serverHostDiskWriteKbs);
   const sw = parseSoftware(r.serverHostSoftware);
   if (sw.length) software.value = sw;
+
+  // 新卡片数据
+  if (r.serverHostUptimeSec != null) hostUptime.value = Number(r.serverHostUptimeSec);
+  hostOsInfo.value = {
+    osType: r.serverHostOsType ?? "",
+    osVersion: r.serverHostOsVersion ?? "",
+    arch: r.serverHostOsArch ?? "",
+    cpuCores: Number(r.serverHostCpuCores ?? 0),
+    memoryMb: Number(r.serverHostMemoryMb ?? 0),
+    javaVersion: r.serverHostJavaVersion ?? "",
+    hostname: r.serverHostOsHostname ?? r.serverHostName ?? "",
+    gpuModel: r.serverHostGpuModel ?? "",
+  };
 }
 
 /** 拉取主机台账，初始化内置指标 */
@@ -421,6 +450,22 @@ function applyFreshProfile(p: HostProfile): void {
   net.value = { rx: rxKb * 1024, tx: txKb * 1024 };
   if (realtime) pushPoint(netHist, Math.max(txKb, rxKb) * 1024);
 
+  // 新卡片数据：uptime 与系统信息
+  const h = p.host as any;
+  const i = p.info as Record<string, any> | undefined;
+  const upSec = Number(m.uptimeSec ?? i?.uptimeSec ?? h?.serverHostUptimeSec ?? 0);
+  if (upSec > 0) hostUptime.value = upSec;
+  hostOsInfo.value = {
+    osType: h?.serverHostOsType ?? i?.osName ?? i?.os ?? "",
+    osVersion: h?.serverHostOsVersion ?? i?.osVersion ?? "",
+    arch: h?.serverHostOsArch ?? i?.arch ?? "",
+    cpuCores: Number(h?.serverHostCpuCores ?? i?.cpuCores ?? 0),
+    memoryMb: Number(h?.serverHostMemoryMb ?? i?.memoryMb ?? 0),
+    javaVersion: h?.serverHostJavaVersion ?? i?.javaVersion ?? "",
+    hostname: h?.serverHostOsHostname ?? i?.hostname ?? h?.serverHostName ?? "",
+    gpuModel: h?.serverHostGpuModel ?? i?.gpu ?? "",
+  };
+
   markPushHeart(m.collectTime ?? p.collectedAt);
 }
 
@@ -436,6 +481,19 @@ async function refreshNow(silent = false): Promise<void> {
     error.value = String((e as Error)?.message ?? e);
   } finally {
     loading.value = false;
+  }
+}
+
+/** 拉取防火墙规则数（仅用于信息卡片概览，完整规则在画像分区查看） */
+async function loadFirewallStatus(): Promise<void> {
+  if (!hostId.value) return;
+  try {
+    const rules = await fetchFirewallRules(hostId.value);
+    hostFirewallRules.value = Array.isArray(rules) ? rules.length : 0;
+    hostFirewallOn.value = hostFirewallRules.value > 0;
+  } catch {
+    hostFirewallRules.value = 0;
+    hostFirewallOn.value = false;
   }
 }
 
@@ -607,6 +665,7 @@ watch(() => route.params.id, id => {
     await resolveAsset();       // 解析监控项（监控项24h覆盖）
     await refreshNow(true);     // 强制新鲜采集（含网络）
     void loadProfileSection();  // 画像分区随主机切换重拉
+    void loadFirewallStatus();  // 防火墙状态卡片
   })();
 });
 /** 嵌入模式：父级切换锁定主机时重新加载全套指标 */
@@ -628,6 +687,7 @@ watch(() => props.hostId, id => {
     await resolveAsset();
     await refreshNow(true);
     void loadProfileSection();
+    void loadFirewallStatus();
   })();
 });
 onMounted(() => {
@@ -640,6 +700,7 @@ onMounted(() => {
     await refreshNow(true);
     void loadAiStatus();
     void loadProfileSection();
+    void loadFirewallStatus();
   })();
 });
 onBeforeUnmount(() => {
@@ -1530,6 +1591,74 @@ function onProfileCommit(kw: string): void {
         </div>
       </section>
 
+      <!-- 信息卡片：Uptime / 系统信息 / 温度 / 防火墙 / Cron Jobs -->
+      <section class="info-cards">
+        <!-- Uptime -->
+        <div class="info-card">
+          <div class="ic-icon uptime">
+            <ReIcon name="Timer" :size="16" />
+          </div>
+          <div class="ic-body">
+            <div class="ic-label">UPTIME</div>
+            <div class="ic-value mono">{{ hostUptime > 0 ? fmtUptime(hostUptime) : "—" }}</div>
+            <div class="ic-sub">{{ hostUptime > 0 ? `${Math.floor(hostUptime / 86400)} 天 ${Math.floor((hostUptime % 86400) / 3600)} 小时` : "未采集" }}</div>
+          </div>
+        </div>
+
+        <!-- System Information -->
+        <div class="info-card">
+          <div class="ic-icon sys">
+            <ReIcon name="Monitor" :size="16" />
+          </div>
+          <div class="ic-body">
+            <div class="ic-label">系统信息</div>
+            <div class="ic-value">{{ hostOsInfo.osType || "—" }}</div>
+            <div class="ic-sub mono">
+              {{ hostOsInfo.arch ? `${hostOsInfo.arch} · ` : "" }}{{ hostOsInfo.cpuCores }}C
+              {{ hostOsInfo.memoryMb ? ` · ${(hostOsInfo.memoryMb / 1024).toFixed(0)}G` : "" }}
+            </div>
+            <div v-if="hostOsInfo.javaVersion" class="ic-sub">Java {{ hostOsInfo.javaVersion }}</div>
+            <div v-if="hostOsInfo.gpuModel" class="ic-sub">GPU {{ hostOsInfo.gpuModel }}</div>
+          </div>
+        </div>
+
+        <!-- Temperature -->
+        <div class="info-card">
+          <div class="ic-icon temp">
+            <ReIcon name="Sunny" :size="16" />
+          </div>
+          <div class="ic-body">
+            <div class="ic-label">温度</div>
+            <div class="ic-value mono">—</div>
+            <div class="ic-sub">未采集</div>
+          </div>
+        </div>
+
+        <!-- Firewall Status -->
+        <div class="info-card">
+          <div class="ic-icon firewall" :class="{ on: hostFirewallOn }">
+            <ReIcon name="Lock" :size="16" />
+          </div>
+          <div class="ic-body">
+            <div class="ic-label">防火墙</div>
+            <div class="ic-value">{{ hostFirewallOn ? "已启用" : "未检测" }}</div>
+            <div class="ic-sub">{{ hostFirewallRules > 0 ? `${hostFirewallRules} 条规则` : "" }}</div>
+          </div>
+        </div>
+
+        <!-- Cron Jobs -->
+        <div class="info-card">
+          <div class="ic-icon cron">
+            <ReIcon name="AlarmClock" :size="16" />
+          </div>
+          <div class="ic-body">
+            <div class="ic-label">CRON JOBS</div>
+            <div class="ic-value mono">—</div>
+            <div class="ic-sub">未采集</div>
+          </div>
+        </div>
+      </section>
+
       <!-- 趋势（点击卡片弹窗，弹窗内只选时间段，口径与外侧一致） -->
       <div class="trend-range">
         <span class="tr-label">趋势范围</span>
@@ -1886,13 +2015,15 @@ function onProfileCommit(kw: string): void {
         />
         <span class="hist-hint">数据来自主机采集历史，按主机维度持久化，口径与外侧卡片一致</span>
       </div>
-      <div v-if="histLoading" class="hist-loading">
-        <el-icon class="is-loading"><Loading /></el-icon><span>正在加载历史数据…</span>
+      <div class="hist-canvas-wrap">
+        <div v-if="histLoading" class="hist-loading">
+          <el-icon class="is-loading"><Loading /></el-icon><span>正在加载历史数据…</span>
+        </div>
+        <div v-else-if="!histSeries.length && !(histIoRead.length || histIoWrite.length)" class="hist-loading">
+          <span>该时间段内暂无历史数据，请确认主机已开启自动采集。</span>
+        </div>
+        <div ref="histChartRef" class="hist-canvas" />
       </div>
-      <div v-else-if="!histSeries.length && !(histIoRead.length || histIoWrite.length)" class="hist-loading">
-        <span>该时间段内暂无历史数据，请确认主机已开启自动采集。</span>
-      </div>
-      <div ref="histChartRef" class="hist-canvas" />
     </ReDialog>
 
     <!-- 软件实例显示设置（持久化到 ms_monitor_config） -->
@@ -2197,6 +2328,43 @@ function onProfileCommit(kw: string): void {
 
 .g-label { margin-top: 10px; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: var(--p-text-2); }
 .g-sub { margin-top: 3px; font-size: 10.5px; color: var(--p-text-3); }
+
+/* ---------- 信息卡片（Uptime / 系统信息 / 温度 / 防火墙 / Cron Jobs） ---------- */
+.info-cards {
+  position: relative; z-index: 1;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;
+  margin-top: 12px;
+}
+.info-card {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 16px;
+  background: linear-gradient(180deg, var(--el-color-info-light-9, rgba(148, 163, 184, 0.06)), transparent);
+  border: 1px solid var(--p-line-2); border-radius: 12px;
+  animation: cardIn 0.4s var(--ease-out, ease) both;
+  transition: border-color 0.25s, transform 0.25s;
+}
+.info-card:hover {
+  border-color: var(--el-color-info-light-5, rgba(148, 163, 184, 0.3));
+  transform: translateY(-2px);
+}
+.ic-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; flex: none;
+  border-radius: 8px;
+  font-size: 16px;
+  background: var(--el-color-info-light-8, rgba(148, 163, 184, 0.1));
+  color: var(--el-color-info, #64748b);
+}
+.ic-icon.uptime { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
+.ic-icon.sys { background: rgba(139, 92, 246, 0.12); color: #8b5cf6; }
+.ic-icon.temp { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+.ic-icon.firewall { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
+.ic-icon.firewall.on { background: rgba(34, 197, 94, 0.12); color: #22c55e; }
+.ic-icon.cron { background: rgba(20, 184, 166, 0.12); color: #14b8a6; }
+.ic-body { flex: 1; min-width: 0; }
+.ic-label { font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; color: var(--p-text-3); }
+.ic-value { margin-top: 3px; font-size: 15px; font-weight: 700; color: var(--p-text); }
+.ic-sub { margin-top: 2px; font-size: 11px; color: var(--p-text-3); }
 
 /* ---------- 趋势（响应式自适应） ---------- */
 /* 趋势范围切换：分段按钮，和 Termix 的 LIVE/1H/6H/24H/7D 对齐 */
@@ -2525,11 +2693,24 @@ function onProfileCommit(kw: string): void {
 }
 .hist-sel { width: 150px; }
 .hist-hint { font-size: 11.5px; color: var(--p-text-3); }
-.hist-loading {
-  display: flex; align-items: center; justify-content: center; gap: 10px;
-  height: 380px; font-size: 13px; color: var(--p-text-2);
+.hist-canvas-wrap {
+  position: relative;
+  width: 100%;
+  height: 380px;
 }
-.hist-canvas { width: 100%; height: 380px; }
+.hist-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--p-text-2);
+  background: var(--el-bg-color, #fff);
+  z-index: 1;
+}
+.hist-canvas { width: 100%; height: 100%; }
 
 /* ---------- 响应式 ---------- */
 @media (prefers-reduced-motion: reduce) {

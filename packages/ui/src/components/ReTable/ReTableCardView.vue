@@ -54,6 +54,7 @@ const emit = defineEmits<{
   (e: "row-click", row: Record<string, unknown>): void;
   (e: "selection-change", rows: Record<string, unknown>[]): void;
   (e: "context-menu", ctx: ReTableContextMenuContext): void;
+  (e: "scroll-bottom"): void;
 }>();
 
 /** 选中行 key 集合 */
@@ -210,6 +211,16 @@ function renderValue(row: Record<string, unknown>, field: ReCardField): string {
 /** 空数据状态 */
 const isEmpty = computed<boolean>(() => !props.rows || props.rows.length === 0);
 
+/** 滚动触底：发射 scroll-bottom（供父级滚动分页消费） */
+const SCROLL_BOTTOM_GAP = 40;
+function onGridScroll(e: Event): void {
+  const el = e.target as HTMLElement;
+  if (!el) return;
+  if (el.scrollTop + el.clientHeight >= el.scrollHeight - SCROLL_BOTTOM_GAP) {
+    emit("scroll-bottom");
+  }
+}
+
 function onCardClick(row: Record<string, unknown>): void {
   emit("row-click", row);
 }
@@ -244,7 +255,7 @@ function onCardContextmenu(row: Record<string, unknown>, index: number, event: M
       <ElEmpty :description="emptyText" :image-size="80" />
     </div>
 
-    <div v-else class="re-table__card-grid" :style="containerStyle">
+    <div v-else class="re-table__card-grid" :style="containerStyle" @scroll="onGridScroll">
       <div
         v-for="(row, idx) in rows"
         :key="idx"

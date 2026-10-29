@@ -1,24 +1,7 @@
 <template>
   <div class="flow-page">
-    <!-- 页头：与数据同步页同款 toolbar（标题 + 徽标 + 副标题 / 右侧刷新），非卡片 -->
-    <div class="flow-toolbar">
-      <div class="flow-toolbar-left">
-        <div class="flow-title">
-          同步日志
-          <span class="flow-badge">● 每次执行留档</span>
-        </div>
-        <div class="flow-sub">跨任务汇总每一次数据同步执行的旅程与过程日志（保留 30 天，后端重启不丢）</div>
-      </div>
-      <div class="flow-toolbar-right">
-        <span class="flow-refreshed">共 {{ stats.total }} 条记录</span>
-        <ReButton :loading="loading" @click="reload">
-          <template #icon><ReIcon name="Refresh" /></template>刷新
-        </ReButton>
-      </div>
-    </div>
-
-    <!-- 健康度总览：ReStatCard 四卡（与数据同步 KPI 同款）+ 24h 趋势 + 失败归类 -->
-    <section v-if="statsLoaded" class="flow-health">
+    <!-- 健康度总览：有执行记录才展示（ReStatCard 四卡 + 失败原因归类）——没有数据时整块隐藏，避免一片 0 值卡片占位 -->
+    <section v-if="statsLoaded && !noRunData" class="flow-health">
       <div class="flow-health-stats">
         <div v-for="k in kpiCards" :key="k.key" class="flow-health-cell">
           <ReStatCard
@@ -37,17 +20,19 @@
         </div>
       </div>
 
-      <!-- 近 24 小时执行分布（SVG 柱状：绿=成功 红=失败） -->
-      <div class="flow-health-chart">
+      <!-- 近 24 小时执行分布（SVG 柱状：绿=成功 红=失败）——该窗口内有真实执行记录才展示，全空不占位 -->
+      <div v-if="hasHourlyData" class="flow-health-chart">
         <div class="flow-health-chart-head">
           <span class="flow-health-chart-title">近 24 小时执行</span>
           <span class="flow-health-chart-hint">绿=成功 · 红=失败</span>
         </div>
         <div class="flow-bars">
-          <div v-for="(h, i) in stats.hourly" :key="h.hour" class="flow-bar-col" :title="`${h.hour} · ${h.total} 次（成功 ${h.success} / 失败 ${h.failed}）`">
+          <div v-for="h in stats.hourly" :key="h.hour" class="flow-bar-col" :title="`${h.hour} · ${h.total} 次（成功 ${h.success} / 失败 ${h.failed}）`">
             <div class="flow-bar-stack">
               <div v-if="h.failed" class="flow-bar-seg is-fail" :style="{ height: barHeight(h.failed, maxHour) }" />
               <div v-if="h.success" class="flow-bar-seg is-ok" :style="{ height: barHeight(h.success, maxHour) }" />
+              <!-- 窗口内有数据的空小时画 2% 基线，柱子不悬空 -->
+              <div v-if="!h.failed && !h.success" class="flow-bar-seg is-zero" />
             </div>
           </div>
         </div>
@@ -301,7 +286,7 @@
  *
  * <p>本页在基础列表之外聚合了几层排障能力：</p>
  * <ul>
- *   <li><b>健康度总览</b>：成功率 / 失败数 / 平均耗时统计卡 + 近 24h 逐小时执行分布（SVG 柱状）；</li>
+ *   <li><b>健康度总览</b>：成功率 / 失败数 / 平均耗时统计卡 + 失败原因归类（无执行记录时整块隐藏）；</li>
  *   <li><b>失败原因归类</b>：按 ERROR 行稳定关键段分组，点某类即以该关键词搜索；</li>
  *   <li><b>过程日志检索</b>：关键词 LIKE 匹配正文（SQL / 任务名 / 错误文本）；</li>
  *   <li><b>读 / 写行数</b>：执行结束解析入库，列表与详情直接展示；</li>
@@ -344,6 +329,7 @@ import {
   type SyncTaskRunLogDetail,
   type SyncTaskRunLogLine,
   type SyncRunLogStats,
+  type SyncRunLogHourly,
   type SyncRunLogTrend,
 } from "../../api/syncTaskApi";
 
@@ -391,9 +377,10 @@ const keyword = ref("");
 const tableRef = ref();
 const loading = ref(false);
 
-/** 健康度总览 */
-const stats = ref<SyncRunLogStats>({ total: 0, success: 0, failed: 0, successRate: 0, avgCostMs: 0, hourly: [], failureGroups: [] });
-const statsLoaded = ref(false);
+/** 健康度总览：初始即 24h 零占位（接口挂起/失败时区块也不空白，始终渲染默认占位） */
+const stats = ref<SyncRunLogStats>({ total: 0, success: 0, failed: 0, successRate: 0, avgCostMs: 0, hourly: emptyHourly(), failureGroups: [] });
+/** 健康度区块默认直接展示（占位数据兜底），不再等 stats 接口成功才出现 */
+const statsLoaded = ref(true);
 
 /** 任务下拉 */
 const tasks = ref<SyncTask[]>([]);
@@ -462,18 +449,74 @@ function reload() {
   void loadStats();
 }
 
-/** 加载健康度总览 */
+/**
+ * 24 小时的零计数占位序列（整点时刻 yyyy-MM-dd HH:00）。
+ *
+ * <p>KPI 四卡的 sparkline 以 stats.hourly 为数据源：后端 stats 接口失败、
+ * 或 30 天内尚无执行记录时，hourly 会是空数组，迷你趋势线无数据可画——
+ * 用 24 个全 0 的整点占位，让趋势线始终有基线而不是一片空白。</p>
+ *
+ * @returns 从 23 小时前整点开始的 24 个零计数窗口
+ */
+function emptyHourly(): SyncRunLogHourly[] {
+  const hours: SyncRunLogHourly[] = [];
+  const now = new Date();
+  for (let i = 23; i >= 0; i--) {
+    const d = new Date(now);
+    d.setHours(d.getHours() - i, 0, 0, 0);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    hours.push({
+      hour: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:00`,
+      total: 0,
+      success: 0,
+      failed: 0,
+    });
+  }
+  return hours;
+}
+
+/** 加载健康度总览（带超时兜底：stats 接口挂起时最多 8s 收起占位，不永远白屏） */
 async function loadStats() {
   try {
-    const s = await fetchSyncRunLogStats();
-    if (s) stats.value = s;
-    else stats.value = { total: 0, success: 0, failed: 0, successRate: 0, avgCostMs: 0, hourly: [], failureGroups: [] };
+    const s = await withTimeout(fetchSyncRunLogStats(), 8000);
+    if (s) {
+      stats.value = {
+        ...s,
+        // KPI sparkline 需要 hourly 数据：后端没给小时窗口时用 24 零占位
+        hourly: s.hourly.length ? s.hourly : emptyHourly(),
+      };
+    } else {
+      stats.value = { total: 0, success: 0, failed: 0, successRate: 0, avgCostMs: 0, hourly: emptyHourly(), failureGroups: [] };
+    }
   } catch {
-    stats.value = { total: 0, success: 0, failed: 0, successRate: 0, avgCostMs: 0, hourly: [], failureGroups: [] };
+    stats.value = { total: 0, success: 0, failed: 0, successRate: 0, avgCostMs: 0, hourly: emptyHourly(), failureGroups: [] };
   } finally {
     statsLoaded.value = true;
   }
 }
+
+/**
+ * 带超时的 Promise：stats / trend 这类健康度接口挂了会一直 pending，
+ * 不给超时的话组件卸载都收不掉，页面健康度区块就永远停在占位态。
+ *
+ * @param p 原始 Promise
+ * @param ms 超时毫秒数，超时按失败处理
+ */
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`请求超过 ${ms}ms 未返回`)), ms);
+    p.then(
+      v => { clearTimeout(timer); resolve(v); },
+      e => { clearTimeout(timer); reject(e); },
+    );
+  });
+}
+
+/** 完全没有执行记录：整块健康度总览都不渲染（用户明确不要 0 值占位卡片） */
+const noRunData = computed(() => stats.value.total === 0);
+
+/** 24h 窗口内有真实执行记录（任意小时有计数）才展示柱状图；全零/空窗口不占位 */
+const hasHourlyData = computed(() => stats.value.hourly.some(h => h.total > 0));
 
 /** 24h 柱状：最大计数（归一化用） */
 const maxHour = computed(() => Math.max(1, ...stats.value.hourly.map(h => h.total)));
@@ -734,57 +777,12 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* 透明型根容器（与 .tel-page 卡片型二选一）：外层 .main-content 已给 8px 留白，
+   这里不再叠 padding —— 否则透明根自带一圈边距会与外壳留白重复堆积（历史罪案）。 */
 .flow-page {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 16px 20px 20px;
-}
-
-/* ---------- 页头：与数据同步页同款 toolbar（非卡片） ---------- */
-.flow-toolbar {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 8px 0 4px;
-}
-.flow-toolbar-left,
-.flow-toolbar-right { flex: none; }
-.flow-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: 0.5px;
-}
-.flow-badge {
-  display: inline-flex;
-  align-items: center;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--el-color-success);
-  background: var(--el-color-success-light-9);
-  border: 1px solid var(--el-color-success-light-7);
-  border-radius: 999px;
-  padding: 2px 10px;
-}
-.flow-sub {
-  margin-top: 4px;
-  font-size: 13px;
-  color: var(--text-tertiary);
-}
-.flow-toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.flow-refreshed {
-  font-size: 12px;
-  color: var(--text-tertiary);
-  font-variant-numeric: tabular-nums;
 }
 
 /* ---------- 健康度总览（ReStatCard 四卡，与数据同步 KPI 同款） ---------- */
@@ -833,6 +831,8 @@ onMounted(async () => {
 .flow-bar-seg { width: 100%; border-radius: 2px 2px 0 0; }
 .flow-bar-seg.is-ok { background: var(--status-success); }
 .flow-bar-seg.is-fail { background: var(--status-error); }
+/* 窗口内有数据时的空小时基线：画一条 2% 高浅色柱，柱子不悬空 */
+.flow-bar-seg.is-zero { height: 2px; background: var(--status-muted, rgba(128, 128, 128, 0.35)); }
 
 .flow-health-fail { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; border-top: 1px dashed var(--border-subtle); padding-top: 10px; }
 .flow-fail-chip {
@@ -996,7 +996,6 @@ onMounted(async () => {
 
 /* ---------- 响应式 ---------- */
 @media (max-width: 720px) {
-  .flow-page { padding: 14px 12px 16px; }
   .flow-filters { flex-wrap: wrap; overflow-x: visible; }
   .flow-filter-task, .flow-filter-trigger, .flow-filter-keyword { width: 100%; }
   .flow-filters-hint { margin-left: 0; }

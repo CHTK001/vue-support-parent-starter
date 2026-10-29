@@ -85,6 +85,10 @@
                 <span class="ss-badge">{{ anchorText(a) }}</span>
               </div>
             </div>
+            <div v-if="!imageUrl && imageLoading" class="ss-image-loading">
+              <el-icon class="is-loading"><Loading /></el-icon>
+              正在加载答卷图片…
+            </div>
             <el-empty v-else-if="!imageUrl" description="未取到答卷图片" :image-size="80" />
           </div>
         </div>
@@ -105,15 +109,19 @@
             </el-button>
           </div>
         </div>
-        <div class="ss-panel-table">
+        <div v-loading="structureLoading" class="ss-panel-table">
           <ReTable
             ref="questionTable"
             :data="currentQuestions"
             :columns="questionColumns"
             engine="element"
+            row-key="resultId"
+            :table-id="`edu-sheet-${taskId}`"
+            :show-selection="isExternalPaper"
             :layout-table="{ fill: true }"
             :settings="{ border: false }"
             @row-click="(row: any) => selectRow(row)"
+            @selection-change="onQuestionSelectionChange"
             :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
           >
             <template #col-no="{ row }">
@@ -181,15 +189,18 @@
               </template>
               <span v-else class="ss-muted">无</span>
             </template>
-            <template #col-toBank="{ row }">
-              <el-button v-if="!isUnrecognized(row)" size="small" type="primary" link @click.stop="openToBank(row)">入题库</el-button>
-              <span v-else class="ss-muted" title="未识别出题干，无法入题库">—</span>
-            </template>
           </ReTable>
         </div>
         <footer class="ss-actions">
-          <el-button type="primary" :disabled="!dirty" :loading="saving" @click="save">保存老师分</el-button>
+          <el-button type="primary" :disabled="!dirty" :loading="saving" @click="save()">保存老师分</el-button>
           <el-button type="success" :disabled="applyAllDisabled" @click="applyAllAi">全部采用AI</el-button>
+          <el-button
+            v-if="isExternalPaper"
+            :disabled="bankSelection.length === 0"
+            @click="openBankDialog"
+          >
+            加入题库{{ bankSelection.length ? `（${bankSelection.length}）` : '' }}
+          </el-button>
           <span class="ss-hint">AI 分保留不动，老师分为最终成绩</span>
           <span v-if="selectedQuestion" class="ss-sel">已选中第 {{ selectedQuestion.no }} 题</span>
         </footer>
@@ -229,55 +240,74 @@
       </template>
     </ReDialog>
 
-    <ReDialog v-model="bankDialog.visible" title="解析题目加入题库" width="640" top="6vh">
+    <ReDialog v-model="bankDialog.visible" title="外来卷题目加入题库" width="820" top="5vh">
+      <div class="ss-bank-scope">
+        已选 {{ bankDialog.rows.length }} 题（外来卷无标准答案：老师补写的按填写入库；
+        <b>未补写的题只有本次判满分才会用学生作答作为标准答案</b>，判错的题需补写答案）。
+      </div>
       <el-form label-width="72px" size="small" class="ss-bank-form">
         <div class="ss-bank-row">
-          <el-form-item label="题型">
-            <el-select v-model="bankDialog.form.questionType" style="width: 100%">
-              <el-option label="单选题" value="SINGLE_CHOICE" />
-              <el-option label="多选题" value="MULTIPLE_CHOICE" />
-              <el-option label="判断题" value="JUDGE" />
-              <el-option label="填空题" value="FILL" />
-              <el-option label="简答题" value="SHORT_ANSWER" />
-              <el-option label="主观题" value="SUBJECTIVE" />
-              <el-option label="作文" value="ESSAY" />
-            </el-select>
+          <el-form-item label="学科" required>
+            <ReInput v-model="bankDialog.form.questionSubject" placeholder="如：语文" />
           </el-form-item>
-          <el-form-item label="分值">
-            <ReInputNumber v-model="bankDialog.form.questionScore" :min="1" :max="100" style="width: 100%" />
-          </el-form-item>
-        </div>
-        <div class="ss-bank-row">
-          <el-form-item label="学科">
-            <ReInput v-model="bankDialog.form.questionSubject" placeholder="如：数学" />
-          </el-form-item>
-          <el-form-item label="学段/年级">
+          <el-form-item label="学段/年级" required>
             <div class="ss-bank-grade">
               <el-select v-model="bankDialog.form.questionGradeLevel" style="width: 45%">
                 <el-option label="小学" value="小学" />
                 <el-option label="初中" value="初中" />
                 <el-option label="高中" value="高中" />
+                <el-option label="大学" value="大学" />
               </el-select>
-              <ReInput v-model="bankDialog.form.questionGrade" placeholder="年级" />
+              <ReInput v-model="bankDialog.form.questionGrade" placeholder="年级，如 五年级" />
             </div>
           </el-form-item>
         </div>
-        <el-form-item label="题干" required>
-          <ReInput v-model="bankDialog.form.questionStem" type="textarea" :rows="4" placeholder="解析出的题干（OCR 识别，请核对错字）" />
-        </el-form-item>
-        <el-form-item label="选项" v-if="bankDialog.form.questionType === 'SINGLE_CHOICE' || bankDialog.form.questionType === 'MULTIPLE_CHOICE'">
-          <ReInput v-model="bankDialog.form.questionOptions" type="textarea" :rows="3" placeholder="每行一个选项，如：A. -2" />
-        </el-form-item>
-        <el-form-item label="标准答案" required>
-          <ReInput v-model="bankDialog.form.questionAnswer" type="textarea" :rows="2" placeholder="标准答案（扫描解析给的是「学生作答」，标准答案请老师补写）" />
-        </el-form-item>
-        <el-form-item label="解析">
-          <ReInput v-model="bankDialog.form.questionAnalysis" type="textarea" :rows="2" placeholder="解题思路（可选）" />
-        </el-form-item>
-        <div v-if="bankDialog.studentAnswer" class="ss-bank-hint">
-          学生作答（仅供参考，不入库）：{{ bankDialog.studentAnswer }}
+        <div class="ss-bank-row">
+          <el-form-item label="难度">
+            <ReInputNumber v-model="bankDialog.form.questionDifficulty" :min="1" :max="5" style="width: 100%" />
+          </el-form-item>
+          <el-form-item label="分值">
+            <ReInputNumber
+              v-model="bankDialog.form.questionScore"
+              :min="0"
+              :max="100"
+              style="width: 100%"
+              placeholder="留 0 用本次满分"
+            />
+          </el-form-item>
         </div>
-        <div class="ss-bank-hint">保存后进入题库（管理员可在题库管理中审核、完善）。</div>
+        <div class="ss-bank-list">
+          <div v-for="(row, i) in bankDialog.rows" :key="row.resultId" class="ss-bank-item">
+            <div class="ss-bank-item__head">
+              <span class="ss-bank-item__no">第 {{ displayNo(row.no) }} 题</span>
+              <el-tag size="small" :type="row.fullScore ? 'success' : 'warning'">
+                {{ row.fullScore ? '本次判满分' : `本次 ${row.editScore}/${row.maxScore || '-'} 分` }}
+              </el-tag>
+              <span class="ss-bank-item__type">{{ typeLabel(guessType(row.stem || '')) }}</span>
+              <el-button
+                v-if="row.fullScore && !bankDialog.answers[row.resultId]"
+                size="small"
+                link
+                type="primary"
+                @click="fillStudentAnswer(i)"
+              >用学生作答</el-button>
+            </div>
+            <div class="ss-bank-item__stem">{{ row.stem || '—' }}</div>
+            <div class="ss-bank-item__answer-row">
+              <ReInput
+                v-model="bankDialog.answers[row.resultId]"
+                type="textarea"
+                :rows="2"
+                :placeholder="row.fullScore
+                  ? '标准答案（不填则用本次学生作答，学生作答：' + (row.studentAnswer || '空') + '）'
+                  : '标准答案（必填：本题本次判错，学生作答不能当标准答案）'"
+              />
+            </div>
+            <div v-if="!row.fullScore && !String(bankDialog.answers[row.resultId] ?? '').trim()" class="ss-bank-item__tip">
+              本题本次判错，未补写答案将跳过入库
+            </div>
+          </div>
+        </div>
       </el-form>
       <template #footer>
         <el-button @click="bankDialog.visible = false">取消</el-button>
@@ -300,9 +330,19 @@ import ReInput from "@repo/ui/re-input";
 import ReDrawer from "@repo/ui/re-drawer";
 import ReTag from "@repo/ui/re-tag";
 import ReDialog from "@repo/ui/re-dialog";
-import { EditPen } from '@element-plus/icons-vue';
+import { EditPen, Loading } from '@element-plus/icons-vue';
 
-const props = defineProps<{ taskId: string }>();
+const props = defineProps<{
+  taskId: string;
+  /**
+   * 父级已发出的结构请求（详情页与结果接口并发拉取）。
+   *
+   * <p>传的是 Promise：结构要 2~3s 才回来，结构视图一挂载就能接上已经在飞的
+   * 那次请求，既不用等父级把数据拿全，也不用自己再发一遍（网关单次往返 1.4s）。
+   * 为 null 时（工作台内嵌等没有父级的场景）走自己的请求。</p>
+   */
+  structurePromise?: Promise<Record<string, any>> | null;
+}>();
 const emit = defineEmits<{ (e: 'saved'): void }>();
 
 const structure = ref<Record<string, any> | null>(null);
@@ -311,6 +351,10 @@ const page = ref(1);
 const showMarkers = ref(true);
 const mode = ref<'layout' | 'original'>('layout');
 const imageUrl = ref('');
+/** 结构数据加载中（只锁右侧题目表格，不挡整页） */
+const structureLoading = ref(false);
+/** 卷面图加载中（只锁左侧图片区，避免提前显示「未取到答卷图片」） */
+const imageLoading = ref(false);
 const activeLayout = ref(-1);
 const selectedId = ref<number | null>(null);
 const dirty = ref(false);
@@ -328,7 +372,6 @@ const questionColumns: ReTableColumn[] = [
   { prop: 'comment', label: 'AI 评语', minWidth: 130, showOverflowTooltip: true, slot: 'comment' },
   { prop: 'editComment', label: '老师评语', minWidth: 170, slot: 'editComment' },
   { prop: 'knowledgePoints', label: '知识点', minWidth: 130, slot: 'knowledgePoints' },
-  { prop: 'toBank', label: '操作', width: 84, slot: 'toBank' },
 ];
 
 const kpDrawer = ref(false);
@@ -337,6 +380,12 @@ const kpLoading = ref(false);
 const kpDetail = ref<any[]>([]);
 
 let objectUrl = '';
+/** 卷面图请求序号：切任务/翻页后旧响应作废，避免把上一份卷子贴到新任务上 */
+let imageSeq = 0;
+/** 已加载成功的卷面图标识（taskId#page） */
+let imageLoadedKey = '';
+/** 正在加载的卷面图标识：同一张图不重复发请求 */
+let imagePendingKey = '';
 
 const pageCount = computed(() => Number(structure.value?.pageCount || 0));
 const currentPage = computed(() => (structure.value?.pages || [])[page.value - 1] || { layout: [], blocks: [] });
@@ -461,6 +510,11 @@ const hasJudgeSymbol = (s: string) => /[对错√×✓✗TFtf]/.test(s);
 const isBlankAnswer = (row: any) => {
   const ans = String(row?.studentAnswer ?? '').replace(/\s+/g, '').trim();
   if (!ans) return true;
+  // 简短但明确的作答形态直接算「已作答」：选择题单字母、判断题判定符号等。
+  // 不能套用下面的「题干覆盖」启发式——选择题的正确字母必然出现在题干选项里、
+  // 判断题干常含「对/错」字样，套用会把真实作答误标成「未作答」。
+  if (/^[A-DＡ-Ｄ]$/.test(ans)) return false;
+  if (/^(对|错|√|×|✓|✗|T|F|正确|错误)$/i.test(ans)) return false;
   const stem = String(row?.stem ?? '').replace(/\s+/g, '').trim();
   if (!stem) return false;
   const a = normalizeCore(ans);
@@ -471,9 +525,14 @@ const isBlankAnswer = (row: any) => {
   if (/判断|正误/.test(s) && !hasJudgeSymbol(a)) {
     return true;
   }
-  // 作答是题干（去空位/出处后）的子串；「明显短于题干」或「与题干几乎等长」
-  // （OCR 把整行题干当成作答，如判断题）都判未作答
-  return s.includes(a) && (a.length <= s.length * 0.92 || Math.abs(a.length - s.length) <= 2);
+  // 题干（去空位/出处后）覆盖作答：
+  //  - 与题干几乎等长（|差|≤2）→ 整行题干被 OCR 当成作答，判未作答；
+  //  - 作答是题干子串但「明显短于题干」→ 只对 ≥4 字的片段生效（如 OCR 抄了"下列词语中"）。
+  //    1~3 字的短作答是真实答案（填空"黄山"、选答字母等），不在此列。
+  if (!s.includes(a)) return false;
+  if (Math.abs(a.length - s.length) <= 2) return true;
+  if (a.length < 4) return false;
+  return a.length <= s.length * 0.92;
 };
 
 /** 卷头栏位标签词（后端识别兜底后仍可能落库的服务端数据，前端同样不当作真实姓名） */
@@ -637,85 +696,154 @@ const openKp = (kp: any) => {
 const bankDialog = ref({
   visible: false,
   saving: false,
-  studentAnswer: '',
+  rows: [] as any[],
   form: {
-    questionType: 'FILL',
     questionSubject: '',
     questionGradeLevel: '初中',
     questionGrade: '',
     questionDifficulty: 3,
-    questionScore: 5,
-    questionStem: '',
-    questionOptions: '',
-    questionAnswer: '',
-    questionAnalysis: '',
+    questionScore: 0,
   } as Record<string, any>,
+  /** resultId → 老师补写的标准答案 */
+  answers: {} as Record<number, string>,
 });
+
+/** 题号展示：去掉 OCR 带出的结尾「.」「、」等分隔符（`1.` → `1`） */
+const displayNo = (no: unknown): string =>
+  String(no ?? '')
+    .trim()
+    .replace(/[.、．:：]+$/, '')
+    .trim() || '?';
+
+/** 题型中文名（表单里给老师看，题库落库题型由服务端按题干特征推断） */
+const typeLabel = (type: string): string => {
+  const map: Record<string, string> = {
+    SINGLE_CHOICE: '单选题',
+    MULTIPLE_CHOICE: '多选题',
+    JUDGE: '判断题',
+    FILL: '填空题',
+    SHORT_ANSWER: '简答题',
+    SUBJECTIVE: '主观题',
+    ESSAY: '作文',
+  };
+  return map[type] ?? type;
+};
 
 const guessType = (stem: string): string => {
   if (/[A-DＡ-Ｄ][.、．]/.test(stem) && /[BＢ][.、．]/.test(stem)) return 'SINGLE_CHOICE';
   if (/[√✓×✗]/.test(stem) || /判断/.test(stem)) return 'JUDGE';
-  return 'FILL';
+  if (/_|＿|（\s*）|\(\s*\)/.test(stem)) return 'FILL';
+  return 'SHORT_ANSWER';
 };
 
-const splitOptions = (stem: string): { stem: string; options: string } => {
-  const lines = stem.split(/[\n；;]+/).map((s) => s.trim()).filter(Boolean);
-  const optLines = lines.filter((s) => /^[A-DＡ-Ｄ][.、．]/.test(s));
-  if (optLines.length < 2) return { stem, options: '' };
-  const kept = lines.filter((s) => !/^[A-DＡ-Ｄ][.、．]/.test(s)).join('\n');
-  return { stem: kept || stem, options: optLines.join('\n') };
+/**
+ * 勾选变化计数：ReTable 按 rowKey 跨页记住勾选，勾选状态本身由表格持有，
+ * 这里只需要一个 tick 触发 computed 重算。
+ */
+const selectionTick = ref(0);
+
+/** 当前勾选的题目（跨页合并；表格的 getSelectedRows 已按 resultId 去重） */
+const bankSelection = computed<any[]>(() => {
+  void selectionTick.value;
+  const rows = ((questionTable.value as any)?.getSelectedRows?.() ?? []) as any[];
+  // 只保留「非识别失败且有题干」的行：识别失败的题没有题干，入库只会造脏数据
+  return rows.filter((r) => !isUnrecognized(r) && String(r?.stem ?? '').trim());
+});
+
+/**
+ * 表格勾选变化：只推进 tick，勾选集合以表格为准（含翻页前已勾的行）。
+ */
+const onQuestionSelectionChange = () => {
+  selectionTick.value += 1;
 };
 
-const openToBank = (row: any) => {
-  if (isVirtual(row)) {
-    message.warning('历史聚合题已按版面拆分展示，暂不能直接入库');
+/** 本次是否判满分（未补写答案时，只有判满分的题才敢用学生作答当标准答案） */
+const isFullScore = (row: any) => {
+  const max = Number(row?.maxScore ?? 0);
+  const score = Number(row?.editScore ?? row?.score ?? 0);
+  return max > 0 && score >= max;
+};
+
+const openBankDialog = () => {
+  if (!bankSelection.value.length) {
+    message.warning('请先在题目列表左侧勾选要加入题库的题目');
     return;
   }
-  const stem = String(row.stem ?? '').trim();
-  const split = guessType(stem) === 'SINGLE_CHOICE' ? splitOptions(stem) : { stem, options: '' };
+  bankDialog.value.rows = bankSelection.value.map((row) => ({ ...row, fullScore: isFullScore(row) }));
+  bankDialog.value.answers = {};
   bankDialog.value.form = {
-    questionType: guessType(stem),
     questionSubject: '',
     questionGradeLevel: '初中',
     questionGrade: '',
     questionDifficulty: 3,
-    questionScore: Number(row.maxScore) > 0 ? Number(row.maxScore) : 5,
-    questionStem: split.stem,
-    questionOptions: split.options,
-    questionAnswer: '',
-    questionAnalysis: '',
+    questionScore: 0,
   };
-  bankDialog.value.studentAnswer = String(row.studentAnswer ?? '').trim();
   bankDialog.value.visible = true;
+};
+
+/** 用该题本次的学生作答填成标准答案（仅判满分的题建议这样做） */
+const fillStudentAnswer = (index: number) => {
+  const row = bankDialog.value.rows[index];
+  if (!row) return;
+  bankDialog.value.answers[row.resultId] = String(row.studentAnswer ?? '').trim();
 };
 
 const saveToBank = async () => {
   const f = bankDialog.value.form;
-  if (!String(f.questionStem ?? '').trim()) {
-    message.warning('题干为空，无法入库');
+  const rows = bankDialog.value.rows;
+  if (!rows.length) {
+    message.warning('没有要入库的题目');
     return;
   }
-  if (!String(f.questionAnswer ?? '').trim()) {
-    message.warning('请补写标准答案（学生作答不能当标准答案）');
+  if (!String(f.questionSubject ?? '').trim()) {
+    message.warning('请填写学科');
+    return;
+  }
+  if (!String(f.questionGrade ?? '').trim()) {
+    message.warning('请填写年级');
     return;
   }
   bankDialog.value.saving = true;
   try {
-    await eduaiApi.saveQuestion({
-      questionType: f.questionType,
-      questionSubject: String(f.questionSubject || '未分类'),
+    const answers: Record<number, string> = {};
+    for (const row of rows) {
+      const text = String(bankDialog.value.answers[row.resultId] ?? '').trim();
+      if (text) answers[row.resultId] = text;
+    }
+    const res = await eduaiApi.addMarkingToBank(props.taskId, {
+      resultIds: rows.map((r) => Number(r.resultId)),
+      questionSubject: String(f.questionSubject).trim(),
       questionGradeLevel: String(f.questionGradeLevel || '初中'),
-      questionGrade: String(f.questionGrade || ''),
+      questionGrade: String(f.questionGrade).trim(),
       questionDifficulty: Number(f.questionDifficulty) || 3,
-      questionScore: Number(f.questionScore) || 5,
-      questionStem: String(f.questionStem),
-      questionOptions: String(f.questionOptions || ''),
-      questionAnswer: String(f.questionAnswer),
-      questionAnalysis: String(f.questionAnalysis || ''),
-      questionSource: '扫描识别',
-    } as any);
-    message.success('已加入题库（可在题库管理中继续完善）');
+      questionScore: Number(f.questionScore) > 0 ? Number(f.questionScore) : undefined,
+      answers,
+    });
+    const parts = [`成功 ${res?.successCount ?? 0} 题`];
+    if (res?.duplicateCount) parts.push(`题库已有 ${res.duplicateCount} 题`);
+    if (res?.failedCount) parts.push(`失败 ${res.failedCount} 题`);
+    const needAnswer = res?.needAnswerNos ?? [];
+    const errors = res?.errors ?? [];
+    if ((res?.successCount ?? 0) > 0) {
+      message.success(`已加入题库：${parts.join('，')}`);
+    } else if (res?.duplicateCount) {
+      message.info(`这 ${res.duplicateCount} 题题库里已经有了，没有新增`);
+    }
+    if (needAnswer.length) {
+      message.warning(`第 ${needAnswer.join('、')} 题本次判错且未补答案，需补写标准答案后再提交`);
+    }
+    if (errors.length) {
+      message.warning(`部分题目未入库：${errors.slice(0, 3).join('；')}${errors.length > 3 ? ' …' : ''}`);
+    }
+    // 还缺答案或有失败时保持弹窗打开：老师刚补写的内容不能丢，补完直接再点一次保存，
+    // 已入库的题会被「题库已有」跳过，不会重复。
+    if (needAnswer.length || errors.length) {
+      return;
+    }
     bankDialog.value.visible = false;
+    // 入库完成后清空勾选：避免老师下次打开弹窗时又提交一遍已入库的题
+    (questionTable.value as any)?.clearAllSelection?.();
+    selectionTick.value += 1;
   } catch (e) {
     failToast('入题库失败', e);
   } finally {
@@ -724,31 +852,67 @@ const saveToBank = async () => {
 };
 
 const loadImage = async (taskId: string, p: number) => {
+  const key = `${taskId}#${p}`;
+  if (!taskId || key === imageLoadedKey || key === imagePendingKey) {
+    return;
+  }
+  const seq = ++imageSeq;
+  imagePendingKey = key;
+  imageLoading.value = true;
   try {
-    const blob = await eduaiApi.getSheetImageBlob(taskId, p);
+    // 缩略图变体：后端按最长边缩到 ~900px 的灰度 PNG。
+    // 左边栏实际显示宽度只有 600~700px，用原图等于多传一倍字节
+    // （实测 73KB → 约 30KB，经网关省 1s 以上），版面框是归一化坐标，缩放不影响叠加。
+    const blob = await eduaiApi.getSheetImageBlob(taskId, p, 'thumb');
+    // 期间切了任务或翻页：这次结果已经过期，直接丢掉
+    if (seq !== imageSeq) return;
     if (objectUrl) URL.revokeObjectURL(objectUrl);
     objectUrl = URL.createObjectURL(blob);
     imageUrl.value = objectUrl;
+    imageLoadedKey = key;
   } catch {
+    if (seq !== imageSeq) return;
     if (objectUrl) {
       URL.revokeObjectURL(objectUrl);
       objectUrl = '';
     }
     imageUrl.value = '';
+    imageLoadedKey = '';
+  } finally {
+    if (imagePendingKey === key) {
+      imagePendingKey = '';
+    }
+    // 只有「当前这次」请求能关掉占位：切任务后旧请求的 finally 不能把新任务的加载态抹掉
+    if (seq === imageSeq) {
+      imageLoading.value = false;
+    }
   }
 };
 
-const load = async (taskId: string) => {
+const load = async (taskId: string, external: Promise<Record<string, any>> | null = null) => {
   structure.value = null;
   questions.value = [];
   selectedId.value = null;
   dirty.value = false;
   activeLayout.value = -1;
   page.value = 1;
+  selectionTick.value = 0;
   if (!taskId) return;
+  structureLoading.value = true;
+  // 卷面图是本页最慢的一步（实测经网关 5 秒以上，结构化数据只要 1~2 秒）。
+  // 两件事并发发出去，总耗时取较慢的那个，而不是相加；旧任务的在途图片请求
+  // 由 imageSeq 作废，不会把上一份卷子贴到新任务上。
+  void loadImage(taskId, 1);
   try {
-    const data = await eduaiApi.getMarkingStructure(taskId);
-    structure.value = data || null;
+    // 父级已经在飞的请求直接接上（结构 2~3s 才回来，等父级把数据拿全再传就白等一轮）；
+    // 没有父级请求时（工作台内嵌）自己拉。
+    const data = external
+      ? await external.catch(() => null)
+      : await eduaiApi.getMarkingStructure(taskId);
+    if (!data) {
+      throw new Error('结构数据为空');
+    }
+    structure.value = data;
     questions.value = (data?.questions || []).map((q: any) => {
       const initial = Number(q.teacherScore ?? q.score ?? 0);
       // 老师评语只取真实老师已填写的值；AI 评语留在「AI 评语」列，不回落成老师评语。
@@ -763,16 +927,23 @@ const load = async (taskId: string) => {
         dirty: false,
       };
     });
-    await loadImage(taskId, 1);
+    // 勾选按 tableId 存在 sessionStorage：换任务/刷新后重进本页会带着上次的勾选，
+    // 让「加入题库（N）」显示老师看不见的旧选择。清空必须在表格吃进新数据之前做，
+    // 否则表格会先从存档里恢复勾选。
+    (questionTable.value as any)?.clearAllSelection?.();
+    selectionTick.value += 1;
   } catch (e) {
     failToast('获取结构化解析失败', e);
+  } finally {
+    structureLoading.value = false;
   }
 };
 
 watch(
-  () => props.taskId,
-  (v) => {
-    void load(String(v || ''));
+  () => [props.taskId, props.structurePromise] as const,
+  ([v, sp]) => {
+    // 结构请求随任务号一起换：父级给了就直接接上它，省掉一次网关往返
+    void load(String(v || ''), (sp as Promise<Record<string, any>> | null) ?? null);
   },
   { immediate: true },
 );
@@ -782,8 +953,14 @@ watch(page, async (p) => {
   if (props.taskId) await loadImage(props.taskId, p);
 });
 
-const save = async () => {
-  if (!props.taskId) return;
+/**
+ * 保存老师分。
+ *
+ * @param silent 静默模式：没有改动时不提示（供「完成」前自动保存调用）
+ * @returns 是否已确保老师分落库（true=已保存或本来就没有改动）
+ */
+const save = async (silent = false): Promise<boolean> => {
+  if (!props.taskId) return false;
   const adjustments = questions.value
     .filter((q) => {
       if (!q.dirty) return false;
@@ -807,22 +984,40 @@ const save = async () => {
       return item;
     });
   if (!adjustments.length) {
-    message.warning('没有需要保存的老师分改动');
-    return;
+    if (!silent) {
+      message.warning('没有需要保存的老师分改动');
+    }
+    return true;
   }
   saving.value = true;
   try {
     await eduaiApi.confirmMarking({ taskId: props.taskId, adjustments });
     message.success('老师批改已保存（AI 分保留）');
     dirty.value = false;
+    // 保存后不再带外部结构：父级那份是保存前的快照，必须拉一次新的
     await load(props.taskId);
     emit('saved');
+    return true;
   } catch (e) {
     failToast('保存失败', e);
+    return false;
   } finally {
     saving.value = false;
   }
 };
+
+/**
+ * 「完成阅卷」前确保老师分已落库。
+ *
+ * <p>此前「完成」只调 finishMarking，老师改的分从未提交，
+ * 重开页面自然回到 AI 分——这是「改完又还原」的根因之一。</p>
+ */
+const saveIfDirty = async (): Promise<boolean> => {
+  if (!dirty.value) return true;
+  return save(true);
+};
+
+defineExpose({ save, saveIfDirty, hasDirty: () => dirty.value });
 
 </script>
 
@@ -987,6 +1182,21 @@ const save = async () => {
   width: 100%;
   height: auto;
   user-select: none;
+}
+/* 卷面图占位：与图片同区，给出与真实图片接近的宽高，避免加载完成时页面跳动 */
+.ss-image-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 520px;
+  max-width: 100%;
+  height: 340px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-lighter);
+  border: 1px dashed var(--el-border-color);
+  border-radius: 6px;
 }
 .ss-overlay {
   position: absolute;
@@ -1157,6 +1367,49 @@ const save = async () => {
 .ss-bank-row { display: flex; gap: 12px; }
 .ss-bank-row .el-form-item { flex: 1; }
 .ss-bank-grade { display: flex; gap: 8px; width: 100%; }
+.ss-bank-scope {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+.ss-bank-list {
+  max-height: 52vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.ss-bank-item {
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+.ss-bank-item__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.ss-bank-item__no { font-weight: 600; }
+.ss-bank-item__type {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 3px;
+  padding: 0 5px;
+}
+.ss-bank-item__stem {
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  margin-bottom: 8px;
+}
+.ss-bank-item__answer-row { margin-bottom: 4px; }
+.ss-bank-item__tip { font-size: 12px; color: var(--el-color-warning); }
 .ss-bank-hint {
   font-size: 12px;
   color: var(--el-text-color-secondary);

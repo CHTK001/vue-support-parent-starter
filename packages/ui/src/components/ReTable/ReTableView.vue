@@ -54,6 +54,7 @@ const emit = defineEmits<{
   (e: "row-click", row: Record<string, unknown>): void;
   (e: "selection-change", rows: Record<string, unknown>[]): void;
   (e: "context-menu", ctx: ReTableContextMenuContext): void;
+  (e: "scroll-bottom"): void;
 }>();
 
 /** 选中行 key 集合 */
@@ -108,6 +109,16 @@ function emitSelection(): void {
 
 /** 空数据判定 */
 const isEmpty = computed(() => props.rows.length === 0);
+
+/** 滚动触底：发射 scroll-bottom（供父级滚动分页消费） */
+const SCROLL_BOTTOM_GAP = 40;
+function onListScroll(e: Event): void {
+  const el = e.target as HTMLElement;
+  if (!el) return;
+  if (el.scrollTop + el.clientHeight >= el.scrollHeight - SCROLL_BOTTOM_GAP) {
+    emit("scroll-bottom");
+  }
+}
 
 /** 渲染字段：未传 layout.fields 时用 columns 推导（跳过隐藏列） */
 const fields = computed<ReViewField[]>(() => {
@@ -199,7 +210,7 @@ function indexText(index: number): string {
       <ElEmpty :description="emptyText" :image-size="96" />
     </div>
 
-    <div v-else class="re-table__view-list" :style="{ gap: `${layout.gap ?? 10}px` }">
+    <div v-else class="re-table__view-list" :style="{ gap: `${layout.gap ?? 10}px` }" @scroll="onListScroll">
       <div
         v-for="(row, idx) in rows"
         :key="keyOfRow(row, idx)"

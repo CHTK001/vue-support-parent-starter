@@ -46,7 +46,10 @@ watch(() => props.pid, (pid) => {
   const id = String(pid || '').toLowerCase()
   // agent = 内置 Agent 虚拟供应商（后端合成，无 logo 文件）：png/svg 双探必 404
   // （2026-10-08 import-all gate 实测 agent.png/agent.svg 双 404），与 custom 同款走首字头像
-  if (!id || id === 'custom' || id === 'agent') { currentSrc.value = null; triedSvg.value = false; return }
+  // moss = Moss 开放平台，暂无品牌图标文件：同样走首字头像，避免两次必然 404
+  if (!id || id === 'custom' || id === 'agent' || id === 'moss') {
+    currentSrc.value = null; triedSvg.value = false; return
+  }
   if (SVG_ONLY_IDS.has(id)) {
     currentSrc.value = assetUrl(`images/providers/${id}.svg`)
     triedSvg.value = true // 已是 svg，onError 不再重试
