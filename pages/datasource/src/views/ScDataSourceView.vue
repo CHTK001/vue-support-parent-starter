@@ -531,6 +531,9 @@ const tryingTop = ref<number | null>(null);
 // 说明：这里原先有一个会话级 ref（detectedVersion）存「最近一次检测到的版本」。
 // 它不随选中数据源重置，导致切到别的源时版本行仍显示上一个源的版本；
 // 现在版本由后端回写台账 datasource_version，展示统一走 versionLabel(item)。
+/** 最近一次「立即检测」识别出的服务端版本（jdbc 等；未识别为 null）。
+ *  检测结果即填即显：右侧面板的「版本」行与测试提示共用它。 */
+const detectedVersion = ref<string | null>(null);
 
 // 左栏筛选 / 右栏选中（纯前端交互状态）
 /** 左栏与页头共享的搜索关键词 */
@@ -961,7 +964,7 @@ const ctxMenuItems = computed(() => {
       base.push({ key: "processes", label: "显示进程", icon: "Monitor" });
     }
     if (capabilityOf("slowQueries", item)) {
-      base.push({ key: "slow", label: "慢查询", icon: "Timer" });
+      base.push({ key: "slowQueries", label: "慢查询", icon: "Timer" });
     }
   }
   base.push({ key: "edit", label: "编辑数据源", icon: "EditPen" });
@@ -1118,7 +1121,7 @@ const onItemMenuSelect = (key: string) => {
     void openProcesses(item);
     return;
   }
-  if (key === "slow") {
+  if (key === "slow" || key === "slowQueries") {
     void openSlowQueries(item);
     return;
   }
@@ -1432,6 +1435,9 @@ const test = async (item: DataSourceInfo) => {
     // 后端在测试时把连接延迟/会话延迟/服务端版本回写台账，这里重新拉一次：
     // 概览卡片与「版本」行都从台账取，保证显示的就是这一条自己的数据
     await load();
+    // 检测回填：仅对刚测过的这一条生效，切换数据源后即失效；
+    // 版本是探测结果，右栏「版本」行与测试提示共用它。
+    detectedVersion.value = result?.version || null;
     if (result?.success) {
       const detail = describeLatency(result);
       const versionHint = result?.version ? `，服务端版本 ${result.version}` : "";
@@ -1854,13 +1860,17 @@ const configRows = computed(() => {
   //  - 其余类型：台账存「立即检测」探测到的服务端版本（MySQL 8.4.13 / ClickHouse 24.8.14.39）。
   // 曾经这里读的是前端一个会话级 ref：切数据源不重置，于是检测过 ClickHouse 之后
   // 点任何别的源都显示 ClickHouse 的版本 —— 现在统一读台账，切谁显示谁的。
-  const versionText = versionLabel(item);
+
+  let versionText = "—";
+  if (item.type === "influxdb") {
+    versionText = influxVersionLabel(item.version);
+  } else if (detectedVersion.value) {
+    versionText = `${detectedVersion.value}（检测）`;
+  }
   return [
-    // DuckDB 没有主机与端口：地址行如实写「本地文件」，路径单独占一行（否则
-    // 地址与配置路径会重复显示同一串路径，看着像渲染 bug）
-    { label: "地址", value: item.type === "duckdb" ? "本地文件（无主机端口）" : formatAddress(item), mono: item.type !== "duckdb" },
+    { label: "地址", value: formatAddress(item), mono: true },
     { label: "版本", value: versionText, mono: false },
-    { label: item.type === "duckdb" ? "库文件路径" : "配置路径", value: item.database || "—", mono: true },
+    { label: "配置路径", value: item.database || "—", mono: true },
     { label: "用户", value: item.username || "—", mono: false },
     { label: "备注", value: item.remark || "—", mono: false },
     { label: "来源类型", value: typeMeta(item.type).label, mono: false },
@@ -2166,6 +2176,7 @@ onMounted(load);
                     <path :d="typeBrand(item.type)" />
                   </svg>
                   <b v-else class="ds-mark">{{ typeMeta(item.type).mark }}</b>
+
                 </span>
                 <span class="ds-item__body">
                   <span class="ds-item__row">
@@ -2249,6 +2260,7 @@ onMounted(load);
                     <path :d="typeBrand(current.type)" />
                   </svg>
                   <b v-else class="ds-mark ds-mark--lg">{{ typeMeta(current.type).mark }}</b>
+
                 </span>
                 <h2 class="ds-detail__name" :title="current?.name">{{ current?.name ?? "数据源中心" }}</h2>
                 <template v-if="current">
@@ -2901,7 +2913,7 @@ onMounted(load);
         </div>
 
         <p v-if="!processSupported" class="ds-process__error">
-          {{ processMessage || "该数据库内核不支持会话管理" }}
+          {{ processMessage || "该数据库内核不支持进程管理（仅 MySQL/MariaDB/PostgreSQL 支持）" }}
         </p>
         <ReTable
           v-else
@@ -4097,6 +4109,32 @@ onMounted(load);
   font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
   font-size: 12.5px;
   font-variant-numeric: tabular-nums;
+}
+
+/* ---------------- 查看数据库文档 ---------------- */
+.ds-doc-dialog :deep(.el-dialog__body) {
+  padding: 0;
+  overflow: hidden;
+}
+.ds-doc-body {
+  display: flex;
+  flex-direction: column;
+  height: 70vh;
+  min-height: 420px;
+}
+.ds-doc-frame {
+  flex: 1;
+  border: none;
+  background: #fff;
+  width: 100%;
+}
+.ds-doc-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
 }
 
 /* ---------------- 响应式 ---------------- */
