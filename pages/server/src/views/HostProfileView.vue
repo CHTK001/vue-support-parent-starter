@@ -33,6 +33,7 @@ import {
   stopService,
 } from "../api";
 import { osIconSvg } from "../utils/osIcon";
+import { privateIpTextOf } from "../utils/hostProfileUi";
 import * as echarts from "echarts";
 import HostFileManager from "../components/HostFileManager.vue";
 import ProfileDisks from "../components/profile/ProfileDisks.vue";
@@ -849,7 +850,7 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
     { label: "显卡", value: show(i.gpu) },
     { label: "内存", value: p.serverHostMemoryMb ? `${fmtNum(p.serverHostMemoryMb)} MB` : (i.memoryMb ? `${fmtNum(i.memoryMb)} MB` : "—") },
     { label: "磁盘总量", value: p.serverHostDiskGb ? `${fmtNum(p.serverHostDiskGb)} GB` : (i.diskTotalGb ? `${fmtNum(i.diskTotalGb)} GB` : "—") },
-    { label: "内网 IP", value: show(p.serverHostPrivateIp ?? i.privateIp), mono: true },
+    { label: "内网 IP", value: show(privateIpTextOf(p.serverHostPrivateIp ?? i.privateIp), "—"), mono: true },
     { label: "公网 IP", value: show(p.serverHostPublicIp ?? i.publicIp), mono: true },
     { label: "网卡 MAC", value: show(p.serverHostMac ?? i.mac), mono: true },
     { label: "运行时长", value: humanUptime(upSec) },

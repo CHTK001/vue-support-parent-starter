@@ -1,6 +1,11 @@
 <template>
   <div class="h-full overflow-hidden flex flex-col" data-page="models">
-    <PageHeader :title="t('settings.models.title')">
+    <!--
+      页头：独立路由（/models）渲染完整 PageHeader；嵌入到配置中心时（embedded=true）
+      交出标题与窗口控制，只保留「多选 / 删除供应商」这排操作 —— 外层已经有页头，
+      再来一个就是同一条标题栏画两遍。
+    -->
+    <PageHeader v-if="!embedded" :title="t('settings.models.title')">
       <template #actions>
         <!-- 供应商行多选/批删：与逐条删除分开，点供应商头像或名称进入该供应商的模型页 -->
         <button v-if="!multiSelect" class="mw-act" @click="multiSelect = true">多选</button>
@@ -18,6 +23,23 @@
         </template>
       </template>
     </PageHeader>
+    <div v-else class="mw-toolbar">
+      <div class="mw-toolbar__actions">
+        <button v-if="!multiSelect" class="mw-act" @click="multiSelect = true">多选</button>
+        <template v-else>
+          <span class="mw-act">已选 {{ selectedProviders.length }} 个</span>
+          <button class="mw-act" @click="exitMultiSelect">取消</button>
+          <button
+            v-if="selectedProviders.length > 0"
+            class="mw-act mw-act-del"
+            :disabled="batchDeleting"
+            @click="batchDeleteProviders"
+          >
+            删除供应商
+          </button>
+        </template>
+      </div>
+    </div>
     <div class="flex-1 min-h-0">
       <div class="models-workspace h-full flex">
         <!-- 左侧：供应商导航 -->
@@ -128,6 +150,16 @@ import { mapProvider, mapModel } from './model.utils'
 const { t } = useI18n()
 const router = useRouter()
 const { confirm } = usePopup()
+
+/**
+ * 是否作为「配置中心 → 模型管理」的内嵌块渲染。
+ *
+ * <p>true 时交出页头（外层 SystemSettings 已有 PageHeader 与标题），
+ * 只保留「多选 / 删除供应商」这排操作，成为一个纯工作区。
+ * 两个入口因此共用**同一份实现**：主页 /models 是 embedded=false 的整页，
+ * 配置中心里是 embedded=true 的工作区，不各写一套。</p>
+ */
+withDefaults(defineProps<{ embedded?: boolean }>(), { embedded: false })
 
 const providers = ref<any[]>([])
 const models = ref<any[]>([])
@@ -481,6 +513,22 @@ onMounted(async () => {
   border: 1px solid color-mix(in srgb, var(--color-primary) 25%, var(--color-surface-border));
 }
 .mw-item.selected .mw-item-name { color: var(--color-primary); }
+
+/* 内嵌模式（配置中心 → 模型管理）的操作条：只放批删按钮，右对齐一行 */
+.mw-toolbar {
+  display: flex;
+  align-items: center;
+  padding: 8px 18px;
+  border-bottom: 1px solid var(--color-surface-border);
+  background: var(--color-surface);
+  flex-shrink: 0;
+}
+.mw-toolbar__actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 
 /* 页面头部的供应商批删按钮组 */
 .mw-act {

@@ -5,8 +5,12 @@
       :groups="navGroups" :active="activeGroup"
       :total="displayGroups.length" :configured="configuredCount"
       @select="jumpToGroup" />
+    <!-- 拆分菜单模式（宿主用 groups 指定分组）也要传统计：
+         漏传时锚点头部会渲染成「个配置组 · 配置」（两个数字都是空），
+         页面顶上就挂一条半截文案 —— 见 PaperConfigPage（paper/marking/compose 三组）。 -->
     <GroupNavRail v-else single
       :groups="navGroups" :active="activeGroup"
+      :total="displayGroups.length" :configured="configuredCount"
       @select="jumpToGroup" />
 
     <div class="dms-maint">

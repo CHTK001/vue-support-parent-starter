@@ -49,8 +49,25 @@
                 </template>
             </PageHeader>
             <div class="flex-1 overflow-hidden flex flex-col w-full" :style="contentMaxWidthStyle">
-                <div class="flex-1 overflow-hidden py-3 min-w-0">
-                    <ScrollContainer class="h-full p-4">
+                <div class="flex-1 overflow-hidden min-w-0" :class="isModelsTab ? '' : 'py-3'">
+                    <!--
+                      模型管理（配置中心入口）：与主页「模型管理」(/models) **渲染同一个组件**，
+                      两个入口一份实现，杜绝「主页一套、设置里一套」各自漂移。
+
+                      为什么不套 ScrollContainer：ModelsPage 是「左供应商栏 + 右模型工作区」的
+                      双栏工作台，左右各自独立滚动，且靠 h-full 撑满高度。放进 ScrollContainer
+                      后父级高度由内容决定，h-full 塌成内容高 —— 左栏滚不动、右侧模型表格的
+                      表头也贴不住顶。所以这里直接拿整块高度，其余 tab 仍走 ScrollContainer。
+
+                      管理员守卫与其它 tab 同源：非管理员时条件不成立，落回 ScrollContainer 分支，
+                      由上面的 admin-only-denied 统一提示，不再另写一份判定。
+                    -->
+                    <div
+                        v-if="currentTabValue === 'models' && (!isCurrentTabAdminOnly() || isAdmin())"
+                        class="models-tab-host">
+                        <ModelsPage embedded />
+                    </div>
+                    <ScrollContainer v-else class="h-full p-4">
                         <!--
                           管理员专属 tab 的统一守卫。
                           为什么要有：侧边栏只把 adminOnly 项**隐藏**了，而路由
@@ -244,6 +261,8 @@ import SkillsSourceSettings from './SkillsSourceSettings.vue'
 import ServiceManagementPage from '../management/ServiceManagementPage.vue'
 import ServiceTokensPage from '../management/ServiceTokensPage.vue'
 import ChannelManagementPage from '../management/ChannelManagementPage.vue'
+// 模型管理：直接复用主页 /models 的整页组件（双入口一份实现）
+import ModelsPage from '../models/ModelsPage.vue'
 import CommunityPanel from './CommunityPanel.vue'
 import ScrollContainer from '../ui/ScrollContainer.vue'
 // 菜单管理：与侧栏同源的清单 + 显示/隐藏开关（不嵌 sys_menu 的增删改）
@@ -713,10 +732,14 @@ const contentMaxWidthStyle = computed(() =>
 // Teleport 目标就绪标志：确保 #settings-sidebar-portal 已挂载到 DOM
 const portalReady = ref(false)
 
+// 模型管理 tab：内嵌块要自己撑满，外层不使用 ScrollContainer 的 py-3 留白
+const isModelsTab = computed(() => currentTabValue.value === 'models')
+
 // 当前标签标题
 const currentTabLabel = computed(() => {
     if (currentTabValue.value === 'service-tokens') return '访问令牌'
     if (currentTabValue.value === 'channels') return t('settings.system.tabs.channels')
+    if (currentTabValue.value === 'models') return t('settings.models.title')
     const item = filteredSidebarItems.value.find(i => i.path === currentTabValue.value)
     return item?.label || t('settings.system.settings')
 })
@@ -779,6 +802,12 @@ onMounted(() => {
     font-size: 13px;
     line-height: 1.6;
     color: var(--el-text-color-secondary, #6b7280);
+}
+
+/* 模型管理 tab：ModelsPage 是双栏工作台，需要一整块确定高度才能让左右各自滚动 */
+.models-tab-host {
+    height: 100%;
+    min-height: 0;
 }
 
 /* 管理员专属 tab 对非管理员展示的拒绝态：占满可用高度，居中说明 */
