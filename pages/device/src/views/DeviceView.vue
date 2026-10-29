@@ -1,12 +1,12 @@
 <template>
   <div class="da">
-    <!-- ==================== 左：组织树 + 设备列表右区 ==================== -->
+    <!-- ==================== 左：分组树 + 设备列表右区 ==================== -->
     <div class="da-body">
-      <!-- 左侧：设备组织树（含「全部」） -->
+      <!-- 左侧：设备分组（含「全部」） -->
       <aside class="da-rail" :class="{ 'is-collapsed': railCollapsed }">
         <!-- 折叠态：只留计数与展开按钮 -->
         <div v-if="railCollapsed" class="da-strip">
-          <button type="button" class="da-strip__count" title="展开组织树" @click="toggleRail">
+          <button type="button" class="da-strip__count" title="展开分组树" @click="toggleRail">
             <b>{{ filtered.length }}</b>
             <span>/{{ rows.length }}</span>
           </button>
@@ -15,7 +15,7 @@
             <i class="is-off" :title="`离线 ${offlineCount}`" />
           </span>
           <span class="da-strip__gap" />
-          <button type="button" class="da-strip__toggle" title="展开组织树" @click="toggleRail">
+          <button type="button" class="da-strip__toggle" title="展开分组树" @click="toggleRail">
             <ReIcon name="ArrowRight" :size="13" />
           </button>
         </div>
@@ -57,37 +57,35 @@
           </div>
         </div>
 
-        <!-- 组织树 -->
+        <!-- 分组列：点击节点，右侧按组筛选设备；不选 = 不按组筛选 -->
         <ReScrollbar v-show="!railCollapsed" class="da-tree">
           <div class="da-tree__ops">
-            <button type="button" class="da-tree__op" :class="{ 'is-on': orgExpandedAll }" title="全部展开 / 收起" @click="toggleOrgExpand">
-              <ReIcon name="Sort" :size="11" />
+            <button type="button" class="da-tree__op" title="新建分组" @click="openGroupCreate(null)">
+              <ReIcon name="Plus" :size="12" />
             </button>
-            <button type="button" class="da-tree__op" title="同步组织" :disabled="orgSyncing" @click="syncOrg">
-              <ReIcon :name="orgSyncing ? 'Loading' : 'RefreshRight'" :size="11" />
+            <button type="button" class="da-tree__op" title="刷新分组" :disabled="loading" @click="fetchGroups">
+              <ReIcon :name="loading ? 'Loading' : 'RefreshRight'" :size="12" />
             </button>
           </div>
-          <el-tree
-            ref="treeRef"
-            :key="`org-tree-${orgExpandedAll}`"
-            :data="orgOptions"
-            node-key="deviceOrganizationId"
-            :props="{ label: 'deviceOrganizationName', children: 'children' }"
-            :default-expand-all="orgExpandedAll"
-            :current-node-key="orgCurrentKey"
-            :expand-on-click-node="false"
-            highlight-current
-            class="da-tree__el"
-            @node-click="onOrgSelect"
+          <!-- 全部：不按组筛选 -->
+          <div class="da-tree__item" :class="{ 'is-active': groupFilter === '' }" @click="selectGroup(null)">
+            <span class="da-tree__dot is-all" />
+            <span class="da-tree__name">全部</span>
+            <span class="da-tree__count">{{ rows.length }}</span>
+          </div>
+          <!-- 组节点：点击筛选本组设备 -->
+          <div
+            v-for="node in flatGroups"
+            :key="node.groupId"
+            class="da-tree__item"
+            :class="{ 'is-active': groupFilter === node.groupId }"
+            :style="{ paddingLeft: `${10 + (node.depth || 0) * 14}px` }"
+            @click="selectGroup(node)"
           >
-            <template #default="{ data }">
-              <span class="da-tree__node">
-                <span class="da-tree__dot" :class="{ 'is-all': data.deviceOrganizationId === ALL_ORG_ID }" />
-                <span class="da-tree__name">{{ data.deviceOrganizationName }}</span>
-                <span class="da-tree__count">{{ data.deviceCount }}</span>
-              </span>
-            </template>
-          </el-tree>
+            <span class="da-tree__dot" />
+            <span class="da-tree__name">{{ node.groupName }}</span>
+            <span class="da-tree__count">{{ node.deviceCount }}</span>
+          </div>
         </ReScrollbar>
 
         <div v-show="!railCollapsed" class="da-rail__foot">
@@ -98,7 +96,7 @@
             </span>
             <span class="da-foot__hint">{{ rows.length }} 台设备</span>
           </div>
-          <button type="button" class="da-rail__fold" title="收起组织树" @click="toggleRail">
+          <button type="button" class="da-rail__fold" title="收起分组树" @click="toggleRail">
             <ReIcon name="ArrowLeft" :size="12" />
           </button>
         </div>
@@ -171,6 +169,14 @@
             <template #col-owner="{ row }">
               <DeviceOwnerCell :device="asDevice(row)" />
             </template>
+
+            <template #col-group="{ row }">
+              <div class="da-group-list">
+                <ReTag v-for="g in deviceGroupLabels(row)" :key="g.groupId" type="primary" effect="plain" size="small" @click="selectGroup(g)">
+                  {{ g.groupName }}
+                </ReTag>
+              </div>
+            </template>
             <template #empty>
               <div class="da-empty">
                 <ReIcon name="Files" :size="26" />
@@ -234,6 +240,27 @@
       :org-tree="orgTree"
       @saved="onDeviceSaved"
     />
+
+    <!-- 新建分组：只给设备打标签，不改动设备与组织 -->
+    <ReDialog v-model="groupCreateVisible" title="新建分组" width="480px">
+      <el-form label-position="top" class="da-group-form">
+        <el-form-item label="分组名称" required>
+          <el-input v-model="groupForm.groupName" placeholder="例如 研发中心 / 一期机房" maxlength="64" />
+        </el-form-item>
+        <el-form-item label="上级分组">
+          <el-select v-model="groupForm.groupParent" placeholder="顶级分组（留空）" clearable class="w-full">
+            <el-option v-for="option in flatGroups" :key="option.groupId" :label="option.groupName" :value="option.groupId" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model="groupForm.groupRemark" type="textarea" :rows="2" maxlength="200" show-word-limit />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <ReButton @click="groupCreateVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="groupCreating" @click="saveGroup">保存</ReButton>
+      </template>
+    </ReDialog>
 
     <!-- 详情抽屉 -->
     <ReDeviceDetailDrawer
@@ -312,7 +339,7 @@
 /**
  * 设备资产（Deck 布局，对齐主机资产）
  *
- * 左侧是设备组织树（含「全部」根节点），右侧是 ReTable 设备列表；
+ * 左侧是设备分组（含「全部」），右侧是 ReTable 设备列表；
  * 底部常驻条显示选中设备的 IP / 在线 / 经纬度 / 厂商 / 分类 / 负责人等基础信息。
  *
  * 交互约定：单击设备行只选中（底部条跟随），双击打开详情，
@@ -325,7 +352,7 @@
  * @author CH
  * @since 4.0.0.42
  */
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import {
@@ -387,24 +414,12 @@ const assignments = ref<Array<{ deviceId: string; groupId: string }>>([])
 const loading = ref(false)
 const selection = ref<DeviceInfo[]>([])
 
-/* ==================== 左侧组织树 ==================== */
+/* ==================== 左侧分组列 ==================== */
 const railCollapsed = ref(false)
 const keyword = ref('')
 const onlineFilter = ref<'all' | 'online' | 'offline'>('all')
-const orgId = ref('')
-/** 组织树「全部」节点的合成 key（真实组织 id 不会与它冲突） */
-const ALL_ORG_ID = '__all__'
-const orgExpandedAll = ref(true)
-const orgSyncing = ref(false)
-const treeRef = ref<{ setCurrentKey: (k?: string) => void } | null>(null)
-
-/** 树当前高亮 key：orgId 为空即「全部」 */
-const orgCurrentKey = computed(() => orgId.value || ALL_ORG_ID)
-
-interface OrgTreeOption extends OrgNode {
-  deviceCount: number
-  children?: OrgTreeOption[]
-}
+/** 按组筛选：'' 为全部，非空则只显示该组的设备 */
+const groupFilter = ref('')
 
 const statusFilters = computed(() => [
   { label: '全部', value: 'all' as const, count: rows.value.length },
@@ -421,52 +436,11 @@ const onlineCount = computed(() => rows.value.filter((item) => item.deviceInfoOn
 const offlineCount = computed(() => rows.value.length - onlineCount.value)
 const locatedCount = computed(() => rows.value.filter((item) => hasLocation(item)).length)
 
-/** 组织树选项：最前插「全部」根节点，各组织节点带（含下级）设备数 */
-const orgOptions = computed<OrgTreeOption[]>(() => {
-  const direct = new Map<string, number>()
-  rows.value.forEach((d) => {
-    if (!d.deviceInfoOrgId) return
-    direct.set(d.deviceInfoOrgId, (direct.get(d.deviceInfoOrgId) || 0) + 1)
-  })
-  const build = (nodes: OrgNode[]): OrgTreeOption[] =>
-    (nodes || []).map((n) => {
-      const kids = build(n.children || [])
-      const own = direct.get(n.deviceOrganizationId) || 0
-      const count = own + kids.reduce((s, k) => s + k.deviceCount, 0)
-      return { ...n, deviceCount: count, children: kids }
-    })
-  return [
-    { deviceOrganizationId: ALL_ORG_ID, deviceOrganizationName: '全部', deviceCount: rows.value.length, children: [] },
-    ...build(orgTree.value)
-  ]
-})
-
-/** 一个组织节点（含下级）的全部 orgId 集合 */
-function subtreeOrgIds(id: string): Set<string> {
-  const out = new Set<string>()
-  const walk = (n: OrgTreeOption) => {
-    out.add(n.deviceOrganizationId)
-    ;(n.children || []).forEach(walk)
-  }
-  const find = (nodes: OrgTreeOption[]): boolean => {
-    for (const n of nodes) {
-      if (n.deviceOrganizationId === id) {
-        walk(n)
-        return true
-      }
-      if (find(n.children || [])) return true
-    }
-    return false
-  }
-  find(orgOptions.value)
-  return out
-}
-
 const filtered = computed<DeviceInfo[]>(() => {
   let list = rows.value
-  if (orgId.value) {
-    const ids = subtreeOrgIds(orgId.value)
-    list = list.filter((d) => d.deviceInfoOrgId && ids.has(d.deviceInfoOrgId))
+  if (groupFilter.value) {
+    const ids = groupDeviceIds(groupFilter.value)
+    list = list.filter((d) => ids.has(d.deviceInfoId || ''))
   }
   if (onlineFilter.value === 'online') list = list.filter((d) => d.deviceInfoOnline)
   else if (onlineFilter.value === 'offline') list = list.filter((d) => !d.deviceInfoOnline)
@@ -481,16 +455,6 @@ const filtered = computed<DeviceInfo[]>(() => {
   }
   return list
 })
-
-function onOrgSelect(data: OrgTreeOption): void {
-  // 「全部」= 不按组织过滤
-  orgId.value = data.deviceOrganizationId === ALL_ORG_ID ? '' : data.deviceOrganizationId || ''
-}
-
-function toggleOrgExpand(): void {
-  orgExpandedAll.value = !orgExpandedAll.value
-  nextTick(() => treeRef.value?.setCurrentKey(orgCurrentKey.value))
-}
 
 function toggleRail(): void {
   railCollapsed.value = !railCollapsed.value
@@ -508,7 +472,8 @@ const columns: ReTableColumn[] = [
   { prop: 'deviceInfoIp', label: 'IP : 端口', slot: 'ip', minWidth: 150 },
   { prop: 'deviceInfoOnline', label: '在线状态', slot: 'status', width: 140 },
   { prop: 'deviceInfoLatitude', label: '位置', slot: 'location', minWidth: 170 },
-  { prop: 'deviceInfoOwnerName', label: '负责人', slot: 'owner', minWidth: 130 }
+  { prop: 'deviceInfoOwnerName', label: '负责人', slot: 'owner', minWidth: 130 },
+  { prop: 'deviceInfoGroup', label: '分组', slot: 'group', width: 200 }
 ]
 
 /** 插槽里的行数据回退成 DeviceInfo */
@@ -667,6 +632,68 @@ function openEdit(device: DeviceInfo): void {
 function openDetail(device: DeviceInfo): void {
   currentDevice.value = device
   detailVisible.value = true
+}
+
+/** 分组：展开到最深层的节点（带深度），用于左侧树与新建分组的上级分组选择 */
+const flatGroups = computed<Array<DeviceGroupNode & { depth: number }>>(() => {
+  const out: Array<DeviceGroupNode & { depth: number }> = []
+  const walk = (nodes: DeviceGroupNode[], depth: number) => {
+    for (const n of nodes || []) {
+      if (!n.groupId) continue
+      out.push({ ...n, depth })
+      if (n.children?.length) walk(n.children, depth + 1)
+    }
+  }
+  walk(groups.value, 0)
+  return out
+})
+
+/** 分组筛选：点击左侧节点 / 列内标签 → 右侧只展示该组设备 */
+function selectGroup(node: DeviceGroupNode | null): void {
+  groupFilter.value = node?.groupId || ''
+}
+
+/** 分组下设备的 id 集合（即当前视图的组数据源） */
+function groupDeviceIds(groupId: string): Set<string> {
+  return new Set(assignments.value.filter((item) => item.groupId === groupId).map((item) => item.deviceId))
+}
+
+/** 某台设备所处的分组标签列表（可点，点它即筛选该组设备） */
+function deviceGroupLabels(row: DeviceInfo): DeviceGroupNode[] {
+  const groupIds = assignments.value
+    .filter((item) => item.deviceId === row.deviceInfoId)
+    .map((item) => item.groupId)
+  return flatGroups.value.filter((node) => groupIds.includes(node.groupId))
+}
+
+/** 新建分组 */
+const groupCreateVisible = ref(false)
+const groupCreating = ref(false)
+const groupForm = reactive({ groupName: '', groupParent: '', groupRemark: '' })
+
+function openGroupCreate(parentId?: string | null): void {
+  groupForm.groupName = ''
+  groupForm.groupParent = parentId || ''
+  groupForm.groupRemark = ''
+  groupCreateVisible.value = true
+}
+
+async function saveGroup() {
+  if (!groupForm.groupName.trim()) {
+    message.warning('请填写分组名称')
+    return
+  }
+  groupCreating.value = true
+  try {
+    await deviceApi.createGroup({ groupName: groupForm.groupName, groupParent: groupForm.groupParent || undefined, groupRemark: groupForm.groupRemark || undefined })
+    message.success('分组已创建')
+    groupCreateVisible.value = false
+    await fetchGroups()
+  } catch (err) {
+    message.error('创建分组失败：' + errorText(err))
+  } finally {
+    groupCreating.value = false
+  }
 }
 
 function onDeviceSaved(): void {
@@ -880,7 +907,6 @@ async function fetchOrgTree() {
   try {
     const list = await deviceApi.getOrgTree()
     orgTree.value = buildOrgTree(list)
-    nextTick(() => treeRef.value?.setCurrentKey(orgCurrentKey.value))
   } catch {
     orgTree.value = []
   }
@@ -904,19 +930,6 @@ function refreshAll() {
   fetchAll()
 }
 
-async function syncOrg() {
-  orgSyncing.value = true
-  try {
-    await deviceApi.syncOrg()
-    message.success('组织同步完成')
-    await fetchOrgTree()
-  } catch (err) {
-    message.error('组织同步失败：' + errorText(err))
-  } finally {
-    orgSyncing.value = false
-  }
-}
-
 function goScreen() {
   if (!router.hasRoute('DeviceScreen')) {
     message.warning('当前宿主未接入设备大屏页')
@@ -938,7 +951,7 @@ function goProvider() {
 
 async function exportDevices() {
   try {
-    const blob = await deviceApi.exportDevices(orgId.value || undefined)
+    const blob = await deviceApi.exportDevices()
     const url = URL.createObjectURL(new Blob([blob as BlobPart], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     }))
@@ -981,7 +994,7 @@ onMounted(async () => {
   min-height: 0;
 }
 
-/* ============ 左侧：组织树 ============ */
+/* ============ 左侧：分组树 ============ */
 .da-rail {
   display: flex;
   flex: none;
@@ -1145,21 +1158,21 @@ onMounted(async () => {
 .da-tree__op.is-on { color: var(--el-color-primary); }
 .da-tree__op:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.da-tree__el {
-  background: transparent;
-  --el-tree-node-content-height: 26px;
-}
-.da-tree__el :deep(.el-tree-node__content) {
-  border-radius: 8px;
-  margin: 1px 0;
-}
-.da-tree__node {
+.da-tree__item {
   display: flex;
   align-items: center;
   gap: 6px;
   min-width: 0;
+  padding: 4px 8px;
+  border-radius: 6px;
   font-size: 13px;
+  color: var(--el-text-color-regular);
+  background: transparent;
+  cursor: pointer;
 }
+.da-tree__item:hover { background: var(--el-fill-color-light, var(--el-color-primary-light-9)); }
+.da-tree__item.is-active { background: var(--el-color-primary-light-9); color: var(--el-color-primary); }
+.da-tree__item:active { background: var(--el-color-primary-light-8); }
 .da-tree__dot {
   width: 8px;
   height: 8px;
