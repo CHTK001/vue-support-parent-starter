@@ -69,6 +69,7 @@ export const CORE_PRESET: UiPreset = [
   "ReProgress",
   "ReThree",
   "ReContextMenu",
+  "ReSplitLayout",
 ];
 
 /**

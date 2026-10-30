@@ -111,6 +111,7 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
   ReStateIcon: () => import("./components/ReStateIcon"),
   ReCommand: () => import("./components/ReCommand"),
   ReContextMenu: () => import("./components/ReContextMenu"),
+  ReSplitLayout: () => import("./components/ReSplitLayout"),
 };
 
 /**

@@ -41,8 +41,9 @@ import { VideoCamera } from '@element-plus/icons-vue'
 import Hls from 'hls.js'
 // @ts-ignore flv.js 无 d.ts
 import flvjs from 'flv.js'
-import { planStream } from '../utils/streamProtocol'
+import { planStream, type StreamPlan } from '../utils/streamProtocol'
 import { ElementaryStreamPlayer } from '../utils/elementaryPlayer'
+import { playWasmVideo } from '../utils/wasmVideoPlayer'
 
 const props = defineProps<{
   url: string
@@ -76,6 +77,8 @@ let hls: Hls | null = null
 // @ts-ignore flv.js 无 d.ts
 let flvPlayer: any = null
 let rawPlayer: ElementaryStreamPlayer | null = null
+/** <video> 盲试（canplay/能播…能播…）时挂的监听序列，别让它追着旧地址跑 */
+let _videoListeners: Array<[HTMLVideoElement, string, EventListenerOrEventListenerObject]> | null = null
 
 function destroy() {
   if (rawPlayer) {
@@ -110,6 +113,11 @@ function destroy() {
       v.load()
     } catch (e) {
       // ignore
+    }
+    // 当时挂的 <video> 盲试监听序列也一起收掉（别让旧策略的 canplay/error 再惹麻烦）
+    if (_videoListeners) {
+      for (const [el, ev, fn] of _videoListeners) el.removeEventListener(ev, fn as EventListener)
+      _videoListeners = null
     }
   }
 }
@@ -176,6 +184,110 @@ function playNative(url: string) {
   v.src = url
 }
 
+/**
+ * 裸流（H.264/H.265）：Annex B 切 framed、WebCodecs → canvas，不支持时说明情况。
+ */
+function playRaw(plan: StreamPlan): void {
+  const canvas = canvasRef.value
+  if (!canvas) throw new Error('画布未就绪')
+  rawMode.value = true
+  rawPlayer = new ElementaryStreamPlayer(canvas, {
+    family: plan.strategy === 'raw-h265' ? 'h265' : 'h264',
+    hooks: {
+      onFirstFrame: () => {
+        error.value = ''
+        emit('loaded')
+      },
+      onError: (e: Error) => {
+        error.value = `裸流解码失败：${e.message}`
+        emit('error', e)
+      },
+    },
+  })
+  if (plan.url.startsWith('ws://') || plan.url.startsWith('wss://')) {
+    rawPlayer.startWs(plan.url)
+  } else {
+    void rawPlayer.startHttp(plan.url)
+  }
+}
+
+/**
+ * RTSP 无 TCP，必须经服务端网关转流；挂了网关 <code>planStream</code> 已经改写过了，
+ * 走不到的话可以给说明，而不是 <video> 静默出让。
+ */
+function playRtsp(plan: StreamPlan): void {
+  error.value = plan.note || 'RTSP 需要服务端转流（可配 gateway 转 FLV / HLS 后播放）'
+  emit('error', new Error(error.value))
+}
+
+/**
+ * 未知策略 / 盲流 / 没挂网关的 rtsp：先让 <video> 盲试一把（浏览器能播的容器/编码
+ * 不一定非要 FLV/HLS），播不过的再求 WASM 软解，最后再看计划书的说明。
+ */
+function playUnsupported(plan: StreamPlan): void {
+  const v = videoRef.value
+  if (!v) {
+    error.value = plan.note || '正在等待画布'
+    emit('error', new Error(error.value))
+    return
+  }
+  blindTest.value = true
+  destroy()
+  const clean = () => {
+    v.removeEventListener('canplay', onCanPlay)
+    v.removeEventListener('canplaythrough', onCanPlay)
+    v.removeEventListener('error', onFail)
+    blindTest.value = false
+  }
+  const onCanPlay = (): void => {
+    error.value = ''
+    emit('loaded')
+    clean()
+  }
+  const onFail = (): void => {
+    clean()
+    void (async () => {
+      const ok = await tryWasm(plan.url)
+      if (!ok) {
+        error.value = plan.note || `当前格式无法识别（${plan.protocol}）`
+        emit('error', new Error(error.value))
+      }
+    })()
+  }
+  v.src = plan.url
+  v.load()
+  v.addEventListener('canplay', onCanPlay)
+  v.addEventListener('canplaythrough', onCanPlay)
+  v.addEventListener('error', onFail)
+  _videoListeners = [[v, 'canplay', onCanPlay], [v, 'canplaythrough', onCanPlay], [v, 'error', onFail]]
+}
+
+/**
+ * 尝试把流喂给公共附件里的 WASM 软解器（装不上的话原地报错，不理头）。
+ *
+ * @returns 是否已经看到一帧画面（有了一帧，才算软解成功）
+ */
+async function tryWasm(url: string): Promise<boolean> {
+  const canvas = canvasRef.value
+  if (!canvas) return false
+  rawMode.value = true
+  let framed = false
+  return (
+    framed ||
+    (await playWasmVideo(url, canvas, {
+      onFirstFrame: () => {
+        framed = true
+        error.value = ''
+        emit('loaded')
+      },
+      onError: (e: Error) => {
+        error.value = `软解失败：${e.message}`
+        emit('error', e)
+      },
+    })) > 0
+  )
+}
+
 function load() {
   error.value = ''
   loading.value = true
@@ -192,35 +304,12 @@ function load() {
     } else if (plan.strategy === 'native') {
       playNative(plan.url)
     } else if (plan.strategy === 'raw-h264' || plan.strategy === 'raw-h265') {
-      // 裸流：Annex B 切帧 → WebCodecs → canvas（不支持时给可读提示）
-      const canvas = canvasRef.value
-      if (!canvas) throw new Error('画布未就绪')
-      rawMode.value = true
-      rawPlayer = new ElementaryStreamPlayer(canvas, {
-        family: plan.strategy === 'raw-h265' ? 'h265' : 'h264',
-        hooks: {
-          onFirstFrame: () => {
-            error.value = ''
-            emit('loaded')
-          },
-          onError: (e: Error) => {
-            error.value = `裸流解码失败：${e.message}`
-            emit('error', e)
-          },
-        },
-      })
-      if (plan.url.startsWith('ws://') || plan.url.startsWith('wss://')) {
-        rawPlayer.startWs(plan.url)
-      } else {
-        void rawPlayer.startHttp(plan.url)
-      }
+      playRaw(plan)
     } else if (plan.strategy === 'rtsp-gateway') {
-      // 浏览器无 TCP，rtsp:// 无法直连：如实告知，而不是让 <video> 静默失败
-      error.value = plan.note || 'RTSP 需要服务端转流'
-      emit('error', new Error(error.value))
+      playRtsp(plan)
     } else {
-      error.value = plan.note || '无法识别的流地址'
-      emit('error', new Error(error.value))
+      // 未知/盲流/没挂网关的 rtsp：先让 <video> 盲试一把，再求 WASM 软解
+      playUnsupported(plan)
     }
     if (props.autoplay) {
       videoRef.value?.play().catch((e: unknown) => {
@@ -236,13 +325,18 @@ function load() {
 }
 
 function onVideoError(e: unknown) {
+  if (blindTest.value) return // 盲试阶段由显式 error 监听接管（它决定找不找 WASM）
   error.value = '视频播放错误'
   emit('error', e)
 }
 
 function onLoaded() {
+  if (blindTest.value) return // 元数据加载不等于取出了一整条流
   emit('loaded')
 }
+
+/** 当前是否由 <video> 盲试在底层兜底（是的话上面的模板监听让给显式监听） */
+const blindTest = ref(false)
 
 watch(
   () => [props.url, props.protocol],

@@ -120,13 +120,14 @@
         <el-tab-pane label="视频" name="video">
           <div class="flex gap-4">
             <div class="flex-1 min-w-0">
-              <ReVideo
-                :url="videoUrl"
-                :protocol="videoProtocol"
-                :channel="currentChannel"
-                class="rounded-xl overflow-hidden bg-black aspect-video"
-                @error="onVideoError"
-              />
+          <ReVideo
+            :url="videoUrl"
+            :protocol="videoProtocol"
+            :channel="currentChannel"
+            :gateway="RTSP_GATEWAY"
+            class="rounded-xl overflow-hidden bg-black aspect-video"
+            @error="onVideoError"
+          />
               <div class="flex flex-wrap items-center gap-2 mt-3">
                 <el-select v-model="currentChannel" placeholder="通道" style="width: 130px" @change="reloadStream">
                   <el-option
@@ -198,6 +199,7 @@
       :urls="multiUrls"
       :channels="multiChannels"
       :channel-list="channelOptions.map((ch) => ({ deviceChannelNo: ch.no, deviceChannelName: ch.name })) as any"
+      :gateway="RTSP_GATEWAY"
       @update:layout="(v: number) => (multiLayout = v)"
       @channel-change="onMultiChannelChange"
     />
@@ -217,6 +219,7 @@ import ReTimeline from '@pages/device/src/components/ReTimeline.vue'
 import ReMap from '@pages/device/src/components/ReMap.vue'
 import ReChannelManager from '@pages/device/src/components/ReChannelManager.vue'
 import DeviceStatusPulse from '@pages/device/src/components/DeviceStatusPulse.vue'
+import { RTSP_GATEWAY } from '../utils/streamConfig'
 import { deviceApi } from '@pages/device/src/api/deviceApi'
 import { getCategoryLabel } from '@pages/device/src/utils/deviceCategory'
 import {

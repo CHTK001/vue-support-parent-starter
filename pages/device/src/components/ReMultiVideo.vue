@@ -16,7 +16,11 @@
         :key="i"
         class="aspect-video bg-black rounded-xl overflow-hidden relative"
       >
-        <ReVideo :url="urls[i-1]" class="w-full h-full" />
+        <ReVideo
+          :url="urls[i-1]"
+          :gateway="gateway"
+          class="w-full h-full"
+        />
         <el-select
           :model-value="channels[i-1]"
 
@@ -38,6 +42,7 @@
 <script setup lang="ts">
 import ReVideo from './ReVideo.vue'
 import type { DeviceChannel } from '@pages/device/src/types/device'
+import type { RtspGateway } from '../utils/streamProtocol'
 
 
 import ReDialog from "@repo/ui/re-dialog";defineProps<{
@@ -46,6 +51,8 @@ import ReDialog from "@repo/ui/re-dialog";defineProps<{
   urls: string[]
   channels: number[]
   channelList: DeviceChannel[]
+  /** RTSP 转流网关（可选） */
+  gateway?: RtspGateway
 }>()
 
 const emit = defineEmits<{

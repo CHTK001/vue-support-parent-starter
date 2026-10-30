@@ -13,6 +13,7 @@ import type {
   CacheStats,
   FeedbackIssue,
   FeedbackStatistic,
+  OnlineLoginHistory,
   OnlineUser,
   PageResult,
   RoleMenuUpdate,
@@ -490,6 +491,19 @@ export function listOnline(params?: { username?: string; ip?: string }) {
     .get("/v2/online/list")
     .query((params ?? {}) as Record<string, unknown>)
     .then<ApiResult<OnlineUser[]>>((r) => r.data);
+}
+
+/**
+ * 在线用户登录时间轴（最近 N 天，默认 30 天，含全部登录 IP）
+ *
+ * @param params.username 用户名
+ * @param params.days 统计窗口天数，默认 30
+ */
+export function getOnlineLoginHistory(params: { username: string; days?: number }) {
+  return http()
+    .get("/v2/online/login-history")
+    .query(params as Record<string, unknown>)
+    .then<ApiResult<OnlineLoginHistory>>((r) => r.data);
 }
 
 /** 在线用户数 */

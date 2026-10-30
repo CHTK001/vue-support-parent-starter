@@ -8,7 +8,6 @@
 import { defineAsyncComponent, type App, type Plugin } from "vue";
 import ReTable from "./ReTable.vue";
 
-import ReTableContextMenu from "./ReTableContextMenu.vue";
 import ReTableToolbar from "./ReTableToolbar.vue";
 
 /** 卡片布局使用面窄，异步加载避免打进主包 */
@@ -18,7 +17,6 @@ const plugin: Plugin = {
   install(app: App) {
     app.component("ReTable", ReTable);
     app.component("ReTableCardView", ReTableCardView);
-    app.component("ReTableContextMenu", ReTableContextMenu);
     app.component("ReTableToolbar", ReTableToolbar);
   },
 };

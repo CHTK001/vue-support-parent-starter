@@ -127,7 +127,7 @@ const routes = [
       {
         path: "world-sim/:worldId?",
         name: "WorldSim",
-        meta: { title: "模拟人生", requiresAuth: true },
+        meta: { title: "模拟", requiresAuth: true },
         component: () => import("./components/world-sim/WorldSimPage.vue"),
       },
       {

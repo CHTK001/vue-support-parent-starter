@@ -307,6 +307,10 @@
       "types": "./src/components/ReCron/index.ts",
       "default": "./src/components/ReCron/index.ts"
     },
+    "./re-split-layout": {
+      "types": "./src/components/ReSplitLayout/index.ts",
+      "default": "./src/components/ReSplitLayout/index.ts"
+    },
     "./re-progress": {
       "types": "./src/components/ReProgress/index.ts",
       "default": "./src/components/ReProgress/index.ts"
@@ -421,6 +425,7 @@
     "motion": "catalog:",
     "motion-dom": "catalog:",
     "motion-utils": "catalog:",
+    "reactive-layout": "1.0.2",
     "sortablejs": "1.15.6",
     "three": "^0.185.1",
     "viewerjs": "catalog:",

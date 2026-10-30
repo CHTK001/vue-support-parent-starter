@@ -82,6 +82,7 @@ import {
   saveAccountBw,
   deleteAccountBw,
   saveHotReload,
+  getOnlineLoginHistory,
 } from "../api/systemApi";
 
 describe("systemApi URL/方法构造", () => {
@@ -311,5 +312,12 @@ describe("systemApi URL/方法构造", () => {
     const c = mockHttp.calls.post.at(-1)!;
     expect(c.url).toBe("/v2/policy/hotreload/save");
     expect(c.body).toBe(payload);
+  });
+
+  it("在线用户：登录时间轴 GET /v2/online/login-history 携带用户名与天数", async () => {
+    await getOnlineLoginHistory({ username: "ops", days: 30 });
+    const c = mockHttp.calls.get.at(-1)!;
+    expect(c.url).toBe("/v2/online/login-history");
+    expect(c.params).toEqual({ username: "ops", days: 30 });
   });
 });

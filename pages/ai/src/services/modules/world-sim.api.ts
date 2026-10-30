@@ -1,5 +1,5 @@
 /**
- * world-sim.api — 模拟人生（世界沙盒）前端 API
+ * world-sim.api — 模拟（世界沙盒）前端 API
  *
  * 后端：/v2/world-sim
  *  - worlds        世界列表 / 建世界 / 详情视图 / 更新 / 删除

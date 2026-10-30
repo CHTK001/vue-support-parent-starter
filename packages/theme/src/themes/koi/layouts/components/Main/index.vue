@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="main-wrapper">
     <ReMaximize />
     <RePerfMonitor />

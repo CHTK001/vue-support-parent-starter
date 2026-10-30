@@ -4,7 +4,7 @@
     :class="{ 'dpv--standalone': standalone }"
     @dragenter="preventNativeDrop"
     @dragover="preventNativeDrop"
-    @drop="preventNativeDrop"
+    @drop="onGlobalDrop"
   >
     <!-- 独立窗口：只保留一条细工具条（没有外壳的侧栏/顶栏/标签栏） -->
     <header v-if="standalone" class="dpv-std">
@@ -115,6 +115,12 @@
           <span class="dpv-panel__count">{{ wall.length }} / {{ layoutSize }}</span>
           <div class="dpv-panel__ops">
             <el-segmented v-model="protocol" :options="protocolSegments" size="small" @change="onProtocolChange" />
+            <span
+              v-if="protocol === 'rtsp' && !hasRtspGateway()"
+              class="dpv-rtsp-hint"
+              title="RTSP 没有后端转流服务，需服务端转成 FLV / HLS / MP4 后播放"
+              >RTSP 需转流</span
+            >
             <el-segmented v-model="layout" :options="layoutSegments" size="small" />
             <ReButton icon="RefreshRight" layout="square" tip="重载全部画面" :disabled="!wall.length" :loading="reloading" @click="reloadAll" />
             <el-segmented v-model="viewMode" :options="viewModeSegments" size="small" />
@@ -165,6 +171,7 @@
               :url="tile.url"
               :protocol="effectiveProtocol(tile)"
               :channel="tile.channel"
+              :gateway="RTSP_GATEWAY"
               muted
               autoplay
               class="dpv-tile__video"
@@ -322,6 +329,7 @@ import ReVideo from '../components/ReVideo.vue'
 import ReMachineRoom from '../components/ReMachineRoom.vue'
 import deviceApi from '../api/deviceApi'
 import type { DeviceChannel, DeviceInfo } from '../types/device'
+import { RTSP_GATEWAY, hasRtspGateway } from '../utils/streamConfig'
 
 /** 独立窗口形态：路由 props 注入（/device/preview/standalone） */
 const props = defineProps<{ standalone?: boolean }>()
@@ -343,7 +351,7 @@ function applyRouteQuery(): { ids: string[]; layout: string | null; remind: bool
     .filter(Boolean)
   const queryLayout = String(route.query.layout || '')
   const remind = route.query.remind !== 'false'
-  if (queryLayout && ['1', '4', '9'].includes(queryLayout)) {
+  if (queryLayout && ['1', '4', '9', '16'].includes(queryLayout)) {
     layout.value = queryLayout
   }
   if (ids.length) {
@@ -392,6 +400,7 @@ const layoutSegments = [
   { label: '1 画面', value: '1' },
   { label: '4 画面', value: '4' },
   { label: '9 画面', value: '9' },
+  { label: '16 画面', value: '16' },
 ]
 
 /** 手动兜底配置的本地键（按设备存；后端没有「自定义流地址」接口） */
@@ -470,7 +479,8 @@ const onlineSegments = computed(() => [
 const emptySlots = computed(() => Math.max(0, layoutSize.value - wall.value.length))
 
 const gridStyle = computed(() => {
-  const cols = layoutSize.value <= 1 ? 1 : layoutSize.value <= 4 ? 2 : 3
+  // 1×1/2×2/3×3/4×4 横平竖直的网格；16 格时 4×4 是哪个都行
+  const cols = Math.max(1, Math.round(Math.sqrt(layoutSize.value)))
   return {
     gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
     gridAutoRows: layoutSize.value <= 4 ? 'minmax(180px, 1fr)' : 'minmax(140px, 1fr)',
@@ -533,6 +543,10 @@ async function loadStream(tile: Tile): Promise<void> {
   // 手动兜底：填了自定义地址就直接用，不再问平台
   if (cfg.url) {
     tile.url = cfg.url
+    return
+  }
+  // 来自拖拽 URL 文本的墙位：地址直出，不占用设备取流接口
+  if (!tile.deviceId) {
     return
   }
   try {
@@ -776,8 +790,65 @@ function onTileDrop(e: DragEvent, i: number): void {
   applyDrop(e, i)
 }
 
-/** 落点统一处理：墙内换位 / 从清单拖入 */
+/**
+ * 从拖入的文本里猜流地址。
+ *
+ * <p>地址栏/编辑框拖出的文本可能是 <code>text/uri-list</code>（浏览器地址栏的标准）、
+ * <code>text/plain</code>（剪贴板里的纯文本）或两者都有。只收以 http/https 开头的
+ * 地址：设备 id、UUID、点名都不会误触发。</p>
+ */
+function urlsFromDropText(e: DragEvent): string[] {
+  const types = e.dataTransfer ? Array.from(e.dataTransfer.types) : []
+  // uri-list（每行一个 URL，可选分号标注）优先于 plain
+  const mime = types.includes('text/uri-list') ? 'text/uri-list' : types.includes('text/plain') ? 'text/plain' : ''
+  if (!mime) return []
+  const text = (e.dataTransfer && e.dataTransfer.getData(mime)) || ''
+  const found: string[] = []
+  for (const line of text.split(/[\r\n]+/)) {
+    for (const token of line.trim().split(/[\s，、]/)) {
+      const u = token.trim()
+      if (/^https?:\/\/[^\s]+$/i.test(u)) found.push(u)
+    }
+  }
+  return found
+}
+
+/**
+ * 由拖入的文本新建一路：地址取自文本，空位送到落点，满了挤掉最后一路。
+ */
+function addTextTile(urls: string[], index: number): void {
+  const url = urls[0]
+  if (!url) return
+  const tile: Tile = {
+    key: `url#${url}#${Date.now().toString(36)}`,
+    deviceId: '',
+    name: url,
+    channel: 1,
+    stream: 'main',
+    online: true,
+    url,
+    error: '',
+  }
+  const next = [...wall.value]
+  const at = index >= 0 && index <= next.length ? index : next.length
+  if (next.length >= layoutSize.value) {
+    next.splice(Math.min(at, layoutSize.value - 1), 1, tile)
+  } else {
+    next.splice(at, 0, tile)
+  }
+  wall.value = next
+  persistWall()
+}
+
+/** 落点统一处理：墙内换位 / 从清单拖入 / 拖入（半）个 URL */
 function applyDrop(e: DragEvent, index: number): void {
+  // 拖入的是 http/https 文本：按流地址开好格子
+  const texts = urlsFromDropText(e)
+  if (texts.length > 0) {
+    addTextTile(texts, index < 0 ? wall.value.length : index)
+    endDrag()
+    return
+  }
   // 优先读响应式状态；状态因 dragend 提前清掉时再回退到自定义 MIME
   const deviceId =
     dragState.kind === 'device' ? dragState.deviceId : (e.dataTransfer?.getData(DRAG_DEVICE_MIME) || '')
@@ -857,7 +928,7 @@ function readWall(): { tiles: PendingTile[]; restored: boolean } {
   } catch {
     store = {}
   }
-  if (store.layout && ['1', '4', '9'].includes(store.layout)) layout.value = store.layout
+  if (store.layout && ['1', '4', '9', '16'].includes(store.layout)) layout.value = store.layout
   if (store.protocol && ['hls', 'flv', 'rtsp'].includes(store.protocol)) protocol.value = store.protocol
   const tiles = (store.tiles || [])
     .filter((t) => !!t?.deviceId)
@@ -1014,7 +1085,7 @@ async function bootstrap(): Promise<void> {
   // 向导进入：把所选设备直接铺进预览墙（覆盖本地缓存，保持“选了就看”的语义）
   if (ids.length) {
     const picked = videoDevices.value.filter((d) => ids.includes(d.deviceInfoId))
-    if (queryLayout && ['1', '4', '9'].includes(queryLayout)) {
+    if (queryLayout && ['1', '4', '9', '16'].includes(queryLayout)) {
       layout.value = queryLayout
     }
     if (picked.length) {
@@ -1041,6 +1112,22 @@ async function bootstrap(): Promise<void> {
  */
 function preventNativeDrop(e: DragEvent): void {
   if (dragActive.value || e.defaultPrevented) e.preventDefault()
+  // 拖入的是 http/https 文本：必须取消“在地址栏打开它”的浏览器默认行为，
+  // 否则地址还没到达页面，浏览器就已经把 URL 当导航跳走了
+  else if (urlsFromDropText(e).length > 0) e.preventDefault()
+}
+
+/** 全域 drop 拦截：URL 文本滚一套格子，其他逻辑交给页面自己处理 */
+function onGlobalDrop(e: DragEvent): void {
+  if (e.defaultPrevented) return
+  const texts = urlsFromDropText(e)
+  if (texts.length > 0) {
+    e.preventDefault()
+    addTextTile(texts, -1)
+    endDrag()
+    return
+  }
+  preventNativeDrop(e)
 }
 
 /**
@@ -1289,6 +1376,15 @@ watch([wall, layout, protocol], persistWall, { deep: true })
   font-size: 12px;
   font-weight: 400;
   color: var(--el-text-color-secondary);
+}
+.dpv-rtsp-hint {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--el-color-warning);
+  background: color-mix(in srgb, var(--el-color-warning) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-warning) 25%, transparent);
+  border-radius: 999px;
+  padding: 1px 7px;
 }
 .dpv-panel__ops {
   margin-left: auto;

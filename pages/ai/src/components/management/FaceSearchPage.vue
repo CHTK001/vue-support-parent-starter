@@ -13,10 +13,12 @@
             <el-icon class="fs-group-icon"><Collection /></el-icon>
             <span class="fs-group-label">分组</span>
             <el-select
-              v-model="group"
+              v-model="groups"
               class="fs-group-select"
               placeholder="选择或输入分组"
               filterable
+              multiple
+              collapse-tags
               allow-create
               default-first-option
               :disabled="busy"
@@ -225,7 +227,7 @@
           <el-icon><Star /></el-icon>人脸登记入库
         </el-button>
         <p class="fs-gallery-hint">
-          分组「<b>{{ group }}</b>」已登记 <b>{{ serverFaceCount }}</b> 张
+          已选分组 <b>{{ groupTags }}</b>（检索范围） · 已登记 <b>{{ serverFaceCount }}</b> 张
           <span v-if="serverFaceCount && !cards.length && !identifying">· 向量库可能已随服务重启清空，需重新登记</span>
         </p>
 
@@ -284,7 +286,7 @@ import {
 import { apiService } from '@/services/ApiService'
 import type { FaceHit, FaceMatch } from '@/services/modules/face.api'
 import { useFaceRegistry, ageBucket, isSameAgeRange, maskIdCard, normalizeGroupName, type FaceRecord } from '@/composables/useFaceRegistry'
-import { useLibraryGroups } from '@/composables/useLibraryGroups'
+import { useLibraryGroups, DEFAULT_GROUP } from '@/composables/useLibraryGroups'
 import { useModelConfigStore } from '@/stores/modelConfig'
 import { configuredValue } from '@/utils/modelConfigStatus'
 import ReLoader from '@repo/ui/re-loader'
@@ -428,50 +430,83 @@ const serverFaceCount = ref(0)
  * <p>分组是第一层隔离：列表、识别、删除、取图都只作用于它。
  * 默认 default 与后端「不带分组」的语义一致（历史数据也归属 default）。</p>
  */
-const { group, groupOptions, loadGroups, rememberGroups } = useLibraryGroups('face')
+const { group, groups, groupOptions, loadGroups, rememberGroups, setGroups, joinGroups } = useLibraryGroups('face')
+
+/** 当前检索范围（多选分组）的展示名 */
+const groupTags = computed(() => {
+  const list = groups.value.filter((g) => String(g ?? '').trim() !== '')
+  return list.length ? list : [DEFAULT_GROUP]
+})
+
+/**
+ * 按 id 在选中的所有分组里捞本地档案（缩略图）。
+ *
+ * <p>登记簿的入口是服务端的全体命中（不含分组，只有 hit 的 id），而缩略图是
+ * 本地登记的私有字段（按组分片）—— 多选检索时不能只卡在当前组，否则会漏掉
+ * 同一个人其他组里存的图。没命中任何选中的组时回落第一条记录，和旧行为一致。</p>
+ *
+ * @param id 人脸标识
+ * @returns 档案（成员）
+ */
+function registryLookup(id: string): FaceRecord | undefined {
+  const list = registry.records.value.filter((r) => r.id === id)
+  if (!list.length) return undefined
+  const keep = list.filter((r) => groups.value.includes(normalizeGroupName(r.group)))
+  return keep.length ? keep[0] : list[0]
+}
 
 /** 图廊缩略图：优先取本地登记簿（登记该条目的浏览器存过图），没有则回退为 User 占位图标 */
 function galleryThumb(id: string): string {
-  return registry.byId(String(id), group.value)?.thumb ?? ''
+  return registryLookup(id)?.thumb ?? ''
 }
 
 async function loadServerMeta() {
   try {
-    const { items, total } = await apiService.listFaces({ group: group.value })
+    const selected = joinGroups() === ''
+      ? [DEFAULT_GROUP]
+      : groups.value
+    // 多选检索时逐组拉全量列表再合并（去重按 id），单组时回到原来的一条路
+    const list = selected.length === 1
+      ? [await apiService.listFaces({ group: selected[0] })]
+      : await Promise.all(selected.map((g) => apiService.listFaces({ group: g })))
     const map: Record<string, Record<string, unknown>> = {}
     const faces: Array<{ id: string; name: string; age: number | null }> = []
     const serverIds = new Set<string>()
-    for (const it of items) {
-      const id = String((it as Record<string, unknown>)?.id ?? '')
-      if (!id) continue
-      serverIds.add(id)
-      // 条目带回的分组名一并并进下拉：后端 groups 接口没列到的分组也不该在下拉里缺席
-      rememberGroups([(it as Record<string, unknown>)?.group as string | undefined])
-      const md = (it as Record<string, unknown>)?.metadata
-      const meta = md && typeof md === 'object' ? (md as Record<string, unknown>) : {}
-      map[id] = meta
-      const local = registry.byId(String(id), group.value)
-      const ageRaw = meta.age ?? local?.age
-      faces.push({
-        id,
-        name: String(meta.name ?? meta.label ?? local?.name ?? id),
-        age: typeof ageRaw === 'number' && Number.isFinite(ageRaw) ? ageRaw
-          : ageRaw == null || ageRaw === '' ? null : Number(ageRaw),
-      })
+    for (const { items } of list) {
+      for (const it of items) {
+        const id = String((it as Record<string, unknown>)?.id ?? '')
+        if (!id) continue
+        serverIds.add(id)
+        // 条目带回的分组名一并并进下拉：后端 groups 接口没列到的分组也不该在下拉里缺席
+        rememberGroups([(it as Record<string, unknown>)?.group as string | undefined])
+        const md = (it as Record<string, unknown>)?.metadata
+        const meta = md && typeof md === 'object' ? (md as Record<string, unknown>) : {}
+        map[id] = meta
+        const local = registryLookup(id)
+        const ageRaw = meta.age ?? local?.age
+        faces.push({
+          id,
+          name: String(meta.name ?? meta.label ?? local?.name ?? id),
+          age: typeof ageRaw === 'number' && Number.isFinite(ageRaw) ? ageRaw
+            : ageRaw == null || ageRaw === '' ? null : Number(ageRaw),
+        })
+      }
     }
     serverMeta.value = map
     serverFaces.value = faces
     // 服务端不传分页即返回全量，total 即真实底库数；个别后端缺 total 时按 items 长度兜底
-    serverFaceCount.value = typeof total === 'number' && total >= 0 ? total : items.length
+    const counts: number[] = list.map(({ items, total }) =>
+      typeof total === 'number' && total >= 0 ? total : items.length)
+    serverFaceCount.value = counts.reduce((n, c) => n + c, 0)
     // 以服务端为权威清理本地登记簿幽灵条目（服务端已删、本地 localStorage 残留）——
     // 注意：图廊与「已登记 N 张」都以服务端列表渲染，清理本地不影响计数显示。
-    // 只清**当前分组**：别的分组的档案在服务端同样存在，拿本组列表去比对会把它们误判成幽灵。
-    if (items.length > 0 || registry.records.value.length > 0) {
+    // 只清**选中的分组**：别的分组的档案在服务端同样存在，拿本组列表去比对会把它们误判成幽灵。
+    if (list.length > 0 || registry.records.value.length > 0) {
       let changed = false
       for (const r of [...registry.records.value]) {
-        if (normalizeGroupName(r.group) !== normalizeGroupName(group.value)) continue
+        if (groups.value.includes(normalizeGroupName(r.group))) continue
         if (!serverIds.has(r.id)) {
-          registry.remove(r.id, group.value)
+          registry.remove(r.id, normalizeGroupName(r.group))
           changed = true
         }
       }
@@ -484,13 +519,20 @@ async function loadServerMeta() {
 }
 
 /**
- * 切换分组。
+ * 切换分组（多选检索范围）。
  *
- * @param name 新分组名（allow-create 时是用户手输的新名字）
+ * <p>防止参数被误传：多选选择器把完整的组名列表写入 {@link groups} 并调用
+ * {@link setGroups}（让 {@link group} 与第一组分选同步），这里只做副作用
+ * （手输的新分组进选项；换组 = 换了一整套人脸库，清空本次识别结果），
+ * 这样接口改动不污染调用方的函数签名解析。</p>
+ *
+ * @param selected 选中的分组（多选时为列表，单值时为字符串，不传则沿用当前列表）
  */
-function onGroupChange(name: string) {
-  // 手输的新分组立刻进选项，否则下次打开下拉又选不到它
-  rememberGroups([name])
+function onGroupChange(selected?: string | string[]) {
+  const current = Array.isArray(selected) ? selected : (typeof selected === 'string' ? [selected] : groups.value)
+  setGroups(current)
+  // 已选组全部进选项（手输的新分组尤其要进，否则下次打开下拉又选不到它）
+  rememberGroups(current)
   // 换组 = 换了一整套人脸库：上一组的命中结果留在屏幕上会与「已登记 N 张」自相矛盾
   matches.value = []
   hits.value = []
@@ -537,7 +579,7 @@ const cards = computed<HitCard[]>(() =>
     // 最后才落到本地登记簿 —— 本地只用来补缩略图。
     const sv = serverMeta.value[String(m.id)] ?? {}
     const meta = (Object.keys(sv).length ? sv : (m.metadata ?? {})) as Record<string, any>
-    const local = registry.byId(String(m.id), group.value)
+    const local = registryLookup(String(m.id))
     const name = String(meta.name ?? meta.label ?? local?.name ?? m.id)
     const age = meta.age ?? local?.age ?? null
     const gender = String(meta.gender ?? local?.gender ?? '')
@@ -583,7 +625,7 @@ const TABS = [
 const activeTab = ref<string>('all')
 
 /** 当前查询图自己的档案（若它也在登记簿里，用于同龄段比较） */
-const queryRecord = computed<FaceRecord | undefined>(() => registry.byId(galleryKey.value, group.value))
+const queryRecord = computed<FaceRecord | undefined>(() => registryLookup(galleryKey.value))
 
 const visibleHits = computed<HitCard[]>(() => {
   const list = cards.value

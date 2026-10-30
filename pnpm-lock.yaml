@@ -1826,6 +1826,9 @@ importers:
       motion-utils:
         specifier: 'catalog:'
         version: 13.0.0
+      reactive-layout:
+        specifier: 1.0.2
+        version: 1.0.2(vue@3.5.44(typescript@5.9.3))
       sortablejs:
         specifier: 1.15.6
         version: 1.15.6
@@ -9777,6 +9780,11 @@ packages:
   react@19.2.8:
     resolution: {integrity: sha512-PWaYA1L/q9u2u7xYQi+Y3L3Yfnie7XyLeaJICV1MGD6LprsBxcAqGjYyr0eY3p+QdsA+x/Irkt4Qif8D63+Sbw==}
     engines: {node: '>=0.10.0'}
+
+  reactive-layout@1.0.2:
+    resolution: {integrity: sha512-LukI4pOVZtxkCOhB1WPqGT/lhV8pYNyTLQXEaRMY+dMw3//OjKaJA7D+cAQ7j7KBgKIDxaUVUDLZKzvFGr5fiQ==}
+    peerDependencies:
+      vue: ^3.0.0
 
   read-cache@1.0.0:
     resolution: {integrity: sha512-Owdv/Ft7IjOgm/i0xvNDZ1LrRANRfew4b2prF3OWMQLxLfu3bS8FVhCsrSCMK4lR56Y9ya+AThoTpDCTxCmpRA==}
@@ -19195,6 +19203,10 @@ snapshots:
       '@types/react': 19.2.18
 
   react@19.2.8: {}
+
+  reactive-layout@1.0.2(vue@3.5.44(typescript@5.9.3)):
+    dependencies:
+      vue: 3.5.44(typescript@5.9.3)
 
   read-cache@1.0.0:
     dependencies:

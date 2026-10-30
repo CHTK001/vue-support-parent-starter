@@ -134,7 +134,7 @@ export function createSidebarMenuItems(ctx: SidebarMenuContext): SidebarMenuItem
     },
     {
       key: 'world-sim',
-      label: '模拟人生',
+      label: '模拟',
       icon: Earth24Regular,
       alwaysShow: true,
     },

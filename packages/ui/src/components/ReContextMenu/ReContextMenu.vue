@@ -1,6 +1,7 @@
 <template>
   <Teleport to="body">
-    <div v-if="visible" class="re-ctx-backdrop" @mousedown="close" @contextmenu.prevent="close" />
+    <!-- 遮罩：左键点外部关闭；右键不吞掉，转发给下层元素（见 forwardContextMenu） -->
+    <div v-if="visible" class="re-ctx-backdrop" @mousedown="close" @contextmenu.prevent="forwardContextMenu" />
     <div
       v-if="visible"
       ref="menuEl"
@@ -22,10 +23,11 @@
           v-else-if="!item.children"
           v-show="item.visible !== false"
           class="re-ctx-item"
-          :class="{ 'is-danger': item.danger }"
+          :class="{ 'is-danger': item.danger, 'is-disabled': item.disabled }"
           @click="handleSelect(item)"
         >
-          <ReIcon v-if="item.icon" :name="item.icon" />
+          <ReIcon v-if="typeof item.icon === 'string'" :name="item.icon" />
+          <component :is="item.icon" v-else-if="item.icon" />
           <span>{{ item.label }}</span>
         </div>
         <!-- 分组节点：hover 展开子菜单 -->
@@ -33,11 +35,12 @@
           v-else
           v-show="item.visible !== false"
           class="re-ctx-item has-sub"
-          :class="{ 'is-open': openSubKey === subKey(item, index) }"
+          :class="{ 'is-open': openSubKey === subKey(item, index), 'is-disabled': item.disabled }"
           @click="toggleSub(item, index)"
           @mouseenter="openSub(item, index)"
         >
-          <ReIcon v-if="item.icon" :name="item.icon" />
+          <ReIcon v-if="typeof item.icon === 'string'" :name="item.icon" />
+          <component :is="item.icon" v-else-if="item.icon" />
           <span>{{ item.label }}</span>
           <ReIcon name="ArrowRight" class="re-ctx-arrow" />
           <div
@@ -53,10 +56,11 @@
                 v-else
                 v-show="child.visible !== false"
                 class="re-ctx-item"
-                :class="{ 'is-danger': child.danger }"
+                :class="{ 'is-danger': child.danger, 'is-disabled': child.disabled }"
                 @click.stop="handleSelect(child)"
               >
-                <ReIcon v-if="child.icon" :name="child.icon" />
+                <ReIcon v-if="typeof child.icon === 'string'" :name="child.icon" />
+                <component :is="child.icon" v-else-if="child.icon" />
                 <span>{{ child.label }}</span>
               </div>
             </template>
@@ -159,8 +163,74 @@ function close(): void {
   emit("close");
 }
 
-/** 展开子菜单并测量翻转 */
+/**
+ * 遮罩上的右键：关掉当前菜单，并把这次右键转发给遮罩下面的元素。
+ *
+ * <p>遮罩是覆盖整屏的透明层，菜单开着时它会吃掉所有点击与右键。若只是 {@code close()}，
+ * 用户想在另一个位置换菜单就得先左键关掉再右键 —— 也就是「右键两次才换位置」，
+ * 与没有遮罩时的手感不一致。这里按坐标找回遮罩下面真正的目标元素，把同坐标的
+ * {@code contextmenu} 事件重新派发给它，等价于菜单没开时的那一次右键，
+ * 调用方（ReTable 等）的右键处理会自然接管并重新开菜单。</p>
+ *
+ * <p>派发放在 {@code nextTick}：那一刻遮罩和菜单已从 DOM 移除，{@code elementsFromPoint}
+ * 命中的才是用户真正点到的元素。转发出去的事件带 {@code bubbles: true}，
+ * 会沿正常冒泡路径走到宿主挂在容器上的处理函数。</p>
+ */
+function forwardContextMenu(e: MouseEvent): void {
+  const x = e.clientX;
+  const y = e.clientY;
+  // 菜单自身矩形先量下来：close() 之后 menuEl 会被卸载
+  const menuRect = menuEl.value?.getBoundingClientRect();
+  const src = {
+    button: e.button,
+    buttons: e.buttons,
+    ctrlKey: e.ctrlKey,
+    shiftKey: e.shiftKey,
+    altKey: e.altKey,
+    metaKey: e.metaKey,
+  };
+  close();
+  void nextTick(() => {
+    const target = elementBelowPoint(x, y, menuRect);
+    if (!target) return;
+    target.dispatchEvent(
+      new MouseEvent("contextmenu", {
+        ...src,
+        clientX: x,
+        clientY: y,
+        screenX: e.screenX,
+        screenY: e.screenY,
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+      }),
+    );
+  });
+}
+
+/**
+ * 取坐标处最上层的「真实」元素，跳过菜单浮层自身。
+ *
+ * <p>实际调用时遮罩已隐藏，这里再跳过 .re-ctx-menu / .re-ctx-sub 只是兜底
+ * （避免下一次渲染前菜单还没摘掉时，把右键转回菜单自己身上形成死循环）。</p>
+ */
+function elementBelowPoint(x: number, y: number, menuRect?: DOMRect): HTMLElement | null {
+  // 命中点在菜单矩形内就不转发：那属于「在菜单上右键」，忽略即可
+  if (menuRect && x >= menuRect.left && x <= menuRect.right && y >= menuRect.top && y <= menuRect.bottom) {
+    return null;
+  }
+  const stack = document.elementsFromPoint(x, y) as HTMLElement[];
+  for (const el of stack) {
+    if (el.classList?.contains("re-ctx-backdrop")) continue;
+    if (el.closest?.(".re-ctx-menu")) continue;
+    return el;
+  }
+  return null;
+}
+
+/** 展开子菜单并测量翻转（禁用项不展开） */
 function openSub(item: ReContextMenuItem, index: number): void {
+  if (item.disabled) return;
   const key = subKey(item, index);
   if (openSubKey.value === key) return;
   openSubKey.value = key;
@@ -176,6 +246,7 @@ function leaveSub(): void {
 
 /** 点击切换子菜单 */
 function toggleSub(item: ReContextMenuItem, index: number): void {
+  if (item.disabled) return;
   const key = subKey(item, index);
   if (openSubKey.value === key) {
     leaveSub();
@@ -197,8 +268,9 @@ function measureSub(): void {
   subFlip.h = rect.right + subW > window.innerWidth - 8;
 }
 
-/** 处理菜单项点击：先发 select 让父组件拿到 host，再关闭 */
+/** 处理菜单项点击：先发 select 让父组件拿到 host，再关闭（禁用项不发 select，但仍关闭） */
 function handleSelect(item: ReContextMenuItem): void {
+  if (item.disabled) return;
   if (item.command) emit("select", item.command);
   close();
 }
@@ -242,6 +314,50 @@ defineExpose({ open, close });
 .re-ctx-item svg {
   font-size: 15px;
   flex-shrink: 0;
+}
+/*
+ * 图标尺寸必须写死。
+ *
+ * Element Plus 的图标组件渲染出的是 <svg viewBox="0 0 1024 1024">，**不带 width/height 属性**，
+ * 该图标当字符串经 ReIcon 渲染时由字体字号决定大小，但当组件形式（宿主传 <Edit /> 一类）
+ * 直接落到 .re-ctx-item 里时没有任何尺寸约束 —— 它会按 flex 内容宽度撑开（实测 146×146px），
+ * 溢出 32px 高的条目、盖住下面所有条目的可点区域（命中测试会落到别人的图标 path 上，
+ * 用户点「刷新」实际点到的是「删除表」的图标）。因此这里对 svg 显式收口。
+ */
+.re-ctx-item > svg,
+.re-ctx-item > .el-icon,
+.re-ctx-item > .el-icon > svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+}
+.re-ctx-item > .el-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.re-ctx-sub .re-ctx-item > svg,
+.re-ctx-sub .re-ctx-item > .el-icon,
+.re-ctx-sub .re-ctx-item > .el-icon > svg {
+  width: 13.5px;
+  height: 13.5px;
+}
+/* 宿主传的是图标组件（Element Plus 的 <Edit /> 一类），包一层 .el-icon：按同一档位收口 */
+.re-ctx-item .el-icon {
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.re-ctx-sub .re-ctx-item .el-icon {
+  font-size: 13.5px;
+}
+.re-ctx-item.is-disabled {
+  color: var(--el-text-color-disabled, #c0c4cc);
+  background: none;
+  cursor: not-allowed;
+}
+.re-ctx-item.is-disabled:hover {
+  color: var(--el-text-color-disabled, #c0c4cc);
+  background: none;
 }
 .re-ctx-item:hover {
   background: var(--el-fill-color-light, #f3f4f6);

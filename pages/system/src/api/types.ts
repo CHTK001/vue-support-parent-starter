@@ -330,6 +330,53 @@ export interface SysDictItem extends Auditable {
 
 /* ================== 在线用户 ================== */
 
+/** 在线用户登录 IP（按登录日志聚合） */
+export interface OnlineLoginIp {
+  /** 登录 IP */
+  ip?: string;
+  /** 登录归属地 */
+  address?: string;
+  /** 最近登录时间 */
+  lastTime?: string;
+  /** 登录次数 */
+  total?: number;
+}
+
+/** 在线用户单日登录情况（时间轴节点） */
+export interface OnlineLoginDay {
+  /** 日期 yyyy-MM-dd */
+  date?: string;
+  /** 登录次数（成功 + 失败） */
+  total?: number;
+  /** 成功次数 */
+  success?: number;
+  /** 失败次数 */
+  fail?: number;
+  /** 当日登录 IP */
+  ips?: string[];
+  /** 当日最近登录时间 */
+  lastTime?: string;
+}
+
+/** 在线用户登录时间轴 */
+export interface OnlineLoginHistory {
+  username?: string;
+  /** 统计窗口天数 */
+  windowDays?: number;
+  /** 窗口内登录次数 */
+  total?: number;
+  /** 窗口内成功次数 */
+  success?: number;
+  /** 窗口内失败次数 */
+  fail?: number;
+  /** 最近一次成功登录时间 */
+  lastTime?: string;
+  /** 全部登录 IP（最近使用倒序） */
+  ips?: OnlineLoginIp[];
+  /** 按天节点（日期升序，无登录的日期补零） */
+  items?: OnlineLoginDay[];
+}
+
 /** 在线用户 */
 export interface OnlineUser {
   userId?: string;
@@ -346,6 +393,10 @@ export interface OnlineUser {
   /** 登录类型（WEB / APP / GITEE 等） */
   loginType?: string;
   status?: string;
+  /** 全部登录 IP（最近使用倒序，首项为当前会话 IP） */
+  loginIps?: OnlineLoginIp[];
+  /** 最近 30 天登录情况（只含有登录记录的日期） */
+  loginDays?: OnlineLoginDay[];
 }
 
 /* ================== 系统设置 ================== */
