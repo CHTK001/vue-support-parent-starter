@@ -1386,7 +1386,8 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  margin: 14px 0 14px 16px;
+  /* 下边距 20 与右侧内容卡（.dim-tabs）一致，两张卡的底边才能落在同一条线上 */
+  margin: 14px 0 20px 16px;
   padding: 14px 0 0;
   overflow: hidden;
   background: var(--el-bg-color);
@@ -1762,8 +1763,54 @@ onMounted(() => {
 
 /* 表格本体跟着长高，空态插图才会落在卡片中部，而不是贴在最上面 */
 .block--pad :deep(.vxe-table) {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* vxe 内部是一串 block 定高的壳：主壳不撑满，空态就贴在上半部。
+   把这几层串成 flex 链让它们吃满表格高度，空态块再居中。 */
+.block--pad :deep(.vxe-table--render-wrapper) {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.block--pad :deep(.vxe-table--layout-wrapper) {
   flex: 1 1 auto;
   min-height: 0;
+}
+
+/* layout-wrapper 是横向 flex，真正的「表头 + 表格」纵列在 viewport-wrapper 里 */
+.block--pad :deep(.vxe-table--viewport-wrapper) {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.block--pad :deep(.vxe-table--main-wrapper) {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.block--pad :deep(.vxe-table--body-wrapper) {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.block--pad :deep(.vxe-table--body-inner-wrapper) {
+  height: 100%;
+}
+
+.block--pad :deep(.vxe-table--empty-block) {
+  height: 100%;
+  align-items: center;
+  justify-content: center;
 }
 
 /* vxe 再叠一层外框线（纯装饰，不承载布局），同样去掉 */
