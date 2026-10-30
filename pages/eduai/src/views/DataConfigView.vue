@@ -1380,9 +1380,12 @@ onMounted(() => {
 .taxo {
   position: sticky;
   top: 14px;
-  align-self: start;
+  /* 与右侧内容卡同高：内容不够高时也要吃满整行，不能只裹住自己的文字。
+     （narrow 单列时这一行是 max-content，stretch 等于内容高，行为不变） */
+  align-self: stretch;
   display: flex;
   flex-direction: column;
+  min-height: 0;
   margin: 14px 0 14px 16px;
   padding: 14px 0 0;
   overflow: hidden;
@@ -1430,6 +1433,9 @@ onMounted(() => {
 /* 脊柱线 + 学段节点 */
 .taxo__spine {
   position: relative;
+  /* 吃满卡片剩余高度，把脚注压到底部（卡片长高时脊柱线也跟着延到底） */
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 2px 0 8px 16px;
 }
 

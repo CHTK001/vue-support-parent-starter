@@ -76,6 +76,14 @@ function cloneLayout(node: SplitNode): SplitNode {
   return JSON.parse(JSON.stringify(node)) as SplitNode;
 }
 
+/**
+ * 出厂默认布局的独立快照。
+ *
+ * <p>即便 useLayout 拿到的是拷贝，也再留一份不受任何拖拽影响的原件，
+ * 保证「重置布局」永远回到组件声明时的默认值。</p>
+ */
+const pristineDefaultLayout = cloneLayout(props.defaultLayout);
+
 const { layout, moveTab, removeTab, addTab, splitPanel, updateSizesForSplit, findPanelById } =
   useLayout({
     defaultLayout: cloneLayout(props.initialLayout || props.defaultLayout),
@@ -93,7 +101,7 @@ let hydrating = false;
  * 用户会以为按钮没生效。这里直接回到 props.defaultLayout。</p>
  */
 function resetLayout() {
-  layout.value = JSON.parse(JSON.stringify(props.defaultLayout)) as SplitNode;
+  layout.value = cloneLayout(pristineDefaultLayout);
 }
 
 provide('moveTab', moveTab);

@@ -2855,14 +2855,17 @@ async function saveLayout(next: SplitNode) {
   }
 }
 
-/** 恢复默认布局并立刻存回服务端 */
+/**
+ * 恢复默认布局并落库。
+ *
+ * <p>只调用组件方法：`resetLayout()` 替换布局树后会抛 `change` 事件，
+ * 由 `onLayoutChange` 统一防抖保存。以前这里又把 `splitLayoutRef.layout`
+ * （实际是 Ref 对象，不是布局树）存了一遍，JSON 序列化成 `{}`，
+ * 等于把服务端布局写坏。</p>
+ */
 function handleResetLayout() {
-  splitLayoutRef.value?.resetLayout();
-  const next = splitLayoutRef.value?.layout as unknown as SplitNode | undefined;
-  if (next) {
-    savedLayout.value = next;
-    void saveLayout(next);
-  }
+  if (!splitLayoutRef.value) return;
+  splitLayoutRef.value.resetLayout();
   message.success('已恢复默认布局');
 }
 
