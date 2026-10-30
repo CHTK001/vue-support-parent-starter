@@ -12,7 +12,7 @@
         </p>
         <p>
           每套凭据的进阶开关在 <b>接入凭据页 / 高级配置</b> 中：在离线检测、设备自动同步、组织自动同步 各开各关；
-          间隔留 0 则走默认 30 秒，开关关闭或间隔为 0 不给时间轮注册任务。
+          间隔留空或写 0 时沿用本页显示的间隔（没有则默认 30 秒），开关关闭或凭据停用则整个任务下线。
         </p>
       </div>
       <div class="dtv-desc__ops">
@@ -102,8 +102,10 @@
  *   - deviceSync_{cred}    该凭据维度的设备自动同步
  *   - orgSync_{cred}       该凭据维度的组织自动同步
  *
- * 任务间隔档位：interval=0（不使用）→ 使用 credential 配置间隔 → 5 秒兜底；
- * 凭据级开关关闭或间隔为 0 的任务不注册任何时间轮 tick，不会出现在任务列表。
+ * 任务间隔优先级：凭据高级配置（>0）→ 任务状态行（任务页改过）→ 默认 30 秒；
+ * 凭据级开关关闭或凭据整体停用时，该凭据的任务不注册任何时间轮 tick，也不会出现在任务列表。
+ *
+ * 任务页改间隔会即时重新调度（rescheduleFixedRate）；凭据再次保存时以凭据配置为准。
  *
  * @author CH
  * @since 4.0.0.42
@@ -212,7 +214,11 @@ async function runNow(row: TaskState): Promise<void> {
   runningTask.value = name
   try {
     const ok = await deviceApi.runTask(name)
-    ElMessage.success(ok ? `已触发「${taskLabel(row)}」` : `「${name}」暂无可调度的执行入口`)
+    if (ok) {
+      ElMessage.success(`已触发「${taskLabel(row)}」`)
+    } else {
+      ElMessage.warning(`「${taskLabel(row)}」没有对应的执行入口或执行失败`)
+    }
   } catch (err) {
     message.error('立即执行失败：' + errorText(err))
   } finally {

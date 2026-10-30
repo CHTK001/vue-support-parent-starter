@@ -394,7 +394,7 @@
             <ReIcon name="Timer" :size="15" />
             <span class="dpv-adv__title">高级配置（定时任务开关）</span>
           </header>
-          <p class="dpv-adv__desc">开关打开后，该凭据维度的自动任务（在离线检测 / 设备同步 / 组织同步）由时间轮驱动；间隔留 0 则使用默认 30 秒。</p>
+          <p class="dpv-adv__desc">打开开关后，该凭据维度的自动任务（在离线检测 / 设备同步 / 组织同步）由时间轮按下方间隔驱动；间隔留空或写 0 时沿用任务页上的间隔（没有则默认 30 秒），开关关闭则整个任务下线。</p>
           <div class="dpv-adv__grid">
             <div class="dpv-adv__row">
               <span class="dpv-adv__row__label">在离线检测</span>
