@@ -19,11 +19,21 @@ import { ElMessageBox } from "element-plus";
 import { queryHosts, delHost, switchHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity, scanPorts } from "../api";
 import HostFormDialog from "./HostFormDialog.vue";
 import HostConfigDialog from "./HostConfigDialog.vue";
-import HostProfileView from "./HostProfileView.vue";
-import HostDetailView from "./HostDetailView.vue";
-import ScHostWorkbench from "./ScHostWorkbench.vue";
-import TerminalView from "./TerminalView.vue";
-import HostFileManager from "../components/HostFileManager.vue";
+/**
+ * 以下几屏只在「工作区页签」里按需出现，经 defineAsyncComponent 懒加载：
+ *
+ * - TerminalView 拉 @novnc/novnc（dev 4MB+）
+ * - HostProfileView / HostDetailView 拉 echarts（dev 10MB）
+ * - HostFileManager / ScHostWorkbench 各自带一套终端与文件面板
+ *
+ * 之前全部同步 import，结果是打开「主机资产」这一个菜单就要把上面所有包
+ * 一次性下完（实测 72 个 js / 4.1MB / 1.4s），而多数时候用户只是看一眼主机列表。
+ */
+const HostProfileView = defineAsyncComponent(() => import("./HostProfileView.vue"));
+const HostDetailView = defineAsyncComponent(() => import("./HostDetailView.vue"));
+const ScHostWorkbench = defineAsyncComponent(() => import("./ScHostWorkbench.vue"));
+const TerminalView = defineAsyncComponent(() => import("./TerminalView.vue"));
+const HostFileManager = defineAsyncComponent(() => import("../components/HostFileManager.vue"));
 // 运维台四页 + 主机账号：右键打开时内嵌为工作区页签（懒加载，避免拖慢首屏）
 const OpsSessionTab = defineAsyncComponent(() => import("./ScSessionTab.vue"));
 const OpsExecTab = defineAsyncComponent(() => import("./ScExecTab.vue"));
@@ -31,6 +41,11 @@ const OpsSnippetTab = defineAsyncComponent(() => import("./ScTerminalSnippetMana
 const OpsMaintenanceTab = defineAsyncComponent(() => import("./ScMaintenancePlan.vue"));
 const HostAccountTab = defineAsyncComponent(() => import("./hostaccount/HostAccountView.vue"));
 const SoftwareTab = defineAsyncComponent(() => import("../components/lab/ScSoftwareManager.vue"));
+// Docker 工作台：右键菜单 / 工作区页签（使用 ScDockerK8sWorkbench 的 docker 域，而非独立页面）
+const DockerTab = defineAsyncComponent(() => import("../components/lab/ScDockerK8sWorkbench.vue"));
+// 日志页：系统日志 / 登录日志（后端 API 不加主机前缀，页签跟随主机上下文展示）
+const SysLogTab = defineAsyncComponent(() => import("@pages/system/views/SysLogManage.vue"));
+const UserLogTab = defineAsyncComponent(() => import("@pages/system/views/UserLogManage.vue"));
 import ScHostMetricsBar from "../components/ScHostMetricsBar.vue";
 import type { MetricRow } from "../components/ScHostMetricsBar.types";
 import HostCommandPalette from "../components/HostCommandPalette.vue";
@@ -567,6 +582,9 @@ type TabKind =
   | "files"
   | "metrics"
   | "workbench"
+  | "docker"
+  | "sys-log"
+  | "user-log"
   | "ops-sessions"
   | "ops-exec"
   | "ops-snippets"
@@ -594,6 +612,10 @@ const TAB_KINDS: Record<TabKind, TabKindMeta> = {
   files: { label: "文件管理", icon: "FolderOpened" },
   metrics: { label: "指标监控", icon: "TrendCharts" },
   workbench: { label: "工作台", icon: "Box" },
+  /** 工作台面板：Docker 独立页签（lazy load） */
+  docker: { label: "Docker", icon: "Box" },
+  sys-log: { label: "系统日志", icon: "Tickets" },
+  user-log: { label: "登录日志", icon: "Unlock" },
   "ops-sessions": { label: "会话审计", icon: "Document" },
   "ops-exec": { label: "批量作业", icon: "Promotion" },
   "ops-snippets": { label: "片段管理", icon: "DocumentCopy" },
@@ -629,8 +651,8 @@ const activeTab = ref("");
  * 同名面板（同一主机 + 同一面板）仍只开一次。页签名由
  * {@code `${host.id}:workbench:${panel}`} 承载去重，不同面板互不冲突。</p>
  *
- * <p>Docker 已拆成独立页面包 {@code @pages/docker}（路由 {@code /docker}），
- * 不再作为工作台面板打开 —— 见 {@link ctxCommand} 的 {@code tab-docker} 分支。</p>
+ * <p>Docker 已拆成独立页签（ReTabs 工作区页签），由 {@code ScDockerK8sWorkbench}
+ * 的 {@code domain="docker"} 支持，见 {@link ctxCommand} 的 {@code tab-docker} 分支。</p>
  *
  * @param host 目标主机
  * @param kind 功能类型
@@ -949,8 +971,9 @@ function ctxOpenTab(kind: Extract<TabKind, "ops-sessions" | "ops-exec" | "ops-sn
 /**
  * 分屏终端里点某屏的 Docker / K8s / 隧道工具条：以该屏主机为上下文开独立面板页签。
  *
- * <p>Docker 不再是工作台面板：跳独立页面 {@code /docker?hostId=}，
- * 由 {@code @pages/docker} 接管容器 / 镜像 / 网络 / 卷 / 镜像库 / 模板。</p>
+ * <p>Docker 不再从工作区页签进入：分屏工具条的按钮跳独立页面 {@code /docker?hostId=}，
+ * 由 {@code @pages/docker} 接管容器 / 镜像 / 网络 / 卷 / 镜像库 / 模板；
+ * 但从主机行右键菜单打开时走工作区页签 {@code tab-docker}（见 {@link ctxCommand}）。</p>
  *
  * @param panel   面板类型
  * @param hostId  该屏主机 id
@@ -1006,12 +1029,16 @@ function ctxCommand(cmd: string): void {
     openTab(h, kind);
     return;
   }
-  // 工作台直达面板：分屏 / K8s / 隧道 / 反向隧道 各自开独立页签
-  //
-  // Docker 例外：它已拆成独立页面包 @pages/docker（路由 /docker），跳转过去而不是
-  // 在工作区里再开一个页签 —— 一个模块只留一套界面。
+  // Docker、日志：与「远控/文件/指标」平级的独立页签，收在工作区里，不是跳出页
   if (cmd === "tab-docker") {
-    void router.push({ path: "/docker", query: { hostId: String(h.id) } });
+    openTab(h, "docker");
+    return;
+  }
+  if (cmd === "open-sys-log" || cmd === "open-user-log") {
+    // 日志页收进工作区页签（与软件管理同进 ReTabs），不再推单独的页面；
+    // 日志是全局页（后端 /v2/log/page、/v2/user/log/page，不加主机前缀），
+    // 页签仍带上主机上下文，于是页签行上的状态/主机名陪主保留。
+    openTab(h, cmd === "open-sys-log" ? "sys-log" : "user-log");
     return;
   }
   const panelMap: Record<string, "screen" | "k8s" | "tunnel" | "tunnel-reverse"> = {
@@ -1076,14 +1103,6 @@ function ctxCommand(cmd: string): void {
       break;
     case "clone":
       cloneHost(h);
-      break;
-    // 日志页是全局页面（后端 /v2/log/page、/v2/user/log/page，不加主机前缀），
-    // 不占用工作区页签，直接推路由。
-    case "open-sys-log":
-      void router.push({ path: "/logs/sys" });
-      break;
-    case "open-user-log":
-      void router.push({ path: "/logs/user" });
       break;
     default:
       break;
@@ -1289,11 +1308,16 @@ function resetFilters(): void {
 }
 
 function openAdd(): void {
+  // 防重复打开：弹窗已经处于打开态时（快速点击 Dock/工具栏/快捷菜单），不重复打开，
+  // 避免弹窗壳（overlay）被重复创建和闪动两次
+  if (formVisible.value) return;
   formIsEdit.value = false;
   editHost.value = null;
   formVisible.value = true;
 }
 function openEdit(h: Host): void {
+  // 防重复打开（同上）
+  if (formVisible.value) return;
   // 弹窗子组件内部负责：行数据立即填充 + 详情异步回填（打开不再阻塞、不再触发本组件大 diff）
   formIsEdit.value = true;
   editHost.value = h;
@@ -1585,6 +1609,12 @@ function lazyTabOf(name: string): Component | null {
       return HostAccountTab;
     case "software":
       return SoftwareTab;
+    case "docker":
+      return DockerTab;
+    case "sys-log":
+      return SysLogTab;
+    case "user-log":
+      return UserLogTab;
     default:
       return null;
   }
@@ -2263,7 +2293,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
               embedded
               :host-id="tabHostIdOf(tab.name)"
             />
-            <!-- 主机工作台：分屏 / K8s / 隧道 / 反向隧道 各开独立页签（Docker 已拆独立页面） -->
+            <!-- 主机工作台：分屏 / K8s / 隧道 / 反向隧道 各开独立页签（Docker 在右键菜单是工作区页签，分屏工具条走 /docker 独立页） -->
             <ScHostWorkbench
               v-else-if="tabKindOf(tab.name) === 'workbench'"
               :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
@@ -2272,7 +2302,16 @@ function onGlobalKeydown(e: KeyboardEvent): void {
               :host-name="hostNameOf(tabHostIdOf(tab.name))"
               @open-panel="onWorkbenchOpenPanel"
             />
-            <!-- 运维台四页 + 主机账号 + 软件管理：懒加载页面收进工作区页签 -->
+            <!-- Docker 工作台页签：`domain="docker"` 隔离渲染域（容器），与工作台分屏/K8s 面板同组件 -->
+            <component
+              :is="lazyTabOf(tab.name)"
+              v-else-if="tabKindOf(tab.name) === 'docker'"
+              :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
+              :host-id="tabHostIdOf(tab.name)"
+              :host-name="hostNameOf(tabHostIdOf(tab.name))"
+              domain="docker"
+            />
+            <!-- 运维台四页 + 主机账号 + 软件管理 + 日志页：懒加载页面收进工作区页签 -->
             <component
               :is="lazyTabOf(tab.name)"
               v-else-if="tabKindOf(tab.name) && lazyTabOf(tab.name)"
@@ -2518,7 +2557,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
           <ReIcon name="TrendCharts" /><span>指标监控</span>
         </div>
 
-        <!-- 主机工作台：分屏 / K8s / 隧道 / 反向隧道（Docker 是独立页面，见 /docker） -->
+        <!-- 主机工作台：分屏 / K8s / 隧道 / 反向隧道（分屏工具条的 Docker 按钮走 /docker 独立页） -->
         <div
           class="host-ctx-item has-sub"
           :class="{ 'is-open': ctxSub === 'workbench' }"
@@ -2532,7 +2571,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
               <ReIcon name="Monitor" /><span>分屏终端</span>
             </div>
             <div class="host-ctx-item" @click="ctxCommand('tab-docker')">
-              <ReIcon name="Box" /><span>Docker（独立页）</span>
+              <ReIcon name="Box" /><span>Docker</span>
             </div>
             <div class="host-ctx-item" @click="ctxCommand('tab-k8s')">
               <ReIcon name="Coin" /><span>K8s</span>

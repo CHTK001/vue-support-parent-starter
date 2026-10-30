@@ -17,6 +17,9 @@ export type TemplateType = 'document' | 'sms' | 'email' | 'label' | 'other'
 /** 模板状态 */
 export type TemplateStatus = 'draft' | 'online' | 'offline'
 
+/** 模板来源：hiprint（绘制模板）/ message（消息模板）/ paper（组卷模板） */
+export type TemplateSource = 'hiprint' | 'message' | 'paper'
+
 /** 模板实体（透传后端） */
 export interface TemplateInfo {
   /** 模板 ID */
@@ -31,6 +34,12 @@ export interface TemplateInfo {
   type: TemplateType
   /** 模板状态 */
   status: TemplateStatus
+  /** 模板来源：hiprint / message / paper */
+  source: TemplateSource
+  /** 来源行 ID（消息/组卷模板的主键 ID，hiprint 时缺省） */
+  sourceId?: string
+  /** 来源提供方（消息提供商 ID / 组卷归属用户 ID） */
+  providerId?: string
   /** 创建者 */
   creator: string
   /** 最后修改者 */
@@ -51,6 +60,7 @@ export interface TemplatePageQuery {
   language?: TemplateLanguage
   type?: TemplateType
   status?: TemplateStatus
+  source?: TemplateSource
   page: number
   size: number
 }

@@ -79,7 +79,16 @@ export const templateApi = {
   setDefaultPrinter: (name: string) =>
     http.post(`/printer/default?name=${encodeURIComponent(name)}`).then(unwrap) as Promise<boolean>,
   /** 打印机列表（应用侧 hiprint 连接地址与 Token） */
-  printerList: () => http.get("/printer").then(unwrap) as Promise<Array<{ name: string; isDefault: boolean }>>
+  printerList: () => http.get("/printer").then(unwrap) as Promise<Array<{ name: string; isDefault: boolean }>>,
+
+  // ==================== 来源同步 ====================
+  /** 来源同步器信息（每个来源是否接入 + 库中该来源的模板数） */
+  syncSources: () =>
+    http.get("/sync/sources").then(unwrap) as Promise<Array<{ source: string; count: number; registered: number }>>,
+  /** 全量来源同步（按来源刷新：message / paper） */
+  syncAll: () => http.post("/sync").then(unwrap) as Promise<Record<string, number>>,
+  /** 按来源同步：message / paper */
+  sync: (source: string) => http.post(`/sync/${source}`).then(unwrap) as Promise<Record<string, number>>
 }
 
 export default templateApi
