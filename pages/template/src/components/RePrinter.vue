@@ -7,7 +7,7 @@
     - 新增/编辑：地址/端口/Token/认证名 由本组件的表单维护
     - 发现：把外部 Agent（局域网/代理）扫描到的设备接入进来
     - selector 模式：在模板设计器的「打印」流里选打印机并确认；
-      宿主传入 PrintTemplate 时本组件直接发起第三方的凭据（让盒子选）；
+      宿主传入 PrintTemplate 时本组件直接发起第三方的打（让盒子选）；
       不传时把选中的打印机名抛回给宿主，宿主调用 tpl.print 把第三方的参数递进去。
 
   mode 由宿主决定：
@@ -52,7 +52,6 @@
       v-model:page="page"
       v-model:page-size="pageSize"
       @row-click="onRowClick"
-      @context-menu-select="onContextMenu"
     >
       <!-- 打印机名 + 连接地址 -->
       <template #name="{ row }: { row: PrinterConfig }">
@@ -165,7 +164,7 @@
  *   1) 页面加载时从后端拉取已接入的打印机列表
  *   2) 默认打印机自动打在角标上（宿主点「打印」时直接选它）
  *   3) 宿主传入 tpl（PrintTemplate）时，点「确认并第三方的打印」直接调
- *      tpl.print({}, { printer: name, smartPrint: false }, cb) 达成第三方的凭据；
+ *      tpl.print({}, { printer: name, smartPrint: false }, cb) 达成第三方的打；
  *      不传 tpl 时抛回 { name }，由宿主自行发起 tpl.print
  */
 import { computed, onMounted, ref, watch } from 'vue'
@@ -173,24 +172,22 @@ import ReIcon from '@repo/ui/re-icon'
 import ReButton from '@repo/ui/re-button'
 import ReTable from '@repo/ui/re-table'
 import ReDialog from '@repo/ui/re-dialog'
-import type { ReTableColumn, ReTableContextMenuContext, ReTableContextMenuItem, ReTableLoadParams, RePageResult } from '@repo/ui/re-table'
+import type { ReTableColumn, ReTableLoadParams, RePageResult } from '@repo/ui/re-table'
 import type { PrinterConfig } from '../types/template'
 import { templateApi } from '../api/templateApi'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 // --------------------------- 主上的 (& 由调用的脚决定页面样式) ---------------------------
-export const printerProps = {
+const props = defineProps<{
   /** 打印机管理面板标题 */
-  title: { type: String, default: '打印机管理' },
+  title?: string
   /** 模式：page | selector */
-  mode: { type: String as () => 'page' | 'selector', default: 'page' },
+  mode?: 'page' | 'selector'
   /** 已选的打印机名（selector 模式下双向绑定） */
-  printer: { type: String, default: '' },
+  printer?: string
   /** hiprint 的 PrintTemplate（传入时本组件直接发起第三方的打印） */
-  tpl: { type: null as any, required: false }
-}
-
-const props = defineProps(printerProps)
+  tpl?: any
+}>()
 const emit = defineEmits<{
   /** 确认并第三方的打印（传给桌面端：打印机名） */
   print: [name: string]
@@ -201,7 +198,7 @@ const emit = defineEmits<{
 }>()
 
 // ==================== 列表状态 ====================
-const tableRef = ref<Record<string, unknown> | null>(null)
+const tableRef = ref<{ reload: () => Promise<void>; goto: (page?: number, pageSize?: number) => void } | null>(null)
 const printers = ref<PrinterConfig[]>([])
 const loading = ref(false)
 const saving = ref(false)
@@ -267,15 +264,15 @@ async function onDiscover(): Promise<void> {
 /** 行点击（selector 模式：点击行 = 选机） */
 function onRowClick(row: Record<string, unknown>): void {
   if (props.mode === 'selector') {
-    selectedName.value = row.name as string
+    onSelect(row.name as string)
   }
 }
 
-/** 右键菜单：设为默认（不在默认上的主菜单） */
-function onContextMenu(_item: ReTableContextMenuItem, ctx: ReTableContextMenuContext): void {
-  const row = ctx.row as PrinterConfig
-  if (!row) return
-  if (!row.isDefault) void onSetDefault(row.name)
+/** 选择打印机（selector 模式：点击行 = 选机，下一页的“确认并第三方的打”以选中的为准） */
+function onSelect(name: string): void {
+  if (props.mode === 'selector') {
+    selectedName.value = name
+  }
 }
 
 /** 设为默认 */
@@ -368,7 +365,7 @@ async function onPrint(): Promise<void> {
     ElMessage.warning('请先选择一台打印机')
     return
   }
-  // 宿主传了 PrintTemplate：本组件直接发起第三方的凭据 / 打印
+  // 宿主传了 PrintTemplate：本组件直接发起第三方的打 / 打印
   if (props.tpl && props.tpl.print) {
     const tpl = props.tpl
     saving.value = true
@@ -381,10 +378,12 @@ async function onPrint(): Promise<void> {
     } finally {
       saving.value = false
     }
+    emit('print', name)
     return
   }
   emit('print', name)
 }
+defineExpose({ reload })
 </script>
 
 <style lang="scss" scoped>
