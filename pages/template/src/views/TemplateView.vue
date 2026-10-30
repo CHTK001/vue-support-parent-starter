@@ -16,6 +16,14 @@
         <span class="tpl-header__count">共 <b>{{ total }}</b> 个模板</span>
       </div>
       <div class="tpl-header__right">
+        <ReSelect
+          v-model="query.source"
+          placeholder="来源全量"
+          clearable
+          class="tpl-search"
+          :options="sourceOptions"
+          @change="tableRef?.goto(1)"
+        />
         <ReInput
           v-model="query.keyword"
           placeholder="搜索模板名称 / 副标题"
@@ -27,6 +35,13 @@
           <ReIcon name="Plus" :size="12" />
           新建模板
         </ReButton>
+        <ReButton :loading="syncing" @click="syncAll" :disabled="syncing">
+          <ReIcon name="RefreshLeft" :size="12" />
+          同步来源
+        </ReButton>
+        <span class="tpl-header__synced" v-if="syncCount">
+          来源 <b>{{ sourceCountText }}</b>
+        </span>
       </div>
     </header>
 
@@ -40,7 +55,7 @@
       :columns="columns"
       row-key="id"
       :layout-table="{ fill: true }"
-      :context-menu="tableMenu"
+      :context-menu="contextMenu"
       show-selection
       stripe
       :page-sizes="[10, 20, 50, 100]"
@@ -145,7 +160,7 @@
  * 列结构：左侧（模板名称 + 副标题），右侧（模板语言 + 模板类型）。
  * 右键菜单：进入设计器 / 编辑模板 / 删除模板（每行一个菜单，不额外提供展开按钮）。
  */
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Delete, EditPen, MagicStick } from '@element-plus/icons-vue'
@@ -153,6 +168,7 @@ import ReDialog from '@repo/ui/re-dialog'
 import ReIcon from '@repo/ui/re-icon'
 import ReInput from '@repo/ui/re-input'
 import ReButton from '@repo/ui/re-button'
+import ReSelect from '@repo/ui/re-select'
 import ReTable from '@repo/ui/re-table'
 import type {
   RePageResult,
@@ -163,11 +179,19 @@ import type {
 } from '@repo/ui/re-table'
 
 import { templateApi } from '../api/templateApi'
-import type { TemplateInfo, TemplateLanguage, TemplateStatus, TemplateType } from '../types/template'
+import type {
+  TemplateInfo,
+  TemplateLanguage,
+  TemplateSource,
+  TemplateStatus,
+  TemplateType
+} from '../types/template'
 import {
   tplLanguageLabels,
   tplTypeLabels,
+  tplSourceLabels,
   languageLabel,
+  sourceLabel,
   statusMeta,
   typeLabel
 } from '../utils/i18n'
@@ -181,6 +205,59 @@ const saving = ref(false)
 const busyKey = ref<string | null>(null)
 const total = ref(0)
 const selectedRows = ref<TemplateInfo[]>([])
+
+// ==================== 来源同步 ====================
+/** 来源下拉选项 */
+const sourceOptions = computed(() =>
+  Object.entries(tplSourceLabels).map(([value, label]) => ({ label, value }))
+)
+/** 正在同步中 */
+const syncing = ref(false)
+/** 已同步来源的累计模板数（每次同步后回显） */
+const syncCount = ref(0)
+/** 来源同步描述文本 */
+const sourceCountText = computed(() =>
+  syncCount.value ? `已同步 ${syncCount.value} 个` : ''
+)
+/** 来源同步计数：source -> count */
+const sourceCount = ref<Record<string, number>>({})
+
+/** 加载来源同步信息 */
+async function loadSyncSources() {
+  try {
+    const list = await templateApi.syncSources()
+    sourceCount.value = {}
+    for (const item of list) {
+      sourceCount.value[item.source] = item.count
+    }
+    syncCount.value = Object.values(sourceCount.value).reduce((sum, c) => sum + c, 0)
+  } catch {
+    // 来源接口与同步按钮相互独立，不影响列表
+  }
+}
+
+/** 全量来源同步 */
+async function syncAll() {
+  syncing.value = true
+  try {
+    const result = await templateApi.syncAll()
+    for (const [source, count] of Object.entries(result)) {
+      sourceCount.value[source] = count
+    }
+    syncCount.value = Object.values(sourceCount.value).reduce((sum, c) => sum + c, 0)
+    tableRef.value?.goto(1)
+    loadSyncSources()
+  } catch {
+    ElMessage.error('来源同步失败')
+  } finally {
+    syncing.value = false
+  }
+}
+
+/** 页面初始化：拉取来源同步信息 */
+onMounted(async () => {
+  await loadSyncSources()
+})
 
 /** 查询参数 = ReTable params（分页 + 内置搜索区） */
 const query = reactive<Record<string, any>>({
@@ -216,6 +293,15 @@ const tableMenu: ReTableContextMenuItem[] = [
   { key: 'remove', label: '删除模板', icon: Delete, divided: true }
 ]
 
+/** 行右键菜单提供者：消息 / 组卷来源只读，绘制来源可进入设计器 / 编辑 / 删除 */
+function contextMenu(ctx: ReTableContextMenuContext): ReTableContextMenuItem[] {
+  const row = ctx.row as unknown as TemplateInfo
+  if (row.source === 'hiprint') return tableMenu
+  return [
+    { key: 'preview', label: '预览', icon: MagicStick }
+  ]
+}
+
 // ==================== 字典 ====================
 /** 语言下拉选项 */
 const languageOptions = computed(() =>
@@ -233,6 +319,7 @@ async function loadTemplates({ page, pageSize, params }: ReTableLoadParams): Pro
   try {
     const res = await templateApi.page({
       keyword: ((params?.keyword as string) ?? query.keyword as string) || undefined,
+      source: query.source || undefined,
       page,
       size: pageSize as number
     })
@@ -266,6 +353,9 @@ function onTableMenuSelect(item: ReTableContextMenuItem, ctx: ReTableContextMenu
       break
     case 'remove':
       removeTemplate(row)
+      break
+    case 'preview':
+      router.push({ name: 'TemplatePreview', params: { id: row.id } })
       break
   }
 }

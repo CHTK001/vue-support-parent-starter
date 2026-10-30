@@ -1703,10 +1703,11 @@ onMounted(() => {
 
 .table-wrap {
   /* 固定容器高度（同三库）：消除滚动条液面高度随滚动反复重算的抖动。
-     377 = 预估档：Question 结构含工具栏 + 外部分页，具体由实测校准。
+     547 = 1440x980 实测档：wrap.top 467.8 - footer 36 - gap 14 - 底部留白 29，
+     Question 结构含工具栏 + 外部分页，比三库额外高约 173px。
      min-height 取 300：更小视口下改走页面滚动，不把固定高度顶破。
      contain: layout size 让 ReTable 走 height:100%。 */
-  height: calc(100vh - 377px);
+  height: calc(100vh - 547px);
   min-height: 300px;
   contain: layout size;
   overflow: hidden;

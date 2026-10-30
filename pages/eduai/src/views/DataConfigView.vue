@@ -314,6 +314,9 @@
     >
       <template #header>
         <div class="dlg-header">
+          <div class="dlg-header__icon" aria-hidden="true">
+            <el-icon :size="26"><Reading /></el-icon>
+          </div>
           <div class="dlg-header__text">
             <div class="dlg-header__title">{{ subjectForm.subjectId ? "编辑学科" : "新增学科" }}</div>
             <div class="dlg-header__sub">{{ subjectForm.subjectId ? "更新学科分类信息" : "创建新的学科分类" }}</div>
@@ -592,10 +595,13 @@
         </el-form>
 
         <div class="block-title">状态</div>
-        <el-radio-group v-model="classForm.classStatus">
-          <el-radio-button :value="1">启用</el-radio-button>
-          <el-radio-button :value="0">停用</el-radio-button>
-        </el-radio-group>
+        <ReSwitch
+          layout="square"
+          :model-value="(classForm.classStatus ?? 1) === 1"
+          active-icon="ep:circle-check"
+          inactive-icon="ep:circle-close"
+          @update:model-value="(v: boolean) => (classForm.classStatus = v ? 1 : 0)"
+        />
       </div>
 
       <template #footer>
@@ -2238,47 +2244,13 @@ onMounted(() => {
   }
 }
 
-/* ---------- 对话框（严格对齐「新增学科」原型） ---------- */
-.card-dialog {
-  border-radius: var(--el-radius-xl, 16px);
-}
-
-.card-dialog :deep(.el-dialog) {
-  border-radius: var(--el-radius-xl, 16px);
-  padding: 0;
-  background: var(--el-bg-color);
-  /* 模态对话框是浮层不是卡片，保留 EP 自带的 --el-box-shadow 表达「浮在页面之上」 */
-  box-shadow: var(--el-box-shadow);
-}
-
-.card-dialog :deep(.el-overlay) {
-  background: var(--el-overlay-color-lighter);
-}
-
-.card-dialog :deep(.el-dialog__header) {
-  padding: 20px 24px 4px;
-  margin-right: 0;
-  border-bottom: 0;
-  padding-right: 48px;
-  background: var(--el-bg-color);
-}
-
-.card-dialog :deep(.el-dialog__title) {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
-}
-
-.card-dialog :deep(.el-dialog__body) {
-  padding: 16px 24px 8px;
-  background: var(--el-bg-color);
-}
-
-.card-dialog :deep(.el-dialog__footer) {
-  padding: 8px 24px 20px;
-  border-top: 0;
-  background: var(--el-bg-color);
-}
+/* ---------- 对话框 ----------
+ * 弹框「外壳」（.el-dialog / __header / __body / __footer）的样式不在本 scoped 块里：
+ * ReDialog 把 class 挂在根节点 .el-dialog 上，而该根节点由 ReDialog 渲染、不继承本组件的
+ * scope id，因此 .card-dialog :deep(.el-dialog__*) 一律命不中（写了也是死代码）。
+ * 外壳统一走「koi 主题壳（flex 纵向：头尾固定、中间滚动）+ 文件末尾非 scoped 块」。
+ * 这里只留弹框「内部」元素（.dlg-* / .level-pill / .dialog-btn …）的样式——它们在本模板里，带 scope id，正常生效。
+ */
 
 .dialog-footer {
   display: flex;
@@ -2409,36 +2381,7 @@ onMounted(() => {
   background: var(--el-color-danger-dark-2);
 }
 
-/* ---------- 新增学科对话框（对齐详细原型） ---------- */
-.subject-dialog :deep(.el-dialog) {
-  max-height: min(90vh, 860px);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.subject-dialog :deep(.el-dialog__header) {
-  flex-shrink: 0;
-  padding: 20px 24px 12px;
-  margin-right: 0;
-  border-bottom: 1px solid var(--el-fill-color-light);
-  background: var(--el-bg-color);
-}
-
-.subject-dialog :deep(.el-dialog__body) {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 16px 24px 8px;
-  background: var(--el-bg-color);
-}
-
-.subject-dialog :deep(.el-dialog__footer) {
-  flex-shrink: 0;
-  padding: 12px 24px 20px;
-  border-top: 1px solid var(--el-fill-color-light);
-  background: var(--el-bg-color);
-}
+/* ---------- 新增学科对话框（对齐详细原型）：内部元素 ---------- */
 
 .dlg-header {
   display: flex;
@@ -2702,5 +2645,35 @@ onMounted(() => {
 /* ---------- 组卷模板 ---------- */
 .template-dialog .block-title ~ .block-title {
   margin-top: 14px;
+}
+</style>
+
+<!--
+  弹框外壳 — 必须是非 scoped 块
+  ────────────────────────────────────────────────────────────────
+  ReDialog 把 class 挂在它渲染的根节点 .el-dialog 上，该节点不继承本组件的 scope id，
+  所以上面 scoped 块里的 .card-dialog :deep(.el-dialog__*) 全部命不中。这里只做三件
+  事，且优先复用 koi 主题留的口子，而不是去覆盖 padding / overflow 本体：
+
+  1) 内容区留白：koi 主题把 .el-dialog__body 的 padding 收敛为 --el-dialog-body-padding
+     （默认 0，声明带 !important），要留白就改这个变量 —— 正是主题注释推荐的用法。
+     取值 8px 20px 12px：左右 20px 与 koi 卡头的 20px 对齐（叠加 .el-dialog 自身的 16px
+     内边距后，卡头/内容/底栏三者的左基线都在 36px）；上 8px + 卡头的 margin-bottom 8px、
+     下 12px + 底栏的 4px，都刚好 16px。
+  2) 滚动条留位：koi 的 .dialog-content-wrapper 自带 4px 右侧内边距并透传给子元素，
+     会让内容右侧比左侧多 8px；这里清掉，左右留白统一由 1) 负责。
+  3) 纵向滚动：不重复写 overflow —— koi 壳已是「max-height: 92vh + 头尾 flex: 0 0 auto
+     + body flex: 1 1 auto」，长内容（例如模板弹框的页脚富文本）在 .dialog-content-wrapper
+     里滚动，不会再被 .el-dialog 的 overflow: hidden 裁掉、底栏按钮也始终可见。
+-->
+<style>
+.card-dialog {
+  --el-dialog-body-padding: 8px 20px 12px;
+}
+
+/* 三级类名是为了盖过 koi 组件内 .dialog-content-wrapper[data-v-*] 的同名声明 */
+.card-dialog .el-dialog__body .dialog-content-wrapper,
+.card-dialog .el-dialog__body .dialog-content-wrapper > * {
+  padding-right: 0;
 }
 </style>

@@ -2,16 +2,18 @@
   ReKit 组件示例站 · 页面壳
 
   布局：左侧面板 + 右侧预览。
-  左侧面板 Tab 切换：实时（组件列表 + 参数面板） / 实时代码（Source + 一键复制）
+  左侧面板 Tab 切换：
+  - 实时：组件列表 + 参数面板（参数面板驱动右侧实时预览）
+  - 实时代代码：Vue 源文件 + 一键复制
   右侧是选中示例的实时预览。
-  参数面板展示该组件已定义的全部参数与示例值。
+  参数面板展示该组件已定义的全部参数与示例值，修改后右侧即时回传。
 -->
 <template>
   <div class="docs-page">
-    <!-- 顶栏 -->
+    <!-- 顶层 -->
     <header class="docs-header">
       <h1 class="docs-header__title">ReKit 组件示例</h1>
-      <p class="docs-header__desc">所有组件、所有参数，左侧面版驱动，右侧实时预览。</p>
+      <p class="docs-header__desc">所有组件、所有参数，左侧面板驱动，右侧实时预览。</p>
     </header>
 
     <div class="docs-body">
@@ -28,10 +30,12 @@
             {{ tab.label }}
           </button>
         </div>
+
         <div class="docs-aside__panel">
-          <!-- 实时 Tab：搜索 + 列表 + 示例 -->
+          <!-- 实时 Tab：搜索 + 列表 + 参数面板 -->
           <div v-if="activeTab === 'live'" class="docs-aside__content">
             <ReInput v-model="filter" placeholder="搜索组件名称" clearable class="docs-search" />
+
             <div class="docs-list">
               <div
                 v-for="comp in pageComponents"
@@ -44,49 +48,66 @@
                 <span class="docs-item__tag">{{ comp.name }}</span>
               </div>
             </div>
-            <!-- 参数面板 -->
+
+            <!-- 参数面板：值修改后驱动右侧预览 -->
             <ReCard class="docs-props" layout="simple" v-if="selectedComponent">
               <template #header>
-                <ReSectionHead :title="selectedComponent.title" :description="`参数面板：所有示例参数`" />
+                <ReSectionHead
+                  :title="selectedComponent.title"
+                  :description="`参数面板：${Object.keys(selectedComponent.props).length} 个参数，修改后实时生效`"
+                />
               </template>
               <div class="docs-props__grid">
                 <div v-for="(prop, k) in selectedComponent.props" :key="k" class="docs-prop">
                   <label class="docs-prop__label">{{ k }}</label>
-                  <ReTag v-if="prop.type === 'boolean'" :type="selectedComponent.values[k] ? 'success' : 'info'">
-                    {{ String(selectedComponent.values[k]) }}
-                  </ReTag>
+                  <ReSwitch
+                    v-if="prop.type === 'boolean'"
+                    v-model="values[k]"
+                    title="参数值"
+                    class="docs-prop__cell"
+                  />
                   <ReInput
                     v-else-if="prop.type === 'string'"
-                    v-model="selectedComponent.values[k]"
+                    v-model="values[k]"
                     size="small"
                     clearable
+                    class="docs-prop__cell"
+                  />
+                  <ReInputNumber
+                    v-else-if="prop.type === 'number'"
+                    v-model="values[k]"
+                    size="small"
+                    controls="false"
+                    class="docs-prop__cell"
                   />
                   <ReSelect
-                    v-else-if="prop.type === 'array'"
-                    v-model="selectedComponent.values[k]"
+                    v-else-if="prop.options && prop.options.length"
+                    v-model="values[k]"
                     :options="prop.options"
                     size="small"
+                    class="docs-prop__cell"
                   />
-                  <ReInputNumber v-else v-model="selectedComponent.values[k]" size="small" controls="false" />
+                  <span v-else class="docs-prop__other">{{ prop.example }}</span>
                 </div>
               </div>
             </ReCard>
           </div>
 
-          <!-- 实时代码 Tab：源码 + 复制 -->
+          <!-- 实时代代码 Tab：源文件 + 一键复制 -->
           <div v-else class="docs-aside__content">
             <ReCard v-if="selectedComponent" layout="simple">
               <template #header>
-                <ReSectionHead :title="selectedComponent.code" />
+                <ReSectionHead
+                  :title="selectedComponent.title + ' 示例代码'"
+                  :description="`examples/${selectedComponent.name}.vue`"
+                />
               </template>
               <div class="docs-code">
-                <ReCode
-                  :content="selectedComponent.code"
-                  language="vue"
-                  selectable
-                />
+                <pre class="docs-code__pre"><code>{{ selectedComponent.code }}</code></pre>
                 <div class="docs-code__bar">
-                  <ReButton size="small" icon="Copy" type="primary" @click="onCopyCode">复制代码</ReButton>
+                  <ReButton size="small" :type="copied ? 'success' : 'primary'" @click="onCopyCode">
+                    {{ copied ? '已复制' : '复制代码' }}
+                  </ReButton>
                 </div>
               </div>
             </ReCard>
@@ -98,10 +119,10 @@
       <section class="docs-right">
         <div class="docs-preview">
           <div v-if="selectedComponent" class="docs-preview-inner">
-            <component :is="selectedComponent.example" />
+            <component :is="previewComp" v-bind="previewProps" />
           </div>
           <div v-else class="docs-preview--empty">
-            <ReEmpty state="data" />
+            <ReEmpty description="选择一个组件，查看参数与实时预览" />
           </div>
         </div>
       </section>
@@ -110,23 +131,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
-import {
-  ReButton,
-  ReInput,
-  ReSelect,
-  ReCard,
-  ReCode,
-  ReSectionHead,
-  ReTag,
-  ReInputNumber,
-  ReEmpty,
-} from "@repo/ui";
+import { ref, computed, watch, reactive, shallowRef } from "vue";
+import type { Component } from "vue";
+import ReButton from "@repo/ui/re-button";
+import ReInput from "@repo/ui/re-input";
+import ReSelect from "@repo/ui/re-select";
+import ReCard from "@repo/ui/re-card";
+import ReSectionHead from "@repo/ui/re-section-head";
+import ReInputNumber from "@repo/ui/re-input-number";
+import ReEmpty from "@repo/ui/re-empty";
+import ReSwitch from "@repo/ui/re-switch";
 import { DOC_COMPONENTS } from "./registry";
+import type { DocProp, DocComponent } from "./registry";
 
 const tabs = [
   { key: "live", label: "实时" },
-  { key: "code", label: "实时代码" },
+  { key: "code", label: "实时代代码" },
 ];
 
 const filter = ref("");
@@ -137,19 +157,76 @@ const pageComponents = computed(() =>
   DOC_COMPONENTS.filter((c) => c.title.includes(filter.value) || c.name.includes(filter.value))
 );
 
-const selectedComponent = computed(() => {
-  const c = DOC_COMPONENTS.find((x) => x.name === selected.value);
-  if (!c) return undefined;
-  return { ...c, values: { ...c.props, default: "" } };
+const selectedComponent = computed(() => DOC_COMPONENTS.find((x) => x.name === selected.value));
+
+/** 参数面板的值：注册表里的示例值，用户在面板中修改后右侧预览即时回传 */
+const values = reactive<Record<string, any>>({});
+
+const previewProps = computed(() => {
+  const props: Record<string, any> = {};
+  for (const [k, v] of Object.entries(values)) {
+    if (v !== undefined) props[k] = v;
+  }
+  return props;
 });
 
-function onPick(comp: { name: string }) {
+/** 右侧预览的懒加载示例组件 */
+const previewComp = shallowRef<Component | null>(null);
+const copied = ref(false);
+
+watch(
+  selected,
+  async (name) => {
+    previewComp.value = null;
+    activeTab.value = "live";
+    // 重置参数
+    for (const key of Object.keys(values)) delete values[key];
+    if (!name) return;
+    const comp = DOC_COMPONENTS.find((x) => x.name === name);
+    if (!comp) return;
+    for (const [name, prop] of Object.entries(comp.props)) {
+      const v = resolveExampleValue(prop);
+      if (v !== undefined) values[name] = v;
+    }
+    // 本地懒加载示例文件，避免 slate 地把所有 88 个示例打入主包
+    const mod: any = await comp.example();
+    // vite 动态 import 返回模块命名空间，.default 才是组件本身
+    previewComp.value = mod?.default ?? mod;
+  },
+  { immediate: true }
+);
+
+/** 把注册表示例字面量解析为 JS 值（string / number / boolean / array / object） */
+function resolveExampleValue(prop: DocProp) {
+  const example = prop.example;
+  if (example === null || example === undefined || example === "") return undefined;
+  const v = String(example).trim();
+  if (v === "true") return true;
+  if (v === "false") return false;
+  if (/^-?\d+(\.\d+)?$/.test(v)) return Number(v);
+  if (/^(["'])([\s\S]*)\1$/.test(v)) return v.slice(1, -1);
+  if (/^\[|\{/.test(v)) {
+    try {
+      return JSON.parse(v);
+    } catch {
+      // 不是合法 JSON（未声明 key / 函数）：交回示例代码自己处理
+      return undefined;
+    }
+  }
+  return v;
+}
+
+function onPick(comp: DocComponent) {
   selected.value = comp.name;
-  activeTab.value = "code";
 }
 
 function onCopyCode() {
-  navigator.clipboard.writeText((selectedComponent.value as any)?.code ?? "");
+  const code = selectedComponent.value?.code ?? "";
+  navigator.clipboard.writeText(code).catch(() => {});
+  copied.value = true;
+  setTimeout(() => {
+    copied.value = false;
+  }, 1500);
 }
 </script>
 
@@ -279,10 +356,41 @@ function onCopyCode() {
   margin-bottom: 4px;
   font-size: 11px;
 }
+.docs-prop__cell {
+  width: 100%;
+}
+.docs-prop__other {
+  font-family: var(--el-font-family);
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  padding: 2px 6px;
+  border-radius: 3px;
+  word-break: break-all;
+  display: block;
+}
 
 .docs-code {
   position: relative;
   min-height: 300px;
+}
+.docs-code__pre {
+  margin: 0;
+  padding: 12px;
+  font-family: var(--el-font-family-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-primary);
+  background: var(--el-fill-color-lighter);
+  border-radius: 6px;
+  border: 1px solid var(--el-border-color-lighter);
+  overflow-x: auto;
+  white-space: pre;
+  word-wrap: normal;
+}
+.docs-code__pre code {
+  font-family: inherit;
+  white-space: inherit;
 }
 .docs-code__bar {
   position: absolute;

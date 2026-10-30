@@ -669,10 +669,7 @@ watch(
                 v-for="card in group.cards"
                 :key="card.id"
                 class="sv-node"
-                :class="{
-                  'is-active': activeNodeId === card.id,
-                  'is-selected': selectedNodeId === card.id && activeNodeId !== card.id,
-                }"
+                :class="{ 'is-active': activeNodeId === card.id, 'is-selected': selectedNodeId === card.id && activeNodeId !== card.id }"
                 :title="card.listenText"
                 @click="onRowClick(card)"
                 @dblclick="onRowDblClick(card)"
