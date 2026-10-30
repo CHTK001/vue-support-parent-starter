@@ -19,7 +19,7 @@ defineOptions({ name: "ReButtonSquare", inheritAttrs: true });
 const props = withDefaults(
   defineProps<{
     type?: "primary" | "success" | "warning" | "info" | "danger" | "text" | "";
-    size?: "large" | "default" | "small";
+    size?: "large" | "default" | "small" | "mini";
     plain?: boolean;
     loading?: boolean;
     disabled?: boolean;
@@ -208,6 +208,17 @@ const useStateIcon = computed<boolean>(
 .rs-btn--size-small {
   width: 28px;
   height: 28px;
+  font-size: 12px;
+}
+/* mini 档（24px）：给 mini 密度表格的操作列用。
+   表格 mini 档纯文本行 ≈ 27px（见 ReTable 的 .re-table--mini 段），
+   28px 的 small 按钮加上单元格上下 4px 内边距就顶到 36px，比行还高 ——
+   这正是「操作列按钮比行高、fixed 之后整行对不齐」的来源。
+   24px + 8px = 32px，与 mini 行高同档，按钮不再撑行。 */
+.rs-btn--size-mini {
+  width: 24px;
+  height: 24px;
+  margin: 0 2px;
   font-size: 12px;
 }
 .rs-btn--size-default {

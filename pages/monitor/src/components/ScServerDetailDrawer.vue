@@ -31,8 +31,10 @@ const props = withDefaults(
     filterTypes: FilterTypeMeta[];
     /** 嵌入 ReTabs 工作区时去掉抽屉外壳，直接渲染详情 / 配置视图 */
     embedded?: boolean;
+    /** 嵌入模式初始视图：'filter' 用于「过滤器链」页签，直接进入插件配置页 */
+    initialView?: 'detail' | 'filter';
   }>(),
-  { embedded: false },
+  { embedded: false, initialView: 'detail' },
 );
 
 const emit = defineEmits<{
@@ -149,8 +151,11 @@ const activeMeta = computed<FilterTypeMeta | null>(() =>
   props.filterTypes.find(f => f.type === activeFilterType.value) || null,
 );
 
+/** 嵌入模式已加载的节点 id：同一实例不重复拉取，避免页签常驻挂载造成重复请求 */
+const embeddedLoaded = ref<number | null>(null);
+
 watch(visible, open => {
-  if (!open) return;
+  if (props.embedded || !open) return;
   view.value = 'detail';
   load();
 });
@@ -158,7 +163,12 @@ watch(visible, open => {
 watch(
   () => props.nodeId,
   () => {
-    if (visible.value) load();
+    if (props.embedded) {
+      embeddedLoaded.value = null;
+      loadEmbedded();
+    } else if (visible.value) {
+      load();
+    }
   },
 );
 
@@ -173,6 +183,23 @@ async function load() {
     loading.value = false;
   }
 }
+
+/**
+ * 嵌入模式：页签常驻挂载，不再受抽屉打开态驱动。
+ *
+ * <p>重新挂载 / 节点 id 变化时先回初始视图再拉一次；同 id 不重复请求，
+ * 页签刷新会用新的 key 重建组件，天然触发重新加载。</p>
+ */
+async function loadEmbedded() {
+  if (props.nodeId == null || embeddedLoaded.value === props.nodeId) return;
+  embeddedLoaded.value = props.nodeId;
+  view.value = props.initialView || 'detail';
+  await load();
+}
+
+onMounted(() => {
+  if (props.embedded) loadEmbedded();
+});
 
 /** 插件元数据 */
 function metaOf(index: number): FilterTypeMeta | undefined {
@@ -261,7 +288,9 @@ async function applyParams() {
 </script>
 
 <template>
+  <!-- ============ 非嵌入：原抽屉外壳（行为不变） ============ -->
   <ReDrawer
+    v-if="!props.embedded"
     v-model="visible"
     :title="view === 'detail' ? `服务详情 - ${node?.name || ''}` : `插件配置 - ${node?.filters?.[activeIndex]?.name || ''}`"
     :size="view === 'detail' ? 820 : 760"
@@ -294,7 +323,7 @@ async function applyParams() {
               </ReDescriptionsItem>
               <ReDescriptionsItem label="传输引擎">{{ node.engine || '-' }}</ReDescriptionsItem>
               <ReDescriptionsItem label="监听地址">
-                <span class="mono">{{ node.host || '0.0.0.0' }}:{{ node.port ?? '-' }}</span>
+                <span class="sv-mono">{{ node.host || '0.0.0.0' }}:{{ node.port ?? '-' }}</span>
               </ReDescriptionsItem>
               <ReDescriptionsItem label="访问地址">
                 <div v-if="node.serverUrl" class="url-cell">
@@ -319,7 +348,7 @@ async function applyParams() {
             <ReDivider content-position="left">协议配置</ReDivider>
             <ReDescriptions v-if="Object.keys(node.config || {}).length" :column="2" border >
               <ReDescriptionsItem v-for="(v, k) in node.config" :key="k" :label="String(k)">
-                <span class="mono">{{ v }}</span>
+                <span class="sv-mono">{{ v }}</span>
               </ReDescriptionsItem>
             </ReDescriptions>
             <div v-else class="detail-empty">未配置协议专属参数</div>
@@ -413,6 +442,151 @@ async function applyParams() {
       </div>
     </template>
   </ReDrawer>
+
+  <!-- ============ 嵌入：ReTabs 工作区页签内容，去掉抽屉外壳直接铺进面板 ============ -->
+  <div v-else class="server-detail-embed">
+    <!-- ============ 详情视图 ============ -->
+    <div v-if="view === 'detail'" class="server-detail">
+      <ReSkeleton :loading="loading" :rows="6" :count="1" animated>
+        <template v-if="node">
+          <ReDescriptions :column="2" border >
+            <ReDescriptionsItem label="服务名称">
+              {{ node.name }}
+              <ReText v-if="node.id" type="secondary" style="margin-left: 8px; font-size: 11px">#{{ node.id }}</ReText>
+            </ReDescriptionsItem>
+            <ReDescriptionsItem label="运行状态">
+              <span class="status-cell">
+                <ReStatusIndicator
+                  :type="node.status === 'RUNNING' ? 'success' : node.status === 'ERROR' ? 'danger' : 'info'"
+                  :pulse="node.status === 'RUNNING'"
+                />
+                {{ statusText[node.status] || node.status }}
+              </span>
+            </ReDescriptionsItem>
+            <ReDescriptionsItem label="协议类型">
+              <ReTag >{{ node.protocolDesc || node.protocol }}</ReTag>
+              <ReText type="info" style="margin-left: 6px">{{ node.protocol }}</ReText>
+            </ReDescriptionsItem>
+            <ReDescriptionsItem label="传输引擎">{{ node.engine || '-' }}</ReDescriptionsItem>
+            <ReDescriptionsItem label="监听地址">
+              <span class="sv-mono">{{ node.host || '0.0.0.0' }}:{{ node.port ?? '-' }}</span>
+            </ReDescriptionsItem>
+            <ReDescriptionsItem label="访问地址">
+              <div v-if="node.serverUrl" class="url-cell">
+                <ReText type="primary">{{ node.serverUrl }}</ReText>
+                <ReButton icon="Copy" layout="square" tip="复制地址" @click="copyServerUrl" />
+              </div>
+              <span v-else class="dim">{{ node.status === 'ERROR' ? '服务启动失败，修复后可用' : '未运行' }}</span>
+            </ReDescriptionsItem>
+            <ReDescriptionsItem label="自动启用">
+              <ReTag :type="node.enabled === 1 ? 'success' : 'info'">{{ node.enabled === 1 ? '是' : '否' }}</ReTag>
+            </ReDescriptionsItem>
+            <ReDescriptionsItem label="已挂插件">
+              <ReTag type="success">{{ node.filters?.length ?? 0 }} 个</ReTag>
+            </ReDescriptionsItem>
+            <ReDescriptionsItem label="备注" :span="2">{{ node.remark || '-' }}</ReDescriptionsItem>
+            <ReDescriptionsItem v-if="node.error" label="最近错误" :span="2">
+              <span class="error-text" :title="node.error">{{ node.error }}</span>
+            </ReDescriptionsItem>
+          </ReDescriptions>
+
+          <!-- 协议配置 -->
+          <ReDivider content-position="left">协议配置</ReDivider>
+          <ReDescriptions v-if="Object.keys(node.config || {}).length" :column="2" border >
+            <ReDescriptionsItem v-for="(v, k) in node.config" :key="k" :label="String(k)">
+              <span class="sv-mono">{{ v }}</span>
+            </ReDescriptionsItem>
+          </ReDescriptions>
+          <div v-else class="detail-empty">未配置协议专属参数</div>
+
+          <!-- 过滤器链 -->
+          <ReDivider content-position="left">
+            过滤器链
+            <span class="dim" style="margin-left: 8px; font-size: 11px">按 order 升序执行</span>
+          </ReDivider>
+          <div v-if="!node.filters?.length" class="detail-empty">
+            未挂载任何 ServerFilter 插件，点击「编辑」进入编排
+          </div>
+          <div v-else class="filter-list">
+            <div
+              v-for="(f, index) in node.filters"
+              :key="f.name"
+              class="filter-row"
+              :class="{ 'is-off': f.enabled === false }"
+            >
+              <div class="fr-order">{{ index + 1 }}</div>
+              <div class="fr-main">
+                <div class="fr-name">
+                  {{ f.name }}
+                  <ReTag v-if="f.type && f.type !== f.name" type="info">{{ f.type }}</ReTag>
+                  <ReTag v-if="metaOf(index)?.spi" type="success">SPI</ReTag>
+                  <ReTag v-if="metaOf(index)?.group" >{{ metaOf(index)?.group }}</ReTag>
+                </div>
+                <div class="fr-desc">{{ metaOf(index)?.desc || '未找到插件元数据' }}</div>
+                <div v-if="paramEntries(index).length" class="fr-params">
+                  <ReTag v-for="p in paramEntries(index)" :key="p.key" type="info" style="margin-right: 4px; margin-bottom: 4px">
+                    {{ p.key }}={{ p.value }}
+                  </ReTag>
+                </div>
+                <div v-else class="dim" style="font-size: 11px">未配置参数</div>
+              </div>
+              <div class="fr-ops">
+                <ReSwitch
+                  :model-value="f.enabled !== false"
+                  :disabled="!isLive"
+                  @change="(v: any) => onToggleFilter(index, !!v)"
+                />
+                <ReButton link type="primary" @click="openConfig(index)">配置</ReButton>
+                <ReButton
+                  v-if="hasDetail(index)"
+                  icon="TopRight"
+                  layout="square"
+                  type="success"
+                  :tip="metaOf(index)?.detailLabel || '查看详情'"
+                  @click="node && emit('open-detail-page', node, index)"
+                />
+                <ReButton icon="Delete" layout="square" type="danger" tip="从链上移除" @click="removeFilter(index)" />
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-actions">
+            <template v-if="node.status === 'ERROR'">
+              <ReButton show-text icon="Refresh" type="warning" :loading="acting" @click="onRestart">重启服务</ReButton>
+              <span class="dim">服务异常，点击重启尝试恢复</span>
+            </template>
+            <template v-else-if="node.status === 'RUNNING'">
+              <ReButton show-text icon="VideoPause" type="warning" :loading="acting" @click="onStop">停止服务</ReButton>
+              <ReButton show-text icon="Refresh" @click="load">刷新状态</ReButton>
+              <span class="dim">插件启停与参数调整均热生效，服务不中断</span>
+            </template>
+            <template v-else>
+              <ReButton show-text icon="VideoPlay" type="success" :loading="acting" @click="onStart">启动服务</ReButton>
+              <ReButton show-text icon="Refresh" @click="load">刷新状态</ReButton>
+              <span class="dim">插件启停与参数调整均热生效，服务不中断</span>
+            </template>
+          </div>
+        </template>
+      </ReSkeleton>
+    </div>
+
+    <!-- ============ 插件配置页 ============ -->
+    <div v-else class="filter-page">
+      <div class="filter-page-bar">
+        <ReButton show-text icon="ArrowLeft" @click="view = 'detail'">返回详情</ReButton>
+        <span class="dim">第 {{ activeIndex + 1 }} 个插件 · {{ node?.filters?.[activeIndex]?.name }}</span>
+      </div>
+      <ScFilterConfigPanel
+        v-model="filterParams"
+        :meta="activeMeta"
+        :filter-type="activeFilterType"
+        :live="isLive"
+        :applying="acting"
+        @apply="applyParams"
+        @open-detail-page="node && emit('open-detail-page', node, activeIndex)"
+      />
+    </div>
+  </div>
 </template>
 
 <style scoped lang="scss">
@@ -559,5 +733,17 @@ async function applyParams() {
   .filter-row {
     transition: none;
   }
+}
+
+/* 嵌入 ReTabs 面板：父级是 flex column + overflow hidden，内容由这里自己滚 */
+.server-detail-embed {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  gap: 12px;
+  padding: 12px 2px 12px 1px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 </style>

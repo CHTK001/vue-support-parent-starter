@@ -11,17 +11,25 @@
  * @since 4.0.0
  */
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-/** 页面源文件路径（相对包根） */
-const ASSETS_VIEW_PATH = new URL("../views/AssetsView.vue", import.meta.url).pathname;
+/** 页面源文件（测试进程启动于 page/server，Windows 下 new URL().pathname 会丢盘符） */
+const ASSETS_VIEW_PATH = join(process.cwd(), "src", "views", "AssetsView.vue");
 
-function readPageSource(): string {
+/** 底部常驻状态条（.hmb）源文件——在一行里写死换不行的规则全在这片 */
+const METRICS_BAR_PATH = join(process.cwd(), "src", "components", "ScHostMetricsBar.vue");
+
+function readViewSource(): string {
   return readFileSync(ASSETS_VIEW_PATH, "utf8");
 }
 
+function readMetricsBarSource(): string {
+  return readFileSync(METRICS_BAR_PATH, "utf8");
+}
+
 describe("Dock 收起时全部销毁", () => {
-  const source = readPageSource();
+  const source = readViewSource();
   const template = source.slice(source.indexOf("<template"));
   const script = source.slice(0, source.indexOf("<template"));
   const styles = source.slice(source.indexOf("<style"));
@@ -48,13 +56,14 @@ describe("Dock 收起时全部销毁", () => {
 });
 
 describe("metrics bar：一行显示，永不换行", () => {
-  const source = readPageSource();
+  const source = readMetricsBarSource();
   const styles = source.slice(source.indexOf("<style scoped"));
 
+  /** 选取一段 CSS 块：从 prefix { 到下一段 suffix { 之前 */
   function section(prefix: string, suffix: string): string {
     const start = styles.indexOf(prefix);
     expect(start).toBeGreaterThan(-1);
-    const end = start === 0 ? false : styles.indexOf(suffix, start);
+    const end = styles.indexOf(suffix, start);
     expect(end).toBeGreaterThan(start);
     return styles.slice(start, end);
   }
@@ -65,9 +74,62 @@ describe("metrics bar：一行显示，永不换行", () => {
   });
 
   it(".hmb__name/.hmb__addr/.hmb__metric-label/.hmb__pill 强制单行不换行", () => {
-    for (const sel of [".hmb__name", ".hmb__addr", ".hmb__metric-label", ".hmb__pill"]) {
-      const block = section(sel, sel + " {");
+    // [当前选择器，下一段选择器] 成对锁定边界，避免 mask 与自身花括号冲突
+    const pairs: [string, string][] = [
+      [".hmb__name", ".hmb__addr"],
+      [".hmb__addr", ".hmb__info"],
+      [".hmb__metric-label", ".hmb__track"],
+      [".hmb__pill", ".hmb__pill.is-ok"],
+    ];
+    for (const [sel, next] of pairs) {
+      const block = section(sel + " {", next + " {");
       expect(block).toContain("white-space: nowrap");
     }
+  });
+});
+
+describe("底部一行：指标条与 Dock 设置钮不能再拆行", () => {
+  const source = readViewSource();
+  const template = source.slice(source.indexOf("<template"));
+  const styles = source.slice(source.indexOf("<style scoped"));
+
+  function section(prefix: string, suffix: string): string {
+    const start = styles.indexOf(prefix);
+    expect(start).toBeGreaterThan(-1);
+    const end = styles.indexOf(suffix, start);
+    expect(end).toBeGreaterThan(start);
+    return styles.slice(start, end);
+  }
+
+  /** 取工作区底部容器 `.as-work` 的那段模板文本（它下面紧挨着 Dock aside） */
+  function workSection(): string {
+    const m = template.match(/<section class="as-work">[\s\S]*?<\/section>/);
+    expect(m).not.toBeNull();
+    return m![0];
+  }
+
+  it("底部整行被 as-work__bottom 包裹，容器强锁一行", () => {
+    expect(template).toContain('<div class="as-work__bottom">');
+    const bottom = section(".as-work__bottom {", ".as-work__foot {");
+    expect(bottom).toContain("display: flex");
+    expect(bottom).toContain("flex-wrap: nowrap");
+    expect(bottom).toContain("align-items: center");
+  });
+
+  it("设置钮高度固定（32px）且没有底部间距，不再给独立行留空间", () => {
+    const foot = section(".as-work__foot {", ".as-work__config {");
+    expect(foot).toContain("height: 32px");
+    expect(foot).toContain("padding: 0");
+    expect(foot).not.toContain("0 0 10px");
+  });
+
+  it("工作区底部只有 as-work__bottom 一个容器：页签条 + 底部一行", () => {
+    const work = workSection();
+    // 页签条 + 底部容器 = 2 个子块，多一个就会额外占一行
+    expect(work).toContain("<ReTabs");
+    expect(work).toContain('<div class="as-work__bottom">');
+    expect(work.match(/<div class="as-work__bottom">/g)?.length).toBe(1);
+    // dock 收起后底部不能再生成独立行（旧的和是 .as-work__foot：没有单独包裹容器）
+    expect(work).not.toMatch(/<\/section>\s*<div class="as-work__foot">/);
   });
 });

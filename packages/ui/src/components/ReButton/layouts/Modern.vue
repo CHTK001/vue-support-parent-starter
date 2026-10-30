@@ -22,7 +22,7 @@ defineOptions({ name: "ReButtonModern", inheritAttrs: true });
 const props = withDefaults(
   defineProps<{
     type?: "primary" | "success" | "warning" | "info" | "danger" | "text" | "";
-    size?: "large" | "default" | "small";
+    size?: "large" | "default" | "small" | "mini";
     plain?: boolean;
     round?: boolean;
     circle?: boolean;
@@ -138,6 +138,14 @@ const iconName = computed<string>(() => (typeof props.icon === "string" ? props.
 }
 
 /* ---- Sizes ---- */
+/* mini 档：比 small 再压一档，给 mini 密度表格的操作列用（与 Square 的 24px 同档）。
+   高度写死 24px 而不是走变量：这一档的存在意义就是「不超过 mini 表格行高」。 */
+.rm-btn--mini {
+  height: 24px;
+  padding: 0 6px;
+  font-size: 12px;
+  border-radius: var(--rm-radius-sm);
+}
 .rm-btn--small {
   height: var(--rm-height-sm);
   padding: var(--rm-padding-sm);

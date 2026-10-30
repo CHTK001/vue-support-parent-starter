@@ -59,7 +59,12 @@ const props = withDefaults(
     /** 布局变体："el"（默认 el-button）/ "modern"（现代化扁平按钮）/ "square"（正方形图标按钮） */
     layout?: "el" | "modern" | "square";
     type?: "primary" | "success" | "warning" | "info" | "danger" | "text" | "";
-    size?: "large" | "default" | "small";
+    /**
+     * 尺寸档：large / default / small 直通 Element；
+     * `mini` 是 square / modern 两个布局的额外档位（24px），用于塞进 mini 密度表格的操作列 ——
+     * el 布局下等价于 small（Element 没有 mini 档，不能把 mini 透传给 el-button）。
+     */
+    size?: "large" | "default" | "small" | "mini";
     plain?: boolean;
     round?: boolean;
     circle?: boolean;
@@ -123,7 +128,7 @@ const props = withDefaults(
   {
     layout: "el",
     type: undefined as undefined | "primary" | "success" | "warning" | "danger" | "info",
-    size: undefined as undefined | "large" | "default" | "small",
+    size: undefined as undefined | "large" | "default" | "small" | "mini",
     plain: false,
     round: false,
     circle: false,
@@ -200,6 +205,18 @@ const iconOnly = computed<boolean>(
 /** 图标是组件对象时直接渲染组件，字符串走 ReIcon */
 const iconIsComponent = computed<boolean>(() => typeof props.icon !== "string" && props.icon != null);
 const iconName = computed<string>(() => (typeof props.icon === "string" ? props.icon : ""));
+
+/**
+ * 透传给 el-button 的尺寸。
+ *
+ * <p>{@code mini} 是 square / modern 两个自绘布局的档位（24px，见各自样式的
+ * {@code --size-mini}）；Element 只有 large / default / small 三档，直接透传
+ * {@code size="mini"} 会落到一个不存在的档位（按钮尺寸回落到 default，反而更大）。
+ * el 布局下 mini 就按 small 渲染。</p>
+ */
+const elSize = computed<"large" | "default" | "small" | undefined>(() =>
+  props.size === "mini" ? "small" : props.size,
+);
 
 /** 全局权限函数 */
 const authFn = inject<ReAuthFn | null>(RE_AUTH_KEY, null);
@@ -298,7 +315,7 @@ function onClick(e: MouseEvent): void {
     <ElTooltip :content="labelText" placement="top">
       <ElButton
         :type="type"
-        :size="size"
+        :size="elSize"
         :plain="plain"
         :round="round"
         :circle="circle"
@@ -327,7 +344,7 @@ function onClick(e: MouseEvent): void {
   <ElButton
     v-else-if="visible"
     :type="type"
-    :size="size"
+    :size="elSize"
     :plain="plain"
     :round="round"
     :circle="circle"

@@ -917,10 +917,6 @@ const nav = ref<NavKey>("all");
 
 /** 回收站目录（桶内隐藏目录，常规列表不展示） */
 const RECYCLE_DIR = ".recycle";
-/** localStorage：最近访问路径 */
-const RECENT_KEY = "filestorage.recent";
-/** localStorage：收藏夹路径 */
-const FAVORITE_KEY = "filestorage.favorites";
 /** localStorage：界面状态键前缀，后面拼桶名——按桶分别记忆 */
 const UI_STATE_PREFIX = "filestorage.ui.";
 /** 合法的视图模式白名单（用于校验持久化值，防止旧版本遗留的非法值） */
@@ -940,33 +936,6 @@ interface BucketUiState {
   sortKey?: SortKey;
   /** 排序方向 */
   sortOrder?: SortOrder;
-}
-
-/**
- * 读取 localStorage 列表（损坏时回退空数组）
- *
- * @param key 存储键
- * @return 列表
- */
-function readList<T>(key: string): T[] {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-/**
- * 写入 localStorage 列表（写入失败静默）
- *
- * @param key 存储键
- * @param list 列表
- */
-function writeList(key: string, list: unknown[]): void {
-  try {
-    localStorage.setItem(key, JSON.stringify(list));
-  } catch { /* ignore */ }
 }
 
 /**
@@ -1028,21 +997,29 @@ function applyUiState(bucketName: string): void {
   sortOrder.value = SORT_ORDERS.includes(saved.sortOrder as SortOrder) ? (saved.sortOrder as SortOrder) : "asc";
 }
 
-const recentPaths = ref<string[]>(readList<string>(RECENT_KEY));
-const favoritePaths = ref<string[]>(readList<string>(FAVORITE_KEY));
+/**
+ * 左侧「快捷访问」数据：存储桶根目录内容。
+ *
+ * <p>按需求，侧栏快捷访问改为展示根目录（path=""）的文件与目录，
+ * 不再展示收藏 / 最近访问。根目录内容与当前浏览目录无关，
+ * 凡影响根目录的变更（上传 / 删除 / 还原 / 新建）都会经过
+ * {@link loadObjects} 汇总，因此在该函数的成功分支负责刷新。</p>
+ */
+const rootObjects = ref<StorageObject[]>([]);
 
-/** 快捷访问：收藏在前、最近访问在后，去重 */
-const quickPaths = computed<string[]>(() => {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const p of [...favoritePaths.value, ...recentPaths.value]) {
-    if (p && !seen.has(p)) {
-      seen.add(p);
-      out.push(p);
-    }
+/**
+ * 加载存储桶根目录内容（供左侧「快捷访问」渲染）
+ *
+ * <p>失败时不打断主流程：左侧区块保留上次内容（首次加载失败显示空态）。</p>
+ */
+async function loadRootObjects(): Promise<void> {
+  try {
+    const list = await listObjects(bucket.value, "");
+    rootObjects.value = list.filter((o) => o.name !== RECYCLE_DIR);
+  } catch {
+    rootObjects.value = [];
   }
-  return out;
-});
+}
 
 /** 回收站条目 */
 const recycleItems = ref<StorageObject[]>([]);
@@ -1074,100 +1051,6 @@ const groupedRecycle = computed(() => {
   if (earlier.length) groups.push({ key: "earlier", label: "更早", items: sortDesc(earlier) });
   return groups;
 });
-
-/**
- * 记录最近访问目录（去重、最多 12 条）
- *
- * @param path 目录路径
- */
-function recordRecent(path: string): void {
-  if (!path) return;
-  recentPaths.value = [path, ...recentPaths.value.filter((p) => p !== path)].slice(0, 12);
-  writeList(RECENT_KEY, recentPaths.value);
-}
-
-/**
- * 是否已收藏路径
- *
- * @param path 目录路径
- * @return 是否收藏
- */
-function isFavorite(path: string): boolean {
-  return favoritePaths.value.includes(path);
-}
-
-/**
- * 切换收藏状态
- *
- * @param path 目录路径
- */
-function toggleFavorite(path: string): void {
-  const has = isFavorite(path);
-  favoritePaths.value = has ? favoritePaths.value.filter((p) => p !== path) : [path, ...favoritePaths.value];
-  writeList(FAVORITE_KEY, favoritePaths.value);
-  message.success(has ? "已取消收藏" : "已加入收藏夹");
-}
-
-/**
- * 从快捷访问移除（同时清掉收藏与最近记录）
- *
- * @param path 目录路径
- */
-function removeQuick(path: string): void {
-  favoritePaths.value = favoritePaths.value.filter((p) => p !== path);
-  recentPaths.value = recentPaths.value.filter((p) => p !== path);
-  writeList(FAVORITE_KEY, favoritePaths.value);
-  writeList(RECENT_KEY, recentPaths.value);
-}
-
-/**
- * 快捷访问的父级部分（可能为空）
- *
- * <p>与 {@link quickLeaf} 配套：侧栏只有 232px，完整路径放不下会被尾部省略号截掉，
- * 而尾部末段恰恰是用来区分 `1` 与 `1/1` 的那段。所以父级走「可收缩 + 变暗 + 省略号」，
- * 末段固定不收缩，保证任何宽度下都能看清「自己是谁」。</p>
- *
- * @param path 目录路径
- * @return 父级路径（含尾部 `/`）；只有一级时返回空串
- */
-function quickParent(path: string): string {
-  const i = path.lastIndexOf("/");
-  return i < 0 ? "" : `${path.slice(0, i)}/`;
-}
-
-/**
- * 快捷访问的末段（永不省略）
- *
- * @param path 目录路径
- * @return 路径最后一段；空串（根目录）返回「根目录」
- */
-function quickLeaf(path: string): string {
-  return path.slice(path.lastIndexOf("/") + 1) || "根目录";
-}
-
-/**
- * 从最近访问中剔除一个已失效的路径
- *
- * <p>导航是「先 {@link recordRecent} 落盘、再发列表请求」，所以请求失败时那条
- * 记录已经写进 localStorage 了。历史上分栏视图右键祖先列会用错路径导航，
- * 留下 {@code 1/1} 这种根本不存在的路径，侧边栏就多出一个与 {@code 1} 撞名的
- * 「1」。这里在加载失败时顺手清掉，让脏数据自愈而不是一直挂着。</p>
- *
- * @param path 目录路径
- */
-function forgetRecent(path: string): void {
-  if (!path || !recentPaths.value.includes(path)) {
-    return;
-  }
-  recentPaths.value = recentPaths.value.filter((p) => p !== path);
-  writeList(RECENT_KEY, recentPaths.value);
-}
-
-/** 从快捷访问进入目录 */
-function enterPath(path: string): void {
-  nav.value = "all";
-  goCrumb(path);
-}
 
 /** 加载回收站列表（不存在时按空处理） */
 async function loadRecycle(): Promise<void> {
@@ -1314,6 +1197,13 @@ async function loadObjects(): Promise<void> {
     objects.value = list.filter((o) => o.name !== RECYCLE_DIR);
     // 同步分栏缓存（当前列）
     colObjects.value = { ...colObjects.value, [currentPath.value]: objects.value };
+    // 左侧「快捷访问」展示的是根目录内容：当前就在根目录时直接复用本次结果，
+    // 否则并行刷新根目录（上传/删除/还原/新建/切换桶等变更都经由此处汇总更新）
+    if (currentPath.value) {
+      void loadRootObjects();
+    } else {
+      rootObjects.value = objects.value;
+    }
     setDefaultBucket(bucket.value);
     loadError.value = "";
   } catch (e) {
@@ -1353,8 +1243,6 @@ async function loadObjects(): Promise<void> {
     colObjects.value = { ...colObjects.value, [currentPath.value]: [] };
     colError.value = { ...colError.value, [currentPath.value]: (e as Error)?.message ?? "目录加载失败" };
     loadError.value = (e as Error)?.message ?? "目录加载失败";
-    // 目录不存在（服务端 404）时顺手清掉最近访问里的这条脏记录，见 forgetRecent 的说明
-    forgetRecent(currentPath.value);
     // 当前位置已失效：回落到根目录。这一步同时修掉「按桶记忆」的持久化残留——
     // 不回落的话，写进 localStorage 的 currentPath 仍是那个不存在的目录，
     // 每次刷新都会重新落进同一个 404 里，而 watch 会把回落后的值同步写回，
@@ -2827,7 +2715,16 @@ function guardDownload(): boolean {
 function enterDir(row: StorageObject): void {
   currentPath.value = fullKey(row.name);
   recordHistory(currentPath.value);
-  recordRecent(currentPath.value);
+  clearSelect();
+  lastSelectedIndex = -1;
+  loadObjects();
+}
+
+/** 从左侧「快捷访问」进入根目录下的目录（键就是名称，不依赖当前路径） */
+function enterDirAtRoot(item: StorageObject): void {
+  nav.value = "all";
+  currentPath.value = item.name;
+  recordHistory(currentPath.value);
   clearSelect();
   lastSelectedIndex = -1;
   loadObjects();
@@ -2837,7 +2734,6 @@ function goCrumb(path: string): void {
   nav.value = "all";
   currentPath.value = path;
   recordHistory(path);
-  if (path) recordRecent(path);
   clearSelect();
   lastSelectedIndex = -1;
   loadObjects();
@@ -2948,7 +2844,6 @@ function onColumnClick(e: MouseEvent | KeyboardEvent, item: StorageObject, colPa
   if (item.directory) {
     currentPath.value = joinKey(colPath, item.name);
     recordHistory(currentPath.value);
-    recordRecent(currentPath.value);
     clearSelect();
     lastSelectedIndex = -1;
     loadObjects();
@@ -3105,7 +3000,6 @@ function openColumnContextMenu(e: MouseEvent, row: StorageObject, colPath: strin
   e.stopPropagation();
   if (colPath !== currentPath.value) {
     currentPath.value = colPath;
-    recordRecent(colPath);
     clearSelect();
     lastSelectedIndex = -1;
     void loadObjects();
@@ -3161,9 +3055,6 @@ function ctxAction(action: string) {
       break;
     case "createCollab":
       if (row && !row.directory) void onCreateCollab(row);
-      break;
-    case "favorite":
-      if (row && row.directory) toggleFavorite(fullKey(row.name));
       break;
     case "rename":
       void startInlineRename(row);
@@ -4619,27 +4510,25 @@ onUnmounted(() => {
       <aside class="fs-nav">
         <div class="fs-nav__section fs-nav__section--quick">
           <div class="fs-nav__title">快捷访问</div>
-          <div v-if="!quickPaths.length" class="fs-nav__empty">暂无收藏 / 最近访问</div>
+          <div v-if="!rootObjects.length" class="fs-nav__empty">根目录暂无内容</div>
           <button
-            v-for="p in quickPaths"
-            :key="p"
+            v-for="item in rootObjects"
+            :key="item.name"
             type="button"
             class="fs-nav__item fs-nav__item--quick"
-            :class="{ 'is-active': nav === 'all' && currentPath === p }"
-            :title="p"
-            @click="enterPath(p)"
+            :class="{ 'is-active': nav === 'all' && item.directory && currentPath === item.name }"
+            :title="item.name"
+            @click="item.directory ? enterDirAtRoot(item) : openPreview(item, item.name)"
           >
-            <el-icon class="fs-nav__icon" :size="15"><Folder /></el-icon>
+            <span
+              class="fs-typeicon fs-nav__typeicon"
+              :style="{ fontSize: '18px' }"
+              v-html="fileSvg(item.name, item.directory)"
+              aria-hidden="true"
+            />
             <span class="fs-nav__label">
-              <span v-if="quickParent(p)" class="fs-nav__label-parent">{{ quickParent(p) }}</span>
-              <span class="fs-nav__label-leaf">{{ quickLeaf(p) }}</span>
+              <span class="fs-nav__label-leaf">{{ item.name }}</span>
             </span>
-            <el-icon
-              class="fs-nav__del"
-              :size="12"
-              title="移除"
-              @click.stop="removeQuick(p)"
-            ><Close /></el-icon>
           </button>
         </div>
 
@@ -5187,16 +5076,6 @@ onUnmounted(() => {
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
             生成限时链接（自定义过期）
-          </button>
-          <button
-            v-if="ctxMenu.row!.directory"
-            type="button"
-            class="fs-ctx__item"
-            role="menuitem"
-            @click="ctxAction('favorite')"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            {{ isFavorite(fullKey(ctxMenu.row!.name)) ? '取消收藏' : '加入收藏夹' }}
           </button>
           <div class="fs-ctx__sep" aria-hidden="true" />
           <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('rename')">
@@ -6268,15 +6147,6 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-/* 父级：空间不够时从这里省略号截断，末段始终保留 */
-.fs-nav__label-parent {
-  flex-shrink: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--el-text-color-placeholder);
-}
-
 .fs-nav__label-leaf {
   flex-shrink: 0;
   color: inherit;
@@ -6788,89 +6658,6 @@ onUnmounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-/* ===== 最近访问 / 收藏夹 ===== */
-.fs-files--paths {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: 12px;
-  align-content: start;
-}
-
-.fs-path-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 18px 12px 14px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-lg, 12px);
-  cursor: pointer;
-  transition: border-color var(--el-transition-duration, 0.2s), box-shadow var(--el-transition-duration, 0.2s);
-}
-
-.fs-path-card:hover {
-  border-color: var(--el-color-primary-light-5);
-  box-shadow: 0 6px 18px rgb(0 0 0 / 6%);
-}
-
-.fs-path-card__icon {
-  width: 64px;
-  height: 64px;
-  display: inline-flex;
-}
-
-.fs-path-card__icon svg {
-  width: 100%;
-  height: 100%;
-}
-
-.fs-path-card__name {
-  margin-top: 8px;
-  max-width: 100%;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fs-path-card__path {
-  max-width: 100%;
-  font-size: 11px;
-  color: var(--el-text-color-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fs-path-card__del {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 20px;
-  height: 20px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: var(--el-radius-full, 9999px);
-  background: var(--el-fill-color);
-  color: var(--el-text-color-secondary);
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s);
-}
-
-.fs-path-card:hover .fs-path-card__del {
-  opacity: 1;
-}
-
-.fs-path-card__del:hover {
-  color: var(--el-color-danger);
 }
 
 /* ===== 共享文件 ===== */
@@ -8137,18 +7924,8 @@ onUnmounted(() => {
   font-size: 13px;
 }
 
-.fs-nav__item--quick .fs-nav__del {
-  margin-left: auto;
-  color: var(--el-text-color-placeholder);
-  opacity: 0;
-}
-
-.fs-nav__item--quick:hover .fs-nav__del {
-  opacity: 1;
-}
-
-.fs-nav__item--quick .fs-nav__del:hover {
-  color: var(--el-color-danger);
+.fs-nav__typeicon {
+  color: inherit;
 }
 
 .fs-nav__foot {

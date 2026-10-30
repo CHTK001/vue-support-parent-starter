@@ -1127,6 +1127,9 @@
           <div class="dbm-context-item" @click="openImportDataFromToolbar">
             <ReIcon name="Upload" :size="14" />导入数据
           </div>
+          <div class="dbm-context-item" @click="openExportDataFromToolbar">
+            <ReIcon name="Download" :size="14" />导出数据
+          </div>
           <div class="dbm-context-divider" />
           <div class="dbm-context-item" @click="refreshTree">
             <ReIcon name="Refresh" :size="14" />刷新
@@ -1147,30 +1150,30 @@
           </div>
         </template>
 
-          <!-- 空白区域 -->
-          <template v-else>
-            <div class="dbm-context-item" @click="openCreateDatabase">
-              <ReIcon name="FolderAdd" :size="14" />新建数据库
-            </div>
-            <div class="dbm-context-item" @click="openCreateTable()">
-              <ReIcon name="Plus" :size="14" />新建表
-            </div>
-            <div class="dbm-context-item" @click="openNewQuery">
-              <ReIcon name="EditPen" :size="14" />新建查询
-            </div>
-            <div class="dbm-context-item" @click="openImportDataFromToolbar">
-              <ReIcon name="Upload" :size="14" />导入数据
-            </div>
-            <!-- 导入/导出成对出现在同一组：此前空白处只有「导入数据」，导出只能从工具栏进，
-                 用户反馈「空白地方有导入数据、没有导出数据」。 -->
-            <div class="dbm-context-item" @click="openExportDataFromToolbar">
-              <ReIcon name="Download" :size="14" />导出数据
-            </div>
-            <div class="dbm-context-divider" />
-            <div class="dbm-context-item" @click="refreshTree">
-              <ReIcon name="Refresh" :size="14" />刷新
-            </div>
-          </template>
+        <!-- 空白区域 -->
+        <template v-else>
+          <div class="dbm-context-item" @click="openCreateDatabase">
+            <ReIcon name="FolderAdd" :size="14" />新建数据库
+          </div>
+          <div class="dbm-context-item" @click="openCreateTable()">
+            <ReIcon name="Plus" :size="14" />新建表
+          </div>
+          <div class="dbm-context-item" @click="openNewQuery">
+            <ReIcon name="EditPen" :size="14" />新建查询
+          </div>
+          <div class="dbm-context-item" @click="openImportDataFromToolbar">
+            <ReIcon name="Upload" :size="14" />导入数据
+          </div>
+          <!-- 导入/导出成对出现在同一组：此前空白处只有「导入数据」，导出只能从工具栏进，
+               用户反馈「空白地方有导入数据、没有导出数据」。 -->
+          <div class="dbm-context-item" @click="openExportDataFromToolbar">
+            <ReIcon name="Download" :size="14" />导出数据
+          </div>
+          <div class="dbm-context-divider" />
+          <div class="dbm-context-item" @click="refreshTree">
+            <ReIcon name="Refresh" :size="14" />刷新
+          </div>
+        </template>
       </div>
     </Teleport>
 

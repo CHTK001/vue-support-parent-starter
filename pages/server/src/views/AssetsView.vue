@@ -2299,29 +2299,31 @@ function onGlobalKeydown(e: KeyboardEvent): void {
           </template>
         </ReTabs>
 
-        <!-- 底部常驻条：CPU / 内存 / 磁盘 + 主机概要（hover 浮层） -->
-        <ScHostMetricsBar
-          :host-name="statusHost?.serverHostName ?? ''"
-          :address="statusHost ? `${statusHost.serverHostAddress}:${statusHost.serverHostPort}` : ''"
-          :online="statusHost ? liveOnlineState(statusHost) : 0"
-          :delay-ms="statusHost ? liveDelayMs(statusHost) : null"
-          :protocol="statusHost ? protocolOf(statusHost) : ''"
-          :agent-version="statusHost?.serverHostAgentInstalled === 1 ? (statusHost.serverHostAgentVersion ?? '') : ''"
-          :cpu="statusMetrics.cpu"
-          :mem="statusMetrics.mem"
-          :disk="statusMetrics.disk"
-          :has-metrics="statusMetrics.has"
-          :rows="statusOverviewRows"
-        />
-        <!-- Dock 设置：底部居中，收起/展开右侧快捷操作面板 -->
-        <div class="as-work__foot">
-          <button type="button" class="as-work__config" title="快捷操作面板设置" @click="dockConfigVisible = !dockConfigVisible">
-            <ReIcon name="Setting" :size="15" />
-          </button>
-          <div v-if="dockConfigVisible" class="as-work__popover" @click.stop>
-            <div class="as-work__popover-item" @click="onDockConfigAction">
-              <ReIcon name="ArrowRight" :size="13" />
-              <span>{{ dockOpen ? '关闭右侧快捷操作' : '显示右侧快捷操作' }}</span>
+        <!-- 底部常驻条：CPU / 内存 / 磁盘 + 主机概要（hover 浮层）+ Dock 设置 —— 压成一行 -->
+        <div class="as-work__bottom">
+          <ScHostMetricsBar
+            :host-name="statusHost?.serverHostName ?? ''"
+            :address="statusHost ? `${statusHost.serverHostAddress}:${statusHost.serverHostPort}` : ''"
+            :online="statusHost ? liveOnlineState(statusHost) : 0"
+            :delay-ms="statusHost ? liveDelayMs(statusHost) : null"
+            :protocol="statusHost ? protocolOf(statusHost) : ''"
+            :agent-version="statusHost?.serverHostAgentInstalled === 1 ? (statusHost.serverHostAgentVersion ?? '') : ''"
+            :cpu="statusMetrics.cpu"
+            :mem="statusMetrics.mem"
+            :disk="statusMetrics.disk"
+            :has-metrics="statusMetrics.has"
+            :rows="statusOverviewRows"
+          />
+          <!-- Dock 设置：守在指标条右侧，点出 Dock 设置面板 -->
+          <div class="as-work__foot">
+            <button type="button" class="as-work__config" title="快捷操作面板设置" @click="dockConfigVisible = !dockConfigVisible">
+              <ReIcon name="Setting" :size="15" />
+            </button>
+            <div v-if="dockConfigVisible" class="as-work__popover" @click.stop>
+              <div class="as-work__popover-item" @click="onDockConfigAction">
+                <ReIcon name="ArrowRight" :size="13" />
+                <span>{{ dockOpen ? '关闭右侧快捷操作' : '显示右侧快捷操作' }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -3585,12 +3587,23 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   box-shadow: var(--el-box-shadow-light, var(--shadow-1));
 }
 
-/* 工作区底部：居中设置钮，悬浮在指标条右下方，点出 Dock 设置面板 */
+/* 底部一行：指标条 + Dock 设置钮，flex-wrap: nowrap 兜底，不能再撑成两行 */
+.as-work__bottom {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8px;
+  flex: none;
+}
+
+/* Dock 设置：守在底部行的右侧，浮窗贴在设置钮上方 */
 .as-work__foot {
   position: relative;
   display: flex;
+  align-items: center;
   justify-content: center;
-  padding: 0 0 10px;
+  height: 32px;
+  padding: 0;
   flex: none;
 }
 .as-work__config {

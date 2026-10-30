@@ -1352,11 +1352,25 @@ onMounted(() => {
 <style scoped>
 /* ---------- 页面骨架：左脊柱 + 右主区（整页滚动，不再分 Tab） ---------- */
 .page-container {
+  /* 本页两张卡（左脊柱 / 右内容）共用一套「面」：白底 + 1px 浅边框 + 一层很轻的投影。
+     注意不能写 `0 2px 10px var(--el-box-shadow-lighter)`——那个变量本身已是完整
+     shadow（`0 0 6px #0000001f`），拼进来会变成 6 个长度值，整条声明被浏览器丢弃。 */
+  --dim-card-shadow: 0 1px 2px color-mix(in srgb, var(--el-color-black) 4%, transparent),
+    0 4px 14px color-mix(in srgb, var(--el-color-black) 5%, transparent);
+  /* 学科表列宽：表头（.thead）与数据行（.row）共用一份，改一处两边同时跟着变。
+     学段列必须是定宽——用 auto 时表头按「适用学段」四个字算宽、数据行按四个字母块算宽，
+     两个 grid 各自算各自的 auto，列就错开了。 */
+  --dim-cols: 34px minmax(120px, 1.4fr) 96px 84px 96px 108px;
   height: 100%;
   overflow: auto;
   background: var(--el-bg-color-page);
   display: grid;
   grid-template-columns: 236px minmax(0, 1fr);
+  /* 行高必须钉成 max-content。容器有确定高度（height:100%），行若交给 auto 隐式行，
+     浏览器会把行按容器高度重新分配——单列时左卡（224px 高）被压进 100px 的行里，
+     卡片直接溢出压到页头上。钉成 max-content 后行高=内容高，超出交给 overflow 滚动。 */
+  grid-template-rows: max-content;
+  align-content: start;
   align-items: start;
 }
 
@@ -1373,7 +1387,7 @@ onMounted(() => {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-lg, 12px);
-  box-shadow: 0 2px 10px var(--el-box-shadow-lighter);
+  box-shadow: var(--dim-card-shadow);
 }
 
 .taxo__head {
@@ -1642,7 +1656,7 @@ onMounted(() => {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-lg, 12px);
-  box-shadow: 0 2px 10px var(--el-box-shadow-lighter);
+  box-shadow: var(--dim-card-shadow);
 }
 
 /* 卡头：左侧分段 pill 页签，右侧放当前页签的操作行 */
@@ -1730,7 +1744,6 @@ onMounted(() => {
 
 /* ---------- 学科：表头 + 数据行（共用一套列宽变量，读起来像一张真表格） ---------- */
 .rows {
-  --dim-cols: 34px minmax(120px, 1.4fr) auto 84px 96px 108px;
   display: flex;
   flex-direction: column;
   min-height: 80px;
@@ -1738,11 +1751,11 @@ onMounted(() => {
 
 .thead {
   display: grid;
-  grid-template-columns: 34px minmax(120px, 1.4fr) auto 84px 96px 108px;
+  grid-template-columns: var(--dim-cols);
   align-items: center;
   gap: 14px;
   padding: 7px 14px;
-  background: var(--el-fill-color-lighter);
+  background: var(--el-fill-color-light);
   border-bottom: 1px solid var(--el-border-color-lighter);
   font-size: 11.5px;
   line-height: 1.5;
@@ -1771,7 +1784,7 @@ onMounted(() => {
 
 /* 斑马纹（空态面板也是 .rows 的子节点，用 .row 限定避免被染色） */
 .rows > .row:nth-child(even) {
-  background: var(--el-fill-color-lighter);
+  background: color-mix(in srgb, var(--el-fill-color-light) 55%, var(--el-bg-color));
 }
 
 .row:last-child {
@@ -1999,8 +2012,8 @@ onMounted(() => {
     display: none;
   }
 
-  .rows {
-    --dim-cols: 34px minmax(96px, 1fr) auto 96px 108px;
+  .page-container {
+    --dim-cols: 34px minmax(96px, 1fr) 96px 96px 108px;
   }
 
   .row__sort {
@@ -2015,6 +2028,8 @@ onMounted(() => {
 @media (max-width: 900px) {
   .page-container {
     grid-template-columns: 1fr;
+    /* 单列时是两行：左脊柱在上、主区在下，各自按内容高 */
+    grid-template-rows: max-content max-content;
   }
 
   .taxo {
@@ -2049,8 +2064,8 @@ onMounted(() => {
     gap: 18px;
   }
 
-  .rows {
-    --dim-cols: 34px minmax(80px, 1fr) auto 96px;
+  .page-container {
+    --dim-cols: 34px minmax(80px, 1fr) 96px 96px;
   }
 
   .row {
@@ -2062,8 +2077,34 @@ onMounted(() => {
     display: none;
   }
 
+  /* 卡头改两行：页签独占一行，操作区整行靠右。
+     否则操作区在页签右侧只剩半行宽，搜索框/批量导入/新增学科会折成参差的两三行。 */
+  .dim-tabs :deep(.re-tabs__bar) {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 12px 8px;
+  }
+
+  .dim-tabs :deep(.re-tabs__nav) {
+    margin: 8px 0 0;
+  }
+
+  .dim-tabs :deep(.re-tabs__actions) {
+    flex: 1 1 100%;
+    margin-left: 0;
+    padding: 0;
+  }
+
+  .block__ops {
+    width: 100%;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
   .subject-search {
-    width: 160px;
+    flex: 1 1 160px;
+    width: auto;
+    min-width: 140px;
   }
 }
 

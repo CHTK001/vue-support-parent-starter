@@ -953,12 +953,12 @@ onMounted(() => {
   padding: 1px 5px;
 }
 .table-wrap {
-  /* 固定容器高度（同汉字库）：消除滚动条液面高度随滚动反复重算的抖动。
-     585 = 本页实测值：wrap.top 508 + 分页条与其间距 48 + 卡片 body 底部内边距 20
-     + el-main 底部余量 9；表格 + 分页正好落在可视区内，el-main 不再纵向滚动
-     （消掉残留的 21px 小滚动条）。min-height 取 300：585 下 900 视口只剩 315，
-     320 的下限会把固定高度顶破。contain: layout size 让 ReTable 走 height:100%。 */
-  height: calc(100vh - 585px);
+  /* 固定容器高度：消除滚动条液面高度随滚动反复重算的抖动。
+     493 = 1440x980 实测 wrap.top 464 + el-main 底部留白 8 + 卡片 body
+     底部内边距 21；此时表格卡正好贴到页面容器底边，不再留底空。
+     min-height 取 300：更小视口下改走页面滚动，不把固定高度顶破。
+     contain: layout size 让 ReTable 走 height:100%。 */
+  height: calc(100vh - 493px);
   min-height: 300px;
   contain: layout size;
   overflow: hidden;

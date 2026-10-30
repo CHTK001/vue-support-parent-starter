@@ -163,18 +163,9 @@
   box-shadow: 0 1px 2px rgba(31, 36, 48, 0.1);
 }
 
-/* 未选中项 hover：只走灰阶。带 :not(.is-active) 是为了让已选中项的 hover
-    落到下面的选中规则（保持实心主色），而不是被这条染成灰 —— 否则鼠标停在
-    已选项上会看到选中块「褪色」，误以为取消了选择。 */
-.re-radio-group.re-radio-group .el-radio-button:not(.is-active) .el-radio-button__inner:hover {
-  color: var(--el-text-color-primary);
-  background: var(--el-fill-color-light);
-}
-
-/* 选中：实心块 + 白字。填充走 --re-radio-active-bg（压深后的主色，见轨道处说明），
-   直接铺 --el-color-primary 只有 2.78:1，读屏之外的普通用户也看不清。
-   投影用 color-mix 从 --el-color-primary 派生：koi 没有成体系的「主色投影」
-   令牌，写死 rgba(64,158,255,…) 会在换主题后与块体脱色。 */
+/* 未选中的 radio-button 仍旧挂着 EP 的 `is-active` （margin/right） stuff。
+   为了不用把轨道和选项的 hover 全部重新发明一遍，单独起一个方选块分支，
+   其余的（胶囊/圆角/药品/描边）全部沿用 ReKit 默认规则。 */
 .re-radio-group.re-radio-group .el-radio-button.is-active .el-radio-button__inner {
   background: var(--re-radio-active-bg);
   color: var(--el-color-white);
