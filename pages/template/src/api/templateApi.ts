@@ -11,7 +11,7 @@
  */
 
 import { createModuleHttp } from "@repo/core"
-import type { TemplateInfo, TemplatePageQuery, PageResult, TemplateDesignerPayload } from '../types/template'
+import type { TemplateInfo, TemplatePageQuery, PageResult, TemplateDesignerPayload, PrinterConfig } from '../types/template'
 
 /** 模板模块 Http 客户端（懒创建）。 */
 /** 模块可能在 createApp() 注入全局 http 之前被静态导入，因此延迟到首次调用时创建。 */
@@ -71,15 +71,18 @@ export const templateApi = {
   remove: (id: string) => http.delete(`/${id}`).then(unwrap),
 
   // ==================== 打印 ====================
-  /** 设置打印机（包含地址/端口/ Token） */
-  setPrinter: (printer: Record<string, any>) => http.post("/printer").data(printer).then(unwrap),
-  /** 自发现打印机（返回本机/局域网打印机列表） */
+  /** 打印机列表（应用侧 hiprint 连接地址与 Token） */
+  printerList: () => http.get("/printer").then(unwrap) as Promise<PrinterConfig[]>,
+  /** 自发现打印机（返回已有打印机名，已默认的排在第一条） */
   discoverPrinters: () => http.get("/printer/discover").then(unwrap) as Promise<string[]>,
   /** 设置默认打印机 */
   setDefaultPrinter: (name: string) =>
     http.post(`/printer/default?name=${encodeURIComponent(name)}`).then(unwrap) as Promise<boolean>,
-  /** 打印机列表（应用侧 hiprint 连接地址与 Token） */
-  printerList: () => http.get("/printer").then(unwrap) as Promise<Array<{ name: string; isDefault: boolean }>>
+  /** 新增/更新打印机参数（同时设为默认） */
+  setPrinter: (printer: Omit<PrinterConfig, 'isDefault'>) => http.post("/printer").data(printer).then(unwrap) as Promise<PrinterConfig>,
+  /** 删除打印机 */
+  removePrinter: (name: string) =>
+    http.delete(`/printer/${encodeURIComponent(name)}`).then(unwrap) as Promise<boolean>
 }
 
 export default templateApi

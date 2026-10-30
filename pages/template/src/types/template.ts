@@ -74,3 +74,32 @@ export interface TemplateDesignerPayload {
   /** 操作模式：'design' / 'preview' / 'print' */
   mode: 'design' | 'preview' | 'print'
 }
+
+/**
+ * 打印机连接参数（应用侧 hiprint 调用）
+ *
+ * "第三方打印"：打印机/打印机服务不在本地，由 {@code address}（IP/域名）、
+ * {@code port}（端口）、{@code username}（登录名）、{@code token}（认证） 与
+ * 设备名 {@code name} 共同描述；{@code isDefault} 标记该地址是否应被默认选中。
+ *
+ * @since 4.0.0.60
+ * @author CH
+ */
+export interface PrinterConfig {
+  /** 打印机设备名（在 hiprint 中识别的打印机名） */
+  name: string
+  /** 型号/打印机类型（如 HP LaserJet Pro / 热敏云） */
+  type?: string
+  /** 连接地址（打印机 IP/域名，或打印服务的地址） */
+  address?: string
+  /** 连接端口 */
+  port?: number
+  /** 认证 Token */
+  token?: string
+  /** 认证用户名 */
+  username?: string
+  /** 是否默认打印机 */
+  isDefault?: boolean
+  /** 备注 */
+  remark?: string
+}
