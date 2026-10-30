@@ -1120,13 +1120,15 @@ const classStudents = ref<EduStudent[]>([]);
 
 /** 班级表列定义 */
 const classColumns: ReTableColumn[] = [
+  // 列宽：能给 minWidth 的都给 minWidth，让 vxe 把剩余宽度摊给它们。
+  // 原来的定宽合计 920px > 卡片正文 866px，会横向溢出，「状态」列被右侧固定的「操作」列压住只露出半个字。
   { prop: "className", label: "班级名称", minWidth: 180, showOverflowTooltip: true },
-  { prop: "classCode", label: "班级编码", width: 200, showOverflowTooltip: true },
-  { prop: "classGradeLevel", label: "学段", width: 100, slot: "col-classGradeLevel" },
-  { prop: "classGrade", label: "年级", width: 120 },
-  { prop: "studentCount", label: "学生数", width: 100, align: "center", slot: "col-studentCount" },
-  { prop: "classStatus", label: "状态", width: 100, align: "center", slot: "col-classStatus" },
-  { prop: "actions", label: "操作", width: 120, align: "center", fixed: "right", slot: "col-actions", className: "op-col" },
+  { prop: "classCode", label: "班级编码", minWidth: 150, showOverflowTooltip: true },
+  { prop: "classGradeLevel", label: "学段", width: 88, slot: "col-classGradeLevel" },
+  { prop: "classGrade", label: "年级", minWidth: 100 },
+  { prop: "studentCount", label: "学生数", width: 92, align: "center", slot: "col-studentCount" },
+  { prop: "classStatus", label: "状态", width: 92, align: "center", slot: "col-classStatus" },
+  { prop: "actions", label: "操作", width: 110, align: "center", fixed: "right", slot: "col-actions", className: "op-col" },
 ];
 
 const loadClasses = async () => {
