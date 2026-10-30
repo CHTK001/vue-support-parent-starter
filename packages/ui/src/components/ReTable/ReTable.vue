@@ -82,7 +82,11 @@ import ReTableCardView from "./ReTableCardView.vue";
 // 视图模式：默认模板已就绪，随主包加载，切换时零延迟（与卡片模式同一套选择/右键/空态能力）
 import ReTableView from "./ReTableView.vue";
 import ReTableToolbar from "./ReTableToolbar.vue";
-import ReTableContextMenu from "./ReTableContextMenu.vue";
+// 右键菜单用 Re 家族通用组件（ReContextMenu），不再用 ReTable 私有的 ReTableContextMenu。
+// 两者能力对齐：ReContextMenu 有子菜单 hover 展开、打开后按实测宽高翻转贴边、
+// 透明遮罩层（点外部/右键外部即关，不必自己挂 document 监听）。
+import ReContextMenu from "../ReContextMenu/ReContextMenu.vue";
+import type { ReContextMenuItem } from "../ReContextMenu/types";
 import ReButton from "../ReButton/ReButton.vue";
 import ReSelect from "../ReSelect/ReSelect.vue";
 import ReSearch from "../ReSearch/index";
@@ -423,6 +427,19 @@ const props = withDefaults(
     batchDeleteHandler?: (rows: Record<string, unknown>[]) => Promise<void> | void;
     /** 是否可调整列宽（需 border 模式，默认 true） */
     resizable?: boolean;
+    /**
+     * 拖宽时「当前列宽」提示的显示方式，二选一，默认 {@code tip}。
+     *
+     * <ul>
+     *   <li>{@code tip}：光标上方的气泡，跟着光标走（默认；视觉对齐 vxe 原生 showDragTip）；</li>
+     *   <li>{@code side}：光标右下方 12/16px 处跟随（早期版本的样子）。</li>
+     * </ul>
+     *
+     * <p><b>两者都是 Teleport 到 body 的浮层</b>，用 {@code position: fixed} +
+     * {@code transform} 定位：不占文档流、不参与列宽计算，所以提示本身**不会撑开列宽**，
+     * 也不会在拖拽过程中触发重排（选哪种都只影响 transform 的偏移量）。</p>
+     */
+    resizeTipMode?: "tip" | "side";
     /** 默认展开所有树节点 */
     defaultExpandAll?: boolean;
     /**
@@ -505,6 +522,26 @@ const props = withDefaults(
     virtualScroll?: boolean;
     /** 虚拟滚动阈值：数据量超过该值才启用（默认 0 = 总是启用） */
     virtualScrollGt?: number;
+    /**
+     * 是否开启横向（列）虚拟滚动（**仅 vxe 引擎生效**）。
+     *
+     * <p>宽表（几十列）下，不开启时每个可视行都要铺满所有列的单元格：
+     * sys_setting 表 25 列 × 60 行 = 1500 个单元格，一次开表 11k DOM 节点、
+     * 9 个 long task（最长的 1.7s）。开启后 vxe 只渲染视口内那十几列，
+     * 单元格数量按「可视列 / 总列」比例下降 —— 同一张表降到 ~1/3（DOM 5445）。</p>
+     *
+     * <p>未显式传值时按列数自动启用（见 {@link AUTO_VIRTUAL_X_GT}）；显式传
+     * {@code false} 可关掉。要求列宽稳定（ReTable 的列宽都走 {@code colWidth}，
+     * 拖拽/双击/存档三处一致），不要与
+     * {@code span-method} 的行合并同时使用（vxe 横向虚拟滚动不支持合并单元格）。</p>
+     *
+     * <p><b>副作用</b>：启用后非 tooltip 列统一按「单行省略」渲染（vxe 需要据此
+     * 跳过逐格量高，见 {@link vxeShowOverflow}）；与纵向虚拟滚动同时开启时
+     * 退回逐格量高，不强压单行。</p>
+     */
+    virtualScrollX?: boolean;
+    /** 横向虚拟滚动阈值：可见列数超过该值才启用（默认 0 = 总是启用） */
+    virtualScrollXGt?: number;
     /**
      * 是否开启单元格区域选择（**仅 vxe 引擎生效**）：鼠标拖拽框选区域，按住 Ctrl 多选。
      * element 引擎没有等价能力：开启后忽略，并在 dev 下提示。
@@ -692,6 +729,7 @@ const props = withDefaults(
     batchDelete: false,
     batchDeleteHandler: undefined,
     resizable: true,
+    resizeTipMode: "tip",
     defaultExpandAll: false,
     showIndex: false,
     indexLabel: "#",
@@ -704,6 +742,8 @@ const props = withDefaults(
     expandWidth: 48,
     virtualScroll: false,
     virtualScrollGt: 0,
+    virtualScrollX: undefined,
+    virtualScrollXGt: 0,
     areaSelect: false,
     areaClip: true,
     columnDraggable: false,
@@ -1165,8 +1205,7 @@ function getBatchEditHandler() {
   return cfg.handler;
 }
 
-/** ========== 右键菜单状态 ========== */
-const ctxMenuVisible = ref(false);
+/** ========== 内置 ReSearch 搜索区 ========== */
 /** 内部兜底状态：父组件未绑定 v-model:search-visible 时本地生效 */
 const localSearchVisible = ref(props.searchVisible ?? true);
 watch(
@@ -1181,7 +1220,6 @@ const searchVisible = computed({
   },
 });
 
-/** ========== 内置 ReSearch 搜索区 ========== */
 /**
  * 搜索配置的来源：分组 {@code config.search} 优先于旧的 {@code search} prop。
  *
@@ -1272,23 +1310,91 @@ function onBuiltinSearchRefresh(): void {
   emit("refresh");
   reloadUnlessWatchWill();
 }
-const ctxMenuX = ref(0);
-const ctxMenuY = ref(0);
+/** ========== 右键菜单状态 ========== */
+/**
+ * 右键菜单位置/显隐交给 {@link ReContextMenu} 自己管（它暴露 open(x, y) / close()）。
+ *
+ * <p>ReTable 只保留「这次右键落在哪一行/哪一列」这一份上下文 —— 菜单项的取值
+ * （{@code contextMenu} 传函数时）与 select 回抛都要用到它。</p>
+ */
 const ctxMenuContext = ref<ReTableContextMenuContext | undefined>(undefined);
 
+/** 菜单组件句柄（只声明用到的方法，避免依赖组件实例类型） */
+const ctxMenuRef = ref<{ open: (x: number, y: number) => void; close: () => void } | null>(null);
+
 /**
- * 解析后的右键菜单项。
- *
- * <p>{@code contextMenu} 传函数时按当前右键上下文动态生成；传数组时原样返回。
- * 行/单元格右键弹菜单与否、菜单内容都以它为准 —— 使用方传一个生成函数
- * 即可让不同行/列弹出不同菜单，无需自己维护弹窗状态。</p>
+ * 解析右键菜单项：{@code contextMenu} 传函数时按当前上下文动态生成，传数组时原样返回。
  */
-const resolvedCtxMenuItems = computed<ReTableContextMenuItem[]>(() => {
+function resolveCtxMenuItems(ctx: ReTableContextMenuContext | undefined): ReTableContextMenuItem[] {
   const provider = props.contextMenu;
   if (!provider) return [];
-  const ctx = ctxMenuContext.value;
   return typeof provider === "function" ? (ctx ? provider(ctx) : []) : provider;
+}
+
+/**
+ * 把 ReTable 的菜单项翻译成 {@link ReContextMenu} 的节点树。
+ *
+ * <p>两套字段名的差异在这里一次性收口，宿主（以及 DBM 等既有页面）继续写
+ * {@code key / label / icon / disabled / divided / children} 不变：</p>
+ * <ul>
+ *   <li>{@code key} → {@code command}：ReContextMenu 的 select 只回抛命令字符串，
+ *       这里用 key 当命令，回抛后再按 key 查回原始项交给宿主；</li>
+ *   <li>{@code divided} → 在该项前面插入一个 {@code separator} 节点
+ *       （ReTable 的 divided 语义是「在本项上方画一条分割线」）；</li>
+ *   <li>{@code disabled} 支持函数形态，右键上下文已知，这里直接求值成布尔；</li>
+ *   <li>{@code icon} 原样透传：字符串走 ReIcon 图标名，组件（Element Plus 图标）
+ *       由 ReContextMenu 直接渲染。</li>
+ * </ul>
+ *
+ * <p>同时产出 {@code byKey}：select 回抛命令后靠它找回原始项。子菜单项也登记进去，
+ * 因为子菜单的点击同样只回抛 command。</p>
+ */
+const ctxMenuTree = computed<{ nodes: ReContextMenuItem[]; byKey: Map<string, ReTableContextMenuItem> }>(() => {
+  const byKey = new Map<string, ReTableContextMenuItem>();
+  const items = resolveCtxMenuItems(ctxMenuContext.value);
+  if (items.length === 0) return { nodes: [], byKey };
+  const ctx = ctxMenuContext.value;
+  const mapItem = (item: ReTableContextMenuItem): ReContextMenuItem[] => {
+    const disabled =
+      typeof item.disabled === "function" ? (ctx ? item.disabled(ctx) : true) : Boolean(item.disabled);
+    const nodes: ReContextMenuItem[] = [];
+    if (item.divided) nodes.push({ label: "", separator: true });
+    byKey.set(item.key, item);
+    nodes.push({
+      label: item.label,
+      icon: item.icon,
+      command: item.key,
+      disabled,
+      children: item.children?.length ? item.children.flatMap(mapItem) : undefined,
+    });
+    return nodes;
+  };
+  return { nodes: items.flatMap(mapItem), byKey };
 });
+
+/**
+ * 在指定位置弹出右键菜单。
+ *
+ * <p>先落上下文再开菜单：菜单节点是由上下文算出来的，open() 内部要量真实宽高做
+ * 贴边翻转，所以放到 nextTick —— 那一刻节点已渲染，量的才是最终尺寸。</p>
+ */
+function showCtxMenu(ctx: ReTableContextMenuContext): void {
+  ctxMenuContext.value = ctx;
+  if (ctxMenuTree.value.nodes.length === 0) return;
+  const { clientX: x, clientY: y } = ctx.event;
+  void nextTick(() => ctxMenuRef.value?.open(x, y));
+}
+
+/**
+ * 视图 / 卡片布局的右键菜单项。
+ *
+ * <p>这两个子组件只收静态数组（它们自己判断「有没有菜单」决定要不要抛事件），
+ * 传不了生成函数 —— 与改动前一致：函数形态的行右键只在表格布局下可用。</p>
+ */
+const ctxMenuStaticItems = computed<ReTableContextMenuItem[]>(() =>
+  Array.isArray(props.contextMenu) ? props.contextMenu : [],
+);
+
 
 /**
  * 行右键事件（el-table）
@@ -1304,17 +1410,15 @@ function onRowContextMenu(
   _column: TableColumnCtx<Record<string, unknown>> | null,
   event: PointerEvent,
 ): void {
-  const items = resolvedCtxMenuItems.value;
-  if (!items || items.length === 0) return;
-  event.preventDefault();
-  ctxMenuX.value = event.clientX;
-  ctxMenuY.value = event.clientY;
-  ctxMenuContext.value = {
+  const ctx: ReTableContextMenuContext = {
     row,
     rowIndex: (dataList.value ?? []).indexOf(row),
     event,
   };
-  ctxMenuVisible.value = true;
+  // 没配菜单就不拦原生右键：让浏览器菜单照常出来，别把右键变成「点了没反应」
+  if (resolveCtxMenuItems(ctx).length === 0) return;
+  event.preventDefault();
+  showCtxMenu(ctx);
 }
 
 /**
@@ -1331,19 +1435,16 @@ function onCellContextMenu(
   _cell: HTMLTableCellElement,
   event: PointerEvent,
 ): void {
-  const items = resolvedCtxMenuItems.value;
-  if (!items || items.length === 0) return;
-  event.preventDefault();
-  ctxMenuX.value = event.clientX;
-  ctxMenuY.value = event.clientY;
-  ctxMenuContext.value = {
+  const ctx: ReTableContextMenuContext = {
     row,
     rowIndex: (dataList.value ?? []).indexOf(row),
     columnProp: column?.property || column?.prop,
     columnLabel: column?.label,
     event,
   };
-  ctxMenuVisible.value = true;
+  if (resolveCtxMenuItems(ctx).length === 0) return;
+  event.preventDefault();
+  showCtxMenu(ctx);
 }
 
 /**
@@ -1365,8 +1466,14 @@ function onHeaderContextMenu(
   });
 }
 
-/** 右键菜单选择 */
-function onContextMenuSelect(item: ReTableContextMenuItem, ctx: ReTableContextMenuContext): void {
+/**
+ * 右键菜单选择：ReContextMenu 只回抛命令字符串（= 菜单项的 key），
+ * 这里按 key 查回原始项，再按 ReTable 对外的事件契约 {@code (item, ctx)} 抛给宿主。
+ */
+function onContextMenuSelect(command: string): void {
+  const item = ctxMenuTree.value.byKey.get(command);
+  const ctx = ctxMenuContext.value;
+  if (!item || !ctx) return;
   emit("context-menu-select", item, ctx);
 }
 
@@ -2266,9 +2373,28 @@ function vxeFixed(col: ReTableColumn): "left" | "right" | "" {
   return "";
 }
 
-/** 单元格溢出：vxe 用 show-overflow='tooltip'，element-plus 用 show-overflow-tooltip */
-function vxeShowOverflow(col: ReTableColumn): "tooltip" | false {
-  return col.showOverflowTooltip ? "tooltip" : false;
+/**
+ * 单元格溢出：vxe 用 show-overflow='tooltip'，element-plus 用 show-overflow-tooltip。
+ *
+ * <p><b>为什么不能返回 {@code false}</b>：vxe 的 {@code updateColumnAllOverflow()}
+ * 从表级 <code>show-overflow</code> 起算 {@code isAllOverflow}，<b>只要有一列的
+ * {@code showOverflow === false} 就判假</b>。而 {@code isAllOverflow} 为假、又开了
+ * 横向虚拟滚动时，{@code recalculate()} 会走 {@code calcCellHeight()}：对每一行
+ * 都 {@code querySelectorAll('.vxe-cell--wrapper[rowid=…]')}、逐格「清 height →
+ * 读 clientHeight → 回填 height」，每行还整表 {@code setAttribute/removeAttribute}，
+ * 于是每格一次强制同步布局。</p>
+ *
+ * <p>实测（sys_setting，60 行 × 11 个渲染列）：{@code calcCellAutoHeight} 自耗时
+ * <b>3832ms，占总 profile 41%</b>，比不开虚拟滚动的整段还慢。改为「非 tooltip 列一律
+ * 给 {@code ellipsis}」后 {@code isAllOverflow} 恒真，vxe 整段跳过逐格量高。</p>
+ *
+ * <p>只在 {@link forceCellEllipsis} 为真（横向虚拟滚动已开、且没有纵向虚拟滚动）时
+ * 才这么给：纵向虚拟滚动要靠真实行高算 {@code oTop} 偏移量，压成单行会让长列表滚到
+ * 中段时行错位，那一档必须留着逐格量高。</p>
+ */
+function vxeShowOverflow(col: ReTableColumn): "tooltip" | "ellipsis" | false {
+  if (col.showOverflowTooltip) return "tooltip";
+  return forceCellEllipsis.value ? "ellipsis" : false;
 }
 
 /**
@@ -2879,6 +3005,182 @@ function onVxeHeaderCellDblclick(params: { column?: { field?: string }; $event?:
   autoFitColumns([prop]);
 }
 
+/**
+ * vxe 表头拖宽的运行配置。
+ *
+ * <p><b>显式关掉 showDragTip（2026-10 性能修复）</b>：vxe 的「拖拽时显示目标宽度」
+ * 在每一步 mousemove 里都是「先写样式、再立刻回读」的顺序 ——
+ * {@code updateEvent}（vxe-table es/table/src/table.js）先改 resizeBar 的
+ * left/top/height 与 resizeTip 的 textContent，紧接着读
+ * {@code tableEl.clientWidth}、{@code resizeBarElem.clientWidth}、
+ * {@code resizeTipElem.clientWidth/Height} 来算提示框的贴边位置。
+ * 刚被改脏的样式遇上同步读取 → <b>每移动一格鼠标就强制整张表重新布局</b>，
+ * 与表格自身节点数成正比，于是列越多、行越多越卡。</p>
+ *
+ * <p>实测（/db-manager 的 sys_setting：vxe 引擎、50 列 × 60 行、DOM 11279 节点）：
+ * 25 步拖拽里 {@code Element.clientWidth} 被调用 129 次、累计 1450ms
+ * （均 11.25ms、最坏 219.5ms，调用栈全部落在 {@code updateEvent}）；
+ * 拖拽期 JS 自耗时第一名就是这个 getter，帧间隔 avg 24~28ms / p95 63~73ms、
+ * 88 帧超过 50ms、主线程占用 56~60%。关掉提示后这些读取全部消失。</p>
+ *
+ * <p>提示本身没丢：改由 {@link showResizeTip} 自绘，只读 {@code event.clientX/clientY}
+ * 与列自身的 {@code style.width} 字符串，不产生任何布局读取。摆放方式由
+ * {@code resizeTipMode} 二选一（{@code tip} 默认 / {@code side}）—— 两者都是 fixed 浮层，
+ * 不占文档流，因此提示**不会撑开列宽**。</p>
+ */
+const vxeResizableConfig = computed(() => ({
+  showDragTip: false,
+  // 双击手柄自适应：**关掉 vxe 原生实现**，改由 ReTable 接管。
+  //
+  // vxe 的 handleColResizeDblclickEvent（es/table/src/table.js，本仓库 4.22.2 第 9916 行起）
+  // 有三处与这里的需求不符：
+  //   1) 只增不减：算完 resizeWidth 后做 `Math.max(resizeWidth, colRest.width)`，
+  //      colRest.width 就是当前渲染宽度，于是列被拖宽后双击再也收不回来；
+  //   2) 不落盘：它只改内存里的列宽，刷新就回默认值；ReTable 的列宽是持久化的
+  //      （persistColumnWidth → localStorage，按「库.表」分键）；
+  //   3) 指标口径不同：它量的是单元格 scrollWidth + 固定内边距，不认列的
+  //      minWidth / maxWidth，也不认表头补充行（注释 / 类型行，宿主经 headerFitLines 给出）。
+  // 另外它一旦启用就会 stopPropagation，ReTable 的 header-cell-dblclick 永远收不到。
+  //
+  // 因此双击走 onVxeHeaderCellDblclick → autoFitColumns：按文本实测（canvas 量字 +
+  // 表头补充行 + 排序箭头）+ 列的 minWidth/maxWidth 夹取，双向适配，宽度仍走
+  // setColumnWidths 的同一条落盘路径，并由 applyVxeColumnWidths 绕过 vxe 残留的
+  // resizeWidth 真正生效（见该函数注释）。
+  isDblclickAutoWidth: false,
+}));
+
+/** ========== 列宽拖拽 · 轻量宽度提示 ========== */
+
+/** 提示框宿主（Teleport 到 body；直接用 DOM 写样式，见模板注释） */
+const resizeTipRef = ref<HTMLElement | null>(null);
+
+/**
+ * 本次拖宽的起点：按下时的光标 X 与该列起始宽度。
+ * 为 null 表示当前不在拖宽 —— 三个 document 监听器都靠它早退，常态开销为一次空返回。
+ */
+let colResizeTipStart: { clientX: number; width: number; invert: boolean } | null = null;
+
+/**
+ * 写出提示（只做 transform + textContent，无任何布局读取）。
+ *
+ * <p>两种摆放（见 {@link props.resizeTipMode}）都只是 transform 的位移不同，
+ * 元素本身是 fixed 浮层，不影响列宽 / 表格布局：</p>
+ * <ul>
+ *   <li>{@code tip}（默认）：光标正上方、水平居中，像气泡一样跟着手柄；</li>
+ *   <li>{@code side}：光标右下方 12/16px 处跟随。</li>
+ * </ul>
+ */
+/**
+ * 每帧只写一次提示框。
+ *
+ * <p>鼠标移动事件的频率高于屏幕刷新率（实测拖宽 60 次 move 收到 60~70 个事件），
+ * 每个事件都改 transform 会让同一帧里堆多次样式写入 + 多次合成层提交。
+ * 这里只记下最新的坐标/宽度，一个 rAF 里合并写出一次。</p>
+ */
+let tipFrame = 0;
+let tipPending: { clientX: number; clientY: number; width: number } | null = null;
+
+function flushResizeTip(): void {
+  tipFrame = 0;
+  const p = tipPending;
+  tipPending = null;
+  if (p) showResizeTip(p.clientX, p.clientY, p.width);
+}
+
+function scheduleResizeTip(clientX: number, clientY: number, width: number): void {
+  tipPending = { clientX, clientY, width };
+  if (!tipFrame) tipFrame = requestAnimationFrame(flushResizeTip);
+}
+
+function showResizeTip(clientX: number, clientY: number, width: number): void {
+  const el = resizeTipRef.value;
+  if (!el) return;
+  el.textContent = `${width}px`;
+  // translate3d 走合成层，改它不会让周围元素重新布局
+  el.style.transform = props.resizeTipMode === "side"
+    ? `translate3d(${clientX + 12}px, ${clientY + 16}px, 0)`
+    : `translate3d(${clientX}px, ${clientY - 10}px, 0) translate(-50%, -100%)`;
+  // display 只在显示态切换时写：常态拖拽里重复写同一个值没有意义
+  if (el.style.display !== "block") el.style.display = "block";
+}
+
+/** 收起提示 */
+function hideResizeTip(): void {
+  colResizeTipStart = null;
+  tipPending = null;
+  if (tipFrame) {
+    cancelAnimationFrame(tipFrame);
+    tipFrame = 0;
+  }
+  const el = resizeTipRef.value;
+  if (el && el.style.display !== "none") el.style.display = "none";
+}
+
+/**
+ * 按下：只要落在 vxe 的列宽手柄（{@code .vxe-cell--col-resizable}）上就开始跟踪。
+ *
+ * <p>起始宽度从表头 {@code <colgroup><col>} 的 inline {@code style.width} 里取
+ * （vxe 每个 col 都写着 {@code width: {renderWidth}px}），读字符串不触发布局 ——
+ * 这是刻意避开 {@code getBoundingClientRect}：按下这一刻 vxe 正把
+ * {@code col-drag--resize} 加到表上，整表样式刚失效，任何几何读取都会就地触发
+ * 一次几百毫秒的强制布局。</p>
+ */
+function onDocMousedownResizeTip(e: MouseEvent): void {
+  const target = e.target as Element | null;
+  if (!target || typeof target.closest !== "function") return;
+  const handle = target.closest(".vxe-cell--col-resizable");
+  if (!handle) return;
+  const th = handle.closest("th");
+  const colgroup = th?.closest("table")?.querySelector("colgroup");
+  const tr = th?.parentElement;
+  if (!th || !colgroup || !tr) return;
+  // 表头可能有分组行：按 colSpan 累加出该 th 对应的列序号
+  let idx = 0;
+  for (const sib of Array.from(tr.children)) {
+    if (sib === th) break;
+    idx += (sib as HTMLTableCellElement).colSpan || 1;
+  }
+  const colEl = colgroup.children[idx] as HTMLElement | undefined;
+  const width = Number.parseFloat(colEl?.style.width ?? "");
+  if (!Number.isFinite(width) || width <= 0) return;
+  colResizeTipStart = {
+    clientX: e.clientX,
+    width,
+    // 右侧固定列是反向拖的：往左拖变宽
+    invert: Boolean(handle.closest(".vxe-table--fixed-right-wrapper")),
+  };
+}
+
+/** 拖拽中：宽度 = 起始宽度 ± 光标位移，位置跟随光标 */
+function onDocMousemoveResizeTip(e: MouseEvent): void {
+  const start = colResizeTipStart;
+  if (!start) return;
+  const delta = (e.clientX - start.clientX) * (start.invert ? -1 : 1);
+  // 与 vxe 的下限（默认最小列宽）保持一个合理正数，避免提示出现 0px/负数
+  const width = Math.max(20, Math.round(start.width + delta));
+  scheduleResizeTip(e.clientX, e.clientY, width);
+}
+
+/** 松开 / 失焦：收起提示 */
+function onDocMouseupResizeTip(): void {
+  hideResizeTip();
+}
+
+onMounted(() => {
+  document.addEventListener("mousedown", onDocMousedownResizeTip, true);
+  document.addEventListener("mousemove", onDocMousemoveResizeTip, { capture: true, passive: true });
+  document.addEventListener("mouseup", onDocMouseupResizeTip, true);
+  window.addEventListener("blur", onDocMouseupResizeTip);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener("mousedown", onDocMousedownResizeTip, true);
+  document.removeEventListener("mousemove", onDocMousemoveResizeTip, true);
+  document.removeEventListener("mouseup", onDocMouseupResizeTip, true);
+  window.removeEventListener("blur", onDocMouseupResizeTip);
+  hideResizeTip();
+});
+
 /** 监听 tableId / columns 变化时重载列配置 */
 watch(
   () => [activeTableId.value, props.columns] as const,
@@ -2968,6 +3270,108 @@ function recalculateVxe(): void {
   inst?.recalculate?.();
 }
 
+/** 写列宽要用的 vxe 实例能力（只声明用到的几个，避免 any） */
+type VxeWidthApi = {
+  getColumnByField?: (field: string) => { resizeWidth?: number; renderWidth?: number } | null;
+  getFullColumns?: () => Array<{ resizeWidth?: number; children?: unknown[] }>;
+  analyColumnWidth?: () => void;
+  refreshColumn?: (initSort?: boolean) => Promise<unknown> | unknown;
+  recalculate?: (refull?: boolean) => unknown;
+};
+
+/**
+ * 把落盘的列宽真正交给 vxe 应用。
+ *
+ * <p><b>为什么不能只调 {@code recalculate()}</b>：vxe 排版的列宽口径是
+ * {@code column.resizeWidth ?? column.width}（见 es/table/src/table.js 的
+ * {@code analyColumnWidth}：{@code if (column.resizeWidth) resizeList.push(column)}，
+ * resizeList 里 {@code renderWidth = resizeWidth}，压根不看 width）。而只要在
+ * 列宽手柄上按下再松开一次，vxe 就会写死 {@code resizeColumn.resizeWidth}（哪怕位移为 0，
+ * 见 {@code handleColResizeMousedownEvent} 的 mouseup）。</p>
+ *
+ * <p>于是「双击手柄自适应」这类**程序化**改宽会静默失效：宽度确实算出来了、也落盘了，
+ * 但 renderWidth 永远被残留的 resizeWidth 顶着，页面纹丝不动。实测：双击
+ * {@code sys_setting_value} 手柄后 localStorage 里已是 {@code 520}，渲染出来的
+ * {@code <col style="width">} 还是 {@code 130px}。修法是照 vxe 自己的
+ * {@code setColumnWidth}/{@code handleUpdateColResize} 的顺序来：
+ * 先改 {@code resizeWidth}，再 {@code analyColumnWidth()} 重新分桶，
+ * 最后 {@code refreshColumn()} 重排一次。</p>
+ *
+ * <p>只 {@code refreshColumn()} 一次（而不是逐列调公开 API {@code setColumnWidth}）：
+ * 后者每次都走一遍 {@code parseColumns(true)} 全量重解析，50 列「全部自适应」就是
+ * 50 次全表重排。</p>
+ *
+ * <p><b>但「已经排好版」时一次都不该重排</b>：列宽同时是响应式的（{@code columnState.widths}
+ * 参与列定义），改宽会先让 Vue 把新 {@code width} 推给 {@code <vxe-column>}，vxe 自己
+ * 就会重解析 + 重排一轮 —— {@code applyVxeColumnWidths} 是在 {@code nextTick} 里跑的，
+ * 那时列早已按新宽度排版完毕。此时再 {@code analyColumnWidth() + refreshColumn()} 就是
+ * 把同一件事做第二遍。</p>
+ *
+ * <p>判据用 {@code renderWidth}（vxe 排版的真值，见 {@code analyColumnWidth} 之后的
+ * 「调整了列宽」分支：{@code renderWidth = resizeWidth ?? width}）：目标列已经等于目标宽度
+ * → 说明 Vue 那一轮已经落地，只补 {@code resizeWidth}（供后续 recalc 一致）、不再重排。
+ * 有任一列不等于目标（典型是拖过之后残留的 {@code resizeWidth} 顶着旧值，Vue 推不动它）
+ * 才走完整重排。实测双击自适应从 <b>712ms 降到约 250ms</b>。</p>
+ */
+function applyVxeColumnWidths(widths: Record<string, number>): void {
+  const inst = vxeTableRef.value as unknown as VxeWidthApi | null;
+  const getColumnByField = inst?.getColumnByField;
+  if (!inst || typeof getColumnByField !== "function" || typeof inst.analyColumnWidth !== "function") {
+    recalculateVxe();
+    return;
+  }
+  let touched = false;
+  /** 目标列里「vxe 还没按新宽度排版」的列数（>0 才值得重排一轮） */
+  let pending = 0;
+  for (const [prop, width] of Object.entries(widths)) {
+    if (!Number.isFinite(width)) continue;
+    const column = getColumnByField.call(inst, prop);
+    if (!column) continue;
+    const target = Math.round(width);
+    touched = true;
+    if (Math.abs((column.renderWidth ?? 0) - target) > 1) pending++;
+    column.resizeWidth = target;
+  }
+  if (!touched) return;
+  if (pending === 0) return;
+  inst.analyColumnWidth();
+  if (typeof inst.refreshColumn === "function") {
+    void inst.refreshColumn();
+  } else {
+    recalculateVxe();
+  }
+}
+
+/** 清掉 vxe 上残留的 resizeWidth（回默认宽度时必须一起清，否则它仍按旧宽度排版） */
+function clearVxeColumnWidths(): void {
+  const inst = vxeTableRef.value as unknown as VxeWidthApi | null;
+  const getFullColumns = inst?.getFullColumns;
+  if (!inst || typeof getFullColumns !== "function" || typeof inst.analyColumnWidth !== "function") {
+    recalculateVxe();
+    return;
+  }
+  let touched = false;
+  const walk = (list: Array<{ resizeWidth?: number; children?: unknown[] }>): void => {
+    for (const column of list) {
+      if (column.resizeWidth) {
+        column.resizeWidth = 0;
+        touched = true;
+      }
+      if (Array.isArray(column.children) && column.children.length > 0) {
+        walk(column.children as Array<{ resizeWidth?: number; children?: unknown[] }>);
+      }
+    }
+  };
+  walk(getFullColumns.call(inst) ?? []);
+  if (!touched) return;
+  inst.analyColumnWidth();
+  if (typeof inst.refreshColumn === "function") {
+    void inst.refreshColumn();
+  } else {
+    recalculateVxe();
+  }
+}
+
 /**
  * 程序化设置单列宽度。
  *
@@ -2981,8 +3385,9 @@ function setColumnWidth(prop: string, width: number): void {
   if (!prop || !Number.isFinite(width)) return;
   const col = visibleColumns.value.find((c) => c.prop === prop);
   if (!col) return;
-  persistColumnWidth(prop, clampWidthForColumn(col, width));
-  void nextTick(recalculateVxe);
+  const clamped = clampWidthForColumn(col, width);
+  persistColumnWidth(prop, clamped);
+  void nextTick(() => applyVxeColumnWidths({ [prop]: clamped }));
 }
 
 /**
@@ -2995,18 +3400,18 @@ function setColumnWidth(prop: string, width: number): void {
  */
 function setColumnWidths(widths: Record<string, number>): void {
   const next: Record<string, number> = { ...(columnState.value.widths ?? {}) };
-  let touched = false;
+  const applied: Record<string, number> = {};
   for (const [prop, width] of Object.entries(widths)) {
     if (!Number.isFinite(width)) continue;
     const col = visibleColumns.value.find((c) => c.prop === prop);
     if (!col) continue;
     next[prop] = clampWidthForColumn(col, width);
-    touched = true;
+    applied[prop] = next[prop];
   }
-  if (!touched) return;
+  if (Object.keys(applied).length === 0) return;
   columnState.value = { ...columnState.value, widths: next };
   saveColumnState();
-  void nextTick(recalculateVxe);
+  void nextTick(() => applyVxeColumnWidths(applied));
 }
 
 /**
@@ -3036,7 +3441,7 @@ function resetColumnWidths(): void {
   if (!columnState.value.widths) return;
   columnState.value = { ...columnState.value, widths: undefined };
   saveColumnState();
-  void nextTick(recalculateVxe);
+  void nextTick(clearVxeColumnWidths);
 }
 
 /** 量文本宽度用的 canvas 上下文（懒建；每列都新建一个太浪费） */
@@ -4813,6 +5218,74 @@ const vxeVirtualYConfig = computed(() => {
   return Object.keys(base).length > 0 ? base : undefined;
 });
 
+/**
+ * vxe 横向（列）虚拟滚动配置。
+ *
+ * <p><b>为什么需要它</b>：不开启时 vxe 对每个可视行都铺满**所有**列。CPU profile
+ * 显示开一张 25 列 × 60 行（db-manager 的 sys_setting）的表，响应式取值
+ * （{@code get} 1613ms）、单元格渲染（{@code renderTdColumn} 683ms）、
+ * 几何读取（{@code getBoundingClientRect} 469ms）、样式写入（{@code updateStyle}
+ * 422ms）与自动列宽测量（{@code autoCellWidth} 309ms）全都随单元格数量线性增长，
+ * DOM 11308 节点、合计 9 个 long task / 2826ms。开启后只渲染视口内的列
+ * （实测 11/25 列），上述各项降到 306 / 143 / 91 / 116 / 54ms，DOM 5445。</p>
+ *
+ * <p><b>阈值</b>：可见列数超过 {@link AUTO_VIRTUAL_X_GT} 才启用。列少时横向虚拟滚动
+ * 没有收益（总开销里还多出横向滚动条的同步计算），只有宽表才划算。
+ * 未显式传 {@code virtualScrollX} 时自动判断，显式 {@code false} 可关掉。</p>
+ *
+ * <p><b>为什么有 {@code spanMethod} 就不开</b>：vxe 的横向虚拟滚动基于「只渲染
+ * 列区间切片」实现，跨列合并的单元格落在切片外会算错 colspan；
+ * 宿主给了 {@code span-method}（且不是配置式合并且非固定模式）时保留全量渲染。</p>
+ */
+const AUTO_VIRTUAL_X_GT = 12;
+const autoVirtualXHinted = { value: false };
+const autoVirtualScrollX = computed(() => {
+  if (!useVxe.value) return false;
+  if (props.spanMethod) return false;
+  return visibleColumns.value.length > AUTO_VIRTUAL_X_GT;
+});
+
+const vxeVirtualXConfig = computed(() => {
+  if (!useVxe.value) return undefined;
+  if (props.spanMethod) return undefined;
+  if (props.virtualScrollX === false) return undefined;
+  const explicit = props.virtualScrollX === true;
+  if (!explicit && !autoVirtualScrollX.value) return undefined;
+  if (import.meta.env.DEV && !explicit && !autoVirtualXHinted.value) {
+    autoVirtualXHinted.value = true;
+    console.info(
+      `[ReTable] 可见列数 ${visibleColumns.value.length} 超过 ${AUTO_VIRTUAL_X_GT}，已自动启用 vxe 横向虚拟滚动（virtualScrollX 未显式配置）。` +
+        `如需固定行为请显式传 :virtual-scroll-x="true" 或 "false"。`,
+    );
+  }
+  return {
+    enabled: true,
+    gt: explicit ? Math.max(0, props.virtualScrollXGt) : AUTO_VIRTUAL_X_GT,
+    // 预渲染列数：左右各多铺 1 列，横向滚动时不会出现空白列闪烁
+    preSize: 1,
+    oSize: 0,
+  };
+});
+
+/**
+ * 是否把非 tooltip 列统一按「单行省略」渲染（配合 {@link vxeShowOverflow}）。
+ *
+ * <p>这是把横向虚拟滚动「白赚的那段」拿回来的开关：vxe 只要看到
+ * {@code isAllOverflow === false} 且开了任一方向虚拟滚动，就会逐行逐格量高
+ * （见 {@link vxeShowOverflow} 的实测数据，3832ms）。所有列都声明溢出方式后
+ * {@code isAllOverflow} 恒真，量高整段跳过。</p>
+ *
+ * <p><b>为什么放开纵向虚拟滚动时不敢开</b>：纵向虚拟滚动按每行的真实高度累加
+ * {@code oTop} 定位行（{@code handleVirtualYVisible} / {@code updateRowOffsetTop}），
+ * 行高被压成单行后，多行内容（自定义插槽里排两行的块级节点）会让偏移量算错。
+ * 横向虚拟滚动只关心「列区间切片」，与行高无关，所以那一档安全。</p>
+ */
+const forceCellEllipsis = computed(() => {
+  if (!vxeVirtualXConfig.value) return false;
+  if (vxeVirtualYConfig.value?.enabled) return false;
+  return true;
+});
+
 /** vxe 区域选择 · 鼠标配置（area 打开框选） */
 const vxeMouseConfig = { area: true };
 /** vxe 区域选择 · 区域配置（多区域 + 点击表格外自动清除） */
@@ -5637,6 +6110,7 @@ const iconSelect = Select;
       :style="vxeTableStyle"
       :row-config="vxeRowConfig"
       :column-config="vxeColumnConfig"
+      :resizable-config="vxeResizableConfig"
       :checkbox-config="vxeCheckboxConfig"
       :sort-config="vxeSortConfig"
       :menu-config="vxeMenuConfig"
@@ -5644,6 +6118,8 @@ const iconSelect = Select;
       :tree-config="vxeTreeConfig"
       :seq-config="vxeSeqConfig"
       :virtual-y-config="vxeVirtualYConfig"
+      :virtual-x-config="vxeVirtualXConfig"
+      :show-overflow="forceCellEllipsis ? 'ellipsis' : undefined"
       :mouse-config="areaSelect ? vxeMouseConfig : undefined"
       :area-config="areaSelect ? vxeAreaConfig : undefined"
       :keyboard-config="areaSelect && areaClip ? vxeKeyboardConfig : undefined"
@@ -5856,12 +6332,12 @@ const iconSelect = Select;
       :layout="layoutView ?? {}"
       :row-key="rowKey"
       :selectable="batchSelectActive || batchActionEnabled"
-      :context-menu="resolvedCtxMenuItems"
+      :context-menu="ctxMenuStaticItems"
       :empty-text="emptyText"
       :index-offset="layoutIndexOffset"
       @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
       @selection-change="onSelectionChange"
-      @context-menu="(ctx: ReTableContextMenuContext) => { ctxMenuX = ctx.event.clientX; ctxMenuY = ctx.event.clientY; ctxMenuContext = ctx; ctxMenuVisible = true; }"
+      @context-menu="showCtxMenu"
     >
       <template v-if="$slots.view" #view="slotProps">
         <slot name="view" v-bind="slotProps" />
@@ -5876,11 +6352,11 @@ const iconSelect = Select;
       :layout="layoutCard ?? {}"
       :row-key="rowKey"
       :selectable="batchSelectActive || batchActionEnabled"
-      :context-menu="resolvedCtxMenuItems"
+      :context-menu="ctxMenuStaticItems"
       :empty-text="emptyText"
       @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
       @selection-change="onSelectionChange"
-      @context-menu="(ctx: ReTableContextMenuContext) => { ctxMenuX = ctx.event.clientX; ctxMenuY = ctx.event.clientY; ctxMenuContext = ctx; ctxMenuVisible = true; }"
+      @context-menu="showCtxMenu"
     >
       <template v-if="$slots.card" #card="slotProps">
         <slot name="card" v-bind="slotProps" />
@@ -6170,15 +6646,26 @@ const iconSelect = Select;
       </div>
     </div>
 
-    <!-- 右键菜单 -->
-    <ReTableContextMenu
-      v-model:visible="ctxMenuVisible"
-      :items="resolvedCtxMenuItems"
-      :context="ctxMenuContext"
-      :x="ctxMenuX"
-      :y="ctxMenuY"
+    <!-- 右键菜单：Re 家族通用组件（ReContextMenu），行/单元格右键由本组件统一开合 -->
+    <ReContextMenu
+      ref="ctxMenuRef"
+      :items="ctxMenuTree.nodes"
       @select="onContextMenuSelect"
+      @close="ctxMenuContext = undefined"
     />
+
+    <!--
+      拖宽时的宽度提示（替代 vxe 自带的 showDragTip，见 vxeResizableConfig 的注释）。
+
+      刻意「不走响应式」：位置/宽度直接在拖拽回调里写 DOM。原因是 ReTable 的表头列
+      全部由本组件的 render 生成，任何 state 变化都会让整张 <VxeTable> 重渲染 +
+      重算列（实测列重建一次几十到几百毫秒），用 ref 驱动一个提示框等于每移动一格
+      鼠标重建一次表格。这里只写 style.transform 与 textContent，零重渲染、零布局读取。
+      挂到 body 是为了不被 .re-table 的 overflow: hidden 裁掉。
+    -->
+    <Teleport to="body">
+      <div ref="resizeTipRef" class="re-table__resize-tip"></div>
+    </Teleport>
     </div>
   </div>
 </template>
@@ -7466,6 +7953,32 @@ const iconSelect = Select;
 }
 .re-table .vxe-table--body-wrapper::-webkit-scrollbar-thumb:hover {
   background-color: color-mix(in srgb, var(--el-text-color-secondary) 50%, transparent);
+}
+
+/* 列宽拖拽的宽度提示（vxe 的 showDragTip 已关，见 vxeResizableConfig 注释）。
+   position: fixed 定位到 body 下，只靠 transform 移动 —— 拖拽期间不碰布局。
+   颜色全部走 element-plus 变量，暗色主题自动跟随，无需单独写 .dark 分支。 */
+.re-table__resize-tip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: none;
+  z-index: 3001;
+  padding: 1px 6px;
+  font-family: var(--el-font-family, inherit);
+  font-size: 12px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-primary);
+  background: var(--el-bg-color-overlay, var(--el-bg-color));
+  border: 1px solid var(--el-border-color-light);
+  border-radius: var(--rt-radius-sm, 4px);
+  box-shadow: var(--el-box-shadow-light);
+  pointer-events: none;
+  user-select: none;
+  will-change: transform;
+  /* 布局/样式隔离：提示框内容变化只影响它自己，不会让祖先重新布局 */
+  contain: layout style;
 }
 
 /* 尊重系统「减少动态效果」偏好：本组件的过渡统一降级为瞬时切换。
