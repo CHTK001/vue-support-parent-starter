@@ -791,6 +791,7 @@ const load = async () => {
     const [data, typeList] = await Promise.all([fetchDataSources(), fetchDataSourceTypes()]);
     list.value = data ?? [];
     types.value = typeList ?? ["jdbc", "redis", "influxdb", "neo4j", "nacos", "zookeeper", "kafka", "elasticsearch"];
+    syncSelection(list.value);
   } catch (e) {
     message.error(`加载失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
@@ -906,6 +907,77 @@ const remove = async (item: DataSourceInfo) => {
   } catch (e) {
     message.error(`删除失败: ${String((e as Error)?.message ?? e)}`);
   }
+};
+
+// ------------------------------ 左栏批量操作 ------------------------------
+// 参考设备管理（DeviceView）的批量交互：勾选多条后浮出批量条，
+// 批量置顶 / 批量删除逐条调用既有单条接口（后端无批量端点），
+// 全部结果用 Promise.allSettled 收敛，失败只提示条数不中断。
+
+/** 左栏勾选的数据源 ID 集合（空集合 = 未进入批量模式） */
+const selectionIds = ref<Set<number>>(new Set());
+
+/** 勾选状态：列表刷新后按 id 对齐新对象（选中项可能在刷新中被删除） */
+const syncSelection = (rows: DataSourceInfo[]) => {
+  const alive = new Set(rows.map((r) => r.id).filter((id): id is number => id != null));
+  selectionIds.value = new Set([...selectionIds.value].filter((id) => alive.has(id)));
+};
+
+/** 单条切换勾选 */
+const toggleSelection = (id: number | undefined) => {
+  if (id == null) return;
+  const next = new Set(selectionIds.value);
+  if (next.has(id)) next.delete(id);
+  else next.add(id);
+  selectionIds.value = next;
+};
+
+/** 全选 / 取消全选（只作用于当前过滤后的可见列表） */
+const toggleSelectAll = () => {
+  const visible = filteredList.value.map((r) => r.id).filter((id): id is number => id != null);
+  if (visible.length && visible.every((id) => selectionIds.value.has(id))) {
+    selectionIds.value = new Set();
+  } else {
+    selectionIds.value = new Set(visible);
+  }
+};
+
+/** 清空勾选（点批量条以外区域 / 弹窗关闭后调用） */
+const clearSelection = () => {
+  selectionIds.value = new Set();
+};
+
+/** 批量置顶 / 取消置顶（逐条调用单条接口；置顶项在左栏/全量列表排最前） */
+const batchToggleTop = async (top: boolean) => {
+  const targets = [...selectionIds.value];
+  if (!targets.length) return;
+  const label = top ? "置顶" : "取消置顶";
+  const results = await Promise.allSettled(targets.map((id) => toggleDataSourceTop(id, top)));
+  const ok = results.filter((r) => r.status === "fulfilled").length;
+  message.success(`已${label} ${ok} 个数据源`);
+  clearSelection();
+  await load();
+};
+
+/** 批量删除 */
+const batchRemove = async () => {
+  const targets = [...selectionIds.value];
+  if (!targets.length) return;
+  const names = list.value.filter((r) => targets.includes(r.id ?? -1)).map((r) => r.name);
+  try {
+    await ElMessageBox.confirm(
+      `确认删除选中的 ${targets.length} 个数据源（${names.slice(0, 3).join("、")}${names.length > 3 ? " 等" : ""}）？该操作不可恢复。`,
+      "批量删除",
+      { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" },
+    );
+  } catch {
+    return;
+  }
+  const results = await Promise.allSettled(targets.map((id) => deleteDataSource(id)));
+  const ok = results.filter((r) => r.status === "fulfilled").length;
+  message.success(`已删除 ${ok} 个数据源`);
+  clearSelection();
+  await load();
 };
 
 /** 卡片「更多」命令分发（收敛次要操作：浏览表结构 / 编辑 / 删除） */
@@ -1796,6 +1868,22 @@ const statusFilters = computed<StatusFilterItem[]>(() => {
 });
 
 /**
+ * el-segmented 选项：字段名对齐组件约定（label 用 label、value 取 key）。
+ *
+ * <p>左栏状态过滤从「纵向四行列表」改成「一行四段 el-segmented」后，
+ * 省下一整行高度（约 110px），数据源列表的显示空间变大；计数/圆点仍走
+ * {@code #default} 插槽自绘，视觉与原先一致。</p>
+ */
+const statusSegments = computed(() =>
+  statusFilters.value.map((f) => ({
+    label: f.label,
+    value: f.key,
+    color: f.color,
+    count: f.count,
+  })),
+);
+
+/**
  * 「操作日志」页签入口开关。
  *
  * <p>2026-10-26 验收通过：后端 {@code GET /ms/datasource/oper-log/{id}} 返回真实数据
@@ -2168,20 +2256,23 @@ onMounted(load);
       <!-- 左栏：状态过滤 / 搜索 / 数据源列表 / 添加入口 -->
       <aside class="ds-side">
         <div class="ds-side-card">
-          <!-- 状态过滤列表 -->
-          <ul class="ds-status">
-            <li
-              v-for="item in statusFilters"
-              :key="item.key"
-              class="ds-status__item"
-              :class="{ 'is-active': statusKey === item.key }"
-              @click="statusKey = item.key"
-            >
+          <!-- 状态过滤：一行四段 el-segmented（滑动块选中态）。
+              相比原先「纵向四行」的 ul 列表省下一整行高度，数据源列表显示空间更大；
+              圆点/计数仍走 #default 插槽自绘，视觉与原先一致。 -->
+          <el-segmented
+            v-model="statusKey"
+            :options="statusSegments"
+            block
+            size="small"
+            class="ds-status"
+            aria-label="按状态过滤数据源"
+          >
+            <template #default="{ item }">
               <span class="ds-status__dot" :style="{ background: item.color }" />
               <span class="ds-status__label">{{ item.label }}</span>
               <span v-if="item.count !== null" class="ds-status__count">{{ item.count }}</span>
-            </li>
-          </ul>
+            </template>
+          </el-segmented>
 
           <div class="ds-side__divider" />
 

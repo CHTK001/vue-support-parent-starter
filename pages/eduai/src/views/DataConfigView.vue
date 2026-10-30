@@ -1711,6 +1711,16 @@ onMounted(() => {
   padding: 14px;
 }
 
+/* ReTable 根节点自带 1px 卡片边界 + 12px 内边距（它默认是独立一张卡）。
+   本页外层（ReTabs 根节点）已经是一张卡，再套一层就成了「卡中卡」，边框叠边框。
+   这里把内层压平，只留内容；外层的 padding 由 .block--pad 统一给。 */
+.block--pad :deep(.re-table) {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
 .filter-tag {
   margin-left: 4px;
   padding: 1px 8px;
@@ -1873,7 +1883,8 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 6px;
-  opacity: 0.45;
+  /* 静息态别压太狠：0.45 时图标按钮只剩一圈几乎看不见的浅灰，整列操作像不存在 */
+  opacity: 0.7;
   transition: opacity var(--el-transition-duration-fast, 0.2s) ease;
 }
 

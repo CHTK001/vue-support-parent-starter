@@ -8172,20 +8172,20 @@ onUnmounted(() => {
   display: flex;
   align-items: stretch;
   gap: 0;
-  padding: 8px 0 0;
+  padding: 10px 0 0;
   overflow-x: auto;
   overflow-y: hidden;
 }
 
 .fs-col {
-  flex: 0 0 232px;
-  min-width: 232px;
-  max-width: 232px;
+  flex: 0 0 252px;
+  min-width: 252px;
+  max-width: 252px;
   border-right: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
   overflow: hidden;
 }
 
-/* 最后一列撑满剩余宽度：解除基类的 max-width 上限，让图标卡网格铺满文件区 */
+/* 最后一列撑满剩余宽度：让后续列的展开空间始终可见 */
 .fs-col:last-child {
   flex: 1 1 auto;
   max-width: none;
@@ -8195,11 +8195,12 @@ onUnmounted(() => {
 .fs-col__body {
   height: 100%;
   overflow-y: auto;
-  padding: 6px;
+  padding: 8px;
   display: flex;
-  flex-wrap: wrap;
-  align-content: flex-start;
-  gap: 4px;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-content: stretch;
+  gap: 2px;
 }
 
 .fs-col__hint {
@@ -8215,24 +8216,25 @@ onUnmounted(() => {
   word-break: break-all;
 }
 
-/* 列内条目统一为图标卡：图标在上、文件名在下（office 图标 + 下方文件名） */
+/* 列内条目统一为 Finder 行：图标在左、名称在后，目录展开用右侧箭头提示 */
 .fs-col__row {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  justify-content: flex-start;
-  gap: 4px;
-  width: 96px;
-  min-height: 78px;
-  padding: 8px 4px 6px;
-  border-radius: var(--el-radius-md, 8px);
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  padding: 4px 8px;
+  border-radius: var(--el-radius-md, 6px);
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--el-text-color-regular);
-  text-align: center;
-  white-space: normal;
+  text-align: left;
+  white-space: nowrap;
   overflow: hidden;
   outline: none;
+  box-sizing: border-box;
   transition: background var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s);
 }
 
@@ -8243,22 +8245,30 @@ onUnmounted(() => {
 }
 
 .fs-col__row:hover {
-  background: var(--el-fill-color-light);
+  background: var(--el-fill-color-lighter);
 }
 
-.fs-col__row.is-trail {
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
-  font-weight: 600;
-}
-
+/* Finder 选中态：当前展开的目录链与当前选中的文件都使用同一强调色整行高亮 */
+.fs-col__row.is-trail,
 .fs-col__row.is-selected {
   background: var(--el-color-primary);
   color: var(--el-color-white);
 }
 
+.fs-col__row.is-trail .fs-col__name,
 .fs-col__row.is-selected .fs-col__name {
   color: var(--el-color-white);
+}
+
+/* 已向右展开的目录在行尾显示 Finder 风格箭头 */
+.fs-col__row.is-trail::after {
+  content: "›";
+  flex: 0 0 auto;
+  margin-left: auto;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1;
+  color: color-mix(in srgb, var(--el-color-white) 72%, transparent);
 }
 
 .fs-col__row.is-dragover {
@@ -8267,18 +8277,20 @@ onUnmounted(() => {
 }
 
 .fs-col__icon {
-  width: 36px;
-  height: 36px;
-  font-size: 36px;
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
   flex-shrink: 0;
 }
 
 .fs-col__name {
-  max-width: 100%;
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  word-break: break-all;
+  white-space: nowrap;
   line-height: 1.3;
+  color: inherit;
 }
 
 /* 状态栏 */

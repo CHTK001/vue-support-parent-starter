@@ -122,46 +122,7 @@
   border-radius: var(--el-radius-full, 9999px);
 }
 
-/* ---------- ReRadioGroup：square 布局（扁平方块） ----------
- * 与 ProfileProcesses.vue 中 .proc-metric / .proc-metric-btn 同级风格：
- *   - 浅灰底轨道（`--el-fill-color-light`），不描边、不投影、7px 圆角
- *   - 选项无描边、5px 小圆角，未选灰字 + 悬浮浅灰底
- *   - 选中态为白底深字 + 极轻投影（Solid 胶囊/药丸圆角在这里不成立）
- * 只改绘制属性（背景/颜色/阴影），尺寸档照常生效。 */
 
-/* 轨道：切到 `--el-fill-color-light` 浅灰底，悬空掉 EP 的描边与投影 */
-.re-radio-group.re-radio-group--square {
-  background: var(--el-fill-color-light, #f5f7fa);
-  border-color: transparent;
-  box-shadow: none;
-  border-radius: 7px;
-}
-
-/* 选项：去描边、去胶囊圆角、去填充 */
-.re-radio-group.re-radio-group--square .el-radio-button__inner {
-  border: 0 none;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--el-text-color-secondary, #5c6270);
-  font-weight: 600;
-  box-shadow: none;
-  transition: background 0.16s, color 0.16s, box-shadow 0.16s;
-}
-
-/* 未选中项 hover：只走灰阶。带 :not(.is-active) 是为了让已选中项的 hover
-    落到下面的选中规则（保持实心主色），而不是被这条染成灰 —— 否则鼠标停在
-    已选项上会看到选中块「褪色」，误以为取消了选择。 */
-.re-radio-group.re-radio-group .el-radio-button:not(.is-active) .el-radio-button__inner:hover {
-  background: var(--el-fill-color-light, #f5f7fa);
-}
-
-/* 选中：白底深字 + 极轻投影（置为与 `.proc-metric-btn.on` 同一口径） */
-.re-radio-group.re-radio-group--square .el-radio-button.is-active .el-radio-button__inner,
-.re-radio-group.re-radio-group--square .el-radio-button__original-radio:checked + .el-radio-button__inner {
-  color: var(--el-text-color-primary, #1f2430);
-  background: var(--el-bg-color, #fff);
-  box-shadow: 0 1px 2px rgba(31, 36, 48, 0.1);
-}
 
 /* 未选中的 radio-button 仍旧挂着 EP 的 `is-active` （margin/right） stuff。
    为了不用把轨道和选项的 hover 全部重新发明一遍，单独起一个方选块分支，
@@ -195,6 +156,52 @@
 .re-radio-group.re-radio-group .el-radio-button__original-radio:focus-visible + .el-radio-button__inner {
   outline: 2px solid var(--el-color-primary-light-5);
   outline-offset: 1px;
+}
+
+/* ---------- ReRadioGroup：square 布局（扁平方块） ----------
+ * 与 ProfileProcesses.vue 中 .proc-metric / .proc-metric-btn 同级风格：
+ *   - 浅灰底轨道（`--el-fill-color-light`），不描边、不投影、7px 圆角
+ *   - 选项无描边、5px 小圆角，未选灰字 + 悬浮浅灰底
+ *   - 选中态为白底深字 + 极轻投影（Solid 胶囊/药丸圆角在这里不成立）
+ * 只改绘制属性（背景/颜色/阴影），尺寸档照常生效。
+ *
+ * 定位在 ReKit 默认规则之后：`--square` 选择器（.re-radio-group --square）与默认
+ * 规则（.re-radio-group.re-radio-group）同为 5 个类（特异性 (0,5,0)），强规则不在
+ * 后文的话会被后来的默认规则覆盖（实测方选块的选中态被压回主色实心块）。
+ */
+
+/* 轨道：切到 `--el-fill-color-light` 浅灰底，悬空掉 EP 的描边与投影 */
+.re-radio-group.re-radio-group--square {
+  background: var(--el-fill-color-light, #f5f7fa);
+  border-color: transparent;
+  box-shadow: none;
+  border-radius: 7px;
+}
+
+/* 选项：去描边、去胶囊圆角、去填充 */
+.re-radio-group.re-radio-group--square .el-radio-button__inner {
+  border: 0 none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--el-text-color-secondary, #5c6270);
+  font-weight: 600;
+  box-shadow: none;
+  transition: background 0.16s, color 0.16s, box-shadow 0.16s;
+}
+
+/* 未选中项 hover：只走灰阶。带 :not(.is-active) 是为了让已选中项的 hover
+    落到选中规则（白底深字），而不是被这条染灰 —— 否则鼠标停在已选项上会看到
+    选中块「褪色」，误以为取消了选择。 */
+.re-radio-group.re-radio-group .el-radio-button:not(.is-active) .el-radio-button__inner:hover {
+  background: var(--el-fill-color-light, #f5f7fa);
+}
+
+/* 选中：白底深字 + 极轻投影（置为与 `.proc-metric-btn.on` 同一口径） */
+.re-radio-group.re-radio-group--square .el-radio-button.is-active .el-radio-button__inner,
+.re-radio-group.re-radio-group--square .el-radio-button__original-radio:checked + .el-radio-button__inner {
+  color: var(--el-text-color-primary, #1f2430);
+  background: var(--el-bg-color, #fff);
+  box-shadow: 0 1px 2px rgba(31, 36, 48, 0.1);
 }
 
 /* 尺寸档：sm 24 / default 26 / lg 32，与相邻 el-input / el-select 对齐 */
