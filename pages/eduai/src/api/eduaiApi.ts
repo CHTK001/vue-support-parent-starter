@@ -186,14 +186,14 @@ export const eduaiApi = {
       }),
 
   /**
-   * 探测 AI 组卷能力是否可用
+   * 探测 AI 对话能力是否可用
    *
-   * <p>AI 组卷依赖后端的 spring-support-ai-starter（需注册了可用的对话客户端）。
+   * <p>能力探测端点属于 AI 模块（spring-support-ai-starter）：`GET /v2/chat/capability`。
    * 不可用时后端会给出具体原因，前端据此禁用入口并展示原因，而不是让用户点下去再失败。</p>
    */
   aiCapability: () =>
     http()
-      .get("/v2/edu/ai/capability")
+      .get("/v2/chat/capability")
       .then<EduAiCapability>(unwrap),
 
   /**
@@ -644,20 +644,6 @@ export const eduaiApi = {
     http()
       .delete(`/v2/edu/exam/${id}`)
       .then<boolean>(unwrap),
-
-  // 调试
-  aiHealth: () =>
-    http()
-      .get("/v2/edu/debug/ai-health")
-      .then<Record<string, unknown>>(unwrap),
-  queueEcho: () =>
-    http()
-      .get("/v2/edu/debug/queue-echo")
-      .then<Record<string, unknown>>(unwrap),
-  queueName: () =>
-    http()
-      .get("/v2/edu/debug/queue-name")
-      .then<Record<string, unknown>>(unwrap),
 
   // 趣味模块配置
   listFunConfigs: () =>

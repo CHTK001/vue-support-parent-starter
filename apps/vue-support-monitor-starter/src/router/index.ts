@@ -323,6 +323,29 @@ export const monitorRoutes: RouteConfigsTable[] = [
     ],
   },
 
+  // ==================== 日志管理 ====================
+  // 操作日志 / 登录日志的落地页在 @pages/system（后端 /v2/log/page、/v2/user/log/page），
+  // 页面与 API 自成包。这里只挂路由，菜单由路由树（buildMenuFromRoutes）自动推导。
+  {
+    path: "/grp-logs",
+    name: "GroupLogs",
+    meta: { title: "日志管理", icon: "Tickets", showLink: true, rank: 31 },
+    children: [
+      {
+        path: "/logs/sys",
+        name: "SysLog",
+        component: () => import("@pages/system/views/SysLogManage.vue"),
+        meta: { title: "系统日志", icon: "Document", showLink: true, keepAlive: true, rank: 1 },
+      },
+      {
+        path: "/logs/user",
+        name: "UserLog",
+        component: () => import("@pages/system/views/UserLogManage.vue"),
+        meta: { title: "登录日志", icon: "Unlock", showLink: true, keepAlive: true, rank: 2 },
+      },
+    ],
+  },
+
   // ==================== 各功能包的隐藏路由合并 ====================
   // 以下几组路由的声明在各自的功能包里（视图、API、路由同源），宿主只做合并，
   // 全部 showLink:false（不进侧边栏），由所属列表页「打开管理」进入。

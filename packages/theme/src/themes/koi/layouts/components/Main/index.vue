@@ -5,7 +5,6 @@
     <ReAiCharacter />
 <Tabs v-if="globalStore.isTabsShown" />
     <AnnouncementBar position="default" load-mode="single" />
-    <RePerfMonitor />
     <el-main class="main-content">
       <router-view v-slot="{ Component, route }">
         <template v-if="isNoneTransition">

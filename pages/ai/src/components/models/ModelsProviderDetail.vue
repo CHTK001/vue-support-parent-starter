@@ -34,7 +34,7 @@
             「删除」仍屏蔽：ONNX 供应商由模型注册表驱动，下次启动会被重新物化，
             删除既无意义也会让用户以为模型丢失。
           -->
-          <el-button @click="emit('edit-provider')" round>
+          <el-button v-if="canWrite" @click="emit('edit-provider')" round>
             <template #icon><EditOutlined /></template>
             编辑供应商
           </el-button>
@@ -42,11 +42,11 @@
             <template #icon><DeleteOutlined /></template>
             删除
           </el-button>
-          <el-button type="primary" round @click="handleAdd">
+          <el-button v-if="canWrite" type="primary" round @click="handleAdd">
             <template #icon><PlusOutlined /></template>
             {{ t('settings.providerDetail.addModel') }}
           </el-button>
-          <el-button v-if="!isOnnx" round :loading="syncPricingLoading" @click="handleSyncPricing">
+          <el-button v-if="!isOnnx && canWrite" round :loading="syncPricingLoading" @click="handleSyncPricing">
             <template #icon><Timer /></template>
             同步价格
           </el-button>
@@ -58,7 +58,8 @@
         <el-icon size="42" class="d-empty-icon"><Box16Regular /></el-icon>
         <p class="d-empty-title">{{ t('settings.providerDetail.noModels') }}</p>
         <p class="d-empty-desc">{{ t('settings.providerDetail.noModelsDesc') }}</p>
-        <el-button type="primary" round class="mt-5" @click="handleAdd">
+        <!-- 非管理员没有新增模型的权限，空状态就不再挂一个点了必 403 的按钮 -->
+        <el-button v-if="canWrite" type="primary" round class="mt-5" @click="handleAdd">
           <template #icon><PlusOutlined /></template>
           {{ t('settings.providerDetail.addModel') }}
         </el-button>
@@ -86,8 +87,10 @@
               </template>
             </el-input>
 
-            <!-- 批量操作工具栏：始终占位，避免选中后把卡片网格往下顶 -->
-            <div class="batch-toolbar">
+            <!-- 批量操作工具栏：始终占位，避免选中后把卡片网格往下顶。
+                 整块只在可写时出现：勾选、启停、批量删除全是 admin-only 接口，
+                 只读账号没有可执行的动作。 -->
+            <div v-if="canWrite" class="batch-toolbar">
               <template v-if="selected.length > 0">
                 <span class="batch-count">已选 {{ selected.length }} 个</span>
                 <span
@@ -184,8 +187,8 @@
                   :max="2"
                 />
               </div>
-              <!-- 批量选择 checkbox：固定在头部右侧，不单独占行 -->
-              <span class="mc-check" title="选择该模型">
+              <!-- 批量选择 checkbox：固定在头部右侧，不单独占行（只读账号无批量动作，不显示） -->
+              <span v-if="canWrite" class="mc-check" title="选择该模型">
                 <el-checkbox
                   :model-value="selected.includes(getModelId(model))"
                   @change="toggleSelect(model)"
@@ -231,11 +234,13 @@
               -->
               <el-switch
                 v-model="model.isActive"
-                :disabled="model.hasNativeId === false"
-                :title="model.hasNativeId === false ? t('settings.providerDetail.modelToggleUnavailable') : ''"
+                :disabled="!canWrite || model.hasNativeId === false"
+                :title="!canWrite
+                  ? '启用状态由管理员维护'
+                  : (model.hasNativeId === false ? t('settings.providerDetail.modelToggleUnavailable') : '')"
                 @change="handleToggle(model)"
               />
-              <div class="mc-foot-btns">
+              <div v-if="canWrite" class="mc-foot-btns">
                 <button
                   v-if="!isLocalProvider"
                   class="mc-btn"
@@ -319,7 +324,17 @@ const props = defineProps<{
   provider: any
   models: any[]
   modelPresets: any[]
+  /**
+   * 写操作是否可用（默认 true，保持原有调用方行为不变）。
+   *
+   * <p>模型管理对所有登录用户开放，但新增/编辑/删除供应商与模型、拉模型、
+   * 同步价格、启停模型在服务端都是 {@code @Permission("admin")}。非管理员
+   * 进入时传 false，整块写入口不渲染 —— 否则用户看到按钮、点了必然 403。</p>
+   */
+  canWrite?: boolean
 }>()
+
+const canWrite = computed(() => props.canWrite !== false)
 
 const emit = defineEmits<{
   back: []
@@ -472,7 +487,7 @@ const onnxModelRoot = computed(() => String(props.provider?.model_root || '').tr
  */
 const canDelete = computed(() => {
   const id = props.provider?.id ?? props.provider?.provider_id
-  return !isOnnx.value && id !== 'agent'
+  return canWrite.value && !isOnnx.value && id !== 'agent'
 })
 
 const getLableName = (type: string) => {

@@ -1077,6 +1077,14 @@ function ctxCommand(cmd: string): void {
     case "clone":
       cloneHost(h);
       break;
+    // 日志页是全局页面（后端 /v2/log/page、/v2/user/log/page，不加主机前缀），
+    // 不占用工作区页签，直接推路由。
+    case "open-sys-log":
+      void router.push({ path: "/logs/sys" });
+      break;
+    case "open-user-log":
+      void router.push({ path: "/logs/user" });
+      break;
     default:
       break;
   }
@@ -2473,7 +2481,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
         @contextmenu.prevent
       >
         <div class="host-ctx-head">
-          <b>{{ ctxMenu.host.serverHostName }}</b>
+          <b :title="ctxMenu.host.serverHostName">{{ ctxMenu.host.serverHostName }}</b>
           <span class="mono">{{ ctxMenu.host.serverHostAddress }}</span>
         </div>
 
@@ -2583,6 +2591,13 @@ function onGlobalKeydown(e: KeyboardEvent): void {
           </div>
         </div>
 
+        <div class="host-ctx-sep" />
+        <div class="host-ctx-item" @click="ctxCommand('open-sys-log')">
+          <ReIcon name="Tickets" /><span>系统日志</span>
+        </div>
+        <div class="host-ctx-item" @click="ctxCommand('open-user-log')">
+          <ReIcon name="Unlock" /><span>登录日志</span>
+        </div>
         <div class="host-ctx-sep" />
         <div class="host-ctx-item" @click="openSystemSettings()">
           <ReIcon name="Setting" /><span>系统设置</span>
@@ -3785,7 +3800,8 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   background: var(--el-border-color-lighter, #eceef1);
 }
 /* 菜单头：被右键的那台主机是谁。菜单项有十几条，没有头部时用户
-   很容易在「编辑」和「删除」之间忘了自己在操作哪台机器。 */
+   很容易在「编辑」和「删除」之间忘了自己在操作哪台机器。
+   主机名可能很长：截断到菜单宽度，title 提示保持完整文本。 */
 .host-ctx-head {
   display: flex;
   flex-direction: column;
@@ -3797,6 +3813,12 @@ function onGlobalKeydown(e: KeyboardEvent): void {
 .host-ctx-head b {
   font-size: 13px;
   color: var(--el-text-color-primary, #1f2430);
+  /* 不要撑鼓菜单的宽度：限制可用宽度 + 截断 + title 提示（右键菜单里的 tip） */
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .host-ctx-head span {
   font-size: 11.5px;
@@ -3815,6 +3837,8 @@ function onGlobalKeydown(e: KeyboardEvent): void {
    overflow 必须可见，否则 hover 浮层子菜单会被菜单容器裁掉 */
 .host-ctx-menu {
   max-height: calc(100vh - 24px);
+  /* 菜单整体限宽：主机名太长时不再被撑开（见下方 .host-ctx-head b 的截断） */
+  max-width: calc(100vw - 24px);
   overflow: visible;
 }
 </style>

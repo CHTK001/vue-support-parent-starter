@@ -9,8 +9,10 @@
       <template #actions>
         <!-- 供应商行多选/批删：与逐条删除分开，点供应商头像或名称进入该供应商的模型页。
              按钮组是独立组件（ModelsBatchActions），配置中心内嵌入口引的是同一个，
-             两个入口的这排操作因此不会各写一份。 -->
+             两个入口的这排操作因此不会各写一份。
+             canWrite=false（非管理员）时整排不渲染：批量删除是 admin-only 接口。 -->
         <ModelsBatchActions
+          v-if="canWrite"
           :multi-select="multiSelect"
           :selected-count="selectedProviders.length"
           :deleting="batchDeleting"
@@ -21,7 +23,7 @@
       </template>
     </PageHeader>
     <!-- 内嵌模式（配置中心 → 模型管理）：外层已有页头，这里只保留那排操作 -->
-    <div v-else class="mw-toolbar">
+    <div v-else-if="canWrite" class="mw-toolbar">
       <ModelsBatchActions
         :multi-select="multiSelect"
         :selected-count="selectedProviders.length"
@@ -37,7 +39,7 @@
         <aside class="mw-aside">
           <div class="mw-aside-head">
             <span class="mw-aside-title">{{ t('settings.models.providers') }}</span>
-            <button class="mw-round" :title="t('settings.models.addCustom')" @click="handleCreate">
+            <button v-if="canWrite" class="mw-round" :title="t('settings.models.addCustom')" @click="handleCreate">
               <el-icon :size="18"><AddOutlined /></el-icon>
             </button>
           </div>
@@ -60,7 +62,7 @@
               <span class="mw-item-tail">
                 <span class="mw-item-status" :class="enabledOf(p) > 0 ? 'on' : 'off'"></span>
                 <button
-                  v-if="p.id !== 'agent' && p.id !== 'onnx'"
+                  v-if="canWrite && p.id !== 'agent' && p.id !== 'onnx'"
                   class="mw-item-del"
                   type="button"
                   title="删除供应商"
@@ -75,7 +77,7 @@
             </li>
           </ul>
 
-          <button class="mw-store" @click="openCatalog">
+          <button v-if="canWrite" class="mw-store" @click="openCatalog">
             <el-icon :size="17"><StorefrontOutlined /></el-icon>
             <span class="mw-store-label">模板库</span>
             <span class="mw-store-count">{{ availableTemplates.length }}</span>
@@ -89,6 +91,7 @@
             :provider="currentProvider"
             :models="currentModels"
             :model-presets="modelPresets"
+            :can-write="canWrite"
             @changed="reload"
             @edit-provider="handleEditProvider"
             @delete-provider="handleDeleteProvider(currentProvider)"
@@ -97,18 +100,26 @@
             <div class="mw-empty-icon">
               <el-icon :size="30"><CloudOutlined /></el-icon>
             </div>
-            <p class="mw-empty-title">选择或添加一个供应商开始</p>
-            <p class="mw-empty-desc">在左侧选择供应商，或从模板库一键添加</p>
-            <div class="flex gap-3 mt-5 justify-center">
-              <el-button type="primary" round @click="openCatalog">
-                <template #icon><StorefrontOutlined /></template>
-                打开模板库
-              </el-button>
-              <el-button round @click="handleCreate">
-                <template #icon><AddOutlined /></template>
-                自定义添加
-              </el-button>
-            </div>
+            <!-- 空状态文案按权限分岔：非管理员没有「添加」这条路可走，
+                 继续提示「从模板库一键添加」只会让人找不到入口 -->
+            <template v-if="canWrite">
+              <p class="mw-empty-title">选择或添加一个供应商开始</p>
+              <p class="mw-empty-desc">在左侧选择供应商，或从模板库一键添加</p>
+              <div class="flex gap-3 mt-5 justify-center">
+                <el-button type="primary" round @click="openCatalog">
+                  <template #icon><StorefrontOutlined /></template>
+                  打开模板库
+                </el-button>
+                <el-button round @click="handleCreate">
+                  <template #icon><AddOutlined /></template>
+                  自定义添加
+                </el-button>
+              </div>
+            </template>
+            <template v-else>
+              <p class="mw-empty-title">暂无供应商</p>
+              <p class="mw-empty-desc">供应商由管理员配置，配置好后会出现在这里</p>
+            </template>
           </div>
         </main>
       </div>
@@ -133,7 +144,7 @@ import ProviderFormDialog from './ProviderFormDialog.vue'
 import TemplateCatalogDialog from './TemplateCatalogDialog.vue'
 import { apiService } from '../../services/ApiService'
 import { adminApi } from '@/framework/context'
-import { message } from '@repo/core'
+import { message, isAdmin } from '@repo/core'
 import { usePopup } from '../../composables/usePopup'
 import { PROVIDER_TEMPLATES } from './model.constants'
 import ProviderLogo from './ProviderLogo.vue'
@@ -165,7 +176,22 @@ const multiSelect = ref(false)
 const selectedProviders = ref<any[]>([])
 const batchDeleting = ref(false)
 
-/** 多选模式下：点中项切换勾选，不切供应商页 --> */
+/**
+ * 写操作是否可用（新增 / 编辑 / 删除供应商与模型、拉模型、同步价格）。
+ *
+ * <p>模型管理对所有登录用户开放（读供应商与模型目录），但写接口在服务端逐条
+ * {@code @Permission("admin")}。此前这两种口径打架：普通用户能进页面，看到一排
+ * 按钮，点了必然 403 —— 用户只会认为「功能坏了」，看不出是没有权限。</p>
+ *
+ * <p>所以在页面上按真实权限渲染：非管理员进入后是**只读**视图（看不见写按钮），
+ * 不再提供「点了就报错」的入口。服务端的权限判断保持不变 —— 前端这一层只是
+ * 提前把不可能成功的操作从界面上撤掉，不承担任何安全职责。</p>
+ *
+ * <p>用 ref 而不是常量：登录后角色是异步写入用户信息的（见 stores/auth.ts），
+ * setup 时读一次可能还是空角色，管理员会看到只读视图；onMounted 再取一次。</p>
+ */
+const canWrite = ref(isAdmin())
+
 const isSelected = (p: any) => selectedProviders.value.some((x: any) => x.id === p.id)
 
 const toggleSelectProvider = (p: any) => {
@@ -293,6 +319,8 @@ const handleGoToChannelManagement = () => {
 }
 
 onMounted(async () => {
+  // 角色可能在上一次渲染后才补齐（登录流程异步写用户信息），进入页面时再确认一次权限
+  canWrite.value = isAdmin()
   await reload()
   try {
     modelPresets.value = await apiService.getModelPresets()

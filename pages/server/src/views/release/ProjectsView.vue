@@ -120,16 +120,19 @@
                 </div>
                 <div class="pj-card-actions">
                   <template v-if="item.enabled !== false">
-                    <ReButton
-                      v-if="item.status !== 'running'"
-                      icon="VideoPlay"
-                      type="primary"
-                      :show-text="true"
-                      @click="handleStart(item)"
-                    >启动</ReButton>
-                    <template v-else>
-                      <ReButton icon="VideoPause" :show-text="true" @click="handleStop(item)">停止</ReButton>
-                      <ReButton icon="RefreshRight" layout="square" tip="重启" @click="handleRestart(item)" />
+                    <!-- 无常驻进程的类型（模型仓库）只发布文件：不提供启动/停止/重启 -->
+                    <template v-if="item.runtimeProcess !== false">
+                      <ReButton
+                        v-if="item.status !== 'running'"
+                        icon="VideoPlay"
+                        type="primary"
+                        :show-text="true"
+                        @click="handleStart(item)"
+                      >启动</ReButton>
+                      <template v-else>
+                        <ReButton icon="VideoPause" :show-text="true" @click="handleStop(item)">停止</ReButton>
+                        <ReButton icon="RefreshRight" layout="square" tip="重启" @click="handleRestart(item)" />
+                      </template>
                     </template>
                     <ReButton icon="Top" layout="square" tip="升级" @click="openUpgradeDialog(item)" />
                     <ReButton
@@ -842,6 +845,10 @@ interface Project {
   uploadExtract?: boolean;
   uploadTargetDir?: string;
   deployType?: string;
+  /** 该类型是否有常驻进程（后端按类型 SPI 回填）：模型仓库等只发布文件的项目为 false */
+  runtimeProcess?: boolean;
+  /** 该类型是否为 JVM 进程（后端回填） */
+  javaProcess?: boolean;
 }
 
 const list = ref<Project[]>([]);
@@ -859,19 +866,22 @@ const releaseHostId = ref(0);
 const hostPlatform = ref('LINUX');
 
 // ---- 状态分组 / 筛选 / 搜索（纯前端，不额外发请求） ----
-type StatusKey = 'running' | 'stopped' | 'disabled';
+type StatusKey = 'running' | 'stopped' | 'disabled' | 'ready';
 const statusFilter = ref<'all' | StatusKey>('all');
 const keyword = ref('');
 
-/** 一个项目归到哪一组：禁用优先，其次看进程状态 */
+/** 一个项目归到哪一组：禁用优先，其次看是否有常驻进程，最后看进程状态 */
 function statusKey(item: Project): StatusKey {
   if (item.enabled === false) return 'disabled';
+  // 无常驻进程的类型（模型仓库）：不展示「运行中/已停止」，统一为「已发布」
+  if (item.runtimeProcess === false) return 'ready';
   return item.status === 'running' ? 'running' : 'stopped';
 }
 
 function statusLabel(item: Project): string {
   const k = statusKey(item);
   if (k === 'running') return '运行中';
+  if (k === 'ready') return '已发布';
   return k === 'stopped' ? '已停止' : '已禁用';
 }
 
@@ -879,17 +889,21 @@ function statusLabel(item: Project): string {
  * 非运行项目的状态补充说明（运行中项目的 PID / 运行时长已挪到行尾指标条）
  */
 function statusSub(item: Project): string {
-  return statusKey(item) === 'disabled' ? '激活后可操作' : '进程未运行';
+  const k = statusKey(item);
+  if (k === 'disabled') return '激活后可操作';
+  if (k === 'ready') return '文件已发布，无常驻进程';
+  return '进程未运行';
 }
 
 const STATUS_GROUPS: { key: StatusKey; label: string }[] = [
   { key: 'running', label: '运行中' },
   { key: 'stopped', label: '已停止' },
+  { key: 'ready', label: '已发布' },
   { key: 'disabled', label: '已禁用' },
 ];
 
 const statusFilters = computed(() => {
-  const counts: Record<StatusKey, number> = { running: 0, stopped: 0, disabled: 0 };
+  const counts: Record<StatusKey, number> = { running: 0, stopped: 0, ready: 0, disabled: 0 };
   list.value.forEach((i) => { counts[statusKey(i)] += 1; });
   return [
     { key: 'all' as const, label: '全部', count: list.value.length },
@@ -2494,8 +2508,10 @@ async function doArthasAttach() {
     message.success(unwrapResult<string>(res));
     await loadArthasStatus();
     await loadArthasConsole();
-  } catch (e) {
-    message.error('Attach 失败');
+  } catch (e: any) {
+    // 后端会给出可操作的原因（如「arthas-boot.jar 不存在，请先上传」），
+    // 只弹「Attach 失败」会让用户无从下手
+    message.error(e?.message || 'Attach 失败');
   } finally {
     arthasAttaching.value = false;
   }
@@ -2786,6 +2802,7 @@ onBeforeUnmount(() => {
 }
 .pj-filter-dot.running { background: var(--status-success); }
 .pj-filter-dot.stopped { background: var(--text-tertiary); }
+.pj-filter-dot.ready { background: var(--status-info, #3b82f6); }
 .pj-filter-dot.disabled { background: var(--status-warning); }
 .pj-search { width: 268px; }
 
@@ -2850,7 +2867,7 @@ onBeforeUnmount(() => {
 .pj-card-media.tone-model { background: linear-gradient(150deg, #0ea5e9, #0284c7); }
 .pj-card-media.tone-static { background: linear-gradient(150deg, #10b981, #059669); }
 .pj-card-media.tone-nginx { background: linear-gradient(150deg, #14b8a6, #0d9488); }
-.pj-card-media:is(.stopped, .disabled) {
+.pj-card-media:is(.stopped, .disabled, .ready) {
   filter: grayscale(0.55) brightness(0.98);
 }
 .pj-media-ico {

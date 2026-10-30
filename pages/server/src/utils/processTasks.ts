@@ -4,6 +4,8 @@
  * 业务侧触发项目操作/软件安装拿到 taskId 后调用 {@link trackTask} 注册跟踪：
  * - 订阅 socket（module=project, event=task）实时更新步骤/进度/日志/结果
  * - 立即拉一次任务快照（GET /ms/server/release/task/{taskId}）实现断点续传
+ * - 未完成任务每 3 秒拉一次快照兜底：socket 丢帧 / 断线重连期间也能把进度补齐
+ *   （实测 socket 偶发丢最后一帧，后端已 COMPLETE/100，浮层却停在 55%）
  *
  * 任务以浮层 ReProcessTask 展示（可拖拽、最小化到四角）。
  *
@@ -145,6 +147,30 @@ const CATCH_UP_DELAY_MS = 1500;
 /** 任务一次性兜底定时器句柄 */
 const catchUpTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
+/** 未完成任务快照轮询间隔（毫秒） */
+const SNAPSHOT_POLL_MS = 3000;
+
+/** 正在拉取快照的任务（避免轮询与一次性兜底并发重复请求） */
+const snapshotInflight = new Set<string>();
+
+/**
+ * 确保全局快照轮询器已启动（多模块实例经 globalThis 去重）
+ *
+ * 轮询只针对未完成任务；任务结束后自动不再请求，无需额外清理。
+ */
+function ensureSnapshotPoller(): void {
+  if (g.__PROCESS_TASK_POLLER__) {
+    return;
+  }
+  g.__PROCESS_TASK_POLLER__ = setInterval(() => {
+    for (const t of tasks) {
+      if (!t.finished) {
+        void fetchSnapshot(t);
+      }
+    }
+  }, SNAPSHOT_POLL_MS);
+}
+
 /**
  * 应用一帧 socket 消息
  */
@@ -189,6 +215,10 @@ function appendLog(task: ProcessTask, line: string): void {
  * 拉取任务快照（断点续传）
  */
 async function fetchSnapshot(task: ProcessTask): Promise<void> {
+  if (snapshotInflight.has(task.taskId)) {
+    return;
+  }
+  snapshotInflight.add(task.taskId);
   try {
     const res = await http().get(`/ms/server/release/task/${encodeURIComponent(task.taskId)}`);
     const snap = unwrapResult<any>(res);
@@ -218,6 +248,8 @@ async function fetchSnapshot(task: ProcessTask): Promise<void> {
     }
   } catch {
     /* 快照拉取失败不影响实时跟踪 */
+  } finally {
+    snapshotInflight.delete(task.taskId);
   }
 }
 
@@ -231,6 +263,7 @@ async function fetchSnapshot(task: ProcessTask): Promise<void> {
  */
 export function trackTask(taskId: string, title: string, operation: string): ProcessTask {
   bindSocket();
+  ensureSnapshotPoller();
   let task = tasks.find(t => t.taskId === taskId);
   if (!task) {
     task = reactive<ProcessTask>({
