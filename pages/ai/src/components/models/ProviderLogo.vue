@@ -38,7 +38,7 @@ function assetUrl(rel: string): string {
  */
 const SVG_ONLY_IDS = new Set([
   '360', 'agnes', 'ai302', 'aliyun-bailian', 'anthropic', 'deepseek', 'google', 'groq',
-  'huiqing', 'longcat', 'minimax', 'minimax-color', 'mock', 'nvidia', 'onnx', 'openai',
+  'huiqing', 'longcat', 'minimax', 'minimax-color', 'mock', 'nvidia', 'onnx', 'openai', 'shusheng',
   'openai-response', 'openrouter', 'siliconflow', 'stepfun', 'volcengine', 'xai',
 ])
 

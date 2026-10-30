@@ -278,6 +278,7 @@ export const PROVIDER_ICONS: Record<string, string> = {
   huiqing: 'huiqing.svg',
   mock: 'mock.svg',
   xqapi: 'xqapi.svg',
+  shusheng: 'shusheng.svg',
   '360': '360.svg',
 }
 
@@ -342,6 +343,7 @@ const DOMAIN_BRANDS: Array<[string, string]> = [
   ['xqapi', 'xqapi'],
   ['b.ai', 'bai'],
   ['ai.cn', 'dots'],
+  ['discovery-api.intern-ai.org.cn', 'shusheng'],
 ]
 
 // 名称片段 -> 品牌（中文/英文名兜底）
@@ -393,6 +395,8 @@ const NAME_BRANDS: Array<[string, string]> = [
   ['huiqing', 'huiqing'],
   ['xqapi', 'xqapi'],
   ['b.ai', 'bai'],
+  ['shusheng', 'shusheng'],
+  ['书生', 'shusheng'],
 ]
 
 /**

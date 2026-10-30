@@ -240,6 +240,7 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
   { id: 'modelscope', name: '魔搭 ModelScope', description: '阿里达摩院模型社区，免费使用多种开源模型', protocol: 'openai', defaultApiUrl: 'https://api-inference.modelscope.cn/v1', keywords: ['damo', '魔搭'] },
   { id: '360ai', name: '360 智脑', description: '360 安全智脑大模型', protocol: 'openai', defaultApiUrl: 'https://api.360.cn/v1', keywords: ['360', 'zhibo'] },
   { id: 'doubao', name: '豆包', description: '字节跳动豆包大模型（火山引擎）', protocol: 'openai', defaultApiUrl: 'https://ark.cn-beijing.volces.com/api/v3', keywords: ['doubao', '豆包', 'volcengine'] },
+  { id: 'shusheng', name: '书生', description: '书生大模型平台（好未来 InternAgent）', protocol: 'openai', defaultApiUrl: 'https://discovery-api.intern-ai.org.cn/v1', keywords: ['shusheng', '书生'] },
 
   // ===== 云厂商 =====
   { id: 'azure', name: 'Azure OpenAI', description: '微软 Azure OpenAI 服务', protocol: 'openai', defaultApiUrl: 'https://YOUR-RESOURCE.openai.azure.com/openai/v1', keywords: ['microsoft', 'azure-openai'] },
