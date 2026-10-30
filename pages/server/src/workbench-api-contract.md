@@ -225,3 +225,61 @@ POST /ms/server/host/{hostId}/tunnel/ssh-command
   失败统一落到 `installed=false` 空态（保留「未检测到服务」文案）。
 - `ScTunnelWorkbench.vue`：`TUNNELS` 改为接口拉取；`toggleStatus` 调
   `PUT .../state`，成功后用返回值覆盖该条。
+
+---
+
+## 5. 终端指令通道（iframe 与渲染器之间）
+
+终端画面是后端静态页 `/ssh-direct.html`（内嵌 xterm，直连
+`/ws/ms/server/terminal/ssh`），**不在本机渲染**，所以"把片段敲进终端并执行"
+要走跨窗口消息：
+
+### 5.1 渲染器 → iframe（`TERMINAL_INPUT`）
+
+前端 `ScSshDirectViewer` 暴露 `sendCommand(command)` / `sendCommands(commands[])`，
+向 iframe 发 `postMessage`；iframe 页面（后端 `/ssh-direct.html` 的脚本）收到后
+在 xterm 里键入并执行。
+
+```js
+// 前端发出（ScSshDirectViewer.sendCommand）
+iframeEl.contentWindow.postMessage(
+  { type: 'TERMINAL_INPUT', command: 'ls -la && git status' },
+  '*',
+)
+```
+
+iframe 页面收到后预期行为：
+1. 把 `command` 的完整文本（含换行）键入 xterm（`xterm.buffer` 或后端 PTY
+   的 stdin 写口）
+2. 随即下发一个 **回车（`\r`）**，完成"双击 → 终端执行"
+3. 若 xterm 未准备（session 未打开），推迟执行直到 session 打开
+
+> 身份与密文由 `?x-oauth-token=` 接管；点击/下载入口的 `?hostId=...&identityId=...`
+> 定位 session。密码/token 不能通过 message 字段透传。
+
+### 5.2 iframe → 渲染器（`TERMINAL_ACK`，选填）
+
+iframe 完成键入后回发 `{ type: 'TERMINAL_ACK', ... }`，前端不作面向用户的
+二次消费（行为端点只负责按下那个回车），留给后端审计做日志回连。
+
+### 5.3 协议注册
+
+后端 `src/pages/ssh-direct.html` 的脚本需补齐
+`window.addEventListener('message', ...)`；未实现时前端静默尝试，
+`TerminalView.onSnippetCommand` 对 RDP/VNC 终端用 `message.warning`
+提示手动粘贴。
+
+---
+
+## 6. 调度（SPI 按平台）
+
+`/ms/server/host/{hostId}/schedule` 一组接口（右键菜单「调度信息」最终入口，
+见 `AssetsView` 的 `tabKind: "schedule"`），SPI 的约束由各平台命令决定：
+
+| 字段 | 说明 |
+|---|---|
+| `msScheduleName` | 规则名 |
+| `expression` | cron |
+| `command` | 在目标平台上执行的 shell 命令 |
+| `platform` | `win | linux | mac`（空=全部），SPI 按平台切分执行器 |
+| `remark` | 备注 |

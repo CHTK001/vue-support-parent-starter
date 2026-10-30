@@ -11,7 +11,7 @@
  */
 
 import { createModuleHttp } from "@repo/core";
-import type { DevicePageQuery, PageResult, DeviceInfo, DeviceVendorDescriptor, SyncResult } from '@pages/device/src/types/device'
+import type { DevicePageQuery, PageResult, DeviceInfo, DeviceVendorDescriptor, SyncResult, TopologyNode, TopologyEdge } from '@pages/device/src/types/device'
 
 /** 设备模块 Http 客户端（baseUrl 由配置 httpConfig.moduleBaseUrl.device 决定） */
 /**
@@ -160,6 +160,16 @@ export const deviceApi = {
   /** 按凭据 ID 全量同步（设备 + 组织 + 人员） */
   syncCredential: (id: string) =>
     http.post(`/provider-credential/${id}/sync`).then(unwrap) as Promise<SyncResult[]>,
+
+  // ==================== 机房拓扑 ====================
+  /** 机房拓扑：根据设备的 IP 网段与区域生成（楼层/区域 → 网段 → 设备 → 通道） */
+  topology: () =>
+    http.get("/topology").then(unwrap) as Promise<{ nodes: TopologyNode[]; edges: TopologyEdge[] }>,
+
+  // ==================== 时间轮 ====================
+  /** 立即执行一个时间轮任务（支持凭据级任务名，如 offlineDetect_{credId}） */
+  runTask: (taskName: string) =>
+    http.post(`/tasks/${encodeURIComponent(taskName)}/run`).then(unwrap) as Promise<boolean>,
 
   // ==================== 定时任务状态 ====================
   /** 全部时间轮任务状态（interval / running / lastRunAt） */

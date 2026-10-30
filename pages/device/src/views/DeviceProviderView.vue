@@ -388,6 +388,59 @@
           </el-form-item>
         </div>
 
+        <!-- 高级配置：该凭据维度的自动任务开关与间隔（默认全部关闭） -->
+        <div class="dpv-adv">
+          <header class="dpv-adv__head">
+            <ReIcon name="Timer" :size="15" />
+            <span class="dpv-adv__title">高级配置（定时任务开关）</span>
+          </header>
+          <p class="dpv-adv__desc">打开开关后，该凭据维度的自动任务（在离线检测 / 设备同步 / 组织同步）由时间轮按下方间隔驱动；间隔留空或写 0 时沿用任务页上的间隔（没有则默认 30 秒），开关关闭则整个任务下线。</p>
+          <div class="dpv-adv__grid">
+            <div class="dpv-adv__row">
+              <span class="dpv-adv__row__label">在离线检测</span>
+              <el-switch v-model="form.deviceCredentialOfflineDetectEnabled" size="small" />
+              <el-input-number
+                v-model="form.deviceCredentialOfflineDetectInterval"
+                :min="1"
+                :max="86400"
+                :step="5"
+                size="small"
+                :disabled="!form.deviceCredentialOfflineDetectEnabled"
+                class="dpv-adv__row__input"
+              />
+              <span class="dpv-adv__row__unit">秒</span>
+            </div>
+            <div class="dpv-adv__row">
+              <span class="dpv-adv__row__label">设备自动同步</span>
+              <el-switch v-model="form.deviceCredentialDeviceSyncEnabled" size="small" />
+              <el-input-number
+                v-model="form.deviceCredentialDeviceSyncInterval"
+                :min="1"
+                :max="86400"
+                :step="5"
+                size="small"
+                :disabled="!form.deviceCredentialDeviceSyncEnabled"
+                class="dpv-adv__row__input"
+              />
+              <span class="dpv-adv__row__unit">秒</span>
+            </div>
+            <div class="dpv-adv__row">
+              <span class="dpv-adv__row__label">组织自动同步</span>
+              <el-switch v-model="form.deviceCredentialOrgSyncEnabled" size="small" />
+              <el-input-number
+                v-model="form.deviceCredentialOrgSyncInterval"
+                :min="1"
+                :max="86400"
+                :step="5"
+                size="small"
+                :disabled="!form.deviceCredentialOrgSyncEnabled"
+                class="dpv-adv__row__input"
+              />
+              <span class="dpv-adv__row__unit">秒</span>
+            </div>
+          </div>
+        </div>
+
         <el-form-item label="备注">
           <el-input
             v-model="form.deviceCredentialRemark"
@@ -698,6 +751,12 @@ function resetForm() {
   form.deviceCredentialOfflineThreshold = vendors.value[0]?.defaultOfflineThreshold ?? 60
   form.deviceCredentialIsDefault = false
   form.deviceCredentialEnabled = true
+  form.deviceCredentialOfflineDetectEnabled = false
+  form.deviceCredentialOfflineDetectInterval = 30
+  form.deviceCredentialDeviceSyncEnabled = false
+  form.deviceCredentialDeviceSyncInterval = 30
+  form.deviceCredentialOrgSyncEnabled = false
+  form.deviceCredentialOrgSyncInterval = 30
   form.deviceCredentialRemark = ''
 }
 
@@ -727,6 +786,12 @@ function openEdit(row: ProviderCredential) {
   form.deviceCredentialOfflineThreshold = row.deviceCredentialOfflineThreshold ?? 60
   form.deviceCredentialIsDefault = !!row.deviceCredentialIsDefault
   form.deviceCredentialEnabled = row.deviceCredentialEnabled !== false
+  form.deviceCredentialOfflineDetectEnabled = !!row.deviceCredentialOfflineDetectEnabled
+  form.deviceCredentialOfflineDetectInterval = row.deviceCredentialOfflineDetectInterval ?? 30
+  form.deviceCredentialDeviceSyncEnabled = !!row.deviceCredentialDeviceSyncEnabled
+  form.deviceCredentialDeviceSyncInterval = row.deviceCredentialDeviceSyncInterval ?? 30
+  form.deviceCredentialOrgSyncEnabled = !!row.deviceCredentialOrgSyncEnabled
+  form.deviceCredentialOrgSyncInterval = row.deviceCredentialOrgSyncInterval ?? 30
   form.deviceCredentialRemark = row.deviceCredentialRemark || ''
   dialogVisible.value = true
 }
@@ -770,6 +835,12 @@ async function submit() {
       deviceCredentialOfflineThreshold: form.deviceCredentialOfflineThreshold,
       deviceCredentialIsDefault: form.deviceCredentialIsDefault,
       deviceCredentialEnabled: form.deviceCredentialEnabled,
+      deviceCredentialOfflineDetectEnabled: !!form.deviceCredentialOfflineDetectEnabled,
+      deviceCredentialOfflineDetectInterval: form.deviceCredentialOfflineDetectInterval,
+      deviceCredentialDeviceSyncEnabled: !!form.deviceCredentialDeviceSyncEnabled,
+      deviceCredentialDeviceSyncInterval: form.deviceCredentialDeviceSyncInterval,
+      deviceCredentialOrgSyncEnabled: !!form.deviceCredentialOrgSyncEnabled,
+      deviceCredentialOrgSyncInterval: form.deviceCredentialOrgSyncInterval,
       deviceCredentialRemark: String(form.deviceCredentialRemark || '').trim() || null
     }
     /** 描述符驱动的字段：非空即回填，未提交的字段不加 key（不传 null） */
@@ -1439,6 +1510,74 @@ onMounted(() => {
   align-items: center;
   gap: 4px 16px;
   min-height: 32px;
+}
+
+/* 高级配置：该凭据维度的定时任务开关 + 间隔（默认全部关闭） */
+.dpv-adv {
+  padding: 14px 16px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+}
+
+.dpv-adv__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.dpv-adv__icon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+  color: var(--el-color-primary);
+}
+
+.dpv-adv__title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.dpv-adv__desc {
+  margin: 0 0 10px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+
+.dpv-adv__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0 16px;
+}
+
+.dpv-adv__row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dpv-adv__row__label {
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+}
+
+.dpv-adv__row__input {
+  flex: 1;
+  width: 0;
+}
+
+.dpv-adv__row__unit {
+  font-size: 11.5px;
+  color: var(--el-text-color-secondary);
 }
 
 @media (max-width: 1100px) {

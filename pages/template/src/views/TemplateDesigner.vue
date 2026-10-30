@@ -20,9 +20,11 @@
       <div class="designer-actions">
         <ReButton text @click="onUndo" :disabled="!historyUndo">撤销</ReButton>
         <ReButton text @click="onRedo" :disabled="!historyRedo">重做</ReButton>
+        <!-- 主题（类 PPT 的主题切换，一键换色/换字） -->
+        <ReSelect :data="themeOptions" v-model="selectedThemeId" @change="onThemeChange" placeholder="选主题" class="designer-theme" size="default" />
         <ReButton type="warning" plain @click="onPreview">预览</ReButton>
         <ReButton type="primary" @click="onSave">保存</ReButton>
-        <ReButton type="success" plain @click="onPrint">打印</ReButton>
+        <ReButton type="success" plain @click="onPrint" :loading="saving">打印</ReButton>
       </div>
     </header>
 
@@ -70,6 +72,23 @@
         <div id="hiprint-setting" ref="settingRef"></div>
       </aside>
     </div>
+
+    <!-- ==================== 第三方的打：打印机选择抽屉 ==================== -->
+    <ReDrawer
+      v-model="printerVisible"
+      :title="''"
+      size="520"
+      :show-window-shell="false"
+      :close-on-click-modal="false"
+      show-close
+    >
+      <RePrinter
+        mode="selector"
+        title="第三方的打"
+        :printer="selectedPrinter"
+        @print="onPrinterConfirm"
+      />
+    </ReDrawer>
   </div>
 </template>
 
@@ -81,18 +100,29 @@
  *   - `jquery`（npm 包 jquery 的 default 导出挂载到 window.$ / window.jQuery）
  *   - `hipster`（vue-plugin-hiprint 的 hiprint 对象）
  *   - `defaultElementTypeProvider`（拖拽元素类型生成器）
+ *
+ * 第三方的打：
+ *   - RePrinter（selector 模式）作为弹出抽屉：已接入的打印机列表 + 设为默认
+ *   - 有默认打印机时「打印」直接发；没有时打开抽屉选机再发
+ * 主题（类 PPT 主题）：
+ *   - ReSelect 选主题 → applyTheme 写入设计描述 → 重建画布
  */
 import { onMounted, onBeforeUnmount, ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import ReButton from '@repo/ui/re-button'
 import ReInput from '@repo/ui/re-input'
+import ReSelect from '@repo/ui/re-select'
+import ReDrawer from '@repo/ui/re-drawer'
+import RePrinter from '../components/RePrinter.vue'
 import $ from 'jquery'
 import { hiprint, defaultElementTypeProvider } from 'vue-plugin-hiprint'
 import 'vue-plugin-hiprint/dist/print-lock.css'
 
 import { templateApi } from '../api/templateApi'
 import type { TemplateDesignerPayload } from '../types/template'
+import type { Theme } from '../themes/themes'
+import { THEMES, applyTheme } from '../themes/themes'
 
 const route = useRoute()
 const router = useRouter()
@@ -104,6 +134,24 @@ const templateId = computed(() => (route.params.id as string) || '')
 /** 左侧面板显隐 */
 const leftVisible = ref(true)
 const settingVisible = ref(true)
+
+// ==================== 第三方的打（打印机） ====================
+/** 第三方的打切换开关（RePrinter 选择器抽屉） */
+const printerVisible = ref(false)
+/** 选中的（或欲用的）打印机名（RePrinter 的 printer 双向） */
+const selectedPrinter = ref('')
+/** 默认的打印机（后端设的默认 → 前端「打印」不弹抽屉，直接选它） */
+const defaultPrinter = ref('')
+/** 第三方的打的按键态（按钮 loading） */
+const saving = ref(false)
+
+// ==================== 主题（类 PPT 主题） ====================
+/** 主题菜单（ReSelect 的选项） */
+const themeOptions = computed(() => THEMES.map((t: Theme) => ({ label: t.name, value: t.id })))
+/** 当前选中的主题 id（应用后写入设计描述，保存到预览/第三方的打时生效） */
+const selectedThemeId = ref(THEMES[0].id)
+/** 最近一次应用的主题（画布重建的记号） */
+const selectedTheme = ref<Theme | null>(THEMES[0])
 
 /** 活跃标签页 */
 const activeTab = ref('components')
@@ -157,32 +205,62 @@ onMounted(async () => {
   try {
     const payload: TemplateDesignerPayload = await templateApi.designer(id)
     templateName.value = payload.info.name || payload.info.subtitle || '未命名模板'
-    await initDesign(payload)
+    // 先取默认的打印机（后端的打印机列表里有 isDefault 标记），让「打印」直接选它
+    await loadDefaultPrinter()
+    await createDesign(payload.content)
   } catch (err) {
     ElMessage.error(String(err))
     router.replace('/template')
   }
 })
 
+/** 加载默认的打印机（从后端的打印机列表取 isDefault） */
+async function loadDefaultPrinter(): Promise<void> {
+  try {
+    const list = await templateApi.printerList()
+    const found = list.find(p => p.isDefault)
+    defaultPrinter.value = found?.name ?? ''
+    selectedPrinter.value = found?.name ?? ''
+    if (found) {
+      ElMessage.info(`已选默认打印机：${found.name}`)
+    }
+  } catch (_err) {
+    /* 没有打印机就手动选（抽屉兜底） */
+  }
+}
+
+/** hiprint 框架是否已经过 init（主题重建不重复初始化） */
+let hiprintInitialized = false
+/** 左侧面板的拖拽元素是否已经注册（避免重复注册） */
+let draggedItemsRegistered = false
+
 /**
- * 初始化设计器（拖拽 + 元素面板 + hiprint printTemplate）
+ * 创建 PrintTemplate 并设计画布（首次进入 / 主题变更后重建画布都走它）
+ *
+ * @param template hiprint JSON 描述（主题变更后这里是应用了主题的描述）
  */
-async function initDesign(payload: TemplateDesignerPayload): Promise<void> {
+async function createDesign(template: string): Promise<void> {
   // 1. 把 jquery 挂到 window 上（hiprint UMD 版用 window.jQuery）
   if (!window.jQuery) window.jQuery = $
   if (!window.$) window.$ = $
 
-  // 2. 全局初始化 hiprint（可拖拽元素提供者）
-  hiprint.init({
-    providers: [new defaultElementTypeProvider()]
-  })
+  // 2. 全局初始化 hiprint（可拖拽元素提供者）—— 只全量初始化一次
+  if (!hiprintInitialized) {
+    hiprint.init({
+      providers: [new defaultElementTypeProvider()]
+    })
+    hiprintInitialized = true
+  }
 
-  // 3. 把左侧的 .ep-draggable-item 注册为可拖拽元素
-  buildDraggableItems()
+  // 3. 把左侧的 .ep-draggable-item 注册为可拖拽元素——只注册一次
+  if (!draggedItemsRegistered) {
+    buildDraggableItems()
+    draggedItemsRegistered = true
+  }
 
   // 4. 创建 PrintTemplate 并进入设计器
   const tpl = new hiprint.PrintTemplate({
-    template: payload.content,
+    template,
     settingContainer: '#hiprint-setting',
     paginationContainer: '.hiprint-printPagination',
     providers: [new defaultElementTypeProvider()],
@@ -201,7 +279,6 @@ async function initDesign(payload: TemplateDesignerPayload): Promise<void> {
       printTemplate.value = tpl
       historyUndo.value = true
       historyRedo.value = true
-      void json
     },
     onUpdateError: (e: any) => {
       ElMessage.error('模板更新失败：' + String(e))
@@ -270,20 +347,68 @@ function onPreview(): void {
   router.push({ name: 'TemplatePreview', params: { id: templateId.value } })
 }
 
-/** 直接打印（让盒子选择打印机） */
+/** 直接打印：有默认打印机时直接发起，没有时弹选机抽屉 */
 async function onPrint(): Promise<void> {
   const tpl = printTemplate.value
   if (!tpl) {
     ElMessage.warning('工作区为空')
     return
   }
+  if (defaultPrinter.value) return onPrintWith(tpl, defaultPrinter.value)
+  selectedPrinter.value = ''
+  printerVisible.value = true
+}
+
+/** 按指定打印机发起（把打印机名和连接参数交给底层引擎） */
+async function onPrintWith(tpl: any, name: string): Promise<void> {
+  if (!name) {
+    ElMessage.warning('请选择一台打印机')
+    return
+  }
+  saving.value = true
   try {
-    tpl.print({}, { printer: '', smartPrint: false }, () => {
-      ElMessage.info('已弹出系统打印窗口')
+    tpl.print({}, { printer: name, smartPrint: false }, () => {
+      ElMessage.info(`已发送到「${name}」`)
     })
   } catch (err) {
     ElMessage.error(String(err))
+  } finally {
+    saving.value = false
   }
+}
+
+/** 选机抽屉确认：选哪台就打哪台 */
+function onPrinterConfirm(name: string): void {
+  printerVisible.value = false
+  void onPrintWith(printTemplate.value, name)
+}
+
+/** 选主题（类 PPT 主题页）：应用主题 → 写入设计描述 → 重建画布 */
+async function onThemeChange(id: string): Promise<void> {
+  if (!id) return
+  const t = THEMES.find(item => item.id === id) ?? THEMES[0]
+  if (t.id === selectedThemeId.value) return
+  selectedThemeId.value = t.id
+  const tpl = printTemplate.value
+  if (!tpl) {
+    ElMessage.warning('工作区为空')
+    return
+  }
+  try {
+    const json = tpl.getJson()
+    const themed = applyTheme(json, t)
+    selectedTheme.value = t
+    await rebuildDesign(themed)
+    ElMessage.success(`主题「${t.name}」已应用（已写进设计描述）`)
+  } catch (err) {
+    ElMessage.error(String(err))
+  }
+}
+
+/** 重建画布：换掉当前 PrintTemplate 并重新设计（主题变更时） */
+async function rebuildDesign(template: string): Promise<void> {
+  printTemplate.value = null
+  await createDesign(template)
 }
 
 onBeforeUnmount(() => {
@@ -321,6 +446,11 @@ onBeforeUnmount(() => {
 .designer-actions {
   display: flex;
   gap: 4px;
+}
+
+/* 主题选择器（类 PPT 主题下拉，选完即应用并重建画布） */
+.designer-theme {
+  width: 140px;
 }
 
 /* ==================== 主体 ==================== */

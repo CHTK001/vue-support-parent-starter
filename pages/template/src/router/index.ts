@@ -3,6 +3,7 @@
  *
  * 路由挂在 layout 之下：
  * - /template              模板库（列表 + 右键菜单）
+ * - /template/printer      打印机管理（接入第三方打印机 + 默认打印机）
  * - /template/designer/:id 模板设计器（拖拽式设计 + 打印预览）
  * - /template/preview/:id  模板预览（不含设计器外壳的只读预览）
  *
@@ -22,6 +23,20 @@ export const templateRoutes: RouteConfigsTable[] = [
       keepAlive: true,
       isVisible: '1',
       rank: 21
+    }
+  },
+  {
+    path: '/template/printer',
+    name: 'TemplatePrinter',
+    component: () => import('../views/PrinterManage.vue'),
+    props: true,
+    meta: {
+      title: '打印机管理',
+      icon: 'Printer',
+      showLink: true,
+      keepAlive: false,
+      isVisible: '1',
+      rank: 22
     }
   },
   {
@@ -68,6 +83,11 @@ export const templateMenus = [
         path: '/template',
         name: 'TemplateHome',
         meta: { title: '模板库', icon: 'Monitor', isVisible: '1' }
+      },
+      {
+        path: '/template/printer',
+        name: 'TemplatePrinter',
+        meta: { title: '打印机管理', icon: 'Printer', isVisible: '1' }
       }
     ]
   }

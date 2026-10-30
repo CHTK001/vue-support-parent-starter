@@ -5,7 +5,7 @@
  * 与 ScGuacViewer 的分工：本组件不经过 guacd，页面内的 xterm 直接对接
  * 平台自研的 /ws/ms/server/terminal/ssh 端点（MINA SSHD PTY 桥接）。
  */
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { getAccessToken } from "@repo/utils";
 
 const props = defineProps<{
@@ -20,10 +20,54 @@ const props = defineProps<{
   hideClose?: boolean;
 }>();
 
+/** 当前连接绑定的 iframe（供外层下发命令/文本到终端） */
+const iframeEl = ref<HTMLIFrameElement | null>(null);
+
 const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'files'): void;
 }>();
+
+/**
+ * 向 iframe 中渲染的终端写入一行命令文本（终端在 iframe 里，只能跨窗口发消息）
+ * 具体行为在 iframe 所属的页面（`/ssh-direct.html`）中实现；
+ * 本端只负责把命令送到：
+ *
+ * ```js
+ * // 发向 /ssh-direct.html 的约定消息
+ * parent.postMessage({ type: 'TERMINAL_INPUT', command: 'ls -la && git status' }, '*')
+ * ```
+ * @param command 整行命令文本（回车与下发后的行为由 iframe 页面端的 xterm 负责，
+ *                本端只把文本送到终端的输入口）
+ */
+function sendCommand(command: string): void {
+  if (!command || !command.trim()) return;
+  const frame = iframeEl.value;
+  if (!frame || !frame.contentWindow) {
+    return;
+  }
+  try {
+    frame.contentWindow.postMessage({ type: 'TERMINAL_INPUT', command } as Record<string, unknown>, '*');
+  } catch {
+    // 后端 iframe 未实现该通道时（跨域/策略），对外不可见，由外层通过状态提示
+  }
+}
+
+/**
+ * 多条命令合并成一次下发（换行做界，终端按换行逐行执行）
+ * @param commands 多条命令
+ */
+function sendCommands(commands: string[]): void {
+  sendCommand(commands.join('\n'));
+}
+
+/** 暴露给外层的终端操作 */
+defineExpose({
+  /** 写入一行命令（追加换行，等价于执行） */
+  sendCommand,
+  /** 下发多条命令 */
+  sendCommands,
+});
 
 /** iframe src：直连端点只需主机与身份定位，端口由后端按主机配置解析 */
 const iframeSrc = computed(() => {
@@ -50,6 +94,7 @@ const iframeSrc = computed(() => {
     </div>
     <iframe
       v-if="connection"
+      ref="iframeEl"
       :src="iframeSrc"
       class="ssh-iframe"
       frameborder="0"

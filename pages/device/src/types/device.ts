@@ -275,8 +275,43 @@ export interface ProviderCredential {
   deviceCredentialIsDefault?: boolean
   deviceCredentialEnabled?: boolean
   deviceCredentialRemark?: string
+  /** 在离线检测开关：该凭据维度的设备是否由时间轮自动探测（默认关闭） */
+  deviceCredentialOfflineDetectEnabled?: boolean
+  /** 在离线检测间隔（秒） */
+  deviceCredentialOfflineDetectInterval?: number
+  /** 设备自动同步开关：该凭据维度是否由时间轮自动拉取设备目录（默认关闭） */
+  deviceCredentialDeviceSyncEnabled?: boolean
+  /** 设备自动同步间隔（秒） */
+  deviceCredentialDeviceSyncInterval?: number
+  /** 组织自动同步开关：该凭据维度是否由时间轮自动拉取厂商侧组织树（默认关闭） */
+  deviceCredentialOrgSyncEnabled?: boolean
+  /** 组织自动同步间隔（秒） */
+  deviceCredentialOrgSyncInterval?: number
   deviceCredentialCreatedAt?: string
   deviceCredentialUpdatedAt?: string
+}
+
+/** 机房拓扑的节点/边（与 ReRelationGraph 的节点契约对齐：{ id, label, group, type, size }） */
+export interface TopologyNode {
+  /** 节点 id（带层级前缀）：area:名称 / subnet:区域:网段 / device:id / channel:id */
+  id: string
+  /** 显示名 */
+  label?: string
+  /** 分组（区域名，同组同色 + 气泡集轮廓） */
+  group?: string
+  /** 节点形状（后端给 rect / circle，属于 ReRelationGraph 的形状白名单） */
+  type: string
+  /** 节点尺寸（直径） */
+  size?: number
+  /** 设备是否在线（设备与其他节点继承设备的通道才有；区域 / 网段为 null） */
+  online?: boolean
+}
+
+/** 机房拓扑的边：起点 → 终点 */
+export interface TopologyEdge {
+  source: string
+  target: string
+  label?: string
 }
 
 /** 设备分组树节点 */
