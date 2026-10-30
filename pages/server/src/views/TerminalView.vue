@@ -15,6 +15,7 @@ import ScGuacViewer from "../components/ScGuacViewer.vue";
 import ScSshDirectViewer from "../components/ScSshDirectViewer.vue";
 import ScVncDirectViewer from "../components/ScVncDirectViewer.vue";
 import ScSftpPanel from "../components/ScSftpPanel.vue";
+import ScTerminalSidePanel from "../components/ScTerminalSidePanel.vue";
 import {
   SPECIAL_KEY_COMBOS,
   TASK_MANAGER_KEYS,
@@ -75,6 +76,14 @@ const keyword = ref("");
 
 /** SFTP 文件面板抽屉开关 */
 const sftpVisible = ref(false);
+
+/** 终端右侧小列面板（文件管理 / 片段）开关 */
+const sidePanelVisible = ref(false);
+/**
+ * SSH 直连渲染组件实例（作用：把片段命令下发到 iframe 中的终端）。
+ * 注意 ref 指向 ScSshDirectViewer；它 expose({ sendCommand, sendCommands })
+ */
+const sshViewerRef = ref<any>(null);
 
 /**
  * 读取路由上显式指定的协议（直达链接 / 资产页指定协议入口）
@@ -191,6 +200,25 @@ const supportsSpecialKeys = computed(() => {
   const c = connection.value;
   return !!c && c.protocol !== "ssh" && c.mode !== "NONE";
 });
+
+/**
+ * 把片段命令下发到当前生效的终端。
+ *
+ * <p>终端是 iframe（/ssh-direct.html）里的 xterm，只能跨窗口发消息：
+ * `ScSshDirectViewer.expose.sendCommand` 把 `{type: 'TERMINAL_INPUT', command}`
+ * 送给 iframe；iframe 页面收到后在 xterm 里键入并执行（Rx + 回车）。</p>
+ *
+ * @param command 双击的片段正文（可含多行，终端按换行逐行执行）
+ */
+function onSnippetCommand(command: string): void {
+  const c = connection.value;
+  if (!c) return;
+  if (c.protocol !== 'ssh') {
+    message.warning(`当前为 ${c.protocol.toUpperCase()} 终端，不支持下发片段：请手动粘贴 「${command}」`);
+    return;
+  }
+  sshViewerRef.value?.sendCommand?.(command.trim());
+}
 
 /**
  * 把按键序列下发给当前生效的渲染组件
@@ -541,6 +569,13 @@ onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
           @click="toggleImmersive"
         />
         <ReButton layout="square" icon="TopRight" title="弹出独立页面（独占可视范围）" @click="popout" />
+        <ReButton
+          layout="square"
+          :icon="sidePanelVisible ? 'Fold' : 'Files'"
+          :type="sidePanelVisible ? 'primary' : 'default'"
+          title="文件与片段面板（双击片段 | 终端内弹出）"
+          @click="sidePanelVisible = !sidePanelVisible"
+        />
       </div>
       <div v-if="connection && connection.mode === 'NONE'" class="remote-empty">
         「{{ connection.hostName }}」的远控通道为「无需通道」，平台不做中转：请用本机
@@ -551,6 +586,7 @@ onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
       <!-- SSH 始终走自研原生 PTY 直连桥（不依赖 guacd）；NONE 已在上方分支提示用本地客户端 -->
       <ScSshDirectViewer
         v-else-if="connection && connection.protocol === 'ssh'"
+        ref="sshViewerRef"
         :connection="connection"
         hide-close
         @close="disconnected = true"
@@ -580,6 +616,16 @@ onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
           <ScSftpPanel v-if="connection" :host-id="connection.hostId" />
         </template>
       </ReDrawer>
+
+      <!-- 终端右侧小列面板：文件管理 + 片段（终端内部弹出的面板） -->
+      <ScTerminalSidePanel
+        v-if="sidePanelVisible"
+        :host-id="connection?.hostId ?? null"
+        :host-name="connection?.hostName ?? ''"
+        :visible="sidePanelVisible"
+        @update:visible="v => sidePanelVisible = v"
+        :on-command="onSnippetCommand"
+      />
     </main>
   </div>
 </template>

@@ -14,9 +14,9 @@
  * @author CH
  * @since 4.0.0.44
  */
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { message } from "@repo/core";
-import { createTunnel, delTunnel, listTunnels, updateTunnelState } from "../../api";
+import { createTunnel, delTunnel, generateSshCommand, listTunnels, updateTunnelState } from "../../api";
 
 const props = defineProps<{
   /** 当前上下文主机 id（隧道接口路径参数；0 表示无上下文 → 空态） */
@@ -128,20 +128,85 @@ async function removeTunnel(t: Tunnel): Promise<void> {
 
 /* ==================== 新建表单（按方向） ==================== */
 
-const form = ref({
-  name: "",
+/** 正向/反向的默认参数（方向切换时回退，避免正向的表单向反向透传） */
+const formDefaults = computed(() => ({
   listen: forwardOnly.value ? "127.0.0.1" : "0.0.0.0",
   port: forwardOnly.value ? "3306" : "8080",
   targetHost: "10.0.2.15",
-  targetPort: "3306",
+  targetPort: forwardOnly.value ? "3306" : "3000",
   backHost: "192.168.1.21",
   backPort: "3000",
+}));
+
+const form = ref({
+  name: "",
+  listen: formDefaults.value.listen,
+  port: formDefaults.value.port,
+  targetHost: formDefaults.value.targetHost,
+  targetPort: formDefaults.value.targetPort,
+  backHost: formDefaults.value.backHost,
+  backPort: formDefaults.value.backPort,
   identity: "",
 });
+
+/** 方向切换时重新套用本方向的默认参数 */
+watch(() => props.mode, () => {
+  const d = formDefaults.value;
+  form.value = { ...form.value, ...d };
+});
+
+/** 端口合法性（建立与生成命令共用） */
+function portError(raw: string): string | undefined {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0 || n > 65535) return `无效的端口：${raw}`;
+  return undefined;
+}
+
+/** 生成可以直接拉到本地终端执行的 ssh 命令（ssh -L / ssh -R），用于验证正/反向隧道是否调通 */
+const sshCommand = ref<string | null>(null);
+const commandError = ref("");
+async function onGenerateCommand(): Promise<void> {
+  if (noHost.value) return;
+  busyKey.value = "cmd";
+  commandError.value = "";
+  sshCommand.value = null;
+  try {
+    const { command } = await generateSshCommand(props.hostId, {
+      name: form.value.name,
+      dir: forwardOnly.value ? "forward" : "reverse",
+      listen: form.value.listen,
+      port: form.value.port,
+      targetHost: form.value.targetHost,
+      targetPort: form.value.targetPort,
+      backHost: form.value.backHost,
+      backPort: form.value.backPort,
+      identity: form.value.identity,
+    });
+    sshCommand.value = command;
+  } catch (e: any) {
+    commandError.value = (e?.message ?? e) || "生成命令失败";
+  } finally {
+    busyKey.value = "";
+  }
+}
+
+/** 复制命令行到剪贴板，粘贴到本地终端即可拉起隧道 */
+async function copyCommand(): Promise<void> {
+  const cmd = sshCommand.value;
+  if (!cmd) return;
+  try {
+    await navigator.clipboard.writeText(cmd);
+    message.success("命令已复制，粘贴到本地终端即可拉起隧道");
+  } catch {
+    message.warning("复制失败，请手动全选复制");
+  }
+}
 
 /** 建立隧道（真实接口，dir 由 mode 决定） */
 async function createOne(): Promise<void> {
   if (noHost.value) return;
+  const port = portError(form.value.port);
+  if (port) { message.warning(port); return; }
   busyKey.value = "create";
   try {
     const dir = forwardOnly.value ? "forward" : "reverse";
@@ -220,10 +285,31 @@ onMounted(refresh);
             </div>
             <label class="tu-field"><span>登录身份</span><input v-model="form.identity" class="tu-input" placeholder="默认凭据（可留空）" /></label>
           </div>
-          <div class="tu-note lb-dim">
+          <div class="tn">
             <ReIcon name="InfoFilled" :size="11" />
             {{ forwardOnly ? '本机程序连 127.0.0.1:3306，流量经 SSH 加密送达内网目标。' : '把内网服务「挂」到公网机器上，外网也能访问到它。' }}
           </div>
+          <div v-if="commandError" class="tu-note tu-note--bad">{{ commandError }}</div>
+          <div v-if="sshCommand" class="tu-cmd">
+            <div class="tu-cmd__head">
+              <ReIcon name="Cpu" :size="11" />用来在本地终端拉起同一条隧道的命令
+              <span class="lb-spacer" />
+              <button type="button" class="lb-btn" :disabled="!sshCommand" title="复制" @click="copyCommand">
+                <ReIcon name="CopyDocument" :size="11" />复制
+              </button>
+            </div>
+            <div class="tu-cmd__body">{{ sshCommand }}</div>
+          </div>
+          <button
+            type="button"
+            class="lb-btn"
+            :disabled="noHost || busyKey === 'cmd' || !form.name"
+            title="按上方案生成 ssh -L / ssh -R 命令（同一条隧道、本地终端拉起来验证）"
+            @click="onGenerateCommand"
+          >
+            <ReIcon name="DocumentCopy" :size="11" />
+            {{ busyKey === 'cmd' ? '生成中…' : '生成 ssh 命令' }}
+          </button>
         </div>
       </section>
 
@@ -298,6 +384,35 @@ onMounted(refresh);
   margin-top: 10px;
   font-size: 11px;
   line-height: 1.6;
+}
+.tu-note--bad { color: var(--el-color-danger, #d94d4d) }
+
+/* 生成的 ssh 命令行：本地终端拉 |
+ * 起同一条隧道，用来验证正/反向隧道
+ */
+.tu-cmd {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: var(--el-fill-color-light, #f5f7fa);
+  border-radius: 7px;
+  border: 1px solid var(--el-border-color-extra-light, #eef0f6);
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--el-text-color-secondary);
+    margin-bottom: 6px;
+  }
+  &__body {
+    font: inherit;
+    font-size: 11.5px;
+    font-family: var(--el-font-family-mono, ui-monospace, Consolas, monospace);
+    color: var(--el-text-color-primary);
+    word-break: break-all;
+    line-height: 1.6;
+  }
 }
 
 /* ---------- 表单 ---------- */

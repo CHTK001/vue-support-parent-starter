@@ -256,6 +256,16 @@ export const createTunnel = (hostId: number, d: any) =>
   http().post(`${B}/host/${hostId}/tunnel`).data(d).then(r => unwrapResult<any>(r));
 export const updateTunnelState = (hostId: number, id: number, state: "RUNNING" | "STOPPED") =>
   http().put(`${B}/host/${hostId}/tunnel/${id}/state?state=${state}`).then(r => unwrapResult<any>(r));
+/**
+ * 生成 SSH 命令（ssh -L / ssh -R）—— 配合正向/反向隧道使用：
+ * 用真实的 ssh 客户端拉起隧道，验证调通。
+ *
+ * @param hostId 跳板主机 id
+ * @param d      与 建立隧道（POST /host/{id}/tunnel）入参一致
+ * @returns 完整 ssh 命令行
+ */
+export const generateSshCommand = (hostId: number, d: any) =>
+  http().post(`${B}/host/${hostId}/tunnel/ssh-command`).data(d).then(r => unwrapResult<{ command: string }>(r));
 export const delTunnel = (hostId: number, id: number) =>
   http().delete(`${B}/host/${hostId}/tunnel/${id}`).then(r => unwrapResult<boolean>(r));
 
@@ -308,6 +318,49 @@ export const saveMaintenancePlan = (id: number | null, d: any) => id != null
   ? http().put(`${B}/maintenance-plan/${id}`).data(d).then(r => unwrapResult<any>(r))
   : http().post(`${B}/maintenance-plan`).data(d).then(r => unwrapResult<any>(r));
 export const delMaintenancePlan = (id: number) => http().delete(`${B}/maintenance-plan/${id}`).then(r => unwrapResult<boolean>(r));
+
+// ===== 主机工作台：调度（SPI 按平台区分：Windows/Linux/Mac）=====
+/** 计划任务格式（任务名 / 调度表达式 / 目标平台 / 平台命令） */
+export interface SchedulePayload {
+  /** 规则名 */
+  msScheduleName: string;
+  /** 表达式：cron / simple（now」「every」… 由后端 SPI 决定） */
+  expression: string;
+  /** 执行平台：win | linux | mac（空=全部） */
+  platform?: string;
+  /** 在目标平台上执行的命令 */
+  command?: string;
+  /** 备注 */
+  remark?: string;
+}
+/** 调度的原点（带平台展开） */
+export interface ScheduleItem extends SchedulePayload {
+  id: number;
+  /** 所属主机 id */
+  hostId?: number;
+  /** 平台标识：win / linux / mac */
+  platform?: string;
+  /** 最后登录方式/执行结果入口 */
+  status?: string;
+  createdAt?: string;
+}
+
+/** 编辑态行（多一个 `name` 字段，省得跨字段转换） */
+export interface ScheduleDraft extends ScheduleItem {
+  name: string;
+}
+/** 按主机拉取调度列表 */
+export const listSchedules = (hostId: number, q: Record<string, unknown> = {}) =>
+  http().get(`${B}/host/${hostId}/schedule`).query(q).then(r => unwrapResult<any[]>(r));
+/** 按主机新增调度 */
+export const saveSchedule = (hostId: number, d: any) =>
+  http().post(`${B}/host/${hostId}/schedule`).data(d).then(r => unwrapResult<ScheduleItem>(r));
+/** 按主机修改调度 */
+export const updateSchedule = (hostId: number, id: number, d: any) =>
+  http().put(`${B}/host/${hostId}/schedule/${id}`).data(d).then(r => unwrapResult<ScheduleItem>(r));
+/** 按主机删除调度 */
+export const delSchedule = (hostId: number, id: number) =>
+  http().delete(`${B}/host/${hostId}/schedule/${id}`).then(r => unwrapResult<boolean>(r));
 
 // ===== 资产统计 =====
 export const getHostStats = () => http().get(`${B}/host/stats`).then(r => unwrapResult<{ total: number; online: number; offline: number; unknown: number }>(r));

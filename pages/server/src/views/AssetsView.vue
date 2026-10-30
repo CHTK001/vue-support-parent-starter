@@ -29,6 +29,7 @@ const OpsSessionTab = defineAsyncComponent(() => import("./ScSessionTab.vue"));
 const OpsExecTab = defineAsyncComponent(() => import("./ScExecTab.vue"));
 const OpsSnippetTab = defineAsyncComponent(() => import("./ScTerminalSnippetManager.vue"));
 const OpsMaintenanceTab = defineAsyncComponent(() => import("./ScMaintenancePlan.vue"));
+const ScheduleTab = defineAsyncComponent(() => import("./ScScheduleTab.vue"));
 const HostAccountTab = defineAsyncComponent(() => import("./hostaccount/HostAccountView.vue"));
 const SoftwareTab = defineAsyncComponent(() => import("../components/lab/ScSoftwareManager.vue"));
 import ScHostMetricsBar from "../components/ScHostMetricsBar.vue";
@@ -572,7 +573,8 @@ type TabKind =
   | "ops-snippets"
   | "ops-maintenance"
   | "host-accounts"
-  | "software";
+  | "software"
+  | "schedule";
 
 /** 功能定义：名称 / 图标 / 是否为画像分区 */
 interface TabKindMeta {
@@ -600,6 +602,7 @@ const TAB_KINDS: Record<TabKind, TabKindMeta> = {
   "ops-maintenance": { label: "维护计划", icon: "Clock" },
   "host-accounts": { label: "主机账号", icon: "User" },
   software: { label: "软件管理", icon: "Box" },
+  schedule: { label: "调度信息", icon: "Clock" },
 };
 
 /** 工作区页签（比 ReTabsItem 多带主机上下文，便于渲染内容） */
@@ -1037,6 +1040,9 @@ function ctxCommand(cmd: string): void {
       break;
     case "software":
       openTab(h, "software");
+      break;
+    case "schedule":
+      openTab(h, "schedule");
       break;
     case "agent-install":
       openDeploy(h, "install");
@@ -1583,6 +1589,8 @@ function lazyTabOf(name: string): Component | null {
       return OpsMaintenanceTab;
     case "host-accounts":
       return HostAccountTab;
+    case "schedule":
+      return ScheduleTab;
     case "software":
       return SoftwareTab;
     default:
@@ -2513,6 +2521,9 @@ function onGlobalKeydown(e: KeyboardEvent): void {
         </div>
         <div class="host-ctx-item" @click="ctxCommand('tab-files')">
           <ReIcon name="FolderOpened" /><span>文件管理</span>
+        </div>
+        <div class="host-ctx-item" @click="ctxCommand('schedule')">
+          <ReIcon name="Clock" /><span>调度信息</span>
         </div>
         <div class="host-ctx-item" @click="ctxCommand('tab-metrics')">
           <ReIcon name="TrendCharts" /><span>指标监控</span>

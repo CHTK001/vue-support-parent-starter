@@ -4,6 +4,9 @@
  * 路由挂在 layout 之下：
  * - /device           设备台账（列表 + 详情抽屉）
  * - /device/provider  厂商接入（AK/SK 凭据与厂商元数据）
+ * - /device/groups    设备分组
+ * - /device/topo      机房拓扑（区域 → 网段 → 设备 → 通道）
+ * - /device/tasks     定时任务（时间轮任务状态与间隔）
  *
  * isVisible = "1" 才能在 koi 主题侧边栏中显示。
  */
@@ -104,6 +107,19 @@ export const deviceRoutes: RouteConfigsTable[] = [
     }
   },
   {
+    path: '/device/topo',
+    name: 'DeviceTopo',
+    component: () => import('../views/DeviceTopoView.vue'),
+    meta: {
+      title: '机房拓扑',
+      icon: 'Grid',
+      showLink: true,
+      keepAlive: true,
+      isVisible: '1',
+      rank: 17
+    }
+  },
+  {
     path: '/device/screen',
     name: 'DeviceScreen',
     component: () => import('../views/DeviceScreenView.vue'),
@@ -150,6 +166,11 @@ export const deviceMenus = [
         path: '/device/tasks',
         name: 'DeviceTasks',
         meta: { title: '定时任务', icon: 'Timer', isVisible: '1' }
+      },
+      {
+        path: '/device/topo',
+        name: 'DeviceTopo',
+        meta: { title: '机房拓扑', icon: 'Grid', isVisible: '1' }
       }
     ]
   }
