@@ -1915,7 +1915,19 @@ function pushActivity(text: string, icon = "Clock", hostId?: number): void {
 /** 展开/收起 Dock，并记住选择 */
 function toggleDock(): void {
   dockOpen.value = !dockOpen.value;
+  // Dock 的显示区切成 v-if：收起时 Dock 内的全部 DOM（按钮/列表/折叠钮）销毁；
+  // 齿轮浮窗除外（不在 Dock 内），由这里随开关一起清空，确保收起后右侧不站任何残留 UI。
+  dockConfigVisible.value = false;
   localStorage.setItem("assets-dock-open", dockOpen.value ? "1" : "0");
+}
+
+/** Dock 底部设置菜单开关 */
+const dockConfigVisible = ref(false);
+
+/** 快捷操作面板显隐切换：从工作区底部设置进入，和 Dock 自身的收起按钮效果一致 */
+function onDockConfigAction(): void {
+  toggleDock();
+  dockConfigVisible.value = false;
 }
 
 /**
@@ -2301,6 +2313,18 @@ function onGlobalKeydown(e: KeyboardEvent): void {
           :has-metrics="statusMetrics.has"
           :rows="statusOverviewRows"
         />
+        <!-- Dock 设置：底部居中，收起/展开右侧快捷操作面板 -->
+        <div class="as-work__foot">
+          <button type="button" class="as-work__config" title="快捷操作面板设置" @click="dockConfigVisible = !dockConfigVisible">
+            <ReIcon name="Setting" :size="15" />
+          </button>
+          <div v-if="dockConfigVisible" class="as-work__popover" @click.stop>
+            <div class="as-work__popover-item" @click="onDockConfigAction">
+              <ReIcon name="ArrowRight" :size="13" />
+              <span>{{ dockOpen ? '关闭右侧快捷操作' : '显示右侧快捷操作' }}</span>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- ==================== 右侧：快捷操作 + 最近活动 ==================== -->
@@ -2363,19 +2387,16 @@ function onGlobalKeydown(e: KeyboardEvent): void {
           <span><b>{{ offlineCount }}</b> 离线</span>
         </div>
 
-        <!-- 收起按钮落在 Dock 底部：和左栏一样，「收起/展开」都压在下方 -->
+        <!-- 收起按钮落在 Dock 底部：和左栏一样，「收起/展开都压在下方 -->
         <div class="dock-foot">
           <button type="button" class="dock-foot__fold" title="收起快捷操作" @click="toggleDock">
             <ReIcon name="ArrowRight" :size="12" />
-            <span>收起</span>
           </button>
         </div>
       </aside>
 
-      <!-- Dock 收起后的窄条：按钮压在底部，与展开方向一致 -->
-      <button v-else type="button" class="as-dock-open" title="展开快捷操作" @click="toggleDock">
-        <ReIcon name="ArrowLeft" :size="12" />
-      </button>
+      <!-- Dock 收起（v-if / v-else 控制）：Dock 结构（含折叠钮）与 Dock 条的展开手柄一起全量销毁，
+      不留任何 Dock 控件——Dock 展开的唯一入口是工作区底部中央的「快捷操作面板设置」齿轮菜单 -->
     </div>
 
     <!-- 新增/编辑弹窗（独立子组件——弹窗渲染只在子组件内进行，不再触发本组件全量 diff） -->
@@ -3375,70 +3396,37 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   color: var(--el-text-color-secondary);
 }
 
-.dock-head__x,
-.as-dock-open {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--el-text-color-placeholder);
-  cursor: pointer;
-  background: transparent;
-  border: none;
-  border-radius: var(--el-radius-sm, 4px);
-}
-
-.dock-head__x {
-  width: 20px;
-  height: 20px;
-}
-
-.dock-head__x:hover,
-.as-dock-open:hover {
-  color: var(--el-color-primary);
-  background: var(--el-fill-color-light);
-}
-
-/* Dock 收起后的窄条：贴在工作区右边，按钮压在底部 */
-.as-dock-open {
-  flex: none;
-  align-self: stretch;
-  width: 14px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-md, 8px);
-  /* 竖排 + 底部对齐：展开按钮落在窄条下方，与 Dock 收起按钮同一位置 */
-  flex-direction: column;
-  justify-content: flex-end;
-  padding-bottom: 12px;
-}
-
-/* Dock 底部：收起按钮 */
+/* Dock 底部：收起按钮的容器 */
 .dock-foot {
   display: flex;
   flex: none;
-  justify-content: flex-end;
-  padding: 8px 10px 10px;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 10px 10px 10px 12px;
   margin-top: auto;
   border-top: 1px solid var(--el-border-color-lighter);
 }
 
+/* 收起按钮：贴 Dock 底部左侧，收到只剩图标，和左侧资源栏的收起按钮样式一致 */
 .dock-foot__fold {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  font-size: 11px;
-  font-family: inherit;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
   color: var(--el-text-color-placeholder);
   background: transparent;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-full, 9999px);
+  border-radius: var(--el-radius-md, 8px);
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 
 .dock-foot__fold:hover {
   color: var(--el-color-primary);
   border-color: var(--el-color-primary-light-5);
+  background: var(--el-fill-color-light);
 }
 
 .dock-quick {
@@ -3595,6 +3583,64 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-xl, 16px);
   box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+}
+
+/* 工作区底部：居中设置钮，悬浮在指标条右下方，点出 Dock 设置面板 */
+.as-work__foot {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding: 0 0 10px;
+  flex: none;
+}
+.as-work__config {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--el-radius-md, 8px);
+  background: transparent;
+  color: var(--el-text-color-regular);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.as-work__config:hover {
+  background: var(--el-fill-color-light);
+  color: var(--el-color-primary);
+}
+/* 浮窗：贴在设置钮上方居中，点别处（菜单外）可关闭 */
+.as-work__popover {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(0);
+  margin-bottom: 4px;
+  min-width: 180px;
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 8px;
+  padding: 5px;
+  box-shadow: var(--el-box-shadow);
+  z-index: 10;
+}
+.as-work__popover-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.as-work__popover-item:hover {
+  background: var(--el-fill-color);
+  color: var(--el-color-primary);
 }
 
 /* 工作区空态：告诉用户「入口在右键」，而不是干放一句「暂无数据」 */

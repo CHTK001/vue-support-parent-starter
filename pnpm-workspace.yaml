@@ -151,6 +151,18 @@ catalog:
   # PreviewOfficePanel 直接 import 它做选区事件桥接（prototype patch），
   # 版本一旦分叉 pnpm 会装出两个实例，补丁就打不到渲染器用的那张表上
   e-virt-table: 1.4.15
+  # 打印设计器与打印依赖：vue-plugin-hiprint (npm 构建版) 依赖 jquery / bwip-js / jsbarcode /
+  # socket.io-client / canvg / jspdf / nzh / dom-to-image-more / jquery-minicolors，
+  # 全部锁版，避免同页面出现两个 jQuery 实例导致设计器初始化异常。
+  vue-plugin-hiprint: ^0.0.62
+  "@claviska/jquery-minicolors": ^2.3.6
+  bwip-js: ^4.0.0
+  canvg: ^3.0.10
+  dom-to-image-more: 3.7.2
+  jquery: ^3.6.0
+  jsbarcode: ^3.11.5
+  jspdf: ^2.5.1
+  nzh: ^1.0.8
 
 # file-viewer 供应商补丁（pnpm 9.15 只读本文件的 patchedDependencies，
 # 写 package.json 的 pnpm 字段会被忽略且直接告警）。

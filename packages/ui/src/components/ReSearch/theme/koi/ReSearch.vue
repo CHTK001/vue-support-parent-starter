@@ -595,11 +595,9 @@ function filterLoader(filter: SearchFilter): ReSelectLoader | undefined {
   border-radius: var(--rs-radius-lg);
   color: var(--rs-text);
   box-sizing: border-box;
-  transition: border-color var(--rs-transition), box-shadow var(--rs-transition);
 }
 .koi-search--bordered {
   border-color: var(--rs-border);
-  box-shadow: var(--rs-shadow-xs);
 }
 
 /* 顶部条：左侧簇（导航 slot + 徽标）+ 折叠切换（右上角） */

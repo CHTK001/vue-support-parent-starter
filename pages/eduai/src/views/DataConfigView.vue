@@ -89,24 +89,65 @@
       <!-- 三块内容各自一个页签：ReTabs 负责页签条与面板外壳，面板常驻（v-show），
            切走再切回不丢滚动位置、搜索词与已拉取的数据。面板内容按 tab.name 只挂一份。 -->
       <ReTabs v-model="activeBlock" :tabs="blockTabs" :closable="false" class="dim-tabs">
+        <!-- 卡头右侧：当前页签的操作行随 activeBlock 切换（搜索 / 筛选 / 新增），
+             三个面板共用同一条卡头，所以操作区放在 #actions 而不是各自面板里 -->
+        <template #actions>
+          <div v-if="activeBlock === 'subject'" class="block__ops">
+            <button v-if="levelFilter" type="button" class="filter-tag" @click="levelFilter = ''">
+              {{ levelLabel(levelFilter) }}学段 ×
+            </button>
+            <el-input
+              v-model="subjectKeyword"
+              class="subject-search"
+              clearable
+              placeholder="搜索学科 / 编码"
+              :prefix-icon="Search"
+            />
+            <el-button :icon="Upload" @click="onImport">批量导入</el-button>
+            <el-button type="primary" :icon="Plus" @click="openSubjectCreate">新增学科</el-button>
+          </div>
+
+          <div v-else-if="activeBlock === 'classes'" class="block__ops">
+            <el-select
+              v-model="classLevelFilter"
+              clearable
+              placeholder="全部学段"
+              style="width: 150px"
+              @change="loadClasses"
+            >
+              <el-option
+                v-for="opt in gradeLevelOptions"
+                :key="opt.value"
+                :label="opt.label"
+                :value="opt.value"
+              />
+            </el-select>
+            <el-button type="primary" :icon="Plus" @click="openClassCreate">新增班级</el-button>
+          </div>
+
+          <div v-else class="block__ops">
+            <el-input
+              v-model="templateKeyword"
+              class="subject-search"
+              clearable
+              placeholder="搜索模板名称"
+              :prefix-icon="Search"
+            />
+            <el-button type="primary" :icon="Plus" @click="openTemplateCreate">新增模板</el-button>
+          </div>
+        </template>
+
         <template #default="{ tab }">
           <!-- ==================== 学科 ==================== -->
           <section v-if="tab.name === 'subject'" class="block">
-            <div class="block__head">
-              <div class="block__ops">
-                <button v-if="levelFilter" type="button" class="filter-tag" @click="levelFilter = ''">
-                  {{ levelLabel(levelFilter) }}学段 ×
-                </button>
-                <el-input
-                  v-model="subjectKeyword"
-                  class="subject-search"
-                  clearable
-                  placeholder="搜索学科 / 编码"
-                  :prefix-icon="Search"
-                />
-                <el-button :icon="Upload" @click="onImport">批量导入</el-button>
-                <el-button type="primary" :icon="Plus" @click="openSubjectCreate">新增学科</el-button>
-              </div>
+            <!-- 表头行：与 .row 共用同一套列宽，读起来像一张真表格 -->
+            <div class="thead">
+              <span />
+              <span>学科</span>
+              <span>适用学段</span>
+              <span>排序</span>
+              <span>状态</span>
+              <span class="thead__ops">操作</span>
             </div>
 
             <div v-loading="subjectLoading" class="rows">
@@ -170,27 +211,7 @@
           </section>
 
           <!-- ==================== 班级 ==================== -->
-          <section v-else-if="tab.name === 'classes'" class="block">
-            <div class="block__head">
-              <div class="block__ops">
-                <el-select
-                  v-model="classLevelFilter"
-                  clearable
-                  placeholder="全部学段"
-                  style="width: 150px"
-                  @change="loadClasses"
-                >
-                  <el-option
-                    v-for="opt in gradeLevelOptions"
-                    :key="opt.value"
-                    :label="opt.label"
-                    :value="opt.value"
-                  />
-                </el-select>
-                <el-button type="primary" :icon="Plus" @click="openClassCreate">新增班级</el-button>
-              </div>
-            </div>
-
+          <section v-else-if="tab.name === 'classes'" class="block block--pad">
             <ReTable
               v-loading="classLoading"
               :data="classes"
@@ -235,20 +256,7 @@
           </section>
 
           <!-- ==================== 组卷模板 ==================== -->
-          <section v-else class="block">
-            <div class="block__head">
-              <div class="block__ops">
-                <el-input
-                  v-model="templateKeyword"
-                  class="subject-search"
-                  clearable
-                  placeholder="搜索模板名称"
-                  :prefix-icon="Search"
-                />
-                <el-button type="primary" :icon="Plus" @click="openTemplateCreate">新增模板</el-button>
-              </div>
-            </div>
-
+          <section v-else class="block block--pad">
             <!-- 组卷模板：ReTable 的 view 模式（一行一块：左边信息、右边操作同屏）。
                  fill:false —— 本页是整页滚动容器，参与「撑满视口」计算会与 ResizeObserver
                  形成高度正反馈（行高一路涨到上千、整页滚动条反复抖动）。 -->
@@ -1352,15 +1360,20 @@ onMounted(() => {
   align-items: start;
 }
 
-/* ---------- 左：维度脊柱 ---------- */
+/* ---------- 左：维度脊柱（独立成卡：与右侧内容卡同一套「面」） ---------- */
 .taxo {
   position: sticky;
-  top: 0;
+  top: 14px;
   align-self: start;
   display: flex;
   flex-direction: column;
-  padding: 18px 0 0;
+  margin: 14px 0 14px 16px;
+  padding: 14px 0 0;
+  overflow: hidden;
   background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  box-shadow: 0 2px 10px var(--el-box-shadow-lighter);
 }
 
 .taxo__head {
@@ -1559,11 +1572,11 @@ onMounted(() => {
 }
 
 /* ---------- 右：主区 ---------- */
+/* 页头是通栏白条、内容是一张卡，所以主区自己不再铺底色、也不再画左分隔线 */
 .main {
   min-width: 0;
-  padding: 18px 20px 26px;
-  border-left: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color-page);
+  padding: 0;
+  background: transparent;
 }
 
 .page-header {
@@ -1572,7 +1585,9 @@ onMounted(() => {
   justify-content: space-between;
   gap: 20px;
   flex-wrap: wrap;
-  padding-bottom: 14px;
+  padding: 16px 20px 14px;
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 .page-header__title {
@@ -1620,31 +1635,66 @@ onMounted(() => {
   color: var(--el-text-color-placeholder);
 }
 
-/* ---------- 分区（页签面板：学科 / 班级 / 组卷模板） ---------- */
-/* 页签条自带底线，这里不再给面板补 border-top，否则切换后页签下方会出现两条线 */
-.block {
-  margin-top: 4px;
-}
-
-/* 页签条与页头之间留一点气口。
-   ReTabs 默认是「工作区」外观：页签条铺白底 + 左右 4px 内边距。本页页头是浅灰底，
-   白条会像贴在页头下面的一道亮带，所以把条压成透明、内边距归零。 */
+/* ---------- 分区容器：ReTabs 根节点即内容卡，页签条即卡头 ---------- */
 .dim-tabs {
-  margin-top: 2px;
+  margin: 16px 20px 20px;
+  overflow: hidden;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  box-shadow: 0 2px 10px var(--el-box-shadow-lighter);
 }
 
+/* 卡头：左侧分段 pill 页签，右侧放当前页签的操作行 */
 .dim-tabs :deep(.re-tabs__bar) {
-  padding: 0;
+  min-height: 50px;
+  padding: 0 14px;
+  gap: 12px;
   background: transparent;
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
-.block__head {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 14px;
-  flex-wrap: wrap;
-  margin-bottom: 8px;
+.dim-tabs :deep(.re-tabs__nav) {
+  flex: 0 1 auto;
+  gap: 2px;
+  margin: 9px 0;
+  padding: 2px;
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-fill-color-light);
+}
+
+.dim-tabs :deep(.re-tabs__tab) {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: var(--el-radius-sm, 6px);
+  color: var(--el-text-color-regular);
+}
+
+.dim-tabs :deep(.re-tabs__tab:hover) {
+  background: transparent;
+  color: var(--el-color-primary);
+}
+
+/* 选中页签浮成白色小片：与卡头同色，只有投影把它抬起来 */
+.dim-tabs :deep(.re-tabs__tab.is-active) {
+  background: var(--el-bg-color);
+  color: var(--el-color-primary);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--el-color-black) 10%, transparent);
+}
+
+/* 操作区推到卡头最右 */
+.dim-tabs :deep(.re-tabs__actions) {
+  margin-left: auto;
+  padding: 9px 0 9px 6px;
+}
+
+/* 面板内容：学科整表（行自带内边距），班级/模板自带表格外框，需要留白 */
+.block {
+  min-width: 0;
+}
+
+.block--pad {
+  padding: 14px;
 }
 
 .filter-tag {
@@ -1670,7 +1720,6 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  justify-content: flex-end;
 }
 
 .subject-search {
@@ -1679,21 +1728,39 @@ onMounted(() => {
   width: 220px;
 }
 
-/* ---------- 学科行 ---------- */
+/* ---------- 学科：表头 + 数据行（共用一套列宽变量，读起来像一张真表格） ---------- */
 .rows {
+  --dim-cols: 34px minmax(120px, 1.4fr) auto 84px 96px 108px;
   display: flex;
   flex-direction: column;
   min-height: 80px;
 }
 
-.row {
+.thead {
   display: grid;
   grid-template-columns: 34px minmax(120px, 1.4fr) auto 84px 96px 108px;
   align-items: center;
   gap: 14px;
-  padding: 9px 10px;
+  padding: 7px 14px;
+  background: var(--el-fill-color-lighter);
   border-bottom: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+}
+
+.thead__ops {
+  text-align: right;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: var(--dim-cols);
+  align-items: center;
+  gap: 14px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
   color: inherit;
   font: inherit;
   text-align: left;
@@ -1702,12 +1769,18 @@ onMounted(() => {
   transition: background var(--el-transition-duration-fast, 0.2s) ease;
 }
 
+/* 斑马纹（空态面板也是 .rows 的子节点，用 .row 限定避免被染色） */
+.rows > .row:nth-child(even) {
+  background: var(--el-fill-color-lighter);
+}
+
 .row:last-child {
   border-bottom: 0;
 }
 
-.row:hover {
-  background: var(--el-fill-color-light);
+.row:hover,
+.rows > .row:nth-child(even):hover {
+  background: var(--el-color-primary-light-9);
 }
 
 .row:focus-visible {
@@ -1860,10 +1933,10 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   min-height: 120px;
-  margin-top: 8px;
+  margin: 14px;
   border: 1px dashed var(--el-border-color-lighter);
   border-radius: var(--el-radius-lg, 12px);
-  background: var(--el-bg-color);
+  background: var(--el-fill-color-lighter);
   color: var(--el-text-color-placeholder);
 }
 
@@ -1921,12 +1994,21 @@ onMounted(() => {
     grid-template-columns: 208px minmax(0, 1fr);
   }
 
-  .row {
-    grid-template-columns: 34px minmax(96px, 1fr) auto 96px 108px;
+  /* 窄屏列宽变了（排序列收起），表头与数据行对不齐，索性隐掉表头 */
+  .thead {
+    display: none;
+  }
+
+  .rows {
+    --dim-cols: 34px minmax(96px, 1fr) auto 96px 108px;
   }
 
   .row__sort {
     display: none;
+  }
+
+  .dim-tabs {
+    margin: 14px 16px 18px;
   }
 }
 
@@ -1937,7 +2019,7 @@ onMounted(() => {
 
   .taxo {
     position: static;
-    padding-top: 14px;
+    margin: 12px 12px 0;
   }
 
   .taxo__spine {
@@ -1955,18 +2037,23 @@ onMounted(() => {
     display: none;
   }
 
-  .main {
-    padding: 14px 14px 22px;
-    border-left: 0;
-    border-top: 1px solid var(--el-border-color-lighter);
+  .page-header {
+    padding: 14px 14px 12px;
+  }
+
+  .dim-tabs {
+    margin: 12px;
   }
 
   .metrics {
     gap: 18px;
   }
 
+  .rows {
+    --dim-cols: 34px minmax(80px, 1fr) auto 96px;
+  }
+
   .row {
-    grid-template-columns: 34px minmax(80px, 1fr) auto 96px;
     gap: 10px;
   }
 

@@ -62,6 +62,8 @@ const props = withDefaults(
     fields?: ReFormField[];
     /** 表单 label 宽度 */
     labelWidth?: string | number;
+    /** key-value布局 **/
+    labelPosition?: string;
     /** 行内表单 */
     inline?: boolean;
     /** 禁用整个表单 */
@@ -77,6 +79,7 @@ const props = withDefaults(
     labelWidth: "100px",
     inline: false,
     disabled: false,
+    labelPosition: "top",
     rules: undefined,
     gutter: 16,
   },
@@ -383,6 +386,7 @@ defineExpose({
     v-if="layout === 'modern'"
     :label-width="labelWidth"
     :inline="inline"
+    :label-position="labelPosition"
     :disabled="disabled"
     v-bind="$attrs"
   >
@@ -424,6 +428,7 @@ defineExpose({
     :model="model"
     :rules="formRules"
     :label-width="labelWidth"
+    :label-position="labelPosition"
     :inline="inline"
     :disabled="disabled"
     class="re-form"

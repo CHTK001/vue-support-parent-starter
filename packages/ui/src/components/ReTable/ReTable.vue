@@ -3171,14 +3171,34 @@ onMounted(() => {
   document.addEventListener("mousemove", onDocMousemoveResizeTip, { capture: true, passive: true });
   document.addEventListener("mouseup", onDocMouseupResizeTip, true);
   window.addEventListener("blur", onDocMouseupResizeTip);
+  // 固定列浮层的行高对齐（见 syncFixedRowHeights）：tbody 要等 vxe 首次渲染，内部自带重试
+  ensureFixedRowObserver();
+  // Web 字体是异步落地的：字体一换，行高就变，「开表时没对齐、滚一下才正常」多半是它
+  void document.fonts?.ready
+    .then(() => {
+      if (tableUnmounted) return;
+      resyncFixedRowHeights();
+    })
+    .catch(() => undefined);
 });
 
 onBeforeUnmount(() => {
+  tableUnmounted = true;
   document.removeEventListener("mousedown", onDocMousedownResizeTip, true);
   document.removeEventListener("mousemove", onDocMousemoveResizeTip, true);
   document.removeEventListener("mouseup", onDocMouseupResizeTip, true);
   window.removeEventListener("blur", onDocMouseupResizeTip);
   hideResizeTip();
+  fixedRowObserver?.disconnect();
+  fixedRowObserver = null;
+  fixedRowMutationObserver?.disconnect();
+  fixedRowMutationObserver = null;
+  fixedRowObserverTarget = null;
+  clearFixedRowSettle();
+  if (fixedRowSyncFrame) cancelAnimationFrame(fixedRowSyncFrame);
+  fixedRowSyncFrame = 0;
+  if (fixedRowVerifyFrame) cancelAnimationFrame(fixedRowVerifyFrame);
+  fixedRowVerifyFrame = 0;
 });
 
 /** 监听 tableId / columns 变化时重载列配置 */
@@ -3268,6 +3288,235 @@ function clampWidthForColumn(col: ReTableColumn, width: number): number {
 function recalculateVxe(): void {
   const inst = vxeTableRef.value as unknown as { recalculate?: (refull?: boolean) => unknown } | null;
   inst?.recalculate?.();
+  // 重排后行高可能变了（换行 / 内容变化），固定列的行高要跟着走
+  scheduleFixedRowSync();
+}
+
+/**
+ * 固定列浮层（fixed-left / fixed-right）的行高对齐。
+ *
+ * <p><b>为什么必须自己对齐</b>：vxe 的固定列不是「同一张表里的 sticky 单元格」，而是
+ * 另外渲染的<b>独立 table</b>（见 es/table/src/table.js 的 {@code renderTable}：
+ * 主表体一处、固定左一处、固定右一处，各自有自己的 tbody）。平时三者能对齐，靠的是
+ * vxe 给每个单元格写**内联 height/min-height**（{@code --vxe-ui-table-row-height-*}）
+ * 把行高钉成同一个值 —— 而 ReTable 为了拿到「内容驱动的行高」（表头补充行、两行文本、
+ * 行内附注都靠它撑开），把这批内联高度全部清成了 {@code auto !important}（见下方
+ * CSS 的「行高对齐 element」段）。两边一清，三张表就再没有共同的高度来源了，
+ * 于是各自按自己的内容长：实测 report.ms_server_host 打开「行显示 · 注释」后，
+ * 主表体行高 32 → <b>54px</b>，固定左（勾选列）纹丝不动停在 <b>28px</b>，
+ * 勾选框与整行错位，并且越往下错得越多。</p>
+ *
+ * <p>同一个根因还有第二个表现：操作列（{@code fixed: "right"}）里放了按钮，
+ * 按钮比数据格高，固定右就会比主表体高 —— 用户反馈的「加了 fixed 就对不齐」。</p>
+ *
+ * <p>做法：按行号取三张表的行高，<b>取最大值</b>再回写给三张表。取 max 而不是
+ * 「以主表体为准」是因为任一侧变矮都会裁掉自己的内容；取 max 只会让矮的那几行补白，
+ * 视觉上正好是「同一行」。写之前先清掉<b>我们自己写过的</b>高度（用
+ * {@code data-rt-sync-h} 标记，不碰 vxe 自己写的内联 height），否则下一轮量到的是
+ * 上一轮回写的结果，行高只会单调增长、永远收不回来。</p>
+ *
+ * <p><b>为什么写自定义属性而不是内联 {@code style.height}</b>：ReTable 各尺寸档为了让
+ * 行高由内容决定，写的是 {@code .re-table--mini .vxe-body--row { height: auto !important }}
+ * 这类<b>带 !important 的样式表规则</b>；样式表里的 !important 优先级高于内联的普通声明，
+ * 直接写 {@code tr.style.height = "32px"} 会被它压掉 —— 实测写进去了、{@code style} 属性上
+ * 看得见 {@code height: 32px}，量出来还是 28px。所以这里只写两个东西：
+ * {@code --rt-row-h}（数值）与 {@code data-rt-sync-h}（标记），由下方样式段里一条
+ * 选择器更具体的规则去消费它。</p>
+ *
+ * <p>开销：只在真有变化时跑，rAF 合并；50 行 × 3 张表约 150 次 {@code getBoundingClientRect}，
+ * 单帧量级，且清空 → 读取 → 回写都在同一帧内完成，中间不会出现可见闪烁。</p>
+ */
+const FIXED_ROW_SIDES = ["left", "right"] as const;
+
+/**
+ * 同步行高用的自定义属性名。
+ *
+ * <p>值形如 {@code "54px"}；消费方是样式段里的
+ * {@code .re-table .vxe-body--row[data-rt-sync-h] { height: var(--rt-row-h) !important }}。</p>
+ */
+const RT_ROW_H_VAR = "--rt-row-h";
+
+/** 摘掉我们自己写过的行高（只认自己的标记，不碰 vxe 写的内联 height） */
+function clearSyncedRowHeight(tr: HTMLElement): void {
+  if (!tr.dataset.rtSyncH) return;
+  tr.style.removeProperty(RT_ROW_H_VAR);
+  delete tr.dataset.rtSyncH;
+}
+
+/** 取某一部分（表体 / 表头）主表体与各固定浮层的行元素，按「主表体在最前」排列 */
+function collectRowGroups(root: HTMLElement, part: "body" | "header"): HTMLElement[][] {
+  const cls = part === "body" ? "vxe-body--row" : "vxe-header--row";
+  const main = Array.from(root.querySelectorAll<HTMLElement>(`.vxe-table--main-wrapper .${cls}`));
+  if (main.length === 0) return [];
+  const groups: HTMLElement[][] = [main];
+  for (const side of FIXED_ROW_SIDES) {
+    const rows = Array.from(root.querySelectorAll<HTMLElement>(`.vxe-table--fixed-${side}-wrapper .${cls}`));
+    if (rows.length > 0) groups.push(rows);
+  }
+  return groups;
+}
+
+/**
+ * 对齐某一组（表体 / 表头）三张表的行高：清标记 → 量 → 取 max → 回写。
+ *
+ * <p>先清再量，量完 <b>三张表本来就一样高</b>（绝大多数行）时一次都不写 ——
+ * 写进去只会多一轮样式变更与重排，没有任何视觉收益。真正需要写的只有「某一侧比
+ * 另一侧高」的那些行（勾选列、操作列按钮、行注释把主表体撑开）。</p>
+ *
+ * <p>表头也走同一条路：表头三张表高度不一致时整行往下错，视觉上和表体错位一样难看，
+ * 而表头行高来自同一批被清掉的内联 height，根因完全相同。</p>
+ */
+function syncRowHeightsOfPart(root: HTMLElement, part: "body" | "header"): void {
+  const groups = collectRowGroups(root, part);
+  if (groups.length === 0) return;
+  // 先清掉上轮回写的高度，否则这一轮量到的是自己上一轮的结果，行高只会单调变高
+  for (const rows of groups) {
+    for (const tr of rows) clearSyncedRowHeight(tr);
+  }
+  // 只有一组说明当前没有固定列浮层，行高交回 CSS 的内容驱动即可
+  if (groups.length < 2) return;
+  const heights = groups.map((rows) => rows.map((tr) => Math.round(tr.getBoundingClientRect().height)));
+  const count = Math.min(...heights.map((h) => h.length));
+  for (let i = 0; i < count; i++) {
+    let max = 0;
+    let min = Number.POSITIVE_INFINITY;
+    for (const h of heights) {
+      if (h[i] > max) max = h[i];
+      if (h[i] < min) min = h[i];
+    }
+    if (max <= 0) continue;
+    // 三张表本来一致：不写（写了也只是把同一个值再钉一遍）
+    if (max === min) continue;
+    const next = `${max}px`;
+    for (const rows of groups) {
+      const tr = rows[i];
+      if (tr.style.getPropertyValue(RT_ROW_H_VAR) === next) continue;
+      tr.style.setProperty(RT_ROW_H_VAR, next);
+      tr.dataset.rtSyncH = "1";
+    }
+  }
+}
+
+function syncFixedRowHeights(): void {
+  const root = (vxeTableRef.value as unknown as { $el?: HTMLElement } | null)?.$el;
+  if (!root) return;
+  syncRowHeightsOfPart(root, "body");
+  syncRowHeightsOfPart(root, "header");
+}
+
+/** rAF 合并的行高同步：一次交互里可能连续触发（数据 / 列 / 内容三路） */
+let fixedRowSyncFrame = 0;
+/**
+ * 复核帧：同步跑完的下一个动画帧再跑一遍。
+ *
+ * <p>为什么需要：vxe 一次渲染并不是「画完就不动」——它会在同一轮里先出表体、
+ * 再补内联高度 / 重建固定列浮层；我们写的 {@code data-rt-sync-h} 挂在 <b>行元素</b>上，
+ * 行一旦被重建标记就没了，而 tbody 总高未必变（ResizeObserver 不会触发）。
+ * 实测现象就是用户报的「开表时不齐，横向滚一下才正常」：滚动会触发 vxe 重排 + 我们的
+ * scroll 钩子，于是才补上这一次同步。加一次复核帧把「vxe 渲染尾巴」这截兜住。</p>
+ */
+let fixedRowVerifyFrame = 0;
+function scheduleFixedRowSync(): void {
+  if (fixedRowSyncFrame) return;
+  fixedRowSyncFrame = requestAnimationFrame(() => {
+    fixedRowSyncFrame = 0;
+    syncFixedRowHeights();
+    if (fixedRowVerifyFrame) return;
+    fixedRowVerifyFrame = requestAnimationFrame(() => {
+      fixedRowVerifyFrame = 0;
+      syncFixedRowHeights();
+    });
+  });
+}
+
+/**
+ * 「沉降期」复核：载入后按几张时间点再对齐若干次。
+ *
+ * <p><b>为什么两帧还不够</b>：用户反馈的正是「不滚动就不齐，横向滚一下才正常」——
+ * 而 {@code @scroll} 是唯一一个「延时一定会触发」的钩子，说明真正的问题不是
+ * 「没对齐」，而是<b>对齐跑得太早</b>。开表那一瞬间，行高还在被这些慢动作改写：
+ * Web 字体异步落地（{@code document.fonts}）、列宽按落盘值重排一轮、图片/图标替换、
+ * vxe 固定列浮层重建、页面容器的过渡动画。它们落在我们那两个 rAF 之后，
+ * 就把已经对齐的行高又改回「各自按内容长」。</p>
+ *
+ * <p>本机（快）两帧就稳了，所以本地怎么测都复现不出来；用户机器上字体/列宽晚到，
+ * 于是要等一次滚动才被 {@link scheduleFixedRowSync} 兜住。</p>
+ *
+ * <p>只在「载入 / 重载 / 切表」这条路走，不在每次重排里走，避免拖拽列宽时反复排定时器；
+ * 每次同步是 3 张表 × 行数次的 {@code getBoundingClientRect}，且三张表已经一致时
+ * 一个字节都不写，开销可以忽略。多次调用会取消上一次未跑完的序列。</p>
+ */
+const FIXED_ROW_SETTLE_DELAYS = [0, 80, 240, 600, 1200] as const;
+let fixedRowSettleTimers: number[] = [];
+function scheduleFixedRowSettle(): void {
+  for (const timer of fixedRowSettleTimers) window.clearTimeout(timer);
+  fixedRowSettleTimers = FIXED_ROW_SETTLE_DELAYS.map((delay) =>
+    window.setTimeout(() => {
+      syncFixedRowHeights();
+    }, delay),
+  );
+}
+function clearFixedRowSettle(): void {
+  for (const timer of fixedRowSettleTimers) window.clearTimeout(timer);
+  fixedRowSettleTimers = [];
+}
+
+/** 载入 / 切表 / 用户点刷新：立刻对齐 + 沉降期复核 */
+function resyncFixedRowHeights(): void {
+  scheduleFixedRowSync();
+  scheduleFixedRowSettle();
+}
+
+/** 观察主表体：尺寸变化（内容变高变矮）+ 行被整套换掉（vxe 重渲染） */
+let fixedRowObserver: ResizeObserver | null = null;
+let fixedRowObserverTarget: HTMLElement | null = null;
+/** 卸载标记：document.fonts.ready 是 Promise，可能在组件销毁后才 resolve */
+let tableUnmounted = false;
+/** 行元素增删 / 重建的观察器：ResizeObserver 只看尺寸，行换新但总高不变时它不会响 */
+let fixedRowMutationObserver: MutationObserver | null = null;
+
+/**
+ * 给主表体挂上观察器（幂等）。
+ *
+ * <p>两个观察器分工：{@link fixedRowObserver}（ResizeObserver）盯尺寸 —— 内容变高变矮、
+ * 行数增减都会让 tbody 的盒子尺寸变化；{@link fixedRowMutationObserver}（MutationObserver）
+ * 盯<b>行元素本身被替换</b> —— vxe 重渲染常常是「同样 8 行、同样的高度，但 tr 是新建的」，
+ * 这时尺寸一个像素都没变，ResizeObserver 完全不响，我们上一轮写在旧 tr 上的标记与变量
+ * 就随旧节点一起丢了。只盯 childList（不盯 attributes），否则我们自己写
+ * {@code --rt-row-h} 会把自己叫醒，变成自激循环。</p>
+ *
+ * <p>tbody 要等 vxe 首次渲染才有，所以这里带重试：调用方可以是 onMounted，也可以是
+ * 切表之后。</p>
+ */
+function ensureFixedRowObserver(retry = 0): void {
+  const root = (vxeTableRef.value as unknown as { $el?: HTMLElement } | null)?.$el;
+  const target = root?.querySelector<HTMLElement>(".vxe-table--main-wrapper tbody") ?? null;
+  if (!target) {
+    // vxe 还没渲染出表体：下一帧再来（最多 60 帧 ≈ 1 秒，之后放弃，靠 data/列变化兜底）
+    if (retry < 60) requestAnimationFrame(() => ensureFixedRowObserver(retry + 1));
+    return;
+  }
+  // 观察面比 tbody 大一圈：表头也在同一批被清掉的内联 height 里（见 syncRowHeightsOfPart），
+  // 而列宽/容器尺寸变化会同时改表头与表体的行高，二者都必须能叫醒同步。
+  const scope = root?.querySelector<HTMLElement>(".vxe-table--main-wrapper") ?? target;
+  if (fixedRowObserverTarget === scope && fixedRowObserver) {
+    resyncFixedRowHeights();
+    return;
+  }
+  fixedRowObserver?.disconnect();
+  fixedRowMutationObserver?.disconnect();
+  fixedRowObserverTarget = scope;
+  if (typeof ResizeObserver !== "undefined") {
+    fixedRowObserver = new ResizeObserver(() => scheduleFixedRowSync());
+    fixedRowObserver.observe(target);
+    fixedRowObserver.observe(scope);
+  }
+  if (typeof MutationObserver !== "undefined") {
+    fixedRowMutationObserver = new MutationObserver(() => scheduleFixedRowSync());
+    // 只看子节点增删（vxe 重渲染会换掉 tr / tbody 内容）；不观察 attributes，避免自激
+    fixedRowMutationObserver.observe(scope, { childList: true, subtree: true });
+  }
+  resyncFixedRowHeights();
 }
 
 /** 写列宽要用的 vxe 实例能力（只声明用到的几个，避免 any） */
@@ -3307,11 +3556,21 @@ type VxeWidthApi = {
  * 那时列早已按新宽度排版完毕。此时再 {@code analyColumnWidth() + refreshColumn()} 就是
  * 把同一件事做第二遍。</p>
  *
- * <p>判据用 {@code renderWidth}（vxe 排版的真值，见 {@code analyColumnWidth} 之后的
- * 「调整了列宽」分支：{@code renderWidth = resizeWidth ?? width}）：目标列已经等于目标宽度
- * → 说明 Vue 那一轮已经落地，只补 {@code resizeWidth}（供后续 recalc 一致）、不再重排。
- * 有任一列不等于目标（典型是拖过之后残留的 {@code resizeWidth} 顶着旧值，Vue 推不动它）
- * 才走完整重排。实测双击自适应从 <b>712ms 降到约 250ms</b>。</p>
+ * <p><b>时序是关键</b>：这里写的 {@code resizeWidth} 必须在 Vue 把新列定义推给 vxe
+ * <b>之前</b>落到位，否则 vxe 那一轮会先按「旧 resizeWidth ?? 新 width」排完，我们再补写
+ * {@code resizeWidth} 就晚了 —— 只能自己再跑一整轮 {@code refreshColumn()} 把它纠正回来。
+ * 用调用栈实测过这条重复：一次双击里 {@code refreshColumn} 被调用 <b>2 次</b>，一次来自
+ * vxe 自己的列 watcher（{@code parseColumns(true)} → {@code refreshScroll} →
+ * {@code handleLazyRecalculate}），一次来自本函数；后者是把前者的活重做一遍。
+ * 所以本函数<b>同步</b>执行（不再是 {@code nextTick}），先写 {@code resizeWidth}
+ * 再让 vxe 那一轮直接把宽度排对。</p>
+ *
+ * <p>写完之后仍然要校验：列宽可能被别的路径盖掉（拖拽手柄的 mouseup 会写
+ * {@code resizeColumn.resizeWidth}、列被隐藏/显示会重建列实例）。校验放在
+ * {@code requestAnimationFrame} 里 —— 那时 Vue 的 flush 与 vxe 的微任务链都已经跑完，
+ * 用 {@code renderWidth}（vxe 排版的真值：{@code renderWidth = resizeWidth ?? width}）
+ * 复核，只有真的没到位才补一轮 {@code analyColumnWidth() + refreshColumn()}。
+ * 一切正常时这一轮完全不发生，只剩一次 rAF 里的几次对象查找。</p>
  */
 function applyVxeColumnWidths(widths: Record<string, number>): void {
   const inst = vxeTableRef.value as unknown as VxeWidthApi | null;
@@ -3320,26 +3579,31 @@ function applyVxeColumnWidths(widths: Record<string, number>): void {
     recalculateVxe();
     return;
   }
-  let touched = false;
-  /** 目标列里「vxe 还没按新宽度排版」的列数（>0 才值得重排一轮） */
-  let pending = 0;
+  /** 待校验的目标（只留 prop 与目标宽度，校验时按 field 重新取列，避免拿到过期列实例） */
+  const targets: Array<{ prop: string; width: number }> = [];
   for (const [prop, width] of Object.entries(widths)) {
     if (!Number.isFinite(width)) continue;
     const column = getColumnByField.call(inst, prop);
     if (!column) continue;
     const target = Math.round(width);
-    touched = true;
-    if (Math.abs((column.renderWidth ?? 0) - target) > 1) pending++;
     column.resizeWidth = target;
+    targets.push({ prop, width: target });
   }
-  if (!touched) return;
-  if (pending === 0) return;
-  inst.analyColumnWidth();
-  if (typeof inst.refreshColumn === "function") {
-    void inst.refreshColumn();
-  } else {
-    recalculateVxe();
-  }
+  if (targets.length === 0) return;
+  const analyze = inst.analyColumnWidth.bind(inst);
+  requestAnimationFrame(() => {
+    const stale = targets.some(({ prop, width }) => {
+      const column = getColumnByField.call(inst, prop);
+      return !column || Math.abs((column.renderWidth ?? 0) - width) > 1;
+    });
+    if (!stale) return;
+    analyze();
+    if (typeof inst.refreshColumn === "function") {
+      void inst.refreshColumn();
+    } else {
+      recalculateVxe();
+    }
+  });
 }
 
 /** 清掉 vxe 上残留的 resizeWidth（回默认宽度时必须一起清，否则它仍按旧宽度排版） */
@@ -3387,7 +3651,8 @@ function setColumnWidth(prop: string, width: number): void {
   if (!col) return;
   const clamped = clampWidthForColumn(col, width);
   persistColumnWidth(prop, clamped);
-  void nextTick(() => applyVxeColumnWidths({ [prop]: clamped }));
+  // 同步交给 vxe（原因见 applyVxeColumnWidths 的注释：晚一拍就得多跑一整轮重排）
+  applyVxeColumnWidths({ [prop]: clamped });
 }
 
 /**
@@ -3411,7 +3676,8 @@ function setColumnWidths(widths: Record<string, number>): void {
   if (Object.keys(applied).length === 0) return;
   columnState.value = { ...columnState.value, widths: next };
   saveColumnState();
-  void nextTick(() => applyVxeColumnWidths(applied));
+  // 同步交给 vxe（原因见 applyVxeColumnWidths 的注释：晚一拍就得多跑一整轮重排）
+  applyVxeColumnWidths(applied);
 }
 
 /**
@@ -3885,6 +4151,8 @@ watch(dataList, () => {
   // 新一批数据落地后恢复勾选：跨页记住的勾选状态要落到新行上。
   // 放在这里而不是各个 reload 入口，是为了让「刷新 / 翻页 / 改查询条件」共用一条路径。
   void restoreSelection();
+  // 行被整体替换了：固定列浮层的行高要重新按新内容对齐（含沉降期复核：字体/列宽晚到）
+  resyncFixedRowHeights();
 });
 
 /** params 变化 → 重置回第 1 页并重新加载 */
@@ -4929,6 +5197,8 @@ const layoutIndexOffset = computed<number>(() => {
 watch(dataList, () => {
   nextTick(() => {
     try { recalcTable(); } catch { /* noop */ }
+    // 列宽可能变 → 内容换行情况变 → 固定列行高重新对齐；同时把 tbody 观察器装上
+    ensureFixedRowObserver();
   });
 });
 
@@ -6139,6 +6409,7 @@ const iconSelect = Select;
       @column-dragend="onVxeColumnDragEnd"
       @resizable-change="onVxeResizableChange"
       @scroll-boundary="onVxeScrollBoundary"
+      @scroll="scheduleFixedRowSync"
     >
       <!-- 勾选列：常驻选择 / 批量选择 / 任一批量动作配置 共用一列 -->
       <VxeColumn
@@ -6857,14 +7128,6 @@ const iconSelect = Select;
 .re-table .vxe-body--column {
   padding-top: 10px !important;
   padding-bottom: 10px !important;
-  /* ⚠ 这里刻意**不写** border-bottom：
-     表体单元格的下边线交给 vxe 自己的 background-image 渐变画
-     （见上方 --vxe-ui-table-border-color / --vxe-ui-table-border-width 两条说明）。
-     以前这里写了一条 1px border，与 vxe 那条渐变线叠在同一位置 ——
-     形成「1px 实线 + 1.05px 渐变线」的重影，颜色还不同，
-     渲染出来比 el-table 更粗更脏，这就是「vxe 边框不如 el-table 舒服」的来源。
-     表头不受此影响：表头的 background 被本组件的渐变 !important 覆盖，
-     vxe 的渐变线在表头上根本画不出来，所以表头必须自己写 border。 */
   transition: background-color var(--rt-duration, 200ms) var(--rt-ease, ease);
 }
 .re-table--compact .vxe-body--column {
@@ -6901,6 +7164,22 @@ const iconSelect = Select;
      内联样式只有 !important 压得过；不压的话表头还是 47px，压不动。 */
   height: auto !important;
   min-height: 0 !important;
+}
+/* 固定列浮层的行高对齐（值由 JS 的 syncFixedRowHeights 按「三张表取最大」写回）。
+   vxe 的固定列是**另外渲染的独立 table**，清掉内联高度之后三张表再没有共同的行高
+   来源：行注释把主表体撑到 54px，固定左（勾选列）纹丝不动停在 28px。
+   表头同理（表头三张表高度不一致时整行往下错，与表体错位是同一种视觉故障），
+   所以表头行也吃这条规则。
+   ⚠ 只能是「标记 + 变量」，不能由 JS 写 style.height：上面各尺寸档的
+     `height: auto !important` 属于样式表 !important，优先级高于内联普通声明，
+     实测写进去 32px、量出来还是 28px。
+   ⚠ 选择器要比各尺寸档更具体（这里 2 类 + 1 属性 [+ 1 类]），否则压不过
+     .re-table--mini .vxe-body--row > .vxe-body--column 的 auto。 */
+.re-table .vxe-body--row[data-rt-sync-h],
+.re-table .vxe-body--row[data-rt-sync-h] > .vxe-body--column,
+.re-table .vxe-header--row[data-rt-sync-h],
+.re-table .vxe-header--row[data-rt-sync-h] > .vxe-header--column {
+  height: var(--rt-row-h) !important;
 }
 /* 斑马纹（仅在 stripe 开启时生效，且比 element 更淡、不喧宾夺主）
    ⚠ vxe 4.6 的 stripe 不打 row--striped 行类（实测产物里无此串），

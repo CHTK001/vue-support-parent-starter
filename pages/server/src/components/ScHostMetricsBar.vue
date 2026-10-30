@@ -160,7 +160,9 @@ const bars = computed(() => [
                 </template>
                 <div class="hmb__port-list">
                   <b>已扫描端口明细</b>
-                  <span>{{ r.tip }}</span>
+                  <p v-for="it in r.tip.split(',')">
+                    {{it}}
+                  </p>
                 </div>
               </el-popover>
             </div>
@@ -198,11 +200,15 @@ const bars = computed(() => [
 
 <style scoped>
 /* 常驻状态条：贴在工作区底部，视觉上是一条独立的信息带，不与内容抢空间 */
+/* 强行一行显示：flex-wrap: nowrap 做容器级兜底，white-space: nowrap 向下继承，
+   让所有后代文字都不换行。概要浮层（绝对定位不在当前流里）不在此列。 */
 .hmb {
   display: flex;
   flex: none;
   align-items: center;
   gap: 14px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
   min-height: 38px;
   padding: 0 14px;
   border-top: 1px solid var(--el-border-color-lighter);

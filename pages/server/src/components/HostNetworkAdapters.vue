@@ -250,11 +250,11 @@ async function saveIPv4(): Promise<void> {
 
 /** 表格列（非 Windows 回退） */
 const tableColumns = [
-  { key: "name", label: "网卡", width: "150px" },
+  { key: "name", label: "网卡", width: "250px" },
   { key: "status", label: "状态", width: "110px" },
   { key: "mac", label: "MAC", width: "170px" },
-  { key: "ipv4", label: "IPv4" },
-  { key: "ipv6", label: "IPv6" },
+  { key: "ipv4", label: "IPv4", width: "150px" },
+  { key: "ipv6", label: "IPv6", width: "170px"  },
   { key: "mtu", label: "MTU", width: "90px" },
   { key: "speed", label: "速率", width: "110px" },
 ];

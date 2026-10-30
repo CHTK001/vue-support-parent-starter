@@ -11,7 +11,7 @@
  * @author CH
  * @since 4.0.0.42
  */
-import { computed, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import {
   fmt1,
   fmtMemory,
@@ -248,6 +248,61 @@ function allChildrenOf(pid: number): ProcView[] {
 function canRestart(row: Record<string, any>): boolean {
   return numOf(row.pid) > 0 && String(row.command ?? "").trim() !== "";
 }
+
+/* ==================== 行右键菜单：重启 / 结束 / 内存分析 ==================== */
+/** 菜单状态 */
+const ctxMenu = reactive<{ visible: boolean; x: number; y: number; row: Record<string, any> | null }>({
+  visible: false,
+  x: 0,
+  y: 0,
+  row: null,
+});
+
+/** 菜单项（菜单自身只管展示与定位，确认逻辑委托给父级） */
+const ctxItems: Array<{ label: string; icon: string; danger?: boolean; disabled?: boolean; action: () => void }> = [
+  { label: "重启进程", icon: "RefreshRight", action: () => rowCommand("restart") },
+  { label: "结束进程", icon: "CircleClose", danger: true, action: () => rowCommand("kill") },
+  { label: "内存分析", icon: "DataAnalysis", action: () => rowCommand("analyze") },
+];
+
+function closeRowContextMenu(): void {
+  if (!ctxMenu.visible) return;
+  ctxMenu.visible = false;
+  ctxMenu.row = null;
+}
+
+function onRowContextMenu(e: MouseEvent, p: ProcView): void {
+  e.preventDefault();
+  ctxMenu.visible = true;
+  ctxMenu.x = e.clientX;
+  ctxMenu.y = e.clientY;
+  ctxMenu.row = p.raw;
+}
+
+function rowCommand(cmd: "restart" | "kill" | "analyze"): void {
+  closeRowContextMenu();
+  if (!ctxMenu.row) return;
+  if (cmd === "restart") emit("restart", ctxMenu.row);
+  if (cmd === "kill") emit("kill", ctxMenu.row);
+  if (cmd === "analyze") emit("analyze");
+}
+
+/** 菜单已 teleport 到 body，组件外的左键点击与 ESC 也要能关闭 */
+function onDocPointerDown(e: MouseEvent) {
+  if (!ctxMenu.visible) return;
+  const t = e.target as HTMLElement | null;
+  if (t && t.closest && t.closest(".pf-ctx")) return; // 点在菜单内：交给菜单项
+  closeRowContextMenu();
+}
+function onDocKeydown(e: KeyboardEvent) { if (e.key === "Escape") closeRowContextMenu(); }
+onMounted(() => {
+  document.addEventListener("mousedown", onDocPointerDown, true);
+  document.addEventListener("keydown", onDocKeydown);
+});
+onBeforeUnmount(() => {
+  document.removeEventListener("mousedown", onDocPointerDown, true);
+  document.removeEventListener("keydown", onDocKeydown);
+});
 </script>
 
 <template>
@@ -290,6 +345,7 @@ function canRestart(row: Record<string, any>): boolean {
         v-for="p in view"
         :key="p.pid"
         :class="['proc-row', p.tone ? `t-${p.tone}` : '', { open: expandedPid === p.pid }]"
+        @contextmenu.prevent.stop="onRowContextMenu($event, p)"
       >
         <el-popover
           placement="right"
@@ -411,6 +467,26 @@ function canRestart(row: Record<string, any>): boolean {
       </div>
     </div>
   </ProfileSectionShell>
+    <!-- 行右键菜单：Teleport 到 body，避免被细节区裁切 -->
+    <Teleport to="body">
+      <div
+        v-if="ctxMenu.visible"
+        class="pf-ctx"
+        :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }"
+        @click.stop
+      >
+        <div
+          v-for="(item, i) in ctxItems"
+          :key="i"
+          class="pf-ctx-item"
+          :class="{ danger: item.danger, disabled: item.disabled }"
+          @click="item.action"
+        >
+          <el-icon><component :is="item.icon" /></el-icon>
+          <span>{{ item.label }}</span>
+        </div>
+      </div>
+    </Teleport>
 </template>
 
 <style scoped lang="scss">
@@ -467,6 +543,30 @@ function canRestart(row: Record<string, any>): boolean {
 .proc-row.open {
   background: var(--el-color-primary-light-9, #f6f4ff);
 }
+/* 行右键菜单（Teleport 到 body，随位置钉住） */
+.pf-ctx {
+  position: fixed;
+  z-index: 9999;
+  min-width: 160px;
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 8px;
+  padding: 5px;
+  box-shadow: var(--el-box-shadow);
+}
+.pf-ctx-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.pf-ctx-item:hover { background: var(--el-fill-color); }
+.pf-ctx-item.danger { color: var(--el-color-danger); }
+.pf-ctx-item.disabled { opacity: .35; cursor: default; }
+.pf-ctx-item.disabled:hover { background: transparent; }
 .proc-main {
   display: grid;
   grid-template-columns: 14px 28px minmax(96px, 150px) 1fr 82px 76px minmax(60px, 92px);

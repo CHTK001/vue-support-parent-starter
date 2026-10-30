@@ -181,7 +181,6 @@
               <el-option label="失败" value="failed" />
               <el-option label="已取消" value="cancelled" />
             </el-select>
-            <ReButton layout="square" icon="Tickets" tip="文件日志" @click="openLogs" />
             <el-button size="small" text :icon="Refresh" :loading="listLoading" @click="refreshTasks" />
           </div>
         </div>
@@ -415,62 +414,6 @@
       </div>
     </div>
 
-    <!-- 文件日志抽屉（合并到文件管理，不再单独成页） -->
-    <ReDrawer
-      v-model="logVisible"
-      title="文件日志"
-      size="540px"
-      direction="rtl"
-      :modal="true"
-      :footer-hidden="true"
-      class="ut-log-drawer"
-    >
-      <div v-loading="logLoading" class="log-drawer-body">
-        <div class="log-toolbar">
-          <span class="log-toolbar-title">操作流水</span>
-          <el-popover placement="bottom-end" :width="180" trigger="click" :disabled="logCleaning || !logs.length">
-            <template #reference>
-              <el-button size="small" :disabled="logCleaning || !logs.length">
-                <el-icon :size="14"><Tickets /></el-icon>&nbsp;清理日志
-              </el-button>
-            </template>
-            <template #default>
-              <div class="log-clean-menu">
-                <button type="button" class="log-clean-it" @click="cleanLogs('today')">删除一天前</button>
-                <button type="button" class="log-clean-it" @click="cleanLogs('week')">删除一周前</button>
-                <button type="button" class="log-clean-it" @click="cleanLogs('month')">删除一月前</button>
-                <el-divider style="margin:6px 0" />
-                <button type="button" class="log-clean-it is-danger" @click="cleanLogs('all')">清空全部</button>
-              </div>
-            </template>
-          </el-popover>
-        </div>
-        <ReTable
-          :data="logRows"
-          :columns="logColumns"
-          layout="view"
-          :layout-view="{ gap: 6, minHeight: 52, hoverable: false, showIndex: false }"
-          size="small"
-          empty-text="暂无文件操作日志"
-          :pagination="false"
-          :toolbar="false"
-          row-key="id"
-          class="log-table"
-        >
-          <template #view="{ row }">
-            <div class="lg-row">
-              <el-tag size="small" :type="tagType(toLog(row).operation.startsWith('TASK') ? 'warning' : 'info')" effect="plain">
-                {{ toLog(row).operation }}
-              </el-tag>
-              <span class="lg-target" :title="toLog(row).target">{{ toLog(row).target }}</span>
-              <span class="lg-status" :class="{ 'is-err': toLog(row).status >= 400 }">{{ toLog(row).status }}</span>
-              <span class="lg-time">{{ formatRelTime(toLog(row).time) }}</span>
-            </div>
-          </template>
-        </ReTable>
-      </div>
-    </ReDrawer>
-
     <!-- 存储桶信息弹窗 -->
     <ReDialog
       v-model="bucketInfoVisible"
@@ -519,21 +462,17 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { message } from "@repo/core";
-import { Download, Folder, FolderOpened, InfoFilled, Refresh, RefreshRight, Search, Upload, Tickets } from "@element-plus/icons-vue";
+import { Download, Folder, FolderOpened, InfoFilled, Refresh, RefreshRight, Search, Upload } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
-import ReDrawer from "@repo/ui/re-drawer";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import {
   SIMPLE_SYNC_MAX_MB,
   cancelUploadTask,
-  cleanFileLogsBefore,
   completeUploadTask,
   createUploadTask,
   deleteUploadTask,
-  listFileLogs,
-  logCleanCutoff,
   listUploadBuckets,
   listUploadTasks,
   objectUrl,
@@ -541,8 +480,6 @@ import {
   subscribeUploadTasks,
   uploadFileSimple,
   uploadTaskChunk,
-  type FileLogCleanScope,
-  type FileLogEntry,
   type UploadTaskInfo,
   type UploadTaskState,
 } from "../api/filestorageApi";
@@ -550,11 +487,6 @@ import {
 /** 将 ReTable 插槽里的 row（Record<string, unknown>）转成任务类型 */
 function toTask(r: unknown): UploadTaskInfo {
   return r as UploadTaskInfo;
-}
-
-/** 将 ReTable 插槽里的 row（Record<string, unknown>）转成日志类型 */
-function toLog(r: unknown): FileLogEntry {
-  return r as FileLogEntry;
 }
 
 /** 可选 bucket（后端 /buckets 下发，不硬编码） */
@@ -647,58 +579,9 @@ const fileColumns: ReTableColumn[] = [
 /** 当前勾选的行（批量操作） */
 const selectedRows = ref<Array<Record<string, unknown>>>([]);
 
-/** 文件日志抽屉状态 */
-const logVisible = ref(false);
-const logLoading = ref(false);
-const logCleaning = ref(false);
-const logs = ref<FileLogEntry[]>([]);
-const logRows = computed<Array<Record<string, unknown>>>(() => logs.value.map((l) => ({ ...l })));
-const logColumns: ReTableColumn[] = [
-  { prop: "operation", label: "操作" },
-  { prop: "target", label: "目标" },
-  { prop: "status", label: "状态" },
-  { prop: "time", label: "时间" },
-];
-
 /** 存储桶信息弹窗 */
 const bucketInfoVisible = ref(false);
 const bucketInfo = ref({ name: "", count: 0, active: 0, completed: 0, failed: 0, totalBytes: 0 });
-
-/** 打开文件日志抽屉 */
-async function openLogs() {
-  logVisible.value = true;
-  logLoading.value = true;
-  try {
-    logs.value = await listFileLogs({ limit: 200 });
-  } catch {
-    logs.value = [];
-  } finally {
-    logLoading.value = false;
-  }
-}
-
-/** 清理日志：today/week/month 删除对应时间点之前的；all 清空全部 */
-async function cleanLogs(scope: FileLogCleanScope | "all") {
-  if (logCleaning.value) return;
-  logCleaning.value = true;
-  try {
-    const removed = scope === "all"
-      ? await cleanFileLogsBefore(0)
-      : await cleanFileLogsBefore(logCleanCutoff(scope));
-    // 本地同步移除对应日志，避免等待刷新
-    if (scope !== "all") {
-      const cutoff = logCleanCutoff(scope);
-      logs.value = logs.value.filter((l) => l.time >= cutoff);
-    } else {
-      logs.value = [];
-    }
-    message.success(`已清理 ${removed} 条日志`);
-  } catch (e) {
-    message.error((e as Error).message);
-  } finally {
-    logCleaning.value = false;
-  }
-}
 
 /** ReTable 勾选变化 → 同步批量选中行 */
 function onSelectionChange(rows: Array<Record<string, unknown>>) {
@@ -1585,59 +1468,6 @@ function fileTypeMeta(fileName: string): { ext: string; cls: string } {
   flex: none;
 }
 
-/* ===== 文件日志抽屉 ===== */
-.log-drawer-body {
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.log-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 2px 2px 4px;
-}
-.log-toolbar-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-primary, var(--el-text-color-primary, #303133));
-}
-.log-clean-menu {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.log-clean-it {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  padding: 6px 10px;
-  border: none;
-  border-radius: var(--el-radius-md, 6px);
-  background: transparent;
-  color: var(--text-primary, var(--el-text-color-primary, #303133));
-  font-size: 13px;
-  font-family: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: background-color var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s);
-}
-.log-clean-it:hover {
-  background: var(--el-fill-color-light);
-}
-.log-clean-it.is-danger {
-  color: var(--status-error, #f56c6c);
-}
-.log-clean-it.is-danger:hover {
-  background: var(--el-color-danger-light-9);
-}
-.log-table {
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
 /* ===== 存储桶信息弹窗 ===== */
 .ut-bucket-dialog :deep(.el-dialog__body) {
   padding: 4px 4px 0;
@@ -1677,40 +1507,6 @@ function fileTypeMeta(fileName: string): { ext: string; cls: string } {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--text-primary, var(--el-text-color-primary, #303133));
-}
-.log-table :deep(.re-table__view-item) {
-  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #eef0f3));
-  box-shadow: none;
-}
-.lg-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  min-width: 0;
-}
-.lg-target {
-  flex: 1;
-  min-width: 0;
-  font-size: 12px;
-  color: var(--text-primary, var(--el-text-color-primary, #303133));
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.lg-status {
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  color: var(--status-success, #67c23a);
-}
-.lg-status.is-err {
-  color: var(--status-error, #f56c6c);
-}
-.lg-time {
-  font-size: 11px;
-  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
-  font-variant-numeric: tabular-nums;
-  flex: none;
 }
 
 /* ===== 右：文件详情（方案 A · 横向 Hero + 网格，常显不折叠） ===== */

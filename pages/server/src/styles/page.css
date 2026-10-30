@@ -219,7 +219,7 @@
   .sc-page *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important:
   }
 }
 
@@ -403,5 +403,3 @@
   box-shadow: var(--focus-ring), 0 0 0 1px var(--brand-500);
   border-radius: 4px;
 }
-
-

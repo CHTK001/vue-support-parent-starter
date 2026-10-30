@@ -13,7 +13,7 @@
 import { createHttp, getAccessToken } from "@repo/utils";
 import type { Http } from "@repo/utils";
 
-/** 应用通道 HTTP（与上传任务/文件日志同一登录态通道） */
+/** 应用通道 HTTP（与上传任务同一登录态通道） */
 function collabHttp(): Http {
   return createHttp({ headers: { "x-oauth-token": getAccessToken() ?? "" } });
 }

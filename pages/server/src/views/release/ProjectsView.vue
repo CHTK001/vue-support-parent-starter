@@ -2697,42 +2697,44 @@ async function startLogSession(item: Project): Promise<LogSession> {
     stopped: false,
   };
   logSessions.value.push(session);
+  // push 之后必须用数组里的响应式代理：继续改原始对象不会触发模板更新（内嵌列不刷新）
+  const tracked = logSessions.value[logSessions.value.length - 1] ?? session;
 
   const socket = getGlobalSocketService();
-  session.unsub = socket?.subscribe('project', 'log', (msg: any) => {
+  tracked.unsub = socket?.subscribe('project', 'log', (msg: any) => {
     const data = msg?.data ?? msg;
-    if (!data || session.stopped) return;
+    if (!data || tracked.stopped) return;
     // sessionId 要等 start 接口返回，返回前先按 projectId 收帧，避免丢掉开头几行
-    const matched = session.sessionId
-      ? data.sessionId === session.sessionId
-      : String(data.projectId) === String(session.projectId);
+    const matched = tracked.sessionId
+      ? data.sessionId === tracked.sessionId
+      : String(data.projectId) === String(tracked.projectId);
     if (!matched) return;
     if (data.status === 'LINE' && typeof data.line === 'string') {
-      if (session.mode !== 'socket') {
+      if (tracked.mode !== 'socket') {
         // tail -n N -F 连接时会先重放最近 N 行，清掉快照内容避免重复
-        session.mode = 'socket';
-        session.lines = [];
-        session.notice = '';
+        tracked.mode = 'socket';
+        tracked.lines = [];
+        tracked.notice = '';
       }
-      logPushLine(session, data.line);
+      logPushLine(tracked, data.line);
     } else if (data.status === 'ERROR') {
-      session.notice = data.message || '日志采集失败';
+      tracked.notice = data.message || '日志采集失败';
     }
   }) ?? null;
 
   // 先拉一次快照：Socket 连不上（端口/代理不一致）时也能立刻看到日志内容
-  void pollLogTail(session);
-  session.pollTimer = window.setInterval(() => {
-    void pollLogTail(session);
+  void pollLogTail(tracked);
+  tracked.pollTimer = window.setInterval(() => {
+    void pollLogTail(tracked);
   }, LOG_POLL_INTERVAL);
 
   try {
     const res = await http().post(`${BASE}/project/${item.id}/log/start`);
-    if (!session.stopped) session.sessionId = unwrapResult<string>(res);
+    if (!tracked.stopped) tracked.sessionId = unwrapResult<string>(res);
   } catch {
-    session.notice = '无法启动实时日志采集，已降级为快照轮询';
+    tracked.notice = '无法启动实时日志采集，已降级为快照轮询';
   }
-  return session;
+  return tracked;
 }
 
 /** 卡片菜单「实时日志」：在项目管理下方追加一列 */

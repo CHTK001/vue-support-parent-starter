@@ -481,30 +481,33 @@ watch(() => props.hostId, () => {
             <ReButton
               v-if="detail.kind === 'store' && !isInstalled(detail.pkg)"
               show-text
+              layout="square"
               type="primary"
               icon="Download"
               tip="安装该软件"
               :loading="isBusy(detail.pkg.name)"
               @click="doInstall(detail.pkg)"
-            >安装</ReButton>
+            ></ReButton>
             <ReButton
               v-if="upgradeOf(detail.pkg)"
               show-text
+              layout="square"
               type="primary"
               icon="Top"
               tip="升级到最新版"
               :loading="isBusy(detail.pkg.name)"
               @click="doUpgrade(detail.pkg)"
-            >升级</ReButton>
+            ></ReButton>
             <ReButton
               v-if="detail.kind === 'installed'"
               show-text
+              layout="square"
               type="danger"
               icon="Delete"
               tip="卸载该软件"
               :loading="isBusy(detail.pkg.name)"
               @click="doUninstall(detail.pkg)"
-            >卸载</ReButton>
+            ></ReButton>
           </div>
         </div>
       </aside>

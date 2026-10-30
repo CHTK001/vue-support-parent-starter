@@ -108,6 +108,7 @@
                 class="we-col-row"
                 :class="{ selected: col.selected === f.name }"
                 @click.stop="onColPick(ci, f)"
+                @contextmenu.prevent.stop="onFileContextMenu($event, f)"
               >
                 <span class="we-col-glyph" v-html="iconSvg(f, 17)"></span>
                 <span class="we-col-name">{{ f.name }}</span>

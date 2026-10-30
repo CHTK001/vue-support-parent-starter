@@ -166,7 +166,17 @@ const ReRadioGroup = defineComponent({
     // 不声明 type 会让 TS 把该 prop 推成 undefined，导致 v-model 绑任何值都报
     // 「Type 'number' is not assignable to type 'undefined'」。这里显式放开。
     modelValue: { type: [String, Number, Boolean, Object] as PropType<string | number | boolean | object>, default: undefined },
+    /** 尺寸（只对 ReKit 布局生效，`el` 布局走 EP 自己的尺寸类） */
     size: { type: String, default: "default" },
+    /**
+     * 布局模式：
+     *   - `"default"`（默认/留空） ReKit 风格：轨道 + 选块，由 size / button / capsule 联合控制圆角与描边。
+     *   - `"el"` Element Plus 原生风格：不挂 `re-radio-group` 类，re-kit.css 中的所有 ReRadioGroup
+     *     规则全部不生效，由 EP 自己的样式（右下角拼接 + 实心主色）运载。
+     *   - `"square"` 扁平方块风格（`class="proc-metric"` 同级）：浅灰底轨道、按钮无描边半圆角
+     *    （Solid 圆角、Capsule 药丸均不渲染，选项语义由选中态的白底深字承载）。
+     */
+    layout: { type: String, default: "default" },
     disabled: { type: Boolean, default: false },
     button: { type: Boolean, default: false },
     capsule: { type: Boolean, default: true },
@@ -175,6 +185,16 @@ const ReRadioGroup = defineComponent({
   setup(props, { attrs, slots, emit }) {
     // 把当前选中值下发给子项：ReRadio / ReRadioButton 靠它判断激活态（图标动画需要）。
     provide(RE_RADIO_STATE_KEY, computed(() => props.modelValue));
+    // layout="el" 时不挂 `re-radio-group`：re-kit.css 中该段全部选择器都不会落到它头上；
+    // layout="square" 时穿不穿 capsule/button 修饰符都由样式分支自己接管，不作为 layout 状态。
+    const groupClass: string[] = [];
+    if (props.layout !== "el") {
+      groupClass.push("re-radio-group", `re-radio-group--${props.size}`, `re-radio-group--${props.layout}`);
+      if (props.layout === "default") {
+        if (props.button) groupClass.push("re-radio-group--button");
+        if (props.capsule) groupClass.push("re-radio-group--capsule");
+      }
+    }
     return () =>
       h(
         ElRadioGroup,
@@ -185,11 +205,7 @@ const ReRadioGroup = defineComponent({
           modelValue: props.modelValue,
           size: props.size,
           disabled: props.disabled,
-          class: [
-            "re-radio-group",
-            `re-radio-group--${props.size}`,
-            { "re-radio-group--button": props.button, "re-radio-group--capsule": props.capsule },
-          ],
+          class: groupClass,
           // 渲染函数里绑定带冒号的事件必须写成 "onXxx:yyy"。
           // 此前写作 onUpdate / onUpdateModelValue，Vue 分别映射为 "update"
           // 与 "updateModelValue"，都与 Element Plus 实际派发的

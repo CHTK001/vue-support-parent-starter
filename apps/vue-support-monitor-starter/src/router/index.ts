@@ -183,13 +183,6 @@ export const monitorRoutes: RouteConfigsTable[] = [
         meta: { title: "文件管理", icon: "Upload", showLink: true, rank: 2 },
       },
       {
-        // 文件日志：文件服务器操作 + 上传任务生命周期的运行期流水（内存环形缓冲）
-        path: "/file-logs",
-        name: "FileLogs",
-        component: () => import("@pages/filesystem/src/views/FileLogView.vue"),
-        meta: { title: "文件日志", icon: "Tickets", showLink: true, rank: 3 },
-      },
-      {
         // 协同管理：在线表格协同（Univer）文档的列表与权限管理
         path: "/file-collabs",
         name: "FileCollabs",

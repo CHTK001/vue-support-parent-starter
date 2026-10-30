@@ -122,9 +122,50 @@
   border-radius: var(--el-radius-full, 9999px);
 }
 
+/* ---------- ReRadioGroup：square 布局（扁平方块） ----------
+ * 与 ProfileProcesses.vue 中 .proc-metric / .proc-metric-btn 同级风格：
+ *   - 浅灰底轨道（`--el-fill-color-light`），不描边、不投影、7px 圆角
+ *   - 选项无描边、5px 小圆角，未选灰字 + 悬浮浅灰底
+ *   - 选中态为白底深字 + 极轻投影（Solid 胶囊/药丸圆角在这里不成立）
+ * 只改绘制属性（背景/颜色/阴影），尺寸档照常生效。 */
+
+/* 轨道：切到 `--el-fill-color-light` 浅灰底，悬空掉 EP 的描边与投影 */
+.re-radio-group.re-radio-group--square {
+  background: var(--el-fill-color-light, #f5f7fa);
+  border-color: transparent;
+  box-shadow: none;
+  border-radius: 7px;
+}
+
+/* 选项：去描边、去胶囊圆角、去填充 */
+.re-radio-group.re-radio-group--square .el-radio-button__inner {
+  border: 0 none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--el-text-color-secondary, #5c6270);
+  font-weight: 600;
+  box-shadow: none;
+  transition: background 0.16s, color 0.16s, box-shadow 0.16s;
+}
+
 /* 未选中项 hover：只走灰阶。带 :not(.is-active) 是为了让已选中项的 hover
-   落到下面的选中规则（保持实心主色），而不是被这条染成灰 —— 否则鼠标停在
-   已选项上会看到选中块「褪色」，误以为取消了选择。 */
+    落到下面的选中规则（保持实心主色），而不是被这条染成灰 —— 否则鼠标停在
+    已选项上会看到选中块「褪色」，误以为取消了选择。 */
+.re-radio-group.re-radio-group .el-radio-button:not(.is-active) .el-radio-button__inner:hover {
+  background: var(--el-fill-color-light, #f5f7fa);
+}
+
+/* 选中：白底深字 + 极轻投影（置为与 `.proc-metric-btn.on` 同一口径） */
+.re-radio-group.re-radio-group--square .el-radio-button.is-active .el-radio-button__inner,
+.re-radio-group.re-radio-group--square .el-radio-button__original-radio:checked + .el-radio-button__inner {
+  color: var(--el-text-color-primary, #1f2430);
+  background: var(--el-bg-color, #fff);
+  box-shadow: 0 1px 2px rgba(31, 36, 48, 0.1);
+}
+
+/* 未选中项 hover：只走灰阶。带 :not(.is-active) 是为了让已选中项的 hover
+    落到下面的选中规则（保持实心主色），而不是被这条染成灰 —— 否则鼠标停在
+    已选项上会看到选中块「褪色」，误以为取消了选择。 */
 .re-radio-group.re-radio-group .el-radio-button:not(.is-active) .el-radio-button__inner:hover {
   color: var(--el-text-color-primary);
   background: var(--el-fill-color-light);
@@ -176,6 +217,13 @@
   min-height: 32px;
   padding: 0 18px;
   font-size: 14px;
+}
+
+/* mini 20px：紧凑态（数字/元数据行配重），文字与相邻控件对齐 */
+.re-radio-group.re-radio-group--mini .el-radio-button__inner {
+  min-height: 20px;
+  padding: 0 6px;
+  font-size: 11px;
 }
 
 @media (prefers-reduced-motion: reduce) {

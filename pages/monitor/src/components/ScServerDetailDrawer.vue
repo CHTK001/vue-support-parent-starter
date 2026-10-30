@@ -7,7 +7,7 @@
  *   - 单个过滤器参数热更新（/filters/{i}/params，进入该实现的配置页）
  *   - 插件深度查看页入口（不同实现不同页面，如 file-storage → 文件管理器）
  */
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { message } from '@repo/core';
 import {
   getServerNode,
@@ -23,12 +23,17 @@ import {
 import ScFilterConfigPanel from './ScFilterConfigPanel.vue';
 import { hasFilterDetail } from '../utils/filterDetail';
 
-const props = defineProps<{
-  /** 节点 id */
-  nodeId: number | null;
-  /** 插件元数据 */
-  filterTypes: FilterTypeMeta[];
-}>();
+const props = withDefaults(
+  defineProps<{
+    /** 节点 id */
+    nodeId: number | null;
+    /** 插件元数据 */
+    filterTypes: FilterTypeMeta[];
+    /** 嵌入 ReTabs 工作区时去掉抽屉外壳，直接渲染详情 / 配置视图 */
+    embedded?: boolean;
+  }>(),
+  { embedded: false },
+);
 
 const emit = defineEmits<{
   (e: 'changed'): void;

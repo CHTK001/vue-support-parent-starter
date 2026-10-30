@@ -507,7 +507,18 @@
             <template v-for="col in tableData.columns" :key="'hdr-' + col" #[`header-${col}`]>
               <div class="dbm-header-main" :title="headerTip(col)">
                 <span class="dbm-header-label">{{ headerLabel(col) }}</span>
-                <span v-if="sortState.prop === col && sortState.order" class="dbm-sort-icon">{{ sortState.order === "ASC" ? "▲" : "▼" }}</span>
+                <!-- 排序指示常驻：未排序时不可见但**占位**，hover 才淡显 ——
+                     否则「能不能排」得先点一下才知道（用户反馈：hover 表头看不到排序图标）。
+                     用 opacity 而不是 v-if，是因为 v-if 会让图标在排序切换的瞬间
+                     增删节点，列宽随之抖动；占位写法列宽恒定。 -->
+                <span
+                  class="dbm-sort-icon"
+                  :class="{
+                    'is-idle': sortState.prop !== col || !sortState.order,
+                    'is-desc': sortState.prop === col && sortState.order === 'DESC',
+                  }"
+                  aria-hidden="true"
+                >{{ sortState.prop === col && sortState.order === "DESC" ? "▼" : "▲" }}</span>
               </div>
               <!-- 注释 / 类型是补充行，不是字段名的替代：两个开关各自独立，可同时显示 -->
               <div v-if="showHeaderComments && columnComment(col)" class="dbm-header-sub">
@@ -1136,25 +1147,30 @@
           </div>
         </template>
 
-        <!-- 空白区域 -->
-        <template v-else>
-          <div class="dbm-context-item" @click="openCreateDatabase">
-            <ReIcon name="FolderAdd" :size="14" />新建数据库
-          </div>
-          <div class="dbm-context-item" @click="openCreateTable()">
-            <ReIcon name="Plus" :size="14" />新建表
-          </div>
-          <div class="dbm-context-item" @click="openNewQuery">
-            <ReIcon name="EditPen" :size="14" />新建查询
-          </div>
-          <div class="dbm-context-item" @click="openImportDataFromToolbar">
-            <ReIcon name="Upload" :size="14" />导入数据
-          </div>
-          <div class="dbm-context-divider" />
-          <div class="dbm-context-item" @click="refreshTree">
-            <ReIcon name="Refresh" :size="14" />刷新
-          </div>
-        </template>
+          <!-- 空白区域 -->
+          <template v-else>
+            <div class="dbm-context-item" @click="openCreateDatabase">
+              <ReIcon name="FolderAdd" :size="14" />新建数据库
+            </div>
+            <div class="dbm-context-item" @click="openCreateTable()">
+              <ReIcon name="Plus" :size="14" />新建表
+            </div>
+            <div class="dbm-context-item" @click="openNewQuery">
+              <ReIcon name="EditPen" :size="14" />新建查询
+            </div>
+            <div class="dbm-context-item" @click="openImportDataFromToolbar">
+              <ReIcon name="Upload" :size="14" />导入数据
+            </div>
+            <!-- 导入/导出成对出现在同一组：此前空白处只有「导入数据」，导出只能从工具栏进，
+                 用户反馈「空白地方有导入数据、没有导出数据」。 -->
+            <div class="dbm-context-item" @click="openExportDataFromToolbar">
+              <ReIcon name="Download" :size="14" />导出数据
+            </div>
+            <div class="dbm-context-divider" />
+            <div class="dbm-context-item" @click="refreshTree">
+              <ReIcon name="Refresh" :size="14" />刷新
+            </div>
+          </template>
       </div>
     </Teleport>
 
@@ -1956,8 +1972,8 @@
   </div>
 
   <!-- 编辑/新增行弹窗 -->
-  <ReDialog v-model="rowDialogVisible" :title="rowDialogMode === 'edit' ? '编辑行' : '新增行'" width="600px">
-    <ReForm label-width="120px">
+  <ReDialog v-model="rowDialogVisible" :title="rowDialogMode === 'edit' ? '编辑行' : '新增行'" width="50%">
+    <ReForm label-width="180px">
       <ReFormItem v-for="col in tableData.columns" :key="col" :label="col">
         <span v-if="rowDialogMode === 'add' && isAutoIncrement(col)" class="dbm-auto-hint">自增，留空自动生成</span>
         <ReInputNumber v-else-if="isNumericCol(col)" v-model="rowForm[col]" :placeholder="`输入 ${col}`" style="width: 100%" />
@@ -3701,6 +3717,22 @@ function onImportDone(payload: { table: string; database: string }): void {
  * 空白处（两个都不带）。</p>
  */
 const openImportDataFromToolbar = () => openImportData();
+
+/**
+ * 「导出数据」通用入口（工具栏 / 空白处右键共用）。
+ *
+ * <p>空白处右键时手里只有「当前页签」，所以按页签取表名：数据页签 / 设计页签都带
+ * {@code tableName}；查询页签、对象定义页签没有表可导，此时不传参 ——
+ * {@link openExportDialog} 自己会提示「请先选择要导出的表」，比在菜单里藏掉更可发现。</p>
+ */
+const openExportDataFromToolbar = () => {
+  const tab = activeTabObj.value;
+  if (tab && (tab.type === "table" || tab.type === "design") && tab.tableName) {
+    openExportDialog(tab.tableName, tab.database);
+    return;
+  }
+  openExportDialog();
+};
 
 /**
  * 右键菜单入口：针对某张表
@@ -11196,9 +11228,21 @@ onBeforeUnmount(() => {
 }
 .dbm-sort-icon {
   flex: none;
+  width: 9px;
   font-size: 10px;
   line-height: 1;
   color: var(--el-color-primary);
+  opacity: 0.85;
+  transition: opacity 0.15s ease;
+}
+/* 未排序列：箭头占位但透明；表头 hover 时淡显，表示「这列可排」。
+   排序中的列永远实显（is-idle 不挂），hover 也不变 —— 状态与能力两种信息不互相覆盖。 */
+.dbm-sort-icon.is-idle {
+  opacity: 0;
+}
+.re-table .vxe-header--column:hover .dbm-sort-icon.is-idle,
+.dbm-header-main:hover .dbm-sort-icon.is-idle {
+  opacity: 0.38;
 }
 /* 表头补充行（注释 / 类型）：字段名恒在第一行，这两行是附加信息，
    小一号、弱化颜色，且单独截断 —— 不参与字段名的省略号计算。

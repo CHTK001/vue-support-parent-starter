@@ -144,6 +144,8 @@
       "@pages/hotsport": ["pages/hotsport/src"],
       "@pages/hotsport/*": ["pages/hotsport/src/*"],
       "@pages/device": ["pages/device/src"],
+      "@pages/template": ["pages/template/src"],
+      "@pages/template/*": ["pages/template/src/*"],
       "@pages/eduai": ["pages/eduai/src"],
       "@pages/filesystem": ["pages/filesystem/src"],
       "@pages/task": ["pages/task/src"],

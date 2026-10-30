@@ -1,0 +1,473 @@
+<!--
+  模板库资产列表（Variant A：表格 + 右键菜单）
+
+  列结构：
+    - 左：模板名称 + 副标题
+    - 右：模板语言 + 模板类型
+  整行支持右键菜单：设计 / 编辑 / 删除，
+  双击或工具栏「新建」打开新增/编辑弹窗。
+-->
+<template>
+  <div class="tpl">
+    <!-- ==================== 顶栏 ==================== -->
+    <header class="tpl-header">
+      <div class="tpl-header__left">
+        <h1 class="tpl-header__title">模板库</h1>
+        <span class="tpl-header__count">共 <b>{{ total }}</b> 个模板</span>
+      </div>
+      <div class="tpl-header__right">
+        <ReInput
+          v-model="query.keyword"
+          placeholder="搜索模板名称 / 副标题"
+          clearable
+          class="tpl-search"
+          @keyup.enter="tableRef?.goto(1)"
+        />
+        <ReButton type="primary" @click="openCreate">
+          <ReIcon name="Plus" :size="12" />
+          新建模板
+        </ReButton>
+      </div>
+    </header>
+
+    <!-- ==================== 表格 ==================== -->
+    <ReTable
+      ref="tableRef"
+      class="tpl-table"
+      table-id="template-library"
+      :loader="loadTemplates"
+      :params="query"
+      :columns="columns"
+      row-key="id"
+      :layout-table="{ fill: true }"
+      :context-menu="tableMenu"
+      show-selection
+      stripe
+      :page-sizes="[10, 20, 50, 100]"
+      v-model:page="query.page"
+      v-model:page-size="query.pageSize"
+      @row-click="onRowClick"
+      @selection-change="onSelectionChange"
+      @context-menu-select="onTableMenuSelect"
+      @search="tableRef?.goto(1)"
+      @search-reset="tableRef?.goto(1)"
+    >
+      <template #toolbar>
+        <ReButton text type="primary" icon="Plus" @click="openCreate">新建模板</ReButton>
+        <template v-if="selectedCount">
+          <span class="tpl-toolbar-selected">已选 {{ selectedCount }} 项</span>
+          <ReButton text type="danger" icon="Delete" :disabled="!!busyKey" @click="batchRemove">批量删除</ReButton>
+          <ReButton icon="RefreshLeft" @click="clearSelection">清空选择</ReButton>
+        </template>
+      </template>
+
+      <!-- 左：模板名称 + 副标题 -->
+      <template #name="{ row }: { row: TemplateInfo }">
+        <div class="tpl-dev">
+          <div class="tpl-dev__top">
+            <span class="tpl-dev__name" :title="row.name">{{ row.name }}</span>
+            <el-tag :type="statusMeta(row.status).type" size="small" effect="plain">
+              {{ statusMeta(row.status).label }}
+            </el-tag>
+          </div>
+          <div class="tpl-dev__code">{{ row.subtitle || '—' }}</div>
+        </div>
+      </template>
+
+      <!-- 右：模板语言 -->
+      <template #language="{ row }: { row: TemplateInfo }">
+        <span class="tpl-cell">{{ languageLabel(row.language) }}</span>
+      </template>
+
+      <!-- 右：模板类型 -->
+      <template #type="{ row }: { row: TemplateInfo }">
+        <span class="tpl-cell">{{ typeLabel(row.type) }}</span>
+      </template>
+
+      <!-- 状态列：仅占位（右键/双击除设计外操作） -->
+      <template #status="{ row }: { row: TemplateInfo }">
+        <el-tag :type="statusMeta(row.status).type" size="small" effect="plain">
+          {{ statusMeta(row.status).label }}
+        </el-tag>
+      </template>
+    </ReTable>
+
+    <!-- ==================== 底部信息条 ==================== -->
+    <footer class="tpl-bar">
+      <div class="tpl-bar__info">
+        <span class="tpl-bar__hint">点选 / 右键模板行打开操作菜单</span>
+      </div>
+      <div class="tpl-bar__right">
+        <span class="tpl-bar__op">每页 {{ query.pageSize }} 条</span>
+      </div>
+    </footer>
+
+    <!-- 新建 / 编辑弹窗 -->
+    <ReDialog v-model="formVisible" :title="formTitle" width="520px" @confirm="onFormConfirm">
+      <el-form ref="formRef" :model="form" label-width="80px">
+        <el-form-item label="模板名称" required>
+          <el-input v-model="form.name" placeholder="例如 出库单" maxlength="64" />
+        </el-form-item>
+        <el-form-item label="模板副标题">
+          <el-input v-model="form.subtitle" placeholder="例如 仓库出库单据" maxlength="128" />
+        </el-form-item>
+        <el-form-item label="模板语言" required>
+          <el-select v-model="form.language" class="w-full">
+            <el-option v-for="item in languageOptions" :key="item.value" :label="item.label" :value="item.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="模板类型" required>
+          <el-select v-model="form.type" class="w-full">
+            <el-option v-for="item in typeOptions" :key="item.value" :label="item.label" :value="item.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model="form.remark" type="textarea" :rows="2" maxlength="200" show-word-limit />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <ReButton @click="formVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="saving" @click="onFormConfirm">确定</ReButton>
+      </template>
+    </ReDialog>
+  </div>
+</template>
+
+<script setup lang="ts">
+/**
+ * 模板库资产列表页。
+ *
+ * 列结构：左侧（模板名称 + 副标题），右侧（模板语言 + 模板类型）。
+ * 右键菜单：进入设计器 / 编辑模板 / 删除模板（每行一个菜单，不额外提供展开按钮）。
+ */
+import { computed, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus, Delete, EditPen, MagicStick } from '@element-plus/icons-vue'
+import ReDialog from '@repo/ui/re-dialog'
+import ReIcon from '@repo/ui/re-icon'
+import ReInput from '@repo/ui/re-input'
+import ReButton from '@repo/ui/re-button'
+import ReTable from '@repo/ui/re-table'
+import type {
+  RePageResult,
+  ReTableColumn,
+  ReTableContextMenuContext,
+  ReTableContextMenuItem,
+  ReTableLoadParams
+} from '@repo/ui/re-table'
+
+import { templateApi } from '../api/templateApi'
+import type { TemplateInfo, TemplateLanguage, TemplateStatus, TemplateType } from '../types/template'
+import {
+  tplLanguageLabels,
+  tplTypeLabels,
+  languageLabel,
+  statusMeta,
+  typeLabel
+} from '../utils/i18n'
+
+const router = useRouter()
+
+const tableRef = ref<{ reload: () => void; goto: (page?: number) => void; clearAllSelection: () => void } | null>(null)
+const rows = ref<TemplateInfo[]>([])
+const loading = ref(false)
+const saving = ref(false)
+const busyKey = ref<string | null>(null)
+const total = ref(0)
+const selectedRows = ref<TemplateInfo[]>([])
+
+/** 查询参数 = ReTable params（分页 + 内置搜索区） */
+const query = reactive<Record<string, any>>({
+  keyword: '',
+  page: 1,
+  pageSize: 20
+})
+
+/** 顶栏搜索词：ReTable params 自带 keyword，翻页即可 */
+
+/** 新增 / 编辑弹窗 */
+const formVisible = ref(false)
+const formTitle = ref('')
+const editingId = ref('')
+const formRef = ref<Record<string, any> | null>(null)
+const form = ref<Partial<TemplateInfo>>({})
+
+// ==================== 表格列定义 ====================
+const columns: ReTableColumn[] = [
+  { prop: 'name', label: '模板', slot: 'name', minWidth: 260 },
+  { prop: 'language', label: '语言', slot: 'language', width: 150 },
+  { prop: 'type', label: '类型', slot: 'type', width: 150 },
+  { prop: 'status', label: '状态', slot: 'status', width: 120 }
+]
+
+// ==================== 行右键菜单 ====================
+/** 行右键菜单：进入设计器 / 编辑 / 删除 */
+const tableMenu: ReTableContextMenuItem[] = [
+  { key: 'design', label: '进入设计器', icon: MagicStick },
+  { key: 'edit', label: '编辑模板', icon: EditPen },
+  { key: 'remove', label: '删除模板', icon: Delete, divided: true }
+]
+
+// ==================== 字典 ====================
+/** 语言下拉选项 */
+const languageOptions = computed(() =>
+  Object.entries(tplLanguageLabels).map(([value, label]) => ({ label, value }))
+)
+/** 类型下拉选项 */
+const typeOptions = computed(() =>
+  Object.entries(tplTypeLabels).map(([value, label]) => ({ label, value }))
+)
+
+// ==================== 加载 ====================
+/** ReTable loader：负责按 page / pageSize / params 取后端分页 */
+async function loadTemplates({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
+  loading.value = true
+  try {
+    const res = await templateApi.page({
+      keyword: ((params?.keyword as string) ?? query.keyword as string) || undefined,
+      page,
+      size: pageSize as number
+    })
+    const records = Array.isArray(res?.records) ? res.records : []
+    return { total: Number(res?.total ?? 0), data: records as unknown as Record<string, unknown>[] }
+  } catch (err) {
+    ElMessage.error(String(err))
+    return { total: 0, data: [] }
+  } finally {
+    loading.value = false
+  }
+}
+
+/** 搜索：ReTable params 自带 keyword 条件，翻页即可 */
+
+// ==================== 行操作 ====================
+/** 行点击 */
+function onRowClick(row: Record<string, unknown>): void {
+  void row
+}
+
+/** 右键菜单选中：ctx.row 就是被右键的模板 */
+function onTableMenuSelect(item: ReTableContextMenuItem, ctx: ReTableContextMenuContext): void {
+  const row = ctx.row as unknown as TemplateInfo
+  switch (item.key) {
+    case 'design':
+      router.push({ name: 'TemplateDesigner', params: { id: row.id }, query: { mode: 'design' } })
+      break
+    case 'edit':
+      openEdit(row)
+      break
+    case 'remove':
+      removeTemplate(row)
+      break
+  }
+}
+
+/** 选择变化 */
+function onSelectionChange(rows: Record<string, unknown>[]): void {
+  selectedRows.value = rows as unknown as TemplateInfo[]
+}
+const selectedCount = computed(() => selectedRows.value.length)
+
+/** 清空选择 */
+function clearSelection(): void {
+  tableRef.value?.clearAllSelection()
+}
+
+// ==================== 新增 / 编辑 ====================
+function openCreate(): void {
+  formTitle.value = '新建模板'
+  editingId.value = ''
+  form.value = {}
+  formVisible.value = true
+}
+
+function openEdit(row: TemplateInfo): void {
+  formTitle.value = '编辑模板'
+  editingId.value = row.id
+  form.value = { ...row }
+  formVisible.value = true
+}
+
+async function onFormConfirm(): Promise<void> {
+  if (!form.value.name) {
+    ElMessage.warning('请输入模板名称')
+    return
+  }
+  saving.value = true
+  try {
+    const payload = {
+      id: editingId.value,
+      name: form.value.name,
+      subtitle: form.value.subtitle,
+      language: form.value.language,
+      type: form.value.type,
+      status: (form.value.status as TemplateStatus) ?? 'draft',
+      remark: form.value.remark
+    }
+    if (editingId.value) {
+      await templateApi.update(editingId.value, payload)
+      ElMessage.success('更新成功')
+    } else {
+      await templateApi.add(payload)
+      ElMessage.success('新增成功')
+    }
+    formVisible.value = false
+    await loadTemplates({ page: 1, pageSize: 20, params: {} })
+  } catch (err) {
+    ElMessage.error(String(err))
+  } finally {
+    saving.value = false
+  }
+}
+
+// ==================== 删除 ====================
+async function removeTemplate(row: TemplateInfo): Promise<void> {
+  try {
+    await ElMessageBox.confirm(`确定删除模板「${row.name}」？`, '删除', {
+      type: 'warning'
+    })
+    await templateApi.remove(row.id)
+    ElMessage.success('删除成功')
+    await tableRef.value?.reload()
+  } catch (err) {
+    if (String(err) !== 'Error: cancel') ElMessage.error(String(err))
+  }
+}
+
+/** 批量删除（受限 busyKey，避免连点打乱台账） */
+async function batchRemove(): Promise<void> {
+  if (!selectedCount.value || busyKey.value) return
+  try {
+    await ElMessageBox.confirm(`确定删除选中的 ${selectedCount.value} 个模板？`, '删除', { type: 'warning' })
+    busyKey.value = 'batch'
+    const ids = selectedRows.value.map(r => r.id)
+    await Promise.all(ids.map(id => templateApi.remove(id)))
+    ElMessage.success('删除成功')
+    await tableRef.value?.reload()
+  } catch (err) {
+    if (String(err) !== 'Error: cancel') ElMessage.error(String(err))
+  } finally {
+    busyKey.value = null
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.tpl {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--el-bg-color-page);
+  overflow: hidden;
+}
+
+.tpl-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  height: 52px;
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.tpl-header__left {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.tpl-header__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.tpl-header__count {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.tpl-header__right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tpl-search {
+  width: 220px;
+}
+
+.tpl-table {
+  flex: 1;
+  overflow: auto;
+  background: var(--el-bg-color);
+}
+
+.tpl-toolbar-selected {
+  margin-right: 8px;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+}
+
+.tpl-dev {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tpl-dev__top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tpl-dev__name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.tpl-dev__code {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.tpl-cell {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+
+.tpl-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  height: 36px;
+  background: var(--el-bg-color-page);
+  border-top: 1px solid var(--el-border-color-lighter);
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.tpl-bar__hint {
+  opacity: 0.8;
+}
+
+.tpl-bar__right {
+  display: flex;
+  gap: 16px;
+}
+
+.tpl-bar__op {
+  white-space: nowrap;
+}
+</style>

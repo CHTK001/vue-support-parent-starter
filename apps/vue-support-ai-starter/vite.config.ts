@@ -117,7 +117,7 @@ const SHARED_PUBLIC_DIR = path.join(WORKSPACE_ROOT, 'public')
 //
 // 需要指向别处时用 AI_API_TARGET 覆盖，例如本机临时起了后端：
 //   AI_API_TARGET=http://localhost:8787 pnpm dev
-const AI_API_TARGET = process.env.AI_API_TARGET ?? 'http://192.168.50.198:8787'
+const AI_API_TARGET = process.env.AI_API_TARGET ?? 'https://8787-agqwzohzg2gmh5l2nuiqybemja.instabox.tech'
 
 /** 精确映射：框架 createApp 约定按这些 URL 拉取配置与 wasm 产物 */
 const EXACT_ASSETS: Record<string, string> = {

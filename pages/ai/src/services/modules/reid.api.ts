@@ -296,10 +296,10 @@ export const reidApi: ReidApi = {
     if (typeof topK === "number" && topK > 0) {
       form.append("topK", String(topK));
     }
-    // 后端收逗号分隔的多分组；没选分组时不带，由后端按 default 兜底
+    // 后端收逗号分隔的多分组（单参 `group`），没选分组时不带，由后端按 default 兜底
     const joined = joinGroups(groups);
     if (joined) {
-      form.append("groups", joined);
+      form.append("group", joined);
     }
     const res = await this.client.post("/reid/search", form, MULTIPART);
     const data = unwrap<{ hits?: ReidHit[] }>(res);
