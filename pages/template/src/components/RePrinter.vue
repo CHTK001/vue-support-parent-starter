@@ -47,7 +47,6 @@
       :columns="columns"
       row-key="name"
       :layout-table="{ fill: true }"
-      show-selection
       stripe
       :page-sizes="[10, 20, 50, 100]"
       v-model:page="page"
