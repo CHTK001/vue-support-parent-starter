@@ -292,7 +292,7 @@ export const eduaiApi = {
 
   // 试卷模板（edu_paper_template）
   /** 模板分页列表（PaperView 选模板下拉用） */
-  getPaperTemplatePage: (params: { pageNum?: number; pageSize?: number; templateName?: string; templateStyle?: string; templateStatus?: number } = {}) =>
+  getPaperTemplatePage: (params: { pageNum?: number; pageSize?: number; name?: string; style?: string; status?: number } = {}) =>
     http()
       .get("/v2/edu/paper-template/page")
       .query(params)

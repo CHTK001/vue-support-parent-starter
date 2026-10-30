@@ -165,10 +165,12 @@
  *   - 选中态为白底深字 + 极轻投影（Solid 胶囊/药丸圆角在这里不成立）
  * 只改绘制属性（背景/颜色/阴影），尺寸档照常生效。
  *
- * 定位在 ReKit 默认规则之后：`--square` 选择器（.re-radio-group --square）与默认
- * 规则（.re-radio-group.re-radio-group）同为 5 个类（特异性 (0,5,0)），强规则不在
- * 后文的话会被后来的默认规则覆盖（实测方选块的选中态被压回主色实心块）。
- */
+ * 定位在 ReKit 默认规则之后。特别注意特异性：默认的首/末项复位规则用了
+ * 「重复类」写法（.re-radio-group .re-radio-group + :first-child）把特异性抬到了
+ * (0,5,0)；这里未选中项用 `:not(.is-active)`、选中项用 `.is-active` 让同一条选择器
+ * 也到 (0,5,0)，方选块的 5px 圆角才不会被默认的 `calc(var(--el-border-radius-base) - 2px)`
+ *（2px）压制（实测不拆分时 5px 被压回 2px，并且因为 `.is-active` 后到，只有底色被
+ * 默认规则接管成分块实心主色）。 */
 
 /* 轨道：切到 `--el-fill-color-light` 浅灰底，悬空掉 EP 的描边与投影 */
 .re-radio-group.re-radio-group--square {
@@ -178,8 +180,21 @@
   border-radius: 7px;
 }
 
-/* 选项：去描边、去胶囊圆角、去填充 */
-.re-radio-group.re-radio-group--square .el-radio-button__inner {
+/* 选项：去描边、去胶囊圆角、去填充。
+ * 分成未选中/选中两条平级链：两者都是 (0,5,0)，后到者胜
+ * （未选中的 5px 需要盖过默认首末项复位 `calc(... - 2px)` 的 2px，选中的 5px
+ * 同样需要盖过它，所以都挂 `.is-active` 。 */
+.re-radio-group.re-radio-group--square .el-radio-button:not(.is-active) .el-radio-button__inner {
+  border: 0 none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--el-text-color-secondary, #5c6270);
+  font-weight: 600;
+  box-shadow: none;
+  transition: background 0.16s, color 0.16s, box-shadow 0.16s;
+}
+
+.re-radio-group.re-radio-group--square .el-radio-button.is-active .el-radio-button__inner {
   border: 0 none;
   border-radius: 5px;
   background: transparent;

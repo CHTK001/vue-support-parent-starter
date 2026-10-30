@@ -482,26 +482,26 @@ const translatedCount = computed(() => rows.value.filter((r) => Boolean(r.poemTr
  * 服务端分页后前端只持有当前页，不再有全量数据可算。
  */
 const statCards = computed(() => [
-  { title: "古诗总数", value: total.value, icon: Reading, bg: "var(--el-color-primary)", hint: "全库，按筛选条件" },
+  { title: "古诗总数", value: total.value, icon: Reading, bg: "var(--el-color-primary-light-9)", hint: "全库，按筛选条件" },
   {
     title: "可游戏篇目",
     value: playableCount.value,
     icon: Plus,
-    bg: "var(--el-color-success)",
+    bg: "var(--el-color-success-light-9)",
     hint: "本页正文含两句及以上",
   },
   {
     title: "收录作者",
     value: authorCount.value,
     icon: EditPen,
-    bg: "var(--el-color-warning)",
+    bg: "var(--el-color-warning-light-9)",
     hint: "本页去重数量",
   },
   {
     title: "已有译文",
     value: translatedCount.value,
     icon: View,
-    bg: "var(--el-color-success)",
+    bg: "var(--el-color-success-light-9)",
     hint: "本页可对照学习",
   },
 ]);
@@ -632,186 +632,127 @@ onMounted(() => {
 
 <style scoped>
 /*
- * 版式基线与 IdiomBankView 逐条对齐（页头 + 悬浮方卡统计 + 筛选卡 + 表格卡 + 底部共 N 条）。
+ * 版式基线与 InsectBankView 对齐（页头 + 横向统计卡 + 筛选卡 + 表格卡）。
  * 只保留古诗特有的类（pb-view 视图行、pb-cell 单元格摘要、poem-layout 弹窗左右布局）。
  */
 
 /* ---------- 页面容器 ---------- */
 .page-container {
-  height: 100%;
-  overflow: auto;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   background: var(--el-bg-color-page);
 }
 
-/* ---------- 上区：页头 + 右侧悬浮正方形统计卡 ---------- */
+/* ---------- 上区：页头 + 右侧横向统计卡 ---------- */
 .top-zone {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: -74px;
-  position: relative;
-  z-index: 2;
-}
-.page-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 0;
-  padding-top: 4px;
-  min-width: 0;
-  flex: 1;
-}
-.page-header__left {
-  min-width: 0;
+  gap: 18px;
+  flex-wrap: wrap;
 }
 .page-header__title {
   margin: 0;
-  font-size: 26px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 900;
   color: var(--el-text-color-primary);
-  line-height: 1.25;
+  letter-spacing: 1px;
 }
 .page-header__sub {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   font-size: 13px;
-  color: var(--el-text-color-placeholder);
+  color: var(--el-text-color-secondary);
 }
 
 .stats-row {
   display: flex;
-  flex-shrink: 0;
-  gap: 14px;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 .stat-card {
-  width: 148px;
-  height: 148px;
-  background: var(--el-bg-color);
-  border-radius: var(--el-radius-xl, 16px);
-  padding: 16px;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-  /* koi 卡片不加投影：已有一条边框承载边界，边界色再提浅一档（-light → -lighter） */
+  align-items: center;
+  gap: 14px;
+  min-width: 170px;
+  padding: 12px 16px;
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  transition:
-    transform var(--el-transition-duration-fast, 0.2s) ease,
-    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
-}
-.stat-card:hover {
-  transform: translateY(-2px);
-  /* 浮起反馈是 koi 唯一允许的卡片投影 */
-  box-shadow: 0 12px 28px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
 }
 .stat-card__body {
   min-width: 0;
-  width: 100%;
 }
 .stat-card__title {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--el-text-color-secondary);
-  margin-bottom: 6px;
 }
 .stat-card__value {
-  font-size: 30px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 900;
   color: var(--el-text-color-primary);
-  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
 .stat-card__hint {
-  margin-top: 4px;
   font-size: 11px;
   color: var(--el-text-color-placeholder);
 }
 .stat-card__icon {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: var(--el-radius-lg, 12px);
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--el-color-white);
+  color: var(--el-color-primary);
   flex-shrink: 0;
-  align-self: flex-end;
 }
 
 /* ---------- 筛选 ---------- */
 .filter-card {
   border-radius: var(--el-radius-lg, 12px);
-  margin-bottom: 14px;
-  border: 0;
-  position: relative;
-  z-index: 1;
-}
-.filter-card :deep(.el-card__body) {
-  padding: 92px 20px 18px;
 }
 .filter-grid {
   display: grid;
-  grid-template-columns: minmax(200px, 1.4fr) minmax(130px, 1fr) auto;
-  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  gap: 12px 16px;
   align-items: end;
 }
-.filter-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
 .filter-field__label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  white-space: nowrap;
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 6px;
 }
 .filter-actions {
   display: flex;
-  gap: 10px;
-  align-items: center;
-}
-.filter-actions .el-button {
-  border-radius: var(--el-radius-lg, 12px);
-  min-width: 88px;
-  font-weight: 600;
+  gap: 8px;
 }
 
 /* ---------- 表格 ---------- */
 .table-card {
   border-radius: var(--el-radius-lg, 12px);
-  border: 0;
-  position: relative;
-  z-index: 1;
 }
-.table-card :deep(.el-card__body) {
-  padding: 16px 20px 18px;
-}
-.table-wrap {  /* 固定容器高度（同汉字库）：表格高度不再随页面滚动位置重算，消除滚动条液面高度抖动。
-     503 = 实测值 wrap.top 427 + 分页与间距 50 + 卡片 body 底部内边距 18 + 余量 8，
-     与汉字库同版式故同值；页面不纵向滚动，只留表格内部滚动。
-     contain: layout size 声明「本盒尺寸与内容无关」，ReTable 据此走 height:100%，
-     不再做视口像素补偿。 */
-  height: calc(100vh - 503px);
-  min-height: 320px;
+.table-wrap {  /* 固定容器高度：消除滚动条液面高度随滚动反复重算的抖动。
+     374 = 本页实测 wrap.top 344.8 + el-main 底部留白 8 + 卡片 body
+     底部内边距 21；此时表格卡正好贴到页面容器底边，不再留底空。
+     本页统计卡单行、筛选单行，上方区域与昆虫库不同，故基准取
+     同分布的 FunConfig 的 374 而非昆虫库的 493。
+     min-height 取 300：更小视口下改走页面滚动，不把固定高度顶破。
+     contain: layout size 让 ReTable 走 height:100%。 */
+  height: calc(100vh - 374px);
+  min-height: 300px;
   contain: layout size;
   overflow: hidden;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-lg, 12px);
 }
 
 @media (max-width: 1200px) {
   .filter-grid {
-    grid-template-columns: repeat(2, minmax(150px, 1fr));
-  }
-  .stat-card {
-    width: 128px;
-    height: 128px;
-  }
-  .stat-card__value {
-    font-size: 24px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 /* ---------- ReTable 单元格与视图块 ---------- */
@@ -987,16 +928,5 @@ onMounted(() => {
   }
 }
 
-/* ============ 无障碍：尊重系统「减少动态效果」偏好 ============
-   统计卡与关闭键有 transition（与成语页同一口径），关掉后 :hover 只剩边框/投影反馈。 */
-/* 统计卡有 transition / transform（ReButton 的动效由组件自身负责）；
-   这里关掉统计卡的位移，避免与组件内已有的 reduced-motion 处理重复。 */
-@media (prefers-reduced-motion: reduce) {
-  .stat-card {
-    transition: none;
-  }
-  .stat-card:hover {
-    transform: none;
-  }
-}
+/* ============ 无障碍：尊重系统「减少动态效果」偏好 ============ */
 </style>

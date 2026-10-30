@@ -912,7 +912,7 @@ async function loadPage() {
       orderBy: applied.orderBy,
       orderDir: "desc",
     });
-    rows.value = res?.data ?? [];
+    rows.value = (res?.data ?? res?.records ?? []) as typeof rows.value;
     total.value = res?.total ?? rows.value.length;
   } catch (e) {
     message.error("加载题目失败: " + (e instanceof Error ? e.message : String(e)));

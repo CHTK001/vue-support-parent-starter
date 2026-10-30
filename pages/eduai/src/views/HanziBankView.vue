@@ -295,9 +295,9 @@ const statCards = computed(() => {
   const withOrder = list.filter((r) => (r.hanziStrokeOrder ?? "").length > 0).length;
   const withImage = list.filter((r) => (r.hanziImage ?? "").length > 0).length;
   return [
-    { title: "本页汉字", value: list.length, icon: Reading, bg: "var(--el-color-primary)", hint: `共 ${total.value} 条` },
-    { title: "已配笔顺", value: withOrder, icon: Plus, bg: "var(--el-color-success)", hint: "本页已填笔顺" },
-    { title: "已配字画", value: withImage, icon: EditPen, bg: "var(--el-color-warning)", hint: "本页已填字画" },
+    { title: "本页汉字", value: list.length, icon: Reading, bg: "var(--el-color-primary-light-9)", hint: `共 ${total.value} 条` },
+    { title: "已配笔顺", value: withOrder, icon: Plus, bg: "var(--el-color-success-light-9)", hint: "本页已填笔顺" },
+    { title: "已配字画", value: withImage, icon: EditPen, bg: "var(--el-color-warning-light-9)", hint: "本页已填字画" },
   ];
 });
 
@@ -405,8 +405,10 @@ onMounted(() => {
 
 <style scoped>
 .page-container {
-  height: 100%;
-  overflow: auto;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   background: var(--el-bg-color-page);
 }
 
@@ -415,154 +417,105 @@ onMounted(() => {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: -74px;
-  position: relative;
-  z-index: 2;
-}
-.page-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  padding-top: 4px;
-  min-width: 0;
-  flex: 1;
+  gap: 18px;
+  flex-wrap: wrap;
 }
 .page-header__title {
   margin: 0;
-  font-size: 26px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 900;
   color: var(--el-text-color-primary);
-  line-height: 1.25;
+  letter-spacing: 1px;
 }
 .page-header__sub {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   font-size: 13px;
-  color: var(--el-text-color-placeholder);
+  color: var(--el-text-color-secondary);
 }
 
 .stats-row {
   display: flex;
-  flex-shrink: 0;
-  gap: 14px;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 .stat-card {
-  width: 148px;
-  height: 148px;
-  background: var(--el-bg-color);
-  border-radius: var(--el-radius-xl, 16px);
-  padding: 16px;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
+  align-items: center;
+  gap: 14px;
+  min-width: 170px;
+  padding: 12px 16px;
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  transition:
-    transform var(--el-transition-duration-fast, 0.2s) ease,
-    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
-}
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 28px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
 }
 .stat-card__body {
   min-width: 0;
-  width: 100%;
 }
 .stat-card__title {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--el-text-color-secondary);
-  margin-bottom: 6px;
 }
 .stat-card__value {
-  font-size: 30px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 900;
   color: var(--el-text-color-primary);
-  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
 .stat-card__hint {
-  margin-top: 4px;
   font-size: 11px;
   color: var(--el-text-color-placeholder);
 }
 .stat-card__icon {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: var(--el-radius-lg, 12px);
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--el-color-white);
+  color: var(--el-color-primary);
   flex-shrink: 0;
-  align-self: flex-end;
 }
 
 /* ---------- 筛选 ---------- */
 .filter-card {
   border-radius: var(--el-radius-lg, 12px);
-  margin-bottom: 14px;
-  border: 0;
-  position: relative;
-  z-index: 1;
-}
-.filter-card :deep(.el-card__body) {
-  padding: 92px 20px 18px;
 }
 .filter-grid {
   display: grid;
-  grid-template-columns: minmax(220px, 1.6fr) minmax(140px, 1fr) auto;
-  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  gap: 12px 16px;
   align-items: end;
 }
-.filter-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
 .filter-field__label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  white-space: nowrap;
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 6px;
 }
 .filter-actions {
   display: flex;
-  gap: 10px;
-  align-items: center;
-}
-.filter-actions .el-button {
-  border-radius: var(--el-radius-lg, 12px);
-  min-width: 88px;
-  font-weight: 600;
+  gap: 8px;
 }
 
 /* ---------- 表格 ---------- */
 .table-card {
   border-radius: var(--el-radius-lg, 12px);
-  border: 0;
-  position: relative;
-  z-index: 1;
-}
-.table-card :deep(.el-card__body) {
-  padding: 16px 20px 18px;
 }
 .table-wrap {
-  /* 固定容器高度：表格自身高度不再随页面滚动位置重算（那是滚动抖动的根因）。
-     503 为 1440×900 实测值：wrap.top 427 + 分页条与其间距 50 + 卡片 body 底部
-     内边距 18 + 余量 8；表格 + 分页正好落在 page-container 可视区内，
-     页面不再纵向滚动，只保留表格内部滚动（消掉残留的 23px 小滚动条）。
-     contain: layout size 声明「本盒尺寸与内容无关」，配合 ReTable 内的
-     fill 逻辑走 height:100%，彻底断开 ResizeObserver 的高度反馈回路。 */
-  height: calc(100vh - 503px);
-  min-height: 320px;
+  /* 固定容器高度（同三库口径）：消除滚动条液面高度随滚动反复重算的抖动。
+     374 = 本页实测 wrap.top 344.8 + el-main 底部留白 8 + 卡片 body
+     底部内边距 21；此时表格卡正好贴到页面容器底边，不再留底空。
+     本页统计卡单行、筛选单行，上方区域与昆虫库不同，故基准取
+     同分布的 FunConfig 的 374 而非昆虫库的 493。
+     min-height 取 300：更小视口下改走页面滚动，不把固定高度顶破。
+     contain: layout size 让 ReTable 走 height:100%。 */
+  height: calc(100vh - 374px);
+  min-height: 300px;
   contain: layout size;
   overflow: hidden;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-lg, 12px);
 }
 .hanzi-table {
   width: 100%;
@@ -715,27 +668,12 @@ onMounted(() => {
 
 @media (max-width: 1200px) {
   .filter-grid {
-    grid-template-columns: repeat(2, minmax(150px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .form-grid--4 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .stat-card {
-    width: 128px;
-    height: 128px;
-  }
-  .stat-card__value {
-    font-size: 24px;
-  }
 }
 
-/* 无障碍：尊重系统「减少动态效果」偏好 */
-@media (prefers-reduced-motion: reduce) {
-  .stat-card {
-    transition: none;
-  }
-  .stat-card:hover {
-    transform: none;
-  }
-}
+/* ============ 无障碍：尊重系统「减少动态效果」偏好 ============ */
 </style>

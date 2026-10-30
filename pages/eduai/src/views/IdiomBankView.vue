@@ -388,9 +388,9 @@ const statCards = computed(() => {
   const easy = list.filter((r) => (r.idiomDifficulty ?? 3) <= 2).length;
   const hard = list.filter((r) => (r.idiomDifficulty ?? 3) >= 4).length;
   return [
-    { title: "成语总数", value: total.value, icon: Collection, bg: "var(--el-color-primary)", hint: "全部成语" },
-    { title: "本页简单", value: easy, icon: Plus, bg: "var(--el-color-success)", hint: "难度 ≤ 2" },
-    { title: "本页困难", value: hard, icon: Delete, bg: "var(--el-color-warning)", hint: "难度 ≥ 4" },
+    { title: "成语总数", value: total.value, icon: Collection, bg: "var(--el-color-primary-light-9)", hint: "全部成语" },
+    { title: "本页简单", value: easy, icon: Plus, bg: "var(--el-color-success-light-9)", hint: "难度 ≤ 2" },
+    { title: "本页困难", value: hard, icon: Delete, bg: "var(--el-color-warning-light-9)", hint: "难度 ≥ 4" },
   ];
 });
 
@@ -644,11 +644,13 @@ onMounted(() => {
 }
 .table-wrap {
   /* 固定容器高度：消除滚动条液面高度随滚动反复重算的抖动。
-     493 = 1440x980 实测 wrap.top 464 + el-main 底部留白 8 + 卡片 body
-     底部内边距 21（同昆虫库）；此时表格卡正好贴到页面容器底边。
+     374 = 本页实测 wrap.top 344.8 + el-main 底部留白 8 + 卡片 body
+     底部内边距 21；此时表格卡正好贴到页面容器底边，不再留底空。
+     本页统计卡单行、筛选二行，上方区域与昆虫库不同，故基准取其
+     同分布的 FunConfig 的 374 而非昆虫库的 493。
      min-height 取 300：更小视口下改走页面滚动，不把固定高度顶破。
      contain: layout size 让 ReTable 走 height:100%。 */
-  height: calc(100vh - 493px);
+  height: calc(100vh - 374px);
   min-height: 300px;
   contain: layout size;
   overflow: hidden;
@@ -853,15 +855,5 @@ onMounted(() => {
   }
 }
 
-/* ============ 无障碍：尊重系统「减少动态效果」偏好 ============
-   统计卡有 transition / transform（ReButton 的动效由组件自身负责）。 */
-@media (prefers-reduced-motion: reduce) {
-  .stat-card {
-    transition: none;
-  }
-  /* 位移也是动效：关掉后 :hover 只剩投影反馈 */
-  .stat-card:hover {
-    transform: none;
-  }
-}
+/* ============ 无障碍：尊重系统「减少动态效果」偏好 ============ */
 </style>

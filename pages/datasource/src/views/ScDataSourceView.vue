@@ -208,17 +208,39 @@ const driverJarOptions = computed(() =>
 );
 
 /**
- * 拉取驱动 jar 列表。
+ * 驱动 jar 是否已成功加载过（弹窗间复用，避免每次打开都重复请求）。
  *
- * <p>失败只提示不打断表单：驱动 jar 是可选增强，拉不到列表不该让人连普通
- * MySQL 数据源都保存不了。</p>
+ * <p>驱动 jar 是可选增强：列表接口在部分后端可能尚未就绪（如台账表缺失），
+ * 失败只置空列表、静默不打扰（与 loadInstalledMiddlewareTypes 同一口径），
+ * 等驱动区真正出现时若还空着会再试一次。</p>
+ */
+const driverJarsLoaded = ref(false);
+
+/**
+ * 拉取驱动 jar 列表（按需、静默）。
+ *
+ * <p>失败只静默置空不提示：驱动 jar 是可选增强，拉不到列表不该让人连普通
+ * MySQL 数据源都保存不了，更不该每次打开弹窗都弹一条错误。</p>
  */
 const loadDriverJars = async () => {
   try {
     driverJars.value = await fetchJdbcDriverJars();
-  } catch (error) {
-    message.warning(`读取驱动 jar 列表失败: ${String((error as Error)?.message ?? error)}`);
+    driverJarsLoaded.value = true;
+  } catch {
+    driverJars.value = [];
   }
+};
+
+/**
+ * 驱动 jar 下拉首次展开时按需加载。
+ *
+ * <p>新增弹窗打开时驱动区默认可见，但多数普通 JDBC 数据源根本不用上传驱动；
+ * 只有用户真的展开下拉选驱动才请求列表。失败已由 loadDriverJars 静默置空，
+ * 之后每次展开都会重试（driverJarsLoaded 只在成功后才置位）。</p>
+ */
+const onDriverJarVisible = (visible: boolean) => {
+  if (!visible || driverJarsLoaded.value) return;
+  void loadDriverJars();
 };
 
 /**
@@ -820,9 +842,8 @@ const openCreate = () => {
   extraParams.value = [];
   advancedOpen.value = false;
   dialogTestResult.value = null;
-  // 新建弹窗也要能选**已登记**的 jar：不加载的话下拉是空的，
-  // 同一个驱动每次建数据源都得重传一遍（编辑弹窗 openEdit 已加载）
-  void loadDriverJars();
+  // 驱动 jar 列表按需加载：等驱动区下拉首次展开时才请求（失败静默置空），
+  // 避免新增弹窗一打开就因后端 jar 台账未就绪而弹错 / 白打一个请求。
   void loadInstalledMiddlewareTypes();
   dialogVisible.value = true;
 };
@@ -837,8 +858,9 @@ const openEdit = (item: DataSourceInfo) => {
     ? parseJdbcExtraParams(dbText)
     : [];
   // 编辑既有数据源时也要能选 jar：老数据源没有这个字段，
-  // 但用户可能正想给它换一个上传的驱动
-  void loadDriverJars();
+  // 但用户可能正想给它换一个上传的驱动。仅编辑时预载（下拉首选驱动 jar 时需要回显），
+  // 新增弹窗走「下拉首次展开才加载」的按需路径（失败静默，不弹错）。
+  if (item.driverJarId != null) void loadDriverJars();
   void loadInstalledMiddlewareTypes();
   advancedOpen.value = false;
   dialogTestResult.value = null;
@@ -946,6 +968,12 @@ const toggleSelectAll = () => {
 const clearSelection = () => {
   selectionIds.value = new Set();
 };
+
+/** 当前过滤后的可见列表是否已全部勾选（批量条「全选本页/取消全选」文案） */
+const allVisibleSelected = computed(() => {
+  const visible = filteredList.value.map((r) => r.id).filter((id): id is number => id != null);
+  return visible.length > 0 && visible.every((id) => selectionIds.value.has(id));
+});
 
 /** 批量置顶 / 取消置顶（逐条调用单条接口；置顶项在左栏/全量列表排最前） */
 const batchToggleTop = async (top: boolean) => {
@@ -2294,45 +2322,74 @@ onMounted(load);
             />
           </div>
 
+          <!-- 批量操作条：勾选任意数据源后浮现（参考设备管理的 da-batch 交互）。
+               放列表滚动容器外，勾选后始终固定在搜索行下方；✕ 直接清空勾选。 -->
+          <div v-if="selectionIds.size" class="ds-side__batch">
+            <span class="ds-side__batch-text">
+              已选 {{ selectionIds.size }} 个
+              <button type="button" class="ds-side__batch-all" @click="toggleSelectAll">
+                {{ allVisibleSelected ? "取消全选" : "全选本页" }}
+              </button>
+            </span>
+            <span class="ds-side__batch-ops">
+              <ReButton icon="Top" :show-text="true" size="small" @click="batchToggleTop(true)">批量置顶</ReButton>
+              <ReButton icon="Delete" :show-text="true" size="small" type="danger" plain @click="batchRemove">批量删除</ReButton>
+              <button type="button" class="ds-side__batch-close" title="取消勾选" @click="clearSelection">
+                <ReIcon name="Close" :size="12" />
+              </button>
+            </span>
+          </div>
+
           <!-- 数据源卡片列表 -->
           <div class="ds-side__list">
             <p v-if="loading && !list.length" class="ds-side__hint">加载中…</p>
             <ReEmpty v-else-if="!filteredList.length" description="暂无匹配的数据源" :image-size="60" />
             <template v-else>
-              <button
+              <div
                 v-for="item in filteredList"
                 :key="item.id ?? item.name"
-                type="button"
-                class="ds-item"
-                :class="{ 'is-active': current === item }"
-                @click="selectSource(item)"
-                @contextmenu.prevent="onItemContextMenu($event, item)"
+                class="ds-item-row"
+                :class="{ 'is-checked': (item.id ?? -1) !== -1 && selectionIds.has(item.id ?? -1) }"
               >
-                <span class="ds-item__icon" :style="{ '--tile': typeMeta(item.type).color }">
-                  <svg
-                    v-if="typeBrand(item.type)" viewBox="0 0 24 24" fill="currentColor" class="ds-brand"
-                    aria-hidden="true"
-                  >
-                    <path :d="typeBrand(item.type)" />
-                  </svg>
-                  <b v-else class="ds-mark">{{ typeMeta(item.type).mark }}</b>
-
-                </span>
-                <span class="ds-item__body">
-                  <span class="ds-item__row">
-                    <b class="ds-item__name" :title="item.name">{{ item.name }}</b>
-                    <span v-if="item.topFlag === 1" class="ds-item__pin" title="已置顶">顶</span>
-                    <span class="ds-item__chip" :style="{ '--tile': typeMeta(item.type).color }">{{ sourceTypeChip(item) }}</span>
-                  </span>
-                  <span class="ds-item__addr mono">{{ formatAddress(item) }}</span>
-                </span>
-                <i
-                  class="ds-item__dot"
-                  :class="`is-${datasourceStatusKeyOf(item)}`"
-                  :title="datasourceStatusTextOf(item)"
-                  aria-hidden="true"
+                <ElCheckbox
+                  class="ds-item-row__check"
+                  :model-value="(item.id ?? -1) !== -1 && selectionIds.has(item.id ?? -1)"
+                  :aria-label="`勾选 ${item.name}`"
+                  @change="toggleSelection(item.id)"
                 />
-              </button>
+                <button
+                  type="button"
+                  class="ds-item"
+                  :class="{ 'is-active': current === item }"
+                  @click="selectSource(item)"
+                  @contextmenu.prevent="onItemContextMenu($event, item)"
+                >
+                  <span class="ds-item__icon" :style="{ '--tile': typeMeta(item.type).color }">
+                    <svg
+                      v-if="typeBrand(item.type)" viewBox="0 0 24 24" fill="currentColor" class="ds-brand"
+                      aria-hidden="true"
+                    >
+                      <path :d="typeBrand(item.type)" />
+                    </svg>
+                    <b v-else class="ds-mark">{{ typeMeta(item.type).mark }}</b>
+
+                  </span>
+                  <span class="ds-item__body">
+                    <span class="ds-item__row">
+                      <b class="ds-item__name" :title="item.name">{{ item.name }}</b>
+                      <span v-if="item.topFlag === 1" class="ds-item__pin" title="已置顶">顶</span>
+                      <span class="ds-item__chip" :style="{ '--tile': typeMeta(item.type).color }">{{ sourceTypeChip(item) }}</span>
+                    </span>
+                    <span class="ds-item__addr mono">{{ formatAddress(item) }}</span>
+                  </span>
+                  <i
+                    class="ds-item__dot"
+                    :class="`is-${datasourceStatusKeyOf(item)}`"
+                    :title="datasourceStatusTextOf(item)"
+                    aria-hidden="true"
+                  />
+                </button>
+              </div>
             </template>
           </div>
 
@@ -2829,6 +2886,7 @@ onMounted(load);
                     placeholder="用内置驱动（应用 classpath 上的）"
                     clearable
                     class="ds-driver-jar-select"
+                    @visible-change="onDriverJarVisible"
                   />
                   <input ref="driverJarInput" class="ds-driver-jar-file" type="file" accept=".jar" @change="onPickDriverJar" />
                   <ReButton size="small" @click="driverJarInput?.click()">上传 jar</ReButton>
@@ -3240,39 +3298,20 @@ onMounted(load);
   transition: background-color var(--el-transition-duration, 0.2s);
 }
 
-/* 状态过滤列表 */
+/* 状态过滤：一行四段 el-segmented（原「纵向四行」ul 列表改版，省出一整行高度）。
+   block + size=small：窄栏（260~340px）里四段横向排布不换行。 */
 .ds-status {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  width: 100%;
 }
-.ds-status__item {
+/* 插槽内容渲染在 .el-segmented__item-label（flex:1 居中、nowrap）内部，
+   覆盖成行内 flex：圆点 + 标签 + 计数水平排布、整体居中。
+   选中项文字是白色（--el-segmented-item-selected-color），
+   标签/计数用继承色（color: inherit）即可自动适配滑块的「白字」态。 */
+.ds-status :deep(.el-segmented__item-label) {
   display: flex;
   align-items: center;
-  gap: 10px;
-  /* UI 稿里过滤行是「整行一条」的胶囊，26px 边距让选中态有呼吸感 */
-  padding: 9px 12px;
-  border-radius: var(--radius-lg, 12px);
-  font-size: 13px;
-  color: var(--text-secondary, #5c6270);
-  cursor: pointer;
-  user-select: none;
-  transition:
-    background-color var(--el-transition-duration, 0.2s),
-    color var(--el-transition-duration, 0.2s);
-}
-.ds-status__item:hover {
-  background: var(--bg-hover, #f1f2f8);
-}
-.ds-status__item.is-active {
-  /* 主色淡染而不是 --el-color-primary-light-*：后者是 Element 的固定梯度，
-     换主题时会和 koi 主色对不上。 */
-  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
-  color: var(--el-color-primary);
-  font-weight: 600;
+  justify-content: center;
+  gap: 6px;
 }
 .ds-status__dot {
   flex: none;
@@ -3281,13 +3320,16 @@ onMounted(load);
   border-radius: 50%;
 }
 .ds-status__label {
-  flex: 1 1 auto;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .ds-status__count {
   flex: none;
   font-size: 12px;
-  color: var(--text-tertiary, #6b7280);
+  color: inherit;
+  opacity: 0.85;
   font-variant-numeric: tabular-nums;
 }
 
@@ -3356,7 +3398,28 @@ onMounted(load);
   color: var(--el-text-color-secondary);
 }
 
-/* 数据源卡片：图标块 + 名称/徽标 + 地址 + 右侧状态点 */
+/* 数据源卡片：图标块 + 名称/徽标 + 地址 + 右侧状态点。
+   多选模式：勾选框与卡片按钮并排，卡片按钮吃满行内剩余宽度，
+   行背景交给右侧按钮的 hover/active（参考设备管理批量交互）。 */
+.ds-item-row {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  min-width: 0;
+}
+.ds-item-row__check {
+  align-self: center;
+  flex: none;
+  margin-left: 4px;
+}
+.ds-item-row .ds-item {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ds-item-row.is-checked .ds-item {
+  background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
+  border-color: color-mix(in srgb, var(--el-color-primary) 24%, transparent);
+}
 .ds-item {
   display: flex;
   align-items: center;
@@ -3381,6 +3444,60 @@ onMounted(load);
 .ds-item.is-active {
   background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
   border-color: color-mix(in srgb, var(--el-color-primary) 32%, transparent);
+}
+
+/* 批量操作条（仅勾选后显示，浮在列表顶部） */
+.ds-side__batch {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  padding: 6px 8px;
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 24%, transparent);
+  border-radius: var(--radius-lg, 12px);
+  background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
+  font-size: 12px;
+  color: var(--text-secondary, #5c6270);
+}
+.ds-side__batch-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ds-side__batch-all {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--el-color-primary);
+  font-size: 12px;
+  cursor: pointer;
+}
+.ds-side__batch-all:hover {
+  text-decoration: underline;
+}
+.ds-side__batch-ops {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+.ds-side__batch-close {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm, 6px);
+  background: transparent;
+  color: var(--text-tertiary, #6b7280);
+  cursor: pointer;
+}
+.ds-side__batch-close:hover {
+  background: var(--bg-hover, #f1f2f8);
+  color: var(--text-primary, #1f2430);
 }
 .ds-item__icon {
   display: grid;
@@ -4364,7 +4481,6 @@ onMounted(load);
    本文件这些选择器都只带 transition（无 animation），故只关 transition。 */
 @media (prefers-reduced-motion: reduce) {
   .ds-side-card,
-  .ds-status__item,
   .ds-item,
   .ds-side__add {
     transition: none;
@@ -4372,15 +4488,8 @@ onMounted(load);
 }
 
 /* ---------------- 键盘焦点可见性 ----------------
-   .ds-status__item 是带 @click 的 li（不是可聚焦控件），浏览器不给默认焦点环。
-   指针样式原有 cursor: pointer 已在上面声明，这里不重复写。 */
-.ds-status__item {
-  outline: none;
-}
-
-.ds-status__item:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-}
+   状态过滤已改为 el-segmented，选中滑动块自绘焦点环
+   （.el-segmented__item-selected.is-focus-visible::before），这里不再需要自定义规则。 */
 /* ---------------- JDBC 驱动 jar 上传 ---------------- */
 .ds-driver-jar {
   display: flex;

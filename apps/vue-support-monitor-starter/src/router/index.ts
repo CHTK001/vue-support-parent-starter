@@ -376,6 +376,14 @@ export const monitorRoutes: RouteConfigsTable[] = [
 
   // ==================== 独立全屏路由（不套 layout，不进菜单） ====================
   {
+    // 协同管理分享链接：hash 模式下跳转 #/file-collabs/share/:id，
+    // standalone 让 registerRoutesUnderLayout 注册为顶层路由（无侧边栏/顶栏）。
+    path: "/file-collabs/share/:id",
+    name: "FileCollabShare",
+    component: () => import("@pages/filesystem/src/views/FileCollabShareView.vue"),
+    meta: { title: "协同分享", showLink: false, standalone: true },
+  },
+  {
     path: "/terminal-standalone",
     name: "TerminalStandalone",
     component: () => import("@pages/server/src/views/StandaloneTerminal.vue"),

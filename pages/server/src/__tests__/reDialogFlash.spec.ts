@@ -1,38 +1,67 @@
 /**
- * ReDialog（新主机的弹窗 ReDialog）闪动再现。
+ * 新增主机弹窗（HostFormDialog / ReDialog）闪动再现。
  *
  * <p>用户报告：「新增主机 弹出的 ReDialog 闪动了两次」。应用实际主题来自
- * {@code packages/config shared.ts} 默认值 {@code themeId: "koi"}，
- * koi 版 ReDialog 有 localOpen/visible 双向闭环。排查方向：是不是弹窗壳（el-dialog）
- * 在打开过程中被创建/销毁了两次，还是父页的 v-model 环路让弹窗关了一次又弹起来。</p>
+ * {@code packages/config shared.ts} 默认值 {@code themeId: "koi"}，koi 版 ReDialog 维护着
+ * {@code visible}（v-model） ↔ {@code localOpen}（el-dialog）的双向闭环。</p>
  *
- * <p>不依赖浏览器：用 jsdom + 真实 ReDialog（koi 主题） + element-plus 挂载，
- * 统计弹窗 shell（`.el-overlay-dialog`）与 ReDialog 的事件（open/close/closed）次数。</p>
+ * <p>排查手段：不打开页面，直接挂载真实组件，用 MutationObserver 盯着 body 里
+ * {@code .el-overlay-dialog}（element-plus 弹窗壳）的创建/消失，统计弹窗被建立了几次。
+ * 一次「闪动」在 DOM 上的证据是弹窗 shell 先创建、再销毁、再创建（ADD ... DEL ... ADD）。</p>
  *
  * @author CH
  * @since 4.0.0
  */
-import { describe, expect, it, beforeAll } from "vitest";
+import { describe, expect, it, beforeAll, vi } from "vitest";
 import { mount } from "@vue/test-utils";
-import { createApp, nextTick } from "vue";
+import { createApp, nextTick, ref } from "vue";
 import elementPlus from "element-plus";
 import { installUi } from "@repo/ui";
-import Minimal from "./fixtures/reDialogMinimal.vue";
 
-/** HostFormDialog 模板里用到的全部 Re 控件（ReKit 把 ReFormItem/ReOption 等一起带上） */
+import Minimal from "./fixtures/reDialogMinimal.vue";
+import HostFormDialog from "../views/HostFormDialog.vue";
+
+/** 弹窗壳在 body 上的创建/消失序列 */
+const OVERLAY_LOG: string[] = [];
+
+/** 弹窗壳在 body 上的当前创建时刻 */
+const OVERLAY_AT: number[] = [];
+
+vi.mock("../api", () => ({
+  getHost: vi.fn().mockResolvedValue(undefined),
+  listBoundIdentities: vi.fn().mockResolvedValue([]),
+  bindIdentity: vi.fn().mockResolvedValue(undefined),
+  saveHost: vi.fn().mockResolvedValue({ id: 1 }),
+  testPrometheusHost: vi.fn().mockResolvedValue(undefined),
+  fetchLocalAddress: vi.fn().mockResolvedValue(undefined),
+  getIdentities: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("@repo/core", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    message: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
+  };
+});
+
+vi.mock("vue-router", () => ({
+  useRouter: () => ({} as unknown as Record<string, unknown>),
+}));
+
+/** HostFormDialog 模板里用到的 Re 控件 + ReKit（ReFormItem/ReOption 在此） */
 const RE_COMPONENTS = [
+  "ReText",
   "ReButton",
-  "ReForm",
   "ReInput",
   "ReInputNumber",
   "ReSelect",
   "ReSwitch",
-  "ReText",
+  "ReForm",
   "ReDialog",
   "ReKit",
 ];
 
-/** 注册 Re 控件 + element-plus，返回以名字为 key 的注册表 */
 let globalComponents: Record<string, unknown> = {};
 
 beforeAll(async () => {
@@ -41,25 +70,79 @@ beforeAll(async () => {
   globalComponents = Object.fromEntries(RE_COMPONENTS.map(name => [name, app.component(name)]));
 });
 
-/** 打开弹窗并等 el-dialog 通过 Teleport 落进 body */
-async function openDialog(wrapper: ReturnType<typeof mount<any>>): Promise<void> {
+/** 打开弹窗并等骨架落进(body Teleport) */
+async function open(wrapper: ReturnType<typeof mount<any>>): Promise<void> {
   wrapper.find("#open").trigger("click");
-  await nextTick();
-  await nextTick();
-  await nextTick();
+  for (let i = 0; i < 12; i++) await nextTick();
 }
 
-/** 统计 body 里当前有存在感的 .el-overlay-dialog 个数 */
-function overlayDialogs(): number {
-  return document.querySelectorAll(".el-overlay-dialog").length;
+/** 启动一个盯着弹窗壳的 MutationObserver */
+function watchOverlays(): [() => void, () => string] {
+  const observer = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      for (const node of m.addedNodes) {
+        if (node instanceof HTMLElement && node.querySelector(".el-overlay-dialog")) {
+          OVERLAY_LOG.push("ADD");
+          OVERLAY_AT.push(Date.now());
+        }
+      }
+      for (const node of m.removedNodes) {
+        if (node instanceof HTMLElement && node.querySelector(".el-overlay-dialog")) OVERLAY_LOG.push("DEL");
+      }
+    }
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+  return [() => observer.disconnect(), () => JSON.stringify(OVERLAY_LOG)];
+}
+
+/** 挂载宿主：一个持有 visible 的父级 + HostFormDialog */
+function mountHost(): ReturnType<typeof mount<any>> {
+  return mount(
+    {
+      template: `<div id="root"><button id="open" @click="visible = true">新增主机</button>
+        <HostFormDialog v-model="visible" :is-edit="false" :host="null" :identity-options="[]" :group-options="[]" /></div>`,
+      components: { HostFormDialog },
+      setup() {
+        return { visible: ref(false) };
+      },
+    },
+    {
+      global: { plugins: [elementPlus], components: globalComponents },
+      attachTo: document.body,
+    },
+  ) as ReturnType<typeof mount<any>>;
 }
 
 describe("新增主机弹窗 闪动", () => {
-  it("最简外壳：一次打开、一次 open 事件", async () => {
+  it("最简 ReDialog：一次打开、弹窗壳不重复", async () => {
     document.body.innerHTML = "";
+    OVERLAY_LOG.length = 0;
+    OVERLAY_AT.length = 0;
+    const [disconnect, log] = watchOverlays();
     const wrapper = mount(Minimal, { global: { plugins: [elementPlus], components: globalComponents } });
-    await openDialog(wrapper);
-    console.log(`minimal: events=${JSON.stringify((wrapper.vm as any).events.value)} overlayDialogs=${overlayDialogs()}`);
-    expect(overlayDialogs()).toBe(1);
+    await open(wrapper);
+    console.log("minimal overlayLog:", log(), "overlays:", document.querySelectorAll(".el-overlay-dialog").length, "events:", JSON.stringify((wrapper.vm as any).events.value));
+    disconnect();
+    expect(document.querySelectorAll(".el-overlay-dialog").length).toBe(1);
+  }, 30000);
+
+  it("HostFormDialog：弹窗只建立一次 DOM", async () => {
+    document.body.innerHTML = "";
+    OVERLAY_LOG.length = 0;
+    OVERLAY_AT.length = 0;
+    const [disconnect, log] = watchOverlays();
+    let wrapper: ReturnType<typeof mount<any>> | null = null;
+    try {
+      wrapper = mountHost();
+      await open(wrapper);
+      console.log("host overlayLog:", log(), "overlays:", document.querySelectorAll(".el-overlay-dialog").length);
+    } catch (e) {
+      console.log("host error:", String((e as Error)?.stack || e));
+      expect.fail(String((e as Error)?.stack || e));
+    } finally {
+      if (wrapper) wrapper.unmount();
+      disconnect();
+    }
+    expect(OVERLAY_LOG.filter(x => x === "ADD").length, "弹窗 shell 应只被建立一次").toBe(1);
   }, 30000);
 });

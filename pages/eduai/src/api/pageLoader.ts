@@ -32,7 +32,9 @@ export function createPageLoader<T>(
     if (inFlight?.key === key) return inFlight.request;
     const request: Promise<RePageResult> = fetchPage(page, pageSize, params).then((res) => ({
       total: res?.total ?? 0,
-      data: (res?.data ?? []) as unknown as Record<string, unknown>[],
+      // 后端 PageResult 的列表字段是 records，data 只是前端类型里的兼容别名：
+      // 只取 data 会让所有远端分页表格拿到空数组（records 在这一行被丢弃）。
+      data: (res?.data ?? res?.records ?? []) as unknown as Record<string, unknown>[],
     }));
     const settle = () => {
       if (inFlight?.request === request) inFlight = null;

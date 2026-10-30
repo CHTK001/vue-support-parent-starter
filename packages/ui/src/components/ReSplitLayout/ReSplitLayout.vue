@@ -64,9 +64,21 @@ const PanelHost = defineComponent({
   },
 });
 
+/**
+ * 深拷贝布局树。
+ *
+ * <p>必须拷贝：useLayout 会把传入的 defaultLayout 直接当成响应式状态，
+ * 拖拽分隔条时 `split.sizes = newSizes` 是**原地修改**。若直接传
+ * `props.defaultLayout`，用户拖过一次之后默认布局就被改成了拖完的样子，
+ * 点「重置布局」只会回到上次拖完的位置（看起来像按钮没生效）。</p>
+ */
+function cloneLayout(node: SplitNode): SplitNode {
+  return JSON.parse(JSON.stringify(node)) as SplitNode;
+}
+
 const { layout, moveTab, removeTab, addTab, splitPanel, updateSizesForSplit, findPanelById } =
   useLayout({
-    defaultLayout: props.initialLayout || props.defaultLayout,
+    defaultLayout: cloneLayout(props.initialLayout || props.defaultLayout),
     storageKey: props.storageKey,
   });
 

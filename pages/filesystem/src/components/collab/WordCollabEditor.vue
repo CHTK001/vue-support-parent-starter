@@ -50,6 +50,7 @@
 import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { getFileCollab, saveFileCollabSnapshot, type FileCollabInfo } from "../../api/filestorageApi";
+import { docxFileName, htmlToDocxBlob } from "../../utils/collabDocx";
 
 const props = defineProps<{
   /** 协同文档号 */
@@ -204,15 +205,18 @@ async function onDocxPicked(e: Event): Promise<void> {
   }
 }
 
-/** 下载：把当前 HTML 以 .docx 名称导出为 .html（浏览器可读） */
-function downloadDocx(): void {
-  const html = contentHtml();
-  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = props.fileName.replace(/\.(docx?|txt|md)$/i, ".html") || "doc.html";
-  a.click();
-  URL.revokeObjectURL(a.href);
+/** 下载：当前 HTML 快照导出为真正的 .docx（jszip 手写最小 OOXML，Word/WPS 可直接打开） */
+async function downloadDocx(): Promise<void> {
+  try {
+    const blob = await htmlToDocxBlob(contentHtml());
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = docxFileName(props.fileName);
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch (e) {
+    ElMessage.error(`docx 导出失败：${(e as Error)?.message ?? e}`);
+  }
 }
 
 onMounted(async () => {

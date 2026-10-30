@@ -1366,10 +1366,12 @@ onMounted(() => {
   background: var(--el-bg-color-page);
   display: grid;
   grid-template-columns: 236px minmax(0, 1fr);
-  /* 行高必须钉成 max-content。容器有确定高度（height:100%），行若交给 auto 隐式行，
-     浏览器会把行按容器高度重新分配——单列时左卡（224px 高）被压进 100px 的行里，
-     卡片直接溢出压到页头上。钉成 max-content 后行高=内容高，超出交给 overflow 滚动。 */
-  grid-template-rows: max-content;
+  /* 行高：min 取 max-content、max 取 1fr。
+     - 下限 max-content：容器有确定高度（height:100%），行若交给纯 auto 隐式行，
+       浏览器会把行按容器高度重新分配——单列时左卡（224px）被压进 100px 的行里，
+       卡片溢出压到页头上。
+     - 上限 1fr：内容比视口矮时（班级/模板空态）卡片撑满剩余高度，而不是缩成一小块。 */
+  grid-template-rows: minmax(max-content, 1fr);
   align-content: start;
   align-items: start;
 }
@@ -1588,7 +1590,12 @@ onMounted(() => {
 /* ---------- 右：主区 ---------- */
 /* 页头是通栏白条、内容是一张卡，所以主区自己不再铺底色、也不再画左分隔线 */
 .main {
+  /* 主区是 flex 列：页头定高，内容卡吃满剩下的高度（内容不够高时也不缩成一小块） */
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
   min-width: 0;
+  min-height: 0;
   padding: 0;
   background: transparent;
 }
@@ -1708,6 +1715,12 @@ onMounted(() => {
 }
 
 .block--pad {
+  /* 卡片已经吃满高度，班级/模板两块跟着长高：表格在上、分页条压到卡片底部，
+     否则分页会悬在卡片半空，下面留一大片空白 */
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
   padding: 14px;
 }
 
@@ -1715,10 +1728,41 @@ onMounted(() => {
    本页外层（ReTabs 根节点）已经是一张卡，再套一层就成了「卡中卡」，边框叠边框。
    这里把内层压平，只留内容；外层的 padding 由 .block--pad 统一给。 */
 .block--pad :deep(.re-table) {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
   padding: 0;
   background: transparent;
   border: 0;
   border-radius: 0;
+}
+
+/* 表格主体自带的第二层框（1px 边 + 16px 圆角 + 白底）：与外层卡片叠成双框，
+   圆角也对不上（16 vs 12）。一并压平，让表头/数据行直接坐在卡片里。 */
+.block--pad :deep(.re-table__main) {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+/* 分页条压到卡片底部：表格在上、分页在下，中间留白；否则分页悬在卡片半空 */
+.block--pad :deep(.re-table__footer) {
+  margin-top: auto;
+}
+
+/* 表格本体跟着长高，空态插图才会落在卡片中部，而不是贴在最上面 */
+.block--pad :deep(.vxe-table) {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* vxe 再叠一层外框线（纯装饰，不承载布局），同样去掉 */
+.block--pad :deep(.vxe-table--border-line) {
+  display: none;
 }
 
 .filter-tag {
@@ -2039,8 +2083,8 @@ onMounted(() => {
 @media (max-width: 900px) {
   .page-container {
     grid-template-columns: 1fr;
-    /* 单列时是两行：左脊柱在上、主区在下，各自按内容高 */
-    grid-template-rows: max-content max-content;
+    /* 单列时是两行：左脊柱按内容高、主区吃满剩下的高度 */
+    grid-template-rows: max-content minmax(max-content, 1fr);
   }
 
   .taxo {
