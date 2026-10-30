@@ -7,38 +7,29 @@
     -->
     <PageHeader v-if="!embedded" :title="t('settings.models.title')">
       <template #actions>
-        <!-- 供应商行多选/批删：与逐条删除分开，点供应商头像或名称进入该供应商的模型页 -->
-        <button v-if="!multiSelect" class="mw-act" @click="multiSelect = true">多选</button>
-        <template v-else>
-          <span class="mw-act">已选 {{ selectedProviders.length }} 个</span>
-          <button class="mw-act" @click="exitMultiSelect">取消</button>
-          <button
-            v-if="selectedProviders.length > 0"
-            class="mw-act mw-act-del"
-            :disabled="batchDeleting"
-            @click="batchDeleteProviders"
-          >
-            删除供应商
-          </button>
-        </template>
+        <!-- 供应商行多选/批删：与逐条删除分开，点供应商头像或名称进入该供应商的模型页。
+             按钮组是独立组件（ModelsBatchActions），配置中心内嵌入口引的是同一个，
+             两个入口的这排操作因此不会各写一份。 -->
+        <ModelsBatchActions
+          :multi-select="multiSelect"
+          :selected-count="selectedProviders.length"
+          :deleting="batchDeleting"
+          @start="multiSelect = true"
+          @cancel="exitMultiSelect"
+          @remove="batchDeleteProviders"
+        />
       </template>
     </PageHeader>
+    <!-- 内嵌模式（配置中心 → 模型管理）：外层已有页头，这里只保留那排操作 -->
     <div v-else class="mw-toolbar">
-      <div class="mw-toolbar__actions">
-        <button v-if="!multiSelect" class="mw-act" @click="multiSelect = true">多选</button>
-        <template v-else>
-          <span class="mw-act">已选 {{ selectedProviders.length }} 个</span>
-          <button class="mw-act" @click="exitMultiSelect">取消</button>
-          <button
-            v-if="selectedProviders.length > 0"
-            class="mw-act mw-act-del"
-            :disabled="batchDeleting"
-            @click="batchDeleteProviders"
-          >
-            删除供应商
-          </button>
-        </template>
-      </div>
+      <ModelsBatchActions
+        :multi-select="multiSelect"
+        :selected-count="selectedProviders.length"
+        :deleting="batchDeleting"
+        @start="multiSelect = true"
+        @cancel="exitMultiSelect"
+        @remove="batchDeleteProviders"
+      />
     </div>
     <div class="flex-1 min-h-0">
       <div class="models-workspace h-full flex">
@@ -137,6 +128,7 @@ import { AddOutlined, CloudOutlined, StorefrontOutlined, DeleteOutlined } from '
 import PageHeader from '@/components/PageHeader.vue'
 import CardAvatar from '@/components/ui/CardAvatar.vue'
 import ModelsProviderDetail from './ModelsProviderDetail.vue'
+import ModelsBatchActions from './ModelsBatchActions.vue'
 import ProviderFormDialog from './ProviderFormDialog.vue'
 import TemplateCatalogDialog from './TemplateCatalogDialog.vue'
 import { apiService } from '../../services/ApiService'
@@ -514,47 +506,15 @@ onMounted(async () => {
 }
 .mw-item.selected .mw-item-name { color: var(--color-primary); }
 
-/* 内嵌模式（配置中心 → 模型管理）的操作条：只放批删按钮，右对齐一行 */
+/* 内嵌模式（配置中心 → 模型管理）的操作条：只放那排批删按钮，右对齐一行 */
 .mw-toolbar {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   padding: 8px 18px;
   border-bottom: 1px solid var(--color-surface-border);
   background: var(--color-surface);
   flex-shrink: 0;
-}
-.mw-toolbar__actions {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* 页面头部的供应商批删按钮组 */
-.mw-act {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 12px;
-  border: 1px solid var(--color-surface-border);
-  border-radius: var(--el-radius-md, 8px);
-  background: var(--el-bg-color);
-  color: var(--color-text);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
-  flex-shrink: 0;
-}
-.mw-act:hover { background: var(--color-surface-border); }
-.mw-act:disabled { opacity: 0.5; cursor: not-allowed; }
-.mw-act + .mw-act { margin-left: 6px; }
-.mw-act-del {
-  color: var(--el-color-danger);
-  border-color: color-mix(in srgb, var(--el-color-danger) 35%, var(--color-surface-border));
-}
-.mw-act-del:hover {
-  background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
 }
 
 /* 动效降级 */
@@ -563,16 +523,6 @@ onMounted(async () => {
   .mw-item,
   .mw-item-status,
   .mw-item-del,
-  .mw-store,
-  .mw-act { transition: none; }
-}
-
-/* 键盘焦点可见性：页面头部的批删按钮要可聚焦，补主色环。 */
-.mw-act {
-  outline: none;
-}
-
-.mw-act:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  .mw-store { transition: none; }
 }
 </style>

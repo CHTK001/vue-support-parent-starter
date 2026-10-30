@@ -235,8 +235,11 @@ export function createSidebarMenuItems(ctx: SidebarMenuContext): SidebarMenuItem
       icon: BrainCircuit20Regular,
       section: 'AI 配置',
       showKey: 'showModelsMenu',
-      // ONNX 只能管理员增删改查，入口也只给管理员，避免普通用户点进去一堆 403
-      adminOnly: true,
+      // 不设 adminOnly：模型管理对所有登录用户开放。
+      // 此前因为「ONNX 只能管理员增删改」把整个入口藏了，代价是普通用户
+      // 看不到自己有哪些模型、也进不去「配置中心 → 模型管理」。
+      // 越权由服务端 @Permission("admin") 逐条拦住（增删改供应商/模型），
+      // 前端不再用「看不见」代替「没权限」。
     },
     {
       key: 'usage',

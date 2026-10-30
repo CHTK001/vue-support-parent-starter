@@ -59,12 +59,10 @@
                       后父级高度由内容决定，h-full 塌成内容高 —— 左栏滚不动、右侧模型表格的
                       表头也贴不住顶。所以这里直接拿整块高度，其余 tab 仍走 ScrollContainer。
 
-                      管理员守卫与其它 tab 同源：非管理员时条件不成立，落回 ScrollContainer 分支，
-                      由上面的 admin-only-denied 统一提示，不再另写一份判定。
+                      不做管理员门槛：模型管理所有登录用户都可用（与主页 /models 一致）。
+                      写接口的权限由服务端 @Permission("admin") 逐条把关，前端不再另判一次。
                     -->
-                    <div
-                        v-if="currentTabValue === 'models' && (!isCurrentTabAdminOnly() || isAdmin())"
-                        class="models-tab-host">
+                    <div v-if="currentTabValue === 'models'" class="models-tab-host">
                         <ModelsPage embedded />
                     </div>
                     <ScrollContainer v-else class="h-full p-4">
@@ -295,6 +293,7 @@ import {
     DocumentText24Regular,
     AppsListDetail20Regular,
     Fingerprint24Regular,
+    BrainCircuit20Regular,
 } from '@vicons/fluent'
 
 import { ArrowBackIosNewTwotone, VerifiedUserOutlined } from '@vicons/material'
@@ -361,6 +360,10 @@ const groupMap = computed<Record<string, string>>(() => ({
     // 账号连接按 userId 隔离（每个用户管理自己的绑定），与其它菜单口径一致；
     // 免费渠道的路由/全局 Key 另走管理员渠道管理配置。
     channels: t('settings.system.groups.channels'),
+    // 模型管理：与主页「模型管理」(/models) 同一组件、同一接口、同一份数据，
+    // 只是入口多了一处。归到「模型配置」组 —— 它改的就是这一组的实际内容，
+    // 放在「渠道管理」组会让「供应商/模型在哪」这个问题更绕。
+    models: t('settings.system.groups.modelConfig'),
 }))
 
 // 设置项菜单
@@ -373,6 +376,21 @@ const sidebarItems = computed(() => [
         icon: Settings16Regular,
         roles: ['primary'],
         adminOnly: true,
+    },
+    {
+        // 模型管理：主页「模型管理」(/models) 的第二个入口。
+        //
+        // 两个入口渲染**同一个组件**（ModelsPage，embedded 模式只省掉页头），
+        // 接口、数据、交互全同 —— 不存在「主页改完这里看不到」。
+        //
+        // 不设 adminOnly：模型管理本身就是所有登录用户的功能（读供应商/模型、
+        // 管自己的模型配置）。只有「增删改供应商」这类写接口由服务端
+        // @Permission("admin") 逐条把关，页面不重复在前端做一份权限判断 ——
+        // 前端藏入口只会让人以为功能不存在，而不是「你没权限」。
+        label: t('settings.models.title'),
+        path: 'models',
+        icon: BrainCircuit20Regular,
+        roles: ['primary'],
     },
     {
         label: t('settings.system.tabs.defaultModels'),
@@ -722,7 +740,7 @@ const gotoModels = () => router.push({ name: 'Models' })
  * 注意这里必须用 var() 的 **回退值** 写法：满屏时 MainLayout 会把
  * --content-max-width 定义为 none，那时整条 max-width 失效 = 撑满，与原来一致。
  */
-const WIDE_TABS = ['services', 'service-tokens', 'providers', 'model-metrics', 'channels']
+const WIDE_TABS = ['services', 'service-tokens', 'providers', 'model-metrics', 'channels', 'models']
 const contentMaxWidthStyle = computed(() =>
     WIDE_TABS.includes(currentTabValue.value)
         ? {}

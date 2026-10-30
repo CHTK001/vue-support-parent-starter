@@ -16,19 +16,32 @@
       若保存落到覆盖层会「界面保存了却不生效」。
   -->
   <div class="paper-config-page">
-    <PaperConfigPanel :global-save="true" />
+    <!--
+      滚动容器：本页是整页独立入口（不像「设置中心」有 ScrollContainer 包着），
+      页壳必须自己提供滚动。原先这里是 height:100% + overflow:hidden，
+      三组卡片合计 1371px 高、容器只有 761px —— 溢出部分被直接裁掉：
+      没有滚动条、滚轮不动、第三组 compose 永远够不到（2026-10-30 线上实测）。
+      改走模块通用的 ScrollContainer：与「设置中心 → 试卷配置」同一套滚动/滚动条行为。
+    -->
+    <ScrollContainer class="paper-config-scroll" aria-label="试卷配置">
+      <PaperConfigPanel :global-save="true" />
+    </ScrollContainer>
   </div>
 </template>
 
 <script setup lang="ts">
 import PaperConfigPanel from "./PaperConfigPanel.vue";
+import ScrollContainer from "../ui/ScrollContainer.vue";
 </script>
 
 <style scoped>
 .paper-config-page {
   height: 100%;
   min-height: 0;
-  overflow: hidden;
   padding: 4px;
+}
+
+.paper-config-scroll {
+  height: 100%;
 }
 </style>

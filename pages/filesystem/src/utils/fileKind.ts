@@ -351,6 +351,9 @@ export function fileSvg(name: string, isDir: boolean): string {
       if (["epub", "mobi", "azw", "azw3", "xps", "oxps", "djvu", "djv", "pages", "fb2", "umd"].includes(ext)) {
         return icon("epub");
       }
+      if (["vsd", "vsdx", "vssx", "vstx", "vdx"].includes(ext)) {
+        return icon("visio");
+      }
       return icon("word");
     // 源代码统一蓝色尖括号图标；字幕文件用专属字幕图标
     case "code":
