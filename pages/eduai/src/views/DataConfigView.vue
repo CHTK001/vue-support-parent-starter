@@ -2389,6 +2389,13 @@ onMounted(() => {
   justify-content: flex-start;
   gap: 12px;
   position: relative;
+  /* align-center（垂直居中）会顺带给 .el-dialog 挂上 text-align: center，
+     卡头是「图标 + 左对齐标题」，这里收回左对齐，避免图标与标题之间被拉出大空档 */
+  text-align: left;
+  /* 卡头与内容之间的分隔线：弹框内容可滚时，滚到中间的元素会贴着卡头被切断，
+     有这条线才读得出「下面是滚动区」；12px 让副标题与线之间留出呼吸位 */
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--el-fill-color-light);
 }
 
 .dlg-header__icon {
