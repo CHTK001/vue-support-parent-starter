@@ -34,48 +34,38 @@
         row-key="id"
         :pagination="false"
         :toolbar="false"
+        :columns="tableColumns"
         :context-menu="packetMenu"
         :empty-text="emptyText"
+        :layout-table="{ fill: true }"
+        virtual-scroll
+        :virtual-scroll-gt="50"
         @context-menu-select="onPacketMenuSelect"
       >
-        <ReTableColumn prop="packetTime" label="时间" width="176" align="center">
-          <template #default="{ row }">
-            <span class="tshark-mono tshark-dim">{{ row.packetTime || '—' }}</span>
-          </template>
-        </ReTableColumn>
-        <ReTableColumn label="协议" width="96" align="center">
-          <template #default="{ row }">
-            <ReTag :class="['tshark-proto', protoClass(row.protocol)]" effect="plain">
-              {{ row.protocol || 'OTHER' }}
-            </ReTag>
-          </template>
-        </ReTableColumn>
-        <ReTableColumn label="源" width="206">
-          <template #default="{ row }">
-            <span class="tshark-mono">{{ addr(row.sourceIp, row.sourcePort) }}</span>
-          </template>
-        </ReTableColumn>
-        <ReTableColumn label="目的" width="206">
-          <template #default="{ row }">
-            <span class="tshark-mono">{{ addr(row.destIp, row.destPort) }}</span>
-          </template>
-        </ReTableColumn>
-        <ReTableColumn prop="packetLength" label="长度" width="88" align="right">
-          <template #default="{ row }">
-            <span class="tshark-mono">{{ row.packetLength ?? 0 }}</span>
-          </template>
-        </ReTableColumn>
-        <ReTableColumn label="摘要" min-width="260">
-          <template #default="{ row }">
-            <span class="tshark-ellipsis" :title="row.packetInfo">{{ row.packetInfo || row.restoredText || '—' }}</span>
-          </template>
-        </ReTableColumn>
-        <ReTableColumn label="操作" width="176" align="center">
-          <template #default="{ row }">
-            <ReButton link type="primary" @click="emit('open-detail', row)">详情</ReButton>
-            <ReButton link type="primary" @click="emit('open-lifecycle', row)">生命周期</ReButton>
-          </template>
-        </ReTableColumn>
+        <template #col-packetTime="{ row }">
+          <span class="tshark-mono tshark-dim">{{ row.packetTime || '—' }}</span>
+        </template>
+        <template #col-protocol="{ row }">
+          <ReTag :class="['tshark-proto', protoClass(row.protocol)]" effect="plain">
+            {{ row.protocol || 'OTHER' }}
+          </ReTag>
+        </template>
+        <template #col-sourceIp="{ row }">
+          <span class="tshark-mono">{{ addr(row.sourceIp, row.sourcePort) }}</span>
+        </template>
+        <template #col-destIp="{ row }">
+          <span class="tshark-mono">{{ addr(row.destIp, row.destPort) }}</span>
+        </template>
+        <template #col-packetLength="{ row }">
+          <span class="tshark-mono">{{ row.packetLength ?? 0 }}</span>
+        </template>
+        <template #col-packetInfo="{ row }">
+          <span class="tshark-ellipsis" :title="row.packetInfo">{{ row.packetInfo || row.restoredText || '—' }}</span>
+        </template>
+        <template #actions="{ row }">
+          <ReButton link type="primary" @click="emit('open-detail', row)">详情</ReButton>
+          <ReButton link type="primary" @click="emit('open-lifecycle', row)">生命周期</ReButton>
+        </template>
       </ReTable>
     </div>
 
@@ -94,7 +84,7 @@
 
 <script setup lang="ts">
 import { Connection, Document } from '@element-plus/icons-vue'
-import type { ReTableContextMenuContext, ReTableContextMenuItem } from '@repo/ui/re-table'
+import type { ReTableColumn, ReTableContextMenuContext, ReTableContextMenuItem } from '@repo/ui/re-table'
 import type { TsharkPacket } from './types'
 
 defineProps<{
@@ -112,6 +102,27 @@ const emit = defineEmits<{
   (e: 'open-lifecycle', row: TsharkPacket): void
   (e: 'export'): void
 }>()
+
+/**
+ * 报文列表列定义（ReTable columns 数组形态）。
+ *
+ * <p>大小字段（协议还原 / 原始数据）已被后端从列表接口排除，这里只用列表行
+ * 携带的字段；详情面板打开时再按需拉取大小字段（见 useTshark.openPacketDetail）。</p>
+ */
+const tableColumns: ReTableColumn[] = [
+  { prop: 'packetTime', label: '时间', width: 176, align: 'center',
+    formatter: (row: Record<string, unknown>) => String(row.packetTime ?? '—') },
+  { prop: 'protocol', label: '协议', width: 96, align: 'center',
+    formatter: (row: Record<string, unknown>) => String(row.protocol ?? 'OTHER') },
+  { prop: 'sourceIp', label: '源', width: 206,
+    formatter: (row: Record<string, unknown>) => String(row.sourceIp ?? '') },
+  { prop: 'destIp', label: '目的', width: 206,
+    formatter: (row: Record<string, unknown>) => String(row.destIp ?? '') },
+  { prop: 'packetLength', label: '长度', width: 88, align: 'right' },
+  { prop: 'packetInfo', label: '摘要', minWidth: 260,
+    formatter: (row: Record<string, unknown>) => String((row.packetInfo as string) || (row.restoredText as string) || '—') },
+  { prop: 'actions', label: '操作', width: 176, align: 'center', slot: 'actions' },
+]
 
 /**
  * 报文右键菜单。

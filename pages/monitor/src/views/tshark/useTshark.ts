@@ -815,20 +815,35 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
   }
 
   async function openPacketDetail(row: TsharkPacket) {
-    await openPacketDetailById(row.id)
+    // 列表接口把「协议还原 / 原始数据」两大字段排除掉了（每页 20 条不背几十 KB 的
+    // 十六进制串），但其余字段都在 —— 先用行数据秒开详情，再后台拉详情接口补齐大字段。
+    packetDetail.value = row
+    detailOpen.value = true
+    const sid = activeSessionId.value
+    if (sid == null || row.id == null) return
+    try {
+      const full = await getTsharkPacketDetail(sid, row.id) as TsharkPacket
+      // 竞态丢弃：慢请求回来时用户可能已经切到别的报文/会话
+      if (packetDetail.value?.id === row.id) packetDetail.value = full
+    } catch {
+      // 基础字段已经在展示了，补齐失败不必打扰
+    }
   }
 
   /**
-   * 按报文 id 打开详情。
+   * 按报文 id 打开详情（详情接口按会话分库，必须带当前会话 id）。
    *
    * <p>生命周期时序图里只有 packetId，没有完整行数据，单独给一个入口，
-   * 避免调用方为了凑一个 TsharkPacket 去造空对象。</p>
+   * 避免调用方为了凑一个 TsharkPacket 去造空对象。生命周期弹框里的报文
+   * 一定属于当前会话，直接取 activeSessionId。</p>
    *
    * @param id 报文 id
    */
   async function openPacketDetailById(id: number) {
+    const sid = activeSessionId.value
+    if (sid == null) return
     try {
-      packetDetail.value = await getTsharkPacketDetail(id) as TsharkPacket
+      packetDetail.value = await getTsharkPacketDetail(sid, id) as TsharkPacket
       detailOpen.value = true
     } catch (e: any) {
       message.error('加载详情失败: ' + (e?.message || e))

@@ -487,7 +487,14 @@ import ThirdBindPanel from "./components/ThirdBindPanel.vue";
 import useAuthStore from "@repo/pinia/modules/auth";
 import useUserStore from "@repo/pinia/modules/user";
 import ReDialog from "@repo/ui/re-dialog";
-import ReTable from "@repo/ui/re-table";
+/**
+ * ReTable 懒加载。
+ *
+ * <p>「我的」是框架固定页面，随首屏一起静态加载；而 ReTable 会整包拉
+ * vxe-table + vxe-pc-ui（dev 5.2MB / 生产也上百 KB）。登录日志表格只在
+ * 用户切到那个页签时才需要，没必要让首屏替它买单。</p>
+ */
+const ReTable = defineAsyncComponent(() => import("@repo/ui/re-table").then((m) => m.default));
 import type { ReTableColumn } from "@repo/ui/re-table";
 
 const authStore = useAuthStore();

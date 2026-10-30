@@ -155,6 +155,7 @@
     <ScTsharkLifecycleDialog
       v-model="lifecycleVisible"
       :packet="lifecyclePacket"
+      :session-id="activeSessionId"
       @open-detail="openPacketDetailById"
     />
   </div>

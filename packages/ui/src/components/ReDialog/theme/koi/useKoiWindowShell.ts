@@ -57,6 +57,8 @@ export function useKoiWindowShell(visible: Ref<boolean>, getInitialFullscreen?: 
   }
 
   function restoreFromDock() {
+    // 未最小化时点击浮标：弹窗壳已经是打开态，不重复驱动 open 过渡（避免闪动两次）
+    if (!minimized.value) return;
     minimized.value = false;
     visible.value = true;
   }

@@ -8,6 +8,7 @@
 import { describe, expect, it, beforeAll, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import { createApp, defineComponent, h, nextTick, ref } from "vue";
+import type { Component } from "vue";
 import elementPlus from "element-plus";
 import { installUi } from "@repo/ui";
 import { Events } from "./fixtures/shared";
@@ -41,7 +42,7 @@ vi.mock("../api", () => ({
 }));
 
 vi.mock("@repo/core", async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = await importOriginal() as Record<string, unknown>;
   return { ...actual, message: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } };
 });
 
@@ -53,10 +54,10 @@ beforeAll(async () => {
   const app = createApp({ template: "<div/>" });
   await installUi(app, { components: [...RE_COMPONENTS] });
   realReDialog = app.component("ReDialog");
-  globalComponents = Object.fromEntries(RE_COMPONENTS.map((name) => [name, app.component(name)]));
+  globalComponents = Object.fromEntries(RE_COMPONENTS.map((name) => [name, app.component(name)])) as Record<string, Component>;
 });
 
-let globalComponents: Record<string, unknown> = {};
+let globalComponents: Record<string, Component> = {};
 
 /** 弹窗壳在 body 里的创建/消失 */
 function watchOverlays(): [() => void, () => string] {
@@ -75,14 +76,14 @@ function watchOverlays(): [() => void, () => string] {
 }
 
 /** v-model/事件包装：原样透传 props/插槽，拦截所有事件、写入 EVENT_LOG */
-let realReDialog: unknown;
+let realReDialog: Component | undefined;
 const SpyReDialog = defineComponent({
   name: "SpyReDialog",
   inheritAttrs: false,
   props: { modelValue: { type: Boolean, default: false } },
-  setup(props, { attrs, emit }) {
+  setup(props, { emit, slots }) {
     return () => {
-      const merged = { ...attrs } as any;
+      const merged = {} as any;
       merged.modelValue = props.modelValue;
       merged.onUpdateModelValue = (v: boolean) => {
         EVENT_LOG.push(`update:modelValue:${v}`);
@@ -93,8 +94,8 @@ const SpyReDialog = defineComponent({
       merged.onClosed = () => EVENT_LOG.push("closed");
       EVENT_LOG.push(`render modelValue:${props.modelValue}`);
       return h(realReDialog as any, merged, {
-        default: attrs.slots?.default,
-        footer: attrs.slots?.footer,
+        default: slots?.default,
+        footer: slots?.footer,
       });
     };
   },

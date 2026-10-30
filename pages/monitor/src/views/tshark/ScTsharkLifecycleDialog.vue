@@ -206,6 +206,8 @@ const props = defineProps<{
   modelValue: boolean
   /** 触发右键的报文；只用到 id（后端按 id 找回整条流） */
   packet: TsharkPacket | null
+  /** 报文所属会话 id：报文按会话分库（SQLite 一库一会话），后端按它路由 */
+  sessionId: number | null
 }>()
 
 const emit = defineEmits<{
@@ -264,7 +266,7 @@ const kindType = computed(() => {
 })
 
 watch(
-  () => [props.modelValue, props.packet?.id] as const,
+  () => [props.modelValue, props.packet?.id, props.sessionId] as const,
   ([visible]) => {
     if (visible) void load()
   },
@@ -279,12 +281,13 @@ watch(
  */
 async function load() {
   const id = props.packet?.id
-  if (id == null) return
+  const sid = props.sessionId
+  if (id == null || sid == null) return
   loading.value = true
   error.value = ''
   data.value = null
   try {
-    data.value = await getTsharkHandshake(id) as TsharkHandshake
+    data.value = await getTsharkHandshake(sid, id) as TsharkHandshake
     if (!data.value?.steps?.length) {
       error.value = '这条流还没有可展示的报文'
     }

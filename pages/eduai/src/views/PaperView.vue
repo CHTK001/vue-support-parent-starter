@@ -816,7 +816,7 @@ const loadCreateOptions = async () => {
   }
   try {
     const res = await eduaiApi.getPaperTemplatePage({ pageNum: 1, pageSize: 100 });
-    const list = (res?.data ?? res?.records ?? []) as PaperTemplate[];
+    const list = (res?.data ?? []) as PaperTemplate[];
     templateOptions.value = list.filter((t) => Number(t.templateStatus ?? 1) === 1);
   } catch {
     templateOptions.value = [];

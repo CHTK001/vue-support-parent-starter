@@ -875,21 +875,21 @@ const statCards = computed(() => {
       title: "今日审核",
       value: questionStatsValue.pendingAudit,
       icon: Warning,
-      bg: "var(--el-color-warning)",
+      bg: "var(--el-color-warning-light-9)",
       hint: "需人工审核",
     },
     {
       title: "题目总数",
       value: Number(questionStatsValue.total || total.value).toLocaleString("en-US"),
       icon: Document,
-      bg: "var(--el-color-primary)",
+      bg: "var(--el-color-primary-light-9)",
       hint: `覆盖${questionStatsValue.subjectCount || "—"}学科`,
     },
     {
       title: "今日新增",
       value: questionStatsValue.todayNew,
       icon: Plus,
-      bg: "var(--el-color-success)",
+      bg: "var(--el-color-success-light-9)",
       hint: `较昨日 +${yesterdayDelta}`,
     },
   ];
@@ -912,7 +912,7 @@ async function loadPage() {
       orderBy: applied.orderBy,
       orderDir: "desc",
     });
-    rows.value = (res?.data ?? res?.records ?? []) as typeof rows.value;
+    rows.value = res?.data ?? [];
     total.value = res?.total ?? rows.value.length;
   } catch (e) {
     message.error("加载题目失败: " + (e instanceof Error ? e.message : String(e)));
@@ -1495,8 +1495,10 @@ onMounted(() => {
 
 <style scoped>
 .page-container {
-  height: 100%;
-  overflow: auto;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   background: var(--el-bg-color-page);
 }
 
@@ -1516,15 +1518,13 @@ onMounted(() => {
   color: var(--el-text-color-secondary);
 }
 
-/* ---------- 上区：页头 + 右侧悬浮正方形统计卡 ---------- */
+/* ---------- 上区：页头 + 横向统计卡 ---------- */
 .top-zone {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: -74px;
-  position: relative;
-  z-index: 2;
+  gap: 18px;
+  flex-wrap: wrap;
 }
 
 .page-header {
@@ -1532,110 +1532,77 @@ onMounted(() => {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 0;
-  padding-top: 4px;
   min-width: 0;
   flex: 1;
 }
 .page-header__title {
   margin: 0;
-  font-size: 26px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 900;
   color: var(--el-text-color-primary);
-  line-height: 1.25;
+  letter-spacing: 1px;
 }
 .page-header__sub {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   font-size: 13px;
-  color: var(--el-text-color-placeholder);
+  color: var(--el-text-color-secondary);
 }
 
-/* ---------- 统计：右侧并排正方形悬浮卡 ---------- */
+/* ---------- 统计：横向卡片 ---------- */
 .stats-row {
   display: flex;
-  flex-shrink: 0;
-  gap: 14px;
-  margin-bottom: 0;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 .stat-card {
-  width: 148px;
-  height: 148px;
-  background: var(--el-bg-color);
-  border-radius: var(--el-radius-xl, 16px);
-  padding: 16px;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-  /* koi 卡片不加投影：已有一条边框承载边界，边界色再提浅一档（-light → -lighter） */
+  align-items: center;
+  gap: 14px;
+  min-width: 170px;
+  padding: 12px 16px;
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  transition:
-    transform var(--el-transition-duration-fast, 0.2s) ease,
-    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
-}
-.stat-card:hover {
-  transform: translateY(-2px);
-  /* 浮起反馈是 koi 唯一允许的卡片投影 */
-  box-shadow: 0 12px 28px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
 }
 .stat-card__body {
   min-width: 0;
-  width: 100%;
 }
 .stat-card__title {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--el-text-color-secondary);
-  margin-bottom: 6px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .stat-card__value {
-  font-size: 30px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 900;
   color: var(--el-text-color-primary);
-  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
 .stat-card__hint {
-  margin-top: 4px;
   font-size: 11px;
   color: var(--el-text-color-placeholder);
-  line-height: 1.35;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .stat-card__icon {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: var(--el-radius-lg, 12px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--el-color-white);
+  color: var(--el-color-primary);
   flex-shrink: 0;
-  align-self: flex-end;
 }
 
-/* ---------- 筛选（被统计卡下半压住） ---------- */
+/* ---------- 筛选 ---------- */
 .filter-card {
-  /* 原 14px，最近档 12px（lg） */
   border-radius: var(--el-radius-lg, 12px);
-  margin-bottom: 14px;
-  border: 0;
-  position: relative;
-  z-index: 1;
-}
-.filter-card :deep(.el-card__body) {
-  padding: 92px 20px 18px;
 }
 .filter-grid {
   display: grid;
-  grid-template-columns: minmax(200px, 1.6fr) repeat(3, minmax(130px, 1fr)) minmax(120px, 0.9fr) minmax(120px, 0.9fr) auto;
-  gap: 14px;
-  align-items: center;
+  grid-template-columns: repeat(6, minmax(0, 1fr)) auto;
+  gap: 12px 16px;
+  align-items: end;
 }
 .filter-field {
   display: flex;
@@ -1648,35 +1615,29 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
 }
-.filter-field__label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  white-space: nowrap;
+.filter-field--inline .filter-field__label {
+  margin-bottom: 0;
   flex-shrink: 0;
+}
+.filter-field__label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 6px;
+  white-space: nowrap;
 }
 .filter-actions {
   display: flex;
-  gap: 10px;
-  align-items: center;
-}
-.filter-actions .el-button {
-  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
-  border-radius: var(--el-radius-lg, 12px);
-  min-width: 88px;
-  font-weight: 600;
+  gap: 8px;
 }
 
 /* ---------- 表格卡 ---------- */
 .table-card {
-  /* 原 14px，最近档 12px（lg） */
   border-radius: var(--el-radius-lg, 12px);
-  border: 0;
-  position: relative;
-  z-index: 1;
 }
 .table-card :deep(.el-card__body) {
-  padding: 16px 20px 18px;
+  padding: 20px;
 }
 
 .table-toolbar {
@@ -1741,18 +1702,14 @@ onMounted(() => {
 }
 
 .table-wrap {
-  /* 固定容器高度（同汉字库）：消除滚动条液面高度随滚动反复重算的抖动。
-     579 = 本页实测值：wrap.top 503 + 分页条与其间距 50 + 卡片 body 底部内边距 18
-     + 余量 8；表格 + 分页正好落在 page-container 可视区（底 892）内，
-     不再纵向滚动（消掉残留的 18px 小滚动条）。
-     min-height 由 440 收到 300：579 下 900 视口只剩 321，440/320 的下限都会把
-     固定高度顶破、页面重新出现纵向滚动。contain: layout size 让 ReTable 走 height:100%。 */
-  height: calc(100vh - 579px);
+  /* 固定容器高度（同三库）：消除滚动条液面高度随滚动反复重算的抖动。
+     377 = 预估档：Question 结构含工具栏 + 外部分页，具体由实测校准。
+     min-height 取 300：更小视口下改走页面滚动，不把固定高度顶破。
+     contain: layout size 让 ReTable 走 height:100%。 */
+  height: calc(100vh - 377px);
   min-height: 300px;
   contain: layout size;
   overflow: hidden;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-lg, 12px);
 }
 
 .question-table {
@@ -1779,6 +1736,8 @@ onMounted(() => {
 
 /* ---------- 卡片视图 ---------- */
 .q-card-grid {
+  height: 100%;
+  overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 14px;
@@ -2394,27 +2353,15 @@ onMounted(() => {
 
 @media (max-width: 1200px) {
   .filter-grid {
-    grid-template-columns: repeat(3, minmax(140px, 1fr));
-  }
-  .stat-card {
-    width: 128px;
-    height: 128px;
-  }
-  .stat-card__value {
-    font-size: 24px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 /* ============ 无障碍：尊重系统「减少动态效果」偏好 ============ */
 @media (prefers-reduced-motion: reduce) {
-  .stat-card,
   .q-card,
   .answer-chip {
     transition: none;
-  }
-  /* 位移也是动效：关掉后 :hover 只剩边框/颜色/投影反馈 */
-  .stat-card:hover {
-    transform: none;
   }
 }
 </style>

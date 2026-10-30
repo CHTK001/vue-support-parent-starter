@@ -141,15 +141,14 @@
             class="cm-card"
             @contextmenu.prevent="openMenuAt($event, c)"
           >
-            <div class="cm-card-top" @dblclick="openEditor(c)">
+            <button type="button" class="cm-card-more" title="右键更多操作" @click.stop="openMenuAt($event, c)">
+              <el-icon :size="14"><MoreFilled /></el-icon>
+            </button>
+            <div class="cm-card-top" @click="openEditor(c)">
               <span class="cm-card-icon" v-html="collabIcon(c)" />
             </div>
-            <div class="cm-card-name" :title="c.fileName" @dblclick="openEditor(c)">{{ c.fileName }}</div>
+            <div class="cm-card-name" :title="c.fileName" @click="openEditor(c)">{{ c.fileName }}</div>
             <div class="cm-card-sub">{{ formatSize(c.size) }}</div>
-            <div class="cm-card-actions">
-              <el-button size="small" text type="primary" @click.stop="openEditor(c)">打开</el-button>
-              <el-button size="small" text @click.stop="openHistory(c)">历史</el-button>
-            </div>
           </div>
         </div>
       </div>
@@ -164,7 +163,9 @@
         :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }"
         @contextmenu.prevent
       >
-        <div class="cm-ctx-item" @click="menuAction('open')"><el-icon><View /></el-icon>打开</div>
+        <div class="cm-ctx-item" @click="menuAction('open')"><el-icon><View /></el-icon>打开（全屏编辑）</div>
+        <div class="cm-ctx-item" @click="menuAction('preview')"><el-icon><View /></el-icon>打开（弹框预览）</div>
+        <div class="cm-ctx-sep" />
         <div class="cm-ctx-item" @click="menuAction('rename')"><el-icon><EditPen /></el-icon>重命名</div>
         <div class="cm-ctx-item" @click="menuAction('copy')"><el-icon><CopyDocument /></el-icon>复制</div>
         <div class="cm-ctx-item" @click="menuAction('download')"><el-icon><Download /></el-icon>下载</div>
@@ -347,6 +348,30 @@
       </div>
     </el-dialog>
 
+    <!-- ===== 轻量预览弹框（word/text 渲染快照，excel 只读渲染） ===== -->
+    <el-dialog v-model="previewVisible" :title="previewCollab?.fileName || '文档预览'" width="720px" append-to-body>
+      <div v-loading="previewLoading" class="cm-preview">
+        <template v-if="previewCollab">
+          <div v-if="previewCollab.type === 'excel'" class="cm-preview-excel">
+            <FileCollabEditor
+              :collab-id="previewCollab.id"
+              :file-name="previewCollab.fileName"
+              readonly
+              :initial-snapshot="previewSnapshot"
+              :initial-version="previewVersion"
+            />
+          </div>
+          <div v-else-if="previewCollab.type === 'word'" class="cm-preview-html" v-html="previewSnapshot || '<p>（空文档）</p>'" />
+          <pre v-else class="cm-preview-text">{{ previewSnapshot || "（空文档）" }}</pre>
+        </template>
+        <div v-else class="cm-preview-empty">暂无可预览内容</div>
+      </div>
+      <template #footer>
+        <el-button @click="previewVisible = false">关闭</el-button>
+        <el-button type="primary" @click="previewFullscreen">全屏编辑</el-button>
+      </template>
+    </el-dialog>
+
     <!-- ===== 全屏专注编辑（非弹框）+ ReLoader 防白屏 ===== -->
     <div v-if="focusVisible" class="cm-focus" role="dialog" aria-modal="true" aria-label="协同专注编辑">
       <ReLoader :loading="opening" :text="openingText" fullscreen>
@@ -397,7 +422,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { ElMessageBox } from "element-plus";
 import {
   ArrowDown, ArrowLeft, Clock, CopyDocument, Delete, Download, EditPen, Link,
-  Lock, Plus, Refresh, Search, Upload, UploadFilled, View,
+  Lock, MoreFilled, Plus, Refresh, Search, Upload, UploadFilled, View,
 } from "@element-plus/icons-vue";
 import { message } from "@repo/core";
 import ReLoader from "@repo/ui/re-loader";
@@ -405,6 +430,7 @@ import FileCollabEditor from "../components/collab/FileCollabEditor.vue";
 import WordCollabEditor from "../components/collab/WordCollabEditor.vue";
 import TextCollabEditor from "../components/collab/TextCollabEditor.vue";
 import { fileSvg } from "../utils/fileKind";
+import { docxFileName, htmlToDocxBlob } from "../utils/collabDocx";
 import {
   createFileCollab,
   deleteFileCollab,
@@ -847,6 +873,7 @@ async function menuAction(action: string): Promise<void> {
   if (!c) return;
   switch (action) {
     case "open": await openEditor(c); break;
+    case "preview": await openPreview(c); break;
     case "rename": openRename(c); break;
     case "copy": await onCopy(c); break;
     case "download": onDownload(c); break;
@@ -900,7 +927,7 @@ async function onCopy(c: FileCollabInfo): Promise<void> {
 
 /* ==================== 下载 ==================== */
 
-/** 下载当前快照：excel 导出 xlsx（SheetJS），word 导出 html，text 导出 txt */
+/** 下载当前快照：excel 导出 xlsx（SheetJS），word 导出真 docx，text 导出 txt */
 async function onDownload(c: FileCollabInfo): Promise<void> {
   try {
     let target = c;
@@ -937,8 +964,14 @@ async function onDownload(c: FileCollabInfo): Promise<void> {
       blob = new Blob([out]);
       ext = ".xlsx";
     } else if (target.type === "word") {
-      blob = new Blob([snapshot], { type: "text/html;charset=utf-8" });
-      ext = ".html";
+      // 真 .docx 导出：HTML 快照 → 最小 OOXML（jszip 手写，见 utils/collabDocx.ts）
+      const wordBlob = await htmlToDocxBlob(snapshot);
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(wordBlob);
+      a.download = docxFileName(target.fileName);
+      a.click();
+      URL.revokeObjectURL(a.href);
+      return;
     } else {
       blob = new Blob([snapshot], { type: "text/plain;charset=utf-8" });
       ext = ".txt";
@@ -1048,6 +1081,41 @@ async function onDelete(c: FileCollabInfo): Promise<void> {
   } catch (e) {
     message.error(e instanceof Error ? e.message : "删除协同失败");
   }
+}
+
+/* ==================== 轻量弹框预览（右键「打开（弹框预览）」） ==================== */
+
+const previewVisible = ref(false);
+const previewLoading = ref(false);
+const previewCollab = ref<FileCollabInfo | null>(null);
+const previewSnapshot = ref("");
+const previewVersion = ref(0);
+
+/** 弹框预览：word/text 只读渲染快照，excel 用 FileCollabEditor 只读渲染 */
+async function openPreview(c: FileCollabInfo): Promise<void> {
+  previewCollab.value = c;
+  previewSnapshot.value = c.snapshot ?? "";
+  previewVersion.value = c.version ?? 0;
+  previewVisible.value = true;
+  previewLoading.value = true;
+  try {
+    const detail = await getFileCollab(c.id);
+    if (detail.snapshot) {
+      previewSnapshot.value = detail.snapshot;
+      previewVersion.value = detail.version ?? 0;
+    }
+  } catch {
+    // 详情拉取失败时退回列表快照，不阻断预览
+  } finally {
+    previewLoading.value = false;
+  }
+}
+
+/** 弹框右下角「全屏编辑」：关闭弹框，转为全屏专注编辑 */
+async function previewFullscreen(): Promise<void> {
+  const c = previewCollab.value;
+  previewVisible.value = false;
+  if (c) await openEditor(c);
 }
 
 /* ==================== 专注编辑（非弹框）+ ReLoader 防白屏 ==================== */
@@ -1303,9 +1371,12 @@ onBeforeUnmount(() => {
   padding: 4px;
 }
 .cm-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  min-height: 124px;
   padding: 16px 10px 10px;
   border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
   border-radius: 16px;
@@ -1316,6 +1387,33 @@ onBeforeUnmount(() => {
   border-color: var(--brand-400, var(--el-color-primary-light-5, #79bbff));
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   transform: translateY(-1px);
+}
+.cm-card-more {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 50%;
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+  background: transparent;
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.92);
+  transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease;
+}
+.cm-card:hover .cm-card-more,
+.cm-card-more:focus-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+.cm-card-more:hover {
+  background: var(--brand-50, var(--el-fill-color-light, #f5f7fa));
+  color: var(--brand-600, var(--el-color-primary, #409eff));
 }
 .cm-card-top {
   display: flex;
@@ -1348,12 +1446,6 @@ onBeforeUnmount(() => {
   font-size: 12px;
   color: var(--text-secondary, var(--el-text-color-secondary, #909399));
   margin-top: 2px;
-}
-.cm-card-actions {
-  display: flex;
-  justify-content: center;
-  gap: 4px;
-  margin-top: 6px;
 }
 
 /* 右键菜单 */
@@ -1475,6 +1567,61 @@ onBeforeUnmount(() => {
 .cm-share-dim { font-size: 12px; color: var(--text-secondary, var(--el-text-color-secondary, #909399)); }
 .cm-share-actions { display: flex; justify-content: flex-end; }
 
+/* 轻量预览弹框 */
+.cm-preview {
+  min-height: 420px;
+  max-height: 64vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.cm-preview-excel {
+  flex: 1;
+  min-height: 420px;
+  display: flex;
+}
+.cm-preview-excel > * {
+  flex: 1;
+  min-width: 0;
+}
+.cm-preview-html {
+  flex: 1;
+  min-height: 420px;
+  overflow-y: auto;
+  padding: 16px 20px;
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
+  border-radius: 8px;
+  background: #fff;
+  line-height: 1.7;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+}
+.cm-preview-html h1, .cm-preview-html h2 { margin: 0.4em 0; }
+.cm-preview-html p { margin: 0.3em 0; }
+.cm-preview-text {
+  flex: 1;
+  min-height: 420px;
+  margin: 0;
+  overflow-y: auto;
+  padding: 16px 20px;
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
+  border-radius: 8px;
+  background: #fff;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-mono, "JetBrains Mono", Consolas, monospace);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.cm-preview-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary, var(--el-text-color-placeholder, #c0c4cc));
+  font-size: 13px;
+  min-height: 420px;
+}
+
 /* ===== 全屏专注编辑 ===== */
 .cm-focus {
   position: fixed;
@@ -1484,6 +1631,11 @@ onBeforeUnmount(() => {
   flex-direction: column;
   background: var(--el-bg-color-page, #f5f7fa);
   padding: 14px 18px 18px;
+  animation: cm-focus-in 0.22s ease;
+}
+@keyframes cm-focus-in {
+  from { opacity: 0; transform: scale(0.985); }
+  to { opacity: 1; transform: scale(1); }
 }
 .cm-focus-bar {
   display: flex;

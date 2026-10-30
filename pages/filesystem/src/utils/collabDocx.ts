@@ -15,8 +15,6 @@
  * 「打开/查看/再编辑」的主流场景。
  */
 
-import JSZip from "jszip";
-
 /** OOXML 包契约：/word/document.xml 为主体部件 */
 const CONTENT_TYPES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
@@ -193,6 +191,8 @@ function collectBlocks(root: ParentNode, out: string[]): void {
 
 /** 渲染 HTML（可能含纯文本旧快照）→ 真正的 .docx Blob（Word/WPS 可打开） */
 export async function htmlToDocxBlob(html: string): Promise<Blob> {
+  const mod = await import("jszip");
+  const JSZip = mod.default as unknown as typeof import("jszip");
   const parsed = new DOMParser().parseFromString(html || "<p></p>", "text/html");
   const blocks: string[] = [];
   collectBlocks(parsed.body, blocks);

@@ -36,6 +36,18 @@ export const tplStatusTagTypes: Record<string, string> = {
   offline: 'warning'
 }
 
+/** 模板来源 */
+export const tplSourceLabels: Record<string, string> = {
+  hiprint: '绘制',
+  message: '消息',
+  paper: '组卷'
+}
+
+/** 模板来源显示文本 */
+export function sourceLabel(source: string): string {
+  return tplSourceLabels[source] ?? source
+}
+
 /** 模板状态显示文本 */
 export function statusLabel(status: string): string {
   return tplStatusLabels[status] ?? status

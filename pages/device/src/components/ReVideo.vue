@@ -38,9 +38,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { VideoCamera } from '@element-plus/icons-vue'
-import Hls from 'hls.js'
-// @ts-ignore flv.js 无 d.ts
-import flvjs from 'flv.js'
+import type HlsType from 'hls.js'
 import { planStream, type StreamPlan } from '../utils/streamProtocol'
 import { ElementaryStreamPlayer } from '../utils/elementaryPlayer'
 import { playWasmVideo } from '../utils/wasmVideoPlayer'
@@ -73,7 +71,7 @@ const loading = ref(false)
 /** 当前是否走裸流（WebCodecs → canvas）通道 */
 const rawMode = ref(false)
 
-let hls: Hls | null = null
+let hls: HlsType | null = null
 // @ts-ignore flv.js 无 d.ts
 let flvPlayer: any = null
 let rawPlayer: ElementaryStreamPlayer | null = null
@@ -122,10 +120,18 @@ function destroy() {
   }
 }
 
-function playHls(url: string) {
+/**
+ * 播放 HLS。
+ *
+ * <p>hls.js 有 3MB 出头（dev 预构建后更大），只有真的开了 HLS 流才用得到，
+ * 因此在函数内部按需 import：设备列表页只是挂着 <code>ReVideo</code>，
+ * 不该为了一个没开始的播放背这份包。</p>
+ */
+async function playHls(url: string) {
   const v = videoRef.value
   if (!v) return
   destroy()
+  const { default: Hls } = await import('hls.js')
   if (Hls.isSupported()) {
     hls = new Hls({ enableWorker: true, lowLatencyMode: true })
     hls.loadSource(url)
@@ -150,8 +156,11 @@ function playHls(url: string) {
   }
 }
 
-function playFlv(url: string) {
+/** FLV 同理：flv.js 只在真正播 FLV 时才加载 */
+async function playFlv(url: string) {
   const v = videoRef.value
+  // @ts-ignore flv.js
+  const { default: flvjs } = await import('flv.js')
   // @ts-ignore flv.js
   if (!v || !flvjs.isSupported()) {
     error.value = '当前浏览器不支持 FLV 播放'
@@ -298,9 +307,9 @@ function load() {
   try {
     const plan = planStream(props.url, props.protocol, { gateway: props.gateway })
     if (plan.strategy === 'hls') {
-      playHls(plan.url)
+      void playHls(plan.url)
     } else if (plan.strategy === 'flv') {
-      playFlv(plan.url)
+      void playFlv(plan.url)
     } else if (plan.strategy === 'native') {
       playNative(plan.url)
     } else if (plan.strategy === 'raw-h264' || plan.strategy === 'raw-h265') {

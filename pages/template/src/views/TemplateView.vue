@@ -84,6 +84,11 @@
         <span class="tpl-cell">{{ typeLabel(row.type) }}</span>
       </template>
 
+      <!-- 右：来源 -->
+      <template #source="{ row }: { row: TemplateInfo }">
+        <span class="tpl-cell">{{ sourceLabel(row.source) }}</span>
+      </template>
+
       <!-- 状态列：仅占位（右键/双击除设计外操作） -->
       <template #status="{ row }: { row: TemplateInfo }">
         <el-tag :type="statusMeta(row.status).type" size="small" effect="plain">
@@ -180,6 +185,7 @@ const selectedRows = ref<TemplateInfo[]>([])
 /** 查询参数 = ReTable params（分页 + 内置搜索区） */
 const query = reactive<Record<string, any>>({
   keyword: '',
+  source: '',
   page: 1,
   pageSize: 20
 })
@@ -197,7 +203,8 @@ const form = ref<Partial<TemplateInfo>>({})
 const columns: ReTableColumn[] = [
   { prop: 'name', label: '模板', slot: 'name', minWidth: 260 },
   { prop: 'language', label: '语言', slot: 'language', width: 150 },
-  { prop: 'type', label: '类型', slot: 'type', width: 150 },
+  { prop: 'type', label: '类型', slot: 'type', width: 130 },
+  { prop: 'source', label: '来源', slot: 'source', width: 110 },
   { prop: 'status', label: '状态', slot: 'status', width: 120 }
 ]
 

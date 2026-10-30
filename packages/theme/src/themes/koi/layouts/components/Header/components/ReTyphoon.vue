@@ -288,8 +288,20 @@ const ReIcon = defineAsyncComponent(() => import("@repo/ui/re-icon").then((m) =>
 const ReTag = defineAsyncComponent(() => import("@repo/ui/re-tag").then((m) => m.default));
 const ReButton = defineAsyncComponent(() => import("@repo/ui/re-button").then((m) => m.default));
 const ReTable = defineAsyncComponent(() => import("@repo/ui/re-table").then((m) => m.default));
-import ReMap from "@repo/re-map";
-import { MapType, MapTile, ShapeType, genAsymRing4, scaleRing } from "@repo/re-map";
+/**
+ * 台风地图改为异步组件。
+ *
+ * <p>`@repo/re-map` 的 barrel 直接 `import "./index.vue"`，一引就是
+ * leaflet + openlayers + turf + echarts + three 一整套（dev 4MB 起），
+ * 而台风面板只是**顶栏的一个弹层**，绝大多数会话里根本不会打开。
+ * 之前同步 import，等于每次进首页都替它把这些包拉一遍。</p>
+ *
+ * <p>枚举与几何工具改为从各自的子模块取：`types` / `utils/typhoonRing`
+ * 都是纯 JS，不拖 index.vue。这两个路径没有 `exports` 限制（该包未声明 exports 字段）。</p>
+ */
+const ReMap = defineAsyncComponent(() => import("@repo/re-map").then((m) => m.default));
+import { MapType, MapTile, ShapeType } from "@repo/re-map/types";
+import { genAsymRing4, scaleRing } from "@repo/re-map/utils/typhoonRing";
 import { log } from "@repo/utils";
 import {
   getActiveTyphoonList,

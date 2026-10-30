@@ -290,3 +290,117 @@
     animation: none;
   }
 }
+
+/* ==================== 节点右键菜单（全局） ====================
+   菜单被 Teleport 到 body，scoped 样式管不到，所以放这里用全局类。
+   参考 AssetsView 的 host-ctx-* 规格：背板 z 4000，菜单 z 4001，
+   压在 ReTabs 页签右键菜单（z 3000）之上。 */
+
+.sv-ctx-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  background: transparent;
+}
+
+.sv-ctx-menu {
+  position: fixed;
+  z-index: 4001;
+  min-width: 188px;
+  padding: 5px;
+  background: var(--el-bg-color-overlay, #fff);
+  border: 1px solid var(--el-border-color-lighter, #e6e8eb);
+  border-radius: var(--el-radius-lg, 12px);
+  box-shadow: var(--el-box-shadow-light, 0 8px 24px rgba(15, 23, 42, 0.16));
+}
+
+.sv-ctx-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 32px;
+  padding: 0 9px;
+  font-size: 13px;
+  color: var(--el-text-color-regular, #4b5563);
+  border-radius: var(--el-radius-md, 8px);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.sv-ctx-item .re-icon,
+.sv-ctx-item svg {
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.sv-ctx-item:hover {
+  background: var(--el-fill-color-light, #f3f4f6);
+  color: var(--el-color-primary, #2563eb);
+}
+
+.sv-ctx-item.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.sv-ctx-item.is-disabled:hover {
+  background: transparent;
+  color: var(--el-text-color-regular, #4b5563);
+}
+
+/* 危险项：删除节点这类不可逆操作，红色常显，悬停加深 */
+.sv-ctx-item.is-danger {
+  color: var(--el-color-danger, #dc2626);
+}
+
+.sv-ctx-item.is-danger:hover {
+  background: var(--el-color-danger-light-9, #fef2f2);
+  color: var(--el-color-danger, #dc2626);
+}
+
+.sv-ctx-sep {
+  height: 1px;
+  margin: 5px 7px;
+  background: var(--el-border-color-lighter, #eceef1);
+}
+
+/* 菜单头：被右键的那个节点是谁。节点名可能很长，截断到菜单宽度，
+   title 提示保持完整文本 */
+.sv-ctx-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 9px 8px;
+  border-bottom: 1px solid var(--el-border-color-lighter, #eceef1);
+  margin-bottom: 5px;
+}
+
+.sv-ctx-head b {
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sv-ctx-head span {
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 分区小标题：复制这类只有两项的小组，不单独开一级菜单 */
+.sv-ctx-label {
+  padding: 4px 9px 2px;
+  font-size: 10.5px;
+  color: var(--el-text-color-placeholder, #9ca3af);
+}
+
+/* 键盘可达性 */
+.sv-ctx-item:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: -2px;
+}

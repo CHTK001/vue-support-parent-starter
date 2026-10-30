@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeAll } from "vitest";
 import { mount } from "@vue/test-utils";
 import { createApp, nextTick } from "vue";
+import type { Component } from "vue";
 import elementPlus from "element-plus";
 import { installUi } from "@repo/ui";
 import Minimal from "./fixtures/reDialogMinimal.vue";
@@ -17,12 +18,12 @@ const RE_COMPONENTS = [
   "ReKit",
 ];
 
-let globalComponents: Record<string, unknown> = {};
+let globalComponents: Record<string, Component> = {};
 
 beforeAll(async () => {
   const app = createApp({ template: "<div/>" });
   await installUi(app, { components: [...RE_COMPONENTS] });
-  globalComponents = Object.fromEntries(RE_COMPONENTS.map(name => [name, app.component(name)]));
+  globalComponents = Object.fromEntries(RE_COMPONENTS.map(name => [name, app.component(name)])) as Record<string, Component>;
 });
 
 async function openDialog(wrapper: ReturnType<typeof mount<any>>): Promise<void> {

@@ -8,7 +8,7 @@
   <ReDrawer
     :model-value="modelValue"
     title="数据包详情"
-    size="55%"
+    size="100%"
     footer-hidden
     @update:model-value="onOpenChange"
   >

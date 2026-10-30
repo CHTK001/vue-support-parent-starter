@@ -589,8 +589,15 @@ export const getTsharkPackets = (sessionId: number, page = 1, size = 20, keyword
     (keyword ? `&keyword=${encodeURIComponent(keyword)}` : '')).then(r => unwrap<any>(r));
 /** 原始 pcap 下载地址：页面上的摘要只是 tshark 的解析结果，要深挖得拿原件去 Wireshark 打开 */
 export const tsharkPcapUrl = (sessionId: number) => `${B}/tshark/sessions/${sessionId}/pcap`;
-export const getTsharkPacketDetail = (id: number) =>
-  http().get(`${B}/tshark/packets/${id}`).then(r => unwrap<any>(r));
+/**
+ * 报文详情（含协议还原 / 原始数据两大字段）。
+ *
+ * <p>报文改存 SQLite 后按会话分库，路由也改为会话级
+ * `/tshark/sessions/{sessionId}/packets/{id}`。列表接口已把大字段排除
+ * （每页几十条的列表不背几十 KB 的十六进制串），只有打开详情才按需取。</p>
+ */
+export const getTsharkPacketDetail = (sessionId: number, id: number) =>
+  http().get(`${B}/tshark/sessions/${sessionId}/packets/${id}`).then(r => unwrap<any>(r));
 
 /**
  * 某报文所属 TCP 流的握手 / 关闭生命周期。
@@ -602,9 +609,12 @@ export const getTsharkPacketDetail = (id: number) =>
  *
  * <p>404 表示协议不跑在 TCP 上（UDP / ICMP / ARP）：http 层对非 2xx 先行 reject，
  * 这里不会执行 unwrap，调用方按「不支持」提示。</p>
+ *
+ * <p>报文改存 SQLite 后按会话分库，路由为会话级
+ * `/tshark/sessions/{sessionId}/packets/{packetId}/handshake`。</p>
  */
-export const getTsharkHandshake = (packetId: number) =>
-  http().get(`${B}/tshark/packets/${packetId}/handshake`).then(r => unwrap<any>(r));
+export const getTsharkHandshake = (sessionId: number, packetId: number) =>
+  http().get(`${B}/tshark/sessions/${sessionId}/packets/${packetId}/handshake`).then(r => unwrap<any>(r));
 
 /**
  * 抓包会话的报文实时流（SSE）。

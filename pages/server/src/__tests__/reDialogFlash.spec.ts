@@ -14,7 +14,7 @@
  */
 import { describe, expect, it, beforeAll, vi } from "vitest";
 import { mount } from "@vue/test-utils";
-import { createApp, nextTick, ref } from "vue";
+import { createApp, nextTick, ref, type Component } from "vue";
 import elementPlus from "element-plus";
 import { installUi } from "@repo/ui";
 
@@ -38,7 +38,7 @@ vi.mock("../api", () => ({
 }));
 
 vi.mock("@repo/core", async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = await importOriginal() as Record<string, unknown>;
   return {
     ...actual,
     message: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
@@ -62,12 +62,12 @@ const RE_COMPONENTS = [
   "ReKit",
 ];
 
-let globalComponents: Record<string, unknown> = {};
+let globalComponents: Record<string, Component> = {};
 
 beforeAll(async () => {
   const app = createApp({ template: "<div/>" });
   await installUi(app, { components: [...RE_COMPONENTS] });
-  globalComponents = Object.fromEntries(RE_COMPONENTS.map(name => [name, app.component(name)]));
+  globalComponents = Object.fromEntries(RE_COMPONENTS.map(name => [name, app.component(name)])) as Record<string, Component>;
 });
 
 /** 打开弹窗并等骨架落进(body Teleport) */
