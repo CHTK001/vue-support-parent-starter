@@ -277,7 +277,7 @@ const columns: ReTableColumn[] = [
   { prop: "loginType", label: "登录方式", width: 100, slot: "loginType" },
   { prop: "loginTime", label: "登录时间", width: 165 },
   { prop: "lastAccessTime", label: "最后访问", width: 165 },
-  { prop: "loginDays", label: "近 30 天登录", width: 200, slot: "days" },
+  { prop: "loginDays", label: "近 30 天登录", width: 232, slot: "days" },
   { prop: "action", label: "操作", width: 120, slot: "action", fixed: "right", align: "center" },
 ];
 </script>
@@ -620,26 +620,26 @@ const columns: ReTableColumn[] = [
   width: 4px;
   height: 16px;
   border-radius: 1px;
-  background: var(--el-fill-color);
+  background: var(--el-fill-color-dark);
   transition: transform 0.12s;
 }
 .online-days__strip:hover .online-days__cell {
   transform: scaleY(1.08);
 }
 .online-days__cell.is-lv1 {
-  background: color-mix(in srgb, var(--el-color-success) 30%, var(--el-fill-color));
+  background: color-mix(in srgb, var(--el-color-success) 30%, var(--el-fill-color-dark));
 }
 .online-days__cell.is-lv2 {
-  background: color-mix(in srgb, var(--el-color-success) 55%, var(--el-fill-color));
+  background: color-mix(in srgb, var(--el-color-success) 55%, var(--el-fill-color-dark));
 }
 .online-days__cell.is-lv3 {
-  background: color-mix(in srgb, var(--el-color-success) 80%, var(--el-fill-color));
+  background: color-mix(in srgb, var(--el-color-success) 80%, var(--el-fill-color-dark));
 }
 .online-days__cell.is-lv4 {
   background: var(--el-color-success);
 }
 .online-days__cell.is-mixed {
-  background: color-mix(in srgb, var(--el-color-warning) 70%, var(--el-fill-color));
+  background: color-mix(in srgb, var(--el-color-warning) 70%, var(--el-fill-color-dark));
 }
 .online-days__cell.is-danger {
   background: var(--el-color-danger);

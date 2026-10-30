@@ -951,8 +951,8 @@ async function runIdentify() {
   identifying.value = true
   try {
     const blob = await (await fetch(previewUrl.value)).blob()
-    // 单分组检索：UI 一次只看一组，多分组（["a","b"]）是 API 侧能力
-    const res = await apiService.identifyFace(blob, 'query.png', [group.value])
+    // 多选检索范围：后端收逗号分隔，这边直接把选中的分组集合扔过去
+    const res = await apiService.identifyFace(blob, 'query.png', groups.value)
     matches.value = res.hits ?? []
     void loadServerMeta()
     pickedId.value = matches.value.length ? String(matches.value[0].id) : ''
@@ -987,7 +987,7 @@ async function recognizeCrop() {
     const bin = atob(hit.faceImage)
     const buf = new Uint8Array(bin.length)
     for (let i = 0; i < bin.length; i += 1) buf[i] = bin.charCodeAt(i)
-    const res = await apiService.identifyFace(new Blob([buf], { type: 'image/jpeg' }), 'crop.jpg', [group.value])
+    const res = await apiService.identifyFace(new Blob([buf], { type: 'image/jpeg' }), 'crop.jpg', groups.value)
     matches.value = res.hits ?? []
     void loadServerMeta()
     pickedId.value = matches.value.length ? String(matches.value[0].id) : ''

@@ -13,10 +13,12 @@
             <el-icon class="reid-group-icon"><Collection /></el-icon>
             <span class="reid-group-label">分组</span>
             <el-select
-              v-model="group"
+              v-model="groups"
               class="reid-group-select"
               placeholder="选择或输入分组"
               filterable
+              multiple
+              collapse-tags
               allow-create
               default-first-option
               :disabled="busy"
@@ -212,7 +214,7 @@
           {{ mode === 'observe' ? '切换到以图搜人' : '切换到观测画面' }}
         </el-button>
         <p class="reid-panel-hint">
-          分组 <b>{{ group }}</b> · 共 <b>{{ tracks.length }}</b> 条轨迹
+          已选分组 <b>{{ groupTags }}</b>（检索范围） · 共 <b>{{ tracks.length }}</b> 条轨迹
           <span v-if="crossCount"> · 其中跨镜 <b>{{ crossCount }}</b> 条</span>
         </p>
 
@@ -253,8 +255,9 @@ import { message } from "@repo/core";
 import { useRouter } from "vue-router";
 import { Aim, Collection, FolderOpened, Picture, Search, Setting, User, Warning } from "@element-plus/icons-vue";
 import ReLoader from "@repo/ui/re-loader";
+import { ElMessageBox } from "element-plus";
 import { apiService } from "@/services/ApiService";
-import { useLibraryGroups } from "@/composables/useLibraryGroups";
+import { DEFAULT_GROUP, useLibraryGroups } from "@/composables/useLibraryGroups";
 import type { ReidFaceBox, ReidHit, ReidObserveResult, ReidTrack } from "@/services/modules/reid.api";
 
 /**
@@ -315,7 +318,13 @@ const tracks = ref<ReidTrack[]>([]);
  * <p>分组是第一层隔离：观测落库、轨迹列表、检索范围、清空都只作用于它。
  * 默认 default 与后端「不带分组」的语义一致（历史数据也归属 default）。</p>
  */
-const { group, groupOptions, loadGroups, rememberGroups } = useLibraryGroups("reid");
+const { group, groups, groupOptions, loadGroups, rememberGroups, setGroups, joinGroups } = useLibraryGroups("reid");
+
+/** 当前检索范围（多选分组）的展示名 */
+const groupTags = computed(() => {
+  const list = groups.value.filter((g) => String(g ?? '').trim() !== '');
+  return list.length ? list : [DEFAULT_GROUP];
+});
 
 /** 摄像头 / 来源帧 / 经纬度。 */
 const cameraId = ref("");
@@ -464,14 +473,21 @@ function switchTab(key: string) {
 }
 
 /**
- * 切换分组。
+ * 切换分组（多选检索范围）。
  *
- * @param name 新分组名（allow-create 时是用户手输的新名字）
+ * <p>多选选择器把完整的组名列表写入 {@link groups} 并调用 {@link setGroups}
+ * （让 {@link group} 与第一组分选同步），这里只做副作用：手输的新分组进选项，
+ * 换组 = 换了一整套轨迹库，把上一组的观测结果与命中留在屏幕上会与卡片自相矛盾，
+ * 所以清空。</p>
+ *
+ * @param selected 选中的分组（多选时为列表，单值时为字符串，不传则沿用当前列表）
  */
-async function onGroupChange(name: string) {
-  // 手输的新分组立刻进选项，否则下次打开下拉又选不到它
-  rememberGroups([name]);
-  // 换组 = 换了一整套轨迹库：上一组的观测结果与命中若留在屏幕上，会与右侧卡片自相矛盾
+async function onGroupChange(selected?: string | string[]) {
+  const current = Array.isArray(selected) ? selected : (typeof selected === 'string' ? [selected] : groups.value);
+  setGroups(current);
+  // 已选组全部进选项（手输的新分组尤其要进，否则下次打开下拉又选不到它）
+  rememberGroups(current);
+  // 换组 = 换了一整套轨迹库
   searchHits.value = [];
   observeResult.value = null;
   faces.value = [];
@@ -524,8 +540,8 @@ async function runSearchFromButton() {
   busy.value = true;
   done.value = true;
   try {
-    // 单分组检索：UI 一次只看一组，多分组（["a","b"]）是 API 侧能力，留给后续批量入口
-    searchHits.value = await apiService.searchReid(lastFile.value, undefined, undefined, [group.value]);
+    // 多选检索范围：后端收逗号分隔，这边直接把选中的分组集合扔过去
+    searchHits.value = await apiService.searchReid(lastFile.value, undefined, undefined, groups.value);
     activeTab.value = "hit";
     if (searchHits.value.length) {
       message.success(`命中 ${searchHits.value.length} 条轨迹`);
@@ -539,10 +555,23 @@ async function runSearchFromButton() {
   }
 }
 
-/** 加载当前分组的轨迹。 */
+/** 加载选定分组的全部轨迹（多分组联合检索时合并） */
 async function loadTracks() {
+  const selected = joinGroups() === ''
+    ? [DEFAULT_GROUP]
+    : groups.value
   try {
-    tracks.value = await apiService.listReidTracks({ group: group.value });
+    // 单组时回到原来的一条路，多选时逐组拉再按 trackId 合并，避免跨组轨迹重复入池
+    const lists = selected.length === 1
+      ? [await apiService.listReidTracks({ group: selected[0] })]
+      : await Promise.all(selected.map((g) => apiService.listReidTracks({ group: g })))
+    const map = new Map<string, ReidTrack>()
+    for (const list of lists) {
+      for (const t of list) {
+        if (!map.has(t.trackId)) map.set(t.trackId, t)
+      }
+    }
+    tracks.value = [...map.values()]
     // 轨迹里带回的分组名一并并进下拉：后端 groups 接口没列到的历史分组（或接口不可用）
     // 也不该在下拉里缺席
     rememberGroups(tracks.value.map((t) => t.group));
@@ -551,17 +580,29 @@ async function loadTracks() {
   }
 }
 
-/** 清空当前分组的轨迹。 */
+/** 清空选定分组的全部轨迹（多选时一组一组清，绝不越界别的组） */
 async function clearTracks() {
+  const selected = joinGroups() === ''
+    ? [DEFAULT_GROUP]
+    : groups.value
+  const label = selected.length === 1
+    ? `所有轨迹`
+    : `选定分组的 ${selected.length} 个轨迹库`
   try {
-    const cleared = await apiService.clearReidTracks(group.value);
-    message.success(`已清空分组「${group.value}」的 ${cleared} 条轨迹`);
+    await ElMessageBox.confirm(`确认要清空${label}吗？此动作不可恢复。`, '清空操作', {
+      confirmButtonText: '清空',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+    const results = await Promise.all(selected.map((g) => apiService.clearReidTracks(g)))
+    const total = results.reduce((n, c) => n + (c ?? 0), 0)
+    message.success(`已清空 ${label} 共 ${total} 条轨迹`)
     searchHits.value = [];
     observeResult.value = null;
     faces.value = [];
     await loadTracks();
-  } catch (e) {
-    message.error(`清空失败：${(e as Error)?.message ?? e}`);
+  } catch {
+    // 用户取消，不做任何事
   }
 }
 

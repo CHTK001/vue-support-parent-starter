@@ -393,6 +393,7 @@ export default defineConfig({
     },
   },
   server: {
+    host: '0.0.0.0',
     port: 15689,
     watch: {
       // agent 写文件时会产生 .agent_infra_tmp_* 临时文件，监听它偶发 EBUSY 会导致 watcher 整体崩溃

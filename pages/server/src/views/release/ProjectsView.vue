@@ -9,13 +9,24 @@
         </div>
       </template>
       <template #actions>
+        <ReButton icon="RefreshLeft" layout="square" tip="重置页面布局" @click="handleResetLayout" />
         <ReButton icon="Refresh" layout="square" tip="刷新列表" :loading="loading" @click="loadList" />
         <ReButton icon="Plus" :show-text="true" type="primary" @click="openCreateDialog">新增项目</ReButton>
       </template>
     </ReSectionHead>
 
-    <!-- 工具条：状态筛选 + 关键字搜索 -->
-    <div class="pj-toolbar">
+    <!-- 可拖拽分栏：上「项目管理」，下「实时日志」；拖完自动存服务端 -->
+    <div class="pj-split-wrap">
+      <ReSplitLayout
+        ref="splitLayoutRef"
+        :default-layout="defaultLayout"
+        :initial-layout="savedLayout"
+        @change="onLayoutChange"
+      >
+        <template #panel="{ activeTab: panelTab }">
+          <div v-if="panelTab.panelType === 'projects'" class="pj-panel">
+            <!-- 工具条：状态筛选 + 关键字搜索 -->
+            <div class="pj-toolbar">
       <div class="pj-filters">
         <button
           v-for="f in statusFilters"
@@ -78,6 +89,8 @@
                     <span v-if="apmLabel(item)" class="pj-chip is-warn">{{ apmLabel(item) }}</span>
                     <span v-if="item.serviceName" class="pj-chip is-info">系统服务</span>
                     <span v-if="item.gitUrl" class="pj-chip is-success">Git 发布</span>
+                    <span v-if="item.scheduleEnabled" class="pj-chip is-warn">定时发布</span>
+                    <span v-if="item.gitPollEnabled" class="pj-chip is-info">Git 轮询</span>
                   </div>
                 </div>
                 <span
@@ -143,6 +156,20 @@
                       @click="openArthasDialog(item)"
                     />
                     <ReButton
+                      v-if="item.javaProcess"
+                      icon="Link"
+                      layout="square"
+                      tip="Swagger 接口文档"
+                      @click="openEndpointDialog(item, 'swagger')"
+                    />
+                    <ReButton
+                      v-if="item.javaProcess"
+                      icon="DataAnalysis"
+                      layout="square"
+                      tip="Actuator 运行指标"
+                      @click="openEndpointDialog(item, 'actuator')"
+                    />
+                    <ReButton
                       v-if="item.gitUrl"
                       icon="GitBranch"
                       layout="square"
@@ -175,6 +202,9 @@
                         <el-dropdown-item v-if="item.enabled !== false && item.gitUrl" command="git-deploy">
                           <ReIcon name="GitBranch" :size="15" class="dd-ic dd-success" />从 Git 更新
                         </el-dropdown-item>
+                        <el-dropdown-item command="copy">
+                          <ReIcon name="CopyDocument" :size="15" class="dd-ic" />复制到其他服务器
+                        </el-dropdown-item>
                         <el-dropdown-item command="toggle">
                           <ReIcon :name="item.enabled === false ? 'Unlock' : 'Lock'" :size="15" class="dd-ic" />{{ item.enabled === false ? '激活' : '禁用' }}
                         </el-dropdown-item>
@@ -199,6 +229,33 @@
           <span>没有匹配的项目，换个关键字或切回「全部」</span>
         </div>
       </template>
+    </div>
+
+          </div>
+
+          <!-- 实时日志面板：多项目多列并排 -->
+          <div v-else class="pj-log-panel">
+            <div v-if="!logSessions.length" class="pj-log-empty">
+              <ReIcon name="Tickets" :size="22" />
+              <div class="pj-log-empty-title">暂无实时日志</div>
+              <div class="pj-log-empty-sub">在项目卡片「更多操作」里点「实时日志」，可同时打开多个项目并排查看</div>
+            </div>
+            <div v-else class="pj-log-cols">
+              <ProjectLogColumn
+                v-for="session in logSessions"
+                :key="session.projectId"
+                v-model:auto-scroll="session.autoScroll"
+                :title="session.projectName"
+                :lines="session.lines"
+                :notice="session.notice"
+                :push-offline="session.pushOffline"
+                @popup="openLogPopup(session)"
+                @close="closeLogSession(session)"
+              />
+            </div>
+          </div>
+        </template>
+      </ReSplitLayout>
     </div>
 
     <!-- 新增/编辑对话框 -->
@@ -344,6 +401,16 @@
                   <ReOption label="仅依赖" value="lib" />
                   <ReOption label="全部" value="both" />
                 </ReSelect>
+              </ReFormItem>
+              <ReFormItem v-if="form.projectType !== 'static'" label="上传后自动升级">
+                <div class="up-auto">
+                  <el-switch v-model="form.uploadAutoUpgrade" />
+                  <span class="up-auto-hint">
+                    {{ form.uploadAutoUpgrade
+                      ? '上传完成后立即投放并重启（会覆盖运行中的包）'
+                      : '只上传到 uploads/，确认后再手动升级（默认）' }}
+                  </span>
+                </div>
               </ReFormItem>
               <ReFormItem label="项目图标">
                 <ReIconSelect v-model="form.icon" placeholder="留空则按类型使用默认图标" style="width:100%" />
@@ -553,6 +620,74 @@
             </ReForm>
           </div>
         </template>
+
+        <!-- 定时发布（仅编辑已存在项目） -->
+        <template #schedule>
+          <div class="sched-pane">
+            <div class="sched-card">
+              <div class="sched-head">
+                <ReIcon name="Timer" class="sched-ic" />
+                <div class="sched-head-text">
+                  <div class="sched-title">一次性定时发布</div>
+                  <div class="sched-sub">到点自动执行一次「升级发布」，完成后任务自动注销</div>
+                </div>
+                <el-switch v-model="form.scheduleEnabled" />
+              </div>
+              <div v-if="form.scheduleEnabled" class="sched-body">
+                <ReFormItem label="发布时间" required>
+                  <el-date-picker
+                    v-model="form.scheduleTime"
+                    type="datetime"
+                    value-format="YYYY-MM-DDTHH:mm:ss"
+                    placeholder="选择发布时间"
+                    style="width:100%"
+                  />
+                </ReFormItem>
+                <div class="sched-tip">
+                  <ReIcon name="InfoFilled" />
+                  <span>时间需晚于当前时间；使用「升级」的默认配置（备份 / 解压 / 重启 / 回滚）。</span>
+                </div>
+              </div>
+              <div v-if="editingId != null" class="sched-runtime">
+                <span class="sched-runtime-k">运行态</span>
+                <span class="sched-runtime-v">{{ publishStatusText(scheduleStatusMap[editingId]) }}</span>
+                <span v-if="form.scheduleStatus" class="sched-runtime-status">{{ form.scheduleStatus }}</span>
+              </div>
+            </div>
+
+            <div v-if="form.gitUrl" class="sched-card">
+              <div class="sched-head">
+                <ReIcon name="GitBranch" class="sched-ic" />
+                <div class="sched-head-text">
+                  <div class="sched-title">Git 定时拉取</div>
+                  <div class="sched-sub">按 cron 检查远端分支，有更新才拉取构建并自动发布</div>
+                </div>
+                <el-switch v-model="form.gitPollEnabled" />
+              </div>
+              <div v-if="form.gitPollEnabled" class="sched-body">
+                <ReFormItem label="检查频率（cron）" required>
+                  <ReCron v-model="form.gitPollCron" />
+                </ReFormItem>
+                <div class="sched-tip">
+                  <ReIcon name="InfoFilled" />
+                  <span>默认每 5 分钟检查一次（0 */5 * * * ?）；无更新时不会触发构建。</span>
+                </div>
+              </div>
+              <div v-if="editingId != null" class="sched-runtime">
+                <span class="sched-runtime-k">运行态</span>
+                <span class="sched-runtime-v">{{ gitPollStatusText(scheduleStatusMap[editingId]) }}</span>
+                <span v-if="form.gitLastCommit" class="sched-runtime-commit" :title="form.gitLastCommit">
+                  {{ form.gitLastCommit.slice(0, 8) }}
+                </span>
+              </div>
+            </div>
+
+            <div v-else class="sched-tip sched-tip-alone">
+              <ReIcon name="InfoFilled" />
+              <span>先在上方填写「Git 仓库地址」并保存，才能开启 Git 定时拉取。</span>
+            </div>
+          </div>
+        </template>
       </ReTab>
       <template #footer>
         <ReButton @click="dialogVisible = false">取消</ReButton>
@@ -730,23 +865,111 @@
       </template>
     </ReDialog>
 
-    <!-- 实时日志对话框 -->
-    <ReDialog v-model="logDialogVisible" :title="`实时日志 - ${currentLogProject?.projectName || ''}`" width="820px" :close-on-click-modal="false">
-      <div class="log-wrap">
-        <div v-if="logNotice" class="log-notice">{{ logNotice }}</div>
-        <div ref="logBoxEl" class="log-container" @scroll="onLogScroll">
-          <div v-for="(line, i) in logLines" :key="i" class="log-line">{{ line || ' ' }}</div>
-          <div v-if="!logLines.length" class="log-tip">等待日志输出…</div>
+    <!-- 实时日志弹窗：每个会话一个，关闭弹窗不影响内嵌列 -->
+    <ReDialog
+      v-for="session in logSessions"
+      :key="`log-popup-${session.projectId}`"
+      v-model="session.popupVisible"
+      :title="`实时日志 - ${session.projectName}`"
+      width="900px"
+      :close-on-click-modal="false"
+    >
+      <ProjectLogColumn
+        popup
+        v-model:auto-scroll="session.popupAutoScroll"
+        :title="session.projectName"
+        :lines="session.lines"
+        :notice="session.notice"
+        :push-offline="session.pushOffline"
+        @close="closeLogSession(session)"
+      />
+    </ReDialog>
+
+    <!-- 复制项目到其他服务器 -->
+    <ReDialog v-model="copyDialogVisible" :title="`复制项目 - ${copySource?.projectName || ''}`" width="560px" :close-on-click-modal="false">
+      <div v-loading="copyLoading" class="copy-wrap">
+        <div class="copy-tip">
+          <ReIcon name="InfoFilled" />
+          <span>复制会带上项目的全部配置（脚本 / 变量 / 路径 / Git 配置等），只把「发布」换成目标服务器；目标机上的进程需自行启动。</span>
         </div>
-        <div class="log-state" :class="{ paused: !logAutoScroll }">
-          <span class="ls-dot"></span>{{ logAutoScroll ? '自动滚动' : '已暂停跟随' }}
-          <span v-if="logPushOffline" class="ls-mode">· 实时推送未连接，快照轮询中</span>
-        </div>
-        <transition name="ls-fade">
-          <div v-if="!logAutoScroll" class="log-resume" @click="resumeLogScroll">
-            <ReIcon name="Bottom" :size="14" />回到底部
+        <ReFormItem label="目标服务器（可多选）" required>
+          <el-select v-model="copyTargets" multiple filterable placeholder="选择目标服务器" style="width:100%">
+            <el-option
+              v-for="r in copyReleases"
+              :key="r.id"
+              :label="`${r.releaseName}${r.hostIp ? ' · ' + r.hostIp : ''}`"
+              :value="r.id"
+            />
+          </el-select>
+        </ReFormItem>
+        <div v-if="!copyLoading && !copyReleases.length" class="copy-empty">暂无其他服务器可复制（先在发布管理里创建发布）</div>
+      </div>
+      <template #footer>
+        <ReButton @click="copyDialogVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="copySubmitting" @click="submitCopy">开始复制</ReButton>
+      </template>
+    </ReDialog>
+
+    <!-- Swagger / Actuator 入口 -->
+    <ReDialog v-model="endpointDialogVisible" :title="`服务入口 - ${endpointProject?.projectName || ''}`" width="700px">
+      <div v-loading="endpointLoading" class="ep-wrap">
+        <div class="ep-card" :class="{ 'is-ok': endpointData?.swagger }">
+          <div class="ep-head">
+            <ReIcon name="Link" class="ep-ic" />
+            <span class="ep-name">Swagger 接口文档</span>
+            <el-tag size="small" :type="endpointData?.swagger ? 'success' : 'info'" effect="light">
+              {{ endpointData?.swagger ? '可用' : '未探测到' }}
+            </el-tag>
+            <span v-if="endpointData?.port" class="ep-port">端口 {{ endpointData.port }}</span>
           </div>
-        </transition>
+          <div class="ep-body">
+            <template v-if="endpointData?.swagger">
+              <a class="ep-link" :href="endpointData.swaggerUrl" target="_blank" rel="noreferrer">{{ endpointData.swaggerUrl }}</a>
+              <a class="ep-link ep-link-sub" :href="endpointData.swaggerApiUrl" target="_blank" rel="noreferrer">
+                OpenAPI JSON：{{ endpointData.swaggerApiUrl }}
+              </a>
+            </template>
+            <div v-else class="ep-empty">
+              {{ endpointData?.message || '未探测到 Swagger（项目需引入 springdoc-openapi / knife4j）' }}
+            </div>
+          </div>
+          <div class="ep-actions">
+            <ReButton icon="Refresh" size="small" @click="endpointProject && openEndpointDialog(endpointProject, 'swagger')">重新探测</ReButton>
+            <ReButton v-if="endpointData?.swagger" icon="TopRight" size="small" type="primary" @click="openInNewTab(endpointData?.swaggerUrl)">打开</ReButton>
+          </div>
+        </div>
+
+        <div class="ep-card" :class="{ 'is-ok': endpointData?.actuator }">
+          <div class="ep-head">
+            <ReIcon name="DataAnalysis" class="ep-ic" />
+            <span class="ep-name">Actuator 运行指标</span>
+            <el-tag size="small" :type="endpointData?.actuator ? 'success' : 'info'" effect="light">
+              {{ endpointData?.actuator ? '可用' : '未探测到' }}
+            </el-tag>
+          </div>
+          <div class="ep-body">
+            <template v-if="endpointData?.actuator">
+              <div class="ep-health">
+                <span class="ep-health-k">健康状态</span>
+                <el-tag size="small" :type="endpointData.health === 'UP' ? 'success' : 'warning'" effect="dark">
+                  {{ endpointData.health || 'UNKNOWN' }}
+                </el-tag>
+                <span v-if="endpointData.metricCount != null" class="ep-health-k">指标 {{ endpointData.metricCount }} 项</span>
+              </div>
+              <a class="ep-link" :href="endpointData.actuatorUrl" target="_blank" rel="noreferrer">{{ endpointData.actuatorUrl }}</a>
+              <div v-if="endpointData.metrics?.length" class="ep-metrics">
+                <span v-for="m in endpointData.metrics" :key="m" class="ep-metric">{{ m }}</span>
+              </div>
+            </template>
+            <div v-else class="ep-empty">
+              {{ endpointData?.message || '未探测到 Actuator（需暴露 management.endpoints.web.exposure.include）' }}
+            </div>
+          </div>
+          <div class="ep-actions">
+            <ReButton icon="Refresh" size="small" @click="endpointProject && openEndpointDialog(endpointProject, 'actuator')">重新探测</ReButton>
+            <ReButton v-if="endpointData?.actuator" icon="TopRight" size="small" type="primary" @click="openInNewTab(endpointData?.actuatorUrl)">打开</ReButton>
+          </div>
+        </div>
       </div>
     </ReDialog>
 
@@ -791,14 +1014,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { ElMessageBox } from 'element-plus';
 import {getGlobalSocketService, message} from '@repo/core';
 import { http, unwrapResult } from '@repo/utils';
 import { fillTemplate, bestTemplate } from '@repo/ui/components/ReCommand/templates';
+import ReCron from '@repo/ui/re-cron';
+import ReSplitLayout from '@repo/ui/re-split-layout';
+import type { SplitNode } from '@repo/ui/re-split-layout';
 import { trackTask } from '../../utils/processTasks';
 import HostFileManager from '../../components/HostFileManager.vue';
+import ProjectLogColumn from '../../components/ProjectLogColumn.vue';
 
 const BASE = '/ms/server/release';
 
@@ -849,6 +1076,20 @@ interface Project {
   runtimeProcess?: boolean;
   /** 该类型是否为 JVM 进程（后端回填） */
   javaProcess?: boolean;
+  /** 上传后是否自动升级（默认 false：安装包只上传到 uploads/，不覆盖运行中的包） */
+  uploadAutoUpgrade?: boolean;
+  /** 是否开启一次性定时发布 */
+  scheduleEnabled?: boolean;
+  /** 定时发布时间（后端 LocalDateTime，序列化为 ISO 字符串） */
+  scheduleTime?: string;
+  /** 定时发布状态：NONE / PENDING / RUNNING / DONE / FAILED */
+  scheduleStatus?: string;
+  /** 是否开启 Git 定时拉取（有更新才自动发布） */
+  gitPollEnabled?: boolean;
+  /** Git 轮询 cron（6 段：秒 分 时 日 月 周） */
+  gitPollCron?: string;
+  /** 最近一次轮询到的远端 commit */
+  gitLastCommit?: string;
 }
 
 const list = ref<Project[]>([]);
@@ -996,6 +1237,18 @@ const form = ref({
   uploadExtract: true,
   uploadTargetDir: '',
   deployType: 'main',
+  // 上传后自动升级：默认关闭，安装包先落到 uploads/，确认无误再手动投递
+  uploadAutoUpgrade: false,
+  // 一次性定时发布
+  scheduleEnabled: false,
+  scheduleTime: '',
+  // 定时发布状态（后端维护，只读展示）
+  scheduleStatus: '',
+  // Git 定时拉取（有更新才自动发布）
+  gitPollEnabled: false,
+  gitPollCron: '0 */5 * * * ?',
+  // 最近一次轮询到的 commit（只读展示，不提交）
+  gitLastCommit: '',
   // APM 高级选项：none=不注入，platform=平台自有 APM，skywalking=SkyWalking，arthas=Arthas 诊断
   apmType: 'none' as 'none' | 'platform' | 'skywalking' | 'arthas',
   apmJarPath: '',
@@ -1025,6 +1278,7 @@ const editTabs = computed(() => {
   }
   // 备份记录仅在编辑已存在项目时可用（新建项目尚无 backups/）
   if (editingId.value != null) {
+    tabs.push({ name: 'schedule', label: '定时发布', icon: 'Timer' });
     tabs.push({ name: 'backups', label: '备份记录', icon: 'Files' });
   }
   return tabs;
@@ -1231,6 +1485,13 @@ function resetForm() {
     uploadExtract: true,
     uploadTargetDir: '',
     deployType: 'main',
+    uploadAutoUpgrade: false,
+    scheduleEnabled: false,
+    scheduleTime: '',
+    scheduleStatus: '',
+    gitPollEnabled: false,
+    gitPollCron: '0 */5 * * * ?',
+    gitLastCommit: '',
     apmType: 'none' as 'none' | 'platform' | 'skywalking' | 'arthas',
     apmJarPath: '',
     apmOptions: 'port=4567',
@@ -1294,6 +1555,14 @@ function openEditDialog(item: Project) {
     uploadExtract: item.uploadExtract === undefined ? true : !!item.uploadExtract,
     uploadTargetDir: item.uploadTargetDir || '',
     deployType: item.deployType || 'main',
+    uploadAutoUpgrade: !!item.uploadAutoUpgrade,
+    scheduleEnabled: !!item.scheduleEnabled,
+    // el-date-picker 的 value-format 与后端 LocalDateTime 对齐，秒级即可
+    scheduleTime: item.scheduleTime ? String(item.scheduleTime).replace(' ', 'T').slice(0, 19) : '',
+    scheduleStatus: item.scheduleStatus || '',
+    gitPollEnabled: !!item.gitPollEnabled,
+    gitPollCron: item.gitPollCron || '0 */5 * * * ?',
+    gitLastCommit: item.gitLastCommit || '',
     ...parseApmConfig(parseJson<string>(item.jvmArgs, [])),
   };
   activeTab.value = 'basic';
@@ -1613,6 +1882,14 @@ async function handleSave() {
     message.error('当前项目类型必须填写「主入口名称」');
     return;
   }
+  if (form.value.scheduleEnabled && !form.value.scheduleTime) {
+    message.error('请选择「定时发布时间」');
+    return;
+  }
+  if (form.value.gitPollEnabled && !form.value.gitPollCron.trim()) {
+    message.error('请填写「Git 轮询 cron」');
+    return;
+  }
   // 规范化自定义服务名（仅小写字母数字、-、_）
   form.value.serviceName = form.value.serviceName
     .trim()
@@ -1639,9 +1916,11 @@ async function handleSave() {
       },
       form.value.jvmArgs,
     );
-    const { apmType, apmJarPath, apmOptions, swJarPath, swServiceName, swBackendService, swExtraArgs, arthasJarPath, arthasTelnetPort, arthasHttpPort, ...projectForm } = form.value;
+    const { apmType, apmJarPath, apmOptions, swJarPath, swServiceName, swBackendService, swExtraArgs, arthasJarPath, arthasTelnetPort, arthasHttpPort, gitLastCommit, scheduleStatus, ...projectForm } = form.value;
     const payload = {
       ...projectForm,
+      // 空串要转 null：后端 null 表示「不修改」，空串会让 LocalDateTime 反序列化失败
+      scheduleTime: form.value.scheduleTime ? form.value.scheduleTime.replace(' ', 'T').slice(0, 19) : null,
       envVars: JSON.stringify(form.value.envVars),
       jvmArgs: JSON.stringify(form.value.jvmArgs),
       cmdArgs: JSON.stringify(form.value.cmdArgs),
@@ -1692,6 +1971,9 @@ function onMoreCommand(item: Project, command: string) {
       break;
     case 'git-deploy':
       handleGitDeploy(item);
+      break;
+    case 'copy':
+      openCopyDialog(item);
       break;
     case 'toggle':
       toggleEnabled(item);
@@ -2155,6 +2437,11 @@ async function onDropFile(item: Project, ev: DragEvent) {
   try {
     const res = await http().post(`${BASE}/project/${item.id}/upload`).data(fd);
     const taskId = unwrapResult<string>(res);
+    if (typeof taskId === 'string' && taskId.startsWith('upload-only:')) {
+      // 项目未开启「上传后自动升级」：安装包只落到 uploads/，不覆盖正在运行的包
+      message.success(`已上传到 ${taskId.slice('upload-only:'.length)}（未开启自动升级）`);
+      return;
+    }
     if (taskId) {
       trackTask(taskId, item.projectName, 'upgrade');
     } else {
@@ -2310,142 +2597,438 @@ async function executeUpgrade() {
   }
 }
 
-// ---- 实时日志 ----
-const logDialogVisible = ref(false);
-const logLines = ref<string[]>([]);
-const currentLogProject = ref<Project | null>(null);
-const logBoxEl = ref<HTMLElement>();
-const logAutoScroll = ref(true);
-let logSessionId: string | null = null;
-let logUnsub: (() => void) | null = null;
-/** tail 快照轮询定时器：Socket 推送不可用时兜底，保证日志一定看得到 */
-let logPollTimer: number | null = null;
-/** 实时推送是否掉线（掉线时状态栏提示走快照轮询） */
-const logPushOffline = ref(false);
-/** 采集失败等提示（不放进 logLines，避免被快照整段替换冲掉） */
-const logNotice = ref('');
-/** 日志来源：socket=实时推送；snapshot=尾部快照轮询 */
-let logMode: 'snapshot' | 'socket' = 'snapshot';
-/** 弹窗内最多保留的日志行数，避免长时间挂机把内存撑爆 */
+// ---- 实时日志（多项目并排 / 弹窗） ----
+/**
+ * 单个项目的日志会话：连接与缓冲都挂在这里，内嵌列与弹窗共用同一份数据。
+ *
+ * <p>多项目并排看日志时，每个项目必须有自己的 socket 订阅、轮询定时器和缓冲，
+ * 否则关掉一个会把别的项目一起停掉。</p>
+ */
+interface LogSession {
+  projectId: number;
+  projectName: string;
+  lines: string[];
+  notice: string;
+  pushOffline: boolean;
+  /** 内嵌列自动滚动（由 ProjectLogColumn 的 v-model:auto-scroll 维护） */
+  autoScroll: boolean;
+  /** 弹窗形态自动滚动 */
+  popupAutoScroll: boolean;
+  /** 是否在弹窗中放大展示 */
+  popupVisible: boolean;
+  /** 日志来源：socket=实时推送；snapshot=尾部快照轮询 */
+  mode: 'snapshot' | 'socket';
+  sessionId: string | null;
+  unsub: (() => void) | null;
+  pollTimer: number | null;
+  stopped: boolean;
+}
+
+/** 单个会话最多保留的日志行数，避免长时间挂机把内存撑爆 */
 const LOG_MAX_LINES = 2000;
 const LOG_POLL_INTERVAL = 2000;
 
-function logPushLine(line: string) {
-  logLines.value.push(line);
-  if (logLines.value.length > LOG_MAX_LINES) {
-    logLines.value.splice(0, logLines.value.length - LOG_MAX_LINES);
+/** 已打开的日志会话：默认在项目管理下方多列展示，可单独弹窗放大 */
+const logSessions = ref<LogSession[]>([]);
+
+function logPushLine(session: LogSession, line: string) {
+  session.lines.push(line);
+  if (session.lines.length > LOG_MAX_LINES) {
+    session.lines.splice(0, session.lines.length - LOG_MAX_LINES);
   }
 }
 
+function findLogSession(projectId: number): LogSession | undefined {
+  return logSessions.value.find((s) => s.projectId === projectId);
+}
+
 /**
- * 拉一次日志尾部快照。
+ * 拉一次某个会话的日志尾部快照。
  *
  * <p>Socket 推送可用时完全让位（推送是精确增量，不会重复也不会漏行）；
  * 推送不可用（端口/代理不一致、服务未启用）时以快照为唯一数据源整段替换，
  * 既不会出现重复行，也不会因为「重叠合并」猜错边界而吃掉新行。</p>
+ *
+ * @param session 日志会话
  */
-async function pollLogTail() {
-  const project = currentLogProject.value;
-  if (!project || !logDialogVisible.value) return;
+async function pollLogTail(session: LogSession) {
+  if (session.stopped) return;
   const socketAlive = getGlobalSocketService()?.isConnected ?? false;
-  logPushOffline.value = !socketAlive;
-  if (!socketAlive) logMode = 'snapshot';
-  if (logMode === 'socket') return;
+  session.pushOffline = !socketAlive;
+  if (!socketAlive) session.mode = 'snapshot';
+  if (session.mode === 'socket') return;
   try {
-    const res = await http().get(`${BASE}/project/${project.id}/log`);
+    const res = await http().get(`${BASE}/project/${session.projectId}/log`);
     const text = unwrapResult<string>(res);
     if (typeof text !== 'string') return;
     const lines = text.replace(/\r\n/g, '\n').split('\n');
     if (lines.length && lines[lines.length - 1] === '') lines.pop();
-    logLines.value = lines.length > LOG_MAX_LINES ? lines.slice(-LOG_MAX_LINES) : lines;
+    session.lines = lines.length > LOG_MAX_LINES ? lines.slice(-LOG_MAX_LINES) : lines;
   } catch {
     // 静默失败：快照只是兜底通道，报错会掩盖真正的问题
   }
 }
 
-async function handleViewLog(item: Project) {
-  cleanupLog();
-  currentLogProject.value = item;
-  logLines.value = [];
-  logNotice.value = '';
-  logMode = 'snapshot';
-  logAutoScroll.value = true;
-  logDialogVisible.value = true;
+/**
+ * 打开一个项目的实时日志（已打开则复用，不重复订阅）。
+ *
+ * <p>先拉一次快照、再启动 socket 采集：这样即使推送通道不可用，
+ * 打开日志的瞬间也能看到内容，而不是空面板。</p>
+ *
+ * @param item 项目
+ * @returns 日志会话
+ */
+async function startLogSession(item: Project): Promise<LogSession> {
+  const existing = findLogSession(item.id);
+  if (existing) return existing;
+  const session: LogSession = {
+    projectId: item.id,
+    projectName: item.projectName,
+    lines: [],
+    notice: '',
+    pushOffline: false,
+    autoScroll: true,
+    popupAutoScroll: true,
+    popupVisible: false,
+    mode: 'snapshot',
+    sessionId: null,
+    unsub: null,
+    pollTimer: null,
+    stopped: false,
+  };
+  logSessions.value.push(session);
 
   const socket = getGlobalSocketService();
-  logUnsub = socket?.subscribe('project', 'log', (msg: any) => {
+  session.unsub = socket?.subscribe('project', 'log', (msg: any) => {
     const data = msg?.data ?? msg;
-    if (!data) return;
+    if (!data || session.stopped) return;
     // sessionId 要等 start 接口返回，返回前先按 projectId 收帧，避免丢掉开头几行
-    const matched = logSessionId
-      ? data.sessionId === logSessionId
-      : String(data.projectId) === String(currentLogProject.value?.id);
+    const matched = session.sessionId
+      ? data.sessionId === session.sessionId
+      : String(data.projectId) === String(session.projectId);
     if (!matched) return;
     if (data.status === 'LINE' && typeof data.line === 'string') {
-      if (logMode !== 'socket') {
+      if (session.mode !== 'socket') {
         // tail -n N -F 连接时会先重放最近 N 行，清掉快照内容避免重复
-        logMode = 'socket';
-        logLines.value = [];
-        logNotice.value = '';
+        session.mode = 'socket';
+        session.lines = [];
+        session.notice = '';
       }
-      logPushLine(data.line);
+      logPushLine(session, data.line);
     } else if (data.status === 'ERROR') {
-      logNotice.value = data.message || '日志采集失败';
+      session.notice = data.message || '日志采集失败';
     }
   }) ?? null;
 
   // 先拉一次快照：Socket 连不上（端口/代理不一致）时也能立刻看到日志内容
-  void pollLogTail();
-  logPollTimer = window.setInterval(() => {
-    void pollLogTail();
+  void pollLogTail(session);
+  session.pollTimer = window.setInterval(() => {
+    void pollLogTail(session);
   }, LOG_POLL_INTERVAL);
 
   try {
     const res = await http().post(`${BASE}/project/${item.id}/log/start`);
-    logSessionId = unwrapResult<string>(res);
+    if (!session.stopped) session.sessionId = unwrapResult<string>(res);
   } catch {
-    logNotice.value = '无法启动实时日志采集，已降级为快照轮询';
+    session.notice = '无法启动实时日志采集，已降级为快照轮询';
   }
+  return session;
 }
 
-function cleanupLog() {
-  if (logPollTimer !== null) {
-    clearInterval(logPollTimer);
-    logPollTimer = null;
+/** 卡片菜单「实时日志」：在项目管理下方追加一列 */
+function handleViewLog(item: Project) {
+  void startLogSession(item);
+}
+
+/** 在弹窗中放大某个会话（内嵌列保留） */
+function openLogPopup(session: LogSession) {
+  session.popupVisible = true;
+}
+
+/** 停掉一个会话的连接（不动列表，关闭前回收资源） */
+function stopLogSession(session: LogSession) {
+  session.stopped = true;
+  if (session.pollTimer !== null) {
+    clearInterval(session.pollTimer);
+    session.pollTimer = null;
   }
-  const sessionId = logSessionId;
+  const sessionId = session.sessionId;
   if (sessionId) {
     http().post(`${BASE}/project/log/${sessionId}/stop`).catch(() => {});
-    logSessionId = null;
+    session.sessionId = null;
   }
-  logUnsub?.();
-  logUnsub = null;
-  logMode = 'snapshot';
+  session.unsub?.();
+  session.unsub = null;
+  session.mode = 'snapshot';
 }
 
-watch(logDialogVisible, (visible) => {
-  if (!visible) cleanupLog();
-});
-/** 距底部小于该阈值(px)视为仍贴底，保持自动滚动 */
-const LOG_STICK_THRESHOLD = 24;
-
-function onLogScroll(e: Event) {
-  const el = e.target as HTMLElement;
-  const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
-  logAutoScroll.value = dist < LOG_STICK_THRESHOLD;
+/** 关闭一列：停连接并从列表移除（对应弹窗一并关闭） */
+function closeLogSession(session: LogSession) {
+  stopLogSession(session);
+  session.popupVisible = false;
+  const index = logSessions.value.indexOf(session);
+  if (index >= 0) logSessions.value.splice(index, 1);
 }
 
-function resumeLogScroll() {
-  logAutoScroll.value = true;
-  if (logBoxEl.value) logBoxEl.value.scrollTop = logBoxEl.value.scrollHeight;
+/** 页面卸载时统一清理所有会话 */
+function cleanupAllLogSessions() {
+  logSessions.value.slice().forEach((session) => stopLogSession(session));
+  logSessions.value = [];
 }
 
-watch(logLines, () => {
-  // 仅在贴底自动跟随；用户上滚查看历史时不打断（滚动解锁）
-  if (logAutoScroll.value && logBoxEl.value) {
-    logBoxEl.value.scrollTop = logBoxEl.value.scrollHeight;
+// ---- 页面分栏布局（可拖拽 + 持久化到后端） ----
+/** 布局在系统配置表里的 pageKey（后端存为 ui.layout.release-projects） */
+const LAYOUT_PAGE_KEY = 'release-projects';
+const splitLayoutRef = ref<InstanceType<typeof ReSplitLayout> | null>(null);
+/** 服务端已保存的布局；为空时用 defaultLayout */
+const savedLayout = ref<SplitNode | null>(null);
+/** 布局就绪前不保存，避免初始渲染把默认布局回写覆盖服务端布局 */
+const layoutReady = ref(false);
+let layoutSaveTimer: number | null = null;
+
+/** 默认布局：上「项目管理」，下「实时日志」 */
+const defaultLayout: SplitNode = {
+  type: 'split',
+  direction: 'vertical',
+  sizes: [72, 28],
+  children: [
+    {
+      type: 'panel',
+      id: 'panel-projects',
+      activeTabId: 'tab-projects',
+      tabs: [{ id: 'tab-projects', panelType: 'projects', label: '项目管理', closable: false }],
+    },
+    {
+      type: 'panel',
+      id: 'panel-logs',
+      activeTabId: 'tab-logs',
+      tabs: [{ id: 'tab-logs', panelType: 'logs', label: '实时日志', closable: false }],
+    },
+  ],
+};
+
+/**
+ * 读取服务端保存的布局。
+ *
+ * <p>布局是「锦上添花」：读不到就用默认布局，不能因为接口失败把整页拦住。</p>
+ */
+async function loadLayout() {
+  try {
+    const res = await http().get(`${BASE}/layout/${LAYOUT_PAGE_KEY}`);
+    const data = unwrapResult<{ layout?: SplitNode }>(res);
+    const layout = data?.layout;
+    if (layout && layout.type === 'split' && Array.isArray(layout.children) && layout.children.length) {
+      savedLayout.value = layout;
+    }
+  } catch {
+    // 忽略：保持默认布局
+  } finally {
+    // 给 ReSplitLayout 的 initialLayout 监听留一个 tick，避免把默认布局又存回去
+    window.setTimeout(() => {
+      layoutReady.value = true;
+    }, 300);
   }
-});
+}
+
+/** 布局变化：先更新本地快照，防抖后落库（拖拽会高频触发） */
+function onLayoutChange(next: SplitNode) {
+  savedLayout.value = next;
+  if (!layoutReady.value) return;
+  if (layoutSaveTimer !== null) clearTimeout(layoutSaveTimer);
+  layoutSaveTimer = window.setTimeout(() => {
+    layoutSaveTimer = null;
+    void saveLayout(next);
+  }, 600);
+}
+
+async function saveLayout(next: SplitNode) {
+  try {
+    await http()
+      .put(`${BASE}/layout/${LAYOUT_PAGE_KEY}`)
+      // 后端收的是原始 JSON 字符串，必须显式声明 content-type，否则会被当成表单
+      .headers({ 'Content-Type': 'application/json' })
+      .data(JSON.stringify(next));
+  } catch {
+    message.error('布局保存失败');
+  }
+}
+
+/** 恢复默认布局并立刻存回服务端 */
+function handleResetLayout() {
+  splitLayoutRef.value?.resetLayout();
+  const next = splitLayoutRef.value?.layout as unknown as SplitNode | undefined;
+  if (next) {
+    savedLayout.value = next;
+    void saveLayout(next);
+  }
+  message.success('已恢复默认布局');
+}
+
+// ---- 复制项目到其他服务器 ----
+interface ReleaseOption {
+  id: number;
+  releaseName: string;
+  hostIp?: string;
+  hostName?: string;
+}
+
+const copyDialogVisible = ref(false);
+const copySource = ref<Project | null>(null);
+const copyTargets = ref<number[]>([]);
+const copyReleases = ref<ReleaseOption[]>([]);
+const copyLoading = ref(false);
+const copySubmitting = ref(false);
+
+/** 打开复制对话框：列出除当前发布外的所有服务器 */
+async function openCopyDialog(item: Project) {
+  copySource.value = item;
+  copyTargets.value = [];
+  copyReleases.value = [];
+  copyDialogVisible.value = true;
+  copyLoading.value = true;
+  try {
+    const res = await http().get(`${BASE}/list`);
+    const rows = unwrapResult<ReleaseOption[]>(res) || [];
+    copyReleases.value = rows.filter((r) => r.id !== releaseId.value);
+  } catch {
+    message.error('加载服务器列表失败');
+  } finally {
+    copyLoading.value = false;
+  }
+}
+
+async function submitCopy() {
+  if (!copySource.value) return;
+  if (!copyTargets.value.length) {
+    message.error('请选择目标服务器');
+    return;
+  }
+  copySubmitting.value = true;
+  try {
+    const res = await http().post(`${BASE}/project/copy`).data({
+      projectIds: [copySource.value.id],
+      releaseIds: copyTargets.value,
+    });
+    const data = unwrapResult<{ count?: number; failed?: any[] }>(res);
+    const count = data?.count ?? 0;
+    const failed = data?.failed?.length ?? 0;
+    if (count > 0) message.success(`已复制到 ${count} 个服务器`);
+    if (failed > 0) message.error(`${failed} 个目标复制失败`);
+    if (count > 0) copyDialogVisible.value = false;
+  } catch {
+    message.error('复制失败');
+  } finally {
+    copySubmitting.value = false;
+  }
+}
+
+// ---- Swagger / Actuator 端点探测 ----
+interface EndpointProbe {
+  swagger?: boolean;
+  actuator?: boolean;
+  port?: number;
+  swaggerUrl?: string;
+  swaggerApiUrl?: string;
+  actuatorUrl?: string;
+  health?: string;
+  metricCount?: number;
+  metrics?: string[];
+  message?: string;
+}
+
+const endpointDialogVisible = ref(false);
+const endpointProject = ref<Project | null>(null);
+const endpointKind = ref<'swagger' | 'actuator'>('swagger');
+const endpointLoading = ref(false);
+const endpointData = ref<EndpointProbe | null>(null);
+/** 每项目探测结果缓存：同一次停留内反复打开不用重复 SSH */
+const endpointCache = reactive<Record<number, EndpointProbe>>({});
+
+async function probeProject(item: Project, silent = false): Promise<EndpointProbe | null> {
+  try {
+    const res = await http().get(`${BASE}/project/${item.id}/endpoints`);
+    const data = unwrapResult<EndpointProbe>(res);
+    if (data) endpointCache[item.id] = data;
+    return data ?? null;
+  } catch {
+    if (!silent) message.error('端点探测失败');
+    return null;
+  }
+}
+
+/**
+ * 打开 Swagger / Actuator 入口。
+ *
+ * @param item 项目
+ * @param kind swagger=接口文档；actuator=运行指标
+ */
+async function openEndpointDialog(item: Project, kind: 'swagger' | 'actuator') {
+  endpointProject.value = item;
+  endpointKind.value = kind;
+  endpointData.value = endpointCache[item.id] ?? null;
+  endpointDialogVisible.value = true;
+  endpointLoading.value = true;
+  const data = await probeProject(item);
+  endpointData.value = data;
+  endpointLoading.value = false;
+  if (data && kind === 'swagger' && !data.swagger) {
+    message.warning(data.message || '该项目未探测到 Swagger，可确认是否引入 springdoc / knife4j');
+  }
+  if (data && kind === 'actuator' && !data.actuator) {
+    message.warning(data.message || '该项目未探测到 Actuator，可确认是否暴露 /actuator 端点');
+  }
+}
+
+// ---- 定时发布运行态 ----
+interface ScheduleStatus {
+  publishJobKey?: string;
+  publishRegistered?: boolean;
+  publishNextFireMs?: number;
+  publishLastFireMs?: number;
+  publishEnabled?: boolean;
+  gitPollJobKey?: string;
+  gitPollRegistered?: boolean;
+  gitPollNextFireMs?: number;
+  gitPollLastFireMs?: number;
+  gitPollEnabled?: boolean;
+}
+
+const scheduleStatusMap = reactive<Record<number, ScheduleStatus>>({});
+
+async function loadScheduleStatus(item: Project) {
+  try {
+    const res = await http().get(`${BASE}/project/${item.id}/schedule`);
+    scheduleStatusMap[item.id] = unwrapResult<ScheduleStatus>(res) || {};
+  } catch {
+    // 运行态只做展示，失败静默，不影响编辑
+  }
+}
+
+/** 时间戳格式化为「年-月-日 时:分:秒」，空值显示 — */
+function fmtFireMs(ms?: number): string {
+  if (!ms) return '—';
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+}
+
+/** 新标签页打开外部地址（Swagger / Actuator） */
+function openInNewTab(url?: string) {
+  if (url) window.open(url, '_blank', 'noopener');
+}
+
+function publishStatusText(st?: ScheduleStatus): string {
+  if (!st) return '未加载';
+  if (!st.publishRegistered) return '未登记';
+  if (st.publishEnabled === false) return '已停用';
+  return `下次 ${fmtFireMs(st.publishNextFireMs)}`;
+}
+
+function gitPollStatusText(st?: ScheduleStatus): string {
+  if (!st) return '未加载';
+  if (!st.gitPollRegistered) return '未登记';
+  if (st.gitPollEnabled === false) return '已停用';
+  return `下次 ${fmtFireMs(st.gitPollNextFireMs)}`;
+}
 
 // ---- Arthas 诊断 ----
 const arthasDialogVisible = ref(false);
@@ -2679,9 +3262,13 @@ async function handleRollbackTo(b: BackupRow) {
   }
 }
 
-// 切到备份 tab 时加载（事件驱动，非轮询）
+// 切到备份 / 定时发布 tab 时加载（事件驱动，非轮询）
 watch(activeTab, (tab) => {
   if (tab === 'backups' && editingId.value != null) loadBackups();
+  if (tab === 'schedule' && editingId.value != null) {
+    const item = list.value.find((p) => p.id === editingId.value);
+    if (item) loadScheduleStatus(item);
+  }
 });
 
 // socket 驱动刷新，避免轮询
@@ -2700,14 +3287,16 @@ function goBack() {
 onMounted(() => {
   loadList();
   loadHostOs();
+  loadLayout();
   nowTs.value = Date.now();
   runtimeTimer = setInterval(() => { nowTs.value = Date.now(); }, 1000);
 });
 
 onBeforeUnmount(() => {
-  cleanupLog();
+  cleanupAllLogSessions();
   unsubTaskRefresh?.();
   stopArthasPoll();
+  if (layoutSaveTimer !== null) { clearTimeout(layoutSaveTimer); layoutSaveTimer = null; }
   if (runtimeTimer) { clearInterval(runtimeTimer); runtimeTimer = null; }
 });
 </script>
@@ -2717,6 +3306,72 @@ onBeforeUnmount(() => {
 .project-page {
   padding: 24px 28px 30px;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+/* 分栏容器：吃掉标题以下的全部高度，内部滚动交给面板 */
+.pj-split-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+.pj-split-wrap > * {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.pj-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 14px 16px 0;
+  box-sizing: border-box;
+}
+.pj-panel .pj-toolbar {
+  flex: none;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+}
+.pj-panel .pj-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 14px;
+}
+.pj-log-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.pj-log-cols {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.pj-log-empty {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--text-tertiary);
+  font-size: 12.5px;
+}
+.pj-log-empty-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.pj-log-empty-sub {
+  max-width: 420px;
+  text-align: center;
+  line-height: 1.6;
 }
 .pj-head {
   margin-bottom: 16px;
@@ -3603,85 +4258,6 @@ onBeforeUnmount(() => {
 }
 .dd-success { color: #2563eb; }
 
-.log-container {
-  height: 420px;
-  overflow-y: auto;
-  background: var(--terminal-bg, #0d1117);
-  border-radius: 8px;
-  padding: 14px 16px;
-}
-.log-line {
-  color: #c9d1d9;
-  font-family: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
-  font-size: 12.5px;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  word-break: break-all;
-}
-.log-tip {
-  margin-top: 8px;
-  color: #6e7681;
-  font-size: 12px;
-}
-/* 实时日志：自动滚动状态 + 回到底部 */
-.log-wrap { position: relative; }
-.log-notice {
-  margin-bottom: 8px;
-  padding: 6px 10px;
-  font-size: 12px;
-  line-height: 1.5;
-  color: #d29922;
-  background: rgba(210, 153, 34, 0.1);
-  border: 1px solid rgba(210, 153, 34, 0.35);
-  border-radius: 6px;
-}
-.log-state {
-  position: absolute;
-  top: 10px;
-  right: 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
-  font-size: 11.5px;
-  color: #c9d1d9;
-  background: rgba(13, 17, 23, 0.72);
-  border: 1px solid rgba(110, 118, 129, 0.4);
-  border-radius: 999px;
-  pointer-events: none;
-  backdrop-filter: blur(4px);
-}
-.log-state .ls-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #2fbf71;
-  box-shadow: 0 0 0 2px rgba(47, 191, 113, 0.25);
-}
-.log-state.paused { color: #d29922; border-color: rgba(210, 153, 34, 0.5); }
-.log-state.paused .ls-dot { background: #d29922; box-shadow: 0 0 0 2px rgba(210, 153, 34, 0.25); }
-.log-state .ls-mode { color: #8b949e; }
-.log-resume {
-  position: absolute;
-  bottom: 14px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 14px;
-  font-size: 12.5px;
-  color: #fff;
-  background: var(--brand-500, #6d5dfc);
-  border-radius: 999px;
-  cursor: pointer;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-  transition: background 0.15s;
-}
-.log-resume:hover { background: var(--brand-600, #5a4bd9); }
-.ls-fade-enter-active, .ls-fade-leave-active { transition: opacity 0.2s, transform 0.2s; }
-.ls-fade-enter-from, .ls-fade-leave-to { opacity: 0; transform: translateX(-50%) translateY(6px); }
-
 /* Arthas 诊断 */
 .arthas-wrap { display: flex; flex-direction: column; gap: 12px; }
 .arthas-status-bar { display: flex; align-items: center; gap: 12px; }
@@ -3735,5 +4311,229 @@ onBeforeUnmount(() => {
   background: var(--primary);
   color: white;
   border-color: var(--primary);
+}
+
+/* ===== 上传后自动升级开关 ===== */
+.up-auto {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.up-auto-hint {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+/* ===== 复制项目到其他服务器 ===== */
+.copy-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 120px;
+}
+.copy-tip {
+  display: flex;
+  gap: 8px;
+  padding: 9px 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  background: var(--bg-fill);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+}
+.copy-tip .re-icon {
+  flex: none;
+  margin-top: 2px;
+  color: var(--brand-500);
+}
+.copy-empty {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+/* ===== Swagger / Actuator 入口 ===== */
+.ep-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ep-card {
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: var(--bg-container);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.ep-card.is-ok {
+  border-color: rgba(47, 191, 113, 0.45);
+  box-shadow: 0 0 0 1px rgba(47, 191, 113, 0.12);
+}
+.ep-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ep-ic {
+  color: var(--brand-500);
+}
+.ep-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.ep-port {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.ep-body {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ep-link {
+  font-size: 12.5px;
+  color: var(--brand-600, #4f46e5);
+  text-decoration: none;
+  word-break: break-all;
+}
+.ep-link:hover {
+  text-decoration: underline;
+}
+.ep-link-sub {
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+.ep-empty {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-tertiary);
+}
+.ep-health {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ep-health-k {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.ep-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 2px;
+}
+.ep-metric {
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: "Cascadia Code", Consolas, monospace;
+  color: var(--text-secondary);
+  background: var(--bg-fill);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+}
+.ep-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* ===== 定时发布 tab ===== */
+.sched-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 14px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+.sched-card {
+  border: 1px solid var(--border-subtle, #eef0f6);
+  border-radius: 12px;
+  padding: 16px 18px;
+  background: var(--bg-container, #fff);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(16, 24, 40, 0.04));
+}
+.sched-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sched-ic {
+  flex: none;
+  color: var(--brand-500, #6d5dfc);
+}
+.sched-head-text {
+  flex: 1;
+  min-width: 0;
+}
+.sched-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.sched-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+.sched-body {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sched-tip {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  padding: 8px 11px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  background: var(--bg-fill);
+  border-radius: 8px;
+}
+.sched-tip .re-icon {
+  flex: none;
+  margin-top: 2px;
+  color: var(--text-tertiary);
+}
+.sched-tip-alone {
+  margin-top: 2px;
+}
+.sched-runtime {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border-subtle);
+  font-size: 12px;
+}
+.sched-runtime-k {
+  color: var(--text-tertiary);
+}
+.sched-runtime-v {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.sched-runtime-status,
+.sched-runtime-commit {
+  margin-left: auto;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-family: "Cascadia Code", Consolas, monospace;
+  color: var(--text-secondary);
+  background: var(--bg-fill);
+  border-radius: 999px;
 }
 </style>

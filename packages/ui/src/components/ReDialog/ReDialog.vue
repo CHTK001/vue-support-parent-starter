@@ -17,7 +17,7 @@
  * 说明：原 `layout="windows"` 变体（layouts/WindowsLayout.vue）经跨行审计确认
  * 全仓无人使用，已移除；需要时从 backups/ui-unused-layouts-retire-20260926/ 取回。
  */
-import { computed, defineAsyncComponent, ref, watch } from "vue";
+import { computed, defineAsyncComponent, onBeforeUnmount, ref, watch } from "vue";
 import type { CSSProperties } from "vue";
 import { ElDialog, ElButton } from "element-plus";
 import { FullScreen, Crop } from "@element-plus/icons-vue";
@@ -214,8 +214,60 @@ const resolved = computed(() => {
  * 现在拖拽完全交给 el-dialog 原生实现：mousedown 绑在 headerRef 上、以
  * transform: translate() 位移，到视口边就停，不越界、不回弹、不缩小。
  *
- * overflow：直接透传 props.overflow，clamp 开关由 el-dialog 决定。
+ * overflow：显式 `overflow` 优先，未传则跟随 `draggable`（开了拖拽就放开 clamp，
+ * 近满高的弹窗才拖得动）—— 由 `effectiveOverflow` 计算得出。
  * ========================================================================== */
+
+/** 传给 el-dialog 的 `overflow`：显式配置优先，否则跟随 {@link draggable} */
+const effectiveOverflow = computed<boolean>(() => props.overflow ?? props.draggable);
+
+/**
+ * el-dialog 实例句柄（取弹窗 DOM / 调 resetPosition 归零）。
+ *
+ * <p>与 koi 主题一致：放开 {@link effectiveOverflow} 后弹窗可以被拖到任意位置，
+ * 也就可能被拖出视口而无法再抓到；这里在拖拽结束（document mouseup）后检查
+ * 是否越出「保留区」，越界就用官方 {@code resetPosition} 归零。</p>
+ */
+const dialogInstance = ref<ElDialogExposed | null>(null);
+
+/** ElDialog 通过 `defineExpose` 暴露的成员（只用到的两个），同 koi 主题的 DialogExposed */
+interface ElDialogExposed {
+  dialogContentRef?: { $el?: HTMLElement } | null;
+  resetPosition?: () => void;
+}
+
+/** 拖拽结束后至少留在视口内的像素数（同 koi 的 DRAG_KEEP_VISIBLE） */
+const DRAG_KEEP_VISIBLE = 56;
+
+/** 拖拽兜底：只对「未全屏 + 可拖拽」时有效（全屏时 transform 会被清空，无需归零） */
+function onDocumentMouseUp(): void {
+  if (!props.draggable || isFullscreen.value) return;
+  const el = dialogInstance.value?.dialogContentRef?.$el ?? null;
+  if (!el) return;
+
+  const rect = el.getBoundingClientRect();
+  const vw = document.documentElement.clientWidth;
+  const vh = document.documentElement.clientHeight;
+  const lost =
+    rect.right < DRAG_KEEP_VISIBLE ||
+    rect.left > vw - DRAG_KEEP_VISIBLE ||
+    rect.bottom < DRAG_KEEP_VISIBLE ||
+    rect.top > vh - DRAG_KEEP_VISIBLE;
+  if (lost) dialogInstance.value?.resetPosition?.();
+}
+
+/* 弹窗可见期间监听 document 的 mouseup；关闭即摘，避免常驻全局监听 */
+watch(visible, (open) => {
+  if (typeof document === "undefined") return;
+  if (open) document.addEventListener("mouseup", onDocumentMouseUp);
+  else document.removeEventListener("mouseup", onDocumentMouseUp);
+});
+
+onBeforeUnmount(() => {
+  if (typeof document !== "undefined") {
+    document.removeEventListener("mouseup", onDocumentMouseUp);
+  }
+});
 
 /* ===== 操作 ===== */
 function onOk(): void {
@@ -319,6 +371,7 @@ const showCloseFab = computed(() => props.headless);
   <!-- 默认 el-dialog 布局 -->
   <ElDialog
     v-else
+    ref="dialogInstance"
     v-model="visible"
     v-bind="$attrs"
     :title="headless ? '' : title"
@@ -331,8 +384,8 @@ const showCloseFab = computed(() => props.headless);
     :before-close="beforeClose"
     :destroy-on-close="destroyOnClose"
     :modal="modal"
-    :draggable="draggable"
-    :overflow="props.overflow"
+    :draggable="draggable && !isFullscreen"
+    :overflow="effectiveOverflow"
     :style="fullscreenStyle"
     class="re-dialog"
     :class="{
