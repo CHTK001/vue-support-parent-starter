@@ -2,19 +2,15 @@
  * 教育 AI 领域类型定义。
  */
 
-/** 分页响应（与后端 PageResult 对齐：列表字段是 records，总页数字段是 totalPage） */
+/** 分页响应（与后端 com.chua.common.support.lang.code.PageResult 对齐） */
 export interface PageResult<T> {
   pageNo: number;
   pageSize: number;
   total: number;
-  /** 后端 PageResult.totalPage */
-  totalPage?: number;
-  /** @deprecated 后端不返回该字段，勿在新代码使用 */
-  totalPages?: number;
-  /** 后端列表字段 */
+  totalPages: number;
+  data: T[];
+  /** 历史字段：个别老接口仍以 records 返回列表，读取处可做兜底 */
   records?: T[];
-  /** 兼容别名：等价于 records，新代码请直接用 records */
-  data?: T[];
 }
 
 /** 题目 */

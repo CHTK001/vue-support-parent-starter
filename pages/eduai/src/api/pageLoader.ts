@@ -32,8 +32,8 @@ export function createPageLoader<T>(
     if (inFlight?.key === key) return inFlight.request;
     const request: Promise<RePageResult> = fetchPage(page, pageSize, params).then((res) => ({
       total: res?.total ?? 0,
-      // 后端 PageResult 的列表字段是 records，data 只是前端类型里的兼容别名：
-      // 只取 data 会让所有远端分页表格拿到空数组（records 在这一行被丢弃）。
+      // eduai 分页统一返回 data（com.chua.common.support.lang.code.PageResult）；
+      // records 是历史字段，仅作兜底，避免个别老接口把列表字段名带回来时表格变空。
       data: (res?.data ?? res?.records ?? []) as unknown as Record<string, unknown>[],
     }));
     const settle = () => {
