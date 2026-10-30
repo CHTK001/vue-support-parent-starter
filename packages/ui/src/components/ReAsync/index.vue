@@ -1,7 +1,7 @@
 <template>
   <div class="re-async" :style="rootStyle">
     <!-- 加载中：自定义 loading 插槽优先，其次 ReLoader，最后内置骨架 -->
-    <div v-if="status === 'loading'" class="re-async__loading">
+    <div v-if="status === 'loading'" class="re-async__loading h-full">
       <slot name="loading">
         <ReLoader
           v-if="loadingMode === 'loader'"
@@ -15,7 +15,7 @@
           :skeleton-height="skeletonHeight"
           @timeout="onLoaderTimeout"
         />
-        <div v-else class="re-async__skeleton" :style="{ height: skeletonHeight }">
+        <div v-else class="re-async__skeleton h-full" :style="{ height: skeletonHeight }">
           <div class="re-async__bar" />
           <div class="re-async__bar" />
           <div class="re-async__bar" />
@@ -26,7 +26,7 @@
     </div>
 
     <!-- 加载失败：可重试 -->
-    <div v-else-if="status === 'error'" class="re-async__error">
+    <div v-else-if="status === 'error'" class="re-async__error h-full">
       <slot name="error" :error="error" :retry="load">
         <div class="re-async__error-box">
           <el-icon class="re-async__error-icon" :size="28"><WarningFilled /></el-icon>
@@ -162,6 +162,9 @@ watch(() => props.loader, load);
 </script>
 
 <style scoped>
+.h-full {
+  height: 100%;
+}
 .re-async {
   position: relative;
   width: 100%;

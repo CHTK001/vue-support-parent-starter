@@ -94,6 +94,7 @@ onBeforeUnmount(() => {
 
 .main-content {
   overflow-x: hidden;
+  padding: 8px !important;
   flex: 1;
   margin: 0;
   background-color: var(--el-bg-color-page);
