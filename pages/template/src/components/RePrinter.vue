@@ -1,15 +1,17 @@
 <!--
   RePrinter —— 打印机管理面板（独立组件）
 
-  职责：
-    - 打印机列表（已接入的第三方打印机：地址/端口/Token 等）
-    - 设置默认打印机（设置后，前端打印时直接选中那一台）
-    - 新增 / 编辑（地址/端口/Token 等第三方的连接参数）
-    - 发现打印机（外部 Agent/局域网 发现之后的接入列表）
-    - selector 模式：在模板设计器的「打印」流里选打印机并确认
+  职责（第三方打印的全部接口在这个组件里收口）：
+    - 打印机列表：所有已接入的打印机（本地 / 局域网 / 第三方云），展示地址/端口/Token 等连接参数
+    - 默认打印机：支持在表格/列表里把任意一台设为默认（设置后前端打印直接选它）
+    - 新增/编辑：地址/端口/Token/认证名 由本组件的表单维护
+    - 发现：把外部 Agent（局域网/代理）扫描到的设备接入进来
+    - selector 模式：在模板设计器的「打印」流里选打印机并确认；
+      宿主传入 PrintTemplate 时本组件直接发起第三方的凭据（让盒子选）；
+      不传时把选中的打印机名抛回给宿主，宿主调用 tpl.print 把第三方的参数递进去。
 
   mode 由宿主决定：
-    - "page"    打印机管理页面（ReTable 驱动，全量操作）
+    - "page"   打印机管理页面（ReTable 驱动，全量操作）
     - "selector" 打印机选择器（轻量列表 + 确认并第三方的打印）
 
   @since 4.0.0.60
@@ -19,13 +21,11 @@
   <div class="re-printer" :class="`re-printer--${mode}`">
     <!-- ==================== 顶栏 ==================== -->
     <header class="re-printer__header">
-      <div class="re-printer__left">
-        <h3 class="re-printer__title">
-          <ReIcon name="Printer" :size="14" />
-          {{ title }}
-          <span class="re-printer__count">共 {{ printers.length }} 台</span>
-        </h3>
-      </div>
+      <h3 class="re-printer__title">
+        <ReIcon name="Printer" :size="14" />
+        {{ title }}
+        <span class="re-printer__count">共 {{ printers.length }} 台</span>
+      </h3>
       <div class="re-printer__right">
         <template v-if="mode === 'page'">
           <ReButton text @click="onDiscover">发现打印机</ReButton>
@@ -37,7 +37,7 @@
       </div>
     </header>
 
-    <!-- ==================== page 模式：ReTable 驱动的列表 ==================== -->
+    <!-- ==================== page 模式：ReTable 驱动的打印机列表 ==================== -->
     <ReTable
       v-if="mode === 'page'"
       ref="tableRef"
@@ -55,7 +55,7 @@
       @row-click="onRowClick"
       @context-menu-select="onContextMenu"
     >
-      <!-- 打印机名 + 地址 -->
+      <!-- 打印机名 + 连接地址 -->
       <template #name="{ row }: { row: PrinterConfig }">
         <div class="re-printer-device">
           <div class="re-printer-device__name">{{ row.name }}</div>
@@ -87,7 +87,9 @@
     <div v-else class="re-printer__list">
       <div v-if="loading" class="re-printer__empty">加载中...</div>
       <div v-else-if="!printers.length" class="re-printer__empty">
-        暂无打印机，请先 <ReButton type="primary" text @click="openForm">添加打印机</ReButton> 或
+        暂无打印机，请先
+        <ReButton type="primary" text @click="openForm">添加打印机</ReButton>
+        或
         <ReButton text @click="onDiscover">发现打印机</ReButton>
       </div>
       <div v-else class="re-printer__items">
@@ -96,7 +98,7 @@
           :key="printer.name"
           class="re-printer-item"
           :class="{
-            're-printer-item--selected': !!selectedName(printer.name),
+            're-printer-item--selected': printer.name === selectedName,
             're-printer-item--default': printer.isDefault
           }"
           @click="onSelect(printer.name)"
@@ -119,7 +121,7 @@
 
       <!-- 确认并第三方的打印 -->
       <div class="re-printer__footer">
-        <ReButton type="primary" :disabled="!selectedPrinter" @click="onPrint">确认并第三方的打印</ReButton>
+        <ReButton type="primary" :disabled="!selectedName" @click="onPrint">确认并第三方的打印</ReButton>
       </div>
     </div>
 
@@ -142,7 +144,7 @@
           <el-input v-model="form.username" placeholder="认证用户名（可选）" maxlength="64" />
         </el-form-item>
         <el-form-item label="认证 Token">
-          <el-input v-model="form.token" placeholder="认证 Token（可选）" maxlength="128" />
+          <el-input v-model="form.token" placeholder="认证 Token（可选）" maxlength="128" type="password" show-password />
         </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="form.remark" type="textarea" :rows="2" maxlength="200" show-word-limit />
@@ -160,53 +162,58 @@
 /**
  * RePrinter —— 打印机管理面板（独立组件）
  *
- * 打印流（与第三方打印对接）：
+ * 与第三方的打印对接流程：
  *   1) 页面加载时从后端拉取已接入的打印机列表
- *   2) 默认打印机自动标下 mark（"第三方的打印" 的默认目标）
- *   3) 宿主点击「打印」时：有默认打印机就直接用，否则打开此面板选；
- *      点「确认并第三方的打印」后把打印机名交给宿主，由宿主调用
- *      `tpl.print({}, { printer: name, smartPrint: false }, cb)`
+ *   2) 默认打印机自动打在角标上（宿主点「打印」时直接选它）
+ *   3) 宿主传入 tpl（PrintTemplate）时，点「确认并第三方的打印」直接调
+ *      tpl.print({}, { printer: name, smartPrint: false }, cb) 达成第三方的凭据；
+ *      不传 tpl 时抛回 { name }，由宿主自行发起 tpl.print
  */
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watchEffect } from 'vue'
 import ReIcon from '@repo/ui/re-icon'
 import ReButton from '@repo/ui/re-button'
 import ReTable from '@repo/ui/re-table'
 import ReDialog from '@repo/ui/re-dialog'
-import type { RePageResult, ReTableColumn, ReTableContextMenuItem, ReTableContextMenuContext } from '@repo/ui/re-table'
+import type { ReTableColumn, ReTableContextMenuContext, ReTableContextMenuItem, ReTableLoadParams, RePageResult } from '@repo/ui/re-table'
 import type { PrinterConfig } from '../types/template'
 import { templateApi } from '../api/templateApi'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
-// --------------------------- 宿主对接 ---------------------------
-/** 模式（page / selector） */
-const mode = defineProps<{
-  /** 打印机组件标题 */
-  title?: string
-  /** 打印机模式 */
-  mode?: 'page' | 'selector'
-  /** 绑定选中的打印机名（selector 模式） */
-  printer?: string
-}>()
+export const printerProps = {
+  /** 打印机管理面板标题 */
+  title: { type: String, default: '打印机管理' },
+  /** 模式：page | selector */
+  mode: { type: String as () => 'page' | 'selector', default: 'page' },
+  /** 已选的打印机名（selector 模式下双向绑定） */
+  printer: { type: String, default: '' },
+  /** hiprint 的 PrintTemplate（传入时本组件直接发起第三方的打印） */
+  tpl: { type: null as any, required: false }
+}
 
-defineEmits<{
-  /** 确认并第三方的打印（ eventName: 打印机名） */
+export const printerEmits = {
+  /** 确认并第三方的打印（传给桌面端：打印机名） */
+  print: null as any,
+  /** 编辑打印机行（page 模式） */
+  edit: null as any,
+  /** 删除打印机（page 模式） */
+  remove: null as any
+} as const
+
+const props = defineProps(printerProps)
+const emit = defineEmits<{
   print: [name: string]
-  /** 编辑某台打印机 */
   edit: [row: PrinterConfig]
-  /** 删除某台打印机 */
   remove: [name: string]
 }>()
 
-// 选中的打印机名（selector 模式下可读写）
-const selected = defineModel<string>('printer', { default: '' })
-
-// --------------------------- 列表 ---------------------------
-const tableRef = ref<Record<string, any> | null>(null)
+// ==================== 列表状态 ====================
+const tableRef = ref<Record<string, unknown> | null>(null)
 const printers = ref<PrinterConfig[]>([])
 const loading = ref(false)
 const saving = ref(false)
+const selectedName = ref(props.printer)
 
-/** page 分页参数 */
+/** page 分页 */
 const page = ref(1)
 const pageSize = ref(10)
 
@@ -218,17 +225,16 @@ const columns: ReTableColumn[] = [
   { prop: 'action', label: '操作', slot: 'action', width: 200, fixed: 'right' }
 ]
 
-// --------------------------- 加载 ---------------------------
-/** 打印机(loader)：支持分页， loader 是 ReTable 协议的 loader */
-async function loadPrinters({ page, pageSize }: { page: number; pageSize: number }): Promise<RePageResult<PrinterConfig>> {
+// ==================== 加载 ====================
+/** 打印机 loader：后端分页，分页size由 ReTable 注入 */
+async function loadPrinters({ page: p, pageSize: ps }: ReTableLoadParams): Promise<RePageResult<PrinterConfig>> {
   loading.value = true
   try {
     const list = (await templateApi.printerList()) ?? []
     const total = list.length
-    page.value = page
-    pageSize.value = pageSize
-    const records = list.slice((page - 1) * pageSize, page * pageSize)
-    return { total, data: records }
+    const start = (p - 1) * ps
+    const data = list.slice(start, start + ps)
+    return { total, data }
   } catch (err) {
     ElMessage.error(String(err))
     return { total: 0, data: [] }
@@ -237,32 +243,40 @@ async function loadPrinters({ page, pageSize }: { page: number; pageSize: number
   }
 }
 
-/** page 参数 */
-onMounted(async () => {
-  await loadPrinters({ page: page.value, pageSize: pageSize.value })
-  loadPrinters({ page: page.value, pageSize: pageSize.value })
+watchEffect(() => {
+  selectedName.value = props.printer
 })
 
-// --------------------------- 操作 ---------------------------
+onMounted(() => {
+  void loadPrinters({ page: page.value, pageSize: pageSize.value, params: {} })
+})
+
+// ==================== 操作 ====================
 function host(row: PrinterConfig): string {
-  if (!row.address) return '外部'
+  if (!row.address) return '内网'
   if (row.port) return `${row.address}:${row.port}`
   return row.address
 }
 
-/** 发现打印机 */
+/** 发现打印机（由后端局域网/代理扫描，这里只刷新） */
 async function onDiscover(): Promise<void> {
-  await loadPrinters({ page: page.value, pageSize: pageSize.value })
-  tableRef.value?.reload()
+  try {
+    await templateApi.discoverPrinters()
+    await loadPrinters({ page: page.value, pageSize: pageSize.value, params: {} })
+    tableRef.value?.reload()
+  } catch (err) {
+    ElMessage.error(String(err))
+  }
 }
 
-/** 行点击（占位：选中行） */
-function onRowClick(row: PrinterConfig): void {
-  if (mode.mode === 'page') return
-  selected.value = row.name
+/** 行点击（selector 模式：点击行 = 选机） */
+function onRowClick(row: Record<string, unknown>): void {
+  if (props.mode === 'selector') {
+    selectedName.value = (row.name ?? String(row.name)) as string
+  }
 }
 
-/** 右键菜单 */
+/** 右键菜单：设为默认（不在默认上的主菜单） */
 function onContextMenu(_item: ReTableContextMenuItem, ctx: ReTableContextMenuContext): void {
   const row = ctx.row as PrinterConfig
   if (!row) return
@@ -274,9 +288,9 @@ async function onSetDefault(name: string): Promise<void> {
   saving.value = true
   try {
     await templateApi.setDefaultPrinter(name)
-    await loadPrinters({ page: page.value, pageSize: pageSize.value })
+    await loadPrinters({ page: page.value, pageSize: pageSize.value, params: {} })
     tableRef.value?.reload()
-    ElMessage.success('已设为默认打印机')
+    ElMessage.success(`「${name}」已设为默认打印机`)
   } catch (err) {
     ElMessage.error(String(err))
   } finally {
@@ -290,7 +304,7 @@ async function onRemove(name: string): Promise<void> {
   try {
     await ElMessageBox.confirm(`确定删除打印机「${name}」？`, '删除', { type: 'warning' })
     await templateApi.removePrinter(name)
-    await loadPrinters({ page: page.value, pageSize: pageSize.value })
+    await loadPrinters({ page: page.value, pageSize: pageSize.value, params: {} })
     tableRef.value?.reload()
     ElMessage.success('删除成功')
   } catch (err) {
@@ -300,21 +314,31 @@ async function onRemove(name: string): Promise<void> {
   }
 }
 
-/** 编辑 */
-function onEdit(row: PrinterConfig): void {
-  editingName.value = row.name
-  form.value = { ...row }
-  formVisible.value = true
-}
+// ==================== 新增/编辑 ====================
+const formVisible = ref(false)
+const editingName = ref<string | null>(null)
+const formRef = ref<Record<string, unknown> | null>(null)
+const form = ref<Partial<PrinterConfig>>({})
+const title = ref(props.title)
 
-/** 新增 */
+/** 打开新增窗体 */
 function openForm(): void {
   editingName.value = null
   form.value = {}
   formVisible.value = true
 }
 
-/** 确认窗体 */
+/** 打开编辑窗体 */
+function onEdit(row: PrinterConfig): void {
+  editingName.value = row.name
+  form.value = { ...row }
+  formVisible.value = true
+}
+
+/** 窗体标题 */
+const formTitle = computed(() => editingName.value ? `编辑打印机「${editingName.value}」` : '新增打印机')
+
+/** 窗体保存 */
 async function onFormConfirm(): Promise<void> {
   if (!form.value.name) {
     ElMessage.warning('请输入打印机设备名')
@@ -322,7 +346,7 @@ async function onFormConfirm(): Promise<void> {
   }
   saving.value = true
   try {
-    await templateApi.setPrinter({
+    const payload = {
       name: form.value.name,
       type: form.value.type,
       address: form.value.address,
@@ -330,10 +354,12 @@ async function onFormConfirm(): Promise<void> {
       username: form.value.username,
       token: form.value.token,
       remark: form.value.remark
-    })
+    }
+    /** 旧设备名只在编辑态由 host 维护（不传上来的话用 key） */
+    await templateApi.setPrinter(payload)
     ElMessage.success('已保存')
     formVisible.value = false
-    await loadPrinters({ page: page.value, pageSize: pageSize.value })
+    await loadPrinters({ page: page.value, pageSize: pageSize.value, params: {} })
   } catch (err) {
     ElMessage.error(String(err))
   } finally {
@@ -341,27 +367,35 @@ async function onFormConfirm(): Promise<void> {
   }
 }
 
+// ==================== 第三方的打印 ====================
 /** 确认并第三方的打印 */
-function onPrint(): void {
-  const name = selected.value
+async function onPrint(): Promise<void> {
+  const name = selectedName.value
   if (!name) {
     ElMessage.warning('请先选择一台打印机')
     return
   }
+  // 宿主传了 PrintTemplate：本组件直接发起第三方的据剧 / 打印
+  if (props.tpl) {
+    const tpl = props.tpl
+    if (!tpl || !tpl.print) {
+      ElMessage.warning('PrintTemplate 不可用')
+      return
+    }
+    saving.value = true
+    try {
+      tpl.print({}, { printer: name, smartPrint: false }, () => {
+        ElMessage.info(`已发送到 ${name}（第三方的打印）`)
+      })
+      emit('print', name)
+    } catch (err) {
+      ElMessage.error(String(err))
+    } finally {
+      saving.value = false
+    }
+    return
+  }
   emit('print', name)
-}
-
-// --------------------------- 状态 ---------------------------
-const editingName = ref<string | null>(null)
-const formVisible = ref(false)
-const form = ref<Partial<PrinterConfig>>({})
-const formRef = ref<any>(null)
-
-/** 选中的打印机名（选中的打印机） */
-const selectedPrinter = computed(() => selected.value)
-
-function selectedName(_name: string): boolean {
-  return _name === selectedPrinter.value
 }
 </script>
 
