@@ -44,9 +44,10 @@ const HostAccountTab = defineAsyncComponent(() => import("./hostaccount/HostAcco
 const SoftwareTab = defineAsyncComponent(() => import("../components/lab/ScSoftwareManager.vue"));
 // Docker 工作台：右键菜单 / 工作区页签（使用 ScDockerK8sWorkbench 的 docker 域，而非独立页面）
 const DockerTab = defineAsyncComponent(() => import("../components/lab/ScDockerK8sWorkbench.vue"));
-// 日志页：系统日志 / 登录日志（后端 API 不加主机前缀，页签跟随主机上下文展示）
-const SysLogTab = defineAsyncComponent(() => import("@pages/system/views/SysLogManage.vue"));
-const UserLogTab = defineAsyncComponent(() => import("@pages/system/views/UserLogManage.vue"));
+// 日志页：系统日志 / 登录日志 —— 读的是「这台服务器」自己的日志
+// （Linux：journalctl / /var/log；Windows：wevtutil），不是 @pages/system 里平台软件的
+// SysLogManage / UserLogManage。命令经主机通道下发，页签打开即带 hostId。
+const HostLogsTab = defineAsyncComponent(() => import("../components/lab/ScHostLogs.vue"));
 import ScHostMetricsBar from "../components/ScHostMetricsBar.vue";
 import type { MetricRow } from "../components/ScHostMetricsBar.types";
 import HostCommandPalette from "../components/HostCommandPalette.vue";
@@ -1039,8 +1040,8 @@ function ctxCommand(cmd: string): void {
   }
   if (cmd === "open-sys-log" || cmd === "open-user-log") {
     // 日志页收进工作区页签（与软件管理同进 ReTabs），不再推单独的页面；
-    // 日志是全局页（后端 /v2/log/page、/v2/user/log/page，不加主机前缀），
-    // 页签仍带上主机上下文，于是页签行上的状态/主机名陪主保留。
+    // 内容读的是这台服务器自身的日志（journalctl / /var/log / wevtutil），
+    // 不是 @pages/system 的平台软件操作日志，所以页签必须带主机上下文。
     openTab(h, cmd === "open-sys-log" ? "sys-log" : "user-log");
     return;
   }
@@ -1620,9 +1621,9 @@ function lazyTabOf(name: string): Component | null {
     case "docker":
       return DockerTab;
     case "sys-log":
-      return SysLogTab;
     case "user-log":
-      return UserLogTab;
+      // 日志页有专属分支（要额外传 kind=sys|login），不走通用懒加载映射
+      return null;
     default:
       return null;
   }
@@ -1950,22 +1951,15 @@ function pushActivity(text: string, icon = "Clock", hostId?: number): void {
   ].slice(0, 12);
 }
 
-/** 展开/收起 Dock，并记住选择 */
+/**
+ * 展开/收起右侧快捷操作面板，并记住选择。
+ *
+ * <p>收起即销毁：面板显示区是 {@code v-if}，点一下底部箭头，Dock 内全部 DOM
+ * （按钮 / 列表 / 折叠钮）一起消失，右侧不残留任何 Dock 控件。</p>
+ */
 function toggleDock(): void {
   dockOpen.value = !dockOpen.value;
-  // Dock 的显示区切成 v-if：收起时 Dock 内的全部 DOM（按钮/列表/折叠钮）销毁；
-  // 齿轮浮窗除外（不在 Dock 内），由这里随开关一起清空，确保收起后右侧不站任何残留 UI。
-  dockConfigVisible.value = false;
   localStorage.setItem("assets-dock-open", dockOpen.value ? "1" : "0");
-}
-
-/** Dock 底部设置菜单开关 */
-const dockConfigVisible = ref(false);
-
-/** 快捷操作面板显隐切换：从工作区底部设置进入，和 Dock 自身的收起按钮效果一致 */
-function onDockConfigAction(): void {
-  toggleDock();
-  dockConfigVisible.value = false;
 }
 
 /**
@@ -2319,7 +2313,17 @@ function onGlobalKeydown(e: KeyboardEvent): void {
               :host-name="hostNameOf(tabHostIdOf(tab.name))"
               domain="docker"
             />
-            <!-- 运维台四页 + 主机账号 + 软件管理 + 日志页：懒加载页面收进工作区页签 -->
+            <!-- 目标主机日志页签：系统日志 / 登录日志读的是这台服务器自身（journalctl / wevtutil），
+                 与「运维台 / 软件管理」的通用懒加载区分开，额外传 kind=sys|login -->
+            <HostLogsTab
+              v-else-if="tabKindOf(tab.name) === 'sys-log' || tabKindOf(tab.name) === 'user-log'"
+              :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
+              :host-id="tabHostIdOf(tab.name)"
+              :host-name="hostNameOf(tabHostIdOf(tab.name))"
+              :platform="platformOf(tabHostIdOf(tab.name))"
+              :kind="tabKindOf(tab.name) === 'user-log' ? 'login' : 'sys'"
+            />
+            <!-- 运维台四页 + 主机账号 + 软件管理：懒加载页面收进工作区页签 -->
             <component
               :is="lazyTabOf(tab.name)"
               v-else-if="tabKindOf(tab.name) && lazyTabOf(tab.name)"
@@ -2361,17 +2365,19 @@ function onGlobalKeydown(e: KeyboardEvent): void {
             :has-metrics="statusMetrics.has"
             :rows="statusOverviewRows"
           />
-          <!-- Dock 设置：守在指标条右侧，点出 Dock 设置面板 -->
+          <!-- Dock 开关：箭头直接销毁 / 恢复右侧快捷操作面板（不再套一层设置浮窗） -->
           <div class="as-work__foot">
-            <button type="button" class="as-work__config" title="快捷操作面板设置" @click="dockConfigVisible = !dockConfigVisible">
-              <ReIcon name="Setting" :size="15" />
+            <button
+              type="button"
+              class="as-work__dock-toggle"
+              :class="{ 'is-open': dockOpen }"
+              :title="dockOpen ? '收起右侧快捷操作面板' : '展开右侧快捷操作面板'"
+              :aria-label="dockOpen ? '收起右侧快捷操作面板' : '展开右侧快捷操作面板'"
+              :aria-expanded="dockOpen"
+              @click="toggleDock"
+            >
+              <ReIcon :name="dockOpen ? 'ArrowRight' : 'ArrowLeft'" :size="15" />
             </button>
-            <div v-if="dockConfigVisible" class="as-work__popover" @click.stop>
-              <div class="as-work__popover-item" @click="onDockConfigAction">
-                <ReIcon name="ArrowRight" :size="13" />
-                <span>{{ dockOpen ? '关闭右侧快捷操作' : '显示右侧快捷操作' }}</span>
-              </div>
-            </div>
           </div>
         </div>
       </section>
@@ -2444,8 +2450,8 @@ function onGlobalKeydown(e: KeyboardEvent): void {
         </div>
       </aside>
 
-      <!-- Dock 收起（v-if / v-else 控制）：Dock 结构（含折叠钮）与 Dock 条的展开手柄一起全量销毁，
-      不留任何 Dock 控件——Dock 展开的唯一入口是工作区底部中央的「快捷操作面板设置」齿轮菜单 -->
+      <!-- Dock 收起（v-if 控制）：Dock 结构（含折叠钮）全量销毁，
+      不留任何 Dock 控件；恢复入口是工作区底部右侧的箭头按钮（无需菜单） -->
     </div>
 
     <!-- 新增/编辑弹窗（独立子组件——弹窗渲染只在子组件内进行，不再触发本组件全量 diff） -->
@@ -3637,7 +3643,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   box-shadow: var(--el-box-shadow-light, var(--shadow-1));
 }
 
-/* 底部一行：指标条 + Dock 设置钮，flex-wrap: nowrap 兜底，不能再撑成两行。
+/* 底部一行：指标条 + Dock 开关，flex-wrap: nowrap 兜底，不能再撑成两行。
    分隔线画在这一层，不画在指标条上：指标条的宽度跟内容走，线会跟着内容的长度断在半路
    （窄屏被裁掉、宽屏只画到指标条末尾），挪到这里才始终横贯整个工作区。
    container-type 供指标条内部的 @container 查询：按底部条自身的可用宽度决定显示哪几项。 */
@@ -3654,7 +3660,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   container-type: inline-size;
 }
 
-/* Dock 设置：守在底部行的右侧，浮窗贴在设置钮上方 */
+/* Dock 开关：守在底部行的右侧，箭头直接切换右侧快捷操作面板（展开 / 销毁） */
 .as-work__foot {
   position: relative;
   display: flex;
@@ -3664,7 +3670,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   padding: 0;
   flex: none;
 }
-.as-work__config {
+.as-work__dock-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3677,40 +3683,12 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
-.as-work__config:hover {
-  background: var(--el-fill-color-light);
+/* 面板展开时箭头用主色，和「已打开」状态对齐；收起后回到常规色，提示这里还能再打开 */
+.as-work__dock-toggle.is-open {
   color: var(--el-color-primary);
 }
-/* 浮窗：贴在设置钮上方居中，点别处（菜单外）可关闭 */
-.as-work__popover {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%) translateY(0);
-  margin-bottom: 4px;
-  min-width: 180px;
-  background: var(--el-bg-color-overlay);
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 8px;
-  padding: 5px;
-  box-shadow: var(--el-box-shadow);
-  z-index: 10;
-}
-.as-work__popover-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
-  font-size: 13px;
-  color: var(--el-text-color-regular);
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.12s;
-}
-.as-work__popover-item:hover {
-  background: var(--el-fill-color);
+.as-work__dock-toggle:hover {
+  background: var(--el-fill-color-light);
   color: var(--el-color-primary);
 }
 

@@ -14,6 +14,18 @@ import type { RouteConfigsTable } from '@repo/core'
 
 export const templateRoutes: RouteConfigsTable[] = [
   {
+    // 临时布局探索页（不显示在菜单），选定方向后连同 views/explore 一起删除
+    path: '/template/_explore',
+    name: 'TemplateExplore',
+    component: () => import('../views/explore/ProviderExplore.vue'),
+    meta: {
+      title: '布局探索',
+      showLink: false,
+      keepAlive: false,
+      isVisible: '0'
+    }
+  },
+  {
     path: '/template',
     name: 'TemplateHome',
     component: () => import('../views/TemplateView.vue'),

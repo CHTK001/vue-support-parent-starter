@@ -324,25 +324,26 @@ export const monitorRoutes: RouteConfigsTable[] = [
     ],
   },
 
-  // ==================== 日志管理 ====================
-  // 操作日志 / 登录日志的落地页在 @pages/system（后端 /v2/log/page、/v2/user/log/page），
-  // 页面与 API 自成包。这里只挂路由，菜单由路由树（buildMenuFromRoutes）自动推导。
+  // ==================== 日志（不进侧边栏） ====================
+  // 系统日志 / 登录日志在主机资产里是「某台服务器」的页签（ScHostLogs，读 journalctl / wevtutil），
+  // 不是平台软件的操作日志。这两个 @pages/system 页面只作为旧链接的兼容落地页保留，
+  // showLink:false —— 不再作为「日志管理」菜单出现在全局导航里，避免把软件日志当服务器日志。
   {
     path: "/grp-logs",
     name: "GroupLogs",
-    meta: { title: "日志管理", icon: "Tickets", showLink: true, rank: 31 },
+    meta: { title: "日志管理", icon: "Tickets", showLink: false, rank: 31 },
     children: [
       {
         path: "/logs/sys",
         name: "SysLog",
         component: () => import("@pages/system/views/SysLogManage.vue"),
-        meta: { title: "系统日志", icon: "Document", showLink: true, keepAlive: true, rank: 1 },
+        meta: { title: "系统日志", icon: "Document", showLink: false, keepAlive: true, rank: 1 },
       },
       {
         path: "/logs/user",
         name: "UserLog",
         component: () => import("@pages/system/views/UserLogManage.vue"),
-        meta: { title: "登录日志", icon: "Unlock", showLink: true, keepAlive: true, rank: 2 },
+        meta: { title: "登录日志", icon: "Unlock", showLink: false, keepAlive: true, rank: 2 },
       },
     ],
   },

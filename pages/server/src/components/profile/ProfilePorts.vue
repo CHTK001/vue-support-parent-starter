@@ -345,33 +345,55 @@ const listView = computed<PortView[]>(() => {
   font-size: 10.5px;
 }
 
-/* 视图切换按钮：ReButton 方钮 + 本地开关状态（高特定性，盖过 rs-btn 的自带样式） */
+/* 视图切换按钮：ReButton 把 class 转发到内层 <button>，父组件的 scoped 属性
+   只落在它外层 tooltip 包裹上，普通后代选择器永远命中不到真正的按钮
+   （两个按钮看起来一样「激活」就是这么来的）。这里必须用 :deep()。 */
 .port-view-toggle {
   display: inline-flex;
   gap: 2px;
   padding: 2px;
   border-radius: 7px;
   background: var(--el-fill-color-light, #f5f7fa);
-}
-.port-view-toggle .port-view-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--el-text-color-secondary, #5c6270);
-  cursor: pointer;
-  transition: background 0.16s, color 0.16s, box-shadow 0.16s;
-}
-.port-view-toggle .port-view-btn.on {
-  background: var(--el-bg-color, #fff);
-  color: var(--el-text-color-primary, #1f2430);
-  box-shadow: 0 1px 2px rgba(31, 36, 48, 0.1);
+
+  :deep(.rs-btn.port-view-btn) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--el-text-color-secondary, #5c6270);
+    box-shadow: none;
+    cursor: pointer;
+    transition: background 0.16s, color 0.16s, border-color 0.16s, box-shadow 0.16s;
+  }
+
+  /* 未选中：hover 只给一层浅底，不出现「白底 + 投影」，避免和真正选中的那个混淆 */
+  :deep(.rs-btn.port-view-btn:hover:not(.on):not(.is-disabled):not(:disabled)) {
+    background: var(--el-bg-color, #fff);
+    color: var(--el-text-color-regular, #4a5162);
+    border-color: var(--el-border-color-lighter, #e3e6ef);
+  }
+
+  /* 选中：唯一带白底 + 投影 + 主色的按钮，肉眼只会有这一个「亮着」 */
+  :deep(.rs-btn.port-view-btn.on) {
+    background: var(--el-bg-color, #fff);
+    color: var(--el-color-primary, #5a4bd9);
+    border-color: var(--el-border-color-lighter, #e3e6ef);
+    box-shadow: 0 1px 2px rgba(31, 36, 48, 0.12);
+  }
+
+  /* 选中态 hover 保持不变色，只保留轻微的投影加深 */
+  :deep(.rs-btn.port-view-btn.on:hover:not(.is-disabled):not(:disabled)) {
+    background: var(--el-bg-color, #fff);
+    color: var(--el-color-primary, #5a4bd9);
+    border-color: var(--el-border-color-lighter, #e3e6ef);
+    box-shadow: 0 1px 3px rgba(31, 36, 48, 0.16);
+  }
 }
 
 /* 列表视图 */

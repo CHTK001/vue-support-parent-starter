@@ -3,7 +3,8 @@
  *
  * <p>两项需求：**中间底部一行显示不允许换行**、**关闭右侧是全部关闭**——Dock
  * 收起时 Dock 内的折叠钮、Dock 外暴露的展开手柄必须全部销毁，不再占位或
- * 残留任何 Dock 控件（铃声只由齿轮菜单的「显示右侧快捷操作」提供）。
+ * 残留任何 Dock 控件。恢复入口只有一个：底部指标条右侧的箭头按钮，点它直接
+ * 销毁 / 展开右侧快捷操作面板（不套设置浮窗、不走二级菜单）。
  *
  * <p>不依赖浏览器：只断言页面源结构——DOM 行不行，开关是什么。
  *
@@ -46,12 +47,16 @@ describe("Dock 收起时全部销毁", () => {
     expect(template).not.toContain(".as-dock-open");
   });
 
-  it("Dock 收起时齿轮浮窗（恢复）随开关一起清空", () => {
-    const toggle = script.slice(script.indexOf("function toggleDock"));
-    expect(toggle).toContain("dockConfigVisible.value = false;");
-    // 浮窗开关与 Dock 展开/收起 联动
-    expect(script).toContain("const dockConfigVisible = ref(false);");
-    expect(template).toContain("<div v-if=\"dockConfigVisible\" class=\"as-work__popover\"");
+  it("底部箭头直接切换 Dock：没有设置浮窗，收起后右侧无残留", () => {
+    // 箭头按钮始终存在（Dock 展开时是收起入口，收起后是恢复入口）
+    expect(template).toContain('class="as-work__dock-toggle"');
+    expect(template).toContain('@click="toggleDock"');
+    expect(template).toContain("dockOpen ? 'ArrowRight' : 'ArrowLeft'");
+    // 设置齿轮与浮窗整体移除，不能再有二级菜单
+    expect(template).not.toContain("dockConfigVisible");
+    expect(template).not.toContain("as-work__popover");
+    expect(script).not.toContain("dockConfigVisible");
+    expect(script).not.toContain("onDockConfigAction");
   });
 });
 
@@ -117,7 +122,7 @@ describe("底部一行：指标条与 Dock 设置钮不能再拆行", () => {
   });
 
   it("设置钮高度固定（32px）且没有底部间距，不再给独立行留空间", () => {
-    const foot = section(".as-work__foot {", ".as-work__config {");
+    const foot = section(".as-work__foot {", ".as-work__dock-toggle {");
     expect(foot).toContain("height: 32px");
     expect(foot).toContain("padding: 0");
     expect(foot).not.toContain("0 0 10px");

@@ -26,17 +26,17 @@
             >
               <el-option v-for="g in groupOptions" :key="g" :label="g" :value="g" />
             </el-select>
-            <span class="reid-group-hint">不同分组各有一套轨迹库，互不可见</span>
+            <span class="reid-group-hint">不同分组各有一套记录库，互不可见</span>
           </div>
 
           <!-- 空态：引导上传 -->
           <div v-if="!previewUrl" class="reid-drop" @click="pickImage">
             <el-icon :size="46" class="reid-drop-icon"><Picture /></el-icon>
-            <p class="reid-drop-title">{{ mode === 'observe' ? '上传一帧监控画面，开始跨帧追踪' : '上传一张人脸照片，检索轨迹' }}</p>
+            <p class="reid-drop-title">{{ mode === 'observe' ? '上传一帧监控画面，开始观测' : '上传一张人脸照片，检索记录' }}</p>
             <p class="reid-drop-desc">
               {{ mode === 'observe'
-                ? '同一个人在不同摄像头出现时，会自动并入同一条轨迹'
-                : '在已观测的轨迹中找出最相似的人' }}
+                ? '每次观测生成一条记录，按分组与摄像头存入底库'
+                : '在已观测的记录中找出最相似的人' }}
             </p>
             <el-button type="primary" class="reid-drop-btn" :disabled="!available" @click.stop="pickImage">
               <el-icon><FolderOpened /></el-icon>选择图片
@@ -424,7 +424,7 @@ const blankTitle = computed(() =>
 /** 空态说明。 */
 const blankDesc = computed(() =>
   activeTab.value === "hit"
-    ? "上传一张人脸照片后点「检索轨迹」，命中的记录会出现在这里"
+    ? "上传一张人脸照片后点「检索记录」，命中的记录会出现在这里"
     : "上传一帧监控画面并观测后，人员记录会自动落库",
 );
 
@@ -540,7 +540,7 @@ async function onGroupChange(selected?: string | string[]) {
   await loadObservations();
 }
 
-/** 观测并归并。 */
+/** 观测并入库。 */
 async function runObserve() {
   if (!lastFile.value) {
     message.warning("请先选择图片");
