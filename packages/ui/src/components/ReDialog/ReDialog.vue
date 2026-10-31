@@ -214,8 +214,8 @@ const resolved = computed(() => {
  * 现在拖拽完全交给 el-dialog 原生实现：mousedown 绑在 headerRef 上、以
  * transform: translate() 位移，到视口边就停，不越界、不回弹、不缩小。
  *
- * overflow：显式 `overflow` 优先，未传则跟随 `draggable`（开了拖拽就放开 clamp，
- * 近满高的弹窗才拖得动）—— 由 `effectiveOverflow` 计算得出。
+ * overflow：显式 `overflow` 优先，未传时默认 `false`（el-dialog 把位移钳制到视口边，
+ * 到边就停；要自由空间才显式传 `overflow="true"` 放开钳制）—— 由 `effectiveOverflow` 计算得出。
  * ========================================================================== */
 
 /**
@@ -236,9 +236,9 @@ const effectiveOverflow = computed<boolean>(() => props.overflow ?? false);
 /**
  * el-dialog 实例句柄（取弹窗 DOM / 调 resetPosition 归零）。
  *
- * <p>与 koi 主题一致：放开 {@link effectiveOverflow} 后弹窗可以被拖到任意位置，
- * 也就可能被拖出视口而无法再抓到；这里在拖拽结束（document mouseup）后检查
- * 是否越出「保留区」，越界就用官方 {@code resetPosition} 归零。</p>
+ * <p>与 koi 主题一致：在业务 <b>显式放开 {@link effectiveOverflow}</b> 的前提下，弹窗才
+ * 被允许被拖到任意位置、甚至拖出视口而无法再抓到；这里在拖拽结束（document mouseup）后
+ * 检查是否越出「保留区」，越界就用官方 {@code resetPosition} 归零。</p>
  */
 const dialogInstance = ref<ElDialogExposed | null>(null);
 
@@ -253,7 +253,7 @@ const DRAG_KEEP_VISIBLE = 56;
 
 /** 拖拽兜底：只对「未全屏 + 可拖拽」时有效（全屏时 transform 会被清空，无需归零） */
 function onDocumentMouseUp(): void {
-  if (!props.draggable || isFullscreen.value) return;
+  if (!props.draggable || !effectiveOverflow.value || isFullscreen.value) return;
   const el = dialogInstance.value?.dialogContentRef?.$el ?? null;
   if (!el) return;
 

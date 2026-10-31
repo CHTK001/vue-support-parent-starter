@@ -226,8 +226,8 @@ interface DialogExposed {
 /**
  * 拖拽结束兜底：被拖到视口外的弹窗拉回原价，保证永远抓得到。
  *
- * <p>放开 {@link effectiveOverflow} 之后弹窗可以被拖到任意位置，也就可能被拖出视口而
- * 无法再抓到。这里在每次 mouseup 后检查四个方向：只要有任一边界越出「保留区」，
+ * <p>在业务 <b>显式放开 {@link effectiveOverflow}</b> 的前提下，弹窗才被允许被拖到任意位置，以致
+ * 拖出视口而无法再抓到。这里在每次 mouseup 后检查四个方向：只要有任一边界越出「保留区」，
  * 就用官方 {@code resetPosition} 归零。</p>
  *
  * <p>为什么用官方 {@code resetPosition} 而不是自己改写 {@code transform}：
@@ -235,7 +235,7 @@ interface DialogExposed {
  * 下一次拖拽弹窗会先跳一下。</p>
  */
 function onDocumentMouseUp(): void {
-  if (!props.draggable) return;
+  if (!props.draggable || !effectiveOverflow.value) return;
   const el = dialogInstance.value?.dialogContentRef?.$el ?? null;
   if (!el) return;
 

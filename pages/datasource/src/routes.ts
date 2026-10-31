@@ -37,6 +37,9 @@ export const MANAGER_ROUTE_MAP: Record<string, string> = {
   // 不另写一套管理面（另写一套必然出现「能连上但功能半通」的分叉）
   clickhouse: "/db-manager",
   duckdb: "/db-manager",
+  // Calcite 合并数据源走同一套 JDBC 管理台：后端 connection(id) 按成员现场装配
+  // 联邦连接，打开后左侧数据源下拉必须包含它（jdbcTypes.ts 同步收进 JDBC 族）
+  calcite: "/db-manager",
   redis: "/redis-manage",
   influxdb: "/influxdb",
   neo4j: "/neo4j",

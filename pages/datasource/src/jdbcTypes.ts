@@ -17,9 +17,14 @@
  */
 
 /**
- * 走 JDBC 协议的类型集合（与后端 DS_JDBC_TYPES 一致）。
+ * 走 JDBC 协议的类型集合。
+ *
+ * <p>与后端 {@code isJdbcFamily} 保持一致：普通 JDBC / ClickHouse / DuckDB 之外，
+ * calcite 合并数据源也通过同一套 JDBC 元数据管线打开（后端 {@code connection(id)}
+ * 对 calcite 分支现场装配联邦连接）。普通数据源中心的「新增/编辑」类型面板仍把
+ * calcite 视为合并动作独占类型，不通过这里的普通类型语义参与表单逻辑。</p>
  */
-export const JDBC_FAMILY_TYPES: readonly string[] = ["jdbc", "clickhouse", "duckdb"];
+export const JDBC_FAMILY_TYPES: readonly string[] = ["jdbc", "clickhouse", "duckdb", "calcite"];
 
 /**
  * 该类型是否走 JDBC 协议。
