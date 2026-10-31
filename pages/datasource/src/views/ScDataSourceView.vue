@@ -891,6 +891,12 @@ const openEdit = (item: DataSourceInfo) => {
     message.info("应用主库为平台内置数据源，不支持编辑");
     return;
   }
+  // Calcite 合并记录由「跨库合并」动作独占创建，成员装配语义在 JSON 里；
+  // 直接编辑会退回普通台账字段，把联邦连接改成不存在的主机/库名。
+  if (isCalciteSource(item)) {
+    message.info("合并数据源由跨库合并动作独占创建，不支持编辑；调整成员后打开管理台重开即生效");
+    return;
+  }
   editing.value = item;
   form.value = { ...item };
   // 整串 URL 形态的数据源：把已有 query 参数回显成可编辑行
@@ -906,6 +912,69 @@ const openEdit = (item: DataSourceInfo) => {
   advancedOpen.value = false;
   dialogTestResult.value = null;
   dialogVisible.value = true;
+};
+
+/**
+ * 跨库合并弹窗状态。
+ *
+ * <p>合并不是普通新增：成员配置落在合并记录的 JSON 里，由 Calcite 每次装配
+ * 成联邦 schema。入口单独放按钮，不走新增表单——后端 DS_TYPES 不含 calcite，
+ * 放进类型面板会让用户以为它是可直连的数据库。</p>
+ */
+const mergeDialogVisible = ref(false);
+const mergeName = ref("");
+const mergeMemberIds = ref<number[]>([]);
+const mergeSaving = ref(false);
+
+/** 可合并成员：JDBC 家族、且不是 calcite 本身（后端同样按 isJdbcFamily 校验） */
+const mergeCandidates = computed<DataSourceInfo[]>(() =>
+  list.value.filter(
+    (item) => !isSystemSource(item) && !isCalciteSource(item) && JDBC_FAMILY_TYPES.has(item.type),
+  ),
+);
+
+/** 打开跨库合并弹窗 */
+const openMergeDialog = () => {
+  mergeName.value = "";
+  mergeMemberIds.value = [];
+  // 首次进入列表还没拉回时先补一次，候选以最新台账为准
+  if (!list.value.length) void load();
+  mergeDialogVisible.value = true;
+};
+
+/** 勾选/取消勾选合并成员 */
+const toggleMergeMember = (id: number | undefined): void => {
+  if (id == null) return;
+  mergeMemberIds.value = mergeMemberIds.value.includes(id)
+    ? mergeMemberIds.value.filter((x) => x !== id)
+    : [...mergeMemberIds.value, id];
+};
+
+/** 提交合并数据源，成功后刷新列表并定位到新记录 */
+const submitMerge = async () => {
+  if (!mergeName.value.trim()) {
+    message.warning("请输入合并数据源名称");
+    return;
+  }
+  if (!mergeMemberIds.value.length) {
+    message.warning("请至少选择一个成员数据源");
+    return;
+  }
+  mergeSaving.value = true;
+  try {
+    const created = await mergeDataSource(mergeName.value.trim(), mergeMemberIds.value);
+    message.success(`已创建合并数据源「${created.name}」`);
+    mergeDialogVisible.value = false;
+    await load();
+    if (created.id != null) {
+      systemSelected.value = false;
+      currentId.value = created.id;
+    }
+  } catch (e) {
+    message.error(`创建合并数据源失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    mergeSaving.value = false;
+  }
 };
 
 /** 保存 */
@@ -1023,7 +1092,16 @@ const allVisibleSelected = computed(() => {
 
 /** 批量置顶 / 取消置顶（逐条调用单条接口；置顶项在左栏/全量列表排最前） */
 const batchToggleTop = async (top: boolean) => {
-  const targets = [...selectionIds.value];
+  const allTargets = [...selectionIds.value];
+  // calcite 合并记录由合并动作独占，不能置顶；整批勾选时先跳过再调接口，
+  // 不给后端制造一批必然失败的请求。
+  const targets = allTargets.filter((id) => {
+    const row = list.value.find((r) => r.id === id);
+    return row != null && !isCalciteSource(row);
+  });
+  if (allTargets.length !== targets.length) {
+    message.warning("合并数据源不支持置顶，已跳过");
+  }
   if (!targets.length) return;
   const label = top ? "置顶" : "取消置顶";
   const results = await Promise.allSettled(targets.map((id) => toggleDataSourceTop(id, top)));
@@ -1067,6 +1145,14 @@ const runCardCommand = (cmd: string, item: DataSourceInfo) => {
       message.info("应用主库为平台内置数据源，不支持删除");
     }
     return;
+  }
+  if (isCalciteSource(item)) {
+    if (cmd === "schema") {
+      message.info("合并数据源不支持浏览单一表结构，请打开管理台查看联合 schema");
+    } else if (cmd === "edit") {
+      message.info("合并数据源由跨库合并动作独占创建，不支持编辑");
+    }
+    // delete 保留：合并记录同样允许删除
   }
   if (cmd === "schema") {
     void openSchema(item);
@@ -1154,6 +1240,16 @@ const ctxMenuItems = computed(() => {
     return [
       { key: "manage", label: "打开管理", icon: "View" },
       { key: "manage-full", label: "打开管理（新标签）", icon: "View", divided: true },
+    ];
+  }
+  // Calcite 合并数据源：编辑/置顶由合并动作独占语义排除（后端同样拒绝），
+  // 测试连接与删除保留；users/docs/processes/slowQueries 是普通 JDBC 专属项。
+  if (item && isCalciteSource(item)) {
+    return [
+      { key: "manage", label: "打开管理", icon: "View" },
+      { key: "manage-full", label: "打开管理（新标签）", icon: "View", divided: true },
+      { key: "test", label: "检测连接", icon: "Connection" },
+      { key: "delete", label: "删除数据源", icon: "Delete", danger: true, divided: true },
     ];
   }
   const base: { key: string; label: string; icon: string; danger?: boolean; warning?: boolean; divided?: boolean }[] = [
@@ -1301,6 +1397,14 @@ const onItemMenuSelect = (key: string) => {
   const item = ctxMenu.item;
   ctxMenu.item = null;
   if (!item) return;
+  if (key === "top" && isCalciteSource(item)) {
+    message.info("合并数据源不支持置顶");
+    return;
+  }
+  if (key === "edit" && isCalciteSource(item)) {
+    message.info("合并数据源由跨库合并动作独占创建，不支持编辑");
+    return;
+  }
   if (key === "manage") {
     openManager(item);
     return;
@@ -1675,6 +1779,10 @@ const test = async (item: DataSourceInfo) => {
  * 而 current 是「当前选中 id」的派生值，重拉后仍指向同一数据源）。</p>
  */
 const toggleTop = async (item: DataSourceInfo) => {
+  if (isCalciteSource(item)) {
+    message.info("合并数据源不支持置顶");
+    return;
+  }
   if (item.id == null) {
     message.warning("数据源缺少 ID，无法置顶");
     return;
@@ -2512,6 +2620,14 @@ onMounted(load);
             <ReIcon name="Plus" :size="14" />
             <span>添加数据源</span>
           </button>
+          <button
+            type="button"
+            class="ds-side__add ds-side__add--merge"
+            @click="openMergeDialog"
+          >
+            <ReIcon name="Link" :size="14" />
+            <span>跨库合并</span>
+          </button>
         </div>
 
         <!-- 左栏数据源右键菜单（打开管理 / 编辑 / 删除）。
@@ -2542,6 +2658,55 @@ onMounted(load);
             title="数据库文档"
           />
         </div>
+      </ReDialog>
+
+      <!-- 跨库合并（Calcite 联邦查询）：非普通新增，独立弹窗收拢名称 + 成员勾选。
+           成员过滤口径与后端校验一致：JDBC 家族、且不能是 app / calcite 本身。 -->
+      <ReDialog v-model="mergeDialogVisible" title="跨库合并" width="560px" class="ds-merge-dialog">
+        <div class="ds-merge">
+          <ReFormItem label="合并数据源名称" required>
+            <ReInput
+              v-model="mergeName"
+              :maxlength="60"
+              placeholder="如 生产分析库（MySQL + ClickHouse）"
+              clearable
+            />
+          </ReFormItem>
+
+          <ReFormItem label="成员数据源" required>
+            <p class="ds-merge__hint">
+              选 2 个及以上 JDBC 族数据源组合成联邦查询（成员仍是独立数据源，
+              此处只登记合并关系）。可合并成员：
+            </p>
+            <div class="ds-merge__members">
+              <template v-if="mergeCandidates.length">
+                <label v-for="member in mergeCandidates" :key="member.id ?? member.name" class="ds-merge__member">
+                  <ElCheckbox
+                    :model-value="member.id != null && mergeMemberIds.includes(member.id)"
+                    :aria-label="`选择成员 ${member.name}`"
+                    @change="toggleMergeMember(member.id)"
+                  />
+                  <span class="ds-merge__member-icon" :style="{ '--tile': typeMeta(member.type).color }">
+                    <b class="ds-mark">{{ typeMeta(member.type).mark }}</b>
+                  </span>
+                  <span class="ds-merge__member-body">
+                    <b>{{ member.name }}</b>
+                    <span class="ds-merge__member-meta mono">{{ formatAddress(member) }}</span>
+                  </span>
+                </label>
+              </template>
+              <p v-else class="ds-merge__empty">
+                暂无可合并成员：需要先创建至少一个 JDBC 族（JDBC / ClickHouse / DuckDB）数据源。
+              </p>
+            </div>
+          </ReFormItem>
+        </div>
+        <template #footer>
+          <ReButton class="ds-pill" @click="mergeDialogVisible = false"><template #icon><ReIcon name="Close" :size="12" /></template>取消</ReButton>
+          <ReButton type="primary" class="ds-pill" :loading="mergeSaving" data-testid="ds-merge-submit" @click="submitMerge">
+            <template #icon><ReIcon name="Check" :size="12" /></template>创建合并数据源
+          </ReButton>
+        </template>
       </ReDialog>
 
       <!-- 右栏：头部 + 页签 + 内容合成一整张卡（白卡片落在浅灰画布上，边界一眼可分）。
@@ -2595,6 +2760,7 @@ onMounted(load);
                 <!-- 页头动作一律方形图标钮（文字进 tooltip / aria-label）：
                      文字按钮会把标题行撑高，长名称一换行头卡就跟着跳。 -->
                 <ReButton icon="Plus" :show-text="false" layout="square" @click="openCreate">新增数据源</ReButton>
+                <ReButton icon="Link" :show-text="false" layout="square" @click="openMergeDialog">跨库合并</ReButton>
                 <template v-if="current && !isSystemSource(current)">
                   <ReButton icon="Lightning" :show-text="false" layout="square" :loading="testing === current.id" @click="test(current)">测试连接</ReButton>
                 </template>
@@ -2614,7 +2780,7 @@ onMounted(load);
                     <ElDropdownItem command="refresh"><ReIcon name="RefreshRight" />刷新列表</ElDropdownItem>
                     <template v-if="current && !isSystemSource(current)">
                       <ElDropdownItem v-if="current.type === 'jdbc'" command="schema" divided><ReIcon name="Grid" />浏览表结构</ElDropdownItem>
-                      <ElDropdownItem command="edit"><ReIcon name="EditPen" />编辑数据源</ElDropdownItem>
+                      <ElDropdownItem v-if="!isCalciteSource(current)" command="edit"><ReIcon name="EditPen" />编辑数据源</ElDropdownItem>
                       <ElDropdownItem command="delete" divided style="color: var(--el-color-danger)"><ReIcon name="Delete" />删除数据源</ElDropdownItem>
                     </template>
                   </ElDropdownMenu>
@@ -3842,6 +4008,19 @@ onMounted(load);
   border-color: color-mix(in srgb, var(--el-color-primary) 45%, transparent);
   background: color-mix(in srgb, var(--el-color-primary) 7%, transparent);
 }
+/* 跨库合并入口与「添加数据源」区分开：主色实线 + 浅色底，一眼是"动作"而非"条目" */
+.ds-side__add--merge {
+  margin-top: 8px;
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--el-color-primary) 35%, transparent);
+  color: var(--el-color-primary, #2b6de8);
+  background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
+}
+.ds-side__add--merge:hover {
+  border-color: var(--el-color-primary);
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+}
 
 /* ReInput 内部为元素透传，搜索框宽度需用 :deep 命中 el-input 根 */
 .ds-side :deep(.ds-side__search) {
@@ -4524,6 +4703,82 @@ onMounted(load);
   color: var(--el-text-color-regular);
 }
 .ds-form :deep(.el-form-item__content) { margin-left: 0 !important; }
+
+/* ---------------- 跨库合并（Calcite 联邦查询） ---------------- */
+.ds-merge {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.ds-merge__hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--el-text-color-secondary);
+}
+/* 成员候选列表：最高 46vh 内部滚动，成员多时不把弹窗撑出屏 */
+.ds-merge__members {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: min(46vh, 420px);
+  overflow-y: auto;
+  padding: 2px;
+}
+.ds-merge__member {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-base, 8px);
+  background: var(--el-fill-color-lighter, #fafafa);
+  cursor: pointer;
+  transition:
+    border-color var(--el-transition-duration, 0.15s) ease,
+    background-color var(--el-transition-duration, 0.15s) ease;
+}
+.ds-merge__member:hover {
+  border-color: color-mix(in srgb, var(--el-color-primary) 45%, transparent);
+  background: var(--el-fill-color-light, #f5f7fa);
+}
+.ds-merge__member-icon {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: #fff;
+  background: var(--tile, var(--el-color-primary));
+}
+.ds-merge__member-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ds-merge__member-body b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.ds-merge__member-meta {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+}
+.ds-merge__empty {
+  margin: 0;
+  padding: 10px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--el-text-color-placeholder);
+}
 
 /* ---------------- 表结构浏览 ---------------- */
 .ds-schema { display: flex; flex-direction: column; gap: 10px; }

@@ -79,7 +79,11 @@
             <el-empty :image-size="88" description="暂无汉字，点击「新增汉字」创建" />
           </template>
           <template #col-hanziChar="{ row }">
-            <span class="hanzi-char">{{ row.hanziChar }}</span>
+            <span
+              class="hanzi-char hanzi-hover-target"
+              @mouseenter="startHanziHover($event, row as unknown as EduHanzi)"
+              @mouseleave="cancelHanziHover"
+            >{{ row.hanziChar }}</span>
           </template>
           <template #col-hanziStrokeOrder="{ row }">
             <span class="stroke-order">{{ row.hanziStrokeOrder || "—" }}</span>
@@ -206,6 +210,12 @@
         </div>
       </template>
     </ReDialog>
+
+    <HanziHoverWrite
+      :visible="hanziHover.visible"
+      :anchor="hanziHover.anchor"
+      :character="hanziHover.row?.hanziChar ?? ''"
+    />
   </div>
 </template>
 
@@ -218,7 +228,7 @@
  * 分页为服务端分页（GET /v2/edu/hanzi/page）。
  */
 import { message } from "@repo/core";
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
 import { Close, Delete, EditPen, Plus, Reading, RefreshLeft, Search } from "@element-plus/icons-vue";
 import { eduaiApi } from "../api/eduaiApi";
@@ -228,6 +238,7 @@ import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import ReDialog from "@repo/ui/re-dialog";
 import ReInputNumber from "@repo/ui/re-input-number";
+import HanziHoverWrite from "../components/HanziHoverWrite.vue";
 
 const GRADE_LEVELS = ["小学", "初中", "高中"] as const;
 const STRUCTURES = ["独体", "上下", "左右", "左中右", "上中下", "半包围", "全包围"] as const;
@@ -288,6 +299,35 @@ const loadRows = createPageLoader((page, size, params) =>
 function onLoad(r: { data: unknown[]; total?: number }) {
   rows.value = (r.data ?? []) as EduHanzi[];
   total.value = r?.total ?? rows.value.length;
+}
+
+/** 行悬停书写动画的锚点与当前行（字单元格） */
+const hanziHover = reactive<{
+  visible: boolean;
+  anchor: HTMLElement | null;
+  row: EduHanzi | null;
+}>({
+  visible: false,
+  anchor: null,
+  row: null,
+});
+let hanziHoverTimer: ReturnType<typeof setTimeout> | null = null;
+
+function startHanziHover(e: MouseEvent, row: EduHanzi) {
+  if (hanziHoverTimer) clearTimeout(hanziHoverTimer);
+  hanziHover.row = row;
+  hanziHover.anchor = e.currentTarget as HTMLElement;
+  hanziHoverTimer = setTimeout(() => {
+    hanziHover.visible = true;
+  }, 120);
+}
+
+function cancelHanziHover() {
+  if (hanziHoverTimer) {
+    clearTimeout(hanziHoverTimer);
+    hanziHoverTimer = null;
+  }
+  hanziHover.visible = false;
 }
 
 const statCards = computed(() => {
@@ -401,6 +441,8 @@ async function remove(row: EduHanzi) {
 onMounted(() => {
   // 表格 loader 自动加载首屏，无需手动触发
 });
+
+onBeforeUnmount(cancelHanziHover);
 </script>
 
 <style scoped>
@@ -533,6 +575,15 @@ onMounted(() => {
   font-size: 22px;
   font-weight: 800;
   color: var(--el-text-color-primary);
+}
+.hanzi-hover-target {
+  cursor: help;
+  border-bottom: 1px dashed var(--el-border-color);
+  transition: border-color 0.2s, color 0.2s;
+}
+.hanzi-hover-target:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
 }
 .stroke-order {
   font-size: 16px;

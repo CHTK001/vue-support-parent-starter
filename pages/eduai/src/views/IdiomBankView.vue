@@ -92,7 +92,11 @@
             <el-empty :image-size="88" description="暂无成语，点击「新增成语」创建" />
           </template>
           <template #col-idiomContent="{ row }">
-            <span class="idiom-text">{{ row.idiomContent }}</span>
+            <span
+              class="idiom-text idiom-hover-target"
+              @mouseenter="startIdiomHover($event, row as unknown as Idiom)"
+              @mouseleave="cancelIdiomHover"
+            >{{ row.idiomContent }}</span>
           </template>
           <template #col-idiomDifficulty="{ row }">
             <span class="tag-pill" :class="diffClass(row.idiomDifficulty)">
@@ -275,6 +279,14 @@
         </div>
       </div>
     </ReDialog>
+
+    <IdiomHoverPreview
+      :visible="idiomHover.visible"
+      :anchor="idiomHover.anchor"
+      :row="idiomHover.row"
+      :diff-text="idiomHover.row ? diffLabel(idiomHover.row.idiomDifficulty) : '-'"
+      :diff-class="idiomHover.row ? diffClass(idiomHover.row.idiomDifficulty) : 'is-gray'"
+    />
   </div>
 </template>
 
@@ -286,7 +298,7 @@
  * 样式统一使用 koi / Element Plus 变量（--el-*）。
  */
 import { message } from "@repo/core";
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
 import { Close, Collection, Delete, EditPen, Plus, RefreshLeft, Search, View } from "@element-plus/icons-vue";
 import { eduaiApi } from "../api/eduaiApi";
@@ -295,6 +307,7 @@ import type { Idiom } from "../api/types";
 import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import ReDialog from "@repo/ui/re-dialog";
+import IdiomHoverPreview from "../components/IdiomHoverPreview.vue";
 
 const GRADE_LEVELS = ["小学", "初中", "高中", "大学"] as const;
 const GRADES_BY_LEVEL: Record<string, string[]> = {
@@ -447,6 +460,35 @@ const previewVisible = ref(false);
 /** 预览中的成语（已补齐详情字段） */
 const previewRow = ref<Idiom | null>(null);
 
+/** 行悬停预览的锚点与当前行（成语单元格） */
+const idiomHover = reactive<{
+  visible: boolean;
+  anchor: HTMLElement | null;
+  row: Idiom | null;
+}>({
+  visible: false,
+  anchor: null,
+  row: null,
+});
+let idiomHoverTimer: ReturnType<typeof setTimeout> | null = null;
+
+function startIdiomHover(e: MouseEvent, row: Idiom) {
+  if (idiomHoverTimer) clearTimeout(idiomHoverTimer);
+  idiomHover.row = row;
+  idiomHover.anchor = e.currentTarget as HTMLElement;
+  idiomHoverTimer = setTimeout(() => {
+    idiomHover.visible = true;
+  }, 120);
+}
+
+function cancelIdiomHover() {
+  if (idiomHoverTimer) {
+    clearTimeout(idiomHoverTimer);
+    idiomHoverTimer = null;
+  }
+  idiomHover.visible = false;
+}
+
 /** 预览用的标签列表（idiomTags 为逗号分隔的字符串） */
 const previewTags = computed(() =>
   (previewRow.value?.idiomTags ?? "")
@@ -536,6 +578,8 @@ async function remove(row: Idiom) {
 onMounted(() => {
   // 表格 loader 自动加载首屏，无需手动触发
 });
+
+onBeforeUnmount(cancelIdiomHover);
 </script>
 
 <style scoped>
@@ -676,6 +720,15 @@ onMounted(() => {
 .idiom-text {
   font-weight: 700;
   letter-spacing: 1px;
+}
+.idiom-hover-target {
+  cursor: help;
+  border-bottom: 1px dashed var(--el-border-color);
+  transition: border-color 0.2s, color 0.2s;
+}
+.idiom-hover-target:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
 }
 
 .tag-pill {

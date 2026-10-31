@@ -192,11 +192,19 @@ const dialogFullscreen = computed(() => windowFullscreen.value);
 const DRAG_KEEP_VISIBLE = 56;
 
 /**
- * 传给 el-dialog 的 `overflow`：显式配置优先，否则跟随 {@link draggable}。
+ * 传给 el-dialog 的 `overflow`：显式配置优先，不传时默认 `false`。
  *
- * @see props.overflow 的完整说明
+ * <p>el-dialog 的 `useDraggable` 只会在 `overflow` 为假时对位移做视口钳制（拖到视口边就
+ * 停、不越出视口）；ReDialog 也只在近满高弹窗的低效钳制区，才需要业务显式传
+ * <code>overflow="true"</code> 放开钳制。此前「未传则跟随 {@link draggable}」等同于
+ * 默认放开钳制，也即弹窗会随鼠标跑到视口外 — 这就是 ReDialog（el-dialog 壳）能拖出
+ * 可视区域的原因。</p>
+ *
+ * <p>放开钳制后的兜底（{@link onDocumentMouseUp} 的
+ * {@code DRAG_KEEP_VISIBLE} + {@code resetPosition}）是为显式传 `overflow` 的业务留的；
+ * 默认钳制状态下弹窗到视口边就停，用不到它。</p>
  */
-const effectiveOverflow = computed<boolean>(() => props.overflow ?? props.draggable);
+const effectiveOverflow = computed<boolean>(() => props.overflow ?? false);
 
 /** el-dialog 实例句柄（取弹窗 DOM / 调 resetPosition） */
 const dialogInstance = ref<DialogExposed | null>(null);
