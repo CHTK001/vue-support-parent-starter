@@ -213,7 +213,7 @@ function openDraft(item?: ScheduleItem): void {
 </template>
 
 <style scoped lang="scss">
-@use "../../components/lab/_lab-kit.scss";
+@use "../components/lab/_lab-kit.scss";
 
 .sched {
   display: flex;

@@ -716,9 +716,9 @@ const setGaugeValue = () => {
 }
 
 // 生成热力图数据
-const generateHeatmapData = () => {
+const refreshHeatmapData = () => {
   heatmapOption.series.data = generateHeatmapData(2023)
-  addLog('generateHeatmapData', '热力图数据已重新生成')
+  addLog('refreshHeatmapData', '热力图数据已重新生成')
 }
 
 // 切换热力图年份

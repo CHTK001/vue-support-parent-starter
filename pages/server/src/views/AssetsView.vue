@@ -616,8 +616,8 @@ const TAB_KINDS: Record<TabKind, TabKindMeta> = {
   workbench: { label: "工作台", icon: "Box" },
   /** 工作台面板：Docker 独立页签（lazy load） */
   docker: { label: "Docker", icon: "Box" },
-  sys-log: { label: "系统日志", icon: "Tickets" },
-  user-log: { label: "登录日志", icon: "Unlock" },
+  "sys-log": { label: "系统日志", icon: "Tickets" },
+  "user-log": { label: "登录日志", icon: "Unlock" },
   "ops-sessions": { label: "会话审计", icon: "Document" },
   "ops-exec": { label: "批量作业", icon: "Promotion" },
   "ops-snippets": { label: "片段管理", icon: "DocumentCopy" },

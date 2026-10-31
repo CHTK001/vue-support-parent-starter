@@ -235,7 +235,7 @@ function onTab(next: 'files' | 'snippets'): void {
 </template>
 
 <style scoped lang="scss">
-@use "../../components/lab/_lab-kit.scss";
+@use "../components/lab/_lab-kit.scss";
 
 /* 面板根：终端显示区的右侧小列 */
 .stp {

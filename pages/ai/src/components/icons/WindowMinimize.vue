@@ -6,3 +6,7 @@
             p-id="6571"></path>
     </svg>
 </template>
+
+<script setup lang="ts">
+/** 空占位：纯图标 SFC，由 @/components/icons/index.ts 重新导出 */
+</script>

@@ -851,7 +851,7 @@ watch(
     <!-- 新增 / 编辑 / 克隆：表单抽屉（与旧页契约一致） -->
     <ScServerFormDrawer
       v-model="vm.formVisible"
-      :node="vm.editingNode"
+      :node="vm.editingNode?.id === 0 ? null : vm.editingNode"
       :protocols="vm.protocols"
       :filter-types="vm.filterTypes"
       :existing-names="vm.existingNames"

@@ -15,7 +15,7 @@
       </template>
     </ReSectionHead>
 
-    <!-- 可拖拽分栏：上「项目管理」，下「实时日志」；拖完自动存服务端 -->
+    <!-- 可拖拽分栏：左「项目管理」，右「实时日志」；拖完自动存服务端 -->
     <div class="pj-split-wrap">
       <ReSplitLayout
         ref="splitLayoutRef"
@@ -2788,11 +2788,11 @@ const savedLayout = ref<SplitNode | null>(null);
 const layoutReady = ref(false);
 let layoutSaveTimer: number | null = null;
 
-/** 默认布局：上「项目管理」，下「实时日志」 */
+/** 默认布局：左「项目管理」（项目列表/拖拽升级），右「实时日志」 */
 const defaultLayout: SplitNode = {
   type: 'split',
-  direction: 'vertical',
-  sizes: [72, 28],
+  direction: 'horizontal',
+  sizes: [40, 60],
   children: [
     {
       type: 'panel',
