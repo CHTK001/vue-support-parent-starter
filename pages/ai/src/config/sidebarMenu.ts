@@ -4,7 +4,8 @@ import {
   Apps20Regular, ImageMultiple20Regular, Image20Regular, Person20Regular, ImageSearch20Regular,
   DocumentText20Regular, DesktopSpeaker24Regular, Headphones24Regular, BrainCircuit20Regular,
   DataBarVertical20Regular, PlugConnected20Regular, ClockAlarm20Regular, Fingerprint24Regular,
-  Earth24Regular,
+  Earth24Regular, Key20Regular, KeyMultiple20Regular, PeopleLock20Regular, Server20Regular,
+  Bot20Regular, Sparkle20Regular, CameraSwitch20Regular,
 } from '@vicons/fluent'
 
 /**
@@ -15,7 +16,7 @@ import {
  * 加开关，用户就永远关不掉它。这里做单一数据源。</p>
  *
  * <p>{@code showKey} 是 localStorage {@code menuDisplaySettings} 里的键；
- * 没有 showKey 的项恒显示（{@code alwaysShow} 用于会话/酒馆这类主入口）。</p>
+ * 没有 showKey 的项恒显示（{@code alwaysShow} 仅作例外，目前只有会话）。</p>
  */
 export interface SidebarMenuItem {
   /** 稳定标识 */
@@ -130,13 +131,13 @@ export function createSidebarMenuItems(ctx: SidebarMenuContext): SidebarMenuItem
       key: 'tavern',
       label: '酒馆',
       icon: ChatMultiple24Regular,
-      alwaysShow: true,
+      showKey: 'showTavernMenu',
     },
     {
       key: 'world-sim',
       label: '模拟',
       icon: Earth24Regular,
-      alwaysShow: true,
+      showKey: 'showWorldSimMenu',
     },
     {
       key: 'knowledge-base',
@@ -218,6 +219,7 @@ export function createSidebarMenuItems(ctx: SidebarMenuContext): SidebarMenuItem
       label: '音频识别',
       icon: DesktopSpeaker24Regular,
       section: '音频',
+      showKey: 'showAudioRecognitionMenu',
       badge: modelConfig.asrReady ? '' : '未配置',
       badgeTip: 'ASR 默认模型未配置，音频识别不可用',
     },
@@ -226,6 +228,7 @@ export function createSidebarMenuItems(ctx: SidebarMenuContext): SidebarMenuItem
       label: '语音合成',
       icon: Headphones24Regular,
       section: '音频',
+      showKey: 'showTextToSpeechMenu',
       badge: modelConfig.ttsReady ? '' : '未配置',
       badgeTip: 'TTS 默认模型未配置，语音合成不可用',
     },
@@ -252,14 +255,67 @@ export function createSidebarMenuItems(ctx: SidebarMenuContext): SidebarMenuItem
       key: 'connectors',
       label: '连接器',
       icon: PlugConnected20Regular,
+      section: '集成',
       showKey: 'showConnectorsMenu',
     },
     {
       key: 'scheduler',
       label: t('ui.sidebar.navScheduler'),
       icon: ClockAlarm20Regular,
+      section: '管理',
       showKey: 'showSchedulerMenu',
       adminOnly: true,
+    },
+    {
+      key: 'app-keys',
+      label: 'AppKey 管理',
+      icon: Key20Regular,
+      section: '管理',
+      showKey: 'showAppKeysMenu',
+    },
+    {
+      key: 'manufacturer-keys',
+      label: '厂商Key管理',
+      icon: KeyMultiple20Regular,
+      section: '管理',
+      showKey: 'showManufacturerKeysMenu',
+    },
+    {
+      key: 'roles',
+      label: '角色管理',
+      icon: PeopleLock20Regular,
+      section: '管理',
+      showKey: 'showRolesMenu',
+      adminOnly: true,
+    },
+    {
+      key: 'mcp',
+      label: 'MCP 管理',
+      icon: Server20Regular,
+      section: '管理',
+      showKey: 'showMcpMenu',
+      adminOnly: true,
+    },
+    {
+      key: 'agents',
+      label: 'Agent 管理',
+      icon: Bot20Regular,
+      section: '管理',
+      showKey: 'showAgentsMenu',
+    },
+    {
+      key: 'skills',
+      label: 'Skills 管理',
+      icon: Sparkle20Regular,
+      section: '管理',
+      showKey: 'showSkillsMenu',
+    },
+    {
+      key: 'capabilities',
+      label: '视觉管线',
+      icon: CameraSwitch20Regular,
+      section: '管理',
+      showKey: 'showCapabilitiesMenu',
     },
   ]
 }

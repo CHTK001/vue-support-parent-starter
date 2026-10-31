@@ -1054,6 +1054,15 @@ const remove = async (item: DataSourceInfo) => {
 /** 左栏勾选的数据源 ID 集合（空集合 = 未进入批量模式） */
 const selectionIds = ref<Set<number>>(new Set());
 
+/** 是否处于批量操作模式：由顶部「批量」小按钮进入/退出，未进入时卡片不显示勾选框 */
+const batchMode = ref(false);
+
+/** 切换批量模式：进入时清空上一轮勾选；退出时一并清空，避免残留选中态 */
+const toggleBatchMode = () => {
+  selectionIds.value = new Set();
+  batchMode.value = !batchMode.value;
+};
+
 /** 勾选状态：列表刷新后按 id 对齐新对象（选中项可能在刷新中被删除） */
 const syncSelection = (rows: DataSourceInfo[]) => {
   const alive = new Set(rows.map((r) => r.id).filter((id): id is number => id != null));
@@ -2518,11 +2527,23 @@ onMounted(load);
               placeholder="全部"
               clearable
             />
+            <ReButton
+              class="ds-side__batch-toggle"
+              icon="Finished"
+              :show-text="true"
+              size="small"
+              :type="batchMode ? 'primary' : ''"
+              :plain="!batchMode"
+              data-testid="ds-batch-toggle"
+              @click="toggleBatchMode"
+            >
+              {{ batchMode ? "完成" : "批量" }}
+            </ReButton>
           </div>
 
-          <!-- 批量操作条：勾选任意数据源后浮现（参考设备管理的 da-batch 交互）。
-               放列表滚动容器外，勾选后始终固定在搜索行下方；✕ 直接清空勾选。 -->
-          <div v-if="selectionIds.size" class="ds-side__batch">
+          <!-- 批量操作条：批量模式下固定显示，随勾选数量联动；
+               退出「完成」或批量条右侧 ✕ 都会退出批量模式并清空勾选。 -->
+          <div v-if="batchMode" class="ds-side__batch">
             <span class="ds-side__batch-text">
               已选 {{ selectionIds.size }} 个
               <button type="button" class="ds-side__batch-all" @click="toggleSelectAll">
@@ -2530,9 +2551,9 @@ onMounted(load);
               </button>
             </span>
             <span class="ds-side__batch-ops">
-              <ReButton icon="Top" :show-text="true" size="small" @click="batchToggleTop(true)">批量置顶</ReButton>
-              <ReButton icon="Delete" :show-text="true" size="small" type="danger" plain @click="batchRemove">批量删除</ReButton>
-              <button type="button" class="ds-side__batch-close" title="取消勾选" @click="clearSelection">
+              <ReButton icon="Top" :show-text="true" size="small" :disabled="selectionIds.size === 0" @click="batchToggleTop(true)">批量置顶</ReButton>
+              <ReButton icon="Delete" :show-text="true" size="small" type="danger" plain :disabled="selectionIds.size === 0" @click="batchRemove">批量删除</ReButton>
+              <button type="button" class="ds-side__batch-close" title="退出批量" @click="toggleBatchMode">
                 <ReIcon name="Close" :size="12" />
               </button>
             </span>
@@ -2571,9 +2592,10 @@ onMounted(load);
                 v-for="item in filteredList"
                 :key="item.id ?? item.name"
                 class="ds-item-row"
-                :class="{ 'is-checked': (item.id ?? -1) !== -1 && selectionIds.has(item.id ?? -1) }"
+                :class="{ 'is-checked': batchMode && (item.id ?? -1) !== -1 && selectionIds.has(item.id ?? -1) }"
               >
                 <ElCheckbox
+                  v-if="batchMode"
                   class="ds-item-row__check"
                   :model-value="(item.id ?? -1) !== -1 && selectionIds.has(item.id ?? -1)"
                   :aria-label="`勾选 ${item.name}`"
@@ -3710,6 +3732,11 @@ onMounted(load);
 .ds-side__search-row .ds-side__search {
   flex: 1 1 auto;
   min-width: 0;
+}
+/* 顶部批量入口：小按钮不走拉伸，保持搜索/类型/批量同一行 */
+.ds-side__batch-toggle {
+  flex: 0 0 auto;
+  align-self: center;
 }
 .ds-side__type {
   flex: 0 0 110px;

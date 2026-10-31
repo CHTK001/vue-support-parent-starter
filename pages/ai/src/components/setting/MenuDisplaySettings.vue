@@ -28,15 +28,12 @@
           </div>
           <div class="md-row-ctrl">
             <span v-if="row.alwaysShow || !row.showKey" class="md-fixed-hint">固定显示</span>
-            <template v-else>
-              <ReSwitch
-                layout="radio"
-                :model-value="visibleOf(row.showKey)"
-                radio-on-label="显示"
-                radio-off-label="隐藏"
-                @update:model-value="(v) => toggle(row.showKey, v)"
-              />
-            </template>
+            <el-segmented
+              v-else
+              :model-value="visibleOf(row.showKey)"
+              :options="segmentOptions"
+              @update:model-value="(v: boolean) => toggle(row.showKey, v)"
+            />
           </div>
         </div>
       </div>
@@ -47,7 +44,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import ReSwitch from '@repo/ui/re-switch'
+import { ElSegmented } from 'element-plus'
 import { useModelConfigStore } from '../../stores/modelConfig'
 import {
   createSidebarMenuItems, readMenuSettings, setMenuVisible, menuDisplayVersion,
@@ -117,6 +114,16 @@ function findParentSection(items: SidebarMenuItem[], childKey: string): string {
   }
   return ''
 }
+
+/**
+ * 菜单显示状态的分段选项（el-segmented：显示 / 隐藏）。
+ *
+ * value 取布尔值，与 {@link visibleOf} / {@link toggle} 的 Boolean 口径一致。
+ */
+const segmentOptions = [
+  { label: '显示', value: true },
+  { label: '隐藏', value: false },
+]
 
 /**
  * 读取某菜单当前是否显示（缺省显示）。
