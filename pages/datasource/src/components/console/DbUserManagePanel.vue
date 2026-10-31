@@ -289,7 +289,7 @@ const matrixColumns: ReTableColumn[] = [
     slot: `col-${g}` as string,
     align: "center" as const,
   })),
-  { prop: "ops", label: "操作", width: 140, slot: "col-ops", align: "center", fixed: "right" },
+  { prop: "ops", label: "操作", width: 140, slot: "col-ops", align: "center"},
 ];
 
 const grantColumns: ReTableColumn[] = [

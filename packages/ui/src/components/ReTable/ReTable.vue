@@ -759,7 +759,7 @@ const props = withDefaults(
     size: undefined,
     border: undefined,
     search: false,
-    searchGap: 16,
+    searchGap: 8,
     searchModel: undefined,
     cache: false,
     cacheTtl: 300000,
@@ -1265,7 +1265,12 @@ const searchEnabled = computed(() => {
 const searchAreaVisible = computed(() => searchEnabled.value || (props.showSearch && !!parentSlots.search));
 /** searchGap > 0 时搜索区渲染为独立卡片样式（与表格之间露出间距） */
 const searchSeparated = computed(() => (props.searchGap ?? 0) > 0);
-const searchGapStyle = computed(() => ({ marginBottom: `${props.searchGap ?? 0}px` }));
+const searchGapStyle = computed(() => (
+  { 
+    marginBottom: `${props.searchGap ?? 0}px` ,
+    borderRadius: "16px"
+    }
+  ));
 function onSearchModelUpdate(value: Record<string, unknown>): void {
   emit("update:searchModel", value);
 }
@@ -7075,7 +7080,7 @@ const iconSelect = Select;
   vertical-align: bottom;
 }
 .re-table__search {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 /* ============ 默认表格视觉增强 ============
    只作用于 .re-table 内的 vxe-table，全部走 koi / element-plus 令牌，亮暗自适应：
@@ -7362,16 +7367,7 @@ const iconSelect = Select;
      （Chrome 不做合成层加速），是页面上唯一可能造成大面积重绘的样式。
      搜索卡面积小，保留 hover 过渡；主体卡只保留静态投影。 */
 }
-/* 悬停抬一档投影：只给搜索卡（面积小、重绘代价低）。
-   主体卡面积大，hover 换投影会把"划过表格"变成持续重绘，故不参与。 */
-.re-table--separated > .re-table__search:hover {
-  box-shadow: var(--rt-shadow-card-hover);
-}
-/* 拖拽中：搜索卡悬停不抬投影 —— 拖拽路径经过搜索区时，不能让搜索卡看起来
-   像"可放置"的落点（拖拽脱手后才会恢复静悬停投影）。 */
-.re-table--dragging > .re-table__search:hover {
-  box-shadow: var(--rs-shadow-xs);
-}
+
 /* 键盘聚焦到卡内控件时描边转主色，让"焦点落在哪一块"可感知 */
 .re-table--separated > .re-table__search:focus-within,
 .re-table--separated > .re-table__main:focus-within {

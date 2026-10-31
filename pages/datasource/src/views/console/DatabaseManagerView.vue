@@ -8668,6 +8668,8 @@ function onRootContextMenu(e: MouseEvent) {
 }
 
 function onSidebarContextMenu(e: MouseEvent) {
+  // 加载动画没有右键语义：业务菜单和浏览器菜单（粘贴/全选/onload）都不该弹出来
+  if (isDbmLoadingTarget(e.target as EventTarget | null)) return;
   contextMenu.visible = true;
   contextMenu.x = e.clientX;
   contextMenu.y = e.clientY;
@@ -8691,6 +8693,7 @@ function onSidebarContextMenu(e: MouseEvent) {
  *   <li>设计器 / 查询结果 / ER 画布 / 用户管理：各自的右键菜单；</li>
  *   <li>页签条：{@code .dbm-tabs} 自己 {@code .prevent}，页签关闭菜单也在那里；</li>
  *   <li>输入框 / 文本域：右键的「粘贴、全选」是浏览器能力，必须留给原生菜单。</li>
+ *   <li>加载中（加载动画、占位、遮罩）：没有右键语义，熄掉业务菜单与浏览器菜单。</li>
  * </ul>
  *
  * <p>网格里只排除「真的落在 td / th 上」的右键，而不是整块 {@code .vxe-table}：
@@ -8701,6 +8704,11 @@ function onSidebarContextMenu(e: MouseEvent) {
 function onContentBlankContextMenu(e: MouseEvent) {
   const target = e.target as HTMLElement | null;
   if (!target) return;
+  // 加载动画没有右键语义：分类菜单（粘贴/全选）和业务菜单都不要，直接忽略
+  if (isDbmLoadingTarget(target)) {
+    e.preventDefault();
+    return;
+  }
   // 输入类控件：粘贴 / 全选是原生菜单才有的能力，不能拦
   if (target.closest('input, textarea, select, [contenteditable="true"]')) return;
   // 网格里的单元格 / 表头：ReTable 自己接了 vxe 的 cell-menu / header-contextmenu。
@@ -8724,6 +8732,28 @@ function onContentBlankContextMenu(e: MouseEvent) {
   contextMenu.isView = false;
   contextMenu.root = false;
   void clampContextMenuPosition();
+}
+
+/**
+ * 右键目标是否落在「加载中」的元素上。
+ *
+ * 加载动画（占位文字 + 转圈 + 全屏/半屏遮罩）没有右键语义：业务菜单里此时什么都没有选中，
+ * 弹出去只有不可用的项；浏览器菜单的「粘贴/全选/.reload」对动画也没有意义。
+ *
+ * 已覆盖的场景：
+ *  - 连接树端：懒加载库/表/字段/对象分类时的 `.dbm-tree-loading`（`dbm-spinner` 在这片里）
+ *  - 数据层：表格层 v-loading / vxe-loading 的全屏遮罩
+ *  - 预览/同步：数据导入预览、文档预览、结构同步比较的载载入层
+ *
+ * @param target 右键事件的目标节点
+ * @returns 是否是加载中元素
+ */
+function isDbmLoadingTarget(target: EventTarget | null): boolean {
+  if (!target || !(target instanceof HTMLElement)) return false;
+  if (target.closest('.dbm-tree-loading')) return true;
+  if (target.closest('.dbm-sync-compare-mask, .dbm-import-preview-hint, .dbm-doc-preview-loading')) return true;
+  if (target.closest('.el-loading-mask, .vxe-loading')) return true;
+  return false;
 }
 
 /**

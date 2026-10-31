@@ -26,7 +26,9 @@
       <span class="ss-tip">点击卷面题号可定位右侧题目，点击表格行可定位卷面位置</span>
     </div>
 
-    <div class="ss-body" :class="{ 'ss-body--original': mode === 'original' }">
+    <div class="ss-body">
+      <!-- 原始试卷模式下右侧也要留着「题目解析」面板：题号锚点 → 题目列表是同一份结构数据，
+           不应该因为切了原始卷就让题目解析消失（否则页面上连题目都没有、只有题号） -->
       <section class="ss-stage-card">
         <div class="ss-stage-head">
           <div>
@@ -94,7 +96,10 @@
         </div>
       </section>
 
-      <aside v-if="mode === 'layout'" class="ss-panel">
+      <!-- 题目解析面板：在「版面解析」与「原始试卷」下都展示。
+           右侧题目表由当前页的题号锚点驱动（currentQuestions），原始卷同样有题号锚点与题目数据，
+           老师看卷面、查题目、定位答案，不依赖前面板的标记。 -->
+      <aside class="ss-panel">
         <div class="ss-panel-head">
           <div>
             <strong>题目解析</strong>
@@ -1105,9 +1110,7 @@ defineExpose({ save, saveIfDirty, hasDirty: () => dirty.value });
   gap: 12px;
   min-height: 0;
 }
-.ss-body--original {
-  grid-template-columns: 1fr;
-}
+/* 两个模式下都保留右侧题目解析列；超窄屏才退化成上下堆叠。 */
 .ss-stage-card,
 .ss-panel {
   min-width: 0;

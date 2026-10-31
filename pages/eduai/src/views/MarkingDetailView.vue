@@ -183,21 +183,26 @@ const onSaved = () => {
 };
 
 const back = () => {
-  // 站内标签页打开时，把「阅卷详情」这个标签关掉，自动回到上一个标签（通常是阅卷记录）。
-  // 只剩一个标签时不关（关了会白屏），退回记录页。
-  if (!window.opener) {
-    const tabs = useTabsStore();
-    const list = (tabs.tabList || []).filter((item) => typeof item === 'object');
-    if (list.length > 1) {
-      void tabs.removeTab(route.path, true, route.path);
-      return;
-    }
-  }
-  // 兼容老的独立标签页入口（有 opener 时直接关掉自己）
+  // 独立标签页入口（window.open 打开的详情窗口里有 opener）：关掉自己，回到
+  // 打开这个窗口前的那个窗口。
   if (window.opener) {
     window.close();
     return;
   }
+  // 站内 SPA 入口（从「AI 阅卷」列表 / 标签页打开的详情）：
+  // 不关窗、不加锁、也不把标签关到只剩一个时触发「到我的底线了」——
+  // 把详情页的标签摘掉（已存在的标签里才摘，避免关闭列表页这个不可关的页面），
+  // 退回「AI 阅卷」记录页。
+  const tabs = useTabsStore();
+  const list = (tabs.tabList || []).filter((item) => typeof item === 'object');
+  if (list.length > 1) {
+    const detail = list.find((item) => item.path === route.path);
+    if (detail) {
+      void tabs.removeTab(route.path, true, '/edu/marking');
+    }
+  }
+  // 明确回到阅卷记录页，而不是 tab 列表的下一个标签（可能是菜单里的其他页，
+  // 极端时落到 HOME_URL / 登录页）。
   router.push({ path: '/edu/marking' });
 };
 

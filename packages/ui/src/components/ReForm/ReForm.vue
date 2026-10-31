@@ -79,7 +79,7 @@ const props = withDefaults(
     labelWidth: "100px",
     inline: false,
     disabled: false,
-    labelPosition: "top",
+    labelPosition: "left",
     rules: undefined,
     gutter: 16,
   },

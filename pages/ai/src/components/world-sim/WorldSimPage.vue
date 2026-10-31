@@ -369,21 +369,29 @@
       <div class="ws-form">
         <div class="ws-field">
           <label class="ws-label">世界名称 *</label>
-          <el-input v-model="worldForm.name" placeholder="如：雾都侦探社、修仙界·青玄宗" maxlength="30" />
+          <el-input v-model="worldForm.name" placeholder="如：雾都侦探社（留空由 AI 取一个）" maxlength="30" />
+          <span class="ws-hint">不填则由 AI 自动生成一个</span>
         </div>
         <div class="ws-field">
           <label class="ws-label">时代背景</label>
-          <el-select v-model="worldForm.era" style="width: 100%">
-            <el-option v-for="e in ERA_OPTIONS" :key="e" :label="e" :value="e" />
-          </el-select>
+          <div class="ws-eras">
+            <div v-for="e in ERA_OPTIONS" :key="e" class="ws-era-tag"
+              :class="{ active: worldForm.era === e }" @click="worldForm.era = e">{{ e }}</div>
+          </div>
+          <span class="ws-hint">点选时代，或点"随机生成"自动抽签</span>
         </div>
         <div class="ws-field">
-          <label class="ws-label">世界观设定</label>
-          <el-input v-model="worldForm.description" type="textarea" :rows="4"
-            placeholder="这个世界是什么样子的？科技/魔法水平、社会结构、核心矛盾…NPC 会记住这些设定" />
+          <label class="ws-label">世界观设定（种子）</label>
+          <div class="ws-seeds">
+            <div v-for="s in WORLD_SEEDS" :key="s.label" class="ws-seed"
+              :class="{ active: worldForm.description === s.desc }" @click="applySeed(s)">{{ s.label }}</div>
+          </div>
+          <el-input v-model="worldForm.description" type="textarea" :rows="2"
+            placeholder="AI 会按这个描述生成世界，不写也不要紧" />
         </div>
       </div>
       <template #footer>
+        <el-button @click="randomCreate">随机生成</el-button>
         <el-button @click="createVisible = false">取消</el-button>
         <el-button type="primary" @click="confirmCreate">创建世界</el-button>
       </template>
@@ -540,6 +548,26 @@ import type {
 } from '@/services/modules/world-sim.api'
 
 const ERA_OPTIONS = ['现代', '古代', '未来', '奇幻', '武侠', '赛博朋克', '末日', '蒸汽朋克']
+/** 每个时代对应的前缀名，用户不留名时自动组成世界名称 */
+const ERA_PREFIX = {
+  '现代': '都市',
+  '古代': '王朝',
+  '未来': '星际',
+  '奇幻': '魔法',
+  '武侠': '江湖',
+  '赛博朋克': '夜城',
+  '末日': '废土',
+  '蒸汽朋克': '蒸汽',
+}
+/** 世界种子：以一个关键词 + 简短描述，帮不想写设定的用户一键生成初始状态 */
+const WORLD_SEEDS = [
+  { label: '都市日常', desc: '现代都市背景，朋友间的日常聚会，轻松的办公室生活' },
+  { label: '修仙世界', desc: '玄幻修仙大陆，境界分明，主角需要修炼突破' },
+  { label: '星际科幻', desc: '未来星际文明，飞船与 AI 共存，核心矛盾是资源争夺' },
+  { label: '魔法学院', desc: '西幻魔法世界，年轻人在魔法学院中修炼与成长' },
+  { label: '江湖侠客', desc: '武侠江湖世界，门派纷争，爱恨情仇' },
+  { label: '废土求生', desc: '末日废土世界，幸存者在废墟中挣扎求存' },
+]
 const WEATHER_OPTIONS = ['晴', '多云', '阴', '雨', '雪', '风', '雷暴', '雾']
 const REL_TAGS = ['好友', '挚友', '恋人', '家人', '同事', '宿敌', '敌人', '陌生人', '崇拜', '依赖']
 
@@ -704,10 +732,27 @@ function openCreateWorld() {
   createVisible.value = true
 }
 
+/** 点种子卡片：选定时代 + 填充描述 */
+function applySeed(s: { label: string; desc: string }) {
+  worldForm.description = s.desc
+  if (!worldForm.era || worldForm.era === '') worldForm.era = '现代'
+}
+
+/** 随机生成：随机名称 + 抽签时代 + 选种子，点击即创建，纯观影用户一步到位 */
+async function randomCreate() {
+  const r = (n: number) => Math.floor(Math.random() * n)
+  const names: string[] = ['新冒险', '初探索', '新世界', '新纪元', '新大陆', '新旅程']
+  worldForm.name = names[r(names.length)]
+  worldForm.era = ERA_OPTIONS[r(ERA_OPTIONS.length)]
+  applySeed(WORLD_SEEDS[r(WORLD_SEEDS.length)])
+  await confirmCreate()
+}
+
 async function confirmCreate() {
   const name = worldForm.name.trim()
-  if (!name) return
-  const w = await apiService.createWorld(name, worldForm.description, worldForm.era)
+  const desc = worldForm.description.trim() || 'AI 自动生成'
+  const era = worldForm.era || '现代'
+  const w = await apiService.createWorld(name || `${ERA_PREFIX[era]} ${Math.floor(Math.random() * 10000)}`, desc, era)
   await loadWorlds()
   await selectWorld(w)
   createVisible.value = false
@@ -2084,4 +2129,23 @@ async function send() {
 }
 .ws-act-stage-btn.active:hover { background: var(--el-color-primary-light-8); }
 .ws-act-stage-btn.disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ---- 创建/编辑世界表单 ---- */
+.ws-hint {
+  display: block; font-size: 11.5px; color: var(--el-text-color-placeholder); margin-top: 4px; line-height: 1.5;
+}
+.ws-eras, .ws-seeds { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+.ws-era-tag, .ws-seed {
+  display: inline-flex; align-items: center; justify-content: center;
+  max-width: 128px; padding: 6px 12px; border-radius: var(--el-radius-full, 9999px);
+  border: 1px solid var(--el-border-color-lighter); background: var(--el-bg-color);
+  color: var(--el-text-color-regular); font-size: 12.5px; cursor: pointer;
+  transition: all var(--el-transition-duration-fast, 0.2s) ease;
+  user-select: none;
+}
+.ws-era-tag:hover, .ws-seed:hover { border-color: var(--el-color-primary-light-5); color: var(--el-color-primary); }
+.ws-era-tag.active, .ws-seed.active {
+  border-color: var(--el-color-primary); background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+}
 </style>

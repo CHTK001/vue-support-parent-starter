@@ -153,6 +153,22 @@ const isSystemSource = (item: DataSourceInfo | null | undefined): boolean => ite
 const isCalciteSource = (item: DataSourceInfo | null | undefined): boolean =>
   item?.type === "calcite";
 
+/** 合并记录 database 字段保存的成员 id 列表（后端写入格式：{"members":[...]}） */
+const calciteMemberIds = (item: DataSourceInfo | null | undefined): number[] => {
+  if (item?.type !== "calcite" || typeof item.database !== "string") {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(item.database) as { members?: unknown };
+    if (!Array.isArray(parsed.members)) {
+      return [];
+    }
+    return parsed.members.filter((id): id is number => typeof id === "number");
+  } catch {
+    return [];
+  }
+};
+
 // 新增/编辑弹窗
 const dialogVisible = ref(false);
 const editing = ref<DataSourceInfo | null>(null);
@@ -738,6 +754,9 @@ const sourceTypeChip = (item: DataSourceInfo): string => {
   if (isSystemSource(item)) {
     return "系统";
   }
+  if (isCalciteSource(item)) {
+    return "跨库合并";
+  }
   const base = item.type.toUpperCase();
   const ver = item.type === "influxdb" ? influxVersionShort(item.version) : "";
   return ver ? `${base} · ${ver}` : base;
@@ -1054,7 +1073,8 @@ const remove = async (item: DataSourceInfo) => {
 /** 左栏勾选的数据源 ID 集合（空集合 = 未进入批量模式） */
 const selectionIds = ref<Set<number>>(new Set());
 
-/** 是否处于批量操作模式：由顶部「批量」小按钮进入/退出，未进入时卡片不显示勾选框 */
+/** 是否处于批量操作模式：由右键菜单「批量选择 / 完成批量选择」进入/退出，
+    未进入时卡片不显示勾选框 */
 const batchMode = ref(false);
 
 /** 切换批量模式：进入时清空上一轮勾选；退出时一并清空，避免残留选中态 */
@@ -1244,26 +1264,36 @@ const capabilityOf = (key: "users" | "processes" | "slowQueries", item: DataSour
 /** 右键菜单：按数据源类型 + SPI 能力动态生成 */
 const ctxMenuItems = computed(() => {
   const item = ctxMenu.item;
-  // 系统数据源（应用主库）：只读入口，编辑/删除/测试/置顶都不适用
+  // 页面级动作：批量选择 / 跨库合并不针对单条记录，对所有可管理数据源一致。
+  // 放在菜单最上方，用分隔线与条目级动作（管理/测试/编辑/删除）分开。
+  const pageActions: { key: string; label: string; icon: string; danger?: boolean; warning?: boolean; divided?: boolean }[] = [
+    { key: "batch", label: batchMode.value ? "完成批量选择" : "批量选择", icon: "Finished" },
+    { key: "merge", label: "跨库合并", icon: "Link" },
+  ];
+  // 系统数据源（应用主库）：只读入口，编辑/删除/测试/置顶都不适用；
+  // 批量选择 / 跨库合并不是针对条目的动作，这里一并保留，保证列表任意位置右键都能进入
   if (item && isSystemSource(item)) {
     return [
-      { key: "manage", label: "打开管理", icon: "View" },
-      { key: "manage-full", label: "打开管理（新标签）", icon: "View", divided: true },
+      ...pageActions,
+      { key: "manage", label: "打开管理", icon: "View", divided: true },
+      { key: "manage-full", label: "打开管理（新标签）", icon: "View" },
     ];
   }
   // Calcite 合并数据源：编辑/置顶由合并动作独占语义排除（后端同样拒绝），
   // 测试连接与删除保留；users/docs/processes/slowQueries 是普通 JDBC 专属项。
   if (item && isCalciteSource(item)) {
     return [
-      { key: "manage", label: "打开管理", icon: "View" },
-      { key: "manage-full", label: "打开管理（新标签）", icon: "View", divided: true },
+      ...pageActions,
+      { key: "manage", label: "打开管理", icon: "View", divided: true },
+      { key: "manage-full", label: "打开管理（新标签）", icon: "View" },
       { key: "test", label: "检测连接", icon: "Connection" },
       { key: "delete", label: "删除数据源", icon: "Delete", danger: true, divided: true },
     ];
   }
   const base: { key: string; label: string; icon: string; danger?: boolean; warning?: boolean; divided?: boolean }[] = [
-    { key: "manage", label: "打开管理", icon: "View" },
-    { key: "manage-full", label: "打开管理（新标签）", icon: "View", divided: true },
+    ...pageActions,
+    { key: "manage", label: "打开管理", icon: "View", divided: true },
+    { key: "manage-full", label: "打开管理（新标签）", icon: "View" },
     { key: "test", label: "检测连接", icon: "Connection" },
     {
       key: "top",
@@ -1406,6 +1436,14 @@ const onItemMenuSelect = (key: string) => {
   const item = ctxMenu.item;
   ctxMenu.item = null;
   if (!item) return;
+  if (key === "batch") {
+    toggleBatchMode();
+    return;
+  }
+  if (key === "merge") {
+    openMergeDialog();
+    return;
+  }
   if (key === "top" && isCalciteSource(item)) {
     message.info("合并数据源不支持置顶");
     return;
@@ -2206,6 +2244,11 @@ const formatAddress = (item: DataSourceInfo): string => {
   if (isSystemSource(item)) {
     return "平台内置 · 无需配置";
   }
+  // Calcite 合并记录没有单一主机：显示成员数，比孤零零的占位符更有信息量
+  if (isCalciteSource(item)) {
+    const ids = calciteMemberIds(item);
+    return ids.length ? `联邦查询 · ${ids.length} 个成员库` : "联邦查询";
+  }
   // DuckDB 是单文件库：没有主机与端口，卡片上的「地址」就是磁盘路径。
   // 不特殊处理的话会渲染出一个孤零零的冒号（host 空 + port 空）。
   if (item.type === "duckdb") {
@@ -2235,10 +2278,19 @@ const configRows = computed(() => {
   } else if (detectedVersion.value) {
     versionText = `${detectedVersion.value}（检测）`;
   }
+  const calciteIds = calciteMemberIds(item);
   return [
     { label: "地址", value: formatAddress(item), mono: true },
     { label: "版本", value: versionText, mono: false },
-    { label: "配置路径", value: item.database || "—", mono: true },
+    {
+      label: isCalciteSource(item) ? "成员" : "配置路径",
+      value: isCalciteSource(item)
+        ? calciteIds.length
+          ? `${calciteIds.length} 个成员库`
+          : "—"
+        : item.database || "—",
+      mono: true
+    },
     { label: "用户", value: item.username || "—", mono: false },
     { label: "备注", value: item.remark || "—", mono: false },
     { label: "来源类型", value: typeMeta(item.type).label, mono: false },
@@ -2253,11 +2305,12 @@ const connectionRows = computed(() => {
   }
   // 版本口径与概览一致，统一从台账字段取（influxdb 是 2/3，其余是探测到的服务端版本）
   const versionText = versionLabel(item);
+  const calciteIds = calciteMemberIds(item);
   return [
     { label: "数据源 ID", value: item.id != null ? String(item.id) : "—", mono: true },
-    { label: "地址", value: item.type === "duckdb" ? "本地文件（无主机端口）" : formatAddress(item), mono: item.type !== "duckdb" },
+    { label: "地址", value: isCalciteSource(item) ? formatAddress(item) : item.type === "duckdb" ? "本地文件（无主机端口）" : formatAddress(item), mono: item.type !== "duckdb" },
     { label: "版本", value: versionText, mono: false },
-    { label: item.type === "duckdb" ? "库文件路径" : "配置路径", value: item.database || "—", mono: true },
+    { label: isCalciteSource(item) ? "成员" : item.type === "duckdb" ? "库文件路径" : "配置路径", value: isCalciteSource(item) ? (calciteIds.length ? `${calciteIds.length} 个成员库` : "—") : item.database || "—", mono: true },
     { label: "用户", value: item.username || "—", mono: false },
     { label: "驱动类", value: item.driverClassName || "—", mono: true },
     { label: "状态", value: item.status === 0 ? "已停用" : "启用", mono: false },
@@ -2527,22 +2580,10 @@ onMounted(load);
               placeholder="全部"
               clearable
             />
-            <ReButton
-              class="ds-side__batch-toggle"
-              icon="Finished"
-              :show-text="true"
-              size="small"
-              :type="batchMode ? 'primary' : ''"
-              :plain="!batchMode"
-              data-testid="ds-batch-toggle"
-              @click="toggleBatchMode"
-            >
-              {{ batchMode ? "完成" : "批量" }}
-            </ReButton>
           </div>
 
           <!-- 批量操作条：批量模式下固定显示，随勾选数量联动；
-               退出「完成」或批量条右侧 ✕ 都会退出批量模式并清空勾选。 -->
+               右键菜单「完成批量选择」或批量条右侧 ✕ 都会退出批量模式并清空勾选。 -->
           <div v-if="batchMode" class="ds-side__batch">
             <span class="ds-side__batch-text">
               已选 {{ selectionIds.size }} 个
@@ -2560,7 +2601,7 @@ onMounted(load);
           </div>
 
           <!-- 系统数据源伪条目：应用主库（app）不是台账行，固定在列表区上方，
-               不参与筛选/计数/批量，点击进只读详情，右键只留「打开管理」。 -->
+               不参与筛选/计数/批量，点击进只读详情，右键批量/合并为页面级动作。 -->
           <div class="ds-item-row ds-item-row--system">
             <button
               type="button"
@@ -2592,22 +2633,31 @@ onMounted(load);
                 v-for="item in filteredList"
                 :key="item.id ?? item.name"
                 class="ds-item-row"
-                :class="{ 'is-checked': batchMode && (item.id ?? -1) !== -1 && selectionIds.has(item.id ?? -1) }"
+                :class="{
+                  'is-batch': batchMode,
+                  'is-checked': batchMode && (item.id ?? -1) !== -1 && selectionIds.has(item.id ?? -1),
+                }"
               >
-                <ElCheckbox
-                  v-if="batchMode"
-                  class="ds-item-row__check"
-                  :model-value="(item.id ?? -1) !== -1 && selectionIds.has(item.id ?? -1)"
-                  :aria-label="`勾选 ${item.name}`"
-                  @change="toggleSelection(item.id)"
-                />
                 <button
                   type="button"
                   class="ds-item"
-                  :class="{ 'is-active': current === item }"
+                  :class="{
+                    'is-active': current === item,
+                    'is-batch': batchMode,
+                    'is-checked': batchMode && (item.id ?? -1) !== -1 && selectionIds.has(item.id ?? -1),
+                  }"
                   @click="selectSource(item)"
                   @contextmenu.prevent="onItemContextMenu($event, item)"
                 >
+                  <!-- 批量勾选框：放进卡片内部（第一项），批量模式下才出现 -->
+                  <ElCheckbox
+                    v-if="batchMode"
+                    class="ds-item__check"
+                    :model-value="(item.id ?? -1) !== -1 && selectionIds.has(item.id ?? -1)"
+                    :aria-label="`勾选 ${item.name}`"
+                    @click.stop
+                    @change="toggleSelection(item.id)"
+                  />
                   <span class="ds-item__icon" :style="{ '--tile': typeMeta(item.type).color }">
                     <svg
                       v-if="typeBrand(item.type)" viewBox="0 0 24 24" fill="currentColor" class="ds-brand"
@@ -2641,14 +2691,6 @@ onMounted(load);
           <button type="button" class="ds-side__add" @click="openCreate">
             <ReIcon name="Plus" :size="14" />
             <span>添加数据源</span>
-          </button>
-          <button
-            type="button"
-            class="ds-side__add ds-side__add--merge"
-            @click="openMergeDialog"
-          >
-            <ReIcon name="Link" :size="14" />
-            <span>跨库合并</span>
           </button>
         </div>
 
@@ -2782,7 +2824,6 @@ onMounted(load);
                 <!-- 页头动作一律方形图标钮（文字进 tooltip / aria-label）：
                      文字按钮会把标题行撑高，长名称一换行头卡就跟着跳。 -->
                 <ReButton icon="Plus" :show-text="false" layout="square" @click="openCreate">新增数据源</ReButton>
-                <ReButton icon="Link" :show-text="false" layout="square" @click="openMergeDialog">跨库合并</ReButton>
                 <template v-if="current && !isSystemSource(current)">
                   <ReButton icon="Lightning" :show-text="false" layout="square" :loading="testing === current.id" @click="test(current)">测试连接</ReButton>
                 </template>
@@ -3733,11 +3774,6 @@ onMounted(load);
   flex: 1 1 auto;
   min-width: 0;
 }
-/* 顶部批量入口：小按钮不走拉伸，保持搜索/类型/批量同一行 */
-.ds-side__batch-toggle {
-  flex: 0 0 auto;
-  align-self: center;
-}
 .ds-side__type {
   flex: 0 0 110px;
   width: 110px;
@@ -4034,19 +4070,6 @@ onMounted(load);
   color: var(--el-color-primary);
   border-color: color-mix(in srgb, var(--el-color-primary) 45%, transparent);
   background: color-mix(in srgb, var(--el-color-primary) 7%, transparent);
-}
-/* 跨库合并入口与「添加数据源」区分开：主色实线 + 浅色底，一眼是"动作"而非"条目" */
-.ds-side__add--merge {
-  margin-top: 8px;
-  border-style: solid;
-  border-color: color-mix(in srgb, var(--el-color-primary) 35%, transparent);
-  color: var(--el-color-primary, #2b6de8);
-  background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
-}
-.ds-side__add--merge:hover {
-  border-color: var(--el-color-primary);
-  color: var(--el-color-primary);
-  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
 }
 
 /* ReInput 内部为元素透传，搜索框宽度需用 :deep 命中 el-input 根 */

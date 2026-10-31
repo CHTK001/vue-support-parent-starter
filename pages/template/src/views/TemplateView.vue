@@ -1,144 +1,215 @@
 <!--
-  模板库资产列表（Variant A：左侧卡片列表右键菜单 + 右侧标签页工作台）
+  模板库 · 档案轨（左） + 多页签工作台（右）
 
-  布局结构：
-    - 顶栏：模板列表页标题 + 来源筛选 / 关键词搜索 + 新建模板 / 同步来源
-    - 左栏：模板卡片列表，整张卡片支持右键菜单（hiprint → 进入设计器/编辑/删除，
-      message/paper → 仅预览）；左键单击选中卡片激活右侧工作区页签。
-    - 右栏：ReTabs 多标签工作区，每个页签打开一个模板的预览/设计器，页签本身
-      也支持右键菜单（重命名/关闭/关闭其他/关闭全部）
+  布局：
+    - 左栏 286px 卡片轨：标题 + 数量、搜索 + 图标按钮、来源筛选；
+      条目为细线/强调条样式，滚动到底自动追加下一页；
+      整条右键：绘制来源 → 进入设计器 / 编辑 / 删除，消息、组卷来源 → 仅预览；
+      左键单击选中并在右侧打开对应页签。
+    - 右栏 ReTabs 工作台：页签标题取模板名称，页签右键关闭 / 关闭其他 / 关闭全部；
+      面板展示模板详情（来源、类型、语言、状态、创建/修改信息、备注）与图标操作。
+
+  说明：本页没有整体顶栏，所有操作都收在左栏头部与右栏详情头部，按钮仅用图标 + 悬浮提示。
 -->
 <template>
   <div class="tpl">
-    <!-- ==================== 顶栏 ==================== -->
-    <header class="tpl-header">
-      <div class="tpl-header__left">
-        <h1 class="tpl-header__title">模板库</h1>
-        <span class="tpl-header__count">共 <b>{{ total }}</b> 个模板</span>
-      </div>
-      <div class="tpl-header__right">
-        <ReSelect
-          v-model="query.source"
-          placeholder="来源全量"
-          clearable
-          class="tpl-search"
-          :options="sourceOptions"
-          @change="goto(1)"
-        />
-        <ReInput
-          v-model="query.keyword"
-          placeholder="搜索模板名称 / 副标题"
-          clearable
-          class="tpl-search"
-          @keyup.enter="goto(1)"
-        />
-        <ReButton type="primary" @click="openCreate">
-          <ReIcon name="Plus" :size="12" />
-          新建模板
-        </ReButton>
-        <ReButton :loading="syncing" @click="syncAll" :disabled="syncing">
-          <ReIcon name="RefreshLeft" :size="12" />
-          同步来源
-        </ReButton>
-        <span class="tpl-header__synced" v-if="syncCount">
-          来源 <b>{{ sourceCountText }}</b>
-        </span>
-      </div>
-    </header>
+    <!-- ==================== 左栏：模板轨 ==================== -->
+    <aside class="rail">
+      <header class="rail__head">
+        <div class="rail__title">
+          <h1>模板库</h1>
+          <span class="rail__count">{{ total }}</span>
+        </div>
 
-    <!-- ==================== 内容区 ==================== -->
-    <div class="tpl-body">
-      <!-- 左侧卡片列表 -->
-      <div class="tpl-left">
-        <ReTable
-          ref="tableRef"
-          class="tpl-table"
-          table-id="template-library"
-          :loader="loadTemplates"
-          :params="query"
-          :columns="columns"
-          row-key="id"
-          :layout-table="{ fill: true }"
-          :context-menu="contextMenu"
-          show-selection
-          stripe
-          :page-sizes="[10, 20, 50, 100]"
-          v-model:page="query.page"
-          v-model:page-size="query.pageSize"
-          @row-click="onRowClick"
-          @selection-change="onSelectionChange"
-          @context-menu-select="onTableMenuSelect"
-          @search="goto(1)"
-          @search-reset="goto(1)"
-        >
-          <template #toolbar>
-            <span class="tpl-toolbar-selected" v-if="selectedCount">已选 {{ selectedCount }} 项</span>
-            <ReButton text type="danger" icon="Delete" :disabled="!!busyKey" @click="batchRemove">批量删除</ReButton>
-            <ReButton text icon="RefreshLeft" @click="clearSelection">清空选择</ReButton>
-          </template>
+        <div class="rail__tools">
+          <ReInput
+            v-model="query.keyword"
+            size="small"
+            clearable
+            prefix-icon="Search"
+            placeholder="搜索名称 / 副标题"
+            @keyup.enter="reload"
+            @clear="reload"
+          />
+          <ReButton
+            text
+            :show-text="false"
+            icon="Plus"
+            tip="新建模板"
+            :icon-size="28"
+            @click="openCreate"
+          />
+          <ReButton
+            text
+            :show-text="false"
+            icon="RefreshLeft"
+            tip="同步来源"
+            :icon-size="28"
+            :loading="syncing"
+            :disabled="syncing"
+            @click="syncAll"
+          />
+        </div>
 
-          <!-- 模板名称 + 副标题 -->
-          <template #name="{ row }: { row: TemplateInfo }">
-            <div class="tpl-dev">
-              <div class="tpl-dev__top">
-                <span class="tpl-dev__name" :title="row.name">{{ row.name }}</span>
-                <el-tag :type="statusMeta(row.status).type" size="small" effect="plain">
-                  {{ statusMeta(row.status).label }}
-                </el-tag>
+        <div class="rail__filters">
+          <ReSelect
+            v-model="query.source"
+            size="small"
+            clearable
+            placeholder="来源全量"
+            :options="sourceOptions"
+            @change="reload"
+          />
+        </div>
+      </header>
+
+      <div ref="listRef" class="rail__list" @scroll.passive="onListScroll">
+        <div v-if="loading && !rows.length" class="rail__state">加载中…</div>
+        <div v-else-if="!rows.length" class="rail__state">没有匹配的模板</div>
+        <template v-else>
+          <div
+            v-for="row in rows"
+            :key="row.id"
+            class="entry"
+            :class="{ 'is-active': activeTab === String(row.id) }"
+            tabindex="0"
+            @click="addTab(row)"
+            @keydown.enter="addTab(row)"
+            @contextmenu.prevent="openRowMenu($event, row)"
+          >
+            <span class="entry__mark" :style="{ '--tpl-tint': sourceTint(row.source) }">
+              {{ initials(row.name) }}
+            </span>
+            <span class="entry__main">
+              <span class="entry__name" :title="row.name">{{ row.name }}</span>
+              <span class="entry__meta">
+                {{ sourceLabel(row.source) }} · {{ typeLabel(row.type) }}
+              </span>
+            </span>
+            <span class="entry__dot" :class="`is-${row.status}`" :title="statusMeta(row.status).label" />
+          </div>
+
+          <div class="rail__more">
+            <span v-if="loadingMore" class="rail__spinner" />
+            {{ loadingMore ? '加载中…' : hasMore ? '继续滚动加载' : '已全部加载' }}
+          </div>
+        </template>
+      </div>
+
+      <footer class="rail__foot">
+        <span>{{ syncCount ? `已同步 ${syncCount} 个` : '模板来自多来源同步' }}</span>
+        <span class="rail__foot-hint">右键条目操作</span>
+      </footer>
+    </aside>
+
+    <!-- ==================== 右栏：多页签工作台 ==================== -->
+    <section class="deck">
+      <ReTabs
+        v-model="activeTab"
+        :tabs="tabs"
+        :context-menu="tabContextMenu"
+        :closable="true"
+        :show-close-all="true"
+        empty-text="从左侧选择模板"
+        @close="closeTab"
+        @context-command="onTabCommand"
+        @close-all="closeAllTabs"
+      >
+        <template #default="{ tab }">
+          <div v-if="tabRows[tab.name]" class="work">
+            <article class="work__sheet">
+            <header class="work__head">
+              <span class="work__mark" :style="{ '--tpl-tint': sourceTint(tabRows[tab.name].source) }">
+                {{ initials(tabRows[tab.name].name) }}
+              </span>
+              <div class="work__title">
+                <h2>{{ tabRows[tab.name].name }}</h2>
+                <p>{{ tabRows[tab.name].subtitle || '未填写副标题' }}</p>
               </div>
-              <div class="tpl-dev__code">{{ row.subtitle || '—' }}</div>
+              <div class="work__acts">
+                <ReButton
+                  text
+                  :show-text="false"
+                  icon="View"
+                  tip="预览模板"
+                  :icon-size="30"
+                  @click="openPreview(tabRows[tab.name])"
+                />
+                <template v-if="tabRows[tab.name].source === 'hiprint'">
+                  <ReButton
+                    text
+                    :show-text="false"
+                    icon="EditPen"
+                    tip="编辑模板信息"
+                    :icon-size="30"
+                    @click="openEdit(tabRows[tab.name])"
+                  />
+                  <ReButton
+                    text
+                    :show-text="false"
+                    icon="MagicStick"
+                    tip="进入设计器"
+                    :icon-size="30"
+                    @click="openDesigner(tabRows[tab.name])"
+                  />
+                </template>
+              </div>
+            </header>
+
+            <div class="work__chips">
+              <span class="chip">{{ sourceLabel(tabRows[tab.name].source) }}</span>
+              <span class="chip">{{ typeLabel(tabRows[tab.name].type) }}</span>
+              <span class="chip">{{ languageLabel(tabRows[tab.name].language) }}</span>
+              <el-tag :type="statusMeta(tabRows[tab.name].status).type" size="small" effect="plain" round>
+                {{ statusMeta(tabRows[tab.name].status).label }}
+              </el-tag>
             </div>
-          </template>
 
-          <!-- 类型 -->
-          <template #type="{ row }: { row: TemplateInfo }">
-            <span class="tpl-cell">{{ typeLabel(row.type) }}</span>
-          </template>
+            <dl class="work__meta">
+              <div><dt>创建者</dt><dd>{{ tabRows[tab.name].creator || '—' }}</dd></div>
+              <div><dt>最后修改</dt><dd>{{ tabRows[tab.name].modifier || '—' }}</dd></div>
+              <div><dt>创建时间</dt><dd>{{ formatTime(tabRows[tab.name].createdAt) }}</dd></div>
+              <div><dt>更新时间</dt><dd>{{ formatTime(tabRows[tab.name].updatedAt) }}</dd></div>
+              <div v-if="tabRows[tab.name].sourceId">
+                <dt>来源记录</dt>
+                <dd class="mono">{{ tabRows[tab.name].sourceId }}</dd>
+              </div>
+              <div v-if="tabRows[tab.name].providerId">
+                <dt>来源提供方</dt>
+                <dd class="mono">{{ tabRows[tab.name].providerId }}</dd>
+              </div>
+            </dl>
 
-          <!-- 来源 -->
-          <template #source="{ row }: { row: TemplateInfo }">
-            <span class="tpl-cell">{{ sourceLabel(row.source) }}</span>
-          </template>
+            <section v-if="tabRows[tab.name].remark" class="work__remark">
+              <h3>备注</h3>
+              <p>{{ tabRows[tab.name].remark }}</p>
+            </section>
 
-          <!-- 语言 -->
-          <template #language="{ row }: { row: TemplateInfo }">
-            <span class="tpl-cell">{{ languageLabel(row.language) }}</span>
-          </template>
-
-          <!-- 状态列：仅占位（右键/双击除设计外操作） -->
-          <template #status="{ row }: { row: TemplateInfo }">
-            <el-tag :type="statusMeta(row.status).type" size="small" effect="plain">
-              {{ statusMeta(row.status).label }}
-            </el-tag>
-          </template>
-        </ReTable>
-
-        <!-- 底部信息条 -->
-        <footer class="tpl-bar">
-          <div class="tpl-bar__info">
-            <span class="tpl-bar__hint">右键模板卡打开操作菜单</span>
+            <p class="work__note">
+              {{
+                tabRows[tab.name].source === 'hiprint'
+                  ? '绘制来源模板可在设计器中拖拽编辑，保存后立即生效。'
+                  : '消息 / 组卷来源由对应模块同步生成，此处只读，仅支持预览。'
+              }}
+            </p>
+            </article>
           </div>
-          <div class="tpl-bar__right">
-            <span class="tpl-bar__op">每页 {{ query.pageSize }} 条</span>
-          </div>
-        </footer>
-      </div>
+        </template>
 
-      <!-- 右侧标签页工作台 -->
-      <div class="tpl-right">
-        <ReTabs
-          v-model="activeTab"
-          :tabs="tabs"
-          :context-menu="tabContextMenu"
-          :closable="true"
-          :show-close-all="true"
-          empty-text="从左侧选择模板，右键打开功能"
-          @close="closeTab"
-          @context-command="onTabCommand"
-          @close-all="closeAllTabs"
-        />
-      </div>
-    </div>
+        <template #empty>
+          <div class="deck-empty">
+            <span class="deck-empty__mark">
+              <ReIcon name="Document" :size="22" />
+            </span>
+            <b>还没有打开模板</b>
+            <span>从左栏选择模板，或右键条目直接进入设计器 / 预览</span>
+          </div>
+        </template>
+      </ReTabs>
+    </section>
+
+    <!-- 条目右键菜单 -->
+    <ReContextMenu ref="ctxMenu" :items="ctxItems" @select="onCtxSelect" />
 
     <!-- 新建 / 编辑弹窗 -->
     <ReDialog v-model="formVisible" :title="formTitle" width="520px" @confirm="onFormConfirm">
@@ -173,39 +244,30 @@
 
 <script setup lang="ts">
 /**
- * 模板库资产列表页。
+ * 模板库资产列表页（档案轨布局）。
  *
- * 布局：左侧卡片列表（右键菜单：进入设计器/编辑/删除，消息/组卷来源只读预览）+
- * 右侧多标签工作区（ReTabs：每个页签一个模板的预览/设计器，页签可右键关闭/关闭其他/关闭全部）。
+ * <p>左栏是一条可滚动加载的模板轨，右栏是 ReTabs 多页签工作台：
+ * 页签只保存「打开了哪个模板」，面板内容由 tabRows 快照驱动，
+ * 因此列表翻页、筛选、增删改之后已打开的页签仍然能正常渲染。</p>
+ *
+ * <p>业务保留：来源同步、分页查询（改为滚动追加）、新建 / 编辑 / 删除、
+ * 进入设计器 / 预览、页签关闭与右键菜单；不再有表格多选与批量删除。</p>
  */
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Delete, EditPen, MagicStick } from '@element-plus/icons-vue'
+import ReButton from '@repo/ui/re-button'
 import ReDialog from '@repo/ui/re-dialog'
 import ReIcon from '@repo/ui/re-icon'
 import ReInput from '@repo/ui/re-input'
-import ReButton from '@repo/ui/re-button'
 import ReSelect from '@repo/ui/re-select'
-import ReTable from '@repo/ui/re-table'
 import ReTabs from '@repo/ui/re-tabs'
-import type {
-  RePageResult,
-  ReTableColumn,
-  ReTableContextMenuContext,
-  ReTableContextMenuItem,
-  ReTableLoadParams
-} from '@repo/ui/re-table'
-import type { ReTabsItem, ReTabsContextItem } from '@repo/ui/re-tabs'
+import ReContextMenu from '@repo/ui/re-context-menu'
+import type { ReContextMenuItem } from '@repo/ui/re-context-menu'
+import type { ReTabsContextItem, ReTabsItem } from '@repo/ui/re-tabs'
 
 import { templateApi } from '../api/templateApi'
-import type {
-  TemplateInfo,
-  TemplateLanguage,
-  TemplateSource,
-  TemplateStatus,
-  TemplateType
-} from '../types/template'
+import type { TemplateInfo, TemplateStatus } from '../types/template'
 import {
   tplLanguageLabels,
   tplTypeLabels,
@@ -218,13 +280,96 @@ import {
 
 const router = useRouter()
 
-const tableRef = ref<{ reload: () => void; goto: (page?: number) => void; clearAllSelection: () => void } | null>(null)
+// ==================== 列表状态 ====================
+/** 已加载的模板（滚动追加） */
 const rows = ref<TemplateInfo[]>([])
-const loading = ref(false)
-const saving = ref(false)
-const busyKey = ref<string | null>(null)
+/** 服务端总数（决定是否还有下一页） */
 const total = ref(0)
-const selectedRows = ref<TemplateInfo[]>([])
+/** 是否还有下一页 */
+const hasMore = computed(() => rows.value.length < total.value)
+/** 首页加载中 */
+const loading = ref(false)
+/** 追加加载中 */
+const loadingMore = ref(false)
+/** 已加载到第几页 */
+const page = ref(1)
+/** 每页条数 */
+const pageSize = 20
+/** 请求序号：重置查询时丢弃在途的旧响应 */
+let loadSeq = 0
+
+/** 查询条件（分页由滚动控制，不从外部修改） */
+const query = reactive<Record<string, any>>({
+  keyword: '',
+  source: ''
+})
+
+const listRef = ref<HTMLElement | null>(null)
+
+/** 首页 / 重新查询 */
+function reload(): void {
+  void fetchPage(true)
+}
+
+/**
+ * 拉取一页数据。
+ *
+ * @param reset true=从第一页重新加载并替换列表；false=追加下一页
+ */
+async function fetchPage(reset: boolean): Promise<void> {
+  if (!reset && (loading.value || loadingMore.value || !hasMore.value)) return
+  const token = ++loadSeq
+  const target = reset ? 1 : page.value + 1
+  if (reset) loading.value = true
+  else loadingMore.value = true
+  try {
+    const res = await templateApi.page({
+      keyword: query.keyword.trim() || undefined,
+      source: query.source || undefined,
+      page: target,
+      size: pageSize
+    })
+    // 期间又发起了新查询：丢弃本次结果
+    if (token !== loadSeq) return
+    const records = Array.isArray(res?.records) ? res.records : []
+    rows.value = reset ? (records as unknown as TemplateInfo[]) : [...rows.value, ...(records as unknown as TemplateInfo[])]
+    total.value = Number(res?.total ?? rows.value.length)
+    page.value = target
+    if (reset && listRef.value) listRef.value.scrollTop = 0
+    await nextTick()
+    fillViewport()
+  } catch (err) {
+    if (token === loadSeq) ElMessage.error(String(err))
+  } finally {
+    if (token === loadSeq) {
+      loading.value = false
+      loadingMore.value = false
+    }
+  }
+}
+
+/** 一页填不满可视区时继续追加，避免出现「明明还有数据却滚不动」 */
+function fillViewport(): void {
+  const el = listRef.value
+  if (!el || loading.value || loadingMore.value || !hasMore.value) return
+  if (el.scrollHeight <= el.clientHeight + 4) void fetchPage(false)
+}
+
+/** 滚动到底部附近自动加载下一页 */
+function onListScroll(event: Event): void {
+  const el = event.target as HTMLElement
+  if (el.scrollTop + el.clientHeight >= el.scrollHeight - 64) void fetchPage(false)
+}
+
+/** 关键词输入 320ms 防抖后查询 */
+let keywordTimer: ReturnType<typeof setTimeout> | undefined
+watch(
+  () => query.keyword,
+  () => {
+    if (keywordTimer) clearTimeout(keywordTimer)
+    keywordTimer = setTimeout(() => reload(), 320)
+  }
+)
 
 // ==================== 来源同步 ====================
 /** 来源下拉选项 */
@@ -233,17 +378,13 @@ const sourceOptions = computed(() =>
 )
 /** 正在同步中 */
 const syncing = ref(false)
-/** 已同步来源的累计模板数（每献同步后回显） */
+/** 已同步来源的累计模板数 */
 const syncCount = ref(0)
-/** 来源同步描述文本 */
-const sourceCountText = computed(() =>
-  syncCount.value ? `已同步 ${syncCount.value} 个` : ''
-)
 /** 来源同步计数：source -> count */
 const sourceCount = ref<Record<string, number>>({})
 
 /** 加载来源同步信息 */
-async function loadSyncSources() {
+async function loadSyncSources(): Promise<void> {
   try {
     const list = await templateApi.syncSources()
     sourceCount.value = {}
@@ -257,7 +398,7 @@ async function loadSyncSources() {
 }
 
 /** 全量来源同步 */
-async function syncAll() {
+async function syncAll(): Promise<void> {
   syncing.value = true
   try {
     const result = await templateApi.syncAll()
@@ -265,7 +406,7 @@ async function syncAll() {
       sourceCount.value[source] = count
     }
     syncCount.value = Object.values(sourceCount.value).reduce((sum, c) => sum + c, 0)
-    goto(1)
+    reload()
     loadSyncSources()
   } catch {
     ElMessage.error('来源同步失败')
@@ -274,162 +415,20 @@ async function syncAll() {
   }
 }
 
-/** 页面初始化：拉取来源同步信息 */
+/** 页面初始化：拉取来源同步信息 + 首页列表 */
 onMounted(async () => {
   await loadSyncSources()
+  reload()
 })
 
-// ==================== 查询参数 ====================
-/** 查询参数 = ReTable params（分页 + 内置搜索区） */
-const query = reactive<Record<string, any>>({
-  keyword: '',
-  source: '',
-  page: 1,
-  pageSize: 20
-})
-
-/** ReTable 页码翻页 / 搜索重置 */
-function goto(page?: number) {
-  if (page) query.page = page
-  loadTemplates({ page: query.page, pageSize: query.pageSize })
-}
-
-// ==================== 新增 / 编辑弹窗 ====================
-/** 新增 / 编辑弹窗 */
+// ==================== 新增 / 编辑 ====================
 const formVisible = ref(false)
 const formTitle = ref('')
 const editingId = ref('')
 const formRef = ref<Record<string, any> | null>(null)
 const form = ref<Partial<TemplateInfo>>({})
+const saving = ref(false)
 
-// ==================== 列表列定义 ====================
-/** 表格列定义：名称（左）/ 语言 / 类型 / 来源 / 状态 */
-const columns: ReTableColumn[] = [
-  { prop: 'name', label: '模板', slot: 'name', minWidth: 260 },
-  { prop: 'language', label: '语言', slot: 'language', width: 150 },
-  { prop: 'type', label: '类型', slot: 'type', width: 130 },
-  { prop: 'source', label: '来源', slot: 'source', width: 110 },
-  { prop: 'status', label: '状态', slot: 'status', width: 120 }
-]
-
-// ==================== 通行：卡片行右键菜单 ====================
-/** 卡片行右键菜单：进入设计器 / 编辑 / 删除 */
-const tableMenu: ReTableContextMenuItem[] = [
-  { key: 'design', label: '进入设计器', icon: MagicStick },
-  { key: 'edit', label: '编辑模板', icon: EditPen },
-  { key: 'remove', label: '删除模板', icon: Delete, divided: true }
-]
-
-/** 行右键菜单提供者：消息 / 组卷来源只读，绘制来源可进入设计器 / 编辑 / 删除 */
-function contextMenu(ctx: ReTableContextMenuContext): ReTableContextMenuItem[] {
-  const row = ctx.row as unknown as TemplateInfo
-  if (row.source === 'hiprint') return tableMenu
-  return [
-    { key: 'preview', label: '预览', icon: MagicStick }
-  ]
-}
-
-// ==================== 右侧工作区：页签 ====================
-/** 当前激活的页签 name */
-const activeTab = ref('')
-const tabs = ref<ReTabsItem[]>([])
-
-/** 页签右键菜单：关闭 / 关闭其他 / 关闭全部 */
-const tabContextMenu: ReTabsContextItem[] = [
-  { key: 'close', label: '关闭' },
-  { key: 'close-other', label: '关闭其他' },
-  { key: 'close-all', label: '关闭全部' }
-]
-
-/** 添加页签（左侧卡片右键或左键单击时） */
-function addTab(row: TemplateInfo): void {
-  const id = `${row.id}`
-  if (tabs.value.some(t => t.name === id)) {
-    activeTab.value = id
-    return
-  }
-  tabs.value.push({
-    name: id,
-    label: row.name,
-    disabled: false,
-    closable: true
-  })
-  activeTab.value = id
-}
-
-/** 关闭页签 */
-function closeTab(name: string): void {
-  tabs.value = tabs.value.filter(t => t.name !== name)
-  if (activeTab.value === name && tabs.value.length > 0) {
-    activeTab.value = tabs.value[tabs.value.length - 1].name
-  } else if (tabs.value.length === 0) {
-    activeTab.value = ''
-  }
-}
-
-/** 关闭全部页签 */
-function closeAllTabs(): void {
-  tabs.value = []
-  activeTab.value = ''
-}
-
-/** 页签右键菜单：关闭 / 关闭其他 / 关闭全部 */
-function onTabCommand(payload: { key: string; tab: ReTabsItem }): void {
-  const tab = payload.tab
-  if (!tab) return
-  switch (payload.key) {
-    case 'close':
-      closeTab(tab.name)
-      break
-    case 'close-other':
-      tabs.value = [tab]
-      activeTab.value = tab.name
-      break
-    case 'close-all':
-      closeAllTabs()
-      break
-  }
-}
-
-// ==================== 行操作 ====================
-/** 行点击 */
-function onRowClick(row: Record<string, unknown>): void {
-  addTab(row as unknown as TemplateInfo)
-}
-
-/** 右键菜单选中：ctx.row 就是被右键的模板 */
-function onTableMenuSelect(item: ReTableContextMenuItem, ctx: ReTableContextMenuContext): void {
-  const row = ctx.row as unknown as TemplateInfo
-  switch (item.key) {
-    case 'design':
-      addTab(row)
-      router.push({ name: 'TemplateDesigner', params: { id: row.id }, query: { mode: 'design' } })
-      break
-    case 'edit':
-      openEdit(row)
-      break
-    case 'remove':
-      removeTemplate(row)
-      break
-    case 'preview':
-      addTab(row)
-      router.push({ name: 'TemplatePreview', params: { id: row.id } })
-      break
-  }
-}
-
-/** 选择变化 */
-function onSelectionChange(rows: Record<string, unknown>[]): void {
-  selectedRows.value = rows as unknown as TemplateInfo[]
-}
-const selectedCount = computed(() => selectedRows.value.length)
-
-/** 清空选择 */
-function clearSelection(): void {
-  tableRef.value?.clearAllSelection()
-}
-
-// ==================== 新增 / 编辑 ====================
 function openCreate(): void {
   formTitle.value = '新建模板'
   editingId.value = ''
@@ -462,14 +461,15 @@ async function onFormConfirm(): Promise<void> {
       remark: form.value.remark
     }
     if (editingId.value) {
-      await templateApi.update(editingId.value, payload)
+      const updated = await templateApi.update(editingId.value, payload)
       ElMessage.success('更新成功')
+      patchRow({ ...form.value, ...(updated ?? {}), id: editingId.value } as TemplateInfo)
     } else {
       await templateApi.add(payload)
       ElMessage.success('新增成功')
+      reload()
     }
     formVisible.value = false
-    await goto(1)
   } catch (err) {
     ElMessage.error(String(err))
   } finally {
@@ -477,8 +477,23 @@ async function onFormConfirm(): Promise<void> {
   }
 }
 
+/**
+ * 单条更新后的就地同步：列表行、页签标题、页签面板数据一起改。
+ *
+ * <p>不做整页重载，避免滚动位置与页签被重置。</p>
+ *
+ * @param updated 更新后的模板
+ */
+function patchRow(updated: TemplateInfo): void {
+  const index = rows.value.findIndex(r => r.id === updated.id)
+  if (index >= 0) rows.value[index] = { ...rows.value[index], ...updated }
+  if (tabRows[updated.id]) tabRows[updated.id] = { ...tabRows[updated.id], ...updated }
+  const tab = tabs.value.find(t => t.name === String(updated.id))
+  if (tab && updated.name) tab.label = updated.name
+}
+
 // ==================== 删除 ====================
-/** 删除模板（行右键菜单的删除） */
+/** 删除模板 */
 async function removeTemplate(row: TemplateInfo): Promise<void> {
   try {
     await ElMessageBox.confirm(`确定删除模板「${row.name}」？`, '删除', {
@@ -486,55 +501,136 @@ async function removeTemplate(row: TemplateInfo): Promise<void> {
     })
     await templateApi.remove(row.id)
     ElMessage.success('删除成功')
-    await goto(1)
+    // 已经打开的页签一并关掉，避免留下指向已删除数据的详情
+    closeTab(String(row.id))
+    reload()
   } catch (err) {
     if (String(err) !== 'Error: cancel') ElMessage.error(String(err))
   }
 }
 
-/** 批量删除（受限 busyKey，避免连点打乱台账） */
-async function batchRemove(): Promise<void> {
-  if (!selectedCount.value || busyKey.value) return
-  try {
-    await ElMessageBox.confirm(`确定删除选中的 ${selectedCount.value} 个模板？`, '删除', { type: 'warning' })
-    busyKey.value = 'batch'
-    const ids = selectedRows.value.map(r => r.id)
-    await Promise.all(ids.map(id => templateApi.remove(id)))
-    ElMessage.success('删除成功')
-    await goto(1)
-  } catch (err) {
-    if (String(err) !== 'Error: cancel') ElMessage.error(String(err))
-  } finally {
-    busyKey.value = null
+// ==================== 右键菜单 ====================
+const ctxMenu = ref<InstanceType<typeof ReContextMenu> | null>(null)
+/** 当前右键的模板 */
+const ctxRow = ref<TemplateInfo | null>(null)
+
+/** 菜单项：绘制来源可设计/编辑/删除，消息与组卷来源只读 */
+const ctxItems = computed<ReContextMenuItem[]>(() => {
+  const row = ctxRow.value
+  if (!row) return []
+  if (row.source === 'hiprint') {
+    return [
+      { label: '进入设计器', command: 'design', icon: 'MagicStick' },
+      { label: '编辑模板', command: 'edit', icon: 'EditPen' },
+      { separator: true },
+      { label: '删除模板', command: 'remove', icon: 'Delete', danger: true }
+    ]
+  }
+  return [{ label: '预览', command: 'preview', icon: 'View' }]
+})
+
+/** 在鼠标位置弹出条目菜单 */
+function openRowMenu(event: MouseEvent, row: TemplateInfo): void {
+  ctxRow.value = row
+  ctxMenu.value?.open(event.clientX, event.clientY)
+}
+
+/** 菜单命令分发 */
+function onCtxSelect(command: string): void {
+  const row = ctxRow.value
+  if (!row) return
+  switch (command) {
+    case 'design':
+      openDesigner(row)
+      break
+    case 'edit':
+      openEdit(row)
+      break
+    case 'remove':
+      removeTemplate(row)
+      break
+    case 'preview':
+      openPreview(row)
+      break
   }
 }
 
-// ==================== 加载 ====================
-/** ReTable loader：负责按 page / pageSize / params 取后端分页 */
-async function loadTemplates({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
-  loading.value = true
-  try {
-    const res = await templateApi.page({
-      keyword: ((params?.keyword as string) ?? query.keyword as string) || undefined,
-      source: query.source || undefined,
-      page,
-      size: pageSize as number
-    })
-    const records = Array.isArray(res?.records) ? res.records : []
-    // 落盘，给 ReTable 挂接的 ReTableContextMenuItem 使用
-    rows.value = records as unknown as TemplateInfo[]
-    return { total: Number(res?.total ?? 0), data: records as unknown as Record<string, unknown>[] }
-  } catch (err) {
-    ElMessage.error(String(err))
-    return { total: 0, data: [] }
-  } finally {
-    loading.value = false
+// ==================== 右侧工作台 ====================
+/** 当前激活的页签 name */
+const activeTab = ref('')
+/** 页签列表 */
+const tabs = ref<ReTabsItem[]>([])
+/** 页签 -> 模板快照：列表翻页/筛选后已打开的页签仍可渲染 */
+const tabRows = reactive<Record<string, TemplateInfo>>({})
+
+/** 页签右键菜单 */
+const tabContextMenu: ReTabsContextItem[] = [
+  { key: 'close', label: '关闭' },
+  { key: 'close-other', label: '关闭其他' },
+  { key: 'close-all', label: '关闭全部' }
+]
+
+/** 打开（或切换到）模板页签 */
+function addTab(row: TemplateInfo): void {
+  const id = String(row.id)
+  tabRows[id] = { ...row }
+  const existing = tabs.value.find(t => t.name === id)
+  if (existing) existing.label = row.name
+  else tabs.value.push({ name: id, label: row.name, closable: true })
+  activeTab.value = id
+}
+
+/** 关闭页签 */
+function closeTab(name: string): void {
+  tabs.value = tabs.value.filter(t => t.name !== name)
+  delete tabRows[name]
+  if (activeTab.value === name) {
+    activeTab.value = tabs.value[tabs.value.length - 1]?.name ?? ''
   }
 }
 
-/** 搜索：ReTable params 自带 keyword 条件，翻页即可 */
+/** 关闭全部页签 */
+function closeAllTabs(): void {
+  tabs.value = []
+  activeTab.value = ''
+  Object.keys(tabRows).forEach(key => delete tabRows[key])
+}
 
-// ==================== 字典 ====================
+/** 页签右键命令 */
+function onTabCommand(payload: { key: string; tab: ReTabsItem }): void {
+  const tab = payload.tab
+  if (!tab) return
+  switch (payload.key) {
+    case 'close':
+      closeTab(tab.name)
+      break
+    case 'close-other':
+      tabs.value = [tab]
+      activeTab.value = tab.name
+      Object.keys(tabRows).forEach(key => {
+        if (key !== tab.name) delete tabRows[key]
+      })
+      break
+    case 'close-all':
+      closeAllTabs()
+      break
+  }
+}
+
+// ==================== 跳转 ====================
+/** 预览（消息 / 组卷来源也走这里） */
+function openPreview(row: TemplateInfo): void {
+  addTab(row)
+  router.push({ name: 'TemplatePreview', params: { id: row.id } })
+}
+
+/** 进入设计器（仅绘制来源） */
+function openDesigner(row: TemplateInfo): void {
+  addTab(row)
+  router.push({ name: 'TemplateDesigner', params: { id: row.id }, query: { mode: 'design' } })
+}
+
+// ==================== 字典 / 展示 ====================
 /** 语言下拉选项 */
 const languageOptions = computed(() =>
   Object.entries(tplLanguageLabels).map(([value, label]) => ({ label, value }))
@@ -543,185 +639,450 @@ const languageOptions = computed(() =>
 const typeOptions = computed(() =>
   Object.entries(tplTypeLabels).map(([value, label]) => ({ label, value }))
 )
+
+/** 来源强调色：与状态语义色一致，暗色主题自动跟随 */
+function sourceTint(source: string): string {
+  if (source === 'message') return 'var(--el-color-success)'
+  if (source === 'paper') return 'var(--el-color-warning)'
+  return 'var(--el-color-primary)'
+}
+
+/** 名称首字：作为档案轨的色块标记 */
+function initials(name: string): string {
+  return (name || '?').trim().slice(0, 1)
+}
+
+/**
+ * 时间格式化：2026-10-31 14:22。
+ *
+ * @param value 后端时间字段
+ */
+function formatTime(value?: string): string {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
 </script>
 
 <style lang="scss" scoped>
 .tpl {
   display: flex;
-  flex-direction: column;
+  gap: 10px;
   height: 100%;
-  background: var(--el-bg-color-page);
-  overflow: hidden;
-}
-
-.tpl-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-  height: 52px;
-  background: var(--el-bg-color);
-  border-bottom: 1px solid var(--el-border-color-lighter);
-}
-
-.tpl-header__left {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.tpl-header__title {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
+  min-height: 0;
   color: var(--el-text-color-primary);
 }
 
-.tpl-header__count {
-  font-size: 13px;
+/* ==================== 左栏档案轨 ==================== */
+.rail {
+  display: flex;
+  flex: 0 0 286px;
+  flex-direction: column;
+  width: 286px;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 12px;
+}
+
+.rail__head {
+  padding: 12px 12px 9px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.rail__title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 10px;
+
+  h1 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+  }
+}
+
+.rail__count {
+  padding: 0 7px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 17px;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  border-radius: 999px;
+}
+
+.rail__tools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+
+  :deep(.el-input) {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.rail__filters {
+  margin-top: 8px;
+
+  :deep(.el-select) {
+    width: 100%;
+  }
+}
+
+.rail__list {
+  flex: 1;
+  min-height: 0;
+  padding: 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.rail__state {
+  padding: 26px 0;
+  font-size: 12px;
+  text-align: center;
   color: var(--el-text-color-secondary);
 }
 
-.tpl-header__right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.tpl-search {
-  width: 220px;
-}
-
-.tpl-body {
-  flex: 1;
-  display: flex;
-  overflow: hidden;
-}
-
-/* ================= 左侧卡片区 ================= */
-.tpl-left {
-  width: 280px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid var(--el-border-color-lighter);
-  background: var(--bg-container);
-}
-
-.tpl-table {
-  flex: 1;
-  overflow: auto;
-  background: var(--bg-container);
-}
-
-.tpl-table :deep(.vxe-body--row) {
-  cursor: pointer;
-}
-
-.tpl-bar {
+.rail__foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
-  height: 36px;
-  background: var(--el-bg-color-page);
-  border-top: 1px solid var(--el-border-color-lighter);
-  font-size: 12px;
+  gap: 8px;
+  padding: 7px 12px;
+  font-size: 11px;
   color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-lighter, var(--el-fill-color-light));
+  border-top: 1px solid var(--el-border-color-lighter);
 }
 
-.tpl-bar__hint {
+.rail__foot-hint {
+  white-space: nowrap;
   opacity: 0.8;
 }
 
-.tpl-bar__right {
+.rail__more {
   display: flex;
-  gap: 16px;
-}
-
-.tpl-bar__op {
-  white-space: nowrap;
-}
-
-.tpl-toolbar-selected {
-  margin-right: 8px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  font-size: 11px;
   color: var(--el-text-color-secondary);
-  font-size: 13px;
 }
 
-.tpl-dev {
+.rail__spinner {
+  width: 11px;
+  height: 11px;
+  border: 1.5px solid var(--el-border-color);
+  border-top-color: var(--el-color-primary);
+  border-radius: 50%;
+  animation: tpl-spin 0.7s linear infinite;
+}
+
+@keyframes tpl-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- 档案条目 ---------- */
+.entry {
+  position: relative;
   display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  outline: none;
+
+  & + & {
+    margin-top: 1px;
+  }
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 9px;
+    bottom: 9px;
+    left: 0;
+    width: 2px;
+    background: transparent;
+    border-radius: 2px;
+    transition: background 0.15s ease;
+  }
+
+  &:hover {
+    background: var(--el-fill-color-light);
+  }
+
+  &:focus-visible {
+    box-shadow: inset 0 0 0 2px var(--el-color-primary-light-7);
+  }
+
+  &.is-active {
+    background: var(--el-color-primary-light-9);
+
+    &::before {
+      background: var(--el-color-primary);
+    }
+
+    .entry__name {
+      color: var(--el-color-primary);
+    }
+  }
+}
+
+.entry__mark {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--tpl-tint);
+  background: color-mix(in srgb, var(--tpl-tint) 10%, transparent);
+  border-radius: 8px;
+}
+
+.entry__main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
   flex-direction: column;
   gap: 2px;
 }
 
-.tpl-dev__top {
+.entry__name {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 550;
+  line-height: 1.35;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition: color 0.15s ease;
+}
+
+.entry__meta {
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.entry__dot {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+
+  &.is-online {
+    background: var(--el-color-success);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-success) 16%, transparent);
+  }
+
+  &.is-offline {
+    background: var(--el-color-info);
+  }
+
+  &.is-draft {
+    background: var(--el-color-warning);
+  }
+}
+
+/* ==================== 右栏工作台 ==================== */
+.deck {
   display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 12px;
+}
+
+.deck-empty {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 6px;
+  padding: 24px;
+
+  b {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--el-text-color-regular);
+  }
+
+  span {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
+}
+
+.deck-empty__mark {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 4px;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  border-radius: 12px;
+  opacity: 0.9;
+}
+
+.work {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  padding: 18px 20px 24px;
+  overflow: auto;
+  background: var(--el-bg-color-page);
+}
+
+.work__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.work__mark {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--tpl-tint);
+  background: color-mix(in srgb, var(--tpl-tint) 12%, var(--el-bg-color));
+  border-radius: 11px;
+}
+
+.work__title {
+  flex: 1;
+  min-width: 0;
+
+  h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+  }
+
+  p {
+    margin: 3px 0 0;
+    overflow: hidden;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
+
+.work__acts {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 2px;
+}
+
+.work__chips {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
 }
 
-.tpl-dev__name {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--el-text-color-primary);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-}
-
-.tpl-dev__code {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-}
-
-.tpl-cell {
-  font-size: 13px;
+.chip {
+  padding: 2px 8px;
+  font-size: 11px;
+  line-height: 18px;
   color: var(--el-text-color-regular);
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 999px;
 }
 
-/* ================= 右侧工作区 ================= */
-.tpl-right {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+.work__meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 1px;
+  margin: 0;
   overflow: hidden;
-  background: var(--bg-elevated);
-}
+  background: var(--el-border-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 10px;
 
-.tpl-right :deep(.re-tabs) {
-  flex: 1;
-}
-.tpl-right :deep(.re-tabs__pane) {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-.tpl-right :deep(.re-tabs__body) {
-  flex: 1;
-  overflow: auto;
-}
-.tpl-right :deep(.re-tabs__content) {
-  height: 100%;
-}
-
-/* 设计师/预览页面的占位框架：等路由挂载的区域 */
-.tpl-right .tpl-iframe {
-  flex: 1;
-  border: none;
-  background: var(--bg-container);
-  border-radius: 0 0 8px 8px;
-}
-
-@media (max-width: 768px) {
-  .tpl-left {
-    width: 240px;
+  > div {
+    padding: 10px 12px;
+    background: var(--el-bg-color);
   }
-  .tpl-header__right {
-    gap: 6px;
+
+  dt {
+    font-size: 11px;
+    color: var(--el-text-color-secondary);
+  }
+
+  dd {
+    margin: 3px 0 0;
+    font-size: 13px;
+    font-weight: 550;
+    word-break: break-all;
+  }
+}
+
+.work__remark {
+  padding: 12px 14px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 10px;
+
+  h3 {
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--el-text-color-secondary);
+  }
+
+  p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--el-text-color-regular);
+    white-space: pre-wrap;
+  }
+}
+
+.work__note {
+  margin: auto 0 0;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+
+.mono {
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .rail {
+    flex-basis: 240px;
+    width: 240px;
   }
 }
 </style>
