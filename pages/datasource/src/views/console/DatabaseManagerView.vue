@@ -468,6 +468,7 @@
                   :model-value="editingCell.value"
 
                   autofocus
+                  focus-right
                   :type="longTextColumns.has(col) ? 'textarea' : 'text'"
                   @update:model-value="setEditingCellValue"
                   @keyup.enter="saveCell(row, col)"
