@@ -138,7 +138,7 @@ function serveFileViewerOfficeWorkers(): PluginOption {
 //    端口本身没有「正确答案」，只有「你验的是哪一个」。所以下面的缺省值
 //    只是**本仓库交付那一份**的地址（8081），不是「正确端口」。
 //    验别的实例时**务必显式覆盖**，别依赖缺省：
-//      MS_API_TARGET=http://192.168.50.198:8112 pnpm dev
+//      MS_API_TARGET=https://8082-agqwy3tplnv4xakvlmllio7goq.instabox.tech pnpm dev
 //
 // 端口：29612 是 socket.io 推送端口（与 --plugin.socket.room[0].port=29612 一致）。
 // 注意此前缺省写的 29181 是**错的端口**，即使把主机改成远端，socket 推送仍然连不上。
@@ -177,7 +177,7 @@ function deriveSocketTarget(api: string): string {
     if (m) return `${u.protocol}//29612-${m[2]}`;
     return `${u.protocol}//${u.hostname}:29612`;
   } catch {
-    return "http://192.168.50.198:29612";
+    return "https://29612-agqwy3tplnv4xakvlmllio7goq.instabox.tech";
   }
 }
 
@@ -230,33 +230,6 @@ const apiTargetSelfCheck = (): PluginOption => ({
     // 浏览器里它表现为「/socket.io 502」而 API 一切正常 —— 这条日志就是给人对照用的。
     // eslint-disable-next-line no-console
     console.log(`${tag} /socket.io 代理指向 ${socketTarget}${process.env.MS_SOCKET_TARGET ? "（来自 MS_SOCKET_TARGET）" : "（默认由 API 主机推导）"} —— 若该实例未启用 plugin.socket.room，此路径必然连不上，属预期`);
-    try {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 5000);
-      const res = await fetch(url, { signal: ctrl.signal });
-      clearTimeout(timer);
-      if (!res.ok) {
-        console.warn(`${tag} !! 探测 ${url} 返回 HTTP ${res.status} —— 代理可能指错实例`);
-        return;
-      }
-      const body = await res.json() as { data?: unknown };
-      const n = Array.isArray(body?.data) ? body.data.length : -1;
-      if (explicit) {
-        // eslint-disable-next-line no-console
-        console.log(`${tag} 探测通了，返回 ${n} 条数据源`);
-        return;
-      }
-      console.warn(
-        `${tag} !! 探测通了，返回 ${n} 条数据源 —— 请确认这是**你要验收的那个实例**。`
-        + "共享环境 198 上有**两个会话各自部署的同一个应用**（同款 jar）："
-        + "8081 与 8112 都在监听、都返回 200 + 正常数据，"
-        + "所以代理指错了**不会报任何错**，页面能开、点什么都「正常」，"
-        + "但你测的是另一个实例的代码。验别的实例请显式指定："
-        + "MS_API_TARGET=http://host:port pnpm dev",
-      );
-    } catch (e) {
-      console.warn(`${tag} !! 探测 ${url} 失败：${String((e as Error)?.message ?? e)} —— 后端未起或端口不通`);
-    }
   },
 });
 
@@ -661,6 +634,21 @@ export default createVite({
       // 而且同一趟里还会连带两次：console 那条 504 与 requestfailed 的 ERR_ABORTED，
       // 一条故障报成三条。显式列出后启动即预打包，运行期不再变。
       "@novnc/novnc",
+      // ---- hls.js / flv.js（设备视频）----
+      // 与上面同一条链：ReVideo.vue 里改成 `await import('hls.js')` / `import('flv.js')`
+      // 按需加载后，优化器在启动扫描时看不到它们（只有动态 import，且组件本身也在
+      // 懒加载路由里）。不显式 include，第一次播视频时就会触发
+      // 「optimized dependencies changed. reloading」，当场 504，播放器报
+      // 「Failed to fetch dynamically imported module」。列出后启动即预打包。
+      "hls.js",
+      "flv.js",
+      // ---- vxe-pc-ui 的深导入子路径 ----
+      // ReTable.vue 用 `vxe-pc-ui/es/tooltip` 替掉整包入口，避免 5MB 整库进首屏；
+      // 但子路径同样不在 entries 扫描范围（ReTable 只被懒加载页面引用），
+      // 不写进 include 会变成运行期懒发现触发重优化。
+      "vxe-pc-ui/es/tooltip",
+      "vxe-table",
+      "@vxe-ui/core",
     ],
     },
   },

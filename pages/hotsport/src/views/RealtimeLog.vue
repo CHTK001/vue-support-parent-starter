@@ -52,7 +52,21 @@
           <span class="rt-lvl" :class="`rt-lvl--${levelClass(log.level)}`">{{ log.level || "INFO" }}</span>
           <span v-if="log.logger" class="rt-logger mono">{{ log.logger }}</span>
           <span class="rt-msg">{{ log.message }}</span>
-          <span v-if="log.traceId" class="rt-trace mono">{{ shortId(String(log.traceId)) }}</span>
+          <i
+            v-if="log.traceId"
+            class="rt-trace-marker"
+            aria-hidden="true"
+            :title="`关联链路 ${String(log.traceId)}`"
+          />
+          <button
+            v-if="log.traceId"
+            type="button"
+            class="rt-trace"
+            :title="`查看链路 ${String(log.traceId)}`"
+            @click="openTrace(String(log.traceId))"
+          >
+            <code class="mono">{{ shortId(String(log.traceId)) }}</code>
+          </button>
         </div>
       </div>
     </div>
@@ -61,10 +75,18 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { useRouter } from "vue-router";
+import { ROUTE_PREFIX } from "../config";
 import { useRealtimeLog } from "../composables/useRealtime";
 
 const LEVELS = ["TRACE", "DEBUG", "INFO", "WARN", "ERROR"];
 const MAX_ITEMS = 500;
+const router = useRouter();
+
+/** 跳转链路详情：traceId 深链到 /traces/detail（与 Logs/Errors 页同一路由常量） */
+function openTrace(traceId: string): void {
+  router.push({ path: ROUTE_PREFIX + "/traces/detail", query: { traceId } });
+}
 
 const { active, items, receivedCount, start, stop, toggle, clear } = useRealtimeLog({
   maxItems: MAX_ITEMS,
@@ -240,7 +262,42 @@ onMounted(() => {
 .rt-trace {
   flex-shrink: 0;
   font-size: 10px;
-  color: var(--text-tertiary, var(--apm-muted));
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--brand-500, var(--apm-accent));
+  transition: color var(--apm-t-fast);
+}
+
+.rt-trace:hover {
+  color: var(--brand-600, var(--apm-accent-hover));
+}
+
+.rt-trace:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--brand-500, var(--apm-accent-subtle));
+  border-radius: var(--apm-radius-sm);
+}
+
+.rt-trace code {
+  display: inline-block;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* 行首小圆点：有 traceId 的日志可一眼识别，可下钻链路 */
+.rt-line .rt-trace-marker {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--brand-500, var(--apm-accent));
+  opacity: 0.7;
+  align-self: center;
 }
 
 .rt-empty {

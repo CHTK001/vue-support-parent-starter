@@ -52,7 +52,10 @@ apps/*/index.html
 *.tgz
 *.log
 *.mjs
+*.cjs
 *.ps1
+dump*.js
+debug*.js
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

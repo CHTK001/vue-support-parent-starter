@@ -98,11 +98,17 @@
             <span class="mono muted">{{ row.target }}</span>
           </template>
           <template #col-callCount="{ row }">
-            <span class="mono">{{ numOf(row.callCount) }}</span>
+            <span class="calls-cell">
+              <span class="calls-bar" aria-hidden="true">
+                <i :style="{ width: callShareWidth(numOf(row.callCount)) }" />
+              </span>
+              <span class="mono calls-num">{{ numOf(row.callCount).toLocaleString() }}</span>
+            </span>
           </template>
           <template #col-errorRate="{ row }">
-            <span class="mono" :class="rateClass(numOf(row.errorRate))">
-              {{ numOf(row.errorRate).toFixed(2) }}%
+            <span class="rate-cell" :class="errorRateClass(numOf(row.errorRate))">
+              <i class="rate-dot" aria-hidden="true"></i>
+              <span class="mono">{{ numOf(row.errorRate).toFixed(2) }}%</span>
             </span>
           </template>
           <template #col-avgDurationMs="{ row }">
@@ -172,14 +178,25 @@ const depRows = computed(() =>
     : [],
 );
 
+const totalDepCalls = computed(() =>
+  depRows.value.reduce((acc, d) => acc + numOf(d.callCount), 0),
+);
+
+/** 调用量占比条宽度（%）：占全部外部调用量的比例，0 时退化为 2% 小点 */
+function callShareWidth(count: number): string {
+  if (!totalDepCalls.value || count <= 0) return "2%";
+  return `${Math.max(2, (count / totalDepCalls.value) * 100)}%`;
+}
+
 function numOf(v: unknown): number {
   const n = Number(v ?? 0);
   return Number.isFinite(n) ? n : 0;
 }
 
-function rateClass(v: number): string {
-  if (v > 10) return "err-text";
-  if (v > 0) return "warn-text";
+/** 错误率着色档：与 Endpoints/Dashboard 阈值一致（>5% 红，1~5% 黄） */
+function errorRateClass(v: number): string {
+  if (v > 5) return "err-text";
+  if (v > 1) return "warn-text";
   return "muted";
 }
 
@@ -373,6 +390,63 @@ function onResize() {
   color: var(--apm-fg, inherit);
   font-weight: 600;
 }
+
+/* 调用量占比条：同页内一眼看出最重的调用方（与 Endpoints 同款规格） */
+.calls-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.calls-bar {
+  position: relative;
+  width: 54px;
+  height: 4px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--border-subtle, var(--apm-border-soft));
+  overflow: hidden;
+}
+
+.calls-bar > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 999px;
+  background: var(--brand-500, var(--apm-accent));
+}
+
+.calls-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 错误率状态点：绿/黄/红三档语义一眼可见 */
+.rate-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.rate-dot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--status-success, var(--apm-success));
+}
+
+.rate-cell.warn-text .rate-dot {
+  background: var(--status-warning, var(--apm-warning));
+}
+
+.rate-cell.err-text .rate-dot {
+  background: var(--status-error, var(--apm-danger));
+}
+
 .warn-text {
   color: var(--apm-warning, #d99000);
 }

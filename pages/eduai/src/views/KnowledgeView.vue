@@ -1,6 +1,6 @@
 <template>
   <div class="page-container">
-    <!-- 上区：页头 + 右侧悬浮正方形统计卡（一半压上区、一半盖内容区） -->
+    <!-- 上区：页头 + 横向统计卡 -->
     <div class="top-zone">
       <div class="page-header">
         <div class="page-header__left">
@@ -104,7 +104,8 @@
     </el-card>
 
     <!-- 卡片网格 / 列表 -->
-    <div v-loading="loading" class="card-grid-wrap">
+    <el-card shadow="never" class="table-card">
+      <div v-loading="loading" class="card-grid-wrap">
       <div v-if="viewMode === 'grid'" class="card-grid">
         <!-- 卡片本身可点：补 role/tabindex 让键盘能聚焦，:focus-visible 的焦点环才有意义 -->
         <div
@@ -211,6 +212,7 @@
         :description="viewMode === 'grid' ? '暂无知识卡片，点击「新增卡片」创建' : '暂无知识卡片'"
       />
     </div>
+    </el-card>
 
     <!-- 卡片编辑对话框：左表单 + 右实时预览 -->
     <ReDialog
@@ -724,14 +726,14 @@ const statCards = computed(() => {
     return Notebook;
   };
   const stats = [
-    { title: "知识点总数", value: total, icon: Document, bg: "var(--el-color-primary)", hint: "全部学科汇总" },
+    { title: "知识点总数", value: total, icon: Document, bg: "var(--el-color-primary-light-9)", hint: "全部学科汇总" },
     top[0]
-      ? { title: top[0][0], value: top[0][1], icon: iconFor(top[0][0]), bg: "var(--el-color-primary)", hint: "学科 Top1" }
-      : { title: "数学", value: 0, icon: Grid, bg: "var(--el-color-primary)", hint: "学科 Top1" },
+      ? { title: top[0][0], value: top[0][1], icon: iconFor(top[0][0]), bg: "var(--el-color-primary-light-9)", hint: "学科 Top1" }
+      : { title: "数学", value: 0, icon: Grid, bg: "var(--el-color-primary-light-9)", hint: "学科 Top1" },
     top[1]
-      ? { title: top[1][0], value: top[1][1], icon: iconFor(top[1][0]), bg: "var(--el-color-success)", hint: "学科 Top2" }
-      : { title: "物理", value: 0, icon: MagicStick, bg: "var(--el-color-success)", hint: "学科 Top2" },
-    { title: "新增本周", value: weekNew, icon: Plus, bg: "var(--el-color-warning)", hint: "近 7 天创建" },
+      ? { title: top[1][0], value: top[1][1], icon: iconFor(top[1][0]), bg: "var(--el-color-success-light-9)", hint: "学科 Top2" }
+      : { title: "物理", value: 0, icon: MagicStick, bg: "var(--el-color-success-light-9)", hint: "学科 Top2" },
+    { title: "新增本周", value: weekNew, icon: Plus, bg: "var(--el-color-warning-light-9)", hint: "近 7 天创建" },
   ];
   return stats;
 });
@@ -1015,20 +1017,20 @@ onMounted(() => {
 
 <style scoped>
 .page-container {
-  height: 100%;
-  overflow: auto;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   background: var(--el-bg-color-page);
 }
 
-/* ---------- 上区：页头 + 右侧悬浮正方形统计卡 ---------- */
+/* ---------- 上区：页头 + 横向统计卡 ---------- */
 .top-zone {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: -74px;
-  position: relative;
-  z-index: 2;
+  gap: 18px;
+  flex-wrap: wrap;
 }
 
 .page-header {
@@ -1036,22 +1038,20 @@ onMounted(() => {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 0;
-  padding-top: 4px;
   min-width: 0;
   flex: 1;
 }
 .page-header__title {
   margin: 0;
-  font-size: 26px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 900;
   color: var(--el-text-color-primary);
-  line-height: 1.25;
+  letter-spacing: 1px;
 }
 .page-header__sub {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   font-size: 13px;
-  color: var(--el-text-color-placeholder);
+  color: var(--el-text-color-secondary);
 }
 .view-toggle {
   display: inline-flex;
@@ -1083,23 +1083,14 @@ onMounted(() => {
   color: var(--el-color-white);
 }
 
-/* ---------- 筛选（被统计卡下半压住） ---------- */
+/* ---------- 筛选 ---------- */
 .filter-card {
-  /* 原 14px，最近档 12px（lg） */
   border-radius: var(--el-radius-lg, 12px);
-  margin-bottom: 14px;
-  border: 0;
-  position: relative;
-  z-index: 1;
-}
-.filter-card :deep(.el-card__body) {
-  /* 上半被统计卡盖住约 74px，顶部多留白避免筛选栏被压 */
-  padding: 92px 20px 18px;
 }
 .filter-grid {
   display: grid;
-  grid-template-columns: minmax(200px, 1.4fr) repeat(3, minmax(140px, 1fr)) auto;
-  gap: 16px;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  gap: 12px 16px;
   align-items: end;
 }
 .filter-field {
@@ -1109,13 +1100,15 @@ onMounted(() => {
   min-width: 0;
 }
 .filter-field__label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 6px;
 }
 .filter-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
 }
 .filter-actions .el-button {
@@ -1125,87 +1118,83 @@ onMounted(() => {
   font-weight: 600;
 }
 
-/* ---------- 统计：右侧并排正方形悬浮卡 ---------- */
+/* ---------- 统计：横向卡片 ---------- */
 .stats-row {
   display: flex;
-  flex-shrink: 0;
-  gap: 14px;
-  margin-bottom: 0;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 .stat-card {
-  width: 148px;
-  height: 148px;
-  background: var(--el-bg-color);
-  border-radius: var(--el-radius-xl, 16px);
-  padding: 16px;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-  /* koi 卡片不加投影：两层 slate 常驻投影换成一条主题边框。
-     原来的 rgb(255 255 255 / 80%) 白边在浅色主题下等于隐形，换成
-     --el-border-color-lighter 后暗色模式也能分清卡片边界 */
+  align-items: center;
+  gap: 14px;
+  min-width: 170px;
+  padding: 12px 16px;
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  transition:
-    transform var(--el-transition-duration-fast, 0.2s) ease,
-    box-shadow var(--el-transition-duration-fast, 0.2s) ease,
-    border-color var(--el-transition-duration-fast, 0.2s) ease;
-}
-.stat-card:hover {
-  transform: translateY(-2px);
-  border-color: var(--el-color-primary-light-7);
-  /* 浮起反馈是 koi 唯一允许的卡片投影 */
-  box-shadow: 0 16px 36px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
 }
 .stat-card__body {
   min-width: 0;
-  width: 100%;
 }
 .stat-card__title {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--el-text-color-secondary);
-  margin-bottom: 6px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .stat-card__value {
-  font-size: 30px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 900;
   color: var(--el-text-color-primary);
-  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
 .stat-card__hint {
-  margin-top: 4px;
   font-size: 11px;
   color: var(--el-text-color-placeholder);
-  line-height: 1.35;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .stat-card__icon {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: var(--el-radius-lg, 12px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--el-color-white);
+  color: var(--el-color-primary);
   flex-shrink: 0;
-  align-self: flex-end;
 }
 
-/* ---------- 卡片网格 ---------- */
+/* ---------- 表格卡 ---------- */
+.table-card {
+  border-radius: var(--el-radius-lg, 12px);
+}
+.table-card :deep(.el-card__body) {
+  padding: 20px;
+}
 .card-grid-wrap {
-  min-height: 200px;
+  /* 固定容器高度（同三库）：消除滚动条液面高度随滚动反复重算的抖动。
+     380 = 1440x980 实测档：wrap.top 350.8 + 底部留白 29，
+     本页筛选卡较高（4 字段 + actions），所以比三库的 374 档多 6px。 */
+  height: calc(100vh - 380px);
+  min-height: 300px;
+  contain: layout size;
+  overflow: hidden;
 }
 .card-grid {
+  height: 100%;
+  overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 14px;
+  align-content: start;
+}
+/* 空态：定高容器内垂直居中 */
+.card-grid-wrap :deep(.el-empty) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 .kp-card {
   background: var(--el-bg-color);
@@ -1913,32 +1902,13 @@ onMounted(() => {
 }
 
 @media (max-width: 1100px) {
-  .top-zone {
-    flex-direction: column;
-    margin-bottom: 0;
-  }
-  .stats-row {
-    flex-wrap: wrap;
-    width: 100%;
-  }
-  .filter-card :deep(.el-card__body) {
-    padding: 18px 20px;
-  }
   .filter-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .filter-actions {
-    grid-column: 1 / -1;
-  }
-  .page-header {
-    flex-direction: column;
-    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 /* ============ 无障碍：尊重系统「减少动态效果」偏好 ============ */
 @media (prefers-reduced-motion: reduce) {
-  .stat-card,
   .kp-card,
   .kp-card__actions,
   .kp-card__hint,
@@ -1946,7 +1916,6 @@ onMounted(() => {
     transition: none;
   }
   /* 位移也是动效：关掉后 :hover 只剩边框/颜色反馈 */
-  .stat-card:hover,
   .kp-card:hover {
     transform: none;
   }

@@ -22,17 +22,19 @@ import "./styles/telemetry.css";
 // ── @pages/* 的全局样式：为什么由壳 main.ts 显式引入？ ─────────────
 // pages 包按约定只放「视图 + API + 路由工厂 + 样式文件」，不持有 App.vue/main.ts 入口；
 // 因此包内 .css（tokens / page / dialog）没有自己的挂载时机，必须在壳入口 import 才会
-// 被打包进产物。这三条是 pages/server 与 pages/monitor 的页面依赖的全局样式：
+// 被打包进产物。这四条是 pages/server / pages/monitor / pages/system 的页面依赖的全局样式：
 //   - tokens.css  定义包级 CSS 变量色板（侧边栏/卡片/表格的 --el-* 覆盖），
 //                 供两个包的所有 .vue 的 <style> 使用，必须全局可用；
 //   - page.css    主机资产管理等页面的通用版式类（只读全局类，不 scoped）；
-//   - dialog.css  主机表单 / 详情弹窗的统一视觉（变量驱动，不 scoped）。
+//   - dialog.css  主机表单 / 详情弹窗的统一视觉（变量驱动，不 scoped）；
+//   - system-page.css 系统日志 / 登录日志页面的空态 & 页头布局类（只读全局类，不 scoped）。
 // 唯一归属在壳、不归 pages 的理由：样式的「消费方」是壳整体装配出的应用，
 // 页面只声明依赖、由应用入口统一收集，避免每页重复 import 造成重复打包。
 import "@pages/monitor/src/styles/tokens.css";
 import "@pages/server/src/styles/tokens.css";
 import "@pages/server/src/styles/page.css";
 import "@pages/server/src/styles/dialog.css";
+import "@pages/system/styles/system-page.css";
 import ProcessHost from "./components/ProcessHost.vue";
 import monitorRoutes from "./router";
 

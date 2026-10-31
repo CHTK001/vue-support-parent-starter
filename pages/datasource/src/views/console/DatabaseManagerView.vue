@@ -6670,6 +6670,10 @@ function openTableData(tableName: string, database = activeDatabase.value) {
     tabs.value.push(tab);
   }
   activeTab.value = id;
+  // 双击树节点会连发两次 click：第一次已把加载顶起来，第二次在拿到快照前
+  // 又走一遍 loadTableData，同一张表就会重复打 /data。这里只拦「正在加载同一张表」，
+  // 拿到结果后的正常多次点开仍走快照/真实取数逻辑。
+  if (tableLoading.value && tableDataReqSeq.value > 0) return;
   // 排序/过滤是上一张表的条件，切表必须清掉，否则新表可能因列不存在而加载失败
   resetTableQueryState();
   // 再把这张表**自己**的条件恢复回来（F5）：清掉是必须的，
@@ -7983,6 +7987,8 @@ interface TabDataSnapshot {
   sortOrder: "ASC" | "DESC" | "";
   /** 快照对应的筛选条件指纹：条件变了（用户改了筛选）就不能拿旧行糊弄 */
   filterSig: string;
+  /** 快照落成/刷新的时间戳（ms），超时后不再还原，避免「打开表看到的是几小时前的缓存」 */
+  at: number;
 }
 
 /** 当前筛选条件指纹（WHERE 文本 + 结构化条件） */
@@ -7992,6 +7998,15 @@ function currentFilterSignature(): string {
 
 /** 表页签数据快照：键为页签 id */
 const tabDataCache = new Map<string, TabDataSnapshot>();
+
+/**
+ * 快照最大保鲜时长。
+ *
+ * <p>切页签 / 重复点同一张表仍然先用快照做纯本地还原（不转圈、不重查），
+ * 但快照不能永远充当「后台最新数据」—— 另一个会话/脚本可能已经把表改了。
+ * 超过这个时间就放弃快照，走真实取数并亮转圈，确保用户看到的是后端当前数据。</p>
+ */
+const TAB_SNAPSHOT_MAX_AGE_MS = 10_000;
 
 /**
  * 记下某页签刚取到的数据。
@@ -8015,6 +8030,7 @@ function rememberTabData(tab: Tab, result: DbTableDataResult): void {
     sortProp: sortState.prop,
     sortOrder: sortState.order,
     filterSig: currentFilterSignature(),
+    at: Date.now(),
   });
 }
 
@@ -8030,6 +8046,9 @@ function rememberTabData(tab: Tab, result: DbTableDataResult): void {
 function restoreTabDataSnapshot(tab: Tab): boolean {
   const snap = tabDataCache.get(tab.id);
   if (!snap) return false;
+  // 快照太旧（超过保鲜时长）：它还指着后台很久以前的样子，直接还原会误导，
+  // 视为「没有可用快照」，让调用方走真实取数并亮转圈。
+  if (Date.now() - snap.at > TAB_SNAPSHOT_MAX_AGE_MS) return false;
   // 筛选条件变了（用户刚改过筛选）：快照里的行已经不是他要看的结果，去重新取
   if (snap.filterSig !== currentFilterSignature()) return false;
   // 每页条数是全局视图偏好（改了会落盘并重新取数）：和快照不一致就说明
@@ -8156,6 +8175,7 @@ function syncSnapshotSilently(tab: Tab, result: DbTableDataResult): void {
   snap.sortProp = sortState.prop;
   snap.sortOrder = sortState.order;
   snap.filterSig = currentFilterSignature();
+  snap.at = Date.now();
 }
 
 /**

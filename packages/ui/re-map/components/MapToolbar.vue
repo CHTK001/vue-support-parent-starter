@@ -657,6 +657,12 @@ const buttonMargin = computed(() => {
   return Math.max(4, Math.round(config.value.size * 0.1));
 });
 
+// 按钮尺寸（带 px 单位，供样式中的 v-bind 使用）
+const buttonSizePx = computed(() => `${buttonSize.value}px`);
+
+// 按钮间距（带 px 单位，供样式中的 v-bind 使用）
+const buttonMarginPx = computed(() => `${buttonMargin.value}px`);
+
 // 图标字体大小
 const iconFontSize = computed(() => {
   return Math.round(config.value.size * 0.6) + "px";
@@ -1206,9 +1212,9 @@ defineExpose({
   align-items: center;
   justify-content: center;
   position: relative;
-  width: v-bind(buttonSize + "px");
-  height: v-bind(buttonSize + "px");
-  margin: v-bind(buttonMargin + "px");
+  width: v-bind(buttonSizePx);
+  height: v-bind(buttonSizePx);
+  margin: v-bind(buttonMarginPx);
   background-color: #ffffff;
   border-radius: 4px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -1558,8 +1564,8 @@ defineExpose({
   align-items: center;
   justify-content: center;
   position: relative;
-  width: v-bind(buttonSize + "px");
-  height: v-bind(buttonSize + "px");
+  width: v-bind(buttonSizePx);
+  height: v-bind(buttonSizePx);
   margin: 0;
   background-color: #ffffff;
   border-radius: 4px;

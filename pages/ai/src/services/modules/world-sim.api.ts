@@ -104,6 +104,58 @@ export interface WorldView {
   events: WorldEvent[];
 }
 
+export interface WorldAct {
+  id?: number;
+  worldId?: number;
+  actNo?: number;
+  title?: string;
+  description?: string | null;
+  status?: string;
+  stage?: string;
+  progress?: number;
+  ended?: number;
+  createTime?: string | null;
+  updateTime?: string | null;
+}
+
+/** 幕次列表行（listActs 返回） */
+export interface WorldActListRow {
+  actNo?: number;
+  title?: string;
+  status?: string;
+  stage?: string;
+  progress?: number;
+  ended?: number;
+  hasScript?: boolean;
+}
+
+/** 幕次资产（场景/过场/道具）完成度 */
+export interface WorldActAssets {
+  total?: number;
+  done?: number;
+  pending?: number;
+}
+
+export interface WorldActDetail {
+  act?: WorldActListRow;
+  script?: string;
+  assets?: WorldActAssets;
+}
+
+/** 推进行为的返回（不同阶段产出不同的字段） */
+export interface WorldActAdvance {
+  act?: WorldActListRow;
+  script?: string;
+  assets?: WorldActAssets;
+  total?: number;
+  done?: number;
+  pending?: number;
+  taskId?: string;
+  inProgress?: boolean;
+  playedScenes?: number;
+  restart?: boolean;
+}
+
 export interface WorldStreamEvent {
   type?: string;
   content?: string;
@@ -158,6 +210,15 @@ export interface WorldSimApi {
   ): { close: () => void };
 
   advanceWorld(worldId: number): Promise<{ world: WorldItem; event: WorldEvent; participants: string[] }>;
+
+  /* ---------------- 剧本幕次 ---------------- */
+
+  fetchWorldActs(worldId: number): Promise<WorldActListRow[]>;
+  createWorldAct(worldId: number): Promise<WorldAct>;
+  fetchWorldActDetail(worldId: number, actNo: number): Promise<WorldActDetail>;
+  advanceWorldAct(worldId: number, actNo: number): Promise<WorldActAdvance>;
+  replayWorldAct(worldId: number, actNo: number): Promise<WorldActAdvance>;
+  finishWorldAct(worldId: number, actNo: number): Promise<WorldAct>;
 }
 
 export const worldSimApi: WorldSimApi = {
@@ -282,5 +343,30 @@ export const worldSimApi: WorldSimApi = {
 
   async advanceWorld(this: ApiContext, worldId: number) {
     return await this._request("/world-sim/advance", { method: "POST", data: { worldId } });
+  },
+
+  async fetchWorldActs(this: ApiContext, worldId: number) {
+    const raw = await this._request(`/world-sim/worlds/${worldId}/acts`);
+    return (Array.isArray(raw) ? raw : raw?.items ?? []) as WorldActListRow[];
+  },
+
+  async createWorldAct(this: ApiContext, worldId: number) {
+    return await this._request(`/world-sim/worlds/${worldId}/acts`, { method: "POST" });
+  },
+
+  async fetchWorldActDetail(this: ApiContext, worldId: number, actNo: number) {
+    return await this._request(`/world-sim/worlds/${worldId}/acts/${actNo}`);
+  },
+
+  async advanceWorldAct(this: ApiContext, worldId: number, actNo: number) {
+    return await this._request(`/world-sim/worlds/${worldId}/acts/${actNo}/advance`, { method: "POST" });
+  },
+
+  async replayWorldAct(this: ApiContext, worldId: number, actNo: number) {
+    return await this._request(`/world-sim/worlds/${worldId}/acts/${actNo}/replay`, { method: "POST" });
+  },
+
+  async finishWorldAct(this: ApiContext, worldId: number, actNo: number) {
+    return await this._request(`/world-sim/worlds/${worldId}/acts/${actNo}/finish`, { method: "POST" });
   },
 };

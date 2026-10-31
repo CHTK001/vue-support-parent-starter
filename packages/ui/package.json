@@ -43,6 +43,10 @@
       "types": "./src/components/ReCard/index.ts",
       "default": "./src/components/ReCard/index.ts"
     },
+    "./re-card-textarea": {
+      "types": "./src/components/ReCardTextarea/index.ts",
+      "default": "./src/components/ReCardTextarea/index.ts"
+    },
     "./re-dialog": {
       "types": "./src/components/ReDialog/index.ts",
       "default": "./src/components/ReDialog/index.ts"
@@ -251,6 +255,10 @@
       "types": "./src/components/ReColorize/index.ts",
       "default": "./src/components/ReColorize/index.ts"
     },
+    "./re-command": {
+      "types": "./src/components/ReCommand/index.ts",
+      "default": "./src/components/ReCommand/index.ts"
+    },
     "./re-context-menu": {
       "types": "./src/components/ReContextMenu/index.ts",
       "default": "./src/components/ReContextMenu/index.ts"
@@ -262,6 +270,10 @@
     "./re-empty": {
       "types": "./src/components/ReEmpty/index.ts",
       "default": "./src/components/ReEmpty/index.ts"
+    },
+    "./re-empty-state": {
+      "types": "./src/components/ReEmptyState/index.ts",
+      "default": "./src/components/ReEmptyState/index.ts"
     },
     "./re-skeleton": {
       "types": "./src/components/ReSkeleton/index.ts",
@@ -286,6 +298,10 @@
     "./re-album": {
       "types": "./src/components/ReAlbum/index.ts",
       "default": "./src/components/ReAlbum/index.ts"
+    },
+    "./re-async": {
+      "types": "./src/components/ReAsync/index.ts",
+      "default": "./src/components/ReAsync/index.ts"
     },
     "./re-station-message": {
       "types": "./src/components/ReStationMessage/index.ts",
@@ -319,6 +335,10 @@
       "types": "./src/components/ReRemoteSelect/index.ts",
       "default": "./src/components/ReRemoteSelect/index.ts"
     },
+    "./re-ribbon": {
+      "types": "./src/components/ReRibbon/index.ts",
+      "default": "./src/components/ReRibbon/index.ts"
+    },
     "./re-avatar3d": {
       "types": "./src/components/ReAvatar3D/index.ts",
       "default": "./src/components/ReAvatar3D/index.ts"
@@ -350,6 +370,10 @@
     "./re-placeholder-picker": {
       "types": "./src/components/RePlaceholderPicker/index.ts",
       "default": "./src/components/RePlaceholderPicker/index.ts"
+    },
+    "./re-process-task": {
+      "types": "./src/components/ReProcessTask/index.ts",
+      "default": "./src/components/ReProcessTask/index.ts"
     },
     "./re-element-picker": {
       "types": "./src/components/ReElementPicker/index.ts",

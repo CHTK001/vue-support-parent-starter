@@ -1495,6 +1495,8 @@ const filteredColumnsForSettings = computed<ReTableColumn[]>(() => {
  * element 侧的 Sortable 依赖 import { Sortable } from "sortablejs"，同删。 */
 const dragMode = ref(false);
 const dragChanged = ref(false);
+/** 拖拽排序中：是否正在发生一次拖拽（决定搜索卡的悬停反馈是否要收敛） */
+const dragging = ref(false);
 const sortableInstance = ref<ReturnType<typeof Sortable.create> | null>(null);
 const sortedRows = ref<Array<Record<string, unknown>>>([]);
 const originalRows = ref<Array<Record<string, unknown>>>([]);
@@ -1758,7 +1760,7 @@ function clearVxeRowDraggable(): void {
 
 function onVxeRowDragEnd(): void {
   // 先复位行 draggable，再读顺序（见 clearVxeRowDraggable 的说明）
-  clearVxeRowDraggable();
+  dragging.value = false;
   const inst = vxeTableRef.value as unknown as
     | { getTableData?: () => { fullData?: Array<Record<string, unknown>> } }
     | null;
@@ -1892,6 +1894,15 @@ function findDragTbody(): HTMLElement | null {
   return target ?? null;
 }
 
+/** 拖拽（双方引擎都冒泡到根）：标记拖拽进行中，让搜索卡停止给"可放置"悬停反馈 */
+function onRootDragStart(): void {
+  dragging.value = true;
+}
+/** 拖拽结束 / 取消：放开标记 */
+function onRootDragEnd(): void {
+  dragging.value = false;
+}
+
 async function toggleDragMode() {
   if (dragToggleLoading.value) return;
   dragToggleLoading.value = true;
@@ -1977,14 +1988,17 @@ async function initSortable(retryCount = 0): Promise<boolean> {
     scrollSensitivity: 70,
     scrollSpeed: 12,
     onChoose: () => {
+      dragging.value = true;
       document.body.style.userSelect = "none";
       document.body.style.webkitUserSelect = "none";
     },
     onUnchoose: () => {
+      dragging.value = false;
       document.body.style.userSelect = "";
       document.body.style.webkitUserSelect = "";
     },
     onEnd: ({ oldIndex, newIndex }) => {
+      dragging.value = false;
       document.body.style.userSelect = "";
       document.body.style.webkitUserSelect = "";
       if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
@@ -2011,6 +2025,7 @@ function destroySortable() {
   document.querySelectorAll('.drag-sort-fallback, .drag-sort-ghost, .drag-sort-chosen, .drag-sort-drag').forEach((el) => el.remove());
   document.body.style.userSelect = "";
   document.body.style.webkitUserSelect = "";
+  dragging.value = false;
 }
 
 
@@ -5874,6 +5889,33 @@ const effectiveToolbarConfig = computed<ReTableToolbarConfig>(() => {
   };
 });
 
+/**
+ * 顶部工具栏（工具行右侧）的「刷新」按钮：默认隐藏，
+ * 让分页行的刷新按钮成为唯一的入口 —— 两处同时出现的图标是以前
+ * "top 工具行放系统按钮、分页行又放 ReTableToolbar"? 重复渲染的bug。
+ *
+ * 只有页面显式开了 {@code toolbar.refresh}（传 true 或传含 handler 的对象）时它才出现，
+ * 不传时回到 undefined（默认隐藏），传 false 时同样隐藏（本地数据模式下此处强制 false）。
+ */
+const topRefreshVisible = computed(() => {
+  const r = effectiveToolbarConfig.value.refresh;
+  return r !== undefined && r !== false;
+});
+
+/**
+ * 顶部刷新按钮的点击：优先交给页面配好的 {@code handler}（配了 handler 时
+ * ReTable 不触发内置的 reload；与分页行 ReTableToolbar 的行为一致），
+ * 没有 handler 则走内置刷新 —— emit refresh 事件 + reload（页面接 @refresh 的入口）。
+ */
+async function onTopRefreshClick(): Promise<void> {
+  const handler = normalizeButton(effectiveToolbarConfig.value.refresh).handler;
+  if (handler) {
+    await handler();
+    return;
+  }
+  await onBuiltinSearchRefresh();
+}
+
 const batchSelectTip = computed(() => {
   const cfg = mergedToolbarConfig.value?.batchSelect;
   if (!cfg || cfg === true) return "批量选择";
@@ -5925,11 +5967,14 @@ const iconSelect = Select;
     @mouseleave="onRootMouseleave"
     @focusin="keyboardFocused = true"
     @focusout="onRootFocusout"
+    @dragstart="onRootDragStart"
+    @dragend="onRootDragEnd"
     :class="{
       're-table--empty': isEmpty,
       're-table--compact': tableSize === 'small',
       're-table--mini': tableSize === 'mini',
       're-table--separated': searchSeparated,
+      're-table--dragging': dragging || dragMode,
       're-table--fixed-height': hasFixedHeight || fillActive,
       're-table--fill': fillActive,
       're-table--engine-element': !useVxe,
@@ -6062,14 +6107,19 @@ const iconSelect = Select;
           :tip="searchVisible ? '隐藏搜索' : '显示搜索'"
           @click="searchVisible = !searchVisible"
         />
-        <!-- 刷新：动画刷新图标（hover 播上游动效，loading 态整体旋转） -->
+        <!-- 刷新：动画刷新图标（hover 播上游动效，loading 态整体旋转）
+             默认藏起，把刷新按钮收口到分页行（唯一入口）；只有页面显式开了
+             {@code toolbar.refresh} 时才出现。
+             点击时优先走页面配的 handler（配了 handler 时不触发组件内置的 reload，
+             与分页行 ReTableToolbar 的行为一致）；没配则 emit refresh 事件 + reload。 -->
         <ReButton
+          v-if="topRefreshVisible"
           layout="square"
           icon="anim:tabler:refresh"
           :anim-icon-size="16"
           tip="刷新"
           :loading="dataLoading || loading"
-          @click="onBuiltinSearchRefresh"
+          @click="onTopRefreshClick"
         />
         <!-- 自动刷新：ReSwitch(popover) —— 纯 ReButton(square) 作入口，点开是按参考图排版的档位浮层。
              标题行「自动刷新频率 + 状态徽标」→ 档位菜单（主标题 + 副说明两行）→ 底部倒计时说明。
@@ -6695,7 +6745,7 @@ const iconSelect = Select;
           @batch-edit="onBatchEdit"
           @batch-save="onBatchSave"
           @batch-select-toggle="toggleBatchSelect"
-          @refresh="reload"
+          @refresh="onBuiltinSearchRefresh"
           @toggle-search="searchVisible = !searchVisible"
         >
           <!-- 列设置 Popover slot -->
@@ -7317,6 +7367,11 @@ const iconSelect = Select;
 .re-table--separated > .re-table__search:hover {
   box-shadow: var(--rt-shadow-card-hover);
 }
+/* 拖拽中：搜索卡悬停不抬投影 —— 拖拽路径经过搜索区时，不能让搜索卡看起来
+   像"可放置"的落点（拖拽脱手后才会恢复静悬停投影）。 */
+.re-table--dragging > .re-table__search:hover {
+  box-shadow: var(--rs-shadow-xs);
+}
 /* 键盘聚焦到卡内控件时描边转主色，让"焦点落在哪一块"可感知 */
 .re-table--separated > .re-table__search:focus-within,
 .re-table--separated > .re-table__main:focus-within {
@@ -7587,7 +7642,9 @@ const iconSelect = Select;
   order: 0;
   position: relative;
   z-index: 1;
-  padding: 12px 0;
+  /* 脚行高度：把原先 12px 的上下留白收小（表格内容区的空间很贵），
+     分页本身的 32px + 胶囊内 4px 已足够把按钮托齐。 */
+  padding: 6px 0;
   font-size: 13px;
 }
 /*
@@ -7660,7 +7717,8 @@ const iconSelect = Select;
   order: 0;
   position: relative;
   z-index: 1;
-  padding: 12px 0;
+  /* 与 .re-table__pagination 同口径缩减：状态条的按钮只需 30px 左右。 */
+  padding: 6px 0;
 }
 .re-table__scroll-status {
   display: inline-flex;

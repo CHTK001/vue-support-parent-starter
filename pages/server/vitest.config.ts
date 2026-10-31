@@ -1,5 +1,24 @@
+import { resolve as pResolve } from "node:path";
 import { defineConfig } from "vitest/config";
 import vue from "@vitejs/plugin-vue";
+
+/**
+ * 应用壳级的 Vite 别名必须穿透到测试环境：`@pages/system` 等包只挂 `src`，
+ * 包本身不在 `node_modules` 挂载点下，只有 Vite 的 alias 把它们指向 `src`。
+ * 没有它测试里 import "@pages/system/views/SysLogManage.vue" 会解析失败。
+ */
+const VITE_ALIAS: Array<{ find: string; replacement: string }> = [
+  { find: "@pages/system", replacement: pResolve(process.cwd(), "../../pages/system/src") },
+  { find: "@pages/monitor", replacement: pResolve(process.cwd(), "../../pages/monitor/src") },
+  { find: "@pages/docker", replacement: pResolve(process.cwd(), "../../pages/docker/src") },
+  { find: "@pages/hotsport", replacement: pResolve(process.cwd(), "../../pages/hotsport/src") },
+  { find: "@pages/eduai", replacement: pResolve(process.cwd(), "../../pages/eduai/src") },
+  { find: "@pages/ai", replacement: pResolve(process.cwd(), "../../pages/ai/src") },
+  { find: "@pages/filesystem", replacement: pResolve(process.cwd(), "../../pages/filesystem/src") },
+  { find: "@pages/task", replacement: pResolve(process.cwd(), "../../pages/task/src") },
+  { find: "@pages/job", replacement: pResolve(process.cwd(), "../../pages/job/src") },
+  { find: "@pages/message", replacement: pResolve(process.cwd(), "../../pages/message/src") },
+];
 
 /**
  * @pages/server 单元测试配置
@@ -23,9 +42,12 @@ import vue from "@vitejs/plugin-vue";
  */
 export default defineConfig({
   plugins: [vue()],
+  resolve: { alias: VITE_ALIAS },
   test: {
     environment: "jsdom",
     globals: true,
+    // ReTable 等大组件的 installUi 安装列表较长，默认的 10000ms hook timeout 不够
+    hookTimeout: 120000,
     include: ["src/**/*.spec.ts"],
   },
 });

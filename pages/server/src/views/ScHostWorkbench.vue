@@ -7,7 +7,9 @@
  * 直接指定 {@code start}，本组件按 start 只渲染对应面板。</p>
  *
  * <p>Docker 已拆成独立页面包 {@code @pages/docker}（路由 {@code /docker}）：
- * 分屏工具条上的 Docker 按钮由父级改道到该页面，本组件不再渲染 Docker 面板。</p>
+ * 分屏工具条上的 Docker 按钮由父级改道到该页面，本组件不再渲染 Docker 面板。
+ * 注意：主机行的右键菜单把 Docker 收进了工作区页签（AssetsView {@code tab-docker} 分支），
+ * 本组件仍通过 {@code @open-panel} 事件把分屏工具条上的 Docker 按钮交给父级跳转，两者不冲突。</p>
  *
  * <p>分屏终端里点某屏底部的 K8s / 隧道工具条时，不再页内切换，而是把
  * {@code open-panel} 上抛给 AssetsView，由它开一个独立页签 —— 保持「一个功能一个页签」。</p>
@@ -19,7 +21,7 @@ import ScRealScreenWorkbench from "../components/lab/ScRealScreenWorkbench.vue";
 import ScDockerK8sWorkbench from "../components/lab/ScDockerK8sWorkbench.vue";
 import ScTunnelWorkbench from "../components/lab/ScTunnelWorkbench.vue";
 
-/** 工作台面板类型（每个对应一个独立页签；Docker 已拆独立页面，不在此列） */
+/** 工作台面板类型（每个对应一个独立页签；Docker 在右键菜单里是工作区页签，不在此列） */
 export type WorkbenchPanel = "screen" | "k8s" | "tunnel" | "tunnel-reverse";
 
 const props = withDefaults(

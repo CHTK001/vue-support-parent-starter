@@ -27,5 +27,11 @@
     "typescript": "catalog:",
     "vite": "catalog:",
     "vue-tsc": "catalog:"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "clean": "rimraf dist"
   }
 }

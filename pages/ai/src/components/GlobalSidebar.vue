@@ -965,6 +965,7 @@ const currentActiveTab = computed(() => {
   if (routeName === 'Agents') return 'agents'
   if (routeName === 'Services') return 'services'
   if (routeName === 'Usage' || routeName === 'UsageSyncLogs') return 'usage'
+  if (routeName === 'Connectors') return 'connectors'
   if (routeName === 'Skills') return 'skills'
   if (routeName === 'Capabilities') return 'capabilities'
   return ''
@@ -1279,126 +1280,123 @@ const selectSession = (session: any) => {
   router.replace({ name: 'Chat', params: { sessionId: session.id } })
 }
 
-// 处理导航点击
+// 处理导航点击：所有菜单先跳转（不拦截），模型门禁菜单的配置检查交给后台跑完再发提示
+const ROUTE_NAME_BY_TAB: Record<string, string> = {
+  chat: 'Chat',
+  characters: 'Characters',
+  tavern: 'Tavern',
+  'world-sim': 'WorldSim',
+  bots: 'Bots',
+  setting: 'SystemSettings',
+  'knowledge-base': 'KnowledgeBase',
+  plugins: 'Plugins',
+  scheduler: 'Scheduler',
+  'image-generate': 'ImageGenerate',
+  'face-search': 'FaceSearch',
+  'face-reid': 'FaceReid',
+  'image-search': 'ImageSearch',
+  'image-colorize': 'ImageColorize',
+  ocr: 'Ocr',
+  'audio-recognition': 'AudioRecognition',
+  'text-to-speech': 'TextToSpeech',
+  models: 'Models',
+  'app-keys': 'AppKeys',
+  'manufacturer-keys': 'ManufacturerKeys',
+  roles: 'Roles',
+  mcp: 'Mcp',
+  agents: 'Agents',
+  services: 'Services',
+  usage: 'Usage',
+  connectors: 'Connectors',
+  skills: 'Skills',
+  capabilities: 'Capabilities',
+};
+
+/** 需要后读模型配置的菜单（先跳转，门禁检查放后台跑） */
+const GATED_TABS = new Set([
+  'face-search',
+  'face-reid',
+  'image-search',
+  'image-colorize',
+  'ocr',
+  'audio-recognition',
+  'text-to-speech',
+]);
+
+/** 旁路展开的「图像管理」分组（只展开分组，不拦截路由） */
+const IMAGE_GATED_TABS = ['image-search', 'image-colorize', 'ocr'];
+
+/** 模型门：各菜单对应的模型就绪字段（load 之后才判定） */
+const MODEL_GATE_TABS: Record<string, { field: string; missing: string }> = {
+  'face-search': {
+    field: 'faceReady',
+    missing: '人脸识别未启用：请先到「系统设置 → 默认模型 → 人脸识别」配置检测模型与特征模型',
+  },
+  'face-reid': {
+    field: 'faceReady',
+    missing: '人脸重识别未启用：请先到「系统设置 → 默认模型 → 人脸重识别」配置检测模型与特征模型',
+  },
+  'image-search': {
+    field: 'imageReady',
+    missing: '以图搜图未启用：请先到「系统设置 → 默认模型 → 以图搜图」配置图像特征模型',
+  },
+  'image-colorize': {
+    field: 'colorizeReady',
+    missing: '图像上色未启用：请先到「系统设置 → 默认模型 → 图片识别」配置上色模型',
+  },
+  ocr: {
+    field: 'ocrReady',
+    missing: 'OCR 识别未启用：请先到「系统设置 → 默认模型 → OCR」配置文字检测模型或文字识别模型',
+  },
+  'audio-recognition': {
+    field: 'asrReady',
+    missing: '音频识别未启用：请先到「系统设置 → 音频配置」选择 ASR 默认模型',
+  },
+  'text-to-speech': {
+    field: 'ttsReady',
+    missing: '语音合成未启用：请先到「系统设置 → 音频配置」选择 TTS 默认模型',
+  },
+};
+
+/** 模型已配但后端未注册的提示（仅人脸类菜单有可用模型清单） */
+const UNREGISTERED_MESSAGE: Record<string, string> = {
+  'face-search': '人脸识别模型当前不可用：已配置的检测/特征模型未在后端注册。请到「系统设置 → 默认模型 → 人脸识别」重新选择当前可用的模型',
+  'face-reid': '人脸重识别模型当前不可用：已配置的检测/特征模型未在后端注册。请到「系统设置 → 默认模型 → 人脸重识别」重新选择当前可用的模型',
+};
+
+/** 导航后在后台跑模型门禁，完成时只在未配置时发消息（fail-only，不抛错不挂起调用方） */
+const checkModelGate = (tab: string): void => {
+  modelConfig.load().then(() => {
+    const gate = MODEL_GATE_TABS[tab];
+    if (!gate) return;
+    if (!(modelConfig as any)[gate.field]) {
+      toast.warning(gate.missing);
+      return;
+    }
+    if (modelConfig.unregisteredConfigured.length) {
+      toast.warning(UNREGISTERED_MESSAGE[tab] ?? gate.missing);
+    }
+  }).catch(() => {
+    // 模型配置接口抛错时不退回到上一页（目标页自己会处理）
+  });
+};
+
 const handleNavClick = async (tab: string) => {
+  const routeName = ROUTE_NAME_BY_TAB[tab];
+  if (!routeName) return;
   if (tab === 'chat') {
-    router.replace({ name: 'Chat', params: { sessionId: 'new-session' } })
-  } else if (tab === 'characters') {
-    router.replace({ name: 'Characters' })
-  } else if (tab === 'tavern') {
-    router.replace({ name: 'Tavern' })
-  } else if (tab === 'world-sim') {
-    router.replace({ name: 'WorldSim' })
-  } else if (tab === 'bots') {
-    router.replace({ name: 'Bots' })
-  } else if (tab === 'setting') {
-    router.replace({ name: 'SystemSettings' })
-  } else if (tab === 'knowledge-base') {
-    router.replace({ name: 'KnowledgeBase' })
-  } else if (tab === 'plugins') {
-    router.replace({ name: 'Plugins' })
-  } else if (tab === 'scheduler') {
-    router.replace({ name: 'Scheduler' })
-  } else if (tab === 'image-generate') {
-    router.replace({ name: 'ImageGenerate' })
-  } else if (tab === 'face-search') {
-    // 点击菜单时再等一次合并视图与注册清单，避免侧栏首次加载未完成时误判
-    await modelConfig.load()
-    if (!modelConfig.faceReady) {
-      toast.warning('人脸识别未启用：请先到「系统设置 → 默认模型 → 人脸识别」配置检测模型与特征模型')
-      return
-    }
-    if (modelConfig.unregisteredConfigured.length) {
-      toast.warning(
-        '人脸识别模型当前不可用：已配置的检测/特征模型未在后端注册。' +
-        '请到「系统设置 → 默认模型 → 人脸识别」重新选择当前可用的模型',
-      )
-      return
-    }
-    router.replace({ name: 'FaceSearch' })
-  } else if (tab === 'face-reid') {
-    // 人脸重识别与「人脸识别」用同一批模型（检测 + 特征），门禁口径一致
-    await modelConfig.load()
-    if (!modelConfig.faceReady) {
-      toast.warning('人脸重识别未启用：请先到「系统设置 → 默认模型 → 人脸重识别」配置检测模型与特征模型')
-      return
-    }
-    if (modelConfig.unregisteredConfigured.length) {
-      toast.warning(
-        '人脸重识别模型当前不可用：已配置的检测/特征模型未在后端注册。' +
-        '请到「系统设置 → 默认模型 → 人脸重识别」重新选择当前可用的模型',
-      )
-      return
-    }
-    router.replace({ name: 'FaceReid' })
-  } else if (tab === 'image-search') {
-    // 以图搜图同口径：点击时才拿最新配置，配置后不需要刷新页面
-    expandedImageMgmt.value = true
-    await modelConfig.load()
-    if (!modelConfig.imageReady) {
-      toast.warning('以图搜图未启用：请先到「系统设置 → 默认模型 → 以图搜图」配置图像特征模型')
-      return
-    }
-    router.replace({ name: 'ImageSearch' })
-  } else if (tab === 'image-colorize') {
-    // 同口径：点击时才拿最新配置，配置后不需要刷新页面
-    expandedImageMgmt.value = true
-    await modelConfig.load()
-    if (!modelConfig.colorizeReady) {
-      toast.warning('图像上色未启用：请先到「系统设置 → 默认模型 → 图片识别」配置上色模型')
-      return
-    }
-    router.replace({ name: 'ImageColorize' })
-  } else if (tab === 'ocr') {
-    // 与其它图像菜单同口径：点击时再拿一次最新配置，未配齐就提示去哪儿配，
-    // 不把用户送进一个必然失败的页面
-    expandedImageMgmt.value = true
-    await modelConfig.load()
-    if (!modelConfig.ocrReady) {
-      toast.warning('OCR 识别未启用：请先到「系统设置 → 默认模型 → OCR」配置文字检测模型或文字识别模型')
-      return
-    }
-    router.replace({ name: 'Ocr' })
-  } else if (tab === 'audio-recognition') {
-    // 音频识别同口径：点击时才拿最新配置，配置后不需要刷新页面
-    await modelConfig.load()
-    if (!modelConfig.asrReady) {
-      toast.warning('音频识别未启用：请先到「系统设置 → 音频配置」选择 ASR 默认模型')
-      return
-    }
-    router.replace({ name: 'AudioRecognition' })
-  } else if (tab === 'text-to-speech') {
-    // 语音合成同口径：点击时才拿最新配置，配置后不需要刷新页面
-    await modelConfig.load()
-    if (!modelConfig.ttsReady) {
-      toast.warning('语音合成未启用：请先到「系统设置 → 音频配置」选择 TTS 默认模型')
-      return
-    }
-    router.replace({ name: 'TextToSpeech' })
-  } else if (tab === 'models') {
-    router.replace({ name: 'Models' })
-  } else if (tab === 'app-keys') {
-    router.replace({ name: 'AppKeys' })
-  } else if (tab === 'manufacturer-keys') {
-    router.replace({ name: 'ManufacturerKeys' })
-  } else if (tab === 'roles') {
-    router.replace({ name: 'Roles' })
-  } else if (tab === 'mcp') {
-    router.replace({ name: 'Mcp' })
-  } else if (tab === 'agents') {
-    router.replace({ name: 'Agents' })
-  } else if (tab === 'services') {
-    router.replace({ name: 'Services' })
-  } else if (tab === 'usage') {
-    router.replace({ name: 'Usage' })
-  } else if (tab === 'connectors') {
-    router.replace({ name: 'Connectors' })
-  } else if (tab === 'skills') {
-    router.replace({ name: 'Skills' })
-  } else if (tab === 'capabilities') {
-    router.replace({ name: 'Capabilities', params: { pipeline: 'text-to-image' } })
+    router.replace({ name: routeName, params: { sessionId: 'new-session' } });
+    return;
   }
-}
+  if (GATED_TABS.has(tab)) {
+    // 先跳转，门禁检查单独放后台跑（不 await modelConfig.load() 再导航）
+    router.replace({ name: routeName });
+    expandedImageMgmt.value = IMAGE_GATED_TABS.includes(tab);
+    void checkModelGate(tab);
+    return;
+  }
+  router.replace({ name: routeName });
+};
 
 // 处理会话下拉菜单选择
 const handleDropdownSelect = (command: string, session: any) => {

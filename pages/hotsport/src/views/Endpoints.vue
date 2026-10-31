@@ -111,7 +111,12 @@
           <span v-else class="muted">—</span>
         </template>
         <template #col-callCount="{ row }">
-          <span class="muted mono">{{ row.callCount.toLocaleString() }}</span>
+          <span class="calls-cell">
+            <span class="calls-bar" aria-hidden="true">
+              <i :style="{ width: callShareWidth(Number(row.callCount ?? 0)) }" />
+            </span>
+            <span class="mono calls-num">{{ row.callCount.toLocaleString() }}</span>
+          </span>
         </template>
         <template #col-errorCount="{ row }">
           <ReTag v-if="(row as unknown as ApmEndpoint).errorCount > 0" type="danger" round size="small">
@@ -120,8 +125,9 @@
           <span v-else class="muted mono">0</span>
         </template>
         <template #col-errorRate="{ row }">
-          <span :class="{ 'err-text': (row as unknown as ApmEndpoint).errorRate > 5, 'warn-text': (row as unknown as ApmEndpoint).errorRate > 1 && (row as unknown as ApmEndpoint).errorRate <= 5 }">
-            {{ ((row as unknown as ApmEndpoint).errorRate ?? 0).toFixed(2) }} %
+          <span class="rate-cell" :class="errorRateClass((row as unknown as ApmEndpoint).errorRate ?? 0)">
+            <i class="rate-dot" aria-hidden="true"></i>
+            <span class="mono">{{ ((row as unknown as ApmEndpoint).errorRate ?? 0).toFixed(2) }} %</span>
           </span>
         </template>
         <template #col-avgMs="{ row }">
@@ -219,8 +225,9 @@ const selected = ref<ApmEndpoint | null>(null);
 
 const filteredItems = computed(() => {
   const kw = keyword.value.trim().toLowerCase();
-  if (!kw) return items.value;
-  return items.value.filter((e) => e.endpoint.toLowerCase().includes(kw));
+  return items.value
+    .filter((e) => !kw || e.endpoint.toLowerCase().includes(kw))
+    .sort((a, b) => b.callCount - a.callCount);
 });
 
 // 聚合统计
@@ -259,6 +266,20 @@ const callSharePercent = computed(() => {
   if (!selected.value || !totalCalls.value) return null;
   return (selected.value.callCount / totalCalls.value) * 100;
 });
+
+/** 调用量占比条宽度（%）：占比为 0 时退化为 2% 小点 */
+function callShareWidth(count: number): string {
+  if (!totalCalls.value || count <= 0) return "2%";
+  return `${Math.max(2, (count / totalCalls.value) * 100)}%`;
+}
+
+/** 错误率着色档：与 Dashboard/Errors 阈值一致（>5% 红，1~5% 黄） */
+function errorRateClass(rate: number): string {
+  const v = Number(rate) || 0;
+  if (v > 5) return "err-text";
+  if (v > 1) return "warn-text";
+  return "";
+}
 
 const tableColumns: ReTableColumn[] = [
   { prop: "endpoint", label: "端点", minWidth: 220, slot: "endpoint" },
@@ -472,6 +493,62 @@ const durationOption = computed<EChartsOption>(() => {
   color: var(--text-tertiary, var(--apm-muted));
   background: var(--bg-fill, var(--apm-panel-raised));
   border: 1px solid var(--border-subtle, var(--apm-border-soft));
+}
+
+/* 调用量占比条：同页内一眼看出最重的端点 */
+.calls-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.calls-bar {
+  position: relative;
+  width: 54px;
+  height: 4px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--border-subtle, var(--apm-border-soft));
+  overflow: hidden;
+}
+
+.calls-bar > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 999px;
+  background: var(--brand-500, var(--apm-accent));
+}
+
+.calls-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 错误率状态点：绿/黄/红三档语义一眼可见 */
+.rate-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.rate-dot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--status-success, var(--apm-success));
+}
+
+.rate-cell.warn-text .rate-dot {
+  background: var(--status-warning, var(--apm-warning));
+}
+
+.rate-cell.err-text .rate-dot {
+  background: var(--status-error, var(--apm-danger));
 }
 
 /* ---- 统计卡：4 列网格 + 顶部 3px 色条 ----

@@ -89,6 +89,7 @@ import {
   getServerBase,
   isUploadAborted,
   listObjects,
+  listObjectsPaged,
   moveObjects,
   resolveObjectUrl,
   renameObject,
@@ -591,6 +592,18 @@ const bucket = ref(resolveBucket() || getDefaultBucket() || DEFAULT_BUCKET);
 const currentPath = ref("");
 const objects = ref<StorageObject[]>([]);
 const loading = ref(false);
+/** 当前列表页（1 起） */
+const page = ref(1);
+/** 主列表分页大小：每页对象个数（服务端切片 limit，默认 200） */
+const PAGE_SIZE = 200;
+/** 分栏每列最多渲染的对象数（超出截断，显示溢出提示） */
+const COLUMN_LIMIT = 500;
+/** 左侧快捷访问最多渲染的根目录对象数 */
+const ROOT_LIMIT = 200;
+/** 当前目录对象总数（后端 total，分页状态栏用）；旧服务端未返回时回退为 objects.length */
+const listTotal = ref(0);
+/** 翻页请求进行中（防连点） */
+const pageBusy = ref(false);
 /**
  * 列表加载请求序号：目录连点/历史快进时旧响应直接丢弃，避免"后发先至"把列表
  * 闪回旧目录；同时 loading 只在请求超过阈值未完成时才置 true（见 scheduleLoadingShow），
@@ -830,6 +843,8 @@ function toggleSort(key: "name" | "size" | "lastModified"): void {
     sortKey.value = key;
     sortOrder.value = "asc";
   }
+  // 排序变化后页内顺序变了，回到第一页展示
+  page.value = 1;
 }
 
 /** 排序指示箭头 */
@@ -1006,6 +1021,8 @@ function applyUiState(bucketName: string): void {
  * {@link loadObjects} 汇总，因此在该函数的成功分支负责刷新。</p>
  */
 const rootObjects = ref<StorageObject[]>([]);
+/** 根目录对象是否因超出快捷访问展示上限被截断 */
+const rootTruncated = ref(false);
 
 /**
  * 加载存储桶根目录内容（供左侧「快捷访问」渲染）
@@ -1014,10 +1031,15 @@ const rootObjects = ref<StorageObject[]>([]);
  */
 async function loadRootObjects(): Promise<void> {
   try {
-    const list = await listObjects(bucket.value, "");
-    rootObjects.value = list.filter((o) => o.name !== RECYCLE_DIR);
+    // 只取前 ROOT_LIMIT 项：快捷访问是辅助入口，根目录超大时无需整份渲染，
+    // 也避免瓦片图等大目录的逐文件 stat 拖慢侧栏。
+    const paged = await listObjectsPaged(bucket.value, "", { limit: ROOT_LIMIT, offset: 0 });
+    const display = paged.items.filter((o) => o.name !== RECYCLE_DIR);
+    rootTruncated.value = paged.total > ROOT_LIMIT;
+    rootObjects.value = display.slice(0, ROOT_LIMIT);
   } catch {
     rootObjects.value = [];
+    rootTruncated.value = false;
   }
 }
 
@@ -1147,9 +1169,10 @@ function switchNav(key: NavKey): void {
   nav.value = key;
   clearSelect();
   if (key === "all") {
-    // 回到"根目录"：回桶根
+    // 回到"根目录"：回桶根，页码回到第一页
     currentPath.value = "";
     recordHistory("");
+    page.value = 1;
     void loadObjects();
   }
   if (key === "recycle") void loadRecycle();
@@ -1190,19 +1213,32 @@ async function loadObjects(): Promise<void> {
     loadShowTimer = undefined;
   }, 300);
   try {
-    const list = await listObjects(bucket.value, currentPath.value);
+    // 分页请求：objects 只保留当前页 200 条，避免瓦片图目录/超大目录一次性拉全量
+    //（列表 stat + 缩略图票据都只发生在当前页上）
+    const paged = await listObjectsPaged(bucket.value, currentPath.value, {
+      limit: PAGE_SIZE,
+      offset: (page.value - 1) * PAGE_SIZE,
+    });
     // 旧请求（目录已切走）：直接丢弃，不碰列表、不报错
     if (activeLoadSeq !== seq) return;
+    // 如果当前页已经越界（删除后总条数变少），跳到最后一页重载一次
+    if (paged.items.length === 0 && paged.total > 0 && page.value > 1) {
+      page.value = Math.ceil(paged.total / PAGE_SIZE);
+      return loadObjects();
+    }
     // 回收站为桶内隐藏目录，常规列表不展示
-    objects.value = list.filter((o) => o.name !== RECYCLE_DIR);
+    objects.value = paged.items.filter((o) => o.name !== RECYCLE_DIR);
+    listTotal.value = paged.total;
     // 同步分栏缓存（当前列）
     colObjects.value = { ...colObjects.value, [currentPath.value]: objects.value };
+    colTotals.value = { ...colTotals.value, [currentPath.value]: listTotal.value };
     // 左侧「快捷访问」展示的是根目录内容：当前就在根目录时直接复用本次结果，
     // 否则并行刷新根目录（上传/删除/还原/新建/切换桶等变更都经由此处汇总更新）
     if (currentPath.value) {
       void loadRootObjects();
     } else {
-      rootObjects.value = objects.value;
+      rootTruncated.value = listTotal.value > ROOT_LIMIT;
+      rootObjects.value = objects.value.slice(0, ROOT_LIMIT);
     }
     setDefaultBucket(bucket.value);
     loadError.value = "";
@@ -1241,6 +1277,7 @@ async function loadObjects(): Promise<void> {
     // 而此时 loading 已为 false、状态栏已显示 0 项，两处状态自相矛盾。
     // 这里与 ensureColumn 的失败分支保持同一口径：写空数组 + 错误文案。
     colObjects.value = { ...colObjects.value, [currentPath.value]: [] };
+    colTotals.value = { ...colTotals.value, [currentPath.value]: 0 };
     colError.value = { ...colError.value, [currentPath.value]: (e as Error)?.message ?? "目录加载失败" };
     loadError.value = (e as Error)?.message ?? "目录加载失败";
     // 当前位置已失效：回落到根目录。这一步同时修掉「按桶记忆」的持久化残留——
@@ -1261,6 +1298,21 @@ async function loadObjects(): Promise<void> {
       navLoading.value = false;
     }
   }
+}
+
+/** 非分栏视图翻页：回源请求当前页（防连点，成功后回到列表顶部） */
+async function onPageChange(next: number): Promise<void> {
+  if (pageBusy.value || next === page.value || next < 1) return;
+  pageBusy.value = true;
+  page.value = next;
+  clearSelect();
+  lastSelectedIndex = -1;
+  try {
+    await loadObjects();
+  } finally {
+    pageBusy.value = false;
+  }
+  document.querySelector(".fs-main")?.scrollTo?.({ top: 0 });
 }
 
 /**
@@ -1288,6 +1340,7 @@ function applyHistory(): void {
   currentPath.value = historyStack.value[historyIndex.value] || "";
   clearSelect();
   lastSelectedIndex = -1;
+  page.value = 1;
   void loadObjects();
 }
 
@@ -2717,6 +2770,7 @@ function enterDir(row: StorageObject): void {
   recordHistory(currentPath.value);
   clearSelect();
   lastSelectedIndex = -1;
+  page.value = 1;
   loadObjects();
 }
 
@@ -2727,6 +2781,7 @@ function enterDirAtRoot(item: StorageObject): void {
   recordHistory(currentPath.value);
   clearSelect();
   lastSelectedIndex = -1;
+  page.value = 1;
   loadObjects();
 }
 
@@ -2736,6 +2791,7 @@ function goCrumb(path: string): void {
   recordHistory(path);
   clearSelect();
   lastSelectedIndex = -1;
+  page.value = 1;
   loadObjects();
 }
 
@@ -2747,6 +2803,7 @@ function goUp(): void {
   recordHistory(currentPath.value);
   clearSelect();
   lastSelectedIndex = -1;
+  page.value = 1;
   loadObjects();
 }
 
@@ -2756,8 +2813,10 @@ function goUp(): void {
 const colObjects = ref<Record<string, StorageObject[]>>({});
 /** 分栏每列加载状态 */
 const colLoading = ref<Record<string, boolean>>({});
-/** 分栏每列的加载失败原因（key 为列路径，空串表示无错） */
+/** 分栏每列加载失败原因（key 为列路径，空串表示无错） */
 const colError = ref<Record<string, string>>({});
+/** 分栏每列服务端返回的对象总数（用于“仅显示前 N 项”溢出提示） */
+const colTotals = ref<Record<string, number>>({});
 
 /** 路径链：["", "a", "a/b", ...]（含当前目录，用于渲染各列） */
 const segmentPaths = computed<string[]>(() => {
@@ -2780,13 +2839,19 @@ async function ensureColumn(path: string): Promise<void> {
   if (colObjects.value[path] !== undefined) return;
   colLoading.value = { ...colLoading.value, [path]: true };
   try {
-    const list = await listObjects(bucket.value, path);
-    colObjects.value = { ...colObjects.value, [path]: list.filter((o) => o.name !== RECYCLE_DIR) };
+    // 分页请求 + 只保留前 COLUMN_LIMIT 项：分栏列是横向铺开的缩略入口，
+    // 逐列 stat 全量（尤其瓦片图目录动辄上千项）会让侧向展开卡死；
+    // 服务端返回的 total 用来提示“还有更多”。
+    const paged = await listObjectsPaged(bucket.value, path, { limit: COLUMN_LIMIT, offset: 0 });
+    const display = paged.items.filter((o) => o.name !== RECYCLE_DIR);
+    colObjects.value = { ...colObjects.value, [path]: display.slice(0, COLUMN_LIMIT) };
+    colTotals.value = { ...colTotals.value, [path]: paged.total };
     colError.value = { ...colError.value, [path]: "" };
   } catch (e) {
     // 加载失败不能一律当成空目录：服务端对不存在的目录返回 404（Directory Not Found），
     // 一旦吞掉就会把"路径拼错"伪装成"空文件夹"，界面上完全看不出发生过请求失败。
     colObjects.value = { ...colObjects.value, [path]: [] };
+    colTotals.value = { ...colTotals.value, [path]: 0 };
     colError.value = { ...colError.value, [path]: (e as Error)?.message ?? "目录加载失败" };
   } finally {
     colLoading.value = { ...colLoading.value, [path]: false };
@@ -2796,6 +2861,7 @@ async function ensureColumn(path: string): Promise<void> {
 /** 清空并重新加载分栏各列 */
 function refreshColumns(): void {
   colObjects.value = {};
+  colTotals.value = {};
   colError.value = {};
   segmentPaths.value.forEach((p) => { void ensureColumn(p); });
 }
@@ -2846,6 +2912,7 @@ function onColumnClick(e: MouseEvent | KeyboardEvent, item: StorageObject, colPa
     recordHistory(currentPath.value);
     clearSelect();
     lastSelectedIndex = -1;
+    page.value = 1;
     loadObjects();
     return;
   }
@@ -4483,6 +4550,7 @@ watch(bucket, (now, prev) => {
   applyUiState(now);
   recordHistory(currentPath.value);
   refreshColumns();
+  page.value = 1;
   loadObjects();
   loadBucketConfig();
   loadCapabilities();
@@ -4530,6 +4598,7 @@ onUnmounted(() => {
               <span class="fs-nav__label-leaf">{{ item.name }}</span>
             </span>
           </button>
+          <div v-if="rootTruncated" class="fs-nav__more">根目录内容较多，仅显示前 {{ ROOT_LIMIT }} 项</div>
         </div>
 
         <div class="fs-nav__foot">
@@ -4648,6 +4717,10 @@ onUnmounted(() => {
               <div v-if="colObjects[colPath] === undefined" class="fs-col__hint">加载中…</div>
               <div v-else-if="colError[colPath]" class="fs-col__hint fs-col__hint--error">{{ colError[colPath] }}</div>
               <div v-else-if="columnItems(colPath).length === 0" class="fs-col__hint">空目录</div>
+              <div
+                v-else-if="colTotals[colPath] != null && colTotals[colPath] > COLUMN_LIMIT"
+                class="fs-col__hint fs-col__hint--more"
+              >仅显示前 {{ COLUMN_LIMIT }} 项（共 {{ colTotals[colPath] }} 项）</div>
               <div
                 v-for="(item, index) in columnItems(colPath)"
                 :key="item.name"
@@ -4942,8 +5015,19 @@ onUnmounted(() => {
         <!-- 状态栏：项数 + 查看方式切换（分栏/详细信息/大图标/中图标/小图标） -->
         <div class="fs-statusbar">
           <span class="fs-statusbar__info">
-            {{ nav === 'recycle' ? recycleCount : sortedObjects.length }} 个项{{ selectedCount > 0 ? `（已选 ${selectedCount} 项）` : '' }}
+            {{ nav === 'recycle' ? recycleCount : (listTotal > 0 ? listTotal : sortedObjects.length) }} 个项{{ selectedCount > 0 ? `（已选 ${selectedCount} 项）` : '' }}
           </span>
+          <div v-if="nav === 'all' && viewMode !== 'columns' && listTotal > PAGE_SIZE" class="fs-statusbar__pages">
+            <el-pagination
+              :current-page="page"
+              :page-size="PAGE_SIZE"
+              :total="listTotal"
+              layout="prev, pager, next"
+              background
+              :disabled="pageBusy"
+              @current-change="onPageChange"
+            />
+          </div>
           <div class="fs-statusbar__views" role="group" aria-label="查看方式">
             <button
               type="button"
@@ -7917,6 +8001,13 @@ onUnmounted(() => {
   color: var(--el-text-color-placeholder);
 }
 
+/* 快捷访问截断提示 */
+.fs-nav__more {
+  padding: 4px 10px 6px;
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
+
 .fs-nav__item {
   height: 36px;
   padding: 0 10px;
@@ -8216,6 +8307,11 @@ onUnmounted(() => {
   word-break: break-all;
 }
 
+/* 分栏列截断提示（“仅显示前 500 项”）：与错误、空态区分开 */
+.fs-col__hint--more {
+  color: var(--el-color-warning);
+}
+
 /* 列内条目统一为 Finder 行：图标在左、名称在后，目录展开用右侧箭头提示 */
 .fs-col__row {
   display: flex;
@@ -8307,6 +8403,17 @@ onUnmounted(() => {
   flex: 1;
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+
+/* 分页器：非分栏视图多页时显示（分栏视图自行截断，不重复分页） */
+.fs-statusbar__pages {
+  flex-shrink: 0;
+}
+
+.fs-statusbar__pages :deep(.el-pagination) {
+  --el-pagination-button-width: 24px;
+  --el-pagination-button-height: 24px;
+  --el-pagination-font-size: 12px;
 }
 
 .fs-statusbar__views {

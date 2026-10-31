@@ -41,6 +41,7 @@ import ReIcon from "@repo/ui/components/ReIcon/theme/koi/ReIcon.vue";
 import ReFullScreen from "@repo/theme/koi/layouts/components/Header/components/ReFullScreen.vue";
 import useTabsStore from "@repo/pinia/modules/tabs";
 import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
+import { resolveKeepAliveName } from "../keepAliveName";
 import useGlobalStore from "@repo/pinia/modules/global";
 import { HOME_URL } from "@repo/config";
 
@@ -289,10 +290,13 @@ const getMenuPositionAndClosable = (tabsList: any, targetPath: string) => {
 const refreshCurrentPage: Function = inject("refresh") as Function;
 const handleRefresh = () => {
   setTimeout(() => {
-    route.meta.isKeepAlive && keepAliveStore.removeKeepAliveName(route.name as string);
+    // 按组件名（路由记录里已解析的组件）寄存，报复的优势是右键刷新也能命中缓存
+    const keepAliveName = resolveKeepAliveName(route);
+    if (!route.meta.isKeepAlive) return;
+    keepAliveStore.removeKeepAliveName(keepAliveName);
     refreshCurrentPage(false);
     nextTick(() => {
-      route.meta.isKeepAlive && keepAliveStore.addKeepAliveName(route.name as string);
+      keepAliveStore.addKeepAliveName(keepAliveName);
       refreshCurrentPage(true);
     });
   }, 0);

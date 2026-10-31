@@ -4,11 +4,13 @@ import { msgWarning, msgError } from "@repo/core";
 import { getMenuLanguage } from "@repo/languages";
 import { HOME_URL } from "@repo/config";
 import useTabsStore from "@repo/pinia/modules/tabs";
+import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
 import useAuthStore from "@repo/pinia/modules/auth";
 import Sortable from "sortablejs";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type Ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
+import { resolveKeepAliveName } from "./keepAliveName";
 import { log } from "@repo/utils";
 
 /**
@@ -70,6 +72,7 @@ export function useLayoutTabs(
 
   const addTab = () => {
     const { meta, path, fullPath } = route;
+    const keepAliveStore = useKeepAliveStore();
     // 只用路由path作为tab唯一标识，忽略url里的查询参数，避免带?v=xxx这类刷新参数时重复生成tab
     const existingTab = tabsStore.tabList.find((item: any) => item.path === path);
     const isAffixed = existingTab && existingTab.isAffix === "1";
@@ -85,15 +88,27 @@ export function useLayoutTabs(
       path: path,
       name: route.name as string,
       isKeepAlive: route.meta.isKeepAlive,
-      isAffix: isAffixed ? "1" : (route.meta.isAffix || "0")
+      isAffix: isAffixed ? "1" : (route.meta.isAffix || "0"),
+      // 登记到 keep-alive 的键：已解析的 SFC 组件名，解不出时退回路由名（旧口径）
+      keepAliveName: resolveKeepAliveName(route),
     };
     if (path == HOME_URL) {
       tab.isAffix = "1";
+    }
+    // keep-alive 白名单必须登记组件名（SFC __name）：路由 name 永远匹配不上 include，
+    // 导致菜单点击的页面无法被缓存。解析失败时是不拦截的旧口径（退回路由 name）。
+    if (tab.isKeepAlive) {
+      const keepAliveName = resolveKeepAliveName(route);
+      if (keepAliveName && !keepAliveStore.keepAliveName.includes(keepAliveName)) {
+        keepAliveStore.addKeepAliveName(keepAliveName);
+      }
     }
     // 已存在的旧标签（如持久化的 "home" 占位）补齐标题/图标，避免 addTab 直接跳过导致不更新
     if (existingTab) {
       existingTab.title = resolvedTitle;
       existingTab.icon = tab.icon;
+      // 补全旧标签上已解析但未登记的组件名
+      existingTab.keepAliveName = tab.keepAliveName;
       return;
     }
     tabsStore.addTab(tab);

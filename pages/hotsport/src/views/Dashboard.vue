@@ -78,7 +78,7 @@
       />
     </div>
 
-    <!-- 双图：错误率&耗时 + 协议分布 -->
+    <!-- 双图：错误率&耗时 + 数据构成 -->
     <div class="chart-grid">
       <div class="panel">
         <div class="panel-head-row">
@@ -113,6 +113,36 @@
           height="240px"
           class="panel-chart"
         />
+      </div>
+    </div>
+
+    <!-- 协议构成：真实 /protocol-stats 明细 -->
+    <div class="panel">
+      <div class="panel-head">
+        <span>协议构成</span>
+        <span class="panel-sub">{{ protocolSubtitle }}</span>
+      </div>
+      <div v-if="!protocolStats.length" class="panel-empty">暂无协议数据</div>
+      <div v-else class="protocol-list">
+        <div class="protocol-row protocol-head">
+          <span>协议</span>
+          <span>调用量 / 占比</span>
+          <span>错误率</span>
+          <span>平均耗时</span>
+        </div>
+        <div v-for="p in protocolStats" :key="p.protocol" class="protocol-row">
+          <span class="mono protocol-name" :title="String(p.protocol)">{{ p.protocol || "—" }}</span>
+          <span class="protocol-calls">
+            <span class="protocol-calls-bar" :style="{ width: callBarWidth(p) + 'px' }"></span>
+            <span class="mono protocol-num">{{ p.callCount.toLocaleString() }}</span>
+            <span class="protocol-share muted">{{ Math.round(callShare(p)) }}%</span>
+          </span>
+          <span class="protocol-rate" :class="protoRateClass(p)">
+            <i class="protocol-rate-dot" aria-hidden="true"></i>
+            <span class="mono">{{ Number(p.errorRatePercent).toFixed(1) }}%</span>
+          </span>
+          <span class="mono protocol-num muted">{{ Number(p.avgMs).toFixed(1) }}ms</span>
+        </div>
       </div>
     </div>
 
@@ -217,6 +247,7 @@ import {
   getErrorRanking,
   getSla,
   getTrend,
+  getProtocolStats,
 } from "../api/apmApi";
 import type {
   ApmStats,
@@ -225,6 +256,7 @@ import type {
   ErrorRanking,
   SlaStats,
   TrendPoint,
+  ProtocolStat,
 } from "../api/apmApi";
 import {
   areaGradient,
@@ -301,6 +333,8 @@ const services = ref<ApmService[]>([]);
 const slowCalls = ref<SlowCall[]>([]);
 const errorRanking = ref<ErrorRanking[]>([]);
 const sla = ref<SlaStats | null>(null);
+/** 协议统计（/protocol-stats）：真实协议 × 调用量 / 错误率 / 平均耗时 */
+const protocolStats = ref<ProtocolStat[]>([]);
 
 const lastRefresh = ref("");
 
@@ -442,6 +476,40 @@ function rateClass(row: Record<string, unknown>): string {
   }
   return "";
 }
+
+/** 协议行错误率着色：阈值与排行一致（>5% 红，1~5% 黄） */
+function protoRateClass(p: ProtocolStat): string {
+  if (p.errorRatePercent > 5) {
+    return "err-text";
+  }
+  if (p.errorRatePercent > 1) {
+    return "warn-text";
+  }
+  return "";
+}
+
+/** 协议调用总量（用于占比与条形宽度） */
+const protocolTotal = computed(() => protocolStats.value.reduce((sum, p) => sum + p.callCount, 0));
+
+/** 单个协议调用量占比（% 0~100） */
+function callShare(p: ProtocolStat): number {
+  return protocolTotal.value > 0 ? (p.callCount / protocolTotal.value) * 100 : 0;
+}
+
+/** 条形宽度：按占比线性映射到最大 240px，占比为 0 时退化为 2px 小点 */
+function callBarWidth(p: ProtocolStat): number {
+  const share = callShare(p);
+  if (share <= 0) return 2;
+  return Math.max(4, Math.round((share / 100) * 240));
+}
+
+/** 面板副标题：有数据时给出汇总摘要，一眼看出体量 */
+const protocolSubtitle = computed(() => {
+  if (!protocolStats.value.length) return "来自 /protocol-stats";
+  const total = protocolTotal.value;
+  const avg = protocolStats.value.reduce((s, p) => s + p.errorRatePercent, 0) / protocolStats.value.length;
+  return `共 ${protocolStats.value.length} 种协议 · ${total.toLocaleString()} 次调用 · 平均错误率 ${avg.toFixed(1)}%`;
+});
 
 /* ---------------- 趋势数据 ---------------- */
 const trendBuckets = ref<{ xs: string[]; totals: number[]; errors: number[] }>({
@@ -667,6 +735,17 @@ async function load() {
   }
   formatLastRefresh();
   await loadRanks();
+  await loadProtocolStats();
+}
+
+/** 协议统计：与排行解耦，失败只清空协议明细，不影响主视图 */
+async function loadProtocolStats() {
+  try {
+    const rows = (await getProtocolStats()) || [];
+    protocolStats.value = [...rows].sort((a, b) => b.callCount - a.callCount);
+  } catch {
+    protocolStats.value = [];
+  }
 }
 
 async function loadRanks() {
@@ -925,6 +1004,89 @@ watch(
 /* ---- 图表 ---- */
 .panel-chart {
   width: 100%;
+}
+
+/* ---- 协议构成明细表 ---- */
+.protocol-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.protocol-row {
+  display: grid;
+  grid-template-columns: 1.6fr 1.8fr 1fr 1fr;
+  gap: var(--apm-space-3);
+  align-items: center;
+  padding: 6px 4px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border-subtle, var(--apm-border-soft));
+}
+
+.protocol-row:last-child {
+  border-bottom: none;
+}
+
+.protocol-head {
+  color: var(--text-tertiary, var(--apm-muted));
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.protocol-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.protocol-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.protocol-calls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.protocol-calls-bar {
+  flex-shrink: 0;
+  height: 8px;
+  min-width: 2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--brand-500, var(--apm-accent)) 22%, transparent);
+}
+
+.protocol-share {
+  font-size: 11px;
+  color: var(--text-tertiary, var(--apm-muted));
+  white-space: nowrap;
+}
+
+.protocol-rate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.protocol-rate-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--status-success, var(--apm-success));
+}
+
+.protocol-rate.warn-text .protocol-rate-dot {
+  background: var(--status-warning, var(--apm-warning));
+}
+
+.protocol-rate.err-text .protocol-rate-dot {
+  background: var(--status-error, var(--apm-danger));
 }
 
 /* ---- 排行表 ---- */

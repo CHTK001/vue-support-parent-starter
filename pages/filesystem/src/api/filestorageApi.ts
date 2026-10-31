@@ -155,6 +155,7 @@ interface ListResponse {
   bucket?: string;
   path?: string;
   count?: number;
+  total?: number;
   items?: StorageObject[];
 }
 
@@ -653,6 +654,34 @@ export async function listObjects(bucket: string, path = ""): Promise<StorageObj
       .query({ format: "json" })
       .then<ListResponse>((r) => r.data);
     return res.items ?? [];
+  } catch (e) {
+    throw storageError("列表查询", e);
+  }
+}
+
+/**
+ * 分页查询对象列表
+ *
+ * @param bucket 存储桶名
+ * @param path   子目录路径（空表示根目录）
+ * @param options 分页参数（limit/offset 均可选）
+ * @return 对象元数据列表与本页对应的目录总数
+ */
+export async function listObjectsPaged(
+  bucket: string,
+  path = "",
+  options: { limit?: number; offset?: number } = {}
+): Promise<{ items: StorageObject[]; total: number }> {
+  try {
+    const query: Record<string, string | number> = { format: "json" };
+    if (options.limit != null && options.limit > 0) query.limit = options.limit;
+    if (options.offset != null && options.offset > 0) query.offset = options.offset;
+    const res = await storageHttp()
+      .get(objectPath(bucket, path))
+      .query(query)
+      .then<ListResponse>((r) => r.data);
+    const items = res.items ?? [];
+    return { items, total: res.total ?? items.length };
   } catch (e) {
     throw storageError("列表查询", e);
   }

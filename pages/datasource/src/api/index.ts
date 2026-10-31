@@ -9,6 +9,7 @@
  *   5) DELETE /ms/datasource/{id}             — 删除
  *   6) POST   /ms/datasource/{id}/test        — 连通性测试（只测已存在的）
  *   7) GET    /ms/datasource/types            — 支持的类型
+ *   8) POST   /ms/datasource/merge            — 新建 Calcite 合并数据源（跨库联合）
  *
  * 另外提供数据源中心（数据源模块）的结构与 DDL 接口：
  *   8) GET    /ms/datasource/tables          — 表清单
@@ -339,6 +340,17 @@ export function toggleDataSourceTop(id: number, top: boolean): Promise<DataSourc
  */
 export function fetchDataSourceTypes(): Promise<string[]> {
   return get<string[]>(`${hubBase}/types`);
+}
+
+/**
+ * 新建 Calcite 合并数据源（跨库联合查询）。
+ *
+ * @param name      合并数据源名称
+ * @param memberIds 参与联合查询的成员数据源 ID 列表（JDBC 族、非合并记录）
+ * @return 合并后的数据源
+ */
+export function mergeDataSource(name: string, memberIds: number[]): Promise<DataSourceInfo> {
+  return post<DataSourceInfo>(`${hubBase}/merge`, { name, memberIds });
 }
 
 /**

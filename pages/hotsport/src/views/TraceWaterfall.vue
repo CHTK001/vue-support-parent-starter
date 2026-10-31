@@ -74,17 +74,35 @@
 
       <!-- Span 明细：点击 / Enter / Space 展开自身详情 -->
       <div class="panel">
-        <div class="panel-head">
-          <span>Span 明细</span>
-          <span class="panel-sub">
-            自身耗时 = 总耗时 − 子 span 耗时之和 · 点击任意行展开，键盘可用
-          </span>
+        <div class="panel-head-row">
+          <div class="panel-head">
+            <span>Span 明细</span>
+            <span class="panel-sub">
+              自身耗时 = 总耗时 − 子 span 耗时之和 · 点击任意行展开，键盘可用
+            </span>
+          </div>
+          <button
+            type="button"
+            class="error-only-toggle"
+            :class="{ active: errorOnly }"
+            :aria-pressed="errorOnly"
+            @click="errorOnly = !errorOnly"
+          >
+            <i class="dot" aria-hidden="true"></i>
+            仅看异常
+            <b v-if="errorSpanCount" class="badge" aria-hidden="true">{{ errorSpanCount }}</b>
+          </button>
+        </div>
+
+        <div v-if="errorOnly && !errorSpanCount" class="panel-empty muted">
+          当前链路没有异常 span — 全部通过
         </div>
 
         <div class="span-list">
           <div
             v-for="(sp, i) in spans"
             :key="`${sp.spanId || 'span'}-${i}`"
+            v-show="!errorOnly || isError(sp)"
             class="span-item"
             :class="{ 'is-open': expandedIndex === i, 'is-error': isError(sp) }"
           >
@@ -271,6 +289,9 @@ const waterfall = ref<TraceWaterfall | null>(null);
 const loading = ref(true);
 /** 展开的 span 下标（用下标而非 spanId：重复 spanId 也能各自独立展开） */
 const expandedIndex = ref<number | null>(null);
+
+/** 仅看异常：v-show 隐藏正常 span，保持图表 dataIndex 与列表下标一一对应 */
+const errorOnly = ref(false);
 
 /** 关联日志（按 traceId 拉取） */
 const relatedLogs = ref<LogRecord[]>([]);
@@ -670,6 +691,57 @@ const waterfallOption = computed<EChartsOption>(() => {
 }
 
 /* ---- Span 明细列表 ---- */
+.error-only-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
+  border-radius: 999px;
+  background: var(--bg-elevated, var(--apm-panel-raised));
+  color: var(--text-tertiary, var(--apm-muted));
+  font-size: 12px;
+  cursor: pointer;
+  transition: color var(--apm-t-fast), border-color var(--apm-t-fast), background var(--apm-t-fast);
+}
+
+.error-only-toggle:hover,
+.error-only-toggle.active {
+  color: var(--status-error, var(--apm-danger));
+  border-color: var(--status-error, var(--apm-danger));
+}
+
+.error-only-toggle.active {
+  background: color-mix(in srgb, var(--status-error, var(--apm-danger)) 8%, transparent);
+}
+
+.error-only-toggle:focus-visible {
+  outline: 2px solid var(--brand-500, var(--apm-accent));
+  outline-offset: 2px;
+}
+
+.error-only-toggle .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
+}
+
+.error-only-toggle .badge {
+  min-width: 18px;
+  padding: 0 5px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--status-error, var(--apm-danger));
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+}
+
 .span-list {
   display: flex;
   flex-direction: column;

@@ -116,7 +116,16 @@
         @row-click="(r: Record<string, unknown>) => openTrace(r as never)"
       >
         <template #col-traceId="{ row }">
-          <span class="mono muted">{{ truncateTraceId(row.traceId) }}</span>
+          <button
+            v-if="row.traceId"
+            type="button"
+            class="trace-link"
+            :title="`查看链路 ${String(row.traceId)}`"
+            @click.stop="openTrace((row as unknown) as SlowCall)"
+          >
+            <code class="mono">{{ truncateTraceId(String(row.traceId)) }}</code>
+          </button>
+          <span v-else class="muted">—</span>
         </template>
         <template #col-route="{ row }">
           <span class="mono route-text">{{ row.source }} → {{ row.target }}</span>
@@ -153,7 +162,16 @@
         @row-click="(r: Record<string, unknown>) => openTrace(r as never)"
       >
         <template #col-traceId="{ row }">
-          <span class="mono muted">{{ truncateTraceId(row.traceId) }}</span>
+          <button
+            v-if="row.traceId"
+            type="button"
+            class="trace-link"
+            :title="`查看链路 ${String(row.traceId)}`"
+            @click.stop="openTrace((row as unknown) as SlowCall)"
+          >
+            <code class="mono">{{ truncateTraceId(String(row.traceId)) }}</code>
+          </button>
+          <span v-else class="muted">—</span>
         </template>
         <template #col-db="{ row }">
           <span class="mono db-text">{{ row.db ?? "—" }}</span>
@@ -368,6 +386,34 @@ useRealtimeEvent("stats", (ev) => {
 .btn-icon {
   margin-right: 3px;
   vertical-align: -2px;
+}
+
+/* Trace ID 可点击跳链路：视觉与 Logs 页同款 */
+.trace-link {
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--brand-500, var(--apm-accent));
+  transition: color var(--apm-t-fast);
+}
+
+.trace-link:hover {
+  color: var(--brand-600, var(--apm-accent-hover));
+}
+
+.trace-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--brand-500, var(--apm-accent-subtle));
+  border-radius: var(--apm-radius-sm);
+}
+
+.trace-link code {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
 /* 实时新增错误提示条：位于操作条下方，错误发生即弹出 */

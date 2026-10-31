@@ -279,6 +279,88 @@
           <div v-if="!npcs.length" class="ws-side-empty">还没有 NPC。「+」从角色库添加</div>
         </div>
       </div>
+
+      <!-- 剧本幕次 -->
+      <div v-show="sideTab === 'acts'" class="ws-side-body ws-acts-body">
+        <!-- 幕次列表 -->
+        <div class="ws-acts-list">
+          <div class="ws-acts-head">
+            <span class="ws-acts-label">幕次列表</span>
+            <button class="ws-act-create" type="button" title="新建幕次" @click="openCreateAct">
+              <el-icon><Plus /></el-icon>
+            </button>
+          </div>
+          <div v-if="acts.length" class="ws-act-lst">
+            <div v-for="a in acts" :key="a.actNo" class="ws-act-row" :class="{ active: currentAct?.actNo === a.actNo }" @click="selectAct(a)">
+              <div class="ws-act-row-head">
+                <span class="ws-act-row-name">{{ a.title || '未命名幕次' }}</span>
+                <span class="ws-act-stage" :class="actStageTone(a.stage)">{{ actStageName(a.stage) }}</span>
+              </div>
+              <div class="ws-act-row-foot">
+                <span class="ws-act-row-no">第 {{ a.actNo }} 幕</span>
+                <el-progress :percentage="actProgress(a)" :stroke-width="3" :show-text="false" class="ws-act-row-progress" />
+              </div>
+            </div>
+          </div>
+          <div v-else class="ws-side-empty">{{ currentWorldId ? '还没有幕次，点击 + 创建第一幕' : '先选择一个世界' }}</div>
+        </div>
+
+        <!-- 幕次详情 -->
+        <div v-if="currentAct && actDetail" class="ws-act-detail">
+          <div class="ws-act-detail-hd">
+            <h3 class="ws-act-detail-title">第 {{ currentAct.actNo }} 幕：{{ actDetail.act?.title }}</h3>
+            <span class="ws-act-stage" :class="actStageTone(actDetail.act?.stage)">{{ actStageName(actDetail.act?.stage) }}</span>
+            <div class="ws-act-progress">
+              <span class="ws-act-progress-text">{{ assetDone(actDetail) }} / {{ assetTotal(actDetail) }}</span>
+              <el-progress :percentage="actProgress(actDetail)" :stroke-width="4" :show-text="false" />
+            </div>
+          </div>
+
+          <div class="ws-act-detail-body">
+            <!-- 剧本显示 -->
+            <div v-if="showScript && actDetail.script" class="ws-act-script">
+              <div class="ws-act-script-head">
+                <span class="ws-act-script-title">剧本（act{{ currentAct.actNo }}.json）</span>
+                <button class="ws-act-script-close" type="button" @click="showScript = false">✕</button>
+              </div>
+              <pre class="ws-script-item">{{ actDetail.script }}</pre>
+            </div>
+
+            <!-- 场景 / 过场 / 道具 素材 -->
+            <div class="ws-act-assets">
+              <div class="ws-act-asset-section" v-for="sec in actAssetSections" :key="sec.key">
+                <div class="ws-act-asset-head">{{ sec.label }}（{{ sec.items?.length }}）</div>
+                <div class="ws-act-asset-grid">
+                  <div v-for="it in sec.items" :key="it.name" class="ws-act-asset-card">
+                    <div class="ws-act-asset-info">
+                      <div class="ws-act-asset-name">{{ it.name }}</div>
+                      <div class="ws-act-asset-desc">{{ it.desc || it.text || '暂无描述' }}</div>
+                    </div>
+                    <div class="ws-act-asset-media">
+                      <div class="ws-act-media-band" v-if="it.mediaImage">
+                        <img v-if="it.mediaImage.url" class="ws-act-media-img" :src="it.mediaImage.url" />
+                        <span class="ws-act-media-status" :class="mediaStatusClass(it.mediaImage)">{{ mediaStatusName(it.mediaImage) }}</span>
+                        <a v-if="it.mediaImage.url" class="ws-act-media-url" target="_blank" :href="it.mediaImage.url">原图</a>
+                      </div>
+                      <div class="ws-act-media-band" v-if="it.mediaVideo">
+                        <img v-if="it.mediaVideo.url" class="ws-act-media-img" :src="it.mediaVideo.url" />
+                        <span class="ws-act-media-status" :class="mediaStatusClass(it.mediaVideo)">{{ mediaStatusName(it.mediaVideo) }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 阶段操作 -->
+            <div class="ws-act-stages">
+              <button v-for="btn in actPipeline" :key="btn.label" class="ws-act-stage-btn" :class="{ active: btn.stage === actStage, disabled: btn.stage !== actStage }" :disabled="btn.stage !== actStage || actProcessing" @click="actPipelineAction(btn)">
+                {{ btn.label }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </aside>
 
     <!-- ============ 建世界对话框 ============ -->
@@ -445,6 +527,10 @@ import ReDialog from '@repo/ui/re-dialog'
 import { message } from '@repo/core'
 import { apiService } from '@/services/ApiService'
 import type {
+  WorldAct,
+  WorldActDetail,
+  WorldActListRow,
+  WorldActAdvance,
   WorldItem,
   WorldScene,
   WorldNpc,
@@ -456,6 +542,26 @@ import type {
 const ERA_OPTIONS = ['现代', '古代', '未来', '奇幻', '武侠', '赛博朋克', '末日', '蒸汽朋克']
 const WEATHER_OPTIONS = ['晴', '多云', '阴', '雨', '雪', '风', '雷暴', '雾']
 const REL_TAGS = ['好友', '挚友', '恋人', '家人', '同事', '宿敌', '敌人', '陌生人', '崇拜', '依赖']
+
+/** 幕次阶段展示名（与后端 ACT_STATUS_ 常量对齐） */
+const ACT_STAGE_NAME: Record<string, string> = {
+  writing: '编剧中',
+  props_ok: '素材就绪',
+  playing: '出演中',
+  replay: '可重播',
+  finished: '已完结',
+  aborted: '已废弃',
+}
+
+/** 幕次阶段标签色 */
+const ACT_STAGE_TONE: Record<string, string> = {
+  writing: 'info',
+  props_ok: 'warning',
+  playing: 'success',
+  replay: 'primary',
+  finished: 'success',
+  aborted: 'danger',
+}
 
 interface UIMessage {
   _key: number
@@ -475,6 +581,11 @@ const scenes = ref<WorldScene[]>([])
 const npcs = ref<WorldNpc[]>([])
 const relationships = ref<WorldRelationship[]>([])
 const events = ref<WorldEvent[]>([])
+const acts = ref<WorldActListRow[]>([])
+const currentAct = ref<WorldActListRow | null>(null)
+const actDetail = ref<WorldActDetail | null>(null)
+const showScript = ref(false)
+const actProcessing = ref(false)
 const currentSceneId = ref<number | null>(null)
 const messages = ref<UIMessage[]>([])
 const draft = ref('')
@@ -516,10 +627,11 @@ const taInputRef = ref<HTMLTextAreaElement | null>(null)
 let keySeq = 1
 let streamHandle: { close: () => void } | null = null
 
-const sideTabs: { key: 'timeline' | 'relations' | 'manage'; label: string }[] = [
+const sideTabs: { key: 'timeline' | 'relations' | 'manage' | 'acts'; label: string }[] = [
   { key: 'timeline', label: '时间线' },
   { key: 'relations', label: '关系网' },
   { key: 'manage', label: '管理' },
+  { key: 'acts', label: '幕次' },
 ]
 
 /* ---------------- 计算 ---------------- */
@@ -562,6 +674,10 @@ async function selectWorld(w: WorldItem) {
   pendingAt.value = null
   atMenuVisible.value = false
   sideTab.value = 'timeline'
+  // 换世界先清幕次
+  currentAct.value = null
+  actDetail.value = null
+  showScript.value = false
   const view = await apiService.fetchWorldView(w.id)
   scenes.value = view.scenes || []
   npcs.value = view.npcs || []
@@ -570,6 +686,7 @@ async function selectWorld(w: WorldItem) {
   // 默认选中第一个场景
   currentSceneId.value = scenes.value.length ? scenes.value[0].id : null
   await loadMessages()
+  await loadActs()
   // 更新左侧列表上的最新状态
   syncWorld(w, view.world)
 }
@@ -816,7 +933,156 @@ async function advance() {
   }
 }
 
-/* ---------------- 消息 ---------------- */
+/* ---------------- 幕次 ---------------- */
+/** 幕次阶段 → 展示名 */
+function actStageName(s?: string | null): string {
+  return ACT_STAGE_NAME[s ?? ''] ?? '未知'
+}
+
+/** 幕次阶段 → 标签色 */
+function actStageTone(s?: string | null): string {
+  return ACT_STAGE_TONE[s ?? ''] ?? ''
+}
+
+/** 幕次行或详情行的显示进度（素材阶段的完成度 / 表演阶段的场景数） */
+function actProgress(v?: Record<string, any>) {
+  const total = v?.assets?.total as number | undefined
+  const done = v?.assets?.done as number | undefined
+  if (total > 0) return Math.min(100, Math.round((done ?? 0) / total * 100))
+  return Math.min(100, Number(v?.progress ?? 0))
+}
+
+/** 详情资产的完成数 */
+function assetDone(d: Record<string, any>) { return d?.assets?.done ?? 0 }
+
+/** 详情资产的总需求数 */
+function assetTotal(d: Record<string, any>) { return d?.assets?.total ?? 0 }
+
+/** 解析剧本，按场景/过场/道具拆出素材区划 */
+function actAssetSections() {
+  const script = actDetail.value?.script
+  if (!script) return []
+  let json: Record<string, any>
+  try {
+    json = JSON.parse(script)
+  } catch {
+    return []
+  }
+  return [
+    { key: 'scenes', label: '场景', items: (json.scenes ?? []) as Record<string, any>[] },
+    { key: 'transitions', label: '过场', items: (json.transitions ?? []) as Record<string, any>[] },
+    { key: 'props', label: '道具', items: (json.props ?? []) as Record<string, any>[] },
+  ]
+}
+
+/** 素材媒体的状态显示名 */
+function mediaStatusName(head?: Record<string, any>) {
+  if (!head) return '无'
+  if (head.status === 'NO_PROMPT') return '无需求'
+  if (head.status === 'OK') return '已完成'
+  if (head.status === 'NOT_STARTED') return '未开始'
+  if (head.status === 'FAILED' || head.status === 'CANCELED') return '已取消'
+  return '生成中'
+}
+
+/** 素材媒体的状态展示样式 */
+function mediaStatusClass(head?: Record<string, any>) {
+  switch (head?.status) {
+    case 'NO_PROMPT':
+      return 'ws-act-media--none'
+    case 'OK':
+      return 'ws-act-media--done'
+    case 'NOT_STARTED':
+      return 'ws-act-media--waiting'
+    default:
+      return 'ws-act-media--running'
+  }
+}
+
+/** 幕次所在阶段（来自当前选中的幕次行） */
+const actStage = computed(() => actDetail.value?.act?.stage ?? currentAct.value?.stage)
+
+/** 幕次操作序列：每阶段可选的操作（非当前阶段置灰不可点） */
+const actPipeline = [
+  { stage: 'writing', label: '生成剧本', action: 'advance' },
+  { stage: 'props_ok', label: '推进素材', action: 'advance' },
+  { stage: 'props_ok', label: '回放', action: 'script' },
+  { stage: 'playing', label: '演出', action: 'advance' },
+  { stage: 'replay', label: '重播', action: 'replay' },
+  { stage: 'finished', label: '结文', action: 'finish' },
+]
+
+async function loadActs() {
+  if (!currentWorldId.value) { acts.value = []; return }
+  acts.value = await apiService.fetchWorldActs(currentWorldId.value)
+}
+
+async function openCreateAct() {
+  if (!currentWorldId.value) return
+  try {
+    const a = await apiService.createWorldAct(currentWorldId.value) as WorldAct
+    await loadActs()
+    await selectAct(a)
+    message.success(`已创建第 ${a.actNo} 幕`)
+  } catch (e: any) {
+    message.error(e?.message || '创建幕次失败')
+  }
+}
+
+async function selectAct(a: WorldActListRow) {
+  currentAct.value = a
+  actDetail.value = null
+  showScript.value = false
+  await fetchActDetail(a.actNo as number)
+}
+
+async function fetchActDetail(actNo: number) {
+  if (!currentWorldId.value || actNo == null) return
+  actProcessing.value = true
+  try {
+    const d = await apiService.fetchWorldActDetail(currentWorldId.value, actNo) as WorldActDetail
+    actDetail.value = d
+    showScript.value = false
+  } catch (e: any) {
+    message.error(e?.message || '获取幕次详情失败')
+  } finally {
+    actProcessing.value = false
+  }
+}
+
+/** 幕次阶段操作 */
+async function actPipelineAction(btn: { stage?: string; label?: string; action?: string }) {
+  if (!currentWorldId.value || currentAct.value?.actNo == null) return
+  const stage = actStage.value ?? ''
+  if (btn.action === 'script') {
+    showScript.value = !showScript.value
+    return
+  }
+  // 非当前阶段可允许的操作：写/素材/出演 → 推进，回看/演完 → 重播或结文
+  if (btn.action === 'advance' && !['writing', 'props_ok', 'playing'].includes(stage)) return
+  if (btn.action === 'replay' && !['replay', 'finished'].includes(stage)) return
+  if (btn.action === 'finish' && !['replay', 'finished'].includes(stage)) return
+  actProcessing.value = true
+  try {
+    const no = currentAct.value!.actNo as number
+    if (btn.action === 'advance') {
+      const r = await apiService.advanceWorldAct(currentWorldId.value, no) as WorldActAdvance
+      message.success(`推进完成：${actStageName(r?.act?.stage)}`)
+    } else if (btn.action === 'replay') {
+      await apiService.replayWorldAct(currentWorldId.value, no)
+      message.success('已切换到重播')
+    } else if (btn.action === 'finish') {
+      await apiService.finishWorldAct(currentWorldId.value, no)
+      message.success('幕次已完结')
+    }
+    await loadActs()
+    if (currentAct.value) await fetchActDetail(currentAct.value.actNo as number)
+  } catch (e: any) {
+    message.error(e?.message || '操作失败')
+  } finally {
+    actProcessing.value = false
+  }
+}
 function avatarOf(m: UIMessage) {
   const f = npcs.value.find((n) => String(n.id) === String(m.speakerId))
   return f?.displayAvatar || null
@@ -1705,4 +1971,117 @@ async function send() {
   text-overflow: ellipsis;
 }
 .ws-char-empty { padding: 24px 0; text-align: center; font-size: 13px; color: var(--el-text-color-secondary); }
+
+/* ================= 剧本幕次 ================= */
+.ws-acts-body { flex: 1; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+.ws-acts-list { flex-shrink: 0; }
+.ws-acts-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.ws-acts-label { font-size: 12.5px; font-weight: 600; color: var(--el-text-color-primary); }
+.ws-act-create {
+  width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center;
+  border: 0; border-radius: var(--el-radius-sm, 6px); cursor: pointer;
+  background: var(--el-color-primary-light-9); color: var(--el-color-primary);
+  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.ws-act-create:hover { background: var(--el-color-primary-light-8); }
+.ws-act-create :deep(.el-icon) { font-size: 15px; }
+.ws-act-lst { max-height: 220px; overflow-y: auto; }
+.ws-act-row {
+  padding: 9px 10px; border-radius: var(--el-radius-lg, 12px); cursor: pointer; outline: none;
+  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.ws-act-row:hover { background: var(--el-fill-color-light); }
+.ws-act-row.active { background: var(--el-color-primary-light-9); }
+.ws-act-row-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.ws-act-row-name {
+  font-size: 13.5px; font-weight: 600; color: var(--el-text-color-primary); flex: 1; min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ws-act-stage {
+  font-size: 11px; padding: 1px 8px; border-radius: var(--el-radius-full, 9999px);
+  color: var(--el-color-white); background: var(--el-text-color-placeholder);
+}
+.ws-act-stage.primary { background: var(--el-color-primary); }
+.ws-act-stage.info { background: var(--el-color-info); }
+.ws-act-stage.warning { background: var(--el-color-warning); }
+.ws-act-stage.success { background: var(--el-color-success); }
+.ws-act-stage.danger { background: var(--el-color-danger); }
+.ws-act-row-foot { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.ws-act-row-no { font-size: 11.5px; color: var(--el-text-color-placeholder); white-space: nowrap; }
+.ws-act-row-progress { flex: 1; min-width: 0; }
+
+.ws-act-detail {
+  background: var(--el-fill-color-lighter); border-radius: var(--el-radius-lg, 12px);
+  padding: 12px; border: 1px solid var(--el-border-color-lighter);
+}
+.ws-act-detail-hd { margin-bottom: 12px; }
+.ws-act-detail-title {
+  font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); margin: 0 0 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ws-act-detail-prog { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.ws-act-progress-text { font-size: 11px; color: var(--el-text-color-placeholder); flex: 1; text-align: right; }
+.ws-act-detail-body { display: flex; flex-direction: column; gap: 14px; }
+
+.ws-act-script { border-radius: var(--el-radius-md, 8px); border: 1px solid var(--el-border-color-lighter); background: var(--el-bg-color); overflow: hidden; }
+.ws-act-script-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px;
+  background: var(--el-fill-color); border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.ws-act-script-title { font-size: 12px; color: var(--el-text-color-secondary); }
+.ws-act-script-close {
+  width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center;
+  border: 0; background: transparent; color: var(--el-text-color-placeholder); cursor: pointer;
+  border-radius: var(--el-radius-sm, 6px); font-size: 13px;
+}
+.ws-act-script-close:hover { background: var(--el-fill-color-light); color: var(--el-text-color-primary); }
+.ws-script-item {
+  margin: 0; padding: 10px; font-size: 12px; line-height: 1.8; color: var(--el-text-color-regular);
+  background: var(--el-bg-color); white-space: pre-wrap; word-break: break-all;
+  max-height: 200px; overflow-y: auto;
+}
+
+.ws-act-assets { display: flex; flex-direction: column; gap: 10px; }
+.ws-act-asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 8px; }
+.ws-act-asset-section {}
+.ws-act-asset-head { font-size: 12.5px; font-weight: 600; color: var(--el-text-color-primary); margin-bottom: 6px; }
+.ws-act-asset-card {
+  padding: 10px; border-radius: var(--el-radius-md, 8px); border: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color); transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.ws-act-asset-card:hover { border-color: var(--el-color-primary-light-5); }
+.ws-act-asset-info { min-width: 0; margin-bottom: 6px; }
+.ws-act-asset-name {
+  font-size: 13px; font-weight: 600; color: var(--el-text-color-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ws-act-asset-desc {
+  font-size: 11.5px; color: var(--el-text-color-secondary); display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4;
+}
+.ws-act-asset-media { display: flex; flex-direction: column; gap: 4px; }
+.ws-act-media-band { display: flex; align-items: center; gap: 6px; }
+.ws-act-media-img { width: 36px; height: 36px; object-fit: cover; border-radius: var(--el-radius-sm, 6px); background: var(--el-fill-color); border: 1px solid var(--el-border-color-lighter); }
+.ws-act-media-status { font-size: 10.5px; padding: 1px 5px; border-radius: var(--el-radius-full, 9999px); color: var(--el-color-white); background: var(--el-text-color-placeholder); }
+.ws-act-media--none { background: var(--el-color-info); }
+.ws-act-media--waiting { background: var(--el-color-info); }
+.ws-act-media--running { background: var(--el-color-warning); }
+.ws-act-media--done { background: var(--el-color-success); }
+.ws-act-media-url { font-size: 10.5px; color: var(--el-color-primary); text-decoration: none; }
+.ws-act-media-url:hover { text-decoration: underline; }
+
+.ws-act-stages {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--el-border-color-lighter);
+}
+.ws-act-stage-btn {
+  flex: 1; min-width: 0; height: 28px; padding: 0 8px; display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--el-border-color-lighter); border-radius: var(--el-radius-sm, 6px); background: var(--el-bg-color);
+  color: var(--el-text-color-placeholder); font-size: 11.5px; cursor: not-allowed;
+  transition: all var(--el-transition-duration-fast, 0.2s) ease;
+}
+.ws-act-stage-btn.active {
+  border-color: var(--el-color-primary); background: var(--el-color-primary-light-9); color: var(--el-color-primary); cursor: pointer;
+}
+.ws-act-stage-btn.active:hover { background: var(--el-color-primary-light-8); }
+.ws-act-stage-btn.disabled { opacity: 0.5; cursor: not-allowed; }
 </style>

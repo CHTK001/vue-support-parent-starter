@@ -94,6 +94,44 @@
       </template>
     </div>
 
+    <!-- 健康自检结果：/health 真实数据可视化 -->
+    <div v-if="healthResult" class="panel">
+      <div class="panel-head-row">
+        <div class="panel-head">
+          <span>健康自检结果</span>
+          <span class="panel-sub">后端 /health 实时返回</span>
+        </div>
+        <ReButton text size="small" :loading="diagnosing" @click="rerunHealthCheck">重新自检</ReButton>
+      </div>
+
+      <div class="health-grid">
+        <div class="health-cell">
+          <span class="health-cell-label">健康状态</span>
+          <b class="health-cell-value" :class="`health-${healthStateClass}`">
+            <i class="health-dot" aria-hidden="true"></i>{{ healthStateLabel }}
+          </b>
+        </div>
+        <div class="health-cell">
+          <span class="health-cell-label">QPS</span>
+          <b class="health-cell-value mono">{{ healthResult.qps.toFixed(1) }}</b>
+        </div>
+        <div class="health-cell">
+          <span class="health-cell-label">错误率</span>
+          <b class="health-cell-value mono rate-cell" :class="`rate-${healthRateClass}`">
+            <i class="rate-dot" aria-hidden="true"></i>{{ healthResult.errorRate.toFixed(2) }}%
+          </b>
+        </div>
+        <div class="health-cell">
+          <span class="health-cell-label">活跃泄漏</span>
+          <b class="health-cell-value mono">{{ healthResult.activeLeaks }}</b>
+        </div>
+        <div class="health-cell">
+          <span class="health-cell-label">观测窗口</span>
+          <b class="health-cell-value mono">{{ healthResult.windowSeconds }}s</b>
+        </div>
+      </div>
+    </div>
+
     <!-- 运维工具：健康自检 / 诊断包导出 / 数据清理 / 线程转储下载 -->
     <div class="panel">
       <div class="panel-head">
@@ -175,6 +213,29 @@ const diagnosing = ref(false);
 const exporting = ref(false);
 const cleaning = ref(false);
 const dumping = ref(false);
+const healthResult = ref<ApmHealth | null>(null);
+
+/** 健康状态：HEALTHY / DEGRADED / SATURATED → 标签与语义色 */
+const healthStateLabel = computed(() => {
+  if (!healthResult.value) return "—";
+  return { HEALTHY: "健康", DEGRADED: "降级", SATURATED: "饱和" }[healthResult.value.health] ?? healthResult.value.health;
+});
+const healthStateClass = computed(() => {
+  switch (healthResult.value?.health) {
+    case "HEALTHY": return "ok";
+    case "DEGRADED": return "warn";
+    case "SATURATED": return "err";
+    default: return "off";
+  }
+});
+
+/** 错误率三档（与全站 Topology/Endpoints 阈值一致：>5% 红，1~5% 黄） */
+const healthRateClass = computed(() => {
+  const rate = healthResult.value?.errorRate ?? 0;
+  if (rate > 5) return "err";
+  if (rate > 1) return "warn";
+  return "ok";
+});
 
 /** 当前生效地址（空串显示为「同源」） */
 const displayBase = computed(() => getApiBase() || "同源（跟随当前页面）");
@@ -193,23 +254,25 @@ const configColumns: ReTableColumn[] = [
 ];
 
 /**
- * 运维工具 —— 健康自检：调用后端 /health，弹窗展示关键健康指标。
+ * 运维工具 —— 健康自检：调用后端 /health，结果写入健康结果面板。
  */
 async function runHealthCheck(): Promise<void> {
   diagnosing.value = true;
   try {
     const health = await getHealth();
+    healthResult.value = health;
     message.success(`健康自检完成：${health.health ?? "HEALTHY"}`);
-    // 汇总展示：把健康快照里的关键项打印出来
-    const lines = Object.entries(health)
-      .map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : String(v)}`)
-      .join("\n");
-    console.info("[Hotsport] 健康自检结果:\n" + lines);
   } catch (error) {
+    healthResult.value = null;
     message.error(`健康自检失败：${(error as Error)?.message || "无法访问 /health"}`);
   } finally {
     diagnosing.value = false;
   }
+}
+
+/** 面板「重新自检」：与运维卡片同一接口、同一结果面板 */
+async function rerunHealthCheck(): Promise<void> {
+  await runHealthCheck();
 }
 
 /**
@@ -335,7 +398,7 @@ onMounted(() => {
 </script>
 
 <script lang="ts">
-import type { ApmStorageStatus } from "../api/apmApi";
+import type { ApmHealth, ApmStorageStatus } from "../api/apmApi";
 import { getStorageStatus, resetApiClient } from "../api/apmApi";
 </script>
 
@@ -395,6 +458,77 @@ import { getStorageStatus, resetApiClient } from "../api/apmApi";
   gap: 12px;
   flex-wrap: wrap;
   font-size: 12px;
+}
+
+/* 健康自检结果：五宫格 + 状态点 */
+.health-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.health-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle, var(--apm-border));
+  border-radius: var(--apm-radius-md, 10px);
+  background: var(--apm-panel-raised);
+}
+
+.health-cell-label {
+  font-size: 11px;
+  color: var(--apm-muted);
+}
+
+.health-cell-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--apm-fg);
+}
+
+.health-cell-value.mono {
+  font-size: 16px;
+}
+
+.health-dot,
+.rate-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--status-success, var(--apm-success));
+}
+
+.health-cell-value.health-warn .health-dot,
+.health-cell-value.rate-warn .rate-dot {
+  background: var(--status-warning, var(--apm-warning));
+}
+
+.health-cell-value.health-err .health-dot,
+.health-cell-value.rate-err .rate-dot {
+  background: var(--status-error, var(--apm-danger));
+}
+
+.health-cell-value.health-off .health-dot {
+  background: var(--status-neutral, var(--apm-muted));
+}
+
+.health-cell-value.health-warn {
+  color: var(--status-warning, var(--apm-warning));
+}
+
+.health-cell-value.health-err,
+.health-cell-value.rate-err {
+  color: var(--status-error, var(--apm-danger));
+}
+
+.health-cell-value.rate-warn {
+  color: var(--status-warning, var(--apm-warning));
 }
 
 /* 运维工具卡片：四宫格，每个动作一个卡片 */

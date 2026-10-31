@@ -1459,42 +1459,33 @@ onMounted(() => {
 
 <style scoped>
 /*
- * 版式基线对齐 PoemBankView / IdiomBankView：
- * page-container（整页滚动）→ top-zone（页头 + 悬浮方卡统计）→ filter-card → table-card。
- * 统计卡是 148×148 的正方形，卡内纵向排布，图标块落在右下角。
+ * 版式基线对齐 PoemBankView / IdiomBankView（昆虫库版式）：
+ * page-container（flex 列）→ top-zone（页头 + 横向统计卡）→ table-card（含 el-tabs）。
+ * 统计卡是横向卡片，图标块靠右；表格区经 flex 链吃满剩余高度。
  */
 .page-container {
   height: 100%;
   display: flex;
   flex-direction: column;
+  gap: 14px;
   /* 整页不再滚动：剩余高度全部交给表格区，避免 tab 内容不满高、底部留白 */
   overflow: hidden;
   background: var(--el-bg-color-page);
 }
 
-/* ---------- 上区：页头 + 右侧悬浮正方形统计卡 ---------- */
+/* ---------- 上区：页头 + 横向统计卡 ---------- */
 .top-zone {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  /* 统计卡「悬浮」压住下方卡片区顶部 74px（见 .table-card 的 z-index）。
-     本容器是通栏 flex，重叠区里它自己是**透明**的，但照常接收指针 ——
-     实测 elementFromPoint 在页签中心命中的是这里而不是页签，
-     于是「学生 / 班级 / 教师」三个页签整条点不动（activeTab 恒为 student）。
-     容器不吃指针，只把指针交还给真正可交互的子项（统计卡的 hover 反馈）。 */
-  margin-bottom: -74px;
-  position: relative;
-  z-index: 2;
-  pointer-events: none;
+  gap: 18px;
+  flex-wrap: wrap;
 }
 .page-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 0;
-  padding-top: 4px;
   min-width: 0;
   flex: 1;
 }
@@ -1503,84 +1494,64 @@ onMounted(() => {
 }
 .page-header__title {
   margin: 0;
-  font-size: 26px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 900;
   color: var(--el-text-color-primary);
-  line-height: 1.25;
+  letter-spacing: 1px;
 }
 .page-header__sub {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   font-size: 13px;
-  color: var(--el-text-color-placeholder);
+  color: var(--el-text-color-secondary);
 }
 
 .stats-row {
   display: flex;
-  flex-shrink: 0;
-  gap: 14px;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 .stat-card {
-  width: 148px;
-  height: 148px;
-  background: var(--el-bg-color);
-  border-radius: var(--el-radius-xl, 16px);
-  padding: 16px;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-  /* 父级 .top-zone 已 pointer-events:none（避免重叠区吃掉页签点击），
-     统计卡自身的悬浮反馈需要指针，故显式收回 */
-  pointer-events: auto;
-  /* koi 卡片不加投影：已有一条边框承载边界，边界色再提浅一档（-light → -lighter） */
+  align-items: center;
+  gap: 14px;
+  min-width: 170px;
+  padding: 12px 16px;
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  transition:
-    transform var(--el-transition-duration-fast, 0.2s) ease,
-    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
-}
-.stat-card:hover {
-  transform: translateY(-2px);
-  /* 浮起反馈是 koi 唯一允许的卡片投影 */
-  box-shadow: 0 12px 28px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
 }
 .stat-card__body {
   min-width: 0;
-  width: 100%;
 }
 .stat-card__title {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--el-text-color-secondary);
-  margin-bottom: 6px;
+  margin-bottom: 0;
 }
 .stat-card__value {
-  font-size: 30px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 900;
   color: var(--el-text-color-primary);
-  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
 .stat-card__hint {
-  margin-top: 4px;
   font-size: 11px;
   color: var(--el-text-color-placeholder);
 }
 .stat-card__icon {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: var(--el-radius-lg, 12px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--el-color-white);
+  color: var(--el-color-primary);
   flex-shrink: 0;
-  align-self: flex-end;
 }
 .table-card {
   border-radius: var(--el-radius-lg, 12px);
-  border: 0;
-  position: relative;
-  z-index: 1;
   /* 撑满 page-container 的剩余高度，让 tab 区「吃满」而不是按内容高度收缩 */
   flex: 1;
   min-height: 0;
@@ -1588,7 +1559,7 @@ onMounted(() => {
   flex-direction: column;
 }
 .table-card :deep(.el-card__body) {
-  padding: 16px 20px 18px;
+  padding: 20px;
   flex: 1;
   min-height: 0;
   display: flex;
@@ -1633,21 +1604,18 @@ onMounted(() => {
 .table-card :deep(.el-table__empty-block) {
   min-height: 180px;
 }
-/* ---------- 筛选卡（与古诗库/成语库同构） ---------- */
+/* ---------- 筛选卡（与学生管理基线同构） ---------- */
 .filter-card {
   border-radius: var(--el-radius-lg, 12px);
   margin-bottom: 14px;
-  border: 0;
-  position: relative;
-  z-index: 1;
 }
 .filter-card :deep(.el-card__body) {
   padding: 18px 20px;
 }
 .filter-grid {
   display: grid;
-  grid-template-columns: minmax(200px, 1.4fr) minmax(130px, 1fr) minmax(150px, 1fr) auto;
-  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  gap: 12px 16px;
   align-items: end;
 }
 .filter-field {
@@ -1657,20 +1625,17 @@ onMounted(() => {
   min-width: 0;
 }
 .filter-field__label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 6px;
   white-space: nowrap;
 }
 .filter-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
-}
-.filter-actions .el-button {
-  border-radius: var(--el-radius-lg, 12px);
-  min-width: 88px;
-  font-weight: 600;
 }
 /* 空值占位：与「—」同类语义，但中文更直白 */
 .cell-muted {
@@ -1986,15 +1951,7 @@ onMounted(() => {
 }
 
 /* ============ 无障碍：尊重系统「减少动态效果」偏好 ============
-   统计卡有 transition / transform（ReButton 的动效由组件自身负责）。 */
-@media (prefers-reduced-motion: reduce) {
-  .stat-card {
-    transition: none;
-  }
-  .stat-card:hover {
-    transform: none;
-  }
-}
+   ReButton 的动效由组件自身负责。 */
 
 /* ---------- 教师班级配置：两列卡片勾选网格 ---------- */
 .tea-class-dialog .dialog-head__sub {
@@ -2112,7 +2069,7 @@ onMounted(() => {
   top: 1px;
   width: 5px;
   height: 9px;
-  border: solid #fff;
+  border: solid var(--el-color-white);
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }

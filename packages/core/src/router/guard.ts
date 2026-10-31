@@ -17,6 +17,7 @@ import type { Router, RouteLocationNormalized, NavigationGuardReturn } from "vue
 import { getConfig } from "@repo/config";
 import { getMenuLanguage } from "@repo/languages";
 import { getAppStorage } from "../storage";
+import { log } from "@repo/utils";
 import type { RouteConfigsTable } from "./types";
 import { checkRouteAccess, ROUTER_WHITE_LIST, type RouteAccessContext } from "./access";
 
@@ -178,7 +179,12 @@ export function setupRouterGuard(
     const isRemote = route.mode === "remote" || route.mode === "all";
     const originalPath = to.redirectedFrom?.path || to.path;
     if (isRemote && loadRemoteRoutes && originalPath !== route.loginPath) {
+      // 仅 logLevel=debug 时输出（release 下 log.debug 内部判断级别，旁路零耗电）
+      // loadRemoteRoutes 本身已防并发（initPromise）+ 注册幂等（已注册 route 跳过），
+      // 重复导航只等一个已缓存的 Promise，首次导航才拉菜单 + 注册。
+      const t0 = now();
       await loadRemoteRoutes!(router);
+      log.debug(`[route] 第8步 loadRemoteRoutes ${(now() - t0).toFixed(1)}ms`);
       if (!getAccessToken()) {
         return { path: route.loginPath, replace: true };
       }
@@ -231,6 +237,13 @@ export function setupRouterGuard(
 
   void layoutName;
 }
+
+/**
+ * 高精度时间（release 环境下必可用：浏览器/Node 18+ 有 Performance；否则回退 Date.now）
+ */
+const now = typeof performance !== "undefined"
+  ? () => performance.now()
+  : () => Date.now();
 
 
 

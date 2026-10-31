@@ -14,6 +14,7 @@
     <el-menu-item
       v-else-if="collapseSingleChild && item.children?.length === 1"
       :index="item.children[0].path"
+      @mouseenter="prefetch(item.children[0])"
       @click="handleMenuRouter(item.children[0])"
     >
       <!-- 图标放默认插槽：菜单折叠时 Element Plus 以默认插槽作为折叠触发器内容 -->
@@ -54,7 +55,12 @@
       <ReAsideSubMenu :menuList="item.children" />
     </el-sub-menu>
     <!-- 叶子节点[功能节点]；空分组（isGroup 且无可见子项）不渲染，避免悬空分组标题与不可点的分组路径项 -->
-    <el-menu-item v-else-if="!(item.meta?.isGroup && !groupChildren(item).length)" :index="item.path" @click="handleMenuRouter(item)">
+    <el-menu-item
+      v-else-if="!(item.meta?.isGroup && !groupChildren(item).length)"
+      :index="item.path"
+      @mouseenter="prefetch(item)"
+      @click="handleMenuRouter(item)"
+    >
       <!-- 图标放默认插槽：菜单折叠时 Element Plus 以默认插槽作为折叠触发器内容 -->
       <div class="icon-container">
         <ReIcon :name="item.meta?.icon || menuDefaultIcon" size="18" class="menu-icon"></ReIcon>
@@ -86,6 +92,7 @@ import { useRouter } from "vue-router";
 import { inject } from "vue";
 import { getMenuLanguage } from "@repo/languages";
 import { getConfig, resolveMenuDefaultIcon } from "@repo/config";
+import { prefetchRoute } from "./routePrefetch";
 
 const router = useRouter();
 
@@ -128,6 +135,12 @@ const groupChildren = (item: any): any[] =>
  */
 const isGroupItem = (item: any): boolean =>
   (groupMenuMode === true || item?.meta?.isGroup === true) && groupChildren(item).length > 0;
+
+/** 菜单悬停预取：点下去之前先把页面 chunk 拉下来，"点了没反应"的空窗期基本消失 */
+const prefetch = (value: any) => {
+  if (!value?.path) return;
+  prefetchRoute(router, value.path);
+};
 
 /** 打开标签页 或 外部链接 */
 const handleMenuRouter = (value: any) => {

@@ -18,12 +18,41 @@
           </keep-alive>
         </transition>
       </router-view>
+      <!--
+        路由切换骨架：先出页面框架（页头 + 内容块），再等页面 chunk 就绪后替换成真实页面。
+        为什么需要：懒加载路由在点击那一刻才开始下载 chunk，期间旧页面一动不动，
+        用户会以为"点了没反应"。120ms 内的快速切换不显示，避免闪一下。
+      -->
+      <transition name="route-skeleton-fade">
+        <div v-if="routePending" class="route-skeleton" aria-busy="true" aria-label="页面加载中">
+          <div class="rs-head">
+            <span class="rs-bone rs-title"></span>
+            <span class="rs-bone rs-action"></span>
+          </div>
+          <div class="rs-toolbar">
+            <span class="rs-bone rs-tab is-active"></span>
+            <span class="rs-bone rs-tab"></span>
+            <span class="rs-bone rs-tab"></span>
+            <span class="rs-bone rs-tab is-short"></span>
+          </div>
+          <div class="rs-card">
+            <span class="rs-bone rs-line"></span>
+            <span class="rs-bone rs-line"></span>
+            <span class="rs-bone rs-line is-short"></span>
+          </div>
+          <div class="rs-card rs-table">
+            <span class="rs-bone rs-row is-head"></span>
+            <span v-for="n in 6" :key="n" class="rs-bone rs-row"></span>
+          </div>
+        </div>
+      </transition>
     </el-main>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, provide, onBeforeUnmount, computed } from "vue";
+import { useRouter } from "vue-router";
 import ReMaximize from "@repo/theme/koi/layouts/components/Main/components/ReMaximize.vue";
 import { useDebounceFn } from "@vueuse/core";
 import Tabs from "@repo/theme/koi/layouts/components/Tabs/index.vue";
@@ -35,6 +64,7 @@ import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
 import useGlobalStore from "@repo/pinia/modules/global";
 
 const globalStore = useGlobalStore();
+const router = useRouter();
 
 // 路由动画
 const { transition } = storeToRefs(globalStore);
@@ -48,6 +78,47 @@ const isRouterShow = ref(true);
 const refreshCurrentPage = (val: boolean) => (isRouterShow.value = val);
 
 provide("refresh", refreshCurrentPage);
+
+/**
+ * 路由切换骨架的显隐。
+ *
+ * <p>只在「切换耗时超过 120ms」时才显示：绝大多数同层页面切换在 100ms 内完成，
+ * 立刻显示骨架反而会闪一下，比不做还难受。慢切换（大页面 chunk / 首次访问）
+ * 才需要这段占位，让用户先看到页面框架。</p>
+ */
+const routePending = ref(false);
+let routeTimer: ReturnType<typeof setTimeout> | null = null;
+
+const clearRouteTimer = () => {
+  if (routeTimer) {
+    clearTimeout(routeTimer);
+    routeTimer = null;
+  }
+};
+
+const stopBeforeEach = router.beforeEach(() => {
+  clearRouteTimer();
+  routeTimer = setTimeout(() => {
+    routePending.value = true;
+  }, 120);
+});
+
+const stopAfterEach = router.afterEach(() => {
+  clearRouteTimer();
+  routePending.value = false;
+});
+
+const stopOnError = router.onError(() => {
+  clearRouteTimer();
+  routePending.value = false;
+});
+
+onBeforeUnmount(() => {
+  clearRouteTimer();
+  stopBeforeEach();
+  stopAfterEach();
+  stopOnError();
+});
 
 /** 监听当前页面是否最大化，动态添加 class */
 watch(
@@ -99,10 +170,140 @@ onBeforeUnmount(() => {
   margin: 0;
   background-color: var(--el-bg-color-page);
   min-height: 0;
-  
+  // 骨架用绝对定位盖住内容区，需要定位上下文
+  position: relative;
+
   // 暗色模式
   .dark & {
     background-color: var(--el-bg-color-page);
+  }
+}
+
+/* ===== 路由切换骨架 ===== */
+.route-skeleton {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  box-sizing: border-box;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--el-bg-color-page);
+  pointer-events: none;
+}
+
+.rs-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 2px;
+}
+
+.rs-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px;
+}
+
+.rs-card {
+  border-radius: 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rs-table {
+  gap: 10px;
+}
+
+/* 骨头统一质感：与 ReLoader 内置骨架同一套呼吸动画，观感一致 */
+.rs-bone {
+  display: block;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--el-fill-color-light) 25%,
+    var(--el-fill-color) 50%,
+    var(--el-fill-color-light) 75%
+  );
+  background-size: 200% 100%;
+  animation: rs-shimmer 1.4s ease-in-out infinite;
+}
+
+.rs-title {
+  width: 180px;
+  height: 22px;
+  border-radius: 8px;
+}
+
+.rs-action {
+  width: 96px;
+  height: 30px;
+  border-radius: 8px;
+}
+
+.rs-tab {
+  width: 78px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--el-fill-color-lighter);
+  animation: none;
+
+  &.is-active {
+    background: var(--el-color-primary-light-8);
+  }
+
+  &.is-short {
+    width: 48px;
+  }
+}
+
+.rs-line {
+  height: 14px;
+
+  &.is-short {
+    width: 46%;
+  }
+}
+
+.rs-row {
+  height: 34px;
+  border-radius: 4px;
+
+  &.is-head {
+    height: 26px;
+    background: var(--el-fill-color);
+    animation: none;
+  }
+}
+
+@keyframes rs-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.route-skeleton-fade-enter-active,
+.route-skeleton-fade-leave-active {
+  transition: opacity 0.16s ease;
+}
+
+.route-skeleton-fade-enter-from,
+.route-skeleton-fade-leave-to {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rs-bone {
+    animation-duration: 2.6s;
   }
 }
 </style>

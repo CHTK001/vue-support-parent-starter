@@ -189,7 +189,16 @@
           :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
         >
           <template #col-traceId="{ row }">
-            <span class="mono muted">{{ String(row.traceId ?? "—").slice(0, 24) }}</span>
+            <button
+              v-if="row.traceId"
+              type="button"
+              class="trace-link"
+              :title="`查看链路 ${String(row.traceId)}`"
+              @click.stop="openTrace(String(row.traceId))"
+            >
+              <code class="mono">{{ String(row.traceId).slice(0, 24) }}</code>
+            </button>
+            <span v-else class="muted">—</span>
           </template>
           <template #col-operation="{ row }">
             <span class="mono muted drill-op">{{ row.operation }}</span>
@@ -220,6 +229,8 @@
 import { message } from "@repo/core";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import * as echarts from "echarts";
+import { useRouter } from "vue-router";
+import { ROUTE_PREFIX } from "../config";
 
 import { Refresh, Search, View } from "@element-plus/icons-vue";
 import ReTable from "@repo/ui/re-table";
@@ -244,6 +255,12 @@ const loading = ref(false);
 const graphRef = ref<HTMLElement | null>(null);
 const keyword = ref("");
 const listErrorOnly = ref(false);
+const router = useRouter();
+
+/** 跳转链路详情：traceId 深链到 /traces/detail（与 Logs/Errors 页同一路由常量） */
+function openTrace(traceId: string): void {
+  router.push({ path: ROUTE_PREFIX + "/traces/detail", query: { traceId } });
+}
 
 /**
  * 本进程自身标识（真实主机名 / 地址 / 监听端口）。
@@ -962,6 +979,34 @@ watch(keyword, () => applyHighlight());
 
 .drill-op {
   word-break: break-all;
+}
+
+/* Trace ID 可点击跳链路：视觉与 Logs/Errors 页同款交互 */
+.trace-link {
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--brand-500, var(--apm-accent));
+  transition: color var(--transition-base, var(--apm-t-fast));
+}
+
+.trace-link:hover {
+  color: var(--brand-600, var(--apm-accent-hover));
+}
+
+.trace-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--brand-500, var(--apm-accent-subtle));
+  border-radius: var(--radius-sm, var(--apm-radius-sm));
+}
+
+.trace-link code {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
 .drill-table-wrap .apm-table {

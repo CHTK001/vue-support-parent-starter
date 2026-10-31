@@ -69,6 +69,7 @@ import {
   fetchJdbcDriverJars,
   killDbProcess,
   killDbProcesses,
+  mergeDataSource,
   toggleDataSourceTop,
   uploadFileDb,
   uploadJdbcDriverJar,
@@ -137,11 +138,33 @@ const list = ref<DataSourceInfo[]>([]);
 const loading = ref(false);
 const types = ref<string[]>([]);
 
+/** 系统数据源伪条目：应用主库（app）不是台账里的行，始终固定在左栏首位 */
+const SYSTEM_DATASOURCE: DataSourceInfo = {
+  name: "应用主库",
+  type: "app",
+  status: 1,
+  remark: "平台内置系统数据源",
+};
+
+/** 是否系统数据源（应用主库 app）；系统条目不进入台账，走平台内置只读语义 */
+const isSystemSource = (item: DataSourceInfo | null | undefined): boolean => item?.type === "app";
+
+/** 是否 Calcite 合并数据源：由「合并」动作独占创建，不能直接新增/编辑/置顶 */
+const isCalciteSource = (item: DataSourceInfo | null | undefined): boolean =>
+  item?.type === "calcite";
+
 // 新增/编辑弹窗
 const dialogVisible = ref(false);
 const editing = ref<DataSourceInfo | null>(null);
 const form = ref<Partial<DataSourceInfo>>({});
 const saving = ref(false);
+
+/** 新增弹窗模式：自定义数据源 / 系统数据源（应用主库） */
+const createMode = ref<"custom" | "system">("custom");
+const CREATE_MODE_OPTIONS = [
+  { label: "自定义数据源", value: "custom" },
+  { label: "系统数据源", value: "system" },
+];
 
 /** JDBC 驱动 / 中间件客户端 jar 库（后端管理的目录，本页只上传与选用） */
 const driverJars = ref<JdbcDriverJar[]>([]);
@@ -616,6 +639,8 @@ const typeFilter = ref("");
 const activeTab = ref("overview");
 /** 当前选中的数据源 ID；未选中时详情回落到列表第一条 */
 const currentId = ref<number | null>(null);
+/** 是否选中系统数据源（应用主库）；与「未显式选择」回落第一条台账不同 */
+const systemSelected = ref(false);
 /** 概览趋势里的最新采样点，供趋势下方「其它信息」面板展示服务器指标 */
 const latestMetric = ref<DatasourceMetricPoint | null>(null);
 
@@ -652,6 +677,11 @@ const TYPE_META: Record<
   // 所以这里只需补类型标识与配色；未收录品牌图时用 mark 缩写徽标兜底（同 nacos/zookeeper）。
   clickhouse: { icon: "Coin", mark: "CH", color: "#ffcc01", label: "ClickHouse" },
   duckdb: { icon: "Coin", mark: "DU", color: "#f0c808", label: "DuckDB 文件库" },
+  // Calcite 合并数据源（跨库联合查询）：由「合并」动作独占创建，不进入新增表单的
+  // 类型面板（后端 DS_TYPES 也不含它）。这里只提供列表/详情的徽标与配色。
+  calcite: { icon: "Coin", mark: "CC", color: "var(--el-color-info)", label: "跨库合并" },
+  // 系统数据源：应用主库（app）不是台账类型，这里只为左栏/详情提供统一的图标与标签
+  app: { icon: "Coin", mark: "主", color: "var(--el-color-primary)", label: "应用主库" },
 };
 
 /** 类型有没有真实品牌 logo（无则用 mark 缩写徽标兜底） */
@@ -705,6 +735,9 @@ const versionLabel = (item: DataSourceInfo): string => {
 
 /** 数据源类型徽标：InfluxDB 额外显示 v2/v3，避免新增后分不清查询语法 */
 const sourceTypeChip = (item: DataSourceInfo): string => {
+  if (isSystemSource(item)) {
+    return "系统";
+  }
   const base = item.type.toUpperCase();
   const ver = item.type === "influxdb" ? influxVersionShort(item.version) : "";
   return ver ? `${base} · ${ver}` : base;
@@ -811,6 +844,8 @@ const load = async () => {
   loading.value = true;
   try {
     const [data, typeList] = await Promise.all([fetchDataSources(), fetchDataSourceTypes()]);
+    // 系统数据源（应用主库 app）不是台账行，不并入列表参与过滤/计数/批量，
+    // 由左栏模板在列表区上方固定渲染一条只读伪条目（见 SYSTEM_DATASOURCE）。
     list.value = data ?? [];
     types.value = typeList ?? ["jdbc", "redis", "influxdb", "neo4j", "nacos", "zookeeper", "kafka", "elasticsearch"];
     syncSelection(list.value);
@@ -824,6 +859,7 @@ const load = async () => {
 /** 打开新增弹窗 */
 const openCreate = () => {
   editing.value = null;
+  createMode.value = "custom";
   // controlMode/controlTarget 显式给空串而不是不写：
   // 不写的话字段在 form 里缺失，编辑弹窗里的选择器拿不到当前值
   form.value = {
@@ -850,6 +886,11 @@ const openCreate = () => {
 
 /** 打开编辑弹窗 */
 const openEdit = (item: DataSourceInfo) => {
+  // 系统数据源没有台账记录，配置由平台统一维护（右键/头部菜单已过滤，这里兜底）
+  if (isSystemSource(item)) {
+    message.info("应用主库为平台内置数据源，不支持编辑");
+    return;
+  }
   editing.value = item;
   form.value = { ...item };
   // 整串 URL 形态的数据源：把已有 query 参数回显成可编辑行
@@ -869,6 +910,11 @@ const openEdit = (item: DataSourceInfo) => {
 
 /** 保存 */
 const save = async () => {
+  // 系统数据源模式只说明影响查询、不落库；即使 footer 误触发也绝不提交台账
+  if (!editing.value && createMode.value === "system") {
+    message.info("系统数据源由平台内置，无需保存");
+    return;
+  }
   if (!form.value.name?.trim()) {
     message.warning("请输入数据源名称");
     return;
@@ -1010,6 +1056,18 @@ const batchRemove = async () => {
 
 /** 卡片「更多」命令分发（收敛次要操作：浏览表结构 / 编辑 / 删除） */
 const runCardCommand = (cmd: string, item: DataSourceInfo) => {
+  // 系统数据源只读：schema/edit/delete 对它一律不适用（右键菜单已只留管理项，
+  // 这里兜住「更多」下拉与头部命令分发两条旁路）
+  if (isSystemSource(item)) {
+    if (cmd === "schema") {
+      message.info("应用主库为平台内置只读数据源，不支持浏览表结构");
+    } else if (cmd === "edit") {
+      message.info("应用主库为平台内置数据源，不支持编辑");
+    } else if (cmd === "delete") {
+      message.info("应用主库为平台内置数据源，不支持删除");
+    }
+    return;
+  }
   if (cmd === "schema") {
     void openSchema(item);
     return;
@@ -1091,6 +1149,13 @@ const capabilityOf = (key: "users" | "processes" | "slowQueries", item: DataSour
 /** 右键菜单：按数据源类型 + SPI 能力动态生成 */
 const ctxMenuItems = computed(() => {
   const item = ctxMenu.item;
+  // 系统数据源（应用主库）：只读入口，编辑/删除/测试/置顶都不适用
+  if (item && isSystemSource(item)) {
+    return [
+      { key: "manage", label: "打开管理", icon: "View" },
+      { key: "manage-full", label: "打开管理（新标签）", icon: "View", divided: true },
+    ];
+  }
   const base: { key: string; label: string; icon: string; danger?: boolean; warning?: boolean; divided?: boolean }[] = [
     { key: "manage", label: "打开管理", icon: "View" },
     { key: "manage-full", label: "打开管理（新标签）", icon: "View", divided: true },
@@ -1241,7 +1306,8 @@ const onItemMenuSelect = (key: string) => {
     return;
   }
   if (key === "manage-full") {
-    const route = managerRouteFor(item.type);
+    // 系统数据源（应用主库）没有类型管理页，直接走数据库管理台 /db-manager
+    const route = isSystemSource(item) ? "/db-manager" : managerRouteFor(item.type);
     if (route) {
       openFullManager(item, route);
     } else {
@@ -1667,7 +1733,10 @@ function describeLatency(result: DataSourceTestResult): string {
  * 同时补一条 toast 说明原因。</p>
  */
 const openManager = (item: DataSourceInfo) => {
-  const route = managerRouteFor(item.type);
+  // 系统数据源（应用主库）走 /db-manager 且不传 datasourceId：
+  // DatabaseManagerView.resolveDatasourceId 无有效 id 时回落 0 = 容器主 DataSource。
+  const system = isSystemSource(item);
+  const route = system ? "/db-manager" : managerRouteFor(item.type);
   if (!route) {
     message.warning(`类型 ${item.type} 的管理页面开发中`);
     return;
@@ -1682,14 +1751,16 @@ const openManager = (item: DataSourceInfo) => {
   }
 
   /** 目标地址（失败恢复时整页刷新直接落到它） */
-  const target = `${route}?datasourceId=${encodeURIComponent(String(item.id))}`;
+  const target = system
+    ? route
+    : `${route}?datasourceId=${encodeURIComponent(String(item.id))}`;
 
   /**
    * 一次完整的「取包 → 跳转 → 等新页渲染」。
    */
   const go = async (): Promise<void> => {
     await preloadRouteComponent(router, route);
-    await router.push({ path: route, query: { datasourceId: item.id } });
+    await router.push({ path: route, query: system ? {} : { datasourceId: item.id } });
     // push 只保证「导航已确认」，此刻新页面还没渲染出来；
     // 立刻收遮罩会露出旧页面一帧，所以等一次渲染。
     await nextTick();
@@ -1767,7 +1838,10 @@ const openFullManager = (item: DataSourceInfo, baseRoute: string) => {
     );
     return;
   }
-  const href = router.resolve({ path: fullRoute, query: { datasourceId: item.id } }).href;
+  const href = router.resolve({
+    path: fullRoute,
+    query: isSystemSource(item) ? {} : { datasourceId: item.id },
+  }).href;
   window.open(href, "_blank", "noopener");
 };
 
@@ -1853,6 +1927,9 @@ const onTypeChange = (type: string) => {
 
 /** 当前选中的数据源；未显式选择或所选项已不存在时回落到第一条 */
 const current = computed<DataSourceInfo | null>(() => {
+  if (systemSelected.value) {
+    return SYSTEM_DATASOURCE;
+  }
   if (!list.value.length) {
     return null;
   }
@@ -1952,6 +2029,9 @@ const detailBadgeText = computed<string>(() => {
   if (!item) {
     return "—";
   }
+  if (isSystemSource(item)) {
+    return "系统内置";
+  }
   if (isAbnormal(item)) {
     return "异常";
   }
@@ -1963,6 +2043,9 @@ const detailBadgeClass = computed<string>(() => {
   const item = current.value;
   if (!item) {
     return "is-off";
+  }
+  if (isSystemSource(item)) {
+    return "is-on";
   }
   if (isAbnormal(item)) {
     return "is-warn";
@@ -2003,6 +2086,9 @@ const lastTestText = computed<string>(() => {
 
 /** 地址展示：host(:port)；缺省时回落占位符 */
 const formatAddress = (item: DataSourceInfo): string => {
+  if (isSystemSource(item)) {
+    return "平台内置 · 无需配置";
+  }
   // DuckDB 是单文件库：没有主机与端口，卡片上的「地址」就是磁盘路径。
   // 不特殊处理的话会渲染出一个孤零零的冒号（host 空 + port 空）。
   if (item.type === "duckdb") {
@@ -2066,9 +2152,13 @@ const connectionRows = computed(() => {
 
 /** 左栏选中数据源（按 id 定位，列表刷新后仍能保持选中） */
 const selectSource = (item: DataSourceInfo) => {
+  systemSelected.value = isSystemSource(item);
   currentId.value = item.id ?? null;
-  // 顺手预取 SPI 能力清单：右键菜单打开时通常已经拿到结果，不会先闪一下兜底项
-  void probeCapabilities(item);
+  // 系统数据源不走 SPI 能力探测（无台账 id，也不需要进程/慢查询入口）
+  if (!isSystemSource(item)) {
+    // 顺手预取 SPI 能力清单：右键菜单打开时通常已经拿到结果，不会先闪一下兜底项
+    void probeCapabilities(item);
+  }
 };
 
 /**
@@ -2340,6 +2430,30 @@ onMounted(load);
             </span>
           </div>
 
+          <!-- 系统数据源伪条目：应用主库（app）不是台账行，固定在列表区上方，
+               不参与筛选/计数/批量，点击进只读详情，右键只留「打开管理」。 -->
+          <div class="ds-item-row ds-item-row--system">
+            <button
+              type="button"
+              class="ds-item"
+              :class="{ 'is-active': current === SYSTEM_DATASOURCE }"
+              @click="selectSource(SYSTEM_DATASOURCE)"
+              @contextmenu.prevent="onItemContextMenu($event, SYSTEM_DATASOURCE)"
+            >
+              <span class="ds-item__icon" :style="{ '--tile': typeMeta('app').color }">
+                <b class="ds-mark">{{ typeMeta('app').mark }}</b>
+              </span>
+              <span class="ds-item__body">
+                <span class="ds-item__row">
+                  <b class="ds-item__name" :title="SYSTEM_DATASOURCE.name">{{ SYSTEM_DATASOURCE.name }}</b>
+                  <span class="ds-item__chip" :style="{ '--tile': typeMeta('app').color }">{{ sourceTypeChip(SYSTEM_DATASOURCE) }}</span>
+                </span>
+                <span class="ds-item__addr mono">{{ formatAddress(SYSTEM_DATASOURCE) }}</span>
+              </span>
+              <i class="ds-item__dot is-online" title="系统内置" aria-hidden="true" />
+            </button>
+          </div>
+
           <!-- 数据源卡片列表 -->
           <div class="ds-side__list">
             <p v-if="loading && !list.length" class="ds-side__hint">加载中…</p>
@@ -2481,8 +2595,10 @@ onMounted(load);
                 <!-- 页头动作一律方形图标钮（文字进 tooltip / aria-label）：
                      文字按钮会把标题行撑高，长名称一换行头卡就跟着跳。 -->
                 <ReButton icon="Plus" :show-text="false" layout="square" @click="openCreate">新增数据源</ReButton>
-                <template v-if="current">
+                <template v-if="current && !isSystemSource(current)">
                   <ReButton icon="Lightning" :show-text="false" layout="square" :loading="testing === current.id" @click="test(current)">测试连接</ReButton>
+                </template>
+                <template v-if="current">
                   <ReButton icon="View" :show-text="false" type="primary" layout="square" @click="openManager(current)">打开管理</ReButton>
                 </template>
                 <ElDropdown trigger="click" placement="bottom-end" @command="(cmd: string | number | object) => runHeadCommand(cmd as string)">
@@ -2496,7 +2612,7 @@ onMounted(load);
                 <template #dropdown>
                   <ElDropdownMenu>
                     <ElDropdownItem command="refresh"><ReIcon name="RefreshRight" />刷新列表</ElDropdownItem>
-                    <template v-if="current">
+                    <template v-if="current && !isSystemSource(current)">
                       <ElDropdownItem v-if="current.type === 'jdbc'" command="schema" divided><ReIcon name="Grid" />浏览表结构</ElDropdownItem>
                       <ElDropdownItem command="edit"><ReIcon name="EditPen" />编辑数据源</ElDropdownItem>
                       <ElDropdownItem command="delete" divided style="color: var(--el-color-danger)"><ReIcon name="Delete" />删除数据源</ElDropdownItem>
@@ -2508,7 +2624,48 @@ onMounted(load);
           </div>
         </div>
 
-        <template v-if="current">
+        <template v-if="current && isSystemSource(current)">
+          <!-- 系统数据源只读面板：应用主库没有台账 id，概览/监控/日志页签统统按 id 发请求，
+               系统条目没有 id，这里用只读信息面板替代整条页签条，不渲染任何页签。 -->
+          <div class="ds-system">
+            <section class="ds-panel ds-system__intro">
+              <h3 class="ds-panel__title">平台内置系统数据源</h3>
+              <p class="ds-panel__hint">
+                应用主库由平台启动时统一初始化、配置由部署侧维护，应用查询默认走它。
+                它是系统内置数据源：不支持在这里新增、编辑、删除或手动配置，
+                需要调整只能改部署配置后重启生效。
+              </p>
+              <dl class="ds-kv">
+                <div class="ds-kv__row">
+                  <dt class="ds-kv__label">数据源</dt>
+                  <dd class="ds-kv__value">{{ SYSTEM_DATASOURCE.name }}</dd>
+                </div>
+                <div class="ds-kv__row">
+                  <dt class="ds-kv__label">类型</dt>
+                  <dd class="ds-kv__value">{{ sourceTypeChip(SYSTEM_DATASOURCE) }}</dd>
+                </div>
+                <div class="ds-kv__row">
+                  <dt class="ds-kv__label">地址</dt>
+                  <dd class="ds-kv__value">{{ formatAddress(SYSTEM_DATASOURCE) }}</dd>
+                </div>
+                <div class="ds-kv__row">
+                  <dt class="ds-kv__label">数据源 ID</dt>
+                  <dd class="ds-kv__value mono">0（默认主数据源）</dd>
+                </div>
+                <div class="ds-kv__row">
+                  <dt class="ds-kv__label">状态</dt>
+                  <dd class="ds-kv__value">系统内置</dd>
+                </div>
+              </dl>
+            </section>
+            <div class="ds-system__actions">
+              <ReButton type="primary" icon="View" :show-text="true" @click="openManager(current)">打开管理</ReButton>
+              <ReButton icon="View" :show-text="true" @click="openFullManager(current, '/db-manager')">打开管理（新标签）</ReButton>
+            </div>
+          </div>
+        </template>
+
+        <template v-else-if="current">
           <!-- 页签：下划线式（UI 稿：页签条自带一条贯通的底线，激活项压主色下划线） -->
           <ReTab v-model="activeTab" variant="underline" :tabs="tabItems" stretch>
             <!-- 概览：统计卡 + （趋势 | 连接配置）双栏 -->
@@ -2745,6 +2902,21 @@ onMounted(load);
     <!-- 新增/编辑弹窗 -->
     <ReDialog v-model="dialogVisible" :title="editing ? '编辑数据源' : '新增数据源'" width="860px" class="ds-create-dialog">
       <div class="ds-create">
+        <!-- 顶部：数据源模式分栏（新增态可选「自定义 / 系统」；编辑态只面向自定义数据源，不显示） -->
+        <div v-if="!editing" class="ds-create__mode-row">
+          <el-segmented
+            v-model="createMode"
+            :options="CREATE_MODE_OPTIONS"
+            block
+            size="small"
+            class="ds-create__mode"
+            aria-label="数据源模式"
+          />
+        </div>
+
+        <template v-if="editing || createMode === 'custom'">
+        <!-- 主体：左右两栏（类型面板 | 连接表单） -->
+        <div class="ds-create__body">
         <!-- 左栏：数据源类型选择（搜索 + 类型列表） -->
         <aside class="ds-create__side">
           <div class="ds-create__search">
@@ -3026,10 +3198,32 @@ onMounted(load);
             </div>
           </ReForm>
         </section>
+        </div>
+        </template>
+
+        <!-- 系统数据源模式：平台内置只读说明。不落台账、不提供连接表单，
+             提示影响查询语义即可，footer 也只有「知道了」。 -->
+        <div v-else class="ds-create__system">
+          <el-alert
+            title="系统数据源由平台内置，无需配置"
+            type="info"
+            :closable="false"
+            show-icon
+          >
+            <p class="ds-create__system-text">
+              应用主库（app）由平台启动时统一初始化，配置来自部署侧，这里只是说明它：
+              应用查询默认走该系统数据源，切换/修改需调整部署配置后重启生效，
+              无法在数据源中心新增或编辑。
+            </p>
+          </el-alert>
+        </div>
       </div>
       <template #footer>
-        <ReButton class="ds-pill" @click="dialogVisible = false"><template #icon><ReIcon name="Close" :size="12" /></template>取消</ReButton>
-        <ReButton type="primary" class="ds-pill" :loading="saving" @click="save"><template #icon><ReIcon name="Check" :size="12" /></template>保存</ReButton>
+        <template v-if="editing || createMode === 'custom'">
+          <ReButton class="ds-pill" @click="dialogVisible = false"><template #icon><ReIcon name="Close" :size="12" /></template>取消</ReButton>
+          <ReButton type="primary" class="ds-pill" :loading="saving" @click="save"><template #icon><ReIcon name="Check" :size="12" /></template>保存</ReButton>
+        </template>
+        <ReButton v-else class="ds-pill" type="primary" @click="dialogVisible = false">知道了</ReButton>
       </template>
     </ReDialog>
 
@@ -3406,6 +3600,13 @@ onMounted(load);
   align-items: stretch;
   gap: 2px;
   min-width: 0;
+}
+/* 系统数据源伪条目：与列表区之间留出呼吸间距，区别于可增删的台账行 */
+.ds-item-row--system {
+  flex: 0 0 auto;
+  margin: 2px 0 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--border-subtle, #eef0f6);
 }
 .ds-item-row__check {
   align-self: center;
@@ -3979,6 +4180,34 @@ onMounted(load);
   padding: 48px 0;
 }
 
+/* 系统数据源只读面板：没有台账 id，用静态信息替代所有依赖 id 的页签 */
+.ds-system {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  padding: 16px 20px 20px;
+}
+.ds-system__intro {
+  flex: 0 0 auto;
+}
+.ds-system__intro .ds-panel__hint {
+  margin-bottom: 4px;
+}
+.ds-system__actions {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.ds-system__actions :deep(.rs-btn) {
+  width: auto;
+  margin-left: 0;
+}
+
 /* ---------------- SSH 隧道表单 ---------------- */
 /* .ds-form 本身是两列栅格：分组容器、子标题、操作条都必须跨满整行，
    否则只会占掉第一格，把下面的字段挤到第二列去 */
@@ -4045,9 +4274,47 @@ onMounted(load);
 
 .ds-create {
   display: flex;
-  align-items: stretch;
+  flex-direction: column;
   height: min(540px, calc(92vh - 150px));
   min-height: 420px;
+}
+/* 顶部模式分栏：不占两栏滚动高度，切换后只换主体 */
+.ds-create__mode-row {
+  flex: 0 0 auto;
+  padding: 12px 16px 0;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.ds-create__mode {
+  max-width: 380px;
+}
+/* 主体：类型面板 | 连接表单，吃满剩余高度让两栏各自滚动 */
+.ds-create__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+}
+
+/* 系统数据源模式：只读说明区，不再展示连接表单 */
+.ds-create__system {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 20px 24px;
+  background: var(--el-fill-color-light, #f5f7fa);
+}
+.ds-create__system .el-alert {
+  width: 100%;
+  max-width: 620px;
+}
+.ds-create__system-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--el-text-color-regular);
 }
 
 /* 左栏：类型选择 */
@@ -4210,6 +4477,7 @@ onMounted(load);
 /* 窄屏：左右两栏改为上下堆叠，类型面板限高避免占满整屏 */
 @media (max-width: 720px) {
   .ds-create { flex-direction: column; height: auto; min-height: 0; }
+  .ds-create__body { flex-direction: column; }
   .ds-create__side {
     flex: 0 0 auto;
     border-right: none;
@@ -4217,6 +4485,7 @@ onMounted(load);
   }
   .ds-create__types { max-height: 180px; }
   .ds-create__main { overflow: visible; }
+  .ds-create__system { padding: 16px; }
 }
 
 /* ---------------- 弹窗表单 ---------------- */

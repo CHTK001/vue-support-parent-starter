@@ -21,8 +21,12 @@ const tabsStore = defineStore("tabs", {
   actions: {
     async addTab(tab: any) {
       const keepAliveStore = useKeepAliveStore();
-      if (tab.isKeepAlive == "1" && tab.name && !keepAliveStore.keepAliveName.includes(tab.name)) {
-        keepAliveStore.addKeepAliveName(tab.name);
+      // 修复：meta.isKeepAlive 可能是 boolean/string/undefined（元数据里既写 true 也写 "1"），
+      // 用 `== "1"` 判断无法匹配 true，导致菜单点击时 keepAliveName 漏加，页面无法缓存
+      // 登记按键：已解析的 SFC 组件名（keepAliveName），解不出时退回路由名（旧口径）
+      const keepAliveName = tab.keepAliveName ?? tab.name;
+      if (tab.isKeepAlive && keepAliveName && !keepAliveStore.keepAliveName.includes(keepAliveName)) {
+        keepAliveStore.addKeepAliveName(keepAliveName);
       }
       const isTab = this.tabList.some((item: any) => item.path === tab.path);
       if (isTab) return;
@@ -36,7 +40,7 @@ const tabsStore = defineStore("tabs", {
       const keepAliveStore = useKeepAliveStore();
       const tabItem = this.tabList.find((item) => item.path === tabPath);
       if (tabItem?.isKeepAlive) {
-        keepAliveStore.removeKeepAliveName(tabItem.name);
+        keepAliveStore.removeKeepAliveName(tabItem.keepAliveName ?? tabItem.name);
       }
       const oldTabList = [...this.tabList];
       this.tabList = this.tabList.filter((item) => item.path !== tabPath);
@@ -82,7 +86,7 @@ const tabsStore = defineStore("tabs", {
         }
       }
       const keepAliveList = this.tabList.filter((item) => item.isKeepAlive);
-      keepAliveStore.setKeepAliveName(keepAliveList.map((item) => item.name));
+      keepAliveStore.setKeepAliveName(keepAliveList.map((item) => item.keepAliveName ?? item.name));
     },
     async closeManyTabs(tabValue?: string) {
       const keepAliveStore = useKeepAliveStore();
@@ -90,7 +94,7 @@ const tabsStore = defineStore("tabs", {
         return item.path === tabValue || item.isAffix === "1";
       });
       const keepAliveList = this.tabList.filter((item) => item.isKeepAlive);
-      keepAliveStore.setKeepAliveName(keepAliveList.map((item) => item.name));
+      keepAliveStore.setKeepAliveName(keepAliveList.map((item) => item.keepAliveName ?? item.name));
     },
     async replaceIsAffix(tabPath?: string, isAffix?: string) {
       this.tabList.forEach((item) => {

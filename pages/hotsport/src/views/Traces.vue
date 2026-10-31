@@ -30,7 +30,7 @@
       首层是真实 HTTP 请求；本进程暂未产生 class.method 级记录，因此暂无子层节点。
     </div>
 
-    <!-- 筛选栏：查询条件与动作分离，窄屏自然换行 -->
+    <!-- 筛选栏：Trace ID 常驻，其余条件默认折叠（命中 traceId 或应用收藏时自动展开） -->
     <div class="filter-bar">
       <div class="filter-field trace-search-field">
         <label class="filter-label" for="tr-trace">Trace ID</label>
@@ -43,59 +43,72 @@
         />
       </div>
 
-      <div class="filter-field">
-        <label class="filter-label" for="tr-source">源端</label>
-        <el-input id="tr-source" v-model="filters.source" placeholder="如 127.0.0.1" clearable />
-      </div>
+      <!-- 高级筛选：默认收起，首屏只留 Trace ID -->
+      <div v-show="advancedOpen" class="filter-advanced">
+        <div class="filter-field">
+          <label class="filter-label" for="tr-source">源端</label>
+          <el-input id="tr-source" v-model="filters.source" placeholder="如 127.0.0.1" clearable />
+        </div>
 
-      <div class="filter-field">
-        <label class="filter-label" for="tr-protocol">协议</label>
-        <el-input id="tr-protocol" v-model="filters.protocol" placeholder="HTTP / AGENT" clearable />
-      </div>
+        <div class="filter-field">
+          <label class="filter-label" for="tr-protocol">协议</label>
+          <el-input id="tr-protocol" v-model="filters.protocol" placeholder="HTTP / AGENT" clearable />
+        </div>
 
-      <div class="filter-field">
-        <label class="filter-label" for="tr-op">操作</label>
-        <el-input id="tr-op" v-model="filters.operation" placeholder="如 /api/apm/stats" clearable />
-      </div>
+        <div class="filter-field">
+          <label class="filter-label" for="tr-op">操作</label>
+          <el-input id="tr-op" v-model="filters.operation" placeholder="如 /api/apm/stats" clearable />
+        </div>
 
-      <div class="filter-field">
-        <label class="filter-label">耗时区间 (ms)</label>
-        <div class="range-pair">
-          <el-input-number
-            v-model="filters.durationMin"
-            :min="0"
-            :controls="false"
-            placeholder="最小"
-            class="range-input"
+        <div class="filter-field">
+          <label class="filter-label">耗时区间 (ms)</label>
+          <div class="range-pair">
+            <el-input-number
+              v-model="filters.durationMin"
+              :min="0"
+              :controls="false"
+              placeholder="最小"
+              class="range-input"
+            />
+            <span class="range-sep">~</span>
+            <el-input-number
+              v-model="filters.durationMax"
+              :min="0"
+              :controls="false"
+              placeholder="最大"
+              class="range-input"
+            />
+          </div>
+        </div>
+
+        <div class="filter-field time-field">
+          <label class="filter-label">时间范围</label>
+          <el-date-picker
+            v-model="filters.range"
+            type="datetimerange"
+            range-separator="~"
+            start-placeholder="开始"
+            end-placeholder="结束"
           />
-          <span class="range-sep">~</span>
-          <el-input-number
-            v-model="filters.durationMax"
-            :min="0"
-            :controls="false"
-            placeholder="最大"
-            class="range-input"
-          />
+        </div>
+
+        <div class="filter-field check-field">
+          <label class="filter-label">状态</label>
+          <el-checkbox v-model="filters.errorOnly">仅看错误</el-checkbox>
         </div>
       </div>
 
-      <div class="filter-field time-field">
-        <label class="filter-label">时间范围</label>
-        <el-date-picker
-          v-model="filters.range"
-          type="datetimerange"
-          range-separator="~"
-          start-placeholder="开始"
-          end-placeholder="结束"
-        />
-      </div>
-
-      <div class="filter-field check-field">
-        <label class="filter-label">状态</label>
-        <el-checkbox v-model="filters.errorOnly">仅看错误</el-checkbox>
-      </div>
-
       <div class="filter-actions">
+        <el-button
+          text
+          size="small"
+          :class="{ 'has-active-filter': activeFilterCount > 0 }"
+          @click="advancedOpen = !advancedOpen"
+        >
+          {{ advancedOpen ? "收起筛选" : "高级筛选" }}
+          <span v-if="activeFilterCount > 0" class="filter-count-badge">{{ activeFilterCount }}</span>
+          <el-icon class="filter-toggle-icon" :class="{ open: advancedOpen }"><ArrowDown /></el-icon>
+        </el-button>
         <el-dropdown v-if="savedFilterNames.length" trigger="click" @command="applySavedFilter">
           <el-button text size="small" type="primary">
             收藏筛选 <el-icon><ArrowDown /></el-icon>
@@ -256,7 +269,7 @@
 
 <script setup lang="ts">
 import { message } from "@repo/core";
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { ROUTE_PREFIX } from "../config";
 
@@ -287,6 +300,8 @@ const traceSearch = ref("");
 /** 展开状态：el-table 的 default-expand-all 只在挂载时生效，切换时靠 key 重建 */
 const expandAll = ref(false);
 const treeKey = ref(0);
+/** 高级筛选默认收起；命中 traceId 或应用收藏时展开 */
+const advancedOpen = ref(false);
 
 const filters = reactive({
   source: "",
@@ -351,6 +366,35 @@ const filteredRoots = computed<TraceTreeItem[]>(() => {
 });
 
 const total = computed(() => filteredRoots.value.length);
+
+/** 已生效的高级筛选条件数：>0 时在“高级筛选”按钮上显示徽标 */
+const activeFilterCount = computed(() => {
+  let n = 0;
+  if (filters.source.trim()) n += 1;
+  if (filters.protocol.trim()) n += 1;
+  if (filters.operation.trim()) n += 1;
+  if (filters.errorOnly) n += 1;
+  if (filters.durationMin != null) n += 1;
+  if (filters.durationMax != null) n += 1;
+  if (filters.range && filters.range.length === 2) n += 1;
+  return n;
+});
+
+/** 高级条件变化时回到第一页，避免筛选后停留在空页 */
+watch(
+  () => [
+    filters.source,
+    filters.protocol,
+    filters.operation,
+    filters.errorOnly,
+    filters.durationMin,
+    filters.durationMax,
+    filters.range,
+  ],
+  () => {
+    page.value = 1;
+  },
+);
 
 const pagedRoots = computed<TraceTreeItem[]>(() => {
   const start = (page.value - 1) * size.value;
@@ -484,6 +528,7 @@ function applySavedFilter(name: string) {
     filters.operation = saved.operation ?? "";
     filters.errorOnly = saved.errorOnly ?? false;
     page.value = 1;
+    advancedOpen.value = true;
   } catch {
     /* 忽略 */
   }
@@ -582,6 +627,7 @@ onMounted(() => {
   if (qTrace) {
     filters.traceId = qTrace;
     traceSearch.value = qTrace;
+    advancedOpen.value = true;
   }
   load();
 });
@@ -630,6 +676,41 @@ onMounted(() => {
 }
 .range-sep {
   color: var(--text-tertiary, var(--apm-muted));
+}
+
+/* 高级筛选容器：展开后参与 filter-bar 的 flex 换行，不额外占一列 */
+.filter-advanced {
+  display: contents;
+}
+
+.filter-toggle-icon {
+  transition: transform var(--transition-base, var(--apm-t-fast));
+}
+
+.filter-toggle-icon.open {
+  transform: rotate(180deg);
+}
+
+/* 高级筛选激活态：有生效条件时按钮高亮 + 条件数徽标 */
+.filter-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  margin-left: 4px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--brand-500, var(--apm-accent));
+  color: #fff;
+  font-size: 10px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.has-active-filter {
+  color: var(--brand-500, var(--apm-accent));
+  font-weight: 600;
 }
 
 /* ---- 调用树单元格 ---- */

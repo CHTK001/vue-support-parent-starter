@@ -85,6 +85,10 @@ const finalConfig = computed(() => {
   };
 });
 
+// 最终尺寸（带 px 单位，供样式中的 v-bind 使用）
+const finalConfigWidth = computed(() => `${finalConfig.value.width}px`);
+const finalConfigHeight = computed(() => `${finalConfig.value.height}px`);
+
 // 计算位置样式类
 const positionClass = computed(() => `position-${finalConfig.value.position}`);
 
@@ -290,8 +294,8 @@ defineExpose({
 }
 
 .overview-content {
-  width: v-bind('finalConfig.width + "px"');
-  height: v-bind('finalConfig.height + "px"');
+  width: v-bind(finalConfigWidth);
+  height: v-bind(finalConfigHeight);
 }
 
 .overview-container {

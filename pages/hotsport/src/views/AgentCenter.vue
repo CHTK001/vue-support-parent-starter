@@ -147,7 +147,9 @@
           </div>
           <div class="health-line">
             <span class="health-key">错误率</span>
-            <b class="health-value mono">{{ health.errorRate.toFixed(2) }}%</b>
+            <b class="health-value mono" :class="'rate-' + errorRateClass(health.errorRate)">
+              <i class="rate-dot" aria-hidden="true"></i>{{ health.errorRate.toFixed(2) }}%
+            </b>
           </div>
           <div class="health-line">
             <span class="health-key">活跃泄漏</span>
@@ -386,7 +388,16 @@
           <div class="sw-head muted">SkyWalking 兼容 Segment（{{ skywalkingSegments.length }}）</div>
           <div class="sw-list">
             <div v-for="seg in skywalkingSegments.slice(0, 6)" :key="seg.traceId" class="sw-row">
-              <span class="sw-trace mono">{{ shortText(seg.traceId, 18) }}</span>
+              <button
+                v-if="seg.traceId"
+                type="button"
+                class="trace-link sw-trace"
+                :title="`查看链路 ${seg.traceId}`"
+                @click.stop="openWaterfall(seg.traceId)"
+              >
+                <code class="mono">{{ shortText(seg.traceId, 18) }}</code>
+              </button>
+              <span v-else class="sw-trace mono muted">—</span>
               <span class="sw-count mono">{{ seg.spanCount }} spans</span>
               <ReTag v-if="seg.spans.some((s) => s.isError)" size="small" type="danger" round>异常</ReTag>
               <ReTag v-else size="small" type="success" round>正常</ReTag>
@@ -420,6 +431,8 @@ import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import type { ReOption } from "@repo/ui/re-select";
 import { message } from "@repo/core";
+import { useRouter } from "vue-router";
+import { ROUTE_PREFIX } from "../config";
 import { useApmStore } from "../stores/apmStore";
 import {
   updateAgentConfig,
@@ -450,6 +463,7 @@ import { useRealtimeStatus, useRealtimeEvent } from "../composables/useRealtime"
 
 const store = useApmStore();
 const rt = useRealtimeStatus();
+const router = useRouter();
 
 /** 从 store 暴露给模板的响应式状态 */
 const agentConfig = computed(() => store.agentConfig);
@@ -699,6 +713,18 @@ function hotspotWidth(h: TraceHotspot): number {
   return Math.max(4, Math.round((h.totalMs / maxTotal) * 100));
 }
 
+/** 跳转链路瀑布图（与全站 /traces/detail 路由跳转约定一致） */
+function openWaterfall(traceId: string): void {
+  router.push({ path: ROUTE_PREFIX + "/traces/detail", query: { traceId } });
+}
+
+/** 错误率三档着色（与全站 Topology/Endpoints 阈值一致：>5% 红，1~5% 黄） */
+function errorRateClass(v: number): string {
+  if (v > 5) return "err";
+  if (v > 1) return "warn";
+  return "ok";
+}
+
 async function loadAgentConfig() {
   const cfg = await store.loadAgentConfig();
   if (cfg) {
@@ -843,6 +869,25 @@ useRealtimeEvent("stats", (ev) => {
 .health-value {
   color: var(--text-primary, var(--apm-fg));
   font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 健康错误率状态点：绿/黄/红三档（与全站 Topology/Endpoints 阈值一致） */
+.health-value .rate-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--status-success, var(--apm-success));
+}
+
+.health-value.rate-warn .rate-dot {
+  background: var(--status-warning, var(--apm-warning));
+}
+
+.health-value.rate-err .rate-dot {
+  background: var(--status-error, var(--apm-danger));
 }
 
 .channel-status {
@@ -1217,6 +1262,34 @@ useRealtimeEvent("stats", (ev) => {
 .sw-trace {
   min-width: 120px;
   color: var(--text-primary, var(--apm-fg));
+}
+
+/* Trace ID 可点击跳链路：视觉与 Logs/Errors 页同款交互 */
+.trace-link {
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--brand-500, var(--apm-accent));
+  transition: color var(--transition-base, var(--apm-t-fast));
+}
+
+.trace-link:hover {
+  color: var(--brand-600, var(--apm-accent-hover));
+}
+
+.trace-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--brand-500, var(--apm-accent-subtle));
+  border-radius: var(--radius-sm, var(--apm-radius-sm));
+}
+
+.trace-link code {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
 .sw-count {
