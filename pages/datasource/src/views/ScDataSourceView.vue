@@ -2638,26 +2638,21 @@ onMounted(load);
                   'is-checked': batchMode && (item.id ?? -1) !== -1 && selectionIds.has(item.id ?? -1),
                 }"
               >
+                <!-- 批量勾选框：视觉落在卡片内部左上角，DOM 保持在按钮外，避免 button 内嵌 input -->
+                <ElCheckbox
+                  v-if="batchMode"
+                  class="ds-item-row__check"
+                  :model-value="(item.id ?? -1) !== -1 && selectionIds.has(item.id ?? -1)"
+                  :aria-label="`勾选 ${item.name}`"
+                  @change="toggleSelection(item.id)"
+                />
                 <button
                   type="button"
                   class="ds-item"
-                  :class="{
-                    'is-active': current === item,
-                    'is-batch': batchMode,
-                    'is-checked': batchMode && (item.id ?? -1) !== -1 && selectionIds.has(item.id ?? -1),
-                  }"
+                  :class="{ 'is-active': current === item, 'is-batch': batchMode }"
                   @click="selectSource(item)"
                   @contextmenu.prevent="onItemContextMenu($event, item)"
                 >
-                  <!-- 批量勾选框：放进卡片内部（第一项），批量模式下才出现 -->
-                  <ElCheckbox
-                    v-if="batchMode"
-                    class="ds-item__check"
-                    :model-value="(item.id ?? -1) !== -1 && selectionIds.has(item.id ?? -1)"
-                    :aria-label="`勾选 ${item.name}`"
-                    @click.stop
-                    @change="toggleSelection(item.id)"
-                  />
                   <span class="ds-item__icon" :style="{ '--tile': typeMeta(item.type).color }">
                     <svg
                       v-if="typeBrand(item.type)" viewBox="0 0 24 24" fill="currentColor" class="ds-brand"
@@ -3822,9 +3817,10 @@ onMounted(load);
 }
 
 /* 数据源卡片：图标块 + 名称/徽标 + 地址 + 右侧状态点。
-   多选模式：勾选框与卡片按钮并排，卡片按钮吃满行内剩余宽度，
-   行背景交给右侧按钮的 hover/active（参考设备管理批量交互）。 */
+   批量模式：勾选框绝对定位在卡片内部左上角（视觉在卡片里，DOM 在按钮外），
+   卡片按钮批量模式左移出勾选框的空间，避免文字压住勾选框。 */
 .ds-item-row {
+  position: relative;
   display: flex;
   align-items: stretch;
   gap: 2px;
@@ -3837,14 +3833,22 @@ onMounted(load);
   padding-bottom: 6px;
   border-bottom: 1px dashed var(--border-subtle, #eef0f6);
 }
+/* 批量勾选框：视觉落在卡片内部（左上角），用绝对定位脱离 flex 流；
+   行容器是相对定位锚点。不参与卡片点击（点击卡片仍是选中详情）。 */
 .ds-item-row__check {
-  align-self: center;
-  flex: none;
-  margin-left: 4px;
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 4px;
+  transform: translateY(-50%);
 }
 .ds-item-row .ds-item {
   flex: 1 1 auto;
   min-width: 0;
+}
+/* 批量模式：卡片左移出勾选框空间，勾选框不被图标/文字遮挡 */
+.ds-item-row.is-batch .ds-item {
+  padding-left: 34px;
 }
 .ds-item-row.is-checked .ds-item {
   background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
