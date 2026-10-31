@@ -874,7 +874,8 @@ const loadGradeLevels = async () => {
 const loadSubjects = async () => {
   subjectLoading.value = true;
   try {
-    const res = await eduaiApi.listSubjects();
+    // 管理列表拉全量（含停用），停用学科也要能看见并重新启用
+    const res = await eduaiApi.listSubjects(undefined, true);
     subjects.value = Array.isArray(res) ? res : [];
   } catch {
     message.error("加载学科失败");

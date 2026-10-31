@@ -209,7 +209,7 @@ const pageSize = ref(10)
 
 /** 选中的打印机名（selector 模式，可被宿主的 printer 回写） */
 const selectedName = ref(props.printer)
-watch(() => props.printer, (v: string) => {
+watch(() => props.printer, (v: string | undefined) => {
   selectedName.value = v
 })
 
@@ -223,14 +223,14 @@ const columns: ReTableColumn[] = [
 
 // ==================== 加载 ====================
 /** 打印机 loader：后端分页，分页size由 ReTable 注入 */
-async function loadPrinters({ page: p, pageSize: ps }: ReTableLoadParams): Promise<RePageResult<PrinterConfig>> {
+async function loadPrinters({ page: p, pageSize: ps }: ReTableLoadParams): Promise<RePageResult> {
   loading.value = true
   try {
     const list = (await templateApi.printerList()) ?? []
     const total = list.length
     const start = (p - 1) * ps
     const data = list.slice(start, start + ps)
-    return { total, data }
+    return { total, data: data as unknown as Record<string, unknown>[] }
   } catch (err) {
     ElMessage.error(String(err))
     return { total: 0, data: [] }
@@ -383,6 +383,12 @@ async function onPrint(): Promise<void> {
   }
   emit('print', name)
 }
+
+/** 重载表格（暴露给父级调用） */
+function reload(): Promise<void> {
+  return tableRef.value?.reload?.() ?? Promise.resolve()
+}
+
 defineExpose({ reload })
 </script>
 

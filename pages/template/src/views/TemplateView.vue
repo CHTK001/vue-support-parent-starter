@@ -723,8 +723,8 @@ function addDesignTab(row: TemplateInfo): void {
 }
 
 /** 切换回模板详情（设计器页签返回时的目标） */
-function switchToSheet(tabName: string): void {
-  const id = tplIdOf(tabName)
+function switchToSheet(): void {
+  const id = tplIdOf(activeTab.value)
   const row = rows.value.find(r => r.id === id) || tabRows[id] || ({} as TemplateInfo)
   addSheetTab(row)
   activeTab.value = id

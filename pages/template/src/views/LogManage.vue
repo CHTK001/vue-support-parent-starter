@@ -54,7 +54,6 @@ import ReTable from '@repo/ui/re-table'
 import ReTime from '@repo/ui/re-time'
 import ReIcon from '@repo/ui/re-icon'
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from '@repo/ui/re-table'
-import type { LogRecord } from '../types/template'
 
 import { templateApi } from '../api/templateApi'
 import { actionLabel, tplActionLabels } from '../utils/i18n'
@@ -86,20 +85,20 @@ const actionTypeMeta = (action: string | undefined) => {
 }
 
 /** 加载日志 */
-async function loadLogs({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult<LogRecord>> {
+async function loadLogs({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
   try {
     const res = await templateApi.logs({
       page,
       size: pageSize,
-      action: (params.action as string) || undefined,
+      action: (params.action as 'preview' | 'design' | 'print') || undefined,
       ip: (params.ip as string) || undefined,
       templateName: (params.templateName as string) || undefined,
       templateId: (params.templateId as string) || undefined
     })
-    return { total: Number(res?.total ?? 0), data: (res?.records ?? []) as LogRecord[] }
+    return { total: Number(res?.total ?? 0), records: (res?.records ?? []) as unknown as Record<string, unknown>[] }
   } catch (err) {
     ElMessage.error(String(err))
-    return { total: 0, data: [] }
+    return { total: 0, records: [] }
   }
 }
 

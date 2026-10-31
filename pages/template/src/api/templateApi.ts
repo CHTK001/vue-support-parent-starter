@@ -11,6 +11,7 @@
  */
 
 import { createModuleHttp } from "@repo/core"
+import type { RequestBody } from '@repo/utils'
 import type { TemplateInfo, TemplatePageQuery, PageResult, TemplateDesignerPayload, PrinterConfig, LogRecord, TemplateLogQuery } from '../types/template'
 
 /** 模板模块 Http 客户端（懒创建）。 */
@@ -100,7 +101,8 @@ export const templateApi = {
   print: (id: string, params: Record<string, any>) =>
     http.post(`/${id}/print`).data(params).then(unwrap) as Promise<boolean>,
   /** 记录调用日志（预览 / 设计 / 打印） */
-  log: (record: LogRecord) => http.post("/logs").data(record).then(unwrap) as Promise<boolean>
+  log: (record: LogRecord) =>
+    http.post("/logs").data(record as unknown as RequestBody).then(unwrap) as Promise<boolean>
 }
 
 export default templateApi

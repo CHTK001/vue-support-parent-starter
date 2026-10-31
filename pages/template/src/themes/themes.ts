@@ -268,7 +268,7 @@ export function applyTheme(content: string | ThemeContent, theme: Theme): string
 
   // ---- 水平线 / 垂直线 ----
   for (const key of ['printHorizontalRule', 'printVerticalRule'] as const) {
-    const rule: Record<string, any> = json[key]
+    const rule: Record<string, any> | undefined = json[key]
     if (!rule) continue
     const style = rule.style ?? rule
     if (style.color) style.color = theme.palette.border

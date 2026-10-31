@@ -865,10 +865,10 @@ export const eduaiApi = {
       .then<boolean>(unwrap),
 
   // 维度数据（学科 / 学段 / 年级）
-  listSubjects: (gradeLevel?: string) =>
+  listSubjects: (gradeLevel?: string, includeDisabled?: boolean) =>
     http()
       .get("/v2/edu/dimension/subjects")
-      .query({ gradeLevel })
+      .query({ gradeLevel, includeDisabled: includeDisabled || undefined })
       .then<EduSubject[]>(unwrap),
   saveSubject: (data: Partial<EduSubject>) =>
     http()

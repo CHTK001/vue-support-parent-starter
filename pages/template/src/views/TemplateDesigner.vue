@@ -130,7 +130,7 @@ import type { Theme } from '../themes/themes'
 import { THEMES, applyTheme } from '../themes/themes'
 
 /** 工作区页签模式：宿主传入的模板 ID（独立路由页时不传） */
-defineProps<{
+const props = defineProps<{
   templateId?: string
 }>()
 
