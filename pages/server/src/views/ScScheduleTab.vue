@@ -2,9 +2,10 @@
 /**
  * 主机调度信息页（右键菜单：规则展示 / 增 / 改 / 查）
  *
- * <p>按主机维度管理计划任务：规则名、执行表达式（cron）、目标平台（win / linux / mac，
- * 空 = 全部）、平台命令、备注。增删改走后端 SPI（{@code /ms/server/host/{id}/schedule}），
- * 各平台的命令执行器由后端按 platform 字段展开。</p>
+ * <p>按主机维度展示计划任务：规则名、cron 表达式、执行命令、备注、启停状态。
+ * 后端没有独立的调度表，规则实际存放在批量计划任务 {@code ms_exec_job} 中
+ * （见 {@code api/index.ts} 的映射），因此这里的增删改会同步反映到
+ * 「运维台 / 批量作业」，同一任务命中多台主机时删除只会摘掉当前主机。</p>
  *
  * @author CH
  * @since 4.0.0.44
@@ -20,6 +21,7 @@ import {
   saveSchedule,
   updateSchedule,
   delSchedule,
+  toggleSchedule,
   type ScheduleDraft,
   type ScheduleItem,
   type SchedulePayload,
@@ -40,16 +42,10 @@ const rows = ref<ScheduleItem[]>([]);
 const loading = ref(false);
 const keyword = ref("");
 
-/** 平台选项（all = 空平台，全部主机） */
-const platformOptions = ["win", "linux", "mac", "all"] as const;
-
 /** 主机的调度列表（hostId 变空时停止拉取） */
 const hostId4 = computed(() => props.hostId);
 
-/** 平台展示 */
-function platformLabel(p?: string): string {
-  return p === "win" ? "Windows" : p === "linux" ? "Linux" : p === "mac" ? "macOS" : "全部";
-}
+/** 关键字过滤：规则名 / 命令 / 备注 */
 const filtered = computed(() => {
   const k = keyword.value.trim().toLowerCase();
   if (!k) return rows.value;
@@ -61,29 +57,28 @@ const filtered = computed(() => {
   );
 });
 
-/** 行变表单 */
-function toPayload(): SchedulePayload {
-  return {
-    msScheduleName: draft.value?.name ?? "",
-    expression: draft.value?.expression ?? "",
-    platform: draft.value?.platform,
-    command: draft.value?.command ?? "",
-    remark: draft.value?.remark ?? "",
-  };
-}
-
 onMounted(load);
 
 async function load(): Promise<void> {
   if (!hostId4.value) return;
   loading.value = true;
   try {
-    rows.value = await listSchedules(hostId4.value, {});
+    rows.value = await listSchedules(hostId4.value);
   } catch (e) {
     message.error((e as Error).message);
   } finally {
     loading.value = false;
   }
+}
+
+/** 行变表单 */
+function toPayload(): SchedulePayload {
+  return {
+    msScheduleName: draft.value?.name ?? "",
+    expression: draft.value?.expression ?? "",
+    command: draft.value?.command ?? "",
+    remark: draft.value?.remark ?? "",
+  };
 }
 
 /** 新增/编辑回调：根据主键是否存在判断 */
@@ -110,9 +105,21 @@ async function save(payload: SchedulePayload): Promise<void> {
 /** 删除前确认 */
 async function remove(item: ScheduleItem): Promise<void> {
   try {
-    await message.confirm(`确认删除调度「${item.msScheduleName}」？`);
+    await message.confirm(`确认从当前主机移除调度「${item.msScheduleName}」？`);
     await delSchedule(props.hostId, item.id);
-    message.success("已删除");
+    message.success("已移除");
+    await load();
+  } catch (e) {
+    message.error((e as Error).message);
+  }
+}
+
+/** 启停：直接复用计划任务的开关键 */
+async function toggle(item: ScheduleItem): Promise<void> {
+  const next = item.status === 0;
+  try {
+    await toggleSchedule(props.hostId, item.id, next);
+    message.success(next ? "已启用" : "已停用");
     await load();
   } catch (e) {
     message.error((e as Error).message);
@@ -132,7 +139,6 @@ function openDraft(item?: ScheduleItem): void {
         msScheduleName: item.msScheduleName,
         name: item.msScheduleName,
         expression: item.expression,
-        platform: item.platform ?? "linux",
         command: item.command ?? "",
         remark: item.remark ?? "",
         status: item.status,
@@ -143,7 +149,6 @@ function openDraft(item?: ScheduleItem): void {
         msScheduleName: "",
         name: "",
         expression: "",
-        platform: "linux",
         command: "",
         remark: "",
       };
@@ -165,26 +170,34 @@ function openDraft(item?: ScheduleItem): void {
       <div class="sched__row sched__row--head">
         <div class="sched__cell sched__cell--1">规则名</div>
         <div class="sched__cell sched__cell--2">表达式</div>
-        <div class="sched__cell sched__cell--3">平台</div>
-        <div class="sched__cell sched__cell--4">命令</div>
-        <div class="sched__cell sched__cell--5">备注</div>
+        <div class="sched__cell sched__cell--3">命令</div>
+        <div class="sched__cell sched__cell--4">备注</div>
+        <div class="sched__cell sched__cell--5">状态</div>
         <div class="sched__cell sched__cell--6">操作</div>
       </div>
       <div v-if="loading" class="sched__empty">加载中…</div>
-      <div v-else-if="!rows.length" class="sched__empty">暂无调度规则</div>
-      <div v-for="r in rows" :key="r.id" class="sched__row">
-        <div class="sched__cell sched__cell--1">{{ r.msScheduleName }}</div>
-        <div class="sched__cell sched__cell--2 mono">{{ r.expression }}</div>
-        <div class="sched__cell sched__cell--3">
-          <span class="lb-pill sched__pill" :class="`sched__pill--${r.platform ?? 'all'}`">
-            {{ platformLabel(r.platform) }}
-          </span>
+      <div v-else-if="!filtered.length" class="sched__empty">
+        {{ rows.length ? "没有匹配的调度规则" : "暂无调度规则" }}
+      </div>
+      <div v-for="r in filtered" :key="r.id" class="sched__row">
+        <div class="sched__cell sched__cell--1" :title="r.msScheduleName">{{ r.msScheduleName }}</div>
+        <div class="sched__cell sched__cell--2 mono" :title="r.expression">{{ r.expression }}</div>
+        <div class="sched__cell sched__cell--3 mono" :title="r.command">{{ r.command }}</div>
+        <div class="sched__cell sched__cell--4" :title="r.remark">{{ r.remark }}</div>
+        <div class="sched__cell sched__cell--5">
+          <button
+            type="button"
+            class="lb-btn sched__status"
+            :class="{ 'is-off': r.status === 0 }"
+            :title="r.status === 0 ? '点击启用' : '点击停用'"
+            @click.stop="toggle(r)"
+          >
+            {{ r.status === 0 ? "已停用" : "启用中" }}
+          </button>
         </div>
-        <div class="sched__cell sched__cell--4 mono">{{ r.command }}</div>
-        <div class="sched__cell sched__cell--5">{{ r.remark }}</div>
         <div class="sched__cell sched__cell--6">
           <button type="button" class="lb-btn" @click.stop="() => openDraft(r)">编辑</button>
-          <button type="button" class="lb-btn lb-btn--danger" @click.stop="() => remove(r)">删除</button>
+          <button type="button" class="lb-btn lb-btn--danger" @click.stop="remove(r)">删除</button>
         </div>
       </div>
     </div>
@@ -192,17 +205,13 @@ function openDraft(item?: ScheduleItem): void {
     <ReDialog v-model="dialogOpen" :title="draft?.id ? '编辑调度规则' : '新增调度规则'" width="560px" destroy-on-close>
       <div class="sched__form">
         <label class="sched__field"><span>规则名</span><ReInput v-model="draft!.name" placeholder="如 每天巡检" /></label>
-        <label class="sched__field"><span>表达式</span><ReInput v-model="draft!.expression" placeholder="0 2 * * *（cron）或 now/every" /></label>
-        <label class="sched__field"><span>平台</span>
-          <div class="lb-seg">
-            <button v-for="p in platformOptions" :key="p" type="button" class="lb-seg__btn"
-              :class="{ 'is-active': draft?.platform === p }" @click="draft!.platform = p">
-              {{ platformLabel(p) }}
-            </button>
-          </div>
-        </label>
-        <label class="sched__field"><span>执行命令</span><ReInput v-model="draft!.command" placeholder="在目标平台执行的命令" /></label>
+        <label class="sched__field"><span>表达式</span><ReInput v-model="draft!.expression" placeholder="0 2 * * * ?（cron）" /></label>
+        <label class="sched__field"><span>执行命令</span><ReInput v-model="draft!.command" placeholder="在目标主机上执行的命令" /></label>
         <label class="sched__field"><span>备注</span><ReInput v-model="draft!.remark" placeholder="可选" /></label>
+        <p class="sched__hint">
+          规则以计划任务形式保存，命中主机为「{{ hostName }}」；同一任务可被多台主机共用，
+          删除时只会移除当前主机。
+        </p>
       </div>
       <template #footer>
         <ReButton @click="dialogOpen = false">取消</ReButton>
@@ -229,12 +238,20 @@ function openDraft(item?: ScheduleItem): void {
   flex: none;
 }
 .sched__head-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 13px;
   font-weight: 600;
   color: var(--text-primary, #111);
 }
 .sched__search {
+  flex: 1 1 140px;
   width: 200px;
+  min-width: 90px;
+  max-width: 220px;
 }
 .sched__table {
   flex: 1;
@@ -247,7 +264,8 @@ function openDraft(item?: ScheduleItem): void {
   & > .sched__row,
   & > .sched__row--head {
     display: grid;
-    grid-template-columns: 130px 130px 90px 1fr 160px 120px;
+    /* 六列按可用宽度分配；最窄处仍保留可读下限，再窄由外层横向滚动兜底 */
+    grid-template-columns: minmax(110px, 1.2fr) minmax(120px, 1fr) minmax(150px, 1.6fr) minmax(100px, 1fr) 64px 108px;
     gap: 0;
   }
   &--head {
@@ -272,21 +290,30 @@ function openDraft(item?: ScheduleItem): void {
   font-size: 12px;
   color: var(--text-primary, #111);
   border-right: 1px solid var(--border-subtle, rgba(0, 0, 0, .04));
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   > * { flex: 1; min-width: 0; }
   &--1 { grid-column: 1; }
   &--2 { grid-column: 2; }
   &--3 { grid-column: 3; }
   &--4 { grid-column: 4; }
-  &--5 { grid-column: 5; }
-  &--6 { grid-column: 6; gap: 4px; justify-content: flex-end; }
+  &--5 { grid-column: 5; justify-content: center; }
+  &--6 { grid-column: 6; gap: 4px; justify-content: flex-end; overflow: visible; }
   .mono { font-family: var(--el-font-family-mono, ui-monospace, Consolas, monospace); }
 }
-.sched__pill {
+.sched__status {
+  flex: none;
+  padding: 2px 8px;
   font-size: 11px;
-  &--win { color: var(--el-color-primary); background: var(--el-color-primary-light-9); }
-  &--linux { color: var(--el-color-success); background: var(--el-color-success-light-9); }
-  &--mac { color: var(--el-color-warning); background: var(--el-color-warning-light-9); }
-  &--all { color: var(--el-color-info); background: var(--el-color-info-light-9); }
+  color: var(--el-color-success);
+  background: var(--el-color-success-light-9);
+  border-radius: 999px;
+  &.is-off {
+    color: var(--el-text-color-placeholder, #a8abb2);
+    background: var(--el-fill-color-light, #f3f4f6);
+  }
 }
 .sched__form {
   display: flex;
@@ -303,6 +330,12 @@ function openDraft(item?: ScheduleItem): void {
   color: var(--text-secondary, #5c6270);
   > *:not(:first-child) { width: 100%; }
   > :first-child { font-size: 11.5px; }
+}
+.sched__hint {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-tertiary, #909399);
 }
 .sched__empty {
   display: flex;

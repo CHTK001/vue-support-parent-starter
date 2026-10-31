@@ -24,234 +24,252 @@
         @change="onLayoutChange"
       >
         <template #panel="{ activeTab: panelTab }">
-          <div v-if="panelTab.panelType === 'projects'" class="pj-panel">
-            <!-- 工具条：状态筛选 + 关键字搜索 -->
-            <div class="pj-toolbar">
-      <div class="pj-filters">
-        <button
-          v-for="f in statusFilters"
-          :key="f.key"
-          type="button"
-          class="pj-filter"
-          :class="{ active: statusFilter === f.key }"
-          @click="statusFilter = f.key"
-        >
-          <span v-if="f.key !== 'all'" class="pj-filter-dot" :class="f.key"></span>
-          {{ f.label }}
-          <b class="pj-filter-num">{{ f.count }}</b>
-        </button>
-      </div>
-      <ReInput v-model="keyword" class="pj-search" placeholder="搜索项目名称 / 路径" clearable prefix-icon="Search" />
-    </div>
-
-    <div class="pj-body">
-      <ReEmpty v-if="!list.length" description="点击右上角「新增项目」创建项目" :image-size="80" style="padding: 48px 0" />
-      <ReEmpty
-        v-else-if="!visibleCount"
-        description="没有符合筛选条件的项目，试试换个关键词或状态"
-        :image-size="72"
-        style="padding: 48px 0"
-      />
-
-      <template v-else>
-        <div class="pj-grid">
-          <article
-            v-for="item in visibleList"
-            :key="item.id"
-            class="pj-card"
-            :class="{
-              'is-running': statusKey(item) === 'running',
-              'is-disabled': item.enabled === false,
-              'is-dragover': dragOverId === item.id,
-            }"
-            @dragover.prevent="item.enabled !== false && (dragOverId = item.id)"
-            @dragleave.prevent="dragOverId = null"
-            @drop.prevent="onDropFile(item, $event)"
-          >
-            <!-- 左侧：类型图标 + 类型名 + 状态（与发布管理卡片同构） -->
-            <div class="pj-card-media" :class="[statusKey(item), mediaTone(item)]">
-              <span class="pj-media-ico"><ReIcon :name="displayIcon(item)" /></span>
-              <span class="pj-media-type">{{ typeLabel(item.projectType) }}</span>
-              <span class="pj-media-status" :class="statusKey(item)">
-                <span class="pj-status-dot"></span>{{ statusLabel(item) }}
+          <aside class="pj-rail" :class="{ 'is-collapsed': railCollapsed }">
+            <!-- 折叠态：只留一条竖条，展开按钮压在底部 -->
+            <div v-if="railCollapsed" class="rail-strip">
+              <button type="button" class="rail-strip__count" title="展开项目列表" @click="toggleRail">
+                <b>{{ visibleCount }}</b>
+                <span>/{{ list.length }}</span>
+              </button>
+              <span class="rail-strip__dots">
+                <i class="is-on" :title="`运行中 ${statusCounts.running}`" />
+                <i class="is-off" :title="`已停止 ${statusCounts.stopped}`" />
               </span>
+              <span class="rail-strip__gap"></span>
+              <button type="button" class="rail-strip__toggle" title="展开项目列表" @click="toggleRail">
+                <ReIcon name="ArrowRight" :size="13" />
+              </button>
             </div>
 
-            <!-- 右侧：信息 -->
-            <div class="pj-card-content">
-              <div class="pj-card-top">
-                <div class="pj-card-title">
-                  <div class="pj-card-name-row">
-                    <h3 :title="item.projectName">{{ item.projectName }}</h3>
-                  </div>
-                  <div class="pj-card-chips">
-                    <span v-if="item.enabled === false" class="pj-chip is-muted">已禁用</span>
-                    <span v-if="apmLabel(item)" class="pj-chip is-warn">{{ apmLabel(item) }}</span>
-                    <span v-if="item.serviceName" class="pj-chip is-info">系统服务</span>
-                    <span v-if="item.gitUrl" class="pj-chip is-success">Git 发布</span>
-                    <span v-if="item.scheduleEnabled" class="pj-chip is-warn">定时发布</span>
-                    <span v-if="item.gitPollEnabled" class="pj-chip is-info">Git 轮询</span>
-                  </div>
-                </div>
-                <span
-                  v-if="item.projectType === 'separated' && item.libDir"
-                  class="pj-lib-badge"
-                  :title="`依赖库: ${item.libDir}`"
-                >
-                  <ReIcon name="Files" class="pj-lib-badge-ic" />
-                  <span class="pj-lib-badge-num">{{ libCountMap[item.id] ?? '—' }}</span>
-                </span>
+            <!-- 头部：标题 + 计数 + 刷新/新增 -->
+            <div v-show="!railCollapsed" class="rail-head">
+              <div class="rail-head__row">
+                <span class="rail-head__title">项目列表</span>
+                <span class="rail-head__count">{{ visibleCount }}<i>/{{ list.length }}</i></span>
+                <span class="rail-head__gap"></span>
+                <button type="button" class="rail-tool" title="刷新列表" :disabled="loading" @click="loadList">
+                  <ReIcon name="Refresh" :size="12" />
+                </button>
+                <button type="button" class="rail-tool is-primary" title="新增项目" @click="openCreateDialog">
+                  <ReIcon name="Plus" :size="12" />
+                </button>
               </div>
-
-              <div class="pj-card-info">
-                <div class="pj-card-info-row" :title="item.projectPath">
-                  <ReIcon name="FolderOpened" class="pj-card-info-ic" />
-                  <span class="pj-card-info-val">{{ item.projectPath || '未设置项目地址' }}</span>
-                </div>
-                <div class="pj-card-info-row" :title="item.logPath">
-                  <ReIcon name="Document" class="pj-card-info-ic" />
-                  <span class="pj-card-info-val">{{ item.logPath || '未设置日志地址' }}</span>
-                </div>
-              </div>
-
-              <div v-if="item.description" class="pj-card-desc" :title="item.description">{{ item.description }}</div>
-
-              <div class="pj-card-bottom">
-                <div class="pj-card-metrics">
-                  <template v-if="statusKey(item) === 'running'">
-                    <span class="pj-metrics-seg">
-                      <span class="pj-metrics-k">PID</span>
-                      <span class="pj-metrics-v">{{ item.pid || '—' }}</span>
-                    </span>
-                    <span class="pj-metrics-sep"></span>
-                    <span class="pj-metrics-seg">
-                      <span class="pj-metrics-k">运行</span>
-                      <span class="pj-metrics-v">{{ runtimeLabel(item) }}</span>
-                    </span>
-                  </template>
-                  <span v-else class="pj-metrics-note">{{ statusSub(item) }}</span>
-                </div>
-                <div class="pj-card-actions">
-                  <template v-if="item.enabled !== false">
-                    <!-- 无常驻进程的类型（模型仓库）只发布文件：不提供启动/停止/重启 -->
-                    <template v-if="item.runtimeProcess !== false">
-                      <ReButton
-                        v-if="item.status !== 'running'"
-                        icon="VideoPlay"
-                        type="primary"
-                        :show-text="true"
-                        @click="handleStart(item)"
-                      >启动</ReButton>
-                      <template v-else>
-                        <ReButton icon="VideoPause" :show-text="true" @click="handleStop(item)">停止</ReButton>
-                        <ReButton icon="RefreshRight" layout="square" tip="重启" @click="handleRestart(item)" />
-                      </template>
-                    </template>
-                    <ReButton icon="Top" layout="square" tip="升级" @click="openUpgradeDialog(item)" />
-                    <ReButton
-                      v-if="isJavaProject(item)"
-                      icon="Monitor"
-                      layout="square"
-                      tip="Arthas 诊断"
-                      @click="openArthasDialog(item)"
-                    />
-                    <ReButton
-                      v-if="item.javaProcess"
-                      icon="Link"
-                      layout="square"
-                      tip="Swagger 接口文档"
-                      @click="openEndpointDialog(item, 'swagger')"
-                    />
-                    <ReButton
-                      v-if="item.javaProcess"
-                      icon="DataAnalysis"
-                      layout="square"
-                      tip="Actuator 运行指标"
-                      @click="openEndpointDialog(item, 'actuator')"
-                    />
-                    <ReButton
-                      v-if="item.gitUrl"
-                      icon="GitBranch"
-                      layout="square"
-                      tip="从 Git 拉取最新代码并自动构建发布"
-                      @click="handleGitDeploy(item)"
-                    />
-                  </template>
-                  <el-dropdown trigger="click" placement="bottom-end" @command="(c: string) => onMoreCommand(item, c)">
-                    <ReButton icon="MoreFilled" layout="square" tip="更多操作" />
-                    <template #dropdown>
-                      <el-dropdown-menu>
-                        <el-dropdown-item command="edit">
-                          <ReIcon name="EditPen" :size="15" class="dd-ic" />编辑
-                        </el-dropdown-item>
-                        <el-dropdown-item v-if="item.enabled !== false && item.logPath" command="log">
-                          <ReIcon name="Tickets" :size="15" class="dd-ic" />实时日志
-                        </el-dropdown-item>
-                        <el-dropdown-item
-                          v-if="item.enabled !== false && item.projectType === 'separated'"
-                          command="update-lib"
-                        >
-                          <ReIcon name="Box" :size="15" class="dd-ic" />更新依赖包
-                        </el-dropdown-item>
-                        <el-dropdown-item v-if="item.enabled !== false" command="backup">
-                          <ReIcon name="FolderChecked" :size="15" class="dd-ic" />备份
-                        </el-dropdown-item>
-                        <el-dropdown-item v-if="item.enabled !== false" command="rollback">
-                          <ReIcon name="RefreshLeft" :size="15" class="dd-ic" />回滚
-                        </el-dropdown-item>
-                        <el-dropdown-item v-if="item.enabled !== false && item.gitUrl" command="git-deploy">
-                          <ReIcon name="GitBranch" :size="15" class="dd-ic dd-success" />从 Git 更新
-                        </el-dropdown-item>
-                        <el-dropdown-item command="copy">
-                          <ReIcon name="CopyDocument" :size="15" class="dd-ic" />复制到其他服务器
-                        </el-dropdown-item>
-                        <el-dropdown-item command="toggle">
-                          <ReIcon :name="item.enabled === false ? 'Unlock' : 'Lock'" :size="15" class="dd-ic" />{{ item.enabled === false ? '激活' : '禁用' }}
-                        </el-dropdown-item>
-                        <el-dropdown-item command="delete" divided>
-                          <ReIcon name="Delete" :size="15" class="dd-ic dd-danger" />删除
-                        </el-dropdown-item>
-                      </el-dropdown-menu>
-                    </template>
-                  </el-dropdown>
-                </div>
-              </div>
-            </div>
-
-            <div v-if="dragOverId === item.id" class="pj-drop">
-              <ReIcon name="Upload" />松开即可用安装包升级「{{ item.projectName }}」
-            </div>
-          </article>
-        </div>
-
-        <div v-if="!visibleCount" class="pj-no-match">
-          <ReIcon name="Search" :size="20" />
-          <span>没有匹配的项目，换个关键字或切回「全部」</span>
-        </div>
-      </template>
-    </div>
-
-          </div>
-
-          <!-- 实时日志面板：多项目多列并排 -->
-          <div v-else class="pj-log-panel">
-            <div v-if="!logSessions.length" class="pj-log-empty">
-              <ReIcon name="Tickets" :size="22" />
-              <div class="pj-log-empty-title">暂无实时日志</div>
-              <div class="pj-log-empty-sub">在项目卡片「更多操作」里点「实时日志」，可同时打开多个项目并排查看</div>
-            </div>
-            <div v-else class="pj-log-cols">
-              <ProjectLogColumn
-                v-for="session in logSessions"
-                :key="session.projectId"
-                v-model:auto-scroll="session.autoScroll"
-                :title="session.projectName"
-                :lines="session.lines"
-                :notice="session.notice"
-                :push-offline="session.pushOffline"
-                @popup="openLogPopup(session)"
-                @close="closeLogSession(session)"
+              <ReInput
+                v-model="keyword"
+                placeholder="搜索项目名称 / 路径 / 日志"
+                clearable
+                class="rail-head__search"
+                prefix-icon="Search"
               />
+              <div class="rail-filters">
+                <button
+                  v-for="f in statusFilters"
+                  :key="f.key"
+                  type="button"
+                  class="rail-chip"
+                  :class="{ 'is-active': statusFilter === f.key }"
+                  @click="statusFilter = f.key"
+                >
+                  <span>{{ f.label }}</span>
+                  <b>{{ f.count }}</b>
+                </button>
+              </div>
+            </div>
+
+            <!-- 分组列表：按状态分桶，空组保留占位 -->
+            <ReScrollbar v-show="!railCollapsed" class="rail-list">
+              <div v-for="g in groupedProjects" :key="g.key" class="rail-group">
+                <button type="button" class="rail-group__head" @click="toggleGroup(g.key)">
+                  <ReIcon :name="collapsedGroups.has(g.key) ? 'ArrowRight' : 'ArrowDown'" :size="11" />
+                  <span class="rail-group__dot" :class="`is-${g.key}`"></span>
+                  <span class="rail-group__name">{{ g.label }}</span>
+                  <span class="rail-group__stat"><b>{{ g.items.length }}</b></span>
+                </button>
+                <template v-if="!collapsedGroups.has(g.key)">
+                  <div
+                    v-for="item in g.items"
+                    :key="item.id"
+                    class="rail-host"
+                    :class="{
+                      'is-active': selectedProject?.id === item.id,
+                      'is-disabled': item.enabled === false,
+                      'is-dragover': dragOverId === item.id,
+                    }"
+                    @click="selectedProject = item"
+                    @dblclick="handleViewLog(item)"
+                    @dragover.prevent="item.enabled !== false && (dragOverId = item.id)"
+                    @dragleave.prevent="dragOverId = null"
+                    @drop.prevent="onDropFile(item, $event)"
+                  >
+                    <span class="rail-host__os" :class="[statusKey(item), mediaTone(item)]">
+                      <ReIcon :name="displayIcon(item)" :size="15" />
+                    </span>
+                    <span class="rail-host__meta">
+                      <b class="rail-host__name">{{ item.projectName }}</b>
+                      <span class="rail-host__addr mono">
+                        {{ statusLabel(item) }}<template v-if="statusKey(item) !== 'running'"> · {{ statusSub(item) }}</template>
+                      </span>
+                    </span>
+                    <span class="rail-host__right">
+                      <template v-if="statusKey(item) === 'running'">
+                        <span class="rail-host__pid mono" :title="`PID ${item.pid || '—'}`">PID {{ item.pid || '—' }}</span>
+                        <span class="rail-host__uptime mono" :title="`已运行 ${runtimeLabel(item)}`">{{ runtimeLabel(item) }}</span>
+                      </template>
+                      <i class="rail-host__dot" :class="`is-${statusKey(item)}`"></i>
+                    </span>
+                    <!-- 行内操作：悬停浮出，不占常态宽度 -->
+                    <span class="rail-host__ops">
+                      <template v-if="item.enabled !== false && item.runtimeProcess !== false">
+                        <button v-if="item.status !== 'running'" type="button" title="启动" @click.stop="handleStart(item)">
+                          <ReIcon name="VideoPlay" :size="13" />
+                        </button>
+                        <template v-else>
+                          <button type="button" title="停止" @click.stop="handleStop(item)">
+                            <ReIcon name="VideoPause" :size="13" />
+                          </button>
+                          <button type="button" title="重启" @click.stop="handleRestart(item)">
+                            <ReIcon name="RefreshRight" :size="13" />
+                          </button>
+                        </template>
+                      </template>
+                      <button v-if="item.enabled !== false" type="button" title="用安装包升级" @click.stop="openUpgradeDialog(item)">
+                        <ReIcon name="Top" :size="13" />
+                      </button>
+                      <el-dropdown trigger="click" placement="bottom-end" @click.stop @command="(c: string) => onMoreCommand(item, c)">
+                        <button type="button" title="更多操作" @click.stop>
+                          <ReIcon name="MoreFilled" :size="13" />
+                        </button>
+                        <template #dropdown>
+                          <el-dropdown-menu>
+                            <el-dropdown-item command="edit">
+                              <ReIcon name="EditPen" :size="15" class="dd-ic" />编辑
+                            </el-dropdown-item>
+                            <el-dropdown-item v-if="item.enabled !== false && item.logPath" command="log">
+                              <ReIcon name="Tickets" :size="15" class="dd-ic" />实时日志
+                            </el-dropdown-item>
+                            <el-dropdown-item v-if="item.enabled !== false && isJavaProject(item)" command="arthas">
+                              <ReIcon name="Monitor" :size="15" class="dd-ic" />Arthas 诊断
+                            </el-dropdown-item>
+                            <el-dropdown-item v-if="item.enabled !== false && item.javaProcess" command="swagger">
+                              <ReIcon name="Link" :size="15" class="dd-ic" />Swagger 接口文档
+                            </el-dropdown-item>
+                            <el-dropdown-item v-if="item.enabled !== false && item.javaProcess" command="actuator">
+                              <ReIcon name="DataAnalysis" :size="15" class="dd-ic" />Actuator 运行指标
+                            </el-dropdown-item>
+                            <el-dropdown-item
+                              v-if="item.enabled !== false && item.projectType === 'separated'"
+                              command="update-lib"
+                            >
+                              <ReIcon name="Box" :size="15" class="dd-ic" />更新依赖包
+                            </el-dropdown-item>
+                            <el-dropdown-item v-if="item.enabled !== false" command="backup">
+                              <ReIcon name="FolderChecked" :size="15" class="dd-ic" />备份
+                            </el-dropdown-item>
+                            <el-dropdown-item v-if="item.enabled !== false" command="rollback">
+                              <ReIcon name="RefreshLeft" :size="15" class="dd-ic" />回滚
+                            </el-dropdown-item>
+                            <el-dropdown-item v-if="item.enabled !== false && item.gitUrl" command="git-deploy">
+                              <ReIcon name="GitBranch" :size="15" class="dd-ic dd-success" />从 Git 更新
+                            </el-dropdown-item>
+                            <el-dropdown-item command="copy">
+                              <ReIcon name="CopyDocument" :size="15" class="dd-ic" />复制到其他服务器
+                            </el-dropdown-item>
+                            <el-dropdown-item command="toggle">
+                              <ReIcon :name="item.enabled === false ? 'Unlock' : 'Lock'" :size="15" class="dd-ic" />{{ item.enabled === false ? '激活' : '禁用' }}
+                            </el-dropdown-item>
+                            <el-dropdown-item command="delete" divided>
+                              <ReIcon name="Delete" :size="15" class="dd-ic dd-danger" />删除
+                            </el-dropdown-item>
+                          </el-dropdown-menu>
+                        </template>
+                      </el-dropdown>
+                    </span>
+
+                    <div v-if="dragOverId === item.id" class="pj-drop">
+                      <ReIcon name="Upload" />松开即可用安装包升级「{{ item.projectName }}」
+                    </div>
+                  </div>
+                </template>
+              </div>
+
+              <div v-if="!list.length" class="rail-empty">
+                <ReIcon name="Files" :size="22" />
+                <span>暂无项目，点击右上角「新增项目」创建</span>
+                <ReButton type="primary" icon="Plus" :show-text="true" @click="openCreateDialog">新增项目</ReButton>
+              </div>
+              <div v-else-if="!visibleCount" class="rail-empty">
+                <ReIcon name="Search" :size="22" />
+                <span>没有符合筛选条件的项目，换个关键词或状态</span>
+                <ReButton icon="Refresh" :show-text="true" @click="resetFilters">重置筛选</ReButton>
+              </div>
+            </ReScrollbar>
+
+            <!-- 底部：状态统计 + 收起按钮 -->
+            <div v-show="!railCollapsed" class="rail-foot">
+              <div class="rail-foot__row">
+                <span class="rail-foot__sum"><i class="is-on"></i>{{ statusCounts.running }}</span>
+                <span class="rail-foot__sum"><i class="is-off"></i>{{ list.length - statusCounts.running }}</span>
+              </div>
+              <button type="button" class="rail-foot__fold" title="收起项目列表" @click="toggleRail">
+                <ReIcon name="ArrowLeft" :size="12" />
+              </button>
+            </div>
+          </aside>
+
+          <!-- 右侧：多标签实时日志工作区 -->
+          <div v-else class="pj-workspace">
+            <ReTabs
+              v-model="activeWorkspaceTab"
+              :tabs="workspaceTabs"
+              closable
+              show-close-all
+              empty-text="点击左侧项目行的「实时日志」（或双击项目行）打开日志"
+              @close="closeWorkspaceTab"
+              @close-all="closeAllLogTabs"
+            >
+              <template #default="{ tab }">
+                <ProjectLogColumn
+                  v-if="logSessionByTab.get(tab.name)"
+                  :key="tab.name"
+                  v-model:auto-scroll="logSessionByTab.get(tab.name)!.autoScroll"
+                  :title="logSessionByTab.get(tab.name)!.projectName"
+                  :lines="logSessionByTab.get(tab.name)!.lines"
+                  :notice="logSessionByTab.get(tab.name)!.notice"
+                  :push-offline="logSessionByTab.get(tab.name)!.pushOffline"
+                  @popup="openLogPopup(logSessionByTab.get(tab.name)!)"
+                  @close="closeLogSession(logSessionByTab.get(tab.name)!)"
+                />
+              </template>
+              <template #empty>
+                <div class="pj-workspace-empty">
+                  <div class="pj-workspace-empty-ic"><ReIcon name="Tickets" :size="26" /></div>
+                  <div class="pj-workspace-empty-title">暂无实时日志</div>
+                  <div class="pj-workspace-empty-sub">点击左侧项目行的「实时日志」（或双击项目行），可在右侧同时打开多个项目的日志</div>
+                </div>
+              </template>
+            </ReTabs>
+
+            <!-- 底部：激活日志页签项目的指标条（无激活页签时回退到左侧选中项目） -->
+            <div v-if="metricsProject" class="pj-metrics-bar">
+              <span class="pj-metrics-name" :title="metricsProject.projectName">{{ metricsProject.projectName }}</span>
+              <span class="pj-metrics-chip" :class="`is-${statusKey(metricsProject)}`">
+                <i class="pj-metrics-dot"></i>{{ statusLabel(metricsProject) }}
+              </span>
+              <span class="pj-metrics-sep"></span>
+              <template v-if="statusKey(metricsProject) === 'running'">
+                <span class="pj-metrics-seg">
+                  <span class="pj-metrics-k">PID</span>
+                  <span class="pj-metrics-v">{{ metricsProject.pid || '—' }}</span>
+                </span>
+                <span class="pj-metrics-sep"></span>
+                <span class="pj-metrics-seg">
+                  <span class="pj-metrics-k">运行</span>
+                  <span class="pj-metrics-v">{{ runtimeLabel(metricsProject) }}</span>
+                </span>
+                <span class="pj-metrics-sep"></span>
+              </template>
+              <span v-else class="pj-metrics-note">{{ statusSub(metricsProject) }}</span>
+              <span class="pj-metrics-type" :title="typeLabel(metricsProject.projectType)">{{ typeLabel(metricsProject.projectType) }}</span>
             </div>
           </div>
         </template>
@@ -3437,57 +3455,113 @@ onBeforeUnmount(() => {
   flex: 1 1 auto;
   min-height: 0;
 }
-.pj-panel {
+/* ===== 左侧：项目列表（rail 分组列表） ===== */
+.pj-rail {
   display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-  padding: 14px 16px 0;
-  box-sizing: border-box;
-}
-.pj-panel .pj-toolbar {
   flex: none;
-  margin-bottom: 12px;
-  padding-bottom: 10px;
-}
-.pj-panel .pj-body {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  padding-bottom: 14px;
-}
-.pj-log-panel {
-  display: flex;
   flex-direction: column;
+  width: 268px;
   height: 100%;
   min-height: 0;
+  overflow: hidden;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  transition: width 0.18s ease;
 }
-.pj-log-cols {
+
+/* 折叠态：268px → 44px，中间工作区净增 224px。只留计数、运行/停止点
+   和底部展开按钮，不保留任何需要横向空间的内容。 */
+.pj-rail.is-collapsed {
+  width: 44px;
+}
+
+.rail-strip {
   display: flex;
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0 10px;
 }
-.pj-log-empty {
-  flex: 1 1 auto;
+
+.rail-strip__count {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
-  color: var(--text-tertiary);
-  font-size: 12.5px;
+  gap: 1px;
+  padding: 2px 0;
+  font-size: 10px;
+  line-height: 1.1;
+  color: var(--el-text-color-placeholder);
+  font-variant-numeric: tabular-nums;
+  background: transparent;
+  border: none;
+  cursor: pointer;
 }
-.pj-log-empty-title {
+
+.rail-strip__count b {
   font-size: 13px;
-  font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--el-color-primary);
 }
-.pj-log-empty-sub {
-  max-width: 420px;
-  text-align: center;
-  line-height: 1.6;
+
+.rail-strip__dots {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.rail-strip__dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.rail-strip__dots i.is-on {
+  background: var(--el-color-success);
+}
+
+.rail-strip__dots i.is-off {
+  background: var(--el-text-color-placeholder);
+}
+
+.rail-strip__gap {
+  flex: 1;
+}
+
+.rail-strip__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.rail-strip__toggle:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
+}
+
+/* ===== 右侧：多标签日志工作区 ===== */
+.pj-workspace {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
 }
 .pj-head {
   margin-bottom: 16px;

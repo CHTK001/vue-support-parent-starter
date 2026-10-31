@@ -319,29 +319,36 @@ export const saveMaintenancePlan = (id: number | null, d: any) => id != null
   : http().post(`${B}/maintenance-plan`).data(d).then(r => unwrapResult<any>(r));
 export const delMaintenancePlan = (id: number) => http().delete(`${B}/maintenance-plan/${id}`).then(r => unwrapResult<boolean>(r));
 
-// ===== 主机工作台：调度（SPI 按平台区分：Windows/Linux/Mac）=====
-/** 计划任务格式（任务名 / 调度表达式 / 目标平台 / 平台命令） */
+// ===== 主机工作台：调度（复用计划任务 /exec/job，按主机过滤）=====
+/**
+ * 计划任务格式（任务名 / 调度表达式 / 平台命令）
+ *
+ * <p>后端没有独立的 {@code /host/{id}/schedule} 存储，调度规则实际落在
+ * {@code ms_exec_job}（批量计划任务）里，{@code msExecJobHostIds} 记录目标主机；
+ * 这里在 API 层做一层映射，页面只关心「这台主机的调度规则」。</p>
+ */
 export interface SchedulePayload {
   /** 规则名 */
   msScheduleName: string;
-  /** 表达式：cron / simple（now」「every」… 由后端 SPI 决定） */
+  /** cron 表达式 */
   expression: string;
-  /** 执行平台：win | linux | mac（空=全部） */
-  platform?: string;
-  /** 在目标平台上执行的命令 */
-  command?: string;
+  /** 在目标主机上执行的命令 */
+  command: string;
   /** 备注 */
   remark?: string;
 }
-/** 调度的原点（带平台展开） */
+/** 调度行（由计划任务映射而来） */
 export interface ScheduleItem extends SchedulePayload {
   id: number;
   /** 所属主机 id */
   hostId?: number;
-  /** 平台标识：win / linux / mac */
-  platform?: string;
-  /** 最后登录方式/执行结果入口 */
-  status?: string;
+  /** 1 启用 / 0 停用 */
+  status?: number;
+  /** 上次执行时间 */
+  lastRunTime?: string;
+  /** 下次执行时间 */
+  nextRunTime?: string;
+  /** 创建时间 */
   createdAt?: string;
 }
 
@@ -349,18 +356,130 @@ export interface ScheduleItem extends SchedulePayload {
 export interface ScheduleDraft extends ScheduleItem {
   name: string;
 }
-/** 按主机拉取调度列表 */
-export const listSchedules = (hostId: number, q: Record<string, unknown> = {}) =>
-  http().get(`${B}/host/${hostId}/schedule`).query(q).then(r => unwrapResult<any[]>(r));
-/** 按主机新增调度 */
-export const saveSchedule = (hostId: number, d: any) =>
-  http().post(`${B}/host/${hostId}/schedule`).data(d).then(r => unwrapResult<ScheduleItem>(r));
-/** 按主机修改调度 */
-export const updateSchedule = (hostId: number, id: number, d: any) =>
-  http().put(`${B}/host/${hostId}/schedule/${id}`).data(d).then(r => unwrapResult<ScheduleItem>(r));
-/** 按主机删除调度 */
-export const delSchedule = (hostId: number, id: number) =>
-  http().delete(`${B}/host/${hostId}/schedule/${id}`).then(r => unwrapResult<boolean>(r));
+
+/**
+ * 解析计划任务的 hostIds。
+ *
+ * <p>后端用 JSON 数组字符串存储（如 {@code "[1,2]"}）；空串或脏数据按空数组处理，
+ * 避免一条坏记录让整张调度表报错。</p>
+ *
+ * @param raw 原始 hostIds 字段
+ * @returns 主机 id 列表
+ */
+export function parseScheduleHostIds(raw?: string | null): number[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? parsed.map(v => Number(v)).filter(n => Number.isFinite(n))
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * 计划任务 -> 主机调度行
+ *
+ * @param job    后端计划任务
+ * @param hostId 当前主机
+ * @returns 调度行
+ */
+function toScheduleItem(job: any, hostId: number): ScheduleItem {
+  return {
+    id: Number(job?.id ?? 0),
+    hostId,
+    msScheduleName: String(job?.msExecJobName ?? ""),
+    expression: String(job?.msExecJobCron ?? ""),
+    command: String(job?.msExecJobCommand ?? ""),
+    remark: String(job?.msExecJobRemark ?? ""),
+    status: Number(job?.msExecJobEnabled ?? 1),
+    lastRunTime: job?.msExecJobLastRunTime ?? undefined,
+    nextRunTime: job?.msExecJobNextRunTime ?? undefined,
+    createdAt: job?.createTime ?? undefined,
+  };
+}
+
+/**
+ * 主机调度列表：拉取计划任务后只保留命中该主机的规则。
+ *
+ * @param hostId 主机 id
+ * @returns 该主机的调度规则
+ */
+export const listSchedules = async (hostId: number): Promise<ScheduleItem[]> => {
+  const jobs = await getJobs();
+  return jobs
+    .filter((job: any) => parseScheduleHostIds(job?.msExecJobHostIds).includes(hostId))
+    .map((job: any) => toScheduleItem(job, hostId));
+};
+
+/**
+ * 新增主机调度：落成单主机 cron 计划任务。
+ *
+ * @param hostId 主机 id
+ * @param d      调度内容
+ * @returns 新建后的调度行
+ */
+export const saveSchedule = (hostId: number, d: SchedulePayload) =>
+  saveJob(null, {
+    msExecJobName: d.msScheduleName,
+    msExecJobType: "CRON",
+    msExecJobCron: d.expression,
+    msExecJobCommand: d.command,
+    msExecJobHostIds: JSON.stringify([hostId]),
+    msExecJobTimeout: 60,
+    msExecJobEnabled: 1,
+    msExecJobRemark: d.remark ?? "",
+  }).then((job: any) => toScheduleItem(job, hostId));
+
+/**
+ * 修改主机调度：只改规则本身，保留任务原有的目标主机与启停状态。
+ *
+ * @param hostId 主机 id
+ * @param id     计划任务 id
+ * @param d      调度内容
+ * @returns 修改后的调度行
+ */
+export const updateSchedule = (hostId: number, id: number, d: SchedulePayload) =>
+  saveJob(id, {
+    msExecJobName: d.msScheduleName,
+    msExecJobType: "CRON",
+    msExecJobCron: d.expression,
+    msExecJobCommand: d.command,
+    msExecJobRemark: d.remark ?? "",
+  }).then((job: any) => toScheduleItem(job, hostId));
+
+/**
+ * 启停主机调度。
+ *
+ * @param hostId  主机 id
+ * @param id      计划任务 id
+ * @param enabled 是否启用
+ * @returns 修改后的调度行
+ */
+export const toggleSchedule = (hostId: number, id: number, enabled: boolean) =>
+  saveJob(id, { msExecJobEnabled: enabled ? 1 : 0 })
+    .then((job: any) => toScheduleItem(job, hostId));
+
+/**
+ * 从当前主机移除调度。
+ *
+ * <p>同一条计划任务可能同时命中多台主机：这里只把当前主机从 hostIds 里摘掉，
+ * 摘到空才真正删除任务，避免在 A 主机上删规则把 B 主机的规则一起删了。</p>
+ *
+ * @param hostId 主机 id
+ * @param id     计划任务 id
+ * @returns 是否成功
+ */
+export const delSchedule = async (hostId: number, id: number): Promise<boolean> => {
+  const jobs = await getJobs();
+  const job = jobs.find((j: any) => Number(j?.id) === id);
+  if (!job) return true;
+  const remain = parseScheduleHostIds(job?.msExecJobHostIds).filter(x => x !== hostId);
+  if (!remain.length) return delJob(id);
+  await saveJob(id, { msExecJobHostIds: JSON.stringify(remain) });
+  return true;
+};
 
 // ===== 资产统计 =====
 export const getHostStats = () => http().get(`${B}/host/stats`).then(r => unwrapResult<{ total: number; online: number; offline: number; unknown: number }>(r));

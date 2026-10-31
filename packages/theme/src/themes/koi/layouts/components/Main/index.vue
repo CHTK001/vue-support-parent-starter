@@ -43,6 +43,12 @@
           <div class="rs-card rs-table">
             <span class="rs-bone rs-row is-head"></span>
             <span v-for="n in 6" :key="n" class="rs-bone rs-row"></span>
+            <!-- 页脚 + 分页：真实页面在这里有内容，留空会显得骨架没吃满 -->
+            <div class="rs-footer">
+              <span class="rs-bone rs-foot-btn"></span>
+              <span class="rs-bone rs-foot-btn"></span>
+              <span class="rs-bone rs-pager"></span>
+            </div>
           </div>
         </div>
       </transition>
@@ -223,6 +229,33 @@ onBeforeUnmount(() => {
 
 .rs-table {
   gap: 10px;
+  /* 表格卡片吸收骨架剩余高度，避免页面底部露出一截空背景 */
+  flex: 1;
+  min-height: 0;
+}
+
+/* 页脚/分页占位。卡片已 flex:1 撑满，margin-top:auto 把页脚压到底边，
+   剩余空间由这里吃掉——不要再额外加 flex:1 的占位块，否则两者会平分剩余高度。 */
+.rs-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 10px;
+  margin-top: auto;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.rs-foot-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+}
+
+.rs-pager {
+  width: 220px;
+  height: 32px;
+  border-radius: 6px;
 }
 
 /* 骨头统一质感：与 ReLoader 内置骨架同一套呼吸动画，观感一致 */

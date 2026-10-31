@@ -3807,7 +3807,12 @@ function onGlobalKeydown(e: KeyboardEvent): void {
 .host-ctx-menu {
   position: fixed;
   z-index: 2991;
+  /* 宽度按内容收缩但必须封顶：position: fixed 的元素是 shrink-to-fit，
+     长主机名（尤其 ibssh_xxx@ssh.instabox.sh 这类地址）会把整张菜单撑宽。
+     显式 width: max-content + max-width 后，头部与菜单项的省略号才能真正生效。 */
+  width: max-content;
   min-width: 176px;
+  max-width: min(260px, calc(100vw - 24px));
   padding: 5px;
   background: var(--el-bg-color-overlay, #fff);
   border: 1px solid var(--el-border-color-lighter, #e6e8eb);
@@ -3826,6 +3831,12 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.12s ease, color 0.12s ease;
+}
+/* 菜单宽度封顶后，文案超出时按省略号收口；图标不参与收缩 */
+.host-ctx-item > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .host-ctx-item .re-icon,
 .host-ctx-item svg {
@@ -3916,6 +3927,11 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   white-space: nowrap;
 }
 .host-ctx-head span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 11.5px;
   color: var(--el-text-color-placeholder, #a8abb2);
 }
@@ -3932,8 +3948,8 @@ function onGlobalKeydown(e: KeyboardEvent): void {
    overflow 必须可见，否则 hover 浮层子菜单会被菜单容器裁掉 */
 .host-ctx-menu {
   max-height: calc(100vh - 24px);
-  /* 菜单整体限宽：主机名太长时不再被撑开（见下方 .host-ctx-head b 的截断） */
-  max-width: calc(100vw - 24px);
+  /* 菜单整体限宽：主机名太长时不再被撑开（见上方 .host-ctx-head b 的截断） */
+  max-width: min(260px, calc(100vw - 24px));
   overflow: visible;
 }
 </style>
