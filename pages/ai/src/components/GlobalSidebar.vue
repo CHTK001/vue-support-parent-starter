@@ -934,7 +934,6 @@ const currentActiveTab = computed(() => {
     return sessionIdStr === 'new-session' ? 'chat' : ''
   }
   if (routeName === 'Characters') return 'characters'
-  if (routeName === 'Bots') return 'bots'
   if (routeName === 'Tavern') return 'tavern'
   if (routeName === 'WorldSim') return 'world-sim'
   if (routeName === 'SystemSettings') {
@@ -944,7 +943,6 @@ const currentActiveTab = computed(() => {
   }
   if (routeName === 'KnowledgeBase') return 'knowledge-base'
   if (routeName === 'Plugins') return 'plugins'
-  if (routeName === 'Scheduler') return 'scheduler'
   // 图像类已扁平化（不再有 image-management 二级父项），高亮直接落在各自菜单项上
   if (routeName === 'ImageGenerate') return 'image-generate'
   if (routeName === 'FaceSearch') return 'face-search'

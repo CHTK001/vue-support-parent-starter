@@ -24,7 +24,7 @@
         @change="onLayoutChange"
       >
         <template #panel="{ activeTab: panelTab }">
-          <aside class="pj-rail" :class="{ 'is-collapsed': railCollapsed }">
+          <aside v-if="panelTab.panelType === 'projects'" class="pj-rail" :class="{ 'is-collapsed': railCollapsed }">
             <!-- 折叠态：只留一条竖条，展开按钮压在底部 -->
             <div v-if="railCollapsed" class="rail-strip">
               <button type="button" class="rail-strip__count" title="展开项目列表" @click="toggleRail">
@@ -1171,6 +1171,20 @@ const statusFilters = computed(() => {
     ...STATUS_GROUPS.map((g) => ({ key: g.key, label: g.label, count: counts[g.key] })),
   ];
 });
+
+/** 各状态项目数（竖条折叠态 / 底部小结用） */
+const statusCounts = computed<Record<StatusKey, number>>(() => {
+  const counts: Record<StatusKey, number> = { running: 0, stopped: 0, ready: 0, disabled: 0 };
+  list.value.forEach((i) => { counts[statusKey(i)] += 1; });
+  return counts;
+});
+
+/** 重置筛选 / 搜索，并展开全部分组 */
+function resetFilters() {
+  statusFilter.value = 'all';
+  keyword.value = '';
+  collapsedGroups.value = new Set();
+}
 
 /** 扁平化过滤列表：按状态筛选 + 关键字搜索（纯前端，不额外发请求） */
 const visibleList = computed(() => {
@@ -4137,6 +4151,38 @@ onBeforeUnmount(() => {
   color: var(--el-color-warning);
   background: color-mix(in srgb, var(--el-color-warning) 12%, var(--el-bg-color));
   border-color: color-mix(in srgb, var(--el-color-warning) 30%, transparent);
+}
+
+.pj-metrics-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.pj-metrics-k {
+  color: var(--text-tertiary);
+  font-size: 10.5px;
+}
+
+.pj-metrics-v {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.pj-metrics-sep {
+  width: 1px;
+  height: 10px;
+  background: var(--border-secondary);
+}
+
+.pj-metrics-note {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pj-drop {

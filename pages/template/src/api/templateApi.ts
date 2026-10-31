@@ -12,7 +12,7 @@
 
 import { createModuleHttp } from "@repo/core"
 import type { RequestBody } from '@repo/utils'
-import type { TemplateInfo, TemplatePageQuery, PageResult, TemplateDesignerPayload, PrinterConfig, LogRecord, TemplateLogQuery } from '../types/template'
+import type { TemplateInfo, TemplatePageQuery, PageResult, TemplateDesignerPayload, PrinterConfig, LogRecord, TemplateLogQuery, ProviderInfo, ProviderSyncResult } from '../types/template'
 
 /** 模板模块 Http 客户端（懒创建）。 */
 /** 模块可能在 createApp() 注入全局 http 之前被静态导入，因此延迟到首次调用时创建。 */
@@ -70,6 +70,22 @@ export const templateApi = {
     http.put(`/${id}`).data(info).then(unwrap) as Promise<TemplateInfo>,
   /** 删除 */
   remove: (id: string) => http.delete(`/${id}`).then(unwrap),
+
+  // ==================== 提供商 ====================
+  /** 提供商列表（全部） */
+  providerList: () => http.get("/provider/list").then(unwrap) as Promise<ProviderInfo[]>,
+  /** 同步单个提供商的模板（返回新增/更新/失败数） */
+  syncProvider: (id: string) =>
+    http.post(`/provider/${id}/sync`).then(unwrap) as Promise<ProviderSyncResult>,
+  /** 新增提供商 */
+  addProvider: (info: Record<string, any>) =>
+    http.post("/provider/add").data(info).then(unwrap) as Promise<ProviderInfo>,
+  /** 更新提供商配置 */
+  updateProvider: (id: string, info: Record<string, any>) =>
+    http.put(`/provider/${id}`).data(info).then(unwrap) as Promise<ProviderInfo>,
+  /** 删除提供商 */
+  removeProvider: (id: string) =>
+    http.delete(`/provider/${id}`).then(unwrap) as Promise<boolean>,
 
   // ==================== 打印 ====================
   /** 打印机列表（应用侧 hiprint 连接地址与 Token） */

@@ -75,7 +75,20 @@ export function typeLabel(type: string): string {
 export const tplActionLabels: Record<string, string> = {
   preview: '预览',
   design: '设计',
-  print: '打印'
+  print: '打印',
+  sync: '同步'
+}
+
+/** 接入方 */
+export const tplVendorLabels: Record<string, string> = {
+  aliyun: '阿里云',
+  tencent: '腾讯云',
+  self: '自建'
+}
+
+/** 接入方显示文本 */
+export function vendorLabel(vendor: string): string {
+  return tplVendorLabels[vendor] ?? vendor
 }
 
 /** 调用日志操作类型显示文本 */

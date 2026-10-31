@@ -290,10 +290,38 @@ function dedupeElementPlus(): PluginOption {
   };
 }
 
+/**
+ * [临时调试] 在 vite proxy 之前/之后记录代理请求的全貌，找到 `200 null` 的源头.
+ */
+function debugProxyLogger(): PluginOption {
+  return {
+    name: "debug-proxy-logger",
+    apply: "serve",
+    configureServer(server) {
+      const t0 = Date.now();
+      server.middlewares.use((req, _res, next) => {
+        const url = req.url ?? "";
+        console.log(`[DBG] BEFORE-PROXY ${Date.now()-t0}ms ${req.method} ${url} accept=${req.headers.accept}`);
+        const origEnd = _res.end.bind(_res);
+        let ended = false;
+        _res.end = (...args: any[]) => {
+          if (!ended) {
+            ended = true;
+            console.log(`[DBG] AFTER-PROXY ${Date.now()-t0}ms ${req.method} ${url} -> ${_res.statusCode}`);
+          }
+          return origEnd(...args);
+        };
+        return next();
+      });
+    },
+  };
+}
+
 export default createVite({
   appName: "vue-support-monitor-starter",
   title: "监控管理平台",
   plugins: [
+    debugProxyLogger(),
     apiTargetSelfCheck(),
     dropProxyOrigin(),
     dedupeElementPlus(),
@@ -402,6 +430,17 @@ export default createVite({
       "/v2": {
         target: apiTarget,
         changeOrigin: true,
+        configure: (proxy, options) => {
+          proxy.on("proxyReq", (proxyReq, req) => {
+            console.log(`[DBG] PROXY-REQ ${req.method} ${req.url}`);
+          });
+          proxy.on("proxyRes", (proxyRes, req, res) => {
+            console.log(`[DBG] PROXY-RES ${req.method} ${req.url} -> ${proxyRes.statusCode} len=${proxyRes.headers["content-length"]} type=${proxyRes.headers["content-type"]}`);
+          });
+          proxy.on("error", (err) => {
+            console.log(`[DBG] PROXY-ERR ${req?.url} ${err.message}`);
+          });
+        },
       },
       // 独立 ACME 后端：/monitor/api/**（ACME 证书管理）
       "/monitor/api": {
@@ -447,10 +486,32 @@ export default createVite({
       "/ms/monitor": {
         target: apiTarget,
         changeOrigin: true,
+        configure: (proxy, options) => {
+          proxy.on("proxyReq", (proxyReq, req) => {
+            console.log(`[DBG] PROXY-REQ ${req.method} ${req.url}`);
+          });
+          proxy.on("proxyRes", (proxyRes, req, res) => {
+            console.log(`[DBG] PROXY-RES ${req.method} ${req.url} -> ${proxyRes.statusCode} len=${proxyRes.headers["content-length"]} type=${proxyRes.headers["content-type"]}`);
+          });
+          proxy.on("error", (err) => {
+            console.log(`[DBG] PROXY-ERR ${req?.url} ${err.message}`);
+          });
+        },
       },
       // 设备模块：device-starter 原生前缀，不在 /ms/* 体系内，需单独放行
       "/api/device": {
         target: apiTarget,
+        changeOrigin: true,
+      },
+      // CDP 调试中心（/ms/cdp REST + /ws/cdp WebSocket，后端在 monitor 进程内）
+      // dev 下通过 MS_API_TARGET 覆盖目标（默认指向 instabox，本机集成跑到 127.0.0.1:8082）
+      "/ms/cdp": {
+        target: apiTarget,
+        changeOrigin: true,
+      },
+      "/ws/cdp": {
+        target: apiTarget,
+        ws: true,
         changeOrigin: true,
       },
       // 数据源中心（spring-support-datasource-hub-starter）

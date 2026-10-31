@@ -20,6 +20,62 @@ export type TemplateStatus = 'draft' | 'online' | 'offline'
 /** 模板来源：hiprint（绘制模板）/ message（消息模板）/ paper（组卷模板） */
 export type TemplateSource = 'hiprint' | 'message' | 'paper'
 
+/** 接入方：阿里云 / 腾讯云 / 自建 */
+export type ProviderVendor = 'aliyun' | 'tencent' | 'self'
+
+/** 提供商状态 */
+export type ProviderStatus = 'online' | 'offline'
+
+/**
+ * 模板提供商（接入方）
+ *
+ * 一个提供商代表一条模板来源通道（如「阿里云短信」「自建打印服务」）：
+ * 携带调用凭据 AK / SK、接入 endpoint、能承载的模板类型，以及是否允许在本系统里自定义设计模板。
+ * 模板通过 {@link TemplateInfo.providerId} 归到某个提供商下。
+ *
+ * @since 4.0.0.80
+ */
+export interface ProviderInfo {
+  /** 提供商 ID */
+  id: string
+  /** 提供商名称（如「阿里云短信」） */
+  name: string
+  /** 接入方 */
+  vendor: ProviderVendor
+  /** Access Key */
+  ak?: string
+  /** Secret Key */
+  sk?: string
+  /** 服务 endpoint（域名或自建服务地址） */
+  endpoint: string
+  /** 支持的模板类型 */
+  templateTypes: TemplateType[]
+  /** 是否支持自定义模板设计（开启才允许进入设计器） */
+  customDesign: boolean
+  /** 状态：online 已启用 / offline 已停用 */
+  status: ProviderStatus
+  /** 该提供商下的模板数（后端统计） */
+  templateCount?: number
+  /** 最近一次同步时间 */
+  lastSyncAt?: string
+  /** 负责人 */
+  owner?: string
+  /** 说明 */
+  remark?: string
+  /** 更新时间 */
+  updatedAt?: string
+}
+
+/** 提供商同步结果 */
+export interface ProviderSyncResult {
+  /** 新增模板数 */
+  added: number
+  /** 更新模板数 */
+  updated: number
+  /** 失败数 */
+  failed: number
+}
+
 /** 模板实体（透传后端） */
 export interface TemplateInfo {
   /** 模板 ID */
@@ -36,10 +92,12 @@ export interface TemplateInfo {
   status: TemplateStatus
   /** 模板来源：hiprint / message / paper */
   source: TemplateSource
+  /** 提供商 ID（模板归属于哪个接入方） */
+  providerId?: string
   /** 来源行 ID（消息/组卷模板的主键 ID，hiprint 时缺省） */
   sourceId?: string
-  /** 来源提供方（消息提供商 ID / 组卷归属用户 ID） */
-  providerId?: string
+  /** 来源提供方（消息提供商 ID / 组卷归属用户 ID），与 providerId 同理且兼容旧字段 */
+  sourceProviderId?: string
   /** 创建者 */
   creator: string
   /** 最后修改者 */
@@ -61,6 +119,8 @@ export interface TemplatePageQuery {
   type?: TemplateType
   status?: TemplateStatus
   source?: TemplateSource
+  /** 提供商 ID（按提供商过滤模板） */
+  providerId?: string
   page: number
   size: number
 }
@@ -125,12 +185,12 @@ export interface PrinterConfig {
 export interface LogRecord {
   /** 日志 ID */
   id: string
-  /** 模板 ID */
+  /** 模板 ID（同步类操作记录提供商 ID） */
   templateId: string
-  /** 模板名称 */
+  /** 模板名称（同步类操作记录提供商名称） */
   templateName: string
-  /** 操作：preview（预览） / designer（设计） / print（打印） */
-  action: 'preview' | 'design' | 'print'
+  /** 操作：preview（预览） / design（设计） / print（打印） / sync（同步） */
+  action: 'preview' | 'design' | 'print' | 'sync'
   /** 调用参数（打印时传给打印引擎的参数） */
   parameters: Record<string, any>
   /** 创建时间 */
@@ -148,7 +208,7 @@ export interface TemplateLogQuery {
   /** 模板名称（模糊） */
   templateName?: string
   /** 操作类型 */
-  action?: 'preview' | 'design' | 'print'
+  action?: 'preview' | 'design' | 'print' | 'sync'
   /** 调用方 IP */
   ip?: string
   /** 页码 */
