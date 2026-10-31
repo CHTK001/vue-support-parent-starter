@@ -81,6 +81,7 @@ import { message } from '@repo/core'
 import { Delete, Refresh } from '@element-plus/icons-vue'
 import { apiService } from '@/services/ApiService'
 import { useLibraryGroups } from '@/composables/useLibraryGroups'
+import type { ReidLibraryItem } from '@/services/modules/reid.api'
 
 /**
  * 重识别库管理面板（设置中心「底库」分组）。
@@ -125,11 +126,8 @@ const { group, groupOptions, loadGroups, rememberGroups } = useLibraryGroups('re
 async function load() {
   loading.value = true
   try {
-    const res: any = await (apiService as any)._request('/reid/library', {
-      params: { group: group.value },
-    })
-    const data = res && typeof res === 'object' && 'data' in res ? res.data : res
-    items.value = Array.isArray(data?.items) ? data.items : []
+    // 底部观测记录全部由底库接口供给：不用再拆信封
+    items.value = await apiService.listReidLibrary({ group: group.value })
     // 记录里带回的分组名一并并进下拉：后端 groups 接口没列到的历史分组也不该缺席
     rememberGroups(items.value.map((it) => it.group))
   } catch (e) {
@@ -176,7 +174,7 @@ async function clearAll() {
       params: { group: group.value },
     })
     const data = res && typeof res === 'object' && 'data' in res ? res.data : res
-    message.success(`已清空分组「${group.value}」的 ${data?.cleared ?? 0} 条轨迹`)
+    message.success(`已清空分组「${group.value}」的 ${data?.cleared ?? 0} 条记录`)
     await load()
   } catch (e) {
     message.error(`清空失败：${(e as Error)?.message ?? e}`)

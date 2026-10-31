@@ -91,6 +91,7 @@
               class="ws-scene-tab"
               :class="{ active: currentSceneId === s.id }"
               type="button"
+              :data-id="s.id"
               @click="selectScene(s)"
             >{{ s.name }}</button>
             <button class="ws-scene-add" type="button" title="新建场景" @click="openCreateScene">

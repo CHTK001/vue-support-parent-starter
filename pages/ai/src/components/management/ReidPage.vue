@@ -258,19 +258,24 @@ import ReLoader from "@repo/ui/re-loader";
 import { ElMessageBox } from "element-plus";
 import { apiService } from "@/services/ApiService";
 import { DEFAULT_GROUP, useLibraryGroups } from "@/composables/useLibraryGroups";
-import type { ReidFaceBox, ReidHit, ReidObserveResult, ReidTrack } from "@/services/modules/reid.api";
+import type { ReidFaceBox, ReidHit, ReidLibraryItem, ReidObserveResult } from "@/services/modules/reid.api";
 
 /**
  * 人脸重识别页面。
  *
  * <p><b>视觉骨架与人脸识别页一致</b>：左侧图片舞台（图上叠检测框）+ 右侧常驻卡片栏。
- * 差别只在语义 —— 人脸页右侧是「相似面孔」，这里是「跨帧轨迹卡片」。</p>
+ * 差别只在语义 —— 人脸页右侧是「相似面孔」，这里是「人员记录」。</p>
  *
  * <p>两种操作模式（观测 / 以图搜人）共用同一个舞台，由右侧卡片栏底部的按钮切换：
  * 这样上传区、叠加层、操作条都只有一套实现，不会出现两份长得不一样的布局。</p>
  *
+ * <p><b>本页只做事：观测（落底库）、检索、看人员。</b>
+ * 观测落库的一条记录就是一个人；<b>不做跨帧轨迹汇聚</b> ——
+ * 每一次观测都是独立存在的，下次打开页面、换个分组、供他人查看，数据都在
+ * 底库里，不再依赖那条按 track_id 聚合成一条轨迹的链表。</p>
+ *
  * <p><b>配置不在这里。</b>模型与归并参数统一在「系统设置 → 人脸重识别配置」。
- * 本页只做事：观测（落底库）、检索、看轨迹。</p>
+ * 本页只做事：观测（落底库）、检索、看人员。</p>
  */
 
 /** 操作模式：观测 / 检索。 */
@@ -278,9 +283,8 @@ type Mode = "observe" | "search";
 
 /** 卡片分类。 */
 const TABS = [
-  { key: "all", label: "全部", hint: "全部轨迹" },
-  { key: "cross", label: "跨镜", hint: "只看跨摄像头轨迹" },
-  { key: "hit", label: "命中", hint: "只看本次检索命中的轨迹" },
+  { key: "all", label: "全部", hint: "当前分组下的全部记录" },
+  { key: "hit", label: "命中", hint: "只看本次检索命中的记录" },
 ];
 
 const router = useRouter();
@@ -309,8 +313,8 @@ const faces = ref<Array<{ x: number; y: number; width: number; height: number; t
 /** 以图搜人命中。 */
 const searchHits = ref<ReidHit[]>([]);
 
-/** 轨迹列表。 */
-const tracks = ref<ReidTrack[]>([]);
+/** 底库观测记录（人员）列表。 */
+const observations = ref<ReidLibraryItem[]>([]);
 
 /**
  * 当前分组。
@@ -348,10 +352,7 @@ const done = ref(false);
 /** 上次选择的文件。 */
 const lastFile = ref<File | Blob | null>(null);
 
-/** 跨镜轨迹数。 */
-const crossCount = computed(() => tracks.value.filter((t) => t.crossCamera).length);
-
-/** 右侧卡片数据：检索命中时用命中项，否则用轨迹列表。 */
+/** 右侧卡片数据：检索命中时用命中项，否则用底库观测记录。 */
 const cards = computed(() => {
   if (activeTab.value === "hit") {
     return searchHits.value.map((h) => ({

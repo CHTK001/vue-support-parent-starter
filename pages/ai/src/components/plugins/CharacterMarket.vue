@@ -88,7 +88,6 @@
             <el-button circle class="market-del" @click="handleDelete(item)">
               <el-icon><Delete /></el-icon>
             </el-button>
-            <el-button type="primary" class="market-go" @click="goCustom(item)">去对话</el-button>
           </div>
         </div>
       </div>

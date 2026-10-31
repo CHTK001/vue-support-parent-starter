@@ -139,6 +139,34 @@ export interface ReidStats {
   group?: string;
 }
 
+/** 重识别底库的一条观测记录（一份人员信息，不做跨帧轨迹汇聚）。 */
+export interface ReidLibraryItem {
+  /** 底库记录 ID（即底层向量标识） */
+  id: string;
+  /** 所属分组（历史数据缺失时按 default 展示） */
+  group?: string | null;
+  /** 摄像头标识 */
+  cameraId?: string | null;
+  /** 记录名 */
+  name?: string | null;
+  /** 关联的人脸姓名（人脸识别命中时非空） */
+  faceName?: string | null;
+  /** 最近一次观测的纬度（可空） */
+  lat?: string | number | null;
+  /** 最近一次观测的经度（可空） */
+  lng?: string | number | null;
+  /** 最近一次观测的缩略图（可空） */
+  thumbnail?: string | null;
+  /** 观测时间（后端返回 LocalDateTime 字符串） */
+  createTime?: string | null;
+}
+
+/** 底库观测记录列表查询参数。 */
+export interface ReidLibraryParams {
+  /** 只看某个分组的观测记录（不传 = 当前分组下的全部观测） */
+  group?: string;
+}
+
 export interface ReidApi {
   /** 观测一帧：检测人脸并归并进跨帧轨迹 */
   observeReid(
@@ -159,6 +187,8 @@ export interface ReidApi {
   searchReid(file: File | Blob, topK?: number, filename?: string, groups?: string[]): Promise<ReidHit[]>;
   /** 列出轨迹 */
   listReidTracks(params?: ReidTracksParams): Promise<ReidTrack[]>;
+  /** 列出底库观测记录（人员，不做跨帧轨迹汇聚） */
+  listReidLibrary(params?: ReidLibraryParams): Promise<ReidLibraryItem[]>;
   /** 轨迹详情 */
   getReidTrack(trackId: string, group?: string): Promise<ReidTrack | null>;
   /** 轨迹统计 */
@@ -325,6 +355,20 @@ export const reidApi: ReidApi = {
     });
     const data = unwrap<{ tracks?: ReidTrack[] }>(res);
     return Array.isArray(data?.tracks) ? data.tracks : [];
+  },
+
+  /**
+   * 列出底库观测记录。
+   *
+   * <p>观测记录是一份人员信息（摄像头、时间、姓名、坐标），<b>不做跨帧轨迹汇聚</b> ——
+   * 每一条就是库里的一个人，既没有“跨镜”的语义，也不依赖轨迹聚合接口。</p>
+   */
+  async listReidLibrary(this: ApiContext, params?: ReidLibraryParams): Promise<ReidLibraryItem[]> {
+    const res = await this._request("/reid/library", {
+      params: params ? { group: normalizeGroup(params.group) } : undefined,
+    });
+    const data = unwrap<{ items?: ReidLibraryItem[] }>(res);
+    return Array.isArray(data?.items) ? data.items : [];
   },
 
   async getReidTrack(this: ApiContext, trackId: string, group?: string): Promise<ReidTrack | null> {
