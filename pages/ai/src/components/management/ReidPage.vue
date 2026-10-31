@@ -126,7 +126,7 @@
               :loading="busy"
               @click="runObserve"
             >
-              <el-icon v-if="!busy"><Aim /></el-icon>观测并归并轨迹
+              <el-icon v-if="!busy"><Aim /></el-icon>观测并入库
             </el-button>
             <el-button
               v-else
@@ -135,7 +135,7 @@
               :loading="busy"
               @click="runSearchFromButton"
             >
-              <el-icon v-if="!busy"><Search /></el-icon>检索轨迹
+              <el-icon v-if="!busy"><Search /></el-icon>检索记录
             </el-button>
           </div>
         </div>
@@ -144,7 +144,7 @@
       <!-- ==================== 右：轨迹卡片 ==================== -->
       <aside class="reid-panel">
         <header class="reid-panel-head">
-          <h2 class="reid-panel-title">跨帧轨迹</h2>
+          <h2 class="reid-panel-title">人员记录</h2>
           <span class="reid-dots"><i v-for="n in 5" :key="n" /></span>
         </header>
 
@@ -166,12 +166,12 @@
         <div v-if="cards.length" class="reid-grid">
           <article
             v-for="c in cards"
-            :key="c.trackId"
+            :key="c.id"
             class="reid-card"
             :class="{ 'is-cross': c.crossCamera }"
           >
             <div class="reid-card-head">
-              <span class="reid-card-id">{{ c.trackId }}</span>
+              <span class="reid-card-id">{{ c.id }}</span>
               <!-- 分流类型标注：清晰脸走人脸识别（给出姓名），模糊脸走重识别（给出轨迹） -->
               <el-tag
                 v-if="c.matchType"
@@ -185,10 +185,10 @@
               <!-- 分组标注：卡片列表是按分组拉回来的，标出来用户才知道「这条属于哪一组」 -->
               <el-tag v-if="c.group" size="small" effect="plain" class="reid-card-group">{{ c.group }}</el-tag>
             </div>
-            <!-- 认出的姓名（人脸识别命中时） -->
-            <p v-if="c.faceName" class="reid-card-name">
+            <!-- 名字：人脸识别命中的姓名，否则是底库这条观测的记录名 -->
+            <p v-if="c.faceName || c.name" class="reid-card-name">
               <el-icon><User /></el-icon>
-              <b>{{ c.faceName }}</b>
+              <b>{{ c.faceName || c.name }}</b>
             </p>
             <p class="reid-card-cams" :title="c.cameraIds.join(' → ')">{{ c.cameraIds.join(' → ') }}</p>
             <p class="reid-card-meta">
@@ -214,12 +214,11 @@
           {{ mode === 'observe' ? '切换到以图搜人' : '切换到观测画面' }}
         </el-button>
         <p class="reid-panel-hint">
-          已选分组 <b>{{ groupTags }}</b>（检索范围） · 共 <b>{{ tracks.length }}</b> 条轨迹
-          <span v-if="crossCount"> · 其中跨镜 <b>{{ crossCount }}</b> 条</span>
+          已选分组 <b>{{ groupTags }}</b>（检索范围） · 共 <b>{{ observations.length }}</b> 条记录
         </p>
 
-        <el-button v-if="tracks.length" link type="danger" class="reid-clear" :disabled="busy" @click="clearTracks">
-          清空全部轨迹
+        <el-button v-if="observations.length" link type="danger" class="reid-clear" :disabled="busy" @click="clearObservations">
+          清空全部记录
         </el-button>
 
         <!-- 当前模型（只读，取自系统设置） -->
@@ -352,11 +351,41 @@ const done = ref(false);
 /** 上次选择的文件。 */
 const lastFile = ref<File | Blob | null>(null);
 
+/** 右侧卡片的行：底库观测记录与检索命中项共享骨架（每行必有 `id`）。 */
+type ReidCard = {
+  /** 行标识：观测记录用记录 ID，命中项用轨迹 ID。 */
+  id: string;
+  /** 记录名（记录没起名的兜底）。 */
+  name?: string | null;
+  /** 关联人脸姓名（人脸识别命中时非空）。 */
+  faceName?: string | null;
+  /** 摄像头集合（多摄像头 = 跨镜子轨迹；人员行只有单车道摄像头）。 */
+  cameraIds: string[];
+  /** 观测次数（人员行为 1 次）。 */
+  observations: number;
+  /** 是否跨摄像头（人员行没有）。 */
+  crossCamera: boolean;
+  /** 最后一次出现时间（毫秒） */
+  lastSeen: number;
+  /** 最后观测的纬度（非必填） */
+  lat: string | number | null;
+  /** 最后观测的经度（非必填） */
+  lng: string | number | null;
+  /** 相似度（人员行没有）。 */
+  similarity: number | null;
+  /** 分流类型（人员行没有）。 */
+  matchType: "FACE" | "REID" | null;
+  /** 所属分组 */
+  group: string;
+};
+
 /** 右侧卡片数据：检索命中时用命中项，否则用底库观测记录。 */
 const cards = computed(() => {
   if (activeTab.value === "hit") {
     return searchHits.value.map((h) => ({
-      trackId: h.trackId,
+      id: h.trackId,
+      name: null as string | null,
+      faceName: h.faceName ?? h.track?.faceName ?? null,
       cameraIds: h.track?.cameraIds ?? [],
       observations: h.track?.observations ?? 0,
       crossCamera: h.track?.crossCamera ?? false,
@@ -366,37 +395,37 @@ const cards = computed(() => {
       similarity: h.similarity as number | null,
       // 分流类型与姓名：FACE = 人脸识别认出了是谁，REID = 模糊脸只知轨迹
       matchType: h.matchType ?? null,
-      faceName: h.faceName ?? h.track?.faceName ?? null,
       // 命中项可能不回传 group（跨分组检索时），回落到当前分组
       group: h.track?.group ?? group.value,
     }));
   }
-  const base = activeTab.value === "cross" ? tracks.value.filter((t) => t.crossCamera) : tracks.value;
-  return base.map((t) => ({
-    trackId: t.trackId,
-    cameraIds: t.cameraIds,
-    observations: t.observations,
-    crossCamera: t.crossCamera,
-    lastSeen: t.lastSeen,
-    lat: t.lat ?? null,
-    lng: t.lng ?? null,
+  // 人员记录：每一条观测就是底库里的一个人，不做跨帧轨迹汇聚
+  return observations.value.map((o) => ({
+    id: o.id,
+    name: o.name ?? o.faceName ?? null,
+    faceName: o.faceName ?? null,
+    cameraIds: o.cameraId ? [o.cameraId] : [],
+    observations: 1,
+    crossCamera: false,
+    lastSeen: toEpoch(o.createTime),
+    lat: o.lat ?? null,
+    lng: o.lng ?? null,
     similarity: null as number | null,
     matchType: null as "FACE" | "REID" | null,
-    faceName: t.faceName ?? null,
-    group: t.group ?? group.value,
+    group: o.group ?? group.value,
   }));
 });
 
 /** 空态标题。 */
 const blankTitle = computed(() =>
-  activeTab.value === "hit" ? "还没有检索结果" : "暂无轨迹",
+  activeTab.value === "hit" ? "还没有检索结果" : "暂无观测记录",
 );
 
 /** 空态说明。 */
 const blankDesc = computed(() =>
   activeTab.value === "hit"
-    ? "上传一张人脸照片后点「检索轨迹」，命中的轨迹会出现在这里"
-    : "上传一帧监控画面并观测后，轨迹会自动汇入这里",
+    ? "上传一张人脸照片后点「检索轨迹」，命中的记录会出现在这里"
+    : "上传一帧监控画面并观测后，人员记录会自动落库",
 );
 
 /**
@@ -410,6 +439,22 @@ function formatTime(ts: number): string {
   const d = new Date(ts);
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+/**
+ * 底库观测时间转毫秒时间戳。
+ *
+ * <p>后端送回的是 {@code LocalDateTime} 字符串（如 {@code 2026-10-31T15:30:00}），
+ * 卡片.line 统一按毫秒时间戳展示，否则类型悬空不好管。</p>
+ *
+ * @param value 后端返回的时间字符串
+ * @returns 毫秒时间戳；无法解析时返回 0
+ */
+function toEpoch(value?: string | number | null): number {
+  if (typeof value === 'number') return value;
+  if (value == null) return 0;
+  const d = new Date(String(value).replace('T', ' '));
+  return isNaN(d.getTime()) ? 0 : d.getTime();
 }
 
 /**
@@ -488,11 +533,11 @@ async function onGroupChange(selected?: string | string[]) {
   setGroups(current);
   // 已选组全部进选项（手输的新分组尤其要进，否则下次打开下拉又选不到它）
   rememberGroups(current);
-  // 换组 = 换了一整套轨迹库
+  // 换组 = 换了一整套记录库
   searchHits.value = [];
   observeResult.value = null;
   faces.value = [];
-  await loadTracks();
+  await loadObservations();
 }
 
 /** 观测并归并。 */
@@ -519,7 +564,7 @@ async function runObserve() {
       trackId: f.trackId ?? null, matched: f.matched,
     }));
     message.success(`观测完成：检出 ${result.faceCount} 张脸`);
-    await loadTracks();
+    await loadObservations();
   } catch (e) {
     message.error(`观测失败：${(e as Error)?.message ?? e}`);
   } finally {
@@ -545,9 +590,9 @@ async function runSearchFromButton() {
     searchHits.value = await apiService.searchReid(lastFile.value, undefined, undefined, groups.value);
     activeTab.value = "hit";
     if (searchHits.value.length) {
-      message.success(`命中 ${searchHits.value.length} 条轨迹`);
+      message.success(`命中 ${searchHits.value.length} 条记录`);
     } else {
-      message.info("没有命中任何轨迹（可能还没有观测记录，或相似度未达阈值）");
+      message.info("没有命中任何记录（可能还没有观测记录，或相似度未达阈值）");
     }
   } catch (e) {
     message.error(`检索失败：${(e as Error)?.message ?? e}`);
@@ -556,39 +601,39 @@ async function runSearchFromButton() {
   }
 }
 
-/** 加载选定分组的全部轨迹（多分组联合检索时合并） */
-async function loadTracks() {
+/** 加载选定分组的全部底库观测记录（多分组联合检索时合并） */
+async function loadObservations() {
   const selected = joinGroups() === ''
     ? [DEFAULT_GROUP]
     : groups.value
   try {
-    // 单组时回到原来的一条路，多选时逐组拉再按 trackId 合并，避免跨组轨迹重复入池
+    // 单组时直接拉，多选时逐组拉再按记录 ID 合并，避免跨组记录重复入池
     const lists = selected.length === 1
-      ? [await apiService.listReidTracks({ group: selected[0] })]
-      : await Promise.all(selected.map((g) => apiService.listReidTracks({ group: g })))
-    const map = new Map<string, ReidTrack>()
+      ? [await apiService.listReidLibrary({ group: selected[0] })]
+      : await Promise.all(selected.map((g) => apiService.listReidLibrary({ group: g })))
+    const map = new Map<string, ReidLibraryItem>()
     for (const list of lists) {
-      for (const t of list) {
-        if (!map.has(t.trackId)) map.set(t.trackId, t)
+      for (const item of list) {
+        if (!map.has(item.id)) map.set(item.id, item)
       }
     }
-    tracks.value = [...map.values()]
-    // 轨迹里带回的分组名一并并进下拉：后端 groups 接口没列到的历史分组（或接口不可用）
+    observations.value = [...map.values()]
+    // 记录里带回的分组名一并并进下拉：后端 groups 接口没列到的历史分组（或接口不可用）
     // 也不该在下拉里缺席
-    rememberGroups(tracks.value.map((t) => t.group));
+    rememberGroups(observations.value.map((item) => item.group));
   } catch (e) {
-    message.error(`加载轨迹失败：${(e as Error)?.message ?? e}`);
+    message.error(`加载记录失败：${(e as Error)?.message ?? e}`);
   }
 }
 
-/** 清空选定分组的全部轨迹（多选时一组一组清，绝不越界别的组） */
-async function clearTracks() {
+/** 清空选定分组的全部观测记录（多选时一组一组清，绝不越界别的组） */
+async function clearObservations() {
   const selected = joinGroups() === ''
     ? [DEFAULT_GROUP]
     : groups.value
   const label = selected.length === 1
-    ? `所有轨迹`
-    : `选定分组的 ${selected.length} 个轨迹库`
+    ? `所有记录`
+    : `选定分组的 ${selected.length} 个记录库`
   try {
     await ElMessageBox.confirm(`确认要清空${label}吗？此动作不可恢复。`, '清空操作', {
       confirmButtonText: '清空',
@@ -597,11 +642,11 @@ async function clearTracks() {
     })
     const results = await Promise.all(selected.map((g) => apiService.clearReidTracks(g)))
     const total = results.reduce((n, c) => n + (c ?? 0), 0)
-    message.success(`已清空 ${label} 共 ${total} 条轨迹`)
+    message.success(`已清空 ${label} 共 ${total} 条记录`)
     searchHits.value = [];
     observeResult.value = null;
     faces.value = [];
-    await loadTracks();
+    await loadObservations();
   } catch {
     // 用户取消，不做任何事
   }
@@ -628,7 +673,7 @@ onMounted(async () => {
   } catch {
     available.value = false;
   }
-  await loadTracks();
+  await loadObservations();
 });
 </script>
 

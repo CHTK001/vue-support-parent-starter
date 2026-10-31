@@ -3,8 +3,8 @@ import {
   AddSquare20Regular, ContactCard20Regular, ChatMultiple24Regular, BookSearch20Regular,
   Apps20Regular, Image20Regular, Person20Regular, ImageSearch20Regular,
   DocumentText20Regular, DesktopSpeaker24Regular, Headphones24Regular, BrainCircuit20Regular,
-  DataBarVertical20Regular, PlugConnected20Regular, ClockAlarm20Regular, Fingerprint24Regular,
-  Earth24Regular, PeopleLock20Regular,
+  DataBarVertical20Regular, PlugConnected20Regular, Fingerprint24Regular,
+  Earth24Regular,
 } from '@vicons/fluent'
 
 /**
@@ -256,22 +256,6 @@ export function createSidebarMenuItems(ctx: SidebarMenuContext): SidebarMenuItem
       icon: PlugConnected20Regular,
       section: '集成',
       showKey: 'showConnectorsMenu',
-    },
-    {
-      key: 'scheduler',
-      label: t('ui.sidebar.navScheduler'),
-      icon: ClockAlarm20Regular,
-      section: '管理',
-      showKey: 'showSchedulerMenu',
-      adminOnly: true,
-    },
-    {
-      key: 'roles',
-      label: '角色管理',
-      icon: PeopleLock20Regular,
-      section: '管理',
-      showKey: 'showRolesMenu',
-      adminOnly: true,
     },
   ]
 }
