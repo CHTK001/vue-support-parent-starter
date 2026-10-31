@@ -271,15 +271,22 @@ iframe 完成键入后回发 `{ type: 'TERMINAL_ACK', ... }`，前端不作面�
 
 ---
 
-## 6. 调度（SPI 按平台）
+## 6. 调度（主机工作台）
 
-`/ms/server/host/{hostId}/schedule` 一组接口（右键菜单「调度信息」最终入口，
-见 `AssetsView` 的 `tabKind: "schedule"`），SPI 的约束由各平台命令决定：
+右键菜单「调度信息」入口（`AssetsView` 的 `tabKind: "schedule"`）不指向独立的
+`/ms/server/host/{hostId}/schedule` 接口（后端没有这张表，曾返回 404）——
+它复用批量计划任务接口 `POST /ms/server/exec/job` / `PUT /ms/server/exec/job/{id}` /
+`DELETE /ms/server/exec/job/{id}` / `GET /ms/server/exec/job`，并通过第三方
+`msExecJobHostIds`（JSON 数组，如 `"["4"]"`）按主机过滤：
 
-| 字段 | 说明 |
+| 操作 | 行为 |
 |---|---|
-| `msScheduleName` | 规则名 |
-| `expression` | cron |
-| `command` | 在目标平台上执行的 shell 命令 |
-| `platform` | `win | linux | mac`（空=全部），SPI 按平台切分执行器 |
-| `remark` | 备注 |
+| 新增 | 创建 `msExecJobType = CRON` 的任务，`msExecJobHostIds = [当前主机]` |
+| 修改 | 只更新名称/cron/命令/备注，不改动目标主机与启停状态 |
+| 删除 | 先把当前主机从 `msExecJobHostIds` 中摘掉；摘空才删任务——同一条计划任务
+       可能同时命中多台主机，不能误删 |
+| 启停 | 写 `msExecJobEnabled`，直接反映为按钮「启用中 / 已停用」 |
+
+同步的字段：规则名 `msExecJobName`、表达式 `msExecJobCron`、命令 `msExecJobCommand`、
+备注 `msExecJobRemark`、启用态 `msExecJobEnabled`、下次执行时间 `msExecJobNextRunTime`。
+所以本页新增的规则在「运维台 / 批量作业」里可见（这在 §6 之前已完成）。
