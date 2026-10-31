@@ -618,7 +618,7 @@ onMounted(async () => {
   try {
     const stats = await apiService.getReidStats();
     available.value = stats.available;
-    // 摘要形如 reid{feature=arc-face, threshold=0.5, ...}，取出模型名作只读展示
+    // 摘要形如 face-reid{detector=scrfd, feature=arc-face, ...}，取出模型名作只读展示
     const cfg = stats.config ?? "";
     const feature = /feature=([^,}\s]+)/.exec(cfg);
     featureModel.value = feature && feature[1] !== "null" ? feature[1] : "";

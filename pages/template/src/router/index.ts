@@ -2,8 +2,9 @@
  * 模板库路由表 + 静态菜单表
  *
  * 路由挂在 layout 之下：
- * - /template              模板库（列表 + 右键菜单）
+ * - /template              模板库（列表 + 右键菜单 + 多页签工作台）
  * - /template/printer      打印机管理（接入第三方打印机 + 默认打印机）
+ * - /template/logs         调用日志（预览 / 设计 / 打印 归集，含参数/时间/IP）
  * - /template/designer/:id 模板设计器（拖拽式设计 + 打印预览）
  * - /template/preview/:id  模板预览（不含设计器外壳的只读预览）
  *
@@ -37,6 +38,19 @@ export const templateRoutes: RouteConfigsTable[] = [
       keepAlive: false,
       isVisible: '1',
       rank: 22
+    }
+  },
+  {
+    path: '/template/logs',
+    name: 'TemplateLogs',
+    component: () => import('../views/LogManage.vue'),
+    meta: {
+      title: '调用日志',
+      icon: 'List',
+      showLink: true,
+      keepAlive: false,
+      isVisible: '1',
+      rank: 23
     }
   },
   {
@@ -88,6 +102,11 @@ export const templateMenus = [
         path: '/template/printer',
         name: 'TemplatePrinter',
         meta: { title: '打印机管理', icon: 'Printer', isVisible: '1' }
+      },
+      {
+        path: '/template/logs',
+        name: 'TemplateLogs',
+        meta: { title: '调用日志', icon: 'List', isVisible: '1', rank: 23 }
       }
     ]
   }

@@ -1716,19 +1716,23 @@ onMounted(() => {
 .question-table {
   width: 100%;
 }
-.question-table :deep(.el-table__header th) {
+.question-table :deep(table.vxe-table--header .vxe-header--row .vxe-table--column) {
   background: var(--el-fill-color-light);
   color: var(--el-text-color-primary);
   font-weight: 700;
   font-size: 13px;
 }
-.question-table :deep(.el-table__row) {
+.question-table :deep(table.vxe-table--body .vxe-body--row) {
   cursor: pointer;
 }
-.question-table :deep(.el-table__row:hover > td) {
+/* 悬停背景行：vxe 把 hover 样式的“字”放在列单元格 .vxe-cell--wrapper 之上，
+   这里覆盖 .vxe-cell--wrapper 上的悬停底色（不是 td 本身，td 的 hover 被 vxe 写在 .vxe-cell--wrapper 的伪类上） */
+.question-table :deep(table.vxe-table--body .vxe-body--row:hover .vxe-cell--wrapper > span) {
   background: var(--el-color-primary-light-9) !important;
 }
-.question-table :deep(.el-table__cell) {
+/* 单元格内边距与行高：vxe 的单元格的真实 DOM 是 .vxe-table--column 里
+   的 .vxe-cell > .vxe-cell--wrapper ，padding 写在 wrapper 上才托起文字 */
+.question-table :deep(table.vxe-table--body .vxe-table--column .vxe-cell--wrapper) {
   padding: 12px 0;
 }
 .stem-cell :deep(.katex) {
@@ -2240,13 +2244,13 @@ onMounted(() => {
   font-weight: 600;
 }
 
-/* 空态：koi 主题把 empty-block 设成 absolute + translate(-50%,-50%)，
-   与 min-height 叠加会把 el-empty 压到顶部成一条细条，这里显式改回静态流式并居中撑高 */
-.question-table :deep(.el-table__empty-block) {
-  position: static;
-  top: auto;
-  left: auto;
-  transform: none;
+/* 空态：vxe 的 .vxe-table--empty-block 是离位排布的空内容壳（absolute），否则
+   el-empty 被压扁贴到表格上沿。这里显式改回静态流式并居中撑高。 */
+.question-table :deep(.vxe-table--empty-block) {
+  position: static !important;
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
   min-height: 440px;
   height: 100%;
   width: 100%;
@@ -2254,7 +2258,8 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
 }
-.question-table :deep(.el-table__empty-text) {
+/* 空文字：vxe 的 #empty 插槽落在 .vxe-table--empty-content 内（el-empty 之外壳） */
+.question-table :deep(.vxe-table--empty-content) {
   width: 100%;
   min-width: 0;
   padding: 0 16px;

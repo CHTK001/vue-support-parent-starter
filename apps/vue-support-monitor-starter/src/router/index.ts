@@ -39,6 +39,8 @@ import type { RouteConfigsTable } from "@repo/core";
 import { createDatasourceManageRoutes } from "@pages/datasource/src/routes";
 import { createServerHostRoutes } from "@pages/server/src/routes";
 import { createDockerRoutes } from "@pages/docker/src/routes";
+// 调试中心（CDP）：运维管理分组下唯一的叶子页。
+import { createCdpRoutes } from "@pages/debug/src/routes";
 import { createMonitorRoutes, createMonitorManageRoutes } from "@pages/monitor/src/routes";
 
 export const monitorRoutes: RouteConfigsTable[] = [
@@ -270,6 +272,12 @@ export const monitorRoutes: RouteConfigsTable[] = [
       },
     ],
   },
+
+  // ==================== 运维管理 ====================
+  // 浏览器级调试面板（Chrome DevTools Protocol）：
+  //   后端由 spring-support-cdp-starter 提供 /ms/cdp + /ws/cdp，
+  //   页面由 @pages/debug 的 createCdpRoutes 产出（路由 + 菜单同源）。
+  ...createCdpRoutes({ showLink: true }),
 
   // ==================== 系统管理 ====================
   // 跨包拼装的本地分组（代理/分组/账号/系统配置来自多个 pages 包），

@@ -1021,6 +1021,8 @@ import {getGlobalSocketService, message} from '@repo/core';
 import { http, unwrapResult } from '@repo/utils';
 import { fillTemplate, bestTemplate } from '@repo/ui/components/ReCommand/templates';
 import ReCron from '@repo/ui/re-cron';
+import ReTabs from '@repo/ui/re-tabs';
+import type { ReTabsItem } from '@repo/ui/re-tabs';
 import ReSplitLayout from '@repo/ui/re-split-layout';
 import type { SplitNode } from '@repo/ui/re-split-layout';
 import { trackTask } from '../../utils/processTasks';
@@ -1958,7 +1960,16 @@ function onMoreCommand(item: Project, command: string) {
       openEditDialog(item);
       break;
     case 'log':
-      handleViewLog(item);
+      openLogTab(item);
+      break;
+    case 'arthas':
+      openArthasDialog(item);
+      break;
+    case 'swagger':
+      openEndpointDialog(item, 'swagger');
+      break;
+    case 'actuator':
+      openEndpointDialog(item, 'actuator');
       break;
     case 'update-lib':
       handleUpdateLib(item);
@@ -2737,9 +2748,9 @@ async function startLogSession(item: Project): Promise<LogSession> {
   return tracked;
 }
 
-/** 卡片菜单「实时日志」：在项目管理下方追加一列 */
+/** 「实时日志」入口（More 菜单）：在右侧工作区打开页签 */
 function handleViewLog(item: Project) {
-  void startLogSession(item);
+  void openLogTab(item);
 }
 
 /** 在弹窗中放大某个会话（内嵌列保留） */
@@ -2777,6 +2788,106 @@ function cleanupAllLogSessions() {
   logSessions.value.slice().forEach((session) => stopLogSession(session));
   logSessions.value = [];
 }
+
+// ---- 右侧多标签工作区 ----
+/** 当前激活的日志页签 name（ReTabs v-model，空串表示没有激活页签） */
+const activeWorkspaceTab = ref('');
+
+/** 页签列表：每项目一个「实时日志」页签，name = `log:${projectId}` */
+const workspaceTabs = computed<ReTabsItem[]>(() =>
+  logSessions.value.map((s) => ({
+    name: `log:${s.projectId}`,
+    label: s.projectName,
+    hint: '实时日志',
+    icon: 'Tickets',
+    closable: true,
+    status: statusKeyOfLog(s),
+  })),
+);
+
+/** 日志页签状态点：运行中=绿 / 已停止=灰 / 推送离线=红 */
+function statusKeyOfLog(s: { projectId: number }): 'online' | 'offline' | 'alarm' {
+  const item = list.value.find((p) => p.id === s.projectId);
+  if (!item) return 'offline';
+  if (statusKey(item) !== 'running') return 'offline';
+  const session = findLogSession(item.id);
+  return session?.pushOffline ? 'alarm' : 'online';
+}
+
+/** 打开（或复用）某个项目的实时日志页签 */
+async function openLogTab(item: Project) {
+  const session = await startLogSession(item);
+  activeWorkspaceTab.value = `log:${session.projectId}`;
+}
+
+/** 关闭一个日志页签：停连接、移除会话，active 兜底切到相邻页签 */
+function closeWorkspaceTab(name: string) {
+  const session = logSessions.value.find((s) => `log:${s.projectId}` === name);
+  if (session) closeLogSession(session);
+  const rest = workspaceTabs.value.filter((t) => t.name !== name);
+  if (activeWorkspaceTab.value === name) {
+    activeWorkspaceTab.value = rest[rest.length - 1]?.name ?? '';
+  }
+}
+
+/** 关闭全部日志页签 */
+function closeAllLogTabs() {
+  logSessions.value.slice().forEach((session) => closeLogSession(session));
+  activeWorkspaceTab.value = '';
+}
+
+/** 关闭页签后 ReTabs 只回传 update:modelValue（active），父级必须自己兜底修正 */
+watch(workspaceTabs, (tabs) => {
+  if (tabs.length && !tabs.some((t) => t.name === activeWorkspaceTab.value)) {
+    activeWorkspaceTab.value = tabs[tabs.length - 1]!.name;
+  } else if (!tabs.length && activeWorkspaceTab.value) {
+    activeWorkspaceTab.value = '';
+  }
+});
+
+/** 右面板要展示的项目：优先激活页签对应项目，其次左侧选中的项目 */
+const metricsProject = computed<Project | null>(() => {
+  const active = workspaceTabs.value.find((t) => t.name === activeWorkspaceTab.value);
+  if (active) {
+    const pid = Number(active.name.replace(/^log:/, ''));
+    return list.value.find((p) => p.id === pid) ?? null;
+  }
+  return selectedProject.value;
+});
+
+const logSessionByTab = computed(() => {
+  const map = new Map<string, LogSession>();
+  logSessions.value.forEach((s) => map.set(`log:${s.projectId}`, s));
+  return map;
+});
+
+// ---- 左侧 rail：折叠 / 分组 ----
+/** 左栏是否折叠成竖条（本地持久化） */
+const railCollapsed = ref(localStorage.getItem('projects-rail-collapsed') === '1');
+function toggleRail() {
+  railCollapsed.value = !railCollapsed.value;
+  localStorage.setItem('projects-rail-collapsed', railCollapsed.value ? '1' : '0');
+}
+
+/** 当前折叠的状态分组（默认全展开） */
+const collapsedGroups = ref<Set<StatusKey>>(new Set());
+function toggleGroup(key: StatusKey) {
+  const next = new Set(collapsedGroups.value);
+  if (next.has(key)) next.delete(key); else next.add(key);
+  collapsedGroups.value = next;
+}
+
+/** 左侧当前选中的项目（右键菜单 / 底部指标条兜底） */
+const selectedProject = ref<Project | null>(null);
+
+/** 按 STATUS_GROUPS 顺序分桶：全部组都展示（含空组，方便看到底下还有哪些状态） */
+const groupedProjects = computed(() =>
+  STATUS_GROUPS.map((g) => ({
+    key: g.key,
+    label: g.label,
+    items: visibleList.value.filter((i) => statusKey(i) === g.key),
+  })),
+);
 
 // ---- 页面分栏布局（可拖拽 + 持久化到后端） ----
 /** 布局在系统配置表里的 pageKey（后端存为 ui.layout.release-projects） */

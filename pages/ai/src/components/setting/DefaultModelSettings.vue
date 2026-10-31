@@ -222,7 +222,7 @@ const props = defineProps({
  * 改到试卷管线配置（保存会被接口层拒，但界面给了他们可编辑的假象，
  * 也暴露了管理员专属的管线参数）。</p>
  */
-const SPLIT_GROUPS = ['face', 'image_search', 'layout', 'rag', 'ocr', 'bot', 'language', 'runtime', 'asr', 'tts', 'search', 'paper', 'compose', 'reid']
+const SPLIT_GROUPS = ['face', 'image_search', 'layout', 'rag', 'ocr', 'bot', 'language', 'runtime', 'asr', 'tts', 'search', 'paper', 'compose']
 
 /** 传入 groups 时只渲染指定分组（设置中心拆出的独立菜单复用同一套交互与保存逻辑） */
 const displayGroups = computed(() => {
@@ -507,7 +507,8 @@ const isPlainVisibleField = (group, field) =>
     // 才是这页真正要调的东西。分组里只要有模型字段，常驻区就只放模型选择器，
     // 其余全部塞进「高级选项」—— 结果是用户打开配置页只能看到两个模型下拉，
     // 最关键的阈值要点开折叠才找得到，与「人脸识别配置」把阈值平铺的做法也不一致。
-    || (group === 'reid'
+    // 参数已随人脸组（face）一起下发，重识别不再独有的分组。
+    || (group === 'face'
     && ['track_threshold', 'track_gap_seconds', 'track_max_tracks', 'track_ttl_seconds',
         'top_k', 'match_threshold'].includes(String(field || '')))
 
@@ -698,10 +699,6 @@ const requiredTypeFor = (group, field) => {
     const f = String(field || '').toLowerCase()
     // CV / ONNX 管线分组（非 OpenAI 兼容接口模型）
     if (g === 'face') return 'face'
-    // 人脸重识别与人脸识别**共用同一批 ONNX 模型**（SCRFD 检测 + ArcFace 特征），
-    // 分组名不同但模型类型完全一致。不在这里归类的话，detector_model / feature_model
-    // 会一路落到末尾的 'text'（对话模型），弹框里只剩 LLM，真正的检测/特征模型一个都选不到。
-    if (g === 'reid') return 'face'
     if (g === 'ocr') return 'ocr'
     if (g === 'layout') return 'layout'
     // 图片识别组里的检测模型是独立类型，分类/分割等仍归 image_cv
@@ -781,9 +778,6 @@ const SUBTYPE_FOR_FIELD = {
     'face.deepfake_model': ['face_deepfake'],
     'face.recognizer_model': ['face_recognition'],
     'face.pose_model': ['face_pose'],
-    // 人脸重识别与人脸识别共用模型，细分类型沿用 face_*（见 requiredTypeFor 的说明）
-    'reid.detector_model': ['face_detection'],
-    'reid.feature_model': ['face_feature'],
     'image.detect_model': ['object_detection', 'defect_detection'],
     // 试卷（paper）分组复用 ocr / layout 分组的模型槽位与细分类型：
     // ocr_detector_model → 文字检测（与 ConfigPanel 的 ocr.detector_model 同批模型），
@@ -1015,8 +1009,10 @@ const MEDIUM_RISK_FIELDS = new Set([
  * {@code segment_model} / {@code captioning_model} 命中 {@link #MEDIUM_RISK_FIELDS}，
  * 被拿以图搜图的图像底库条数去提示「底库已有 N 条…建议重登底库」——
  * 可图片识别的分割/描述模型与以图搜图的向量库毫无关系，用户按提示去「重登底库」
- * 完全是白做。同理，新拆出的 {@code reid} 分组也有 {@code feature_model}，
- * 会误判成「换特征模型要重登人脸底库」，而重识别用的是实时轨迹、没有底库。</p>
+ * 完全是白做。</p>
+ *
+ * <p><b>注意</b>：换特征模型不影响人脸重识别——重识别只依赖实时轨迹，不配底库，
+ * 它与人脸管线的检测/特征模型通过同一份 face 分组共享，换模型只影响人脸底库向量。</p>
  *
  * <p>改为白名单后语义是正的：不在表里的分组，换任何模型都不影响任何向量库。</p>
  */

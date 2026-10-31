@@ -4871,6 +4871,10 @@ function startFillObserver(): void {
   fillObserver = new ResizeObserver(() => {
     detectParentHeight();
     measureFillHeight();
+    // 表格盒高 / 表体上沿变了（fill 高度、表头换行、伸缩...）：遮罩的上沿用
+    // 的是 JS 量出的静止值，跟手的表体直角走同一套坐标轴；住在原地上等 loading
+    // 才开始重测是不行的——遮住上沿的更好，等于锁死了表体高度。
+    measureLoadingMask();
     // 布局切换（v-if）会换掉表格元素，旧引用已失效：重新 observe 才能继续跟随。
     // 对已观察的元素重复 observe 是空操作，代价可忽略。
     const el = fillTableEl(mainRef.value);
@@ -8256,6 +8260,14 @@ const iconSelect = Select;
 .re-table .vxe-loading.vxe-table--loading.is--visible {
   top: var(--rt-loading-top, 0);
   height: calc(100% - var(--rt-loading-top, 0px));
+}
+
+/* ⚠ 取数完成 / 无 loading 时：`.vxe-loading` 本身是一层透明层（`display: flex` +
+   `inset: 0` + `z-index: 99`），没有插槽内容、也没有背景色，但会吃掉自己覆盖区域
+   上的全部鼠标事件。这里加 `display: none` 就能关掉它（vxe-pc-ui 的样式表没 import，
+   不能靠它的 `display: none` + `is--visible { display: block }` 启开关）。 */
+.re-table .vxe-loading.vxe-table--loading:not(.is--visible) {
+  display: none;
 }
 
 .re-table__loading {

@@ -1,27 +1,23 @@
 <template>
   <div class="re-select-wrapper">
     <label v-if="label" class="re-select-label">{{ label }}</label>
-    <el-select
-      v-model="selectValue"
+    <ReSelectBase
+      v-bind="$attrs"
+      :model-value="selectValue as never"
       :placeholder="placeholder"
-      :size="size"
+      :size="size || undefined"
       :disabled="disabled"
       :clearable="clearable"
       :filterable="filterable"
       :multiple="multiple"
       :collapse-tags="multiple && collapseTags"
+      :options="options"
       class="re-select"
+      @update:model-value="onUpdate"
       @change="$emit('change', $event)"
     >
-      <el-option
-        v-for="item in options"
-        :key="item.value"
-        :label="item.label"
-        :value="item.value"
-        :disabled="item.disabled"
-      />
       <slot />
-    </el-select>
+    </ReSelectBase>
   </div>
 </template>
 
@@ -29,6 +25,7 @@
 import { computed } from 'vue'
 import type { PropType } from 'vue'
 import type { ComponentSize } from 'element-plus'
+import ReSelectBase from '@repo/ui/re-select'
 
 interface Option {
   label: string
@@ -61,6 +58,10 @@ const selectValue = computed({
   get: () => props.modelValue,
   set: (val) => emit('update:modelValue', val),
 })
+
+function onUpdate(val: string | number | (string | number)[] | null) {
+  selectValue.value = val as never
+}
 </script>
 
 <style scoped>

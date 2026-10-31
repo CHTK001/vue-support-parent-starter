@@ -96,10 +96,10 @@
                             <DefaultModelSettings :groups="['face']" />
                         </template>
                         <template v-else-if="currentTabValue === 'reid-config'">
-                            <!-- 人脸重识别：检测/特征模型 + 轨迹归并参数（阈值/时间窗/容量/保留时长）。
-                                 reid 分组由后端 ReidGlobalSettingProvider 声明，保存后
-                                 ReidClientManager 热重建，模型与归并参数即时生效。 -->
-                            <DefaultModelSettings :groups="['reid']" />
+                            <!-- 人脸重识别：与人脸识别共享 face 分组的全部配置（检测/特征模型、
+                                 推力/归并阈值、时间窗/容量/保留时长、向量库与特征维度），
+                                 不再新建独立的 reid 配置分组。 -->
+                            <DefaultModelSettings :groups="['face']" />
                         </template>
                         <template v-else-if="currentTabValue === 'image-search-config'">
                             <DefaultModelSettings :groups="['image_search']" />
@@ -423,7 +423,8 @@ const sidebarItems = computed(() => [
     {
         // 人脸重识别（跨摄像头/跨帧追踪）的独立配置。
         //
-        // 与「人脸识别配置」同口径：不设 adminOnly。
+        // 与「人脸识别配置」同口径：不设 adminOnly。重识别管线共享人脸组的
+        // 模型/归并/向量库配置（后端 ReidClientManager 与 ReidStores 从 face 分组读），
         // 重识别的模型与归并参数按账号生效（后端 ReidStores 按账号构建实例），
         // 普通用户可以调自己的阈值/时间窗，管理员改的则作为全局默认。
         label: '人脸重识别配置',

@@ -113,3 +113,46 @@ export interface PrinterConfig {
   /** 备注 */
   remark?: string
 }
+
+/**
+ * 调用日志（模板被预览/设计/打印的记录）
+ *
+ * 日志由应用侧在用户确认执行操作后统一写入，只记录临时轨迹，不影响业务数据。
+ *
+ * @since 4.0.0.70
+ * @author CH
+ */
+export interface LogRecord {
+  /** 日志 ID */
+  id: string
+  /** 模板 ID */
+  templateId: string
+  /** 模板名称 */
+  templateName: string
+  /** 操作：preview（预览） / designer（设计） / print（打印） */
+  action: 'preview' | 'design' | 'print'
+  /** 调用参数（打印时传给打印引擎的参数） */
+  parameters: Record<string, any>
+  /** 创建时间 */
+  time: string
+  /** 调用方 IP */
+  ip: string
+  /** 操作人 */
+  operator?: string
+}
+
+/** 调用日志分页查询条件 */
+export interface TemplateLogQuery {
+  /** 模板 ID（精确） */
+  templateId?: string
+  /** 模板名称（模糊） */
+  templateName?: string
+  /** 操作类型 */
+  action?: 'preview' | 'design' | 'print'
+  /** 调用方 IP */
+  ip?: string
+  /** 页码 */
+  page: number
+  /** 每页条数 */
+  size: number
+}

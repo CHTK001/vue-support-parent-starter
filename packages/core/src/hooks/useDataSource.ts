@@ -100,7 +100,15 @@ export function useDataSource<T = unknown>(source: Ref<ReDataSource<T>> | ReData
     } catch (e) {
       if (mine !== seq) return;
       error.value = e instanceof Error ? e : new Error(String(e));
-      data.value = null;
+      // 错误态不吞数据：保留上一次成功拉到的结果，不把它换成 undefined / null。
+      //
+      // <p>调用方（主要是一张表）由此能在失败后仍看到上一屏内容——而数据归零的错觉
+      // 比加载图转一圈更扎眼；error 仍会如实上报（hook 的 error ref /
+      // ReTable 里 emit 的 load-error），页面照样弹提示。</p>
+      //
+      // ⚠ 仅在「取数失败」时生效：成功拿到结果（哪怕是空列表）时 data 仍按结果来。
+      // 首次取数、页面级（data 从来不就）时 data 仍从 null 起步。
+      return;
     } finally {
       if (mine === seq) loading.value = false;
     }

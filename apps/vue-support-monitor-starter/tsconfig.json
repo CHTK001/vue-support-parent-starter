@@ -19,11 +19,18 @@
       "@pages/filesystem": ["../../pages/filesystem/src/index.ts"],
       "@pages/datasource/*": ["../../pages/datasource/*"],
       "@pages/datasource": ["../../pages/datasource/src/index.ts"],
+      // 调试中心（CDP）：运维管理菜单 -> /debug，视图 + API + 路由同源
+      "@pages/debug/*": ["../../pages/debug/*"],
+      "@pages/debug": ["../../pages/debug/src/index.ts"],
       "@pages/device/*": ["../../pages/device/*"],
       "@pages/device": ["../../pages/device/src/index.ts"],
       // ReMap 内部用（workspace 包，pages/device 已声明依赖；此处给 TS 提供解析，
       // 与根 tsconfig 的 "@repo/re-map"、device-starter 同一口径）
-      "@repo/re-map": ["../../packages/ui/re-map"]
+      "@repo/re-map": ["../../packages/ui/re-map"],
+      // 调试中心（CDP）@pages/debug 需要的 @repo/utils、@repo/core 走 ws 文件：
+      // 根 tsconfig 的 paths 在 app tsconfig 下相对 baseUrl 解析，这里给出等价路径
+      "@repo/utils": ["../../packages/utils/src"],
+      "@repo/core": ["../../packages/core/src"]
     }
   },
   "include": [
@@ -37,6 +44,7 @@
     "../../pages/filesystem/src/**/*.d.ts",
     "../../pages/datasource/src/**/*.d.ts",
     "../../pages/docker/src/**/*.d.ts",
-      "../../pages/device/src/**/*.d.ts"
+      "../../pages/device/src/**/*.d.ts",
+      "../../pages/debug/src/**/*.d.ts"
   ]
 }

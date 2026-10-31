@@ -35,6 +35,8 @@ import "@pages/server/src/styles/tokens.css";
 import "@pages/server/src/styles/page.css";
 import "@pages/server/src/styles/dialog.css";
 import "@pages/system/styles/system-page.css";
+// 调试中心（CDP）页面样式：el-tab 基色 / 页头分页布局 / 日志列表等。
+import "@pages/debug/src/styles/debug.css";
 import ProcessHost from "./components/ProcessHost.vue";
 import monitorRoutes from "./router";
 

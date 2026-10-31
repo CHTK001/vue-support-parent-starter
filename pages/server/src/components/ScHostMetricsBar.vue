@@ -202,25 +202,33 @@ const bars = computed(() => [
 /* 常驻状态条：贴在工作区底部，视觉上是一条独立的信息带，不与内容抢空间 */
 /* 强行一行显示：flex-wrap: nowrap 做容器级兜底，white-space: nowrap 向下继承，
    让所有后代文字都不换行。概要浮层（绝对定位不在当前流里）不在此列。 */
+/* 宽度必须跟着父容器走（flex: 1 1 auto + min-width: 0）：早先是 flex: none，
+   宽度由内容决定，主机地址一长整条就被撑到容器外，右侧几项直接被裁掉。
+   分隔线由外层 .as-work__bottom 负责，这里不再画，否则线只跟到内容末尾。 */
 .hmb {
   display: flex;
-  flex: none;
+  flex: 1 1 auto;
   align-items: center;
   gap: 14px;
   flex-wrap: nowrap;
   white-space: nowrap;
+  min-width: 0;
   min-height: 38px;
   padding: 0 14px;
-  border-top: 1px solid var(--el-border-color-lighter);
+  overflow: hidden;
   background: var(--el-bg-color);
   font-size: 12px;
   color: var(--el-text-color-secondary);
 }
 
 /* ===== 概要入口 ===== */
+/* flex: 1 1 auto —— 概要区吃满指标与胶囊之外的全部宽度。
+   它是这一行里唯一"可以被压缩"的部分，所以必须由它来承担伸缩，
+   否则一旦空间不够，被压扁的会是主机名（只显示成一个点）。 */
 .hmb__summary {
   position: relative;
   display: inline-flex;
+  flex: 1 1 auto;
   align-items: center;
   gap: 7px;
   min-width: 0;
@@ -252,7 +260,9 @@ const bars = computed(() => [
 }
 
 .hmb__name {
+  min-width: 0;
   overflow: hidden;
+  flex: 0 1 auto;
   font-size: 12.5px;
   font-weight: 600;
   color: var(--el-text-color-primary);
@@ -260,10 +270,17 @@ const bars = computed(() => [
   white-space: nowrap;
 }
 
+/* 地址是这一行里最长、也最不关键的一段：给它一个极高的收缩系数，
+   空间不够时先压它，主机名尽量保持完整（名字是识别这台主机的唯一线索）。
+   缺 min-width: 0 时 min-content 就是整条地址，会把概要区顶到容器外。 */
 .hmb__addr {
+  min-width: 0;
+  overflow: hidden;
+  flex: 0 100 auto;
   font-family: var(--font-mono, ui-monospace, Consolas, monospace);
   font-size: 11.5px;
   color: var(--el-text-color-placeholder);
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -409,8 +426,11 @@ const bars = computed(() => [
 }
 
 /* ===== 常驻指标 ===== */
+/* 间距曾经靠 spacer 撑开，但 spacer 参与伸缩会和概要区抢宽度，
+   结果主机名被挤成一个点。改成概要区自己吃满剩余宽度，
+   spacer 退化成一根不会长大也不会缩没的固定缝。 */
 .hmb__spacer {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   min-width: 8px;
 }
 
@@ -462,6 +482,54 @@ const bars = computed(() => [
 
 .hmb__metric-val.is-dim {
   color: var(--el-text-color-placeholder);
+}
+
+/* ===== 窄容器降级 =====
+   底部条宽度跟着工作区走，窄屏（或右侧快捷栏展开）时放不下全部项。
+   满配（主机名 + 地址 + 三条指标 + 四个胶囊）实测要 830px 以上，
+   所以按「重要性」从后往前撤：先撤磁盘、再撤内存，然后按从"次要"到"主要"
+   的顺序撤胶囊，最后才撤地址。留下的是「这台主机是谁、在不在线」。
+   阈值取实测临界值再留 20px 余量，避免刚好卡在边界上抖动。 */
+@container (max-width: 860px) {
+  .hmb__metrics .hmb__metric:nth-child(3) {
+    display: none;
+  }
+}
+
+@container (max-width: 700px) {
+  .hmb__metrics .hmb__metric:nth-child(2) {
+    display: none;
+  }
+}
+
+/* Agent 版本是最低频的信息，先撤 */
+@container (max-width: 620px) {
+  .hmb__meta .hmb__pill.is-agent,
+  .hmb__meta .hmb__pill.is-mute {
+    display: none;
+  }
+}
+
+/* 协议与延迟都比"在线状态"次要，一起撤 */
+@container (max-width: 560px) {
+  .hmb__metrics {
+    display: none;
+  }
+
+  .hmb__meta .hmb__pill.is-proto {
+    display: none;
+  }
+}
+
+@container (max-width: 420px) {
+  .hmb__addr {
+    display: none;
+  }
+
+  /* 地址撤掉后时间给主机名，别让名字继续被挤成一个点 */
+  .hmb__name {
+    flex: 1 1 auto;
+  }
 }
 
 /* ===== 连接信息胶囊 ===== */

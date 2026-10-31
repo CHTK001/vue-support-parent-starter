@@ -1,11 +1,10 @@
 import { ref, type Component } from 'vue'
 import {
   AddSquare20Regular, ContactCard20Regular, ChatMultiple24Regular, BookSearch20Regular,
-  Apps20Regular, ImageMultiple20Regular, Image20Regular, Person20Regular, ImageSearch20Regular,
+  Apps20Regular, Image20Regular, Person20Regular, ImageSearch20Regular,
   DocumentText20Regular, DesktopSpeaker24Regular, Headphones24Regular, BrainCircuit20Regular,
   DataBarVertical20Regular, PlugConnected20Regular, ClockAlarm20Regular, Fingerprint24Regular,
-  Earth24Regular, Key20Regular, KeyMultiple20Regular, PeopleLock20Regular, Server20Regular,
-  Bot20Regular, Sparkle20Regular, CameraSwitch20Regular,
+  Earth24Regular, PeopleLock20Regular,
 } from '@vicons/fluent'
 
 /**
@@ -267,55 +266,12 @@ export function createSidebarMenuItems(ctx: SidebarMenuContext): SidebarMenuItem
       adminOnly: true,
     },
     {
-      key: 'app-keys',
-      label: 'AppKey 管理',
-      icon: Key20Regular,
-      section: '管理',
-      showKey: 'showAppKeysMenu',
-    },
-    {
-      key: 'manufacturer-keys',
-      label: '厂商Key管理',
-      icon: KeyMultiple20Regular,
-      section: '管理',
-      showKey: 'showManufacturerKeysMenu',
-    },
-    {
       key: 'roles',
       label: '角色管理',
       icon: PeopleLock20Regular,
       section: '管理',
       showKey: 'showRolesMenu',
       adminOnly: true,
-    },
-    {
-      key: 'mcp',
-      label: 'MCP 管理',
-      icon: Server20Regular,
-      section: '管理',
-      showKey: 'showMcpMenu',
-      adminOnly: true,
-    },
-    {
-      key: 'agents',
-      label: 'Agent 管理',
-      icon: Bot20Regular,
-      section: '管理',
-      showKey: 'showAgentsMenu',
-    },
-    {
-      key: 'skills',
-      label: 'Skills 管理',
-      icon: Sparkle20Regular,
-      section: '管理',
-      showKey: 'showSkillsMenu',
-    },
-    {
-      key: 'capabilities',
-      label: '视觉管线',
-      icon: CameraSwitch20Regular,
-      section: '管理',
-      showKey: 'showCapabilitiesMenu',
     },
   ]
 }

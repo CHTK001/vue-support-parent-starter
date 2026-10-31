@@ -331,6 +331,7 @@ export default createVite({
     "@pages/project": "pages/project",
     "@pages/filesystem": "pages/filesystem",
     "@pages/datasource": "pages/datasource",
+    "@pages/debug": "pages/debug",
     "@pages/device": "pages/device",
     "@pages/docker": "pages/docker",
   },

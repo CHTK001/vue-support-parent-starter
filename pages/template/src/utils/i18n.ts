@@ -70,3 +70,15 @@ export function languageLabel(language: string): string {
 export function typeLabel(type: string): string {
   return tplTypeLabels[type] ?? type
 }
+
+/** 调用日志操作类型 */
+export const tplActionLabels: Record<string, string> = {
+  preview: '预览',
+  design: '设计',
+  print: '打印'
+}
+
+/** 调用日志操作类型显示文本 */
+export function actionLabel(action: string): string {
+  return tplActionLabels[action] ?? action
+}

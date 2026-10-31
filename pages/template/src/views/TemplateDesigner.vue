@@ -63,13 +63,13 @@
       <!-- 中间：WYSIWYG 编辑区 -->
       <main class="designer-center" ref="canvasRef">
         <div class="designer-canvas">
-          <div id="hiprint-printTemplate" ref="tplRef"></div>
+          <div :id="tplContainerId" class="hiprint-canvas" ref="tplRef"></div>
         </div>
       </main>
 
       <!-- 右侧：属性设置（元素的参数面板） -->
       <aside class="designer-right" v-if="settingVisible">
-        <div id="hiprint-setting" ref="settingRef"></div>
+        <div :id="settingContainerId" ref="settingRef"></div>
       </aside>
     </div>
 
@@ -106,6 +106,11 @@
  *   - 有默认打印机时「打印」直接发；没有时打开抽屉选机再发
  * 主题（类 PPT 主题）：
  *   - ReSelect 选主题 → applyTheme 写入设计描述 → 重建画布
+ *
+ * 注意：设计器既可作为独立的路由页（挂回 `route.params.id`），也可作为
+ * 工作区页签的数据（通过 `templateId` prop 传入；离开时通过 `back` event 通知宿主）。
+ *
+ * @since 4.0.0.70
  */
 import { onMounted, onBeforeUnmount, ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -124,12 +129,32 @@ import type { TemplateDesignerPayload } from '../types/template'
 import type { Theme } from '../themes/themes'
 import { THEMES, applyTheme } from '../themes/themes'
 
+/** 工作区页签模式：宿主传入的模板 ID（独立路由页时不传） */
+defineProps<{
+  templateId?: string
+}>()
+
+/** 行为通知宿主（置于路由模式时宿主不监听到，页面内自行消化） */
+const emit = defineEmits<{
+  /** 返回：回到模板详情页签 */
+  (e: 'back'): void
+  /** 打开预览页签 */
+  (e: 'preview'): void
+}>()
+
 const route = useRoute()
 const router = useRouter()
 
+/** 当前模板 ID（prop 优先，独立路由页挂回 route.params） */
+const templateId = computed(() => props.templateId || (route.params.id as string) || '')
+
+/** hiprint 画布容器（随模板隔离，避免多页签时 DOM 冲突） */
+const tplContainerId = computed(() => `hiprint-printTemplate-${templateId.value}`)
+/** 属性设置容器（随模板隔离） */
+const settingContainerId = computed(() => `hiprint-setting-${templateId.value}`)
+
 /** 模板名（只读显示） */
 const templateName = ref('')
-const templateId = computed(() => (route.params.id as string) || '')
 
 /** 左侧面板显隐 */
 const leftVisible = ref(true)
@@ -261,7 +286,7 @@ async function createDesign(template: string): Promise<void> {
   // 4. 创建 PrintTemplate 并进入设计器
   const tpl = new hiprint.PrintTemplate({
     template,
-    settingContainer: '#hiprint-setting',
+    settingContainer: '#' + settingContainerId.value,
     paginationContainer: '.hiprint-printPagination',
     providers: [new defaultElementTypeProvider()],
     fontList: [
@@ -286,7 +311,7 @@ async function createDesign(template: string): Promise<void> {
   })
 
   // 5. 进入设计器（渲染画布 + 属性面板 + 工具条 + 分页容器）
-  tpl.design('#hiprint-printTemplate')
+  tpl.design('#' + tplContainerId.value)
   printTemplate.value = tpl
 }
 
@@ -303,7 +328,7 @@ function buildDraggableItems(): void {
 
 // ==================== 操作 ====================
 function onBack(): void {
-  router.replace('/template')
+  emit('back')
 }
 
 /** 撤销 */
@@ -344,7 +369,7 @@ function onPreview(): void {
     ElMessage.warning('工作区为空')
     return
   }
-  router.push({ name: 'TemplatePreview', params: { id: templateId.value } })
+  emit('preview')
 }
 
 /** 直接打印：有默认打印机时直接发起，没有时弹选机抽屉 */
@@ -542,7 +567,7 @@ onBeforeUnmount(() => {
   justify-content: center;
 }
 
-#hiprint-printTemplate {
+.hiprint-canvas {
   width: 800pt;
   min-height: 1200pt;
   background: #fff;

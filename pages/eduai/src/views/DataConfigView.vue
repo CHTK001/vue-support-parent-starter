@@ -62,30 +62,6 @@
 
     <!-- 右：主区 —— 学科 / 班级 / 组卷模板 用页签切换，学段与年级留在左侧脊柱 -->
     <div class="main">
-      <header class="page-header">
-        <div class="page-header__left">
-          <h1 class="page-header__title">维度数据</h1>
-          <p class="page-header__sub">管理学科、学段、年级、班级等教学基础维度</p>
-        </div>
-        <div class="metrics">
-          <div class="metric">
-            <b>{{ subjects.length }}</b>
-            <span>学科总数</span>
-            <em>{{ subjectCoverHint }}</em>
-          </div>
-          <div class="metric">
-            <b>{{ gradeLevelOptions.length }}</b>
-            <span>学段数</span>
-            <em>系统内置</em>
-          </div>
-          <div class="metric">
-            <b>{{ enableRate }}%</b>
-            <span>启用率</span>
-            <em>{{ enableRateHint }}</em>
-          </div>
-        </div>
-      </header>
-
       <!-- 三块内容各自一个页签：ReTabs 负责页签条与面板外壳，面板常驻（v-show），
            切走再切回不丢滚动位置、搜索词与已拉取的数据。面板内容按 tab.name 只挂一份。 -->
       <ReTabs v-model="activeBlock" :tabs="blockTabs" :closable="false" class="dim-tabs">
@@ -1395,8 +1371,6 @@ onMounted(() => {
   flex-direction: column;
   min-height: 0;
   /* 下边距 20 与右侧内容卡（.dim-tabs）一致，两张卡的底边才能落在同一条线上 */
-  margin: 14px 0 20px 16px;
-  padding: 14px 0 0;
   overflow: hidden;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
@@ -1406,6 +1380,8 @@ onMounted(() => {
 
 .taxo__head {
   padding: 0 16px 10px;
+  margin: 4px;
+  margin-top: 10px;
 }
 
 .taxo__title {
@@ -1673,7 +1649,7 @@ onMounted(() => {
 
 /* ---------- 分区容器：ReTabs 根节点即内容卡，页签条即卡头 ---------- */
 .dim-tabs {
-  margin: 16px 20px 20px;
+  margin-left: 8px;
   overflow: hidden;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);

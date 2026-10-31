@@ -1,24 +1,36 @@
 <template>
   <div class="re-card" :class="{ 're-card--hoverable': hoverable }">
-    <div v-if="title || $slots.header" class="re-card-header">
-      <slot name="header">
-        <span class="re-card-title">{{ title }}</span>
-        <span v-if="subtitle" class="re-card-subtitle">{{ subtitle }}</span>
-      </slot>
-      <div v-if="$slots.extra" class="re-card-extra">
-        <slot name="extra" />
-      </div>
-    </div>
-    <div class="re-card-body">
+    <ReCardBase
+      v-bind="$attrs"
+      :header="title || subtitle || undefined"
+      :is-flex="false"
+    >
+      <template v-if="title || subtitle || $slots.header || $slots.extra" #header>
+        <div class="re-card-header">
+          <slot name="header">
+            <span v-if="title" class="re-card-title">{{ title }}</span>
+            <span v-if="subtitle" class="re-card-subtitle">{{ subtitle }}</span>
+          </slot>
+          <div v-if="$slots.extra" class="re-card-extra">
+            <slot name="extra" />
+          </div>
+        </div>
+      </template>
+
       <slot />
-    </div>
-    <div v-if="$slots.footer" class="re-card-footer">
-      <slot name="footer" />
-    </div>
+
+      <template v-if="$slots.footer" #footer>
+        <slot name="footer" />
+      </template>
+    </ReCardBase>
   </div>
 </template>
 
 <script setup lang="ts">
+import ReCardBase from '@repo/ui/re-card'
+
+defineOptions({ inheritAttrs: false })
+
 defineProps({
   title: { type: String, default: '' },
   subtitle: { type: String, default: '' },
@@ -29,15 +41,24 @@ defineProps({
 <style scoped>
 /* ============ 卡片：koi 规约「卡片无投影」，层级靠边框 + 底色表达 ============ */
 .re-card {
-  background: var(--el-bg-color);
-  /* 原 var(--mp-radius, 12px) 里的 --mp-radius 不是 koi 令牌（永远取不到），统一到 --el-radius-lg */
+  /* 视觉全部落在内部基础组件根上（.koi-card），这里只做布局裁剪：
+     若 wrapper 也画边框/底色，会和内部卡片叠出双边框 */
   border-radius: var(--el-radius-lg, 12px);
-  border: 1px solid var(--el-border-color-lighter);
   overflow: hidden;
   transition:
     box-shadow var(--el-transition-duration-fast, 0.2s) ease,
     border-color var(--el-transition-duration-fast, 0.2s) ease,
     transform var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+/* 适配层内部包一层基础组件，koi 主题根节点自带 padding/margin；
+   这里用 wrapper + :deep 的更高特异性（0,3,0 > 0,2,0）把基础主题默认值压回原布局。 */
+.re-card :deep(.koi-card) {
+  margin: 0;
+  padding: 0;
+  background: var(--el-bg-color);
+  border-radius: var(--el-radius-lg, 12px);
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 /* hoverable 才浮起：这是 koi 允许的第二类阴影（悬浮反馈），静止态仍然零投影 */
@@ -47,14 +68,18 @@ defineProps({
   border-color: var(--el-border-color);
 }
 
-.re-card-header {
+.re-card :deep(.koi-card__header) {
   padding: 14px 18px;
   border-bottom: 1px solid var(--el-border-color-lighter);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
   background: var(--el-fill-color-light);
+}
+
+.re-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--el-text-color-primary);
 }
 
 .re-card-title {
@@ -76,13 +101,13 @@ defineProps({
   gap: 8px;
 }
 
-.re-card-body {
+.re-card :deep(.koi-card__body) {
   padding: 18px;
   color: var(--el-text-color-regular);
   line-height: 1.6;
 }
 
-.re-card-footer {
+.re-card :deep(.koi-card__footer) {
   padding: 12px 18px;
   border-top: 1px solid var(--el-border-color-lighter);
   background: var(--el-fill-color-light);
@@ -92,6 +117,10 @@ defineProps({
 @media (prefers-reduced-motion: reduce) {
   .re-card {
     transition: none;
+  }
+
+  .re-card--hoverable:hover {
+    transform: none;
   }
 }
 </style>

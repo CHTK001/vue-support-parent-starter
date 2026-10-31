@@ -95,7 +95,22 @@
             <el-button type="primary" :icon="Plus" @click="openCreate">新增古诗</el-button>
           </template>
           <template #col-poemContent="{ row }">
-            <span class="pb-cell">{{ contentPreview(row.poemContent) }}</span>
+            <!-- 鼠标经过直接显示 Popover：完整正文（归一化后避免 JSON 壳），
+                 enterable + auto-close=0 让文字在弹层上也能被看清/复制 -->
+            <el-popover
+              placement="bottom"
+              :width="420"
+              trigger="hover"
+              :enterable="true"
+              :auto-close="0"
+              :persistent="false"
+              popper-class="pb-content-popover"
+            >
+              <template #reference>
+                <span class="pb-cell">{{ contentPreview(row.poemContent) }}</span>
+              </template>
+              <p class="pb-popover__text">{{ normalizeText(row.poemContent) }}</p>
+            </el-popover>
           </template>
           <template #col-poemTranslation="{ row }">
             <span v-if="translationPreview(row.poemTranslation)" class="pb-cell">
@@ -353,7 +368,7 @@ import { createPageLoader, pageLoadError, strParam } from "../api/pageLoader";
 import type { Poem } from "../api/types";
 import ScPoemPreview from "../components/ScPoemPreview.vue";
 import { DYNASTY_OPTIONS, POEM_TAG_OPTIONS } from "../constants/dimensions";
-import { flattenPreview, parseTags } from "../utils/poemText";
+import { flattenPreview, normalizePoemContent, parseTags } from "../utils/poemText";
 import ReDialog from "@repo/ui/re-dialog";
 
 /** 学段与对应年级（与后端入库值保持一致） */
@@ -429,6 +444,17 @@ const poemColumns: ReTableColumn[] = [
  */
 function contentPreview(content: unknown) {
   return flattenPreview(content as string | undefined, 60);
+}
+
+/**
+ * 弹窗 Popover 要展示正文原貌：JSON 数组字符串先归一化，再保留原换行，
+ * 支持 pre-wrap 后完整阅读整诗。
+ *
+ * @param content 原始正文
+ * @returns 归一化后的纯文本
+ */
+function normalizeText(content: unknown) {
+  return normalizePoemContent(content as string | undefined);
 }
 
 /**
@@ -762,6 +788,28 @@ onMounted(() => {
 }
 .pb-cell--none {
   color: var(--el-text-color-placeholder);
+}
+/* 正文列 Hover Popover：文字完整可读，超长时自动折行不撑满整表 */
+.pb-content-popover {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--el-text-color-regular);
+}
+.pb-popover__text {
+  margin: 0;
+  word-break: break-word;
+  white-space: pre-wrap;
+  max-height: 60vh;
+  overflow: auto;
+  -ms-overflow-style: none;
+  scrollbar-width: thin;
+}
+.pb-popover__text::-webkit-scrollbar {
+  width: 6px;
+}
+.pb-popover__text::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--el-text-color-secondary) 30%, transparent);
+  border-radius: 3px;
 }
 .pb-view {
   position: relative;

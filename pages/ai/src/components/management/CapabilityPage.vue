@@ -137,6 +137,9 @@ const PIPELINE_INFO: Record<string, { title: string; desc: string }> = {
   'ocr': { title: 'OCR文字识别', desc: '光学字符识别管线配置' },
   'layout': { title: '版面布局分析', desc: '文档版面布局分析管线配置' },
   'face': { title: '人脸识别', desc: '人脸检测与识别管线配置' },
+  // 人脸重识别管线：检测/特征模型与归并参数全部共享 face 分组（管线配置页落/info = face），
+  // 这里只负责补上 `PipelineDetailDTO` 的管线名称与路由说明。
+  'face-reid': { title: '人脸重识别', desc: '人脸检测+跨帧重识别管线，检测/特征模型同人脸识别，归并参数在人脸组配置' },
   'image-recognition': { title: '图片识别', desc: '图像内容识别与分类管线配置' },
   // 音频两条管线：此前只有 globalBean（无标题、无模型槽），路由点进来标题会退化成裸 code
   'asr': { title: '语音识别', desc: '语音转文字管线：ASR 模型必填，文本矫正模型可选（留空关闭）' },

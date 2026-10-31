@@ -1,20 +1,22 @@
 <template>
   <div class="re-empty">
-    <div class="re-empty-icon">
-      <slot name="icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </slot>
-    </div>
-    <p class="re-empty-text">{{ text }}</p>
-    <div v-if="$slots.default" class="re-empty-action">
+    <ReEmptyBase
+      v-bind="$attrs"
+      :description="text"
+    >
+      <template v-if="$slots.icon" #image>
+        <slot name="icon" />
+      </template>
       <slot />
-    </div>
+    </ReEmptyBase>
   </div>
 </template>
 
 <script setup lang="ts">
+import ReEmptyBase from '@repo/ui/re-empty'
+
+defineOptions({ inheritAttrs: false })
+
 defineProps({
   text: { type: String, default: '暂无数据' },
 })
@@ -23,7 +25,6 @@ defineProps({
 <style scoped>
 .re-empty {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 48px 24px;
@@ -32,26 +33,30 @@ defineProps({
   color: var(--el-text-color-placeholder);
 }
 
-.re-empty-icon {
+.re-empty :deep(.el-empty) {
+  padding: 0;
+  color: var(--el-text-color-placeholder);
+}
+
+.re-empty :deep(.el-empty__image) {
   width: 64px;
   height: 64px;
   margin-bottom: 16px;
   opacity: 0.5;
 }
 
-/* 模板里的 svg 用 stroke="currentColor"，颜色随上面的 color 走，改主题即自动跟随 */
-.re-empty-icon svg {
+.re-empty :deep(.el-empty__image svg) {
   width: 100%;
   height: 100%;
 }
 
-.re-empty-text {
+.re-empty :deep(.el-empty__description p) {
   font-size: 14px;
   color: var(--el-text-color-placeholder);
   margin: 0 0 16px 0;
 }
 
-.re-empty-action {
+.re-empty :deep(.el-empty__bottom) {
   display: flex;
   gap: 12px;
 }
@@ -61,9 +66,10 @@ defineProps({
    消费方常通过 class 往 .re-empty 上挂自定义动画，需要一并被压制。 */
 @media (prefers-reduced-motion: reduce) {
   .re-empty,
-  .re-empty-icon,
-  .re-empty-text,
-  .re-empty-action {
+  .re-empty :deep(.el-empty),
+  .re-empty :deep(.el-empty__image),
+  .re-empty :deep(.el-empty__description p),
+  .re-empty :deep(.el-empty__bottom) {
     transition: none;
     animation: none;
   }

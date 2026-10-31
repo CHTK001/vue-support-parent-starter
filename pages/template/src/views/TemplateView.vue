@@ -61,6 +61,26 @@
             @change="reload"
           />
         </div>
+
+        <!-- 页面操作：打印机管理 / 调用日志（仅图标 + 悬浮提示） -->
+        <div class="rail__actions">
+          <ReButton
+            text
+            :show-text="false"
+            icon="Printer"
+            tip="打印机管理"
+            :icon-size="28"
+            @click="openPrinterManage"
+          />
+          <ReButton
+            text
+            :show-text="false"
+            icon="Document"
+            tip="调用日志"
+            :icon-size="28"
+            @click="openLogs"
+          />
+        </div>
       </header>
 
       <div ref="listRef" class="rail__list" @scroll.passive="onListScroll">
@@ -116,7 +136,9 @@
         @close-all="closeAllTabs"
       >
         <template #default="{ tab }">
-          <div v-if="tabRows[tab.name]" class="work">
+          <!-- 模板详情（工作区） -->
+          <div v-if="isSheetTab(tab.name)" class="work">
+            <div v-if="tabRows[tab.name]">
             <article class="work__sheet">
             <header class="work__head">
               <span class="work__mark" :style="{ '--tpl-tint': sourceTint(tabRows[tab.name].source) }">
@@ -193,6 +215,21 @@
               }}
             </p>
             </article>
+            </div>
+          </div>
+
+          <!-- 预览页签 -->
+          <div v-else-if="isPreviewTab(tab.name)" class="work">
+            <TemplatePreviewView :template-id="tplIdOf(tab.name)" />
+          </div>
+
+          <!-- 设计器页签 -->
+          <div v-else-if="isDesignTab(tab.name)" class="work">
+            <TemplateDesigner
+              :template-id="tplIdOf(tab.name)"
+              @back="switchToSheet"
+              @preview="openDesignPreview"
+            />
           </div>
         </template>
 
@@ -239,6 +276,22 @@
         <ReButton type="primary" :loading="saving" @click="onFormConfirm">确定</ReButton>
       </template>
     </ReDialog>
+
+    <!-- 打印参数弹窗：选好打印机和份数后，只有「确定打印」才会发起 -->
+    <ReDialog v-model="printDialogVisible" title="打印" width="400px" @confirm="onPrintConfirm">
+      <el-form :model="printParams" label-width="80px">
+        <el-form-item label="打印机" required>
+          <ReSelect v-model="printParams.printer" :options="printerOptions" placeholder="选择打印机" />
+        </el-form-item>
+        <el-form-item label="份数">
+          <el-input-number v-model="printParams.copies" :min="1" :max="99" class="w-full" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <ReButton @click="printDialogVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="printing" @click="onPrintConfirm">确定打印</ReButton>
+      </template>
+    </ReDialog>
   </div>
 </template>
 
@@ -267,7 +320,9 @@ import type { ReContextMenuItem } from '@repo/ui/re-context-menu'
 import type { ReTabsContextItem, ReTabsItem } from '@repo/ui/re-tabs'
 
 import { templateApi } from '../api/templateApi'
-import type { TemplateInfo, TemplateStatus } from '../types/template'
+import type { TemplateInfo, TemplateStatus, LogRecord, PrinterConfig } from '../types/template'
+import TemplatePreviewView from '../views/TemplatePreviewView.vue'
+import TemplateDesigner from '../views/TemplateDesigner.vue'
 import {
   tplLanguageLabels,
   tplTypeLabels,
@@ -514,7 +569,7 @@ const ctxMenu = ref<InstanceType<typeof ReContextMenu> | null>(null)
 /** 当前右键的模板 */
 const ctxRow = ref<TemplateInfo | null>(null)
 
-/** 菜单项：绘制来源可设计/编辑/删除，消息与组卷来源只读 */
+/** 菜单项：绘制来源可设计/编辑/打印/删除，消息与组卷来源只读 */
 const ctxItems = computed<ReContextMenuItem[]>(() => {
   const row = ctxRow.value
   if (!row) return []
@@ -522,6 +577,9 @@ const ctxItems = computed<ReContextMenuItem[]>(() => {
     return [
       { label: '进入设计器', command: 'design', icon: 'MagicStick' },
       { label: '编辑模板', command: 'edit', icon: 'EditPen' },
+      { separator: true },
+      { label: '预览', command: 'preview', icon: 'View' },
+      { label: '打印', command: 'print', icon: 'Printer' },
       { separator: true },
       { label: '删除模板', command: 'remove', icon: 'Delete', danger: true }
     ]
@@ -552,6 +610,9 @@ function onCtxSelect(command: string): void {
     case 'preview':
       openPreview(row)
       break
+    case 'print':
+      openPrintDialog(row)
+      break
   }
 }
 
@@ -570,14 +631,9 @@ const tabContextMenu: ReTabsContextItem[] = [
   { key: 'close-all', label: '关闭全部' }
 ]
 
-/** 打开（或切换到）模板页签 */
+/** 打开（或切换到）模板详情页签 */
 function addTab(row: TemplateInfo): void {
-  const id = String(row.id)
-  tabRows[id] = { ...row }
-  const existing = tabs.value.find(t => t.name === id)
-  if (existing) existing.label = row.name
-  else tabs.value.push({ name: id, label: row.name, closable: true })
-  activeTab.value = id
+  addSheetTab(row)
 }
 
 /** 关闭页签 */
@@ -617,17 +673,161 @@ function onTabCommand(payload: { key: string; tab: ReTabsItem }): void {
   }
 }
 
-// ==================== 跳转 ====================
+// ==================== 工作区页签（详情 / 预览 / 设计器） ====================
+/** 页签 | 类型：无 `:` 的是模板详情，`:preview` 只读预览，`:design` 设计器 */
+function isSheetTab(name: string): boolean { return !name.includes(':') }
+function isPreviewTab(name: string): boolean { return name.endsWith(':preview') }
+function isDesignTab(name: string): boolean { return name.endsWith(':design') }
+
+/** 页签名字里的模板 ID */
+function tplIdOf(name: string): string {
+  return name.replace(/:preview$/, '').replace(/:design$/, '')
+}
+
+/** 模板详情（必选） */
+function addSheetTab(row: TemplateInfo): void {
+  const id = String(row.id)
+  tabRows[id] = { ...row }
+  const existing = tabs.value.find(t => t.name === id)
+  if (existing) existing.label = row.name
+  else tabs.value.push({ name: id, label: row.name, closable: true })
+  activeTab.value = id
+}
+
+/** 只读预览页签 */
+function addPreviewTab(row: TemplateInfo): void {
+  const id = String(row.id)
+  const name = `${id}:preview`
+  const existing = tabs.value.find(t => t.name === name)
+  if (existing) {
+    existing.label = row.name
+    existing.hint = '预览'
+    return
+  }
+  tabs.value.push({ name, label: row.name, hint: '预览', closable: true })
+  activeTab.value = name
+}
+
+/** 设计器页签 */
+function addDesignTab(row: TemplateInfo): void {
+  const id = String(row.id)
+  const name = `${id}:design`
+  const existing = tabs.value.find(t => t.name === name)
+  if (existing) {
+    existing.label = row.name
+    existing.hint = '设计'
+    return
+  }
+  tabs.value.push({ name, label: row.name, hint: '设计', closable: true })
+  activeTab.value = name
+}
+
+/** 切换回模板详情（设计器页签返回时的目标） */
+function switchToSheet(tabName: string): void {
+  const id = tplIdOf(tabName)
+  const row = rows.value.find(r => r.id === id) || tabRows[id] || ({} as TemplateInfo)
+  addSheetTab(row)
+  activeTab.value = id
+}
+
+/** 从设计器页签打开预览页签 */
+function openDesignPreview(): void {
+  const tab = tabs.value.find(t => t.name === activeTab.value)
+  if (!tab || !isDesignTab(tab.name)) return
+  addPreviewTab({ id: tplIdOf(tab.name), name: tab.label ?? '' } as TemplateInfo)
+}
+
 /** 预览（消息 / 组卷来源也走这里） */
 function openPreview(row: TemplateInfo): void {
-  addTab(row)
-  router.push({ name: 'TemplatePreview', params: { id: row.id } })
+  recordLog(row, 'preview', {})
+  addPreviewTab(row)
 }
 
 /** 进入设计器（仅绘制来源） */
 function openDesigner(row: TemplateInfo): void {
-  addTab(row)
-  router.push({ name: 'TemplateDesigner', params: { id: row.id }, query: { mode: 'design' } })
+  recordLog(row, 'design', {})
+  addDesignTab(row)
+}
+
+// ==================== 打印 ====================
+/** 当前准备打印的模板 */
+const printRow = ref<TemplateInfo | null>(null)
+/** 打印弹窗及等待态 */
+const printDialogVisible = ref(false)
+const printing = ref(false)
+/** 打印机列表 */
+const printers = ref<PrinterConfig[]>([])
+/** 打印参数 */
+const printParams = reactive<Record<string, any>>({ printer: '', copies: 1 })
+/** 打印机选项 */
+const printerOptions = computed(() => printers.value.map(p => ({ label: p.name, value: p.name })))
+
+/** 加载打印机列表（只取一次，弹窗打开时刷新） */
+async function loadPrinters(): Promise<void> {
+  try {
+    printers.value = await templateApi.printerList()
+  } catch {
+    /* 没有打印机就手动选，不影响其他操作 */
+  }
+}
+
+/** 打开打印参数弹窗 */
+async function openPrintDialog(row: TemplateInfo): Promise<void> {
+  printRow.value = row
+  if (printers.value.length === 0) await loadPrinters()
+  printParams.printer = printers.value.find(p => p.isDefault)?.name ?? ''
+  printParams.copies = 1
+  printDialogVisible.value = true
+}
+
+/** 确认打印：用户点击确定后才请求 */
+async function onPrintConfirm(): Promise<void> {
+  const row = printRow.value
+  if (!row) {
+    ElMessage.warning('未指定模板')
+    return
+  }
+  if (!printParams.printer) {
+    ElMessage.warning('请选择打印机')
+    return
+  }
+  printing.value = true
+  try {
+    await templateApi.print(String(row.id), { printer: printParams.printer, copies: printParams.copies })
+    recordLog(row, 'print', { printer: printParams.printer, copies: printParams.copies })
+    printDialogVisible.value = false
+    ElMessage.success(`已发送到「${printParams.printer}」`)
+  } catch (err) {
+    ElMessage.error(String(err))
+  } finally {
+    printing.value = false
+  }
+}
+
+/** 调用日志：预览 / 设计 / 打印 归集到日志页，参数、时间、IP 一并提供 */
+function recordLog(row: TemplateInfo, action: 'preview' | 'design' | 'print', parameters: Record<string, any>): void {
+  const record: LogRecord = {
+    id: String(Date.now()),
+    templateId: String(row.id),
+    templateName: row.name,
+    action,
+    parameters,
+    time: new Date().toISOString(),
+    ip: '127.0.0.1',
+    operator: row.creator
+  }
+  templateApi.log(record).catch(() => {
+    /* 日志只负责记录，失败不影响主操作 */
+  })
+}
+
+// ==================== 页面入口 ====================
+function openPrinterManage(): void {
+  router.push({ name: 'TemplatePrinter' })
+}
+
+function openLogs(): void {
+  router.push({ name: 'TemplateLogs' })
 }
 
 // ==================== 字典 / 展示 ====================
@@ -734,6 +934,13 @@ function formatTime(value?: string): string {
   :deep(.el-select) {
     width: 100%;
   }
+}
+
+.rail__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0;
 }
 
 .rail__list {

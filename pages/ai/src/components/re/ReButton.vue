@@ -1,7 +1,7 @@
 <template>
-  <el-button
-    :type="type"
-    :size="size"
+  <ReButtonBase
+    :type="buttonType"
+    :size="size || undefined"
     :loading="loading"
     :disabled="disabled"
     :plain="plain"
@@ -13,14 +13,16 @@
     :class="[`re-button--${type}`, { 're-button--plain': plain }]"
   >
     <slot />
-  </el-button>
+  </ReButtonBase>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { PropType } from 'vue'
 import type { ComponentSize } from 'element-plus'
+import ReButtonBase from '@repo/ui/re-button'
 
-defineProps({
+const props = defineProps({
   type: {
     type: String as PropType<
       '' | 'default' | 'text' | 'primary' | 'success' | 'info' | 'warning' | 'danger'
@@ -37,11 +39,14 @@ defineProps({
 })
 
 defineEmits(['click'])
+
+const buttonType = computed(() => (props.type === 'default' ? '' : props.type))
 </script>
 
 <style scoped>
 /* ============ 基础：圆角 / 过渡走 koi 令牌，主题与暗色自动跟随 ============ */
 .re-button {
+  margin: 0;
   font-weight: 500;
   /* 原 0.2s + cubic-bezier(0.4, 0, 0.2, 1)：曲线与 ease 等价，时长改由 --el-transition-duration 统管 */
   transition: all var(--el-transition-duration-fast, 0.2s) ease;

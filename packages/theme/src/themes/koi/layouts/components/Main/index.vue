@@ -183,7 +183,11 @@ onBeforeUnmount(() => {
 .route-skeleton {
   position: absolute;
   inset: 0;
-  z-index: 8;
+  /* ⚠ 必须高过表格的所有浮层：`z-index: 8` 时 ReTable 的页脚行（自己抬到
+     z-index:31 以盖住固定列浮层 `.vxe-table--fixed-*wrapper` 的 z-index:30）
+     和 vxe 的 loading 遮罩（z-index:99）会穿出来，露出一截页脚——换页时
+     "骨架没盖住表格底部"的样式坡。高于 99 后也不用再去动表格内部各层的 z-index。 */
+  z-index: 100;
   box-sizing: border-box;
   padding: 12px;
   display: flex;

@@ -1,7 +1,8 @@
 <template>
   <div class="re-number-input">
-    <el-input-number
+    <ReNumberInputBase
       v-model="innerValue"
+      layout="default"
       :class="['re-number-input__inner', `re-number-input__inner--${size}`]"
       :min="min"
       :max="max"
@@ -12,7 +13,7 @@
       :controls="controls"
       :controls-position="controlsPosition"
       :step-strictly="stepStrictly"
-      :size="size"
+      :size="size || undefined"
       @change="onChange"
       @blur="onBlur"
       @focus="onFocus"
@@ -24,6 +25,7 @@
 import { computed } from 'vue'
 import type { PropType } from 'vue'
 import type { ComponentSize } from 'element-plus'
+import ReNumberInputBase from '@repo/ui/re-input-number'
 
 /**
  * 数字输入框。

@@ -3637,13 +3637,21 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   box-shadow: var(--el-box-shadow-light, var(--shadow-1));
 }
 
-/* 底部一行：指标条 + Dock 设置钮，flex-wrap: nowrap 兜底，不能再撑成两行 */
+/* 底部一行：指标条 + Dock 设置钮，flex-wrap: nowrap 兜底，不能再撑成两行。
+   分隔线画在这一层，不画在指标条上：指标条的宽度跟内容走，线会跟着内容的长度断在半路
+   （窄屏被裁掉、宽屏只画到指标条末尾），挪到这里才始终横贯整个工作区。
+   container-type 供指标条内部的 @container 查询：按底部条自身的可用宽度决定显示哪几项。 */
 .as-work__bottom {
   display: flex;
+  flex: none;
   align-items: center;
   flex-wrap: nowrap;
   gap: 8px;
-  flex: none;
+  min-width: 0;
+  padding-right: 6px;
+  background: var(--el-bg-color);
+  border-top: 1px solid var(--el-border-color-lighter);
+  container-type: inline-size;
 }
 
 /* Dock 设置：守在底部行的右侧，浮窗贴在设置钮上方 */

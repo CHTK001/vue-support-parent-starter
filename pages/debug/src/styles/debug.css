@@ -1,0 +1,274 @@
+/**
+ * 调试中心页面样式（@pages/debug）
+ *
+ * <p>与 pages/docker 的 `dk-` 前缀约定相同：所有类名自带 `debug-` 前缀，
+ * 避免和宿主应用的 element-plus / tailwind 样式冲突。</p>
+ *
+ * @author CH
+ * @since 4.0.0.51
+ */
+
+/* 页面根 */
+.debug-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background: var(--el-bg-color-page, #f5f7fa);
+}
+
+/* 顶部栏 */
+.debug-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--el-bg-color, #fff);
+  border-bottom: 1px solid var(--el-border-color-light, #dcdfe6);
+}
+
+.debug-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.debug-header-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary, #303133);
+}
+
+.debug-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 页签 */
+.debug-tabs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 0;
+  /* 解决 el-tabs 在 flex 容器中的高度塌陷 */
+  min-height: 400px;
+}
+
+/* 空态 */
+.debug-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 200px;
+  color: var(--el-text-color-secondary, #909399);
+  font-size: 13px;
+}
+
+/* Console 日志列表 */
+.debug-console-list {
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  height: 400px;
+}
+
+.debug-log-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.debug-log-item:hover {
+  background: var(--el-fill-color-light, #f5f7fa);
+}
+
+.debug-log-type {
+  flex-shrink: 0;
+  padding: 0 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  color: #fff;
+  background: var(--el-color-primary, #409eff);
+}
+
+.debug-log-type--error {
+  background: var(--el-color-danger, #f56c6c);
+}
+
+.debug-log-type--warn {
+  background: var(--el-color-warning, #e6a23c);
+}
+
+.debug-log-type--info {
+  background: var(--el-color-success, #67c23a);
+}
+
+.debug-log-type--log {
+  background: var(--el-color-primary, #409eff);
+}
+
+.debug-log-time {
+  flex-shrink: 0;
+  color: var(--el-text-color-placeholder, #c0c4cc);
+  font-size: 11px;
+  margin: 0 8px;
+}
+
+.debug-log-content {
+  flex: 1;
+  margin: 0;
+  overflow: auto;
+  font-family: var(--el-font-family-mono, Menlo, Monaco, monospace);
+  font-size: 12px;
+  color: var(--el-text-color-regular, #606266);
+  white-space: pre-wrap;
+}
+
+/* Network 表格 */
+.debug-network-table {
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  height: 400px;
+}
+
+.debug-network-row {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
+  font-size: 12px;
+}
+
+.debug-network-row:hover {
+  background: var(--el-fill-color-light, #f5f7fa);
+}
+
+.debug-network-method {
+  flex-shrink: 0;
+  width: 72px;
+  color: var(--el-color-info, #639bf4);
+  font-weight: 500;
+}
+
+.debug-network-url {
+  flex: 1;
+  color: var(--el-text-color-regular, #606266);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0 8px;
+}
+
+.debug-network-time {
+  flex-shrink: 0;
+  color: var(--el-text-color-placeholder, #c0c4cc);
+  font-size: 11px;
+}
+
+/* DOM */
+.debug-dom {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.debug-dom-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--el-bg-color, #fff);
+  border-bottom: 1px solid var(--el-border-color-light, #dcdfe6);
+}
+
+.debug-dom-label {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--el-text-color-regular, #606266);
+}
+
+.debug-dom-select {
+  width: 180px;
+}
+
+.debug-dom-content {
+  flex: 1;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  background: var(--el-fill-color-lighter, #fafafa);
+  font-family: var(--el-font-family-mono, Menlo, Monaco, monospace);
+  font-size: 12px;
+  color: var(--el-text-color-regular, #606266);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Screenshot */
+.debug-screenshot {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.debug-screenshot-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--el-bg-color, #fff);
+  border-bottom: 1px solid var(--el-border-color-light, #dcdfe6);
+  font-size: 13px;
+  color: var(--el-text-color-regular, #606266);
+}
+
+.debug-screenshot-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: var(--el-fill-color-lighter, #fafafa);
+}
+
+.debug-screenshot-content img {
+  max-width: 100%;
+  max-height: 100%;
+  border: 1px solid var(--el-border-color-light, #dcdfe6);
+  border-radius: 4px;
+}
+
+/* Evaluate */
+.debug-evaluate {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.debug-evaluate-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--el-bg-color, #fff);
+  border-bottom: 1px solid var(--el-border-color-light, #dcdfe6);
+}
+
+.debug-evaluate-result {
+  flex: 1;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  background: var(--el-fill-color-lighter, #fafafa);
+  font-family: var(--el-font-family-mono, Menlo, Monaco, monospace);
+  font-size: 12px;
+  color: var(--el-text-color-regular, #606266);
+  white-space: pre-wrap;
+}

@@ -11,7 +11,7 @@
  */
 
 import { createModuleHttp } from "@repo/core"
-import type { TemplateInfo, TemplatePageQuery, PageResult, TemplateDesignerPayload, PrinterConfig } from '../types/template'
+import type { TemplateInfo, TemplatePageQuery, PageResult, TemplateDesignerPayload, PrinterConfig, LogRecord, TemplateLogQuery } from '../types/template'
 
 /** 模板模块 Http 客户端（懒创建）。 */
 /** 模块可能在 createApp() 注入全局 http 之前被静态导入，因此延迟到首次调用时创建。 */
@@ -90,7 +90,17 @@ export const templateApi = {
   setPrinter: (printer: Omit<PrinterConfig, 'isDefault'>) => http.post("/printer").data(printer).then(unwrap) as Promise<PrinterConfig>,
   /** 删除打印机 */
   removePrinter: (name: string) =>
-    http.delete(`/printer/${encodeURIComponent(name)}`).then(unwrap) as Promise<boolean>
+    http.delete(`/printer/${encodeURIComponent(name)}`).then(unwrap) as Promise<boolean>,
+
+  // ==================== 调用日志 ====================
+  /** 查询调用日志（预览 / 设计 / 打印 归集） */
+  logs: (params: TemplateLogQuery) =>
+    http.get("/logs").query(params as unknown as Record<string, unknown>).then(unwrap) as Promise<PageResult<LogRecord>>,
+  /** 发起打印（收到确认后才请求此接口） */
+  print: (id: string, params: Record<string, any>) =>
+    http.post(`/${id}/print`).data(params).then(unwrap) as Promise<boolean>,
+  /** 记录调用日志（预览 / 设计 / 打印） */
+  log: (record: LogRecord) => http.post("/logs").data(record).then(unwrap) as Promise<boolean>
 }
 
 export default templateApi

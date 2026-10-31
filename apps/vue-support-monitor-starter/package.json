@@ -19,6 +19,7 @@
     "@codemirror/view": "^6.43.11",
     "@element-plus/icons-vue": "catalog:",
     "@pages/datasource": "workspace:*",
+    "@pages/debug": "workspace:*",
     "@pages/device": "workspace:*",
     "@pages/docker": "workspace:*",
     "@pages/filesystem": "workspace:*",

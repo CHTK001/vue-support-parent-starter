@@ -502,7 +502,6 @@ import {
 } from '@vicons/material'
 
 import {
-  Bot20Regular,
   BookSearch20Regular,
   BrainCircuit20Regular,
   ContactCard20Regular,
@@ -527,8 +526,6 @@ import {
   Person20Regular,
   ImageSearch20Regular,
   DocumentText20Regular,
-  ImageMultiple20Regular,
-  Key20Regular,
   ChatMultiple24Regular,
   DesktopSpeaker24Regular,
   Headphones24Regular,
@@ -958,16 +955,8 @@ const currentActiveTab = computed(() => {
   if (routeName === 'AudioRecognition') return 'audio-recognition'
   if (routeName === 'TextToSpeech') return 'text-to-speech'
   if (routeName === 'Models') return 'models'
-  if (routeName === 'AppKeys') return 'app-keys'
-  if (routeName === 'ManufacturerKeys') return 'manufacturer-keys'
-  if (routeName === 'Roles') return 'roles'
-  if (routeName === 'Mcp') return 'mcp'
-  if (routeName === 'Agents') return 'agents'
-  if (routeName === 'Services') return 'services'
   if (routeName === 'Usage' || routeName === 'UsageSyncLogs') return 'usage'
   if (routeName === 'Connectors') return 'connectors'
-  if (routeName === 'Skills') return 'skills'
-  if (routeName === 'Capabilities') return 'capabilities'
   return ''
 })
 
@@ -1381,11 +1370,20 @@ const checkModelGate = (tab: string): void => {
   });
 };
 
+/** 视觉管线默认回到（点击「视觉管线」时 /capabilities/:pipeline 加载的管线标识） */
+const CAPABILITIES_DEFAULT_PIPELINE = 'text-to-image';
+
 const handleNavClick = async (tab: string) => {
   const routeName = ROUTE_NAME_BY_TAB[tab];
   if (!routeName) return;
   if (tab === 'chat') {
     router.replace({ name: routeName, params: { sessionId: 'new-session' } });
+    return;
+  }
+  if (tab === 'capabilities') {
+    // 视觉管线是单管线配置页（/capabilities/:pipeline），必须携带 pipeline 参数；
+    // 否则 vue-router 导航失败、页面停在原地，这里给出默认管线
+    router.replace({ name: routeName, params: { pipeline: CAPABILITIES_DEFAULT_PIPELINE } });
     return;
   }
   if (GATED_TABS.has(tab)) {
