@@ -122,6 +122,8 @@ const appKeyColumns: ReTableColumn[] = [
 ];
 
 const loading = ref(false);
+/** AppKey 列表数据（ReTable 受控：分页由 ReTable 内部完成） */
+const dataList = ref<any[]>([]);
 /** 当前已选中的 AppKey 行（ReTable selection-change 返回跨页缓存的选区） */
 const selectedItems = ref<any[]>([]);
 /** 批量删除进行中（防连点重复提交） */

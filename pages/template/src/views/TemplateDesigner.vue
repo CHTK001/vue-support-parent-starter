@@ -795,9 +795,14 @@ function __interp(node, scope) {
     if (n === 'v-for') forAttr = n;
     if (n === 'v-model') modelAttr = n;
   }
+  /** 按属性名取值（attrs 是数组，不能用属性名当下标） */
+  function attrValue(name) {
+    var v = el.getAttribute(name);
+    return v === null ? '' : v;
+  }
   // v-for：复制节点逐项渲染
   if (forAttr) {
-    var forSpec = attrs[forAttr].value.replace(/\\s+/g, ' ').trim();
+    var forSpec = attrValue(forAttr).replace(/\\s+/g, ' ').trim();
     var parts = forSpec.split(/\\s+(?:in|of)\\s+/);
     var listExpr = parts[1], left = parts[0] || 'item';
     var leftVars = left.replace(/[\\(\\)]/g, '').split(',').map(function(s){ return s.trim(); });
@@ -858,7 +863,7 @@ function __interp(node, scope) {
   if (textAttr) { el.textContent = __fmt(__eval(textAttr, scope)); el.removeAttribute('v-text'); }
   // v-model（简单输入/文本域/复选）
   if (modelAttr) {
-    var path = attrs[modelAttr].value.trim();
+    var path = attrValue(modelAttr).trim();
     var isCheck = el.type === 'checkbox';
     if (isCheck) {
       if (__eval(path, scope)) el.checked = true;

@@ -132,7 +132,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { RefreshRight, Setting } from '@element-plus/icons-vue'
 import ReVideo from '@pages/device/src/components/ReVideo.vue'
@@ -248,7 +248,7 @@ async function loadDevices() {
     const list = await Promise.all(idList.map((id) => deviceApi.get(id).catch(() => null)))
     devices.value = list.filter((item): item is DeviceInfo => !!item)
     // 把通道号尽早补出来，避免页面初显时用纯编号兜底
-    void (await Promise.all(devices.value.map((d) => loadChannels(d)))).catch(() => {})
+    void Promise.all(devices.value.map((d) => loadChannels(d))).catch(() => {})
     loadRepairs()
   } finally {
     loading.value = false

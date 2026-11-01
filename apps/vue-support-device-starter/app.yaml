@@ -8,3 +8,13 @@ app:
 
 routeConfig:
   homePath: /device/preview
+
+# 静态资源层级：设备模块的 API 前缀与宿主机（monitor / system）同一口径，
+# dev server 的 proxy 会把 /api/device 转给 DEVICE_API_TARGET。
+httpConfig:
+  baseUrl: ""
+  moduleBaseUrl:
+    device: /api/device
+  timeout: 30000
+  retryCount: 0
+  showLoading: false
