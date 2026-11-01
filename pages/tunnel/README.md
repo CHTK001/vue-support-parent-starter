@@ -51,6 +51,6 @@ pages/tunnel/
 
 ## 配置持久化
 
-后端不借助数据库：每个映射以 `<store-dir>/<id>.json` 落地磁盘，`plugin.ngolk.store-dir`（默认 `~/.chua/tunnel/ngrok`）与 `plugin.cloudflared.store-dir`（默认 `~/.chua/tunnel/cloudflared`）。`pages/tunnel` 读接口，`spring-support-<ngrok|cloudflared>-starter` 写 JSON。
+后端不借助数据库：每个映射以 `<store-dir>/<id>.json` 落地磁盘，`plugin.ngrok.store-dir`（默认 `~/.chua/tunnel/ngrok`）与 `plugin.cloudflared.store-dir`（默认 `~/.chua/tunnel/cloudflared`）。`pages/tunnel` 读接口，`spring-support-<ngrok|cloudflared>-starter` 写 JSON。
 
-关于自动启动：应用的 `plugin.<ngrok|cloudflared>.auto-start: false` 关掉该能力，页面手动启停。关于自动启动的配置见对应 Starter 的 README（ngrok 第 10 章 / cloudflared 第 9 章）。
+页面默认关闭自动启动（应用 `plugin.<ngrok|cloudflared>.auto-start: false`），通过 `启动 / 停止` 按钮手动管理，也可在 Profiler 侧重新开启。
