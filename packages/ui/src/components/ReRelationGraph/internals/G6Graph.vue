@@ -324,6 +324,8 @@ const props = withDefaults(
 const containerRef = ref<HTMLDivElement | null>(null);
 /** 组件根元素（右键浮层按它做定位基准） */
 const rootRef = ref<HTMLDivElement | null>(null);
+/** DEBUG：ready 时容器/画布尺寸浮层 */
+const debugEl = ref<HTMLDivElement | null>(null);
 let graph: Graph | null = null;
 
 /** 插槽：node-content / node-tooltip / edge-tooltip / context-menu / toolbar-extra */
@@ -2651,6 +2653,13 @@ const initGraph = () => {
       drawRubber();
       setElementStates({ [connectFromState.value]: ["selected"] });
     }
+    if (graph) {
+      const dbg = document.querySelector(".rrg__debug") as HTMLDivElement | null;
+      const cw = containerRef.value?.clientWidth ?? "?";
+      const ch = containerRef.value?.clientHeight ?? "?";
+      const cs = graph.getCanvasSize?.() ?? graph.getCanvas()?.getSize?.();
+      dbg && (dbg.textContent = `CONTAINER ${cw}x${ch} | CANVAS ${cs?.[0] ?? "?"}x${cs ? cs[1] ?? "?" : "?"} | nodes ${graph.getNodesData?.().length ?? "?"} | edges ${graph.getEdgesData?.().length ?? "?"}`);
+    }
     if (graph) emit("ready", graph);
   });
 };
@@ -4083,6 +4092,8 @@ defineExpose({
     @pointerdown.capture="focusRoot"
   >
     <div ref="containerRef" class="rrg__canvas"></div>
+    <!-- DEBUG：ready 时容器/画布尺寸浮层 -->
+    <div ref="debugEl" class="rrg__debug"></div>
     <!-- 空态：只在「真的没有节点」时出现，不遮工具栏与右键浮层 -->
     <div v-if="!nodesState.length" class="rrg__empty">{{ emptyText }}</div>
     <GraphToolbar
@@ -4180,6 +4191,21 @@ defineExpose({
   height: 100%;
   min-height: 300px;
   overflow: hidden;
+}
+
+/* 调试浮层：ready 时报告容器/画布尺寸（正式发布前删除） */
+.rrg__debug {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: rgba(10, 10, 10, 0.9);
+  color: #00ff41;
+  font: 12px/1.5 monospace;
+  padding: 3px 8px;
+  border-radius: 2px 0 0 4px;
+  z-index: 100000;
+  pointer-events: none;
+  white-space: nowrap;
 }
 
 /* 空态占位：居中、不拦截鼠标（画布仍可拖动平移） */
