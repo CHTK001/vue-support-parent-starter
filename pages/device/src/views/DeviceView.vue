@@ -322,11 +322,6 @@
       </section>
     </div>
 
-    <!-- 分组管理：原「设备分组」菜单页，收敛为台账页签 -->
-    <section v-if="mountedTabs.has('groups')" v-show="ledgerTab === 'groups'" class="da-pane">
-      <DeviceGroupView />
-    </section>
-
     <!-- 机房拓扑：原「机房拓扑」菜单页，收敛为台账页签 -->
     <section v-if="mountedTabs.has('topo')" v-show="ledgerTab === 'topo'" class="da-pane">
       <DeviceTopoView />
@@ -341,16 +336,17 @@
       @saved="onDeviceSaved"
     />
 
-    <!-- 新建分组：只给设备打标签，不改动设备与组织 -->
+    <!-- 新建 / 编辑分组：按组织添加，分组所有权归组织 -->
     <ReDialog v-model="groupCreateVisible" title="新建分组" width="480px">
       <el-form label-position="top" class="da-group-form">
         <el-form-item label="分组名称" required>
           <el-input v-model="groupForm.groupName" placeholder="例如 研发中心 / 一期机房" maxlength="64" />
         </el-form-item>
-        <el-form-item label="上级分组">
-          <el-select v-model="groupForm.groupParent" placeholder="顶级分组（留空）" clearable class="w-full">
-            <el-option v-for="option in flatGroups" :key="option.groupId" :label="option.groupName" :value="option.groupId" />
+        <el-form-item :label="groupCreateKind === 'sub' ? '上级分组' : '上级组织'">
+          <el-select v-model="groupForm.groupParent" :placeholder="groupCreateKind === 'sub' ? '选一个上级分组' : '按组织把分组挂上去（可选新分组）'" clearable class="w-full">
+            <el-option v-for="option in parentOptions" :key="option.value" :label="option.label" :value="option.value" />
           </el-select>
+          <div class="da-group-form__hint">按组织添加：分组随组织归集，车间/大厦/楼层看组织的结构</div>
         </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="groupForm.groupRemark" type="textarea" :rows="2" maxlength="200" show-word-limit />
@@ -359,6 +355,32 @@
       <template #footer>
         <ReButton @click="groupCreateVisible = false">取消</ReButton>
         <ReButton type="primary" :loading="groupCreating" @click="saveGroup">保存</ReButton>
+      </template>
+    </ReDialog>
+
+    <!-- 分配设备到分组（全量替换分组下的设备） -->
+    <ReDialog v-model="assignVisible" title="分配设备" width="800px">
+      <div class="da-assign-tip">全量替换：操作会覆盖该分组下已有设备，请确认。</div>
+      <div class="da-assign-list">
+        <div
+          v-for="d in assignDevices"
+          :key="d.deviceInfoId"
+          class="da-assign-cell"
+          :class="{ 'is-assigned': pendingAssigned.has(d.deviceInfoId || '') }"
+          @click="pendingToggle(d)"
+        >
+          <div class="da-assign-cell__head">
+            <span class="da-assign-cell__name">{{ d.deviceInfoName }}</span>
+            <el-icon class="da-assign-cell__check">
+              <Check v-if="pendingAssigned.has(d.deviceInfoId || '')" /><Plus v-else />
+            </el-icon>
+          </div>
+          <div class="da-assign-cell__meta">{{ vendorLabel(d.deviceInfoVendor) }} · {{ d.deviceInfoIp || '无 IP' }}</div>
+        </div>
+      </div>
+      <template #footer>
+        <ReButton @click="assignVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="assignSaving" @click="onAssignSave">确认分配 ({{ pendingAssigned.size }})</ReButton>
       </template>
     </ReDialog>
 
@@ -457,9 +479,12 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import {
   Connection,
+  Check,
   Delete,
   EditPen,
   FolderOpened,
+  Grid,
+  Plus,
   Position,
   Refresh,
   RefreshRight,
@@ -489,8 +514,7 @@ import ReDeviceDetailDrawer from '@pages/device/src/components/ReDeviceDetailDra
 import DeviceChannelView from '@pages/device/src/views/DeviceChannelView.vue'
 import DeviceEventLogView from '@pages/device/src/views/DeviceEventLogView.vue'
 
-/** 台账页签里的子页面按需加载：首屏不背着「分组管理 / 机房拓扑」的代码 */
-const DeviceGroupView = defineAsyncComponent(() => import('@pages/device/src/views/DeviceGroupView.vue'))
+/** 账台账拓扑页签按需加载：首屏不背着机房拓扑的代码 */
 const DeviceTopoView = defineAsyncComponent(() => import('@pages/device/src/views/DeviceTopoView.vue'))
 
 import { deviceApi } from '@pages/device/src/api/deviceApi'
@@ -528,16 +552,15 @@ const onlineFilter = ref<'all' | 'online' | 'offline'>('all')
 const groupFilter = ref('')
 
 /* ==================== 台账页签 / 左侧显示维度 ==================== */
-/** 台账功能页签：设备列表 / 分组管理 / 机房拓扑 —— 全局菜单只保留「设备台账 / 厂商接入」 */
+/** 台账功能页签：设备列表 / 机房拓扑 —— 分组收敛到台账页签内 */
 const LEDGER_TABS = [
   { key: 'list', label: '设备列表', icon: 'Monitor' },
-  { key: 'groups', label: '分组管理', icon: 'FolderOpened' },
   { key: 'topo', label: '机房拓扑', icon: 'Grid' }
 ] as const
 type LedgerTabKey = (typeof LEDGER_TABS)[number]['key']
 
 const ledgerTab = ref<LedgerTabKey>(
-  /** 路由别名（/device/groups / /device/topo）落回页签：设备列表 / 分组管理 / 机房拓扑 */
+  /** 路由别名（/device/topo）落回页签：设备列表 / 机房拓扑 */
   (route.query.tab as LedgerTabKey | undefined) ?? 'list'
 )
 /** 已挂载过的页签：点开过才加载子页面，之后保留现场（切换不重建） */
