@@ -207,9 +207,6 @@ function typeText(_row: Record<string, unknown>, _col: ReTableColumn, cellValue:
   return { document: '单据', sms: '短信', email: '邮件', label: '标签', other: '其他' }[s ?? ''] ?? s ?? '—';
 }
 
-/** 行到列的格式化（绘制） */
-function _rowOf(row: TemplateInfo): Record<string, unknown> { return row as unknown as Record<string, unknown>; }
-
 // ------------------- 取数（ReTable loader） -------------------
 async function load(params: ReTableLoadParams): Promise<RePageResult> {
   loading.value = true;

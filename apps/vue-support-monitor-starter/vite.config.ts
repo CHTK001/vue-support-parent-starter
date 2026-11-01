@@ -153,6 +153,8 @@ function serveFileViewerOfficeWorkers(): PluginOption {
 // 用 MS_API_TARGET=https://18082-agqwy3tplnv4xakvlmllio7goq.instabox.tech 覆盖即可。
 const INSTABOX_BACKEND = "https://8082-agqwy3tplnv4xakvlmllio7goq.instabox.tech";
 const apiTarget = process.env.MS_API_TARGET ?? INSTABOX_BACKEND;
+// 模板后端：spring-support-template-starter（被 message/eduai 两个后台承载）
+const templateApiTarget = process.env.TEMPLATE_API_TARGET ?? "http://192.168.50.198:18170";
 
 /**
  * 由 API 目标推导 socket.io 目标：同主机 + 29612 端口。
@@ -504,6 +506,12 @@ export default createVite({
       // 设备模块：device-starter 原生前缀，不在 /ms/* 体系内，需单独放行
       "/api/device": {
         target: apiTarget,
+        changeOrigin: true,
+      },
+      // 模板模块：template-starter 运行时在 message/eduai（192.168.50.198:18170）
+      // 本侧走 TEMPLATE_API_TARGET 指向的 template 后端（可被 TEMPLATE_API_TARGET 覆盖）
+      "/api/template": {
+        target: templateApiTarget,
         changeOrigin: true,
       },
       // CDP 调试中心（/ms/cdp REST + /ws/cdp WebSocket，后端在 monitor 进程内）
