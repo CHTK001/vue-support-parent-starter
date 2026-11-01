@@ -210,13 +210,17 @@ function typeText(_row: Record<string, unknown>, _col: ReTableColumn, cellValue:
 // ------------------- 取数（ReTable loader） -------------------
 async function load(params: ReTableLoadParams): Promise<RePageResult> {
   loading.value = true;
+  const timeout = (ms: number) => new Promise<never>((_, done) => setTimeout(() => done(new Error(`template API timeout after ${ms}ms (dev)`)), ms));
   try {
-    const result = (await templateApi.page({
-      keyword: keyword.value,
-      source: sourceFilter.value,
-      page: params.page,
-      size: params.pageSize,
-    })) as PageResult<TemplateInfo> | undefined;
+    const result = (await Promise.race([
+      templateApi.page({
+        keyword: keyword.value,
+        source: sourceFilter.value,
+        page: params.page,
+        size: params.pageSize,
+      }),
+      timeout(2000),
+    ])) as PageResult<TemplateInfo> | undefined;
     if (!result || !Array.isArray(result.records)) throw new Error('template list payload is empty');
     total.value = result.total ?? 0;
     mockMode.value = false;
