@@ -827,7 +827,7 @@ function openDetail(device: DeviceInfo): void {
   detailVisible.value = true
 }
 
-/** 分组：展开到最深层的节点（带深度），用于左侧树与新建分组的上级分组选择 */
+/** 分组：展开到最深层的节点（带深度），用于左侧树与「新增子分组」的上级选择 */
 const flatGroups = computed<Array<DeviceGroupNode & { depth: number }>>(() => {
   const out: Array<DeviceGroupNode & { depth: number }> = []
   const walk = (nodes: DeviceGroupNode[], depth: number) => {
@@ -843,6 +843,47 @@ const flatGroups = computed<Array<DeviceGroupNode & { depth: number }>>(() => {
   return out
 })
 
+/** 组织树平铺（带层级缩进），用于「上级组织」选择 */
+const flatOrg = computed<Array<{ value: string; label: string }>>(() => {
+  const out: Array<{ value: string; label: string }> = []
+  const walk = (nodes: OrgNode[], depth: number) => {
+    if (!Array.isArray(nodes)) return
+    for (const node of nodes) {
+      out.push({ value: node.deviceOrganizationId, label: `${' '.repeat(depth)}${node.deviceOrganizationName}` })
+      if (node.children?.length) walk(node.children, depth + 1)
+    }
+  }
+  walk(orgTree.value, 0)
+  return out
+})
+
+/** 左树显示行：上级是组织的分组（不是分组），前面挂一个组织行，组织名来自组织树 */
+type TreeRow = DeviceGroupNode & { depth: number; isOrg?: boolean; _key: string }
+const groupIds = computed(() => new Set(groups.value.map((n) => n.groupId)))
+const orgNameOf = (id?: string): string | undefined =>
+  id ? orgTree.value.find((n) => n.deviceOrganizationId === id)?.deviceOrganizationName ?? id : undefined
+
+const treeRows = computed<Array<TreeRow>>(() => {
+  const out: Array<TreeRow> = []
+  const walk = (nodes: DeviceGroupNode[], depth: number) => {
+    if (!Array.isArray(nodes)) return
+    for (const n of nodes) {
+      if (!n.groupId) continue
+      const org = orgNameOf(n.groupParent)
+      if (org && !groupIds.value.has(n.groupParent)) {
+        out.push({ ...n, depth, groupId: '', groupName: org, deviceCount: 0, isOrg: true, _key: `org-${n.groupParent}` })
+      }
+      out.push({ ...n, depth: org ? depth + 1 : depth, _key: n.groupId })
+      if (n.children?.length) walk(n.children, depth + 1)
+    }
+  }
+  walk(groups.value, 0)
+  return out
+})
+
+/** 上级选项：新增分组 = 组织树，新增子分组/重命名 = 分组树 */
+const parentOptions = computed(() => groupCreateKind.value === 'sub' ? flatGroups.value : flatOrg.value)
+
 /** 分组筛选：点击左侧节点 / 列内标签 → 右侧只展示该组设备 */
 function selectGroup(node: DeviceGroupNode | null): void {
   groupFilter.value = node?.groupId || ''
@@ -856,22 +897,140 @@ function groupDeviceIds(groupId: string): Set<string> {
 
 /** 某台设备所处的分组标签列表（可点，点它即筛选该组设备） */
 function deviceGroupLabels(row: DeviceInfo): DeviceGroupNode[] {
-  const groupIds = assignments.value
+  const ids = assignments.value
     .filter((item) => item.deviceId === row.deviceInfoId)
     .map((item) => item.groupId)
-  return flatGroups.value.filter((node) => groupIds.includes(node.groupId))
+  return flatGroups.value.filter((node) => ids.includes(node.groupId))
 }
 
-/** 新建分组 */
+/** 分组节点右键菜单 */
+function onGroupCommand(cmd: string, row: TreeRow): void {
+  if (row.isOrg || !row.groupId) return
+  switch (cmd) {
+    case 'topo': openTopology(row.groupId); break
+    case 'add': openGroupCreate(row.groupId); break
+    case 'assign': openDeviceAssign(row); break
+    case 'edit': openGroupEdit(row); break
+    case 'delete': removeGroup(row); break
+  }
+}
+
+/** 厂家节点右键菜单 */
+function onVendorCommand(cmd: string, node: { vendor: string; label: string }): void {
+  if (cmd === 'topo') openTopology(undefined, node.vendor)
+}
+
+/** 创建/编辑分组 */
+const groupCreateKind = ref<'root' | 'sub'>('root')
+const editingGroupId = ref('')
 const groupCreateVisible = ref(false)
 const groupCreating = ref(false)
 const groupForm = reactive({ groupName: '', groupParent: '', groupRemark: '' })
 
 function openGroupCreate(parentId?: string | null): void {
+  editingGroupId.value = ''
   groupForm.groupName = ''
   groupForm.groupParent = parentId || ''
   groupForm.groupRemark = ''
+  groupCreateKind.value = parentId ? 'sub' : 'root'
   groupCreateVisible.value = true
+}
+
+/** 编辑分组（重命名） */
+function openGroupEdit(row: TreeRow): void {
+  editingGroupId.value = row.groupId
+  groupForm.groupName = row.groupName
+  groupForm.groupParent = row.groupParent || ''
+  groupForm.groupRemark = row.groupRemark || ''
+  /** 上级是组织时按组织选，上下级由分组树 */
+  groupCreateKind.value = row.groupParent && !groupIds.value.has(row.groupParent) ? 'root' : 'sub'
+  groupCreateVisible.value = true
+}
+
+/** 在拓扑中查看（按分组/厂商/设备给拓扑加上视图限制） */
+function openTopology(groupId?: string, vendor?: string, deviceId?: string): void {
+  ledgerTab.value = 'topo'
+  mountedTabs.add('topo')
+  const query: Record<string, string> = {}
+  if (groupId) query.groupId = groupId
+  if (vendor) query.vendor = vendor
+  if (deviceId) query.deviceId = deviceId
+  query.tab = 'topo'
+  void router.replace({ query })
+}
+
+/** 分配设备到分组（按分组全量替换） */
+const assignVisible = ref(false)
+const assignSaving = ref(false)
+const assignGroupId = ref('')
+const assignDevices = ref<DeviceInfo[]>([])
+const pendingAssigned = ref<Set<string>>(new Set())
+
+async function openDeviceAssign(row: TreeRow): Promise<void> {
+  if (!row.groupId) return
+  assignGroupId.value = row.groupId
+  try {
+    assignDevices.value = (await deviceApi.list()) as DeviceInfo[]
+    pendingAssigned.value = new Set(groupDeviceIds(row.groupId))
+  } catch {
+    assignDevices.value = []
+    pendingAssigned.value = new Set()
+  }
+  assignVisible.value = true
+}
+
+function pendingToggle(d: DeviceInfo): void {
+  const id = d.deviceInfoId || ''
+  if (pendingAssigned.value.has(id)) pendingAssigned.value.delete(id)
+  else pendingAssigned.value.add(id)
+}
+
+async function onAssignSave(): Promise<void> {
+  if (!assignGroupId.value) return
+  assignSaving.value = true
+  try {
+    await deviceApi.assignGroupDevices(assignGroupId.value, [...pendingAssigned.value])
+    message.success('分配成功')
+    assignVisible.value = false
+    await fetchGroups()
+    refreshAll()
+  } catch (err) {
+    message.error('分配失败：' + errorText(err))
+  } finally {
+    assignSaving.value = false
+  }
+}
+
+/** 清空分组下的设备 */
+async function clearGroup(row: TreeRow): Promise<void> {
+  if (!row.groupId) return
+  try {
+    await ElMessageBox.confirm(`清空分组「${row.groupName}」下的全部设备？`, '确认', { type: 'warning' })
+  } catch { return }
+  try {
+    await deviceApi.assignGroupDevices(row.groupId, [])
+    message.success('已清空')
+    if (groupFilter.value === row.groupId) groupFilter.value = ''
+    await fetchGroups()
+  } catch (err) {
+    message.error('操作失败：' + errorText(err))
+  }
+}
+
+/** 删除分组（子孙分组一并删除，设备本身不动） */
+async function removeGroup(row: TreeRow): Promise<void> {
+  if (!row.groupId) return
+  try {
+    await ElMessageBox.confirm(`删除分组「${row.groupName}」？分组内设备将移出。`, '确认', { type: 'warning' })
+  } catch { return }
+  try {
+    await deviceApi.deleteGroup(row.groupId)
+    message.success('分组已删除')
+    if (groupFilter.value === row.groupId) groupFilter.value = ''
+    await fetchGroups()
+  } catch (err) {
+    message.error('删除失败：' + errorText(err))
+  }
 }
 
 async function saveGroup() {
@@ -881,12 +1040,18 @@ async function saveGroup() {
   }
   groupCreating.value = true
   try {
-    await deviceApi.createGroup({ groupName: groupForm.groupName, groupParent: groupForm.groupParent || undefined, groupRemark: groupForm.groupRemark || undefined })
-    message.success('分组已创建')
+    const body = { groupName: groupForm.groupName.trim(), groupParent: groupForm.groupParent || undefined, groupRemark: groupForm.groupRemark || undefined }
+    if (editingGroupId.value) {
+      await deviceApi.updateGroup(editingGroupId.value, body)
+      message.success('分组已更新')
+    } else {
+      await deviceApi.createGroup(body)
+      message.success('分组已创建')
+    }
     groupCreateVisible.value = false
     await fetchGroups()
   } catch (err) {
-    message.error('创建分组失败：' + errorText(err))
+    message.error('操作失败：' + errorText(err))
   } finally {
     groupCreating.value = false
   }
