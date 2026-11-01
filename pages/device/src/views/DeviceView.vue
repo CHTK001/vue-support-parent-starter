@@ -1304,6 +1304,39 @@ onMounted(async () => {
   background: var(--el-color-primary-light-9);
 }
 
+/* 左侧维度切换：按分组 / 按厂家 */
+.da-modes {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  background: var(--el-fill-color-light);
+  border-radius: 9px;
+}
+.da-mode {
+  flex: 1;
+  padding: 5px 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--el-text-color-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: color 0.16s ease, background 0.16s ease;
+}
+.da-mode:hover { color: var(--el-color-primary); }
+.da-mode.is-active {
+  color: var(--el-color-primary);
+  background: var(--el-bg-color);
+  box-shadow: var(--el-box-shadow-lighter);
+  font-weight: 600;
+}
+.da-tree__empty {
+  padding: 12px 10px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
 .da-tree {
   flex: 1;
   min-height: 0;

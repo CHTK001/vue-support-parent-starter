@@ -223,7 +223,7 @@ function stateTagOf(status: boolean) {
     <el-table
       :data="list"
       style="width: 100%"
-      :default-sort="{ prop: "createdAt", order: "descending" }"
+      :default-sort={{ prop: 'createdAt', order: 'descending' }}
       @row-click="onRowClick"
     >
       <el-table-column prop="id" label="ID" width="180" />
