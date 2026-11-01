@@ -780,7 +780,9 @@ function openDetail(device: DeviceInfo): void {
 const flatGroups = computed<Array<DeviceGroupNode & { depth: number }>>(() => {
   const out: Array<DeviceGroupNode & { depth: number }> = []
   const walk = (nodes: DeviceGroupNode[], depth: number) => {
-    for (const n of nodes || []) {
+    /** 接口可能回传非数组（对象/字符串/空值），安全展开 */
+    if (!Array.isArray(nodes)) return
+    for (const n of nodes) {
       if (!n.groupId) continue
       out.push({ ...n, depth })
       if (n.children?.length) walk(n.children, depth + 1)

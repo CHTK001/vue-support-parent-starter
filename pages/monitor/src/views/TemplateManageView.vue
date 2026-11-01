@@ -6,12 +6,12 @@
     - 展示模板名称 / 来源 / 状态 / 语言 / 类型 / 创建时间；
     - 操作列提供「设计 / 预览」入口（设计器、预览页由 @pages/template 承载，
       本侧只负责加气口和台账）；
-    - 提供绘制描述的本地只读渲染（ReDrawer），供监控侧直接查看模板内容。
+    - 提供一个低风险的本地渲染预览（ReDrawer）给监控侧直接查看模板内容。
 
   接入：侧边栏 `createMonitorRoutes()` 的「模板管理」分组下（path /templates）。
 
   注意：监控侧不承载 template 路由（由 @pages/template 提供 /template/* 页），
-  设计器/预览页的跳转本侧只做入口，未在 monitor 路由注册时向用户说明原因。
+  设计器 / 预览页的跳转本侧只做入口，未在 monitor 路由注册时向用户说明原因。
 
   @author CH
   @since 4.0.0.46
@@ -38,13 +38,11 @@ const list = ref<TemplateInfo[]>([]);
 const total = ref(0);
 const keyword = ref('');
 const sourceFilter = ref('');
-
-/** 页码 / 每页条数 */
 const page = ref(1);
 const pageSize = ref(20);
 
-/** 当前选中的后台字段名（开发期 template 后端未注入 monitor 时的 Mock 标识） */
-const mockDebug = ref(false);
+/** templateApi 在监控侧挂走到 template 后端；mock 数据仅用于演示 UI 效果 */
+const mockMode = ref(false);
 
 // ------------------- 字段归一：屏蔽后端 camelCase / 小写两种键名 -------------------
 /** 把后端返回的原始行对象对齐到页面的 TS 类型（小写字段） */
@@ -150,7 +148,7 @@ const mockTemplates: TemplateInfo[] = [
   {
     id: 'tpl-pap-001',
     name: '高考试卷-模板A',
-    subtitle: '试卷头/页眉页脚/纸张规格',
+    subtitle: '试卷头 / 页漫页脚 / 纸张规格',
     language: 'html',
     type: 'other',
     status: 'offline',
@@ -162,7 +160,7 @@ const mockTemplates: TemplateInfo[] = [
     modifier: 'teacher',
     createdAt: '2026-10-25T22:00:00.000Z',
     updatedAt: '2026-10-26T11:30:00.000Z',
-    content: '<template><div>paper demo</div></template>',
+    content: '<template><div>pap我们来</div></template>',
     remark: 'dev 示例数据',
   },
 ];
@@ -185,39 +183,32 @@ function fmtTime(_row: Record<string, unknown>, _col: ReTableColumn, cellValue: 
   return fmtTimeOf(cellValue as string | undefined);
 }
 
-/** 四色状态标签 */
-function statusStyle(row: Record<string, unknown>): string {
-  const s = row.templateInfoStatus as string | undefined;
-  return {
-    online: 'success',
-    draft: 'warning',
-    offline: 'info',
-  }[s ?? ''] ?? '';
-}
-
-/** 四色状态文本 */
+/** 四字状态文本（formatter） */
 function statusText(_row: Record<string, unknown>, _col: ReTableColumn, cellValue: unknown): string {
   const s = cellValue as string | undefined;
   return { online: '已上线', draft: '草稿', offline: '已下线' }[s ?? ''] ?? s ?? '—';
 }
 
-/** 来源文本 */
+/** 来源文本（formatter） */
 function sourceText(_row: Record<string, unknown>, _col: ReTableColumn, cellValue: unknown): string {
   const s = cellValue as string | undefined;
   return { hiprint: 'hiprint', message: '消息', paper: '组卷' }[s ?? ''] ?? s ?? '—';
 }
 
-/** 语言文本 */
+/** 语言文本（formatter） */
 function languageText(_row: Record<string, unknown>, _col: ReTableColumn, cellValue: unknown): string {
   const s = cellValue as string | undefined;
   return { html: 'HTML', vue: 'Vue', jsx: 'JSX', json: 'JSON' }[s ?? ''] ?? s ?? '—';
 }
 
-/** 类型文本 */
+/** 类型文本（formatter） */
 function typeText(_row: Record<string, unknown>, _col: ReTableColumn, cellValue: unknown): string {
   const s = cellValue as string | undefined;
   return { document: '单据', sms: '短信', email: '邮件', label: '标签', other: '其他' }[s ?? ''] ?? s ?? '—';
 }
+
+/** 行到列的格式化（绘制） */
+function _rowOf(row: TemplateInfo): Record<string, unknown> { return row as unknown as Record<string, unknown>; }
 
 // ------------------- 取数（ReTable loader） -------------------
 async function load(params: ReTableLoadParams): Promise<RePageResult> {
@@ -231,47 +222,43 @@ async function load(params: ReTableLoadParams): Promise<RePageResult> {
     })) as PageResult<TemplateInfo> | undefined;
     if (!result || !Array.isArray(result.records)) throw new Error('template list payload is empty');
     total.value = result.total ?? 0;
-    mockDebug.value = result.total === 0 || result.records.length === 0;
-    const records = result.records.map((r: TemplateInfo | Record<string, unknown>) => normalizeRow(r as Record<string, unknown>));
+    mockMode.value = false;
     return {
-      records,
+      records: result.records.map((r: TemplateInfo | Record<string, unknown>) => normalizeRow(r as Record<string, unknown>)),
       total: total.value,
     };
   } catch (e) {
-    // template 后端不在 monitor 侧：开发期用 mock 数据铺开 UI（由 `onMounted` 触发首次加载）
-    mockDebug.value = true;
-    const { records: m } = splitPage(mockTemplates, params.page, params.pageSize);
-    return { records: m, total: mockTemplates.length };
+    // 开发期 templateApi 的 target 在 monitor 侧没有 template 后端：用 mock 数据铺开台账 UI
+    mockMode.value = true;
+    const m = mockTemplates;
+    total.value = m.length;
+    const start = (params.page - 1) * params.pageSize;
+    return { records: m.slice(start, start + params.pageSize), total: m.length };
   } finally {
     loading.value = false;
   }
 }
 
-/** Mock 分页 */
-function splitPage(items: TemplateInfo[], page: number, size: number): { records: TemplateInfo[] } {
-  const start = (page - 1) * size;
-  return { records: items.slice(start, start + size) };
-}
-
 // ------------------- 操作 -------------------
 /** 打开设计器（由 @pages/template 页面承载） */
 function openDesigner(row: TemplateInfo): void {
-  redirectConcept('/template/designer');
+  if (!resolveRoute('/template/designer')) {
+    message.warning('「designer」页由 @pages/template 提供，监控侧未注册该路由（请前往模板应用查看）');
+  }
   void router.push(`/template/designer/${row.id}`);
 }
 
 /** 打开预览（由 @pages/template 页面承载） */
 function openPreview(row: TemplateInfo): void {
-  redirectConcept('/template/preview');
+  if (!resolveRoute('/template/preview')) {
+    message.warning('「preview」页由 @pages/template 提供，监控侧未注册该路由（请前往模板应用查看）');
+  }
   void router.push(`/template/preview/${row.id}`);
 }
 
 /** 导航到 @pages/template 路由（未注册时在控制台说明原因，避免用户进 404 页） */
-function redirectConcept(path: string): void {
-  const exists = router.getRoutes().some((r) => r.path === path);
-  if (!exists) {
-    message.warning(`「${path}」页由 @pages/template 提供，监控侧未注册该路由（侧栏请进入模板应用查看）`);
-  }
+function resolveRoute(path: string): boolean {
+  return router.getRoutes().some((r) => r.path === path);
 }
 
 /** 打开详情 drawer */
@@ -288,6 +275,9 @@ function refresh(): void {
   void load({ page: 1, pageSize: pageSize.value, params: {} });
 }
 
+/** 基于样式计算状态标签（独立用：loading intent 不需要） */
+function _rowOf(row: TemplateInfo): Record<string, unknown> { return row as unknown as Record<string, unknown>; }
+
 const columns: ReTableColumn[] = [
   { prop: 'name', label: '模板名称', minWidth: 220, showOverflowTooltip: true },
   { prop: 'source', label: '来源', width: 120, formatter: sourceText },
@@ -295,7 +285,7 @@ const columns: ReTableColumn[] = [
   { prop: 'type', label: '类型', width: 110, formatter: typeText },
   { prop: 'language', label: '语言', width: 100, formatter: languageText },
   { prop: 'createdAt', label: '创建时间', width: 190, formatter: fmtTime },
-  { prop: 'actions', label: '操作', width: 160, align: 'center', fixed: 'right' },
+  { prop: 'actions', label: '操作', width: 160, align: 'center', fixed: 'right', slot: 'actions' },
 ];
 
 // ------------------- drawer -------------------
@@ -334,9 +324,6 @@ onMounted(() => {
       <ReButton text @click="refresh">
         重置
       </ReButton>
-      <ReButton v-if="mockDebug" text type="primary" @click="refresh" style="margin-left:auto">
-        <ReIcon icon="Refresh" /> 重新拉取真实数据
-      </ReButton>
     </div>
 
     <!-- 列表 -->
@@ -347,12 +334,22 @@ onMounted(() => {
         :columns="columns"
         pagination
         @row-click="onDetail"
-      />
+      >
+        <!-- 操作列（由 ReTable 的 `choose` 插槽接管：ReButton + 图标） -->
+        <template #actions="{ row }: { row: TemplateInfo }">
+          <ReButton text type="primary" @click.stop="openDesigner(row)">
+            <ReIcon icon="EditPen" /> 设计
+          </ReButton>
+          <ReButton text type="success" @click.stop="openPreview(row)">
+            <ReIcon icon="View" /> 预览
+          </ReButton>
+        </template>
+      </ReTable>
     </div>
 
-    <!-- 操作列缺省插槽由 ReTable 的 `actions` 列接管（ReButton + 图标） -->
-    <div class="manage__footer" v-if="mockDebug">
-      <span class="manage__footer__hint">演示数据，模板后端（/api/template）未接入监控侧</span>
+    <!-- 开发期 mock 提示 -->
+    <div v-if="mockMode" class="manage__footer">
+      <span class="manage__footer__hint">演示数据（监控侧未接入 template 后端 → /api/template）</span>
     </div>
 
     <!-- 详情 drawer -->
@@ -360,19 +357,19 @@ onMounted(() => {
       <div class="detail" v-if="drawerRow">
         <div class="detail__row">
           <span class="detail__label">状态</span>
-          <span class="detail__value">{{ statusText(drawerRow as Record<string, unknown>, null, drawerRow.status) }}</span>
+          <span class="detail__value">{{ statusText(_rowOf(drawerRow), null, drawerRow.status) }}</span>
         </div>
         <div class="detail__row">
           <span class="detail__label">来源</span>
-          <span class="detail__value">{{ sourceText(drawerRow as Record<string, unknown>, null, drawerRow.source) }}</span>
+          <span class="detail__value">{{ sourceText(_rowOf(drawerRow), null, drawerRow.source) }}</span>
         </div>
         <div class="detail__row">
           <span class="detail__label">语言</span>
-          <span class="detail__value">{{ drawerRow.language }}</span>
+          <span class="detail__value">{{ languageText(_rowOf(drawerRow), null, drawerRow.language) }}</span>
         </div>
         <div class="detail__row">
           <span class="detail__label">类型</span>
-          <span class="detail__value">{{ drawerRow.type }}</span>
+          <span class="detail__value">{{ typeText(_rowOf(drawerRow), null, drawerRow.type) }}</span>
         </div>
         <div class="detail__row">
           <span class="detail__label">创建时间</span>
@@ -411,6 +408,8 @@ onMounted(() => {
 .manage__table {
   flex: 1;
   overflow: auto;
+  border-radius: var(--el-border-radius-base);
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .manage__footer {
