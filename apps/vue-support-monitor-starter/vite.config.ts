@@ -365,6 +365,7 @@ export default createVite({
     // 开发期 @pages/tunnel 缺包（已交付的只有 @pages/remote）：
     // pages/remote 力管远程控制台页面，见 pages/remote/src/routes/index.ts 的 createTunnelRoutes
     "@pages/tunnel": "pages/remote",
+    "@pages/template": "pages/template",
   },
   server: {
     port: 8848,
