@@ -178,6 +178,11 @@
         <ReTableColumn prop="info" label="摘要" min-width="220" show-overflow-tooltip>
           <template #default="{ row }">{{ row.info || '—' }}</template>
         </ReTableColumn>
+        <ReTableColumn prop="restored" label="还原" min-width="220" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span class="tshark-mono" :title="row.restored">{{ row.restored || '—' }}</span>
+          </template>
+        </ReTableColumn>
         <ReTableColumn label="操作" width="72" align="center">
           <template #default="{ row }">
             <ReButton link type="primary" @click.stop="emit('open-detail', row.packetId)">详情</ReButton>
@@ -609,6 +614,17 @@ function formatMs(ms: number): string {
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--el-text-color-secondary);
+  font-family: var(--el-font-family-mono, monospace);
+}
+/** 协议还原明文：比摘要浅色，文字溢出时省略 */
+.lc-step__restored {
+  display: block;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--el-text-color-placeholder);
+  font-size: 10px;
+  line-height: 14px;
   font-family: var(--el-font-family-mono, monospace);
 }
 .lc-step:hover .lc-step__label {
