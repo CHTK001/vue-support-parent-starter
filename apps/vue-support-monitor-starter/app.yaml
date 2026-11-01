@@ -39,8 +39,13 @@ httpConfig:
   # 各业务模块后端前缀（createModuleHttp 读取，未配置则回退 baseUrl）。
   # device 用 device-starter 的原生前缀 /api/device——该模块未纳入 /ms/* 体系，
   # 后端由 spring-support-monitor-starter 依赖 device-starter 承载。
+  # template 用 template-starter 的前缀 /api/template——模板后端由 message/eduai（192.168.50.198:18170）
+  # 承载，不在 monitor 后端进程内；dev 下追加了 /api/template 代理，
+  # 把请求交给 template 默认的 TEMPLATE_API_TARGET（局域网 18170 端点）——
+  # 可被 TEMPLATE_API_TARGET 覆盖。
   moduleBaseUrl:
     device: /api/device
+    template: /api/template
 
 # 登录页配置（本地验收期间关闭滑块：自动化工具无法拖拽滑块；验收完成后还原为 true）
 loginConfig:
