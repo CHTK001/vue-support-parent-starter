@@ -80,16 +80,6 @@ function fmtTimeOf(v?: string): string {
 function fmtTime(_row: Record<string, unknown>, _col: ReTableColumn, cellValue: unknown): string {
   return fmtTimeOf(cellValue as string | undefined);
 }
-  if (!v) return '—';
-  try {
-    const d = new Date(v);
-    if (isNaN(d.getTime())) return v;
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  } catch {
-    return v;
-  }
-}
 
 /** 取数（ReTable loader） */
 async function load({ page: p, pageSize: ps }: ReTableLoadParams): Promise<RePageResult> {
