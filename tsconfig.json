@@ -159,6 +159,7 @@
       "@pages/filesystem": ["pages/filesystem/src"],
       "@pages/task": ["pages/task/src"],
       "@pages/monitor": ["pages/monitor/src"],
+      "@pages/tunnel": ["pages/tunnel/src"],
       // 通配符必须落在「页面根」而不是「src」，与运行期 vite alias（"@pages/monitor" → pages/monitor）
       // 以及本文件里的 "@pages/server/*" 保持同一口径：业务代码统一写
       // `@pages/monitor/src/api` 这种带 src 的深路径，若通配符目标已含 src，
