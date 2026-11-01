@@ -116,7 +116,7 @@
               { 'is-retrans': step.retransmission, 'is-reset': step.reset },
             ]"
             :style="{ top: 10 + i * STEP_H + 'px' }"
-            :title="`${step.info || ''}（点击查看报文详情）`"
+            :title="`${step.info || ''}${step.restored ? ' · ' + step.restored : ''}（点击查看报文详情）`"
             @click="emit('open-detail', step.packetId)"
           >
             <span class="lc-step__line" />
@@ -127,6 +127,7 @@
               <span v-if="step.retransmission" class="lc-badge is-retrans" title="重传 / 乱序 / 重复 ACK">重传</span>
               <span v-if="step.reset" class="lc-badge is-reset" title="连接被重置（RST）">RST</span>
               <span v-if="step.info" class="lc-step__info">{{ step.info }}</span>
+              <span v-if="step.restored" class="lc-step__restored" :title="step.restored">{{ step.restored }}</span>
             </span>
           </button>
         </div>

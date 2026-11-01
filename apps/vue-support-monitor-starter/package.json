@@ -27,6 +27,7 @@
     "@pages/monitor": "workspace:*",
     "@pages/remote": "workspace:*",
     "@pages/server": "workspace:*",
+    "@pages/template": "workspace:*",
     "@pages/tunnel": "workspace:*",
     "@repo/app": "workspace:*",
     "@repo/assets": "workspace:*",
