@@ -37,7 +37,7 @@ const loading = ref(false);
 const list = ref<TemplateInfo[]>([]);
 const total = ref(0);
 const keyword = ref('');
-const sourceFilter = ref('');
+const sourceFilter = ref<TemplateSource | ''>('');
 const page = ref(1);
 const pageSize = ref(20);
 
@@ -218,7 +218,8 @@ async function load(params: ReTableLoadParams): Promise<RePageResult> {
     const result = (await Promise.race([
       templateApi.page({
         keyword: keyword.value,
-        source: sourceFilter.value,
+        // 空字符串（全部）⇒ 不传参给后端查询条件
+        source: sourceFilter.value || undefined,
         page: params.page,
         size: params.pageSize,
       }),
