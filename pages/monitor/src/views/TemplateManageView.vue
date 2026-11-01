@@ -272,9 +272,6 @@ function refresh(): void {
   void load({ page: 1, pageSize: pageSize.value, params: {} });
 }
 
-/** 辅助：把行数据转成 ReTable 理解的 Record<string, unknown> */
-function _rowOf(row: TemplateInfo): Record<string, unknown> { return row as unknown as Record<string, unknown>; }
-
 /** drawer 用：复用 formatter 逻辑的列文本 */
 function statusOf(r: TemplateInfo): string { return statusText(r, {} as ReTableColumn, r.status); }
 function sourceOf(r: TemplateInfo): string { return sourceText(r, {} as ReTableColumn, r.source); }
