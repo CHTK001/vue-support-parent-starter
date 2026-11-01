@@ -425,7 +425,7 @@
  * @since 4.0.0.42
  */
 import { computed, defineAsyncComponent, onMounted, reactive, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import {
   Connection,
@@ -481,6 +481,7 @@ import type {
 } from '@pages/device/src/types/device'
 
 const router = useRouter()
+const route = useRoute()
 
 const rows = ref<DeviceInfo[]>([])
 const vendors = ref<DeviceVendorDescriptor[]>([])
@@ -506,10 +507,18 @@ const LEDGER_TABS = [
 ] as const
 type LedgerTabKey = (typeof LEDGER_TABS)[number]['key']
 
-const ledgerTab = ref<LedgerTabKey>('list')
+const ledgerTab = ref<LedgerTabKey>(
+  /** 路由别名（/device/groups / /device/topo）落回页签：设备列表 / 分组管理 / 机房拓扑 */
+  (route.query.tab as LedgerTabKey | undefined) ?? 'list'
+)
 /** 已挂载过的页签：点开过才加载子页面，之后保留现场（切换不重建） */
 const mountedTabs = reactive(new Set<LedgerTabKey>(['list']))
 watch(ledgerTab, (tab) => mountedTabs.add(tab))
+/** 路由表的 tab（/device?tab=topo 等）也要滚进 ledgerTab，否则 URL 与页签不同步 */
+watch(() => route.query.tab, (tab) => {
+  if (!tab) return
+  ledgerTab.value = tab as LedgerTabKey
+})
 
 /** 左侧树的维度：分组 tree / 厂家 —— 台账支持两种显示方式 */
 const railMode = ref<'group' | 'vendor'>('group')

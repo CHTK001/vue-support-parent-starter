@@ -109,8 +109,24 @@
           </ReButton>
         </header>
 
-        <div class="dpv-table-wrap">
-          <ReTable
+        <!-- 接入凭据 / 厂商任务 货架页签：定时任务属于厂商维度 -->
+        <nav class="dpv-pages">
+          <button
+            v-for="page in PAGE_TABS"
+            :key="page.key"
+            type="button"
+            class="dpv-page"
+            :class="{ 'is-active': pageTab === page.key }"
+            @click="pageTab = page.key"
+          >
+            <span>{{ page.label }}</span>
+          </button>
+          <span class="dpv-grow" />
+        </nav>
+
+        <div v-show="pageTab === 'credentials'" class="dpv-panes">
+          <div class="dpv-table-wrap">
+            <ReTable
             class="dpv-table"
             table-id="device-provider-credentials"
             :data="tableRows"
@@ -302,6 +318,11 @@
             <span class="dpv-foot__hint">点选一条凭据，在这里查看 AK / SK / Base URL 与阈值</span>
           </template>
         </footer>
+        </div>
+
+        <div v-show="pageTab === 'tasks'" class="dpv-panes dpv-panes--tasks">
+          <ReVendorTaskPanel :vendors="vendors" :credentials="credentials" />
+        </div>
       </section>
     </div>
 

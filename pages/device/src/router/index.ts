@@ -144,6 +144,7 @@ export const deviceRoutes: RouteConfigsTable[] = [
 
 /**
  * 设备管理静态菜单（一级菜单，展开为设备台账与厂商接入）
+ * 定时任务 / 分组 / 拓扑已收起为这两个菜单内的页签，不再出现在菜单中。
  */
 export const deviceMenus = [
   {
@@ -165,21 +166,6 @@ export const deviceMenus = [
         path: '/device/provider',
         name: 'DeviceProvider',
         meta: { title: '厂商接入', icon: 'Connection', isVisible: '1' }
-      },
-      {
-        path: '/device/groups',
-        name: 'DeviceGroup',
-        meta: { title: '设备分组', icon: 'FolderOpened', isVisible: '1' }
-      },
-      {
-        path: '/device/tasks',
-        name: 'DeviceTasks',
-        meta: { title: '定时任务', icon: 'Timer', isVisible: '1' }
-      },
-      {
-        path: '/device/topo',
-        name: 'DeviceTopo',
-        meta: { title: '机房拓扑', icon: 'Grid', isVisible: '1' }
       }
     ]
   }
