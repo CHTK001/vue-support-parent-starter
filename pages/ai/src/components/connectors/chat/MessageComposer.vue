@@ -57,7 +57,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import ReNumberInput from '@/components/re/ReNumberInput.vue'
+import ReNumberInput from '@/components/ui/ReNumberInput.vue'
 import {
   Send24Regular, Sparkle24Regular, History24Regular,
 } from '@vicons/fluent'

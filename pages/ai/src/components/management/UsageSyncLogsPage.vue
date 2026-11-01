@@ -44,7 +44,7 @@ import { Refresh } from '@element-plus/icons-vue';
 import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn } from '@repo/ui/re-table';
 import { usageApi } from '@/services/javaApi';
-import RePage from '@/components/re/RePage.vue';
+import RePage from '@/components/ui/RePage.vue';
 
 const loading = ref(false);
 const tableData = ref<any[]>([]);

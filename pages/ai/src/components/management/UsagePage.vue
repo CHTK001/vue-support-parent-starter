@@ -314,7 +314,7 @@
  */
 import { reactive } from 'vue';
 import ReEcharts from '@repo/ui/re-echarts';
-import ReTable from '@/components/re/ReTable.vue';
+import ReTable from '@/components/ui/ReTable.vue';
 import { useUsageBoard } from '@/composables/useUsageBoard';
 import UsagePageHead from './UsagePageHead.vue';
 import UsageDetailTable from './UsageDetailTable.vue';

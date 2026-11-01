@@ -221,7 +221,7 @@ import ReDialog from '@repo/ui/re-dialog'
 import SegmentedToggle from '../ui/SegmentedToggle.vue'
 import SettingsCard from './SettingsCard.vue'
 import { apiService } from '@/services/ApiService'
-import ReNumberInput from '@/components/re/ReNumberInput.vue'
+import ReNumberInput from '@/components/ui/ReNumberInput.vue'
 
 const { t } = useI18n()
 

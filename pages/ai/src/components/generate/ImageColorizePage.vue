@@ -153,7 +153,7 @@ import {
   Picture, FolderOpened, Download, Refresh, Setting, Switch, Loading, Warning, Delete,
 } from '@element-plus/icons-vue'
 import { WarningFilled } from '@element-plus/icons-vue'
-import ReButton from '@/components/re/ReButton.vue'
+import ReButton from '@/components/ui/ReButton.vue'
 import ReImageCompare from '@repo/ui/re-image-compare'
 import ReLoader from '@repo/ui/re-loader'
 import { apiService } from '@/services/ApiService'

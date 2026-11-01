@@ -173,7 +173,7 @@ import { useI18n } from 'vue-i18n'
 
 import type { FormInstance, FormRules } from 'element-plus'
 import ReDialog from '@repo/ui/re-dialog';
-import ReNumberInput from '@/components/re/ReNumberInput.vue'
+import ReNumberInput from '@/components/ui/ReNumberInput.vue'
 import { useBotStore } from '@/stores/bot'
 import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
 import { apiService } from '@/services/ApiService'

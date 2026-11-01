@@ -18,7 +18,7 @@
  * 不额外请求后端——图谱本来就已在前端缓存里（{@code /v2/rag/graph}）。</p>
  *
  * <p><b>风格</b>：与系统一致 —— 布局用 Tailwind 工具类，容器与气泡表面用组件库基线
- * 标签/按钮用 {@code @/components/re/*}（ReTag / ReButton）；容器与气泡表面走设计层 kb-ask 系列；
+ * 标签/按钮用 {@code @/components/ui/*}（ReTag / ReButton）；容器与气泡表面走设计层 kb-ask 系列；
  * 颜色只用 koi 令牌 {@code --rm-*}。原先 {@code .kb-ask__*} 一整套手写 BEM 已移除。</p>
  *
  * <p><b>顺带修</b>：原模板用了 {@code <Document />} 图标但 import 里没有它
@@ -31,9 +31,9 @@ import { apiService } from '@/services/ApiService'
 import { usePopup } from '@/composables/usePopup'
 import MarkdownContent from '@/components/ui/MarkdownContent.vue'
 import KBFilePreview from './KBFilePreview.vue'
-import ReButton from '@/components/re/ReButton.vue'
+import ReButton from '@/components/ui/ReButton.vue'
 import ReSquareButton from '@repo/ui/re-button'
-import ReTag from '@/components/re/ReTag.vue'
+import ReTag from '@/components/ui/ReTag.vue'
 
 // 关系图谱使用 G6 内核的 ReRelationGraph（@repo/ui 已提供）。
 // 该包导出的默认值本身就是 defineAsyncComponent 包过的异步组件（按主题懒加载），

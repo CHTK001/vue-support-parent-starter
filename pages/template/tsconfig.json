@@ -109,6 +109,8 @@
       "@repo/ui/re-upload-chunk": ["node_modules/@repo/ui/src/components/ReUploadChunk/index.ts"],
       "@repo/ui/re-video-gen": ["node_modules/@repo/ui/src/components/ReVideoGen/index.ts"],
       // @repo/ui/re-* end
+      // echarts 只存在于 packages/ui/node_modules，示例站需显式映射
+      "echarts": ["node_modules/@repo/ui/node_modules/echarts"]
     },
 
     /* 类型根目录：src/types/*.d.ts 里的 declare module 由该处提供 */

@@ -283,8 +283,8 @@ import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn } from '@repo/ui/re-table';
 import { agentApi } from '@/services/javaApi';
 import ReDialog from '@repo/ui/re-dialog';
-import ReNumberInput from '@/components/re/ReNumberInput.vue';
-import RePage from '@/components/re/RePage.vue';
+import ReNumberInput from '@/components/ui/ReNumberInput.vue';
+import RePage from '@/components/ui/RePage.vue';
 import ReButton from '@repo/ui/re-button';
 
 // ==================== 四张表的列配置（原模板里的 el-table-column 收敛为数组） ====================

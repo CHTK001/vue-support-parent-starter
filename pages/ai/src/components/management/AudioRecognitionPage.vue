@@ -128,9 +128,9 @@ import {
   DownloadOutlined as Download,
 } from '@vicons/material'
 import { WarningFilled } from '@element-plus/icons-vue'
-import ReCard from '@/components/re/ReCard.vue'
-import ReButton from '@/components/re/ReButton.vue'
-import ReEmpty from '@/components/re/ReEmpty.vue'
+import ReCard from '@/components/ui/ReCard.vue'
+import ReButton from '@/components/ui/ReButton.vue'
+import ReEmpty from '@/components/ui/ReEmpty.vue'
 import { apiService } from '@/services/ApiService'
 import { useModelConfigStore } from '@/stores/modelConfig'
 import { message } from '@repo/core'

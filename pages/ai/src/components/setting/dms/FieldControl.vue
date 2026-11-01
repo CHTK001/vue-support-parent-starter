@@ -57,7 +57,7 @@
  */
 import { OpenAI } from "@/components/icons"
 import { ArrowDown } from "@element-plus/icons-vue"
-import ReNumberInput from '@/components/re/ReNumberInput.vue'
+import ReNumberInput from '@/components/ui/ReNumberInput.vue'
 
 /**
  * 枚举 key → 中文标签。

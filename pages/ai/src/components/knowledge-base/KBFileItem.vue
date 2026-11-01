@@ -92,8 +92,8 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RefreshRight, Delete } from '@element-plus/icons-vue'
 import { KBFile } from '@/stores/knowledgeBase'
-import ReTag from '@/components/re/ReTag.vue'
-import ReButton from '@/components/re/ReButton.vue'
+import ReTag from '@/components/ui/ReTag.vue'
+import ReButton from '@/components/ui/ReButton.vue'
 import ReSquareButton from '@repo/ui/re-button'
 
 // 导入所有文件图标

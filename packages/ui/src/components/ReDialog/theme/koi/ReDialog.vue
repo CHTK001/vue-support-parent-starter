@@ -122,7 +122,9 @@ const props = withDefaults(
     closeOnPressEscape: true,
     confirmText: "",
     cancelText: "",
-    destroyOnClose: false,
+    // 关闭即销毁浮层：项目里弹窗实例多，常驻 DOM 会让每次关闭后都留下一个
+    // <div class="el-overlay">。需要保留内部状态的使用方显式传 :destroy-on-close="false"。
+    destroyOnClose: true,
     fullscreen: false,
     loading: false,
     draggable: true,
@@ -171,13 +173,15 @@ const {
 /**
  * localOpen 与 visible 双向闭环：
  * el-dialog 内部关闭（ESC / 遮罩 / v-model）只更新 localOpen，
- * 这里把状态回传父级 v-model，并在关闭时清理最小化停靠。
+ * 这里把状态回传父级 v-model。
+ *
+ * <p>注意：最小化（minimize()）走的是同一条链（visible=false → localOpen=false），
+ * 但此时浮标是必须留存的目标：清理最小化停靠由 koiClose() / koiCancel() /
+ * koiQuickClose() 显式负责，这里一旦 clearMinimized() 就会把刚渲染的浮标
+ * 清盘（v-if 求出到 v-if 求入，只经过一个 tick）。</p>
  */
 watch(localOpen, (v) => {
   visible.value = v;
-  if (!v) {
-    clearMinimized();
-  }
 });
 
 const dialogFullscreen = computed(() => windowFullscreen.value);

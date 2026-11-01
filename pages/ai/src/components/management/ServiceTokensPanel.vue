@@ -108,7 +108,7 @@ import ReButton from '@repo/ui/re-button'
 import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 import ReDialog from '@repo/ui/re-dialog'
-import ReNumberInput from '@/components/re/ReNumberInput.vue'
+import ReNumberInput from '@/components/ui/ReNumberInput.vue'
 
 const props = defineProps<{
   /** 当前选中的服务实例 ID；为空时不加载（无实例/未选中） */

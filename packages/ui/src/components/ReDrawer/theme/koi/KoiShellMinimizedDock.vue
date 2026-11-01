@@ -1,7 +1,10 @@
 <template>
   <Teleport to="body">
+    <!-- v-if 而非 v-show：未最小化时不留空按钮占位。
+         每个 ReDialog/ReDrawer 实例都会 Teleport 一个，v-show 会留下一堆
+         display:none 的 <button class="koi-shell-minimized-dock"> 常驻 body。 -->
     <button
-      v-show="visible"
+      v-if="visible"
       type="button"
       class="koi-shell-minimized-dock"
       :title="title || tooltip"

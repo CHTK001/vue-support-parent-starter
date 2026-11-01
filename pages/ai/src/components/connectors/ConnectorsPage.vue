@@ -188,7 +188,7 @@ import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus';
 import { EditOutlined, DeleteOutlined, MessageOutlined } from '@vicons/antd'
 import { api } from '@/framework/context'
-import RePage from '@/components/re/RePage.vue'
+import RePage from '@/components/ui/RePage.vue'
 import ConnectorIcon from './ConnectorIcon.vue'
 import ILinkBindForm from './bind-forms/ILinkBindForm.vue'
 import FeishuBindForm from './bind-forms/FeishuBindForm.vue'
@@ -197,7 +197,7 @@ import QqBindForm from './bind-forms/QqBindForm.vue'
 
 
 import ReDialog from '@repo/ui/re-dialog';
-import ReNumberInput from '@/components/re/ReNumberInput.vue';
+import ReNumberInput from '@/components/ui/ReNumberInput.vue';
 
 // 数据
 const boundConnectors = ref<any[]>([])

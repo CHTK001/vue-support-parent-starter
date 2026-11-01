@@ -248,6 +248,13 @@ export const monitorRoutes: RouteConfigsTable[] = [
         meta: { title: "视频预览", showLink: false, rank: 15 },
       },
       {
+        // 视频墙：多选设备 → 布局向导 → 1/4/9/16 宫格，每格独立通道/码流/取流协议
+        path: "/device/video-wall",
+        name: "DeviceVideoWall",
+        component: () => import("@pages/device/src/views/DeviceVideoWallView.vue"),
+        meta: { title: "视频预览", showLink: false, rank: 15 },
+      },
+      {
         path: "/device/preview/standalone",
         name: "DevicePreviewStandalone",
         component: () => import("@pages/device/src/views/DevicePreviewView.vue"),

@@ -237,7 +237,7 @@ import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn } from '@repo/ui/re-table';
 import { modelApi } from '@/services/javaApi';
 import ReDialog from '@repo/ui/re-dialog';
-import RePage from '@/components/re/RePage.vue';
+import RePage from '@/components/ui/RePage.vue';
 import ReButton from '@repo/ui/re-button';
 
 /**

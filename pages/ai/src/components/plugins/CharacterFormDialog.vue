@@ -139,7 +139,7 @@ import {
   Info24Regular, Edit24Regular, Image24Regular, WrenchScrewdriver24Regular,
 } from '@vicons/fluent'
 import { apiService } from '@/services/ApiService'
-import ReNumberInput from '@/components/re/ReNumberInput.vue'
+import ReNumberInput from '@/components/ui/ReNumberInput.vue'
 
 const emit = defineEmits<{ saved: [] }>()
 

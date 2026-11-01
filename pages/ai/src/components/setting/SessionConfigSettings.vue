@@ -171,7 +171,7 @@ import { Search, ArrowDown } from '@element-plus/icons-vue'
 import { CheckCircleFilled } from '@vicons/material'
 import { OpenAI } from '@/components/icons'
 import ReDialog from '@repo/ui/re-dialog'
-import ReButton from '@/components/re/ReButton.vue'
+import ReButton from '@/components/ui/ReButton.vue'
 import { getModelAvatarPath } from '@/utils/modelUtils'
 import { invalidateInitialLoadTurnsCache } from '../../services/modules/message.api'
 

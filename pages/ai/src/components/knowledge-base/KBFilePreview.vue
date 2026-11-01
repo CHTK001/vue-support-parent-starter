@@ -19,8 +19,8 @@ import { marked } from 'marked'
 import type { KBFile } from '@/stores/knowledgeBase'
 import { apiService } from '@/services/ApiService'
 import ReDialog from '@repo/ui/re-dialog'
-import ReTag from '@/components/re/ReTag.vue'
-import ReButton from '@/components/re/ReButton.vue'
+import ReTag from '@/components/ui/ReTag.vue'
+import ReButton from '@/components/ui/ReButton.vue'
 
 /**
  * 原文预览的定位方式有两种，二选一即可：

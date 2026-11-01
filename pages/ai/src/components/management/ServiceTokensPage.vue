@@ -116,14 +116,14 @@ import {
   Copy24Regular,
 } from '@vicons/fluent'
 import { Delete, Lock, Unlock } from '@element-plus/icons-vue';
-import RePage from '@/components/re/RePage.vue';
+import RePage from '@/components/ui/RePage.vue';
 import ReButton from '@repo/ui/re-button';
 import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 
 
 import ReDialog from '@repo/ui/re-dialog';
-import ReNumberInput from '@/components/re/ReNumberInput.vue';
+import ReNumberInput from '@/components/ui/ReNumberInput.vue';
 const http = createClient(v2Http, { unwrap: false })
 
 /**

@@ -40,7 +40,7 @@ import geminiIcon from '@/assets/channel-icons/gemini.svg'
 import minimaxIcon from '@/assets/channel-icons/minimax.ico'
 import zcodeIcon from '@/assets/channel-icons/zcode.ico'
 import lobsteraiIcon from '@/assets/channel-icons/lobsterai.ico'
-import RePageHead from '@/components/re/RePageHead.vue'
+import RePageHead from '@/components/ui/RePageHead.vue'
 
 /** 渠道品牌外观：官方图标（可选）+ 品牌色 + 徽标字形 */
 interface ChannelBrand {

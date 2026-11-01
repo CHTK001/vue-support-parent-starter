@@ -858,7 +858,7 @@ import 'viewerjs/dist/viewer.css'
 /** 图片预览指令：在 .wg-grid 上使用，v-viewer="viewerOptions" 传 viewerjs 配置 */
 const vViewer = viewerDirective({ name: 'viewer' })
 import GenerateComposer from './GenerateComposer.vue'
-import RePageHead from '@/components/re/RePageHead.vue'
+import RePageHead from '@/components/ui/RePageHead.vue'
 import { getModelAvatarPath } from '../../utils/modelUtils'
 import { ElMessageBox } from 'element-plus';
 

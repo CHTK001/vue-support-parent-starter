@@ -133,8 +133,8 @@ import { apiService } from '@/services/ApiService'
 import { highlightText } from './searchHighlight'
 import ReButton from '@repo/ui/re-button'
 import ReSquareButton from '@repo/ui/re-button'
-import ReTag from '@/components/re/ReTag.vue'
-import ReEmpty from '@/components/re/ReEmpty.vue'
+import ReTag from '@/components/ui/ReTag.vue'
+import ReEmpty from '@/components/ui/ReEmpty.vue'
 
 /** 检索结果条目 */
 interface SearchResult {

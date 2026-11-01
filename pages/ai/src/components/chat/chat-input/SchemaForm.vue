@@ -59,7 +59,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { ConfigField } from '@/services/modules/plugin.api'
-import ReNumberInput from '@/components/re/ReNumberInput.vue'
+import ReNumberInput from '@/components/ui/ReNumberInput.vue'
 
 const props = defineProps<{
   fields: ConfigField[]

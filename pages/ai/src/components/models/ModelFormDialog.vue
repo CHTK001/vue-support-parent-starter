@@ -467,7 +467,7 @@ import {
   deriveModelTraits,
   deriveCapabilitySwitches,
 } from './model.utils'
-import ReNumberInput from '@/components/re/ReNumberInput.vue'
+import ReNumberInput from '@/components/ui/ReNumberInput.vue'
 
 const props = defineProps<{
   provider: any

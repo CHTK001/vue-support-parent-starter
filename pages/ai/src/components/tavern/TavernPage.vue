@@ -433,7 +433,7 @@ import {isAdmin, message} from '@repo/core'
 import { apiService } from '@/services/ApiService'
 import { adminApi } from '@/framework/context'
 import type { TaverGroup, TaverMember, TaverMessage } from '@/services/modules/tavern.api'
-import ReNumberInput from '@/components/re/ReNumberInput.vue'
+import ReNumberInput from '@/components/ui/ReNumberInput.vue'
 
 /** 一轮回复的实际路由信息（后端 create 事件携带，便于排查路由错位） */
 interface TavernRouteTip {

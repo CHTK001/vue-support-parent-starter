@@ -141,8 +141,8 @@ export interface TemplateDesignerPayload {
   info: TemplateInfo
   /** 模板设计描述 */
   content: string
-  /** 操作模式：'design' / 'preview' / 'print' */
-  mode: 'design' | 'preview' | 'print'
+  /** 操作模式：'design' / 'preview' / 'print' / 'sandbox' */
+  mode: 'design' | 'preview' | 'print' | 'sandbox'
 }
 
 /**

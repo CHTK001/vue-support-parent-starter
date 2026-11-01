@@ -55,8 +55,8 @@ import { ref, computed } from 'vue'
 import { Search } from "@element-plus/icons-vue"
 import { CheckCircleFilled } from "@vicons/material"
 import ReDialog from '@repo/ui/re-dialog'
-import ReButton from '@/components/re/ReButton.vue'
-import ReTag from '@/components/re/ReTag.vue'
+import ReButton from '@/components/ui/ReButton.vue'
+import ReTag from '@/components/ui/ReTag.vue'
 
 const props = defineProps<{
   visible: boolean

@@ -8,15 +8,13 @@
         <span class="text-xs text-el-text-secondary">{{ devices.length }} 台设备 · 第 {{ page + 1 }} / {{ pageCount }} 页</span>
       </div>
       <div class="flex items-center gap-3">
-        <el-radio-group v-model="layout" size="small">
-          <el-radio-button :value="1">1×1</el-radio-button>
-          <el-radio-button :value="4">2×2</el-radio-button>
-          <el-radio-button :value="9">3×3</el-radio-button>
-          <el-radio-button :value="16">4×4</el-radio-button>
-        </el-radio-group>
+        <el-segmented v-model="layout" :options="layoutSegments" size="small" />
         <el-segmented v-model="protocol" :options="protocolSegments" size="small" />
         <el-button size="small" :disabled="page <= 0" @click="page--">上一页</el-button>
         <el-button size="small" :disabled="page >= pageCount - 1" @click="page++">下一页</el-button>
+        <ReButton size="small" :plain="rotate" type="primary" @click="toggleRotate">
+          {{ rotate ? '停止轮巡' : '开始轮巡' }}
+        </ReButton>
       </div>
     </header>
 
@@ -26,16 +24,28 @@
     </div>
 
     <div v-if="pageDevices.length" v-loading="loading" class="wall-grid" :style="gridStyle">
-      <div v-for="device in pageDevices" :key="device.deviceInfoId" class="wall-tile">
+      <div
+        v-for="device in pageDevices"
+        :key="device.deviceInfoId"
+        class="wall-tile"
+        :class="{ offline: !device.deviceInfoOnline }"
+      >
         <div class="tile-head">
           <span class="tile-name" :title="device.deviceInfoName">{{ device.deviceInfoName || device.deviceInfoId }}</span>
           <span class="tile-status" :class="{ online: device.deviceInfoOnline }">
             {{ device.deviceInfoOnline ? '在线' : '离线' }}
           </span>
-          <el-icon class="tile-head__config" @click.stop="openRepair(device)" title="主码流 / 副码流 / 通道">
-            <Setting />
-          </el-icon>
-          <el-button link type="primary" size="small" @click="openFullscreen(device)">全屏</el-button>
+          <el-icon class="tile-head__op" @click.stop="openRepair(device)" title="取流配置"><Setting /></el-icon>
+          <el-icon class="tile-head__op" @click.stop="onRestart(device)" title="重载"><RefreshRight /></el-icon>
+          <ReButton
+            icon="FullScreen"
+            size="small"
+            :plain="fullscreenDevice && fullscreenDevice.deviceInfoId === device.deviceInfoId"
+            type="primary"
+            @click="openFullscreen(device)"
+          >
+            全屏
+          </ReButton>
         </div>
         <div class="tile-body">
           <ReVideo
@@ -48,37 +58,30 @@
           />
         </div>
         <div class="tile-foot">
-          <el-select
-            :model-value="channelFor(device)"
+          <ReButton
+            v-for="n in channelChoices(device)"
+            :key="n"
+            :type="channelFor(device) === n ? 'primary' : 'default'"
             size="small"
-            placeholder="通道"
-            style="width: 80px"
-            @change="onDeviceChannel(device, $event)"
+            @click="onDeviceChannel(device, n)"
           >
-            <el-option
-              v-for="c in channelListFor(device)"
-              :key="c"
-              :label="`CH${c}`"
-              :value="c"
-            />
-          </el-select>
-          <el-radio-group
+            CH{{ n }}
+          </ReButton>
+          <el-segmented
             :model-value="streamFor(device)"
+            :options="STREAM_SEGMENTS"
             size="small"
-            @change="(v: string) => onDeviceStream(device, v)"
-          >
-            <el-radio-button label="main">主码流</el-radio-button>
-            <el-radio-button label="sub">副码流</el-radio-button>
-          </el-radio-group>
+            @update:model-value="onDeviceStream(device, $event)"
+          />
         </div>
       </div>
-      <div v-if="!pageDevices.length && !loading" class="empty">没有可预览的设备，请返回台账选择设备。</div>
+      <div v-if="!pageDevices.length && !loading" class="empty">没有可测试的视频流，请返回台账选择设备。</div>
     </div>
 
     <div v-if="fullscreenDevice" class="fullscreen-mask" @click.self="closeFullscreen">
       <div class="fullscreen-panel">
         <div class="tile-head">
-          <span class="tile-name">{{ fullscreenDevice.deviceInfoName }} · 主码流</span>
+          <span class="tile-name">{{ fullscreenDevice.deviceInfoName }} · {{ streamFor(fullscreenDevice) === 'main' ? '主码流' : '副码流' }}</span>
           <el-button link type="danger" @click="closeFullscreen">退出全屏</el-button>
         </div>
         <div class="fullscreen-body">
@@ -88,13 +91,7 @@
     </div>
 
     <!-- 逐设备取流配置：通道 / 主码流 / 副码流 / 取流协议 / 自定义地址（手动兜底） -->
-    <ReDialog
-      v-model="repairVisible"
-      :title="repairTitle"
-      width="560px"
-      :close-on-click-modal="false"
-      @update:model-value="repairVisible = $event"
-    >
+    <ReDialog v-model="repairVisible" :title="repairTitle" width="560px" :close-on-click-modal="false">
       <el-form label-position="top" class="dpv-form">
         <ReFormItem label="设备">
           <span class="dpv-form__ro">{{ repairTarget?.deviceInfoName || repairTarget?.deviceInfoId }}</span>
@@ -137,10 +134,10 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Setting } from '@element-plus/icons-vue'
+import { RefreshRight, Setting } from '@element-plus/icons-vue'
 import ReVideo from '@pages/device/src/components/ReVideo.vue'
-import ReDialog from '@repo/ui/re-dialog'
 import ReButton from '@repo/ui/re-button'
+import ReDialog from '@repo/ui/re-dialog'
 import ReInput from '@repo/ui/re-input'
 import ReInputNumber from '@repo/ui/re-input-number'
 import { ReFormItem } from '@repo/ui/re-kit'
@@ -150,6 +147,22 @@ import { RTSP_GATEWAY, hasRtspGateway } from '../utils/streamConfig'
 
 const route = useRoute()
 const router = useRouter()
+
+const STREAM_SEGMENTS = [
+  { label: '主码流', value: 'main' },
+  { label: '副码流', value: 'sub' },
+]
+const protocolSegments = [
+  { label: 'HLS', value: 'hls' },
+  { label: 'FLV', value: 'flv' },
+  { label: 'RTSP', value: 'rtsp' },
+]
+const layoutSegments = [
+  { label: '1x1', value: 1 },
+  { label: '2x2', value: 4 },
+  { label: '3x3', value: 9 },
+  { label: '4x4', value: 16 },
+]
 
 interface DeviceStream {
   channel: number
@@ -166,6 +179,7 @@ const streamCfg = reactive<Record<string, DeviceStream>>({})
 const channelCache = reactive<Record<string, number[]>>({})
 const remind = computed(() => route.query.remind === 'true')
 const remindVisible = ref(true)
+const rotate = ref(false)
 
 const fullscreenDevice = ref<DeviceInfo | null>(null)
 const fullscreenUrl = ref('')
@@ -187,7 +201,7 @@ function protocolFor(d: DeviceInfo): string {
   return protocol.value
 }
 /** 逐设备的通道候选（还没拉到时按设备通道数兜底） */
-function channelListFor(d: DeviceInfo): number[] {
+function channelChoices(d: DeviceInfo): number[] {
   const known = channelCache[d.deviceInfoId]
   if (known?.length) return known
   const base = Array.from({ length: Math.max(d.deviceInfoChannelCount ?? 0, 1) }, (_, i) => i + 1)
@@ -211,15 +225,27 @@ function back() {
   router.push('/device')
 }
 
+function toggleRotate() {
+  rotate.value = !rotate.value
+  if (rotate.value) {
+    rotateTimer = setInterval(() => {
+      page.value = (page.value + 1) % pageCount.value
+    }, 15000)
+  } else {
+    clearInterval(rotateTimer)
+    rotateTimer = undefined
+  }
+}
+
 async function loadDevices() {
-  const ids = String(route.query.ids || '')
+  const idList = String(route.query.ids || '')
     .split(',')
     .map((item) => item.trim())
     .filter(Boolean)
-  if (!ids.length) return
+  if (!idList.length) return
   loading.value = true
   try {
-    const list = await Promise.all(ids.map((id) => deviceApi.get(id).catch(() => null)))
+    const list = await Promise.all(idList.map((id) => deviceApi.get(id).catch(() => null)))
     devices.value = list.filter((item): item is DeviceInfo => !!item)
     // 把通道号尽早补出来，避免页面初显时用纯编号兜底
     void (await Promise.all(devices.value.map((d) => loadChannels(d)))).catch(() => {})
@@ -256,8 +282,8 @@ async function loadStreams() {
         return
       }
       try {
-        const streamCfg_ = streamCfg[device.deviceInfoId] ?? { channel: 1, streamMode: 'main' }
-        const url = await deviceApi.getVideoStream(device.deviceInfoId, streamCfg_.channel, protocol.value, streamCfg_.streamMode)
+        const cfg_ = streamCfg[device.deviceInfoId] ?? { channel: 1, streamMode: 'main' }
+        const url = await deviceApi.getVideoStream(device.deviceInfoId, cfg_.channel, protocol.value, cfg_.streamMode)
         urls[device.deviceInfoId] = String(url || '')
       } catch {
         urls[device.deviceInfoId] = ''
@@ -289,17 +315,6 @@ async function loadChannels(d: DeviceInfo): Promise<void> {
 
 /** 逐设备手动兜底配置的本地键（按设备存；后端没有「自定义流地址」接口） */
 const REPAIR_KEY = 'device:preview-wall-repair'
-
-/** 手动修复时的主/副码流分片选项 */
-const STREAM_SEGMENTS = [
-  { label: '主码流', value: 'main' },
-  { label: '副码流', value: 'sub' },
-]
-const protocolSegments = [
-  { label: 'HLS', value: 'hls' },
-  { label: 'FLV', value: 'flv' },
-  { label: 'RTSP', value: 'rtsp' },
-]
 
 /** 逐设备那段手动修复配置 */
 const repairs = ref<Record<string, { channel?: number; stream?: 'main' | 'sub'; protocol?: string; url?: string }>>({})
@@ -363,6 +378,16 @@ function persistRepairs(): void {
   }
 }
 
+/** 手动点一下断掉的流重试一次 */
+async function onRestart(d: DeviceInfo): Promise<void> {
+  try {
+    const cfg = streamCfg[d.deviceInfoId] ?? { channel: 1, streamMode: 'main' }
+    urls[d.deviceInfoId] = String(await deviceApi.getVideoStream(d.deviceInfoId, cfg.channel, protocol.value, cfg.streamMode) || '')
+  } catch {
+    urls[d.deviceInfoId] = ''
+  }
+}
+
 async function openFullscreen(device: DeviceInfo) {
   fullscreenDevice.value = device
   fullscreenUrl.value = ''
@@ -394,13 +419,7 @@ onBeforeUnmount(() => {
   if (rotateTimer) clearInterval(rotateTimer)
 })
 
-loadDevices().then(() => {
-  if (pageCount.value > 1) {
-    rotateTimer = setInterval(() => {
-      page.value = (page.value + 1) % pageCount.value
-    }, 15000)
-  }
-})
+loadDevices().then(() => {})
 </script>
 
 <style scoped>
@@ -443,6 +462,11 @@ loadDevices().then(() => {
   border-radius: 10px;
   overflow: hidden;
   background: #000;
+  transition: border-color 0.2s ease;
+}
+.wall-tile.offline {
+  border-color: var(--el-border-color-lighter);
+  opacity: 0.55;
 }
 .tile-head {
   display: flex;
@@ -453,7 +477,7 @@ loadDevices().then(() => {
   background: rgba(0, 0, 0, 0.55);
   font-size: 12px;
 }
-.tile-head__config {
+.tile-head__op {
   width: 26px;
   height: 26px;
   display: inline-flex;
@@ -463,10 +487,12 @@ loadDevices().then(() => {
   color: #fff;
   background: color-mix(in srgb, #fff 14%, transparent);
   cursor: pointer;
-  transition: background 0.15s ease;
+  opacity: 0.7;
+  transition: background 0.15s ease, opacity 0.15s ease;
 }
-.tile-head__config:hover {
+.tile-head__op:hover {
   background: color-mix(in srgb, var(--el-color-primary) 25%, transparent);
+  opacity: 1;
 }
 .tile-name {
   flex: 1;
@@ -491,6 +517,9 @@ loadDevices().then(() => {
   padding: 6px 8px;
   background: var(--el-fill-color-lighter);
   border-top: 1px solid var(--el-border-color-lighter);
+  font-size: 12px;
+}
+.tile-foot .el-segmented {
   font-size: 12px;
 }
 .empty {

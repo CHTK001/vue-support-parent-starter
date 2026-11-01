@@ -374,8 +374,8 @@ import type { ReTableColumn } from '@repo/ui/re-table'
 import ReDialog from '@repo/ui/re-dialog'
 import ReTab from '@repo/ui/re-tab'
 import type { ReTabItem } from '@repo/ui/re-tab'
-import ReNumberInput from '@/components/re/ReNumberInput.vue'
-import RePageHead from '@/components/re/RePageHead.vue'
+import ReNumberInput from '@/components/ui/ReNumberInput.vue'
+import RePageHead from '@/components/ui/RePageHead.vue'
 import ServiceTokensPanel from './ServiceTokensPanel.vue'
 import {
   Play20Regular, Stop20Regular, Key20Regular, Delete20Regular,

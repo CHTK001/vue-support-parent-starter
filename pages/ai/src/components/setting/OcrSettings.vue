@@ -81,7 +81,7 @@ import { apiService } from '@/services/ApiService'
 import { usePopup } from '@/composables/usePopup'
 import { openInExternalBrowser } from '@/utils/browserUtils'
 import { useI18n } from 'vue-i18n'
-import ReNumberInput from '@/components/re/ReNumberInput.vue'
+import ReNumberInput from '@/components/ui/ReNumberInput.vue'
 
 const { t } = useI18n()
 const { notify } = usePopup()

@@ -81,10 +81,10 @@ export const deviceRoutes: RouteConfigsTable[] = [
     }
   },
   {
-    // 兼容旧书签：/device/video-wall 与预览页同源，重定向到统一预览入口
+    // 视频墙（多选设备 → 布局向导 → 视频墙）：1 / 4 / 9 / 16 宫格，每格独立通道/码流/取流协议
     path: '/device/video-wall',
     name: 'DeviceVideoWall',
-    redirect: '/device/preview',
+    component: () => import('../views/DeviceVideoWallView.vue'),
     meta: {
       title: '视频预览',
       showLink: false,

@@ -149,7 +149,7 @@
           :class="{ 'is-dragging': dragActive }"
           :style="gridStyle"
           @dragover.prevent="onGridDragOver"
-          @drop.prevent="onGridDrop"
+          @drop="onGridDrop"
         >
           <article
             v-for="(tile, i) in wall"
@@ -783,7 +783,11 @@ function onGridDragOver(e: DragEvent): void {
 }
 
 function onGridDrop(e: DragEvent): void {
+  // 落到画面格（或空池格）时，格（slot）的 drop 处理器已经消费了拖拽事件，
+  // 协议事件冒泡到网格时不应再处理一遍——否则同一路地址被创建两次。
+  if (e.defaultPrevented) return
   applyDrop(e, -1)
+  e.preventDefault()
 }
 
 function onTileDrop(e: DragEvent, i: number): void {

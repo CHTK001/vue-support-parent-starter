@@ -115,7 +115,7 @@ import { Refresh } from '@element-plus/icons-vue';
 import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn } from '@repo/ui/re-table';
 import { pipelineApi } from '@/services/javaApi';
-import RePage from '@/components/re/RePage.vue';
+import RePage from '@/components/ui/RePage.vue';
 
 /**
  * 「管线模型」列配置：两张表（必填 / 非必填）结构完全相同，原各 4 个 el-table-column

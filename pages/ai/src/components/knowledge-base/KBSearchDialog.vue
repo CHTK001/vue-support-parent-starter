@@ -128,9 +128,9 @@ import type { KnowledgeBase } from '@/stores/knowledgeBase'
 import { usePopup } from '@/composables/usePopup'
 import { apiService } from '@/services/ApiService'
 import ReDialog from '@repo/ui/re-dialog'
-import ReButton from '@/components/re/ReButton.vue'
-import ReTag from '@/components/re/ReTag.vue'
-import ReEmpty from '@/components/re/ReEmpty.vue'
+import ReButton from '@/components/ui/ReButton.vue'
+import ReTag from '@/components/ui/ReTag.vue'
+import ReEmpty from '@/components/ui/ReEmpty.vue'
 
 const { t } = useI18n()
 

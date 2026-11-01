@@ -20,6 +20,7 @@ import useAuthStore from "./modules/auth";
 
 /** 权限异常：清空 token 与权限缓存，回登录页 */
 export const forceRelogin = async (router: Router, message?: string) => {
+  console.log("[AUTH] forceRelogin called", message ?? "(no message)");
   const userStore = useUserStore();
   const authStore = useAuthStore();
   userStore.$reset();
@@ -40,6 +41,7 @@ export const forceRelogin = async (router: Router, message?: string) => {
 
 /** 初始化动态路由：拉取菜单 + 注册到 layout（复用 core 通用逻辑） */
 export const initAuthRouter = async (router: Router) => {
+  console.log("[AUTH] initAuthRouter start for", router.currentRoute.value.path);
   const authStore = useAuthStore();
   // static/module 模式：菜单全在本地路由树，authStore.menuList（远程菜单）本就为空，
   // 侧边栏走 recursiveMenuList 照常渲染，故空菜单是预期状态，不该提示「未分配菜单」。

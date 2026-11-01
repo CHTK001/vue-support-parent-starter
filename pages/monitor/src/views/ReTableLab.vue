@@ -17,6 +17,8 @@
  */
 import { computed, ref } from "vue";
 
+import ReDialog from "@repo/ui/re-dialog";
+import ReDrawer from "@repo/ui/re-drawer";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 
 defineOptions({ name: "ReTableLab" });
@@ -128,6 +130,18 @@ const stats = computed(() => ({
   longTaskCount: longTasks.value.length,
   maxLongTask: longTasks.value.reduce((max, t) => Math.max(max, t.duration), 0),
 }));
+
+/** 弹窗浮层验收：显隐开关 + closed 回调计数（证明过渡走完、节点已销毁） */
+const dialogVisible = ref(false);
+const closedCount = ref(0);
+
+/** 最小化浮标验收：多一个打开开关 + closed 计数（验证浮标从 v-if 走向合盘） */
+const minDialogVisible = ref(false);
+const minClosedCount = ref(0);
+
+/** 抽屉浮层验收：关闭后 drawer DOM 整块销毁，关闭前最小化浮标进 body 再出来 */
+const drawerVisible = ref(false);
+const drawerClosedCount = ref(0);
 </script>
 
 <template>
@@ -179,6 +193,45 @@ const stats = computed(() => ({
         border
         @load="lastLoadedAt = Date.now()"
       />
+    </div>
+
+    <!-- 最小化浮标 DOM 验收：最小化时浮标进入 body（Teleport），关闭后必须从 body 消失；
+         不是 display:none 常驻 —— v-if 而非 v-show。 -->
+    <div class="lab-table">
+      <button type="button" data-testid="open-min-dialog" @click="minDialogVisible = true">打开最小化弹窗</button>
+      <ReDialog v-model="minDialogVisible" title="最小化浮标验收" width="420px" :show-minimize="true" @closed="minClosedCount++">
+        <div class="lab-min-dialog-body">最小化后浮标应在 body 出现，关闭后消失</div>
+        <template #footer>
+          <el-button data-testid="min-dialog-close" @click="minDialogVisible = false">关闭</el-button>
+        </template>
+      </ReDialog>
+      <span data-testid="min-dialog-closed-count">{{ minClosedCount }}</span>
+    </div>
+
+    <!-- 第三块：弹窗浮层 DOM 验收 —— 关闭后 overlay 应当整块销毁，
+         而不是留一个 display:none 的 <div class="el-overlay"> 常驻 body -->
+    <div class="lab-table">
+      <button type="button" data-testid="open-dialog" @click="dialogVisible = true">打开弹窗</button>
+      <ReDialog v-model="dialogVisible" title="浮层销毁验收" width="420px" @closed="closedCount++">
+        <div class="lab-dialog-body">关闭后本浮层应被销毁</div>
+        <template #footer>
+          <el-button data-testid="dialog-cancel" @click="dialogVisible = false">关闭</el-button>
+        </template>
+      </ReDialog>
+      <span data-testid="dialog-closed-count">{{ closedCount }}</span>
+    </div>
+
+    <!-- 第四块：抽屉浮层 DOM 验收 —— 关闭后 drawer DOM 整块销毁（destroyOnClose）；
+         抽屉最小化走的是直接 visible 绑定，浮标进 body 后不退场。 -->
+    <div class="lab-table">
+      <button type="button" data-testid="open-drawer" @click="drawerVisible = true">打开抽屉</button>
+      <ReDrawer v-model="drawerVisible" title="最小化浮标验收（抽屉）" size="420px" :show-minimize="true" @closed="drawerClosedCount++">
+        <div class="lab-drawer-body">最小化后浮标应在 body 出现</div>
+        <template #footer>
+          <el-button data-testid="drawer-close" @click="drawerVisible = false">关闭</el-button>
+        </template>
+      </ReDrawer>
+      <span data-testid="drawer-closed-count">{{ drawerClosedCount }}</span>
     </div>
   </div>
 </template>

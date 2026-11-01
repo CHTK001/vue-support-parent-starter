@@ -61,8 +61,8 @@
  */
 import { ref, computed } from 'vue'
 import { ArrowDown } from "@element-plus/icons-vue"
-import ReButton from '@/components/re/ReButton.vue'
-import ReNumberInput from '@/components/re/ReNumberInput.vue'
+import ReButton from '@/components/ui/ReButton.vue'
+import ReNumberInput from '@/components/ui/ReNumberInput.vue'
 import SettingsRow from '../SettingsRow.vue'
 
 const props = defineProps<{

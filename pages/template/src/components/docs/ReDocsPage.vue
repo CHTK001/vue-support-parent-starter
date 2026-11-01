@@ -77,13 +77,13 @@
                     v-else-if="prop.type === 'number'"
                     v-model="values[k]"
                     size="small"
-                    controls="false"
+                    :controls="false"
                     class="docs-prop__cell"
                   />
                   <ReSelect
                     v-else-if="prop.options && prop.options.length"
                     v-model="values[k]"
-                    :options="prop.options"
+                    :options="prop.options?.map((o) => ({ label: o, value: o }))"
                     size="small"
                     class="docs-prop__cell"
                   />

@@ -259,8 +259,8 @@ import { reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Plus, Edit, Delete, Document, Select, Grid, UploadFilled } from '@element-plus/icons-vue'
 import ReDialog from '@repo/ui/re-dialog'
-import ReButton from '@/components/re/ReButton.vue'
-import ReEmpty from '@/components/re/ReEmpty.vue'
+import ReButton from '@/components/ui/ReButton.vue'
+import ReEmpty from '@/components/ui/ReEmpty.vue'
 import heroIllustration from '@/assets/kb/kb-empty-hero.png'
 
 /** 最近活动条目 */

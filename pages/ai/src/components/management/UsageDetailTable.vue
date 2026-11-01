@@ -213,8 +213,8 @@
  * <p>props.board 由各变体 {@code reactive(useUsageBoard())} 注入 —— 复用了同一份
  * 业务逻辑（loader 分页 / 格式化 / 压缩开关），本组件不持有任何状态。</p>
  */
-import ReTable from '@/components/re/ReTable.vue';
-import ReTag from '@/components/re/ReTag.vue';
+import ReTable from '@/components/ui/ReTable.vue';
+import ReTag from '@/components/ui/ReTag.vue';
 import ReIpText from '@repo/ui/re-ip-text';
 import { Eye24Regular, EyeOff24Regular } from '@vicons/fluent';
 

@@ -63,9 +63,9 @@ import { useI18n } from 'vue-i18n'
 import { Document } from '@element-plus/icons-vue'
 import type { KBFile } from '@/stores/knowledgeBase'
 import ReDialog from '@repo/ui/re-dialog'
-import ReTag from '@/components/re/ReTag.vue'
-import ReButton from '@/components/re/ReButton.vue'
-import ReEmpty from '@/components/re/ReEmpty.vue'
+import ReTag from '@/components/ui/ReTag.vue'
+import ReButton from '@/components/ui/ReButton.vue'
+import ReEmpty from '@/components/ui/ReEmpty.vue'
 
 /** 组件属性 */
 interface Props {

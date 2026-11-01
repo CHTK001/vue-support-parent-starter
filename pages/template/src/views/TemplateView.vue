@@ -84,6 +84,7 @@
               <span class="entry__ak mono" :title="maskAk(item.ak ?? '')">AK {{ maskAk(item.ak ?? '') }}</span>
               <span class="entry__chips">
                 <span v-for="t in item.templateTypes ?? []" :key="t" class="chip">{{ typeLabel(t) }}</span>
+                <span v-if="item.customDesign" class="chip is-custom" title="支持在模板中心自定义设计模板">自定义设计</span>
               </span>
             </span>
             <span class="entry__side">
@@ -566,9 +567,9 @@ async function loadProviders(): Promise<void> {
   }
 }
 
-/** 按 ID 取提供商 */
+/** 按 ID 取提供商（tab.name 可能带 `:provider` / `:templates` 页签名后缀，先归一化） */
 function providerOf(id: string): ProviderInfo | undefined {
-  return providers.value.find(p => p.id === id)
+  return providers.value.find(p => p.id === providerIdOf(id))
 }
 
 /** 提供商下的模板数（后端统计优先，否则按已同步计数） */
@@ -1516,6 +1517,13 @@ onMounted(async () => {
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 999px;
   white-space: nowrap;
+}
+
+.chip.is-custom {
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 10%, var(--el-bg-color));
+  border-color: color-mix(in srgb, var(--el-color-primary) 35%, transparent);
+  font-weight: 600;
 }
 
 /* ==================== 右栏工作台 ==================== */

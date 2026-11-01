@@ -77,8 +77,8 @@ import { useI18n } from 'vue-i18n'
 import { Plus, Edit, Delete, MoreFilled } from '@element-plus/icons-vue'
 import { ElDropdown, ElDropdownMenu, ElDropdownItem } from 'element-plus'
 import ScrollContainer from '@/components/ui/ScrollContainer.vue'
-import ReButton from '@/components/re/ReButton.vue'
-import ReEmpty from '@/components/re/ReEmpty.vue'
+import ReButton from '@/components/ui/ReButton.vue'
+import ReEmpty from '@/components/ui/ReEmpty.vue'
 import type { KnowledgeBase } from '@/stores/knowledgeBase'
 
 /** 组件属性 */

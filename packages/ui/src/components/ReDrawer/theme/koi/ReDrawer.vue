@@ -29,6 +29,10 @@ const props = withDefaults(
     loading?: boolean;
     footerHidden?: boolean;
     showWindowShell?: boolean;
+    /** 最小化按钮是否显示（默认仅关闭可见） */
+    showMinimize?: boolean;
+    /** 全屏按钮是否显示（默认仅关闭可见） */
+    showFullscreen?: boolean;
     lockScroll?: boolean;
     modalClass?: string;
     drawerClass?: string;
@@ -41,7 +45,7 @@ const props = withDefaults(
     title: "ReDrawer",
     icon: Aim,
     size: "450",
-    destroyOnClose: false,
+    destroyOnClose: true,
     closeOnClickModal: false,
     confirmText: "",
     cancelText: "",
@@ -49,6 +53,8 @@ const props = withDefaults(
     loading: false,
     footerHidden: false,
     showWindowShell: true,
+    showMinimize: false,
+    showFullscreen: false,
     lockScroll: true,
     modalClass: "",
     drawerClass: "",
@@ -173,6 +179,8 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
         <KoiShellHeaderActions
           :is-fullscreen="windowFullscreen"
           :enabled="visible"
+          :show-minimize="showMinimize && !closeOnly"
+          :show-fullscreen="showFullscreen && !closeOnly"
           :close-only="closeOnly"
           @minimize="minimize"
           @toggle-fullscreen="toggleFullscreen"

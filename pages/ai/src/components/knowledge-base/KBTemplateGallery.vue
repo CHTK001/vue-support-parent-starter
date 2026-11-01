@@ -200,7 +200,7 @@
  * 从模板创建。
  *
  * <p><b>风格</b>：与系统既有页面一致 —— 布局用 Tailwind 工具类，卡片表面用组件库基线
- * {@code re-surface}，语义组件用应用本地 koi 封装 {@code @/components/re/*}
+ * {@code re-surface}，语义组件用应用本地 koi 封装 {@code @/components/ui/*}
  * （ReCard / ReTag / ReButton / ReEmpty），弹框用 {@code ReDialog}。不再手写 BEM CSS。</p>
  *
  * <p><b>数据诚实性</b>：预置类型来自静态清单；对**携带完整数据集**的模板（如三国演义），
@@ -213,10 +213,10 @@
 import { computed, ref, watch } from 'vue'
 import { ArrowLeft, Search } from '@element-plus/icons-vue'
 import ReDialog from '@repo/ui/re-dialog'
-import ReCard from '@/components/re/ReCard.vue'
-import ReTag from '@/components/re/ReTag.vue'
-import ReButton from '@/components/re/ReButton.vue'
-import ReEmpty from '@/components/re/ReEmpty.vue'
+import ReCard from '@/components/ui/ReCard.vue'
+import ReTag from '@/components/ui/ReTag.vue'
+import ReButton from '@/components/ui/ReButton.vue'
+import ReEmpty from '@/components/ui/ReEmpty.vue'
 import ReSquareButton from '@repo/ui/re-button'
 import coverSanguo from '@/assets/kb/tpl-sanguo.png'
 import coverPoem from '@/assets/kb/tpl-poem.png'

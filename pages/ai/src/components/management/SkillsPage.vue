@@ -178,7 +178,7 @@ import { Search, Refresh, Files, Delete } from '@element-plus/icons-vue';
 import { ArrowBackIosFilled } from '@vicons/material';
 import { skillsApi } from '@/services/javaApi';
 import PluginIcon from '@/components/ui/PluginIcon.vue';
-import RePage from '@/components/re/RePage.vue';
+import RePage from '@/components/ui/RePage.vue';
 import SkillDetailDialog from '@/components/plugins/SkillDetailDialog.vue';
 import ReDialog from '@repo/ui/re-dialog';
 

@@ -153,7 +153,7 @@ import type { Model, ModelProvider } from '../../types/api'
 import { apiService } from '../../services/ApiService'
 import { agentApi } from '@/services/javaApi'
 import ReDialog from '@repo/ui/re-dialog'
-import ReNumberInput from '@/components/re/ReNumberInput.vue'
+import ReNumberInput from '@/components/ui/ReNumberInput.vue'
 
 const { t } = useI18n()
 /** 三种调度输入模式，全部落到后端 schedule 的两种 kind 上 */

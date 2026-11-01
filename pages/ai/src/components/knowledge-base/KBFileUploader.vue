@@ -164,9 +164,9 @@ import type { UploadTask } from '@/stores/fileUpload'
 import type { KBFile } from '@/stores/knowledgeBase'
 import ReDialog from '@repo/ui/re-dialog'
 import ReSquareButton from '@repo/ui/re-button'
-import ReButton from '@/components/re/ReButton.vue'
+import ReButton from '@/components/ui/ReButton.vue'
 import { knowledgeBaseApi } from '@/services/modules/knowledge-base.api'
-import ReNumberInput from '@/components/re/ReNumberInput.vue'
+import ReNumberInput from '@/components/ui/ReNumberInput.vue'
 
 /**
  * 上传冲突信息

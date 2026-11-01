@@ -437,7 +437,7 @@ export default createVite({
           proxy.on("proxyRes", (proxyRes, req, res) => {
             console.log(`[DBG] PROXY-RES ${req.method} ${req.url} -> ${proxyRes.statusCode} len=${proxyRes.headers["content-length"]} type=${proxyRes.headers["content-type"]}`);
           });
-          proxy.on("error", (err) => {
+          proxy.on("error", (err, req, res) => {
             console.log(`[DBG] PROXY-ERR ${req?.url} ${err.message}`);
           });
         },
@@ -493,7 +493,7 @@ export default createVite({
           proxy.on("proxyRes", (proxyRes, req, res) => {
             console.log(`[DBG] PROXY-RES ${req.method} ${req.url} -> ${proxyRes.statusCode} len=${proxyRes.headers["content-length"]} type=${proxyRes.headers["content-type"]}`);
           });
-          proxy.on("error", (err) => {
+          proxy.on("error", (err, req, res) => {
             console.log(`[DBG] PROXY-ERR ${req?.url} ${err.message}`);
           });
         },
@@ -518,6 +518,18 @@ export default createVite({
       "/ms/datasource": {
         target: apiTarget,
         changeOrigin: true,
+        configure: (proxy, options) => {
+          proxy.on("proxyReq", (proxyReq, req) => {
+            console.log(`[DBG] PROXY-REQ ${req.method} ${req.url} host=${req.headers.host} origin=${req.headers.origin} authok=${(req.headers.authorization || "").slice(0, 20)}`);
+          });
+          proxy.on("proxyRes", (proxyRes, req, res) => {
+            const len = (proxyRes.headers["content-length"] || 0);
+            console.log(`[DBG] PROXY-RES ${req.method} ${req.url} -> ${proxyRes.statusCode} len=${len} type=${proxyRes.headers["content-type"]}`);
+          });
+          proxy.on("error", (err, req, res) => {
+            console.log(`[DBG] PROXY-ERR ${req?.url} ${String(err)}`);
+          });
+        },
       },
       "/ms/server": {
         target: apiTarget,

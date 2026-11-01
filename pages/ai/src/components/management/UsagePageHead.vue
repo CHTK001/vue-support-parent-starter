@@ -77,7 +77,7 @@
  *
  * <p>props.board 由各变体 {@code reactive(useUsageBoard())} 注入。</p>
  */
-import RePageHead from '@/components/re/RePageHead.vue';
+import RePageHead from '@/components/ui/RePageHead.vue';
 
 defineProps<{ board: any }>();
 </script>

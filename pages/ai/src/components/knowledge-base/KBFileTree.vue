@@ -187,7 +187,7 @@ import { apiService } from '@/services/ApiService'
 import ContextMenu, { type ContextMenuItem } from '@/components/ui/ContextMenu.vue'
 import LTooltip from '@/components/ui/LTooltip.vue'
 import ReDialog from '@repo/ui/re-dialog'
-import ReButton from '@/components/re/ReButton.vue'
+import ReButton from '@/components/ui/ReButton.vue'
 
 // 导入文件图标
 import fileCodeIcon from '@/assets/file_code.svg'

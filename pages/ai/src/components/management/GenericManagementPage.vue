@@ -165,7 +165,7 @@ import { Search, Plus, Refresh, Edit, Delete } from '@element-plus/icons-vue';
 import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn } from '@repo/ui/re-table';
 import ReDialog from '@repo/ui/re-dialog';
-import ReNumberInput from '@/components/re/ReNumberInput.vue'
+import ReNumberInput from '@/components/ui/ReNumberInput.vue'
 import ReButton from '@repo/ui/re-button'
 
 interface Column {

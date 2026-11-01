@@ -90,7 +90,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { usageApi } from '@/services/javaApi';
 import SettingsCard from './SettingsCard.vue';
 import SettingsRow from './SettingsRow.vue';
-import ReNumberInput from '@/components/re/ReNumberInput.vue';
+import ReNumberInput from '@/components/ui/ReNumberInput.vue';
 
 interface SettingSchema {
   field: string;

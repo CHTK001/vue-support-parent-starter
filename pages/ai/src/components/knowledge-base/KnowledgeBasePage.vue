@@ -839,19 +839,19 @@ import { apiService } from '@/services/ApiService'
 import { api } from '@/framework/context'
 import CardAvatar from '@/components/ui/CardAvatar.vue'
 import ReDialog from '@repo/ui/re-dialog'
-import ReButton from '@/components/re/ReButton.vue'
+import ReButton from '@/components/ui/ReButton.vue'
 // 仓库标准的正方形图标按钮（layout="square" 且内建 el-tooltip）：
 // 工具栏 / 表格操作列的「纯图标 + 悬浮提示」统一用它，避免各处再包一层 el-tooltip。
 import ReSquareButton from '@repo/ui/re-button'
-import ReTag from '@/components/re/ReTag.vue'
-import ReEmpty from '@/components/re/ReEmpty.vue'
+import ReTag from '@/components/ui/ReTag.vue'
+import ReEmpty from '@/components/ui/ReEmpty.vue'
 // ReTable 换算：仓库标准表格组件（引擎选 element 保持原 el-table DOM）与列类型
 import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 // 模板数据集类型：携带完整文档 / 实体 / 关系，创建后整体复制进新库
 import type { KbTemplateDataset } from '@/data/kb/templates/types'
 import { SANGUO_DATASET } from '@/data/kb/templates/sanguo'
-import ReNumberInput from '@/components/re/ReNumberInput.vue'
+import ReNumberInput from '@/components/ui/ReNumberInput.vue'
 
 // 初始化组合式函数
 const { confirm, toast } = usePopup()

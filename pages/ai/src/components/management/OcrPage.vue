@@ -190,7 +190,7 @@ import { Check, DocumentCopy, FolderOpened, Picture, Refresh, Warning, WarningFi
 import { currentToken } from '@/framework/context'
 import { getClientId } from '@/utils/clientId'
 import ReLoader from '@repo/ui/re-loader'
-import ReButton from '@/components/re/ReButton.vue'
+import ReButton from '@/components/ui/ReButton.vue'
 import { useRouter } from 'vue-router'
 import { useModelConfigStore } from '@/stores/modelConfig'
 

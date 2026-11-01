@@ -197,12 +197,12 @@
 <script setup lang="ts">
 import { message } from "@repo/core";
 import { ref, onMounted } from 'vue';
-import RePage from '@/components/re/RePage.vue';
+import RePage from '@/components/ui/RePage.vue';
 
 import { Checkmark20Regular } from '@vicons/fluent';
 import { settingsApi, usageApi, modelMetricsApi } from '@/services/javaApi';
 import ModelMetricsSettings from '@/components/setting/ModelMetricsSettings.vue';
-import ReNumberInput from '@/components/re/ReNumberInput.vue';
+import ReNumberInput from '@/components/ui/ReNumberInput.vue';
 
 const activeTab = ref('global-beans');
 const saving = ref(false);
