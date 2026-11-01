@@ -1,6 +1,6 @@
 <template>
   <div class="da">
-    <!-- 台账功能页签：设备列表 / 分组管理 / 机房拓扑（全局菜单只保留「设备台账 / 厂商接入」） -->
+    <!-- 台账功能页签：设备列表 / 机房拓扑（分组收敛到台账页签内） -->
     <nav class="da-tabs">
       <button
         v-for="tab in LEDGER_TABS"
