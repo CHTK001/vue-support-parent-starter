@@ -109,19 +109,36 @@
             <span class="da-tree__name">全部</span>
             <span class="da-tree__count">{{ rows.length }}</span>
           </div>
-          <!-- 组节点：点击筛选本组设备 -->
-          <div
-            v-for="node in flatGroups"
-            :key="node.groupId"
-            class="da-tree__item"
-            :class="{ 'is-active': groupFilter === node.groupId }"
-            :style="{ paddingLeft: `${10 + (node.depth || 0) * 14}px` }"
-            @click="selectGroup(node)"
-          >
-            <span class="da-tree__dot" />
-            <span class="da-tree__name">{{ node.groupName }}</span>
-            <span class="da-tree__count">{{ node.deviceCount }}</span>
-          </div>
+
+          <!-- 组织行 / 分组行：分组节点右键打开菜单，点击筛选本组设备 -->
+          <template v-for="row in treeRows" :key="row._key">
+            <!-- 组织行：不参与筛选 -->
+            <div v-if="row.isOrg" class="da-tree__item da-tree__item--org">
+              <span class="da-tree__dot" />
+              <span class="da-tree__name">{{ row.groupName }}</span>
+            </div>
+            <el-dropdown v-else-if="row.groupId" placement="bottom-start" trigger="contextmenu" @command="(cmd) => onGroupCommand(cmd, row)">
+              <div
+                class="da-tree__item"
+                :class="{ 'is-active': groupFilter === row.groupId }"
+                :style="{ paddingLeft: `${10 + (row.depth || 0) * 14}px` }"
+                @click="selectGroup(row)"
+              >
+                <span class="da-tree__dot" />
+                <span class="da-tree__name">{{ row.groupName }}</span>
+                <span class="da-tree__count">{{ row.deviceCount }}</span>
+              </div>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="topo" :icon="Grid">在拓扑中查看</el-dropdown-item>
+                  <el-dropdown-item command="add" :icon="Plus">新增子分组</el-dropdown-item>
+                  <el-dropdown-item command="assign" :icon="Grid">分配设备</el-dropdown-item>
+                  <el-dropdown-item command="edit" :icon="EditPen">重命名</el-dropdown-item>
+                  <el-dropdown-item command="delete" divided style="color: var(--el-color-danger)">删除</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </template>
         </ReScrollbar>
 
         <!-- 厂家列：按设备台账里的厂商归并，点击筛选该厂商的设备 -->
@@ -136,17 +153,28 @@
             <span class="da-tree__name">全部厂家</span>
             <span class="da-tree__count">{{ rows.length }}</span>
           </div>
-          <div
+          <el-dropdown
             v-for="node in vendorNodes"
             :key="node.vendor"
-            class="da-tree__item"
-            :class="{ 'is-active': vendorFilter === node.vendor }"
-            @click="selectVendor(node.vendor)"
+            placement="bottom-start"
+            trigger="contextmenu"
+            @command="(cmd) => onVendorCommand(cmd, node)"
           >
-            <span class="da-tree__dot" />
-            <span class="da-tree__name">{{ node.label }}</span>
-            <span class="da-tree__count">{{ node.count }}</span>
-          </div>
+            <div
+              class="da-tree__item"
+              :class="{ 'is-active': vendorFilter === node.vendor }"
+              @click="selectVendor(node.vendor)"
+            >
+              <span class="da-tree__dot" />
+              <span class="da-tree__name">{{ node.label }}</span>
+              <span class="da-tree__count">{{ node.count }}</span>
+            </div>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="topo" :icon="Grid">在拓扑中查看</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
           <p v-if="!vendorNodes.length" class="da-tree__empty">没有可归类的厂商</p>
         </ReScrollbar>
 
