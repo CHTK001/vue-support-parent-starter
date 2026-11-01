@@ -63,13 +63,23 @@ function statusName(s?: string): string {
   return names[s ?? ''] ?? s ?? '—';
 }
 
-/** 格式化时间（展示用） */
-function fmtTime(_row: Record<string, unknown>, _col: ReTableColumn, v?: string): string {
-  return fmtTimeOf(v);
+/** 时间格式化展示（重构后：单入口，优先给 loader formatter 与模板插值共用） */
+function fmtTimeOf(v?: string): string {
+  if (!v) return '—';
+  try {
+    const d = new Date(v);
+    if (isNaN(d.getTime())) return v;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  } catch {
+    return v;
+  }
 }
 
-/** 时间格式化（展示用） */
-function fmtTimeOf(v?: string): string {
+/** 时间展示（ReTable formatter） */
+function fmtTime(_row: Record<string, unknown>, _col: ReTableColumn, cellValue: unknown): string {
+  return fmtTimeOf(cellValue as string | undefined);
+}
   if (!v) return '—';
   try {
     const d = new Date(v);
@@ -91,7 +101,7 @@ async function load({ page: p, pageSize: ps }: ReTableLoadParams): Promise<RePag
       page: p,
       size: ps,
     })) as PageResult<TemplateInfo> | undefined;
-    const records = (result?.records ?? []).map(r => r as TemplateInfo);
+    const records = (result?.records ?? []).map((r: TemplateInfo) => r);
     total.value = result?.total ?? 0;
     return { records, total: total.value };
   } catch (e) {
@@ -203,11 +213,11 @@ onMounted(() => {
         </div>
         <div class="detail__row">
           <span class="detail__label">语言</span>
-          <span class="detail__value">{{ langNames[drawerRow.templateInfoLanguage] || '—' }}</span>
+          <span class="detail__value">{{ languageText(drawerRow) }}</span>
         </div>
         <div class="detail__row">
           <span class="detail__label">创建时间</span>
-          <span class="detail__value">{{ fmtTime(drawerRow.templateInfoCreatedAt) }}</span>
+          <span class="detail__value">{{ fmtTimeOf(drawerRow.templateInfoCreatedAt) }}</span>
         </div>
         <div class="detail__row">
           <span class="detail__label">备注</span>
