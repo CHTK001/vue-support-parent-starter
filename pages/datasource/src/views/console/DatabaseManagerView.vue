@@ -541,6 +541,7 @@
               <span class="dbm-subtab" :class="{ active: designSubTab === 'columns' }" @click="designSubTab = 'columns'">表结构</span>
               <span class="dbm-subtab" :class="{ active: designSubTab === 'indexes' }" @click="openIndexes">索引</span>
               <span class="dbm-subtab" :class="{ active: designSubTab === 'foreignKeys' }" @click="openForeignKeys">外键</span>
+              <span class="dbm-subtab" :class="{ active: designSubTab === 'versions' }" @click="designSubTab = 'versions'">版本</span>
             </div>
             <div class="dbm-col-actions">
               <template v-if="designSubTab === 'columns'">
@@ -559,6 +560,9 @@
               </template>
               <template v-else-if="designSubTab === 'indexes'">
                 <ReButton layout="square" type="primary" icon="Plus" tip="新建索引" @click="openIndexDialog" />
+              </template>
+              <template v-else-if="designSubTab === 'versions'">
+                <ReButton layout="square" type="primary" icon="Plus" tip="拍快照" @click="openDbSchemaVersion" />
               </template>
               <template v-else>
                 <ReButton layout="square" type="primary" icon="Plus" tip="新增外键" @click="openAddForeignKey" />

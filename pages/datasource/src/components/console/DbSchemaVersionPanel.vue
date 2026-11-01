@@ -52,9 +52,9 @@
       <div v-if="!detail" class="dvs-empty">没有可选的快照</div>
       <div v-else class="dvs-detail">
         <div class="dvs-detail-meta">
-          <span>创建人：<span class="dvs-meta-val">{{ detail.creator }}</span></span>
-          <span>创建时间：<span class="dvs-meta-val">{{ detail.createTime }}</span></span>
-          <span>快照名：<span class="dvs-meta-val">{{ detail.name }}</span></span>
+          <span>创建人：<span class="dvs-metadata">{{ detail.creator }}</span></span>
+          <span>创建时间：<span class="dvs-metadata">{{ detail.createTime }}</span></span>
+          <span>快照名：<span class="dvs-metadata">{{ detail.name }}</span></span>
         </div>
         <div class="dvs-detail-ddl">
           <div class="dvs-detail-ddl-head">
@@ -103,7 +103,7 @@
 
 <script setup lang="ts">
 import { message } from "@repo/core";
-import { computed, nextTick, ref } from "vue";
+import { computed, ref } from "vue";
 import type { ReTableLoadParams, RePageResult, ReTableColumn } from "@repo/ui/re-table";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
@@ -112,19 +112,18 @@ import {
   createDbSchemaSnapshot,
   fetchDbSchemaSnapshotDetail,
   fetchDbSchemaSnapshots,
-  fetchDbSchemaDdl,
   rollbackDbSchemaSnapshot,
+  deleteDbSchemaSnapshot,
   type DbSchemaSnapshotVO,
   type DbSnapshotDetailVO,
   type DbSchemaRollbackResultVO,
 } from "../api/dbSchemaVersionApi";
+
 /**
  * 版本页签的面板：结构快照（拍快照 / 列表 / 详情 / 回滚 / 删除）
  *
- * <p>荷说名：当前表名 + 当前库名（选表时从表头读）+ 数据源 ID（选表时从选中的数据源读）。<br />
- * 交互在页面级列轮廓上：<br />
- * 拍快照 → 确认弹窗？（不确认；直接保存）<br />
- * 回滚 → 已读确认后完成，失败时画表就标准。</p>
+ * <p>版本快照的后端端点在 {@code /ms/monitor/db/table/{table}/schema-snapshots/**}（4.0.0.51），
+ * 数据来自 {@code DbSchemaSnapshotVO}（列表/分页）与 {@code DbSnapshotDetailVO}（详情/全文）。</p>
  *
  * @author CH
  * @since 4.0.0.51
@@ -141,48 +140,45 @@ const props = withDefaults(
   { database: "", datasourceId: undefined },
 );
 
-/** 数据入口页面的实例 */
-const tableRef = ref<typeof ReTable>();
+/** ReTable 实例（支持 goto(1, size) 回到第一页） */
+const tableRef = ref<InstanceType<typeof ReTable> | undefined>();
 
 /** 加载中 */
 const loading = ref(false);
-/** 快照列表 */
-const snapshotRows = ref<DbSchemaSnapshotVO[]>([]);
-/** 当前页码 */
-const page = ref(1);
-/** 每页条数 */
-const size = ref(20);
+
 /** 查询关键词（快照名模糊搜索） */
 const keyword = ref("");
-/** 每页条数 */
-const size20 = ref(20);
+
+/** 每页条数（ReTable 的 loader 叫 params.pageSize，页面从上层传入） */
+const size = ref(20);
 
 /** 详情弹窗 */
 const detailVisible = ref(false);
 const detail = ref<DbSnapshotDetailVO | null>(null);
 const ddlBody = ref<HTMLPreElement | null>(null);
-const copyDdl = () => {
-  return;
-};
 
 /** 回滚弹窗 */
 const rollbackVisible = ref(false);
-const rollbackTarget = ref<{ name: string; createTime: string } | null>(null);
-const rollbackSkipping = ref(false);
+/** 当前待回滚的快照 */
+const rollbackTarget = ref<{ id: number | undefined; name: string; createTime: string } | null>(null);
 const rollbackLoading = ref(false);
 const rollbackResult = ref<DbSchemaRollbackResultVO | null>(null);
 
-/** 统计标题 */
+/** 详情弹窗标题 */
 const detailTitle = computed(() => `快照详情 · ${props.tableName}`);
 
-/** 回到首页 */
-async function reloadSnapshots() {
-  await tableRef.value?.goto(1, size.value);
-  await loadSnapshots({ page: 1, pageSize: size.value, params: {} });
+/** 回到顶部（回到第一页 + 重新列表） */
+async function reloadSnapshots(): Promise<void> {
+  try {
+    await tableRef.value?.goto?.(1, size.value);
+  } catch {
+    // 没有 goTable 能力：loadSnapshots 自己发 page=1
+    await loadSnapshots({ page: 1, pageSize: size.value, params: {} });
+  }
 }
 
-/** 刷新：回到第一页 */
-function refreshTable() {
+/** 刷新列表 */
+function refreshTable(): void {
   reloadSnapshots();
 }
 
@@ -197,12 +193,7 @@ async function loadSnapshots({ page, pageSize, params }: ReTableLoadParams): Pro
   if (!tableName) return { total: 0, data: [] };
   try {
     loading.value = true;
-    const res: any = await fetchDbSchemaSnapshots(
-      tableName,
-      { page, pageSize, name: keyword.value },
-      props.datasourceId,
-      props.database,
-    );
+    const res: any = await fetchDbSchemaSnapshots(tableName, { page, pageSize, name: keyword.value }, props.datasourceId, props.database);
     const rows = res?.records ?? res?.list ?? res?.data ?? [];
     return { total: res?.total ?? 0, data: rows as unknown as Record<string, unknown>[] };
   } finally {
@@ -220,6 +211,7 @@ async function takeSnapshot(): Promise<void> {
   try {
     await createDbSchemaSnapshot(tableName, {}, props.datasourceId, props.database);
     message.success("已拍快照");
+    reloadSnapshots();
   } catch (e) {
     message.error(`拍快照失败: ${String((e as Error)?.message ?? e)}`);
   }
@@ -235,12 +227,12 @@ async function openDetail(row: DbSchemaSnapshotVO): Promise<void> {
   }
 }
 
-/** 拷备 DDL */
+/** 复制 DDL */
 function copyDdl(): void {
   const ddl = detail.value?.ddl ?? "";
   if (!ddl) return;
   if (navigator.clipboard?.writeText) {
-    navigator.clipboard.writeText(ddl).catch(() => message.error("复制失败"));
+    navigator.clipboard.writeText(ddl).then(() => message.success("已复制")).catch(() => message.error("复制失败"));
   }
 }
 
@@ -250,7 +242,7 @@ async function onDelete(row: DbSchemaSnapshotVO): Promise<void> {
   try {
     await deleteDbSchemaSnapshot(props.tableName, row.id);
     message.success("已删除");
-    refetchSnapshots();
+    reloadSnapshots();
   } catch (e) {
     message.error(`删除失败: ${String((e as Error)?.message ?? e)}`);
   }
@@ -272,20 +264,12 @@ async function confirmRollback(): Promise<void> {
     rollbackResult.value = null;
     const res: any = await rollbackDbSchemaSnapshot(props.tableName, rollbackTarget.value.id);
     rollbackResult.value = res;
-    message.success(`回滚完成`);
   } catch (e) {
     message.error(`回滚失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     rollbackLoading.value = false;
   }
 }
-
-/** 刷新列表（简单起见只刷一次） */
-async function refetchSnapshots(): Promise<void> {
-  await tableRef.value?.goto(1, size.value);
-  await loadSnapshots({ page: 1, pageSize: size.value, params: {} });
-}
-
 </script>
 
 <style lang="scss" scoped>
@@ -372,7 +356,7 @@ async function refetchSnapshots(): Promise<void> {
   font-size: 12px;
   color: var(--el-text-color-regular);
 
-  .dvs-meta-val {
+  .dvs-metadata {
     color: var(--el-text-color-primary);
   }
 }
