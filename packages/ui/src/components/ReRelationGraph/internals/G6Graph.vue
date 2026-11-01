@@ -2563,6 +2563,7 @@ const preventNativeContextMenu = (e: Event) => e.preventDefault();
 
 const initGraph = () => {
   if (!containerRef.value || graph) return;
+  console.error("[rrg] initGraph container", containerRef.value.clientWidth, containerRef.value.clientHeight);
   // 画布内的浏览器原生右键菜单会盖在我们的浮层上，先拦掉（组件外部右键不受影响）
   containerRef.value.addEventListener("contextmenu", preventNativeContextMenu);
   graph = new Graph({
@@ -2653,12 +2654,19 @@ const initGraph = () => {
       drawRubber();
       setElementStates({ [connectFromState.value]: ["selected"] });
     }
-    if (graph) {
-      const dbg = document.querySelector(".rrg__debug") as HTMLDivElement | null;
-      const cw = containerRef.value?.clientWidth ?? "?";
-      const ch = containerRef.value?.clientHeight ?? "?";
-      const cs = graph.getCanvasSize?.() ?? graph.getCanvas()?.getSize?.();
-      dbg && (dbg.textContent = `CONTAINER ${cw}x${ch} | CANVAS ${cs?.[0] ?? "?"}x${cs ? cs[1] ?? "?" : "?"} | nodes ${graph.getNodesData?.().length ?? "?"} | edges ${graph.getEdgesData?.().length ?? "?"}`);
+    // 画布尺寸兜底：G6 在 `new Graph()` 时用 rAF 时刻的容器尺寸建画布，
+    // 若那一刻容器还没铺开（路由入场 / KeepAlive 隐藏 / 折叠面板），画布会缩在左上角且不再变大。
+    // 渲染落定后重测一次容器，尺寸不一致就 resize 并重新适配视口。
+    if (graph && containerRef.value) {
+      const { clientWidth, clientHeight } = containerRef.value;
+      console.error("[rrg] ready", clientWidth, clientHeight, "canvas", JSON.stringify(graph.getCanvasSize?.() ?? null));
+      if (clientWidth && clientHeight) {
+        try {
+          graph.resize(clientWidth, clientHeight);
+          console.error("[rrg] resized ->", JSON.stringify(graph.getCanvasSize?.() ?? null));
+          graph.fitView();
+        } catch (e) { console.error("[rrg] resize failed", String(e)); }
+      }
     }
     if (graph) emit("ready", graph);
   });

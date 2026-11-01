@@ -122,6 +122,8 @@ export interface TsharkStep {
   retransmission?: boolean
   /** 是否带 RST */
   reset?: boolean
+  /** 该包的协议还原明文（来自 -T json 通道的回填，离线也留得下）：HTTP / TLS / SSH / DNS / FTP / SMTP / MQTT ...，不一定有 */
+  restored?: string | null
 }
 
 /** 协议分布的一项 */

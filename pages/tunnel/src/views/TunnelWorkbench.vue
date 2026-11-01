@@ -1,8 +1,8 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
- * 内网穿透隧道工作台（@pages/tunnel）
+ * å†…ç½‘ç©¿é€éš§é“å·¥ä½œå°ï¼ˆ@pages/tunnelï¼‰
  *
- * <p>支持 ngrok 与 Cloudflare Tunnel 两种 Provider，配置、启用、启停、删除全功能。</p>
+ * <p>æ”¯æŒ ngrok ä¸Ž Cloudflare Tunnel ä¸¤ç§ Providerï¼Œé…ç½®ã€å¯ç”¨ã€å¯åœã€åˆ é™¤å…¨åŠŸèƒ½ã€‚</p>
  *
  * @author CH
  * @since 4.0.0.52
@@ -14,14 +14,14 @@ import { http, type SseClient } from "@repo/utils";
 import { ngrokStreamUrl } from "../api/tunnelApi";
 import type { TunnelProvider, TunnelRecord, TunnelView } from "../api/tunnelApi";
 
-/* ==================== 表单与列表 ==================== */
+/* ==================== è¡¨å•ä¸Žåˆ—è¡¨ ==================== */
 
-/** 当前 Provider */
+/** å½“å‰ Provider */
 const props = defineProps<{
   provider: TunnelProvider;
 }>();
 
-// 根据 prop 切换 API
+// æ ¹æ® prop åˆ‡æ¢ API
 const api = computed(() => {
   const isNgrok = props.provider === "ngrok";
   return {
@@ -35,7 +35,7 @@ const api = computed(() => {
   };
 });
 
-// 简洁 API 包装
+// ç®€æ´ API åŒ…è£…
 function listTunnels() {
   return api.value.list();
 }
@@ -60,17 +60,17 @@ function createTunnel(record: Omit<TunnelRecord, "id" | "createdAt" | "updatedAt
   return api.value.create(record);
 }
 
-/** 隧道列表 */
+/** éš§é“åˆ—è¡¨ */
 const list = ref<TunnelView[]>([]);
 
-/** 选中行 */
+/** é€‰ä¸­è¡Œ */
 const selected = ref<TunnelView | null>(null);
 
-/** 工作区抽屉：新建/编辑 */
+/** å·¥ä½œåŒºæŠ½å±‰ï¼šæ–°å»º/ç¼–è¾‘ */
 const drawerVisible = ref(false);
 const formRef = ref<InstanceType<typeof ElForm>>();
 
-/** 表单初始模型 */
+/** è¡¨å•åˆå§‹æ¨¡åž‹ */
 const emptyForm: TunnelRecord = {
   id: "",
   provider: props.provider,
@@ -93,17 +93,17 @@ const emptyForm: TunnelRecord = {
 const formModel = ref<TunnelRecord>(JSON.parse(JSON.stringify(emptyForm)));
 const formLoading = ref(false);
 
-/** 表单校验规则 */
+/** è¡¨å•æ ¡éªŒè§„åˆ™ */
 const rules = {
-  name: [{ required: true, message: "请输入映射名称", trigger: "blur" }],
+  name: [{ required: true, message: "è¯·è¾“å…¥æ˜ å°„åç§°", trigger: "blur" }],
   localPort: [
-    { required: true, message: "请输入本地端口", trigger: "blur" },
-    { type: "number", min: 1, max: 65535, message: "端口必须在 1 - 65535 之间", trigger: "blur" },
+    { required: true, message: "è¯·è¾“å…¥æœ¬åœ°ç«¯å£", trigger: "blur" },
+    { type: "number", min: 1, max: 65535, message: "ç«¯å£å¿…é¡»åœ¨ 1 - 65535 ä¹‹é—´", trigger: "blur" },
   ],
-  mode: [{ required: true, message: "请选择隧道模式", trigger: "change" }],
+  mode: [{ required: true, message: "è¯·é€‰æ‹©éš§é“æ¨¡å¼", trigger: "change" }],
 };
 
-/* ==================== SSE 实时流 ==================== */
+/* ==================== SSE å®žæ—¶æµ ==================== */
 
 let sseClient: SseClient | null = null;
 
@@ -116,7 +116,7 @@ function startSSE() {
     onMessage: (event) => {
       if (Array.isArray(event.data)) {
         list.value = event.data as TunnelView[];
-        // 保持选中行存在
+        // ä¿æŒé€‰ä¸­è¡Œå­˜åœ¨
         if (selected.value) {
           const updated = list.value.find(r => r.id === selected.value.id);
           if (updated) selected.value = updated;
@@ -125,10 +125,10 @@ function startSSE() {
       }
     },
     onError: (err) => {
-      console.warn("[tunnel] SSE 错误", err);
+      console.warn("[tunnel] SSE é”™è¯¯", err);
     },
     onOpen: () => {
-      console.log("[tunnel] SSE 连接已建立");
+      console.log("[tunnel] SSE è¿žæŽ¥å·²å»ºç«‹");
     },
     reconnect: true,
   });
@@ -143,7 +143,7 @@ onBeforeUnmount(() => {
   sseClient = null;
 });
 
-/* ==================== 操作 ==================== */
+/* ==================== æ“ä½œ ==================== */
 
 function openCreate() {
   selected.value = null;
@@ -164,14 +164,14 @@ function onFormSubmit() {
     if (selected.value) {
       updateTunnel(selected.value.id, formModel.value)
         .then(() => {
-          ElMessage.success("更新成功");
+          ElMessage.success("æ›´æ–°æˆåŠŸ");
           drawerVisible.value = false;
         })
         .finally(() => { formLoading.value = false; });
     } else {
       createTunnel(formModel.value)
         .then(() => {
-          ElMessage.success("创建成功");
+          ElMessage.success("åˆ›å»ºæˆåŠŸ");
           drawerVisible.value = false;
         })
         .finally(() => { formLoading.value = false; });
@@ -188,38 +188,38 @@ function onRowClick(row: TunnelView) {
   selected.value = row;
 }
 
-/* ==================== 工具 ==================== */
+/* ==================== å·¥å…· ==================== */
 
 function stateTagOf(status: boolean) {
-  return { type: status ? "success" : "info", text: status ? "运行中" : "已停止" };
+  return { type: status ? "success" : "info", text: status ? "è¿è¡Œä¸­" : "å·²åœæ­¢" };
 }
 
 </script>
 
 <template>
   <div class="tunnel-workbench">
-    <!-- 顶部栏 -->
+    <!-- é¡¶éƒ¨æ  -->
     <div class="tunnel-header">
       <div class="tunnel-header-left">
-        <h2 class="tunnel-header-title">隧道列表</h2>
+        <h2 class="tunnel-header-title">éš§é“åˆ—è¡¨</h2>
         <el-tag :type="list.some(t => t.running) ? 'success' : 'info'" size="default">
-          总计 {{ list.length }} · 在线 {{ list.filter(t => t.running).length }}
+          æ€»è®¡ {{ list.length }} Â· åœ¨çº¿ {{ list.filter(t => t.running).length }}
         </el-tag>
       </div>
       <div class="tunnel-header-right">
-        <el-button :icon="Refresh" plain size="small" @click="startSSE" title="重新连接 SSE">刷新</el-button>
-        <el-button :icon="MagicStick" plain size="small" @click="openCreate">新建隧道</el-button>
+        <el-button :icon="Refresh" plain size="small" @click="startSSE" title="é‡æ–°è¿žæŽ¥ SSE">åˆ·æ–°</el-button>
+        <el-button :icon="MagicStick" plain size="small" @click="openCreate">æ–°å»ºéš§é“</el-button>
       </div>
     </div>
 
-    <!-- 表格 -->
+    <!-- è¡¨æ ¼ -->
     <el-table :data="list" style="width: 100%" :default-sort="{ prop: 'createdAt', order: 'descending' }" @row-click="onRowClick">
       <el-table-column prop="id" label="ID" width="180" />
-      <el-table-column prop="name" label="名称" width="140" />
-      <el-table-column prop="localPort" label="本地端口" width="120" sortable />
-      <el-table-column prop="mode" label="模式" width="100" />
-      <el-table-column prop="domain" label="域名" min-width="200" show-overflow-tooltip />
-      <el-table-column prop="publicUrls" label="公网地址" min-width="240" show-overflow-tooltip>
+      <el-table-column prop="name" label="åç§°" width="140" />
+      <el-table-column prop="localPort" label="æœ¬åœ°ç«¯å£" width="120" sortable />
+      <el-table-column prop="mode" label="æ¨¡å¼" width="100" />
+      <el-table-column prop="domain" label="åŸŸå" min-width="200" show-overflow-tooltip />
+      <el-table-column prop="publicUrls" label="å…¬ç½‘åœ°å€" min-width="240" show-overflow-tooltip>
         <template #default="{ row }">
           <div v-if="row.publicUrls.length">
             <el-tag v-for="url in row.publicUrls.slice(0, 2)" :key="url" size="small" class="mr-4" type="success">
@@ -227,111 +227,111 @@ function stateTagOf(status: boolean) {
             </el-tag>
             <el-tag v-if="row.publicUrls.length > 2" size="small">+{{ row.publicUrls.length - 2 }}</el-tag>
           </div>
-          <span v-else class="text-gray-400">未分配</span>
+          <span v-else class="text-gray-400">æœªåˆ†é…</span>
         </template>
       </el-table-column>
-      <el-table-column prop="running" label="状态" width="100" sortable>
+      <el-table-column prop="running" label="çŠ¶æ€" width="100" sortable>
         <template #default="{ row }">
           <el-tag :type="row.running ? 'success' : 'info'" size="small">
-            {{ row.running ? "运行中" : "已停止" }}
+            {{ row.running ? "è¿è¡Œä¸­" : "å·²åœæ­¢" }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="error" label="错误信息" min-width="180" show-overflow-tooltip>
+      <el-table-column prop="error" label="é”™è¯¯ä¿¡æ¯" min-width="180" show-overflow-tooltip>
         <template #default="{ row }">
           <span v-if="row.error" class="text-red-500">{{ row.error }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="200" fixed="right">
+      <el-table-column label="æ“ä½œ" width="200" fixed="right">
         <template #default="{ row }">
           <el-popconfirm
-            :title="row.running ? '确定要停止该隧道吗？' : '确定要启动该隧道吗？'"
+            :title="row.running ? 'ç¡®å®šè¦åœæ­¢è¯¥éš§é“å—ï¼Ÿ' : 'ç¡®å®šè¦å¯åŠ¨è¯¥éš§é“å—ï¼Ÿ'"
             @confirm="row.running ? stopTunnel(row.id) : startTunnel(row.id)"
           >
             <template #reference>
               <el-button size="small" :type="row.running ? 'danger' : 'success'" plain>
-                {{ row.running ? "停止" : "启动" }}
+                {{ row.running ? "åœæ­¢" : "å¯åŠ¨" }}
               </el-button>
             </template>
           </el-popconfirm>
-          <el-button size="small" plain @click="openEdit(row)">编辑</el-button>
-          <el-popconfirm title="确定要删除该隧道吗？" @confirm="deleteTunnel(row.id)">
+          <el-button size="small" plain @click="openEdit(row)">ç¼–è¾‘</el-button>
+          <el-popconfirm title="ç¡®å®šè¦åˆ é™¤è¯¥éš§é“å—ï¼Ÿ" @confirm="deleteTunnel(row.id)">
             <template #reference>
-              <el-button size="small" type="danger" plain>删除</el-button>
+              <el-button size="small" type="danger" plain>åˆ é™¤</el-button>
             </template>
           </el-popconfirm>
         </template>
       </el-table-column>
     </el-table>
 
-    <!-- 新建/编辑抽屉 -->
-    <el-drawer v-model="drawerVisible" title="新建通道" size="520">
+    <!-- æ–°å»º/ç¼–è¾‘æŠ½å±‰ -->
+    <el-drawer v-model="drawerVisible" title="æ–°å»ºé€šé“" size="520">
       <el-form ref="formRef" :model="formModel" :rules="rules" label-width="100" class="tunnel-form">
-        <FormRow label="名称">
-          <ElInput v-model="formModel.name" placeholder="必填" />
+        <el-form-item label="åç§°">
+          <ElInput v-model="formModel.name" placeholder="å¿…å¡«" />
         </FormRow>
 
-        <FormRow label="本地端口">
-          <ElInput v-model="formModel.localPort" type="number" placeholder="如 8080" />
+        <el-form-item label="æœ¬åœ°ç«¯å£">
+          <ElInput v-model="formModel.localPort" type="number" placeholder="å¦‚ 8080" />
         </FormRow>
 
-        <FormRow label="模式">
-          <ElSelect v-model="formModel.mode" placeholder="选择模式">
+        <el-form-item label="æ¨¡å¼">
+          <ElSelect v-model="formModel.mode" placeholder="é€‰æ‹©æ¨¡å¼">
             <template v-if="props.provider === 'ngrok'">
-              <el-option label="HTTP 转发" value="http" />
-              <el-option label="TCP 转发" value="tcp" />
-              <el-option label="TLS 隧道" value="tls" />
+              <el-option label="HTTP è½¬å‘" value="http" />
+              <el-option label="TCP è½¬å‘" value="tcp" />
+              <el-option label="TLS éš§é“" value="tls" />
             </template>
             <template v-else>
-              <el-option label="Quick Tunnel (免账号)" value="quick" />
-              <el-option label="Named Tunnel (需 Token)" value="named" />
+              <el-option label="Quick Tunnel (å…è´¦å·)" value="quick" />
+              <el-option label="Named Tunnel (éœ€ Token)" value="named" />
             </template>
           </ElSelect>
         </FormRow>
 
         <template v-if="formModel.mode === 'http' || formModel.mode === 'tls'">
-          <FormRow label="域名">
-            <ElInput v-model="formModel.domain" placeholder="可选" />
+          <el-form-item label="åŸŸå">
+            <ElInput v-model="formModel.domain" placeholder="å¯é€‰" />
           </FormRow>
-          <FormRow label="Basic 认证">
+          <el-form-item label="Basic è®¤è¯">
             <ElInput v-model="formModel.basicAuth" placeholder="user:password" />
           </FormRow>
         </template>
 
         <template v-if="formModel.mode === 'tcp'">
-          <FormRow label="远程地址">
-            <ElInput v-model="formModel.remoteAddress" placeholder="如 1.tcp.ngrok.io:20000" />
+          <el-form-item label="è¿œç¨‹åœ°å€">
+            <ElInput v-model="formModel.remoteAddress" placeholder="å¦‚ 1.tcp.ngrok.io:20000" />
           </FormRow>
         </template>
 
         <template v-if="props.provider === 'cloudflared'">
-          <FormRow label="Token">
-            <ElInput v-model="formModel.token" placeholder="Zero Trust 隧道 Token（可选）" />
+          <el-form-item label="Token">
+            <ElInput v-model="formModel.token" placeholder="Zero Trust éš§é“ Tokenï¼ˆå¯é€‰ï¼‰" />
           </FormRow>
         </template>
 
-        <FormRow label="自动启动">
+        <el-form-item label="è‡ªåŠ¨å¯åŠ¨">
           <ElSwitch v-model="formModel.autoStart" />
         </FormRow>
 
-        <FormRow label="启用">
+        <el-form-item label="å¯ç”¨">
           <ElSwitch v-model="formModel.enabled" />
         </FormRow>
 
-        <FormRow label="备注">
+        <el-form-item label="å¤‡æ³¨">
           <ElInput v-model="formModel.remark" type="textarea" />
         </FormRow>
 
         <div class="form-actions">
-          <ElButton @click="onFormCancel">取消</ElButton>
-          <ElButton type="primary" :loading="formLoading" @click="onFormSubmit">保存</ElButton>
+          <ElButton @click="onFormCancel">å–æ¶ˆ</ElButton>
+          <ElButton type="primary" :loading="formLoading" @click="onFormSubmit">ä¿å­˜</ElButton>
         </div>
       </el-form>
     </el-drawer>
   </div>
 </template>
 
-<style scoped lang="scss">
+<style scoped>
 .tunnel-workbench {
   height: 100%;
   display: flex;
