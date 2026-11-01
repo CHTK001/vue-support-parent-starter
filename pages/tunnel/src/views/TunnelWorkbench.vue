@@ -46,6 +46,11 @@ import {
 /** 工作区 Provider：ngrok / cloudflared */
 const props = defineProps<{ provider: TunnelProvider }>();
 
+/** 抽屉标题（新建/编辑） */
+const drawerTitle = computed(() =>
+  selected.value ? `编辑 ${props.provider} 隧道` : `新建 ${props.provider} 隧道`,
+);
+
 /** Provider 切换的 API 出口 */
 const api = computed(() => ({
   list: props.provider === "ngrok" ? ngrokList : cloudflaredList,
@@ -180,10 +185,6 @@ function stopTunnelRecord(id: string) {
   return api.value.stop(id);
 }
 
-function listTunnels() {
-  return api.value.list();
-}
-
 function onFormSubmit() {
   formRef.value!.validate((valid) => {
     if (!valid) return;
@@ -308,7 +309,7 @@ function stateTagOf(status: boolean) {
     </el-table>
 
     <!-- 新建/编辑抽屉 -->
-    <el-drawer v-model="drawerVisible" title="新建通道" size="520">
+    <el-drawer v-model="drawerVisible" :title="drawerTitle" size="520">
       <el-form ref="formRef" :model="formModel" :rules="rules" label-width="100" class="tunnel-form">
         <el-form-item label="名称">
           <ElInput v-model="formModel.name" placeholder="必填" />
