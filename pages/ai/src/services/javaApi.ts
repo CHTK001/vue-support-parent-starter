@@ -53,6 +53,26 @@ export const appKeyApi = {
   batchDelete: (ids: number[]) => http.delete('/app-keys/batch', { data: { ids } }),
 };
 
+/** AppKey 充值/消费流水 API（余额 / 充值 / 扣减 / 流水） */
+export const topupApi = {
+  /** 查询余额 */
+  balance: (appKeyId: number) => http.get(`/app-keys/${appKeyId}/balance`),
+  /** 充值（金额 + 备注） */
+  recharge: (appKeyId: number, amount: number, remark?: string) =>
+    http.post(`/app-keys/${appKeyId}/recharge`, { amount, remark }),
+  /** 扣减/调整（金额 + 备注） */
+  deduct: (appKeyId: number, amount: number, remark?: string) =>
+    http.post(`/app-keys/${appKeyId}/deduct`, { amount, remark }),
+  /** 充值/消费/退款/调整流水（按 AppKey 主键） */
+  list: (appKeyId: number) => http.get(`/app-keys/${appKeyId}/topups`),
+  /** 套餐变更 */
+  plan: (appKeyId: number, planId: number) => http.put(`/app-keys/${appKeyId}/plan`, { planId }),
+  /** 透支开关变更 */
+  overdraft: (appKeyId: number, enabled: boolean) => http.put(`/app-keys/${appKeyId}/overdraft`, { overdraftEnabled: enabled }),
+  /** 每分钟单价变更 */
+  rate: (appKeyId: number, minuteRate: number) => http.put(`/app-keys/${appKeyId}/rate`, { minuteRate }),
+};
+
 /** 厂商目录（厂商 Key 的归属厂商，用于表单选择器） */
 export const manufacturerApi = {
   list: () => http.get('/manufacturer/list'),
