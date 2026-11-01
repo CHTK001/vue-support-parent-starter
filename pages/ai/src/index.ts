@@ -23,3 +23,4 @@ export { default as DefaultModelSettings } from "./components/setting/DefaultMod
 export { default as PaperConfigPanel } from "./components/setting/PaperConfigPanel.vue";
 export { default as PaperConfigPage } from "./components/setting/PaperConfigPage.vue";
 export { default as ModelsProviderList } from "./components/setting/ModelsProviderList.vue";
+export { default as ChannelHealthPage } from "./components/management/ChannelHealthPage.vue";
