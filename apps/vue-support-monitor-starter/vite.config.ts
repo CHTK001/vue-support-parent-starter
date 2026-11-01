@@ -362,9 +362,8 @@ export default createVite({
     "@pages/debug": "pages/debug",
     "@pages/device": "pages/device",
     "@pages/docker": "pages/docker",
-    // 开发期 @pages/tunnel 缺包（已交付的只有 @pages/remote）：
-    // pages/remote 力管远程控制台页面，见 pages/remote/src/routes/index.ts 的 createTunnelRoutes
-    "@pages/tunnel": "pages/remote",
+    // pages/tunnel 已交付：隧道工作台路由 + 隧道页（NgrokTunnelView / CloudflaredTunnelView）
+    "@pages/tunnel": "pages/tunnel",
     "@pages/template": "pages/template",
   },
   server: {
