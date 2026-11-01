@@ -2,7 +2,8 @@
 /**
  * 内网穿透隧道工作台（@pages/tunnel）
  *
- * <p>支持 ngrok 与 Cloudflare Tunnel 两种 Provider，配置、启用、启停、删除全功能。</p>
+ * <p>支持 ngrok 与 Cloudflare Tunnel 两种 Provider，配置、启用、启停、删除全功能，
+ * 状态通过 SSE 实时推送。</p>
  *
  * @author CH
  * @since 4.0.0.52
@@ -45,7 +46,7 @@ import {
 /** 工作区 Provider：ngrok / cloudflared */
 const props = defineProps<{ provider: TunnelProvider }>();
 
-/** Provider 切换的 API 出口：路由 + 抽屉表单项同构 */
+/** Provider 切换的 API 出口 */
 const api = computed(() => ({
   list: props.provider === "ngrok" ? ngrokList : cloudflaredList,
   create: props.provider === "ngrok" ? ngrokCreate : cloudflaredCreate,
@@ -103,10 +104,10 @@ const rules = {
 
 /* ==================== SSE 实时流 ==================== */
 
-/** SSE 连接（无锡安全策略：xsrf 之类的 cookie 请求可自动携带） */
+/** SSE 连接（携带审计 Header） */
 let sseClient: SseClient | null = null;
 
-function startSSE() {
+function connectSSE() {
   if (sseClient) {
     sseClient.close();
     sseClient = null;
@@ -137,7 +138,7 @@ function startSSE() {
 }
 
 onMounted(() => {
-  startSSE();
+  connectSSE();
 });
 
 onBeforeUnmount(() => {
@@ -159,12 +160,36 @@ function openEdit(row: TunnelView) {
   drawerVisible.value = true;
 }
 
+function createTunnelRecord(model: TunnelRecord) {
+  return api.value.create(model);
+}
+
+function updateTunnelRecord(id: string, model: TunnelRecord) {
+  return api.value.update(id, model);
+}
+
+function deleteTunnelRecord(id: string) {
+  return api.value.delete(id);
+}
+
+function startTunnelRecord(id: string) {
+  return api.value.start(id);
+}
+
+function stopTunnelRecord(id: string) {
+  return api.value.stop(id);
+}
+
+function listTunnels() {
+  return api.value.list();
+}
+
 function onFormSubmit() {
   formRef.value!.validate((valid) => {
     if (!valid) return;
     formLoading.value = true;
     if (selected.value) {
-      updateTunnel(selected.value.id, formModel.value)
+      updateTunnelRecord(selected.value.id, formModel.value)
         .then(() => {
           ElMessage.success("更新成功");
           drawerVisible.value = false;
@@ -173,7 +198,7 @@ function onFormSubmit() {
           formLoading.value = false;
         });
     } else {
-      createTunnel(formModel.value)
+      createTunnelRecord(formModel.value)
         .then(() => {
           ElMessage.success("创建成功");
           drawerVisible.value = false;
@@ -214,7 +239,7 @@ function stateTagOf(status: boolean) {
         </el-tag>
       </div>
       <div class="tunnel-header-right">
-        <el-button :icon="Refresh" plain size="small" @click="startSSE" title="重新连接 SSE">刷新</el-button>
+        <el-button :icon="Refresh" plain size="small" @click="connectSSE" title="重新连接 SSE">刷新</el-button>
         <el-button :icon="MagicStick" plain size="small" @click="openCreate">新建隧道</el-button>
       </div>
     </div>
@@ -223,7 +248,7 @@ function stateTagOf(status: boolean) {
     <el-table
       :data="list"
       style="width: 100%"
-      :default-sort={{ prop: 'createdAt', order: 'descending' }}
+      :default-sort="{ prop: 'createdAt', order: 'descending' }"
       @row-click="onRowClick"
     >
       <el-table-column prop="id" label="ID" width="180" />
@@ -264,7 +289,7 @@ function stateTagOf(status: boolean) {
         <template #default="{ row }">
           <el-popconfirm
             :title="row.running ? '确定要停止该隧道吗？' : '确定要启动该隧道吗？'"
-            @confirm="row.running ? stopTunnel(row.id) : startTunnel(row.id)"
+            @confirm="row.running ? stopTunnelRecord(row.id) : startTunnelRecord(row.id)"
           >
             <template #reference>
               <el-button size="small" :type="row.running ? 'danger' : 'success'" plain>
@@ -273,7 +298,7 @@ function stateTagOf(status: boolean) {
             </template>
           </el-popconfirm>
           <el-button size="small" plain @click="openEdit(row)">编辑</el-button>
-          <el-popconfirm title="确定要删除该隧道吗？" @confirm="deleteTunnel(row.id)">
+          <el-popconfirm title="确定要删除该隧道吗？" @confirm="deleteTunnelRecord(row.id)">
             <template #reference>
               <el-button size="small" type="danger" plain>删除</el-button>
             </template>
