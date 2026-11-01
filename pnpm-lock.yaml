@@ -1008,9 +1008,18 @@ importers:
       '@pages/monitor':
         specifier: workspace:*
         version: link:../../pages/monitor
+      '@pages/remote':
+        specifier: workspace:*
+        version: link:../../pages/remote
       '@pages/server':
         specifier: workspace:*
         version: link:../../pages/server
+      '@pages/template':
+        specifier: workspace:*
+        version: link:../../pages/template
+      '@pages/tunnel':
+        specifier: workspace:*
+        version: link:../../pages/tunnel
       '@repo/app':
         specifier: workspace:*
         version: link:../../turbo/app
@@ -3205,6 +3214,58 @@ importers:
       vite:
         specifier: 'catalog:'
         version: 8.2.0(@types/node@25.9.6)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.104.1)
+      vue-tsc:
+        specifier: 'catalog:'
+        version: 2.2.12(typescript@5.9.3)
+
+  pages/tunnel:
+    dependencies:
+      '@element-plus/icons-vue':
+        specifier: 'catalog:'
+        version: 2.3.2(vue@3.5.44(typescript@5.9.3))
+      '@pages/monitor':
+        specifier: workspace:*
+        version: link:../monitor
+      '@repo/app':
+        specifier: workspace:*
+        version: link:../../turbo/app
+      '@repo/assets':
+        specifier: workspace:*
+        version: link:../../packages/assets
+      '@repo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@repo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@repo/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
+      element-plus:
+        specifier: 'catalog:'
+        version: 2.14.7(vue@3.5.44(typescript@5.9.3))
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.44(typescript@5.9.3)
+      vue-router:
+        specifier: 'catalog:'
+        version: 4.6.4(vue@3.5.44(typescript@5.9.3))
+    devDependencies:
+      '@vitejs/plugin-vue':
+        specifier: 'catalog:'
+        version: 6.0.8(vite@8.2.0(@types/node@25.9.6)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.104.1))(vue@3.5.44(typescript@5.9.3))
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.1.3
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vite:
+        specifier: 'catalog:'
+        version: 8.2.0(@types/node@25.9.6)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.104.1)
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@25.9.6)(jiti@2.7.0)(jsdom@25.0.1)(lightningcss@1.33.0)(sass@1.104.1)
       vue-tsc:
         specifier: 'catalog:'
         version: 2.2.12(typescript@5.9.3)
