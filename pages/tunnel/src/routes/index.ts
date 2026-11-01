@@ -26,13 +26,13 @@ export interface TunnelRoutesOptions {
 }
 
 /** Provider 分组 Tab 定义 */
-const TUNNEL_TABS: { provider: string; title: string; view: string; icon: string }[] = [
-  { provider: "ngrok", title: "ngrok", view: "/TunnelWorkbench", icon: "Headphones" },
-  { provider: "cloudflared", title: "Cloudflare Tunnel", view: "/CloudflaredTunnelView", icon: "Globe" },
+const TUNNEL_TABS: { provider: string; title: string; view: string }[] = [
+  { provider: "ngrok", title: "ngrok", view: "NgrokTunnelView" },
+  { provider: "cloudflared", title: "Cloudflare Tunnel", view: "CloudflaredTunnelView" },
 ];
 
 /**
- * 内网穿透隧道工作台路由
+ * 内网穿透隧道工作台 routing
  *
  * @param options 菜单参数
  * @returns 分组路由 + Provider 子路由
@@ -59,15 +59,14 @@ export function createTunnelRoutes(options: TunnelRoutesOptions = {}): RouteConf
       path: `/tunnels/${tab.provider}`,
       name: `Tunnel_${tab.provider}`,
       redirect: `/tunnels/${tab.provider}/workbench`,
-      component: () => import(`../views/${tab.provider}.vue`),
       children: [
         {
           path: "workbench",
           name: `Tunnel_${tab.provider}_Workbench`,
-          component: () => import(`../views/${tab.provider}.vue`),
+          component: () => import(`../views/${tab.view}.vue`),
           meta: {
             title: tab.title,
-            icon: tab.icon,
+            icon: "Link",
             activeMenu,
             keepAlive: true,
           },
