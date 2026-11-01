@@ -195,6 +195,8 @@ const assigned = ref<Set<string>>(new Set())
 const flatTree = computed(() => {
   const out: Array<DeviceGroupNode & { depth: number }> = []
   const walk = (nodes: DeviceGroupNode[], depth: number) => {
+    /** 接口可能回传非数组（对象/字符串/空值），安全展开；空值走兜底 */
+    if (!Array.isArray(nodes)) return
     for (const n of nodes) {
       out.push({ ...n, depth })
       if (n.children?.length) walk(n.children, depth + 1)
