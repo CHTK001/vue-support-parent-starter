@@ -1,14 +1,17 @@
 /**
  * @pages/tunnel 内网穿透隧道菜单路由
  *
- * <p>ngrok / Cloudflare Tunnel 两种 Provider 的隧道工作台路由。
- * 框架侧通过 {@code @pages/monitor/src/router/index.ts} 中的
- * {@code createTunnelRoutes()} 挂载到“内网穿透”分组下：</p>
+ * <p>ngrok / Cloudflare Tunnel 两种 Provider 的隧道工作台路由，框架侧（{@code @pages/monitor}）
+ * 通过 {@code createTunnelRoutes()} 展开挂载到“内网穿透”菜单分组下：</p>
  * <ul>
- *   <li>{@code /grp-tunnel} － 内网穿透（菜单分组）</li>
+ *   <li>{@code /grp-tunnel} － 内网穿透（菜单分组，仅标题与折叠，由 {@code children} 中的叶子页驱动菜单渲染）</li>
  *   <li>{@code /tunnels/ngrok} － ngrok 隧道工作台</li>
  *   <li>{@code /tunnels/cloudflared} － Cloudflare Tunnel 隧道工作台</li>
  * </ul>
+ *
+ * 工作台页面（{@code TunnelWorkbench.vue}）通过 Provider 拆分：
+ * {@code NgrokTunnelView.vue} / {@code CloudflaredTunnelView.vue} 再 props 下发 provider；
+ * 两组 Tab 各自独立且可保留缓存（keepAlive: true）。
  *
  * @author CH
  * @since 4.0.0.52
@@ -26,13 +29,13 @@ export interface TunnelRoutesOptions {
 }
 
 /** Provider 分组 Tab 定义 */
-const TUNNEL_TABS: { provider: string; title: string; view: string }[] = [
+const TUNNEL_TABS: { provider: "ngrok" | "cloudflared"; title: string; view: string }[] = [
   { provider: "ngrok", title: "ngrok", view: "NgrokTunnelView" },
   { provider: "cloudflared", title: "Cloudflare Tunnel", view: "CloudflaredTunnelView" },
 ];
 
 /**
- * 内网穿透隧道工作台 routing
+ * 内网穿透隧道工作台路由
  *
  * @param options 菜单参数
  * @returns 分组路由 + Provider 子路由
@@ -40,43 +43,30 @@ const TUNNEL_TABS: { provider: string; title: string; view: string }[] = [
 export function createTunnelRoutes(options: TunnelRoutesOptions = {}): RouteConfigsTable[] {
   const { showLink = true, activeMenu = "/grp-tunnel", rank = 15 } = options;
 
-  // 分组路由
-  const group: RouteConfigsTable = {
-    path: "/grp-tunnel",
-    name: "GroupTunnel",
-    meta: {
-      title: "内网穿透",
-      icon: "Connection",
-      showLink,
-      activeMenu,
-      rank,
-    },
-  };
-
   return [
-    group,
-    ...TUNNEL_TABS.map((tab) => ({
-      path: `/tunnels/${tab.provider}`,
-      name: `Tunnel_${tab.provider}`,
-      redirect: `/tunnels/${tab.provider}/workbench`,
-      children: [
-        {
-          path: "workbench",
-          name: `Tunnel_${tab.provider}_Workbench`,
-          component: () => import(`../views/${tab.view}.vue`),
-          meta: {
-            title: tab.title,
-            icon: "Link",
-            activeMenu,
-            keepAlive: true,
-          },
+    {
+      path: "/grp-tunnel",
+      name: "GroupTunnel",
+      meta: {
+        title: "内网穿透",
+        icon: "Connection",
+        showLink,
+        activeMenu,
+        rank,
+      },
+      children: TUNNEL_TABS.map((tab, index) => ({
+        path: `/tunnels/${tab.provider}`,
+        name: `Tunnel_${tab.provider}`,
+        component: () => import(`../views/${tab.view}.vue`),
+        meta: {
+          title: tab.title,
+          icon: "Link",
+          showLink: true,
+          activeMenu,
+          rank: index + 1,
+          keepAlive: true,
         },
-        {
-          path: "",
-          redirect: "workbench",
-          meta: { showLink: false, activeMenu },
-        },
-      ],
-    })),
+      })),
+    },
   ];
 }

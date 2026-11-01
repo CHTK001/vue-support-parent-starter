@@ -13,6 +13,7 @@
  *   <tr><td>服务管理（协议服务器节点）/ 在线节点 / 服务发现 / 抓包分析 / 告警 / 概览</td><td>{@code @pages/monitor}</td></tr>
  *   <tr><td>设备资产 / 提供商 / 分组</td><td>{@code @pages/device}</td></tr>
  *   <tr><td>文件资产</td><td>{@code @pages/filesystem}</td></tr>
+ *   <tr><td>内网穿透（ngrok / Cloudflare Tunnel 隧道工作台）</td><td>{@code @pages/tunnel}</td></tr>
  * </table>
  *
  * <p><strong>分组结构</strong>：一级为「分组父节点」（仅用于侧边栏分组标题 + 折叠/展开，
@@ -39,6 +40,8 @@ import type { RouteConfigsTable } from "@repo/core";
 import { createDatasourceManageRoutes } from "@pages/datasource/src/routes";
 import { createServerHostRoutes } from "@pages/server/src/routes";
 import { createDockerRoutes } from "@pages/docker/src/routes";
+// 内网穿透：ngrok / Cloudflare Tunnel 隧道工作台，通过 @pages/tunnel/src/routes 的 createTunnelRoutes 展开。
+import { createTunnelRoutes } from "@pages/tunnel/src/routes";
 // 调试中心（CDP）：运维管理分组下唯一的叶子页。
 import { createCdpRoutes } from "@pages/debug/src/routes";
 import { createMonitorRoutes, createMonitorManageRoutes } from "@pages/monitor/src/routes";

@@ -502,7 +502,7 @@
  * @since 4.0.0.42
  */
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { message } from '@repo/core'
 import ReButton from '@repo/ui/re-button'
@@ -511,6 +511,7 @@ import ReIcon from '@repo/ui/re-icon'
 import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 import ReTag from '@repo/ui/re-tag'
+import ReVendorTaskPanel from '@pages/device/src/components/ReVendorTaskPanel.vue'
 
 import { deviceApi } from '@pages/device/src/api/deviceApi'
 import { formatDateTime } from '@pages/device/src/utils/deviceFormat'
@@ -523,6 +524,7 @@ import type {
 } from '@pages/device/src/types/device'
 
 const router = useRouter()
+const route = useRoute()
 
 /** 能力固定顺序：点阵的列位与 tooltip 文案都按它来 */
 const CAP_ORDER: DeviceCapability[] = [
@@ -540,6 +542,21 @@ const vendors = ref<DeviceVendorDescriptor[]>([])
 /** 全量凭据（不再带 vendor 查参，过滤在前端做，统计才稳定） */
 const credentials = ref<ProviderCredential[]>([])
 const credentialFilter = ref('')
+/** 页面级货架页签：接入凭据 / 厂商任务（定时任务属于厂商维度，收在厂商接入页内） */
+const PAGE_TABS = [
+  { key: 'credentials', label: '接入凭据' },
+  { key: 'tasks', label: '厂商任务' }
+]
+const pageTab = ref<(typeof PAGE_TABS)[number]['key']>(
+  (route.query.tab as string | undefined) ?? 'credentials'
+)
+watch(() => route.query.tab, (tab) => {
+  if (!tab) {
+    pageTab.value = 'credentials'
+    return
+  }
+  if (PAGE_TABS.some((item) => item.key === tab)) pageTab.value = tab as (typeof PAGE_TABS)[number]['key']
+})
 const loading = ref(false)
 const orgSyncing = ref(false)
 
@@ -1294,6 +1311,50 @@ onMounted(() => {
   font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
+}
+
+/* 接入凭据 / 厂商任务 货架页签：定时任务属于厂商维度，在厂商接入页内分 tab */
+.dpv-pages {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px 8px;
+}
+.dpv-page {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+.dpv-page:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-7);
+}
+.dpv-page.is-active {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
+  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  font-weight: 600;
+}
+
+/* 货架页签：凭据表 / 厂商任务 内嵌页签体 */
+.dpv-panes {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.dpv-panes--tasks {
+  padding: 0 12px 4px;
 }
 
 .dpv-filter {
