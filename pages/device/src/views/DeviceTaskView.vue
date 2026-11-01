@@ -51,7 +51,7 @@
         <template #col-interval="{ row }">
           <div class="dtv-int">
             <ReInputNumber
-              :model-value="row.deviceTaskStateInterval ?? 30"
+              v-model="row.deviceTaskStateInterval"
               :min="1"
               :max="86400"
               :step="10"
@@ -165,6 +165,8 @@ function taskLabel(row: TaskState): string {
 const rows = ref<TaskState[]>([])
 const loading = ref(false)
 const runningTask = ref('')
+/** 任务名 → 最后一次保存成功的间隔（改失败时回填用） */
+const savedInterval = new Map<string, number>()
 
 const columns = computed<ReTableColumn[]>(() => [
   {
@@ -185,6 +187,10 @@ async function load(): Promise<void> {
   try {
     const list = (await deviceApi.listTaskStates()) as TaskState[]
     rows.value = list || []
+    savedInterval.clear()
+    for (const row of rows.value) {
+      savedInterval.set(row.deviceTaskStateName, Number(row.deviceTaskStateInterval) || 30)
+    }
   } catch (err) {
     rows.value = []
     message.error('加载任务状态失败：' + errorText(err))
@@ -194,16 +200,22 @@ async function load(): Promise<void> {
 }
 
 async function onIntervalChange(row: TaskState, value: number | undefined): Promise<void> {
+  const name = row.deviceTaskStateName
+  const previous = savedInterval.get(name) ?? 30
   const next = Number(value)
   if (!Number.isFinite(next) || next <= 0) {
-    ElMessage.warning('任务间隔必须大于 0')
+    ElMessage.warning('任务间隔必须大于 0 秒')
+    // 输入框已被 v-model 改成非法值，这里回填成上次保存的间隔
+    row.deviceTaskStateInterval = previous
     return
   }
   try {
-    await deviceApi.updateTaskInterval(row.deviceTaskStateName, next)
+    await deviceApi.updateTaskInterval(name, next)
+    savedInterval.set(name, next)
     row.deviceTaskStateInterval = next
     ElMessage.success(`「${taskLabel(row)}」间隔已设为 ${next} 秒`)
   } catch (err) {
+    row.deviceTaskStateInterval = previous
     message.error('更新间隔失败：' + errorText(err))
   }
 }

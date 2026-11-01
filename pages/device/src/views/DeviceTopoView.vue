@@ -55,7 +55,7 @@
           </div>
         </template>
       </ReRelationGraph>
-      <ReEmpty v-else description="还没有可拓扑的设备：先到设备台账接入设备，并补充 IP 与区域" />
+      <ReEmpty v-else :description="emptyText" />
 
       <!-- 区域图例 -->
       <div v-if="areas.length" class="dtp-legend">
@@ -148,11 +148,12 @@ const KIND_LABELS: Record<NodeKind, string> = {
 /** 离线节点填充色（覆盖分组配色） */
 const OFFLINE_FILL = '#d5d7da'
 
-/** id 前缀 → 层级 */
-function kindOf(id: string): NodeKind {
-  if (id.startsWith('area:')) return 'area'
-  if (id.startsWith('subnet:')) return 'subnet'
-  if (id.startsWith('channel:')) return 'channel'
+/** id 前缀 → 层级（id 缺失时按设备处理，避免脏数据把画布打挂） */
+function kindOf(id: string | null | undefined): NodeKind {
+  const text = String(id ?? '')
+  if (text.startsWith('area:')) return 'area'
+  if (text.startsWith('subnet:')) return 'subnet'
+  if (text.startsWith('channel:')) return 'channel'
   return 'device'
 }
 
@@ -166,13 +167,34 @@ const activeId = ref('')
 /** 画布实例（ReRelationGraph 暴露的 fitView / focus） */
 const graphRef = ref<unknown>(null)
 
-/** 过滤后的节点（区域 / 网段始终保留，否则气泡会空掉） */
+/**
+ * 过滤后的节点：`只看在线` 时只留在线设备及其通道，并保留承载它们的网段与区域
+ * （自下而上收一轮，避免留下没有设备的气泡）。
+ */
 const visibleNodes = computed<TopologyNode[]>(() => {
-  if (!onlineOnly.value) return rawNodes.value
-  return rawNodes.value.filter((node) => {
+  // 脏数据兜底：没有 id 的节点直接丢掉（否则 Set / 画布都会带上 undefined）
+  const base = rawNodes.value.filter((node) => !!node.id)
+  if (!onlineOnly.value) return base
+  const keep = new Set<string>()
+  for (const node of base) {
     const kind = kindOf(node.id)
-    return kind === 'area' || kind === 'subnet' || node.online !== false
-  })
+    if ((kind === 'device' || kind === 'channel') && node.online !== false) {
+      keep.add(node.id)
+    }
+  }
+  // 网段：下面还有可见设备才留
+  for (const edge of rawEdges.value) {
+    if (keep.has(edge.target) && kindOf(edge.source) === 'subnet') {
+      keep.add(edge.source)
+    }
+  }
+  // 区域：下面还有可见网段或设备才留
+  for (const edge of rawEdges.value) {
+    if (keep.has(edge.target) && kindOf(edge.source) === 'area') {
+      keep.add(edge.source)
+    }
+  }
+  return base.filter((node) => keep.has(node.id))
 })
 
 /** 画布节点：补 group 兜底、离线置灰、带上层级给 tooltip 用 */
@@ -205,15 +227,22 @@ const graphEdges = computed<RelationEdge[]>(() => {
     }))
 })
 
-/** 区域清单（按首次出现顺序，用于图例） */
+/** 区域清单（按画布上首次出现的顺序，用于图例） */
 const areas = computed<string[]>(() => {
   const names: string[] = []
-  for (const node of rawNodes.value) {
+  for (const node of visibleNodes.value) {
     const group = node.group || '未分组'
     if (!names.includes(group)) names.push(group)
   }
   return names
 })
+
+/** 空状态文案（区分「真没设备」与「被只看在线过滤空」） */
+const emptyText = computed(() =>
+  rawNodes.value.length
+    ? '当前没有在线设备：关掉「只看在线」可以查看全部设备'
+    : '还没有可拓扑的设备：先到设备台账接入设备，并补充 IP 与区域',
+)
 
 /** 顶部统计 */
 const stats = computed(() => {
