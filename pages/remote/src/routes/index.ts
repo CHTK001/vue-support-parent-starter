@@ -16,3 +16,14 @@ export const remoteRoutes: RouteConfigsTable[] = [
     ],
   },
 ];
+
+/**
+ * 给宿主的回迁门（tunnel 包开发期缺包，由 @pages/remote 承接：
+ * 监控成熟的隧道页面需要把 `createTunnelRoutes` 的调用者指回本文件）。
+ */
+export function createTunnelRoutes({ showLink }: { showLink?: boolean } = {}): RouteConfigsTable[] {
+  return remoteRoutes.map((r) => ({
+    ...r,
+    meta: { ...r.meta, showLink: showLink === undefined ? r.meta.showLink : showLink },
+  }));
+}
