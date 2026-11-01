@@ -16,12 +16,12 @@
  * @author CH
  * @since 4.0.0.57
  */
-import { onMounted, onUnmounted, reactive, ref } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
-
 import { Refresh as RefreshIcon } from '@element-plus/icons-vue';
 import { onMounted, onUnmounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+
+import RePageHead from '@/components/ui/RePageHead.vue';
+import { channelHealthApi, type ChannelHealthSummary } from '@/services/javaApi';
 
 const loading = ref(false);
 const probing = ref(false);
@@ -132,6 +132,7 @@ async function resetState(row: ChannelHealthSummary) {
     return;
   }
   try {
+    // 间隔回全局 + 状态清零
     await channelHealthApi.updateInterval(row.connectionId!, 0);
     ElMessage.success('已重置');
     await load();
@@ -161,7 +162,7 @@ onUnmounted(stopPoll);
 
 <template>
   <div class="ch-page">
-    <RePageHead title="渠道健康" sub="AI 供应商通道探针状态、上下线雕刻与执行”。
+    <RePageHead title="渠道健康" sub="AI 供应商通道探针状态、上下线雕刻与执行">
       <template #actions>
         <el-button class="ch-btn" :loading="loading" @click="load">
           <el-icon v-if="!loading" class="ch-btn__icon" aria-hidden="true"><RefreshIcon /></el-icon>
