@@ -1,5 +1,4 @@
 import { http, unwrapResult } from "@repo/utils";
-import type { DbColumnDef } from "./dbManageApi";
 
 /**
  * 表结构版本管理（DDL 快照 / 回滚）专用 API。
@@ -13,17 +12,7 @@ import type { DbColumnDef } from "./dbManageApi";
 
 const unwrap = <T>(res: any): T => unwrapResult<T>(res);
 
-/**
- * 表结构版本管理（DDL 快照 / 回滚）专用 API。
- *
- * <p>与 {@code dbManageApi.ts} 并列：它负责表级增删改（列/索引/外键），
- * 它负责"这一张表现在长什么样 + 能不能退回到过去的样子"。</p>
- *
- * @author CH
- * @since 4.0.0.51
- */
-
-/** 拍结构快照的请求体；所有入参可空，name 为空则自动生成 */
+/** 拍结构快照的请求体；所有入参可空，name 不传时后端自动生成 */
 export type DbSchemaSnapshotPayload = {
   /** 快照名/备注；不传递时后端生成「保存于 YYYY-MM-DD HH:mm」 */
   name?: string;
@@ -34,7 +23,7 @@ export type DbSchemaSnapshotPayload = {
 /**
  * 表结构快照列表项（对齐后端 {@code DbSchemaSnapshotVO}）。
  *
- * <p>DDL 正文不超过 160 字符，正文读回走 {@code takeSnapshotDetail}。</p>
+ * <p>DDL 全文不超过 160 字符，正文读回走 {@code fetchDbSchemaSnapshotDetail}。</p>
  */
 export interface DbSchemaSnapshotVO {
   /** 快照 ID */
@@ -120,7 +109,7 @@ export const createDbSchemaSnapshot = (
     .post(`/ms/monitor/db/table/${encodeURIComponent(tableName)}/schema-snapshots`)
     .query({ datasourceId, database })
     .data(payload)
-    .then(unwrapResult<number>(0));
+    .then(unwrap<number>);
 
 /**
  * 列出表的结构快照（分页、按时间倒序，支持按快照名搜索）。
@@ -139,7 +128,7 @@ export const fetchDbSchemaSnapshots = (
   http()
     .get(`/ms/monitor/db/table/${encodeURIComponent(tableName)}/schema-snapshots`)
     .query({ datasourceId, database, ...params })
-    .then(wrapResult);
+    .then(unwrap<any>);
 
 /**
  * 快照详情（完整 DDL + 列/索引/外键原始 JSON）。
@@ -151,7 +140,7 @@ export const fetchDbSchemaSnapshots = (
 export const fetchDbSchemaSnapshotDetail = (tableName: string, id: number) =>
   http()
     .get(`/ms/monitor/db/table/${encodeURIComponent(tableName)}/schema-snapshots/${id}`)
-    .then(wrapResult);
+    .then(unwrap<DbSnapshotDetailVO>);
 
 /**
  * 删除结构快照。
@@ -163,7 +152,7 @@ export const fetchDbSchemaSnapshotDetail = (tableName: string, id: number) =>
 export const deleteDbSchemaSnapshot = (tableName: string, id: number) =>
   http()
     .delete(`/ms/monitor/db/table/${encodeURIComponent(tableName)}/schema-snapshots/${id}`)
-    .then(wrapResult);
+    .then(unwrap<boolean>);
 
 /**
  * 回滚到指定快照：删当前表 → 原样执行 DDL → 重建索引/外键。
@@ -175,7 +164,7 @@ export const deleteDbSchemaSnapshot = (tableName: string, id: number) =>
 export const rollbackDbSchemaSnapshot = (tableName: string, id: number) =>
   http()
     .post(`/ms/monitor/db/table/${encodeURIComponent(tableName)}/schema-snapshots/${id}/rollback`)
-    .then(wrapResult);
+    .then(unwrap<DbSchemaRollbackResultVO>);
 
 /**
  * 获取表的建表语句（DDL）。
@@ -189,4 +178,4 @@ export const fetchDbSchemaDdl = (tableName: string, datasourceId?: number, datab
   http()
     .get(`/ms/monitor/db/table/${encodeURIComponent(tableName)}/ddl`)
     .query({ datasourceId, database })
-    .then(wrapResult);
+    .then(unwrap<string>);

@@ -44,9 +44,12 @@ const pageSize = ref(20);
 /** templateApi 在监控侧挂走到 template 后端；mock 数据仅用于演示 UI 效果 */
 const mockMode = ref(false);
 
+/** 页面行：与 ReTable 的 RePageResult 对齐（Record<string, unknown> 需要索引签名，交集类型由 TS 补齐） */
+type Row = TemplateInfo & Record<string, unknown>;
+
 // ------------------- 字段归一：屏蔽后端 camelCase / 小写两种键名 -------------------
 /** 把后端返回的原始行对象对齐到页面的 TS 类型（小写字段） */
-function normalizeRow(raw: Record<string, unknown>): TemplateInfo {
+function normalizeRow(raw: Record<string, unknown>): Row {
   if (!raw) return {
     id: '',
     name: '—',
@@ -90,7 +93,7 @@ function normalizeRow(raw: Record<string, unknown>): TemplateInfo {
  * 开发期 Mock：monitor 后端的 jar 不依赖 `spring-support-template-starter`，
  * 所以 `/api/template/page` 走不到 template 后端——这里用模拟数据把台账 UI 的效果铺开（见 `load`）。
  */
-const mockTemplates: TemplateInfo[] = [
+const mockTemplates: Row[] = [
   {
     id: 'tpl-printer-001',
     name: '发货单模板（openspecer）',
@@ -225,7 +228,7 @@ async function load(params: ReTableLoadParams): Promise<RePageResult> {
     total.value = result.total ?? 0;
     mockMode.value = false;
     return {
-      records: result.records.map((r: TemplateInfo | Record<string, unknown>) => normalizeRow(r as Record<string, unknown>)),
+      records: result.records.map((r: TemplateInfo) => normalizeRow(r as unknown as Record<string, unknown>)),
       total: total.value,
     };
   } catch (e) {
@@ -277,10 +280,10 @@ function refresh(): void {
 }
 
 /** drawer 用：复用 formatter 逻辑的列文本 */
-function statusOf(r: TemplateInfo): string { return statusText(r, {} as ReTableColumn, r.status); }
-function sourceOf(r: TemplateInfo): string { return sourceText(r, {} as ReTableColumn, r.source); }
-function languageOf(r: TemplateInfo): string { return languageText(r, {} as ReTableColumn, r.language); }
-function typeOf(r: TemplateInfo): string { return typeText(r, {} as ReTableColumn, r.type); }
+function statusOf(r: Row): string { return statusText(r, {} as ReTableColumn, r.status); }
+function sourceOf(r: Row): string { return sourceText(r, {} as ReTableColumn, r.source); }
+function languageOf(r: Row): string { return languageText(r, {} as ReTableColumn, r.language); }
+function typeOf(r: Row): string { return typeText(r, {} as ReTableColumn, r.type); }
 
 const columns: ReTableColumn[] = [
   { prop: 'name', label: '模板名称', minWidth: 220, showOverflowTooltip: true },
