@@ -54,7 +54,7 @@ const api = computed(() => ({
   delete: props.provider === "ngrok" ? ngrokDelete : cloudflaredDelete,
   start: props.provider === "ngrok" ? ngrokStart : cloudflaredStart,
   stop: props.provider === "ngrok" ? ngrokStop : cloudflaredStop,
-  streamUrl: props.provider === "ngrok" ? ngrokStreamUrl() : "/ms/tunnel/cloudflared/stream",
+  streamUrl: props.provider === "ngrok" ? ngrokStreamUrl() : cloudflaredStreamUrl(),
 }));
 
 /* ==================== 表格 ==================== */
