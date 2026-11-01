@@ -362,6 +362,10 @@ export default createVite({
     "@pages/debug": "pages/debug",
     "@pages/device": "pages/device",
     "@pages/docker": "pages/docker",
+    // 开发期 @pages/tunnel 缺包（已交付的只有 @pages/remote）：
+    // pages/remote 力管远程控制台页面，见 pages/remote/src/routes/index.ts 的 createTunnelRoutes
+    "@pages/tunnel": "pages/remote",
+    "@pages/template": "pages/template",
   },
   server: {
     port: 8848,
@@ -630,7 +634,7 @@ export default createVite({
       // 标签页固定(pin)图标全部空白（而 element-plus 图标、Iconify 图标正常）。
       // @repo/theme 也在 include 里且会内联 assets，故一并排除，确保 framework → assets
       // 整条链都走源码、glob 才能正常展开。
-      exclude: ["@repo/assets", "@repo/theme"],
+      exclude: ["@repo/assets"],
       include: [
       "element-plus",
       "@repo/theme",

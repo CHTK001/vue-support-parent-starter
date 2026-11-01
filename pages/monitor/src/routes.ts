@@ -61,6 +61,29 @@ export function createMonitorRoutes(options: MonitorRoutesOptions = {}): RouteCo
       ],
     },
 
+    // ==================== 模板管理 ====================
+    // 模板库（hiprint 绘制/消息/组卷模板）的台账：列表 + 打开设计 / 预览。
+    // 数据层管模板 CRUD，监控侧只做台账与入口（设计器/预览页由 @pages/template 承载）。
+    {
+      path: "/grp-template",
+      name: "GroupTemplate",
+      meta: { title: "模板管理", icon: "MagicStick", showLink: true, rank: 21 },
+      children: [
+        {
+          path: "/templates",
+          name: "Templates",
+          component: () => import("./views/TemplateManageView.vue"),
+          meta: { title: "模板管理", icon: "Files", showLink: true, rank: 21 },
+        },
+      ],
+    },
+    {
+      path: "/template",
+      name: "Template",
+      component: () => import("./views/TemplateManageView.vue"),
+      meta: { title: "模板管理", icon: "Files", showLink: true, rank: 21 },
+    },
+
     // ==================== 隐藏路由（不进菜单，仍可访问） ====================
     {
       // 服务发现：协议服务器上挂载的发现插件实例列表。

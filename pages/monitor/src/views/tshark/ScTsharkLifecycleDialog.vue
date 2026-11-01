@@ -116,7 +116,7 @@
               { 'is-retrans': step.retransmission, 'is-reset': step.reset },
             ]"
             :style="{ top: 10 + i * STEP_H + 'px' }"
-            :title="`${step.info || ''}（点击查看报文详情）`"
+            :title="`${step.info || ''}${step.restored ? ' · ' + step.restored : ''}（点击查看报文详情）`"
             @click="emit('open-detail', step.packetId)"
           >
             <span class="lc-step__line" />
@@ -127,6 +127,7 @@
               <span v-if="step.retransmission" class="lc-badge is-retrans" title="重传 / 乱序 / 重复 ACK">重传</span>
               <span v-if="step.reset" class="lc-badge is-reset" title="连接被重置（RST）">RST</span>
               <span v-if="step.info" class="lc-step__info">{{ step.info }}</span>
+              <span v-if="step.restored" class="lc-step__restored" :title="step.restored">{{ step.restored }}</span>
             </span>
           </button>
         </div>
@@ -176,6 +177,11 @@
         </ReTableColumn>
         <ReTableColumn prop="info" label="摘要" min-width="220" show-overflow-tooltip>
           <template #default="{ row }">{{ row.info || '—' }}</template>
+        </ReTableColumn>
+        <ReTableColumn prop="restored" label="还原" min-width="220" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span class="tshark-mono" :title="row.restored">{{ row.restored || '—' }}</span>
+          </template>
         </ReTableColumn>
         <ReTableColumn label="操作" width="72" align="center">
           <template #default="{ row }">
@@ -608,6 +614,17 @@ function formatMs(ms: number): string {
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--el-text-color-secondary);
+  font-family: var(--el-font-family-mono, monospace);
+}
+/** 协议还原明文：比摘要浅色，文字溢出时省略 */
+.lc-step__restored {
+  display: block;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--el-text-color-placeholder);
+  font-size: 10px;
+  line-height: 14px;
   font-family: var(--el-font-family-mono, monospace);
 }
 .lc-step:hover .lc-step__label {

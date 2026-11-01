@@ -1,7 +1,24 @@
 <template>
   <div class="da">
+    <!-- 台账功能页签：设备列表 / 分组管理 / 机房拓扑（全局菜单只保留「设备台账 / 厂商接入」） -->
+    <nav class="da-tabs">
+      <button
+        v-for="tab in LEDGER_TABS"
+        :key="tab.key"
+        type="button"
+        class="da-tab"
+        :class="{ 'is-active': ledgerTab === tab.key }"
+        @click="ledgerTab = tab.key"
+      >
+        <ReIcon :name="tab.icon" :size="13" />
+        <span>{{ tab.label }}</span>
+      </button>
+      <span class="da-tabs__grow" />
+      <span class="da-tabs__hint">{{ filtered.length }} / {{ rows.length }} 台设备</span>
+    </nav>
+
     <!-- ==================== 左：分组树 + 设备列表右区 ==================== -->
-    <div class="da-body">
+    <div v-show="ledgerTab === 'list'" class="da-body">
       <!-- 左侧：设备分组（含「全部」） -->
       <aside class="da-rail" :class="{ 'is-collapsed': railCollapsed }">
         <!-- 折叠态：只留计数与展开按钮 -->
@@ -42,6 +59,25 @@
             </button>
           </div>
           <ReInput v-model="keyword" placeholder="搜索名称 / 编码 / IP" clearable class="da-search" />
+          <!-- 台账两种显示方式：分组 tree / 厂家 -->
+          <div class="da-modes">
+            <button
+              type="button"
+              class="da-mode"
+              :class="{ 'is-active': railMode === 'group' }"
+              @click="switchRail('group')"
+            >
+              按分组
+            </button>
+            <button
+              type="button"
+              class="da-mode"
+              :class="{ 'is-active': railMode === 'vendor' }"
+              @click="switchRail('vendor')"
+            >
+              按厂家
+            </button>
+          </div>
           <div class="da-filters">
             <button
               v-for="f in statusFilters"
@@ -58,7 +94,7 @@
         </div>
 
         <!-- 分组列：点击节点，右侧按组筛选设备；不选 = 不按组筛选 -->
-        <ReScrollbar v-show="!railCollapsed" class="da-tree">
+        <ReScrollbar v-if="railMode === 'group'" v-show="!railCollapsed" class="da-tree">
           <div class="da-tree__ops">
             <button type="button" class="da-tree__op" title="新建分组" @click="openGroupCreate(null)">
               <ReIcon name="Plus" :size="12" />
@@ -86,6 +122,32 @@
             <span class="da-tree__name">{{ node.groupName }}</span>
             <span class="da-tree__count">{{ node.deviceCount }}</span>
           </div>
+        </ReScrollbar>
+
+        <!-- 厂家列：按设备台账里的厂商归并，点击筛选该厂商的设备 -->
+        <ReScrollbar v-if="railMode === 'vendor'" v-show="!railCollapsed" class="da-tree">
+          <div class="da-tree__ops">
+            <button type="button" class="da-tree__op" title="刷新厂家" :disabled="loading" @click="fetchAll">
+              <ReIcon :name="loading ? 'Loading' : 'RefreshRight'" :size="12" />
+            </button>
+          </div>
+          <div class="da-tree__item" :class="{ 'is-active': vendorFilter === '' }" @click="selectVendor('')">
+            <span class="da-tree__dot is-all" />
+            <span class="da-tree__name">全部厂家</span>
+            <span class="da-tree__count">{{ rows.length }}</span>
+          </div>
+          <div
+            v-for="node in vendorNodes"
+            :key="node.vendor"
+            class="da-tree__item"
+            :class="{ 'is-active': vendorFilter === node.vendor }"
+            @click="selectVendor(node.vendor)"
+          >
+            <span class="da-tree__dot" />
+            <span class="da-tree__name">{{ node.label }}</span>
+            <span class="da-tree__count">{{ node.count }}</span>
+          </div>
+          <p v-if="!vendorNodes.length" class="da-tree__empty">没有可归类的厂商</p>
         </ReScrollbar>
 
         <div v-show="!railCollapsed" class="da-rail__foot">
@@ -232,6 +294,16 @@
       </section>
     </div>
 
+    <!-- 分组管理：原「设备分组」菜单页，收敛为台账页签 -->
+    <section v-if="mountedTabs.has('groups')" v-show="ledgerTab === 'groups'" class="da-pane">
+      <DeviceGroupView />
+    </section>
+
+    <!-- 机房拓扑：原「机房拓扑」菜单页，收敛为台账页签 -->
+    <section v-if="mountedTabs.has('topo')" v-show="ledgerTab === 'topo'" class="da-pane">
+      <DeviceTopoView />
+    </section>
+
     <!-- 新增 / 编辑 -->
     <ReDeviceFormDialog
       v-model="formVisible"
@@ -352,7 +424,7 @@
  * @author CH
  * @since 4.0.0.42
  */
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, defineAsyncComponent, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import {
@@ -388,6 +460,10 @@ import ReDeviceDetailDrawer from '@pages/device/src/components/ReDeviceDetailDra
 import DeviceChannelView from '@pages/device/src/views/DeviceChannelView.vue'
 import DeviceEventLogView from '@pages/device/src/views/DeviceEventLogView.vue'
 
+/** 台账页签里的子页面按需加载：首屏不背着「分组管理 / 机房拓扑」的代码 */
+const DeviceGroupView = defineAsyncComponent(() => import('@pages/device/src/views/DeviceGroupView.vue'))
+const DeviceTopoView = defineAsyncComponent(() => import('@pages/device/src/views/DeviceTopoView.vue'))
+
 import { deviceApi } from '@pages/device/src/api/deviceApi'
 import { getCategoryLabel } from '@pages/device/src/utils/deviceCategory'
 import {
@@ -421,6 +497,52 @@ const onlineFilter = ref<'all' | 'online' | 'offline'>('all')
 /** 按组筛选：'' 为全部，非空则只显示该组的设备 */
 const groupFilter = ref('')
 
+/* ==================== 台账页签 / 左侧显示维度 ==================== */
+/** 台账功能页签：设备列表 / 分组管理 / 机房拓扑 —— 全局菜单只保留「设备台账 / 厂商接入」 */
+const LEDGER_TABS = [
+  { key: 'list', label: '设备列表', icon: 'Monitor' },
+  { key: 'groups', label: '分组管理', icon: 'FolderOpened' },
+  { key: 'topo', label: '机房拓扑', icon: 'Grid' }
+] as const
+type LedgerTabKey = (typeof LEDGER_TABS)[number]['key']
+
+const ledgerTab = ref<LedgerTabKey>('list')
+/** 已挂载过的页签：点开过才加载子页面，之后保留现场（切换不重建） */
+const mountedTabs = reactive(new Set<LedgerTabKey>(['list']))
+watch(ledgerTab, (tab) => mountedTabs.add(tab))
+
+/** 左侧树的维度：分组 tree / 厂家 —— 台账支持两种显示方式 */
+const railMode = ref<'group' | 'vendor'>('group')
+/** 按厂家筛选：'' 为全部 */
+const vendorFilter = ref('')
+
+/** 厂家维度节点：从当前台账归并（显示名优先取厂商描述符） */
+const vendorNodes = computed<Array<{ vendor: string; label: string; count: number }>>(() => {
+  const map = new Map<string, { vendor: string; label: string; count: number }>()
+  for (const device of rows.value) {
+    const vendor = device.deviceInfoVendor || ''
+    if (!vendor) continue
+    const item = map.get(vendor) || { vendor, label: vendorLabel(vendor), count: 0 }
+    item.count += 1
+    map.set(vendor, item)
+  }
+  return [...map.values()].sort((a, b) => b.count - a.count)
+})
+
+/** 切换左侧维度：换维度时清掉另一种筛选，避免叠加过滤 */
+function switchRail(mode: 'group' | 'vendor'): void {
+  if (railMode.value === mode) return
+  railMode.value = mode
+  groupFilter.value = ''
+  vendorFilter.value = ''
+}
+
+/** 厂家筛选（与分组筛选互斥） */
+function selectVendor(vendor: string): void {
+  vendorFilter.value = vendor
+  groupFilter.value = ''
+}
+
 const statusFilters = computed(() => [
   { label: '全部', value: 'all' as const, count: rows.value.length },
   { label: '在线', value: 'online' as const, count: onlineCount.value },
@@ -438,7 +560,11 @@ const locatedCount = computed(() => rows.value.filter((item) => hasLocation(item
 
 const filtered = computed<DeviceInfo[]>(() => {
   let list = rows.value
-  if (groupFilter.value) {
+  if (railMode.value === 'vendor') {
+    if (vendorFilter.value) {
+      list = list.filter((d) => (d.deviceInfoVendor || '') === vendorFilter.value)
+    }
+  } else if (groupFilter.value) {
     const ids = groupDeviceIds(groupFilter.value)
     list = list.filter((d) => ids.has(d.deviceInfoId || ''))
   }
@@ -651,6 +777,7 @@ const flatGroups = computed<Array<DeviceGroupNode & { depth: number }>>(() => {
 /** 分组筛选：点击左侧节点 / 列内标签 → 右侧只展示该组设备 */
 function selectGroup(node: DeviceGroupNode | null): void {
   groupFilter.value = node?.groupId || ''
+  vendorFilter.value = ''
 }
 
 /** 分组下设备的 id 集合（即当前视图的组数据源） */
@@ -987,6 +1114,53 @@ onMounted(async () => {
   box-sizing: border-box;
 }
 
+/* ============ 台账页签（设备列表 / 分组管理 / 机房拓扑） ============ */
+.da-tabs {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 0 8px;
+}
+.da-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+.da-tab:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-7);
+}
+.da-tab.is-active {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
+  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  font-weight: 600;
+}
+.da-tabs__grow { flex: 1; }
+.da-tabs__hint { font-size: 12px; color: var(--el-text-color-secondary); }
+
+/* 页签内容：吃满剩余高度，内部自己滚动 */
+.da-pane {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.da-pane > * {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .da-body {
   display: flex;
   flex: 1 1 auto;
@@ -1128,6 +1302,39 @@ onMounted(async () => {
   border-color: var(--el-color-primary);
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
+}
+
+/* 左侧维度切换：按分组 / 按厂家 */
+.da-modes {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  background: var(--el-fill-color-light);
+  border-radius: 9px;
+}
+.da-mode {
+  flex: 1;
+  padding: 5px 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--el-text-color-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: color 0.16s ease, background 0.16s ease;
+}
+.da-mode:hover { color: var(--el-color-primary); }
+.da-mode.is-active {
+  color: var(--el-color-primary);
+  background: var(--el-bg-color);
+  box-shadow: var(--el-box-shadow-lighter);
+  font-weight: 600;
+}
+.da-tree__empty {
+  padding: 12px 10px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 
 .da-tree {
