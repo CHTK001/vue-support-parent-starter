@@ -241,25 +241,25 @@ async function load(params: ReTableLoadParams): Promise<RePageResult> {
 }
 
 // ------------------- 操作 -------------------
-/** 打开设计器（由 @pages/template 页面承载） */
+/** 打开设计器（由 @pages/template 页面承载：/template/designer/:id） */
 function openDesigner(row: TemplateInfo): void {
-  if (!resolveRoute('/template/designer')) {
-    message.warning('「designer」页由 @pages/template 提供，监控侧未注册该路由（请前往模板应用查看）');
-  }
-  void router.push(`/template/designer/${row.id}`);
+  navigateTemplate('designer', row.id);
 }
 
-/** 打开预览（由 @pages/template 页面承载） */
+/** 打开预览（由 @pages/template 页面承载：/template/preview/:id） */
 function openPreview(row: TemplateInfo): void {
-  if (!resolveRoute('/template/preview')) {
-    message.warning('「preview」页由 @pages/template 提供，监控侧未注册该路由（请前往模板应用查看）');
-  }
-  void router.push(`/template/preview/${row.id}`);
+  navigateTemplate('preview', row.id);
 }
 
-/** 导航到 @pages/template 路由（未注册时在控制台说明原因，避免用户进 404 页） */
-function resolveRoute(path: string): boolean {
-  return router.getRoutes().some((r) => r.path === path);
+/** 导航到 @pages/template 路由（未注册时只向前说明原因，避免用户进 404 页） */
+function navigateTemplate(path: string, id: string): void {
+  const prefix = `/template/${path}`;
+  const found = router.getRoutes().some((r) => r.path === prefix || r.path.startsWith(`${prefix}/`));
+  if (!found) {
+    message.warning(`「${prefix}」页由 @pages/template 提供，监控侧未注册该路由（请前往模板应用查看）`);
+    return;
+  }
+  void router.push(`${prefix}/${id}`);
 }
 
 /** 打开详情 drawer */
