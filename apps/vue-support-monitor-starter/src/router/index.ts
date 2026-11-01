@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 监控管理平台路由树（RouteConfigsTable[]）—— **宿主装配层**。
  *
  * <p>本文件只做一件事：把各 {@code pages/xx} 包产出的路由树拼起来。
@@ -202,6 +202,10 @@ export const monitorRoutes: RouteConfigsTable[] = [
   // 镜像库 / 模板六个页签。资产页右键「工作台 → Docker（独立页）」会带
   // /docker?hostId= 跳到这里，因此菜单项直接由包的工厂产出，宿主不再维护副本。
   ...createDockerRoutes(),
+
+  // Group: tunnel workbench - pushed from @pages/tunnel/src/routes
+  // /grp-tunnel (menu group) + ngrok / Cloudflare children, SSE live status
+  ...createTunnelRoutes(),
 
   // ==================== 设备管理 ====================
   // 从「主机管理」中独立成组：主机与设备是两类平级资产，各自的入口直接可见。

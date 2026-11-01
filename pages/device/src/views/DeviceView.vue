@@ -513,6 +513,10 @@ const ledgerTab = ref<LedgerTabKey>(
 )
 /** 已挂载过的页签：点开过才加载子页面，之后保留现场（切换不重建） */
 const mountedTabs = reactive(new Set<LedgerTabKey>(['list']))
+if (ledgerTab.value !== 'list') {
+  /** 路由别名指向的页签：同一次挂载就要把子页面装进来 */
+  mountedTabs.add(ledgerTab.value)
+}
 watch(ledgerTab, (tab) => mountedTabs.add(tab))
 /** 路由表的 tab（/device?tab=topo 等）也要滚进 ledgerTab，否则 URL 与页签不同步 */
 watch(() => route.query.tab, (tab) => {
