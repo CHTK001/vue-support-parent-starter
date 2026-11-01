@@ -39,6 +39,7 @@ import {
   cloudflaredDelete,
   cloudflaredStart,
   cloudflaredStop,
+  cloudflaredStreamUrl,
 } from "../api/tunnelApi";
 
 /* ==================== Provider 切换 ==================== */
@@ -123,7 +124,8 @@ function connectSSE() {
         list.value = event.data as TunnelView[];
         // 保持选中的行不闪烁
         if (selected.value) {
-          const updated = list.value.find((r) => r.id === selected.value.id);
+          const current = selected.value;
+          const updated = list.value.find((r) => r.id === current.id);
           if (updated) {
             selected.value = updated;
           } else {
@@ -220,13 +222,6 @@ function onRowClick(row: TunnelView) {
   selected.value = row;
 }
 
-/* ==================== 工具 ==================== */
-
-/** 行选中状态标签 */
-function stateTagOf(status: boolean) {
-  return { type: status ? "success" : "info", text: status ? "运行中" : "已停止" };
-}
-
 </script>
 
 <template>
@@ -298,7 +293,7 @@ function stateTagOf(status: boolean) {
               </el-button>
             </template>
           </el-popconfirm>
-          <el-button size="small" plain @click="openEdit(row)">编辑</el-button>
+          <el-button size="small" plain @click="openEdit(row as TunnelView)">编辑</el-button>
           <el-popconfirm title="确定要删除该隧道吗？" @confirm="deleteTunnelRecord(row.id)">
             <template #reference>
               <el-button size="small" type="danger" plain>删除</el-button>

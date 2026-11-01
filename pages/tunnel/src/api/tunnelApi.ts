@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @pages/tunnel 外网穿透隧道 REST + SSE 接口
  *
  * <p>ngrok / Cloudflare Tunnel 两种 Provider 共用同一套数据模型：**配置持久化到 JSON 文件**（
@@ -50,11 +50,11 @@ export const ngrokDetail = (id: string) =>
 
 /** 创建 */
 export const ngrokCreate = (d: TunnelRecord) =>
-  http().post(`${B}/ngrok`).data(d).then((r) => unwrapResult<TunnelView>(r));
+  http().post(`${B}/ngrok`).data(d as unknown as Record<string, unknown>).then((r) => unwrapResult<TunnelView>(r));
 
 /** 更新 */
 export const ngrokUpdate = (id: string, d: TunnelRecord) =>
-  http().put(`${B}/ngrok/${id}`).data(d).then((r) => unwrapResult<TunnelView>(r));
+  http().put(`${B}/ngrok/${id}`).data(d as unknown as Record<string, unknown>).then((r) => unwrapResult<TunnelView>(r));
 
 /** 删除 */
 export const ngrokDelete = (id: string) =>
@@ -84,11 +84,11 @@ export const cloudflaredDetail = (id: string) =>
 
 /** 创建 */
 export const cloudflaredCreate = (d: TunnelRecord) =>
-  http().post(`${B}/cloudflared`).data(d).then((r) => unwrapResult<TunnelView>(r));
+  http().post(`${B}/cloudflared`).data(d as unknown as Record<string, unknown>).then((r) => unwrapResult<TunnelView>(r));
 
 /** 更新 */
 export const cloudflaredUpdate = (id: string, d: TunnelRecord) =>
-  http().put(`${B}/cloudflared/${id}`).data(d).then((r) => unwrapResult<TunnelView>(r));
+  http().put(`${B}/cloudflared/${id}`).data(d as unknown as Record<string, unknown>).then((r) => unwrapResult<TunnelView>(r));
 
 /** 删除 */
 export const cloudflaredDelete = (id: string) =>
