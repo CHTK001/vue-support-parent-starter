@@ -13,7 +13,7 @@
  * 分层：
  *   - `service/serviceView.ts`     纯函数：后端行 → 展示对象（端口文本、链路、后端地址）
  *   - `service/useServiceNodes.ts` 取数与动作：状态、自动刷新、启停、抽屉开合
- *   - `service/service-kit.css`    与页面无关的原子样式（状态灯、胶囊、空态、右键菜单）
+ *   - `service/service-kit.css`    与页面无关的原子样式（等宽数字、状态灯、右键菜单）
  *
  * 本页面只读 {@link ServiceNodesVm} 状态并调用 vm 动作，自己不算节点状态：
  * 过滤、统计、协议下拉的口径全在 vm 和 nodeList/serviceView 里单测锁定。
@@ -450,11 +450,6 @@ function primaryIcon(card: ServiceNodeCard): string {
   return 'VideoPlay';
 }
 
-/** 主操作的色调 */
-function primaryTone(card: ServiceNodeCard): 'success' | 'warning' {
-  return primaryActionOf(card) === 'start' ? 'success' : 'warning';
-}
-
 /* ==================== 右 Dock：快捷操作 / 最近活动 / 统计 ==================== */
 
 /** Dock 是否展开（宽屏默认展开，用户手动收起后记住） */
@@ -857,15 +852,6 @@ watch(
       :existing-names="vm.existingNames"
       :clone-source="vm.editingNode?.id === 0 ? vm.editingNode : null"
       @saved="vm.refresh()"
-    />
-
-    <!-- 非嵌入详情抽屉：保留 vm 契约上的抽屉状态，页签之外仍有一处入口 -->
-    <ScServerDetailDrawer
-      v-model="vm.detailVisible"
-      :node-id="vm.detailNodeId"
-      :filter-types="vm.filterTypes"
-      @changed="vm.refresh()"
-      @open-detail-page="vm.openDetailPage"
     />
 
     <!-- 节点右键菜单：Teleport 到 body，样式走 kit 里的全局 sv-ctx-* -->
