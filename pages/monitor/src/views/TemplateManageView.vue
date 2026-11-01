@@ -275,8 +275,14 @@ function refresh(): void {
   void load({ page: 1, pageSize: pageSize.value, params: {} });
 }
 
-/** 基于样式计算状态标签（独立用：loading intent 不需要） */
+/** 辅助：把行数据转成 ReTable 理解的 Record<string, unknown> */
 function _rowOf(row: TemplateInfo): Record<string, unknown> { return row as unknown as Record<string, unknown>; }
+
+/** drawer 用：复用 formatter 逻辑的列文本 */
+function statusOf(r: TemplateInfo): string { return statusText(r, {} as ReTableColumn, r.status); }
+function sourceOf(r: TemplateInfo): string { return sourceText(r, {} as ReTableColumn, r.source); }
+function languageOf(r: TemplateInfo): string { return languageText(r, {} as ReTableColumn, r.language); }
+function typeOf(r: TemplateInfo): string { return typeText(r, {} as ReTableColumn, r.type); }
 
 const columns: ReTableColumn[] = [
   { prop: 'name', label: '模板名称', minWidth: 220, showOverflowTooltip: true },
@@ -335,7 +341,7 @@ onMounted(() => {
         pagination
         @row-click="onDetail"
       >
-        <!-- 操作列（由 ReTable 的 `choose` 插槽接管：ReButton + 图标） -->
+        <!-- 操作列 | ReTable 把 `slot: 'actions'` 转给父组件的插槽 -->
         <template #actions="{ row }: { row: TemplateInfo }">
           <ReButton text type="primary" @click.stop="openDesigner(row)">
             <ReIcon icon="EditPen" /> 设计
@@ -357,19 +363,19 @@ onMounted(() => {
       <div class="detail" v-if="drawerRow">
         <div class="detail__row">
           <span class="detail__label">状态</span>
-          <span class="detail__value">{{ statusText(_rowOf(drawerRow), null, drawerRow.status) }}</span>
+          <span class="detail__value">{{ statusOf(drawerRow) }}</span>
         </div>
         <div class="detail__row">
           <span class="detail__label">来源</span>
-          <span class="detail__value">{{ sourceText(_rowOf(drawerRow), null, drawerRow.source) }}</span>
+          <span class="detail__value">{{ sourceOf(drawerRow) }}</span>
         </div>
         <div class="detail__row">
           <span class="detail__label">语言</span>
-          <span class="detail__value">{{ languageText(_rowOf(drawerRow), null, drawerRow.language) }}</span>
+          <span class="detail__value">{{ languageOf(drawerRow) }}</span>
         </div>
         <div class="detail__row">
           <span class="detail__label">类型</span>
-          <span class="detail__value">{{ typeText(_rowOf(drawerRow), null, drawerRow.type) }}</span>
+          <span class="detail__value">{{ typeOf(drawerRow) }}</span>
         </div>
         <div class="detail__row">
           <span class="detail__label">创建时间</span>
