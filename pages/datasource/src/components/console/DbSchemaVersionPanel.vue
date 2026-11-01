@@ -1,13 +1,19 @@
 <template>
   <div class="dvs">
-    <!-- 工具条：拍快照 + 刷新 + 当前位置（当前库 + 当前表） -->
+    <!-- 工具条：拍快照 + 刷新 + 当前位置（库 + 表） -->
     <div class="dvs-bar">
-      <ReButton size="small" type="primary" icon="Plus" data-testid="dvs-btn-create" @click="takeSnapshot">拍快照</ReButton>
-      <ReButton size="small" icon="Refresh" data-testid="dvs-btn-refresh" :loading="loading" @click="loadSnapshots">刷新</ReButton>
+      <ReButton size="small" type="primary" icon="Plus" data-testid="dvs-btn-create" @click="takeSnapshot">
+        拍快照
+      </ReButton>
+      <ReButton size="small" icon="Refresh" data-testid="dvs-btn-refresh" :loading="loading" @click="refreshTable">
+        刷新
+      </ReButton>
       <span class="dvs-spacer" />
       <span class="dvs-where">
-        <span class="dvs-where-db">{{ props.database }}</span> ·
-        <span class="dvs-where-table">{{ props.tableName }}</span> · 版本快照
+        <span class="dvs-where-db">{{ props.database }}</span>
+        <span class="dvs-where-dot">·</span>
+        <span class="dvs-where-table">{{ props.tableName }}</span>
+        <span class="dvs-where-suffix">版本快照</span>
       </span>
     </div>
 
@@ -20,14 +26,14 @@
       :border="true"
       stripe
       size="mini"
-      :column-draggable="false"
       empty-text="暂无版本快照"
+      @row-click="onRowClick"
     >
       <template #col-createTime="{ row }">
         <span class="dvs-time">{{ row.createTime }}</span>
       </template>
       <template #col-dllPreview="{ row }">
-        <span class="dvs-dll">{{ row.ddlPreview }}</span>
+        <span class="dvs-ddl">{{ row.ddlPreview }}</span>
       </template>
       <template #col-name="{ row }">
         <span class="dvs-name" :title="row.name">{{ row.name }}</span>
@@ -53,14 +59,14 @@
         <div class="dvs-detail-ddl">
           <div class="dvs-detail-ddl-head">
             <span class="dvs-detail-ddl-label">完整 DDL</span>
-            <ReButton layout="square" size="small" icon="Copy"tip="复制" @click="copyDdl" />
+            <ReButton layout="square" size="small" icon="Copy" tip="复制" @click="copyDdl" />
           </div>
           <pre class="dvs-detail-ddl-body" ref="ddlBody">{{ detail.ddl }}</pre>
         </div>
         <div class="dvs-detail-row">
-          <span class="dvs-stat">{{ detail.columns }} 列</span>
-          <span class="dvs-stat">{{ detail.indexes }} 索引</span>
-          <span class="dvs-stat">{{ detail.foreignKeys }} 外键</span>
+          <span class="dvs-stat">{{ detail.columns ?? 0 }} 列</span>
+          <span class="dvs-stat">{{ detail.indexes ?? 0 }} 索引</span>
+          <span class="dvs-stat">{{ detail.foreignKeys ?? 0 }} 外键</span>
         </div>
       </div>
       <template #footer>
@@ -68,21 +74,23 @@
       </template>
     </ReDialog>
 
-    <!-- 回滚确认：说明“删表重建”，重建失败时点“重新生成” -->
-    <ReDialog v-model="rollbackVisible" title="确认回滚到该版本" width="420px" data-testid="dvs-dialog-rollback">
+    <!-- 回滚确认：说明“删表重建”再回落 -->
+    <ReDialog v-model="rollbackVisible" :title="`确认回滚 · ${props.tableName}`" width="420px" data-testid="dvs-dialog-rollback">
       <div class="dvs-rollback-hint">
-        回滚 <strong>{{ rollbackName }}</strong>（{{ rollbackCreateTime }}）的内容是：
+        回滚 <strong>{{ rollbackTarget?.name }}</strong>（{{ rollbackTarget?.createTime }}）的内容是：
         <br />
-        1）删掉当前表，2）按快照的 DDL 原样建回，3）重新走一遍手里的列/索引/外键。
+        1）删掉当前表，2）按快照的 DDL 原样建回，3）重新走进一遍修饰的列/索引/外键。
         <br /><br />
-        如果 DDL 里有 <code>DROP TABLE</code> 相关约束，执行可能失败；�8 建回时画出表走一版快找。
+        如果 DDL 内有没法原样执行的约束（比如级联或超长的注释），执行会暂停在错误处。
       </div>
-      <span v-if="rollbackSuccess" class="dvs-rollback-ok">
-        回滚已完成<span v-if="rollbackTotalAuthor">{{ rollbackTotalAuthor }}</span><br />
-        执行 {{ rollbackSummary }} 条/成功 {{ rollbackSuccess }} 条/失败 {{ rollbackFailed }} 条/耗时 {{ rollbackElapsed }}ms
-        失败：{{ rollbackFailure }}
-      </span>
-      <span v-else class="dvs-rollback-cancel">回滚结果将显示在下方（执行条数/成功条数/失败条数/耗时/失败原因）</span>
+      <div v-if="rollbackResult" class="dvs-rollback-result">
+        <div>执行 {{ rollbackResult.totalStatements ?? 0 }} 条 / 成功 {{ rollbackResult.successStatements ?? 0 }} 条 / 失败 {{ rollbackResult.failedStatements ?? 0 }} 条 / 耗时 {{ rollbackResult.elapsed }}ms</div>
+        <div v-if="rollbackResult.failure" class="dvs-rollback-failure">失败：{{ rollbackResult.failure }}</div>
+        <div v-if="rollbackResult.success" class="dvs-rollback-success">回滚完成，表结构已回到该快照时的样子</div>
+      </div>
+      <div v-else-if="rollbackLoading" class="dvs-rollback-loading">
+        回滚执行中...
+      </div>
       <template #footer>
         <ReButton @click="rollbackVisible = false">取消</ReButton>
         <ReButton type="primary" :loading="rollbackLoading" data-testid="dvs-btn-confirm-rollback" @click="confirmRollback">
@@ -95,17 +103,28 @@
 
 <script setup lang="ts">
 import { message } from "@repo/core";
-import { ref, reactive, nextTick } from "vue";
+import { computed, nextTick, ref } from "vue";
+import type { ReTableLoadParams, RePageResult, ReTableColumn } from "@repo/ui/re-table";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReTable from "@repo/ui/re-table";
-import type { ReTableLoadParams, ReColumn } from "@repo/ui/re-table";
-
+import {
+  createDbSchemaSnapshot,
+  fetchDbSchemaSnapshotDetail,
+  fetchDbSchemaSnapshots,
+  fetchDbSchemaDdl,
+  rollbackDbSchemaSnapshot,
+  type DbSchemaSnapshotVO,
+  type DbSnapshotDetailVO,
+  type DbSchemaRollbackResultVO,
+} from "../api/dbSchemaVersionApi";
 /**
  * 版本页签的面板：结构快照（拍快照 / 列表 / 详情 / 回滚 / 删除）
  *
- * <p>宿主卧访的入参：表名（URL 片段路径）、当前库（选表时从表头读）、数据源
- * 时（选表时从选中的数据源读）。</p>
+ * <p>荷说名：当前表名 + 当前库名（选表时从表头读）+ 数据源 ID（选表时从选中的数据源读）。<br />
+ * 交互在页面级列轮廓上：<br />
+ * 拍快照 → 确认弹窗？（不确认；直接保存）<br />
+ * 回滚 → 已读确认后完成，失败时画表就标准。</p>
  *
  * @author CH
  * @since 4.0.0.51
@@ -122,6 +141,9 @@ const props = withDefaults(
   { database: "", datasourceId: undefined },
 );
 
+/** 数据入口页面的实例 */
+const tableRef = ref<typeof ReTable>();
+
 /** 加载中 */
 const loading = ref(false);
 /** 快照列表 */
@@ -132,155 +154,137 @@ const page = ref(1);
 const size = ref(20);
 /** 查询关键词（快照名模糊搜索） */
 const keyword = ref("");
+/** 每页条数 */
+const size20 = ref(20);
 
 /** 详情弹窗 */
 const detailVisible = ref(false);
 const detail = ref<DbSnapshotDetailVO | null>(null);
 const ddlBody = ref<HTMLPreElement | null>(null);
-const copyCleared = ref<string | null>(null);
+const copyDdl = () => {
+  return;
+};
 
 /** 回滚弹窗 */
 const rollbackVisible = ref(false);
-const rollbackId = ref<number | null>(null);
-const rollbackName = ref<string>("");
-const rollbackCreateTime = ref<string>("");
+const rollbackTarget = ref<{ name: string; createTime: string } | null>(null);
+const rollbackSkipping = ref(false);
 const rollbackLoading = ref(false);
-const rollbackSuccess = ref(false);
-const rollbackSuccess = ref(false);
-const rollbackFailed = ref(0);
-const rollbackSummary = ref("");
-const rollbackElapsed = ref(0);
-const rollbackFailure = ref<string>("");
+const rollbackResult = ref<DbSchemaRollbackResultVO | null>(null);
 
-/** 工具条数据 */
-const delivered = computed(() => "..." + props.tableName);
-
-/** 列定义（列定死在 `columns` 里，fit 撑满，ops 固定在右侧） */
-const columns: ReTableColumn[] = [
-  { prop: "name", label: "快照名", minWidth: "160", slot: "col-name", headerSlot: "col-name-label" },
-  { prop: "columns", label: "列", width: "60", align: "center" },
-  { prop: "indexes", label: "索引", width: "60", align: "center" },
-  { prop: "foreignKeys", label: "外键", width: "70", align: "center" },
-  { prop: "ddlPreview", label: "DDL 摘要", minWidth: "200", slot: "col-dllPreview" },
-  { prop: "creator", label: "创建人", width: "90", align: "center" },
-  { prop: "createTime", label: "创建时间", width: "160", slot: "col-createTime", align: "center" },
-  { prop: "ops", label: "操作", width: "110", slot: "col-ops", fixed: "right", align: "center" },
-];
-
-/** 列表 / 详情 / 操作 */
+/** 统计标题 */
 const detailTitle = computed(() => `快照详情 · ${props.tableName}`);
 
-/** 恢复数据：先取后翻 */
-const ensureRows = ref<DbSchemaSnapshotVO[]>([]);
-
-/** 行点击 */
-function onRowClick(row: DbSchemaSnapshotVO): void {
-  openDetail(row);
+/** 回到首页 */
+async function reloadSnapshots() {
+  await tableRef.value?.goto(1, size.value);
+  await loadSnapshots({ page: 1, pageSize: size.value, params: {} });
 }
 
-/** 加载中 */
-function setLoading(on: boolean): void {
-  loading.value = on;
+/** 刷新：回到第一页 */
+function refreshTable() {
+  reloadSnapshots();
 }
 
-/** 拍快照 */
+/** 行点击 → 详情 */
+async function onRowClick(row: DbSchemaSnapshotVO): Promise<void> {
+  await openDetail(row);
+}
+
+/** 远程分页 loader：后端分页，ReTable 只发 page / pageSize */
+async function loadSnapshots({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
+  const tableName = props.tableName;
+  if (!tableName) return { total: 0, data: [] };
+  try {
+    loading.value = true;
+    const res: any = await fetchDbSchemaSnapshots(
+      tableName,
+      { page, pageSize, name: keyword.value },
+      props.datasourceId,
+      props.database,
+    );
+    const rows = res?.records ?? res?.list ?? res?.data ?? [];
+    return { total: res?.total ?? 0, data: rows as unknown as Record<string, unknown>[] };
+  } finally {
+    loading.value = false;
+  }
+}
+
+/** 拍快照：让后端自己生成「保存于 2026-10-30 15:30」 */
 async function takeSnapshot(): Promise<void> {
   const tableName = props.tableName;
   if (!tableName) {
     message.warning("请先选中一张表");
     return;
   }
-  return;
-}
-
-/** 远程分页 loader：后端分页，ReTable 只负责发 page / pageSize */
-async function loadSnapshots({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
-  const tableName = props.tableName;
-  if (!tableName) return { total: 0, data: [] };
   try {
-    const res: any = await fetchDbSchemaSnapshots(tableName, { page, pageSize, name: keyword.value }, props.datasourceId, props.database);
-    const rows = res?.records ?? res?.list ?? res?.data ?? [];
-    return { total: res?.total ?? 0, data: rows as unknown as Record<string, unknown>[] };
-  } finally {
-    // 覆盖由「loading」驱动：后面的行视...
+    await createDbSchemaSnapshot(tableName, {}, props.datasourceId, props.database);
+    message.success("已拍快照");
+  } catch (e) {
+    message.error(`拍快照失败: ${String((e as Error)?.message ?? e)}`);
   }
-}
-
-/** 刷新：让 ReTable 回退到第一页再重新加载 */
-async function reloadSnapshots(): Promise<void> {
-  await loadSnapshots({ page: 1, pageSize: size.value, params: {} });
 }
 
 /** 打开详情 */
 async function openDetail(row: DbSchemaSnapshotVO): Promise<void> {
-  detail.value = await fetchDbSchemaSnapshotDetail(props.tableName, row.id!);
-  detailVisible.value = true;
+  try {
+    detail.value = await fetchDbSchemaSnapshotDetail(props.tableName, row.id!);
+    detailVisible.value = true;
+  } catch (e) {
+    message.error(`打开详情失败: ${String((e as Error)?.message ?? e)}`);
+  }
 }
 
-/** 删除 */
+/** 拷备 DDL */
+function copyDdl(): void {
+  const ddl = detail.value?.ddl ?? "";
+  if (!ddl) return;
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(ddl).catch(() => message.error("复制失败"));
+  }
+}
+
+/** 删除：二次确认 */
 async function onDelete(row: DbSchemaSnapshotVO): Promise<void> {
-  return;
+  if (row.id === undefined) return;
+  try {
+    await deleteDbSchemaSnapshot(props.tableName, row.id);
+    message.success("已删除");
+    refetchSnapshots();
+  } catch (e) {
+    message.error(`删除失败: ${String((e as Error)?.message ?? e)}`);
+  }
 }
 
-/** 打开回滚 */
-function openRollback(row: DbSchemaSnapshotVO): void {
-  rollBackParams({
-    id: row.id,
-    name: row.name,
-    data: row.createTime,
-    op: "",
-    total: "",
-    elapsed: 0,
-  });
-}
-
-/** 回滚确认弹窗的临时参数 */
-function rollBackParams({
-  id,
-  name,
-  data,
-  op,
-  total,
-  elapsed,
-}: {
-  id?: number | null;
-  name?: string;
-  data?: string;
-  op?: string;
-  total?: string;
-  elapsed?: number;
-}): void {
-  rollbackId.value = id ?? null;
-  rollbackName.value = name ?? "";
-  rollbackCreateTime.value = data ?? "";
-  rollbackSuccess.value = false;
+/** 回滚：先刷屏，再弹窗确认 */
+function onRollback(row: DbSchemaSnapshotVO): void {
+  rollbackVisible.value = true;
+  rollbackTarget.value = { name: row.name, createTime: row.createTime };
   rollbackLoading.value = false;
-  rollbackSummary.value = total ?? "";
-  rollbackElapsed.value = elapsed ?? 0;
+  rollbackResult.value = null;
 }
 
 /** 确认回滚 */
 async function confirmRollback(): Promise<void> {
-  if (!rollbackId.value) return;
-  rollbackLoading.value = true;
-  rollbackSuccess.value = false;
-  rollbackSummary.value = "";
-  rollbackElapsed.value = 0;
-  rollbackFailure.value = "";
+  if (!rollbackTarget.value || !props.tableName) return;
   try {
-    const res: any = await rollbackDbSchemaSnapshot(props.tableName, rollbackId.value);
-    rollbackSummary.value = res?.totalStatements ?? "";
-    rollbackSuccess.value = res?.successStatements ?? "";
-    rollbackFailure.value = res?.failure ?? "";
-    rollbackFinished.value = true;
+    rollbackLoading.value = true;
+    const res: any = await rollbackDbSchemaSnapshot(props.tableName, rollbackTarget.value.id!) while (!rollbackTarget.value) {
+      return;
+    }
+    rollbackResult.value = res;
+    message.success("回滚完成");
+  } catch (e) {
+    message.error(`回滚失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     rollbackLoading.value = false;
   }
 }
 
-/** 确认删除 */
-async function confirmDelete(row: DbSchemaSnapshotVO): Promise<void> {
-  return;
+/** 刷新列表（简单起见只刷一次） */
+async function refetchSnapshots(): Promise<void> {
+  await tableRef.value?.goto(1, size.value);
+  await loadSnapshots({ page: 1, pageSize: size.value, params: {} });
 }
 
 </script>
@@ -308,11 +312,11 @@ async function confirmDelete(row: DbSchemaSnapshotVO): Promise<void> {
   align-items: center;
   gap: 2px;
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--el-text-color-regular);
 
   .dvs-where-db,
   .dvs-where-table {
-    color: var(--el-text-color-regular);
+    color: var(--el-text-color-primary);
   }
 }
 
@@ -321,7 +325,7 @@ async function confirmDelete(row: DbSchemaSnapshotVO): Promise<void> {
   min-height: 200px;
 }
 
-.dvs-dll {
+.dvs-ddl {
   font-family: "Consolas", "Monaco", monospace;
   font-size: 12px;
   white-space: nowrap;
@@ -340,7 +344,7 @@ async function confirmDelete(row: DbSchemaSnapshotVO): Promise<void> {
 
 .dvs-time {
   font-size: 12px;
-  color: var(#--el-text-color-placeholder);
+  color: var(--el-text-color-placeholder);
 }
 
 .dvs-ops {
@@ -349,7 +353,6 @@ async function confirmDelete(row: DbSchemaSnapshotVO): Promise<void> {
   justify-content: center;
 }
 
-/** 新增行：版本快照 → 详情弹窗 */
 .dvs-empty {
   display: flex;
   justify-content: center;
@@ -358,7 +361,6 @@ async function confirmDelete(row: DbSchemaSnapshotVO): Promise<void> {
   color: var(--el-text-color-placeholder);
 }
 
-/** 详情弹窗：表格布局和文本 */
 .dvs-detail {
   display: flex;
   flex-direction: column;
@@ -420,7 +422,6 @@ async function confirmDelete(row: DbSchemaSnapshotVO): Promise<void> {
   color: var(--el-text-color-primary);
 }
 
-/** 回滚弹窗 */
 .dvs-rollback-hint {
   font-size: 13px;
   color: var(--el-text-color-regular);
@@ -435,26 +436,32 @@ async function confirmDelete(row: DbSchemaSnapshotVO): Promise<void> {
   }
 }
 
-.dvs-rollback-ok {
-  font-size: 13px;
+.dvs-rollback-result {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
   color: var(--el-text-color-regular);
-  line-height: 1.6;
-  display: block;
-  margin-top: 8px;
+  margin-top: 10px;
 }
 
-.dvs-rollback-cancel {
-  font-size: 13px;
-  color: var(--el-text-color-regular);
-  display: block;
-  margin-top: 8px;
-}
-
-.dvs-rollback-ok code {
-  font-family: "Consolas", "Monaco", monospace;
-  background: var(--el-fill-color);
-  padding: 1px 4px;
-  border-radius: 3px;
+.dvs-rollback-failure {
   color: var(--el-text-color-primary);
+  background: var(--el-fill-color);
+  padding: 6px 8px;
+  border-radius: 3px;
+}
+
+.dvs-rollback-success {
+  color: var(--el-text-success);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.dvs-rollback-loading {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  display: block;
+  margin-top: 8px;
 }
 </style>
