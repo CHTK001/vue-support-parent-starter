@@ -25,7 +25,6 @@
     "@pages/filesystem": "workspace:*",
     "@pages/hotsport": "workspace:*",
     "@pages/monitor": "workspace:*",
-    // 开发期 `pages/tunnel` 缺包：由 `pages/remote`（远程控制台）承接，见 vite.config.ts alias
     "@pages/remote": "workspace:*",
     "@pages/server": "workspace:*",
     "@pages/tunnel": "workspace:*",
