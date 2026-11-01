@@ -637,7 +637,6 @@ export default createVite({
       exclude: ["@repo/assets", "@repo/theme"],
       include: [
       "element-plus",
-      "@repo/theme",
       "@repo/ui",
       "@repo/ui/components/ReFilter/types",
       "@repo/ui/re-icon",
