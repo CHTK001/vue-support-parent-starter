@@ -42,6 +42,7 @@ import { createDockerRoutes } from "@pages/docker/src/routes";
 // 调试中心（CDP）：运维管理分组下唯一的叶子页。
 import { createCdpRoutes } from "@pages/debug/src/routes";
 import { createMonitorRoutes, createMonitorManageRoutes } from "@pages/monitor/src/routes";
+import { createTunnelRoutes } from "@pages/tunnel/src/routes";
 
 export const monitorRoutes: RouteConfigsTable[] = [
   // ==================== 告警管理 ====================
@@ -278,6 +279,11 @@ export const monitorRoutes: RouteConfigsTable[] = [
   //   后端由 spring-support-cdp-starter 提供 /ms/cdp + /ws/cdp，
   //   页面由 @pages/debug 的 createCdpRoutes 产出（路由 + 菜单同源）。
   ...createCdpRoutes({ showLink: true }),
+
+  // 端口映射：ngrok / Cloudflare Tunnel 两个 Provider，
+  //   后端由 spring-support-ngrok-starter 和 spring-support-cloudflared-starter 提供，
+  //   页面由 @pages/tunnel 的 createTunnelRoutes 产出（路由 + 菜单同源）。
+  ...createTunnelRoutes({ showLink: true }),
 
   // ==================== 系统管理 ====================
   // 跨包拼装的本地分组（代理/分组/账号/系统配置来自多个 pages 包），
