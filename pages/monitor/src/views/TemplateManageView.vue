@@ -64,7 +64,12 @@ function statusName(s?: string): string {
 }
 
 /** 格式化时间（展示用） */
-function fmtTime(v?: string): string {
+function fmtTime(_row: Record<string, unknown>, _col: ReTableColumn, v?: string): string {
+  return fmtTimeOf(v);
+}
+
+/** 时间格式化（展示用） */
+function fmtTimeOf(v?: string): string {
   if (!v) return '—';
   try {
     const d = new Date(v);
@@ -114,17 +119,31 @@ function openPreview(_row: TemplateInfo): void {
   message.info('预览页由页面端承载，跳转链接：/template/preview');
 }
 
-/** 语言展示 */
-const langNames: Record<string, string> = { html: 'html', vue: 'vue', jsx: 'jsx', json: 'json' };
+/** 状态文本 */
+function statusText(row: Record<string, unknown>): string {
+  const s = row.templateInfoStatus as string | undefined;
+  return { draft: '草稿', online: '已上线', offline: '已下线' }[s ?? ''] ?? s ?? '—';
+}
 
-/** 列表列定义 */
+/** 来源文本 */
+function sourceText(row: Record<string, unknown>): string {
+  const s = row.templateInfoSource as string | undefined;
+  return { hiprint: 'hiprint', message: '消息', paper: '组卷' }[s ?? ''] ?? s ?? '—';
+}
+
+/** 语言文本 */
+function languageText(row: Record<string, unknown>): string {
+  const s = row.templateInfoLanguage as string | undefined;
+  return ['html', 'vue', 'jsx', 'json'].includes(s ?? '') ? s ?? '—' : '—';
+}
+
+/** 列定义 */
 const columns: ReTableColumn[] = [
-  { prop: 'templateInfoName', label: '模板名称', slot: 'name', minWidth: 220 },
-  { prop: 'templateInfoStatus', label: '状态', slot: 'status', width: 110 },
-  { prop: 'templateInfoSource', label: '来源', slot: 'source', width: 130 },
-  { prop: 'templateInfoLanguage', label: '语言', slot: 'language', width: 100 },
-  { prop: 'templateInfoCreatedAt', label: '创建时间', slot: 'createdAt', width: 190 },
-  { prop: 'action', label: '操作', slot: 'action', width: 180, fixed: 'right' },
+  { prop: 'templateInfoName', label: '模板名称', minWidth: 220 },
+  { prop: 'templateInfoStatus', label: '状态', width: 110, formatter: statusText },
+  { prop: 'templateInfoSource', label: '来源', width: 130, formatter: sourceText },
+  { prop: 'templateInfoLanguage', label: '语言', width: 100, formatter: languageText },
+  { prop: 'templateInfoCreatedAt', label: '创建时间', width: 190, formatter: fmtTime },
 ];
 
 onMounted(() => {
@@ -166,7 +185,8 @@ onMounted(() => {
         row-key="templateInfoId"
         :loader="load"
         :columns="columns"
-        :pagination="{ pageSize, total, showTotal: true, showSizeChanger: true }"
+        pagination
+        @row-click="onDetail"
       />
     </div>
 

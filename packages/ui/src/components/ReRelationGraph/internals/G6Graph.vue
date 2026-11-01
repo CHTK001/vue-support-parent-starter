@@ -2561,9 +2561,42 @@ const refreshContours = () => {
 /** 拦掉容器内的原生右键菜单（右键功能由 {@link handleContextMenu} 接管） */
 const preventNativeContextMenu = (e: Event) => e.preventDefault();
 
+/**
+ * 按容器实测尺寸校正画布。
+ *
+ * <p>G6 在 {@code new Graph()} 时按当时容器大小建画布：页面入场动画、标签页（KeepAlive）
+ * 从隐藏切到可见、侧栏折叠等场景下，容器在那一刻可能还很窄，画布就停在旧尺寸，
+ * 内容被 fitView 缩进左上角的一小块里。这里把画布拉回容器大小并重新适配视口。</p>
+ *
+ * <p>尺寸一致时直接返回，不会打断用户当前的缩放 / 平移。</p>
+ */
+const syncCanvasToContainer = () => {
+  if (!graph || !graphAlive || !containerRef.value) return;
+  const el = containerRef.value;
+  const width = el.clientWidth;
+  const height = el.clientHeight;
+  if (!width || !height) return;
+  const canvasEl = el.querySelector("canvas") as HTMLCanvasElement | null;
+  if (
+    canvasEl &&
+    Math.abs(canvasEl.clientWidth - width) <= 2 &&
+    Math.abs(canvasEl.clientHeight - height) <= 2
+  ) {
+    return;
+  }
+  try {
+    graph.resize(width, height);
+    graph.fitView();
+  } catch {
+    /* 画布已销毁（快速切换路由 / 组件卸载），忽略即可 */
+  }
+};
+
+/** 跟随容器尺寸变化（窗口缩放、侧栏折叠、标签页显隐） */
+let canvasResizeObserver: ResizeObserver | null = null;
+
 const initGraph = () => {
   if (!containerRef.value || graph) return;
-  console.error("[rrg] initGraph container", containerRef.value.clientWidth, containerRef.value.clientHeight);
   // 画布内的浏览器原生右键菜单会盖在我们的浮层上，先拦掉（组件外部右键不受影响）
   containerRef.value.addEventListener("contextmenu", preventNativeContextMenu);
   graph = new Graph({
@@ -2655,19 +2688,9 @@ const initGraph = () => {
       setElementStates({ [connectFromState.value]: ["selected"] });
     }
     // 画布尺寸兜底：G6 在 `new Graph()` 时用 rAF 时刻的容器尺寸建画布，
-    // 若那一刻容器还没铺开（路由入场 / KeepAlive 隐藏 / 折叠面板），画布会缩在左上角且不再变大。
-    // 渲染落定后重测一次容器，尺寸不一致就 resize 并重新适配视口。
-    if (graph && containerRef.value) {
-      const { clientWidth, clientHeight } = containerRef.value;
-      console.error("[rrg] ready", clientWidth, clientHeight, "canvas", JSON.stringify(graph.getCanvasSize?.() ?? null));
-      if (clientWidth && clientHeight) {
-        try {
-          graph.resize(clientWidth, clientHeight);
-          console.error("[rrg] resized ->", JSON.stringify(graph.getCanvasSize?.() ?? null));
-          graph.fitView();
-        } catch (e) { console.error("[rrg] resize failed", String(e)); }
-      }
-    }
+    // 若那一刻容器还没铺开（路由入场 / 标签页切换 / 折叠面板），画布会停在旧尺寸且不再变大。
+    // 渲染落定后按容器实测尺寸校正一次，之后交给 ResizeObserver 跟随。
+    syncCanvasToContainer();
     if (graph) emit("ready", graph);
   });
 };
@@ -3689,6 +3712,13 @@ onMounted(() => {
   document.addEventListener("keydown", onDocKeydown);
   // 等容器尺寸就绪再建图（分组布局要用容器宽高比决定网格列数）
   requestAnimationFrame(() => initGraph());
+  // 容器尺寸可能晚于建图才稳定（路由入场 / 标签页切换 / 侧栏折叠），持续跟随
+  if (typeof ResizeObserver !== "undefined") {
+    canvasResizeObserver = new ResizeObserver(() => syncCanvasToContainer());
+    nextTick(() => {
+      if (containerRef.value) canvasResizeObserver?.observe(containerRef.value);
+    });
+  }
 });
 
 /** props.layout 变化 → 同步内部布局状态 */
@@ -3871,6 +3901,8 @@ watch(minimapState, (on) => {
 onBeforeUnmount(() => {
   document.removeEventListener("pointerdown", onDocPointerDown, true);
   document.removeEventListener("keydown", onDocKeydown);
+  canvasResizeObserver?.disconnect();
+  canvasResizeObserver = null;
   graphAlive = false;
   graph?.destroy();
   graph = null;
