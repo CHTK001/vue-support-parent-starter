@@ -451,6 +451,7 @@ import type {
   ReTableContextMenuContext,
   ReTableContextMenuItem
 } from '@repo/ui/re-table'
+import ReTag from '@repo/ui/re-tag'
 
 import DeviceStatusPulse from '@pages/device/src/components/DeviceStatusPulse.vue'
 import DeviceOwnerCell from '@pages/device/src/components/DeviceOwnerCell.vue'
