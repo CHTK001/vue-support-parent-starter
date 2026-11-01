@@ -744,7 +744,9 @@ const groupDialogTitle = computed(() =>
 const groupOptions = computed(() => {
   const out: Array<{ groupId: string; groupName: string; label: string }> = []
   const walk = (nodes: DeviceGroupNode[], depth: number) => {
-    for (const node of nodes || []) {
+    /** 接口可能回传非数组（对象/字符串/空值），安全展开；空值走兜底 */
+    if (!Array.isArray(nodes)) return
+    for (const node of nodes) {
       if (!node.groupId) continue
       out.push({
         groupId: node.groupId,
