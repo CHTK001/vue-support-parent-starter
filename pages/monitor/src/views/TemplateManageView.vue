@@ -23,7 +23,6 @@ import { message } from '@repo/core';
 import ReTable, { type ReTableColumn, type ReTableLoadParams, type RePageResult } from '@repo/ui/re-table';
 import ReDrawer from '@repo/ui/re-drawer';
 import ReButton from '@repo/ui/re-button';
-import ReIcon from '@repo/ui/re-icon';
 import ReInput from '@repo/ui/re-input';
 import ReSelect from '@repo/ui/re-select';
 // 相对引用：pages/template 是同一工作区的页面包，避免 monitor 侧 node_modules 未 link 该包
@@ -345,12 +344,8 @@ onMounted(() => {
       >
         <!-- 操作列 | ReTable 把 `slot: 'actions'` 转给父组件的插槽 -->
         <template #actions="{ row }: { row: TemplateInfo }">
-          <ReButton text type="primary" @click.stop="openDesigner(row)">
-            <ReIcon icon="EditPen" /> 设计
-          </ReButton>
-          <ReButton text type="success" @click.stop="openPreview(row)">
-            <ReIcon icon="View" /> 预览
-          </ReButton>
+          <ReButton layout="square" type="primary" icon="EditPen" tip="设计" @click.stop="openDesigner(row)" />
+          <ReButton layout="square" type="success" icon="View" tip="预览" @click.stop="openPreview(row)" />
         </template>
       </ReTable>
     </div>

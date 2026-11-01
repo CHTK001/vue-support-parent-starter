@@ -256,24 +256,23 @@ async function onDelete(row: DbSchemaSnapshotVO): Promise<void> {
   }
 }
 
-/** 回滚：先刷屏，再弹窗确认 */
+/** 回滚：先上弹窗，再叫后端 */
 function onRollback(row: DbSchemaSnapshotVO): void {
   rollbackVisible.value = true;
-  rollbackTarget.value = { name: row.name, createTime: row.createTime };
+  rollbackTarget.value = { id: row.id, name: row.name, createTime: row.createTime };
   rollbackLoading.value = false;
   rollbackResult.value = null;
 }
 
 /** 确认回滚 */
 async function confirmRollback(): Promise<void> {
-  if (!rollbackTarget.value || !props.tableName) return;
+  if (!props.tableName || !rollbackTarget.value?.id) return;
   try {
     rollbackLoading.value = true;
-    const res: any = await rollbackDbSchemaSnapshot(props.tableName, rollbackTarget.value.id!) while (!rollbackTarget.value) {
-      return;
-    }
+    rollbackResult.value = null;
+    const res: any = await rollbackDbSchemaSnapshot(props.tableName, rollbackTarget.value.id);
     rollbackResult.value = res;
-    message.success("回滚完成");
+    message.success(`回滚完成`);
   } catch (e) {
     message.error(`回滚失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
