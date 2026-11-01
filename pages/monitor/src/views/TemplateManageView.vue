@@ -28,8 +28,8 @@ import ReButton from '@repo/ui/re-button';
 import ReIcon from '@repo/ui/re-icon';
 import ReInput from '@repo/ui/re-input';
 import ReSelect from '@repo/ui/re-select';
-import type { TemplateInfo, PageResult } from '@pages/template/src/types/template';
-import { templateApi } from '@pages/template/src/api/templateApi';
+import type { TemplateInfo, PageResult } from '../../../../pages/template/src/types/template';
+import { templateApi } from '../../../../pages/template/src/api/templateApi';
 
 /** 加载态 */
 const loading = ref(false);
