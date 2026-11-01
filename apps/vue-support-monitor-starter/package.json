@@ -26,6 +26,7 @@
     "@pages/hotsport": "workspace:*",
     "@pages/monitor": "workspace:*",
     "@pages/server": "workspace:*",
+    "@pages/tunnel": "workspace:*",
     "@repo/app": "workspace:*",
     "@repo/assets": "workspace:*",
     "@repo/config": "workspace:*",
