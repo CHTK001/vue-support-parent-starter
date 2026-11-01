@@ -1,7 +1,7 @@
 /**
  * @pages/tunnel 内网穿透隧道菜单路由
  *
- * <p>ngrok / Cloudflare Tunnel 两种 Provider 的列表工作台路由，
+ * <p>ngrok / Cloudflare Tunnel 两种 Provider 的隧道工作台路由。
  * 框架侧通过 {@code @pages/monitor/src/router/index.ts} 中的
  * {@code createTunnelRoutes()} 挂载到“内网穿透”分组下：</p>
  * <ul>
@@ -25,20 +25,10 @@ export interface TunnelRoutesOptions {
   rank?: number;
 }
 
-/** Provider 运行时状态（与 {@code TunnelStatusStream} 保持 1.5s 推流） */
-interface TunnelTab {
-  /** Provider：ngrok / cloudflared */
-  provider: string;
-  /** 路由路径 */
-  path: string;
-  /** 菜单标题 */
-  title: string;
-}
-
 /** Provider 分组 Tab 定义 */
-const TUNNEL_TABS: TunnelTab[] = [
-  { provider: "ngrok", path: "/ngrok", title: "ngrok" },
-  { provider: "cloudflared", path: "/cloudflared", title: "Cloudflare Tunnel" },
+const TUNNEL_TABS: { provider: string; title: string; view: string; icon: string }[] = [
+  { provider: "ngrok", title: "ngrok", view: "/TunnelWorkbench", icon: "Headphones" },
+  { provider: "cloudflared", title: "Cloudflare Tunnel", view: "/CloudflaredTunnelView", icon: "Globe" },
 ];
 
 /**
@@ -66,30 +56,25 @@ export function createTunnelRoutes(options: TunnelRoutesOptions = {}): RouteConf
   return [
     group,
     ...TUNNEL_TABS.map((tab) => ({
-      path: `/tunnels${tab.path}`,
+      path: `/tunnels/${tab.provider}`,
       name: `Tunnel_${tab.provider}`,
-      redirect: `/tunnels${tab.path}/workbench`,
-      meta: {
-        title: tab.title,
-        icon: "Link",
-        showLink: false,
-        keepAlive: true,
-      },
+      redirect: `/tunnels/${tab.provider}/workbench`,
+      component: () => import(`../views/${tab.provider}.vue`),
       children: [
         {
           path: "workbench",
           name: `Tunnel_${tab.provider}_Workbench`,
-          component: () => import(`../views/TunnelWorkbench.vue`),
+          component: () => import(`../views/${tab.provider}.vue`),
           meta: {
             title: tab.title,
-            icon: "Link",
+            icon: tab.icon,
             activeMenu,
+            keepAlive: true,
           },
-          props: { provider: tab.provider } as never,
         },
         {
           path: "",
-          redirect: `workbench`,
+          redirect: "workbench",
           meta: { showLink: false, activeMenu },
         },
       ],
