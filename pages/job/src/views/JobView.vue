@@ -74,6 +74,7 @@ import {
 } from "../types/job";
 import type { CollectFlow } from "@pages/collect";
 import FireCountdown from "../components/FireCountdown.vue";
+import FireTrail from "../components/FireTrail.vue";
 import ScriptSourceField from "../components/ScriptSourceField.vue";
 import JobDetailDialog from "../components/JobDetailDialog.vue";
 import JobFireTimesDialog from "../components/JobFireTimesDialog.vue";
@@ -234,6 +235,9 @@ const columns = computed<ReTableColumn[]>(() => [
   { prop: "jobKey", label: "执行器", minWidth: 60, slot: "executor", showOverflowTooltip: true },
   { prop: "enabled", label: "状态开关", width: 84, slot: "status", align: "center" },
   { prop: "nextFireTime", label: "下次触发", width: 180, slot: "next" },
+  /* 触发轨迹：左过去、右未来各 N 个点，一眼看出这条 cron 是「刚跑过」还是「很久不动」。
+     与「下次触发」列分工——那一列回答「还有多久」，这一列回答「节奏长什么样」。 */
+  { prop: "fireTrail", label: "触发轨迹", width: 172, slot: "trail" },
   { prop: "lastFireTime", label: "最近触发", width: 180, slot: "last" },
   { prop: "author", label: "负责人", width: 74, slot: "author" },
   /* 操作列：3 个常用方形按钮 + 1 个「更多」下拉触发器 = 4×38 的间距。
@@ -1276,6 +1280,18 @@ watch(formVisible, (visible) => {
           非本机执行
         </span>
         <FireCountdown v-else :at="row.enabled ? row.nextFireTime : null" />
+      </template>
+      <!--
+        触发轨迹：只对 cron 任务算（固定间隔的下一次取决于上一拍的实际完成时刻，事先推不出来）。
+        停用行按空白处理——停用的任务不会有下一拍，画一条轨迹等于承诺它还会跑。
+      -->
+      <template #trail="{ row }">
+        <FireTrail
+          v-if="row.enabled === true && canPreviewFireTimes(row as unknown as JobRuntime)"
+          :cron="String(row.scheduleTime ?? '')"
+          :last-fire-time="row.lastFireTime"
+        />
+        <span v-else class="collect-hint collect-hint--muted">—</span>
       </template>
       <template #last="{ row }">
         <span class="collect-num">

@@ -5587,7 +5587,7 @@ const vxeAreaConfig = { multiple: true, showActionMsg: true, autoClear: true };
 /** vxe 区域选择 · 键盘配置（复制 / 粘贴 / 剪切依赖 isClip） */
 const vxeKeyboardConfig = { isClip: true };
 /** vxe 列拖拽配置（同级列拖拽 + 辅助状态） */
-const vxeColumnDragConfig = { isPeerDrag: true, showGuidesStatus: true, animation: false };
+const vxeColumnDragConfig = { isPeerDrag: true, showGuidesStatus: true, animation: false, trigger: "cell" };
 
 /** element 引擎不支持虚拟滚动 / 区域选择：开启只提示，不假装生效 */
 watch(

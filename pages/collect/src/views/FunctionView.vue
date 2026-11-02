@@ -12,8 +12,8 @@
 
   ── 视图约定 ──────────────────────────────────────────────
   ReTable 承载搜索区（v-model:search-model + SEARCH filters 配置）、工具栏插槽、
-  7 列具名插槽与事件回源，模板换骨架会让这些契约全部失配；因此只现代化「外壳」：
-  ReSectionHead 页头 + koi 令牌统计条 + 卡片壳表格 + ReEmpty 空态，
+  7 列具名插槽与事件回源，模板换骨架会让这些契约全部失配；因此只做「外壳收敛」：
+  去掉页头与统计卡，页面只剩一张表，主操作挂到表格工具栏，筛选只用内置 ReSearch。
   表单/试跑两个 ReDialog 原样保留。
 -->
 <script setup lang="ts">
@@ -23,7 +23,6 @@ import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReEmpty from "@repo/ui/re-empty";
 import ReInput from "@repo/ui/re-input";
-import ReSectionHead from "@repo/ui/re-section-head";
 import ReSwitch from "@repo/ui/re-switch";
 import ReTable from "@repo/ui/re-table";
 import ReTime from "@repo/ui/re-time";
@@ -226,55 +225,12 @@ function showHelp(): void {
 </script>
 
 <!--
-  现代化视图：ReSectionHead 页头 + koi 令牌统计条 + 卡片壳表格 + ReEmpty 空态。
+  页面只有一张表：没有页头，也没有统计卡。
   ReTable 本体（search-model / SEARCH / 7 个具名插槽 / search 事件回源）与两个
-  ReDialog（新建编辑表单、试跑）原样保留，仅重排外壳与样式。
+  ReDialog（新建编辑表单、试跑）原样保留；主操作挂在表格工具栏，统计信息不再单占一行。
 -->
 <template>
   <div class="function-page">
-    <!-- 页头：标题 + 说明 + 动作（写法帮助 / 新建函数） -->
-    <ReSectionHead
-      class="function-head"
-      title="函数库"
-      description="Groovy 闭包自定义函数 · 保存前编译，登记后流程参数表达式与脚本节点都能调"
-    >
-      <template #actions>
-        <ReButton
-          icon="QuestionFilled"
-          size="small"
-          tip="查看函数调用写法与内置函数名单"
-          @click="showHelp"
-        />
-        <ReButton show-text icon="Plus" type="primary" size="small" tip="新建函数" @click="openCreate">
-          新建函数
-        </ReButton>
-      </template>
-    </ReSectionHead>
-
-    <!-- 概览条：函数总数 / 已启用 / 已停用 -->
-    <div class="stat-grid" role="group" aria-label="函数概览">
-      <div class="stat-card" style="--accent: var(--brand-500)">
-        <span class="stat-label">函数总数</span>
-        <span class="stat-value">{{ rows.length }}</span>
-        <span class="stat-trend">当前搜索结果</span>
-      </div>
-      <div class="stat-card" style="--accent: var(--status-success)">
-        <span class="stat-label">已启用</span>
-        <span class="stat-value">{{ rows.filter(r => (r.collectFunctionEnabled ?? 1) === 1).length }}</span>
-        <span class="stat-trend is-up">可被流程调用</span>
-      </div>
-      <div class="stat-card" style="--accent: var(--pulse-unknown)">
-        <span class="stat-label">已停用</span>
-        <span class="stat-value">{{ rows.filter(r => (r.collectFunctionEnabled ?? 1) !== 1).length }}</span>
-        <span class="stat-trend">登记但未生效</span>
-      </div>
-      <div class="stat-card" style="--accent: var(--metric-net)">
-        <span class="stat-label">内置函数</span>
-        <span class="stat-value">{{ builtinNames.length }}</span>
-        <span class="stat-trend">名字不可占用</span>
-      </div>
-    </div>
-
     <!-- 表格壳：搜索区由 ReTable 内置（SEARCH 配置），工具栏在此插槽 -->
     <div class="table-card">
       <ReTable
@@ -298,13 +254,24 @@ function showHelp(): void {
             v-if="!loading"
             layout="modern"
             :image-size="72"
-            :description="String(searchModel.keyword ?? '').trim() ? '没有匹配的函数，换个关键字试试' : '还没有自定义函数，点击右上角「新建函数」开始'"
+            :description="String(searchModel.keyword ?? '').trim() ? '没有匹配的函数，换个关键字试试' : '还没有自定义函数，点击工具栏的「新建函数」开始'"
           />
         </template>
 
         <template #toolbar>
+          <ReButton show-text icon="Plus" type="primary" size="small" tip="新建函数" @click="openCreate">
+            新建函数
+          </ReButton>
+          <ReButton
+            icon="QuestionFilled"
+            size="small"
+            tip="查看函数调用写法与内置函数名单"
+            @click="showHelp"
+          />
           <span class="collect-hint">
-            保存前编译，登记后流程参数表达式 <code>${name(...)}</code> 与脚本节点里的 <code>fn.name(...)</code> 都能调
+            保存前编译 · 已启用 {{ rows.filter(r => (r.collectFunctionEnabled ?? 1) === 1).length }} / {{ rows.length }}
+            · 内置 {{ builtinNames.length }} 个名字不可占用 · 流程参数表达式 <code>${name(...)}</code> 与脚本节点
+            <code>fn.name(...)</code> 都能调
           </span>
         </template>
 
@@ -408,58 +375,6 @@ function showHelp(): void {
   min-width: 0;
 }
 
-/* ===== 概览条 ===== */
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
-.stat-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 12px 16px;
-  background: var(--bg-container);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
-  transition: box-shadow 0.2s var(--ease-out), transform 0.2s var(--ease-out);
-}
-.stat-card::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 3px;
-  background: var(--accent, var(--brand-500));
-}
-.stat-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
-}
-.stat-label {
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  color: var(--text-secondary);
-}
-.stat-value {
-  font-size: 26px;
-  font-weight: 700;
-  line-height: 1.15;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-primary);
-}
-.stat-trend {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-tertiary);
-}
-.stat-trend.is-up {
-  color: var(--status-success);
-}
-
 /* ===== 表格壳 ===== */
 .table-card {
   min-height: 240px;
@@ -481,22 +396,5 @@ function showHelp(): void {
 .script-input :deep(textarea) {
   font-family: var(--rm-font-mono, ui-monospace, sfmono-regular, consolas, monospace);
   font-size: 12px;
-}
-
-/* ===== 响应式 ===== */
-@media (max-width: 768px) {
-  .stat-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-/* ===== 减少动态效果 ===== */
-@media (prefers-reduced-motion: reduce) {
-  .stat-card {
-    transition: none;
-  }
-  .stat-card:hover {
-    transform: none;
-  }
 }
 </style>

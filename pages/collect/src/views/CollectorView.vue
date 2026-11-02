@@ -12,10 +12,13 @@
   采集器数量一多就明显卡。
 
   ── 视图约定 ──────────────────────────────────────────────
-  本页以 ReTable 为主骨架：11 列 + 11 个具名插槽 + 工具栏批量选择/批量删除，
-  行状态色靠 row-class-name 回写。表格不拆成卡片网格，只把「外壳」现代化：
-  ReSectionHead 页头 + 统计条 + 卡片壳内的表格 + 筛选条。模板重排时
-  每一个绑定、插槽、事件都原样保留（槽名/列 prop/行字段都是脚本契约）。
+  页面只有一张表：没有页头、没有统计卡。筛选全部走 ReTable 内置的 ReSearch
+  （关键字 / 分类两个过滤项），主操作（新建采集器 / 平台级配置）挂在表格工具栏。
+  两套筛选同时存在时用户分不清该在哪输入，工具条与筛选条也会各占一行高度，
+  所以外面不再摆一条独立筛选条。
+  表格不拆成卡片网格，仍是 11 列 + 11 个具名插槽 + 工具栏批量选择/批量删除，
+  行状态色靠 row-class-name 回写。模板重排时每一个绑定、插槽、事件都原样保留
+  （槽名 / 列 prop / 行字段都是脚本契约）。
 -->
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
@@ -24,15 +27,12 @@ import { getRouter, msgError, msgSuccess, msgWarning } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
 import ReCron from "@repo/ui/re-cron";
 import ReEmpty from "@repo/ui/re-empty";
-import ReInput from "@repo/ui/re-input";
-import ReSectionHead from "@repo/ui/re-section-head";
-import ReSelect from "@repo/ui/re-select";
 import ReSwitch from "@repo/ui/re-switch";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import ReTime from "@repo/ui/re-time";
 import type { ReOption } from "@repo/ui/re-select";
-import type { ReTableColumn, ReTableToolbarConfig } from "@repo/ui/re-table";
+import type { ReTableColumn, ReTableSearchConfig, ReTableToolbarConfig } from "@repo/ui/re-table";
 import FlowDesignDialog from "../components/FlowDesignDialog.vue";
 import FlowEditDialog from "../components/FlowEditDialog.vue";
 import FlowPreviewDialog from "../components/FlowPreviewDialog.vue";
@@ -58,14 +58,19 @@ const categories = ref<CollectOption[]>([]);
 const recentTasks = ref<CollectTask[]>([]);
 const runningIds = ref<Record<number, boolean>>({});
 
-/** 前端过滤：搜索/分类直接过滤列表；分页由 ReTable 按 page/pageSize 本地切片 */
-const keyword = ref("");
-const categoryFilter = ref("");
+/** 内置搜索区的草稿值：点「查询」才合并进过滤条件，与运行记录 / 采集结果页同一套语义 */
+const searchModel = ref<Record<string, unknown>>({
+  keyword: "",
+  collectFlowCategoryId: "",
+});
 
-/** 分页页码/每页条数：v-model 给 ReTable；筛选变化时回到第 1 页，避免停在越界的空页 */
+/** 最近一次点「查询」真正生效的条件：草稿改了没查之前不作数 */
+const applied = ref<{ keyword: string; categoryId: string }>({ keyword: "", categoryId: "" });
+
+/** 分页页码/每页条数：v-model 给 ReTable；筛选生效时回到第 1 页，避免停在越界的空页 */
 const page = ref(1);
 const pageSize = ref(10);
-watch([keyword, categoryFilter], () => {
+watch(applied, () => {
   page.value = 1;
 });
 
@@ -115,6 +120,28 @@ const categoryOptions = computed<ReOption[]>(() => [
   ...categories.value.map(item => ({ label: item.label, value: String(item.value) })),
 ]);
 
+/**
+ * 内置搜索区：必须是 computed，分类下拉的选项要跟着分类列表刷新。
+ *
+ * 用 ReTable 自带的 ReSearch，不再在表格外面另摆一条筛选条：
+ * 搜索框、下拉、查询/重置按钮、折叠开关都由组件提供，页面只声明字段。
+ */
+const SEARCH = computed<ReTableSearchConfig>(() => ({
+  title: "搜索采集器",
+  showRefreshBtn: false,
+  filters: [
+    { key: "keyword", label: "关键字", type: "input", placeholder: "按名称 / 编码搜索" },
+    {
+      key: "collectFlowCategoryId",
+      label: "分类",
+      type: "select",
+      placeholder: "全部分类",
+      options: categoryOptions.value,
+      attrs: { clearable: false },
+    },
+  ],
+}));
+
 const categoryName = (flow: CollectFlow) =>
   flow.collectFlowCategoryId ? flow.collectFlowCategoryName || `分类 ${flow.collectFlowCategoryId}` : "未分类";
 
@@ -135,9 +162,10 @@ const latestTaskOf = computed(() => {
 });
 
 const filtered = computed(() => {
-  const text = keyword.value.trim().toLowerCase();
+  const text = applied.value.keyword.trim().toLowerCase();
+  const category = applied.value.categoryId;
   return flows.value.filter(flow => {
-    if (categoryFilter.value !== "" && String(flow.collectFlowCategoryId ?? 0) !== categoryFilter.value) {
+    if (category !== "" && String(flow.collectFlowCategoryId ?? 0) !== category) {
       return false;
     }
     if (!text) {
@@ -146,6 +174,28 @@ const filtered = computed(() => {
     return `${flow.collectFlowName ?? ""} ${flow.collectFlowCode ?? ""}`.toLowerCase().includes(text);
   });
 });
+
+/**
+ * 点「查询」：把搜索区的草稿值提交给过滤逻辑。
+ *
+ * 本页是前端整表加载（listFlows 一次性拉全），ReTable 不会替我们回源，
+ * 所以这里只更新生效条件，表格按新条件重算本地列表。
+ */
+function applySearch(): void {
+  applied.value = {
+    keyword: String(searchModel.value.keyword ?? ""),
+    categoryId: String(searchModel.value.collectFlowCategoryId ?? ""),
+  };
+}
+
+/** 点「重置」：不依赖组件清空与事件的先后，把草稿与生效条件一起归零 */
+function resetSearch(): void {
+  searchModel.value = { keyword: "", collectFlowCategoryId: "" };
+  applied.value = { keyword: "", categoryId: "" };
+}
+
+/** 当前是否带着生效中的筛选：空态文案与「清空筛选」按钮都以此为准 */
+const filtering = computed(() => Boolean(applied.value.keyword) || applied.value.categoryId !== "");
 
 /** 启用优先：后端激活的采集器排在前面，停用行靠后 */
 const sortedFlows = computed(() =>
@@ -365,99 +415,13 @@ function runMore(command: string, flow: CollectFlow): void {
 </script>
 
 <!--
-  现代化视图：ReSectionHead 页头 + koi 令牌统计条 + 筛选卡 + 卡片壳表格 + ReEmpty 空态。
+  页面只有一张表：没有页头，也没有统计条与独立筛选条。
+  筛选统一走 ReTable 内置的 ReSearch（SEARCH 配置），主操作挂在表格工具栏插槽里。
   ReTable 本体（columns / toolbar-config / 11 个具名插槽 / row-class-name /
-  v-model:page / v-model:page-size）与全部点击处理函数原样保留，仅重排外壳与样式。
+  v-model:page / v-model:page-size / v-model:search-model）与全部点击处理函数保持原样。
 -->
 <template>
   <div class="collector-page">
-    <!-- 页头：标题 + 全局动作（新建采集器 / 平台级配置 / 刷新） -->
-    <ReSectionHead
-      class="collector-head"
-      title="采集器"
-      description="流程设计、调度与运行结果的总入口 · 一屏看清每个采集器最近一次运行的成败"
-    >
-      <template #actions>
-        <ReButton
-          show-text
-          icon="Plus"
-          type="primary"
-          size="small"
-          tip="新建采集器（打开流程设计）"
-          @click="openDesign(null)"
-        >
-          新建采集器
-        </ReButton>
-        <ElDropdown trigger="click" placement="bottom-start" @command="(cmd: string) => openConfig(cmd)">
-          <ReButton icon="Setting" size="small" tip="平台级配置：变量 / 函数 / 通知" />
-          <template #dropdown>
-            <ElDropdownMenu>
-              <ElDropdownItem command="global">全局配置总览</ElDropdownItem>
-              <ElDropdownItem command="variable" divided>变量管理</ElDropdownItem>
-              <ElDropdownItem command="function">函数库</ElDropdownItem>
-              <ElDropdownItem command="notice">执行通知</ElDropdownItem>
-            </ElDropdownMenu>
-          </template>
-        </ElDropdown>
-        <ReButton icon="Refresh" size="small" tip="重新拉取采集器与最近运行" @click="reload" />
-      </template>
-    </ReSectionHead>
-
-    <!-- 概览条：4 项关键计数，窄屏 2 列 -->
-    <div class="stat-grid" role="group" aria-label="采集器概览">
-      <div class="stat-card" style="--accent: var(--metric-cpu)">
-        <span class="stat-label">采集器</span>
-        <span class="stat-value">{{ filtered.length }}</span>
-        <span class="stat-trend">当前筛选结果</span>
-      </div>
-      <div class="stat-card" style="--accent: var(--status-success)">
-        <span class="stat-label">已启用</span>
-        <span class="stat-value">{{ filtered.filter(f => f.collectFlowStatus === 1).length }}</span>
-        <span class="stat-trend is-up">排在最前</span>
-      </div>
-      <div class="stat-card" style="--accent: var(--pulse-unknown)">
-        <span class="stat-label">已停用</span>
-        <span class="stat-value">{{ filtered.filter(f => f.collectFlowStatus !== 1).length }}</span>
-        <span class="stat-trend">灰底行</span>
-      </div>
-      <div class="stat-card" style="--accent: var(--status-error)">
-        <span class="stat-label">最近失败</span>
-        <span class="stat-value">{{ filtered.filter(f => f.collectFlowStatus === 1 && latestTaskOf.get(f.collectFlowId)?.collectTaskStatus === "FAILURE").length }}</span>
-        <span
-          class="stat-trend"
-          :class="{ 'is-down': filtered.some(f => f.collectFlowStatus === 1 && latestTaskOf.get(f.collectFlowId)?.collectTaskStatus === 'FAILURE') }"
-        >最近 50 次运行内</span>
-      </div>
-    </div>
-
-    <!-- 筛选条：关键字 / 分类 -->
-    <div class="filter-card">
-      <ReInput
-        v-model="keyword"
-        class="filter-field filter-field--search"
-        placeholder="按名称 / 编码搜索"
-        prefix-icon="Search"
-        clearable
-      />
-      <ReSelect
-        v-model="categoryFilter"
-        class="filter-field"
-        :options="categoryOptions"
-        placeholder="全部分类"
-      />
-      <span class="filter-hint">
-        命中 {{ filtered.length }} / {{ flows.length }} 个采集器
-      </span>
-      <ReButton
-        v-if="keyword || categoryFilter !== ''"
-        icon="Close"
-        size="small"
-        tip="清空筛选"
-        @click="keyword = ''; categoryFilter = ''"
-      />
-    </div>
-
-    <!-- 表格壳：ReTable 自带工具栏（批量选择 / 批量删除 / 列设置 / 表格设置） -->
     <div v-loading="loading" class="table-card">
       <ReTable
         table-id="collect-collector"
@@ -467,20 +431,52 @@ function runMore(command: string, flow: CollectFlow): void {
         :page-sizes="[10, 20, 50, 100]"
         v-model:page="page"
         v-model:page-size="pageSize"
+        v-model:search-model="searchModel"
+        :search="SEARCH"
         :toolbar="true"
         :toolbar-config="collectorToolbarConfig"
         :layout-table="{ fill: true }"
         row-key="collectFlowId"
         row-class-name="collectorRowClassName"
-        empty-text="没有匹配的采集器"
+        :empty-text="filtering ? '没有匹配的采集器，换个条件或点「重置」' : '还没有采集器，用工具栏的「新建采集器」开始'"
         stripe
+        @search="applySearch"
+        @search-reset="resetSearch"
+        @refresh="reload"
       >
+        <template #toolbar>
+          <ReButton
+            show-text
+            icon="Plus"
+            type="primary"
+            size="small"
+            tip="新建采集器（打开流程设计）"
+            @click="openDesign(null)"
+          >
+            新建采集器
+          </ReButton>
+          <ElDropdown trigger="click" placement="bottom-start" @command="(cmd: string) => openConfig(cmd)">
+            <ReButton icon="Setting" size="small" tip="平台级配置：变量 / 函数 / 通知" />
+            <template #dropdown>
+              <ElDropdownMenu>
+                <ElDropdownItem command="global">全局配置总览</ElDropdownItem>
+                <ElDropdownItem command="variable" divided>变量管理</ElDropdownItem>
+                <ElDropdownItem command="function">函数库</ElDropdownItem>
+                <ElDropdownItem command="notice">执行通知</ElDropdownItem>
+              </ElDropdownMenu>
+            </template>
+          </ElDropdown>
+          <span v-if="filtering" class="collect-hint">
+            命中 {{ filtered.length }} / {{ flows.length }} 个采集器
+          </span>
+        </template>
+
         <template #empty>
           <ReEmpty
             v-if="!loading"
             layout="modern"
             :image-size="72"
-            :description="keyword || categoryFilter !== '' ? '没有匹配的采集器，试试清空筛选' : '还没有采集器，点击右上角「新建采集器」开始'"
+            :description="filtering ? '没有匹配的采集器，试试清空筛选' : '还没有采集器，点击工具栏的「新建采集器」开始'"
           />
         </template>
 
@@ -604,88 +600,6 @@ function runMore(command: string, flow: CollectFlow): void {
   min-width: 0;
 }
 
-/* ===== 概览条 ===== */
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
-.stat-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 12px 16px;
-  background: var(--bg-container);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
-  transition: box-shadow 0.2s var(--ease-out), transform 0.2s var(--ease-out);
-}
-.stat-card::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 3px;
-  background: var(--accent, var(--brand-500));
-}
-.stat-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
-}
-.stat-label {
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  color: var(--text-secondary);
-}
-.stat-value {
-  font-size: 26px;
-  font-weight: 700;
-  line-height: 1.15;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-primary);
-}
-.stat-trend {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-tertiary);
-}
-.stat-trend.is-up {
-  color: var(--status-success);
-}
-.stat-trend.is-down {
-  color: var(--status-error);
-}
-
-/* ===== 筛选卡 ===== */
-.filter-card {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 10px 12px;
-  background: var(--bg-container);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-}
-.filter-field--search {
-  width: 220px;
-}
-.filter-field {
-  flex: 0 1 auto;
-  min-width: 150px;
-  max-width: 220px;
-}
-.filter-hint {
-  margin-left: auto;
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-tertiary);
-}
-
 /* ===== 表格壳 ===== */
 .table-card {
   min-height: 240px;
@@ -762,26 +676,8 @@ function runMore(command: string, flow: CollectFlow): void {
 
 /* ===== 响应式 ===== */
 @media (max-width: 768px) {
-  .stat-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .filter-field,
-  .filter-field--search {
-    width: 100%;
-    max-width: none;
-  }
-  .filter-hint {
-    margin-left: 0;
-  }
-}
-
-/* ===== 减少动态效果 ===== */
-@media (prefers-reduced-motion: reduce) {
-  .stat-card {
-    transition: none;
-  }
-  .stat-card:hover {
-    transform: none;
+  .ops {
+    justify-content: flex-end;
   }
 }
 </style>
