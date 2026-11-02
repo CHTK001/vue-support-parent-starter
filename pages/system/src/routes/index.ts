@@ -184,7 +184,7 @@ export const systemRoutes: RouteConfigsTable[] = [
   {
     path: "/manage/filestorage",
     name: "SystemFileStorage",
-    component: () => import("@pages/filesystem/src/views/FileStorageManage.vue"),
+    component: () => import("@pages/filesystem/views/FileStorageManage.vue"),
     meta: {
       title: "文件管理",
       icon: "Folder",
