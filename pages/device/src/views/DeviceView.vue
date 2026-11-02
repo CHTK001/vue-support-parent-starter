@@ -230,141 +230,217 @@
         </div>
       </aside>
 
-      <!-- 右侧：设备列表 + 底部信息条 -->
+      <!-- 右侧：工作区页签（「设备资产」固定页签 + 设备详情 / 通道 / 日志 / 拓扑页签） -->
       <section class="da-work">
-        <!-- 列表工具条：高度固定，未选中时显示台账概览，选中后切成批量操作（避免多选时列表回流跳动） -->
-        <div class="da-batch" :class="{ 'is-batch': selection.length > 0 }">
-          <template v-if="selection.length">
-            <span class="da-batch__text">已选 <b>{{ selection.length }}</b> 台设备</span>
-            <div class="da-batch__ops">
-              <ReButton icon="VideoCamera" :show-text="true" size="small" type="primary" plain @click="openVideoWizard">视频预览</ReButton>
-              <ReButton icon="Refresh" :show-text="true" size="small" @click="batchReconnect">批量重连</ReButton>
-              <ReButton icon="FolderOpened" :show-text="true" size="small" @click="openBatchGroups">设置分组</ReButton>
-              <ReButton icon="Delete" :show-text="true" size="small" type="danger" plain @click="batchRemove">批量删除</ReButton>
-            </div>
-          </template>
-          <template v-else>
-            <span class="da-batch__text">共 <b>{{ filtered.length }}</b> 台设备</span>
-            <div class="da-batch__ops">
-              <span class="da-batch__hint">勾选设备后可批量视频预览、重连、设置分组或删除</span>
-            </div>
-          </template>
-        </div>
+        <ReTabs
+          v-model="activeTab"
+          :tabs="workTabs"
+          closable
+          show-close-all
+          :context-menu="tabContextMenu"
+          empty-text="右键左侧设备叶子，选择要打开的功能"
+          @close="closeWorkTab"
+          @close-all="closeAllWorkTabs"
+          @context-command="onTabCommand"
+        >
+          <template #default="{ tab }">
+            <!-- ============ 设备资产：台账列表 + 批量工具条 + 底部信息条 ============ -->
+            <div v-if="tab.name === ASSETS_TAB" class="da-assets">
+              <!-- 列表工具条：高度固定，未选中时显示台账概览，选中后切成批量操作（避免多选时列表回流跳动） -->
+              <div class="da-batch" :class="{ 'is-batch': selection.length > 0 }">
+                <template v-if="selection.length">
+                  <span class="da-batch__text">已选 <b>{{ selection.length }}</b> 台设备</span>
+                  <div class="da-batch__ops">
+                    <ReButton icon="VideoCamera" :show-text="true" size="small" type="primary" plain @click="openVideoWizard">视频预览</ReButton>
+                    <ReButton icon="Refresh" :show-text="true" size="small" @click="batchReconnect">批量重连</ReButton>
+                    <ReButton icon="FolderOpened" :show-text="true" size="small" @click="openBatchGroups">设置分组</ReButton>
+                    <ReButton icon="Delete" :show-text="true" size="small" type="danger" plain @click="batchRemove">批量删除</ReButton>
+                  </div>
+                </template>
+                <template v-else>
+                  <span class="da-batch__text">
+                    共 <b>{{ filtered.length }}</b> 台设备
+                    <span v-if="leafDeviceId" class="da-batch__filter">
+                      · 已定位「{{ leafDeviceLabel }}」
+                      <button type="button" class="da-batch__clear" @click="clearLeafDevice">清除</button>
+                    </span>
+                  </span>
+                  <div class="da-batch__ops">
+                    <span class="da-batch__hint">勾选设备后可批量视频预览、重连、设置分组或删除</span>
+                  </div>
+                </template>
+              </div>
 
-        <div class="da-table-wrap">
-          <ReTable
-            class="da-table"
-            table-id="device-assets"
-            :data="tableRows"
-            :columns="columns"
-            :loading="loading"
-            :pagination="false"
-            :toolbar="false"
-            row-key="deviceInfoId"
-            :layout-table="{ fill: true }"
-            :context-menu="tableMenu"
-            show-selection
-            stripe
-            @row-click="onRowClick"
-            @cell-click="onCellClick"
-            @selection-change="onSelectionChange"
-            @context-menu-select="onTableMenuSelect"
-          >
-            <template #col-device="{ row }">
-              <div class="da-dev">
-                <div class="da-dev__top">
-                  <span class="da-dev__name" :title="row.deviceInfoName">{{ row.deviceInfoName }}</span>
-                  <el-tag :type="statusMeta(row.deviceInfoStatus).type" size="small" effect="plain">
-                    {{ statusMeta(row.deviceInfoStatus).label }}
-                  </el-tag>
-                  <el-tag v-if="row.deviceInfoSource === 'vendor'" size="small" effect="plain" type="info">同步</el-tag>
-                </div>
-                <div class="da-dev__code mono">{{ row.deviceInfoCode || '未编码' }}</div>
-              </div>
-            </template>
-            <template #col-vendor="{ row }">
-              <div class="da-vendor__name">{{ vendorLabel(row.deviceInfoVendor) }}</div>
-              <div class="da-vendor__model">{{ row.deviceInfoModel || '—' }}</div>
-            </template>
-            <template #col-ip="{ row }">
-              <span v-if="row.deviceInfoIp" class="da-ip mono">
-                <ReIcon name="Monitor" :size="12" />
-                {{ row.deviceInfoIp }}:{{ row.deviceInfoPort ?? '' }}
-              </span>
-              <span v-else class="da-muted">平台接入</span>
-            </template>
-            <template #col-status="{ row }">
-              <div class="da-status">
-                <DeviceStatusPulse :online="row.deviceInfoOnline" />
-                <div class="da-status__hint">{{ row.deviceInfoOnline ? '心跳正常' : lastOnlineText(row) }}</div>
-              </div>
-            </template>
-            <template #col-location="{ row }">
-              <DeviceLocationCell :device="asDevice(row)" />
-            </template>
-            <template #col-owner="{ row }">
-              <DeviceOwnerCell :device="asDevice(row)" />
-            </template>
+              <div class="da-table-wrap">
+                <ReTable
+                  class="da-table"
+                  table-id="device-assets"
+                  :data="tableRows"
+                  :columns="columns"
+                  :loading="loading"
+                  :pagination="false"
+                  :toolbar="false"
+                  row-key="deviceInfoId"
+                  :layout-table="{ fill: true }"
+                  :context-menu="tableMenu"
+                  show-selection
+                  stripe
+                  @row-click="onRowClick"
+                  @cell-click="onCellClick"
+                  @selection-change="onSelectionChange"
+                  @context-menu-select="onTableMenuSelect"
+                >
+                  <template #col-device="{ row }">
+                    <div class="da-dev">
+                      <span class="da-dev__icon" :class="`is-${row.deviceInfoCategory || 'other'}`" :title="getCategoryLabel(row.deviceInfoCategory)">
+                        <ReIcon :name="getCategoryIcon(row.deviceInfoCategory)" :size="14" />
+                      </span>
+                      <div class="da-dev__text">
+                        <div class="da-dev__top">
+                          <span class="da-dev__name" :title="row.deviceInfoName">{{ row.deviceInfoName }}</span>
+                          <el-tag :type="statusMeta(row.deviceInfoStatus).type" size="small" effect="plain">
+                            {{ statusMeta(row.deviceInfoStatus).label }}
+                          </el-tag>
+                          <el-tag v-if="row.deviceInfoSource === 'vendor'" size="small" effect="plain" type="info">同步</el-tag>
+                        </div>
+                        <div class="da-dev__code mono">{{ row.deviceInfoCode || '未编码' }}</div>
+                      </div>
+                    </div>
+                  </template>
+                  <template #col-vendor="{ row }">
+                    <div class="da-vendor__name">{{ vendorLabel(row.deviceInfoVendor) }}</div>
+                    <div class="da-vendor__model">{{ row.deviceInfoModel || '—' }}</div>
+                  </template>
+                  <template #col-ip="{ row }">
+                    <span v-if="row.deviceInfoIp" class="da-ip mono">
+                      <ReIcon name="Monitor" :size="12" />
+                      {{ row.deviceInfoIp }}:{{ row.deviceInfoPort ?? '' }}
+                    </span>
+                    <span v-else class="da-muted">平台接入</span>
+                  </template>
+                  <template #col-status="{ row }">
+                    <div class="da-status">
+                      <DeviceStatusPulse :online="row.deviceInfoOnline" />
+                      <div class="da-status__hint">{{ row.deviceInfoOnline ? '心跳正常' : '当前离线' }}</div>
+                    </div>
+                  </template>
+                  <template #col-lastOnline="{ row }">
+                    <ReTime
+                      :value="row.deviceInfoLastOnlineAt"
+                      format="YYYY-MM-DD HH:mm"
+                      relative
+                      placeholder="从未上线"
+                      class="da-time"
+                    />
+                  </template>
+                  <template #col-location="{ row }">
+                    <DeviceLocationCell :device="asDevice(row)" />
+                  </template>
+                  <template #col-owner="{ row }">
+                    <DeviceOwnerCell :device="asDevice(row)" />
+                  </template>
 
-            <template #col-group="{ row }">
-              <div class="da-group-list">
-                <ReTag v-for="g in deviceGroupLabels(row)" :key="g.groupId" type="primary" effect="plain" size="small" @click="selectGroup(g)">
-                  {{ g.groupName }}
-                </ReTag>
+                  <template #col-group="{ row }">
+                    <div class="da-group-list">
+                      <ReTag v-for="g in deviceGroupLabels(row)" :key="g.groupId" type="primary" effect="plain" size="small" @click="selectGroup(g)">
+                        {{ g.groupName }}
+                      </ReTag>
+                    </div>
+                  </template>
+                  <template #empty>
+                    <div class="da-empty">
+                      <ReIcon name="Files" :size="26" />
+                      <span>暂无设备，可点左上角「+」新增，或前往「厂商接入」同步。</span>
+                    </div>
+                  </template>
+                </ReTable>
               </div>
-            </template>
-            <template #empty>
-              <div class="da-empty">
-                <ReIcon name="Files" :size="26" />
-                <span>暂无设备，可点左上角「+」新增，或前往「厂商接入」同步。</span>
-              </div>
-            </template>
-          </ReTable>
-        </div>
 
-        <!-- 底部信息条：选中设备的 IP / 在线 / 经纬度 等基础信息 -->
-        <footer class="da-bar">
-          <template v-if="statusDevice">
-            <div class="da-bar__id">
-              <span class="da-bar__name" :title="statusDevice.deviceInfoName">{{ statusDevice.deviceInfoName }}</span>
-              <el-tag size="small" effect="plain" :type="statusDevice.deviceInfoOnline ? 'success' : 'info'">
-                {{ statusDevice.deviceInfoOnline ? '在线' : '离线' }}
-              </el-tag>
+              <!-- 底部信息条：选中设备的 IP / 在线 / 经纬度 等基础信息 -->
+              <footer class="da-bar">
+                <template v-if="statusDevice">
+                  <div class="da-bar__id">
+                    <span class="da-bar__name" :title="statusDevice.deviceInfoName">{{ statusDevice.deviceInfoName }}</span>
+                    <el-tag size="small" effect="plain" :type="statusDevice.deviceInfoOnline ? 'success' : 'info'">
+                      {{ statusDevice.deviceInfoOnline ? '在线' : '离线' }}
+                    </el-tag>
+                  </div>
+                  <div class="da-bar__item mono">
+                    <ReIcon name="Monitor" :size="12" />
+                    <span>{{ statusDevice.deviceInfoIp ? `${statusDevice.deviceInfoIp}:${statusDevice.deviceInfoPort ?? ''}` : '平台接入' }}</span>
+                  </div>
+                  <div class="da-bar__item" :title="hasLocation(statusDevice) ? formatCoord(statusDevice.deviceInfoLatitude, statusDevice.deviceInfoLongitude) : '未配置经纬度'">
+                    <ReIcon name="LocationInformation" :size="12" />
+                    <span>{{ hasLocation(statusDevice) ? formatCoord(statusDevice.deviceInfoLatitude, statusDevice.deviceInfoLongitude) : '未定位' }}</span>
+                  </div>
+                  <div class="da-bar__item">
+                    <ReIcon name="Shop" :size="12" />
+                    <span>{{ vendorLabel(statusDevice.deviceInfoVendor) }} / {{ statusDevice.deviceInfoModel || '—' }}</span>
+                  </div>
+                  <div class="da-bar__item">
+                    <ReIcon name="Grid" :size="12" />
+                    <span>{{ getCategoryLabel(statusDevice.deviceInfoCategory) }}</span>
+                  </div>
+                  <div class="da-bar__item" v-if="statusDevice.deviceInfoOwnerName">
+                    <ReIcon name="User" :size="12" />
+                    <span>{{ statusDevice.deviceInfoOwnerName }}</span>
+                  </div>
+                  <div class="da-bar__gap" />
+                  <ReButton icon="Position" :show-text="true" size="small" @click="openDetail(statusDevice)">详情</ReButton>
+                </template>
+                <template v-else>
+                  <div class="da-bar__id">
+                    <span class="da-bar__name">设备资产</span>
+                  </div>
+                  <div class="da-bar__item">共 <b>{{ filtered.length }}</b> 台</div>
+                  <div class="da-bar__item"><ReIcon name="Position" :size="12" />在线 {{ onlineCount }}</div>
+                  <div class="da-bar__item"><ReIcon name="LocationInformation" :size="12" />已定位 {{ locatedCount }}</div>
+                  <div class="da-bar__gap" />
+                  <span class="da-bar__hint">点选设备查看基础信息，右键打开功能菜单</span>
+                </template>
+              </footer>
             </div>
-            <div class="da-bar__item mono">
-              <ReIcon name="Monitor" :size="12" />
-              <span>{{ statusDevice.deviceInfoIp ? `${statusDevice.deviceInfoIp}:${statusDevice.deviceInfoPort ?? ''}` : '平台接入' }}</span>
-            </div>
-            <div class="da-bar__item" :title="hasLocation(statusDevice) ? formatCoord(statusDevice.deviceInfoLatitude, statusDevice.deviceInfoLongitude) : '未配置经纬度'">
-              <ReIcon name="LocationInformation" :size="12" />
-              <span>{{ hasLocation(statusDevice) ? formatCoord(statusDevice.deviceInfoLatitude, statusDevice.deviceInfoLongitude) : '未定位' }}</span>
-            </div>
-            <div class="da-bar__item">
-              <ReIcon name="Shop" :size="12" />
-              <span>{{ vendorLabel(statusDevice.deviceInfoVendor) }} / {{ statusDevice.deviceInfoModel || '—' }}</span>
-            </div>
-            <div class="da-bar__item">
-              <ReIcon name="Grid" :size="12" />
-              <span>{{ getCategoryLabel(statusDevice.deviceInfoCategory) }}</span>
-            </div>
-            <div class="da-bar__item" v-if="statusDevice.deviceInfoOwnerName">
-              <ReIcon name="User" :size="12" />
-              <span>{{ statusDevice.deviceInfoOwnerName }}</span>
-            </div>
-            <div class="da-bar__gap" />
-            <ReButton icon="Position" :show-text="true" size="small" @click="openDetail(statusDevice)">详情</ReButton>
+
+            <!-- ============ 设备详情 ============ -->
+            <ReDeviceDetailPanel
+              v-else-if="tabKindOf(tab.name) === 'detail'"
+              :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
+              :device="deviceOfTab(tab.name)"
+              :devices="rows"
+              :vendors="vendors"
+              @edit="openEdit"
+              @refreshed="refreshAll"
+            />
+
+            <!-- ============ 通道管理 ============ -->
+            <DeviceChannelView
+              v-else-if="tabKindOf(tab.name) === 'channels'"
+              :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
+              :device-id="tabOf(tab.name)?.deviceId || ''"
+            />
+
+            <!-- ============ 设备日志 ============ -->
+            <DeviceEventLogView
+              v-else-if="tabKindOf(tab.name) === 'events'"
+              :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
+              :device-id="tabOf(tab.name)?.deviceId || ''"
+            />
+
+            <!-- ============ 机房拓扑 ============ -->
+            <DeviceTopoView
+              v-else-if="tabKindOf(tab.name) === 'topo'"
+              :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
+              :filter="tabOf(tab.name)?.topoFilter || null"
+            />
           </template>
-          <template v-else>
-            <div class="da-bar__id">
-              <span class="da-bar__name">设备资产</span>
+
+          <template #empty>
+            <div class="da-empty">
+              <ReIcon name="Files" :size="26" />
+              <span>还没有打开其它页签，右键左侧设备叶子可打开详情 / 通道 / 日志 / 拓扑。</span>
             </div>
-            <div class="da-bar__item">共 <b>{{ filtered.length }}</b> 台</div>
-            <div class="da-bar__item"><ReIcon name="Position" :size="12" />在线 {{ onlineCount }}</div>
-            <div class="da-bar__item"><ReIcon name="LocationInformation" :size="12" />已定位 {{ locatedCount }}</div>
-            <div class="da-bar__gap" />
-            <span class="da-bar__hint">点选设备查看基础信息，右键打开功能菜单</span>
           </template>
-        </footer>
+        </ReTabs>
       </section>
     </div>
 
