@@ -97,15 +97,13 @@ export const deviceRoutes: RouteConfigsTable[] = [
     }
   },
   {
-    // 路由别名：机房拓扑收敛到设备台账页签，不影响单机渲染
+    // 机房拓扑：台账内通过右键在抽屉中查看；本路由供外部直达（无菜单入口）
     path: '/device/topo',
     name: 'DeviceTopo',
     component: () => import('../views/DeviceTopoView.vue'),
-    redirect: '/device?tab=topo',
     meta: {
       title: '机房拓扑',
       icon: 'Grid',
-      /** 机房拓扑是设备台账的页签，不再作为独立菜单 */
       showLink: false,
       keepAlive: true,
       isVisible: '0',

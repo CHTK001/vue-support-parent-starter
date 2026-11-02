@@ -634,14 +634,18 @@ function groupParentIdOf(groupId: string): string | undefined {
 
 /** 拓扑抽屉：从右键菜单投递的视图限制（按分组 / 厂商 / 设备） */
 const topoVisible = ref(false)
-const topoFilter = ref<{ kind: 'group' | 'vendor' | 'device'; id: string } | null>(null)
+const topoFilter = ref<{ kind: 'group' | 'vendor' | 'device'; id: string; label?: string } | null>(null)
 
 /** 在拓扑中查看（按分组/厂商/设备给拓扑加上视图限制） */
 function openTopology(groupId?: string, vendor?: string, deviceId?: string): void {
   const kind = groupId ? ('group' as const) : vendor ? ('vendor' as const) : ('device' as const)
   const id = groupId ?? vendor ?? deviceId
   if (!id) return
-  topoFilter.value = { kind, id }
+  const label =
+    kind === 'group' ? flatGroups.value.find((g) => g.groupId === id)?.groupName
+      : kind === 'vendor' ? vendorNodes.value.find((v) => v.vendor === id)?.label
+        : rows.value.find((d) => d.deviceInfoId === id)?.deviceInfoName
+  topoFilter.value = { kind, id, label: label || id }
   topoVisible.value = true
 }
 

@@ -177,7 +177,7 @@ const graphRef = ref<unknown>(null)
  * 保留被限制的设备、它上方的区域 / 网段，以及它下方的通道。</p>
  */
 const props = defineProps<{
-  filter?: { kind: 'group' | 'vendor' | 'device'; id: string } | null
+  filter?: { kind: 'group' | 'vendor' | 'device'; id: string; label?: string } | null
 }>()
 
 /** 视图限制命中的拓扑设备节点 id（device:&lt;deviceId&gt;） */
@@ -235,14 +235,17 @@ async function resolveRestricted(): Promise<void> {
   const query = props.filter
   if (!query) {
     restricted.value = new Set()
+    filterLabel.value = ''
     return
   }
+  filterLabel.value = query.label || query.id
   try {
     let deviceIds: string[] = []
     if (query.kind === 'device') {
       deviceIds = [query.id]
     } else if (query.kind === 'group') {
-      deviceIds = ((await deviceApi.groupDevices(query.id)) || []).map((item) => item.deviceInfoId)
+      const devices = (await deviceApi.groupDevices(query.id)) || []
+      deviceIds = devices.map((item) => item.deviceInfoId)
     } else {
       const page = await deviceApi.page({ vendor: query.id, pageNo: 1, pageSize: 2000 })
       deviceIds = (page?.data || []).map((item) => item.deviceInfoId)
