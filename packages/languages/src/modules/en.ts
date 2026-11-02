@@ -67,7 +67,6 @@ export default {
         },
         password: {
           required: "The password cannot be empty",
-          validator1: "6 to 20 characters in length",
           validator2: "The password must contain both numbers and letters",
         },
         securityCode: {

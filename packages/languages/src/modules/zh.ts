@@ -66,7 +66,6 @@ export default {
         },
         password: {
           required: "密码不能为空",
-          validator1: "长度在 6 到 20 个字符",
           validator2: "密码必须包含数字和字母",
         },
         securityCode: {

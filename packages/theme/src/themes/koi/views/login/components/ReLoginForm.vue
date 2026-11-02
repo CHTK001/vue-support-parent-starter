@@ -235,7 +235,6 @@ const loginRules: any = reactive<FormRules<ILoginUser>>({
   ],
   password: [
     { required: true, message: t("menu.login.rules.password.required"), trigger: "blur" },
-    { min: 6, max: 20, message: t("menu.login.rules.password.validator1"), trigger: "blur" },
   ],
 });
 

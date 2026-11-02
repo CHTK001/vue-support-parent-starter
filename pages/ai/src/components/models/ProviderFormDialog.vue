@@ -132,12 +132,119 @@ const buildExtra = () => {
   else delete extra.auth_header
   if (auth.authPrefix) extra.auth_prefix = auth.authPrefix
   else delete extra.auth_prefix
+  // 免费渠道：模型目录不在上游，路由表（extra.routes）是本表单唯一来源，
+  // 不管是新增还是编辑，行清单就是路由表的全部；非免费渠道则保留 origExtra 里的路径
+  if (isFreeChannelProvider.value) {
+    const routes = routesFromRows(formRoutes.value)
+    if (Object.keys(routes).length) {
+      extra.routes = routes
+    } else {
+      delete extra.routes
+    }
+  } else {
+    delete extra.routes
+  }
   return extra
 }
 
 watch(apiKeyList, (list) => {
   form.apiKey = list.filter(k => k.trim()).join(',')
 })
+
+/**
+ * 单条免费渠道路由（extra.routes 的编辑态表示）。
+ *
+ * <p>key 是模型标识（模型名 / 模型名前缀），路由目标按
+ * {@code { provider, base_url, api_key }} 覆盖上游地址与凭据；
+ * api_key 留空时由客户端回落到供应商维度的全局 Key。</p>
+ */
+interface RouteTableRow {
+  /** 路由 key（模型名 / 模型名前缀，也是模型列表行里露出的模型名） */
+  key: string
+  /** 上游 provider 标识（openai、kilo、openrouter …，留空按 OpenAI 兼容协议） */
+  provider: string
+  /** 上游基础地址 */
+  baseUrl: string
+  /** 该目标的 API Key（留空 = 沿用供应商全局 Key） */
+  apiKey: string
+}
+
+/** 当前供应商是否是免费渠道：只有它能按模型名路由到不同上游 */
+const isFreeChannelProvider = computed(() => {
+  const brand = String(providerType.value || '').toLowerCase()
+  return brand === 'free-channel' || brand === 'free'
+})
+
+/** 路由表编辑行：点击「添加」时新增，保存时写回 extra.routes */
+const formRoutes = ref<RouteTableRow[]>([])
+
+/** 路由表提示（格式错误 / 重复 key 等错误信息，保存时一起提示） */
+const routeHint = ref<string>('')
+
+/** 把 extra.routes 映射为可编辑行（字段名同时兼容下划线/驼峰） */
+const rowsFromRoutes = (routes: any): RouteTableRow[] => {
+  if (!routes || typeof routes !== 'object') return []
+  return Object.entries(routes).map(([key, target]: [string, any]) => ({
+    key: String(key).trim(),
+    provider: String(target?.provider || target?.protocol || '').trim(),
+    baseUrl: String(target?.base_url || target?.baseUrl || target?.url || target?.endpoint || '')
+      .trim(),
+    apiKey: String(target?.api_key || target?.apiKey || '').trim(),
+  }))
+}
+
+/**
+ * 把可编辑行写回 extra.routes。
+ *
+ * <p>丢弃无 key / 无可用目标的行，行内同 key 只留第一条，结构符合后端
+ * {@link ProviderRouteTargets} 的解析约定（provider / base_url / api_key）。</p>
+ */
+const routesFromRows = (rows: RouteTableRow[]): Record<string, any> => {
+  const out: Record<string, any> = {}
+  const seen = new Set<string>()
+  for (const r of rows) {
+    const key = String(r.key || '').trim()
+    if (!key || seen.has(key)) continue
+    const target: Record<string, any> = {
+      provider: String(r.provider || '').trim(),
+      base_url: String(r.baseUrl || '').trim(),
+      api_key: String(r.apiKey || '').trim(),
+    }
+    if (!Object.values(target).some(Boolean)) continue
+    seen.add(key)
+    out[key] = target
+  }
+  return out
+}
+
+/**
+ * 路由表保存前校验（不阻断保存，只汇报问题）。
+ *
+ * <p>dup key / 空 key 是写坏库的干因素：空 key 行被丢弃，同 key 只留一条，
+ * 多余信息静默丢失。error 置位后保存按钮依旧可用。</p>
+ */
+const validateRoutes = () => {
+  routeHint.value = ''
+  const rows = formRoutes.value.filter(r => String(r.key || '').trim())
+  const keys = rows.map((r) => String(r.key || '').trim())
+  const seen = new Set<string>()
+  const dup = keys.find((k) => seen.has(k) || seen.add(k))
+  if (dup) {
+    routeHint.value = '路由表存在重复 key：' + dup
+    return false
+  }
+  if (!rows.length) {
+    routeHint.value = '未配置路由表：所有模型名会回落到供应商的默认（base_url）地址'
+    return true
+  }
+  return true
+}
+
+/** 新增一条空路由行 */
+const addRouteRow = () => formRoutes.value.push({ key: '', provider: '', baseUrl: '', apiKey: '' })
+
+/** 删除一行，行内同 key 只留第一条 */
+const removeRouteRow = (idx: number) => formRoutes.value.splice(idx, 1)
 
 const resetForm = () => {
   Object.assign(form, {
@@ -155,6 +262,8 @@ const resetForm = () => {
   showKey.value = {}
   selectedTemplate.value = null
   origExtra.value = {}
+  formRoutes.value = []
+  routeHint.value = ''
 }
 
 const openCreate = () => {
@@ -232,6 +341,10 @@ const openEdit = (provider: any) => {
   } else {
     channelConnections.value = []
   }
+  // 免费渠道：模型目录是 extra.routes 路由表（不是上游 /models），
+  // 路由表的维护入口就是本表单：行清单是 extra.routes 的唯一来源
+  formRoutes.value = rowsFromRoutes(provider.extra?.routes)
+  if (!isFreeChannelProvider.value) formRoutes.value = []
   dialogVisible.value = true
 }
 
@@ -321,6 +434,8 @@ const handleSave = async () => {
   if (form.authMode === 'custom' && !form.authHeader.trim()) {
     message.warning('请填写自定义认证的请求头名称'); return
   }
+  // 免费渠道：路由表是模型来源，保存前校准并提示（不阻断保存）
+  if (isFreeChannelProvider.value) validateRoutes()
   // 本地推理（ONNX）：凭证就是本地模型路径，鉴权卡片整体不适用
   const effectiveApiKey = isLocalProvider.value
     ? localModelPath.value.trim()
@@ -703,6 +818,59 @@ const protocolOptions = [
           </el-form-item>
         </div>
       </section>
+
+      <!-- 免费渠道：模型目录不在上游，路由表（extra.routes）是本表单维护的模型级配置——
+           key 即模型名/模型名前缀，route 按模型命中并覆盖上游地址与凭据 -->
+      <section v-if="isFreeChannelProvider" class="pf-card">
+        <header class="pf-card-head">
+          <span class="pf-card-ico ico-route"><el-icon :size="16"><Settings24Regular /></el-icon></span>
+          <div class="pf-card-title-wrap">
+            <h3 class="pf-card-title">模型路由表</h3>
+            <span class="pf-card-sub">按模型名（key）指定上游 provider / 地址 / Key</span>
+          </div>
+          <el-button class="pf-foot-btn" @click="addRouteRow">
+            <el-icon :size="13"><Add24Regular /></el-icon>添加路由
+          </el-button>
+        </header>
+        <div class="route-list">
+          <!-- 错误提示：重复 key/空 key 等，保存时统一展示 -->
+          <div v-if="routeHint" class="route-hint">
+            <el-icon class="route-hint-icon" :size="14"><Info24Regular /></el-icon>
+            <span class="route-hint-text">{{ routeHint }}</span>
+          </div>
+          <!-- 没有行时给一个友好的默认态 -->
+          <div v-if="formRoutes.length === 0" class="route-empty">
+            尚未添加路由：模型名会回落到供应商默认地址。
+          </div>
+          <div v-for="(row, idx) in formRoutes" :key="idx" class="route-row">
+            <div class="route-row-main">
+              <div class="route-key">
+                <span class="route-key-label">key（模型名）</span>
+                <el-input v-model="row.key" placeholder="模型名，如 glm-4.7" size="small" clearable />
+              </div>
+              <div class="route-target">
+                <div class="route-target-col">
+                  <span class="route-target-label">provider</span>
+                  <el-input v-model="row.provider" placeholder="留空按 OpenAI 兼容协议" size="small" clearable />
+                </div>
+                <div class="route-target-col">
+                  <span class="route-target-label">base_url</span>
+                  <el-input v-model="row.baseUrl" placeholder="https://…/v1" size="small" clearable />
+                </div>
+              </div>
+              <div class="route-key">
+                <span class="route-key-label">api_key</span>
+                <el-input v-model="row.apiKey" placeholder="留空 = 沿用供应商全局 Key" size="small" clearable type="password" show-password />
+              </div>
+            </div>
+            <div class="route-row-foot">
+              <el-button class="pf-foot-btn-delete" link type="danger" @click="removeRouteRow(idx)">
+                删除
+              </el-button>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
 
     <template #footer>
@@ -818,6 +986,7 @@ const protocolOptions = [
 }
 .pf-card-ico.ico-key { background: var(--el-color-warning); box-shadow: 0 2px 6px color-mix(in srgb, var(--el-color-warning) 30%, transparent); }
 .pf-card-ico.ico-set { background: var(--el-color-info); box-shadow: 0 2px 6px color-mix(in srgb, var(--el-color-info) 30%, transparent); }
+.pf-card-ico.ico-route { background: var(--el-color-success); box-shadow: 0 2px 6px color-mix(in srgb, var(--el-color-success) 30%, transparent); }
 .pf-card-title-wrap { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .pf-card-title {
   font-size: 13.5px;
@@ -1119,4 +1288,63 @@ const protocolOptions = [
   background: var(--el-color-primary-light-3);
   box-shadow: 0 4px 14px color-mix(in srgb, var(--el-color-primary) 40%, transparent);
 }
+
+/* 模型路由表（免费渠道专属：extra.routes 编辑态） */
+.route-list { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.route-empty {
+  text-align: center;
+  padding: 24px 0;
+  font-size: 12.5px;
+  color: var(--el-text-color-regular);
+}
+.route-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  background: var(--el-color-warning-light-9);
+  border: 1px solid color-mix(in srgb, var(--el-color-warning) 30%, transparent);
+  padding: 10px 12px;
+  border-radius: var(--el-radius-lg, 12px);
+  line-height: 1.6;
+}
+.route-hint-icon { color: var(--el-color-warning); flex-shrink: 0; margin-top: 1px; }
+.route-row {
+  border: 1px solid var(--el-border-color-light);
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color-overlay);
+  overflow: hidden;
+}
+.route-row-main { padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+.route-key { display: flex; align-items: center; gap: 8px; }
+.route-key-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--el-text-color-regular);
+  min-width: 68px;
+  flex-shrink: 0;
+}
+.route-target { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+.route-target-col { display: flex; align-items: center; gap: 8px; }
+.route-target-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--el-text-color-regular);
+  min-width: 52px;
+  flex-shrink: 0;
+}
+.route-row-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 12px;
+  border-top: 1px solid var(--el-border-color-light);
+}
+.pf-foot-btn-delete {
+  font-size: 12px;
+  color: var(--el-color-danger);
+  border-radius: var(--el-radius-md, 8px);
+  transition: all 0.15s ease;
+}
+.pf-foot-btn-delete:hover { background: var(--el-color-danger-light-9); }
 </style>
