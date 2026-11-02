@@ -6,7 +6,10 @@
         <span class="dtp-head__icon"><el-icon><Grid /></el-icon></span>
         <div class="dtp-head__text">
           <h2 class="dtp-head__title">机房拓扑</h2>
-          <p class="dtp-head__sub">由设备台账的 IP 网段与所属区域推导：区域 → 网段 → 设备 → 通道</p>
+          <p class="dtp-head__sub">
+            <template v-if="filterLabel">已按「{{ filterLabel }}」过滤 · </template>
+            由设备台账的 IP 网段与所属区域推导：区域 → 网段 → 设备 → 通道
+          </p>
         </div>
       </div>
       <ul class="dtp-stats">
@@ -121,7 +124,7 @@
  * @author CH
  * @since 4.0.0.42
  */
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { Close, Grid } from '@element-plus/icons-vue'
 
 import ReButton from '@repo/ui/re-button'
@@ -179,6 +182,13 @@ const props = defineProps<{
 
 /** 视图限制命中的拓扑设备节点 id（device:&lt;deviceId&gt;） */
 const restricted = ref<Set<string>>(new Set())
+
+/**
+ * 视图限制的展示文案：分组 / 厂商取接口返回的名称，设备取拓扑节点名。
+ *
+ * <p>只在标题副行显示一行提示，让用户明确「现在看到的不是全量拓扑」。</p>
+ */
+const filterLabel = ref('')
 
 /** 视图限制的保留集：设备 + 地址链（网段 / 区域）+ 通道 */
 const keepSet = computed<Set<string>>(() => {
@@ -428,6 +438,12 @@ function errorText(err: unknown): string {
 }
 
 onMounted(load)
+/** 抽屉复用时视图限制会变（同一次打开换了分组/厂家/设备），据此重新取数 */
+watch(
+  () => props.filter,
+  () => { void load() },
+  { deep: true },
+)
 </script>
 
 <style scoped>
