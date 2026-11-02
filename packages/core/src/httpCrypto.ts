@@ -563,7 +563,6 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
       }
 
       // 401/403 未授权/无权限：跳转登录页，加锁防止重复弹窗
-      console.log("[HTTP] 401/403 branch url=%s status=%s code=%s msg=%s isOnLogin=%s token=%s", error?.response?.config?.url ?? "?", status, bizCode, msg, isOnLoginPage, getAccessToken());
       const bizCode = (error?.response?.data as { code?: string } | undefined)?.code;
       // 只有会话失效才需要重新登录：401，或后端明确给出重新登录业务码；
       // 其余 403 是「越权/无权限」，登录态仍然有效，交给调用方按普通业务错误提示
