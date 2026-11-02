@@ -129,9 +129,9 @@ function normalizeNames(result: unknown): string[] | null {
   return list;
 }
 
-async function ensureStrokeData(char: string): Promise<HanziWriterStrokeData | null> {
+async function ensureStrokeData(char: string): Promise<HanziStrokeData | null> {
   const strokes = (geometryCache.get(char) ?? (await fetchGeometry(char))) ?? null;
-  let names = nameCache.get(char);
+  let names: string[] | null | undefined = nameCache.get(char);
   if (!names) {
     try {
       const win = window as unknown as { CnChar: { stroke: (char: string, ...args: string[]) => unknown } };

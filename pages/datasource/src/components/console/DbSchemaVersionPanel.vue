@@ -159,8 +159,8 @@ const ddlBody = ref<HTMLPreElement | null>(null);
 
 /** 回滚弹窗 */
 const rollbackVisible = ref(false);
-/** 当前待回滚的快照 */
-const rollbackTarget = ref<{ id: number | undefined; name: string; createTime: string } | null>(null);
+/** 当前待回滚的快照（name/createTime 来自后端 VO，可能为空） */
+const rollbackTarget = ref<{ id: number | undefined; name?: string; createTime?: string } | null>(null);
 const rollbackLoading = ref(false);
 const rollbackResult = ref<DbSchemaRollbackResultVO | null>(null);
 

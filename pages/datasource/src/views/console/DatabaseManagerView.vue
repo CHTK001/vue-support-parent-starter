@@ -634,7 +634,7 @@
           <template v-else-if="designSubTab === 'versions'">
             <DbSchemaVersionPanel
               v-if="activeTabObj"
-              :table-name="activeTabObj.tableName"
+              :table-name="activeTabObj.tableName ?? ''"
               :database="activeTabObj.database"
               :datasource-id="currentDatasourceId"
             />
