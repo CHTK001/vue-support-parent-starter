@@ -262,10 +262,6 @@ const loadPapers = async () => {
 };
 
 /**
- * 打开一份试卷的详情（记录行「查看」或任务号直达）。
- * 进入即重挂载结构视图拿最新数据；未判完的任务顺带挂上 SSE 实时进度。
- */
-/**
  * 记录行「查看」：用独立浏览器页签打开详情页 /edu/marking/detail?taskId=...
  *
  * <p>不走站内路由跳转（router.push）：详情页开在新标签页后与工作台完全隔离，
@@ -379,7 +375,7 @@ const onQuery = () => {
  * 用浏览器新标签页打开「阅卷详情」（专注看一份试卷）。
  *
  * <p>URL 为 /edu/marking/detail?taskId=... 的独立标签页。详情页关闭时
- * {@link MarkingDetailView.back()} 会先检查 window.opener：存在则关掉自己（独立页签），
+ * MarkingDetailView.back() 会先检查 window.opener：存在则关掉自己（独立页签），
  * 不存在则回到工作台列表。</p>
  *
  * <p>注意拦截：浏览器可能拦截 window.open，所以弹窗后立即提示用户放行权限。</p>
