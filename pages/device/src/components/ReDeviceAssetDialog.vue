@@ -126,7 +126,7 @@
           <el-col :span="24">
             <div class="device-asset-form__tip">
               <span>经纬度使用 WGS84；填上坐标后列表「位置」列才能打开地图。</span>
-              <el-button v-if="hasLocation" link type="primary" @click="clearLocation">清除坐标</el-button>
+              <el-button v-if="hasCoord" link type="primary" @click="clearLocation">清除坐标</el-button>
             </div>
           </el-col>
         </el-row>
@@ -244,6 +244,11 @@ function clearLocation(): void {
   form.deviceInfoLatitude = undefined
   form.deviceInfoLongitude = undefined
 }
+
+/** 表单里是否已有成对坐标（决定「清除坐标」是否可用） */
+const hasCoord = computed(
+  () => typeof form.deviceInfoLatitude === 'number' && typeof form.deviceInfoLongitude === 'number'
+)
 
 watch(
   () => props.modelValue,

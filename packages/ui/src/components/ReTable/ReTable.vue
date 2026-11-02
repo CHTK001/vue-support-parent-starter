@@ -8806,6 +8806,17 @@ const iconSelect = Select;
   height: calc(100% - var(--rt-loading-top, 0px));
 }
 
+/* 加载层的子容器 `.vxe-loading--wrapper`：vxe-pc-ui 的 loading.scss 里它是
+   绝对定位（top 50% + translateY(-50%)），但本仓没 import vxe-pc-ui 的样式表，
+   所以它是 static 的贴地块，高度只有内部转圈的大小（~22px），
+   导致 slots 里 100% 高的遮罩只占表体 22px 的条，外围根本看不到遮罩层。
+   把它撑满整层 `.vxe-loading`（经 `.is--visible` 修正为表体矩形），
+   遮罩才能铺满表体。 */
+.re-table .vxe-loading.vxe-table--loading .vxe-loading--wrapper {
+  width: 100%;
+  height: 100%;
+}
+
 /* ⚠ 取数完成 / 无 loading 时：`.vxe-loading` 本身是一层透明层（`display: flex` +
    `inset: 0` + `z-index: 99`），没有插槽内容、也没有背景色，但会吃掉自己覆盖区域
    上的全部鼠标事件。这里加 `display: none` 就能关掉它（vxe-pc-ui 的样式表没 import，

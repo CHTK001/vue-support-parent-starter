@@ -610,6 +610,16 @@
             </ReTable>
           </template>
 
+          <!-- 版本（DDL 结构快照 / 回滚） -->
+          <template v-else-if="designSubTab === 'versions'">
+            <DbSchemaVersionPanel
+              v-if="activeTabObj"
+              :table-name="activeTabObj.tableName ?? ''"
+              :database="activeTabObj.database"
+              :datasource-id="currentDatasourceId"
+            />
+          </template>
+
           <!-- 外键（可增删，Navicat 外键页签） -->
           <template v-else>
             <div class="dbm-col-hint">外键是真实约束，新增后立即对写入生效</div>
@@ -628,16 +638,6 @@
                 <ReButton layout="square" type="danger" icon="Delete" tip="删除外键" @click="removeForeignKey(row)" />
               </template>
             </ReTable>
-          </template>
-
-          <!-- 版本（DDL 结构快照 / 回滚） -->
-          <template v-else-if="designSubTab === 'versions'">
-            <DbSchemaVersionPanel
-              v-if="activeTabObj"
-              :table-name="activeTabObj.tableName ?? ''"
-              :database="activeTabObj.database"
-              :datasource-id="currentDatasourceId"
-            />
           </template>
         </div>
 

@@ -255,7 +255,7 @@ async function load(params: ReTableLoadParams): Promise<RePageResult> {
     const records = result.records.map((r: TemplateInfo) => normalizeRow(r as unknown as Record<string, unknown>));
     list.value = records;
     return {
-      records,
+      records: records as unknown as Record<string, unknown>[],
       total: total.value,
     };
   } catch (e) {

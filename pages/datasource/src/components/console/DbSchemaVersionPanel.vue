@@ -117,7 +117,7 @@ import {
   type DbSchemaSnapshotVO,
   type DbSnapshotDetailVO,
   type DbSchemaRollbackResultVO,
-} from "../api/dbSchemaVersionApi";
+} from "../../api/dbSchemaVersionApi";
 
 /**
  * 版本页签的面板：结构快照（拍快照 / 列表 / 详情 / 回滚 / 删除）

@@ -26,17 +26,7 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="所属组织">
-            <el-tree-select
-              v-model="form.deviceInfoOrgId"
-              :data="orgTree"
-              :props="{ label: 'deviceOrganizationName', children: 'children' }"
-              node-key="deviceOrganizationId"
-              check-strictly
-              clearable
-              filterable
-              placeholder="选择组织"
-              class="w-full"
-            />
+            <ReOrgTreeSelect v-model="form.deviceInfoOrgId" :data="orgTree" placeholder="选择组织" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -54,10 +44,12 @@
         <el-col :span="12">
           <el-form-item label="分类">
             <el-select v-model="form.deviceInfoCategory" class="w-full" @change="onCategoryChange">
-              <el-option label="摄像头" value="camera" />
-              <el-option label="门禁" value="accessControl" />
-              <el-option label="报警" value="alarm" />
-              <el-option label="对讲" value="intercom" />
+              <el-option
+                v-for="opt in CATEGORY_OPTIONS"
+                :key="opt.value"
+                :label="opt.label"
+                :value="opt.value"
+              />
             </el-select>
           </el-form-item>
         </el-col>
@@ -316,7 +308,8 @@ import { message } from '@repo/core'
 import type { FormInstance, FormRules } from 'element-plus'
 import ReDialog from '@repo/ui/re-dialog'
 import { deviceApi } from '@pages/device/src/api/deviceApi'
-import { getSubCategoryOptions } from '@pages/device/src/utils/deviceCategory'
+import ReOrgTreeSelect from '@pages/device/src/components/ReOrgTreeSelect.vue'
+import { CATEGORY_OPTIONS, getSubCategoryOptions } from '@pages/device/src/utils/deviceCategory'
 import { DEVICE_STATUS_OPTIONS } from '@pages/device/src/utils/deviceFormat'
 import type {
   DeviceCategory,

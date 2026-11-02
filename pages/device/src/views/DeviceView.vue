@@ -85,7 +85,7 @@
           <!-- 清筛选：始终在最上面，点它回到全部设备 -->
           <div
             class="da-tree__item da-tree__item--root"
-            :class="{ 'is-active': !filterState }"
+            :class="{ 'is-active': !filterState && !leafDeviceId }"
             @click="selectFilter(null)"
           >
             <span class="da-tree__caret is-leaf" />
@@ -94,127 +94,62 @@
             <span class="da-tree__count">{{ rows.length }}</span>
           </div>
 
-          <template v-for="row in treeNodes" :key="row.key">
-            <!-- 设备叶子：左键回到「设备资产」页签并定位，右键开功能页签 -->
-            <el-dropdown
+          <!--
+            树行：组织 / 分组 / 厂家 / 设备叶子共用一套行结构。
+            左键 = 筛选（设备叶子则是回到台账定位），右键统一交给 ReContextMenu。
+          -->
+          <div
+            v-for="row in treeNodes"
+            :key="row.key"
+            class="da-tree__item"
+            :class="{
+              'is-active': row.kind === 'device'
+                ? leafDeviceId === row.id
+                : filterState?.kind === row.kind && filterState?.id === row.id
+            }"
+            :style="{ paddingLeft: `${10 + row.depth * 14}px` }"
+            :title="row.label"
+            @click="onTreeRowClick(row)"
+            @contextmenu="openTreeMenu($event, row)"
+          >
+            <span
+              v-if="row.hasChildren"
+              class="da-tree__caret"
+              :class="{ 'is-open': row.expanded }"
+              @click.stop="toggleNode(row.key)"
+            >
+              <ReIcon name="ArrowRight" :size="10" />
+            </span>
+            <span v-else class="da-tree__caret is-leaf" />
+
+            <!-- 设备叶子用大类图标，其余用维度色点 -->
+            <ReIcon v-if="row.kind === 'device'" :name="row.icon || 'Grid'" :size="13" class="da-tree__icon" />
+            <span v-else class="da-tree__dot" :class="`is-${row.kind}`" />
+
+            <span class="da-tree__name">{{ row.label }}</span>
+            <span v-if="row.hint" class="da-tree__hint">{{ row.hint }}</span>
+            <i
               v-if="row.kind === 'device'"
-              class="da-tree__dd"
-              placement="bottom-start"
-              trigger="contextmenu"
-              @command="(cmd: string) => onDeviceLeafCommand(cmd, row)"
-            >
-              <div
-                class="da-tree__item da-tree__item--device"
-                :class="{ 'is-active': activeDevice?.deviceInfoId === row.id }"
-                :style="{ paddingLeft: `${10 + row.depth * 14}px` }"
-                :title="row.label"
-                @click="focusLeafDevice(row)"
-              >
-                <span class="da-tree__caret is-leaf" />
-                <ReIcon :name="row.icon || 'Grid'" :size="13" class="da-tree__icon" />
-                <span class="da-tree__name">{{ row.label }}</span>
-                <i class="da-tree__state" :class="row.online ? 'is-on' : 'is-off'" :title="row.online ? '在线' : '离线'" />
-              </div>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="detail" :icon="Position">设备详情</el-dropdown-item>
-                  <el-dropdown-item command="channels" :icon="Connection">通道管理</el-dropdown-item>
-                  <el-dropdown-item command="events" :icon="Tickets">设备日志</el-dropdown-item>
-                  <el-dropdown-item command="topo" :icon="Grid" divided>在拓扑中查看</el-dropdown-item>
-                  <el-dropdown-item command="locate" :icon="Aim" divided>在台账中定位</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-            <!-- 分组：有下一级时可展开；点行即筛选，点箭头只折叠 -->
-            <el-dropdown
-              v-else-if="row.kind === 'group'"
-              class="da-tree__dd"
-              placement="bottom-start"
-              trigger="contextmenu"
-              @command="(cmd: string) => onGroupCommand(cmd, row)"
-            >
-              <div
-                class="da-tree__item"
-                :class="{ 'is-active': filterState?.kind === 'group' && filterState?.id === row.id }"
-                :style="{ paddingLeft: `${10 + row.depth * 14}px` }"
-                @click="selectFilter({ kind: 'group', id: row.id })"
-              >
-                <span
-                  v-if="row.hasChildren"
-                  class="da-tree__caret"
-                  :class="{ 'is-open': row.expanded }"
-                  @click.stop="toggleNode(row.key)"
-                >
-                  <ReIcon name="ArrowRight" :size="10" />
-                </span>
-                <span v-else class="da-tree__caret is-leaf" />
-                <span class="da-tree__dot is-group" />
-                <span class="da-tree__name">{{ row.label }}</span>
-                <span v-if="row.hint" class="da-tree__hint">{{ row.hint }}</span>
-                <span class="da-tree__count">{{ row.count }}</span>
-              </div>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="topo" :icon="Grid">在拓扑中查看</el-dropdown-item>
-                  <el-dropdown-item command="add" :icon="Plus">新增子分组</el-dropdown-item>
-                  <el-dropdown-item command="assign" :icon="FolderOpened">分配设备</el-dropdown-item>
-                  <el-dropdown-item command="clear" :icon="Delete">清空分组设备</el-dropdown-item>
-                  <el-dropdown-item command="edit" :icon="EditPen">重命名</el-dropdown-item>
-                  <el-dropdown-item command="delete" divided style="color: var(--el-color-danger)">删除</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-            <!-- 厂家：可右键（查看拓扑） -->
-            <el-dropdown
-              v-else-if="row.kind === 'vendor'"
-              class="da-tree__dd"
-              placement="bottom-start"
-              trigger="contextmenu"
-              @command="(cmd: string) => onVendorCommand(cmd, row)"
-            >
-              <div
-                class="da-tree__item"
-                :class="{ 'is-active': filterState?.kind === 'vendor' && filterState?.id === row.id }"
-                @click="selectFilter({ kind: 'vendor', id: row.id })"
-              >
-                <span class="da-tree__caret is-leaf" />
-                <span class="da-tree__dot is-vendor" />
-                <span class="da-tree__name">{{ row.label }}</span>
-                <span class="da-tree__count">{{ row.count }}</span>
-              </div>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="topo" :icon="Grid">在拓扑中查看</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-            <!-- 组织：点击筛选本组织（含后代组织）下的设备 -->
-            <div
-              v-else-if="row.kind === 'org'"
-              class="da-tree__item"
-              :class="{ 'is-active': filterState?.kind === 'org' && filterState?.id === row.id }"
-              :style="{ paddingLeft: `${10 + row.depth * 14}px` }"
-              @click="selectFilter({ kind: 'org', id: row.id })"
-            >
-              <span
-                v-if="row.hasChildren"
-                class="da-tree__caret"
-                :class="{ 'is-open': row.expanded }"
-                @click.stop="toggleNode(row.key)"
-              >
-                <ReIcon name="ArrowRight" :size="10" />
-              </span>
-              <span v-else class="da-tree__caret is-leaf" />
-              <span class="da-tree__dot is-org" />
-              <span class="da-tree__name">{{ row.label }}</span>
-              <span class="da-tree__count">{{ row.count }}</span>
-            </div>
-          </template>
+              class="da-tree__state"
+              :class="row.online ? 'is-on' : 'is-off'"
+              :title="row.online ? '在线' : '离线'"
+            />
+            <span v-else class="da-tree__count">{{ row.count }}</span>
+          </div>
 
           <div v-if="!treeNodes.length" class="da-tree__empty">
             {{ railMode === 'vendor' ? '暂无厂家数据' : railMode === 'org' ? '暂无组织数据' : '暂无分组' }}
           </div>
         </ReScrollbar>
+
+        <!-- 左树右键菜单：组织 / 分组 / 厂家 / 设备叶子共用，命令全部按上下文分发 -->
+        <ReContextMenu
+          ref="treeMenuRef"
+          :items="treeMenuItems"
+          :title="treeMenuTarget?.label || ''"
+          :subtitle="treeMenuSubtitle"
+          @select="onTreeMenuSelect"
+        />
 
         <div v-show="!railCollapsed" class="da-rail__foot">
           <div class="da-rail__row">
@@ -501,30 +436,15 @@
       </template>
     </ReDialog>
 
-    <!-- 详情抽屉 -->
-    <ReDeviceDetailDrawer
-      v-model="detailVisible"
-      :device="currentDevice"
-      :devices="rows"
-      :vendors="vendors"
-      @edit="openEdit"
-      @refreshed="refreshAll"
+    <!-- 详情抽屉 / 通道 / 日志 / 拓扑抽屉已收进右侧工作区页签 -->
+
+    <!-- 资产 / 位置各自独立的配置弹窗：只提交本分区字段 -->
+    <ReDeviceAssetDialog
+      v-model="assetDialogVisible"
+      :device="assetDialogDevice"
+      :section="assetDialogSection"
+      @saved="onAssetSaved"
     />
-
-    <!-- 通道管理（从设备右键打开，嵌入式） -->
-    <el-drawer v-model="channelsVisible" title="通道管理" size="68%" destroy-on-close>
-      <DeviceChannelView :device-id="drawerDeviceId" />
-    </el-drawer>
-
-    <!-- 设备日志（从设备右键打开，嵌入式） -->
-    <el-drawer v-model="eventsVisible" title="设备日志" size="68%" destroy-on-close>
-      <DeviceEventLogView :device-id="drawerDeviceId" />
-    </el-drawer>
-
-    <!-- 机房拓扑：从右键菜单（分组 / 厂家 / 设备）在抽屉中查看 -->
-    <el-drawer v-model="topoVisible" title="机房拓扑" size="88%" destroy-on-close>
-      <DeviceTopoView :filter="topoFilter" />
-    </el-drawer>
 
     <!-- 视频预览向导 -->
     <ReDialog v-model="videoWizardVisible" title="视频预览" width="480px" destroy-on-close>
@@ -596,7 +516,7 @@
  * @author CH
  * @since 4.0.0.42
  */
-import { computed, defineAsyncComponent, onMounted, reactive, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import {
@@ -627,12 +547,18 @@ import type {
   ReTableContextMenuItem
 } from '@repo/ui/re-table'
 import ReTag from '@repo/ui/re-tag'
+import ReTabs from '@repo/ui/re-tabs'
+import type { ReTabsContextItem, ReTabsItem } from '@repo/ui/re-tabs'
+import ReContextMenu from '@repo/ui/re-context-menu'
+import type { ReContextMenuItem } from '@repo/ui/re-context-menu'
+import ReTime from '@repo/ui/re-time'
 
 import DeviceStatusPulse from '@pages/device/src/components/DeviceStatusPulse.vue'
 import DeviceOwnerCell from '@pages/device/src/components/DeviceOwnerCell.vue'
 import DeviceLocationCell from '@pages/device/src/components/DeviceLocationCell.vue'
 import ReDeviceFormDialog from '@pages/device/src/components/ReDeviceFormDialog.vue'
-import ReDeviceDetailDrawer from '@pages/device/src/components/ReDeviceDetailDrawer.vue'
+import ReDeviceAssetDialog from '@pages/device/src/components/ReDeviceAssetDialog.vue'
+import ReDeviceDetailPanel from '@pages/device/src/components/ReDeviceDetailPanel.vue'
 import DeviceChannelView from '@pages/device/src/views/DeviceChannelView.vue'
 import DeviceEventLogView from '@pages/device/src/views/DeviceEventLogView.vue'
 
@@ -640,11 +566,10 @@ import DeviceEventLogView from '@pages/device/src/views/DeviceEventLogView.vue'
 const DeviceTopoView = defineAsyncComponent(() => import('@pages/device/src/views/DeviceTopoView.vue'))
 
 import { deviceApi } from '@pages/device/src/api/deviceApi'
-import { getCategoryLabel } from '@pages/device/src/utils/deviceCategory'
+import { getCategoryIcon, getCategoryLabel } from '@pages/device/src/utils/deviceCategory'
 import {
   buildOrgTree,
   formatCoord,
-  formatRelative,
   hasLocation,
   statusMeta
 } from '@pages/device/src/utils/deviceFormat'
@@ -696,6 +621,7 @@ const railModes: Array<{ value: RailMode; label: string }> = [
 /** 切维度时清掉不匹配的筛选，避免右侧列表还挂着上一维度的条件 */
 function switchRail(mode: RailMode): void {
   railMode.value = mode
+  leafDeviceId.value = ''
   const f = filterState.value
   if (f && f.kind !== mode) filterState.value = undefined
 }
@@ -715,6 +641,8 @@ function isCollapsed(key: string): boolean {
 /** 左侧树筛选：一次只保留一组（组织 / 分组 / 厂家）；再点同一节点即取消 */
 const filterState = ref<{ kind: RailMode; id: string } | undefined>(undefined)
 function selectFilter(payload: { kind: RailMode; id: string } | null): void {
+  // 任何一次筛选变更都解除「设备叶子定位」，两者是互斥的收敛口径
+  leafDeviceId.value = ''
   if (!payload) {
     filterState.value = undefined
     return
@@ -821,8 +749,8 @@ const treeNodes = computed<Array<TreeRow>>(() => {
           expanded: open
         })
         if (!open) continue
-        if (node.children?.length) walk(node.children, depth + 1)
         pushDevices(key, devices, depth + 1)
+        if (node.children?.length) walk(node.children, depth + 1)
       }
     }
     walk(orgTree.value, 0)
@@ -850,8 +778,8 @@ const treeNodes = computed<Array<TreeRow>>(() => {
           expanded: open
         })
         if (!open) continue
-        if (node.children?.length) walk(node.children, depth + 1)
         pushDevices(key, devices, depth + 1)
+        if (node.children?.length) walk(node.children, depth + 1)
       }
     }
     walk(groups.value, 0)
@@ -910,11 +838,112 @@ function groupParentIdOf(groupId: string): string | undefined {
   return flatGroups.value.find((node) => node.groupId === groupId)?.groupParent || undefined
 }
 
-/** 拓扑抽屉：从右键菜单投递的视图限制（按分组 / 厂商 / 设备） */
-const topoVisible = ref(false)
-const topoFilter = ref<{ kind: 'group' | 'vendor' | 'device'; id: string; label?: string } | null>(null)
+/* ==================== 右侧工作区页签（ReTabs） ==================== */
+/** 「设备资产」固定页签名：台账列表常驻，不可关闭 */
+const ASSETS_TAB = 'assets'
 
-/** 在拓扑中查看（按分组/厂商/设备给拓扑加上视图限制） */
+/** 页签类别 */
+type WorkTabKind = 'assets' | 'detail' | 'channels' | 'events' | 'topo'
+
+/**
+ * 工作区页签：比 ReTabsItem 多带业务上下文。
+ *
+ * <p>ReTabs 只回传页签 name，内容区分支一律按 name 回查本数组，
+ * 不往 ReTabsItem 上强转业务字段。</p>
+ */
+interface WorkTab extends ReTabsItem {
+  /** 页签类别 */
+  kind: WorkTabKind
+  /** 设备类页签的设备 id */
+  deviceId?: string
+  /** 拓扑页签的视图限制 */
+  topoFilter?: { kind: 'group' | 'vendor' | 'device'; id: string; label?: string }
+}
+
+const workTabs = ref<WorkTab[]>([
+  { name: ASSETS_TAB, kind: 'assets', label: '设备资产', hint: '台账', icon: 'Files', closable: false }
+])
+const activeTab = ref(ASSETS_TAB)
+
+/** 按 name 回查页签 */
+function tabOf(name: string): WorkTab | undefined {
+  return workTabs.value.find((tab) => tab.name === name)
+}
+
+/** 按 name 取页签类别（模板里做内容分支用） */
+function tabKindOf(name: string): WorkTabKind | undefined {
+  return tabOf(name)?.kind
+}
+
+/** 页签详情绑定的设备：始终取刷新后的最新对象 */
+function deviceOfTab(name: string): DeviceInfo | null {
+  const id = tabOf(name)?.deviceId
+  if (!id) return null
+  return rows.value.find((device) => device.deviceInfoId === id) ?? null
+}
+
+/** 页签刷新代次：右键「刷新」时 +1，作为子组件 key 的一部分重建内容 */
+const tabReloadSeq = reactive<Record<string, number>>({})
+function reloadSeqOf(name: string): number {
+  return tabReloadSeq[name] ?? 0
+}
+
+/**
+ * 打开一个功能页签。
+ *
+ * <p>同「设备 + 功能」只开一次：重复点同一个动作是切过去，不是再开一个副本。</p>
+ */
+function openWorkTab(tab: WorkTab): void {
+  const exist = tabOf(tab.name)
+  if (exist) {
+    // 设备快照随刷新更新，重开时用最新数据覆盖
+    Object.assign(exist, tab)
+  } else {
+    workTabs.value = [...workTabs.value, tab]
+  }
+  activeTab.value = tab.name
+}
+
+/** 设备详情页签 */
+function openDetail(device: DeviceInfo): void {
+  openWorkTab({
+    name: `device:${device.deviceInfoId}:detail`,
+    kind: 'detail',
+    label: device.deviceInfoName,
+    hint: '设备详情',
+    icon: 'Position',
+    deviceId: device.deviceInfoId,
+    status: device.deviceInfoOnline ? 'online' : 'offline'
+  })
+}
+
+/** 通道管理页签 */
+function openChannels(device: DeviceInfo): void {
+  openWorkTab({
+    name: `device:${device.deviceInfoId}:channels`,
+    kind: 'channels',
+    label: device.deviceInfoName,
+    hint: '通道管理',
+    icon: 'Connection',
+    deviceId: device.deviceInfoId,
+    status: device.deviceInfoOnline ? 'online' : 'offline'
+  })
+}
+
+/** 设备日志页签 */
+function openEvents(device: DeviceInfo): void {
+  openWorkTab({
+    name: `device:${device.deviceInfoId}:events`,
+    kind: 'events',
+    label: device.deviceInfoName,
+    hint: '设备日志',
+    icon: 'Tickets',
+    deviceId: device.deviceInfoId,
+    status: device.deviceInfoOnline ? 'online' : 'offline'
+  })
+}
+
+/** 在拓扑中查看（按分组 / 厂商 / 设备给拓扑加上视图限制） */
 function openTopology(groupId?: string, vendor?: string, deviceId?: string): void {
   const kind = groupId ? ('group' as const) : vendor ? ('vendor' as const) : ('device' as const)
   const id = groupId ?? vendor ?? deviceId
@@ -923,8 +952,242 @@ function openTopology(groupId?: string, vendor?: string, deviceId?: string): voi
     kind === 'group' ? flatGroups.value.find((g) => g.groupId === id)?.groupName
       : kind === 'vendor' ? vendorNodes.value.find((v) => v.vendor === id)?.label
         : rows.value.find((d) => d.deviceInfoId === id)?.deviceInfoName
-  topoFilter.value = { kind, id, label: label || id }
-  topoVisible.value = true
+  openWorkTab({
+    name: `topo:${kind}:${id}`,
+    kind: 'topo',
+    label: label || id,
+    hint: '机房拓扑',
+    icon: 'Grid',
+    topoFilter: { kind, id, label: label || id }
+  })
+}
+
+/** 关闭页签：关的是当前页签时自动切到相邻（右优先，其次左）；「设备资产」不可关闭 */
+function closeWorkTab(name: string): void {
+  if (name === ASSETS_TAB) return
+  const idx = workTabs.value.findIndex((tab) => tab.name === name)
+  if (idx < 0) return
+  const rest = workTabs.value.filter((tab) => tab.name !== name)
+  workTabs.value = rest
+  if (activeTab.value !== name) return
+  activeTab.value = rest[idx]?.name ?? rest[idx - 1]?.name ?? ASSETS_TAB
+}
+
+/** 关闭其它页签（保留目标页签；「设备资产」始终保留） */
+function closeOtherWorkTabs(name: string): void {
+  workTabs.value = workTabs.value.filter((tab) => tab.name === name || tab.name === ASSETS_TAB)
+  activeTab.value = name
+}
+
+/** 关闭右侧页签 */
+function closeWorkTabsToRight(name: string): void {
+  const idx = workTabs.value.findIndex((tab) => tab.name === name)
+  if (idx < 0) return
+  workTabs.value = workTabs.value.slice(0, idx + 1)
+  if (!workTabs.value.some((tab) => tab.name === activeTab.value)) activeTab.value = name
+}
+
+/** 关闭全部页签：回到「设备资产」 */
+function closeAllWorkTabs(): void {
+  workTabs.value = workTabs.value.filter((tab) => tab.name === ASSETS_TAB)
+  activeTab.value = ASSETS_TAB
+}
+
+/** 页签右键菜单 */
+const tabContextMenu = computed<ReTabsContextItem[]>(() => {
+  const idx = workTabs.value.findIndex((tab) => tab.name === activeTab.value)
+  const isAssets = activeTab.value === ASSETS_TAB
+  const hasRight = idx >= 0 && idx < workTabs.value.length - 1
+  return [
+    { key: 'refresh', label: '刷新当前页签', icon: 'RefreshRight', disabled: isAssets },
+    { key: 'close', label: '关闭当前页签', icon: 'Close', divided: true, disabled: isAssets },
+    { key: 'close-others', label: '关闭其它页签', icon: 'CircleClose', disabled: workTabs.value.length <= 2 },
+    { key: 'close-right', label: '关闭右侧页签', icon: 'DArrowRight', disabled: !hasRight },
+    { key: 'close-all', label: '关闭全部页签', icon: 'Delete', danger: true, divided: true, disabled: workTabs.value.length <= 1 }
+  ]
+})
+
+/** 页签右键命令分发 */
+function onTabCommand(payload: { key: string; tab: ReTabsItem }): void {
+  const name = payload.tab.name
+  switch (payload.key) {
+    case 'close':
+      closeWorkTab(name)
+      break
+    case 'close-others':
+      closeOtherWorkTabs(name)
+      break
+    case 'close-right':
+      closeWorkTabsToRight(name)
+      break
+    case 'close-all':
+      closeAllWorkTabs()
+      break
+    case 'refresh':
+      if (name !== ASSETS_TAB) tabReloadSeq[name] = reloadSeqOf(name) + 1
+      else fetchAll()
+      break
+    default:
+      break
+  }
+}
+
+/* ==================== 左树设备叶子 ==================== */
+/** 左树点中的设备：右侧列表收敛到这一台（清筛选 / 清关键词时解除） */
+const leafDeviceId = ref('')
+const leafDeviceLabel = computed(
+  () => rows.value.find((device) => device.deviceInfoId === leafDeviceId.value)?.deviceInfoName || ''
+)
+
+/** 左键点设备叶子：回到「设备资产」页签，并把列表收敛到这一台 */
+function focusLeafDevice(row: TreeRow): void {
+  const device = rows.value.find((item) => item.deviceInfoId === row.id)
+  if (device) activeDevice.value = device
+  leafDeviceId.value = row.id
+  activeTab.value = ASSETS_TAB
+}
+
+function clearLeafDevice(): void {
+  leafDeviceId.value = ''
+}
+
+/* ==================== 左树右键菜单（ReContextMenu） ==================== */
+/** 左树右键菜单实例 */
+const treeMenuRef = ref<{ open: (x: number, y: number) => void; close: () => void } | null>(null)
+/** 右键落点行 */
+const treeMenuTarget = ref<TreeRow | null>(null)
+
+/** 菜单头部副文本：分组显示所属组织，设备显示编码 / IP */
+const treeMenuSubtitle = computed(() => {
+  const row = treeMenuTarget.value
+  if (!row) return ''
+  if (row.kind === 'device') {
+    const device = rows.value.find((item) => item.deviceInfoId === row.id)
+    if (!device) return ''
+    return [device.deviceInfoCode, device.deviceInfoIp].filter(Boolean).join(' · ')
+  }
+  if (row.kind === 'group') return row.hint || '分组'
+  if (row.kind === 'org') return '组织'
+  return '厂家'
+})
+
+/** 左树行左键：设备叶子回台账定位，其余按维度筛选 */
+function onTreeRowClick(row: TreeRow): void {
+  if (row.kind === 'device') {
+    focusLeafDevice(row)
+    return
+  }
+  selectFilter({ kind: row.kind, id: row.id })
+}
+
+/** 打开左树右键菜单 */
+function openTreeMenu(event: MouseEvent, row: TreeRow): void {
+  event.preventDefault()
+  event.stopPropagation()
+  treeMenuTarget.value = row
+  // 右键同时把底部信息条 / 台账定位切到这台设备
+  if (row.kind === 'device') {
+    const device = rows.value.find((item) => item.deviceInfoId === row.id)
+    if (device) activeDevice.value = device
+  }
+  treeMenuRef.value?.open(event.clientX, event.clientY)
+}
+
+/**
+ * 左树右键菜单项：按行类别给出不同能力。
+ *
+ * <p>功能入口统一走「打开工作区页签」，与右侧台账行右键保持一致，
+ * 不再有抽屉与页签两套并存。</p>
+ */
+const treeMenuItems = computed<ReContextMenuItem[]>(() => {
+  const row = treeMenuTarget.value
+  if (!row) return []
+  if (row.kind === 'device') {
+    return [
+      { label: '设备详情', icon: 'Position', command: 'detail' },
+      { label: '通道管理', icon: 'Connection', command: 'channels' },
+      { label: '设备日志', icon: 'Tickets', command: 'events' },
+      { label: '在拓扑中查看', icon: 'Grid', command: 'topo' },
+      { separator: true },
+      { label: '配置资产信息', icon: 'EditPen', command: 'asset' },
+      { label: '配置位置信息', icon: 'LocationInformation', command: 'location' },
+      { separator: true },
+      { label: '在台账中定位', icon: 'Aim', command: 'locate' },
+      { label: '重新连接', icon: 'RefreshRight', command: 'reconnect' },
+      { label: '刷新状态', icon: 'Refresh', command: 'refresh' },
+      { label: '设置分组', icon: 'FolderOpened', command: 'groups' },
+      { label: '视频预览', icon: 'VideoCamera', command: 'preview' },
+      { separator: true },
+      { label: '删除设备', icon: 'Delete', command: 'remove', danger: true }
+    ]
+  }
+  if (row.kind === 'group') {
+    return [
+      { label: '在拓扑中查看', icon: 'Grid', command: 'topo' },
+      { label: '筛选该分组', icon: 'Filter', command: 'filter' },
+      { separator: true },
+      { label: '新增子分组', icon: 'Plus', command: 'add' },
+      { label: '分配设备', icon: 'FolderOpened', command: 'assign' },
+      { label: '清空分组设备', icon: 'Delete', command: 'clear' },
+      { label: '重命名', icon: 'EditPen', command: 'edit' },
+      { separator: true },
+      { label: '删除分组', icon: 'Delete', command: 'delete', danger: true }
+    ]
+  }
+  if (row.kind === 'vendor') {
+    return [
+      { label: '在拓扑中查看', icon: 'Grid', command: 'topo' },
+      { label: '筛选该厂家', icon: 'Filter', command: 'filter' }
+    ]
+  }
+  return [
+    { label: '筛选该组织', icon: 'Filter', command: 'filter' },
+    { label: '新增分组到此组织', icon: 'Plus', command: 'add-group' }
+  ]
+})
+
+/** 左树右键命令分发 */
+function onTreeMenuSelect(command: string): void {
+  const row = treeMenuTarget.value
+  if (!row) return
+  if (row.kind === 'device') {
+    const device = rows.value.find((item) => item.deviceInfoId === row.id)
+    if (!device) return
+    switch (command) {
+      case 'detail': openDetail(device); break
+      case 'channels': openChannels(device); break
+      case 'events': openEvents(device); break
+      case 'topo': openTopology(undefined, undefined, device.deviceInfoId); break
+      case 'asset': openAssetDialog(device, 'asset'); break
+      case 'location': openAssetDialog(device, 'location'); break
+      case 'locate': focusLeafDevice(row); break
+      case 'reconnect': reconnect(device); break
+      case 'refresh': refreshStatus(device); break
+      case 'groups': openDeviceGroups(device); break
+      case 'preview': openPreviewWindow(device); break
+      case 'remove': removeDevice(device); break
+    }
+    return
+  }
+  if (row.kind === 'group') {
+    switch (command) {
+      case 'topo': openTopology(row.id); break
+      case 'filter': selectFilter({ kind: 'group', id: row.id }); break
+      case 'add': openGroupCreate(row.id); break
+      case 'assign': openDeviceAssign(row); break
+      case 'clear': clearGroup(row); break
+      case 'edit': openGroupEdit(row); break
+      case 'delete': removeGroup(row); break
+    }
+    return
+  }
+  if (row.kind === 'vendor') {
+    if (command === 'topo') openTopology(undefined, row.id)
+    else if (command === 'filter') selectFilter({ kind: 'vendor', id: row.id })
+    return
+  }
+  if (command === 'filter') selectFilter({ kind: 'org', id: row.id })
+  else if (command === 'add-group') openGroupCreate(null, row.id)
 }
 
 const statusFilters = computed(() => {
@@ -962,6 +1225,8 @@ const filtered = computed<DeviceInfo[]>(() => {
   }
   if (onlineFilter.value === 'online') list = list.filter((d) => d.deviceInfoOnline)
   else if (onlineFilter.value === 'offline') list = list.filter((d) => !d.deviceInfoOnline)
+  // 左树设备叶子：定位到单台设备
+  if (leafDeviceId.value) list = list.filter((d) => d.deviceInfoId === leafDeviceId.value)
   const kw = keyword.value.trim().toLowerCase()
   if (kw) {
     list = list.filter(
@@ -985,13 +1250,14 @@ const tableRows = computed<Array<Record<string, unknown>>>(
 )
 
 const columns: ReTableColumn[] = [
-  { prop: 'deviceInfoName', label: '设备', slot: 'device', minWidth: 240 },
+  { prop: 'deviceInfoName', label: '设备', slot: 'device', minWidth: 250 },
   { prop: 'deviceInfoVendor', label: '厂商 / 型号', slot: 'vendor', minWidth: 150 },
   { prop: 'deviceInfoIp', label: 'IP : 端口', slot: 'ip', minWidth: 150 },
-  { prop: 'deviceInfoOnline', label: '在线状态', slot: 'status', width: 140 },
+  { prop: 'deviceInfoOnline', label: '在线状态', slot: 'status', width: 130 },
+  { prop: 'deviceInfoLastOnlineAt', label: '最后上线', slot: 'lastOnline', width: 165 },
   { prop: 'deviceInfoLatitude', label: '位置', slot: 'location', minWidth: 170 },
   { prop: 'deviceInfoOwnerName', label: '负责人', slot: 'owner', minWidth: 130 },
-  { prop: 'deviceInfoGroup', label: '分组', slot: 'group', width: 200 }
+  { prop: 'deviceInfoGroup', label: '分组', slot: 'group', width: 190 }
 ]
 
 /** 插槽里的行数据回退成 DeviceInfo */
@@ -1002,18 +1268,15 @@ function asDevice(row: Record<string, unknown>): DeviceInfo {
 /** 底部条跟随的行：点选 / 右键都算 */
 const activeDevice = ref<DeviceInfo | null>(null)
 
-/** 通道 / 日志抽屉当前设备 id（右键时落盘，抽屉独立于菜单状态） */
-const drawerDeviceId = ref('')
-const channelsVisible = ref(false)
-const eventsVisible = ref(false)
-
-/** 行右键菜单：详情 / 编辑 / 通道管理 / 设备日志 / 拓扑 / 重连 / 刷新状态 / 分组 / 预览 / 删除 */
+/** 行右键菜单：功能入口全部打开工作区页签，资产 / 位置各走自己的配置弹窗 */
 const tableMenu: ReTableContextMenuItem[] = [
   { key: 'detail', label: '设备详情', icon: Position },
-  { key: 'edit', label: '编辑设备', icon: EditPen },
-  { key: 'topo', label: '在拓扑中查看', icon: Grid, divided: true },
-  { key: 'channels', label: '通道管理', icon: Connection, divided: true },
+  { key: 'channels', label: '通道管理', icon: Connection },
   { key: 'events', label: '设备日志', icon: Tickets },
+  { key: 'topo', label: '在拓扑中查看', icon: Grid, divided: true },
+  { key: 'asset', label: '配置资产信息', icon: EditPen, divided: true },
+  { key: 'location', label: '配置位置信息', icon: 'LocationInformation' },
+  { key: 'edit', label: '编辑设备', icon: EditPen },
   { key: 'reconnect', label: '重新连接', icon: RefreshRight, divided: true },
   { key: 'refresh', label: '刷新状态', icon: Refresh },
   { key: 'groups', label: '设置分组', icon: FolderOpened },
@@ -1036,12 +1299,16 @@ function onTableMenuSelect(item: ReTableContextMenuItem, ctx: ReTableContextMenu
       openTopology(undefined, undefined, d.deviceInfoId)
       break
     case 'channels':
-      drawerDeviceId.value = d.deviceInfoId
-      channelsVisible.value = true
+      openChannels(d)
       break
     case 'events':
-      drawerDeviceId.value = d.deviceInfoId
-      eventsVisible.value = true
+      openEvents(d)
+      break
+    case 'asset':
+      openAssetDialog(d, 'asset')
+      break
+    case 'location':
+      openAssetDialog(d, 'location')
       break
     case 'reconnect':
       reconnect(d)
@@ -1109,8 +1376,6 @@ function openPreviewWindow(device: DeviceInfo): void {
 /* ==================== 增删改 / 分组 ==================== */
 const formVisible = ref(false)
 const editingDevice = ref<DeviceInfo | null>(null)
-const detailVisible = ref(false)
-const currentDevice = ref<DeviceInfo | null>(null)
 
 const groupDialogVisible = ref(false)
 const groupDialogDeviceIds = ref<string[]>([])
@@ -1148,14 +1413,31 @@ function openCreate(): void {
 }
 
 function openEdit(device: DeviceInfo): void {
-  detailVisible.value = false
   editingDevice.value = device
   formVisible.value = true
 }
 
-function openDetail(device: DeviceInfo): void {
-  currentDevice.value = device
-  detailVisible.value = true
+/* ==================== 资产 / 位置配置弹窗 ==================== */
+const assetDialogVisible = ref(false)
+const assetDialogDevice = ref<DeviceInfo | null>(null)
+const assetDialogSection = ref<'asset' | 'location'>('asset')
+
+/** 打开资产 / 位置配置弹窗（两套字段互不串写） */
+function openAssetDialog(device: DeviceInfo, section: 'asset' | 'location'): void {
+  assetDialogDevice.value = device
+  assetDialogSection.value = section
+  assetDialogVisible.value = true
+}
+
+function onAssetSaved(): void {
+  assetDialogVisible.value = false
+  refreshAll()
+  // 详情页签若开着，同一次保存也要让它重取，避免页签里还是旧资产
+  for (const tab of workTabs.value) {
+    if (tab.kind === 'detail' && tab.deviceId === assetDialogDevice.value?.deviceInfoId) {
+      tabReloadSeq[tab.name] = reloadSeqOf(tab.name) + 1
+    }
+  }
 }
 
 /** 分组：展开到最深层的节点（带深度），用于左侧树与「新增子分组」的上级选择 */
@@ -1252,35 +1534,17 @@ function deviceGroupLabels(row: DeviceInfo): DeviceGroupNode[] {
   return flatGroups.value.filter((node) => ids.includes(node.groupId))
 }
 
-/** 分组节点右键菜单 */
-function onGroupCommand(cmd: string, row: TreeRow): void {
-  if (row.kind !== 'group' || !row.id) return
-  switch (cmd) {
-    case 'topo': openTopology(row.id); break
-    case 'add': openGroupCreate(row.id); break
-    case 'assign': openDeviceAssign(row); break
-    case 'clear': clearGroup(row); break
-    case 'edit': openGroupEdit(row); break
-    case 'delete': removeGroup(row); break
-  }
-}
-
-/** 厂家节点右键菜单 */
-function onVendorCommand(cmd: string, node: TreeRow): void {
-  if (cmd === 'topo') openTopology(undefined, node.id)
-}
-
-/** 创建/编辑分组 */
+/** 创建/编辑分组（parentId 为空时按上级组织建档，orgParentId 用于从组织行直接带入） */
 const groupCreateKind = ref<'root' | 'sub'>('root')
 const editingGroupId = ref('')
 const groupCreateVisible = ref(false)
 const groupCreating = ref(false)
 const groupForm = reactive({ groupName: '', groupParent: '', groupRemark: '' })
 
-function openGroupCreate(parentId?: string | null): void {
+function openGroupCreate(parentId?: string | null, orgParentId?: string): void {
   editingGroupId.value = ''
   groupForm.groupName = ''
-  groupForm.groupParent = parentId || ''
+  groupForm.groupParent = parentId || orgParentId || ''
   groupForm.groupRemark = ''
   groupCreateKind.value = parentId ? 'sub' : 'root'
   groupCreateVisible.value = true
@@ -1575,10 +1839,6 @@ function vendorLabel(vendor?: string): string {
   return vendors.value.find((item) => item.vendor === vendor)?.name || vendor
 }
 
-function lastOnlineText(row: DeviceInfo): string {
-  if (!row.deviceInfoLastOnlineAt) return '从未上线'
-  return `最后在线 ${formatRelative(row.deviceInfoLastOnlineAt)}`
-}
 
 /** 全量拉取设备（组织 / 在线 / 关键词均在前端过滤，无需分页） */
 async function fetchAll() {
@@ -1836,8 +2096,20 @@ onMounted(async () => {
 }
 
 /* 左侧树：上方维度切换（组织 / 分组 / 厂家），下方只显示一棵树 */
-/* el-dropdown 默认 inline-block，在树里必须独占一行，否则同级分组会并排挤成多个列 */
-.da-tree__dd { display: block; }
+/* 设备叶子：大类图标 + 在线点，行结构与组织 / 分组 / 厂家共用 */
+.da-tree__icon {
+  flex: none;
+  color: var(--el-text-color-secondary);
+}
+.da-tree__item.is-active .da-tree__icon { color: var(--el-color-primary); }
+.da-tree__state {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.da-tree__state.is-on { background: var(--el-color-success); }
+.da-tree__state.is-off { background: var(--el-text-color-placeholder); }
 
 /* 维度切换：分段控件 */
 .da-tree__modes {
@@ -2009,13 +2281,23 @@ onMounted(async () => {
 }
 .da-rail__fold:hover { color: var(--el-color-primary); }
 
-/* ============ 右侧：设备列表 + 底部信息条 ============ */
+/* ============ 右侧：工作区页签 ============ */
 .da-work {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+}
+.da-work > .re-tabs { flex: 1; min-height: 0; }
+
+/* 「设备资产」页签内容：批量条 + 列表 + 底部信息条 */
+.da-assets {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   gap: 8px;
+  height: 100%;
   min-height: 0;
 }
 
@@ -2042,6 +2324,22 @@ onMounted(async () => {
 .da-batch__text b { font-family: var(--el-font-family-mono, monospace); }
 .da-batch__hint { font-size: 12px; color: var(--el-text-color-secondary); }
 .da-batch__ops { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* 左树定位到单台设备时，工具条上显示的收敛口径 + 一键解除 */
+.da-batch__filter {
+  margin-left: 6px;
+  font-size: 12px;
+  color: var(--el-color-primary);
+}
+.da-batch__clear {
+  margin-left: 4px;
+  padding: 0 2px;
+  border: none;
+  background: none;
+  font-size: 12px;
+  color: var(--el-color-primary);
+  text-decoration: underline;
+  cursor: pointer;
+}
 
 /* ReTable 自带卡片内边距与边框，这里只负责让它吃满剩余高度 */
 .da-table-wrap {
@@ -2054,6 +2352,30 @@ onMounted(async () => {
   flex: 1 1 0;
   min-height: 0;
 }
+
+.da-dev {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+/* 设备大类图标：底色按大类区分（相机 / 门禁 / 报警 / 对讲 / 其他） */
+.da-dev__icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-secondary);
+}
+.da-dev__icon.is-camera { background: rgba(64, 158, 255, 0.12); color: var(--el-color-primary); }
+.da-dev__icon.is-accessControl { background: rgba(103, 194, 58, 0.14); color: var(--el-color-success); }
+.da-dev__icon.is-alarm { background: rgba(230, 162, 60, 0.16); color: var(--el-color-warning); }
+.da-dev__icon.is-intercom { background: rgba(144, 147, 153, 0.16); color: var(--el-color-info); }
+.da-dev__text { min-width: 0; }
 
 .da-dev__top {
   display: flex;
@@ -2088,6 +2410,8 @@ onMounted(async () => {
   color: var(--el-text-color-secondary);
   margin-top: 2px;
 }
+/* 最后上线：ReTime 的绝对时间 + 相对时间两行，压小一号 */
+.da-time { font-size: 12px; line-height: 1.3; }
 .da-muted { font-size: 11px; color: var(--el-text-color-secondary); }
 .da-ip {
   display: inline-flex;

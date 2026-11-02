@@ -466,7 +466,7 @@ async function deletePreset(id: number) {
   if (!props.device) return
   try {
     await deviceApi.deletePreset(props.device.deviceInfoId, id)
-    presets.value = presets.value.filter((preset) => devicePresetNo !== id)
+    presets.value = presets.value.filter((preset) => preset.devicePresetNo !== id)
     message.success('删除预置位成功')
   } catch (err: unknown) {
     message.error('删除预置位失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误'))

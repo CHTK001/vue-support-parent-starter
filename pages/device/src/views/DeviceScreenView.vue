@@ -1,4 +1,4 @@
-emplate>
+<template>
   <div class="screen-page">
     <header class="screen-head">
       <div class="flex items-center gap-3">
