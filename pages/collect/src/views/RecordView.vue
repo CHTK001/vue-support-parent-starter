@@ -13,7 +13,6 @@ import { getRouter, msgError, msgInfo, msgSuccess, msgWarning } from "@repo/core
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReEmpty from "@repo/ui/re-empty";
-import ReSectionHead from "@repo/ui/re-section-head";
 import ReTable from "@repo/ui/re-table";
 import { clearRecords, deleteRecord, deleteRecords, fetchFields, getFlow, listFlows, pageRecords } from "../api/collectApi";
 import { COLLECT_ACTIONS } from "../constants/actionColumns";
@@ -296,34 +295,10 @@ function showDetail(input: Record<string, unknown>): void {
 <template>
   <div class="collect-page record-page">
     <!--
-      页头：标题 + 计数看板 + 结果数（stat grid，仅在已按流程筛选、拿到 total 时出现）。
-      表格本身是 ref 受控的 ReTable（动态列 formatter、v-model:search-model、loader），
-      所以这里只在其上方加页头，表格壳与全部绑定原样保留。
+      页面只有一张表：没有页头，也没有统计卡。
+      表格是 ref 受控的 ReTable（动态列 formatter / v-model:search-model / loader），
+      筛选走内置 ReSearch，计数与批量操作放在表格工具栏，空态由 #empty 插槽接 ReEmpty。
     -->
-    <ReSectionHead
-      class="record-head"
-      title="采集结果"
-      description="列定义来自流程的字段配置 · 用内置搜索区按流程 / 运行 / 节点收窄后再查询"
-    />
-
-    <div v-if="activeFlowId" class="record-stats" role="status" aria-live="polite">
-      <div class="record-stat" style="--accent: var(--brand-500)">
-        <span class="record-stat__label">匹配结果</span>
-        <span class="record-stat__value">{{ countAll }}</span>
-        <span class="record-stat__hint">当前流程与筛选条件下</span>
-      </div>
-      <div class="record-stat" style="--accent: var(--metric-cpu)">
-        <span class="record-stat__label">动态字段列</span>
-        <span class="record-stat__value">{{ fields.length }}</span>
-        <span class="record-stat__hint">由流程字段定义展开</span>
-      </div>
-      <div class="record-stat" style="--accent: var(--status-info)">
-        <span class="record-stat__label">已勾选</span>
-        <span class="record-stat__value">{{ selected.length }}</span>
-        <span class="record-stat__hint">可批量删除</span>
-      </div>
-    </div>
-
     <ReTable
       ref="tableRef"
       class="collect-card"
@@ -346,7 +321,10 @@ function showDetail(input: Record<string, unknown>): void {
     >
       <template #toolbar>
         <span class="collect-hint record-toolbar-hint">
-          {{ activeFlowId ? `共 ${countAll} 条结果` : "按流程筛选后展开字段列" }}
+          <template v-if="activeFlowId">
+            共 {{ countAll }} 条结果 · {{ fields.length }} 个动态字段列<template v-if="selected.length"> · 已勾选 {{ selected.length }} 条</template>
+          </template>
+          <template v-else>按流程筛选后展开字段列</template>
         </span>
         <ReButton
           icon="Delete"
@@ -411,84 +389,13 @@ function showDetail(input: Record<string, unknown>): void {
 
 <style scoped>
 /*
- * 现代化改造的范围说明：本页是 ref 受控的 ReTable（loader / v-model:search-model /
- * 动态列 formatter / #action 插槽）+ 两个 ReDialog，模板按「脚本绑定的 ref 与插槽」耦合，
- * 因此表格壳与全部绑定保持原样，只在其上方挂 ReSectionHead 与统计卡，并通过 #empty 插槽接入 ReEmpty。
+ * 本页是 ref 受控的 ReTable（loader / v-model:search-model / 动态列 formatter /
+ * #action 插槽）+ 两个 ReDialog，模板按「脚本绑定的 ref 与插槽」耦合，
+ * 因此表格壳与全部绑定保持原样；外壳只保留一张表，通过 #empty 插槽接入 ReEmpty。
  * 颜色 / 圆角 / 阴影 / 过渡一律用 koi 令牌。
  */
 .record-page {
   gap: var(--gap-md, 12px);
-}
-
-/* ===== 页头 ===== */
-.record-head {
-  margin-bottom: 0;
-}
-
-.record-head :deep(.re-section-head__title) {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.record-head :deep(.re-section-head__desc) {
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--text-secondary);
-}
-
-/* ===== 统计卡：大数字 + 顶部 3px 色条（沿用设计指南的统计卡片形态） ===== */
-.record-stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.record-stat {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px 16px;
-  overflow: hidden;
-  background: var(--bg-container);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow var(--transition-base, 0.18s) var(--ease-out), transform var(--transition-base, 0.18s) var(--ease-out);
-}
-
-.record-stat::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 3px;
-  background: var(--accent, var(--brand-500));
-}
-
-.record-stat:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
-}
-
-.record-stat__label {
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  color: var(--text-secondary);
-}
-
-.record-stat__value {
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1.1;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-primary);
-}
-
-.record-stat__hint {
-  font-size: 11px;
-  color: var(--text-tertiary);
 }
 
 /* ===== 工具条提示 ===== */
@@ -513,39 +420,5 @@ function showDetail(input: Record<string, unknown>): void {
 
 .collect-detail :deep(.re-table__toolbar-row) {
   display: none;
-}
-
-/* ===== 响应式：移动端 2 列统计、窄屏 1 列 ===== */
-@media (max-width: 768px) {
-  .record-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .record-stat {
-    padding: 10px 12px;
-  }
-
-  .record-stat__value {
-    font-size: 20px;
-  }
-}
-
-@media (max-width: 480px) {
-  .record-stats {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-/* ===== 尊重减少动态效果 ===== */
-@media (prefers-reduced-motion: reduce) {
-  .record-stat {
-    animation: none;
-    transition: none;
-  }
-
-  .record-stat:hover {
-    transform: none;
-  }
 }
 </style>

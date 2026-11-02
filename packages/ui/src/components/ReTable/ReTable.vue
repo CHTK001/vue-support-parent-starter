@@ -3215,6 +3215,18 @@ onBeforeUnmount(() => {
   fixedRowMutationObserver = null;
   fixedRowObserverTarget = null;
   clearFixedRowSettle();
+  if (fixedRowSyncQuietTimer) window.clearTimeout(fixedRowSyncQuietTimer);
+  fixedRowSyncQuietTimer = 0;
+  fixedRowSyncQuietUntil = 0;
+  if (fixedRowSettleDebounceTimer) window.clearTimeout(fixedRowSettleDebounceTimer);
+  fixedRowSettleDebounceTimer = 0;
+  fixedRowSettleDebounceDeadline = 0;
+  if (fixedRowAfterDragTimer) window.clearTimeout(fixedRowAfterDragTimer);
+  fixedRowAfterDragTimer = 0;
+  fixedRowAfterDrag = false;
+  fixedRowLastFullSyncAt = 0;
+  if (fixedHeaderSyncFrame) cancelAnimationFrame(fixedHeaderSyncFrame);
+  fixedHeaderSyncFrame = 0;
   if (fixedRowSyncFrame) cancelAnimationFrame(fixedRowSyncFrame);
   fixedRowSyncFrame = 0;
   if (fixedRowVerifyFrame) cancelAnimationFrame(fixedRowVerifyFrame);
@@ -3387,6 +3399,8 @@ function collectRowGroups(root: HTMLElement, part: "body" | "header"): HTMLEleme
  * 而表头行高来自同一批被清掉的内联 height，根因完全相同。</p>
  */
 function syncRowHeightsOfPart(root: HTMLElement, part: "body" | "header"): void {
+  // 静默期内一律不量：调用方可能是沉降期定时器，也可能是拖拽中途的一次重建
+  if (isFixedRowSyncQuiet()) return;
   const groups = collectRowGroups(root, part);
   if (groups.length === 0) return;
   // 先清掉上轮回写的高度，否则这一轮量到的是自己上一轮的结果，行高只会单调变高
@@ -3424,6 +3438,25 @@ function syncFixedRowHeights(): void {
   syncRowHeightsOfPart(root, "header");
 }
 
+/**
+ * 只对齐表头行高（列拖拽收尾用）。
+ *
+ * <p><b>为什么只做表头</b>：列拖拽唯一会重建的是表头行 —— 实测 drop 之后
+ * 表体的 DOM 变更批次数为 1，且只有 {@code tr.vxe-header--row} 被换新，
+ * {@code vxe-body--row} 一个都没动（行数据没有变化，列宽也没变）。而
+ * {@link syncRowHeightsOfPart} 对表体是「先清标记 → 逐行量 → 回写」，50 列 × 60 行
+ * 实测 180 次几何读取，每次都白跑。表头只有 3 行（主表体 + 左右固定浮层），
+ * 一次对齐只读 3 次。</p>
+ *
+ * <p>表体确有变化时不会被漏掉：{@link fixedRowMutationObserver} 会把
+ * 「表体行被换掉」记进 {@link fixedRowQuietBodyDirty}，收尾时仍然走全量同步。</p>
+ */
+function syncFixedHeaderHeights(): void {
+  const root = (vxeTableRef.value as unknown as { $el?: HTMLElement } | null)?.$el;
+  if (!root) return;
+  syncRowHeightsOfPart(root, "header");
+}
+
 /** rAF 合并的行高同步：一次交互里可能连续触发（数据 / 列 / 内容三路） */
 let fixedRowSyncFrame = 0;
 /**
@@ -3436,11 +3469,187 @@ let fixedRowSyncFrame = 0;
  * scroll 钩子，于是才补上这一次同步。加一次复核帧把「vxe 渲染尾巴」这截兜住。</p>
  */
 let fixedRowVerifyFrame = 0;
+
+/**
+ * 行高同步「静默期」：这段时间内不跑同步，只在结束时补一次。
+ *
+ * <p><b>为什么需要</b>：一次完整同步要遍历主表体 + 左右固定浮层的全部行
+ * （{@code collectRowGroups} × {@code getBoundingClientRect}），DBM 的 50 列 × 60 行
+ * 实测一次 180~240 次几何读取，且三张表一致时也照样要量 —— 因为「先清再量」必须先读。
+ * 平时这没问题：只有载入 / 切表 / 数据变化才会走到这里。</p>
+ *
+ * <p>但<b>列拖拽</b>是一个例外：vxe 换列会重建表头与表体，而
+ * {@link fixedRowObserver}（尺寸）与 {@link fixedRowMutationObserver}（行元素被换掉）
+ * 会被同一次重建连续叫醒多次，每次再带一个复核帧，于是同一个逻辑事件里连跑好几轮
+ * 全量同步。实测拖拽结束后 0.2s / 0.7s / 0.76s 各有一次 62~124 次 rect 的同步，
+ * 与 vxe 的重建尾巴完全同步 —— 用户感知到的「松手后还在卡」就是这一段。</p>
+ *
+ * <p>列拖拽期间与结束后的一小段窗口里，行高本来就要等 vxe 重建完才有意义，
+ * 中间那些轮次量到的都是过渡态。所以推迟到窗口末尾只补一次：成本从 4 轮 × 240 次
+ * 降到 1 轮，视觉结果不变。</p>
+ */
+const COLUMN_DRAG_SYNC_QUIET_MS = 400;
+let fixedRowSyncQuietUntil = 0;
+let fixedRowSyncQuietTimer = 0;
+/**
+ * 静默期内表体是否真的被动过。
+ *
+ * <p>列拖拽只重建表头，表体行节点不变；但同一次交互里也可能有别的原因换表体
+ * （例如切表 / 刷新恰好落在拖拽窗口里）。此时收尾不能只对齐表头，
+ * 否则那批新行会沿用旧标记、高度对不齐。</p>
+ */
+let fixedRowQuietBodyDirty = false;
+/**
+ * 下一次全量同步跳过一次复核帧。
+ *
+ * <p>复核帧是给「vxe 渲染尾巴」用的：列宽晚到、行被重建时，隔一帧再量能补上差异。
+ * 但静默期结束的那一次同步前面已经等了 {@link COLUMN_DRAG_SYNC_QUIET_MS}，
+ * 尾巴早已落地，再跑一遍只是把 60 行 × 3 组重新量一次（实测多 62 次 rect）。</p>
+ */
+let fixedRowSyncSkipVerify = false;
+/**
+ * 列拖拽收尾：连续变更的合并窗口。
+ *
+ * <p>vxe 换列之后，表头与表体的重建是<b>分几次</b>到达的（实测 drop 后
+ * 0.3s 有一次 vxe 自己的 {@code setTimeout(80)} 触发的重排，0.8s 还有一轮），
+ * 而每次重建都会叫醒观察器。若第一次重建就立刻同步，等第二轮到达又要再同步一次
+ * （实测 798ms / 874ms 各一轮 62 次 rect）。这里在收尾阶段改走 debounce：
+ * 变更停下来 {@link FIXED_ROW_SETTLE_DEBOUNCE_MS} 之后才量，并给总时延封顶，
+ * 免得持续变更把同步无限推迟。</p>
+ */
+const FIXED_ROW_SETTLE_DEBOUNCE_MS = 120;
+const FIXED_ROW_SETTLE_MAX_WAIT_MS = 600;
+/**
+ * 收尾窗口总时长：从静默期结束起，这段时间内 ResizeObserver 的尺寸回调
+ * 一律按「可能是自激 / 可能是尾巴」处理（debounce + 冷却），窗口结束后恢复正常。
+ */
+const FIXED_ROW_AFTER_DRAG_WINDOW_MS = 800;
+let fixedRowSettleDebounceTimer = 0;
+let fixedRowSettleDebounceDeadline = 0;
+let fixedRowAfterDragTimer = 0;
+/** 是否处于「列拖拽收尾」阶段（决定 mutation / resize 走 debounce 还是立即 rAF） */
+let fixedRowAfterDrag = false;
+
+/** 收尾阶段：等变更停下来再同步一次（默认只对表头；表体真被换过才全量） */
+function scheduleFixedRowSyncDebounced(): void {
+  if (isFixedRowSyncQuiet()) return;
+  if (!fixedRowSettleDebounceDeadline) {
+    fixedRowSettleDebounceDeadline = performance.now() + FIXED_ROW_SETTLE_MAX_WAIT_MS;
+  }
+  if (fixedRowSettleDebounceTimer) window.clearTimeout(fixedRowSettleDebounceTimer);
+  const wait = Math.max(0, Math.min(
+    FIXED_ROW_SETTLE_DEBOUNCE_MS,
+    fixedRowSettleDebounceDeadline - performance.now(),
+  ));
+  fixedRowSettleDebounceTimer = window.setTimeout(() => {
+    fixedRowSettleDebounceTimer = 0;
+    fixedRowSettleDebounceDeadline = 0;
+    if (isFixedRowSyncQuiet()) return;
+    if (fixedRowQuietBodyDirty) {
+      // 表体行真的被换过（切表 / 刷新恰好落在拖拽窗口里）：只有这种情况需要全量
+      fixedRowQuietBodyDirty = false;
+      fixedRowSyncSkipVerify = true;
+      scheduleFixedRowSync();
+      return;
+    }
+    // 只重建了表头（列拖拽的正常情况）：3 行对齐即可，60 行一次都不必量
+    scheduleFixedHeaderSync();
+  }, wait);
+}
+
+/**
+ * 进入 / 续期「列拖拽收尾」窗口。
+ *
+ * <p>不在这里立刻退出收尾态：我们自己回写行高会把 ResizeObserver 又叫醒，
+ * 那一轮必须仍按收尾处理，否则每写完一次就多跑一轮全量同步（实测收尾后
+ * 还有第 2、3 轮 62 次 rect）。窗口到期后自动恢复常态。</p>
+ */
+function enterFixedRowAfterDrag(): void {
+  fixedRowAfterDrag = true;
+  if (fixedRowAfterDragTimer) window.clearTimeout(fixedRowAfterDragTimer);
+  fixedRowAfterDragTimer = window.setTimeout(() => {
+    fixedRowAfterDragTimer = 0;
+    fixedRowAfterDrag = false;
+    fixedRowLastFullSyncAt = 0;
+  }, FIXED_ROW_AFTER_DRAG_WINDOW_MS);
+}
+
+/**
+ * 我们自己回写行高会不会把观察器又叫醒。
+ *
+ * <p>会。{@code syncRowHeightsOfPart} 写 {@code --rt-row-h} 会改行高，
+ * ResizeObserver 随后异步触发，于是收尾阶段又多跑一轮全量同步（实测收尾后
+ * 还有第三次 62 次 rect）。那一次量到的已经是我们自己写好的结果，
+ * 纯属自激。用「刚同步过」的时间戳做冷却，把这段自激挡掉。</p>
+ */
+const FIXED_ROW_SELF_SYNC_COOLDOWN_MS = 400;
+let fixedRowLastFullSyncAt = 0;
+
+/** 是否落在「自身写入引起的观察回调」冷却期内 */
+function isSelfInducedRowSync(): boolean {
+  return fixedRowLastFullSyncAt > 0
+    && performance.now() - fixedRowLastFullSyncAt < FIXED_ROW_SELF_SYNC_COOLDOWN_MS;
+}
+
+/**
+ * 进入行高同步静默期（列拖拽换列 / 表头重建时调用）。
+ *
+ * <p>多次调用取更晚的截止点，定时器按最新截止点重排，因此拖拽持续几百毫秒、
+ * 每次换列都续期也不会在窗口中途提前跑一次。</p>
+ *
+ * @param ms 静默时长
+ */
+function holdFixedRowSync(ms: number): void {
+  fixedRowSyncQuietUntil = Math.max(fixedRowSyncQuietUntil, performance.now() + ms);
+  if (fixedRowSyncQuietTimer) window.clearTimeout(fixedRowSyncQuietTimer);
+  const remain = Math.max(0, Math.round(fixedRowSyncQuietUntil - performance.now()));
+  fixedRowSyncQuietTimer = window.setTimeout(() => {
+    fixedRowSyncQuietTimer = 0;
+    // 期间被续期过：按新截止点重排，别提前解除
+    if (fixedRowSyncQuietUntil > performance.now()) {
+      holdFixedRowSync(0);
+      return;
+    }
+    fixedRowSyncQuietUntil = 0;
+    // 静默期结束：vxe 的重建尾巴可能还没停，进入收尾窗口交给 debounce 收口成一次
+    fixedRowQuietBodyDirty = false;
+    enterFixedRowAfterDrag();
+    scheduleFixedHeaderSync();
+    scheduleFixedRowSyncDebounced();
+  }, remain);
+}
+
+/** 静默期是否仍在生效 */
+function isFixedRowSyncQuiet(): boolean {
+  return fixedRowSyncQuietUntil > 0 && performance.now() < fixedRowSyncQuietUntil;
+}
+
+/** rAF 合并的表头行高同步（列拖拽收尾用，见 syncFixedHeaderHeights） */
+let fixedHeaderSyncFrame = 0;
+function scheduleFixedHeaderSync(): void {
+  if (isFixedRowSyncQuiet() || fixedHeaderSyncFrame) return;
+  fixedHeaderSyncFrame = requestAnimationFrame(() => {
+    fixedHeaderSyncFrame = 0;
+    syncFixedHeaderHeights();
+  });
+}
+
 function scheduleFixedRowSync(): void {
+  // 静默期内只记待办（holdFixedRowSync 已经在跑结束时的补偿同步）
+  if (isFixedRowSyncQuiet()) return;
   if (fixedRowSyncFrame) return;
   fixedRowSyncFrame = requestAnimationFrame(() => {
     fixedRowSyncFrame = 0;
+    // 收尾窗口内刚同步过：这一轮是我们自己写行高把观察器叫醒的，量到的就是刚写的结果
+    if (fixedRowAfterDrag && isSelfInducedRowSync()) return;
+    fixedRowLastFullSyncAt = performance.now();
     syncFixedRowHeights();
+    // 收尾窗口内不补复核帧：vxe 的重建尾巴已由 debounce 等停过，
+    // 这时再量一遍不会发现新差异，纯属把 60 行 × 3 组重来一次
+    if (fixedRowAfterDrag || fixedRowSyncSkipVerify) {
+      fixedRowSyncSkipVerify = false;
+      return;
+    }
     if (fixedRowVerifyFrame) return;
     fixedRowVerifyFrame = requestAnimationFrame(() => {
       fixedRowVerifyFrame = 0;
@@ -3481,8 +3690,18 @@ function clearFixedRowSettle(): void {
   fixedRowSettleTimers = [];
 }
 
-/** 载入 / 切表 / 用户点刷新：立刻对齐 + 沉降期复核 */
+/**
+ * 载入 / 切表 / 用户点刷新：立刻对齐 + 沉降期复核。
+ *
+ * <p>列拖拽（静默期）内不排沉降序列：那一串 0/80/240/600/1200 的复核是给
+ * 「数据刚落地、字体与列宽还在晚到」准备的，而拖拽时表体是被重建的过渡态，
+ * 排上去只会让松手后再多跑 5 轮全量对齐。拖拽改由 {@link holdFixedRowSync} 收口成一次。</p>
+ */
 function resyncFixedRowHeights(): void {
+  if (isFixedRowSyncQuiet()) {
+    holdFixedRowSync(COLUMN_DRAG_SYNC_QUIET_MS);
+    return;
+  }
   scheduleFixedRowSync();
   scheduleFixedRowSettle();
 }
@@ -3527,16 +3746,62 @@ function ensureFixedRowObserver(retry = 0): void {
   fixedRowMutationObserver?.disconnect();
   fixedRowObserverTarget = scope;
   if (typeof ResizeObserver !== "undefined") {
-    fixedRowObserver = new ResizeObserver(() => scheduleFixedRowSync());
+    fixedRowObserver = new ResizeObserver(() => {
+      // 我们自己刚写过行高就忽略：那是自激（见 isSelfInducedRowSync）
+      if (fixedRowAfterDrag && isSelfInducedRowSync()) return;
+      // 收尾阶段：尺寸也会跟着重建连续变几次，同样等停下来再量
+      if (!isFixedRowSyncQuiet() && fixedRowAfterDrag) {
+        scheduleFixedRowSyncDebounced();
+        return;
+      }
+      scheduleFixedRowSync();
+    });
     fixedRowObserver.observe(target);
     fixedRowObserver.observe(scope);
   }
   if (typeof MutationObserver !== "undefined") {
-    fixedRowMutationObserver = new MutationObserver(() => scheduleFixedRowSync());
+    fixedRowMutationObserver = new MutationObserver((records) => {
+      // 静默期内只记账「表体是否真的被动过」：列拖拽只会重建表头行，
+      // 表体行节点的增删才是收尾需要全量同步的信号（见 syncFixedHeaderHeights）
+      if (isFixedRowSyncQuiet()) {
+        if (!fixedRowQuietBodyDirty && isBodyRowMutation(records)) fixedRowQuietBodyDirty = true;
+        return;
+      }
+      // 列拖拽收尾：vxe 的重建尾巴分几次到达，等停下来再量一次（见 scheduleFixedRowSyncDebounced）
+      if (fixedRowAfterDrag) {
+        if (isBodyRowMutation(records)) scheduleFixedRowSyncDebounced();
+        else scheduleFixedHeaderSync();
+        return;
+      }
+      scheduleFixedRowSync();
+    });
     // 只看子节点增删（vxe 重渲染会换掉 tr / tbody 内容）；不观察 attributes，避免自激
     fixedRowMutationObserver.observe(scope, { childList: true, subtree: true });
   }
   resyncFixedRowHeights();
+}
+
+/**
+ * 这批变更里是否有表体行的增删（排除纯表头重建）。
+ *
+ * <p>列拖拽重建的是 {@code tr.vxe-header--row}，表体行 {@code vxe-body--row}
+ * 不在其中。被删节点也要看：vxe 换行时是先建新的再删旧的，
+ * 两种都算表体变过。</p>
+ *
+ * @param records MutationObserver 记录
+ */
+function isBodyRowMutation(records: MutationRecord[]): boolean {
+  const isBodyRow = (node: Node): boolean =>
+    node.nodeType === 1 && (node as HTMLElement).classList?.contains("vxe-body--row") === true;
+  for (const r of records) {
+    for (const n of Array.from(r.addedNodes)) {
+      if (isBodyRow(n)) return true;
+    }
+    for (const n of Array.from(r.removedNodes)) {
+      if (isBodyRow(n)) return true;
+    }
+  }
+  return false;
 }
 
 /** 写列宽要用的 vxe 实例能力（只声明用到的几个，避免 any） */
@@ -5684,6 +5949,9 @@ function onHeaderDragoverCapture(evnt: DragEvent): void {
     // 放行：交给 vxe 原生处理（它自己会 preventDefault 并计算落点）
     dragLastPassAt.value = now;
     dragPending.value = null;
+    // peer drag 放行一次 = vxe 真的换一次列 + 重建表头表体，
+    // 会把行高观察器连续叫醒（见 holdFixedRowSync）
+    holdFixedRowSync(COLUMN_DRAG_SYNC_QUIET_MS);
     return;
   }
   // 丢弃：必须自己 preventDefault，否则这次 dragover 不「被取消」，drop 不会触发
@@ -5702,9 +5970,16 @@ function onHeaderDragstartCapture(evnt: DragEvent): void {
   }
   columnDragging.value = true;
   dragLastPassAt.value = 0;
+  // 拖拽全程不量行高：期间 vxe 会反复换列重建，量到的都是过渡态
+  holdFixedRowSync(COLUMN_DRAG_SYNC_QUIET_MS);
 }
 
-/** 列拖拽结束 / 放置：复位节流状态 */
+/**
+ * 列拖拽结束 / 放置：复位节流状态。
+ *
+ * <p>不在这里立刻做行高同步：vxe 的换列重建尾巴还在跑（实测松手后 0.2~0.8s
+ * 仍有 3 轮重建），立刻量同样落在过渡态。让静默期自然到期后补一次即可。</p>
+ */
 function onHeaderDragendCapture(): void {
   resetColumnDragoverState();
 }
@@ -5751,6 +6026,9 @@ function applyColumnOrder(newVisibleOrder: string[]): void {
  * 等 vxe 的重排与渲染全部落地再读权威顺序。</p>
  */
 function onVxeColumnDragEnd(): void {
+  // vxe 换列后还有一截重建尾巴（换列 → 表头表体重建 → 观察器连环叫醒），
+  // 期间量行高都是过渡态，统一推迟到重建落地之后（见 holdFixedRowSync）
+  holdFixedRowSync(COLUMN_DRAG_SYNC_QUIET_MS);
   setTimeout(() => {
     void nextTick().then(() => {
       const inst = vxeTableRef.value as unknown as
@@ -5846,11 +6124,6 @@ watch(
   },
   { flush: "post" },
 );
-onMounted(() => {
-  if (!useVxe.value) {
-    void initHeaderSortable();
-  }
-});
 /** 列拖拽节流监听的挂载点（卸载时按同一元素解绑） */
 const columnDragThrottleEl = { value: null as HTMLElement | null };
 
@@ -5909,6 +6182,11 @@ watch(
   { flush: "post", immediate: true },
 );
 
+onMounted(() => {
+  if (!useVxe.value) {
+    void initHeaderSortable();
+  }
+});
 onBeforeUnmount(() => {
   destroyHeaderSortable();
   unbindColumnDragThrottle();
@@ -6000,24 +6278,77 @@ function isBatchEnabled(val: unknown): boolean {
   if (typeof val === "object" && val !== null && "enabled" in val) return (val as any).enabled !== false;
   return Boolean(val);
 }
-const hasToolbarConfig = computed(() => {
-  const cfg = mergedToolbarConfig.value;
-  if (!cfg) return false;
-  return isBatchEnabled(cfg.batchDelete) || isBatchEnabled(cfg.batchSelect) || isBatchEnabled(cfg.batchEdit);
-});
 
 /**
- * 是否配置了任一批量动作。
+ * 批量动作是否「真的能执行」。
  *
- * <p>勾选列与行可选性都以此为准：只要配了 batchDelete / batchSelect / batchEdit 之一，
- * 复选框就应该出现 —— 否则「配了批量删除函数，却要点一次按钮才长出勾选框」，
- * 而且行还不可选（`selectable` 原先只认 batchSelect），功能等于不可用。</p>
+ * <p>批量删除 / 批量修改都是**破坏性动作**：只写 {@code batchDelete: true} 而不挂
+ * {@code handler} 时，按钮点下去什么也不会发生（{@link getBatchDeleteHandler} 拿不到
+ * 函数直接 return）—— 那是一个可见、可点、永远无效的控件，还占着工具栏的宽度。
+ * 因此这里把「没配动作函数」等同于「没开这个批量功能」：按钮不渲染，
+ * {@code toolbar.batchDelete: true} 也就不会让整条批量栏凭空出现。</p>
+ *
+ * <p>批量选择例外：它只是勾选列的开关，本身不需要函数。</p>
+ *
+ * @param val 配置值（布尔 | 按钮配置对象）
+ * @param requireHandler 是否必须有执行函数
  */
-const batchActionEnabled = computed<boolean>(() => {
-  const cfg = mergedToolbarConfig.value;
-  if (!cfg) return false;
-  return isBatchEnabled(cfg.batchDelete) || isBatchEnabled(cfg.batchSelect) || isBatchEnabled(cfg.batchEdit);
-});
+function isBatchActionReady(val: unknown, requireHandler: boolean): boolean {
+  if (!isBatchEnabled(val)) return false;
+  if (!requireHandler) return true;
+  return typeof val === "object" && val !== null
+    && typeof (val as { handler?: unknown }).handler === "function";
+}
+
+/** 批量删除可用：工具栏开着、配了开关、且挂了执行函数 */
+const batchDeleteReady = computed(
+  () => toolbarEnabled.value && isBatchActionReady(mergedToolbarConfig.value?.batchDelete, true),
+);
+/** 批量修改可用：配了开关且挂了执行函数（否则编辑态保存不回去） */
+const batchEditReady = computed(
+  () => toolbarEnabled.value && isBatchActionReady(mergedToolbarConfig.value?.batchEdit, true),
+);
+/** 批量选择可用：勾选列开关，不需要函数 */
+const batchSelectReady = computed(
+  () => toolbarEnabled.value && isBatchActionReady(mergedToolbarConfig.value?.batchSelect, false),
+);
+
+/**
+ * 是否配置了**可执行**的批量函数。
+ *
+ * <p>批量删除 / 批量修改只有挂了 handler 才真的能做事；两个都没有时
+ * 「开启多选」本身也失去了意义（勾了一堆行没有任何后续动作），
+ * 因此整组批量按钮都不渲染。</p>
+ */
+const batchFuncReady = computed<boolean>(() => batchDeleteReady.value || batchEditReady.value);
+
+/**
+ * 是否配置了任一批量能力（驱动勾选列与行可选性）。
+ *
+ * <p>只认**挂了函数**的批量动作：没有可执行动作时多选列本身也没有意义
+ * （勾了一堆行什么也做不了）。它同时是「配了 batchDelete 的 handler
+ * 就自动长出勾选列」的来源，不必再额外写 {@code batchSelect}。</p>
+ *
+ * <p>纯 {@code batchSelect}（多选开关、没挂任何函数）不再单独开列：那正是
+ * 「批量功能的 fun 都没开启，却还摆着一堆批量按钮 / 勾选框」的样子。</p>
+ */
+const batchActionEnabled = computed<boolean>(() => batchFuncReady.value);
+
+/**
+ * 顶部批量栏是否出现。
+ *
+ * <p>两个层次的条件：</p>
+ * <ol>
+ *   <li><b>没有任何可执行的批量函数</b> ⇒ 整条批量栏不渲染（勾了也删不掉/存不回去）；</li>
+ *   <li>有函数 ⇒ 批量删除 / 批量修改只在**有勾选**时出现（没选行时它们删无可删），
+ *       批量选择开关（若配置）常驻，作为进入多选的入口。</li>
+ * </ol>
+ * <p>编辑态例外：保存要留在原地，不能因为勾选清空就让批量修改消失。</p>
+ */
+const batchBarVisible = computed<boolean>(
+  () => batchFuncReady.value
+    && (batchSelectReady.value || selectedCount.value > 0 || editing.value),
+);
 
 const toolbarConfigPosition = computed<"top" | "bottom">(() => mergedToolbarConfig.value?.position ?? "top");
 
@@ -6105,6 +6436,17 @@ async function onTopRefreshClick(): Promise<void> {
   }
   await onBuiltinSearchRefresh();
 }
+
+/**
+ * 旧 `batchDelete` 开关 prop 的按钮是否显示。
+ *
+ * <p>同一套口径：只有开关、没挂 {@code batchDeleteHandler} 时点进去确认删除
+ * 什么也不会发生（{@link getBatchDeleteHandler} 返回 undefined 直接 return），
+ * 所以这种组合下不渲染按钮。</p>
+ */
+const legacyBatchDeleteVisible = computed<boolean>(
+  () => props.batchDelete && typeof props.batchDeleteHandler === "function",
+);
 
 const batchSelectTip = computed(() => {
   const cfg = mergedToolbarConfig.value?.batchSelect;
@@ -6227,14 +6569,40 @@ const iconSelect = Select;
     <div ref="mainRef" class="re-table__main">
     <!-- 工具栏行：左侧 #toolbar 自定义按钮；右侧系统工具组（批量/拖拽/搜索/布局切换/自动刷新/刷新） -->
     <div
-      v-if="$slots.toolbar || searchEnabled || showDragToggle || batchDelete || editable || autoRefresh || showPaginationModeSwitch || showLayoutSwitch || debug"
+      v-if="$slots.toolbar || searchEnabled || showDragToggle || legacyBatchDeleteVisible || editable || autoRefresh || showPaginationModeSwitch || showLayoutSwitch || debug || (toolbarEnabled && batchBarVisible && toolbarConfigPosition === 'top')"
       class="re-table__toolbar-row"
     >
       <div v-if="$slots.toolbar" class="re-table__toolbar-left">
         <slot name="toolbar" />
       </div>
+      <!--
+        顶部批量条（toolbarConfig.position = 'top' 且配了批量动作）：
+        以前它是**工具栏行之外**的独立一行，于是「#toolbar 业务按钮」在上一行、
+        「批量选择/批量删除」在下一行、系统工具又被夹在中间 —— 看上去就是
+        「ReTable 自带的按钮换行了」（采集器管理实测：新建采集器在 261px，
+        勾选/删除掉到 300px）。现在作为工具栏行的第三段内联渲染：左侧业务按钮
+        → 批量条 → 右侧系统工具，始终同一行。
+      -->
       <div
-        v-if="searchEnabled || showDragToggle || batchDelete || editable || autoRefresh || showLayoutSwitch || debug"
+        v-if="toolbarEnabled && batchBarVisible && toolbarConfigPosition === 'top'"
+        class="re-table__toolbar-top"
+      >
+        <ReTableToolbar
+          mode="batch"
+          :config="effectiveToolbarConfig"
+          :selected-count="selectedCount"
+          :editing="editing"
+          :processing="batchProcessing"
+          :loading="dataLoading || loading"
+          :size="tableSize"
+          @batch-delete="onBatchDelete"
+          @batch-edit="onBatchEdit"
+          @batch-save="onBatchSave"
+          @batch-select-toggle="toggleBatchSelect"
+        />
+      </div>
+      <div
+        v-if="searchEnabled || showDragToggle || legacyBatchDeleteVisible || editable || autoRefresh || showLayoutSwitch || debug"
         class="re-table__toolbar-right"
       >
         <!-- 批量删除模式：右侧工具栏最左侧出现 取消 / 确认删除（与拖拽的取消/确认同位置，二者互斥） -->
@@ -6275,7 +6643,7 @@ const iconSelect = Select;
           保存编辑<span v-if="editedRows.length" class="re-table__sel-badge">{{ editedRows.length }}</span>
         </el-button>
         <ReButton
-          v-if="batchDelete"
+          v-if="legacyBatchDeleteVisible"
           layout="square"
           icon="Delete"
           :tip="batchDeleteMode ? '退出批量删除' : '批量删除'"
@@ -6400,24 +6768,9 @@ const iconSelect = Select;
       </div>
     </div>
 
-    <!-- 顶部工具栏（当 toolbarConfig.position === 'top' 时）：只放批量操作按钮，工具区在分页行。
-         config 必须用合并视图：直接写 toolbarConfig 会落到旧 prop 上，分组配置里的
-         config.toolbar.batchDelete 就传不进来，表现为「配了批量删除却没有按钮」。 -->
-    <div v-if="toolbarEnabled && hasToolbarConfig && toolbarConfigPosition === 'top'" class="re-table__toolbar-top">
-      <ReTableToolbar
-        mode="batch"
-        :config="effectiveToolbarConfig"
-        :selected-count="selectedCount"
-        :editing="editing"
-        :processing="batchProcessing"
-        :loading="dataLoading || loading"
-        :size="tableSize"
-        @batch-delete="onBatchDelete"
-        @batch-edit="onBatchEdit"
-        @batch-save="onBatchSave"
-        @batch-select-toggle="toggleBatchSelect"
-      />
-    </div>
+    <!-- 顶部批量条已并入上方「工具栏行」内联渲染（见 .re-table__toolbar-row 里的
+         .re-table__toolbar-top）。这里不再单独占一行，否则业务按钮、批量按钮、
+         系统工具会拆成上下两行。 -->
 
     <!-- ==================== ENGINE: element (BEGIN) ====================
          删除 element 引擎支持时，需要一起清掉：
@@ -7558,13 +7911,18 @@ const iconSelect = Select;
 .re-table--separated > .re-table__main:focus-within {
   border-color: var(--el-color-primary-light-5);
 }
-/* 工具栏行：左侧业务按钮（#toolbar 插槽）；右侧系统工具组 */
+/* 工具栏行：左侧业务按钮（#toolbar 插槽）；右侧系统工具组
+   ⚠ 这一行**不允许换行**：页面把「新建 / 统计提示」这类业务元素塞进 #toolbar 后，
+   左侧常常是一条长文案（如「命中 3 / 47 个采集器」）。行级 flex-wrap: wrap 会让
+   整块右侧工具组（批量删除 / 拖动 / 隐藏搜索 / 刷新 / 自动刷新 / 布局切换）掉到
+   第二行，看起来像「工具栏右对齐失效、按钮自己换行」（实测采集器管理页）。
+   正确做法：左侧盒子可收缩 + 内部自行换行，右侧工具组定宽不收缩，两者永远同一行。 */
 .re-table__toolbar-row {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   margin-bottom: 12px;
 }
 .re-table__toolbar-left {
@@ -7573,11 +7931,18 @@ const iconSelect = Select;
   gap: 8px;
   flex-wrap: wrap;
   margin-right: auto;
+  /* 允许被压缩到内容宽度以下（默认 min-width:auto 会顶住不缩）：
+     空间不够时先让左侧的长提示在盒内换行，而不是把右侧按钮挤到下一行。 */
+  flex: 1 1 auto;
+  min-width: 0;
 }
 .re-table__toolbar-right {
   display: flex;
   align-items: center;
   gap: 2px;
+  /* 定宽 + 不换行：系统工具组是整行的右端锚点，尺寸不随左侧文案长短变化 */
+  flex: none;
+  flex-wrap: nowrap;
 }
 
 /* 表内标签统一胶囊形：表格单元格里 el-tag 默认 4px 方角，与胶囊分页/胶囊按钮
@@ -8266,12 +8631,15 @@ const iconSelect = Select;
 .re-table--crosshair tbody td.is-crosshair-cell {
   background-color: var(--el-color-primary-light-8) !important;
 }
+/* 顶部批量条：已并入 .re-table__toolbar-row 内部（左侧业务按钮之后、右侧系统工具之前），
+   所以这里**不再**是独立一行 —— 去掉 justify-content / margin-bottom / gap，
+   让它只占自己那份宽度、跟随父行的 nowrap 一起排。 */
 .re-table__toolbar-top {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  margin-bottom: var(--rt-gap);
-  gap: var(--rt-gap-sm);
+  gap: 0;
+  flex: none;
+  flex-wrap: nowrap;
 }
 .re-table__toolbar-batch {
   display: flex;

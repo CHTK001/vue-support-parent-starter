@@ -363,8 +363,14 @@ export interface ReTableToolbarBatchDelete {
   tip?: string;
   /** 确认消息 */
   confirmMessage?: string;
-  /** 删除回调（返回 Promise 时自动处理 loading） */
-  handler: (rows: Record<string, unknown>[]) => void | Promise<void>;
+  /**
+   * 删除回调（返回 Promise 时自动处理 loading）。
+   *
+   * <p><b>必填才能生效</b>：只写 {@code batchDelete: true} 而不挂 handler 时，
+   * 按钮点下去没有任何动作 —— 组件因此直接不渲染这个按钮（{@link batchDelete} 同款判据），
+   * 避免出现「可见、可点、永远无效」的死按钮。</p>
+   */
+  handler?: (rows: Record<string, unknown>[]) => void | Promise<void>;
 }
 
 /** toolbar 批量选择按钮配置 */
@@ -389,8 +395,8 @@ export interface ReTableToolbarBatchEdit {
   saveIcon?: any;
   /** 保存提示文字 */
   saveTip?: string;
-  /** 保存回调（返回 Promise 时自动处理 loading） */
-  handler: (rows: Record<string, unknown>[]) => void | Promise<void>;
+  /** 保存回调（返回 Promise 时自动处理 loading）；没有它时批量修改按钮不渲染 */
+  handler?: (rows: Record<string, unknown>[]) => void | Promise<void>;
 }
 
 /**

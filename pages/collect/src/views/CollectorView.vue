@@ -223,13 +223,17 @@ const columns = computed<ReTableColumn[]>(() => [
 ]);
 
 /**
- * ReTable 内置批量：勾选列（batchSelect）+ 批量删除按钮（batchDelete）。
+ * ReTable 内置批量：只配**批量删除**。
+ *
+ * <p>勾选列由 batchDelete 自身驱动（只要挂了 handler，复选框列就常驻），
+ * 不再额外配 batchSelect —— 那个开关除了清空勾选没有别的效果，
+ * 还会让「一条都没勾」时工具栏先冒出一枚批量按钮。
+ * 现在的规则是：勾了行才出现「批量删除」，没勾时整条批量栏不渲染。
  * 确认由工具栏的 ElPopconfirm 承担（confirmMessage），handler 里不再二次确认；
  * 本地数组模式下刷新按钮会被 ReTable 自动关掉，避免和页面顶部刷新重复。
  */
 const collectorToolbarConfig = computed<ReTableToolbarConfig>(() => ({
   position: "top",
-  batchSelect: { enabled: true, tip: "批量选择" },
   batchDelete: {
     enabled: true,
     tip: "批量删除",
@@ -600,13 +604,16 @@ function runMore(command: string, flow: CollectFlow): void {
   min-width: 0;
 }
 
-/* ===== 表格壳 ===== */
+/* ===== 表格壳 =====
+   只是一层加载遮罩的占位，**不再自绘卡片**：底色 / 描边 / 圆角 / 投影全部交给
+   ReTable 自己的表面（--rt-bg + 1px 描边 + --rt-radius）。两层都画卡片时，
+   页面上会出现「白底套白底 + 双描边」的嵌套感，看起来像页头被删掉后留下的空壳。 */
 .table-card {
   min-height: 240px;
-  background: var(--bg-container);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 /* ===== 单元格 ===== */

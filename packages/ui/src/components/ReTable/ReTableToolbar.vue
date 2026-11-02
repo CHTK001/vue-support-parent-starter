@@ -85,11 +85,11 @@ const btnSize = computed<"large" | "default" | "small">(() =>
   props.size === "mini" ? "small" : props.size ?? "default",
 );
 
-/** 解析批量删除配置（enabled: false 时不显示） */
+/** 解析批量删除配置（enabled: false / 没配执行函数时不显示） */
 const batchDeleteConfig = computed<ReTableToolbarBatchDelete | null>(() => {
   const cfg = props.config.batchDelete;
   if (!cfg) return null;
-  if (cfg === true) return { enabled: true, handler: () => {} };
+  if (cfg === true) return { enabled: true };
   if (cfg.enabled === false) return null;
   return cfg;
 });
@@ -170,6 +170,47 @@ async function onRefreshClick(): Promise<void> {
 /** 选中行数 badge */
 const hasSelected = computed(() => props.selectedCount > 0);
 
+/**
+ * 批量删除按钮是否显示。
+ *
+ * <p>两个条件缺一不可：**有勾选**（没选行时删无可删，按钮只是占位）+
+ * **配了执行函数**（只有开关没有 handler 时点了什么也不会发生）。</p>
+ */
+const showBatchDelete = computed<boolean>(
+  () => Boolean(batchDeleteConfig.value)
+    && props.selectedCount > 0
+    && typeof batchDeleteConfig.value?.handler === "function",
+);
+
+/**
+ * 批量修改按钮是否显示：同样要求配了保存函数（否则编辑态无从保存），
+ * 未选行时只在编辑态保留（保存/取消要留在原地）。
+ */
+const showBatchEdit = computed<boolean>(
+  () => Boolean(batchEditConfig.value)
+    && (props.selectedCount > 0 || props.editing)
+    && typeof batchEditConfig.value?.handler === "function",
+);
+
+/** 是否配了**可执行**的批量函数（批量删除 / 批量修改任一挂上 handler） */
+const hasBatchFunc = computed<boolean>(
+  () => typeof batchDeleteConfig.value?.handler === "function"
+    || typeof batchEditConfig.value?.handler === "function",
+);
+
+/**
+ * 批量选择开关是否显示。
+ *
+ * <p>它只是「进入多选」的入口：没有任何可执行的批量函数时，勾选本身毫无后续动作，
+ * 所以跟批量删除 / 批量修改同进同退 —— 两个函数一个都没配，这枚按钮也不渲染。</p>
+ */
+const showBatchSelect = computed<boolean>(() => Boolean(batchSelectConfig.value) && hasBatchFunc.value);
+
+/** 左侧批量区是否还有内容（一个按钮都没有时整块不渲染，不留空白） */
+const batchSectionVisible = computed<boolean>(
+  () => showBatchSelect.value || showBatchDelete.value || showBatchEdit.value,
+);
+
 /** 批量删除确认消息 */
 const deleteConfirmMsg = computed(() => {
   if (batchDeleteConfig.value?.confirmMessage) return batchDeleteConfig.value.confirmMessage;
@@ -187,11 +228,11 @@ const editDisabled = computed(() => !hasSelected.value && !props.editing);
 
 <template>
   <div class="re-table-toolbar" :class="`re-table-toolbar--${mode}`">
-    <!-- 左侧：批量操作区（mode=batch/full，右对齐） -->
-    <div v-if="mode !== 'tools'" class="re-table-toolbar__left">
+    <!-- 左侧：批量操作区（mode=batch/full，右对齐）；一个可用按钮都没有时整块不渲染 -->
+    <div v-if="mode !== 'tools' && batchSectionVisible" class="re-table-toolbar__left">
       <!-- 批量选择切换 -->
       <ElBadge
-        v-if="batchSelectConfig"
+        v-if="showBatchSelect"
         :value="hasSelected ? selectedCount : 0"
         :max="99"
         :hidden="!hasSelected"
@@ -201,16 +242,16 @@ const editDisabled = computed(() => !hasSelected.value && !props.editing);
           :size="btnSize"
           :type="hasSelected ? 'primary' : 'default'"
           layout="square"
-          :icon="batchSelectConfig.icon || Select"
+          :icon="batchSelectConfig?.icon || Select"
           @click="emit('batch-select-toggle')"
         >
-          {{ batchSelectConfig.tip || '批量选择' }}
+          {{ batchSelectConfig?.tip || '批量选择' }}
         </ReButton>
       </ElBadge>
 
-      <!-- 批量删除 -->
+      <!-- 批量删除：有勾选且配了 handler 才出现 -->
       <ElPopconfirm
-        v-if="batchDeleteConfig"
+        v-if="showBatchDelete"
         :title="deleteConfirmMsg"
         confirm-button-text="确认"
         cancel-button-text="取消"
@@ -224,25 +265,25 @@ const editDisabled = computed(() => !hasSelected.value && !props.editing);
             layout="square"
             :disabled="deleteDisabled"
             :loading="processing"
-            :icon="batchDeleteConfig.icon || Delete"
+            :icon="batchDeleteConfig?.icon || Delete"
           >
-            {{ batchDeleteConfig.tip || '批量删除' }}
+            {{ batchDeleteConfig?.tip || '批量删除' }}
           </ReButton>
         </template>
       </ElPopconfirm>
 
       <!-- 批量修改 / 保存 -->
       <ReButton
-        v-if="batchEditConfig"
-        :size="size"
+        v-if="showBatchEdit"
+        :size="btnSize"
         :type="editing ? 'success' : 'primary'"
         layout="square"
         :disabled="editDisabled"
         :loading="processing && editing"
-        :icon="editing ? (batchEditConfig.saveIcon || Check) : (batchEditConfig.icon || Edit)"
+        :icon="editing ? (batchEditConfig?.saveIcon || Check) : (batchEditConfig?.icon || Edit)"
         @click="editing ? emit('batch-save', []) : emit('batch-edit')"
       >
-        {{ editing ? (batchEditConfig.saveTip || '保存') : (batchEditConfig.tip || '批量修改') }}
+        {{ editing ? (batchEditConfig?.saveTip || '保存') : (batchEditConfig?.tip || '批量修改') }}
       </ReButton>
     </div>
 
@@ -275,12 +316,14 @@ const editDisabled = computed(() => !hasSelected.value && !props.editing);
 </template>
 
 <style scoped>
+/* 工具栏自身不换行：它是 ReTable 工具栏行里的一个整块，
+   一旦允许 wrap，分页行变窄时「批量选择 / 批量删除」会叠成两行。 */
 .re-table-toolbar {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 /* tools 分区（分页行只保留工具区）：内容右对齐 */
 .re-table-toolbar--tools {

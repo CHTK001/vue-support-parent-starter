@@ -375,13 +375,15 @@ function showHelp(): void {
   min-width: 0;
 }
 
-/* ===== 表格壳 ===== */
+/* ===== 表格壳 =====
+   不自绘卡片：底色 / 描边 / 圆角 / 投影都交给 ReTable 自身的表面，
+   外层只承担 flex 布局与高度约束，避免「白底套白底」的双层卡片感。 */
 .table-card {
   min-height: 240px;
-  background: var(--bg-container);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 .table-card :deep(.collect-hint code) {
   padding: 0 4px;
