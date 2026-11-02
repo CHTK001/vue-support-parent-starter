@@ -594,10 +594,15 @@ function isCollapsed(key: string): boolean {
   return collapsed.value.has(key)
 }
 
-/** 左侧树筛选：一次只保留一组（组织 / 分组 / 厂家） */
+/** 左侧树筛选：一次只保留一组（组织 / 分组 / 厂家）；再点同一节点即取消 */
 const filterState = ref<{ kind: RailMode; id: string } | undefined>(undefined)
 function selectFilter(payload: { kind: RailMode; id: string } | null): void {
-  filterState.value = payload ?? undefined
+  if (!payload) {
+    filterState.value = undefined
+    return
+  }
+  const current = filterState.value
+  filterState.value = current && current.kind === payload.kind && current.id === payload.id ? undefined : payload
 }
 
 /** 组织树平铺（带 depth），供父级选项与组织行用 */
@@ -1001,29 +1006,28 @@ const flatGroups = computed<Array<DeviceGroupNode & { depth: number }>>(() => {
   return out
 })
 
-/** 左侧树的显示行：全部设备 + 组织 / 分组 / 厂家 三个顶级分支 */
+/** 左侧树的显示行：组织 / 分组 / 厂家 三个维度之一，一次只渲染一棵树 */
 type TreeRow = {
-  /** 行键 */
+  /** 行键（同时用作折叠态键） */
   key: string
-  /** 行类别：根 / 分支 / 组织 / 分组 / 厂家 */
-  kind: 'root' | 'branch' | 'org' | 'group' | 'vendor'
+  /** 行类别：组织 / 分组 / 厂家 */
+  kind: RailMode
   /** 显示名 */
   label: string
-  /** 缩进深度（节点行） */
+  /** 缩进深度 */
   depth: number
-  /** 所属分支（分支行） */
-  branch?: string
-  /** 分支展开态（分支行） */
-  expanded?: boolean
-  /** 筛选值（节点行） */
-  id?: string
-  /** 计数 */
+  /** 筛选值 */
+  id: string
+  /** 计数（本节点及其子树的设备数） */
   count: number
-  /** 圆点配色（分支行）/ 分组备注 */
-  dot?: string
+  /** 分组备注 */
   remark?: string
   /** 节点附加说明（分组显示所属组织） */
   hint?: string
+  /** 是否有下一级（决定是否显示展开箭头） */
+  hasChildren: boolean
+  /** 当前是否展开 */
+  expanded: boolean
 }
 
 /** 分组筛选：点击左侧节点 → 右侧按组筛选设备（点击左侧树/列内标签） */
