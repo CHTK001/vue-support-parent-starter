@@ -1524,33 +1524,29 @@ onMounted(async () => {
   background: var(--el-color-primary-light-9);
 }
 
-/* 左侧维度切换：按分组 / 按厂家 */
-.da-modes {
-  display: flex;
-  gap: 3px;
-  padding: 3px;
-  background: var(--el-fill-color-light);
-  border-radius: 9px;
-}
-.da-mode {
-  flex: 1;
-  padding: 5px 8px;
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--el-text-color-secondary);
-  background: transparent;
-  border: 0;
-  border-radius: 7px;
-  cursor: pointer;
-  transition: color 0.16s ease, background 0.16s ease;
-}
-.da-mode:hover { color: var(--el-color-primary); }
-.da-mode.is-active {
-  color: var(--el-color-primary);
-  background: var(--el-bg-color);
-  box-shadow: var(--el-box-shadow-lighter);
+/* 左侧树：三个顶级分支（组织 / 分组 / 厂家） */
+.da-tree__branch {
+  gap: 4px;
   font-weight: 600;
+  color: var(--el-text-color-primary);
 }
+.da-tree__branch:hover { background: transparent; }
+.da-tree__branch .da-tree__count { background: transparent; }
+.da-tree__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  flex: none;
+  color: var(--el-text-color-placeholder);
+  transform: rotate(0deg);
+  transition: transform 0.16s ease;
+}
+.da-tree__branch.is-expanded .da-tree__toggle { transform: rotate(90deg); }
+.da-tree__dot.is-org { background: var(--el-color-primary-light-3); }
+.da-tree__dot.is-group { background: var(--el-color-success); }
+.da-tree__dot.is-vendor { background: var(--el-color-warning); }
+.da-tree__item--root { margin-bottom: 2px; }
 .da-tree__empty {
   padding: 12px 10px;
   font-size: 12px;
@@ -1670,16 +1666,24 @@ onMounted(async () => {
   min-height: 0;
 }
 
+/* 批量操作条：固定占位；无选中时内容透明，多选时不改变文档流高度（避免列表回流跳动） */
 .da-batch {
   flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  min-height: 46px;
   padding: 8px 12px;
   border: 1px solid var(--el-border-color-lighter);
   background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
   border-radius: 10px;
+  transition: opacity 0.16s ease;
+}
+.da-batch.is-empty {
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
 }
 .da-batch__text { font-size: 13px; color: var(--el-text-color-primary); }
 .da-batch__ops { display: flex; gap: 8px; flex-wrap: wrap; }

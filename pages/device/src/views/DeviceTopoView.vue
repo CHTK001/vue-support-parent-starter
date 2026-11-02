@@ -168,6 +168,84 @@ const activeId = ref('')
 const graphRef = ref<unknown>(null)
 
 /**
+ * 视图限制：由设备台账右键的「在拓扑中查看」投递（按分组 / 厂商 / 设备）。
+ *
+ * <p>拓扑接口本身不接收过滤条件，这里在图上做一次「设备 + 地址链」闭包：
+ * 保留被限制的设备、它上方的区域 / 网段，以及它下方的通道。</p>
+ */
+const props = defineProps<{
+  filter?: { kind: 'group' | 'vendor' | 'device'; id: string } | null
+}>()
+
+/** 视图限制命中的拓扑设备节点 id（device:&lt;deviceId&gt;） */
+const restricted = ref<Set<string>>(new Set())
+
+/** 视图限制的保留集：设备 + 地址链（网段 / 区域）+ 通道 */
+const keepSet = computed<Set<string>>(() => {
+  const ids = new Set<string>()
+  const parents = new Map<string, string[]>()
+  const children = new Map<string, string[]>()
+  for (const edge of rawEdges.value) {
+    if (!parents.has(edge.target)) parents.set(edge.target, [])
+    parents.get(edge.target)!.push(edge.source)
+    if (!children.has(edge.source)) children.set(edge.source, [])
+    children.get(edge.source)!.push(edge.target)
+  }
+  /** 向上收口：设备 → 网段 → 区域 */
+  const walkUp = (id: string) => {
+    const stack = [id]
+    while (stack.length) {
+      const cur = stack.pop()!
+      if (ids.has(cur)) continue
+      ids.add(cur)
+      for (const parent of parents.get(cur) || []) stack.push(parent)
+    }
+  }
+  /** 向下收口：设备 → 通道（设备本身可能已被 walkUp 收进来，单独用一个 seen 防环） */
+  const walkDown = (id: string) => {
+    const stack = [id]
+    const seen = new Set<string>()
+    while (stack.length) {
+      const cur = stack.pop()!
+      ids.add(cur)
+      if (seen.has(cur)) continue
+      seen.add(cur)
+      for (const child of children.get(cur) || []) stack.push(child)
+    }
+  }
+  for (const deviceId of restricted.value) {
+    walkUp(deviceId)
+    walkDown(deviceId)
+  }
+  return ids
+})
+
+/** 把视图限制换算成拓扑里的设备节点 id（分组 → 组成员，厂商 → 厂商设备） */
+async function resolveRestricted(): Promise<void> {
+  const query = props.filter
+  if (!query) {
+    restricted.value = new Set()
+    return
+  }
+  try {
+    let deviceIds: string[] = []
+    if (query.kind === 'device') {
+      deviceIds = [query.id]
+    } else if (query.kind === 'group') {
+      deviceIds = ((await deviceApi.groupDevices(query.id)) || []).map((item) => item.deviceInfoId)
+    } else {
+      const page = await deviceApi.page({ vendor: query.id, pageNo: 1, pageSize: 2000 })
+      deviceIds = (page?.data || []).map((item) => item.deviceInfoId)
+    }
+    restricted.value = new Set(
+      deviceIds.filter(Boolean).map((id) => `device:${id}`)
+    )
+  } catch {
+    restricted.value = new Set()
+  }
+}
+
+/**
  * 过滤后的节点：`只看在线` 时只留在线设备及其通道，并保留承载它们的网段与区域
  * （自下而上收一轮，避免留下没有设备的气泡）。
  */
