@@ -815,7 +815,17 @@ function directGroupDevices(groupId: string): DeviceInfo[] {
   const ids = new Set(
     assignments.value.filter((item) => item.groupId === groupId).map((item) => item.deviceId)
   )
-  return rows.value.filter((device) => ids.has(device.deviceInfoId))
+  if (!ids.size) return []
+  // 一台设备可同时挂在父分组与子分组：只把它挂到最深的那个节点下，
+  // 否则同一台设备会在整条路径上重复出现，树看着像坏了。
+  const descendants = groupSubtreeIds(groupId)
+  descendants.delete(groupId)
+  const takenByChildren = new Set(
+    assignments.value.filter((item) => descendants.has(item.groupId)).map((item) => item.deviceId)
+  )
+  return rows.value.filter(
+    (device) => ids.has(device.deviceInfoId) && !takenByChildren.has(device.deviceInfoId)
+  )
 }
 
 /** 某厂家的设备 */
