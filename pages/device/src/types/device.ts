@@ -5,7 +5,7 @@
  * @since 4.0.0.42
  */
 
-export type DeviceCategory = 'camera' | 'accessControl' | 'alarm' | 'intercom'
+export type DeviceCategory = 'camera' | 'accessControl' | 'alarm' | 'intercom' | 'other'
 
 /** 设备状态 */
 export type DeviceStatus = 'normal' | 'disabled' | 'maintenance' | 'scrapped'

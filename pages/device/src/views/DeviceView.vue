@@ -95,9 +95,39 @@
           </div>
 
           <template v-for="row in treeNodes" :key="row.key">
-            <!-- 组织 / 分组：有下一级时可展开；点行即筛选，点箭头只折叠 -->
+            <!-- 设备叶子：左键回到「设备资产」页签并定位，右键开功能页签 -->
             <el-dropdown
-              v-if="row.kind === 'group'"
+              v-if="row.kind === 'device'"
+              class="da-tree__dd"
+              placement="bottom-start"
+              trigger="contextmenu"
+              @command="(cmd: string) => onDeviceLeafCommand(cmd, row)"
+            >
+              <div
+                class="da-tree__item da-tree__item--device"
+                :class="{ 'is-active': activeDevice?.deviceInfoId === row.id }"
+                :style="{ paddingLeft: `${10 + row.depth * 14}px` }"
+                :title="row.label"
+                @click="focusLeafDevice(row)"
+              >
+                <span class="da-tree__caret is-leaf" />
+                <ReIcon :name="row.icon || 'Grid'" :size="13" class="da-tree__icon" />
+                <span class="da-tree__name">{{ row.label }}</span>
+                <i class="da-tree__state" :class="row.online ? 'is-on' : 'is-off'" :title="row.online ? '在线' : '离线'" />
+              </div>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="detail" :icon="Position">设备详情</el-dropdown-item>
+                  <el-dropdown-item command="channels" :icon="Connection">通道管理</el-dropdown-item>
+                  <el-dropdown-item command="events" :icon="Tickets">设备日志</el-dropdown-item>
+                  <el-dropdown-item command="topo" :icon="Grid" divided>在拓扑中查看</el-dropdown-item>
+                  <el-dropdown-item command="locate" :icon="Aim" divided>在台账中定位</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+            <!-- 分组：有下一级时可展开；点行即筛选，点箭头只折叠 -->
+            <el-dropdown
+              v-else-if="row.kind === 'group'"
               class="da-tree__dd"
               placement="bottom-start"
               trigger="contextmenu"
@@ -674,15 +704,36 @@ function subtreeOpen(ancestors: string[]): boolean {
 /**
  * 当前维度的树行（已按折叠态裁剪）。
  *
- * <p>组织与分组是真树：父节点折叠时其子孙整段不出现；厂家是平铺一行一个。</p>
+ * <p>组织与分组是真树：父节点折叠时其子孙整段不出现；厂家是平铺一行一个。
+ * 每个组织 / 分组 / 厂家节点展开后，末尾挂上它直属的设备叶子——
+ * 左键点设备叶子回台账定位，右键开功能页签（详情 / 通道 / 日志 / 拓扑）。</p>
  */
 const treeNodes = computed<Array<TreeRow>>(() => {
   const out: Array<TreeRow> = []
+  /** 追加某个节点下的设备叶子 */
+  const pushDevices = (nodeKey: string, list: DeviceInfo[], depth: number) => {
+    for (const device of list) {
+      out.push({
+        key: `${nodeKey}#dev-${device.deviceInfoId}`,
+        kind: 'device',
+        label: device.deviceInfoName || device.deviceInfoCode || device.deviceInfoId,
+        depth,
+        id: device.deviceInfoId,
+        count: 0,
+        hasChildren: false,
+        expanded: false,
+        icon: getCategoryIcon(device.deviceInfoCategory),
+        online: !!device.deviceInfoOnline
+      })
+    }
+  }
   if (railMode.value === 'org') {
-    const walk = (nodes: OrgNode[], depth: number, ancestors: string[]) => {
+    const walk = (nodes: OrgNode[], depth: number) => {
       for (const node of nodes) {
         const key = `org-${node.deviceOrganizationId}`
-        const hasChildren = !!node.children?.length
+        const devices = directOrgDevices(node.deviceOrganizationId)
+        const hasChildren = !!node.children?.length || devices.length > 0
+        const open = hasChildren && subtreeOpen([key])
         out.push({
           key,
           kind: 'org',
@@ -691,12 +742,14 @@ const treeNodes = computed<Array<TreeRow>>(() => {
           id: node.deviceOrganizationId,
           count: orgDeviceCount(node.deviceOrganizationId),
           hasChildren,
-          expanded: hasChildren && subtreeOpen([key])
+          expanded: open
         })
-        if (hasChildren && subtreeOpen([key])) walk(node.children!, depth + 1, [...ancestors, key])
+        if (!open) continue
+        if (node.children?.length) walk(node.children, depth + 1)
+        pushDevices(key, devices, depth + 1)
       }
     }
-    walk(orgTree.value, 0, [])
+    walk(orgTree.value, 0)
     return out
   }
   if (railMode.value === 'group') {
@@ -704,7 +757,9 @@ const treeNodes = computed<Array<TreeRow>>(() => {
       for (const node of nodes) {
         if (!node.groupId) continue
         const key = `group-${node.groupId}`
-        const hasChildren = !!node.children?.length
+        const devices = directGroupDevices(node.groupId)
+        const hasChildren = !!node.children?.length || devices.length > 0
+        const open = hasChildren && subtreeOpen([key])
         const parent = node.groupParent
         out.push({
           key,
@@ -716,28 +771,53 @@ const treeNodes = computed<Array<TreeRow>>(() => {
           remark: node.groupRemark,
           hint: parent && !isGroupId(parent) ? orgLabelOf(parent) : undefined,
           hasChildren,
-          expanded: hasChildren && subtreeOpen([key])
+          expanded: open
         })
-        if (hasChildren && subtreeOpen([key])) walk(node.children!, depth + 1)
+        if (!open) continue
+        if (node.children?.length) walk(node.children, depth + 1)
+        pushDevices(key, devices, depth + 1)
       }
     }
     walk(groups.value, 0)
     return out
   }
   for (const node of vendorNodes.value) {
+    const key = `vendor-${node.vendor}`
+    const devices = vendorDevices(node.vendor)
+    const hasChildren = devices.length > 0
+    const open = hasChildren && subtreeOpen([key])
     out.push({
-      key: `vendor-${node.vendor}`,
+      key,
       kind: 'vendor',
       label: node.label,
       depth: 0,
       id: node.vendor,
       count: node.count,
-      hasChildren: false,
-      expanded: false
+      hasChildren,
+      expanded: open
     })
+    if (open) pushDevices(key, devices, 1)
   }
   return out
 })
+
+/** 组织直属（不含子孙组织）的设备 */
+function directOrgDevices(orgId: string): DeviceInfo[] {
+  return rows.value.filter((device) => (device.deviceInfoOrgId || '') === orgId)
+}
+
+/** 分组直属（不含子分组）的设备 */
+function directGroupDevices(groupId: string): DeviceInfo[] {
+  const ids = new Set(
+    assignments.value.filter((item) => item.groupId === groupId).map((item) => item.deviceId)
+  )
+  return rows.value.filter((device) => ids.has(device.deviceInfoId))
+}
+
+/** 某厂家的设备 */
+function vendorDevices(vendor: string): DeviceInfo[] {
+  return rows.value.filter((device) => (device.deviceInfoVendor || '') === vendor)
+}
 
 /** 组织名（分组行的提示用） */
 function orgLabelOf(orgId: string): string | undefined {
@@ -1018,17 +1098,17 @@ const flatGroups = computed<Array<DeviceGroupNode & { depth: number }>>(() => {
   return out
 })
 
-/** 左侧树的显示行：组织 / 分组 / 厂家 三个维度之一，一次只渲染一棵树 */
+/** 左侧树的显示行：组织 / 分组 / 厂家 / 设备，一次只渲染当前维度的一棵树 */
 type TreeRow = {
   /** 行键（同时用作折叠态键） */
   key: string
-  /** 行类别：组织 / 分组 / 厂家 */
-  kind: RailMode
+  /** 行类别：组织 / 分组 / 厂家 / 设备叶子 */
+  kind: RailMode | 'device'
   /** 显示名 */
   label: string
   /** 缩进深度 */
   depth: number
-  /** 筛选值 */
+  /** 筛选值（设备叶子是 deviceInfoId） */
   id: string
   /** 计数（本节点及其子树的设备数） */
   count: number
@@ -1040,11 +1120,21 @@ type TreeRow = {
   hasChildren: boolean
   /** 当前是否展开 */
   expanded: boolean
+  /** 设备叶子的大类图标 */
+  icon?: string
+  /** 设备叶子的在线态 */
+  online?: boolean
 }
 
-/** 分组筛选：点击左侧节点 → 右侧按组筛选设备（点击左侧树/列内标签） */
+/** 分组筛选：点击左侧节点或列表里的分组标签 → 右侧按组筛选设备 */
 function selectGroup(node: DeviceGroupNode | null): void {
-  filterState.value = node ? { kind: 'group', id: node.groupId } : undefined
+  if (!node) {
+    filterState.value = undefined
+    return
+  }
+  // 列表里的分组标签可能来自「组织 / 厂家」维度，点它要顺带切回分组树
+  if (railMode.value !== 'group') railMode.value = 'group'
+  filterState.value = { kind: 'group', id: node.groupId }
 }
 
 /** 分组下设备的 id 集合（含子分组的设备，即当前视图的组数据源） */

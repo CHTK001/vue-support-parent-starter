@@ -29,7 +29,7 @@
     <section class="vtp-panel">
       <ReTable
         v-if="rows.length"
-        :data="rows as unknown as Record<string, unknown>[]"
+        :data="tableRows"
         :columns="columns"
         engine="element"
         table-id="device-vendor-task-states"
@@ -255,6 +255,11 @@ const rows = computed<TaskRow[]>(() => {
   if (activeTab.value === 'unmatched') return allRows.value.filter((row) => !row.vendor && row.credentialId)
   return allRows.value.filter((row) => row.vendor === activeTab.value)
 })
+
+/** ReTable 只收 Record 数组，真实结构是 TaskRow */
+const tableRows = computed<Array<Record<string, unknown>>>(
+  () => rows.value as unknown as Array<Record<string, unknown>>
+)
 
 const columns: ReTableColumn[] = [
   { prop: 'label', label: '任务', slot: 'col-task', minWidth: 200 },

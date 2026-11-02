@@ -593,6 +593,16 @@ export const channelHealthApi = {
   /** PUT /v2/channels/health/{connectionId}/interval —— 设定单连接探针间隔秒数（0 = 全局） */
   updateInterval: (connectionId: string, interval: number) =>
     http.put(`/v2/channels/health/${connectionId}/interval`, { interval }) as Promise<boolean>,
+  /** PUT /v2/channels/{connectionId}/circuit —— 设定人工熔断开关（AUTO / OPEN / CLOSED） */
+  updateCircuit: (connectionId: string, state: 'AUTO' | 'OPEN' | 'CLOSED', reason?: string) =>
+    http.put(`/v2/channels/${connectionId}/circuit`, { state, reason }) as Promise<ChannelHealthSummary>,
+  /** GET /v2/channels/circuit —— 请求级熔断状态列表（供应商 + 模型维度） */
+  circuits: () => http.get('/v2/channels/circuit') as Promise<ChannelCircuitSnapshot[]>,
+  /** POST /v2/channels/circuit/{providerId}/{model}/reset —— 复位单个熔断条目 */
+  resetCircuit: (providerId: string, model: string) =>
+    http.post(`/v2/channels/circuit/${providerId}/${model}/reset`) as Promise<boolean>,
+  /** POST /v2/channels/circuit/reset —— 复位全部熔断条目 */
+  resetAllCircuits: () => http.post('/v2/channels/circuit/reset') as Promise<number>,
 };
 
 /**
@@ -631,10 +641,38 @@ export interface ChannelHealthSummary {
   lastProbeAt?: number;
   /** 探针间隔秒数（0 = 走全局健康设置） */
   intervalSeconds?: number;
+  /** 人工熔断状态：AUTO（跟随探针）/ OPEN（强制熔断）/ CLOSED（强制放行） */
+  circuitState?: string;
+  /** 人工熔断/放行原因 */
+  circuitReason?: string;
+  /** 人工熔断状态变更时间（毫秒） */
+  circuitUpdatedAt?: number;
   /** 创建时间（毫秒） */
   createdAt?: number;
   /** 更新时间（毫秒） */
   updatedAt?: number;
+}
+
+/**
+ * 请求级熔断状态快照（按「供应商 + 模型」维度统计真实对话失败）。
+ */
+export interface ChannelCircuitSnapshot {
+  /** 供应商标识 */
+  providerId?: string;
+  /** 模型名 */
+  model?: string;
+  /** 熔断状态：CLOSED / OPEN / HALF_OPEN */
+  state?: string;
+  /** 连续失败次数 */
+  consecutiveFailures?: number;
+  /** 冷却截止时间戳（毫秒） */
+  openUntil?: number;
+  /** 剩余冷却毫秒数（0 = 可试探） */
+  remainingMillis?: number;
+  /** 最近失败原因 */
+  lastError?: string;
+  /** 最近更新时间戳（毫秒） */
+  lastUpdatedAt?: number;
 }
 export const pipelineApi = {
   list: () => http.get('/models/pipelines'),

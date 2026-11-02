@@ -26,6 +26,8 @@ import ReButton from '@repo/ui/re-button';
 import ReIcon from '@repo/ui/re-icon';
 import ReInput from '@repo/ui/re-input';
 import ReSelect from '@repo/ui/re-select';
+import ReTag from '@repo/ui/re-tag';
+import ReCard from '@repo/ui/re-card';
 // 相对引用：pages/template 是同一工作区的页面包，避免 monitor 侧 node_modules 未 link 该包
 import type { TemplateInfo, PageResult, TemplateStatus, TemplateSource, TemplateType, TemplateLanguage } from '../../../../pages/template/src/types/template';
 import { templateApi } from '../../../../pages/template/src/api/templateApi';
@@ -43,6 +45,20 @@ const pageSize = ref(20);
 
 /** templateApi 在监控侧挂走到 template 后端；mock 数据仅用于演示 UI 效果 */
 const mockMode = ref(false);
+
+/** 统计面板：按状态拆分模板数量 */
+const stats = computed(() => {
+  const s = { total: total.value, online: 0, draft: 0, offline: 0 };
+  for (const r of list.value) {
+    if (r.status === 'online') s.online += 1;
+    else if (r.status === 'draft') s.draft += 1;
+    else if (r.status === 'offline') s.offline += 1;
+  }
+  return s;
+});
+
+/** 页面行：与 ReTable 的 RePageResult 对齐（Record<string, unknown> 需要索引签名，交集类型由 TS 补齐） */
+type Row = TemplateInfo & Record<string, unknown>;
 
 // ------------------- 字段归一：屏蔽后端 camelCase / 小写两种键名 -------------------
 /** 把后端返回的原始行对象对齐到页面的 TS 类型（小写字段） */
@@ -183,13 +199,24 @@ function fmtTime(_row: Record<string, unknown>, _col: ReTableColumn, cellValue: 
   return fmtTimeOf(cellValue as string | undefined);
 }
 
-/** 四字状态文本（formatter） */
+/** 状态标签配置（含圆点 + 颜色） */
+const statusMap: Record<TemplateStatus, { label: string; type: 'success' | 'warning' | 'info'; dot: boolean; dotColor: string }> = {
+  online: { label: '已上线', type: 'success', dot: true, dotColor: '#41CE65' },
+  draft: { label: '草稿', type: 'warning', dot: true, dotColor: '#FF9B36' },
+  offline: { label: '已下线', type: 'info', dot: true, dotColor: '#8C8C8C' },
+};
+
+/** 当前行对应的状态配置（于 #col-status 插槽用，屏蔽驼峰/小写两种键名） */
+function statusConfigForRow(row: Record<string, unknown>) {
+  const s = String(row.templateInfoStatus ?? (row as unknown as TemplateInfo).status ?? '');
+  return statusMap[s as TemplateStatus] ?? statusMap.draft;
+}
+
+/** 恢复 formatter 文本（状态列最终由 #col-status 插槽出 ReTag） */
 function statusText(_row: Record<string, unknown>, _col: ReTableColumn, cellValue: unknown): string {
   const s = cellValue as string | undefined;
   return { online: '已上线', draft: '草稿', offline: '已下线' }[s ?? ''] ?? s ?? '—';
 }
-
-/** 来源文本（formatter） */
 function sourceText(_row: Record<string, unknown>, _col: ReTableColumn, cellValue: unknown): string {
   const s = cellValue as string | undefined;
   return { hiprint: 'hiprint', message: '消息', paper: '组卷' }[s ?? ''] ?? s ?? '—';
@@ -225,10 +252,10 @@ async function load(params: ReTableLoadParams): Promise<RePageResult> {
     if (!result || !Array.isArray(result.records)) throw new Error('template list payload is empty');
     total.value = result.total ?? 0;
     mockMode.value = false;
+    const records = result.records.map((r: TemplateInfo) => normalizeRow(r as unknown as Record<string, unknown>));
+    list.value = records;
     return {
-      records: result.records.map((r: TemplateInfo | Record<string, unknown>) =>
-        normalizeRow(r as Record<string, unknown>),
-      ) as unknown as Record<string, unknown>[],
+      records,
       total: total.value,
     };
   } catch (e) {
@@ -236,6 +263,7 @@ async function load(params: ReTableLoadParams): Promise<RePageResult> {
     mockMode.value = true;
     const m = mockTemplates;
     total.value = m.length;
+    list.value = m;
     const start = (params.page - 1) * params.pageSize;
     return {
       records: m.slice(start, start + params.pageSize) as unknown as Record<string, unknown>[],
@@ -313,18 +341,38 @@ onMounted(() => {
 
 <template>
   <div class="template-manage">
+    <!-- 统计面板 -->
+    <div class="manage__stats">
+      <div class="manage__stat-card">
+        <div class="manage__stat-card__value">{{ stats.total }}</div>
+        <div class="manage__stat-card__label">模板总数</div>
+      </div>
+      <div class="manage__stat-card manage__stat-card--online">
+        <div class="manage__stat-card__value">{{ stats.online }}</div>
+        <div class="manage__stat-card__label">已上线</div>
+      </div>
+      <div class="manage__stat-card manage__stat-card--draft">
+        <div class="manage__stat-card__value">{{ stats.draft }}</div>
+        <div class="manage__stat-card__label">草稿</div>
+      </div>
+      <div class="manage__stat-card manage__stat-card--offline">
+        <div class="manage__stat-card__value">{{ stats.offline }}</div>
+        <div class="manage__stat-card__label">已下线</div>
+      </div>
+    </div>
+
     <!-- 查询区 -->
     <div class="manage__search">
       <ReInput
         v-model="keyword"
-        style="width: 220px"
+        style="width: 240px"
         placeholder="模板名称 / 备注"
         clearable
         @update:model-value="refresh"
       />
       <ReSelect
         v-model="sourceFilter"
-        style="width: 150px"
+        style="width: 160px"
         placeholder="来源"
         :data="[
           { label: '全部', value: '' },
@@ -339,30 +387,50 @@ onMounted(() => {
       </ReButton>
     </div>
 
-    <!-- 列表 -->
-    <div class="manage__table">
-      <ReTable
-        row-key="id"
-        :loader="load"
-        :columns="columns"
-        pagination
-        @row-click="onDetail"
-      >
-        <!-- 操作列 | ReTable 把 `slot: 'actions'` 转给父组件的插槽 -->
-        <template #actions="{ row }: { row: TemplateInfo }">
-          <ReButton text type="primary" @click.stop="openDesigner(row)">
-            <ReIcon icon="EditPen" /> 设计
-          </ReButton>
-          <ReButton text type="success" @click.stop="openPreview(row)">
-            <ReIcon icon="View" /> 预览
-          </ReButton>
-        </template>
-      </ReTable>
-    </div>
+    <!-- 列表 | 卡片承载，对齐 monitor 侧 ReTable 页的卡片写法 -->
+    <ReCard layout="simple" :radius="14" :padding="14" shadow="never">
+      <template #header>
+        <div class="table-head">
+          <span class="table-title">模板列表</span>
+          <span class="table-count">共 {{ total }} 条</span>
+        </div>
+      </template>
+      <div class="manage__table">
+        <ReTable
+          row-key="id"
+          :loader="load"
+          :columns="columns"
+          pagination
+          @row-click="onDetail"
+        >
+          <!-- 状态列 | ReTag 带圆点 -->
+          <template #col-status="{ row }: { row: Record<string, unknown> }">
+            <ReTag
+              :type="statusConfigForRow(row).type"
+              :effect="statusConfigForRow(row).type === 'success' ? 'dark' : 'light'"
+              :dot="true"
+              :dot-color="statusConfigForRow(row).dotColor"
+              round
+              size="small"
+            >
+              {{ statusConfigForRow(row).label }}
+            </ReTag>
+          </template>
+          <!-- 操作列 | ReTable 把 `slot: 'actions'` 转给父组件的插槽 -->
+          <template #actions="{ row }: { row: TemplateInfo }">
+            <ReButton layout="square" type="primary" icon="EditPen" tip="设计" @click.stop="openDesigner(row)" />
+            <ReButton layout="square" type="success" icon="View" tip="预览" @click.stop="openPreview(row)" />
+          </template>
+        </ReTable>
+      </div>
+    </ReCard>
 
     <!-- 开发期 mock 提示 -->
     <div v-if="mockMode" class="manage__footer">
-      <span class="manage__footer__hint">演示数据（监控侧未接入 template 后端 → /api/template）</span>
+      <span class="manage__footer__hint">
+        <ReIcon name="InfoFilled" class="manage__footer__hint-icon" />
+        演示数据（监控侧未接入 template 后端 → /api/template）
+      </span>
     </div>
 
     <!-- 详情 drawer -->
@@ -406,39 +474,168 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  gap: 12px;
+  gap: 16px;
   background: var(--el-bg-color);
+  animation: fadeIn 0.35s ease both;
 }
 
-.manage__search {
-  display: flex;
-  gap: 8px;
-  padding: 12px 16px;
-  background: var(--el-bg-color);
-  border-bottom: 1px solid var(--el-border-color-lighter);
-}
-
-.manage__table {
-  flex: 1;
-  overflow: auto;
-  border-radius: var(--el-border-radius-base);
-  border: 1px solid var(--el-border-color-lighter);
-}
-
-.manage__footer {
-  &__hint {
-    display: block;
-    text-align: center;
-    color: var(--el-text-color-secondary);
-    font-size: 12px;
-    line-height: 1.6;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 
+// ---------------- 统计面板 ----------------
+.manage__stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 0 4px;
+}
+
+.manage__stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px 14px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-base);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+  }
+
+  &__value {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+    line-height: 1;
+  }
+
+  &__label {
+    font-size: 13px;
+    color: var(--el-text-color-regular);
+  }
+
+  &--online &__value {
+    color: var(--el-color-success);
+  }
+
+  &--draft &__value {
+    color: var(--el-color-warning);
+  }
+
+  &--offline &__value {
+    color: var(--el-color-info);
+  }
+}
+
+// ---------------- 查询区 ----------------
+.manage__search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--el-fill-color-blank);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-base);
+  transition: border-color 0.25s ease;
+
+  &:hover {
+    border-color: var(--el-border-color-base);
+  }
+}
+
+// ---------------- 表 ----------------
+.manage__table {
+  max-height: 500px;
+  overflow: auto;
+
+  :deep(.el-table__header th) {
+    background: var(--el-fill-color);
+    color: var(--el-text-color-regular);
+    font-weight: 600;
+    font-size: 13px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+
+  :deep(.el-table__row) {
+    transition: background-color 0.2s ease;
+
+    td {
+      padding: 11px 0;
+      font-size: 13px;
+      color: var(--el-text-color-regular);
+      border-bottom: 1px solid var(--el-border-color-lighter);
+    }
+
+    &:hover {
+      background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
+    }
+  }
+}
+
+// ---------------- 卡片的 table-head ----------------
+.table-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 4px;
+}
+
+.table-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.table-count {
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+}
+
+// ---------------- 底部演示提示 ----------------
+.manage__footer {
+  &__hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: center;
+    color: var(--el-color-info);
+    background: var(--el-color-info-light-9);
+    border: 1px dashed var(--el-color-info-light-7);
+    border-radius: var(--el-border-radius-base);
+    font-size: 12px;
+    line-height: 1.6;
+    padding: 8px 14px;
+    transition: color 0.3s, background 0.3s, border-color 0.3s;
+
+    &:hover {
+      background: var(--el-color-info-light-8);
+    }
+  }
+
+  &__hint-icon {
+    font-size: 14px;
+  }
+}
+
+// ---------------- 详情 drawer ----------------
 .detail {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  padding: 4px 6px;
 }
 
 .detail__row {
