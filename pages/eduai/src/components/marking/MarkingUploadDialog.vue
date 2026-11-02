@@ -169,7 +169,7 @@ function start(): void {
         />
         <span class="mu-hint">任意卷无题号记录，手动给整卷总分</span>
       </el-form-item>
-      <el-form-item label="学生（可留空）">
+      <el-form-item label="学生">
         <el-select
           v-model="form.studentId"
           placeholder="可留空，匿名阅卷；也可直接输入学生 ID"
@@ -222,7 +222,6 @@ function start(): void {
             <el-button link type="danger" @click.stop="removeAt(i)">移除</el-button>
           </li>
         </ul>
-        <p v-else class="mu-empty">尚未选择图片</p>
       </el-form-item>
     </el-form>
     <template #footer>

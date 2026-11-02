@@ -18,6 +18,7 @@ import ReTable from "@repo/ui/re-table";
 import { clearRecords, deleteRecord, deleteRecords, fetchFields, getFlow, listFlows, pageRecords } from "../api/collectApi";
 import { COLLECT_ACTIONS } from "../constants/actionColumns";
 import { confirmAction, errText, useCollectView } from "../composables/useCollectView";
+import { loadStrokeData } from "../utils/strokeData";
 import HanziStrokeDialog from "../components/HanziStrokeDialog.vue";
 import type { RePageResult, ReTableColumn, ReTableLoadParams, ReTableSearchConfig } from "@repo/ui/re-table";
 import type { CollectFieldDef, CollectFlow, CollectRecord } from "../types/collect";
@@ -376,7 +377,7 @@ function showDetail(input: Record<string, unknown>): void {
       </template>
     </ReTable>
 
-    <HanziStrokeDialog v-model="strokeVisible" :character="strokeChar" />
+    <HanziStrokeDialog v-model="strokeVisible" :character="strokeChar" :loadStrokeData="loadStrokeData" />
 
     <ReDialog v-model="detailVisible" title="采集结果详情" width="720px" top="8vh" footer-hidden>
       <dl v-if="detail" class="collect-kv">

@@ -71,7 +71,6 @@ import type {
   MarkingFinishPreview,
   BatchMarkingResult,
   WrongSource,
-  MarkingDashboardStats,
 } from "./types";
 
 /** 解包 { code, msg, data }（兼容 AxiosResponse 双层包装）为业务负载 */
@@ -1097,11 +1096,6 @@ export const eduaiApi = {
     http()
       .post(`/v2/edu/marking/${taskId}/unfinish`)
       .then<import("./types").MarkingUndoResult>(unwrap),
-  /** 阅卷总览统计（当前账号归属范围内：任务状态 / 得分率分布 / 错题 TOP / 订正率） */
-  markingDashboardStats: () =>
-    http()
-      .get("/v2/edu/teacher/marking/dashboard-stats")
-      .then<MarkingDashboardStats>(unwrap),
 
   // ==================== 班级试卷布置（老师给班级组卷 -> 班内学生可见） ====================
   /** 老师把一张试卷布置给自己的某个班级（重复布置同一班同一卷走「复活」，不重复建行） */

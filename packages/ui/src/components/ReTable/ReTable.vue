@@ -7398,12 +7398,7 @@ const iconSelect = Select;
   align-items: center;
   gap: 2px;
 }
-/* 工具条左侧的页面主按钮（「发送消息」这类）与搜索区主按钮统一为胶囊形：
-   搜索按钮已是胶囊，同一行出现两种主按钮形状会显得没有规范。
-   只收主按钮，次要/文字按钮保持原有方角，避免整排都是胶囊而失去主次。 */
-.re-table__toolbar-left .el-button--primary {
-  border-radius: var(--rt-radius-full, 9999px);
-}
+
 /* 表内标签统一胶囊形：表格单元格里 el-tag 默认 4px 方角，与胶囊分页/胶囊按钮
    不属于同一套形状语言。 */
 .re-table .el-table .el-tag,

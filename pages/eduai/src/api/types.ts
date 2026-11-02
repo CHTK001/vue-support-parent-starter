@@ -509,32 +509,6 @@ export interface BatchMarkingResult {
   removedCount: number;
 }
 
-/** 阅卷总览统计 */
-export interface MarkingDashboardStats {
-  taskTotal: number;
-  taskStatus: NamedCount[];
-  teacherFinished: NamedCount[];
-  scoreRateDistribution: NamedCount[];
-  wrongTop: WrongTopRow[];
-  wrongTotal: number;
-  correctedCount: number;
-  correctedRate: number;
-}
-
-/** 命名计数项 */
-export interface NamedCount {
-  name: string;
-  count: number;
-}
-
-/** 错题 TOP 榜行 */
-export interface WrongTopRow {
-  questionId: number;
-  stem?: string | null;
-  subject?: string | null;
-  wrongCount: number;
-}
-
 /** 考试 */
 export interface Exam {
   examId: number;

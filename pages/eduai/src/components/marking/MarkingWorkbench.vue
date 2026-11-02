@@ -21,7 +21,6 @@ import { failToast } from '../../api/errorText';
 import { createPageLoader } from '../../api/pageLoader';
 import type {
   EduStudent,
-  MarkingDashboardStats,
   MarkingProgressVO,
   MarkingResultVO,
   PageResult,
@@ -171,7 +170,6 @@ const batchFinish = async () => {
     message.success(`批量完成 ${ok} 个任务${fail ? `，${fail} 个失败` : ''}`);
     selectedTasks.value = [];
     void markingTaskTableRef.value?.reload();
-    void loadDashboardStats();
   } catch (e) {
     failToast('批量完成失败', e);
   } finally {
@@ -197,7 +195,6 @@ const batchUnfinish = async () => {
     message.success(`批量撤销 ${ok} 个任务${fail ? `，${fail} 个失败` : ''}`);
     selectedTasks.value = [];
     void markingTaskTableRef.value?.reload();
-    void loadDashboardStats();
   } catch (e) {
     failToast('批量撤销失败', e);
   } finally {
@@ -251,22 +248,6 @@ const exportScoreCsv = async () => {
     failToast('导出成绩单失败', e);
   } finally {
     exportingScore.value = false;
-  }
-};
-
-/* ==================== 总览统计 ==================== */
-const dashboardStats = ref<MarkingDashboardStats | null>(null);
-const statsLoading = ref(false);
-
-const loadDashboardStats = async () => {
-  if (statsLoading.value) return;
-  statsLoading.value = true;
-  try {
-    dashboardStats.value = await eduaiApi.markingDashboardStats();
-  } catch {
-    dashboardStats.value = null;
-  } finally {
-    statsLoading.value = false;
   }
 };
 
@@ -753,7 +734,6 @@ const doSubmit = async () => {
 
 onMounted(() => {
   void loadPapers();
-  void loadDashboardStats();
 });
 onUnmounted(() => {
   stopPolling();
@@ -779,38 +759,7 @@ onUnmounted(() => {
         </span>
       </div>
     </el-card>
-    <!-- 阅卷总览统计：任务状态 / 完成状态 / 得分率分布 / 错题 TOP（当前账号归属范围） -->
-    <el-card v-if="dashboardStats" shadow="never" class="mt-3 mw-stats">
-      <div class="mw-stats__grid">
-        <div class="mw-stat">
-          <div class="mw-stat__label">任务总数</div>
-          <div class="mw-stat__value">{{ dashboardStats.taskTotal ?? 0 }}</div>
-        </div>
-        <div class="mw-stat">
-          <div class="mw-stat__label">已完成（老师）</div>
-          <div class="mw-stat__value">{{ (dashboardStats.teacherFinished ?? []).find((x) => x.name === '已完成')?.count ?? 0 }}</div>
-        </div>
-        <div class="mw-stat">
-          <div class="mw-stat__label">错题总数</div>
-          <div class="mw-stat__value">{{ dashboardStats.wrongTotal ?? 0 }}</div>
-        </div>
-        <div class="mw-stat">
-          <div class="mw-stat__label">订正率</div>
-          <div class="mw-stat__value">{{ Math.round((dashboardStats.correctedRate ?? 0) * 100) }}%</div>
-        </div>
-      </div>
-      <div class="mw-stats__bottom">
-        <div v-for="item in dashboardStats.taskStatus ?? []" :key="item.name" class="mw-mini-stat">
-          <span class="mw-mini-stat__name">{{ item.name }}</span>
-          <span class="mw-mini-stat__count">{{ item.count }}</span>
-        </div>
-        <span class="mw-stats__divider" />
-        <div v-for="item in dashboardStats.scoreRateDistribution ?? []" :key="item.name" class="mw-mini-stat">
-          <span class="mw-mini-stat__name">{{ item.name }}</span>
-          <span class="mw-mini-stat__count">{{ item.count }}</span>
-        </div>
-      </div>
-    </el-card>
+
     <!-- 实时进度（SSE）：上传后立即显示识别/解析/判分推进，终态自动收起 -->
     <el-card v-if="progress" shadow="never" class="mt-3 mw-progress">
       <div class="mw-row">
@@ -867,9 +816,6 @@ onUnmounted(() => {
         </el-button>
         <span class="mw-spacer" />
         <ReButton size="small" icon="Download" :loading="exportingScore" @click="exportScoreCsv">导出成绩单</ReButton>
-        <ReTag v-if="dashboardStats" size="small" effect="plain">
-          订正率 {{ Math.round((dashboardStats.correctedRate ?? 0) * 100) }}%（{{ dashboardStats.correctedCount ?? 0 }}/{{ dashboardStats.wrongTotal ?? 0 }}）
-        </ReTag>
       </div>
       <MarkingTaskTable
         ref="markingTaskTableRef"
@@ -1061,61 +1007,6 @@ onUnmounted(() => {
   font-size: 12px;
   color: var(--el-color-warning);
   margin-bottom: 8px;
-}
-/* 阅卷总览统计卡 */
-.mw-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.mw-stats__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 10px;
-}
-.mw-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-bg-color));
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 14%, transparent);
-}
-.mw-stat__label {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-.mw-stat__value {
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--el-color-primary);
-  font-variant-numeric: tabular-nums;
-}
-.mw-stats__bottom {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
-}
-.mw-mini-stat {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  font-size: 13px;
-}
-.mw-mini-stat__name {
-  color: var(--el-text-color-secondary);
-}
-.mw-mini-stat__count {
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  font-variant-numeric: tabular-nums;
-}
-.mw-stats__divider {
-  width: 1px;
-  height: 16px;
-  background: var(--el-border-color);
 }
 /* 批量操作条 */
 .mw-batch-bar {
