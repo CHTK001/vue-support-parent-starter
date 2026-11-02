@@ -157,6 +157,53 @@ export const systemRoutes: RouteConfigsTable[] = [
     },
   },
   {
+    // 登录日志 / 系统日志 / 文件管理：有视图（UserLogManage / SysLogManage /
+    // FileStorageManage）和 registerMenuViewModules 键，但不在系统菜单里，
+    // 补上静态路由 + 菜单，否则点击（或直接访问）全部 404 兜底页
+    path: "/manage/log/login",
+    name: "SystemUserLog",
+    component: () => import("../views/UserLogManage.vue"),
+    meta: {
+      title: "登录日志",
+      icon: "Login",
+      showLink: true,
+      keepAlive: true,
+    },
+  },
+  {
+    path: "/manage/syslog",
+    name: "SystemSysLog",
+    component: () => import("../views/SysLogManage.vue"),
+    meta: {
+      title: "系统日志",
+      icon: "Document",
+      showLink: true,
+      keepAlive: true,
+    },
+  },
+  {
+    path: "/manage/filestorage",
+    name: "SystemFileStorage",
+    component: () => import("@pages/filesystem/src/views/FileStorageManage.vue"),
+    meta: {
+      title: "文件管理",
+      icon: "Folder",
+      showLink: true,
+      keepAlive: true,
+    },
+  },
+  {
+    path: "/monitor/online",
+    name: "MonitorOnline",
+    component: () => import("../views/OnlineUserManage.vue"),
+    meta: {
+      title: "在线用户",
+      icon: "User",
+      showLink: true,
+      keepAlive: true,
+    },
+  },
+  {
     path: "/monitor/redis",
     name: "MonitorRedis",
     component: () => import("../views/monitor/RedisMonitor.vue"),
@@ -237,6 +284,9 @@ export const systemMenus: StaticMenuItem[] = [
       { path: "/manage/feedback", name: "SystemFeedback", meta: { title: "反馈管理", icon: "ChatLineSquare", isVisible: "1" } },
       { path: "/manage/post", name: "SystemPost", meta: { title: "岗位管理", icon: "Postcard", isVisible: "1" } },
       { path: "/manage/message", name: "SystemMessage", meta: { title: "消息管理", icon: "Message", isVisible: "1" } },
+      { path: "/manage/log/login", name: "SystemUserLog", meta: { title: "登录日志", icon: "Login", isVisible: "1" } },
+      { path: "/manage/syslog", name: "SystemSysLog", meta: { title: "系统日志", icon: "Document", isVisible: "1" } },
+      { path: "/manage/filestorage", name: "SystemFileStorage", meta: { title: "文件管理", icon: "Folder", isVisible: "1" } },
     ],
   },
   {
@@ -249,6 +299,7 @@ export const systemMenus: StaticMenuItem[] = [
       { path: "/monitor/redis", name: "MonitorRedis", meta: { title: "Redis 监控", icon: "Coin", isVisible: "1" } },
       { path: "/monitor/cache", name: "MonitorCache", meta: { title: "缓存监控", icon: "Histogram", isVisible: "1" } },
       { path: "/monitor/policy", name: "MonitorPolicy", meta: { title: "策略控制台", icon: "Setting", isVisible: "1" } },
+      { path: "/monitor/online", name: "MonitorOnline", meta: { title: "在线用户", icon: "User", isVisible: "1" } },
       // 系统指标：与「监控大屏」同组，展开后是 APM 观测台的全部页面
       // （总览看板 / 调用链路 / 依赖拓扑 / 资源泄漏 / 服务 / JVM / 日志 / 告警…）。
       // 菜单项同样来自 @pages/hotsport，与路由一一对应。
