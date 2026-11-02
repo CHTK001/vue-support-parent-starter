@@ -384,9 +384,9 @@ defineExpose({ expression, emitApply });
         </div>
 
         <div class="re-cron-cal__time">
-          <ReInputNumber v-model="hour" :min="0" :max="23" :controls="false" aria-label="小时" />
+          <ReInputNumber class="re-cron-cal__num" v-model="hour" :min="0" :max="23" :controls="false" aria-label="小时" />
           <span class="re-cron-cal__time-colon">:</span>
-          <ReInputNumber v-model="minute" :min="0" :max="59" :controls="false" aria-label="分钟" />
+          <ReInputNumber class="re-cron-cal__num" v-model="minute" :min="0" :max="59" :controls="false" aria-label="分钟" />
         </div>
 
         <p class="re-cron-cal__hint">按 {{ cadenceLabel }} 执行</p>
@@ -635,13 +635,36 @@ defineExpose({ expression, emitApply });
   gap: 2px;
 }
 
-/* 独占一行后有富余宽度，输入框从 44px 放回 62px，打两位时分不用盯着看 */
+/*
+ * 时 / 分输入框的宽度约束。
+ *
+ * ReInputNumber 默认渲染 Modern 布局（div.rm-number + 原生 input.rm-number__input），
+ * 不再是 el-input-number：原先只写了 :deep(.el-input__inner) { width: 62px }，
+ * 对 Modern 布局是死代码，于是组件自带的 min-width: 96px 直接生效。两个框加起来
+ * 近 200px，把「标题 + 表盘 + 时分 + 提示」这一行撑到溢出——提示被挤成一条竖线，
+ * 看上去就是「有个输入框大得离谱」。这里同时约束两种布局的外壳与输入，
+ * 无论走哪个 layout 都不会再失控。
+ */
+.re-cron-cal__time :deep(.rm-number) {
+  width: 56px;
+  min-width: 56px;
+  height: 30px;
+  padding: 0 4px;
+}
+
+.re-cron-cal__time :deep(.rm-number__input),
 .re-cron-cal__time :deep(.el-input__inner) {
-  width: 62px;
+  width: 100%;
   text-align: center;
-  font-family: var(--cc-font-num);
-  font-size: 16px;
+  font-family: var(--cc-font-num, ui-monospace, "Cascadia Mono", "Consolas", monospace);
+  font-size: 15px;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 兜底：若某处显式指定 layout="default"（原生 el-input-number），外壳也要收窄 */
+.re-cron-cal__time :deep(.el-input-number) {
+  width: 56px;
 }
 
 .re-cron-cal__time-colon {

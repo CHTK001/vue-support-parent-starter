@@ -581,20 +581,53 @@ const form = reactive<JobSave & {
 });
 
 /**
- * 调度配置缺失的内联错误提示。
+ * 手写卡片表单的字段错误：key 与模板里的 data-field 一一对应。
  *
- * toast 会自己消失，而「调度类型选了 CRON 却没填 cron」要求用户回到对应字段改，
- * 所以在字段下面额外留一行红字，并把视图滚到那一项 —— 只弹 toast 时用户常常
- * 不知道是哪一项没填、还要自己滚回去找。
+ * 新建/编辑任务的表单不是 el-form（没有 rules 可挂），必填只能自己算：
+ * 提交时逐项判定写进这里，失败项在字段下面留一行红字，并把视图滚到第一处。
+ * 只弹 toast 的问题是它会自己消失，用户回头就不知道是哪一项没填——
+ * 「调度类型选了 CRON 却没填 cron」正是这样被漏掉的。
  */
-const scheduleError = ref("");
+const formErrors = reactive<Record<string, string>>({});
 
-/** 调度配置字段容器：校验失败时滚到它 */
-const scheduleFieldRef = ref<HTMLElement | null>(null);
+/** 卡片表单根节点：校验失败时在里面按 data-field 找到第一处错误并滚过去 */
+const taskFormRef = ref<HTMLElement | null>(null);
+
+/** 清掉全部字段错误（弹层重开 / 切换执行类型时用） */
+function clearFieldErrors(): void {
+  Object.keys(formErrors).forEach((key) => delete formErrors[key]);
+}
+
+/** 把视图滚到第一处错误：红字可能在视口外，用户只会看到 toast 自己消失 */
+function scrollToFirstError(): void {
+  void nextTick(() => {
+    const key = Object.keys(formErrors)[0];
+    if (!key) {
+      return;
+    }
+    taskFormRef.value
+      ?.querySelector(`[data-field="${key}"]`)
+      ?.scrollIntoView({ block: "center", behavior: "smooth" });
+  });
+}
 
 /** 用户一动调度类型或调度配置就撤掉红字，避免「已经改了还标红」 */
 watch([() => form.scheduleType, () => form.scheduleTime], () => {
-  scheduleError.value = "";
+  delete formErrors.scheduleTime;
+});
+
+/** 其余必填项同理：改了就撤掉自己的红字，不牵连别的字段 */
+watch(() => form.jobKey, () => {
+  delete formErrors.jobKey;
+});
+watch(() => form.jobName, () => {
+  delete formErrors.jobName;
+});
+watch(() => form.glueSource, () => {
+  delete formErrors.glueSource;
+});
+watch([() => form.alarmEmail, () => form.alarmType], () => {
+  delete formErrors.alarmEmail;
 });
 
 const isScriptForm = computed(() => Boolean(form.glueType) && form.glueType !== GLUE_BEAN);
@@ -710,6 +743,7 @@ const formModel = form as unknown as Record<string, unknown>;
 
 /** 弹层里的表单是复用实例，重开时把上一次的红色报错一起清掉 */
 function clearFormValidate(): void {
+  clearFieldErrors();
   void nextTick(() => formRef.value?.clearValidate());
 }
 
@@ -728,6 +762,7 @@ function onCronChange(expression: string, valid?: boolean): void {
 
 /** 执行类型/脚本正文变更后清掉上一次的红色校验态：避免"已经填了还标红" */
 function clearFormErrors(): void {
+  clearFieldErrors();
   void nextTick(() => formRef.value?.clearValidate());
 }
 
@@ -984,15 +1019,17 @@ async function submit(): Promise<void> {
   if (isScriptTask && formMode.value !== "edit") {
     jobKey = "";
   }
-  // 必填不再自己弹 toast：el-form 规则会在字段下面标红，只在整表通过后才继续
+  // 流程调度走 ReForm，必填交给 el-form 规则；下面的卡片表单是手写的，规则挂不上，
+  // 所以先清空上一次的字段错误，再把手写表单的必填一次性算齐（不要遇错就 return，
+  // 否则用户改完第一处才发现第二处也空着）。
+  clearFieldErrors();
   if ((await formRef.value?.validate()) === false) {
     return;
   }
   // 任务名称两种模式都必填（列表与作业日志按它展示）
   const jobName = String(form.jobName ?? "").trim();
   if (!jobName) {
-    msgError("任务名称不能为空", true, FORM_MSG_DURATION);
-    return;
+    formErrors.jobName = "任务名称不能为空";
   }
   if (isScriptTask) {
     // 脚本任务不需要用户填任务键：编辑保持原标识；新建留空，由后端用 IdUtils 生成全局唯一标识
@@ -1000,38 +1037,33 @@ async function submit(): Promise<void> {
       ? String(form.originJobKey).trim()
       : "";
   } else if (!jobKey) {
-    msgError("请选择任务", true, FORM_MSG_DURATION);
-    return;
+    formErrors.jobKey = "请从已注册任务中选择一个执行对象";
   }
   if (form.scheduleType === "CRON" && cronBroken.value) {
-    msgError("cron 表达式不合法，请检查格式（6 段，例如 0 0/30 * * * ?）", true, FORM_MSG_DURATION);
-    return;
-  }
-  if (form.scheduleType !== "NONE" && !String(form.scheduleTime ?? "").trim()) {
+    formErrors.scheduleTime = "cron 表达式不合法，请检查格式（6 段，例如 0 0/30 * * * ?）";
+  } else if (form.scheduleType !== "NONE" && !String(form.scheduleTime ?? "").trim()) {
     // 提示要同时说清「哪个字段」和「另一条路怎么走」：默认调度类型就是 CRON，
     // 不写清字段名和替代选项时，用户只看到一句「必须给调度配置」会不知道从哪改起。
-    // 除了 toast，还在字段下面留红字并把视图滚过去。
-    scheduleError.value = `调度类型选了「${SCHEDULE_NAME[form.scheduleType] ?? form.scheduleType}」，`
-      + `请填写：${SCHEDULE_TIME_HINT[form.scheduleType] ?? "调度配置"}`;
-    void nextTick(() => {
-      scheduleFieldRef.value?.scrollIntoView({ block: "center", behavior: "smooth" });
-    });
-    msgError(`${scheduleError.value}；不需要自动调度请把调度类型改成「不自动调度」`,
-      true, FORM_MSG_DURATION);
-    return;
+    formErrors.scheduleTime = `调度类型选了「${SCHEDULE_NAME[form.scheduleType] ?? form.scheduleType}」，`
+      + `请填写：${SCHEDULE_TIME_HINT[form.scheduleType] ?? "调度配置"}；不需要自动调度请把调度类型改成「不自动调度」`;
   }
-  scheduleError.value = "";
   if (isScriptTask && !String(form.glueSource ?? "").trim()) {
-    msgError("代码片段任务必须填写片段正文", true, FORM_MSG_DURATION);
-    return;
-  }
-  if (isScriptTask && String(form.glueSource ?? "").length > GLUE_SOURCE_LIMIT) {
-    msgError(`片段正文过长（上限 ${GLUE_SOURCE_LIMIT} 字符，与台账列 sys_job_glue_source 同宽）`,
-      true, FORM_MSG_DURATION);
-    return;
+    formErrors.glueSource = "代码片段任务必须填写正文";
+  } else if (isScriptTask && String(form.glueSource ?? "").length > GLUE_SOURCE_LIMIT) {
+    formErrors.glueSource = `正文过长（上限 ${GLUE_SOURCE_LIMIT} 字符，与台账列 sys_job_glue_source 同宽）`;
   }
   if (String(form.alarmType ?? "").trim() && !String(form.alarmEmail ?? "").trim()) {
-    msgError("选择了告警类型就必须填写告警目标，否则任务失败时不会告警", true, FORM_MSG_DURATION);
+    formErrors.alarmEmail = "选择了告警类型就必须填写告警目标，否则任务失败时不会告警";
+  }
+  // 有错就只弹一条「还有几项待补」，逐项红字留在字段下面，并把视图滚到第一处
+  const errorCount = Object.keys(formErrors).length;
+  if (errorCount > 0) {
+    msgError(
+      errorCount === 1 ? Object.values(formErrors)[0] : `还有 ${errorCount} 项必填未完成，已在对应字段下标红`,
+      true,
+      FORM_MSG_DURATION,
+    );
+    scrollToFirstError();
     return;
   }
   const originJobKey = formMode.value === "edit" ? String(form.originJobKey ?? "").trim() : "";
@@ -1391,35 +1423,52 @@ watch(formVisible, (visible) => {
         label-position="top"
         size="default"
       />
-      <div v-else class="task-form">
-        <div class="task-form__type">
-          <button
-            type="button"
-            class="task-form__type-card"
-            :class="{ 'is-active': taskKind === 'bean' }"
-            @click="setTaskKind('bean')"
-          >
-            <strong>对象</strong>
-            <span>使用已注册的执行器对象（Bean）执行，从任务列表中选择</span>
-          </button>
-          <button
-            type="button"
-            class="task-form__type-card"
-            :class="{ 'is-active': taskKind === 'script' }"
-            @click="setTaskKind('script')"
-          >
-            <strong>脚本</strong>
-            <span>写完整文件（完整 Java 类 / 完整 Groovy 脚本），保存时后端预编译校验</span>
-          </button>
-          <button
-            type="button"
-            class="task-form__type-card"
-            :class="{ 'is-active': taskKind === 'fragment' }"
-            @click="setTaskKind('fragment')"
-          >
-            <strong>片段</strong>
-            <span>只写 @Job 方法的方法体，类名与入口由后端合成</span>
-          </button>
+      <div v-else ref="taskFormRef" class="task-form">
+        <div class="task-form__type-block">
+          <div class="task-form__type-title">
+            执行类型<i class="task-form__req" aria-hidden="true">*</i>
+          </div>
+          <div class="task-form__type">
+            <button
+              type="button"
+              class="task-form__type-card"
+              :class="{ 'is-active': taskKind === 'bean' }"
+              :aria-pressed="taskKind === 'bean'"
+              @click="setTaskKind('bean')"
+            >
+              <span class="task-form__type-head">
+                <ReIcon name="Box" :size="16" />
+                <strong>对象</strong>
+              </span>
+              <span>使用已注册的执行器对象（Bean）执行，从任务列表中选择</span>
+            </button>
+            <button
+              type="button"
+              class="task-form__type-card"
+              :class="{ 'is-active': taskKind === 'script' }"
+              :aria-pressed="taskKind === 'script'"
+              @click="setTaskKind('script')"
+            >
+              <span class="task-form__type-head">
+                <ReIcon name="Document" :size="16" />
+                <strong>脚本</strong>
+              </span>
+              <span>写完整文件（完整 Java 类 / 完整 Groovy 脚本），保存时后端预编译校验</span>
+            </button>
+            <button
+              type="button"
+              class="task-form__type-card"
+              :class="{ 'is-active': taskKind === 'fragment' }"
+              :aria-pressed="taskKind === 'fragment'"
+              @click="setTaskKind('fragment')"
+            >
+              <span class="task-form__type-head">
+                <ReIcon name="MagicStick" :size="16" />
+                <strong>片段</strong>
+              </span>
+              <span>只写 @Job 方法的方法体，类名与入口由后端合成</span>
+            </button>
+          </div>
         </div>
 
         <label v-if="taskKind !== 'bean'" class="task-form__engine">
@@ -1438,8 +1487,13 @@ watch(formVisible, (visible) => {
         <section class="task-form__section">
           <h3>基本信息</h3>
           <div class="task-form__grid">
-            <label v-if="!isScriptForm" class="task-form__field">
-              <span>选择任务</span>
+            <label
+              v-if="!isScriptForm"
+              class="task-form__field"
+              data-field="jobKey"
+              :class="{ 'is-error': formErrors.jobKey }"
+            >
+              <span>选择任务<i class="task-form__req" aria-hidden="true">*</i></span>
               <ReSelect
                 v-model="form.jobKey"
                 :data="executorCardOptions"
@@ -1448,7 +1502,8 @@ watch(formVisible, (visible) => {
                 :clearable="false"
                 placeholder="从已注册任务里选择"
               />
-              <em class="task-form__help">〔@Job〕/〔注入〕为本节点处理器，〔执行器〕为在线执行器上报的远端处理器</em>
+              <em v-if="formErrors.jobKey" class="task-form__error">{{ formErrors.jobKey }}</em>
+              <em v-else class="task-form__help">〔@Job〕/〔注入〕为本节点处理器，〔执行器〕为在线执行器上报的远端处理器</em>
             </label>
             <!-- 任务标识新建与编辑都占同一栏：新建时留空由后端生成，编辑时只读回显，
                  两处布局一致，不必因为多一个字段就让两张表单长得不一样 -->
@@ -1465,10 +1520,15 @@ watch(formVisible, (visible) => {
                   : "代码片段任务标识由系统生成，创建后保持不变" }}
               </em>
             </label>
-            <label class="task-form__field">
-              <span>任务名称</span>
+            <label
+              class="task-form__field"
+              data-field="jobName"
+              :class="{ 'is-error': formErrors.jobName }"
+            >
+              <span>任务名称<i class="task-form__req" aria-hidden="true">*</i></span>
               <ReInput v-model="form.jobName" maxlength="64" placeholder="请输入任务名称" />
-              <em v-if="isScriptForm" class="task-form__help">列表与作业日志的展示名；任务标识由系统自动生成</em>
+              <em v-if="formErrors.jobName" class="task-form__error">{{ formErrors.jobName }}</em>
+              <em v-else-if="isScriptForm" class="task-form__help">列表与作业日志的展示名；任务标识由系统自动生成</em>
             </label>
             <label class="task-form__field">
               <span>分组</span>
@@ -1490,8 +1550,13 @@ watch(formVisible, (visible) => {
           </div>
         </section>
 
-        <section v-if="isScriptForm" class="task-form__section">
-          <h3>{{ glueSourceTitle }}</h3>
+        <section
+          v-if="isScriptForm"
+          class="task-form__section"
+          data-field="glueSource"
+          :class="{ 'is-error': formErrors.glueSource }"
+        >
+          <h3>{{ glueSourceTitle }}<i class="task-form__req" aria-hidden="true">*</i></h3>
           <ScriptSourceField
             v-model="form.glueSource"
             :lang="glueLang"
@@ -1499,13 +1564,14 @@ watch(formVisible, (visible) => {
             :placeholder="glueSourcePlaceholder"
             :description="glueSourceDesc"
           />
+          <em v-if="formErrors.glueSource" class="task-form__error">{{ formErrors.glueSource }}</em>
         </section>
 
         <section class="task-form__section">
           <h3>调度配置</h3>
           <div class="task-form__grid task-form__grid--schedule">
             <label class="task-form__field">
-              <span>调度类型</span>
+              <span>调度类型<i class="task-form__req" aria-hidden="true">*</i></span>
               <ReSelect v-model="form.scheduleType" :data="SCHEDULE_OPTIONS" />
             </label>
             <div class="task-form__switch-field">
@@ -1515,28 +1581,29 @@ watch(formVisible, (visible) => {
             </div>
             <label
               v-if="form.scheduleType === 'CRON'"
-              ref="scheduleFieldRef"
+              data-field="scheduleTime"
               class="task-form__field task-form__field--wide"
-              :class="{ 'is-error': scheduleError }"
+              :class="{ 'is-error': formErrors.scheduleTime }"
             >
-              <span>cron 表达式</span>
+              <span>cron 表达式<i class="task-form__req" aria-hidden="true">*</i></span>
               <ReCron
                 v-model="form.scheduleTime"
                 :preview-count="5"
                 placeholder="6 段表达式，例如 0 0/30 * * * ?"
                 @change="onCronChange"
               />
-              <em v-if="scheduleError" class="task-form__error">{{ scheduleError }}</em>
+              <em v-if="formErrors.scheduleTime" class="task-form__error">{{ formErrors.scheduleTime }}</em>
+              <em v-else class="task-form__help">保存前会按 6 段规则校验，也可在「日历」模式里按天点选</em>
             </label>
             <label
               v-else-if="form.scheduleType !== 'NONE'"
-              ref="scheduleFieldRef"
+              data-field="scheduleTime"
               class="task-form__field task-form__field--wide"
-              :class="{ 'is-error': scheduleError }"
+              :class="{ 'is-error': formErrors.scheduleTime }"
             >
-              <span>调度配置</span>
+              <span>调度配置<i class="task-form__req" aria-hidden="true">*</i></span>
               <ReInput v-model="form.scheduleTime" placeholder="毫秒数，例如 60000" />
-              <em v-if="scheduleError" class="task-form__error">{{ scheduleError }}</em>
+              <em v-if="formErrors.scheduleTime" class="task-form__error">{{ formErrors.scheduleTime }}</em>
               <em v-else class="task-form__help">固定频率 / 固定延迟填毫秒间隔</em>
             </label>
             <label class="task-form__field task-form__field--wide">
@@ -1595,8 +1662,14 @@ watch(formVisible, (visible) => {
               <ReSelect v-model="form.alarmType" :data="ALARM_TYPE_OPTIONS" />
               <em class="task-form__help">宿主按类型路由到对应实现，未接入只写运行日志</em>
             </label>
-            <label class="task-form__field task-form__field--wide">
-              <span>告警目标</span>
+            <label
+              class="task-form__field task-form__field--wide"
+              data-field="alarmEmail"
+              :class="{ 'is-error': formErrors.alarmEmail }"
+            >
+              <span>
+                告警目标<i v-if="form.alarmType" class="task-form__req" aria-hidden="true">*</i>
+              </span>
               <ReInput
                 v-model="form.alarmEmail"
                 maxlength="255"
@@ -1607,6 +1680,10 @@ watch(formVisible, (visible) => {
                     ? '失败时通知的邮箱，多个用逗号分隔'
                     : '请先选择告警类型'"
               />
+              <em v-if="formErrors.alarmEmail" class="task-form__error">{{ formErrors.alarmEmail }}</em>
+              <em v-else-if="form.alarmType" class="task-form__help">
+                选了告警类型就必须给目标，否则任务失败时无接收方，只会在运行日志里留一行记录
+              </em>
             </label>
             <label class="task-form__field task-form__field--wide">
               <span>说明</span>
@@ -1749,6 +1826,32 @@ watch(formVisible, (visible) => {
   gap: 14px;
 }
 
+.task-form__type-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 类型卡片的组标题：与字段标题同档，必填星号跟字段共用一套口径 */
+.task-form__type-title {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-regular);
+}
+
+/*
+ * 必填标记：手写表单没有 el-form 的 is-required 星号，这里自己补一个，
+ * 与 ReForm Modern 布局的 ::before 同色同尺寸，两套表单看起来一致。
+ */
+.task-form__req {
+  margin-left: 2px;
+  color: var(--el-color-danger);
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 1;
+}
+
 .task-form__type {
   display: grid;
   /*
@@ -1795,11 +1898,36 @@ watch(formVisible, (visible) => {
   line-height: 1.4;
 }
 
+/*
+ * 卡片标题行：图标 + 文字横排。
+ *
+ * 图标取 element-plus 里语义最接近的三个（对象=Box，脚本=Document，片段=MagicStick，
+ * 后者对应「类名与方法签名由后端合成」）；尺寸锁 16px 并用 currentColor，
+ * 未选中时跟标题同灰、选中后跟主色一起变，不额外引入第二种状态色。
+ */
+.task-form__type-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--el-text-color-regular);
+}
+
+.task-form__type-card.is-active .task-form__type-head {
+  color: var(--el-color-primary);
+}
+
+.task-form__type-head strong {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 .task-form__type-card.is-active strong {
   color: var(--el-color-primary);
 }
 
-.task-form__type-card > span {
+/* 说明文字：排除标题行，否则标题行会被当成 12px 的次要文案 */
+.task-form__type-card > span:not(.task-form__type-head) {
   color: var(--el-text-color-secondary);
   font-size: 12px;
   line-height: 1.5;
