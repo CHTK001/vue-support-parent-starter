@@ -2,8 +2,10 @@
 /**
  * MarkingDetailView —— 阅卷详情页（独立路由 /edu/marking/detail?taskId=...）
  *
- * <p>阅卷记录行「查看」的落点：在管理后台顶部标签栏新开一页，
- * 记录列表与检索状态都留在上一页，返回即回到列表。</p>
+ * <p>阅卷记录行「查看」的落点：由 MarkingWorkbench 通过 window.open 开新
+ * 浏览器标签页。详情页与工作台的状态完全隔离，关详情时只关自己
+ * （back() 有 window.opener 分支），不回到工作台；开在其他标签页时
+ * 也不会洗掉工作台列表的检索/筛选状态。返回即回到列表。</p>
  *
  * <p>页面本体复用共享的 {@link MarkingResultPanel}（汇总 + 原始试卷 /
  * 版面解析一体），与 MarkingWorkbench 内嵌的详情是同一个组件，

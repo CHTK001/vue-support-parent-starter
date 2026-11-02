@@ -266,11 +266,13 @@ const loadPapers = async () => {
  * 进入即重挂载结构视图拿最新数据；未判完的任务顺带挂上 SSE 实时进度。
  */
 /**
- * 记录行「查看」：跳转独立详情页 /edu/marking/detail?taskId=...
+ * 记录行「查看」：用独立浏览器页签打开详情页 /edu/marking/detail?taskId=...
  *
- * <p>详情不再是工作台内的一个视图状态，而是标签栏里的独立一页：
- * 记录列表与检索状态都留在上一页，老师端/管理端看到的版式也统一。
- * 详情页自身负责取结果与结构，本页只负责把用户送到那里。</p>
+ * <p>不走站内路由跳转（router.push）：详情页开在新标签页后与工作台完全隔离，
+ * 关详情时只关自己（MarkingDetailView.back() 有 window.opener 分支），
+ * 不会回到工作台时再提示未保存或把列表状态洗掉。</p>
+ *
+ * <p>本页只负责把用户送到那里——URL 不带 hash、不含状态，详情页自己取结果与结构。</p>
  */
 const onView = (row: TeacherMarkingTask) => {
   const target = (row.markingTaskTaskId ?? '').trim();
@@ -374,17 +376,18 @@ const onQuery = () => {
 };
 
 /**
- * 打开「阅卷详情」站内标签页（专注看一份试卷）。
+ * 用浏览器新标签页打开「阅卷详情」（专注看一份试卷）。
  *
- * <p>为什么不再用 {@code window.open}：新开浏览器标签要重新 bootstrap 整个 SPA，
- * 实测经网关要 4.3s，比详情数据本身（2.9s）还慢。改成站内标签页后，
- * 应用已经跑起来了，只剩数据请求，首屏从 ~7s 降到 1s 级。</p>
+ * <p>URL 为 /edu/marking/detail?taskId=... 的独立标签页。详情页关闭时
+ * {@link MarkingDetailView.back()} 会先检查 window.opener：存在则关掉自己（独立页签），
+ * 不存在则回到工作台列表。</p>
  *
- * <p>标签按 path 去重，换卷子只改 query —— 连点十份卷子也只有一个「阅卷详情」标签，
- * 组件内部 watch taskId 重新加载，不会堆一屏标签。</p>
+ * <p>注意拦截：浏览器可能拦截 window.open，所以弹窗后立即提示用户放行权限。</p>
  */
 const openDetailWindow = (taskId: string) => {
-  void router.push({ path: '/edu/marking/detail', query: { taskId } });
+  const url = `${window.location.origin}/edu/marking/detail?taskId=${encodeURIComponent(taskId)}`;
+  const win = window.open(url, '_blank');
+  if (!win) message.warning('浏览器拦截了新窗口，请允许弹窗后重试');
 };
 
 /* ==================== 实时进度（SSE） ==================== */

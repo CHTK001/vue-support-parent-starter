@@ -204,9 +204,10 @@ export const eduaiRoutes: RouteConfigsTable[] = [
   // ==================== 隐藏路由（不进菜单，仍可访问） ====================
   {
     // 阅卷详情：入口在阅卷记录行「查看」（/edu/marking）。
-    // 走站内标签页（与 /eduai/paper-compose 同一套），不新开浏览器标签：
-    // 新开标签要重新 bootstrap 整个 SPA，实测经网关 4.3s，比数据本身还慢。
-    // 标签页按 path 去重，换卷子只改 query，同一个标签复用。
+    // 由 window.open 开新浏览器标签页进入（URL: /edu/marking/detail?taskId=...），
+    // 详情与工作台的状态完全隔离：关详情只关自己（MarkingDetailView.back()
+    // 检查 window.opener），不回到工作台；开在其他标签页时也不会洗掉列表的检索状态。
+    // 老师端/管理端看到的是同一个详情页壳子。
     // query: taskId（任务号，必填）
     path: "/edu/marking/detail",
     name: "EduMarkingDetail",
