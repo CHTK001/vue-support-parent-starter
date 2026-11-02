@@ -15,7 +15,7 @@
           :skeleton-height="skeletonHeight"
           @timeout="onLoaderTimeout"
         />
-        <div v-else class="re-async__skeleton h-full" :style="{ height: skeletonHeight }">
+        <div v-else class="re-async__skeleton h-full" :style="{ minHeight: skeletonHeight }">
           <div class="re-async__bar" />
           <div class="re-async__bar" />
           <div class="re-async__bar" />
@@ -180,6 +180,13 @@ watch(() => props.loader, load);
   flex-direction: column;
   gap: 12px;
   padding: 20px 16px;
+  /*
+    骨架高度（skeletonHeight）是最小值：层高可给就吃满（fillHeight / 父级 h-full），
+    给不了也只会下面空一段，不会把加载区压成固定的 240px。
+    骨架条组居中对齐，避免高大的容器里条组歪在左上角。
+  */
+  justify-content: center;
+  box-sizing: border-box;
 }
 .re-async__bar {
   height: 22px;
