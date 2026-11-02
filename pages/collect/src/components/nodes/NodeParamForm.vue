@@ -335,7 +335,7 @@ const linkFormat = computed({
     <div v-if="meta.shape === 'entry'" class="field field-wide">
       <div class="field-label">
         {{ ENTRY_FORMAT_PARAM.label }}
-        <el-tooltip :content="ENTRY_FORMAT_PARAM.tip" placement="top" :show-after="200" :teleported="true">
+        <el-tooltip :content="ENTRY_FORMAT_PARAM.tip ?? undefined" placement="top" :show-after="200" :teleported="true">
           <span class="label-tip"><ReIcon name="InfoFilled" :size="13" /></span>
         </el-tooltip>
       </div>
@@ -351,7 +351,7 @@ const linkFormat = computed({
     <div v-else-if="meta.shape === 'link'" class="field field-wide">
       <div class="field-label">
         {{ LINK_FORMAT_PARAM.label }}
-        <el-tooltip :content="LINK_FORMAT_PARAM.tip" placement="top" :show-after="200" :teleported="true">
+        <el-tooltip :content="LINK_FORMAT_PARAM.tip ?? undefined" placement="top" :show-after="200" :teleported="true">
           <span class="label-tip"><ReIcon name="InfoFilled" :size="13" /></span>
         </el-tooltip>
       </div>

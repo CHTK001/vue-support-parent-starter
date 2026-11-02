@@ -21,5 +21,8 @@
     "@repo/utils": "workspace:*",
     "@repo/ui": "workspace:*",
     "@repo/re-map": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
   }
 }

@@ -24,5 +24,8 @@
     "@repo/pinia": "workspace:*",
     "@relation-graph/vue3": "^3.0.13",
     "echarts": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
   }
 }

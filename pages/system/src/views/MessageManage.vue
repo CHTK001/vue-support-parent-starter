@@ -6,9 +6,13 @@
  * - 消息记录：渠道过滤 + 分页 + 发送 + 撤回 + 删除 + 详情（送达/已读回执）。
  * - 消息模板：CRUD + 渠道(EMAIL/SMS) + TEXT/HTML/RICHTEXT + 预览(左右布局动态表单) + 按角色编码发送 + 同步运营商。
  * - 发送日志：推送记录 + 详情 + 按日期清理。
+ *
+ * 短信 / 邮件模板的**唯一编辑入口就是本页的「消息模板」页签**。
+ * 原先 pages/message 的 TemplateManage.vue 打同一组 `/v2/message/template/*` 接口却另做一套表单，
+ * 已从其路由与菜单注册里下线；统一模板库（pages/template）是 provider 维度的只读视图 + 打印/预览。
  */
 import { message } from "@repo/core";
-import { computed, onMounted, ref, watch, nextTick, defineAsyncComponent } from "vue";
+import { computed, onMounted, ref, watch, nextTick, defineAsyncComponent, getCurrentInstance } from "vue";
 import { ElMessageBox } from "element-plus";
 import ReTab from "@repo/ui/re-tab";
 /** 耗时着色文本：绿 / 黄 / 红标识推送快慢（同系统日志页） */
@@ -186,6 +190,27 @@ const mainTabs: ReTabItem[] = [
     { name: "template", label: "消息模板", icon: "Document" },
     { name: "log", label: "发送日志", icon: "Tickets" },
   ];
+/**
+ * 支持从别处深链到某个页签：`/manage/message?tab=template`。
+ *
+ * 消息提供商页（pages/message/ProviderManage.vue）的「模板管理」按钮原本跳自己模块的
+ * 模板页，那套重复 CRUD 下线后改为跳到这里，若不认 tab 参数就会落在「消息记录」上，
+ * 让用户以为链接失效。非法值忽略，保持默认页签。
+ *
+ * 用 getCurrentInstance 而不是 useRoute：本页在单测里不带 router 挂载，
+ * useRoute() 在无 router 上下文时会返回 undefined 并在读取 query 时炸掉；
+ * 从当前实例的 globalProperties 里取则天然可缺省，取不到就保持默认页签。
+ */
+function applyTabFromRoute() {
+  const current = getCurrentInstance();
+  const route = current?.appContext.config.globalProperties.$route as
+    | { query?: Record<string, unknown> }
+    | undefined;
+  const tab = String(route?.query?.tab ?? "");
+  if (mainTabs.some((t) => t.name === tab)) {
+    activeTab.value = tab;
+  }
+}
 
 /* ================== 角色列表 ================== */
 const roleOptions = ref<SysRole[]>([]);
@@ -818,6 +843,7 @@ const logColumns: ReTableColumn[] = [
 ];
 
 onMounted(() => {
+  applyTabFromRoute();
   loadTemplates();
   loadRoles();
 });

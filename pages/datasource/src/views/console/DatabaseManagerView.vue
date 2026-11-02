@@ -214,15 +214,17 @@
                       <!-- 字段备注就地编辑：popover 锚在这一行，点哪列在哪列旁边改。
                            以前用 ElMessageBox.prompt —— 整页压暗、视线要从树挪到屏幕中央，
                            改完再挪回来，纯属打断。
-                           trigger 必须是 manual：用 click 时「我们的 @click 打开」和
+                           trigger 必须关掉：用 click 时「我们的 @click 打开」和
                            「popover 自己的 click 切换」会各跑一次，点了立刻又收起，
-                           看起来就是闪一下。开关只由 toggleRemarkEditor 负责，
+                           看起来就是闪一下。element-plus 2.14 已移除 trigger="manual"，
+                           故用 :trigger="[]"（数组不含任何触发类型，等价于完全不触发）。
+                           开关只由 toggleRemarkEditor 负责，
                            关闭走 取消/保存 或点别处（见 onDocumentClickCloseRemark）。 -->
                       <el-popover
                         :visible="remarkEditor.visible && remarkEditor.key === remarkKey(db, table.name, col.name)"
                         placement="right"
                         :width="288"
-                        trigger="manual"
+                        :trigger="[]"
                         popper-class="dbm-remark-popper"
                         @update:visible="(v: boolean) => onRemarkVisible(db, table.name, col.name, v)"
                       >
@@ -1843,10 +1845,12 @@
         <div class="dbm-form-item">
           <label>授予权限</label>
           <div class="dbm-user-grants">
-            <label v-for="g in USER_GRANTS" :key="g" class="dbm-user-grant">
-              <ElCheckbox v-model="userForm.grants" :value="g" />
-              <span>{{ g }}</span>
-            </label>
+            <ElCheckboxGroup v-model="userForm.grants">
+              <label v-for="g in USER_GRANTS" :key="g" class="dbm-user-grant">
+                <ElCheckbox :value="g" />
+                <span>{{ g }}</span>
+              </label>
+            </ElCheckboxGroup>
           </div>
           <span class="dbm-hint">勾选后追加 <code>GRANT ... ON *.* TO 'user'@'host'</code></span>
         </div>
@@ -2329,6 +2333,7 @@ import { http } from "@repo/utils";
 // 卡片视觉统一底座（16px 圆角/透明边框/双层投影，--dense 为 12px/10px 内距档）
 import "@repo/ui/surface";
 import { ref, computed, onMounted, onBeforeUnmount, reactive, watch, nextTick } from "vue";
+import { ElCheckbox, ElCheckboxGroup } from "element-plus";
 import { EditPen, CopyDocument, Delete, RefreshRight } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";

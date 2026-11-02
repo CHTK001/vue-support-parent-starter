@@ -18,7 +18,7 @@
       :on-remove="handleRemove"
       :on-preview="handlePreview"
       :disabled="disabled"
-      :file-list="fileList"
+      :file-list="uploadUserFileList"
       v-bind="$attrs"
     >
       <template v-if="type === 'image' && !drag" #default>
@@ -70,6 +70,7 @@
  */
 import { message } from "@repo/core";
 import { ref, computed, watch } from "vue";
+import type { UploadFile, UploadFiles, UploadUserFile } from "element-plus";
 
 import { Plus, Upload, UploadFilled } from "@element-plus/icons-vue";
 import ReDialog from "../ReDialog";
@@ -167,6 +168,17 @@ const fileList = computed<UploadFileItem[]>({
   },
 });
 
+/**
+ * 传给 el-upload 的列表视图。
+ *
+ * 对外的 UploadFileItem 是精简契约（url 必填、raw 为 File），
+ * 与 element-plus 的 UploadUserFile 只在可选字段上略有差异；
+ * 这里只做类型收窄，不复制对象，保证 el-upload 回传的仍是同一份引用。
+ */
+const uploadUserFileList = computed<UploadUserFile[]>(
+  () => fileList.value as unknown as UploadUserFile[],
+);
+
 const extractUrl = (obj: unknown): string => {
   if (typeof obj === "string") return obj;
   if (!obj || typeof obj !== "object") return "";
@@ -190,19 +202,24 @@ const handleBeforeUpload = (file: File): boolean => {
   return true;
 };
 
-const handleSuccess = (response: unknown, file: UploadFileItem) => {
+const asItem = (file: UploadFile): UploadFileItem => file as unknown as UploadFileItem;
+const asItems = (files: UploadFiles): UploadFileItem[] => files as unknown as UploadFileItem[];
+
+const handleSuccess = (response: unknown, file: UploadFile) => {
+  const item = asItem(file);
   const url = extractUrl(response);
   if (url) {
-    file.url = url;
+    item.url = url;
   }
-  emit("success", response, file, fileList.value);
+  emit("success", response, item, fileList.value);
   emit("update:modelValue", fileList.value);
   emit("change", fileList.value);
 };
 
-const handleError = (err: unknown, file: UploadFileItem) => {
-  emit("error", err, file);
-  message.error(`${file.name} 上传失败`);
+const handleError = (err: unknown, file: UploadFile) => {
+  const item = asItem(file);
+  emit("error", err, item);
+  message.error(`${item.name} 上传失败`);
 };
 
 const handleExceed = (files: File[]) => {
@@ -210,19 +227,21 @@ const handleExceed = (files: File[]) => {
   message.warning(`文件数量超出限制`);
 };
 
-const handleRemove = (file: UploadFileItem, list: UploadFileItem[]) => {
-  emit("remove", file, list);
-  emit("update:modelValue", list);
-  emit("change", list);
+const handleRemove = (file: UploadFile, list: UploadFiles) => {
+  const items = asItems(list);
+  emit("remove", asItem(file), items);
+  emit("update:modelValue", items);
+  emit("change", items);
 };
 
-const handlePreview = (file: UploadFileItem) => {
-  if (props.type === "image" || /\.(jpe?g|png|gif|webp|svg|bmp)$/i.test(file.name)) {
-    previewUrl.value = file.url;
-    previewTitle.value = file.name;
+const handlePreview = (file: UploadFile) => {
+  const item = asItem(file);
+  if (props.type === "image" || /\.(jpe?g|png|gif|webp|svg|bmp)$/i.test(item.name)) {
+    previewUrl.value = item.url;
+    previewTitle.value = item.name;
     previewVisible.value = true;
   } else {
-    window.open(file.url);
+    window.open(item.url);
   }
 };
 

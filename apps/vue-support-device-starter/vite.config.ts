@@ -23,6 +23,7 @@ import path from 'node:path'
  *   DEVICE_API_TARGET=http://localhost:18170 pnpm dev
  */
 const deviceApiTarget = process.env.DEVICE_API_TARGET ?? 'http://192.168.50.198:18170'
+console.log('DBG-PROXY-TARGET=' + JSON.stringify(deviceApiTarget) + ' ENV=' + JSON.stringify(process.env.DEVICE_API_TARGET))
 
 /**
  * 代理转发时移除浏览器 Origin。

@@ -133,7 +133,7 @@ async function playHls(url: string) {
   destroy()
   const { default: Hls } = await import('hls.js')
   if (Hls.isSupported()) {
-    hls = new Hls({ enableWorker: true, lowLatencyMode: true })
+    hls = new Hls({ enableWorker: true, lowLatencyMode: false })
     hls.loadSource(url)
     hls.attachMedia(v)
     // @ts-ignore Hls 事件类型

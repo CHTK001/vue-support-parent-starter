@@ -215,7 +215,8 @@ async function load(params: ReTableLoadParams): Promise<RePageResult> {
     const result = (await Promise.race([
       templateApi.page({
         keyword: keyword.value,
-        source: sourceFilter.value,
+        // 空串表示「全部」，接口约定用 undefined 表达不筛选
+        source: (sourceFilter.value || undefined) as TemplateSource | undefined,
         page: params.page,
         size: params.pageSize,
       }),
@@ -225,7 +226,9 @@ async function load(params: ReTableLoadParams): Promise<RePageResult> {
     total.value = result.total ?? 0;
     mockMode.value = false;
     return {
-      records: result.records.map((r: TemplateInfo | Record<string, unknown>) => normalizeRow(r as Record<string, unknown>)),
+      records: result.records.map((r: TemplateInfo | Record<string, unknown>) =>
+        normalizeRow(r as Record<string, unknown>),
+      ) as unknown as Record<string, unknown>[],
       total: total.value,
     };
   } catch (e) {
@@ -234,7 +237,10 @@ async function load(params: ReTableLoadParams): Promise<RePageResult> {
     const m = mockTemplates;
     total.value = m.length;
     const start = (params.page - 1) * params.pageSize;
-    return { records: m.slice(start, start + params.pageSize), total: m.length };
+    return {
+      records: m.slice(start, start + params.pageSize) as unknown as Record<string, unknown>[],
+      total: m.length,
+    };
   } finally {
     loading.value = false;
   }
@@ -276,11 +282,14 @@ function refresh(): void {
   void load({ page: 1, pageSize: pageSize.value, params: {} });
 }
 
-/** drawer 用：复用 formatter 逻辑的列文本 */
-function statusOf(r: TemplateInfo): string { return statusText(r, {} as ReTableColumn, r.status); }
-function sourceOf(r: TemplateInfo): string { return sourceText(r, {} as ReTableColumn, r.source); }
-function languageOf(r: TemplateInfo): string { return languageText(r, {} as ReTableColumn, r.language); }
-function typeOf(r: TemplateInfo): string { return typeText(r, {} as ReTableColumn, r.type); }
+/** drawer 用：复用 formatter 逻辑的列文本（formatter 只要 `Record<string, unknown>` 形态） */
+function asRow(r: TemplateInfo): Record<string, unknown> {
+  return r as unknown as Record<string, unknown>;
+}
+function statusOf(r: TemplateInfo): string { return statusText(asRow(r), {} as ReTableColumn, r.status); }
+function sourceOf(r: TemplateInfo): string { return sourceText(asRow(r), {} as ReTableColumn, r.source); }
+function languageOf(r: TemplateInfo): string { return languageText(asRow(r), {} as ReTableColumn, r.language); }
+function typeOf(r: TemplateInfo): string { return typeText(asRow(r), {} as ReTableColumn, r.type); }
 
 const columns: ReTableColumn[] = [
   { prop: 'name', label: '模板名称', minWidth: 220, showOverflowTooltip: true },

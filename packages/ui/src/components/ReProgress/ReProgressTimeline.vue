@@ -112,13 +112,14 @@ const statusText = (s: ReProgressSnapshot["status"]): string => {
       </div>
     </div>
 
-    <!-- ElPopover 触发（鼠标悬停 + 点击） -->
+    <!-- ElPopover 受控显示（开关由 `popoverVisible` 与 hover 区域上的事件驱动）
+         element-plus 2.14 移除了 trigger="manual"，用 :trigger="[]" 关闭内置触发 -->
     <el-popover
       v-if="task.history.length > 1"
       :visible="popoverVisible"
       placement="left-end"
       :width="320"
-      trigger="manual"
+      :trigger="[]"
       :show-arrow="true"
       @update:visible="(v: boolean) => (popoverVisible = v)"
     >

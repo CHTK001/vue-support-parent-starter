@@ -2,7 +2,8 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "types": [
-      "vite/client"
+      "vite/client",
+      "vue-i18n"
     ]
   },
   "include": [

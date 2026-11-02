@@ -40,7 +40,7 @@
           <ReButton
             icon="FullScreen"
             size="small"
-            :plain="fullscreenDevice && fullscreenDevice.deviceInfoId === device.deviceInfoId"
+            :plain="!!fullscreenDevice && fullscreenDevice.deviceInfoId === device.deviceInfoId"
             type="primary"
             @click="openFullscreen(device)"
           >
@@ -54,6 +54,7 @@
             :channel="channelFor(device)"
             :gateway="RTSP_GATEWAY"
             muted
+            autoplay
             class="w-full h-full"
           />
         </div>
@@ -61,7 +62,7 @@
           <ReButton
             v-for="n in channelChoices(device)"
             :key="n"
-            :type="channelFor(device) === n ? 'primary' : 'default'"
+            :type="channelFor(device) === n ? 'primary' : ''"
             size="small"
             @click="onDeviceChannel(device, n)"
           >
@@ -75,8 +76,10 @@
           />
         </div>
       </div>
-      <div v-if="!pageDevices.length && !loading" class="empty">没有可测试的视频流，请返回台账选择设备。</div>
     </div>
+
+    <!-- 空状态：必须在 grid 外面，否则 pageDevices 为空时 .empty 随 grid 一起不渲染 -->
+    <div v-if="!pageDevices.length && !loading" class="empty">没有可测试的视频流，请返回台账选择设备。</div>
 
     <div v-if="fullscreenDevice" class="fullscreen-mask" @click.self="closeFullscreen">
       <div class="fullscreen-panel">
@@ -255,7 +258,7 @@ async function loadDevices() {
   }
 }
 
-async function loadRepairs(): void {
+async function loadRepairs(): Promise<void> {
   try {
     const raw = localStorage.getItem(REPAIR_KEY) || ''
     const cfgs = JSON.parse(raw) as Record<string, { channel?: number; stream?: 'main' | 'sub'; protocol?: string; url?: string }>
@@ -349,7 +352,12 @@ function saveRepair(): void {
   if (!d) return
   repairs.value = {
     ...repairs.value,
-    [d.deviceInfoId]: { channel: repairForm.channel, stream: repairForm.stream, protocol: repairForm.protocol, url: repairForm.url },
+    [d.deviceInfoId]: {
+      channel: repairForm.channel,
+      stream: repairForm.stream as 'main' | 'sub',
+      protocol: repairForm.protocol,
+      url: repairForm.url,
+    },
   }
   streamCfg[d.deviceInfoId] = { channel: repairForm.channel, streamMode: repairForm.stream as 'main' | 'sub' }
   persistRepairs()

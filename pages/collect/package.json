@@ -20,5 +20,8 @@
     "@repo/pinia": "workspace:*",
     "@repo/theme": "workspace:*",
     "@pages/datasource": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
   }
 }

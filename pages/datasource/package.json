@@ -29,5 +29,8 @@
     "@repo/utils": "workspace:*",
     "@repo/config": "workspace:*",
     "@repo/pinia": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
   }
 }

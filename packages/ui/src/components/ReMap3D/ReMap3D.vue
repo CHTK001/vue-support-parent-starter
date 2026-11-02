@@ -11,7 +11,11 @@
 
         <div class="map3d-controls">
           <!-- Engine selector -->
-          <el-radio-group v-model="selectedEngine" class="engine-select" @change="onEngineChange">
+          <el-radio-group
+            v-model="selectedEngine"
+            class="engine-select"
+            @change="(val: string | number | boolean | undefined) => onEngineChange(val as MapEngine)"
+          >
             <el-radio-button value="mars3d">Mars3D</el-radio-button>
             <el-radio-button value="maplibre">MapLibre</el-radio-button>
           </el-radio-group>

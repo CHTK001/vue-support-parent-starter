@@ -209,9 +209,18 @@ async function handleStatus(row: MessageProvider) {
   loadList();
 }
 
-/** 查看某提供商的模板管理 */
-function openTemplates(providerId: number) {
-  router.push({ path: "/message/template", query: { providerId } });
+/**
+ * 查看某提供商的模板
+ *
+ * 模板编辑入口已收敛到系统管理的 /manage/message（消息模板页签）——
+ * 原先跳 /message/template 的这条路由已下线，继续 push 会落到空路由。
+ *
+ * 不传 providerId：目标页的模板列表按模板名称/编码/类型/状态筛选，
+ * 并不按提供商过滤（短信邮件模板落在平台侧实体上，没有 provider 列），
+ * 带上这个参数只会让用户以为已经筛过，实际仍是全量。
+ */
+function openTemplates() {
+  router.push({ path: "/manage/message", query: { tab: "template" } });
 }
 
 /** 查看某提供商的日志 */
@@ -221,7 +230,7 @@ function openLogs(providerId: number) {
 
 /** 查看全部模板 / 日志 */
 function openAllTemplates() {
-  router.push({ path: "/message/template" });
+  router.push({ path: "/manage/message", query: { tab: "template" } });
 }
 function openAllLogs() {
   router.push({ path: "/message/log" });
@@ -370,7 +379,7 @@ onMounted(() => {
         </template>
         <template #col-actions="{ row }">
           <div class="row-actions">
-            <ReButton show-text icon="Memo" size="small" type="primary" tip="管理该提供商的模板" @click="openTemplates(row.sysMessageProviderId)">
+            <ReButton show-text icon="Memo" size="small" type="primary" tip="管理消息模板" @click="openTemplates">
               模板
             </ReButton>
             <ReButton show-text icon="Document" size="small" type="primary" tip="查看该提供商的推送日志" @click="openLogs(row.sysMessageProviderId)">

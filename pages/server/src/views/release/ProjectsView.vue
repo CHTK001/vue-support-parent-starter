@@ -1,30 +1,8 @@
 <template>
-  <div class="px tel-page project-page">
-    <ReSectionHead class="pj-head" description="启动 / 停止 / 重启 / 升级 / 备份 / 回滚 · 把安装包拖到某一行即可升级该项目">
-      <template #title>
-        <div class="pj-head-title">
-          <ReButton icon="Back" layout="square" tip="返回发布管理" @click="goBack" />
-          <span class="pj-head-name">项目管理</span>
-          <span class="pj-head-count">{{ list.length }}</span>
-        </div>
-      </template>
-      <template #actions>
-        <ReButton icon="RefreshLeft" layout="square" tip="重置页面布局" @click="handleResetLayout" />
-        <ReButton icon="Refresh" layout="square" tip="刷新列表" :loading="loading" @click="loadList" />
-        <ReButton icon="Plus" :show-text="true" type="primary" @click="openCreateDialog">新增项目</ReButton>
-      </template>
-    </ReSectionHead>
-
-    <!-- 可拖拽分栏：左「项目管理」，右「实时日志」；拖完自动存服务端 -->
-    <div class="pj-split-wrap">
-      <ReSplitLayout
-        ref="splitLayoutRef"
-        :default-layout="defaultLayout"
-        :initial-layout="savedLayout"
-        @change="onLayoutChange"
-      >
-        <template #panel="{ activeTab: panelTab }">
-          <aside v-if="panelTab.panelType === 'projects'" class="pj-rail" :class="{ 'is-collapsed': railCollapsed }">
+  <div class="pj">
+    <div class="pj-body">
+      <!-- 左侧：项目列表（rail 分组列表，双击行开日志；拖安装包到行上即升级） -->
+      <aside class="pj-rail" :class="{ 'is-collapsed': railCollapsed }">
             <!-- 折叠态：只留一条竖条，展开按钮压在底部 -->
             <div v-if="railCollapsed" class="rail-strip">
               <button type="button" class="rail-strip__count" title="展开项目列表" @click="toggleRail">
@@ -44,6 +22,9 @@
             <!-- 头部：标题 + 计数 + 刷新/新增 -->
             <div v-show="!railCollapsed" class="rail-head">
               <div class="rail-head__row">
+                <button type="button" class="rail-tool" title="返回发布管理" @click="goBack">
+                  <ReIcon name="Back" :size="12" />
+                </button>
                 <span class="rail-head__title">项目列表</span>
                 <span class="rail-head__count">{{ visibleCount }}<i>/{{ list.length }}</i></span>
                 <span class="rail-head__gap"></span>
@@ -217,7 +198,7 @@
           </aside>
 
           <!-- 右侧：多标签实时日志工作区 -->
-          <div v-else class="pj-workspace">
+          <section class="pj-workspace">
             <ReTabs
               v-model="activeWorkspaceTab"
               :tabs="workspaceTabs"
@@ -271,10 +252,8 @@
               <span v-else class="pj-metrics-note">{{ statusSub(metricsProject) }}</span>
               <span class="pj-metrics-type" :title="typeLabel(metricsProject.projectType)">{{ typeLabel(metricsProject.projectType) }}</span>
             </div>
-          </div>
-        </template>
-      </ReSplitLayout>
-    </div>
+          </section>
+        </div>
 
     <!-- 新增/编辑对话框 -->
     <ReDialog v-model="dialogVisible" :title="editingId != null ? '编辑项目' : '新增项目'" width="960px" :close-on-click-modal="false">
@@ -1041,8 +1020,6 @@ import { fillTemplate, bestTemplate } from '@repo/ui/components/ReCommand/templa
 import ReCron from '@repo/ui/re-cron';
 import ReTabs from '@repo/ui/re-tabs';
 import type { ReTabsItem } from '@repo/ui/re-tabs';
-import ReSplitLayout from '@repo/ui/re-split-layout';
-import type { SplitNode } from '@repo/ui/re-split-layout';
 import { trackTask } from '../../utils/processTasks';
 import HostFileManager from '../../components/HostFileManager.vue';
 import ProjectLogColumn from '../../components/ProjectLogColumn.vue';
@@ -2921,97 +2898,6 @@ const groupedProjects = computed(() =>
   })),
 );
 
-// ---- 页面分栏布局（可拖拽 + 持久化到后端） ----
-/** 布局在系统配置表里的 pageKey（后端存为 ui.layout.release-projects） */
-const LAYOUT_PAGE_KEY = 'release-projects';
-const splitLayoutRef = ref<InstanceType<typeof ReSplitLayout> | null>(null);
-/** 服务端已保存的布局；为空时用 defaultLayout */
-const savedLayout = ref<SplitNode | null>(null);
-/** 布局就绪前不保存，避免初始渲染把默认布局回写覆盖服务端布局 */
-const layoutReady = ref(false);
-let layoutSaveTimer: number | null = null;
-
-/** 默认布局：左「项目管理」（项目列表/拖拽升级），右「实时日志」 */
-const defaultLayout: SplitNode = {
-  type: 'split',
-  direction: 'horizontal',
-  sizes: [40, 60],
-  children: [
-    {
-      type: 'panel',
-      id: 'panel-projects',
-      activeTabId: 'tab-projects',
-      tabs: [{ id: 'tab-projects', panelType: 'projects', label: '项目管理', closable: false }],
-    },
-    {
-      type: 'panel',
-      id: 'panel-logs',
-      activeTabId: 'tab-logs',
-      tabs: [{ id: 'tab-logs', panelType: 'logs', label: '实时日志', closable: false }],
-    },
-  ],
-};
-
-/**
- * 读取服务端保存的布局。
- *
- * <p>布局是「锦上添花」：读不到就用默认布局，不能因为接口失败把整页拦住。</p>
- */
-async function loadLayout() {
-  try {
-    const res = await http().get(`${BASE}/layout/${LAYOUT_PAGE_KEY}`);
-    const data = unwrapResult<{ layout?: SplitNode }>(res);
-    const layout = data?.layout;
-    if (layout && layout.type === 'split' && Array.isArray(layout.children) && layout.children.length) {
-      savedLayout.value = layout;
-    }
-  } catch {
-    // 忽略：保持默认布局
-  } finally {
-    // 给 ReSplitLayout 的 initialLayout 监听留一个 tick，避免把默认布局又存回去
-    window.setTimeout(() => {
-      layoutReady.value = true;
-    }, 300);
-  }
-}
-
-/** 布局变化：先更新本地快照，防抖后落库（拖拽会高频触发） */
-function onLayoutChange(next: SplitNode) {
-  savedLayout.value = next;
-  if (!layoutReady.value) return;
-  if (layoutSaveTimer !== null) clearTimeout(layoutSaveTimer);
-  layoutSaveTimer = window.setTimeout(() => {
-    layoutSaveTimer = null;
-    void saveLayout(next);
-  }, 600);
-}
-
-async function saveLayout(next: SplitNode) {
-  try {
-    await http()
-      .put(`${BASE}/layout/${LAYOUT_PAGE_KEY}`)
-      // 后端收的是原始 JSON 字符串，必须显式声明 content-type，否则会被当成表单
-      .headers({ 'Content-Type': 'application/json' })
-      .data(JSON.stringify(next));
-  } catch {
-    message.error('布局保存失败');
-  }
-}
-
-/**
- * 恢复默认布局并落库。
- *
- * <p>只调用组件方法：`resetLayout()` 替换布局树后会抛 `change` 事件，
- * 由 `onLayoutChange` 统一防抖保存。以前这里又把 `splitLayoutRef.layout`
- * （实际是 Ref 对象，不是布局树）存了一遍，JSON 序列化成 `{}`，
- * 等于把服务端布局写坏。</p>
- */
-function handleResetLayout() {
-  if (!splitLayoutRef.value) return;
-  splitLayoutRef.value.resetLayout();
-  message.success('已恢复默认布局');
-}
-
 // ---- 复制项目到其他服务器 ----
 interface ReleaseOption {
   id: number;
@@ -3435,7 +3321,6 @@ function goBack() {
 onMounted(() => {
   loadList();
   loadHostOs();
-  loadLayout();
   nowTs.value = Date.now();
   runtimeTimer = setInterval(() => { nowTs.value = Date.now(); }, 1000);
 });
@@ -3444,29 +3329,25 @@ onBeforeUnmount(() => {
   cleanupAllLogSessions();
   unsubTaskRefresh?.();
   stopArthasPoll();
-  if (layoutSaveTimer !== null) { clearTimeout(layoutSaveTimer); layoutSaveTimer = null; }
   if (runtimeTimer) { clearInterval(runtimeTimer); runtimeTimer = null; }
 });
 </script>
 
 <style scoped>
 /* ===== 页面骨架 ===== */
-.project-page {
-  padding: 24px 28px 30px;
-  box-sizing: border-box;
+.pj {
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  box-sizing: border-box;
 }
-/* 分栏容器：吃掉标题以下的全部高度，内部滚动交给面板 */
-.pj-split-wrap {
-  flex: 1 1 auto;
-  min-height: 0;
+
+/* 左右两栏：左侧定宽，右侧吃掉剩余，与主机资产页同构 */
+.pj-body {
   display: flex;
-}
-.pj-split-wrap > * {
   flex: 1 1 auto;
+  gap: 12px;
   min-height: 0;
 }
 /* ===== 左侧：项目列表（rail 分组列表） ===== */
@@ -3475,7 +3356,6 @@ onBeforeUnmount(() => {
   flex: none;
   flex-direction: column;
   width: 268px;
-  height: 100%;
   min-height: 0;
   overflow: hidden;
   background: var(--el-bg-color);
@@ -3568,7 +3448,6 @@ onBeforeUnmount(() => {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  height: 100%;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
@@ -3576,34 +3455,6 @@ onBeforeUnmount(() => {
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-xl, 16px);
   box-shadow: var(--el-box-shadow-light, var(--shadow-1));
-}
-.pj-head {
-  margin-bottom: 16px;
-}
-.pj-head-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-.pj-head-name {
-  font-size: 16px;
-  font-weight: 650;
-  letter-spacing: 0.2px;
-}
-.pj-head-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  height: 20px;
-  padding: 0 7px;
-  border-radius: 999px;
-  background: var(--bg-fill);
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
 }
 
 /* ===== 头部：标题 + 计数 + 刷新/新增 + 搜索 + 状态筛选 ===== */
@@ -4203,7 +4054,7 @@ onBeforeUnmount(() => {
 
 /* 窄屏：左栏占满一行，不强制并排 */
 @media (max-width: 720px) {
-  .project-page { padding: 14px 12px 20px; }
+  .pj-body { flex-direction: column; }
 }
 
 /* 编辑 tab */

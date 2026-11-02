@@ -107,7 +107,7 @@ class SseStream {
     // 已建连：马上注册，否则等 connect() 时统一注册
     const listener: EventListener = (ev) => {
       try {
-        handler({ type: name, data: ev.data, ts: Date.now() });
+        handler({ type: name, data: (ev as MessageEvent).data, ts: Date.now() });
       } catch { /* 忽略 */ }
     };
     if (this.es) {
@@ -167,7 +167,7 @@ class SseStream {
           if (this.listeners.get(handler)?.has(name)) continue;
           const listener: EventListener = (ev) => {
             try {
-              handler({ type: name, data: ev.data, ts: Date.now() });
+              handler({ type: name, data: (ev as MessageEvent).data, ts: Date.now() });
             } catch { /* 忽略 */ }
           };
           this.es!.addEventListener(name, listener);
@@ -234,7 +234,7 @@ export class RealtimeChannel {
 
     const eventNamesByConsumer = eventNames ?? ['message'];
     // 预留连接：还没有建连（或已断连）时先建连，之后注册的事件名才能直接挂到该连接上
-    if (names.size === 0 || !stream.es) stream.subscribe();
+    if (names.size === 0 || !stream.connected) stream.subscribe();
 
     for (const nodeName of eventNamesByConsumer) {
       if (names.has(nodeName)) continue;

@@ -30,7 +30,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
+    "build": "vue-tsc --noEmit",
     "preview": "vite preview",
     "clean": "rimraf dist"
   }

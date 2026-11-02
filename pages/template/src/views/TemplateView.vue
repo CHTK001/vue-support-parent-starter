@@ -960,6 +960,8 @@ async function onFormConfirm(): Promise<void> {
       type: form.value.type,
       status: (form.value.status as TemplateStatus) ?? 'draft',
       remark: form.value.remark,
+      // 编辑时保留原来源；新建走「绘制」（hiprint），后端新增时也会兜底成 hiprint
+      source: form.value.source ?? 'hiprint',
       providerId: form.value.providerId ?? formProvider.value?.id
     }
     if (editingId.value) {

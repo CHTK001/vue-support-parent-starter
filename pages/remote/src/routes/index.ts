@@ -24,6 +24,8 @@ export const remoteRoutes: RouteConfigsTable[] = [
 export function createTunnelRoutes({ showLink }: { showLink?: boolean } = {}): RouteConfigsTable[] {
   return remoteRoutes.map((r) => ({
     ...r,
-    meta: { ...r.meta, showLink: showLink === undefined ? r.meta.showLink : showLink },
+    // RouteConfigsTable 的 meta 声明为可选，直接展开 undefined 会抛 TypeError、
+    // 取值 r.meta.showLink 则过不了 strict 检查。此处按「无 meta 即视为不显示」处理。
+    meta: { ...r.meta, showLink: showLink === undefined ? r.meta?.showLink : showLink },
   }));
 }

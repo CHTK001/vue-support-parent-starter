@@ -194,7 +194,9 @@ describe("MessageManage 消息管理页面", () => {
     await settle(wrapper);
 
     // 页签统一为 ReTab 胶囊条：只渲染导航，由页面自己按 activeTab 切内容
-    const tabs = wrapper.find(".system-tabs");
+    // 选择器对齐页面实际结构：外层是 .system-tabs-card（页签卡片壳），
+    // 不是 .system-tabs —— 旧断言写错类名后一直落空，掩盖了「页签只有 3 个」的校验。
+    const tabs = wrapper.find(".system-tabs-card");
     expect(tabs.exists()).toBe(true);
     const stub = tabs.findComponent(ReTabStub);
     expect(stub.exists()).toBe(true);

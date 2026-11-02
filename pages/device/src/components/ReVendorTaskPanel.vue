@@ -29,7 +29,7 @@
     <section class="vtp-panel">
       <ReTable
         v-if="rows.length"
-        :data="rows"
+        :data="rows as unknown as Record<string, unknown>[]"
         :columns="columns"
         engine="element"
         table-id="device-vendor-task-states"

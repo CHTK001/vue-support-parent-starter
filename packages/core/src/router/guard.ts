@@ -106,8 +106,6 @@ export function setupRouterGuard(
   const replayedPaths = new Set<string>();
 
   router.beforeEach(async (to, from) => {
-    const guardToken = getAccessToken();
-    console.log('[GUARD-E] to=' + to.path + ' from=' + from.path + ' TOKEN=' + JSON.stringify(guardToken));
     const config = getConfig();
     const route = config.route;
     const whiteList = route.whiteList?.length ? route.whiteList : ROUTER_WHITE_LIST;
@@ -132,14 +130,12 @@ export function setupRouterGuard(
 
     // 5. 登录页：刷新时始终清理用户存储
     if (to.path === route.loginPath) {
-      console.log('[GUARD-L] login-path to=' + to.path + ' from=' + from.path + ' hasToken=' + !!getAccessToken());
       // 注意：必须「先读 token，再清存储」。clearUserStorage() 会抹掉所有
       // system: 前缀 key（含 accessToken）；先清后读会让已登录重定向首页
       // 的逻辑（access.ts checkRouteAccess 约定）永远失效。
       const hasToken = !!getAccessToken();
       try { getAppStorage().clearUserStorage(); } catch { /* ignore */ }
       if (hasToken) {
-        console.log("[GUARD-L] has-token → redirect-home");
         return { path: route.homePath, replace: true };
       }
       return true;
@@ -222,17 +218,13 @@ export function setupRouterGuard(
       },
       { getAccessToken } satisfies RouteAccessContext
     );
-    console.log('[GUARD-C] to=' + to.path + ' roles=' + JSON.stringify(decision.roles ?? null) + ' perms=' + JSON.stringify(decision.perms ?? null) + ' decision=' + decision.type + ' title=' + JSON.stringify(decision.title ?? null) + ' token=' + JSON.stringify(getAccessToken()));
     if (decision.type === "redirect-login") {
-      console.log('[GUARD-R] redirect-login to=' + route.loginPath);
       return { path: route.loginPath, replace: true };
     }
     if (decision.type === "redirect-home") {
-      console.log("[GUARD-R] redirect-home to=%s", route.homePath);
       return { path: route.homePath, replace: true };
     }
     if (decision.type === "redirect-forbidden") {
-      console.log("[GUARD-R] redirect-forbidden to=%s", route.forbiddenPath);
       return { path: route.forbiddenPath, replace: true };
     }
 

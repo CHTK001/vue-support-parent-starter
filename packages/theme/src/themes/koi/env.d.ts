@@ -41,4 +41,22 @@ declare module "element-plus/es/locale/lang/en" {
   export default locale;
 }
 
+/**
+ * vue-i18n 的全局属性增强
+ *
+ * koi 布局组件（Header/Tabs/Main 下共 24 个 .vue）在模板里直接用 `$t(...)`，
+ * 但都没有 import useI18n —— 它们依赖应用侧 `app.use(i18n)` 注入的全局属性。
+ * Vue 只有在该属性被声明进 ComponentCustomProperties 时才认模板里的 `$t`，
+ * 否则 vue-tsc 对每一处 `$t` 都报 TS2339（一处不落，几十条）。
+ *
+ * 这里只声明到「能调用」的最小面：i18n 的 t() 签名很长，绑死具体重载会
+ * 在 key 类型校验上引入无谓的严格性，故用宽松签名。
+ */
+declare module "@vue/runtime-core" {
+  interface ComponentCustomProperties {
+    /** 当前语言文案 */
+    $t: (key: string, ...args: unknown[]) => string;
+  }
+}
+
 export {};

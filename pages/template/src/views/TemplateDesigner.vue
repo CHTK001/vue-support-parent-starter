@@ -818,7 +818,8 @@ function __interp(node, scope) {
         var extra = {};
         extra[valueVar] = list[li];
         extra[indexVar] = li;
-        __render(clone, __childScope(scope, extra));
+        // 克隆节点自身就是待渲染元素，用 __interp 处理它（__render 会重复插入整段模板 → 无限递归）
+        __interp(clone, __childScope(scope, extra));
         frag.appendChild(clone);
       }
     } catch (e) { __err__ = __err__ || String(e); }

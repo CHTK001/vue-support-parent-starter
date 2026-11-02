@@ -30,6 +30,7 @@
     "vue-router": "catalog:"
   },
   "devDependencies": {
-    "@types/qrcode": "^1.5.6"
+    "@types/qrcode": "^1.5.6",
+    "typescript": "catalog:"
   }
 }

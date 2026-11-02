@@ -814,7 +814,8 @@ function onToggleSelect(id: number, checked: boolean) {
   selectedIds.value = next;
 }
 
-function toggleAll(checked: boolean) {
+function toggleAll(val: boolean | string | number) {
+  const checked = Boolean(val);
   const next = new Set<number>();
   if (checked) {
     filteredSessionItems.value.forEach((i) => next.add(i.id as number));
