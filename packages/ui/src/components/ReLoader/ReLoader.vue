@@ -393,13 +393,13 @@ defineOptions({ name: "ReLoader" });
 .re-loader {
   position: relative;
   width: 100%;
+}
 
-  /* 骨架态下，ReLoader 区域完整撑满父容器高度（骨架高度是最小值，不是死值） */
-  &.re-loader--skeleton {
-    display: flex;
-    flex-direction: column;
-    min-height: 100%;
-  }
+/* 骨架态下，ReLoader 区域完整撑满父容器高度（骨架高度是最小值，不是死值） */
+.re-loader.re-loader--skeleton {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
 }
 
 .re-loader__content {
