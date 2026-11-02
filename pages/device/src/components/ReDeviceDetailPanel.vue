@@ -95,7 +95,7 @@
           </div>
         </el-tab-pane>
 
-        <el-tab-pane label="地图" name="map">
+        <el-tab-pane v-if="tabKeys.includes('map')" label="地图" name="map">
           <ReMap :devices="mapDevices" @select="onMapSelect" />
         </el-tab-pane>
 
