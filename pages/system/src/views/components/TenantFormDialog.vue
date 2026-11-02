@@ -139,7 +139,7 @@ async function handleSubmit() {
         />
       </el-form-item>
       <p class="tenant-db-hint">
-        填写完整后，请求头带 <code>X-Tenant-Id</code> 的接口会路由到该库；留空则继续走平台共享库。
+        填写完整后，登录该租户的用户请求会自动路由到该库；留空则继续走平台共享库。
       </p>
     </el-form>
     <template #footer>
@@ -169,12 +169,5 @@ async function handleSubmit() {
   color: var(--el-text-color-secondary);
   font-size: 12px;
   line-height: 1.6;
-}
-
-.tenant-db-hint code {
-  padding: 0 4px;
-  border-radius: 3px;
-  background: var(--el-fill-color-light);
-  font-family: var(--el-font-family-mono, monospace);
 }
 </style>

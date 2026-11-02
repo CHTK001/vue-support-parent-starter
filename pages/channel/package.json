@@ -1,0 +1,27 @@
+{
+  "name": "@pages/channel",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*",
+    "./*.ts": "./src/*.ts"
+  },
+  "description": "渠道管理页：官网号绑定/轮询/签到/刷新/模型开关与 SSE 登录流（从 pages/ai 抽离出的独立包）。",
+  "dependencies": {
+    "vue": "catalog:",
+    "element-plus": "catalog:",
+    "@element-plus/icons-vue": "catalog:",
+    "@repo/ui": "workspace:*",
+    "@repo/utils": "workspace:*",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.3",
+    "@types/qrcode": "^1.5.6",
+    "typescript": "catalog:"
+  }
+}

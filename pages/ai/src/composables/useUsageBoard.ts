@@ -984,7 +984,7 @@ export function useUsageBoard() {
         valueFormatter: (v: any) => (metric === "token" ? fmtToken(v) : `${currencySymbol.value}${money(v)}`),
       },
       legend: { type: "scroll", top: 0, icon: "circle" },
-      grid: { left: 60, right: 24, top: 40, bottom: 40, containLabel: false },
+      grid: { left: 60, right: 44, top: 40, bottom: 40, containLabel: false },
       xAxis: {
         type: "category",
         data: dates,
@@ -1029,7 +1029,7 @@ export function useUsageBoard() {
         valueFormatter: (v: any) => fmtToken(v),
       },
       legend: { data: ["输入 Token", "输出 Token", "缓存读取"], top: 0 },
-      grid: { left: 56, right: 24, top: 40, bottom: 32 },
+      grid: { left: 56, right: 44, top: 40, bottom: 32 },
       xAxis: { type: "category", boundaryGap: false, data: rows.map((r) => r.date.length > 10 ? r.date.slice(11, 16) : r.date) },
       yAxis: {
         type: "value",
@@ -1117,7 +1117,7 @@ export function useUsageBoard() {
         valueFormatter: (v: any) => (v == null ? "—" : formatLatency(v)),
       },
       legend: { top: 0, type: "scroll" },
-      grid: { left: 56, right: 24, top: 40, bottom: 32 },
+      grid: { left: 56, right: 44, top: 40, bottom: 32 },
       xAxis: { type: "category", boundaryGap: false, data: dates.map((d) => (d.length > 10 ? d.slice(11, 16) : d)) },
       yAxis: { type: "value", name: "ms", axisLabel: { formatter: (v: number) => `${v}` } },
       series: series.map((s) => ({
