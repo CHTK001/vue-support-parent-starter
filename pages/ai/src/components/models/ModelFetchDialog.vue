@@ -81,6 +81,12 @@
             <div class="fetch-error-desc">{{ loadError }}</div>
           </div>
         </div>
+        <!-- 免费渠道未配置路由表时，后端只回传 hint（不是错误）：给用户提示，
+             配上路由再拉，不要落到「无匹配」的空状态里 -->
+        <div v-else-if="routeHint" class="fetch-hint">
+          <el-icon class="fetch-hint-icon" :size="16"><Wand24Regular /></el-icon>
+          <div class="fetch-hint-text">{{ routeHint }}</div>
+        </div>
         <div v-else class="fetch-empty">
           {{ t('settings.providerDetail.noMatchFound') }}
         </div>
@@ -134,7 +140,9 @@ const importing = ref(false)
 const searchName = ref('')
 const fetched = ref<any[]>([])
 const loadError = ref('')
-/** 当前供应商标识：批量录入要按它落库，open 时记下，避免再从 props 里猜 */
+/** 免费渠道提示：extra.routes 未配置时后端只回传 hint，前端展示它而不是空状态 */
+const routeHint = ref('')
+/** 当前供应商标识：批量录入要按它落库，open 时记下，避免再以 props 里猜 */
 const providerId = ref('')
 /** 本次 open 的是否渠道 provider（决定 handleImportAll 走逐条 createModel 还是后端 import-all） */
 const openIsChannel = ref(false)
@@ -165,6 +173,39 @@ const getLableName = (type: string) => {
     default:
       return type
   }
+}
+
+/**
+ * 上游任务（task） → 规范模型类型，与 model.constants 的 TASK_TO_TYPE 对齐。
+ *
+ * <p>免费渠道行来自 extra.routes，后端只回传 tasks（如 ["chat"]），
+ * 没有 modelType / model_type，所以类型推断降全靠它。</p>
+ *
+ * @param tasks 上游 tasks（数组、单个字符串或 JSON 字符串）
+ * @returns 规范类型（text / embedding / rerank / asr / tts / image / video）
+ */
+const inferTypeFromTask = (tasks: any): string => {
+  for (const t of toArray(tasks)) {
+    const key = String(t || '').toLowerCase()
+    if (TASK_TO_TYPE[key]) return TASK_TO_TYPE[key]
+  }
+  return 'text'
+}
+
+/** 把 task 拍平成字符串数组：非数组时自动拆分（分号/逗号/空格）或尝试 JSON 解析 */
+const toArray = (v: any): string[] => {
+  if (Array.isArray(v)) return v.filter((x): x is string => typeof x === 'string' && String(x).trim())
+  if (!v) return []
+  const s = String(v).trim()
+  if (!s) return []
+  if (s.startsWith('[')) {
+    try {
+      return toArray(JSON.parse(s))
+    } catch {
+      return []
+    }
+  }
+  return [s]
 }
 
 /**
@@ -675,6 +716,19 @@ const handleImportAll = async () => {
    类型、来源、管线角色、特性统一由 ModelTagStrip 以「图标 + tooltip」渲染，
    不再有纯文字徽标，配色也由该组件的 kind-* 负责。 */
 .fetch-empty { text-align: center; padding: 48px 0; font-size: 13px; color: var(--color-text-disabled); }
+/* 免费渠道提示：路由表未配置时给用户指引，不是错误， warn 色即可 */
+.fetch-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  margin-top: 6px;
+  padding: 14px 15px;
+  border-radius: var(--el-radius-lg, 12px);
+  background: color-mix(in srgb, var(--el-color-warning) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-warning) 30%, transparent);
+}
+.fetch-hint-icon { color: var(--el-color-warning); flex-shrink: 0; margin-top: 1px; }
+.fetch-hint-text { font-size: 13px; color: var(--color-text); line-height: 1.5; }
 .fetch-error {
   display: flex;
   align-items: flex-start;
