@@ -237,12 +237,8 @@ export const monitorRoutes: RouteConfigsTable[] = [
         component: () => import("@pages/device/src/views/DeviceProviderView.vue"),
         meta: { title: "提供商配置", icon: "SetUp", showLink: true, rank: 12 },
       },
-      {
-        path: "/device-groups",
-        name: "DeviceGroups",
-        component: () => import("@pages/device/src/views/DeviceGroupView.vue"),
-        meta: { title: "设备分组", icon: "FolderOpened", showLink: true, rank: 13 },
-      },
+      // 独立的「设备分组」页已并入设备资产页左侧树（组织 / 分组 / 厂家 三分支），
+      // 分组的新增 / 重命名 / 分配设备 / 删除全部收口在该树的分组右键菜单里。
       // 页面内入口：设备资产页的大屏按钮 / 右键「视频预览」/ 预览页的独立窗口，
       // 都不进侧边栏（showLink: false），只保证这些跳转在宿主里有落点。
       {

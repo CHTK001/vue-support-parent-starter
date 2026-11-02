@@ -6,7 +6,10 @@
         <span class="dtp-head__icon"><el-icon><Grid /></el-icon></span>
         <div class="dtp-head__text">
           <h2 class="dtp-head__title">机房拓扑</h2>
-          <p class="dtp-head__sub">由设备台账的 IP 网段与所属区域推导：区域 → 网段 → 设备 → 通道</p>
+          <p class="dtp-head__sub">
+            <template v-if="filterLabel">已按「{{ filterLabel }}」过滤 · </template>
+            由设备台账的 IP 网段与所属区域推导：区域 → 网段 → 设备 → 通道
+          </p>
         </div>
       </div>
       <ul class="dtp-stats">
@@ -121,7 +124,7 @@
  * @author CH
  * @since 4.0.0.42
  */
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { Close, Grid } from '@element-plus/icons-vue'
 
 import ReButton from '@repo/ui/re-button'
@@ -168,12 +171,102 @@ const activeId = ref('')
 const graphRef = ref<unknown>(null)
 
 /**
+ * 视图限制：由设备台账右键的「在拓扑中查看」投递（按分组 / 厂商 / 设备）。
+ *
+ * <p>拓扑接口本身不接收过滤条件，这里在图上做一次「设备 + 地址链」闭包：
+ * 保留被限制的设备、它上方的区域 / 网段，以及它下方的通道。</p>
+ */
+const props = defineProps<{
+  filter?: { kind: 'group' | 'vendor' | 'device'; id: string; label?: string } | null
+}>()
+
+/** 视图限制命中的拓扑设备节点 id（device:&lt;deviceId&gt;） */
+const restricted = ref<Set<string>>(new Set())
+
+/**
+ * 视图限制的展示文案：分组 / 厂商取接口返回的名称，设备取拓扑节点名。
+ *
+ * <p>只在标题副行显示一行提示，让用户明确「现在看到的不是全量拓扑」。</p>
+ */
+const filterLabel = ref('')
+
+/** 视图限制的保留集：设备 + 地址链（网段 / 区域）+ 通道 */
+const keepSet = computed<Set<string>>(() => {
+  const ids = new Set<string>()
+  const parents = new Map<string, string[]>()
+  const children = new Map<string, string[]>()
+  for (const edge of rawEdges.value) {
+    if (!parents.has(edge.target)) parents.set(edge.target, [])
+    parents.get(edge.target)!.push(edge.source)
+    if (!children.has(edge.source)) children.set(edge.source, [])
+    children.get(edge.source)!.push(edge.target)
+  }
+  /** 向上收口：设备 → 网段 → 区域 */
+  const walkUp = (id: string) => {
+    const stack = [id]
+    while (stack.length) {
+      const cur = stack.pop()!
+      if (ids.has(cur)) continue
+      ids.add(cur)
+      for (const parent of parents.get(cur) || []) stack.push(parent)
+    }
+  }
+  /** 向下收口：设备 → 通道（设备本身可能已被 walkUp 收进来，单独用一个 seen 防环） */
+  const walkDown = (id: string) => {
+    const stack = [id]
+    const seen = new Set<string>()
+    while (stack.length) {
+      const cur = stack.pop()!
+      ids.add(cur)
+      if (seen.has(cur)) continue
+      seen.add(cur)
+      for (const child of children.get(cur) || []) stack.push(child)
+    }
+  }
+  for (const deviceId of restricted.value) {
+    walkUp(deviceId)
+    walkDown(deviceId)
+  }
+  return ids
+})
+
+/** 把视图限制换算成拓扑里的设备节点 id（分组 → 组成员，厂商 → 厂商设备） */
+async function resolveRestricted(): Promise<void> {
+  const query = props.filter
+  if (!query) {
+    restricted.value = new Set()
+    filterLabel.value = ''
+    return
+  }
+  filterLabel.value = query.label || query.id
+  try {
+    let deviceIds: string[] = []
+    if (query.kind === 'device') {
+      deviceIds = [query.id]
+    } else if (query.kind === 'group') {
+      const devices = (await deviceApi.groupDevices(query.id)) || []
+      deviceIds = devices.map((item) => item.deviceInfoId)
+    } else {
+      const page = await deviceApi.page({ vendor: query.id, pageNo: 1, pageSize: 2000 })
+      deviceIds = (page?.data || []).map((item) => item.deviceInfoId)
+    }
+    restricted.value = new Set(
+      deviceIds.filter(Boolean).map((id) => `device:${id}`)
+    )
+  } catch {
+    restricted.value = new Set()
+  }
+}
+
+/**
  * 过滤后的节点：`只看在线` 时只留在线设备及其通道，并保留承载它们的网段与区域
  * （自下而上收一轮，避免留下没有设备的气泡）。
  */
 const visibleNodes = computed<TopologyNode[]>(() => {
   // 脏数据兜底：没有 id 的节点直接丢掉（否则 Set / 画布都会带上 undefined）
-  const base = rawNodes.value.filter((node) => !!node.id)
+  let base = rawNodes.value.filter((node) => !!node.id)
+  // 视图限制（按分组 / 厂商 / 设备）：只留命中的设备及其地址链与通道
+  if (restricted.value.size) base = base.filter((node) => keepSet.value.has(node.id))
   if (!onlineOnly.value) return base
   const keep = new Set<string>()
   for (const node of base) {
@@ -238,16 +331,25 @@ const areas = computed<string[]>(() => {
 })
 
 /** 空状态文案（区分「真没设备」与「被只看在线过滤空」） */
-const emptyText = computed(() =>
-  rawNodes.value.length
-    ? '当前没有在线设备：关掉「只看在线」可以查看全部设备'
-    : '还没有可拓扑的设备：先到设备台账接入设备，并补充 IP 与区域',
-)
+const emptyText = computed(() => {
+  const base = restricted.value.size
+    ? rawNodes.value.filter((node) => keepSet.value.has(node.id))
+    : rawNodes.value
+  if (!base.length) {
+    return props.filter
+      ? '当前视图下没有可拓扑的设备：设备可能缺少 IP 或区域'
+      : '还没有可拓扑的设备：先到设备台账接入设备，并补充 IP 与区域'
+  }
+  return '当前没有在线设备：关掉「只看在线」可以查看全部设备'
+})
 
 /** 顶部统计 */
 const stats = computed(() => {
-  const countOf = (kind: NodeKind) => rawNodes.value.filter((node) => kindOf(node.id) === kind).length
-  const devices = rawNodes.value.filter((node) => kindOf(node.id) === 'device')
+  const base = restricted.value.size
+    ? rawNodes.value.filter((node) => keepSet.value.has(node.id))
+    : rawNodes.value
+  const countOf = (kind: NodeKind) => base.filter((node) => kindOf(node.id) === kind).length
+  const devices = base.filter((node) => kindOf(node.id) === 'device')
   const online = devices.filter((node) => node.online === true).length
   return [
     { key: 'area', label: '区域', value: countOf('area') },
@@ -315,6 +417,7 @@ function onNodeClick(detail: { id: string }): void {
 async function load(): Promise<void> {
   loading.value = true
   try {
+    await resolveRestricted()
     const data = await deviceApi.topology()
     rawNodes.value = data?.nodes || []
     rawEdges.value = data?.edges || []
@@ -338,6 +441,12 @@ function errorText(err: unknown): string {
 }
 
 onMounted(load)
+/** 抽屉复用时视图限制会变（同一次打开换了分组/厂家/设备），据此重新取数 */
+watch(
+  () => props.filter,
+  () => { void load() },
+  { deep: true },
+)
 </script>
 
 <style scoped>

@@ -224,12 +224,21 @@ export function onlineLabel(online?: boolean): string {
  */
 export function buildOrgTree(list?: OrgNode[] | null): OrgNode[] {
   if (!list?.length) return []
+  // 接口可能已返回带 children 的树，也可能返回扁平列表：先统一拍平再按 parentId 组装
+  const flat: OrgNode[] = []
+  const flatten = (nodes: OrgNode[]): void => {
+    for (const node of nodes) {
+      flat.push({ ...node, children: undefined })
+      if (node.children?.length) flatten(node.children)
+    }
+  }
+  flatten(list)
   const map = new Map<string, OrgNode>()
-  for (const item of list) {
+  for (const item of flat) {
     map.set(item.deviceOrganizationId, { ...item, children: [] })
   }
   const roots: OrgNode[] = []
-  for (const item of list) {
+  for (const item of flat) {
     const node = map.get(item.deviceOrganizationId) as OrgNode
     const parent = item.deviceOrganizationParentId
       ? map.get(item.deviceOrganizationParentId)

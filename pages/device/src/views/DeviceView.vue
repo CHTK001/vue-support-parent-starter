@@ -1,24 +1,7 @@
 <template>
   <div class="da">
-    <!-- 台账功能页签：设备列表 / 机房拓扑（分组收敛到台账页签内） -->
-    <nav class="da-tabs">
-      <button
-        v-for="tab in LEDGER_TABS"
-        :key="tab.key"
-        type="button"
-        class="da-tab"
-        :class="{ 'is-active': ledgerTab === tab.key }"
-        @click="ledgerTab = tab.key"
-      >
-        <ReIcon :name="tab.icon" :size="13" />
-        <span>{{ tab.label }}</span>
-      </button>
-      <span class="da-tabs__grow" />
-      <span class="da-tabs__hint">{{ filtered.length }} / {{ rows.length }} 台设备</span>
-    </nav>
-
-    <!-- ==================== 左：分组树 + 设备列表右区 ==================== -->
-    <div v-show="ledgerTab === 'list'" class="da-body">
+    <!-- ==================== 左：三分支树 + 设备列表右区 ==================== -->
+    <div class="da-body">
       <!-- 左侧：设备分组（含「全部」） -->
       <aside class="da-rail" :class="{ 'is-collapsed': railCollapsed }">
         <!-- 折叠态：只留计数与展开按钮 -->
@@ -59,25 +42,6 @@
             </button>
           </div>
           <ReInput v-model="keyword" placeholder="搜索名称 / 编码 / IP" clearable class="da-search" />
-          <!-- 台账两种显示方式：分组 tree / 厂家 -->
-          <div class="da-modes">
-            <button
-              type="button"
-              class="da-mode"
-              :class="{ 'is-active': railMode === 'group' }"
-              @click="switchRail('group')"
-            >
-              按分组
-            </button>
-            <button
-              type="button"
-              class="da-mode"
-              :class="{ 'is-active': railMode === 'vendor' }"
-              @click="switchRail('vendor')"
-            >
-              按厂家
-            </button>
-          </div>
           <div class="da-filters">
             <button
               v-for="f in statusFilters"
@@ -93,89 +57,133 @@
           </div>
         </div>
 
-        <!-- 分组列：点击节点，右侧按组筛选设备；不选 = 不按组筛选 -->
-        <ReScrollbar v-if="railMode === 'group'" v-show="!railCollapsed" class="da-tree">
+        <!-- 左侧树：上方切换维度（组织 / 分组 / 厂家），下面只显示当前维度的树 -->
+        <ReScrollbar v-show="!railCollapsed" class="da-tree">
           <div class="da-tree__ops">
             <button type="button" class="da-tree__op" title="新建分组" @click="openGroupCreate(null)">
               <ReIcon name="Plus" :size="12" />
             </button>
-            <button type="button" class="da-tree__op" title="刷新分组" :disabled="loading" @click="fetchGroups">
+            <button type="button" class="da-tree__op" title="刷新" :disabled="loading" @click="fetchAll">
               <ReIcon :name="loading ? 'Loading' : 'RefreshRight'" :size="12" />
             </button>
           </div>
-          <!-- 全部：不按组筛选 -->
-          <div class="da-tree__item" :class="{ 'is-active': groupFilter === '' }" @click="selectGroup(null)">
+
+          <!-- 维度切换：一次只显示一个维度，避免三棵树同时摊开 -->
+          <div class="da-tree__modes">
+            <button
+              v-for="mode in railModes"
+              :key="mode.value"
+              type="button"
+              class="da-tree__mode"
+              :class="{ 'is-active': railMode === mode.value }"
+              @click="switchRail(mode.value)"
+            >
+              {{ mode.label }}
+            </button>
+          </div>
+
+          <!-- 清筛选：始终在最上面，点它回到全部设备 -->
+          <div
+            class="da-tree__item da-tree__item--root"
+            :class="{ 'is-active': !filterState }"
+            @click="selectFilter(null)"
+          >
+            <span class="da-tree__caret is-leaf" />
             <span class="da-tree__dot is-all" />
-            <span class="da-tree__name">全部</span>
+            <span class="da-tree__name">全部设备</span>
             <span class="da-tree__count">{{ rows.length }}</span>
           </div>
 
-          <!-- 组织行 / 分组行：分组节点右键打开菜单，点击筛选本组设备 -->
-          <template v-for="row in treeRows" :key="row._key">
-            <!-- 组织行：不参与筛选 -->
-            <div v-if="row.isOrg" class="da-tree__item da-tree__item--org">
-              <span class="da-tree__dot" />
-              <span class="da-tree__name">{{ row.groupName }}</span>
-            </div>
-            <el-dropdown v-else-if="row.groupId" placement="bottom-start" trigger="contextmenu" @command="(cmd) => onGroupCommand(cmd, row)">
+          <template v-for="row in treeNodes" :key="row.key">
+            <!-- 组织 / 分组：有下一级时可展开；点行即筛选，点箭头只折叠 -->
+            <el-dropdown
+              v-if="row.kind === 'group'"
+              class="da-tree__dd"
+              placement="bottom-start"
+              trigger="contextmenu"
+              @command="(cmd: string) => onGroupCommand(cmd, row)"
+            >
               <div
                 class="da-tree__item"
-                :class="{ 'is-active': groupFilter === row.groupId }"
-                :style="{ paddingLeft: `${10 + (row.depth || 0) * 14}px` }"
-                @click="selectGroup(row)"
+                :class="{ 'is-active': filterState?.kind === 'group' && filterState?.id === row.id }"
+                :style="{ paddingLeft: `${10 + row.depth * 14}px` }"
+                @click="selectFilter({ kind: 'group', id: row.id })"
               >
-                <span class="da-tree__dot" />
-                <span class="da-tree__name">{{ row.groupName }}</span>
-                <span class="da-tree__count">{{ row.deviceCount }}</span>
+                <span
+                  v-if="row.hasChildren"
+                  class="da-tree__caret"
+                  :class="{ 'is-open': row.expanded }"
+                  @click.stop="toggleNode(row.key)"
+                >
+                  <ReIcon name="ArrowRight" :size="10" />
+                </span>
+                <span v-else class="da-tree__caret is-leaf" />
+                <span class="da-tree__dot is-group" />
+                <span class="da-tree__name">{{ row.label }}</span>
+                <span v-if="row.hint" class="da-tree__hint">{{ row.hint }}</span>
+                <span class="da-tree__count">{{ row.count }}</span>
               </div>
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="topo" :icon="Grid">在拓扑中查看</el-dropdown-item>
                   <el-dropdown-item command="add" :icon="Plus">新增子分组</el-dropdown-item>
-                  <el-dropdown-item command="assign" :icon="Grid">分配设备</el-dropdown-item>
+                  <el-dropdown-item command="assign" :icon="FolderOpened">分配设备</el-dropdown-item>
+                  <el-dropdown-item command="clear" :icon="Delete">清空分组设备</el-dropdown-item>
                   <el-dropdown-item command="edit" :icon="EditPen">重命名</el-dropdown-item>
                   <el-dropdown-item command="delete" divided style="color: var(--el-color-danger)">删除</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
-          </template>
-        </ReScrollbar>
-
-        <!-- 厂家列：按设备台账里的厂商归并，点击筛选该厂商的设备 -->
-        <ReScrollbar v-if="railMode === 'vendor'" v-show="!railCollapsed" class="da-tree">
-          <div class="da-tree__ops">
-            <button type="button" class="da-tree__op" title="刷新厂家" :disabled="loading" @click="fetchAll">
-              <ReIcon :name="loading ? 'Loading' : 'RefreshRight'" :size="12" />
-            </button>
-          </div>
-          <div class="da-tree__item" :class="{ 'is-active': vendorFilter === '' }" @click="selectVendor('')">
-            <span class="da-tree__dot is-all" />
-            <span class="da-tree__name">全部厂家</span>
-            <span class="da-tree__count">{{ rows.length }}</span>
-          </div>
-          <el-dropdown
-            v-for="node in vendorNodes"
-            :key="node.vendor"
-            placement="bottom-start"
-            trigger="contextmenu"
-            @command="(cmd) => onVendorCommand(cmd, node)"
-          >
-            <div
-              class="da-tree__item"
-              :class="{ 'is-active': vendorFilter === node.vendor }"
-              @click="selectVendor(node.vendor)"
+            <!-- 厂家：可右键（查看拓扑） -->
+            <el-dropdown
+              v-else-if="row.kind === 'vendor'"
+              class="da-tree__dd"
+              placement="bottom-start"
+              trigger="contextmenu"
+              @command="(cmd: string) => onVendorCommand(cmd, row)"
             >
-              <span class="da-tree__dot" />
-              <span class="da-tree__name">{{ node.label }}</span>
-              <span class="da-tree__count">{{ node.count }}</span>
+              <div
+                class="da-tree__item"
+                :class="{ 'is-active': filterState?.kind === 'vendor' && filterState?.id === row.id }"
+                @click="selectFilter({ kind: 'vendor', id: row.id })"
+              >
+                <span class="da-tree__caret is-leaf" />
+                <span class="da-tree__dot is-vendor" />
+                <span class="da-tree__name">{{ row.label }}</span>
+                <span class="da-tree__count">{{ row.count }}</span>
+              </div>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="topo" :icon="Grid">在拓扑中查看</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+            <!-- 组织：点击筛选本组织（含后代组织）下的设备 -->
+            <div
+              v-else-if="row.kind === 'org'"
+              class="da-tree__item"
+              :class="{ 'is-active': filterState?.kind === 'org' && filterState?.id === row.id }"
+              :style="{ paddingLeft: `${10 + row.depth * 14}px` }"
+              @click="selectFilter({ kind: 'org', id: row.id })"
+            >
+              <span
+                v-if="row.hasChildren"
+                class="da-tree__caret"
+                :class="{ 'is-open': row.expanded }"
+                @click.stop="toggleNode(row.key)"
+              >
+                <ReIcon name="ArrowRight" :size="10" />
+              </span>
+              <span v-else class="da-tree__caret is-leaf" />
+              <span class="da-tree__dot is-org" />
+              <span class="da-tree__name">{{ row.label }}</span>
+              <span class="da-tree__count">{{ row.count }}</span>
             </div>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="topo" :icon="Grid">在拓扑中查看</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-          <p v-if="!vendorNodes.length" class="da-tree__empty">没有可归类的厂商</p>
+          </template>
+
+          <div v-if="!treeNodes.length" class="da-tree__empty">
+            {{ railMode === 'vendor' ? '暂无厂家数据' : railMode === 'org' ? '暂无组织数据' : '暂无分组' }}
+          </div>
         </ReScrollbar>
 
         <div v-show="!railCollapsed" class="da-rail__foot">
@@ -194,15 +202,23 @@
 
       <!-- 右侧：设备列表 + 底部信息条 -->
       <section class="da-work">
-        <!-- 批量操作：仅多选时显示 -->
-        <div v-if="selection.length" class="da-batch">
-          <span class="da-batch__text">已选 {{ selection.length }} 台设备</span>
-          <div class="da-batch__ops">
-            <ReButton icon="VideoCamera" :show-text="true" size="small" type="primary" plain @click="openVideoWizard">视频预览</ReButton>
-            <ReButton icon="Refresh" :show-text="true" size="small" @click="batchReconnect">批量重连</ReButton>
-            <ReButton icon="FolderOpened" :show-text="true" size="small" @click="openBatchGroups">设置分组</ReButton>
-            <ReButton icon="Delete" :show-text="true" size="small" type="danger" plain @click="batchRemove">批量删除</ReButton>
-          </div>
+        <!-- 列表工具条：高度固定，未选中时显示台账概览，选中后切成批量操作（避免多选时列表回流跳动） -->
+        <div class="da-batch" :class="{ 'is-batch': selection.length > 0 }">
+          <template v-if="selection.length">
+            <span class="da-batch__text">已选 <b>{{ selection.length }}</b> 台设备</span>
+            <div class="da-batch__ops">
+              <ReButton icon="VideoCamera" :show-text="true" size="small" type="primary" plain @click="openVideoWizard">视频预览</ReButton>
+              <ReButton icon="Refresh" :show-text="true" size="small" @click="batchReconnect">批量重连</ReButton>
+              <ReButton icon="FolderOpened" :show-text="true" size="small" @click="openBatchGroups">设置分组</ReButton>
+              <ReButton icon="Delete" :show-text="true" size="small" type="danger" plain @click="batchRemove">批量删除</ReButton>
+            </div>
+          </template>
+          <template v-else>
+            <span class="da-batch__text">共 <b>{{ filtered.length }}</b> 台设备</span>
+            <div class="da-batch__ops">
+              <span class="da-batch__hint">勾选设备后可批量视频预览、重连、设置分组或删除</span>
+            </div>
+          </template>
         </div>
 
         <div class="da-table-wrap">
@@ -322,11 +338,6 @@
       </section>
     </div>
 
-    <!-- 机房拓扑：原「机房拓扑」菜单页，收敛为台账页签 -->
-    <section v-if="mountedTabs.has('topo')" v-show="ledgerTab === 'topo'" class="da-pane">
-      <DeviceTopoView />
-    </section>
-
     <!-- 新增 / 编辑 -->
     <ReDeviceFormDialog
       v-model="formVisible"
@@ -404,6 +415,11 @@
       <DeviceEventLogView :device-id="drawerDeviceId" />
     </el-drawer>
 
+    <!-- 机房拓扑：从右键菜单（分组 / 厂家 / 设备）在抽屉中查看 -->
+    <el-drawer v-model="topoVisible" title="机房拓扑" size="88%" destroy-on-close>
+      <DeviceTopoView :filter="topoFilter" />
+    </el-drawer>
+
     <!-- 视频预览向导 -->
     <ReDialog v-model="videoWizardVisible" title="视频预览" width="480px" destroy-on-close>
       <div class="space-y-4">
@@ -475,7 +491,7 @@
  * @since 4.0.0.42
  */
 import { computed, defineAsyncComponent, onMounted, reactive, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import {
   Connection,
@@ -534,7 +550,6 @@ import type {
 } from '@pages/device/src/types/device'
 
 const router = useRouter()
-const route = useRoute()
 
 const rows = ref<DeviceInfo[]>([])
 const vendors = ref<DeviceVendorDescriptor[]>([])
@@ -548,71 +563,223 @@ const selection = ref<DeviceInfo[]>([])
 const railCollapsed = ref(false)
 const keyword = ref('')
 const onlineFilter = ref<'all' | 'online' | 'offline'>('all')
-/** 按组筛选：'' 为全部，非空则只显示该组的设备 */
-const groupFilter = ref('')
 
-/* ==================== 台账页签 / 左侧显示维度 ==================== */
-/** 台账功能页签：设备列表 / 机房拓扑 —— 分组收敛到台账页签内 */
-const LEDGER_TABS = [
-  { key: 'list', label: '设备列表', icon: 'Monitor' },
-  { key: 'topo', label: '机房拓扑', icon: 'Grid' }
-] as const
-type LedgerTabKey = (typeof LEDGER_TABS)[number]['key']
-
-const ledgerTab = ref<LedgerTabKey>(
-  /** 路由别名（/device/topo）落回页签：设备列表 / 机房拓扑 */
-  (route.query.tab as LedgerTabKey | undefined) ?? 'list'
-)
-/** 已挂载过的页签：点开过才加载子页面，之后保留现场（切换不重建） */
-const mountedTabs = reactive(new Set<LedgerTabKey>(['list']))
-if (ledgerTab.value !== 'list') {
-  /** 路由别名指向的页签：同一次挂载就要把子页面装进来 */
-  mountedTabs.add(ledgerTab.value)
-}
-watch(ledgerTab, (tab) => mountedTabs.add(tab))
-/** 路由表的 tab（/device?tab=topo 等）也要滚进 ledgerTab，否则 URL 与页签不同步 */
-watch(() => route.query.tab, (tab) => {
-  if (!tab) return
-  ledgerTab.value = tab as LedgerTabKey
-})
-
-/** 左侧树的维度：分组 tree / 厂家 —— 台账支持两种显示方式 */
-const railMode = ref<'group' | 'vendor'>('group')
-/** 按厂家筛选：'' 为全部 */
-const vendorFilter = ref('')
-
-/** 厂家维度节点：从当前台账归并（显示名优先取厂商描述符） */
+/* ==================== 左侧树：组织 / 分组 / 厂家 三维度切换 ==================== */
+/** 厂家节点：从当前台账归并（显示名优先取厂商描述符） */
 const vendorNodes = computed<Array<{ vendor: string; label: string; count: number }>>(() => {
   const map = new Map<string, { vendor: string; label: string; count: number }>()
   for (const device of rows.value) {
     const vendor = device.deviceInfoVendor || ''
     if (!vendor) continue
-    const item = map.get(vendor) || { vendor, label: vendorLabel(vendor), count: 0 }
+    const item = map.get(vendor) || { vendor, label: vendors.value.find((v) => v.vendor === vendor)?.name || vendor, count: 0 }
     item.count += 1
     map.set(vendor, item)
   }
   return [...map.values()].sort((a, b) => b.count - a.count)
 })
 
-/** 切换左侧维度：换维度时清掉另一种筛选，避免叠加过滤 */
-function switchRail(mode: 'group' | 'vendor'): void {
-  if (railMode.value === mode) return
+/** 当前维度：组织树 / 分组树 / 厂家列表，一次只显示一棵 */
+type RailMode = 'org' | 'group' | 'vendor'
+const railMode = ref<RailMode>('group')
+const railModes: Array<{ value: RailMode; label: string }> = [
+  { value: 'org', label: '组织' },
+  { value: 'group', label: '分组' },
+  { value: 'vendor', label: '厂家' }
+]
+
+/** 切维度时清掉不匹配的筛选，避免右侧列表还挂着上一维度的条件 */
+function switchRail(mode: RailMode): void {
   railMode.value = mode
-  groupFilter.value = ''
-  vendorFilter.value = ''
+  const f = filterState.value
+  if (f && f.kind !== mode) filterState.value = undefined
 }
 
-/** 厂家筛选（与分组筛选互斥） */
-function selectVendor(vendor: string): void {
-  vendorFilter.value = vendor
-  groupFilter.value = ''
+/** 树节点折叠态：按「维度 + 节点 id」记，默认展开 */
+const collapsed = ref<Set<string>>(new Set())
+function toggleNode(key: string): void {
+  const next = new Set(collapsed.value)
+  if (next.has(key)) next.delete(key)
+  else next.add(key)
+  collapsed.value = next
+}
+function isCollapsed(key: string): boolean {
+  return collapsed.value.has(key)
 }
 
-const statusFilters = computed(() => [
-  { label: '全部', value: 'all' as const, count: rows.value.length },
-  { label: '在线', value: 'online' as const, count: onlineCount.value },
-  { label: '离线', value: 'offline' as const, count: offlineCount.value }
-])
+/** 左侧树筛选：一次只保留一组（组织 / 分组 / 厂家）；再点同一节点即取消 */
+const filterState = ref<{ kind: RailMode; id: string } | undefined>(undefined)
+function selectFilter(payload: { kind: RailMode; id: string } | null): void {
+  if (!payload) {
+    filterState.value = undefined
+    return
+  }
+  const current = filterState.value
+  filterState.value = current && current.kind === payload.kind && current.id === payload.id ? undefined : payload
+}
+
+/** 组织树平铺（带 depth），供父级选项与组织行用 */
+const orgFlat = computed<Array<OrgNode & { depth: number }>>(() => {
+  const out: Array<OrgNode & { depth: number }> = []
+  const walk = (nodes: OrgNode[], depth: number) => {
+    if (!Array.isArray(nodes)) return
+    for (const node of nodes) {
+      out.push({ ...node, depth })
+      if (node.children?.length) walk(node.children, depth + 1)
+    }
+  }
+  walk(orgTree.value, 0)
+  return out
+})
+
+/** 上级选项：新增分组 = 组织树（分组归属组织），新增子分组/重命名 = 分组树 */
+const parentOptions = computed<Array<{ value: string; label: string }>>(() => {
+  if (groupCreateKind.value === 'sub') {
+    return flatGroups.value.map((node) => ({
+      value: node.groupId,
+      label: `${'　'.repeat(node.depth)}${node.groupName}`
+    }))
+  }
+  return orgFlat.value.map((node) => ({
+    value: node.deviceOrganizationId,
+    label: `${'　'.repeat(node.depth)}${node.deviceOrganizationName}`
+  }))
+})
+
+/** 组织（含其下的子孙组织）关联的设备数 */
+const orgDeviceCount = (orgId: string): number => {
+  const ids = orgDescendants(orgId)
+  return rows.value.filter((d) => ids.has(d.deviceInfoOrgId || '')).length
+}
+
+/** 组织 id 集合：含后代（设备 id 不在组织树时，回退为自身） */
+const orgDescendants = (orgId: string): Set<string> => {
+  const ids = new Set<string>([orgId])
+  const walk = (nodes?: OrgNode[]) => {
+    if (!nodes) return
+    for (const node of nodes) {
+      ids.add(node.deviceOrganizationId)
+      walk(node.children)
+    }
+  }
+  const node = orgFlat.value.find((n) => n.deviceOrganizationId === orgId)
+  walk(node?.children)
+  return ids
+}
+
+/** 子树是否应展开：折叠集合里没有它，且任一祖先都没被折叠 */
+function subtreeOpen(ancestors: string[]): boolean {
+  return !ancestors.some((key) => isCollapsed(key))
+}
+
+/**
+ * 当前维度的树行（已按折叠态裁剪）。
+ *
+ * <p>组织与分组是真树：父节点折叠时其子孙整段不出现；厂家是平铺一行一个。</p>
+ */
+const treeNodes = computed<Array<TreeRow>>(() => {
+  const out: Array<TreeRow> = []
+  if (railMode.value === 'org') {
+    const walk = (nodes: OrgNode[], depth: number, ancestors: string[]) => {
+      for (const node of nodes) {
+        const key = `org-${node.deviceOrganizationId}`
+        const hasChildren = !!node.children?.length
+        out.push({
+          key,
+          kind: 'org',
+          label: node.deviceOrganizationName,
+          depth,
+          id: node.deviceOrganizationId,
+          count: orgDeviceCount(node.deviceOrganizationId),
+          hasChildren,
+          expanded: hasChildren && subtreeOpen([key])
+        })
+        if (hasChildren && subtreeOpen([key])) walk(node.children!, depth + 1, [...ancestors, key])
+      }
+    }
+    walk(orgTree.value, 0, [])
+    return out
+  }
+  if (railMode.value === 'group') {
+    const walk = (nodes: DeviceGroupNode[], depth: number) => {
+      for (const node of nodes) {
+        if (!node.groupId) continue
+        const key = `group-${node.groupId}`
+        const hasChildren = !!node.children?.length
+        const parent = node.groupParent
+        out.push({
+          key,
+          kind: 'group',
+          label: node.groupName,
+          depth,
+          id: node.groupId,
+          count: groupDeviceIds(node.groupId).size,
+          remark: node.groupRemark,
+          hint: parent && !isGroupId(parent) ? orgLabelOf(parent) : undefined,
+          hasChildren,
+          expanded: hasChildren && subtreeOpen([key])
+        })
+        if (hasChildren && subtreeOpen([key])) walk(node.children!, depth + 1)
+      }
+    }
+    walk(groups.value, 0)
+    return out
+  }
+  for (const node of vendorNodes.value) {
+    out.push({
+      key: `vendor-${node.vendor}`,
+      kind: 'vendor',
+      label: node.label,
+      depth: 0,
+      id: node.vendor,
+      count: node.count,
+      hasChildren: false,
+      expanded: false
+    })
+  }
+  return out
+})
+
+/** 组织名（分组行的提示用） */
+function orgLabelOf(orgId: string): string | undefined {
+  return orgFlat.value.find((node) => node.deviceOrganizationId === orgId)?.deviceOrganizationName
+}
+
+/** 该 id 是分组而不是组织？（分组树的上级既可能是分组，也可能是组织） */
+function isGroupId(id?: string): boolean {
+  return !!id && flatGroups.value.some((node) => node.groupId === id)
+}
+
+/** 分组的直接上级：可能是上级分组，也可能是所属组织（分组树根节点的 groupParent 指向组织） */
+function groupParentIdOf(groupId: string): string | undefined {
+  return flatGroups.value.find((node) => node.groupId === groupId)?.groupParent || undefined
+}
+
+/** 拓扑抽屉：从右键菜单投递的视图限制（按分组 / 厂商 / 设备） */
+const topoVisible = ref(false)
+const topoFilter = ref<{ kind: 'group' | 'vendor' | 'device'; id: string; label?: string } | null>(null)
+
+/** 在拓扑中查看（按分组/厂商/设备给拓扑加上视图限制） */
+function openTopology(groupId?: string, vendor?: string, deviceId?: string): void {
+  const kind = groupId ? ('group' as const) : vendor ? ('vendor' as const) : ('device' as const)
+  const id = groupId ?? vendor ?? deviceId
+  if (!id) return
+  const label =
+    kind === 'group' ? flatGroups.value.find((g) => g.groupId === id)?.groupName
+      : kind === 'vendor' ? vendorNodes.value.find((v) => v.vendor === id)?.label
+        : rows.value.find((d) => d.deviceInfoId === id)?.deviceInfoName
+  topoFilter.value = { kind, id, label: label || id }
+  topoVisible.value = true
+}
+
+const statusFilters = computed(() => {
+  const list = filtered.value
+  const online = list.filter((item) => item.deviceInfoOnline).length
+  return [
+    { label: '全部', value: 'all' as const, count: list.length },
+    { label: '在线', value: 'online' as const, count: online },
+    { label: '离线', value: 'offline' as const, count: list.length - online }
+  ]
+})
 
 /** 底部信息条跟随的设备：最近点选 / 右键的行优先，其次唯一勾选的那台 */
 const statusDevice = computed<DeviceInfo | null>(
@@ -625,13 +792,17 @@ const locatedCount = computed(() => rows.value.filter((item) => hasLocation(item
 
 const filtered = computed<DeviceInfo[]>(() => {
   let list = rows.value
-  if (railMode.value === 'vendor') {
-    if (vendorFilter.value) {
-      list = list.filter((d) => (d.deviceInfoVendor || '') === vendorFilter.value)
+  const f = filterState.value
+  if (f) {
+    if (f.kind === 'org') {
+      const ids = orgDescendants(f.id)
+      list = list.filter((d) => ids.has(d.deviceInfoOrgId || ''))
+    } else if (f.kind === 'group') {
+      const ids = groupDeviceIds(f.id)
+      list = list.filter((d) => ids.has(d.deviceInfoId || ''))
+    } else if (f.kind === 'vendor') {
+      list = list.filter((d) => (d.deviceInfoVendor || '') === f.id)
     }
-  } else if (groupFilter.value) {
-    const ids = groupDeviceIds(groupFilter.value)
-    list = list.filter((d) => ids.has(d.deviceInfoId || ''))
   }
   if (onlineFilter.value === 'online') list = list.filter((d) => d.deviceInfoOnline)
   else if (onlineFilter.value === 'offline') list = list.filter((d) => !d.deviceInfoOnline)
@@ -680,10 +851,11 @@ const drawerDeviceId = ref('')
 const channelsVisible = ref(false)
 const eventsVisible = ref(false)
 
-/** 行右键菜单：详情 / 编辑 / 通道管理 / 设备日志 / 重连 / 刷新状态 / 分组 / 预览 / 删除 */
+/** 行右键菜单：详情 / 编辑 / 通道管理 / 设备日志 / 拓扑 / 重连 / 刷新状态 / 分组 / 预览 / 删除 */
 const tableMenu: ReTableContextMenuItem[] = [
   { key: 'detail', label: '设备详情', icon: Position },
   { key: 'edit', label: '编辑设备', icon: EditPen },
+  { key: 'topo', label: '在拓扑中查看', icon: Grid, divided: true },
   { key: 'channels', label: '通道管理', icon: Connection, divided: true },
   { key: 'events', label: '设备日志', icon: Tickets },
   { key: 'reconnect', label: '重新连接', icon: RefreshRight, divided: true },
@@ -703,6 +875,9 @@ function onTableMenuSelect(item: ReTableContextMenuItem, ctx: ReTableContextMenu
       break
     case 'edit':
       openEdit(d)
+      break
+    case 'topo':
+      openTopology(undefined, undefined, d.deviceInfoId)
       break
     case 'channels':
       drawerDeviceId.value = d.deviceInfoId
@@ -843,56 +1018,64 @@ const flatGroups = computed<Array<DeviceGroupNode & { depth: number }>>(() => {
   return out
 })
 
-/** 组织树平铺（带层级缩进），用于「上级组织」选择 */
-const flatOrg = computed<Array<{ value: string; label: string }>>(() => {
-  const out: Array<{ value: string; label: string }> = []
-  const walk = (nodes: OrgNode[], depth: number) => {
-    if (!Array.isArray(nodes)) return
-    for (const node of nodes) {
-      out.push({ value: node.deviceOrganizationId, label: `${' '.repeat(depth)}${node.deviceOrganizationName}` })
-      if (node.children?.length) walk(node.children, depth + 1)
-    }
-  }
-  walk(orgTree.value, 0)
-  return out
-})
-
-/** 左树显示行：上级是组织的分组（不是分组），前面挂一个组织行，组织名来自组织树 */
-type TreeRow = DeviceGroupNode & { depth: number; isOrg?: boolean; _key: string }
-const groupIds = computed(() => new Set(groups.value.map((n) => n.groupId)))
-const orgNameOf = (id?: string): string | undefined =>
-  id ? orgTree.value.find((n) => n.deviceOrganizationId === id)?.deviceOrganizationName ?? id : undefined
-
-const treeRows = computed<Array<TreeRow>>(() => {
-  const out: Array<TreeRow> = []
-  const walk = (nodes: DeviceGroupNode[], depth: number) => {
-    if (!Array.isArray(nodes)) return
-    for (const n of nodes) {
-      if (!n.groupId) continue
-      const org = orgNameOf(n.groupParent)
-      if (org && !groupIds.value.has(n.groupParent)) {
-        out.push({ ...n, depth, groupId: '', groupName: org, deviceCount: 0, isOrg: true, _key: `org-${n.groupParent}` })
-      }
-      out.push({ ...n, depth: org ? depth + 1 : depth, _key: n.groupId })
-      if (n.children?.length) walk(n.children, depth + 1)
-    }
-  }
-  walk(groups.value, 0)
-  return out
-})
-
-/** 上级选项：新增分组 = 组织树，新增子分组/重命名 = 分组树 */
-const parentOptions = computed(() => groupCreateKind.value === 'sub' ? flatGroups.value : flatOrg.value)
-
-/** 分组筛选：点击左侧节点 / 列内标签 → 右侧只展示该组设备 */
-function selectGroup(node: DeviceGroupNode | null): void {
-  groupFilter.value = node?.groupId || ''
-  vendorFilter.value = ''
+/** 左侧树的显示行：组织 / 分组 / 厂家 三个维度之一，一次只渲染一棵树 */
+type TreeRow = {
+  /** 行键（同时用作折叠态键） */
+  key: string
+  /** 行类别：组织 / 分组 / 厂家 */
+  kind: RailMode
+  /** 显示名 */
+  label: string
+  /** 缩进深度 */
+  depth: number
+  /** 筛选值 */
+  id: string
+  /** 计数（本节点及其子树的设备数） */
+  count: number
+  /** 分组备注 */
+  remark?: string
+  /** 节点附加说明（分组显示所属组织） */
+  hint?: string
+  /** 是否有下一级（决定是否显示展开箭头） */
+  hasChildren: boolean
+  /** 当前是否展开 */
+  expanded: boolean
 }
 
-/** 分组下设备的 id 集合（即当前视图的组数据源） */
+/** 分组筛选：点击左侧节点 → 右侧按组筛选设备（点击左侧树/列内标签） */
+function selectGroup(node: DeviceGroupNode | null): void {
+  filterState.value = node ? { kind: 'group', id: node.groupId } : undefined
+}
+
+/** 分组下设备的 id 集合（含子分组的设备，即当前视图的组数据源） */
 function groupDeviceIds(groupId: string): Set<string> {
-  return new Set(assignments.value.filter((item) => item.groupId === groupId).map((item) => item.deviceId))
+  const groupIds = groupSubtreeIds(groupId)
+  return new Set(
+    assignments.value
+      .filter((item) => groupIds.has(item.groupId))
+      .map((item) => item.deviceId)
+  )
+}
+
+/** 分组自身 + 全部子孙分组的 id 集合 */
+function groupSubtreeIds(groupId: string): Set<string> {
+  const ids = new Set<string>([groupId])
+  const walk = (nodes: DeviceGroupNode[]): void => {
+    for (const node of nodes) {
+      if (ids.has(node.groupId)) {
+        for (const child of node.children || []) {
+          if (!ids.has(child.groupId)) {
+            ids.add(child.groupId)
+            walk([child])
+          }
+        }
+      } else if (node.children?.length) {
+        walk(node.children)
+      }
+    }
+  }
+  walk(groups.value)
+  return ids
 }
 
 /** 某台设备所处的分组标签列表（可点，点它即筛选该组设备） */
@@ -905,19 +1088,20 @@ function deviceGroupLabels(row: DeviceInfo): DeviceGroupNode[] {
 
 /** 分组节点右键菜单 */
 function onGroupCommand(cmd: string, row: TreeRow): void {
-  if (row.isOrg || !row.groupId) return
+  if (row.kind !== 'group' || !row.id) return
   switch (cmd) {
-    case 'topo': openTopology(row.groupId); break
-    case 'add': openGroupCreate(row.groupId); break
+    case 'topo': openTopology(row.id); break
+    case 'add': openGroupCreate(row.id); break
     case 'assign': openDeviceAssign(row); break
+    case 'clear': clearGroup(row); break
     case 'edit': openGroupEdit(row); break
     case 'delete': removeGroup(row); break
   }
 }
 
 /** 厂家节点右键菜单 */
-function onVendorCommand(cmd: string, node: { vendor: string; label: string }): void {
-  if (cmd === 'topo') openTopology(undefined, node.vendor)
+function onVendorCommand(cmd: string, node: TreeRow): void {
+  if (cmd === 'topo') openTopology(undefined, node.id)
 }
 
 /** 创建/编辑分组 */
@@ -938,25 +1122,14 @@ function openGroupCreate(parentId?: string | null): void {
 
 /** 编辑分组（重命名） */
 function openGroupEdit(row: TreeRow): void {
-  editingGroupId.value = row.groupId
-  groupForm.groupName = row.groupName
-  groupForm.groupParent = row.groupParent || ''
-  groupForm.groupRemark = row.groupRemark || ''
-  /** 上级是组织时按组织选，上下级由分组树 */
-  groupCreateKind.value = row.groupParent && !groupIds.value.has(row.groupParent) ? 'root' : 'sub'
+  editingGroupId.value = row.id!
+  groupForm.groupName = row.label
+  const parent = groupParentIdOf(row.id!)
+  groupForm.groupParent = parent || ''
+  groupForm.groupRemark = row.remark || ''
+  /** 上级是分组时按分组选，否则按组织选 */
+  groupCreateKind.value = isGroupId(parent) ? 'sub' : 'root'
   groupCreateVisible.value = true
-}
-
-/** 在拓扑中查看（按分组/厂商/设备给拓扑加上视图限制） */
-function openTopology(groupId?: string, vendor?: string, deviceId?: string): void {
-  ledgerTab.value = 'topo'
-  mountedTabs.add('topo')
-  const query: Record<string, string> = {}
-  if (groupId) query.groupId = groupId
-  if (vendor) query.vendor = vendor
-  if (deviceId) query.deviceId = deviceId
-  query.tab = 'topo'
-  void router.replace({ query })
 }
 
 /** 分配设备到分组（按分组全量替换） */
@@ -967,11 +1140,14 @@ const assignDevices = ref<DeviceInfo[]>([])
 const pendingAssigned = ref<Set<string>>(new Set())
 
 async function openDeviceAssign(row: TreeRow): Promise<void> {
-  if (!row.groupId) return
-  assignGroupId.value = row.groupId
+  if (!row.id) return
+  assignGroupId.value = row.id
   try {
     assignDevices.value = (await deviceApi.list()) as DeviceInfo[]
-    pendingAssigned.value = new Set(groupDeviceIds(row.groupId))
+    // 分配弹窗只回显该分组的直属设备（子分组的归属不在这里改）
+    pendingAssigned.value = new Set(
+      assignments.value.filter((item) => item.groupId === row.id).map((item) => item.deviceId)
+    )
   } catch {
     assignDevices.value = []
     pendingAssigned.value = new Set()
@@ -1003,14 +1179,15 @@ async function onAssignSave(): Promise<void> {
 
 /** 清空分组下的设备 */
 async function clearGroup(row: TreeRow): Promise<void> {
-  if (!row.groupId) return
+  if (!row.id) return
   try {
-    await ElMessageBox.confirm(`清空分组「${row.groupName}」下的全部设备？`, '确认', { type: 'warning' })
+    await ElMessageBox.confirm(`清空分组「${row.label}」下的全部设备？`, '确认', { type: 'warning' })
   } catch { return }
   try {
-    await deviceApi.assignGroupDevices(row.groupId, [])
+    // 只清空该分组的直属设备，子分组的归属保持不变
+    await deviceApi.assignGroupDevices(row.id, [])
     message.success('已清空')
-    if (groupFilter.value === row.groupId) groupFilter.value = ''
+    if (filterState.value?.kind === 'group' && filterState.value.id === row.id) filterState.value = undefined
     await fetchGroups()
   } catch (err) {
     message.error('操作失败：' + errorText(err))
@@ -1019,14 +1196,14 @@ async function clearGroup(row: TreeRow): Promise<void> {
 
 /** 删除分组（子孙分组一并删除，设备本身不动） */
 async function removeGroup(row: TreeRow): Promise<void> {
-  if (!row.groupId) return
+  if (!row.id) return
   try {
-    await ElMessageBox.confirm(`删除分组「${row.groupName}」？分组内设备将移出。`, '确认', { type: 'warning' })
+    await ElMessageBox.confirm(`删除分组「${row.label}」？分组内设备将移出。`, '确认', { type: 'warning' })
   } catch { return }
   try {
-    await deviceApi.deleteGroup(row.groupId)
+    await deviceApi.deleteGroup(row.id)
     message.success('分组已删除')
-    if (groupFilter.value === row.groupId) groupFilter.value = ''
+    if (filterState.value?.kind === 'group' && filterState.value.id === row.id) filterState.value = undefined
     await fetchGroups()
   } catch (err) {
     message.error('删除失败：' + errorText(err))
@@ -1348,53 +1525,7 @@ onMounted(async () => {
   box-sizing: border-box;
 }
 
-/* ============ 台账页签（设备列表 / 分组管理 / 机房拓扑） ============ */
-.da-tabs {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 0 8px;
-}
-.da-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  font-size: 13px;
-  color: var(--el-text-color-regular);
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
-  cursor: pointer;
-  transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease;
-}
-.da-tab:hover {
-  color: var(--el-color-primary);
-  border-color: var(--el-color-primary-light-7);
-}
-.da-tab.is-active {
-  color: var(--el-color-primary);
-  border-color: var(--el-color-primary-light-5);
-  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
-  font-weight: 600;
-}
-.da-tabs__grow { flex: 1; }
-.da-tabs__hint { font-size: 12px; color: var(--el-text-color-secondary); }
-
-/* 页签内容：吃满剩余高度，内部自己滚动 */
-.da-pane {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.da-pane > * {
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
+/* ============ 台账主体：左树 + 右列表 ============ */
 .da-body {
   display: flex;
   flex: 1 1 auto;
@@ -1538,15 +1669,20 @@ onMounted(async () => {
   background: var(--el-color-primary-light-9);
 }
 
-/* 左侧维度切换：按分组 / 按厂家 */
-.da-modes {
+/* 左侧树：上方维度切换（组织 / 分组 / 厂家），下方只显示一棵树 */
+/* el-dropdown 默认 inline-block，在树里必须独占一行，否则同级分组会并排挤成多个列 */
+.da-tree__dd { display: block; }
+
+/* 维度切换：分段控件 */
+.da-tree__modes {
   display: flex;
   gap: 3px;
+  margin: 0 4px 8px;
   padding: 3px;
   background: var(--el-fill-color-light);
   border-radius: 9px;
 }
-.da-mode {
+.da-tree__mode {
   flex: 1;
   padding: 5px 8px;
   font-size: 12px;
@@ -1558,12 +1694,35 @@ onMounted(async () => {
   cursor: pointer;
   transition: color 0.16s ease, background 0.16s ease;
 }
-.da-mode:hover { color: var(--el-color-primary); }
-.da-mode.is-active {
+.da-tree__mode:hover { color: var(--el-color-primary); }
+.da-tree__mode.is-active {
   color: var(--el-color-primary);
   background: var(--el-bg-color);
   box-shadow: var(--el-box-shadow-lighter);
   font-weight: 600;
+}
+
+/* 展开箭头：只有有下一级的节点才显示，点箭头只折叠不筛选 */
+.da-tree__caret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  flex: none;
+  color: var(--el-text-color-placeholder);
+  transition: transform 0.16s ease;
+}
+.da-tree__caret.is-open { transform: rotate(90deg); }
+.da-tree__caret.is-leaf { visibility: hidden; }
+
+.da-tree__dot.is-org { background: var(--el-color-primary-light-3); }
+.da-tree__dot.is-group { background: var(--el-color-success); }
+.da-tree__dot.is-vendor { background: var(--el-color-warning); }
+.da-tree__item--root {
+  margin-bottom: 6px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px 6px 0 0;
 }
 .da-tree__empty {
   padding: 12px 10px;
@@ -1638,6 +1797,16 @@ onMounted(async () => {
   border-radius: 999px;
   padding: 0 6px;
 }
+/* 分组行的所属组织：很淡，放名字右边，挤不下就先省略 */
+.da-tree__hint {
+  flex: 0 1 auto;
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+}
 
 .da-rail__foot {
   flex: none;
@@ -1684,19 +1853,29 @@ onMounted(async () => {
   min-height: 0;
 }
 
+/* 列表工具条：高度固定，未选中时是台账概览，选中后变成批量操作条
+   —— 两种状态同高，多选时列表不会回流跳动 */
 .da-batch {
   flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 8px 12px;
+  height: 46px;
+  padding: 0 12px;
   border: 1px solid var(--el-border-color-lighter);
-  background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
+  background: var(--el-fill-color-blank, var(--el-bg-color));
   border-radius: 10px;
+  transition: background 0.16s ease, border-color 0.16s ease;
+}
+.da-batch.is-batch {
+  border-color: var(--el-color-primary-light-7);
+  background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
 }
 .da-batch__text { font-size: 13px; color: var(--el-text-color-primary); }
-.da-batch__ops { display: flex; gap: 8px; flex-wrap: wrap; }
+.da-batch__text b { font-family: var(--el-font-family-mono, monospace); }
+.da-batch__hint { font-size: 12px; color: var(--el-text-color-secondary); }
+.da-batch__ops { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 /* ReTable 自带卡片内边距与边框，这里只负责让它吃满剩余高度 */
 .da-table-wrap {

@@ -2,9 +2,9 @@
  * 设备管理路由表 + 静态菜单表
  *
  * 路由挂在 layout 之下：
- * - /device           设备台账（设备列表 / 机房拓扑 2 个页签，分组/拓扑全部在页面内）
+ * - /device           设备台账（左侧单树含 组织 / 分组 / 厂家，拓扑在抽屉中打开）
  * - /device/provider  厂商接入（接入凭据 / 厂商任务 2 个页签）
- * - /device/topo      路由别名 → 设备台账（tab=topo）
+ * - /device/topo      机房拓扑独立页（外部直达用，无菜单入口）
  * - /device/tasks     路由别名 → 厂商接入（tab=tasks）
  *
  * 分组 / 拓扑 / 定时任务都是页面内能力，不再出现在一级菜单里；路由里只保留
@@ -97,15 +97,13 @@ export const deviceRoutes: RouteConfigsTable[] = [
     }
   },
   {
-    // 路由别名：机房拓扑收敛到设备台账页签，不影响单机渲染
+    // 机房拓扑：台账内通过右键在抽屉中查看；本路由供外部直达（无菜单入口）
     path: '/device/topo',
     name: 'DeviceTopo',
     component: () => import('../views/DeviceTopoView.vue'),
-    redirect: '/device?tab=topo',
     meta: {
       title: '机房拓扑',
       icon: 'Grid',
-      /** 机房拓扑是设备台账的页签，不再作为独立菜单 */
       showLink: false,
       keepAlive: true,
       isVisible: '0',
