@@ -19,7 +19,7 @@
 
     <div v-if="device" class="ddp__body">
       <el-tabs v-model="activeTab" class="device-tabs">
-        <el-tab-pane label="概览" name="overview">
+        <el-tab-pane v-if="tabKeys.includes('overview')" label="概览" name="overview">
           <el-descriptions :column="3" border size="small">
             <el-descriptions-item label="设备编码">
               <span class="inline-flex items-center gap-1">
