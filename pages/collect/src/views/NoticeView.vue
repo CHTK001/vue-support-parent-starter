@@ -20,13 +20,12 @@ import ReDialog from "@repo/ui/re-dialog";
 import ReInput from "@repo/ui/re-input";
 import ReSelect from "@repo/ui/re-select";
 import ReSwitch from "@repo/ui/re-switch";
-import ReSectionHead from "@repo/ui/re-section-head";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import { formatDuration } from "@repo/ui/re-time";
 import { costMs } from "@repo/utils";
 import type { ReOption } from "@repo/ui/re-select";
-import type { ReTableColumn } from "@repo/ui/re-table";
+import type { ReTableColumn, ReTableSearchConfig } from "@repo/ui/re-table";
 import {
   deleteNotice,
   fetchNoticeChannels,
@@ -103,6 +102,61 @@ const columns = computed<ReTableColumn[]>(() => [
   { prop: "collectNoticeLastTime", label: "最近发送", width: 176 },
   { prop: "action", label: "操作", width: 140, slot: "action", fixed: "right" },
 ]);
+
+/** 内置搜索区的草稿值：点「查询」才生效，与运行记录 / 采集结果页同一套语义 */
+const searchModel = ref<Record<string, unknown>>({
+  keyword: "",
+  collectNoticeChannel: "",
+});
+
+/** 最近一次点「查询」真正生效的条件 */
+const applied = ref<{ keyword: string; channel: string }>({ keyword: "", channel: "" });
+
+const SEARCH = computed<ReTableSearchConfig>(() => ({
+  title: "搜索通知",
+  showRefreshBtn: false,
+  filters: [
+    { key: "keyword", label: "关键字", type: "input", placeholder: "按名称 / 接收目标搜索" },
+    {
+      key: "collectNoticeChannel",
+      label: "渠道",
+      type: "select",
+      placeholder: "全部渠道",
+      options: [{ label: "全部渠道", value: "" }, ...channelOptions.value],
+      attrs: { clearable: false },
+    },
+  ],
+}));
+
+/** 清单一次性拉全，内置搜索只在前端过滤 */
+const viewRows = computed(() => {
+  const text = applied.value.keyword.trim().toLowerCase();
+  return rows.value.filter(row => {
+    if (applied.value.channel !== "" && String(row.collectNoticeChannel ?? "") !== applied.value.channel) {
+      return false;
+    }
+    if (!text) {
+      return true;
+    }
+    return `${row.collectNoticeName ?? ""} ${row.collectNoticeTarget ?? ""}`.toLowerCase().includes(text);
+  });
+});
+
+/** 点「查询」：把草稿值提交给过滤逻辑（ReTable 不会替整表加载的页面回源） */
+function applySearch(): void {
+  applied.value = {
+    keyword: String(searchModel.value.keyword ?? ""),
+    channel: String(searchModel.value.collectNoticeChannel ?? ""),
+  };
+}
+
+/** 点「重置」：草稿与生效条件一起归零，不依赖事件先后 */
+function resetSearch(): void {
+  searchModel.value = { keyword: "", collectNoticeChannel: "" };
+  applied.value = { keyword: "", channel: "" };
+}
+
+const filtering = computed(() => Boolean(applied.value.keyword) || applied.value.channel !== "");
 
 const { loading, reload } = useCollectView(async () => {
   const [notices, registered] = await Promise.all([listNotices(), fetchNoticeChannels()]);
@@ -253,33 +307,36 @@ function showHelp(): void {
 
 <template>
   <div class="collect-page notice-page">
-    <!-- 页头：标题/描述与「查看模板变量」抽到表格之外，表格工具栏只留主操作（新建通知） -->
-    <ReSectionHead
-      class="notice-head"
-      title="执行通知配置"
-      description="所有采集器共用一份通知清单 · 任务进入终态后按时机异步投递，投递失败只记在「最近结果」，不改任务终态"
-    >
-      <template #actions>
-        <ReButton size="small" icon="QuestionFilled" title="查看标题与正文可用的模板变量" @click="showHelp">
-          查看标题与正文可用的模板变量
-        </ReButton>
-      </template>
-    </ReSectionHead>
+    <!--
+      页面只有一张表：没有页头，也没有统计卡。模板变量说明收进表格工具栏，
+      与主操作（新建通知）同一条线，不再让一段描述单独占一整行。
+    -->
 
     <ReTable
       class="collect-card"
       table-id="collect-notice"
       :loading="loading"
-      :data="rows"
+      :data="viewRows"
       :columns="columns"
       row-key="collectNoticeId"
-      empty-text="暂无通知配置"
+      v-model:search-model="searchModel"
+      :search="SEARCH"
+      :empty-text="filtering ? '没有匹配的通知，换个条件或点「重置」' : '暂无通知配置'"
       stripe
+      @search="applySearch"
+      @search-reset="resetSearch"
       @refresh="reload"
       :config="{ pagination: { enable: false } }"
     >
       <template #toolbar>
         <ReButton size="small" type="primary" icon="Plus" title="新建通知" @click="openCreate">新建通知</ReButton>
+        <ReButton size="small" icon="QuestionFilled" title="查看标题与正文可用的模板变量" @click="showHelp">
+          模板变量
+        </ReButton>
+        <span class="collect-hint">
+          <template v-if="filtering">命中 {{ viewRows.length }} / {{ rows.length }} 条 · </template>
+          所有采集器共用一份清单 · 任务进入终态后按时机异步投递 · 投递失败只记在「最近结果」，不改任务终态
+        </span>
       </template>
 
       <template #channel="{ row }">
@@ -379,34 +436,12 @@ function showHelp(): void {
 
 <style scoped>
 /*
- * 现代化改造的范围说明：本页是 ReTable（受控列 + 多个具名单元格插槽）+ ReDialog 表单，
+ * 本页是 ReTable（受控列 + 多个具名单元格插槽）+ ReDialog 表单，
  * 模板结构重写成卡片网格会拆掉 #channel/#timing/#enabled/#last/#action 这些脚本绑定的插槽，
- * 所以模板只做「页头 ReSectionHead + 小号按钮」的挂载，数据与插槽原样保留。
- * 样式一律走 koi 令牌，不再写死字体 / 颜色。
+ * 所以数据与插槽原样保留，外壳只保留一张表；样式一律走 koi 令牌。
  */
 .notice-page {
   gap: var(--gap-md, 12px);
-}
-
-/* 页头：标题 / 描述走 koi 文字令牌，留白交给 .notice-page 的 gap，不再叠一层 margin */
-.notice-head {
-  margin-bottom: 0;
-}
-
-.notice-head :deep(.re-section-head__title) {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.notice-head :deep(.re-section-head__desc) {
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--text-secondary);
-}
-
-.notice-head :deep(.re-section-head__actions) {
-  flex-wrap: wrap;
 }
 
 .content-input :deep(textarea) {
@@ -425,30 +460,12 @@ function showHelp(): void {
   color: var(--text-tertiary);
 }
 
-/* ===== 响应式：窄屏页头竖排，按钮靠左换行 ===== */
-@media (max-width: 768px) {
-  .notice-head {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .notice-head :deep(.re-section-head__actions) {
-    width: 100%;
-  }
-}
-
 /* ===== 尊重减少动态效果 ===== */
 @media (prefers-reduced-motion: reduce) {
-  .notice-head,
   .collect-vars,
   .content-input :deep(textarea) {
     animation: none;
     transition: none;
-  }
-
-  .notice-head * {
-    animation: none !important;
-    transition: none !important;
   }
 }
 </style>

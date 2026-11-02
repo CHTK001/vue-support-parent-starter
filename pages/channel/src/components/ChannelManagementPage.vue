@@ -33,13 +33,13 @@ import { channelApi, type ChannelSummary, type ChannelConnectionSummary } from '
 // 各渠道的官方图标（本地落地的品牌资源）。
 // 有官方 SVG/ICO 的渠道用图标；没有公开官方资源的渠道（Qoder / Raccoon / Loomy…）
 // 用品牌色圆角徽标 + 首字母兜底，保证视觉一致性。
-import clineIcon from './assets/channel-icons/cline.svg'
-import traeIcon from './assets/channel-icons/trae.svg'
-import opencodeIcon from './assets/channel-icons/opencode.svg'
-import geminiIcon from './assets/channel-icons/gemini.svg'
-import minimaxIcon from './assets/channel-icons/minimax.ico'
-import zcodeIcon from './assets/channel-icons/zcode.ico'
-import lobsteraiIcon from './assets/channel-icons/lobsterai.ico'
+import clineIcon from '../assets/channel-icons/cline.svg'
+import traeIcon from '../assets/channel-icons/trae.svg'
+import opencodeIcon from '../assets/channel-icons/opencode.svg'
+import geminiIcon from '../assets/channel-icons/gemini.svg'
+import minimaxIcon from '../assets/channel-icons/minimax.ico'
+import zcodeIcon from '../assets/channel-icons/zcode.ico'
+import lobsteraiIcon from '../assets/channel-icons/lobsterai.ico'
 import RePageHead from '@/components/ui/RePageHead.vue'
 
 /** 渠道品牌外观：官方图标（可选）+ 品牌色 + 徽标字形 */
