@@ -697,12 +697,26 @@ onMounted(async () => {
   --reid-border: var(--el-border-color-lighter);
   --reid-hover: var(--el-fill-color-light);
   --reid-radius: var(--el-radius-lg, 12px);
+  /* 小件（卡片/角标）与 FaceSearchPage 的 --fs-radius-sm 同档：
+     那边两张半径令牌都取 lg，这里保持一致，避免卡片比人脸页更「方」 */
+  --reid-radius-sm: var(--el-radius-lg, 12px);
+  /* 悬浮层投影：与人脸页 .fs-found 同口径，从正文色派生，深色下自动变暗 */
+  --reid-shadow: 0 10px 30px -10px color-mix(in srgb, var(--el-text-color-primary) 22%, transparent);
 
   position: relative;
   height: 100%;
   overflow: hidden;
   background: var(--reid-bg);
   color: var(--reid-text);
+}
+
+/* 暗色身份色：与人脸页一致，橙/青在深底上用更亮的一档，否则检测框发闷 */
+:global(html.dark) .reid-root {
+  --reid-brand: #fb923c;
+  --reid-brand-2: #fdba74;
+  --reid-accent: #22d3ee;
+  --reid-accent-2: #2dd4bf;
+  --reid-shadow: 0 14px 36px -10px color-mix(in srgb, var(--el-text-color-primary) 22%, transparent);
 }
 
 .reid-body {
@@ -770,30 +784,43 @@ onMounted(async () => {
 
 .reid-drop {
   flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  cursor: pointer;
-  border: 1px dashed var(--reid-border);
-  border-radius: var(--reid-radius);
-  text-align: center;
   padding: 24px;
+  box-sizing: border-box;
+  cursor: pointer;
+  text-align: center;
+  outline: none;
+  border: 2px dashed var(--reid-border);
+  border-radius: var(--reid-radius);
+  background: var(--reid-card);
+  transition:
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 
-.reid-drop:hover .reid-drop-title {
-  color: var(--reid-brand);
+/* 空态拖放区是 div + @click：补键盘焦点环（与人脸页 .fs-drop 同一条） */
+.reid-drop:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+.reid-drop:hover {
+  border-color: var(--reid-accent);
+  background: var(--reid-hover);
 }
 
 .reid-drop-icon {
-  color: var(--reid-muted);
+  color: var(--reid-accent);
 }
 
 .reid-drop-title {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 700;
+  margin: 4px 0 0;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .reid-drop-desc {
@@ -803,7 +830,7 @@ onMounted(async () => {
 }
 
 .reid-drop-btn {
-  margin-top: 6px;
+  margin-top: 10px;
 }
 
 .reid-canvas {
@@ -870,36 +897,41 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  background: color-mix(in srgb, var(--reid-bg) 70%, transparent);
+  background: color-mix(in srgb, var(--reid-card) 72%, transparent);
+  color: var(--reid-muted);
+  font-size: 14px;
 }
 
 .reid-mask-text {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--reid-muted);
 }
 
 .reid-found {
   position: absolute;
-  left: 18px;
   top: 18px;
-  padding: 10px 14px;
-  border-radius: var(--reid-radius);
-  background: color-mix(in srgb, var(--reid-card) 88%, transparent);
-  border: 1px solid var(--reid-border);
+  right: 18px;
+  padding: 12px 18px;
+  border-radius: var(--reid-radius-sm);
+  background: var(--reid-card);
+  box-shadow: var(--reid-shadow);
+  text-align: center;
 }
 
 .reid-found-title {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
+  color: var(--reid-brand);
 }
 
 .reid-found-sub {
   margin-top: 4px;
-  font-size: 12px;
-  color: var(--reid-muted);
+  font-size: 13px;
+  color: var(--reid-accent);
 }
 
 /* 分流统计条：两个小圆点 + 数量，颜色与图上检测框一一对应 */
@@ -936,17 +968,18 @@ onMounted(async () => {
 .reid-noface {
   position: absolute;
   left: 50%;
-  top: 18px;
+  bottom: 20px;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 14px;
-  border-radius: var(--reid-radius);
-  background: color-mix(in srgb, var(--reid-card) 88%, transparent);
+  padding: 9px 16px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--reid-card);
   border: 1px solid var(--reid-border);
-  font-size: 13px;
   color: var(--reid-muted);
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 .reid-params {
@@ -989,6 +1022,10 @@ onMounted(async () => {
 
 .reid-btn-brand {
   background: linear-gradient(135deg, var(--reid-brand-2), var(--reid-brand));
+}
+
+.reid-btn-accent {
+  background: linear-gradient(135deg, var(--reid-accent-2), var(--reid-accent));
 }
 
 .reid-btn:disabled {
@@ -1036,53 +1073,76 @@ onMounted(async () => {
 
 .reid-tabs {
   display: flex;
-  gap: 8px;
-}
-
-.reid-tab {
-  flex: 1 1 auto;
-  height: 32px;
+  gap: 6px;
+  padding: 5px;
   border-radius: var(--el-radius-full, 9999px);
-  border: 1px solid var(--reid-border);
-  background: transparent;
-  color: var(--reid-muted);
-  font-size: 13px;
-  cursor: pointer;
-  transition: all var(--el-transition-duration-fast, 0.2s);
-}
-
-.reid-tab:hover {
   background: var(--reid-hover);
 }
 
-.reid-tab.is-active {
-  background: var(--reid-brand);
-  border-color: var(--reid-brand);
-  color: var(--el-color-white);
+.reid-tab {
+  flex: 1 1 0;
+  height: 34px;
+  border: none;
+  border-radius: var(--el-radius-full, 9999px);
+  background: transparent;
+  color: var(--reid-muted);
+  font-size: 13px;
   font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition:
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease;
 }
 
+.reid-tab:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+/* 选中项从凹槽里「抬起」：两个页签与凹槽几乎同色，只靠文字色分不清 */
+.reid-tab.is-active {
+  background: var(--reid-card);
+  color: var(--reid-brand);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--el-text-color-primary) 12%, transparent);
+}
+
+/*
+ * 结果网格：人脸页用两列是因为它的卡片是「方图头像」的正方形；
+ * 重识别的卡片装的是摄像头链路 + 观测次数 + 经纬度这类文本行，
+ * 400px 面板切成两列会断成 180px 宽，链路直接折行。
+ * 因此这里保持单列，只把卡片本身的圆角/内边距/悬停对齐人脸页。
+ */
 .reid-grid {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .reid-card {
-  padding: 12px 14px;
-  border-radius: var(--reid-radius);
+  padding: 10px;
+  border-radius: var(--reid-radius-sm);
   border: 1px solid var(--reid-border);
-  background: var(--reid-bg);
-  transition: border-color var(--el-transition-duration-fast, 0.2s);
+  background: var(--reid-card);
+  cursor: pointer;
+  outline: none;
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+.reid-card:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .reid-card:hover {
-  border-color: var(--reid-accent);
+  transform: translateY(-2px);
+  box-shadow: var(--reid-shadow);
 }
 
-/* 跨镜轨迹左侧加一条主橙竖线：扫一眼就能挑出「跨摄像头出现过的人」 */
+/* 跨镜轨迹用主橙描边：扫一眼就能挑出「跨摄像头出现过的人」 */
 .reid-card.is-cross {
-  border-left: 3px solid var(--reid-brand);
+  border-color: var(--reid-brand);
 }
 
 .reid-card-head {
@@ -1093,8 +1153,9 @@ onMounted(async () => {
 
 .reid-card-id {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
+  color: var(--reid-muted);
 }
 
 /* 分流类型标签：人脸识别（绿）/ 重识别（灰蓝） */
@@ -1108,15 +1169,19 @@ onMounted(async () => {
   color: var(--reid-muted);
 }
 
-/* 认出的姓名：人脸识别命中时展示，回答「这个人是谁」 */
+/* 认出的姓名：人脸识别命中时展示，回答「这个人是谁」。
+   与人脸页 .fs-card-name 同一口径：主体名用主橙（身份色），不抢相似度/属性的位置 */
 .reid-card-name {
   display: flex;
   align-items: center;
   gap: 4px;
   margin: 6px 0 0;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
-  color: var(--reid-accent);
+  color: var(--reid-brand);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .reid-card-cams {
@@ -1129,14 +1194,14 @@ onMounted(async () => {
 }
 
 .reid-card-meta {
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   font-size: 12px;
   color: var(--reid-muted);
 }
 
 .reid-card-count {
   color: var(--reid-text);
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .reid-card-sep {
@@ -1144,10 +1209,10 @@ onMounted(async () => {
 }
 
 .reid-card-score {
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   font-size: 12px;
   font-weight: 700;
-  color: var(--reid-accent);
+  color: var(--reid-brand);
 }
 
 .reid-card-geo {
@@ -1157,40 +1222,46 @@ onMounted(async () => {
 }
 
 .reid-blank {
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 28px 12px;
+  padding: 30px 12px;
   text-align: center;
 }
 
 .reid-blank-icon {
-  color: var(--reid-muted);
+  color: var(--reid-border);
 }
 
 .reid-blank-title {
-  margin: 0;
+  margin: 4px 0 0;
   font-size: 14px;
   font-weight: 600;
+  color: var(--reid-text);
 }
 
 .reid-blank-desc {
   margin: 0;
   font-size: 12px;
   color: var(--reid-muted);
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
 .reid-cta {
-  height: 44px;
-  border-radius: var(--el-radius-full, 9999px);
+  height: 50px;
   border: none;
-  font-size: 14px;
-  font-weight: 600;
+  border-radius: var(--el-radius-full, 9999px);
+  font-size: 16px;
+  font-weight: 700;
   color: var(--el-color-white);
   background: linear-gradient(135deg, var(--reid-accent-2), var(--reid-accent));
+}
+
+.reid-cta:disabled {
+  opacity: 0.5;
 }
 
 .reid-panel-hint {
@@ -1219,26 +1290,38 @@ onMounted(async () => {
   opacity: 0.6;
 }
 
+/* 模型未配齐的门禁提示：与人脸页 .fs-gate 同一套语言（图标 + 标题 + 说明 +
+   跳转入口），配色取告警语义色而非品牌橙 —— 这里是「缺配置」，不是检测标记。 */
 .reid-gate {
+  margin-top: 12px;
   display: flex;
-  gap: 10px;
-  padding: 12px 14px;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  text-align: left;
+  border: 1px solid var(--el-color-warning-light-5, #e6a23c);
   border-radius: var(--reid-radius);
-  border: 1px solid var(--reid-border);
-  background: var(--reid-hover);
+  background: var(--el-color-warning-light-9, #fdf6ec);
+  color: var(--el-text-color-primary);
+}
+
+.reid-gate > .el-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--el-color-warning, #e6a23c);
 }
 
 .reid-gate-title {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 700;
+  margin: 0 0 2px;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .reid-gate-desc {
-  margin: 4px 0 6px;
-  font-size: 12px;
-  color: var(--reid-muted);
+  margin: 0;
+  font-size: 11px;
   line-height: 1.6;
+  color: var(--reid-muted);
 }
 
 .reid-hidden {

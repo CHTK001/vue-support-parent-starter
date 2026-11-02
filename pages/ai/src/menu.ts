@@ -14,4 +14,5 @@ import { registerMenuViewModules } from "@repo/core";
 // 后端菜单 component → 本地页面（懒加载，仅访问时 import，不预载）
 registerMenuViewModules({
   "views/ai/models/index.vue": () => import("./components/models/ModelsPage.vue"),
+  "views/ai/channel/health.vue": () => import("./components/management/ChannelHealthPage.vue"),
 });

@@ -5586,8 +5586,128 @@ const vxeMouseConfig = { area: true };
 const vxeAreaConfig = { multiple: true, showActionMsg: true, autoClear: true };
 /** vxe 区域选择 · 键盘配置（复制 / 粘贴 / 剪切依赖 isClip） */
 const vxeKeyboardConfig = { isClip: true };
-/** vxe 列拖拽配置（同级列拖拽 + 辅助状态） */
-const vxeColumnDragConfig = { isPeerDrag: true, showGuidesStatus: true, animation: false, trigger: "cell" };
+/** vxe 列拖拽配置（同级列拖拽；自定义表头插槽不渲染默认把手，故整格可拖） */
+const vxeColumnDragConfig = {
+  isPeerDrag: true,
+  showGuidesStatus: false,
+  showDragTip: false,
+  animation: false,
+  trigger: "cell",
+} as const;
+
+/**
+ * 列拖拽 dragover 节流器（提升动态表头拖拽流畅度）。
+ *
+ * <p><b>成本来源</b>：vxe 4.22.2 `isPeerDrag` 下，<b>每一次</b> dragover 都会同步做三件事：
+ * ① `handleHeaderCellDragDragoverEvent` 里 `getColumnById(colid)` 线性查找 +
+ * `thEl.getBoundingClientRect()`，② 触发一次真实的列交换（peer drag 是「悬停即换位」），
+ * ③ `showDropTip` 再读 `wrapperEl.getBoundingClientRect()` / `clientWidth` / `clientHeight`
+ * 并逐条写 6~10 条内联 style。列交换会让整个表头重渲染 —— 对 DBM 这种
+ * `header-${col}` 自定义插槽（每列还带注释行 / 类型行）的表，单次重渲染即数十毫秒。
+ * 实测一次拖拽 13 次 dragover → 257 次 `getBoundingClientRect`、8 个长任务、最长 784ms。</p>
+ *
+ * <p><b>做法</b>：在捕获阶段（早于 vxe 绑在 th 上的 dragover）按固定时间窗限流：
+ * 窗口内首次放行（vxe 自己会 `preventDefault`），其余一律 `preventDefault()` 后丢弃 ——
+ * 这样浏览器仍认为当前是合法放置目标，`drop` 不受影响；同时记下最后一次坐标，
+ * 窗口结束时补发一个合成 dragover，保证松手前的落点仍然被计算到。</p>
+ *
+ * <p><b>为什么不用 requestAnimationFrame</b>：原生 HTML5 拖拽期间浏览器跑的是嵌套事件循环，
+ * rAF 是否继续派发取决于实现，一旦不派发就再也不会放行任何 dragover，拖拽直接失效。
+ * 时间窗 + `setTimeout` 只依赖宏任务，行为确定。</p>
+ *
+ * <p>只在启用列拖拽（`columnDraggable`）且 vxe 引擎时挂载，对行拖拽 / 普通表格无副作用。</p>
+ */
+const DRAG_THROTTLE_MS = 60;
+
+const columnDragging = { value: false };
+/** 上一次放行 vxe 处理 dragover 的时间戳 */
+const dragLastPassAt = { value: 0 };
+/** 被丢弃的 dragover 里最后一次（窗口结束时补发） */
+const dragPending = { value: null as DragEvent | null };
+const dragTrailingTimer = { value: 0 };
+/** 补发标记：合成事件不再进节流判断，否则会自我递归 */
+const dragSynthetic = { value: false };
+
+/** 复位列拖拽节流状态（拖拽结束 / 卸载时调用） */
+function resetColumnDragoverState(): void {
+  if (dragTrailingTimer.value) {
+    clearTimeout(dragTrailingTimer.value);
+    dragTrailingTimer.value = 0;
+  }
+  dragPending.value = null;
+  dragLastPassAt.value = 0;
+  columnDragging.value = false;
+  dragSynthetic.value = false;
+}
+
+/** 窗口结束：用最后一次被丢弃的坐标补发一次 dragover，让落点仍被计算 */
+function flushPendingDragover(): void {
+  dragTrailingTimer.value = 0;
+  const pending = dragPending.value;
+  dragPending.value = null;
+  const el = pending?.target as HTMLElement | null;
+  if (!pending || !el || !columnDragging.value) {
+    return;
+  }
+  dragLastPassAt.value = performance.now();
+  dragSynthetic.value = true;
+  try {
+    el.dispatchEvent(
+      new DragEvent("dragover", {
+        bubbles: true,
+        cancelable: true,
+        clientX: pending.clientX,
+        clientY: pending.clientY,
+        dataTransfer: pending.dataTransfer,
+      }),
+    );
+  } finally {
+    dragSynthetic.value = false;
+  }
+}
+
+/**
+ * 表头 dragover 捕获处理：按时间窗限流，窗口边界放行一次。
+ *
+ * @param evnt 原生 dragover
+ */
+function onHeaderDragoverCapture(evnt: DragEvent): void {
+  if (dragSynthetic.value || !columnDragging.value) {
+    return;
+  }
+  const el = evnt.target as HTMLElement | null;
+  if (!el || !el.closest?.(".vxe-header--column")) {
+    return;
+  }
+  const now = performance.now();
+  if (now - dragLastPassAt.value >= DRAG_THROTTLE_MS) {
+    // 放行：交给 vxe 原生处理（它自己会 preventDefault 并计算落点）
+    dragLastPassAt.value = now;
+    dragPending.value = null;
+    return;
+  }
+  // 丢弃：必须自己 preventDefault，否则这次 dragover 不「被取消」，drop 不会触发
+  evnt.preventDefault();
+  dragPending.value = evnt;
+  if (!dragTrailingTimer.value) {
+    dragTrailingTimer.value = window.setTimeout(flushPendingDragover, DRAG_THROTTLE_MS);
+  }
+}
+
+/** 列拖拽开始：只认表头里的 dragstart，置位节流开关 */
+function onHeaderDragstartCapture(evnt: DragEvent): void {
+  const el = evnt.target as HTMLElement | null;
+  if (!el || !el.closest?.(".vxe-header--column")) {
+    return;
+  }
+  columnDragging.value = true;
+  dragLastPassAt.value = 0;
+}
+
+/** 列拖拽结束 / 放置：复位节流状态 */
+function onHeaderDragendCapture(): void {
+  resetColumnDragoverState();
+}
 
 /** element 引擎不支持虚拟滚动 / 区域选择：开启只提示，不假装生效 */
 watch(
@@ -5731,7 +5851,68 @@ onMounted(() => {
     void initHeaderSortable();
   }
 });
-onBeforeUnmount(destroyHeaderSortable);
+/** 列拖拽节流监听的挂载点（卸载时按同一元素解绑） */
+const columnDragThrottleEl = { value: null as HTMLElement | null };
+
+/**
+ * 挂载列拖拽 dragover 节流监听（vxe 引擎 + columnDraggable 时）。
+ *
+ * <p>挂到组件根元素而不是 vxe 实例的 `$el`：`useVxe` 依赖 `props.columns.length`，
+ * 列是异步到达的，`onMounted` 时它还是 false，绑到 `$el` 会直接绑不上；
+ * 组件根元素始终存在，且表头在其内部，捕获阶段一定先于 th 上的 vxe 处理器。</p>
+ *
+ * <p>用捕获阶段：vxe 把 dragover 直接绑在 {@code th} 上，冒泡阶段拦不住。</p>
+ */
+function bindColumnDragThrottle(): void {
+  const el = rootRef.value;
+  if (!el || columnDragThrottleEl.value === el) {
+    return;
+  }
+  unbindColumnDragThrottle();
+  columnDragThrottleEl.value = el;
+  el.addEventListener("dragstart", onHeaderDragstartCapture, true);
+  el.addEventListener("dragover", onHeaderDragoverCapture, true);
+  el.addEventListener("dragend", onHeaderDragendCapture, true);
+  el.addEventListener("drop", onHeaderDragendCapture, true);
+}
+
+/** 解绑列拖拽节流监听 */
+function unbindColumnDragThrottle(): void {
+  const el = columnDragThrottleEl.value;
+  if (!el) {
+    return;
+  }
+  el.removeEventListener("dragstart", onHeaderDragstartCapture, true);
+  el.removeEventListener("dragover", onHeaderDragoverCapture, true);
+  el.removeEventListener("dragend", onHeaderDragendCapture, true);
+  el.removeEventListener("drop", onHeaderDragendCapture, true);
+  columnDragThrottleEl.value = null;
+  resetColumnDragoverState();
+}
+
+/**
+ * 列拖拽节流监听的挂载时机。
+ *
+ * <p>不能放在 `onMounted`：`useVxe` 依赖 `props.columns.length`，列由宿主异步加载，
+ * 挂载时还是 element 分支（false），条件判断会直接把监听跳过、之后再也不会补绑。
+ * 用 `flush: 'post'` 的 watch 同时盯引擎与开关，DOM 更新后重试绑定。</p>
+ */
+watch(
+  [useVxe, () => props.columnDraggable],
+  ([vxe, draggable]) => {
+    if (vxe && draggable) {
+      bindColumnDragThrottle();
+    } else {
+      unbindColumnDragThrottle();
+    }
+  },
+  { flush: "post", immediate: true },
+);
+
+onBeforeUnmount(() => {
+  destroyHeaderSortable();
+  unbindColumnDragThrottle();
+});
 
 defineExpose({
   reload,

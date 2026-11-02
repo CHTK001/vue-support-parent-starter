@@ -53,10 +53,20 @@
           {{ row.status === 1 ? '启用' : '禁用' }}
         </el-tag>
       </template>
+      <template #col-overdraft="{ row }">
+        <el-tag :type="row.overdraftEnabled ? 'warning' : 'info'" size="small">
+          {{ row.overdraftEnabled ? '开放' : '关闭' }}
+        </el-tag>
+      </template>
+      <template #col-balance="{ row }">
+        <span class="balance-text">{{ formatBalance(row.balance) }}</span>
+      </template>
       <!-- 操作列统一 ReButton square（纯图标 + tooltip），与知识库等页面一致 -->
       <template #col-actions="{ row }">
         <div class="row-actions">
           <ReButton layout="square" type="primary" :icon="Edit" tip="编辑" @click="openEditDialog(row)" />
+          <ReButton layout="square" type="primary" :icon="Money" tip="充值" @click="openRechargeDialog(row)" />
+          <ReButton layout="square" type="info" :icon="RefreshRight" tip="账单" @click="openLogsDialog(row)" />
           <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click="deleteItem(row)" />
         </div>
       </template>
@@ -93,6 +103,51 @@
         <el-button type="primary" @click="submitForm" :loading="submitting">保存</el-button>
       </template>
     </ReDialog>
+
+    <!-- 充值弹窗：金额 + 备注，保存后回写余额页签 -->
+    <ReDialog v-model="rechargeDialogVisible" :title="'AppKey 充值 · ' + currentAppKey.name"
+      width="400px" append-to-body>
+      <el-form :model="rechargeForm" :rules="rechargeRules" ref="rechargeFormRef" label-width="80px">
+        <el-form-item label="金额" prop="amount">
+          <el-input-number v-model="rechargeForm.amount" :min="0" :step="100" :precision="2"
+            :controls="false" style="width: 100%" placeholder="充值金额" />
+        </el-form-item>
+        <el-form-item label="备注" prop="remark">
+          <el-input v-model="rechargeForm.remark" type="textarea" :rows="2" placeholder="充值备注（可选）" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="rechargeDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitRecharge" :loading="submitting">充值</el-button>
+      </template>
+    </ReDialog>
+
+    <!-- 充值/消费流水弹窗 -->
+    <ReDialog v-model="logsDialogVisible" title="AppKey 充值/消费流水" width="700px" append-to-body>
+      <el-table v-loading="logsLoading" :data="topupLogs" border>
+        <el-table-column prop="createdAt" label="流水时间" min-width="160" align="center" />
+        <el-table-column prop="type" label="类型" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag :type="topupTypeTag(row.type)" size="small">
+              {{ topupTypeLabel(row.type) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="amount" label="金额(元)" min-width="110" align="right">
+          <template #default="{ row }">
+            <span :class="row.amount >= 0 ? 'charge-green' : 'charge-red'">
+              {{ row.amount > 0 ? '+' : '' }}{{ row.amount }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="balanceBefore" label="变动前余额" min-width="110" align="right" />
+        <el-table-column prop="balanceAfter" label="变动后余额" min-width="110" align="right" />
+        <el-table-column prop="remark" label="备注" min-width="160" />
+      </el-table>
+      <template #footer>
+        <el-button @click="logsDialogVisible = false">关闭</el-button>
+      </template>
+    </ReDialog>
   </RePage>
 </template>
 
@@ -100,10 +155,10 @@
 import { message } from "@repo/core";
 import { ref, computed, onMounted } from 'vue';
 import { ElMessageBox } from 'element-plus';
-import { Search, Plus, Refresh, Edit, Delete } from '@element-plus/icons-vue';
+import { Search, Plus, Refresh, Edit, Delete, Money, RefreshRight } from '@element-plus/icons-vue';
 import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn } from '@repo/ui/re-table';
-import { appKeyApi } from '@/services/javaApi';
+import { appKeyApi, topupApi } from '@/services/javaApi';
 import ReDialog from '@repo/ui/re-dialog';
 import RePage from '@/components/ui/RePage.vue';
 import ReButton from '@repo/ui/re-button';
@@ -117,8 +172,12 @@ const appKeyColumns: ReTableColumn[] = [
   { prop: 'appKey', label: 'AppKey', minWidth: 200, slot: 'appKey' },
   { prop: 'provider', label: '提供商', minWidth: 120 },
   { prop: 'status', label: '状态', width: 100, align: 'center', slot: 'status' },
+  { prop: 'balance', label: '余额', width: 100, align: 'right', slot: 'balance' },
+  { prop: 'overdraftEnabled', label: '透支', width: 80, align: 'center', slot: 'overdraft' },
+  { prop: 'minuteRate', label: '每分钟单价', width: 110, align: 'right' },
+  { prop: 'totalCost', label: '累计费用', width: 110, align: 'right' },
   { prop: 'createTime', label: '创建时间', minWidth: 160 },
-  { prop: 'actions', label: '操作', width: 180, fixed: 'right', align: 'center', slot: 'actions' },
+  { prop: 'actions', label: '操作', width: 220, fixed: 'right', align: 'center', slot: 'actions' },
 ];
 
 const loading = ref(false);
@@ -148,6 +207,23 @@ const dialogVisible = ref(false);
 const isEdit = ref(false);
 const submitting = ref(false);
 const formRef = ref();
+
+/** 充值弹窗 */
+const rechargeDialogVisible = ref(false);
+const rechargeForm = ref({ amount: 0, remark: '' });
+const rechargeFormRef = ref();
+const rechargeRules = {
+  amount: [
+    { required: true, message: '请输入充值金额', trigger: 'blur' },
+    { type: 'number', min: 0.01, message: '充值金额须正数', trigger: 'blur' },
+  ],
+};
+
+/** 账单弹窗 */
+const logsDialogVisible = ref(false);
+const logsLoading = ref(false);
+const topupLogs = ref<any[]>([]);
+const currentAppKey = ref({ name: '', id: '' });
 
 const defaultForm = () => ({ id: '', appName: '', appKey: '', provider: '', status: 1, remark: '' });
 const form = ref(defaultForm());
@@ -277,6 +353,73 @@ const batchDeleteItems = async () => {
   loadData();
 };
 
+/** 打开充值弹窗（保护归属守卫：充值仅消耗归属，不写面板） */
+const openRechargeDialog = (row: any) => {
+  currentAppKey.value = row;
+  rechargeForm.value = { amount: 0, remark: '' };
+  rechargeDialogVisible.value = true;
+};
+
+/** 充值到 AppKey（余额增加 + 记 RECHARGE 流水） */
+const submitRecharge = async () => {
+  if (!rechargeFormRef.value) return;
+  await rechargeFormRef.value.validate(async (valid: boolean) => {
+    if (!valid) return;
+    submitting.value = true;
+    try {
+      await topupApi.recharge(currentAppKey.value.id, rechargeForm.value.amount, rechargeForm.value.remark);
+      message.success('充值成功');
+      rechargeDialogVisible.value = false;
+      await loadData();
+    } catch (e: any) {
+      message.error('充值失败: ' + (e.message || ''));
+    } finally {
+      submitting.value = false;
+    }
+  });
+};
+
+/** 打开账单弹窗（充值/消费流水） */
+const openLogsDialog = async (row: any) => {
+  currentAppKey.value = row;
+  logsLoading.value = true;
+  logsDialogVisible.value = true;
+  try {
+    const res: any = await topupApi.list(currentAppKey.value.id);
+    topupLogs.value = res?.data || [];
+  } catch (e: any) {
+    message.error('账单加载失败: ' + (e.message || ''));
+    topupLogs.value = [];
+  } finally {
+    logsLoading.value = false;
+  }
+};
+
+/** 充值/退款类型标签 */
+const topupTypeLabel = (type: string) => {
+  switch (type) {
+    case 'RECHARGE': return '充值';
+    case 'CONSUME': return '消费';
+    case 'REFUND': return '退款';
+    case 'ADJUST': return '调整';
+    default: return type;
+  }
+};
+
+const topupTypeTag = (type: string) => {
+  switch (type) {
+    case 'RECHARGE': return 'success';
+    case 'CONSUME': return 'primary';
+    case 'REFUND': return 'warning';
+    case 'ADJUST': return 'info';
+    default: return 'info';
+  }
+};
+
+const formatBalance = (balance?: number) => {
+  return balance != null ? balance.toFixed(4) : '0.0000';
+};
+
 onMounted(() => loadData());
 </script>
 
@@ -300,5 +443,9 @@ onMounted(() => loadData());
   font-weight: 600;
 }
 .key-text { font-family: ui-monospace, monospace; font-size: 13px; color: var(--el-text-color-secondary); margin-right: 8px; }
+/** 账单面板：正/负金额分色 */
+.charge-green { color: var(--el-color-success); }
+.charge-red { color: var(--el-color-danger); }
+.balance-text { font-variant-numeric: tabular-nums; }
 /* 注：原 .pagination-wrapper（页面自写 el-pagination 的容器）已随分页收口到 ReTable 内部而移除。 */
 </style>

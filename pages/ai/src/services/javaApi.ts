@@ -53,6 +53,26 @@ export const appKeyApi = {
   batchDelete: (ids: number[]) => http.delete('/app-keys/batch', { data: { ids } }),
 };
 
+/** AppKey 充值/消费流水 API（余额 / 充值 / 扣减 / 流水） */
+export const topupApi = {
+  /** 查询余额 */
+  balance: (appKeyId: number) => http.get(`/app-keys/${appKeyId}/balance`),
+  /** 充值（金额 + 备注） */
+  recharge: (appKeyId: number, amount: number, remark?: string) =>
+    http.post(`/app-keys/${appKeyId}/recharge`, { amount, remark }),
+  /** 扣减/调整（金额 + 备注） */
+  deduct: (appKeyId: number, amount: number, remark?: string) =>
+    http.post(`/app-keys/${appKeyId}/deduct`, { amount, remark }),
+  /** 充值/消费/退款/调整流水（按 AppKey 主键） */
+  list: (appKeyId: number) => http.get(`/app-keys/${appKeyId}/topups`),
+  /** 套餐变更 */
+  plan: (appKeyId: number, planId: number) => http.put(`/app-keys/${appKeyId}/plan`, { planId }),
+  /** 透支开关变更 */
+  overdraft: (appKeyId: number, enabled: boolean) => http.put(`/app-keys/${appKeyId}/overdraft`, { overdraftEnabled: enabled }),
+  /** 每分钟单价变更 */
+  rate: (appKeyId: number, minuteRate: number) => http.put(`/app-keys/${appKeyId}/rate`, { minuteRate }),
+};
+
 /** 厂商目录（厂商 Key 的归属厂商，用于表单选择器） */
 export const manufacturerApi = {
   list: () => http.get('/manufacturer/list'),
@@ -540,7 +560,82 @@ export const channelApi = {
     apiHttp.post(`/api/channels/${channel}/delete-connection`, { label }),
 };
 
-// ==================== 视觉管线 ====================
+/**
+ * 渠道健康（子 2API Channel Monitor 模式）探针服务。
+ *
+ * <p>全量出口：</p>
+ * <ul>
+ *   <li>GET  /v2/channels/health          全部渠道健康状态</li>
+ *   <li>GET  /v2/channels/health/{providerId}                供应商健康统计</li>
+ *   <li>GET  /v2/channels/health/{providerId}/{connectionId}  单连接健康状态</li>
+ *   <li>POST /v2/channels/health/probe     触发全部渠道探针</li>
+ *   <li>POST /v2/channels/health/{connectionId}/probe 触发单连接探针</li>
+ *   <li>PUT  /v2/channels/health/{connectionId}/interval 设定单连接探针间隔秒数</li>
+ * </ul>
+ *
+ * @author CH
+ * @since 4.0.0.57
+ */
+export const channelHealthApi = {
+  /** GET /v2/channels/health —— 全部渠道健康状态 */
+  list: () => http.get('/v2/channels/health') as Promise<ChannelHealthSummary[]>,
+  /** GET /v2/channels/health/{providerId} —— 某供应商的健康统计 */
+  statByProvider: (providerId: string) =>
+    http.get(`/v2/channels/health/${providerId}`) as Promise<Record<string, number>>,
+  /** GET /v2/channels/health/{providerId}/{connectionId} —— 某连接的健康状态 */
+  state: (providerId: string, connectionId: string) =>
+    http.get(`/v2/channels/health/${providerId}/${connectionId}`) as Promise<ChannelHealthSummary>,
+  /** POST /v2/channels/health/probe —— 触发全部渠道探针 */
+  probeAll: () => http.post('/v2/channels/health/probe') as Promise<number>,
+  /** POST /v2/channels/health/{connectionId}/probe —— 触发单连接探针 */
+  probe: (connectionId: string) =>
+    http.post(`/v2/channels/health/${connectionId}/probe`) as Promise<ChannelHealthSummary>,
+  /** PUT /v2/channels/health/{connectionId}/interval —— 设定单连接探针间隔秒数（0 = 全局） */
+  updateInterval: (connectionId: string, interval: number) =>
+    http.put(`/v2/channels/health/${connectionId}/interval`, { interval }) as Promise<boolean>,
+};
+
+/**
+ * 渠道健康状态载体（通道探针结果，行主键为 connectionId）。
+ */
+export interface ChannelHealthSummary {
+  /** 连接标识（行主键） */
+  connectionId?: string;
+  /** 供应商标识 */
+  providerId?: string;
+  /** 渠道（provider platform） */
+  channel?: string;
+  /** 连接标签 */
+  label?: string;
+  /** 状态：UNKNOWN / ONLINE / WARNING / DOWN / RATE_LIMITED */
+  state?: string;
+  /** 连续成功次数 */
+  consecutiveSuccesses?: number;
+  /** 连续失败次数 */
+  consecutiveFailures?: number;
+  /** 总成功次数 */
+  successes?: number;
+  /** 总失败次数 */
+  failures?: number;
+  /** 累计失败次数（含限流） */
+  totalFailures?: number;
+  /** 平均延迟（毫秒） */
+  averageLatency?: number;
+  /** 最后探针状态码 */
+  lastProbeStatus?: number;
+  /** 最后探针延迟（毫秒） */
+  lastProbeLatency?: number;
+  /** 最后探针错误信息 */
+  lastProbeError?: string;
+  /** 最后探针时间（毫秒） */
+  lastProbeAt?: number;
+  /** 探针间隔秒数（0 = 走全局健康设置） */
+  intervalSeconds?: number;
+  /** 创建时间（毫秒） */
+  createdAt?: number;
+  /** 更新时间（毫秒） */
+  updatedAt?: number;
+}
 export const pipelineApi = {
   list: () => http.get('/models/pipelines'),
   detail: (code: string) => http.get(`/pipelines/${code}`),

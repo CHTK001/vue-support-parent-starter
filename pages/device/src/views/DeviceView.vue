@@ -1,6 +1,6 @@
 <template>
   <div class="da">
-    <!-- 台账功能页签：设备列表 / 分组管理 / 机房拓扑（全局菜单只保留「设备台账 / 厂商接入」） -->
+    <!-- 台账功能页签：设备列表 / 机房拓扑（分组收敛到台账页签内） -->
     <nav class="da-tabs">
       <button
         v-for="tab in LEDGER_TABS"
@@ -109,19 +109,36 @@
             <span class="da-tree__name">全部</span>
             <span class="da-tree__count">{{ rows.length }}</span>
           </div>
-          <!-- 组节点：点击筛选本组设备 -->
-          <div
-            v-for="node in flatGroups"
-            :key="node.groupId"
-            class="da-tree__item"
-            :class="{ 'is-active': groupFilter === node.groupId }"
-            :style="{ paddingLeft: `${10 + (node.depth || 0) * 14}px` }"
-            @click="selectGroup(node)"
-          >
-            <span class="da-tree__dot" />
-            <span class="da-tree__name">{{ node.groupName }}</span>
-            <span class="da-tree__count">{{ node.deviceCount }}</span>
-          </div>
+
+          <!-- 组织行 / 分组行：分组节点右键打开菜单，点击筛选本组设备 -->
+          <template v-for="row in treeRows" :key="row._key">
+            <!-- 组织行：不参与筛选 -->
+            <div v-if="row.isOrg" class="da-tree__item da-tree__item--org">
+              <span class="da-tree__dot" />
+              <span class="da-tree__name">{{ row.groupName }}</span>
+            </div>
+            <el-dropdown v-else-if="row.groupId" placement="bottom-start" trigger="contextmenu" @command="(cmd) => onGroupCommand(cmd, row)">
+              <div
+                class="da-tree__item"
+                :class="{ 'is-active': groupFilter === row.groupId }"
+                :style="{ paddingLeft: `${10 + (row.depth || 0) * 14}px` }"
+                @click="selectGroup(row)"
+              >
+                <span class="da-tree__dot" />
+                <span class="da-tree__name">{{ row.groupName }}</span>
+                <span class="da-tree__count">{{ row.deviceCount }}</span>
+              </div>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="topo" :icon="Grid">在拓扑中查看</el-dropdown-item>
+                  <el-dropdown-item command="add" :icon="Plus">新增子分组</el-dropdown-item>
+                  <el-dropdown-item command="assign" :icon="Grid">分配设备</el-dropdown-item>
+                  <el-dropdown-item command="edit" :icon="EditPen">重命名</el-dropdown-item>
+                  <el-dropdown-item command="delete" divided style="color: var(--el-color-danger)">删除</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </template>
         </ReScrollbar>
 
         <!-- 厂家列：按设备台账里的厂商归并，点击筛选该厂商的设备 -->
@@ -136,17 +153,28 @@
             <span class="da-tree__name">全部厂家</span>
             <span class="da-tree__count">{{ rows.length }}</span>
           </div>
-          <div
+          <el-dropdown
             v-for="node in vendorNodes"
             :key="node.vendor"
-            class="da-tree__item"
-            :class="{ 'is-active': vendorFilter === node.vendor }"
-            @click="selectVendor(node.vendor)"
+            placement="bottom-start"
+            trigger="contextmenu"
+            @command="(cmd) => onVendorCommand(cmd, node)"
           >
-            <span class="da-tree__dot" />
-            <span class="da-tree__name">{{ node.label }}</span>
-            <span class="da-tree__count">{{ node.count }}</span>
-          </div>
+            <div
+              class="da-tree__item"
+              :class="{ 'is-active': vendorFilter === node.vendor }"
+              @click="selectVendor(node.vendor)"
+            >
+              <span class="da-tree__dot" />
+              <span class="da-tree__name">{{ node.label }}</span>
+              <span class="da-tree__count">{{ node.count }}</span>
+            </div>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="topo" :icon="Grid">在拓扑中查看</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
           <p v-if="!vendorNodes.length" class="da-tree__empty">没有可归类的厂商</p>
         </ReScrollbar>
 
@@ -294,11 +322,6 @@
       </section>
     </div>
 
-    <!-- 分组管理：原「设备分组」菜单页，收敛为台账页签 -->
-    <section v-if="mountedTabs.has('groups')" v-show="ledgerTab === 'groups'" class="da-pane">
-      <DeviceGroupView />
-    </section>
-
     <!-- 机房拓扑：原「机房拓扑」菜单页，收敛为台账页签 -->
     <section v-if="mountedTabs.has('topo')" v-show="ledgerTab === 'topo'" class="da-pane">
       <DeviceTopoView />
@@ -313,16 +336,17 @@
       @saved="onDeviceSaved"
     />
 
-    <!-- 新建分组：只给设备打标签，不改动设备与组织 -->
+    <!-- 新建 / 编辑分组：按组织添加，分组所有权归组织 -->
     <ReDialog v-model="groupCreateVisible" title="新建分组" width="480px">
       <el-form label-position="top" class="da-group-form">
         <el-form-item label="分组名称" required>
           <el-input v-model="groupForm.groupName" placeholder="例如 研发中心 / 一期机房" maxlength="64" />
         </el-form-item>
-        <el-form-item label="上级分组">
-          <el-select v-model="groupForm.groupParent" placeholder="顶级分组（留空）" clearable class="w-full">
-            <el-option v-for="option in flatGroups" :key="option.groupId" :label="option.groupName" :value="option.groupId" />
+        <el-form-item :label="groupCreateKind === 'sub' ? '上级分组' : '上级组织'">
+          <el-select v-model="groupForm.groupParent" :placeholder="groupCreateKind === 'sub' ? '选一个上级分组' : '按组织把分组挂上去（可选新分组）'" clearable class="w-full">
+            <el-option v-for="option in parentOptions" :key="option.value" :label="option.label" :value="option.value" />
           </el-select>
+          <div class="da-group-form__hint">按组织添加：分组随组织归集，车间/大厦/楼层看组织的结构</div>
         </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="groupForm.groupRemark" type="textarea" :rows="2" maxlength="200" show-word-limit />
@@ -331,6 +355,32 @@
       <template #footer>
         <ReButton @click="groupCreateVisible = false">取消</ReButton>
         <ReButton type="primary" :loading="groupCreating" @click="saveGroup">保存</ReButton>
+      </template>
+    </ReDialog>
+
+    <!-- 分配设备到分组（全量替换分组下的设备） -->
+    <ReDialog v-model="assignVisible" title="分配设备" width="800px">
+      <div class="da-assign-tip">全量替换：操作会覆盖该分组下已有设备，请确认。</div>
+      <div class="da-assign-list">
+        <div
+          v-for="d in assignDevices"
+          :key="d.deviceInfoId"
+          class="da-assign-cell"
+          :class="{ 'is-assigned': pendingAssigned.has(d.deviceInfoId || '') }"
+          @click="pendingToggle(d)"
+        >
+          <div class="da-assign-cell__head">
+            <span class="da-assign-cell__name">{{ d.deviceInfoName }}</span>
+            <el-icon class="da-assign-cell__check">
+              <Check v-if="pendingAssigned.has(d.deviceInfoId || '')" /><Plus v-else />
+            </el-icon>
+          </div>
+          <div class="da-assign-cell__meta">{{ vendorLabel(d.deviceInfoVendor) }} · {{ d.deviceInfoIp || '无 IP' }}</div>
+        </div>
+      </div>
+      <template #footer>
+        <ReButton @click="assignVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="assignSaving" @click="onAssignSave">确认分配 ({{ pendingAssigned.size }})</ReButton>
       </template>
     </ReDialog>
 
@@ -429,9 +479,12 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import {
   Connection,
+  Check,
   Delete,
   EditPen,
   FolderOpened,
+  Grid,
+  Plus,
   Position,
   Refresh,
   RefreshRight,
@@ -461,8 +514,7 @@ import ReDeviceDetailDrawer from '@pages/device/src/components/ReDeviceDetailDra
 import DeviceChannelView from '@pages/device/src/views/DeviceChannelView.vue'
 import DeviceEventLogView from '@pages/device/src/views/DeviceEventLogView.vue'
 
-/** 台账页签里的子页面按需加载：首屏不背着「分组管理 / 机房拓扑」的代码 */
-const DeviceGroupView = defineAsyncComponent(() => import('@pages/device/src/views/DeviceGroupView.vue'))
+/** 账台账拓扑页签按需加载：首屏不背着机房拓扑的代码 */
 const DeviceTopoView = defineAsyncComponent(() => import('@pages/device/src/views/DeviceTopoView.vue'))
 
 import { deviceApi } from '@pages/device/src/api/deviceApi'
@@ -500,16 +552,15 @@ const onlineFilter = ref<'all' | 'online' | 'offline'>('all')
 const groupFilter = ref('')
 
 /* ==================== 台账页签 / 左侧显示维度 ==================== */
-/** 台账功能页签：设备列表 / 分组管理 / 机房拓扑 —— 全局菜单只保留「设备台账 / 厂商接入」 */
+/** 台账功能页签：设备列表 / 机房拓扑 —— 分组收敛到台账页签内 */
 const LEDGER_TABS = [
   { key: 'list', label: '设备列表', icon: 'Monitor' },
-  { key: 'groups', label: '分组管理', icon: 'FolderOpened' },
   { key: 'topo', label: '机房拓扑', icon: 'Grid' }
 ] as const
 type LedgerTabKey = (typeof LEDGER_TABS)[number]['key']
 
 const ledgerTab = ref<LedgerTabKey>(
-  /** 路由别名（/device/groups / /device/topo）落回页签：设备列表 / 分组管理 / 机房拓扑 */
+  /** 路由别名（/device/topo）落回页签：设备列表 / 机房拓扑 */
   (route.query.tab as LedgerTabKey | undefined) ?? 'list'
 )
 /** 已挂载过的页签：点开过才加载子页面，之后保留现场（切换不重建） */
@@ -776,7 +827,7 @@ function openDetail(device: DeviceInfo): void {
   detailVisible.value = true
 }
 
-/** 分组：展开到最深层的节点（带深度），用于左侧树与新建分组的上级分组选择 */
+/** 分组：展开到最深层的节点（带深度），用于左侧树与「新增子分组」的上级选择 */
 const flatGroups = computed<Array<DeviceGroupNode & { depth: number }>>(() => {
   const out: Array<DeviceGroupNode & { depth: number }> = []
   const walk = (nodes: DeviceGroupNode[], depth: number) => {
@@ -792,6 +843,47 @@ const flatGroups = computed<Array<DeviceGroupNode & { depth: number }>>(() => {
   return out
 })
 
+/** 组织树平铺（带层级缩进），用于「上级组织」选择 */
+const flatOrg = computed<Array<{ value: string; label: string }>>(() => {
+  const out: Array<{ value: string; label: string }> = []
+  const walk = (nodes: OrgNode[], depth: number) => {
+    if (!Array.isArray(nodes)) return
+    for (const node of nodes) {
+      out.push({ value: node.deviceOrganizationId, label: `${' '.repeat(depth)}${node.deviceOrganizationName}` })
+      if (node.children?.length) walk(node.children, depth + 1)
+    }
+  }
+  walk(orgTree.value, 0)
+  return out
+})
+
+/** 左树显示行：上级是组织的分组（不是分组），前面挂一个组织行，组织名来自组织树 */
+type TreeRow = DeviceGroupNode & { depth: number; isOrg?: boolean; _key: string }
+const groupIds = computed(() => new Set(groups.value.map((n) => n.groupId)))
+const orgNameOf = (id?: string): string | undefined =>
+  id ? orgTree.value.find((n) => n.deviceOrganizationId === id)?.deviceOrganizationName ?? id : undefined
+
+const treeRows = computed<Array<TreeRow>>(() => {
+  const out: Array<TreeRow> = []
+  const walk = (nodes: DeviceGroupNode[], depth: number) => {
+    if (!Array.isArray(nodes)) return
+    for (const n of nodes) {
+      if (!n.groupId) continue
+      const org = orgNameOf(n.groupParent)
+      if (org && !groupIds.value.has(n.groupParent)) {
+        out.push({ ...n, depth, groupId: '', groupName: org, deviceCount: 0, isOrg: true, _key: `org-${n.groupParent}` })
+      }
+      out.push({ ...n, depth: org ? depth + 1 : depth, _key: n.groupId })
+      if (n.children?.length) walk(n.children, depth + 1)
+    }
+  }
+  walk(groups.value, 0)
+  return out
+})
+
+/** 上级选项：新增分组 = 组织树，新增子分组/重命名 = 分组树 */
+const parentOptions = computed(() => groupCreateKind.value === 'sub' ? flatGroups.value : flatOrg.value)
+
 /** 分组筛选：点击左侧节点 / 列内标签 → 右侧只展示该组设备 */
 function selectGroup(node: DeviceGroupNode | null): void {
   groupFilter.value = node?.groupId || ''
@@ -805,22 +897,140 @@ function groupDeviceIds(groupId: string): Set<string> {
 
 /** 某台设备所处的分组标签列表（可点，点它即筛选该组设备） */
 function deviceGroupLabels(row: DeviceInfo): DeviceGroupNode[] {
-  const groupIds = assignments.value
+  const ids = assignments.value
     .filter((item) => item.deviceId === row.deviceInfoId)
     .map((item) => item.groupId)
-  return flatGroups.value.filter((node) => groupIds.includes(node.groupId))
+  return flatGroups.value.filter((node) => ids.includes(node.groupId))
 }
 
-/** 新建分组 */
+/** 分组节点右键菜单 */
+function onGroupCommand(cmd: string, row: TreeRow): void {
+  if (row.isOrg || !row.groupId) return
+  switch (cmd) {
+    case 'topo': openTopology(row.groupId); break
+    case 'add': openGroupCreate(row.groupId); break
+    case 'assign': openDeviceAssign(row); break
+    case 'edit': openGroupEdit(row); break
+    case 'delete': removeGroup(row); break
+  }
+}
+
+/** 厂家节点右键菜单 */
+function onVendorCommand(cmd: string, node: { vendor: string; label: string }): void {
+  if (cmd === 'topo') openTopology(undefined, node.vendor)
+}
+
+/** 创建/编辑分组 */
+const groupCreateKind = ref<'root' | 'sub'>('root')
+const editingGroupId = ref('')
 const groupCreateVisible = ref(false)
 const groupCreating = ref(false)
 const groupForm = reactive({ groupName: '', groupParent: '', groupRemark: '' })
 
 function openGroupCreate(parentId?: string | null): void {
+  editingGroupId.value = ''
   groupForm.groupName = ''
   groupForm.groupParent = parentId || ''
   groupForm.groupRemark = ''
+  groupCreateKind.value = parentId ? 'sub' : 'root'
   groupCreateVisible.value = true
+}
+
+/** 编辑分组（重命名） */
+function openGroupEdit(row: TreeRow): void {
+  editingGroupId.value = row.groupId
+  groupForm.groupName = row.groupName
+  groupForm.groupParent = row.groupParent || ''
+  groupForm.groupRemark = row.groupRemark || ''
+  /** 上级是组织时按组织选，上下级由分组树 */
+  groupCreateKind.value = row.groupParent && !groupIds.value.has(row.groupParent) ? 'root' : 'sub'
+  groupCreateVisible.value = true
+}
+
+/** 在拓扑中查看（按分组/厂商/设备给拓扑加上视图限制） */
+function openTopology(groupId?: string, vendor?: string, deviceId?: string): void {
+  ledgerTab.value = 'topo'
+  mountedTabs.add('topo')
+  const query: Record<string, string> = {}
+  if (groupId) query.groupId = groupId
+  if (vendor) query.vendor = vendor
+  if (deviceId) query.deviceId = deviceId
+  query.tab = 'topo'
+  void router.replace({ query })
+}
+
+/** 分配设备到分组（按分组全量替换） */
+const assignVisible = ref(false)
+const assignSaving = ref(false)
+const assignGroupId = ref('')
+const assignDevices = ref<DeviceInfo[]>([])
+const pendingAssigned = ref<Set<string>>(new Set())
+
+async function openDeviceAssign(row: TreeRow): Promise<void> {
+  if (!row.groupId) return
+  assignGroupId.value = row.groupId
+  try {
+    assignDevices.value = (await deviceApi.list()) as DeviceInfo[]
+    pendingAssigned.value = new Set(groupDeviceIds(row.groupId))
+  } catch {
+    assignDevices.value = []
+    pendingAssigned.value = new Set()
+  }
+  assignVisible.value = true
+}
+
+function pendingToggle(d: DeviceInfo): void {
+  const id = d.deviceInfoId || ''
+  if (pendingAssigned.value.has(id)) pendingAssigned.value.delete(id)
+  else pendingAssigned.value.add(id)
+}
+
+async function onAssignSave(): Promise<void> {
+  if (!assignGroupId.value) return
+  assignSaving.value = true
+  try {
+    await deviceApi.assignGroupDevices(assignGroupId.value, [...pendingAssigned.value])
+    message.success('分配成功')
+    assignVisible.value = false
+    await fetchGroups()
+    refreshAll()
+  } catch (err) {
+    message.error('分配失败：' + errorText(err))
+  } finally {
+    assignSaving.value = false
+  }
+}
+
+/** 清空分组下的设备 */
+async function clearGroup(row: TreeRow): Promise<void> {
+  if (!row.groupId) return
+  try {
+    await ElMessageBox.confirm(`清空分组「${row.groupName}」下的全部设备？`, '确认', { type: 'warning' })
+  } catch { return }
+  try {
+    await deviceApi.assignGroupDevices(row.groupId, [])
+    message.success('已清空')
+    if (groupFilter.value === row.groupId) groupFilter.value = ''
+    await fetchGroups()
+  } catch (err) {
+    message.error('操作失败：' + errorText(err))
+  }
+}
+
+/** 删除分组（子孙分组一并删除，设备本身不动） */
+async function removeGroup(row: TreeRow): Promise<void> {
+  if (!row.groupId) return
+  try {
+    await ElMessageBox.confirm(`删除分组「${row.groupName}」？分组内设备将移出。`, '确认', { type: 'warning' })
+  } catch { return }
+  try {
+    await deviceApi.deleteGroup(row.groupId)
+    message.success('分组已删除')
+    if (groupFilter.value === row.groupId) groupFilter.value = ''
+    await fetchGroups()
+  } catch (err) {
+    message.error('删除失败：' + errorText(err))
+  }
 }
 
 async function saveGroup() {
@@ -830,12 +1040,18 @@ async function saveGroup() {
   }
   groupCreating.value = true
   try {
-    await deviceApi.createGroup({ groupName: groupForm.groupName, groupParent: groupForm.groupParent || undefined, groupRemark: groupForm.groupRemark || undefined })
-    message.success('分组已创建')
+    const body = { groupName: groupForm.groupName.trim(), groupParent: groupForm.groupParent || undefined, groupRemark: groupForm.groupRemark || undefined }
+    if (editingGroupId.value) {
+      await deviceApi.updateGroup(editingGroupId.value, body)
+      message.success('分组已更新')
+    } else {
+      await deviceApi.createGroup(body)
+      message.success('分组已创建')
+    }
     groupCreateVisible.value = false
     await fetchGroups()
   } catch (err) {
-    message.error('创建分组失败：' + errorText(err))
+    message.error('操作失败：' + errorText(err))
   } finally {
     groupCreating.value = false
   }

@@ -543,6 +543,7 @@
               <span class="dbm-subtab" :class="{ active: designSubTab === 'columns' }" @click="designSubTab = 'columns'">表结构</span>
               <span class="dbm-subtab" :class="{ active: designSubTab === 'indexes' }" @click="openIndexes">索引</span>
               <span class="dbm-subtab" :class="{ active: designSubTab === 'foreignKeys' }" @click="openForeignKeys">外键</span>
+              <span class="dbm-subtab" :class="{ active: designSubTab === 'versions' }" @click="designSubTab = 'versions'">版本</span>
             </div>
             <div class="dbm-col-actions">
               <template v-if="designSubTab === 'columns'">
@@ -561,6 +562,9 @@
               </template>
               <template v-else-if="designSubTab === 'indexes'">
                 <ReButton layout="square" type="primary" icon="Plus" tip="新建索引" @click="openIndexDialog" />
+              </template>
+              <template v-else-if="designSubTab === 'versions'">
+                <ReButton layout="square" type="primary" icon="Plus" tip="拍快照" @click="openDbSchemaVersion" />
               </template>
               <template v-else>
                 <ReButton layout="square" type="primary" icon="Plus" tip="新增外键" @click="openAddForeignKey" />
@@ -624,6 +628,16 @@
                 <ReButton layout="square" type="danger" icon="Delete" tip="删除外键" @click="removeForeignKey(row)" />
               </template>
             </ReTable>
+          </template>
+
+          <!-- 版本（DDL 结构快照 / 回滚） -->
+          <template v-else-if="designSubTab === 'versions'">
+            <DbSchemaVersionPanel
+              v-if="activeTabObj"
+              :table-name="activeTabObj.tableName"
+              :database="activeTabObj.database"
+              :datasource-id="currentDatasourceId"
+            />
           </template>
         </div>
 
@@ -2363,6 +2377,7 @@ import DbSqlEditor from "../../components/console/DbSqlEditor.vue";
 import CreateTableDialog from "../../components/console/CreateTableDialog.vue";
 import DbUserManagePanel from "../../components/console/DbUserManagePanel.vue";
 import DbImportWizard from "../../components/console/DbImportWizard.vue";
+import DbSchemaVersionPanel from "../../components/console/DbSchemaVersionPanel.vue";
 // 数据源下拉走共享件：中文口径与停用项剔除规则全站一份
 import { DatasourceSelect } from "@pages/datasource";
 import type { CollectOption } from "@pages/datasource";
@@ -4506,8 +4521,8 @@ async function saveDesignAll(): Promise<void> {
   }
 }
 
-// 设计页签内子页签：表结构 / 索引 / 外键
-const designSubTab = ref<"columns" | "indexes" | "foreignKeys">("columns");
+// 设计页签内子页签：表结构 / 索引 / 外键 / 版本（DDL 快照）
+const designSubTab = ref<"columns" | "indexes" | "foreignKeys" | "versions">("columns");
 const indexes = ref<DbIndexInfo[]>([]);
 const indexLoading = ref(false);
 const indexColumnDefs = [
@@ -4688,6 +4703,11 @@ async function removeForeignKey(row: DbForeignKeyInfo): Promise<void> {
 async function openForeignKeys(): Promise<void> {
   designSubTab.value = "foreignKeys";
   await loadForeignKeys();
+}
+
+/** 打开版本（DDL  snapshot）页签 */
+function openDbSchemaVersion(): void {
+  designSubTab.value = "versions";
 }
 
 /** 加载当前表外键 */

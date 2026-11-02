@@ -2,14 +2,13 @@
  * 设备管理路由表 + 静态菜单表
  *
  * 路由挂在 layout 之下：
- * - /device           设备台账（设备列表 / 分组管理 / 机房拓扑 3 个页签）
+ * - /device           设备台账（设备列表 / 机房拓扑 2 个页签，分组/拓扑全部在页面内）
  * - /device/provider  厂商接入（接入凭据 / 厂商任务 2 个页签）
- * - /device/groups    路由别名 → 设备台账（tab=groups）
  * - /device/topo      路由别名 → 设备台账（tab=topo）
  * - /device/tasks     路由别名 → 厂商接入（tab=tasks）
  *
- * isVisible = "1" 才能在 koi 主题侧边栏中显示；整体只有「设备台账」与「厂商接入」两个菜单，
- * 其余页签通过 showLink: false / isVisible: '0' 隐藏，再通过 redirect 把遗留 URL 导回原处。
+ * 分组 / 拓扑 / 定时任务都是页面内能力，不再出现在一级菜单里；路由里只保留
+ * 「设备台账」与「厂商接入」两个真实入口，否则 url 指向已不存在的独立页签。
  */
 import type { RouteConfigsTable } from '@repo/core'
 
@@ -38,21 +37,6 @@ export const deviceRoutes: RouteConfigsTable[] = [
       keepAlive: true,
       isVisible: '1',
       rank: 12
-    }
-  },
-  {
-    path: '/device/groups',
-    name: 'DeviceGroup',
-    component: () => import('../views/DeviceGroupView.vue'),
-    redirect: '/device?tab=groups',
-    meta: {
-      title: '设备分组',
-      icon: 'FolderOpened',
-      /** 分组是设备的属性，收敛为设备台账页签，不再作为独立菜单 */
-      showLink: false,
-      keepAlive: true,
-      isVisible: '0',
-      rank: 13
     }
   },
   {
