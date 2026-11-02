@@ -82,6 +82,18 @@
             </button>
           </div>
 
+          <!-- 清筛选：始终在最上面，点它回到全部设备 -->
+          <div
+            class="da-tree__item da-tree__item--root"
+            :class="{ 'is-active': !filterState }"
+            @click="selectFilter(null)"
+          >
+            <span class="da-tree__caret is-leaf" />
+            <span class="da-tree__dot is-all" />
+            <span class="da-tree__name">全部设备</span>
+            <span class="da-tree__count">{{ rows.length }}</span>
+          </div>
+
           <template v-for="row in treeNodes" :key="row.key">
             <!-- 组织 / 分组：有下一级时可展开；点行即筛选，点箭头只折叠 -->
             <el-dropdown
@@ -1657,31 +1669,61 @@ onMounted(async () => {
   background: var(--el-color-primary-light-9);
 }
 
-/* 左侧树：三个顶级分支（组织 / 分组 / 厂家） */
+/* 左侧树：上方维度切换（组织 / 分组 / 厂家），下方只显示一棵树 */
 /* el-dropdown 默认 inline-block，在树里必须独占一行，否则同级分组会并排挤成多个列 */
 .da-tree__dd { display: block; }
-.da-tree__branch {
-  gap: 4px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+
+/* 维度切换：分段控件 */
+.da-tree__modes {
+  display: flex;
+  gap: 3px;
+  margin: 0 4px 8px;
+  padding: 3px;
+  background: var(--el-fill-color-light);
+  border-radius: 9px;
 }
-.da-tree__branch:hover { background: transparent; }
-.da-tree__branch .da-tree__count { background: transparent; }
-.da-tree__toggle {
+.da-tree__mode {
+  flex: 1;
+  padding: 5px 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--el-text-color-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: color 0.16s ease, background 0.16s ease;
+}
+.da-tree__mode:hover { color: var(--el-color-primary); }
+.da-tree__mode.is-active {
+  color: var(--el-color-primary);
+  background: var(--el-bg-color);
+  box-shadow: var(--el-box-shadow-lighter);
+  font-weight: 600;
+}
+
+/* 展开箭头：只有有下一级的节点才显示，点箭头只折叠不筛选 */
+.da-tree__caret {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 12px;
   flex: none;
   color: var(--el-text-color-placeholder);
-  transform: rotate(0deg);
   transition: transform 0.16s ease;
 }
-.da-tree__branch.is-expanded .da-tree__toggle { transform: rotate(90deg); }
+.da-tree__caret.is-open { transform: rotate(90deg); }
+.da-tree__caret.is-leaf { visibility: hidden; }
+
 .da-tree__dot.is-org { background: var(--el-color-primary-light-3); }
 .da-tree__dot.is-group { background: var(--el-color-success); }
 .da-tree__dot.is-vendor { background: var(--el-color-warning); }
-.da-tree__item--root { margin-bottom: 2px; }
+.da-tree__item--root {
+  margin-bottom: 6px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px 6px 0 0;
+}
 .da-tree__empty {
   padding: 12px 10px;
   font-size: 12px;
