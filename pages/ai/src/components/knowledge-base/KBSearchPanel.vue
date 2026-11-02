@@ -96,19 +96,27 @@
       </div>
     </div>
 
-    <!-- 已搜索但无结果 -->
-    <ReEmpty
-      v-else-if="hasSearched"
-      class="flex-1"
-      :text="`${t('knowledge.search.notFound')} · ${t('knowledge.search.notFoundHint')}`"
-    />
+    <!-- 已搜索但无结果：紧凑提示，不占满中栏 -->
+    <div v-else-if="hasSearched" class="kb-search__hint">
+      <p class="kb-search__hint-t">{{ t('knowledge.search.notFound') }}</p>
+      <p class="kb-search__hint-d">{{ t('knowledge.search.notFoundHint') }}</p>
+      <ul class="kb-search__tips">
+        <li>换个说法再试：把长句拆成<b>人名 + 关系</b>（例如「董卓 与 吕布 的关系」）。</li>
+        <li>把「返回条数」调大：它决定召回上限，太小会漏掉次要切片。</li>
+        <li>确认该库已索引：左栏「文档」里状态为<b>已索引</b>的文档才参与检索。</li>
+      </ul>
+    </div>
 
-    <!-- 初始态 -->
-    <ReEmpty
-      v-else
-      class="flex-1"
-      :text="`${t('knowledge.search.initial')} · ${t('knowledge.search.initialHint')}`"
-    />
+    <!-- 初始态：把「怎么搜」摊开，而不是留一整块空白 -->
+    <div v-else class="kb-search__hint">
+      <p class="kb-search__hint-t">{{ t('knowledge.search.initial') }}</p>
+      <p class="kb-search__hint-d">{{ t('knowledge.search.initialHint') }}</p>
+      <ul class="kb-search__tips">
+        <li><b>语义</b>按意思找，问句也能命中；<b>关键词</b>按字面找，专有名词更准。</li>
+        <li>结果里的 <b>语义 / 关键词 / 综合</b> 三个分数同时列出，一眼看出它为什么被召回。</li>
+        <li>点任一条结果可直接打开对应文档的原文。</li>
+      </ul>
+    </div>
   </div>
 </template>
 
@@ -117,7 +125,7 @@
  * 知识库检索面板。
  *
  * <p>风格与系统一致：容器表面用组件库基线 {@code re-surface}（含 hover 态），
- * 结果卡片与空态用 {@code ReTag} / {@code ReEmpty}，按钮用 {@code ReButton}；
+ * 结果卡片用 {@code ReTag}，按钮用 {@code ReButton}；
  * 颜色只用 koi 令牌 {@code --rm-*} —— 原先的 {@code dark:bg-gray-800} /
  * {@code dark:border-gray-700} / {@code dark:hover:border-blue-500} 等硬编码暗色类已全部移除。</p>
  *
@@ -134,7 +142,6 @@ import { highlightText } from './searchHighlight'
 import ReButton from '@repo/ui/re-button'
 import ReSquareButton from '@repo/ui/re-button'
 import ReTag from '@/components/ui/ReTag.vue'
-import ReEmpty from '@/components/ui/ReEmpty.vue'
 
 /** 检索结果条目 */
 interface SearchResult {

@@ -89,66 +89,100 @@
 
       <!-- 三栏 -->
       <div class="kb-cols" data-ask="on">
-        <!-- ============ 左栏：库目录 + 文档 + 视图入口 ============ -->
+        <!-- ============ 左栏：卷宗脊（库目录 + 视图 + 卷内文档） ============ -->
         <aside class="kb-nav">
           <div class="kb-nav__group">
-            <h2 class="kb-nav__title">知识库</h2>
-            <button
-              v-for="k in store.knowledgeBases"
-              :key="k.id"
-              type="button"
-              class="kb-nav__kb"
-              :class="{ 'is-on': k.id === currentKB?.id, 'is-off': !k.isActive }"
-              @click="handleOverviewOpen(k)"
-            >
-              <span class="kb-nav__kb-dot" />
-              <span class="kb-nav__kb-name">{{ k.name }}</span>
-              <span v-if="!k.isActive" class="kb-nav__kb-off">停用</span>
-            </button>
+            <h2 class="kb-nav__title">知识库<em>{{ store.knowledgeBases.length }}</em></h2>
+            <!-- 库目录单独滚动：库多时（实测 15 个）不把下面的「视图 / 维护 / 卷内文档」
+                 推出视口。整栏滚动时这三段会一起消失，用户只能滚到很下面才找得回视图入口。 -->
+            <div class="kb-nav__kbs">
+              <button
+                v-for="k in store.knowledgeBases"
+                :key="k.id"
+                type="button"
+                class="kb-nav__kb"
+                :class="{ 'is-on': k.id === currentKB?.id, 'is-off': !k.isActive, 'is-empty': hasCount(k.id, 'file_count') && !kbFileCount(k.id) }"
+                @click="handleOverviewOpen(k)"
+              >
+                <!-- 签名：卷宗脊 —— 竖线长度编码文档量，空库不点亮品牌色；
+                     计数未知时留 0%，不假装成「空库」 -->
+                <span
+                  class="kb-nav__spine"
+                  :style="{ '--w': hasCount(k.id, 'file_count') ? spineHeight(kbFileCount(k.id)) : '0%' }"
+                />
+                <span class="kb-nav__kb-text">
+                  <span class="kb-nav__kb-name">{{ k.name }}</span>
+                  <span class="kb-nav__kb-meta">
+                    {{ hasCount(k.id, 'file_count') ? kbFileCount(k.id) : '—' }} 篇 ·
+                    {{ hasCount(k.id, 'entity_count') ? fmtCount(countOf(k.id, 'entity_count')) : '—' }} 实体
+                  </span>
+                </span>
+                <span v-if="!k.isActive" class="kb-nav__kb-off">停用</span>
+              </button>
+            </div>
             <ReButton link type="primary" size="small" class="!mt-1 !justify-start" @click="backToList">
               ← 返回列表
             </ReButton>
           </div>
 
-          <!-- 视图入口（原 KBMenu 的 7 个平级 Tab → 归并为 4 个视图 + 2 个管理） -->
+          <!-- 视图入口（7 个平级 Tab → 阅读 5 个 + 维护 2 个两段） -->
           <div class="kb-nav__group">
             <h2 class="kb-nav__title">视图</h2>
             <button
-              v-for="v in navViews"
+              v-for="v in navViewsRead"
               :key="v.key"
               type="button"
-              class="kb-nav__kb"
+              class="kb-nav__kb kb-nav__kb--view"
               :class="{ 'is-on': activeTab === v.key }"
               @click="handleMenuSelect(v.key)"
             >
+              <span class="kb-nav__tick" />
               <el-icon :size="13"><component :is="v.icon" /></el-icon>
               <span class="kb-nav__kb-name">{{ v.label }}</span>
+              <span class="kb-nav__kb-n">{{ navCount(v.key) }}</span>
             </button>
           </div>
 
-          <!-- 文档快速列表（仅文档视图显示） -->
-          <div v-if="activeTab === 'files'" class="kb-nav__group kb-nav__group--grow">
-            <h2 class="kb-nav__title">文档<em>{{ filesForFilter.length }}</em></h2>
+          <div class="kb-nav__group kb-nav__group--manage">
+            <h2 class="kb-nav__title">维护</h2>
             <button
-              v-for="f in activeFiles.slice(0, 60)"
-              :key="f.id"
+              v-for="v in navViewsManage"
+              :key="v.key"
               type="button"
-              class="kb-nav__doc"
-              :class="{ 'is-on': selectedDocId === f.id }"
-              @click="selectedDocId = f.id"
+              class="kb-nav__kb kb-nav__kb--view"
+              :class="{ 'is-on': activeTab === v.key }"
+              @click="handleMenuSelect(v.key)"
             >
-              <span class="kb-nav__dot" :data-tone="fileTone(f.processingStatus)" />
-              <span class="kb-nav__doc-name">{{ f.displayName || f.fileName }}</span>
-              <span class="kb-nav__doc-hint" :data-tone="fileTone(f.processingStatus)">
-                {{ fileStatusLabel(f.processingStatus) }}
-              </span>
+              <span class="kb-nav__tick" />
+              <el-icon :size="13"><component :is="v.icon" /></el-icon>
+              <span class="kb-nav__kb-name">{{ v.label }}</span>
+              <span class="kb-nav__kb-n">{{ navCount(v.key) }}</span>
             </button>
+          </div>
+
+          <!-- 卷内文档：除文档视图外做上下文索引（文档视图里文件树才是全量，避免两处重复） -->
+          <div v-if="activeTab !== 'files'" class="kb-nav__group kb-nav__group--grow">
+            <h2 class="kb-nav__title">卷内文档<em>{{ filesForFilter.length }}</em></h2>
+            <div class="kb-nav__docs">
+              <button
+                v-for="(f, i) in activeFiles.slice(0, 60)"
+                :key="f.id"
+                type="button"
+                class="kb-nav__doc"
+                :class="{ 'is-on': selectedDocId === f.id }"
+                @click="handleNavDocClick(f)"
+              >
+                <span class="kb-nav__doc-no">{{ String(i + 1).padStart(2, '0') }}</span>
+                <span class="kb-nav__doc-name">{{ f.displayName || f.fileName }}</span>
+                <span class="kb-nav__dot" :data-tone="fileTone(f.processingStatus)" />
+              </button>
+              <p v-if="filesForFilter.length === 0" class="kb-nav__foot">这个卷宗还没有文档</p>
+            </div>
           </div>
 
           <div class="kb-nav__group">
-            <h2 class="kb-nav__title">图谱</h2>
             <p class="kb-nav__foot">
-              {{ fmtCount(graphView.entityCount) }} 实体 · {{ fmtCount(graphView.relationCount) }} 关系
+              {{ navCount('entities') }} 实体 · {{ navCount('relations') }} 关系
             </p>
           </div>
         </aside>
@@ -157,6 +191,24 @@
         <main class="kb-main" @scroll="handleScroll">
           <!-- ---- 文档视图：状态分栏 + 文件树（问答并入右栏） ---- -->
           <template v-if="activeTab === 'files'">
+            <header class="kb-head">
+              <div class="kb-head__left">
+                <p class="kb-path">
+                  {{ currentKB?.name }}<span>/</span>文档
+                </p>
+                <h1 class="kb-title">文档</h1>
+              </div>
+              <div class="kb-head__right">
+                <span class="kb-stamp"><b>{{ filesForFilter.length }}</b> 篇</span>
+                <span v-if="pendingFileCount > 0" class="kb-stamp kb-stamp--warn">
+                  <b>{{ pendingFileCount }}</b> 处理中
+                </span>
+                <span v-if="failedFileCount > 0" class="kb-stamp kb-stamp--err">
+                  <b>{{ failedFileCount }}</b> 失败
+                </span>
+              </div>
+            </header>
+
             <div class="kb-docview__list">
               <div class="kb-docview__head">
                 <div class="kb-filters">
@@ -193,41 +245,59 @@
             </div>
           </template>
 
-          <!-- ---- 概览视图：统计 + 流水线状态带 ---- -->
+          <!-- ---- 概览视图：档案正文（报头 → 流水线 → 读数 → 分布 / 枢纽） ---- -->
           <template v-else-if="activeTab === 'overview'">
-            <p class="kb-path">{{ currentKB?.name }}</p>
-            <h1 class="kb-title">概览</h1>
-            <p class="kb-text" style="margin-top: 6px">{{ currentKB?.description || '暂无描述' }}</p>
-
-            <!-- 流水线：四道工序（入库 → 切分 → 向量化 → 抽取）状态带 -->
-            <div class="kb-stages">
-              <div v-for="(s, i) in pipelineStages" :key="s.key" class="kb-stage" :class="{ 'is-on': s.running }">
-                <span class="kb-stage__label">
-                  <span class="kb-stage__n">{{ String(i + 1).padStart(2, '0') }}</span>{{ s.label }}
+            <header class="kb-head">
+              <div class="kb-head__left">
+                <p class="kb-path">
+                  {{ currentKB?.name }}<span>/</span>概览
+                </p>
+                <h1 class="kb-title">概览</h1>
+              </div>
+              <div class="kb-head__right">
+                <span class="kb-stamp"><b>{{ kbFileCount(currentKB?.id || '') }}</b> 篇</span>
+                <span v-if="pendingFileCount > 0" class="kb-stamp kb-stamp--warn">
+                  <b>{{ pendingFileCount }}</b> 处理中
                 </span>
-                <span class="kb-stage__v" :data-tone="s.tone">{{ s.value }}</span>
+                <span v-if="failedFileCount > 0" class="kb-stamp kb-stamp--err">
+                  <b>{{ failedFileCount }}</b> 失败
+                </span>
               </div>
-            </div>
+            </header>
 
-            <!-- 统计四格 -->
-            <div class="kb-statrow">
+            <p class="kb-lede">{{ currentKB?.description || '这个卷宗还没有填写描述。' }}</p>
+
+            <!-- 签名：四道工序横排，处理中的工序底部走扫描线 -->
+            <ol class="kb-stages">
+              <li v-for="(s, i) in pipelineStages" :key="s.key" class="kb-stage" :class="{ 'is-on': s.running }">
+                <span class="kb-stage__n">{{ String(i + 1).padStart(2, '0') }}</span>
+                <span class="kb-stage__label">{{ s.label }}</span>
+                <span class="kb-stage__v" :data-tone="s.tone">{{ s.value }}<i v-if="s.unit">{{ s.unit }}</i></span>
+                <span class="kb-stage__wire" />
+              </li>
+            </ol>
+
+            <!-- 读数：四格 -->
+            <dl class="kb-statrow">
               <div class="kb-statrow__cell">
-                <span class="kb-statrow__v">{{ fmtCount(countOf(currentKB?.id || '', 'file_count')) }}</span>
-                <span class="kb-statrow__k">文档</span>
+                <dt class="kb-statrow__k">文档</dt>
+                <dd class="kb-statrow__v">{{ fmtCount(kbFileCount(currentKB?.id || '')) }}<i>篇</i></dd>
               </div>
               <div class="kb-statrow__cell">
-                <span class="kb-statrow__v">{{ fmtNum(totalChunks) }}</span>
-                <span class="kb-statrow__k">切块</span>
+                <dt class="kb-statrow__k">切块</dt>
+                <dd class="kb-statrow__v">{{ chunkStat.value }}<i v-if="chunkStat.known">块</i></dd>
               </div>
               <div class="kb-statrow__cell">
-                <span class="kb-statrow__v">{{ fmtNum(totalTokens) }}</span>
-                <span class="kb-statrow__k">Tokens</span>
+                <dt class="kb-statrow__k">Tokens</dt>
+                <dd class="kb-statrow__v">{{ tokenStat.value }}<i v-if="tokenStat.known">个</i></dd>
               </div>
               <div class="kb-statrow__cell">
-                <span class="kb-statrow__v">{{ fmtCount(graphView.entityCount) }}</span>
-                <span class="kb-statrow__k">实体</span>
+                <dt class="kb-statrow__k">实体 / 关系</dt>
+                <dd class="kb-statrow__v">
+                  {{ navCount('entities') }}<i>/ {{ navCount('relations') }}</i>
+                </dd>
               </div>
-            </div>
+            </dl>
 
             <h2 class="kb-h2">切块配方</h2>
             <p class="kb-text">
@@ -238,61 +308,135 @@
               </template>
             </p>
 
-            <h2 class="kb-h2">实体类型分布 <em>{{ fmtCount(graphView.entityCount) }}</em></h2>
-            <div v-if="entityTypeStats.length > 0" class="kb-ents">
-              <span v-for="s in entityTypeStats" :key="s.type" class="kb-ent">
-                {{ s.label }}<i>{{ s.count }}</i>
-              </span>
-            </div>
-            <ReEmpty v-else text="暂无实体，上传文档或生成图谱后可见" />
+            <div class="kb-overview-grid">
+              <!-- 实体类型分布：横向条形 + 名称 + 计数 -->
+              <section>
+                <h2 class="kb-h2">实体类型分布 <em>{{ navCount('entities') }}</em></h2>
+                <ul v-if="entityTypeStats.length > 0" class="kb-types">
+                  <li v-for="s in entityTypeStats" :key="s.type">
+                    <span
+                      class="kb-types__bar"
+                      :style="{ '--w': typeBarWidth(s.count), '--c': s.color }"
+                    />
+                    <span class="kb-types__name">{{ s.label }}</span>
+                    <span class="kb-types__n">{{ s.count }}</span>
+                  </li>
+                </ul>
+                <!-- 空态用紧凑行而不是 ReEmpty：概览下半部是两个并排窄栏，
+                     插图占满一栏会把这半屏撑成一整张「空页面」，读数反而被挤走 -->
+                <p v-else class="kb-empty">暂无实体，上传文档或生成图谱后可见</p>
+              </section>
 
-            <h2 class="kb-h2">关联最多的实体</h2>
-            <ul v-if="topEntities.length > 0" style="margin: 0; padding: 0; list-style: none">
-              <li v-for="e in topEntities.slice(0, 8)" :key="e.id" class="kb-ent" style="margin: 0 4px 4px 0; cursor: pointer"
-                @click="openEntityInGraph(e.name)">
-                {{ e.name }}<i>{{ entityTypeLabel(e.type) }} · {{ e.degree }}</i>
-              </li>
-            </ul>
-            <ReEmpty v-else text="暂无实体" />
+              <!-- 关联最多的实体：编号表，按关系数排序 -->
+              <section>
+                <h2 class="kb-h2">关联最多的实体 <em>Top {{ Math.min(topEntities.length, 8) }}</em></h2>
+                <ul v-if="topEntities.length > 0" class="kb-top">
+                  <li
+                    v-for="(e, i) in topEntities.slice(0, 8)"
+                    :key="e.id"
+                    class="kb-top__row"
+                    role="button"
+                    tabindex="0"
+                    @click="openEntityInGraph(e.name)"
+                    @keydown.enter.prevent="openEntityInGraph(e.name)"
+                  >
+                    <span class="kb-top__rank">{{ String(i + 1).padStart(2, '0') }}</span>
+                    <span class="kb-top__name">{{ e.name }}</span>
+                    <span class="kb-top__type">{{ entityTypeLabel(e.type) }}</span>
+                    <span class="kb-top__deg">{{ e.degree }}<i>关系</i></span>
+                  </li>
+                </ul>
+                <p v-else class="kb-empty">暂无实体</p>
+              </section>
+            </div>
           </template>
 
-          <!-- ---- 搜索视图 ---- -->
+          <!-- ---- 搜索视图：报头 + 检索面板 ---- -->
           <template v-else-if="activeTab === 'search'">
+            <header class="kb-head">
+              <div class="kb-head__left">
+                <p class="kb-path">
+                  {{ currentKB?.name }}<span>/</span>检索
+                </p>
+                <h1 class="kb-title">检索</h1>
+              </div>
+              <div class="kb-head__right">
+                <span class="kb-stamp"><b>{{ fmtCount(kbFileCount(currentKB?.id || '')) }}</b> 篇可检索</span>
+              </div>
+            </header>
+
             <div class="kb-view">
               <KBSearchPanel :knowledge-bases="store.knowledgeBases" :default-kb-id="store.activeKnowledgeBaseId"
                 @result-click="handleSearchResultClick" />
             </div>
           </template>
 
-          <!-- ---- 智能问答：问答本身在右栏常驻，中栏给「怎么问、问了什么」的线索 ---- -->
+          <!-- ---- 问答记录：中栏是台账，对话本身在右栏常驻，两者不重复 ---- -->
           <template v-else-if="activeTab === 'ask'">
-            <p class="kb-path">{{ currentKB?.name }}</p>
-            <h1 class="kb-title">智能问答</h1>
-            <p class="kb-text" style="margin-top: 6px">
-              问答面板固定在右侧，可以边翻阅文档、图谱边追问。答案里的引用可点开原文定位到具体切块。
+            <header class="kb-head">
+              <div class="kb-head__left">
+                <p class="kb-path">
+                  {{ currentKB?.name }}<span>/</span>问答记录
+                </p>
+                <h1 class="kb-title">问答记录</h1>
+              </div>
+              <div class="kb-head__right">
+                <span class="kb-stamp"><b>{{ askTurns.length }}</b> 轮</span>
+                <span v-if="askCiteTotal > 0" class="kb-stamp"><b>{{ askCiteTotal }}</b> 处引用</span>
+              </div>
+            </header>
+
+            <p class="kb-lede">
+              右栏对话里的每一轮都会在这里留档，可按引用文档回溯；正文与引用角标在右栏，这里只记「问了什么、引了多少、耗时多少」。
             </p>
 
             <h2 class="kb-h2">可问范围</h2>
-            <div class="kb-statrow">
+            <dl class="kb-statrow">
               <div class="kb-statrow__cell">
-                <span class="kb-statrow__v">{{ filesForFilter.length }}</span>
-                <span class="kb-statrow__k">可检索文档</span>
+                <dt class="kb-statrow__k">可检索文档</dt>
+                <dd class="kb-statrow__v">{{ fmtCount(filesForFilter.length) }}<i>篇</i></dd>
               </div>
               <div class="kb-statrow__cell">
-                <span class="kb-statrow__v">{{ fmtNum(totalChunks) }}</span>
-                <span class="kb-statrow__k">已索引切块</span>
+                <dt class="kb-statrow__k">已索引切块</dt>
+                <dd class="kb-statrow__v">{{ chunkStat.value }}<i v-if="chunkStat.known">块</i></dd>
               </div>
               <div class="kb-statrow__cell">
-                <span class="kb-statrow__v">{{ fmtNum(totalTokens) }}</span>
-                <span class="kb-statrow__k">Tokens</span>
+                <dt class="kb-statrow__k">Tokens</dt>
+                <dd class="kb-statrow__v">{{ tokenStat.value }}<i v-if="tokenStat.known">个</i></dd>
               </div>
               <div class="kb-statrow__cell">
-                <span class="kb-statrow__v">{{ fmtCount(graphView.entityCount) }}</span>
-                <span class="kb-statrow__k">可关联实体</span>
+                <dt class="kb-statrow__k">可关联实体</dt>
+                <dd class="kb-statrow__v">{{ navCount('entities') }}<i>个</i></dd>
+              </div>
+            </dl>
+
+            <h2 class="kb-h2">问答记录 <em>{{ askTurns.length }}</em></h2>
+            <div v-if="askTurns.length > 0" class="kb-ledger">
+              <div class="kb-ledger__head">
+                <span>编号</span>
+                <span>问题</span>
+                <span class="kb-ar">引用</span>
+                <span>关联实体</span>
+                <span class="kb-ar">耗时</span>
+              </div>
+              <div
+                v-for="(t, i) in askTurns"
+                :key="t.id"
+                class="kb-ledger__row"
+                :class="{ 'is-err': t.error }"
+              >
+                <span class="kb-ledger__no">{{ String(i + 1).padStart(2, '0') }}</span>
+                <span class="kb-ledger__q">{{ t.question }}</span>
+                <span class="kb-ledger__n kb-ar">{{ t.citeCount }} 处</span>
+                <span class="kb-ledger__dim">{{ t.entities.length ? t.entities.join(' · ') : '—' }}</span>
+                <span class="kb-ledger__n kb-ar">{{ t.elapsed ? (t.elapsed / 1000).toFixed(1) + 's' : '—' }}</span>
               </div>
             </div>
+            <div v-else class="kb-ledger__empty">
+              <p>还没有问答记录。右栏问一句，这里就会自动留档。</p>
+            </div>
 
-            <h2 class="kb-h2">提问建议</h2>
+            <h2 class="kb-h2">提问范例</h2>
             <ul class="kb-suggest">
               <li v-for="q in askSuggestions" :key="q" class="kb-suggest__item">
                 <span class="kb-suggest__q">{{ q }}</span>
@@ -302,6 +446,19 @@
 
           <!-- ---- 知识图谱视图 ---- -->
           <template v-else-if="activeTab === 'graph'">
+            <header class="kb-head">
+              <div class="kb-head__left">
+                <p class="kb-path">
+                  {{ currentKB?.name }}<span>/</span>知识图谱
+                </p>
+                <h1 class="kb-title">知识图谱</h1>
+              </div>
+              <div class="kb-head__right">
+                <span class="kb-stamp"><b>{{ fmtCount(graphView.entityCount) }}</b> 实体</span>
+                <span class="kb-stamp"><b>{{ fmtCount(graphView.relationCount) }}</b> 关系</span>
+              </div>
+            </header>
+
             <div class="kb-view kb-graphview">
               <div class="kb-toolbar">
                 <span class="kb-docview__count">
@@ -427,6 +584,18 @@
 
           <!-- ---- 实体管理 ---- -->
           <template v-else-if="activeTab === 'entities'">
+            <header class="kb-head">
+              <div class="kb-head__left">
+                <p class="kb-path">
+                  {{ currentKB?.name }}<span>/</span>实体管理
+                </p>
+                <h1 class="kb-title">实体管理</h1>
+              </div>
+              <div class="kb-head__right">
+                <span class="kb-stamp"><b>{{ fmtCount(filteredGraphEntities.length) }}</b> 个</span>
+              </div>
+            </header>
+
             <div class="kb-view">
               <div class="kb-toolbar">
                 <el-input v-model="graphEntityKeyword" :prefix-icon="Search" placeholder="按名称过滤" clearable
@@ -485,6 +654,18 @@
 
           <!-- ---- 关系管理 ---- -->
           <template v-else-if="activeTab === 'relations'">
+            <header class="kb-head">
+              <div class="kb-head__left">
+                <p class="kb-path">
+                  {{ currentKB?.name }}<span>/</span>关系管理
+                </p>
+                <h1 class="kb-title">关系管理</h1>
+              </div>
+              <div class="kb-head__right">
+                <span class="kb-stamp"><b>{{ fmtCount(filteredGraphRelations.length) }}</b> 条</span>
+              </div>
+            </header>
+
             <div class="kb-view">
               <div class="kb-toolbar">
                 <el-input v-model="graphRelationKeyword" :prefix-icon="Search" placeholder="按实体名/关系类型过滤" clearable
@@ -558,6 +739,8 @@
             :graph-nodes="graphNodes"
             :graph-edges="graphEdges"
             @view-graph="handleMenuSelect('graph')"
+            @turn-done="onAskTurnDone"
+            @turns-cleared="onAskTurnsCleared"
           />
         </aside>
       </div>
@@ -887,19 +1070,159 @@ const detailRefreshing = ref(false)  // 详情页头「刷新」进行中
    全部为纯展示数据，不新增任何接口调用。
    ============================================================================ */
 
-/** 左栏「视图」入口：原 7 个平级 Tab 归并为 4 个视图 + 2 个管理 */
-const navViews: ReadonlyArray<{ key: KBViewKey; label: string; icon: unknown }> = [
-  { key: 'files', label: '文档', icon: Files },
-  { key: 'overview', label: '概览', icon: Grid },
-  { key: 'graph', label: '知识图谱', icon: Connection },
-  { key: 'search', label: '搜索', icon: Search },
-  { key: 'ask', label: '智能问答', icon: ChatDotRound },
-  { key: 'entities', label: '实体管理', icon: Share },
-  { key: 'relations', label: '关系管理', icon: Connection },
+/**
+ * 左栏「视图」入口：7 个平级 Tab 按「翻阅」与「维护」分成两段。
+ *
+ * <p>问答不再是一个视图目的，而是常驻右栏的第三根柱子；中栏那一页的职责是
+ * 「问答记录台账」，所以标签从「智能问答」改成「问答记录」，避免左右两处同名。</p>
+ */
+const navViews: ReadonlyArray<{ key: KBViewKey; label: string; icon: unknown; group: 'read' | 'manage' }> = [
+  { key: 'overview', label: '概览', icon: Grid, group: 'read' },
+  { key: 'files', label: '文档', icon: Files, group: 'read' },
+  { key: 'graph', label: '知识图谱', icon: Connection, group: 'read' },
+  { key: 'search', label: '检索', icon: Search, group: 'read' },
+  { key: 'ask', label: '问答记录', icon: ChatDotRound, group: 'read' },
+  { key: 'entities', label: '实体管理', icon: Share, group: 'manage' },
+  { key: 'relations', label: '关系管理', icon: Connection, group: 'manage' },
 ]
+
+/** 阅读类视图（左栏第一段） */
+const navViewsRead = navViews.filter((v) => v.group === 'read')
+/** 维护类视图（左栏第二段） */
+const navViewsManage = navViews.filter((v) => v.group === 'manage')
+
+/**
+ * 某个知识库的单个计数是否「已知」。
+ *
+ * <p>{@code per_base} 里有这条记录就是已知 —— 即便计数真的是 0（空库）。
+ * 整个 kbId 缺席（接口失败或还没回来）才算未知，此时不能把「不知道」画成 0。</p>
+ *
+ * @param kbId 知识库ID
+ * @param key 计数键
+ * @returns 是否已知
+ */
+function hasCount(kbId: string, key: 'file_count' | 'entity_count' | 'relation_count'): boolean {
+  return overview.value.per_base?.[kbId]?.[key] !== undefined
+}
+
+/** 图谱接口是否已返回过数据（拉过图之后 graphView 才是可信来源） */
+function graphLoaded(): boolean {
+  return graphView.entityCount > 0 || graphView.relationCount > 0 || graphView.nodes.length > 0
+}
+
+/**
+ * 左栏视图行右侧的计数。
+ *
+ * <p><b>为什么不能只读 graphView</b>：图谱只在进入「知识图谱」视图时才真正拉取
+ * （{@link loadGraph}），而左栏从进入页面起就一直在渲染。此前直接取
+ * {@code graphView.entityCount}，导致刚进库时「知识图谱 / 实体管理 / 关系管理」
+ * 三行一律显示 0，而同一屏的概览读数写着 248 实体 / 387 关系 —— 两处自相矛盾。</p>
+ *
+ * <p>这里取两者的较大值：概览接口的 per_base 计数（进页面就有）与图谱接口
+ * 返回的真实计数（进过图谱页后才有，通常更准）各管一段，谁大用谁。</p>
+ *
+ * <p>两者都没有时返回 {@code —} 而不是 0：计数未到不是「确实是 0」，
+ * 画成 0 会让人以为这个库真的一篇没抽到。</p>
+ *
+ * @param key 视图键
+ * @returns 该视图涉及的对象数量；不适用时返回空串
+ */
+function navCount(key: KBViewKey): string {
+  const kbId = store.activeKnowledgeBaseId || ''
+  if (key === 'files') return String(filesForFilter.value.length)
+  if (key === 'graph' || key === 'entities') {
+    if (!hasCount(kbId, 'entity_count') && !graphLoaded()) return '—'
+    return fmtCount(Math.max(graphView.entityCount, countOf(kbId, 'entity_count')))
+  }
+  if (key === 'relations') {
+    if (!hasCount(kbId, 'relation_count') && !graphLoaded()) return '—'
+    return fmtCount(Math.max(graphView.relationCount, countOf(kbId, 'relation_count')))
+  }
+  if (key === 'ask') return String(askTurns.value.length)
+  return ''
+}
 
 /** 左栏当前高亮的文档（本地展示态，与文件树的选中互不干扰） */
 const selectedDocId = ref<string | null>(null)
+
+/**
+ * 问答记录台账：由右栏 {@code KBAskPanel} 每轮结束上报，只留摘要不留正文。
+ *
+ * <p>中栏是「留档」，右栏才是对话本身 —— 两处各管一件事，不重复排同一段回答。</p>
+ */
+const askTurns = ref<Array<{
+  id: number
+  question: string
+  citeCount: number
+  entities: string[]
+  elapsed?: number
+  error: boolean
+}>>([])
+
+/** 右栏上报一轮问答：记账 */
+function onAskTurnDone(payload: typeof askTurns.value[number]) {
+  askTurns.value.push(payload)
+}
+
+/** 右栏清空对话：台账同步清空 */
+function onAskTurnsCleared() {
+  askTurns.value = []
+}
+
+/**
+ * 某个知识库的文档篇数。
+ *
+ * <p>当前库优先用已拉到的扁平清单（更新更及时），其余库退回 overview 的 per_base 计数，
+ * 避免为了左栏一行字去逐库列目录。</p>
+ *
+ * @param kbId 知识库 ID
+ * @returns 文档篇数
+ */
+function kbFileCount(kbId: string): number {
+  const cached = countOf(kbId, 'file_count')
+  if (kbId === store.activeKnowledgeBaseId) {
+    return Math.max(filesForFilter.value.length, cached)
+  }
+  return cached
+}
+
+/**
+ * 卷宗脊脊线高度：按该库文档量在「当前可见最大量」里的占比取值。
+ *
+ * <p>用相对比例而不是绝对值，切库后同一根脊线的长度含义不变；
+ * 空库返回 0%（脊线只剩底灰，不点亮品牌色）。</p>
+ *
+ * <p><b>两处必须守住</b>：</p>
+ * <ol>
+ *   <li>分母要按 {@link kbFileCount} 取，和分子同源。此前分子是 kbFileCount、
+ *       分母是 countOf，概览接口那次请求一失败，分母全是 0 只剩兜底值 1，
+ *       17 篇的库就算出 <b>1700%</b> —— 脊线整根溢出卡片。</li>
+ *   <li>结果封顶 100%：脊线槽位只有 30px 高，超过就是溢色。</li>
+ * </ol>
+ *
+ * @param n 文档篇数
+ * @returns CSS 百分比高度
+ */
+function spineHeight(n: number): string {
+  if (n <= 0) return '0%'
+  const counts = (store.knowledgeBases || []).map((k) => kbFileCount(k.id))
+  const max = Math.max(...counts, 1)
+  const pct = Math.min(100, Math.max(16, Math.round((n / max) * 100)))
+  return `${pct}%`
+}
+
+/**
+ * 左栏卷内文档点击：既标记选中，也把正文调起来看。
+ *
+ * <p>左栏文档是「上下文索引」，点它应该像点目录一样直接出正文，
+ * 而不是只在左栏换个底色、让用户不知道下一步做什么。</p>
+ *
+ * @param file 目标文档
+ */
+function handleNavDocClick(file: KBFile) {
+  selectedDocId.value = file.id
+  openFilePreview(file)
+}
 
 /**
  * 文件处理状态 → koi 语义色调。
@@ -956,13 +1279,35 @@ const cmdActive = ref(0)
 const cmdInputRef = ref<HTMLInputElement | null>(null)
 
 /**
+ * 命令面板结果项：文档与实体共用同一形状，`kind` 区分点击后的去向。
+ *
+ * <p>两种结果此前各写一份 inline 对象字面量，联合起来后 `cmdFlat` 被推断成
+ * 「数组 | 只读数组」的交集，模板里 `item.key` / `item.file` 全部报「属性不存在」。
+ * 显式声明一个共用类型，让模板拿到稳定字段。</p>
+ */
+interface CmdItem {
+  /** 结果种类：文档跳预览、实体跳图谱 */
+  kind: 'doc' | 'entity'
+  /** 唯一键（前缀区分两类，避免 id 撞车） */
+  key: string
+  /** 主标题 */
+  title: string
+  /** 右侧灰色提示 */
+  hint: string
+  /** 文档结果携带的文件节点；实体结果为 null */
+  file: KBFile | null
+  /** 实体名；文档结果为空串 */
+  name: string
+}
+
+/**
  * 命令面板结果：文档来自已加载文件、实体来自图谱缓存。
  * 两者都是内存数据，因此本面板零额外请求、即时响应。
  */
-const cmdResults = computed(() => {
+const cmdResults = computed<Array<{ key: string; label: string; items: CmdItem[] }>>(() => {
   const q = cmdQuery.value.trim().toLowerCase()
   const hit = (s: string) => !q || s.toLowerCase().includes(q)
-  const docs = filesForFilter.value
+  const docs: CmdItem[] = filesForFilter.value
     .filter((f) => hit(f.displayName || f.fileName))
     .slice(0, 5)
     .map((f) => ({
@@ -974,7 +1319,7 @@ const cmdResults = computed(() => {
       name: '',
     }))
   // graphView 是 reactive 对象（不是 ref），这里不能写 .value
-  const ents = (graphView.nodes || [])
+  const ents: CmdItem[] = (graphView.nodes || [])
     .filter((n) => hit(n.text || ''))
     .slice(0, 4)
     .map((n) => ({
@@ -983,7 +1328,7 @@ const cmdResults = computed(() => {
       title: n.text,
       hint: `${entityTypeLabel(n.type)} · ${n.degree ?? 0} 关系`,
       name: n.text,
-      file: null as KBFile | null,
+      file: null,
     }))
   return [
     { key: 'doc', label: '文档', items: docs },
@@ -992,7 +1337,7 @@ const cmdResults = computed(() => {
 })
 
 /** 扁平化结果，供 ↑↓ 定位 */
-const cmdFlat = computed(() => cmdResults.value.flatMap((g) => g.items))
+const cmdFlat = computed<CmdItem[]>(() => cmdResults.value.flatMap((g) => g.items))
 
 /** 打开命令面板 */
 function openCommand(): void {
@@ -3319,10 +3664,60 @@ const totalChunks = computed(() => filesForFilter.value.reduce((a, f) => a + (f.
 const totalTokens = computed(() => filesForFilter.value.reduce((a, f) => a + (f.totalTokens || 0), 0))
 
 /**
+ * 「切块」与「Tokens」读数：后端目录树不返回分片数，前端也就无法凭空给出。
+ *
+ * <p>此前概览把这两个格子直接写成 {@code totalChunks}（恒为 0），同时流水线又显示
+ * 「向量化 空闲」——一个说「一块都没切」，一个说「早就切完了」，两句自相矛盾。
+ * 这里改成三态：有数据就报数；确实拿到 0 就报 0；完全没拿到就报「—」，
+ * 并在流水线上用「已索引 N 篇」表达进度，不再用 0 假装是真实读数。</p>
+ *
+ * @param sum 已累计值
+ * @returns { known 是否有可信数据, value 展示值 }
+ */
+function readingOrDash(sum: number): { known: boolean; value: string } {
+  const hasAny = filesForFilter.value.some((f) => (f.totalChunks || 0) > 0 || (f.totalTokens || 0) > 0)
+  if (!hasAny) return { known: false, value: '—' }
+  return { known: true, value: fmtNum(sum) }
+}
+
+/** 切块读数 */
+const chunkStat = computed(() => readingOrDash(totalChunks.value))
+/** Tokens 读数 */
+const tokenStat = computed(() => readingOrDash(totalTokens.value))
+
+/** 处理中（尚未完成索引）的文档数 */
+const pendingFileCount = computed(() =>
+  filesForFilter.value.filter((f) =>
+    ['queued', 'uploading', 'uploaded', 'pending', 'processing'].includes(f.processingStatus)).length)
+
+/** 解析失败 / 索引失败的文档数 */
+const failedFileCount = computed(() => filesForFilter.value.filter((f) => f.processingStatus === 'failed').length)
+
+/** 已成功索引的文档数 */
+const indexedFileCount = computed(() => filesForFilter.value.filter((f) => f.processingStatus === 'completed').length)
+
+/** 台账里所有轮次的引用总数 */
+const askCiteTotal = computed(() => askTurns.value.reduce((a, t) => a + (t.citeCount || 0), 0))
+
+/**
+ * 实体类型条形的长度：按最大类型计数归一，最小 2% 保证小类也看得见。
+ *
+ * @param count 该类型的实体数
+ * @returns CSS 百分比宽度
+ */
+function typeBarWidth(count: number): string {
+  const max = Math.max(...entityTypeStats.value.map((s) => s.count), 1)
+  return `${Math.max(2, Math.round((count / max) * 100))}%`
+}
+
+/**
  * 流水线四道工序状态带：入库 → 切分 → 向量化 → 抽取。
  *
- * <p>把「系统现在在干什么」摊开：每道工序给出计数，处理中的工序标 warning 并挂传送带。
- * 计数全部来自已有数据（filesForFilter / totalChunks / graphView），不额外请求。</p>
+ * <p>把「系统现在在干什么」摊开：每道工序给出计数，处理中的工序标 warning 并走扫描线。
+ * 计数全部来自已有数据（filesForFilter / chunkStat / graphView），不额外请求。</p>
+ *
+ * <p>拿不到的量报「—」，不用 0 冒充读数；向量化这一道改用「已索引 N 篇」表达进度，
+ * 这样它不会和「切块 0」互相打脸（后者本来只是接口没给分片数）。</p>
  *
  * <p><b>位置敏感</b>：必须声明在 graphView / filesForFilter / totalChunks 之后——
  * 模板首次渲染会立刻读它，若依赖仍在 TDZ 会抛 ReferenceError 并整块渲染失败。
@@ -3332,21 +3727,30 @@ const pipelineStages = computed(() => {
   const fs = filesForFilter.value
   const waiting = fs.filter((f) => ['queued', 'uploading', 'uploaded', 'pending'].includes(f.processingStatus)).length
   const parsing = fs.filter((f) => f.processingStatus === 'processing').length
-  const failed = fs.filter((f) => f.processingStatus === 'failed').length
+  const failed = failedFileCount.value
   return [
-    { key: 'intake', label: '入库', value: `${fs.length} 篇`, running: waiting > 0, tone: '' },
-    { key: 'chunk', label: '切分', value: `${totalChunks.value} 块`, running: parsing > 0, tone: '' },
+    { key: 'intake', label: '入库', value: `${fs.length}`, unit: '篇', running: waiting > 0, tone: '' },
+    {
+      key: 'chunk',
+      label: '切分',
+      value: chunkStat.value.value,
+      unit: chunkStat.value.known ? '块' : '',
+      running: parsing > 0,
+      tone: '',
+    },
     {
       key: 'embed',
       label: '向量化',
-      value: parsing > 0 ? `${parsing} 进行中` : '空闲',
+      value: parsing > 0 ? `${parsing}` : `${indexedFileCount.value}`,
+      unit: parsing > 0 ? '进行中' : '已索引',
       running: parsing > 0,
       tone: parsing > 0 ? 'warning' : '',
     },
     {
       key: 'extract',
       label: '实体抽取',
-      value: failed > 0 ? `${failed} 失败` : `${graphView.entityCount} 实体`,
+      value: failed > 0 ? `${failed}` : `${graphView.entityCount}`,
+      unit: failed > 0 ? '失败' : '实体',
       running: false,
       tone: failed > 0 ? 'error' : '',
     },
@@ -3354,13 +3758,13 @@ const pipelineStages = computed(() => {
 })
 
 /**
- * 问答视图的提问建议：按当前知识库是否已有实体/文档给出不同引导，
+ * 问答视图的提问范例：按当前知识库是否已有实体/文档给出不同引导，
  * 纯静态提示词，不需要额外请求。
  */
 const askSuggestions = computed(() => {
   const hasEntities = graphView.entityCount > 0
-  const hasChunks = totalChunks.value > 0
-  if (!hasChunks) {
+  const hasFiles = filesForFilter.value.length > 0
+  if (!hasFiles) {
     return ['这个知识库有哪些文档？', '上传文档后能问什么？']
   }
   return hasEntities

@@ -55,6 +55,22 @@ const props = defineProps<{
 const emit = defineEmits<{
   /** 「在关系图谱中查看」：请求宿主切换到知识图谱视图 */
   (e: 'view-graph'): void
+  /**
+   * 一轮问答结束后上报台账摘要，宿主中栏的「问答记录」用它留档。
+   *
+   * <p>只带台账需要的字段（问题 / 引用数 / 关联实体 / 耗时 / 是否失败），
+   * 正文与引用角标留在右栏，避免同一段回答在中栏再排一遍。</p>
+   */
+  (e: 'turn-done', payload: {
+    id: number
+    question: string
+    citeCount: number
+    entities: string[]
+    elapsed?: number
+    error: boolean
+  }): void
+  /** 清空对话：宿主台账一并清空 */
+  (e: 'turns-cleared'): void
 }>()
 
 const { toast } = usePopup()
@@ -182,6 +198,21 @@ const activeCitationNames = computed(() => {
 })
 
 /**
+ * 取某一轮命中的实体名（与迷你子图同一套判定：引用文件名里出现过的图谱节点）。
+ *
+ * @param turn 目标轮次
+ * @returns 命中的实体名，最多 5 个
+ */
+function entitiesForTurn(turn: Turn): string[] {
+  if (!turn || turn.citations.length === 0) return []
+  const blob = turn.citations.map((c) => String(c.doc_path || '') + ' ' + String(c.file_name || '')).join(' ')
+  return (props.graphNodes || [])
+    .map((n) => String(n.text || ''))
+    .filter((t) => t.length >= 2 && blob.includes(t))
+    .slice(0, 5)
+}
+
+/**
  * 提交提问。
  *
  * <p>当前远端只有一次性问答形态（无该接口的 SSE 实现，A/B/C 实测均为整包 JSON），
@@ -218,6 +249,15 @@ async function submit(q?: string) {
     turn.loading = false
   } finally {
     asking.value = false
+    // 台账摘要：中栏据此留档，右栏正文不作第二份拷贝
+    emit('turn-done', {
+      id: turn.id,
+      question: turn.question,
+      citeCount: turn.citations.length,
+      entities: entitiesForTurn(turn),
+      elapsed: turn.elapsed,
+      error: Boolean(turn.error),
+    })
   }
 }
 
@@ -290,6 +330,7 @@ function onAnswerClick(e: MouseEvent) {
 /** 清空问答记录 */
 function clearTurns() {
   turns.value = []
+  emit('turns-cleared')
 }
 
 // 切换知识库时清空，避免上一个库的答案串到下一个库
@@ -300,11 +341,13 @@ watch(() => props.kbId, () => clearTurns())
   <div class="kb-ask h-full min-h-0 flex flex-col overflow-hidden">
     <!-- 标题栏 -->
     <div class="kb-ask__head">
-      <div class="flex items-baseline gap-2.5 min-w-0">
+      <!-- 标题与副标题竖排：横排时「智能问答 + 已接入某某库」在 360px 栏里
+           会挤成一行并互相压缩，副标题被截成半句 -->
+      <div class="flex flex-1 min-w-0 flex-col">
         <h2 class="kb-ask__title"><i class="dot" />智能问答</h2>
         <p class="kb-ask__sub">已接入{{ kbName || '本知识库' }}</p>
       </div>
-      <ReSquareButton v-if="hasTurns" layout="square" size="small" class="kb-btn" :icon="Delete" tip="清空对话"
+      <ReSquareButton v-if="hasTurns" layout="square" size="small" class="kb-btn shrink-0" :icon="Delete" tip="清空对话"
         @click="clearTurns" />
     </div>
 
@@ -350,11 +393,13 @@ watch(() => props.kbId, () => clearTurns())
               class="kb-ask__a"
               :class="turn.error ? 'kb-ask__error' : ''"
             >
-              <p class="m-0 text-sm leading-relaxed whitespace-pre-wrap break-words flex items-start gap-2">
-                <el-icon v-if="turn.error" class="mt-0.5 shrink-0 text-[var(--kb-danger)]"><WarningFilled /></el-icon>
+              <!-- 排版交给 .kb-ask__md：外层 p 若再挂 text-sm / leading-relaxed，
+                   会和设计系统里的 12.5px/1.75 打架（Tailwind 工具类优先级更高） -->
+              <p class="m-0 flex items-start gap-2">
+                <el-icon v-if="turn.error" class="mt-0.5 shrink-0 text-[var(--kb-err)]"><WarningFilled /></el-icon>
                 <!-- 答案渲染走会话同款 MarkdownContent（代码高亮 + KaTeX + HTML 转义 + rAF 合并）；
                      引用角标先由 citableAnswer 着色成徽标，再进组件解析；徽标点击走 onAnswerClick 事件委托 -->
-                <span v-if="turn.error">{{ turn.answer }}</span>
+                <span v-if="turn.error" class="whitespace-pre-wrap break-words">{{ turn.answer }}</span>
                 <span v-else class="kb-ask__md flex-1 min-w-0" @click="onAnswerClick"><MarkdownContent :content="citableAnswer(turn)" /></span>
               </p>
 
