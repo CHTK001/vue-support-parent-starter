@@ -146,7 +146,7 @@ import { getMenuLanguage } from "@repo/languages";
 import useGlobalStore from "@repo/pinia/modules/global";
 import { HOME_URL, LOGIN_URL, getConfig, resolveMenuDefaultIcon } from "@repo/config";
 import { defaultAvatarUrl } from "@repo/assets";
-import { msgError } from "@repo/core";
+import { msgError, hasRouter, getRouter } from "@repo/core";
 import { clearSessionStorage, getUserInfo } from "@repo/utils";
 import useUserStore from "@repo/pinia/modules/user";
 import useTabsStore from "@repo/pinia/modules/tabs";
@@ -372,7 +372,27 @@ const handleLayout = async () => {
   // 清除 auth store 数据[重置为初始状态]
   authStore.$reset();
   // 退出登录，必须使用replace把页面缓存刷掉。
-  window.location.replace(LOGIN_URL);
+  // 应用侧登录页路由（与框架守卫的 `config.route.loginPath` 对齐）
+  const loginUrl = getConfig().route?.loginPath || LOGIN_URL;
+  // 应用运行在 hash 模式（#/login）：直接在 pathname 上 replace（如 /login）会
+  // 丢掉 hash，SPA 只能落回首页、到不了登录页。优先走已注入的 vue-router，由它
+  // 按 hash 格式拼装目标（/login -> /#/login）；无 router（React/未挂载）时才退
+  // 化为整页 replace，拼上 base 保证子路径部署时不跳出应用（见 httpCrypto.ts gotoLogin）。
+  const gotoLogin = (): void => {
+    if (hasRouter()) {
+      const router = getRouter();
+      // 已在登录页时跳过重复导航（幂等），避免 NavigationDuplicated 与死循环
+      if (router.currentRoute.value.path !== loginUrl) {
+        void router.replace(loginUrl).catch(() => {
+          /* 重复/取消导航，忽略即可 */
+        });
+      }
+      return;
+    }
+    const base = import.meta.env.BASE_URL || "/";
+    window.location.replace(base + loginUrl.replace(/^\//, ""));
+  };
+  gotoLogin();
 };
 
 // 下拉折叠
