@@ -251,7 +251,9 @@ async function resolveRestricted(): Promise<void> {
  */
 const visibleNodes = computed<TopologyNode[]>(() => {
   // 脏数据兜底：没有 id 的节点直接丢掉（否则 Set / 画布都会带上 undefined）
-  const base = rawNodes.value.filter((node) => !!node.id)
+  let base = rawNodes.value.filter((node) => !!node.id)
+  // 视图限制（按分组 / 厂商 / 设备）：只留命中的设备及其地址链与通道
+  if (restricted.value.size) base = base.filter((node) => keepSet.value.has(node.id))
   if (!onlineOnly.value) return base
   const keep = new Set<string>()
   for (const node of base) {
@@ -316,16 +318,25 @@ const areas = computed<string[]>(() => {
 })
 
 /** 空状态文案（区分「真没设备」与「被只看在线过滤空」） */
-const emptyText = computed(() =>
-  rawNodes.value.length
-    ? '当前没有在线设备：关掉「只看在线」可以查看全部设备'
-    : '还没有可拓扑的设备：先到设备台账接入设备，并补充 IP 与区域',
-)
+const emptyText = computed(() => {
+  const base = restricted.value.size
+    ? rawNodes.value.filter((node) => keepSet.value.has(node.id))
+    : rawNodes.value
+  if (!base.length) {
+    return props.filter
+      ? '当前视图下没有可拓扑的设备：设备可能缺少 IP 或区域'
+      : '还没有可拓扑的设备：先到设备台账接入设备，并补充 IP 与区域'
+  }
+  return '当前没有在线设备：关掉「只看在线」可以查看全部设备'
+})
 
 /** 顶部统计 */
 const stats = computed(() => {
-  const countOf = (kind: NodeKind) => rawNodes.value.filter((node) => kindOf(node.id) === kind).length
-  const devices = rawNodes.value.filter((node) => kindOf(node.id) === 'device')
+  const base = restricted.value.size
+    ? rawNodes.value.filter((node) => keepSet.value.has(node.id))
+    : rawNodes.value
+  const countOf = (kind: NodeKind) => base.filter((node) => kindOf(node.id) === kind).length
+  const devices = base.filter((node) => kindOf(node.id) === 'device')
   const online = devices.filter((node) => node.online === true).length
   return [
     { key: 'area', label: '区域', value: countOf('area') },
@@ -393,6 +404,7 @@ function onNodeClick(detail: { id: string }): void {
 async function load(): Promise<void> {
   loading.value = true
   try {
+    await resolveRestricted()
     const data = await deviceApi.topology()
     rawNodes.value = data?.nodes || []
     rawEdges.value = data?.edges || []
