@@ -5,7 +5,7 @@
       <span class="match-hint">
         <template v-if="topology">
           {{ topology.center }} · PID {{ topology.jvmPid }}
-          · {{ topology.modules.length }} 个 classpath 组件
+          · {{ (topology?.modules ?? []).length }} 个 classpath 组件
           <template v-if="topology.peerCount"> · {{ topology.peerCount }} 个外部调用方</template>
         </template>
         <template v-else>系统拓扑</template>
@@ -30,9 +30,9 @@
       <div class="panel-row">
         <!-- 监听端口 -->
         <div class="panel">
-          <div class="panel-head"><span>监听端口</span><span class="panel-sub">{{ topology.ports.length }} 个声明端口</span></div>
+          <div class="panel-head"><span>监听端口</span><span class="panel-sub">{{ (topology?.ports ?? []).length }} 个声明端口</span></div>
           <ReTable
-            :data="topology.ports as unknown as Record<string, unknown>[]"
+            :data="(topology?.ports ?? []) as unknown as Record<string, unknown>[]"
             :columns="portColumns"
             engine="element"
             :layout-table="{ minHeight: 0 }"
@@ -43,9 +43,9 @@
         </div>
         <!-- 网络连接明细 -->
         <div class="panel">
-          <div class="panel-head"><span>活动连接</span><span class="panel-sub">{{ topology.connections.length }} 条</span></div>
+          <div class="panel-head"><span>活动连接</span><span class="panel-sub">{{ (topology?.connections ?? []).length }} 条</span></div>
           <ReTable
-            :data="topology.connections as unknown as Record<string, unknown>[]"
+            :data="(topology?.connections ?? []) as unknown as Record<string, unknown>[]"
             :columns="connColumns"
             engine="element"
             :layout-table="{ minHeight: 0 }"
@@ -60,11 +60,11 @@
       <div class="panel">
         <div class="panel-head">
           <span>classpath 组件（JVM 实际加载的 jar）</span>
-          <span class="panel-sub">{{ topology.modules.length }} 个 · 取文件名去版本号展示</span>
+          <span class="panel-sub">{{ (topology?.modules ?? []).length }} 个 · 取文件名去版本号展示</span>
         </div>
         <div class="module-chips">
           <ReTag
-            v-for="m in topology.modules.slice(0, 48)"
+            v-for="m in (topology?.modules ?? []).slice(0, 48)"
             :key="m.id"
             type="info"
             effect="plain"
@@ -72,7 +72,7 @@
           >
             {{ m.label }}
           </ReTag>
-          <ReTag v-if="topology.modules.length > 48" type="info" round>+{{ topology.modules.length - 48 }}</ReTag>
+          <ReTag v-if="(topology?.modules ?? []).length > 48" type="info" round>+{{ (topology?.modules ?? []).length - 48 }}</ReTag>
         </div>
       </div>
 
@@ -172,11 +172,10 @@ const depColumns: ReTableColumn[] = [
 ];
 
 /** 外部调用方汇总行（按调用量降序，全部真实聚合值） */
-const depRows = computed(() =>
-  topology.value
-    ? [...topology.value.deps].sort((a, b) => (b.callCount ?? 0) - (a.callCount ?? 0))
-    : [],
-);
+const depRows = computed(() => {
+  const deps = topology.value?.deps ?? [];
+  return [...deps].sort((a, b) => (b.callCount ?? 0) - (a.callCount ?? 0));
+});
 
 const totalDepCalls = computed(() =>
   depRows.value.reduce((acc, d) => acc + numOf(d.callCount), 0),
@@ -236,6 +235,10 @@ function renderGraph() {
   if (!topology.value || !graphRef.value) return;
   if (!chart) chart = echarts.init(graphRef.value, "light");
   const t = topology.value;
+  // 后端未就绪时 ports/modules/connections/deps 可能为 undefined，降级为空数组
+  const ports = t.ports ?? [];
+  const modules = t.modules ?? [];
+  const deps = t.deps ?? [];
   const centerColor = chartColor(0);
   const peerColor = chartColor(3);
   const nodes = [
@@ -249,21 +252,21 @@ function renderGraph() {
       },
       label: { color: fgColor(), fontSize: 13, fontWeight: 700 },
     },
-    ...t.ports.map((p) => ({
+    ...ports.map((p) => ({
       name: `${p.protocol}:${p.port}`,
       symbolSize: 30,
       itemStyle: { color: portColor(p) },
       label: { color: fgColor(), fontSize: 11 },
       category: "port",
     })),
-    ...t.modules.slice(0, 12).map((m) => ({
+    ...modules.slice(0, 12).map((m) => ({
       name: m.label,
       symbolSize: 20,
       itemStyle: { color: mutedColor() },
       label: { color: colorWithAlpha(fgColor(), 0.6), fontSize: 10 },
       category: "module",
     })),
-    ...t.deps
+    ...deps
       .map((d) => d.source)
       .filter((s, i, all) => all.indexOf(s) === i)
       .map((s) => {
@@ -278,12 +281,12 @@ function renderGraph() {
       }),
   ];
   const links = [
-    ...t.ports.map((p) => ({
+    ...ports.map((p) => ({
       source: t.center,
       target: `${p.protocol}:${p.port}`,
       lineStyle: { color: centerColor, width: 1.5 },
     })),
-    ...t.modules.slice(0, 6).map((m) => ({
+    ...modules.slice(0, 6).map((m) => ({
       source: t.center,
       target: m.label,
       lineStyle: {
@@ -292,7 +295,7 @@ function renderGraph() {
         type: "dashed" as const,
       },
     })),
-    ...[...new Set(t.deps.map((d) => d.source))].map((s) => ({
+    ...[...new Set(deps.map((d) => d.source))].map((s) => ({
       source: s,
       target: t.center,
       lineStyle: { color: colorWithAlpha(peerColor, 0.7), width: 1.4 },

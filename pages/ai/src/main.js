@@ -303,6 +303,14 @@ const routes = [
     name: "Empty",
     component: () => import("./components/BackendWaitingOverlay.vue"),
   },
+  {
+    // 设计探索全景页：开发环境用 `?variant=` 切换版本预览（见 beforeEach 的临时钩子）
+    path: "/preview/pages/:page",
+    name: "VariantsPreview",
+    meta: { title: "版式预览" },
+    // 独立顶层路由：不夹 MainLayout / GlobalSidebar
+    component: () => import("./design-preview/PageVariantPreview.vue"),
+  },
 ];
 
 // 根据环境动态选择路由模式

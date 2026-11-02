@@ -10,7 +10,7 @@
  */
 
 /** 渲染器种类：决定用哪一组版式 */
-export type Archetype = 'management' | 'conversation'
+export type Archetype = 'management' | 'conversation' | 'usage'
 
 /** 表格列 */
 export interface SpecColumn {
@@ -234,16 +234,30 @@ const CHAT_PAGE: PageSpec = {
   ],
 }
 
+const USAGE_PAGE: PageSpec = {
+  id: 'usage',
+  label: '用量管理',
+  archetype: 'usage',
+  subtitle: '实时 Token 用量、配额、消费趋势与明细的一页看板。',
+  primaryAction: '导出用量',
+  filters: ['今天', '近7天', '近30天', '全部', '自定义'],
+  stats: [
+    { label: '今日 Token', value: '0', hint: '免费额度' },
+    { label: '范围 Token', value: '0', hint: '已选区间' },
+    { label: '请求数', value: '0', hint: '近期调用' },
+    { label: '费用', value: '0', hint: '区间消费' },
+  ],
+}
+
 /** 已注册规格：新增页面只需在末尾追加一项 */
-export const PAGE_SPECS: PageSpec[] = [CHAT_PAGE, MODEL_PAGE, CHANNEL_PAGE, CONNECTOR_PAGE]
+export const PAGE_SPECS: PageSpec[] = [CHAT_PAGE, MODEL_PAGE, CHANNEL_PAGE, CONNECTOR_PAGE, USAGE_PAGE]
 
 /** 按 id 取规格 */
 export function getPageSpec(id: string): PageSpec | undefined {
   return PAGE_SPECS.find((p) => p.id === id)
 }
 
-/** 版式键（三套方向） */
-export type VariantKey = 'a' | 'b' | 'c'
+export type VariantKey = 'a' | 'b' | 'c' | 'd' | 'e' | 'f'
 
 /** 每套方向的名称与一句话定位（预览顶栏与选择页共用） */
 export const VARIANT_META: Record<string, { key: VariantKey; name: string; desc: string }[]> = {
@@ -256,5 +270,13 @@ export const VARIANT_META: Record<string, { key: VariantKey; name: string; desc:
     { key: 'a', name: '沉浸', desc: '单列 720px，去掉一切干扰，只留对话与输入框' },
     { key: 'b', name: '双栏', desc: '会话列表常驻 + 对话区，消息用气泡，上下文收进抽屉' },
     { key: 'c', name: '三栏', desc: '会话 / 对话 / 上下文三栏并行，工具调用与产物体贴可见' },
+  ],
+  usage: [
+    { key: 'a', name: '航站楼', desc: '横向三段式：航行情报条 + 引擎驾驶舱 + 仪表盘' },
+    { key: 'b', name: 'Studio', desc: '浅色工作台，KPI 统计条 + 看板 + 排行 + 趋势面板' },
+    { key: 'c', name: 'Dark Focus', desc: '暗色单列，环形图通栏 + 横向滚动排行' },
+    { key: 'd', name: 'Bento', desc: '浅色 12 列宫格，KPI 行 + 多跨度单元格' },
+    { key: 'e', name: 'Lattice', desc: '浅色无圆角，Tab 左条 + 全宽行，边框分割' },
+    { key: 'f', name: 'Portal', desc: '暗色 2×2 网格，KPI/图表对格，密度行' },
   ],
 }

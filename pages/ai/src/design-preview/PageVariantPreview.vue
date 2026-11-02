@@ -29,7 +29,8 @@
     </header>
 
     <main class="pv-stage">
-      <component v-if="spec" :is="layout" :spec="spec" />
+      <!-- usage 变体是独立页面组件，不接 spec props（用自己的 board） -->
+      <component v-if="spec" :is="layout" v-bind="specProps" />
       <div v-else class="pv-empty">未注册的页面：{{ pageId }}</div>
     </main>
   </div>
@@ -51,6 +52,12 @@ import ManagementC from './layouts/ManagementC.vue'
 import ChatA from './layouts/ChatA.vue'
 import ChatB from './layouts/ChatB.vue'
 import ChatC from './layouts/ChatC.vue'
+import UsageA from '../components/management/UsagePage.vue'
+import UsageB from '../components/management/UsagePageB.vue'
+import UsageC from '../components/management/UsagePageC.vue'
+import UsageD from '../components/management/UsagePageD.vue'
+import UsageE from '../components/management/UsagePageE.vue'
+import UsageF from '../components/management/UsagePageF.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -58,6 +65,8 @@ const router = useRouter()
 const LAYOUTS = {
   management: { a: ManagementA, b: ManagementB, c: ManagementC },
   conversation: { a: ChatA, b: ChatB, c: ChatC },
+  // usage 变体：独立页面组件，不接 spec，直接绑定 useUsageBoard()
+  usage: { a: UsageA, b: UsageB, c: UsageC, d: UsageD, e: UsageE, f: UsageF },
 } as const
 
 const pageId = computed(() => String(route.params.page || 'models'))
@@ -66,11 +75,14 @@ const bare = computed(() => route.query.bare === '1')
 
 const variant = computed<VariantKey>(() => {
   const v = String(route.query.variant || 'a') as VariantKey
-  return ['a', 'b', 'c'].includes(v) ? v : 'a'
+  return ['a', 'b', 'c', 'd', 'e', 'f'].includes(v) ? v : 'a'
 })
 
 const variants = computed(() => (spec.value ? VARIANT_META[spec.value.archetype] : []))
 const currentVariant = computed(() => variants.value.find((v) => v.key === variant.value))
+
+// usage 变体不接 spec props，其他变体按旧约传入；避免把 spec 强塞给独立页面组件
+const specProps = computed(() => (spec.value?.archetype === 'usage' ? {} : { spec: spec.value }))
 
 const layout = computed(() => {
   if (!spec.value) return null
