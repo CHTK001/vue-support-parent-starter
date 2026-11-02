@@ -125,10 +125,13 @@ const emit = defineEmits<{
 <style scoped>
 /* 以下都是总览独有的版式，拆出来之后父级的 scoped 规则匹配不到，必须跟着组件走。 */
 
+/* 「内核」版式：四个节点压到 84px 高、14px 圆角收到 8px。
+   顶部 3px 色条保留（它是顺序的唯一视觉编码），但收窄到 2px，
+   因为密集排布里 3px 会显得比标题还重。 */
 .policy-pipeline {
   display: flex;
   align-items: stretch;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
 }
 
@@ -137,76 +140,79 @@ const emit = defineEmits<{
   display: flex;
   flex: 1;
   min-width: 0;
-  min-height: 108px;
+  min-height: 86px;
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-end;
-  gap: 4px;
-  padding: 14px;
+  gap: 2px;
+  padding: 10px 12px;
   border: 1px solid var(--policy-line);
-  border-radius: 10px;
+  border-radius: 8px;
   background: var(--el-bg-color);
   color: var(--el-text-color-primary);
   text-align: left;
 }
 
-button.policy-node { cursor: pointer; transition: border-color 0.2s ease, background-color 0.2s ease; }
+button.policy-node { cursor: pointer; transition: border-color 0.18s ease, background-color 0.18s ease; }
 button.policy-node:hover { border-color: var(--el-color-primary-light-7); background: var(--el-color-primary-light-9); }
 
 .policy-node__step {
   position: absolute;
-  top: 12px;
-  right: 14px;
+  top: 8px;
+  right: 10px;
   color: var(--el-text-color-placeholder);
-  font-size: 10px;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
   font-weight: 700;
 }
-.policy-node b { font-size: 14px; font-weight: 600; }
-.policy-node small { color: var(--el-text-color-secondary); font-size: 11px; }
+.policy-node b { color: var(--el-text-color-primary); font-size: 12px; font-weight: 600; line-height: 1.35; }
+.policy-node small { color: var(--el-text-color-secondary); font-size: 10px; line-height: 1.35; }
 
 /* 四个节点顶部的色条就是「顺序」的视觉编码：热更新 / 限流 / 名单 / 放行拦截 */
-.policy-node.is-primary { border-top: 3px solid var(--el-color-primary); }
-.policy-node.is-warning { border-top: 3px solid var(--el-color-warning); }
-.policy-node.is-success { border-top: 3px solid var(--el-color-success); }
-.policy-node.is-terminal { border-top: 3px solid var(--el-color-info); }
+.policy-node.is-primary { border-top: 2px solid var(--el-color-primary); }
+.policy-node.is-warning { border-top: 2px solid var(--el-color-warning); }
+.policy-node.is-success { border-top: 2px solid var(--el-color-success); }
+.policy-node.is-terminal { border-top: 2px solid var(--el-color-info); }
 
 .policy-pipeline__link {
-  width: 22px;
+  width: 14px;
   flex: none;
   align-self: center;
   height: 1px;
   background: linear-gradient(90deg, var(--el-color-primary-light-5), var(--el-border-color));
 }
 
+/* 三张口径卡：内边距收到 10px、图标从 36px 收到 28px、圆角 8px。
+   它们承载的是「说明文字」，密集版里不该和上方的流水线节点抢同一档重量。 */
 .policy-overview-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 8px;
 }
 
 .policy-overview-card {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 10px 12px;
-  padding: 14px;
+  gap: 8px 10px;
+  padding: 10px 12px;
   border: 1px solid var(--policy-line);
-  border-radius: 10px;
+  border-radius: 8px;
   background: var(--el-bg-color);
 }
 .policy-overview-card__icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--el-radius-sm, 6px);
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
 }
 .policy-overview-card__icon.is-primary { background: var(--el-color-primary-light-9); color: var(--el-color-primary); }
 .policy-overview-card__icon.is-warning { background: var(--el-color-warning-light-9); color: var(--el-color-warning); }
 .policy-overview-card__icon.is-success { background: var(--el-color-success-light-9); color: var(--el-color-success); }
 
-.policy-overview-card b { color: var(--el-text-color-primary); font-size: 13px; }
-.policy-overview-card p { margin: 4px 0 0; color: var(--el-text-color-secondary); font-size: 12px; line-height: 1.6; }
+.policy-overview-card b { color: var(--el-text-color-primary); font-size: 12px; font-weight: 600; line-height: 1.35; }
+.policy-overview-card p { margin: 2px 0 0; color: var(--el-text-color-secondary); font-size: 11px; line-height: 1.55; }
 .policy-overview-card :deep(.rm-btn) { grid-column: 2; justify-self: start; }
 
 @media screen and (max-width: 1280px) {

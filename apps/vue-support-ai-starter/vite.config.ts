@@ -370,6 +370,10 @@ export default defineConfig({
       // 缺失时构建报 Rollup failed to resolve import "@pages/system/api/announcementApi"
       { find: '@pages/ai', replacement: path.resolve(WORKSPACE_ROOT, 'pages/ai/src') },
       { find: '@pages/system', replacement: path.resolve(WORKSPACE_ROOT, 'pages/system/src') },
+      // SystemSettings.vue 的「渠道管理」页已抽离到独立包 @pages/channel。
+      // 少这一行 dev server 报 Failed to resolve import "@pages/channel"，
+      // 整个系统设置页（含渠道管理）都打不出来。
+      { find: '@pages/channel', replacement: path.resolve(WORKSPACE_ROOT, 'pages/channel/src') },
       // SystemSettings.vue 的「文件存储」页直接复用 @repo/filesystem 的 FileStorageManage。
       // 少这一行会让 dev server 报 Failed to resolve import "@pages/filesystem"，
       // 整个 SystemSettings.vue 编译 500 —— 连带着系统设置页内的所有面板

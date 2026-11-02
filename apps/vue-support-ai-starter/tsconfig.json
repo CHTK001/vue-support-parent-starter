@@ -53,7 +53,10 @@
       "@/*": ["./src/*"],
       /* 复用 pages/filesystem 的文件存储管理页（见「系统配置 → 文件存储」） */
       "@pages/filesystem": ["../../pages/filesystem/src/index.ts"],
-      "@pages/filesystem/*": ["../../pages/filesystem/*"]
+      "@pages/filesystem/*": ["../../pages/filesystem/*"],
+      /* 渠道管理页：已从 pages/ai 抽离出的独立包（见「系统设置 → 渠道管理」） */
+      "@pages/channel": ["../../pages/channel/src/index.ts"],
+      "@pages/channel/*": ["../../pages/channel/src/*"]
     },
     
     /* 类型根目录 */
@@ -65,7 +68,8 @@
     "src/**/*.d.ts",
     "src/**/*.tsx",
     "src/**/*.vue",
-    "../../pages/filesystem/src/**/*.d.ts"
+    "../../pages/filesystem/src/**/*.d.ts",
+    "../../pages/channel/src/**/*.d.ts"
   ],
   
   "exclude": [

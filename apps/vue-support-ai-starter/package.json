@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@pages/ai": "workspace:*",
+    "@pages/channel": "workspace:*",
     "@pages/filesystem": "workspace:*",
     "@repo/config": "workspace:*",
     "@repo/core": "workspace:*",

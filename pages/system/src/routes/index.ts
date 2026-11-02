@@ -184,7 +184,15 @@ export const systemRoutes: RouteConfigsTable[] = [
   {
     path: "/manage/filestorage",
     name: "SystemFileStorage",
-    component: () => import("@pages/filesystem/views/FileStorageManage.vue"),
+    // 走相对路径而不是 @pages/filesystem/*：本文件被 system(8096) 与 monitor(8848)
+    // 两个应用共同挂载，而两者对该别名的映射相反 ——
+    //   createVite 基线与 system 用 pages/filesystem/src，monitor 覆盖成包根 pages/filesystem。
+    // 于是 "@pages/filesystem/views/X.vue" 在 monitor 会解析到不存在的
+    // pages/filesystem/views/X.vue，"@pages/filesystem/src/views/X.vue" 在 system 会叠加成
+    // pages/filesystem/src/src/views/X.vue —— 两种写法必有一端 500。
+    // 相对路径不经过 alias，两边解析结果一致；本文件其余路由也都用 ../views/* 的相对形式。
+    // 另外 pages/system/package.json 并未声明 @pages/filesystem 依赖，裸包名导入属于越界。
+    component: () => import("../../../filesystem/src/views/FileStorageManage.vue"),
     meta: {
       title: "文件管理",
       icon: "Folder",

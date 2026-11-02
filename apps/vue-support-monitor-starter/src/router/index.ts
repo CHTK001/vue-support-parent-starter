@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 监控管理平台路由树（RouteConfigsTable[]）—— **宿主装配层**。
  *
  * <p>本文件只做一件事：把各 {@code pages/xx} 包产出的路由树拼起来。
@@ -361,13 +361,13 @@ export const monitorRoutes: RouteConfigsTable[] = [
       {
         path: "/logs/sys",
         name: "SysLog",
-        component: () => import("@pages/system/views/SysLogManage.vue"),
+        component: () => import("@pages/system/src/views/SysLogManage.vue"),
         meta: { title: "系统日志", icon: "Document", showLink: false, keepAlive: true, rank: 1 },
       },
       {
         path: "/logs/user",
         name: "UserLog",
-        component: () => import("@pages/system/views/UserLogManage.vue"),
+        component: () => import("@pages/system/src/views/UserLogManage.vue"),
         meta: { title: "登录日志", icon: "Unlock", showLink: false, keepAlive: true, rank: 2 },
       },
     ],

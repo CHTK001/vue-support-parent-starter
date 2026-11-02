@@ -395,6 +395,9 @@ importers:
       '@pages/ai':
         specifier: workspace:*
         version: link:../../pages/ai
+      '@pages/channel':
+        specifier: workspace:*
+        version: link:../../pages/channel
       '@pages/filesystem':
         specifier: workspace:*
         version: link:../../pages/filesystem
@@ -987,6 +990,12 @@ importers:
       '@element-plus/icons-vue':
         specifier: 'catalog:'
         version: 2.3.2(vue@3.5.44(typescript@5.9.3))
+      '@pages/achievement':
+        specifier: workspace:*
+        version: link:../../pages/achievement
+      '@pages/collect':
+        specifier: workspace:*
+        version: link:../../pages/collect
       '@pages/datasource':
         specifier: workspace:*
         version: link:../../pages/datasource
@@ -1005,6 +1014,12 @@ importers:
       '@pages/hotsport':
         specifier: workspace:*
         version: link:../../pages/hotsport
+      '@pages/job':
+        specifier: workspace:*
+        version: link:../../pages/job
+      '@pages/message':
+        specifier: workspace:*
+        version: link:../../pages/message
       '@pages/monitor':
         specifier: workspace:*
         version: link:../../pages/monitor
@@ -1014,6 +1029,15 @@ importers:
       '@pages/server':
         specifier: workspace:*
         version: link:../../pages/server
+      '@pages/signin':
+        specifier: workspace:*
+        version: link:../../pages/signin
+      '@pages/system':
+        specifier: workspace:*
+        version: link:../../pages/system
+      '@pages/task':
+        specifier: workspace:*
+        version: link:../../pages/task
       '@pages/template':
         specifier: workspace:*
         version: link:../../pages/template
@@ -2300,6 +2324,37 @@ importers:
       vue-tsc:
         specifier: 'catalog:'
         version: 2.2.12(typescript@5.9.3)
+
+  pages/channel:
+    dependencies:
+      '@element-plus/icons-vue':
+        specifier: 'catalog:'
+        version: 2.3.2(vue@3.5.44(typescript@5.9.3))
+      '@repo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@repo/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
+      element-plus:
+        specifier: 'catalog:'
+        version: 2.14.7(vue@3.5.44(typescript@5.9.3))
+      qrcode:
+        specifier: ^1.5.4
+        version: 1.5.4
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.44(typescript@5.9.3)
+    devDependencies:
+      '@types/qrcode':
+        specifier: ^1.5.6
+        version: 1.5.6
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.3
+        version: 6.0.8(vite@8.2.0(@types/node@25.9.6)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.104.1))(vue@3.5.44(typescript@5.9.3))
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
 
   pages/collect:
     dependencies:

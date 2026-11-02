@@ -115,6 +115,32 @@ async function handleSubmit() {
       <el-form-item label="备注">
         <el-input v-model="form.sysTenantRemark" type="textarea" :rows="2" placeholder="备注" maxlength="1000" show-word-limit />
       </el-form-item>
+
+      <el-divider content-position="left">独立数据库（选填）</el-divider>
+      <el-form-item label="库地址">
+        <div class="tenant-db-row">
+          <el-input v-model="form.sysTenantHost" placeholder="数据库实例地址，如 10.0.0.8" maxlength="255" />
+          <el-input v-model.number="form.sysTenantPort" placeholder="端口" maxlength="6" />
+        </div>
+      </el-form-item>
+      <el-form-item label="库名">
+        <el-input v-model="form.sysTenantDbname" placeholder="租户专属数据库名" maxlength="64" show-word-limit />
+      </el-form-item>
+      <el-form-item label="库账号">
+        <el-input v-model="form.sysTenantSqlUsername" placeholder="数据库登录账号" maxlength="64" show-word-limit />
+      </el-form-item>
+      <el-form-item label="库口令">
+        <el-input
+          v-model="form.sysTenantSqlPassword"
+          type="password"
+          show-password
+          :placeholder="mode === 'edit' ? '留空表示不修改' : '数据库登录口令'"
+          maxlength="128"
+        />
+      </el-form-item>
+      <p class="tenant-db-hint">
+        填写完整后，请求头带 <code>X-Tenant-Id</code> 的接口会路由到该库；留空则继续走平台共享库。
+      </p>
     </el-form>
     <template #footer>
       <el-button @click="visible = false">取消</el-button>
@@ -122,3 +148,33 @@ async function handleSubmit() {
     </template>
   </ReDialog>
 </template>
+
+<style scoped>
+.tenant-db-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.tenant-db-row > :first-child {
+  flex: 1 1 auto;
+}
+
+.tenant-db-row > :last-child {
+  flex: 0 0 110px;
+}
+
+.tenant-db-hint {
+  margin: 0 0 8px 90px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.tenant-db-hint code {
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--el-fill-color-light);
+  font-family: var(--el-font-family-mono, monospace);
+}
+</style>

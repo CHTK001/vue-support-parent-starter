@@ -553,6 +553,18 @@ export interface SysTenant extends Auditable {
   sysTenantHomeUrl?: string;
   /** 备注 */
   sysTenantRemark?: string;
+  /** 主库地址（租户专属数据库实例地址） */
+  sysTenantHost?: string;
+  /** 主库端口（租户专属数据库实例端口） */
+  sysTenantPort?: number;
+  /** 数据库账号（租户专属数据库登录账号） */
+  sysTenantSqlUsername?: string;
+  /** 数据库口令（明文，仅新增/编辑时传；落库为密文，不回显） */
+  sysTenantSqlPassword?: string;
+  /** 数据库名（租户专属数据库名） */
+  sysTenantDbname?: string;
+  /** 主库IP（sysTenantHost 为空时作为地址回退） */
+  sysTenantIp?: string;
   /** 关联服务ID列表（只读） */
   serviceIds?: number[];
   /** 关联服务列表（只读） */

@@ -5,10 +5,8 @@
 # 系统信息
 appConfig:
   title: 监控管理平台
-  # 本地 E2E 验收：置 false，router/guard 直接放行，编址 /v2/user/login 的登录页。
-  # 后端 AuthFilter 仍在（不对的 token 照样 403），这里只关掉前端登录态判断。
   # 验收完成后必须调回 true（本文件必须保持 true）
-  openAuth: false
+  openAuth: true
 
 # 路由：菜单完全来自本地路由树（src/routes.ts 的 monitorRoutes），
 # 由 createVueApp 的 registerStaticMenu(buildMenuFromRoutes(...)) 注册。

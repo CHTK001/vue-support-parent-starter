@@ -258,7 +258,7 @@ import UsageConfigSettings from './UsageConfigSettings.vue'
 import SkillsSourceSettings from './SkillsSourceSettings.vue'
 import ServiceManagementPage from '../management/ServiceManagementPage.vue'
 import ServiceTokensPage from '../management/ServiceTokensPage.vue'
-import ChannelManagementPage from '../management/ChannelManagementPage.vue'
+import ChannelManagementPage from '@pages/channel/components/ChannelManagementPage.vue'
 // 模型管理：直接复用主页 /models 的整页组件（双入口一份实现）
 import ModelsPage from '../models/ModelsPage.vue'
 import CommunityPanel from './CommunityPanel.vue'

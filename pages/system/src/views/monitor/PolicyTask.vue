@@ -367,102 +367,129 @@ onMounted(() => {
 </template>
 
 <style scoped lang="scss">
+/*
+ * 「内核 Core」版式 —— 高密度主控台
+ *
+ * 设计取舍（相对上一版卡片化外壳）：
+ *   1. 标题条不再是卡片，只留一条与内容同宽的分隔线：它只是「这是哪一页」，
+ *      不需要和下面的工作区争夺视觉重量；
+ *   2. 指标卡压到 10px/12px 的内边距、20px 的数字，四张并排一屏读得完；
+ *   3. 侧栏收窄到 180px，当前页签用**实心主色**填充而不是描边浅底 ——
+ *      侧栏项足够矮（36px）时，实心块比浅色块更容易一眼定位；
+ *   4. 内容区不再叠第二层边框，交给 .policy-view 自己表达层级（见 policyShared.scss）。
+ *
+ * 结构与类名完全保留：模板、i18n、页签调度、刷新入口都没动，
+ * 单测里 .policy-nav__item / .policy-hero__actions [data-icon="Refresh"] 照常命中。
+ */
+
 .policy-console {
   --policy-surface: var(--theme-color-bg-container, var(--el-bg-color));
   --policy-line: var(--el-border-color-lighter);
+  /* 密集版式专用：侧栏底、选中态前景，集中在这里便于换肤时一起改 */
+  --policy-nav-bg: var(--el-fill-color-light);
+  --policy-nav-on-bg: var(--el-color-primary);
+  --policy-nav-on-fg: var(--el-color-white);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
   height: 100%;
   min-height: 0;
-  padding: 4px 2px 16px;
+  padding: 8px 14px 12px;
   overflow: auto;
   box-sizing: border-box;
 }
 
+/* ==================== 标题条 ==================== */
+/* 无边框、无阴影、无圆角：一条底线 + 紧排的三行字。
+   视觉层级靠字号差（15 / 11 / 10）而不是靠容器边界。 */
 .policy-hero {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 8px;
   flex: none;
-  padding: 16px 20px;
-  border: 1px solid var(--policy-line);
-  border-radius: var(--el-radius-xl, 16px);
-  background: var(--el-bg-color);
-  box-shadow: var(--el-box-shadow-light);
+  padding: 2px 0 10px;
+  border-bottom: 1px solid var(--policy-line);
 }
 
 .policy-hero__copy { min-width: 0; }
 
 .policy-hero__title {
   color: var(--el-text-color-primary);
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
   line-height: 1.3;
 }
 
 .policy-hero__subtitle {
   margin-top: 2px;
   color: var(--el-text-color-secondary);
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .policy-hero__actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  flex: none;
 }
 
+/* 运行状态点：11px 文字，点缩到 6px，外圈光晕收窄，不抢标题的注意力。 */
 .policy-hero__sync {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   color: var(--el-text-color-secondary);
-  font-size: 12px;
+  font-size: 11px;
+  white-space: nowrap;
 }
 
 .policy-hero__sync i {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: var(--el-radius-full, 9999px);
   background: var(--el-color-success);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--el-color-success) 16%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-success) 18%, transparent);
 }
 
+/* ==================== 指标条 ==================== */
+/* 四列一格不变，只压密度：数字从 24px 收到 20px，
+   标签 11px、说明 9px，行高收紧后四条并排正好落在一条水平线上。 */
 .policy-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 8px;
   flex: none;
 }
 
 .policy-metric {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 2px 12px;
+  gap: 2px 10px;
   min-width: 0;
-  padding: 14px 16px;
+  padding: 10px 12px;
   border: 1px solid var(--policy-line);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--el-bg-color);
   color: inherit;
   text-align: left;
   cursor: pointer;
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
+/* 悬停只提边框与底色，不加阴影：密集列表里逐格阴影会让整条看上去在抖。 */
 .policy-metric:hover {
   border-color: var(--el-color-primary-light-7);
-  box-shadow: 0 2px 8px var(--el-box-shadow-light);
+  background: var(--el-color-primary-light-9);
 }
 
 .policy-metric span {
   color: var(--el-text-color-secondary);
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 1.3;
 }
 
 .policy-metric strong {
@@ -470,23 +497,24 @@ onMounted(() => {
   grid-column: 2;
   align-self: center;
   color: var(--el-text-color-primary);
-  font-size: 24px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  line-height: 1.2;
+  line-height: 1.1;
 }
 
 .policy-metric strong small {
-  margin-left: 3px;
+  margin-left: 2px;
   color: var(--el-text-color-secondary);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
 }
 
 .policy-metric em {
   color: var(--el-text-color-placeholder);
-  font-size: 10px;
+  font-size: 9px;
   font-style: normal;
+  line-height: 1.3;
 }
 
 .policy-metric.is-primary strong { color: var(--el-color-primary); }
@@ -494,60 +522,61 @@ onMounted(() => {
 .policy-metric.is-success strong { color: var(--el-color-success); }
 .policy-metric.is-info strong { color: var(--el-color-info); }
 
+/* ==================== 侧栏 + 内容 ==================== */
 .policy-shell {
   display: grid;
-  grid-template-columns: 208px minmax(0, 1fr);
+  grid-template-columns: 180px minmax(0, 1fr);
   flex: 1;
   min-height: 0;
   overflow: hidden;
   border: 1px solid var(--policy-line);
-  border-radius: 14px;
+  border-radius: 10px;
   background: var(--policy-surface);
 }
 
+/* 侧栏底色比内容板深一档，靠色差说明「这块是导航、那块是工作区」，
+   避免再套一层描边。 */
 .policy-nav {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
-  padding: 12px 10px;
+  padding: 8px;
   border-right: 1px solid var(--policy-line);
-  background: var(--el-fill-color-extra-light);
+  background: var(--policy-nav-bg);
 }
 
-.policy-nav__label {
-  padding: 0 8px 6px;
-  color: var(--el-text-color-placeholder);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-}
+/* 分组标签在密集版里删掉：七个页签的先后顺序已经由编号 01…07 表达，
+   再加一行大写字母只会多占 16px 高度。保留 DOM，只隐藏。 */
+.policy-nav__label { display: none; }
 
 .policy-nav__item {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
-  min-height: 50px;
-  padding: 8px 10px;
+  gap: 8px;
+  min-height: 36px;
+  padding: 6px 8px;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 6px;
   background: transparent;
   color: var(--el-text-color-regular);
   text-align: left;
   cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.18s ease, color 0.18s ease;
 }
 
-.policy-nav__item:hover {
+.policy-nav__item:hover:not(.is-active) {
   background: var(--el-bg-color);
   color: var(--el-text-color-primary);
 }
 
+/* 实心选中态：白字 + 主色底。
+   用 :not(.is-active) 保护上面那条 hover，否则鼠标停在当前项上会把它洗白。 */
 .policy-nav__item.is-active {
-  border-color: var(--el-color-primary-light-7);
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
+  border-color: var(--policy-nav-on-bg);
+  background: var(--policy-nav-on-bg);
+  color: var(--policy-nav-on-fg);
 }
 
 .policy-nav__index {
@@ -555,53 +584,51 @@ onMounted(() => {
   font-size: 10px;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
+  line-height: 1;
+}
+
+.policy-nav__item.is-active .policy-nav__index {
+  color: color-mix(in srgb, var(--policy-nav-on-fg) 70%, transparent);
 }
 
 .policy-nav__body {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .policy-nav__body b {
   overflow: hidden;
-  font-size: 13px;
+  color: inherit;
+  font-size: 12px;
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .policy-nav__body small {
+  overflow: hidden;
   color: var(--el-text-color-secondary);
-  font-size: 11px;
-}
-
-.policy-nav__icon { color: inherit; }
-
-.policy-nav__foot {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-top: auto;
-  padding: 12px 10px 4px;
-  border-top: 1px solid var(--policy-line);
-}
-
-.policy-nav__foot span {
-  color: var(--el-text-color-placeholder);
   font-size: 10px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.policy-nav__foot b {
-  color: var(--el-text-color-primary);
-  font-size: 13px;
+.policy-nav__item.is-active .policy-nav__body small {
+  color: color-mix(in srgb, var(--policy-nav-on-fg) 82%, transparent);
 }
+
+.policy-nav__icon { color: inherit; opacity: 0.85; }
+
+/* 底部「当前工作区」在密集版里也隐藏：当前项已经实心高亮，重复一次是噪声。 */
+.policy-nav__foot { display: none; }
 
 .policy-content {
   min-width: 0;
   min-height: 0;
-  padding: 14px;
+  padding: 10px;
   overflow: auto;
 }
 
@@ -611,25 +638,29 @@ onMounted(() => {
 
 @media screen and (max-width: 1280px) {
   .policy-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .policy-shell { grid-template-columns: 188px minmax(0, 1fr); }
+  .policy-shell { grid-template-columns: 168px minmax(0, 1fr); }
 }
 
 @media screen and (max-width: 768px) {
-  .policy-console { overflow: auto; }
+  .policy-console { overflow: auto; padding: 6px 10px 10px; }
   .policy-hero { flex-direction: column; align-items: stretch; }
   .policy-hero__actions { width: 100%; justify-content: space-between; }
   .policy-metrics { grid-template-columns: 1fr; }
   .policy-shell { grid-template-columns: 1fr; overflow: visible; }
-  .policy-nav { flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--policy-line); }
-  .policy-nav__label,
-  .policy-nav__foot,
-  .policy-nav__body small { display: none; }
-  .policy-nav__item { min-width: 138px; }
-  .policy-content { padding: 14px; }
+  /* 窄屏回到横向滚动条：竖排七项会把首屏内容全推到折叠线以下。 */
+  .policy-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--policy-line);
+  }
+  .policy-nav__item { min-width: 118px; flex: none; }
+  .policy-content { padding: 8px 0 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .policy-metric { transition: none; }
+  .policy-metric,
+  .policy-nav__item { transition: none; }
 }
 </style>
 

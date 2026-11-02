@@ -52,7 +52,10 @@
     "paths": {
       "@/*": ["./src/*"],
       "@pages/filesystem": ["../filesystem/src/index.ts"],
-      "@pages/filesystem/*": ["../filesystem/*"]
+      "@pages/filesystem/*": ["../filesystem/*"],
+      /* 渠道管理页：已从 pages/ai 抽离出的独立包（见「系统设置 → 渠道管理」） */
+      "@pages/channel": ["../channel/src/index.ts"],
+      "@pages/channel/*": ["../channel/src/*"]
     },
 
     /* 类型根目录 */
@@ -64,7 +67,8 @@
     "src/**/*.d.ts",
     "src/**/*.tsx",
     "src/**/*.vue",
-    "../filesystem/src/**/*.d.ts"
+    "../filesystem/src/**/*.d.ts",
+    "../channel/src/**/*.d.ts"
   ],
 
   "exclude": ["node_modules", "dist", "build"],
