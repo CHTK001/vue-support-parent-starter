@@ -300,11 +300,6 @@
       </section>
     </div>
 
-    <!-- 机房拓扑：原「机房拓扑」菜单页，收敛为台账页签 -->
-    <section v-if="mountedTabs.has('topo')" v-show="ledgerTab === 'topo'" class="da-pane">
-      <DeviceTopoView />
-    </section>
-
     <!-- 新增 / 编辑 -->
     <ReDeviceFormDialog
       v-model="formVisible"
@@ -458,7 +453,7 @@
  * @since 4.0.0.42
  */
 import { computed, defineAsyncComponent, onMounted, reactive, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import {
   Connection,
@@ -517,7 +512,6 @@ import type {
 } from '@pages/device/src/types/device'
 
 const router = useRouter()
-const route = useRoute()
 
 const rows = ref<DeviceInfo[]>([])
 const vendors = ref<DeviceVendorDescriptor[]>([])
@@ -531,10 +525,21 @@ const selection = ref<DeviceInfo[]>([])
 const railCollapsed = ref(false)
 const keyword = ref('')
 const onlineFilter = ref<'all' | 'online' | 'offline'>('all')
-/** 按组筛选：'' 为全部，非空则只显示该组的设备 */
-const groupFilter = ref('')
 
 /* ==================== 左侧树：组织 / 分组 / 厂家 三个顶级分支 ==================== */
+/** 厂家分支节点：从当前台账归并（显示名优先取厂商描述符） */
+const vendorNodes = computed<Array<{ vendor: string; label: string; count: number }>>(() => {
+  const map = new Map<string, { vendor: string; label: string; count: number }>()
+  for (const device of rows.value) {
+    const vendor = device.deviceInfoVendor || ''
+    if (!vendor) continue
+    const item = map.get(vendor) || { vendor, label: vendors.value.find((v) => v.vendor === vendor)?.name || vendor, count: 0 }
+    item.count += 1
+    map.set(vendor, item)
+  }
+  return [...map.values()].sort((a, b) => b.count - a.count)
+})
+
 /** 分支展开态：'org' | 'group' | 'vendor' */
 const branchState = ref<Record<string, boolean>>({ org: true, group: true, vendor: true })
 
@@ -720,10 +725,11 @@ const drawerDeviceId = ref('')
 const channelsVisible = ref(false)
 const eventsVisible = ref(false)
 
-/** 行右键菜单：详情 / 编辑 / 通道管理 / 设备日志 / 重连 / 刷新状态 / 分组 / 预览 / 删除 */
+/** 行右键菜单：详情 / 编辑 / 通道管理 / 设备日志 / 拓扑 / 重连 / 刷新状态 / 分组 / 预览 / 删除 */
 const tableMenu: ReTableContextMenuItem[] = [
   { key: 'detail', label: '设备详情', icon: Position },
   { key: 'edit', label: '编辑设备', icon: EditPen },
+  { key: 'topo', label: '在拓扑中查看', icon: Grid, divided: true },
   { key: 'channels', label: '通道管理', icon: Connection, divided: true },
   { key: 'events', label: '设备日志', icon: Tickets },
   { key: 'reconnect', label: '重新连接', icon: RefreshRight, divided: true },
@@ -743,6 +749,9 @@ function onTableMenuSelect(item: ReTableContextMenuItem, ctx: ReTableContextMenu
       break
     case 'edit':
       openEdit(d)
+      break
+    case 'topo':
+      openTopology(undefined, undefined, d.deviceInfoId)
       break
     case 'channels':
       drawerDeviceId.value = d.deviceInfoId
@@ -891,29 +900,31 @@ const flatOrg = computed<Array<{ value: string; label: string }>>(() =>
   }))
 )
 
-/** 左树显示行：上级是组织的分组（不是分组），前面挂一个组织行，组织名来自组织树 */
-type TreeRow = DeviceGroupNode & { depth: number; isOrg?: boolean; _key: string }
+/** 分组树里的分组 id 集合（用于区分「上级是分组」与「上级是组织」） */
 const groupIds = computed(() => new Set(groups.value.map((n) => n.groupId)))
-const orgNameOf = (id?: string): string | undefined =>
-  id ? orgTree.value.find((n) => n.deviceOrganizationId === id)?.deviceOrganizationName ?? id : undefined
 
-const treeRows = computed<Array<TreeRow>>(() => {
-  const out: Array<TreeRow> = []
-  const walk = (nodes: DeviceGroupNode[], depth: number) => {
-    if (!Array.isArray(nodes)) return
-    for (const n of nodes) {
-      if (!n.groupId) continue
-      const org = orgNameOf(n.groupParent)
-      if (org && !groupIds.value.has(n.groupParent)) {
-        out.push({ ...n, depth, groupId: '', groupName: org, deviceCount: 0, isOrg: true, _key: `org-${n.groupParent}` })
-      }
-      out.push({ ...n, depth: org ? depth + 1 : depth, _key: n.groupId })
-      if (n.children?.length) walk(n.children, depth + 1)
-    }
-  }
-  walk(groups.value, 0)
-  return out
-})
+/** 左侧树的显示行：全部设备 + 组织 / 分组 / 厂家 三个顶级分支 */
+type TreeRow = {
+  /** 行键 */
+  key: string
+  /** 行类别：根 / 分支 / 组织 / 分组 / 厂家 */
+  kind: 'root' | 'branch' | 'org' | 'group' | 'vendor'
+  /** 显示名 */
+  label: string
+  /** 缩进深度（节点行） */
+  depth: number
+  /** 所属分支（分支行） */
+  branch?: string
+  /** 分支展开态（分支行） */
+  expanded?: boolean
+  /** 筛选值（节点行） */
+  id?: string
+  /** 计数 */
+  count: number
+  /** 圆点配色（分支行）/ 分组备注 */
+  dot?: string
+  remark?: string
+}
 
 /** 上级选项：新增分组 = 组织树，新增子分组/重命名 = 分组树 */
 const parentOptions = computed(() => groupCreateKind.value === 'sub' ? flatGroups.value : flatOrg.value)
@@ -971,25 +982,13 @@ function openGroupCreate(parentId?: string | null): void {
 
 /** 编辑分组（重命名） */
 function openGroupEdit(row: TreeRow): void {
-  editingGroupId.value = row.groupId
-  groupForm.groupName = row.groupName
-  groupForm.groupParent = row.groupParent || ''
-  groupForm.groupRemark = row.groupRemark || ''
-  /** 上级是组织时按组织选，上下级由分组树 */
-  groupCreateKind.value = row.groupParent && !groupIds.value.has(row.groupParent) ? 'root' : 'sub'
+  editingGroupId.value = row.id!
+  groupForm.groupName = row.label
+  groupForm.groupParent = groupParentIdOf(row.id!) || ''
+  groupForm.groupRemark = row.remark || ''
+  /** 上级是分组时按分组选，否则按组织选 */
+  groupCreateKind.value = groupForm.groupParent ? 'sub' : 'root'
   groupCreateVisible.value = true
-}
-
-/** 在拓扑中查看（按分组/厂商/设备给拓扑加上视图限制） */
-function openTopology(groupId?: string, vendor?: string, deviceId?: string): void {
-  ledgerTab.value = 'topo'
-  mountedTabs.add('topo')
-  const query: Record<string, string> = {}
-  if (groupId) query.groupId = groupId
-  if (vendor) query.vendor = vendor
-  if (deviceId) query.deviceId = deviceId
-  query.tab = 'topo'
-  void router.replace({ query })
 }
 
 /** 分配设备到分组（按分组全量替换） */
@@ -1000,11 +999,11 @@ const assignDevices = ref<DeviceInfo[]>([])
 const pendingAssigned = ref<Set<string>>(new Set())
 
 async function openDeviceAssign(row: TreeRow): Promise<void> {
-  if (!row.groupId) return
-  assignGroupId.value = row.groupId
+  if (!row.id) return
+  assignGroupId.value = row.id
   try {
     assignDevices.value = (await deviceApi.list()) as DeviceInfo[]
-    pendingAssigned.value = new Set(groupDeviceIds(row.groupId))
+    pendingAssigned.value = new Set(groupDeviceIds(row.id))
   } catch {
     assignDevices.value = []
     pendingAssigned.value = new Set()
@@ -1036,14 +1035,14 @@ async function onAssignSave(): Promise<void> {
 
 /** 清空分组下的设备 */
 async function clearGroup(row: TreeRow): Promise<void> {
-  if (!row.groupId) return
+  if (!row.id) return
   try {
-    await ElMessageBox.confirm(`清空分组「${row.groupName}」下的全部设备？`, '确认', { type: 'warning' })
+    await ElMessageBox.confirm(`清空分组「${row.label}」下的全部设备？`, '确认', { type: 'warning' })
   } catch { return }
   try {
-    await deviceApi.assignGroupDevices(row.groupId, [])
+    await deviceApi.assignGroupDevices(row.id, [])
     message.success('已清空')
-    if (groupFilter.value === row.groupId) groupFilter.value = ''
+    if (filterState.value?.kind === 'group' && filterState.value.id === row.id) filterState.value = undefined
     await fetchGroups()
   } catch (err) {
     message.error('操作失败：' + errorText(err))
@@ -1052,14 +1051,14 @@ async function clearGroup(row: TreeRow): Promise<void> {
 
 /** 删除分组（子孙分组一并删除，设备本身不动） */
 async function removeGroup(row: TreeRow): Promise<void> {
-  if (!row.groupId) return
+  if (!row.id) return
   try {
-    await ElMessageBox.confirm(`删除分组「${row.groupName}」？分组内设备将移出。`, '确认', { type: 'warning' })
+    await ElMessageBox.confirm(`删除分组「${row.label}」？分组内设备将移出。`, '确认', { type: 'warning' })
   } catch { return }
   try {
-    await deviceApi.deleteGroup(row.groupId)
+    await deviceApi.deleteGroup(row.id)
     message.success('分组已删除')
-    if (groupFilter.value === row.groupId) groupFilter.value = ''
+    if (filterState.value?.kind === 'group' && filterState.value.id === row.id) filterState.value = undefined
     await fetchGroups()
   } catch (err) {
     message.error('删除失败：' + errorText(err))
@@ -1381,53 +1380,7 @@ onMounted(async () => {
   box-sizing: border-box;
 }
 
-/* ============ 台账页签（设备列表 / 分组管理 / 机房拓扑） ============ */
-.da-tabs {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 0 8px;
-}
-.da-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  font-size: 13px;
-  color: var(--el-text-color-regular);
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
-  cursor: pointer;
-  transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease;
-}
-.da-tab:hover {
-  color: var(--el-color-primary);
-  border-color: var(--el-color-primary-light-7);
-}
-.da-tab.is-active {
-  color: var(--el-color-primary);
-  border-color: var(--el-color-primary-light-5);
-  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
-  font-weight: 600;
-}
-.da-tabs__grow { flex: 1; }
-.da-tabs__hint { font-size: 12px; color: var(--el-text-color-secondary); }
-
-/* 页签内容：吃满剩余高度，内部自己滚动 */
-.da-pane {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.da-pane > * {
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
+/* ============ 台账主体：左树 + 右列表 ============ */
 .da-body {
   display: flex;
   flex: 1 1 auto;
