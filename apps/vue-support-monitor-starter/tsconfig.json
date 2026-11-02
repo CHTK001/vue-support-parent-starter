@@ -24,6 +24,9 @@
       "@pages/debug": ["../../pages/debug/src/index.ts"],
       "@pages/device/*": ["../../pages/device/*"],
       "@pages/device": ["../../pages/device/src/index.ts"],
+      // 内网穿透（ngrok / Cloudflare）页面包：业务代码统一写 @pages/tunnel/src/...
+      "@pages/tunnel/*": ["../../pages/tunnel/*"],
+      "@pages/tunnel": ["../../pages/tunnel/src/index.ts"],
       // ReMap 内部用（workspace 包，pages/device 已声明依赖；此处给 TS 提供解析，
       // 与根 tsconfig 的 "@repo/re-map"、device-starter 同一口径）
       "@repo/re-map": ["../../packages/ui/re-map"],

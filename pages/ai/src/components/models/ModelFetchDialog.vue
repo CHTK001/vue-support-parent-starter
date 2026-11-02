@@ -271,6 +271,7 @@ const open = async (provider: any, models: any[], fallbackToManual = true) => {
   searchName.value = ''
   fetched.value = []
   loadError.value = ''
+  routeHint.value = ''
   visible.value = true
   fetching.value = true
   try {
@@ -279,13 +280,30 @@ const open = async (provider: any, models: any[], fallbackToManual = true) => {
     if (data && data.success === false) {
       throw new Error(data.error || t('settings.providerDetail.fetchFailed'))
     }
-    // 上游返回的模型列表可能落在三处：顶层 items、data.items、data 数组
-    const dataField = data.data
-    const apiModels: Model[] =
-      data.items ??
-      (Array.isArray(dataField) ? dataField : dataField?.items) ??
-      []
+    // 免费渠道：模型列表来自后端 extra.routes 路由表（不是调上游 /models），
+    // 行用 route_keys 标记（key 即路由键，也是模型名，命中 ChatClient.route(model) 的路由键）。
+    // 未配置路由表时只有 hint 没有模型——后端不抛错，前端也不抛：给用户提示，
+    // 让用户去供应商列表配好路由再拉。
+    const dataField = data?.data as any | undefined
+    const isFreeChannel = Boolean(data?.route_keys) || Boolean(dataField?.route_keys)
+    const routeHintMessage = (data?.hint as string | undefined) || (dataField?.hint as string | undefined) || ''
+    routeHint.value = isFreeChannel ? routeHintMessage : ''
+    const models = isFreeChannel
+      ? (Array.isArray(dataField?.models) ? dataField.models : [])
+      : (data.items ?? (Array.isArray(dataField) ? dataField : dataField?.items) ?? [])
+    const apiModels: Model[] = models
     const enriched = apiModels.map((apiModel: any) => {
+      const key = String(apiModel?.id ?? apiModel?.name ?? apiModel?.modelName ?? '')
+      if (isFreeChannel) {
+        // 路由 key 即模型名（ChatClient 按模型名命中路由），模型类型按 tasks 归一化，
+        // 特性走 traits（与后端 inferTasks 的语义一致）
+        return {
+          ...apiModel,
+          modelName: apiModel?.name || key,
+          modelType: inferTypeFromTask(apiModel?.tasks),
+          config: { ...(apiModel?.config || {}), features: toArray(apiModel?.traits) },
+        }
+      }
       const existing = existingModels.find((m: any) => m.modelName === apiModel.modelName)
       if (existing) {
         return { ...apiModel, id: existing.id, config: { ...existing.config } }
@@ -293,10 +311,16 @@ const open = async (provider: any, models: any[], fallbackToManual = true) => {
       return { ...apiModel, config: apiModel.config || { features: [] } }
     })
     fetched.value = enriched
-    message.success(
-      t('settings.providerDetail.fetchSuccess', { n: enriched.length }),
-      { duration: 2000 },
-    )
+    if (isFreeChannel) {
+      // 有路由表时提示拉取完成；未配置路由时只展示 hint（空列表不是成功，不要贺电）
+      if (routeHintMessage) {
+        message.warning(routeHintMessage, { duration: 5000 })
+      } else if (enriched.length) {
+        message.success(t('settings.providerDetail.fetchSuccess', { n: enriched.length }), { duration: 2000 })
+      }
+    } else {
+      message.success(t('settings.providerDetail.fetchSuccess', { n: enriched.length }), { duration: 2000 })
+    }
   } catch (error: any) {
     fetched.value = []
     loadError.value =

@@ -13,6 +13,11 @@ const rawApi = createClient(rootHttp, { unwrap: false });
  * 不走统一分页信封：上游鉴权失败时返回 200 + {@code success:false}（避免被
  * 前端误判为会话过期而登出），成功时模型列表可能落在 {@code items}、
  * {@code data.items} 或 {@code data} 数组三种位置。</p>
+ *
+ * <p>免费渠道（free-channel）不走上游目录，模型列表来自供应商 extra.routes
+ * 路由表：行是路由键（{@code id}/{@code name} 与 {@code modelName} 均为路由键名），
+ * 整体由 {@code route_keys} 标记，未配置路由表时只有 {@code hint} 没有模型——
+ * 前端需要展示 {@code hint} 而不是空状态。</p>
  */
 export interface RemoteModelsResponse {
   /** 上游鉴权是否成功，缺省视为成功 */
@@ -22,7 +27,13 @@ export interface RemoteModelsResponse {
   /** 模型列表（顶层） */
   items?: Model[];
   /** 也可能包一层 data */
-  data?: Model[] | { items?: Model[] };
+  data?: Model[] | { items?: Model[]; models?: Model[]; route_keys?: boolean; hint?: string };
+  /** 免费渠道：模型行由路由表生成（key 为路由键名，也是模型名） */
+  models?: Model[];
+  /** 免费渠道：已给出 {@code route_keys} 标记（值为 true，key 是路由键名） */
+  route_keys?: boolean;
+  /** 免费渠道：未配置路由表（或路由表为空）时的提示，不抛错 */
+  hint?: string;
 }
 
 /**
