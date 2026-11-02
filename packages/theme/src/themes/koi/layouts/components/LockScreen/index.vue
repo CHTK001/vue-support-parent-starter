@@ -65,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import { message } from "@repo/core";
+import { message, hasRouter, getRouter } from "@repo/core";
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
 import { ElInput, ElButton, ElImage } from "element-plus";
 import { Close } from "@element-plus/icons-vue";
