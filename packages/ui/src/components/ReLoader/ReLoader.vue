@@ -24,7 +24,7 @@
             :style="{ width: b.width, height: b.height }"
           />
         </template>
-        <div v-else class="re-loader__bone" :style="{ height: skeletonHeight }">
+        <div v-else class="re-loader__bone" :style="boneStyle">
           <span v-for="n in 4" :key="n" class="re-loader__bone-bar" :class="{ 'is-short': n === 4 }" />
         </div>
       </slot>
@@ -209,8 +209,18 @@ const skeletonShape = computed<SkeletonShape>(() => props.skeletonShape ?? {});
 /** 按结构生成的骨架块 */
 const skeletonBlocks = computed(() => buildSkeleton(skeletonShape.value));
 
-/** 骨架容器样式（间距变量） */
+/** 默认骨架容器样式（间距变量） */
 const skeletonStyle = computed(() => skeletonVars(skeletonShape.value));
+
+/**
+ * 无 skeletonShape 时的骨架块样式。
+ *
+ * <p>骨架高度（skeletonHeight）只作为最小高度保底，骨架区不再被它锁死高度——
+ * 容器有多高骨架就占多高，避免加载态只占 160px/240px 而剩余空间空着。</p>
+ */
+const boneStyle = computed(() =>
+  props.skeletonHeight ? { '--rl-sk-height': props.skeletonHeight } : {}
+);
 
 /**
  * 传给变体的档位字符串。
@@ -383,6 +393,13 @@ defineOptions({ name: "ReLoader" });
 .re-loader {
   position: relative;
   width: 100%;
+
+  /* 骨架态下，ReLoader 区域完整撑满父容器高度（骨架高度是最小值，不是死值） */
+  &.re-loader--skeleton {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+  }
 }
 
 .re-loader__content {
@@ -530,12 +547,17 @@ defineOptions({ name: "ReLoader" });
   word-break: break-word;
 }
 
-/* ---- 内置骨架 ---- */
+/* 内置骨架：骨架高度（skeletonHeight）是最小高度保底，骨架条撑满骨架块高度 */
 .re-loader__bone {
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding: 18px 16px;
+  min-height: var(--rl-sk-height, 0);
+  /* 骨架块占满骨架区，骨架条可在块内垂直居中（不歪在顶部） */
+  flex: 1 1 0%;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 /* 结构化骨架容器：间距用变量（由 skeleton.ts 统一给出） */
@@ -544,6 +566,10 @@ defineOptions({ name: "ReLoader" });
   flex-direction: column;
   gap: var(--rl-sk-gap, 12px);
   padding: 18px 16px;
+
+  /* 骨架区撑满 ReLoader 整条高度（父级给得了确定高度就 100% 吃满） */
+  flex: 1 1 0%;
+  min-height: 100%;
 }
 
 /* 表格/表单的块需要成行排布，这里用 flex-wrap 承接多列单元格 */
