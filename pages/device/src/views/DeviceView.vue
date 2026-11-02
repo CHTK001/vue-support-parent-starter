@@ -126,6 +126,7 @@
                   <el-dropdown-item command="topo" :icon="Grid">在拓扑中查看</el-dropdown-item>
                   <el-dropdown-item command="add" :icon="Plus">新增子分组</el-dropdown-item>
                   <el-dropdown-item command="assign" :icon="Grid">分配设备</el-dropdown-item>
+                  <el-dropdown-item command="clear" :icon="Delete">清空分组设备</el-dropdown-item>
                   <el-dropdown-item command="edit" :icon="EditPen">重命名</el-dropdown-item>
                   <el-dropdown-item command="delete" divided style="color: var(--el-color-danger)">删除</el-dropdown-item>
                 </el-dropdown-menu>
@@ -567,7 +568,13 @@ const orgFlat = computed<Array<OrgNode & { depth: number }>>(() => {
 })
 
 /** 上级选项：新增分组 = 组织树，新增子分组/重命名 = 分组树 */
-const parentOptions = computed(() => groupCreateKind.value === 'sub' ? flatGroups.value : flatOrg.value)
+const parentOptions = computed(() => {
+  if (groupCreateKind.value === 'sub') return flatGroups.value
+  return orgFlat.value.map((node) => ({
+    value: node.deviceOrganizationId,
+    label: `${'　'.repeat(node.depth)}${node.deviceOrganizationName}`
+  }))
+})
 
 /** 组织（含其下的子孙组织）关联的设备数 */
 const orgDeviceCount = (orgId: string): number => {
@@ -592,25 +599,34 @@ const orgDescendants = (orgId: string): Set<string> => {
 
 /** 左侧树行：全部设备 + 组织 / 分组 / 厂家 三个顶级分支（各分支下是扁平行） */
 const treeRows = computed<Array<TreeRow>>(() => {
-  const rows: Array<TreeRow> = [
+  const out: Array<TreeRow> = [
     { key: '__root__', kind: 'root', label: '全部设备', depth: 0, count: rows.value.length }
   ]
   // 组织分支
-  rows.push({ key: 'branch-org', kind: 'branch', label: '组织', depth: 0, branch: 'org', expanded: branchState.value.org ?? true, count: orgFlat.value.length, dot: 'is-org' })
-  for (const org of orgFlat.value) {
-    rows.push({ key: `org-${org.deviceOrganizationId}`, kind: 'org', label: org.deviceOrganizationName, depth: org.depth + 1, id: org.deviceOrganizationId, count: orgDeviceCount(org.deviceOrganizationId) })
+  const orgExpanded = branchState.value.org ?? true
+  out.push({ key: 'branch-org', kind: 'branch', label: '组织', depth: 0, branch: 'org', expanded: orgExpanded, count: orgFlat.value.length, dot: 'is-org' })
+  if (orgExpanded) {
+    for (const org of orgFlat.value) {
+      out.push({ key: `org-${org.deviceOrganizationId}`, kind: 'org', label: org.deviceOrganizationName, depth: org.depth + 1, id: org.deviceOrganizationId, count: orgDeviceCount(org.deviceOrganizationId) })
+    }
   }
   // 分组分支
-  rows.push({ key: 'branch-group', kind: 'branch', label: '分组', depth: 0, branch: 'group', expanded: branchState.value.group ?? true, count: flatGroups.value.length, dot: 'is-group' })
-  for (const node of flatGroups.value) {
-    rows.push({ key: `group-${node.groupId}`, kind: 'group', label: node.groupName, depth: node.depth + 1, id: node.groupId, count: groupDeviceIds(node.groupId).size, remark: node.groupRemark })
+  const groupExpanded = branchState.value.group ?? true
+  out.push({ key: 'branch-group', kind: 'branch', label: '分组', depth: 0, branch: 'group', expanded: groupExpanded, count: flatGroups.value.length, dot: 'is-group' })
+  if (groupExpanded) {
+    for (const node of flatGroups.value) {
+      out.push({ key: `group-${node.groupId}`, kind: 'group', label: node.groupName, depth: node.depth + 1, id: node.groupId, count: groupDeviceIds(node.groupId).size, remark: node.groupRemark })
+    }
   }
   // 厂家分支
-  rows.push({ key: 'branch-vendor', kind: 'branch', label: '厂家', depth: 0, branch: 'vendor', expanded: branchState.value.vendor ?? true, count: vendorNodes.value.length, dot: 'is-vendor' })
-  for (const node of vendorNodes.value) {
-    rows.push({ key: `vendor-${node.vendor}`, kind: 'vendor', label: node.label, depth: 1, id: node.vendor, count: node.count })
+  const vendorExpanded = branchState.value.vendor ?? true
+  out.push({ key: 'branch-vendor', kind: 'branch', label: '厂家', depth: 0, branch: 'vendor', expanded: vendorExpanded, count: vendorNodes.value.length, dot: 'is-vendor' })
+  if (vendorExpanded) {
+    for (const node of vendorNodes.value) {
+      out.push({ key: `vendor-${node.vendor}`, kind: 'vendor', label: node.label, depth: 1, id: node.vendor, count: node.count })
+    }
   }
-  return rows
+  return out
 })
 
 /** 分组节点的路径：该节点在分组树中的直接上级（用于重命名时的上级回选） */
@@ -896,17 +912,6 @@ const flatGroups = computed<Array<DeviceGroupNode & { depth: number }>>(() => {
   return out
 })
 
-/** 组织树平铺（带层级缩进），用于「上级组织」选择 */
-const flatOrg = computed<Array<{ value: string; label: string }>>(() =>
-  orgFlat.value.map((node) => ({
-    value: node.deviceOrganizationId,
-    label: `${' '.repeat(node.depth)}${node.deviceOrganizationName}`
-  }))
-)
-
-/** 分组树里的分组 id 集合（用于区分「上级是分组」与「上级是组织」） */
-const groupIds = computed(() => new Set(groups.value.map((n) => n.groupId)))
-
 /** 左侧树的显示行：全部设备 + 组织 / 分组 / 厂家 三个顶级分支 */
 type TreeRow = {
   /** 行键 */
@@ -929,9 +934,6 @@ type TreeRow = {
   dot?: string
   remark?: string
 }
-
-/** 上级选项：新增分组 = 组织树，新增子分组/重命名 = 分组树 */
-const parentOptions = computed(() => groupCreateKind.value === 'sub' ? flatGroups.value : flatOrg.value)
 
 /** 分组筛选：点击左侧节点 → 右侧按组筛选设备（点击左侧树/列内标签） */
 function selectGroup(node: DeviceGroupNode | null): void {
@@ -958,6 +960,7 @@ function onGroupCommand(cmd: string, row: TreeRow): void {
     case 'topo': openTopology(row.id); break
     case 'add': openGroupCreate(row.id); break
     case 'assign': openDeviceAssign(row); break
+    case 'clear': clearGroup(row); break
     case 'edit': openGroupEdit(row); break
     case 'delete': removeGroup(row); break
   }
