@@ -356,7 +356,14 @@ export default createVite({
   // 注意：业务代码以 "@pages/server/src/api" 形式引用，alias 目标应指向页面根（pages/server），
   // 使 "/src/..." 后缀落在真实的 pages/server/src/... 上；不可指向 pages/server/src（否则叠加成 src/src）。
   alias: {
+    "@pages/achievement": "pages/achievement",
+    "@pages/collect": "pages/collect",
+    "@pages/job": "pages/job",
+    "@pages/message": "pages/message",
     "@pages/server": "pages/server",
+    "@pages/signin": "pages/signin",
+    "@pages/system": "pages/system",
+    "@pages/task": "pages/task",
     "@pages/monitor": "pages/monitor",
     "@pages/project": "pages/project",
     "@pages/filesystem": "pages/filesystem",

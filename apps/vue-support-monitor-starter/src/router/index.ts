@@ -45,6 +45,14 @@ import { createTunnelRoutes } from "@pages/tunnel/src/routes";
 // 调试中心（CDP）：运维管理分组下唯一的叶子页。
 import { createCdpRoutes } from "@pages/debug/src/routes";
 import { createMonitorRoutes, createMonitorManageRoutes } from "@pages/monitor/src/routes";
+// 功能包路由（纯数组工厂）：作业中心 / 实验 / 采集 / 消息推送 / 签到 / 任务派发 / 系统管理
+import { achievementRoutes } from "@pages/achievement/src/routes";
+import { collectRoutes } from "@pages/collect/src/routes";
+import { jobRoutes } from "@pages/job/src/routes";
+import { messageRoutes } from "@pages/message/src/routes";
+import { signinRoutes } from "@pages/signin/src/routes";
+import { taskRoutes } from "@pages/task/src/routes";
+import { systemRoutes } from "@pages/system/src/routes";
 
 export const monitorRoutes: RouteConfigsTable[] = [
   // ==================== 告警管理 ====================
@@ -322,8 +330,11 @@ export const monitorRoutes: RouteConfigsTable[] = [
         meta: { title: "分组管理", icon: "Menu", showLink: false, rank: 32 },
       },
       {
+        // 与 @pages/system `systemRoutes` 里同名的「系统配置」页（/system/config，
+        // Settings Console）共享 route.name 会导致 registerRoutesUnderLayout 按名称
+        // 静默丢弃其中一页。本路由由宿主维护，改名保活，两页同时注册。
         path: "/system-config",
-        name: "SystemConfig",
+        name: "SystemConfigView",
         component: () => import("@pages/monitor/src/views/SystemConfigView.vue"),
         meta: { title: "系统配置", icon: "Tools", showLink: true, rank: 34 },
       },
@@ -373,6 +384,18 @@ export const monitorRoutes: RouteConfigsTable[] = [
   // 数据源管理页：全部 showLink:false（不进侧边栏），由「数据中心」的「打开管理」进入，
   // 侧边栏仍停在 /datasource 上。activeMenu 指向本应用的数据源列表路径。
   ...createDatasourceManageRoutes({ activeMenu: "/datasource" }),
+
+  // 功能包路由：每份都是由「分组父节点 + 叶子」组成的路由树，实验/采集/调度/
+  // 消息/签到/任务/系统管理全量展开，宿主只做合并，视图与 API 同源。
+  // 注意：systemRoutes 与宿主的 /system-config 页面同名（SystemConfig），
+  // app 本地路由已改名为 SystemConfigView，保证两页同时注册，不被 registerRoutesUnderLayout 按名称静默丢弃。
+  ...achievementRoutes,
+  ...collectRoutes,
+  ...jobRoutes,
+  ...messageRoutes,
+  ...signinRoutes,
+  ...taskRoutes,
+  ...systemRoutes,
 
   // ==================== 隐藏路由（不进菜单，仍可访问） ====================
   {
