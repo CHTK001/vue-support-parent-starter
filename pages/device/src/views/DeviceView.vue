@@ -107,6 +107,7 @@
             <!-- 分组行：可右键（查看拓扑 / 新增子分组 / 分配 / 重命名 / 删除） -->
             <el-dropdown
               v-else-if="row.kind === 'group'"
+              class="da-tree__dd"
               placement="bottom-start"
               trigger="contextmenu"
               @command="(cmd: string) => onGroupCommand(cmd, row)"
@@ -135,6 +136,7 @@
             <!-- 厂家行：可右键（查看拓扑） -->
             <el-dropdown
               v-else-if="row.kind === 'vendor'"
+              class="da-tree__dd"
               placement="bottom-start"
               trigger="contextmenu"
               @command="(cmd: string) => onVendorCommand(cmd, row)"
@@ -1532,6 +1534,8 @@ onMounted(async () => {
 }
 
 /* 左侧树：三个顶级分支（组织 / 分组 / 厂家） */
+/* el-dropdown 默认 inline-block，在树里必须独占一行，否则同级分组会并排挤成多个列 */
+.da-tree__dd { display: block; }
 .da-tree__branch {
   gap: 4px;
   font-weight: 600;
