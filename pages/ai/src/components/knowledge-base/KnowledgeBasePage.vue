@@ -69,8 +69,12 @@
 
         <div class="kb-bar__right">
           <span class="kb-chip kb-chip--ok"><b>{{ filesForFilter.length }}</b> 文档</span>
-          <span v-if="activeFiles.filter(f => f.processingStatus === 'failed').length" class="kb-chip kb-chip--err">
-            <b>{{ activeFiles.filter(f => f.processingStatus === 'failed').length }}</b> 失败
+          <!-- 处理中此前只在概览工序带里出现，顶栏只剩「失败」会让人以为别的都完事了 -->
+          <span v-if="pendingFileCount > 0" class="kb-chip kb-chip--warn">
+            <b>{{ pendingFileCount }}</b> 处理中
+          </span>
+          <span v-if="failedFileCount > 0" class="kb-chip kb-chip--err">
+            <b>{{ failedFileCount }}</b> 失败
           </span>
           <el-tooltip content="刷新" placement="bottom" :show-after="200">
             <ReSquareButton layout="square" class="kb-btn" :icon="Refresh" :loading="detailRefreshing"
@@ -273,6 +277,8 @@
                 <span class="kb-stage__n">{{ String(i + 1).padStart(2, '0') }}</span>
                 <span class="kb-stage__label">{{ s.label }}</span>
                 <span class="kb-stage__v" :data-tone="s.tone">{{ s.value }}<i v-if="s.unit">{{ s.unit }}</i></span>
+                <!-- 第二行说明：工序带此前只有数字，读者不知道这个数意味着什么 -->
+                <span class="kb-stage__hint">{{ s.hint }}</span>
                 <span class="kb-stage__wire" />
               </li>
             </ol>
@@ -1000,7 +1006,7 @@ import { knowledgeBaseApi } from '@/services/modules/knowledge-base.api'
 import { initKbDisplay, useKbDisplay } from '@/composables/useKbDisplay'
 import type { KnowledgeBase, KBFile } from '@/stores/knowledgeBase'
 import type { UploadTask } from '@/stores/fileUpload'
-import { FileChunksViewer, KBFileUploader, KBFileTree, KBMenu, KBSearchPanel, KBTemplateGallery, UploadTaskModal } from './index'
+import { FileChunksViewer, KBFileUploader, KBFileTree, KBSearchPanel, KBTemplateGallery, UploadTaskModal } from './index'
 import KnowledgeOverview from './KnowledgeOverview.vue'
 // 本地资源：从设计稿的远程地址下载后入库，避免运行期外链（离线即裂、CDN 失效不可控）
 import heroIllustration from '@/assets/kb/kb-empty-hero.png'
@@ -1650,19 +1656,22 @@ const entityTableRef = ref<any>(null)
 const relationTableRef = ref<any>(null)
 
 // 实体表列：名称 / 类型（模板插槽渲染图片、标签、操作按钮）；静态中文标签，无需 t()
+// 宽度合计必须 ≤ 中栏可用宽度（1512 下 538 - 勾选列 50 = 488）：名称列是唯一的弹性列，
+// 固定列一旦超配，`.kb-tablecard` 的 overflow:hidden 会把「操作」列直接切掉。
 const entityColumns: ReTableColumn[] = [
-  { prop: 'name', label: '名称', minWidth: 160, slot: 'name' },
-  { prop: 'type', label: '类型', width: 120, slot: 'type' },
-  { prop: 'degree', label: '关系数', width: 90, align: 'right' },
-  { prop: 'actions', label: '操作', width: 140, align: 'right', slot: 'actions' },
+  { prop: 'name', label: '名称', minWidth: 120, slot: 'name' },
+  { prop: 'type', label: '类型', width: 100, slot: 'type' },
+  { prop: 'degree', label: '关系数', width: 76, align: 'right' },
+  { prop: 'actions', label: '操作', width: 104, align: 'right', slot: 'actions' },
 ]
 
 // 关系表列：源 / 关系 / 目标（模板插槽渲染头像+实体名、关系标签、删除按钮）
+// 同上：源/目标两列弹性，其余固定列压到够用为止，避免右侧删除按钮被切。
 const relationColumns: ReTableColumn[] = [
-  { prop: 'from', label: '源', minWidth: 150, slot: 'from' },
-  { prop: 'text', label: '关系', width: 140, slot: 'text' },
-  { prop: 'to', label: '目标', minWidth: 150, slot: 'to' },
-  { prop: 'actions', label: '操作', width: 100, align: 'right', slot: 'actions' },
+  { prop: 'from', label: '源', minWidth: 110, slot: 'from' },
+  { prop: 'text', label: '关系', width: 96, slot: 'text' },
+  { prop: 'to', label: '目标', minWidth: 110, slot: 'to' },
+  { prop: 'actions', label: '操作', width: 84, align: 'right', slot: 'actions' },
 ]
 
 // 换过滤词回第一页；数据变少（删除 / 换库）后把越界页码钳回最后一页
@@ -3728,23 +3737,39 @@ const pipelineStages = computed(() => {
   const waiting = fs.filter((f) => ['queued', 'uploading', 'uploaded', 'pending'].includes(f.processingStatus)).length
   const parsing = fs.filter((f) => f.processingStatus === 'processing').length
   const failed = failedFileCount.value
+  // 处理中那一篇的实时步骤：有 currentStep 就报它，没有就说「正在向量化」，
+  // 不编造 12/21 这种界面算不出来的进度。
+  const running = fs.find((f) => f.processingStatus === 'processing')
+  const runningHint = running
+    ? `${running.displayName || running.fileName}${running.progressPercentage ? ` ${Math.round(running.progressPercentage)}%` : ''}`
+    : ''
   return [
-    { key: 'intake', label: '入库', value: `${fs.length}`, unit: '篇', running: waiting > 0, tone: '' },
+    {
+      key: 'intake',
+      label: '入库',
+      value: `${fs.length}`,
+      unit: '篇',
+      running: waiting > 0,
+      tone: '',
+      hint: !fs.length ? '这个卷宗还没有文档' : waiting > 0 ? `${waiting} 篇待入库` : '全部已落库',
+    },
     {
       key: 'chunk',
       label: '切分',
       value: chunkStat.value.value,
       unit: chunkStat.value.known ? '块' : '',
       running: parsing > 0,
-      tone: '',
+      tone: chunkStat.value.known ? '' : 'mute',
+      hint: chunkStat.value.known ? '已按上限切分' : '后端未返回分片数',
     },
     {
       key: 'embed',
       label: '向量化',
       value: parsing > 0 ? `${parsing}` : `${indexedFileCount.value}`,
-      unit: parsing > 0 ? '进行中' : '已索引',
+      unit: parsing > 0 ? '篇进行中' : '篇已索引',
       running: parsing > 0,
       tone: parsing > 0 ? 'warning' : '',
+      hint: parsing > 0 ? runningHint || '正在写入向量' : indexedFileCount.value > 0 ? '索引就绪，可检索' : '还没有索引',
     },
     {
       key: 'extract',
@@ -3753,6 +3778,11 @@ const pipelineStages = computed(() => {
       unit: failed > 0 ? '失败' : '实体',
       running: false,
       tone: failed > 0 ? 'error' : '',
+      hint: failed > 0
+        ? '有文档解析失败，进「文档」看原因'
+        : graphView.entityCount > 0
+          ? `${fmtCount(graphView.relationCount)} 条关系`
+          : '尚未抽取关系',
     },
   ]
 })

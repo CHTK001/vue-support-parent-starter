@@ -839,8 +839,9 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* 按钮组：方形图标按钮贴近排列，仅留 6px 空隙；幽灵态（无底色无边框）由
-   详情页的 :deep(.kb-btn.rs-btn) 统一定义，此处只负责排布与角标位置 */
+/* 按钮组：方形图标按钮贴近排列，仅留 6px 空隙。
+   `.kb-btn` 只是这些按钮的语义钩子（本页内多处复用），当前没有专属样式，
+   外观完全由 ReSquareButton 自身决定——别照着类名去找不存在的规则。 */
 .kb-up-actions {
     display: inline-flex;
     align-items: center;

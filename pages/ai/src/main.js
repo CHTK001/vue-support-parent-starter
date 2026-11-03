@@ -303,14 +303,6 @@ const routes = [
     name: "Empty",
     component: () => import("./components/BackendWaitingOverlay.vue"),
   },
-  {
-    // 设计探索全景页：开发环境用 `?variant=` 切换版本预览（见 beforeEach 的临时钩子）
-    path: "/preview/pages/:page",
-    name: "VariantsPreview",
-    meta: { title: "版式预览" },
-    // 独立顶层路由：不夹 MainLayout / GlobalSidebar
-    component: () => import("./design-preview/PageVariantPreview.vue"),
-  },
 ];
 
 // 根据环境动态选择路由模式
@@ -325,11 +317,6 @@ router.beforeEach(async (to, from, next) => {
   // 仅在非 Electron 环境下显示进度条
   if (!isElectron) {
     NProgress.start();
-  }
-  // 【设计探索临时钩子 — 验证完即删】后端未启动时用 ?variant= 预览设计变体：
-  // 仅放行预览路由，其余业务路由照常走登录守卫（不扩大免登录面）。
-  if (import.meta.env.DEV && to.query?.variant && to.name === "VariantsPreview") {
-    return next();
   }
   // 真登录守卫：业务路由必须持有框架令牌（@repo/utils token 模块）
   const requiresAuth = to.matched.some((record) => record.meta?.requiresAuth);

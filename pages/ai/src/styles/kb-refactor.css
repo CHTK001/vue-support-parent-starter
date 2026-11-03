@@ -1129,6 +1129,19 @@
 
 .kb-stage__v[data-tone="error"] { color: var(--kb-err); }
 .kb-stage__v[data-tone="warning"] { color: var(--kb-warn); }
+.kb-stage__v[data-tone="mute"] { color: var(--kb-ink-3); }
+
+/* 工序带第二行：把「这个数意味着什么」写出来，别让人靠猜 */
+.kb-stage__hint {
+  font-size: 10.5px;
+  line-height: 1.55;
+  color: var(--kb-ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kb-stage.is-on .kb-stage__hint { color: var(--kb-warn); }
 
 /* ---------- 3.4 其它视图容器 ---------- */
 .kb-view {
@@ -1949,6 +1962,11 @@ html.dark .kb {
 
 @media (max-width: 1080px) {
   .kb-stages { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  /* 两列布局后第 3 格换行，它继承的 border-left 会多出一条竖线 */
+  .kb-stage:nth-child(odd) { border-left: 0; }
+
+  .kb-stage:nth-child(n + 3) { border-top: 1px solid var(--kb-line-soft); }
 }
 
 @media (max-width: 860px) {

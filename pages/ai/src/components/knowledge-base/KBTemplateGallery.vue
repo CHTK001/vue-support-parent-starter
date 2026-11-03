@@ -1,9 +1,11 @@
 <template>
-  <div class="h-full min-h-0 flex flex-col">
+  <!-- kb：与 KnowledgeBasePage / KnowledgeOverview 共用一套设计系统作用域，
+       此前模板页是唯一漏挂 `.kb` 的知识库页面，字号与行高会跟其它页对不上。 -->
+  <div class="kb h-full min-h-0 flex flex-col">
     <!-- ===== 顶栏：面包屑 + 标题 + 搜索 ===== -->
     <header class="shrink-0 border-b border-[var(--rm-border-light)] px-4 py-3 flex flex-wrap items-end gap-4">
       <div class="flex-1 min-w-0">
-        <h1 class="kb-tplgallery__title text-lg font-bold flex items-center gap-1"><ReSquareButton layout="square" size="small" class="kb-btn" :icon="ArrowLeft" tip="返回" @click="emit('cancel')" />从模板创建</h1>
+        <h1 class="text-lg font-bold flex items-center gap-1"><ReSquareButton layout="square" size="small" class="kb-btn" :icon="ArrowLeft" tip="返回" @click="emit('cancel')" />从模板创建</h1>
         <p class="text-xs text-[var(--rm-text-secondary)] mt-0.5">选择预置模板，自动生成文档、实体类型与关系结构</p>
       </div>
 
@@ -31,11 +33,11 @@
           <article
             v-for="t in filtered"
             :key="t.key"
-            class="kb-tplcard re-surface re-surface--dense re-surface--hover !p-0 overflow-hidden flex flex-col cursor-pointer transition"
+            class="re-surface re-surface--dense re-surface--hover !p-0 overflow-hidden flex flex-col cursor-pointer transition"
             :class="selected?.key === t.key ? 'ring-2 ring-[var(--rm-primary)]' : ''"
             @click="select(t)"
           >
-            <div class="kb-tplcard__cover relative w-full aspect-[400/225] bg-[var(--rm-bg-subtle)] grid place-items-center overflow-hidden">
+            <div class="relative w-full aspect-[400/225] bg-[var(--rm-bg-subtle)] grid place-items-center overflow-hidden">
               <img v-if="t.cover" :src="t.cover" :alt="t.name" class="w-full h-full object-cover" />
               <em v-else class="text-xl font-bold not-italic text-[var(--rm-primary)] tracking-widest">{{ t.name.slice(0, 2) }}</em>
               <ReTag

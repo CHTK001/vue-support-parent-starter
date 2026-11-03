@@ -129,8 +129,8 @@
  * 颜色只用 koi 令牌 {@code --rm-*} —— 原先的 {@code dark:bg-gray-800} /
  * {@code dark:border-gray-700} / {@code dark:hover:border-blue-500} 等硬编码暗色类已全部移除。</p>
  *
- * <p>高亮逻辑见 {@code ./searchHighlight.ts}（剥 Markdown → HTML 转义 → 套 {@code <mark>}），
- * 与 {@code KBSearchDialog} 共用一份实现；mark 的底色走 koi 令牌，因此暗色下自动跟随。</p>
+ * <p>高亮逻辑见 {@code ./searchHighlight.ts}（剥 Markdown → HTML 转义 → 套 {@code <mark>}）；
+ * mark 的底色走 koi 令牌，因此暗色下自动跟随。</p>
  */
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
