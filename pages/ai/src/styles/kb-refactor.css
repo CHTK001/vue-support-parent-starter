@@ -492,6 +492,20 @@
   min-height: 0;
 }
 
+/* 固定内容块不许被压缩：中栏是定高的 flex 列，默认 flex-shrink:1 会在窄屏
+   把工序带 / 读数行压到只剩几十像素，而它们自己 overflow:hidden —— 结果不是
+   滚动而是内容被活活切掉（1080 宽度下工序带 204px 压成 50px）。
+   压缩交给 .kb-main 的滚动，别压内容。 */
+.kb-main > .kb-lede,
+.kb-main > .kb-stages,
+.kb-main > .kb-statrow,
+.kb-main > .kb-h2,
+.kb-main > .kb-text,
+.kb-main > .kb-overview-grid,
+.kb-main > .kb-fail {
+  flex-shrink: 0;
+}
+
 /* 档案正文的报头：面包屑 + 标题 / 右侧印章 */
 .kb-head {
   display: flex;
