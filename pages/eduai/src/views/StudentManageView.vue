@@ -264,6 +264,16 @@
                 tip="编辑"
                 @click.stop="openTeacher(row as unknown as EduTeacher)"
               />
+              <!-- 教师与管理员共用「工号 + 口令」登录链，后端在口令未设置时会提示
+                   「请联系管理员在『学生管理 → 教师』重置口令」。此前这张表没有该入口，
+                   管理员按提示找不到地方，教师账号等于永远激活不了。 -->
+              <ReButton
+                layout="square"
+                type="warning"
+                :icon="Key"
+                tip="重置口令"
+                @click.stop="openResetTeacherPassword(row as unknown as EduTeacher)"
+              />
               <ReButton
                 layout="square"
                 type="danger"
@@ -866,7 +876,7 @@ const teacherColumns: ReTableColumn[] = [
   { prop: "accountBind", label: "老师端绑定", width: 140, align: "center", slot: "col-accountBind" },
   { prop: "teacherStatus", label: "状态", width: 90, align: "center", slot: "col-teacherStatus" },
   { prop: "classCount", label: "配置班级", width: 120, align: "center", slot: "col-classCount" },
-  { prop: "actions", label: "操作", width: 160, align: "center", fixed: "right", slot: "col-actions", className: "op-col" },
+  { prop: "actions", label: "操作", width: 200, align: "center", fixed: "right", slot: "col-actions", className: "op-col" },
 ];
 
 // ==================== 加载 ====================
@@ -1193,6 +1203,45 @@ async function openResetPassword(row: EduStudent) {
   }
   try {
     await eduaiApi.resetStudentPassword(row.studentId, input);
+    message.success("口令已重置");
+  } catch (e) {
+    message.error(`重置失败：${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+/**
+ * 管理员重置教师登录口令。
+ *
+ * <p>教师用「工号 + 口令」直接登录老师端（没有系统账号），口令为空时后端会提示
+ * 「请联系管理员在『学生管理 → 教师』重置口令」。此处补齐该入口，
+ * 与 {@link openResetPassword} 同一套交互，避免同一个能力出现两种操作方式。</p>
+ */
+async function openResetTeacherPassword(row: EduTeacher) {
+  let input = "";
+  try {
+    const result = await ElMessageBox.prompt(
+      `为教师「${row.teacherName ?? row.teacherNo}」设置新的登录口令。该教师需用新口令重新登录老师端。`,
+      "重置登录口令",
+      {
+        type: "warning",
+        confirmButtonText: "重置",
+        cancelButtonText: "取消",
+        inputType: "password",
+        inputPlaceholder: "6-32 位，建议字母与数字组合",
+        inputValidator: (value: string) => {
+          const raw = (value ?? "").trim();
+          if (raw.length < 6) return "口令至少 6 位";
+          if (raw.length > 32) return "口令最多 32 位";
+          return true;
+        },
+      },
+    );
+    input = result.value;
+  } catch {
+    return;
+  }
+  try {
+    await eduaiApi.resetTeacherPassword(row.teacherId, input);
     message.success("口令已重置");
   } catch (e) {
     message.error(`重置失败：${e instanceof Error ? e.message : String(e)}`);

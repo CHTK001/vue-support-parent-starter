@@ -36,6 +36,7 @@
       </div>
       <div class="tp-head__act">
         <el-button v-if="overview" text @click="unbind">切换工号</el-button>
+        <el-button text @click="logout">退出登录</el-button>
       </div>
     </header>
 
@@ -393,7 +394,9 @@
  * （管理端的维度接口是管理员专属，教师令牌会 403）。</p>
  */
 import { message } from "@repo/core";
+import { clearAllAuthData } from "@repo/utils";
 import { computed, onMounted, reactive, ref } from "vue";
+import { useRouter } from "vue-router";
 import { eduaiApi } from "../../api/eduaiApi";
 import type {
   DimensionDropdown,
@@ -414,6 +417,9 @@ import ReConfirmDialog from "../../components/shared/ReConfirmDialog.vue";
 
 /** 统一确认弹窗实例（删除学生 / 撤回布置 / 归档等二次确认） */
 const confirmDialog = ref<InstanceType<typeof ReConfirmDialog> | null>(null);
+
+/** 路由实例：退出登录后回登录页（不整页刷新，避免闪白） */
+const router = useRouter();
 
 /** 学段码值 → 中文标签（试卷/班级展示共用） */
 const GRADE_LEVEL_OPTIONS: Array<{ value: string; label: string }> = [
@@ -555,6 +561,22 @@ function unbind() {
   bindForm.teacherNo = "";
   bindForm.teacherName = "";
   bindForm.subjectCode = "";
+}
+
+/**
+ * 退出登录：清掉本标签页的教师令牌与缓存后回登录页。
+ *
+ * <p>「切换工号」只是回到绑定表单、并不清登录态 —— 换人时上一个工号的
+ * 令牌还留着，改回「切换工号」再绑另一个工号也仍带着旧令牌。
+ * 共用的教师机上换人必须是真退出，所以补这个入口。</p>
+ */
+function logout() {
+  clearAllAuthData();
+  overview.value = null;
+  classes.value = [];
+  students.value = [];
+  activeClassId.value = null;
+  void router.replace("/edu/student-login");
 }
 
 function selectClass(classId: number) {

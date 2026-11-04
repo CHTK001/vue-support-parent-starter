@@ -9,16 +9,20 @@
       <button type="button" class="portal-imp__exit" @click="exitImpersonation">退出代入</button>
     </div>
 
-    <!-- 学生自助改密码：只在本人登录**且首页数据已就绪**时出现。
-         代入态一律不给改（否则管理员代入会被迫或误操作改掉学生的真实口令）。
-         loading 期间也不给：此时登录态还没确认，学生端数据尚未回来，
-         早于那一帧渲染就是一个没有任何样式的原生按钮（实测确实裸露在加载态里）。
-         extra 判据：必须已绑定，否则未绑定用户看到的也是同一个按钮。 -->
-    <div v-else-if="!loading && !needBind" class="portal-pwd">
+    <!-- 学生自助改密码 + 退出登录：只在登录态确认完（loading 结束）后出现。
+         代入态整块被 v-if 链挡掉，管理员代入不会被误改学生口令。
+         「修改密码」要求已绑定；「退出登录」不需要 —— 未绑定的学生
+         也必须能回到登录页换个账号，否则界面只有「进入学习」一条路。
+         早于 loading 那一帧渲染就是一个没有任何样式的原生按钮（实测确实裸露在加载态里）。 -->
+    <div v-else-if="!loading" class="portal-pwd">
       <!-- 显式无参调用：直接把 openChangePassword 交给 @click 会把 MouseEvent 当 firstTime 传进去 -->
-      <button type="button" class="portal-pwd__btn" @click="openChangePassword()">
+      <button v-if="!needBind" type="button" class="portal-pwd__btn" @click="openChangePassword()">
         <ReIcon name="Key" :size="14" aria-hidden="true" />
         <span>修改密码</span>
+      </button>
+      <button type="button" class="portal-pwd__btn is-ghost" @click="logout">
+        <ReIcon name="SwitchButton" :size="14" aria-hidden="true" />
+        <span>退出登录</span>
       </button>
     </div>
     <!-- 未绑定：先弹绑定表单，绑完才放行 —— 进入系统就必须绑定信息 -->
@@ -199,7 +203,12 @@ import { message } from "@repo/core";
 import { computed, defineAsyncComponent, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-import { setImpersonateToken, getImpersonateToken, clearImpersonateToken } from "@repo/utils";
+import {
+  clearAllAuthData,
+  clearImpersonateToken,
+  getImpersonateToken,
+  setImpersonateToken,
+} from "@repo/utils";
 import { eduaiApi } from "../../api/eduaiApi";
 import type { StudentOverview } from "../../api/types";
 import { modulesOf, normalizeStage, type PortalModule, type Stage } from "./modules";
@@ -589,6 +598,21 @@ function exitImpersonation() {
   void router.replace("/edu/student-login");
 }
 
+/**
+ * 学生主动退出登录：清掉本标签页的令牌与缓存后回登录页。
+ *
+ * <p>原页面只有「修改密码」，没有退出入口：学生在一台共用电脑上登录后
+ * 除了关标签页没有别的办法换人，下一个打开浏览器的人会直接进入上一个学生的
+ * 首页（含姓名、班级、错题）。登录态是持久化的，关标签页并不等于退出。</p>
+ */
+function logout() {
+  clearImpersonateToken();
+  clearAllAuthData();
+  overview.value = null;
+  activeModule.value = null;
+  void router.replace("/edu/student-login");
+}
+
 // ==================== 修改密码 ====================
 const pwdVisible = ref(false);
 const pwdSaving = ref(false);
@@ -753,6 +777,8 @@ onMounted(() => {
   right: 0;
   bottom: 0;
   z-index: 2010;
+  display: flex;
+  gap: 8px;
   padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
 }
 .portal-pwd__btn {
@@ -782,6 +808,14 @@ onMounted(() => {
 .portal-pwd__btn:focus-visible {
   outline: 2px solid var(--el-color-primary);
   outline-offset: 1px;
+}
+/* 「退出登录」用弱化样式：破坏性低于改密，不该和主操作抢视觉权重 */
+.portal-pwd__btn.is-ghost {
+  color: var(--el-text-color-regular);
+  border-color: var(--el-border-color);
+}
+.portal-pwd__btn.is-ghost:hover {
+  background: var(--el-fill-color-light);
 }
 
 .portal-bind {

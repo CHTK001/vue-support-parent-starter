@@ -163,17 +163,37 @@ const accountError = ref("");
 const passwordError = ref("");
 
 /**
- * 账号形状判断：学号与家长手机号都是纯数字，老师/管理员工号含字母。
+ * 账号形状提示：多数学校把学号/家长手机号做成纯数字，但**不保证**。
  *
- * <p>用它来决定走「学生凭据」还是「老师凭据」，而**不是两种都试一遍**：
- * 学生登录失败会扣减尝试次数（实测返回「还剩 N 次尝试机会」），
- * 双试会把老师账号的可用次数也吃掉。</p>
+ * <p>实测本校学号就是 {@code GTEST01} 这种「字母+数字」形式。因此这个判断
+ * 只能当作「更像学生账号」的提示，**不能**用它来决定走哪条凭据链：
+ * 曾经用它分流，含字母的学号被当成教师工号，学生在自己的登录页上永远登不进去。</p>
+ *
+ * <p>真正的分流依据放在 {@link submit}：先走学生凭据，只有后端明确回答
+ * 「学号或家长手机号不存在」时才换教师凭据 —— 这句话说明档案压根没查到、
+ * 没走口令校验、**不会扣尝试次数**；而「密码错误」绝不能再去试第二遍，
+ * 否则会把另一个账号的可用次数也吃掉。</p>
  *
  * @param account 登录账号
- * @returns 纯数字且长度 >= 6 时视为学生账号
+ * @returns 纯数字且长度 6–20 时返回 true（仅作提示）
  */
 function looksLikeStudent(account: string): boolean {
   return /^\d{6,20}$/.test(account);
+}
+
+/**
+ * 判断学生凭据的失败是否属于「账号不存在」。
+ *
+ * <p>后端对「账号不存在」和「口令错误」用同一个错误码，只能按提示文案区分。
+ * 命中时说明既没有找到档案、也没有校验口令，换教师凭据是安全的。</p>
+ *
+ * @param e 学生登录抛出的异常
+ * @returns 提示里包含「不存在」时返回 true
+ */
+function isStudentAccountMissing(e: unknown): boolean {
+  const box = e as { msg?: unknown; message?: unknown; error?: unknown } | null | undefined;
+  const text = typeof e === "string" ? e : [box?.msg, box?.message, box?.error].find((v) => typeof v === "string" && v.trim());
+  return typeof text === "string" && text.includes("不存在");
 }
 
 /**
@@ -272,15 +292,20 @@ async function submit() {
   loading.value = true;
   try {
     const { eduaiApi } = await import("../../api/eduaiApi");
-    const isStudent = looksLikeStudent(account);
     let res;
-    if (isStudent) {
+    let isStudent = false;
+    // 先按学生凭据登录：学号形状不固定（本校实测 GTEST01 含字母），按形状分流会漏判。
+    // 只有后端明确说「学号或家长手机号不存在」时才换教师凭据 —— 那种情况没走口令校验，不扣次数；
+    // 「密码错误」直接结束，绝不再试第二条链，避免把老师账号的尝试次数也吃掉。
+    try {
       res = await eduaiApi.studentLogin({ username: account, password: form.password });
-    } else {
-      // 非学生分支的**本意**就是「老师凭据」（见 looksLikeStudent 的注释），此前却调的是
-      // userLogin（走 sys_user 默认链）。教师没有系统账号，工号在这条链上必然登不进去——
-      // 而本页账号框的提示本来就写着「请输入学号 / 工号 / 手机号」。
-      // 先试教师凭据；教师凭据不认（工号不存在等）再回落系统账号，保留管理员也能用本页登录。
+      isStudent = true;
+    } catch (studentErr) {
+      if (!isStudentAccountMissing(studentErr)) {
+        throw studentErr;
+      }
+      // 学生档案里没有这个账号：按老师工号再试一次；教师凭据不认（工号不存在等）
+      // 再回落系统账号，保留管理员也能用本页登录。
       try {
         res = await eduaiApi.teacherLogin({ username: account, password: form.password });
       } catch (teacherErr) {
@@ -290,10 +315,10 @@ async function submit() {
         });
       }
     }
-    // 身份判定：优先看令牌里的角色，其次看账号形状
+    // 身份判定：学生凭据登录成功的直接算学生；教师/系统账号再看令牌里的角色与账号类型
     const roles = ((res as { roles?: string[] } | undefined)?.roles ?? []).map((r) => String(r).toUpperCase());
     const ext = (res as { user?: { ext?: { accountType?: string } } } | undefined)?.user?.ext;
-    const toStudent = isStudent || roles.includes("STUDENT") || ext?.accountType === "student";
+    const toStudent = isStudent || looksLikeStudent(account) || roles.includes("STUDENT") || ext?.accountType === "student";
     message.success("登录成功");
     await router.push(toStudent ? "/edu/student" : "/edu/teacher");
   } catch (e) {
