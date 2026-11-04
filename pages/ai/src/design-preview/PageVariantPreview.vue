@@ -43,7 +43,7 @@
  * <p>路由 `/preview/pages/:page?variant=a|b|c`，`?bare=1` 去掉顶栏供截图。
  * 三个变体共用同一份 mock 规格，差异全部来自版式本身。</p>
  */
-import { computed } from 'vue'
+import { computed, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getPageSpec, VARIANT_META, type VariantKey } from './specs'
 import ManagementA from './layouts/ManagementA.vue'
@@ -62,12 +62,15 @@ import UsageF from '../components/management/UsagePageF.vue'
 const route = useRoute()
 const router = useRouter()
 
-const LAYOUTS = {
+// 每种版式只实现了自己那几个变体（management / conversation 只有 a~c，usage 有 a~f），
+// 所以下标字典按 Partial 声明：`LAYOUTS[archetype][variant]` 可能取不到，
+// 取不到就是「该版式没有这个变体」，渲染空态而不是崩掉。
+const LAYOUTS: Record<string, Partial<Record<VariantKey, Component>>> = {
   management: { a: ManagementA, b: ManagementB, c: ManagementC },
   conversation: { a: ChatA, b: ChatB, c: ChatC },
   // usage 变体：独立页面组件，不接 spec，直接绑定 useUsageBoard()
   usage: { a: UsageA, b: UsageB, c: UsageC, d: UsageD, e: UsageE, f: UsageF },
-} as const
+}
 
 const pageId = computed(() => String(route.params.page || 'models'))
 const spec = computed(() => getPageSpec(pageId.value))
@@ -86,7 +89,7 @@ const specProps = computed(() => (spec.value?.archetype === 'usage' ? {} : { spe
 
 const layout = computed(() => {
   if (!spec.value) return null
-  return LAYOUTS[spec.value.archetype][variant.value]
+  return LAYOUTS[spec.value.archetype]?.[variant.value] ?? null
 })
 
 function pick(key: VariantKey): void {

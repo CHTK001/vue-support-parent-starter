@@ -338,6 +338,10 @@
   width: 132px;
 }
 
+.lib-group {
+  width: 210px;
+}
+
 .lib-view-toggle {
   display: inline-flex;
   gap: 2px;

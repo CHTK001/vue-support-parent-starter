@@ -25,9 +25,15 @@ import ReDialog from "@repo/ui/re-dialog";
 import ReIcon from "@repo/ui/re-icon";
 import { DesignTableDialog } from "@pages/datasource";
 import FieldTable from "../FieldTable.vue";
+import NodeAlert from "./NodeAlert.vue";
 import ParamField from "./ParamField.vue";
 import LoopFields from "./LoopFields.vue";
-import { useShapeFieldList } from "./paramContext";
+import {
+  isAdvancedParamName,
+  isInputParam,
+  isOutputParamName,
+  useShapeFieldList,
+} from "./paramContext";
 import type { NodeForm, NodeFormContext } from "./paramContext";
 import type { ParamPair } from "../../utils/dsl";
 import type { CollectParamMeta, CollectShapeMeta } from "../../types/collect";
@@ -43,6 +49,8 @@ const props = defineProps<{
   ownParamNames?: string[];
   /** 节点级说明；留空则不渲染说明条 */
   intro?: string;
+  /** 高危警示文案（SQL / 脚本这类节点用）；留空则不渲染警示条 */
+  danger?: string;
   /** 按参数名补充的前端说明；key 为参数名 */
   extraTips?: Record<string, string>;
   /** 分区渲染：input / output / loop / advanced；缺省 all 保持旧行为 */
@@ -54,28 +62,7 @@ const emit = defineEmits<{
   (e: "set-pairs", param: CollectParamMeta, pairs: ParamPair[]): void;
 }>();
 
-/** 高级配置参数名：这些字段只在「高级配置」Tab 展示 */
-const ADVANCED_PARAM_NAMES = new Set([
-  "timeout",
-  "timeoutPolicy",
-  "retry",
-  "retryInterval",
-  "proxy",
-  "userAgent",
-  "fetcher",
-  "saveDocument",
-  "batchSize",
-  "onBatchError",
-  "writeBack",
-  "outputPrefix",
-  "maxTokens",
-  "temperature",
-]);
-
-/** 循环参数名：只在「循环」Tab 展示 */
-const LOOP_PARAM_NAMES = new Set(["loopCount", "loopVariableName", "loopItemVariableName", "loopParallel"]);
-
-/** 数据库节点的输出组：目标数据源/表/写入方式与字段映射放同一 Tab */
+/** 数据库节点的输出组：目标数据源/表/写入方式与字段映射放同一 Tab（与 NodeFormTabs 同口径） */
 const DATABASE_OUTPUT_NAMES = new Set(["datasource", "table", "mode", "batchSize", "onBatchError"]);
 
 /** 数据库节点输出参数顺序：先数据库，再表，再写入方式，最后字段映射 */
@@ -93,18 +80,17 @@ function isMappingParam(name: string): boolean {
   return name.startsWith("column:") || name.startsWith("key:");
 }
 
+/**
+ * 是否「输入参数」页签里的参数。
+ *
+ * <p>分区判定与 NodeFormTabs 共用 paramContext 里的同一份名单，另外摘掉两个
+ * 「数据格式」参数 —— 它们由本组件顶部的分段控件渲染（entry / link 两个 shape）。</p>
+ *
+ * @param param 参数元数据
+ * @returns 是则 true
+ */
 function isRegularInput(p: CollectParamMeta): boolean {
-  return (
-    p.name !== "outputVariable" &&
-    !p.name.startsWith("column:") &&
-    !p.name.startsWith("cell:") &&
-    !p.name.startsWith("key:") &&
-    !ADVANCED_PARAM_NAMES.has(p.name) &&
-    !LOOP_PARAM_NAMES.has(p.name) &&
-    // 数据格式 / 上游格式由本组件顶部专用分段控件渲染
-    p.name !== "format" &&
-    p.name !== "sourceFormat"
-  );
+  return isInputParam(p) && p.name !== "format" && p.name !== "sourceFormat";
 }
 
 const inputFields = computed(() => {
@@ -121,15 +107,13 @@ const outputFields = computed(() => {
       .map(name => byName.get(name))
       .filter((param): param is CollectParamMeta => Boolean(param));
   }
-  return fields.value.filter(
-    p => p.name === "outputVariable" || p.name.startsWith("column:") || p.name.startsWith("cell:") || p.name.startsWith("key:"),
-  );
+  return fields.value.filter(p => isOutputParamName(p.name));
 });
 
 const advancedFields = computed(() =>
   fields.value.filter(
     p =>
-      ADVANCED_PARAM_NAMES.has(p.name) &&
+      isAdvancedParamName(p.name) &&
       !(props.meta.shape === "database" && DATABASE_OUTPUT_NAMES.has(p.name)),
   ),
 );
@@ -242,6 +226,12 @@ const linkFormat = computed({
 </script>
 
 <template>
+  <!-- 节点级说明与高危警示：每个页签都在最上面显示一次。
+       页签是 v-if 渲染的，如果只在「输入参数」里渲染说明，切到别的页签就看不到了；
+       而「这个节点是干什么的」「它在拿服务器权限」这两件事与页签无关，不该跟着页签消失。 -->
+  <NodeAlert v-if="intro" kind="intro">{{ intro }}</NodeAlert>
+  <NodeAlert v-if="danger" kind="danger">{{ danger }}</NodeAlert>
+
   <template v-if="section === 'loop'">
     <LoopFields
       :node="node"
@@ -250,6 +240,7 @@ const linkFormat = computed({
       @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
       @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
     />
+    <slot />
   </template>
 
   <template v-else-if="section === 'output'">
@@ -313,6 +304,7 @@ const linkFormat = computed({
       :initial-columns="designInitialColumns"
       @created="onDesignCreated"
     />
+    <slot />
   </template>
 
   <template v-else-if="section === 'advanced'">
@@ -328,6 +320,7 @@ const linkFormat = computed({
         @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
       />
     </template>
+    <slot />
   </template>
 
   <template v-else-if="section === 'input'">
@@ -375,6 +368,7 @@ const linkFormat = computed({
         @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
       />
     </template>
+    <slot />
   </template>
 
   <template v-else>

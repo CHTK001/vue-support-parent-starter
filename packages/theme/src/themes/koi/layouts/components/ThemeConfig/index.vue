@@ -345,6 +345,18 @@
               </div>
             </div>
 
+            <!-- 加载动画选择器：首屏 loader 与应用内 ReLoader 共用同一款动画 -->
+            <div class="config-section">
+              <div class="section-header">
+                <el-icon :size="18" class="section-icon"><Loading /></el-icon>
+                <span class="section-title">{{ t("themeConfig.sections.loaderStyle") }}</span>
+              </div>
+
+              <div class="section-card">
+                <ReLoaderStyleSelector />
+              </div>
+            </div>
+
             <!-- 登录页样式选择器（与登录页同一组件，数据/预览统一） -->
             <div class="config-section">
               <div class="section-header">
@@ -483,11 +495,19 @@
                 />
 
                 <ReSwitch layout="card"
-                  :title="t('themeConfig.switchBlocks.collapseToButton.title')"
-                  :sub="t('themeConfig.switchBlocks.collapseToButton.sub')"
-                  :tip="t('themeConfig.switchBlocks.collapseToButton.tip')"
-                  :description="t('themeConfig.switchBlocks.collapseToButton.description')"
-                  v-model="collapseToButton"
+                  :title="t('themeConfig.switchBlocks.collapseButton.title')"
+                  :sub="t('themeConfig.switchBlocks.collapseButton.sub')"
+                  :tip="t('themeConfig.switchBlocks.collapseButton.tip')"
+                  :description="t('themeConfig.switchBlocks.collapseButton.description')"
+                  v-model="collapseButton"
+                />
+
+                <ReSwitch layout="card"
+                  :title="t('themeConfig.switchBlocks.collapseBar.title')"
+                  :sub="t('themeConfig.switchBlocks.collapseBar.sub')"
+                  :tip="t('themeConfig.switchBlocks.collapseBar.tip')"
+                  :description="t('themeConfig.switchBlocks.collapseBar.description')"
+                  v-model="collapseBar"
                 />
                 </div>
               </div>
@@ -706,6 +726,7 @@ import ReSwitch from "@repo/ui/re-switch";
 import ReInputNumber from "@repo/ui/re-input-number";
 
 import ReLoginStyleSelector from "@repo/theme/koi/views/login/components/ReLoginStyleSelector.vue";
+import ReLoaderStyleSelector from "./components/ReLoaderStyleSelector.vue";
 import ReSettingAiChat from "./components/ReSettingAiChat.vue";
 import ReSettingAccessibility from "./components/ReSettingAccessibility.vue";
 import ReSettingDevTools from "./components/ReSettingDevTools.vue";
@@ -713,7 +734,7 @@ import ReSettingSystemDebug from "./components/ReSettingSystemDebug.vue";
 import ReSettingHeatmap from "./components/ReSettingHeatmap.vue";
 import ReSettingPerformance from "./components/ReSettingPerformance.vue";
 import { isHeaderFlagKey } from "@repo/theme/koi/layouts/components/Header/components/headerKeys";
-import { ArrowDown, Delete, Plus, Clock, Files, Download, Upload, Sunny, Bell, Operation, HomeFilled, Connection } from "@element-plus/icons-vue";
+import { ArrowDown, Delete, Plus, Clock, Files, Download, Upload, Sunny, Bell, Operation, HomeFilled, Connection, Loading } from "@element-plus/icons-vue";
 const { t } = useI18n();
 const globalStore = useGlobalStore();
 
@@ -1137,10 +1158,34 @@ const capabilitySwitchList = computed(() =>
 /** 能力开关表：直接改响应式配置，随用户配置持久化（缺省兜底空表，兼容未含该字段的旧配置） */
 const capabilityConfig = computed(() => (appConfig.other.capabilities ??= {}));
 
-/** 折叠形态：折叠时整个菜单收缩为一个按钮（仅垂直布局生效；menuConfig.collapseToButton） */
-const collapseToButton = ref(appConfig.menu.collapseToButton === true);
-watch(collapseToButton, (val) => {
-  appConfig.menu.collapseToButton = !!val;
+/**
+ * 折叠形态（menuConfig.collapse，迭代自 collapseToButton；向下兼容见 resolveMenuCollapse）：
+ *   collapseButton — 折叠后是否显示「展开菜单」按钮（通常与 mini 菜单条并存）
+ *   collapseBar    — 折叠后是否保留迷你图标菜单条（"yes"=保留，"no"=隐藏）
+ */
+const collapseConfig = computed(() => {
+  appConfig.menu ??= {};
+  appConfig.menu.collapse ??= { showButton: false, showBar: "yes" };
+  return appConfig.menu.collapse;
+});
+
+/** 折叠后是否显示「展开菜单」按钮（v-model：true 开启显示） */
+const collapseButton = computed({
+  get: () => collapseConfig.value.showButton === true,
+  set: (val: boolean) => {
+    collapseConfig.value.showButton = val;
+    // 已用新 key 驱动，清掉 legacy 标记避免旧映射干扰
+    appConfig.menu.collapseToButton = false;
+  },
+});
+
+/** 折叠后是否保留迷你侧边栏（v-model：true 保留；由 "yes"|"no" 落地） */
+const collapseBar = computed({
+  get: () => collapseConfig.value.showBar === "yes",
+  set: (val: boolean) => {
+    collapseConfig.value.showBar = val ? "yes" : "no";
+    appConfig.menu.collapseToButton = false;
+  },
 });
 
 // ==================== 用户配置导入 / 导出 ====================

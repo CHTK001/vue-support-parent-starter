@@ -35,6 +35,7 @@ export const APP_CONFIG_TOP_KEYS = new Set([
   "route",
   "socket",
   "message",
+  "apm",
   "monitor",
   "other",
 ]);
@@ -136,7 +137,17 @@ export const defaultAppConfig: AppConfig = {
     flattenSingleRoot: false,
     // 菜单缺省图标：菜单未配置 icon 时兜底，避免图标位空白
     defaultIcon: DEFAULT_MENU_ICON,
-    // 折叠形态：false=mini 图标菜单条（默认）；true=整个菜单收缩为一个展开按钮（仅垂直布局）
+    // 折叠形态：menuConfig.collapse（迭代自 collapseToButton，废弃 warning 见 resolveMenuCollapse）
+    // showButton=false + showBar=yes（默认）：折叠后只显示 mini 图标菜单条
+    // showButton=true + showBar=no             ：折叠后菜单区只保留一个「展开菜单」按钮
+    // showButton=true + showBar=yes           ：mini 菜单条 + 展开按钮（两者都留）
+    // showButton=false + showBar=no           ：折叠后侧边栏整体隐藏（主内容区铺满）
+    collapse: {
+      showButton: false,
+      showBar: "yes",
+    },
+    // 旧折叠开关（已迁移到 collapse，由 resolveMenuCollapse 做向下兼容映射）
+    // 保持 false 默认是为了不改变存量应用的渲染行为
     collapseToButton: false,
     // 分组导航增强：分组标题排版 + 子项图标 + 底部「设置」条目（仅纵向布局），默认开启
     groupNav: true,
@@ -264,7 +275,16 @@ export const defaultAppConfig: AppConfig = {
     captcha: true,
     otp: false,
     slider: false,
+    // 滑块验证形态：simple=原有向右拖动滑块；puzzle=图片拼图滑块
+    sliderType: "simple",
+    // 拼图滑块参数（sliderType=puzzle 时生效；不配则自动生成占位图）
+    sliderPuzzle: {
+      slots: 4,
+      tolerance: 20,
+    },
     brandName: "应用",
+    // 登录认证形态：redirect=401/403 直接跳登录页（默认） / dialog=不跳转，在当前应用内弹出强制登录弹窗
+    accessMode: "redirect",
     // 留空：Logo 组件改用 `import` 内置 logo（经 Vite 处理，内联/带 hash，保证可加载），
     // 避免运行时字符串路径 /assets/images/logo/logo.svg 未被构建到 dist 而 404。
     // 业务仍可在 app.yaml 配置 logoUrl 自定义覆盖。
@@ -291,7 +311,8 @@ export const defaultAppConfig: AppConfig = {
     allowPrefixes: [],
     // /prometheus/embed/**：Prometheus 自定义看板的免登录嵌入页（其他系统 iframe 使用）
     // /nginx/embed/**：Nginx 自定义看板的免登录嵌入页（其他系统 iframe 使用）
-    whiteList: ["/login", "/403", "/404", "/500", "/prometheus/embed/**", "/nginx/embed/**"],
+    // /edu/student-login：学生登录页，学生没有后台账号，未登录直开必须能停留
+    whiteList: ["/login", "/403", "/404", "/500", "/prometheus/embed/**", "/nginx/embed/**", "/edu/student-login"],
     loginPath: "/login",
     homePath: "/home",
     // 与其它 route 路径一致：这是 router 路径，不含 vite base（base=/system 时浏览器地址是 /system/personage）。
@@ -324,6 +345,14 @@ export const defaultAppConfig: AppConfig = {
     listUrl: "/v2/message/sys-message/page",
     unreadUrl: "/v2/message/sys-message/unread-count",
     readUrl: "/v2/message/sys-message/read",
+  },
+  apm: {
+    // 默认开启：装了 APM 后端就该看得见；没装时 ApmGate 会渲染降级视图，
+    // 因此 enable 控制的是「菜单是否出现」，不是「后端有没有」。
+    enable: true,
+    engine: "",
+    baseUrl: "/api/apm/v1",
+    statusTtl: 15000,
   },
   monitor: {
     enable: false,
@@ -460,6 +489,15 @@ export const defaultAppConfig: AppConfig = {
     },
     avatarFrame: {
       enable: false,
+    },
+    // 加载动画部署侧接管：默认关闭 —— 不接管时行为与没有这段配置完全一致，
+    // 用户在主题配置抽屉里自选，选择保存在 localStorage。
+    // 写 enable: true 即锁定（选择器置灰），动画/主色由这里决定。
+    loaderConfig: {
+      enable: false,
+      animation: "wave",
+      size: 96,
+      color: "#406eeb",
     },
   },
 };

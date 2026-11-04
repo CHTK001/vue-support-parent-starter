@@ -37,6 +37,8 @@ import { setDocumentTitle, setDocumentFavicon } from "@repo/theme/koi/layouts/us
 import { install as installReIcon } from "@repo/ui/re-icon";
 import { install as installReScrollNav } from "@repo/ui/re-scroll-nav";
 import { install as installReDrawer } from "@repo/ui/re-drawer";
+import { install as installReDialog } from "@repo/ui/re-dialog";
+import { installForcedLogin } from "./forcedLogin";
 
 export interface InstallKoiOptions {
   /** 应用路由实例（由调用方创建，注入以配合业务路由） */
@@ -69,6 +71,12 @@ export async function installKoi(app: App, options: InstallKoiOptions = {}): Pro
   // 注册布局使用的 ReXxx 组件（koi 主题实现），等待完成避免组件未注册
   await installUiComponents(app);
 
+  // 强制登录兜底弹窗服务（核心 401/403 交互入口），注册到 window：
+  // 核心 @repo/core 不依赖 @repo/ui（没有该依赖），通过 window.__reForcedLogin.show
+  // 拉起 ReDialog + ReLoginForm 组合的强制登录弹窗。
+  // 必须放在 ReDialog 注册为全局组件之后（弹窗内使用 ReDialog）
+  installForcedLogin(app);
+
   setupCommonDirectives(app);
 
   if (router) {
@@ -96,6 +104,7 @@ async function installUiComponents(app: App): Promise<void> {
     installReIcon.install(app),
     installReScrollNav.install(app),
     installReDrawer.install(app),
+    installReDialog.install(app),
   ]);
 }
 

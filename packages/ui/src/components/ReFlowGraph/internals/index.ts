@@ -1,5 +1,6 @@
+export type { FlowEngineHandlers, FlowEngineOptions, FlowInteractionPatch } from "./engine-types";
+export type { FlowEngineGraph } from "./engine-types";
 export { FlowGraphEngine } from "./engine";
-export type { FlowEngineHandlers, FlowEngineOptions, FlowInteractionPatch } from "./engine";
 export {
   DEFAULT_NODE_COLOR,
   FLOW_CUSTOM_NODE_SHAPE,

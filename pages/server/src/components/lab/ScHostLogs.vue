@@ -157,6 +157,136 @@ const shownRows = computed(() => {
   return rows.value.filter((line) => line.toLowerCase().includes(q));
 });
 
+/** 一条结构化登录记录：回答「谁、从哪个 IP、成没成」 */
+interface LoginRow {
+  /** 登录用户名 */
+  user: string;
+  /** 来源 IP（本机会话为 "-"） */
+  ip: string;
+  /** 认证方式 / 会话类型 */
+  method: string;
+  /** 结果：成功 / 失败 / 在线 / 已退出 */
+  result: string;
+  /** 原始行，便于核对 */
+  raw: string;
+}
+
+/** IPv4 / IPv6 粗判：last 输出的第三列不一定是地址 */
+const IP_SHAPE = /^(\d{1,3}(?:\.\d{1,3}){3}|[0-9a-f]{0,4}(?::[0-9a-f]{0,4}){2,})$/i;
+
+/**
+ * 解析 Linux 的登录 / 认证记录。
+ *
+ * <p>auth.log、secure、journalctl 里最关键的是 OpenSSH 的两类行：</p>
+ * <ul>
+ *   <li>{@code Accepted password for root from 10.1.2.3 port 51234 ssh2}</li>
+ *   <li>{@code Failed password for invalid user admin from 5.6.7.8 port 40000 ssh2}</li>
+ * </ul>
+ * <p>{@code session opened for user ...} 这类行没有来源地址，单列会与 Accepted 重复，
+ * 因此不单独成行；没有 sshd 记录的容器 / 精简系统由 {@code last} 兜底。</p>
+ *
+ * @param lines 原始日志行
+ * @returns 结构化登录记录（解析不出时为空，模板回落原始行）
+ */
+function parseLinuxLogin(lines: string[]): LoginRow[] {
+  const out: LoginRow[] = [];
+  for (const line of lines) {
+    const sshd = line.match(/\b(Accepted|Failed)\s+(\S+)\s+for\s+(?:invalid user\s+)?(\S+?)\s+from\s+(\S+)\s+port\s+\d+/i);
+    if (sshd) {
+      out.push({
+        user: sshd[3],
+        ip: sshd[4],
+        method: sshd[2],
+        result: /^accepted$/i.test(sshd[1]) ? "成功" : "失败",
+        raw: line,
+      });
+      continue;
+    }
+    // last：root  pts/0  10.1.2.3  Mon Nov  3 09:12  still logged in
+    const last = line.match(/^(\S+)\s+(\S+)\s+(\S+)\s+(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+\w{3}\s+\d{1,2}\s+\d{2}:\d{2}/);
+    if (last && IP_SHAPE.test(last[3])) {
+      const u = last[1];
+      if (u === "reboot" || u === "wtmp" || u === "shutdown") continue;
+      out.push({
+        user: u,
+        ip: last[3],
+        method: last[2],
+        result: /still logged in|still running/i.test(line) ? "在线" : "已退出",
+        raw: line,
+      });
+    }
+  }
+  return out;
+}
+
+/**
+ * 解析 Windows 安全日志（{@code wevtutil qe Security /f:text}）。
+ *
+ * <p>一个事件里往往有两组 Account Name（Subject 与 New Logon），前者通常是
+ * SYSTEM / 机器账户；取最后一个非系统账户才是真正登录的人。来源地址同理，
+ * 取最后一个非 "-" 的值。</p>
+ *
+ * @param text 原始输出（保留空行，按 Event[n] 分段）
+ * @returns 结构化登录记录
+ */
+function parseWindowsLogin(text: string): LoginRow[] {
+  const out: LoginRow[] = [];
+  const events = text.replace(/\r\n?/g, "\n").split(/(?=Event\[\d+\]:)/);
+  for (const block of events) {
+    const users = [...block.matchAll(/Account Name:\s*(.+)/gi)]
+      .map((m) => m[1].trim())
+      .filter((u) => u && u !== "-" && !/^(SYSTEM|LOCAL SERVICE|NETWORK SERVICE|ANONYMOUS LOGON)$/i.test(u) && !u.endsWith("$"));
+    const user = users[users.length - 1] || "";
+    if (!user) continue;
+    const ips = [...block.matchAll(/Source Network Address:\s*(.+)/gi)]
+      .map((m) => m[1].trim())
+      .filter((v) => v && v !== "-");
+    const ip = ips[ips.length - 1] || "-";
+    const id = block.match(/Event ID:\s*(\d+)/i)?.[1] || "";
+    const failed = id === "4625" || /Audit Failure|审核失败|登录失败/i.test(block);
+    const method =
+      id === "4624" ? "交互登录" : id === "4625" ? "密码错误" : id === "4634" ? "注销" : `事件 ${id || "?"}`;
+    out.push({ user, ip, method, result: failed ? "失败" : "成功", raw: block.trim() });
+  }
+  return out;
+}
+
+/** 结构化登录记录（仅登录日志解析；解析不出时模板回落原始行） */
+const loginRows = computed<LoginRow[]>(() => {
+  if (!isLogin.value) return [];
+  return isWindows.value ? parseWindowsLogin(output.value) : parseLinuxLogin(rows.value);
+});
+
+/** 结构化登录记录的关键字过滤（与原始日志共用同一个输入框） */
+const shownLoginRows = computed(() => {
+  const q = keyword.value.trim().toLowerCase();
+  if (!q) return loginRows.value;
+  return loginRows.value.filter((r) =>
+    [r.user, r.ip, r.method, r.result].some((v) => String(v).toLowerCase().includes(q)),
+  );
+});
+
+/**
+ * 结果标签配色：失败红、成功/在线绿、已退出保持中性灰。
+ *
+ * @param result 结构化结果文本
+ * @returns 标签的 tone 类名
+ */
+function resultTone(result: string): string {
+  if (result === "失败") return "is-bad";
+  if (result === "成功" || result === "在线") return "is-ok";
+  return "";
+}
+
+/** 页脚统计文案：登录日志按「次登录」计，其余按行计 */
+const statText = computed(() => {
+  const filtered = keyword.value.trim();
+  if (isLogin.value && loginRows.value.length) {
+    return `${loginRows.value.length} 次登录${filtered ? ` · 匹配 ${shownLoginRows.value.length}` : ""}`;
+  }
+  return `${rows.value.length} 行${filtered ? ` · 匹配 ${shownRows.value.length}` : ""}`;
+});
+
 /**
  * 行着色：错误 / 告警 / 成功三类一眼可辨。
  *
@@ -306,16 +436,54 @@ watch(() => [props.hostId, props.kind, props.platform], () => void load());
           }}
         </div>
 
-        <ol v-if="rows.length" class="lg-lines">
-          <li v-for="(line, i) in shownRows" :key="i" class="lg-line" :class="lineTone(line)">
-            <span class="lg-no">{{ i + 1 }}</span>
-            <span class="lg-text">{{ line }}</span>
-          </li>
-        </ol>
+        <!-- 登录日志主表：只回答「谁、从哪个 IP、成没成」，时间不占列 -->
+        <template v-if="isLogin && loginRows.length">
+          <table class="lg-table">
+            <thead>
+              <tr>
+                <th class="lg-col-user">用户</th>
+                <th class="lg-col-ip">来源 IP</th>
+                <th class="lg-col-method">方式</th>
+                <th class="lg-col-result">结果</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(r, i) in shownLoginRows" :key="i" :title="r.raw">
+                <td class="lg-col-user"><span class="lg-user">{{ r.user }}</span></td>
+                <td class="lg-col-ip"><code class="lg-ip">{{ r.ip }}</code></td>
+                <td class="lg-col-method">{{ r.method }}</td>
+                <td class="lg-col-result">
+                  <span class="lg-tag" :class="resultTone(r.result)">{{ r.result }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div v-if="!shownLoginRows.length" class="lg-state">
+            没有匹配「{{ keyword }}」的登录记录
+          </div>
+          <!-- 原始行留档：sudo / CRON 等非登录记录不强行入表，需要时展开核对 -->
+          <details class="lg-raw">
+            <summary>原始日志（{{ rows.length }} 行）</summary>
+            <ol class="lg-lines">
+              <li v-for="(line, i) in shownRows" :key="i" class="lg-line" :class="lineTone(line)">
+                <span class="lg-no">{{ i + 1 }}</span>
+                <span class="lg-text">{{ line }}</span>
+              </li>
+            </ol>
+          </details>
+        </template>
 
-        <div v-if="rows.length && !shownRows.length" class="lg-state">
-          没有匹配「{{ keyword }}」的日志行
-        </div>
+        <template v-else>
+          <ol v-if="rows.length" class="lg-lines">
+            <li v-for="(line, i) in shownRows" :key="i" class="lg-line" :class="lineTone(line)">
+              <span class="lg-no">{{ i + 1 }}</span>
+              <span class="lg-text">{{ line }}</span>
+            </li>
+          </ol>
+          <div v-if="rows.length && !shownRows.length" class="lg-state">
+            没有匹配「{{ keyword }}」的日志行
+          </div>
+        </template>
       </div>
     </section>
 
@@ -323,7 +491,7 @@ watch(() => [props.hostId, props.kind, props.platform], () => void load());
     <div class="lg-foot">
       <span class="lb-dim lg-stat">命令</span>
       <code class="lg-cmd" :title="command">{{ command || "—" }}</code>
-      <span class="lb-dim lg-stat">{{ rows.length }} 行<span v-if="keyword.trim()"> · 匹配 {{ shownRows.length }}</span></span>
+      <span class="lb-dim lg-stat">{{ statText }}</span>
       <span v-if="costMs" class="lb-dim lg-stat">{{ costMs }} ms</span>
     </div>
   </div>
@@ -417,6 +585,94 @@ watch(() => [props.hostId, props.kind, props.platform], () => void load());
   font-size: 12px;
   color: #8a919e;
   text-align: center;
+}
+
+/* ==================== 结构化登录表（登录日志专用） ==================== */
+/* 表头吸顶：行数多时滚动仍知道每列是什么 */
+.lg-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+}
+.lg-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 7px 12px;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-align: left;
+  color: #8a919e;
+  white-space: nowrap;
+  background: #181818;
+  border-bottom: 1px solid #2a2a2a;
+}
+.lg-table td {
+  padding: 5px 12px;
+  color: #c9ced8;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.lg-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.045);
+}
+.lg-col-user {
+  width: 24%;
+}
+.lg-col-ip {
+  width: 30%;
+}
+.lg-col-method {
+  width: 26%;
+}
+.lg-col-result {
+  width: 120px;
+}
+.lg-user {
+  font-weight: 600;
+  color: #e6e9ef;
+}
+.lg-ip {
+  font-family: var(--el-font-family-mono, ui-monospace, "SF Mono", Consolas, monospace);
+  color: #9fd0ff;
+}
+/* 结果标签：失败红、在线/成功绿、已退出中性灰 */
+.lg-tag {
+  display: inline-block;
+  min-width: 38px;
+  padding: 0 7px;
+  font-size: 10.5px;
+  line-height: 18px;
+  text-align: center;
+  color: #b9bec8;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 9px;
+}
+.lg-tag.is-bad {
+  color: #ff8b84;
+  background: rgba(229, 83, 75, 0.16);
+}
+.lg-tag.is-ok {
+  color: #7fd58f;
+  background: rgba(63, 178, 106, 0.16);
+}
+/* 原始日志留档：默认折叠，展开后自身滚动，避免把主表顶出视口 */
+.lg-raw {
+  border-top: 1px solid #262626;
+}
+.lg-raw > summary {
+  padding: 7px 12px;
+  font-size: 11px;
+  color: #8a919e;
+  cursor: pointer;
+  user-select: none;
+}
+.lg-raw > summary:hover {
+  color: #c9ced8;
+  background: rgba(255, 255, 255, 0.04);
+}
+.lg-raw .lg-lines {
+  max-height: 260px;
+  overflow: auto;
 }
 .lg-lines {
   margin: 0;

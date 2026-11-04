@@ -51,34 +51,65 @@ export const appKeyApi = {
   update: (id: string, data: any) => http.put(`/app-keys/${id}`, data),
   delete: (id: string) => http.delete(`/app-keys/${id}`),
   batchDelete: (ids: number[]) => http.delete('/app-keys/batch', { data: { ids } }),
+  /** 启停（enabled 走 query，后端 toggle 只改状态列） */
+  toggle: (id: string | number, enabled: boolean) =>
+    http.put(`/app-keys/${id}/toggle`, null, { params: { enabled } }),
+  /**
+   * 额度调整（续量 / 重置）。
+   *
+   * maxUse / maxTokens：null=不改动，0=不限，正数=新上限；resetUsed=true 清零已用。
+   */
+  quota: (id: string | number, data: { maxUse?: number | null; maxTokens?: number | null; resetUsed?: boolean }) =>
+    http.post(`/app-keys/${id}/quota`, data),
 };
 
 /** AppKey 充值/消费流水 API（余额 / 充值 / 扣减 / 流水） */
 export const topupApi = {
   /** 查询余额 */
-  balance: (appKeyId: number) => http.get(`/app-keys/${appKeyId}/balance`),
+  balance: (appKeyId: number | string) => http.get(`/app-keys/${appKeyId}/balance`),
   /** 充值（金额 + 备注） */
-  recharge: (appKeyId: number, amount: number, remark?: string) =>
+  recharge: (appKeyId: number | string, amount: number, remark?: string) =>
     http.post(`/app-keys/${appKeyId}/recharge`, { amount, remark }),
   /** 扣减/调整（金额 + 备注） */
-  deduct: (appKeyId: number, amount: number, remark?: string) =>
+  deduct: (appKeyId: number | string, amount: number, remark?: string) =>
     http.post(`/app-keys/${appKeyId}/deduct`, { amount, remark }),
   /** 充值/消费/退款/调整流水（按 AppKey 主键） */
-  list: (appKeyId: number) => http.get(`/app-keys/${appKeyId}/topups`),
+  list: (appKeyId: number | string) => http.get(`/app-keys/${appKeyId}/topups`),
   /** 套餐变更 */
-  plan: (appKeyId: number, planId: number) => http.put(`/app-keys/${appKeyId}/plan`, { planId }),
+  plan: (appKeyId: number | string, planId: number) => http.put(`/app-keys/${appKeyId}/plan`, { planId }),
   /** 透支开关变更 */
-  overdraft: (appKeyId: number, enabled: boolean) => http.put(`/app-keys/${appKeyId}/overdraft`, { overdraftEnabled: enabled }),
+  overdraft: (appKeyId: number | string, enabled: boolean) => http.put(`/app-keys/${appKeyId}/overdraft`, { overdraftEnabled: enabled }),
   /** 每分钟单价变更 */
-  rate: (appKeyId: number, minuteRate: number) => http.put(`/app-keys/${appKeyId}/rate`, { minuteRate }),
+  rate: (appKeyId: number | string, minuteRate: number) => http.put(`/app-keys/${appKeyId}/rate`, { minuteRate }),
+};
+
+/**
+ * 模型分组 API。
+ *
+ * <p>分组是「一组模型 + 一组 appKey」的聚合：appKey 绑定分组后，可调用的模型被限定在
+ * 分组清单内。Key 台账的分组选择器与「分组」台账都用它。</p>
+ *
+ * <p>注意两点后端约定：</p>
+ * <ul>
+ *   <li>整组接口带 {@code @Permission("admin")}，非管理员 403 —— 调用方按「拿不到就降级」处理；</li>
+ *   <li>{@code list} 回的是<b>裸数组</b>（控制器直接 {@code return List}），
+ *       而 create / update 回的是裸 DTO，delete 回空体。</li>
+ *   <li>{@code appKeyIds} 是「成员 Key」的投影：归属真源在 Key 侧
+ *       （{@code sys_ai_app_key.sys_ai_app_key_group_id}），后端保存时会双向对齐。
+ *       {@code null} = 不改动，{@code []} = 解绑全部，列表 = 最终名单。</li>
+ * </ul>
+ */
+export const groupApi = {
+  list: () => http.get('/groups'),
+  create: (data: any) => http.post('/groups', data),
+  update: (id: string | number, data: any) => http.put(`/groups/${id}`, data),
+  remove: (id: string | number) => http.delete(`/groups/${id}`),
 };
 
 /** 厂商目录（厂商 Key 的归属厂商，用于表单选择器） */
 export const manufacturerApi = {
   list: () => http.get('/manufacturer/list'),
-};
-
-export const manufacturerKeyApi = {
+};export const manufacturerKeyApi = {
   list: () => http.get('/manufacturer-key/list'),
   listByCode: (manufacturerCode: string) =>
     http.get('/manufacturer-key/list-by-code', { params: { manufacturerCode } }),

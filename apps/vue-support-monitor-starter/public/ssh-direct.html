@@ -7,6 +7,18 @@
   <style>
     html, body { margin: 0; height: 100%; background: #111; overflow: hidden; }
     #term { width: 100%; height: 100%; padding: 4px 0 0 6px; box-sizing: border-box; }
+    /* 滚动条：6px 细条，默认全透明，鼠标进入终端才显形（Chromium）。
+       原生 15px 常驻条会把终端右侧挤掉一块，和侧栏面板的细条也不一致。 */
+    .xterm .xterm-viewport { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+    .xterm:hover .xterm-viewport { scrollbar-color: rgba(230, 230, 230, .26) transparent; }
+    .xterm .xterm-viewport::-webkit-scrollbar { width: 6px; height: 6px; }
+    .xterm .xterm-viewport::-webkit-scrollbar-track { background: transparent; }
+    .xterm .xterm-viewport::-webkit-scrollbar-thumb {
+      background-color: transparent;
+      border-radius: 4px;
+    }
+    .xterm:hover .xterm-viewport::-webkit-scrollbar-thumb { background-color: rgba(230, 230, 230, .26); }
+    .xterm .xterm-viewport::-webkit-scrollbar-thumb:hover { background-color: rgba(230, 230, 230, .45); }
     #status { position: fixed; top: 8px; right: 14px;
               color: #eee; background: rgba(0,0,0,.72); padding: 5px 12px; border-radius: 4px;
               font: 12px/1.4 monospace; z-index: 11; pointer-events: none; }
@@ -41,6 +53,11 @@
       var params = new URLSearchParams(location.search);
       var hostId = params.get('hostId') || '';
       var identityId = params.get('identityId') || '';
+      /* 共享终端：roomId 表示接入已有共享房间；readonly=1 表示当前账号无操作权限 */
+      var roomId = params.get('roomId') || '';
+      var userId = params.get('userId') || '';
+      var sharedUser = params.get('user') || '';
+      var readonly = params.get('readonly') === '1';
 
       var term = new Terminal({
         cursorBlink: true,
@@ -54,16 +71,87 @@
       term.open(document.getElementById('term'));
       fit.fit();
 
+      /* ===== 输入跟踪：终端里执行 `pwd` 回车后，把当前目录回传给外层文件面板 ===== */
+      var lineBuf = '';
+      var pwdPoll = null;
+      var pwdStartY = 0;
+      var pwdDeadline = 0;
+
+      /** 去掉方向键 / 删除键等转义序列，只留可打印字符 */
+      function plainInput(data) {
+        return data.replace(/\x1b\[[0-9;?]*[A-Za-z]/g, '').replace(/\x1b./g, '');
+      }
+
+      /** 从 xterm 回滚缓冲里找 pwd 输出行（POSIX / Windows 绝对路径） */
+      function scanPwd() {
+        var buf = term.buffer.active;
+        var end = buf.baseY + buf.cursorY;
+        for (var y = pwdStartY; y <= end; y++) {
+          var line = buf.getLine(y);
+          if (!line) continue;
+          var text = line.translateToString(true).trim();
+          if (!text || text === 'pwd') continue;
+          if (/^\/[^\s]*$/.test(text) || /^[A-Za-z]:[\\/][^\s]*$/.test(text)) {
+            if (window.parent && window.parent !== window) {
+              window.parent.postMessage({ type: 'TERMINAL_CWD', cwd: text }, '*');
+            }
+            return true;
+          }
+        }
+        return false;
+      }
+
+      /** 记录 pwd 执行时的光标行，轮询等输出落到缓冲里 */
+      function watchPwd() {
+        var buf = term.buffer.active;
+        pwdStartY = buf.baseY + buf.cursorY;
+        pwdDeadline = Date.now() + 3000;
+        if (pwdPoll) clearInterval(pwdPoll);
+        pwdPoll = setInterval(function () {
+          if (scanPwd() || Date.now() > pwdDeadline) {
+            clearInterval(pwdPoll);
+            pwdPoll = null;
+          }
+        }, 120);
+      }
+
+      /** 逐键累积当前行；回车时命令恰好是 pwd 才开始等输出 */
+      function trackInput(data) {
+        var clean = plainInput(data);
+        for (var i = 0; i < clean.length; i++) {
+          var ch = clean.charAt(i);
+          var code = clean.charCodeAt(i);
+          if (ch === '\r' || ch === '\n') {
+            var cmd = lineBuf.trim();
+            lineBuf = '';
+            if (cmd === 'pwd') watchPwd();
+          } else if (code === 127 || code === 8) {
+            lineBuf = lineBuf.slice(0, -1);
+          } else if (code === 21 || code === 3) {
+            lineBuf = '';
+          } else if (code >= 32) {
+            lineBuf += ch;
+          }
+        }
+      }
+
       var wsProto = location.protocol === 'https:' ? 'wss://' : 'ws://';
       var wsUrl = wsProto + location.host + '/ws/ms/server/terminal/ssh?hostId=' + encodeURIComponent(hostId)
         + '&cols=' + term.cols + '&rows=' + term.rows
         + (identityId ? '&identityId=' + encodeURIComponent(identityId) : '')
+        + (roomId ? '&roomId=' + encodeURIComponent(roomId) : '')
+        + (userId ? '&userId=' + encodeURIComponent(userId) : '')
+        + (sharedUser ? '&user=' + encodeURIComponent(sharedUser) : '')
         + (params.get('x-oauth-token') ? '&x-oauth-token=' + encodeURIComponent(params.get('x-oauth-token')) : '');
       var ws = new WebSocket(wsUrl);
       ws.binaryType = 'arraybuffer';
       var encoder = new TextEncoder();
 
+      /* 无操作权限（私有共享未授权）：本地直接吞掉输入，避免「敲了没反应」的困惑，
+         状态条同时给出只读提示。后端同样会丢弃，前端这层是即时反馈。 */
       term.onData(function (data) {
+        trackInput(data);
+        if (readonly) return;
         if (ws.readyState === WebSocket.OPEN) ws.send(encoder.encode(data));
       });
       term.onResize(function (size) {
@@ -75,7 +163,10 @@
       var loadingEl = document.getElementById('loading');
       var loadingLbl = document.getElementById('loading-lbl');
       var loadingSub = document.getElementById('loading-sub');
-      loadingSub.textContent = 'hostId=' + hostId + (identityId ? (' identityId=' + identityId) : '');
+      loadingSub.textContent = 'hostId=' + hostId
+        + (identityId ? (' identityId=' + identityId) : '')
+        + (roomId ? (' roomId=' + roomId) : '')
+        + (readonly ? ' readonly' : '');
       function hideLoading() { loadingEl.classList.add('hide'); }
       function loadingError(msg) {
         var sp = loadingEl.querySelector('.spinner');
@@ -86,16 +177,24 @@
       }
 
       ws.onopen = function () {
-        statusEl.textContent = '已连接（SSH 直连）';
+        statusEl.textContent = readonly ? '已连接（只读 · 无协同权限）' : '已连接（SSH 直连）';
         hideLoading();
         term.focus();
       };
       var errored = false;
       ws.onmessage = function (event) {
         if (typeof event.data === 'string') {
-          // 控制通道：后端只在拒绝连接时回一条 JSON 错误
-          var msg = event.data;
-          try { msg = JSON.parse(msg).msg || msg; } catch (e) { /* 原样显示 */ }
+          // 控制通道：共享终端回房间状态 / 成员进出；拒绝连接时回 {"c":"error"}
+          var cmd = null;
+          try { cmd = JSON.parse(event.data); } catch (e) { cmd = null; }
+          if (cmd && cmd.c && cmd.c !== 'error' && cmd.c !== 'closed') {
+            // 房间状态：同步写权限（后端为准），只读时提示用户
+            if (cmd.c === 'room' && Object.prototype.hasOwnProperty.call(cmd, 'writable')) {
+              readonly = !cmd.writable;
+            }
+            return;
+          }
+          var msg = cmd && cmd.msg ? cmd.msg : event.data;
           errored = true;
           statusEl.textContent = msg;
           loadingError(msg);

@@ -1,17 +1,14 @@
 /**
- * @pages/tunnel 内网穿透隧道菜单路由
+ * @pages/tunnel 内网穿透菜单路由
  *
- * <p>ngrok / Cloudflare Tunnel 两种 Provider 的隧道工作台路由，框架侧（{@code @pages/monitor}）
- * 通过 {@code createTunnelRoutes()} 展开挂载到“内网穿透”菜单分组下：</p>
- * <ul>
- *   <li>{@code /grp-tunnel} － 内网穿透（菜单分组，仅标题与折叠，由 {@code children} 中的叶子页驱动菜单渲染）</li>
- *   <li>{@code /tunnels/ngrok} － ngrok 隧道工作台</li>
- *   <li>{@code /tunnels/cloudflared} － Cloudflare Tunnel 隧道工作台</li>
- * </ul>
+ * <p>侧边栏只有<strong>一个</strong>入口：{@code /tunnel}。ngrok 与 Cloudflare
+ * Tunnel 是同一个 SPI 的两种实现（{@code TunnelProvider}），在页面里表现为
+ * 「新增映射时选哪个提供方」，而不是两个菜单项 —— 两个菜单时代的页面只是
+ * 同一份代码的两个实例。</p>
  *
- * 工作台页面（{@code TunnelWorkbench.vue}）通过 Provider 拆分：
- * {@code NgrokTunnelView.vue} / {@code CloudflaredTunnelView.vue} 再 props 下发 provider；
- * 两组 Tab 各自独立且可保留缓存（keepAlive: true）。
+ * <p>旧路径 {@code /tunnels/ngrok}、{@code /tunnels/cloudflared} 作为历史书签
+ * 保留为隐藏重定向（{@code showLink: false}），点进去落回 {@code /tunnel}，
+ * 不做 404。</p>
  *
  * @author CH
  * @since 4.0.0.52
@@ -28,17 +25,11 @@ export interface TunnelRoutesOptions {
   rank?: number;
 }
 
-/** Provider 分组 Tab 定义 */
-const TUNNEL_TABS: { provider: "ngrok" | "cloudflared"; title: string; view: string }[] = [
-  { provider: "ngrok", title: "ngrok", view: "NgrokTunnelView" },
-  { provider: "cloudflared", title: "Cloudflare Tunnel", view: "CloudflaredTunnelView" },
-];
-
 /**
- * 内网穿透隧道工作台路由
+ * 内网穿透路由（分组 + 单个叶子页）
  *
  * @param options 菜单参数
- * @returns 分组路由 + Provider 子路由
+ * @returns 分组路由 + 合并后的隧道页 + 旧路径重定向
  */
 export function createTunnelRoutes(options: TunnelRoutesOptions = {}): RouteConfigsTable[] {
   const { showLink = true, activeMenu = "/grp-tunnel", rank = 15 } = options;
@@ -54,19 +45,34 @@ export function createTunnelRoutes(options: TunnelRoutesOptions = {}): RouteConf
         activeMenu,
         rank,
       },
-      children: TUNNEL_TABS.map((tab, index) => ({
-        path: `/tunnels/${tab.provider}`,
-        name: `Tunnel_${tab.provider}`,
-        component: () => import(`../views/${tab.view}.vue`),
-        meta: {
-          title: tab.title,
-          icon: "Link",
-          showLink: true,
-          activeMenu,
-          rank: index + 1,
-          keepAlive: true,
+      children: [
+        {
+          path: "/tunnel",
+          name: "Tunnel",
+          component: () => import("../views/TunnelPage.vue"),
+          meta: {
+            title: "隧道列表",
+            icon: "Link",
+            showLink: true,
+            activeMenu,
+            rank: 1,
+            keepAlive: true,
+          },
         },
-      })),
+        // 两个提供方各占一个菜单的时代留下的书签：隐藏并重定向，不进侧边栏
+        {
+          path: "/tunnels/ngrok",
+          name: "TunnelNgrokLegacy",
+          redirect: "/tunnel",
+          meta: { title: "ngrok", showLink: false, activeMenu, rank: 2 },
+        },
+        {
+          path: "/tunnels/cloudflared",
+          name: "TunnelCloudflaredLegacy",
+          redirect: "/tunnel",
+          meta: { title: "Cloudflare Tunnel", showLink: false, activeMenu, rank: 3 },
+        },
+      ],
     },
   ];
 }

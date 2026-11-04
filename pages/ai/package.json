@@ -32,6 +32,8 @@
     "@vuelidate/core": "^2.0.3",
     "@vuelidate/validators": "^2.0.4",
     "@vueuse/core": "^14.1.0",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
     "axios": "^1.13.2",
     "diff": "^9.0.0",
     "diff-dom": "^5.2.1",

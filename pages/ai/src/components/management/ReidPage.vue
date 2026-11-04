@@ -307,7 +307,7 @@ const natural = ref({ w: 0, h: 0 });
 const observeResult = ref<ReidObserveResult | null>(null);
 
 /** 本帧检测框。 */
-const faces = ref<Array<{ x: number; y: number; width: number; height: number; trackId: string | null; matched: boolean }>>([]);
+const faces = ref<ReidFaceBox[]>([]);
 
 /** 以图搜人命中。 */
 const searchHits = ref<ReidHit[]>([]);
@@ -559,10 +559,9 @@ async function runObserve() {
       group.value,
     );
     observeResult.value = result;
-    faces.value = (result.faces ?? []).map((f) => ({
-      x: f.x, y: f.y, width: f.width, height: f.height,
-      trackId: f.trackId ?? null, matched: f.matched,
-    }));
+    // 原样保留后端给的框（含 score / matchType / faceName）：只把可空的 trackId 归一成 null，
+    // 叠加层要按 matchType 分「人脸识别 / 重识别 / 未命中」三种框样式
+    faces.value = (result.faces ?? []).map((f) => ({ ...f, trackId: f.trackId ?? null }));
     message.success(`观测完成：检出 ${result.faceCount} 张脸`);
     await loadObservations();
   } catch (e) {

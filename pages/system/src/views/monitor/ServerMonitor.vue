@@ -8,16 +8,17 @@
  * 数据流：REST /v2/server/info 首拉 → SSE /v2/server/info/stream 每秒推送（OSHI + JMX 真实采集）。
  */
 import { message } from "@repo/core";
-import { computed, markRaw, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, markRaw, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import type { Component } from "vue";
 import { getConfig } from "@repo/config";
 
 import {
-  Refresh, Cpu, Document, Coffee, DocumentCopy,
+  Refresh, RefreshLeft, Select, Cpu, Document, Coffee, DocumentCopy,
   Coin, DataBoard, FolderOpened, Share, Odometer,
-  CircleCheckFilled, Files, FullScreen, Aim, Search, ArrowDown,
+  CircleCheckFilled, Files, FullScreen, Aim, Search, ArrowDown, Grid,
 } from "@element-plus/icons-vue";
 import ReEChart from "../components/ReEChart.vue";
+import MonitorCardBoard from "./cards/MonitorCardBoard.vue";
 import ReDialog from "@repo/ui/components/ReDialog/ReDialog.vue";
 import ReStatsCard from "@repo/ui/re-stats-card";
 import type { ReStatsCardItem } from "@repo/ui/re-stats-card";
@@ -38,6 +39,34 @@ const colors = useElColors();
 const info = ref<ServerInfo>({});
 const loading = ref(false);
 const updateTime = ref("");
+
+/* ============ 整页自定义布局（页头以下的区块全进网格） ============ */
+/** 看板组件实例：页头的「自定义 / 保存」「恢复默认」都通过它操作布局 */
+const boardRef = ref<InstanceType<typeof MonitorCardBoard> | null>(null);
+/** 编辑态镜像：页头按钮要跟着「自定义 ↔ 保存」切换，所以在本页留一份可响应的状态 */
+const layoutEditing = ref(false);
+
+/**
+ * 页头「自定义 / 保存」：同一个按钮在两态间切换。
+ *
+ * <p>进入编辑后滚到页面顶部（而不是某一块）：现在<b>整页</b>都是可拖的，
+ * 需要用户看到整张画布，只滚到某个区块反而像「只有那一块能改」。</p>
+ */
+async function toggleCustomLayout(): Promise<void> {
+  layoutEditing.value = Boolean(boardRef.value?.toggleEdit());
+  if (!layoutEditing.value) return;
+  await nextTick();
+  document.querySelector(".srv-board")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/** 页头「恢复默认」：退回进入编辑前的那一版布局（改动是即时落盘的，这是唯一撤销入口） */
+async function restoreLayout(): Promise<void> {
+  const done = await boardRef.value?.restorePreEdit();
+  if (done) {
+    // 恢复之后仍是编辑态，用户可以接着摆
+    layoutEditing.value = Boolean(boardRef.value?.editing);
+  }
+}
 
 /* ============ 详情 Tab ============ */
 type DetailTab = "disk" | "network" | "system";
@@ -1370,137 +1399,183 @@ function coreRowOpt(index: number): Opt {
         <button class="srv-icon-btn" title="全屏" @click="toggleFullscreen">
           <el-icon :size="16"><FullScreen /></el-icon>
         </button>
+        <!-- 编辑态才露出的第二个入口：退回进入编辑前的布局（改动即时落盘，这是唯一撤销口） -->
+        <button
+          v-if="layoutEditing"
+          class="srv-primary-btn srv-primary-btn--ghost"
+          title="恢复到进入编辑前的布局"
+          @click="restoreLayout"
+        >
+          <el-icon :size="15"><RefreshLeft /></el-icon>
+          恢复默认
+        </button>
+        <button
+          class="srv-primary-btn"
+          :class="{ 'srv-primary-btn--ghost': layoutEditing }"
+          :title="layoutEditing ? '保存当前布局并退出编辑' : '页头以下整页都可拖动摆放、缩放大小'"
+          @click="toggleCustomLayout"
+        >
+          <el-icon :size="15"><component :is="layoutEditing ? Select : Grid" /></el-icon>
+          {{ layoutEditing ? "保存" : "自定义" }}
+        </button>
         <button class="srv-primary-btn" @click="openDetailDialog('system')">系统详情</button>
       </div>
     </div>
 
-    <!-- ===== KPI 统计卡（ReStatsCard 数组直出 · 原型 6 列） ===== -->
-    <section class="srv-kpis">
-      <ReStatsCard
-        :list="kpiCards"
-        :columns="6"
-        class="srv-kpis__grid"
-        @item-click="onKpiClick"
-      />
-    </section>
+    <!--
+      ===== 页头以下整页就是一张网格 =====
+      KPI / RESTful 趋势 / 内存池 / 磁盘&网络 / GC / 趋势 / 网络流量 / 磁盘分区 / 系统信息
+      这些原生区块，和注册表里的外围卡片（Actuator / OTel / 自定义）住在同一张
+      12 列网格里 —— 拖拽摆放、拖右下角缩放、增删都由 MonitorCardBoard 负责。
 
-    <!-- ===== 主区：RESTful 趋势 | 内存粗环 | 磁盘粗环&网络&GC 侧栏 ===== -->
-    <section class="srv-main">
-      <div class="srv-card srv-restful-panel">
-        <div class="srv-card__head">
-          <h3 class="srv-card__title">RESTful 趋势</h3>
-          <div class="srv-seg srv-seg--pill">
-            <button class="srv-seg__btn" :class="{ 'is-active': restfulMode === 'count' }" @click="restfulMode = 'count'">常规请求</button>
-            <button class="srv-seg__btn" :class="{ 'is-active': restfulMode === 'qps' }" @click="restfulMode = 'qps'">QPS</button>
-            <button class="srv-seg__btn" :class="{ 'is-active': restfulMode === 'top' }" @click="restfulMode = 'top'">Top</button>
-            <button class="srv-seg__btn" :class="{ 'is-active': restfulMode === 'ip' }" @click="restfulMode = 'ip'">IP</button>
+      原生区块的正文仍写在这里（#block 插槽）：它们直接吃本页的 SSE 实时数据与图表
+      option，抽成组件要把几十个绑定重新接一遍，收益为零。
+    -->
+    <MonitorCardBoard ref="boardRef" class="srv-board">
+      <template #block="{ card, editable }">
+        <!-- ===== KPI 统计卡（ReStatsCard 数组直出 · 原型 6 列） ===== -->
+        <section
+          v-if="card.type === 'page:kpi'"
+          class="srv-block srv-kpis"
+          :class="{ 'is-editable': editable }"
+        >
+          <ReStatsCard
+            :list="kpiCards"
+            :columns="6"
+            class="srv-kpis__grid"
+            @item-click="onKpiClick"
+          />
+        </section>
+
+        <!-- ===== RESTful 趋势 ===== -->
+        <div
+          v-else-if="card.type === 'page:restful'"
+          class="srv-block srv-card srv-restful-panel"
+          :class="{ 'is-editable': editable }"
+        >
+          <div class="srv-card__head">
+            <h3 class="srv-card__title">RESTful 趋势</h3>
+            <div class="srv-seg srv-seg--pill">
+              <button class="srv-seg__btn" :class="{ 'is-active': restfulMode === 'count' }" @click="restfulMode = 'count'">常规请求</button>
+              <button class="srv-seg__btn" :class="{ 'is-active': restfulMode === 'qps' }" @click="restfulMode = 'qps'">QPS</button>
+              <button class="srv-seg__btn" :class="{ 'is-active': restfulMode === 'top' }" @click="restfulMode = 'top'">Top</button>
+              <button class="srv-seg__btn" :class="{ 'is-active': restfulMode === 'ip' }" @click="restfulMode = 'ip'">IP</button>
+            </div>
+          </div>
+          <div class="srv-restful-panel__body">
+            <div class="srv-restful-kpis">
+              <div class="srv-restful-kpi">
+                <span>窗口请求</span>
+                <b>{{ restfulSummary.windowCount ?? 0 }}</b>
+              </div>
+              <div class="srv-restful-kpi">
+                <span>QPS</span>
+                <b>{{ restfulQpsNow }}</b>
+              </div>
+              <div class="srv-restful-kpi">
+                <span>成功 / 失败</span>
+                <b>
+                  <i :style="{ color: colors.success, fontStyle: 'normal' }">{{ restfulSummary.windowSuccess ?? 0 }}</i>
+                  /
+                  <i :style="{ color: colors.danger, fontStyle: 'normal' }">{{ restfulSummary.windowFail ?? 0 }}</i>
+                </b>
+              </div>
+              <div class="srv-restful-kpi">
+                <span>平均耗时</span>
+                <b>{{ restfulSummary.windowAvgMs ?? 0 }}<small>ms</small></b>
+              </div>
+            </div>
+            <ReEChart v-if="restfulHasData" :option="(restfulChartOpt as never)" height="180px" class="srv-restful-panel__chart" />
+            <p v-else class="srv-empty-inline srv-restful-panel__empty">{{ restfulMode === 'top' ? '暂无 Top 数据（等待业务请求）' : restfulMode === 'ip' ? '暂无 IP 数据（等待业务请求）' : '采集中… 页面请求将写入旁路统计' }}</p>
+            <div class="srv-restful-lists">
+              <div class="srv-restful-top">
+                <div class="srv-restful-top__head">
+                  <span>Top 接口</span>
+                  <small>按累计次数 · 共 {{ restfulSummary.total ?? 0 }}</small>
+                </div>
+                <div v-if="restfulTopUrls.length" class="srv-restful-top__list">
+                  <div v-for="u in restfulTopUrls.slice(0, 6)" :key="u.key" class="srv-restful-top__row">
+                    <span class="srv-restful-top__m" :class="`is-${(u.method || 'GET').toLowerCase()}`">{{ u.method }}</span>
+                    <code class="srv-restful-top__u" :title="u.url">{{ u.url }}</code>
+                    <b class="srv-restful-top__c">{{ u.count }}</b>
+                    <small class="srv-restful-top__ms"><ReTime :value="costMs(u.avgMs)" format="duration" placeholder="—" /></small>
+                    <el-tooltip
+                      v-if="u.ips?.length"
+                      placement="top"
+                      :content="`来源 IP：${u.ips.map((i) => `${i.ip} ×${i.count}`).join('，')}`"
+                    >
+                      <span class="srv-restful-top__ip">{{ u.ips[0]?.ip }}<i v-if="u.ips.length > 1">+{{ u.ips.length - 1 }}</i></span>
+                    </el-tooltip>
+                  </div>
+                </div>
+                <p v-else class="srv-empty-inline">暂无请求（需登录后产生业务请求）</p>
+              </div>
+              <div class="srv-restful-top">
+                <div class="srv-restful-top__head">
+                  <span>IP 排行</span>
+                  <small>按累计次数 · {{ restfulTopIps.length }} 个来源</small>
+                </div>
+                <div v-if="restfulTopIps.length" class="srv-restful-top__list">
+                  <div v-for="(it, idx) in restfulTopIps.slice(0, 6)" :key="it.ip" class="srv-restful-top__row">
+                    <span class="srv-restful-top__rank" :class="{ 'is-top': idx < 3 }">{{ idx + 1 }}</span>
+                    <code class="srv-restful-top__u" :title="it.topUrl || ''">{{ it.ip }}</code>
+                    <b class="srv-restful-top__c">{{ it.count }}</b>
+                    <small class="srv-restful-top__ms"><ReTime :value="costMs(it.avgMs)" format="duration" placeholder="—" /></small>
+                  </div>
+                </div>
+                <p v-else class="srv-empty-inline">暂无来源 IP 统计</p>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="srv-restful-panel__body">
-          <div class="srv-restful-kpis">
-            <div class="srv-restful-kpi">
-              <span>窗口请求</span>
-              <b>{{ restfulSummary.windowCount ?? 0 }}</b>
-            </div>
-            <div class="srv-restful-kpi">
-              <span>QPS</span>
-              <b>{{ restfulQpsNow }}</b>
-            </div>
-            <div class="srv-restful-kpi">
-              <span>成功 / 失败</span>
-              <b>
-                <i :style="{ color: colors.success, fontStyle: 'normal' }">{{ restfulSummary.windowSuccess ?? 0 }}</i>
-                /
-                <i :style="{ color: colors.danger, fontStyle: 'normal' }">{{ restfulSummary.windowFail ?? 0 }}</i>
-              </b>
-            </div>
-            <div class="srv-restful-kpi">
-              <span>平均耗时</span>
-              <b>{{ restfulSummary.windowAvgMs ?? 0 }}<small>ms</small></b>
-            </div>
+
+        <!-- ===== JVM 内存池 ===== -->
+        <div
+          v-else-if="card.type === 'page:mem'"
+          class="srv-block srv-card srv-mem-panel"
+          :class="{ 'is-editable': editable }"
+        >
+          <div class="srv-mem-panel__head">
+            <h3 class="srv-card__title">JVM 内存池</h3>
+            <span class="srv-mem-panel__percent">{{ jvmMemPct }}%</span>
           </div>
-          <ReEChart v-if="restfulHasData" :option="(restfulChartOpt as never)" height="180px" class="srv-restful-panel__chart" />
-          <p v-else class="srv-empty-inline srv-restful-panel__empty">{{ restfulMode === 'top' ? '暂无 Top 数据（等待业务请求）' : restfulMode === 'ip' ? '暂无 IP 数据（等待业务请求）' : '采集中… 页面请求将写入旁路统计' }}</p>
-          <div class="srv-restful-lists">
-            <div class="srv-restful-top">
-              <div class="srv-restful-top__head">
-                <span>Top 接口</span>
-                <small>按累计次数 · 共 {{ restfulSummary.total ?? 0 }}</small>
-              </div>
-              <div v-if="restfulTopUrls.length" class="srv-restful-top__list">
-                <div v-for="u in restfulTopUrls.slice(0, 6)" :key="u.key" class="srv-restful-top__row">
-                  <span class="srv-restful-top__m" :class="`is-${(u.method || 'GET').toLowerCase()}`">{{ u.method }}</span>
-                  <code class="srv-restful-top__u" :title="u.url">{{ u.url }}</code>
-                  <b class="srv-restful-top__c">{{ u.count }}</b>
-                  <small class="srv-restful-top__ms"><ReTime :value="costMs(u.avgMs)" format="duration" placeholder="—" /></small>
-                  <el-tooltip
-                    v-if="u.ips?.length"
-                    placement="top"
-                    :content="`来源 IP：${u.ips.map((i) => `${i.ip} ×${i.count}`).join('，')}`"
-                  >
-                    <span class="srv-restful-top__ip">{{ u.ips[0]?.ip }}<i v-if="u.ips.length > 1">+{{ u.ips.length - 1 }}</i></span>
-                  </el-tooltip>
+          <div class="srv-mem-groups">
+            <section v-for="group in memoryPoolGroups" :key="group.key" class="srv-mem-group">
+              <h4>{{ group.label }}</h4>
+              <div v-if="group.pools.length" class="srv-mem-group__list">
+                <div
+                  v-for="pool in group.pools"
+                  :key="pool.key"
+                  class="srv-mem-pool"
+                  :class="`is-${pool.tone}`"
+                  :style="{ flexGrow: pool.weight }"
+                  :title="`${pool.name} · 已用 ${formatBytes(pool.used)} / 上限 ${formatBytes(pool.max)} · ${pool.usage}%`"
+                >
+                  <span>{{ pool.name }}</span>
+                  <b>{{ formatBytes(pool.used) }}</b>
                 </div>
               </div>
-              <p v-else class="srv-empty-inline">暂无请求（需登录后产生业务请求）</p>
+              <el-empty v-else description="暂无数据" :image-size="36" />
+            </section>
+          </div>
+          <div class="srv-mem-quick">
+            <div class="srv-mem-quick__item">
+              <span>已用 / 总量</span>
+              <b>{{ memCells(info.jvmMemory).used }} <small>/</small> {{ memCells(info.jvmMemory).total }}</b>
             </div>
-            <div class="srv-restful-top">
-              <div class="srv-restful-top__head">
-                <span>IP 排行</span>
-                <small>按累计次数 · {{ restfulTopIps.length }} 个来源</small>
-              </div>
-              <div v-if="restfulTopIps.length" class="srv-restful-top__list">
-                <div v-for="(it, idx) in restfulTopIps.slice(0, 6)" :key="it.ip" class="srv-restful-top__row">
-                  <span class="srv-restful-top__rank" :class="{ 'is-top': idx < 3 }">{{ idx + 1 }}</span>
-                  <code class="srv-restful-top__u" :title="it.topUrl || ''">{{ it.ip }}</code>
-                  <b class="srv-restful-top__c">{{ it.count }}</b>
-                  <small class="srv-restful-top__ms"><ReTime :value="costMs(it.avgMs)" format="duration" placeholder="—" /></small>
-                </div>
-              </div>
-              <p v-else class="srv-empty-inline">暂无来源 IP 统计</p>
+            <div class="srv-mem-quick__item">
+              <span>GC</span>
+              <b>{{ gcTotalCount }} <small>次</small> · {{ (gcTotalTimeMs / 1000).toFixed(1) }}<small>s</small></b>
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="srv-card srv-mem-panel">
-        <div class="srv-mem-panel__head">
-          <h3 class="srv-card__title">JVM 内存池</h3>
-          <span class="srv-mem-panel__percent">{{ jvmMemPct }}%</span>
-        </div>
-        <div class="srv-mem-groups">
-          <section v-for="group in memoryPoolGroups" :key="group.key" class="srv-mem-group">
-            <h4>{{ group.label }}</h4>
-            <div v-if="group.pools.length" class="srv-mem-group__list">
-              <div
-                v-for="pool in group.pools"
-                :key="pool.key"
-                class="srv-mem-pool"
-                :class="`is-${pool.tone}`"
-                :style="{ flexGrow: pool.weight }"
-                :title="`${pool.name} · 已用 ${formatBytes(pool.used)} / 上限 ${formatBytes(pool.max)} · ${pool.usage}%`"
-              >
-                <span>{{ pool.name }}</span>
-                <b>{{ formatBytes(pool.used) }}</b>
-              </div>
-            </div>
-            <el-empty v-else description="暂无数据" :image-size="36" />
-          </section>
-        </div>
-        <div class="srv-mem-quick">
-          <div class="srv-mem-quick__item">
-            <span>已用 / 总量</span>
-            <b>{{ memCells(info.jvmMemory).used }} <small>/</small> {{ memCells(info.jvmMemory).total }}</b>
-          </div>
-          <div class="srv-mem-quick__item">
-            <span>GC</span>
-            <b>{{ gcTotalCount }} <small>次</small> · {{ (gcTotalTimeMs / 1000).toFixed(1) }}<small>s</small></b>
-          </div>
-        </div>
-      </div>
-
-      <aside class="srv-side">
-        <div class="srv-card srv-side__card">
+        <!-- ===== 磁盘 & 网络（原右侧栏第一张） ===== -->
+        <div
+          v-else-if="card.type === 'page:disk-net'"
+          class="srv-block srv-card srv-side__card"
+          :class="{ 'is-editable': editable }"
+        >
           <div class="srv-card__head">
             <h3 class="srv-card__title">磁盘 & 网络</h3>
             <button class="srv-chip" @click="openDetailDialog('disk')">分区</button>
@@ -1535,7 +1610,12 @@ function coreRowOpt(index: number): Opt {
           </div>
         </div>
 
-        <div class="srv-card srv-side__card">
+        <!-- ===== GC 统计（原右侧栏第二张） ===== -->
+        <div
+          v-else-if="card.type === 'page:gc'"
+          class="srv-block srv-card srv-side__card"
+          :class="{ 'is-editable': editable }"
+        >
           <div class="srv-card__head">
             <h3 class="srv-card__title">GC 统计</h3>
             <button class="srv-chip" @click="jvmDialogVisible = true">JVM</button>
@@ -1575,105 +1655,120 @@ function coreRowOpt(index: number): Opt {
             </div>
           </div>
         </div>
-      </aside>
-    </section>
 
-    <!-- ===== 资源趋势 ===== -->
-    <section class="srv-trend-row">
-      <div class="srv-card srv-trend-card">
-        <div class="srv-card__head">
-          <h3 class="srv-card__title">
-            {{ trendTab === 'heap' ? 'JVM 堆内存趋势' : trendTab === 'cpu' ? 'CPU 使用率趋势' : trendTab === 'sysmem' ? '系统内存趋势' : trendTab === 'restful' ? 'RESTful 请求趋势' : '系统负载趋势' }}
-          </h3>
-          <div class="srv-seg">
-            <button class="srv-seg__btn" :class="{ 'is-active': trendTab === 'restful' }" @click="trendTab = 'restful'">RESTful</button>
-            <button class="srv-seg__btn" :class="{ 'is-active': trendTab === 'heap' }" @click="trendTab = 'heap'">堆内存</button>
-            <button class="srv-seg__btn" :class="{ 'is-active': trendTab === 'cpu' }" @click="trendTab = 'cpu'">CPU</button>
-            <button class="srv-seg__btn" :class="{ 'is-active': trendTab === 'sysmem' }" @click="trendTab = 'sysmem'">系统内存</button>
-            <button class="srv-seg__btn" :class="{ 'is-active': trendTab === 'load' }" @click="trendTab = 'load'">负载</button>
-          </div>
-        </div>
-        <ReEChart :option="(mainChartOpt as never)" height="calc(100% - 36px)" class="srv-card__chart" />
-        <div class="srv-trend-card__foot">
-          <span v-if="trendTab === 'restful'">窗口请求 {{ restfulSummary.windowCount ?? 0 }} · QPS {{ restfulQpsNow }} · 平均 {{ restfulSummary.windowAvgMs ?? 0 }}ms</span>
-          <span v-else-if="trendTab === 'heap'">已用 {{ memCells(info.jvmMemory).used }} / 最大 {{ memCells(info.jvmMemory).max || memCells(info.jvmMemory).total }}</span>
-          <span v-else-if="trendTab === 'cpu'">CPU {{ cpuPct }}% · 负载 {{ loadAvg.toFixed(2) }}</span>
-          <span v-else-if="trendTab === 'sysmem'">系统内存 {{ sysMemPct }}% · {{ formatBytes(info.systemMemory?.used) }} / {{ formatBytes(info.systemMemory?.total) }}</span>
-          <span v-else>负载 {{ loadAvg.toFixed(2) }} · 近 {{ MAX_POINTS }} 秒</span>
-          <span>{{ trendTab === 'restful' ? '最近 60 秒 · 方案 A 旁路' : `最近 ${MAX_POINTS} 秒 · SSE 实时` }}</span>
-        </div>
-      </div>
-      <div class="srv-card srv-trend-card srv-trend-card--net">
-        <div class="srv-card__head">
-          <h3 class="srv-card__title">网络流量</h3>
-          <span class="srv-card__tag">{{ mainNetIfc?.displayName || mainNetIfc?.name || '—' }}</span>
-        </div>
-        <ReEChart :option="(netFlowChartOpt as never)" height="calc(100% - 36px)" class="srv-card__chart" />
-      </div>
-    </section>
-
-    <!-- ===== 底部：磁盘分区 | 系统 + Spring ===== -->
-    <section class="srv-bottom">
-      <div class="srv-card srv-bottom__card">
-        <div class="srv-card__head">
-          <h3 class="srv-card__title">磁盘分区</h3>
-          <button class="srv-chip" @click="openDetailDialog('disk')">全部详情</button>
-        </div>
-        <div class="srv-disk-list">
-          <div v-for="d in info.disks ?? []" :key="d.path" class="srv-disk-item">
-            <span
-              class="srv-disk-item__icon"
-              :style="{ background: diskColor(d.usagePercent ?? 0) }"
-            >
-              <el-icon :size="22" color="var(--el-color-white)"><FolderOpened /></el-icon>
-            </span>
-            <div class="srv-disk-item__body">
-              <div class="srv-disk-item__value">
-                {{ driveLabel(d.path) }}
-                <small>{{ r1(d.usagePercent ?? 0) }}%</small>
-              </div>
-              <div class="srv-disk-item__desc">
-                {{ d.fsType || "—" }} · {{ formatBytes(d.used) }} / {{ formatBytes(d.total) }} · 剩余 {{ formatBytes(d.free ?? d.available) }}
-              </div>
-              <div class="srv-disk-item__track">
-                <div
-                  class="srv-disk-item__fill"
-                  :style="{ width: Math.min(100, d.usagePercent ?? 0) + '%', background: diskColor(d.usagePercent ?? 0) }"
-                />
-              </div>
+        <!-- ===== 资源趋势 ===== -->
+        <div
+          v-else-if="card.type === 'page:trend'"
+          class="srv-block srv-card srv-trend-card"
+          :class="{ 'is-editable': editable }"
+        >
+          <div class="srv-card__head">
+            <h3 class="srv-card__title">
+              {{ trendTab === 'heap' ? 'JVM 堆内存趋势' : trendTab === 'cpu' ? 'CPU 使用率趋势' : trendTab === 'sysmem' ? '系统内存趋势' : trendTab === 'restful' ? 'RESTful 请求趋势' : '系统负载趋势' }}
+            </h3>
+            <div class="srv-seg">
+              <button class="srv-seg__btn" :class="{ 'is-active': trendTab === 'restful' }" @click="trendTab = 'restful'">RESTful</button>
+              <button class="srv-seg__btn" :class="{ 'is-active': trendTab === 'heap' }" @click="trendTab = 'heap'">堆内存</button>
+              <button class="srv-seg__btn" :class="{ 'is-active': trendTab === 'cpu' }" @click="trendTab = 'cpu'">CPU</button>
+              <button class="srv-seg__btn" :class="{ 'is-active': trendTab === 'sysmem' }" @click="trendTab = 'sysmem'">系统内存</button>
+              <button class="srv-seg__btn" :class="{ 'is-active': trendTab === 'load' }" @click="trendTab = 'load'">负载</button>
             </div>
           </div>
-          <el-empty v-if="!(info.disks ?? []).length" description="无磁盘数据" :image-size="48" />
+          <ReEChart :option="(mainChartOpt as never)" height="calc(100% - 36px)" class="srv-card__chart" />
+          <div class="srv-trend-card__foot">
+            <span v-if="trendTab === 'restful'">窗口请求 {{ restfulSummary.windowCount ?? 0 }} · QPS {{ restfulQpsNow }} · 平均 {{ restfulSummary.windowAvgMs ?? 0 }}ms</span>
+            <span v-else-if="trendTab === 'heap'">已用 {{ memCells(info.jvmMemory).used }} / 最大 {{ memCells(info.jvmMemory).max || memCells(info.jvmMemory).total }}</span>
+            <span v-else-if="trendTab === 'cpu'">CPU {{ cpuPct }}% · 负载 {{ loadAvg.toFixed(2) }}</span>
+            <span v-else-if="trendTab === 'sysmem'">系统内存 {{ sysMemPct }}% · {{ formatBytes(info.systemMemory?.used) }} / {{ formatBytes(info.systemMemory?.total) }}</span>
+            <span v-else>负载 {{ loadAvg.toFixed(2) }} · 近 {{ MAX_POINTS }} 秒</span>
+            <span>{{ trendTab === 'restful' ? '最近 60 秒 · 方案 A 旁路' : `最近 ${MAX_POINTS} 秒 · SSE 实时` }}</span>
+          </div>
         </div>
-      </div>
 
-      <div class="srv-card srv-bottom__card">
-        <div class="srv-card__head">
-          <h3 class="srv-card__title">系统信息</h3>
-          <button class="srv-chip" @click="openDetailDialog('system')">更多</button>
-        </div>
-        <div class="srv-sys-quick">
-          <div class="srv-sys-quick__row"><span>主机</span><b>{{ hostname }} · {{ info.server?.ip || '—' }}</b></div>
-          <div class="srv-sys-quick__row"><span>运行</span><b>{{ fmtUptime(info.systemUptime) }} · 进程 {{ fmtUptime(info.processUptime) }}</b></div>
-          <div class="srv-sys-quick__row"><span>线程</span><b>{{ info.threadCount ?? 0 }} / 峰 {{ info.peakThreadCount ?? 0 }} · 死锁 {{ info.deadlockedThreadCount ?? 0 }}</b></div>
-          <div class="srv-sys-quick__row"><span>类加载</span><b>{{ info.loadedClassCount ?? 0 }} / {{ info.totalLoadedClassCount ?? 0 }}</b></div>
-        </div>
-        <div class="srv-spring-block">
-          <div class="srv-spring-block__head">
-            <el-icon :size="14"><DocumentCopy /></el-icon>
-            <span>Spring 核心参数</span>
-            <small>{{ springEntries.length }} 项</small>
+        <!-- ===== 网络流量 ===== -->
+        <div
+          v-else-if="card.type === 'page:netflow'"
+          class="srv-block srv-card srv-trend-card srv-trend-card--net"
+          :class="{ 'is-editable': editable }"
+        >
+          <div class="srv-card__head">
+            <h3 class="srv-card__title">网络流量</h3>
+            <span class="srv-card__tag">{{ mainNetIfc?.displayName || mainNetIfc?.name || '—' }}</span>
           </div>
-          <div v-if="springEntries.length" class="srv-spring-list">
-            <div v-for="[k, v] in springEntries" :key="k" class="srv-spring-row">
-              <code>{{ k }}</code>
-              <span>{{ v }}</span>
+          <ReEChart :option="(netFlowChartOpt as never)" height="calc(100% - 36px)" class="srv-card__chart" />
+        </div>
+
+        <!-- ===== 磁盘分区 ===== -->
+        <div
+          v-else-if="card.type === 'page:disks'"
+          class="srv-block srv-card srv-bottom__card"
+          :class="{ 'is-editable': editable }"
+        >
+          <div class="srv-card__head">
+            <h3 class="srv-card__title">磁盘分区</h3>
+            <button class="srv-chip" @click="openDetailDialog('disk')">全部详情</button>
+          </div>
+          <div class="srv-disk-list">
+            <div v-for="d in info.disks ?? []" :key="d.path" class="srv-disk-item">
+              <span
+                class="srv-disk-item__icon"
+                :style="{ background: diskColor(d.usagePercent ?? 0) }"
+              >
+                <el-icon :size="22" color="var(--el-color-white)"><FolderOpened /></el-icon>
+              </span>
+              <div class="srv-disk-item__body">
+                <div class="srv-disk-item__value">
+                  {{ driveLabel(d.path) }}
+                  <small>{{ r1(d.usagePercent ?? 0) }}%</small>
+                </div>
+                <div class="srv-disk-item__desc">
+                  {{ d.fsType || "—" }} · {{ formatBytes(d.used) }} / {{ formatBytes(d.total) }} · 剩余 {{ formatBytes(d.free ?? d.available) }}
+                </div>
+                <div class="srv-disk-item__track">
+                  <div
+                    class="srv-disk-item__fill"
+                    :style="{ width: Math.min(100, d.usagePercent ?? 0) + '%', background: diskColor(d.usagePercent ?? 0) }"
+                  />
+                </div>
+              </div>
             </div>
+            <el-empty v-if="!(info.disks ?? []).length" description="无磁盘数据" :image-size="48" />
           </div>
-          <div v-else class="srv-empty-inline">暂无 Spring 参数（后端重启后生效）</div>
         </div>
-      </div>
-    </section>
+
+        <!-- ===== 系统信息 + Spring 参数 ===== -->
+        <div
+          v-else-if="card.type === 'page:sysinfo'"
+          class="srv-block srv-card srv-bottom__card"
+          :class="{ 'is-editable': editable }"
+        >
+          <div class="srv-card__head">
+            <h3 class="srv-card__title">系统信息</h3>
+            <button class="srv-chip" @click="openDetailDialog('system')">更多</button>
+          </div>
+          <div class="srv-sys-quick">
+            <div class="srv-sys-quick__row"><span>主机</span><b>{{ hostname }} · {{ info.server?.ip || '—' }}</b></div>
+            <div class="srv-sys-quick__row"><span>运行</span><b>{{ fmtUptime(info.systemUptime) }} · 进程 {{ fmtUptime(info.processUptime) }}</b></div>
+            <div class="srv-sys-quick__row"><span>线程</span><b>{{ info.threadCount ?? 0 }} / 峰 {{ info.peakThreadCount ?? 0 }} · 死锁 {{ info.deadlockedThreadCount ?? 0 }}</b></div>
+            <div class="srv-sys-quick__row"><span>类加载</span><b>{{ info.loadedClassCount ?? 0 }} / {{ info.totalLoadedClassCount ?? 0 }}</b></div>
+          </div>
+          <div class="srv-spring-block">
+            <div class="srv-spring-block__head">
+              <el-icon :size="14"><DocumentCopy /></el-icon>
+              <span>Spring 核心参数</span>
+              <small>{{ springEntries.length }} 项</small>
+            </div>
+            <div v-if="springEntries.length" class="srv-spring-list">
+              <div v-for="[k, v] in springEntries" :key="k" class="srv-spring-row">
+                <code>{{ k }}</code>
+                <span>{{ v }}</span>
+              </div>
+            </div>
+            <div v-else class="srv-empty-inline">暂无 Spring 参数（后端重启后生效）</div>
+          </div>
+        </div>
+      </template>
+    </MonitorCardBoard>
 
     <!-- ===== 详情 ReDialog ===== -->
     <ReDialog v-model="detailDialogVisible" :title="detailDialogTitle" width="960px" top="10px"  :show-footer="false">
@@ -2464,6 +2559,16 @@ function coreRowOpt(index: number): Opt {
 }
 .srv-primary-btn:hover { filter: brightness(1.08); }
 .srv-primary-btn--sm { height: 28px; padding: 0 12px; font-size: 12px; border-radius: 8px; }
+/* 「自定义」按钮：与主按钮同尺寸但描边样式 —— 它是入口不是主操作，别抢「系统详情」的视觉权重 */
+.srv-primary-btn--ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-color-primary-light-7);
+  color: var(--el-color-primary);
+}
+.srv-primary-btn--ghost:hover { background: var(--el-color-primary-light-9); filter: none; }
 
 .srv-chip {
   display: inline-flex;
@@ -2512,6 +2617,44 @@ function coreRowOpt(index: number): Opt {
 }
 .srv-card__chart { flex: 1; min-height: 0; }
 
+/* ===== 整页布局网格（页头以下） ===== */
+/**
+ * .srv-board 是看板根节点：页头之下的全部内容都住在它的网格里。
+ * 不再有 .srv-main / .srv-trend-row / .srv-bottom / .srv-ext 这些「段落容器」——
+ * 段落变成了一个个可拖动、可缩放的区块。
+ */
+.srv-board {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+/**
+ * 单个区块：填满自己的格子。
+ *
+ * 以前这些区块靠内容撑高（页面跟着变长）；进了网格之后高度由行数决定，
+ * 内容超出就在区块内部滚动，拖大格子自然就全看见了。
+ */
+.srv-block {
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  box-sizing: border-box;
+}
+
+/* 区块自带的 min-height（趋势卡 300px、底栏卡 200px）必须让位给格子高度 */
+.srv-block.srv-card,
+.srv-block.srv-bottom__card,
+.srv-block.srv-trend-card {
+  min-height: 0;
+}
+
+/* 编辑态：整块不接收指针事件，否则鼠标落在图表 / 按钮上就拖不动（同首页对 iframe 的处理） */
+.srv-block.is-editable {
+  pointer-events: none;
+}
+
 /* ===== KPI ===== */
 .srv-kpis { display: block; }
 .srv-kpis__grid {
@@ -2519,8 +2662,7 @@ function coreRowOpt(index: number): Opt {
 }
 
 /* ===== 主区 ===== */
-.srv-main {
-  display: grid;
+.srv-main {  display: grid;
   grid-template-columns: 1.2fr 1.1fr 0.95fr;
   gap: 14px;
   align-items: stretch;

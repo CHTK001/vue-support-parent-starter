@@ -13,6 +13,8 @@ defineProps<{
   node: NodeForm;
   meta: CollectShapeMeta;
   ctx: NodeFormContext;
+  /** 分区渲染：input / output / loop / advanced；缺省 all 保持旧行为（页签外壳逐页签下发） */
+  section?: "all" | "input" | "output" | "loop" | "advanced";
 }>();
 
 const emit = defineEmits<{
@@ -32,6 +34,7 @@ const EXTRA_TIPS: Record<string, string> = {
     :node="node"
     :meta="meta"
     :ctx="ctx"
+    :section="section"
     :own-param-names="['rows', 'format', 'outputVariable']"
     :extra-tips="EXTRA_TIPS"
     intro="外部数据源：录入/粘贴 CSV、JSONL、HTTP JSON 或文本，作为流程行数据供给下游；本节点不建表、不写库。"

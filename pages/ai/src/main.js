@@ -248,6 +248,14 @@ const routes = [
         component: () => import("./components/management/UsagePage.vue"),
       },
       {
+        // 媒体资源统计：把 AI 生成模块的任务按类型/状态/模型分类汇总。
+        // 数据来自历史接口 /v2/ai/generate/tasks，前端本地聚合。
+        path: "media-statistics",
+        name: "MediaStatistics",
+        meta: { title: "媒体资源统计", requiresAuth: true },
+        component: () => import("./components/management/MediaStatisticsPage.vue"),
+      },
+      {
         path: "connectors",
         name: "Connectors",
         meta: { title: "连接器", requiresAuth: true },
@@ -418,6 +426,14 @@ async function bootstrapAndMount() {
   }
 
   app.mount("#app");
+
+  // 隐藏首屏全屏 loader（public/loader.js 注入，应用挂载完成后必须关闭，
+  // 否则 #app-loader 遮罩含 pointer-events 层会拦截全部后续点击，
+  // 表现在路由级测试里就是所有按钮/输入点击超时。
+  // （animations.ts ↔ loader.js 是字节级成套资源，关闭它不影响 ReLoader 的页面级加载态。）
+  if (typeof window.hideAppLoader === "function") {
+    window.hideAppLoader();
+  }
 }
 
 /**
@@ -426,5 +442,15 @@ async function bootstrapAndMount() {
  */
 export async function mountAiApp() {
   await bootstrapAndMount();
+}
+
+// 独立运行兜底：dev site / 验收专线里 pages/ai 就是站点的入口（apps 下的
+// vue-support-ai-starter 只提供空壳 stub，src 里没有 main.js 深导入本文件），
+// 没有人调用 mountAiApp 则 Vue 应用永远不会挂载，#app 里剩下 loader 遮罩。
+// 宿主应用（system / eduai）走 @pages/ai/menu、@pages/ai/embed 或具体组件路径
+// 复用，不会 import 这里的入口，所以不污染任何宿主。
+if (typeof window !== "undefined" && !window.__aiAppMounted) {
+  window.__aiAppMounted = true;
+  mountAiApp().catch((e) => console.error("❌ AI 控制台启动失败:", e));
 }
 

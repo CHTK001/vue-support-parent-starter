@@ -5,7 +5,13 @@ import { http, unwrapResult } from '@repo/utils';
  */
 const unwrap = <T>(res: any): T => unwrapResult<T>(res);
 
-const B = '/ms/monitor/temp-account';
+/**
+ * 临时账号接口基址。
+ *
+ * <p>原属 monitor（{@code /ms/monitor/temp-account}），现收敛为渠道管理下的
+ * 临时账号子域（{@code /api/channels/temp-accounts}），与渠道管理共用同一套鉴权。</p>
+ */
+const B = '/api/channels/temp-accounts';
 
 /** 账号内的短信 */
 export interface TempSmsMessage {
@@ -53,7 +59,7 @@ export interface TempAccountDetail extends TempAccount {
 }
 
 /** 查询全部临时账号 */
-export const listTempAccounts = () => http().get(`${B}/list`).then(r => unwrap<TempAccount[]>(r));
+export const listTempAccounts = () => http().get(B).then(r => unwrap<TempAccount[]>(r));
 
 /**
  * 随机创建临时账号。
@@ -61,7 +67,7 @@ export const listTempAccounts = () => http().get(`${B}/list`).then(r => unwrap<T
  * @param type 通道类型：sms（仅号码）/ email（仅邮箱）/ both（号码+邮箱，默认）
  */
 export const createTempAccount = (type: 'sms' | 'email' | 'both' = 'both') =>
-  http().post(`${B}/create`).query({ type }).then(r => unwrap<TempAccountDetail>(r));
+  http().post(B).query({ type }).then(r => unwrap<TempAccountDetail>(r));
 
 /** 删除临时账号 */
 export const deleteTempAccount = (id: string) =>

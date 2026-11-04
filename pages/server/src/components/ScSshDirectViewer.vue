@@ -5,7 +5,7 @@
  * 与 ScGuacViewer 的分工：本组件不经过 guacd，页面内的 xterm 直接对接
  * 平台自研的 /ws/ms/server/terminal/ssh 端点（MINA SSHD PTY 桥接）。
  */
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { getAccessToken } from "@repo/utils";
 
 const props = defineProps<{
@@ -15,6 +15,14 @@ const props = defineProps<{
     protocol: string;
     identityId: number | null;
     targetPort: number | null;
+    /** 共享终端房间号：带上即接入已有共享会话（同一 SSH 连接），不另开一条 */
+    roomId?: string | null;
+    /** 共享成员显示名（后端房间成员列表里展示） */
+    userName?: string | null;
+    /** 当前账号用户标识（后端按它判定共享记录里的写权限） */
+    userId?: string | null;
+    /** 当前账号是否有协同操作权限；false 时终端只读 */
+    writable?: boolean;
   } | null;
   /** 由外层工具条接管断开时，隐藏 viewer 自带的「断开」按钮 */
   hideClose?: boolean;
@@ -25,8 +33,23 @@ const iframeEl = ref<HTMLIFrameElement | null>(null);
 
 const emit = defineEmits<{
   (e: 'close'): void;
-  (e: 'files'): void;
+  /** 终端执行 pwd 后回传的当前目录（外层用来定位文件面板） */
+  (e: 'cwd', cwd: string): void;
 }>();
+
+/**
+ * iframe（/ssh-direct.html）里执行 `pwd` 后会把绝对路径 postMessage 上来。
+ * 只认自己 iframe 发出的消息，避免同页其它组件的 postMessage 串台。
+ */
+function onIframeMessage(e: MessageEvent): void {
+  if (e.source !== iframeEl.value?.contentWindow) return;
+  const data = e.data as { type?: string; cwd?: unknown } | null;
+  if (data && data.type === 'TERMINAL_CWD' && typeof data.cwd === 'string' && data.cwd.trim()) {
+    emit('cwd', data.cwd.trim());
+  }
+}
+onMounted(() => window.addEventListener('message', onIframeMessage));
+onBeforeUnmount(() => window.removeEventListener('message', onIframeMessage));
 
 /**
  * 向 iframe 中渲染的终端写入一行命令文本（终端在 iframe 里，只能跨窗口发消息）
@@ -75,10 +98,21 @@ const iframeSrc = computed(() => {
   if (!c) return '';
   const params = new URLSearchParams({ hostId: String(c.hostId) });
   if (c.identityId != null) params.set('identityId', String(c.identityId));
+  // 共享终端：roomId 接入已有房间；userId 让后端按共享记录判定写权限；
+  // readonly 让 iframe 本地也不发包（后端同样会丢弃）
+  if (c.roomId) {
+    params.set('roomId', c.roomId);
+    if (c.userName) params.set('user', c.userName);
+    if (c.userId) params.set('userId', c.userId);
+    if (c.writable === false) params.set('readonly', '1');
+  }
   const token = getAccessToken();
   if (token) params.set('x-oauth-token', token);
   return `/ssh-direct.html?${params.toString()}`;
 });
+
+/** 只读态：状态条给明确提示，避免用户以为终端卡住 */
+const readonly = computed(() => !!props.connection?.roomId && props.connection?.writable === false);
 </script>
 
 <template>
@@ -87,9 +121,11 @@ const iframeSrc = computed(() => {
       <span class="ssh-status-tag is-ok">
         {{ connection.hostName }} · SSH 直连
       </span>
+      <span v-if="connection.roomId" class="ssh-status-tag" :class="readonly ? 'is-readonly' : 'is-shared'">
+        {{ readonly ? '只读（无协同权限）' : '共享协同中' }}
+      </span>
       <div class="ssh-actions">
         <button v-if="!hideClose" class="ssh-btn" type="button" @click="emit('close')">断开</button>
-        <button class="ssh-btn ssh-btn--files" type="button" title="打开 SFTP 文件面板" @click="emit('files')">文件</button>
       </div>
     </div>
     <iframe
@@ -129,6 +165,10 @@ const iframeSrc = computed(() => {
 /* 原来是写死的浅绿底 + 深绿字（#e6f4ea / #137333），暗色模式下会变成刺眼亮块；
    换成 EP 成功色浅底 + 深色档文字，亮暗色自动适配 */
 .ssh-status-tag.is-ok { background: var(--el-color-success-light-9); color: var(--el-color-success-dark-2); }
+/* 共享协同中：与「已连接」区分开，提示这条终端有他人一起看/一起操作 */
+.ssh-status-tag.is-shared { background: var(--el-color-primary-light-9); color: var(--el-color-primary); }
+/* 只读：私有共享未授权，给出显式提示而不是让用户怀疑卡住 */
+.ssh-status-tag.is-readonly { background: var(--el-color-warning-light-9); color: var(--el-color-warning-dark-2); }
 .ssh-actions {
   margin-left: auto;
   display: flex;
@@ -157,11 +197,6 @@ const iframeSrc = computed(() => {
 .ssh-btn:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
-.ssh-btn--files {
-  color: var(--el-color-primary);
-  border-color: var(--el-color-primary-light-5);
-}
-.ssh-btn--files:hover { background: color-mix(in srgb, var(--el-color-primary) 8%, transparent); }
 .ssh-iframe {
   flex: 1;
   width: 100%;

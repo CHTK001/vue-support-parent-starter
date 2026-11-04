@@ -1,0 +1,8 @@
+{
+  "name": "@repo/template",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./index.html",
+  "description": "monorepo 公共应用 HTML 模板（index.html），createVite 构建时引用"
+}

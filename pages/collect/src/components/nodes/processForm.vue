@@ -17,6 +17,8 @@ defineProps<{
   meta: CollectShapeMeta;
   /** 表单共享上下文 */
   ctx: NodeFormContext;
+  /** 分区渲染：input / output / loop / advanced；缺省 all 保持旧行为（页签外壳逐页签下发） */
+  section?: "all" | "input" | "output" | "loop" | "advanced";
 }>();
 
 const emit = defineEmits<{
@@ -36,6 +38,7 @@ const EXTRA_TIPS: Record<string, string> = {
     :node="node"
     :meta="meta"
     :ctx="ctx"
+    :section="section"
     :own-param-names="['flowId', 'pass:变量名', 'inherit', 'writeBack', 'outputPrefix', 'timeout']"
     :extra-tips="EXTRA_TIPS"
     intro="子流程调用：在当前任务里同步执行另一条已存在的流程 — 子流程不单独占任务行，节点日志与采集记录都并入本任务；跑完按「变量回写」把变量并回当前作用域，子流程失败时可按异常边流转容错。"

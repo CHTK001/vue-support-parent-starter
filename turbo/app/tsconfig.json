@@ -1,0 +1,24 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "types": ["vite/client"],
+    "paths": {
+      "@repo/config": ["../../packages/config/src"],
+      "@repo/core": ["../../packages/core/src"],
+      "@repo/core/*": ["../../packages/core/src/*"],
+      "@repo/utils": ["../../packages/utils/src"],
+      "@repo/utils/*": ["../../packages/utils/src/*"],
+      "@repo/pinia": ["../../packages/pinia/src"],
+      "@repo/pinia/*": ["../../packages/pinia/src/*"],
+      "@repo/languages": ["../../packages/languages/src"],
+      "@repo/theme": ["../../packages/theme/src"],
+      "@repo/theme/*": ["../../packages/theme/src/*"],
+      "@repo/theme/koi": ["../../packages/theme/src/themes/koi"],
+      "@repo/theme/koi/*": ["../../packages/theme/src/themes/koi/*"]
+    }
+  },
+  "include": ["src", "env.d.ts"]
+}

@@ -35,7 +35,6 @@
       :loader="asyncLoader"
       :min-height="minHeight"
       loading-mode="loader"
-      loader-variant="spin"
       :loader-timeout="10000"
       v-bind="fallThrough"
     >

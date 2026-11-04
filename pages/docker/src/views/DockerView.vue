@@ -48,6 +48,23 @@ type WorkspaceTab = "overview" | "logs" | "terminal" | "env" | "mounts";
 
 const route = useRoute();
 
+const props = withDefaults(
+  defineProps<{
+    /**
+     * 上下文主机 id（可选）。
+     *
+     * <p>路由页从 {@code ?hostId=} 读初值；嵌入主机工作台页签时由父级直接传入，
+     * 此时主机下拉锁定在这台机器上 —— 页签标题已经写明是哪台主机，
+     * 页内再切主机只会让「标题」和「内容」对不上。</p>
+     */
+    hostId?: number;
+  }>(),
+  { hostId: 0 },
+);
+
+/** 是否是「主机页签」形态（锁定主机） */
+const embedded = computed(() => props.hostId > 0);
+
 /* ==================== 主机 ==================== */
 
 const hosts = ref<DockerHost[]>([]);
@@ -72,7 +89,9 @@ async function loadHosts(): Promise<void> {
     hosts.value = Array.isArray(list) ? list : [];
     const fromQuery = Number(route.query.hostId);
     if (!hostId.value) {
-      if (Number.isFinite(fromQuery) && hosts.value.some((h) => h.id === fromQuery)) hostId.value = fromQuery;
+      // 页签形态优先用父级传入的主机；路由页才看 ?hostId=，最后回落列表第一台
+      if (props.hostId > 0) hostId.value = props.hostId;
+      else if (Number.isFinite(fromQuery) && hosts.value.some((h) => h.id === fromQuery)) hostId.value = fromQuery;
       else hostId.value = hosts.value[0]?.id ?? 0;
     }
   } catch (e: any) {
@@ -428,12 +447,12 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="dk-page">
+  <div class="dk-page" :class="{ 'dk-page--embedded': embedded }">
     <!-- 顶部：主机 + 能力 + 刷新 + 安装 -->
     <div class="dk-head">
       <span class="dk-title"><ReIcon name="Box" :size="16" /> Docker</span>
 
-      <select v-model.number="hostId" class="dk-select" :disabled="hostsLoading || !hosts.length" title="选择主机">
+      <select v-model.number="hostId" class="dk-select" :disabled="embedded || hostsLoading || !hosts.length" title="选择主机">
         <option v-if="!hosts.length" :value="0">{{ hostsLoading ? "读取主机…" : "暂无主机" }}</option>
         <option v-for="h in hosts" :key="h.id" :value="h.id">{{ hostLabel(h) }}</option>
       </select>

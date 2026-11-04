@@ -73,7 +73,11 @@ const previewHint = computed(() =>
  * <p>本地先生效（store 是单例，页面通过 data-kb-ask 立刻响应），落库失败不阻塞 UI：
  * 用户已经看到效果了，为一次网络抖动回滚反而更糟。此时只提示一次。
  */
-async function onAskWidthChange(v: 'narrow' | 'full') {
+async function onAskWidthChange(value: string | number | boolean) {
+  // SegmentedToggle 的 update:model-value 统一声明为 string | number | boolean，
+  // 这里实际只会收到 widthOptions 里的 'narrow' / 'full'；其余值一律按 'narrow' 兜底，
+  // 不把非法值透给 setKbAskWidth（它会写进后端配置）
+  const v: 'narrow' | 'full' = value === 'full' ? 'full' : 'narrow'
   const ok = await setKbAskWidth(v)
   if (!ok) {
     ElMessage.warning(t('settings.display.askPanelWidth.saveFailed'))

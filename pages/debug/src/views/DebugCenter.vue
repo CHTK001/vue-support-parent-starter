@@ -346,10 +346,10 @@ onBeforeUnmount(() => {
         <el-tag v-else type="warning" size="default">WS 断开</el-tag>
       </div>
       <div class="debug-header-right">
-        <el-button :icon="Search" plain size="small" :loading="statusLoading" @click="reloadStatus">刷新</el-button>
-        <el-button :icon="MagicStick" plain size="small" @click="createPage">新建页面</el-button>
-        <el-button :icon="Promotion" plain size="small" @click="startBrowser">启动</el-button>
-        <el-button :icon="Refresh" plain size="small" @click="stopBrowser">停止</el-button>
+        <el-button :icon="Search" plain size="small" :loading="statusLoading" @click="reloadStatus" class="debug-hdr-btn-refresh">刷新</el-button>
+        <el-button :icon="MagicStick" plain size="small" @click="createPage" class="debug-hdr-btn-create">新建页面</el-button>
+        <el-button :icon="Promotion" plain size="small" @click="startBrowser" class="debug-hdr-btn-start">启动</el-button>
+        <el-button :icon="Refresh" plain size="small" @click="stopBrowser" class="debug-hdr-btn-stop">停止</el-button>
       </div>
     </div>
 
@@ -409,7 +409,7 @@ onBeforeUnmount(() => {
               style="flex: 1; min-width: 200px"
               @keyup.enter="doNavigate(navigateUrl)"
             />
-            <el-button :loading="domLoading" plain size="small" @click="fetchContent">获取内容</el-button>
+            <el-button :loading="domLoading" plain size="small" @click="fetchContent" class="debug-dom-btn-fetch">获取内容</el-button>
             <el-button plain size="small" @click="doScreenshot">截屏</el-button>
           </div>
           <pre class="debug-dom-content">{{ domLoading ? "加载中…" : domRaw }}</pre>

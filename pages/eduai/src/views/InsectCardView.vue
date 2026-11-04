@@ -13,8 +13,9 @@
  * 根 router-view 直接渲染组件，不进菜单、不套布局壳。
  */
 import { ref } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { eduaiApi } from "../api/eduaiApi";
+import { routeUrl } from "../utils/routeUrl";
 import InsectLearnCards, { type LearnCard } from "../components/InsectLearnCards.vue";
 
 const STORAGE_KEY = "eduai-insect-learn";
@@ -45,6 +46,7 @@ function metamorphosisLabel(value?: string): string {
 }
 
 const route = useRoute();
+const router = useRouter();
 const cards = ref<LearnCard[]>([]);
 
 /** 先读 sessionStorage（游戏页写入的完整卡片），没有再用 query 兜底 */
@@ -109,7 +111,8 @@ function close() {
     window.close();
     return;
   }
-  window.location.href = "/edu/fun";
+  // 直接写 pathname 在 hash 路由下会被启动归一化改写回首页，必须带 # 前缀
+  window.location.href = routeUrl(router, "/edu/fun");
 }
 
 loadCards();

@@ -71,7 +71,7 @@
  *   - row-sort（行拖拽排序）
  *   - batch-delete / batch-edit / batch-save
  */
-import { computed, defineAsyncComponent, inject, onActivated, onBeforeUnmount, onDeactivated, onMounted, ref, useSlots, watch, nextTick } from "vue";
+import { computed, defineAsyncComponent, inject, onActivated, onBeforeUnmount, onDeactivated, onMounted, ref, shallowRef, useSlots, watch, nextTick } from "vue";
 // TableColumnCtx 是 element-plus 对 el-table 列对象的正式导出类型。
 // 模板上 @row-contextmenu / @cell-contextmenu / @cell-click 的形参必须与它一致，
 // 否则 vue-tsc 报 TS2322（此前这里写的是 any）。
@@ -2768,6 +2768,20 @@ const effectiveStorage = computed<ReTableColumnStorage>(() => props.storage ?? i
 /** 列持久化状态（顺序 + 隐藏） */
 const columnState = ref<ReTableColumnState>({ order: [], hidden: [] });
 
+/**
+ * 拖拽落盘后的列宽缓存（{@link shallowRef}：只跟踪整体替换，不跟踪单个键）。
+ *
+ * <p><b>为什么不直接写回 {@link columnState}：</b>{@code columnState} 是 deep ref，
+ * 拖宽结束时替换它会让 {@code visibleColumns} 重新计算、模板里的 {@code :width} 跟着变，
+ * vxe 随即重解析列并整表重排 —— 可此时 vxe 自己**已经**按最终宽度排好版了，
+ * 这一轮完全是把同一件事再做一遍。实测（/db-manager 的 sys_setting，50 列 × 60 行）：
+ * 松手瞬间 vxe 自身重排约 432ms，紧随其后的响应式列重建又追加约 700ms。</p>
+ *
+ * <p>因此拖宽只写这份非响应式缓存（持久化照旧，刷新后仍生效），
+ * 只有「程序化改宽」（双击自适应、外部设置列宽、恢复存档）才替换整体并触发重排。</p>
+ */
+const dragWidthCache = shallowRef<Record<string, number>>({});
+
 /** 标记：正在从持久化恢复分页状态 */
 let isRestoringState = false;
 
@@ -2779,6 +2793,8 @@ function defaultOrderFromColumns(): string[] {
 function loadColumnState(): void {
   if (!activeTableId.value) {
     columnState.value = { order: defaultOrderFromColumns(), hidden: [] };
+    // 无持久化时清空列宽缓存，避免切表沿用上一张表的拖拽宽度
+    dragWidthCache.value = {};
     return;
   }
   const saved = effectiveStorage.value.get(activeTableId.value);
@@ -2802,6 +2818,8 @@ function loadColumnState(): void {
           )
         : undefined,
     };
+    // 恢复的列宽同步进渲染缓存：首屏就要按存档宽度排版（此时还在 setup，替换不会造成额外重排）
+    dragWidthCache.value = { ...(columnState.value.widths ?? {}) };
     // 恢复分页与设置（完整状态扩展字段）
     // 标记 isRestoringState，避免 emit page/pageSize 时触发多余 reload
     isRestoringState = true;
@@ -2879,6 +2897,8 @@ function loadColumnState(): void {
     return;
   }
   columnState.value = { order: defaultOrderFromColumns(), hidden: [] };
+  // 存档不存在：同样清空列宽缓存（否则切到新表会沿用上一张表的宽度）
+  dragWidthCache.value = {};
 }
 
 function saveColumnState(): void {
@@ -2887,6 +2907,8 @@ function saveColumnState(): void {
   // 保存列配置 + 分页 + 设置 + 布局（完整状态，统一落一份）
   const fullState: ReTableFullState = {
     ...columnState.value,
+    // 列宽以渲染缓存为准：拖拽落盘只写缓存（不碰 columnState），这里必须显式覆盖
+    widths: Object.keys(dragWidthCache.value).length > 0 ? { ...dragWidthCache.value } : undefined,
     // 页码/每页条数存**内部实际值**：paginationCfg.value.page 在非受控用法下恒为初始值（通常是 1），
     // 存它等于永远记不住第 2 页 —— 这正是"刷新回到第 1 页"的根因。
     // 关闭「记住页码」时干脆不写页字段，下次也就无从恢复。
@@ -2909,21 +2931,29 @@ function saveColumnState(): void {
 /**
  * 列的实际渲染宽度：用户拖拽后的持久化值优先，未改过的列沿用列定义的 width。
  * 模板里两套引擎的 :width 都走这里，恢复与实时更新共用同一入口。
+ *
+ * <p>只读 {@link dragWidthCache}（shallowRef 的非响应式内容）：拖拽落盘写的是对象内部键，
+ * 不会让 {@code :width} 重新求值，因而不会在松手后再触发一轮 vxe 列重建
+ * （实测那一轮追加约 119ms 的 renderTdColumn + 一次全表重排）。</p>
  */
 function colWidth(col: ReTableColumn): string | number | undefined {
-  const w = columnState.value.widths?.[col.prop];
+  const w = dragWidthCache.value[col.prop];
   return typeof w === "number" ? w : col.width;
 }
 
-/** 落盘一列的拖拽后宽度（写回 columnState 并触发统一保存） */
+/**
+ * 落盘一列的拖拽后宽度（写缓存 + 统一保存）。
+ *
+ * <p>只改 {@link dragWidthCache}（shallowRef 的非响应式内容），序列化由
+ * {@link saveColumnState} 从这份缓存取 widths：同一次拖拽结束时 vxe 已经按最终宽度
+ * 排好版，这里不再触发列重建。详见 {@link dragWidthCache} 的说明。</p>
+ */
 function persistColumnWidth(prop: string, width: number): void {
   if (!prop) return;
   const w = Math.round(width);
   if (!Number.isFinite(w) || w <= 0) return;
-  columnState.value = {
-    ...columnState.value,
-    widths: { ...(columnState.value.widths ?? {}), [prop]: w },
-  };
+  // 只改非响应式缓存的内部键：不碰 columnState（deep ref），:width 不会重新求值
+  dragWidthCache.value[prop] = w;
   saveColumnState();
 }
 
@@ -2987,6 +3017,9 @@ function onElementHeaderDragend(
   _oldWidth: number,
   column: TableColumnCtx<Record<string, unknown>>,
 ): void {
+  // 与 vxe 同一条收尾路径：拖宽结束后的表头重建不参与行高全量对齐
+  holdFixedRowSync(COLUMN_DRAG_SYNC_QUIET_MS);
+  enterFixedRowAfterDrag();
   armHeaderClickGuard();
   persistColumnWidth((column as { property?: string })?.property ?? "", newWidth);
 }
@@ -3081,6 +3114,31 @@ const resizeTipRef = ref<HTMLElement | null>(null);
 let colResizeTipStart: { clientX: number; width: number; invert: boolean } | null = null;
 
 /**
+ * 拖宽期间续期行高同步静默期的最小间隔。
+ *
+ * <p>mousemove 频率高于 60Hz，每次都重排定时器属于无谓开销；按 120ms 节流续期，
+ * 静默期本身留 300ms 余量，足够覆盖两次续期间的任何一帧。</p>
+ */
+const RESIZE_QUIET_HOLD_MS = 300;
+const RESIZE_QUIET_RENEW_INTERVAL_MS = 120;
+let resizeQuietRenewedAt = 0;
+
+/**
+ * 拖宽期间把「行高全量同步」冻结住（见 {@link holdFixedRowSync}）。
+ *
+ * <p>拖宽收尾时 vxe 会走 {@code analyColumnWidth → recalculate → refreshScroll}，
+ * 50 列 × 60 行 + 左右固定浮层的重建会连续叫醒 ResizeObserver / MutationObserver，
+ * 每叫醒一次就跑一轮 180 次 {@code getBoundingClientRect} 的全量对齐。
+ * 这些轮次量到的都是过渡态，纯属浪费；统一推迟到松手后的收尾窗口补一次。</p>
+ */
+function renewResizeQuiet(): void {
+  const now = performance.now();
+  if (now - resizeQuietRenewedAt < RESIZE_QUIET_RENEW_INTERVAL_MS) return;
+  resizeQuietRenewedAt = now;
+  holdFixedRowSync(RESIZE_QUIET_HOLD_MS);
+}
+
+/**
  * 写出提示（只做 transform + textContent，无任何布局读取）。
  *
  * <p>两种摆放（见 {@link props.resizeTipMode}）都只是 transform 的位移不同，
@@ -3150,6 +3208,9 @@ function onDocMousedownResizeTip(e: MouseEvent): void {
   if (!target || typeof target.closest !== "function") return;
   const handle = target.closest(".vxe-cell--col-resizable");
   if (!handle) return;
+  // 按下即进入行高同步静默期：vxe 在整段拖拽里一直挂着 col-drag--resize，
+  // 期间任何重建都不该触发 180 次 rect 的全量对齐（见 holdFixedRowSync）
+  renewResizeQuiet();
   const th = handle.closest("th");
   const colgroup = th?.closest("table")?.querySelector("colgroup");
   const tr = th?.parentElement;
@@ -3175,6 +3236,8 @@ function onDocMousedownResizeTip(e: MouseEvent): void {
 function onDocMousemoveResizeTip(e: MouseEvent): void {
   const start = colResizeTipStart;
   if (!start) return;
+  // 拖多久静默多久：拖拽期间 vxe 每帧只改手柄位置，行高一律不量
+  renewResizeQuiet();
   const delta = (e.clientX - start.clientX) * (start.invert ? -1 : 1);
   // 与 vxe 的下限（默认最小列宽）保持一个合理正数，避免提示出现 0px/负数
   const width = Math.max(20, Math.round(start.width + delta));
@@ -3183,6 +3246,13 @@ function onDocMousemoveResizeTip(e: MouseEvent): void {
 
 /** 松开 / 失焦：收起提示 */
 function onDocMouseupResizeTip(): void {
+  if (colResizeTipStart) {
+    // 松手后 vxe 还要 analyColumnWidth → recalculate → refreshScroll，
+    // 这串重建（实测 400ms+）同样不该触发全量行高对齐，交给静默期结束后的收尾
+    holdFixedRowSync(COLUMN_DRAG_SYNC_QUIET_MS);
+    enterFixedRowAfterDrag();
+    resizeQuietRenewedAt = 0;
+  }
   hideResizeTip();
 }
 
@@ -3949,7 +4019,7 @@ function setColumnWidth(prop: string, width: number): void {
  * @param widths 列 prop → 宽度
  */
 function setColumnWidths(widths: Record<string, number>): void {
-  const next: Record<string, number> = { ...(columnState.value.widths ?? {}) };
+  const next: Record<string, number> = { ...dragWidthCache.value };
   const applied: Record<string, number> = {};
   for (const [prop, width] of Object.entries(widths)) {
     if (!Number.isFinite(width)) continue;
@@ -3959,7 +4029,8 @@ function setColumnWidths(widths: Record<string, number>): void {
     applied[prop] = next[prop];
   }
   if (Object.keys(applied).length === 0) return;
-  columnState.value = { ...columnState.value, widths: next };
+  // 程序化改宽要立刻生效：整体替换渲染缓存（会触发一次列重排，这正是这里需要的）
+  dragWidthCache.value = { ...next };
   saveColumnState();
   // 同步交给 vxe（原因见 applyVxeColumnWidths 的注释：晚一拍就得多跑一整轮重排）
   applyVxeColumnWidths(applied);
@@ -3989,8 +4060,8 @@ function getColumnWidths(): Record<string, number> {
 
 /** 清空全部列宽（回到列定义里的默认宽度） */
 function resetColumnWidths(): void {
-  if (!columnState.value.widths) return;
-  columnState.value = { ...columnState.value, widths: undefined };
+  if (Object.keys(dragWidthCache.value).length === 0) return;
+  dragWidthCache.value = {};
   saveColumnState();
   void nextTick(clearVxeColumnWidths);
 }

@@ -13,12 +13,14 @@
  * 根 router-view 直接渲染组件，不进菜单、不套布局壳。
  */
 import { ref } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { eduaiApi } from "../api/eduaiApi";
+import { routeUrl } from "../utils/routeUrl";
 import IdiomLearnCards, { type LearnCard } from "../components/IdiomLearnCards.vue";
 
 const STORAGE_KEY = "eduai-idiom-learn";
 const route = useRoute();
+const router = useRouter();
 const cards = ref<LearnCard[]>([]);
 
 function loadCards() {
@@ -74,7 +76,8 @@ function close() {
     window.close();
     return;
   }
-  window.location.href = "/edu/fun";
+  // 直接写 pathname 在 hash 路由下会被启动归一化改写回首页，必须带 # 前缀
+  window.location.href = routeUrl(router, "/edu/fun");
 }
 
 loadCards();

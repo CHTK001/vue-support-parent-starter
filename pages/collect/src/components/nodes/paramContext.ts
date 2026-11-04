@@ -46,6 +46,82 @@ export const LOOP_PARAM_NAMES: string[] = [
 ];
 
 /**
+ * 高级配置参数名：低频、与「这个节点干什么」无关的运行时开关，只在「高级配置」页签展示。
+ *
+ * <p>属性面板页签化之后，这份名单同时被 NodeFormTabs（决定有没有「高级配置」页签）
+ * 和各 shape 的输入参数过滤（把高级参数从「输入参数」页签摘出去）使用 —— 两处必须是**同一份**，
+ * 否则会出现「页签存在但里面是空的」或「同一个参数在两个页签各出现一次」。</p>
+ */
+export const ADVANCED_PARAM_NAMES: string[] = [
+  "timeout",
+  "timeoutPolicy",
+  "retry",
+  "retryInterval",
+  "proxy",
+  "userAgent",
+  "fetcher",
+  "saveDocument",
+  "batchSize",
+  "onBatchError",
+  "writeBack",
+  "outputPrefix",
+  "maxTokens",
+  "temperature",
+];
+
+/**
+ * 是否循环四参数（由 LoopFields 分节统一渲染，不进字段流）。
+ *
+ * @param name 参数名
+ * @returns 是则 true
+ */
+export function isLoopParamName(name: string): boolean {
+  return LOOP_PARAM_NAMES.includes(name);
+}
+
+/**
+ * 是否高级配置参数。
+ *
+ * @param name 参数名
+ * @returns 是则 true
+ */
+export function isAdvancedParamName(name: string): boolean {
+  return ADVANCED_PARAM_NAMES.includes(name);
+}
+
+/**
+ * 是否输出参数（出参变量名 / 字段映射三组）。
+ *
+ * @param name 参数名
+ * @returns 是则 true
+ */
+export function isOutputParamName(name: string): boolean {
+  return (
+    name === "outputVariable" ||
+    name.startsWith("column:") ||
+    name.startsWith("cell:") ||
+    name.startsWith("key:")
+  );
+}
+
+/**
+ * 是否「输入参数」页签里的参数：既不是输出参数、也不是高级配置、也不是循环四参数。
+ *
+ * <p>数据库节点的 {@code datasource / table / mode} 例外：它们在 NodeFormTabs 里归「输出参数」
+ * （与字段映射同组），所以由 NodeParamForm 自己按 shape 再摘一次，这里不特判。</p>
+ *
+ * @param param 参数元数据
+ * @returns 是则 true
+ */
+export function isInputParam(param: CollectParamMeta): boolean {
+  return (
+    !isLoopParamName(param.name) &&
+    !isAdvancedParamName(param.name) &&
+    !isOutputParamName(param.name)
+  );
+}
+
+/**
  * 不参与循环的 shape（结构节点本身不执行迭代）。
  *
  * <p>循环四参数不再进表单字段流（由 LoopFields 分节统一渲染），

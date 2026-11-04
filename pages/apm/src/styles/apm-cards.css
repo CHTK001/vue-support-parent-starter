@@ -1,0 +1,212 @@
+/**
+ * 监控大屏 APM 卡片内部版式（全局类，`ac-` 前缀）
+ *
+ * <p>为什么和 {@code apm.css} 分开：apm.css 是<b>整页</b>版式（页头、栅格、表格），
+ * 卡片只有几十行高，字号与间距要更紧；混在一起会让两套尺度互相牵制。</p>
+ *
+ * <p>颜色全部走宿主主题变量，深浅色主题切换自动跟随。</p>
+ *
+ * @since 4.0.0.51
+ */
+
+.ac-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ── 头部：引擎 / 指标名小标签 ───────────────────────────── */
+.ac-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  flex: none;
+}
+
+.ac-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 7px;
+  border-radius: 999px;
+  border: 1px solid var(--el-border-color-lighter);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-regular);
+  font-size: 10.5px;
+  line-height: 18px;
+}
+
+/* ── KPI 数值行（与 Actuator 卡片同一套视觉，但独立前缀避免跨包依赖） ── */
+.ac-kpi {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+  gap: 8px;
+  flex: none;
+}
+
+.ac-kpi__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  background: var(--el-fill-color-light);
+  min-width: 0;
+}
+
+.ac-kpi__value {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ac-kpi__label {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── 列表：名称 + 说明 + 数值 + 可选占比条 ───────────────── */
+.ac-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.ac-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.ac-row__main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ac-row__name {
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ac-row__meta {
+  font-size: 10.5px;
+  color: var(--el-text-color-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ac-row__value {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ac-row__bar {
+  display: block;
+  height: 4px;
+  margin-top: 1px;
+  border-radius: 999px;
+  background: var(--el-fill-color);
+  overflow: hidden;
+}
+
+.ac-row__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--el-color-primary);
+}
+
+/* ── 图表容器 ─────────────────────────────────────────── */
+.ac-chart {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── 空态 / 说明 / 页脚 ───────────────────────────────── */
+.ac-empty {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+
+.ac-note {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+  flex: none;
+}
+
+.ac-foot {
+  margin: auto 0 0;
+  padding-top: 2px;
+  font-size: 10.5px;
+  color: var(--el-text-color-placeholder);
+  flex: none;
+}
+
+/* ── 语义色 ───────────────────────────────────────────── */
+.ac-ok {
+  color: var(--el-color-success);
+}
+
+.ac-warn {
+  color: var(--el-color-warning);
+}
+
+.ac-danger {
+  color: var(--el-color-danger);
+}
+
+.ac-muted {
+  color: var(--el-text-color-secondary);
+}
+
+.ac-kpi__value.is-ok {
+  color: var(--el-color-success);
+}
+
+.ac-kpi__value.is-warn {
+  color: var(--el-color-warning);
+}
+
+.ac-kpi__value.is-danger {
+  color: var(--el-color-danger);
+}
+
+.ac-kpi__value.is-muted {
+  color: var(--el-text-color-secondary);
+}

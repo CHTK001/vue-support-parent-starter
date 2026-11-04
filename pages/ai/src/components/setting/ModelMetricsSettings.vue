@@ -143,7 +143,7 @@
                 @click="toggleLock(row, col)">
                 <svg v-if="isLocked(row, col.snake)" viewBox="0 0 24 24" fill="currentColor">
                   <path fill-rule="evenodd" clip-rule="evenodd"
-                    d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5z" />
+                    d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5z" />
                 </svg>
                 <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                   <path stroke-linecap="round" stroke-linejoin="round"
@@ -311,6 +311,9 @@ const columns: Column[] = [
   { snake: 'context_window_tokens', camel: 'contextWindowTokens', label: '上下文窗口' },
 ]
 
+// 每个元素都显式标注 ReTableColumn：否则数组字面量与 map 回调里的
+// `align: 'center'` 会被推成宽泛的 string，整组列定义就与 ReTableColumn[]
+// 不再兼容（TS 只认字面量窄化成 "left" | "center" | "right"）。
 const tableColumns = computed<ReTableColumn[]>(() => [
   {
     prop: 'model',
@@ -318,8 +321,8 @@ const tableColumns = computed<ReTableColumn[]>(() => [
     minWidth: 190,
     slot: 'model',
     className: 'model-col',
-  },
-  ...columns.map((c) => ({
+  } as ReTableColumn,
+  ...columns.map((c): ReTableColumn => ({
     prop: c.snake,
     label: c.unit ? `${c.label} ${c.unit}` : c.label,
     minWidth: 110,
@@ -334,7 +337,7 @@ const tableColumns = computed<ReTableColumn[]>(() => [
     align: 'center',
     className: 'op-col',
     slot: 'actions',
-  },
+  } as ReTableColumn,
 ])
 
 interface RowState {

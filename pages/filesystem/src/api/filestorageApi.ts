@@ -16,11 +16,27 @@
  * 该服务为独立 HTTP 服务（非网关代理），通过 createHttp 指定 baseUrl，
  * 与业务接口共用统一链式请求封装。
  */
-import { AxiosError, createHttp, getAccessToken } from "@repo/utils";
+import { AxiosError, createHttp, getAccessToken, getUserInfo } from "@repo/utils";
 import type { Http } from "@repo/utils";
 import { getConfig } from "@repo/config";
 import { createObjectTicketResolver } from "./objectTicket";
 import type { ResolveOptions } from "./objectTicket";
+
+/**
+ * 当前协同用户标识（协同接口的统一身份来源）。
+ *
+ * <p>口径与终端共享一致：从框架 storage 的登录用户信息里取
+ * {@code sysUserId} → {@code userId} → {@code id}，缺省 {@code "anonymous"}。
+ * 协同接口用它判定 {@code canWrite} / {@code isOwner}，各调用点若不显式传
+ * {@code userId} 就落到这里，避免「有的地方传、有的地方漏」导致权限判定失效。</p>
+ *
+ * @return 当前用户标识
+ */
+export function collabCurrentUserId(): string {
+  const info = getUserInfo<Record<string, unknown>>() ?? {};
+  const id = info.sysUserId ?? info.userId ?? info.id;
+  return id == null || id === "" ? "anonymous" : String(id);
+}
 
 /** localStorage 中服务器地址的键名 */
 const SERVER_KEY = "filestorage.server";
@@ -1950,6 +1966,15 @@ export interface FileCollabInfo {
   type: CollabDocType;
   /** 快照 UTF-8 字节数（文件大小展示） */
   size?: number;
+  /**
+   * 当前账号是否有写权限（可看即可编辑）
+   *
+   * <p>与终端共享同一字段口径：公开 = 全员可写，私有 = 仅创建者与被授权用户。
+   * 后端按请求里的 {@code userId} 计算，前端据此决定编辑/重命名等入口。</p>
+   */
+  canWrite?: boolean;
+  /** 当前账号是否是创建者（改权限 / 删除的归属判定） */
+  isOwner?: boolean;
 }
 
 /** 协同历史版本条目 */
@@ -1982,7 +2007,7 @@ export async function createFileCollab(options: {
 }): Promise<FileCollabInfo> {
   try {
     const params = new URLSearchParams();
-    if (options.userId) params.set("userId", options.userId);
+    params.set("userId", options.userId ?? collabCurrentUserId());
     if (options.bucket) params.set("bucket", options.bucket);
     if (options.objectKey) params.set("objectKey", options.objectKey);
     params.set("fileName", options.fileName);
@@ -2017,7 +2042,7 @@ export async function listFileCollabs(
 ): Promise<FileCollabInfo[]> {
   try {
     const params = new URLSearchParams();
-    if (userId) params.set("userId", userId);
+    params.set("userId", userId ?? collabCurrentUserId());
     if (path) params.set("path", path);
     if (keyword) params.set("keyword", keyword);
     const qs = params.toString();
@@ -2032,13 +2057,15 @@ export async function listFileCollabs(
 /**
  * 协同文档详情（含当前快照与版本）。
  *
- * @param id 协同文档号
+ * @param id     协同文档号
+ * @param userId 当前用户标识（后端据此回 canWrite / isOwner）
  * @return 协同文档
  */
-export async function getFileCollab(id: string): Promise<FileCollabInfo> {
+export async function getFileCollab(id: string, userId?: string): Promise<FileCollabInfo> {
   try {
+    const qs = `?userId=${encodeURIComponent(userId ?? collabCurrentUserId())}`;
     return await uploadTaskHttp()
-      .get(`${FILE_COLLAB_BASE}/${id}`)
+      .get(`${FILE_COLLAB_BASE}/${id}${qs}`)
       .then<FileCollabInfo>((r) => unwrapTask<FileCollabInfo>(r));
   } catch (e) {
     throw new Error(toErrorMessage(e, "获取协同文档"));
@@ -2058,16 +2085,21 @@ export async function getFileCollab(id: string): Promise<FileCollabInfo> {
  * @param id              协同文档号
  * @param snapshot        Univer 工作簿快照 JSON
  * @param expectedVersion 期望的当前版本
+ * @param userId          当前用户标识（后端据此校验写权限）
  * @return 更新后的文档（含新版本）
  */
 export async function saveFileCollabSnapshot(
   id: string,
   snapshot: string,
   expectedVersion: number,
+  userId?: string,
 ): Promise<FileCollabInfo> {
   try {
+    const params = new URLSearchParams();
+    params.set("expectedVersion", String(expectedVersion));
+    params.set("userId", userId ?? collabCurrentUserId());
     return await uploadTaskHttp()
-      .put(`${FILE_COLLAB_BASE}/${id}/snapshot?expectedVersion=${expectedVersion}`)
+      .put(`${FILE_COLLAB_BASE}/${id}/snapshot?${params.toString()}`)
       // 不能省：省掉就会是 application/x-www-form-urlencoded，后端读到空 body
       .headers({ "Content-Type": "text/plain;charset=UTF-8" })
       .data(snapshot)
@@ -2078,22 +2110,25 @@ export async function saveFileCollabSnapshot(
 }
 
 /**
- * 更新协同可见性与授权用户。
+ * 更新协同可见性与授权用户（仅创建者可调用）。
  *
  * @param id         协同文档号
  * @param visibility 可见性
  * @param userIds    私有时的授权用户
+ * @param userId     操作者用户标识
  * @return 更新后的文档
  */
 export async function updateFileCollabAccess(
   id: string,
   visibility: CollabVisibility,
   userIds?: string[],
+  userId?: string,
 ): Promise<FileCollabInfo> {
   try {
     const params = new URLSearchParams();
     params.set("visibility", visibility);
     if (userIds?.length) params.set("userIds", userIds.join(","));
+    params.set("userId", userId ?? collabCurrentUserId());
     return await uploadTaskHttp()
       .put(`${FILE_COLLAB_BASE}/${id}/access?${params.toString()}`)
       .then<FileCollabInfo>((r) => unwrapTask<FileCollabInfo>(r));
@@ -2103,15 +2138,17 @@ export async function updateFileCollabAccess(
 }
 
 /**
- * 删除协同文档。
+ * 删除协同文档（仅创建者可删）。
  *
- * @param id 协同文档号
+ * @param id     协同文档号
+ * @param userId 操作者用户标识
  * @return 是否删除成功
  */
-export async function deleteFileCollab(id: string): Promise<boolean> {
+export async function deleteFileCollab(id: string, userId?: string): Promise<boolean> {
   try {
+    const qs = `?userId=${encodeURIComponent(userId ?? collabCurrentUserId())}`;
     return await uploadTaskHttp()
-      .delete(`${FILE_COLLAB_BASE}/${id}`)
+      .delete(`${FILE_COLLAB_BASE}/${id}${qs}`)
       .then<boolean>((r) => unwrapTask<boolean>(r) ?? false);
   } catch (e) {
     throw new Error(toErrorMessage(e, "删除协同文档"));
@@ -2123,12 +2160,16 @@ export async function deleteFileCollab(id: string): Promise<boolean> {
  *
  * @param id        协同文档号
  * @param fileName  新展示文件名（含扩展名）
+ * @param userId    当前用户标识（后端据此校验写权限）
  * @return 更新后的文档
  */
-export async function renameFileCollab(id: string, fileName: string): Promise<FileCollabInfo> {
+export async function renameFileCollab(id: string, fileName: string, userId?: string): Promise<FileCollabInfo> {
   try {
+    const params = new URLSearchParams();
+    params.set("fileName", fileName);
+    params.set("userId", userId ?? collabCurrentUserId());
     return await uploadTaskHttp()
-      .put(`${FILE_COLLAB_BASE}/${id}/rename?fileName=${encodeURIComponent(fileName)}`)
+      .put(`${FILE_COLLAB_BASE}/${id}/rename?${params.toString()}`)
       .then<FileCollabInfo>((r) => unwrapTask<FileCollabInfo>(r));
   } catch (e) {
     throw new Error(toErrorMessage(e, "重命名协同文档"));
@@ -2145,7 +2186,7 @@ export async function renameFileCollab(id: string, fileName: string): Promise<Fi
 export async function copyFileCollab(id: string, userId?: string): Promise<FileCollabInfo> {
   try {
     const params = new URLSearchParams();
-    if (userId) params.set("userId", userId);
+    params.set("userId", userId ?? collabCurrentUserId());
     const qs = params.toString();
     return await uploadTaskHttp()
       .post(`${FILE_COLLAB_BASE}/${id}/copy${qs ? `?${qs}` : ""}`)

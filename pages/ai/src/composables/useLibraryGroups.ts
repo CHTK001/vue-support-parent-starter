@@ -3,21 +3,22 @@ import { computed, ref } from 'vue'
 import { apiService } from '@/services/ApiService'
 
 /**
- * 底库分组选择器状态（人脸底库 / 重识别库共用）。
+ * 底库分组选择器状态（人脸底库 / 重识别库 / 以图搜图底库共用）。
  *
  * <p><b>为什么要有分组。</b>分组是**第一层隔离**：每个分组一套独立 vector，
  * 登记、检索、删除、取图都必须带上分组。不带分组时后端一律按 {@code default} 处理
  * （历史行 group 为 NULL，逻辑上归属 default），所以「没选分组」不等于「全部」，
  * 而是「default 那一组」—— 页面必须把当前分组显式亮出来，否则用户会以为看到的是全库。</p>
  *
- * <p><b>为什么抽成 composable。</b>四个入口（人脸识别页 / 人脸底库 / 重识别页 /
- * 重识别库）需要完全相同的三件事：默认 default、选项来自后端 groups 接口、
+ * <p><b>为什么抽成 composable。</b>六个入口（人脸识别页 / 人脸底库 / 重识别页 / 重识别库 /
+ * 以图搜图页 / 图像底库面板）需要完全相同的三件事：默认 default、选项来自后端 groups 接口、
  * 用户新建的分组要立刻进选项。分散实现必然漂移（某处忘了补 default，或忘了合并
  * 用户刚输入的分组），故收敛到一处。</p>
  *
- * <p><b>单值 vs 多值。</b>两端分工固定：<b>范围/搜索</b>（人脸识别页、重识别页）走
- * {@link groups}，多选组名，后端收逗号分隔；<b>定位/库操作</b>（人脸底库 / 重识别库 /
- * 登记弹窗）走 {@link group}，一次只按压一组。两处之间用 {@link setGroups} 同步。</p>
+ * <p><b>单值 vs 多值。</b>两端分工固定：<b>范围/搜索</b>（人脸识别页、重识别页、
+ * 以图搜图页）走 {@link groups}，多选组名，后端收逗号分隔；<b>定位/库操作</b>
+ * （人脸底库 / 重识别库 / 图像底库面板）走 {@link group}，一次只按压一组。
+ * 两处之间用 {@link setGroups} 同步。</p>
  */
 
 /** 后端约定的默认分组名；历史数据（group 为 NULL）也归属它 */
@@ -26,10 +27,10 @@ export const DEFAULT_GROUP = 'default'
 /**
  * 底库分组选择器。
  *
- * @param kind 底库类型：人脸（/face/groups）或重识别（/reid/groups）
+ * @param kind 底库类型：人脸（/face/groups）、重识别（/reid/groups）或以图搜图（/image-search/groups）
  * @returns 当前分组、去重后的选项、加载与合并方法
  */
-export function useLibraryGroups(kind: 'face' | 'reid') {
+export function useLibraryGroups(kind: 'face' | 'reid' | 'image') {
   /** 当前选中的分组（默认 default：与后端「不带分组」的语义一致） */
   const group = ref(DEFAULT_GROUP)
   /** 检索范围：选中的分组集合（后端收逗号分隔，空 = default） */
@@ -118,7 +119,9 @@ export function useLibraryGroups(kind: 'face' | 'reid') {
   async function loadGroups() {
     try {
       const list =
-        kind === 'face' ? await apiService.listFaceGroups() : await apiService.listReidGroups()
+        kind === 'face' ? await apiService.listFaceGroups()
+        : kind === 'reid' ? await apiService.listReidGroups()
+        : await apiService.listImageGroups()
       rememberGroups(Array.isArray(list) ? list : [])
     } catch {
       /* 读不到就保持现有选项（default + 当前值） */

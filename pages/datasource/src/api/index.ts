@@ -331,7 +331,7 @@ export function testDataSource(id: number): Promise<DataSourceTestResult> {
  * @return 更新后的数据源
  */
 export function toggleDataSourceTop(id: number, top: boolean): Promise<DataSourceInfo> {
-  return post<DataSourceInfo>(`${hubBase}/${id}/top`, undefined, { params: { top } });
+  return post<DataSourceInfo>(`${hubBase}/${id}/top`, undefined, { top });
 }
 
 /**

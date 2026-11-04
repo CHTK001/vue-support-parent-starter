@@ -21,11 +21,26 @@
  * @since 2026/09/29
  */
 import { message } from "@repo/core";
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, nextTick, ref, watch } from "vue";
 import { ElMessageBox } from "element-plus";
 import { authHeaders, existObject, putObject, resolveObjectUrl } from "../api/filestorageApi";
 import { extensionOf } from "../utils/officeRenderer";
 import { displayToImage } from "../utils/imageCoords";
+import { peekImageMeta, probeImageMeta, type ImageMeta } from "../utils/imageMeta";
+import {
+  PREVIEW_DRAFT_EDGE,
+  PREVIEW_GHOST_EDGE,
+  PREVIEW_JPEG_QUALITY,
+  PREVIEW_MID_EDGE,
+  buildScaleParams,
+  canServeJpeg,
+  dropImageBlob,
+  imageCacheKey,
+  isServerScalable,
+  readImageBlob,
+  withQuery,
+  writeImageBlob,
+} from "../utils/imageSource";
 import ReDialog from "@repo/ui/re-dialog";
 
 const props = defineProps<{
@@ -43,6 +58,23 @@ const props = defineProps<{
    * 空串表示原图，不拼任何参数。</p>
    */
   imagePath?: string;
+  /**
+   * 低清占位图直链（父组件大图标视图里已经拉过的 172px 缩略图）
+   *
+   * <p>原图动辄 2MB，而 dev 下这些字节要从远端文件服务器经 Vite 代理拉回
+   * （实测 ~40KB/s），一张 1024×1024 的 PNG 要几十秒。空等原图时先拿这张
+   * 小图放大模糊铺底，观感上「点开就有东西」，而不是一块白板加「加载中…」。</p>
+   *
+   * <p>不传（比如从分栏/详细视图直接双击打开）时面板自己按需要一张小图。</p>
+   */
+  thumbUrl?: string;
+  /**
+   * 版本标记（父组件传对象的 {@code lastModified}）
+   *
+   * <p>原图字节缓存按「桶 + Key + 版本」分代：文件被覆盖后 mtime 变，
+   * 旧缓存自然不命中，用户不会看到上一版图片。不传则视为同一代。</p>
+   */
+  version?: number | string;
 }>();
 
 const emit = defineEmits<{
@@ -56,6 +88,29 @@ const emit = defineEmits<{
 const loading = ref(true);
 /** 加载失败提示 */
 const errorMsg = ref("");
+/** 低清占位图直链（原图没到之前铺底，避免一块白板） */
+const placeholderSrc = ref("");
+/** 已接收的原图字节数（流式下载时实时更新） */
+const receivedBytes = ref(0);
+/** 原图总字节数（服务端给了 Content-Length 才有值） */
+const totalBytes = ref(0);
+/**
+ * 舞台上的图现在是哪一档
+ *
+ * <ul>
+ *   <li>{@code none}：还没有任何一档可用（白板 + 加载中）</li>
+ *   <li>{@code draft}：第一档 720px（远端带宽下 ~1s 出图，先让用户看见内容）</li>
+ *   <li>{@code mid}：第二档 1600px（贴近预览区像素，缩放/旋转看得清）</li>
+ *   <li>{@code original}：原图真实字节（{@code blob:} 直链，编辑导出用这一份）</li>
+ * </ul>
+ */
+const stageLevel = ref<"none" | "draft" | "mid" | "original">("none");
+/** 原图字节是否已到手（裁剪/旋转导出必须等它） */
+const originalReady = ref(false);
+/** 原图字节是否下载失败（失败时保留已显示的缩放版，并明确告知不能导出） */
+const originalFailed = ref(false);
+/** 探测到的原图元信息（宽高/字节数/是否带 alpha） */
+const meta = ref<ImageMeta | null>(null);
 /** 缩放比例（1 = 100%） */
 const scale = ref(1);
 /** 旋转角度（0/90/180/270） */
@@ -165,6 +220,62 @@ const imgStyle = computed(() => {
 
 /* ==================== 加载 ==================== */
 
+/**
+ * 当前这一档迟迟画不出来时，最多等多久就把下一档换上
+ *
+ * <p>换档的正确时机是「当前这一档已经画出来了」（见 {@link advanceTier}）：
+ * 早换会把还没显示出来的那张白白拉完又丢掉 —— 实测 draft 720px 要 1.4s，
+ * 而固定 600ms 就切 mid，draft 的字节全白传、用户也从来没看见过它。</p>
+ *
+ * <p>但也不能无限等：draft 卡住时得有兜底，让更清晰的一档顶上来。</p>
+ */
+const TIER_ADVANCE_TIMEOUT_MS = 8000;
+
+/**
+ * 原图流延后多久再开跑
+ *
+ * <p>原图是编辑导出要用的真实像素，必须拉；但它 2MB 起步，一旦和 draft 抢带宽，
+ * 「先看到内容」这件事就会被推迟到几十秒之后。所以先让缩小版跑起来再开流。</p>
+ */
+const ORIGINAL_DELAY_MS = 1200;
+
+/**
+ * 已接收字节的可读文本
+ *
+ * @returns 形如 {@code 780 KB / 2.0 MB}；没有总长时只给已接收量
+ */
+const receivedText = computed(() => {
+  const got = formatBytes(receivedBytes.value);
+  if (!totalBytes.value) {
+    return got;
+  }
+  return `${got} / ${formatBytes(totalBytes.value)}`;
+});
+
+/** 下载进度百分比；服务端没给 Content-Length 时为 null（此时只显示字节数） */
+const progressPercent = computed(() => {
+  if (!totalBytes.value || receivedBytes.value <= 0) {
+    return null;
+  }
+  return Math.min(99, Math.round((receivedBytes.value / totalBytes.value) * 100));
+});
+
+/**
+ * 字节数转可读文本
+ *
+ * @param bytes 字节数
+ * @returns 形如 {@code 12 KB} / {@code 2.0 MB}
+ */
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(0)} KB`;
+  }
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
 /** 缓存击穿序号：保存后自增，强制重新拉图 */
 const reloadSeq = ref(0);
 
@@ -186,44 +297,421 @@ const imagePathParams = computed<Record<string, string>>(() => {
 });
 
 /**
- * 原图地址（带缓存击穿参数，保存后能立刻看到新图）
+ * 舞台图地址
  *
- * <p>票据是异步换来的，解析完成前先返回空串 —— 让 {@code <img>} 暂不发起请求，
+ * <p>可能是「服务端缩放版」的票据直链，也可能是原图字节的 {@code blob:} 直链 ——
+ * 两者都只是显示，导出永远以 {@code originalBlob} 为准。</p>
+ *
+ * <p>票据是异步换来的，解析完成前保持空串 —— 让 {@code <img>} 暂不发起请求，
  * 而不是先用「无令牌的直链」闪一下再被 401 打断。</p>
  */
 const src = ref("");
 
-/** 按需签发票据并刷新原图地址 */
+/** 本轮加载的序号 */
+let loadSeq = 0;
+
+/** 我们自己创建的 {@code blob:} 直链，离开时要释放 */
+let ownedObjectUrl = "";
+
+/** 本轮原图字节的拉取任务：保存时要等它，不能另起一次重复下载 */
+let originalTask: Promise<Blob | null> | null = null;
+
+/** 本轮的原图票据直链（{@link loadOriginal} 兜底取字节时用，不能拿缩放版的 src） */
+const ticketUrlRef = ref("");
+
+/** 是否已经自动「适应窗口」过一次 */
+let autoFitDone = false;
+
+/**
+ * 排队中的下一档（更清晰的那一档）
+ *
+ * <p>不立刻换：先把当前这一档画出来，再换成它。否则「还没显示就先换掉」等于
+ * 把上一档的字节白传一遍。</p>
+ */
+let pendingTier: { url: string; level: "mid" } | null = null;
+
+/** 下一档的兜底定时器（当前这一档迟迟不落地时用） */
+let tierTimer: number | null = null;
+
+/**
+ * 把排队中的下一档换上（当前这一档已经画出来，或等超时了）
+ */
+function advanceTier(): void {
+  if (tierTimer !== null) {
+    window.clearTimeout(tierTimer);
+    tierTimer = null;
+  }
+  const next = pendingTier;
+  pendingTier = null;
+  if (!next || originalReady.value) {
+    return;
+  }
+  setSrc(next.url, next.level);
+}
+
+/**
+ * 取消排队中的下一档（原图到手 / 切图 / 卸载时调用）
+ */
+function cancelPendingTier(): void {
+  if (tierTimer !== null) {
+    window.clearTimeout(tierTimer);
+    tierTimer = null;
+  }
+  pendingTier = null;
+}
+
+/**
+ * 原图字节缓存键
+ *
+ * <p>带 {@code version}（对象 mtime）：文件被覆盖后自然不命中，不会看到上一版。</p>
+ */
+const cacheKey = computed(() => imageCacheKey(props.bucket, props.objectKey, props.version));
+
+/**
+ * 原图还在路上的提示文案
+ *
+ * <p>中清图已经能看能操作了，所以这条提示是<b>非阻塞</b>的小胶囊，而不是全屏遮罩 ——
+ * 遮罩只在「一档都没有」时出现（{@code loading}）。</p>
+ */
+const hiresHint = computed(() => {
+  if (originalReady.value || stageLevel.value === "none") {
+    return "";
+  }
+  if (originalFailed.value) {
+    return "原图下载失败，当前只显示预览图";
+  }
+  if (!receivedBytes.value) {
+    return "原图加载中…";
+  }
+  return progressPercent.value === null
+    ? `原图 ${receivedText.value}`
+    : `原图 ${progressPercent.value}% · ${formatBytes(receivedBytes.value)}`;
+});
+
+/**
+ * 换掉 {@code <img>} 的地址，顺手释放上一张由我们创建的 blob 直链
+ *
+ * @param url   新地址（blob: 或票据直链）
+ * @param level 这一档的清晰度
+ */
+function setSrc(url: string, level: "draft" | "mid" | "original"): void {
+  if (ownedObjectUrl && ownedObjectUrl !== url) {
+    URL.revokeObjectURL(ownedObjectUrl);
+    ownedObjectUrl = "";
+  }
+  if (url.startsWith("blob:")) {
+    ownedObjectUrl = url;
+  }
+  stageLevel.value = level;
+  src.value = url;
+}
+
+/**
+ * 拼「服务端缩放版」直链
+ *
+ * <p>必须带 {@code preview=true}：后端 {@code applyFileOperations} 只在预览通道上执行
+ * {@code size}/{@code format}/{@code quality}，不带这个参数会被当成「原样返回」，
+ * 等于白等一次。</p>
+ *
+ * @param ticketUrl 已签名的原图直链（已含滤镜等路径参数）
+ * @param params    {@link buildScaleParams} 的结果
+ * @returns 缩放版直链；没有 size 时返回空串
+ */
+function scaledPreviewUrl(ticketUrl: string, params: Record<string, string>): string {
+  if (!params.size) {
+    return "";
+  }
+  return withQuery(ticketUrl, { preview: "true", ...params });
+}
+
+/**
+ * 流式拉原图字节（带进度）
+ *
+ * <p>两个目的：</p>
+ * <ol>
+ *   <li><b>只下载一次</b>：{@code <img>} 按 {@code blob:} 直链显示，导出用的就是这份字节，
+ *       不会出现「显示一遍、导出又 fetch 一遍」。</li>
+ *   <li><b>有进度</b>：边读边更新已接收字节数，界面给出百分比。</li>
+ * </ol>
+ *
+ * @param url 已签名的原图直链
+ * @param seq 本轮序号（切文件后旧轮次自动作废）
+ * @returns 原图字节；失败或已切图返回 null
+ */
+async function fetchOriginal(url: string, seq: number): Promise<Blob | null> {
+  try {
+    const res = await fetch(url, { headers: authHeaders() });
+    if (!res.ok || !res.body) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+    totalBytes.value = Number(res.headers.get("content-length") ?? 0) || 0;
+    receivedBytes.value = 0;
+    const reader = res.body.getReader();
+    const chunks: BlobPart[] = [];
+    let received = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      if (seq !== loadSeq) {
+        void reader.cancel();
+        return null;
+      }
+      chunks.push(value as unknown as BlobPart);
+      received += value.length;
+      receivedBytes.value = received;
+    }
+    if (seq !== loadSeq) {
+      return null;
+    }
+    return new Blob(chunks, { type: res.headers.get("content-type") ?? "" });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 拉原图字节，到手后无缝替换舞台图并写入缓存
+ *
+ * <p>同一轮内单飞：重复调用（保存前等字节、用户手动触发）不会再发一次请求。</p>
+ *
+ * @param url 已签名的原图直链
+ * @param seq 本轮序号
+ */
+async function pullOriginal(url: string, seq: number): Promise<void> {
+  if (originalTask) {
+    await originalTask;
+    return;
+  }
+  originalTask = (async (): Promise<Blob | null> => {
+    const blob = await fetchOriginal(url, seq);
+    if (seq !== loadSeq) {
+      return null;
+    }
+    if (!blob) {
+      originalFailed.value = true;
+      // 流式读取失败：一档小图都没有时交回浏览器按直链加载，不阻断预览
+      if (stageLevel.value === "none") {
+        setSrc(url, "original");
+      }
+      return null;
+    }
+    originalBlob = blob;
+    originalReady.value = true;
+    originalFailed.value = false;
+    writeImageBlob(cacheKey.value, blob);
+    // 原图比任何一档缩小版都清楚，排队中的那一档没必要再拉了
+    cancelPendingTier();
+    setSrc(URL.createObjectURL(blob), "original");
+    return blob;
+  })();
+  await originalTask;
+}
+
+/**
+ * 准备低清占位图
+ *
+ * <p>父组件传了缩略图直链就直接用（那张图早已在内存里，不再发请求）；
+ * 没传则按探测到的尺寸自己签一张 172px 小图 —— 它只用来模糊铺底，和网格缩略图同档，
+ * 通常连服务端的解码缓存都命中。必须先有原图宽高，否则服务端 {@code size=WxH}
+ * 的硬拉伸会把非正方形的图压变形。</p>
+ *
+ * @param ticketUrl 已签名的原图直链
+ */
+function loadGhost(ticketUrl: string): void {
+  if (props.thumbUrl) {
+    placeholderSrc.value = props.thumbUrl;
+    return;
+  }
+  const params = buildScaleParams(props.fileName, meta.value, PREVIEW_GHOST_EDGE, PREVIEW_JPEG_QUALITY);
+  const url = scaledPreviewUrl(ticketUrl, params);
+  if (url) {
+    placeholderSrc.value = url;
+  }
+}
+
+/**
+ * 按需签发票据并刷新舞台图
+ *
+ * <p>加载阶梯（每一档都是「能看就先用」，不等下一档）：</p>
+ * <ol>
+ *   <li><b>字节缓存</b>：同一张图刚看过就直接出原图，一个请求都不发；</li>
+ *   <li><b>元信息</b>：大图标视图已经探过则同步命中，否则发一次 4KB {@code Range}；</li>
+ *   <li><b>draft 720px</b>：服务端现场缩放，远端带宽下约 1s 出图；</li>
+ *   <li><b>mid 1600px</b>：贴近预览区像素，缩放/旋转都看得清；</li>
+ *   <li><b>原图</b>：后台流式下载，到手后无缝替换，同时进字节缓存供下次秒开。</li>
+ * </ol>
+ *
+ * <p>此前是「签票 → 直接拉原图」，2MB 的 PNG 在 ~40KB/s 下要几十秒，期间只有一块白板。
+ * 服务端本来就能现场缩放（{@code ?preview=true&size=WxH&format=jpeg}），
+ * 172px 缩略图 PNG 74~83KB、同尺寸 JPEG 只要 6~10KB —— 字节数就是这里唯一的硬指标。</p>
+ */
 async function refreshSrc(): Promise<void> {
+  loadSeq += 1;
+  const seq = loadSeq;
+  originalTask = null;
+  originalFailed.value = false;
+  autoFitDone = false;
+  cancelPendingTier();
+
+  const cached = readImageBlob(cacheKey.value);
+  if (cached) {
+    // 刚看过这张图：直接用缓存字节，连票据都不用签
+    originalBlob = cached;
+    originalReady.value = true;
+    const hit = peekImageMeta(props.objectKey);
+    if (hit) {
+      meta.value = hit;
+      natural.value = { w: hit.width, h: hit.height };
+    }
+    setSrc(URL.createObjectURL(cached), "original");
+    loading.value = false;
+    void nextTick(maybeAutoFit);
+    return;
+  }
+
   const ticketUrl = await resolveObjectUrl(props.bucket, props.objectKey, {
     params: { _r: String(reloadSeq.value), ...imagePathParams.value },
   });
-  src.value = ticketUrl;
+  if (seq !== loadSeq || !ticketUrl) {
+    return;
+  }
+  ticketUrlRef.value = ticketUrl;
+
+  const info = peekImageMeta(props.objectKey)
+    ?? await probeImageMeta(ticketUrl, props.objectKey).catch(() => null);
+  if (seq !== loadSeq) {
+    return;
+  }
+  if (info) {
+    meta.value = info;
+    // 逻辑尺寸永远取原图像素：裁剪框、缩放百分比都以它为基准，
+    // 不能拿「服务端缩小版」的 naturalWidth 顶上，否则裁剪坐标会整体偏小
+    natural.value = { w: info.width, h: info.height };
+    void nextTick(maybeAutoFit);
+  }
+
+  // 占位图先于一切分支铺上：父组件已经把 172px 缩略图字节留在内存里（blob: 直链），
+  // 那是零请求的；早先只在「要拉 draft」时才铺，导致 ≤160KB 的图走「直接拉原图」
+  // 分支时白等十几秒才见到第一帧。
+  loadGhost(ticketUrl);
+
+  if (!info || !isServerScalable(props.fileName)) {
+    // 算不出等比目标（格式不在白名单 / 头解析失败）：只剩「等原图」一条路
+    void pullOriginal(ticketUrl, seq);
+    return;
+  }
+
+  const draftParams = buildScaleParams(props.fileName, info, PREVIEW_DRAFT_EDGE, PREVIEW_JPEG_QUALITY);
+  if (!draftParams.size) {
+    // 原图本身就不大（≤160KB，或本来就小于 draft 长边）：直接拉原图最省
+    void pullOriginal(ticketUrl, seq);
+    return;
+  }
+
+  setSrc(scaledPreviewUrl(ticketUrl, draftParams), "draft");
+
+  const midParams = canServeJpeg(props.fileName, info)
+    ? buildScaleParams(props.fileName, info, PREVIEW_MID_EDGE, PREVIEW_JPEG_QUALITY)
+    : {};
+  const midUrl = scaledPreviewUrl(ticketUrl, midParams);
+  if (midUrl) {
+    // 排队而不是定时换：等 draft 真的画出来再换，否则 draft 的字节白传
+    pendingTier = { url: midUrl, level: "mid" };
+    tierTimer = window.setTimeout(advanceTier, TIER_ADVANCE_TIMEOUT_MS);
+  }
+
+  window.setTimeout(() => {
+    if (seq === loadSeq) {
+      void pullOriginal(ticketUrl, seq);
+    }
+  }, ORIGINAL_DELAY_MS);
 }
 
-/** 拉原图字节（供裁剪导出与「还原」用） */
+/**
+ * 拉原图字节（供裁剪导出与「还原」用）
+ *
+ * <p>只在「流式下载没成功、浏览器按直链自己加载」这条兜底路径上需要 ——
+ * 正常路径里 {@link pullOriginal} 已经把字节留在 {@code originalBlob} 了，
+ * 再 fetch 一遍等于把那 2MB 又拉一次。地址必须用原图票据，
+ * 不能拿 {@code src}（此刻可能是服务端缩放版）。</p>
+ */
 async function loadOriginal(): Promise<void> {
+  const url = ticketUrlRef.value || src.value;
+  if (!url) {
+    return;
+  }
   try {
     // 程序化 fetch 能带请求头，令牌只走头
-    const res = await fetch(src.value, { headers: authHeaders() });
+    const res = await fetch(url, { headers: authHeaders() });
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
     }
     originalBlob = await res.blob();
+    originalReady.value = true;
+    writeImageBlob(cacheKey.value, originalBlob);
   } catch (e) {
     originalBlob = null;
   }
 }
 
-function onImgLoad(e: Event): void {
-  const img = e.target as HTMLImageElement;
-  natural.value = { w: img.naturalWidth, h: img.naturalHeight };
-  loading.value = false;
-  errorMsg.value = "";
-  void loadOriginal();
+/**
+ * 首次拿到图片尺寸后自动「适应窗口」
+ *
+ * <p>此前打开 4000px 的照片是按 100% 铺的：舞台 4000px 宽、视口只有 1100px，
+ * 用户第一眼看到的是一小块放大的像素角。服务端缩小版的存在前提就是
+ * 「整张图先看得全」，所以大图必须先 fit 一次。</p>
+ */
+function maybeAutoFit(): void {
+  if (autoFitDone) {
+    return;
+  }
+  const vp = viewportRef.value;
+  if (!vp || !vp.clientWidth || !natural.value.w) {
+    return;
+  }
+  autoFitDone = true;
+  if (
+    natural.value.w > vp.clientWidth - VP_PADDING ||
+    natural.value.h > vp.clientHeight - VP_PADDING
+  ) {
+    zoomFit();
+  }
 }
 
+/**
+ * 舞台图加载完成
+ *
+ * @param e 图片的 load 事件
+ */
+function onImgLoad(e: Event): void {
+  const img = e.target as HTMLImageElement;
+  // 只有原图（或完全没有元信息时的兜底）才以图片自身像素为准
+  if (stageLevel.value === "original" || !natural.value.w) {
+    natural.value = { w: img.naturalWidth, h: img.naturalHeight };
+  }
+  loading.value = false;
+  errorMsg.value = "";
+  maybeAutoFit();
+  if (stageLevel.value === "original" && !originalBlob) {
+    void loadOriginal();
+  }
+  // 这一档已经画出来了：轮到下一档（如果有排队）
+  advanceTier();
+}
+
+/**
+ * 舞台图加载失败
+ *
+ * <p>缩放版失败（后端不支持该参数组合、票据过期）不算失败：原图那一轮还在路上，
+ * 等它兜底即可；排队中的下一档也一并顶上。只有原图也失败才提示。</p>
+ */
 function onImgError(): void {
+  if (stageLevel.value !== "original") {
+    advanceTier();
+    return;
+  }
   loading.value = false;
   errorMsg.value = "图片加载失败";
 }
@@ -717,6 +1205,10 @@ function validateNewName(name: string): string {
  *
  * <p>先把图渲染出来再弹框：渲染失败（解码异常等）时连选项都不必给，
  * 直接报错返回。渲染期间用 {@code rendering} 挡住重复进入。</p>
+ *
+ * <p>导出必须用<b>原图字节</b>：面板里显示的可能是服务端缩小的 draft/mid 那一档，
+ * 拿它导出会把 4000px 的照片存成 1600px。所以原图还没到手时先等它（已在后台下载中，
+ * 这里只是 await 同一个任务，不会再发一次请求）。</p>
  */
 async function openSaveDialog(): Promise<void> {
   if (rendering.value || saving.value) {
@@ -724,6 +1216,18 @@ async function openSaveDialog(): Promise<void> {
   }
   rendering.value = true;
   try {
+    if (!originalBlob && originalTask) {
+      message.info("正在等待原图下载完成…");
+      await originalTask;
+    }
+    if (!originalBlob && originalFailed.value) {
+      // 后台那一次流失败了：导出前再直连取一次，成了就继续（不额外提示）
+      await loadOriginal();
+    }
+    if (!originalBlob) {
+      message.error("尚未拿到原图字节，无法导出");
+      return;
+    }
     const blob = await renderEdited();
     if (!blob) {
       message.error("导出失败，未保存");
@@ -807,7 +1311,12 @@ async function confirmSave(): Promise<void> {
     if (overwrite) {
       // 覆盖时才需要把面板里的图换成服务端的新图
       reloadSeq.value += 1;
-      await loadOriginal();
+      // 旧字节缓存必须先清：否则 refreshSrc 直接命中缓存，用户看到的还是旧图
+      dropImageBlob(props.bucket, props.objectKey);
+      originalBlob = null;
+      originalReady.value = false;
+      // 必须重新签票重下：src 此刻可能还是旧图 Blob 的 blob: 直链
+      await refreshSrc();
     }
   } catch (e) {
     message.error(`保存失败：${(e as Error)?.message ?? "未知错误"}`);
@@ -903,6 +1412,8 @@ onMounted(() => {
       const el = viewportRef.value;
       if (el) {
         viewportSize.value = { w: el.clientWidth, h: el.clientHeight };
+        // 弹框有 0.2s 展开动画，挂载时视口宽高还是 0；等尺寸真正落地再补一次自动适应
+        maybeAutoFit();
       }
     });
     viewportRo.observe(viewportRef.value);
@@ -924,14 +1435,33 @@ onBeforeUnmount(() => {
   // 但 originalBlob 本身是 fetch 得到的 Blob，并没有为它创建过 objectURL
   // （只有 renderEdited 里的临时 src2 创建过、且已在 finally 释放），
   // 所以这里不需要、也不应该 revoke 任何东西。
+  // 现在流式加载会把 Blob 变成 <img> 的 blob: 直链，那个确实是我们创建的，
+  // 必须在这里释放，否则关掉预览后几十 MB 的图片数据还挂在内存里。
+  loadSeq += 1;
+  originalTask = null;
+  cancelPendingTier();
+  if (ownedObjectUrl) {
+    URL.revokeObjectURL(ownedObjectUrl);
+    ownedObjectUrl = "";
+  }
   originalBlob = null;
 });
 
 watch(
-  () => [props.bucket, props.objectKey],
+  () => [props.bucket, props.objectKey, props.version],
   () => {
     loading.value = true;
     errorMsg.value = "";
+    placeholderSrc.value = "";
+    receivedBytes.value = 0;
+    totalBytes.value = 0;
+    meta.value = null;
+    stageLevel.value = "none";
+    originalReady.value = false;
+    originalFailed.value = false;
+    originalTask = null;
+    cancelPendingTier();
+    autoFitDone = false;
     resetAll();
     reloadSeq.value += 1;
     void refreshSrc();
@@ -955,6 +1485,15 @@ watch(
       @mouseup="onPanUp"
       @mouseleave="onPanUp"
     >
+      <!-- 占位图：原图字节还在路上时，先用低清小图放大模糊铺底。
+           远端带宽下 2MB 的原图要几十秒，没有这一层就是一块白板加「加载中…」。 -->
+      <img
+        v-if="placeholderSrc && loading"
+        class="pimg__ghost"
+        :src="placeholderSrc"
+        alt=""
+        :draggable="false"
+      />
       <div ref="stageRef" class="pimg__stage" :style="stageStyle">
         <img
           ref="imgRef"
@@ -969,9 +1508,21 @@ watch(
         />
         <!-- 裁剪选框 -->
         <div class="pimg__crop" :style="cropBoxStyle" />
-        <!-- 加载遮罩 -->
-        <div v-if="loading" class="pimg__mask">加载中…</div>
-        <div v-else-if="errorMsg" class="pimg__mask pimg__mask--err">{{ errorMsg }}</div>
+      </div>
+      <!-- 加载遮罩挂在视口上，不挂在舞台上：加载中舞台尺寸还是 0×0，
+           挂在里面会被 overflow:hidden 裁没，导致「加载中」根本看不见。
+           只在「一档图都没有」时整屏盖住；中清图出来之后只留右下角的小胶囊。 -->
+      <div v-if="loading" class="pimg__mask pimg__mask--loading">
+        <span class="pimg__mask-main">加载中…</span>
+        <span v-if="receivedBytes > 0" class="pimg__mask-sub">
+          {{ progressPercent === null ? receivedText : `${progressPercent}% · ${receivedText}` }}
+        </span>
+      </div>
+      <div v-else-if="errorMsg" class="pimg__mask pimg__mask--err">{{ errorMsg }}</div>
+      <!-- 原图仍在后台下载：非阻塞提示。此时 draft/mid 已经能看能缩放，
+           不需要再用遮罩挡住整张图（挡住反而不能操作）。 -->
+      <div v-if="hiresHint" class="pimg__hires" title="正在后台下载原图，用于 1:1 查看与编辑导出">
+        {{ hiresHint }}
       </div>
     </div>
 
@@ -1106,6 +1657,7 @@ watch(
 
 /* 视口：唯一可滚动的容器，滚轮在这里被拦截做缩放 */
 .pimg__vp {
+  position: relative;
   flex: 1;
   min-height: 0;
   overflow: auto;
@@ -1115,6 +1667,23 @@ watch(
   padding: 16px;
   background: var(--el-fill-color-lighter, #f5f7fa);
   border-radius: var(--el-radius-md, 8px);
+}
+
+/*
+  占位图：原图没到之前先把缩略图放大铺底。
+  blur 后即使只有 172px 也不会看到像素块，视觉上像「正在聚焦」。
+  pointer-events:none 是硬要求 —— 它盖在视口上，会吃掉滚轮缩放与拖拽平移。
+*/
+.pimg__ghost {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  width: calc(100% - 32px);
+  height: calc(100% - 32px);
+  object-fit: contain;
+  filter: blur(14px);
+  opacity: 0.9;
+  pointer-events: none;
 }
 
 .pimg__vp.is-crop {
@@ -1250,8 +1819,52 @@ watch(
   font-size: 14px;
 }
 
+/* 加载态：底色透明，让占位图透上来；文字加胶囊底保证在任意照片上都看得清 */
+.pimg__mask--loading {
+  flex-direction: column;
+  gap: 6px;
+  background: transparent;
+  pointer-events: none;
+}
+
+.pimg__mask-main {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--el-bg-color, #fff) 84%, transparent);
+  backdrop-filter: blur(6px);
+  color: var(--el-text-color-primary, #303133);
+  font-size: 14px;
+  box-shadow: var(--el-box-shadow-lighter, 0 2px 8px rgba(0, 0, 0, 0.08));
+}
+
+.pimg__mask-sub {
+  font-size: 12px;
+  color: var(--el-text-color-regular, #606266);
+  font-variant-numeric: tabular-nums;
+}
+
 .pimg__mask--err {
   color: var(--el-color-danger, #f56c6c);
+}
+
+/*
+ * 原图下载中的小胶囊：贴视口右下角，不与底部居中的工具条打架。
+ * pointer-events:none 是硬要求 —— 它是纯提示，盖在图上会吃掉滚轮缩放与拖拽平移。
+ */
+.pimg__hires {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--el-bg-color, #fff) 86%, transparent);
+  backdrop-filter: blur(6px);
+  color: var(--el-text-color-secondary, #909399);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  box-shadow: var(--el-box-shadow-lighter, 0 2px 8px rgba(0, 0, 0, 0.08));
+  pointer-events: none;
+  z-index: 3;
 }
 
 /* 悬浮状态条：靠底居中，无编辑时隐藏 */

@@ -1904,6 +1904,9 @@ async function publishPaper() {
       return;
     }
     await eduaiApi.publishPaper(paperId.value);
+    // 发布=冻结：本页必须立刻转只读，否则用户看着可编辑的卷继续改，
+    // 点保存才被后端拒（后端对非草稿一律不再接受修改）。
+    paperStatus.value = 1;
     message.success("发布成功");
   } catch (e) {
     message.error("发布失败: " + errorText(e));

@@ -40,121 +40,93 @@
     </aside>
 
     <!-- ===== 主区 ===== -->
-    <section class="cm-main">
-      <!-- 概览条（紧凑） -->
-      <div class="stat-grid" role="group" aria-label="协同概览">
-        <div class="stat-card">
-          <span class="stat-label">协同总数</span>
-          <span class="stat-value">{{ allDocs.length }}</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">公开</span>
-          <span class="stat-value">{{ publicCount }}</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">私有</span>
-          <span class="stat-value">{{ privateCount }}</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">我创建的</span>
-          <span class="stat-value">{{ mineCount }}</span>
-        </div>
-      </div>
-
-      <!-- 工具栏：面包屑 + 搜索 + 上传 + 新建/刷新 -->
-      <div class="cm-toolbar">
-        <nav class="cm-crumb" aria-label="当前目录">
-          <button type="button" class="cm-crumb-it" :class="{ active: currentPath === '' }" @click="selectDir('')">
-            全部文件
-          </button>
-          <template v-for="(seg, i) in currentSegments" :key="`${seg}-${i}`">
-            <span class="cm-crumb-sep">/</span>
-            <button
-              type="button"
-              class="cm-crumb-it"
-              :class="{ active: i === currentSegments.length - 1 }"
-              @click="selectDir(seg.path)"
-            >
-              {{ seg.label }}
-            </button>
-          </template>
-        </nav>
-
-        <div class="cm-search-wrap">
-          <el-input
-            v-model="keyword"
-            size="small"
-            clearable
-            placeholder="搜索文件名 / 目录"
-            class="cm-search"
-            @input="onKeywordInput"
-          >
-            <template #prefix><el-icon><Search /></el-icon></template>
-          </el-input>
-          <el-tooltip content="全局检索：忽略当前目录，跨全部目录搜索" placement="top">
-            <div class="cm-global-toggle">
-              <el-switch v-model="globalSearch" size="small" @change="onGlobalChange" />
-              <span class="cm-global-label">全局检索</span>
-            </div>
-          </el-tooltip>
-        </div>
-
-        <el-button size="small" text :icon="Upload" @click="openUploadDialog">上传为协同</el-button>
-        <el-button size="small" text :icon="Refresh" :loading="listLoading" @click="reloadAll">
-          刷新
-        </el-button>
-        <el-dropdown @command="openCreateDialog" trigger="click">
-          <el-button size="small" type="primary">
-            <el-icon><Plus /></el-icon>新建协同<el-icon class="el-icon--right"><ArrowDown /></el-icon>
-          </el-button>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="excel">表格 Excel</el-dropdown-item>
-              <el-dropdown-item command="word">文档 Word</el-dropdown-item>
-              <el-dropdown-item command="text">文本 Text</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-      </div>
-
+    <!-- 空白处右键 = 全部操作入口（新建 / 上传 / 搜索 / 刷新），顶部不再放工具栏 -->
+    <section class="cm-main" @contextmenu.prevent="openBlankMenu($event)">
       <!-- 文档列表 -->
       <div class="cm-body">
         <div class="cm-body-hd">
-          <span class="cm-body-title">
-            {{ globalSearch && keyword ? "全局检索结果" : currentPath || "全部文件" }}
+          <span class="cm-body-title" :title="bodyTitle">{{ bodyTitle }}</span>
+          <span class="cm-body-hd-right">
+            <span v-if="filterActive" class="cm-body-kw" :title="`筛选：${keyword}`">筛选：{{ keyword }}</span>
+            <span v-if="selectedIds.length > 0" class="cm-body-sel">已选 {{ selectedIds.length }} 个</span>
+            <span class="cm-body-sub">{{ docs.length }} 个文档</span>
+            <button
+              v-if="filterActive"
+              type="button"
+              class="cm-body-clear"
+              title="清除筛选"
+              @click="clearFilter"
+            >清除</button>
           </span>
-          <span class="cm-body-sub">{{ docs.length }} 个文档</span>
         </div>
 
         <div v-if="docs.length === 0" class="cm-empty">
           <span class="cm-empty-icon">📄</span>
           <span>{{ collabEmptyText }}</span>
           <span class="cm-empty-sub">
-            在右上角「新建协同」创建文档，或「上传为协同」把 xlsx/docx/txt 转为协同文档
+            在空白处右键「新建协同」创建文档，右键「上传为协同」把 xlsx/docx/txt 转为协同文档
           </span>
         </div>
 
         <div v-else class="cm-grid">
           <div
-            v-for="c in docs"
+            v-for="(c, i) in docs"
             :key="c.id"
             class="cm-card"
-            @contextmenu.prevent="openMenuAt($event, c)"
+            :class="{ 'is-selected': isSelected(c) }"
+            @click="onCardClick($event, c, i)"
+            @dblclick="onCardDblClick(c)"
+            @contextmenu.prevent.stop="openMenuAt($event, c, i)"
           >
-            <button type="button" class="cm-card-more" title="右键更多操作" @click.stop="openMenuAt($event, c)">
+            <button
+              type="button"
+              class="cm-card-more"
+              title="右键更多操作"
+              @click.stop="openMenuAt($event, c, i)"
+            >
               <el-icon :size="14"><MoreFilled /></el-icon>
             </button>
-            <div class="cm-card-top" @click="openEditor(c)">
+            <div class="cm-card-top">
               <span class="cm-card-icon" v-html="collabIcon(c)" />
             </div>
-            <div class="cm-card-name" :title="c.fileName" @click="openEditor(c)">{{ c.fileName }}</div>
+            <div class="cm-card-name" :title="c.fileName">{{ c.fileName }}</div>
             <div class="cm-card-sub">{{ formatSize(c.size) }}</div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ===== 右键菜单 ===== -->
+    <!-- ===== 空白处右键菜单：新建 / 上传 / 搜索 / 刷新（顶部工具栏已移除） ===== -->
+    <teleport to="body">
+      <div
+        v-if="blankMenu.visible"
+        ref="blankMenuRef"
+        class="cm-ctx"
+        :style="{ left: blankMenu.x + 'px', top: blankMenu.y + 'px' }"
+        @contextmenu.prevent
+      >
+        <div class="cm-ctx-item" @click="blankAction('excel')"><el-icon><Plus /></el-icon>新建表格（Excel）</div>
+        <div class="cm-ctx-item" @click="blankAction('word')"><el-icon><Plus /></el-icon>新建文档（Word）</div>
+        <div class="cm-ctx-item" @click="blankAction('text')"><el-icon><Plus /></el-icon>新建文本（Text）</div>
+        <div class="cm-ctx-sep" />
+        <div class="cm-ctx-item" @click="blankAction('upload')"><el-icon><Upload /></el-icon>上传为协同</div>
+        <div class="cm-ctx-sep" />
+        <div class="cm-ctx-item" @click="blankAction('search')">
+          <el-icon><Search /></el-icon>搜索文件名（{{ currentPath || "全部文件" }}）
+        </div>
+        <div class="cm-ctx-item" @click="blankAction('searchAll')"><el-icon><Search /></el-icon>全局搜索文件名</div>
+        <div class="cm-ctx-sep" />
+        <div class="cm-ctx-item" :class="{ 'is-disabled': listLoading }" @click="blankAction('refresh')">
+          <el-icon><Refresh /></el-icon>{{ listLoading ? "刷新中…" : "刷新列表" }}
+        </div>
+        <template v-if="filterActive">
+          <div class="cm-ctx-sep" />
+          <div class="cm-ctx-item" @click="blankAction('clear')"><el-icon><Close /></el-icon>清除筛选</div>
+        </template>
+      </div>
+    </teleport>
+
+    <!-- ===== 卡片右键菜单（多选时为批量菜单） ===== -->
     <teleport to="body">
       <div
         v-if="ctxMenu.visible"
@@ -163,18 +135,51 @@
         :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }"
         @contextmenu.prevent
       >
-        <div class="cm-ctx-item" @click="menuAction('open')"><el-icon><View /></el-icon>打开（全屏编辑）</div>
-        <div class="cm-ctx-item" @click="menuAction('preview')"><el-icon><View /></el-icon>打开（弹框预览）</div>
-        <div class="cm-ctx-sep" />
-        <div class="cm-ctx-item" @click="menuAction('rename')"><el-icon><EditPen /></el-icon>重命名</div>
-        <div class="cm-ctx-item" @click="menuAction('copy')"><el-icon><CopyDocument /></el-icon>复制</div>
-        <div class="cm-ctx-item" @click="menuAction('download')"><el-icon><Download /></el-icon>下载</div>
-        <div class="cm-ctx-sep" />
-        <div class="cm-ctx-item" @click="menuAction('share')"><el-icon><Link /></el-icon>分享连接</div>
-        <div class="cm-ctx-item" @click="menuAction('history')"><el-icon><Clock /></el-icon>历史记录</div>
-        <div class="cm-ctx-sep" />
-        <div class="cm-ctx-item" @click="menuAction('access')"><el-icon><Lock /></el-icon>权限</div>
-        <div class="cm-ctx-item is-danger" @click="menuAction('delete')"><el-icon><Delete /></el-icon>删除</div>
+        <!-- 批量：选中的卡片被右键时，作用对象是整批 -->
+        <template v-if="ctxMenu.batch">
+          <div class="cm-ctx-title">已选 {{ selectedIds.length }} 个</div>
+          <div class="cm-ctx-item" @click="menuAction('batchOpen')"><el-icon><View /></el-icon>打开第一个</div>
+          <div class="cm-ctx-item" @click="menuAction('batchDownload')"><el-icon><Download /></el-icon>批量下载</div>
+          <div class="cm-ctx-sep" />
+          <div class="cm-ctx-item" @click="menuAction('batchPublic')"><el-icon><Lock /></el-icon>批量设为公开</div>
+          <div class="cm-ctx-item" @click="menuAction('batchPrivate')"><el-icon><Lock /></el-icon>批量设为私有</div>
+          <div class="cm-ctx-sep" />
+          <div class="cm-ctx-item is-danger" @click="menuAction('batchDelete')"><el-icon><Delete /></el-icon>批量删除</div>
+          <div class="cm-ctx-sep" />
+          <div class="cm-ctx-item" @click="menuAction('batchClear')"><el-icon><Close /></el-icon>取消选择</div>
+        </template>
+        <template v-else>
+          <!-- 无写权限时不给「全屏编辑」入口：进去也只能只读，不如直接标成只读预览 -->
+          <div v-if="canWriteDoc(ctxMenu.row)" class="cm-ctx-item" @click="menuAction('open')"><el-icon><View /></el-icon>打开（全屏编辑）</div>
+          <div class="cm-ctx-item" @click="menuAction('preview')"><el-icon><View /></el-icon>{{ canWriteDoc(ctxMenu.row) ? "打开（弹框预览）" : "打开（只读预览）" }}</div>
+          <div class="cm-ctx-sep" />
+          <div
+            v-if="canWriteDoc(ctxMenu.row)"
+            class="cm-ctx-item"
+            @click="menuAction('rename')"
+          ><el-icon><EditPen /></el-icon>重命名</div>
+          <div v-if="canWriteDoc(ctxMenu.row)" class="cm-ctx-item" @click="menuAction('copy')"><el-icon><CopyDocument /></el-icon>复制</div>
+          <div class="cm-ctx-item" @click="menuAction('download')"><el-icon><Download /></el-icon>下载</div>
+          <div class="cm-ctx-sep" />
+          <div class="cm-ctx-item" @click="menuAction('share')"><el-icon><Link /></el-icon>分享连接</div>
+          <div class="cm-ctx-item" @click="menuAction('history')"><el-icon><Clock /></el-icon>历史记录</div>
+          <div class="cm-ctx-sep" />
+          <!-- 权限与删除只对创建者开放：与终端共享「仅发起者可改权限 / 取消共享」一致 -->
+          <div
+            v-if="isOwnerDoc(ctxMenu.row)"
+            class="cm-ctx-item"
+            @click="menuAction('access')"
+          ><el-icon><Lock /></el-icon>权限</div>
+          <div
+            v-if="isOwnerDoc(ctxMenu.row)"
+            class="cm-ctx-item is-danger"
+            @click="menuAction('delete')"
+          ><el-icon><Delete /></el-icon>删除</div>
+          <div
+            v-if="!canWriteDoc(ctxMenu.row)"
+            class="cm-ctx-note"
+          >只读：当前账号未被授权编辑该协同文档</div>
+        </template>
       </div>
     </teleport>
 
@@ -368,7 +373,8 @@
       </div>
       <template #footer>
         <el-button @click="previewVisible = false">关闭</el-button>
-        <el-button type="primary" @click="previewFullscreen">全屏编辑</el-button>
+        <!-- 只读文档没有「全屏编辑」：进去也只能看，按钮留着会转回本弹框 -->
+        <el-button v-if="canWriteDoc(previewCollab)" type="primary" @click="previewFullscreen">全屏编辑</el-button>
       </template>
     </el-dialog>
 
@@ -421,7 +427,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { ElMessageBox } from "element-plus";
 import {
-  ArrowDown, ArrowLeft, Clock, CopyDocument, Delete, Download, EditPen, Link,
+  ArrowLeft, Clock, Close, CopyDocument, Delete, Download, EditPen, Link,
   Lock, MoreFilled, Plus, Refresh, Search, Upload, UploadFilled, View,
 } from "@element-plus/icons-vue";
 import { message } from "@repo/core";
@@ -441,6 +447,7 @@ import {
   copyFileCollab,
   listCollabHistory,
   saveFileCollabSnapshot,
+  collabCurrentUserId,
   type CollabDocType,
   type CollabVisibility,
   type CollabVersionEntry,
@@ -464,14 +471,100 @@ const globalSearch = ref(false);
 /** 当前目录（空 = 全部文件 / 根目录） */
 const currentPath = ref("");
 
-/** 当前用户 id */
-const currentUserId = ref("admin");
+/**
+ * 当前用户标识
+ *
+ * <p>与终端共享同一口径：由 {@code filestorageApi} 的
+ * {@code collabCurrentUserId()} 从框架 storage 取（{@code sysUserId} →
+ * {@code userId} → {@code id}）。之前这里硬编码 {@code "admin"}，导致所有账号
+ * 都被当成同一个「创建者」，私有文档的授权判断形同虚设。</p>
+ */
+const currentUserId = ref(collabCurrentUserId());
 
-/* ==================== 统计 ==================== */
+/* ==================== 列表头（状态行） ==================== */
 
-const publicCount = computed(() => allDocs.value.filter((c) => c.visibility === "PUBLIC").length);
-const privateCount = computed(() => allDocs.value.filter((c) => c.visibility === "PRIVATE").length);
-const mineCount = computed(() => allDocs.value.filter((c) => c.owner === currentUserId.value).length);
+/**
+ * 列表头标题
+ *
+ * <p>顶部工具栏（面包屑 / 搜索框 / 统计卡）已整体移除：目录选择交给左侧目录树，
+ * 新建/上传/搜索/刷新走右键菜单；这里只留一行文字，说明「现在看的是哪一批」。</p>
+ */
+const bodyTitle = computed(() => {
+  const kw = keyword.value.trim();
+  if (globalSearch.value && kw) return `全局搜索「${kw}」`;
+  const where = currentPath.value || "全部文件";
+  return kw ? `${where}中搜索「${kw}」` : where;
+});
+
+/** 是否处于筛选态（有关键字） */
+const filterActive = computed(() => keyword.value.trim().length > 0);
+
+/** 清除筛选：回到「当前目录全部文档」 */
+function clearFilter(): void {
+  keyword.value = "";
+  globalSearch.value = false;
+  void loadDocs();
+}
+
+/* ==================== 多选 ==================== */
+
+/** 已选文档 id（顺序即选择顺序） */
+const selectedIds = ref<string[]>([]);
+/** Shift 连选的锚点（上一次单击/多选所在下标） */
+let selectAnchor = -1;
+
+/**
+ * 卡片是否选中
+ *
+ * @param c 文档
+ * @return 选中为 true
+ */
+function isSelected(c: FileCollabInfo): boolean {
+  return selectedIds.value.includes(c.id);
+}
+
+/** 清空选择 */
+function clearSelection(): void {
+  selectedIds.value = [];
+  selectAnchor = -1;
+}
+
+/** 已选文档对象（按当前列表顺序） */
+const selectedDocs = computed(() => docs.value.filter((d) => selectedIds.value.includes(d.id)));
+
+/**
+ * 单击卡片：单选 / Ctrl 反选 / Shift 连选
+ *
+ * @param e     鼠标事件（取 ctrlKey / metaKey / shiftKey）
+ * @param c     文档
+ * @param index 该卡片在当前列表中的下标（Shift 连选用）
+ */
+function onCardClick(e: MouseEvent, c: FileCollabInfo, index: number): void {
+  if (e.shiftKey && selectAnchor >= 0) {
+    const from = Math.min(selectAnchor, index);
+    const to = Math.max(selectAnchor, index);
+    selectedIds.value = docs.value.slice(from, to + 1).map((d) => d.id);
+    return;
+  }
+  if (e.ctrlKey || e.metaKey) {
+    selectedIds.value = isSelected(c)
+      ? selectedIds.value.filter((id) => id !== c.id)
+      : [...selectedIds.value, c.id];
+    selectAnchor = index;
+    return;
+  }
+  selectedIds.value = [c.id];
+  selectAnchor = index;
+}
+
+/**
+ * 双击卡片打开（单击已改为选择，打开动作挂双击）
+ *
+ * @param c 文档
+ */
+function onCardDblClick(c: FileCollabInfo): void {
+  void openEditor(c);
+}
 
 /* ==================== 图标 ==================== */
 
@@ -539,34 +632,42 @@ const treeNodes = computed<DirNode[]>(() => {
   return flat;
 });
 
-/** 当前目录层级（面包屑） */
-const currentSegments = computed(() => {
-  const segs = currentPath.value.split("/").filter(Boolean);
-  const out: Array<{ label: string; path: string }> = [];
-  let acc = "";
-  for (const s of segs) {
-    acc = acc ? `${acc}/${s}` : s;
-    out.push({ label: s, path: acc });
-  }
-  return out;
-});
-
 function selectDir(path: string): void {
   globalSearch.value = false;
   currentPath.value = path;
+  clearSelection();
   void loadDocs();
 }
 
-/* ==================== 检索 ==================== */
+/* ==================== 检索（入口在右键菜单 / Ctrl+F） ==================== */
 
-let keywordTimer: ReturnType<typeof setTimeout> | null = null;
-function onKeywordInput(): void {
-  if (keywordTimer) clearTimeout(keywordTimer);
-  keywordTimer = setTimeout(() => void loadDocs(), 400);
-}
-
-function onGlobalChange(): void {
-  void loadDocs();
+/**
+ * 弹出搜索框并按关键字检索
+ *
+ * <p>搜索框从顶部移到了右键菜单：{@code global=false} 只搜当前目录，
+ * {@code global=true} 忽略目录跨全部文档搜。留空即清除筛选。</p>
+ *
+ * @param global 是否全局检索
+ */
+async function promptSearch(global: boolean): Promise<void> {
+  const where = global ? "全部目录" : currentPath.value || "全部文件";
+  try {
+    const { value } = await ElMessageBox.prompt(
+      `在「${where}」中按文件名搜索（留空 = 取消筛选）`,
+      global ? "全局搜索文件名" : "搜索文件名",
+      {
+        inputValue: keyword.value,
+        inputPlaceholder: "文件名关键字",
+        confirmButtonText: "搜索",
+        cancelButtonText: "取消",
+      },
+    );
+    globalSearch.value = global;
+    keyword.value = (value ?? "").trim();
+    await loadDocs();
+  } catch {
+    // 用户取消：什么都不做
+  }
 }
 
 let loadSeq = 0;
@@ -815,6 +916,11 @@ const accessForm = ref<{
 }>({ id: "", fileName: "", path: "", visibility: "PUBLIC", userIds: [] });
 
 function openAccessDialog(c: FileCollabInfo): void {
+  // 权限弹框只对创建者开放（菜单已裁剪，这里是脚本/键盘路径的兜底）
+  if (!isOwnerDoc(c)) {
+    message.warning("只有创建者可以修改协同权限");
+    return;
+  }
   accessForm.value = {
     id: c.id,
     fileName: c.fileName,
@@ -833,6 +939,7 @@ async function onSaveAccess(): Promise<void> {
       accessForm.value.id,
       accessForm.value.visibility,
       accessForm.value.visibility === "PRIVATE" ? accessForm.value.userIds : [],
+      currentUserId.value,
     );
     accessVisible.value = false;
     message.success("协同权限已更新");
@@ -846,17 +953,68 @@ async function onSaveAccess(): Promise<void> {
 
 /* ==================== 右键菜单 ==================== */
 
-const ctxMenu = ref<{ visible: boolean; x: number; y: number; row: FileCollabInfo | null }>({
-  visible: false,
-  x: 0,
-  y: 0,
-  row: null,
-});
+const ctxMenu = ref<{
+  visible: boolean;
+  x: number;
+  y: number;
+  row: FileCollabInfo | null;
+  /** 是否批量菜单（右键落在多选集合内时为 true） */
+  batch: boolean;
+}>({ visible: false, x: 0, y: 0, row: null, batch: false });
 const ctxMenuRef = ref<HTMLElement | null>(null);
 
-/** 右键目标 */
-function openMenuAt(e: MouseEvent, c: FileCollabInfo): void {
-  ctxMenu.value = { visible: true, x: e.clientX, y: e.clientY, row: c };
+/**
+ * 当前账号对某份协同文档是否可写
+ *
+ * <p>优先用后端下发的 {@code canWrite}（与终端共享同一字段口径），
+ * 老接口/老数据没有该字段时按同一规则在本地兜底计算：公开 = 全员可写，
+ * 私有 = 仅创建者与被授权用户可写。兜底只用于展示层面裁剪入口，
+ * 真正的拦截在写接口（后端每个写接口都会再校验一次）。</p>
+ *
+ * @param c 协同文档（null = 不可写）
+ * @return true = 可写
+ */
+function canWriteDoc(c: FileCollabInfo | null): boolean {
+  if (!c) return false;
+  if (typeof c.canWrite === "boolean") return c.canWrite;
+  if (c.visibility === "PUBLIC") return true;
+  const uid = currentUserId.value;
+  return !!uid && (c.owner === uid || (c.allowedUserIds ?? []).includes(uid));
+}
+
+/**
+ * 当前账号是否是该协同文档的创建者
+ *
+ * <p>归属与可写是两件事：被授权用户能编辑内容，但不能改授权名单、也不能删除
+ * 别人的文档 —— 与终端共享「仅发起者可改权限 / 取消共享」一致。</p>
+ *
+ * @param c 协同文档
+ * @return true = 创建者
+ */
+function isOwnerDoc(c: FileCollabInfo | null): boolean {
+  if (!c) return false;
+  if (typeof c.isOwner === "boolean") return c.isOwner;
+  const uid = currentUserId.value;
+  return !!uid && c.owner === uid;
+}
+
+/**
+ * 在卡片上打开右键菜单
+ *
+ * <p>右键落在「已选集合」之外时，先把选择切到这张卡；落在集合之内且选了多个，
+ * 出的是批量菜单 —— 和资源管理器的习惯一致。</p>
+ *
+ * @param e     右键事件（已 preventDefault / stopPropagation）
+ * @param c     被右键的文档
+ * @param index 该卡片在当前列表中的下标
+ */
+function openMenuAt(e: MouseEvent, c: FileCollabInfo, index = -1): void {
+  if (!isSelected(c)) {
+    selectedIds.value = [c.id];
+    selectAnchor = index;
+  }
+  const batch = selectedIds.value.length > 1;
+  ctxMenu.value = { visible: true, x: e.clientX, y: e.clientY, row: c, batch };
   void nextTick().then(() => {
     const el = ctxMenuRef.value;
     if (!el) return;
@@ -870,21 +1028,290 @@ function openMenuAt(e: MouseEvent, c: FileCollabInfo): void {
 async function menuAction(action: string): Promise<void> {
   const c = ctxMenu.value.row;
   ctxMenu.value.visible = false;
-  if (!c) return;
+  // 入口已按权限裁剪；这里再兜一道，防止键盘/脚本绕过 v-if 直接触发
+  if (c) {
+    if ((action === "rename" || action === "copy") && !canWriteDoc(c)) {
+      message.warning("当前账号没有该协同文档的编辑权限，请联系创建者授权");
+      return;
+    }
+    if ((action === "access" || action === "delete") && !isOwnerDoc(c)) {
+      message.warning("只有创建者可以修改权限或删除该协同文档");
+      return;
+    }
+  }
   switch (action) {
-    case "open": await openEditor(c); break;
-    case "preview": await openPreview(c); break;
-    case "rename": openRename(c); break;
-    case "copy": await onCopy(c); break;
-    case "download": onDownload(c); break;
-    case "share": openShare(c); break;
-    case "history": await openHistory(c); break;
-    case "access": openAccessDialog(c); break;
-    case "delete": await onDelete(c); break;
+    // ---- 批量 ----
+    case "batchOpen":
+      if (c) await openEditor(c);
+      break;
+    case "batchDownload": await batchDownload(); break;
+    case "batchPublic": await batchSetVisibility("PUBLIC"); break;
+    case "batchPrivate": await batchSetVisibility("PRIVATE"); break;
+    case "batchDelete": await batchDelete(); break;
+    case "batchClear": clearSelection(); break;
+    // ---- 单个 ----
+    case "open":
+      if (c) await openEditor(c);
+      break;
+    case "preview":
+      if (c) await openPreview(c);
+      break;
+    case "rename":
+      if (c) openRename(c);
+      break;
+    case "copy":
+      if (c) await onCopy(c);
+      break;
+    case "download":
+      if (c) void onDownload(c);
+      break;
+    case "share":
+      if (c) openShare(c);
+      break;
+    case "history":
+      if (c) await openHistory(c);
+      break;
+    case "access":
+      if (c) openAccessDialog(c);
+      break;
+    case "delete":
+      if (c) await onDelete(c);
+      break;
   }
 }
 
-window.addEventListener("click", () => { ctxMenu.value.visible = false; });
+/* ==================== 批量操作 ==================== */
+
+/**
+ * 批量删除（逐个调后端，串行以免并发刷爆接口）
+ *
+ * <p>失败不中断：一个失败继续删其余的，最后统一汇报成功/失败条数 ——
+ * 中断会让「到底删了哪些」变得说不清。</p>
+ */
+async function batchDelete(): Promise<void> {
+  const all = selectedDocs.value;
+  if (all.length === 0) return;
+  // 只能删自己创建的：被授权用户可编辑内容，但不能删别人的文档
+  const list = all.filter((d) => isOwnerDoc(d));
+  const denied = all.length - list.length;
+  if (list.length === 0) {
+    message.warning("选中的文档都不是你创建的，只有创建者可以删除");
+    return;
+  }
+  try {
+    await ElMessageBox.confirm(
+      `确认删除选中的 ${list.length} 个协同文档？此操作不可撤销。`
+        + (denied > 0 ? `（另有 ${denied} 个非本人创建，已跳过）` : ""),
+      "批量删除",
+      { confirmButtonText: "删除", cancelButtonText: "取消", type: "warning" },
+    );
+  } catch {
+    return;
+  }
+  let ok = 0;
+  let bad = 0;
+  for (const d of list) {
+    try {
+      await deleteFileCollab(d.id, currentUserId.value);
+      ok += 1;
+    } catch {
+      bad += 1;
+    }
+  }
+  if (bad === 0) message.success(`已删除 ${ok} 个协同文档`);
+  else message.warning(`已删除 ${ok} 个，${bad} 个失败`);
+  clearSelection();
+  await reloadAll();
+}
+
+/** 批量下载：逐个导出（间隔 300ms，避免浏览器把连续下载当弹窗拦掉） */
+async function batchDownload(): Promise<void> {
+  const list = selectedDocs.value;
+  for (const d of list) {
+    await onDownload(d);
+    await new Promise((r) => setTimeout(r, 300));
+  }
+}
+
+/**
+ * 批量改可见性
+ *
+ * @param visibility PUBLIC 全员可编辑 / PRIVATE 仅指定用户
+ */
+async function batchSetVisibility(visibility: CollabVisibility): Promise<void> {
+  const all = selectedDocs.value;
+  if (all.length === 0) return;
+  // 改可见性 = 改授权名单，只有创建者能做
+  const list = all.filter((d) => isOwnerDoc(d));
+  const denied = all.length - list.length;
+  if (list.length === 0) {
+    message.warning("选中的文档都不是你创建的，只有创建者可以修改协同权限");
+    return;
+  }
+  const label = visibility === "PUBLIC" ? "公开" : "私有";
+  try {
+    await ElMessageBox.confirm(
+      `把选中的 ${list.length} 个协同文档设为「${label}」？`
+        + (visibility === "PRIVATE" ? "原有授权用户保留不变。" : "")
+        + (denied > 0 ? `（另有 ${denied} 个非本人创建，已跳过）` : ""),
+      `批量设为${label}`,
+      { confirmButtonText: "确定", cancelButtonText: "取消" },
+    );
+  } catch {
+    return;
+  }
+  let ok = 0;
+  let bad = 0;
+  for (const d of list) {
+    try {
+      await updateFileCollabAccess(
+        d.id,
+        visibility,
+        visibility === "PRIVATE" ? d.allowedUserIds ?? [] : [],
+        currentUserId.value,
+      );
+      ok += 1;
+    } catch {
+      bad += 1;
+    }
+  }
+  if (bad === 0) message.success(`已把 ${ok} 个文档设为${label}`);
+  else message.warning(`成功 ${ok} 个，失败 ${bad} 个`);
+  await reloadAll();
+}
+
+/* ==================== 空白处右键菜单（全部操作入口） ==================== */
+
+/** 空白处右键菜单状态 */
+const blankMenu = ref<{ visible: boolean; x: number; y: number }>({ visible: false, x: 0, y: 0 });
+const blankMenuRef = ref<HTMLElement | null>(null);
+
+/**
+ * 在空白处打开操作菜单
+ *
+ * @param e 右键事件（已 preventDefault）
+ */
+function openBlankMenu(e: MouseEvent): void {
+  blankMenu.value = { visible: true, x: e.clientX, y: e.clientY };
+  void nextTick().then(() => {
+    const el = blankMenuRef.value;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const margin = 8;
+    blankMenu.value.x = Math.max(margin, Math.min(blankMenu.value.x, window.innerWidth - rect.width - margin));
+    blankMenu.value.y = Math.max(margin, Math.min(blankMenu.value.y, window.innerHeight - rect.height - margin));
+  });
+}
+
+/**
+ * 空白处菜单动作
+ *
+ * @param action excel/word/text/upload/search/searchAll/refresh/clear
+ */
+async function blankAction(action: string): Promise<void> {
+  blankMenu.value.visible = false;
+  switch (action) {
+    case "excel":
+    case "word":
+    case "text":
+      openCreateDialog(action as CollabDocType);
+      break;
+    case "upload":
+      openUploadDialog();
+      break;
+    case "search":
+      await promptSearch(false);
+      break;
+    case "searchAll":
+      await promptSearch(true);
+      break;
+    case "refresh":
+      if (!listLoading.value) await reloadAll();
+      break;
+    case "clear":
+      clearFilter();
+      break;
+  }
+}
+
+/* ==================== 快捷键（工具栏删掉后的效率补位） ==================== */
+
+/** 焦点是否在输入控件里（此时不抢键） */
+function isTypingTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el) return false;
+  const tag = el.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || el.isContentEditable;
+}
+
+/** 是否有弹层打开（有则不响应快捷键，避免和弹框里的 Enter/Esc 打架） */
+function anyDialogOpen(): boolean {
+  return createVisible.value || uploadVisible.value || accessVisible.value
+    || renameVisible.value || shareVisible.value || historyVisible.value
+    || previewVisible.value || focusVisible.value;
+}
+
+/**
+ * 页面快捷键
+ *
+ * <p>Ctrl+F 搜索、Ctrl+A 全选、Esc 取消选择；选中一张时 F2 重命名 / Enter 打开，
+ * 选中任意多张时 Delete 走批量删除。</p>
+ *
+ * @param e 键盘事件
+ */
+function onKeydown(e: KeyboardEvent): void {
+  if (isTypingTarget(e.target)) return;
+  // Esc 先关「专注编辑 / 弹框预览」这两层覆盖层：它们不是 el-dialog，
+  // 没有自带的 Esc 关闭，不给快捷键的话用户只能去点返回按钮。
+  if (e.key === "Escape" && (focusVisible.value || previewVisible.value)) {
+    if (focusVisible.value) closeFocus();
+    if (previewVisible.value) previewVisible.value = false;
+    return;
+  }
+  if (anyDialogOpen()) return;
+  const mod = e.ctrlKey || e.metaKey;
+  const key = e.key.toLowerCase();
+  if (mod && key === "f") {
+    e.preventDefault();
+    void promptSearch(false);
+    return;
+  }
+  if (mod && key === "a") {
+    e.preventDefault();
+    selectedIds.value = docs.value.map((d) => d.id);
+    return;
+  }
+  if (e.key === "Escape") {
+    clearSelection();
+    ctxMenu.value.visible = false;
+    blankMenu.value.visible = false;
+    return;
+  }
+  const picked = selectedDocs.value;
+  if (picked.length === 0) return;
+  if (e.key === "F2" && picked.length === 1) {
+    e.preventDefault();
+    openRename(picked[0]);
+    return;
+  }
+  if (e.key === "Enter" && picked.length === 1) {
+    e.preventDefault();
+    void openEditor(picked[0]);
+    return;
+  }
+  if (e.key === "Delete") {
+    e.preventDefault();
+    void batchDelete();
+  }
+}
+
+/** 点页面任意处收起两套右键菜单（卸载时摘掉，避免重复注册） */
+function onGlobalClick(): void {
+  ctxMenu.value.visible = false;
+  blankMenu.value.visible = false;
+}
+window.addEventListener("click", onGlobalClick);
+window.addEventListener("keydown", onKeydown);
 
 /* ==================== 重命名 ==================== */
 
@@ -902,7 +1329,7 @@ async function onRename(): Promise<void> {
   if (!name) return;
   renaming.value = true;
   try {
-    await renameFileCollab(renameForm.value.id, name);
+    await renameFileCollab(renameForm.value.id, name, currentUserId.value);
     renameVisible.value = false;
     message.success("已重命名");
     await reloadAll();
@@ -932,7 +1359,7 @@ async function onDownload(c: FileCollabInfo): Promise<void> {
   try {
     let target = c;
     if (!c.snapshot && c.version === 0) {
-      target = await getFileCollab(c.id);
+      target = await getFileCollab(c.id, currentUserId.value);
     }
     const snapshot = target.snapshot ?? "";
     let blob: Blob;
@@ -1065,6 +1492,10 @@ async function rollbackVersion(h: CollabVersionEntry): Promise<void> {
 /* ==================== 删除 ==================== */
 
 async function onDelete(c: FileCollabInfo): Promise<void> {
+  if (!isOwnerDoc(c)) {
+    message.warning("只有创建者可以删除该协同文档");
+    return;
+  }
   try {
     await ElMessageBox.confirm(`确认删除协同文档「${c.fileName}」？`, "删除协同", {
       confirmButtonText: "删除",
@@ -1075,7 +1506,7 @@ async function onDelete(c: FileCollabInfo): Promise<void> {
     return;
   }
   try {
-    await deleteFileCollab(c.id);
+    await deleteFileCollab(c.id, currentUserId.value);
     message.success("协同文档已删除");
     await reloadAll();
   } catch (e) {
@@ -1099,7 +1530,7 @@ async function openPreview(c: FileCollabInfo): Promise<void> {
   previewVisible.value = true;
   previewLoading.value = true;
   try {
-    const detail = await getFileCollab(c.id);
+    const detail = await getFileCollab(c.id, currentUserId.value);
     if (detail.snapshot) {
       previewSnapshot.value = detail.snapshot;
       previewVersion.value = detail.version ?? 0;
@@ -1129,10 +1560,16 @@ const opening = ref(false);
 const openingText = ref("正在打开协同文档…");
 
 async function openEditor(c: FileCollabInfo): Promise<void> {
+  // 无写权限不进入编辑态：直接转只读预览，避免用户改了半天才在保存时被拒
+  if (!canWriteDoc(c)) {
+    message.info("当前账号没有该协同文档的编辑权限，已切换为只读预览");
+    await openPreview(c);
+    return;
+  }
   opening.value = true;
   let target = c;
   try {
-    target = await getFileCollab(c.id);
+    target = await getFileCollab(c.id, currentUserId.value);
     if (!target.snapshot && c.snapshot) target = { ...target, snapshot: c.snapshot };
   } catch {
     // 详情拉取失败时退回列表快照，不阻断打开
@@ -1163,7 +1600,8 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  if (keywordTimer) clearTimeout(keywordTimer);
+  window.removeEventListener("click", onGlobalClick);
+  window.removeEventListener("keydown", onKeydown);
 });
 </script>
 
@@ -1256,77 +1694,7 @@ onBeforeUnmount(() => {
   min-height: 0;
 }
 
-/* 概览条 */
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  flex: 0 0 auto;
-}
-.stat-card {
-  border-radius: var(--radius-md, 10px);
-  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
-  background: var(--el-bg-color, #fff);
-  padding: 10px 14px;
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-.stat-label { font-size: 12px; color: var(--text-secondary, var(--el-text-color-secondary, #909399)); }
-.stat-value {
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.1;
-  color: var(--text-primary, var(--el-text-color-primary, #303133));
-  font-variant-numeric: tabular-nums;
-}
-
-/* 工具栏 */
-.cm-toolbar {
-  padding: 8px 12px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  flex: 0 0 auto;
-  border-radius: var(--radius-md, 10px);
-  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
-  background: var(--el-bg-color, #fff);
-}
-.cm-crumb {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  min-width: 0;
-  overflow: hidden;
-}
-.cm-crumb-it {
-  border: 0;
-  background: transparent;
-  padding: 3px 6px;
-  border-radius: 6px;
-  font-size: 13px;
-  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
-  cursor: pointer;
-  white-space: nowrap;
-}
-.cm-crumb-it:hover { background: var(--brand-50, var(--el-fill-color-light, #f5f7fa)); }
-.cm-crumb-it.active { color: var(--brand-600, var(--el-color-primary, #409eff)); font-weight: 600; }
-.cm-crumb-sep {
-  color: var(--text-tertiary, var(--el-text-color-placeholder, #c0c4cc));
-  font-size: 12px;
-}
-.cm-search-wrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1;
-  min-width: 240px;
-  justify-content: flex-end;
-}
-.cm-search { max-width: 280px; }
-.cm-global-toggle { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-.cm-global-label { font-size: 12px; color: var(--text-secondary, var(--el-text-color-secondary, #909399)); }
+/* 概览条与顶部工具栏已移除（统计卡 / 面包屑 / 搜索 / 上传 / 新建 / 刷新 → 右键菜单） */
 
 /* 主体列表 */
 .cm-body {
@@ -1358,6 +1726,43 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 .cm-body-sub { font-size: 12px; color: var(--text-secondary, var(--el-text-color-secondary, #909399)); }
+.cm-body-hd-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+/* 筛选态提示：只说「当前有关键字」，可一键清掉（筛选入口本身在右键菜单） */
+.cm-body-kw {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  color: var(--brand-600, var(--el-color-primary, #409eff));
+  background: var(--brand-50, var(--el-color-primary-light-9, #ecf5ff));
+}
+/* 多选计数 */
+.cm-body-sel {
+  font-size: 12px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  color: var(--brand-600, var(--el-color-primary, #409eff));
+  background: var(--brand-50, var(--el-color-primary-light-9, #ecf5ff));
+  font-variant-numeric: tabular-nums;
+}
+.cm-body-clear {
+  border: 0;
+  background: transparent;
+  padding: 2px 4px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+  text-decoration: underline;
+}
+.cm-body-clear:hover { color: var(--brand-600, var(--el-color-primary, #409eff)); }
 
 /* 卡片网格：大圆角卡片，图标居中 + 下方文件名 */
 .cm-grid {
@@ -1387,6 +1792,12 @@ onBeforeUnmount(() => {
   border-color: var(--brand-400, var(--el-color-primary-light-5, #79bbff));
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   transform: translateY(-1px);
+}
+/* 选中态：和资源管理器一致，主色描边 + 淡底，多选时一眼看出作用范围 */
+.cm-card.is-selected {
+  border-color: var(--brand-600, var(--el-color-primary, #409eff));
+  background: var(--brand-50, var(--el-color-primary-light-9, #ecf5ff));
+  box-shadow: 0 0 0 1px var(--brand-600, var(--el-color-primary, #409eff)) inset;
 }
 .cm-card-more {
   position: absolute;
@@ -1473,6 +1884,28 @@ onBeforeUnmount(() => {
 .cm-ctx-item:hover { background: var(--brand-50, var(--el-fill-color-light, #f5f7fa)); }
 .cm-ctx-item.is-danger { color: var(--status-error, #f56c6c); }
 .cm-ctx-item.is-danger:hover { background: var(--el-color-danger-light-9, #fef0f0); }
+/* 刷新中：置灰但保留文案，避免「点了没反应」 */
+.cm-ctx-item.is-disabled {
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+  cursor: default;
+  pointer-events: none;
+}
+/* 批量菜单头：说明作用对象是整批，不是光标下那一个 */
+.cm-ctx-title {
+  padding: 6px 10px 4px;
+  font-size: 12px;
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+  font-variant-numeric: tabular-nums;
+}
+/* 无写权限时的只读提示：菜单项被裁掉了，得说明为什么少了 */
+.cm-ctx-note {
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+  border-top: 1px solid var(--el-border-color-lighter, #e8ebf0);
+  margin-top: 4px;
+}
 .cm-ctx-sep { height: 1px; background: var(--el-border-color-lighter, #e8ebf0); margin: 4px 6px; }
 
 /* 空态 */

@@ -9,15 +9,16 @@
  *       `ms_server_config`，换浏览器 / 换设备也能恢复）；</li>
  *   <li>拖拽分隔条、拖动页签（拆分成新列）后通过 `change` 事件抛出最新布局树，
  *       由业务侧决定存哪里；</li>
- *   <li>面板内容用 `#panel="{ activeTab }"` 作用域插槽渲染，页签图标用
- *       `#tab-icon="{ tab }"`（可选）。</li>
+ *   <li>面板内容用 `#panel="{ activeTab, panel }"` 作用域插槽渲染，页签图标用
+ *       `#tab-icon="{ tab }"`（可选）。`panel` 是所在面板节点，用于把该面板的
+ *       全部页签都渲染出来（配合 `v-show` 保活，切页签不销毁连接）。</li>
  * </ul>
  *
  * <p>之所以不直接用 reactive-layout 的 `storageKey`：它只写 localStorage，
  * 满足不了「布局跟着项目走、换机器仍一致」的要求，所以持久化交给业务侧。</p>
  */
 import { defineComponent, provide, useSlots, watch, type PropType } from 'vue';
-import { SplitLayout, useLayout, type PanelTab, type SplitNode } from './vendor';
+import { SplitLayout, useLayout, type PanelNode, type PanelTab, type SplitNode } from './vendor';
 
 defineOptions({ name: 'ReSplitLayout', inheritAttrs: true });
 
@@ -53,13 +54,14 @@ const PanelHost = defineComponent({
   name: 'ReSplitLayoutPanelHost',
   props: {
     activeTab: { type: Object as PropType<PanelTab>, required: true },
+    panel: { type: Object as PropType<PanelNode>, required: true },
   },
   setup(hostProps) {
     return () => {
       const slot = (slots as Record<string, unknown>).panel as
-        | ((arg: { activeTab: PanelTab }) => unknown)
+        | ((arg: { activeTab: PanelTab; panel: unknown }) => unknown)
         | undefined;
-      return slot ? slot({ activeTab: hostProps.activeTab }) : null;
+      return slot ? slot({ activeTab: hostProps.activeTab, panel: hostProps.panel }) : null;
     };
   },
 });
@@ -135,12 +137,18 @@ watch(
 defineExpose({
   /** 当前布局树（只读使用） */
   layout,
+  /** 直接替换整棵布局树（首次拿到上下文主机、需要从空布局铺成单会话时用） */
+  setLayout(next: SplitNode) {
+    layout.value = cloneLayout(next);
+  },
   /** 恢复到默认布局 */
   resetLayout,
   /** 在指定页签所在面板追加页签 */
   addTab,
   /** 移除页签 */
   removeTab,
+  /** 把页签拆到目标面板的左侧 / 右侧 / 上方 / 下方（VS Code 式分屏） */
+  splitPanel,
   /** 按 id 查找面板 */
   findPanelById,
 });

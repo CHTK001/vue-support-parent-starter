@@ -1,0 +1,19 @@
+{
+  "name": "@repo/vite-configs",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "monorepo 共享 Vite 配置（createVite 链式创建）",
+  "main": "./index.ts",
+  "module": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "default": "./index.ts"
+    }
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "catalog:"
+  }
+}

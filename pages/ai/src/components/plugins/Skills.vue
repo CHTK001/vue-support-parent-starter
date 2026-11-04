@@ -566,9 +566,14 @@ const currentSkillId = ref('')
 const { parseMarkdown } = useMarkdown()
 
 // 解析 YAML frontmatter
+//
+// 带索引签名：这份数据要直接喂给 ReTable 的 `:data`，而 ReTable 的泛型约束是
+// `Record<string, unknown>[]`。没有索引签名时 TS 会判 `SkillMeta[]` 不可赋值，
+// 补上后既是原始形状，也可直接当表格行用。
 interface SkillMeta {
     key: string
     value: string
+    [k: string]: unknown
 }
 
 const parsedMeta = computed((): SkillMeta[] => {

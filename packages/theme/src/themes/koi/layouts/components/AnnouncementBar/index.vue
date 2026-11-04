@@ -8,9 +8,9 @@
  *
  * 依赖方向：本组件不直接 import @pages/*；未注入实现时静默不请求。
  */
-import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import { getConfig } from "@repo/config";
-import { Close } from "@element-plus/icons-vue";
+import { ArrowDown, ArrowUp, Close } from "@element-plus/icons-vue";
 import useUserStore from "@repo/pinia/modules/user";
 import { getAnnouncementApi } from "../../../../../announcementApi";
 
@@ -52,22 +52,85 @@ const props = withDefaults(defineProps<{
   loadMode?: "single" | "timed";
   /** timed 模式下轮询间隔（毫秒），默认 5 分钟 */
   interval?: number;
+  /** 折叠态最多显示几条（超出部分收进「展开全部」），默认 3 */
+  max?: number;
 }>(), {
   position: "",
   loadMode: "single",
   interval: 300000,
+  max: 3,
 });
 
 const announcements = ref<Announcement[]>([]);
+/** 是否展开「全部公告」（折叠态只留 max 条，避免公告墙把页面挤没） */
+const expanded = ref(false);
+
+/**
+ * 条目指纹：同一标题/等级/位置/正文/跳转的公告视为同一条。
+ *
+ * <p>后端 {@code /v2/announcement/active} 在「同一条公告被重复发布」或历史数据
+ * 重复初始化时会把同标题的多行一起返回（实测「V2.0发布」×4、「安全提醒」×4），
+ * 前端按指纹收成一条，否则公告条会整屏堆同一条内容。</p>
+ */
+function announceSignature(a: Announcement): string {
+  return [a.sysAnnouncementLevel, a.sysAnnouncementPosition, a.sysAnnouncementTitle, a.sysAnnouncementContent, a.sysAnnouncementTargetUrl]
+    .map((v) => String(v ?? ""))
+    .join("\u0000");
+}
+
+/**
+ * 规范化：按 id 去重（同一行被重复推送/重复渲染），再按内容指纹去重
+ * （不同 id 的重复数据）。顺序保持后端返回顺序（后端按发布时间倒序）。
+ */
+function normalize(list: Announcement[] | null | undefined): Announcement[] {
+  const seenIds = new Set<string>();
+  const seenSig = new Set<string>();
+  const out: Announcement[] = [];
+  for (const a of list ?? []) {
+    if (!a) continue;
+    const id = a.sysAnnouncementId;
+    if (id !== undefined && id !== null && String(id) !== "") {
+      const key = String(id);
+      if (seenIds.has(key)) continue;
+      seenIds.add(key);
+    }
+    const sig = announceSignature(a);
+    if (seenSig.has(sig)) continue;
+    seenSig.add(sig);
+    out.push(a);
+  }
+  return out;
+}
 
 // 显隐开关（app.yaml other.toolbar.announcement，缺省显示）。
 // 后端未实现平台公告接口的独立应用关掉它，可避免 403 被 http 拦截器判为会话失效。
 const enabled = computed(() => getConfig().other?.toolbar?.announcement !== false);
 
+/** 当前 position 下去重后的公告 */
 const filtered = computed(() => {
-  if (!props.position) return announcements.value;
-  return announcements.value.filter((a) => a.sysAnnouncementPosition === props.position);
+  const list = announcements.value;
+  if (!props.position) return list;
+  return list.filter((a) => a.sysAnnouncementPosition === props.position);
 });
+
+/** 折叠态实际渲染的条目 */
+const shown = computed(() => {
+  const list = filtered.value;
+  const max = Math.max(0, props.max);
+  if (expanded.value || !max || list.length <= max) return list;
+  return list.slice(0, max);
+});
+
+/** 被折叠掉的条数（0 表示不需要展开器） */
+const hiddenCount = computed(() => filtered.value.length - shown.value.length);
+
+// 列表刷新后回到折叠态：展开态跨轮询保留会让「收起来」失效
+watch(
+  () => filtered.value.map((a) => a.sysAnnouncementId).join(","),
+  () => {
+    if (expanded.value && filtered.value.length <= Math.max(0, props.max)) expanded.value = false;
+  },
+);
 
 const levelBg: Record<string, string> = {
   info: "var(--el-color-primary-light-8)",
@@ -184,7 +247,7 @@ async function fetchAnnouncements(force = false) {
   // 内存成功缓存（timed 轮询用 force=true 强制刷新）
   const mem = memCaches.get(uk);
   if (!force && mem && Date.now() - mem.timestamp < CACHE_TTL) {
-    announcements.value = mem.list.filter((a) => !isDismissed(a.sysAnnouncementId));
+    announcements.value = normalize(mem.list).filter((a) => !isDismissed(a.sysAnnouncementId));
     return;
   }
   // localStorage 成功缓存
@@ -192,7 +255,7 @@ async function fetchAnnouncements(force = false) {
     const cached = readCache();
     if (cached) {
       memCaches.set(uk, { list: cached, timestamp: Date.now() });
-      announcements.value = cached.filter((a) => !isDismissed(a.sysAnnouncementId));
+      announcements.value = normalize(cached).filter((a) => !isDismissed(a.sysAnnouncementId));
       return;
     }
   }
@@ -206,7 +269,8 @@ async function fetchAnnouncements(force = false) {
         return [] as Announcement[];
       }
       const res = await api.getActiveAnnouncements();
-      const list = (res?.data ?? []) as Announcement[];
+      // 去重在写入缓存之前做：缓存里存的是去重结果，避免老缓存把重复项带回来
+      const list = normalize((res?.data ?? []) as Announcement[]);
       writeCache(list);
       memCaches.set(uk, { list, timestamp: Date.now() });
       // 请求成功，清除失败缓存
@@ -247,9 +311,9 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div v-if="filtered.length" class="announcement-bar">
+  <div v-if="filtered.length" class="announcement-bar" :class="{ 'is-expanded': expanded }">
     <div
-      v-for="item in filtered"
+      v-for="item in shown"
       :key="item.sysAnnouncementId"
       class="announcement-item"
       :style="{ background: levelBg[item.sysAnnouncementLevel] || levelBg.info }"
@@ -272,6 +336,12 @@ onBeforeUnmount(() => {
       <el-icon class="announcement-close" :size="14" @click="dismiss(item.sysAnnouncementId)">
         <Close />
       </el-icon>
+    </div>
+    <div v-if="hiddenCount > 0 || expanded" class="announcement-more">
+      <button type="button" class="announcement-more-btn" @click="expanded = !expanded">
+        <el-icon :size="12"><ArrowUp v-if="expanded" /><ArrowDown v-else /></el-icon>
+        <span>{{ expanded ? "收起" : `还有 ${hiddenCount} 条` }}</span>
+      </button>
     </div>
   </div>
 </template>
@@ -329,5 +399,38 @@ onBeforeUnmount(() => {
 
 .announcement-close:hover {
   opacity: 1;
+}
+
+/* 展开态限高滚动：公告再多也不把页面挤走 */
+.announcement-bar.is-expanded {
+  max-height: 40vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.announcement-more {
+  display: flex;
+  justify-content: center;
+  padding: 2px 0 4px;
+  background: var(--el-fill-color-light);
+}
+
+.announcement-more-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--el-color-primary);
+  font-size: 12px;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.announcement-more-btn:hover {
+  background: var(--el-color-primary-light-9);
 }
 </style>

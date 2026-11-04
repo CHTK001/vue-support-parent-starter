@@ -36,6 +36,19 @@
       <section class="is-stage">
         <div class="is-stage-inner" :class="{ 'is-drag': dragging }" @dragover.prevent="dragging = true"
           @dragleave.prevent="dragging = false" @drop.prevent="onDrop">
+          <!-- 分组条：检索范围隔离——不同分组各有一套底库（vector 分离），多选组名走 `groups`；
+               手势与版面与人脸识别页的 `fs-group` 完全一致。 -->
+          <div class="is-group">
+            <el-icon class="is-group-icon"><Collection /></el-icon>
+            <span class="is-group-label">分组</span>
+            <el-select v-model="groups" class="is-group-select" placeholder="选择或输入分组"
+              filterable multiple collapse-tags allow-create default-first-option
+              :disabled="busy || searching" @change="onGroupChange">
+              <el-option v-for="g in groupOptions" :key="g" :label="g" :value="g" />
+            </el-select>
+            <span class="is-group-hint">不同分组各有一套底库，互不可见</span>
+          </div>
+
           <!-- 关键词模式：不需要查询图，直接复用同一底库关键词检索 -->
           <div v-if="searchMode === 'keyword'" class="is-drop is-keyword-drop" @click="focusKeyword">
             <el-icon :size="42" class="is-drop-icon"><Search /></el-icon>
@@ -238,7 +251,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 // 留着会让人以为本页还有搜索框与删除入口
 import {
   Camera, Upload, Picture, FolderOpened, Link, Search,
-  Plus, Warning, ArrowDown, CircleCheckFilled, Delete,
+  Plus, Warning, ArrowDown, CircleCheckFilled, Delete, Collection,
 } from '@element-plus/icons-vue'
 import Viewer from 'viewerjs'
 import 'viewerjs/dist/viewer.css'
@@ -246,6 +259,7 @@ import { apiService } from '@/services/ApiService'
 import { resolveImageUrl } from '@/utils/imageSearchUrl'
 import { createAuthImageLoader } from '@/utils/authImage'
 import { usePopup } from '@/composables/usePopup'
+import { useLibraryGroups } from '@/composables/useLibraryGroups'
 import { useModelConfigStore } from '@/stores/modelConfig'
 import ReLoader from '@repo/ui/re-loader'
 
@@ -278,8 +292,15 @@ const MAX_UPLOAD_EDGE = 1600
 
 const { toast, confirm } = usePopup()
 
+/**
+ * 注意这里只取多值口径（检索范围），底库面板的登记/删除是单组定位，各走各的。
+ */
+const { group, groups, groupOptions, loadGroups, setGroups, joinGroups, rememberGroups } = useLibraryGroups('image')
+
 const fileInput = ref<HTMLInputElement | null>(null)
-const keywordInput = ref<{ focus: () => void } | null>(null)
+// el-input 的实例暴露 focus / blur；两个都要声明，否则清空搜索时想收起软键盘会因为
+// 类型里没有 blur 而报错（运行时本来存在）
+const keywordInput = ref<{ focus: () => void; blur: () => void } | null>(null)
 /** 检索模式：以图搜图 / 关键词检索（关键词模式不需要查询图） */
 const searchMode = ref<'image' | 'keyword'>('image')
 const keyword = ref('')
@@ -328,6 +349,23 @@ const filteredResults = computed(() =>
 
 function focusKeyword() {
   nextTick(() => keywordInput.value?.focus())
+}
+
+/**
+ * 切换分组（多选检索范围）。
+ *
+ * <p>与人脸识别页同口径：手输的新分组进选项；换组 = 换了一整套底库，
+ * 清空本次检索结果（未检索时清空态也刷新看板文案）。</p>
+ *
+ * @param selected 选中的分组（多选时为列表，单值时为字符串，不传则沿用当前列表）
+ */
+function onGroupChange(selected?: string | string[]) {
+  const current = Array.isArray(selected) ? selected : (typeof selected === 'string' ? [selected] : groups.value)
+  setGroups(current)
+  // 已选组全部进选项（手输的新分组尤其要进，否则下次打开下拉又选不到它）
+  rememberGroups(current)
+  results.value = []
+  searched.value = false
 }
 
 /**
@@ -643,15 +681,17 @@ async function runSearch() {
   searching.value = true
   const startedAt = performance.now()
   try {
-    const form = new FormData()
-    form.append('file', previewFile.value)
-    // 不传 topK：由后端取「系统设置 → 默认模型 → 以图搜图」的 search_top_k。
-    // 此前这里写死 '30'，用户改设置对返回条数毫无影响，只能改代码重新打包。
-    const data = await apiService._request('/image-search/search', {
-      method: 'POST',
-      data: form,
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    // 初：json 通道 + 手动拼 Content-Type（boundary 在请求头里是断的），
+    // 改走框架的 client multipart：boundary 由底层生成，令牌走请求头不进 URL。
+    const data = await apiService.searchImage(
+      previewFile.value,
+      // 不传 topK：由后端取「系统设置 → 默认模型 → 以图搜图」的 search_top_k。
+      // 此前这里写死 '30'，用户改设置对返回条数毫无影响，只能改代码重新打包。
+      undefined,
+      previewFile.value.name,
+      // 多选检索范围：后端收逗号分隔的多分组，空 = default，由 joinGroups() 归一
+      groups.value,
+    )
     results.value = Array.isArray(data) ? data : []
     searched.value = true
     elapsedMs.value = Math.round(performance.now() - startedAt)
@@ -681,11 +721,12 @@ async function runKeywordSearch() {
   const startedAt = performance.now()
   const kw = keyword.value.trim()
   try {
-    const data = await apiService._request('/image-search/list', {
-      params: { page: 1, size: 100, keyword: kw || undefined },
+    // 关键词检索也轮训当前多选范围：与以图检索同一套 `groups`；
+    // joinGroups() 空串时归一到 default，后端按 default 兜底。
+    const data = await apiService.listImage({
+      page: 1, size: 100, keyword: kw || undefined, group: joinGroups(),
     })
-    const list = Array.isArray(data) ? data : data?.items ?? []
-    results.value = list.map((item: ImageItem) => ({ ...item, score: null }))
+    results.value = Array.isArray(data) ? data : (data?.items ?? []).map((item: ImageItem) => ({ ...item, score: null }))
     searched.value = true
     elapsedMs.value = Math.round(performance.now() - startedAt)
   } catch (e: any) {
@@ -706,14 +747,9 @@ async function indexCurrent() {
   }
   busy.value = true
   try {
-    const form = new FormData()
-    form.append('file', previewFile.value)
-    form.append('name', previewFile.value.name)
-    await apiService._request('/image-search/index', {
-      method: 'POST',
-      data: form,
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    // multipart 走 client（boundary 由底层生成，不进 Content-Type 字符串）；
+    // 落库是单组定位口径，用 `group` 而不是多选范围。
+    await apiService.indexImage(previewFile.value, previewFile.value.name, group.value)
     toast.success('已加入图像底库')
     if (searched.value) await runSearch()
   } catch (e: any) {
@@ -767,6 +803,8 @@ watch(available, async (ok) => {
 
 onMounted(async () => {
   await loadStatus()
+  // 先拉分组选项再拉列表：否则下拉里只有 default，用户看不到自己已有的分组
+  await loadGroups()
 })
 
 onBeforeUnmount(() => {
@@ -1021,6 +1059,43 @@ onBeforeUnmount(() => {
    属状态反馈而非卡片投影，故保留；色源从主色派生 */
 .is-stage-inner.is-drag {
   box-shadow: 0 0 0 3px var(--is-primary-soft);
+}
+
+/*
+ * 分组是「当前工作库」的选择器，不属于任何一次检索参数，
+ * 因此独立成条常驻在舞台顶部（不随 previewUrl 显隐；关键词模式一样要带）。
+ */
+.is-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--is-border);
+  border-radius: var(--is-radius);
+  background: var(--is-card);
+}
+
+.is-group-icon {
+  color: var(--is-primary);
+}
+
+.is-group-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--is-muted);
+}
+
+.is-group-select {
+  width: 200px;
+  flex: 0 0 200px;
+}
+
+.is-group-hint {
+  font-size: 12px;
+  color: var(--is-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ---------- 空态 ---------- */

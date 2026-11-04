@@ -1,9 +1,10 @@
 /**
  * ReLoader 动画尺寸计算（唯一定义处）。
  *
- * <p>为什么集中：三种动画各自维护一套尺寸逻辑必然漂移（海浪是圆、双环是圆、
- * 进度条是横条，"大中小"对三者的含义本来就不同）。这里按「变体 × 尺寸」一次算好，
- * 以 CSS 变量下发，变体内部只消费变量。</p>
+ * <p>为什么集中：几个动画各自维护一套尺寸逻辑必然漂移（海浪是方形容器、
+ * 科技圆圈是圆、圆点是横排三条、恐龙是 220×88 的横向场景，
+ * "大中小"对它们本来就不是同一个含义）。这里按「变体 × 尺寸」一次算好，
+ * 以 CSS 变量下发，动画内部只消费变量。</p>
  *
  * <p>尺寸支持三种写法：</p>
  * <ul>
@@ -15,12 +16,26 @@
  */
 import type { ReLoaderSizeValue, ReLoaderVariant } from "./types";
 
-/** 各变体在 sm/md/lg 下的固定尺寸（px） */
+/**
+ * 各变体在 sm/md/lg 下的固定尺寸（px）。
+ *
+ * <p>这里的数字是 {@code --sla-s}（动画基准边长），不是最终外框：
+ * 圆点最终宽 = 1.5 倍、恐龙最终宽 = 1 倍（高 0.4 倍）都由样式决定。
+ * 取值的原则是「同档位下视觉重量接近」，不是「数字相同」。</p>
+ */
 const PRESET: Record<ReLoaderVariant, { sm: number; md: number; lg: number }> = {
-  // 海浪是圆形"水池"，md 取 56 视觉重量适中
+  // 海浪是正方形"水槽"，md 取 56 视觉重量适中
   wave: { sm: 28, md: 56, lg: 84 },
-  // 双环偏细节，同档位下比海浪略小，避免压过文案
-  spin: { sm: 22, md: 44, lg: 64 },
+  // 三个圆点：外框宽 1.5 倍，基准给得小一些才不会比海浪显大
+  dots: { sm: 20, md: 36, lg: 52 },
+  // 科技圆圈：正圆，同档位下与海浪相当
+  rings: { sm: 24, md: 48, lg: 72 },
+  // 像素恐龙：横向场景，基准即宽度（sm 已经需要 100px 才认得出来）
+  dino: { sm: 100, md: 150, lg: 200 },
+  // 无动画：占位 1px，不参与布局
+  none: { sm: 1, md: 1, lg: 1 },
+  // 旧键，等价 rings
+  spin: { sm: 24, md: 48, lg: 72 },
   // 进度条"尺寸"指轨道厚度
   progress: { sm: 4, md: 6, lg: 8 },
 };
@@ -37,30 +52,39 @@ const PRESET: Record<ReLoaderVariant, { sm: number; md: number; lg: number }> = 
  * <p>两个分支都用 {@code clamp} 兜住上下限：小容器不塌、大屏不失控。</p>
  */
 const AUTO_FULLSCREEN: Record<ReLoaderVariant, string> = {
-  // --rl-size 统一表示动画的**高度**（wave 的容器宽 = 高 × 1.8）。
-  // 上限按高度给：84px 高 → 容器 151px 宽，与 lg 档完全一致
-  wave: "clamp(26px, 12vmin, 84px)",
-  spin: "clamp(22px, 9vmin, 78px)",
+  // 上限按 lg 档给，全屏遮罩里不会越放越大
+  wave: "clamp(28px, 11vmin, 84px)",
+  dots: "clamp(20px, 7vmin, 52px)",
+  rings: "clamp(24px, 9vmin, 72px)",
+  // 恐龙是横向场景，宽度上限按 lg 给；矮屏（手机横屏）靠 vmin 自动收
+  dino: "clamp(90px, 26vmin, 200px)",
+  none: "1px",
+  spin: "clamp(24px, 9vmin, 72px)",
   progress: "8px",
 };
 
 const AUTO_LOCAL: Record<ReLoaderVariant, string> = {
   // 百分比要在常见容器里真的产生差异（否则大容器也顶到上限、小容器也顶到上限，
   // "自适应"就退化成又一个固定值 —— 实测踩过：58% 在 180px 与 700px 容器里都是 96px）
-  // wave 的百分比按**高度**给（与 spin 同口径），容器宽 = 高 × 1.8
-  wave: "clamp(18px, min(46%, 72px), 72px)",
-  spin: "clamp(14px, min(36%, 72px), 72px)",
+  wave: "clamp(20px, min(34%, 84px), 84px)",
+  dots: "clamp(16px, min(22%, 52px), 52px)",
+  rings: "clamp(18px, min(28%, 72px), 72px)",
+  dino: "clamp(80px, min(64%, 200px), 200px)",
+  none: "1px",
+  spin: "clamp(18px, min(28%, 72px), 72px)",
   progress: "6px",
 };
 
 /** 尺寸相关的 CSS 变量名 */
 export interface ReLoaderSizeVars {
-  /** 圆形动画的边长（wave / spin） */
+  /** 动画基准边长（对应样式里的 --sla-s / --rl-size） */
   "--rl-size": string;
   /** 进度条轨道厚度 */
   "--rl-bar-height": string;
-  /** 是否自适应（供样式做额外处理，如 aspect-ratio） */
+  /** 是否自适应（供样式做额外处理） */
   "--rl-auto"?: string;
+  /** 语义别名：四个等待动画读这个 */
+  "--sla-s"?: string;
 }
 
 /**
@@ -95,11 +119,13 @@ export function animSizeVars(
   }
 
   const vars: ReLoaderSizeVars = {
-    // 两个变量都给：圆形变体读 --rl-size，进度条读 --rl-bar-height，
+    // 两个变量都给：等待动画读 --sla-s / --rl-size，进度条读 --rl-bar-height，
     // 同一个 wrapper 同时容纳两种变体时不会因为变量缺失而丢样式
     "--rl-size": varName === "--rl-size" ? value : `${preset.md}px`,
     "--rl-bar-height": varName === "--rl-bar-height" ? value : "6px",
   };
+  // 四个等待动画统一读 --sla-s；progress 用不到，照样给（无副作用）
+  vars["--sla-s"] = vars["--rl-size"];
   if (auto) vars["--rl-auto"] = "1";
   return vars;
 }

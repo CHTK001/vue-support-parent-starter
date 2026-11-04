@@ -207,6 +207,124 @@ export const getBookmarks = (hostId: number) =>
 export const createBookmark = (d: any) => http().post(`${B}/terminal/bookmark`).data(d).then(r => unwrapResult<any>(r));
 export const delBookmark = (id: number) => http().delete(`${B}/terminal/bookmark/${id}`).then(r => unwrapResult<boolean>(r));
 
+/* ===== 终端共享（口径同文件协同 /v2/file/collab：公开 / 私有 + 授权用户） =====
+ *
+ * 一条共享记录把「当前这条 SSH 会话」开放给其他用户协同操作：被邀请方凭 roomId
+ * 接到同一条 SSH 连接与同一个远端伪终端，而不是另开一条。前端按返回的
+ * canWrite / isOwner 决定能否操作与能否改权限。
+ */
+
+/** 可见性：公开（全员可协同操作）/ 私有（仅指定用户） */
+export type TerminalShareVisibility = "PUBLIC" | "PRIVATE";
+
+/** 终端共享记录 */
+export interface TerminalShareInfo {
+  /** 共享标识（改权限 / 取消共享用） */
+  shareId: string;
+  /** 终端房间号（被邀请方加入凭它） */
+  roomId: string;
+  hostId: number;
+  hostName: string;
+  /** 发起者用户标识 */
+  owner: string;
+  visibility: TerminalShareVisibility;
+  /** 私有时的授权用户 */
+  allowedUserIds: string[];
+  createdAt: number;
+  updatedAt: number;
+  /** 当前账号是否可协同操作（写终端） */
+  canWrite: boolean;
+  /** 当前账号是否发起者（可改权限 / 取消共享） */
+  isOwner: boolean;
+}
+
+/** 发起终端共享 */
+export const createTerminalShare = (options: {
+  hostId: number;
+  hostName?: string;
+  roomId?: string;
+  userId?: string;
+  visibility?: TerminalShareVisibility;
+  userIds?: string[];
+}) => {
+  const params = new URLSearchParams({ hostId: String(options.hostId) });
+  if (options.hostName) params.set("hostName", options.hostName);
+  if (options.roomId) params.set("roomId", options.roomId);
+  if (options.userId) params.set("userId", options.userId);
+  params.set("visibility", options.visibility ?? "PUBLIC");
+  if (options.userIds?.length) params.set("userIds", options.userIds.join(","));
+  return http().post(`${B}/terminal/share/create?${params.toString()}`)
+    .then(r => unwrapResult<TerminalShareInfo>(r));
+};
+
+/** 某台主机对当前用户可见的共享终端 */
+export const listTerminalShares = (hostId: number, userId?: string) => {
+  const qs = new URLSearchParams({ hostId: String(hostId) });
+  if (userId) qs.set("userId", userId);
+  return http().get(`${B}/terminal/share/list?${qs.toString()}`)
+    .then(r => unwrapResult<TerminalShareInfo[]>(r));
+};
+
+/** 按房间号取共享（加入前校验权限） */
+export const getTerminalShareByRoom = (roomId: string, userId?: string) => {
+  const qs = userId ? `?userId=${encodeURIComponent(userId)}` : "";
+  return http().get(`${B}/terminal/share/room/${encodeURIComponent(roomId)}${qs}`)
+    .then(r => unwrapResult<TerminalShareInfo>(r));
+};
+
+/** 更新共享权限（仅发起者） */
+export const updateTerminalShareAccess = (
+  shareId: string,
+  visibility: TerminalShareVisibility,
+  userIds: string[] = [],
+  userId?: string,
+) => {
+  const qs = new URLSearchParams({ visibility });
+  if (userIds.length) qs.set("userIds", userIds.join(","));
+  if (userId) qs.set("userId", userId);
+  return http().put(`${B}/terminal/share/${shareId}/access?${qs.toString()}`)
+    .then(r => unwrapResult<TerminalShareInfo>(r));
+};
+
+/** 取消共享（仅发起者） */
+export const deleteTerminalShare = (shareId: string, userId?: string) => {
+  const qs = userId ? `?userId=${encodeURIComponent(userId)}` : "";
+  return http().delete(`${B}/terminal/share/${shareId}${qs}`)
+    .then(r => unwrapResult<boolean>(r));
+};
+
+/**
+ * 拉取可授权的用户列表（共享选人）。
+ *
+ * <p>与协同文档同一口径：复用系统模块的用户分页接口 {@code GET /v2/user/page}，
+ * 不另建用户模型。接口不可用时降级为空列表（公开共享不受影响）。</p>
+ *
+ * @param limit 拉取上限（默认 100）
+ */
+export async function listUsersForPicker(limit = 100): Promise<Array<{ userId: string; label: string }>> {
+  try {
+    const raw = (await http()
+      .get("/v2/user/page")
+      .query({ page: 1, pageSize: limit, sysUserStatus: 1 })
+      .then(r => (r as { data?: unknown }).data)) as unknown;
+    const wrap = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+    const page = (wrap.data ?? {}) as Record<string, unknown> | unknown[];
+    const users = (Array.isArray(page)
+      ? page
+      : ((page as Record<string, unknown>)?.records ?? (page as Record<string, unknown>)?.list ?? [])) as Array<
+      { sysUserId?: number; sysUserUsername?: string; sysUserNickname?: string; sysUserStatus?: number }
+    >;
+    return (users ?? [])
+      .filter(u => u && u.sysUserId != null && u.sysUserStatus !== 0)
+      .map(u => ({
+        userId: String(u.sysUserId),
+        label: u.sysUserNickname || u.sysUserUsername || String(u.sysUserId),
+      }));
+  } catch {
+    return [];
+  }
+}
+
 /* ===== 主机工作台：Docker/K8s 能力与资源（接口约定见 src/workbench-api-contract.md） =====
  *
  * Docker 的**页面**已迁到独立包 @pages/docker（后端 /ms/server/docker），

@@ -27,8 +27,21 @@ import {
   Delete as DeleteIcon,
   Connection as ConnectionIcon,
   DataAnalysis as DataAnalysisIcon,
+  Document as DocumentIcon,
 } from '@element-plus/icons-vue'
-import { channelApi, type ChannelSummary, type ChannelConnectionSummary } from '../channelApi'
+import {
+  channelApi,
+  tempAccountApi,
+  type ChannelSummary,
+  type ChannelConnectionSummary,
+  type TempIdentitySummary,
+  type TempChannelOption,
+} from '../channelApi'
+import SmsInbox from './SmsInbox.vue'
+import MailboxPanel from './MailboxPanel.vue'
+import MessageTemplateManager from './MessageTemplateManager.vue'
+import ChatClientPanel from './ChatClientPanel.vue'
+import ImageChannelPanel from './ImageChannelPanel.vue'
 
 // 各渠道的官方图标（本地落地的品牌资源）。
 // 有官方 SVG/ICO 的渠道用图标；没有公开官方资源的渠道（Qoder / Raccoon / Loomy…）
@@ -68,6 +81,14 @@ const CHANNEL_BRANDS: Record<string, ChannelBrand> = {
   lobsterai: { icon: lobsteraiIcon, color: '#F03D64', glyph: 'L', method: '浏览器授权' },
   opencode: { icon: opencodeIcon, color: '#111827', glyph: 'O', method: 'API Key' },
   workbuddy: { color: '#5A4FF3', glyph: 'W', method: '浏览器授权' },
+  // ChatClient 免登录渠道：无官方图标，用 DuckDuckGo 品牌橙 + 首字母徽标
+  'chat-duckduckgo': { color: '#DE5833', glyph: 'D', method: '免登录' },
+  // Trae：对话复用本机登录态（也可在面板里临时填 JWT），同时具备文生图能力
+  'chat-trae': { icon: traeIcon, color: '#0F766E', glyph: 'T', method: '本机登录态' },
+  // 文生图渠道：Pollinations 免登录，DuckDuckGo 走 SSE 免登录，Trae 需登录态
+  'image-duckduckgo': { color: '#DE5833', glyph: 'D', method: '免登录' },
+  'image-pollinations': { color: '#7C3AED', glyph: 'P', method: '免登录' },
+  'image-trae': { icon: traeIcon, color: '#0F766E', glyph: 'T', method: '本机登录态' },
 }
 
 /** 渠道品牌外观（未知渠道给中性灰兜底） */
@@ -97,12 +118,17 @@ const activeSummary = () => channels.value.find((c) => c.channel === activeChann
 // ---------- 方案 A：运维甲板（OPS·DECK）派生状态 ----------
 // 渠道级健康状态：按该渠道绑定的账号状态汇总出「在线 / 待刷新 / 未绑定」。
 const channelState = (c?: ChannelSummary): 'online' | 'stale' | 'none' => {
+  // ChatClient 免登录渠道（对话 / 文生图）没有连接行：只要 SPI 已注册即可用
+  const kind = String(c?.kind ?? '').toUpperCase()
+  if (kind === 'CHAT' || kind === 'IMAGE') return 'online'
   const conns = c?.connections ?? []
   if (!conns.length) return 'none'
   return conns.some((x) => x.status === 'valid') ? 'online' : 'stale'
 }
 const channelStateText = (c?: ChannelSummary): string =>
-  ({ online: '在线', stale: '待刷新', none: '未绑定' })[channelState(c)]
+  ['CHAT', 'IMAGE'].includes(String(c?.kind ?? '').toUpperCase())
+    ? '免登录可用'
+    : ({ online: '在线', stale: '待刷新', none: '未绑定' })[channelState(c)]
 
 // 待刷新账号数（过期 / 失效 / 未知凭借据）
 const staleCount = (c?: ChannelSummary): number =>
@@ -465,12 +491,29 @@ function onCallbackUrlInput(event: Event) {
   state.handle.callbackUrl = (event.target as HTMLInputElement).value
 }
 
-// ---------- 账号刷新 / 签到 / 删除 ----------
-async function refreshAccount(channel: string, label: string) {
+// ---------- 账号刷新 / 签到 / 改名 / 切主 / 删除 ----------
+// 账号操作一律按 connectionId 精确寻址：label 可能被本次操作改掉（改名），
+// 也可能历史重复；connectionId 是主键，能避免误改/误删同渠道的其他账号。
+const accountRef = (conn: ChannelConnectionSummary) => ({
+  connectionId: conn.connectionId,
+  label: conn.label,
+})
+
+/** 到期文案：无 expiresAt 视为长期有效；已过期 / 不足一天按小时展示 */
+function connExpireText(conn: ChannelConnectionSummary): string {
+  const at = conn.expiresAt
+  if (!at) return ''
+  const diff = Number(at) - Date.now()
+  if (!Number.isFinite(diff) || diff <= 0) return '已过期'
+  const hours = Math.ceil(diff / 3_600_000)
+  return hours < 24 ? `${hours} 小时后到期` : `${Math.ceil(diff / 86_400_000)} 天后到期`
+}
+
+async function refreshAccount(channel: string, conn: ChannelConnectionSummary) {
   const b = busyOf(channel)
   b.refresh = true
   try {
-    const res = await channelApi.refresh(channel, { label })
+    const res = await channelApi.refresh(channel, accountRef(conn))
     const out = (res as any)?.data ?? res
     // SPI refresh() 可能返回同一份凭据（渠道没有可刷新字段、或上游未下发新 token），
     // 此时若仍提示「凭据已刷新」，用户会以为刷新成功但过期时间没变是 bug。
@@ -486,11 +529,11 @@ async function refreshAccount(channel: string, label: string) {
   }
 }
 
-async function checkin(channel: string, label: string) {
+async function checkin(channel: string, conn: ChannelConnectionSummary) {
   const b = busyOf(channel)
   b.sign = true
   try {
-    const res = await channelApi.checkin(channel, { label })
+    const res = await channelApi.checkin(channel, accountRef(conn))
     const out = (res as any)?.data ?? res
     if (out?.result && Object.keys(out.result).length > 0) {
       ElMessage.success('签到完成：' + JSON.stringify(out.result))
@@ -504,19 +547,84 @@ async function checkin(channel: string, label: string) {
   }
 }
 
-async function deleteAccount(channel: string, label: string) {
+/**
+ * 改名：弹输入框，默认填当前名。
+ *
+ * 提交后只就地更新该账号的 label，不整表重载——用户正在看的渠道/模型开关状态
+ * 不该因为改个名被重置。
+ */
+async function renameAccount(channel: string, conn: ChannelConnectionSummary) {
+  let newLabel: string
   try {
-    await ElMessageBox.confirm(`删除账号「${label}」？`, '确认', { type: 'warning' })
+    const { value } = await ElMessageBox.prompt('请输入新的账号名称', '改名', {
+      inputValue: conn.label ?? '',
+      inputPattern: /\S/,
+      inputErrorMessage: '名称不能为空',
+      confirmButtonText: '保存',
+      cancelButtonText: '取消',
+    })
+    newLabel = String(value ?? '').trim()
+  } catch {
+    return
+  }
+  if (!newLabel || newLabel === conn.label) return
+  try {
+    const res = await channelApi.renameConnection(channel, {
+      ...accountRef(conn),
+      newLabel,
+    })
+    const out = (res as any)?.data ?? res
+    conn.label = out?.label ?? newLabel
+    ElMessage.success('账号已改名')
+  } catch (e: any) {
+    ElMessage.error('改名失败：' + (e?.message ?? e))
+  }
+}
+
+/**
+ * 设为主账号。
+ *
+ * 后端保证主账号唯一（先降级其余 default），所以本地也同步把同渠道其它账号
+ * 的 primary 清掉，避免界面出现两个「主账号」徽章直到下次刷新。
+ */
+async function setPrimaryAccount(channel: string, conn: ChannelConnectionSummary) {
+  if (conn.primary) return
+  try {
+    await channelApi.setPrimary(channel, accountRef(conn))
+    const summary = channels.value.find((c) => c.channel === channel)
+    for (const c of summary?.connections ?? []) {
+      c.primary = c.connectionId === conn.connectionId
+      c.role = c.primary ? 'default' : 'backup'
+    }
+    ElMessage.success(`已将「${conn.label ?? conn.connectionId}」设为主账号`)
+  } catch (e: any) {
+    ElMessage.error('设为主账号失败：' + (e?.message ?? e))
+  }
+}
+
+async function deleteAccount(channel: string, conn: ChannelConnectionSummary) {
+  const name = conn.label ?? conn.connectionId
+  try {
+    await ElMessageBox.confirm(`删除账号「${name}」？`, '确认', { type: 'warning' })
   } catch {
     return
   }
   try {
-    await channelApi.deleteConnection(channel, label)
+    await channelApi.deleteConnection(channel, accountRef(conn))
     ElMessage.success('账号已删除')
     await loadChannels()
   } catch (e: any) {
     ElMessage.error('删除失败：' + (e?.message ?? e))
   }
+}
+
+/** 账号排序：后端不保证顺序，主账号置顶，其余按绑定时间升序 */
+function sortedConnections(c?: ChannelSummary): ChannelConnectionSummary[] {
+  const list = [...(c?.connections ?? [])]
+  return list.sort((a, b) => {
+    if (!!a.primary !== !!b.primary) return a.primary ? -1 : 1
+    return (a.createdAt ?? 0) - (b.createdAt ?? 0)
+  })
 }
 
 // ---------- 模型 ----------
@@ -526,23 +634,28 @@ async function pullModels(channel: string) {
   try {
     const summary = channels.value.find((c) => c.channel === channel)
     const conns = summary?.connections ?? []
-    const label = conns[0]?.label
+    // 显式选主账号：不传寻址参数时后端取哪条取决于查询顺序，用户无从得知。
+    const target = conns.find((x) => x.primary) ?? conns[0]
+    const label = target?.label
     // 渠道绑了多个账号时，不传 label 会让后端取「第一个账号」，用户无从得知拉的是谁的模型。
     if (conns.length > 1) {
       ElMessage.info(`该渠道有 ${conns.length} 个账号，当前按「${label ?? '默认账号'}」拉取`)
     }
-    const res = await channelApi.listModels(channel, { label })
+    const targetRef = target ? accountRef(target) : {}
+    const res = await channelApi.listModels(channel, targetRef)
     const out = (res as any)?.data ?? res
     if (out?.models?.length) {
       ElMessage.success(`拉取到 ${out.models.length} 个模型，正在落库…`)
       // 落库走渠道专用端点（SPI listModels → sys_ai_provider_model），
       // 而非 /api/providers/{id}/models/import-all（该端点对 oauth 类 provider 会失败）。
-      const impRes = await channelApi.importModels(channel, { label })
+      const impRes = await channelApi.importModels(channel, targetRef)
       const imp = (impRes as any)?.data ?? impRes
       if (imp?.ok) {
         ElMessage.success(`落库完成：新增 ${imp.created ?? 0}，更新 ${imp.updated ?? 0}`)
       }
-      summary.models = out.models.map((m: any) => ({
+      // 可能是 undefined：渠道列表刷新后，本次 `channel` 未必还在里面。
+      // 这种情况下上面已经把模型落库了，只是没处写回面板态 —— 不回写不算错。
+      if (summary) summary.models = out.models.map((m: any) => ({
         model: m.id,
         enabled: m.enabled ?? true,
         alias: m.name,
@@ -625,6 +738,224 @@ function invertModels() {
   void batchSetModels(activeChannel.value, (m) => !m.enabled)
 }
 
+// ---------- 账号类型（kind / accountTypes）----------
+// 渠道按「种类」与「支持的账号类型」两个正交维度描述：
+//   kind = AI / SMS / EMAIL；accountTypes ⊂ { FIXED, TEMPORARY }。
+// 历史响应缺省时按「AI + 仅固定账号」处理，保证向后兼容。
+/** 渠道支持的账号类型（缺省仅固定账号） */
+const accountTypesOf = (c?: ChannelSummary): string[] =>
+  (c?.accountTypes ?? ['FIXED']).map((t) => String(t).toUpperCase())
+/** 是否支持固定账号（长期绑定 / 授权） */
+const supportsFixed = (c?: ChannelSummary): boolean => accountTypesOf(c).includes('FIXED')
+/** 是否支持临时账号（一次性虚拟身份） */
+const supportsTemporary = (c?: ChannelSummary): boolean => accountTypesOf(c).includes('TEMPORARY')
+
+/** 渠道种类展示名 */
+const KIND_TEXT: Record<string, string> = {
+  AI: 'AI 账号',
+  CHAT: '免登录对话',
+  IMAGE: '文生图',
+  SMS: '短信接码',
+  EMAIL: '邮件收信',
+}
+const kindOf = (c?: ChannelSummary): string => String(c?.kind ?? 'AI').toUpperCase()
+const kindText = (c?: ChannelSummary): string => KIND_TEXT[kindOf(c)] ?? kindOf(c)
+/** 免账号渠道（对话 / 文生图）：没有绑定、连接、签到与启停语义 */
+const isStatelessKind = (c?: ChannelSummary): boolean => ['CHAT', 'IMAGE'].includes(kindOf(c))
+/** 免账号渠道的副标题说明 */
+const statelessHint = (c?: ChannelSummary): string =>
+  kindOf(c) === 'IMAGE' ? '· 文生图渠道（无持久化凭据）' : '· ChatClient 免登录（无持久化凭据）'
+
+// ---------- 临时身份（/api/channels/temp-accounts）----------
+// 页内可创建（设计决策 4）：临时身份 = 接码渠道 + 收信渠道的组合资源，
+// 创建后由后端定时轮询抓取新短信 / 新邮件，经 SSE 实时推送。
+/** 临时身份创建类型选项（仅号码 / 仅邮箱 / 号码 + 邮箱） */
+const TEMP_TYPE_OPTIONS = [
+  { value: 'sms' as const, label: '仅号码' },
+  { value: 'email' as const, label: '仅邮箱' },
+  { value: 'both' as const, label: '号码 + 邮箱' },
+]
+const tempDialogVisible = ref(false)
+const tempType = ref<'sms' | 'email' | 'both'>('both')
+const tempList = ref<TempIdentitySummary[]>([])
+const tempLoading = ref(false)
+const tempCreating = ref(false)
+const tempDetailId = ref('')
+const tempDetail = ref<Record<string, any> | null>(null)
+let tempSse: { close: () => void } | null = null
+/** SSE 增量消息侧写：id → { sms, emails }（详情未拉取时先用它渲染） */
+const tempLive = reactive<Record<string, { sms: Record<string, any>[]; emails: Record<string, any>[] }>>({})
+
+// 短信 / 邮件渠道的「进入优先级」选项：后端按 priority 降序返回，default=true 为缺省渠道。
+// 留空即使用缺省渠道，实现「指定优先 + 优先级降级」。
+const tempChannelOptions = reactive<{ sms: TempChannelOption[]; email: TempChannelOption[] }>({
+  sms: [],
+  email: [],
+})
+const tempSmsChannel = ref('')
+const tempEmailChannel = ref('')
+/** 消息模板管理弹窗 */
+const templateDialogVisible = ref(false)
+
+async function loadTempChannelOptions() {
+  try {
+    const res = await tempAccountApi.availableChannels()
+    const data = ((res as any)?.data ?? res) as { sms?: TempChannelOption[]; email?: TempChannelOption[] }
+    tempChannelOptions.sms = data?.sms ?? []
+    tempChannelOptions.email = data?.email ?? []
+    // 默认选中缺省渠道（default=true），避免下拉出现「未选择」的空态
+    if (!tempSmsChannel.value) {
+      tempSmsChannel.value = tempChannelOptions.sms.find((x) => x.default)?.channel ?? ''
+    }
+    if (!tempEmailChannel.value) {
+      tempEmailChannel.value = tempChannelOptions.email.find((x) => x.default)?.channel ?? ''
+    }
+  } catch {
+    // 渠道选项拉取失败不阻塞创建：留空即走后端缺省渠道
+    tempChannelOptions.sms = []
+    tempChannelOptions.email = []
+  }
+}
+
+function openTempDialog() {
+  tempDialogVisible.value = true
+  void loadTempIdentities()
+  void loadTempChannelOptions()
+  startTempStream()
+}
+
+function closeTempDialog() {
+  stopTempStream()
+  tempDetailId.value = ''
+  tempDetail.value = null
+}
+
+function stopTempStream() {
+  try {
+    tempSse?.close()
+  } catch {
+    /* 已关闭 */
+  }
+  tempSse = null
+}
+
+async function loadTempIdentities() {
+  tempLoading.value = true
+  try {
+    const res = await tempAccountApi.list()
+    const data = (res as any)?.data ?? res
+    tempList.value = Array.isArray(data) ? data : []
+  } catch (e: any) {
+    ElMessage.error('临时身份加载失败：' + (e?.message ?? e))
+  } finally {
+    tempLoading.value = false
+  }
+}
+
+function startTempStream() {
+  stopTempStream()
+  tempSse = tempAccountApi.stream({
+    onAccount: (account) => {
+      if (!account?.id) return
+      tempList.value = [account, ...tempList.value.filter((x) => x.id !== account.id)]
+    },
+    onMessage: (payload) => {
+      if (!payload?.id) return
+      const live = (tempLive[payload.id] ??= { sms: [], emails: [] })
+      if (payload.sms?.length) live.sms.unshift(...payload.sms)
+      if (payload.emails?.length) live.emails.unshift(...payload.emails)
+      const item = tempList.value.find((x) => x.id === payload.id)
+      if (item) {
+        item.smsCount = (item.smsCount ?? 0) + (payload.sms?.length ?? 0)
+        item.emailCount = (item.emailCount ?? 0) + (payload.emails?.length ?? 0)
+      }
+      if (tempDetailId.value === payload.id) {
+        const cur = tempDetail.value ?? {}
+        tempDetail.value = {
+          ...cur,
+          smsMessages: [...(payload.sms ?? []), ...((cur.smsMessages as any[]) ?? [])],
+          emails: [...(payload.emails ?? []), ...((cur.emails as any[]) ?? [])],
+        }
+      }
+    },
+    onRemove: (payload) => {
+      tempList.value = tempList.value.filter((x) => x.id !== payload?.id)
+      if (tempDetailId.value === payload?.id) {
+        tempDetailId.value = ''
+        tempDetail.value = null
+      }
+    },
+  })
+}
+
+async function createTempIdentity() {
+  tempCreating.value = true
+  try {
+    const res = await tempAccountApi.create(tempType.value, {
+      smsChannel: tempType.value === 'email' ? undefined : tempSmsChannel.value || undefined,
+      emailChannel: tempType.value === 'sms' ? undefined : tempEmailChannel.value || undefined,
+    })
+    const created = ((res as any)?.data ?? res) as TempIdentitySummary
+    if (created?.id) {
+      tempList.value = [created, ...tempList.value.filter((x) => x.id !== created.id)]
+    }
+    ElMessage.success('临时身份已创建')
+  } catch (e: any) {
+    ElMessage.error('创建临时身份失败：' + (e?.message ?? e))
+  } finally {
+    tempCreating.value = false
+  }
+}
+
+async function removeTempIdentity(id: string) {
+  try {
+    await ElMessageBox.confirm('删除后该身份的号码与邮箱一并失效，确定删除？', '删除临时身份', { type: 'warning' })
+  } catch {
+    return
+  }
+  try {
+    await tempAccountApi.remove(id)
+    tempList.value = tempList.value.filter((x) => x.id !== id)
+    if (tempDetailId.value === id) {
+      tempDetailId.value = ''
+      tempDetail.value = null
+    }
+    ElMessage.success('已删除')
+  } catch (e: any) {
+    ElMessage.error('删除失败：' + (e?.message ?? e))
+  }
+}
+
+async function toggleTempDetail(id: string) {
+  if (tempDetailId.value === id) {
+    tempDetailId.value = ''
+    tempDetail.value = null
+    return
+  }
+  tempDetailId.value = id
+  tempDetail.value = null
+  try {
+    const res = await tempAccountApi.detail(id)
+    tempDetail.value = ((res as any)?.data ?? res) as Record<string, any>
+  } catch (e: any) {
+    ElMessage.error('消息加载失败：' + (e?.message ?? e))
+  }
+}
+
+/** 某身份当前可见的短信（详情优先，其次 SSE 增量） */
+const tempSmsOf = (id: string): Record<string, any>[] =>
+  (tempDetailId.value === id ? (tempDetail.value?.smsMessages as Record<string, any>[]) : undefined)
+  ?? tempLive[id]?.sms
+  ?? []
+/** 某身份当前可见的邮件（详情优先，其次 SSE 增量） */
+const tempEmailsOf = (id: string): Record<string, any>[] =>
+  (tempDetailId.value === id ? (tempDetail.value?.emails as Record<string, any>[]) : undefined)
+  ?? tempLive[id]?.emails
+  ?? []
+
+/** 时间戳（毫秒）→ 本地可读文本 */
+const fmtTime = (ts?: number) => (ts ? new Date(ts).toLocaleString() : '—')
+
 watch(activeChannel, () => {
   /* 切换渠道卡片时不做额外操作 */
 }, { immediate: false })
@@ -644,6 +975,7 @@ onBeforeUnmount(() => {
     }
     delete sseClients[key]
   }
+  stopTempStream()
 })
 
 // 模板引用
@@ -656,10 +988,15 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
     <!-- 页头：统一用 RePageHead（全站共用一份页面头实现） -->
     <RePageHead title="渠道管理">
       <template #sub>
-        账号类渠道的账号绑定、轮询、刷新、签到与模型开关。
+        账号类渠道的账号绑定、轮询、刷新、签到与模型开关；ChatClient 渠道免登录直接试对话；
+        文生图渠道按提示词出图（Pollinations 免登录，Trae 读本机登录态或临时填 JWT）。
         <b>{{ channels.length }}</b> 个已注册渠道
       </template>
       <template #actions>
+        <el-button class="chm-btn" @click="templateDialogVisible = true">
+          <el-icon class="chm-btn__icon" aria-hidden="true"><DocumentIcon /></el-icon>
+          消息模板
+        </el-button>
         <el-button class="chm-btn" :loading="loading" @click="loadChannels">
           <el-icon v-if="!loading" class="chm-btn__icon" aria-hidden="true"><RefreshIcon /></el-icon>
           刷新
@@ -674,11 +1011,11 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
     </div>
 
     <!-- 空态 -->
-    <el-empty v-if="!loading && !channels.length" description="尚未注册任何账号类渠道">
+    <el-empty v-if="!loading && !channels.length" description="尚未注册任何渠道">
       <template #description>
-        <p>尚未注册任何账号类渠道</p>
+        <p>尚未注册任何渠道</p>
         <p class="chm-empty__hint">
-          渠道清单来自后端 SPI 注册表（{@code META-INF/extensions/AccountChannelAuthManager}）。
+          渠道清单来自后端 SPI 注册表（AccountChannelAuthManager / ChatChannelProvider / ImageChannelProvider）。
         </p>
       </template>
     </el-empty>
@@ -708,6 +1045,7 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
           <span class="chm-rail__name" :title="c.displayName || c.channel">
             {{ c.displayName || c.channel }}
           </span>
+          <span class="chm-rail__kind" :title="kindText(c)">{{ kindOf(c) }}</span>
           <span class="chm-rail__dot" :class="'is-' + channelState(c)"
                 :title="channelStateText(c)" />
         </button>
@@ -726,9 +1064,15 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
             <h3>{{ activeSummary()!.displayName || activeChannel }}</h3>
             <span>
               <i>{{ brandOf(activeChannel).method || activeSummary()!.loginMethod || '—' }}</i>
-              · provider {{ activeSummary()!.providerId }}
+              <span v-if="!isStatelessKind(activeSummary())">· provider {{ activeSummary()!.providerId }}</span>
+              <span v-else>{{ statelessHint(activeSummary()) }}</span>
+              <span class="chm-panel__chip">{{ kindText(activeSummary()) }}</span>
+              <span v-if="activeSummary()!.priority !== undefined" class="chm-panel__chip is-muted">
+                优先级 {{ activeSummary()!.priority }}
+              </span>
+              <span class="chm-panel__chip" v-if="activeSummary()!.supportsImage">可出图</span>
               <span class="chm-panel__chip" v-if="activeSummary()!.supportsCheckin">可签到</span>
-              <span class="chm-panel__chip is-muted" v-else>无签到</span>
+              <span class="chm-panel__chip is-muted" v-else-if="!isStatelessKind(activeSummary())">无签到</span>
             </span>
           </div>
           <div class="chm-panel__state">
@@ -736,12 +1080,15 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
             {{ channelStateText(activeSummary()) }}
           </div>
           <el-switch
+            v-if="!isStatelessKind(activeSummary())"
             :model-value="activeSummary()!.enabled"
             class="chm-panel__switch"
             @change="(v: boolean | string | number) => toggleChannelEnabled(activeChannel, !!v)"
           />
         </header>
 
+        <!-- 账号类渠道：KPI + 账号 + 模型 + 绑定入口 -->
+        <template v-if="!isStatelessKind(activeSummary())">
         <!-- KPI 行 -->
         <div class="chm-kpis">
           <div class="chm-kpi">
@@ -766,24 +1113,33 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
           </div>
           <div class="chm-accs">
             <div
-              v-for="conn in activeSummary()!.connections ?? []"
+              v-for="conn in sortedConnections(activeSummary())"
               :key="conn.connectionId"
               class="chm-acc"
-              :class="{ 'is-stale': connState(conn) !== 'valid' }"
+              :class="{ 'is-stale': connState(conn) !== 'valid', 'is-primary': conn.primary }"
             >
               <span class="chm-acc__label" :title="conn.label">{{ conn.label || '未命名' }}</span>
+              <span v-if="conn.primary" class="chm-acc__primary">主账号</span>
               <span class="chm-acc__state" :class="'is-' + connState(conn)">
                 {{ connStateText(conn) }}
               </span>
+              <span v-if="connExpireText(conn)" class="chm-acc__expire"
+                    :class="{ 'is-expired': connExpireText(conn) === '已过期' }">
+                {{ connExpireText(conn) }}
+              </span>
               <div class="chm-acc__actions">
+                <button class="chm-acc__btn"
+                        @click.stop="renameAccount(activeChannel, conn)">改名</button>
+                <button v-if="!conn.primary" class="chm-acc__btn"
+                        @click.stop="setPrimaryAccount(activeChannel, conn)">设为主账号</button>
                 <button v-if="activeSummary()!.supportsRefresh !== false"
                         class="chm-acc__btn" :disabled="busyFor(activeChannel, 'refresh')"
-                        @click.stop="refreshAccount(activeChannel, conn.label ?? '')">刷新</button>
+                        @click.stop="refreshAccount(activeChannel, conn)">刷新</button>
                 <button v-if="activeSummary()!.supportsCheckin" class="chm-acc__btn"
                         :disabled="busyFor(activeChannel, 'sign')"
-                        @click.stop="checkin(activeChannel, conn.label ?? '')">签到</button>
+                        @click.stop="checkin(activeChannel, conn)">签到</button>
                 <button class="chm-acc__btn is-danger"
-                        @click.stop="deleteAccount(activeChannel, conn.label ?? '')">删除</button>
+                        @click.stop="deleteAccount(activeChannel, conn)">删除</button>
               </div>
             </div>
             <div v-if="!(activeSummary()!.connections ?? []).length" class="chm-card__empty">
@@ -830,20 +1186,52 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
           </div>
         </div>
 
-        <!-- 绑定新账号：虚线框，点击即弹窗。
-             不设账号标签输入框——页面不收集任何账号信息（需求②），
-             标签由后端按「账号 N」自动生成，绑定成功后可在列表里识别。 -->
-        <button
-          class="chm-panel__bindbtn"
-          type="button"
-          :disabled="busyFor(activeChannel, 'login')"
-          @click="openBindDialog(activeChannel)"
-        >
-          <el-icon v-if="!busyFor(activeChannel, 'login')" class="chm-btn__icon" aria-hidden="true">
-            <PlusIcon />
-          </el-icon>
-          {{ busyFor(activeChannel, 'login') ? '登录中…' : '＋ 绑定新账号（点击弹出）' }}
-        </button>
+        <!-- 新增账号入口：按渠道支持的账号类型决定按钮。
+             FIXED     → 现绑定弹窗（SSE 登录流），不设账号标签输入框，
+                         标签由后端按「账号 N」自动生成。
+             TEMPORARY → 页内创建一次性临时身份（接码 / 收信），复用临时身份 SSE 消息流。 -->
+        <div class="chm-panel__binds">
+          <button
+            v-if="supportsFixed(activeSummary())"
+            class="chm-panel__bindbtn"
+            type="button"
+            :disabled="busyFor(activeChannel, 'login')"
+            @click="openBindDialog(activeChannel)"
+          >
+            <el-icon v-if="!busyFor(activeChannel, 'login')" class="chm-btn__icon" aria-hidden="true">
+              <PlusIcon />
+            </el-icon>
+            {{ busyFor(activeChannel, 'login') ? '登录中…' : '＋ 绑定固定账号（点击弹出）' }}
+          </button>
+          <button
+            v-if="supportsTemporary(activeSummary())"
+            class="chm-panel__bindbtn is-temp"
+            type="button"
+            @click="openTempDialog()"
+          >
+            <el-icon class="chm-btn__icon" aria-hidden="true"><PlusIcon /></el-icon>
+            ＋ 新建临时身份（接码 / 收信）
+          </button>
+        </div>
+        </template>
+
+        <!-- ChatClient 免登录对话渠道：无账号 / 无连接，只保留模型与试对话 -->
+        <ChatClientPanel
+          v-else-if="kindOf(activeSummary()) === 'CHAT'"
+          :channel="activeChannel"
+          :display-name="activeSummary()!.displayName"
+          :priority="activeSummary()!.priority"
+          :models="activeSummary()!.models ?? []"
+        />
+
+        <!-- 文生图渠道：提示词 + 画面参数 + 画廊（Trae / Pollinations 共用同一面板） -->
+        <ImageChannelPanel
+          v-else
+          :channel="activeChannel"
+          :display-name="activeSummary()!.displayName"
+          :priority="activeSummary()!.priority"
+          :models="activeSummary()!.models ?? []"
+        />
       </section>
 
       <!-- 选中渠道消失的兜底（列表刷新间隙） -->
@@ -988,6 +1376,120 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
         <button class="chm-btn chm-btn--primary" type="button" @click="closeBindDialog()">取消</button>
       </template>
     </ReDialog>
+
+    <!--
+      临时身份对话框（页内可创建）：接码 / 收信的一次性虚拟身份。
+      - 顶部：类型选择（仅号码 / 仅邮箱 / 号码 + 邮箱）+ 随机创建
+      - 列表：每个身份的号码 / 邮箱 / 计数 / 删除，展开看收到的最新短信与邮件
+      - 消息经 SSE（ready / account / message / remove）实时增量更新
+    -->
+    <ReDialog
+      v-model="tempDialogVisible"
+      width="680px"
+      append-to-body
+      destroy-on-close
+      class="chm-temp-dialog"
+      @closed="closeTempDialog"
+    >
+      <template #header>
+        <div class="chm-temp__head">
+          <b>临时身份</b>
+          <span>接码 / 收信 · 一次性虚拟身份（{{ tempList.length }}）</span>
+        </div>
+      </template>
+
+      <div class="chm-temp">
+        <div class="chm-temp__bar">
+          <span class="chm-temp__bar-label">类型</span>
+          <div class="chm-temp__types">
+            <button
+              v-for="opt in TEMP_TYPE_OPTIONS"
+              :key="opt.value"
+              type="button"
+              class="chm-temp__type"
+              :class="{ 'is-active': tempType === opt.value }"
+              @click="tempType = opt.value"
+            >{{ opt.label }}</button>
+          </div>
+          <button class="chm-btn" type="button" @click="templateDialogVisible = true">消息模板</button>
+          <button class="chm-btn chm-btn--primary" type="button"
+                  :disabled="tempCreating" @click="createTempIdentity()">
+            {{ tempCreating ? '创建中…' : '随机创建' }}
+          </button>
+          <button class="chm-btn" type="button" :disabled="tempLoading" @click="loadTempIdentities()">刷新</button>
+        </div>
+
+        <!-- 进入优先：指定渠道，留空走优先级最高的缺省渠道（失败时后端降级） -->
+        <div class="chm-temp__chans">
+          <label v-if="tempType !== 'email'" class="chm-temp__chan">
+            <span>短信渠道</span>
+            <select v-model="tempSmsChannel">
+              <option value="">缺省（优先级最高）</option>
+              <option v-for="opt in tempChannelOptions.sms" :key="opt.channel" :value="opt.channel">
+                {{ opt.displayName || opt.channel }} · P{{ opt.priority ?? 0 }}
+              </option>
+            </select>
+          </label>
+          <label v-if="tempType !== 'sms'" class="chm-temp__chan">
+            <span>邮件渠道</span>
+            <select v-model="tempEmailChannel">
+              <option value="">缺省（优先级最高）</option>
+              <option v-for="opt in tempChannelOptions.email" :key="opt.channel" :value="opt.channel">
+                {{ opt.displayName || opt.channel }} · P{{ opt.priority ?? 0 }}
+              </option>
+            </select>
+          </label>
+        </div>
+
+        <div v-if="tempLoading" class="chm-card__empty">加载中…</div>
+        <div v-else-if="!tempList.length" class="chm-card__empty">
+          暂无临时身份，点击「随机创建」生成一个
+        </div>
+
+        <div v-else class="chm-temp__list">
+          <div v-for="t in tempList" :key="t.id" class="chm-temp__item">
+            <div class="chm-temp__row">
+              <span class="chm-temp__id" :title="t.id">{{ t.id.slice(0, 8) }}</span>
+              <span class="chm-temp__phone">{{ t.phone?.phone || '—' }}</span>
+              <span class="chm-temp__email" :title="t.email">{{ t.email || '—' }}</span>
+              <span class="chm-temp__counts">短信 {{ t.smsCount ?? 0 }} · 邮件 {{ t.emailCount ?? 0 }}</span>
+              <span class="chm-temp__time">{{ fmtTime(t.createdAt) }}</span>
+              <div class="chm-temp__actions">
+                <button class="chm-acc__btn" type="button" @click="toggleTempDetail(t.id)">
+                  {{ tempDetailId === t.id ? '收起' : '消息' }}
+                </button>
+                <button class="chm-acc__btn is-danger" type="button" @click="removeTempIdentity(t.id)">删除</button>
+              </div>
+            </div>
+
+            <div v-if="tempDetailId === t.id" class="chm-temp__detail">
+              <SmsInbox
+                v-if="t.phone"
+                :messages="tempSmsOf(t.id)"
+                :phone="t.phone?.phone"
+                :channel="t.smsChannel"
+              />
+              <MailboxPanel
+                v-if="t.email"
+                :messages="tempEmailsOf(t.id)"
+                :email="t.email"
+                :channel="t.emailChannel"
+              />
+              <div v-if="!t.phone && !t.email" class="chm-card__empty">
+                该身份没有领取到号码或邮箱
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <button class="chm-btn chm-btn--primary" type="button" @click="tempDialogVisible = false">关闭</button>
+      </template>
+    </ReDialog>
+
+    <!-- 消息模板管理：短信 / 邮件模板的自定义、默认选择与预览 -->
+    <MessageTemplateManager v-model="templateDialogVisible" />
   </div>
 </template>
 
@@ -1136,6 +1638,17 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* 渠道种类角标（AI / SMS / EMAIL） */
+.chm-rail__kind {
+  flex: none;
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 4px;
+  color: var(--text-secondary, #64748b);
+  background: var(--fill-quaternary, #f1f5f9);
+  letter-spacing: 0.04em;
 }
 .chm-rail__dot {
   flex: none;
@@ -1359,6 +1872,11 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 .chm-acc.is-stale {
   border-color: color-mix(in srgb, var(--el-color-warning, #e6a23c) 50%, transparent);
 }
+/* 主账号行：左侧品牌色描边，一眼能看出缺 label 的接口落在谁身上 */
+.chm-acc.is-primary {
+  border-color: color-mix(in srgb, var(--brand-500, #3b82f6) 45%, transparent);
+  background: color-mix(in srgb, var(--brand-500, #3b82f6) 4%, var(--bg-container, #fff));
+}
 .chm-acc__label {
   flex: 1;
   min-width: 0;
@@ -1387,6 +1905,28 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 .chm-acc__state.is-unknown {
   background: color-mix(in srgb, var(--el-text-color-secondary, #909399) 14%, transparent);
   color: var(--el-text-color-secondary, #909399);
+}
+/* 主账号徽章：与状态徽章同尺寸，但用品牌色区分「身份」而非「健康度」 */
+.chm-acc__primary {
+  flex-shrink: 0;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .2px;
+  background: color-mix(in srgb, var(--brand-500, #3b82f6) 12%, transparent);
+  color: var(--brand-600, #2563eb);
+}
+/* 到期文案：接近到期用警告色，已过期用危险色 */
+.chm-acc__expire {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--el-color-warning, #e6a23c);
+  white-space: nowrap;
+}
+.chm-acc__expire.is-expired {
+  color: var(--el-color-danger, #f56c6c);
+  font-weight: 600;
 }
 .chm-acc__actions {
   display: flex;
@@ -1439,6 +1979,18 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 .chm-panel__bindbtn:disabled {
   opacity: .55;
   cursor: not-allowed;
+}
+/* 多个新增入口（固定账号 / 临时身份）并排时的容器 */
+.chm-panel__binds {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+/* 临时身份入口：与固定账号绑定区分（琥珀色虚线） */
+.chm-panel__bindbtn.is-temp:hover {
+  border-color: var(--el-color-warning, #e6a23c);
+  color: var(--el-color-warning, #e6a23c);
+  background: color-mix(in srgb, var(--el-color-warning, #e6a23c) 8%, transparent);
 }
 
 /* ---------- 绑定弹窗（ReDialog 重构） ---------- */
@@ -1776,5 +2328,160 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 .chm-empty__hint {
   font-size: 12px;
   color: var(--el-text-color-secondary, #909399);
+}
+
+/* ---------- 临时身份弹窗 ---------- */
+.chm-temp-dialog {
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, .18);
+  border: 1px solid var(--border-default, #e2e9f3);
+}
+.chm-temp-dialog :deep(.el-dialog__header) {
+  padding: 16px 20px 0;
+  margin-right: 0;
+  border-bottom: 1px solid var(--border-subtle, #eef2f8);
+  background: var(--bg-elevated, #f8fafc);
+}
+.chm-temp-dialog :deep(.el-dialog__body) {
+  padding: 14px 20px;
+}
+.chm-temp__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.chm-temp__head > b {
+  font-size: 15px;
+  color: var(--el-text-color-primary, #303133);
+}
+.chm-temp__head > span {
+  font-size: 12px;
+  color: var(--el-text-color-secondary, #909399);
+}
+.chm-temp {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+/* 顶部工具条：类型选择 + 创建 + 刷新 */
+.chm-temp__bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.chm-temp__bar-label {
+  font-size: 12px;
+  color: var(--el-text-color-secondary, #909399);
+}
+.chm-temp__types {
+  display: inline-flex;
+  border: 1px solid var(--el-border-color, #dcdfe6);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.chm-temp__type {
+  padding: 5px 12px;
+  font-size: 12px;
+  border: none;
+  background: transparent;
+  color: var(--el-text-color-regular, #606266);
+  cursor: pointer;
+}
+.chm-temp__type + .chm-temp__type {
+  border-left: 1px solid var(--el-border-color, #dcdfe6);
+}
+.chm-temp__type.is-active {
+  background: color-mix(in srgb, var(--el-color-primary, #409eff) 12%, transparent);
+  color: var(--el-color-primary, #409eff);
+  font-weight: 600;
+}
+/* 渠道选择：进入优先（留空走缺省渠道） */
+.chm-temp__chans {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px dashed var(--el-border-color, #dcdfe6);
+  border-radius: 8px;
+  background: var(--el-fill-color-lighter, #fafafa);
+}
+.chm-temp__chan {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary, #909399);
+}
+.chm-temp__chan select {
+  border: 1px solid var(--el-border-color, #dcdfe6);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--el-text-color-regular, #606266);
+  background: var(--el-bg-color, #fff);
+  outline: none;
+}
+.chm-temp__chan select:focus {
+  border-color: var(--el-color-primary, #409eff);
+}
+.chm-temp__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 52vh;
+  overflow: auto;
+}
+.chm-temp__item {
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.chm-temp__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+.chm-temp__id {
+  flex: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--el-text-color-secondary, #909399);
+}
+.chm-temp__phone {
+  flex: none;
+  min-width: 108px;
+  color: var(--el-text-color-primary, #303133);
+  font-variant-numeric: tabular-nums;
+}
+.chm-temp__email {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--el-text-color-regular, #606266);
+}
+.chm-temp__counts {
+  flex: none;
+  color: var(--el-text-color-secondary, #909399);
+}
+.chm-temp__time {
+  flex: none;
+  color: var(--el-text-color-placeholder, #a8abb2);
+}
+.chm-temp__actions {
+  flex: none;
+  display: flex;
+  gap: 6px;
+}
+.chm-temp__detail {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 10px;
+  padding: 10px;
+  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
+  background: var(--el-fill-color-lighter, #fafafa);
 }
 </style>

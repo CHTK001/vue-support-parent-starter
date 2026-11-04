@@ -251,6 +251,15 @@ export function createSidebarMenuItems(ctx: SidebarMenuContext): SidebarMenuItem
       showKey: 'showUsageMenu',
     },
     {
+      // 媒体资源统计：AI 生成任务的分类计数（图片/视频 × 状态 × 模型）。
+      // 与「用量管理」同属统计类，但单独一组，避免混进用量口径里。
+      key: 'media-statistics',
+      label: '媒体资源统计',
+      icon: DataBarVertical20Regular,
+      section: '媒体资源',
+      showKey: 'showMediaStatisticsMenu',
+    },
+    {
       key: 'connectors',
       label: '连接器',
       icon: PlugConnected20Regular,

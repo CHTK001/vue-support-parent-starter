@@ -6,8 +6,7 @@
  * 四个维度（不铺 ReTable）；片段只看命令正文。双击片段即可把命令文本下发到
  * 当前管控的终端，等价在终端里输完按回车。</p>
  *
- * <p>不收在抽屉里，是因为终端操作时要随时取用；真正的编辑/上传走完
- * 「文件管理」标准抽屉（终端工具条的「文件」按钮）。</p>
+ * <p>不收在抽屉里，是因为终端操作时要随时取用；更重的上传/下载走「文件管理」页。</p>
  *
  * 交互约定：
  * - 双击片段（不是文件名/文件）：把命令文本下发给终端执行。
@@ -16,7 +15,7 @@
  * @author CH
  * @since 4.0.0.44
  */
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { message } from '@repo/core'
 import ReInput from '@repo/ui/re-input'
 import ReIcon from '@repo/ui/re-icon'
@@ -34,8 +33,12 @@ const props = withDefaults(
     onCommand?: (command: string) => void
     /** 面板展开态（由外层工具条图标控制开关） */
     visible: boolean
+    /** 终端 pwd 回传的当前目录（非空时文件页签自动定位过去） */
+    path?: string
+    /** 目录回传序号：同一路径重复 pwd 也要重新定位 */
+    pathSeq?: number
   }>(),
-  { hostId: null, hostName: '', onCommand: undefined, visible: true },
+  { hostId: null, hostName: '', onCommand: undefined, visible: true, path: '', pathSeq: 0 },
 )
 
 const emit = defineEmits<{
@@ -146,6 +149,31 @@ function up(): void {
 function refresh(): void {
   loadFiles()
 }
+
+/** 规范化终端回传目录：去引号、反斜杠转正斜杠、去尾斜杠（根保留） */
+function normalizeDir(raw: string): string {
+  let dir = raw.trim().replace(/^['"]|['"]$/g, '')
+  if (!dir) return ''
+  dir = dir.replace(/\\/g, '/')
+  if (dir.length > 1) dir = dir.replace(/\/+$/, '')
+  return dir || '/'
+}
+
+/**
+ * 把文件页签定位到终端当前目录（终端执行 pwd 后回传）。
+ * @param raw 终端输出的绝对路径
+ */
+function gotoDir(raw: string): void {
+  const dir = normalizeDir(raw)
+  if (!dir) return
+  tab.value = 'files'
+  fileDir.value = dir
+  loadFiles()
+}
+
+/* 首次展开：按已回传的目录初始化；后续 pwd 靠序号触发（同一路径也要重新定位） */
+watch(() => props.pathSeq, () => { if (props.path) gotoDir(props.path) })
+onMounted(() => { if (props.path) gotoDir(props.path) })
 
 /** 人性化字节数展示 */
 function formatSize(bytes?: number): string {
@@ -294,6 +322,28 @@ function onTab(next: 'files' | 'snippets'): void {
   min-height: 0;
   overflow-y: auto;
   padding: 8px 10px 12px;
+  /* 滚动条：6px 细条，默认全透明，鼠标进入面板才显形（与终端 / ReTable 同款），
+     避免 Windows 原生 15px 常驻条把 300px 小列挤窄 */
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  &:hover {
+    scrollbar-color: color-mix(in srgb, var(--el-text-color-secondary) 30%, transparent) transparent;
+  }
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border-radius: 4px;
+  }
+  &:hover::-webkit-scrollbar-thumb {
+    background-color: color-mix(in srgb, var(--el-text-color-secondary) 30%, transparent);
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in srgb, var(--el-text-color-secondary) 50%, transparent);
+  }
 }
 
 /* 搜索框：给 ReInput 撑满小列宽度 */

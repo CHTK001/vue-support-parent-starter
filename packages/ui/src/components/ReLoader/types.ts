@@ -7,11 +7,19 @@
 
 /** 内置动画形态 */
 export type ReLoaderVariant =
-  /** 进度条：确定进度时给百分比，不确定进度时走条纹滚动 */
-  | "progress"
-  /** 海浪缓慢上升：不确定型加载的主视觉（默认） */
+  /** 海浪：水位缓慢上涨的潮汐（默认，与首屏 loader 同款） */
   | "wave"
-  /** 科技双环：小尺寸下最清晰，用于内联提示 */
+  /** 三个圆点：最通用的经典动画 */
+  | "dots"
+  /** 科技圆圈：双环反向旋转 + 中心脉冲 */
+  | "rings"
+  /** 像素恐龙：跨栏小游戏 */
+  | "dino"
+  /** 无动画：只留遮罩与文案 */
+  | "none"
+  /** 进度条：拿到真实进度时用（横向，与四个「等待动画」并列） */
+  | "progress"
+  /** @deprecated 旧键，等价于 {@code rings}；保留只为不打断既有调用点 */
   | "spin";
 
 /** 尺寸档位 */
@@ -43,59 +51,52 @@ export type ReLoaderMode = "overlay" | "replace" | "skeleton";
 /**
  * 关闭原因。
  *
+ * <p>便于调用方区分「自己关的」和「用户关的」：</p>
  * <ul>
- *   <li>{@code manual}：调用方显式 {@code close()} / 用户点关闭按钮；</li>
- *   <li>{@code auto}：由 {@code loading=false} 驱动的自然结束；</li>
- *   <li>{@code timeout}：超过 {@code timeout} 被自动关闭；</li>
- *   <li>{@code error}：调用了 {@code error()}，或异常回调未阻止默认行为。</li>
+ *   <li>{@code auto}：调用方正常收尾；</li>
+ *   <li>{@code manual}：用户点了关闭 / 点遮罩；</li>
+ *   <li>{@code cancel}：用户点了「取消」（会触发 {@code onCancel} 并 abort）；</li>
+ *   <li>{@code timeout}：超时自动关闭；</li>
+ *   <li>{@code error}：出错收尾；</li>
+ *   <li>{@code route}：切页时由路由联动收掉。</li>
  * </ul>
  */
-export type ReLoaderCloseReason = "manual" | "auto" | "timeout" | "error" | "cancel";
+export type ReLoaderCloseReason = "auto" | "manual" | "cancel" | "timeout" | "error" | "route";
 
 /** 进度回调载荷 */
 export interface ReLoaderProgressPayload {
-  /** 0-100；{@code null} 表示不确定进度 */
+  /** 当前进度（0-100；null 表示回到不确定态） */
   percent: number | null;
-  /** 触发本次进度的实例 id */
-  id: string;
+  /** 是否由估算器给出（false = 调用方 setProgress 上报的真实值） */
+  estimated?: boolean;
+  /** 发出该回调的加载实例 id（并发多个加载态时用于区分） */
+  id?: string;
 }
 
-/** 设置进度时的选项 */
+/** setProgress 的选项 */
 export interface ReLoaderSetProgressOptions {
   /**
-   * 是否平滑过渡到目标值。
-   *
-   * <p>{@code true} 用默认时长（320ms），也可传具体毫秒数。
-   * 批量任务里进度常被频繁更新（每处理完一条 +1），直接跳变会一卡一顿；
-   * 平滑过渡把这些小跳变连成连续推进。</p>
+   * 平滑过渡：为真时按默认 320ms 缓动追上目标值，避免进度条一格一格跳。
+   * 也可以直接给毫秒数。
    */
   smooth?: boolean | number;
 }
 
-/** 重置时的选项 */
+/** reset 的选项 */
 export interface ReLoaderResetOptions {
-  /** 重置到的进度（默认 0）；传 {@code null} 回到不确定态 */
+  /** 重置到多少（默认 0；传 null 回到不确定态） */
   percent?: number | null;
-  /**
-   * 是否重启进度估算（estimateProgress 开启时生效）。
-   *
-   * <p>默认 **false**：重启后估算器会立刻往上走，进度在几十毫秒内就不再是 0，
-   * 与"重置"的字面语义对不上。需要"重置并重新计时"时显式传 true。</p>
-   */
+  /** 是否重启进度估算（默认 true） */
   restartEstimate?: boolean;
 }
 
-/**
- * 命令式加载句柄。
- *
- * <p>{@link ReLoaderService.open} 返回该句柄，调用方据此推进进度、上报异常、提前关闭。</p>
- */
+/** 命令式句柄 */
 export interface ReLoaderHandle {
-  /** 实例 id（同一页面可能同时存在多个加载态） */
+  /** 实例标识 */
   readonly id: string;
-  /** 是否仍处于打开状态 */
+  /** 当前是否可见（delay 生效前为 false） */
   readonly visible: boolean;
-  /** 是否处于失败态（可重试时，遮罩显示「重试/关闭」而非动画） */
+  /** 是否处于失败态 */
   readonly failed: boolean;
   /** 当前进度（0-100；null 表示不确定态） */
   readonly percent: number | null;
@@ -142,7 +143,7 @@ export interface ReLoaderHandle {
 export interface ReLoaderServiceOptions {
   /** 提示文案 */
   text?: string;
-  /** 动画形态 */
+  /** 动画形态；不传则跟随主题配置里选中的全局动画 */
   variant?: ReLoaderVariant;
   /** 尺寸：档位 / 精确像素 / auto 自适应 */
   size?: ReLoaderSizeValue;

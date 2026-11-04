@@ -19,6 +19,7 @@ import { http } from '@repo/utils';
 import { eduaiApi } from '../../api/eduaiApi';
 import { failToast } from '../../api/errorText';
 import { createPageLoader } from '../../api/pageLoader';
+import { routeUrl } from '../../utils/routeUrl';
 import type {
   EduStudent,
   MarkingProgressVO,
@@ -381,7 +382,9 @@ const onQuery = () => {
  * <p>注意拦截：浏览器可能拦截 window.open，所以弹窗后立即提示用户放行权限。</p>
  */
 const openDetailWindow = (taskId: string) => {
-  const url = `${window.location.origin}/edu/marking/detail?taskId=${encodeURIComponent(taskId)}`;
+  // 必须走 router.resolve：本应用默认 hash 路由，手拼 `/edu/...` 会在新标签页被
+  // 启动归一化改写成 `/?...#/home`，用户点「查看」后看到的不是详情页。
+  const url = routeUrl(router, { path: '/edu/marking/detail', query: { taskId } });
   const win = window.open(url, '_blank');
   if (!win) message.warning('浏览器拦截了新窗口，请允许弹窗后重试');
 };

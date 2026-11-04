@@ -217,6 +217,19 @@ export interface MenuConfig {
   collapseToButton?: boolean;
 
   /**
+   * 菜单折叠形态（app.yaml menuConfig.collapse，仅垂直布局生效；迭代自 collapseToButton）。
+   *
+   * - `showButton`：菜单折叠后是否显示「展开菜单」按钮。
+   * - `showBar`：菜单折叠后是否保留迷你条（yes=迷你侧边栏，当前默认；no=菜单区不渲染，
+   *   让出整条 56px 宽度，主内容区可以铺满）。
+   *
+   * 与 `collapseToButton` 的映射：
+   *   collapseToButton=true    → collapse.showButton=true, collapse.showBar=no
+   *   collapseToButton=false   → collapse.showButton=false, collapse.showBar=yes
+   */
+  collapse?: MenuCollapseConfig;
+
+  /**
    * 分组导航增强：是否启用「分组标题排版 + 子项图标 + 底部设置条目」这套样式（默认 true）。
    *
    * - true：分组标题按分区标题排版（加大字号、加粗、深色），子项带图标；
@@ -227,6 +240,7 @@ export interface MenuConfig {
    * 可在 app.yaml 的 menuConfig.groupNav 与 main.ts 的 createContextApp({ defaults }) 两处配置，
    * app.yaml 优先级更高；两处都不配置时取默认 true。
    */
+
   groupNav?: boolean;
 
   /**
@@ -236,6 +250,25 @@ export interface MenuConfig {
    * 每个条目可选两种模式：{@code route} 跳路由、{@code dialog} 打开弹框。</p>
    */
   footer: MenuFooterConfig;
+}
+
+/**
+ * 菜单折叠形态配置（app.yaml menuConfig.collapse）。
+ *
+ * 与 `collapseToButton` 正交且可映射（统一的配置真相，旧 key 可向下兼容）：
+ *   collapseToButton=true    → collapse.showButton=true, collapse.showBar=no
+ *   collapseToButton=false   → collapse.showButton=false, collapse.showBar=yes
+ *
+ * - showButton=false + showBar=yes   → 折叠后只显示 mini 图标菜单条（当前默认）
+ * - showButton=true  + showBar=no    → 折叠后菜单区只保留一个「展开菜单」按钮
+ * - showButton=true  + showBar=yes   → mini 菜单条 + 展开按钮（两者都留）
+ * - showButton=false + showBar=no    → 折叠后侧边栏整体隐藏（主内容区铺满）
+ */
+export interface MenuCollapseConfig {
+  /** 折叠后是否显示「展开菜单」按钮（默认 false） */
+  showButton?: boolean;
+  /** 折叠后是否显示迷你侧边栏（yes=迷你条，当前默认；no=菜单区不渲染，让出整条宽度） */
+  showBar?: "yes" | "no";
 }
 
 /** 底部入口条目的行为模式 */
@@ -371,6 +404,31 @@ export interface LoginFeatureTag {
   text: string;
 }
 
+/**
+ * 滑块验证方式标签（登录页滑块验证的交互形态）。
+ *
+ * - simple：从零拖动滑块（目前 koi 登录页的「向右滑动完成验证」）
+ * - puzzle：图片拼图滑块：轨道上排列 N 个 slot，其中只有一个是正确目标，
+ *   用户把滑块拖到正确的 slot 即视为通过，其余 slot 为随机干扰项
+ */
+export type SliderVerifyType = "simple" | "puzzle";
+
+/**
+ * 图片拼图滑块配置（app.yaml loginConfig.sliderPuzzle）。
+ *
+ * <p>不需要后端提供拼图素材时，组件用 Canvas 自动生成占位图，开箱即用。</p>
+ */
+export interface PuzzleVerifyConfig {
+  /** 拼图背景图（可选；为某一张 slot 提供素材图时，不配则自动生成主题占位图） */
+  image?: string;
+  /** slot 数量（总项数 = 正确项 + 干扰项，默认 4，上限 8） */
+  slots?: number;
+  /** 判定正确的容差（px，滑块松手时与正确 slot 中心的距离，默认 20） */
+  tolerance?: number;
+  /** 正确 slot 索引（不配时每次渲染随机选一个，避免记住位置） */
+  correctIndex?: number;
+}
+
 /** 登录页配置 */
 export interface LoginConfig {
   /** 是否启用图形验证码 */
@@ -379,6 +437,12 @@ export interface LoginConfig {
   otp: boolean;
   /** 是否启用滑块验证（前端滑动校验） */
   slider: boolean;
+  /** 滑块验证方式（simple=普通滑块，puzzle=图片拼图滑块） */
+  sliderType: SliderVerifyType;
+  /** 登录认证形态：redirect=命中 401/403 直接跳登录页（默认） / dialog=在当前应用内弹窗强制登录 */
+  accessMode: "redirect" | "dialog";
+  /** 图片拼图滑块的参数（sliderType=puzzle 时生效；不配则自动生成占位图） */
+  sliderPuzzle?: PuzzleVerifyConfig;
   /** 品牌名（登录页 / 浏览器标题） */
   brandName: string;
   /** 品牌 Logo（登录页左上角/品牌区） */
@@ -479,6 +543,47 @@ export interface OtherConfig {
   home: HomeConfig;
   /** 头像框配置 */
   avatarFrame: AvatarFrameConfig;
+  /** 加载动画配置（部署侧接管，默认关闭） */
+  loaderConfig: LoaderDeployConfig;
+}
+
+/**
+ * 加载动画的部署侧配置（app.yaml `other.loaderConfig`）。
+ *
+ * <p><b>默认 {@code enable: false}：完全不接管</b> —— 行为与没有这段配置时逐字一致，
+ * 用户在主题配置抽屉里自选，选择存在 localStorage。</p>
+ *
+ * <p>写成 {@code enable: true} 即「部署侧锁定」：动画与主色由本段决定，
+ * 主题配置里的选择器置灰、点了也不生效。三处一起跟随：</p>
+ * <ul>
+ *   <li>首屏 {@code public/loader.js}：启动时把值写进 localStorage，<b>下次刷新</b>生效
+ *       （该脚本在 app.yaml 拉取之前就已执行，当次首屏来不及改）；</li>
+ *   <li>应用内 {@code ReLoader}：订阅同一个动画键，当次启动即生效；</li>
+ *   <li>主题配置预览：与 ReLoader 同一份 HTML/CSS，同一款动画。</li>
+ * </ul>
+ *
+ * <p>{@code size} 只作用于首屏（应用内按各调用点的尺寸档位，本来就不该被统一成
+ * 同一个像素值）；{@code color} 首屏与应用内都生效，保证两处主色一致。</p>
+ */
+export interface LoaderDeployConfig {
+  /** 是否由部署侧接管（默认 false：不接管，交给用户在主题配置里选） */
+  enable: boolean;
+  /**
+   * 动画键（默认 wave）：
+   *   - {@code wave}  海浪
+   *   - {@code dots}  三个圆点
+   *   - {@code rings} 科技圆圈
+   *   - {@code dino}  像素恐龙
+   *   - {@code none}  无动画（只留遮罩）
+   *
+   * 历史键（default / spin / dinoGame / clock 等）也会被折到最近的现行键，
+   * 与 localStorage 的读取规则一致。
+   */
+  animation: string;
+  /** 首屏动画基准边长（px，8~512，默认 96） */
+  size: number;
+  /** 动画主色（hex / rgb / hsl，默认 #406eeb） */
+  color: string;
 }
 
 export interface AvatarFrameConfig {
@@ -780,6 +885,28 @@ export interface MessageConfig {
   readUrl: string;
 }
 
+/**
+ * APM 观测配置（app.yaml 的 `apmConfig`，归一化后为 `apm`）。
+ *
+ * <p>这一节只影响**前端**行为：后端是否真的装了 APM 由 `/api/apm/v1/status`
+ * 探测决定。前端拿它做两件事：</p>
+ * <ol>
+ *   <li>{@code enable=false} 时整个 APM 分组从菜单里隐藏（后端可能装了但本前端不需要展示）；</li>
+ *   <li>{@code engine} 非空时作为预期引擎，与探测结果不一致就在引擎信息条上提示，
+ *       而不是直接改数据源 —— 探测结论永远以服务端为准。</li>
+ * </ol>
+ */
+export interface ApmConfig {
+  /** 是否在前端展示 APM 观测模块（false=菜单隐藏，路由仍可直达） */
+  enable: boolean;
+  /** 预期引擎：skywalking / opentelemetry / hotspot；空串表示不校验 */
+  engine: string;
+  /** 接口前缀，需与后端 {@code plugin.apm.path} 一致 */
+  baseUrl: string;
+  /** 状态探测缓存时长（毫秒） */
+  statusTtl: number;
+}
+
 /** 全局异常监控配置 */
 export interface MonitorConfig {
   /** 是否启用全局异常监控（false=不采集不上报，跳过监听注册与 Worker 创建） */
@@ -860,6 +987,8 @@ export interface AppConfig {
   socket: SocketConfig;
   /** 消息通知配置 */
   message: MessageConfig;
+  /** APM 观测配置 */
+  apm: ApmConfig;
   /** 全局异常监控配置 */
   monitor: MonitorConfig;
   /** 其它配置 */

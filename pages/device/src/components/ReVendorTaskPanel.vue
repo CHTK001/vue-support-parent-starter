@@ -25,10 +25,101 @@
       间隔优先级为「凭据高级配置 → 本页调整 → 默认 30 秒」；开关关闭或凭据停用时，该任务不注册时间轮。
     </p>
 
-    <!-- 任务列表 -->
+    <!-- 任务面板：默认「表盘」卡片（2026-11 定版 B 方案），可切回表格 -->
     <section class="vtp-panel">
+      <!-- 表盘视图 -->
+      <div v-if="variant === 'dial' && rows.length" class="vtp-grid">
+        <article
+          v-for="row in rows"
+          :key="row.name"
+          class="vtp-card"
+          :class="{ 'is-running': row.running }"
+          :data-task="row.name"
+        >
+          <header class="vtp-card__head">
+            <div class="vtp-task">
+              <span class="vtp-task__name">{{ row.label }}</span>
+              <span class="vtp-task__code">{{ row.name }}</span>
+            </div>
+            <ReTag :type="row.running ? 'success' : 'info'" size="small" effect="plain">
+              {{ row.running ? '执行中' : '空闲' }}
+            </ReTag>
+          </header>
+
+          <!-- 表盘：外环按「距上次执行已过时间 / 间隔」填充，中心是间隔秒数 -->
+          <div
+            class="vtp-dial"
+            :class="{ 'is-full': dialProgress(row) >= 1 }"
+            :data-progress="dialProgress(row).toFixed(2)"
+            role="img"
+            :aria-label="`${row.label} 间隔 ${row.interval ?? 30} 秒，${ago(row.lastRunAt)}`"
+          >
+            <svg class="vtp-dial__svg" viewBox="0 0 96 96" aria-hidden="true">
+              <circle class="vtp-dial__track" cx="48" cy="48" r="40" />
+              <circle
+                class="vtp-dial__bar"
+                cx="48"
+                cy="48"
+                r="40"
+                :stroke-dasharray="DIAL_CIRC"
+                :stroke-dashoffset="dialOffset(row)"
+              />
+            </svg>
+            <div class="vtp-dial__center">
+              <b class="vtp-dial__value">{{ row.interval ?? 30 }}</b>
+              <span class="vtp-dial__unit">秒</span>
+            </div>
+          </div>
+
+          <dl class="vtp-card__meta">
+            <div class="vtp-card__kv">
+              <dt>所属凭据</dt>
+              <dd :title="row.credentialName">{{ row.credentialName }}</dd>
+            </div>
+            <div class="vtp-card__kv">
+              <dt>厂商</dt>
+              <dd>{{ vendorName(row.vendor) }}</dd>
+            </div>
+            <div class="vtp-card__kv">
+              <dt>最后执行</dt>
+              <dd class="vtp-mono">{{ row.lastRunAt ? formatDateTime(row.lastRunAt) : '从未执行' }}</dd>
+            </div>
+            <div class="vtp-card__kv">
+              <dt>距今</dt>
+              <dd class="vtp-mono">{{ ago(row.lastRunAt) }}</dd>
+            </div>
+          </dl>
+
+          <footer class="vtp-card__foot">
+            <label class="vtp-int">
+              <span class="vtp-int__label">间隔</span>
+              <ReInputNumber
+                v-model="row.interval"
+                :min="1"
+                :max="86400"
+                :step="10"
+                size="small"
+                style="width: 104px"
+                @change="(value: number | undefined) => onIntervalChange(row, value)"
+              />
+              <span class="vtp-int__unit">秒</span>
+            </label>
+            <ReButton
+              icon="Promotion"
+              :show-text="true"
+              size="small"
+              :loading="runningTask === row.name"
+              @click="runNow(row)"
+            >
+              立即执行
+            </ReButton>
+          </footer>
+        </article>
+      </div>
+
+      <!-- 表格视图（保留：大数据量或需要对齐比对时用） -->
       <ReTable
-        v-if="rows.length"
+        v-else-if="variant === 'table' && rows.length"
         :data="tableRows"
         :columns="columns"
         engine="element"
@@ -87,7 +178,7 @@
         </template>
       </ReTable>
 
-      <article v-else class="vtp-ghost">
+      <article v-if="!rows.length" class="vtp-ghost">
         <span class="vtp-ghost__icon"><el-icon><Timer /></el-icon></span>
         <p class="vtp-ghost__title">该厂商还没有注册定时任务</p>
         <p class="vtp-ghost__desc">
@@ -101,6 +192,14 @@
 <script setup lang="ts">
 /**
  * 厂商维度的定时任务面板（厂商接入页 · 定时任务页签）
+ *
+ * <p><b>2026-11 改版：任务列表从「表格」改成「表盘卡片网格」（定版方案 B）。</b>
+ * 表格把「间隔」和「最后执行」拆在两列，要自己相减才知道任务到底跟没跟上；
+ * 表盘把这两件事压成一个环：外环 = 距上次执行已过时间 / 间隔，环满即到期，
+ * 中心直接是间隔秒数。哪台厂商的任务卡住了，扫一眼形状就能看出来。</p>
+ *
+ * <p>为什么留 {@code variant} 开关：卡片适合按厂商翻（一屏 6~12 张），
+ * 但要做「跨厂商对齐比对」时表格更省事，所以表格视图保留可切（默认 dial）。</p>
  *
  * <p>任务名与归属：</p>
  * <ul>
@@ -116,7 +215,7 @@
  * @author CH
  * @since 4.0.0.42
  */
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Timer } from '@element-plus/icons-vue'
 
@@ -137,8 +236,10 @@ const props = withDefaults(
     vendors?: DeviceVendorDescriptor[]
     /** 当前凭据列表（任务名后缀 → 凭据 → 厂商） */
     credentials?: ProviderCredential[]
+    /** 视图：表盘卡片（默认）或表格 */
+    variant?: 'dial' | 'table'
   }>(),
-  { vendors: () => [], credentials: () => [] }
+  { vendors: () => [], credentials: () => [], variant: 'dial' }
 )
 
 /** 后端任务状态行 */
@@ -184,6 +285,17 @@ const loading = ref(false)
 const runningTask = ref('')
 /** 任务名 → 最近一次保存成功的间隔（失败回填用） */
 const savedInterval = new Map<string, number>()
+
+/** 表盘外环半径 40（viewBox 96），周长用于 dasharray/dashoffset */
+const DIAL_RADIUS = 40
+const DIAL_CIRC = 2 * Math.PI * DIAL_RADIUS
+
+/**
+ * 「现在」的时钟。表盘要真的在走，所以每秒推进一次；
+ * 卸载时清掉定时器（否则离开页签后仍在跑，属明显泄漏）。
+ */
+const now = ref(Date.now())
+let ticker: ReturnType<typeof setInterval> | undefined
 
 const credentialMap = computed(
   () => new Map(props.credentials.map((item) => [item.deviceCredentialId || '', item]))
@@ -276,6 +388,55 @@ function vendorName(vendor: string): string {
   return props.vendors.find((item) => item.vendor === vendor)?.name || vendor
 }
 
+/**
+ * 表盘进度：距上次执行已过时间 / 间隔，夹在 0~1。
+ *
+ * <p>从未执行按 0 处理（没有可参照的起点，不能假装「刚好到期」）；
+ * 执行中的任务给满环，表示「正在跑，这一轮已经用掉了」。</p>
+ *
+ * @param row 任务行
+ * @returns 0~1 的进度
+ */
+function dialProgress(row: TaskRow): number {
+  if (row.running) return 1
+  if (!row.lastRunAt) return 0
+  const last = new Date(row.lastRunAt).getTime()
+  if (!Number.isFinite(last)) return 0
+  const intervalMs = Math.max(1, Number(row.interval) || 30) * 1000
+  const ratio = (now.value - last) / intervalMs
+  if (!Number.isFinite(ratio)) return 0
+  return Math.min(1, Math.max(0, ratio))
+}
+
+/**
+ * 表盘外环的 dashoffset：progress 越大，环画得越满。
+ *
+ * @param row 任务行
+ * @returns 待绘制的周长偏移
+ */
+function dialOffset(row: TaskRow): number {
+  return DIAL_CIRC * (1 - dialProgress(row))
+}
+
+/**
+ * 距上次执行多久（口语化）。
+ *
+ * @param iso 最后执行时间
+ * @returns 如「12 秒前」「3 分前」「从未执行」
+ */
+function ago(iso?: string): string {
+  if (!iso) return '从未执行'
+  const last = new Date(iso).getTime()
+  if (!Number.isFinite(last)) return '从未执行'
+  const seconds = Math.max(0, Math.round((now.value - last) / 1000))
+  if (seconds < 60) return `${seconds} 秒前`
+  const minutes = Math.round(seconds / 60)
+  if (minutes < 60) return `${minutes} 分前`
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) return `${hours} 小时前`
+  return `${Math.round(hours / 24)} 天前`
+}
+
 async function load(): Promise<void> {
   loading.value = true
   try {
@@ -337,7 +498,19 @@ function errorText(err: unknown): string {
     || '未知错误'
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  ticker = setInterval(() => {
+    now.value = Date.now()
+  }, 1000)
+})
+
+onBeforeUnmount(() => {
+  if (ticker) {
+    clearInterval(ticker)
+    ticker = undefined
+  }
+})
 </script>
 
 <style scoped>
@@ -401,11 +574,11 @@ onMounted(load)
   border-radius: var(--el-radius-lg, 12px);
 }
 
-/* ---- 任务表 ---- */
+/* ---- 面板 ---- */
 .vtp-panel {
   flex: 1;
   min-height: 0;
-  padding: 12px 14px;
+  padding: 14px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-xl, 16px);
@@ -413,6 +586,35 @@ onMounted(load)
   overflow: auto;
 }
 
+/* ---- 表盘卡片网格 ---- */
+.vtp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+  gap: 12px;
+}
+.vtp-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+.vtp-card:hover {
+  border-color: var(--el-color-primary-light-7);
+  box-shadow: var(--el-box-shadow-light, none);
+}
+.vtp-card.is-running {
+  border-color: var(--el-color-success-light-5);
+}
+.vtp-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
 .vtp-task {
   display: flex;
   flex-direction: column;
@@ -428,7 +630,103 @@ onMounted(load)
   font-family: var(--el-font-family-mono, monospace);
   font-size: 11px;
   color: var(--el-text-color-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+
+/* ---- 表盘 ---- */
+.vtp-dial {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 108px;
+  height: 108px;
+  margin: 2px auto 0;
+}
+.vtp-dial__svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.vtp-dial__track {
+  fill: none;
+  stroke: var(--el-border-color-lighter);
+  stroke-width: 8;
+}
+.vtp-dial__bar {
+  fill: none;
+  stroke: var(--el-color-primary);
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s ease;
+}
+.vtp-dial.is-full .vtp-dial__bar {
+  stroke: var(--el-color-warning);
+}
+.vtp-card.is-running .vtp-dial__bar {
+  stroke: var(--el-color-success);
+  animation: vtp-pulse 1.4s ease-in-out infinite;
+}
+@keyframes vtp-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+.vtp-dial__center {
+  position: absolute;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+.vtp-dial__value {
+  font-family: var(--el-font-family-mono, monospace);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+  line-height: 1;
+}
+.vtp-dial__unit {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+}
+
+/* ---- 卡片元信息 ---- */
+.vtp-card__meta {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  margin: 0;
+}
+.vtp-card__kv {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.vtp-card__kv dt {
+  flex: none;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+}
+.vtp-card__kv dd {
+  margin: 0;
+  min-width: 0;
+  font-size: 12px;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vtp-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--el-border-color-lighter);
+}
+
 .vtp-cred {
   display: flex;
   flex-direction: column;
@@ -449,6 +747,10 @@ onMounted(load)
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+.vtp-int__label {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
 }
 .vtp-int__unit {
   font-size: 12px;

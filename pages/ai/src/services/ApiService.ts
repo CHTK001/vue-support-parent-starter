@@ -49,8 +49,10 @@ import { worldSimApi, type WorldSimApi } from "./modules/world-sim.api";
 import { generateApi, type GenerateApi } from "./modules/generate.api";
 import { inputApi, type InputApi } from "./modules/input.api";
 import { goalApi, type GoalApi } from "./modules/goal.api";
+import { gitApi, type GitApi } from "./modules/git.api";
 import { faceApi, type FaceApi } from "./modules/face.api";
 import { reidApi, type ReidApi } from "./modules/reid.api";
+import { imageSearchApi, type ImageSearchApi } from "./modules/image-search.api";
 import { colorizeApi, type ColorizeApi } from "./modules/colorize.api";
 import { asrApi, type AsrApi } from "./modules/asr.api";
 import { ttsApi, type TtsApi } from "./modules/tts.api";
@@ -86,12 +88,14 @@ interface ApiService
     GenerateApi,
     FaceApi,
     ReidApi,
+    ImageSearchApi,
     ColorizeApi,
     AsrApi,
     TtsApi,
     InputApi,
     GoalApi,
-    SessionNextTaskApi {}
+    SessionNextTaskApi,
+    GitApi {}
 
 /**
  * 框架请求管线错误 → 本项目错误类型。
@@ -359,12 +363,14 @@ Object.assign(
   generateApi,
   faceApi,
   reidApi,
+  imageSearchApi,
   colorizeApi,
   asrApi,
   ttsApi,
   inputApi,
   goalApi,
   sessionNextTaskApi,
+  gitApi,
 );
 
 /**

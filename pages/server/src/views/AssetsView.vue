@@ -17,8 +17,6 @@ import type { Component } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessageBox } from "element-plus";
 import { queryHosts, delHost, switchHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity, scanPorts } from "../api";
-import HostFormDialog from "./HostFormDialog.vue";
-import HostConfigDialog from "./HostConfigDialog.vue";
 /**
  * 以下几屏只在「工作区页签」里按需出现，经 defineAsyncComponent 懒加载：
  *
@@ -42,21 +40,33 @@ const OpsMaintenanceTab = defineAsyncComponent(() => import("./ScMaintenancePlan
 const ScheduleTab = defineAsyncComponent(() => import("./ScScheduleTab.vue"));
 const HostAccountTab = defineAsyncComponent(() => import("./hostaccount/HostAccountView.vue"));
 const SoftwareTab = defineAsyncComponent(() => import("../components/lab/ScSoftwareManager.vue"));
-// Docker 工作台：右键菜单 / 工作区页签（使用 ScDockerK8sWorkbench 的 docker 域，而非独立页面）
-const DockerTab = defineAsyncComponent(() => import("../components/lab/ScDockerK8sWorkbench.vue"));
 // 日志页：系统日志 / 登录日志 —— 读的是「这台服务器」自己的日志
 // （Linux：journalctl / /var/log；Windows：wevtutil），不是 @pages/system 里平台软件的
 // SysLogManage / UserLogManage。命令经主机通道下发，页签打开即带 hostId。
 const HostLogsTab = defineAsyncComponent(() => import("../components/lab/ScHostLogs.vue"));
-import ScHostMetricsBar from "../components/ScHostMetricsBar.vue";
+
+/**
+ * 弹窗 / 浮层 / 底部指标条：同样异步加载。
+ *
+ * <p>它们要么只在用户操作后才需要（新增/编辑/配置/Agent 部署弹窗、Ctrl+K 命令面板），
+ * 要么晚几十毫秒出现也毫无感知（底部指标条）。同步 import 会把它们连带的依赖
+ * （re-kit 表单、进度组件等）一起挂进 AssetsView 的首屏关键路径 —— 点菜单后
+ * 右侧要等这一整串模块下完才从骨架换成页面。</p>
+ *
+ * <p>异步化后：主机资产外壳（左栏 + 工作区框架 + 底部条容器）先渲染，上面这些
+ * 随后补齐；主机数据依旧是 onMounted 里的异步 fetchAll，不阻塞任何静态 DOM。</p>
+ */
+const HostFormDialog = defineAsyncComponent(() => import("./HostFormDialog.vue"));
+const HostConfigDialog = defineAsyncComponent(() => import("./HostConfigDialog.vue"));
+const AgentDeployDialog = defineAsyncComponent(() => import("../components/AgentDeployDialog.vue"));
+const HostCommandPalette = defineAsyncComponent(() => import("../components/HostCommandPalette.vue"));
+const ScHostMetricsBar = defineAsyncComponent(() => import("../components/ScHostMetricsBar.vue"));
 import type { MetricRow } from "../components/ScHostMetricsBar.types";
-import HostCommandPalette from "../components/HostCommandPalette.vue";
 import type { PaletteItem } from "../components/HostCommandPalette.types";
 import { useDialogPrerender } from "../utils/dialogPrerender";
 import { osIconSvg } from "../utils/osIcon";
 import { useSocketService, message } from "@repo/core";
 import { privateIpTextOf } from "../utils/hostProfileUi";
-import AgentDeployDialog from "../components/AgentDeployDialog.vue";
 import { submitAgentAction } from "../api";
 import ReTabs from "@repo/ui/re-tabs";
 import type { ReTabsContextItem, ReTabsItem } from "@repo/ui/re-tabs";
@@ -549,15 +559,35 @@ async function fetchAll(): Promise<void> {
   const seq = ++fetchSeq;
   loading.value = true;
   loadError.value = "";
+  // 三个接口各自独立发起、各自回填，互不等待：
+  //   - 主机列表先回来就先渲染左栏，不必等分组/身份接口；
+  //   - 分组、身份较慢或失败时，只影响对应的下拉/筛选，不拖住主机列表，也不把整页判成失败。
+  const hostsTask = queryHosts()
+    .then((h) => {
+      if (seq !== fetchSeq) return; // 已被更新的一次 fetch 取代，丢弃过期结果，避免旧数据覆盖新数据
+      hosts.value = Array.isArray(h) ? h.sort((a, b) => (b.serverHostOnline ?? 0) - (a.serverHostOnline ?? 0)) : [];
+      syncRtFromHosts();
+    })
+    .catch((e) => {
+      if (seq !== fetchSeq) return;
+      hosts.value = [];
+      loadError.value = String((e as Error)?.message ?? e);
+    });
+  const groupsTask = getGroups()
+    .then((g) => {
+      if (seq !== fetchSeq) return;
+      // 接口异常时可能返回对象而非数组，直接 .map 会把页面打崩（空态都渲染不出来），这里统一兜底。
+      groups.value = Array.isArray(g) ? g : [];
+    })
+    .catch(() => undefined);
+  const identitiesTask = getIdentities()
+    .then((i) => {
+      if (seq !== fetchSeq) return;
+      identities.value = Array.isArray(i) ? i : [];
+    })
+    .catch(() => undefined);
   try {
-    const [h, g, i] = await Promise.all([queryHosts(), getGroups(), getIdentities()]);
-    if (seq !== fetchSeq) return; // 已被更新的一次 fetch 取代，丢弃过期结果，避免旧数据覆盖新数据
-    hosts.value = Array.isArray(h) ? h.sort((a, b) => (b.serverHostOnline ?? 0) - (a.serverHostOnline ?? 0)) : [];
-    groups.value = g ?? [];
-    identities.value = i ?? [];
-    syncRtFromHosts();
-  } catch (e) {
-    if (seq === fetchSeq) loadError.value = String((e as Error)?.message ?? e);
+    await Promise.allSettled([hostsTask, groupsTask, identitiesTask]);
   } finally {
     if (seq === fetchSeq) loading.value = false;
   }
@@ -584,7 +614,6 @@ type TabKind =
   | "files"
   | "metrics"
   | "workbench"
-  | "docker"
   | "sys-log"
   | "user-log"
   | "ops-sessions"
@@ -615,8 +644,6 @@ const TAB_KINDS: Record<TabKind, TabKindMeta> = {
   files: { label: "文件管理", icon: "FolderOpened" },
   metrics: { label: "指标监控", icon: "TrendCharts" },
   workbench: { label: "工作台", icon: "Box" },
-  /** 工作台面板：Docker 独立页签（lazy load） */
-  docker: { label: "Docker", icon: "Box" },
   "sys-log": { label: "系统日志", icon: "Tickets" },
   "user-log": { label: "登录日志", icon: "Unlock" },
   "ops-sessions": { label: "会话审计", icon: "Document" },
@@ -628,6 +655,14 @@ const TAB_KINDS: Record<TabKind, TabKindMeta> = {
   schedule: { label: "调度信息", icon: "Clock" },
 };
 
+/**
+ * 工作台页签内的面板类型。
+ *
+ * <p>Docker 与分屏 / K8s / 隧道平级：都是「这台主机」的一个工作台页签，
+ * 而不是跳去整站级的 /docker 路由（那样会变成顶层路由页签，丢掉主机上下文）。</p>
+ */
+type WorkbenchPanelKind = "screen" | "docker" | "k8s" | "tunnel" | "tunnel-reverse";
+
 /** 工作区页签（比 ReTabsItem 多带主机上下文，便于渲染内容） */
 interface WorkTab extends ReTabsItem {
   hostId: number;
@@ -636,8 +671,8 @@ interface WorkTab extends ReTabsItem {
   path?: string;
   /** 远控页签使用的登录身份（空 = 默认凭据） */
   identityId?: number | null;
-  /** 工作台页签初始面板（screen / k8s / tunnel / tunnel-reverse） */
-  startPanel?: "screen" | "k8s" | "tunnel" | "tunnel-reverse";
+  /** 工作台页签初始面板（screen / docker / k8s / tunnel / tunnel-reverse） */
+  startPanel?: WorkbenchPanelKind;
 }
 
 /** 已打开的页签 */
@@ -651,18 +686,18 @@ const activeTab = ref("");
  * <p>同一个「主机 + 功能」只开一次：重复点同一个动作是切过去，不是再开一个副本。
  * 否则用户点两下「进程」就会看到两个内容一模一样的页签，关闭时还要关两次。</p>
  *
- * <p>工作台比较特殊：分屏 / K8s / 隧道是三种不同面板，各开各的页签；
+ * <p>工作台比较特殊：分屏 / Docker / K8s / 隧道是不同面板，各开各的页签；
  * 同名面板（同一主机 + 同一面板）仍只开一次。页签名由
  * {@code `${host.id}:workbench:${panel}`} 承载去重，不同面板互不冲突。</p>
  *
- * <p>Docker 已拆成独立页签（ReTabs 工作区页签），由 {@code ScDockerK8sWorkbench}
- * 的 {@code domain="docker"} 支持，见 {@link ctxCommand} 的 {@code tab-docker} 分支。</p>
+ * <p>Docker 同样进工作区页签：右键菜单与分屏工具条都以当前主机为上下文打开
+ * 「工作台 · Docker」页签，页内复用 {@code @pages/docker} 的双栏实现。</p>
  *
  * @param host 目标主机
  * @param kind 功能类型
  * @param opts 附加参数（文件管理初始路径 / 远控登录身份 / 工作台初始面板）
  */
-function openTab(host: Host, kind: TabKind, opts?: { path?: string; identityId?: number | null; startPanel?: "screen" | "k8s" | "tunnel" | "tunnel-reverse" }): void {
+function openTab(host: Host, kind: TabKind, opts?: { path?: string; identityId?: number | null; startPanel?: WorkbenchPanelKind }): void {
   const base = `${host.id}:${kind}`;
   const name = kind === "workbench" && opts?.startPanel ? `${base}:${opts.startPanel}` : base;
   const exist = openTabs.value.find(t => t.name === name);
@@ -865,13 +900,14 @@ const ctxMenuEl = ref<HTMLElement | null>(null);
 /**
  * 当前展开的二级菜单。
  *
- * <p>菜单原来一口气摊了三十多条，用户找不到东西；现在把「画像七个分区」和
- * 「会话 / 作业 / 片段 / 维护」各收进一个二级菜单，顶层只剩十来个常用动作。</p>
+ * <p>菜单原来一口气摊了三十多条，用户找不到东西；现在按「打开 / 运维 / 配置」分组：
+ * 画像七个分区、工作台五个面板、运维台四页、主机管理九项、系统三项、Agent 生命周期、
+ * 复制三项各自收进一个二级菜单，顶层只剩十来个高频动作。</p>
  */
 const ctxSub = ref<string | null>(null);
 
-/** 二级菜单分组标识 */
-type CtxSubKey = "profile" | "workspace" | "workbench";
+/** 二级菜单分组标识：工作台 / 画像 / 运维台 / 主机管理 / 系统 / Agent / 复制 */
+type CtxSubKey = "profile" | "workspace" | "workbench" | "manage" | "system" | "agent" | "copy";
 
 /**
  * 二级菜单（hover 弹出浮层）。
@@ -973,11 +1009,11 @@ function ctxOpenTab(kind: Extract<TabKind, "ops-sessions" | "ops-exec" | "ops-sn
 }
 
 /**
- * 分屏终端里点某屏的 Docker / K8s / 隧道工具条：以该屏主机为上下文开独立面板页签。
+ * 分屏终端里点某屏的 Docker / K8s / 隧道工具条：以该屏主机为上下文开工作台页签。
  *
- * <p>Docker 不再从工作区页签进入：分屏工具条的按钮跳独立页面 {@code /docker?hostId=}，
- * 由 {@code @pages/docker} 接管容器 / 镜像 / 网络 / 卷 / 镜像库 / 模板；
- * 但从主机行右键菜单打开时走工作区页签 {@code tab-docker}（见 {@link ctxCommand}）。</p>
+ * <p>Docker 不再是整站路由页：它就是这台主机的工作台页签（页内复用
+ * {@code @pages/docker} 的双栏实现），和 K8s / 隧道一样带主机上下文，
+ * 也不会在顶部路由页签栏里多出一个与主机无关的「Docker」。</p>
  *
  * @param panel   面板类型
  * @param hostId  该屏主机 id
@@ -988,10 +1024,6 @@ function onWorkbenchOpenPanel(
   hostId: number,
   hostName: string,
 ): void {
-  if (panel === "docker") {
-    void router.push({ path: "/docker", query: { hostId: String(hostId) } });
-    return;
-  }
   const host = hosts.value.find((h) => h.id === hostId);
   if (host) {
     openTab(host, "workbench", { startPanel: panel });
@@ -1033,9 +1065,11 @@ function ctxCommand(cmd: string): void {
     openTab(h, kind);
     return;
   }
-  // Docker、日志：与「远控/文件/指标」平级的独立页签，收在工作区里，不是跳出页
+  // Docker 是这台主机的「工作台 · Docker」页签：页内复用独立页面包
+  // @pages/docker 的双栏实现（左容器清单 + 右工作区），不跳整站 /docker 路由，
+  // 避免变成与主机无关的顶层路由页签。
   if (cmd === "tab-docker") {
-    openTab(h, "docker");
+    openTab(h, "workbench", { startPanel: "docker" });
     return;
   }
   if (cmd === "open-sys-log" || cmd === "open-user-log") {
@@ -1045,7 +1079,7 @@ function ctxCommand(cmd: string): void {
     openTab(h, cmd === "open-sys-log" ? "sys-log" : "user-log");
     return;
   }
-  const panelMap: Record<string, "screen" | "k8s" | "tunnel" | "tunnel-reverse"> = {
+  const panelMap: Record<string, WorkbenchPanelKind> = {
     "tab-workbench": "screen",
     "tab-k8s": "k8s",
     "tab-tunnel": "tunnel",
@@ -1618,8 +1652,6 @@ function lazyTabOf(name: string): Component | null {
       return ScheduleTab;
     case "software":
       return SoftwareTab;
-    case "docker":
-      return DockerTab;
     case "sys-log":
     case "user-log":
       // 日志页有专属分支（要额外传 kind=sys|login），不走通用懒加载映射
@@ -2295,7 +2327,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
               embedded
               :host-id="tabHostIdOf(tab.name)"
             />
-            <!-- 主机工作台：分屏 / K8s / 隧道 / 反向隧道 各开独立页签（Docker 在右键菜单是工作区页签，分屏工具条走 /docker 独立页） -->
+            <!-- 主机工作台：分屏 / Docker / K8s / 隧道 / 反向隧道 各开独立页签 -->
             <ScHostWorkbench
               v-else-if="tabKindOf(tab.name) === 'workbench'"
               :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
@@ -2303,15 +2335,6 @@ function onGlobalKeydown(e: KeyboardEvent): void {
               :host-id="tabHostIdOf(tab.name)"
               :host-name="hostNameOf(tabHostIdOf(tab.name))"
               @open-panel="onWorkbenchOpenPanel"
-            />
-            <!-- Docker 工作台页签：`domain="docker"` 隔离渲染域（容器），与工作台分屏/K8s 面板同组件 -->
-            <component
-              :is="lazyTabOf(tab.name)"
-              v-else-if="tabKindOf(tab.name) === 'docker'"
-              :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
-              :host-id="tabHostIdOf(tab.name)"
-              :host-name="hostNameOf(tabHostIdOf(tab.name))"
-              domain="docker"
             />
             <!-- 目标主机日志页签：系统日志 / 登录日志读的是这台服务器自身（journalctl / wevtutil），
                  与「运维台 / 软件管理」的通用懒加载区分开，额外传 kind=sys|login -->
@@ -2567,9 +2590,6 @@ function onGlobalKeydown(e: KeyboardEvent): void {
         <div class="host-ctx-item" @click="ctxCommand('tab-files')">
           <ReIcon name="FolderOpened" /><span>文件管理</span>
         </div>
-        <div class="host-ctx-item" @click="ctxCommand('schedule')">
-          <ReIcon name="Clock" /><span>调度信息</span>
-        </div>
         <div class="host-ctx-item" @click="ctxCommand('tab-metrics')">
           <ReIcon name="TrendCharts" /><span>指标监控</span>
         </div>
@@ -2600,11 +2620,6 @@ function onGlobalKeydown(e: KeyboardEvent): void {
               <ReIcon name="RefreshLeft" /><span>反向隧道</span>
             </div>
           </div>
-        </div>
-
-        <!-- 主机账号：这台机器能用哪些账号登（凭据库按主机过滤） -->
-        <div class="host-ctx-item" @click="ctxOpenTab('host-accounts')">
-          <ReIcon name="User" /><span>主机账号</span>
         </div>
 
         <!-- 主机画像：七个分区收进二级菜单，顶层只留一个入口 -->
@@ -2670,66 +2685,122 @@ function onGlobalKeydown(e: KeyboardEvent): void {
           </div>
         </div>
 
-        <div class="host-ctx-sep" />
-        <div class="host-ctx-item" @click="ctxCommand('open-sys-log')">
-          <ReIcon name="Tickets" /><span>系统日志</span>
-        </div>
-        <div class="host-ctx-item" @click="ctxCommand('open-user-log')">
-          <ReIcon name="Unlock" /><span>登录日志</span>
-        </div>
-        <div class="host-ctx-sep" />
-        <div class="host-ctx-item" @click="openSystemSettings()">
-          <ReIcon name="Setting" /><span>系统设置</span>
-        </div>
-        <div class="host-ctx-item" @click="ctxCommand('scan')">
-          <ReIcon name="Aim" /><span>端口扫描</span>
-        </div>
-        <!-- 软件管理：系统包管理器安装 / 卸载 / 升级 / 检索 -->
-        <div class="host-ctx-item" @click="ctxCommand('software')">
-          <ReIcon name="Box" /><span>软件管理</span>
-        </div>
-        <div class="host-ctx-item" @click="ctxCommand('toggle-remote')">
-          <ReIcon name="SwitchButton" />
-          <span>{{ ctxMenu.host.serverHostRemoteEnabled === 1 ? '停用远控入口' : '启用远控入口' }}</span>
-        </div>
-
-        <template v-if="isAgentMode(ctxMenu.host)">
-          <div class="host-ctx-sep" />
-          <div v-if="!isAgentInstalled(ctxMenu.host)" class="host-ctx-item" @click="ctxCommand('agent-install')">
-            <ReIcon name="Download" /><span>安装 Agent</span>
+        <!-- 主机管理：账号 / 计划 / 巡检 / 改配 —— 低频配置类动作收一组，
+             顶层不再为「改个端口」「看一眼账号」各占一行。 -->
+        <div
+          class="host-ctx-item has-sub"
+          :class="{ 'is-open': ctxSub === 'manage' }"
+          @click="toggleCtxSub('manage')"
+          @mouseenter="hoverCtxSub('manage')"
+        >
+          <ReIcon name="Management" /><span>主机管理</span>
+          <ReIcon name="ArrowRight" class="host-ctx-arrow" />
+          <div v-if="ctxSub === 'manage'" class="host-ctx-sub" @mouseenter="hoverCtxSub('manage')" @mouseleave="leaveCtxSub('manage')">
+            <div class="host-ctx-label">凭据与计划</div>
+            <div class="host-ctx-item" @click="ctxOpenTab('host-accounts')">
+              <ReIcon name="User" /><span>主机账号</span>
+            </div>
+            <div class="host-ctx-item" @click="ctxCommand('schedule')">
+              <ReIcon name="Clock" /><span>调度信息</span>
+            </div>
+            <div class="host-ctx-sep" />
+            <div class="host-ctx-label">巡检与软件</div>
+            <div class="host-ctx-item" @click="ctxCommand('scan')">
+              <ReIcon name="Aim" /><span>端口扫描</span>
+            </div>
+            <!-- 软件管理：系统包管理器安装 / 卸载 / 升级 / 检索 -->
+            <div class="host-ctx-item" @click="ctxCommand('software')">
+              <ReIcon name="Box" /><span>软件管理</span>
+            </div>
+            <div class="host-ctx-sep" />
+            <div class="host-ctx-label">改配与远控</div>
+            <div class="host-ctx-item" @click="ctxCommand('edit')">
+              <ReIcon name="EditPen" /><span>编辑主机</span>
+            </div>
+            <div class="host-ctx-item" @click="ctxCommand('clone')">
+              <ReIcon name="CopyDocument" /><span>克隆主机</span>
+            </div>
+            <div class="host-ctx-item" @click="ctxCommand('toggle-remote')">
+              <ReIcon name="SwitchButton" />
+              <span>{{ ctxMenu.host.serverHostRemoteEnabled === 1 ? '停用远控入口' : '启用远控入口' }}</span>
+            </div>
           </div>
-          <template v-else>
-            <div class="host-ctx-item" @click="ctxCommand('agent-reinstall')">
-              <ReIcon name="RefreshRight" /><span>重装 Agent</span>
-            </div>
-            <div class="host-ctx-item" @click="ctxCommand('agent-upgrade')">
-              <ReIcon name="Top" /><span>升级 Agent</span>
-            </div>
-            <div class="host-ctx-item is-danger" @click="ctxCommand('agent-uninstall')">
-              <ReIcon name="DeleteFilled" /><span>卸载 Agent</span>
-            </div>
-          </template>
-        </template>
-
-        <div class="host-ctx-sep" />
-        <div class="host-ctx-label">复制</div>
-        <div class="host-ctx-item" @click="ctxCommand('copy-address')">
-          <ReIcon name="Link" /><span>复制地址</span>
-        </div>
-        <div class="host-ctx-item" @click="ctxCommand('copy-name')">
-          <ReIcon name="Document" /><span>复制主机名</span>
-        </div>
-        <div class="host-ctx-item" @click="ctxCommand('copy-link')">
-          <ReIcon name="Share" /><span>复制详情链接</span>
         </div>
 
+        <!-- 系统：平台侧日志与设置，跟「这台主机的运维」不是一类事 -->
+        <div
+          class="host-ctx-item has-sub"
+          :class="{ 'is-open': ctxSub === 'system' }"
+          @click="toggleCtxSub('system')"
+          @mouseenter="hoverCtxSub('system')"
+        >
+          <ReIcon name="Setting" /><span>系统</span>
+          <ReIcon name="ArrowRight" class="host-ctx-arrow" />
+          <div v-if="ctxSub === 'system'" class="host-ctx-sub is-up" @mouseenter="hoverCtxSub('system')" @mouseleave="leaveCtxSub('system')">
+            <div class="host-ctx-item" @click="ctxCommand('open-sys-log')">
+              <ReIcon name="Tickets" /><span>系统日志</span>
+            </div>
+            <div class="host-ctx-item" @click="ctxCommand('open-user-log')">
+              <ReIcon name="Unlock" /><span>登录日志</span>
+            </div>
+            <div class="host-ctx-sep" />
+            <div class="host-ctx-item" @click="openSystemSettings()">
+              <ReIcon name="Setting" /><span>系统设置</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Agent：只在 Agent 采集模式出现；装没装决定是「安装」还是「重装/升级/卸载」 -->
+        <div
+          v-if="isAgentMode(ctxMenu.host)"
+          class="host-ctx-item has-sub"
+          :class="{ 'is-open': ctxSub === 'agent' }"
+          @click="toggleCtxSub('agent')"
+          @mouseenter="hoverCtxSub('agent')"
+        >
+          <ReIcon name="Cpu" /><span>Agent</span>
+          <ReIcon name="ArrowRight" class="host-ctx-arrow" />
+          <div v-if="ctxSub === 'agent'" class="host-ctx-sub is-up" @mouseenter="hoverCtxSub('agent')" @mouseleave="leaveCtxSub('agent')">
+            <div v-if="!isAgentInstalled(ctxMenu.host)" class="host-ctx-item" @click="ctxCommand('agent-install')">
+              <ReIcon name="Download" /><span>安装 Agent</span>
+            </div>
+            <template v-else>
+              <div class="host-ctx-item" @click="ctxCommand('agent-reinstall')">
+                <ReIcon name="RefreshRight" /><span>重装 Agent</span>
+              </div>
+              <div class="host-ctx-item" @click="ctxCommand('agent-upgrade')">
+                <ReIcon name="Top" /><span>升级 Agent</span>
+              </div>
+              <div class="host-ctx-item is-danger" @click="ctxCommand('agent-uninstall')">
+                <ReIcon name="DeleteFilled" /><span>卸载 Agent</span>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- 复制：三个复制动作单独收口，避免和「删除」这类危险项混在一起 -->
+        <div
+          class="host-ctx-item has-sub"
+          :class="{ 'is-open': ctxSub === 'copy' }"
+          @click="toggleCtxSub('copy')"
+          @mouseenter="hoverCtxSub('copy')"
+        >
+          <ReIcon name="DocumentCopy" /><span>复制</span>
+          <ReIcon name="ArrowRight" class="host-ctx-arrow" />
+          <div v-if="ctxSub === 'copy'" class="host-ctx-sub is-up" @mouseenter="hoverCtxSub('copy')" @mouseleave="leaveCtxSub('copy')">
+            <div class="host-ctx-item" @click="ctxCommand('copy-address')">
+              <ReIcon name="Link" /><span>复制地址</span>
+            </div>
+            <div class="host-ctx-item" @click="ctxCommand('copy-name')">
+              <ReIcon name="Document" /><span>复制主机名</span>
+            </div>
+            <div class="host-ctx-item" @click="ctxCommand('copy-link')">
+              <ReIcon name="Share" /><span>复制详情链接</span>
+            </div>
+          </div>
+        </div>
+
         <div class="host-ctx-sep" />
-        <div class="host-ctx-item" @click="ctxCommand('edit')">
-          <ReIcon name="EditPen" /><span>编辑主机</span>
-        </div>
-        <div class="host-ctx-item" @click="ctxCommand('clone')">
-          <ReIcon name="CopyDocument" /><span>克隆主机</span>
-        </div>
         <div class="host-ctx-item" @click="ctxCommand('close-host-tabs')">
           <ReIcon name="CircleClose" /><span>关闭该主机全部页签</span>
         </div>
@@ -3899,6 +3970,12 @@ function onGlobalKeydown(e: KeyboardEvent): void {
 .host-ctx-sub .host-ctx-item .re-icon,
 .host-ctx-sub .host-ctx-item svg {
   font-size: 13.5px;
+}
+/* 靠下的分组（系统 / Agent / 复制）向上展开。
+   768p 屏上右键菜单本身已经贴底，继续向下弹会把最后几项顶出视口。 */
+.host-ctx-sub.is-up {
+  top: auto;
+  bottom: -6px;
 }
 .host-ctx-sep {
   height: 1px;

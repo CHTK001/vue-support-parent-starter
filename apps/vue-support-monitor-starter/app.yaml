@@ -6,7 +6,8 @@
 appConfig:
   title: 监控管理平台
   # 验收完成后必须调回 true（本文件必须保持 true）
-  openAuth: true
+  openAuth:
+    enable: true
 
 # 路由：菜单完全来自本地路由树（src/routes.ts 的 monitorRoutes），
 # 由 createVueApp 的 registerStaticMenu(buildMenuFromRoutes(...)) 注册。
@@ -33,7 +34,8 @@ httpConfig:
   # 这里置 false 后 HTTP 不再驱动进度条，路由跳转进度条不受影响
   # （走的是 hooks.onBeforeEach/onAfterEach，与本项是两条独立通路）。
   # 需要临时给某个请求加进度条时，仍然可以 http().get(...).loading(true)。
-  showLoading: false
+  showLoading:
+    enable: false
   # 各业务模块后端前缀（createModuleHttp 读取，未配置则回退 baseUrl）。
   # device 用 device-starter 的原生前缀 /api/device——该模块未纳入 /ms/* 体系，
   # 后端由 spring-support-monitor-starter 依赖 device-starter 承载。
@@ -63,7 +65,8 @@ otherConfig:
     enable: false
   toolbar:
     # 平台公告接口属 system 服务，监控后端未实现（同 collect 应用）
-    announcement: false
+    announcement:
+      enable: false
   # 文件资产（pages/filesystem / FileStorageManage）指向的文件服务器。
   #
   # 它是**后端进程内的一个 HTTP 服务**（FileStorageServerFilter），监听在后端所在机器。
@@ -96,18 +99,30 @@ otherConfig:
 # toolbar.announcement 同一套口径：后端没实现的功能，前端就别发请求。
 # 后端将来纳入 message-starter，把这里删掉（或改 true）即可恢复。
 messageConfig:
-  query: false
+  query:
+    enable: false
 
 # Socket 实时推送（/v2/setting/default 未下发 socket 配置时以本地为准）
 #
-# 2026-10-14 复核后重新开启。此前误判为「198 后端没有启用 socket 服务」而关闭，
-# 实测打脸：http://192.168.50.198:29612/socket.io 握手返回 200 + 合法 sid，
-# socket.io 服务一直是活的（后端 --plugin.socket.room[0].port=29612）。当时的 403
-# 是请求打到了 8112（API 口、有 AuthFilter），不是 29612；vite 代理 /socket.io 本就
-# 正确指向 29612。socket 服务端也不校验 token（无 AuthorizationListener，连接即收）。
+# 【当前状态：已关闭】2026-11-02 在本 instabox sandbox 实例上实测确认：
+#   1) socket 推送端口（<api-host> 的 29612）已发布但沙箱内无进程监听
+#      （返回 "Nothing is listening on this port in the sandbox"）；
+#   2) API 端口本身**完全没有 socket.io 端点** —— /socket.io、/ms/socket.io、
+#      /v2/socket.io、/socket、/ws/socket.io、/socket.io/socket.io.js 六条路径
+#      带 token 全部 404（S0503C0000 资源不存在），匿名访问则被 AuthFilter 拦成 403。
+# 结论：该实例未启动 plugin.socket.room，实时推送在此环境下**无法连通**。
+# 开启时 vite /socket.io 每次转发必得 502，页面侧表现为持续重连噪音，
+# 故关闭。关闭后 initGlobalSocket 直接短路（packages/core/src/createApp.ts:273），
+# 不再发起任何连接。
 #
-# 关闭它的真实代价：主机延迟/在线/CPU/内存/磁盘的实时推送、以及 agent 安装的进度与
-# 失败原因全部收不到（后者导致安装失败了前端也看不到、弹窗卡在「准备中...」）。
+# 关闭的真实代价（已知并接受）：主机延迟/在线/CPU/内存/磁盘的实时推送、以及 agent
+# 安装的进度与失败原因收不到。发布日志与任务进度已由 pollLogTail 轮询快照兜底
+# （源码本就有该路径，见 pages/server/src/views/release/ProjectsView.vue:2773）。
+#
+# 【如何恢复】两条都要满足：
+#   1) 后端启动参数补上 --plugin.socket.room[0].port=29612，使该端口真正监听；
+#   2) 把本处 enable 改回 true。
+# 部署环境若 socket 为常态可用，应保持 true；此处关闭仅针对当前实例。
 #
 # transports 保留 polling 打头：token 已改走 extraHeaders 消息头（见 socketio.ts），
 # 而浏览器 WebSocket 握手设不了自定义头，只有 polling 的 HTTP 握手能带上 x-oauth-token；
@@ -118,11 +133,14 @@ messageConfig:
 # refreshBadge 的 REST 补偿仍然保留，与 socket 推送不冲突。
 #
 # 地址：不配 urls，回退 window.location.origin(=8848)，socket.io 请求经 vite /socket.io
-# 代理转发到 198:29612。**不要改成直连 198:29612**：浏览器到 198:29612 是跨源请求，
+# 代理转发到 <api-host>:29612。**不要改成直连远端 29612**：浏览器到它是跨源请求，
 # extraHeaders 里的 x-oauth-token 会触发 OPTIONS 预检（netty-socketio 不处理预检 → 连接失败），
-# 且本机系统代理(127.0.0.1:7897)对 198 不 bypass。同源走 vite 代理两者都规避，token 头也干净生效。
+# 且本机系统代理(127.0.0.1:7897)对局域网地址不 bypass。同源走 vite 代理两者都规避，
+# token 头也干净生效。
 socketConfig:
-  enable: true
+  # 见上方说明：本实例无可用 socket 后端，关闭以消除 502 噪音。
+  # 后端补上 plugin.socket.room[0].port=29612 后改回 true 即可恢复实时推送。
+  enable: false
   protocol: socketio
   context: "/socket.io"
   # 仅 polling：经 vite 代理时 WS 升级会被 netty(SO_LINGER=0 硬关)重置、拖垮 polling 长连接，
@@ -130,11 +148,26 @@ socketConfig:
   transports:
     - polling
 
+# APM 观测（pages/apm）
+#
+# 「是否装了 APM」由后端 /api/apm/v1/status 探测，本配置只管前端表现：
+#   enable=false → 菜单里不出现 APM 分组（路由仍可直达，方便临时排查）
+#   engine       → 预期引擎（skywalking / opentelemetry / hotspot），留空不校验；
+#                  与探测结果不一致时页面顶部会提示，不会改数据源
+#   baseUrl      → 必须与后端 plugin.apm.path 一致（默认 /api/apm/v1）
+#   statusTtl    → 状态探测缓存毫秒数，多页面同时挂载时靠它合并请求
+apmConfig:
+  enable: true
+  engine: ""
+  baseUrl: /api/apm/v1
+  statusTtl: 15000
+
 # 菜单配置：单子节点也渲染为可折叠子菜单（而非压平为单项）
 # 置 true 才会走 el-sub-menu 的二级分组；置 false 会把只有一个子项的分组压平，
 # 表现为「分组导航消失、所有条目平铺」——与本应用期望的分组导航相反。
 menuConfig:
-  collapseSingleChild: true
+  collapseSingleChild:
+    enable: true
 
 # 布局配置（首页仪表板持久化：local=本地 localStorage / remote=远程同步）
 layoutConfig:

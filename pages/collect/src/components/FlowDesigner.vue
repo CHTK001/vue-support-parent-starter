@@ -16,7 +16,6 @@ import type { Component } from "vue";
 import { msgError } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
 import ReFlowGraph from "@repo/ui/re-flow-graph";
-import ReIcon from "@repo/ui/re-icon";
 import ReInput from "@repo/ui/re-input";
 import ReSelect from "@repo/ui/re-select";
 import ReSwitch from "@repo/ui/re-switch";
@@ -337,13 +336,6 @@ const nodeTypes = computed<FlowNodeTypeDef[]>(() =>
 
 const selectedMeta = computed(() =>
   nodeForm.value ? metaMap.value[nodeForm.value.shape] ?? null : null,
-);
-
-/** 非 Tab 化节点的说明：基础信息「节点 ID / 类型」旁的信息图标 */
-const nodeInfoText = computed(() =>
-  selectedMeta.value
-    ? [selectedMeta.value.description, selectedMeta.value.outputVariable].filter(Boolean).join("\n")
-    : "",
 );
 
   const flowOptionsOf = computed(() =>
@@ -841,7 +833,7 @@ const FORM_BY_SHAPE: Record<string, Component> = {
   request: requestForm,
   extract: extractForm,
   link: linkForm,
-  // database 没有专属表单：它属于 SIMPLE_TABBED_SHAPES，统一走 NodeFormTabs → NodeParamForm。
+  // database 没有专属表单：它回落到 genericForm（通用 NodeParamForm），页签外壳由 NodeFormTabs 统一提供。
   // 原先这里登记的 databaseForm 是一条走不到的分支，且它引用的是「建表 / 补列」DDL 预览弹窗，
   // 与设计表（数据库管理器同一套列网格）不是同一个东西 —— 留着只会让下一个人以为界面上用的就是它。
   output: outputForm,
@@ -863,30 +855,14 @@ const FORM_BY_SHAPE: Record<string, Component> = {
   "neo4j-write": middlewareForm,
 };
 
-/** 使用统一 Tab 外壳的节点类型；request 也走统一 Tab，script 已下线不参与 */
-const SIMPLE_TABBED_SHAPES = new Set([
-  "start",
-  "request",
-  "extract",
-  "database",
-  "sql",
-  "link",
-  "output",
-  "dedup",
-  "sleep",
-  "ai",
-  "process",
-  "comment",
-  "condition",
-  "end",
-  "entry",
-  "influxdb-read",
-  "influxdb-write",
-  "neo4j-read",
-  "neo4j-write",
-]);
-
-/** 当前节点该渲染的表单组件 */
+/**
+ * 当前节点该渲染的表单组件。
+ *
+ * <p>所有 shape 都走统一页签外壳（NodeFormTabs），本组件是「页签内容」的唯一来源：
+ * 未在 FORM_BY_SHAPE 登记的 shape 回落到 genericForm（即通用 NodeParamForm）。
+ * 原先那张 SIMPLE_TABBED_SHAPES 白名单已删除 —— 它把「用不用页签」变成了按 shape 分叉，
+ * 白名单外的 shape 落到扁平单页分支，同一个产品里于是并存两种属性面板形态。</p>
+ */
 const activeForm = computed<Component>(() =>
   nodeForm.value ? FORM_BY_SHAPE[nodeForm.value.shape] ?? genericForm : genericForm,
 );
@@ -1602,8 +1578,14 @@ defineExpose({ load, getGraph, addNode, startWith, shapeIssues, autoOptimize, fo
 
         <!-- 节点参数：属性面板唯一常驻内容，选中节点即显示 -->
         <template v-if="nodeForm && selectedMeta">
+          <!--
+            统一页签外壳：所有 shape 都走这一套（基础信息 / 输入参数 / 输出参数 / 循环 / 高级配置）。
+            之前这里是「页签外壳」与「扁平单页表单」两条分支（SIMPLE_TABBED_SHAPES 之外的 shape 走扁平），
+            同一个产品里两种面板形态并存，用户换个节点就得重新找控件位置；而这条扁平分支还顺手让
+            FORM_BY_SHAPE 里未登记进白名单的专属表单（exists / filter / script）走了完全不同的布局。
+            现在只有一套外壳，页签内容由 activeForm 决定。
+          -->
           <NodeFormTabs
-            v-if="SIMPLE_TABBED_SHAPES.has(nodeForm.shape)"
             :node="nodeForm"
             :meta="selectedMeta"
             :ctx="formContext"
@@ -1614,65 +1596,16 @@ defineExpose({ load, getGraph, addNode, startWith, shapeIssues, autoOptimize, fo
             @set-param="setParam"
             @set-pairs="writeNodePairs"
           />
-          <div v-else class="pane-grid">
-              <!-- 分节头（UI 稿）：基础信息 = 名称 / ID / 最近执行；其余表单归「类型配置」节 -->
-              <SectionHead title="基础信息" />
-              <div class="field">
-                <div class="field-label">节点名称</div>
-                <ReInput  :model-value="nodeForm.name" @update:model-value="renameNode"/>
-              </div>
-              <div class="field">
-                <div class="field-label">
-                  节点 ID / 类型
-                  <el-tooltip
-                    v-if="nodeInfoText"
-                    :content="nodeInfoText"
-                    placement="top"
-                    :show-after="200"
-                    :teleported="true"
-                  >
-                    <span class="label-tip"><ReIcon name="InfoFilled" :size="13" /></span>
-                  </el-tooltip>
-                </div>
-                <ReInput
-                  
-                  disabled
-                  :model-value="`${nodeForm.id} · ${selectedMeta.label}`"
-                />
-              </div>
 
-              <div v-if="selectedState" class="field field-wide">
-                <div class="field-label">最近执行</div>
-                <span class="field-state" :class="`state-${selectedState.collectTaskLogStatus}`">
-                  {{ stateText(nodeForm.id) }}
-                  <em v-if="selectedState.collectTaskLogMessage">
-                    {{ selectedState.collectTaskLogMessage }}
-                  </em>
-                </span>
-              </div>
-
-              <!-- 「${节点类型}配置」分节头：extract →「抽取配置」，恰合 UI 稿叫法 -->
-              <SectionHead :title="`${selectedMeta.label}配置`" />
-
-              <!-- 参数表单按 shape 拆成独立组件，写回仍走上面的 setParam / writeNodePairs / writeFields -->
-              <component
-                :is="activeForm"
-                :node="nodeForm"
-                :meta="selectedMeta"
-                :ctx="formContext"
-                @set-param="setParam"
-                @set-pairs="writeNodePairs"
-              />
-
-              <!-- 状态条（UI 稿底栏）：左＝表达式体检实时结果；右＝如实说明「为什么没有保存/取消按钮」 -->
-              <div class="pane-status">
-                <span class="pane-status-flag" :class="exprIssue ? 'is-bad' : 'is-ok'">
-                  {{ exprIssue ? `⚠ ${exprIssue}` : "✓ 表达式校验通过" }}
-                </span>
-                <span class="pane-status-hint">改动实时生效，随流程一起保存</span>
-              </div>
-            </div>
-          </template>
+          <!-- 状态条（UI 稿底栏）：左＝表达式体检实时结果；右＝如实说明「为什么没有保存/取消按钮」。
+               放在页签外壳外面而不是某个页签里：它与「当前看哪一页」无关。 -->
+          <div class="pane-status">
+            <span class="pane-status-flag" :class="exprIssue ? 'is-bad' : 'is-ok'">
+              {{ exprIssue ? `⚠ ${exprIssue}` : "✓ 表达式校验通过" }}
+            </span>
+            <span class="pane-status-hint">改动实时生效，随流程一起保存</span>
+          </div>
+        </template>
 
           <!-- 连线属性：选中连线即显示（判断节点的真假分流条件在这里编） -->
           <div v-else-if="edgeForm" class="pane-grid">

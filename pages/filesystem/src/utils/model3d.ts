@@ -68,6 +68,9 @@ const EXT_TO_FORMAT: Record<string, Model3dFormat> = {
   ply: "ply",
   dae: "dae",
   wrl: "wrl",
+  // VRML 的两个后缀都要认：`.vrml` 此前不在表里，于是一律落到「二进制检视」，
+  // 明明有 VRMLLoader 却看不到图形（台账里 vrml 那条就是这么来的）。
+  vrml: "wrl",
   "3mf": "3mf",
   off: "off",
   fbx: "fbx",
@@ -757,12 +760,14 @@ async function parseWithThreeLoader(
     }
     case "fbx": {
       const { FBXLoader } = await import("three/addons/loaders/FBXLoader.js");
-      // FBX 有二进制与 ASCII 两种：二进制以 "Kaydara FBX Binary" 开头，喂
-      // ArrayBuffer；ASCII 喂字符串。喂错不会报错但会得到空场景，故按魔数分流。
-      const head = decoder.decode(new Uint8Array(bytes.slice(0, 20)));
-      const object = head.startsWith("Kaydara FBX Binary")
-        ? new FBXLoader().parse(bytes, "")
-        : new FBXLoader().parse(decoder.decode(bytes), "");
+      // 必须整段喂 ArrayBuffer：three 的 FBXLoader.parse 内部自己用
+      // isFbxFormatBinary() 判 ASCII/二进制，ASCII 再走 convertArrayBufferToString()。
+      // 此前这里按魔数分流、ASCII 喂的是**字符串**，而 convertArrayBufferToString
+      // 要的是 `new Uint8Array(buffer, from, to)` —— 传字符串进去得到空文本，
+      // 于是 getFbxVersion 找不到 `FBXVersion:` 直接抛
+      // 「Cannot find the version number for the file given」，
+      // 表现为「FBX 解析缺陷」（台账里 fbx 那条的真正根因）。
+      const object = new FBXLoader().parse(bytes, "");
       return countObject(object);
     }
     case "vtk": {

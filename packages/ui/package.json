@@ -363,6 +363,10 @@
       "types": "./src/components/ReKit/index.ts",
       "default": "./src/components/ReKit/index.ts"
     },
+    "./re-option": {
+      "types": "./src/components/ReOption/index.ts",
+      "default": "./src/components/ReOption/index.ts"
+    },
     "./re-state-icon": {
       "types": "./src/components/ReStateIcon/index.ts",
       "default": "./src/components/ReStateIcon/index.ts"
@@ -405,6 +409,8 @@
     "@element-plus/icons-vue": "catalog:",
     "@iconify/vue": "catalog:",
     "@medv/finder": "^4.0.2",
+    "@logicflow/core": "^2.2.5",
+    "@logicflow/extension": "^2.3.1",
     "@microsoft/fetch-event-source": "catalog:",
     "@repo/config": "workspace:*",
     "@repo/core": "workspace:*",

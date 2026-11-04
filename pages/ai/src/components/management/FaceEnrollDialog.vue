@@ -180,6 +180,10 @@ const form = reactive({
   idCard: '',
   photogenic: 3,
   note: '',
+  /** 现居住地（非必填，进 metadata 一起落库） */
+  residence: '',
+  /** 手机号（非必填；填了才校验 11 位） */
+  phone: '',
   /** 纬度（非必填；null = 未填，落库为 NULL） */
   lat: null as number | null,
   /** 经度（非必填；null = 未填，落库为 NULL） */
@@ -212,6 +216,17 @@ const rules = computed<FormRules>(() => ({
       trigger: 'blur',
     },
   ],
+  // 手机号选填：空值直接放行（return cb()），填了才校验格式 ——
+  // 与身份证同一套写法，避免 required 与格式校验互相短路
+  phone: [
+    {
+      validator: (_r, v: string, cb: (e?: Error) => void) => {
+        if (!v || !String(v).trim()) return cb()
+        return isValidPhone(v) ? cb() : cb(new Error('手机号格式不正确（11 位）'))
+      },
+      trigger: 'blur',
+    },
+  ],
 }))
 
 /**
@@ -237,6 +252,9 @@ watch(
       // 经纬度：老数据没有这两个字段，读不到就是 null（表单显示为空）
       form.lat = (r as any).lat ?? (r as any).metadata?.lat ?? null
       form.lng = (r as any).lng ?? (r as any).metadata?.lng ?? null
+      // 居住地 / 手机号同样只在 metadata 里，老数据读不到就是空串
+      form.residence = (r as any).residence ?? (r as any).metadata?.residence ?? ''
+      form.phone = (r as any).phone ?? (r as any).metadata?.phone ?? ''
     } else {
       reset()
     }
@@ -385,6 +403,9 @@ async function submit() {
       idCard: form.idCard,
       photogenic: form.photogenic,
       note: form.note,
+      // 居住地 / 手机号同样非必填：空串落 null，避免底库里出现一堆 "" 字段
+      residence: form.residence.trim() || null,
+      phone: form.phone.trim() || null,
       // 经纬度非必填：填了才带上，没填就是 null（后端会落 NULL）
       lat: form.lat,
       lng: form.lng,
@@ -466,6 +487,8 @@ function reset() {
   form.idCard = ''
   form.photogenic = 3
   form.note = ''
+  form.residence = ''
+  form.phone = ''
   form.lat = null
   form.lng = null
 }

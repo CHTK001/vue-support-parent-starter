@@ -821,6 +821,7 @@
 import { message } from "@repo/core";
 import { computed, h, nextTick, onActivated, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { apiService } from '../../services/ApiService'
+import { useLibraryGroups } from '@/composables/useLibraryGroups'
 import type { GenerateModel, GenerateTask, GenerateTaskStatus } from '../../services/modules/generate.api'
 import { isInlineMedia, resolveReferenceImage } from '../../services/modules/generate.api'
 import { createAuthImageLoader, downloadAuthenticatedFile } from '../../utils/authImage'
@@ -1821,6 +1822,9 @@ const download = (url: string, type: 'image' | 'video') => {
 /** 「更多」菜单进行中（防重复提交；两个动作共用一个忙标） */
 const moreBusy = ref(false)
 
+/** 落库分组：与设置中心的「用户级」运行口径一致，单组定位 */
+const { group } = useLibraryGroups('image')
+
 /**
  * 取生成结果的图片字节。
  *
@@ -1896,14 +1900,9 @@ async function indexGeneratedImage(url: string, prompt: string) {
   moreBusy.value = true
   try {
     const blob = await fetchMediaBlob(url)
-    const form = new FormData()
-    form.append('file', blob, 'generated.png')
-    form.append('name', promptName(prompt, 60, '生成图'))
-    await apiService._request('/image-search/index', {
-      method: 'POST',
-      data: form,
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    const name = promptName(prompt, 60, '生成图')
+    // multipart 走 client（boundary 由底层生成）；落库是单组定位口径，同设置中心
+    await apiService.indexImage(blob, name, group.value)
     message.success('已加入图像底库')
   } catch (e: any) {
     message.error(`加入图像底库失败：${(e as Error)?.message || '未知错误'}`)

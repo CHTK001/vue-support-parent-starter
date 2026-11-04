@@ -49,6 +49,7 @@ export const MANAGER_ROUTE_MAP: Record<string, string> = {
   etcd: "/etcd",
   prometheus: "/prometheus",
   mongodb: "/mongodb",
+  skywalking: "/skywalking",
 };
 
 /**
@@ -170,6 +171,15 @@ export function createDatasourceManageRoutes(
       name: "MongoDB",
       component: () => import("./views/console/MongoManageView.vue"),
       meta: { title: "MongoDB 管理", icon: "Coin", ...common },
+    },
+    {
+      // APM 链路管理：总览 / 服务目录 / 链路 / 拓扑 / 指标 / 告警 / 日志，
+      // 此前只有后端接口与引擎，没有路由与视图，数据源中心点「打开管理」会稳定弹「未注册」
+      // —— 同属 MANAGER_ROUTE_MAP 认领的类型，补上并纳进这张映射表。
+      path: "/skywalking",
+      name: "Skywalking",
+      component: () => import("./views/console/SkywalkingManageView.vue"),
+      meta: { title: "SkyWalking 管理", icon: "DataLine", ...common },
     },
     {
       // 字段可增 / 删 / 改（删改走后端重建索引）；图谱是「集群 → 节点」拓扑。

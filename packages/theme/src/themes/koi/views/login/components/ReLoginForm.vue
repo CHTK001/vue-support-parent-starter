@@ -112,9 +112,16 @@
       <!-- OTP 动态口令弹窗（TOTP） -->
       <ReOtpDialog ref="otpDialogRef" @confirm="handleOtpConfirm" />
 
-      <!-- 滑块验证 -->
+      <!-- 滑块验证（按 loginConfig.sliderType 渲染对应形态：simple = 普通滑动 / puzzle = 图片拼图） -->
       <el-form-item v-if="loginConfig.slider">
-        <ReSliderVerify ref="sliderRef" :disabled="loading" @success="sliderPassed = true" />
+        <ReSliderVerify
+          ref="sliderRef"
+          :slider-type="loginConfig.sliderType || 'simple'"
+          :disabled="loading"
+          :tolerance="4"
+          :puzzle="loginConfig.sliderPuzzle"
+          @success="sliderPassed = true"
+        />
       </el-form-item>
 
       <el-form-item class="m-b-0">
@@ -163,7 +170,7 @@ import ReOtpDialog from "./ReOtpDialog.vue";
 import ReSliderVerify from "./ReSliderVerify.vue";
 import ReThirdLogin from "./ReThirdLogin.vue";
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     /** 是否显示移动端品牌 Logo */
     showMobileBrand?: boolean;
@@ -171,6 +178,11 @@ withDefaults(
     showHeader?: boolean;
     /** 样式主题额外 class */
     formClass?: string;
+    /**
+     * 强制登录：弹窗/宿主接管登录后的页面落点（true 时不跳走，只回报登录成功）。
+     * 默认 false（在登录页正常落地：已登录自动跳首页/redirect 地址、登录后跳首页）。
+     */
+    forced?: boolean;
   }>(),
   {
     showHeader: true,
@@ -178,6 +190,8 @@ withDefaults(
 );
 
 const { t } = useI18n();
+/** 登录成功（弹窗 / 宿主接管控制权） */
+const emit = defineEmits<{ (e: "success"): void }>();
 // loginConfig 跟随 getConfig().login 响应式变化；loadDefaultSetting() 后自动同步
 const loginConfig = toRef(getConfig(), "login");
 // 品牌 Logo：支持 app.yaml 配置（本地资源路径或外部 URL），为空时回退内置 logo
@@ -354,7 +368,7 @@ onMounted(async () => {
   }
 
   // 如果用户已经登录，自动跳转到 redirect 地址或首页
-  if (userStore?.token) {
+  if (!props.forced && userStore?.token) {
     const redirect = router.currentRoute.value.query.redirect as string;
     if (redirect) {
       router.replace(redirect);
@@ -432,7 +446,12 @@ const submitLogin = async (otpCode: string) => {
 
     keepAliveStore.$reset();
     await nextTick();
-    await router.replace(HOME_URL);
+    // 强制登录（弹窗接管）时不跳首页，把控制权交还给弹窗宿主；正常登录页跳首页
+    if (props.forced) {
+      emit("success");
+    } else {
+      await router.replace(HOME_URL);
+    }
   } catch (error: any) {
     sliderPassed.value = false;
     sliderRef.value?.reset();

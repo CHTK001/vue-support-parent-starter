@@ -23,6 +23,7 @@ export default {
       otpConfirm: "Confirm",
       otpCancel: "Cancel",
       sliderTip: "Slide right to verify",
+      sliderTipPuzzle: "Drag the slider to the matching slot",
       sliderSuccess: "Verified",
       sliderRequired: "Please complete the slider verification first",
       style: "Login Style",
@@ -394,6 +395,7 @@ export default {
       colorStatus: "Color Status",
       layoutStyle: "Layout Style",
       loginStyle: "Login Style",
+      loaderStyle: "Loading Animation",
       interfaceConfig: "Interface Config",
       toolbarSwitch: "Toolbar Switches",
       messageNotify: "Message Notify",
@@ -453,6 +455,10 @@ export default {
     customColor: {
       title: "Custom Color",
       desc: "Pick from palette or enter HEX value",
+    },
+    loaderStyle: {
+      hint: "The boot loader and in-app loading overlays share one animation. Your choice applies here at once and to the boot screen after a refresh.",
+      lockedHint: "The animation is locked by the deployment config (other.loaderConfig in app.yaml) and cannot be changed here.",
     },
     themeModeTabs: {
       light: "Light",
@@ -557,6 +563,18 @@ export default {
         sub: "Vertical layout only",
         tip: "When collapsed, hide the icon menu and shrink the entire menu into one expand button (vertical layout only)",
         description: "When collapsed, hide the icon menu and shrink the entire menu into one expand button (vertical layout only)",
+      },
+      collapseButton: {
+        title: "Show Menu Button",
+        sub: "Vertical layout only",
+        tip: "Show an expand button when the menu is collapsed (in addition to the icon bar)",
+        description: "An expand button appears when the menu is collapsed",
+      },
+      collapseBar: {
+        title: "Keep Mini Bar",
+        sub: "Vertical layout only",
+        tip: "Keep a mini icon menu bar when collapsed",
+        description: "The menu bar shrinks to a mini icon bar when collapsed",
       },
     },
     message: {

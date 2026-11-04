@@ -32,6 +32,20 @@ import {
 import i18n from "@repo/languages";
 import { ElMessageBox } from "element-plus";
 
+/**
+ * 窗口级强制登录弹窗句柄声明（由 koi 主题的 installForcedLogin 注册到 window）：
+ * 核心 @repo/core 不能依赖 @repo/ui，只能透过 window 上的全局句柄调用。
+ */
+declare global {
+  interface Window {
+    /** 强制登录弹窗服务（401/403 时拉起 ReDialog + ReLoginForm 组合弹窗） */
+    __reForcedLogin?: {
+      /** 打开强制登录弹窗（并行 401/403 只弹一个） */
+      show: (callbacks?: { onLogin?: () => void; onClose?: () => void }) => void;
+    };
+  }
+}
+
 /** 后端配置版本响应头：配置变更时后端返回新版本号，前端据此触发热重载 */
 const CONFIG_VERSION_HEADER = "x-response-version";
 
@@ -573,6 +587,8 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
         // 应用部署在子路径时，登录页要拼上 base，否则跳出应用
         const loginHref = (import.meta.env.BASE_URL || "/") + loginUrl.replace(/^\//, "");
         // 会话已失效：清掉本地令牌，否则守卫会凭旧令牌把用户弹回首页反复 403
+        // 注意：dialog 模式下需先快照令牌，clearAllAuthData 会清掉它（判断用户已登录用）
+        const hadAccessToken = getAccessToken();
         clearAllAuthData();
         // 去登录页：优先走已注入的 vue-router。hash 模式（#/login）下直接改 pathname
         // 会丢掉 hash，SPA 只会落回首页而到不了登录页；无 router（React / 尚未挂载）时
@@ -597,6 +613,30 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
         const __loginFullPath = __baseNoSlash + "/" + loginUrl.replace(/^\//, "");
         const isOnLoginPage =
           currentPath === __loginFullPath || currentPath === __loginFullPath + "/";
+        // 登录认证形态（login.accessMode）为 dialog 时，401/403 不跳登录页，
+        // 而是在当前应用内弹出一个包含 ReLoginForm 的 ReDialog（强制登录弹窗）；
+        // 核心通过 window.__reForcedLogin（由 koi 主题的 installForcedLogin 注册）
+        // 触发弹窗，登录成功后弹窗关闭，重新加载来恢复整个应用。
+        // 未登录（无本地令牌）或窗口句柄不可用时：回退到下方的 confirm/redirect 逻辑。
+        if (
+          getConfig().login.accessMode === "dialog" &&
+          !isOnLoginPage &&
+          // 必须用快照：上面的 clearAllAuthData() 已清掉本地令牌
+          hadAccessToken &&
+          window.__reForcedLogin?.show
+        ) {
+          window.__reForcedLogin.show({
+            onLogin: () => {
+              // 登录成功（新令牌已写回）：重新加载应用，修复当前会话
+              location.reload();
+            },
+            onClose: () => {
+              // 弹窗关闭（未登录 / 用户点了关闭）：回到登录页
+              gotoLogin();
+            },
+          });
+          return Promise.reject(error);
+        }
         if (action === "redirect") {
           gotoLogin();
         } else if (!isOnLoginPage && !getAccessToken()) {

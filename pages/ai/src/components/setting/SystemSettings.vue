@@ -756,7 +756,7 @@ const isModelsTab = computed(() => currentTabValue.value === 'models')
 
 // 当前标签标题
 const currentTabLabel = computed(() => {
-    if (currentTabValue.value === 'service-tokens') return '访问令牌'
+    if (currentTabValue.value === 'service-tokens') return 'Key 台账'
     if (currentTabValue.value === 'channels') return t('settings.system.tabs.channels')
     if (currentTabValue.value === 'models') return t('settings.models.title')
     const item = filteredSidebarItems.value.find(i => i.path === currentTabValue.value)

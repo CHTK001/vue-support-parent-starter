@@ -66,6 +66,7 @@
     "qrcode": "^1.5.4",
     "vue": "catalog:",
     "vue-i18n": "catalog:",
-    "vue-router": "catalog:"
+    "vue-router": "catalog:",
+    "vue-sliding-puzzle": "26.4.1-5"
   }
 }

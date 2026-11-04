@@ -661,6 +661,7 @@
 import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { ElMessageBox } from "element-plus";
+import { useRouter } from "vue-router";
 import { Close, Delete, EditPen, Grid, Key, Plus, Reading, RefreshLeft, Search, Star, View,
   Calendar, CircleCheck, Collection, CreditCard, Iphone, Link, OfficeBuilding, Postcard, School, User } from "@element-plus/icons-vue";
 import { eduaiApi } from "../api/eduaiApi";
@@ -671,10 +672,12 @@ import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import ReDialog from "@repo/ui/re-dialog";
 import ReInputNumber from "@repo/ui/re-input-number";
+import { routeUrl } from "../utils/routeUrl";
 
 const loading = ref(false);
 const saving = ref(false);
 const activeTab = ref("student");
+const router = useRouter();
 
 /** 学生表 ref（loader 模式） */
 const studentTableRef = ref();
@@ -1081,7 +1084,12 @@ async function impersonate(row: EduStudent) {
     if (!res?.accessToken) {
       return message.error("签发临时令牌失败");
     }
-    const url = `/edu/student?impersonate=${encodeURIComponent(res.accessToken)}`;
+    // 走 router.resolve：hash 路由下手拼 `/edu/student?impersonate=` 会在新标签页被
+    // 启动归一化改写成 `/?impersonate=...#/home`，管理员看到的不是学生端。
+    const url = routeUrl(router, {
+      path: "/edu/student",
+      query: { impersonate: res.accessToken },
+    });
     const win = window.open(url, "_blank", "noopener");
     if (!win) {
       message.warning("浏览器拦截了新窗口，请允许弹窗后重试");

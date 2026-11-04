@@ -1066,9 +1066,14 @@ async function loadLibraryCounts() {
     faceLibraryCount.value = Number(r?.total) || 0
   } catch { faceLibraryCount.value = 0 }
   try {
-    const r = await apiService._request('/image-search/list', { params: { page: 1, size: 1 } })
-    const d = (r && typeof r === 'object' && 'data' in r ? r.data : r) || {}
-    imageLibraryCount.value = Number(d.total) || 0
+    // 底库按（账号, 分组）隔离：每条记录只归属一个分组，跨组统计才能代表底库规模
+    const groups = await apiService.listImageGroups()
+    let total = 0
+    for (const g of groups) {
+      const r = await apiService.listImage({ page: 1, size: 1, group: g })
+      total += Number(r?.total) || 0
+    }
+    imageLibraryCount.value = total
   } catch { imageLibraryCount.value = 0 }
 }
 

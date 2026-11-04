@@ -74,8 +74,12 @@ async function load() {
   loading.value = true;
   error.value = '';
   try {
-    const res = await channelHealthApi.list();
-    const list: ChannelHealthSummary[] = Array.isArray(res?.data) ? res.data : [];
+    const res: any = await channelHealthApi.list();
+    // 客户端默认已解包（ReturnResult → data），但同一份接口在不同宿主里也可能
+    // 直接把信封回给页面；两种形状都收，避免「列表莫名空了」这类难查的空态。
+    const list: ChannelHealthSummary[] = Array.isArray(res)
+      ? res
+      : (Array.isArray(res?.data) ? res.data : []);
     states.value = list;
     // 统计 KPI
     for (const k of KPI_KEYS) kpis[k] = list.filter((s) => s.state === k).length;

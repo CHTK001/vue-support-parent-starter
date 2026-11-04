@@ -2,27 +2,16 @@
   <el-container class="layout-container layout-vertical">
     <el-aside
       class="layout-aside layout-vertical-aside transition-all"
-      :style="{ width: !globalStore.isCollapse ? globalStore.menuWidth + 'px' : settings.asideMenuCollapseWidth }"
+      :style="{
+        width: !globalStore.isCollapse
+          ? globalStore.menuWidth + 'px'
+          : (collapseRender ? settings.asideMenuCollapseWidth : '0px'),
+      }"
     >
       <Logo :isCollapse="globalStore.isCollapse" :layout="globalStore.layout"></Logo>
 
-      <!-- 折叠为按钮模式（app.yaml menuConfig.collapseToButton，仅垂直布局）：
-           折叠后不渲染 mini 菜单，整个菜单区只保留一个展开按钮 -->
-      <div v-if="collapseToButtonMode" class="layout-vertical-collapse-panel">
-        <el-tooltip content="展开菜单" placement="right" :show-after="200">
-          <button
-            type="button"
-            class="menu-expand-btn"
-            aria-label="展开菜单"
-            @click="expandMenu"
-          >
-            <el-icon :size="20"><Menu /></el-icon>
-          </button>
-        </el-tooltip>
-      </div>
-
-      <!-- 滚动在最外层；菜单内层保留右侧内边距，与滚动条分离 -->
-      <div v-else class="layout-vertical-menu-scroller">
+      <!-- 菜单区：展开时完整菜单，折叠时 mini 菜单条（menuConfig.collapse.showBar） -->
+      <div v-if="!globalStore.isCollapse || showBarVisible" class="layout-vertical-menu-scroller">
         <div class="layout-vertical-menu-pad">
           <!-- :unique-opened="true" 子菜单不能同时展开 -->
           <el-menu
@@ -37,7 +26,26 @@
           </el-menu>
         </div>
       </div>
-      <!-- 底部系统配置入口（不作为菜单；仅纵向布局提供，横向布局不支持） -->
+
+      <!-- 折叠后展开按钮（menuConfig.collapse.showButton，无 mini 菜单条时撑满菜单区） -->
+      <div
+        v-if="globalStore.isCollapse && showButtonVisible"
+        class="layout-vertical-collapse-panel"
+        :class="{ 'layout-vertical-collapse-panel--with-bar': showBarVisible }"
+      >
+        <el-tooltip content="展开菜单" placement="right" :show-after="200">
+          <button
+            type="button"
+            class="menu-expand-btn"
+            aria-label="展开菜单"
+            @click="expandMenu"
+          >
+            <el-icon :size="20"><Menu /></el-icon>
+          </button>
+        </el-tooltip>
+      </div>
+
+      <!-- 滚动在最外层；菜单内层保留右侧内边距，与滚动条分离 -->
       <NavSettingEntry />
     </el-aside>
     <el-container>
@@ -60,7 +68,7 @@ import Main from "@repo/theme/koi/layouts/components/Main/index.vue";
 import { ref, computed } from "vue";
 import { useRoute } from "vue-router";
 import { Menu } from "@element-plus/icons-vue";
-import { getConfig, resolveGroupNav } from "@repo/config";
+import { getConfig, resolveGroupNav, resolveMenuCollapse } from "@repo/config";
 import useAuthStore from "@repo/pinia/modules/auth";
 import useGlobalStore from "@repo/pinia/modules/global";
 
@@ -75,11 +83,23 @@ const globalStore = useGlobalStore();
 const groupNav = computed(() => resolveGroupNav());
 
 /**
- * 折叠形态：true 时折叠后不渲染 mini 菜单，整个菜单收缩为一个「展开菜单」按钮。
- * 配置项 menuConfig.collapseToButton（app.yaml / 顶部设置抽屉），仅垂直布局生效。
+ * 菜单折叠形态（menuConfig.collapse，迭代自 collapseToButton；向下兼容见 resolveMenuCollapse）：
+ *   showButton=false + showBar=yes  → 折叠后只显示 mini 图标菜单条（当前默认）
+ *   showButton=true  + showBar=no   → 折叠后菜单区只保留一个「展开菜单」按钮
+ *   showButton=true  + showBar=yes  → mini 菜单条 + 展开按钮（两者都留）
+ *   showButton=false + showBar=no   → 折叠后侧边栏整体隐藏（主内容区铺满）
  */
-const collapseToButtonMode = computed(
-  () => globalStore.isCollapse && getConfig().menu?.collapseToButton === true,
+const collapseConfig = computed(() => resolveMenuCollapse());
+
+/** 折叠后是否保留 mini 图标菜单条（"no" → 隐藏侧边栏） */
+const showBarVisible = computed(() => collapseConfig.value.showBar !== "no");
+
+/** 折叠后是否显示展开菜单按钮 */
+const showButtonVisible = computed(() => collapseConfig.value.showButton === true);
+
+/** 折叠后是否还应保留菜单区（至少留 mini 菜单条/展开按钮之一，否则 aside 宽度归零） */
+const collapseRender = computed(
+  () => !globalStore.isCollapse || (showBarVisible.value || showButtonVisible.value),
 );
 
 /** 展开菜单（点击收缩按钮 / 后续入口共用） */
@@ -141,6 +161,13 @@ const activeMenu = computed(() => (route.meta.activeMenu ? route.meta.activeMenu
   min-height: 0;
   justify-content: center;
   padding-top: 14px;
+
+  /* 与 mini 菜单条并存时：段落高度，沉底排列 */
+  &--with-bar {
+    flex: 0 0 auto;
+    min-height: auto;
+    padding-top: 0;
+  }
 }
 
 .menu-expand-btn {

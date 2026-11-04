@@ -28,6 +28,33 @@ interface DistRow {
   cost: number;
 }
 
+/**
+ * 看板条目（模型/分组的分布一条）。
+ *
+ * <p>这几个类型原本写在 {@link useUsageBoard} 函数体内，但函数是导出的、返回类型里
+ * 又带着它们 —— 生成声明文件时就会报 TS4060「返回类型用了私有名字」。
+ * 提到模块作用域并导出即可，语义完全不变。</p>
+ */
+export interface BoardItem {
+  name: string;
+  value: number;
+  pct: number;
+  color: string;
+  row: DistRow;
+}
+
+/** 看板数据：明细条目 + 环形图切片 + 合计 */
+export interface BoardData {
+  /** 全部条目（明细表用，按当前指标降序） */
+  items: BoardItem[];
+  /** 环形图/图例共用的切片（Top N + 「其他」聚合）。 */
+  slices: BoardItem[];
+  total: number;
+}
+
+/** 当前悬停的环形图扇区（null = 没悬停） */
+export interface HoverSlice { name: string; pct: number }
+
 export function useUsageBoard() {
   const stats = reactive({
     totalCalls: 0,
@@ -689,21 +716,6 @@ export function useUsageBoard() {
     { key: "cost" as ChartType, label: "按费用" },
   ];
 
-  interface BoardItem {
-    name: string;
-    value: number;
-    pct: number;
-    color: string;
-    row: DistRow;
-  }
-  interface BoardData {
-    /** 全部条目（明细表用，按当前指标降序） */
-    items: BoardItem[];
-    /** 环形图/图例共用的切片（Top N + 「其他」聚合）。 */
-    slices: BoardItem[];
-    total: number;
-  }
-
   /** 环形图最多画几个扇区（其余聚合成「其他」） */
   const RING_TOP_N = 8;
   /** 「其他」扇区的固定色（中性灰，不占调色板名次） */
@@ -743,7 +755,6 @@ export function useUsageBoard() {
   const groupBoard = computed(() => buildBoard(groupDist.value, groupChartType.value));
 
   /** 当前悬停的扇区（null = 没悬停，环心回落到 Top1） */
-  interface HoverSlice { name: string; pct: number }
   const modelHover = ref<HoverSlice | null>(null);
   const groupHover = ref<HoverSlice | null>(null);
 

@@ -6,10 +6,9 @@
  * 一种面板，不再在页内做二级切换（用户要求「工作台的都分开」）。页签由右键菜单
  * 直接指定 {@code start}，本组件按 start 只渲染对应面板。</p>
  *
- * <p>Docker 已拆成独立页面包 {@code @pages/docker}（路由 {@code /docker}）：
- * 分屏工具条上的 Docker 按钮由父级改道到该页面，本组件不再渲染 Docker 面板。
- * 注意：主机行的右键菜单把 Docker 收进了工作区页签（AssetsView {@code tab-docker} 分支），
- * 本组件仍通过 {@code @open-panel} 事件把分屏工具条上的 Docker 按钮交给父级跳转，两者不冲突。</p>
+ * <p>Docker 是<b>这台主机的页签</b>：主机行右键「工作台 → Docker」与分屏工具条
+ * 都会打开 {@code start="docker"} 的工作台页签，页内复用独立页面包
+ * {@code @pages/docker} 的双栏实现（左容器清单 + 右工作区），主机由页签上下文锁定。</p>
  *
  * <p>分屏终端里点某屏底部的 K8s / 隧道工具条时，不再页内切换，而是把
  * {@code open-panel} 上抛给 AssetsView，由它开一个独立页签 —— 保持「一个功能一个页签」。</p>
@@ -20,9 +19,12 @@
 import ScRealScreenWorkbench from "../components/lab/ScRealScreenWorkbench.vue";
 import ScDockerK8sWorkbench from "../components/lab/ScDockerK8sWorkbench.vue";
 import ScTunnelWorkbench from "../components/lab/ScTunnelWorkbench.vue";
+// Docker 页面本体来自独立页面包；宿主（monitor-starter）已把 @pages/docker 指到 pages/docker/src，
+// 这里直接复用同一份双栏实现，不在 pages/server 里再维护一份卡片墙。
+import DockerView from "@pages/docker/src/views/DockerView.vue";
 
-/** 工作台面板类型（每个对应一个独立页签；Docker 在右键菜单里是工作区页签，不在此列） */
-export type WorkbenchPanel = "screen" | "k8s" | "tunnel" | "tunnel-reverse";
+/** 工作台面板类型（每个对应一个独立页签） */
+export type WorkbenchPanel = "screen" | "docker" | "k8s" | "tunnel" | "tunnel-reverse";
 
 const props = withDefaults(
   defineProps<{
@@ -42,7 +44,11 @@ const emit = defineEmits<{
 }>();
 
 /** 分屏工具条 → 上抛父级开新页签 */
-function onOpenPanel(panel: "docker" | "tunnel", hostId: number, hostName: string): void {
+function onOpenPanel(
+  panel: "docker" | "k8s" | "tunnel" | "tunnel-reverse",
+  hostId: number,
+  hostName: string,
+): void {
   emit("open-panel", panel, hostId, hostName);
 }
 </script>
@@ -52,7 +58,14 @@ function onOpenPanel(panel: "docker" | "tunnel", hostId: number, hostName: strin
     <!-- 分屏终端 -->
     <ScRealScreenWorkbench
       v-if="props.start === 'screen'"
+      :host-id="props.hostId"
+      :host-name="props.hostName"
       @open-panel="onOpenPanel"
+    />
+    <!-- Docker（页签形态：复用独立页面包的双栏实现，主机锁定） -->
+    <DockerView
+      v-else-if="props.start === 'docker'"
+      :host-id="props.hostId"
     />
     <!-- K8s -->
     <ScDockerK8sWorkbench

@@ -1,348 +1,70 @@
 <template>
   <RePage data-page="service-tokens">
     <template #title>
-      <el-button text @click="goBack" class="back-btn" title="返回服务列表">
+      <el-button text @click="goBack" class="back-btn" title="返回服务配置">
         <el-icon><ArrowLeft24Regular /></el-icon>
       </el-button>
-      <span>访问令牌 · {{ instanceName }}</span>
+      <span>Key 台账</span>
+    </template>
+    <template #sub>
+      AppKey 是服务实例与网关共用的唯一凭证：<b>{{ stats.total }}</b> 把 ·
+      可用 <b>{{ stats.usable }}</b> · 待处理 <b>{{ stats.atRisk }}</b>
     </template>
     <template #actions>
-      <el-button type="primary" @click="openCreate">
-        <el-icon class="mr-1"><Add24Regular /></el-icon>签发令牌
-      </el-button>
+      <span class="kt-note">模型范围 = 分组清单 ∩ 限定模型；额度按时间 / 次数 / 余额三选一</span>
     </template>
 
-    <div class="panel-card">
-    <!-- 表格统一 ReTable（替换裸 el-table）：默认引擎已是 vxe；
-         pagination=false —— 页面没有外置分页，保持全量直出；toolbar=false 不新增工具栏；
-         原表没有 border → :settings="{ border: false }" 显式抑制 ReTable 的默认边框；
-         v-loading → :loading。 -->
-    <ReTable
-      :data="tokens"
-      :columns="tokenColumns"
-      :loading="loading"
-      :layout-table="{ minHeight: 0 }"
-      :settings="{ border: false }"
-      stripe
-      class="flat-table"
-      :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
-    >
-      <template #col-token="{ row }">
-        <div class="token-cell">
-          <span class="token-text">{{ row.token }}</span>
-          <el-button text class="copy-btn" @click="copy(row.token)">
-            <el-icon><Copy24Regular /></el-icon>
-          </el-button>
-        </div>
-      </template>
-      <template #col-type="{ row }">
-        <el-tag :type="tokenTagType(row.type)">
-          {{ row.type === 'temporary' ? '临时' : '永久' }}
-        </el-tag>
-      </template>
-      <template #col-expiresAt="{ row }">
-        <span v-if="row.expiresAt" :class="{ expired: isExpired(row) }">{{ row.expiresAt }}</span>
-        <span v-else class="muted">不过期</span>
-      </template>
-      <template #col-usedRequests="{ row }">
-        <span>{{ row.usedRequests ?? 0 }} / {{ row.maxRequests ?? '不限' }}</span>
-      </template>
-      <template #col-usedTokens="{ row }">
-        <span>{{ formatNumber(row.usedTokens) }} / {{ row.maxTokens ? formatNumber(row.maxTokens) : '不限' }}</span>
-      </template>
-      <template #col-enabled="{ row }">
-        <el-tag :type="row.enabled ? 'success' : 'danger'" >
-          {{ row.enabled ? '启用' : '禁用' }}
-        </el-tag>
-      </template>
-      <!-- 操作列统一 ReButton square（纯图标 + tooltip） -->
-      <template #col-actions="{ row }">
-        <div class="row-actions">
-          <ReButton v-if="row.enabled" layout="square" type="warning" :icon="Lock" tip="禁用" @click="toggle(row)" />
-          <ReButton v-else layout="square" type="success" :icon="Unlock" tip="启用" @click="toggle(row)" />
-          <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click="remove(row)" />
-        </div>
-      </template>
-    </ReTable>
+    <!-- .svc 提供设计层令牌（svc-refactor.css 全部挂在 .svc 作用域下） -->
+    <div class="svc">
+      <ServiceKeyLedger :refresh-key="refreshKey" @stats="onStats" />
     </div>
-
-    <!-- 签发令牌对话框 -->
-    <ReDialog v-model="showCreate" title="签发访问令牌" width="520px" append-to-body>
-      <el-form :model="form" label-width="110px">
-        <el-form-item label="令牌名称">
-          <el-input v-model="form.name" placeholder="如：前端调用令牌" />
-        </el-form-item>
-        <el-form-item label="令牌类型">
-          <el-radio-group v-model="form.type">
-            <el-radio value="permanent">永久</el-radio>
-            <el-radio value="temporary">临时</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="过期时间" v-if="form.type === 'temporary'">
-          <el-date-picker
-            v-model="form.expiresAt"
-            type="datetime"
-            value-format="YYYY-MM-DDTHH:mm:ss"
-            placeholder="选择过期时间"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="最大请求次数">
-          <ReNumberInput v-model="form.maxRequests" :min="0" :step="100" />
-          <span class="hint">0 表示不限</span>
-        </el-form-item>
-        <el-form-item label="最大 Token 数">
-          <ReNumberInput v-model="form.maxTokens" :min="0" :step="10000" />
-          <span class="hint">0 表示不限</span>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showCreate = false">取消</el-button>
-        <el-button type="primary" @click="submit">签发</el-button>
-      </template>
-    </ReDialog>
   </RePage>
 </template>
 
 <script setup lang="ts">
-import { message } from "@repo/core";
-import { ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { ElMessageBox } from 'element-plus';
-import { createClient, v2Http } from '@/framework/context'
-import {
-  ArrowLeft24Regular,
-  Add24Regular,
-  Copy24Regular,
-} from '@vicons/fluent'
-import { Delete, Lock, Unlock } from '@element-plus/icons-vue';
-import RePage from '@/components/ui/RePage.vue';
-import ReButton from '@repo/ui/re-button';
-import ReTable from '@repo/ui/re-table'
-import type { ReTableColumn } from '@repo/ui/re-table'
+/**
+ * 独立「Key 台账」页（设置 → 系统 → Key 台账）。
+ *
+ * <p>曾经是「按实例签发访问令牌」的独立页（{@code /service/tokens}）。服务实例改为
+ * 按 appKey 鉴权之后，令牌表退役：同一把 AppKey 在任何实例端口与网关 {@code /v2/v1/*}
+ * 都通用，因此这一页不再有「实例」这个维度，只保留一层页面外壳。</p>
+ *
+ * <p>台账本体（列表 / 新建 / 续量 / 充值 / 启停）在
+ * {@link ./ServiceKeyLedger.vue}，服务配置页的「Key 台账」页签复用同一个组件 ——
+ * 两处入口共用一份实现，避免同一张表两个版本各修各的。</p>
+ */
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { ArrowLeft24Regular } from '@vicons/fluent'
+import RePage from '@/components/ui/RePage.vue'
+import ServiceKeyLedger from './ServiceKeyLedger.vue'
 
-
-import ReDialog from '@repo/ui/re-dialog';
-import ReNumberInput from '@/components/ui/ReNumberInput.vue';
-const http = createClient(v2Http, { unwrap: false })
+const router = useRouter()
 
 /**
- * 列配置：原模板里的 9 个 el-table-column 收敛为数组。
- *
- * <p>「令牌 / 类型 / 过期时间 / 请求次数 / Token 额度 / 状态 / 操作」原本没有 prop
- * 或带 {@code <template #default>}，这里补稳定的合成 prop 并配 {@code slot}，
- * 模板里用 {@code #col-<prop>} 插槽承接原内容。</p>
+ * 外部刷新计数器：组件内部自带刷新按钮，页头不必再放一个「刷新」；
+ * 这里保留计数器只为「单实例刷新后回到本页仍是最新」这类跳转场景留口子。
  */
-const tokenColumns: ReTableColumn[] = [
-  { prop: 'token', label: '令牌', minWidth: 240, slot: 'token' },
-  { prop: 'name', label: '名称', width: 140 },
-  { prop: 'type', label: '类型', width: 90, slot: 'type' },
-  { prop: 'expiresAt', label: '过期时间', width: 170, slot: 'expiresAt' },
-  { prop: 'usedRequests', label: '请求次数', width: 130, slot: 'usedRequests' },
-  { prop: 'usedTokens', label: 'Token 额度', width: 150, slot: 'usedTokens' },
-  { prop: 'enabled', label: '状态', width: 90, slot: 'enabled' },
-  { prop: 'actions', label: '操作', width: 150, slot: 'actions' },
-]
+const refreshKey = ref(0)
 
-/** el-tag 的 type 不接受空串，永久令牌用 info 区分 */
-const tokenTagType = (t: string): 'primary' | 'success' | 'info' | 'warning' | 'danger' =>
-  t === 'temporary' ? 'warning' : 'info'
-const route = useRoute()
-const router = useRouter()
-const instanceId = String(route.query.instanceId ?? '')
+const stats = ref({ total: 0, usable: 0, atRisk: 0, usedTokens: 0 })
 
-const loading = ref(false)
-const tokens = ref<any[]>([])
-const instanceName = ref('')
-const showCreate = ref(false)
-const form = ref({
-  name: '',
-  type: 'permanent',
-  expiresAt: '',
-  maxRequests: 0,
-  maxTokens: 0,
-})
-
-function asList(payload: any, key: string): any[] {
-  if (Array.isArray(payload)) return payload
-  if (payload && Array.isArray(payload[key])) return payload[key]
-  if (payload && Array.isArray(payload.records)) return payload.records
-  return []
-}
-function mapToken(r: any) {
-  return {
-    id: r.tokenId ?? r.id,
-    token: r.token,
-    name: r.tokenName ?? r.name,
-    type: r.tokenType ?? 'permanent',
-    expiresAt: r.expiresAt,
-    maxRequests: r.maxRequests,
-    usedRequests: r.usedRequests,
-    maxTokens: r.maxTokens,
-    usedTokens: r.usedTokens,
-    enabled: r.enabled === 1 || r.enabled === true,
-  }
-}
-function formatNumber(v: any) {
-  if (v == null) return '0'
-  return Number(v).toLocaleString()
-}
-function isExpired(row: any) {
-  return row.expiresAt && new Date(row.expiresAt).getTime() < Date.now()
-}
-
-async function loadTokens() {
-  loading.value = true
-  try {
-    const res = await http.get('/service/tokens', { params: { instanceId } })
-    tokens.value = asList(res.data, 'tokens').map(mapToken)
-  } catch (e: any) {
-    message.error('加载令牌失败: ' + e.message)
-  } finally {
-    loading.value = false
-  }
-}
-
-async function loadInstanceName() {
-  try {
-    const res = await http.get('/service/instances')
-    const list = asList(res.data, 'instances')
-    const inst = list.find((x: any) => (x.instanceId ?? x.id) === instanceId)
-    if (inst) instanceName.value = inst.instanceName ?? inst.name ?? ''
-  } catch {
-    // ignore
-  }
-}
-
-function openCreate() {
-  form.value = { name: '', type: 'permanent', expiresAt: '', maxRequests: 0, maxTokens: 0 }
-  showCreate.value = true
-}
-
-async function submit() {
-  if (!form.value.name.trim()) {
-    message.warning('请填写令牌名称')
-    return
-  }
-  if (form.value.type === 'temporary' && !form.value.expiresAt) {
-    message.warning('请选择过期时间')
-    return
-  }
-  try {
-    await http.post('/service/tokens', {
-      instanceId,
-      name: form.value.name.trim(),
-      type: form.value.type,
-      expiresAt: form.value.type === 'temporary' ? form.value.expiresAt : null,
-      maxRequests: form.value.maxRequests || null,
-      maxTokens: form.value.maxTokens || null,
-    })
-    message.success('令牌已签发')
-    showCreate.value = false
-    loadTokens()
-  } catch (e: any) {
-    message.error('签发失败: ' + e.message)
-  }
-}
-
-async function toggle(row: any) {
-  try {
-    if (row.enabled) {
-      await ElMessageBox.confirm('确定锁定（禁用）该访问令牌？锁定后使用该令牌的请求将被拒绝。', '锁定令牌', {
-        type: 'warning',
-        confirmButtonText: '锁定',
-        cancelButtonText: '取消',
-      })
-    }
-    await http.post(`/service/tokens/${row.id}/toggle`)
-    message.success(row.enabled ? '已禁用' : '已启用')
-    loadTokens()
-  } catch (e: any) {
-    if (e === 'cancel' || e?.message === 'cancel') return
-    message.error('操作失败: ' + e.message)
-  }
-}
-
-async function remove(row: any) {
-  try {
-    await ElMessageBox.confirm(`确定删除令牌「${row.name}」？`, '删除令牌', {
-      type: 'warning',
-      confirmButtonText: '删除',
-      cancelButtonText: '取消',
-    })
-    await http.delete(`/service/tokens/${row.id}`)
-    message.success('已删除')
-    loadTokens()
-  } catch (e: any) {
-    if (e === 'cancel' || e?.message === 'cancel') return
-    message.error('删除失败: ' + e.message)
-  }
-}
-
-async function copy(text: string) {
-  try {
-    await navigator.clipboard.writeText(text)
-    message.success('已复制')
-  } catch {
-    message.warning('复制失败，请手动选择复制')
-  }
+function onStats(v: { total: number; usable: number; atRisk: number; usedTokens: number }) {
+  stats.value = v
 }
 
 function goBack() {
   router.push({ name: 'SystemSettings', params: { tab: 'services' } })
 }
-
-onMounted(() => {
-  loadTokens()
-  loadInstanceName()
-})
 </script>
 
 <style scoped>
-/* 页面外壳已收口到 RePage：原来的 .service-tokens-page / .page-header / .title-wrap h2
-   删掉，返回按钮与标题由 RePage 的 #title 插槽承担。 */
 .back-btn {
   padding: 4px;
 }
-.panel-card {
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  /* 与用量页看板统一 8px 圆角 */
-  border-radius: var(--u-radius, 8px);
-  padding: 14px 16px 12px;
-  /* 表格容器是页面区块，不加投影 */
-}
-.flat-table { --el-table-border-color: var(--el-border-color-lighter); }
-.flat-table :deep(th.el-table__cell) {
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-regular);
-  font-weight: 600;
-}
-.token-cell {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.token-text {
-  font-family: var(--el-font-family-monospace, monospace);
-  font-size: 12px;
-  color: var(--el-text-color-regular);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.copy-btn {
-  flex-shrink: 0;
-}
-.muted {
-  color: var(--el-text-color-secondary);
-}
-.hint {
-  margin-left: 8px;
+/* 页头右侧的口径说明：一句话解释「这页管的到底是什么」，不做第二行标题 */
+.kt-note {
   font-size: 12px;
   color: var(--el-text-color-secondary);
-}
-.expired {
-  color: var(--el-color-danger);
 }
 </style>

@@ -3,11 +3,12 @@
         <!-- 顶部工具栏：资源管理器按钮 + 浏览器标签 + 窗口控制 -->
         <div
             class="flex items-center h-11 drag-region shrink-0 border-b border-gray-100 dark:border-[var(--el-border-color-lighter)]">
-            <!-- 工作区 / 预览区 切换按钮 -->
+            <!-- 工作区 / 预览区 / Git / 终端 切换按钮 -->
             <div class="ml-1 shrink-0 no-drag flex items-center gap-0.5 mr-1">
                 <LTooltip :content="t('chat.workspace.workspaceArea')" placement="bottom">
-                  <button ref="workspaceBtnRef" class="seg-btn" :class="{ active: !isPreviewMode }"
-                      @click="showFileTree" @mouseenter="showTreePanel" @mouseleave="hideTreePanel">
+                  <button ref="workspaceBtnRef" class="seg-btn"
+                      :class="{ active: !isPreviewMode && sidePanel === 'files' }" @click="showFileTree"
+                      @mouseenter="showTreePanel" @mouseleave="hideTreePanel">
                       <el-icon :size="20">
                           <Folder16Regular />
                       </el-icon>
@@ -18,6 +19,22 @@
                       @click="enterPreviewMode">
                       <el-icon :size="20">
                           <Window16Regular />
+                      </el-icon>
+                  </button>
+                </LTooltip>
+                <LTooltip :content="t('chat.workspace.gitArea')" placement="bottom">
+                  <button class="seg-btn" :class="{ active: sidePanel === 'git' }" :disabled="!props.sessionId"
+                      @click="showGitPanel">
+                      <el-icon :size="20">
+                          <Share />
+                      </el-icon>
+                  </button>
+                </LTooltip>
+                <LTooltip :content="t('chat.workspace.terminalArea')" placement="bottom">
+                  <button class="seg-btn" :class="{ active: sidePanel === 'terminal' }" :disabled="!props.sessionId"
+                      @click="showTerminalPanel">
+                      <el-icon :size="20">
+                          <Monitor />
                       </el-icon>
                   </button>
                 </LTooltip>
@@ -87,8 +104,8 @@
             <WindowControls v-if="isElectron" class="no-drag" />
         </div>
         <!-- 目录树（预览时隐藏，v-show 保留 DOM） -->
-        <div :class="treeContainerClass" :style="isPreviewMode && !treePhase1Hide ? treePanelStyle : {}" @mouseenter="showTreePanel"
-            @mouseleave="hideTreePanel">
+        <div :class="treeContainerClass" :style="isPreviewMode && !treePhase1Hide ? treePanelStyle : {}"
+            v-show="isPreviewMode || sidePanel === 'files'" @mouseenter="showTreePanel" @mouseleave="hideTreePanel">
             <!-- 浏览器窗口列表（仅 Electron 环境，资源管理器模式下显示） -->
             <SessionBrowserWindowList v-if="isElectron && browserStore.sessionWebviews.length > 0"
                 v-show="!isPreviewMode" :session-id="props.sessionId"
@@ -141,6 +158,14 @@
                     @toggle="handleTreeNodeExpandToggle" @contextmenu="handleContextMenu" />
             </div>
         </div>
+
+        <!-- Git 变更面板（资源管理器模式下，替代目录树占位） -->
+        <GitPanel v-if="props.sessionId && !isPreviewMode && sidePanel === 'git'" class="flex-1 min-h-0"
+            :session-id="props.sessionId" />
+
+        <!-- 工作区终端面板（资源管理器模式下，替代目录树占位） -->
+        <TerminalPanel v-if="props.sessionId && !isPreviewMode && sidePanel === 'terminal'" class="flex-1 min-h-0"
+            :session-id="props.sessionId" />
 
         <!-- 浏览器窗口预览占位（webview / web iframe 实际在 MainLayout 层，此处仅空壳坐标） -->
         <BrowserPreviewPlaceholder v-if="!!browserStore.activeWindowId" v-show="isPreviewMode && !!browserStore.activeWindowId" />
@@ -202,7 +227,7 @@ import { ref, computed, watch, onUnmounted, nextTick } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { apiService, type FileChangeEvent } from '@/services/ApiService';
-import { Refresh, CopyDocument, Edit, Delete, Plus, Close } from '@element-plus/icons-vue';
+import { Refresh, CopyDocument, Edit, Delete, Plus, Close, Share, Monitor } from '@element-plus/icons-vue';
 import { Folder16Regular, Window16Regular, ArrowMinimize16Regular, FullScreenMaximize16Regular } from '@vicons/fluent';
 import { VsCode, WindowsExplorer } from '@/components/icons';
 import { getFileIcon } from '@/composables/useFileIcon';
@@ -212,6 +237,8 @@ import FilePreviewPanel from './FilePreviewPanel.vue';
 import SessionBrowserWindowList from './SessionBrowserWindowList.vue';
 import SessionTodoList from './SessionTodoList.vue';
 import WorkspaceTree from './WorkspaceTree.vue';
+import GitPanel from './GitPanel.vue';
+import TerminalPanel from './TerminalPanel.vue';
 import BrowserPreviewPlaceholder from './BrowserPreviewPlaceholder.vue';
 import { useBrowserWebviewStore } from '@/stores/browserWebview';
 import { useLayoutStore } from '@/stores/layout';
@@ -360,6 +387,10 @@ function onTabDblClick(tab: UnifiedTab): void {
 const isPreviewMode = computed(() => tabStore.isPreviewMode);
 const tabs = computed(() => tabStore.tabs);
 const activeTabKey = computed(() => tabStore.activeTabKey);
+/**
+ * 侧栏当前面板：files=目录树，git=Git 变更，terminal=工作区终端
+ */
+const sidePanel = ref<'files' | 'git' | 'terminal'>('files');
 const isTreePanelVisible = ref(false);
 const treeTransitionReady = ref(false);
 const workspaceBtnRef = ref<HTMLElement | null>(null);
@@ -487,14 +518,28 @@ function onTabBarWheel(e: WheelEvent): void {
     el.scrollLeft += e.deltaY;
 }
 
-/** 点击工作区按钮：退出预览模式 */
+/** 点击工作区按钮：退出预览模式并回到目录树 */
 function showFileTree(): void {
+    sidePanel.value = 'files'
     tabStore.exitPreviewMode()
 }
 
 /** 点击预览区按钮：进入预览模式 */
 function enterPreviewMode(): void {
+    sidePanel.value = 'files'
     tabStore.enterPreviewMode()
+}
+
+/** 点击 Git 按钮：退出预览模式并打开 Git 面板 */
+function showGitPanel(): void {
+    sidePanel.value = 'git'
+    tabStore.exitPreviewMode()
+}
+
+/** 点击终端按钮：退出预览模式并打开终端面板 */
+function showTerminalPanel(): void {
+    sidePanel.value = 'terminal'
+    tabStore.exitPreviewMode()
 }
 
 /** 取消所有标签选中，显示空状态页 */

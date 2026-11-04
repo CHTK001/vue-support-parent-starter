@@ -411,6 +411,13 @@
               >{{ activeFilters.length }} 个条件</span>
             </template>
             <span class="dbm-spacer" />
+            <!-- 全空列默认折叠必须能看见、能点开：否则用户只会觉得「列怎么少了」 -->
+            <span
+              v-if="autoHiddenColumns.length"
+              class="dbm-filter-badge dbm-autohide-badge"
+              :title="`已自动折叠全空列：${autoHiddenColumns.join('、')}（点击恢复）`"
+              @click="openColumnViewDialog"
+            >空列折叠 {{ autoHiddenColumns.length }}</span>
             <span v-if="selection.length" class="dbm-sel-count">已选 {{ selection.length }} 行</span>
             <ReButton
               v-if="selection.length"
@@ -475,7 +482,7 @@
                   @update:model-value="setEditingCellValue"
                   @keyup.enter="saveCell(row, col)"
                   @keyup.esc="cancelCell"
-                  @blur="saveCell(row, col)"
+                  @blur="onEditBlur(row, col)"
                 />
               </div>
               <!-- 二进制 / 长文本：不进格内编辑，走 Blob Viewer -->
@@ -501,7 +508,7 @@
                     'dbm-cell-null': isNullCell(value),
                     'dbm-cell-empty': isEmptyStringCell(value),
                   }"
-                  :title="cellTip(col)"
+                  :title="cellTitles.get(col) || ''"
                   @click="startEditCell(row, col, value)"
                 >{{ formatCellValue(value) }}</span>
                 <span v-if="showRowComments && columnComment(col)" class="dbm-cell-comment">{{ columnComment(col) }}</span>
@@ -1555,7 +1562,7 @@
         <div class="dbm-doc-row">
           <span class="dbm-doc-label">模板样式</span>
           <select v-model="docExportTemplate" class="dbm-doc-select">
-            <option v-for="t in docExportTemplates" :key="t" :value="t">{{ t }}</option>
+            <option v-for="t in docExportTemplates" :key="t" :value="t">{{ DOC_TEMPLATE_LABELS[t] ?? t }}</option>
           </select>
         </div>
         <p class="dbm-doc-hint">
@@ -4091,10 +4098,70 @@ function columnPrefKey(): string {
   return `${tab.database || activeDatabase.value}.${tab.tableName}`;
 }
 
-/** 当前表的隐藏列集合 */
+/**
+ * 宽表阈值：可见列超过该数量时，启用「全空列自动折叠」默认视图。
+ *
+ * <p>列数是拖拽列宽松手重排的线性因子（每一轮重建 ≈ 可见列 × 渲染行数），
+ * 而全空列不承载任何信息：默认折叠既不改信息量，又能直接减少逐列重建的节点数。
+ * 用户在「列显示设置」里显式保存过偏好后，一律以用户选择为准，不再自动折叠。</p>
+ */
+const WIDE_TABLE_AUTO_HIDE_MIN = 16;
+
+/**
+ * 每张表的全空列判定只做一次。
+ *
+ * <p>判定依据是首次加载到的样本页，但结果按表缓存：翻页、排序、刷新都不再重新判定，
+ * 避免表头在翻页时忽隐忽现。</p>
+ */
+const autoHiddenColumnsByTable = new Map<string, string[]>();
+
+/**
+ * 计算某张表首次加载时的全空列。
+ *
+ * @param key 列的偏好键（库.表）
+ * @returns 全空列名列表；样本不足或全表皆空时返回空数组
+ */
+function resolveAutoHiddenColumns(key: string): string[] {
+  const cached = autoHiddenColumnsByTable.get(key);
+  if (cached) {
+    return cached;
+  }
+  const columns = tableData.columns;
+  const rows = tableData.rows;
+  // 样本太少（加载中或最后一页只有零星行）不判定，避免误折叠
+  if (columns.length <= WIDE_TABLE_AUTO_HIDE_MIN || rows.length < 5) {
+    return [];
+  }
+  const empty: string[] = [];
+  for (const column of columns) {
+    const allEmpty = rows.every(row => {
+      const value = (row as Record<string, unknown>)[column];
+      return value === null || value === undefined || (typeof value === "string" && value.trim() === "");
+    });
+    if (allEmpty) {
+      empty.push(column);
+    }
+  }
+  // 全空列占到全部列时，说明这批样本本身没数据，折叠没有意义
+  const result = empty.length > 0 && empty.length < columns.length ? empty : [];
+  autoHiddenColumnsByTable.set(key, result);
+  return result;
+}
+
+/** 当前表被自动折叠的全空列（用户保存过列偏好时恒为空） */
+const autoHiddenColumns = computed(() => {
+  const key = columnPrefKey();
+  if (!key || columnPrefs.value[key]) {
+    return [];
+  }
+  return resolveAutoHiddenColumns(key);
+});
+
+/** 当前表的隐藏列集合：用户显式隐藏 + 全空列自动折叠 */
 const hiddenColumns = computed(() => {
   const key = columnPrefKey();
-  return new Set(key ? columnPrefs.value[key]?.hidden || [] : []);
+  const userHidden = key ? columnPrefs.value[key]?.hidden || [] : [];
+  return new Set([...userHidden, ...autoHiddenColumns.value]);
 });
 /** 当前表的固定列集合 */
 const pinnedColumns = computed(() => {
@@ -4172,11 +4239,22 @@ function resetColumnViewSettings(): void {
   columnViewDialogVisible.value = false;
 }
 
+/**
+ * 固定列上限。
+ *
+ * <p>vxe 的每个固定列容器都是一整套表头 + 逐行单元格的复制渲染：
+ * 固定列越多，松手列宽重排时要重建的节点越多（实测固定容器与主容器同量级）。
+ * 这里只对用户主动固定的列做上限保护，勾选列（选择列）仍固定在最左。</p>
+ */
+const MAX_FIXED_COLUMNS = 2;
+
 const tableColumns = computed<Column[]>(() => {
   const hidden = hiddenColumns.value;
   const pinned = pinnedColumns.value;
   // 固定列必须排在前面，否则 element-plus 的 fixed 定位会错
   const cols = tableData.columns.filter(c => !hidden.has(c));
+  // 超出上限的固定列按普通列渲染：仍然可见、可编辑，只是不再吸附在左侧
+  const fixedCols = new Set(cols.filter(c => pinned.has(c)).slice(0, MAX_FIXED_COLUMNS));
   return cols
     .map(col => ({
       prop: col,
@@ -4198,9 +4276,9 @@ const tableColumns = computed<Column[]>(() => {
       minWidth: 60,
       showOverflowTooltip: true,
       sortable: "custom" as const,
-      ...(pinned.has(col) ? { fixed: "left" as const } : {}),
+      ...(fixedCols.has(col) ? { fixed: "left" as const } : {}),
     }))
-    .sort((a, b) => Number(pinned.has(b.prop)) - Number(pinned.has(a.prop)));
+    .sort((a, b) => Number(fixedCols.has(b.prop)) - Number(fixedCols.has(a.prop)));
 });
 
 /**
@@ -4233,6 +4311,21 @@ function cellTip(col: string): string {
   const type = columnTypeLabel(col);
   return `${col}${type ? ` · ${type}` : ""} — 点击编辑 / 右键更多操作`;
 }
+
+/**
+ * 单元格悬浮提示的列级缓存。
+ *
+ * <p>原先是每个单元格调用 {@link cellTip} 现场拼字符串：一轮全表渲染 =
+ * 可见列 × 渲染行数 次拼接，拖拽列宽松手后要重建 4~6 轮，属于纯重复劳动。
+ * 提示只与列（名字/类型）有关，按列算一次即可。</p>
+ */
+const cellTitles = computed(() => {
+  const map = new Map<string, string>();
+  for (const column of tableData.columns) {
+    map.set(column, cellTip(column));
+  }
+  return map;
+});
 
 // ==================== 表设计（可编辑网格，Navicat 风格） ====================
 /**
@@ -4890,7 +4983,8 @@ function parseEnumValues(): string[] {
 }
 
 // 单元格内联编辑：当前正在编辑的单元格（用行对象引用定位）
-const editingCell = ref<{ row: Record<string, any>; column: string; value: string } | null>(null);
+// original 是进入编辑时的原值快照，用于 blur 时「没改就不提交」的判定
+const editingCell = ref<{ row: Record<string, any>; column: string; value: string; original: string } | null>(null);
 
 /**
  * 回写正在编辑的单元格文本。
@@ -5462,11 +5556,38 @@ function isAutoIncrement(col: string) {
  * @param value 当前值
  */
 function startEditCell(row: Record<string, any>, col: string, value: unknown) {
-  editingCell.value = { row, column: col, value: value === null || value === undefined ? "" : String(value) };
+  const text = value === null || value === undefined ? "" : String(value);
+  editingCell.value = { row, column: col, value: text, original: text };
 }
 
 function cancelCell() {
   editingCell.value = null;
+}
+
+/**
+ * 编辑框失焦处理：值未变只关闭编辑器、不打后端；值有变化才提交。
+ *
+ * <p><b>为什么要区分</b>：以前 {@code @blur} 一律 {@link saveCell}，用户只是点开
+ * 单元格、什么都没改就点回别处，也会触发一次 UPDATE —— 内容没动却对库写一列，
+ * 聚焦弹窗抢焦点造成的「暂时失焦」同样会误提交。现在把无变化的 blur 当取消处理，
+ * 只关编辑器不发请求；真正要落库就走 Enter / Ctrl+Enter 提交，或改完值后 blur。</p>
+ *
+ * <p>比较用 {@link normalizeCellValue} 归一化后的值，而不是原始字符串：
+ * 数字列从库里读回来是 {@code 123}、编辑框里是 {@code "123"}，字符不同但语义相同，
+ * 这种「没改」不应发请求。</p>
+ *
+ * @param row 行对象
+ * @param col 列名
+ */
+function onEditBlur(row: Record<string, any>, col: string) {
+  const cell = editingCell.value;
+  if (!cell) return;
+  if (normalizeCellValue(col, cell.value) === normalizeCellValue(col, cell.original)) {
+    // 值未变：仅关闭编辑态，等价于取消，绝不打库
+    editingCell.value = null;
+    return;
+  }
+  void saveCell(row, col);
 }
 
 async function saveCell(row: Record<string, any>, col: string) {
@@ -7558,7 +7679,7 @@ function closeSync() {
 const docExportVisible = ref(false);
 const docExportDatabase = ref("");
 const docExportFormat = ref("markdown");
-const docExportTemplate = ref("DEFAULT");
+const docExportTemplate = ref("SCREW");
 const docExportFormats = ref<DbDocumentFormat[]>([]);
 const docExportTemplates = ref<string[]>([]);
 const docExportLoading = ref(false);
@@ -7580,6 +7701,21 @@ const DOC_FORMAT_LABELS: Record<string, string> = {
 };
 
 /**
+ * 模板样式中文名。
+ *
+ * <p>可选项仍以后端 {@code /document/formats} 返回的枚举名为准，这里只补显示名：
+ * 以前下拉里直接显示 {@code DEFAULT / SWAGGER / AURORA / STRIPE}，用户看不出
+ * 风格取向。未收录的模板回落到枚举名本身，后端新增模板不会漏渲染。</p>
+ */
+const DOC_TEMPLATE_LABELS: Record<string, string> = {
+  DEFAULT: "默认（简洁表格）",
+  SWAGGER: "Swagger（侧栏导航）",
+  AURORA: "Aurora（深色玻璃拟态）",
+  STRIPE: "Stripe（开发者文档）",
+  SCREW: "Screw（工业螺丝装配图，默认）",
+};
+
+/**
  * 打开文档导出对话框。
  *
  * <p>可选格式来自后端 {@code /document/formats} 的实际探测，不是前端写死四项：
@@ -7595,13 +7731,21 @@ async function openDocumentExport(database = activeDatabase.value) {
   }
   docExportDatabase.value = database;
   docExportFormat.value = "markdown";
-  docExportTemplate.value = "DEFAULT";
+  docExportTemplate.value = "SCREW";
   docExportFormatsError.value = "";
   docExportVisible.value = true;
   try {
     const caps = await dbDocumentFormats();
     docExportFormats.value = caps?.formats ?? [];
     docExportTemplates.value = caps?.templates ?? [];
+    // 默认模板可能不在服务端清单里：前端默认 SCREW，但旧版后端只报
+    // DEFAULT/SWAGGER/AURORA/STRIPE。此时 v-model 指向不存在的 option，
+    // 下拉显示空白、导出直接报模板非法。按「SCREW → DEFAULT → 首项」回落。
+    if (docExportTemplates.value.length > 0 && !docExportTemplates.value.includes(docExportTemplate.value)) {
+      docExportTemplate.value = docExportTemplates.value.includes("SCREW")
+        ? "SCREW"
+        : (docExportTemplates.value.includes("DEFAULT") ? "DEFAULT" : docExportTemplates.value[0]);
+    }
     if (docExportFormats.value.length === 0) {
       docExportFormatsError.value = "当前实例未装配任何文档导出渲染器";
     } else if (!docExportFormats.value.some(f => f.format === docExportFormat.value)) {
@@ -11262,6 +11406,9 @@ onBeforeUnmount(() => {
   padding: 1px 7px;
   white-space: nowrap;
 }
+/* 全空列折叠提示：可点开列显示设置恢复，所以要有可点的光标 */
+.dbm-autohide-badge { cursor: pointer; }
+.dbm-autohide-badge:hover { background: var(--el-color-primary-light-8, var(--el-fill-color)); }
 
 /* 高级筛选弹窗 */
 .dbm-filter-list { display: flex; flex-direction: column; gap: 10px; max-height: 52vh; overflow: auto; }

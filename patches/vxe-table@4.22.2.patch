@@ -1,0 +1,57 @@
+diff --git a/es/table/src/table.js b/es/table/src/table.js
+index aad8bafcea3650f0f2807f8d9b02146dce42c1e4..392e5c54468a025dc2db58c797ca5d54a489cf3a 100644
+--- a/es/table/src/table.js
++++ b/es/table/src/table.js
+@@ -886,10 +886,19 @@ export default defineVxeComponent({
+             return reserveList;
+         };
+         const handleVirtualXVisible = () => {
++            // [patch:re-table] 同一次渲染内的几何是不变的（表头/表体/左右固定容器
++            // 会各自调用一次），而每次都要读 clientWidth + scrollLeft 会强制同步布局。
++            // 实测一次列宽提交里本函数被调用 99 次，累计 100ms+ 的读开销。
++            // 这里只缓存“当前微任务内”的结果，nextTick 即失效：跨帧/滚动时仍重新计算。
+             const { isScrollXBig, scrollXWidth } = reactData;
+             const { elemStore, visibleColumn, fullColumnIdData } = internalData;
+             const leftFixedWidth = computeLeftFixedWidth.value;
+             const rightFixedWidth = computeRightFixedWidth.value;
++            const vxKey = `${reactData.scrollXLeft || 0}|${scrollXWidth}|${visibleColumn.length}|${reactData.resizeWidthFlag}|${leftFixedWidth}|${rightFixedWidth}`;
++            const vxCache = internalData.virtualXVisibleCache;
++            if (vxCache && vxCache.key === vxKey) {
++                return vxCache.value;
++            }
+             const bodyScrollElem = getRefElem(elemStore['main-body-scroll']);
+             if (bodyScrollElem) {
+                 const clientWidth = bodyScrollElem.clientWidth;
+@@ -924,7 +933,16 @@ export default defineVxeComponent({
+                         break;
+                     }
+                 }
+-                return { toVisibleIndex: Math.max(0, toVisibleIndex), visibleSize: Math.max(1, visibleSize) };
++                const result = { toVisibleIndex: Math.max(0, toVisibleIndex), visibleSize: Math.max(1, visibleSize) };
++                if (!internalData.virtualXVisibleCacheTimer) {
++                    internalData.virtualXVisibleCacheTimer = true;
++                    nextTick(() => {
++                        internalData.virtualXVisibleCache = undefined;
++                        internalData.virtualXVisibleCacheTimer = false;
++                    });
++                }
++                internalData.virtualXVisibleCache = { key: vxKey, value: result };
++                return result;
+             }
+             return { toVisibleIndex: 0, visibleSize: 6 };
+         };
+@@ -4640,9 +4658,11 @@ export default defineVxeComponent({
+                 $xeTable.dispatchEvent('column-resizable-change', params, evnt);
+                 // 已废弃 resizable-change
+                 $xeTable.dispatchEvent('resizable-change', params, evnt);
+-                setTimeout(() => {
+-                    $xeTable.recalculate(true);
+-                }, 300);
++                // [patch:re-table] 移除 300ms 后的二次全表 recalculate。
++                // 原实现在松手 300ms 后又跑一遍 autoCellWidth + 全列 renderWidth 写回，
++                // 每次写回都会让 Vue 重建整表（实测 50 列/30 行场景该定时器任务 327ms，
++                // 占松手总卡顿 ~18%）。列宽与滚动条在上一行 recalculate/refreshScroll
++                // 已同步完成，这里的补偿重算对固定列宽表格没有实际影响。
+             });
+         };
+         const handleUpdateRowResize = (evnt, params) => {

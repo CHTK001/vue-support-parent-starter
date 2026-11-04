@@ -24,6 +24,16 @@
       "@pages/debug": ["../../pages/debug/src/index.ts"],
       "@pages/device/*": ["../../pages/device/*"],
       "@pages/device": ["../../pages/device/src/index.ts"],
+      // APM 观测台（@pages/apm）：路由入口 = @pages/apm/src/routes
+      "@pages/apm/*": ["../../pages/apm/*"],
+      "@pages/apm": ["../../pages/apm/src/index.ts"],
+      // 监控大屏卡片的领域包（apm / actuator）要 import "@pages/system" 的类型与
+      // defineMonitorCardContribution；vite 侧由本地 alias 解析，TS 侧必须同时给出
+      // 等价 paths，否则这些包内每一处 @pages/system 都是 TS2307。
+      "@pages/system/*": ["../../pages/system/*"],
+      "@pages/system": ["../../pages/system/src/index.ts"],
+      "@pages/actuator/*": ["../../pages/actuator/*"],
+      "@pages/actuator": ["../../pages/actuator/src/index.ts"],
       // 内网穿透（ngrok / Cloudflare）页面包：业务代码统一写 @pages/tunnel/src/...
       "@pages/tunnel/*": ["../../pages/tunnel/*"],
       "@pages/tunnel": ["../../pages/tunnel/src/index.ts"],

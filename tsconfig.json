@@ -151,6 +151,8 @@
       "@pages/message": ["pages/message/src"],
       "@pages/hotsport": ["pages/hotsport/src"],
       "@pages/hotsport/*": ["pages/hotsport/src/*"],
+      "@pages/apm": ["pages/apm/src"],
+      "@pages/apm/*": ["pages/apm/*"],
       "@pages/device": ["pages/device/src"],
       "@pages/template": ["pages/template/src"],
       "@pages/template/*": ["pages/template/src/*"],
@@ -167,6 +169,8 @@
       "@pages/monitor/*": ["pages/monitor/*"],
       "@pages/system": ["pages/system/src"],
       "@pages/system/*": ["pages/system/src/*"],
+      "@pages/actuator": ["pages/actuator/src"],
+      "@pages/actuator/*": ["pages/actuator/src/*"],
       "@pages/server": ["pages/server/src"],
       "@pages/server/*": ["pages/server/*"],
       // Docker 独立页面包：页面根 + 深路径（宿主统一写 @pages/docker/src/...）

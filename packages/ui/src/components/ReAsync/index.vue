@@ -113,8 +113,8 @@ const props = withDefaults(defineProps<Props>(), {
   enterTransition: "re-async-enter",
   fillHeight: false,
   loadingMode: "loader",
-  // 与 ReLoader 默认一致
-  loaderVariant: "spin",
+  // 不传 variant：跟随主题配置里选中的全局动画（与首屏 loader 同款）
+  loaderVariant: undefined,
   loadingText: "",
   loaderDelay: 0,
   loaderTimeout: 0,

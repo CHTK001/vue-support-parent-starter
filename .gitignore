@@ -283,6 +283,10 @@ prom-embed-probe.mjs
 # temp ratio probe html
 **/__*probe*.html
 
+# 2026-11-04: 采集/探针页面产物（Agent 验收探针，来源可追溯，跑完即弃）
+**/cardprobe.*
+**/tunnel-lab.*
+
 # temp debug scripts + e2e caches
 **/.tmp-*.mjs
 **/tests/e2e/.cache/
@@ -334,8 +338,8 @@ crud-ui-test.mjs
 **/debug-*.log
 
 # --- 2026-10-24 补充：dev 缓存 / 空文件残留 / 一次性交付脚本 ---
-# vite dev 依赖预构建缓存（app 内 .vite-cache，随 node_modules 清理重建）
-**/.vite-cache/
+# vite dev 依赖预构建缓存（app 内 .vite-cache 及其所有版本名，随 node_modules 清理重建）
+**/.vite-cache*
 # pnpm 误生成的 0KB 空文件（apps/*/pnpm、apps/*/<pkg>@<ver>）
 apps/*/pnpm
 apps/*/@*
@@ -377,3 +381,39 @@ apps/vue-support-monitor-starter/public/temp-accounts-lab.html
 apps/*/measure-*.cjs
 apps/*/probe-*.cjs
 apps/*/shot-*.cjs
+
+# block: added by cleanup script 2026-11-04 10:30
+# ===== exceptions: dev snapshot / build / runtime junk must never enter git history =====
+*.out
+*.err
+*.err.txt
+*.jsonl
+*.tmp
+*.tmp.*
+**/.agentscope/**
+**/.tmp-*
+**/mft-*.out
+**/mft-*.err
+**/build0*.out
+**/build*.err.log
+**/heapdump*
+**/*_dump*
+**/*.md5
+**/checksum*
+**/_sweep.marker
+site-builder/
+pmt_proxy/
+node_modules/.tmp/
+
+#
+# =================================================
+# 2026-11-04 hardened: *.mjs/*.cjs/*.ps1 ignores take precedence
+# =================================================
+!public/vendor/pdf/pdf.worker.mjs
+!public/vendor/ppt/*.mjs
+!test/
+!test/**/*.mjs
+!test/**/*.cjs
+!test/**/*.ps1
+!test/**/*.py
+

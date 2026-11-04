@@ -1,67 +1,19 @@
 <template>
   <div class="dpv">
     <div class="dpv-body">
-      <!-- ==================== 左：厂商导轨 ==================== -->
-      <aside class="dpv-rail">
-        <header class="dpv-rail__head">
+      <!-- ==================== 顶：厂商切换（置顶常驻，2026-11 改版） ==================== -->
+      <header class="dpv-top">
+        <div class="dpv-top__main">
           <span class="dpv-bar" />
-          <span class="dpv-rail__title">提供商</span>
+          <span class="dpv-top__title">提供商</span>
           <span class="dpv-count">{{ vendors.length }}</span>
+          <span class="dpv-top__desc">按厂商归档 AK/SK，同一厂商可按区域配多套账号</span>
           <span class="dpv-grow" />
-          <ReButton
-            icon="Plus"
-            layout="square"
-            size="small"
-            type="primary"
-            :disabled="!vendors.length"
-            tip="新增凭据"
-            @click="openCreate()"
-          />
-        </header>
-        <p class="dpv-rail__desc">按厂商归档 AK/SK，同一厂商可按区域配多套账号。</p>
-
-        <div class="dpv-vendors">
-          <button
-            type="button"
-            class="dpv-vendor"
-            :class="{ 'is-active': !credentialFilter }"
-            @click="clearVendorFilter"
-          >
-            <span class="dpv-vendor__tile is-all"><ReIcon name="Grid" :size="14" /></span>
-            <span class="dpv-vendor__body">
-              <span class="dpv-vendor__name">全部厂商</span>
-              <span class="dpv-vendor__meta">{{ vendors.length }} 家 · {{ credentials.length }} 套凭据</span>
-            </span>
-          </button>
-
-          <button
-            v-for="vendor in vendors"
-            :key="vendor.vendor"
-            type="button"
-            class="dpv-vendor"
-            :class="{ 'is-active': credentialFilter === vendor.vendor }"
-            @click="filterByVendor(vendor.vendor)"
-          >
-            <span class="dpv-vendor__tile">{{ monogram(vendor.name) }}</span>
-            <span class="dpv-vendor__body">
-              <span class="dpv-vendor__name">{{ vendor.name }}</span>
-              <span class="dpv-vendor__meta">{{ vendor.vendor }} · {{ credentialsOf(vendor.vendor).length }} 套</span>
-            </span>
-            <span class="dpv-vendor__caps" :title="capabilityTitle(vendor)">
-              <i v-for="cap in CAP_ORDER" :key="cap" :class="{ 'is-on': vendor.capabilities.includes(cap) }" />
-            </span>
-          </button>
-
-          <p v-if="!vendors.length" class="dpv-vendors__empty">
-            未发现已注册的设备厂商，请确认后端 device 模块已启用。
-          </p>
-        </div>
-
-        <footer class="dpv-rail__foot">
-          <span class="dpv-live" />{{ enabledCount }} 启用
-          <span class="dpv-sep" />
-          {{ defaultCount }} 默认
-          <span class="dpv-grow" />
+          <span class="dpv-top__stats">
+            <span class="dpv-live" />{{ enabledCount }} 启用
+            <span class="dpv-sep" />
+            {{ defaultCount }} 默认
+          </span>
           <ReButton
             v-if="canSyncOrg"
             icon="Connection"
@@ -71,8 +23,57 @@
             :loading="orgSyncing"
             @click="syncOrg"
           />
-        </footer>
-      </aside>
+          <ReButton
+            icon="Plus"
+            size="small"
+            type="primary"
+            :show-text="true"
+            :disabled="!vendors.length"
+            @click="openCreate()"
+          >
+            新增凭据
+          </ReButton>
+        </div>
+
+        <!-- 厂商切换：横向胶囊条，置顶常驻，不随凭据表滚动 -->
+        <div class="dpv-chips" role="tablist" aria-label="厂商切换">
+          <button
+            type="button"
+            class="dpv-chip"
+            :class="{ 'is-active': !credentialFilter }"
+            role="tab"
+            :aria-selected="!credentialFilter"
+            @click="clearVendorFilter"
+          >
+            <span class="dpv-chip__tile is-all"><ReIcon name="Grid" :size="13" /></span>
+            <span class="dpv-chip__name">全部厂商</span>
+            <span class="dpv-chip__meta">{{ credentials.length }}</span>
+          </button>
+
+          <button
+            v-for="vendor in vendors"
+            :key="vendor.vendor"
+            type="button"
+            class="dpv-chip"
+            :class="{ 'is-active': credentialFilter === vendor.vendor }"
+            role="tab"
+            :aria-selected="credentialFilter === vendor.vendor"
+            :data-vendor="vendor.vendor"
+            @click="filterByVendor(vendor.vendor)"
+          >
+            <span class="dpv-chip__tile">{{ monogram(vendor.name) }}</span>
+            <span class="dpv-chip__name">{{ vendor.name }}</span>
+            <span class="dpv-chip__meta">{{ credentialsOf(vendor.vendor).length }}</span>
+            <span class="dpv-chip__caps" :title="capabilityTitle(vendor)">
+              <i v-for="cap in CAP_ORDER" :key="cap" :class="{ 'is-on': vendor.capabilities.includes(cap) }" />
+            </span>
+          </button>
+
+          <p v-if="!vendors.length" class="dpv-vendors__empty">
+            未发现已注册的设备厂商，请确认后端 device 模块已启用。
+          </p>
+        </div>
+      </header>
 
       <!-- ==================== 右：凭据表 + 底部条 ==================== -->
       <section class="dpv-work">
@@ -96,16 +97,6 @@
             @click="syncDevices"
           >
             同步设备
-          </ReButton>
-          <ReButton
-            icon="Plus"
-            size="small"
-            type="primary"
-            :show-text="true"
-            :disabled="!vendors.length"
-            @click="openCreate()"
-          >
-            新增凭据
           </ReButton>
         </header>
 
@@ -333,7 +324,23 @@
       width="640px"
       destroy-on-close
     >
+      <!-- 四段式：选厂商 → 账号凭据 → 默认与策略 → 高级配置（2026-11 改版） -->
+      <ol class="dpv-steps" aria-label="凭据步骤">
+        <li
+          v-for="(step, i) in STEPS"
+          :key="step.key"
+          class="dpv-step"
+          :class="{ 'is-active': stepIndex === i, 'is-done': stepIndex > i }"
+          :data-step="i + 1"
+        >
+          <span class="dpv-step__idx">{{ i + 1 }}</span>
+          <span class="dpv-step__label">{{ step.label }}</span>
+        </li>
+      </ol>
+
       <el-form :model="form" label-position="top" class="dpv-form">
+        <!-- 第 1 段：厂商 / 平台 / 名称 —— 先定"接的是谁"，后面字段才有意义 -->
+        <div v-show="stepIndex === 0" class="dpv-step-pane" data-pane="vendor">
         <div class="dpv-form__grid">
           <el-form-item label="厂商" required>
             <el-select v-model="form.deviceCredentialVendor" class="dpv-w" placeholder="选择厂商" @change="onVendorChange">
@@ -365,7 +372,10 @@
         <el-form-item label="凭据名称" required>
           <el-input v-model="form.deviceCredentialName" maxlength="64" placeholder="例如：华东区域主账号" @keyup.enter="submit" />
         </el-form-item>
+        </div>
 
+        <!-- 第 2 段：账号凭据（字段由厂商描述符驱动） -->
+        <div v-show="stepIndex === 1" class="dpv-step-pane" data-pane="secret">
         <div class="dpv-form__grid">
           <el-form-item
             v-for="field in currentCredentialFields"
@@ -390,7 +400,10 @@
         <el-form-item label="Base URL">
           <el-input v-model="form.deviceCredentialBaseUrl" maxlength="255" placeholder="留空使用平台默认地址" />
         </el-form-item>
+        </div>
 
+        <!-- 第 3 段：默认与策略（离线阈值 / 默认 / 启用） -->
+        <div v-show="stepIndex === 2" class="dpv-step-pane" data-pane="policy">
         <div class="dpv-form__grid">
           <el-form-item label="离线阈值（秒，超时判离线）">
             <el-input-number
@@ -408,8 +421,10 @@
             </div>
           </el-form-item>
         </div>
+        </div>
 
-        <!-- 高级配置：该凭据维度的自动任务开关与间隔（默认全部关闭） -->
+        <!-- 第 4 段：高级配置 —— 该凭据维度的自动任务开关与间隔（默认全部关闭） -->
+        <div v-show="stepIndex === 3" class="dpv-step-pane" data-pane="advanced">
         <div class="dpv-adv">
           <header class="dpv-adv__head">
             <ReIcon name="Timer" :size="15" />
@@ -472,11 +487,20 @@
             placeholder="选填，例如使用范围"
           />
         </el-form-item>
+        </div>
       </el-form>
 
       <template #footer>
-        <ReButton @click="dialogVisible = false">取消</ReButton>
-        <ReButton type="primary" :loading="submitting" @click="submit">保存</ReButton>
+        <div class="dpv-wiz-foot">
+          <span class="dpv-wiz-foot__step">第 {{ stepIndex + 1 }} / {{ STEPS.length }} 段 · {{ STEPS[stepIndex].label }}</span>
+          <span class="dpv-grow" />
+          <ReButton @click="dialogVisible = false">取消</ReButton>
+          <ReButton v-if="stepIndex > 0" @click="stepIndex -= 1">上一步</ReButton>
+          <ReButton v-if="stepIndex < STEPS.length - 1" type="primary" @click="nextStep">下一步</ReButton>
+          <ReButton v-else type="primary" :loading="submitting" @click="submit">
+            {{ editingCredentialId ? '保存' : '创建' }}
+          </ReButton>
+        </div>
       </template>
     </ReDialog>
   </div>
@@ -565,6 +589,23 @@ const submitting = ref(false)
 const syncing = ref(false)
 const testingId = ref('')
 const editingCredentialId = ref('')
+
+/**
+ * 新增 / 编辑凭据的四段式步骤（2026-11 改版）。
+ *
+ * <p>把 12 个字段糊成一屏时，用户填到「高级配置」早就忘了上面选的是哪家厂商；
+ * 拆成「先定接的是谁 → 再给账号 → 再定默认与策略 → 最后才碰定时任务」四段，
+ * 每段的必填字段只校验本段，未通过不放行到下一段。</p>
+ */
+const STEPS = [
+  { key: 'vendor', label: '厂商与平台' },
+  { key: 'secret', label: '账号凭据' },
+  { key: 'policy', label: '默认与策略' },
+  { key: 'advanced', label: '高级配置' }
+] as const
+
+/** 当前段位（0 起），打开弹窗时回到第 1 段 */
+const stepIndex = ref(0)
 
 /** 底部条跟随的凭据 */
 const activeCredentialId = ref('')
@@ -798,8 +839,39 @@ function resetForm() {
   form.deviceCredentialRemark = ''
 }
 
+/**
+ * 校验某一段的必填项。
+ *
+ * @param index 段位下标
+ * @returns 错误文案；空串表示该段可放行
+ */
+function stepError(index: number): string {
+  if (index === 0) {
+    if (!form.deviceCredentialVendor) return '请选择厂商'
+    if (!String(form.deviceCredentialName || '').trim()) return '请填写凭据名称'
+    return ''
+  }
+  if (index === 1) {
+    for (const field of currentCredentialFields.value) {
+      if (fieldFormRequired(field) && !fieldFormValue(field)) return `请填写 ${field.label}`
+    }
+  }
+  return ''
+}
+
+/** 下一步：本段没填完就停在原地，并提示缺什么 */
+function nextStep(): void {
+  const error = stepError(stepIndex.value)
+  if (error) {
+    message.warning(error)
+    return
+  }
+  stepIndex.value = Math.min(STEPS.length - 1, stepIndex.value + 1)
+}
+
 function openCreate(vendor?: string) {
   editingCredentialId.value = ''
+  stepIndex.value = 0
   resetForm()
   if (vendor) {
     form.deviceCredentialVendor = vendor
@@ -813,6 +885,7 @@ function openCreate(vendor?: string) {
 
 function openEdit(row: ProviderCredential) {
   editingCredentialId.value = row.deviceCredentialId || ''
+  stepIndex.value = 0
   form.deviceCredentialVendor = row.deviceCredentialVendor
   form.deviceCredentialPlatformType = row.deviceCredentialPlatformType || ''
   form.deviceCredentialName = row.deviceCredentialName
@@ -847,18 +920,12 @@ function onPlatformChange() {
 }
 
 async function submit() {
-  if (!form.deviceCredentialVendor) {
-    message.warning('请选择厂商')
-    return
-  }
-  if (!form.deviceCredentialName.trim()) {
-    message.warning('请填写凭据名称')
-    return
-  }
-  /** 描述符驱动的必填字段：任何 platform 的字段都走统一验证 */
-  for (const field of currentCredentialFields.value) {
-    if (fieldFormRequired(field) && !fieldFormValue(field)) {
-      message.warning(`请填写 ${field.label}`)
+  // 四段式：不论停在哪一段，提交时都要把各段必填过一遍，缺哪段就跳回哪段
+  for (let index = 0; index < STEPS.length; index += 1) {
+    const error = stepError(index)
+    if (error) {
+      stepIndex.value = index
+      message.warning(error)
       return
     }
   }
@@ -1069,33 +1136,42 @@ onMounted(() => {
 
 .dpv-body {
   display: flex;
+  flex-direction: column;
   flex: 1 1 auto;
-  gap: 12px;
+  gap: 10px;
   min-height: 0;
 }
 
 /* ============================================================
-   左侧：厂商导轨
+   顶部：厂商切换（置顶常驻）
    ============================================================ */
-.dpv-rail {
+.dpv-top {
   display: flex;
   flex: none;
   flex-direction: column;
-  width: 268px;
-  min-height: 0;
-  overflow: hidden;
+  gap: 8px;
+  padding: 10px 12px 8px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-xl, 16px);
   box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  /* 表格内部滚动时厂商切换条始终留在视口顶部 */
+  position: sticky;
+  top: 0;
+  z-index: 6;
 }
 
-.dpv-rail__head {
+.dpv-top__main {
   display: flex;
-  flex: none;
   align-items: center;
   gap: 7px;
-  padding: 11px 12px 6px;
+  min-width: 0;
+}
+
+.dpv-top__title {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .dpv-bar {
@@ -1104,11 +1180,6 @@ onMounted(() => {
   border-radius: 999px;
   background: var(--el-color-primary);
   flex: none;
-}
-
-.dpv-rail__title {
-  font-size: 14px;
-  font-weight: 600;
 }
 
 .dpv-count {
@@ -1123,129 +1194,120 @@ onMounted(() => {
   min-width: 0;
 }
 
-.dpv-rail__desc {
-  flex: none;
-  margin: 0;
-  padding: 0 12px 9px;
+.dpv-top__desc {
   font-size: 11.5px;
   line-height: 1.6;
   color: var(--el-text-color-secondary);
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.dpv-vendors {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 6px;
-}
-
-.dpv-vendor {
+/* 厂商切换：横向胶囊条（不换行、可横滚） */
+.dpv-chips {
   display: flex;
   align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 7px 8px;
-  border: none;
-  border-radius: 10px;
-  background: transparent;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.dpv-chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 6px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 999px;
+  background: var(--el-bg-color);
   color: inherit;
   font: inherit;
-  text-align: left;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
-.dpv-vendor + .dpv-vendor {
-  margin-top: 2px;
-}
-
-.dpv-vendor:hover {
+.dpv-chip:hover {
+  border-color: var(--el-color-primary-light-7);
   background: var(--el-fill-color-light);
 }
 
-.dpv-vendor.is-active {
+.dpv-chip.is-active {
+  border-color: var(--el-color-primary-light-5);
   background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
 }
 
-.dpv-vendor__tile {
+.dpv-chip__tile {
   display: inline-flex;
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
   background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
   color: var(--el-color-primary);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   line-height: 1;
 }
 
-.dpv-vendor__tile.is-all {
+.dpv-chip__tile.is-all {
   background: var(--el-fill-color);
   color: var(--el-text-color-secondary);
 }
 
-.dpv-vendor.is-active .dpv-vendor__tile {
+.dpv-chip.is-active .dpv-chip__tile {
   background: var(--el-color-primary);
   color: var(--el-color-white);
 }
 
-.dpv-vendor__body {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-
-.dpv-vendor__name {
-  font-size: 13px;
-  font-weight: 500;
+.dpv-chip__name {
+  max-width: 132px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 12.5px;
+  font-weight: 500;
 }
 
-.dpv-vendor.is-active .dpv-vendor__name {
+.dpv-chip.is-active .dpv-chip__name {
   color: var(--el-color-primary);
   font-weight: 600;
 }
 
-.dpv-vendor__meta {
+.dpv-chip__meta {
+  font-family: var(--el-font-family-mono, ui-monospace, monospace);
   font-size: 10.5px;
   color: var(--el-text-color-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* 能力点阵：8 格，亮 = 支持；hover 有完整清单 */
-.dpv-vendor__caps {
+.dpv-chip__caps {
   display: grid;
   flex: none;
-  grid-template-columns: repeat(4, 5px);
+  grid-template-columns: repeat(4, 4px);
   gap: 2px;
+  margin-left: 2px;
 }
 
-.dpv-vendor__caps i {
-  width: 5px;
-  height: 5px;
-  border-radius: 2px;
+.dpv-chip__caps i {
+  width: 4px;
+  height: 4px;
+  border-radius: 1px;
   background: var(--el-border-color);
 }
 
-.dpv-vendor__caps i.is-on {
+.dpv-chip__caps i.is-on {
   background: var(--el-color-primary);
 }
 
-.dpv-vendor.is-active .dpv-vendor__caps i {
+.dpv-chip.is-active .dpv-chip__caps i {
   background: color-mix(in srgb, var(--el-color-primary) 22%, transparent);
 }
 
-.dpv-vendor.is-active .dpv-vendor__caps i.is-on {
+.dpv-chip.is-active .dpv-chip__caps i.is-on {
   background: var(--el-color-primary);
 }
 
@@ -1258,15 +1320,16 @@ onMounted(() => {
   color: var(--el-text-color-secondary);
 }
 
-.dpv-rail__foot {
-  display: flex;
+.dpv-top__stats {
+  display: inline-flex;
   flex: none;
   align-items: center;
   gap: 7px;
-  padding: 6px 10px 6px 12px;
-  border-top: 1px solid var(--el-border-color-lighter);
+  padding: 2px 8px;
   font-size: 11px;
   color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  border-radius: 999px;
 }
 
 .dpv-live {
@@ -1569,6 +1632,84 @@ onMounted(() => {
 /* ============================================================
    表单
    ============================================================ */
+/* 四段式步骤条：候选顺序 = 用户填表的真实顺序 */
+.dpv-steps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+  flex-wrap: wrap;
+}
+
+.dpv-step {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 4px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-bg-color);
+}
+
+.dpv-step__idx {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--el-fill-color);
+  font-family: var(--el-font-family-mono, ui-monospace, monospace);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.dpv-step.is-done {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-7);
+}
+
+.dpv-step.is-done .dpv-step__idx {
+  background: var(--el-color-primary);
+  color: var(--el-color-white);
+}
+
+.dpv-step.is-active {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
+  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+  font-weight: 600;
+}
+
+.dpv-step.is-active .dpv-step__idx {
+  background: var(--el-color-primary);
+  color: var(--el-color-white);
+}
+
+/* 一段一屏：非当前段 v-show 隐藏，DOM 仍在，切换不丢输入 */
+.dpv-step-pane {
+  min-height: 240px;
+}
+
+.dpv-wiz-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.dpv-wiz-foot__step {
+  font-size: 11.5px;
+  color: var(--el-text-color-secondary);
+}
+
 .dpv-form__grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1663,9 +1804,6 @@ onMounted(() => {
 }
 
 @media (max-width: 1100px) {
-  .dpv-rail {
-    width: 232px;
-  }
   .dpv-foot__item--url {
     max-width: 160px;
   }

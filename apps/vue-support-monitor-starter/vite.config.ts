@@ -293,13 +293,30 @@ function dedupeElementPlus(): PluginOption {
 }
 
 /**
+ * 是否开启代理调试日志（默认关闭，由 {@code MS_DEBUG_PROXY=1} 打开）。
+ *
+ * <p>默认关闭不是省磁盘，而是**断开一条自激回路**：调试日志把 stdout 重定向进
+ * Vite root 里的 {@code dev-*.log}，而这个文件本身落在 watcher 监听范围内 ——
+ * 每写一行日志 → 文件 mtime 变化 → watcher 触发 → 整页 reload → 浏览器重新加载
+ * → 又是一轮请求 → 又写日志……</p>
+ *
+ * <p>实测本次会话仅 dev-8848-acc.log 就涨到 4.1MB，日志里 348 次 {@code page reload}
+ * 与 39 次 {@code -> 504 (Outdated Request)} 全部由这条回路放大。
+ * 「点菜单很慢、页面出不来」不是浏览器慢，是 dev server 被自己的日志拖住了。</p>
+ */
+const DEBUG_PROXY = process.env.MS_DEBUG_PROXY === "1";
+
+/**
  * [临时调试] 在 vite proxy 之前/之后记录代理请求的全貌，找到 `200 null` 的源头.
+ *
+ * <p>默认关闭，见 {@link DEBUG_PROXY} 的说明。</p>
  */
 function debugProxyLogger(): PluginOption {
   return {
     name: "debug-proxy-logger",
     apply: "serve",
     configureServer(server) {
+      if (!DEBUG_PROXY) return;
       const t0 = Date.now();
       server.middlewares.use((req, _res, next) => {
         const url = req.url ?? "";
@@ -366,14 +383,17 @@ export default createVite({
     "@pages/task": "pages/task",
     "@pages/monitor": "pages/monitor",
     "@pages/project": "pages/project",
+    "@pages/room": "pages/room",
     "@pages/filesystem": "pages/filesystem",
     "@pages/datasource": "pages/datasource",
     "@pages/debug": "pages/debug",
     "@pages/device": "pages/device",
     "@pages/docker": "pages/docker",
-    // pages/tunnel 已交付：隧道工作台路由 + 隧道页（NgrokTunnelView / CloudflaredTunnelView）
+    // pages/tunnel 已交付：内网穿透路由（单页面 TunnelPage，提供方在页内选）
     "@pages/tunnel": "pages/tunnel",
     "@pages/template": "pages/template",
+    // APM 观测台：页面根（业务以 "@pages/apm/src/..." 引用，alias 必须指向 pages/apm）
+    "@pages/apm": "pages/apm",
   },
   server: {
     port: 8848,
@@ -419,6 +439,17 @@ export default createVite({
         /[/\\]wasm[/\\]/,
         /\.bcmap$/,
         /[/\\]flyfish-viewer-assets\.json$/,
+        // ---- E2E 产物目录：写一次就触发一次整页 reload ----
+        // Playwright 的 html reporter 把报告写进 <app>/playwright-report/，
+        // 每次跑完一轮用例都改写这里的 index.html 与 trace/*.html。
+        // Vite 8 对**任何**落在 root 内的 .html 变更都判定为「客户端 HTML 变了」
+        // （见 vite/dist/node/chunks/node.js 的 isClientHtmlChange），于是发
+        // full-reload → 正在打开的页面被整页刷掉 → 页面重新拉全部模块 →
+        // 用例与人工操作互相打断。实测本次会话因此产生 348 次 page reload。
+        // test-results/ 同理（trace/截图产物）。这两个目录不是源码，不参与 HMR，
+        // 忽略掉即可。Vite 自带的默认忽略只含 test-results/，不含 playwright-report/。
+        /[/\\]playwright-report[/\\]/,
+        /[/\\]test-results[/\\]/,
       ],
     },
     // 启动预编译：预热入口与首屏视图源码文件，首次加载不再现场 transform（避免 5s~1min 卡顿）。
@@ -458,8 +489,7 @@ export default createVite({
       "/monitor/api": {
         target: acmeTarget,
         changeOrigin: true,
-      },
-      // 天气组件 IP 定位：freeipapi（HTTPS）
+      },      // 天气组件 IP 定位：freeipapi（HTTPS）
       "/freeip-api": {
         target: "https://freeipapi.com",
         changeOrigin: true,
@@ -557,6 +587,12 @@ export default createVite({
         target: apiTarget,
         changeOrigin: true,
       },
+      // 内网穿透统一入口（spring-support-tunnel-starter 的 /ms/tunnel）。
+      // 缺这一条时 dev 下请求会落到 Vite 自身 → 404，页面表现为「提供方加载失败」。
+      "/ms/tunnel": {
+        target: apiTarget,
+        changeOrigin: true,
+      },
       "/ws/ms/server": {
         target: apiTarget,
         ws: true,
@@ -567,6 +603,14 @@ export default createVite({
       // 处理器干扰 HTTP 轮询代理；且 WS 升级会被 netty(SO_LINGER=0 硬关)重置。
       "/socket.io": {
         target: socketTarget,
+        changeOrigin: true,
+      },
+      // Spring Actuator：监控大屏的 Actuator 卡片直接读端点（/actuator/health、
+      // /actuator/metrics/... 等）。后端（spring-support-monitor-starter）没有
+      // context-path，端点就在站点根下；dev 必须显式代理，否则 Vite 会把
+      // /actuator/** 当成前端路由回 index.html（表现为“拿到一坨 HTML 解析失败”）。
+      "/actuator": {
+        target: apiTarget,
         changeOrigin: true,
       },
       // APM 观测后端（/api/apm 与 /agent 共用）。
@@ -660,54 +704,72 @@ export default createVite({
       "@repo/ui/re-scrollbar",
       "@repo/ui/re-select",
       "@repo/ui/re-tag",
-      // ---- file-viewer 主体与各格式渲染器 ----
-      "@file-viewer/vue3",
-      "@file-viewer/vue3-full",
-      "@file-viewer/preset-office",
+      // ---- file-viewer 主体与各格式渲染器（关键：必须用 `宿主包 > 依赖` 嵌套语法）----
+      // Vite 的 optimizeDeps.include 解析基准是 **本 app root**（createOptimizeDepsIncludeResolver
+      // 里的 environment.getTopLevelConfig().root），解析走 resolvePackageData(id, root) ——
+      // 它只沿 root 向上找 node_modules。pnpm 是 isolated 布局：这些依赖物理装在
+      // <宿主包>/node_modules/ 下（@pages/filesystem、@pages/server、@pages/device、packages/ui），
+      // 本 app root 的 node_modules 里根本不存在。于是裸写 "@file-viewer/vue3" 必然
+      // 解析失败，每次 dev 启动打印 64 行 "Failed to resolve dependency: X, present in
+      // client 'optimizeDeps.include'"，且这些依赖**完全没进预构建白名单**。
+      //
+      // 解法：Vite 支持 `pkg > nestedDep` 嵌套语法。解析器先用 root 解析 `pkg`（@pages/xxx
+      // 是本 app 的 workspace 依赖，root 可解析），得到其真实目录，再用该目录为基准解析
+      // `> ` 后面的依赖 —— 正好命中 pnpm 隔离目录。实测全列表解析通过。
+      //
+      // 这些渲染器全是 `import()` 动态加载的懒依赖，不在 include 里时 Vite 要等到
+      // 某个文件被打开时才发现它们，于是运行中途触发
+      // 「optimized dependencies changed. reloading」。重优化会重算 chunk 哈希，
+      // 已打开页面里所有 `deps/@file-viewer_vue3.js?v=<旧哈希>` 的请求当场 404，
+      // 于是 FvPanelBase / PreviewOfficePanel / FvTextPanel… 集体报
+      // 「Failed to fetch dynamically imported module」并降级到兜底面板。
+      // 表现就是：同一个 xlsx，第一次能渲染、刷新后变回 iframe/旧面板，
+      // 动画也没了——被误判成「有的格式没接 file-viewer」，实际是依赖被优化掉了。
+      // 显式 include 后启动即预打包，运行期不再变更。
       "@file-viewer/preset-all",
-      "@file-viewer/renderer-3d",
-      "@file-viewer/renderer-archive",
-      "@file-viewer/renderer-binary",
-      "@file-viewer/renderer-cad",
-      "@file-viewer/renderer-chm",
-      "@file-viewer/renderer-data",
-      "@file-viewer/renderer-design",
-      "@file-viewer/renderer-dicom",
-      "@file-viewer/renderer-drawing",
-      "@file-viewer/renderer-eda",
-      "@file-viewer/renderer-email",
-      "@file-viewer/renderer-epub",
-      "@file-viewer/renderer-geo",
-      "@file-viewer/renderer-image",
-      "@file-viewer/renderer-media",
-      "@file-viewer/renderer-mindmap",
-      "@file-viewer/renderer-signature",
-      "@file-viewer/renderer-text",
-      "@file-viewer/renderer-typst",
+      "@pages/filesystem > @file-viewer/vue3",
+      "@pages/filesystem > @file-viewer/vue3-full",
+      "@pages/filesystem > @file-viewer/preset-office",
+      "@pages/filesystem > @file-viewer/renderer-3d",
+      "@pages/filesystem > @file-viewer/renderer-archive",
+      "@pages/filesystem > @file-viewer/renderer-binary",
+      "@pages/filesystem > @file-viewer/renderer-cad",
+      "@pages/filesystem > @file-viewer/renderer-chm",
+      "@pages/filesystem > @file-viewer/renderer-data",
+      "@pages/filesystem > @file-viewer/renderer-design",
+      "@pages/filesystem > @file-viewer/renderer-dicom",
+      "@pages/filesystem > @file-viewer/renderer-drawing",
+      "@pages/filesystem > @file-viewer/renderer-eda",
+      "@pages/filesystem > @file-viewer/renderer-email",
+      "@pages/filesystem > @file-viewer/renderer-epub",
+      "@pages/filesystem > @file-viewer/renderer-geo",
+      "@pages/filesystem > @file-viewer/renderer-image",
+      "@pages/filesystem > @file-viewer/renderer-media",
+      "@pages/filesystem > @file-viewer/renderer-mindmap",
+      "@pages/filesystem > @file-viewer/renderer-signature",
+      "@pages/filesystem > @file-viewer/renderer-text",
+      "@pages/filesystem > @file-viewer/renderer-typst",
       // 各渲染器拖进来的传递依赖（ag-psd / saxes 等）同样会被懒发现，
-      // 一并列出，避免它们成为「压垮骆驼的最后一根稻草」
-      "ag-psd",
-      "saxes",
-      // heic2any: CJS-only dep of @file-viewer/renderer-image. Its renderHeic
-      // does `import('heic2any')` and takes the default export; without an
-      // explicit include the lazy-discovered bundle has no default interop,
-      // so the destructured value is undefined and HEIC/HEIF preview dies with
-      // "heic2any is not a function". Listing it here makes the pre-bundle
+      // 一并列出，避免它们成为「压垮骆驼的最后一根稻草」。
+      // saxes / heic2any 是 @file-viewer/renderer-archive、renderer-image 的**传递依赖**，
+      // 连 @pages/filesystem 自己的 node_modules 顶层都没有，故再嵌一层。
+      "@pages/filesystem > ag-psd",
+      "@pages/filesystem > @file-viewer/renderer-archive > saxes",
+      // heic2any: CJS-only dep。Its renderHeic does `import('heic2any')` and takes the
+      // default export; without an explicit include the lazy-discovered bundle has no
+      // default interop, so the destructured value is undefined and HEIC/HEIF preview
+      // dies with "heic2any is not a function". Listing it here makes the pre-bundle
       // emit a proper default export.
-      "heic2any",
+      "@pages/filesystem > @file-viewer/renderer-archive > heic2any",
       // 表格渲染器底层：file-viewer 与业务侧必须解析到同一物理实例
-      "e-virt-table/dist/index.es.js",
+      "@pages/filesystem > e-virt-table/dist/index.es.js",
       // ---- CodeMirror（数据源中心的 SQL 编辑器）----
-      // 与上面的 @file-viewer/* 同一个病，且后果一样严重：
-      // DbSqlEditor.vue 静态 import @codemirror/*，但它自己只被
-      // DatabaseManagerView.vue 动态引用，而后者又只被路由的 () => import() 加载。
-      // 整条链上没有一处静态入口，优化器的 entries 扫描发现不到，
-      // 于是 deps 缓存里永远没有 @codemirror_*.js（实测 401 个产物里一个都没有）。
-      // 首次访问数据源管理页时浏览器去要 /deps/@codemirror_state.js，Vite 直接
-      // 504（空响应体，2~6ms 内返回），动态导入失败 ——
-      // 表现是「数据库管理 / Redis 管理 / InfluxDB / Neo4j / MongoDB … 全部打不开」，
-      // 路由只留一句 Vue Router warn，页面一片空白。
-      // 显式列出后启动即预打包，运行期不再变。
+      // DbSqlEditor.vue 静态 import @codemirror/*。这些**恰好在本 app root 的
+      // node_modules 顶层存在**（monitor 直接依赖），故用裸 id 即可解析。
+      // 与 @file-viewer/* 同一个病（只在懒加载链上、entries 扫描发现不到），
+      // 不列出则首次访问数据源管理页时触发「optimized dependencies changed.
+      // reloading」，当场 504，动态导入失败 —— 表现是数据库/Redis/InfluxDB/
+      // Neo4j/MongoDB 管理页集体打不开、路由只留一句 Vue Router warn、页面空白。
       "@codemirror/state",
       "@codemirror/view",
       "@codemirror/commands",
@@ -717,30 +779,50 @@ export default createVite({
       // ---- @novnc/novnc（远程控制台的 VNC 客户端）----
       // 与 @codemirror/* 同一条链：路由 () => import('TerminalView.vue')
       // → TerminalView → ScVncDirectViewer.vue，而后者**静态** import RFB。
-      // 整条链没有一处静态入口，优化器的 entries 扫描发现不到 @novnc/novnc，
-      // deps 缓存里就没有 @novnc_novnc.js。
+      // 物理装在 @pages/server/node_modules 下，故用嵌套语法。
       // 首次加载 TerminalView 时浏览器去要 /deps/@novnc_novnc.js?v=<哈希>，
       // Vite 返回 504（Outdated Optimize Dep），动态导入随之失败 ——
       // 表现是控制台页白屏 + pageerror
       // 「Failed to fetch dynamically imported module: .../TerminalView.vue」。
       // 而且同一趟里还会连带两次：console 那条 504 与 requestfailed 的 ERR_ABORTED，
       // 一条故障报成三条。显式列出后启动即预打包，运行期不再变。
-      "@novnc/novnc",
+      "@pages/server > @novnc/novnc",
       // ---- hls.js / flv.js（设备视频）----
-      // 与上面同一条链：ReVideo.vue 里改成 `await import('hls.js')` / `import('flv.js')`
+      // ReVideo.vue 里改成 `await import('hls.js')` / `import('flv.js')`
       // 按需加载后，优化器在启动扫描时看不到它们（只有动态 import，且组件本身也在
-      // 懒加载路由里）。不显式 include，第一次播视频时就会触发
+      // 懒加载路由里）。物理装在 @pages/device/node_modules 下，故用嵌套语法。
+      // 不显式 include，第一次播视频时就会触发
       // 「optimized dependencies changed. reloading」，当场 504，播放器报
       // 「Failed to fetch dynamically imported module」。列出后启动即预打包。
-      "hls.js",
-      "flv.js",
+      "@pages/device > hls.js",
+      "@pages/device > flv.js",
       // ---- vxe-pc-ui 的深导入子路径 ----
       // ReTable.vue 用 `vxe-pc-ui/es/tooltip` 替掉整包入口，避免 5MB 整库进首屏；
       // 但子路径同样不在 entries 扫描范围（ReTable 只被懒加载页面引用），
-      // 不写进 include 会变成运行期懒发现触发重优化。
-      "vxe-pc-ui/es/tooltip",
-      "vxe-table",
-      "@vxe-ui/core",
+      // 不写进 include 会变成运行期懒发现触发重优化。物理装在 packages/ui/node_modules
+      // 下（@repo/ui 是 workspace 源码包，依赖在它自己的 node_modules），故用嵌套语法。
+      "@repo/ui > vxe-table",
+      "@repo/ui > @vxe-ui/core",
+      "@repo/ui > vxe-pc-ui/es/tooltip",
+      // ---- 其余「懒发现」依赖（第一次进对应页面才触发重优化 + 整页 reload）----
+      // 同一类病：只在懒加载链上、entries 扫描发现不到。实测每条都会在首次访问时
+      // 打一行「dependency optimized: X」+「optimized dependencies changed. reloading」，
+      // 已打开页面当场全量刷新。全部预打包后运行期不再变更。
+      // 物理位置（pnpm isolated）：依赖装在各 workspace 源码包自己的 node_modules 下，
+      // 故统一用 `宿主包 > 依赖` 嵌套语法。实测全列表解析通过。
+      "@repo/theme > qrcode",              // 教育AI/渠道/AI 连接器二维码
+      "@pages/system > grid-layout-plus",  // 监控卡片网格拖拽布局
+      "@repo/ui/re-map > @turf/turf",      // 台风风圈多边形（re-map 子目录的依赖）
+      "@repo/ui > three",                  // 3D 视图
+      "@repo/ui > three/addons/controls/OrbitControls.js",
+      "@repo/ui > three/addons/loaders/GLTFLoader.js",
+      "@repo/ui > @antv/g6",               // 关系图谱
+      "@repo/ui > motion",                 // 动效
+      "@repo/ui > sortablejs",             // 拖拽排序
+      "@repo/ui > vxe-pc-ui",              // vxe 整包（ReTable 兜底时才用到）
+      "@pages/filesystem > three",         // 文件预览 3D 渲染器用的 three（另一实例）
+      "@pages/filesystem > sortablejs",
+      "@pages/server > sortablejs",
     ],
     },
   },

@@ -2,8 +2,13 @@
 import { computed, ref } from "vue";
 import ReInput from "@repo/ui/re-input";
 import ReIcon from "@repo/ui/re-icon";
-import NodeParamForm from "./nodes/NodeParamForm.vue";
 import type { Component } from "vue";
+import {
+  isAdvancedParamName,
+  isInputParam,
+  isLoopParamName,
+  isOutputParamName,
+} from "./nodes/paramContext";
 import type { NodeForm, NodeFormContext } from "./nodes/paramContext";
 import type { CollectParamMeta, CollectShapeMeta, CollectTaskLog } from "../types/collect";
 import type { ParamPair } from "../utils/dsl";
@@ -25,12 +30,6 @@ const emit = defineEmits<{
 
 type TabKey = "basic" | "input" | "output" | "loop" | "advanced";
 
-const ADVANCED = new Set([
-  "timeout", "timeoutPolicy", "retry", "retryInterval", "proxy", "userAgent", "fetcher", "saveDocument",
-  "batchSize", "onBatchError", "writeBack", "outputPrefix", "maxTokens", "temperature",
-]);
-const LOOP = new Set(["loopCount", "loopVariableName", "loopItemVariableName", "loopParallel"]);
-
 /** 数据库节点的输出组：目标数据源/表/写入方式与字段映射放同一 Tab */
 const DATABASE_OUTPUT = new Set(["datasource", "table", "mode", "batchSize", "onBatchError"]);
 function isDatabaseOutput(p: { name: string }): boolean {
@@ -45,34 +44,20 @@ const hasOutput = computed(
   () =>
     props.meta.shape === "database"
       ? props.meta.params.some(isDatabaseOutput)
-      : props.meta.params.some(
-          p =>
-            p.name === "outputVariable" ||
-            p.name.startsWith("column:") ||
-            p.name.startsWith("cell:") ||
-            p.name.startsWith("key:"),
-        ) || props.meta.fieldEditor,
+      : props.meta.params.some(p => isOutputParamName(p.name)) || props.meta.fieldEditor,
 );
-const hasLoop = computed(() => props.meta.params.some(p => LOOP.has(p.name)));
+const hasLoop = computed(() => props.meta.params.some(p => isLoopParamName(p.name)));
 const hasAdvanced = computed(() =>
   props.meta.params.some(
     p =>
-      ADVANCED.has(p.name) &&
+      isAdvancedParamName(p.name) &&
       !(props.meta.shape === "database" && DATABASE_OUTPUT.has(p.name)),
   ),
 );
 const hasInput = computed(() =>
   props.meta.shape === "database"
     ? props.meta.params.some(p => p.name === "source")
-    : props.meta.params.some(
-        p =>
-          p.name !== "outputVariable" &&
-          !p.name.startsWith("column:") &&
-          !p.name.startsWith("cell:") &&
-          !p.name.startsWith("key:") &&
-          !ADVANCED.has(p.name) &&
-          !LOOP.has(p.name),
-      ),
+    : props.meta.params.some(isInputParam),
 );
 
 const tabs = computed<TabKey[]>(() => {
@@ -148,46 +133,25 @@ function emitPairs(param: CollectParamMeta, pairs: ParamPair[]): void {
         </div>
       </div>
 
-      <NodeParamForm
-        v-if="current === 'input'"
+      <!--
+        页签内容＝该 shape 的**专属表单**（FlowDesigner 通过 activeForm 下发，未登记的类型回落到通用表单）。
+        之前这里写死只渲染通用 NodeParamForm，于是 FORM_BY_SHAPE 里的 19 个专属表单全成了死代码：
+        抓取节点的发送条、判断节点的出边条件提示、SQL 的高危警示、抽取节点的字段弹框都进不了界面。
+        每个页签把 section 传下去，由表单自己决定这一页显示哪些参数（其余页签统一委派 NodeParamForm）。
+      -->
+      <component
+        :is="activeForm"
+        v-if="current === 'input' || current === 'output' || current === 'loop' || current === 'advanced'"
         :node="node"
         :meta="meta"
         :ctx="ctx"
-        section="input"
-        @set-param="emitParam"
-        @set-pairs="emitPairs"
-      />
-      <NodeParamForm
-        v-else-if="current === 'output'"
-        :node="node"
-        :meta="meta"
-        :ctx="ctx"
-        section="output"
-        @set-param="emitParam"
-        @set-pairs="emitPairs"
-      />
-      <NodeParamForm
-        v-else-if="current === 'loop'"
-        :node="node"
-        :meta="meta"
-        :ctx="ctx"
-        section="loop"
-        @set-param="emitParam"
-        @set-pairs="emitPairs"
-      />
-      <NodeParamForm
-        v-else-if="current === 'advanced'"
-        :node="node"
-        :meta="meta"
-        :ctx="ctx"
-        section="advanced"
+        :section="current"
         @set-param="emitParam"
         @set-pairs="emitPairs"
       />
     </div>
   </div>
 </template>
-
 <style scoped>
 .node-tabs {
   display: flex;

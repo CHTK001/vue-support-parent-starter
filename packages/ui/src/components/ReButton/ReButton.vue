@@ -58,7 +58,15 @@ const props = withDefaults(
   defineProps<{
     /** 布局变体："el"（默认 el-button）/ "modern"（现代化扁平按钮）/ "square"（正方形图标按钮） */
     layout?: "el" | "modern" | "square";
-    type?: "primary" | "success" | "warning" | "info" | "danger" | "text" | "";
+    /**
+     * 按钮语义色。
+     *
+     * <p>含 `"default"`：Element 官方语义里就有 default 这一档，业务侧（尤其本仓库
+     * 的取消 / 还原类按钮）也大量写着 `type="default"`。square / modern 布局用
+     * `type || 'default'` 拼类名，传 `"default"` 与传 `""` 渲染完全一致，因此放宽
+     * 联合类型只是让这些既有写法通过类型检查，不改任何视觉与行为。</p>
+     */
+    type?: "primary" | "success" | "warning" | "info" | "danger" | "text" | "default" | "";
     /**
      * 尺寸档：large / default / small 直通 Element；
      * `mini` 是 square / modern 两个布局的额外档位（24px），用于塞进 mini 密度表格的操作列 ——
@@ -127,7 +135,7 @@ const props = withDefaults(
   }>(),
   {
     layout: "el",
-    type: undefined as undefined | "primary" | "success" | "warning" | "danger" | "info",
+    type: undefined as undefined | "primary" | "success" | "warning" | "danger" | "info" | "text" | "default" | "",
     size: undefined as undefined | "large" | "default" | "small" | "mini",
     plain: false,
     round: false,

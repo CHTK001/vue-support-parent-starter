@@ -47,6 +47,7 @@ import type {
   OtherConfig,
   MenuFooterConfig,
   MonitorConfig,
+  MenuCollapseConfig,
 } from "./types/config";
 
 /** 默认配置（没有 app.yaml 时全部走默认，定义见 ./shared） */
@@ -89,6 +90,35 @@ export function resolveMenuDefaultIcon(): string {
  */
 export function resolveGroupNav(): boolean {
   return currentConfig.menu?.groupNav !== false;
+}
+
+/**
+ * 菜单折叠形态（app.yaml menuConfig.collapse，仅垂直布局生效；迭代自 collapseToButton）。
+ *
+ * <p>按此组合出折叠后的可见形态：</p>
+ * <ul>
+ *   <li>showButton=false + showBar=yes  → 折叠后只显示 mini 图标菜单条（当前默认）</li>
+ *   <li>showButton=true  + showBar=no   → 折叠后菜单区只保留一个「展开菜单」按钮</li>
+ *   <li>showButton=true  + showBar=yes  → mini 菜单条 + 展开按钮（两者都留）</li>
+ *   <li>showButton=false + showBar=no   → 折叠后侧边栏整体隐藏（主内容区铺满）</li>
+ * </ul>
+ *
+ * <p>与 `collapseToButton` 的向下兼容映射（旧 app.yaml / 本地快照中可能仍只有 collapseToButton）：
+ *   collapseToButton=true  → collapse.showButton=true, collapse.showBar=no
+ *   collapseToButton=false → collapse.showButton=false, collapse.showBar=yes</p>
+ *
+ * @returns 菜单折叠形态配置（缺省 showButton=false, showBar=yes，即当前 mini 条默认）
+ */
+export function resolveMenuCollapse(): MenuCollapseConfig {
+  const menu = currentConfig.menu ?? ({} as MenuConfig);
+  if (menu.collapse) {
+    return { showButton: false, showBar: "yes", ...menu.collapse } as MenuCollapseConfig;
+  }
+  // 旧 key 向下兼容：从未配置过 collapse 时，按 legacy collapseToButton 映射
+  return {
+    showButton: menu.collapseToButton === true,
+    showBar: menu.collapseToButton === true ? "no" : "yes",
+  } as MenuCollapseConfig;
 }
 
 /**
@@ -349,6 +379,76 @@ export function isCapabilityDeployOff(key: string): boolean {
   return baseline?.capabilities?.[key] === false;
 }
 
+// ==================== 加载动画的部署侧接管（app.yaml other.loaderConfig） ====================
+
+/** 加载动画部署侧策略（已归一化，调用方不必再判空/兜底） */
+export interface LoaderDeployPolicy {
+  /** 是否由部署侧接管（false = 完全不接管，用户自选，行为与未加本段配置一致） */
+  locked: boolean;
+  /** 动画键（原始值，历史键由调用方用别名表折叠） */
+  animation: string;
+  /** 首屏动画基准边长（px，已 clamp 到 8~512） */
+  size: number;
+  /** 动画主色（非法值已被替换为默认色） */
+  color: string;
+}
+
+/** 加载动画的缺省值（与 defaultAppConfig.other.loaderConfig 一致） */
+const LOADER_DEFAULTS: LoaderDeployPolicy = {
+  locked: false,
+  animation: "wave",
+  size: 96,
+  color: "#406eeb",
+};
+
+/**
+ * 颜色是否是可安全写进 CSS 变量的取值。
+ *
+ * <p>只放行 {@code #rgb/#rrggbb/#rrggbbaa} 与 {@code rgb()/rgba()/hsl()/hsla()}：
+ * 这个值最终会拼进 {@code style} 或 CSS 文本，放任任意字符串等于允许注入
+ * （例如 {@code red;background:url(...)}），没必要留这个口子。</p>
+ */
+function isSafeCssColor(value: string): boolean {
+  return (
+    /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(value) ||
+    /^(?:rgb|hsl)a?\(\s*[\d.%\s,/+-]+\)$/i.test(value)
+  );
+}
+
+/**
+ * 解析加载动画的部署侧策略。
+ *
+ * <p>返回的是「最终生效值」，三处（首屏、ReLoader、主题配置预览）都读它，
+ * 避免各自判 {@code enable} 与兜底导致一处锁定、一处没锁。</p>
+ *
+ * @returns 归一化后的策略；未接管时 {@code locked === false}
+ */
+export function resolveLoaderDeployPolicy(): LoaderDeployPolicy {
+  const raw = currentConfig.other?.loaderConfig as
+    | { enable?: unknown; animation?: unknown; size?: unknown; color?: unknown }
+    | undefined;
+
+  // 缺省必须是「不接管」：老应用没有这段配置时行为和改造前完全一样
+  if (!raw || raw.enable !== true) {
+    return { ...LOADER_DEFAULTS };
+  }
+
+  const animation =
+    typeof raw.animation === "string" && raw.animation.trim()
+      ? raw.animation.trim()
+      : LOADER_DEFAULTS.animation;
+
+  const rawSize = typeof raw.size === "number" ? raw.size : Number(raw.size);
+  const size = Number.isFinite(rawSize)
+    ? Math.min(512, Math.max(8, Math.round(rawSize)))
+    : LOADER_DEFAULTS.size;
+
+  const rawColor = typeof raw.color === "string" ? raw.color.trim() : "";
+  const color = rawColor && isSafeCssColor(rawColor) ? rawColor : LOADER_DEFAULTS.color;
+
+  return { locked: true, animation, size, color };
+}
+
 /**
  * 保存用户可调配置到 storage。
  * 只持久化设置面板能改的切片：other（工具栏/计时器/状态色）、message、menu、login、
@@ -395,7 +495,15 @@ export async function restoreUserConfig(): Promise<void> {
       // 避免历史 user-config 中的 app/route/http 等覆盖 yaml 加载值
       const { other, message, security, menu, login } = saved;
       const filtered: Partial<AppConfig> = {};
-      if (other) filtered.other = other;
+      if (other) {
+        // 加载动画接管是**部署侧**决定（app.yaml），用户快照不得覆盖：
+        // 历史快照里若带过这一片（或旧版本整片持久化过 other），恢复时直接丢弃。
+        const restoredOther = {
+          ...(other as unknown as Record<string, unknown>),
+        };
+        delete restoredOther.loaderConfig;
+        filtered.other = restoredOther as unknown as AppConfig["other"];
+      }
       if (message) filtered.message = message;
       if (security) filtered.security = security;
       if (menu) filtered.menu = menu as AppConfig["menu"];

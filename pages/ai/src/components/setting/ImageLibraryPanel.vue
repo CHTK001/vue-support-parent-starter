@@ -107,6 +107,14 @@
           <span class="lib-panel-count">共 {{ total }} 张</span>
         </div>
 
+        <!-- 分组筛选：单组定位口径（看板/删除/入库）—— 底库分组与检索页的
+             多选范围口径同源，但本面板只在当前组内操作。 -->
+        <el-select v-model="group" class="lib-group" placeholder="选择分组" filterable allow-create
+          default-first-option title="不同分组各有一套底库，互不可见"
+          :disabled="loading" @change="onGroupChange">
+          <el-option v-for="g in groupOptions" :key="g" :label="g" :value="g" />
+        </el-select>
+
         <el-input v-model="keyword" placeholder="按名称/关键词检索" clearable class="lib-search"
           @keyup.enter="applyKeyword" @clear="applyKeyword">
           <template #prefix><el-icon><Search /></el-icon></template>
@@ -310,6 +318,7 @@ import { resolveImageUrl } from '@/utils/imageSearchUrl'
 import { createAuthImageLoader } from '@/utils/authImage'
 import { toErrorMessage } from '@/utils/errors'
 import { usePopup } from '@/composables/usePopup'
+import { useLibraryGroups } from '@/composables/useLibraryGroups'
 import { useModelConfigStore } from '@/stores/modelConfig'
 
 /**
@@ -340,6 +349,9 @@ interface ImageItem {
 
 const { toast, confirm } = usePopup()
 const router = useRouter()
+
+/** 当前分组：底库面板是单组定位口径（入库/列表/删除/取图只作用于这一组） */
+const { group, groupOptions, loadGroups } = useLibraryGroups('image')
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const gridRef = ref<HTMLElement | null>(null)
@@ -552,6 +564,17 @@ function applyKeyword() {
   if (viewMode.value !== 'table') void load(1)
 }
 
+/**
+ * 分组切换：返回第 1 页。
+ *
+ * <p>换组 = 换了一个底库（不同分组各有一套 vector），不是同一列表的分页，
+ * 所以翻页码必须归零；勾选也要清掉（它指的是旧组的记录）。</p>
+ */
+async function onGroupChange() {
+  selected.value = new Set()
+  await load(1)
+}
+
 /* ── 表格视图（ReTable · 后端分页/检索；状态筛选仍按页内口径，同网格） ── */
 
 /** 表格参数：检索词/状态变化 → ReTable 自动回第 1 页重查 */
@@ -614,8 +637,8 @@ async function tableLoader(p: ReTableLoadParams): Promise<RePageResult> {
   const params = (p.params ?? {}) as Record<string, unknown>
   const kw = String(params.keyword ?? '').trim()
   const st = String(params.status ?? 'all')
-  const data = await apiService._request('/image-search/list', {
-    params: { page: p.page, size: p.pageSize, keyword: kw || undefined },
+  const data = await apiService.listImage({
+    page: p.page, size: p.pageSize, keyword: kw, group: group.value,
   })
   const list: ImageItem[] = data?.items ?? []
   // 状态卡与重复指纹在表格模式下同样按「当页」口径（与网格一致），同步数据源
@@ -756,14 +779,8 @@ async function upload(files: File[]) {
       const file = accepted[i]
       progressText.value = `正在入库 ${i + 1}/${accepted.length}：${file.name}`
       try {
-        const form = new FormData()
-        form.append('file', file)
-        form.append('name', file.name)
-        await apiService._request('/image-search/index', {
-          method: 'POST',
-          data: form,
-          headers: { 'Content-Type': 'multipart/form-data' },
-        })
+        // 注意这里必须传 group（当前分组）—— 上传进别的分组，底库面板就看不到了
+        await apiService.indexImage(file, file.name, group.value)
         ok++
       } catch (e: any) {
         failed.push(`${file.name}：${e?.message || '未知错误'}`)
@@ -799,7 +816,8 @@ async function removeOne(item: ImageItem) {
   }
   busy.value = true
   try {
-    await apiService._request(`/image-search/${item.id}`, { method: 'DELETE' })
+    // 同一分组口径；没选组按 default，不会越界删别的组的记录
+    await apiService.deleteImage(item.id, group.value)
     toast.success('已删除')
     const next = new Set(selected.value)
     next.delete(item.id)
@@ -832,7 +850,9 @@ async function removeSelected() {
   try {
     for (const id of ids) {
       try {
-        await apiService._request(`/image-search/${id}`, { method: 'DELETE' })
+        // 注意： Pria 删的是当前分组里的记录（与 group 口径一致），
+        // 不要用 `items` 里每行的记录去反推分组
+        await apiService.deleteImage(id, group.value)
         ok++
       } catch (e: any) {
         const name = items.value.find((x) => x.id === id)?.name || `#${id}`
@@ -912,8 +932,8 @@ async function load(target = 1) {
   }
   loading.value = true
   try {
-    const data = await apiService._request('/image-search/list', {
-      params: { page: target, size: pageSize.value, keyword: kwApplied.value || undefined },
+    const data = await apiService.listImage({
+      page: target, size: pageSize.value, keyword: kwApplied.value || undefined, group: group.value,
     })
     items.value = data?.items ?? []
     total.value = data?.total ?? 0
@@ -1027,6 +1047,8 @@ watch(viewMode, async (mode, prev) => {
 })
 
 onMounted(async () => {
+  // 先拉分组选项再拉列表：否则下拉里只有 default，用户看不到自己已有的分组
+  await loadGroups()
   await loadStatus()
   loadSearchParams()
   // 被拦时不拉列表：拉了也渲染不出来，只是白发一串必然失败的请求

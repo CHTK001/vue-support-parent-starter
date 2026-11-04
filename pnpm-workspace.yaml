@@ -168,6 +168,9 @@ catalog:
 # 写 package.json 的 pnpm 字段会被忽略且直接告警）。
 # - @file-viewer/renderer-text：languageMap/languageLoaders 加 conf/cfg/cnf（nginx/ini 语法）
 # - @file-viewer/core：code 定义 extensions 补 conf/cfg/cnf，让渲染器分发出得去
+# - vxe-table：拖拽列宽松手尾段的两处性能补丁（去 300ms 二次 recalculate、
+#   横向虚拟列范围在同一渲染批次内复用，避免反复读 clientWidth 强制同步布局）
+# 注意：@file-viewer/renderer-text 和 @file-viewer/core 的补丁文件（patches/ 目录）已
+# 缺失，pnpm install 无法完成。仅保留实际存在的 vxe-table 补丁，另两处按未打补丁版本安装。
 patchedDependencies:
-  "@file-viewer/renderer-text@3.1.2": patches/@file-viewer__renderer-text@3.1.2.patch
-  "@file-viewer/core@3.1.2": patches/@file-viewer__core@3.1.2.patch
+  "vxe-table@4.22.2": patches/vxe-table@4.22.2.patch

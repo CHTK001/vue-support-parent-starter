@@ -6,14 +6,16 @@
  * 长得一样，得逐行读地址才知道暴露面。这里把端口号放大、把「对外 / 仅本机」做成标签，
  * 再按协议分组，暴露面直接可数。</p>
  *
- * <p>字段来自 {@code NetProcessRowVO}：protocol / local / port / state / pid / process。</p>
+ * <p>字段来自 {@code NetProcessRowVO}：protocol / local / port / remote / remotePort / state /
+ * pid / process。列表视图逐列可排序，默认仍按「协议 → 端口」升序，保证首屏顺序与旧版一致。</p>
  *
  * @author CH
  * @since 4.0.0.42
  */
 import { computed, ref } from "vue";
-import { numOf, portOpen, stateTone } from "../../utils/hostProfileUi";
+import { leadTileOf, numOf, portOpen, stateTone } from "../../utils/hostProfileUi";
 import ProfileSectionShell from "./ProfileSectionShell.vue";
+import ProfileSortHead from "./ProfileSortHead.vue";
 import type { StripItem } from "./types";
 
 interface Props {
@@ -52,12 +54,29 @@ const emit = defineEmits<{
 /** 端口视图行 */
 interface PortView {
   raw: Record<string, any>;
+  /** 协议（大写），来自 protocol / type */
+  proto: string;
   port: number;
+  /** 本地 IP（不带端口） */
+  localAddr: string;
+  /** 已建立的远端 IP（不带端口） */
+  remoteAddr: string;
+  remotePort: number;
+  /** 远端展示文本；未建立连接时为空串，由模板统一渲染「—」 */
+  remoteText: string;
   open: boolean | null;
   tone: string;
   /** 是否监听在所有网卡上（对外暴露） */
   exposed: boolean;
+  /** 占用进程名 */
+  process: string;
+  pid: number;
+  /** 进程前置图标：品牌 Logo / 品牌色块 + 线性图形 / 首字母 */
+  tile: ReturnType<typeof leadTileOf>;
 }
+
+/** 通配地址：监听态的本端/对端在这些取值上都代表「任意地址」 */
+const WILDCARD = new Set(["", "*", "0.0.0.0", "::", "[::]", "0:0:0:0:0:0:0:0"]);
 
 /**
  * 是否对外暴露：0.0.0.0 / :: / * / [::] 视为全部网卡；
@@ -71,28 +90,75 @@ function isExposed(local: unknown): boolean {
   return true;
 }
 
-const view = computed<PortView[]>(() => props.rows.map(raw => ({
-  raw,
-  port: numOf(raw.port),
-  open: portOpen(raw.state),
-  tone: stateTone(raw.state),
-  exposed: isExposed(raw.local),
-})));
+/** 本端地址：优先取 localAddr，老数据只给 local（addr:port）时按最后一个冒号切 */
+function localAddrOf(raw: Record<string, any>): string {
+  const addr = String(raw.localAddr ?? "").trim();
+  if (addr) return addr;
+  const text = String(raw.local ?? "").trim();
+  if (!text) return "";
+  const i = text.lastIndexOf(":");
+  return i > -1 ? text.slice(0, i) : text;
+}
+
+/** 远端地址 / 端口：未连接时后端给 0.0.0.0:0 或空串 */
+function remoteOf(raw: Record<string, any>): { addr: string; port: number; text: string } {
+  const addr = String(raw.remoteAddr ?? "").trim();
+  const port = numOf(raw.remotePort);
+  if (port > 0 || !WILDCARD.has(addr)) return { addr, port, text: `${addr || "*"}:${port}` };
+  // 只有 remote 展示文本、没有拆分字段时，从 addr:port 里还原
+  const text = String(raw.remote ?? "").trim();
+  if (text) {
+    const i = text.lastIndexOf(":");
+    const p = i > -1 ? numOf(text.slice(i + 1)) : 0;
+    const a = i > -1 ? text.slice(0, i) : text;
+    if (p > 0 || !WILDCARD.has(a)) return { addr: a, port: p, text };
+  }
+  return { addr: "", port: 0, text: "" };
+}
+
+const view = computed<PortView[]>(() => props.rows.map(raw => {
+  const remote = remoteOf(raw);
+  const proto = String(raw.protocol ?? raw.type ?? "OTHER").trim().toUpperCase() || "OTHER";
+  const localAddr = localAddrOf(raw);
+  return {
+    raw,
+    proto,
+    port: numOf(raw.port ?? raw.localPort),
+    localAddr,
+    remoteAddr: remote.addr,
+    remotePort: remote.port,
+    remoteText: remote.text,
+    open: portOpen(raw.state),
+    tone: stateTone(raw.state),
+    exposed: isExposed(localAddr),
+    process: String(raw.process ?? "").trim(),
+    pid: numOf(raw.pid),
+    // 端口行只有 process 字段，图标要按进程名取，不能直接把整行交给 leadTileOf（它读 name）
+    tile: leadTileOf("processes", { name: String(raw.process ?? raw.name ?? "").trim() }),
+  };
+}));
+
+/** 协议的固定顺序：TCP 在前、UDP 在后，未知协议沉底 */
+const PROTO_ORDER = ["TCP", "TCP4", "TCP6", "UDP", "UDP4", "UDP6"];
+
+/** 协议名 → 排序权重 */
+function protoRank(proto: string): number {
+  const i = PROTO_ORDER.indexOf(proto);
+  return i === -1 ? 99 : i;
+}
 
 /** 按协议分组：TCP 在前，其余按出现顺序 */
 const groups = computed<Array<{ name: string; list: PortView[] }>>(() => {
   const map = new Map<string, PortView[]>();
   for (const p of view.value) {
-    const key = String(p.raw.protocol ?? "OTHER").trim().toUpperCase() || "OTHER";
-    if (!map.has(key)) map.set(key, []);
-    map.get(key)!.push(p);
+    if (!map.has(p.proto)) map.set(p.proto, []);
+    map.get(p.proto)!.push(p);
   }
-  const order = ["TCP", "TCP6", "UDP", "UDP6"];
   return [...map.entries()]
     .sort((a, b) => {
-      const ai = order.indexOf(a[0]);
-      const bi = order.indexOf(b[0]);
-      if (ai !== -1 || bi !== -1) return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+      const ai = protoRank(a[0]);
+      const bi = protoRank(b[0]);
+      if (ai !== 99 || bi !== 99) return ai - bi;
       return a[0].localeCompare(b[0]);
     })
     .map(([name, list]) => ({
@@ -104,11 +170,11 @@ const groups = computed<Array<{ name: string; list: PortView[] }>>(() => {
 
 /** 聚合条：监听总数、TCP、UDP、对外暴露 */
 const strip = computed<StripItem[]>(() => {
-  const rows = props.rows;
+  const rows = view.value;
   const total = props.paged ? props.total : rows.length;
-  const tcp = rows.filter(r => String(r.protocol ?? "").toUpperCase().startsWith("TCP")).length;
-  const udp = rows.filter(r => String(r.protocol ?? "").toUpperCase().startsWith("UDP")).length;
-  const exposed = rows.filter(r => isExposed(r.local)).length;
+  const tcp = rows.filter(p => p.proto.startsWith("TCP")).length;
+  const udp = rows.filter(p => p.proto.startsWith("UDP")).length;
+  const exposed = rows.filter(p => p.exposed).length;
   return [
     { label: "监听总数", value: `${total} 个` },
     { label: "本页 TCP", value: `${tcp} 个` },
@@ -125,20 +191,94 @@ const strip = computed<StripItem[]>(() => {
 /** 视图模式：卡片 / 列表 */
 const viewMode = ref<"card" | "list">("list");
 
-/** 列表视图排序：默认按端口升序 */
+/* ==================== 列表视图排序 ==================== */
+
+/** 可排序列；操作列没有可比较的值，不参与排序 */
+type SortKey = "protocol" | "port" | "local" | "remote" | "remotePort" | "state" | "process" | "pid" | "scope";
+
+const sortKey = ref<SortKey | "">("");
+const sortDir = ref<"asc" | "desc">("asc");
+
+/** 点同一列切换升 / 降序，点另一列从升序重新开始 */
+function toggleSort(key: SortKey): void {
+  if (sortKey.value === key) {
+    sortDir.value = sortDir.value === "asc" ? "desc" : "asc";
+    return;
+  }
+  sortKey.value = key;
+  sortDir.value = "asc";
+}
+
+/** IPv4 按四段数值比较，IPv6 / 主机名退化为字典序 */
+function ipParts(addr: string): number[] | null {
+  const s = addr.replace(/^\[|\]$/g, "");
+  if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(s)) return null;
+  return s.split(".").map(Number);
+}
+
+function cmpAddr(a: string, b: string): number {
+  const pa = ipParts(a);
+  const pb = ipParts(b);
+  if (pa && pb) {
+    for (let i = 0; i < 4; i++) {
+      if (pa[i] !== pb[i]) return pa[i] - pb[i];
+    }
+    return 0;
+  }
+  return a.localeCompare(b);
+}
+
+/** 空值判定：无论升序还是降序，没有值的行都沉底 */
+function isBlank(key: SortKey, p: PortView): boolean {
+  if (key === "remote" || key === "remotePort") return p.remoteText === "";
+  if (key === "process") return p.process === "";
+  if (key === "pid") return p.pid <= 0;
+  return false;
+}
+
+function compareBy(key: SortKey, a: PortView, b: PortView): number {
+  switch (key) {
+    case "protocol":
+      return protoRank(a.proto) - protoRank(b.proto) || a.proto.localeCompare(b.proto);
+    case "port":
+      return a.port - b.port;
+    case "local":
+      return cmpAddr(a.localAddr, b.localAddr) || a.port - b.port;
+    case "remote":
+      return cmpAddr(a.remoteAddr, b.remoteAddr) || a.remotePort - b.remotePort;
+    case "remotePort":
+      return a.remotePort - b.remotePort;
+    case "state": {
+      // 监听态在前：一眼先看到「开着什么」，再是已建立的连接
+      const oa = a.open === null ? 2 : a.open ? 0 : 1;
+      const ob = b.open === null ? 2 : b.open ? 0 : 1;
+      return oa - ob || String(a.raw.state ?? "").localeCompare(String(b.raw.state ?? ""));
+    }
+    case "process":
+      return a.process.localeCompare(b.process);
+    case "pid":
+      return a.pid - b.pid;
+    case "scope":
+      return Number(b.exposed) - Number(a.exposed) || a.port - b.port;
+    default:
+      return 0;
+  }
+}
+
+/** 列表视图：未点列头时保持「协议 → 端口」升序，点了之后按选中列排 */
 const listView = computed<PortView[]>(() => {
   const items = [...view.value];
+  const key = sortKey.value;
+  if (!key) {
+    items.sort((a, b) => protoRank(a.proto) - protoRank(b.proto) || a.port - b.port);
+    return items;
+  }
+  const dir = sortDir.value === "asc" ? 1 : -1;
   items.sort((a, b) => {
-    // 先按协议（TCP 在前），再按端口号
-    const pa = String(a.raw.protocol ?? "").toUpperCase();
-    const pb = String(b.raw.protocol ?? "").toUpperCase();
-    if (pa !== pb) {
-      const order = ["TCP", "TCP6", "UDP", "UDP6"];
-      const ai = order.indexOf(pa);
-      const bi = order.indexOf(pb);
-      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
-    }
-    return a.port - b.port;
+    const ba = isBlank(key, a);
+    const bb = isBlank(key, b);
+    if (ba !== bb) return ba ? 1 : -1;
+    return compareBy(key, a, b) * dir;
   });
   return items;
 });
@@ -199,7 +339,7 @@ const listView = computed<PortView[]>(() => {
         <div class="port-chips">
           <div
             v-for="p in g.list"
-            :key="`${p.raw.protocol}-${p.raw.local}-${p.port}`"
+            :key="`${p.proto}-${p.localAddr}-${p.port}-${p.remoteText}`"
             :class="['port-chip', p.open === false ? 'is-closed' : '']"
           >
             <div class="port-chip-top">
@@ -209,10 +349,20 @@ const listView = computed<PortView[]>(() => {
               </span>
               <span v-else class="pf-pill t-mute">未知</span>
             </div>
-            <div class="port-proc pf-mono pf-ellipsis" :title="String(p.raw.process ?? '')">
-              {{ p.raw.process || "—" }}
+            <div class="port-proc" :title="p.process || '无归属进程'">
+              <span v-if="p.tile.brand" class="port-tile port-tile--brand" v-html="p.tile.brand"></span>
+              <span v-else class="port-tile" :style="{ background: p.tile.bg }">
+                <span v-if="p.tile.glyph" class="port-glyph" v-html="p.tile.glyph"></span>
+                <template v-else>{{ p.tile.letter }}</template>
+              </span>
+              <span class="pf-mono pf-ellipsis">{{ p.process || "—" }}</span>
             </div>
-            <div class="port-addr pf-mono pf-dim pf-ellipsis">{{ p.raw.local || "—" }}</div>
+            <div class="port-addr pf-mono pf-dim pf-ellipsis">{{ p.raw.local || p.localAddr || "—" }}</div>
+            <div
+              v-if="p.remoteText"
+              class="port-peer pf-mono pf-dim pf-ellipsis"
+              :title="`远端 ${p.remoteText}`"
+            >→ {{ p.remoteText }}</div>
             <div class="port-foot">
               <span :class="['pf-pill', p.exposed ? 't-warn' : 't-mute']">
                 {{ p.exposed ? "对外" : "仅本机" }}
@@ -233,40 +383,54 @@ const listView = computed<PortView[]>(() => {
       </section>
     </div>
 
-    <!-- 列表视图：表格行 -->
+    <!-- 列表视图：表格行，所有数据列均可点击排序 -->
     <div v-else class="port-list">
-      <div class="port-list-head">
-        <span class="plh-proto">协议</span>
-        <span class="plh-port">端口</span>
-        <span class="plh-addr">地址</span>
-        <span class="plh-state">状态</span>
-        <span class="plh-proc">进程</span>
-        <span class="plh-pid">PID</span>
-        <span class="plh-scope">范围</span>
-        <span class="plh-action"></span>
-      </div>
-      <div
-        v-for="p in listView"
-        :key="`${p.raw.protocol}-${p.raw.local}-${p.port}`"
-        :class="['port-list-row', p.open === false ? 'is-closed' : '']"
-      >
-        <span class="plh-proto"><span :class="['pf-pill', p.raw.protocol?.toUpperCase().startsWith('TCP') ? 't-brand' : 't-warn']">{{ String(p.raw.protocol ?? 'OTHER').toUpperCase() }}</span></span>
-        <b class="plh-port pf-mono">{{ p.port }}</b>
-        <span class="plh-addr pf-mono pf-dim pf-ellipsis">{{ p.raw.local || "—" }}</span>
-        <span v-if="p.open !== null" :class="['pf-pill', p.open ? 't-ok' : 't-bad']">{{ p.open ? "监听" : "关闭" }}</span>
-        <span v-else class="pf-pill t-mute">未知</span>
-        <span class="plh-proc pf-mono pf-ellipsis" :title="String(p.raw.process ?? '')">{{ p.raw.process || "—" }}</span>
-        <span class="plh-pid pf-mono pf-dim">{{ p.raw.pid ?? "—" }}</span>
-        <span :class="['pf-pill', p.exposed ? 't-warn' : 't-mute']">{{ p.exposed ? "对外" : "仅本机" }}</span>
-        <ReButton
-          layout="square"
-          type="danger"
-          icon="Delete"
-          tip="结束"
-          :title="numOf(p.raw.pid) > 0 ? '' : '该端口无归属进程，无法结束'"
-          :disabled="numOf(p.raw.pid) <= 0 || busyKey === `netproc-${p.raw.pid}-${p.port}`"
-          @click="emit('close', p.raw)"
-        />
+      <div class="port-list-scroll">
+        <div class="port-list-head">
+          <ProfileSortHead label="进程" :active="sortKey === 'process'" :dir="sortDir" @sort="toggleSort('process')" />
+          <ProfileSortHead label="协议" :active="sortKey === 'protocol'" :dir="sortDir" @sort="toggleSort('protocol')" />
+          <ProfileSortHead label="端口" :active="sortKey === 'port'" :dir="sortDir" align="right" @sort="toggleSort('port')" />
+          <ProfileSortHead label="地址" :active="sortKey === 'local'" :dir="sortDir" @sort="toggleSort('local')" />
+          <ProfileSortHead label="远程地址" :active="sortKey === 'remote'" :dir="sortDir" @sort="toggleSort('remote')" />
+          <ProfileSortHead label="远程端口" :active="sortKey === 'remotePort'" :dir="sortDir" align="right" @sort="toggleSort('remotePort')" />
+          <ProfileSortHead label="状态" :active="sortKey === 'state'" :dir="sortDir" @sort="toggleSort('state')" />
+          <ProfileSortHead label="PID" :active="sortKey === 'pid'" :dir="sortDir" align="right" @sort="toggleSort('pid')" />
+          <ProfileSortHead label="范围" :active="sortKey === 'scope'" :dir="sortDir" @sort="toggleSort('scope')" />
+          <span class="plh-action"></span>
+        </div>
+        <div
+          v-for="p in listView"
+          :key="`${p.proto}-${p.localAddr}-${p.port}-${p.remoteText}`"
+          :class="['port-list-row', p.open === false ? 'is-closed' : '']"
+        >
+          <span class="plh-proc" :title="p.process || '无归属进程'">
+            <span v-if="p.tile.brand" class="port-tile port-tile--brand" v-html="p.tile.brand"></span>
+            <span v-else class="port-tile" :style="{ background: p.tile.bg }">
+              <span v-if="p.tile.glyph" class="port-glyph" v-html="p.tile.glyph"></span>
+              <template v-else>{{ p.tile.letter }}</template>
+            </span>
+            <span class="pf-mono pf-ellipsis">{{ p.process || "—" }}</span>
+          </span>
+          <span class="plh-proto"><span :class="['pf-pill', p.proto.startsWith('TCP') ? 't-brand' : 't-warn']">{{ p.proto }}</span></span>
+          <b class="plh-port pf-mono">{{ p.port }}</b>
+          <span class="plh-addr pf-mono pf-dim pf-ellipsis" :title="p.raw.local || p.localAddr">{{ p.raw.local || p.localAddr || "—" }}</span>
+          <span v-if="p.remoteText" class="plh-remote pf-mono pf-ellipsis" :title="p.remoteText">{{ p.remoteAddr || p.remoteText }}</span>
+          <span v-else class="plh-remote pf-dim">—</span>
+          <span class="plh-rport pf-mono pf-dim">{{ p.remoteText ? p.remotePort : "—" }}</span>
+          <span v-if="p.open !== null" :class="['pf-pill', p.open ? 't-ok' : 't-bad']">{{ p.open ? "监听" : "关闭" }}</span>
+          <span v-else class="pf-pill t-mute">未知</span>
+          <span class="plh-pid pf-mono pf-dim">{{ p.pid > 0 ? p.pid : "—" }}</span>
+          <span :class="['pf-pill', p.exposed ? 't-warn' : 't-mute']">{{ p.exposed ? "对外" : "仅本机" }}</span>
+          <ReButton
+            layout="square"
+            type="danger"
+            icon="Delete"
+            tip="结束"
+            :title="p.pid > 0 ? '' : '该端口无归属进程，无法结束'"
+            :disabled="p.pid <= 0 || busyKey === `netproc-${p.pid}-${p.port}`"
+            @click="emit('close', p.raw)"
+          />
+        </div>
       </div>
     </div>
   </ProfileSectionShell>
@@ -325,11 +489,44 @@ const listView = computed<PortView[]>(() => {
   color: var(--el-text-color-primary, #1f2430);
 }
 .port-proc {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
   font-size: 11.5px;
   color: var(--el-text-color-regular, #4a5162);
 }
+/* 进程前置图标：与进程分区同一口径（品牌 Logo / 品牌色块 + 线性图形 / 首字母） */
+.port-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+}
+.port-tile--brand {
+  background: var(--el-bg-color, #fff);
+  border: 1px solid var(--el-border-color-extra-light, #eef0f6);
+}
+.port-tile :deep(svg) {
+  display: block;
+  width: 13px;
+  height: 13px;
+}
+.port-glyph {
+  display: inline-flex;
+  line-height: 0;
+}
 .port-addr {
   font-size: 11px;
+}
+.port-peer {
+  font-size: 10.5px;
 }
 .port-foot {
   display: flex;
@@ -402,11 +599,16 @@ const listView = computed<PortView[]>(() => {
   flex-direction: column;
   gap: 1px;
 }
+/* 窄屏横向滚动，不压扁列内容；表头与行共用同一套列宽 */
+.port-list-scroll {
+  overflow-x: auto;
+}
 .port-list-head {
   display: grid;
-  grid-template-columns: 64px 60px 1fr 60px 120px 64px 60px 52px;
+  grid-template-columns: minmax(126px, 1.05fr) 58px 56px minmax(92px, 1fr) minmax(104px, 1fr) 64px 56px 54px 52px 36px;
   gap: 8px;
   align-items: center;
+  min-width: 760px;
   padding: 5px 10px;
   font-size: 10.5px;
   color: var(--el-text-color-placeholder, #a8abb2);
@@ -415,9 +617,10 @@ const listView = computed<PortView[]>(() => {
 }
 .port-list-row {
   display: grid;
-  grid-template-columns: 64px 60px 1fr 60px 120px 64px 60px 52px;
+  grid-template-columns: minmax(126px, 1.05fr) 58px 56px minmax(92px, 1fr) minmax(104px, 1fr) 64px 56px 54px 52px 36px;
   gap: 8px;
   align-items: center;
+  min-width: 760px;
   padding: 5px 10px;
   border-radius: 6px;
   font-size: 12px;
@@ -435,13 +638,26 @@ const listView = computed<PortView[]>(() => {
 .plh-port {
   font-size: 13px;
   font-weight: 600;
+  text-align: right;
   color: var(--el-text-color-primary, #1f2430);
 }
 .plh-addr {
   min-width: 0;
   font-size: 11px;
 }
+.plh-remote {
+  min-width: 0;
+  font-size: 11px;
+  color: var(--el-text-color-regular, #4a5162);
+}
+.plh-rport {
+  font-size: 11px;
+  text-align: right;
+}
 .plh-proc {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   min-width: 0;
   font-size: 11.5px;
   color: var(--el-text-color-regular, #4a5162);
@@ -458,16 +674,15 @@ const listView = computed<PortView[]>(() => {
 @media (max-width: 720px) {
   .port-list-head,
   .port-list-row {
-    grid-template-columns: 50px 1fr 50px 50px;
+    grid-template-columns: minmax(0, 1fr) 44px 46px 50px 52px 34px;
+    min-width: 0;
+    gap: 6px;
   }
   .plh-addr,
-  .plh-proc,
-  .plh-pid,
-  .plh-scope {
+  .plh-remote,
+  .plh-rport,
+  .plh-pid {
     display: none;
-  }
-  .plh-scope {
-    display: flex;
   }
 }
 </style>

@@ -959,8 +959,8 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
             <ReButton v-if="selectedHost?.serverHostRemoteEnabled === 1" icon="Connection" layout="square" @click="emit('connect', selectedHost)">连接</ReButton>
             <ReButton icon="TrendCharts" layout="square" @click="emit('detail', selectedHost)">监控详情</ReButton>
             <ReButton icon="EditPen" layout="square" @click="emit('edit', selectedHost)">编辑</ReButton>
-            <label class="auto-switch" title="由「系统设置」弹窗设定">
-              <span>{{ autoRefresh ? `自动刷新 ${countdown}s` : `自动刷新（${autoRefreshSeconds}s）` }}</span>
+            <label class="auto-switch" :title="autoRefresh ? '自动刷新中；可在右键菜单 → 系统 → 系统设置中调整间隔' : '自动刷新已关闭；可在右键菜单 → 系统 → 系统设置中开启'">
+              <span>{{ autoRefresh ? `自动刷新 ${countdown}s` : '自动刷新已关闭' }}</span>
             </label>
             <span v-if="pagedSection" class="ph-pagesize" title="由「系统设置」弹窗设定">每页 {{ pageSize }} 条</span>
           </div>
@@ -985,8 +985,8 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
               @click="loadProfile(true)">刷新</ReButton>
             <ReButton v-if="isAgentMode && !agentReady && selectedHost?.serverHostSshEnabled === 1" icon="Download" layout="square" type="success"
               @click="emit('deploy-agent', selectedHost)">安装 Agent</ReButton>
-            <label class="auto-switch" title="由「系统设置」弹窗设定">
-              <span>{{ autoRefresh ? `自动刷新 ${countdown}s` : `自动刷新（${autoRefreshSeconds}s）` }}</span>
+            <label class="auto-switch" :title="autoRefresh ? '自动刷新中；可在右键菜单 → 系统 → 系统设置中调整间隔' : '自动刷新已关闭；可在右键菜单 → 系统 → 系统设置中开启'">
+              <span>{{ autoRefresh ? `自动刷新 ${countdown}s` : '自动刷新已关闭' }}</span>
             </label>
             <span v-if="pagedSection" class="ph-pagesize" title="由「系统设置」弹窗设定">每页 {{ pageSize }} 条</span>
           </div>
@@ -1014,7 +1014,7 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
         </div>
 
         <div class="seg-body">
-          <!-- 磁盘：容量环卡片，点卡片打开该盘根目录 -->
+          <!-- 磁盘：进程磁盘活动表（缺活动字段时降级为分区容量表） -->
           <ProfileDisks
             v-if="active === 'disks'"
             :rows="clientRows"

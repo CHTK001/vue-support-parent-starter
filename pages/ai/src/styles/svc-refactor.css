@@ -367,8 +367,8 @@ html.dark .svc {
    让表格容器填满后，空白被收进表格区域，看起来是「一张更高的表」而非缺口。 */
 .svc-pane--access .svc-tablewrap { flex: 1 1 auto; min-height: 0; }
 
-/* 令牌面板：吃满剩余高度 */
-.svc-pane--tokens { padding: var(--svc-sp-4) var(--svc-sp-4) var(--svc-sp-3); }
+/* Key 台账面板：吃满剩余高度；内边距与日志面板对齐 */
+.svc-pane--keys { padding: var(--svc-sp-4) var(--svc-sp-4) var(--svc-sp-3); }
 
 /* 工具栏：页签内顶部操作行，统一密度 */
 .svc-toolbar {
@@ -377,10 +377,6 @@ html.dark .svc {
   border-bottom: 1px solid var(--svc-rule);
   background: var(--svc-surface-2);
 }
-
-.svc-pane--tokens .svc-toolbar,
-.svc-pane--tokens .svc-console__meta,
-.svc-pane--tokens .svc-scope { display: none; }
 
 /* 焦点模式：实例区 / 状态带 / 访问日志整块退场，控制台吃满。
    用 display:none 而非透明度 —— 半残的三栏 flex 在实测里极易算出 0 高度。 */
@@ -756,4 +752,212 @@ html.dark .svc {
   .svc-tile__name { max-width: 160px; font-size: 14px; }
   .svc-line { grid-template-columns: 32px 40px minmax(0, 1fr); }
   .svc-line__no { padding-right: 8px; font-size: 10px; }
+}
+
+/* ############################################################################
+   11. Key 台账（appKey）
+   ----------------------------------------------------------------------------
+   一张账页，不是一堆卡片：工具条 → 口径说明 → 一行一把 Key。
+   三处刻意约束：
+     · 余量尺是全表唯一的图形编码（4px 条），数字与口径永远同时在场 ——
+       灰度打印或色弱环境下仍能读出「还剩多少、按什么算的」；
+     · 配额方式不染色（它不是状态），用前置形状区分：圆点 / 横杠 / 空心方；
+     · Key 值只露尾部 8 位，且点一下即复制 —— 密钥不该占据主视线。
+   ############################################################################ */
+.svc-ledger { display: flex; flex-direction: column; min-width: 0; }
+
+/* 口径说明：整页唯一需要「读一句就懂」的地方，故放在账页表头之上 */
+.svc-ledger__note {
+  margin: 0; padding: 9px var(--svc-sp-4);
+  border-bottom: 1px solid var(--svc-rule);
+  background: var(--svc-surface-2);
+  font-size: 11.5px; line-height: 1.65; color: var(--svc-ink-3);
+}
+.svc-ledger__note b { font-weight: 650; color: var(--svc-ink-2); }
+
+/* 台账表容器：顶部 2px 强调线替代区块标题（表头本身已是标题） */
+.svc-tablewrap.is-ledger {
+  border-top: 2px solid color-mix(in srgb, var(--svc-accent) 52%, var(--svc-rule));
+  border-left: 1px solid var(--svc-rule);
+  border-right: 1px solid var(--svc-rule);
+  border-bottom: 1px solid var(--svc-rule);
+  border-radius: var(--svc-r-md);
+  background: var(--svc-surface);
+  box-shadow: var(--svc-shadow-1);
+}
+
+/* Key 本体：名称主行（衬线）+ Key 尾巴次行（等宽） */
+.svc-key { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.svc-key__name {
+  font-family: var(--svc-serif); font-size: 13px; font-weight: 700;
+  color: var(--svc-ink); line-height: 1.25;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.svc-key__token {
+  display: inline-flex; align-items: center; gap: 4px; min-width: 0;
+  align-self: flex-start; max-width: 100%;
+  padding: 0; border: 0; background: transparent; cursor: pointer;
+  font-family: var(--svc-mono); font-size: 10.5px; letter-spacing: 0.01em;
+  color: var(--svc-ink-3);
+  transition: color var(--svc-dur-fast) ease;
+}
+.svc-key__token span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.svc-key__token .el-icon {
+  font-size: 12px; flex-shrink: 0;
+  opacity: 0.45; transition: opacity var(--svc-dur-fast) ease;
+}
+.svc-key__token:hover { color: var(--svc-accent); }
+.svc-key__token:hover .el-icon { opacity: 1; }
+.svc-key__token:focus-visible { outline: 2px solid var(--svc-accent); outline-offset: 2px; border-radius: 2px; }
+
+/* 可用模型：台面上最多两个 chip，其余收进悬浮清单 */
+.svc-models { display: flex; align-items: center; gap: 4px; overflow: hidden; }
+.svc-models .svc-chip {
+  max-width: 88px; display: inline-block; line-height: 16px;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.svc-chip.is-more { color: var(--svc-ink-3); background: transparent; border-style: dashed; cursor: default; }
+.svc-model-list {
+  display: flex; flex-direction: column; gap: 2px;
+  max-height: 220px; overflow-y: auto;
+  font-family: var(--svc-mono); font-size: 11px; line-height: 1.6;
+}
+
+/* 配额方式：不染色（不是状态），前置形状编码三选一 */
+.svc-quota { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.svc-quota__type {
+  display: inline-flex; align-items: center;
+  align-self: flex-start; padding: 1px 6px;
+  border: 1px solid var(--svc-rule-strong); border-radius: var(--svc-r-sm);
+  background: var(--svc-surface-2);
+  font-family: var(--svc-sans); font-size: 10.5px; font-weight: 500;
+  line-height: 1.5; color: var(--svc-ink-2); white-space: nowrap;
+}
+.svc-quota__type::before {
+  content: ""; flex-shrink: 0; margin-right: 5px;
+  width: 3px; height: 3px; border-radius: 50%;
+  background: currentColor; opacity: 0.55;
+}
+.svc-quota__type.is-count::before { width: 6px; height: 2px; border-radius: 1px; }
+.svc-quota__type.is-balance::before {
+  width: 5px; height: 5px; border-radius: 1px;
+  background: transparent; border: 1px solid currentColor; opacity: 0.7;
+}
+.svc-quota__val {
+  font-style: normal; font-family: var(--svc-mono); font-size: 11.5px;
+  font-variant-numeric: tabular-nums; color: var(--svc-ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* 余量尺：条形（形状）+ 数字（主）+ 口径（次）三重编码 */
+.svc-gauge { --svc-gauge-color: var(--svc-accent); display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.svc-gauge.is-ok { --svc-gauge-color: var(--svc-success); }
+.svc-gauge.is-warn { --svc-gauge-color: var(--svc-warning); }
+.svc-gauge.is-danger { --svc-gauge-color: var(--svc-danger); }
+.svc-gauge.is-mute { --svc-gauge-color: var(--svc-ink-3); }
+.svc-gauge__track {
+  height: 4px; border-radius: 999px; overflow: hidden;
+  background: color-mix(in srgb, var(--svc-ink-3) 16%, transparent);
+}
+.svc-gauge__track i {
+  display: block; height: 100%; border-radius: inherit;
+  background: var(--svc-gauge-color);
+  transition: width var(--svc-dur) var(--svc-ease);
+}
+.svc-gauge__text { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.svc-gauge__text b {
+  font-family: var(--svc-mono); font-size: 12px; font-weight: 650;
+  font-variant-numeric: tabular-nums; color: var(--svc-ink); white-space: nowrap;
+}
+.svc-gauge__text i {
+  font-style: normal; font-size: 10.5px; color: var(--svc-ink-3);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.svc-gauge.is-mute .svc-gauge__text b { color: var(--svc-ink-2); }
+
+/* 行内操作组：图标按钮沿用 §5 的 .svc-ico */
+.svc-acts { display: flex; align-items: center; gap: 2px; }
+
+/* 工具条内的次要按钮：只为不吃掉行高 */
+.svc-btn { flex-shrink: 0; }
+
+/* 弹窗表单：标签 12px、控件整宽、提示换行进第二行 */
+.svc-form .el-form-item { margin-bottom: 14px; }
+.svc-form .el-form-item__label { font-size: 12px; color: var(--svc-ink-2); }
+.svc-form .el-form-item__content { flex-wrap: wrap; }
+.svc-form__wide { width: 100%; }
+.svc-form__hint {
+  display: block; width: 100%; margin-top: 4px;
+  font-size: 11.5px; line-height: 1.55; color: var(--svc-ink-3);
+}
+
+/* 到期快捷预设：一组可点的 chip（把「算日期」这件事从用户手里拿走） */
+.svc-presets { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; width: 100%; margin-top: 6px; }
+button.svc-chip.is-act { cursor: pointer; transition: border-color var(--svc-dur-fast) ease, color var(--svc-dur-fast) ease; }
+button.svc-chip.is-act:hover { border-color: var(--svc-accent); color: var(--svc-accent); }
+button.svc-chip.is-act:focus-visible { outline: 2px solid var(--svc-accent); outline-offset: 1px; }
+
+/* 续量 / 重置 / 充值弹窗的头部摘要 */
+.svc-quotaform { display: flex; flex-direction: column; gap: var(--svc-sp-3); }
+.svc-quotaform .el-form-item { margin-bottom: var(--svc-sp-3); }
+.svc-quotaform__lead {
+  display: flex; flex-direction: column; gap: 2px; margin: 0;
+  padding: 10px 12px; border-radius: var(--svc-r-sm);
+  border-left: 3px solid var(--svc-accent);
+  background: var(--svc-accent-soft);
+}
+.svc-quotaform__lead b { font-family: var(--svc-serif); font-size: 13.5px; font-weight: 700; color: var(--svc-ink); }
+.svc-quotaform__lead i {
+  font-style: normal; font-family: var(--svc-mono); font-size: 11.5px;
+  font-variant-numeric: tabular-nums; color: var(--svc-ink-2);
+}
+.svc-quotaform__hint { margin: 0; font-size: 11.5px; line-height: 1.6; color: var(--svc-ink-3); }
+
+/* 提醒级错误条（模型清单加载失败等）：与 danger 同构，语义降一档 */
+.svc-alert.is-warn { background: var(--svc-warning-soft); border-left: 3px solid var(--svc-warning); }
+
+/* 台账在窄屏：chip 与预设放大到可点，模型 chip 允许更宽 */
+@media (max-width: 900px) {
+  .svc-ledger__note { font-size: 12px; }
+  button.svc-chip.is-act { height: 26px; padding: 0 10px; }
+  .svc-models .svc-chip { max-width: 120px; }
+}
+
+/* ############################################################################
+   12. 分组台账
+   ----------------------------------------------------------------------------
+   与 §11 同一张账页，只换行内主语的形状：
+     · 分组名用衬线（它是「人起的名」），描述用正文字体且压到 10.5px —— 
+       名称是检索目标，描述是备注，两者不该抢同一个视高；
+     · 成员 Key 沿用 .svc-models / .svc-chip，只是把 chip 放宽一点：
+       Key 的名字普遍比模型编码长，88px 会把「生产-博客-只读」截成「生产-博…」；
+     · 页签容器与 .svc-pane--keys 同padding，两个台账切换时行高不跳。
+   ############################################################################ */
+.svc-pane--groups { padding: var(--svc-sp-4) var(--svc-sp-4) var(--svc-sp-3); }
+
+/* 分组本体：名称主行（衬线）+ 描述/主键次行（正文字体） */
+.svc-grp { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.svc-grp__name {
+  font-family: var(--svc-serif); font-size: 13px; font-weight: 700;
+  color: var(--svc-ink); line-height: 1.25;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.svc-grp__desc {
+  font-style: normal; font-size: 10.5px; line-height: 1.5;
+  color: var(--svc-ink-3);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* 成员 Key 名字比模型编码长，给 chip 更宽的额度（模型列仍按 §11 的 88px） */
+.svc-pane--groups .svc-models .svc-chip { max-width: 116px; }
+
+/* 「模型 / Key」合并计数：斜杠是分隔符不是字段，压成浅色细线，数字仍是主角 */
+.svc-pane--groups .svc-num i {
+  font-style: normal; padding: 0 2px; color: var(--svc-ink-3); opacity: 0.7;
+}
+
+@media (max-width: 900px) {
+  .svc-pane--groups .svc-models .svc-chip { max-width: 132px; }
+  .svc-grp__desc { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 }

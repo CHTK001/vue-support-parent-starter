@@ -53,14 +53,13 @@
           </template>
 
           <template v-else>
-            <!-- 尺寸与主色统一在 wrapper 上算好（sizing.ts），三个变体只消费变量 -->
+            <!-- 尺寸与主色统一在 wrapper 上算好（sizing.ts / animations.ts），动画只消费变量 -->
             <div class="re-loader__anim" :class="{ 'is-auto': autoSize, 'is-paused': !pageVisible }"
               :style="animVars">
               <slot name="animation" :percent="percent" :variant="variant">
-                <ProgressBar v-if="variant === 'progress'" :percent="percent" />
-                <WaveRise v-else-if="variant === 'wave'" :percent="percent" :size="sizeMode"
-                  :show-percent="percent !== null" />
-                <TechSpin v-else :size="sizeMode" />
+                <ProgressBar v-if="resolvedVariant === 'progress'" :percent="percent" />
+                <!-- 四个等待动画与首屏 loader 共用同一份 HTML/CSS（animations.ts） -->
+                <div v-else class="re-loader__sla" v-html="markup" />
               </slot>
             </div>
 
@@ -97,8 +96,14 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ElButton } from "element-plus";
 import { WarningFilled } from "@element-plus/icons-vue";
 import ProgressBar from "./variants/ProgressBar.vue";
-import WaveRise from "./variants/WaveRise.vue";
-import TechSpin from "./variants/TechSpin.vue";
+import {
+  LOADER_ANIMATION_NONE,
+  ensureLoaderAnimationStyle,
+  loaderAnimationMarkup,
+  useLoaderAnimation,
+  useLoaderDeployPolicy,
+  type LoaderAnimation,
+} from "./animations";
 import { animSizeVars } from "./sizing";
 import { buildSkeleton, skeletonVars, type SkeletonShape } from "./skeleton";
 import { pageVisible } from "./visibility";
@@ -108,7 +113,12 @@ const props = withDefaults(
   defineProps<{
     /** 是否加载中（配合 v-model:loading 使用） */
     loading?: boolean;
-    /** 动画形态 */
+    /**
+     * 动画形态。
+     *
+     * <p>不传则跟随主题配置里选中的全局动画（{@link useLoaderAnimation}）——
+     * 于是「设置里选了海浪」会让应用内所有加载态一起变成海浪，与首屏保持一致。</p>
+     */
     variant?: ReLoaderVariant;
     /** 与内容的关系：overlay / replace / skeleton */
     mode?: ReLoaderMode;
@@ -159,10 +169,9 @@ const props = withDefaults(
   }>(),
   {
     loading: false,
-    // 默认动画 = 科技双环（最初的科技感加载）。
-    // 首屏 loader 走的是 public/loader.js，与本组件无关；这里只保证
-    // ReLoader 自身在各处（页面遮罩 / 请求层 / ReAsync）观感一致。
-    variant: "spin",
+    // 不传 variant：跟随主题配置里选中的全局动画（默认海浪，与首屏 loader 同款）。
+    // 这样"设置里换了动画"会一次性作用到首屏、应用内遮罩与请求层，不会三处各说各话。
+    variant: undefined,
     mode: "overlay",
     text: "",
     percent: null,
@@ -222,23 +231,50 @@ const boneStyle = computed(() =>
   props.skeletonHeight ? { '--rl-sk-height': props.skeletonHeight } : {}
 );
 
+/** 全局选中的动画（主题配置里的「加载动画」，默认海浪） */
+const globalAnimation = useLoaderAnimation();
+
+/** 部署侧策略（app.yaml other.loaderConfig）；未接管时 locked=false，行为不变 */
+const deployPolicy = useLoaderDeployPolicy();
+
 /**
- * 传给变体的档位字符串。
+ * 实际使用的动画键。
  *
- * <p>variant 内部还有 sm/md/lg 的兜底样式；当 size 是数字或 auto 时
- * 统一按 md 下发，真正的值由 wrapper 上的 CSS 变量覆盖。</p>
+ * <p>{@code spin} 是旧键，等价 {@code rings}；
+ * {@code progress} 单独走进度条（它表达"已知进度"，不是"等待"）。
+ * 不传 {@code variant} 时跟随全局选择 —— 部署侧接管时全局值就是配置里的那一个。</p>
  */
-const sizeMode = computed<"sm" | "md" | "lg">(() =>
-  props.size === "sm" || props.size === "lg" ? props.size : "md",
+const resolvedVariant = computed<ReLoaderVariant>(() => {
+  const v = props.variant;
+  if (v === "progress") return "progress";
+  if (v === "spin") return "rings";
+  if (v) return v;
+  return globalAnimation.value;
+});
+
+/** 渲染的动画 HTML：与首屏 loader 共用 {@link loaderAnimationMarkup} */
+const markup = computed(() =>
+  loaderAnimationMarkup(
+    resolvedVariant.value === "progress"
+      ? LOADER_ANIMATION_NONE
+      : (resolvedVariant.value as LoaderAnimation | typeof LOADER_ANIMATION_NONE),
+    props.percent,
+  ),
 );
 
 /** 尺寸 + 主色统一以 CSS 变量下发 */
 const animVars = computed<Record<string, string>>(() => {
+  // 按真实变体算尺寸：圆点、恐龙、圆环的"大中小"不是同一个数值
   const vars: Record<string, string> = {
-    ...animSizeVars(props.size, props.variant, props.fullscreen),
+    ...animSizeVars(props.size, resolvedVariant.value, props.fullscreen),
   };
-  if (props.color) {
-    vars["--rl-color"] = props.color;
+  // 主色优先级：调用方显式传入 > 部署侧配置（锁定态）> 样式里的兜底
+  // 尺寸只对首屏生效，应用内各调用点的档位不该被统一成一个像素值
+  const color = props.color || (deployPolicy.value.locked ? deployPolicy.value.color : "");
+  if (color) {
+    vars["--sla-c"] = color;
+    // 进度条是老组件，读的是 --rl-color；同步一份，免得自定义主色只对四个等待动画生效
+    vars["--rl-color"] = color;
   }
   return vars;
 });
@@ -383,6 +419,9 @@ onBeforeUnmount(() => {
  */
 onMounted(() => {
   window.addEventListener("keydown", onKeydown);
+  // 应用内补齐动画样式（首屏那几秒由 public/loader.js 注入同内容的另一份）。
+  // 幂等：已经有同 id 的 style 时直接返回。
+  ensureLoaderAnimationStyle();
 });
 
 defineExpose({ open, close, cancel, shown: computed(() => shown.value) });
@@ -511,6 +550,27 @@ defineOptions({ name: "ReLoader" });
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/*
+  四个等待动画的挂载点。
+  HTML 来自 animations.ts（与首屏 loader 同一份），样式由 ensureLoaderAnimationStyle()
+  以全局 style 注入 —— 那份 CSS 不能被 scoped 化，否则首屏与应用内就会分成两套。
+  这里只负责让它参与布局，并把暂停能力传下去。
+*/
+.re-loader__sla {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+/* 页面不可见时暂停（visibility.ts）：动画与伪元素一起停，避免后台空转。
+   必须用 :deep() —— v-html 注入的节点没有 scoped 属性，普通后代选择器匹配不到。 */
+.re-loader__anim.is-paused :deep(.re-loader__sla *),
+.re-loader__anim.is-paused :deep(.re-loader__sla *::before),
+.re-loader__anim.is-paused :deep(.re-loader__sla *::after) {
+  animation-play-state: paused !important;
 }
 
 /* 自适应：给动画一条**确定宽度**的基准链。

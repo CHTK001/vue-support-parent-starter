@@ -51,6 +51,28 @@ export type {
   ReLoaderResetOptions,
 } from "./types";
 
+/* 统一加载动画：四个动画的唯一定义处（首屏 loader 与本组件共用同一份样式） */
+export {
+  LOADER_ANIMATIONS,
+  LOADER_ANIMATION_NONE,
+  LOADER_ANIMATION_META,
+  LOADER_ANIMATION_CSS,
+  loaderAnimationMarkup,
+  normalizeLoaderAnimation,
+  readLoaderAnimation,
+  writeLoaderAnimation,
+  loaderAnimationStorageKey,
+  ensureLoaderAnimationStyle,
+  useLoaderAnimation,
+  useLoaderDeployPolicy,
+  isLoaderAnimationLocked,
+  setLoaderAnimation,
+} from "./animations";
+export type {
+  LoaderAnimation,
+  LoaderAnimationChoice,
+} from "./animations";
+
 /* 进度自适应估算（无真实进度时用） */
 export { createProgressEstimator } from "./progressEstimator";
 export type { ProgressEstimator, ProgressEstimatorOptions } from "./progressEstimator";

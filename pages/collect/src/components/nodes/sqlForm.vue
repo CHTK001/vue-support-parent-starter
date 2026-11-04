@@ -1,13 +1,20 @@
 <!--
-  SQL 节点表单：SQL 语句、数据源与结果变量名。
-  参数顺序由 paramContext 统一决定（必填置顶）；循环四参数由 LoopFields 以「循环迭代」分节展示。
-  SQL 属于高危节点，表单顶部固定展示一条警示条（契约 §4.4）。
+  SQL 节点表单：SQL 语句与数据源。
+
+  属性面板改为页签外壳后（components/NodeFormTabs.vue），本组件只负责**输入参数**页签；
+  出参变量名 / 批次失败策略在「输出参数」页签，超时与超时策略在「高级配置」页签，
+  统一由 NodeParamForm 渲染 —— 原先这里自己也渲染一遍循环分节，
+  等于同一份控件有两处实现。
+
+  SQL 属于高危节点，说明条与警示条在每个页签顶部都显示（NodeAlert 放在页签分支之外的根本原因：
+  「这个节点等于把数据库权限交出去」与当前看哪一页无关，不该跟着页签消失）。
 -->
 <script setup lang="ts">
 import { computed } from "vue";
+import NodeAlert from "./NodeAlert.vue";
+import NodeParamForm from "./NodeParamForm.vue";
 import ParamField from "./ParamField.vue";
-import LoopFields from "./LoopFields.vue";
-import { useShapeFieldList } from "./paramContext";
+import { isInputParam, useShapeFieldList } from "./paramContext";
 import type { NodeForm, NodeFormContext } from "./paramContext";
 import type { ParamPair } from "../../utils/dsl";
 import type { CollectParamMeta, CollectShapeMeta } from "../../types/collect";
@@ -19,12 +26,19 @@ const props = defineProps<{
   meta: CollectShapeMeta;
   /** 表单共享上下文 */
   ctx: NodeFormContext;
+  /** 分区渲染：input / output / loop / advanced；缺省按 input 处理（本组件只负责输入参数页签） */
+  section?: "all" | "input" | "output" | "loop" | "advanced";
 }>();
 
 const emit = defineEmits<{
   (e: "set-param", param: CollectParamMeta, value: unknown): void;
   (e: "set-pairs", param: CollectParamMeta, pairs: ParamPair[]): void;
 }>();
+
+/** 节点级说明：与其它节点表单同一份文案口径 */
+const INTRO =
+  "读写数据库：在指定数据源上执行一条 SQL。查询结果作为行集合写入出参变量，"
+  + "可给下游循环节点当循环集合。";
 
 /** SQL 节点专属参数，按后端 meta 的下发顺序排列 */
 const { fields, valueOf, pairsOfParam } = useShapeFieldList(
@@ -33,33 +47,8 @@ const { fields, valueOf, pairsOfParam } = useShapeFieldList(
   ["statement", "datasource", "outputVariable"],
 );
 
-/**
- * 不在界面上暴露的参数：SQL 查询结果默认写进 data（同 rows，旧流程留空时按 CollectSqlExecutor.DEFAULT_OUTPUT 兜底），
- * 下游用 ${data} 引用即可，多数流程不需要改名 —— 常显一个「结果变量名」只会增加噪音。
- * 只摘界面、不删数据：已有流程若改过名字，仍按其值运行。
- */
-const HIDDEN_PARAMS = ["outputVariable"];
-
-/** 实际渲染的参数（上面那个已被摘掉） */
-const visibleFields = computed(() => fields.value.filter(param => !HIDDEN_PARAMS.includes(param.name)));
-
-/**
- * 参数是否整行展示。
- *
- * <p>与 ParamField 内的宽控件判定保持一致（textarea / pairs / mapping / table）。
- * 外层属性面板是网格布局，字段被容器包一层后，宽控件必须由容器来占满整行。</p>
- *
- * @param param 参数元数据
- * @returns 是则返回 true
- */
-function isWide(param: CollectParamMeta): boolean {
-  return (
-    param.type === "textarea" ||
-    param.type === "pairs" ||
-    param.type === "mapping" ||
-    param.type === "table"
-  );
-}
+/** 输入参数页签：语句与数据源（出参变量名归「输出参数」，批次失败策略归「高级配置」） */
+const inputFields = computed(() => fields.value.filter(isInputParam));
 
 /**
  * 前端补充的参数说明。
@@ -84,25 +73,35 @@ function extraTip(name: string): string {
 </script>
 
 <template>
-  <div class="field field-wide node-intro">
-    读写数据库：在指定数据源上执行一条 SQL。查询结果作为行集合写入出参变量，可给下游循环节点当循环集合。
-  </div>
+  <NodeAlert kind="intro">{{ INTRO }}</NodeAlert>
 
-  <div class="field field-wide node-danger">
+  <NodeAlert kind="danger">
     <strong>高危：等同于在数据库上执行任意语句。</strong>
     整段 SQL 支持 <code>${}</code> 插值，且<strong>不做语句白名单</strong> —— 建表 / 删表（DDL）、
     DELETE、UPDATE 都能跑；当插值来自采集到的页面内容时，页面内容可以影响语句结构，存在注入面。
     能用，但等于把数据库权限交给配流程的人，只给可信的人配。
-  </div>
+  </NodeAlert>
 
-  <div
-    v-for="param in visibleFields"
-    :key="param.name"
-    class="field"
-    :class="{ 'field-wide': isWide(param) }"
-  >
+  <!-- 出参变量名 / 超时策略：统一交给 NodeParamForm 的分区渲染 -->
+  <NodeParamForm
+    v-if="section && section !== 'input'"
+    :node="node"
+    :meta="meta"
+    :ctx="ctx"
+    :section="section"
+    :own-param-names="['statement', 'datasource', 'outputVariable']"
+    :extra-tips="EXTRA_TIPS"
+    @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
+    @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
+  />
+
+  <!-- 输入参数页签：语句 + 数据源 -->
+  <template v-else>
     <ParamField
+      v-for="param in inputFields"
+      :key="param.name"
       :param="param"
+      :hint="extraTip(param.name)"
       :value="valueOf(param.name)"
       :pairs="pairsOfParam(param.name)"
       :node-id="node.id"
@@ -110,72 +109,5 @@ function extraTip(name: string): string {
       @update="(value: unknown) => emit('set-param', param, value)"
       @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
     />
-    <div v-if="extraTip(param.name)" class="field-tip">{{ extraTip(param.name) }}</div>
-  </div>
-
-  <!-- 循环迭代分节：留空单次执行，查询结果集合可逐项迭代 -->
-  <LoopFields
-    :node="node"
-    :meta="meta"
-    :ctx="ctx"
-    @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
-    @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
-  />
+  </template>
 </template>
-
-<style scoped>
-/* 参数容器：与 ParamField / genericForm 的字段样式保持一致，宽控件由容器占满整行 */
-.field {
-  min-width: 0;
-}
-
-.field-wide {
-  grid-column: 1 / -1;
-}
-
-/* 节点级说明：一眼看清这个节点在流程里扮演什么角色 */
-.node-intro {
-  padding: 8px 10px;
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--el-text-color-secondary);
-  background: var(--el-fill-color-lighter);
-  border: 1px solid var(--el-border-color-lighter);
-  border-left: 2px solid var(--el-color-primary);
-  border-radius: var(--el-radius-md, 8px);
-  transition: border-color 200ms, background-color 200ms;
-}
-
-/*
-  高危警示：danger 文本 + danger-light-9 底 + 左侧 2px 竖条（契约 §4.4）。
-  只用 Element Plus 令牌，不写死主题色。
-*/
-.node-danger {
-  padding: 8px 10px 8px 12px;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--el-color-danger);
-  background: var(--el-color-danger-light-9);
-  border-left: 2px solid var(--el-color-danger);
-  border-radius: 6px;
-}
-
-.node-danger strong {
-  font-weight: 600;
-}
-
-.node-danger code {
-  padding: 0 3px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  background: var(--el-fill-color-lighter);
-  border-radius: 3px;
-}
-
-/* 前端补充的参数说明：后端 meta 没给 tip，或 tip 只当占位符时补一句「是什么 / 怎么用」 */
-.field-tip {
-  margin-top: 3px;
-  font-size: 11px;
-  line-height: 1.45;
-  color: var(--el-text-color-secondary);
-}
-</style>

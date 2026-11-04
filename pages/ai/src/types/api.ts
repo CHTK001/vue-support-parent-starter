@@ -33,6 +33,15 @@ export interface Model {
         maxOutputTokens?: number | null
         customParameters?: Record<string, any>
     }
+    /**
+     * 模型能力开关（后端模型行回传的<b>顶层</b>布尔字段，不在 {@link Model.config} 里）。
+     *
+     * <p>只声明「会在界面上决定按钮显隐」的三个；未配置 / 旧数据为空，此时一律按
+     * 「能力未知 = 按钮可见」处理，只有显式 {@code false} 才隐藏。</p>
+     */
+    attachment?: boolean
+    tool_call?: boolean
+    reasoning?: boolean
 }
 
 /**

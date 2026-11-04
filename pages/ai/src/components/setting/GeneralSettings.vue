@@ -34,14 +34,13 @@
       <SettingsRow :label="t('settings.general.agentImpl')" :description="t('settings.general.agentImplDesc')" control-width="208px">
         <el-select v-model="agentImpl">
           <el-option label="AgentScope" value="agentscope" />
-          <el-option label="OpenCode" value="opencode" />
+          <el-option label="OpenCode Server" value="opencode-server" />
           <el-option label="LangChain4J" value="langchain4j" />
         </el-select>
       </SettingsRow>
-      <!-- 引擎能力不对等：切到 opencode 会静默丢掉 MCP / 技能 / 记忆 / 规划，
-           且非管理员会话会被安全闸门直接拒绝。管理员在这里就能看到代价，
-           而不是切完之后排查"为什么工具不生效"。 -->
-      <div v-if="agentImpl === 'opencode'" class="agent-impl-warning" role="note">
+      <!-- opencode-server 由本机常驻的 opencode serve 单实例承载（127.0.0.1 HTTP + SSE），
+           依赖目标机器已安装 opencode CLI 并具备可用凭据；首次调用会自动拉起服务。 -->
+      <div v-if="agentImpl === 'opencode-server'" class="agent-impl-warning" role="note">
         <el-icon><WarningFilled /></el-icon>
         <span>{{ t('settings.general.agentImplWarning') }}</span>
       </div>
@@ -74,43 +73,30 @@
       </SettingsRow>
     </SettingsCard>
 
-    <!-- 对话上下文 -->
-    <SettingsCard title="对话上下文">
-      <SettingsRow label="压缩触发类型" description="选择何时触发上下文压缩" control-width="208px">
-        <el-select v-model="settingsForm.chatCompressType">
-          <el-option label="按轮数触发" value="rounds" />
-          <el-option label="按上下文阈值触发" value="tokens" />
-          <el-option label="两者都触发" value="both" />
-        </el-select>
-      </SettingsRow>
-      <SettingsRow v-if="settingsForm.chatCompressType === 'rounds' || settingsForm.chatCompressType === 'both'"
-        label="压缩触发轮数" description="会话累计达到该轮数后自动压缩（默认 100 轮）" control-width="128px">
-        <el-select v-model="settingsForm.chatCompressTriggerRounds">
-          <el-option label="10 轮" :value="10" />
-          <el-option label="20 轮" :value="20" />
-          <el-option label="50 轮" :value="50" />
-          <el-option label="100 轮" :value="100" />
-          <el-option label="200 轮" :value="200" />
-        </el-select>
-      </SettingsRow>
-      <SettingsRow v-if="settingsForm.chatCompressType === 'tokens' || settingsForm.chatCompressType === 'both'"
-        label="上下文阈值" description="当上下文占用模型窗口的百分比超过此值时触发压缩（默认 80%）" control-width="128px">
-        <el-select v-model="settingsForm.chatCompressTokenThreshold">
-          <el-option label="50%" :value="50" />
-          <el-option label="60%" :value="60" />
-          <el-option label="70%" :value="70" />
-          <el-option label="80%" :value="80" />
-          <el-option label="90%" :value="90" />
-        </el-select>
-      </SettingsRow>
-      <SettingsRow label="压缩保留轮数" description="压缩后保留最近 N 轮原始对话（默认 6 轮）" control-width="128px">
-        <el-select v-model="settingsForm.chatCompressRetainRounds">
-          <el-option label="2 轮" :value="2" />
-          <el-option label="4 轮" :value="4" />
-          <el-option label="6 轮" :value="6" />
-          <el-option label="8 轮" :value="8" />
-          <el-option label="10 轮" :value="10" />
-        </el-select>
+    <!-- 对话上下文（runtime 分组的上下文压缩） -->
+    <SettingsCard title="对话上下文"
+      subtitle="普通用户只可配置压缩模型；开关、余量、压缩模式与令牌上限由管理员在定义中控制">
+      <SettingsRow
+        v-for="item in compressionItems"
+        :key="item.field"
+        :label="compressionLabel(item)"
+        :description="item.description"
+        control-width="208px"
+      >
+        <FieldControl
+          :item="item"
+          :value="compressionValues[item.field] ?? ''"
+          :is-model-field="isModelField('runtime', item.field)"
+          :is-enum-field="isEnumField(item)"
+          :is-prompt-field="false"
+          :logo="compressionModelLogo(item.field)"
+          :model-display="compressionModelDisplay(item.field)"
+          :options="compressionOptions(item)"
+          :step="compressionStep(item.field)"
+          :precision="compressionPrecision(item.field)"
+          @change="onCompressionChange(item.field, $event)"
+          @pick-model="openModelPicker(item.field)"
+        />
       </SettingsRow>
     </SettingsCard>
 
@@ -141,27 +127,34 @@
       </SettingsRow>
     </SettingsCard>
 
-    <!-- 加载动画演示（ReLoader 组件本身，与首屏 loader 无关） -->
+    <!-- 加载动画演示 -->
     <SettingsCard title="加载动画">
       <!--
-        应用内动画演示：直接用 ReLoader 组件渲染，改的就是它的 variant 属性。
-        三个内置变体（科技双环 / 海浪上升 / 进度条）都能即时切换查看。
-        注意：这里演示的是 **ReLoader 组件**，与应用启动前的首屏 loader 是两回事
-        （首屏由 public/loader.js 注入，与组件库无关）。
+        加载动画的款式在「主题配置 → 外观 → 加载动画」里选，选一次三处同时生效：
+        首屏 loader（public/loader.js）、应用内 ReLoader、设置里的缩略预览。
+        这里只提供「在当前页面上全屏演示一次」的入口，方便确认实际观感。
       -->
-      <SettingsRow label="应用内动画演示"
-        description="切换 ReLoader 组件的 variant 属性，实时看三种内置动画（默认科技双环）。点击即在页面上全屏演示 3 秒。"
+      <SettingsRow label="当前动画"
+        description="加载动画由「主题配置 → 外观 → 加载动画」统一管理，首屏与应用内用同一款。这里可全屏演示 3 秒。"
         control-width="320px">
         <div class="flex items-center gap-2 flex-wrap">
-          <el-radio-group v-model="reLoaderDemoVariant" size="small">
-            <el-radio-button label="spin">科技双环</el-radio-button>
-            <el-radio-button label="wave">海浪上升</el-radio-button>
-            <el-radio-button label="progress">进度条</el-radio-button>
-          </el-radio-group>
+          <span class="loader-demo-name">{{ currentLoaderName }}</span>
           <el-button size="small" type="primary" @click="demoReLoader">演示</el-button>
         </div>
       </SettingsRow>
     </SettingsCard>
+
+    <!-- 模型选择对话框（在“对话上下文”的 modelId 字段上复用 ModelPickerDialog） -->
+    <ModelPickerDialog
+      :visible="modelDialogVisible"
+      :providers="filteredProviders"
+      :selectedId="tempModelId"
+      :empty-text="`没有匹配「对话」类型的模型`"
+      :logo-for="getModelRowLogo"
+      @update:visible="(v) => (modelDialogVisible = v)"
+      @select="selectModel"
+      @clear="clearModelField"
+    />
 
     <!-- 菜单显示控制 -->
     <SettingsCard title="菜单显示控制">
@@ -191,20 +184,27 @@
 </template>
 
 <script setup lang="ts">
-import { message } from "@repo/core";
+import { message, isAdmin } from '@repo/core'
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessageBox } from 'element-plus';
 import { WarningFilled } from '@element-plus/icons-vue'
 import { useDebounceFn } from '@vueuse/core'
 import { apiService } from '@/services/ApiService'
+import { adminApi } from '@/framework/context'
 import { usePopup } from '@/composables/usePopup'
 import { useAuthStore } from '@/stores/auth'
 import { useLanguage } from '@/composables/useLanguage'
 import SettingsCard from './SettingsCard.vue'
 import SettingsRow from './SettingsRow.vue'
+import FieldControl from './dms/FieldControl.vue'
+import ModelPickerDialog from './dms/ModelPickerDialog.vue'
+import { getModelAvatarPath } from '@/utils/modelUtils'
+import { useModelConfigStore } from '@/stores/modelConfig'
+import { LOADER_ANIMATION_META, useLoaderAnimation } from '@repo/ui/re-loader'
 
 const authStore = useAuthStore()
+const modelConfig = useModelConfigStore()
 const { notify } = usePopup()
 const { t } = useI18n()
 const { locale: currentLocale, setLanguage } = useLanguage()
@@ -220,38 +220,24 @@ function handleLanguageChange(val: string) {
 
 
 
-/** 应用内动画演示：当前选中的 ReLoader variant */
-const reLoaderDemoVariant = ref<'spin' | 'wave' | 'progress'>('spin')
+/** 当前加载动画（在「主题配置 → 外观 → 加载动画」里选，这里只读） */
+const loaderAnimation = useLoaderAnimation()
+const currentLoaderName = computed(() => LOADER_ANIMATION_META[loaderAnimation.value].name)
 
 /**
- * 演示 ReLoader 的某个动画变体。
+ * 全屏演示一次当前加载动画。
  *
- * <p>用命令式 API 打开 3 秒后关闭；进度条变体顺带演示"平滑设置进度"，
- * 让用户看到 {@code setProgress(v, { smooth: true })} 的效果。</p>
+ * <p>不传 {@code variant}：命令式 loader 会跟随全局选择 —— 于是这里演示的
+ * 就是用户在任何页面会看到的那一款，而不是另写死的样例。</p>
  */
 async function demoReLoader() {
   try {
     const mod = await import('@repo/ui/re-loader')
-    const variant = reLoaderDemoVariant.value
     const h = mod.loader.open({
-      variant,
       size: 'lg',
-      text: variant === 'progress' ? '演示进度（平滑推进）' : '动画演示',
+      text: currentLoaderName.value,
     })
-    if (variant === 'progress') {
-      let v = 0
-      const timer = setInterval(() => {
-        v += 10
-        // 平滑过渡：把每次 +10 的小跳变连成连续推进
-        h.setProgress(Math.min(100, v), { smooth: true })
-        if (v >= 100) {
-          clearInterval(timer)
-          setTimeout(() => h.close(), 300)
-        }
-      }, 300)
-    } else {
-      setTimeout(() => h.close(), 3000)
-    }
+    setTimeout(() => h.close(), 3000)
   } catch (e: any) {
     notify.warning('演示失败', e?.message || 'ReLoader 不可用')
   }
@@ -267,10 +253,6 @@ const settingsForm = reactive({
   maxToolIterations: 100,
   llmRequestTimeoutMs: 600,   // 秒（后端存储为毫秒）
   llmIdleTimeoutMs: 120,     // 秒
-  chatCompressType: 'rounds',      // 压缩触发类型：rounds / tokens / both
-  chatCompressTriggerRounds: 100,  // 压缩触发轮数
-  chatCompressTokenThreshold: 80,  // 上下文阈值（百分比）
-  chatCompressRetainRounds: 6,     // 压缩保留轮数
   showCharactersMenu: true,         // 显示角色管理
   showBotsMenu: true,               // 显示机器人管理
   showKnowledgeBaseMenu: true,      // 显示知识库
@@ -285,6 +267,337 @@ const settingsForm = reactive({
   thinkingTextCN: '思考中',          // 思考状态中文文案
   thinkingTextEN: 'Thinking',        // 思考状态英文文案
 })
+
+// ===================== 对话上下文：runtime 分组的上下文压缩 =====================
+// 定义接口带 adminOnly 标记；合并视图（merged）不带，前端按同一标记控制显隐：
+// 非管理员只露 modelId，在其基础上隐藏 adminOnly=true 的行。
+const compressionDefs = ref<any[]>([])
+// runtime 分组合并值（field -> value，始终以字符串形态与后端交互）
+const compressionValues = reactive<Record<string, string>>({})
+// 字段的元信息（overridden / origin）：模型字段的回显用
+const compressionMeta = reactive<Record<string, any>>({})
+// 本次改动的压缩字段：保存时只提交这些字段，避免把未改动的项写进个人覆盖层
+const dirtyCompressionFields = reactive<Set<string>>(new Set())
+
+/**
+ * 定义接口下发的分组 Item 形态（按 COMPRESSION_FIELDS 回收的字段也长这样）。
+ *
+ * <p>`adminOnly` 标记用于控制非管理员可见性；`valueType` 决定渲染控件。</p>
+ */
+interface SettingDefinitionItem {
+  field: string
+  description: string
+  defaultValue: string
+  valueType: 'STRING' | 'NUMBER' | 'BOOLEAN'
+  /** 分组内排序 */
+  sort: number
+  /** 仅管理员可配 */
+  adminOnly: boolean
+}
+
+/** 定义接口里的分组壳 */
+interface SettingDefinitionGroup {
+  group: string
+  groupName: string
+  items: SettingDefinitionItem[]
+}
+
+/** 对话上下文的 7 个压缩字段；手动列出比猜字段名更安全 */
+const COMPRESSION_FIELDS = [
+  'auto',
+  'async',
+  'headroomPercent',
+  'mode',
+  'modelId',
+  'recentTokenLimit',
+  'validate',
+]
+
+/** 压缩字段的中文标签（与 definitions 中描述的首段一致） */
+const COMPRESSION_LABELS: Record<string, string> = {
+  auto: '是否启用自动上下文压缩',
+  async: '是否异步压缩',
+  headroomPercent: '压缩触发余量百分比',
+  mode: '压缩模式（all/treshold）',
+  modelId: '生成摘要用的压缩模型',
+  recentTokenLimit: '压缩后保留的最近上下文令牌上限',
+  validate: '压缩前是否把首次压缩结果作为基线融合',
+}
+
+/** 从定义中拿出的 runtime 压缩项（非管理员按 adminOnly 过滤） */
+const compressionItems = computed(() =>
+  compressionDefs.value.filter((item) => notAdminOnlyCompression(item))
+)
+
+/** 压缩字段的取模：只允许描述里已列出的值，其它一律删掉 */
+const COMPRESSION_FIXED_OPTIONS: Record<string, string[]> = {
+  mode: ['all', 'threshold'],
+}
+
+/** 当前账号是否可见该压缩字段（adminOnly 标记控制显隐） */
+const notAdminOnlyCompression = (item: SettingDefinitionItem) => !(item && item.adminOnly === true && !isAdmin())
+
+/** 压缩字段的中文标签：优先走硬编码的表，兜底描述前缀 */
+const compressionLabel = (item: SettingDefinitionItem) => {
+  const label = COMPRESSION_LABELS[item.field]
+  if (label) return label
+  const prefix = String(item?.description ?? '').match(/^\s*([^（(：:]{1,16})/)
+  return (prefix && /[\u4e00-\u9fa5]/.test(prefix[1])) ? prefix[1].trim() : item.field
+}
+
+/** 是否模型字段（字段名包含 "model" 的走模型选择器） */
+const isModelField = (group: any, field: string) => {
+  if (!field) return false
+  return String(field).toLowerCase().includes('model')
+}
+
+/** 该字段有哪些可选值（描述里（all/treshold）这类括号词是可选值） */
+const compressionOptions = (item: SettingDefinitionItem) => {
+  if (item.field in COMPRESSION_FIXED_OPTIONS) return COMPRESSION_FIXED_OPTIONS[item.field]
+  return parseEnumOptions(item.description)
+}
+
+/** 是否枚举字（STRING 且描述里带多个可选值，固定项优先） */
+const isEnumField = (item: SettingDefinitionItem) => {
+  if (item.valueType !== 'STRING') return false
+  if (item.field in COMPRESSION_FIXED_OPTIONS) return true
+  const options = parseEnumOptions(item.description)
+  return options.length >= 2 && options.length <= 10
+}
+
+/** 压缩模型字段的 el-input 只读态回显（已选/继承全局/未配置） */
+const compressionModelDisplay = (field: string) => {
+  const value = compressionValues[field]
+  const meta = compressionMeta[field]
+  // systemDefault 表示这条种子值从未被任何人配过，"生效值"不是用户配置
+  if (!value || (meta && meta.origin === 'SYSTEM_DEFAULT')) return '请选择模型'
+  return meta && meta.overridden === false ? `继承全局：${value}` : value
+}
+
+/** 压缩模型字段右侧的提供商 logo（字段名形如 providerId:modelName） */
+const compressionModelLogo = (field: string): string | undefined => {
+  const v = compressionValues[field]
+  if (!v) return undefined
+  const name = v.includes(':') ? v.split(':').slice(1).join(':') : v
+  return getModelAvatarPath(name) ?? undefined
+}
+
+/** 数值字段的步长（与小数位同源） */
+const compressionStep = (field: string) => {
+  const raw = String(compressionValues[field] ?? '').trim()
+  const dot = raw.indexOf('.')
+  if (dot < 0) return 1
+  return Math.max(1e-6, 10 ** -(raw.length - dot - 1))
+}
+
+/** 数值字段的精度（小数位） */
+const compressionPrecision = (field: string) => {
+  const raw = String(compressionValues[field] ?? '').trim()
+  const dot = raw.indexOf('.')
+  if (dot < 0) return 0
+  return Math.min(6, raw.length - dot - 1)
+}
+
+/** 监听单个压缩字段的改动（把数值/布尔转回后端期望的字符串形态） */
+const onCompressionChange = (field: string, value: any) => {
+  if (value === undefined || value === null) {
+    delete compressionValues[field]
+    return
+  }
+  compressionValues[field] = typeof value === 'boolean' ? (value ? 'true' : 'false') : String(value)
+  dirtyCompressionFields.add(field)
+  saveCompressionSettings()
+}
+
+/**
+ * 加载 runtime 分组的合并视图（全局默认 + 本人覆盖）与压缩定义。
+ *
+ * <p>与 DefaultModelSettings 的 loadGroupValues 同构：合并视图每项含
+ * field / value / defaultValue / overridden / origin，**字符串形态**回传。**
+ * 需要 type-preserve：BOOLEAN 显示为 el-switch 的布尔，NUMBER 显示为数字，
+ * 但写入/展示的值始终是后端弦乐（value 字段本身）。
+ */
+const loadRuntimeMergedValues = async () => {
+  try {
+    const response = await apiService.fetchMergedGroupSettings('runtime')
+    const items = response?.data ?? response ?? []
+    if (!Array.isArray(items)) return
+    items.forEach((item) => {
+      if (!COMPRESSION_FIELDS.includes(item.field)) return
+      compressionValues[item.field] = item.value ?? ''
+      compressionMeta[item.field] = {
+        overridden: item.overridden === true,
+        defaultValue: item.defaultValue ?? '',
+        origin: item.origin || (item.overridden === true ? 'USER' : 'GLOBAL'),
+      }
+    })
+  } catch (error) {
+    console.error('获取 runtime 压缩配置失败:', error)
+    notify.error(t('settings.general.loadFailed'), error.message || t('common.error.unknown'))
+  }
+}
+
+/**
+ * 加载压缩定义（含 adminOnly 标记） + runtime 合并值。
+ *
+ * <p>定义接口返回某个用户可见的 runtime 分组中全部 29 个 field，
+ * 按 COMPRESSION_FIELDS 回收压实现。
+ */
+const loadCompressionSettings = async () => {
+  try {
+    const response = await apiService._request('/global-setting-definitions')
+    const groups = pickGroups(response)
+    const runtime = groups.find((g: SettingDefinitionGroup) => g.group === 'runtime')
+    if (runtime) {
+      compressionDefs.value = runtime.items
+        .filter((item: SettingDefinitionItem) => COMPRESSION_FIELDS.includes(item.field))
+        .sort((a: SettingDefinitionItem, b: SettingDefinitionItem) => (a.sort ?? 0) - (b.sort ?? 0))
+    }
+  } catch (error) {
+    console.error('获取 runtime 分组定义失败:', error)
+    notify.error(t('settings.general.loadFailed'), error.message || t('common.error.unknown'))
+  }
+  await loadRuntimeMergedValues()
+}
+
+/**
+ * 保存本次改动的压缩字段（只写本人覆盖层，不动全局默认）。
+ *
+ * <p>值传 null 表示撤销该字段的本人覆盖（回落到继承值）。
+ * 保存后重新拉合并视图，让「继承全局」状态在界面上刷新。</p>
+ *
+ * <p>脏标记不清零：字段改写后就是已保存记录，避免某次 PUT 失败后、下一次
+ * 改动把前一次的值漏掉（写法与 DefaultModelSettings 的 saveGroupSettings 同构）。</p>
+ */
+const saveCompressionSettings = async () => {
+  const dirty = dirtyCompressionFields
+  if (!dirty || dirty.size === 0) return
+  const payload: Record<string, any> = {}
+  for (const field of dirty) {
+    const value = compressionValues[field]
+    payload[field] = value === '' || value === null || value === undefined ? null : value
+  }
+  try {
+    await apiService.updateUserGroupOverrides('runtime', payload)
+    notify.success(t('common.saveSuccess'), t('settings.general.updated'))
+    // 重新拉取合并视图：拿回 overridden/defaultValue，界面上「继承全局」状态才会刷新
+    await loadRuntimeMergedValues()
+    // 压缩模型是 ChatClient 的运行时配置，保存后即时刷新，侧栏徽标跟着变
+    await modelConfig.refresh()
+  } catch (error: any) {
+    console.error('保存压缩配置失败:', error)
+    notify.error(t('common.saveFailed'), error.message || t('common.error.unknown'))
+  }
+}
+
+// ===================== 模型选择对话框（压缩模型 modelId） =====================
+const modelDialogVisible = ref(false)
+const tempModelId = ref<string | null>(null)
+const currentDialogField = ref('')
+// 模型列表（来自 /api/providers，按供应商分组）
+const models = ref<any[]>([])
+const providers = ref<any[]>([])
+const modelSearchText = ref('')
+
+/** 模型弹框的模型列表：按供应商分组 */
+const filteredProviders = computed(() => {
+  const acceptable = ['text']
+  let result = models.value
+  if (currentDialogField.value) {
+    // 压缩模型走对话类型（text），与 DefaultModelSettings 的 requiredTypeFor 同口径
+    result = result.filter((m: any) => (m.types || []).some((t: any) => acceptable.includes(t)))
+  }
+  if (modelSearchText.value) {
+    const q = modelSearchText.value.toLowerCase()
+    result = result.filter((m: any) =>
+      m.model?.toLowerCase().includes(q) || m.modelName?.toLowerCase().includes(q)
+    )
+  }
+  return providers.value
+    .map((p: any) => ({ ...p, models: result.filter((m: any) => m.providerId === p.id) }))
+    .filter((p: any) => p.models.length > 0)
+})
+
+/** 模型弹框行的 logo（通过模型名取修补） */
+const getModelRowLogo = (model: any) => getModelAvatarPath(model?.model || '')
+
+/** 加载模型列表（/api/providers，按供应商分组） */
+const loadModels = async () => {
+  if (models.value.length > 0) return
+  try {
+    const providersBody = await adminApi.get('/api/providers')
+    const providersData = Array.isArray(providersBody) ? providersBody : providersBody?.data || []
+    providers.value = []
+    models.value = []
+    providersData.forEach((provider: any) => {
+      if (!provider.provider_id) return
+      const providerModels = (provider.models || [])
+        .filter((m: any) => m.enabled !== false)
+        .map((m: any) => ({
+          id: `${provider.provider_id}:${m.model}`,
+          modelName: `${provider.name}/${m.model}`,
+          model: m.model,
+          providerId: provider.provider_id,
+          providerName: provider.name,
+          types: ['text'],
+          displayTags: [{ value: 'type:text', label: '对话', tagType: 'primary' }],
+        }))
+      models.value.push(...providerModels)
+      providers.value.push({
+        id: provider.provider_id,
+        name: provider.name,
+        models: providerModels,
+      })
+    })
+  } catch (error) {
+    console.error('获取模型列表失败:', error)
+    notify.error('加载模型列表失败', error)
+  }
+}
+
+/** 打开压缩模型选择框 */
+const openModelPicker = async (field: string) => {
+  currentDialogField.value = field
+  tempModelId.value = compressionValues[field] ?? null
+  modelSearchText.value = ''
+  modelDialogVisible.value = true
+  if (models.value.length === 0) await loadModels()
+}
+
+/** 选中模型（modelId 字段存 providerId:modelName） */
+const selectModel = (modelId: string) => {
+  if (!modelId) return
+  onCompressionChange(currentDialogField.value, modelId)
+  modelDialogVisible.value = false
+}
+
+/**
+ * 清空当前字段（写入空值覆盖，使其回到「未配置」）。
+ */
+const clearModelField = () => {
+  if (!currentDialogField.value) return
+  onCompressionChange(currentDialogField.value, '')
+  modelDialogVisible.value = false
+}
+
+/** 从响应里取出分组数组（双层信封：{code, data: {success, data: [groups]}}） */
+const pickGroups = (response: any) => {
+  const first = response?.data ?? response
+  if (Array.isArray(first)) return first
+  if (Array.isArray(first?.data)) return first.data
+  return []
+}
+
+/** 从描述中解析枚举选项（「压缩模式（all/treshold）」 → [all, treshold]） */
+const parseEnumOptions = (description: string) => {
+  if (!description) return []
+  const match = description.match(/[（(]([^）)]+)[）)]/)
+  if (!match) return []
+  return match[1]
+    .split('/')
+    .map((opt: string) => opt.trim().split(' ')[0])
+    .filter((opt: string) => opt && opt.length < 50)
+}
 
 // 原始设置备份，用于对比是否有改动
 const originalSettings = ref<any>(null)
@@ -321,10 +634,6 @@ watch(() => ({
   maxToolIterations: settingsForm.maxToolIterations,
   llmRequestTimeoutMs: settingsForm.llmRequestTimeoutMs,
   llmIdleTimeoutMs: settingsForm.llmIdleTimeoutMs,
-  chatCompressType: settingsForm.chatCompressType,
-  chatCompressTriggerRounds: settingsForm.chatCompressTriggerRounds,
-  chatCompressTokenThreshold: settingsForm.chatCompressTokenThreshold,
-  chatCompressRetainRounds: settingsForm.chatCompressRetainRounds,
   showCharactersMenu: settingsForm.showCharactersMenu,
   showBotsMenu: settingsForm.showBotsMenu,
   showKnowledgeBaseMenu: settingsForm.showKnowledgeBaseMenu,
@@ -355,10 +664,6 @@ const loadSettings = async () => {
     settingsForm.maxToolIterations = Number(data.maxToolIterations) || 100
     settingsForm.llmRequestTimeoutMs = Math.round(Number(data.llmRequestTimeoutMs) / 1000) || 600
     settingsForm.llmIdleTimeoutMs = Math.round(Number(data.llmIdleTimeoutMs) / 1000) || 120
-    settingsForm.chatCompressType = data.chatCompressType || 'rounds'
-    settingsForm.chatCompressTriggerRounds = Number(data.chatCompressTriggerRounds) || 100
-    settingsForm.chatCompressTokenThreshold = Number(data.chatCompressTokenThreshold) || 80
-    settingsForm.chatCompressRetainRounds = Number(data.chatCompressRetainRounds) || 6
 
     // 从 localStorage 加载菜单显示配置
     const menuSettings = JSON.parse(localStorage.getItem('menuDisplaySettings') || '{}')
@@ -387,8 +692,10 @@ const loadSettings = async () => {
     const runtimeResponse = await apiService.fetchGroupSettings('runtime')
     const runtimeData = runtimeResponse?.data || runtimeResponse
     const configuredAgentImpl = String(runtimeData?.agent_impl || '').trim().toLowerCase()
-    agentImpl.value = ['agentscope', 'opencode', 'langchain4j'].includes(configuredAgentImpl)
-      ? configuredAgentImpl
+    // 旧配置值 opencode 已由后端统一映射为 opencode-server，界面按新值展示
+    const normalizedAgentImpl = configuredAgentImpl === 'opencode' ? 'opencode-server' : configuredAgentImpl
+    agentImpl.value = ['agentscope', 'opencode-server', 'langchain4j'].includes(normalizedAgentImpl)
+      ? normalizedAgentImpl
       : 'agentscope'
   } catch (error: any) {
     console.error('获取 Agent 引擎配置失败:', error)
@@ -448,10 +755,6 @@ const handleSave = async () => {
       maxToolIterations: settingsForm.maxToolIterations,
       llmRequestTimeoutMs: settingsForm.llmRequestTimeoutMs * 1000,
       llmIdleTimeoutMs: settingsForm.llmIdleTimeoutMs * 1000,
-      chatCompressType: settingsForm.chatCompressType,
-      chatCompressTriggerRounds: settingsForm.chatCompressTriggerRounds,
-      chatCompressTokenThreshold: settingsForm.chatCompressTokenThreshold,
-      chatCompressRetainRounds: settingsForm.chatCompressRetainRounds,
     }
 
     // 使用分组设置接口更新 system 分组
@@ -483,8 +786,9 @@ const openThinkingTextDialog = () => {
 }
 
 // 生命周期
-onMounted(() => {
-  loadSettings()
+onMounted(async () => {
+  // 通用设置与压缩配置并行加载：前者管 system 分组表单，后者管 runtime 分组合并值
+  await Promise.all([loadSettings(), loadCompressionSettings()])
 })
 </script>
 

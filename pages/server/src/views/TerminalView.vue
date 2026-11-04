@@ -14,7 +14,6 @@ import { queryHosts, getHost } from "../api";
 import ScGuacViewer from "../components/ScGuacViewer.vue";
 import ScSshDirectViewer from "../components/ScSshDirectViewer.vue";
 import ScVncDirectViewer from "../components/ScVncDirectViewer.vue";
-import ScSftpPanel from "../components/ScSftpPanel.vue";
 import ScTerminalSidePanel from "../components/ScTerminalSidePanel.vue";
 import {
   SPECIAL_KEY_COMBOS,
@@ -22,7 +21,6 @@ import {
   type SpecialKeyStep,
 } from "../components/specialKeys";
 import ReInput from "@repo/ui/re-input";
-import ReDrawer from "@repo/ui/re-drawer";
 import ReScrollbar from "@repo/ui/re-scrollbar";
 import { osIconSvg } from "../utils/osIcon";
 
@@ -74,11 +72,12 @@ const selectedId = ref<number | null>(null);
 const railOpen = ref(true);
 const keyword = ref("");
 
-/** SFTP 文件面板抽屉开关 */
-const sftpVisible = ref(false);
-
 /** 终端右侧小列面板（文件管理 / 片段）开关 */
 const sidePanelVisible = ref(false);
+/** 终端里执行 pwd 回传的当前目录（驱动右侧文件面板定位） */
+const terminalCwd = ref("");
+/** 目录回传序号：同一路径重复 pwd 时也触发面板重新定位 */
+const terminalCwdSeq = ref(0);
 /**
  * SSH 直连渲染组件实例（作用：把片段命令下发到 iframe 中的终端）。
  * 注意 ref 指向 ScSshDirectViewer；它 expose({ sendCommand, sendCommands })
@@ -218,6 +217,17 @@ function onSnippetCommand(command: string): void {
     return;
   }
   sshViewerRef.value?.sendCommand?.(command.trim());
+}
+
+/**
+ * 终端里执行 `pwd` 后，把右侧文件面板切到该目录并展开。
+ * @param cwd iframe 回传的绝对路径
+ */
+function onTerminalCwd(cwd: string): void {
+  if (!cwd) return;
+  terminalCwd.value = cwd;
+  terminalCwdSeq.value += 1;
+  sidePanelVisible.value = true;
 }
 
 /**
@@ -590,7 +600,7 @@ onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
         :connection="connection"
         hide-close
         @close="disconnected = true"
-        @files="sftpVisible = true"
+        @cwd="onTerminalCwd"
       />
       <ScVncDirectViewer v-else-if="connection && connection.protocol === 'vnc' && connection.mode === 'DIRECT'" ref="vncViewerRef" :connection="connection" hide-close @close="disconnected = true" />
       <!-- 必须有 connection 守卫，不能写成 v-else 兜底：
@@ -604,24 +614,13 @@ onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
         {{ embedded ? '正在建立远控会话…' : '从左侧选择一台主机开始控制' }}
       </div>
 
-      <ReDrawer
-        v-model="sftpVisible"
-        :title="connection ? `文件管理 · ${connection.hostName}` : '文件管理'"
-        direction="rtl"
-        size="720px"
-        destroy-on-close
-        :footer-hidden="true"
-      >
-        <template #content>
-          <ScSftpPanel v-if="connection" :host-id="connection.hostId" />
-        </template>
-      </ReDrawer>
-
       <!-- 终端右侧小列面板：文件管理 + 片段（终端内部弹出的面板） -->
       <ScTerminalSidePanel
         v-if="sidePanelVisible"
         :host-id="connection?.hostId ?? null"
         :host-name="connection?.hostName ?? ''"
+        :path="terminalCwd"
+        :path-seq="terminalCwdSeq"
         :visible="sidePanelVisible"
         @update:visible="v => sidePanelVisible = v"
         :on-command="onSnippetCommand"

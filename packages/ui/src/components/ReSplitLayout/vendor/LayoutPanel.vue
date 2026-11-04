@@ -204,7 +204,7 @@ const tabInsertLineStyle = computed(() => {
 </script>
 
 <template>
-  <div class="layout-panel">
+  <div class="layout-panel" :data-panel-id="panel.id">
     <div
       ref="tabBarEl"
       class="panel-tab-bar"
@@ -216,6 +216,7 @@ const tabInsertLineStyle = computed(() => {
         v-for="(tab, i) in panel.tabs"
         :key="tab.id"
         class="panel-tab"
+        :data-tab-id="tab.id"
         :class="{
           active: tab.id === panel.activeTabId,
           'before-active': panel.tabs[i + 1]?.id === panel.activeTabId,
@@ -239,7 +240,7 @@ const tabInsertLineStyle = computed(() => {
       @drop="onDrop"
     >
       <div v-if="dropIndicatorStyle" :style="dropIndicatorStyle" />
-      <component v-if="activeTab && panelContent" :is="panelContent" :active-tab="activeTab" />
+      <component v-if="activeTab && panelContent" :is="panelContent" :active-tab="activeTab" :panel="panel" />
     </div>
   </div>
 </template>

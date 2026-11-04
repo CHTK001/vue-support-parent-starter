@@ -18,7 +18,8 @@ defineOptions({ name: "ReButtonSquare", inheritAttrs: true });
 
 const props = withDefaults(
   defineProps<{
-    type?: "primary" | "success" | "warning" | "info" | "danger" | "text" | "";
+    /** 语义色；`"default"` 与 `""` 等价（类名侧统一走 `type || 'default'`） */
+    type?: "primary" | "success" | "warning" | "info" | "danger" | "text" | "default" | "";
     size?: "large" | "default" | "small" | "mini";
     plain?: boolean;
     loading?: boolean;

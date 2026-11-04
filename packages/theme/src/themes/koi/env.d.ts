@@ -59,4 +59,20 @@ declare module "@vue/runtime-core" {
   }
 }
 
+/**
+ * 强制登录弹窗服务（koi 主题的 installForcedLogin 注册到 window，核心 @repo/core
+ * 通过此句柄拉起 ReDialog + ReLoginForm 组合弹窗）
+ */
+declare global {
+  interface Window {
+    /** 强制登录弹窗服务 */
+    __reForcedLogin?: {
+      /** 打开强制登录弹窗（并行 401/403 只弹一个） */
+      show: (callbacks?: { onLogin?: () => void; onClose?: () => void }) => void;
+    };
+    /** 强制登录弹窗是否打开（主题层状态标记） */
+    __reForcedLoginOpen?: boolean;
+  }
+}
+
 export {};

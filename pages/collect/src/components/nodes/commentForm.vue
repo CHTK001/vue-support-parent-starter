@@ -18,6 +18,8 @@ defineProps<{
   meta: CollectShapeMeta;
   /** 表单共享上下文 */
   ctx: NodeFormContext;
+  /** 分区渲染：input / output / loop / advanced；缺省 all 保持旧行为（页签外壳逐页签下发） */
+  section?: "all" | "input" | "output" | "loop" | "advanced";
 }>();
 
 const emit = defineEmits<{
@@ -36,6 +38,7 @@ const EXTRA_TIPS: Record<string, string> = {
     :node="node"
     :meta="meta"
     :ctx="ctx"
+    :section="section"
     :own-param-names="['comment']"
     :extra-tips="EXTRA_TIPS"
     intro="流程批注：只做说明，不进入执行、不影响数据；文字会显示在节点日志摘要里，方便回看当时的意图，也可作为连线的中转点把两条分支画在同一位置。"

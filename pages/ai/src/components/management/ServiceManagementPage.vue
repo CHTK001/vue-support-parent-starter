@@ -126,7 +126,7 @@
                       @click="toggleInstance(t)">
                 <el-icon><component :is="t.running === true ? StopIcon : PlayIcon" /></el-icon>
               </button>
-              <button class="svc-ico" title="访问令牌" aria-label="访问令牌" @click="openTokens(t)">
+              <button class="svc-ico" title="Key 台账（全局共用）" aria-label="打开 Key 台账" @click="openTokens(t)">
                 <el-icon><KeyIcon /></el-icon>
               </button>
               <button class="svc-ico svc-ico--danger" :disabled="t.running === true || busy[t.id] === true"
@@ -328,10 +328,21 @@
             </div>
           </template>
 
-          <!-- ═══ tab 3 令牌 ═══ -->
-          <template #tokens>
-            <div class="svc-pane svc-pane--tokens">
-              <ServiceTokensPanel :instance-id="activeInstance?.id ?? null" />
+          <!-- ═══ tab 3 Key 台账（全局：AppKey 不绑实例，任何端口都认） ═══ -->
+          <template #keys>
+            <div class="svc-pane svc-pane--keys">
+              <ServiceKeyLedger :refresh-key="keyRefreshKey" @stats="onKeyStats" @changed="onKeyChanged" />
+            </div>
+          </template>
+
+          <!-- ═══ tab 4 分组（模型的收纳盒：分组清单 ∩ Key 限定模型 = 可用模型） ═══ -->
+          <template #groups>
+            <div class="svc-pane svc-pane--groups">
+              <ServiceGroupLedger
+                :refresh-key="groupRefreshKey"
+                @stats="onGroupStats"
+                @changed="onGroupChanged"
+              />
             </div>
           </template>
         </ReTab>
@@ -376,7 +387,8 @@ import ReTab from '@repo/ui/re-tab'
 import type { ReTabItem } from '@repo/ui/re-tab'
 import ReNumberInput from '@/components/ui/ReNumberInput.vue'
 import RePageHead from '@/components/ui/RePageHead.vue'
-import ServiceTokensPanel from './ServiceTokensPanel.vue'
+import ServiceKeyLedger from './ServiceKeyLedger.vue'
+import ServiceGroupLedger from './ServiceGroupLedger.vue'
 import {
   Play20Regular, Stop20Regular, Key20Regular, Delete20Regular,
   ArrowMaximize20Regular, ArrowMinimize20Regular,
@@ -589,10 +601,46 @@ const creating = ref(false)
 const activeId = ref<any>(null)
 const activeTab = ref('runtime')
 
+/**
+ * 页签：前两个按实例看日志，第三个是全局 Key 台账。
+ *
+ * <p>Key 台账不再按实例分页签 —— appKey 是服务实例与网关共用的凭证，
+ * 同一把 Key 在任何实例端口都能用，按实例切分只会制造「这把 Key 属于哪个实例」的错觉。</p>
+ */
+const keyRefreshKey = ref(0)
+const keyStats = ref({ total: 0, usable: 0, atRisk: 0, usedTokens: 0 })
+
+function onKeyStats(v: { total: number; usable: number; atRisk: number; usedTokens: number }) {
+  keyStats.value = v
+}
+
+/**
+ * 分组台账与 Key 台账是同一份成员关系的两个视角：
+ * 分组里增删成员会改 Key 的分组字段，Key 上改分组会改分组的成员数。
+ * 两边一有写操作就互相 bump 刷新键，避免「两个页签说法不一致」。
+ */
+const groupRefreshKey = ref(0)
+const groupStats = ref({ total: 0, models: 0, keys: 0 })
+
+function onGroupStats(v: { total: number; models: number; keys: number }) {
+  groupStats.value = v
+}
+
+function onGroupChanged() {
+  groupRefreshKey.value += 1
+  keyRefreshKey.value += 1
+}
+
+function onKeyChanged() {
+  keyRefreshKey.value += 1
+  groupRefreshKey.value += 1
+}
+
 const logTabs = computed<ReTabItem[]>(() => [
   { name: 'runtime', label: '运行日志', badge: runtimeLogLines.value.length || '' },
   { name: 'access', label: '访问日志', badge: logs.value.length || '' },
-  { name: 'tokens', label: '令牌' },
+  { name: 'keys', label: 'Key 台账', badge: keyStats.value.total || '' },
+  { name: 'groups', label: '分组', badge: groupStats.value.total || '' },
 ])
 
 const logs = ref<any[]>([])
@@ -970,6 +1018,8 @@ function loadAll() {
   loadInstances()
   loadLogs()
   loadRuntimeLogs({ force: true })
+  // Key 台账是独立组件，用自己的计数器触发重载（不把 appKey 逻辑塞进这个页面）
+  keyRefreshKey.value += 1
 }
 
 function onScopeChange() {
@@ -1076,7 +1126,8 @@ async function createInstance() {
 }
 
 function openTokens(t: any) {
-  activeTab.value = 'tokens'
+  // 台账是全局的：这里只把「正在排查的实例」定住，Key 列表本身不按实例过滤
+  activeTab.value = 'keys'
   if (activeId.value == null || String(activeId.value) !== String(t.id)) {
     activeId.value = t.id
     logInstanceId.value = t.id

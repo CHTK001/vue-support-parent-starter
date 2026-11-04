@@ -81,7 +81,6 @@ import { message } from '@repo/core'
 import { Delete, Refresh } from '@element-plus/icons-vue'
 import { apiService } from '@/services/ApiService'
 import { useLibraryGroups } from '@/composables/useLibraryGroups'
-import type { ReidLibraryItem } from '@/services/modules/reid.api'
 
 /**
  * 重识别库管理面板（设置中心「底库」分组）。
@@ -94,7 +93,14 @@ import type { ReidLibraryItem } from '@/services/modules/reid.api'
  * 而「这个人几小时前从哪个摄像头走过」属于需要留痕的事实。</p>
  */
 
-/** 观测记录。 */
+/**
+ * 观测记录。
+ *
+ * <p>刻意在本文件内声明、不复用 `reid.api` 的同名类型：本面板只读「库」这一侧
+ * （谁在何时被哪个摄像头看到），api 那个类型还带着检索侧字段（similarity /
+ * matchType / lastSeen 等），两者同名但不该互相牵制 —— 之前两处都声明，
+ * TS 直接报「import 与本地声明冲突」，这里保留本地这份窄定义。</p>
+ */
 interface ReidLibraryItem {
   id: string
   trackId?: string | null

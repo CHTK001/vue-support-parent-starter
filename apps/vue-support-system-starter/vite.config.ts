@@ -112,6 +112,9 @@ export default createVite({
     "@pages/collect": "pages/collect",
     "@pages/job": "pages/job",
     "@pages/datasource": "pages/datasource",
+    // APM 观测台：卡片贡献从这里进（业务以 "@pages/apm/src/..." 深导入，
+    // 与 monitor 应用同口径；包 exports 的 "./*" 不会给 src 前缀让路）。
+    "@pages/apm": "pages/apm",
   },
   server: {
     port: 8096,
@@ -137,6 +140,16 @@ export default createVite({
       "/system/api": stripSecureCookie({
         target: process.env.SYSTEM_API_TARGET ?? "http://127.0.0.1:18170",
         changeOrigin: true,
+      }),
+      // Spring Actuator：`/actuator/**` 监控大屏卡片直接读端点。
+      // 后端 context-path 是 `/system/api`（见 system-starter 的 application.yml），
+      // Actuator 端点随之落在 `/system/api/actuator/**`；前端沿用既有约定
+      // {@code http().get("/actuator/..."}（见 pages/system/api/systemApi.ts），
+      // 因此 dev 代理负责补上 context-path，生产由同源网关按同一规则转发。
+      "/actuator": stripSecureCookie({
+        target: process.env.SYSTEM_API_TARGET ?? "http://127.0.0.1:18170",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/actuator/, "/system/api/actuator"),
       }),
       // AI 提供商管理（pages/ai 的模型管理页）内嵌后，其 apiService 以 `/v2` 为基址
       // （web 模式见 pages/ai/src/services/ApiService.ts）。系统后端 context-path 为

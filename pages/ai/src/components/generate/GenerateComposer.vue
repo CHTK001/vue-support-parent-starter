@@ -14,7 +14,7 @@
         <div
           v-if="stylePanelOpen && allowStylePanel"
           class="gsp-mask"
-          @mousedown.self="stylePanelOpen = false"
+          @mousedown.self="emit('update:stylePanelOpen', false)"
         >
           <div class="gsp-panel" role="dialog" aria-label="选择风格">
             <p class="gsp-title">选择风格<span class="gsp-hint">风格会拼在提示词最前面</span></p>

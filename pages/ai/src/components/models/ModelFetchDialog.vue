@@ -49,6 +49,18 @@
                 <div class="fetch-id">
                   <span class="fetch-name">{{ model.modelName }}</span>
                   <!--
+                    免费渠道行：后端每行补了 provider / baseUrl / authScheme，
+                    用 resolveProviderBrand 把 route provider 转成品牌 id，
+                    再由 ProviderLogo 出图标，让用户一眼看到这一行实际走哪个上游通道。
+                  -->
+                  <ProviderLogo
+                    v-if="channelBrand(model)"
+                    :pid="channelBrand(model)"
+                    :name="model.provider"
+                    size="sm"
+                    class="fetch-brand"
+                  />
+                  <!--
                     行内标签统一走 ModelTagStrip（图标 + tooltip）：
                     类型 / 细分类型 / 来源（本地·云 API）/ 管线角色（检测·识别·矫正）/ 特性。
 
@@ -107,7 +119,7 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Model } from '@/types/api'
 import ReDialog from '@repo/ui/re-dialog'
-import { describeFetchRow, sourceBadgeFor, taskHintForName } from './model.utils'
+import { describeFetchRow, sourceBadgeFor, taskHintForName, resolveProviderBrand } from './model.utils'
 import {
   MODEL_SUBTYPE_LABELS, MODEL_TYPE_ICON, MODEL_TYPE_KIND, TASK_TO_TYPE,
 } from './model.constants'
@@ -122,6 +134,7 @@ import { Loading, CircleCloseFilled, Download } from '@element-plus/icons-vue'
 import { apiService } from '../../services/ApiService'
 import { message } from '@repo/core'
 import ModelTagStrip from './ModelTagStrip.vue'
+import ProviderLogo from './ProviderLogo.vue'
 
 const emit = defineEmits<{
   /** 逐条挑一个模型 → 预填表单 */
@@ -194,7 +207,7 @@ const inferTypeFromTask = (tasks: any): string => {
 
 /** 把 task 拍平成字符串数组：非数组时自动拆分（分号/逗号/空格）或尝试 JSON 解析 */
 const toArray = (v: any): string[] => {
-  if (Array.isArray(v)) return v.filter((x): x is string => typeof x === 'string' && String(x).trim())
+  if (Array.isArray(v)) return v.filter((x): x is string => typeof x === 'string' && !!String(x).trim())
   if (!v) return []
   const s = String(v).trim()
   if (!s) return []
@@ -463,6 +476,22 @@ const fetchTypeBadge = (m: any): { label: string; kind: string } | null => {
 /** 来源徽标：整场弹窗同一个供应商，算一次即可 */
 const fetchSourceBadge = computed(() => sourceBadgeFor(providerId.value))
 
+/**
+ * 通道徽标（免费渠道行专属）：路由表节点里的 upstream provider 经
+ * {@link resolveProviderBrand} 解析成品牌 id，交给 ProviderLogo 出图标。
+ *
+ * <p>路由的 provider  field 就是品牌 id（openai / kilo / openrouter），
+ * 不是协议名，所以必须把 `name` 也喂成 route provider，否则 'openai'
+ * 这类值会被 resolveProviderBrand 按协议拦截、赛成 'custom'。</p>
+ *
+ * @param m 上游模型行
+ * @returns 品牌 id（没有 route provider 时返回空，不渲染徽标）
+ */
+const channelBrand = (m: any): string => {
+  if (!m?.provider) return ''
+  return resolveProviderBrand({ ...m, name: m.provider, provider: m.provider, base_url: m.baseUrl }) || ''
+}
+
 /** 管线角色（检测/识别/矫正）→ 图标 */
 const HINT_ICONS: Record<string, any> = {
   检测: Scan24Regular,
@@ -704,6 +733,18 @@ const handleImportAll = async () => {
   text-overflow: ellipsis;
 }
 .fetch-id { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; margin-right: 16px; }
+/* 通道徽标：把 ProviderLogo 压到行内图标量级，跟在模型名后面 */
+.fetch-brand {
+  width: 24px;
+  height: 24px;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+.fetch-brand :deep(.el-image),
+.fetch-brand :deep(.avatar-auto) {
+  width: 24px !important;
+  height: 24px !important;
+}
 .fetch-name {
   font-size: 13px;
   font-weight: 500;

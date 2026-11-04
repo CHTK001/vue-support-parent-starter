@@ -6,7 +6,8 @@
     · 发送条＝方法徽章（GET 绿等按方法着色）+ URL 输入 + 占位插入 + 橙色「发送」按钮
       （图稿的地址栏 + 发送键；「发送」在设计期语义＝实际取回一次并在弹窗预览，不改流程数据）；
     · 分区页签＝图稿的 Params / Headers / Body / Tests 行，替换原先纵向堆叠的分组：
-      请求头 / 请求体 / 高级 / 循环 / 其它，页签即分区，缺项的页签不渲染；
+      请求头 / 请求体 / 其它，页签即分区，缺项的页签不渲染；超时重试归外层「高级配置」、
+      出参变量归外层「输出参数」、循环四参数归外层「循环」——同一份参数只留一个入口；
     · 响应弹窗＝图稿底部：状态码胶囊（200 OK / 非 2xx 红）+ 耗时 + 正文体积，正文带行号。
 
   颜色全走 koi 体系的 --el-* 令牌（语义映射：图稿绿→success、橙→warning、青→primary），
@@ -20,9 +21,10 @@
 import { computed, ref } from "vue";
 import ReDialog from "@repo/ui/re-dialog";
 import RePlaceholderPicker from "@repo/ui/re-placeholder-picker";
+import NodeAlert from "./NodeAlert.vue";
+import NodeParamForm from "./NodeParamForm.vue";
 import ParamField from "./ParamField.vue";
-import LoopFields from "./LoopFields.vue";
-import { useShapeFieldList, loopParamsOf } from "./paramContext";
+import { isInputParam, useShapeFieldList } from "./paramContext";
 import type { NodeForm, NodeFormContext, PreviewPayload } from "./paramContext";
 import type { ParamPair } from "../../utils/dsl";
 import type { CollectParamMeta, CollectShapeMeta } from "../../types/collect";
@@ -34,6 +36,8 @@ const props = defineProps<{
   meta: CollectShapeMeta;
   /** 表单共享上下文 */
   ctx: NodeFormContext;
+  /** 分区渲染：input / output / loop / advanced；缺省按 input 处理（本组件只负责输入参数页签） */
+  section?: "all" | "input" | "output" | "loop" | "advanced";
 }>();
 
 const emit = defineEmits<{
@@ -69,29 +73,6 @@ const PRIMARY_NAMES = ["method", "url"];
 const HEADER_NAMES = ["header:名称", "cookie:名称"];
 /** 请求体组 */
 const BODY_NAMES = ["body", "contentType"];
-/** 高级页签：低频配置（超时 / 重试 / 代理 / 抓取器 / 出参变量 / 保留文档对象）。
- *
- * <p>多收了 saveDocument（保留文档对象）——后端在 meta 里确实下发了这个参数，
- * 它是关闭后会影响下游 CSS 抽取的行为开关，语义上属高级，入本组而不是另起一组。
- * 「出参变量名」在本节点实际只有一个候选（resp），与数据库节点的数据源同一处理：
- * 只在候选多于一个时才显示。</p>
- */
-const ADVANCED_NAMES = [
-  "timeout",
-  "retry",
-  "retryInterval",
-  "proxy",
-  "userAgent",
-  "fetcher",
-  "outputVariable",
-  "saveDocument",
-];
-
-/** 出参变量名是否只有一个候选（后端 meta 的 options 只有一个值） */
-const outputVarIsSingleOption = computed(() => {
-  const meta = (props.meta.params ?? []).find(item => item.name === "outputVariable");
-  return (meta?.options?.length ?? 0) <= 1;
-});
 
 /**
  * 按给定顺序取参数，缺项自动跳过。
@@ -123,46 +104,39 @@ function fieldsBySet(names: string[]): CollectParamMeta[] {
 const primaryFields = computed(() => fieldsByOrder(PRIMARY_NAMES));
 const headerFields = computed(() => fieldsBySet(HEADER_NAMES));
 const bodyFields = computed(() => fieldsBySet(BODY_NAMES));
-const advancedFields = computed(() =>
-  fieldsBySet(ADVANCED_NAMES).filter(
-    param => !(param.name === "outputVariable" && outputVarIsSingleOption.value),
-  ),
-);
-/** 兜底分区：不属于上面任何分组的后端新增参数，避免后端加了参数前端却不显示 */
+
+/** 输入参数页签里的全部参数（出参变量名 / 超时重试等已按 paramContext 的口径摘到别的页签） */
+const inputFields = computed(() => fields.value.filter(isInputParam));
+
+/** 兜底分区：不属于发送条 / 请求头 / 请求体的输入参数，避免后端加了参数前端却不显示 */
 const otherFields = computed(() => {
-  const used = new Set([
-    ...PRIMARY_NAMES,
-    ...HEADER_NAMES,
-    ...BODY_NAMES,
-    ...ADVANCED_NAMES,
-  ]);
-  return fields.value.filter((param) => !used.has(param.name));
+  const used = new Set([...PRIMARY_NAMES, ...HEADER_NAMES, ...BODY_NAMES]);
+  return inputFields.value.filter((param) => !used.has(param.name));
 });
 
 /* --------------------------------- 分区页签 --------------------------------- */
 
-/** 分区页签（图稿 Params / Headers / Body / Tests 行的对应物） */
-type ReqTab = "headers" | "body" | "advanced" | "loop" | "other";
+/**
+ * 分区页签（图稿 Params / Headers / Body / Tests 行的对应物）。
+ *
+ * <p>只留「请求头 / 请求体 / 其它」三片：超时重试与出参变量已经由外层页签外壳的
+ * 「高级配置」「输出参数」承担，循环四参数由「循环」页签承担 —— 内层再复制一套
+ * 同一份参数会出现两个入口写同一个值，用户改完不知道哪一处生效。</p>
+ */
+type ReqTab = "headers" | "body" | "other";
 
 /** 页签文案：短标签优先，与图稿的单词页签同一节奏 */
 const TAB_LABELS: Record<ReqTab, string> = {
   headers: "请求头",
   body: "请求体",
-  advanced: "高级",
-  loop: "循环",
   other: "其它",
 };
-
-/** 循环分区是否存在：与 LoopFields 内部同一门控（loopParamsOf），不另立口径 */
-const hasLoop = computed(() => loopParamsOf(props.meta).length > 0);
 
 /** 实际渲染的页签序列：没有内容的分区不出页签，避免点开一片空白 */
 const tabs = computed<ReqTab[]>(() => {
   const list: ReqTab[] = [];
   if (headerFields.value.length) list.push("headers");
   if (bodyFields.value.length) list.push("body");
-  if (advancedFields.value.length) list.push("advanced");
-  if (hasLoop.value) list.push("loop");
   if (otherFields.value.length) list.push("other");
   return list;
 });
@@ -314,7 +288,40 @@ function statusClass(status: number): string {
 </script>
 
 <template>
-  <div class="request-form">
+  <!-- 节点级说明：与外层页签外壳同口径，每个页签顶部都显示一次 -->
+  <NodeAlert kind="intro">
+    按 URL 取回页面或接口响应，交给下游节点解析。先填方法与地址，点「发送」在设计期实际取回一次、
+    弹窗看状态与正文；请求头与请求体在下方页面片里，超时重试在「高级配置」页签。
+  </NodeAlert>
+
+  <!-- 出参变量名 / 超时重试 / 循环 / 高级配置：统一交给 NodeParamForm 的分区渲染 -->
+  <NodeParamForm
+    v-if="section && section !== 'input'"
+    :node="node"
+    :meta="meta"
+    :ctx="ctx"
+    :section="section"
+    :own-param-names="[
+      'url',
+      'method',
+      'body',
+      'contentType',
+      'timeout',
+      'retry',
+      'retryInterval',
+      'proxy',
+      'userAgent',
+      'fetcher',
+      'outputVariable',
+      'saveDocument',
+      'header:名称',
+      'cookie:名称',
+    ]"
+    @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
+    @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
+  />
+
+  <div v-else class="request-form">
     <!-- 卡片头：图稿的「圆形图标 + 标题 + 等宽徽标」 -->
     <div class="form-head">
       <span class="form-head__icon" aria-hidden="true">
@@ -323,11 +330,6 @@ function statusClass(status: number): string {
       <span class="form-head__title">{{ node.name || "抓取节点" }}</span>
       <span class="form-head__badge">{{ meta.shape }}</span>
     </div>
-
-    <p class="form-intro">
-      按 URL 取回页面或接口响应，交给下游节点解析。先填方法与地址，点「发送」在设计期实际取回一次、
-      弹窗看状态与正文；请求头、请求体、超时重试等在下方页签里。
-    </p>
 
     <!-- 发送条：图稿的地址栏（方法徽章 + URL + 占位插入 + 发送键） -->
     <div class="send-bar" :data-method="methodValue">
@@ -427,31 +429,6 @@ function statusClass(status: number): string {
           :ctx="ctx"
           @update="(value: unknown) => emit('set-param', param, value)"
           @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
-        />
-      </template>
-
-      <template v-else-if="currentTab === 'advanced'">
-        <div class="pane-hint">超时、重试、代理、抓取器、出参变量、保留文档对象 —— 低频配置，按需修改。</div>
-        <ParamField
-          v-for="param in advancedFields"
-          :key="param.name"
-          :param="param"
-          :value="valueOf(param.name)"
-          :pairs="pairsOfParam(param.name)"
-          :node-id="node.id"
-          :ctx="ctx"
-          @update="(value: unknown) => emit('set-param', param, value)"
-          @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
-        />
-      </template>
-
-      <template v-else-if="currentTab === 'loop'">
-        <LoopFields
-          :node="node"
-          :meta="meta"
-          :ctx="ctx"
-          @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
-          @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
         />
       </template>
 
@@ -577,19 +554,6 @@ function statusClass(status: number): string {
   color: var(--el-text-color-secondary);
   background: var(--el-fill-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-sm, 4px);
-}
-
-/* 节点级说明：与其它节点表单同一形态（左侧 2px 主色竖条 + 浅底） */
-.form-intro {
-  margin: 0;
-  padding: 7px 9px;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--el-text-color-secondary);
-  background: var(--el-fill-color-lighter);
-  border: 1px solid var(--el-border-color-lighter);
-  border-left: 2px solid var(--el-color-primary);
   border-radius: var(--el-radius-sm, 4px);
 }
 

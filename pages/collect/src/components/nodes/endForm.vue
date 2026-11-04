@@ -19,6 +19,8 @@ defineProps<{
   meta: CollectShapeMeta;
   /** 表单共享上下文 */
   ctx: NodeFormContext;
+  /** 分区渲染：input / output / loop / advanced；缺省 all 保持旧行为（页签外壳逐页签下发） */
+  section?: "all" | "input" | "output" | "loop" | "advanced";
 }>();
 
 const emit = defineEmits<{
@@ -32,6 +34,7 @@ const emit = defineEmits<{
     :node="node"
     :meta="meta"
     :ctx="ctx"
+    :section="section"
     intro="流程终点：本身不执行任何操作，用来把「分支走到头了」画出来；每条分支的末端都必须收到一个结束节点。结束节点没有可配置项，把它放在每条分支的最末端即可，流程才算收束完整。"
     @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
     @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"

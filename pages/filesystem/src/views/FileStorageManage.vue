@@ -114,6 +114,15 @@ import PreviewOfficePanel from "../components/PreviewOfficePanel.vue";
 import PreviewMediaPanel from "../components/PreviewMediaPanel.vue";
 import ArchivePreviewPanel from "../components/ArchivePreviewPanel.vue";
 import InlineRenameLabel from "../components/InlineRenameLabel.vue";
+import { clearImageMetaCache, peekImageMeta, probeImageMeta, type ImageMeta } from "../utils/imageMeta";
+import {
+  THUMB_EDGE,
+  THUMB_JPEG_QUALITY,
+  buildScaleParams,
+  dropImageBlob,
+  withQuery,
+} from "../utils/imageSource";
+import { runPool } from "../utils/taskPool";
 /**
  * file-viewer 明确不支持、或需要自研增强的兜底面板按需加载。
  *
@@ -425,8 +434,12 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   // 已内置两套 WASM 引擎 + three 渲染器，改派到这里才能真出图形。
   step: PreviewModel3dPanel,
   stp: PreviewModel3dPanel,
-  iges: FvBinaryPanel,
-  igs: FvBinaryPanel,
+  // IGES 本来就在 FvModelPanel 的能力之外（它只给信息卡），但面板层
+  // PreviewModel3dPanel 是支持的：EXT_TO_FORMAT 里有 iges/igs，OCCT 侧调
+  // ReadIgesFile 三角化后 three 直接渲染。此前这里挂的是 FvBinaryPanel，
+  // 等于「有渲染器却只给十六进制」——台账里 iges/igs 的 FAIL 就是这样被固定住的。
+  iges: PreviewModel3dPanel,
+  igs: PreviewModel3dPanel,
   brep: PreviewModel3dPanel,
   "3dm": PreviewModel3dPanel,
   "3ds": PreviewModel3dPanel,
@@ -434,11 +447,17 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   dae: PreviewModel3dPanel,
   ifc: PreviewIfcPanel,
   pcd: FvModelPanel,
-  wrl: FvBinaryPanel,
-  vrml: FvBinaryPanel,
+  // VRML / FBX 走 three 原生加载器（真出图形）。此前这两个（三个后缀）被派到
+  // 二进制检视，是因为台账记录「三方加载器解析缺陷」；实际根因在解析调用方：
+  // ① `.vrml` 不在 EXT_TO_FORMAT 里，压根到不了 3D 面板；
+  // ② ASCII FBX 被喂了字符串，而 three 的 parse() 要 ArrayBuffer，
+  //    getFbxVersion 因此取不到版本号直接抛错。
+  // 两处都已修好并加了单测（src/utils/model3d.test.ts 用手写的最小合法样本锁住）。
+  wrl: PreviewModel3dPanel,
+  vrml: PreviewModel3dPanel,
   "3mf": PreviewModel3dPanel,
   off: PreviewModel3dPanel,
-  fbx: FvBinaryPanel,
+  fbx: PreviewModel3dPanel,
   vtk: PreviewModel3dPanel,
   xyz: FvModelPanel,
   vtp: FvModelPanel,
@@ -625,6 +644,255 @@ const viewMode = ref<ViewMode>("columns");
 const sortKey = ref<SortKey>("name");
 /** 排序方向：asc 升序 / desc 降序 */
 const sortOrder = ref<SortOrder>("asc");
+
+/* ================== 变体 B：侧栏胶囊过滤（搜索 / 类型 / 大小 / 日期 / 排序） ================== */
+
+/**
+ * 类型胶囊的分组口径
+ *
+ * <p>刻意<b>不复用</b> {@link kindOf}：{@code kindOf} 回答的是「用哪个预览器打开」
+ * （细到 tiff / heic / ofd / swf 十几种），而筛选要的是用户视角的粗粒度分组。
+ * 两套扩展名集合并不重合——xlsx 在 {@code kindOf} 里是 office（Word/Excel/PPT 共用一个
+ * 预览器），到了筛选里必须落进「表格」。故这里单独一张映射，见 {@link filterTypeOf}。</p>
+ */
+type FilterTypeKey = "all" | "image" | "doc" | "sheet" | "media" | "archive" | "other";
+/** 大小胶囊区间 */
+type FilterSizeKey = "all" | "lt1m" | "m1to10" | "m10to100" | "gt100m";
+/** 日期胶囊区间 */
+type FilterDateKey = "all" | "today" | "d7" | "d30" | "older";
+
+/** 侧栏搜索胶囊的关键词（对文件名做不区分大小写的包含匹配） */
+const filterKeyword = ref("");
+/** 侧栏类型胶囊 */
+const filterType = ref<FilterTypeKey>("all");
+/** 侧栏大小胶囊 */
+const filterSize = ref<FilterSizeKey>("all");
+/** 侧栏日期胶囊 */
+const filterDate = ref<FilterDateKey>("all");
+
+/**
+ * 过滤是否开启（排序不算：排序只在本地换序，不需要整目录数据）
+ *
+ * <p>它是「要不要整目录扫描」的唯一开关，见 {@link loadObjects}：开启时按
+ * {@link FILTER_SCAN_LIMIT} 一次拉全目录再本地筛，关闭时回落到服务端 200 条分页。
+ * 客户端筛选做不到「只筛当前页」——那样用户看到的是「本页里符合条件的」，
+ * 而不是「这个目录里符合条件的」，所以必须整目录。</p>
+ */
+const filterActive = computed(
+  () => filterKeyword.value.trim() !== "" || filterType.value !== "all" || filterSize.value !== "all" || filterDate.value !== "all",
+);
+
+/**
+ * 过滤态下的整目录扫描上限
+ *
+ * <p>上限存在的意义是「不把 10 万条瓦片目录拉进浏览器」：超出部分不参与筛选，
+ * 状态栏会明确写出「仅扫描前 N 项」，避免用户以为筛完就是全部。</p>
+ */
+const FILTER_SCAN_LIMIT = 1000;
+/** 本次列表是否为整目录扫描（过滤开启时为 true，状态栏据此隐藏分页并提示扫描口径） */
+const scanMode = ref(false);
+
+/** 类型胶囊选项（模板按此渲染，顺序即展示顺序） */
+const TYPE_OPTIONS: ReadonlyArray<{ key: FilterTypeKey; label: string }> = [
+  { key: "all", label: "全部" },
+  { key: "image", label: "图片" },
+  { key: "doc", label: "文档" },
+  { key: "sheet", label: "表格" },
+  { key: "media", label: "音视频" },
+  { key: "archive", label: "压缩包" },
+  { key: "other", label: "其他" },
+];
+
+/** 大小胶囊选项 */
+const SIZE_OPTIONS: ReadonlyArray<{ key: FilterSizeKey; label: string }> = [
+  { key: "all", label: "全部" },
+  { key: "lt1m", label: "小于 1M" },
+  { key: "m1to10", label: "1-10M" },
+  { key: "m10to100", label: "10-100M" },
+  { key: "gt100m", label: "大于 100M" },
+];
+
+/** 日期胶囊选项 */
+const DATE_OPTIONS: ReadonlyArray<{ key: FilterDateKey; label: string }> = [
+  { key: "all", label: "全部" },
+  { key: "today", label: "今天" },
+  { key: "d7", label: "近 7 天" },
+  { key: "d30", label: "近 30 天" },
+  { key: "older", label: "更早" },
+];
+
+/** 排序胶囊选项（复用 {@link sortKey}/{@link sortOrder}，点击同一项切换升降序） */
+const SORT_OPTIONS: ReadonlyArray<{ key: SortKey; label: string }> = [
+  { key: "name", label: "名称" },
+  { key: "size", label: "大小" },
+  { key: "lastModified", label: "修改时间" },
+];
+
+/** 「表格」口径的扩展名（含 csv：用户找表格时 CSV 与 xlsx 是一类） */
+const SHEET_FILTER_EXTS: readonly string[] = ["xls", "xlsx", "xlsm", "xlsb", "xlt", "xltx", "ods", "csv", "et", "numbers"];
+
+/**
+ * 扩展名 → 类型胶囊分组
+ *
+ * <p>判定顺序上「先查表格扩展名、再问 {@link kindOf}」：office 这一类要把 Word/Excel
+ * 拆开，其他类别（图片/音视频/压缩包）与 {@code kindOf} 同口径，直接借它的结果。</p>
+ *
+ * @param name 文件名
+ * @return 类型胶囊分组 {@link FilterTypeKey}（不含 all）
+ */
+function filterTypeOf(name: string): Exclude<FilterTypeKey, "all"> {
+  const ext = name.slice(name.lastIndexOf(".") + 1).toLowerCase();
+  if (SHEET_FILTER_EXTS.includes(ext)) return "sheet";
+  switch (kindOf(name)) {
+    case "image":
+    case "tiff":
+    case "heic":
+    case "jxl":
+    case "tga":
+    case "design":
+    case "sketch":
+    case "dicom":
+      return "image";
+    case "video":
+    case "audio":
+      return "media";
+    case "archive":
+      return "archive";
+    case "pdf":
+    case "office":
+    case "text":
+    case "code":
+    case "markdown":
+    case "csv":
+    case "email":
+    case "calendar":
+    case "contact":
+    case "notebook":
+    case "webpage":
+    case "data":
+    case "mindmap":
+    case "bpmn":
+    case "drawio":
+    case "ofd":
+      return "doc";
+    default:
+      return "other";
+  }
+}
+
+/**
+ * 大小胶囊是否命中
+ *
+ * @param o 对象
+ * @return 命中（或未启用大小过滤）为 true
+ */
+function matchSizeFilter(o: StorageObject): boolean {
+  if (filterSize.value === "all") return true;
+  const size = o.size || 0;
+  const MB = 1024 * 1024;
+  switch (filterSize.value) {
+    case "lt1m":
+      return size < MB;
+    case "m1to10":
+      return size >= MB && size < 10 * MB;
+    case "m10to100":
+      return size >= 10 * MB && size < 100 * MB;
+    case "gt100m":
+      return size >= 100 * MB;
+    default:
+      return true;
+  }
+}
+
+/**
+ * 日期胶囊是否命中
+ *
+ * <p>「今天」按本地零点算而不是「24 小时内」：用户点「今天」要的是今天改过的文件，
+ * 凌晨 1 点看「24 小时内」会把昨天下午的文件也算进来。</p>
+ *
+ * @param o 对象
+ * @return 命中（或未启用日期过滤）为 true
+ */
+function matchDateFilter(o: StorageObject): boolean {
+  if (filterDate.value === "all") return true;
+  const t = o.lastModified || 0;
+  if (!t) return false;
+  const DAY = 86400000;
+  const now = Date.now();
+  switch (filterDate.value) {
+    case "today": {
+      const start = new Date(now);
+      start.setHours(0, 0, 0, 0);
+      return t >= start.getTime();
+    }
+    case "d7":
+      return t >= now - 7 * DAY;
+    case "d30":
+      return t >= now - 30 * DAY;
+    case "older":
+      return t < now - 30 * DAY;
+    default:
+      return true;
+  }
+}
+
+/**
+ * 类型 / 大小 / 日期三项胶囊的综合判定
+ *
+ * <p><b>目录一律放行</b>：目录没有扩展名、大小恒为 0、修改时间也不是「文件内容的时间」，
+ * 拿它去套这三项只会把目录全部误杀。目录的过滤只由关键词负责（按名字找目录是常态）。</p>
+ *
+ * @param o 对象
+ * @return 通过为 true
+ */
+function matchCapsuleFilter(o: StorageObject): boolean {
+  if (o.directory) return true;
+  if (filterType.value !== "all" && filterTypeOf(o.name) !== filterType.value) return false;
+  if (!matchSizeFilter(o)) return false;
+  return matchDateFilter(o);
+}
+
+/**
+ * 关键词胶囊是否命中（目录名也参与）
+ *
+ * @param o 对象
+ * @return 命中（或关键词为空）为 true
+ */
+function matchKeywordFilter(o: StorageObject): boolean {
+  const kw = filterKeyword.value.trim().toLowerCase();
+  if (!kw) return true;
+  return o.name.toLowerCase().includes(kw);
+}
+
+/** 一次性清空四个胶囊（侧栏「清除」按钮） */
+function clearFilters(): void {
+  filterKeyword.value = "";
+  filterType.value = "all";
+  filterSize.value = "all";
+  filterDate.value = "all";
+}
+
+/**
+ * 列表空态文案
+ *
+ * <p>过滤态下「当前目录为空」是错的——目录里有东西，只是没匹配上；
+ * 这句文案直接影响用户会不会去点「清除」。</p>
+ *
+ * @return 空态提示文案
+ */
+const emptyText = computed(() => {
+  if (loadError.value) return loadError.value;
+  if (filterActive.value) return "没有匹配的文件";
+  return "当前目录为空";
+});
+
+// 过滤开关一变就必须重载：开启 → 整目录扫描，关闭 → 回服务端分页。
+// 只切类型/大小/日期（filterActive 仍为 true）不重载，本地筛即可，交互零延迟。
+watch(filterActive, () => {
+  page.value = 1;
+  void loadObjects();
+});
+
 /** 当前右键菜单 */
 const ctxMenu = ref<{ visible: boolean; x: number; y: number; row: StorageObject | null; path: string | null }>({ visible: false, x: 0, y: 0, row: null, path: null });
 
@@ -686,16 +954,21 @@ const breadcrumbs = computed(() => {
 });
 
 /**
- * 当前目录的展示列表（只排序，不过滤）
+ * 当前目录的展示列表（先按胶囊过滤，再排序）
  *
- * <p>搜索框整行移除后关键词过滤随之删除，这里只剩两条规则：目录排在文件前面、
- * 再按排序字段排。刻意先复制一份数组再 {@code sort}，否则就地排序会改动
- * {@link objects} 本身，而 {@code objects} 还要拿去做统计与分栏缓存同步。</p>
+ * <p>过滤条件见 {@link matchCapsuleFilter}/{@link matchKeywordFilter}，两者都为真才展示。
+ * 关掉过滤时 {@link filterActive} 为 false，这两个判定恒真，行为与改造前一致。</p>
  *
- * @return 排好序的当前目录条目
+ * <p>目录永远排在文件前面，再按排序字段排。刻意先复制一份数组再 {@code sort}，
+ * 否则就地排序会改动 {@link objects} 本身，而 {@code objects} 还要拿去做统计与
+ * 分栏缓存同步。</p>
+ *
+ * @return 过滤 + 排好序的当前目录条目
  */
 const sortedObjects = computed(() => {
-  return [...objects.value].sort((a, b) => {
+  return objects.value
+    .filter((o) => matchKeywordFilter(o) && matchCapsuleFilter(o))
+    .sort((a, b) => {
     // Windows 惯例：目录始终排在文件前面
     if (a.directory !== b.directory) return a.directory ? -1 : 1;
     const dir = sortOrder.value === "asc" ? 1 : -1;
@@ -812,27 +1085,248 @@ function objectThumbUrl(name: string): string {
  */
 const thumbUrls = ref<Record<string, string>>({});
 
-/** 为当前目录的大图标缩略图批量签发票据 */
+/**
+ * 缩略图字节缓存：键 → {@code blob:} 直链
+ *
+ * <p>{@code /ot/{token}} 的响应带 {@code Cache-Control: no-store}（票据直链，
+ * 服务端刻意不让浏览器缓存），于是每次切视图、重进目录都要把这些字节再拉一遍。
+ * 这里在内存里留一份 blob 直链，同一目录来回切时缩略图是「瞬间出现」的。</p>
+ *
+ * <p>键里带了 {@code lastModified}：文件被覆盖后 mtime 变，缓存自然失效。
+ * 超过上限后只停止新增、<b>不</b> revoke 旧的 —— 正在显示的 {@code <img>}
+ * 被 revoke 会立刻破图。</p>
+ */
+const thumbBlobCache = new Map<string, string>();
+const THUMB_BLOB_CACHE_LIMIT = 400;
+
+/** 缩略图缓存已占用的字节数 */
+let thumbBlobCacheBytes = 0;
+
+/** 缩略图缓存总字节上限：172px JPEG 单张约 5~10KB，32MB 足够装下几千张 */
+const THUMB_BLOB_CACHE_BYTE_LIMIT = 32 * 1024 * 1024;
+
+/** 当前这一轮签票的序号：目录/配置变化后旧的一轮结果必须丢弃 */
+let thumbSeq = 0;
+
+/** 缩略图取图并发上限：单条链路 6 个已经能吃满带宽，再多只是互相排队 */
+const THUMB_DOWNLOAD_CONCURRENCY = 6;
+
+/** 元信息探测并发上限：每张只要 4KB，比取图轻得多 */
+const THUMB_PROBE_CONCURRENCY = 8;
+
+/** 缩略图 URL 写回节流（毫秒）：避免每张图回来都整表重建一次 */
+const THUMB_FLUSH_MS = 60;
+
+/**
+ * 为当前目录的大图标缩略图批量签发票据并取图
+ *
+ * <p>四条约束（都来自实测的加载失败/长时间空白）：</p>
+ * <ol>
+ *   <li><b>只在需要像素缩略图的视图取图</b>：只有大图标模式渲染 {@code <img>}，
+ *       分栏/详细/中图标/小图标全是矢量图标，取了也没人用。</li>
+ *   <li><b>只取图片</b>：{@code ?preview} 对 pdf/office 回的是服务端渲染页，
+ *       既慢又不稳定；非图片一律用类型图标兜底。</li>
+ *   <li><b>先并发探测、再定并发取图、逐张写回</b>：见 {@link runPool}。</li>
+ *   <li><b>缩略图按目标像素取 + 能转 JPEG 就转</b>：见 {@link thumbUrlOf}。</li>
+ * </ol>
+ */
 async function refreshThumbUrls(): Promise<void> {
+  thumbSeq += 1;
+  const seq = thumbSeq;
+  // 非大图标模式：清空票据表，省掉全部签票
+  if (viewMode.value !== "largeIcons") {
+    thumbUrls.value = {};
+    return;
+  }
   const stamp = configStamp.value;
   const filterParams = imageFilterParams.value;
-  const entries = await Promise.all(
-    sortedObjects.value
-      .filter((o) => !o.directory && isPreviewable(o.name) && !isArchive(o.name))
-      .map(async (o) => {
-        const key = fullKey(o.name);
-        // 图片地址带上当前滤镜的路径参数：服务端据此在返回字节前先处理一遍，
-        // 缩略图因此是「滤镜后的图」，而不是浏览器把原图再 CSS 压一遍。
-        // 非图片文件不加——那些参数对它们没有意义，只会变成服务端侧的未知参数。
-        const params: Record<string, string> = { preview: "true", _cfg: stamp };
-        if (kindOf(o.name) === "image") {
-          Object.assign(params, filterParams);
-        }
-        const url = await resolveObjectUrl(bucket.value, key, { params });
-        return [key, url] as const;
-      }),
-  );
-  thumbUrls.value = Object.fromEntries(entries);
+  const images = sortedObjects.value.filter((o) => !o.directory && kindOf(o.name) === "image");
+  const next: Record<string, string> = {};
+  let dirty = false;
+  let flushTimer: number | null = null;
+
+  /**
+   * 把本轮已拿到的 URL 写回响应式表（节流合并，避免整表重建几十次）
+   *
+   * <p>写回必须是<b>合并</b>而不是替换：一轮开跑时 {@code next} 是空的，
+   * 若直接 {@code thumbUrls.value = {...next}}，第一个 worker 回来就会把
+   * 已经显示的另外几张缩略图一起抹成空白（实测采样到 {@code empty src=1}）。
+   * 收敛交给本轮结束时的那次替换 {@link refreshThumbUrls}。</p>
+   */
+  const flush = (): void => {
+    if (flushTimer !== null) {
+      window.clearTimeout(flushTimer);
+      flushTimer = null;
+    }
+    if (!dirty || seq !== thumbSeq) {
+      return;
+    }
+    dirty = false;
+    thumbUrls.value = { ...thumbUrls.value, ...next };
+  };
+
+  // 1) 元信息预热与取图<b>并行</b>跑：探测每张只要 4KB，但「等整目录探完再取图」
+  //    会把首屏推后好几秒（50 张图 = 7 批 × 0.8s）。这里让取图的 worker 自己
+  //    按需探测（缓存命中就是零成本），预热只是帮它们提前把元信息备好。
+  const warmTask = runPool(images, THUMB_PROBE_CONCURRENCY, async (o) => {
+    if (seq !== thumbSeq) {
+      return;
+    }
+    await warmThumbMeta(o, stamp, filterParams);
+  });
+
+  // 2) 固定并发取图：谁先回来谁先亮，不等「一批里最慢的那张」
+  await runPool(images, THUMB_DOWNLOAD_CONCURRENCY, async (o) => {
+    if (seq !== thumbSeq) {
+      return;
+    }
+    const url = await thumbUrlOf(o, stamp, filterParams);
+    if (seq !== thumbSeq || !url) {
+      return;
+    }
+    next[fullKey(o.name)] = url;
+    dirty = true;
+    if (flushTimer === null) {
+      flushTimer = window.setTimeout(flush, THUMB_FLUSH_MS);
+    }
+  });
+  await warmTask;
+  // 本轮结束才做「替换式」收敛：清掉上一目录遗留的键，同时保证期间显示过的缩略图不被抹掉。
+  //
+  // 收尾不能直接用 `{...next}`：新一轮（切视图、刷新列表、改滤镜都会触发）的
+  // next 是空的，只要这一轮里某张图失败（网络抖动、探测超时）拿不到 url，
+  // 替换就会把**上一轮已经显示出来**的那张抹成空白 —— 实测采样到 `empty src=1`，
+  // 也是大图标偶发「一张图闪白」的真因。
+  // 正确口径：按当前图片清单收敛（清掉不在清单里的旧键），
+  // 清单内某张这轮没拿到就沿用上一轮的值。
+  if (seq === thumbSeq) {
+    if (flushTimer !== null) {
+      window.clearTimeout(flushTimer);
+      flushTimer = null;
+    }
+    const prev = thumbUrls.value;
+    const settled: Record<string, string> = {};
+    for (const o of images) {
+      const key = fullKey(o.name);
+      const url = next[key] ?? prev[key];
+      if (url) {
+        settled[key] = url;
+      }
+    }
+    thumbUrls.value = settled;
+  }
+}
+
+/**
+ * 预热一张图片的元信息（宽高 / 字节数 / 是否带 alpha）
+ *
+ * <p>命中缓存直接返回，不发请求 —— 大图标视图反复切换时探测只做一次。</p>
+ *
+ * @param obj          列表项
+ * @param stamp        配置版本戳
+ * @param filterParams 图片滤镜参数
+ * @returns 元信息；探测失败返回 null
+ */
+async function warmThumbMeta(
+  obj: StorageObject,
+  stamp: string,
+  filterParams: Record<string, string>,
+): Promise<ImageMeta | null> {
+  const key = fullKey(obj.name);
+  const hit = peekImageMeta(key);
+  if (hit) {
+    return hit;
+  }
+  const base = await resolveObjectUrl(bucket.value, key, {
+    params: { preview: "true", _cfg: stamp, ...filterParams },
+  });
+  if (!base) {
+    return null;
+  }
+  return probeImageMeta(base, key).catch(() => null);
+}
+
+/**
+ * 算出一张图片的缩略图直链
+ *
+ * <p><b>为什么不能直接用原图直链</b>：dev 下文件服务器的字节要经 Vite 代理从远端
+ * 拉回来，实测下行 ~40KB/s。目录里随手一张 1024×1024 的 PNG 就是 2MB ——
+ * 单张 50 秒起步，5 张图的大图标视图等于一直白屏。而卡片上只显示 86px。</p>
+ *
+ * <p>所以这里给直链追加服务端处理参数：{@code ?preview=true&size=WxH} 现场等比缩放，
+ * {@code &format=jpeg&quality=72} 再把无损 PNG 换成 JPEG —— 172px 实测
+ * PNG 74~83KB、JPEG 只要 6~10KB，字节数直接决定首屏。<b>带透明通道的图不能转</b>
+ * （JPEG 无 alpha，后端会把透明像素写成黑色），判定见
+ * {@link import("../utils/imageSource").canServeJpeg}。</p>
+ *
+ * @param obj          列表项（取 Key、mtime）
+ * @param stamp        配置版本戳（滤镜/水印变了 URL 必须变）
+ * @param filterParams 图片滤镜的路径参数
+ * @returns 缩略图直链；签票失败返回空串
+ */
+async function thumbUrlOf(
+  obj: StorageObject,
+  stamp: string,
+  filterParams: Record<string, string>,
+): Promise<string> {
+  const key = fullKey(obj.name);
+  const cacheKey = [bucket.value, key, stamp, obj.lastModified ?? 0, JSON.stringify(filterParams)].join("|");
+  const cached = thumbBlobCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+  // 图片地址带上当前滤镜的路径参数：服务端据此在返回字节前先处理一遍，
+  // 缩略图因此是「滤镜后的图」，而不是浏览器把原图再 CSS 压一遍。
+  const base = await resolveObjectUrl(bucket.value, key, {
+    params: { preview: "true", _cfg: stamp, ...filterParams },
+  });
+  if (!base) {
+    return "";
+  }
+  const info = peekImageMeta(key) ?? await probeImageMeta(base, key).catch(() => null);
+  const url = thumbRequestUrl(base, key, info);
+  // 抓成 blob 直链存内存：no-store 让浏览器没法缓存，切视图回来还得重下
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      return url;
+    }
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    // 超了上限就只停止新增，不 revoke 旧的 —— 正在显示的 <img> 被 revoke 会立刻破图
+    if (
+      thumbBlobCache.size < THUMB_BLOB_CACHE_LIMIT &&
+      thumbBlobCacheBytes + blob.size <= THUMB_BLOB_CACHE_BYTE_LIMIT
+    ) {
+      thumbBlobCache.set(cacheKey, blobUrl);
+      thumbBlobCacheBytes += blob.size;
+    }
+    return blobUrl;
+  } catch {
+    // 取字节失败就用直链本身，交给 <img> 自己重试
+    return url;
+  }
+}
+
+/**
+ * 给缩略图直链补上「等比缩放 + JPEG」参数
+ *
+ * @param base 已签名的直链（含 {@code ?preview=true}）
+ * @param key  对象 Key
+ * @param info 元信息（可能为 null）
+ * @returns 可直接放进 {@code <img src>} 的直链
+ */
+function thumbRequestUrl(base: string, key: string, info: ImageMeta | null): string {
+  if (!info) {
+    // 探测失败（少见格式/头解析不了）：退回原链，宁可慢也不破图
+    return base;
+  }
+  const params = buildScaleParams(key, info, THUMB_EDGE, THUMB_JPEG_QUALITY);
+  if (!params.size) {
+    // 小图 / 原图本来就比目标小：直接用原始字节
+    return base;
+  }
+  return withQuery(base, params);
 }
 
 /** 排序点击切换 */
@@ -1213,11 +1707,14 @@ async function loadObjects(): Promise<void> {
     loadShowTimer = undefined;
   }, 300);
   try {
-    // 分页请求：objects 只保留当前页 200 条，避免瓦片图目录/超大目录一次性拉全量
+    // 过滤开启 → 整目录扫描（一次拉 FILTER_SCAN_LIMIT 条，本地筛）；
+    // 过滤关闭 → 服务端分页，objects 只保留当前页 200 条，避免瓦片图目录一次性拉全量
     //（列表 stat + 缩略图票据都只发生在当前页上）
+    const scan = filterActive.value;
+    scanMode.value = scan;
     const paged = await listObjectsPaged(bucket.value, currentPath.value, {
-      limit: PAGE_SIZE,
-      offset: (page.value - 1) * PAGE_SIZE,
+      limit: scan ? FILTER_SCAN_LIMIT : PAGE_SIZE,
+      offset: scan ? 0 : (page.value - 1) * PAGE_SIZE,
     });
     // 旧请求（目录已切走）：直接丢弃，不碰列表、不报错
     if (activeLoadSeq !== seq) return;
@@ -2880,7 +3377,11 @@ function refreshColumns(): void {
  * @return 该列应当渲染的条目列表；列尚未加载时返回空数组
  */
 function columnItems(colPath: string): StorageObject[] {
-  return colObjects.value[colPath] ?? [];
+  const list = colObjects.value[colPath];
+  if (!list) return [];
+  // 侧栏胶囊过滤对分栏视图同样生效：分栏每列的数据来自各自的缓存，
+  // 不能套用当前目录那份 sortedObjects，所以在这里就地按同一口径筛一遍。
+  return filterActive.value ? list.filter((o) => matchKeywordFilter(o) && matchCapsuleFilter(o)) : list;
 }
 
 watch(segmentPaths, (paths) => {
@@ -3718,6 +4219,13 @@ const previewName = ref("");
 const previewKey = ref("");
 /** 预览对象大小（字节）：音视频/地理面板的统计条要用，随 openPreview 一起记录 */
 const previewSize = ref(0);
+/**
+ * 预览对象的 mtime
+ *
+ * <p>传给图片面板当原图字节缓存的版本标记：文件被覆盖后 mtime 变，
+ * 面板自然不会命中上一版字节。非图片面板不用它。</p>
+ */
+const previewLastModified = ref(0);
 const previewError = ref(false);
 const iframeKey = ref(0);
 const iframeLoading = ref(false);
@@ -3747,6 +4255,7 @@ async function openPreview(row: StorageObject, key?: string): Promise<void> {
   // 不能拿当前目录 currentPath 去拼（否则根目录文件会变成子目录路径）。
   previewKey.value = key ?? fullKey(row.name);
   previewSize.value = row.size ?? 0;
+  previewLastModified.value = row.lastModified ?? 0;
   // 票据是异步的：先把旧地址清空，避免弹框先用上一个对象的地址闪一下
   previewSrc.value = "";
   void refreshPreviewSrc();
@@ -3782,6 +4291,17 @@ async function openPreview(row: StorageObject, key?: string): Promise<void> {
  * 而不是先用「无令牌的直链」闪一下再被 401 打断。</p>
  */
 const previewSrc = ref("");
+
+/**
+ * 预览弹层用的低清占位图直链
+ *
+ * <p>就是大图标视图里已经拉过的那张 172px 缩略图（已经进了内存缓存，不再发请求）。
+ * 原图动辄 2MB、远端带宽只有 ~40KB/s，直接干等原图要几十秒；面板先把占位图
+ * 放大模糊铺底，再等原图字节流回来替换，观感上「点开就有东西」。</p>
+ *
+ * <p>不在大图标视图时这张表是空的，面板会自己去要一张小图。</p>
+ */
+const previewThumbUrl = computed(() => thumbUrls.value[previewKey.value] ?? "");
 
 /** 按需为当前预览对象签发票据并刷新直链 */
 async function refreshPreviewSrc(): Promise<void> {
@@ -3910,6 +4430,12 @@ const sketchInnerPath = computed(() => (innerIsSketch.value ? previewInnerPath.v
 
 /** 图片面板保存成功后刷新当前目录，让列表里的缩略图与大小同步更新 */
 function onImageSaved(): void {
+  // 裁剪/旋转后宽高会变，探测缓存里的旧尺寸会让缩略图比例算错
+  clearImageMetaCache();
+  // 原图字节缓存也要按对象失效：否则再次打开预览会命中保存前的旧字节
+  if (previewKey.value) {
+    dropImageBlob(bucket.value, previewKey.value);
+  }
   void loadObjects();
   message.success("图片已更新");
 }
@@ -4576,6 +5102,103 @@ onUnmounted(() => {
     <!-- ===== 主体区域：左侧导航 + 内容 ===== -->
     <div class="fs-body">
       <aside class="fs-nav">
+        <!-- ===== 变体 B：胶囊过滤（搜索 / 类型 / 大小 / 日期 / 排序） =====
+             整块钉在侧栏顶部，不跟「快捷访问」一起滚动：它是常驻操作区。
+             类型/大小/日期/排序只改本地筛与本地换序（即点即生效，不发请求），
+             只有过滤开关本身变化（开启 ↔ 关闭）才重载列表（见 loadObjects 的整目录扫描）。
+             回收站视图下隐藏：那页的条目来自回收站接口，与当前目录的筛选口径无关。 -->
+        <div v-if="nav === 'all'" class="fs-nav__filter" role="group" aria-label="筛选与排序">
+          <div class="fs-nav__filter-hd">
+            <span class="fs-nav__title fs-nav__title--inline">筛选</span>
+            <button v-if="filterActive" type="button" class="fs-filter-clear" @click="clearFilters">
+              <el-icon :size="11"><Close /></el-icon>清除
+            </button>
+          </div>
+
+          <!-- 搜索胶囊：对文件名做包含匹配（目录名也参与） -->
+          <div class="fs-pill-search">
+            <el-icon :size="13" class="fs-pill-search__icon"><Search /></el-icon>
+            <input
+              v-model="filterKeyword"
+              type="text"
+              class="fs-pill-search__input"
+              placeholder="搜索文件名"
+              aria-label="搜索文件名"
+            />
+            <button
+              v-if="filterKeyword"
+              type="button"
+              class="fs-pill-search__clear"
+              aria-label="清空关键词"
+              @click="filterKeyword = ''"
+            >
+              <el-icon :size="11"><Close /></el-icon>
+            </button>
+          </div>
+
+          <div class="fs-pill-group">
+            <span class="fs-pill-group__cap">类型</span>
+            <div class="fs-pill-row">
+              <button
+                v-for="opt in TYPE_OPTIONS"
+                :key="opt.key"
+                type="button"
+                class="fs-pill"
+                :class="{ 'is-active': filterType === opt.key }"
+                :aria-pressed="filterType === opt.key"
+                @click="filterType = opt.key"
+              >{{ opt.label }}</button>
+            </div>
+          </div>
+
+          <div class="fs-pill-group">
+            <span class="fs-pill-group__cap">大小</span>
+            <div class="fs-pill-row">
+              <button
+                v-for="opt in SIZE_OPTIONS"
+                :key="opt.key"
+                type="button"
+                class="fs-pill"
+                :class="{ 'is-active': filterSize === opt.key }"
+                :aria-pressed="filterSize === opt.key"
+                @click="filterSize = opt.key"
+              >{{ opt.label }}</button>
+            </div>
+          </div>
+
+          <div class="fs-pill-group">
+            <span class="fs-pill-group__cap">修改时间</span>
+            <div class="fs-pill-row">
+              <button
+                v-for="opt in DATE_OPTIONS"
+                :key="opt.key"
+                type="button"
+                class="fs-pill"
+                :class="{ 'is-active': filterDate === opt.key }"
+                :aria-pressed="filterDate === opt.key"
+                @click="filterDate = opt.key"
+              >{{ opt.label }}</button>
+            </div>
+          </div>
+
+          <div class="fs-pill-group">
+            <span class="fs-pill-group__cap">排序</span>
+            <div class="fs-pill-row">
+              <button
+                v-for="opt in SORT_OPTIONS"
+                :key="opt.key"
+                type="button"
+                class="fs-pill"
+                :class="{ 'is-active': sortKey === opt.key }"
+                :aria-pressed="sortKey === opt.key"
+                @click="toggleSort(opt.key)"
+              >
+                {{ opt.label }}<span v-if="sortKey === opt.key" class="fs-pill__dir">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div class="fs-nav__section fs-nav__section--quick">
           <div class="fs-nav__title">快捷访问</div>
           <div v-if="!rootObjects.length" class="fs-nav__empty">根目录暂无内容</div>
@@ -4613,7 +5236,6 @@ onUnmounted(() => {
             <b v-if="recycleCount > 0" class="fs-nav__badge">{{ recycleCount }}</b>
           </button>
           <button
-            v-admin
             type="button"
             class="fs-nav__foot-btn fs-nav__foot-btn--icon"
             title="系统配置"
@@ -4716,7 +5338,7 @@ onUnmounted(() => {
             >
               <div v-if="colObjects[colPath] === undefined" class="fs-col__hint">加载中…</div>
               <div v-else-if="colError[colPath]" class="fs-col__hint fs-col__hint--error">{{ colError[colPath] }}</div>
-              <div v-else-if="columnItems(colPath).length === 0" class="fs-col__hint">空目录</div>
+              <div v-else-if="columnItems(colPath).length === 0" class="fs-col__hint">{{ filterActive ? '无匹配项' : '空目录' }}</div>
               <div
                 v-else-if="colTotals[colPath] != null && colTotals[colPath] > COLUMN_LIMIT"
                 class="fs-col__hint fs-col__hint--more"
@@ -4779,7 +5401,7 @@ onUnmounted(() => {
           </div>
           <div v-if="sortedObjects.length === 0 && !loading" class="fs-files__empty">
             <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-            <span>{{ loadError || "当前目录为空" }}</span>
+            <span>{{ emptyText }}</span>
           </div>
           <div
             v-for="(item, index) in sortedObjects"
@@ -4826,7 +5448,7 @@ onUnmounted(() => {
         <div v-else-if="viewMode === 'largeIcons'" class="fs-files fs-files--large" @contextmenu="openBlankContextMenu">
           <div v-if="sortedObjects.length === 0 && !loading" class="fs-files__empty">
             <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-            <span>{{ loadError || "当前目录为空" }}</span>
+            <span>{{ emptyText }}</span>
           </div>
           <div
             v-for="(item, index) in sortedObjects"
@@ -4856,6 +5478,7 @@ onUnmounted(() => {
                 class="fs-lg-card__frame"
                 :alt="item.name"
                 loading="lazy"
+                decoding="async"
               />
               <span
                 v-else
@@ -4881,7 +5504,7 @@ onUnmounted(() => {
         <div v-else-if="viewMode === 'mediumIcons'" class="fs-files fs-files--medium" @contextmenu="openBlankContextMenu">
           <div v-if="sortedObjects.length === 0 && !loading" class="fs-files__empty">
             <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-            <span>{{ loadError || "当前目录为空" }}</span>
+            <span>{{ emptyText }}</span>
           </div>
           <div
             v-for="(item, index) in sortedObjects"
@@ -4928,7 +5551,7 @@ onUnmounted(() => {
         <div v-else class="fs-files fs-files--small" @contextmenu="openBlankContextMenu">
           <div v-if="sortedObjects.length === 0 && !loading" class="fs-files__empty">
             <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-            <span>{{ loadError || "当前目录为空" }}</span>
+            <span>{{ emptyText }}</span>
           </div>
           <div class="fs-files__small-list">
             <div
@@ -5014,10 +5637,20 @@ onUnmounted(() => {
         </div>
         <!-- 状态栏：项数 + 查看方式切换（分栏/详细信息/大图标/中图标/小图标） -->
         <div class="fs-statusbar">
+          <!-- 项数口径随筛选切换：过滤态报「命中 / 全目录」两个数，否则用户分不清
+               「目录就这么点东西」和「筛完只剩这么点」 -->
           <span class="fs-statusbar__info">
-            {{ nav === 'recycle' ? recycleCount : (listTotal > 0 ? listTotal : sortedObjects.length) }} 个项{{ selectedCount > 0 ? `（已选 ${selectedCount} 项）` : '' }}
+            <template v-if="nav === 'recycle'">{{ recycleCount }} 个项</template>
+            <template v-else-if="filterActive">筛选命中 {{ sortedObjects.length }} 项 · 全目录 {{ listTotal }} 项</template>
+            <template v-else>{{ listTotal > 0 ? listTotal : sortedObjects.length }} 个项</template>
+            <template v-if="selectedCount > 0">（已选 {{ selectedCount }} 项）</template>
           </span>
-          <div v-if="nav === 'all' && viewMode !== 'columns' && listTotal > PAGE_SIZE" class="fs-statusbar__pages">
+          <!-- 整目录扫描有上限：超出部分没参与筛选，必须写出来 -->
+          <span v-if="filterActive && scanMode && listTotal > FILTER_SCAN_LIMIT" class="fs-statusbar__scan">
+            仅扫描前 {{ FILTER_SCAN_LIMIT }} 项
+          </span>
+          <!-- 过滤态是整目录扫描，没有「当前页」可言，分页器一并隐藏 -->
+          <div v-if="nav === 'all' && !scanMode && viewMode !== 'columns' && listTotal > PAGE_SIZE" class="fs-statusbar__pages">
             <el-pagination
               :current-page="page"
               :page-size="PAGE_SIZE"
@@ -5227,7 +5860,10 @@ onUnmounted(() => {
       </div>
     </Teleport>
 
-    <!-- ===== 系统配置对话框（管理员，v-admin 指令控制入口按钮可见性）
+    <!-- ===== 系统配置对话框
+          入口按钮在侧栏底部，**不挂 v-admin**：该指令用 display:none 隐藏元素，而它
+          依赖的登录角色信息在本页独立部署时常常拿不到，结果就是「按钮整块消失、
+          没人找得到配置入口」（实测如此）。
          左分组 + 右内容的双栏结构，右侧分区可搜索过滤；色值全部走 koi 的 --el-* 令牌。 ===== -->
     <ReDialog
       v-model="adminVisible"
@@ -6018,6 +6654,8 @@ onUnmounted(() => {
             :object-key="previewKey"
             :file-name="previewName"
             :image-path="imageFilterPath"
+            :thumb-url="previewThumbUrl"
+            :version="previewLastModified"
             @saved="onImageSaved"
           />
           <!-- 视频：flv/m4v 不在 file-viewer formats 清单，仍走 video.js/flv.js -->
@@ -8077,6 +8715,159 @@ onUnmounted(() => {
   font-weight: 700;
 }
 
+/* ===== 变体 B：侧栏胶囊过滤（搜索 / 类型 / 大小 / 日期 / 排序） ===== */
+/* 钉在侧栏顶部，不跟「快捷访问」一起滚；自身限量滚动，避免小窗口把快捷访问挤没 */
+.fs-nav__filter {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 62%;
+  padding: 4px 2px 10px;
+  overflow-y: auto;
+  border-bottom: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
+}
+
+.fs-nav__filter-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 18px;
+  padding: 0 6px;
+}
+
+.fs-nav__title--inline {
+  padding: 0;
+}
+
+/* 「清除」只在过滤开启时出现，故用主色浅底，和底部常驻按钮区分开 */
+.fs-filter-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+  padding: 0 7px;
+  border: none;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background var(--el-transition-duration, 0.2s);
+}
+
+.fs-filter-clear:hover {
+  background: var(--el-color-primary-light-8);
+}
+
+/* 搜索胶囊 */
+.fs-pill-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  margin: 0 2px;
+  padding: 0 10px;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-fill-color-blank, #fff);
+  transition: border-color var(--el-transition-duration, 0.2s);
+}
+
+.fs-pill-search:focus-within {
+  border-color: var(--el-color-primary);
+}
+
+.fs-pill-search__icon {
+  flex-shrink: 0;
+  color: var(--el-text-color-placeholder);
+}
+
+.fs-pill-search__input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--el-text-color-primary);
+  font-size: 12px;
+  font-family: inherit;
+}
+
+.fs-pill-search__input::placeholder {
+  color: var(--el-text-color-placeholder);
+}
+
+.fs-pill-search__clear {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 50%;
+  background: var(--el-fill-color);
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+}
+
+/* 胶囊分组 */
+.fs-pill-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fs-pill-group__cap {
+  padding-left: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--el-text-color-placeholder);
+}
+
+.fs-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 2px;
+}
+
+.fs-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 9px;
+  border: 1px solid transparent;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-regular);
+  font-size: 11px;
+  font-family: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s);
+}
+
+.fs-pill:hover {
+  background: var(--el-fill-color);
+  color: var(--el-text-color-primary);
+}
+
+.fs-pill.is-active {
+  background: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  color: var(--el-color-white);
+  font-weight: 600;
+}
+
+.fs-pill__dir {
+  margin-left: 2px;
+  font-size: 10px;
+}
+
 /* 目录树（复用 FsTreeNode 渲染组件，样式走 :deep 穿透） */
 .fs-tree {
   display: flex;
@@ -8403,6 +9194,17 @@ onUnmounted(() => {
   flex: 1;
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+
+/* 整目录扫描上限提示（过滤态 + 目录条数超过 FILTER_SCAN_LIMIT 时出现） */
+.fs-statusbar__scan {
+  flex-shrink: 0;
+  padding: 1px 8px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-color-warning-light-9);
+  color: var(--el-color-warning);
+  font-size: 11px;
+  white-space: nowrap;
 }
 
 /* 分页器：非分栏视图多页时显示（分栏视图自行截断，不重复分页） */

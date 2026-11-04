@@ -269,6 +269,7 @@ import { eduaiApi } from "../api/eduaiApi";
 import type { Idiom, IdiomGameData } from "../api/types";
 import IdiomLearnCards, { type LearnCard } from "../components/IdiomLearnCards.vue";
 import { usePortalModuleHost } from "./portal/portalHost";
+import { routeUrl } from "../utils/routeUrl";
 
 const router = useRouter();
 
@@ -536,11 +537,12 @@ function openLearnCards(picked: Tile[]) {
   } catch {
     /* ignore */
   }
-  // 新窗口拿不到本标签页的 sessionStorage，故把 ids/names 一并带上（页面据 ids 拉详情、names 兜底）
-  const params = new URLSearchParams();
-  if (ids.length) params.set("ids", ids.join(","));
-  params.set("names", names.join(","));
-  const url = `/edu/fun/idiom-card?${params.toString()}`;
+  // 新窗口拿不到本标签页的 sessionStorage，故把 ids/names 一并带上（页面据 ids 拉详情、names 兜底）。
+  // 地址必须经 router.resolve 生成：hash 路由下手拼 `/edu/fun/...` 会被启动归一化改写成 `/?...#/home`。
+  const url = routeUrl(router, { path: "/edu/fun/idiom-card", query: {
+    ...(ids.length ? { ids: ids.join(",") } : {}),
+    names: names.join(","),
+  } });
 
   // 1) 尝试独立弹窗（正常浏览器 + 用户点击时生效）
   const inIframe = window.self !== window.top;

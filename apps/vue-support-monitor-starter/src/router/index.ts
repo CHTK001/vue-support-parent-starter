@@ -13,7 +13,7 @@
  *   <tr><td>服务管理（协议服务器节点）/ 在线节点 / 服务发现 / 抓包分析 / 告警 / 概览</td><td>{@code @pages/monitor}</td></tr>
  *   <tr><td>设备资产 / 提供商 / 分组</td><td>{@code @pages/device}</td></tr>
  *   <tr><td>文件资产</td><td>{@code @pages/filesystem}</td></tr>
- *   <tr><td>内网穿透（ngrok / Cloudflare Tunnel 隧道工作台）</td><td>{@code @pages/tunnel}</td></tr>
+ *   <tr><td>内网穿透（统一隧道管理，提供方在页内选）</td><td>{@code @pages/tunnel}</td></tr>
  * </table>
  *
  * <p><strong>分组结构</strong>：一级为「分组父节点」（仅用于侧边栏分组标题 + 折叠/展开，
@@ -40,11 +40,17 @@ import type { RouteConfigsTable } from "@repo/core";
 import { createDatasourceManageRoutes } from "@pages/datasource/src/routes";
 import { createServerHostRoutes } from "@pages/server/src/routes";
 import { createDockerRoutes } from "@pages/docker/src/routes";
-// 内网穿透：ngrok / Cloudflare Tunnel 隧道工作台，通过 @pages/tunnel/src/routes 的 createTunnelRoutes 展开。
+// 内网穿透：统一隧道管理页，通过 @pages/tunnel/src/routes 的 createTunnelRoutes 展开。
 import { createTunnelRoutes } from "@pages/tunnel/src/routes";
 // 调试中心（CDP）：运维管理分组下唯一的叶子页。
 import { createCdpRoutes } from "@pages/debug/src/routes";
 import { createMonitorRoutes, createMonitorManageRoutes } from "@pages/monitor/src/routes";
+// P2P 房间（@pages/room）：路由工厂 createRoomRoutes 产出 运维管理 分组。
+import { createRoomRoutes } from "@pages/room/src/routes";
+// APM 观测台（@pages/apm）：按 SkyWalking 语义组织，自动适配当前服务器接入的 APM 引擎。
+// apmConfig 只用于菜单可见性（app.yaml 的 apmConfig.enable），与后端探测无关。
+import { apmRoutes } from "@pages/apm/src/routes";
+import { apmConfig } from "@pages/apm/src/config";
 // 功能包路由（纯数组工厂）：作业中心 / 实验 / 采集 / 消息推送 / 签到 / 任务派发 / 系统管理
 import { achievementRoutes } from "@pages/achievement/src/routes";
 import { collectRoutes } from "@pages/collect/src/routes";
@@ -211,8 +217,8 @@ export const monitorRoutes: RouteConfigsTable[] = [
   // /docker?hostId= 跳到这里，因此菜单项直接由包的工厂产出，宿主不再维护副本。
   ...createDockerRoutes(),
 
-  // Group: tunnel workbench - pushed from @pages/tunnel/src/routes
-  // /grp-tunnel (menu group) + ngrok / Cloudflare children, SSE live status
+  // Group: 内网穿透 - 由 @pages/tunnel/src/routes 提供
+  // /grp-tunnel 分组 + 单个 /tunnel 叶子（提供方是页面里的一个字段，不再分成两个菜单）
   ...createTunnelRoutes(),
 
   // ==================== 设备管理 ====================
@@ -297,6 +303,10 @@ export const monitorRoutes: RouteConfigsTable[] = [
   //   页面由 @pages/debug 的 createCdpRoutes 产出（路由 + 菜单同源）。
   ...createCdpRoutes({ showLink: true }),
 
+  // P2P 房间工作台：路由 /room，菜单归 运维管理 分组（icon: Connection，rank 15），
+  // 页面内 8 个工作空间页签 + 长连接信令（WebSocket），keepAlive: false。
+  ...createRoomRoutes({ showLink: true }),
+
   // ==================== 系统管理 ====================
   // 跨包拼装的本地分组（代理/分组/账号/系统配置来自多个 pages 包），
   // 需要 stack 本地排版，故保留在壳内。
@@ -343,6 +353,32 @@ export const monitorRoutes: RouteConfigsTable[] = [
         meta: { title: "主机账号", showLink: false, rank: 35 },
       },
     ],
+  },
+
+  // ==================== APM 观测 ====================
+  // 一套按 SkyWalking 语义组织的观测台（总览 / 服务 / 端点 / 链路 / 拓扑 / 3D 基础设施 /
+  // 多实体对比 / 指标 / 剖析 / 告警 / 告警分析 / 日志），
+  // 路由由 @pages/apm 的 apmRoutes 产出（视图、API、路由同源）。
+  //
+  // 与「系统指标（/hotsport）」分开成组是刻意的：那套读的是自研 agent 的进程内数据，
+  // 这套读的是统一 APM 接口（可能来自 SkyWalking OAP，也可能来自 hotspot agent）。
+  // 两套并存时，用户能一眼看出「这台机器到底接了哪个 APM」——正是 @pages/apm 的 ApmGate 在回答的问题。
+  //
+  // showLink 用 getter 而不是字面量：本模块在 main.ts 顶部被 import，那一刻 app.yaml 还没加载，
+  // 求值会永远拿到默认值 true。菜单是在 mount 之后由 buildMenuFromRoutes 展开的，
+  // 届时配置已就绪，getter 才读得到真实的 apmConfig().enable。
+  {
+    path: "/grp-apm",
+    name: "GroupApm",
+    meta: {
+      title: "APM 观测",
+      icon: "DataLine",
+      get showLink() {
+        return apmConfig().enable;
+      },
+      rank: 13,
+    },
+    children: apmRoutes,
   },
 
   // ==================== 日志（不进侧边栏） ====================

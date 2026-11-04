@@ -1943,8 +1943,7 @@ const openManager = (item: DataSourceInfo) => {
 
   const handle = loader.open({
     text: `正在打开「${item.name ?? item.type}」管理台…`,
-    // 与请求层遮罩同款（见 @repo/ui/re-loader 的 loaderRequestDefaults）
-    variant: "spin",
+    // 不传 variant：跟随主题配置里选中的全局动画（与首屏、请求层同款）
     size: "lg",
     // 120ms 内就绪的不闪：chunk 已缓存时本来就不该出现遮罩
     delay: 120,

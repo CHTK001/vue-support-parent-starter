@@ -23,6 +23,7 @@ export default {
       otpConfirm: "确认",
       otpCancel: "取消",
       sliderTip: "向右滑动完成验证",
+      sliderTipPuzzle: "将滑块拖到对应的拼图格",
       sliderSuccess: "验证通过",
       sliderRequired: "请先完成滑块验证",
       style: "登录页风格",
@@ -395,6 +396,7 @@ export default {
       colorStatus: "颜色状态",
       layoutStyle: "布局样式",
       loginStyle: "登录页样式",
+      loaderStyle: "加载动画",
       interfaceConfig: "界面配置",
       toolbarSwitch: "工具栏开关",
       messageNotify: "消息通知",
@@ -454,6 +456,10 @@ export default {
     customColor: {
       title: "自定义颜色",
       desc: "色盘或输入 HEX 色值",
+    },
+    loaderStyle: {
+      hint: "首屏加载与页面内的加载遮罩共用同一款动画，选择后本页立即生效，刷新后首屏也是同一款。",
+      lockedHint: "动画已由部署配置（app.yaml 的 other.loaderConfig）锁定，此处不可修改。",
     },
     themeModeTabs: {
       light: "明亮",
@@ -558,6 +564,18 @@ export default {
         sub: "仅垂直布局",
         tip: "折叠时不显示图标菜单，整个菜单收缩为一个展开按钮（仅垂直布局生效）",
         description: "折叠时不显示图标菜单，整个菜单收缩为一个展开按钮（仅垂直布局生效）",
+      },
+      collapseButton: {
+        title: "折叠时显示展开按钮",
+        sub: "垂直布局",
+        tip: "侧边栏折叠后仍显示「展开菜单」按钮（与迷你侧边栏并存）",
+        description: "折叠后侧边栏显示「展开菜单」按钮，方便重新展开",
+      },
+      collapseBar: {
+        title: "折叠时保留迷你侧边栏",
+        sub: "垂直布局",
+        tip: "侧边栏折叠后保留迷你图标菜单条",
+        description: "折叠后侧边栏保留为迷你图标菜单条",
       },
     },
     message: {

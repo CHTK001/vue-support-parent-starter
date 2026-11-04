@@ -21,7 +21,8 @@ defineOptions({ name: "ReButtonModern", inheritAttrs: true });
 
 const props = withDefaults(
   defineProps<{
-    type?: "primary" | "success" | "warning" | "info" | "danger" | "text" | "";
+    /** 语义色；`"default"` 与 `""` 等价 */
+    type?: "primary" | "success" | "warning" | "info" | "danger" | "text" | "default" | "";
     size?: "large" | "default" | "small" | "mini";
     plain?: boolean;
     round?: boolean;

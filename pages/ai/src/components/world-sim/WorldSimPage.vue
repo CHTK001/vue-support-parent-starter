@@ -329,7 +329,7 @@
 
             <!-- 场景 / 过场 / 道具 素材 -->
             <div class="ws-act-assets">
-              <div class="ws-act-asset-section" v-for="sec in actAssetSections" :key="sec.key">
+              <div class="ws-act-asset-section" v-for="sec in actAssetSections()" :key="sec.key">
                 <div class="ws-act-asset-head">{{ sec.label }}（{{ sec.items?.length }}）</div>
                 <div class="ws-act-asset-grid">
                   <div v-for="it in sec.items" :key="it.name" class="ws-act-asset-card">
@@ -550,7 +550,10 @@ import type {
 
 const ERA_OPTIONS = ['现代', '古代', '未来', '奇幻', '武侠', '赛博朋克', '末日', '蒸汽朋克']
 /** 每个时代对应的前缀名，用户不留名时自动组成世界名称 */
-const ERA_PREFIX = {
+//
+// 标成 Record<string, string>：`era` 来自表单字符串，直接索引字面量对象会被
+// TS 判「隐式 any 索引」。语义上这里就是一张「时代 → 前缀」的字典。
+const ERA_PREFIX: Record<string, string> = {
   '现代': '都市',
   '古代': '王朝',
   '未来': '星际',
@@ -623,7 +626,7 @@ const pendingAt = ref<WorldNpc | null>(null)
 const atMenuVisible = ref(false)
 const worldKw = ref('')
 const sending = ref(false)
-const sideTab = ref<'timeline' | 'relations' | 'manage'>('timeline')
+const sideTab = ref<'timeline' | 'relations' | 'manage' | 'acts'>('timeline')
 
 const createVisible = ref(false)
 const editVisible = ref(false)
@@ -753,7 +756,7 @@ async function confirmCreate() {
   const name = worldForm.name.trim()
   const desc = worldForm.description.trim() || 'AI 自动生成'
   const era = worldForm.era || '现代'
-  const w = await apiService.createWorld(name || `${ERA_PREFIX[era]} ${Math.floor(Math.random() * 10000)}`, desc, era)
+  const w = await apiService.createWorld(name || `${ERA_PREFIX[era] ?? '世界'} ${Math.floor(Math.random() * 10000)}`, desc, era)
   await loadWorlds()
   await selectWorld(w)
   createVisible.value = false
@@ -992,9 +995,11 @@ function actStageTone(s?: string | null): string {
 
 /** 幕次行或详情行的显示进度（素材阶段的完成度 / 表演阶段的场景数） */
 function actProgress(v?: Record<string, any>) {
+  // 声明成可空：`assets.total` 取不到时是 undefined，直接参与 `total > 0` 比较会报
+  // 「可能为 undefined」——语义上「总量未知」本就等于「不算素材进度」。
   const total = v?.assets?.total as number | undefined
   const done = v?.assets?.done as number | undefined
-  if (total > 0) return Math.min(100, Math.round((done ?? 0) / total * 100))
+  if (total != null && total > 0) return Math.min(100, Math.round((done ?? 0) / total * 100))
   return Math.min(100, Number(v?.progress ?? 0))
 }
 
@@ -1004,8 +1009,18 @@ function assetDone(d: Record<string, any>) { return d?.assets?.done ?? 0 }
 /** 详情资产的总需求数 */
 function assetTotal(d: Record<string, any>) { return d?.assets?.total ?? 0 }
 
+/** 一个素材区划（场景 / 过场 / 道具） */
+interface ActAssetSection {
+  key: string
+  label: string
+  items: Record<string, any>[]
+}
+
 /** 解析剧本，按场景/过场/道具拆出素材区划 */
-function actAssetSections() {
+//
+// 必须显式标返回类型：两个早退分支返回 `[]`，TS 会把它推成 `never[]`，
+// 与后面那个对象数组组成联合后，模板里 `sec.key` 就变成「属性不存在于 never」。
+function actAssetSections(): ActAssetSection[] {
   const script = actDetail.value?.script
   if (!script) return []
   let json: Record<string, any>
@@ -1055,7 +1070,8 @@ const actPipeline = [
   { stage: 'props_ok', label: '回放', action: 'script' },
   { stage: 'playing', label: '演出', action: 'advance' },
   { stage: 'replay', label: '重播', action: 'replay' },
-  { stage: 'finished', label: '结文', action: 'finish' },
+  // 后端 finishAct 只接受 replay/finished 阶段；stage 用 finished 会导致按钮永远置灰
+  { stage: 'replay', label: '结文', action: 'finish' },
 ]
 
 async function loadActs() {
@@ -1120,6 +1136,10 @@ async function actPipelineAction(btn: { stage?: string; label?: string; action?:
     } else if (btn.action === 'finish') {
       await apiService.finishWorldAct(currentWorldId.value, no)
       message.success('幕次已完结')
+      // 结文会写一条世界事件，刷新时间线，避免用户切到时间线看不到结果
+      const view = await apiService.fetchWorldView(currentWorldId.value)
+      events.value = view.events || []
+      syncWorld(currentWorld.value!, view.world)
     }
     await loadActs()
     if (currentAct.value) await fetchActDetail(currentAct.value.actNo as number)

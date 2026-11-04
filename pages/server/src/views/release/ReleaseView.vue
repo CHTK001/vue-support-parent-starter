@@ -38,6 +38,7 @@
               <span class="proj-count">
                 <el-icon><Files /></el-icon>{{ counts[item.id] ?? 0 }} 个项目
               </span>
+              <span v-if="releaseSwEnabled(item)" class="apm-chip">SkyWalking</span>
             </div>
             <div class="host-line">
               <span class="host-chip">{{ hostNameOf(item) }}</span>
@@ -78,6 +79,29 @@
         </ReFormItem>
         <ReFormItem label="背景图URL">
           <ReInput v-model="form.backgroundImage" placeholder="输入背景图URL（可选）" style="width:100%" />
+        </ReFormItem>
+
+        <!-- 发布级 SkyWalking APM 注入 -->
+        <div class="apm-divider">
+          <div class="apm-divider-title">APM 注入（SkyWalking）</div>
+          <div class="apm-divider-sub">
+            启用后，该发布下新建/复制的项目自动挂载 agent jar，并统一上报到集群 OAP；项目级 APM 选项仍优先。
+          </div>
+        </div>
+        <ReFormItem label="启用">
+          <ReSwitch :model-value="!!form.swEnabled" @change="(v: any) => form.swEnabled = !!v" />
+        </ReFormItem>
+        <ReFormItem label="SkyWalking agent jar 路径（目标主机绝对路径）">
+          <ReInput v-model="form.swJarPath" placeholder="如 /opt/skywalking/skywalking-agent.jar" style="width:100%" />
+        </ReFormItem>
+        <ReFormItem label="service_name 前缀（留空则只取项目名）">
+          <ReInput v-model="form.swServiceNamePrefix" placeholder="留空则只取项目名" style="width:100%" />
+        </ReFormItem>
+        <ReFormItem label="collector.backend_service（OAP 地址，如 oap:11800）">
+          <ReInput v-model="form.swBackendService" placeholder="如 192.168.50.198:11800" style="width:100%" />
+        </ReFormItem>
+        <ReFormItem v-if="form.swEnabled && form.swJarPath && form.swBackendService" label="启动命令预览">
+          <pre class="apm-preview">java {{ releaseJvmArgs }} -jar <入口> ...</pre>
         </ReFormItem>
       </ReForm>
       <template #footer>
@@ -185,6 +209,10 @@ interface Release {
   hostIp: string;
   description: string;
   backgroundImage: string;
+  swEnabled?: boolean;
+  swJarPath?: string;
+  swServiceNamePrefix?: string;
+  swBackendService?: string;
 }
 
 interface Host {
@@ -205,7 +233,34 @@ const form = ref({
   hostId: undefined as number | undefined,
   description: '',
   backgroundImage: '',
+  swEnabled: false,
+  swJarPath: '',
+  swServiceNamePrefix: '',
+  swBackendService: '',
 });
+
+/** 发布级 SkyWalking 启动参数预览 */
+const releaseJvmArgs = computed(() => {
+  const jar = form.value.swJarPath;
+  const backend = form.value.swBackendService;
+  const prefix = form.value.swServiceNamePrefix;
+  const serviceName = isBlank(prefix) ? '<项目名>' : `${prefix}-<项目名>`;
+  return [
+    `-javaagent:${jar}`,
+    `-Dskywalking.agent.service_name=${serviceName}`,
+    `-Dskywalking.collector.backend_service=${backend}`,
+  ].join(' ');
+});
+
+/** 空值/空白字符串快速判断 */
+function isBlank(value?: string): boolean {
+  return value === null || value === undefined || String(value).trim() === '';
+}
+
+/** 发布是否已下发 SkyWalking APM（均非空才接单） */
+function releaseSwEnabled(item: Release): boolean {
+  return !!item.swEnabled && !isBlank(item.swJarPath) && !isBlank(item.swBackendService);
+}
 
 /** 平台类型 -> 样式类 */
 function osType(item: Release): string {
@@ -279,7 +334,10 @@ async function ensureHosts() {
 async function openCreateDialog() {
   await ensureHosts();
   editingId.value = null;
-  form.value = { releaseName: '', hostId: undefined, description: '', backgroundImage: '' };
+  form.value = {
+    releaseName: '', hostId: undefined, description: '', backgroundImage: '',
+    swEnabled: false, swJarPath: '', swServiceNamePrefix: '', swBackendService: '',
+  };
   dialogVisible.value = true;
 }
 
@@ -291,17 +349,26 @@ async function openEditDialog(item: Release) {
     hostId: item.hostId,
     description: item.description,
     backgroundImage: item.backgroundImage || '',
+    swEnabled: !!item.swEnabled,
+    swJarPath: item.swJarPath || '',
+    swServiceNamePrefix: item.swServiceNamePrefix || '',
+    swBackendService: item.swBackendService || '',
   };
   dialogVisible.value = true;
 }
 
 async function handleSave() {
   try {
+    const body = { ...form.value, swEnabled: form.value.swEnabled };
+    // 未配置完整时给出提示，避免“开了开关但没下发”的空转
+    if (body.swEnabled && (isBlank(body.swJarPath) || isBlank(body.swBackendService))) {
+      message.warning('启用 SkyWalking 注入需要同时配置 agent jar 路径与 OAP 地址');
+    }
     if (editingId.value != null) {
-      await http().put(BASE + `/${editingId.value}`).data(form.value);
+      await http().put(BASE + `/${editingId.value}`).data(body);
       message.success('更新成功');
     } else {
-      await http().post(BASE).data(form.value);
+      await http().post(BASE).data(body);
       message.success('创建成功');
     }
     dialogVisible.value = false;
@@ -709,6 +776,50 @@ onMounted(() => {
 }
 .enter-link:hover { background: var(--brand-50); }
 .enter-link .el-icon { font-size: 14px; }
+
+/* ===== 发布级 SkyWalking APM 注入 ===== */
+.apm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #2563eb;
+  background: var(--brand-50, #eff6ff);
+  border: 1px solid var(--brand-200, #bfdbfe);
+  border-radius: 10px;
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+.apm-divider {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  background: var(--bg-fill, #f7f8fa);
+  border: 1px solid var(--border-subtle, #eef0f6);
+  border-radius: var(--radius-md, 8px);
+}
+.apm-divider-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary, #1f2430);
+}
+.apm-divider-sub {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-secondary, #6b7280);
+}
+.apm-preview {
+  margin: 0; padding: 12px 14px; width: 100%; box-sizing: border-box;
+  font-family: "Cascadia Code", Consolas, monospace; font-size: 11.5px;
+  color: var(--terminal-fg, #e6edf3);
+  background: var(--terminal-bg, #0d1117);
+  border-radius: var(--radius-md, 8px);
+  white-space: pre-wrap; word-break: break-all;
+  line-height: 1.6;
+}
 
 /* ===== 集群批量升级弹框 ===== */
 .batch-pane {

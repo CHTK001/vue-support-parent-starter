@@ -97,6 +97,15 @@ const finishHint = computed(() => {
 });
 
 /**
+ * 判分失败原因。
+ *
+ * <p>后端在结果 VO 里带回了 {@code error}（例如「试卷识别管线不可用」），
+ * 但页面此前只显示一个「判分失败」标签：老师既不知道是图片问题还是系统配置
+ * 问题，也没法据此决定重传还是找管理员。这里把原因如实摊开。</p>
+ */
+const failReason = computed(() => (taskFailed.value ? String(props.result?.error ?? '').trim() : ''));
+
+/**
  * 完成前先把老师改的分落库。
  *
  * <p>「完成」是页面上最显眼的按钮，老师改完分往往直接点它；
@@ -274,6 +283,14 @@ async function undoFinish(): Promise<void> {
         <span class="mr-spacer" />
       </template>
     </div>
+    <el-alert
+      v-if="failReason"
+      class="mr-fail"
+      type="error"
+      :closable="false"
+      show-icon
+      :title="`判分失败：${failReason}`"
+    />
     <!-- 结构视图不等结果接口：任务号一到就挂载，结构/卷面图各自异步到货 -->
     <SheetStructureView
       v-if="taskId"
@@ -341,6 +358,10 @@ async function undoFinish(): Promise<void> {
   backdrop-filter: blur(12px) saturate(150%);
   -webkit-backdrop-filter: blur(12px) saturate(150%);
   box-shadow: 0 0 18px color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  margin-bottom: 10px;
+}
+/* 判分失败原因：与汇总条同宽，直接把后端原因摊给老师看 */
+.mr-fail {
   margin-bottom: 10px;
 }
 .mr-sum b {

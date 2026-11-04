@@ -481,6 +481,7 @@ import { UNGROUPED_ID } from '../stores/session'
 import { useTheme, type ThemeMode } from '../composables/useTheme'
 import { usePopup } from '../composables/usePopup'
 import { createSidebarMenuItems, readMenuSettings, menuDisplayVersion } from '../config/sidebarMenu'
+import type { SidebarMenuItem } from '../config/sidebarMenu'
 import { Avatar, ScrollContainer } from './ui'
 import DropdownMenu from './ui/DropdownMenu.vue'
 import DropdownMenuItem from './ui/DropdownMenuItem.vue'
@@ -894,34 +895,38 @@ const openNewSession = (groupId: string) => {
 //
 // 菜单清单统一来自 config/sidebarMenu.ts —— 「配置中心 → 菜单管理」用同一份数据
 // 渲染开关，避免侧栏加了新菜单、开关页却漏掉它（或反之）。
-const navItems = computed(() => {
+const navItems = computed<SidebarMenuItem[]>(() => {
   // 依赖版本号：菜单管理里改完开关，侧栏立即刷新，不用整页重载
   const version = menuDisplayVersion.value
   const menuSettings = readMenuSettings()
   const allItems = createSidebarMenuItems({ t, isElectron, modelConfig })
   void version
-  return allItems
-    .filter(item => {
-      if (item.alwaysShow) return true
-      if (item.adminOnly && !isAdmin()) return false
-      if (!item.showKey) return true
-      return menuSettings[item.showKey] !== false
+  // 手写循环而不是 filter().map().filter(Boolean)：后者把返回类型带成
+  // `(SidebarMenuItem | null)[]`，模板里每个 `item.xxx` 都要额外判空。
+  // 这里一次性收成「确定没有 null」的数组，模板与类型两头都干净。
+  const visible: SidebarMenuItem[] = []
+  for (const item of allItems) {
+    if (!item.alwaysShow) {
+      if (item.adminOnly && !isAdmin()) continue
+      if (item.showKey && menuSettings[item.showKey] === false) continue
+    }
+    // 子项也要过同一道管理员闸。顶层只看得到 item.adminOnly，管不到 children：
+    // 子项背后的接口可能本身就是 @Permission("admin")（如 OCR 的 recognize /
+    // annotate / models 三个都是），不拦下来就会变成「菜单点得进去、进去每个请求
+    // 都 403」，比一开始就不显示更难排查。
+    if (!item.children?.length) {
+      visible.push(item)
+      continue
+    }
+    // 子项同样受「菜单管理」的显示开关控制（各有自己的 showKey）
+    const children = item.children.filter((c: any) => {
+      if (c.adminOnly && !isAdmin()) return false
+      if (!c.showKey) return true
+      return menuSettings[c.showKey] !== false
     })
-    .map(item => {
-      // 子项也要过同一道管理员闸。顶层这层 filter 只看得到 item.adminOnly，
-      // 管不到 children：子项背后的接口可能本身就是 @Permission("admin")
-      // （如 OCR 的 recognize/annotate/models 三个都是），不拦下来就会变成
-      // 「菜单点得进去、进去每个请求都 403」，比一开始就不显示更难排查。
-      if (!item.children?.length) return item
-      // 子项同样受「菜单管理」的显示开关控制（各有自己的 showKey）
-      const children = item.children.filter((c: any) => {
-        if (c.adminOnly && !isAdmin()) return false
-        if (!c.showKey) return true
-        return menuSettings[c.showKey] !== false
-      })
-      return children.length ? { ...item, children } : null
-    })
-    .filter(Boolean)
+    if (children.length) visible.push({ ...item, children })
+  }
+  return visible
 })
 
 // 当前激活的 tab（根据路由）
@@ -954,6 +959,7 @@ const currentActiveTab = computed(() => {
   if (routeName === 'TextToSpeech') return 'text-to-speech'
   if (routeName === 'Models') return 'models'
   if (routeName === 'Usage' || routeName === 'UsageSyncLogs') return 'usage'
+  if (routeName === 'MediaStatistics') return 'media-statistics'
   if (routeName === 'Connectors') return 'connectors'
   return ''
 })
@@ -1294,6 +1300,8 @@ const ROUTE_NAME_BY_TAB: Record<string, string> = {
   agents: 'Agents',
   services: 'Services',
   usage: 'Usage',
+  // 媒体资源统计：AI 生成任务按类型/状态/模型分类汇总
+  'media-statistics': 'MediaStatistics',
   connectors: 'Connectors',
   skills: 'Skills',
   capabilities: 'Capabilities',
