@@ -169,7 +169,7 @@ import { listAlerts, listServices } from "../api/apmApi";
 import type { ApmAlarm } from "../api/apmApi";
 import { useApmPalette } from "../composables/useApmPalette";
 import { useApmStatus } from "../composables/useApmStatus";
-import { WINDOW_OPTIONS, fmtAgo, fmtClock, fmtTime } from "../utils/format";
+import { WINDOW_OPTIONS, fmtAgo, fmtAxisClock, fmtTime } from "../utils/format";
 
 const { present, ensure } = useApmStatus();
 /** canvas 里 var(--el-*) 是无效值，颜色必须取计算后的实色（见 useApmPalette） */
@@ -339,7 +339,7 @@ const trendOption = computed<EChartsOption>(() => {
   const labels: string[] = [];
   const values: number[] = [];
   for (let time = from; time <= end; time += bucketMs) {
-    labels.push(fmtClock(time));
+    labels.push(fmtAxisClock(time, bucketMs));
     values.push(buckets.get(time) ?? 0);
   }
 

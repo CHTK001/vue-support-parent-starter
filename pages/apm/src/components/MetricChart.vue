@@ -24,7 +24,7 @@ import type { EChartsOption } from "echarts";
 import ReChart from "@repo/ui/re-chart";
 import type { ApmMetricSeries } from "../api/apmApi";
 import { useApmPalette } from "../composables/useApmPalette";
-import { fmtClock, normalizeMetricValue } from "../utils/format";
+import { fmtAxisClock, normalizeMetricValue } from "../utils/format";
 
 const props = withDefaults(
   defineProps<{
@@ -61,6 +61,8 @@ const option = computed<EChartsOption>(() => {
 
   // 时间轴：所有序列的时间戳并集，保证不同长度的序列在同一格上对齐
   const times = [...new Set(list.flatMap((s) => s.points.map((pt) => pt.time)))].sort((a, b) => a - b);
+  // 轴标签粒度跟着数据步长走：分钟级不重复「:00」的秒，跨日只留月日
+  const stepMs = times.length > 1 ? Math.abs(times[1] - times[0]) : 60_000;
   const index = list.map((s) => {
     const map = new Map<number, number>();
     for (const point of s.points) {
@@ -97,7 +99,7 @@ const option = computed<EChartsOption>(() => {
     xAxis: {
       type: "category",
       boundaryGap: false,
-      data: times.map((t) => fmtClock(t)),
+      data: times.map((t) => fmtAxisClock(t, stepMs)),
       axisLabel: { show: !props.compact, fontSize: 10, color: p.faint, hideOverlap: true },
       axisLine: { show: !props.compact, lineStyle: { color: p.line } },
       axisTick: { show: false },

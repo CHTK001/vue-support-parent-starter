@@ -97,6 +97,29 @@ export function fmtClock(ms: unknown): string {
   return new Date(n).toLocaleTimeString();
 }
 
+/**
+ * 图表轴上的时间：按数据步长选粒度。
+ *
+ * <p>分钟级指标还带秒（21:30:00）会把横轴撑满，ECharts 只能每隔几个标签藏一个，
+ * 轴看起来忽密忽疏。按步长收敛粒度：秒级看秒、日内看时分、跨日看月日。</p>
+ *
+ * @param ms     时间戳（毫秒）
+ * @param stepMs 数据点间隔（毫秒），默认按分钟
+ */
+export function fmtAxisClock(ms: unknown, stepMs = 60_000): string {
+  const n = Number(ms ?? 0);
+  if (!Number.isFinite(n) || n <= 0) {
+    return "—";
+  }
+  const date = new Date(n);
+  const pad = (value: number) => String(value).padStart(2, "0");
+  if (stepMs >= 86_400_000) {
+    return `${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  }
+  const clock = `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return stepMs < 60_000 ? `${clock}:${pad(date.getSeconds())}` : clock;
+}
+
 /** 「x 分钟前」之类的相对时间，用于心跳/告警 */
 export function fmtAgo(ms: unknown): string {
   const n = Number(ms ?? 0);
