@@ -419,4 +419,7 @@ node_modules/.tmp/
 
 # 验收/探针专用脚本（临时文件，不属于项目代码）
 *probe*
+# 例外：backendProbe 是 @repo/core 的运行时能力探测模块（天气 / 台风 / 汇率 / 节假日
+# 的「后台优先、三方兜底」都依赖它），不是验收脚本，必须入库。
+!packages/core/src/api/backendProbe.ts
 
