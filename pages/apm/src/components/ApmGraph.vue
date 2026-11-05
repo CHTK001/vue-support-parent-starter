@@ -118,7 +118,9 @@ const option = computed<EChartsOption>(() => {
         bottom: 24,
         roam: true,
         draggable: true,
-        force: { repulsion: 520, edgeLength: [110, 170], gravity: 0.18 },
+        // 3~10 个节点时默认力参数会全部挤在画布正中（大屏上下都空着），
+        // 这里放松向心引力、拉长弹簧，让节点铺开；节点多时仍然聚得住。
+        force: { repulsion: 900, edgeLength: [170, 240], gravity: 0.05 },
         label: {
           show: true,
           position: "bottom",

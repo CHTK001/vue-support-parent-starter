@@ -224,38 +224,63 @@
    4. 统计卡：数字在上、标签在下，和宿主统计卡一致
    ========================================================================== */
 
+/* 统计条：宿主「告警中心」的读数条是一整张白卡，内部用 1px 竖线分栏，
+   数值在上、标签在下。这里沿用同一形状 —— 总览的 .apm-kpi 与各列表页的
+   ReStatCard 都只是这条里的一格，不再各长一套卡片。 */
 .apm-kpis {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.apm-kpi {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  box-sizing: border-box;
-  min-width: 0;
-  padding: 18px 18px 16px;
+  gap: 0;
   background: var(--apm-surface);
   border: 1px solid var(--apm-line);
   border-radius: var(--apm-radius);
   overflow: hidden;
 }
 
-/* 宿主统计卡的 3px 顶部色条：把「这张卡属于哪一类」放在视线最先落到的位置 */
-.apm-kpi::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--accent, var(--apm-accent));
+/* 分栏线放在格子规则之后：ReStatCard 自带边框，必须后画才盖得住 */
+
+.apm-kpi,
+.apm-page .apm-kpis > .re-stat-card {
+  position: relative;
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 14px 18px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* 分栏线：只画在相邻两格之间，首列干净。
+   用比卡片描边深一档的线 —— #ebeef5 在白底上几乎看不见，分栏就白做了。 */
+.apm-page .apm-kpis > * + * {
+  border-left: 1px solid var(--apm-line-strong);
+}
+
+/* 窄屏落成两列时，每行第一格不画左线 */
+@media (max-width: 1100px) {
+  .apm-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .apm-page .apm-kpis > *:nth-child(odd) {
+    border-left: 0;
+  }
+}
+
+.apm-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 数值在前、标签在后 —— 与宿主读数条的读法一致 */
+.apm-kpi__value {
+  order: 1;
 }
 
 .apm-kpi__label {
+  order: 2;
   font-size: 12px;
   font-weight: 500;
   line-height: 1.4;
@@ -287,6 +312,7 @@
 }
 
 .apm-kpi__sub {
+  order: 3;
   font-size: 11px;
   line-height: 1.4;
   color: var(--apm-faint);
@@ -575,7 +601,7 @@
 }
 
 .apm-page .re-stat-card__value {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 700;
   letter-spacing: 0;
   line-height: 1.15;
@@ -594,31 +620,22 @@
   color: var(--apm-faint);
 }
 
-/* 统计卡与总览的 KPI 同一种读法：标签在上、数字在下，去掉左侧图标块。
-   宿主统计条（告警中心）也没有图标，多一个彩色方块只会让两页不像一套。 */
-.apm-page .re-stat-card__aside {
+/* 统计卡与总览读数条同一种读法：数值在上、标签在下，去掉左侧图标块。
+   宿主读数条（告警中心）也没有图标，多一个彩色方块只会让两页不像一套。 */
+.apm-page .re-stat-card > .re-stat-card__aside {
   display: none;
 }
 
 .apm-page .re-stat-card__body {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
 }
 
-.apm-page .re-stat-card__title {
-  order: 1;
-}
-
-.apm-page .re-stat-card__value {
-  order: 2;
-  margin-top: 2px;
-}
-
-.apm-page .re-stat-card__desc {
-  order: 3;
-  margin-top: 2px;
+/* 卡片自己的内距由 .apm-kpis 统一给，免得同一条里两格高度不一致 */
+.apm-page .apm-kpis > .re-stat-card {
+  padding: 14px 18px;
 }
 
 /* 表格：浅灰表头带 + 13px 正文，与宿主列表页一致 */
@@ -749,9 +766,13 @@
   color: var(--apm-faint);
 }
 
-/* 页级空态（直接落在页面里的）：自己就是一张白卡片 */
+/* 页级空态（直接落在页面里的）：自己就是一张白卡片。
+   与页级空态卡一样吃掉剩余高度 —— 否则下面会留出一大片灰底，
+   而宿主列表页在空数据时也是让白卡铺到页签条上方。 */
 .apm-page > .rm-empty,
 .apm-page > .el-empty {
+  flex: 1 1 auto;
+  justify-content: center;
   padding: 56px 16px;
   background: var(--apm-surface);
   border: 1px solid var(--apm-line);

@@ -33,7 +33,7 @@
 
       <template v-else>
         <!-- 摘要 -->
-        <div class="apm-grid">
+        <div class="apm-kpis">
           <ReStatCard
             size="compact"
             title="总耗时"

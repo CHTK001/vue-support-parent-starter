@@ -36,7 +36,7 @@
       <span class="apm-count">{{ endpoints.length }} 个端点</span>
     </div>
 
-    <div class="apm-grid">
+    <div class="apm-kpis">
       <ReStatCard
         size="compact"
         title="端点数"

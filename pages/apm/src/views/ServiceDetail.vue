@@ -32,7 +32,7 @@
         <span class="apm-count">{{ instances.length }} 个实例 · {{ endpoints.length }} 个端点</span>
       </div>
 
-      <div class="apm-grid">
+      <div class="apm-kpis">
         <ReStatCard
           size="compact"
           title="实例数"
