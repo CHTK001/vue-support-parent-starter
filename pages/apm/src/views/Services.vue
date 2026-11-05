@@ -22,6 +22,41 @@
       <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
     </div>
 
+    <div class="apm-kpis">
+      <ReStatCard
+        size="compact"
+        title="服务数"
+        :value="items.length"
+        desc="当前时间窗口内"
+        :icon="Monitor"
+        style="--accent: var(--el-color-primary)"
+      />
+      <ReStatCard
+        size="compact"
+        title="总调用量"
+        :value="fmtNum(totalCalls)"
+        desc="服务入口调用合计"
+        :icon="Histogram"
+        style="--accent: var(--el-color-success)"
+      />
+      <ReStatCard
+        size="compact"
+        title="平均耗时"
+        :value="fmtMs(avgLatency)"
+        desc="按调用量加权"
+        :icon="Timer"
+        style="--accent: var(--el-color-warning)"
+      />
+      <ReStatCard
+        size="compact"
+        title="整体错误率"
+        :value="errorRateText(overallErrorRate, totalCalls)"
+        :desc="overallErrorRate < 0 ? '暂无调用' : '按调用量加权'"
+        :icon="Warning"
+        style="--accent: var(--el-color-danger)"
+      />
+    </div>
+
     <ReSkeleton v-if="loading && !items.length" :rows="8" animated />
     <ReTable
       v-else
@@ -32,6 +67,7 @@
       :settings="{ border: false }"
       :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
       empty-text="没有符合条件的服务"
+      :layout-table="{ maxHeight: 620 }"
       table-id="apm-services"
       class="apm-row-click"
       @row-click="onRowClick"
@@ -77,10 +113,12 @@
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { message } from "@repo/core";
+import { Histogram, Monitor, Timer, Warning } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReInput from "@repo/ui/re-input";
 import ReSelect from "@repo/ui/re-select";
 import ReSkeleton from "@repo/ui/re-skeleton";
+import ReStatCard from "@repo/ui/re-stat-card";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import type { ReTableColumn } from "@repo/ui/re-table";
@@ -130,9 +168,34 @@ const filtered = computed(() => {
     .map((s) => s as unknown as Record<string, unknown>);
 });
 
+const totalCalls = computed(() => items.value.reduce((n, s) => n + Number(s.calls ?? 0), 0));
+
+/**
+ * 按调用量加权求平均。
+ *
+ * <p>几千次调用的服务与几十次的服务不能等权平均 —— 否则演示数据里一个冷门
+ * 慢服务就能把整体耗时拉到看不见主链路。值为负数（未知）的样本直接跳过。</p>
+ */
+function weighted(pick: (s: ApmService) => number): number {
+  let weight = 0;
+  let sum = 0;
+  for (const s of items.value) {
+    const calls = Number(s.calls ?? 0);
+    const value = pick(s);
+    if (calls <= 0 || !Number.isFinite(value) || value < 0) {
+      continue;
+    }
+    weight += calls;
+    sum += calls * value;
+  }
+  return weight > 0 ? sum / weight : -1;
+}
+
+const avgLatency = computed(() => weighted((s) => Number(s.avgMs ?? -1)));
+const overallErrorRate = computed(() => weighted((s) => Number(s.errorRate ?? -1)));
+
 /* 列按「有没有数据」增减，不让整列破折号占着位置 */
-const hasInstances = computed(() => items.value.some((s) => Number(s.instances ?? 0) > 0));
-const hasPercentile = computed(() => items.value.some((s) => Number(s.p95Ms ?? -1) >= 0 || Number(s.p99Ms ?? -1) >= 0));
+const hasInstances = computed(() => items.value.some((s) => Number(s.instances ?? 0) > 0));const hasPercentile = computed(() => items.value.some((s) => Number(s.p95Ms ?? -1) >= 0 || Number(s.p99Ms ?? -1) >= 0));
 
 const columns = computed<ReTableColumn[]>(() => {
   const list: ReTableColumn[] = [

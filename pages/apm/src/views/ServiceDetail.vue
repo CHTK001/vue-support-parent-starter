@@ -33,6 +33,7 @@
           desc="已心跳上报的实例"
           :icon="Monitor"
           icon-color="var(--el-color-primary)"
+          style="--accent: var(--el-color-primary)"
         />
         <ReStatCard
           size="compact"
@@ -41,6 +42,7 @@
           desc="被观测端点"
           :icon="Aim"
           icon-color="var(--el-color-info)"
+          style="--accent: var(--el-color-info)"
         />
         <ReStatCard
           size="compact"
@@ -49,6 +51,7 @@
           desc="端调用量合计"
           :icon="Histogram"
           icon-color="var(--el-color-primary)"
+          style="--accent: var(--el-color-success)"
         />
         <ReStatCard
           size="compact"
@@ -57,6 +60,7 @@
           :desc="slowest?.name || '暂无数据'"
           :icon="Timer"
           icon-color="var(--el-color-warning)"
+          style="--accent: var(--el-color-warning)"
         />
       </div>
 
@@ -86,6 +90,7 @@
           :settings="{ border: false }"
           :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
           empty-text="该服务没有实例数据"
+          :layout-table="{ maxHeight: 360 }"
           table-id="apm-service-instances"
         >
           <template #empty="{ description }">
@@ -125,6 +130,7 @@
           :settings="{ border: false }"
           :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
           empty-text="没有符合条件的端点"
+          :layout-table="{ maxHeight: 420 }"
           table-id="apm-service-endpoints"
         >
           <template #empty="{ description }">

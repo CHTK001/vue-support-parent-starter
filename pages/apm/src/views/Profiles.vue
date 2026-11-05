@@ -83,6 +83,7 @@
             :settings="{ border: false }"
             :config="{ pagination: { enable: true, pageSize: 5 }, toolbar: { enable: false } }"
             empty-text="该任务没有采到慢请求"
+            :layout-table="{ maxHeight: 320 }"
             :table-id="`apm-profile-segments-${task.id}`"
           >
             <template #empty="{ description }">

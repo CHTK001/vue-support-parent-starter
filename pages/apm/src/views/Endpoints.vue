@@ -38,6 +38,7 @@
         desc="当前条件下"
         :icon="Aim"
         icon-color="var(--el-color-primary)"
+        style="--accent: var(--el-color-primary)"
       />
       <ReStatCard
         size="compact"
@@ -46,6 +47,7 @@
         desc="端点调用量合计"
         :icon="Histogram"
         icon-color="var(--el-color-primary)"
+        style="--accent: var(--el-color-success)"
       />
       <ReStatCard
         size="compact"
@@ -54,6 +56,7 @@
         :desc="slowest?.name || '暂无数据'"
         :icon="Timer"
         icon-color="var(--el-color-warning)"
+        style="--accent: var(--el-color-warning)"
       />
       <ReStatCard
         size="compact"
@@ -62,6 +65,7 @@
         :desc="worst?.name || '暂无数据'"
         :icon="Warning"
         icon-color="var(--el-color-danger)"
+        style="--accent: var(--el-color-danger)"
       />
     </div>
 
@@ -75,6 +79,7 @@
       :settings="{ border: false }"
       :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
       empty-text="没有符合条件的端点"
+      :layout-table="{ maxHeight: 620 }"
       table-id="apm-endpoints"
     >
       <template #empty="{ description }">

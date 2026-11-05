@@ -211,37 +211,57 @@ onBeforeUnmount(() => {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
-  background: var(--el-bg-color-page);
+  /* 画布上两团极淡的主题色光晕：滚动时固定在容器上，
+     页面再长也不会退化成一大片死灰 */
+  background-color: var(--el-bg-color-page);
+  background-image:
+    radial-gradient(
+      1100px 460px at 6% -8%,
+      color-mix(in srgb, var(--el-color-primary) 13%, transparent),
+      transparent 68%
+    ),
+    radial-gradient(
+      860px 400px at 98% -6%,
+      color-mix(in srgb, var(--el-color-success) 9%, transparent),
+      transparent 70%
+    );
+  background-repeat: no-repeat;
 }
 
-/* ==================== 底部页签：宿主分段控件的样子 ==================== */
+/* ==================== 底部页签：灰底上的白色胶囊 ==================== */
 .apm-workbench :deep(.re-tabs__bar) {
   flex: none;
   gap: 2px;
-  padding: 8px 12px;
+  padding: 7px 12px;
   border-top: 1px solid var(--el-border-color-lighter);
   border-bottom: none;
-  background: var(--el-bg-color);
+  background: var(--el-fill-color-light);
 }
 
 .apm-workbench :deep(.re-tabs__tab) {
-  height: 28px;
-  padding: 0 11px;
-  border-radius: var(--el-border-radius-base, 6px);
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
   font-size: 13px;
   color: var(--el-text-color-regular);
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .apm-workbench :deep(.re-tabs__tab:hover) {
-  background: var(--el-fill-color-light);
+  background: color-mix(in srgb, var(--el-bg-color) 70%, transparent);
   color: var(--el-color-primary);
 }
 
 .apm-workbench :deep(.re-tabs__tab.is-active) {
-  background: var(--el-color-primary-light-9);
+  background: var(--el-bg-color);
   color: var(--el-color-primary);
-  font-weight: 500;
+  font-weight: 600;
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--el-color-black) 8%, transparent),
+    0 8px 18px -12px color-mix(in srgb, var(--el-color-primary) 60%, transparent);
 }
 
 .apm-workbench :deep(.re-tabs__tab.is-active .re-tabs__icon) {

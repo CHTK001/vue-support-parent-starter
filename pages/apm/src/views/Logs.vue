@@ -36,6 +36,7 @@
       :settings="{ border: false }"
       :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
       empty-text="该时间窗口内没有日志（OAP 可能未开启日志采集）"
+      :layout-table="{ maxHeight: 620 }"
       table-id="apm-logs"
     >
       <template #empty="{ description }">

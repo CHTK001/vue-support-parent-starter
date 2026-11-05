@@ -42,7 +42,7 @@ const props = withDefaults(
   {
     height: "300px",
     emptyText: "该时间窗口内没有调用关系",
-    labelSize: 10,
+    labelSize: 11,
   },
 );
 
@@ -52,6 +52,24 @@ const palette = useApmPalette();
 function num(value: unknown): number {
   const n = Number(value);
   return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+/**
+ * #rrggbb → rgba()。
+ *
+ * <p>canvas 里没有 DOM 的 opacity 继承，阴影/填充要带透明度只能把 alpha 拼进颜色串；
+ * 取到的主题色不是合法 hex 时原样返回（宁可没有光晕，也不要画出非法色）。</p>
+ */
+function withAlpha(color: string, alpha: number): string {
+  const hex = color.trim().replace(/^#/, "");
+  if (hex.length !== 3 && hex.length !== 6) {
+    return color;
+  }
+  const full = hex.length === 3 ? hex.split("").map((c) => c + c).join("") : hex;
+  const r = Number.parseInt(full.slice(0, 2), 16);
+  const g = Number.parseInt(full.slice(2, 4), 16);
+  const b = Number.parseInt(full.slice(4, 6), 16);
+  return [r, g, b].every((n) => Number.isFinite(n)) ? `rgba(${r}, ${g}, ${b}, ${alpha})` : color;
 }
 
 /** 节点 id → 名字（边上只有 id） */
@@ -112,10 +130,11 @@ const option = computed<EChartsOption>(() => {
       {
         type: "graph",
         layout: "force",
-        left: 24,
-        right: 24,
-        top: 24,
-        bottom: 24,
+        left: 40,
+        right: 40,
+        // 下方多留 30px：节点名称是「节点 + 胶囊标签」，贴到底边会被画布裁掉
+        top: 32,
+        bottom: 56,
         roam: true,
         draggable: true,
         // 3~10 个节点时默认力参数会全部挤在画布正中（大屏上下都空着），
@@ -124,9 +143,16 @@ const option = computed<EChartsOption>(() => {
         label: {
           show: true,
           position: "bottom",
-          distance: 6,
+          distance: 8,
           fontSize: props.labelSize,
-          color: p.text,
+          fontWeight: 500,
+          color: p.dim,
+          // 白底小胶囊：节点散开时名字不会和边叠成一团灰
+          backgroundColor: p.surface,
+          borderColor: p.line,
+          borderWidth: 1,
+          borderRadius: 6,
+          padding: [2, 6],
           formatter: (params: any) => params.data.name,
         },
         edgeSymbol: ["none", "arrow"],
@@ -136,29 +162,28 @@ const option = computed<EChartsOption>(() => {
         data: props.nodes.map((node) => {
           const own = weight.get(node.id) ?? 0;
           const ratio = noTraffic ? 0.35 : Math.log2(1 + own) / Math.log2(1 + maxWeight);
-          const size = 26 + ratio * 22;
+          const size = 26 + ratio * 18;
           const self = node.self || node.isSelf;
-          const virtual = node.isReal === false;
+          const virtual = node.real === false || node.isReal === false;
+          const tint = self ? p.warn : virtual ? p.faint : p.primary;
           return {
             id: node.id,
             name: node.name,
-            symbolSize: Number.isFinite(size) ? Math.round(size) : 24,
+            symbolSize: Number.isFinite(size) ? Math.round(size) : 26,
             type: node.type,
             layer: node.layer,
             calls: own,
             virtual,
             itemStyle: {
-              // 半透明填充 + 实色描边：深浅两种底色下都能看清，
+              // 半透明填充 + 实色描边 + 同色光晕：深浅两种底色下都立得住，
               // 也不需要为暗色主题再维护一套色值
-              color: self
-                ? "rgba(217, 139, 0, 0.20)"
-                : virtual
-                  ? "rgba(120, 134, 148, 0.12)"
-                  : "rgba(31, 122, 224, 0.14)",
-              borderColor: self ? p.warn : virtual ? p.faint : p.primary,
+              color: withAlpha(tint, virtual ? 0.1 : 0.16),
+              borderColor: tint,
+              borderWidth: 2,
               borderType: virtual ? "dashed" : "solid",
+              shadowBlur: 18,
+              shadowColor: withAlpha(tint, 0.32),
             },
-            label: { color: p.text },
           };
         }),
         links: calls.map((call) => {

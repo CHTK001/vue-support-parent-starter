@@ -28,74 +28,91 @@
     <ReSkeleton v-if="loading && !topology" :rows="6" animated />
 
     <template v-else>
-      <ReCard :radius="12" shadow="never">
-        <template #header><span class="apm-card-h">调用关系图</span></template>
-        <ApmGraph
-          :nodes="nodes"
-          :calls="topology?.calls ?? []"
-          height="420px"
-          empty-text="该时间窗口内没有拓扑数据（可能没有跨服务调用）"
-        />
+      <ReCard :radius="16">
+        <template #header>
+          <div class="apm-card-head">
+            <span class="apm-card-h">调用关系图</span>
+            <span class="apm-card-note">节点大小 = 出入调用量 · 边宽 = 调用量</span>
+            <span class="apm-bar__spacer" />
+            <span class="apm-legend">
+              <span><i class="is-node" />已部署</span>
+              <span><i class="is-virtual" />推断</span>
+              <span><i class="is-self" />自身</span>
+            </span>
+          </div>
+        </template>
+        <div class="apm-graph-stage">
+          <ApmGraph
+            :nodes="nodes"
+            :calls="topology?.calls ?? []"
+            height="460px"
+            empty-text="该时间窗口内没有拓扑数据（可能没有跨服务调用）"
+          />
+        </div>
       </ReCard>
 
-      <ReCard :radius="12" shadow="never">
-        <template #header><span class="apm-card-h">调用边</span></template>
-        <ReTable
-          :data="callRows"
-          :columns="callColumns"
-          engine="element"
-          :loading="loading"
-          :settings="{ border: false }"
-          :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
-          empty-text="没有调用边"
-          table-id="apm-topology-calls"
-        >
-          <template #empty="{ description }">
-            <span class="apm-table-empty">{{ description }}</span>
-          </template>
-          <template #col-source="{ row }">
-            <span class="apm-mono">{{ nodeName(row.source) }}</span>
-          </template>
-          <template #col-target="{ row }">
-            <span class="apm-mono">{{ nodeName(row.target) }}</span>
-          </template>
-          <template #col-calls="{ row }">
-            <span class="apm-mono">{{ fmtNum(row.calls) }}</span>
-          </template>
-          <template #col-avgMs="{ row }">
-            <span class="apm-mono" :class="latencyClass(row.avgMs)">{{ fmtMs(row.avgMs) }}</span>
-          </template>
-          <template #col-errorRate="{ row }">
-            <span class="apm-mono" :class="Number(row.calls) > 0 ? errorRateClass(row.errorRate) : 'apm-muted'">{{ errorRateText(row.errorRate, row.calls) }}</span>
-          </template>
-        </ReTable>
-      </ReCard>
+      <div class="apm-duo">
+        <ReCard :radius="16">
+          <template #header><span class="apm-card-h">调用边</span></template>
+          <ReTable
+            :data="callRows"
+            :columns="callColumns"
+            engine="element"
+            :loading="loading"
+            :settings="{ border: false }"
+            :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+            :layout-table="{ maxHeight: 380 }"
+            empty-text="没有调用边"
+            table-id="apm-topology-calls"
+          >
+            <template #empty="{ description }">
+              <span class="apm-table-empty">{{ description }}</span>
+            </template>
+            <template #col-source="{ row }">
+              <span class="apm-mono">{{ nodeName(row.source) }}</span>
+            </template>
+            <template #col-target="{ row }">
+              <span class="apm-mono">{{ nodeName(row.target) }}</span>
+            </template>
+            <template #col-calls="{ row }">
+              <span class="apm-mono">{{ fmtNum(row.calls) }}</span>
+            </template>
+            <template #col-avgMs="{ row }">
+              <span class="apm-mono" :class="latencyClass(row.avgMs)">{{ fmtMs(row.avgMs) }}</span>
+            </template>
+            <template #col-errorRate="{ row }">
+              <span class="apm-mono" :class="Number(row.calls) > 0 ? errorRateClass(row.errorRate) : 'apm-muted'">{{ errorRateText(row.errorRate, row.calls) }}</span>
+            </template>
+          </ReTable>
+        </ReCard>
 
-      <ReCard :radius="12" shadow="never">
-        <template #header><span class="apm-card-h">节点</span></template>
-        <ReTable
-          :data="nodeRows"
-          :columns="nodeColumns"
-          engine="element"
-          :loading="loading"
-          :settings="{ border: false }"
-          :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
-          empty-text="没有节点"
-          table-id="apm-topology-nodes"
-        >
-          <template #empty="{ description }">
-            <span class="apm-table-empty">{{ description }}</span>
-          </template>
-          <template #col-name="{ row }">
-            <span class="apm-mono">{{ row.name }}</span>
-          </template>
-          <template #col-isReal="{ row }">
-            <ReTag :type="row.isReal ? 'success' : 'info'" size="small" round>
-              {{ row.isReal ? "已部署" : "推断" }}
-            </ReTag>
-          </template>
-        </ReTable>
-      </ReCard>
+        <ReCard :radius="16">
+          <template #header><span class="apm-card-h">节点</span></template>
+          <ReTable
+            :data="nodeRows"
+            :columns="nodeColumns"
+            engine="element"
+            :loading="loading"
+            :settings="{ border: false }"
+            :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+            :layout-table="{ maxHeight: 380 }"
+            empty-text="没有节点"
+            table-id="apm-topology-nodes"
+          >
+            <template #empty="{ description }">
+              <span class="apm-table-empty">{{ description }}</span>
+            </template>
+            <template #col-name="{ row }">
+              <span class="apm-mono">{{ row.name }}</span>
+            </template>
+            <template #col-isReal="{ row }">
+              <ReTag :type="row.real ? 'success' : 'info'" size="small" round>
+                {{ row.real ? "已部署" : "推断" }}
+              </ReTag>
+            </template>
+          </ReTable>
+        </ReCard>
+      </div>
     </template>
 
     <div v-if="!status.capabilities.includes('topology')" class="apm-muted">
@@ -147,19 +164,36 @@ function nodeName(id: string): string {
   return nameMap.value.get(id) || id;
 }
 
-const callColumns: ReTableColumn[] = [
-  { prop: "source", label: "调用方", minWidth: 200, slot: "source" },
-  { prop: "target", label: "被调方", minWidth: 200, slot: "target" },
-  { prop: "calls", label: "调用量", width: 110, align: "right", slot: "calls", sortable: true },
-  { prop: "avgMs", label: "平均耗时", width: 110, align: "right", slot: "avgMs", sortable: true },
-  { prop: "errorRate", label: "错误率", width: 100, align: "right", slot: "errorRate", sortable: true },
-];
+/**
+ * 边上的调用指标。
+ *
+ * <p>虚拟节点（User）没有关系指标实体，OAP 会返回 -1 —— 这时三列全是破折号，
+ * 不如收起，改显示 OAP 真正给出的检测点（CLIENT / SERVER）。</p>
+ */
+const hasCallMetrics = computed(() => (topology.value?.calls ?? []).some((c) => Number(c.calls) >= 0));
+
+const callColumns = computed<ReTableColumn[]>(() => {
+  const list: ReTableColumn[] = [
+    { prop: "source", label: "调用方", minWidth: 200, slot: "source" },
+    { prop: "target", label: "被调方", minWidth: 200, slot: "target" },
+  ];
+  if (hasCallMetrics.value) {
+    list.push(
+      { prop: "calls", label: "调用量", width: 110, align: "right", slot: "calls", sortable: true },
+      { prop: "avgMs", label: "平均耗时", width: 110, align: "right", slot: "avgMs", sortable: true },
+      { prop: "errorRate", label: "错误率", width: 100, align: "right", slot: "errorRate", sortable: true },
+    );
+  } else {
+    list.push({ prop: "detectPoint", label: "检测点", width: 120, align: "right" });
+  }
+  return list;
+});
 
 const nodeColumns: ReTableColumn[] = [
-  { prop: "name", label: "节点", minWidth: 240, slot: "name" },
-  { prop: "type", label: "类型", width: 120 },
-  { prop: "layer", label: "层", width: 140 },
-  { prop: "isReal", label: "来源", width: 100, align: "center", slot: "isReal" },
+  { prop: "name", label: "节点", minWidth: 140, slot: "name" },
+  { prop: "type", label: "类型", width: 110 },
+  { prop: "layer", label: "层", width: 80 },
+  { prop: "isReal", label: "来源", width: 96, align: "center", slot: "isReal" },
 ];
 
 async function loadServices() {

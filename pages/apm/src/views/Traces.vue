@@ -44,6 +44,7 @@
       :settings="{ border: false }"
       :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
       empty-text="当前条件下没有链路"
+      :layout-table="{ maxHeight: 620 }"
       table-id="apm-traces"
       class="apm-row-click"
       @row-click="onRowClick"

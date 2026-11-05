@@ -176,6 +176,9 @@ export interface ApmTopologyNode {
   id: string;
   name: string;
   type?: string | null;
+  /** 是否真实服务。后端（OtnlTopologyNode）的字段名是 real —— 9.x 起沿用 */
+  real?: boolean;
+  /** @deprecated 旧字段名，仅为兼容早期快照数据；新代码用 real */
   isReal?: boolean;
   /** 自身节点（SkyWalking 的 isSelf）；兼容后端可能的 self 字段名 */
   isSelf?: boolean | null;

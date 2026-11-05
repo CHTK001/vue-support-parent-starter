@@ -61,6 +61,7 @@
           :settings="{ border: false }"
           :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
           empty-text="没有数据"
+          :layout-table="{ maxHeight: 420 }"
           table-id="apm-compare-summary"
         >
           <template #empty="{ description }">

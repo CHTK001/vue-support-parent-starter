@@ -91,6 +91,7 @@
         engine="element"
         :settings="{ border: false }"
         :config="{ pagination: { enable: true, pageSize: 10 }, toolbar: { enable: false } }"
+        :layout-table="{ maxHeight: 420 }"
         table-id="apm-metric-points"
       >
         <template #col-time="{ row }">

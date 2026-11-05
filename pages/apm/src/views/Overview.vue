@@ -181,6 +181,7 @@
             :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
             :settings="{ border: false }"
             empty-text="没有探测到任何 APM 引擎"
+            :layout-table="{ maxHeight: 360 }"
             table-id="apm-overview-candidates"
           >
             <template #empty="{ description }">

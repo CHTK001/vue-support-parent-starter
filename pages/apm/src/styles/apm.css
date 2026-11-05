@@ -1,19 +1,23 @@
 /**
  * @pages/apm 的视觉系统（全局类，全部 `apm-` 前缀，不会污染宿主）。
  *
- * <p>这一版对齐的是<b>宿主自己的页面语言</b>（pages/monitor 的工作台、告警中心），
- * 不是另立一套「监控大屏」：</p>
+ * <p>骨架跟宿主走：一个菜单 + 底部页签，内容区没有页级标题。视觉是一套
+ * <b>有层次的现代控制台</b>，和库里 {@code re-surface.css} 的卡片规格同源：</p>
  *
  * <ul>
- *   <li>卡片 = 白底 + 1px {@code --el-border-color-lighter} + 12px 圆角，静止态不加投影；</li>
- *   <li>正文 13px、卡片标题 14px/600、表头 12px 灰字 + {@code --el-fill-color-light} 底带；</li>
- *   <li>统计数字 26–28px/700，标签 12px 放在数字上方 —— 和宿主统计卡同一个读法；</li>
- *   <li>动作复用 Element Plus 原生控件（主按钮就是主题蓝），不再自造墨色按钮；</li>
+ *   <li>卡片 = 16px 圆角 + 透明描边 + 双层柔光投影（近距 1px、远距主色弥散），
+ *       静止时就有「浮在画布上」的层次，不再是一张张白纸贴在灰底上；</li>
+ *   <li>画布带两团极淡的主题色光晕，页面滚到哪儿都不会是一整片死灰；</li>
+ *   <li>读数卡<b>一卡一格</b>：每格按语义色染 8% 底 + 右上角同色柔光，
+ *       悬停上浮 2px —— 四个数各有身份，又不会变成四张彩色卡；</li>
+ *   <li>过滤条吸顶 + 半透明毛玻璃，滚动时控件始终在手边；</li>
+ *   <li>表格去竖线：表头无底色只留一条细线，行高 48px，悬停是主色 5% 的淡染；</li>
+ *   <li>正文 13px、卡片标题 14px/600、读数 30px/700 且收紧字距、数字等宽 tabular；</li>
  *   <li>颜色全部走 {@code --el-*}，深浅主题自动跟随。</li>
  * </ul>
  *
- * <p>上一版那套「9px 大字距小写标签 + 点阵画布 + 等宽数字」是另一套设计语言，
- * 嵌进宿主后像外挂面板，已废弃。</p>
+ * <p>被废弃的两套：更早的「9px 大字距 + 点阵画布 + 等宽大数字」（像外挂大屏），
+ * 以及把它反过来压平的「纯白卡 + 无投影 + 灰表头带」（像后台模板）。</p>
  *
  * @since 4.0.0.51
  */
@@ -46,8 +50,36 @@
   /* 只给地址、TraceId、指标键名这类「要逐字符读」的内容用 */
   --apm-mono: var(--el-font-family-mono, ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas, monospace);
 
-  --apm-radius: var(--el-radius-lg, 12px);
-  --apm-radius-sm: var(--el-radius-base, 6px);
+  /* 圆角：卡片 16px（与库基线 --re-surface-radius 对齐），控件 10px */
+  --apm-radius: var(--re-surface-radius, 16px);
+  --apm-radius-sm: 10px;
+
+  /* 层次：近距描边 + 远距主色弥散。用 color-mix 让投影跟着主题色走，
+     换主题色时卡片的光晕一起变，不会出现「蓝色卡片配紫色阴影」 */
+  --apm-shadow:
+    0 1px 2px color-mix(in srgb, var(--el-color-black, #000) 5%, transparent),
+    0 12px 28px -16px color-mix(in srgb, var(--el-color-primary, #409eff) 34%, transparent);
+  --apm-shadow-lift:
+    0 1px 2px color-mix(in srgb, var(--el-color-black, #000) 6%, transparent),
+    0 20px 38px -18px color-mix(in srgb, var(--el-color-primary, #409eff) 48%, transparent);
+
+  /* 悬停淡染：表格行、页签、行列表共用一份，避免每处各调一个透明度 */
+  --apm-hover: color-mix(in srgb, var(--el-color-primary, #409eff) 6%, transparent);
+  --apm-tint: color-mix(in srgb, var(--el-color-primary, #409eff) 10%, var(--el-bg-color, #fff));
+  --apm-ring: color-mix(in srgb, var(--el-color-primary, #409eff) 22%, transparent);
+}
+
+/* 深色主题下主色弥散会发灰，改成中性黑投影，层次感靠边框亮度拉开 */
+html.dark .apm-page,
+html.dark .apm-absent,
+html.dark .apm-shell {
+  --apm-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 12px 28px -18px rgba(0, 0, 0, 0.75);
+  --apm-shadow-lift:
+    0 1px 2px rgba(0, 0, 0, 0.45),
+    0 20px 38px -18px rgba(0, 0, 0, 0.85);
+  --apm-hover: color-mix(in srgb, var(--el-color-primary, #409eff) 12%, transparent);
 }
 
 /* ==========================================================================
@@ -57,11 +89,11 @@
 .apm-page {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   box-sizing: border-box;
-  /* 宿主 .main-content 已经有 8px 内距，这里只补上下呼吸位：
+  /* 宿主 .main-content 已有 8px 内距，这里只补上下呼吸位：
      左右归零，卡片才能和「监控概览」等其他页面贴在同一条竖线上 */
-  padding: 6px 0 20px;
+  padding: 10px 0 24px;
   /* 页级空态要像表格一样占满内容区，而不是缩在顶部留一大片灰 */
   min-height: 100%;
   min-width: 0;
@@ -84,12 +116,30 @@
   min-width: 0;
 }
 
-/* 过滤条的白底容器：宿主列表页的 .pk-bar 同款 */
+/* 过滤条的白底容器：吸顶 + 半透明毛玻璃。
+   滚动长表格时控件始终在手边，内容从它下面模糊穿过 —— 不用再往上翻。 */
 .apm-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 6;
   padding: 10px 12px;
-  background: var(--apm-surface);
-  border: 1px solid var(--apm-line);
-  border-radius: var(--apm-radius);
+  background: color-mix(in srgb, var(--apm-surface) 84%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 12%, var(--apm-line));
+  border-radius: 14px;
+  box-shadow: var(--apm-shadow);
+  backdrop-filter: saturate(180%) blur(14px);
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
+}
+
+/* 吸顶时上方内容会被毛玻璃挡住；给条本身一点「贴住顶边」的实底，
+   避免极短的列表滚到一半时控件像是浮在半空 */
+.apm-toolbar::before {
+  content: "";
+  position: absolute;
+  inset: -10px -1px auto;
+  height: 10px;
+  pointer-events: none;
+  background: linear-gradient(180deg, var(--el-bg-color-page, #f2f3f5), transparent);
 }
 
 .apm-bar__spacer {
@@ -156,13 +206,23 @@
 .apm-card {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   box-sizing: border-box;
   min-width: 0;
-  padding: 14px 16px;
+  padding: 16px 18px;
   background: var(--apm-surface);
-  border: 1px solid var(--apm-line);
+  border: 1px solid transparent;
   border-radius: var(--apm-radius);
+  box-shadow: var(--apm-shadow);
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+/* 整块内容区不需要「抬起来」—— 悬停只把远距投影收紧一点，
+   避免一张大表格跟着鼠标上下浮动 */
+.apm-card:hover {
+  border-color: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
 }
 
 /* 表格类卡片：内距交给行自己，表头底带才能贴到卡片左右边 */
@@ -183,7 +243,7 @@
 }
 
 .apm-card-head--pad {
-  padding: 14px 16px 10px;
+  padding: 16px 18px 10px;
 }
 
 .apm-card-h {
@@ -234,73 +294,107 @@
    4. 统计卡：数字在上、标签在下，和宿主统计卡一致
    ========================================================================== */
 
-/* 统计条：宿主「告警中心」的读数条是一整张白卡，内部用 1px 竖线分栏，
-   数值在上、标签在下。这里沿用同一形状 —— 总览的 .apm-kpi 与各列表页的
-   ReStatCard 都只是这条里的一格，不再各长一套卡片。 */
+/* 读数格：一卡一格。总览的 .apm-kpi 与各列表页的 ReStatCard 共用同一套皮肤 ——
+   每格带自己的语义色（--accent），底色染 8%，右上角一团同色柔光。 */
 .apm-kpis {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0;
-  background: var(--apm-surface);
-  border: 1px solid var(--apm-line);
-  border-radius: var(--apm-radius);
-  overflow: hidden;
+  gap: 12px;
 }
 
-/* 分栏线放在格子规则之后：ReStatCard 自带边框，必须后画才盖得住 */
-
-.apm-kpi,
-.apm-page .apm-kpis > .re-stat-card {
-  position: relative;
-  box-sizing: border-box;
-  min-width: 0;
-  padding: 14px 18px;
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-}
-
-/* 分栏线：只画在相邻两格之间，首列干净。
-   用比卡片描边深一档的线 —— #ebeef5 在白底上几乎看不见，分栏就白做了。 */
-.apm-page .apm-kpis > * + * {
-  border-left: 1px solid var(--apm-line-strong);
-}
-
-/* 窄屏落成两列时，每行第一格不画左线 */
+/* 窄屏落成两列 */
 @media (max-width: 1100px) {
   .apm-kpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
 
-  .apm-page .apm-kpis > *:nth-child(odd) {
-    border-left: 0;
-  }
+.apm-kpi,
+.apm-page .apm-kpis > .re-stat-card {
+  --k: var(--accent, var(--el-color-primary, #409eff));
+
+  position: relative;
+  box-sizing: border-box;
+  min-width: 0;
+  overflow: hidden;
+  padding: 15px 18px 14px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--k) 6%, var(--apm-surface)) 0%,
+    var(--apm-surface) 52%
+  );
+  border: 1px solid color-mix(in srgb, var(--k) 18%, transparent);
+  border-radius: var(--apm-radius);
+  box-shadow: var(--apm-shadow);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+/* 右上角的柔光：四格连排时靠它区分身份，又不至于变成四张彩色卡 */
+.apm-kpi::after,
+.apm-page .apm-kpis > .re-stat-card::after {
+  content: "";
+  position: absolute;
+  top: -48px;
+  right: -26px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--k) 20%, transparent) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.apm-kpi:hover,
+.apm-page .apm-kpis > .re-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--apm-shadow-lift);
+  border-color: color-mix(in srgb, var(--k) 34%, transparent);
+}
+
+/* 内容压在柔光之上 */
+.apm-kpi > *,
+.apm-page .apm-kpis > .re-stat-card > * {
+  position: relative;
+  z-index: 1;
 }
 
 .apm-kpi {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
-/* 数值在前、标签在后 —— 与宿主读数条的读法一致 */
-.apm-kpi__value {
-  order: 1;
-}
-
+/* 标签在上、读数在下 —— 控制台最常见的读法；
+   标签前那颗小方点就是这一格的语义色 */
 .apm-kpi__label {
-  order: 2;
+  order: -1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   font-weight: 500;
   line-height: 1.4;
-  color: var(--apm-faint);
+  color: var(--apm-dim);
+}
+
+.apm-kpi__label::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--k);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--k) 16%, transparent);
 }
 
 .apm-kpi__value {
-  font-size: 28px;
+  order: 0;
+  font-size: 30px;
   font-weight: 700;
-  line-height: 1.1;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
   color: var(--apm-text);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -322,8 +416,8 @@
 }
 
 .apm-kpi__sub {
-  order: 3;
-  font-size: 11px;
+  order: 1;
+  font-size: 11.5px;
   line-height: 1.4;
   color: var(--apm-faint);
   overflow: hidden;
@@ -348,14 +442,29 @@
   }
 }
 
-/* 画布：白底，不加点阵 —— 宿主没有「仪器画布」这种底 */
+/* 两张并排的列表卡：给「调用边」多一点宽度，「节点」窄一些 */
+.apm-duo {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+@media (max-width: 1180px) {
+  .apm-duo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 画布：白底，不加点阵 —— 和卡片同一层，靠投影浮起来 */
 .apm-canvas {
   display: flex;
   flex-direction: column;
   min-width: 0;
   background: var(--apm-surface);
-  border: 1px solid var(--apm-line);
+  border: 1px solid transparent;
   border-radius: var(--apm-radius);
+  box-shadow: var(--apm-shadow);
   overflow: hidden;
 }
 
@@ -364,7 +473,7 @@
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  padding: 12px 16px;
+  padding: 14px 18px;
   border-bottom: 1px solid var(--apm-line);
 }
 
@@ -400,6 +509,53 @@
   min-width: 0;
 }
 
+/* 拓扑画布：极淡的点阵只是给「这是一张图」一个底。
+   1px 点、9% 灰，远看是一层浅灰，不是早期那套点阵大屏。 */
+.apm-graph-stage {
+  margin: -2px -8px -6px;
+  border-radius: 12px;
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    color-mix(in srgb, var(--el-text-color-primary) 10%, transparent) 1px,
+    transparent 0
+  );
+  background-size: 18px 18px;
+}
+
+/* 图例：已部署 / 推断 / 自身 */
+.apm-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--apm-faint);
+}
+
+.apm-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.apm-legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--apm-accent);
+  background: color-mix(in srgb, var(--apm-accent) 16%, transparent);
+}
+
+.apm-legend i.is-virtual {
+  border-color: var(--apm-faint);
+  border-style: dashed;
+  background: transparent;
+}
+
+.apm-legend i.is-self {
+  border-color: var(--apm-warn);
+  background: color-mix(in srgb, var(--apm-warn) 18%, transparent);
+}
+
 /* ==========================================================================
    6. 自绘行列表（服务、调用边这类需要「一眼扫完」的表）
    ========================================================================== */
@@ -421,11 +577,12 @@
 }
 
 .apm-rows__head {
-  min-height: 38px;
+  min-height: 42px;
   font-size: 12px;
-  font-weight: 500;
-  color: var(--apm-faint);
-  background: var(--el-fill-color-light, #f5f7fa);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--el-text-color-placeholder, #a8abb2);
+  background: transparent;
   border-bottom: 1px solid var(--apm-line);
 }
 
@@ -457,7 +614,7 @@
 }
 
 .apm-row {
-  min-height: 44px;
+  min-height: 48px;
   border-bottom: 1px solid var(--el-border-color-extra-light, #f2f3f5);
   font-size: 13px;
   color: var(--apm-dim);
@@ -471,7 +628,7 @@
 }
 
 .apm-row:hover {
-  background: var(--el-fill-color-light, #f5f7fa);
+  background: var(--apm-hover);
 }
 
 .apm-row__dot {
@@ -566,14 +723,15 @@
 /* koi 卡片自带 5px 6px 外边距，会把栅格撑歪；这里收平 */
 .apm-page .koi-card {
   margin: 0;
-  padding: 14px 16px;
-  border: 1px solid var(--apm-line);
+  padding: 16px 18px;
+  border: 1px solid transparent;
   border-radius: var(--apm-radius);
   background: var(--apm-surface);
+  box-shadow: var(--apm-shadow);
 }
 
 .apm-page .koi-card:hover {
-  border-color: var(--apm-line-strong);
+  border-color: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
 }
 
 .apm-page .koi-card__header {
@@ -581,10 +739,10 @@
 }
 
 .apm-page .el-card {
-  border: 1px solid var(--apm-line);
+  border: 1px solid transparent;
   border-radius: var(--apm-radius);
   background: var(--apm-surface);
-  box-shadow: none;
+  box-shadow: var(--apm-shadow);
 }
 
 .apm-page .el-card__header {
@@ -596,68 +754,79 @@
   padding: 14px 16px;
 }
 
-/* 统计卡：去掉渐变与投影，只留数字和标签 */
+/* 统计卡：走卡片基线，只覆写排版 */
 .apm-page .re-stat-card {
-  padding: 14px 18px;
-  border: 1px solid var(--apm-line);
+  --k: var(--accent, var(--el-color-primary, #409eff));
+
+  padding: 15px 18px 14px;
+  border: 1px solid color-mix(in srgb, var(--k) 18%, transparent);
   border-radius: var(--apm-radius);
   background: var(--apm-surface);
-  box-shadow: none;
+  box-shadow: var(--apm-shadow);
 }
 
-.apm-page .re-stat-card:hover {
-  border-color: var(--apm-line-strong);
-  transform: none;
-}
-
-.apm-page .re-stat-card__value {
-  font-size: 28px;
+/* 两条 0,3,0 的选择器：ReStatCard 自己的 scoped 样式带 [data-v-*]（0,2,0），
+   同权重谁后加载不一定，必须加一层才压得住 */
+.apm-page .apm-kpis .re-stat-card__value {
+  order: 0;
+  font-size: 30px;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: -0.02em;
   line-height: 1.15;
   font-variant-numeric: tabular-nums;
 }
 
-.apm-page .re-stat-card__title {
+/* 标签在上、读数在下 —— 和总览的 .apm-kpi 一模一样的读法 */
+.apm-page .apm-kpis .re-stat-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.apm-page .apm-kpis .re-stat-card__title {
+  order: -1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0;
+  color: var(--apm-dim);
+}
+
+/* 标签前那颗小方点：和总览读数格同一个语义色标记 */
+.apm-page .apm-kpis .re-stat-card__title::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--k);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--k) 16%, transparent);
+}
+
+.apm-page .apm-kpis .re-stat-card__desc {
+  order: 1;
+  font-size: 11.5px;
   color: var(--apm-faint);
 }
 
-.apm-page .re-stat-card__desc {
-  font-size: 11px;
-  color: var(--apm-faint);
-}
-
-/* 统计卡与总览读数条同一种读法：数值在上、标签在下，去掉左侧图标块。
-   宿主读数条（告警中心）也没有图标，多一个彩色方块只会让两页不像一套。 */
+/* 读数格里不要图标块：一个彩色圆和右上角柔光是两套装饰，会互相打架 */
 .apm-page .re-stat-card > .re-stat-card__aside {
   display: none;
 }
 
-.apm-page .re-stat-card__body {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
-/* 卡片自己的内距由 .apm-kpis 统一给，免得同一条里两格高度不一致 */
-.apm-page .apm-kpis > .re-stat-card {
-  padding: 14px 18px;
-}
-
-/* 表格：浅灰表头带 + 13px 正文，与宿主列表页一致 */
+/* 表格：去竖线、表头无底色只留一条细线，行高 48px —— 数据本身才是主体 */
 .apm-page .el-table {
-  --el-table-border-color: var(--apm-line);
-  --el-table-header-bg-color: var(--el-fill-color-light, #f5f7fa);
-  --el-table-row-hover-bg-color: var(--el-fill-color-light, #f5f7fa);
-  --el-table-header-text-color: var(--apm-faint);
+  --el-table-border-color: var(--el-border-color-extra-light, #f2f3f5);
+  --el-table-header-bg-color: transparent;
+  --el-table-row-hover-bg-color: var(--apm-hover);
+  --el-table-header-text-color: var(--el-text-color-placeholder, #a8abb2);
   --el-table-text-color: var(--apm-dim);
   font-size: 13px;
   /* 列表页里的表格自己就是一张白卡片 */
-  border: 1px solid var(--apm-line);
+  border: 1px solid transparent;
   border-radius: var(--apm-radius);
   overflow: hidden;
 }
@@ -671,12 +840,13 @@
 }
 
 /* ReTable 的根节点自带 1px 边框 + 12px 内距；在 APM 里它就是那张卡片，
-   内距归零，表头底带才能贴到卡片边上（与宿主列表页一致） */
+   内距归零，表头直接贴到卡片边上 */
 .apm-page .re-table {
   padding: 0;
-  border: 1px solid var(--apm-line);
+  border: 1px solid transparent;
   border-radius: var(--apm-radius);
   background: var(--apm-surface);
+  box-shadow: var(--apm-shadow);
 }
 
 /* 主体区自己还带 16px 内距 + 1px 边框，是表头上方那条白带的真正来源 */
@@ -694,21 +864,31 @@
   background: transparent;
 }
 
+/* 表格高度由各页面的 layout-table.maxHeight 决定：
+   内容矮时贴内容，行多时表头固定、表体内部滚动。 */
+
 /* 时间这类不能折行的单元格：折成两行会把整张表的行高带歪 */
 .apm-nowrap {
   white-space: nowrap;
 }
 
 .apm-page .el-table th.el-table__cell {
-  padding: 8px 0;
+  padding: 11px 0;
   font-size: 12px;
-  font-weight: 500;
-  background: var(--el-fill-color-light, #f5f7fa);
-  border-bottom: 1px solid var(--apm-line);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: transparent;
+  border-bottom: 1px solid var(--el-border-color, #dcdfe6);
 }
 
 .apm-page .el-table td.el-table__cell {
-  padding: 10px 0;
+  padding: 13px 0;
+}
+
+/* 首列是名字：加粗、主文字色，扫一眼就能定位到行 */
+.apm-page .el-table td.el-table__cell:first-child .cell {
+  font-weight: 500;
+  color: var(--apm-text);
 }
 
 .apm-page .el-table .cell {
@@ -785,8 +965,9 @@
   justify-content: center;
   padding: 56px 16px;
   background: var(--apm-surface);
-  border: 1px solid var(--apm-line);
+  border: 1px solid transparent;
   border-radius: var(--apm-radius);
+  box-shadow: var(--apm-shadow);
 }
 
 /* 空态卡片：标题 + 一行说明，与宿主「没有告警事件」同形 */
@@ -800,8 +981,9 @@
   padding: 40px 16px;
   text-align: center;
   background: var(--apm-surface);
-  border: 1px solid var(--apm-line);
+  border: 1px solid transparent;
   border-radius: var(--apm-radius);
+  box-shadow: var(--apm-shadow);
 }
 
 /* 直接落在页面里的空态：吃掉内容区剩余高度（与宿主「表格铺到底」同形） */

@@ -40,6 +40,7 @@
             :desc="`${trace.spanCount} 个 span`"
             :icon="Timer"
             :icon-color="trace.error ? 'var(--el-color-danger)' : 'var(--el-color-primary)'"
+            :style="{ '--accent': trace.error ? 'var(--el-color-danger)' : 'var(--el-color-primary)' }"
           />
           <ReStatCard
             size="compact"
@@ -48,6 +49,7 @@
             :desc="errorSpans.length ? `${errorSpans.length} 个 span 报错` : '全部 span 正常'"
             :icon="CircleCheck"
             :icon-color="trace.error ? 'var(--el-color-danger)' : 'var(--el-color-success)'"
+            :style="{ '--accent': trace.error ? 'var(--el-color-danger)' : 'var(--el-color-success)' }"
           />
           <ReStatCard
             size="compact"
@@ -56,6 +58,7 @@
             desc="链路经过的服务数"
             :icon="Connection"
             icon-color="var(--el-color-info)"
+            style="--accent: var(--el-color-info)"
           />
           <ReStatCard
             size="compact"
@@ -64,6 +67,7 @@
             :desc="fmtTime(trace.startTime)"
             :icon="Clock"
             icon-color="var(--el-color-info)"
+            style="--accent: var(--el-color-info)"
           />
         </div>
 
