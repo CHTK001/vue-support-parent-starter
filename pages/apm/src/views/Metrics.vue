@@ -21,7 +21,7 @@
       </template>
     </ReSectionHead>
 
-    <div class="apm-bar">
+    <div class="apm-bar apm-toolbar">
       <ReSelect v-model="scope" :options="scopeOptions" style="width: 130px" @change="onScopeChange" />
       <ReSelect
         v-model="name"

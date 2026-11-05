@@ -18,7 +18,7 @@
       </template>
     </ReSectionHead>
 
-    <div class="apm-bar">
+    <div class="apm-bar apm-toolbar">
       <ReSelect
         v-model="metricName"
         :options="metricOptions"

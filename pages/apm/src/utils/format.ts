@@ -47,6 +47,25 @@ export function fmtPercent(value: unknown, digits = 2): string {
 }
 
 /**
+ * 错误率的展示口径：没有调用的服务不显示 100%。
+ *
+ * <p>SkyWalking 的成功率指标在「窗口内一次调用都没有」时会返回 0，
+ * 后端按 100 - 0 换算就得到 100% 错误率 —— 但一次调用都没有时，
+ * 错误率本来就没有定义，显示 100% 会让人以为这个服务全挂了。
+ * 只在 calls 明确为 0 时退回破折号；calls 未知（-1）时仍按原值显示。</p>
+ *
+ * @param errorRate 错误率百分数
+ * @param calls     同一窗口内的调用量
+ */
+export function errorRateText(errorRate: unknown, calls: unknown): string {
+  const c = Number(calls);
+  if (Number.isFinite(c) && c === 0) {
+    return "—";
+  }
+  return fmtPercent(errorRate);
+}
+
+/**
  * 指标值归一：SkyWalking 的 SLA 满值是 10000（即 100.00%），
  * 其它百分比指标也可能返回 0~10000 的放大值，这里按单位统一收口。
  *

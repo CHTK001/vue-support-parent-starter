@@ -20,7 +20,7 @@
       </template>
     </ReSectionHead>
 
-    <div class="apm-bar">
+    <div class="apm-bar apm-toolbar">
       <ReInput v-model="keyword" placeholder="按服务名或分组过滤" clearable style="width: 240px" />
       <ReSelect v-model="layer" :options="layerOptions" placeholder="全部层" clearable style="width: 160px" />
       <el-checkbox v-model="errorOnly" label="仅看有错误的服务" />
@@ -65,7 +65,7 @@
         <span class="apm-mono" :class="latencyClass(row.p99Ms)">{{ fmtMs(row.p99Ms) }}</span>
       </template>
       <template #col-errorRate="{ row }">
-        <span class="apm-mono" :class="errorRateClass(row.errorRate)">{{ fmtPercent(row.errorRate) }}</span>
+        <span class="apm-mono" :class="Number(row.calls) > 0 ? errorRateClass(row.errorRate) : 'apm-muted'">{{ errorRateText(row.errorRate, row.calls) }}</span>
       </template>
     </ReTable>
 
@@ -93,7 +93,7 @@ import { listServices } from "../api/apmApi";
 import type { ApmService } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
 import { ROUTE_PREFIX } from "../config";
-import { errorRateClass, fmtMs, fmtNum, fmtPercent, latencyClass } from "../utils/format";
+import { errorRateClass, errorRateText, fmtMs, fmtNum, latencyClass } from "../utils/format";
 
 const router = useRouter();
 const { present, ensure } = useApmStatus();

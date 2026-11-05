@@ -25,7 +25,7 @@
     <ReEmpty v-if="!serviceName" :image-size="70" description="缺少服务名，请从服务列表点行进入" />
 
     <template v-else>
-      <div class="apm-bar">
+      <div class="apm-bar apm-toolbar">
         <ReInput v-model="serviceName" placeholder="服务名" style="width: 300px" @keyup.enter="load" />
         <ReButton icon="Search" type="primary" :loading="loading" @click="load">加载</ReButton>
         <span class="apm-bar__spacer" />

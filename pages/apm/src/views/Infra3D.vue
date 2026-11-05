@@ -19,7 +19,7 @@
       </template>
     </ReSectionHead>
 
-    <div class="apm-bar">
+    <div class="apm-bar apm-toolbar">
       <ReSelect v-model="minutes" :options="windowOptions" style="width: 150px" @change="load" />
       <ReSwitch v-model="autoRotate" size="small" />
       <span class="apm-count">自动旋转</span>

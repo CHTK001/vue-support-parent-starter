@@ -2,8 +2,10 @@
   APM 单页工作台。
 
   一个菜单入口 `/apm`，12 个视图收进 `ReTabs` 的页签里：
-    · 顶部只有一条 shell（标识 / 引擎 / 时钟），页签条压在底部 ——
-      页面内容才是主角，导航不该抢视线；
+    · 页面里只有内容 + 底部页签条，不再自带第二条顶栏 ——
+      宿主已经有菜单、面包屑和路由页签，再叠一层「APM 标识 + 引擎 + 时钟」
+      只会让人以为点进了另一个系统；
+    · 引擎/版本/模式由各页自己的抬头与「引擎探测」卡片交代（见 Overview）；
     · 每个页签首次点开才挂载，之后常驻（v-show 保活），切回来不重发请求；
     · 当前页签同步到 URL（`?tab=services`），刷新与分享都能落到同一页；
     · 页签可以弹出成独立窗口（`?tab=x&popout=1`，只渲染那一页、没有页签条）。
@@ -13,53 +15,6 @@
 -->
 <template>
   <div class="apm-shell" :class="{ 'apm-shell--popout': isPopout }">
-    <!-- 顶部：这是哪套系统、连的是哪个引擎、现在几点 -->
-    <header class="apm-shell__top">
-      <div class="apm-shell__brand">
-        <span class="apm-shell__mark" aria-hidden="true">
-          <svg viewBox="0 0 20 20" width="20" height="20">
-            <path d="M5 6.5 L14 4 M5 6.5 L13 15 M14 4 L13 15" class="apm-shell__edge" />
-            <circle cx="5" cy="6.5" r="2.2" class="apm-shell__node" />
-            <circle cx="14" cy="4" r="1.6" class="apm-shell__node is-dim" />
-            <circle cx="13" cy="15" r="2" class="apm-shell__node is-accent" />
-          </svg>
-        </span>
-        <span class="apm-shell__names">
-          <strong>APM</strong>
-          <em>应用性能观测台</em>
-        </span>
-      </div>
-
-      <div class="apm-shell__engine">
-        <i class="apm-shell__led" :class="ledClass" />
-        <span class="apm-shell__engine-name">{{ engineLabel }}</span>
-        <template v-if="status?.endpoint">
-          <span class="apm-shell__sep">/</span>
-          <span class="apm-shell__endpoint">{{ status.endpoint }}</span>
-        </template>
-        <template v-else-if="status?.mode">
-          <span class="apm-shell__sep">/</span>
-          <span class="apm-shell__endpoint">{{ status.mode }}</span>
-        </template>
-      </div>
-
-      <div class="apm-shell__right">
-        <span class="apm-shell__pill">{{ activeLabel }}</span>
-        <button
-          v-if="!isPopout"
-          type="button"
-          class="apm-shell__icon-btn"
-          title="重新探测 APM 引擎"
-          aria-label="重新探测 APM 引擎"
-          :disabled="probing"
-          @click="probe"
-        >
-          <ReIcon name="Refresh" :size="13" />
-        </button>
-        <span class="apm-shell__clock">{{ clock }}</span>
-      </div>
-    </header>
-
     <!-- 弹出模式：只渲染一个视图，没有页签条 -->
     <div v-if="isPopout && popoutTab" class="apm-shell__body">
       <div class="apm-workbench__view">
@@ -94,23 +49,19 @@
 /**
  * @pages/apm 单页工作台
  *
- * <p>页签的「是什么」在 `tabs.ts`，这里负责四件事：把页签名和 URL 对齐、
- * 让 ReTabs 记住上次停在哪一页、把某个页签弹成独立窗口、以及给出
- * 全模块共用的那条顶部 shell。</p>
+ * <p>页签的「是什么」在 `tabs.ts`，这里只负责三件事：把页签名和 URL 对齐、
+ * 让 ReTabs 记住上次停在哪一页、把某个页签弹成独立窗口。</p>
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import ReIcon from "@repo/ui/re-icon";
 import ReTabs from "@repo/ui/re-tabs";
 import type { ReTabsItem } from "@repo/ui/re-tabs";
 import { APM_DEFAULT_TAB, APM_OPEN_TAB_EVENT, APM_TABS, APM_WORKBENCH_ID, findApmTab } from "../tabs";
-import { ROUTE_PREFIX, apmConfig } from "../config";
-import { useApmStatus } from "../composables/useApmStatus";
+import { ROUTE_PREFIX } from "../config";
 
 defineOptions({ name: "ApmWorkbench" });
 
 const route = useRoute();
-const { status, present, error, ensure, refresh } = useApmStatus();
 
 /** 弹出模式：地址上带 `popout=1` 时只渲染单个视图，不挂页签条 */
 const isPopout = computed(() => String(route.query.popout ?? "") === "1");
@@ -144,9 +95,6 @@ function tabComponent(name: string) {
 
 /** 弹窗里要渲染的那个视图（不带 tab 时退回默认页） */
 const popoutTab = computed(() => findApmTab(tabFromRoute()) ?? findApmTab(APM_DEFAULT_TAB));
-
-/** 顶栏右侧显示当前停在哪一页 */
-const activeLabel = computed(() => findApmTab(active.value)?.label ?? "工作台");
 
 /**
  * 把当前页签写回地址栏。
@@ -197,50 +145,6 @@ function openPopout(name: string): void {
   window.open(url, "_blank", "noopener,width=1440,height=900");
 }
 
-/* ==================== 顶栏：引擎状态与时钟 ==================== */
-
-/** 后端是否明确回了「不可用」——和「还没取到」要分开显示 */
-const unavailable = computed(() => Boolean(status.value) && !present.value);
-
-/** 状态灯：连上 / 装了连不上 / 请求失败 */
-const ledClass = computed(() => {
-  if (present.value) return "is-ok";
-  if (error.value) return "is-bad";
-  if (unavailable.value) return "is-warn";
-  return "is-idle";
-});
-
-/** 引擎名 + 版本，尽量短：顶栏不是详情面板 */
-const engineLabel = computed(() => {
-  if (!apmConfig().enable) return "APM 模块已关闭";
-  if (error.value) return "状态接口不可达";
-  const s = status.value;
-  if (!s) return "探测中…";
-  if (!s.present) return "未接入 APM";
-  return [s.name, s.version].filter((v) => v && v !== "unknown").join(" ") || "APM 已接入";
-});
-
-/** 重新探测（手动） */
-const probing = ref(false);
-async function probe(): Promise<void> {
-  probing.value = true;
-  try {
-    await refresh();
-  } finally {
-    probing.value = false;
-  }
-}
-
-/** 顶栏时钟：秒级，只为了让这块面板看起来是「活的」 */
-const clock = ref("");
-let clockTimer: ReturnType<typeof setInterval> | null = null;
-
-function tick(): void {
-  const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  clock.value = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-}
-
 /**
  * 视图内部要求切页签（总览点一条服务 → 服务页签）。
  *
@@ -261,22 +165,16 @@ function onOpenTab(event: Event): void {
  */
 onMounted(() => {
   if (!active.value) active.value = APM_DEFAULT_TAB;
-  // 顶栏要显示引擎，页面本身也要它；两边共用同一份缓存，这里先探一次
-  if (apmConfig().enable) ensure();
   window.addEventListener(APM_OPEN_TAB_EVENT, onOpenTab);
-  tick();
-  clockTimer = setInterval(tick, 1000);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener(APM_OPEN_TAB_EVENT, onOpenTab);
-  if (clockTimer) clearInterval(clockTimer);
-  clockTimer = null;
 });
 </script>
 
 <style scoped>
-/* ==================== shell ==================== */
+/* ==================== 骨架 ==================== */
 .apm-shell {
   display: flex;
   flex: 1 1 auto;
@@ -288,183 +186,6 @@ onBeforeUnmount(() => {
   background: var(--el-bg-color-page);
 }
 
-/* 顶栏：一整条，左侧标识、中间引擎、右侧状态与时钟 */
-.apm-shell__top {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 14px;
-  min-width: 0;
-  padding: 8px 14px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color);
-}
-
-.apm-shell__brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: none;
-}
-
-.apm-shell__mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
-  border: 1px solid var(--el-border-color-lighter);
-  background: var(--el-fill-color-light);
-}
-
-.apm-shell__mark svg {
-  display: block;
-}
-
-.apm-shell__edge {
-  fill: none;
-  stroke: var(--el-color-primary);
-  stroke-width: 1;
-  opacity: 0.55;
-}
-
-.apm-shell__node {
-  fill: var(--el-bg-color);
-  stroke: var(--el-color-primary);
-  stroke-width: 1.4;
-}
-
-.apm-shell__node.is-dim {
-  stroke: var(--el-text-color-placeholder);
-}
-
-.apm-shell__node.is-accent {
-  fill: var(--el-color-primary);
-  stroke: var(--el-color-primary);
-}
-
-.apm-shell__names {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.15;
-}
-
-.apm-shell__names strong {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--el-text-color-primary);
-}
-
-.apm-shell__names em {
-  font-style: normal;
-  font-size: 9.5px;
-  letter-spacing: 0.14em;
-  color: var(--el-text-color-placeholder);
-  white-space: nowrap;
-}
-
-.apm-shell__engine {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  font-family: var(--el-font-family-mono, ui-monospace, Consolas, monospace);
-  font-size: 10.5px;
-  color: var(--el-text-color-secondary);
-}
-
-.apm-shell__led {
-  flex: none;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--el-text-color-placeholder);
-}
-
-.apm-shell__led.is-ok {
-  background: var(--el-color-success);
-  box-shadow: 0 0 0 3px var(--el-color-success-light-9);
-}
-
-.apm-shell__led.is-warn {
-  background: var(--el-color-warning);
-}
-
-.apm-shell__led.is-bad {
-  background: var(--el-color-danger);
-}
-
-.apm-shell__engine-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.apm-shell__sep {
-  color: var(--el-text-color-placeholder);
-}
-
-.apm-shell__endpoint {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--el-text-color-placeholder);
-}
-
-.apm-shell__right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-  flex: none;
-}
-
-.apm-shell__pill {
-  padding: 2px 9px;
-  border-radius: 999px;
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
-  font-size: 10.5px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.apm-shell__icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--el-text-color-secondary);
-  cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease;
-}
-
-.apm-shell__icon-btn:hover:not(:disabled) {
-  color: var(--el-color-primary);
-  border-color: var(--el-color-primary-light-5);
-}
-
-.apm-shell__icon-btn:disabled {
-  cursor: progress;
-  opacity: 0.5;
-}
-
-.apm-shell__clock {
-  font-family: var(--el-font-family-mono, ui-monospace, Consolas, monospace);
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
-  color: var(--el-text-color-placeholder);
-  font-variant-numeric: tabular-nums;
-}
-
-/* ==================== 内容区 ==================== */
 .apm-shell__body {
   display: flex;
   flex: 1 1 auto;
@@ -493,33 +214,34 @@ onBeforeUnmount(() => {
   background: var(--el-bg-color-page);
 }
 
-/* ==================== 底部页签：胶囊导航 ==================== */
+/* ==================== 底部页签：宿主分段控件的样子 ==================== */
 .apm-workbench :deep(.re-tabs__bar) {
   flex: none;
   gap: 2px;
-  padding: 6px 10px;
+  padding: 8px 12px;
   border-top: 1px solid var(--el-border-color-lighter);
   border-bottom: none;
   background: var(--el-bg-color);
 }
 
 .apm-workbench :deep(.re-tabs__tab) {
-  height: 26px;
-  padding: 0 10px;
-  border-radius: 999px;
-  font-size: 11.5px;
-  color: var(--el-text-color-secondary);
+  height: 28px;
+  padding: 0 11px;
+  border-radius: var(--el-border-radius-base, 6px);
+  font-size: 13px;
+  color: var(--el-text-color-regular);
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .apm-workbench :deep(.re-tabs__tab:hover) {
   background: var(--el-fill-color-light);
-  color: var(--el-text-color-primary);
+  color: var(--el-color-primary);
 }
 
 .apm-workbench :deep(.re-tabs__tab.is-active) {
-  background: var(--el-text-color-primary);
-  color: var(--el-bg-color);
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-weight: 500;
 }
 
 .apm-workbench :deep(.re-tabs__tab.is-active .re-tabs__icon) {
