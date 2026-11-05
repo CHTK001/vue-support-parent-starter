@@ -179,6 +179,14 @@ onMounted(async () => {
   color: var(--el-text-color-secondary);
 }
 
+.alarm-events .apm-kv__row {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.55;
+}
+
 .apm-kv__more {
   font-size: 12px;
   color: var(--el-text-color-placeholder);
