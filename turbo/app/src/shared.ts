@@ -17,7 +17,7 @@ import {
   type RouteConfigsTable,
 } from "@repo/core";
 import { bindStationMessageSocket } from "@repo/pinia";
-import { setConfig, resolveMenuDefaultIcon, type AppConfig } from "@repo/config";
+import { setConfig, applyConfig, resolveMenuDefaultIcon, type AppConfig } from "@repo/config";
 import { log, ensureFingerprint } from "@repo/utils";
 
 /** 加载动画的部署侧接管：把 app.yaml 的决定落到「下次刷新首屏」用的 localStorage */
@@ -82,7 +82,7 @@ export function applyTitle(
   const env = (import.meta as unknown as { env?: Record<string, string> }).env ?? {};
   const finalTitle = title ?? env.VITE_WEB_TITLE ?? env.VITE_APP_TITLE ?? context.config.app.title;
   if (finalTitle) {
-    setConfig({ app: { ...context.config.app, title: finalTitle } } as Partial<AppConfig>);
+    applyConfig({ app: { ...context.config.app, title: finalTitle } } as Partial<AppConfig>);
   }
 }
 

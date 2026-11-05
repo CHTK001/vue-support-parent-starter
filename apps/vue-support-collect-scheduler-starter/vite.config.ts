@@ -41,10 +41,15 @@ const schedulerTarget = process.env.COLLECT_SCHEDULER_TARGET ?? "http://192.168.
 //
 // 前缀处理按 hubTarget 分两种情况，代理条目按各自所需决定是否 rewrite：
 //  - 指向 8081 这类**独立 hub**（没有自己的 context-path）：必须剥掉 /collect/api；
-//  - 指向 18190（**内嵌 hub**，context-path 就是 /collect/api）：绝不能剥，
+//  - 指向内嵌 hub（context-path 就是 /collect/api，例如 18190 或验收用的 8082）：绝不能剥，
 //    剥了请求就落在容器层、没有路由，返回 Tomcat 原生 404 HTML 而非应用 JSON。
-// 详见下方 /collect/api/ms 条目的注释。
+// 判断依据不再用「URL 里出现某个端口号」——验收后端端口是部署选择，会变（2026-11-05 起
+// 固定到 8082），端口一改就会静默走进错误的 rewrite 分支。显式用
+// COLLECT_HUB_KEEP_PREFIX=1 声明「目标自带 context-path」，端口怎么换都不受影响；
+// 仍保留 :18190 的旧判断，兼容既有启动方式。
 const hubTarget = process.env.COLLECT_HUB_TARGET ?? "http://192.168.50.198:8081";
+const hubKeepsPrefix =
+  process.env.COLLECT_HUB_KEEP_PREFIX === "1" || hubTarget.includes(":18190");
 const stripCollectApiPrefix = (path: string) => path.replace(/^\/collect\/api/, "");
 
 // dev 代理必须在转发前摘掉 Origin/Referer，否则后端会判成跨域并 403。

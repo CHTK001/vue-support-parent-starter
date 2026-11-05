@@ -22,7 +22,7 @@ import {
   normalizeTopKey,
   parseAppYaml,
   resetConfigSilent,
-  setConfig,
+  applyConfig,
   type AppConfig,
   type DeepPartial,
 } from "./config";
@@ -200,7 +200,7 @@ export async function loadConfig(
 
     // 一次性提交：先重置为默认值（不通知），再把本地来源（example/app/env）链式合并成
     // 一个纯对象，用于计算远程配置地址（依赖合并后的 http.baseUrl / url.setting），
-    // 最后连同远程 + 环境变量一起只 setConfig 一次，避免中间态 title 闪烁
+    // 最后连同远程 + 环境变量一起只 applyConfig 一次，避免中间态 title 闪烁
     resetConfigSilent();
     const sourceList: Partial<AppConfig>[] = [
       examplePartial,
@@ -232,7 +232,7 @@ export async function loadConfig(
       (acc, partial) => deepMerge(acc, partial as unknown as Record<string, unknown>),
       defaultAppConfig as unknown as Record<string, unknown>,
     );
-    setConfig(merged as unknown as Partial<AppConfig>);
+    applyConfig(merged as unknown as Partial<AppConfig>);
 
     return getConfig();
   })().finally(() => {

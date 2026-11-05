@@ -26,8 +26,9 @@ import type { ReLoaderSizeValue, ReLoaderVariant } from "./types";
 const PRESET: Record<ReLoaderVariant, { sm: number; md: number; lg: number }> = {
   // 海浪是正方形"水槽"，md 取 56 视觉重量适中
   wave: { sm: 28, md: 56, lg: 84 },
-  // 三个圆点：外框宽 1.5 倍，基准给得小一些才不会比海浪显大
-  dots: { sm: 20, md: 36, lg: 52 },
+  // 三个圆点：直径只取基准的 0.16 倍（见 animations.ts），基准要比海浪大一点
+  // 才不至于缩成三个针尖；md=48 → 单点约 7.7px，与常见 loading dots 一致。
+  dots: { sm: 28, md: 48, lg: 64 },
   // 科技圆圈：正圆，同档位下与海浪相当
   rings: { sm: 24, md: 48, lg: 72 },
   // 像素恐龙：横向场景，基准即宽度（sm 已经需要 100px 才认得出来）
@@ -54,7 +55,7 @@ const PRESET: Record<ReLoaderVariant, { sm: number; md: number; lg: number }> = 
 const AUTO_FULLSCREEN: Record<ReLoaderVariant, string> = {
   // 上限按 lg 档给，全屏遮罩里不会越放越大
   wave: "clamp(28px, 11vmin, 84px)",
-  dots: "clamp(20px, 7vmin, 52px)",
+  dots: "clamp(28px, 8vmin, 64px)",
   rings: "clamp(24px, 9vmin, 72px)",
   // 恐龙是横向场景，宽度上限按 lg 给；矮屏（手机横屏）靠 vmin 自动收
   dino: "clamp(90px, 26vmin, 200px)",
@@ -67,7 +68,7 @@ const AUTO_LOCAL: Record<ReLoaderVariant, string> = {
   // 百分比要在常见容器里真的产生差异（否则大容器也顶到上限、小容器也顶到上限，
   // "自适应"就退化成又一个固定值 —— 实测踩过：58% 在 180px 与 700px 容器里都是 96px）
   wave: "clamp(20px, min(34%, 84px), 84px)",
-  dots: "clamp(16px, min(22%, 52px), 52px)",
+  dots: "clamp(24px, min(26%, 64px), 64px)",
   rings: "clamp(18px, min(28%, 72px), 72px)",
   dino: "clamp(80px, min(64%, 200px), 200px)",
   none: "1px",

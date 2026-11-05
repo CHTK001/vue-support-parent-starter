@@ -162,11 +162,11 @@
   var ANIMATION_CSS =
     "/* ===== 统一加载动画（首屏 loader / ReLoader / 主题配置预览共用） ===== */" +
     ".sla{position:relative;display:block;flex:0 0 auto;box-sizing:border-box;line-height:0;color:var(--sla-c,#406eeb)}" +
-    ".sla-dots{width:calc(var(--sla-s,64px)*1.5);height:calc(var(--sla-s,64px)*0.4);display:flex;align-items:center;justify-content:space-between}" +
-    ".sla-dots i{display:block;width:calc(var(--sla-s,64px)*0.34);height:calc(var(--sla-s,64px)*0.34);border-radius:50%;background:currentColor;animation:sla-dot 1.35s ease-in-out infinite}" +
-    ".sla-dots i:nth-child(2){animation-delay:.14s}" +
-    ".sla-dots i:nth-child(3){animation-delay:.28s}" +
-    "@keyframes sla-dot{0%,100%{transform:translateY(0) scale(.86);opacity:.5}30%{transform:translateY(-38%) scale(1.1);opacity:1}60%{transform:translateY(0) scale(.94);opacity:.78}}" +
+    ".sla-dots{width:calc(var(--sla-s,64px)*1.1);height:calc(var(--sla-s,64px)*0.34);display:flex;align-items:center;justify-content:space-between}" +
+    ".sla-dots i{display:block;width:calc(var(--sla-s,64px)*0.16);height:calc(var(--sla-s,64px)*0.16);border-radius:50%;background:currentColor;transform:scale(0);opacity:0;animation:sla-dot 1.5s cubic-bezier(.4,0,.6,1) infinite both}" +
+    ".sla-dots i:nth-child(2){animation-delay:.16s}" +
+    ".sla-dots i:nth-child(3){animation-delay:.32s}" +
+    "@keyframes sla-dot{0%,6%{transform:scale(0);opacity:0}42%{transform:scale(1);opacity:1}70%{transform:scale(1);opacity:1}100%{transform:scale(0);opacity:0}}" +
     ".sla-rings{width:var(--sla-s,64px);height:var(--sla-s,64px);font-size:calc(var(--sla-s,64px)/4.4)}" +
     ".sla-rings::before{content:'';position:absolute;inset:-.45em;border:.1em solid color-mix(in srgb,var(--sla-c,#406eeb) 12%,transparent);border-radius:50%}" +
     ".sla-rings i{position:absolute;display:block;border-radius:50%;border:.2em solid transparent}" +

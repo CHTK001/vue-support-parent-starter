@@ -10,7 +10,8 @@
  * 配置以 reactive 对象形式持有，调用方可通过：
  *   - getConfig()         → 读取完整配置（响应式）
  *   - useAppConfig()      → 组合式 API（reactive + watch 友好）
- *   - setConfig(partial)  → 合并写入
+ *   - setConfig(partial)  → 合并写入（系统级键受只读保护，被拦截的键会 warn 并拒绝）
+ *   - applyConfig(partial)→ 合并写入（框架启动期 / 授权路径使用，不受只读保护）
  *   - onConfigChange(cb)  → 订阅变更
  * 解决「setConfig 后已有 ref(getConfig().xxx) 监听不到」的隐性 bug。
  */
@@ -203,8 +204,142 @@ export function useAppConfig() {
   return currentConfig;
 }
 
+// ==================== 系统配置（部署侧）只读保护 ====================
+
+/**
+ * 只能随系统初始化落盘的顶层键（全部子键禁止运行时写回）。
+ *
+ * 这些键决定了应用的通信地址、鉴权态、存储命名空间、路由表与模块显隐——
+ * 让它们出现在运行时等于允许任意页面把请求指到攻击者地址、改写登录态存储 key、
+ * 关闭水印/OCR 混淆/反调试。它们只能随 app.yaml、远程配置或代码级默认
+ * 配置在初始化阶段落盘，用户配置抽屉里只有 other / menu / message / login 可调。
+ */
+const DEPLOY_SIDE_BLOCKED_TOP_KEYS: ReadonlySet<string> = new Set([
+  "config", // 配置中心（enable / 远端开关）
+  "token", // 令牌存储 key 与刷新策略
+  "http", // 请求地址 / 加密封装 / 签名密钥
+  "storage", // 存储前缀 / 加密 / 用户隔离
+  "crypto", // 加密封装
+  "url", // 接口地址
+  "route", // 路由模式 / 白名单
+  "permission", // 角色标识
+  "system", // 模块显隐
+  "monitor", // 全局异常监控
+  "apm", // APM 观测
+]);
+
+/**
+ * other 下由部署侧锁死的子树（均随 app.yaml 决策）：
+ * - capabilities：能力开关一旦被作用于运行时，未授权能力被打开，对应入口显示出来；
+ * - loaderConfig：加载动画接管越权，覆盖部署侧锁定（首屏动画与主题抽屉脱靶）。
+ * 其余 other.*（toolbar / timer / weather / bigscreen / aiChat …）是用户可调切片，
+ * 可写。
+ */
+const DEPLOY_SIDE_BLOCKED_OTHER_KEYS: ReadonlySet<string> = new Set([
+  "capabilities",
+  "loaderConfig",
+]);
+
+/**
+ * security 子树放行白名单（与 safe-path.ts 的远程注入白名单一致）：
+ * 反爬脚本下发（security.baiduJs 子树）被设计为「管理员在后台配值、前端按下发值
+ * 注入外部脚本」的产品功能，会被 /v2/setting/default 正常下发；若连它一起拒，
+ * 后台配置的安全策略在前端永远不生效。其余 security.*（dynamicFont /
+ * ocrObfuscation / watermark）必须随 app.yaml，禁止运行时写回。
+ */
+const DEPLOY_SIDE_SECURITY_ALLOW_PREFIX = "security.baiduJs";
+
+/**
+ * `keyPath` 是否属于只能在系统初始化时写入的系统配置（部署侧键）。
+ *
+ * <p>按前缀匹配（含整树），例如：</p>
+ * <ul>
+ *   <li>"http" / "token" / "storage" / "crypto" / "url" / "route" / "permission" /
+ *       "system" / "monitor" / "apm" / "config"  → 整树禁止</li>
+ *   <li>"security"  → 整树禁止，仅 "security.baiduJs.*" 子树放行</li>
+ *   <li>"other"  → 仅 "other.capabilities" 与 "other.loaderConfig" 禁止</li>
+ * </ul>
+ *
+ * @param keyPath 点号路径；顶层 key 调用时 path 为空，此时 keyPath 就是该 key
+ */
+function isDeploySideKey(keyPath: string): boolean {
+  if (DEPLOY_SIDE_BLOCKED_TOP_KEYS.has(keyPath)) return true;
+  // security 整树受保护，仅百度 js 反爬脚本下发子树放行
+  if (keyPath.startsWith("security.")) return !keyPath.startsWith(DEPLOY_SIDE_SECURITY_ALLOW_PREFIX);
+  // other 下仅两子树受保护
+  if (keyPath.startsWith("other.")) return DEPLOY_SIDE_BLOCKED_OTHER_KEYS.has(keyPath.slice(6));
+  return false;
+}
+
+/**
+ * 拦截对部署侧键的写回，返回「可写回的部分」。
+ *
+ * <p>被拒绝的整棵子树 / 整键直接从 patch 中剔除，写入相邻（不截断本次 setConfig
+ * 中合法的用户配置）；所有被拒绝的 keyPath 收集到 warned 中，交由 `setConfig`
+ * 统一输出警告，方便排查。</p>
+ */
+function pruneDeploySideKeys(
+  partial: unknown,
+  keyPath: string,
+  warned: string[],
+): unknown {
+  if (isPlainObject(partial)) {
+    // 整个子树禁止写回（security 整树、other.capabilities、other.loaderConfig …）
+    if (isDeploySideKey(keyPath)) {
+      warned.push(keyPath);
+      return undefined;
+    }
+    const rewritten: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(partial as Record<string, unknown>)) {
+      const sub = pruneDeploySideKeys(
+        value,
+        keyPath ? `${keyPath}.${key}` : key,
+        warned,
+      );
+      if (sub !== undefined) rewritten[key] = sub;
+    }
+    return rewritten;
+  }
+  // 基础类型 / null / 数组：按原值写回
+  return partial;
+}
+
 /** 合并写入统一配置（深合并） */
 export function setConfig(partial: Partial<AppConfig>): AppConfig {
+  const warned: string[] = [];
+  // 系统配置只读保护：拦截 + 警告被禁止的键，允许的部分照常合并
+  const writable = pruneDeploySideKeys(
+    partial as unknown as Record<string, unknown>,
+    "",
+    warned,
+  );
+  if (warned.length > 0) {
+    console.warn(
+      `[config] 拒绝通过 setConfig 修改系统配置（系统值只能在初始化时生效）：\n` +
+        `${warned.map((keyPath) => `  - ${keyPath}`).join("\n")}\n` +
+        "  如需修改请编辑 app.yaml 或通过受信任的初始化路径（loadConfig / restoreUserConfig / applyConfig）写入。",
+    );
+  }
+  return applyConfig(writable as Partial<AppConfig>);
+}
+
+/**
+ * 内部配置写入通道（不受 setConfig 只读保护约束）。
+ *
+ * 角色：让框架的授权路径承诺「在系统初始化阶段落盘的部署侧值」不被只读保护拦截，
+ * 与 `setConfig` 的保护互补。任何写死在 app.yaml / 远程设置 / 用户快照里的值，
+ * 都应通过此通道达成；公开给用户的写入方法仍是受保护的 `setConfig`。
+ *
+ * 授权调用方：
+ *   - loadConfig（app.yaml / 远程 / 环境变量合并后的最终配置）
+ *   - mergeDefaultSetting（远程设置推齐，经 safe-path 白名单）
+ *   - restoreUserConfig（用户可调切片恢复）
+ *   - resetConfig / resetConfigSilent
+ *   - applyTitle（turbo/app 内部标题覆盖）
+ *
+ * @internal
+ */
+export function applyConfig(partial: Partial<AppConfig>): AppConfig {
   const merged = deepMerge(
     currentConfig as unknown as Record<string, unknown>,
     partial as unknown as Record<string, unknown>,
@@ -228,17 +363,15 @@ export function onConfigChange(cb: (config: AppConfig) => void): () => void {
   return () => subscribers.delete(cb);
 }
 
-/** 重置为默认配置 */
+/** 重置为默认配置（内部写回通道，不经过 `setConfig` 只读保护） */
 export function resetConfig(): AppConfig {
-  applyMerge(currentConfig, defaultAppConfig);
-  subscribers.forEach((cb) => cb(currentConfig));
-  return currentConfig;
+  return applyConfig(defaultAppConfig);
 }
 
 /**
  * 重置为默认配置但不通知订阅者（供 loadConfig 批量提交内部使用）。
  * 与 resetConfig 的区别仅在「是否触发 onConfigChange」：
- * loadConfig 会在收集全部来源后统一 setConfig 一次，避免中间态
+ * loadConfig 会在收集全部来源后统一 applyConfig 一次，避免中间态
  * 触发订阅者多次更新 document.title 等 UI。
  */
 export function resetConfigSilent(): AppConfig {
@@ -503,7 +636,9 @@ export async function restoreUserConfig(): Promise<void> {
       if (menu) filtered.menu = menu as AppConfig["menu"];
       if (login) filtered.login = login as AppConfig["login"];
       if (Object.keys(filtered).length > 0) {
-        setConfig(filtered);
+        // restoreUserConfig：用户可调切片的恢复写回（internal channel），
+        // 不经过 setConfig 只读保护（被保护的 loaderConfig 已在下方删除）
+        applyConfig(filtered);
       }
     }
   } catch {

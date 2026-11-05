@@ -945,7 +945,18 @@
         >
           <DbUserManagePanel :datasource-id="currentDatasourceId" data-testid="dbm-users-panel" />
         </div>
-        <div v-else-if="tabs.length === 0" class="dbm-empty">
+        <!-- 首屏加载占位：数据源清单与第一次拉树都还没回来时，页签必然为 0。
+             没有这一档，用户第一眼看到的就是「加载完成但没有任何数据」的空态。
+             占位必须排在空态前面，否则空态先被渲染出来，加载动画根本没机会出现。 -->
+        <div
+          v-else-if="bootLoading"
+          class="dbm-empty dbm-boot-loading"
+          data-testid="dbm-boot-loading"
+        >
+          <span class="dbm-spinner dbm-spinner--lg" />
+          <p class="dbm-empty-text">正在加载数据源与表结构…</p>
+        </div>
+        <div v-else-if="tabs.length === 0" class="dbm-empty" data-testid="dbm-empty">
           <ReIcon name="Grid" size="64" class="dbm-empty-icon" />
           <p class="dbm-empty-text">从左侧选择表查看数据，或点击"新建查询"执行 SQL</p>
         </div>
@@ -6581,8 +6592,20 @@ function resolveDatasourceId(): number {
  */
 let loadingDatasources = false;
 
+/**
+ * 首屏是否还在加载（数据源清单 + 第一次拉树）。
+ *
+ * <p>初值就是 {@code true}：组件挂载到 {@code onMounted} 的异步请求返回之间，
+ * 页签必然为 0，而空态的判断只看 {@code tabs.length === 0}，会把这段网络等待
+ * 渲染成「已经加载完了，只是没数据」。这里单独提一个状态，让内容区先显示
+ * 「正在加载数据源与表结构…」，请求收尾后再切空态。</p>
+ */
+const bootLoading = ref(true);
+
 async function loadDatasources() {
   loadingDatasources = true;
+  // 切数据源（内嵌宿主）也会走这里：重新进入加载态，避免旧空态闪一下
+  bootLoading.value = true;
   try {
     const list = await fetchDataSources();
     // 按「JDBC 家族」过滤，不是只看 type === "jdbc"：ClickHouse / DuckDB 的
@@ -6621,6 +6644,7 @@ async function loadDatasources() {
     await loadTree();
   } finally {
     loadingDatasources = false;
+    bootLoading.value = false;
   }
 }
 
@@ -10996,6 +11020,14 @@ onBeforeUnmount(() => {
 }
 .dbm-empty-icon { color: var(--el-text-color-placeholder); }
 .dbm-empty-text { margin: 0; }
+
+/* 首屏加载占位：放大转圈，让「正在加载」和「没有数据」在视觉上明确区分 */
+.dbm-empty.dbm-boot-loading { gap: 16px; }
+.dbm-spinner--lg {
+  width: 26px;
+  height: 26px;
+  border-width: 2px;
+}
 
 /* 用户管理面板（users 页签） */
 .dbm-users-view {

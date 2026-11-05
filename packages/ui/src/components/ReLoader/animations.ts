@@ -381,12 +381,16 @@ export const LOADER_ANIMATION_CSS = `
 /* ===== 统一加载动画（首屏 loader / ReLoader / 主题配置预览共用） ===== */
 .sla{position:relative;display:block;flex:0 0 auto;box-sizing:border-box;line-height:0;color:var(--sla-c,#406eeb)}
 
-/* ── 三个圆点 ── */
-.sla-dots{width:calc(var(--sla-s,64px)*1.5);height:calc(var(--sla-s,64px)*0.4);display:flex;align-items:center;justify-content:space-between}
-.sla-dots i{display:block;width:calc(var(--sla-s,64px)*0.34);height:calc(var(--sla-s,64px)*0.34);border-radius:50%;background:currentColor;animation:sla-dot 1.35s ease-in-out infinite}
-.sla-dots i:nth-child(2){animation-delay:.14s}
-.sla-dots i:nth-child(3){animation-delay:.28s}
-@keyframes sla-dot{0%,100%{transform:translateY(0) scale(.86);opacity:.5}30%{transform:translateY(-38%) scale(1.1);opacity:1}60%{transform:translateY(0) scale(.94);opacity:.78}}
+/* ── 三个圆点 ──
+   点的直径只取 --sla-s 的 0.16 倍（旧值 0.34）：首屏默认 96px 时单个点约 15px，
+   旧值会到 33px —— 三个连起来像三个大圆球，这是「默认太大了」的直接原因。
+   动效是每个点各自「从无到有」：scale(0)/opacity:0 起，依次错峰 0.16s，
+   于是看到的是「第一个冒出来 → 第二个 → 第三个 → 收回去」的呼吸，而不是整排一起跳。 */
+.sla-dots{width:calc(var(--sla-s,64px)*1.1);height:calc(var(--sla-s,64px)*0.34);display:flex;align-items:center;justify-content:space-between}
+.sla-dots i{display:block;width:calc(var(--sla-s,64px)*0.16);height:calc(var(--sla-s,64px)*0.16);border-radius:50%;background:currentColor;transform:scale(0);opacity:0;animation:sla-dot 1.5s cubic-bezier(.4,0,.6,1) infinite both}
+.sla-dots i:nth-child(2){animation-delay:.16s}
+.sla-dots i:nth-child(3){animation-delay:.32s}
+@keyframes sla-dot{0%,6%{transform:scale(0);opacity:0}42%{transform:scale(1);opacity:1}70%{transform:scale(1);opacity:1}100%{transform:scale(0);opacity:0}}
 
 /* ── 科技圆圈 ── */
 .sla-rings{width:var(--sla-s,64px);height:var(--sla-s,64px);font-size:calc(var(--sla-s,64px)/4.4)}
