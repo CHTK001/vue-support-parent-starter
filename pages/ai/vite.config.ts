@@ -22,6 +22,7 @@
  */
 import { createVite, WORKSPACE_ROOT } from "../../turbo/vite/createVite";
 import path from "node:path";
+import tailwindcss from "@tailwindcss/vite";
 
 /** 开发包入口：base 走同源，@/ 指向 pages/ai/src 业务层（createVite 共享 @repo/* 别名录不包含此层）。 */
 const apiTarget = process.env.AI_API_TARGET ?? "http://localhost:8787";
@@ -33,6 +34,13 @@ export default createVite({
   entry: "/src/main.js",
   // @/ 业务别名（多个 Pages 包共享 @ 时，只在此处为 pages/ai 补入源目录）
   alias: { "@": path.join(WORKSPACE_ROOT, "pages", "ai", "src") },
+  /**
+   * Tailwind v4：src/tailwind.css 是 `@import "tailwindcss"`，必须由该插件编译。
+   * 缺了它 flex-1 / min-h-0 / 尺寸类全部丢失 —— 表现是外壳侧栏图标被撑到原始
+   * SVG 尺寸、列表页像空白（2026-11-05 实测：补插件前后对比截图差异明显）。
+   * createVite 基线只带 UnoCSS（koi 主题口径），不含 tailwind，故在此显式挂入。
+   */
+  plugins: [tailwindcss()],
   server: {
     host: "0.0.0.0",
     port: 15689,

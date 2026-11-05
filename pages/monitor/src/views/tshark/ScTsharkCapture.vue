@@ -78,6 +78,7 @@
 
     <!-- 会话详情：报文 / 统计 / 会话流 -->
     <ScTsharkSessionDetailDialog
+      ref="detailDialog"
       v-model="detailVisible"
       :session="activeSession"
       :iface-label="ifaceLabel(activeSession?.captureInterface)"
@@ -201,6 +202,8 @@ const {
 const createVisible = ref(false)
 const detailVisible = ref(false)
 const detailTab = ref<TsharkTabKey>('packet')
+/** 详情弹层句柄：父级要用它强制切页签（见下方 onPick*） */
+const detailDialog = ref<InstanceType<typeof ScTsharkSessionDetailDialog> | null>(null)
 
 /** 安装进度框；服务端自动补齐时由 watch 打开 */
 const installVisible = ref(false)
@@ -272,16 +275,28 @@ watch(detailVisible, visible => {
   clearActiveSession()
 })
 
+/**
+ * 回到报文页签。
+ *
+ * <p>`detailTab` 只负责「打开弹层时停在哪个页签」，用户手动切过页签后它的值不会跟着变；
+ * 点协议 / 会话流 / 诊断条目时要回到报文页，必须显式让弹层切页，否则值没变化时
+ * 弹层的 watch 不触发，页面会停在原页签。</p>
+ */
+function jumpToPacket() {
+  detailTab.value = 'packet'
+  detailDialog.value?.showTab('packet')
+}
+
 /** 统计页点协议：切回报文页并按协议过滤 */
 function onPickProtocol(protocol: string) {
   filterByProtocol(protocol)
-  detailTab.value = 'packet'
+  jumpToPacket()
 }
 
 /** 会话流页点某条流：切回报文页并按该流过滤 */
 function onPickFlow(flow: TsharkFlow) {
   filterByFlow(flow)
-  detailTab.value = 'packet'
+  jumpToPacket()
 }
 
 /**
@@ -292,7 +307,7 @@ function onPickFlow(flow: TsharkFlow) {
  */
 function onPickAnomaly(filterText: string) {
   applyPacketFilter(filterText)
-  detailTab.value = 'packet'
+  jumpToPacket()
 }
 
 function openLifecycle(row: TsharkPacket) {

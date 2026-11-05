@@ -1461,9 +1461,15 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-/* 收窄后右下摘要卡与左下操作卡会打架，隐藏 */
+/* 收窄成参考栏后操作卡回到正常流（底部横排，高约 97px）；摘要卡里的分桶数据
+   是检索结论的一部分，不能一起藏掉。改为静止排在操作卡下方，底部分离，
+   让两卡错开不再重叠。 */
 .is-body.is-focused .is-sumcard {
-  display: none;
+  position: static;
+  width: 100%;
+  right: auto;
+  bottom: auto;
+  margin: 10px;
 }
 
 /* ---------- 蒙版 / 结果提示 ---------- */

@@ -123,6 +123,10 @@ const AI_API_TARGET = process.env.AI_API_TARGET ?? 'https://8787-agqwzohzg2gmh5l
 const EXACT_ASSETS: Record<string, string> = {
   '/app.example.yaml': path.join(WORKSPACE_ROOT, 'app.example.yaml'),
   [`/apps/${APP_NAME}/app.yaml`]: path.join(__dirname, 'app.yaml'),
+  // 首屏 loader（共享 index.html 模板里两个 <script> 指向它们）：本应用 publicDir
+  // 是自己的 public，不挂共享 public，缺了就是两条 404 且首屏失去防白屏遮罩。
+  '/loader.js': path.join(SHARED_PUBLIC_DIR, 'loader.js'),
+  '/loader-config.js': path.join(SHARED_PUBLIC_DIR, 'loader-config.js'),
 }
 
 /** 前缀映射：共享 public 目录下的资源（本应用 publicDir 是自己目录，故单独挂载） */
@@ -223,6 +227,69 @@ function frameworkSharedAssets(): PluginOption {
   }
 }
 
+/**
+ * 应用 index.html：本应用走**独立 vite 配置**（未用 createVite），而
+ * `apps/<app>/index.html` 在 .gitignore 里属于生成物 —— 于是干净检出后：
+ *   - `pnpm dev`：root 下没有 index.html，`/` 与任何路由都 404/白屏；
+ *   - `pnpm build`：rollup 直接报 `Could not resolve entry module "index.html"`。
+ * 2026-11-05 实测：手工补一份 index.html 后 `vite build` 由失败转成功，故把
+ * 「补文件」这件事固化成插件，与 turbo/vite/createVite.ts 的
+ * devIndexTemplate / buildIndexTemplate 同口径（读同一份 turbo/template 模板，
+ * 只替换 %APP_TITLE% 与入口脚本）；构建结束删掉临时文件，不落盘污染工作树。
+ */
+function appIndexHtml(): PluginOption {
+  const templatePath = path.join(WORKSPACE_ROOT, 'turbo/template/index.html')
+  const tmpPath = path.join(__dirname, 'index.html')
+  const title = 'AI 控制台'
+  /** 共享模板默认入口是 /src/main.ts，本应用真实入口为 /src/main.js */
+  const loadHtml = (): string => {
+    if (!fs.existsSync(templatePath)) {
+      throw new Error(`[app-index-html] 缺少共享模板：${templatePath}`)
+    }
+    return fs
+      .readFileSync(templatePath, 'utf-8')
+      .replace(/%APP_TITLE%/g, title)
+      .replace(/\/src\/main\.ts/g, '/src/main.js')
+  }
+  return {
+    name: 'app-index-html',
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        const url = (req.url ?? '/').split('?')[0]
+        // vite 内部模块与静态资源交给默认中间件
+        if (url.startsWith('/@')) return next()
+        if (url !== '/' && url !== '/index.html' && path.extname(url)) return next()
+        // 后端代理前缀先放行，否则 SPA 兜底会把 /api、/v2 的请求吞成 html
+        const proxyPrefixes = Object.keys(server.config.server?.proxy ?? {})
+        if (proxyPrefixes.some((p) => url === p || url.startsWith(p + '/'))) return next()
+        // 只有浏览器导航（Accept 含 text/html）才回 SPA 兜底，XHR/fetch 照旧透传
+        const accept = String(req.headers.accept ?? '')
+        const isRoot = url === '/' || url === '/index.html'
+        if (!isRoot && !/text\/html/.test(accept)) return next()
+        try {
+          const html = await server.transformIndexHtml(url, loadHtml())
+          res.statusCode = 200
+          res.setHeader('Content-Type', 'text/html; charset=utf-8')
+          res.end(html)
+        } catch (e) {
+          next(e)
+        }
+      })
+    },
+    // 必须晚于 clean()：clean 先跑，我们再落临时入口，避免被一起清掉
+    buildStart() {
+      fs.writeFileSync(tmpPath, loadHtml(), 'utf-8')
+    },
+    closeBundle() {
+      try {
+        fs.rmSync(tmpPath, { force: true })
+      } catch {
+        /* 清理失败不影响产物 */
+      }
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   // Electron 环境使用相对路径，Web 环境使用根路径
@@ -281,6 +348,8 @@ export default defineConfig({
       filename: 'stats.html'
     }) as PluginOption,
     clean({ cleanOnceBeforeBuildPatterns: ['**/*', '!some-important-file.txt'] }) as PluginOption,
+    // 入口 index.html（dev 由中间件直出、build 落临时文件后删除）：必须排在上面的 clean 之后
+    appIndexHtml(),
     AutoImport({
       resolvers: [ElementPlusResolver()],
       dts: path.resolve(WORKSPACE_ROOT, 'pages/ai/src/types/auto-imports.d.ts'),

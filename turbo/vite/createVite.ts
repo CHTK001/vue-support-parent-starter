@@ -770,7 +770,7 @@ type ViteIgnored = NonNullable<ViteWatchOpts["ignored"]>;
  * （exit 1）。已实测掉过线：public/vendor/**、public/wasm/**（libredwg-web.wasm、
  * typst/fonts/*.ttf）、pdf.js cmaps/*.bcmap。
  */
-const SHARED_WATCH_IGNORED: RegExp[] = [/[/\\]vendor[/\\]/, /[/\\]wasm[/\\]/, /\.bcmap$/];
+const SHARED_WATCH_IGNORED: RegExp[] = [/[/\\]vendor[/\\]/, /[/\\]wasm[/\\]/, /\.bcmap$/, /[/\\]System Volume Information[/\\]/];
 
 /** 把 ignored 的任一种写法（字符串 / 正则 / 谓词，或其数组）归一成谓词函数 */
 function toIgnorePredicate(ignored: ViteIgnored): (p: string) => boolean {
@@ -954,6 +954,59 @@ const mergeBuild = (userBuild: UserConfig["build"]): UserConfig["build"] => {
   };
 };
 
+/**
+ * dev server fix: 304 response add Content-Type
+ *
+ * FF refuses 304 ESM modules with no Content-Type --- Loading failed for the module
+ * warnings filled the console, login page never renders. Root cause: Vite internal 304
+ * paths only set statusCode = 304 then end() without Content-Type (200 responses are fine
+ * because send$1/setHeaders set this header).
+ * Fix: an enforce pre dev middleware registered BEFORE Vite internal middlewares
+ * (cachedTransformMiddleware, transformMiddleware, serveStaticMiddleware) intercepts
+ * res.end + res.writeHead, and for 304 responses without Content-Type, reverse-engineer
+ * the right Content-Type from URL suffix (js/.mjs/.ts -> text/javascript, .css -> text/css,
+ * .html -> text/html) then write it back.
+ * dev only, production build unaffected.
+ */
+function fix304ContentType(): Plugin {
+  const ctByPath = (url: string): string => {
+    const p = String(url ?? "").split("?")[0].split("#")[0].toLowerCase();
+    if (p.endsWith(".js") || p.endsWith(".mjs") || p.endsWith(".ts") || p.endsWith(".jsx") || p.endsWith(".tsx")) return "text/javascript";
+    if (p.endsWith(".css")) return "text/css";
+    if (p.endsWith(".html")) return "text/html";
+    if (p.endsWith(".json")) return "application/json";
+    return "";
+  };
+  return {
+    name: "fix-304-content-type",
+    enforce: "pre",
+    apply: "serve",
+    configureServer(server: any) {
+      server.middlewares.use((req: any, res: any, next: any) => {
+        const origEnd = res.end.bind(res);
+        const origWriteHead = res.writeHead.bind(res);
+        const inject = (statusCode: number): void => {
+          if (statusCode === 304 && !res.getHeader("Content-Type")) {
+            const ct = ctByPath(req.url ?? "");
+            if (ct) {
+              console.log("[fix-304-content-type] " + req.method + " " + req.url + " 304 -> " + ct);
+              res.setHeader("Content-Type", ct);
+            }
+          }
+        };
+        res.end = (...args): any => {
+          inject(res.statusCode);
+          return origEnd(...args);
+        };
+        res.writeHead = (statusCode: number, ...args): any => {
+          inject(statusCode);
+          return origWriteHead(statusCode, ...args);
+        };
+        next();
+      });
+    },
+  };
+}
 export function createVite(options: CreateViteOptions = {}): UserConfig {
   const root = options.root ?? process.cwd();
   const alias: Record<string, string> = {
@@ -962,6 +1015,7 @@ export function createVite(options: CreateViteOptions = {}): UserConfig {
   };
 
   const plugins: PluginOption[] = [];
+  plugins.push(fix304ContentType());
   plugins.push(UnoCSS(unoConfig(options.unoTheme, options.unoRules)));
   plugins.push(unoEntryPlugin(root));
   // 按框架加载对应的框架插件（其余配置完全共享）

@@ -11,8 +11,16 @@
  */
 import { resolveLoaderDeployPolicy } from "./config";
 
-/** 动画键（与 loader.js 的 GLOBAL_LOADER_STORAGE_KEY 一致，含 appCode 后缀） */
-export const BOOT_LOADER_STYLE_KEY = "sys-loader-style";
+/**
+ * 部署侧接管的动画键（首屏优先读它，读不到才回落到用户自己的选择）。
+ *
+ * <p><b>不能复用</b> {@code sys-loader-style}：那个键是用户在主题配置里的选择，
+ * 复用会让「打开锁定」覆盖掉用户的选择，「关掉锁定」后也回不去。</p>
+ */
+export const BOOT_LOADER_ANIMATION_KEY = "sys-loader-animation";
+
+/** 用户自己选的动画键（只读，用于说明两者关系；不要往这里写部署值） */
+export const BOOT_LOADER_USER_STYLE_KEY = "sys-loader-style";
 
 /** 首屏动画基准边长（px） */
 export const BOOT_LOADER_SIZE_KEY = "sys-loader-size";
@@ -20,7 +28,7 @@ export const BOOT_LOADER_SIZE_KEY = "sys-loader-size";
 /** 首屏动画主色 */
 export const BOOT_LOADER_COLOR_KEY = "sys-loader-color";
 
-/** 首屏尺寸内置默认值（与 loader.js 的 BOOT_ANIMATION_STYLE_TEXT 一致） */
+/** 首屏尺寸内置默认值（与 loader.js 的 LOADER_SIZE_DEFAULT 一致） */
 export const BOOT_LOADER_SIZE_DEFAULT = 96;
 
 /** 首屏主色内置默认值（与动画 CSS 的 --sla-c 兜底一致） */
@@ -66,8 +74,9 @@ function resolveAppCode(): string {
  * <p>必须在 core 装配（app.yaml 已合并进 getConfig）之后调用一次：</p>
  * <ul>
  *   <li><b>锁定</b>：写入动画 / 尺寸 / 主色 —— 下次刷新的首屏与本次应用内一致；</li>
- *   <li><b>未锁定</b>：清掉尺寸与主色，首屏回到内置默认；动画键<b>不清</b>
- *       （那是用户在主题配置里的选择，清了会让他的选择在下次刷新时丢失）。</li>
+ *   <li><b>未锁定</b>：清掉部署侧那三个键，首屏回到内置默认或用户自己的选择。
+ *       用户选的 {@code sys-loader-style} 从头到尾<b>不被触碰</b>，所以关掉锁定后
+ *       他之前挑的动画会原样回来。</li>
  * </ul>
  *
  * <p>本次启动不做「就地重绘首屏」：首屏脚本已经用旧值渲染完，中途换一款动画
@@ -86,14 +95,14 @@ export function applyLoaderDeployPolicy(): void {
       resolveAppCode(),
     );
   } else {
-    clearBootLoaderPrefs();
+    clearBootLoaderPrefs(resolveAppCode());
   }
 }
 
 /**
  * 写入首屏偏好（下次刷新生效）。
  *
- * <p>动画同时写带 appCode 与不带 appCode 两个键：首屏脚本在应用起来之前就要读，
+ * <p>三个键都同时写带 appCode 与不带 appCode 两份：首屏脚本在应用起来之前就要读，
  * 那时 appCode 可能来自 meta —— 写两份才保证刷新后立刻生效（与
  * {@code writeLoaderAnimation} 的约定一致）。</p>
  *
@@ -104,26 +113,56 @@ export function writeBootLoaderPrefs(prefs: BootLoaderPrefs, appCode = ""): void
   if (!hasStorage()) return;
   try {
     const code = appCode.trim();
-    localStorage.setItem(BOOT_LOADER_STYLE_KEY, prefs.animation);
-    if (code) localStorage.setItem(`${BOOT_LOADER_STYLE_KEY}:${code}`, prefs.animation);
+    // 只写部署侧自己的键，绝不碰 sys-loader-style（那是用户的选择）
+    localStorage.setItem(BOOT_LOADER_ANIMATION_KEY, prefs.animation);
     localStorage.setItem(BOOT_LOADER_SIZE_KEY, String(prefs.size));
     localStorage.setItem(BOOT_LOADER_COLOR_KEY, prefs.color);
+    if (code) {
+      localStorage.setItem(`${BOOT_LOADER_ANIMATION_KEY}:${code}`, prefs.animation);
+      localStorage.setItem(`${BOOT_LOADER_SIZE_KEY}:${code}`, String(prefs.size));
+      localStorage.setItem(`${BOOT_LOADER_COLOR_KEY}:${code}`, prefs.color);
+    }
   } catch {
     // 隐私模式 / 存储被禁用：不抛，应用内仍然按部署配置渲染
   }
 }
 
 /**
- * 清除首屏偏好（回到内置默认：海浪 / 96px / 主色默认）。
+ * 清除首屏偏好（取消接管后回到内置默认：动画回到用户自己的选择 / 96px / 主色默认）。
  *
- * <p>只在「部署侧不接管」时调用，并且<b>不</b>清动画键 —— 那个键同时是用户在主题配置里
- * 的选择，清掉会让用户挑好的动画在下次刷新时丢失。</p>
+ * <p><b>不</b>碰 {@code sys-loader-style} —— 那是用户在主题配置里的选择，
+ * 清掉会让用户挑好的动画在下次刷新时丢失。这里只清部署侧自己写的那三个键。</p>
+ *
+ * @param appCode 应用编码（可空）。可空时会把所有带后缀的残留键一并清掉 ——
+ *                首屏读取是「后缀键优先」，留着它们会让「已取消接管」在下次刷新时
+ *                又变回锁定值。
  */
-export function clearBootLoaderPrefs(): void {
+export function clearBootLoaderPrefs(appCode = ""): void {
   if (!hasStorage()) return;
   try {
+    const code = appCode.trim();
+    localStorage.removeItem(BOOT_LOADER_ANIMATION_KEY);
     localStorage.removeItem(BOOT_LOADER_SIZE_KEY);
     localStorage.removeItem(BOOT_LOADER_COLOR_KEY);
+    if (code) {
+      localStorage.removeItem(`${BOOT_LOADER_ANIMATION_KEY}:${code}`);
+      localStorage.removeItem(`${BOOT_LOADER_SIZE_KEY}:${code}`);
+      localStorage.removeItem(`${BOOT_LOADER_COLOR_KEY}:${code}`);
+      return;
+    }
+    // 拿不到 appCode 时也必须清干净：首屏读取是「后缀键优先」，
+    // 残留的后缀键会让「已取消接管」在下次刷新时又变回锁定值。
+    const prefixes = [
+      `${BOOT_LOADER_ANIMATION_KEY}:`,
+      `${BOOT_LOADER_SIZE_KEY}:`,
+      `${BOOT_LOADER_COLOR_KEY}:`,
+    ];
+    for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+      const key = localStorage.key(i);
+      if (key && prefixes.some((prefix) => key.startsWith(prefix))) {
+        localStorage.removeItem(key);
+      }
+    }
   } catch {
     /* 同 writeBootLoaderPrefs */
   }

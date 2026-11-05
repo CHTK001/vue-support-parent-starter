@@ -564,6 +564,7 @@ export type {
   LoginFeatureTag,
   RouteConfig,
   OtherConfig,
+  LoaderDeployConfig,
   ToolbarConfig,
   TimerConfig,
   MessageConfig,

@@ -2520,13 +2520,26 @@ const removeTunnel = async () => {
   }
 };
 
-// 只有选中数据源变化才读隧道：右栏整体在 <template v-if="current"> 内，
-// 没选中时页签不渲染，此时不该发请求
+/**
+ * 隧道配置只属于「SSH 隧道」页签，跟着页签按需加载。
+ *
+ * <p>串在「选中数据源变化」上即时预取是不对的：一进数据源页、每选一条数据源都会
+ * 发一次 {@code GET /ms/datasource/tunnel/{id}}，哪怕用户从头到尾没打开过隧道页签。
+ * 后端没有隧道能力时这条请求直接 500，控制台飘红，而用户当前看的「概览」页签
+ * 与它毫无关系 —— 现象就是「点开主页，隧道页的接口也在加载」。</p>
+ *
+ * <p>改为同时观察「选中项 + 当前页签」：只有真的停在隧道页签时才读；停在别的页签
+ * 不预取；切到隧道页签或在该页签下换数据源时读一份新的。{@code loadTunnel} 自己不做
+ * 缓存，所以页签每次进入都拿到最新配置。</p>
+ */
 watch(
-  () => current.value?.id ?? null,
-  (id) => {
+  [() => current.value?.id ?? null, () => activeTab.value] as const,
+  ([id, tab]) => {
     if (id == null) {
       tunnel.value = emptyTunnel();
+      return;
+    }
+    if (tab !== "tunnel") {
       return;
     }
     void loadTunnel(id);

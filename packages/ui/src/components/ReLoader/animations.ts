@@ -257,35 +257,21 @@ export function setLoaderAnimation(choice: LoaderAnimationChoice): void {
  * <p>首屏的 DOM 由 {@code public/loader.js} 注入，应用内改不了一份已渲染好的结构 ——
  * 这里只处理「首屏还挂着」的瞬间：有容器就按新键重绘，没有就什么都不做。</p>
  *
- * <p>锁定态额外把尺寸与主色写到容器上：本次启动就能看到部署配置，
- * 不必等下一次刷新。</p>
+ * <p>只重绘动画，<b>不动尺寸与主色</b>：锁定态下本函数根本走不到
+ * （{@link setLoaderAnimation} 已提前返回），未锁定态的尺寸/主色由
+ * {@code loader.js} 的默认值决定，改它反而会让首屏和应用内不一致。</p>
  */
 function syncBootLoader(choice: LoaderAnimationChoice): void {
   if (typeof document === "undefined") return;
   const container = document.getElementById("app-loader");
   if (!container) return;
-
-  // 尺寸/主色以行内变量下发：loader.js 用 `#app-loader .sla{--sla-s:96px}` 声明基准，
-  // 行内样式在容器上，对后代 .sla 是继承来源，但**打不过**那条后代选择器，
-  // 所以这里直接写在 .sla 上（元素自身优先于任何选择器继承）。
-  const policy = resolveLoaderDeployPolicy();
-  const applySkin = (root: HTMLElement | null) => {
-    if (!root) return;
-    const sla = root.querySelector<HTMLElement>(".sla");
-    if (!sla) return;
-    sla.style.setProperty("--sla-s", `${policy.size}px`);
-    sla.style.setProperty("--sla-c", policy.color);
-  };
-
   if (choice === LOADER_ANIMATION_NONE) {
     container.innerHTML = "";
     return;
   }
   container.innerHTML = `<div class="sys-loader-shell" data-loader-key="${choice}">${loaderAnimationMarkup(choice)}</div>`;
   ensureLoaderAnimationStyle();
-  if (policy.locked) applySkin(container);
 }
-
 
 /* ------------------------------------------------------------------ *
  * 水面路径：viewBox 200×26，两个完整周期 —— 平移 50% 正好无缝循环
@@ -412,9 +398,12 @@ export const LOADER_ANIMATION_CSS = `
 @keyframes sla-spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 @keyframes sla-core{0%,100%{transform:scale(.72);opacity:.6}50%{transform:scale(1.12);opacity:1}}
 
-/* ── 海浪（潮汐）：水位缓慢上涨，容器是有边界的圆角水槽 ── */
+/* ── 海浪（潮汐）：水位持续上涨，容器是有边界的圆角水槽 ──
+   节奏按「首屏通常只挂 2~3 秒」定：涨水单程 4.2s、前层漂移 5.5s、高光 6s，
+   后层视差 8s（刻意留慢一档，两层同速就没有纵深）。
+   旧值 8s / 13s / 19s / 15s 下，用户在这两三秒里几乎看不出水位在动，像一张静止图。 */
 .sla-wave{width:var(--sla-s,64px);height:var(--sla-s,64px);font-size:calc(var(--sla-s,64px)/6.4);border-radius:1.7em;overflow:hidden;background:color-mix(in srgb,var(--sla-c,#406eeb) 7%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--sla-c,#406eeb) 15%,transparent)}
-.sla-wave__sea{position:absolute;left:0;right:0;bottom:0;height:30%;animation:sla-rise 8s cubic-bezier(.45,0,.55,1) infinite alternate}
+.sla-wave__sea{position:absolute;left:0;right:0;bottom:0;height:30%;animation:sla-rise 4.2s cubic-bezier(.45,0,.55,1) infinite alternate}
 .sla-wave.is-determinate .sla-wave__sea{animation:none;height:calc(12% + var(--sla-level,0)*0.54%)}
 .sla-wave__layer{position:absolute;left:0;right:0;top:0;bottom:0}
 /* 水体从 layer 顶（= 波纹条带底）向下填，并向上重叠 1px。
@@ -422,15 +411,15 @@ export const LOADER_ANIMATION_CSS = `
    两者在非整数像素处贴合时抗锯齿会露出 1px 的缝 —— 水面很高的时刻尤其明显，
    表现为一条横贯全宽的细线。重叠 1px 后重合处颜色本就相同，看不出痕迹。 */
 .sla-wave__fill{position:absolute;left:0;right:0;top:-1px;bottom:-45%}
-.sla-wave__cap{position:absolute;left:0;bottom:100%;width:200%;height:1.35em;animation:sla-drift 13s linear infinite;will-change:transform}
+.sla-wave__cap{position:absolute;left:0;bottom:100%;width:200%;height:1.35em;animation:sla-drift 5.5s linear infinite;will-change:transform}
 .sla-wave__cap svg{display:block;width:100%;height:100%}
 .sla-wave__layer--back{transform:translateY(-.48em)}
-.sla-wave__layer--back .sla-wave__cap{animation-duration:19s;animation-direction:reverse}
+.sla-wave__layer--back .sla-wave__cap{animation-duration:8s;animation-direction:reverse}
 .sla-wave__layer--back .sla-wave__fill{background:color-mix(in srgb,var(--sla-c,#406eeb) 34%,white)}
 .sla-wave__layer--back .sla-wave__cap{color:color-mix(in srgb,var(--sla-c,#406eeb) 34%,white)}
 .sla-wave__layer--front .sla-wave__fill{background:linear-gradient(180deg,color-mix(in srgb,var(--sla-c,#406eeb) 62%,white) 0%,var(--sla-c,#406eeb) 44%,color-mix(in srgb,var(--sla-c,#406eeb) 72%,#0b1a4d) 100%)}
 .sla-wave__layer--front .sla-wave__cap{color:color-mix(in srgb,var(--sla-c,#406eeb) 62%,white)}
-.sla-wave__layer--front .sla-wave__fill::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.26;mix-blend-mode:screen;filter:blur(.12em);background:linear-gradient(99deg,transparent 38%,rgba(255,255,255,.55) 47%,transparent 56%),linear-gradient(99deg,transparent 64%,rgba(255,255,255,.38) 72%,transparent 80%);animation:sla-caustic 15s ease-in-out infinite alternate}
+.sla-wave__layer--front .sla-wave__fill::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.26;mix-blend-mode:screen;filter:blur(.12em);background:linear-gradient(99deg,transparent 38%,rgba(255,255,255,.55) 47%,transparent 56%),linear-gradient(99deg,transparent 64%,rgba(255,255,255,.38) 72%,transparent 80%);animation:sla-caustic 6s ease-in-out infinite alternate}
 @keyframes sla-rise{0%{height:27%}100%{height:67%}}
 @keyframes sla-drift{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}
 @keyframes sla-caustic{from{transform:translateX(-14%)}to{transform:translateX(14%)}}
@@ -472,9 +461,10 @@ export const LOADER_ANIMATION_CSS = `
 .sla-dots i{animation-duration:2.4s}
 .sla-rings i:nth-child(1){animation-duration:2.8s}
 .sla-rings i:nth-child(2){animation-duration:2s}
-.sla-wave__sea{animation-duration:14s}
-.sla-wave__cap{animation-duration:22s}
-.sla-wave__layer--back .sla-wave__cap{animation-duration:30s}
+.sla-wave__sea{animation-duration:8.4s}
+.sla-wave__cap{animation-duration:11s}
+.sla-wave__layer--back .sla-wave__cap{animation-duration:16s}
+.sla-wave__layer--front .sla-wave__fill::after{animation-duration:12s}
 .sla-dino__runner{animation-duration:1.9s}
 .sla-dino__cactus{animation-duration:2.6s}
 .sla-dino__ground{animation-duration:2.6s}

@@ -10,6 +10,11 @@
  * <p>宿主（system / eduai）要复用 AI 业务页，应走 /menu、/embed 或具体组件路径。</p>
  */
 import { createApp } from "vue";
+// Element Plus 全局插件（所有 el-* 组件 / 指令 / ElMessage 的 DOM 与尺寸）：
+// 页面代码此前只导入了 element-plus 的 CSS 与个别组件（ElConfigProvider），
+// 从没有 app.use(ElementPlus) —— 导致全部 el-* 退化成 0×0 的未解析自定义元素，
+// 验收测试里点击它们永远报 "element is not visible"。
+import ElementPlus from "element-plus";
 
 import App from "./App.vue";
 import {
@@ -374,6 +379,9 @@ async function bootstrapAndMount() {
   app.use(pinia);
   app.use(router);
   app.use(i18n);
+  // 注册 Element Plus 全局插件：没有它，所有 <el-* /> 渲染成 0×0 的未解析自定义元素
+  // （<el-dialog /> 类直引的组件除外，如 ReDialog 直引 ElDialog）。
+  app.use(ElementPlus);
 
   // 初始化全局错误处理器（在 router 挂载后）
   initGlobalErrorHandler(router);
@@ -437,20 +445,37 @@ async function bootstrapAndMount() {
 }
 
 /**
- * AI 应用挂载入口：由 apps/vue-support-ai-starter/src/main.js 深导入调用，
- * 不是 @pages/ai 包根导出的公共 API（详见本文件顶部注释）。
+ * 同一入口可能被两处触发，必须**单飞**（同一容器只能挂一个 Vue app）：
+ *   - apps/vue-support-ai-starter/src/main.js 深导入后 `void mountAiApp()`；
+ *   - 本文件末尾的「独立运行兜底」自动调一次。
+ * 2026-11-05 实测：两个调用各跑一次 `createApp(...).mount('#app')`，第二个 app
+ * 往已有 DOM 的容器里追加根节点，随后 patch/unmount 收尾命中
+ * `removeFragment → nextSibling` 的空指针（dist 产物必崩、dev 靠时序侥幸不崩），
+ * 表现为「启动失败：Cannot read properties of null (reading 'nextSibling')」、
+ * #app 空白。收敛成一次挂载后两条入口路径都正常。
+ *
+ * 失败时清空单飞标记，允许后续重新进入页面再试（例如后端尚未就绪）。
  */
-export async function mountAiApp() {
-  await bootstrapAndMount();
+let mountPromise = null;
+
+export function mountAiApp() {
+  if (!mountPromise) {
+    window.__aiAppMounted = true;
+    mountPromise = bootstrapAndMount().catch((e) => {
+      mountPromise = null;
+      // 单点记录：调用方无需再各自 catch（重复挂载已消除，错误只在这里落一次）
+      console.error("❌ AI 控制台启动失败:", e);
+    });
+  }
+  return mountPromise;
 }
 
-// 独立运行兜底：dev site / 验收专线里 pages/ai 就是站点的入口（apps 下的
-// vue-support-ai-starter 只提供空壳 stub，src 里没有 main.js 深导入本文件），
-// 没有人调用 mountAiApp 则 Vue 应用永远不会挂载，#app 里剩下 loader 遮罩。
+// 独立运行兜底：dev site / 验收专线里 pages/ai 就是站点的入口，没有任何人
+// 调 mountAiApp 则 Vue 应用永远不会挂载，#app 里剩下 loader 遮罩。走 apps 壳
+// 深导入时这一步与壳的调用合并成同一次挂载（见上方单飞注释）。
 // 宿主应用（system / eduai）走 @pages/ai/menu、@pages/ai/embed 或具体组件路径
 // 复用，不会 import 这里的入口，所以不污染任何宿主。
 if (typeof window !== "undefined" && !window.__aiAppMounted) {
-  window.__aiAppMounted = true;
-  mountAiApp().catch((e) => console.error("❌ AI 控制台启动失败:", e));
+  void mountAiApp();
 }
 

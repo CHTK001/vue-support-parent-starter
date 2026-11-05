@@ -621,6 +621,13 @@ const treeNodes = computed<DirNode[]>(() => {
     }
     parent.count += 1;
   }
+  // 目录计数向上汇总：父目录要包含子目录里的文档，
+  // 否则「项目A」显示 0、展开后却有几十份文档，看着像统计坏了。
+  const rollUp = (node: DirNode): number => {
+    for (const child of node.children) node.count += rollUp(child);
+    return node.count;
+  };
+  root.count = rollUp(root);
   const flat: DirNode[] = [];
   const walk = (nodes: DirNode[]): void => {
     for (const n of nodes) {
@@ -1291,6 +1298,12 @@ function onKeydown(e: KeyboardEvent): void {
   if (picked.length === 0) return;
   if (e.key === "F2" && picked.length === 1) {
     e.preventDefault();
+    // F2 是「重命名」的键盘入口，必须与右键菜单同一套权限判定：
+    // 只拦右键会让无写权限的账号按 F2 就能弹出输入框，改完才被后端拒绝。
+    if (!canWriteDoc(picked[0])) {
+      message.warning("当前账号没有该协同文档的编辑权限，请联系创建者授权");
+      return;
+    }
     openRename(picked[0]);
     return;
   }

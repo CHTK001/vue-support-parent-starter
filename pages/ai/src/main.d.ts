@@ -9,7 +9,8 @@
  * <p>这里只声明对外契约（应用壳真正用到的那个导出），不给内部实现补类型 ——
  * 那属于把整个应用迁到 TS 的工程，不在本文件范围内。</p>
  *
- * <p>签名依据：main.js:348 `export async function mountAiApp()`，
- * 内部 `await bootstrapAndMount()`，无参数、无返回值。</p>
+ * <p>签名依据：main.js `export function mountAiApp()`，返回
+ * `bootstrapAndMount()` 的单飞 promise（重复调用复用同一个，不会二次挂载），
+ * 无参数、不 reject（失败在内部记录 console.error）。</p>
  */
 export function mountAiApp(): Promise<void>;

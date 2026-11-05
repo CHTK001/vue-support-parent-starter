@@ -13,8 +13,9 @@
         @click="select(opt.value)"
       >
         <span class="loader-card__stage">
-          <!-- 缩略预览：与首屏 loader 用同一份 HTML/CSS（animations.ts），不是重画的示意图 -->
-          <span class="loader-card__anim" v-html="markup(opt.value)" />
+          <!-- 缩略预览：与首屏 loader 用同一份 HTML/CSS（animations.ts），不是重画的示意图。
+               部署侧锁定时主色也按配置渲染，看到的即是实际会出现的那个。 -->
+          <span class="loader-card__anim" :style="previewStyle" v-html="markup(opt.value)" />
         </span>
         <span class="loader-card__label">{{ opt.name }}</span>
       </button>
@@ -68,6 +69,17 @@ const current = useLoaderAnimation();
 /** 部署侧是否锁定了动画（锁定即禁用点击，改由 app.yaml 决定） */
 const deployPolicy = useLoaderDeployPolicy();
 const locked = computed(() => deployPolicy.value.locked);
+
+/**
+ * 缩略图的主色。
+ *
+ * <p>只在锁定时覆盖：未锁定时沿用样式里的 --sla-c 兜底（与之前逐字一致），
+ * 锁定时则让预览色与部署配置一致 —— 否则用户在这里看到蓝色、
+ * 实际加载却是配置里的绿色。</p>
+ */
+const previewStyle = computed<Record<string, string>>(() =>
+  deployPolicy.value.locked ? { "--sla-c": deployPolicy.value.color } : {},
+);
 
 const options = computed(() =>
   OPTION_ORDER.map((value) => ({ value, ...LOADER_ANIMATION_META[value] })),

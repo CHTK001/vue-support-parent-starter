@@ -230,6 +230,7 @@
               <span class="rel-name">{{ r.toName }}</span>
               <el-tag v-if="r.relationTag" size="small" effect="plain" class="rel-tag">{{ r.relationTag }}</el-tag>
             </div>
+            <div v-if="r.memo" class="rel-memo" :title="r.memo">{{ r.memo }}</div>
             <div class="rel-bar-wrap">
               <div class="rel-bar" :style="{ width: relPct(r.affinity) + '%' }" :class="relTone(r.affinity)"></div>
               <span class="rel-val">{{ r.affinity ?? 0 }}</span>
@@ -258,7 +259,7 @@
             <span class="ws-mg-title">世界 NPC（{{ npcs.length }}）</span>
             <button class="ws-mg-add" type="button" title="添加角色为世界 NPC" @click="addNpcVisible = true">+</button>
           </div>
-          <div v-for="n in npcs" :key="n.id" class="ws-mg-npc">
+          <div v-for="n in npcs" :key="n.id" class="ws-mg-npc" title="点击编辑该 NPC" @click="openNpcEdit(n)">
             <CardAvatar :src="n.displayAvatar" :name="n.displayName || 'AI'" size="sm" class="ws-mg-npc-avatar" />
             <div class="ws-mg-npc-main">
               <div class="ws-mg-npc-name">
@@ -270,12 +271,13 @@
                   inline-prompt
                   active-text="参与"
                   inactive-text="挂起"
+                  @click.stop
                   @change="saveNpcActive(n)"
                 />
               </div>
               <div class="ws-mg-npc-sub">{{ npcSub(n) }}</div>
             </div>
-            <button class="ws-mg-del" type="button" title="移除 NPC" @click="removeNpc(n)">✕</button>
+            <button class="ws-mg-del" type="button" title="移除 NPC" @click.stop="removeNpc(n)">✕</button>
           </div>
           <div v-if="!npcs.length" class="ws-side-empty">还没有 NPC。「+」从角色库添加</div>
         </div>
@@ -817,6 +819,8 @@ async function onWorldCmd(cmd: string, w: WorldItem) {
 async function selectScene(s: WorldScene) {
   currentSceneId.value = s.id
   pendingAt.value = null
+  // 切换场景先清空旧消息，避免加载期间还显示上一个场景的对话
+  messages.value = []
   await loadMessages()
 }
 
@@ -834,6 +838,7 @@ async function confirmCreateScene() {
   const view = await apiService.fetchWorldView(currentWorldId.value)
   scenes.value = view.scenes || []
   currentSceneId.value = s.id
+  await loadMessages()
   message.success('场景已创建')
 }
 
@@ -1904,6 +1909,15 @@ async function send() {
 }
 .rel-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rel-arrow { color: var(--el-text-color-placeholder); }
+.rel-memo {
+  margin-top: 3px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .rel-tag { flex-shrink: 0; }
 .rel-bar-wrap {
   position: relative;
@@ -1970,6 +1984,7 @@ async function send() {
   gap: 8px;
   padding: 7px 8px;
   border-radius: var(--el-radius-md, 8px);
+  cursor: pointer;
 }
 .ws-mg-npc:hover { background: var(--el-fill-color-light); }
 .ws-mg-npc-avatar { flex-shrink: 0; }

@@ -113,6 +113,21 @@ function onOpenChange(v: unknown) {
 function onTabChange(name: string) {
   tab.value = (name || 'packet') as TsharkTabKey
 }
+
+/**
+ * 由父级主动切页签。
+ *
+ * <p>不能只靠 `initialTab` 的 watch：弹层打开时初始页签若是「报文」，用户手动切到
+ * 「统计」后再点协议，父级把 `initialTab` 重新设为 `packet` 值没有变化，watch 不触发，
+ * 页面就停在统计页。父级改用这个方法显式切页。</p>
+ *
+ * @param name 目标页签
+ */
+function showTab(name: TsharkTabKey) {
+  tab.value = name || 'packet'
+}
+
+defineExpose({ showTab })
 </script>
 
 <style scoped>
