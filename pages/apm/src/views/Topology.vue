@@ -9,13 +9,6 @@
 -->
 <template>
   <ApmGate v-slot="{ status }">
-    <ReSectionHead description="服务间调用关系与每条边的调用量、错误率、平均耗时">
-      <template #title>服务拓扑</template>
-      <template #actions>
-        <ReButton icon="Refresh" show-text :loading="loading" @click="load">刷新</ReButton>
-      </template>
-    </ReSectionHead>
-
     <div class="apm-bar apm-toolbar">
       <ReSelect
         v-model="service"
@@ -29,6 +22,7 @@
       <ReSelect v-model="minutes" :options="windowOptions" style="width: 150px" @change="load" />
       <span class="apm-bar__spacer" />
       <span class="apm-count">{{ topology?.nodes?.length ?? 0 }} 个节点 · {{ topology?.calls?.length ?? 0 }} 条调用边</span>
+      <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
     </div>
 
     <ReSkeleton v-if="loading && !topology" :rows="6" animated />
@@ -114,7 +108,6 @@
 import { computed, onMounted, ref } from "vue";
 import ReButton from "@repo/ui/re-button";
 import ReCard from "@repo/ui/re-card";
-import ReSectionHead from "@repo/ui/re-section-head";
 import ReSelect from "@repo/ui/re-select";
 import ReSkeleton from "@repo/ui/re-skeleton";
 import ReTable from "@repo/ui/re-table";

@@ -12,13 +12,6 @@
 -->
 <template>
   <ApmGate v-slot="{ status }">
-    <ReSectionHead description="按服务选择剖析任务，查看采样到的慢请求与线程栈分析">
-      <template #title>性能剖析</template>
-      <template #actions>
-        <ReButton icon="Refresh" show-text :loading="loading" @click="loadTasks">刷新</ReButton>
-      </template>
-    </ReSectionHead>
-
     <div class="apm-bar apm-toolbar">
       <ReSelect
         v-model="service"
@@ -32,6 +25,7 @@
       <ReButton icon="Search" type="primary" :loading="loading" @click="loadTasks">查询</ReButton>
       <span class="apm-bar__spacer" />
       <span class="apm-count">{{ tasks.length }} 个剖析任务</span>
+      <ReButton icon="Refresh" :loading="loading" title="刷新" @click="loadTasks" />
     </div>
 
     <ReSkeleton v-if="loading && !tasks.length" :rows="6" animated />
@@ -148,7 +142,6 @@ import ReButton from "@repo/ui/re-button";
 import ReCard from "@repo/ui/re-card";
 import ReEmpty from "@repo/ui/re-empty";
 import ReInput from "@repo/ui/re-input";
-import ReSectionHead from "@repo/ui/re-section-head";
 import ReSelect from "@repo/ui/re-select";
 import ReSkeleton from "@repo/ui/re-skeleton";
 import ReTable from "@repo/ui/re-table";

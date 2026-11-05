@@ -22,13 +22,6 @@
 -->
 <template>
   <ApmGate v-slot="{ status }">
-    <ReSectionHead description="按实体与作用域聚合告警，并查看触发时间分布">
-      <template #title>告警分析</template>
-      <template #actions>
-        <ReButton icon="Refresh" show-text :loading="loading" @click="load">刷新</ReButton>
-      </template>
-    </ReSectionHead>
-
     <div class="apm-bar apm-toolbar">
       <ReSelect
         v-model="service"
@@ -44,6 +37,7 @@
       <ReButton icon="Search" type="primary" :loading="loading" @click="load">查询</ReButton>
       <span class="apm-bar__spacer" />
       <span class="apm-count">{{ alarms.length }} 条告警 · {{ byEntity.length }} 个实体 · {{ byScope.length }} 类作用域</span>
+      <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
     </div>
 
     <ReSkeleton v-if="loading && !alarms.length" :rows="6" animated />
@@ -159,7 +153,6 @@ import ReCard from "@repo/ui/re-card";
 import ReChart from "@repo/ui/re-chart";
 import ReIcon from "@repo/ui/re-icon";
 import ReInput from "@repo/ui/re-input";
-import ReSectionHead from "@repo/ui/re-section-head";
 import ReSelect from "@repo/ui/re-select";
 import ReSkeleton from "@repo/ui/re-skeleton";
 import ReTag from "@repo/ui/re-tag";

@@ -17,13 +17,11 @@
 -->
 <template>
   <ApmGate v-slot="{ status }">
-    <ReSectionHead description="引擎、整体健康度与调用关系">
-      <template #title>总览</template>
-      <template #actions>
-        <ReSelect v-model="minutes" :options="windowOptions" style="width: 136px" @change="loadAll" />
-        <ReButton icon="Refresh" :loading="loading" @click="loadAll">刷新</ReButton>
-      </template>
-    </ReSectionHead>
+    <div class="apm-bar apm-toolbar">
+      <ReSelect v-model="minutes" :options="windowOptions" style="width: 136px" @change="loadAll" />
+      <span class="apm-bar__spacer" />
+      <ReButton icon="Refresh" :loading="loading" title="刷新" @click="loadAll" />
+    </div>
 
     <ReSkeleton v-if="loading && !loaded" :rows="6" animated />
 
@@ -219,7 +217,6 @@
 import { computed, onMounted, ref } from "vue";
 import ReButton from "@repo/ui/re-button";
 import ReSkeleton from "@repo/ui/re-skeleton";
-import ReSectionHead from "@repo/ui/re-section-head";
 import ReSelect from "@repo/ui/re-select";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";

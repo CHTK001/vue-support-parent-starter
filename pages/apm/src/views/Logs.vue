@@ -7,13 +7,6 @@
 -->
 <template>
   <ApmGate v-slot="{ status }">
-    <ReSectionHead description="Agent 上报到 OAP 的过程日志，可沿 traceId 回到链路">
-      <template #title>日志</template>
-      <template #actions>
-        <ReButton icon="Refresh" show-text :loading="loading" @click="load">刷新</ReButton>
-      </template>
-    </ReSectionHead>
-
     <div class="apm-bar apm-toolbar">
       <ReSelect
         v-model="service"
@@ -29,6 +22,7 @@
       <ReButton icon="Search" type="primary" :loading="loading" @click="load">查询</ReButton>
       <span class="apm-bar__spacer" />
       <span class="apm-count">{{ logs.length }} 条日志</span>
+      <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
     </div>
 
     <ReSkeleton v-if="loading && !logs.length" :rows="8" animated />
@@ -80,7 +74,6 @@ import { message } from "@repo/core";
 import { Search } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReInput from "@repo/ui/re-input";
-import ReSectionHead from "@repo/ui/re-section-head";
 import ReSelect from "@repo/ui/re-select";
 import ReSkeleton from "@repo/ui/re-skeleton";
 import ReTable from "@repo/ui/re-table";

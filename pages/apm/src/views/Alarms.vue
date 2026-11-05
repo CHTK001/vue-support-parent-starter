@@ -7,13 +7,6 @@
 -->
 <template>
   <ApmGate v-slot="{ status }">
-    <ReSectionHead description="规则触发的告警事件，按服务与关键词筛选">
-      <template #title>告警</template>
-      <template #actions>
-        <ReButton icon="Refresh" show-text :loading="loading" @click="load">刷新</ReButton>
-      </template>
-    </ReSectionHead>
-
     <div class="apm-bar apm-toolbar">
       <ReSelect
         v-model="service"
@@ -29,6 +22,7 @@
       <ReButton icon="Search" type="primary" :loading="loading" @click="load">查询</ReButton>
       <span class="apm-bar__spacer" />
       <span class="apm-count">{{ alarms.length }} 条告警</span>
+      <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
     </div>
 
     <ReSkeleton v-if="loading && !alarms.length" :rows="6" animated />
@@ -77,7 +71,6 @@ import { Search } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReCard from "@repo/ui/re-card";
 import ReInput from "@repo/ui/re-input";
-import ReSectionHead from "@repo/ui/re-section-head";
 import ReSelect from "@repo/ui/re-select";
 import ReSkeleton from "@repo/ui/re-skeleton";
 import ReTag from "@repo/ui/re-tag";

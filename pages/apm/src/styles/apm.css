@@ -102,6 +102,16 @@
   white-space: nowrap;
 }
 
+/* 详情页顶部把 TraceId 放回工具条：等宽、单行、超长省略 */
+.apm-trace-id {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--apm-faint);
+}
+
 /* 栅格 */
 .apm-grid {
   display: grid;

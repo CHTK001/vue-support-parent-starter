@@ -12,13 +12,6 @@
 -->
 <template>
   <ApmGate v-slot="{ status }">
-    <ReSectionHead description="按层摆放的服务节点与调用关系（可拖拽旋转、滚轮缩放）">
-      <template #title>3D 基础设施图</template>
-      <template #actions>
-        <ReButton icon="Refresh" show-text :loading="loading" @click="load">刷新</ReButton>
-      </template>
-    </ReSectionHead>
-
     <div class="apm-bar apm-toolbar">
       <ReSelect v-model="minutes" :options="windowOptions" style="width: 150px" @change="load" />
       <ReSwitch v-model="autoRotate" size="small" />
@@ -27,6 +20,7 @@
       <span class="apm-count">显示调用边</span>
       <span class="apm-bar__spacer" />
       <span class="apm-count">{{ data?.nodes?.length ?? 0 }} 个节点 · {{ data?.calls?.length ?? 0 }} 条边 · {{ data?.layers?.length ?? 0 }} 层</span>
+      <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
     </div>
 
     <ReSkeleton v-if="loading && !data" :rows="6" animated />
@@ -71,7 +65,6 @@ import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import ReButton from "@repo/ui/re-button";
 import ReCard from "@repo/ui/re-card";
 import ReEmpty from "@repo/ui/re-empty";
-import ReSectionHead from "@repo/ui/re-section-head";
 import ReSelect from "@repo/ui/re-select";
 import ReSkeleton from "@repo/ui/re-skeleton";
 import ReSwitch from "@repo/ui/re-switch";

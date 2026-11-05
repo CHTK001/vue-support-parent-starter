@@ -7,13 +7,6 @@
 -->
 <template>
   <ApmGate v-slot="{ status }">
-    <ReSectionHead description="按服务、端点与状态检索链路，点行看瀑布详情">
-      <template #title>调用链路</template>
-      <template #actions>
-        <ReButton icon="Refresh" show-text :loading="loading" @click="load">刷新</ReButton>
-      </template>
-    </ReSectionHead>
-
     <div class="apm-bar apm-toolbar">
       <ReSelect
         v-model="query.service"
@@ -37,6 +30,8 @@
       <ReInput v-model="query.keyword" placeholder="按 traceId / 端点关键词" clearable style="width: 220px" />
       <el-checkbox v-model="orderByDuration" label="按耗时倒序" />
       <ReButton icon="Search" type="primary" :loading="loading" @click="search">查询</ReButton>
+      <span class="apm-bar__spacer" />
+      <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
     </div>
 
     <ReSkeleton v-if="loading && !items.length" :rows="8" animated />
@@ -94,7 +89,6 @@ import { message } from "@repo/core";
 import { ArrowLeft, ArrowRight, Search } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReInput from "@repo/ui/re-input";
-import ReSectionHead from "@repo/ui/re-section-head";
 import ReSelect from "@repo/ui/re-select";
 import ReSkeleton from "@repo/ui/re-skeleton";
 import ReTable from "@repo/ui/re-table";

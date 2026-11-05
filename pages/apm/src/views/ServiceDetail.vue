@@ -7,30 +7,23 @@
 -->
 <template>
   <ApmGate v-slot="{ status }">
-    <ReSectionHead :description="`服务 ${serviceName || '（未指定）'} 的实例、端点与指标`">
-      <template #title>服务详情</template>
-      <template #actions>
-        <ReButton icon="Back" show-text @click="goBack">返回列表</ReButton>
-        <ReButton
-          v-if="serviceName"
-          icon="Timer"
-          show-text
-          @click="goProfiles"
-        >性能剖析</ReButton>
-        <ReButton icon="Refresh" show-text :loading="loading" @click="load">刷新</ReButton>
+    <div class="apm-bar apm-toolbar">
+      <template v-if="serviceName">
+        <ReInput v-model="serviceName" placeholder="服务名" style="width: 300px" @keyup.enter="load" />
+        <ReButton icon="Search" type="primary" :loading="loading" @click="load">加载</ReButton>
+        <span class="apm-bar__spacer" />
+        <span class="apm-count">{{ instances.length }} 个实例 · {{ endpoints.length }} 个端点</span>
       </template>
-    </ReSectionHead>
+      <span v-else class="apm-bar__spacer" />
+      <ReButton icon="Back" show-text @click="goBack">返回列表</ReButton>
+      <ReButton v-if="serviceName" icon="Timer" show-text @click="goProfiles">性能剖析</ReButton>
+      <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
+    </div>
 
     <!-- 未带 service 参数 -->
     <ReEmpty v-if="!serviceName" :image-size="70" description="缺少服务名，请从服务列表点行进入" />
 
     <template v-else>
-      <div class="apm-bar apm-toolbar">
-        <ReInput v-model="serviceName" placeholder="服务名" style="width: 300px" @keyup.enter="load" />
-        <ReButton icon="Search" type="primary" :loading="loading" @click="load">加载</ReButton>
-        <span class="apm-bar__spacer" />
-        <span class="apm-count">{{ instances.length }} 个实例 · {{ endpoints.length }} 个端点</span>
-      </div>
 
       <div class="apm-kpis">
         <ReStatCard
@@ -171,7 +164,6 @@ import ReButton from "@repo/ui/re-button";
 import ReCard from "@repo/ui/re-card";
 import ReEmpty from "@repo/ui/re-empty";
 import ReInput from "@repo/ui/re-input";
-import ReSectionHead from "@repo/ui/re-section-head";
 import ReSelect from "@repo/ui/re-select";
 import ReStatCard from "@repo/ui/re-stat-card";
 import ReTable from "@repo/ui/re-table";

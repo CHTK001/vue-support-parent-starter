@@ -16,13 +16,12 @@
 -->
 <template>
   <ApmGate>
-    <ReSectionHead :description="traceId ? `Trace ${traceId}` : '未指定链路'">
-      <template #title>链路详情</template>
-      <template #actions>
-        <ReButton icon="Back" show-text @click="goBack">返回列表</ReButton>
-        <ReButton icon="Refresh" show-text :loading="loading" @click="load">刷新</ReButton>
-      </template>
-    </ReSectionHead>
+    <div class="apm-bar apm-toolbar">
+      <span class="apm-trace-id apm-mono">{{ traceId ? `Trace ${traceId}` : "未指定链路" }}</span>
+      <span class="apm-bar__spacer" />
+      <ReButton icon="Back" show-text @click="goBack">返回列表</ReButton>
+      <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
+    </div>
 
     <ReEmpty v-if="!traceId" :image-size="70" description="缺少 traceId，请从链路列表点行进入" />
 
@@ -175,7 +174,6 @@ import { Back, CircleCheck, Clock, Connection, Timer } from "@element-plus/icons
 import ReButton from "@repo/ui/re-button";
 import ReCard from "@repo/ui/re-card";
 import ReEmpty from "@repo/ui/re-empty";
-import ReSectionHead from "@repo/ui/re-section-head";
 import ReSkeleton from "@repo/ui/re-skeleton";
 import ReStatCard from "@repo/ui/re-stat-card";
 import ReTag from "@repo/ui/re-tag";

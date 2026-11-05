@@ -14,13 +14,6 @@
 -->
 <template>
   <ApmGate v-slot="{ status }">
-    <ReSectionHead description="按作用域与实体查看任一时序指标">
-      <template #title>指标分析</template>
-      <template #actions>
-        <ReButton icon="Refresh" show-text :loading="loading" @click="load">刷新</ReButton>
-      </template>
-    </ReSectionHead>
-
     <div class="apm-bar apm-toolbar">
       <ReSelect v-model="scope" :options="scopeOptions" style="width: 130px" @change="onScopeChange" />
       <ReSelect
@@ -63,6 +56,8 @@
       />
       <ReSelect v-model="minutes" :options="windowOptions" style="width: 140px" @change="load" />
       <ReSelect v-model="step" :options="stepOptions" style="width: 110px" @change="load" />
+      <span class="apm-bar__spacer" />
+      <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
     </div>
 
     <div class="apm-bar">
@@ -118,7 +113,6 @@ import { computed, onMounted, ref } from "vue";
 import ReButton from "@repo/ui/re-button";
 import ReCard from "@repo/ui/re-card";
 import ReEmpty from "@repo/ui/re-empty";
-import ReSectionHead from "@repo/ui/re-section-head";
 import ReSelect from "@repo/ui/re-select";
 import ReSkeleton from "@repo/ui/re-skeleton";
 import ReTable from "@repo/ui/re-table";

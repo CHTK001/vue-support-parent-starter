@@ -11,13 +11,6 @@
 -->
 <template>
   <ApmGate v-slot="{ status }">
-    <ReSectionHead description="同一指标下横向比较多个服务，并合并展示它们的调用关系">
-      <template #title>多实体对比</template>
-      <template #actions>
-        <ReButton icon="Refresh" show-text :loading="loading" @click="load">刷新</ReButton>
-      </template>
-    </ReSectionHead>
-
     <div class="apm-bar apm-toolbar">
       <ReSelect
         v-model="metricName"
@@ -41,6 +34,7 @@
       <ReSelect v-model="step" :options="stepOptions" style="width: 110px" @change="load" />
       <span class="apm-bar__spacer" />
       <span class="apm-count">{{ series.length }} 条曲线 · {{ selectedServices.length }} 个服务</span>
+      <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
     </div>
 
     <ReSkeleton v-if="loading && !series.length" :rows="6" animated />
@@ -117,7 +111,6 @@ import ReButton from "@repo/ui/re-button";
 import ReCard from "@repo/ui/re-card";
 import ReChart from "@repo/ui/re-chart";
 import ReEmpty from "@repo/ui/re-empty";
-import ReSectionHead from "@repo/ui/re-section-head";
 import ReSelect from "@repo/ui/re-select";
 import ReSkeleton from "@repo/ui/re-skeleton";
 import ReTable from "@repo/ui/re-table";

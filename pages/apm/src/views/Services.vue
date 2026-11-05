@@ -13,19 +13,13 @@
 -->
 <template>
   <ApmGate v-slot="{ status }">
-    <ReSectionHead description="服务目录与关键指标，点行下钻实例与端点">
-      <template #title>服务</template>
-      <template #actions>
-        <ReButton icon="Refresh" show-text :loading="loading" @click="load">刷新</ReButton>
-      </template>
-    </ReSectionHead>
-
     <div class="apm-bar apm-toolbar">
       <ReInput v-model="keyword" placeholder="按服务名或分组过滤" clearable style="width: 240px" />
       <ReSelect v-model="layer" :options="layerOptions" placeholder="全部层" clearable style="width: 160px" />
       <el-checkbox v-model="errorOnly" label="仅看有错误的服务" />
       <span class="apm-bar__spacer" />
       <span class="apm-count">共 {{ items.length }} 个服务 · 匹配 {{ filtered.length }} 个</span>
+      <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
     </div>
 
     <ReSkeleton v-if="loading && !items.length" :rows="8" animated />
@@ -85,7 +79,6 @@ import { useRouter } from "vue-router";
 import { message } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
 import ReInput from "@repo/ui/re-input";
-import ReSectionHead from "@repo/ui/re-section-head";
 import ReSelect from "@repo/ui/re-select";
 import ReSkeleton from "@repo/ui/re-skeleton";
 import ReTable from "@repo/ui/re-table";
