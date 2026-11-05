@@ -65,7 +65,7 @@
             <ApmGraph
               :nodes="topology.nodes"
               :calls="topology.calls"
-              height="100%"
+              height="380px"
               :label-size="12"
               :empty-text="graphEmptyText"
             />

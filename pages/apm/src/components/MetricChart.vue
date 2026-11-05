@@ -36,10 +36,10 @@ const props = withDefaults(
   { height: "280px", compact: false },
 );
 
-/** 数值单位：多条线单位不一致时不共用 Y 轴，改为全部归一后由 tooltip 标注单位 */
-const unitLabel = computed(() => {
+/** 单位后缀：直接贴在刻度上（0.8ms），比轴名更省空间，也不会被卡片抬头压住 */
+const unitSuffix = computed(() => {
   const units = new Set(props.series.map((s) => s.unit).filter(Boolean));
-  return units.size === 1 ? ` (${[...units][0]})` : "";
+  return units.size === 1 ? String([...units][0]) : "";
 });
 
 const option = computed<EChartsOption>(() => {
@@ -77,9 +77,11 @@ const option = computed<EChartsOption>(() => {
     },
     yAxis: {
       type: "value",
-      name: props.compact ? undefined : unitLabel.value.trim() || undefined,
-      nameTextStyle: { fontSize: 10 },
-      axisLabel: { show: !props.compact, fontSize: 10 },
+      axisLabel: {
+        show: !props.compact,
+        fontSize: 10,
+        formatter: (value: number) => `${value}${unitSuffix.value}`,
+      },
       axisLine: { show: false },
       axisTick: { show: false },
       splitLine: { show: !props.compact, lineStyle: { type: "dashed" } },

@@ -63,7 +63,7 @@
         <span class="apm-mono" :class="latencyClass(row.durationMs)">{{ fmtMs(row.durationMs) }}</span>
       </template>
       <template #col-startTime="{ row }">
-        <span class="apm-muted">{{ fmtTime(row.startTime) }}</span>
+        <span class="apm-muted apm-nowrap">{{ fmtTime(row.startTime) }}</span>
       </template>
       <template #col-error="{ row }">
         <ReTag :type="row.error ? 'danger' : 'success'" round size="small">
@@ -143,7 +143,7 @@ const columns: ReTableColumn[] = [
   { prop: "traceId", label: "Trace ID", minWidth: 200, slot: "traceId" },
   { prop: "endpointName", label: "入口端点", minWidth: 220, slot: "endpointName" },
   { prop: "durationMs", label: "耗时", width: 100, align: "right", slot: "durationMs", sortable: true },
-  { prop: "startTime", label: "开始时间", width: 170, slot: "startTime", sortable: true },
+  { prop: "startTime", label: "开始时间", width: 190, slot: "startTime", sortable: true },
   { prop: "error", label: "状态", width: 90, align: "center", slot: "error" },
 ];
 

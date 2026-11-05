@@ -347,7 +347,10 @@
 
 .apm-canvas__stage {
   position: relative;
-  flex: 1 1 auto;
+  flex: none;
+  /* 固定 380px：图表组件只认像素高度（百分比会被解析成数字再补 px），
+     这一档在 1440 宽下和右侧三张读数卡的总高基本齐平 */
+  height: 380px;
   min-height: 280px;
 }
 
@@ -609,6 +612,35 @@
 .apm-page .apm-card .el-table {
   border: 0;
   border-radius: 0;
+}
+
+/* ReTable 的根节点自带 1px 边框 + 12px 内距；在 APM 里它就是那张卡片，
+   内距归零，表头底带才能贴到卡片边上（与宿主列表页一致） */
+.apm-page .re-table {
+  padding: 0;
+  border: 1px solid var(--apm-line);
+  border-radius: var(--apm-radius);
+  background: var(--apm-surface);
+}
+
+/* 主体区自己还带 16px 内距 + 1px 边框，是表头上方那条白带的真正来源 */
+.apm-page .re-table .re-table__main {
+  padding: 0;
+  border: 0;
+}
+
+/* 表格已经装在卡片里时，ReTable 根节点退成透明容器 */
+.apm-page .apm-card .re-table,
+.apm-page .koi-card .re-table {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+/* 时间这类不能折行的单元格：折成两行会把整张表的行高带歪 */
+.apm-nowrap {
+  white-space: nowrap;
 }
 
 .apm-page .el-table th.el-table__cell {

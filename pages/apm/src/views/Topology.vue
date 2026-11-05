@@ -39,7 +39,7 @@
         <ApmGraph
           :nodes="nodes"
           :calls="topology?.calls ?? []"
-          height="520px"
+          height="420px"
           empty-text="该时间窗口内没有拓扑数据（可能没有跨服务调用）"
         />
       </ReCard>
