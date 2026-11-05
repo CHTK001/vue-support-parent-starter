@@ -304,7 +304,7 @@ async function getUserConfigStorage(): Promise<UserConfigStorage> {
 }
 
 /** 用户可调配置的持久化范围（与 restoreUserConfig 读取的字段一致） */
-type UserConfigSlice = "other" | "message" | "security" | "menu" | "login";
+type UserConfigSlice = "other" | "message" | "menu" | "login";
 
 /**
  * 部署侧（app.yaml / 远程配置）决定的用户可调切片基线。
@@ -340,8 +340,6 @@ function sliceSnapshot(): Partial<Record<UserConfigSlice, unknown>> {
     menu: JSON.parse(JSON.stringify(currentConfig.menu ?? null)),
     // 登录页可调项（验证码 / 滑块 / OTP）：设置抽屉可调，随用户配置持久化
     login: JSON.parse(JSON.stringify(currentConfig.login ?? null)),
-    // 安全防护：整片持久化（watermark / baiduJs / dynamicFont / ocrObfuscation 均可在设置抽屉调整）
-    security: JSON.parse(JSON.stringify(currentConfig.security ?? null)),
   };
 }
 
@@ -451,8 +449,7 @@ export function resolveLoaderDeployPolicy(): LoaderDeployPolicy {
 
 /**
  * 保存用户可调配置到 storage。
- * 只持久化设置面板能改的切片：other（工具栏/计时器/状态色）、message、menu、login、
- * security（水印/反调试/动态字体/OCR 混淆），
+ * 只持久化设置面板能改的切片：other（工具栏/计时器/状态色）、message、menu、login，
  * 不保存接口地址 / 路由等系统级配置（仍由 app.yaml / 后端决定）。
  */
 export async function saveUserConfig(): Promise<void> {
@@ -493,7 +490,7 @@ export async function restoreUserConfig(): Promise<void> {
     if (saved && typeof saved === "object") {
       // 仅恢复用户可调字段（与上方 watch 写入的字段保持一致），
       // 避免历史 user-config 中的 app/route/http 等覆盖 yaml 加载值
-      const { other, message, security, menu, login } = saved;
+      const { other, message, menu, login } = saved;
       const filtered: Partial<AppConfig> = {};
       if (other) {
         // 加载动画接管是**部署侧**决定（app.yaml），用户快照不得覆盖：
@@ -504,8 +501,6 @@ export async function restoreUserConfig(): Promise<void> {
         delete restoredOther.loaderConfig;
         filtered.other = restoredOther as unknown as AppConfig["other"];
       }
-      if (message) filtered.message = message;
-      if (security) filtered.security = security;
       if (menu) filtered.menu = menu as AppConfig["menu"];
       if (login) filtered.login = login as AppConfig["login"];
       if (Object.keys(filtered).length > 0) {
@@ -526,7 +521,6 @@ if (typeof window !== "undefined") {
       currentConfig.message,
       currentConfig.menu,
       currentConfig.login,
-      currentConfig.security,
     ],
     () => {
       if (saveTimer) clearTimeout(saveTimer);

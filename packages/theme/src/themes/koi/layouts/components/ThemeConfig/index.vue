@@ -513,93 +513,9 @@
               </div>
             </div>
 
-            <!-- 安全防护：水印 / 反调试 / 动态字体加密 / OCR 混淆
-                 （同时支持 app.yaml 与后台 default 接口 /v2/setting/default 下发） -->
-            <div class="config-section">
-              <div class="section-header">
-                <el-icon :size="18" class="section-icon"><Lock /></el-icon>
-                <span class="section-title">{{ t("themeConfig.sections.watermarkConfig") }}</span>
-              </div>
-
-              <div class="section-card">
-                <ReSwitch layout="card"
-                  v-model="securityConfig.watermark.enable"
-                  :title="t('themeConfig.security.watermark.enable.title')"
-                  :sub="t('themeConfig.security.watermark.enable.sub')"
-                  :tip="t('themeConfig.security.watermark.enable.tip')"
-                  :description="t('themeConfig.security.watermark.enable.description')"
-                />
-
-                <!-- 水印参数：仅在开启时展示 -->
-                <template v-if="securityConfig.watermark.enable">
-                  <div class="config-item">
-                    <div class="config-label">{{ t("themeConfig.security.watermark.text.label") }}</div>
-                    <el-input
-                      v-model="securityConfig.watermark.text"
-                      :placeholder="t('themeConfig.security.watermark.text.placeholder')"
-                      class="config-input"
-                      maxlength="24"
-                      clearable
-                    />
-                  </div>
-                  <div class="config-item">
-                    <div class="config-label">{{ t("themeConfig.security.watermark.color.label") }}</div>
-                    <el-color-picker v-model="securityConfig.watermark.color" class="config-input" />
-                  </div>
-                  <div class="config-item">
-                    <div class="config-label">
-                      {{ t("themeConfig.security.watermark.alpha.label") }}
-                      <span class="config-value">{{ Number(securityConfig.watermark.alpha || 0).toFixed(2) }}</span>
-                    </div>
-                    <el-slider
-                      v-model="securityConfig.watermark.alpha"
-                      class="config-input"
-                      :min="0"
-                      :max="1"
-                      :step="0.02"
-                    />
-                  </div>
-                  <div class="config-item">
-                    <div class="config-label">
-                      {{ t("themeConfig.security.watermark.rotate.label") }}
-                      <span class="config-value">{{ securityConfig.watermark.rotate }}°</span>
-                    </div>
-                    <el-slider
-                      v-model="securityConfig.watermark.rotate"
-                      class="config-input"
-                      :min="-90"
-                      :max="90"
-                      :step="1"
-                    />
-                  </div>
-                </template>
-
-                <ReSwitch layout="card"
-                  v-model="securityConfig.baiduJs.enable"
-                  :title="t('themeConfig.security.antiDebug.title')"
-                  :sub="t('themeConfig.security.antiDebug.sub')"
-                  :tip="t('themeConfig.security.antiDebug.tip')"
-                  :description="t('themeConfig.security.antiDebug.description')"
-                />
-                <ReSwitch layout="card"
-                  v-model="securityConfig.dynamicFont.enable"
-                  :title="t('themeConfig.security.dynamicFont.title')"
-                  :sub="t('themeConfig.security.dynamicFont.sub')"
-                  :tip="t('themeConfig.security.dynamicFont.tip')"
-                  :description="t('themeConfig.security.dynamicFont.description')"
-                />
-                <ReSwitch layout="card"
-                  v-model="securityConfig.ocrObfuscation.enable"
-                  :title="t('themeConfig.security.ocrObfuscation.title')"
-                  :sub="t('themeConfig.security.ocrObfuscation.sub')"
-                  :tip="t('themeConfig.security.ocrObfuscation.tip')"
-                  :description="t('themeConfig.security.ocrObfuscation.description')"
-                />
-              </div>
-            </div>
           </template>
 
-          <!-- ============ 扩展：工具栏开关 + 消息通知 + 水印 ============ -->
+          <!-- ============ 扩展：工具栏开关 + 消息通知 ============ -->
           <template #extension>
             <!-- 工具栏开关 -->
             <div class="config-section">
@@ -681,24 +597,6 @@
               </div>
             </div>
 
-            <!-- 业务开关（app.yaml other.capabilities：后台是否提供该能力） -->
-            <div class="config-section" v-if="capabilitySwitchList.length">
-              <div class="section-header">
-                <el-icon :size="18" class="section-icon"><Connection /></el-icon>
-                <span class="section-title">{{ t("themeConfig.sections.capabilityConfig") }}</span>
-              </div>
-              <div class="config-card">
-                <ReSwitch layout="card"
-                  v-for="item in capabilitySwitchList"
-                  :key="item.key"
-                  :title="item.title"
-                  :sub="item.sub"
-                  :tip="item.tip"
-                  :description="item.description"
-                  v-model="capabilityConfig[item.key]"
-                />
-              </div>
-            </div>
           </template>
         </ReTab>
       </div>
@@ -716,9 +614,9 @@ import { useTheme } from "@repo/theme";
 import { storeToRefs } from "pinia";
 import { mittBus, applyMessageColorVars, mixColor, normalizeThemeColor } from "@repo/utils";
 import useGlobalStore from "@repo/pinia/modules/global";
-import {msgSuccess, BACKEND_CAPABILITIES, message} from "@repo/core";
+import {msgSuccess, message} from "@repo/core";
 import { useI18n } from "vue-i18n";
-import { getConfig, setConfig, isCapabilityDeployOff } from "@repo/config";
+import { getConfig, setConfig } from "@repo/config";
 import type { OtherConfig, MessageConfig, TimerConfig, AppConfig, AccessibilityConfig, DevToolsConfig, HeatmapConfig, PerformanceConfig, AiChatConfig } from "@repo/config";
 
 import ReTab, { type ReTabItem } from "@repo/ui/re-tab";
@@ -992,44 +890,6 @@ const toolbarSwitchList = computed(() => {
 /** 响应式配置单例（直接修改即可实时联动组件开关） */
 const appConfig = getConfig();
 
-/** 安全防护（水印 / 反调试 / 动态字体 / OCR 混淆） */
-const securityConfig = computed(() => appConfig.security);
-
-/**
- * 水印参数（文案/颜色/透明度/角度）改动后立即重绘全局水印。
- * 后台 default 接口热更新走 core 的 CONFIG_VERSION_CHANGE_EVENT 链路；
- * 这里是抽屉本地改动的即时生效。
- *
- * 开启时补齐默认值：alpha 默认 0 会让水印完全透明（config 默认值），
- * 颜色为空时取 #409EFF（readGlobalWatermarkConfig 的兜底色），避免"开了却看不见"。
- */
-watch(
-  () => ({
-    enable: securityConfig.value.watermark.enable,
-    text: securityConfig.value.watermark.text,
-    color: securityConfig.value.watermark.color,
-    alpha: securityConfig.value.watermark.alpha,
-    rotate: securityConfig.value.watermark.rotate,
-  }),
-  (val) => {
-    const wm = securityConfig.value.watermark;
-    if (val.enable) {
-      if (!wm.color) wm.color = "#409EFF";
-      if (typeof wm.alpha !== "number" || wm.alpha <= 0) wm.alpha = 0.12;
-    }
-    void import("@repo/core").then((core) => core.applyGlobalWatermark());
-  },
-  { deep: true },
-);
-
-/** 反调试开关改动后立即安装 / 卸载监听 */
-watch(
-  () => securityConfig.value.baiduJs.enable,
-  () => {
-    void import("@repo/core").then((core) => core.refreshSecurity());
-  },
-);
-
 /** 工具栏开关 v-model（直接改响应式配置） */
 const toolbarConfig = computed(() => appConfig.other.toolbar);
 
@@ -1138,27 +998,6 @@ watch(weatherEnable, (val) => {
 });
 
 /**
- * 业务能力开关（app.yaml other.capabilities）
- *
- * 列出 @repo/core 注册的全部后台能力（天气 / 定位 / 台风 / IP 归属地…），
- * 关闭即"本应用的后台不提供该能力"：不探测、不请求后台，对应入口一并隐藏。
- * 部署侧（app.yaml）已写 false 的项不在此列出——界面不给部署侧否定的能力开入口，
- * 需要恢复只能改 app.yaml。
- */
-const capabilitySwitchList = computed(() =>
-  BACKEND_CAPABILITIES.filter((item) => !isCapabilityDeployOff(item.key)).map((item) => ({
-    key: item.key,
-    title: t(`themeConfig.capability.${item.i18n}.title`),
-    sub: t(`themeConfig.capability.${item.i18n}.sub`),
-    tip: t(`themeConfig.capability.${item.i18n}.tip`),
-    description: t(`themeConfig.capability.${item.i18n}.description`),
-  })),
-);
-
-/** 能力开关表：直接改响应式配置，随用户配置持久化（缺省兜底空表，兼容未含该字段的旧配置） */
-const capabilityConfig = computed(() => (appConfig.other.capabilities ??= {}));
-
-/**
  * 折叠形态（menuConfig.collapse，迭代自 collapseToButton；向下兼容见 resolveMenuCollapse）：
  *   collapseButton — 折叠后是否显示「展开菜单」按钮（通常与 mini 菜单条并存）
  *   collapseBar    — 折叠后是否保留迷你图标菜单条（"yes"=保留，"no"=隐藏）
@@ -1202,13 +1041,12 @@ const exportUserConfig = () => {
     config: {
       other: JSON.parse(JSON.stringify(cfg.other)),
       message: JSON.parse(JSON.stringify(cfg.message)),
-      // 与 user-config.v2 持久化切片保持一致：菜单展示 / 安全防护 / login 一起导出。
+      // 与 user-config.v2 持久化切片保持一致：菜单展示 / login 一起导出。
       // login 整片都是后端下发的（品牌文案 + 验证码/滑块/OTP，见 core/setting.ts
       // 的 SETTING_TO_LOGIN_MAP），抽屉里已不再提供任何开关，这里保留切片只为
       // 导入导出格式不变；它不该被当作「用户可调项」理解。
       menu: JSON.parse(JSON.stringify(cfg.menu)),
       login: JSON.parse(JSON.stringify(cfg.login)),
-      security: JSON.parse(JSON.stringify(cfg.security)),
     },
     global: {
       themeColor: globalStore.themeColor,
@@ -1274,20 +1112,18 @@ const applyImportedConfig = (data: {
     message?: MessageConfig;
     menu?: AppConfig["menu"];
     login?: AppConfig["login"];
-    security?: AppConfig["security"];
   };
   global?: Record<string, unknown>;
 }) => {
   const c = data.config ?? {};
 
-  // 1. 响应式配置（setConfig 深合并）：工具栏/计时器/状态色/消息位置 + 菜单展示 / 安全防护
+  // 1. 响应式配置（setConfig 深合并）：工具栏/计时器/状态色/消息位置 + 菜单展示
   //    + login（后端下发、抽屉里已无开关，仅为导入导出格式兼容而透传）
   setConfig({
     other: c.other as AppConfig["other"],
     message: c.message as AppConfig["message"],
     menu: c.menu as AppConfig["menu"],
     login: c.login as AppConfig["login"],
-    security: c.security as AppConfig["security"],
   });
 
   // 2. 同步本组件本地 ref（其 watch 会继续写回响应式配置，保证抽屉 UI 一致）

@@ -6,7 +6,10 @@
           <el-breadcrumb-item v-for="(item, index) in breadcrumbList" :key="item.path">
             <!-- 使用 el-dropdown 包裹内容（有子级且开启下拉开关时） -->
             <el-dropdown v-if="breadcrumbConfig.dropdown && item.children && item.children.length > 0" @command="handleDropdownCommand">
-              <span class="el-breadcrumb__inner is-link flex flex-items-center outline-none gap-x-4px">
+              <span
+                class="el-breadcrumb__inner is-link flex flex-items-center outline-none gap-x-4px"
+                :class="{ 'item-no-icon': !breadcrumbConfig.icon || !item.meta?.icon }"
+              >
                 <ReIcon v-if="breadcrumbConfig.icon && item.meta?.icon" :name="item.meta?.icon" size="16" />
                 {{ getMenuLanguage(item.meta?.title) }}
                 <el-icon>

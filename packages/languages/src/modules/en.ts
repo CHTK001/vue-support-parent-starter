@@ -426,24 +426,6 @@ export default {
           label: "Rotation",
         },
       },
-      antiDebug: {
-        title: "Anti Debug",
-        sub: "Security",
-        tip: "Clear the page or redirect when a debug context is detected (security.baiduJs.enable)",
-        description: "Handles devtools / automation per configured action; keep it off while debugging",
-      },
-      dynamicFont: {
-        title: "Dynamic Font",
-        sub: "Anti OCR",
-        tip: "ReText renders text with a dynamic font to block OCR scraping (security.dynamicFont.enable)",
-        description: "Used by ReText when no explicit prop is given",
-      },
-      ocrObfuscation: {
-        title: "OCR Obfuscation",
-        sub: "Anti Scraping",
-        tip: "ReText renders text into canvas so page text cannot be scraped (security.ocrObfuscation.enable)",
-        description: "Used by ReText when no explicit prop is given",
-      },
     },
     io: {
       export: "Export Config",

@@ -427,24 +427,6 @@ export default {
           label: "旋转角度",
         },
       },
-      antiDebug: {
-        title: "反调试",
-        sub: "安全",
-        tip: "检测到调试模式时按配置清空页面或跳转（security.baiduJs.enable）",
-        description: "检测到开发者工具/自动化时按 action 处理；调试期间建议关闭",
-      },
-      dynamicFont: {
-        title: "动态字体加密",
-        sub: "防 OCR",
-        tip: "ReText 使用动态字体渲染文本，防止 OCR 抓取（security.dynamicFont.enable）",
-        description: "ReText 未显式指定时回退该全局开关",
-      },
-      ocrObfuscation: {
-        title: "OCR 混淆",
-        sub: "防抓取",
-        tip: "ReText 以 canvas 渲染文本，阻止页面文本被抓取（security.ocrObfuscation.enable）",
-        description: "ReText 未显式指定时回退该全局开关",
-      },
     },
     io: {
       export: "导出配置",
