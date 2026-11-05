@@ -60,6 +60,123 @@ export function sectionRows(res: any): any[] {
   return [];
 }
 
+/* ==================== 底部状态条：资源摘要 ==================== */
+
+/** 主机资源摘要（句柄 / inode） */
+export interface HostResourceSummary {
+  handleCount: number;
+  threadCount: number;
+  processCount: number;
+  inodeUsed: number;
+  inodeTotal: number;
+  inodePercent: number;
+  inodeMount: string;
+  collectedAt: string;
+}
+
+/**
+ * 拉取主机资源摘要（句柄数 / inode 使用率）
+ * @param hostId 主机 id
+ */
+export const fetchHostResourceSummary = (hostId: number) =>
+  http().get(`/ms/server/host/profile/${hostId}/summary`)
+    .timeout(30_000)
+    .then(r => unwrap<HostResourceSummary>(r));
+
+/* ==================== 系统配置（热更新） ==================== */
+
+/** 系统配置项 */
+export interface SystemConfigItem {
+  key: string;
+  label: string;
+  value: string;
+  unit: string;
+  scope: string;
+  source: string;
+  editable: boolean;
+  hot: boolean;
+  requiresConfirm: boolean;
+  tip: string;
+}
+
+/** 读取系统配置项 */
+export const fetchSystemConfigs = (hostId: number) =>
+  http().get(`/ms/server/host/profile/${hostId}/system-configs`)
+    .timeout(60_000)
+    .then(r => unwrap<SystemConfigItem[]>(r));
+
+/** 修改系统配置（后端写后回读确认） */
+export const applySystemConfig = (hostId: number, key: string, value: string) =>
+  http().post(`/ms/server/host/profile/${hostId}/system-configs`).data({ key, value })
+    .timeout(90_000)
+    .then(r => unwrap<string>(r));
+
+/* ==================== 已删除但被占用的文件 ==================== */
+
+/** 已删除但仍被进程占用的文件 */
+export interface DeletedFileRow {
+  pid: number;
+  ppid: number;
+  process: string;
+  user: string;
+  fd: number;
+  path: string;
+  sizeBytes: number;
+  sizeText: string;
+}
+
+/** 已删除文件采集结果（supported=false 时带原因） */
+export interface DeletedFilesResult {
+  supported: boolean;
+  reason: string;
+  rows: DeletedFileRow[];
+}
+
+/** 采集已删除但仍被占用的文件 */
+export const fetchDeletedFiles = (hostId: number) =>
+  http().get(`/ms/server/host/profile/${hostId}/deleted-files`)
+    .timeout(120_000)
+    .then(r => unwrap<DeletedFilesResult>(r));
+
+/** 释放已删除文件（仅对 deleted 的 fd 截断为 0） */
+export const releaseDeletedFile = (hostId: number, pid: number, fd: number) =>
+  http().post(`/ms/server/host/profile/${hostId}/deleted-files/release`).data({ pid, fd })
+    .timeout(60_000)
+    .then(r => unwrap<string>(r));
+
+/* ==================== 挂载盘 ==================== */
+
+/** 挂载行 */
+export interface MountRow {
+  source: string;
+  target: string;
+  fsType: string;
+  options: string;
+  totalBytes: number;
+  usedBytes: number;
+  availBytes: number;
+  usage: number;
+  volumeId: string;
+}
+
+/** 读取挂载列表 */
+export const fetchMounts = (hostId: number) =>
+  http().get(`/ms/server/host/profile/${hostId}/mounts`)
+    .timeout(90_000)
+    .then(r => unwrap<MountRow[]>(r));
+
+/** 挂载设备 / 卷 */
+export const mountDevice = (hostId: number, source: string, target: string, fsType: string) =>
+  http().post(`/ms/server/host/profile/${hostId}/mounts/mount`).data({ source, target, fsType })
+    .timeout(90_000)
+    .then(r => unwrap<string>(r));
+
+/** 卸载挂载点 / 盘符 */
+export const unmountDevice = (hostId: number, target: string) =>
+  http().post(`/ms/server/host/profile/${hostId}/mounts/unmount`).data({ target })
+    .timeout(90_000)
+    .then(r => unwrap<string>(r));
+
 /* ==================== 主机网卡（/ms/server/host/network） ==================== */
 
 /** 网卡详情（状态/属性） */

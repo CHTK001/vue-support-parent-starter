@@ -16,8 +16,7 @@ import { computed, nextTick, onMounted, onBeforeUnmount, ref, reactive, watch, d
 import type { Component } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessageBox } from "element-plus";
-import { queryHosts, delHost, switchHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity, scanPorts } from "../api";
-/**
+import { queryHosts, delHost, switchHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity, scanPorts } from "../api";/**
  * 以下几屏只在「工作区页签」里按需出现，经 defineAsyncComponent 懒加载：
  *
  * - TerminalView 拉 @novnc/novnc（dev 4MB+）
@@ -68,6 +67,7 @@ import { osIconSvg } from "../utils/osIcon";
 import { useSocketService, message } from "@repo/core";
 import { privateIpTextOf } from "../utils/hostProfileUi";
 import { submitAgentAction } from "../api";
+import { fetchHostResourceSummary } from "../api";
 import ReTabs from "@repo/ui/re-tabs";
 import type { ReTabsContextItem, ReTabsItem } from "@repo/ui/re-tabs";
 
@@ -607,9 +607,12 @@ type TabKind =
   | "processes"
   | "services"
   | "disks"
+  | "mounts"
   | "network"
   | "env"
   | "firewall"
+  | "sysconfig"
+  | "deleted"
   | "remote"
   | "files"
   | "metrics"
@@ -637,9 +640,12 @@ const TAB_KINDS: Record<TabKind, TabKindMeta> = {
   processes: { label: "进程", icon: "Cpu", section: "processes" },
   services: { label: "服务", icon: "SetUp", section: "services" },
   disks: { label: "磁盘", icon: "Coin", section: "disks" },
+  mounts: { label: "挂载盘", icon: "Files", section: "mounts" },
   network: { label: "网络", icon: "Share", section: "network" },
   env: { label: "环境变量", icon: "Document", section: "env" },
   firewall: { label: "防火墙", icon: "Lock", section: "firewall" },
+  sysconfig: { label: "系统配置", icon: "Setting", section: "sysconfig" },
+  deleted: { label: "已删除文件", icon: "Delete", section: "deleted" },
   remote: { label: "远控", icon: "Position" },
   files: { label: "文件管理", icon: "FolderOpened" },
   metrics: { label: "指标监控", icon: "TrendCharts" },
@@ -1056,9 +1062,12 @@ function ctxCommand(cmd: string): void {
     "tab-processes": "processes",
     "tab-services": "services",
     "tab-disks": "disks",
+    "tab-mounts": "mounts",
     "tab-network": "network",
     "tab-env": "env",
     "tab-firewall": "firewall",
+    "tab-sysconfig": "sysconfig",
+    "tab-deleted": "deleted",
   };
   const kind = tabCmds[cmd];
   if (kind) {
@@ -1122,8 +1131,11 @@ function ctxCommand(cmd: string): void {
       removeHost(h);
       break;
     case "open-all-profile": {
-      // 一次把画像七个分区全开出来：巡检某台机器时的批量动作
-      (["ports", "processes", "services", "disks", "network", "env", "firewall"] as TabKind[])
+      // 一次把画像分区全开出来：巡检某台机器时的批量动作
+      ([
+        "ports", "processes", "services", "disks", "mounts", "network", "env", "firewall",
+        "sysconfig", "deleted",
+      ] as TabKind[])
         .forEach(k => openTab(h, k));
       break;
     }
@@ -1490,6 +1502,64 @@ const statusMetrics = computed(() => {
   };
 });
 
+/* ---------- 底部状态条：句柄数与 inode 使用率 ---------- */
+
+/**
+ * 资源摘要（句柄数 / inode）。
+ *
+ * <p>这两项来自画像的专用端点而不是 socket 实时值：句柄要按平台走命令汇总，
+ * inode 要读根分区，频率远低于 CPU。30 秒一次足够，且不影响工作区懒挂载的语义。</p>
+ */
+const statusSummary = ref({
+  handleCount: -1,
+  inodeUsed: -1,
+  inodeTotal: -1,
+  inodePercent: -1,
+  inodeMount: "",
+});
+let summaryTimer: number | undefined;
+let summaryReq = 0;
+
+/** 拉一次当前主机资源摘要；失败保留「—」，不影响状态条其它字段 */
+async function loadStatusSummary(): Promise<void> {
+  const id = statusHost.value?.id;
+  const req = ++summaryReq;
+  if (id == null) {
+    statusSummary.value = { handleCount: -1, inodeUsed: -1, inodeTotal: -1, inodePercent: -1, inodeMount: "" };
+    return;
+  }
+  try {
+    const res = await fetchHostResourceSummary(id);
+    if (req !== summaryReq) return;
+    statusSummary.value = {
+      handleCount: Number(res?.handleCount ?? -1),
+      inodeUsed: Number(res?.inodeUsed ?? -1),
+      inodeTotal: Number(res?.inodeTotal ?? -1),
+      inodePercent: Number(res?.inodePercent ?? -1),
+      inodeMount: String(res?.inodeMount ?? ""),
+    };
+  } catch {
+    if (req === summaryReq) {
+      statusSummary.value = { handleCount: -1, inodeUsed: -1, inodeTotal: -1, inodePercent: -1, inodeMount: "" };
+    }
+  }
+}
+
+watch(
+  () => statusHost.value?.id,
+  () => {
+    void loadStatusSummary();
+    if (summaryTimer) window.clearInterval(summaryTimer);
+    summaryTimer = window.setInterval(() => { void loadStatusSummary(); }, 30_000);
+  },
+  { immediate: true },
+);
+
+onBeforeUnmount(() => {
+  if (summaryTimer) window.clearInterval(summaryTimer);
+  summaryTimer = undefined;
+});
+
 /** 概要浮层里的行（原先画像页左侧那套「概要信息」） */
 const statusOverviewRows = computed<MetricRow[]>(() => {
   const h = statusHost.value;
@@ -1512,6 +1582,19 @@ const statusOverviewRows = computed<MetricRow[]>(() => {
     { label: "分组", value: groupName(h.msServerGroupId) },
     { label: "标签", value: dash(splitTags(h.serverHostTags).join(" / ")) },
     { label: "最近采集", value: dash(h.serverHostLastCollectTime) },
+    {
+      label: "句柄数",
+      value: statusSummary.value.handleCount >= 0 ? statusSummary.value.handleCount.toLocaleString() : "—",
+    },
+    {
+      label: "iNode 使用率",
+      value: statusSummary.value.inodePercent >= 0
+        ? `${statusSummary.value.inodePercent.toFixed(1)}%`
+          + (statusSummary.value.inodeTotal > 0
+            ? `（${statusSummary.value.inodeUsed.toLocaleString()}/${statusSummary.value.inodeTotal.toLocaleString()} · ${statusSummary.value.inodeMount || "/"}）`
+            : "")
+        : "—",
+    },
     { label: "已扫描端口", value: parsePorts(h.serverHostPorts).length ? `${parsePorts(h.serverHostPorts).length} 个` : "未扫描", tip: portTip(h) },
     { label: "Agent", value: h.serverHostAgentInstalled === 1 ? `v${h.serverHostAgentVersion || "?"}` : "未安装" },
   ];
@@ -2386,6 +2469,11 @@ function onGlobalKeydown(e: KeyboardEvent): void {
             :mem="statusMetrics.mem"
             :disk="statusMetrics.disk"
             :has-metrics="statusMetrics.has"
+            :handle-count="statusSummary.handleCount"
+            :inode-percent="statusSummary.inodePercent"
+            :inode-used="statusSummary.inodeUsed"
+            :inode-total="statusSummary.inodeTotal"
+            :inode-mount="statusSummary.inodeMount"
             :rows="statusOverviewRows"
           />
           <!-- Dock 开关：箭头直接销毁 / 恢复右侧快捷操作面板（不再套一层设置浮窗） -->
@@ -2644,6 +2732,9 @@ function onGlobalKeydown(e: KeyboardEvent): void {
             <div class="host-ctx-item" @click="ctxCommand('tab-disks')">
               <ReIcon name="Coin" /><span>磁盘</span>
             </div>
+            <div class="host-ctx-item" @click="ctxCommand('tab-mounts')">
+              <ReIcon name="Files" /><span>挂载盘</span>
+            </div>
             <div class="host-ctx-item" @click="ctxCommand('tab-network')">
               <ReIcon name="Share" /><span>网络</span>
             </div>
@@ -2652,6 +2743,13 @@ function onGlobalKeydown(e: KeyboardEvent): void {
             </div>
             <div class="host-ctx-item" @click="ctxCommand('tab-firewall')">
               <ReIcon name="Lock" /><span>防火墙</span>
+            </div>
+            <div class="host-ctx-sep" />
+            <div class="host-ctx-item" @click="ctxCommand('tab-sysconfig')">
+              <ReIcon name="Setting" /><span>系统配置</span>
+            </div>
+            <div class="host-ctx-item" @click="ctxCommand('tab-deleted')">
+              <ReIcon name="Delete" /><span>已删除文件</span>
             </div>
             <div class="host-ctx-sep" />
             <div class="host-ctx-item" @click="ctxCommand('open-all-profile')">

@@ -40,6 +40,7 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
   ReAlbum: () => import("./components/ReAlbum"),
   ReCard: () => import("./components/ReCard"),
   ReDialog: () => import("./components/ReDialog"),
+  ReProgressDialog: () => import("./components/ReProgressDialog"),
   ReTable: () => import("./components/ReTable"),
   ReTag: () => import("./components/ReTag"),
   ReBadge: () => import("./components/ReBadge"),

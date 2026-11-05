@@ -38,6 +38,16 @@ interface Props {
   disk?: number;
   /** 是否已有指标数据（false 时显示「等待采集」而不是 0%） */
   hasMetrics?: boolean;
+  /** 系统句柄数（-1 表示取不到） */
+  handleCount?: number;
+  /** 根文件系统 inode 使用率（-1 表示取不到 / 平台不支持） */
+  inodePercent?: number;
+  /** 已用 inode 数 */
+  inodeUsed?: number;
+  /** 总 inode 数 */
+  inodeTotal?: number;
+  /** inode 统计所在的挂载点 */
+  inodeMount?: string;
   /** 概要浮层内容 */
   rows?: MetricRow[];
 }
@@ -53,6 +63,11 @@ const props = withDefaults(defineProps<Props>(), {
   mem: 0,
   disk: 0,
   hasMetrics: false,
+  handleCount: -1,
+  inodePercent: -1,
+  inodeUsed: -1,
+  inodeTotal: -1,
+  inodeMount: "",
   rows: () => [],
 });
 
@@ -118,6 +133,27 @@ const delayBad = computed(() => {
 });
 
 const onlineText = computed(() => (props.online === 1 ? "在线" : "离线"));
+
+/** 句柄数：取不到显示「—」，不写成 0（0 是「一个句柄都没开」的事实，不是缺失） */
+const handleText = computed(() =>
+  props.handleCount >= 0 ? props.handleCount.toLocaleString() : "—");
+
+/** inode 使用率：Windows 等平台没有 inode，显示「—」 */
+const inodeText = computed(() =>
+  props.inodePercent >= 0 ? `${props.inodePercent.toFixed(1)}%` : "—");
+
+/** inode 明细（hover 看已用 / 总量 / 挂载点） */
+const inodeTitle = computed(() => {
+  if (props.inodePercent < 0) return "iNode 使用率：当前平台取不到（Windows 无 inode）";
+  const used = props.inodeUsed >= 0 ? props.inodeUsed.toLocaleString() : "—";
+  const total = props.inodeTotal >= 0 ? props.inodeTotal.toLocaleString() : "—";
+  return `iNode 使用率：${used} / ${total}（${props.inodeMount || "/"}）`;
+});
+
+const handleTitle = computed(() =>
+  props.handleCount >= 0
+    ? `系统句柄数：${props.handleCount.toLocaleString()}（POSIX 为打开的文件描述符数，Windows 为各进程 HandleCount 汇总）`
+    : "系统句柄数：采集通道未返回");
 
 /** 三条指标的定义，避免模板里重复三份结构 */
 const bars = computed(() => [
@@ -189,6 +225,8 @@ const bars = computed(() => [
 
     <!-- 连接信息 -->
     <div class="hmb__meta">
+      <span class="hmb__pill is-res" :title="handleTitle">句柄 <b class="hmb__res pf-mono">{{ handleText }}</b></span>
+      <span class="hmb__pill is-res" :title="inodeTitle">iNode <b class="hmb__res pf-mono">{{ inodeText }}</b></span>
       <span class="hmb__pill" :class="online === 1 ? 'is-ok' : 'is-bad'">{{ onlineText }}</span>
       <span class="hmb__pill" :class="{ 'is-warn': delayBad }">{{ delayText }}</span>
       <span v-if="protocol" class="hmb__pill is-proto">{{ protocol.toUpperCase() }}</span>
@@ -556,6 +594,27 @@ const bars = computed(() => [
 .hmb__pill.is-ok {
   color: var(--el-color-success);
   border-color: color-mix(in srgb, var(--el-color-success) 35%, transparent);
+}
+
+/* 句柄 / iNode：常驻的容量类信息，用中性胶囊避免和在线状态抢颜色 */
+.hmb__pill.is-res {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hmb__res {
+  font-family: var(--font-mono, ui-monospace, Consolas, monospace);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+@container (max-width: 1000px) {
+  .hmb__meta .hmb__pill.is-res {
+    display: none;
+  }
 }
 
 .hmb__pill.is-bad {

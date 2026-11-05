@@ -51,6 +51,10 @@
       "types": "./src/components/ReDialog/index.ts",
       "default": "./src/components/ReDialog/index.ts"
     },
+    "./re-progress-dialog": {
+      "types": "./src/components/ReProgressDialog/index.ts",
+      "default": "./src/components/ReProgressDialog/index.ts"
+    },
     "./re-table": {
       "types": "./src/components/ReTable/index.ts",
       "default": "./src/components/ReTable/index.ts"

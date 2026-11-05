@@ -171,6 +171,17 @@ export default createVite({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, "/system/api/api"),
       }),
+      // Socket.IO 实时推送（租户创建进度等）：后端 socket 服务是独立 Netty 进程，
+      // 端口与 HTTP 分开（plugin.socket.room.port=18171），这里按路径代理过去。
+      // ws: true 必须开 —— 客户端默认 polling 建连后升级 websocket，少了它握手成功、
+      // 升级失败，表现为「连上了但推送时断时续」。
+      // 前端 socket 客户端取的是「页面源 + /socket.io」，没有这条代理就打到 vite 自己，
+      // 返回 404，subscribe 静默收不到任何消息。
+      "/socket.io": {
+        target: process.env.SYSTEM_SOCKET_TARGET ?? "http://127.0.0.1:18171",
+        changeOrigin: true,
+        ws: true,
+      },
       // 天气：Open-Meteo 免费天气 API（无需 key）
       "/weather-api": {
         target: "https://api.open-meteo.com",

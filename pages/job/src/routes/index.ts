@@ -43,6 +43,14 @@ export const jobRoutes: RouteConfigsTable[] = [
         component: () => import("../views/JobLogView.vue"),
         meta: { title: "作业日志", icon: "Tickets", showLink: true, keepAlive: true, rank: 4, isVisible: "1" },
       },
+      {
+        // [临时] 设计探索沙箱：调度概览的 5 个候选方案并排对比，选定后连同
+        // pages/job/src/views/ovx 整个目录与本条路由一起删除。
+        path: "/collect/-ovx",
+        name: "CollectJobOverviewOvx",
+        component: () => import("../views/ovx/OvxVariantsView.vue"),
+        meta: { title: "调度概览·方案", showLink: false },
+      },
     ],
   },
 ];

@@ -5,12 +5,13 @@
  * 租户分页查询 + 新增/编辑/删除/启用禁用/重置密码。
  * 全部使用 ReXxx modern 组件渲染，风格对齐 UserManage.vue。
  */
-import { message } from "@repo/core";
+import { getGlobalSocketService, message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
 import { ElMessageBox } from "element-plus";
-import { pageForTenant, saveTenant, updateTenant, deleteTenant, updateTenantStatus, resetTenantPassword, getTenant, listForTenant } from "../api/systemApi";
+import { pageForTenant, updateTenant, deleteTenant, updateTenantStatus, resetTenantPassword, getTenant, listForTenant, tenantProvisionCapabilities, startTenantProvision, cancelTenantProvision, tenantProvisionStatus } from "../api/systemApi";
 import type { SysTenant } from "../api/types";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
+import type { ProgressSnapshot, ProgressStep } from "@repo/ui/re-progress-dialog";
 
 const tenantStatusOptions = [
   { label: "启用", value: 0 },
@@ -120,22 +121,219 @@ async function handleSubmit() {
     message.warning("请输入租户密码");
     return;
   }
-  saving.value = true;
-  try {
-    if (isEdit.value) {
+  if (isEdit.value) {
+    saving.value = true;
+    try {
       await updateTenant(form.value);
       message.success("修改成功");
-    } else {
-      await saveTenant(form.value);
-      message.success("新增成功");
+      dialogVisible.value = false;
+      tableRef.value?.reload();
+    } catch (e) {
+      message.error((e as Error)?.message ?? "保存失败");
+    } finally {
+      saving.value = false;
     }
-    dialogVisible.value = false;
-    tableRef.value?.reload();
-  } catch (e) {
-    message.error((e as Error)?.message ?? "保存失败");
-  } finally {
-    saving.value = false;
+    return;
   }
+  // 新增租户改走「带进度的创建」：保存记录 → 建库 → 建账号授权 → 建业务表 →
+  // 同步租户库管理员 → 推送菜单，这几步动辄数十秒。原先是同步 save，界面上只有
+  // 一个转圈按钮，失败也不知道卡在哪一步；现在每一步都推给进度弹窗。
+  dialogVisible.value = false;
+  await startProvision({ ...form.value });
+}
+
+/* ================== 租户创建进度（socket 实时推送 + 状态轮询兜底） ================== */
+
+/** 轮询间隔：套接字正常时只当兜底，1.5s 足够且不至于打爆后端 */
+const PROVISION_POLL_INTERVAL = 1500;
+/** 轮询上限：约 10 分钟，超过就停（避免页面开着无限请求） */
+const PROVISION_POLL_MAX = 400;
+
+const provisionVisible = ref(false);
+const provisionSnapshot = ref<ProgressSnapshot | null>(null);
+const provisionSteps = ref<ProgressStep[]>([]);
+const provisionCancellable = ref(false);
+const provisionCancelling = ref(false);
+const provisionError = ref("");
+const provisionTaskId = ref("");
+
+let provisionUnsubscribe: (() => void) | null = null;
+let provisionPollTimer: number | null = null;
+let provisionPollCount = 0;
+
+/** 停掉状态轮询 */
+function stopProvisionPolling() {
+  if (provisionPollTimer !== null) {
+    window.clearInterval(provisionPollTimer);
+    provisionPollTimer = null;
+  }
+}
+
+/** 退订套接字 */
+function stopProvisionSubscription() {
+  provisionUnsubscribe?.();
+  provisionUnsubscribe = null;
+}
+
+/**
+ * 应用一份进度快照（来源：套接字推送或状态接口）。
+ *
+ * <p>忽略「不属于本次任务」和「进度倒退」的快照：两个通道同时到达时，
+ * 晚到的旧快照会把进度条往回拉。</p>
+ */
+function applyProvisionSnapshot(raw: Record<string, unknown> | null | undefined) {
+  if (!raw || typeof raw !== "object") {
+    return;
+  }
+  const taskId = raw.taskId === undefined || raw.taskId === null ? "" : String(raw.taskId);
+  if (taskId && provisionTaskId.value && taskId !== provisionTaskId.value) {
+    return;
+  }
+  const next = raw as unknown as ProgressSnapshot;
+  const prev = provisionSnapshot.value;
+  if (
+    prev &&
+    !next.finished &&
+    typeof prev.percentage === "number" &&
+    typeof next.percentage === "number" &&
+    next.percentage < prev.percentage
+  ) {
+    return;
+  }
+  provisionSnapshot.value = { ...next };
+  if (next.finished) {
+    finishProvision();
+  }
+}
+
+/** 任务结束：停轮询/退订，并按结果给出可见结论 + 刷新列表 */
+function finishProvision() {
+  stopProvisionPolling();
+  stopProvisionSubscription();
+  const snap = provisionSnapshot.value;
+  if (!snap) {
+    return;
+  }
+  // 无论成功失败都刷新：失败时租户记录可能已经落库（建库那步才挂），
+  // 列表不刷新会让人以为「什么都没发生」，再点一次又说账号已存在
+  tableRef.value?.reload();
+  loadSelectOptions();
+  if (snap.status === "SUCCESS") {
+    message.success(snap.message || "租户创建完成");
+  } else if (snap.status === "CANCELLED") {
+    message.warning(snap.message || "租户创建已取消");
+  } else {
+    message.error(snap.message || "租户创建失败");
+  }
+}
+
+/** 启动轮询兜底 */
+function startProvisionPolling() {
+  if (!provisionTaskId.value || provisionPollTimer !== null) {
+    return;
+  }
+  provisionPollTimer = window.setInterval(() => {
+    void pollProvisionStatus();
+  }, PROVISION_POLL_INTERVAL);
+}
+
+/** 拉一次状态快照 */
+async function pollProvisionStatus() {
+  const taskId = provisionTaskId.value;
+  if (!taskId) {
+    stopProvisionPolling();
+    return;
+  }
+  provisionPollCount += 1;
+  if (provisionPollCount > PROVISION_POLL_MAX) {
+    stopProvisionPolling();
+    return;
+  }
+  try {
+    const res = await tenantProvisionStatus(taskId);
+    const data = (res?.data ?? null) as Record<string, unknown> | null;
+    applyProvisionSnapshot(data);
+  } catch {
+    // 任务过期/接口异常：停止轮询，弹窗保留最后一份快照
+    stopProvisionPolling();
+  }
+}
+
+/**
+ * 开始带进度的创建。
+ *
+ * @param payload 新增租户表单
+ */
+async function startProvision(payload: SysTenant) {
+  provisionSnapshot.value = null;
+  provisionSteps.value = [];
+  provisionError.value = "";
+  provisionCancellable.value = false;
+  provisionCancelling.value = false;
+  provisionTaskId.value = "";
+  provisionPollCount = 0;
+  stopProvisionPolling();
+  stopProvisionSubscription();
+  provisionVisible.value = true;
+
+  // 能力接口：拿步骤清单 + 是否支持套接字/取消。失败不阻塞创建（还有轮询兜底），
+  // 但「取消」按钮必须等它明确说支持才出现
+  try {
+    const capsRes = await tenantProvisionCapabilities();
+    const caps = (capsRes?.data ?? {}) as Record<string, unknown>;
+    if (Array.isArray(caps.steps)) {
+      provisionSteps.value = caps.steps as ProgressStep[];
+    }
+    provisionCancellable.value = caps.cancellable === true;
+    if (caps.socket === true) {
+      const module = String(caps.socketModule || "system");
+      const topic = String(caps.socketTopic || "tenant:provision:progress");
+      const socket = getGlobalSocketService();
+      provisionUnsubscribe =
+        socket?.subscribe(module, topic, (msg: unknown) => {
+          const typed = msg as { data?: Record<string, unknown> } & Record<string, unknown>;
+          applyProvisionSnapshot(typed?.data ?? typed);
+        }) ?? null;
+    }
+  } catch {
+    // 能力接口不可用：只保留轮询
+  }
+
+  try {
+    const res = await startTenantProvision(payload);
+    const data = (res?.data ?? {}) as Record<string, unknown>;
+    provisionTaskId.value = data.taskId === undefined || data.taskId === null ? "" : String(data.taskId);
+    if (!provisionTaskId.value) {
+      throw new Error("后端未返回创建任务标识");
+    }
+    applyProvisionSnapshot(data);
+    startProvisionPolling();
+  } catch (e) {
+    provisionError.value = (e as Error)?.message ?? "启动租户创建失败";
+  }
+}
+
+/** 取消创建（后端在步骤边界生效） */
+async function handleProvisionCancel() {
+  if (!provisionTaskId.value || provisionCancelling.value) {
+    return;
+  }
+  provisionCancelling.value = true;
+  try {
+    await cancelTenantProvision(provisionTaskId.value);
+    message.info("已提交取消请求，将在当前步骤结束后停止");
+  } catch (e) {
+    message.error((e as Error)?.message ?? "取消创建失败");
+  } finally {
+    provisionCancelling.value = false;
+  }
+}
+
+/** 进度弹窗关闭（仅任务结束后可用） */
+function handleProvisionClose() {
+  provisionVisible.value = false;
+  stopProvisionPolling();
+  stopProvisionSubscription();
 }
 
 async function handleStatusChange(row: Record<string, unknown>) {
@@ -420,6 +618,19 @@ onMounted(() => {
         </el-form-item>
       </el-form>
     </ReDialog>
+
+    <!-- 租户创建进度：安装向导式弹窗（不可关闭；取消按钮由后端能力接口决定） -->
+    <ReProgressDialog
+      v-model="provisionVisible"
+      :title="provisionSnapshot?.finished ? '租户创建结果' : '正在创建租户'"
+      :snapshot="provisionSnapshot"
+      :steps="provisionSteps"
+      :cancellable="provisionCancellable"
+      :cancel-loading="provisionCancelling"
+      :error-message="provisionError"
+      @cancel="handleProvisionCancel"
+      @close="handleProvisionClose"
+    />
   </div>
 </template>
 

@@ -370,17 +370,14 @@ export default createVite({
   ],
   // @pages/server、@pages/monitor 未收录在 createVite 共享 REPO_ALIAS，这里按 monorepo 惯例
   // （见 createVite: alias 值相对 WORKSPACE_ROOT 解析）应用本地补全。
+  // 作业 / 采集 / 消息 / 签到 / 任务 / 成就六个页面包已从 monitor 撤出（后端无对应 starter，
+  // 菜单点开即 404），因此也不再声明 alias 与 workspace 依赖；恢复时需连同
+  // src/router/index.ts 的 import 一起加回。
   // 注意：业务代码以 "@pages/server/src/api" 形式引用，alias 目标应指向页面根（pages/server），
   // 使 "/src/..." 后缀落在真实的 pages/server/src/... 上；不可指向 pages/server/src（否则叠加成 src/src）。
   alias: {
-    "@pages/achievement": "pages/achievement",
-    "@pages/collect": "pages/collect",
-    "@pages/job": "pages/job",
-    "@pages/message": "pages/message",
     "@pages/server": "pages/server",
-    "@pages/signin": "pages/signin",
     "@pages/system": "pages/system",
-    "@pages/task": "pages/task",
     "@pages/monitor": "pages/monitor",
     "@pages/project": "pages/project",
     "@pages/room": "pages/room",

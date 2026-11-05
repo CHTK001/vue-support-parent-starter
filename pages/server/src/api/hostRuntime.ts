@@ -188,6 +188,20 @@ export const fetchProcessThreads = (pid: number, hostId?: number) =>
     .query(hostId ? { hostId } : {})
     .then(r => unwrap<ThreadInfo[]>(r));
 
+/** 进程环境变量（进程属性「环境」页签）：POSIX 读 /proc，Windows 取不到会返回空表 */
+export const fetchProcessEnv = (pid: number, hostId?: number) =>
+  http()
+    .get(`/ms/system/process/${pid}/env`)
+    .query(hostId ? { hostId } : {})
+    .then(r => unwrap<Array<{ name: string; value: string }>>(r));
+
+/** 进程工作目录（进程属性「环境」页签），取不到返回空串 */
+export const fetchProcessCwd = (pid: number, hostId?: number) =>
+  http()
+    .get(`/ms/system/process/${pid}/cwd`)
+    .query(hostId ? { hostId } : {})
+    .then(r => unwrap<string>(r));
+
 /** 获取服务列表 */
 export const fetchServices = (keyword?: string, hostId?: number) =>
   http()

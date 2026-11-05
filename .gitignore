@@ -417,3 +417,6 @@ node_modules/.tmp/
 !test/**/*.ps1
 !test/**/*.py
 
+# 验收/探针专用脚本（临时文件，不属于项目代码）
+*probe*
+

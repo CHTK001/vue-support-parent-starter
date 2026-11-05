@@ -3,13 +3,17 @@
  * ReTabs —— 多标签工作区（可关闭 / 右键菜单 / 面板常驻）
  *
  * <p>与 ReTab 的分工：ReTab 是固定档位切换（一次只挂一个面板）；
- * ReTabs 是多文档工作区，所有面板都挂载、用 v-show 切换，
+ * ReTabs 是多文档工作区，面板首次激活时才挂载、之后用 v-show 保活，
  * 切走再切回不丢终端会话、滚动位置与未提交的表单。</p>
+ *
+ * <p>懒挂载是「不把整页请求打到后台」的关键：页签一打开就全部挂载时，
+ * 每台主机的画像、终端、文件管理器都会在用户还没点进去时各发一轮请求。
+ * 未激活过的页签只有一个占位 div，激活过一次后保持 v-show，行为与原先一致。</p>
  *
  * @author CH
  * @since 4.0.0
  */
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import ReIcon from "../ReIcon/theme/default/ReIcon.vue";
 import type { ReTabsContextItem, ReTabsItem } from "./types";
 
@@ -55,6 +59,38 @@ const rootRef = ref<HTMLElement | null>(null);
 /* ==================== 激活与关闭 ==================== */
 
 const active = computed(() => props.modelValue);
+
+/**
+ * 已经挂载过的页签 name 集合。
+ *
+ * <p>首次激活才把槽内容挂上，之后一直保留（v-show 保活）。关闭页签时同步剔除，
+ * 让重新打开的页签拿到全新状态，而不是沿用上一次的滚动位置与会话。</p>
+ */
+const mountedNames = ref<string[]>([]);
+
+/** 标记一个页签为已挂载（幂等） */
+function ensureMounted(name: string): void {
+  if (!name || mountedNames.value.includes(name)) return;
+  mountedNames.value = [...mountedNames.value, name];
+}
+
+/** 当前页签是否需要渲染：已挂载或正是激活项 */
+function isMounted(tab: ReTabsItem): boolean {
+  return active.value === tab.name || mountedNames.value.includes(tab.name);
+}
+
+// 激活项变化时记入已挂载集合；新页签直接成为激活项时也能立刻挂载
+watch(
+  [active, () => props.tabs],
+  ([name, tabs]) => {
+    if (name) ensureMounted(name);
+    // 页签关闭后剔除，避免 name 被复用（同主机同功能重开）时跳过挂载
+    const alive = new Set(tabs.map(t => t.name));
+    const kept = mountedNames.value.filter(n => alive.has(n));
+    if (kept.length !== mountedNames.value.length) mountedNames.value = kept;
+  },
+  { immediate: true },
+);
 
 /**
  * 激活页签。
@@ -277,7 +313,7 @@ function statusClass(status?: string | null): string {
       </div>
     </div>
 
-    <!-- 内容面板：全部常驻，仅切换可见性，切走再切回不丢会话与表单 -->
+    <!-- 内容面板：首次激活才挂载，之后常驻、仅切换可见性，切走再切回不丢会话与表单 -->
     <div class="re-tabs__panels">
       <div
         v-for="tab in tabs"
@@ -286,7 +322,7 @@ function statusClass(status?: string | null): string {
         class="re-tabs__panel"
         :data-tab="tab.name"
       >
-        <slot :tab="tab" />
+        <slot v-if="isMounted(tab)" :tab="tab" />
       </div>
       <div v-if="!tabs.length" class="re-tabs__empty">
         <slot name="empty">{{ emptyText }}</slot>

@@ -246,13 +246,13 @@ export default createVite({
       // 按 hubTarget 是否自带 context-path 决定是否剥掉 /collect/api：
       //   - 默认独立 hub（8081，无 context-path）：必须剥掉，否则 `/collect/api/ms/**`
       //     会打到 Hub 容器路由之外，返回 S0503C0000「资源不存在」；
-      //   - 内嵌 hub（18190，context-path=/collect/api）：原样转发，
+      //   - 内嵌 hub（context-path=/collect/api，如 18190 / 验收用的 8082）：原样转发，
      //     /ms/** 与采集接口一样挂在这个前缀之下。
       // 顺序敏感：必须排在通用 /collect/api 前面，否则会先被通用条目转去 18190。
       "/collect/api/ms": {
         target: hubTarget,
         changeOrigin: true,
-        ...(hubTarget.includes(":18190") ? {} : { rewrite: stripCollectApiPrefix }),
+        ...(hubKeepsPrefix ? {} : { rewrite: stripCollectApiPrefix }),
         configure: stripOriginHeaders,
       },
       "/collect/api": {

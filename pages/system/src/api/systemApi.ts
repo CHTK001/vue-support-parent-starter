@@ -772,6 +772,46 @@ export function tenantStats() {
     .then<ApiResult<SysTenantStats>>((r) => r.data);
 }
 
+/**
+ * 租户创建进度：能力说明。
+ *
+ * <p>前端据此决定「是否订阅套接字」「是否渲染取消按钮」——没有接口就不给按钮。</p>
+ */
+export function tenantProvisionCapabilities() {
+  return http()
+    .get("/v2/tenant/provision/capabilities")
+    .then<ApiResult<Record<string, unknown>>>((r) => r.data);
+}
+
+/**
+ * 启动带进度的租户创建。
+ *
+ * <p>接口立刻返回 {@code taskId}，后续每一步由后端通过套接字推送
+ * （module=system, event=tenant:provision:progress）。</p>
+ */
+export function startTenantProvision(data: SysTenant) {
+  return http()
+    .post("/v2/tenant/provision/create")
+    .data(data as Record<string, unknown>)
+    .then<ApiResult<Record<string, unknown>>>((r) => r.data);
+}
+
+/** 取消租户创建（后端只在步骤边界生效） */
+export function cancelTenantProvision(taskId: string) {
+  return http()
+    .put("/v2/tenant/provision/cancel")
+    .query({ taskId })
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 查询租户创建进度快照（套接字断线时的兜底） */
+export function tenantProvisionStatus(taskId: string) {
+  return http()
+    .get("/v2/tenant/provision/status")
+    .query({ taskId })
+    .then<ApiResult<Record<string, unknown>>>((r) => r.data);
+}
+
 /** 服务列表（租户服务分配用） */
 export function listForService() {
   return http()

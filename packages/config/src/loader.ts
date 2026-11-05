@@ -54,7 +54,7 @@ export type EnvLike = Record<string, string | undefined>;
 /**
  * loadConfig 幂等去重：同一配置源（appName + configUrl）并发调用只执行一次，
  * 其余调用共享同一 in-flight promise，避免 App.tsx 与 Vue 登录 bootstrap 并发
- * 加载导致 setConfig 多次触发订阅者（document.title 等 UI 二次跳动）。
+ * 加载导致 applyConfig 多次触发订阅者（document.title 等 UI 二次跳动）。
  */
 let inFlightConfig: Promise<AppConfig> | null = null;
 
@@ -163,10 +163,10 @@ async function safeFetchYaml(
 
 /**
  * 加载并合并统一配置（内部会重置并写入 getConfig 缓存）
- * @returns 合并后的最终配置（reactive 单例，调用方后续修改可直接走 setConfig）
+ * @returns 合并后的最终配置（reactive 单例，调用方后续修改可直接走 applyConfig）
  *
  * 所有来源（example / app / env / remote / envvars）先收集为 partial，
- * 链式合并成一个后只调用一次 setConfig，避免加载中间态（reset/example
+ * 链式合并成一个后只调用一次 applyConfig，避免加载中间态（reset/example
  * 阶段的默认 title）触发订阅者反复更新 document.title 等 UI。
  */
 export async function loadConfig(

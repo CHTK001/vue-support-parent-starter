@@ -20,7 +20,7 @@
  *   app.crypto.sm3(...);  app.config.app.title;  app.storage.set(...);
  */
 import { loadCrypto, SystemException, type CryptoModule } from "./crypto";
-import { loadConfig, getConfig, upgrade, setConfig, restoreUserConfig, type AppConfig, type DeepPartial } from "@repo/config";
+import { loadConfig, getConfig, upgrade, restoreUserConfig, type AppConfig, type DeepPartial } from "@repo/config";
 import {
   browserLocalStorage,
   createStorage,

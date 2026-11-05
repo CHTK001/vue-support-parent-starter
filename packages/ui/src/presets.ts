@@ -39,6 +39,7 @@ export const CORE_PRESET: UiPreset = [
   "ReSelect",
   "ReDatePicker",
   "ReDialog",
+  "ReProgressDialog",
   "ReTable",
   "RePagination",
   "ReForm",

@@ -18,31 +18,48 @@
  * @since 4.0.0
  */
 import { message } from "@repo/core";
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ElMessageBox } from "element-plus";
 import {
+  applySystemConfig,
   closeNetProcess,
   deleteHostEnvVar,
+  fetchDeletedFiles,
   fetchHostProfile,
   fetchHostProfileSection,
+  fetchMounts,
+  fetchSystemConfigs,
   killProcess,
+  mountDevice,
+  releaseDeletedFile,
   restartHostProcess,
   restartService,
   setHostEnvVar,
   startService,
   stopService,
+  unmountDevice,
 } from "../api";
 import { osIconSvg } from "../utils/osIcon";
 import { privateIpTextOf } from "../utils/hostProfileUi";
 import * as echarts from "echarts";
 import HostFileManager from "../components/HostFileManager.vue";
-import ProfileDisks from "../components/profile/ProfileDisks.vue";
-import ProfileProcesses from "../components/profile/ProfileProcesses.vue";
-import ProfileServices from "../components/profile/ProfileServices.vue";
-import ProfilePorts from "../components/profile/ProfilePorts.vue";
-import ProfileNetwork from "../components/profile/ProfileNetwork.vue";
-import ProfileEnv from "../components/profile/ProfileEnv.vue";
-import ProfileFirewall from "../components/profile/ProfileFirewall.vue";
+
+/**
+ * 画像分区全部异步化。
+ *
+ * <p>一个工作区页签只承载一个分区，若同步导入全部分区，打开「进程」也会把磁盘、
+ * 端口、网络、防火墙的代码一并下载并实例化。异步组件让每个页签只加载自己那份。</p>
+ */
+const ProfileDisks = defineAsyncComponent(() => import("../components/profile/ProfileDisks.vue"));
+const ProfileProcesses = defineAsyncComponent(() => import("../components/profile/ProfileProcesses.vue"));
+const ProfileServices = defineAsyncComponent(() => import("../components/profile/ProfileServices.vue"));
+const ProfilePorts = defineAsyncComponent(() => import("../components/profile/ProfilePorts.vue"));
+const ProfileNetwork = defineAsyncComponent(() => import("../components/profile/ProfileNetwork.vue"));
+const ProfileEnv = defineAsyncComponent(() => import("../components/profile/ProfileEnv.vue"));
+const ProfileFirewall = defineAsyncComponent(() => import("../components/profile/ProfileFirewall.vue"));
+const ProfileMounts = defineAsyncComponent(() => import("../components/profile/ProfileMounts.vue"));
+const ProfileSystemConfig = defineAsyncComponent(() => import("../components/profile/ProfileSystemConfig.vue"));
+const ProfileDeletedFiles = defineAsyncComponent(() => import("../components/profile/ProfileDeletedFiles.vue"));
 import type { Host, Group } from "./AssetsView.vue";
 import ReDialog from "@repo/ui/re-dialog";
 
@@ -100,7 +117,17 @@ const emit = defineEmits<{
 }>();
 
 /** 画像分区（概要信息已移到左侧，右侧只保留明细分区，默认磁盘） */
-type SectionKey = "ports" | "processes" | "services" | "disks" | "network" | "env" | "firewall";
+type SectionKey =
+  | "ports"
+  | "processes"
+  | "services"
+  | "disks"
+  | "network"
+  | "env"
+  | "firewall"
+  | "mounts"
+  | "sysconfig"
+  | "deleted";
 
 /** 分区定义（各分区走对应采集端点） */
 const sections: Array<{ name: SectionKey; label: string }> = [
@@ -108,9 +135,12 @@ const sections: Array<{ name: SectionKey; label: string }> = [
   { name: "processes", label: "进程" },
   { name: "services", label: "服务" },
   { name: "disks", label: "磁盘" },
+  { name: "mounts", label: "挂载盘" },
   { name: "network", label: "网络" },
   { name: "env", label: "环境变量" },
   { name: "firewall", label: "防火墙" },
+  { name: "sysconfig", label: "系统配置" },
+  { name: "deleted", label: "已删除文件" },
 ];
 
 /** 每页条数在 localStorage 里的键（与主机资产「画像偏好」共用） */
@@ -223,6 +253,9 @@ const loadingProfile = ref(false);
 const loadingSection = ref(false);
 const profileError = ref("");
 const sectionError = ref("");
+/** 已删除文件采集：平台是否支持 + 不支持原因（如 Windows 通道未接入） */
+const deletedSupported = ref(true);
+const deletedReason = ref("");
 let timer: number | undefined;
 let ticker: number | undefined;
 /** 异步加载请求代次：切换主机 / 分区 / 重开时 +1，迟到的旧响应据此丢弃，避免慢通道覆盖新数据 */
@@ -237,10 +270,20 @@ let sectionReq = 0;
 let embeddedLoaded = false;
 
 const selectedHost = computed(() => props.hosts.find(h => h.id === selectedId.value) ?? null);
+/**
+ * Agent 是否就绪。
+ *
+ * <p>嵌入模式不再拉整份画像（那是「打开一个分区却发全部分区请求」的根因），
+ * 手头没有 info/snapshot，就退回主机台账上的安装标记，不再显示成「未就绪」。</p>
+ */
 const agentReady = computed(() =>
   String(info.value.agentVersion || "").trim() !== ""
-  || Number(snapshot.value.serverHostAgentInstalled ?? 0) === 1);
-const agentVersion = computed(() => String(info.value.agentVersion || snapshot.value.serverHostAgentVersion || ""));
+  || Number(snapshot.value.serverHostAgentInstalled ?? 0) === 1
+  || (props.embedded && Number(selectedHost.value?.serverHostAgentInstalled ?? 0) === 1));
+const agentVersion = computed(() => String(info.value.agentVersion
+  || snapshot.value.serverHostAgentVersion
+  || (props.embedded ? selectedHost.value?.serverHostAgentVersion : "")
+  || ""));
 const isAgentMode = computed(() =>
   String(selectedHost.value?.serverHostCollectMode ?? "").toUpperCase() === "AGENT");
 /** 进程 / 服务 / 监听端口 / 防火墙 均由后端分页（后台只返回当前页） */
@@ -256,6 +299,9 @@ const KEYWORD_HINTS: Record<string, string> = {
   disks: "盘符 / 卷标 / 文件系统",
   env: "变量名 / 变量值",
   firewall: "规则名 / 链 / 方向 / 动作 / 协议 / 端口",
+  mounts: "设备 / 挂载点 / 文件系统",
+  sysconfig: "配置键 / 说明",
+  deleted: "路径 / 进程名 / PID",
 };
 const keywordPlaceholder = computed(() => KEYWORD_HINTS[active.value] ?? "关键字过滤");
 
@@ -321,7 +367,7 @@ watch(visibleHosts, (list) => {
       sectionError.value = "";
       resetPager();
       embeddedLoaded = true;
-      loadProfile();
+      // 嵌入模式只拉本分区：打开「进程」不该顺带把概要 / 磁盘 / 端口等请求都打到后台
       loadSection();
     }
     return;
@@ -356,7 +402,7 @@ watch([() => props.hostId, () => props.section], ([hid, sec]) => {
     sectionError.value = "";
   }
   resetPager();
-  loadProfile();
+  // 嵌入模式不拉整份画像：分区页签只请求自己这一块
   loadSection();
 });
 
@@ -444,6 +490,30 @@ async function loadSection(): Promise<void> {
   loadingSection.value = true;
   sectionError.value = "";
   try {
+    // 三个新分区走各自的专用端点，不混进画像分区的分页协议
+    if (sec === "mounts") {
+      const res = await fetchMounts(hid);
+      if (req !== sectionReq || selectedId.value !== hid || active.value !== sec) return;
+      rows.value = Array.isArray(res) ? res : [];
+      sectionTotal.value = rows.value.length;
+      return;
+    }
+    if (sec === "sysconfig") {
+      const res = await fetchSystemConfigs(hid);
+      if (req !== sectionReq || selectedId.value !== hid || active.value !== sec) return;
+      rows.value = Array.isArray(res) ? res : [];
+      sectionTotal.value = rows.value.length;
+      return;
+    }
+    if (sec === "deleted") {
+      const res = await fetchDeletedFiles(hid);
+      if (req !== sectionReq || selectedId.value !== hid || active.value !== sec) return;
+      deletedSupported.value = res?.supported !== false;
+      deletedReason.value = String(res?.reason ?? "");
+      rows.value = Array.isArray(res?.rows) ? res.rows : [];
+      sectionTotal.value = rows.value.length;
+      return;
+    }
     // 分页分区传 page/size；后端返回 SectionPage（含 total），非分页分区返回数组
     const paged = sec === "processes" || sec === "services" || sec === "ports" || sec === "firewall";
     const res = await fetchHostProfileSection(hid, sec,
@@ -473,7 +543,18 @@ async function loadSection(): Promise<void> {
 
 /** IPv4 配置下发后：重新采集并刷新概要与网卡列表 */
 function onNetworkApplied(): void {
-  loadProfile(true);
+  if (!props.embedded) loadProfile(true);
+  loadSection();
+}
+
+/**
+ * 刷新当前视图。
+ *
+ * <p>嵌入模式只有本分区这一份数据，刷新它即可；非嵌入模式还要更新左侧概要，
+ * 所以两处按钮都走这里，避免在模板里重复判断。</p>
+ */
+function refreshCurrent(): void {
+  if (!props.embedded) loadProfile(true);
   loadSection();
 }
 
@@ -591,6 +672,69 @@ async function onDeleteEnv(row: Record<string, any>): Promise<void> {
   const hid = actionHostId();
   if (hid == null) return;
   await runAction(`env-del-${name}`, deleteHostEnvVar(hid, name));
+}
+
+/* ================== 挂载盘 ================== */
+
+/** 挂载：后端先建目录再挂载，并用 mountpoint 回查确认 */
+async function onMountDevice(payload: { source: string; target: string; fsType: string }): Promise<void> {
+  const hid = actionHostId();
+  if (hid == null) return;
+  const fs = payload.fsType ? `（${payload.fsType}）` : "";
+  if (!await confirmAction(`确定把 ${payload.source}${fs} 挂载到 ${payload.target}？`)) return;
+  await runAction(`mount-${payload.target}`, mountDevice(hid, payload.source, payload.target, payload.fsType));
+}
+
+/** 卸载：后端 umount 后回查挂载点是否消失 */
+async function onUnmountDevice(row: Record<string, any>): Promise<void> {
+  const target = String(row.target ?? "");
+  if (!target) return;
+  const hid = actionHostId();
+  if (hid == null) return;
+  if (!await confirmAction(`确定卸载 ${target}？正在使用该目录的进程会开始报错。`)) return;
+  await runAction(`umount-${target}`, unmountDevice(hid, target));
+}
+
+/* ================== 系统配置（热更新） ================== */
+
+/**
+ * 应用一项系统配置。
+ *
+ * <p>所有改动都先弹一次 MessageBox 说明「生效时机 + 风险」；标记为重要项（requiresConfirm）
+ * 的再弹第二次，避免用户把回车当成确认把句柄上限改小。后端写后会回读，失败原因原样返回。</p>
+ */
+async function onApplyConfig(payload: {
+  key: string;
+  value: string;
+  label: string;
+  tip: string;
+  hot: boolean;
+  requiresConfirm: boolean;
+}): Promise<void> {
+  const hid = actionHostId();
+  if (hid == null) return;
+  const timing = payload.hot ? "热更新：写入后立即生效" : "非热更新：新登录 / 新会话生效，已运行进程不变";
+  const first = `配置项：${payload.label}（${payload.key}）\n新值：${payload.value}\n${timing}\n\n${payload.tip}`;
+  if (!await confirmAction(first)) return;
+  if (payload.requiresConfirm) {
+    if (!await confirmAction(`重要配置项二次确认：确定修改「${payload.label}」为 ${payload.value}？\n\n${payload.tip}`)) return;
+  }
+  await runAction(`cfg-${payload.key}`, applySystemConfig(hid, payload.key, payload.value));
+}
+
+/* ================== 已删除但仍被占用的文件 ================== */
+
+/** 释放已删除文件：只截断 deleted 的 fd，进程继续运行 */
+async function onReleaseDeleted(row: Record<string, any>): Promise<void> {
+  const pid = Number(row.pid);
+  const fd = Number(row.fd);
+  const hid = actionHostId();
+  if (hid == null || !Number.isFinite(pid) || !Number.isFinite(fd)) return;
+  const name = String(row.path ?? "");
+  if (!await confirmAction(
+    `确定释放 ${row.sizeText || row.sizeBytes || ""}？\n${name}\n持有进程：${row.process ?? "?"}（PID ${pid} / PPID ${row.ppid ?? "?"}），fd ${fd}\n\n`
+    + "释放方式是把该句柄截断为 0，进程不会中断，但它在读这个文件时会拿到空内容。")) return;
+  await runAction(`deleted-${pid}-${fd}`, releaseDeletedFile(hid, pid, fd));
 }
 
 /** 复制文本：优先剪贴板 API，非安全上下文回退到临时 textarea */
@@ -734,7 +878,7 @@ function restartTimer(): void {
     if (countdown.value <= 0) {
       countdown.value = autoRefreshSeconds.value;
       if (!selectedHost.value || document.hidden) return;
-      loadProfile();
+      if (!props.embedded) loadProfile();
       loadSection();
     }
   }, 1000);
@@ -743,7 +887,7 @@ function restartTimer(): void {
     if (document.hidden) return;
     if (countdown.value === autoRefreshSeconds.value) {
       if (selectedHost.value) {
-        loadProfile();
+        if (!props.embedded) loadProfile();
         loadSection();
       }
     }
@@ -953,7 +1097,7 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
           </div>
           <div class="ph-actions">
             <ReButton icon="Refresh" layout="square" type="primary" :loading="loadingProfile"
-              @click="loadProfile(true)">刷新主机</ReButton>
+              @click="refreshCurrent">刷新主机</ReButton>
             <ReButton v-if="isAgentMode && !agentReady && selectedHost?.serverHostSshEnabled === 1" icon="Download" layout="square" type="success"
               @click="emit('deploy-agent', selectedHost)">安装 Agent</ReButton>
             <ReButton v-if="selectedHost?.serverHostRemoteEnabled === 1" icon="Connection" layout="square" @click="emit('connect', selectedHost)">连接</ReButton>
@@ -982,7 +1126,7 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
           </div>
           <div class="ph-actions">
             <ReButton icon="Refresh" layout="square" type="primary" :loading="loadingProfile"
-              @click="loadProfile(true)">刷新</ReButton>
+              @click="refreshCurrent">刷新</ReButton>
             <ReButton v-if="isAgentMode && !agentReady && selectedHost?.serverHostSshEnabled === 1" icon="Download" layout="square" type="success"
               @click="emit('deploy-agent', selectedHost)">安装 Agent</ReButton>
             <label class="auto-switch" :title="autoRefresh ? '自动刷新中；可在右键菜单 → 系统 → 系统设置中调整间隔' : '自动刷新已关闭；可在右键菜单 → 系统 → 系统设置中开启'">
@@ -1093,6 +1237,21 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
             @close="onClosePortProcess"
           />
 
+          <!-- 挂载盘：设备 / 挂载点 / 容量，支持挂载与卸载（后端动作后回查） -->
+          <ProfileMounts
+            v-else-if="active === 'mounts'"
+            :rows="clientRows"
+            :keyword="sectionKeyword"
+            :loading="loadingSection"
+            :error="sectionError"
+            :busy-key="busyRow"
+            @search="onSearch"
+            @commit="onCommit"
+            @refresh="loadSection"
+            @mount="onMountDevice"
+            @unmount="onUnmountDevice"
+          />
+
           <!-- 网络：网卡总览卡 + 原有配置能力 -->
           <ProfileNetwork
             v-else-if="active === 'network'"
@@ -1123,7 +1282,7 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
 
           <!-- 防火墙：方向优先的规则行 -->
           <ProfileFirewall
-            v-else
+            v-else-if="active === 'firewall'"
             :rows="clientRows"
             :keyword="sectionKeyword"
             :loading="loadingSection"
@@ -1137,6 +1296,36 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
             @commit="onCommit"
             @page="changePage"
             @refresh="loadSection"
+          />
+
+          <!-- 系统配置：句柄上限 / 用户限制 / 全局权限，支持热更新与二次确认 -->
+          <ProfileSystemConfig
+            v-else-if="active === 'sysconfig'"
+            :rows="clientRows"
+            :keyword="sectionKeyword"
+            :loading="loadingSection"
+            :error="sectionError"
+            :busy-key="busyRow"
+            @search="onSearch"
+            @commit="onCommit"
+            @refresh="loadSection"
+            @apply="onApplyConfig"
+          />
+
+          <!-- 已删除文件：被进程占用但已 unlink 的文件，可截断释放空间 -->
+          <ProfileDeletedFiles
+            v-else
+            :rows="clientRows"
+            :keyword="sectionKeyword"
+            :loading="loadingSection"
+            :error="sectionError"
+            :supported="deletedSupported"
+            :reason="deletedReason"
+            :busy-key="busyRow"
+            @search="onSearch"
+            @commit="onCommit"
+            @refresh="loadSection"
+            @release="onReleaseDeleted"
           />
         </div>
       </template>

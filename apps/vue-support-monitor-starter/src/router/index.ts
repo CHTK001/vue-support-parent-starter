@@ -51,13 +51,12 @@ import { createRoomRoutes } from "@pages/room/src/routes";
 // apmConfig 只用于菜单可见性（app.yaml 的 apmConfig.enable），与后端探测无关。
 import { apmRoutes } from "@pages/apm/src/routes";
 import { apmConfig } from "@pages/apm/src/config";
-// 功能包路由（纯数组工厂）：作业中心 / 实验 / 采集 / 消息推送 / 签到 / 任务派发 / 系统管理
-import { achievementRoutes } from "@pages/achievement/src/routes";
-import { collectRoutes } from "@pages/collect/src/routes";
-import { jobRoutes } from "@pages/job/src/routes";
-import { messageRoutes } from "@pages/message/src/routes";
-import { signinRoutes } from "@pages/signin/src/routes";
-import { taskRoutes } from "@pages/task/src/routes";
+// 系统管理（@pages/system，纯数组工厂）：用户 / 角色 / 菜单 / 机构 / 字典 / 参数 /
+// 公告 / 反馈 / 岗位 / 消息 / 日志 / 在线用户等系统域页面，接口落在 /manage/** 与
+// /v2/user/**，monitor 后端（common-system-starter）全部有实现。
+//
+// 曾经一并并入的 achievement / collect / job / message / signin / task 六个包已移除：
+// monitor 后端不含它们的任何 starter，菜单点开即 404（详见文件末尾的合并处注释）。
 import { systemRoutes } from "@pages/system/src/routes";
 
 export const monitorRoutes: RouteConfigsTable[] = [
@@ -417,16 +416,26 @@ export const monitorRoutes: RouteConfigsTable[] = [
   // 侧边栏仍停在 /datasource 上。activeMenu 指向本应用的数据源列表路径。
   ...createDatasourceManageRoutes({ activeMenu: "/datasource" }),
 
-  // 功能包路由：每份都是由「分组父节点 + 叶子」组成的路由树，实验/采集/调度/
-  // 消息/签到/任务/系统管理全量展开，宿主只做合并，视图与 API 同源。
+  // 功能包路由：只有 @pages/system 一份 —— 它的页面全部落在 /manage/** 与 /monitor/online，
+  // monitor 后端（spring-api-support-common-system-starter）都有实现。
+  //
+  // 2026-11-02 的 395b0c4b25 曾把 achievement / collect / job / message / signin / task
+  // 六个包一起并入，但只接了前端、没接后端，且多数包在 monitor 里没有对应 starter：
+  //   - achievement / signin：后端只在系统管理应用（18170），monitor 的 /achievement、/signin
+  //     在 /actuator/mappings 里计数为 0，菜单标题也因缺 i18n key 直接显示 menu.achievement；
+  //   - collect：采集调度一体化平台（18190）的能力，monitor 无 /v2/collect；其中顶级
+  //     /collect/datasource/list 还和本站「数据中心 → 数据源中心」重复（同一个 ScDataSourceView）；
+  //   - message：monitor 只有 send/log/template/站内信，没有 pages/message 需要的
+  //     provider CRUD 与 channel/list；provider 实现所在的 message-starter 与 system-starter
+  //     同名 Bean 冲突，不能同进程引入；
+  //   - task：唯一实现 taskdistribution-starter 没有任何应用引入，monitor 无 /v2/taskdistribution；
+  //   - job：job-starter 虽在 monitor 的 jar 里，但 plugin.job.manage.enable 默认 false，
+  //     前端也没配 url.jobApi，调度中心整组接口 404。将来要恢复调度页需同时满足两处配置
+  //     （app.yaml 增加 urlConfig.jobApi: /v2/job + 后端 --plugin.job.manage.enable=true），
+  //     再重新 import jobRoutes。
+  //
   // 注意：systemRoutes 与宿主的 /system-config 页面同名（SystemConfig），
   // app 本地路由已改名为 SystemConfigView，保证两页同时注册，不被 registerRoutesUnderLayout 按名称静默丢弃。
-  ...achievementRoutes,
-  ...collectRoutes,
-  ...jobRoutes,
-  ...messageRoutes,
-  ...signinRoutes,
-  ...taskRoutes,
   ...systemRoutes,
 
   // ==================== 隐藏路由（不进菜单，仍可访问） ====================

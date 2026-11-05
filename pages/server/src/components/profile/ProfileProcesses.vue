@@ -22,6 +22,7 @@ import {
 } from "../../utils/hostProfileUi";
 import { fetchProcessChildren, fetchProcessThreads, type ThreadInfo } from "../../api/hostRuntime";
 import ProfileSectionShell from "./ProfileSectionShell.vue";
+import ProfileProcessProperties from "./ProfileProcessProperties.vue";
 import type { StripItem } from "./types";
 
 interface Props {
@@ -249,6 +250,20 @@ function canRestart(row: Record<string, any>): boolean {
   return numOf(row.pid) > 0 && String(row.command ?? "").trim() !== "";
 }
 
+/** 是否僵尸进程：只剩进程表项，重启/结束都无效 */
+function isZombie(row: Record<string, any> | null | undefined): boolean {
+  return /^z/i.test(String(row?.state ?? "").trim());
+}
+
+/** 状态展示文本：空状态说明该通道没有这一列（Windows），不显示成异常 */
+function stateLabelOf(row: Record<string, any> | null | undefined): string {
+  const s = String(row?.state ?? "").trim();
+  if (!s) return "—";
+  const map: Record<string, string> = { R: "运行", S: "睡眠", D: "不可中断", T: "已停止", Z: "僵尸", I: "空闲" };
+  const key = s.charAt(0).toUpperCase();
+  return map[key] ? `${map[key]}（${s}）` : s;
+}
+
 /* ==================== 行右键菜单：重启 / 结束 / 内存分析 ==================== */
 /** 菜单状态 */
 const ctxMenu = reactive<{ visible: boolean; x: number; y: number; row: Record<string, any> | null }>({
@@ -260,10 +275,15 @@ const ctxMenu = reactive<{ visible: boolean; x: number; y: number; row: Record<s
 
 /** 菜单项（菜单自身只管展示与定位，确认逻辑委托给父级） */
 const ctxItems: Array<{ label: string; icon: string; danger?: boolean; disabled?: boolean; action: () => void }> = [
+  { label: "显示属性", icon: "View", action: () => rowCommand("props") },
   { label: "重启进程", icon: "RefreshRight", action: () => rowCommand("restart") },
   { label: "结束进程", icon: "CircleClose", danger: true, action: () => rowCommand("kill") },
   { label: "内存分析", icon: "DataAnalysis", action: () => rowCommand("analyze") },
 ];
+
+/** 属性弹框状态：行数据单独存一份，弹框打开期间列表刷新不影响已打开的对象 */
+const propsVisible = ref(false);
+const propsRow = ref<Record<string, any> | null>(null);
 
 function closeRowContextMenu(): void {
   if (!ctxMenu.visible) return;
@@ -279,12 +299,19 @@ function onRowContextMenu(e: MouseEvent, p: ProcView): void {
   ctxMenu.row = p.raw;
 }
 
-function rowCommand(cmd: "restart" | "kill" | "analyze"): void {
+function rowCommand(cmd: "restart" | "kill" | "analyze" | "props"): void {
+  // 先取出目标行再关菜单：关闭菜单会清空 ctxMenu.row，
+  // 原先「先关后判断」的写法让三个动作全部变成空操作（右键点了没反应）。
+  const row = ctxMenu.row;
   closeRowContextMenu();
-  if (!ctxMenu.row) return;
-  if (cmd === "restart") emit("restart", ctxMenu.row);
-  if (cmd === "kill") emit("kill", ctxMenu.row);
+  if (!row) return;
+  if (cmd === "restart") emit("restart", row);
+  if (cmd === "kill") emit("kill", row);
   if (cmd === "analyze") emit("analyze");
+  if (cmd === "props") {
+    propsRow.value = row;
+    propsVisible.value = true;
+  }
 }
 
 /** 菜单已 teleport 到 body，组件外的左键点击与 ESC 也要能关闭 */
@@ -365,6 +392,7 @@ onBeforeUnmount(() => {
               </span>
 
               <span class="proc-name pf-mono pf-ellipsis">{{ p.raw.name || "—" }}</span>
+              <span v-if="isZombie(p.raw)" class="proc-zombie pf-pill t-bad" title="进程已退出，仅剩进程表项等待父进程回收">僵尸</span>
 
               <span class="proc-bar-wrap">
                 <span class="pf-bar"><i :style="{ width: p.ratio + '%' }" /></span>
@@ -385,6 +413,7 @@ onBeforeUnmount(() => {
             <div class="proc-f"><i>线程</i><b class="pf-mono">{{ p.raw.threads ?? "—" }}</b></div>
             <div class="proc-f"><i>父进程</i><b class="pf-mono">{{ p.raw.ppid ?? "—" }}</b></div>
             <div class="proc-f"><i>启动时间</i><b class="pf-mono">{{ p.raw.startTime || "—" }}</b></div>
+            <div class="proc-f"><i>状态</i><b :class="{ 'proc-zombie-text': isZombie(p.raw) }">{{ stateLabelOf(p.raw) }}</b></div>
           </div>
           <div class="proc-detail-pop__label">命令行</div>
           <div class="pf-code proc-detail-pop__code">{{ p.raw.command || "—" }}</div>
@@ -487,6 +516,14 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </Teleport>
+
+    <!-- 进程属性：5 个可采集页签，见 ProfileProcessProperties.vue -->
+    <ProfileProcessProperties
+      v-model="propsVisible"
+      :row="propsRow"
+      :host-id="hostId"
+      :rows="rows"
+    />
 </template>
 
 <style scoped lang="scss">
@@ -607,6 +644,16 @@ onBeforeUnmount(() => {
   font-size: 12.5px;
   font-weight: 600;
   color: var(--el-text-color-primary, #1f2430);
+}
+/* 僵尸标记：进程已退出，指标全是 0，必须靠状态点出来 */
+.proc-zombie {
+  flex: none;
+  font-size: 11px;
+  line-height: 16px;
+}
+.proc-zombie-text {
+  color: var(--el-color-danger, #c9403a);
+  font-weight: 600;
 }
 .proc-bar-wrap {
   display: block;
