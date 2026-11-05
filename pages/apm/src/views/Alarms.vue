@@ -34,11 +34,12 @@
     <ReSkeleton v-if="loading && !alarms.length" :rows="6" animated />
 
     <template v-else>
-      <ReEmpty
-        v-if="!alarms.length"
-        :image-size="70"
-        description="该时间窗口内没有告警（也可能是 OAP 未配置告警规则）"
-      />
+      <div v-if="!alarms.length" class="apm-empty-card">
+        <div class="apm-empty-card__title">没有告警事件</div>
+        <p class="apm-empty-card__desc">
+          该时间窗口内规则未触发；如果确认应有告警，请检查 OAP 的 alarm 规则配置。
+        </p>
+      </div>
 
       <template v-else>
         <ReCard v-for="alarm in alarms" :key="alarm.id" :radius="12" shadow="never" class="alarm-card">
@@ -75,7 +76,6 @@ import { message } from "@repo/core";
 import { Search } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReCard from "@repo/ui/re-card";
-import ReEmpty from "@repo/ui/re-empty";
 import ReInput from "@repo/ui/re-input";
 import ReSectionHead from "@repo/ui/re-section-head";
 import ReSelect from "@repo/ui/re-select";

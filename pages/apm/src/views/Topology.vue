@@ -56,6 +56,9 @@
           empty-text="没有调用边"
           table-id="apm-topology-calls"
         >
+          <template #empty="{ description }">
+            <span class="apm-table-empty">{{ description }}</span>
+          </template>
           <template #col-source="{ row }">
             <span class="apm-mono">{{ nodeName(row.source) }}</span>
           </template>
@@ -69,7 +72,7 @@
             <span class="apm-mono" :class="latencyClass(row.avgMs)">{{ fmtMs(row.avgMs) }}</span>
           </template>
           <template #col-errorRate="{ row }">
-            <span class="apm-mono" :class="errorRateClass(row.errorRate)">{{ fmtPercent(row.errorRate) }}</span>
+            <span class="apm-mono" :class="Number(row.calls) > 0 ? errorRateClass(row.errorRate) : 'apm-muted'">{{ errorRateText(row.errorRate, row.calls) }}</span>
           </template>
         </ReTable>
       </ReCard>
@@ -86,6 +89,9 @@
           empty-text="没有节点"
           table-id="apm-topology-nodes"
         >
+          <template #empty="{ description }">
+            <span class="apm-table-empty">{{ description }}</span>
+          </template>
           <template #col-name="{ row }">
             <span class="apm-mono">{{ row.name }}</span>
           </template>
@@ -119,7 +125,7 @@ import ApmGraph from "../components/ApmGraph.vue";
 import { getTopology, listServices } from "../api/apmApi";
 import type { ApmTopology, ApmTopologyNode } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
-import { WINDOW_OPTIONS, errorRateClass, fmtMs, fmtNum, fmtPercent, latencyClass } from "../utils/format";
+import { WINDOW_OPTIONS, errorRateClass, errorRateText, fmtMs, fmtNum, latencyClass } from "../utils/format";
 
 const { present, ensure } = useApmStatus();
 

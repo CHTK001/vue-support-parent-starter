@@ -185,6 +185,9 @@
             empty-text="没有探测到任何 APM 引擎"
             table-id="apm-overview-candidates"
           >
+            <template #empty="{ description }">
+              <span class="apm-table-empty">{{ description }}</span>
+            </template>
             <template #col-available="{ row }">
               <ReTag :type="row.available ? 'success' : 'info'" round>
                 {{ row.available ? "可用" : "不可用" }}

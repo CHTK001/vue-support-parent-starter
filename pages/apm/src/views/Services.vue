@@ -42,6 +42,9 @@
       class="apm-row-click"
       @row-click="onRowClick"
     >
+      <template #empty="{ description }">
+        <span class="apm-table-empty">{{ description }}</span>
+      </template>
       <template #col-name="{ row }">
         <span class="apm-row__name">{{ row.name }}</span>
       </template>

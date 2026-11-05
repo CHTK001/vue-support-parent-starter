@@ -95,6 +95,9 @@
           empty-text="该服务没有实例数据"
           table-id="apm-service-instances"
         >
+          <template #empty="{ description }">
+            <span class="apm-table-empty">{{ description }}</span>
+          </template>
           <template #col-name="{ row }">
             <span class="apm-mono">{{ row.name }}</span>
           </template>
@@ -131,6 +134,9 @@
           empty-text="没有符合条件的端点"
           table-id="apm-service-endpoints"
         >
+          <template #empty="{ description }">
+            <span class="apm-table-empty">{{ description }}</span>
+          </template>
           <template #col-name="{ row }">
             <span class="apm-mono">{{ row.name }}</span>
           </template>
@@ -144,7 +150,7 @@
             <span class="apm-mono" :class="latencyClass(row.p99Ms)">{{ fmtMs(row.p99Ms) }}</span>
           </template>
           <template #col-errorRate="{ row }">
-            <span class="apm-mono" :class="errorRateClass(row.errorRate)">{{ fmtPercent(row.errorRate) }}</span>
+            <span class="apm-mono" :class="Number(row.calls) > 0 ? errorRateClass(row.errorRate) : 'apm-muted'">{{ errorRateText(row.errorRate, row.calls) }}</span>
           </template>
         </ReTable>
       </ReCard>
@@ -179,6 +185,7 @@ import { ROUTE_PREFIX } from "../config";
 import {
   WINDOW_OPTIONS,
   errorRateClass,
+  errorRateText,
   fmtAgo,
   fmtMs,
   fmtNum,

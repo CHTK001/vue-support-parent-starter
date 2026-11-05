@@ -53,6 +53,9 @@
       class="apm-row-click"
       @row-click="onRowClick"
     >
+      <template #empty="{ description }">
+        <span class="apm-table-empty">{{ description }}</span>
+      </template>
       <template #col-traceId="{ row }">
         <span class="apm-mono trace-id">{{ row.traceId }}</span>
       </template>

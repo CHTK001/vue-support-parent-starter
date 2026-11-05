@@ -64,7 +64,7 @@
       <ReStatCard
         size="compact"
         title="错误率最高"
-        :value="worst ? fmtPercent(worst.errorRate) : '—'"
+        :value="worst ? errorRateText(worst.errorRate, worst.calls) : '—'"
         :desc="worst?.name || '暂无数据'"
         :icon="Warning"
         icon-color="var(--el-color-danger)"
@@ -83,6 +83,9 @@
       empty-text="没有符合条件的端点"
       table-id="apm-endpoints"
     >
+      <template #empty="{ description }">
+        <span class="apm-table-empty">{{ description }}</span>
+      </template>
       <template #col-serviceName="{ row }">
         <span class="apm-muted apm-mono">{{ row.serviceName }}</span>
       </template>
@@ -102,7 +105,7 @@
         <span class="apm-mono" :class="latencyClass(row.p99Ms)">{{ fmtMs(row.p99Ms) }}</span>
       </template>
       <template #col-errorRate="{ row }">
-        <span class="apm-mono" :class="errorRateClass(row.errorRate)">{{ fmtPercent(row.errorRate) }}</span>
+        <span class="apm-mono" :class="Number(row.calls) > 0 ? errorRateClass(row.errorRate) : 'apm-muted'">{{ errorRateText(row.errorRate, row.calls) }}</span>
       </template>
     </ReTable>
 
@@ -128,7 +131,7 @@ import ApmGate from "../components/ApmGate.vue";
 import { listEndpoints, listServices } from "../api/apmApi";
 import type { ApmEndpoint } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
-import { errorRateClass, fmtMs, fmtNum, fmtPercent, latencyClass } from "../utils/format";
+import { errorRateClass, errorRateText, fmtMs, fmtNum, latencyClass } from "../utils/format";
 
 const { present, ensure } = useApmStatus();
 
@@ -144,9 +147,11 @@ const totalCalls = computed(() => endpoints.value.reduce((sum, e) => sum + (e.ca
 const slowest = computed<ApmEndpoint | null>(() =>
   endpoints.value.length ? [...endpoints.value].sort((a, b) => (b.p99Ms || 0) - (a.p99Ms || 0))[0] : null,
 );
-const worst = computed<ApmEndpoint | null>(() =>
-  endpoints.value.length ? [...endpoints.value].sort((a, b) => (b.errorRate || 0) - (a.errorRate || 0))[0] : null,
-);
+const worst = computed<ApmEndpoint | null>(() => {
+  // 没有调用的端点没有错误率可言（OAP 会返回 100），不能让它霸占「错误率最高」
+  const called = endpoints.value.filter((e) => Number(e.calls ?? 0) > 0);
+  return called.length ? [...called].sort((a, b) => (b.errorRate || 0) - (a.errorRate || 0))[0] : null;
+});
 
 const columns: ReTableColumn[] = [
   { prop: "serviceName", label: "服务", width: 180, slot: "serviceName" },

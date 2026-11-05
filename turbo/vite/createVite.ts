@@ -51,6 +51,11 @@ const REPO_ALIAS: Record<string, string> = {
   // 必须排在 "@repo/ui" 前缀之前——字符串 alias 先匹配先赢，排后面会被前缀改写成
   // 不存在的 src/surface（包 exports 的精确子路径在 dev 下不参与解析）。
   "@repo/ui/surface": "packages/ui/src/components/shared/surface.ts",
+  // 空状态动画图注册表：主题设置的「动画图」下拉直接遍历这张表，
+  // 必须以精确子路径别名解析（包 exports 的 ./re-empty-figures 在 dev 下不生效，
+  // 否则会被下面的 "@repo/ui" 前缀改写成 src/re-empty-figures）。
+  "@repo/ui/re-empty-figures": "packages/ui/src/components/ReEmpty/figures.ts",
+  "@repo/ui/re-empty-resolve": "packages/ui/src/components/ReEmpty/resolve.ts",
   "@repo/app": "turbo/app/src",
   "@repo/template": "turbo/template",
   "@repo/assets": "packages/assets/src",

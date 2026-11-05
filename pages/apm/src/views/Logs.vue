@@ -44,6 +44,9 @@
       empty-text="该时间窗口内没有日志（OAP 可能未开启日志采集）"
       table-id="apm-logs"
     >
+      <template #empty="{ description }">
+        <span class="apm-table-empty">{{ description }}</span>
+      </template>
       <template #col-timestamp="{ row }">
         <span class="apm-muted">{{ fmtTime(row.timestamp) }}</span>
       </template>

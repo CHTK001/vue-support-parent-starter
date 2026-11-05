@@ -48,11 +48,12 @@
 
     <ReSkeleton v-if="loading && !alarms.length" :rows="6" animated />
 
-    <ReEmpty
-      v-else-if="!alarms.length"
-      :image-size="70"
-      description="该时间窗口内没有告警（也可能是 OAP 未配置告警规则）"
-    />
+    <div v-else-if="!alarms.length" class="apm-empty-card">
+      <div class="apm-empty-card__title">没有告警事件</div>
+      <p class="apm-empty-card__desc">
+        该时间窗口内规则未触发，因此没有可聚合的实体与作用域；如果确认应有告警，请检查 OAP 的 alarm 规则配置。
+      </p>
+    </div>
 
     <template v-else>
       <!-- 趋势：告警是不是在集中爆发 -->
@@ -156,7 +157,6 @@ import { message } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
 import ReCard from "@repo/ui/re-card";
 import ReChart from "@repo/ui/re-chart";
-import ReEmpty from "@repo/ui/re-empty";
 import ReIcon from "@repo/ui/re-icon";
 import ReInput from "@repo/ui/re-input";
 import ReSectionHead from "@repo/ui/re-section-head";

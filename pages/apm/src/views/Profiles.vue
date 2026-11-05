@@ -91,6 +91,9 @@
             empty-text="该任务没有采到慢请求"
             :table-id="`apm-profile-segments-${task.id}`"
           >
+            <template #empty="{ description }">
+              <span class="apm-table-empty">{{ description }}</span>
+            </template>
             <template #col-traceId="{ row }">
               <span class="apm-mono">{{ shortTrace(row.traceId) }}</span>
             </template>

@@ -69,6 +69,9 @@
           empty-text="没有数据"
           table-id="apm-compare-summary"
         >
+          <template #empty="{ description }">
+            <span class="apm-table-empty">{{ description }}</span>
+          </template>
           <template #col-service="{ row }">
             <span class="apm-mono">{{ row.service }}</span>
           </template>
