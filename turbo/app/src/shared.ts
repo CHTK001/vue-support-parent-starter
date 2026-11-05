@@ -154,3 +154,40 @@ export function hideAppLoader(): void {
     hide();
   }
 }
+
+/** 等待下一帧绘制（SSR / 无 rAF 环境立即返回） */
+function nextPaintFrame(): Promise<void> {
+  if (typeof requestAnimationFrame !== "function") return Promise.resolve();
+  return new Promise<void>((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
+
+/**
+ * 等到「首帧业务内容真正画出来」再收首屏遮罩。
+ *
+ * <p>为什么不能 mount 完就收：{@code app.mount()} 只保证根组件挂上了，
+ * 首次路由导航（含异步路由组件的 chunk）可能还没完成 —— 这时撤掉遮罩，
+ * 用户看到的就是一整片白（本仓库实测踩过）。</p>
+ *
+ * <p>顺序：路由 ready（首屏内容已解析）→ 双 rAF（patch 后的 DOM 进入下一帧绘制）
+ * → 隐藏。{@code timeoutMs} 是兜底：路由守卫卡住 / chunk 一直不回来时，
+ * 宁可露出一半内容也不能让遮罩永久盖住整站。</p>
+ *
+ * @param options.ready     首个路由是否已就绪（Vue: router.isReady()；React: initialized）
+ * @param options.timeoutMs 最长等待时间，默认 10s
+ */
+export function hideAppLoaderWhenReady(options: {
+  ready?: Promise<unknown> | null;
+  timeoutMs?: number;
+} = {}): void {
+  const { ready = null, timeoutMs = 10000 } = options;
+  const timeout = new Promise<void>((resolve) => setTimeout(resolve, timeoutMs));
+  const firstRoute = ready
+    ? Promise.resolve(ready).catch(() => undefined)
+    : Promise.resolve(undefined);
+
+  void Promise.race([firstRoute, timeout])
+    .then(() => nextPaintFrame())
+    .then(() => hideAppLoader());
+}

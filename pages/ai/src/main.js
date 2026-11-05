@@ -435,13 +435,28 @@ async function bootstrapAndMount() {
 
   app.mount("#app");
 
-  // 隐藏首屏全屏 loader（public/loader.js 注入，应用挂载完成后必须关闭，
-  // 否则 #app-loader 遮罩含 pointer-events 层会拦截全部后续点击，
-  // 表现在路由级测试里就是所有按钮/输入点击超时。
-  // （animations.ts ↔ loader.js 是字节级成套资源，关闭它不影响 ReLoader 的页面级加载态。）
-  if (typeof window.hideAppLoader === "function") {
-    window.hideAppLoader();
-  }
+  // 收首屏遮罩的时机：**不能**在 mount 之后立刻收。
+  // mount 只保证根组件挂上，首次路由导航（含异步路由 chunk）此时可能还没完成，
+  // 遮罩一撤就是整片白（本应用实测踩过）。等 router.isReady()（首屏路由已解析）
+  // 再等两帧（patch 后的 DOM 真正画出来），然后才淡出。
+  // 10s 兜底：守卫卡死时宁可露出内容也不能让遮罩永久盖住整站。
+  void Promise.race([
+    router.isReady().catch(() => undefined),
+    new Promise((resolve) => setTimeout(resolve, 10000)),
+  ])
+    .then(
+      () =>
+        new Promise((resolve) => {
+          if (typeof requestAnimationFrame !== "function") return resolve();
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        }),
+    )
+    .then(() => {
+      // 隐藏首屏全屏 loader（public/loader.js 注入）。淡出期间它不再拦截点击。
+      if (typeof window.hideAppLoader === "function") {
+        window.hideAppLoader();
+      }
+    });
 }
 
 /**

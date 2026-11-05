@@ -25,7 +25,14 @@ import { resolveThemeInstaller } from "@repo/theme";
 import { getGlobalSocketService, provideGlobalSocketService } from "@repo/core";
 import useAuthStore from "@repo/pinia/modules/auth";
 import useGlobalStore from "@repo/pinia/modules/global";
-import { assembleCore, applyTitle, buildMenuFromRoutes, kickOffFingerprint, hideAppLoader, applyLoaderDeployPolicy } from "./shared";
+import {
+  assembleCore,
+  applyTitle,
+  buildMenuFromRoutes,
+  kickOffFingerprint,
+  hideAppLoaderWhenReady,
+  applyLoaderDeployPolicy,
+} from "./shared";
 import AppWithRouter from "./AppWithRouter.vue";
 import SingleApp from "./SingleApp.vue";
 import type { AppInstance, CreateAppOptions } from "./types";
@@ -385,10 +392,14 @@ export class VueAppBuilder {
     // ⑤.5 浏览器指纹
     kickOffFingerprint();
 
-    // ⑥ 挂载 + 隐藏加载动画
+    // ⑥ 挂载 + 等首帧内容画出来再收遮罩
     if (mountEl) {
       vueApp.mount(mountEl);
-      hideAppLoader();
+      // 不能 mount 完立刻 hide：此时首屏路由/异步 chunk 可能还没完成，
+      // 遮罩一撤就是白屏。等 router.isReady + 双 rAF（内含 10s 兜底）。
+      hideAppLoaderWhenReady({
+        ready: context.router?.isReady ? context.router.isReady() : null,
+      });
       // ⑥.1 koi 本地 SVG sprite 注入（#icon-koi-*）。
       //
       // 为什么必须放这里而不是在 installKoi 里：installKoi 在 app.use(router) 之前

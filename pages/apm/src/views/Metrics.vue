@@ -79,7 +79,8 @@
       <template #header>
         <div class="apm-card-head">
           <span class="apm-card-h">{{ currentDefinition?.label || name || "指标" }}</span>
-          <span class="apm-mono apm-muted">{{ name }}</span>
+          <!-- label 与 name 同值时只显示一次，避免「service_resp_timeservice_resp_time」 -->
+          <span v-if="name && name !== (currentDefinition?.label || name)" class="apm-mono apm-muted">{{ name }}</span>
         </div>
       </template>
       <MetricChart v-if="series?.points?.length" :series="[series]" height="380px" />
