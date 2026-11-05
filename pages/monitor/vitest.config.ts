@@ -12,6 +12,7 @@ import vue from "@vitejs/plugin-vue";
  * - environment: jsdom。组件测试用 @vue/test-utils 的 mount，而它**即使浅挂载
  *   也需要 document**（实测在 node 环境下全部 ReferenceError: document is not
  *   defined），所以本包一旦引入组件级测试就必须用 jsdom；纯逻辑用例在 jsdom 下同样正常。
+ * - setupFiles: 补集，jsdom 不提供 hairline 图引擎的 IntersectionObserver。
  * - plugins: 需要 @vitejs/plugin-vue，因为注册表模块 import 了三个 .vue 面板，
  *   markRaw(ScFileStorageFilterPanel) 在模块加载时就会求值。
  *
@@ -22,6 +23,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
+    setupFiles: ["src/__tests__/setup.ts"],
     include: ["src/**/*.spec.ts"],
   },
 });

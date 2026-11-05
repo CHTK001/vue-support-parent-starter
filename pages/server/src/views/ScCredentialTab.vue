@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { message } from '@repo/core';
-import { getKeys, saveKey, delKey, getIdentities, saveIdentity, delIdentity, generateKeyPair, listMailbox, getMailboxMessage, createTempEmail, registerMailbox, unregisterMailbox } from '../api';
-import { realtimeChannel, type RealtimeEventHandler } from '../services/realtime';
+import { getKeys, saveKey, delKey, getIdentities, saveIdentity, delIdentity, generateKeyPair, listMailbox, getMailboxMessage, createTempEmail } from '../api';
+import { hostAssetsSse } from '../services/realtime';
 
 /** SSH 密钥（脱敏返回：无私钥/口令字段） */
 interface KeyRow {
@@ -326,11 +326,11 @@ const mailboxLimit = ref(20);
 const selectedEmail = ref<any>(null);
 /** 邮件详情加载状态 */
 const mailboxDetailLoading = ref(false);
-/** SSE 连接 clientId */
-const mailboxClientId = ref<string>('');
-/** 通道处理器（与 realtimeChannel.on 返回） */
-let mailboxChannelHandler: RealtimeEventHandler | null = null;
-/** 邮件箱对话框关闭回调(断开 SSE) */
+/** 新邮件推送的解绑函数（全局 SSE 事件订阅） */
+let offMailboxPush: (() => void) | null = null;
+/** 连接状态的解绑函数 */
+let offMailboxStatus: (() => void) | null = null;
+/** 邮件箱对话框关闭回调(停止新邮件提醒) */
 function onMailboxDialogClosed(): void {
   selectedEmail.value = null;
   mailboxNewEmailCount.value = 0;
@@ -338,53 +338,39 @@ function onMailboxDialogClosed(): void {
 }
 
 /**
- * 建立邮箱 SSE 连接(实时推送新邮件)
+ * 打开邮箱新邮件推送(复用主机资产全局 SSE 长连接)
  *
- * <p>通道化了：{@code ScCredentialTab} 不再自建 EventSource，
- * 而是把连接交给 {@code realtimeChannel} 共享通道，
- * 按 {@code mailbox} topic 注册 'connected'（用于注册推送连接）和 'mailbox'（新邮件推送）事件。</p>
+ * <p>{@code ScCredentialTab} 不建 EventSource：主机资产页面已有一条全局连接
+ * （{@code hostAssetsSse}），这里只登记「关注哪个邮箱身份」并挂事件处理器。
+ * 服务端检测到新邮件后经 {@code mailbox} 事件下发。</p>
  *
  * @param identityId 邮箱身份 ID
  */
 function connectMailboxSse(identityId: number): void {
   disconnectMailboxSse();
-  const clientId = 'mailbox-' + identityId + '-' + Date.now();
-  mailboxClientId.value = clientId;
-  mailboxSseStatus.value = 'connecting';
+  mailboxSseStatus.value = hostAssetsSse.currentStatus === 'connected' ? 'connected' : 'connecting';
 
-  const handler: RealtimeEventHandler = (event) => {
-    try {
-      if (event.type === 'connected') {
-        mailboxSseStatus.value = 'connected';
-        registerMailbox(identityId, clientId).catch(() => {});
-      } else if (event.type === 'mailbox') {
-        const emails = JSON.parse(String(event.data ?? '[]'));
-        if (Array.isArray(emails) && emails.length > 0) {
-          const list = mailboxEmails.value;
-          mailboxEmails.value = [...emails, ...list].slice(0, 100);
-          mailboxNewEmailCount.value += emails.length;
-          message.info('收到 ' + emails.length + ' 封新邮件');
-        }
-      } else if (event.type === 'error') {
-        mailboxSseStatus.value = 'closed';
-      }
-    } catch { /* 忽略事件解析异常 */ }
-  };
+  offMailboxPush = hostAssetsSse.onMailbox((emails) => {
+    if (emails.length > 0) {
+      mailboxEmails.value = [...emails, ...mailboxEmails.value].slice(0, 100);
+      mailboxNewEmailCount.value += emails.length;
+      message.info('收到 ' + emails.length + ' 封新邮件');
+    }
+  });
+  offMailboxStatus = hostAssetsSse.onStatus((status) => {
+    mailboxSseStatus.value = status === 'connected' ? 'connected' : status === 'closed' ? 'closed' : 'connecting';
+  });
 
-  mailboxChannelHandler = handler;
-  realtimeChannel.on('mailbox', handler, '/sse/connect?clientId=' + encodeURIComponent(clientId), ['connected', 'mailbox']);
+  hostAssetsSse.registerMailbox(identityId);
 }
 
-/** 断线时通道路径回收（否则手动关闭对应 topic 的连接） */
+/** 关闭邮件箱时停止新邮件提醒（不关闭全局连接） */
 function disconnectMailboxSse(): void {
-  if (mailboxChannelHandler) {
-    realtimeChannel.off('mailbox', mailboxChannelHandler);
-    mailboxChannelHandler = null;
-  }
-  if (mailboxClientId.value) {
-    unregisterMailbox(mailboxClientId.value).catch(() => {});
-  }
-  mailboxClientId.value = '';
+  offMailboxPush?.();
+  offMailboxPush = null;
+  offMailboxStatus?.();
+  offMailboxStatus = null;
+  hostAssetsSse.unregisterMailbox();
   mailboxSseStatus.value = 'closed';
 }
 /** SSE 连接状态(connecting/connected/closed) */

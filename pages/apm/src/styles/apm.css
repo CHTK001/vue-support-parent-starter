@@ -1,24 +1,68 @@
 /**
- * @pages/apm 页面版式（全局类，全部带 `apm-` 前缀，不会污染宿主）。
+ * @pages/apm 的视觉系统（全局类，全部 `apm-` 前缀，不会污染宿主）。
  *
- * <p>颜色一律引用宿主主题变量（{@code --el-*} 与 {@code --text-*}），
- * 因此深色 / 浅色主题切换、以及各应用自定义的品牌色都会自动跟随，
- * 这里不写任何硬编码色值。</p>
+ * <p>设计语言：<b>服务图谱</b>。整个模块只有一层「纸」和一组「块」——
+ * 页面底色是灰的一层，信息装在白块里，块与块之间用 1px 细线、不用阴影；
+ * 数字一律等宽、标签一律小号大字距。这样 12 个页签无论内容多不一样，
+ * 看起来都是同一台仪器上的不同读数。</p>
+ *
+ * <p>颜色全部走宿主变量（{@code --el-*}），深色主题自动跟随，
+ * 这里不写任何写死的色值；两处 unavoidable 的透明层用 {@code rgba} 白/黑，
+ * 在深浅两种底色下都成立。</p>
  *
  * @since 4.0.0.51
  */
 
+/* ==========================================================================
+   0. 令牌
+   ========================================================================== */
+
+.apm-page,
+.apm-absent,
+.apm-shell {
+  /* 面：块 / 画布 / 线 */
+  --apm-surface: var(--el-bg-color, #fff);
+  --apm-canvas: var(--el-bg-color-page, #f6f8fa);
+  --apm-line: var(--el-border-color-lighter, #e3e9ee);
+  --apm-line-strong: var(--el-border-color, #d6dee5);
+
+  /* 字 */
+  --apm-text: var(--el-text-color-primary, #0f1b24);
+  --apm-dim: var(--el-text-color-secondary, #6a7c8a);
+  --apm-faint: var(--el-text-color-placeholder, #8b9aa6);
+
+  /* 语义 */
+  --apm-accent: var(--el-color-primary, #1f7ae0);
+  --apm-ok: var(--el-color-success, #12a06a);
+  --apm-warn: var(--el-color-warning, #d98b00);
+  --apm-bad: var(--el-color-danger, #d93a3a);
+  --apm-info: var(--el-color-info, #6a7c8a);
+
+  /* 等宽字体：所有数值、地址、TraceId 都用它 */
+  --apm-mono: var(--el-font-family-mono, ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas, monospace);
+
+  --apm-radius: 12px;
+  --apm-radius-sm: 8px;
+}
+
+/* ==========================================================================
+   1. 页面骨架
+   ========================================================================== */
+
 .apm-page {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
+  box-sizing: border-box;
+  padding: 14px 16px 18px;
+  min-width: 0;
 }
 
 /* 过滤条 / 操作条 */
 .apm-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -27,14 +71,15 @@
 }
 
 .apm-count {
-  font-size: 12px;
-  color: var(--text-tertiary, var(--el-text-color-secondary));
+  font-family: var(--apm-mono);
+  font-size: 11px;
+  color: var(--apm-faint);
 }
 
-/* 卡片栅格：统计卡、图表卡 */
+/* 栅格 */
 .apm-grid {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
 }
 
@@ -42,117 +87,855 @@
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
 }
 
-/* 卡片头：标题 + 右侧说明/操作。
-   放全局而不是各页 scoped，是因为同一套类在 8 个视图里出现 ——
-   scoped 下每页复制一份，新页面漏抄就成了「标题没有字号」的裸文本。 */
+/* 块头：标题 + 右侧说明/操作（放全局，避免每页复制一份） */
 .apm-card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
 .apm-card-h {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 12.5px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--apm-text);
 }
 
-/* 文本 */
+/* 小节标题（块内分区） */
+.apm-sub-h {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--apm-faint);
+}
+
+/* ==========================================================================
+   2. 文本与语义色
+   ========================================================================== */
+
 .apm-mono {
-  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-family: var(--apm-mono);
   font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 .apm-muted {
-  color: var(--text-tertiary, var(--el-text-color-secondary));
+  color: var(--apm-faint);
 }
 
 .apm-ok {
-  color: var(--el-color-success);
+  color: var(--apm-ok);
 }
 
 .apm-warn {
-  color: var(--el-color-warning);
+  color: var(--apm-warn);
 }
 
 .apm-danger {
-  color: var(--el-color-danger);
+  color: var(--apm-bad);
 }
 
-/* 引擎信息条：一行小字说清「连的是谁、哪个版本、哪个地址」 */
+/* ==========================================================================
+   3. 页头（替代各页零散的 ReSectionHead 版式）
+   ========================================================================== */
+
+.apm-page .re-section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 0;
+}
+
+.apm-page .re-section-head__title {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.apm-page .re-section-head__desc {
+  margin-top: 3px;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   4. 引擎信息条
+   ========================================================================== */
+
 .apm-engine {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
-  font-size: 12px;
-  color: var(--text-secondary, var(--el-text-color-regular));
+  font-size: 11.5px;
+  color: var(--apm-dim);
 }
 
 .apm-engine__chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   padding: 1px 8px;
   border-radius: 999px;
-  border: 1px solid var(--border-subtle, var(--el-border-color));
-  background: var(--bg-fill, var(--el-fill-color-light));
-  font-size: 12px;
+  border: 1px solid var(--apm-line);
+  background: var(--apm-surface);
+  font-family: var(--apm-mono);
+  font-size: 10.5px;
   line-height: 18px;
+  color: var(--apm-dim);
+  white-space: nowrap;
 }
 
-/* 降级视图（没有 APM 时） */
+/* ==========================================================================
+   5. 指标栏：四个数，一把尺子量到底
+   ========================================================================== */
+
+.apm-rail {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--apm-line);
+  border-radius: var(--apm-radius);
+  background: var(--apm-surface);
+  overflow: hidden;
+}
+
+.apm-rail__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  padding: 9px 14px 10px;
+  border-right: 1px solid var(--apm-line);
+}
+
+.apm-rail__cell:last-child {
+  border-right: 0;
+}
+
+.apm-rail__k {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--apm-faint);
+  white-space: nowrap;
+}
+
+.apm-rail__v {
+  font-family: var(--apm-mono);
+  font-size: 25px;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+  color: var(--apm-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.apm-rail__v small {
+  margin-left: 3px;
+  font-size: 10.5px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--apm-faint);
+}
+
+.apm-rail__v.is-warn {
+  color: var(--apm-warn);
+}
+
+.apm-rail__v.is-bad {
+  color: var(--apm-bad);
+}
+
+.apm-rail__d {
+  font-size: 10.5px;
+  color: var(--apm-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ==========================================================================
+   6. 主区：左边画布 + 右边读数
+   ========================================================================== */
+
+.apm-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 2.15fr) minmax(232px, 1fr);
+  gap: 10px;
+  align-items: stretch;
+}
+
+@media (max-width: 1100px) {
+  .apm-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 画布：点阵底 + 内容 */
+.apm-canvas {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--apm-line);
+  border-radius: var(--apm-radius);
+  background: var(--apm-surface);
+  overflow: hidden;
+}
+
+.apm-canvas__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--apm-line);
+}
+
+.apm-canvas__title {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--apm-text);
+}
+
+.apm-canvas__hint {
+  font-family: var(--apm-mono);
+  font-size: 10px;
+  color: var(--apm-faint);
+}
+
+.apm-canvas__head .apm-bar__spacer {
+  margin-left: auto;
+}
+
+/* 点阵：用伪元素单独一层，深浅主题都不需要换色值 */
+.apm-canvas__stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 264px;
+}
+
+.apm-canvas__stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(var(--el-border-color) 1px, transparent 1px);
+  background-size: 16px 16px;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.apm-canvas__stage > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* 文字链接：这套语言里「跳转」是文字 + 箭头，「动作」才是有边框的按钮 */
+.apm-link {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--apm-dim);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.apm-link:hover {
+  color: var(--apm-accent);
+}
+
+/* 浮在画布上的读数 */
+.apm-chip {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 4px 9px 5px;
+  border: 1px solid var(--apm-line);
+  border-radius: var(--apm-radius-sm);
+  background: var(--apm-surface);
+  pointer-events: none;
+}
+
+.apm-chip__k {
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--apm-faint);
+}
+
+.apm-chip__v {
+  font-family: var(--apm-mono);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--apm-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.apm-chip__v.is-warn {
+  color: var(--apm-warn);
+}
+
+.apm-chip__v.is-bad {
+  color: var(--apm-bad);
+}
+
+.apm-chip--tl {
+  top: 10px;
+  left: 10px;
+}
+
+.apm-chip--tr {
+  top: 10px;
+  right: 10px;
+}
+
+.apm-chip--bl {
+  bottom: 10px;
+  left: 10px;
+}
+
+.apm-chip--br {
+  bottom: 10px;
+  right: 10px;
+}
+
+/* 右侧读数栏 */
+.apm-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.apm-block {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  padding: 8px 11px 9px;
+  border: 1px solid var(--apm-line);
+  border-radius: var(--apm-radius);
+  background: var(--apm-surface);
+}
+
+.apm-block__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--apm-faint);
+}
+
+.apm-block__head em {
+  font-style: normal;
+  font-family: var(--apm-mono);
+  font-size: 10px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--apm-dim);
+}
+
+/* 让行列表贴边：块只留顶部标题的内距，行自己的 padding 撑满整宽 */
+.apm-block--flush {
+  gap: 0;
+  padding: 8px 0 2px;
+}
+
+.apm-block__head--pad {
+  padding: 0 12px 5px;
+}
+
+/* 页脚小字：这块数据是什么时候的 */
+.apm-foot {
+  padding-top: 0;
+}
+
+.apm-block__big {
+  font-family: var(--apm-mono);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  color: var(--apm-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.apm-block__big small {
+  margin-left: 3px;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--apm-faint);
+}
+
+.apm-block__big.is-bad {
+  color: var(--apm-bad);
+}
+
+/* 块内键值行 */
+.apm-kvline {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--apm-dim);
+}
+
+.apm-kvline b {
+  font-family: var(--apm-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--apm-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 进度条（成功率一类） */
+.apm-meter {
+  display: block;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--el-fill-color);
+  overflow: hidden;
+}
+
+.apm-meter__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--apm-ok);
+}
+
+.apm-meter__fill.is-warn {
+  background: var(--apm-warn);
+}
+
+.apm-meter__fill.is-bad {
+  background: var(--apm-bad);
+}
+
+/* 告警条目 */
+.apm-alert {
+  display: flex;
+  gap: 7px;
+  padding: 4px 0;
+  border-top: 1px solid var(--apm-line);
+  min-width: 0;
+}
+
+.apm-alert:first-of-type {
+  border-top: 0;
+}
+
+.apm-alert__bar {
+  flex: none;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--apm-warn);
+}
+
+.apm-alert--error .apm-alert__bar {
+  background: var(--apm-bad);
+}
+
+.apm-alert--info .apm-alert__bar {
+  background: var(--apm-faint);
+}
+
+.apm-alert__body {
+  min-width: 0;
+}
+
+.apm-alert__title {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--apm-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.apm-alert__meta {
+  display: block;
+  font-family: var(--apm-mono);
+  font-size: 9.5px;
+  line-height: 1.4;
+  color: var(--apm-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   7. 自绘行列表（服务、调用边这类需要「一眼扫完」的表）
+   ========================================================================== */
+
+.apm-rows {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.apm-rows__head,
+.apm-row {
+  display: grid;
+  grid-template-columns: 16px minmax(140px, 1.7fr) 0.7fr 0.8fr 0.8fr;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 12px;
+  min-width: 0;
+}
+
+.apm-rows__head {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--apm-faint);
+  border-bottom: 1px solid var(--apm-line-strong);
+}
+
+/* 服务行多一列「分布条」：把空白填成信息，而不是把数字推到天边 */
+.apm-rows__head--svc,
+.apm-row--svc {
+  grid-template-columns: 16px minmax(110px, 0.9fr) minmax(120px, 2.2fr) 96px 88px 96px;
+}
+
+.apm-row__track {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--el-fill-color);
+  overflow: hidden;
+}
+
+.apm-row__bar {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--apm-accent);
+  opacity: 0.5;
+  transition: opacity 0.15s ease;
+}
+
+.apm-row--svc:hover .apm-row__bar {
+  opacity: 0.9;
+}
+
+.apm-row {
+  border-bottom: 1px solid var(--apm-line);
+  font-family: var(--apm-mono);
+  font-size: 11.5px;
+  color: var(--apm-dim);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.apm-row:last-child {
+  border-bottom: 0;
+}
+
+.apm-row:hover {
+  background: var(--el-fill-color-light);
+}
+
+.apm-row__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--apm-ok);
+}
+
+.apm-row__dot.is-warn {
+  background: var(--apm-warn);
+}
+
+.apm-row__dot.is-bad {
+  background: var(--apm-bad);
+}
+
+.apm-row__name {
+  font-family: var(--el-font-family, inherit);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--apm-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.apm-row__num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.apm-row .is-warn {
+  color: var(--apm-warn);
+}
+
+.apm-row .is-bad {
+  color: var(--apm-bad);
+}
+
+/* 列表内的空态 */
+.apm-rows__empty {
+  padding: 18px 12px;
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--apm-faint);
+}
+
+/* 侧栏里的调用量分布：名字 | 条 | 数字 */
+.apm-load {
+  display: grid;
+  grid-template-columns: minmax(56px, 96px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: 10.5px;
+}
+
+.apm-load__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--apm-dim);
+}
+
+.apm-load__track {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--el-fill-color);
+  overflow: hidden;
+}
+
+.apm-load__bar {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--apm-accent);
+  opacity: 0.6;
+}
+
+.apm-load__num {
+  font-family: var(--apm-mono);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--apm-text);
+}
+
+/* ==========================================================================
+   8. 让 ReCard / ReStatCard / el-table 落进这套语言
+   ========================================================================== */
+
+/* koi 主题的卡片：去掉外边距与阴影，变成「块」 */
+.apm-page .koi-card {
+  margin: 0;
+  padding: 10px 13px;
+  border: 1px solid var(--apm-line);
+  border-radius: var(--apm-radius);
+  background: var(--apm-surface);
+  transition: border-color 0.15s ease;
+}
+
+.apm-page .koi-card:hover {
+  border-color: var(--apm-line-strong);
+}
+
+.apm-page .koi-card__header {
+  padding-bottom: 6px;
+}
+
+/* default 主题的 el-card 也按同一形状收口 */
+.apm-page .el-card {
+  border: 1px solid var(--apm-line);
+  border-radius: var(--apm-radius);
+  background: var(--apm-surface);
+  box-shadow: none;
+}
+
+.apm-page .el-card__header {
+  padding: 9px 13px;
+  border-bottom: 1px solid var(--apm-line);
+}
+
+.apm-page .el-card__body {
+  padding: 10px 13px;
+}
+
+/* 统计卡：去阴影、去渐变，只留一条顶部细线和等宽数字 */
+.apm-page .re-stat-card {
+  padding: 9px 12px;
+  border: 1px solid var(--apm-line);
+  border-radius: var(--apm-radius);
+  background: var(--apm-surface);
+  box-shadow: none;
+}
+
+.apm-page .re-stat-card:hover {
+  border-color: var(--apm-line-strong);
+  transform: none;
+}
+
+.apm-page .re-stat-card__value {
+  font-family: var(--apm-mono);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.apm-page .re-stat-card__title {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--apm-faint);
+}
+
+.apm-page .re-stat-card__desc {
+  font-size: 10.5px;
+  color: var(--apm-faint);
+}
+
+/* 表格：细线、紧凑、表头当标签用 */
+.apm-page .el-table {
+  --el-table-border-color: var(--apm-line);
+  --el-table-header-bg-color: transparent;
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  --el-table-row-hover-bg-color: var(--el-fill-color-light);
+  --el-table-header-text-color: var(--apm-faint);
+  --el-table-text-color: var(--apm-dim);
+  font-size: 11.5px;
+}
+
+.apm-page .el-table th.el-table__cell {
+  padding: 5px 0;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--apm-line-strong);
+}
+
+.apm-page .el-table td.el-table__cell {
+  padding: 5px 0;
+}
+
+.apm-page .el-table .cell {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 分页条 */
+.apm-pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 6px;
+  font-family: var(--apm-mono);
+  font-size: 11px;
+  color: var(--apm-faint);
+}
+
+/* 可点击行：普通 CSS 文件不能写 `:deep()`，直接后代选择器 */
+.apm-row-click .el-table__row {
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   9. 降级视图（没有 APM 时）
+   ========================================================================== */
+
 .apm-absent {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: 32px 16px;
-  border-radius: 12px;
-  border: 1px dashed var(--border-subtle, var(--el-border-color));
-  background: var(--bg-fill, var(--el-fill-color-lighter));
+  margin: 14px 16px;
+  padding: 30px 18px;
+  border-radius: var(--apm-radius);
+  border: 1px dashed var(--apm-line-strong);
+  background: var(--apm-surface);
 }
 
 .apm-absent__title {
-  font-size: 15px;
-  font-weight: 600;
   margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--apm-text);
 }
 
 .apm-absent__msg {
   max-width: 720px;
   margin: 0;
   text-align: center;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--text-secondary, var(--el-text-color-regular));
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--apm-dim);
 }
 
-/* 链路瀑布 */
+/* ==========================================================================
+   10. 链路瀑布
+   ========================================================================== */
+
 .apm-waterfall {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .apm-waterfall__row {
   display: grid;
-  grid-template-columns: minmax(240px, 34%) 1fr 80px;
+  grid-template-columns: minmax(220px, 34%) 1fr 72px;
   align-items: center;
   gap: 10px;
   padding: 3px 6px;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: 11.5px;
   cursor: pointer;
 }
 
 .apm-waterfall__row:hover {
-  background: var(--bg-hover, var(--el-fill-color-light));
+  background: var(--el-fill-color-light);
 }
 
 .apm-waterfall__row.is-error .apm-waterfall__name {
-  color: var(--el-color-danger);
+  color: var(--apm-bad);
 }
 
 .apm-waterfall__name {
@@ -167,9 +950,9 @@
 
 .apm-waterfall__track {
   position: relative;
-  height: 12px;
+  height: 10px;
   border-radius: 3px;
-  background: var(--bg-fill-secondary, var(--el-fill-color));
+  background: var(--el-fill-color);
   overflow: hidden;
 }
 
@@ -177,36 +960,41 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  border-radius: 3px;
-  background: var(--el-color-primary);
   min-width: 2px;
+  border-radius: 3px;
+  background: var(--apm-accent);
 }
 
 .apm-waterfall__bar.is-error {
-  background: var(--el-color-danger);
+  background: var(--apm-bad);
 }
 
 .apm-waterfall__bar.is-remote {
-  background: var(--el-color-info);
+  background: var(--apm-info);
 }
 
 .apm-waterfall__ms {
   text-align: right;
+  font-family: var(--apm-mono);
+  font-size: 10.5px;
   font-variant-numeric: tabular-nums;
-  color: var(--text-secondary, var(--el-text-color-regular));
+  color: var(--apm-dim);
 }
 
-/* 详情：键值对网格（span 标签、实例属性） */
+/* ==========================================================================
+   11. 详情键值网格
+   ========================================================================== */
+
 .apm-kv {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 4px 16px;
-  font-size: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 3px 16px;
+  font-size: 11.5px;
 }
 
 .apm-kv__key {
-  color: var(--text-tertiary, var(--el-text-color-secondary));
   margin-right: 6px;
+  color: var(--apm-faint);
 }
 
 .apm-kv__row {
@@ -215,18 +1003,80 @@
   white-space: nowrap;
 }
 
-/* 分页条（列表页自绘，后端返回的是「一页」而非总数） */
-.apm-pager {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  padding-top: 8px;
-  font-size: 12px;
-  color: var(--text-secondary, var(--el-text-color-regular));
+/* ==========================================================================
+   12. 过滤条：控件比正文小一号
+   ========================================================================== */
+
+/* 输入 / 下拉：28px、单线、纸面底色 —— 和表格行同高，不再像表单 */
+.apm-page .apm-bar .el-input__wrapper,
+.apm-page .apm-bar .el-select__wrapper,
+.apm-page .apm-bar .el-input-number .el-input__wrapper {
+  min-height: 28px;
+  padding: 0 9px;
+  border-radius: 7px;
+  background: var(--apm-surface);
+  box-shadow: 0 0 0 1px var(--apm-line) inset;
+  font-size: 11.5px;
+  transition: box-shadow 0.15s ease;
 }
 
-/* 表格里的可点击行 */
-.apm-row-click :deep(.el-table__row) {
-  cursor: pointer;
+.apm-page .apm-bar .el-input__wrapper:hover,
+.apm-page .apm-bar .el-select__wrapper:hover {
+  box-shadow: 0 0 0 1px var(--apm-line-strong) inset;
+}
+
+.apm-page .apm-bar .el-input__wrapper.is-focus,
+.apm-page .apm-bar .el-select__wrapper.is-focused {
+  box-shadow: 0 0 0 1px var(--apm-accent) inset;
+}
+
+.apm-page .apm-bar .el-input__inner,
+.apm-page .apm-bar .el-select__placeholder {
+  font-size: 11.5px;
+}
+
+/* 主按钮：用墨色而不是主题蓝 —— 蓝在页面上只留给数据 */
+.apm-page .el-button--primary:not(.is-link):not(.is-text) {
+  --el-button-bg-color: var(--apm-text);
+  --el-button-border-color: var(--apm-text);
+  --el-button-hover-bg-color: var(--apm-dim);
+  --el-button-hover-border-color: var(--apm-dim);
+  --el-button-active-bg-color: var(--apm-text);
+  --el-button-active-border-color: var(--apm-text);
+  --el-button-text-color: var(--apm-canvas);
+}
+
+/* 勾选框：和过滤条同高 */
+.apm-page .apm-bar .el-checkbox {
+  height: 28px;
+  margin-right: 0;
+  font-size: 11.5px;
+  color: var(--apm-dim);
+}
+
+.apm-page .apm-bar .el-checkbox__label {
+  font-size: 11.5px;
+}
+
+/* 包着表格的卡片：内距收掉，让表头直接贴块边 */
+.apm-page .koi-card:has(.el-table),
+.apm-page .el-card:has(.el-table) {
+  padding: 4px 0 0;
+}
+
+.apm-page .koi-card:has(.el-table) > .koi-card__body,
+.apm-page .el-card:has(.el-table) > .el-card__body {
+  padding: 0;
+}
+
+/* Element 表格底部那条 1px 伪元素和块边框重复 */
+.apm-page .el-table__inner-wrapper::before {
+  display: none;
+}
+
+/* 表格里的操作列：文字链接，不是按钮 */
+.apm-page .el-table .el-button.is-link {
+  font-size: 11.5px;
+  padding: 0;
+  height: auto;
 }

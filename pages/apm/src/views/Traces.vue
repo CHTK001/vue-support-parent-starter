@@ -56,9 +56,6 @@
       <template #col-traceId="{ row }">
         <span class="apm-mono trace-id">{{ row.traceId }}</span>
       </template>
-      <template #col-serviceName="{ row }">
-        <span class="apm-mono">{{ row.serviceName || "—" }}</span>
-      </template>
       <template #col-endpointName="{ row }">
         <span class="apm-mono">{{ row.endpointName || "—" }}</span>
       </template>
@@ -72,9 +69,6 @@
         <ReTag :type="row.error ? 'danger' : 'success'" round size="small">
           {{ row.error ? "失败" : "成功" }}
         </ReTag>
-      </template>
-      <template #col-spanCount="{ row }">
-        <span class="apm-mono">{{ row.spanCount }}</span>
       </template>
     </ReTable>
 
@@ -147,12 +141,10 @@ const stateOptions = [
 
 const columns: ReTableColumn[] = [
   { prop: "traceId", label: "Trace ID", minWidth: 200, slot: "traceId" },
-  { prop: "serviceName", label: "服务", width: 180, slot: "serviceName" },
   { prop: "endpointName", label: "入口端点", minWidth: 220, slot: "endpointName" },
   { prop: "durationMs", label: "耗时", width: 100, align: "right", slot: "durationMs", sortable: true },
   { prop: "startTime", label: "开始时间", width: 170, slot: "startTime", sortable: true },
   { prop: "error", label: "状态", width: 90, align: "center", slot: "error" },
-  { prop: "spanCount", label: "Span", width: 80, align: "center", slot: "spanCount" },
 ];
 
 /** 服务下拉（只取一次，用不上就静默降级成自由文本） */

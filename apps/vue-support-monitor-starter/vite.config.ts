@@ -184,8 +184,10 @@ function deriveSocketTarget(api: string): string {
 }
 
 const socketTarget = process.env.MS_SOCKET_TARGET ?? deriveSocketTarget(apiTarget);
-/** 独立 ACME 后端：/monitor/api/** 的专用前缀（见 pages/server acmeApi.ts 的 BASE） */
-const acmeTarget = process.env.ACME_API_TARGET ?? "http://101.200.205.64:19170";
+/** ACME 证书：已并入主后端进程（monitor 后端依赖 spring-api-support-monitor-starter），
+ *  /monitor/api/** 默认与其它接口共用同一个 apiTarget；
+ *  只有把 ACME 单独部署时才用 ACME_API_TARGET 覆盖。 */
+const acmeTarget = process.env.ACME_API_TARGET ?? apiTarget;
 
 /** APM 观测后端地址；实测 8582 无监听，故不预置远端缺省，详见下方注释 */
 const apmTarget = process.env.APM_TARGET ?? INSTABOX_BACKEND;
@@ -635,6 +637,13 @@ export default createVite({
       // ECONNREFUSED → 页面拿到 502，ACME 账户/证书一律显示 0 条（看起来像数据丢了）。
       "/monitor/api": {
         target: acmeTarget,
+        changeOrigin: true,
+      },
+      // 统一账号（/api/accounts，spring-support-account-starter）在 monitor 后端自身。
+      // 必须排在下面的 /api/account 之前：Vite 代理按前缀首个匹配生效，
+      // 否则 /api/accounts 会被 /api/account 抢到外部账号服务上（404 / 串数据）。
+      "/api/accounts": {
+        target: apiTarget,
         changeOrigin: true,
       },
       "/api/account": {

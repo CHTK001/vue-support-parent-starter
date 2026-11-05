@@ -108,7 +108,9 @@ async function save(): Promise<void> {
   if (!props.host) return;
   saving.value = true;
   try {
-    await saveHost(props.host.id, { ...props.host, ...form.value } as Partial<Host>);
+    // 只提交本弹窗编辑的检测/采集字段：整包 props.host 会把打开弹窗时缓存的
+    // 名称、地址、端口等原值一起写回，用户刚改过的地址会被旧值覆盖（表现为「保存又还原」）。
+    await saveHost(props.host.id, { ...form.value } as Partial<Host>);
     message.success(`${MODE_TITLE[props.mode]}已保存`);
     emit("update:modelValue", false);
     emit("saved");

@@ -1,8 +1,10 @@
 /**
  * @pages/server 实时通道
  *
- * <p>所有 SSE/WS 推送只通过 {@code realtimeChannel} 接入，避免每个组件各自
- * {@code new EventSource()} 建只属于自己的连接（主机资产页尤其明显：一个页签
- * 开多个连接就会建立多条长连接）。</p>
+ * <p>主机资产区域（{@code AssetsView}）只保留一条全局 SSE 长连接：底部资源摘要
+ * （句柄数 / inode）与邮箱新邮件都经 {@code hostAssetsSse} 推送。其它页面/组件
+ * 不再自建 {@code new EventSource()}，避免一个页签开多条长连接。</p>
+ *
+ * <p>socket.io 的指标/延迟推送不属于 SSE，仍按原有 socket 通道接入。</p>
  */
 export * from './realtime';

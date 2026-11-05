@@ -90,9 +90,7 @@ node node_modules/typescript/bin/tsc --noEmit -p packages/config
 
 ### 6.2 浏览器级验收（Playwright）
 
-见 `test/pw/pw-config-injection-accept.mjs`——在 monitor(8848)/system(8899) dev server 上
-覆盖：登录、折叠菜单、设置抽屉、主题抽屉、水印、反调试、能力开关入口显隐、系统键拦截
-console.warn。人工核对 `test/.tmp/config-injection-accept.log` 里每条断言输出。
+浏览器级验收脚本（`test/pw/pw-config-injection-accept.mjs`）属于一次性临时文件，已从仓库移除。
 
 ## 7. 开发约定
 

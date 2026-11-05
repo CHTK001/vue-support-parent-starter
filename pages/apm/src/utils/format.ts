@@ -8,10 +8,15 @@
  * @since 4.0.0.51
  */
 
-/** 耗时：≥1s 用秒，否则毫秒；非法值统一破折号 */
+/**
+ * 耗时：≥1s 用秒，否则毫秒；非法值统一破折号。
+ *
+ * <p>OAP 用 {@code -1} 表示「该指标没有数据」（例如没有配置 P99 时），
+ * 直接显示会变成「-1ms」—— 看起来像负数耗时，比不显示更糟。</p>
+ */
 export function fmtMs(value: unknown): string {
   const n = Number(value ?? 0);
-  if (!Number.isFinite(n)) {
+  if (!Number.isFinite(n) || n < 0) {
     return "—";
   }
   if (n >= 1000) {
@@ -23,7 +28,7 @@ export function fmtMs(value: unknown): string {
 /** 数值：保留指定小数位，非法值破折号 */
 export function fmtNum(value: unknown, digits = 0): string {
   const n = Number(value ?? 0);
-  if (!Number.isFinite(n)) {
+  if (!Number.isFinite(n) || n < 0) {
     return "—";
   }
   return n.toLocaleString(undefined, {
@@ -32,10 +37,10 @@ export function fmtNum(value: unknown, digits = 0): string {
   });
 }
 
-/** 百分比：入参已经是百分数（1.25 → "1.25%"） */
+/** 百分比：入参已经是百分数（1.25 → "1.25%"），负数（无数据）破折号 */
 export function fmtPercent(value: unknown, digits = 2): string {
   const n = Number(value ?? 0);
-  if (!Number.isFinite(n)) {
+  if (!Number.isFinite(n) || n < 0) {
     return "—";
   }
   return `${n.toFixed(digits)}%`;

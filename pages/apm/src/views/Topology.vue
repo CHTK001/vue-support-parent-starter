@@ -36,8 +36,12 @@
     <template v-else>
       <ReCard :radius="12" shadow="never">
         <template #header><span class="apm-card-h">调用关系图</span></template>
-        <ReChart v-if="nodes.length" type="custom" engine="echarts" :option="graphOption" height="520px" />
-        <ReEmpty v-else :image-size="70" description="该时间窗口内没有拓扑数据（可能没有跨服务调用）" />
+        <ApmGraph
+          :nodes="nodes"
+          :calls="topology?.calls ?? []"
+          height="520px"
+          empty-text="该时间窗口内没有拓扑数据（可能没有跨服务调用）"
+        />
       </ReCard>
 
       <ReCard :radius="12" shadow="never">
@@ -102,11 +106,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import type { EChartsOption } from "echarts";
 import ReButton from "@repo/ui/re-button";
 import ReCard from "@repo/ui/re-card";
-import ReChart from "@repo/ui/re-chart";
-import ReEmpty from "@repo/ui/re-empty";
 import ReSectionHead from "@repo/ui/re-section-head";
 import ReSelect from "@repo/ui/re-select";
 import ReSkeleton from "@repo/ui/re-skeleton";
@@ -114,6 +115,7 @@ import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import ApmGate from "../components/ApmGate.vue";
+import ApmGraph from "../components/ApmGraph.vue";
 import { getTopology, listServices } from "../api/apmApi";
 import type { ApmTopology, ApmTopologyNode } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
@@ -160,71 +162,6 @@ const nodeColumns: ReTableColumn[] = [
   { prop: "layer", label: "层", width: 140 },
   { prop: "isReal", label: "来源", width: 100, align: "center", slot: "isReal" },
 ];
-
-/**
- * 图 option：
- * 节点大小按「出边 + 入边调用量」的对数缩放（线性缩放在极端值下会让其它点变成针尖），
- * 边标签只显示调用量，错误率 > 0 的边用红色。
- */
-const graphOption = computed<EChartsOption>(() => {
-  const calls = topology.value?.calls ?? [];
-  const weight = new Map<string, number>();
-  for (const call of calls) {
-    weight.set(call.source, (weight.get(call.source) ?? 0) + call.calls);
-    weight.set(call.target, (weight.get(call.target) ?? 0) + call.calls);
-  }
-  const max = Math.max(1, ...[...weight.values()]);
-
-  return {
-    tooltip: {
-      formatter: (params: any) => {
-        if (params.dataType === "edge") {
-          const data = params.data;
-          return `${nodeName(data.source)} → ${nodeName(data.target)}<br/>调用量 ${fmtNum(data.calls)}<br/>平均 ${fmtMs(data.avgMs)}<br/>错误率 ${fmtPercent(data.errorRate)}`;
-        }
-        return `${params.data.name}<br/>类型 ${params.data.type ?? "—"}<br/>层 ${params.data.layer ?? "—"}`;
-      },
-    },
-    series: [
-      {
-        type: "graph",
-        layout: "force",
-        roam: true,
-        draggable: true,
-        force: { repulsion: 320, edgeLength: [110, 220], gravity: 0.08 },
-        label: { show: true, fontSize: 11, position: "right" },
-        edgeSymbol: ["none", "arrow"],
-        edgeSymbolSize: 6,
-        emphasis: { focus: "adjacency" },
-        data: nodes.value.map((node) => {
-          const size = 18 + (Math.log2(1 + (weight.get(node.id) ?? 0)) / Math.log2(1 + max)) * 34;
-          return {
-            id: node.id,
-            name: node.name,
-            symbolSize: Number.isFinite(size) ? size : 22,
-            type: node.type,
-            layer: node.layer,
-            itemStyle: {
-              color: node.self || node.isSelf ? "var(--el-color-warning)" : undefined,
-            },
-          };
-        }),
-        links: calls.map((call) => ({
-          source: call.source,
-          target: call.target,
-          calls: call.calls,
-          avgMs: call.avgMs,
-          errorRate: call.errorRate,
-          lineStyle: {
-            width: Math.min(6, 1 + Math.log2(1 + call.calls) * 0.4),
-            color: call.errorRate > 0 ? "var(--el-color-danger)" : undefined,
-            curveness: 0.08,
-          },
-        })),
-      },
-    ],
-  };
-});
 
 async function loadServices() {
   try {

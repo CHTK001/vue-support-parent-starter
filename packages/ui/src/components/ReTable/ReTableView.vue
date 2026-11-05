@@ -16,6 +16,7 @@
 import { computed, ref, type PropType } from "vue";
 import { ElCheckbox, ElEmpty } from "element-plus";
 import type { ReTableColumn, ReTableContextMenuItem, ReTableContextMenuContext, ReViewField, ReViewLayoutProps } from "./types";
+import ReEmpty from "../ReEmpty/ReEmpty.vue";
 
 defineOptions({ name: "ReTableView" });
 
@@ -207,7 +208,7 @@ function indexText(index: number): string {
 
     <!-- 空数据：占满可用高度，与表格空态视觉一致 -->
     <div v-if="isEmpty" class="re-table__view-empty">
-      <ElEmpty :description="emptyText" :image-size="96" />
+      <ReEmpty layout="plot" :description="emptyText" />
     </div>
 
     <div v-else class="re-table__view-list" :style="{ gap: `${layout.gap ?? 10}px` }" @scroll="onListScroll">
@@ -293,6 +294,9 @@ function indexText(index: number): string {
   justify-content: center;
   flex: 1;
   min-height: 320px;
+}
+.re-table__view-empty > .re-empty__figure {
+  --re-empty-figure-width: 336px;
 }
 .re-table__view-list {
   display: flex;

@@ -321,12 +321,61 @@ async function loadLocalAddress(): Promise<void> {
     if (ip) form.value.serverHostAddress = ip;
   } catch {}
 }
-// 切到本机：识别本机 IP（远控协议不强制，按平台推断即可）
-watch(isLocalCollect, (local) => {
-  if (local) {
-    void loadLocalAddress();
+
+/** 打开弹窗时的行数据快照：详情异步回填据此判断用户是否已经改过某个字段 */
+let baseForm: Record<string, any> = {};
+
+/**
+ * 判断两个表单值是否等价（字段多为标量，对象/数组按序列化比较）。
+ *
+ * @param a 比较值
+ * @param b 比较值
+ * @return 等价返回 true
+ */
+function sameValue(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (a == null || b == null) return a == null && b == null;
+  try {
+    return JSON.stringify(a) === JSON.stringify(b);
+  } catch {
+    return false;
   }
-});
+}
+
+/**
+ * 把详情接口的结果合进表单，**用户已经改过的字段保持用户输入**。
+ *
+ * <p>弹窗打开时先用列表行数据立即渲染，详情接口（getHost / 绑定身份 / 身份列表）
+ * 并行返回后再回填。整包 {@code {...form, ...detail}} 会用库里的旧值盖掉用户在
+ * 回填到达前改好的字段（地址、端口等），保存后表现为「改了地址保存又还原」。</p>
+ *
+ * @param current 当前表单值
+ * @param detail  详情接口返回的主机
+ * @return 合并后的表单值
+ */
+function mergeDetail(current: Record<string, any>, detail: Record<string, any> | null): Record<string, any> {
+  const next: Record<string, any> = { ...current };
+  if (!detail) return next;
+  for (const [key, value] of Object.entries(detail)) {
+    // 当前值已偏离打开时的快照 ⇒ 用户改过，保留用户输入
+    if (!sameValue(current[key], baseForm[key])) continue;
+    next[key] = value;
+  }
+  return next;
+}
+
+/**
+ * 采集方式变更：切到「本机自采集」时用系统识别的网卡 IP 兜底地址。
+ *
+ * <p>刻意用 change 事件而不是 watch(isLocalCollect)：watch 会在「打开编辑弹窗、
+ * 用行数据回填表单」时也触发，把用户已经保存过的本机地址改写成首选网卡 IP，
+ * 表现为「改了地址保存又还原」。用 change 后只有用户主动切换才补地址。</p>
+ *
+ * @param mode 新的采集方式
+ */
+function onCollectModeChange(mode: string): void {
+  if (mode === "LOCAL") void loadLocalAddress();
+}
 /** 远控通道：GUACD 走 guacd 中转；DIRECT 由平台自身协议客户端直连（SSH/VNC）；NONE 不经平台通道 */
 const remoteModes = [
   { label: "Guacd 中转", value: "GUACD" },
@@ -546,6 +595,8 @@ function resetForm(): void {
   // 平台相关默认值（采集方式 / 远控协议·通道·端口 / 开启 SSH）统一由这里套用，
   // 不再在上面字面量里重复一遍 —— 两处各写一份必然漂移
   applyPlatformDefaults("LINUX");
+  // 新建态没有「用户改动前的快照」，清掉上一次编辑的残留
+  baseForm = {};
   tagsText.value = "";
   formAuthMethod.value = "IDENTITY";
   formIdentityId.value = null;
@@ -603,7 +654,7 @@ async function submitForm(): Promise<void> {
     form.value.serverHostPrivateKey = formPrivateKey.value || null;
     form.value.serverHostAuthType = null;
   } else if (formAuthMethod.value === "NONE") {
-    // 免密登录：账号可空——地址里的 user@ 前缀或后端本机运行账号都能推导出来，
+    // 免密登录：账号不再从地址推导，本机主机可由后端取平台运行账号，
     // 只提交类型标记，后端创建免密（NONE）身份
     form.value.serverHostAccount = formAccount.value || null;
     form.value.serverHostPassword = null;
@@ -664,6 +715,8 @@ watch(() => props.modelValue, (v) => {
     formIdentityChanged.value = false;
     formIdentityId.value = null;
     hostBoundIdentities.value = [];
+    // 行数据 + 默认值填好后再拍快照：详情回填只覆盖用户没动过的字段
+    baseForm = { ...(form.value as any) };
     // 并行请求详情 + 已绑定身份 + 全量身份，返回后回填（弹窗已先显示，用户可立即看到基础信息）
     void Promise.all([
       getHost(props.host.id!).catch(() => props.host),
@@ -671,7 +724,7 @@ watch(() => props.modelValue, (v) => {
       getIdentities().catch(() => []),
     ]).then(([full, bound, identities]) => {
       if (!props.modelValue) return; // 弹窗已关闭则丢弃回填
-      form.value = { ...(form.value as any), ...((full as any) ?? {}) };
+      form.value = mergeDetail(form.value as Record<string, any>, (full as any) ?? null);
       tagsText.value = splitTags(form.value.serverHostTags).join(", ");
       // 历史数据里远控端口常是 null，表单上空着只剩占位提示，看起来像「没填」。
       // 开启远控时补成协议默认端口（SSH 22 / RDP 3389 / VNC 5900）。
@@ -691,9 +744,10 @@ watch(() => props.modelValue, (v) => {
         formAuthMethod.value = "NONE";
         formAccount.value = firstBound.msServerIdentityUsername ?? "";
       }
-      // 本机：详情回填后再次锁定首选网卡 IP（覆盖库中可能残留的回环地址）；
-      // 远控协议不强制 VNC，本机 Linux 也可选 SSH
-      if (isLocalCollect.value) {
+      // 本机：详情回填后仅在地址为空时用系统识别的网卡 IP 兜底。
+      // 用户显式保存过的地址必须保留——后端 applyLocalDefaults 也是「仅空值才归一」，
+      // 前端无条件覆盖会造成「改了本机地址保存又还原」。
+      if (isLocalCollect.value && !form.value.serverHostAddress?.trim()) {
         void loadLocalAddress();
       }
     });
@@ -807,10 +861,10 @@ watch(() => props.modelValue, (v) => {
         </template>
         <template v-if="formAuthMethod === 'NONE'">
           <ReFormItem label="登录账号">
-            <ReInput v-model="formAccount" placeholder="留空则取地址里的 user@ 前缀 / 本机运行账号" style="width:100%" />
+            <ReInput v-model="formAccount" placeholder="如 root / ubuntu；本机可留空用平台运行账号" style="width:100%" />
           </ReFormItem>
           <ReFormItem label="免密说明" class="col-span-2">
-            <ReText type="info">免密登录不需要密码或私钥：地址写成 <code>user@host</code> 时平台直接取 user 作为登录账号，账号留空也能保存；本机主机默认用平台运行账号。</ReText>
+            <ReText type="info">免密登录不需要密码或私钥，但必须填登录账号（本机主机可留空，默认用平台运行账号）。地址字段只写主机，不解析 <code>user@host</code>。</ReText>
           </ReFormItem>
         </template>
         </template>
@@ -839,7 +893,7 @@ watch(() => props.modelValue, (v) => {
         <!-- ─── 采集配置 ─── -->
         <div class="form-section full">采集配置</div>
         <ReFormItem label="采集方式" class="col-span-2">
-          <ReSelect v-model="form.serverHostCollectMode" style="width:100%" :options="collectModeOptions" />
+          <ReSelect v-model="form.serverHostCollectMode" style="width:100%" :options="collectModeOptions" @change="onCollectModeChange" />
         </ReFormItem>
         <ReFormItem v-if="form.serverHostCollectMode !== 'NONE'" label="自动采集" class="col-span-2">
           <div class="switch-row">

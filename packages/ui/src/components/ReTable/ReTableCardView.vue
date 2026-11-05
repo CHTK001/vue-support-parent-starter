@@ -10,6 +10,7 @@
 import { computed, ref, type PropType } from "vue";
 import { ElCheckbox, ElEmpty } from "element-plus";
 import type { ReCardField, ReCardLayoutProps, ReTableColumn, ReTableContextMenuItem, ReTableContextMenuContext } from "./types";
+import ReEmpty from "../ReEmpty/ReEmpty.vue";
 // 卡片视觉基线（库级共享）：圆角 / 投影 / 悬停令牌
 import "../shared/re-surface.css";
 
@@ -252,7 +253,7 @@ function onCardContextmenu(row: Record<string, unknown>, index: number, event: M
 
     <!-- 空数据提示 -->
     <div v-if="isEmpty" class="re-table__card-empty">
-      <ElEmpty :description="emptyText" :image-size="80" />
+      <ReEmpty layout="plot" :description="emptyText" />
     </div>
 
     <div v-else class="re-table__card-grid" :style="containerStyle" @scroll="onGridScroll">
@@ -349,6 +350,9 @@ function onCardContextmenu(row: Record<string, unknown>, index: number, event: M
   justify-content: center;
   min-height: 200px;
   padding: 40px 0;
+}
+.re-table__card-empty > .re-empty__figure {
+  --re-empty-figure-width: 336px;
 }
 .re-table__card-select-all {
   padding: 8px 4px;

@@ -239,7 +239,10 @@ async function load() {
       step: step.value,
     });
     if (!series.value?.points?.length) {
-      emptyHint.value = `指标 ${name.value} 在该时间窗口内没有数据（后端可能未开启该指标采集）`;
+      emptyHint.value =
+        scope.value !== "ALL" && !entityService.value
+          ? "先在上方选择一个服务：SkyWalking 的服务级指标挂在具体实体上，不选实体只有空图"
+          : `指标 ${name.value} 在该时间窗口内没有数据（后端可能未开启该指标采集）`;
     }
   } catch (e) {
     series.value = null;
@@ -258,6 +261,10 @@ onMounted(async () => {
     services.value = ((await listServices({})) || []).map((s) => s.name);
   } catch {
     services.value = [];
+  }
+  // 服务级指标必须带实体：默认落到第一个服务，页面一打开就有图看
+  if (!entityService.value && services.value.length) {
+    entityService.value = services.value[0];
   }
   await loadDefinitions();
   load();

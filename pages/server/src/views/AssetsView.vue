@@ -67,7 +67,7 @@ import { osIconSvg } from "../utils/osIcon";
 import { useSocketService, message } from "@repo/core";
 import { privateIpTextOf } from "../utils/hostProfileUi";
 import { submitAgentAction } from "../api";
-import { fetchHostResourceSummary } from "../api";
+import { hostAssetsSse, type HostSummaryPush } from "../services/realtime";
 import ReTabs from "@repo/ui/re-tabs";
 import type { ReTabsContextItem, ReTabsItem } from "@repo/ui/re-tabs";
 
@@ -1507,8 +1507,10 @@ const statusMetrics = computed(() => {
 /**
  * 资源摘要（句柄数 / inode）。
  *
- * <p>这两项来自画像的专用端点而不是 socket 实时值：句柄要按平台走命令汇总，
- * inode 要读根分区，频率远低于 CPU。30 秒一次足够，且不影响工作区懒挂载的语义。</p>
+ * <p>这两项来自服务端推送而不是 socket 实时值：句柄要按平台走命令汇总，
+ * inode 要读根分区，频率远低于 CPU。页面不再定时 GET，改为在主机资产页的
+ * 唯一 SSE 长连接上订阅 {@code host-summary} 事件（服务端 30 秒推一次，
+ * 切主机时立即推一次），连接由 {@code hostAssetsSse} 统一管理。</p>
  */
 const statusSummary = ref({
   handleCount: -1,
@@ -1517,47 +1519,44 @@ const statusSummary = ref({
   inodePercent: -1,
   inodeMount: "",
 });
-let summaryTimer: number | undefined;
-let summaryReq = 0;
 
-/** 拉一次当前主机资源摘要；失败保留「—」，不影响状态条其它字段 */
-async function loadStatusSummary(): Promise<void> {
-  const id = statusHost.value?.id;
-  const req = ++summaryReq;
-  if (id == null) {
-    statusSummary.value = { handleCount: -1, inodeUsed: -1, inodeTotal: -1, inodePercent: -1, inodeMount: "" };
+/**
+ * 收到一条资源摘要推送：只认当前主机，避免切主机的瞬间显示上一台的数据。
+ *
+ * @param summary 推送负载
+ */
+function applyStatusSummary(summary: HostSummaryPush): void {
+  if (statusHost.value?.id == null || summary.hostId !== statusHost.value.id) {
     return;
   }
-  try {
-    const res = await fetchHostResourceSummary(id);
-    if (req !== summaryReq) return;
-    statusSummary.value = {
-      handleCount: Number(res?.handleCount ?? -1),
-      inodeUsed: Number(res?.inodeUsed ?? -1),
-      inodeTotal: Number(res?.inodeTotal ?? -1),
-      inodePercent: Number(res?.inodePercent ?? -1),
-      inodeMount: String(res?.inodeMount ?? ""),
-    };
-  } catch {
-    if (req === summaryReq) {
-      statusSummary.value = { handleCount: -1, inodeUsed: -1, inodeTotal: -1, inodePercent: -1, inodeMount: "" };
-    }
-  }
+  statusSummary.value = {
+    handleCount: Number(summary.handleCount ?? -1),
+    inodeUsed: Number(summary.inodeUsed ?? -1),
+    inodeTotal: Number(summary.inodeTotal ?? -1),
+    inodePercent: Number(summary.inodePercent ?? -1),
+    inodeMount: String(summary.inodeMount ?? ""),
+  };
 }
 
+/** 摘要推送订阅（组件卸载时释放） */
+const offStatusSummary = hostAssetsSse.onHostSummary(applyStatusSummary);
+
+/**
+ * 主机切换：清空上一台的摘要并改订阅目标。
+ * 未连上时只记录关注对象，连上后由通道自动补订阅。
+ */
 watch(
-  () => statusHost.value?.id,
-  () => {
-    void loadStatusSummary();
-    if (summaryTimer) window.clearInterval(summaryTimer);
-    summaryTimer = window.setInterval(() => { void loadStatusSummary(); }, 30_000);
+  () => statusHost.value?.id ?? null,
+  (id) => {
+    statusSummary.value = { handleCount: -1, inodeUsed: -1, inodeTotal: -1, inodePercent: -1, inodeMount: "" };
+    hostAssetsSse.setSummaryHost(id);
   },
   { immediate: true },
 );
 
 onBeforeUnmount(() => {
-  if (summaryTimer) window.clearInterval(summaryTimer);
-  summaryTimer = undefined;
+  offStatusSummary();
+  hostAssetsSse.setSummaryHost(null);
 });
 
 /** 概要浮层里的行（原先画像页左侧那套「概要信息」） */
@@ -1784,6 +1783,8 @@ watch([hosts, liveOnline], () => {
 });
 
 onMounted(() => {
+  /* 主机资产页面唯一 SSE 长连接：底部资源摘要与邮箱推送都走它 */
+  hostAssetsSse.open();
   fetchAll().then(() => applyDeepLink());
   document.addEventListener("keydown", onGlobalKeydown, true);
   // 实时延迟 + 在线状态：socket 推送（后台 HostOnlineScheduler 检测后广播）
@@ -1862,6 +1863,7 @@ onMounted(() => {
   });
 });
 onBeforeUnmount(() => {
+  hostAssetsSse.close();
   document.removeEventListener("keydown", onGlobalKeydown, true);
   unsubDelay?.();
   unsubOnline?.();

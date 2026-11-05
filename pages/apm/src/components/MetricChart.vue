@@ -25,8 +25,15 @@ const props = withDefaults(
     series: ApmMetricSeries[];
     /** 图高，透传给 ReChart */
     height?: string;
+    /**
+     * 紧凑档：去掉图例、坐标轴留白与除首末外的刻度。
+     *
+     * <p>侧栏里只有 60~80px 高，标准档的图例 + 30px 轴留白会把曲线压成一条线。
+     * 紧凑档只保留「形状」，精确值由旁边的数字给。</p>
+     */
+    compact?: boolean;
   }>(),
-  { height: "280px" },
+  { height: "280px", compact: false },
 );
 
 /** 数值单位：多条线单位不一致时不共用 Y 轴，改为全部归一后由 tooltip 标注单位 */
@@ -55,20 +62,27 @@ const option = computed<EChartsOption>(() => {
       trigger: "axis",
       valueFormatter: (value) => (value === null || value === undefined ? "—" : String(value)),
     },
-    legend: { show: list.length > 1, top: 0, type: "scroll" },
-    grid: { left: 52, right: 18, top: list.length > 1 ? 34 : 18, bottom: 30 },
+    legend: { show: !props.compact && list.length > 1, top: 0, type: "scroll" },
+    grid: props.compact
+      ? { left: 0, right: 0, top: 4, bottom: 2, containLabel: false }
+      : { left: 52, right: 18, top: list.length > 1 ? 34 : 18, bottom: 30 },
     xAxis: {
       type: "category",
       boundaryGap: false,
       data: times.map((t) => fmtClock(t)),
-      axisLabel: { fontSize: 10, hideOverlap: true },
+      axisLabel: { show: !props.compact, fontSize: 10, hideOverlap: true },
+      axisLine: { show: !props.compact },
+      axisTick: { show: false },
+      splitLine: { show: false },
     },
     yAxis: {
       type: "value",
-      name: unitLabel.value.trim() || undefined,
+      name: props.compact ? undefined : unitLabel.value.trim() || undefined,
       nameTextStyle: { fontSize: 10 },
-      axisLabel: { fontSize: 10 },
-      splitLine: { lineStyle: { type: "dashed" } },
+      axisLabel: { show: !props.compact, fontSize: 10 },
+      axisLine: { show: false },
+      axisTick: { show: false },
+      splitLine: { show: !props.compact, lineStyle: { type: "dashed" } },
     },
     series: list.map((s, i) => ({
       name: s.label || s.name,
@@ -76,6 +90,8 @@ const option = computed<EChartsOption>(() => {
       smooth: true,
       showSymbol: false,
       connectNulls: true,
+      lineStyle: props.compact ? { width: 1.6 } : undefined,
+      areaStyle: props.compact ? { opacity: 0.12 } : undefined,
       data: times.map((t) => index[i].get(t) ?? null),
     })),
   };

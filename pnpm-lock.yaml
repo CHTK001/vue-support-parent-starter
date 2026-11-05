@@ -1745,6 +1745,9 @@ importers:
       '@logicflow/extension':
         specifier: ^2.3.1
         version: 2.3.1(@logicflow/core@2.2.5)
+      '@lucasmarkes/hairline':
+        specifier: ^0.5.1
+        version: 0.5.1(react@19.2.8)
       '@medv/finder':
         specifier: ^4.0.2
         version: 4.0.2
@@ -4817,6 +4820,14 @@ packages:
     resolution: {integrity: sha512-ml75ezT4oSs1W7arf/5uNNNPGkTsLyani8dijh+rOnXHao6P1w30xHwrO6ZeTF7mo/Lk/pJ/Qnqm4+2L5mPeCQ==}
     peerDependencies:
       '@logicflow/core': ^2.2.5
+
+  '@lucasmarkes/hairline@0.5.1':
+    resolution: {integrity: sha512-zjY3bdMC3As/+enKitZ1X+D1HjpesQiAKzG1sbCFsOrb5xIuJEoepkJTBIO4jmFh6JXOQlGGylhV71nr9ipNpQ==}
+    peerDependencies:
+      react: '>=18'
+    peerDependenciesMeta:
+      react:
+        optional: true
 
   '@mapbox/geojson-rewind@0.5.2':
     resolution: {integrity: sha512-tJaT+RbYGJYStt7wI3cq4Nl4SXxG8W7JDG5DMJu97V25RnbNg3QtQtf+KD+VLjNpWKYsRvXDNmNrBgEETr1ifA==}
@@ -13014,6 +13025,10 @@ snapshots:
       vanilla-picker: 2.12.3
     transitivePeerDependencies:
       - preact-render-to-string
+
+  '@lucasmarkes/hairline@0.5.1(react@19.2.8)':
+    optionalDependencies:
+      react: 19.2.8
 
   '@mapbox/geojson-rewind@0.5.2':
     dependencies:

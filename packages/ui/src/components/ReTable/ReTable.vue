@@ -78,6 +78,7 @@ import { computed, defineAsyncComponent, inject, onActivated, onBeforeUnmount, o
 import { ElTable, ElTableColumn, ElPagination, ElButton, ElPopover, ElInput, ElCheckbox, ElCheckboxGroup, ElTooltip, ElIcon, ElSelect, ElOption, type TableColumnCtx } from "element-plus";
 import { Menu, Delete, Edit, Check, Select, Search, ArrowUp, ArrowDown, View, Grid, Rank } from "@element-plus/icons-vue";
 import { useDataSource, type ReDataSource } from "@repo/core";
+import ReEmpty from "../ReEmpty/ReEmpty.vue";
 import ReTableCardView from "./ReTableCardView.vue";
 // 视图模式：默认模板已就绪，随主包加载，切换时零延迟（与卡片模式同一套选择/右键/空态能力）
 import ReTableView from "./ReTableView.vue";
@@ -7018,7 +7019,7 @@ const iconSelect = Select;
            加载窗口内不渲染：loading 期间数据还没到，先画空态会在遮罩下闪「暂无数据」 -->
       <template #empty>
         <slot name="empty" :description="emptyText">
-          <el-empty v-if="!loading && !dataLoading" :description="emptyText" :image-size="96" />
+          <ReEmpty v-if="!loading && !dataLoading" layout="plot" :description="emptyText" />
         </slot>
       </template>
       <slot />
@@ -7252,7 +7253,7 @@ const iconSelect = Select;
       <!-- 空态：未提供 #empty 插槽时回落到 el-empty（保持既有行为）；加载窗口内不渲染 -->
       <template #empty>
         <slot name="empty" :description="emptyText">
-          <el-empty v-if="!loading && !dataLoading" :description="emptyText" :image-size="96" />
+          <ReEmpty v-if="!loading && !dataLoading" layout="plot" :description="emptyText" />
         </slot>
       </template>
       <slot />

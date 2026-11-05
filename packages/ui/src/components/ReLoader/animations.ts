@@ -436,18 +436,18 @@ export const LOADER_ANIMATION_CSS = `
    用 em 一次解决：1em = 高度/8.8，所有原坐标除以 10 就是 em 值。 */
 .sla-dino{width:calc(var(--sla-s,96px)*2.5);height:var(--sla-s,96px);font-size:calc(var(--sla-s,96px)/8.8);overflow:hidden}
 .sla-dino__scene{position:relative;width:100%;height:100%;overflow:hidden}
-.sla-dino__ground{position:absolute;right:0;bottom:1.4em;left:0;height:.3em;background:repeating-linear-gradient(90deg,#52525b 0 1.4em,rgba(82,82,91,.15) 1.4em 2em);background-size:2em 100%;animation:sla-dino-ground 1.65s linear infinite}
-.sla-dino__runner{position:absolute;bottom:1.7em;left:2.6em;width:4.8em;height:4em;z-index:1;animation:sla-dino-jump 1.15s ease-in-out infinite}
+.sla-dino__ground{position:absolute;right:0;bottom:1.4em;left:0;height:.3em;background:repeating-linear-gradient(90deg,#52525b 0 1.4em,rgba(82,82,91,.15) 1.4em 2em);background-size:2em 100%;animation:sla-dino-ground calc(1.65s / var(--sla-rate,1)) linear infinite}
+.sla-dino__runner{position:absolute;bottom:1.7em;left:2.6em;width:4.8em;height:4em;z-index:1;animation:sla-dino-jump calc(1.15s / var(--sla-rate,1)) ease-in-out infinite}
 .sla-dino__body,.sla-dino__head,.sla-dino__tail,.sla-dino__leg,.sla-dino__cactus,.sla-dino__branch{position:absolute;display:block;background:#111827}
 .sla-dino__body{bottom:1em;left:.8em;width:2.4em;height:1.6em}
 .sla-dino__head{top:0;right:0;width:1.6em;height:1.4em;box-shadow:-.6em .3em 0 0 #111827,.8em .3em 0 -.5em #f8fafc}
 .sla-dino__tail{bottom:1.8em;left:0;width:1em;height:.6em}
-.sla-dino__leg{bottom:0;width:.6em;height:1.4em;animation:sla-dino-run .38s steps(1) infinite}
+.sla-dino__leg{bottom:0;width:.6em;height:1.4em;animation:sla-dino-run calc(.38s / var(--sla-rate,1)) steps(1) infinite}
 .sla-dino__leg--front{left:1.4em}
-.sla-dino__leg--back{left:2.6em;animation-delay:.19s}
+.sla-dino__leg--back{left:2.6em;animation-delay:calc(.19s / var(--sla-rate,1))}
 /* 仙人掌从左前方远处进入：起点在容器右侧之外，落到 ground 之上，
    z-index 低于 runner，于是"从恐龙身后穿过"而不是糊在它身上 */
-.sla-dino__cactus{right:-3em;bottom:1.7em;width:1.4em;height:3em;background:#14532d;z-index:0;animation:sla-dino-cactus 1.65s linear infinite}
+.sla-dino__cactus{right:-3em;bottom:1.7em;width:1.4em;height:3em;background:#14532d;z-index:0;animation:sla-dino-cactus calc(1.65s / var(--sla-rate,1)) linear infinite}
 .sla-dino__branch{width:.6em;height:1.2em;background:#14532d}
 .sla-dino__branch--left{top:.8em;left:-.5em}
 .sla-dino__branch--right{top:.3em;right:-.5em}

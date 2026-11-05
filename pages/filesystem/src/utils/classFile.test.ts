@@ -5,10 +5,7 @@ import { fileURLToPath } from "node:url";
 import { parseClassInfo } from "./classFile";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const SAMPLE = join(
-  HERE,
-  "../../../../apps/vue-support-system-starter/tests/e2e/samples274/sample.class",
-);
+const SAMPLE = join(HERE, "../../tests/fixtures/sample.class");
 
 function loadClass(): Uint8Array {
   expect(existsSync(SAMPLE), "sample.class 必须存在").toBe(true);

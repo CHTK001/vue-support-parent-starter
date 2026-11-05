@@ -28,7 +28,8 @@ export { apmCards };
  */
 export const apmContribution = defineMonitorCardContribution(apmCards);
 
-export { apmRoutes, apmMenus } from "./routes";
+export { apmRoutes, apmMenus, APM_WORKBENCH_ROUTE } from "./routes";
+export * from "./tabs";
 export * from "./config";
 export * from "./api/apmApi";
 export { useApmStatus, loadApmStatus, refreshApmStatus } from "./composables/useApmStatus";

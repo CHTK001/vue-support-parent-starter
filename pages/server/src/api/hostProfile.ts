@@ -76,12 +76,42 @@ export interface HostResourceSummary {
 
 /**
  * 拉取主机资源摘要（句柄数 / inode 使用率）
+ *
+ * <p>仅用于联调或一次性快照；页面实时刷新走主机资产全局 SSE 订阅，
+ * 见 {@link subscribeHostSummary} 与 {@code services/realtime.ts}。</p>
+ *
  * @param hostId 主机 id
  */
 export const fetchHostResourceSummary = (hostId: number) =>
   http().get(`/ms/server/host/profile/${hostId}/summary`)
     .timeout(30_000)
     .then(r => unwrap<HostResourceSummary>(r));
+
+/**
+ * 订阅主机资源摘要推送（服务端立即采一次，之后每 30 秒推送 host-summary 事件）
+ *
+ * <p>推送经主机资产全局 SSE 长连接
+ * {@code /ms/server/host/assets/stream?clientId=...} 下发。</p>
+ *
+ * @param hostId   主机 id
+ * @param clientId 全局 SSE 连接标识
+ */
+export const subscribeHostSummary = (hostId: number, clientId: string) =>
+  http().post(`/ms/server/host/profile/${hostId}/summary/subscribe`)
+    .query({ clientId })
+    .timeout(15_000)
+    .then(r => unwrap<void>(r));
+
+/**
+ * 取消主机资源摘要推送
+ *
+ * @param clientId 全局 SSE 连接标识
+ */
+export const unsubscribeHostSummary = (clientId: string) =>
+  http().delete("/ms/server/host/profile/summary/subscribe")
+    .query({ clientId })
+    .timeout(15_000)
+    .then(r => unwrap<void>(r));
 
 /* ==================== 系统配置（热更新） ==================== */
 

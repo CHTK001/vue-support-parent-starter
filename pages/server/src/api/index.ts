@@ -92,7 +92,7 @@ export const getMailboxMessage = (identityId: number, folder?: string, subject?:
 export const createTempEmail = (provider: string) =>
   http().post(`${B}/identity/mailbox/temp-create?provider=${encodeURIComponent(provider)}`).then(r => unwrapResult<{ email: string; provider: string }>(r));
 export const registerMailbox = (identityId: number, clientId: string) =>
-  http().put(`${B}/identity/${identityId}/mailbox/register?clientId=${encodeURIComponent(clientId)}`).then(r => unwrapResult<void>(r));
+  http().post(`${B}/identity/${identityId}/mailbox/register?clientId=${encodeURIComponent(clientId)}`).then(r => unwrapResult<void>(r));
 export const unregisterMailbox = (clientId: string) =>
   http().delete(`${B}/identity/mailbox/unregister?clientId=${encodeURIComponent(clientId)}`).then(r => unwrapResult<void>(r));
 

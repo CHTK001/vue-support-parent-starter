@@ -412,6 +412,7 @@
     "@antv/x6-vue-shape": "^2.1.2",
     "@element-plus/icons-vue": "catalog:",
     "@iconify/vue": "catalog:",
+    "@lucasmarkes/hairline": "^0.5.1",
     "@medv/finder": "^4.0.2",
     "@logicflow/core": "^2.2.5",
     "@logicflow/extension": "^2.3.1",

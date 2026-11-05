@@ -33,6 +33,24 @@ const props = withDefaults(
     showCloseAll?: boolean;
     /** 无页签时的空态文案 */
     emptyText?: string;
+    /**
+     * 持久化标识：给出时把当前页签写进 localStorage（键 `re-tabs:<id>`），
+     * 下次挂载且父级未指定页签时自动恢复。
+     *
+     * <p>用调用方给的 id 而不是一个全局键：同一应用里常常有多个工作区，
+     * 全局键会互相覆盖，切到 B 页面再回 A 页面就记错页签了。</p>
+     */
+    id?: string;
+    /** 尺寸档位：default 标准 / small 紧凑 / mini 底栏小页签 */
+    size?: "default" | "small" | "mini";
+    /**
+     * 页签条位置：top 内容上方（默认） / bottom 内容下方。
+     *
+     * <p>底栏用于「单页工作台」：页面是主角，页签条只做导航，放下面不抢视线。</p>
+     */
+    position?: "top" | "bottom";
+    /** 是否允许把页签弹到独立窗口：组件只发 popout 事件，地址由父级决定 */
+    poppable?: boolean;
   }>(),
   {
     tabs: () => [],
@@ -41,6 +59,10 @@ const props = withDefaults(
     contextMenu: () => [],
     showCloseAll: false,
     emptyText: "从左侧选择主机，右键打开功能",
+    id: "",
+    size: "default",
+    position: "top",
+    poppable: false,
   },
 );
 
@@ -52,9 +74,70 @@ const emit = defineEmits<{
   (e: "context-command", payload: { key: string; tab: ReTabsItem }): void;
   /** 关闭全部 */
   (e: "close-all"): void;
+  /** 页签被要求弹出到独立窗口（name 是页签名） */
+  (e: "popout", name: string): void;
 }>();
 
 const rootRef = ref<HTMLElement | null>(null);
+
+/* ==================== 记忆（id → localStorage） ==================== */
+
+/** 记忆键：只在给了 id 时生效，避免无意污染 localStorage */
+function storageKey(): string {
+  return props.id ? `re-tabs:${props.id}` : "";
+}
+
+/** 读上次停留的页签；隐私模式 / 配额满时静默降级为「没有记忆」 */
+function readStored(): string {
+  const key = storageKey();
+  if (!key) return "";
+  try {
+    return localStorage.getItem(key) || "";
+  } catch {
+    return "";
+  }
+}
+
+/** 写当前页签：记忆是增强能力，失败不能打断交互 */
+function storeActive(name: string): void {
+  const key = storageKey();
+  if (!key) return;
+  try {
+    if (name) localStorage.setItem(key, name);
+    else localStorage.removeItem(key);
+  } catch {
+    /* 忽略：localStorage 不可用时页面照常工作 */
+  }
+}
+
+/**
+ * 恢复上次停留的页签。
+ *
+ * <p>只在父级没有指定当前页签时接管：带 `?tab=xxx` 的深链优先级高于记忆，
+ * 否则用户点分享链接会被自己的历史位置顶掉。</p>
+ */
+function restoreActive(): void {
+  if (!props.id || props.modelValue) return;
+  const saved = readStored();
+  if (!saved) return;
+  if (!props.tabs.some(t => t.name === saved)) return;
+  emit("update:modelValue", saved);
+}
+
+/**
+ * 把页签弹到独立窗口。
+ *
+ * <p>组件不管地址长什么样（hash / query 各应用不同），只把页签名交给父级，
+ * 由父级拼出可分享的 URL 并 window.open。</p>
+ *
+ * @param event 点击事件（阻止冒泡到页签激活）
+ * @param tab 目标页签
+ */
+function popoutTab(event: MouseEvent, tab: ReTabsItem): void {
+  event.stopPropagation();
+  if (tab.disabled) return;
+  emit("popout", tab.name);
+}
 
 /* ==================== 激活与关闭 ==================== */
 
@@ -91,6 +174,9 @@ watch(
   },
   { immediate: true },
 );
+
+// 页签切换即写记忆：刷新、重新进页面都回到同一页（没有 id 时该监听什么都不做）
+watch(active, (name) => storeActive(name));
 
 /**
  * 激活页签。
@@ -197,6 +283,8 @@ onMounted(() => {
   document.addEventListener("keydown", onKeyDown);
   // 捕获阶段监听滚动：页签条横向滚动时菜单应跟随收起，否则会飘在错误位置
   window.addEventListener("scroll", closeMenu, true);
+  // 子组件的 mounted 先于父组件：在这里恢复，父级拿到值后依然走同一条 v-model 通路
+  restoreActive();
 });
 
 onBeforeUnmount(() => {
@@ -235,7 +323,12 @@ function statusClass(status?: string | null): string {
 </script>
 
 <template>
-  <div ref="rootRef" class="re-tabs" v-bind="$attrs">
+  <div
+    ref="rootRef"
+    class="re-tabs"
+    :class="[`re-tabs--${size}`, { 'is-small': size === 'small', 'is-mini': size === 'mini', 'is-bottom': position === 'bottom' }]"
+    v-bind="$attrs"
+  >
     <!-- 页签条 -->
     <div class="re-tabs__bar">
       <button
@@ -273,6 +366,16 @@ function statusClass(status?: string | null): string {
             v-if="tab.badge !== undefined && tab.badge !== null && tab.badge !== ''"
             class="re-tabs__badge"
           >{{ tab.badge }}</span>
+          <button
+            v-if="poppable"
+            type="button"
+            class="re-tabs__popout"
+            :title="`在新窗口打开 ${tab.label}`"
+            :aria-label="`在新窗口打开 ${tab.label}`"
+            @click="popoutTab($event, tab)"
+          >
+            <ReIcon name="FullScreen" :size="10" />
+          </button>
           <button
             v-if="canClose(tab)"
             type="button"
@@ -430,6 +533,61 @@ function statusClass(status?: string | null): string {
   opacity: 0.45;
 }
 
+/* ===== 尺寸档位 ===== */
+
+/* small：比默认矮一点，用于侧栏紧凑区 */
+.re-tabs--small .re-tabs__bar {
+  padding: 0 3px;
+}
+
+.re-tabs--small .re-tabs__tab {
+  height: 32px;
+  padding: 0 7px 0 10px;
+  font-size: 12.5px;
+}
+
+/**
+ * mini：单页工作台的底栏。
+ *
+ * <p>这种页面里页签只是导航，内容才是主角 —— 所以高度压到 28px、
+ * 去掉副标题与徽标位，激活态用实色而不是浅底，扫一眼就知道停在哪一页。</p>
+ */
+.re-tabs--mini .re-tabs__bar {
+  gap: 1px;
+  padding: 0 2px;
+}
+
+.re-tabs--mini .re-tabs__tab {
+  height: 28px;
+  padding: 0 7px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.re-tabs--mini .re-tabs__tab.is-active {
+  background: var(--el-color-primary);
+  color: var(--el-color-white, #fff);
+}
+
+.re-tabs--mini .re-tabs__hint,
+.re-tabs--mini .re-tabs__badge {
+  display: none;
+}
+
+/* ===== 页签条在底部：内容在上、条在下 ===== */
+.re-tabs.is-bottom {
+  flex-direction: column-reverse;
+}
+
+.re-tabs.is-bottom .re-tabs__bar {
+  border-bottom: none;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.re-tabs.is-bottom .re-tabs__tab {
+  border-radius: 6px;
+}
+
 /* 状态点 */
 .re-tabs__dot {
   flex: none;
@@ -517,6 +675,38 @@ function statusClass(status?: string | null): string {
 .re-tabs__tab.is-active .re-tabs__badge {
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-8);
+}
+
+/* 弹出按钮：与关闭按钮同列，默认隐身，hover / 激活时显形 */
+.re-tabs__popout {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: var(--el-radius-full, 9999px);
+  background: transparent;
+  color: var(--el-text-color-placeholder);
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity var(--el-transition-duration, 0.2s) ease,
+    background-color var(--el-transition-duration, 0.2s) ease,
+    color var(--el-transition-duration, 0.2s) ease;
+}
+
+.re-tabs__tab:hover .re-tabs__popout,
+.re-tabs__tab.is-active .re-tabs__popout {
+  opacity: 0.7;
+}
+
+.re-tabs__popout:hover {
+  background: var(--el-fill-color-darker);
+  color: var(--el-color-primary);
+  opacity: 1;
 }
 
 /* 关闭按钮：默认低存在感，hover 才显形 */

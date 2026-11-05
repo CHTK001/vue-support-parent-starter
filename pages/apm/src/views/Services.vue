@@ -1,23 +1,28 @@
 <!--
   服务列表 —— 对齐 SkyWalking 的 Service 列表。
 
-  列的口径与 SkyWalking UI 一致：Apdex 以外用 SLA / CPM / 平均耗时 / P95 / P99 / 错误率。
+  列的口径与 SkyWalking UI 一致：用调用量 / 平均耗时 / P95 / P99 / 错误率。
   后端把这些值直接从 OAP 的 readMetricsValues 合并进 OtnlService，前端不再二次计算，
   只有「错误率」在后端缺失时按 calls 兜底。
+
+  两个「有什么才显示什么」的列：
+    · 实例数：SkyWalking 的 Service 实体不带实例计数（要按服务再查一次），
+      所有值都是 0 时这一列没有信息量，直接不显示；
+    · P95 / P99：没有开启 percentile 采集的部署会全部返回 -1，
+      同理收起来 —— 一列全破折号的表格比少一列更让人困惑。
 -->
 <template>
   <ApmGate v-slot="{ status }">
     <ReSectionHead description="服务目录与关键指标，点行下钻实例与端点">
-      <template #title>服务列表</template>
+      <template #title>服务</template>
       <template #actions>
         <ReButton icon="Refresh" show-text :loading="loading" @click="load">刷新</ReButton>
       </template>
     </ReSectionHead>
 
     <div class="apm-bar">
-      <ReInput v-model="keyword" placeholder="按服务名过滤" clearable style="width: 240px" @keyup.enter="applyFilter" />
-      <ReSelect v-model="layer" :options="layerOptions" placeholder="全部层" clearable style="width: 160px" @change="applyFilter" />
-      <ReButton icon="Search" type="primary" @click="applyFilter">查询</ReButton>
+      <ReInput v-model="keyword" placeholder="按服务名或分组过滤" clearable style="width: 240px" />
+      <ReSelect v-model="layer" :options="layerOptions" placeholder="全部层" clearable style="width: 160px" />
       <el-checkbox v-model="errorOnly" label="仅看有错误的服务" />
       <span class="apm-bar__spacer" />
       <span class="apm-count">共 {{ items.length }} 个服务 · 匹配 {{ filtered.length }} 个</span>
@@ -38,17 +43,17 @@
       @row-click="onRowClick"
     >
       <template #col-name="{ row }">
-        <span class="apm-mono svc-name">{{ row.name }}</span>
+        <span class="apm-row__name">{{ row.name }}</span>
       </template>
       <template #col-layers="{ row }">
         <ReTag v-for="l in row.layers || []" :key="l" size="small" round style="margin-right: 4px">{{ l }}</ReTag>
         <span v-if="!(row.layers || []).length" class="apm-muted">—</span>
       </template>
-      <template #col-instances="{ row }">
-        <span class="apm-mono">{{ row.instances }}</span>
-      </template>
       <template #col-calls="{ row }">
-        <span class="apm-mono">{{ fmtNum(row.calls) }}</span>
+        <span class="apm-dist">
+          <span class="apm-dist__track"><i :style="{ width: loadWidth(row.calls) }" /></span>
+          <b>{{ fmtNum(row.calls) }}</b>
+        </span>
       </template>
       <template #col-avgMs="{ row }">
         <span class="apm-mono" :class="latencyClass(row.avgMs)">{{ fmtMs(row.avgMs) }}</span>
@@ -129,20 +134,36 @@ const filtered = computed(() => {
     .map((s) => s as unknown as Record<string, unknown>);
 });
 
-const columns: ReTableColumn[] = [
-  { prop: "name", label: "服务名", minWidth: 220, slot: "name", sortable: true },
-  { prop: "layers", label: "层", width: 180, slot: "layers" },
-  { prop: "instances", label: "实例数", width: 90, align: "center", slot: "instances", sortable: true },
-  { prop: "calls", label: "调用量", width: 110, align: "right", slot: "calls", sortable: true },
-  { prop: "avgMs", label: "平均耗时", width: 110, align: "right", slot: "avgMs", sortable: true },
-  { prop: "p95Ms", label: "P95", width: 100, align: "right", slot: "p95Ms", sortable: true },
-  { prop: "p99Ms", label: "P99", width: 100, align: "right", slot: "p99Ms", sortable: true },
-  { prop: "errorRate", label: "错误率", width: 100, align: "right", slot: "errorRate", sortable: true },
-];
+/* 列按「有没有数据」增减，不让整列破折号占着位置 */
+const hasInstances = computed(() => items.value.some((s) => Number(s.instances ?? 0) > 0));
+const hasPercentile = computed(() => items.value.some((s) => Number(s.p95Ms ?? -1) >= 0 || Number(s.p99Ms ?? -1) >= 0));
 
-/** 查询：过滤是前端的，这里只把数据取回来（SkyWalking 也没有服务端 name 过滤） */
-async function applyFilter() {
-  // 前端过滤即时生效，无需请求
+const columns = computed<ReTableColumn[]>(() => {
+  const list: ReTableColumn[] = [
+    { prop: "name", label: "服务名", minWidth: 200, slot: "name", sortable: true },
+    { prop: "layers", label: "层", width: 160, slot: "layers" },
+  ];
+  if (hasInstances.value) {
+    list.push({ prop: "instances", label: "实例", width: 80, align: "right", sortable: true });
+  }
+  list.push(
+    { prop: "calls", label: "调用量", minWidth: 200, slot: "calls", sortable: true },
+    { prop: "avgMs", label: "平均耗时", width: 110, align: "right", slot: "avgMs", sortable: true },
+  );
+  if (hasPercentile.value) {
+    list.push(
+      { prop: "p95Ms", label: "P95", width: 100, align: "right", slot: "p95Ms", sortable: true },
+      { prop: "p99Ms", label: "P99", width: 100, align: "right", slot: "p99Ms", sortable: true },
+    );
+  }
+  list.push({ prop: "errorRate", label: "错误率", width: 100, align: "right", slot: "errorRate", sortable: true });
+  return list;
+});
+
+/** 调用量条：按当前列表最大值等比缩放，最少留 2% 以免看不见 */
+function loadWidth(value: unknown): string {
+  const max = Math.max(1, ...items.value.map((s) => Number(s.calls ?? 0)));
+  return `${Math.max(2, Math.round((Math.max(0, Number(value ?? 0)) / max) * 100))}%`;
 }
 
 /** 行点击 → 服务详情 */
@@ -169,8 +190,37 @@ onMounted(load);
 </script>
 
 <style scoped>
-.svc-name {
-  color: var(--text-primary, var(--el-text-color-primary));
-  font-weight: 500;
+/* 条形 + 数字：表格里也能一眼看出量级差 */
+.apm-dist {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.apm-dist__track {
+  flex: 1 1 auto;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--el-fill-color);
+  overflow: hidden;
+}
+
+.apm-dist__track i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--el-color-primary);
+  opacity: 0.5;
+}
+
+.apm-dist b {
+  flex: none;
+  width: 68px;
+  text-align: right;
+  font-family: var(--el-font-family-mono, ui-monospace, Consolas, monospace);
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
 }
 </style>

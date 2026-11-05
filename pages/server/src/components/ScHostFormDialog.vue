@@ -229,15 +229,8 @@ function onSubmit(): void {
   const hasAccount = form.serverHostAccount.trim();
   const hasPassword = !!form.serverHostPassword;
   const hasKey = form.serverHostPrivateKey.trim();
-  // 免密登录允许账号留空：地址写成 user@host 时后端直接取前缀作为账号，
-  // 本机主机则取平台运行账号；只有「既没账号、地址里也没有 user@」才提示。
-  const addressAccount = (() => {
-    const raw = form.serverHostAddress.trim();
-    const at = raw.lastIndexOf('@');
-    if (at <= 0 || at >= raw.length - 1) return '';
-    const host = raw.slice(at + 1);
-    return /[.:/]/.test(host) ? raw.slice(0, at).trim() : '';
-  })();
+  // 免密登录必须填账号（本机主机可由后端取平台运行账号）。
+  // 地址字段原样提交，平台不再把它拆成 user@host 里的账号。
   // 密码非必填：选「账号密码」时只填账号、不填密码也允许保存。
   // 后端 autoCreateIdentity 仅在账号+密码齐全时自动建身份，密码缺失则回落默认凭据；
   // 「key」方式保留私钥必填（有私钥必须能关联账号）；
@@ -246,9 +239,8 @@ function onSubmit(): void {
     message.warning('请填写登录账号');
     return;
   }
-  const noneAccount = hasAccount || addressAccount;
-  if (form.authType === 'none' && !noneAccount && form.serverHostCollectMode !== 'LOCAL') {
-    message.warning('免密登录请填写登录账号，或把地址写成 user@host');
+  if (form.authType === 'none' && !hasAccount && form.serverHostCollectMode !== 'LOCAL') {
+    message.warning('免密登录请填写登录账号');
     return;
   }
   const submit = {
@@ -270,10 +262,10 @@ function onSubmit(): void {
   } else if (form.authType === 'key' && hasAccount && hasKey) {
     submit.serverHostAccount = form.serverHostAccount.trim();
     submit.serverHostPrivateKey = form.serverHostPrivateKey.trim();
-  } else if (form.authType === 'none' && noneAccount) {
+  } else if (form.authType === 'none' && (hasAccount || form.serverHostCollectMode === 'LOCAL')) {
     // 免密登录：只提交账号 + 免密类型标记，后端创建免密（NONE）身份；
-    // 账号取自输入框或地址里的 user@ 前缀
-    submit.serverHostAccount = noneAccount;
+    // 账号只取输入框，本机主机留空时由后端用平台运行账号
+    submit.serverHostAccount = hasAccount;
     submit.serverHostAuthType = 'none';
   }
   emit('submit', submit);
@@ -418,12 +410,12 @@ function onSubmit(): void {
           <div class="form-row">
             <div class="form-field">
               <label class="field-label">登录账号</label>
-              <ReInput v-model="form.serverHostAccount" placeholder="可留空：取地址里的 user@ 前缀 / 本机运行账号" />
+              <ReInput v-model="form.serverHostAccount" placeholder="如 root / ubuntu；本机可留空用平台运行账号" />
             </div>
           </div>
           <div class="form-row">
             <div class="form-field field-wide">
-              <ReText type="info">免密登录：地址写成 <code>user@host</code> 时平台直接取 user 作为登录账号，账号留空也能保存；本机主机默认用平台运行账号。</ReText>
+              <ReText type="info">免密登录必须填登录账号（本机主机可留空，默认用平台运行账号）。地址字段只写主机，不解析 <code>user@host</code>。</ReText>
             </div>
           </div>
         </template>

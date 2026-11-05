@@ -51,13 +51,19 @@ import { createRoomRoutes } from "@pages/room/src/routes";
 // apmConfig 只用于菜单可见性（app.yaml 的 apmConfig.enable），与后端探测无关。
 import { apmRoutes } from "@pages/apm/src/routes";
 import { apmConfig } from "@pages/apm/src/config";
-// 系统管理（@pages/system，纯数组工厂）：用户 / 角色 / 菜单 / 机构 / 字典 / 参数 /
-// 公告 / 反馈 / 岗位 / 消息 / 日志 / 在线用户等系统域页面，接口落在 /manage/** 与
-// /v2/user/**，monitor 后端（common-system-starter）全部有实现。
+// 已并入又移除的包（留档，避免有人再加回来）：
+//   - 2026-11-02 曾并入 achievement / collect / job / message / signin / task 六包；
+//   - 本次再移除 @pages/system（systemRoutes 与下方「日志管理」分组）。
 //
-// 曾经一并并入的 achievement / collect / job / message / signin / task 六个包已移除：
-// monitor 后端不含它们的任何 starter，菜单点开即 404（详见文件末尾的合并处注释）。
-import { systemRoutes } from "@pages/system/src/routes";
+// 移除 @pages/system 的判据（实测，不是估计）：monitor 后端
+// （spring-support-monitor-starter 打的 ngx-console）的 /actuator/mappings 里
+// 一条 /manage/** 都没有 —— /manage/user/page、/manage/role/page 带 token 全部
+// 404（S0503C0000 资源不存在）。而 systemRoutes 的 16 个叶子全是 /manage/** 页面，
+// 且都是 showLink:true 的顶层路由：buildMenuFromRoutes 只剔除「顶层 isVisible=0」，
+// 于是它们以 16 条平铺菜单混进 monitor 侧边栏（个人设置 / 用户 / 租户 / 角色 / 菜单 /
+// 机构 / 字典 / 参数配置 / 公告 / 反馈 / 岗位 / 消息 / 登录日志 / 系统日志 /
+// 文件管理 / 在线用户），点开即 404，还和「模板管理」等分组挤在一起。
+// 系统域页面属于系统管理应用（vue-support-system-starter，后端 18170），不在本应用。
 
 export const monitorRoutes: RouteConfigsTable[] = [
   // ==================== 告警管理 ====================
@@ -280,6 +286,25 @@ export const monitorRoutes: RouteConfigsTable[] = [
     ],
   },
 
+  // ==================== 账号管理 ====================
+  // 统一账号（设备密钥 / 邮箱 / 短信）是「设备资产」的凭据来源，但与设备不是同一种资产：
+  // 一个邮箱 / 短信账号可能同时被设备、模板、脚本引用，因此独立成组，不做设备页签。
+  // 账号数据只落在 sys_account（后端 spring-support-account-starter），AI 的
+  // sys_ai_provider_connection 与本页无关。
+  {
+    path: "/grp-account",
+    name: "GroupAccount",
+    meta: { title: "账号管理", icon: "Key", showLink: true, rank: 14 },
+    children: [
+      {
+        path: "/account-assets",
+        name: "AccountAssets",
+        component: () => import("@pages/monitor/src/views/account/ScAccountAssets.vue"),
+        meta: { title: "账号资产", icon: "Key", showLink: true, rank: 1 },
+      },
+    ],
+  },
+
   // ==================== 临时账号 ====================
   // 随机虚拟身份：虚拟号码（接码）+ 临时邮箱，收到的验证码短信 / 邮件经 SSE 实时推送。
   {
@@ -307,8 +332,9 @@ export const monitorRoutes: RouteConfigsTable[] = [
   ...createRoomRoutes({ showLink: true }),
 
   // ==================== 系统管理 ====================
-  // 跨包拼装的本地分组（代理/分组/账号/系统配置来自多个 pages 包），
-  // 需要 stack 本地排版，故保留在壳内。
+  // 本分组只放 monitor 自己的运维页（代理管理 / 系统配置），接口都在 /ms/server/**；
+  // 用户 / 角色 / 菜单 / 字典等系统域页面不在这里 —— 那是系统管理应用的事，
+  // monitor 后端没有 /manage/**（见文件头的移除说明）。
   {
     path: "/grp-system",
     name: "GroupSystem",
@@ -335,9 +361,8 @@ export const monitorRoutes: RouteConfigsTable[] = [
         meta: { title: "分组管理", icon: "Menu", showLink: false, rank: 32 },
       },
       {
-        // 与 @pages/system `systemRoutes` 里同名的「系统配置」页（/system/config，
-        // Settings Console）共享 route.name 会导致 registerRoutesUnderLayout 按名称
-        // 静默丢弃其中一页。本路由由宿主维护，改名保活，两页同时注册。
+        // monitor 自己的「系统配置」（Settings Console）：读 /ms/server/config、
+        // /ms/server/sip/**，都在本应用后端里。
         path: "/system-config",
         name: "SystemConfigView",
         component: () => import("@pages/monitor/src/views/SystemConfigView.vue"),
@@ -380,29 +405,11 @@ export const monitorRoutes: RouteConfigsTable[] = [
     children: apmRoutes,
   },
 
-  // ==================== 日志（不进侧边栏） ====================
-  // 系统日志 / 登录日志在主机资产里是「某台服务器」的页签（ScHostLogs，读 journalctl / wevtutil），
-  // 不是平台软件的操作日志。这两个 @pages/system 页面只作为旧链接的兼容落地页保留，
-  // showLink:false —— 不再作为「日志管理」菜单出现在全局导航里，避免把软件日志当服务器日志。
-  {
-    path: "/grp-logs",
-    name: "GroupLogs",
-    meta: { title: "日志管理", icon: "Tickets", showLink: false, rank: 31 },
-    children: [
-      {
-        path: "/logs/sys",
-        name: "SysLog",
-        component: () => import("@pages/system/src/views/SysLogManage.vue"),
-        meta: { title: "系统日志", icon: "Document", showLink: false, keepAlive: true, rank: 1 },
-      },
-      {
-        path: "/logs/user",
-        name: "UserLog",
-        component: () => import("@pages/system/src/views/UserLogManage.vue"),
-        meta: { title: "登录日志", icon: "Unlock", showLink: false, keepAlive: true, rank: 2 },
-      },
-    ],
-  },
+  // ==================== 日志（已移除） ====================
+  // 原「日志管理」分组（/grp-logs → /logs/sys、/logs/user）指向 @pages/system 的
+  // SysLogManage / UserLogManage，后端是 /manage/**，monitor 没有 —— 同属本次移除的
+  // 系统域页面。主机侧真正的日志是「主机资产 → 某台服务器 → 日志」页签
+  // （ScHostLogs，读 journalctl / wevtutil），与本分组无关。
 
   // ==================== 各功能包的隐藏路由合并 ====================
   // 以下几组路由的声明在各自的功能包里（视图、API、路由同源），宿主只做合并，
@@ -416,11 +423,11 @@ export const monitorRoutes: RouteConfigsTable[] = [
   // 侧边栏仍停在 /datasource 上。activeMenu 指向本应用的数据源列表路径。
   ...createDatasourceManageRoutes({ activeMenu: "/datasource" }),
 
-  // 功能包路由：只有 @pages/system 一份 —— 它的页面全部落在 /manage/** 与 /monitor/online，
-  // monitor 后端（spring-api-support-common-system-starter）都有实现。
+  // 功能包路由：@pages/system 已整体移除（见文件头的移除说明）——
+  // monitor 后端没有任何 /manage/** 实现，16 个系统域页面只会让侧边栏多出一堆点开即 404 的条目。
   //
   // 2026-11-02 的 395b0c4b25 曾把 achievement / collect / job / message / signin / task
-  // 六个包一起并入，但只接了前端、没接后端，且多数包在 monitor 里没有对应 starter：
+  // 六个包一起并入，同样只接了前端、没接后端，且多数包在 monitor 里没有对应 starter：
   //   - achievement / signin：后端只在系统管理应用（18170），monitor 的 /achievement、/signin
   //     在 /actuator/mappings 里计数为 0，菜单标题也因缺 i18n key 直接显示 menu.achievement；
   //   - collect：采集调度一体化平台（18190）的能力，monitor 无 /v2/collect；其中顶级
@@ -434,9 +441,6 @@ export const monitorRoutes: RouteConfigsTable[] = [
   //     （app.yaml 增加 urlConfig.jobApi: /v2/job + 后端 --plugin.job.manage.enable=true），
   //     再重新 import jobRoutes。
   //
-  // 注意：systemRoutes 与宿主的 /system-config 页面同名（SystemConfig），
-  // app 本地路由已改名为 SystemConfigView，保证两页同时注册，不被 registerRoutesUnderLayout 按名称静默丢弃。
-  ...systemRoutes,
 
   // ==================== 隐藏路由（不进菜单，仍可访问） ====================
   {

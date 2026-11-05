@@ -1,305 +1,419 @@
 /**
- * 共享实时通道（单例） —— @pages/server 的 SSE 统一接入点
+ * 主机资产全局 SSE 通道（@pages/server 唯一长连接）
  *
- * <p>原则：
- *   - 连接按 topic 管理，不是按页面/组件：同一个 topic 只会建一条连接；
- *   - 用 {@code on(topic, handler[, url, eventNames])} 订阅，退订到 0 时自动关闭底层连接；
- *   - 首次 {@code on()} 时才建立连接（不订阅就不建连），断线由通道处理。</p>
+ * <p>原则：</p>
+ * <ul>
+ *   <li>整个「主机资产」页面只建立<b>一条</b> SSE 长连接，由页面外壳
+ *       （{@code AssetsView}）在挂载时打开、卸载时关闭；</li>
+ *   <li>连接由 {@code clientId} 标识，服务端按下发内容区分事件：
+ *       {@code host-summary}（底部状态条句柄/inode）与 {@code mailbox}（新邮件）；</li>
+ *   <li>消费方只声明「关注哪台主机 / 哪个邮箱身份」，订阅动作由本模块用普通 HTTP
+ *       转交给服务端，服务端再经这条长连接推送；</li>
+ *   <li>断线重连后自动补订阅（{@code host-summary} 与邮箱各一次），消费方无需感知。</li>
+ * </ul>
  *
- * <p>当前消费端：<li>{@code mailbox}（ScCredentialTab，邮箱推送，{@code /sse/connect}）</li>
- * 及后续行为：日志/告警的 SSE 流。（{@code pages/docker} 的容器日志/终端 SSE 目前有自己的
- * 通道，随后再接入本通道。）</p>
+ * <p>除本页面的主机资产区域外，{@code pages/server} 的其它页面不建立 SSE。</p>
  *
  * @since 4.0.0.46
  */
+import { http, type SseClient } from "@repo/utils";
+import {
+  subscribeHostSummary,
+  unsubscribeHostSummary,
+} from "../api/hostProfile";
+import {
+  registerMailbox as registerMailboxRequest,
+  unregisterMailbox as unregisterMailboxRequest,
+} from "../api";
 
-export type RealtimeEventType = string;
+/** 全局 SSE 连接状态 */
+export type HostAssetsSseStatus = "idle" | "connecting" | "connected" | "closed";
 
-export interface RealtimeEvent {
-  type: RealtimeEventType;
-  data: unknown;
-  ts: number;
+/** 主机资源摘要推送负载（句柄数 / inode） */
+export interface HostSummaryPush {
+  hostId: number;
+  handleCount: number;
+  inodeUsed: number;
+  inodeTotal: number;
+  inodePercent: number;
+  inodeMount: string;
+  collectedAt?: string;
 }
 
-export type RealtimeEventHandler = (event: RealtimeEvent) => void;
+/** 摘要处理器 */
+export type HostSummaryHandler = (summary: HostSummaryPush) => void;
 
-/** 事件处理器容器 */
-class EventBus {
-  private handlers = new Map<RealtimeEventType, Set<RealtimeEventHandler>>();
-  private globalHandlers = new Set<RealtimeEventHandler>();
+/** 新邮件处理器 */
+export type MailboxHandler = (emails: any[]) => void;
 
-  on(type: RealtimeEventType, handler: RealtimeEventHandler) {
-    if (!this.handlers.has(type)) {
-      this.handlers.set(type, new Set());
-    }
-    this.handlers.get(type)!.add(handler);
-  }
+/** 连接状态处理器 */
+export type HostAssetsSseStatusHandler = (status: HostAssetsSseStatus) => void;
 
-  onAll(handler: RealtimeEventHandler) {
-    this.globalHandlers.add(handler);
-  }
+/** 全局 SSE 端点（后端 HostAssetsSseController） */
+const STREAM_PATH = "/ms/server/host/assets/stream";
 
-  off(type: RealtimeEventType, handler: RealtimeEventHandler) {
-    this.handlers.get(type)?.delete(handler);
-  }
+/** 资源摘要事件名 */
+const EVENT_SUMMARY = "host-summary";
 
-  offAll(handler: RealtimeEventHandler) {
-    this.globalHandlers.delete(handler);
-  }
+/** 新邮件事件名 */
+const EVENT_MAILBOX = "mailbox";
 
-  emit(event: RealtimeEvent) {
-    this.handlers.get(event.type)?.forEach((h) => {
-      try { h(event); } catch { /* 忽略处理器抛出的异常，不影响其他消费方 */ }
-    });
-    this.globalHandlers.forEach((h) => {
-      try { h(event); } catch { /* 忽略 */ }
-    });
+/** 采不到值时的占位（与服务端一致：-1 显示为「—」） */
+const UNKNOWN = -1;
+
+/** 重连间隔（毫秒） */
+const RECONNECT_INTERVAL_MS = 3_000;
+
+/** 重连次数上限（接近无限：长连接不应因短暂断网而永久失效） */
+const MAX_RECONNECT_ATTEMPTS = 1_000;
+
+/**
+ * 安全调用处理器：单个消费方抛异常不影响其它消费方。
+ *
+ * @param handler 处理器
+ * @param value   入参
+ */
+function safeCall<T>(handler: (value: T) => void, value: T): void {
+  try {
+    handler(value);
+  } catch {
+    /* 忽略处理器异常 */
   }
 }
 
 /**
- * 一条 SSE 连接的生命周期。
+ * 把推送负载转成对象（兼容服务端直接下发对象或字符串两种形态）。
  *
- * <p>SSE 事件是带名称的（例如 {@code connected} / {@code mailbox}），所以每个处理器
- * 注册一个或多个事件名；同一个 converter 的处理器在退订时精确移除对应的监听器，
- * 避免重复推送/内存泄漏。</p>
+ * @param raw 原始负载
+ * @returns 对象；无法解析时返回 null
  */
-class SseStream {
-  private es: EventSource | null = null;
-  /** SSE 事件名称 → 运行时处理器 */
-  private handlers = new Map<string, Set<RealtimeEventHandler>>();
-  /** 运行时处理器 → 所有已注册的事件名，用于精确退订 */
-  private listening = new Map<RealtimeEventHandler, Set<string>>();
-  /** 运行时处理器 → 事件名 → EventSource 监听器，用于断线重连后重新绑定 */
-  private listeners = new Map<RealtimeEventHandler, Map<string, EventListener>>();
-
-  constructor(topic: string, private url: string) {}
-
-  /** 退订后是否还有仍在运行的处理器（空 set 要算，否则连接不释放） */
-  get active() {
-    return [...this.handlers.values()].some((s) => s.size > 0);
+function asRecord(raw: unknown): Record<string, any> | null {
+  if (raw && typeof raw === "object") {
+    return raw as Record<string, any>;
   }
-
-  /** 底层连接是否已经建立（未建连时先建连，否则事件名监听挂不到连接上） */
-  get connected() { return this.es !== null; }
-
-  /** 退订后是否还有处理器（事件名 key 无限膨胀） */
-  private syncHandlers() {
-    for (const [name, s] of this.handlers) {
-      if (s.size === 0) this.handlers.delete(name);
-    }
+  if (typeof raw !== "string" || raw === "") {
+    return null;
   }
-
-  /** 订阅事件名 */
-  on(name: string, handler: RealtimeEventHandler) {
-    if (!this.handlers.has(name)) {
-      this.handlers.set(name, new Set());
-    }
-    this.handlers.get(name)!.add(handler);
-
-    if (!this.listening.has(handler)) {
-      this.listening.set(handler, new Set());
-    }
-    const names = this.listening.get(handler)!;
-    if (names.has(name)) return;
-    names.add(name);
-
-    // 已建连：马上注册，否则等 connect() 时统一注册
-    const listener: EventListener = (ev) => {
-      try {
-        handler({ type: name, data: (ev as MessageEvent).data, ts: Date.now() });
-      } catch { /* 忽略 */ }
-    };
-    if (this.es) {
-      this.es.addEventListener(name, listener);
-      this.listeners.get(handler)!.set(name, listener);
-    }
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
   }
+}
 
-  /** 退订事件名 */
-  off(name: string, handler: RealtimeEventHandler) {
-    this.handlers.get(name)?.delete(handler);
-    this.syncHandlers();
-    const names = this.listening.get(handler);
-    if (!names) return;
-    names.delete(name);
-
-    const listeners = this.listeners.get(handler);
-    const listener = listeners?.get(name);
-    if (listener) {
-      this.es?.removeEventListener(name, listener);
-      listeners!.delete(name);
-    }
+/**
+ * 把推送负载转成邮件数组。
+ *
+ * @param raw 原始负载
+ * @returns 邮件数组；形态不对时返回空数组
+ */
+function asEmailList(raw: unknown): any[] {
+  if (Array.isArray(raw)) {
+    return raw;
   }
-
-  /** 退订该处理器的全部事件名 */
-  offHandlers(handler: RealtimeEventHandler) {
-    for (const name of [...this.listening.get(handler) ?? []]) {
-      this.off(name, handler);
-    }
-  }
-
-  /** 按 eventNames 建连 */
-  subscribe() {
-    if (!this.es) {
-      this.connect(this.url);
-    }
-  }
-
-  /** 停止该流的所有连接和处理器 */
-  stop() {
-    for (const [handler, names] of this.listening) {
-      for (const name of names) {
-        this.off(name, handler);
-      }
-    }
-    this.close();
-  }
-
-  private connect(url: string) {
-    this.url = url;
+  if (typeof raw === "string" && raw !== "") {
     try {
-      if (this.es) this.close();
-      this.es = new EventSource(url);
-      /* 重新绑定所有已注册的处理器（重连后需恢复监听器） */
-      for (const [handler, nameSet] of this.listening) {
-        for (const name of nameSet) {
-          if (this.listeners.get(handler)?.has(name)) continue;
-          const listener: EventListener = (ev) => {
-            try {
-              handler({ type: name, data: (ev as MessageEvent).data, ts: Date.now() });
-            } catch { /* 忽略 */ }
-          };
-          this.es!.addEventListener(name, listener);
-          this.listeners.get(handler)!.set(name, listener);
-        }
-      }
-      this.es.onerror = () => {
-        for (const [handler] of this.listening) {
-          try { handler({ type: 'error', data: null, ts: Date.now() }); } catch { /* 忽略 */ }
-        }
-        /* eslint-disable no-console */
-        console.warn('[sse] ' + this.url + ' 连接断开');
-        /* eslint-enable no-console */
-      };
-    } catch { /* 当前环境不支持 SSE */ }
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
   }
-
-  private close() {
-    this.es?.close();
-    this.es = null;
-  }
+  return [];
 }
 
 /**
- * 通道：按 topic 建连/释放，消息经事件总线派发。
+ * 主机资产全局 SSE 通道（单例）。
  *
- * <p>{@code realtimeChannel} 是默认导出的单例，所有页面/组件共享同一个通道实例。</p>
+ * <p>按「持有者计数」管理连接生命周期：页面挂载时 {@link open}，卸载时 {@link close}，
+ * 计数归零才真正断开，避免同一页面内多个组件分别开合把连接关掉。</p>
  */
-export class RealtimeChannel {
-  private bus = new EventBus();
-  private streams = new Map<string, SseStream>();
-  private urlFn: (topic: string) => string;
-  /** 每个 topic 下处理器的注册事件名 */
-  private reg = new Map<string, Map<RealtimeEventHandler, Set<string>>>();
+class HostAssetsSse {
+  /** 底层 SSE 客户端（fetch 实现：带鉴权头、自动重连） */
+  private client: SseClient | null = null;
+  /** 连接持有者计数 */
+  private holders = 0;
+  /** 当前连接状态 */
+  private status: HostAssetsSseStatus = "idle";
+  /** 当前关注的主机（null 表示不订阅摘要） */
+  private summaryHostId: number | null = null;
+  /** 当前关注的邮箱身份（null 表示不订阅邮件） */
+  private mailboxIdentityId: number | null = null;
+  /** 摘要处理器 */
+  private readonly summaryHandlers = new Set<HostSummaryHandler>();
+  /** 新邮件处理器 */
+  private readonly mailboxHandlers = new Set<MailboxHandler>();
+  /** 状态处理器 */
+  private readonly statusHandlers = new Set<HostAssetsSseStatusHandler>();
+  /** 订阅请求队列：串行发送，保证「切主机」时服务端收到的顺序与用户操作一致 */
+  private queue: Promise<unknown> = Promise.resolve();
+  /** 连接标识（一次页面生命周期内保持不变） */
+  private clientId = "";
 
-  constructor(urlFn: (topic: string) => string = (topic) => `/sse/${topic}`) {
-    this.urlFn = urlFn;
-  }
-
-  /** 根据已注册的 topic 取连接地址 */
-  private getUrl(topic: string, url?: string): string {
-    return url ?? this.urlFn(topic);
+  /**
+   * 建立连接（可重复调用，按持有者计数）。
+   */
+  open(): void {
+    this.holders += 1;
+    if (this.client) {
+      return;
+    }
+    this.setStatus("connecting");
+    const clientId = this.ensureClientId();
+    this.client = http()
+      .get(STREAM_PATH)
+      .query({ clientId })
+      .sse({
+        reconnect: true,
+        maxReconnectAttempts: MAX_RECONNECT_ATTEMPTS,
+        reconnectInterval: RECONNECT_INTERVAL_MS,
+        onOpen: () => {
+          this.setStatus("connected");
+          this.resubscribe();
+        },
+        onMessage: (event) => this.handleMessage(event.event, event.data),
+        onError: () => {
+          /* 仍持有连接时进入重连等待，界面据状态显示「连接中」 */
+          if (this.client) {
+            this.setStatus("connecting");
+          }
+        },
+        onClose: () => {
+          if (this.client) {
+            this.setStatus("connecting");
+          }
+        },
+      });
   }
 
   /**
-   * 订阅：至少一个订阅者时建连，全部退订时释放。
-   *
-   * @param topic 推送主题
-   * @param handler 事件处理器
-   * @param url 覆盖默认地址（mailbox 需传入带 clientId 的完整地址）
-   * @param eventNames 该主题下订阅的事件名，未提供时只监听内容事件
+   * 释放连接（与 {@link open} 配对；计数归零才断开）。
    */
-  on(topic: string, handler: RealtimeEventHandler, url?: string, eventNames?: string[]) {
-    // 未建连时重新建连（带上消费方指定的地址）
-    let stream = this.streams.get(topic);
-    if (!stream || !stream.connected) {
-      stream = new SseStream(topic, this.getUrl(topic, url));
-      this.streams.set(topic, stream);
+  close(): void {
+    this.holders = Math.max(0, this.holders - 1);
+    if (this.holders > 0) {
+      return;
     }
-    const registrations = this.reg.get(topic) ?? new Map();
-    this.reg.set(topic, registrations);
-    if (!registrations.has(handler)) registrations.set(handler, new Set());
-    const names = registrations.get(handler)!;
+    this.client?.close();
+    this.client = null;
+    this.summaryHostId = null;
+    this.mailboxIdentityId = null;
+    this.setStatus("closed");
+  }
 
-    const eventNamesByConsumer = eventNames ?? ['message'];
-    // 预留连接：还没有建连（或已断连）时先建连，之后注册的事件名才能直接挂到该连接上
-    if (names.size === 0 || !stream.connected) stream.subscribe();
+  /**
+   * 连接标识：服务端按它管理推送订阅。
+   *
+   * @returns clientId
+   */
+  getClientId(): string {
+    return this.ensureClientId();
+  }
 
-    for (const nodeName of eventNamesByConsumer) {
-      if (names.has(nodeName)) continue;
-      names.add(nodeName);
-      stream.on(nodeName, handler);
+  /**
+   * 当前连接状态。
+   *
+   * @returns 状态
+   */
+  get currentStatus(): HostAssetsSseStatus {
+    return this.status;
+  }
+
+  /**
+   * 订阅主机资源摘要推送（null 表示取消）。
+   *
+   * @param hostId 主机标识
+   */
+  setSummaryHost(hostId: number | null): void {
+    const next = hostId ?? null;
+    if (next === this.summaryHostId) {
+      return;
+    }
+    this.summaryHostId = next;
+    if (this.status !== "connected") {
+      /* 未连上时只记录关注对象，连上后由 resubscribe() 补发 */
+      return;
+    }
+    const clientId = this.clientId;
+    this.enqueue(() => (next == null
+      ? unsubscribeHostSummary(clientId)
+      : subscribeHostSummary(next, clientId)));
+  }
+
+  /**
+   * 注册新邮件推送（打开邮件箱时调用）。
+   *
+   * @param identityId 邮箱身份标识
+   */
+  registerMailbox(identityId: number): void {
+    this.mailboxIdentityId = identityId;
+    if (this.status !== "connected") {
+      return;
+    }
+    const clientId = this.clientId;
+    this.enqueue(() => registerMailboxRequest(identityId, clientId));
+  }
+
+  /**
+   * 注销新邮件推送（关闭邮件箱时调用）。
+   */
+  unregisterMailbox(): void {
+    if (this.mailboxIdentityId == null) {
+      return;
+    }
+    this.mailboxIdentityId = null;
+    if (this.status !== "connected") {
+      return;
+    }
+    const clientId = this.clientId;
+    this.enqueue(() => unregisterMailboxRequest(clientId));
+  }
+
+  /**
+   * 订阅摘要事件。
+   *
+   * @param handler 处理器
+   * @returns 取消订阅
+   */
+  onHostSummary(handler: HostSummaryHandler): () => void {
+    this.summaryHandlers.add(handler);
+    return () => {
+      this.summaryHandlers.delete(handler);
+    };
+  }
+
+  /**
+   * 订阅新邮件事件。
+   *
+   * @param handler 处理器
+   * @returns 取消订阅
+   */
+  onMailbox(handler: MailboxHandler): () => void {
+    this.mailboxHandlers.add(handler);
+    return () => {
+      this.mailboxHandlers.delete(handler);
+    };
+  }
+
+  /**
+   * 订阅连接状态变化。
+   *
+   * @param handler 处理器
+   * @returns 取消订阅
+   */
+  onStatus(handler: HostAssetsSseStatusHandler): () => void {
+    this.statusHandlers.add(handler);
+    return () => {
+      this.statusHandlers.delete(handler);
+    };
+  }
+
+  /**
+   * 断线重连（或首次连上）后补发订阅：服务端在断开期间可能已清理订阅。
+   */
+  private resubscribe(): void {
+    const hostId = this.summaryHostId;
+    if (hostId != null) {
+      const clientId = this.clientId;
+      this.enqueue(() => subscribeHostSummary(hostId, clientId));
+    }
+    const identityId = this.mailboxIdentityId;
+    if (identityId != null) {
+      const clientId = this.clientId;
+      this.enqueue(() => registerMailboxRequest(identityId, clientId));
     }
   }
 
   /**
-   * 退订某个 topic 的事件处理器。
+   * 串行执行订阅请求；失败只记控制台，不影响后续请求。
    *
-   * @param topic 推送主题
-   * @param handler 事件处理器
+   * @param task 请求任务
    */
-  off(topic: string, handler: RealtimeEventHandler) {
-    const registrations = this.reg.get(topic);
-    if (!registrations) return;
-    const names = registrations.get(handler);
-    if (!names) return;
-    registrations.delete(handler);
+  private enqueue(task: () => Promise<unknown>): void {
+    this.queue = this.queue.then(task).catch(() => undefined);
+  }
 
-    const stream = this.streams.get(topic);
-    if (stream) {
-      for (const name of names) stream.off(name, handler);
+  /**
+   * 分发一条 SSE 事件。
+   *
+   * @param event 事件名
+   * @param data  负载
+   */
+  private handleMessage(event: string, data: unknown): void {
+    if (event === EVENT_SUMMARY) {
+      const record = asRecord(data);
+      if (!record) {
+        return;
+      }
+      const summary = this.normalizeSummary(record);
+      if (summary == null) {
+        return;
+      }
+      /* 只认当前关注的主机：切主机的瞬间可能还有上一条在途 */
+      if (this.summaryHostId != null && summary.hostId !== this.summaryHostId) {
+        return;
+      }
+      this.summaryHandlers.forEach((handler) => safeCall(handler, summary));
+      return;
     }
-
-    // 没有 handler 了，释放底层连接
-    if (this.streams.get(topic)?.active === false) {
-      this.streams.delete(topic);
+    if (event === EVENT_MAILBOX) {
+      const emails = asEmailList(data);
+      this.mailboxHandlers.forEach((handler) => safeCall(handler, emails));
     }
   }
 
-  /** 停止指定 topic 的所有连接 */
-  stop(topic: string) {
-    const stream = this.streams.get(topic);
-    if (stream) {
-      stream.stop();
-      this.streams.delete(topic);
+  /**
+   * 规整摘要负载（缺字段按 -1 处理，界面显示「—」）。
+   *
+   * @param record 原始负载
+   * @returns 规整后的摘要；无 hostId 时返回 null
+   */
+  private normalizeSummary(record: Record<string, any>): HostSummaryPush | null {
+    const hostId = Number(record.hostId);
+    if (!Number.isFinite(hostId)) {
+      return null;
     }
-    this.reg.delete(topic);
+    return {
+      hostId,
+      handleCount: Number(record.handleCount ?? UNKNOWN),
+      inodeUsed: Number(record.inodeUsed ?? UNKNOWN),
+      inodeTotal: Number(record.inodeTotal ?? UNKNOWN),
+      inodePercent: Number(record.inodePercent ?? UNKNOWN),
+      inodeMount: String(record.inodeMount ?? ""),
+      collectedAt: record.collectedAt == null ? "" : String(record.collectedAt),
+    };
   }
 
-  /** 断开全部连接 */
-  reset() {
-    for (const [topic, stream] of this.streams) {
-      stream.stop();
-      this.streams.delete(topic);
+  /**
+   * 更新状态并通知订阅者。
+   *
+   * @param status 新状态
+   */
+  private setStatus(status: HostAssetsSseStatus): void {
+    if (this.status === status) {
+      return;
     }
-    this.reg.clear();
-    this.bus.offAll(() => { /* pass */ });
+    this.status = status;
+    this.statusHandlers.forEach((handler) => safeCall(handler, status));
   }
 
-  onAll(handler: RealtimeEventHandler) {
-    this.bus.onAll(handler);
-  }
-
-  offAll(handler: RealtimeEventHandler) {
-    this.bus.offAll(handler);
-  }
-
-  /** 透传一个事件到事件总线 */
-  emit(event: RealtimeEvent) {
-    this.bus.emit(event);
+  /**
+   * 懒生成 clientId（浏览器不支持 crypto.randomUUID 时退化为随机串）。
+   *
+   * @returns clientId
+   */
+  private ensureClientId(): string {
+    if (this.clientId !== "") {
+      return this.clientId;
+    }
+    const cryptoApi = typeof globalThis !== "undefined" ? globalThis.crypto : undefined;
+    this.clientId = cryptoApi && typeof cryptoApi.randomUUID === "function"
+      ? `assets-${cryptoApi.randomUUID()}`
+      : `assets-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    return this.clientId;
   }
 }
 
-/** 共享通道单例 */
-export const realtimeChannel = new RealtimeChannel();
+/** 主机资产全局 SSE 单例（整个 @pages/server 只有这一条连接） */
+export const hostAssetsSse = new HostAssetsSse();
