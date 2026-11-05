@@ -16,7 +16,7 @@ import { RouterProvider, createBrowserRouter, type RouteObject } from "react-rou
 import { getConfig } from "@repo/config";
 import { getAccessToken } from "@repo/utils";
 import { checkRouteAccess, applyDocumentTitle } from "@repo/core";
-import { assembleCore, applyTitle, buildMenuFromRoutes, kickOffFingerprint, hideAppLoader, applyLoaderDeployPolicy } from "./shared";
+import { assembleCore, applyTitle, buildMenuFromRoutes, kickOffFingerprint, hideAppLoaderWhenReady, applyLoaderDeployPolicy } from "./shared";
 import type { AppInstance, CreateAppOptions } from "./types";
 
 /** React 实现挂载完成后的完整实例 */
