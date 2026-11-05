@@ -2462,7 +2462,7 @@ html.dark .koi-layout-double.koi-layout-item {
   }
 }
 
-/** 扩展：工具栏开关 / 消息通知 / 水印（ReSwitch 卡片式） */
+/** 扩展：工具栏开关 / 消息通知 / 首页 / 天气（ReSwitch 卡片式） */
 .extension-switches {
   display: flex;
   flex-direction: column;

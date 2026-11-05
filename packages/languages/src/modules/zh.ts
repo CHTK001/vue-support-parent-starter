@@ -401,32 +401,7 @@ export default {
       toolbarSwitch: "工具栏开关",
       messageNotify: "消息通知",
       homeConfig: "首页配置",
-      watermarkConfig: "水印配置",
       weatherConfig: "天气配置",
-      capabilityConfig: "业务开关",
-    },
-    security: {
-      watermark: {
-        enable: {
-          title: "全局水印",
-          sub: "防录屏",
-          tip: "在页面上叠加全局水印（security.watermark.enable）",
-          description: "在整个应用上叠加文字水印，可配置文案/颜色/透明度/角度",
-        },
-        text: {
-          label: "水印文案",
-          placeholder: "留空则不显示文案",
-        },
-        color: {
-          label: "水印颜色",
-        },
-        alpha: {
-          label: "透明度",
-        },
-        rotate: {
-          label: "旋转角度",
-        },
-      },
     },
     io: {
       export: "导出配置",
@@ -582,54 +557,12 @@ export default {
         description: "首页顶栏右侧自定义布局按钮",
       },
     },
-    watermark: {
-      enable: {
-        title: "启用全局水印",
-        sub: "安全水印",
-        tip: "页面叠加用户标识水印（防截图泄露）",
-        description: "页面叠加用户标识水印（防截图泄露）",
-      },
-      placeholder: "水印文案",
-    },
     weather: {
       enable: {
         title: "显示天气",
         sub: "工具栏",
         tip: "顶部工具栏右侧显示天气信息",
         description: "显示当前天气和一周预报",
-      },
-    },
-    capability: {
-      weather: {
-        title: "天气接口",
-        sub: "后台能力",
-        tip: "后台提供 /v2/weather/overview 时走后台取数（other.capabilities.weather）",
-        description: "开启后先探测后台天气总览接口，未命中回落三方数据源；后台没有该接口时建议在 app.yaml 关闭，避免每次启动都出现探测 404",
-      },
-      location: {
-        title: "定位接口",
-        sub: "后台能力",
-        tip: "后台提供 /v2/location/resolve 时由服务端按来源 IP 定位（other.capabilities.location）",
-        description: "开启后先探测后台定位解析接口，未命中回落浏览器定位 / IP 定位 / app.yaml 配置坐标",
-      },
-      typhoon: {
-        title: "台风接口",
-        sub: "后台能力",
-        tip: "后台提供 /v2/typhoon/active 时走后台取数（other.capabilities.typhoon）",
-        description: "开启后先探测后台活跃台风接口，未命中回落三方台风网；后台没有该接口时建议在 app.yaml 关闭，避免每次启动都出现探测 404",
-      },
-      ipLookup: {
-        title: "IP 归属地",
-        sub: "后台能力",
-        tip: "后台提供 /v2/ip/lookup 时由服务端把 IP 解析为物理地址（other.capabilities.ipLookup）",
-        description: "开启后 IP 缺少归属地时请求后台解析；后台没有该接口时建议在 app.yaml 关闭，避免无谓的 404 请求",
-      },
-      holiday: {
-        title: "节假日接口",
-        sub: "后台能力",
-        tip: "后台提供 /v2/holiday/get 时以管理员维护的放假安排为准（other.capabilities.holiday）",
-        description:
-          "开启后主页日历优先采用后台下发的放假与补班安排，未下发的日期仍用日历内置数据与《全国年节及纪念日放假办法》推算；后台没有该接口时建议在 app.yaml 关闭，避免每次启动都出现探测 404",
       },
     },
     toolbar: {

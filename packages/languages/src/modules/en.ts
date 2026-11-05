@@ -400,32 +400,7 @@ export default {
       toolbarSwitch: "Toolbar Switches",
       messageNotify: "Message Notify",
       homeConfig: "Home Config",
-      watermarkConfig: "Watermark Config",
       weatherConfig: "Weather Config",
-      capabilityConfig: "Capability Switches",
-    },
-    security: {
-      watermark: {
-        enable: {
-          title: "Global Watermark",
-          sub: "Screen Capture",
-          tip: "Overlay a global watermark (security.watermark.enable)",
-          description: "Overlay a text watermark across the app; text/color/opacity/angle configurable",
-        },
-        text: {
-          label: "Watermark Text",
-          placeholder: "Empty = no text",
-        },
-        color: {
-          label: "Watermark Color",
-        },
-        alpha: {
-          label: "Opacity",
-        },
-        rotate: {
-          label: "Rotation",
-        },
-      },
     },
     io: {
       export: "Export Config",
@@ -581,54 +556,12 @@ export default {
         description: "Custom layout button at home top bar right",
       },
     },
-    watermark: {
-      enable: {
-        title: "Enable Global Watermark",
-        sub: "Security Watermark",
-        tip: "Overlay user-identified watermark (anti-screenshot)",
-        description: "Overlay user-identified watermark (anti-screenshot)",
-      },
-      placeholder: "Watermark text",
-    },
     weather: {
       enable: {
         title: "Show Weather",
         sub: "Toolbar",
         tip: "Show weather info at top-right of toolbar",
         description: "Show current weather and weekly forecast",
-      },
-    },
-    capability: {
-      weather: {
-        title: "Weather API",
-        sub: "Backend Capability",
-        tip: "Use /v2/weather/overview when the backend provides it (other.capabilities.weather)",
-        description: "Probe the backend weather overview first and fall back to third-party sources; set false in app.yaml when the backend has no such API, otherwise every startup logs a probe 404",
-      },
-      location: {
-        title: "Location API",
-        sub: "Backend Capability",
-        tip: "Let the backend resolve the location by source IP via /v2/location/resolve (other.capabilities.location)",
-        description: "Probe the backend location API first, then fall back to browser geolocation / IP lookup / coordinates from app.yaml",
-      },
-      typhoon: {
-        title: "Typhoon API",
-        sub: "Backend Capability",
-        tip: "Use /v2/typhoon/active when the backend provides it (other.capabilities.typhoon)",
-        description: "Probe the backend typhoon API first and fall back to the third-party typhoon service; set false in app.yaml when the backend has no such API, otherwise every startup logs a probe 404",
-      },
-      ipLookup: {
-        title: "IP Location",
-        sub: "Backend Capability",
-        tip: "Let the backend resolve an IP into a physical address via /v2/ip/lookup (other.capabilities.ipLookup)",
-        description: "Request the backend to resolve missing IP addresses; set false in app.yaml when the backend has no such API to avoid pointless 404 requests",
-      },
-      holiday: {
-        title: "Holiday API",
-        sub: "Backend Capability",
-        tip: "Trust the admin-maintained schedule from /v2/holiday/get when the backend provides it (other.capabilities.holiday)",
-        description:
-          "When enabled the home calendar prefers the holiday and makeup-workday dates delivered by the backend; dates the backend does not cover still fall back to the built-in table and the statutory-holiday act. Set false in app.yaml when the backend has no such API, otherwise every startup logs a probe 404",
       },
     },
     toolbar: {

@@ -365,9 +365,8 @@ export function isCapabilityEnabled(key: string): boolean {
 /**
  * 判断某能力是否被部署侧（app.yaml / 远程配置）显式关闭。
  *
- * 主题配置抽屉据此隐藏该项：部署侧关掉的能力不再提供 UI 开关（避免用户在界面上
- * 打开一个部署侧已声明不存在的能力）。用户在抽屉里自己关掉的不算部署侧关闭，
- * 项仍然显示、可以再打开。
+ * 该函数现为 tool 函数：主题配置抽屉不再展示业务能力开关（由系统配置 / app.yaml 管），
+ * 部署侧关掉的能力在顶栏缘由 `isCapabilityEnabled` 处理隐藏。
  *
  * @param key 能力 key
  * @returns 部署侧是否显式关闭了该能力

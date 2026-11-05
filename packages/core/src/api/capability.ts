@@ -2,8 +2,8 @@
  * 业务能力注册表（@repo/core）
  *
  * 顶栏天气 / 定位 / 台风 / IP 归属地这类"后台可选增强"能力的统一登记处：
- * 一个能力 = 一个 key + 后台接口路径 + 抽屉文案前缀。新增能力只需在此登记一条，
- * 探测（backendProbe）、入口显隐（koi 顶栏）、设置抽屉开关、app.yaml 配置都自动生效，
+ * 一个能力 = 一个 key + 后台接口路径。新增能力只需在此登记一条，
+ * 探测（backendProbe）、入口显隐（koi 顶栏）、app.yaml 配置都自动生效，
  * 不必再改任何调用点。
  *
  * 开关语义（app.yaml `other.capabilities.<key>`）：
@@ -11,8 +11,8 @@
  *   - false：停用。不发探测、不请求后台（后台没有该接口时避免每轮 404 噪音），
  *     且对应前端入口一并隐藏。
  *
- * 部署侧（app.yaml）写 false 的能力，主题配置抽屉里不再显示该项；
- * 用户自己在抽屉里关掉的项仍显示，可再次打开。
+ * 部署侧（app.yaml）写 false 的能力，改为在系统配置（app.yaml / 后台 default 接口）
+ * 中管理，主题配置抽屉不再提供对应的业务开关。
  */
 import { isCapabilityEnabled } from "@repo/config";
 
@@ -56,7 +56,7 @@ export interface BackendCapability {
   path: string;
   /** 是否做启动期 HEAD 探测（列表接口探测即可覆盖同控制器的详情接口） */
   probe: boolean;
-  /** 抽屉文案前缀，对应 i18n `themeConfig.capability.<key>.*` */
+  /** 能力 i18n 前缀（主题抽屉已不再展示业务能力开关，此项仅作文档说明） */
   i18n: string;
 }
 
