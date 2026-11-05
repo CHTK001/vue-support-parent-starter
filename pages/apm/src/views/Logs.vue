@@ -27,6 +27,16 @@
 
     <ReSkeleton v-if="loading && !logs.length" :rows="8" animated />
 
+    <!-- 空态放在页面级：表格自己的空态会缩在表头下面，
+         一张 600px 高的白卡里只有一行灰字，看起来像加载失败 -->
+    <div v-else-if="!rows.length" class="apm-empty-card">
+      <span class="apm-empty-card__icon"><ReIcon name="Document" :size="22" /></span>
+      <div class="apm-empty-card__title">该时间窗口内没有日志</div>
+      <p class="apm-empty-card__desc">
+        OAP 只返回 agent 上报的过程日志。如果确认应该有，请检查 agent 的日志采集开关与 OAP 的日志存储。
+      </p>
+    </div>
+
     <ReTable
       v-else
       :data="rows"
@@ -39,9 +49,6 @@
       :layout-table="{ maxHeight: 620 }"
       table-id="apm-logs"
     >
-      <template #empty="{ description }">
-        <span class="apm-table-empty">{{ description }}</span>
-      </template>
       <template #col-timestamp="{ row }">
         <span class="apm-muted">{{ fmtTime(row.timestamp) }}</span>
       </template>
@@ -75,6 +82,7 @@ import { message } from "@repo/core";
 import { Search } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReInput from "@repo/ui/re-input";
+import ReIcon from "@repo/ui/re-icon";
 import ReSelect from "@repo/ui/re-select";
 import ReSkeleton from "@repo/ui/re-skeleton";
 import ReTable from "@repo/ui/re-table";

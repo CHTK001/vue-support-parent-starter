@@ -31,17 +31,19 @@
     <ReSkeleton v-if="loading && !tasks.length" :rows="6" animated />
 
     <!-- 没选服务与「任务为空」是两件事，措辞分开 -->
-    <ReEmpty
-      v-else-if="!service"
-      :image-size="70"
-      description="先在上方选择一个服务，再查看它的剖析任务"
-    />
+    <div v-else-if="!service" class="apm-empty-card">
+      <span class="apm-empty-card__icon"><ReIcon name="Aim" :size="22" /></span>
+      <div class="apm-empty-card__title">先选择一个服务</div>
+      <p class="apm-empty-card__desc">
+        剖析是按服务开启的。选中服务后，这里会列出它的剖析任务、采样片段与栈分析。
+      </p>
+    </div>
 
-    <ReEmpty
-      v-else-if="!tasks.length"
-      :image-size="70"
-      description="该服务没有剖析任务（剖析需要先在 SkyWalking 侧对端点创建任务）"
-    />
+    <div v-else-if="!tasks.length" class="apm-empty-card">
+      <span class="apm-empty-card__icon"><ReIcon name="Timer" :size="22" /></span>
+      <div class="apm-empty-card__title">该服务没有剖析任务</div>
+      <p class="apm-empty-card__desc">剖析需要先在 SkyWalking 侧对端点创建任务；本系统只读观测，不会替你创建。</p>
+    </div>
 
     <template v-else>
       <ReCard v-for="task in tasks" :key="task.id" :radius="12" shadow="never" class="profile-card">
@@ -142,6 +144,7 @@ import { message } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
 import ReCard from "@repo/ui/re-card";
 import ReEmpty from "@repo/ui/re-empty";
+import ReIcon from "@repo/ui/re-icon";
 import ReInput from "@repo/ui/re-input";
 import ReSelect from "@repo/ui/re-select";
 import ReSkeleton from "@repo/ui/re-skeleton";

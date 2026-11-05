@@ -98,6 +98,11 @@ const LAYER_COLORS = [
 ];
 
 function layerColor(name: string): string {
+  // 未分层的节点最常见（SkyWalking 9.x 的 GENERAL 层在部分版本里为空），
+  // 散列到 warning 会变成一团土黄；统一走主色，和图例里那颗蓝点一致。
+  if (!name || name === "UNKNOWN") {
+    return "var(--el-color-primary)";
+  }
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
@@ -150,18 +155,23 @@ function buildScene(context: ReThreeContext) {
 
   layers.forEach((layer, layerIndex) => {
     const nodes = byLayer.get(layer)!;
-    const radius = Math.max(60, nodes.length * 14);
+    const radius = Math.max(75, nodes.length * 18);
     const y = baseY + layerIndex * layerGap;
     nodes.forEach((node, index) => {
       const angle = (index / Math.max(1, nodes.length)) * Math.PI * 2;
       const position = new THREE.Vector3(Math.cos(angle) * radius, y, Math.sin(angle) * radius);
       positions.set(node.id, position);
 
-      const geometry = new THREE.SphereGeometry(node.real ? 6 : 4.5, 24, 18);
+      const geometry = new THREE.SphereGeometry(node.real ? 11 : 8, 28, 20);
+      const base = new THREE.Color(cssColor(layerColor(layer)));
       const material = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(cssColor(layerColor(layer))),
-        roughness: 0.35,
-        metalness: 0.15,
+        color: base,
+        // 只靠环境光+平行光，球体会被压成深海军蓝（主色亮、受光面才亮）；
+        // 加一点自发光，节点在浅底上才是「有颜色的小球」而不是「暗块」
+        emissive: base,
+        emissiveIntensity: node.real ? 0.38 : 0.22,
+        roughness: 0.42,
+        metalness: 0.05,
         transparent: !node.real,
         opacity: node.real ? 1 : 0.55,
       });
@@ -172,7 +182,7 @@ function buildScene(context: ReThreeContext) {
 
       // 节点名用 sprite 绘制：3D 场景里的文字必须贴在平面上，不能直接 add HTML
       const label = makeLabel(THREE, node.name);
-      label.position.copy(position).add(new THREE.Vector3(0, 10, 0));
+      label.position.copy(position).add(new THREE.Vector3(0, 15, 0));
       group.add(label);
     });
   });
@@ -196,7 +206,7 @@ function buildScene(context: ReThreeContext) {
   // 相机只在首次建场景时定位：之后用户可能已经转过角度，
   // 切换「显示调用边」时重建对象不该把视角掰回去。
   if (!cameraPlaced) {
-    const distance = 260 + layers.length * 34;
+    const distance = 210 + layers.length * 30;
     orbit.radius = distance;
     applyOrbit(context);
     cameraPlaced = true;
@@ -335,7 +345,7 @@ function makeLabel(THREE: ReThreeContext["THREE"], text: string) {
   texture.minFilter = THREE.LinearFilter;
   const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
   const sprite = new THREE.Sprite(material);
-  sprite.scale.set(width / scale / 2.2, height / scale / 2.2, 1);
+  sprite.scale.set(width / scale / 3.4, height / scale / 3.4, 1);
   return sprite;
 }
 
@@ -387,9 +397,18 @@ onBeforeUnmount(() => {
 <style scoped>
 .infra-stage {
   position: relative;
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
-  background: var(--bg-fill-secondary, var(--el-fill-color-lighter));
+  /* 3D 舞台：中心一团主色光晕 + 上浅下深的底，节点浮在「有光的空间」里，
+     而不是贴在一块死灰画布上 */
+  background:
+    radial-gradient(
+      closest-side at 50% 44%,
+      color-mix(in srgb, var(--el-color-primary) 12%, transparent),
+      transparent 74%
+    ),
+    linear-gradient(180deg, var(--el-fill-color-lighter), var(--el-bg-color));
+  box-shadow: inset 0 0 0 1px var(--el-border-color-lighter);
 }
 
 .infra-layer {

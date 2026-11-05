@@ -46,8 +46,9 @@
             <span class="apm-muted">{{ fmtTime(alarm.startTime) }} · {{ fmtAgo(alarm.startTime) }}</span>
           </div>
           <p class="alarm-msg">{{ alarm.message || "（无描述）" }}</p>
-          <div v-if="alarm.events?.length" class="apm-kv">
-            <div v-for="(event, i) in alarm.events" :key="i" class="apm-kv__row">{{ event }}</div>
+          <div v-if="otherEvents(alarm).length" class="apm-kv alarm-events">
+            <div v-for="(event, i) in otherEvents(alarm).slice(0, 2)" :key="i" class="apm-kv__row">{{ event }}</div>
+            <div v-if="otherEvents(alarm).length > 2" class="apm-kv__more">另有 {{ otherEvents(alarm).length - 2 }} 条同类事件</div>
           </div>
           <div v-if="alarm.tags?.length" class="apm-kv alarm-tags">
             <div v-for="tag in alarm.tags" :key="tag.key" class="apm-kv__row">
@@ -91,6 +92,26 @@ const loading = ref(false);
 const windowOptions = WINDOW_OPTIONS;
 
 const serviceOptions = computed(() => services.value.map((s) => ({ label: s, value: s })));
+
+/**
+ * 事件里通常把告警本身的描述又重复一遍（只多一个 `Alarm: ` 前缀），
+ * 原样列出来就是同一句话贴两遍 —— 同义的剔掉，剩下的才是「同时命中的其它规则」。
+ */
+function otherEvents(alarm: ApmAlarm): string[] {
+  const message = (alarm.message || "").trim();
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const event of alarm.events || []) {
+    // OAP 会把同一条规则在多分钟内的事件各推一遍，正文完全一样，只留一条
+    const key = event.replace(/^Alarm:\s*/, "").trim();
+    if (!key || key === message || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    out.push(event);
+  }
+  return out;
+}
 
 async function load() {
   await ensure();
@@ -149,6 +170,18 @@ onMounted(async () => {
   line-height: 1.6;
   color: var(--text-secondary, var(--el-text-color-regular));
   white-space: pre-wrap;
+}
+
+/* 事件列表按行读，不要摊成 5 列的短截断 */
+.alarm-events {
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: 8px;
+  color: var(--el-text-color-secondary);
+}
+
+.apm-kv__more {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
 }
 
 .alarm-tags {

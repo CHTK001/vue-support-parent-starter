@@ -128,7 +128,7 @@
                   <span class="apm-muted">{{ fmtTime(alarm.startTime) }}</span>
                 </div>
                 <p class="alert-item__msg">{{ alarm.message || "（无描述）" }}</p>
-                <div v-if="alarm.events?.length" class="apm-kv">
+                <div v-if="alarm.events?.length" class="apm-kv alert-events">
                   <div v-for="(event, index) in alarm.events" :key="index" class="apm-kv__row">{{ event }}</div>
                 </div>
               </div>
@@ -159,10 +159,13 @@ import ReTag from "@repo/ui/re-tag";
 import ApmGate from "../components/ApmGate.vue";
 import { listAlerts, listServices } from "../api/apmApi";
 import type { ApmAlarm } from "../api/apmApi";
+import { useApmPalette } from "../composables/useApmPalette";
 import { useApmStatus } from "../composables/useApmStatus";
 import { WINDOW_OPTIONS, fmtAgo, fmtClock, fmtTime } from "../utils/format";
 
 const { present, ensure } = useApmStatus();
+/** canvas 里 var(--el-*) 是无效值，颜色必须取计算后的实色（见 useApmPalette） */
+const palette = useApmPalette();
 
 const alarms = ref<ApmAlarm[]>([]);
 const services = ref<string[]>([]);
@@ -260,15 +263,30 @@ const trendOption = computed<EChartsOption>(() => {
 
   return {
     tooltip: { trigger: "axis" },
-    grid: { left: 44, right: 16, top: 16, bottom: 28 },
-    xAxis: { type: "category", data: labels, axisLabel: { fontSize: 10, hideOverlap: true } },
-    yAxis: { type: "value", minInterval: 1, axisLabel: { fontSize: 10 }, splitLine: { lineStyle: { type: "dashed" } } },
+    grid: { left: 8, right: 12, top: 20, bottom: 6, containLabel: true },
+    xAxis: {
+      type: "category",
+      data: labels,
+      axisLine: { lineStyle: { color: palette.value.line } },
+      axisTick: { show: false },
+      axisLabel: { fontSize: 11, hideOverlap: true, color: palette.value.faint },
+    },
+    yAxis: {
+      type: "value",
+      minInterval: 1,
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { fontSize: 11, color: palette.value.faint },
+      splitLine: { lineStyle: { type: "dashed", color: palette.value.line } },
+    },
     series: [
       {
         type: "bar",
         data: values,
-        barMaxWidth: 18,
-        itemStyle: { color: "var(--el-color-danger)", borderRadius: [3, 3, 0, 0] },
+        barMaxWidth: 22,
+        // 告警条数用「危险」语义色：这里出现的就是坏消息
+        itemStyle: { color: palette.value.bad, opacity: 0.85, borderRadius: [4, 4, 0, 0] },
+        emphasis: { itemStyle: { opacity: 1 } },
       },
     ],
   };
@@ -317,6 +335,13 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+/* 事件逐条成行：摊成 5 列只剩一串「Alarm: …」的截断 */
+.alert-events {
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: 6px;
+  color: var(--el-text-color-secondary);
 }
 
 .alert-rank__row {

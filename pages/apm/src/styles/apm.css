@@ -101,6 +101,26 @@ html.dark .apm-shell {
   line-height: 1.5;
 }
 
+/* ReCard 的 isFlex 缺省为 true，渲染出来带 flex:1 1 0%：放进纵向 flex 的页面里，
+   几张卡会按「剩余高度 ÷ 张数」均分（4 条告警就成了 4 张 150px 的空卡）。
+   这里改回内容高度，需要铺满的场景由下面那条 :last-child 规则显式指定。 */
+.apm-page > .koi-card,
+.apm-page > .el-card {
+  flex: 0 1 auto;
+}
+
+/* 内容不足一屏时，让页面最后一张卡（几乎总是表格）长到画布底边。
+   两行数据下面挂着半屏灰底，看起来像「页面断在这儿」；换成同一块白色面板，
+   至少还是一个完整的版面。表格自身仍是内容高度（各页 layout-table.maxHeight），
+   长出来的只是卡内留白。 */
+.apm-page > .re-table:last-child,
+.apm-page > .apm-card:last-child,
+.apm-page > .koi-card:last-child,
+.apm-page > .el-card:last-child {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 /* 页头与内容之间只留 flex gap，不再叠加组件自带的 12px */
 .apm-page .re-section-head {
   margin-bottom: 0;
@@ -991,6 +1011,25 @@ html.dark .apm-shell {
   flex: 1 1 auto;
 }
 
+.apm-empty-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 8px;
+  color: var(--apm-accent);
+  background: color-mix(in srgb, var(--el-color-primary) 9%, var(--apm-surface));
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 14%, transparent);
+  border-radius: 14px;
+}
+
+/* 大面板里的空态不能只靠一行灰字撑场：标题给足行高 */
+.apm-page > .apm-empty-card .apm-empty-card__title {
+  font-size: 15px;
+  line-height: 1.6;
+}
+
 .apm-empty-card__title {
   font-size: 14px;
   font-weight: 600;
@@ -998,7 +1037,7 @@ html.dark .apm-shell {
 }
 
 .apm-empty-card__desc {
-  max-width: 560px;
+  max-width: 640px;
   margin: 0;
   font-size: 12px;
   line-height: 1.7;

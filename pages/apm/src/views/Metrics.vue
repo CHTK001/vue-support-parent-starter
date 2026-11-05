@@ -60,14 +60,6 @@
       <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
     </div>
 
-    <div class="apm-bar">
-      <span class="apm-count">{{ currentDefinition?.description || "—" }}</span>
-      <span class="apm-bar__spacer" />
-      <span class="apm-count">
-        {{ series?.points?.length ?? 0 }} 个数据点 · 单位 {{ unit || "—" }}
-      </span>
-    </div>
-
     <ReSkeleton v-if="loading && !series" :rows="6" animated />
 
     <ReCard v-else :radius="12" shadow="never">
@@ -76,6 +68,9 @@
           <span class="apm-card-h">{{ currentDefinition?.label || name || "指标" }}</span>
           <!-- label 与 name 同值时只显示一次，避免「service_resp_timeservice_resp_time」 -->
           <span v-if="name && name !== (currentDefinition?.label || name)" class="apm-mono apm-muted">{{ name }}</span>
+          <span class="apm-bar__spacer" />
+          <span v-if="currentDefinition?.description" class="apm-card-note">{{ currentDefinition.description }}</span>
+          <span class="apm-card-note">{{ series?.points?.length ?? 0 }} 个数据点 · 单位 {{ unit || "—" }}</span>
         </div>
       </template>
       <MetricChart v-if="series?.points?.length" :series="[series]" height="380px" />

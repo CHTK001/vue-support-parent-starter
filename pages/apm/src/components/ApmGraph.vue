@@ -42,7 +42,7 @@ const props = withDefaults(
   {
     height: "300px",
     emptyText: "该时间窗口内没有调用关系",
-    labelSize: 11,
+    labelSize: 12,
   },
 );
 
@@ -139,7 +139,7 @@ const option = computed<EChartsOption>(() => {
         draggable: true,
         // 3~10 个节点时默认力参数会全部挤在画布正中（大屏上下都空着），
         // 这里放松向心引力、拉长弹簧，让节点铺开；节点多时仍然聚得住。
-        force: { repulsion: 900, edgeLength: [170, 240], gravity: 0.05 },
+        force: { repulsion: 700, edgeLength: [150, 210], gravity: 0.06 },
         label: {
           show: true,
           position: "bottom",
@@ -162,7 +162,7 @@ const option = computed<EChartsOption>(() => {
         data: props.nodes.map((node) => {
           const own = weight.get(node.id) ?? 0;
           const ratio = noTraffic ? 0.35 : Math.log2(1 + own) / Math.log2(1 + maxWeight);
-          const size = 26 + ratio * 18;
+          const size = 34 + ratio * 20;
           const self = node.self || node.isSelf;
           const virtual = node.real === false || node.isReal === false;
           const tint = self ? p.warn : virtual ? p.faint : p.primary;
