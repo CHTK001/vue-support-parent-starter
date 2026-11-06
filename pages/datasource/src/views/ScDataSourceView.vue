@@ -39,7 +39,8 @@ import ReTag from "@repo/ui/re-tag";
 import { ReFormItem } from "@repo/ui/re-kit";
 import { loader } from "@repo/ui/re-loader";
 import { formatDuration } from "@repo/ui/re-time";
-import { costMs } from "@repo/utils";
+import { costMs, http, unwrapResult } from "@repo/utils";
+import { getConfig } from "@repo/config";
 // 左栏右键菜单：同包内组件，采集台/监控台都能用（不能 import 宿主应用的东西）
 import DsmContextMenu from "../components/console/DsmContextMenu.vue";
 import DatasourceMetricPanel from "../metrics/DatasourceMetricPanel.vue";
@@ -1914,6 +1915,84 @@ const resolveManagerRoute = (item: DataSourceInfo): string | undefined => {
  * 原实现这种情况下点完就是彻底没反应。现在遮罩切成失败态并给「重试」，
  * 同时补一条 toast 说明原因。</p>
  */
+/**
+ * 数据源台账里的 SkyWalking 地址 → APM 设置里的 {@code oapUrl}。
+ *
+ * <p>台账存的是 host / port（默认 12800），APM 的 {@code /config} 要完整 URL；
+ * 已经带 {@code http(s)://} 的直接用，避免拼成 {@code http://http://…}。</p>
+ *
+ * @param item 数据源条目
+ * @returns 可直接写入 APM 的 OAP 地址；没有 host 时返回空串
+ */
+function skywalkingOapUrl(item: DataSourceInfo): string {
+  const host = (item.host || "").trim();
+  if (!host) return "";
+  if (/^https?:\/\//i.test(host)) return host.replace(/\/+$/, "");
+  return `http://${host}:${item.port || 12800}`;
+}
+
+/**
+ * APM 接口前缀。
+ *
+ * <p>与 {@code @pages/apm} 的 {@code apmConfig().baseUrl} 同源（app.yaml 的
+ * {@code apmConfig.baseUrl}，缺省 {@code /api/apm/v1}）：这里不硬编码前缀，
+ * 否则部署侧改了 {@code plugin.apm.path} 后本包会写到不存在的地址。</p>
+ */
+function apmBaseUrl(): string {
+  try {
+    const base = (getConfig() as unknown as { apm?: { baseUrl?: string } } | undefined)?.apm?.baseUrl;
+    return (typeof base === "string" && base.trim() ? base.trim() : "/api/apm/v1").replace(/\/+$/, "");
+  } catch {
+    return "/api/apm/v1";
+  }
+}
+
+/**
+ * 把数据源的 OAP 地址联动写入 APM 后端设置（持久化）。
+ *
+ * <p>为什么需要：数据源中心登记的是 SkyWalking 的地址，而 APM 工作台读的是后端
+ * apm-settings 里的 {@code oapUrl} —— 本来就是两份数据，从数据源「打开管理」
+ * 进 APM 时若不联动，使用者还得在 APM 设置页再手抄一遍地址。</p>
+ *
+ * <p>只在地址确实变化时写：先读 {@code /config} 比较当前 {@code engine.endpoint}，
+ * 一致就跳过，避免每次点「打开管理」都重复落盘、重复弹提示。</p>
+ *
+ * @param item 数据源条目
+ * @returns 是否真的写入了新地址
+ */
+async function syncOapUrlToApm(item: DataSourceInfo): Promise<boolean> {
+  if (item.type !== "skywalking") return false;
+  const oapUrl = skywalkingOapUrl(item);
+  if (!oapUrl) return false;
+  const base = apmBaseUrl();
+  try {
+    const current = await http()
+      .get(`${base}/config`)
+      .then((res) => unwrapResult<{ engine?: { endpoint?: string | null } }>(res));
+    const now = (current?.engine?.endpoint || "").replace(/\/+$/, "");
+    if (now && now === oapUrl) return false;
+    await http().post(`${base}/config`).query({ oapUrl }).then((res) => unwrapResult(res));
+    return true;
+  } catch {
+    // APM 未装配 / 不可达 / 未登录：同步失败不能阻断「打开管理」
+    return false;
+  }
+}
+
+/**
+ * 带超时的地址同步。
+ *
+ * <p>{@code /config} 落在后端设置文件上，网络异常时可能一直挂着；跳转不能被它拖住，
+ * 因此最多等 3 秒，超时就按「没写成」继续。</p>
+ */
+async function syncOapUrlWithTimeout(item: DataSourceInfo): Promise<boolean> {
+  if (item.type !== "skywalking") return false;
+  return Promise.race([
+    syncOapUrlToApm(item),
+    new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 3000)),
+  ]);
+}
+
 const openManager = (item: DataSourceInfo) => {
   // 系统数据源（应用主库）走 /db-manager 且不传 datasourceId：
   // DatabaseManagerView.resolveDatasourceId 无有效 id 时回落 0 = 容器主 DataSource。
@@ -1945,6 +2024,12 @@ const openManager = (item: DataSourceInfo) => {
    * 一次完整的「取包 → 跳转 → 等新页渲染」。
    */
   const go = async (): Promise<void> => {
+    // 数据源中心登记的是 OAP 地址，APM 工作台读的是后端设置里的 oapUrl —— 两份数据。
+    // 从「打开管理」进 APM 时顺手把地址联动写进后端（只对 /apm 生效，回落
+    // /skywalking 时没有 APM 后端可写）；带 3s 上限，写不进去也不挡跳转。
+    if (route === "/apm" && (await syncOapUrlWithTimeout(item))) {
+      message.success("已把数据源地址同步到 APM");
+    }
     await preloadRouteComponent(router, route);
     await router.push({ path: route, query: carriesDatasourceId ? { datasourceId: item.id } : {} });
     // push 只保证「导航已确认」，此刻新页面还没渲染出来；
@@ -2045,6 +2130,15 @@ const openFullManager = (item: DataSourceInfo) => {
     : {};
   const href = router.resolve({ path: route, query }).href;
   window.open(href, "_blank", "noopener");
+  // 新标签打开后同步地址：window.open 必须留在用户手势的同步栈里（await 之后会被
+  // 弹窗拦截），所以先开窗口、再写后端；写失败不影响已经打开的页面。
+  if (route === "/apm") {
+    syncOapUrlWithTimeout(item).then((changed) => {
+      if (changed) {
+        message.success("已把数据源地址同步到 APM");
+      }
+    });
+  }
 };
 
 /**
