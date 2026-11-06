@@ -89,17 +89,28 @@ export const REMOTE_INJECTABLE_TOP_KEYS: ReadonlySet<string> = new Set([
 /**
  * 远程配置<b>允许写入的完整路径前缀</b>（顶层键之外的细粒度放行）。
  *
- * <p>{@code security} 整体不可远程注入（见上），但平台的反爬脚本下发
- * （{@code security.baiduJs.*}：enable/action/jumpUrl/url）就是设计为
- * 「管理员在后台配置、前端按下发值注入外部脚本」的产品功能，
- * 会被 {@code /v2/setting/default} 正常下发。若连它一起拒，
- * 后台配置的反爬策略在前端永远不生效（e2e security-config 04/05/06 复现的正是该缺陷）。</p>
+ * <p>{@code security} 整体不可远程注入（见上），但平台有两棵子树是设计为
+ * 「管理员在后台配置、前端按下发值注入」的产品功能，会被 {@code /v2/setting/default}
+ * 正常下发；若连它们一起拒，后台选的值在前端永远不生效。</p>
  *
- * <p>只放行 {@code security.baiduJs} 这一棵子树：
- * {@code security.csrf} / {@code security.xxx} 等其余键照旧被白名单拦下。</p>
+ * <ul>
+ *   <li>{@code security.baiduJs} —— 反爬脚本下发（enable/action/jumpUrl/url）；
+ *     2.0 曾复现的 e2e security-config 04/05/06 正是该缺陷（后台配了反爬策略，
+ *     前端不发请求，永远不生效）。</li>
+ *   <li>{@code security.watermark} —— 水印（enable/color/alpha/rotate）；
+ *     {@code packages/core/src/directives/waterMarker.ts} 按
+ *     {@code getConfig().security.watermark} 取值（它的类型注释写着
+ *     「后端 Watermark* 设置变更后由热重载联动」），而 `Watermark*` 是旧式
+ *     设置名，不在 {@code login} 子树上，只能由 loader 落盘到
+ *     `security.watermark`。</li>
+ * </ul>
+ *
+ * <p>只放行这两棵子树：{@code security.crt} / {@code security.csrf} /
+ * {@code security.password} 等其余键照旧被白名单拦下。</p>
  */
 export const REMOTE_INJECTABLE_PATH_PREFIXES: ReadonlySet<string> = new Set([
   "security.baiduJs",
+  "security.watermark",
 ]);
 
 

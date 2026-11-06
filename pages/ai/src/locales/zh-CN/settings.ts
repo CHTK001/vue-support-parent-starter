@@ -338,6 +338,8 @@ export default {
     apiUrlFirst: '请先填写 API 地址',
     apiKeyFirst: '请先填写 API Key',
     connectionSuccess: '连接成功',
+    connectionSuccessMulti: '{n} 个 Key 全部可用',
+    connectionSuccessLatency: '连接成功（延迟 {ms} ms）',
     connectionTestSuccess: 'API 连接测试成功',
     connectionFailed: '连接失败',
     connectionTestFailed: 'API 连接测试失败',

@@ -62,6 +62,23 @@ export interface TsharkPacket {
   restoredText?: string | null
   /** 报文原始十六进制 / 转义文本 */
   rawData?: string | null
+  /**
+   * HTTP 请求头（起始行 + 逐行头字段，`\n` 换行）。
+   *
+   * <p>解析阶段随报文一起入库，详情接口才返回；列表接口不取这两列
+   * （Cookie 一条就能上 KB，分页几十行会把响应撑大）。</p>
+   */
+  httpRequestHead?: string | null
+  /** HTTP 响应头（状态行 + 逐行头字段） */
+  httpResponseHead?: string | null
+  /** HTTP 正文（已解码；二进制为 `HEX …` 预览，超长带「已截断」标注） */
+  httpBody?: string | null
+  /** HTTP 内容类型，如 text/html; charset=utf-8 */
+  httpContentType?: string | null
+  /** HTTP 内容编码（gzip / deflate / br），正文已按它解压 */
+  httpContentEncoding?: string | null
+  /** HTTP 正文原始字节数（不是截断后的字符数） */
+  httpContentLength?: number | null
 }
 
 /**

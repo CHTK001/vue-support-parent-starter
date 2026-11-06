@@ -36,6 +36,14 @@
     <ReButton icon="Refresh" :loading="loading" @click="refresh">重试</ReButton>
   </div>
 
+  <!-- 后端模块被关掉：不是「没装」，也不是故障，要给出明确的打开入口 -->
+  <div v-else-if="status && status.enabled === false" class="apm-absent">
+    <h3 class="apm-absent__title">APM 模块已关闭</h3>
+    <p class="apm-absent__msg">{{ status.message || "后端 plugin.apm.enabled=false。" }}</p>
+    <p class="apm-absent__hint">这不是故障：开关在「APM 设置」页签里，打开后本页立即恢复。</p>
+    <ReButton icon="Setting" type="primary" @click="openSettings">去 APM 设置</ReButton>
+  </div>
+
   <!-- 没有 APM：降级视图（正常业务状态，不是错误） -->
   <div v-else-if="!status.present" class="apm-absent">
     <h3 class="apm-absent__title">当前服务器未接入 APM</h3>
@@ -95,6 +103,7 @@ import ReTag from "@repo/ui/re-tag";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import { useApmStatus } from "../composables/useApmStatus";
 import { apmConfig } from "../config";
+import { openApmTab } from "../tabs";
 
 withDefaults(
   defineProps<{
@@ -105,6 +114,11 @@ withDefaults(
 );
 
 const { status, loading, error, ensure, refresh } = useApmStatus();
+
+/** 切到「APM 设置」页签（工作台内切页，不重建路由） */
+function openSettings(): void {
+  openApmTab("settings");
+}
 
 onMounted(() => {
   // 前端配置已关闭时不必探活：省一次请求，也避免「关了还在打后端」的困惑

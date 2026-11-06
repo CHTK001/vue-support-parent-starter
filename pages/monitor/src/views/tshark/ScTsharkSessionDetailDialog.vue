@@ -6,11 +6,11 @@
   避免在弹层里再建一份 useTshark（会重复建 SSE 连接）。
 -->
 <template>
-  <ReDialog
+  <ReDrawer
     :model-value="modelValue"
     :title="title"
-    width="92%"
-    top="4vh"
+    size="100%"
+    drawer-class="tshark-detail-drawer"
     footer-hidden
     @update:model-value="onOpenChange"
   >
@@ -57,12 +57,12 @@
         <template #insight><slot name="insight" /></template>
       </ReTab>
     </div>
-  </ReDialog>
+  </ReDrawer>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import ReDialog from '@repo/ui/re-dialog'
+import ReDrawer from '@repo/ui/re-drawer'
 import ReTab from '@repo/ui/re-tab'
 import ScTsharkFilterBar from './ScTsharkFilterBar.vue'
 import type { TsharkSession, TsharkTabKey } from './types'
@@ -135,7 +135,7 @@ defineExpose({ showTab })
   display: flex;
   flex-direction: column;
   gap: 8px;
-  height: 76vh;
+  height: 100%;
   min-height: 420px;
 }
 .detail-head {

@@ -55,6 +55,16 @@ html.dark {
   --el-header-padding: 0 #{$layout-header-padding-x};
 }
 
+/* 頂栏背景色 / 文字色 / 边框色 / 灰影过渡（transition 不会从 :root 继承，必须写死在頂栏自己身上），
+   与 View Transition 的 300ms 画刷动画同步 */
+.el-header.layout-header,
+.el-header.layout-group-header {
+  transition: background-color var(--el-transition-duration, 0.3s) ease-in,
+    color var(--el-transition-duration, 0.3s) ease-in,
+    border-color var(--el-transition-duration, 0.3s) ease-in,
+    box-shadow var(--el-transition-duration, 0.3s) ease-in;
+}
+
 /* 鍥炬爣棰滆壊 */
 .koi-icon {
   // 缈昏浆鑹插瓧浣撻鑹?

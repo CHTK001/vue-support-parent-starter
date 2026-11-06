@@ -4,12 +4,12 @@
  */
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import { getSummary, listExecutors, listNodes, pageJobLogs, pageJobs } from "../api/jobApi";
-import { isFlowRow, isScriptJob, cronDesc } from "../utils/jobFormat";
-import { statusText } from "../constants/taskStatus";
-import { resolveHostPath } from "../utils/hostPath";
+import { getSummary, listExecutors, listNodes, pageJobLogs, pageJobs } from "../../api/jobApi";
+import { isFlowRow, isScriptJob, cronDesc } from "../../utils/jobFormat";
+import { statusText } from "../../constants/taskStatus";
+import { resolveHostPath } from "../../utils/hostPath";
 import type { JobExecutor, JobLog, JobNode, JobRuntime, JobSummary } from "../types/job";
-import type { OvData, OvDispatch, OvHourly, OvKpi, OvKpiPart } from "./types";
+import type { OvData, OvDispatch, OvHourly, OvKpi, OvPart } from "./types";
 
 const FAILURE_WINDOW_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;

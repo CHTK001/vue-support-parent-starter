@@ -74,7 +74,23 @@ export interface ModelApi {
   toggleModelFavorite(modelId: string): Promise<any>;
   toggleModelActive(modelId: string): Promise<any>;
   createProvider(data: any): Promise<any>;
-  testProviderConnection(data: any): Promise<{ success: boolean; message: string }>;
+  /** 已解包：直接拿到 { success, message, latency }（不是 API 信封） */
+  testProviderConnection(data: {
+    /** 上游基础地址，如 https://api.openai.com/v1 */
+    apiUrl: string;
+    /** 待验证的单个 Key */
+    apiKey: string;
+    /** 协议/平台标识，gemini 走 ?key= 与 Google 响应解析 */
+    protocol?: string;
+    /** HTTP 代理地址，可空 */
+    proxy?: string;
+    /** 认证方案（api_key/bearer/none），可空，默认 Bearer */
+    auth_scheme?: string;
+    /** 认证头名覆盖，可空 */
+    auth_header?: string;
+    /** 认证值前缀覆盖，可空 */
+    auth_prefix?: string;
+  }): Promise<{ success: boolean; message?: string; latency?: number | null }>;
   deleteProvider(providerId: string): Promise<boolean>;
   /** 批量删除供应商行（级联其模型与连接，Body 为 ids 数组，整批拦截） */
   batchDeleteProviders(ids: string[]): Promise<{ success: boolean; deletedCount: number }>;
@@ -257,8 +273,23 @@ export const modelApi: ModelApi = {
     return await rawApi.post('/api/providers', data);
   },
 
+  /**
+   * 用指定 Key 探测上游模型列表，判定该 Key 是否可用（只读、不改库）。
+   *
+   * <p><b>必须解包信封</b>：rawApi 是 {@code unwrap:false}，后端回的是
+   * {@code { success, data }}——外层 success 只表示「这次 HTTP 调用通了」，
+   * 真正的测试结论在 {@code data.success / data.message / data.latency} 里。
+   * 之前直接返回整包，调用方读 {@code result.success} 恒为 true，
+   * 于是错误 Key 也显示「连接成功」（2026-11-06 定位）。</p>
+   */
   async testProviderConnection(this: ApiContext, data: any) {
-    return await rawApi.post('/api/providers/test-connection', data);
+    const body: any = await rawApi.post('/api/providers/test-connection', data);
+    const payload = body && typeof body === 'object' && 'data' in body ? body.data : body;
+    return (payload ?? { success: false, message: '' }) as {
+      success: boolean;
+      message?: string;
+      latency?: number | null;
+    };
   },
 
   async deleteProvider(this: ApiContext, providerId: string) {

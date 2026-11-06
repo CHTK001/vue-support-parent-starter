@@ -119,44 +119,6 @@ export interface ChannelSummary {
   models?: Array<{ model: string; enabled: boolean; alias?: string; contextWindow?: number }>
 }
 
-/** 临时身份列表视图（`/api/channels/temp-accounts`，与 pages/monitor 契约一致） */
-export interface TempIdentitySummary {
-  id: string
-  /** 短信数据源名（如 freephonenum） */
-  smsProvider?: string
-  /** 邮件数据源名（如 mail-tm） */
-  emailProvider?: string
-  /** 临时邮箱地址 */
-  email?: string
-  /** 短信渠道标识（如 sms-freephonenum），后端新增字段 */
-  smsChannel?: string
-  /** 邮件渠道标识（如 email-mail-tm），后端新增字段 */
-  emailChannel?: string
-  /** 创建时间（毫秒） */
-  createdAt: number
-  /** 已收短信条数 */
-  smsCount?: number
-  /** 已收邮件封数 */
-  emailCount?: number
-  /** 随机虚拟号码画像 */
-  phone?: { phone?: string; countryCode?: string; countryName?: string; smsUrl?: string } | null
-}
-
-/** 临时身份消息流事件回调 */
-export interface TempIdentityStreamHandlers {
-  onOpen?: () => void
-  onError?: (e: unknown) => void
-  onClose?: () => void
-  /** 建连就绪 */
-  onReady?: (payload: Record<string, unknown>) => void
-  /** 身份新增 */
-  onAccount?: (account: TempIdentitySummary) => void
-  /** 新消息（短信 / 邮件增量） */
-  onMessage?: (payload: { id: string; sms?: Record<string, any>[]; emails?: Record<string, any>[] }) => void
-  /** 身份删除 */
-  onRemove?: (payload: { id: string }) => void
-}
-
 export const channelApi = {
   /** GET /api/channels —— 全部渠道（含未绑定账号的） */
   list: () => unwrapPayload<ChannelSummary[]>(apiHttp.get('/api/channels')),
@@ -357,6 +319,23 @@ export const channelApi = {
       elapsedMs?: number
     }>(apiHttp.post(`/api/channels/${channel}/images`).data(body)),
   /**
+   * GET /api/channels/chat-channels —— 全部免登录对话渠道元数据（ChatClient SPI）。
+   *
+   * 与 image-channels 对称：后端把免登录渠道放在独立 SPI 注册表，/api/channels
+   * 只回 AI 账号渠道。渠道页 loadChannels() 三路合并后 DuckDuckGo / Trae 才会出现。
+   */
+  chatChannels: () =>
+    unwrapPayload<{
+      ok: boolean
+      channels: Array<{
+        channel: string
+        displayName?: string
+        extension?: string | null
+        priority?: number
+        supportsImage?: boolean
+      }>
+    }>(apiHttp.get('/api/channels/chat-channels')),
+  /**
    * GET /api/channels/image-channels —— 全部文生图渠道元数据。
    */
   imageChannels: () =>
@@ -370,149 +349,4 @@ export const channelApi = {
         models?: Array<{ id: string; name?: string }>
       }>
     }>(apiHttp.get('/api/channels/image-channels')),
-}
-
-/**
- * 临时身份 API（`/api/channels/temp-accounts`）。
- *
- * <p>原属 monitor（`/ms/monitor/temp-account`），现为渠道管理下的临时账号子域。
- * 一个临时身份 = 一个接码渠道 + 一个收信渠道的组合资源；
- * SSE 事件名 `ready / account / message / remove` 与 pages/monitor 保持一致。</p>
- */
-const TEMP_BASE = '/api/channels/temp-accounts'
-
-export const tempAccountApi = {
-  /** GET /api/channels/temp-accounts —— 全部临时身份（轻量视图） */
-  list: () => unwrapPayload<TempIdentitySummary[]>(apiHttp.get(TEMP_BASE)),
-  /** POST /api/channels/temp-accounts?type= —— 随机创建（sms / email / both） */
-  create: (
-    type: 'sms' | 'email' | 'both' = 'both',
-    channels: { smsChannel?: string; emailChannel?: string } = {},
-  ) =>
-    unwrapPayload<TempIdentitySummary>(
-      apiHttp.post(TEMP_BASE).query({
-        type,
-        smsChannel: channels.smsChannel || undefined,
-        emailChannel: channels.emailChannel || undefined,
-      }),
-    ),
-  /**
-   * GET /api/channels/temp-accounts/available-channels —— 可用短信 / 邮件渠道。
-   *
-   * 按进入优先级降序返回，`default=true` 为缺省渠道（创建时不下发渠道即用它）。
-   */
-  availableChannels: () =>
-    unwrapPayload<{ sms: TempChannelOption[]; email: TempChannelOption[] }>(
-      apiHttp.get(`${TEMP_BASE}/available-channels`),
-    ),
-  /** GET /api/channels/temp-accounts/{id} —— 详情（含全部短信与邮件） */
-  detail: (id: string) =>
-    unwrapPayload<Record<string, any> | null>(apiHttp.get(`${TEMP_BASE}/${id}`)),
-  /** DELETE /api/channels/temp-accounts/{id} */
-  remove: (id: string) => unwrapPayload<boolean>(apiHttp.delete(`${TEMP_BASE}/${id}`)),
-  /**
-   * 订阅临时身份消息流（SSE）。
-   *
-   * 事件：`ready`（建连就绪）/ `account`（身份新增）/ `message`（新短信、新邮件）/ `remove`（身份删除）。
-   */
-  stream: (handlers: TempIdentityStreamHandlers) =>
-    apiHttp.get(`${TEMP_BASE}/stream`).sse<Record<string, any>>({
-      reconnect: true,
-      maxReconnectAttempts: 5,
-      onOpen: () => handlers.onOpen?.(),
-      onError: (e) => handlers.onError?.(e),
-      onClose: () => handlers.onClose?.(),
-      onMessage: (e) => {
-        const data = e?.data
-        if (typeof data !== 'object' || data === null) return
-        switch (e.event) {
-          case 'ready':
-            handlers.onReady?.(data as Record<string, unknown>)
-            break
-          case 'account':
-            handlers.onAccount?.(data as unknown as TempIdentitySummary)
-            break
-          case 'message':
-            handlers.onMessage?.(data as { id: string; sms?: Record<string, any>[]; emails?: Record<string, any>[] })
-            break
-          case 'remove':
-            handlers.onRemove?.(data as { id: string })
-            break
-        }
-      },
-    }),
-}
-
-/** 临时身份可用渠道（按进入优先级降序，`default=true` 为缺省渠道） */
-export interface TempChannelOption {
-  /** 渠道标识（如 sms-freephonenum / email-mail-tm） */
-  channel: string
-  displayName?: string
-  /** 进入优先级：数值越大越优先 */
-  priority?: number
-  /** 是否为当前缺省渠道 */
-  default?: boolean
-}
-
-/**
- * 短信 / 邮件消息模板（`/api/channels/templates`）。
- *
- * 模板把渠道收到的原始消息渲染成可读文本：正文变量占位写作 `{{变量名}}`，
- * 同一种类仅一条默认模板，临时身份收信时由后端套用默认模板补 `display`。
- */
-export interface MessageTemplate {
-  templateId?: string
-  /** 模板种类：SMS / EMAIL */
-  templateKind: 'SMS' | 'EMAIL'
-  templateName: string
-  /** 稳定编码，同种类内唯一 */
-  templateCode: string
-  /** 邮件主题模板（仅 EMAIL） */
-  templateSubject?: string | null
-  templateContent: string
-  /** 模板引用的变量名（后端按正文自动抽取，也可显式传入） */
-  templateVariables?: string[]
-  templateDefault?: boolean
-  templateEnabled?: boolean
-  templateSortOrder?: number
-  templateCreatedAt?: number
-  templateUpdatedAt?: number
-}
-
-/** 模板渲染预览结果 */
-export interface MessageTemplateRenderResult {
-  ok: boolean
-  subject?: string | null
-  content: string
-  /** 正文引用了但未提供值的变量名 */
-  missing?: string[]
-}
-
-const TEMPLATE_BASE = '/api/channels/templates'
-
-export const messageTemplateApi = {
-  /** GET /api/channels/templates?kind= —— 模板列表（种类可空表示全部） */
-  list: (kind?: 'SMS' | 'EMAIL') =>
-    unwrapPayload<MessageTemplate[]>(apiHttp.get(TEMPLATE_BASE).query({ kind })),
-  /** POST /api/channels/templates —— 新增或更新（带 templateId 即更新） */
-  save: (template: MessageTemplate) =>
-    unwrapPayload<MessageTemplate>(
-      apiHttp.post(TEMPLATE_BASE).data(template as unknown as Record<string, unknown>),
-    ),
-  /** DELETE /api/channels/templates/{id} */
-  remove: (templateId: string) =>
-    unwrapPayload<boolean>(apiHttp.delete(`${TEMPLATE_BASE}/${templateId}`)),
-  /** POST /api/channels/templates/{id}/default —— 设为该种类默认模板 */
-  setDefault: (templateId: string) =>
-    unwrapPayload<MessageTemplate>(apiHttp.post(`${TEMPLATE_BASE}/${templateId}/default`)),
-  /** POST /api/channels/templates/render —— 变量渲染预览（不落库） */
-  render: (body: {
-    kind: 'SMS' | 'EMAIL'
-    subject?: string
-    content: string
-    variables?: Record<string, unknown>
-  }) => unwrapPayload<MessageTemplateRenderResult>(apiHttp.post(`${TEMPLATE_BASE}/render`).data(body)),
-  /** GET /api/channels/templates/variables?kind= —— 模板内置变量清单 */
-  variables: (kind: 'SMS' | 'EMAIL') =>
-    unwrapPayload<string[]>(apiHttp.get(`${TEMPLATE_BASE}/variables`).query({ kind })),
 }

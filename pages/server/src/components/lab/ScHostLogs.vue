@@ -157,8 +157,10 @@ const shownRows = computed(() => {
   return rows.value.filter((line) => line.toLowerCase().includes(q));
 });
 
-/** 一条结构化登录记录：回答「谁、从哪个 IP、成没成」 */
+/** 一条结构化登录记录：回答「什么时候、谁、从哪个 IP、成没成」 */
 interface LoginRow {
+  /** 事件时间；解析不到时显示原始日志中的时间或「—」 */
+  time: string;
   /** 登录用户名 */
   user: string;
   /** 来源 IP（本机会话为 "-"） */
@@ -171,8 +173,15 @@ interface LoginRow {
   raw: string;
 }
 
-/** IPv4 / IPv6 粗判：last 输出的第三列不一定是地址 */
-const IP_SHAPE = /^(\d{1,3}(?:\.\d{1,3}){3}|[0-9a-f]{0,4}(?::[0-9a-f]{0,4}){2,})$/i;
+/** 从 Linux 日志保留可读时间：journal 的 ISO 时间或 syslog/last 的月日时间。 */
+function linuxTime(line: string): string {
+  const iso = line.match(/\b(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?)\b/);
+  if (iso) return iso[1].replace("T", " ");
+  const syslog = line.match(/^([A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}(?::\d{2})?)/);
+  if (syslog) return syslog[1];
+  const last = line.match(/\b((?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+\w{3}\s+\d{1,2}\s+\d{2}:\d{2})/);
+  return last?.[1] ?? "—";
+}
 
 /**
  * 解析 Linux 的登录 / 认证记录。
@@ -194,6 +203,7 @@ function parseLinuxLogin(lines: string[]): LoginRow[] {
     const sshd = line.match(/\b(Accepted|Failed)\s+(\S+)\s+for\s+(?:invalid user\s+)?(\S+?)\s+from\s+(\S+)\s+port\s+\d+/i);
     if (sshd) {
       out.push({
+        time: linuxTime(line),
         user: sshd[3],
         ip: sshd[4],
         method: sshd[2],
@@ -203,13 +213,19 @@ function parseLinuxLogin(lines: string[]): LoginRow[] {
       continue;
     }
     // last：root  pts/0  10.1.2.3  Mon Nov  3 09:12  still logged in
-    const last = line.match(/^(\S+)\s+(\S+)\s+(\S+)\s+(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+\w{3}\s+\d{1,2}\s+\d{2}:\d{2}/);
-    if (last && IP_SHAPE.test(last[3])) {
+    // 第三列可能是 IP、主机名，或本地会话时干脆没有 —— 主机字段做成可选，
+    // 否则「本机 tty 登录」这类最该看见的记录会被整条丢掉。
+    const last = line.match(
+      /^(\S+)\s+(\S+)(?:\s+(\S+))?\s+(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+\w{3}\s+\d{1,2}\s+\d{2}:\d{2}/,
+    );
+    if (last) {
       const u = last[1];
       if (u === "reboot" || u === "wtmp" || u === "shutdown") continue;
       out.push({
+        time: linuxTime(line),
         user: u,
-        ip: last[3],
+        // 本机 tty / 无来源地址的会话给 "-"，与 Windows 表的空来源地址保持同一写法
+        ip: last[3] || "-",
         method: last[2],
         result: /still logged in|still running/i.test(line) ? "在线" : "已退出",
         raw: line,
@@ -226,6 +242,10 @@ function parseLinuxLogin(lines: string[]): LoginRow[] {
  * SYSTEM / 机器账户；取最后一个非系统账户才是真正登录的人。来源地址同理，
  * 取最后一个非 "-" 的值。</p>
  *
+ * <p>字段名中英文都认：{@code wevtutil} 的外层标签通常是英文，但事件描述体里的
+ * 字段随系统语言本地化（中文系统是「账户名 / 源网络地址」）。只认英文的话，
+ * 中文机器上整张表会是空的 —— 这不是「没登录」，是解析没跟上。</p>
+ *
  * @param text 原始输出（保留空行，按 Event[n] 分段）
  * @returns 结构化登录记录
  */
@@ -233,20 +253,22 @@ function parseWindowsLogin(text: string): LoginRow[] {
   const out: LoginRow[] = [];
   const events = text.replace(/\r\n?/g, "\n").split(/(?=Event\[\d+\]:)/);
   for (const block of events) {
-    const users = [...block.matchAll(/Account Name:\s*(.+)/gi)]
+    const users = [...block.matchAll(/(?:Account Name|账户名|帐户名|用户名)\s*[:：]\s*(.+)/gi)]
       .map((m) => m[1].trim())
       .filter((u) => u && u !== "-" && !/^(SYSTEM|LOCAL SERVICE|NETWORK SERVICE|ANONYMOUS LOGON)$/i.test(u) && !u.endsWith("$"));
     const user = users[users.length - 1] || "";
     if (!user) continue;
-    const ips = [...block.matchAll(/Source Network Address:\s*(.+)/gi)]
+    const ips = [...block.matchAll(/(?:Source Network Address|源网络地址|源地址)\s*[:：]\s*(.+)/gi)]
       .map((m) => m[1].trim())
       .filter((v) => v && v !== "-");
     const ip = ips[ips.length - 1] || "-";
-    const id = block.match(/Event ID:\s*(\d+)/i)?.[1] || "";
+    const id = block.match(/(?:Event ID|事件 ID|事件ID)\s*[:：]\s*(\d+)/i)?.[1] || "";
     const failed = id === "4625" || /Audit Failure|审核失败|登录失败/i.test(block);
     const method =
       id === "4624" ? "交互登录" : id === "4625" ? "密码错误" : id === "4634" ? "注销" : `事件 ${id || "?"}`;
-    out.push({ user, ip, method, result: failed ? "失败" : "成功", raw: block.trim() });
+    // wevtutil 的时间标签是「Date:」，部分版本/导出格式写「Date and Time:」
+    const time = block.match(/(?:Date and Time|Date|\u65e5\u671f)\s*[:：]\s*(.+)/i)?.[1]?.trim() || "—";
+    out.push({ time, user, ip, method, result: failed ? "失败" : "成功", raw: block.trim() });
   }
   return out;
 }
@@ -262,7 +284,7 @@ const shownLoginRows = computed(() => {
   const q = keyword.value.trim().toLowerCase();
   if (!q) return loginRows.value;
   return loginRows.value.filter((r) =>
-    [r.user, r.ip, r.method, r.result].some((v) => String(v).toLowerCase().includes(q)),
+    [r.time, r.user, r.ip, r.method, r.result].some((v) => String(v).toLowerCase().includes(q)),
   );
 });
 
@@ -436,11 +458,12 @@ watch(() => [props.hostId, props.kind, props.platform], () => void load());
           }}
         </div>
 
-        <!-- 登录日志主表：只回答「谁、从哪个 IP、成没成」，时间不占列 -->
+        <!-- 登录日志主表：与 Windows 安全日志同构，回答「什么时候、谁、从哪个 IP、成没成」 -->
         <template v-if="isLogin && loginRows.length">
           <table class="lg-table">
             <thead>
               <tr>
+                <th class="lg-col-time">时间</th>
                 <th class="lg-col-user">用户</th>
                 <th class="lg-col-ip">来源 IP</th>
                 <th class="lg-col-method">方式</th>
@@ -449,6 +472,7 @@ watch(() => [props.hostId, props.kind, props.platform], () => void load());
             </thead>
             <tbody>
               <tr v-for="(r, i) in shownLoginRows" :key="i" :title="r.raw">
+                <td class="lg-col-time"><span class="lg-time">{{ r.time }}</span></td>
                 <td class="lg-col-user"><span class="lg-user">{{ r.user }}</span></td>
                 <td class="lg-col-ip"><code class="lg-ip">{{ r.ip }}</code></td>
                 <td class="lg-col-method">{{ r.method }}</td>
@@ -615,11 +639,15 @@ watch(() => [props.hostId, props.kind, props.platform], () => void load());
 .lg-table tbody tr:hover {
   background: rgba(255, 255, 255, 0.045);
 }
+.lg-col-time {
+  width: 22%;
+  white-space: nowrap;
+}
 .lg-col-user {
-  width: 24%;
+  width: 20%;
 }
 .lg-col-ip {
-  width: 30%;
+  width: 26%;
 }
 .lg-col-method {
   width: 26%;
@@ -630,6 +658,10 @@ watch(() => [props.hostId, props.kind, props.platform], () => void load());
 .lg-user {
   font-weight: 600;
   color: #e6e9ef;
+}
+.lg-time {
+  color: #aeb6c4;
+  white-space: nowrap;
 }
 .lg-ip {
   font-family: var(--el-font-family-mono, ui-monospace, "SF Mono", Consolas, monospace);

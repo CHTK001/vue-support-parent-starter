@@ -83,6 +83,6 @@ export const GLUE_FRAGMENT_PREFIX = "GLUE_";
 /** 用户首次点脚本 / 片段时的默认语言；选过之后由 lastGlueEngine 记住 */
 export const DEFAULT_GLUE_ENGINE = "groovy";
 /** 引擎枚举拉取失败时的兜底清单，保证下拉始终可用 */
-export const FALLBACK_GLUE_ENGINES = ["groovy", "java"];
+export const FALLBACK_GLUE_ENGINES = ["groovy", "java", "python"];
 /** 已注册引擎名 -> 下拉展示名；未收录的引擎原样显示 */
-export const GLUE_ENGINE_LABELS: Record<string, string> = { java: "Java", groovy: "Groovy" };
+export const GLUE_ENGINE_LABELS: Record<string, string> = { java: "Java", groovy: "Groovy", python: "Python" };

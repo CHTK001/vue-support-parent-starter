@@ -124,6 +124,9 @@
             <!-- ============ 系统调试 ============ -->
             <ReSettingSystemDebug />
 
+            <!-- ============ 空状态样式（仅 admin） ============ -->
+            <ReSettingEmptyState />
+
             <!-- ============ 热点工具（仅 dev/test） ============ -->
             <ReSettingHeatmap />
 
@@ -629,6 +632,7 @@ import ReSettingAiChat from "./components/ReSettingAiChat.vue";
 import ReSettingAccessibility from "./components/ReSettingAccessibility.vue";
 import ReSettingDevTools from "./components/ReSettingDevTools.vue";
 import ReSettingSystemDebug from "./components/ReSettingSystemDebug.vue";
+import ReSettingEmptyState from "./components/ReSettingEmptyState.vue";
 import ReSettingHeatmap from "./components/ReSettingHeatmap.vue";
 import ReSettingPerformance from "./components/ReSettingPerformance.vue";
 import { isHeaderFlagKey } from "@repo/theme/koi/layouts/components/Header/components/headerKeys";
@@ -871,8 +875,10 @@ const toolbarSwitchList = computed(() => {
   { key: "tabIcon", label: t("themeConfig.toolbar.tabIcon.label"), sub: t("themeConfig.toolbar.tabIcon.sub"), tip: t("themeConfig.toolbar.tabIcon.tip"), description: t("themeConfig.toolbar.tabIcon.description") },
   { key: "logo", label: t("themeConfig.toolbar.logo.label"), sub: t("themeConfig.toolbar.logo.sub"), tip: t("themeConfig.toolbar.logo.tip"), description: t("themeConfig.toolbar.logo.description") },
   { key: "message", label: t("themeConfig.toolbar.message.label"), sub: t("themeConfig.toolbar.message.sub"), tip: t("themeConfig.toolbar.message.tip"), description: t("themeConfig.toolbar.message.description") },
+  { key: "quickNote", label: t("themeConfig.toolbar.quickNote.label"), sub: t("themeConfig.toolbar.quickNote.sub"), tip: t("themeConfig.toolbar.quickNote.tip"), description: t("themeConfig.toolbar.quickNote.description") },
   // 天气不放在工具栏开关里：独立的「天气配置」分区已提供开关（避免出现两个"天气"）
   { key: "typhoon", label: t("themeConfig.toolbar.typhoon.label"), sub: t("themeConfig.toolbar.typhoon.sub"), tip: t("themeConfig.toolbar.typhoon.tip"), description: t("themeConfig.toolbar.typhoon.description") },
+  { key: "exchangeRate", label: t("themeConfig.toolbar.exchangeRate.label"), sub: t("themeConfig.toolbar.exchangeRate.sub"), tip: t("themeConfig.toolbar.exchangeRate.tip"), description: t("themeConfig.toolbar.exchangeRate.description") },
   ];
 
   const declared = (getConfig().other?.toolbar?.items ?? [])

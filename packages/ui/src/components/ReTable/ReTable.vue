@@ -128,6 +128,16 @@ import { createStorage, browserLocalStorage, browserSessionStorage, yieldToMain,
  */
 import { VxeTable, VxeColumn } from "vxe-table";
 import "vxe-table/lib/style.css";
+/* tooltip 的样式必须单独引入（与下方 loading 缺失样式完全同源的问题）。
+   根因：vxe-table 的 `lib/style.css` 只含表格自身样式，**不含** vxe-pc-ui 的
+   tooltip/loading 样式；而 vxe-pc-ui 的 `es/tooltip/index.js` 在 import 时
+   也不 import 任何 CSS（样式由使用方显式引入）。
+   缺了这份样式时，`.vxe-tooltip--wrapper` 拿不到 `display:none` +
+   `position:absolute; top:-100%; left:-100%`，tooltip 面板被 append 到
+   `<body>` 末尾后按文档流静态排布，直接把页面高度撑开一大截。
+   只引 tooltip 单模块（3.4 KB），不引整包 `vxe-pc-ui/es/style.css`（约 429 KB）。
+   注意该文件只定义定位/装饰规则，主题变量由 `vxe-table/lib/style.css` 提供。 */
+import "vxe-pc-ui/es/tooltip/style.css";
 /**
  * vxe-table 的表头/单元格 tooltip 在 setup 时通过
  * {@code VxeUI.getComponent("VxeTooltip")} 从全局注册表取组件，
@@ -8454,6 +8464,14 @@ const iconSelect = Select;
    element 引擎的空态同宽（实测两边都铺满可见宽），两个引擎观感才一致。 */
 .re-table .vxe-table--body-wrapper .vxe-table--empty-block > .vxe-table--empty-content {
   width: 100%;
+  height: 100%;
+}
+.re-table .vxe-table--body-wrapper .vxe-table--empty-block > .vxe-table--empty-content > .re-empty__figure {
+  /* 空态图铺满空块：100% 宽 + 100% 高，--re-empty-aspect-ratio: auto 关掉比例
+     取高（由上联空块高度链给死），不再回 336px 封顶 / 5/4 卡高。 */
+  --re-empty-figure-width: 100%;
+  --re-empty-aspect-ratio: auto;
+  height: 100%;
 }
 /* 空态下右侧固定列浮层要"让位"。
    vxe 的 .vxe-table--fixed-right-wrapper 是 position:absolute + z-index:5 +

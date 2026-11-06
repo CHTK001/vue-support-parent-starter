@@ -43,6 +43,26 @@ return applyConfig(writable);
 theme、home、locale、fallback、other.xxx）、`message`、`menu`（展示项 + collapse）、
 `login`、`app`、`defaultConfig`、`i18n`、`other.themeConfigCloseConfirm` 等等。
 
+## 3.5 远程设置注入白名单（二级保护）
+
+`loadConfig` 在把 `/v2/setting/default` 下发到 AppConfig 之前，同样要走 `safe-path` 白名单
+（`packages/config/src/loader.ts` 的 `flattenSettingToConfig`），与 `setConfig` 的禁止键列表不同：
+禁止键按**整树**（`http`/`token`/`crypto`/`storage`/`url`/`config`/`route`/...），白名单按
+**前缀/顶层键**只放行关乎品牌与展示的部分，旧式设置名（没有 `sysSettingCode`，只有
+`sysSettingName`，如 `SystemName`、`WatermarkOpen`）先由 `LEGACY_NAME_TO_PATH` 补全成
+点号路径再进白名单，否则仍会被拦截。
+
+| 区域 | 放行业径 | 验证结果（46 项活数据） |
+|---|---|---|
+| `login.*`（标题/品牌/滑块/验证码/短信登录/图/备案/描述/欢迎词） | `SYS_SETTING_NAME` 旧名 → `LEGACY_NAME_TO_PATH` 映射到 `login.*` 落盘 | 补丁前 3 行告警（`SystemName`/`SlidingBlockOpen`/`OpenSmsLogin`），补丁后 0 行 |
+| `security.watermark.*`（enable/color/alpha/rotate） | 白名单新增前缀 `security.watermark` + 旧名映射 | 补丁前 4 行告警（`WatermarkOpen/Color/Alpha/Rotate` 升到 `security` 顶层 → 拒），补丁后 0 行 |
+| 16 个 SSO 供应商开关名 | 不抛，从 `getThirdPartyProviders()` 拉 | 仍告警（21 行里的 16 行）——它们不是前端配置键 |
+| `CodecRequestKey/CodecRequestOpen/CodecResponseOpen`、`Version`、`http.baseUrl` | 安全/后台配置，前端不消费 | 仍告警（5 行）——后台有表项但前端不加处理 |
+
+白名单不是越宽越好。远程设置接口只该管品牌与展示，其他键（改了就不只是改观感）
+留给 `setConfig` 的禁止键整树拦截；都有日志（`console.warn` / `[setting] 已拒绝...`），
+告知比遗漏好。
+
 ## 4. 授权调用方（全部走到 applyConfig）
 
 | 调用方 | 位置 | 语义 |
@@ -50,7 +70,7 @@ theme、home、locale、fallback、other.xxx）、`message`、`menu`（展示项
 | `loadConfig` | `packages/config/src/loader.ts:235` | app.yaml / 远程 / 环境变量合并后的最终配置，只 applyConfig 一次 |
 | `mergeDefaultSetting` | `packages/core/src/setting.ts:102` | 远程设置经 safe-path 白名单后写回 |
 | `restoreUserConfig` | `packages/config/src/config.ts:641` | 用户可调切片恢复；history 快照里的 `other.loaderConfig` 恢复时丢弃 |
-| `resetConfig` | `packages/config/src/config.ts:368` | 重置为默认配置 |
+| `resetConfig` | `packages/config/src/config.ts:368` | 重置为默认配置（含深重置：清掉通过内部通道 `applyConfig` 注入的默认配置之外的注入态） |
 | `applyTitle` | `turbo/app/src/shared.ts:85` | 标题覆盖（`app.title` → `other.title`） |
 
 界外（页面、组件、第三方注入代码）能做只有受保护的 `setConfig`。

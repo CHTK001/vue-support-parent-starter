@@ -32,10 +32,10 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.0.0",
+    "@vitejs/plugin-vue": "catalog:",
     "@vue/test-utils": "^2.4.0",
     "jsdom": "^24.0.0",
     "typescript": "catalog:",
-    "vitest": "^1.6.0"
+    "vitest": "catalog:"
   }
 }

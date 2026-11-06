@@ -6,6 +6,14 @@
  *   动态加载 eruda CDN 脚本，初始化后注入项目统一风格的自定义 CSS，
  *   并按需注册常用插件（Console / Network / Element / Resources / Info / Sources / Snippets）。
  *   设置项实时写入 appConfig.other.devTools.debugEruda，由 config.ts 的 watch 自动持久化。
+ *
+ * 两个容易踩的坑（都曾导致「打开开关但控制台不出现 / 出现了没样式」）：
+ *   1. `useShadowDom` 必须为 false。eruda 默认把面板放进影子根，而影子根是样式边界，
+ *      document 级的 eruda.css 一条都进不去，面板就退回原生浅色外观；
+ *      同时宿主 `#eruda` 会被写上行内 `all: initial`，外部样式同样被重置。
+ *   2. eruda.css 必须按 3.4.1 的真实类名写（`.eruda-entry-btn` / `.eruda-dev-tools` /
+ *      `.eruda-tab.luna-tab` …）。2.x 的 `.eruda-panel` / `.eruda-tab-bar` 在 3.4.1
+ *      里已经不存在，写错不报错，只是静默不生效。
  */
 import { computed, onBeforeUnmount, watch } from "vue";
 import { getConfig } from "@repo/config";
@@ -52,28 +60,50 @@ function findExistingErudaScript() {
   return document.querySelector<HTMLScriptElement>(`script[src="${ERUDA_CDN}"]`);
 }
 
+/**
+ * 初始化 eruda 并挂上主题样式。
+ *
+ * <p>注意 `useShadowDom: false`：面板必须留在 document 里，eruda.css 才能生效；
+ * 影子根是样式边界，开着它等于放弃主题（见文件头注释）。</p>
+ */
+function startEruda() {
+  const eruda = (window as any).eruda;
+  if (!eruda) return;
+  // 已初始化过（热更新 / 开关来回切）时 init 会重复建宿主，先销毁再起
+  try {
+    eruda.destroy();
+  } catch {
+    /* ignore */
+  }
+  try {
+    eruda.init({
+      container: document.body,
+      useShadowDom: false,
+    });
+  } catch (err) {
+    console.warn("[eruda] init 失败", err);
+    return;
+  }
+  injectErudaStyles();
+}
+
 function loadEruda() {
   if (erudaScriptEl) return;
   const existing = findExistingErudaScript();
   if (existing) {
     erudaScriptEl = existing;
     if ((window as any).eruda) {
-      (window as any).eruda.init();
-      injectErudaStyles();
+      startEruda();
+    } else {
+      // 脚本已插入但还没执行完，等它加载完成再 init，避免「开关打开却永远不出现」
+      existing.addEventListener("load", startEruda, { once: true });
     }
     return;
   }
   const script = document.createElement("script");
   script.src = ERUDA_CDN;
-  script.onload = () => {
-    const eruda = (window as any).eruda;
-    if (!eruda) return;
-    eruda.init({
-      container: document.body,
-      useShadowDom: true,
-    });
-    injectErudaStyles();
-  };
+  script.onload = startEruda;
+  script.onerror = () => console.warn("[eruda] CDN 脚本加载失败:", ERUDA_CDN);
   document.body.appendChild(script);
   erudaScriptEl = script;
 }

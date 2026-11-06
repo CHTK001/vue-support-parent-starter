@@ -38,6 +38,7 @@ import type {
   SysUserUpdate,
   SysAvatarFrame,
   TenantServiceBindRequest,
+  TenantEndpointInfo,
   SysPost,
   CacheModule,
   CacheKey,
@@ -757,12 +758,19 @@ export function resetTenantPassword(sysTenantId: string, sysTenantPassword: stri
     .then<ApiResult<boolean>>((r) => r.data);
 }
 
-/** 重置租户菜单（按订阅重新计算并推送给租户端） */
-export function resetTenantMenu(sysTenantId: string) {
+/** 重置租户菜单（按订阅重新计算并推送给租户端） */export function resetTenantMenu(sysTenantId: string) {
   return http()
     .put("/v2/tenant/reset-menu")
     .query({ sysTenantId })
     .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 租户服务器地址（sync=租户端启动时自报的在线地址，config=人工登记） */
+export function getTenantEndpoint(sysTenantId: string) {
+  return http()
+    .get("/v2/tenant/endpoint")
+    .query({ sysTenantId })
+    .then<ApiResult<TenantEndpointInfo | null>>((r) => r.data);
 }
 
 /** 租户统计 */
@@ -817,6 +825,59 @@ export function listForService() {
   return http()
     .get("/v2/service/list")
     .then<ApiResult<SysService[]>>((r) => r.data);
+}
+
+/** 服务分页查询（服务目录） */
+export function pageForService(params: {
+  page?: number;
+  pageSize?: number;
+  sysServiceName?: string;
+  sysServiceCode?: string;
+  sysServiceStatus?: number;
+}) {
+  return http()
+    .get("/v2/service/page")
+    .query(params as Record<string, unknown>)
+    .then<ApiResult<PageResult<SysService>>>((r) => r.data);
+}
+
+/** 新增服务 */
+export function saveService(data: SysService) {
+  return http()
+    .post("/v2/service/save")
+    .data(data as Record<string, unknown>)
+    .then<ApiResult<SysService>>((r) => r.data);
+}
+
+/** 更新服务 */
+export function updateService(data: SysService) {
+  return http()
+    .put("/v2/service/update")
+    .data(data as Record<string, unknown>)
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 删除服务 */
+export function deleteService(sysServiceId: number) {
+  return http()
+    .delete("/v2/service/delete")
+    .query({ sysServiceId })
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 启用/禁用服务 */
+export function updateServiceStatus(sysServiceId: number, status: number) {
+  return http()
+    .put("/v2/service/status")
+    .query({ sysServiceId, status })
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 立即清理已到期的租户服务订阅（幂等） */
+export function expireTenantServices() {
+  return http()
+    .put("/v2/tenant/services/expire")
+    .then<ApiResult<number>>((r) => r.data);
 }
 
 /** 操作日志分页列表 */

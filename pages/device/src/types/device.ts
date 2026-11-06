@@ -279,6 +279,10 @@ export interface ProviderCredential {
   deviceCredentialOfflineDetectEnabled?: boolean
   /** 在离线检测间隔（秒） */
   deviceCredentialOfflineDetectInterval?: number
+  /** 事件轮询开关：该凭据维度是否由时间轮自动拉取厂商事件（默认关闭） */
+  deviceCredentialEventPollEnabled?: boolean
+  /** 事件轮询间隔（秒） */
+  deviceCredentialEventPollInterval?: number
   /** 设备自动同步开关：该凭据维度是否由时间轮自动拉取设备目录（默认关闭） */
   deviceCredentialDeviceSyncEnabled?: boolean
   /** 设备自动同步间隔（秒） */

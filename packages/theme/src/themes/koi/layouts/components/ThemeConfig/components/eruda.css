@@ -1,19 +1,45 @@
 /**
- * eruda 调试控制台美化样式
+ * eruda 调试控制台美化样式（适配 eruda 3.4.1）
  *
  * 设计目标：
  *   - 入口按钮：方形圆角 + 阴影，置于右下角
- *   - 面板：深色背景 + 圆角 12px + 顶部 tab 扁平化
- *   - 工具宫格：4 列 icon grid，圆角卡片
+ *   - 面板：深色背景 + 圆角 12px + 顶部 tab 扁平、选中态主色下划线
  *   - Console / Network 等面板：紧凑行高 + monospace 字体
- *   - 颜色：与 Element Plus 主色保持一致（低饱和炭灰）
+ *   - 颜色：低饱和炭灰 + 主色 #5b8def
+ *
+ * 为什么选择器长这样（**改动前务必读**）：
+ *   - eruda 2.x 的类名是 `#eruda`（本身就是按钮）、`.eruda-entry-button`、
+ *     `.eruda-panel`、`.eruda-tab-bar`、`.eruda-log`、`.eruda-input`、`.eruda-setting`；
+ *     3.4.1 全部换了：`.eruda-entry-btn`、`.eruda-dev-tools`、`.eruda-tab.luna-tab`、
+ *     `.luna-tab-item`、`.eruda-logs-container`、`.eruda-js-input`、`.eruda-settings`。
+ *     写错类名不会报错，只会「主题静默不生效」，所以这里只允许出现真实存在的类名。
+ *   - `#eruda` 是宿主，eruda 会给它写行内 `all: initial`，且它内部装的是
+ *     `position: fixed` 的全屏浮层 `.eruda-container`；**不要**给宿主设 width/height/
+ *     background —— 那会破坏入口按钮的定位与面板尺寸。视觉都落在 `.eruda-entry-btn`
+ *     和 `.eruda-dev-tools` 上。
+ *   - 影子根是样式边界：本文件是 document 级样式，组件侧必须 `useShadowDom: false`，
+ *     否则这些规则一条都进不去（这是「打开 eruda 完全没反应」的根因之一）。
  */
 
 /* ============================================================
- * 入口按钮（右下角浮动）
+ * 宿主
  * ============================================================ */
-#eruda,
-.eruda-entry-button {
+/* #eruda 只是挂载点：面板本体是 position: fixed 的 .eruda-container。
+   eruda 会给宿主写行内 `all: initial`（display:inline），若不归零会留下一个约 21px
+   的行盒，给页面撑出多余高度 / 滚动条。这里只做归零，不放任何视觉。 */
+#eruda {
+  display: block !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+/* ============================================================
+ * 入口按钮（右下角浮起）
+ * ============================================================ */
+.eruda-entry-btn {
   width: 44px !important;
   height: 44px !important;
   min-width: 44px !important;
@@ -33,9 +59,11 @@
   -webkit-backdrop-filter: blur(12px) !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
   z-index: 999999 !important;
+  /* eruda 原生给入口按钮 opacity: .3（几乎看不见），这里提到 .85，hover 全亮 */
+  opacity: 0.85 !important;
 }
-#eruda:hover,
-.eruda-entry-button:hover {
+.eruda-entry-btn:hover {
+  opacity: 1 !important;
   transform: translateY(-2px) scale(1.04) !important;
   box-shadow:
     0 10px 28px rgba(0, 0, 0, 0.22),
@@ -43,25 +71,22 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
   border-color: rgba(91, 141, 239, 0.4) !important;
 }
-#eruda:active,
-.eruda-entry-button:active {
+.eruda-entry-btn:active {
   transform: translateY(0) scale(0.98) !important;
 }
-/* 内部图标调整为浅色 */
-#eruda svg,
-.eruda-entry-button svg {
-  fill: rgba(255, 255, 255, 0.85) !important;
-  transition: fill 0.2s ease !important;
+/* 入口图标（3.4.1 用 span.eruda-icon-tool 内嵌图标字体，不是 svg） */
+.eruda-entry-btn .eruda-icon-tool {
+  color: rgba(255, 255, 255, 0.85) !important;
+  transition: color 0.2s ease !important;
 }
-#eruda:hover svg,
-.eruda-entry-button:hover svg {
-  fill: rgba(91, 141, 239, 0.95) !important;
+.eruda-entry-btn:hover .eruda-icon-tool {
+  color: rgba(91, 141, 239, 0.95) !important;
 }
 
 /* ============================================================
  * 主面板
  * ============================================================ */
-.eruda-panel {
+.eruda-dev-tools {
   border-radius: 12px !important;
   overflow: hidden !important;
   background: #0f172a !important;
@@ -81,32 +106,28 @@
     0 0 0 1px rgba(255, 255, 255, 0.06) !important;
   border: none !important;
 }
-
-/* 关闭按钮 */
-.eruda-panel .eruda-close {
-  color: rgba(255, 255, 255, 0.6) !important;
-  transition: color 0.15s ease !important;
-}
-.eruda-panel .eruda-close:hover {
-  color: rgba(255, 255, 255, 0.95) !important;
+/* 顶部拖拽条 */
+.eruda-dev-tools .eruda-resizer {
+  background: transparent !important;
 }
 
 /* ============================================================
  * Tab 栏（顶部）
  * ============================================================ */
-.eruda-tab-bar {
+.eruda-dev-tools .eruda-tab.luna-tab {
   background: rgba(15, 23, 42, 0.85) !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
   backdrop-filter: blur(8px) !important;
   -webkit-backdrop-filter: blur(8px) !important;
-  padding: 0 8px !important;
   height: 38px !important;
-  align-items: center !important;
 }
-.eruda-tab-bar .eruda-tab {
-  padding: 0 14px !important;
+.eruda-dev-tools .eruda-tab .luna-tab-tabs {
+  height: 38px !important;
+}
+.eruda-dev-tools .eruda-tab .luna-tab-item {
   height: 38px !important;
   line-height: 38px !important;
+  padding: 0 14px !important;
   font-size: 12px !important;
   font-weight: 500 !important;
   color: rgba(226, 232, 240, 0.55) !important;
@@ -114,142 +135,255 @@
   border: none !important;
   background: transparent !important;
   transition: color 0.15s ease !important;
-  position: relative !important;
 }
-.eruda-tab-bar .eruda-tab:hover {
+.eruda-dev-tools .eruda-tab .luna-tab-item:hover {
   color: rgba(226, 232, 240, 0.9) !important;
+  background: transparent !important;
 }
-/* 选中态：底部细线 + 主色文字 */
-.eruda-tab-bar .eruda-tab.eruda-active {
+/* 选中态：主色文字 + 底部细线（用 luna 自带的 slider，比 ::after 更稳） */
+.eruda-dev-tools .eruda-tab .luna-tab-item.luna-tab-selected {
   color: #5b8def !important;
   background: transparent !important;
 }
-.eruda-tab-bar .eruda-tab.eruda-active::after {
-  content: "" !important;
-  position: absolute !important;
-  left: 14px !important;
-  right: 14px !important;
-  bottom: 0 !important;
-  height: 2px !important;
+.eruda-dev-tools .eruda-tab .luna-tab-slider {
   background: #5b8def !important;
+  height: 2px !important;
   border-radius: 2px 2px 0 0 !important;
 }
 
 /* ============================================================
- * 工具宫格
+ * 工具容器 / 工具面板 / 分组标题
  * ============================================================ */
-.eruda-tools {
-  padding: 12px !important;
+.eruda-dev-tools .eruda-tools {
   background: #0f172a !important;
-  display: grid !important;
-  grid-template-columns: repeat(4, 1fr) !important;
-  gap: 8px !important;
 }
-.eruda-tool {
-  background: rgba(30, 41, 59, 0.5) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  border-radius: 8px !important;
-  padding: 12px 6px !important;
-  color: rgba(226, 232, 240, 0.85) !important;
-  font-size: 12px !important;
-  transition: all 0.15s ease !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  gap: 6px !important;
-}
-.eruda-tool:hover {
-  background: rgba(91, 141, 239, 0.12) !important;
-  border-color: rgba(91, 141, 239, 0.3) !important;
-  color: #fff !important;
-  transform: translateY(-1px) !important;
-}
-.eruda-tool .eruda-icon {
-  width: 22px !important;
-  height: 22px !important;
-  fill: currentColor !important;
-}
-
-/* ============================================================
- * 工具内容面板（Console / Elements / Network 等）
- * ============================================================ */
-.eruda-tool-container {
+.eruda-dev-tools .eruda-tool {
   background: #0f172a !important;
   color: #e2e8f0 !important;
 }
+/* 分组标题（3.4.1 里 Resources 用 .eruda-title，其余用 .eruda-name） */
+.eruda-dev-tools .eruda-name,
+.eruda-dev-tools .eruda-title {
+  background: rgba(30, 41, 59, 0.6) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  color: rgba(226, 232, 240, 0.78) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.2px !important;
+}
+.eruda-dev-tools .eruda-description {
+  color: rgba(226, 232, 240, 0.55) !important;
+}
 
-/* Console 面板 */
-.eruda-console {
+/* ============================================================
+ * Console 面板
+ * ============================================================ */
+.eruda-dev-tools .eruda-console {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
   font-family:
     "SF Mono", "JetBrains Mono", "Fira Code", Menlo, Consolas,
     monospace !important;
   font-size: 12.5px !important;
   line-height: 1.55 !important;
-  padding: 10px 14px !important;
 }
-.eruda-log {
-  padding: 4px 8px !important;
-  border-radius: 4px !important;
-  margin-bottom: 2px !important;
+.eruda-dev-tools .eruda-logs-container {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
+  font-family:
+    "SF Mono", "JetBrains Mono", "Fira Code", Menlo, Consolas,
+    monospace !important;
+  font-size: 12.5px !important;
+  line-height: 1.55 !important;
+}
+/* 日志行（3.4.1 用的是 luna-console 的类名，不是 .eruda-log） */
+.eruda-dev-tools .luna-console-log-container {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+}
+.eruda-dev-tools .luna-console-log-content {
+  color: #e2e8f0 !important;
   word-break: break-all !important;
 }
-.eruda-log.eruda-log-info {
-  color: #93c5fd !important;
+.eruda-dev-tools .luna-console-log.luna-console-log-item {
+  padding: 2px 8px !important;
 }
-.eruda-log.eruda-log-warn {
+/* 等级配色：warn 琥珀、error 红 */
+.eruda-dev-tools .luna-console-warn {
   color: #fbbf24 !important;
   background: rgba(251, 191, 36, 0.08) !important;
 }
-.eruda-log.eruda-log-error {
+.eruda-dev-tools .luna-console-error {
   color: #f87171 !important;
   background: rgba(248, 113, 113, 0.1) !important;
 }
-
-/* Network 面板 */
-.eruda-network {
+.eruda-dev-tools .luna-console-warn .luna-console-log-content,
+.eruda-dev-tools .luna-console-error .luna-console-log-content {
+  color: inherit !important;
+}
+/* 输入区 */
+.eruda-dev-tools .eruda-control {
+  background: rgba(30, 41, 59, 0.6) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+.eruda-dev-tools .eruda-js-input {
+  background: transparent !important;
+  border: none !important;
+  color: #e2e8f0 !important;
+  font-family:
+    "SF Mono", "JetBrains Mono", "Fira Code", Menlo, Consolas,
+    monospace !important;
+  font-size: 12.5px !important;
+  outline: none !important;
+}
+/* 控制区的 JS 输入框（3.4.1 是 textarea，且不在 .eruda-control 里） */
+.eruda-dev-tools .eruda-console textarea {
+  background: transparent !important;
+  border: none !important;
+  color: #e2e8f0 !important;
+  caret-color: #5b8def !important;
+  font-family:
+    "SF Mono", "JetBrains Mono", "Fira Code", Menlo, Consolas,
+    monospace !important;
+  font-size: 12.5px !important;
+  outline: none !important;
+  resize: none !important;
+}
+/* 日志等级过滤片（All / Info / Warning / Error），默认是原生浅色胶囊 */
+.eruda-dev-tools .eruda-control .eruda-level {
+  color: rgba(226, 232, 240, 0.55) !important;
+  background: transparent !important;
+  border-radius: 4px !important;
+  padding: 1px 6px !important;
   font-size: 12px !important;
+  cursor: pointer !important;
 }
-.eruda-network .eruda-network-title {
-  padding: 8px 14px !important;
-  background: rgba(30, 41, 59, 0.4) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
-  color: rgba(226, 232, 240, 0.7) !important;
-  font-weight: 500 !important;
+.eruda-dev-tools .eruda-control .eruda-level:hover {
+  color: rgba(226, 232, 240, 0.9) !important;
+}
+.eruda-dev-tools .eruda-control .eruda-level.eruda-active {
+  color: #93c5fd !important;
+  background: rgba(91, 141, 239, 0.16) !important;
 }
 
-/* Elements 面板 */
-.eruda-elements {
+/* ============================================================
+ * Elements / Network / Resources 面板
+ * ============================================================ */
+.eruda-dev-tools .eruda-elements,
+.eruda-dev-tools .eruda-network,
+.eruda-dev-tools .eruda-resources,
+.eruda-dev-tools .eruda-sources,
+.eruda-dev-tools .eruda-snippets,
+.eruda-dev-tools .eruda-info {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
+}
+.eruda-dev-tools .eruda-element {
   font-family:
     "SF Mono", "JetBrains Mono", "Fira Code", Menlo, Consolas,
     monospace !important;
   font-size: 12px !important;
-  padding: 8px 12px !important;
+}
+.eruda-dev-tools .eruda-requests {
+  font-size: 12px !important;
+}
+/* 弹出的详情面板 */
+.eruda-dev-tools .eruda-detail {
+  background: #111c31 !important;
+  color: #e2e8f0 !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+/* Elements 面板的 DOM 树（luna-dom-viewer） */
+.eruda-dev-tools .eruda-dom-viewer,
+.eruda-dev-tools .luna-dom-viewer {
+  background: #0f172a !important;
+  color: #cbd5e1 !important;
+  font-family:
+    "SF Mono", "JetBrains Mono", "Fira Code", Menlo, Consolas,
+    monospace !important;
+  font-size: 12px !important;
+}
+.eruda-dev-tools .luna-dom-viewer-tree-item {
+  color: #cbd5e1 !important;
+}
+.eruda-dev-tools .luna-dom-viewer-tag-name {
+  color: #7dd3fc !important;
+}
+.eruda-dev-tools .luna-dom-viewer-attribute-name {
+  color: #fbbf24 !important;
+}
+.eruda-dev-tools .luna-dom-viewer-attribute-value {
+  color: #86efac !important;
+}
+
+/* Sources 面板的代码阅读器（luna-text-viewer） */
+.eruda-dev-tools .luna-text-viewer {
+  background: #0f172a !important;
+  color: #cbd5e1 !important;
+  font-family:
+    "SF Mono", "JetBrains Mono", "Fira Code", Menlo, Consolas,
+    monospace !important;
+  font-size: 12px !important;
+}
+.eruda-dev-tools .luna-text-viewer-line-number {
+  color: rgba(226, 232, 240, 0.35) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+.eruda-dev-tools .luna-text-viewer-line-text {
+  color: #cbd5e1 !important;
+}
+
+/* 数据表格（luna-data-grid，3.4.1 里 Network / Resources 列表都用它） */
+.eruda-dev-tools .luna-data-grid {
+  background: #0f172a !important;
+  color: #cbd5e1 !important;
+  font-family:
+    "SF Mono", "JetBrains Mono", "Fira Code", Menlo, Consolas,
+    monospace !important;
+  font-size: 12px !important;
+}
+.eruda-dev-tools .luna-data-grid-header-container,
+.eruda-dev-tools .luna-data-grid-data-container {
+  background: #0f172a !important;
+}
+.eruda-dev-tools .luna-data-grid-header {
+  background: rgba(30, 41, 59, 0.85) !important;
+  color: rgba(226, 232, 240, 0.78) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+.eruda-dev-tools .luna-data-grid-header th {
+  color: rgba(226, 232, 240, 0.78) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+.eruda-dev-tools .luna-data-grid-data td {
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+/* 数据行（3.4.1 的数据行是 tr.luna-data-grid-node，末尾还有个 filler 行） */
+.eruda-dev-tools .luna-data-grid-data .luna-data-grid-node {
+  background: transparent !important;
+  color: #cbd5e1 !important;
+}
+.eruda-dev-tools .luna-data-grid-data .luna-data-grid-node:nth-child(even) {
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+.eruda-dev-tools .luna-data-grid-data .luna-data-grid-node:hover,
+.eruda-dev-tools .luna-data-grid-data .luna-data-grid-node.luna-data-grid-selected {
+  background: rgba(91, 141, 239, 0.14) !important;
+  color: #fff !important;
+}
+.eruda-dev-tools .luna-data-grid-filler-row {
+  background: transparent !important;
 }
 
 /* ============================================================
  * 通用工具类
  * ============================================================ */
-.eruda-icon {
+.eruda-dev-tools .eruda-icon {
   fill: rgba(226, 232, 240, 0.85) !important;
 }
 
-/* 输入框 */
-.eruda-input {
-  background: rgba(30, 41, 59, 0.6) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 6px !important;
-  color: #e2e8f0 !important;
-  font-size: 12px !important;
-  padding: 4px 8px !important;
-  transition: border-color 0.15s ease !important;
-}
-.eruda-input:focus {
-  border-color: rgba(91, 141, 239, 0.5) !important;
-  outline: none !important;
-}
-
 /* 按钮 */
-.eruda-btn {
+.eruda-dev-tools .eruda-btn {
   background: rgba(91, 141, 239, 0.12) !important;
   border: 1px solid rgba(91, 141, 239, 0.3) !important;
   color: #93c5fd !important;
@@ -258,17 +392,53 @@
   padding: 4px 10px !important;
   transition: all 0.15s ease !important;
 }
-.eruda-btn:hover {
+.eruda-dev-tools .eruda-btn:hover {
   background: rgba(91, 141, 239, 0.2) !important;
   border-color: rgba(91, 141, 239, 0.5) !important;
 }
 
-/* 设置面板 */
-.eruda-setting {
-  padding: 12px 14px !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+/* 设置面板（3.4.1：.eruda-settings.luna-setting + .luna-setting-item 行） */
+.eruda-dev-tools .eruda-settings {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
 }
-.eruda-setting-name {
+.eruda-dev-tools .luna-setting-item {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+  color: #e2e8f0 !important;
+}
+.eruda-dev-tools .luna-setting-title,
+.eruda-dev-tools .luna-setting-description {
   color: rgba(226, 232, 240, 0.85) !important;
   font-size: 12px !important;
+}
+.eruda-dev-tools .luna-setting-item-separator {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+/* 设置里的下拉框 */
+.eruda-dev-tools .luna-setting-select select {
+  background: rgba(30, 41, 59, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 6px !important;
+  color: #e2e8f0 !important;
+  font-size: 12px !important;
+  padding: 4px 8px !important;
+}
+/* 设置里的勾选框 / 滑杆：统一主色，避免原生白底突兀 */
+.eruda-dev-tools .eruda-settings input[type="checkbox"],
+.eruda-dev-tools .eruda-settings input[type="range"] {
+  accent-color: #5b8def !important;
+}
+/* 设置里的普通按钮（如 "Restore defaults and reload"） */
+.eruda-dev-tools .eruda-settings button {
+  background: rgba(91, 141, 239, 0.12) !important;
+  border: 1px solid rgba(91, 141, 239, 0.3) !important;
+  color: #93c5fd !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  padding: 5px 10px !important;
+}
+.eruda-dev-tools .eruda-settings button:hover {
+  background: rgba(91, 141, 239, 0.2) !important;
+  border-color: rgba(91, 141, 239, 0.5) !important;
 }

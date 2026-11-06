@@ -60,6 +60,7 @@ export default {
         loginName: "Please enter your username",
         password: "Please enter password",
         securityCode: "Please enter the verification code",
+        tenantCode: "Tenant code (leave empty for the platform)",
       },
       rules: {
         loginName: {
@@ -72,6 +73,9 @@ export default {
         },
         securityCode: {
           required: "The verification code cannot be empty"
+        },
+        tenantCode: {
+          validator: "The tenant code is 2-32 characters: letters, numbers, underscores or hyphens"
         },
         otpCode: {
           required: "Please enter the 6-digit one-time code"
@@ -416,6 +420,13 @@ export default {
     loaderStyle: {
       hint: "The boot loader and in-app loading overlays share one animation. Your choice applies here at once and to the boot screen after a refresh.",
       lockedHint: "The animation is locked by the deployment config (other.loaderConfig in app.yaml) and cannot be changed here.",
+      size: "Boot size",
+      sizeNarrow: "Narrow",
+      sizeWide: "Wide",
+      speed: "Animation speed",
+      adaptColor: "Follow theme color",
+      adaptColorSub: "The animation follows the theme primary color",
+      adaptColorTip: "Off uses the fixed color from the deployment config; on keeps the loader in sync when the theme changes",
     },
     themeModeTabs: {
       light: "Light",
@@ -643,6 +654,12 @@ export default {
         tip: "Toolbar message bell with unread dot",
         description: "Toolbar message bell with unread dot",
       },
+      quickNote: {
+        label: "Quick Note",
+        sub: "Notes",
+        tip: "Create a floating sticky note from the toolbar",
+        description: "Toolbar note entry that creates floating sticky notes",
+      },
       weather: {
         label: "Toolbar Weather",
         sub: "Weather",
@@ -660,6 +677,12 @@ export default {
         sub: "Typhoon",
         tip: "Show active typhoon icons at top-right",
         description: "Show typhoon monitor at top-right",
+      },
+      exchangeRate: {
+        label: "Toolbar Exchange Rate",
+        sub: "Exchange Rate",
+        tip: "Show exchange rate at top-right, click to view panel",
+        description: "Show exchange rate component at top-right",
       },
     },
   },
@@ -810,6 +833,28 @@ export default {
       description: "Loads CDN script dynamically; destroyed when off",
     },
   },
+  emptyState: {
+    title: "Empty State Style",
+    desc: "Style shown when lists / tables have no data. Admins only.",
+    enable: { title: "Unified Empty State", sub: "Global", tip: "When off, every ReEmpty without an explicit layout falls back to el-empty" },
+    layout: { title: "Style", el: "Classic", modern: "Modern", plot: "Animated" },
+    figure: { title: "Figure" },
+    figures: {
+      plot: "Plot",
+      phosphor: "Phosphor",
+      slow: "Conveyor",
+      terrain: "Terrain",
+      riffle: "Cards",
+      stack: "Call Stack",
+      branches: "Commit Graph",
+      drawer: "Drawer",
+      vault: "Vault",
+      turntable: "Turntable",
+      sieve: "Sieve",
+      query: "Question",
+    },
+    tip: "Applies only to ReEmpty without an explicit layout; changes preview and save instantly",
+  },
   header: {
     searchMenu: "Search menu",
     componentSize: "Component size",
@@ -845,6 +890,9 @@ export default {
     weather: {
       tip: "View weather",
     },
+    exchangeRate: {
+      empty: "No exchange rate data",
+    },
     personalCenter: "Personal Center",
     settings: "Settings",
     logout: "Log out",
@@ -876,6 +924,15 @@ export default {
       none: "No open alerts",
       open: "{n} open alert(s)",
       empty: "Nothing needs attention right now"
+    },
+    noteEntry: {
+      title: "Quick Note",
+      label: "Quick Note",
+      placeholder: "Type something...",
+      confirmDelete: "Confirm to delete this note?",
+      created: "Saved",
+      deleted: "Deleted",
+      count: "note(s)",
     },
     commandPalette: {
       tip: "Command palette (Ctrl/⌘ + K)",

@@ -241,7 +241,14 @@ const DEPLOY_SIDE_BLOCKED_OTHER_KEYS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * security 子树放行白名单（与 safe-path.ts 的远程注入白名单一致）：
+ * `setConfig`（运行时公开写回）的 security 子树放行白名单。
+ *
+ * 注意它与 safe-path.ts 的远程注入白名单不同：这里是 setConfig 的只读保护拦截器，
+ * 只允许用户在运行时改 `security.baiduJs`（反爬脚本下发）；`security.watermark` 虽然
+ * 不在运行时可写回范围内（必须随 app.yaml），但可作为授权通道（loadConfig /
+ * mergeDefaultSetting）落盘（见 REMOTE_INJECTABLE_PATH_PREFIXES），所以
+ * `setConfig({security: {watermark: {...}}})` 仍然会被拒绝。
+ *
  * 反爬脚本下发（security.baiduJs 子树）被设计为「管理员在后台配值、前端按下发值
  * 注入外部脚本」的产品功能，会被 /v2/setting/default 正常下发；若连它一起拒，
  * 后台配置的安全策略在前端永远不生效。其余 security.*（dynamicFont /
@@ -363,8 +370,32 @@ export function onConfigChange(cb: (config: AppConfig) => void): () => void {
   return () => subscribers.delete(cb);
 }
 
+/**
+ * 深重置 `currentConfig`：把当前配置里**默认配置没有的键**逐层清掉（运行时通过
+ * 内部通道注入的值、承诺写不进 app.yaml 的值），只保留与 `defaultAppConfig` 同构的部分。
+ *
+ * 只处理普通对象分支：数组 / 标量直接交还给 `applyConfig` / `applyMerge` 按默认值覆盖；
+ * 递归根是 `defaultAppConfig`，它的结构就是“该有”的部分，不在它里面的键都是注入态。
+ */
+function resetToDefaults(config: unknown, defaults: unknown): void {
+  const t = config as unknown as Record<string, unknown>;
+  const d = defaults as unknown as Record<string, unknown>;
+  for (const key of Object.keys(t)) {
+    if (!(key in d)) {
+      delete t[key];
+      continue;
+    }
+    const child = t[key];
+    if (isPlainObject(child) && isPlainObject(d[key])) {
+      resetToDefaults(child, d[key]);
+    }
+  }
+}
+
 /** 重置为默认配置（内部写回通道，不经过 `setConfig` 只读保护） */
 export function resetConfig(): AppConfig {
+  // 文档承诺的是“重置为默认配置”：先清掉运行时注入的注入态，再完整落盘默认值
+  resetToDefaults(currentConfig, defaultAppConfig);
   return applyConfig(defaultAppConfig);
 }
 
@@ -375,6 +406,7 @@ export function resetConfig(): AppConfig {
  * 触发订阅者多次更新 document.title 等 UI。
  */
 export function resetConfigSilent(): AppConfig {
+  resetToDefaults(currentConfig, defaultAppConfig);
   applyMerge(currentConfig, defaultAppConfig);
   return currentConfig;
 }
@@ -517,19 +549,64 @@ export interface LoaderDeployPolicy {
   locked: boolean;
   /** 动画键（原始值，历史键由调用方用别名表折叠） */
   animation: string;
-  /** 首屏动画基准边长（px，已 clamp 到 8~512） */
-  size: number;
+  /** 首屏动画基准边长（px，已 clamp 到 8~512；宽窄屏两档） */
+  size: { narrow: number; wide: number };
   /** 动画主色（非法值已被替换为默认色） */
   color: string;
+  /** 速度倍率（0.5~3，1 = 原速） */
+  speed: number;
+  /** 主色是否跟随主题主色（--el-color-primary） */
+  adaptColor: boolean;
 }
 
 /** 加载动画的缺省值（与 defaultAppConfig.other.loaderConfig 一致） */
 const LOADER_DEFAULTS: LoaderDeployPolicy = {
   locked: false,
-  animation: "wave",
-  size: 96,
+  animation: "dots",
+  size: { narrow: 96, wide: 96 },
   color: "#406eeb",
+  speed: 1,
+  adaptColor: false,
 };
+
+/** 首屏尺寸的上下限（px） */
+const LOADER_SIZE_MIN = 8;
+const LOADER_SIZE_MAX = 512;
+
+/** 速度倍率的上下限 */
+const LOADER_SPEED_MIN = 0.5;
+const LOADER_SPEED_MAX = 3;
+
+/** 归一化单个尺寸值：非法值用兜底，越界 clamp */
+function normalizeLoaderSize(value: unknown, fallback: number): number {
+  const num = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(num) || num <= 0) return fallback;
+  return Math.min(LOADER_SIZE_MAX, Math.max(LOADER_SIZE_MIN, Math.round(num)));
+}
+
+/**
+ * 归一化尺寸配置。
+ *
+ * <p>兼容两种写法：{@code size: 96}（宽窄屏同值，历史写法）与
+ * {@code size: { narrow: 72, wide: 96 }}（按断点分档）。</p>
+ */
+function normalizeLoaderSizeConfig(value: unknown): { narrow: number; wide: number } {
+  if (value && typeof value === "object") {
+    const obj = value as { narrow?: unknown; wide?: unknown };
+    const narrow = normalizeLoaderSize(obj.narrow, LOADER_DEFAULTS.size.narrow);
+    const wide = normalizeLoaderSize(obj.wide, narrow);
+    return { narrow, wide };
+  }
+  const size = normalizeLoaderSize(value, LOADER_DEFAULTS.size.narrow);
+  return { narrow: size, wide: size };
+}
+
+/** 归一化速度倍率：非法值给 1，越界 clamp */
+function normalizeLoaderSpeed(value: unknown): number {
+  const num = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(num) || num <= 0) return LOADER_DEFAULTS.speed;
+  return Math.min(LOADER_SPEED_MAX, Math.max(LOADER_SPEED_MIN, Math.round(num * 100) / 100));
+}
 
 /**
  * 颜色是否是可安全写进 CSS 变量的取值。
@@ -555,12 +632,20 @@ function isSafeCssColor(value: string): boolean {
  */
 export function resolveLoaderDeployPolicy(): LoaderDeployPolicy {
   const raw = currentConfig.other?.loaderConfig as
-    | { enable?: unknown; animation?: unknown; size?: unknown; color?: unknown }
+    | {
+        enable?: unknown;
+        animation?: unknown;
+        size?: unknown;
+        color?: unknown;
+        speed?: unknown;
+        adaptColor?: unknown;
+      }
     | undefined;
 
   // 缺省必须是「不接管」：老应用没有这段配置时行为和改造前完全一样
   if (!raw || raw.enable !== true) {
-    return { ...LOADER_DEFAULTS };
+    // 深拷贝：size 是对象，浅拷贝会让调用方改到缺省值
+    return { ...LOADER_DEFAULTS, size: { ...LOADER_DEFAULTS.size } };
   }
 
   const animation =
@@ -568,15 +653,19 @@ export function resolveLoaderDeployPolicy(): LoaderDeployPolicy {
       ? raw.animation.trim()
       : LOADER_DEFAULTS.animation;
 
-  const rawSize = typeof raw.size === "number" ? raw.size : Number(raw.size);
-  const size = Number.isFinite(rawSize)
-    ? Math.min(512, Math.max(8, Math.round(rawSize)))
-    : LOADER_DEFAULTS.size;
+  const size = normalizeLoaderSizeConfig(raw.size);
 
   const rawColor = typeof raw.color === "string" ? raw.color.trim() : "";
   const color = rawColor && isSafeCssColor(rawColor) ? rawColor : LOADER_DEFAULTS.color;
 
-  return { locked: true, animation, size, color };
+  return {
+    locked: true,
+    animation,
+    size,
+    color,
+    speed: normalizeLoaderSpeed(raw.speed),
+    adaptColor: raw.adaptColor === true,
+  };
 }
 
 /**
@@ -693,6 +782,7 @@ export type {
   RouteConfig,
   OtherConfig,
   LoaderDeployConfig,
+  LoaderDeploySizeConfig,
   ToolbarConfig,
   TimerConfig,
   MessageConfig,

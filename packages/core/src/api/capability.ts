@@ -31,8 +31,10 @@ export const TYPHOON_DETAIL_PATH = "/v2/typhoon/detail";
 /** 后台 IP 归属地（IP 转物理地址）查询接口 */
 export const IP_LOOKUP_PATH = "/v2/ip/lookup";
 
-/**
- * 后台节假日列表接口。
+/** 后台汇率概览接口（最新价 / 涨跌 / 周期极值） */
+export const EXCHANGE_RATE_OVERVIEW_PATH = "/v2/exchange-rate/overview";
+
+/** 后台节假日列表接口。
  *
  * <p>取日历的年度放假安排与补班日。路径取自
  * {@code SysHolidayController}（{@code @RequestMapping("/v2/holiday")}
@@ -65,6 +67,7 @@ export const BACKEND_CAPABILITIES: readonly BackendCapability[] = [
   { key: "weather", path: WEATHER_OVERVIEW_PATH, probe: true, i18n: "weather" },
   { key: "location", path: LOCATION_RESOLVE_PATH, probe: true, i18n: "location" },
   { key: "typhoon", path: TYPHOON_ACTIVE_PATH, probe: true, i18n: "typhoon" },
+  { key: "exchangeRate", path: EXCHANGE_RATE_OVERVIEW_PATH, probe: true, i18n: "exchangeRate" },
   { key: "ipLookup", path: IP_LOOKUP_PATH, probe: false, i18n: "ipLookup" },
   // 日历节假日：探测后按年取数，失败时退回日历内置表，故与天气同一档
   { key: "holiday", path: HOLIDAY_LIST_PATH, probe: true, i18n: "holiday" },

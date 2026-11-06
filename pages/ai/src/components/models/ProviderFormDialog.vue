@@ -359,18 +359,60 @@ const handleTestConnection = async () => {
     testResult.value = { success: false, message: t('settings.models.apiUrlFirst') }
     return
   }
-  const validKeys = apiKeyList.value.filter(k => k.trim())
+  // 去空白后再判空：全空格的 Key 会被后端 trim 成空串，留着只会让测试请求白跑一趟
+  const validKeys = apiKeyList.value.map(k => k.trim()).filter(Boolean)
   if (validKeys.length === 0) {
     testResult.value = { success: false, message: t('settings.models.apiKeyFirst') }
     return
   }
   testing.value = true
   testResult.value = null
+  const auth = resolvedAuth.value
+  // 认证三件套与代理按「即将落库的值」一起传：Dots Studio 这类只认 api-key 头的
+  // 服务商，测试时不带 auth_header 会把有效 Key 判成 401（假失败）。
+  const testPayload = {
+    apiUrl: form.apiUrl,
+    protocol: form.protocol,
+    auth_scheme: auth.authScheme,
+    auth_header: auth.authHeader,
+    auth_prefix: auth.authPrefix,
+    proxy: form.proxyUrl.trim() || undefined,
+  }
   try {
-    const result = await apiService.testProviderConnection({ url: form.apiUrl, apiKey: validKeys[0], protocol: form.protocol })
+    // 字段名必须是 apiUrl：后端 ApiProviderController#testConnection 读的是
+    // body.apiUrl，早先这里发的是 url → apiUrl 为空 → 后端直接回「API地址不能为空」，
+    // 测试请求根本没打到上游（该 false 又被信封 success 掩盖，表现为恒成功）。
+    // 表单允许多个 Key：并行逐个探测（只读，互不依赖），只要有一个无效就报出来 ——
+    // 原实现只测第一个 Key，第 2 个起填错也照样显示「连接成功」。
+    const settled = await Promise.allSettled(
+      validKeys.map(apiKey => apiService.testProviderConnection({ ...testPayload, apiKey })),
+    )
+    const failed: string[] = []
+    // 单个 Key 时把上游实测延迟带出来：既让「成功」有据可查（确实打到了上游），
+    // 也省得用户再去模型卡片点一次测延迟。
+    const latencies: number[] = []
+    settled.forEach((r, i) => {
+      // 多 Key 时标出是第几个失败；单 Key 不加前缀，避免「#1 连接失败」这种噪音
+      const label = validKeys.length > 1 ? `#${i + 1} ` : ''
+      if (r.status === 'rejected') {
+        failed.push(`${label}${r.reason?.message || t('settings.models.connectionFailed')}`)
+      } else if (r.value?.success !== true) {
+        failed.push(`${label}${r.value?.message || t('settings.models.connectionFailed')}`)
+      } else if (typeof r.value?.latency === 'number') {
+        latencies.push(r.value.latency)
+      }
+    })
+    const allOk = failed.length === 0
+    const latency = latencies.length > 0 ? Math.round(latencies[0]) : null
     testResult.value = {
-      success: result.success,
-      message: result.message || (result.success ? t('settings.models.connectionSuccess') : t('settings.models.connectionFailed')),
+      success: allOk,
+      message: allOk
+        ? (validKeys.length > 1
+            ? t('settings.models.connectionSuccessMulti', { n: validKeys.length })
+            : (latency != null
+                ? t('settings.models.connectionSuccessLatency', { ms: latency })
+                : t('settings.models.connectionSuccess')))
+        : failed.join('；'),
     }
   } catch (e: any) {
     testResult.value = { success: false, message: e?.message || t('settings.models.connectionFailed') }

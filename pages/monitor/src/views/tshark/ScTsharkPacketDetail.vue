@@ -8,7 +8,7 @@
   <ReDrawer
     :model-value="modelValue"
     title="数据包详情"
-    size="100%"
+    size="50%"
     footer-hidden
     @update:model-value="onOpenChange"
   >
@@ -42,6 +42,8 @@
         <p class="tshark-mono detail-text">{{ packet.packetInfo || '—' }}</p>
       </section>
 
+      <ScTsharkHttpInfo v-if="packet.httpRequestHead || packet.httpResponseHead" :packet="packet" />
+
       <section v-if="packet.restoredText" class="detail-section">
         <header class="detail-section__head">
           <h4>协议还原</h4>
@@ -69,6 +71,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { message } from '@repo/core'
+import ScTsharkHttpInfo from './ScTsharkHttpInfo.vue'
 import type { TsharkPacket } from './types'
 
 /** 原始数据一次最多渲染的字符数：几十 KB 的十六进制串直接塞进 <pre> 会把抽屉卡住 */

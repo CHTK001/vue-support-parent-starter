@@ -38,6 +38,8 @@ import type {
   IdiomChainHint,
   EduHanzi,
   HanziQuestion,
+  EduWord,
+  WordRelatedResult,
   Poem,
   PoemChallengeData,
   PoemChallengeMode,
@@ -762,6 +764,46 @@ export const eduaiApi = {
       .get("/v2/edu/hanzi/practice")
       .query(params)
       .then<HanziQuestion[]>(unwrap),
+
+  // 词语库（整词 / 读音 / 释义 / 造句 / 近义 / 反义 / 同音）
+  /** 分页查询词语（关键字匹配 整词/拼音/无声调拼音/释义/近义/反义/同音） */
+  pageWords: (params: {
+    keyword?: string;
+    gradeLevel?: string;
+    kind?: string;
+    pageNum?: number;
+    pageSize?: number;
+  }) =>
+    http()
+      .get("/v2/edu/word/page")
+      .query(params)
+      .then<PageResult<EduWord>>(unwrap),
+  /** 词语详情 */
+  getWord: (id: number) =>
+    http()
+      .get(`/v2/edu/word/${id}`)
+      .then<EduWord>(unwrap),
+  /** 保存词语（同一个词重复提交则更新） */
+  saveWord: (data: Partial<EduWord>) =>
+    http()
+      .post("/v2/edu/word/save")
+      .data(data as unknown as Record<string, unknown>)
+      .then<number>(unwrap),
+  /** 删除词语 */
+  deleteWord: (id: number) =>
+    http()
+      .delete(`/v2/edu/word/${id}`)
+      .then<boolean>(unwrap),
+  /**
+   * 词语关联检索（列表右键菜单）。
+   *
+   * mode: similar 相似 / antonym 反向 / homophone 同音 / pinyin 同音字词 / sentence 造句 / char 含相同字
+   */
+  relatedWords: (params: { wordId: number; mode: string }) =>
+    http()
+      .get("/v2/edu/word/related")
+      .query(params)
+      .then<WordRelatedResult>(unwrap),
 
   // 古诗库与古诗游戏（补全下句）
   listPoems: (params: { gradeLevel?: string; grade?: string; count?: number }) =>

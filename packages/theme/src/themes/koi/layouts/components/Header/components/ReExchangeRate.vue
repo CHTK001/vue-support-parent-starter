@@ -2,23 +2,19 @@
   <el-popover
     placement="bottom-end"
     :width="440"
-    trigger="hover"
+    :trigger="['hover', 'click']"
     :offset="10"
     popper-class="koi-exchange-rate-popover"
     :show-arrow="false"
-    :disabled="!hasRates"
   >
     <template #reference>
       <div class="koi-exchange-rate-trigger">
         <ReIcon name="ep:Money" size="20" class="trigger-icon" />
-        <span v-if="hasRates" class="trigger-rate">
+        <!-- 第一个汇率常驻顶栏（无数据/加载中为 `--`，数据就绪后直接展示列表首项） -->
+        <span class="trigger-rate">
           {{ formatPrice(activePoint?.rate) }}
         </span>
-        <span
-          v-if="hasRates && activePoint?.change"
-          class="trigger-change"
-          :class="`is-${changeTone(activePoint?.change)}`"
-        >
+        <span v-if="activePoint?.change" class="trigger-change" :class="`is-${changeTone(activePoint?.change)}`">
           {{ formatPercent(activePoint?.changePercent) }}
         </span>
         <!-- 数据来源标记：三方兜底时亮灯 -->

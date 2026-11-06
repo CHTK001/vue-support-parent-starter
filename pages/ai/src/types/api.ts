@@ -119,6 +119,8 @@ export interface User {
     phone?: string
     avatarUrl?: string
     role?: 'primary' | 'subaccount'  // 用户角色：主账户或子账户
+    /** 只读账号：后端拒绝一切写操作（世界沙盒因此只提供观察与角色微调） */
+    readonly?: boolean
     isActive: boolean
     createdAt?: string
     updatedAt?: string

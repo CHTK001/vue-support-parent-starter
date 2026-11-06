@@ -92,12 +92,12 @@
 
             <!-- 106 点层的状态说明：推理中 / 不可用的原因（不打断检测与识别） -->
             <div v-if="showLandmark106 && (landmark106Busy || landmark106Error)" class="fs-lm-hint">
-              <!-- 小尺寸内联用双环：海浪在这个体量下细节全糊，看不出在转 -->
+              <!-- 小尺寸内联用双环：圆点在这个体量下留白偏多，读不出在转 -->
               <ReLoader v-if="landmark106Busy" loading size="sm" :fullscreen="false" :mask="false" />
               <span>{{ landmark106Busy ? '正在提取 106 点特征点…' : landmark106Error }}</span>
             </div>
 
-            <!-- 识别中遮罩：统一走 ReLoader 的海浪动画（默认加载形态） -->
+            <!-- 识别中遮罩：统一走 ReLoader 的默认加载动画（三个圆点） -->
             <div v-if="detecting" class="fs-mask">
               <ReLoader loading size="lg" :fullscreen="false" />
               <span class="fs-mask-text">正在识别人脸…</span>

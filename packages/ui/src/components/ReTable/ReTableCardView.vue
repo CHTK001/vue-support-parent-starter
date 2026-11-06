@@ -351,8 +351,12 @@ function onCardContextmenu(row: Record<string, unknown>, index: number, event: M
   min-height: 200px;
   padding: 40px 0;
 }
+/* 空态图铺满 card 容器：100% 宽 + 100% 高，比例关（--re-empty-aspect-ratio: auto），
+   不再回 336px 封顶 / 5/4 卡高。 */
 .re-table__card-empty > .re-empty__figure {
-  --re-empty-figure-width: 336px;
+  --re-empty-figure-width: 100%;
+  --re-empty-aspect-ratio: auto;
+  height: 100%;
 }
 .re-table__card-select-all {
   padding: 8px 4px;

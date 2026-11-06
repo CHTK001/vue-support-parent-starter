@@ -1,35 +1,23 @@
 <script setup lang="ts">
-// 消息模板管理（短信 / 邮件）：自定义模板 + 选择默认模板 + 变量预览。
-//
-// 结构：
-// - 左栏：按种类分组的模板清单（默认模板有角标），支持新增 / 删除；
-// - 右栏：编辑器（名称 / 编码 / 主题 / 正文 / 排序 / 启用），正文支持插入变量占位；
-// - 底部：实时预览（走后端 /render，展示渲染结果与缺失变量），保存 / 设为默认。
-//
-// 模板由后端统一存储（部署级共享），临时身份收信时套用该种类的默认模板。
-
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+/**
+ * 消息模板管理（短信 / 邮件）—— 模板管理域的独立页面。
+ *
+ * 与渠道管理页拆开：这里管的是「渠道收到的原始消息怎么渲染成可读文本」，
+ * 属于模板配置，不再是渠道页的一个按钮/抽屉。数据由 account-starter 的
+ * `/api/channels/templates` 提供（部署级共享）。
+ *
+ * 结构：
+ * - 左栏：按种类（短信 / 邮件）分组的模板清单（默认模板有角标），支持新增 / 删除；
+ * - 右栏：编辑器（名称 / 编码 / 主题 / 正文 / 排序 / 启用），正文支持插入变量占位；
+ * - 底部：实时预览（走后端 /render，展示渲染结果与缺失变量），保存 / 设为默认。
+ */
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import ReDialog from '@repo/ui/re-dialog'
 import {
   messageTemplateApi,
   type MessageTemplate,
   type MessageTemplateRenderResult,
-} from '../channelApi'
-
-const props = defineProps<{
-  /** 弹窗可见性（v-model） */
-  modelValue: boolean
-}>()
-
-const emit = defineEmits<{
-  (e: 'update:modelValue', value: boolean): void
-}>()
-
-const visible = computed({
-  get: () => props.modelValue,
-  set: (value: boolean) => emit('update:modelValue', value),
-})
+} from '../api/messageTemplateApi'
 
 type Kind = 'SMS' | 'EMAIL'
 
@@ -237,16 +225,12 @@ async function runPreview() {
   }
 }
 
-/** 打开弹窗时初始化 */
-watch(
-  () => props.modelValue,
-  (open) => {
-    if (!open) return
-    draft.value = emptyDraft(kind.value)
-    preview.value = null
-    void Promise.all([loadTemplates(), loadVariables()]).then(() => schedulePreview())
-  },
-)
+/** 页面挂载即初始化（独立页，不再由弹窗 v-model 驱动） */
+onMounted(() => {
+  draft.value = emptyDraft(kind.value)
+  preview.value = null
+  void Promise.all([loadTemplates(), loadVariables()]).then(() => schedulePreview())
+})
 
 watch(
   () => [draft.value.templateContent, draft.value.templateSubject],
@@ -256,22 +240,21 @@ watch(
 onBeforeUnmount(() => {
   if (previewTimer) clearTimeout(previewTimer)
 })
+
+/** 当前种类的默认模板（页头展示用） */
+const defaultName = computed(() => templates.value.find((t) => t.templateDefault)?.templateName ?? '未设置')
 </script>
 
 <template>
-  <ReDialog
-    v-model="visible"
-    width="860px"
-    append-to-body
-    destroy-on-close
-    class="msg-tpl-dialog"
-  >
-    <template #header>
-      <div class="mtp__head">
-        <b>消息模板</b>
-        <span>短信 / 邮件模板的自定义与选择 · 收信时套用默认模板渲染</span>
+  <div class="msg-tpl" data-page="message-template">
+    <!-- 页头 -->
+    <header class="msg-tpl__head">
+      <div>
+        <h3>消息模板</h3>
+        <span>短信 / 邮件模板的自定义与选择 · 收信时套用默认模板渲染（部署级共享）</span>
       </div>
-    </template>
+      <span class="msg-tpl__default">当前默认：{{ defaultName }}</span>
+    </header>
 
     <div class="mtp">
       <aside class="mtp__aside">
@@ -373,50 +356,69 @@ onBeforeUnmount(() => {
             </div>
           </div>
         </div>
+
+        <div class="mtp__footer">
+          <button
+            v-if="draft.templateId"
+            type="button"
+            class="mtp__btn is-danger"
+            @click="remove(draft)"
+          >删除</button>
+          <button
+            v-if="draft.templateId && !draft.templateDefault"
+            type="button"
+            class="mtp__btn"
+            @click="setDefault(draft)"
+          >设为默认</button>
+          <button type="button" class="mtp__btn is-primary" :disabled="saving" @click="save">
+            {{ saving ? '保存中…' : '保存模板' }}
+          </button>
+        </div>
       </section>
     </div>
-
-    <template #footer>
-      <div class="mtp__footer">
-        <button
-          v-if="draft.templateId"
-          type="button"
-          class="mtp__btn is-danger"
-          @click="remove(draft)"
-        >删除</button>
-        <button
-          v-if="draft.templateId && !draft.templateDefault"
-          type="button"
-          class="mtp__btn"
-          @click="setDefault(draft)"
-        >设为默认</button>
-        <button type="button" class="mtp__btn" @click="visible = false">关闭</button>
-        <button type="button" class="mtp__btn is-primary" :disabled="saving" @click="save">
-          {{ saving ? '保存中…' : '保存模板' }}
-        </button>
-      </div>
-    </template>
-  </ReDialog>
+  </div>
 </template>
 
 <style scoped>
-.mtp__head {
+.msg-tpl {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  gap: 14px;
+  padding: 4px 0 8px;
 }
-.mtp__head b {
-  font-size: 15px;
+.msg-tpl__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex: none;
+}
+.msg-tpl__head h3 {
+  margin: 0 0 2px;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--text-primary, #0f172a);
 }
-.mtp__head span {
+.msg-tpl__head span {
   font-size: 12px;
+  color: var(--text-secondary, #475569);
+}
+.msg-tpl__default {
+  flex: none;
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--el-fill-color-light, #f1f5f9);
   color: var(--text-secondary, #475569);
 }
 .mtp {
   display: flex;
   gap: 14px;
-  min-height: 420px;
+  flex: 1;
+  min-height: 0;
 }
 .mtp__aside {
   flex: none;
@@ -426,6 +428,7 @@ onBeforeUnmount(() => {
   gap: 8px;
   padding-right: 12px;
   border-right: 1px solid var(--border-default, #e2e9f3);
+  min-height: 0;
 }
 .mtp__tabs {
   display: flex;
@@ -475,7 +478,8 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 4px;
   overflow-y: auto;
-  max-height: 420px;
+  min-height: 0;
+  flex: 1;
 }
 .mtp__item {
   display: flex;
@@ -535,6 +539,8 @@ onBeforeUnmount(() => {
 .mtp__editor {
   flex: 1;
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -661,6 +667,7 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+  flex: none;
 }
 .mtp__btn {
   border: 1px solid var(--el-border-color, #dcdfe6);

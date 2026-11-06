@@ -31,7 +31,7 @@
           <el-input
             v-model="searchDraft.keyword"
             clearable
-            placeholder="字 / 拼音 / 释义"
+            placeholder="字 / 拼音（含无声调）/ 通假字 / 释义"
             :prefix-icon="Search"
             @keyup.enter="commitSearch"
             @change="commitSearch"
@@ -84,6 +84,22 @@
               @mouseenter="startHanziHover($event, row as unknown as EduHanzi)"
               @mouseleave="cancelHanziHover"
             >{{ row.hanziChar }}</span>
+          </template>
+          <template #col-hanziPinyin="{ row }">
+            <div class="pinyin-cell">
+              <span
+                v-for="p in readings(row as unknown as EduHanzi)"
+                :key="p"
+                class="pinyin-chip"
+              >{{ p }}</span>
+              <span v-if="!readings(row as unknown as EduHanzi).length" class="muted">—</span>
+            </div>
+          </template>
+          <template #col-hanziTongjia="{ row }">
+            <span v-if="row.hanziTongjia" class="tongjia-pill" :title="`通 ${row.hanziTongjia}`">
+              通 {{ row.hanziTongjia }}
+            </span>
+            <span v-else class="muted">—</span>
           </template>
           <template #col-hanziStrokeOrder="{ row }">
             <span class="stroke-order">{{ row.hanziStrokeOrder || "—" }}</span>
@@ -164,6 +180,17 @@
                 style="width: 100%"
                 @update:model-value="(v?: number) => (form.hanziStrokes = v)"
               />
+            </el-form-item>
+          </div>
+
+          <div class="form-grid form-grid--2">
+            <el-form-item label="多音字读音">
+              <el-input v-model="form.hanziPinyin" placeholder="逗号分隔，如：xíng,háng" />
+              <div class="field-tip">多音字把全部读音都写上（逗号分隔），按任意一个读音都能搜到这个字；敲无声调也能搜到。</div>
+            </el-form-item>
+            <el-form-item label="通假字">
+              <el-input v-model="form.hanziTongjia" placeholder="逗号分隔，如：悦（本字「说」通「悦」）" />
+              <div class="field-tip">填借用的字；搜借字也能找到这条记录。</div>
             </el-form-item>
           </div>
 
@@ -250,22 +277,23 @@ const STRUCTURES = ["独体", "上下", "左右", "左中右", "上中下", "半
  * 四列没有可直出的纯文本字段（或字段需包一层），同样挂插槽渲染。</p>
  */
 const hanziColumns: ReTableColumn[] = [
-  { prop: "hanziChar", label: "字", width: 80, align: "center", slot: "col-hanziChar" },
-  { prop: "hanziPinyin", label: "读音", width: 120, showOverflowTooltip: true },
-  { prop: "hanziStrokes", label: "笔画", width: 70, align: "center" },
-  { prop: "hanziRadical", label: "部首", width: 70, align: "center" },
-  { prop: "hanziStructure", label: "结构", width: 90, align: "center" },
+  { prop: "hanziChar", label: "字", width: 72, align: "center", slot: "col-hanziChar" },
+  { prop: "hanziPinyin", label: "读音", minWidth: 130, slot: "col-hanziPinyin" },
+  { prop: "hanziTongjia", label: "通假字", width: 100, align: "center", slot: "col-hanziTongjia" },
+  { prop: "hanziStrokes", label: "笔画", width: 66, align: "center" },
+  { prop: "hanziRadical", label: "部首", width: 66, align: "center" },
+  { prop: "hanziStructure", label: "结构", width: 86, align: "center" },
   {
     prop: "hanziStrokeOrder",
     label: "笔顺",
-    width: 150,
+    width: 140,
     showOverflowTooltip: true,
     slot: "col-hanziStrokeOrder",
   },
   { prop: "hanziMeaning", label: "释义 / 组词", minWidth: 200, showOverflowTooltip: true },
-  { prop: "hanziImage", label: "字画", width: 80, align: "center", slot: "col-hanziImage" },
-  { prop: "hanziGradeLevel", label: "学段", width: 80, align: "center", slot: "col-hanziGradeLevel" },
-  { prop: "actions", label: "操作", width: 140, align: "center", fixed: "right", slot: "col-actions" },
+  { prop: "hanziImage", label: "字画", width: 74, align: "center", slot: "col-hanziImage" },
+  { prop: "hanziGradeLevel", label: "学段", width: 76, align: "center", slot: "col-hanziGradeLevel" },
+  { prop: "actions", label: "操作", width: 120, align: "center", fixed: "right", slot: "col-actions" },
 ];
 
 // ==================== 列表 ====================
@@ -364,6 +392,7 @@ function resetForm() {
     hanziId: undefined,
     hanziChar: "",
     hanziPinyin: "",
+    hanziTongjia: "",
     hanziStrokes: undefined,
     hanziRadical: "",
     hanziStructure: "",
@@ -389,6 +418,23 @@ function openEdit(row: EduHanzi) {
 
 /** 汉字输入的字数（按 Unicode 码点算，避免生僻字/带变音符的字被算成两个） */
 const charCount = computed(() => [...(form.hanziChar ?? "").trim()].length);
+
+/**
+ * 读音拆成多个标签展示。
+ *
+ * <p>{@code hanzi_pinyin} 允许逗号分隔多读音（如 {@code xíng,háng}）。
+ * 逐项渲染成 chip，老师一眼能看出这是多音字；单读音只有一个 chip，不额外占位。</p>
+ *
+ * @param row 汉字行
+ * @return 读音列表；无读音返回空数组
+ */
+function readings(row: EduHanzi): string[] {
+  const raw = row.hanziPinyin ?? "";
+  return raw
+    .split(/[,，;；/|\s]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 
 async function save() {
   const char = (form.hanziChar ?? "").trim();
@@ -589,6 +635,31 @@ onBeforeUnmount(cancelHanziHover);
   font-size: 16px;
   letter-spacing: 2px;
   color: var(--el-text-color-primary);
+}
+.pinyin-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  line-height: 1.4;
+}
+.pinyin-chip {
+  font-size: 12px;
+  padding: 1px 7px;
+  border-radius: var(--el-radius-sm, 6px);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-regular);
+  white-space: nowrap;
+}
+.tongjia-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--el-radius-sm, 6px);
+  background: var(--el-color-warning-light-9);
+  color: var(--el-color-warning-dark-2);
+  white-space: nowrap;
 }
 .hanzi-thumb {
   width: 40px;

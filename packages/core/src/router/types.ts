@@ -35,8 +35,16 @@ export interface RouteMeta {
   [key: string]: unknown;
 }
 
-/** 业务模块路由配置（meta 已类型化） */
-export type RouteConfigsTable = Omit<RouteRecordRaw, "meta"> & {
+/**
+ * 业务模块路由配置（meta 已类型化）
+ *
+ * <p>{@code children} 与 {@code meta} 都要从 {@code RouteRecordRaw} 里 Omit：
+ * 只 Omit meta 时，交叉类型会把 children 收成
+ * {@code RouteRecordRaw[] & RouteConfigsTable[]}，元素必须同时满足两套约束，
+ * 于是把 {@code RouteConfigsTable[]} 数组（例如各 pages 包的路由工厂产出）
+ * 直接挂进分组就报 TS2322。</p>
+ */
+export type RouteConfigsTable = Omit<RouteRecordRaw, "meta" | "children"> & {
   name?: RouteRecordRaw["name"];
   path: string;
   component?: RouteRecordRaw["component"];

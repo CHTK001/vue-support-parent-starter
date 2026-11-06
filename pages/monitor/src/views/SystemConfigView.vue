@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * 系统配置 —— 系统级（Guacd 远控网关 + SIP 内网穿透）配置
+ * 系统配置 —— 系统级（Guacd 远控网关 + SSH 通道 + SIP 内网穿透）配置
  */
 import { onMounted, ref } from "vue";
 
@@ -47,6 +47,18 @@ const CARDS: ConfigCard[] = [
     ],
   },
   {
+    key: "ssh",
+    title: "SSH 通道",
+    desc: "采集 / 远程执行 / 终端的连接超时",
+    icon: "Timer",
+    consumer: "SshTimeouts 动态读取 · 保存后热生效，无需重启平台",
+    items: [
+      { key: "ssh.connect.timeout", label: "连接超时（秒）", type: "number", placeholder: "15", hint: "TCP 连接 + SSH 握手上限；高 RTT / 慢链路可调大" },
+      { key: "ssh.session.timeout", label: "会话超时（秒）", type: "number", placeholder: "30", hint: "认证与会话建立上限；高负载主机认证慢时调大" },
+      { key: "ssh.read.timeout", label: "读取超时（秒）", type: "number", placeholder: "60", hint: "命令执行与输出读取上限；长命令 / 大输出需要更大" },
+    ],
+  },
+  {
     key: "agent",
     title: "Agent 包",
     desc: "监控 Agent 部署包路径与下载",
@@ -65,6 +77,9 @@ const FALLBACK: Record<string, string> = {
   "guacd.host": "124.221.230.112",
   "guacd.port": "4822",
   "guacd.client.host": "127.0.0.1:8848",
+  "ssh.connect.timeout": "15",
+  "ssh.session.timeout": "30",
+  "ssh.read.timeout": "60",
   "agent.package.path": "monitor-agent/monitor-agent.tar.gz",
   "prometheus.package.path": "prometheus/prometheus.tar.gz",
 };
@@ -172,7 +187,7 @@ onMounted(load);
     <div class="page-header">
       <div>
         <h1 class="page-title">系统配置</h1>
-        <p class="page-desc">远控网关与内网穿透配置 · 保存后即时生效</p>
+        <p class="page-desc">远控网关、SSH 通道与内网穿透配置 · 保存后即时生效</p>
       </div>
       <div class="page-actions">
         <ReButton icon="RefreshRight" :show-text="true" :loading="loading" @click="load">刷新</ReButton>

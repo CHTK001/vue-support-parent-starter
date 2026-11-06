@@ -36,23 +36,23 @@ overrides:
 catalog:
   typescript: ^5.7.3
   "@vitejs/plugin-react": ^5.0.0
-  vue: ^3.5.44
+  vue: ^3.5.45
   vue-router: ^4.6.4
   pinia: ^3.0.4
   element-plus: ^2.14.7
   "@element-plus/icons-vue": ^2.3.2
   "@iconify/vue": ^4.3.0
-  vue-i18n: ^11.4.16
+  vue-i18n: ^11.4.18
   js-yaml: ^4.1.0
   "@types/js-yaml": ^4.0.9
   rimraf: ^6.0.0
-  unocss: ^66.0.0
-  "@unocss/preset-wind3": ^66.0.0
-  "@unocss/preset-attributify": ^66.0.0
-  "@unocss/preset-icons": ^66.0.0
-  "@unocss/preset-typography": ^66.0.0
-  "@unocss/transformer-directives": ^66.0.0
-  "@unocss/transformer-variant-group": ^66.0.0
+  unocss: ^66.12.0
+  "@unocss/preset-wind3": ^66.12.0
+  "@unocss/preset-attributify": ^66.12.0
+  "@unocss/preset-icons": ^66.12.0
+  "@unocss/preset-typography": ^66.12.0
+  "@unocss/transformer-directives": ^66.12.0
+  "@unocss/transformer-variant-group": ^66.12.0
   pinia-plugin-persistedstate: ^4.7.1
   "@vueuse/core": ^14.3.0
   # 服务端状态缓存层（useQuery/useMutation）。@repo/utils 的 http 链式终态
@@ -62,7 +62,7 @@ catalog:
   devtools-detector: ^2.0.22
   socket.io-client: ^4.8.1
   vite: ^8.2.0
-  "@vitejs/plugin-vue": ^6.0.7
+  "@vitejs/plugin-vue": ^6.0.10
   vue-tsc: ^2.2.0
   vitest: ^3.0.0
   js-cookie: ^3.0.5
@@ -77,7 +77,7 @@ catalog:
   "leaflet.heat": ^0.2.0
   "leaflet.markercluster": ^1.5.3
   "gcoord": ^0.3.1
-  "@turf/turf": ^7.0.0
+  "@turf/turf": ^7.4.0
   "@joakimono/echarts-extension-leaflet": ^1.0.0
   "@sintef/prune-cluster": ^2.0.0
   mapv: ^2.0.0
@@ -109,15 +109,15 @@ catalog:
   vuedraggable: ^4.1.0
   "@relation-graph/vue3": ^3.0.13
   axios: ^1.7.9
-  hls.js: ^1.5.0
+  hls.js: ^1.7.4
   flv.js: ^1.6.2
-  "@playwright/test": ^1.62.1
+  "@playwright/test": ^1.64.1
   "@types/node": ^22.10.0
   cross-env: ^7.0.3
   "@pureadmin/utils": ^3.0.0
   "@techui/scifi": ^2.0.0
   lodash-es: ^4.17.21
-  playwright: ^1.62.1
+  playwright: ^1.64.1
   sass: ^1.80.0
   "@iconify/json": ^2.2.271
   "@iconify-icons/ri": ^1.2.10

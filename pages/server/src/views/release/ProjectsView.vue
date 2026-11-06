@@ -78,6 +78,7 @@
                     }"
                     @click="selectedProject = item"
                     @dblclick="handleViewLog(item)"
+                    @contextmenu.prevent.stop="openContextMenu(item, $event)"
                     @dragover.prevent="item.enabled !== false && (dragOverId = item.id)"
                     @dragleave.prevent="dragOverId = null"
                     @drop.prevent="onDropFile(item, $event)"
@@ -421,24 +422,75 @@
 
         <!-- 脚本配置 -->
         <template #scripts>
-          <div class="script-autogen">
-            <div class="sa-text">
-              <ReIcon name="MagicStick" class="sa-ic" />
-              <div>
-                <div class="sa-title">一键生成脚本</div>
-                <div class="sa-sub">
-                  {{ anyScriptEmpty ? '脚本未填写完整，点右侧按 项目地址/日志/主入口 生成' : '可用内置模板一键覆盖为 启动·停止·重启·状态 四个命令' }}
+          <!-- 脚本模式：默认「自动」，用户不用写一行脚本也能直接运行 -->
+          <div class="script-mode">
+            <div class="sm-tabs" role="tablist">
+              <button
+                type="button"
+                class="sm-tab"
+                :class="{ 'is-active': scriptMode === 'auto' }"
+                @click="switchScriptMode('auto')"
+              >
+                <ReIcon name="MagicStick" :size="13" />
+                <span>自动生成（推荐）</span>
+              </button>
+              <button
+                type="button"
+                class="sm-tab"
+                :class="{ 'is-active': scriptMode === 'custom' }"
+                @click="switchScriptMode('custom')"
+              >
+                <ReIcon name="EditPen" :size="13" />
+                <span>自定义脚本</span>
+              </button>
+            </div>
+            <div class="sm-hint">
+              {{ scriptMode === 'auto'
+                ? '按「项目类型 + 项目地址 + 日志地址 + 主入口」自动生成 启动/停止/重启/状态，保存时生效，无需手写'
+                : '四个脚本可自由编辑，下方模板仍可一键生成后微调' }}
+            </div>
+          </div>
+
+          <div v-if="scriptMode === 'auto'" class="script-auto">
+            <div v-if="!scriptAutoReady" class="sa-blocked">
+              <ReIcon name="WarningFilled" />
+              <span>先在「基础信息」选择项目类型并填写项目地址，脚本会自动生成</span>
+            </div>
+            <div v-else class="sa-preview">
+              <div v-for="s in scriptPreviewRows" :key="s.key" class="sa-row">
+                <div class="sa-row-head">
+                  <span class="sa-row-title">{{ s.label }}</span>
+                  <span class="sa-row-tag" :class="`is-${hostOs}`">{{ hostOs === 'windows' ? 'PowerShell' : 'Shell' }}</span>
                 </div>
+                <pre class="sa-row-code">{{ s.code }}</pre>
+              </div>
+              <div class="sa-foot">
+                <span>变量设置里的环境变量 / JVM 参数 / 程序参数会在保存时自动注入启动脚本</span>
+                <ReButton icon="Refresh" :show-text="false" title="重新生成" @click="regenerateScripts(true)" />
               </div>
             </div>
-            <ReButton icon="MagicStick" type="primary" :loading="autogenLoading" @click="autoGenerateScripts">一键生成四个脚本</ReButton>
           </div>
-          <div class="script-list">
-            <ReCommand v-model="form.startScript" :context="scriptContext" :os="hostOs" :project-type="form.projectType" label="启动命令" :rows="4" script-kind="start" />
-            <ReCommand v-model="form.stopScript" :context="scriptContext" :os="hostOs" :project-type="form.projectType" label="停止命令" :rows="4" script-kind="stop" />
-            <ReCommand v-model="form.restartScript" :context="scriptContext" :os="hostOs" :project-type="form.projectType" label="重启命令" :rows="4" script-kind="restart" />
-            <ReCommand v-model="form.statusScript" :context="scriptContext" :os="hostOs" :project-type="form.projectType" label="状态命令" :rows="3" script-kind="status" />
-          </div>
+
+          <template v-else>
+            <div class="script-autogen">
+              <div class="sa-text">
+                <ReIcon name="MagicStick" class="sa-ic" />
+                <div>
+                  <div class="sa-title">一键生成脚本</div>
+                  <div class="sa-sub">
+                    {{ anyScriptEmpty ? '脚本未填写完整，点右侧按 项目地址/日志/主入口 生成' : '可用内置模板一键覆盖为 启动·停止·重启·状态 四个命令' }}
+                  </div>
+                </div>
+              </div>
+              <ReButton icon="MagicStick" type="primary" :loading="autogenLoading" @click="autoGenerateScripts">一键生成四个脚本</ReButton>
+            </div>
+            <div class="script-list">
+              <ReCommand v-model="form.startScript" :context="scriptContext" :os="hostOs" :project-type="form.projectType" label="启动命令" :rows="4" script-kind="start" />
+              <ReCommand v-model="form.stopScript" :context="scriptContext" :os="hostOs" :project-type="form.projectType" label="停止命令" :rows="4" script-kind="stop" />
+              <ReCommand v-model="form.restartScript" :context="scriptContext" :os="hostOs" :project-type="form.projectType" label="重启命令" :rows="4" script-kind="restart" />
+              <ReCommand v-model="form.statusScript" :context="scriptContext" :os="hostOs" :project-type="form.projectType" label="状态命令" :rows="3" script-kind="status" />
+            </div>
+          </template>
         </template>
 
         <!-- 变量设置 -->
@@ -537,6 +589,13 @@
               <ReButton icon="FolderChecked" type="primary" :loading="backupActionLoading" @click="handleBackupNow">立即备份</ReButton>
             </div>
             <div v-if="backupLoading" class="bk-state-tip">加载备份记录…</div>
+            <div v-else-if="backupError" class="bk-state-tip bk-state-tip--error">
+              <ReIcon name="WarningFilled" />
+              <div>
+                <div>{{ backupError }}</div>
+                <div class="bk-state-hint">备份记录依赖目标主机的远程执行能力：请先在「主机管理」为该主机打开 SSH 并确认 OpenSSH 已启动，再回来重试。</div>
+              </div>
+            </div>
             <div v-else-if="!backupRows.length" class="bk-empty">
               <ReIcon name="FolderOpened" :size="30" />
               <div>暂无备份记录，点击右上角「立即备份」创建</div>
@@ -1007,6 +1066,50 @@
         </div>
       </div>
     </ReDialog>
+
+    <!-- 项目右键菜单：与「更多」下拉同一套命令 -->
+    <Teleport to="body">
+      <template v-if="ctxMenu.visible">
+        <div class="pj-ctx-mask" @click="closeContextMenu" @contextmenu.prevent="closeContextMenu"></div>
+        <div class="pj-ctx" :style="{ left: `${ctxMenu.x}px`, top: `${ctxMenu.y}px` }" @contextmenu.prevent>
+          <div class="pj-ctx__head">
+            <ReIcon name="Files" :size="13" />
+            <span :title="ctxMenu.item?.projectName">{{ ctxMenu.item?.projectName }}</span>
+          </div>
+          <button
+            v-for="c in ctxCommands"
+            :key="c.command"
+            type="button"
+            class="pj-ctx__item"
+            :class="{ 'is-danger': c.danger, 'is-divided': c.divided }"
+            @click="onCtxCommand(c.command)"
+          >
+            <ReIcon :name="c.icon" :size="14" />
+            <span>{{ c.label }}</span>
+          </button>
+        </div>
+      </template>
+    </Teleport>
+
+    <!-- 操作失败详情：给出后端原因 + 最近日志，而不是一句「操作触发失败」 -->
+    <ReDialog v-model="failureVisible" title="操作失败详情" width="640px">
+      <div class="fail-pane">
+        <div class="fail-head">
+          <span class="fail-op">{{ failureDetail.operation }}</span>
+          <span class="fail-project">{{ failureDetail.project }}</span>
+        </div>
+        <div class="fail-msg">{{ failureDetail.message || '后端未返回具体原因' }}</div>
+        <div v-if="failureDetail.logs.length" class="fail-logs">
+          <div class="fail-logs-title">最近日志</div>
+          <pre>{{ failureDetail.logs.join('\n') }}</pre>
+        </div>
+        <div v-else class="fail-logs-empty">没有可展示的任务日志，可点下方「查看实时日志」看远端输出。</div>
+      </div>
+      <template #footer>
+        <ReButton @click="failureVisible = false">关闭</ReButton>
+        <ReButton type="primary" @click="openFailureLog">查看实时日志</ReButton>
+      </template>
+    </ReDialog>
   </div>
 </template>
 
@@ -1014,13 +1117,15 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { ElMessageBox } from 'element-plus';
-import {getGlobalSocketService, message} from '@repo/core';
+import { message } from '@repo/core';
 import { http, unwrapResult } from '@repo/utils';
 import { fillTemplate, bestTemplate } from '@repo/ui/components/ReCommand/templates';
 import ReCron from '@repo/ui/re-cron';
 import ReTabs from '@repo/ui/re-tabs';
 import type { ReTabsItem } from '@repo/ui/re-tabs';
-import { trackTask } from '../../utils/processTasks';
+import { trackTask, type ProcessTask } from '../../utils/processTasks';
+import { errorText, toastError } from '../../utils/errors';
+import { releaseSse } from '../../services/releaseRealtime';
 import HostFileManager from '../../components/HostFileManager.vue';
 import ProjectLogColumn from '../../components/ProjectLogColumn.vue';
 
@@ -1519,6 +1624,8 @@ function resetForm() {
 function openCreateDialog() {
   editingId.value = null;
   resetForm();
+  // 新建默认自动生成脚本：选完类型/地址就能直接跑
+  scriptMode.value = 'auto';
   activeTab.value = 'basic';
   dialogVisible.value = true;
 }
@@ -1576,6 +1683,8 @@ function openEditDialog(item: Project) {
     gitLastCommit: item.gitLastCommit || '',
     ...parseApmConfig(parseJson<string>(item.jvmArgs, [])),
   };
+  // 已有项目默认自定义：保留线上正在用的脚本，用户想重算可手动切「自动生成」
+  scriptMode.value = 'custom';
   activeTab.value = 'basic';
   dialogVisible.value = true;
 }
@@ -1872,6 +1981,86 @@ async function autoGenerateScripts() {
   }
 }
 
+// ---- 脚本模式：自动生成（默认） / 自定义 ----
+/** 自动=按类型+地址生成；custom=用户自己编辑四个脚本 */
+const scriptMode = ref<'auto' | 'custom'>('auto');
+
+/** 自动模式是否有足够信息生成脚本 */
+const scriptAutoReady = computed(() => !!form.value.projectType && !!form.value.projectPath.trim());
+
+/** 自动模式预览（直接读当前四个脚本字段，保存时用的就是它们） */
+const scriptPreviewRows = computed(() => [
+  { key: 'start', label: '启动命令', code: form.value.startScript || '（待生成）' },
+  { key: 'stop', label: '停止命令', code: form.value.stopScript || '（待生成）' },
+  { key: 'restart', label: '重启命令', code: form.value.restartScript || '（待生成）' },
+  { key: 'status', label: '状态命令', code: form.value.statusScript || '（待生成）' },
+]);
+
+/**
+ * 按当前基础配置重新生成四个脚本（自动模式）。
+ *
+ * @param notify 是否弹成功提示（自动刷新调用时不弹）
+ * @returns 是否生成成功
+ */
+function regenerateScripts(notify = false): boolean {
+  if (!form.value.projectType || !form.value.projectPath.trim()) {
+    return false;
+  }
+  const tpl = bestTemplate(hostOs.value, form.value.projectType);
+  if (!tpl) {
+    return false;
+  }
+  try {
+    const filled = fillTemplate(tpl, {
+      entry: form.value.mainEntry,
+      log: form.value.logPath,
+      path: form.value.projectPath,
+      appName: form.value.projectName,
+      logOp: form.value.logMode === 'truncate' ? '>' : '>>',
+    });
+    form.value.startScript = filled.start;
+    form.value.stopScript = filled.stop;
+    form.value.restartScript = filled.restart;
+    form.value.statusScript = filled.status || '';
+    // 展开 __JVMARGS__/__ARGS__ 并注入变量块，保证「生成即可用」
+    materializeVars();
+    if (notify) message.success('已按当前配置重新生成脚本');
+    return true;
+  } catch (e: any) {
+    if (notify) message.error(e?.message || '脚本生成失败');
+    return false;
+  }
+}
+
+/**
+ * 切换脚本模式；切回自动时立即重算，避免展示过期脚本。
+ *
+ * @param mode 目标模式
+ */
+function switchScriptMode(mode: 'auto' | 'custom') {
+  scriptMode.value = mode;
+  if (mode === 'auto' && scriptAutoReady.value) {
+    regenerateScripts(false);
+  }
+}
+
+// 自动模式：基础信息一改就重算，用户始终看到「保存后真正会执行」的脚本
+watch(
+  [
+    () => form.value.projectType,
+    () => form.value.projectPath,
+    () => form.value.logPath,
+    () => form.value.mainEntry,
+    () => form.value.projectName,
+    () => form.value.logMode,
+    hostOs,
+  ],
+  () => {
+    if (!dialogVisible.value || scriptMode.value !== 'auto') return;
+    regenerateScripts(false);
+  },
+);
+
 async function handleSave() {
   if (!form.value.projectName.trim()) {
     message.error('请填写「项目名称」');
@@ -1908,9 +2097,16 @@ async function handleSave() {
     .replace(/[^a-z0-9_-]+/g, '-')
     .replace(/(^-|-$)/g, '');
   try {
-    // 保存前自动补齐未填写的脚本（内置模板 + 占位符展开），用户无需手写
-    fillScriptsFromTemplate(true);
-    materializeVars();
+    // 脚本：自动模式按当前配置重算（用户不必手写）；自定义模式只补齐空项，不覆盖手写内容
+    if (scriptMode.value === 'auto') {
+      if (!regenerateScripts(false)) {
+        message.error('自动生成脚本失败：当前项目类型暂无内置模板');
+        return;
+      }
+    } else {
+      fillScriptsFromTemplate(true);
+      materializeVars();
+    }
     // APM 高级选项合入 jvmArgs（javaagent 参数随启动脚本生效；APM 字段本身不落库）
     form.value.jvmArgs = materializeApmArgs(
       {
@@ -1946,8 +2142,8 @@ async function handleSave() {
     }
     dialogVisible.value = false;
     loadList();
-  } catch (e) {
-    message.error('保存失败');
+  } catch (e: any) {
+    toastError(e, '保存失败');
   }
 }
 
@@ -1958,8 +2154,8 @@ async function toggleEnabled(item: Project) {
     await http().put(`${BASE}/project/${item.id}`).data({ enabled: next });
     message.success(next ? '已激活' : '已禁用');
     loadList();
-  } catch {
-    message.error('操作失败');
+  } catch (e: any) {
+    toastError(e, '操作失败');
   }
 }
 
@@ -2004,23 +2200,194 @@ function onMoreCommand(item: Project, command: string) {
   }
 }
 
+// ---- 操作中文名（失败提示 / 任务浮层共用口径） ----
+const OP_LABELS: Record<string, string> = {
+  start: '启动',
+  stop: '停止',
+  restart: '重启',
+  upgrade: '升级',
+  backup: '备份',
+  rollback: '回滚',
+  deploy: 'Git发布',
+  install: '安装',
+  uninstall: '卸载',
+  'install-service': '挂载系统服务',
+  'uninstall-service': '卸载系统服务',
+  'update-lib': '更新依赖包',
+  'git-deploy': 'Git发布',
+};
+
+/**
+ * 取操作中文名。
+ *
+ * @param operation 操作类型
+ * @returns 中文名；未登记时原样返回
+ */
+function opLabel(operation: string) {
+  return OP_LABELS[operation] || operation || '操作';
+}
+
+// ---- 右键菜单（与「更多」下拉同一套命令） ----
+interface CtxCommandItem {
+  command: string;
+  label: string;
+  icon: string;
+  danger?: boolean;
+  divided?: boolean;
+}
+
+/** 右键菜单状态（Teleport 到 body，避免被 rail 的 overflow 裁切） */
+const ctxMenu = reactive<{ visible: boolean; x: number; y: number; item: Project | null }>({
+  visible: false,
+  x: 0,
+  y: 0,
+  item: null,
+});
+
+/** 菜单宽度 / 行高（用于贴边翻转，元素未渲染前先按此估算） */
+const CTX_MENU_WIDTH = 196;
+const CTX_ROW_HEIGHT = 32;
+const CTX_HEAD_HEIGHT = 38;
+
+/**
+ * 某个项目在右键菜单里的命令列表（条件与「更多」下拉一致）。
+ *
+ * @param item 项目
+ * @returns 命令列表
+ */
+function ctxCommandsFor(item: Project): CtxCommandItem[] {
+  const out: CtxCommandItem[] = [{ command: 'edit', label: '编辑', icon: 'EditPen' }];
+  if (item.enabled !== false) {
+    if (item.logPath) out.push({ command: 'log', label: '实时日志', icon: 'Tickets' });
+    if (isJavaProject(item)) out.push({ command: 'arthas', label: 'Arthas 诊断', icon: 'Monitor' });
+    if (item.javaProcess) {
+      out.push({ command: 'swagger', label: 'Swagger 接口文档', icon: 'Link' });
+      out.push({ command: 'actuator', label: 'Actuator 运行指标', icon: 'DataAnalysis' });
+    }
+    if (item.projectType === 'separated') {
+      out.push({ command: 'update-lib', label: '更新依赖包', icon: 'Box' });
+    }
+    out.push({ command: 'backup', label: '备份', icon: 'FolderChecked' });
+    out.push({ command: 'rollback', label: '回滚', icon: 'RefreshLeft' });
+    if (item.gitUrl) out.push({ command: 'git-deploy', label: '从 Git 更新', icon: 'GitBranch' });
+  }
+  out.push({ command: 'copy', label: '复制到其他服务器', icon: 'CopyDocument' });
+  out.push({
+    command: 'toggle',
+    label: item.enabled === false ? '激活' : '禁用',
+    icon: item.enabled === false ? 'Unlock' : 'Lock',
+  });
+  out.push({ command: 'delete', label: '删除', icon: 'Delete', danger: true, divided: true });
+  return out;
+}
+
+/** 当前菜单项对应的命令列表 */
+const ctxCommands = computed<CtxCommandItem[]>(() => (ctxMenu.item ? ctxCommandsFor(ctxMenu.item) : []));
+
+/**
+ * 打开项目右键菜单（贴边时自动翻转，保证菜单完整可见）。
+ *
+ * @param item  项目
+ * @param event 鼠标事件
+ */
+function openContextMenu(item: Project, event: MouseEvent) {
+  selectedProject.value = item;
+  const commands = ctxCommandsFor(item);
+  const menuHeight = CTX_HEAD_HEIGHT + commands.length * CTX_ROW_HEIGHT + 8;
+  const maxX = Math.max(8, window.innerWidth - CTX_MENU_WIDTH - 8);
+  const maxY = Math.max(8, window.innerHeight - menuHeight - 8);
+  ctxMenu.item = item;
+  ctxMenu.x = Math.min(Math.max(8, event.clientX), maxX);
+  ctxMenu.y = Math.min(Math.max(8, event.clientY), maxY);
+  ctxMenu.visible = true;
+}
+
+/** 关闭右键菜单 */
+function closeContextMenu() {
+  ctxMenu.visible = false;
+}
+
+/**
+ * 执行右键菜单命令（复用「更多」下拉的分发逻辑）。
+ *
+ * @param command 命令
+ */
+function onCtxCommand(command: string) {
+  const item = ctxMenu.item;
+  closeContextMenu();
+  if (item) onMoreCommand(item, command);
+}
+
+/** 菜单打开时按 Esc 关闭 */
+function onCtxKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && ctxMenu.visible) closeContextMenu();
+}
+
+// ---- 操作失败详情 ----
+/** 失败详情对话框是否可见 */
+const failureVisible = ref(false);
+/** 失败详情内容 */
+const failureDetail = reactive<{
+  operation: string;
+  project: string;
+  projectId: number | null;
+  message: string;
+  logs: string[];
+}>({ operation: '', project: '', projectId: null, message: '', logs: [] });
+
+/**
+ * 展示任务失败详情：后端原因 + 最近任务日志。
+ *
+ * @param task 任务（已结束且失败）
+ * @param item 项目（可空：升级弹框等场景只有名称）
+ */
+function openFailureDetail(task: ProcessTask, item?: Project | null) {
+  failureDetail.operation = opLabel(task.operation);
+  failureDetail.project = item?.projectName || task.title;
+  failureDetail.projectId = item?.id ?? null;
+  failureDetail.message = task.message || '操作失败，后端未返回具体原因';
+  failureDetail.logs = task.logs.slice(-40);
+  failureVisible.value = true;
+}
+
+/** 从失败详情直接跳到该项目的实时日志 */
+function openFailureLog() {
+  failureVisible.value = false;
+  const id = failureDetail.projectId;
+  if (id == null) {
+    message.info('该操作没有关联项目，请在项目行右键查看实时日志');
+    return;
+  }
+  const item = list.value.find((p) => p.id === id);
+  if (item) void openLogTab(item);
+}
+
 // ---- 项目操作 ----
 async function runOperation(item: Project, operation: string, path: string) {
   try {
     const res = await http().post(BASE + path);
     const taskId = unwrapResult<string>(res);
-    if (taskId) {
-      const task = trackTask(taskId, item.projectName, operation);
-      // Socket 未连接时（网络受限/代理环境）任务事件收不到，列表会一直停在旧状态，
-      // 按钮也不翻转；任务结束后主动刷新一次，与备份/回滚的处理保持一致。
-      const stopWatch = watch(() => task.finished, (fin) => {
-        if (fin) { stopWatch(); loadList(); }
-      });
-    } else {
+    if (!taskId) {
       message.warning('项目有操作正在进行，请稍后再试');
+      return;
     }
+    const task = trackTask(taskId, item.projectName, operation);
+    // 任务结束：刷新列表；失败时弹「操作失败详情」，把后端原因和最近日志直接摆出来
+    const stopWatch = watch(() => task.finished, (fin) => {
+      if (!fin) return;
+      stopWatch();
+      loadList();
+      if (!task.success) openFailureDetail(task, item);
+    });
   } catch (e) {
-    message.error('操作触发失败');
+    // 同步失败（后端还没建任务就返回原因，例如主机未开 SSH）也要弹同一套详情：
+    // toast 一闪而过、无法复制，用户仍然只知道「失败」却不知道该改什么。
+    failureDetail.operation = opLabel(operation);
+    failureDetail.project = item.projectName;
+    failureDetail.projectId = item.id;
+    failureDetail.message = errorText(e, `「${opLabel(operation)}」触发失败`);
+    failureDetail.logs = [];
+    failureVisible.value = true;
   }
 }
 
@@ -2042,10 +2409,10 @@ function handleBackup(row: Project) {
 async function handleRollback(row: Project) {
   try {
     await ElMessageBox.confirm(`确定回滚项目「${row.projectName}」到上一个版本吗？`, '回滚确认', { type: 'warning' });
-    await runOperation(row, 'rollback', `/project/${row.id}/rollback`);
-  } catch (e) {
-    if (e !== 'cancel') message.error('回滚失败');
+  } catch {
+    return;
   }
+  await runOperation(row, 'rollback', `/project/${row.id}/rollback`);
 }
 
 // ---- 变量设置弹窗 ----
@@ -2355,8 +2722,8 @@ async function handleInstallService() {
       const res = await http().post(`${BASE}/project/${editingId.value}/service/install`);
       const taskId = unwrapResult<string>(res);
       if (taskId) trackTask(taskId, form.value.projectName, 'install-service');
-    } catch {
-      message.error('挂载服务失败');
+    } catch (e: any) {
+      toastError(e, '挂载服务失败');
     }
   }
 }
@@ -2366,8 +2733,8 @@ async function handleUninstallService() {
     const taskId = unwrapResult<string>(res);
     form.value.serviceName = '';
     if (taskId) trackTask(taskId, form.value.projectName, 'uninstall-service');
-  } catch {
-    message.error('卸载服务失败');
+  } catch (e: any) {
+    toastError(e, '卸载服务失败');
   }
 }
 
@@ -2467,8 +2834,8 @@ async function onDropFile(item: Project, ev: DragEvent) {
     } else {
       message.error('上传升级失败');
     }
-  } catch {
-    message.error('上传升级失败');
+  } catch (e: any) {
+    toastError(e, '上传升级失败');
   }
 }
 
@@ -2582,8 +2949,8 @@ async function saveGlobalConfig() {
   try {
     await http().put(`${BASE}/upgrade/config?scope=global`).data(upgForm.value);
     message.success('已保存为全局默认');
-  } catch {
-    message.error('保存失败');
+  } catch (e: any) {
+    toastError(e, '保存失败');
   }
 }
 
@@ -2597,8 +2964,8 @@ async function saveProjectConfig() {
       .data(upgForm.value);
     upgHasProjectCfg.value = true;
     message.success(`已保存为「${item.projectName}」的项目默认配置`);
-  } catch {
-    message.error('保存项目默认配置失败');
+  } catch (e: any) {
+    toastError(e, '保存项目默认配置失败');
   }
 }
 
@@ -2612,8 +2979,8 @@ async function executeUpgrade() {
     const taskId = unwrapResult<string>(res);
     upgVisible.value = false;
     if (taskId) trackTask(taskId, upgProject.value.projectName, 'upgrade');
-  } catch {
-    message.error('升级触发失败');
+  } catch (e: any) {
+    toastError(e, '升级触发失败');
   }
 }
 
@@ -2621,8 +2988,9 @@ async function executeUpgrade() {
 /**
  * 单个项目的日志会话：连接与缓冲都挂在这里，内嵌列与弹窗共用同一份数据。
  *
- * <p>多项目并排看日志时，每个项目必须有自己的 socket 订阅、轮询定时器和缓冲，
- * 否则关掉一个会把别的项目一起停掉。</p>
+ * <p>多项目并排看日志时，每个项目各自持有自己的 SSE 订阅与缓冲，
+ * 关掉一个不会影响别的项目。日志行由发布管理全局 SSE 定向推送，
+ * 页面内不再轮询后端。</p>
  */
 interface LogSession {
   projectId: number;
@@ -2636,17 +3004,18 @@ interface LogSession {
   popupAutoScroll: boolean;
   /** 是否在弹窗中放大展示 */
   popupVisible: boolean;
-  /** 日志来源：socket=实时推送；snapshot=尾部快照轮询 */
-  mode: 'snapshot' | 'socket';
+  /** 日志来源：sse=实时推送；snapshot=打开时的一次性尾部快照 */
+  mode: 'snapshot' | 'sse';
   sessionId: string | null;
   unsub: (() => void) | null;
-  pollTimer: number | null;
   stopped: boolean;
 }
 
 /** 单个会话最多保留的日志行数，避免长时间挂机把内存撑爆 */
 const LOG_MAX_LINES = 2000;
-const LOG_POLL_INTERVAL = 2000;
+
+/** 实时通道断开时的提示文案（重连成功后按它判断是否需要清除） */
+const LOG_DISCONNECT_NOTICE = '实时推送已断开，正在重连…（断线期间的行可能缺失，可重新打开该页签补齐）';
 
 /** 已打开的日志会话：默认在项目管理下方多列展示，可单独弹窗放大 */
 const logSessions = ref<LogSession[]>([]);
@@ -2663,20 +3032,12 @@ function findLogSession(projectId: number): LogSession | undefined {
 }
 
 /**
- * 拉一次某个会话的日志尾部快照。
- *
- * <p>Socket 推送可用时完全让位（推送是精确增量，不会重复也不会漏行）；
- * 推送不可用（端口/代理不一致、服务未启用）时以快照为唯一数据源整段替换，
- * 既不会出现重复行，也不会因为「重叠合并」猜错边界而吃掉新行。</p>
+ * 拉一次某个会话的日志尾部快照（只在打开日志时调用，不参与轮询）。
  *
  * @param session 日志会话
  */
-async function pollLogTail(session: LogSession) {
+async function loadLogTail(session: LogSession) {
   if (session.stopped) return;
-  const socketAlive = getGlobalSocketService()?.isConnected ?? false;
-  session.pushOffline = !socketAlive;
-  if (!socketAlive) session.mode = 'snapshot';
-  if (session.mode === 'socket') return;
   try {
     const res = await http().get(`${BASE}/project/${session.projectId}/log`);
     const text = unwrapResult<string>(res);
@@ -2685,15 +3046,42 @@ async function pollLogTail(session: LogSession) {
     if (lines.length && lines[lines.length - 1] === '') lines.pop();
     session.lines = lines.length > LOG_MAX_LINES ? lines.slice(-LOG_MAX_LINES) : lines;
   } catch {
-    // 静默失败：快照只是兜底通道，报错会掩盖真正的问题
+    // 静默失败：尾部快照只是打开瞬间的内容，报错会掩盖真正的问题
+  }
+}
+
+/**
+ * 启动（或重连后补启动）某个会话的服务端日志跟随。
+ *
+ * <p>服务端按 clientId 定向推送，因此必须在 SSE 已连接时才能启动，
+ * 否则推出来的行没人接收。</p>
+ *
+ * @param session 日志会话
+ */
+async function ensureLogStream(session: LogSession) {
+  if (session.stopped || session.sessionId) return;
+  if (!releaseSse.online) {
+    session.notice = '等待实时通道连接…';
+    return;
+  }
+  try {
+    const res = await http().post(
+      `${BASE}/project/${session.projectId}/log/start?clientId=${encodeURIComponent(releaseSse.getClientId())}`,
+    );
+    if (!session.stopped) {
+      session.sessionId = unwrapResult<string>(res);
+      session.notice = '';
+    }
+  } catch (e) {
+    session.notice = errorText(e, '无法启动实时日志采集');
   }
 }
 
 /**
  * 打开一个项目的实时日志（已打开则复用，不重复订阅）。
  *
- * <p>先拉一次快照、再启动 socket 采集：这样即使推送通道不可用，
- * 打开日志的瞬间也能看到内容，而不是空面板。</p>
+ * <p>先拉一次尾部快照、再启动服务端跟随：打开瞬间就能看到内容，
+ * 之后的行由全局 SSE 实时推送。</p>
  *
  * @param item 项目
  * @returns 日志会话
@@ -2706,54 +3094,44 @@ async function startLogSession(item: Project): Promise<LogSession> {
     projectName: item.projectName,
     lines: [],
     notice: '',
-    pushOffline: false,
+    pushOffline: !releaseSse.online,
     autoScroll: true,
     popupAutoScroll: true,
     popupVisible: false,
     mode: 'snapshot',
     sessionId: null,
     unsub: null,
-    pollTimer: null,
     stopped: false,
   };
   logSessions.value.push(session);
   // push 之后必须用数组里的响应式代理：继续改原始对象不会触发模板更新（内嵌列不刷新）
   const tracked = logSessions.value[logSessions.value.length - 1] ?? session;
 
-  const socket = getGlobalSocketService();
-  tracked.unsub = socket?.subscribe('project', 'log', (msg: any) => {
-    const data = msg?.data ?? msg;
-    if (!data || tracked.stopped) return;
+  tracked.unsub = releaseSse.onProjectLog((frame) => {
+    if (tracked.stopped) return;
     // sessionId 要等 start 接口返回，返回前先按 projectId 收帧，避免丢掉开头几行
     const matched = tracked.sessionId
-      ? data.sessionId === tracked.sessionId
-      : String(data.projectId) === String(tracked.projectId);
+      ? frame.sessionId === tracked.sessionId
+      : String(frame.projectId) === String(tracked.projectId);
     if (!matched) return;
-    if (data.status === 'LINE' && typeof data.line === 'string') {
-      if (tracked.mode !== 'socket') {
+    if (frame.status === 'LINE' && typeof frame.line === 'string') {
+      if (tracked.mode !== 'sse') {
         // tail -n N -F 连接时会先重放最近 N 行，清掉快照内容避免重复
-        tracked.mode = 'socket';
+        tracked.mode = 'sse';
         tracked.lines = [];
         tracked.notice = '';
       }
-      logPushLine(tracked, data.line);
-    } else if (data.status === 'ERROR') {
-      tracked.notice = data.message || '日志采集失败';
+      logPushLine(tracked, frame.line);
+    } else if (frame.status === 'ERROR') {
+      tracked.notice = frame.message || '日志采集失败';
+    } else if (frame.status === 'STARTED') {
+      tracked.notice = '';
     }
-  }) ?? null;
+  });
 
-  // 先拉一次快照：Socket 连不上（端口/代理不一致）时也能立刻看到日志内容
-  void pollLogTail(tracked);
-  tracked.pollTimer = window.setInterval(() => {
-    void pollLogTail(tracked);
-  }, LOG_POLL_INTERVAL);
-
-  try {
-    const res = await http().post(`${BASE}/project/${item.id}/log/start`);
-    if (!tracked.stopped) tracked.sessionId = unwrapResult<string>(res);
-  } catch {
-    tracked.notice = '无法启动实时日志采集，已降级为快照轮询';
-  }
+  // 打开瞬间先给一份尾部快照，推送连上后第一行到达时会清空重放
+  void loadLogTail(tracked);
+  void ensureLogStream(tracked);
   return tracked;
 }
 
@@ -2770,10 +3148,6 @@ function openLogPopup(session: LogSession) {
 /** 停掉一个会话的连接（不动列表，关闭前回收资源） */
 function stopLogSession(session: LogSession) {
   session.stopped = true;
-  if (session.pollTimer !== null) {
-    clearInterval(session.pollTimer);
-    session.pollTimer = null;
-  }
   const sessionId = session.sessionId;
   if (sessionId) {
     http().post(`${BASE}/project/log/${sessionId}/stop`).catch(() => {});
@@ -2924,8 +3298,8 @@ async function openCopyDialog(item: Project) {
     const res = await http().get(`${BASE}/list`);
     const rows = unwrapResult<ReleaseOption[]>(res) || [];
     copyReleases.value = rows.filter((r) => r.id !== releaseId.value);
-  } catch {
-    message.error('加载服务器列表失败');
+  } catch (e: any) {
+    toastError(e, '加载服务器列表失败');
   } finally {
     copyLoading.value = false;
   }
@@ -2949,8 +3323,8 @@ async function submitCopy() {
     if (count > 0) message.success(`已复制到 ${count} 个服务器`);
     if (failed > 0) message.error(`${failed} 个目标复制失败`);
     if (count > 0) copyDialogVisible.value = false;
-  } catch {
-    message.error('复制失败');
+  } catch (e: any) {
+    toastError(e, '复制失败');
   } finally {
     copySubmitting.value = false;
   }
@@ -2984,8 +3358,8 @@ async function probeProject(item: Project, silent = false): Promise<EndpointProb
     const data = unwrapResult<EndpointProbe>(res);
     if (data) endpointCache[item.id] = data;
     return data ?? null;
-  } catch {
-    if (!silent) message.error('端点探测失败');
+  } catch (e: any) {
+    if (!silent) toastError(e, '端点探测失败');
     return null;
   }
 }
@@ -3227,6 +3601,8 @@ interface BackupRow { name: string; time: number | null; size: number | null; ki
 const backupRows = ref<BackupRow[]>([]);
 const backupLoading = ref(false);
 const backupActionLoading = ref(false);
+/** 备份列表加载失败的原因（页内常驻显示，不随 toast 消失） */
+const backupError = ref('');
 
 function formatBackupTime(ms: number | null) {
   if (ms == null) return '时间未知';
@@ -3244,11 +3620,15 @@ function formatSize(bytes: number) {
 async function loadBackups() {
   if (editingId.value == null) { backupRows.value = []; return; }
   backupLoading.value = true;
+  backupError.value = '';
   try {
     const res = await http().get(`${BASE}/project/${editingId.value}/backups`);
     backupRows.value = unwrapResult<BackupRow[]>(res) || [];
-  } catch {
-    message.error('加载备份记录失败');
+  } catch (e: any) {
+    // 失败原因同时进 toast 与页内常驻提示：toast 会自己消失，
+    // 「主机未开 SSH」这种要用户去改配置的原因必须留在页面上。
+    backupError.value = errorText(e, '加载备份记录失败');
+    toastError(e, '加载备份记录失败');
   } finally {
     backupLoading.value = false;
   }
@@ -3263,13 +3643,17 @@ async function handleBackupNow() {
     if (taskId) {
       const task = trackTask(taskId, form.value.projectName, 'backup');
       const stopWatch = watch(() => task.finished, (fin) => {
-        if (fin) { stopWatch(); loadBackups(); }
+        if (!fin) return;
+        stopWatch();
+        loadBackups();
+        if (!task.success) openFailureDetail(task, list.value.find((p) => p.id === editingId.value) ?? null);
       });
     } else {
-      message.error('备份触发失败');
+      message.error('备份触发失败：项目有操作正在进行，请稍后再试');
     }
-  } catch {
-    message.error('备份失败');
+  } catch (e: any) {
+    backupError.value = errorText(e, '备份失败');
+    toastError(e, '备份失败');
   } finally {
     backupActionLoading.value = false;
   }
@@ -3286,13 +3670,18 @@ async function handleRollbackTo(b: BackupRow) {
     if (taskId) {
       const task = trackTask(taskId, form.value.projectName, 'rollback');
       const stopWatch = watch(() => task.finished, (fin) => {
-        if (fin) { stopWatch(); loadBackups(); loadList(); }
+        if (!fin) return;
+        stopWatch();
+        loadBackups();
+        loadList();
+        if (!task.success) openFailureDetail(task, list.value.find((p) => p.id === editingId.value) ?? null);
       });
     } else {
-      message.error('回滚触发失败');
+      message.error('回滚触发失败：项目有操作正在进行，请稍后再试');
     }
-  } catch {
-    message.error('回滚失败');
+  } catch (e: any) {
+    backupError.value = errorText(e, '回滚失败');
+    toastError(e, '回滚失败');
   }
 }
 
@@ -3305,12 +3694,26 @@ watch(activeTab, (tab) => {
   }
 });
 
-// socket 驱动刷新，避免轮询
-const socket = getGlobalSocketService();
-const unsubTaskRefresh = socket?.subscribe('project', 'task', (msg: any) => {
-  const data = msg?.data ?? msg;
-  if (data && (data.phase === 'COMPLETE' || data.phase === 'ERROR')) {
+// 任务结束经全局 SSE 驱动列表刷新（不再轮询）
+const unsubTaskRefresh = releaseSse.onProjectTask((frame) => {
+  if (frame.phase === 'COMPLETE' || frame.phase === 'ERROR') {
     loadList();
+  }
+});
+
+// 全局 SSE 连接状态：实时日志面板据此显示「推送离线」提示，重连后补启动未生效的日志会话
+const unsubReleaseStatus = releaseSse.onStatus((status) => {
+  const online = status === 'connected';
+  for (const session of logSessions.value) {
+    if (session.stopped) continue;
+    session.pushOffline = !online;
+    if (online) {
+      if (session.notice === LOG_DISCONNECT_NOTICE) session.notice = '';
+      // 断线前没启动成功的日志跟随，重连后补上
+      void ensureLogStream(session);
+    } else {
+      session.notice = LOG_DISCONNECT_NOTICE;
+    }
   }
 });
 
@@ -3319,15 +3722,22 @@ function goBack() {
 }
 
 onMounted(() => {
+  // 发布管理全局 SSE：任务进度 / 实时日志 / 操作日志都走这一条连接
+  releaseSse.open();
   loadList();
   loadHostOs();
   nowTs.value = Date.now();
   runtimeTimer = setInterval(() => { nowTs.value = Date.now(); }, 1000);
+  window.addEventListener('keydown', onCtxKeydown);
 });
 
 onBeforeUnmount(() => {
   cleanupAllLogSessions();
   unsubTaskRefresh?.();
+  unsubReleaseStatus?.();
+  releaseSse.close();
+  closeContextMenu();
+  window.removeEventListener('keydown', onCtxKeydown);
   stopArthasPoll();
   if (runtimeTimer) { clearInterval(runtimeTimer); runtimeTimer = null; }
 });
@@ -4104,6 +4514,248 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-secondary);
   margin-top: 2px;
 }
+
+/* ===== 脚本模式切换 / 自动生成预览 ===== */
+.script-mode {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: var(--bg-fill, #f7f8fa);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 10px;
+}
+.sm-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 9px;
+}
+.sm-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.sm-tab:hover {
+  color: var(--el-color-primary);
+}
+.sm-tab.is-active {
+  color: var(--brand-600, #5a4bd9);
+  background: var(--brand-50, #f6f4ff);
+  font-weight: 600;
+}
+.sm-hint {
+  margin-top: 9px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--el-text-color-secondary);
+}
+.script-auto {
+  padding-top: 12px;
+}
+.sa-blocked {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  font-size: 12.5px;
+  color: var(--el-color-warning);
+  background: var(--el-color-warning-light-9, #fdf6ec);
+  border: 1px dashed var(--el-color-warning-light-5);
+  border-radius: 10px;
+}
+.sa-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sa-row {
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.sa-row-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  background: var(--bg-fill, #f7f8fa);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.sa-row-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary, #1f2430);
+}
+.sa-row-tag {
+  margin-left: auto;
+  padding: 1px 7px;
+  font-size: 11px;
+  border-radius: 999px;
+}
+.sa-row-tag.is-linux {
+  color: var(--el-color-success);
+  background: var(--el-color-success-light-9);
+}
+.sa-row-tag.is-windows {
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+.sa-row-code {
+  margin: 0;
+  padding: 10px 12px;
+  max-height: 180px;
+  overflow: auto;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--text-primary, #1f2430);
+  background: var(--el-bg-color);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.sa-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+/* ===== 项目右键菜单 ===== */
+.pj-ctx-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+}
+.pj-ctx {
+  position: fixed;
+  z-index: 3001;
+  width: 196px;
+  padding: 5px;
+  background: var(--el-bg-color-overlay, var(--el-bg-color));
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(15, 20, 40, 0.16);
+}
+.pj-ctx__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 9px 8px;
+  margin-bottom: 3px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.pj-ctx__head span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pj-ctx__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 32px;
+  padding: 0 9px;
+  font-size: 12.5px;
+  color: var(--el-text-color-regular);
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.pj-ctx__item:hover {
+  color: var(--el-color-primary);
+  background: var(--el-fill-color-light);
+}
+.pj-ctx__item.is-danger {
+  color: var(--el-color-danger);
+}
+.pj-ctx__item.is-danger:hover {
+  background: var(--el-color-danger-light-9);
+}
+.pj-ctx__item.is-divided {
+  margin-top: 5px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  border-radius: 0 0 7px 7px;
+  padding-top: 4px;
+  height: 34px;
+}
+
+/* ===== 操作失败详情 ===== */
+.fail-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.fail-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fail-op {
+  padding: 2px 9px;
+  font-size: 12px;
+  color: var(--el-color-danger);
+  background: var(--el-color-danger-light-9);
+  border-radius: 999px;
+}
+.fail-project {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #1f2430);
+}
+.fail-msg {
+  padding: 12px 14px;
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: var(--el-color-danger);
+  background: var(--el-color-danger-light-9, #fef0f0);
+  border: 1px solid var(--el-color-danger-light-7, #fbc4c4);
+  border-radius: 9px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.fail-logs-title {
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+}
+.fail-logs pre {
+  margin: 0;
+  padding: 10px 12px;
+  max-height: 260px;
+  overflow: auto;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 1.65;
+  color: var(--text-primary, #1f2430);
+  background: var(--bg-fill, #f7f8fa);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 9px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.fail-logs-empty {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
 .acfg-tip {
   font-size: 12.5px;
   color: var(--el-text-color-secondary);
@@ -4469,6 +5121,15 @@ onBeforeUnmount(() => {
 .bk-title { font-size: 14px; font-weight: 600; color: var(--text-primary, #1f2430); }
 .bk-sub { font-size: 12px; color: var(--text-secondary, #6b7280); margin-top: 2px; }
 .bk-state-tip { padding: 30px; text-align: center; color: var(--text-secondary, #6b7280); font-size: 13px; }
+/* 失败态用常驻块而不是只弹 toast：原因（如主机未开 SSH）要能一直看到 */
+.bk-state-tip--error {
+  display: flex; align-items: flex-start; gap: 10px; text-align: left;
+  padding: 16px 18px; color: var(--el-color-danger, #f56c6c); font-size: 13px;
+  background: var(--el-color-danger-light-9, #fef0f0);
+  border: 1px solid var(--el-color-danger-light-7, #fab6b6);
+  border-radius: var(--radius-lg, 12px);
+}
+.bk-state-tip--error .bk-state-hint { margin-top: 4px; color: var(--text-secondary, #6b7280); font-size: 12px; }
 .bk-empty {
   display: flex; flex-direction: column; align-items: center; gap: 10px;
   padding: 44px 20px; color: var(--text-secondary, #6b7280); font-size: 13px;

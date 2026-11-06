@@ -47,6 +47,8 @@ export function createMonitorRoutes(options: MonitorRoutesOptions = {}): RouteCo
     // ==================== 服务管理 ====================
     // 协议服务器节点（Server 接口 + ServerFilter 编排）的增删改查、启停与热更新。
     // 视图与 API 都在本包，宿主只挂路由。
+    // P2P 房间不单独占菜单：它是服务侧的一种能力，在工作区里以页签打开
+    // （ScServiceManage.vue 的 kind === 'room'）。
     {
       path: "/grp-service",
       name: "GroupService",

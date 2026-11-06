@@ -30,6 +30,10 @@ interface AlarmPolicy {
   msMonitorAlarmPolicyName: string;
   msMonitorAlarmPolicyEnabled: number;
   msMonitorAlarmPolicyRemark: string;
+  /** 归属主机 id（空 = 全局策略） */
+  msServerHostId?: number | null;
+  /** 更新时置为全局策略（后端只读入参） */
+  globalScope?: boolean;
 }
 interface AlarmRule {
   id: number;
@@ -90,6 +94,8 @@ async function fetchAll(): Promise<void> {
   loading.value = true;
   try {
     const [p, r, m, w] = await Promise.all([
+      // 不带 hostId：一次取全量，前端按「本主机 / 全局」分组展示 ——
+      // 主机面板既要能改自己的策略，也要能看见生效于本机的全局策略。
       http().get(`${API}/alarm/policy`).then(r => unwrapResult<AlarmPolicy[]>(r)),
       http().get(`${API}/alarm/rule`).then(r => unwrapResult<AlarmRule[]>(r)),
       http().get(`${API}`).then(r => unwrapResult<MonitorItem[]>(r)),
@@ -106,6 +112,16 @@ async function fetchAll(): Promise<void> {
   }
 }
 
+/** 本主机专属策略（msServerHostId === 当前主机） */
+const hostPolicies = computed(() =>
+  policies.value.filter(p => Number(p.msServerHostId ?? 0) === Number(props.hostId)),
+);
+
+/** 全局策略（msServerHostId 为空，对所有主机生效） */
+const globalPolicies = computed(() =>
+  policies.value.filter(p => p.msServerHostId == null || Number(p.msServerHostId) === 0),
+);
+
 /** 当前主机匹配的监控项 */
 const hostMonitor = computed(() =>
   monitors.value.find(m =>
@@ -114,14 +130,19 @@ const hostMonitor = computed(() =>
   ),
 );
 
-/** 按主机过滤的规则：只显示绑定到本主机监控项的规则 + 未指定监控项的全局规则 */
+/** 按主机过滤的规则：只显示属于「本机策略」或「全局策略」的规则 + 未指定监控项的全局规则 */
 const hostRules = computed(() => {
+  const scopeIds = new Set([...hostPolicies.value, ...globalPolicies.value].map(p => p.id));
   const hm = hostMonitor.value;
-  if (!hm) return rules.value;
-  return rules.value.filter(r =>
-    r.msMonitorAlarmRuleMonitorId === hm.id || r.msMonitorAlarmRuleMonitorId === null,
-  );
+  return rules.value.filter(r => {
+    if (!scopeIds.has(r.msMonitorAlarmRulePolicyId)) return false;
+    if (!hm) return true;
+    return r.msMonitorAlarmRuleMonitorId === hm.id || r.msMonitorAlarmRuleMonitorId === null;
+  });
 });
+
+/** 新建 / 编辑规则时可选的策略：本机策略在前，全局策略在后 */
+const selectablePolicies = computed(() => [...hostPolicies.value, ...globalPolicies.value]);
 
 function policyName(pid: number): string {
   return policies.value.find(p => p.id === pid)?.msMonitorAlarmPolicyName ?? `策略#${pid}`;
@@ -143,14 +164,24 @@ const policyVisible = ref(false);
 const policySaving = ref(false);
 const policyForm = ref<Partial<AlarmPolicy>>({
   msMonitorAlarmPolicyName: "", msMonitorAlarmPolicyEnabled: 1, msMonitorAlarmPolicyRemark: "",
+  msServerHostId: props.hostId,
 });
+/** 编辑时是否勾选「全局策略」（作用于所有主机） */
+const policyGlobal = ref(false);
 
 function openPolicyAdd(): void {
-  policyForm.value = { msMonitorAlarmPolicyName: "", msMonitorAlarmPolicyEnabled: 1, msMonitorAlarmPolicyRemark: "" };
+  policyForm.value = {
+    msMonitorAlarmPolicyName: "",
+    msMonitorAlarmPolicyEnabled: 1,
+    msMonitorAlarmPolicyRemark: "",
+    msServerHostId: props.hostId,
+  };
+  policyGlobal.value = false;
   policyVisible.value = true;
 }
 function openPolicyEdit(p: AlarmPolicy): void {
   policyForm.value = { ...p };
+  policyGlobal.value = p.msServerHostId == null || Number(p.msServerHostId) === 0;
   policyVisible.value = true;
 }
 async function submitPolicy(): Promise<void> {
@@ -160,7 +191,13 @@ async function submitPolicy(): Promise<void> {
   }
   policySaving.value = true;
   try {
-    await http().post(`${API}/alarm/policy`).data(policyForm.value).then(r => unwrapResult(r));
+    // 归属主机由面板决定：不勾全局就归本机，勾了就把归属清空（globalScope 是后端认可的清空开关）
+    const payload: Record<string, unknown> = {
+      ...policyForm.value,
+      msServerHostId: policyGlobal.value ? null : props.hostId,
+      globalScope: policyGlobal.value,
+    };
+    await http().post(`${API}/alarm/policy`).data(payload).then(r => unwrapResult(r));
     message.success("保存成功");
     policyVisible.value = false;
     await fetchAll();
@@ -200,7 +237,7 @@ const ruleForm = ref<Partial<AlarmRule>>({
 
 function openRuleAdd(policyId?: number): void {
   ruleForm.value = {
-    msMonitorAlarmRulePolicyId: policyId ?? policies.value[0]?.id ?? 0,
+    msMonitorAlarmRulePolicyId: policyId ?? hostPolicies.value[0]?.id ?? globalPolicies.value[0]?.id ?? 0,
     // 预选当前主机监控项
     msMonitorAlarmRuleMonitorId: hostMonitor.value?.id ?? null,
     msMonitorAlarmRuleMetricName: "cpu_usage",
@@ -358,7 +395,9 @@ onMounted(fetchAll);
             <button type="button" class="lb-btn is-primary" @click="openPolicyAdd">
               <ReIcon name="Plus" :size="11" />新建策略
             </button>
-            <span class="lb-dim" style="font-size: 10.5px">{{ policies.length }} 个策略</span>
+            <span class="lb-dim" style="font-size: 10.5px">
+              {{ hostPolicies.length }} 个本机策略 · {{ globalPolicies.length }} 个全局策略
+            </span>
           </div>
           <div class="ap-list">
             <div v-for="p in policies" :key="p.id" class="ap-item">
@@ -367,6 +406,9 @@ onMounted(fetchAll);
                 <b>{{ p.msMonitorAlarmPolicyName }}</b>
                 <span class="lb-dim" style="font-size: 10.5px">{{ p.msMonitorAlarmPolicyRemark || "—" }}</span>
               </div>
+              <span class="lb-pill" :class="p.msServerHostId == null ? 'lb-info' : 'lb-ok'">
+                {{ p.msServerHostId == null ? "全局" : "本机" }}
+              </span>
               <span class="lb-pill" :class="p.msMonitorAlarmPolicyEnabled === 1 ? 'lb-ok' : 'lb-info'">
                 {{ policyStatus(p.msMonitorAlarmPolicyEnabled) }}
               </span>
@@ -478,6 +520,13 @@ onMounted(fetchAll);
           <span>备注</span>
           <input v-model="policyForm.msMonitorAlarmPolicyRemark" class="sw-input" placeholder="可选" />
         </label>
+        <label class="ap-field">
+          <span>适用范围</span>
+          <label class="ap-check">
+            <input v-model="policyGlobal" type="checkbox" />
+            全局策略（作用于所有主机，不勾则只对 {{ hostName }} 生效）
+          </label>
+        </label>
       </div>
     </ReDialog>
 
@@ -489,7 +538,9 @@ onMounted(fetchAll);
         <label class="ap-field">
           <span>所属策略</span>
           <select v-model="ruleForm.msMonitorAlarmRulePolicyId" class="sw-input">
-            <option v-for="p in policies" :key="p.id" :value="p.id">{{ p.msMonitorAlarmPolicyName }}</option>
+            <option v-for="p in selectablePolicies" :key="p.id" :value="p.id">
+              {{ p.msMonitorAlarmPolicyName }}{{ p.msServerHostId == null ? "（全局）" : "" }}
+            </option>
           </select>
         </label>
         <label class="ap-field">
@@ -708,6 +759,15 @@ onMounted(fetchAll);
   align-items: center;
   gap: 3px;
   font-size: 12px;
+  cursor: pointer;
+}
+.ap-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
   cursor: pointer;
 }
 </style>

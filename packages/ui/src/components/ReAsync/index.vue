@@ -60,7 +60,7 @@
  * </ReAsync>
  * ```
  *
- * - 加载期间默认交给 {@link ReLoader}（统一加载动画，可用 loaderVariant 切换海浪/进度条/双环），
+ * - 加载期间默认交给 {@link ReLoader}（统一加载动画，可用 loaderVariant 切换圆点/进度条/双环），
  *   `#loading` 插槽可完全自定义，`loadingMode="skeleton"` 可退回内置骨架条。
  * - 组件就绪后以淡入上移过渡出现，避免白屏后“突然弹出”。
  * - loader 失败时展示错误态，支持一键重试。

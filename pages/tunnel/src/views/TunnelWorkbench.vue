@@ -18,10 +18,9 @@ import {
   ElPopconfirm,
   ElSelect,
   ElSwitch,
-  ElTable,
-  ElTableColumn,
   ElTag,
 } from "element-plus";
+import ReTable from "@repo/ui/re-table";
 import { MagicStick, Refresh } from "@element-plus/icons-vue";
 import { http, type SseClient } from "@repo/utils";
 import type { TunnelProvider, TunnelRecord, TunnelView } from "../api/tunnelApi";
@@ -241,18 +240,20 @@ function onRowClick(row: TunnelView) {
     </div>
 
     <!-- 表格 -->
-    <el-table
+    <ReTable
       :data="list"
+      :border="false"
       style="width: 100%"
       :default-sort="{ prop: 'createdAt', order: 'descending' }"
+      :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
       @row-click="onRowClick"
     >
-      <el-table-column prop="id" label="ID" width="180" />
-      <el-table-column prop="name" label="名称" width="140" />
-      <el-table-column prop="localPort" label="本地端口" width="120" sortable />
-      <el-table-column prop="mode" label="模式" width="100" />
-      <el-table-column prop="domain" label="域名" min-width="200" show-overflow-tooltip />
-      <el-table-column prop="publicUrls" label="公网地址" min-width="240" show-overflow-tooltip>
+      <ReTableColumn prop="id" label="ID" width="180" />
+      <ReTableColumn prop="name" label="名称" width="140" />
+      <ReTableColumn prop="localPort" label="本地端口" width="120" sortable />
+      <ReTableColumn prop="mode" label="模式" width="100" />
+      <ReTableColumn prop="domain" label="域名" min-width="200" show-overflow-tooltip />
+      <ReTableColumn prop="publicUrls" label="公网地址" min-width="240" show-overflow-tooltip>
         <template #default="{ row }">
           <div v-if="row.publicUrls.length">
             <el-tag
@@ -268,20 +269,20 @@ function onRowClick(row: TunnelView) {
           </div>
           <span v-else class="text-gray-400">未分配</span>
         </template>
-      </el-table-column>
-      <el-table-column prop="running" label="状态" width="100" sortable>
+      </ReTableColumn>
+      <ReTableColumn prop="running" label="状态" width="100" sortable>
         <template #default="{ row }">
           <el-tag :type="row.running ? 'success' : 'info'" size="small">
             {{ row.running ? "运行中" : "已停止" }}
           </el-tag>
         </template>
-      </el-table-column>
-      <el-table-column prop="error" label="错误信息" min-width="180" show-overflow-tooltip>
+      </ReTableColumn>
+      <ReTableColumn prop="error" label="错误信息" min-width="180" show-overflow-tooltip>
         <template #default="{ row }">
           <span v-if="row.error" class="text-red-500">{{ row.error }}</span>
         </template>
-      </el-table-column>
-      <el-table-column label="操作" width="200" fixed="right">
+      </ReTableColumn>
+      <ReTableColumn label="操作" width="200" fixed="right">
         <template #default="{ row }">
           <el-popconfirm
             :title="row.running ? '确定要停止该隧道吗？' : '确定要启动该隧道吗？'"
@@ -300,8 +301,8 @@ function onRowClick(row: TunnelView) {
             </template>
           </el-popconfirm>
         </template>
-      </el-table-column>
-    </el-table>
+      </ReTableColumn>
+    </ReTable>
 
     <!-- 新建/编辑抽屉 -->
     <el-drawer v-model="drawerVisible" :title="drawerTitle" size="520">

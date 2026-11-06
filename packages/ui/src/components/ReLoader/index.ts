@@ -5,7 +5,7 @@
  *
  * ```vue
  * <!-- 1) 声明式遮罩：内容照常渲染，上面盖遮罩 -->
- * <ReLoader v-model:loading="busy" variant="wave" text="正在处理…">
+ * <ReLoader v-model:loading="busy" variant="dots" text="正在处理…">
  *   <MyContent />
  * </ReLoader>
  *
@@ -51,7 +51,7 @@ export type {
   ReLoaderResetOptions,
 } from "./types";
 
-/* 统一加载动画：四个动画的唯一定义处（首屏 loader 与本组件共用同一份样式） */
+/* 统一加载动画：十款 CSS 动画的唯一定义处（首屏 loader 与本组件共用同一份样式） */
 export {
   LOADER_ANIMATIONS,
   LOADER_ANIMATION_NONE,
@@ -67,11 +67,41 @@ export {
   useLoaderDeployPolicy,
   isLoaderAnimationLocked,
   setLoaderAnimation,
+  LOADER_HAIRLINE_FIGURES,
+  loaderHairlineFigureOf,
 } from "./animations";
-export type {
-  LoaderAnimation,
-  LoaderAnimationChoice,
-} from "./animations";
+export type { LoaderAnimation, LoaderAnimationChoice } from "./animations";
+
+/* 矢量款（点阵 / 传送带 / 柱阵 / 卡片翻动）的 hairline 渲染层，主题配置预览复用同一个 */
+export { default as ReLoaderHairline } from "./HairlinePreview.vue";
+
+/* 像素恐龙小游戏（主题配置的预览用 demo 模式，应用内遮罩用 play 模式） */
+export { default as ReLoaderDinoGame } from "./DinoGame.vue";
+
+/* 观感偏好：尺寸两档 / 速度倍率 / 主色跟随（部署 > 用户 > 默认） */
+export {
+  LOADER_PREFS_KEY,
+  LOADER_WIDTH_BREAKPOINT,
+  LOADER_SIZE_MIN,
+  LOADER_SIZE_MAX,
+  LOADER_SIZE_NARROW_DEFAULT,
+  LOADER_SIZE_WIDE_DEFAULT,
+  LOADER_SPEED_MIN,
+  LOADER_SPEED_MAX,
+  LOADER_SPEED_DEFAULT,
+  LOADER_ADAPT_COLOR_DEFAULT,
+  LOADER_PREFS_DEFAULT,
+  normalizeLoaderSize,
+  normalizeLoaderSpeed,
+  normalizeLoaderPrefs,
+  readLoaderPrefs,
+  writeLoaderPrefs,
+  useLoaderPrefs,
+  useLoaderVisuals,
+  resolveLoaderVisuals,
+  setLoaderPrefs,
+} from "./prefs";
+export type { LoaderPrefs, LoaderSizePrefs, LoaderVisuals } from "./prefs";
 
 /* 进度自适应估算（无真实进度时用） */
 export { createProgressEstimator } from "./progressEstimator";

@@ -583,3 +583,179 @@ export function listProfiledSegments(taskId: string): Promise<ApmProfiledSegment
 export function getProfileAnalysis(taskId: string): Promise<ApmProfileAnalysis> {
   return get<ApmProfileAnalysis>(`/profiles/${encodeURIComponent(taskId)}/analysis`);
 }
+
+// ─────────────────────────── APM 设置 ───────────────────────────
+
+/** 引擎级可改项：键与值都是字符串（后端统一按 properties 处理） */
+export interface ApmEngineSettings {
+  [key: string]: string;
+}
+
+/**
+ * 候选引擎
+ *
+ * <p>`available=false` 表示「引入了这个引擎但连不上」，`message` 是它的原因原话；
+ * 下拉里必须把它写出来，否则用户只会看到「选了这个却什么都没变」。</p>
+ */
+export interface ApmEngineOption {
+  name: string;
+  available: boolean;
+  mode: string;
+  version: string;
+  endpoint?: string | null;
+  message?: string | null;
+  settings?: ApmEngineSettings;
+}
+
+/** 当前选中的引擎 */
+export interface ApmSelectedEngine {
+  name?: string | null;
+  mode?: string;
+  version?: string;
+  endpoint?: string | null;
+  settings: ApmEngineSettings;
+}
+
+/**
+ * APM 设置全貌（`GET /config`）
+ *
+ * <p>分三类：热改项（enabled/type/detectInterval + 引擎级）、需重启项
+ * （`restartRequired` 里的 mode/path/port/serverType/host/settingsFile）、
+ * 只读观测值（present/message/candidates）。</p>
+ */
+export interface ApmSettings {
+  /** 模块开关（plugin.apm.enabled） */
+  enabled: boolean;
+  /** 固定引擎名，空串表示自动选择第一个可用引擎 */
+  type: string;
+  /** 启动模式（需重启） */
+  mode: string;
+  /** 接口前缀（需重启） */
+  path: string;
+  /** 独立模式监听地址（需重启） */
+  host: string;
+  /** 独立模式端口（需重启） */
+  port: number;
+  /** 独立模式服务实现（需重启） */
+  serverType: string;
+  /** 探测缓存时长（毫秒） */
+  detectInterval: number;
+  /** 设置落盘文件 */
+  settingsFile: string;
+  /**
+   * OAP 地址是否由部署侧显式指定（启动参数 / 环境变量）。
+   *
+   * <p>为 true 时界面里的修改只在本次运行生效：重启后 `restore()` 不会用设置文件
+   * 覆盖部署值，否则运维改完脚本重启，地址还会回到界面上那个。</p>
+   */
+  oapUrlFromDeployment?: boolean;
+  /**
+   * 引擎是否由启动参数固定（`-Dplugin.apm.type`）。
+   *
+   * <p>为 true 时界面里选的引擎只在本次运行生效：重启后 `restore()` 会回到启动参数，
+   * 页面必须提前说明，不能让人以为保存没成功。</p>
+   */
+  typeFromDeployment?: boolean;
+  /** 启动参数固定的引擎名（`typeFromDeployment=true` 时用来原样展示） */
+  deploymentType?: string;
+  /**
+   * 模块开关是否被部署侧锁定（`-Dplugin.apm.enabled.locked=true`）。
+   *
+   * <p>锁定后设置文件不再覆盖启动参数，界面开关置灰：否则「保存成功、重启又变回去」
+   * 是最难排查的一种假成功。</p>
+   */
+  enabledLocked?: boolean;
+  /** 允许热改的键 */
+  editable: string[];
+  /** 改了必须重启的键 */
+  restartRequired: string[];
+  /** 当前引擎 */
+  engine: ApmSelectedEngine;
+  /** 是否探测到可用引擎 */
+  present: boolean;
+  /** 无引擎时后端给出的原因 */
+  message?: string | null;
+  /** 全部候选引擎（含不可用原因） */
+  candidates: ApmEngineOption[];
+  /** 设置文件里上次保存的值（空对象表示没保存过） */
+  saved: ApmEngineSettings;
+  /** 保存接口专用：是否成功落盘 */
+  persisted?: boolean;
+  /** 保存接口专用：落盘失败时的说明 */
+  persistMessage?: string;
+}
+
+/** 保存设置的入参 */
+export interface ApmSettingsInput {
+  enabled?: boolean;
+  type?: string;
+  detectInterval?: number;
+  /** `detect` 表示只重新探测，不修改任何值 */
+  action?: "detect";
+  /** 引擎级可改项（如 SkyWalking 的 oapUrl / oapTimeout），保存时扁平化到 query */
+  engineSettings?: ApmEngineSettings;
+}
+
+/**
+ * POST 请求 + 拆包。
+ *
+ * <p><b>为什么不复用 {@link get} 的 `clean()`</b>：保存设置时「空串」是有含义的
+ * （清空 `type` 表示回到自动选择），而 `clean()` 会把空串丢掉，后端就收不到这个键。</p>
+ */
+function post<T>(path: string, query?: Record<string, unknown>): Promise<T> {
+  return http()
+    .post(`${apmPrefix()}${path}`)
+    .query(query ?? {})
+    .then((res) => unwrapResult<T>(res));
+}
+
+/**
+ * 读 APM 设置。
+ *
+ * <p>后端在「模块关闭」和「没有任何引擎」时也可用：设置页必须能在关掉之后把它打开。</p>
+ */
+export function getApmSettings(): Promise<ApmSettings> {
+  return get<ApmSettings>("/config");
+}
+
+/** 把设置入参扁平化：后端只认 query 上的平铺键值 */
+function flattenSettings(input: ApmSettingsInput): Record<string, unknown> {
+  const flat: Record<string, unknown> = {};
+  if (input.enabled !== undefined) {
+    flat.enabled = input.enabled ? "true" : "false";
+  }
+  if (input.type !== undefined) {
+    flat.type = input.type;
+  }
+  if (input.detectInterval !== undefined) {
+    flat.detectInterval = String(input.detectInterval);
+  }
+  if (input.action) {
+    flat.action = input.action;
+  }
+  for (const [key, value] of Object.entries(input.engineSettings ?? {})) {
+    if (value !== undefined && value !== null) {
+      flat[key] = value;
+    }
+  }
+  return flat;
+}
+
+/**
+ * 保存 APM 设置（只提交入参里出现过的键）。
+ *
+ * <p>保存成功后清掉状态缓存：开关或引擎刚改过，下一次进页面必须重新探活，
+ * 否则会继续显示上一份 `/status`。</p>
+ */
+export async function saveApmSettings(input: ApmSettingsInput): Promise<ApmSettings> {
+  const result = await post<ApmSettings>("/config", flattenSettings(input));
+  resetApmStatusCache();
+  return result;
+}
+
+/** 重新探测引擎（不修改任何设置） */
+export async function detectApm(): Promise<ApmSettings> {
+  const result = await post<ApmSettings>("/config", { action: "detect" });
+  resetApmStatusCache();
+  return result;
+}

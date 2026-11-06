@@ -98,10 +98,9 @@ const handleChangeLanguage = (lang: string) => {
 <style lang="scss" scoped></style>
 
 <style lang="scss">
-/* 语言下拉：与主题下拉同一套语言 —— 左侧线性图标 + 右侧文字左对齐，
-   选中项浅蓝圆角色块 + 浅蓝文字，边缘利落、悬浮层级感明确
-   Element Plus 的下拉面板同样是 CSS 变量驱动（--el-dropdown-menuBox-shadow 等），
-   这里直接改面板与条目的具体属性。 */
+/* 语言下拉：与主题下拉同一套间距 —— 左侧线性图标 + 右侧文字左对齐，
+   选中项浅蓝圆角色块 + 浅蓝文字，边缘利落、悬浮层级感明确，
+   面板 padding / 条目 padding / 条目标题间距和图标文字间距全部对齐 ReDark 选项组。 */
 .koi-language-dropdown.el-popper,
 .el-popper.koi-language-dropdown {
   --rm-radius: 12px;
@@ -125,8 +124,8 @@ html.dark .koi-language-dropdown {
 }
 
 .koi-language-menu {
-  min-width: 148px;
-  padding: 2px 0 !important;
+  min-width: 120px;
+  padding: 0 !important;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -135,7 +134,8 @@ html.dark .koi-language-dropdown {
 .koi-language-menu .el-dropdown-menu__item {
   display: flex;
   align-items: center;
-  margin: 4px 6px;
+  /* 条目间距 4px，与 ReDark 选项组 gap 一致；圆角 10px 与面板 12px 呼应；面板 padding 与 ReDark 一致 */
+  margin: 0 0 4px 0 !important;
   padding: 10px 14px !important;
   border-radius: 10px !important;
   font-size: 13px;

@@ -626,8 +626,10 @@ export interface EduHanzi {
   hanziId?: number;
   /** 汉字（单个字） */
   hanziChar: string;
-  /** 读音（拼音，可带声调） */
+  /** 读音（拼音，可带声调；多音字用逗号分隔，如 xíng,háng） */
   hanziPinyin?: string | null;
+  /** 通假字 / 借字（逗号分隔，如 悦,说）。读写字段，落 edu_hanzi_tongjia */
+  hanziTongjia?: string | null;
   /** 笔画数 */
   hanziStrokes?: number | null;
   /** 部首 */
@@ -644,6 +646,59 @@ export interface EduHanzi {
   hanziGradeLevel?: string | null;
   /** 状态：0 停用 / 1 启用 */
   hanziStatus?: number | null;
+}
+
+/**
+ * 词语库（词语 / 读音 / 释义 / 造句 / 近义 / 反义 / 同音）。
+ *
+ * 对应后端 {@code edu_word} 表；唯一键是 wordContent（整词一条）。
+ */
+export interface EduWord {
+  wordId?: number;
+  /** 词语内容（整词） */
+  wordContent: string;
+  /** 读音（带声调） */
+  wordPinyin?: string | null;
+  /** 无声调读音（服务端派生，检索用） */
+  wordPinyinPlain?: string | null;
+  /** 释义 */
+  wordMeaning?: string | null;
+  /** 例句 / 造句范例 */
+  wordExample?: string | null;
+  /** 近义词 / 相似词语（逗号分隔） */
+  wordSynonyms?: string | null;
+  /** 反义词 / 反向词语（逗号分隔） */
+  wordAntonyms?: string | null;
+  /** 同音词（逗号分隔） */
+  wordHomophones?: string | null;
+  /** 结构 / 词性 */
+  wordStructure?: string | null;
+  /** 语料类型：WORD / XIEHOUYU / PHRASE */
+  wordKind?: string | null;
+  /** 适用学段（中文名） */
+  wordGradeLevel?: string | null;
+  /** 状态：0 停用 / 1 启用 */
+  wordStatus?: number | null;
+}
+
+/** 词语关联检索结果项（右键菜单的每一行） */
+export interface WordRelatedItem {
+  content: string;
+  pinyin?: string | null;
+  meaning?: string | null;
+  /** 该词是否已在词语库；false 表示只是被引用、尚未入库 */
+  inBank?: boolean;
+  /** 附加说明，如「造句模板」「汉字库 · 与词首字同音」 */
+  detail?: string | null;
+}
+
+/** 词语关联检索结果 */
+export interface WordRelatedResult {
+  mode: string;
+  label: string;
+  source: string;
+  wordContent: string;
+  items: WordRelatedItem[];
 }
 
 /**

@@ -12,7 +12,7 @@
  * <p>路由模式：hash（routerMode: "hash"）；菜单由路由树自动推导。</p>
  */
 import { createContextApp } from "@repo/app";
-import { useGlobalStore } from "@repo/pinia";
+import { useGlobalStore, useUserStore } from "@repo/pinia";
 // 路由级加载态兜底（见文件末的 attachRouterLoader 说明）
 import { attachRouterLoader } from "@repo/ui/re-loader";
 // 挂载完成后预热路由 chunk（菜单 hover 时 theme 层也会预取，见 routePrefetch.ts）
@@ -75,6 +75,28 @@ const app = await createContextApp({
 //   - 设值放在 mount 之后，保证 pinia 实例已就绪，也避免 before mount 与布局组件读取
 //     同一 store 时产生时序竞争。
 useGlobalStore(app.pinia).setGlobalState("layout", "group");
+
+// 操作日志需要操作人：后端从 X-User-Name 头取（见 ProjectOpLogServiceImpl）。
+// 在挂载后统一给所有请求补上当前登录账号：登录前 username 为空则跳过，
+// 不依赖每个调用点各自加头，避免新增接口漏传导致日志里操作人为空。
+const userStore = useUserStore(app.pinia);
+app.context.http.getInstance().interceptors.request.use((config) => {
+  // 登录返回的 username 字段可能为空，真实账号在 userInfo.sysUserUsername
+  const info = userStore.userInfo as { sysUserUsername?: string } | undefined;
+  const name = userStore.username || info?.sysUserUsername || userStore.nickname;
+  if (name) {
+    const headers = config.headers as
+      | { set?: (key: string, value: string) => void }
+      | Record<string, unknown>
+      | undefined;
+    if (headers && typeof (headers as { set?: unknown }).set === "function") {
+      (headers as { set: (key: string, value: string) => void }).set("X-User-Name", name);
+    } else {
+      config.headers = { ...(headers as Record<string, unknown>), "X-User-Name": name } as never;
+    }
+  }
+  return config;
+});
 
 // 把 ReLoader 挂到路由上：切页时收掉「路由级」加载态。
 //

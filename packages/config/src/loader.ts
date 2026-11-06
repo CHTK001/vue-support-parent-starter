@@ -439,6 +439,35 @@ async function loadRemoteConfig(
 }
 
 /**
+ * 旧式设置名 → AppConfig 点号路径（与 core/setting.ts 的 SETTING_TO_LOGIN_MAP 对齐，
+ * 但补上不在 login 子树上的旧名：水印）。
+ *
+ * <p>后端设置表里的老数据只有 {@code sysSettingName}（如 {@code SystemName}、
+ * {@code WatermarkColor}），没有点号的 {@code sysSettingCode}。core 把旧名映射到
+ * {@code login.*}，但水印旧名 {@code WatermarkOpen/Color/Alpha/Rotate} 对应的是
+ * {@code getConfig().security.watermark}（见 {@code packages/core/src/directives/waterMarker.ts}
+ * 的读数路径），不能写进 {@code login} 子树。</p>
+ *
+ * <p>loader 与 core 按同一张表落盘，保证同一份
+ * {@code /v2/setting/default} 里的旧名数据在两份代码里落到相同的 AppConfig 路径
+ * （{@code login.title} {@code /slider} {@code /smsLogin}、
+ * {@code security.watermark} {@code /enable} {@code /color} {@code /alpha} {@code /rotate}）；
+ * 有映射就走映射路径，没有映射的旧名则保留原名，让白名单继续拦（
+ * 如 {@code CodecRequestKey} 这类后端配置名与 {@code http.baseUrl}，不该让的不要让）。</p>
+ */
+const LEGACY_NAME_TO_PATH: Record<string, string> = {
+  // 登录页旧名（与 core SETTING_TO_LOGIN_MAP 对齐）
+  SystemName: "login.title",
+  SlidingBlockOpen: "login.slider",
+  OpenSmsLogin: "login.smsLogin",
+  // 水印旧名（不落在 login 子树，落在 security.watermark）
+  WatermarkOpen: "security.watermark.enable",
+  WatermarkColor: "security.watermark.color",
+  WatermarkAlpha: "security.watermark.alpha",
+  WatermarkRotate: "security.watermark.rotate",
+};
+
+/**
  * 将后端设置列表转换为嵌套配置对象。
  * 支持点号层级 key（如 login.slider）与布尔/数字值转换。
  */
@@ -450,8 +479,12 @@ function flattenSettingToConfig(list: Array<Record<string, unknown>>): Partial<A
     const rawValue = item.sysSettingValue ?? item.value;
     // 与 core/setting.ts 对齐：优先按「编码」点号路径（如 login.brandName）；
     // 编码为空的旧数据才回退按名称
-    const pathKey = code.includes(".") ? code : name || code;
+    let pathKey = code.includes(".") ? code : name || code;
     if (!pathKey) continue;
+    // 旧式名字补全到 AppConfig 路径：有映射的旧名走白名单内的路径，
+    // 避免 `SystemName`/`WatermarkOpen` 这类被误当成顶级键（= reject）而留噪音
+    const legacyPath = LEGACY_NAME_TO_PATH[pathKey];
+    if (legacyPath) pathKey = legacyPath;
     let value: unknown = rawValue;
     const lower = String(rawValue).toLowerCase();
     if (lower === "true") value = true;
@@ -462,6 +495,9 @@ function flattenSettingToConfig(list: Array<Record<string, unknown>>): Partial<A
     // 最后一行直接写到全局原型上（详见 safe-path.ts 顶部注释）。
     // 同时用顶层白名单挡住 http.baseURL / token.*Key / crypto.* 这类
     // 「改了就不只是改观感」的键 —— 远程设置接口只该管品牌与展示。
+    // 带 legacy map 的旧名已落到白名单内路径（login.* / security.watermark.*）；
+    // 没有 legacy map 的旧名（CodecRequestKey / Version / 16 个 SSO 开关名）
+    // 仍由白名单拦截并告警（后台有表项但前端不消费，告知比遗漏好）。
     safeSetDotted(partial, pathKey, value, {
       topKeyAllowlist: REMOTE_INJECTABLE_TOP_KEYS,
       pathPrefixAllowlist: REMOTE_INJECTABLE_PATH_PREFIXES,

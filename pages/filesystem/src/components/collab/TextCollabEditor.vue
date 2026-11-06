@@ -12,7 +12,10 @@
       <span class="tc-editor-status" :class="saveState">{{ saveStatusText }}</span>
       <span class="tc-editor-ver">版本 v{{ currentVersion }}</span>
       <div class="tc-editor-actions">
-        <el-button size="small" text @click="refreshSnapshot">刷新</el-button>
+        <!-- 显式传 false：@click 会把 MouseEvent 当第一参数传进来，而第一参数是
+             silent —— 直接写 @click="refreshSnapshot" 会让「手动刷新」被当成静默，
+             冲突提示与成功提示都不会出现 -->
+        <el-button size="small" text @click="refreshSnapshot(false)">刷新</el-button>
         <el-button size="small" :loading="saving" type="primary" @click="saveNow">保存</el-button>
       </div>
     </div>
@@ -32,7 +35,13 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import { message } from "@repo/core";
-import { getFileCollab, saveFileCollabSnapshot, type FileCollabInfo } from "../../api/filestorageApi";
+import {
+  getFileCollab,
+  getFileCollabVersion,
+  saveFileCollabSnapshot,
+  subscribeFileCollab,
+} from "../../api/filestorageApi";
+import { nextAutoSaveDelay, shouldPollCollab } from "../../utils/collabAutosave";
 
 const props = defineProps<{
   /** 协同文档号 */
@@ -51,6 +60,8 @@ const saveState = ref<"saved" | "dirty" | "saving" | "conflict">("saved");
 const saveStatusText = ref(`已同步 · v${initialVersion.value}`);
 
 let dirtyFlag = false;
+/** 本轮「首次变脏」的时刻：自动保存最长等待以它为起点 */
+let dirtySince = 0;
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let disposed = false;
 
@@ -64,15 +75,54 @@ function renderSaveStatus(): void {
 }
 
 function onInput(): void {
-  if (saveState.value === "saved" && !dirtyFlag) {
-    dirtyFlag = true;
-    saveState.value = "dirty";
-    renderSaveStatus();
-  }
+  markDirty();
 }
 
-async function saveNow(): Promise<void> {
-  if (saving.value) return;
+/** 自动保存定时器 */
+let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * 标脏并安排一次延迟自动保存。
+ *
+ * <p>空闲延迟 + 最长等待：连续输入期间不发请求，但最多
+ * {@link COLLAB_AUTOSAVE_MAX_WAIT_MS} 一定强制写一次（否则一直打字就永远不保存）。</p>
+ *
+ * <p>{@code dirtySince} 只在「本轮第一次变脏」时落笔，之后每次输入都按它重算剩余时间
+ * —— 写成每次输入都重置 dirtySince 就等于永远等不到最长等待。</p>
+ */
+function markDirty(): void {
+  const now = Date.now();
+  if (!dirtyFlag) {
+    dirtySince = now;
+    dirtyFlag = true;
+    if (saveState.value !== "saving") {
+      saveState.value = "dirty";
+      renderSaveStatus();
+    }
+  }
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => {
+    autoSaveTimer = null;
+    void saveNow(true);
+  }, nextAutoSaveDelay(dirtySince, now));
+}
+
+async function saveNow(auto = false): Promise<void> {
+  if (saving.value) {
+    // 已有保存在飞：等它结束后补一次，避免这次改动被漏掉
+    if (dirtyFlag && !autoSaveTimer) {
+      autoSaveTimer = setTimeout(() => {
+        autoSaveTimer = null;
+        void saveNow(true);
+      }, 800);
+    }
+    return;
+  }
+  if (auto && !dirtyFlag) return;
+  if (autoSaveTimer) {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = null;
+  }
   saving.value = true;
   saveState.value = "saving";
   renderSaveStatus();
@@ -82,6 +132,7 @@ async function saveNow(): Promise<void> {
     dirtyFlag = false;
     saveState.value = "saved";
     renderSaveStatus();
+    if (!auto) message.success("已保存");
   } catch (e) {
     saveState.value = "conflict";
     renderSaveStatus();
@@ -91,37 +142,75 @@ async function saveNow(): Promise<void> {
   }
 }
 
-async function refreshSnapshot(): Promise<void> {
+/**
+ * 拉最新内容并重放。
+ *
+ * @param silent       静默模式（轮询/SSE 触发时不打扰用户）
+ * @param knownVersion 已知的最新版本（SSE 推送里带了版本号，省掉一次版本探针）
+ */
+async function refreshSnapshot(silent = false, knownVersion?: number): Promise<void> {
   try {
-    const latest: FileCollabInfo = await getFileCollab(props.collabId);
-    if (latest.version === currentVersion.value) {
-      currentVersion.value = latest.version;
+    // 有版本提示（SSE）就直接用，否则先只问版本号：没变就结束，不拉全文
+    const version = knownVersion ?? (await getFileCollabVersion(props.collabId)).version;
+    if (version === currentVersion.value) {
       return;
     }
     if (dirtyFlag) {
-      message.warning("本地有未保存改动，为避免覆盖他人内容请先保存或放弃本地改动");
+      if (!silent) {
+        message.warning("本地有未保存改动，为避免覆盖他人内容请先保存或放弃本地改动");
+      }
+      return;
+    }
+    const latest = await getFileCollab(props.collabId);
+    if (latest.version === currentVersion.value) {
+      currentVersion.value = latest.version;
       return;
     }
     text.value = latest.snapshot ?? "";
     currentVersion.value = latest.version;
     saveState.value = "saved";
     renderSaveStatus();
-    message.success(`已刷新到他人保存的版本 v${latest.version}`);
+    if (!silent) message.success(`已刷新到他人保存的版本 v${latest.version}`);
   } catch (e) {
-    message.error(e instanceof Error ? e.message : "刷新内容失败");
+    if (!silent) message.error(e instanceof Error ? e.message : "刷新内容失败");
   }
 }
 
+/** SSE 变更订阅的取消函数（卸载时调用） */
+let unsubscribe: (() => void) | null = null;
+
 onMounted(() => {
+  // 主通道：SSE 变更推送 —— 别人一保存就立刻知道（不用等轮询）
+  unsubscribe = subscribeFileCollab(props.collabId, (change) => {
+    if (disposed || change.version <= currentVersion.value) {
+      return;
+    }
+    void refreshSnapshot(true, change.version);
+  });
+  // 兜底通道：SSE 断连/被代理掐断时，每 15s 问一次版本号（几十字节）
   pollTimer = setInterval(() => {
-    if (disposed || saveState.value === "saving") return;
-    void refreshSnapshot();
-  }, 5000);
+    if (disposed || !shouldPollCollab(document.visibilityState === "visible", saving.value, dirtyFlag)) {
+      return;
+    }
+    void refreshSnapshot(true);
+  }, 15000);
 });
 
 onBeforeUnmount(() => {
   disposed = true;
   if (pollTimer) clearInterval(pollTimer);
+  if (unsubscribe) {
+    unsubscribe();
+    unsubscribe = null;
+  }
+  if (autoSaveTimer) {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = null;
+  }
+  // 离开前补一次保存，避免用户直接关标签页丢内容
+  if (dirtyFlag && !saving.value) {
+    void saveNow(true);
+  }
 });
 </script>
 

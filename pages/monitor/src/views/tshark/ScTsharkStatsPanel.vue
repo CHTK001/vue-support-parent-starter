@@ -268,6 +268,8 @@ watch(() => [props.version, props.timeline], () => nextTick(renderTimeline))
   grid-template-columns: minmax(280px, 1fr) minmax(320px, 1.15fr);
   gap: 12px;
   align-content: start;
+  /* 不参与纵向压缩：高度让给下面的流量时间轴 */
+  flex: none;
 }
 @media (max-width: 1024px) {
   .stats-grid { grid-template-columns: 1fr; }
@@ -296,15 +298,32 @@ watch(() => [props.version, props.timeline], () => nextTick(renderTimeline))
 }
 .chart-box { height: 240px; width: 100%; }
 
-/* 时间轴卡片横跨面板整宽，和上面两列卡片留出同一档间距 */
-.timeline-card { margin-top: 12px; }
+/* 时间轴卡片横跨面板整宽，和上面两列卡片留出同一档间距。
+   全屏抽屉下让它吃掉剩余高度：老实现固定 220px，在整屏里又矮又空，
+   底部横轴刻度挤成一条线；现在最低 320px，父容器更高时继续长高。 */
+.timeline-card {
+  margin-top: 12px;
+  flex: 1 1 auto;
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+}
+/* 卡片内容层也必须是 flex 列：图表盒子靠 flex:1 才能拿满卡片剩余高度。
+   默认主题是 .el-card__body，koi 主题是 .koi-card__body，两套都要覆盖。 */
+.timeline-card :deep(.el-card__body),
+.timeline-card :deep(.koi-card__body) {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
 .timeline-head {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 4px;
 }
-.timeline-box { height: 220px; width: 100%; }
+.timeline-box { flex: 1 1 auto; height: auto; min-height: 260px; width: 100%; }
 .timeline-empty { padding: 18px 0; }
 
 /* 聚合粒度切换：分段控件，选中的那格浮起一层底 */

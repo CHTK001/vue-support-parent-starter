@@ -29,6 +29,23 @@
     </div>
 
     <el-form v-if="!systemUnavailable" ref="loginFormRef" :model="loginForm" :rules="loginRules" class="login-form">
+      <!-- 租户编码：留空 = 平台入口；填写后由平台按编码定位租户并决定服务端路由 -->
+      <el-form-item prop="tenantCode">
+        <el-input
+          v-model="loginForm.tenantCode"
+          type="text"
+          :placeholder="$t('menu.login.form.tenantCode')"
+          size="large"
+          class="login-input"
+          clearable
+          @keydown.enter="handleKoiLogin"
+        >
+          <template #prefix>
+            <el-icon :size="16"><OfficeBuilding /></el-icon>
+          </template>
+        </el-input>
+      </el-form-item>
+
       <el-form-item prop="loginName">
         <el-input
           v-model="loginForm.loginName"
@@ -151,7 +168,7 @@
 </template>
 
 <script lang="ts" setup>
-import { User, Lock, Postcard, WarningFilled } from "@element-plus/icons-vue";
+import { User, Lock, Postcard, WarningFilled, OfficeBuilding } from "@element-plus/icons-vue";
 import { ref, reactive, toRef, computed, onMounted, nextTick } from "vue";
 import type { FormInstance, FormRules } from "element-plus";
 import { msgWarning, msgError, getCaptcha, thirdLoginExchange, takeThirdCallbackParams, setUserRoles, setUserPerms, refreshDefaultSetting } from "@repo/core";
@@ -222,6 +239,7 @@ interface ILoginUser {
   codeKey: string | number;
   captchaPicture: any;
   otpCode: string;
+  tenantCode: string;
 }
 
 const loginForm = reactive<ILoginUser>({
@@ -231,6 +249,7 @@ const loginForm = reactive<ILoginUser>({
   codeKey: "",
   captchaPicture: "",
   otpCode: "",
+  tenantCode: "",
 });
 
 const loginRules: any = reactive<FormRules<ILoginUser>>({
@@ -249,6 +268,25 @@ const loginRules: any = reactive<FormRules<ILoginUser>>({
   ],
   password: [
     { required: true, message: t("menu.login.rules.password.required"), trigger: "blur" },
+  ],
+  tenantCode: [
+    {
+      // 选填：平台用户留空。填了就必须是合法短码，否则后端只会回「租户编码不存在」，
+      // 在本地先拦一道，省一次往返也避免用户以为是自己账号的问题
+      validator: (_rule: any, value: any, callback: any) => {
+        const code = String(value || "").trim();
+        if (!code) {
+          callback();
+          return;
+        }
+        if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]{1,31}$/.test(code)) {
+          callback(new Error(t("menu.login.rules.tenantCode.validator")));
+          return;
+        }
+        callback();
+      },
+      trigger: "blur",
+    },
   ],
 });
 
@@ -406,6 +444,9 @@ const submitLogin = async (otpCode: string) => {
   const password = loginForm.password;
   const securityCode = loginForm.securityCode;
   const codeKey = loginForm.codeKey;
+  // 租户编码是登录页的人工输入，空格与大小写都不该导致登不进去：
+  // 去空格后与后端一致地按小写提交；空串不发送，保持平台入口语义
+  const tenantCode = String(loginForm.tenantCode || "").trim().toLowerCase();
   try {
     loading.value = true;
     authStore.$reset();
@@ -415,6 +456,7 @@ const submitLogin = async (otpCode: string) => {
       password: String(password),
       codeKey,
       securityCode,
+      ...(tenantCode ? { tenantCode } : {}),
       ...(otpCode ? { otpCode } : {}),
     });
 

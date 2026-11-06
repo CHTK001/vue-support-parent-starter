@@ -180,6 +180,14 @@
   min-width: 0;
   line-height: inherit;
   padding: 0 16px;
+  height: 100%;
+}
+.re-table .el-table__body-wrapper .el-table__empty-text > .re-empty__figure {
+  /* 空态图铺满空块：100% 宽 + 100% 高，--re-empty-aspect-ratio: auto 关掉比例
+     取高（由上联空块高度链给死），不再回 336px 封顶 / 5/4 卡高。 */
+  --re-empty-figure-width: 100%;
+  --re-empty-aspect-ratio: auto;
+  height: 100%;
 }
 .re-table .el-table__body-wrapper .el-empty {
   padding: 28px 0 36px;

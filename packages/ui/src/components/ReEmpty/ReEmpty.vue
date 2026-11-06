@@ -47,12 +47,18 @@
  * ReEmpty —— 空状态组件
  *
  * 透传 el-empty 全部能力。
- *   - layout：布局变体，"el"（默认，el-empty）/ "modern"（现代化扁平空状态）
- *            / "plot"（以 hairline plot 图代替文字，挂载于 .re-empty__figure）
+ *   - layout：布局变体，"el"（el-empty）/ "modern"（现代化扁平空状态）
+ *            / "plot"（以 hairline 图代替文字，挂载于 .re-empty__figure）
+ *   - figure：plot 用哪款 hairline 图形（plot / phosphor / terrain / …，
+ *            可选键见 ./figures.ts）。不传时取全局配置，默认 "plot"。
+ *   - 不传 layout 时取 app.yaml 的 other.emptyState（默认 "el"，与接入配置前一致）；
+ *     显式传值永远优先，所以业务里写死的 layout 不会被部署配置改掉。
  */
 import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { plot } from "@lucasmarkes/hairline";
+import { getConfig } from "@repo/config";
 import type { Figure } from "@lucasmarkes/hairline";
+import { mountHairlineFigure, normalizeHairlineFigure } from "./figures";
+import { resolveEmptyFigure, resolveEmptyLayout } from "./resolve";
 
 /** Modern 布局组件（按需异步加载） */
 const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
@@ -61,58 +67,101 @@ defineOptions({ name: "ReEmpty" });
 
 const props = withDefaults(
   defineProps<{
-    /** 布局变体："el"（默认 el-empty）/ "modern"（现代化扁平空状态）/ "plot"（hairline 图） */
+    /** 布局变体："el"（el-empty）/ "modern"（现代化扁平空状态）/ "plot"（hairline 图）。
+     *  不传时由 app.yaml 的 other.emptyState 决定（默认 "el"）。 */
     layout?: "el" | "modern" | "plot";
+    /** 「plot」用哪款 hairline 图形（如 plot / phosphor / terrain …）。
+     *  不传时由 app.yaml 的 other.emptyState.hairline 决定（默认 "plot"）。 */
+    figure?: string;
     image?: string;
     imageSize?: number;
     description?: string;
   }>(),
   {
-    layout: "el",
+    // 故意不设默认值：要区分「没传」与「显式传 el」——前者才允许被全局配置接管
+    layout: undefined,
+    figure: undefined,
     image: undefined,
     imageSize: undefined,
     description: undefined,
   },
 );
 
+/**
+ * 实际布局：显式 prop > 全局配置 other.emptyState > "el"。
+ * 用 computed 而不是 prop 默认值，这样 admin 在主题配置里切换样式时能即时生效。
+ */
+const layout = computed(() => {
+  const appConfig = getConfig();
+  return resolveEmptyLayout(props.layout, appConfig?.other?.emptyState);
+});
+
+/** 实际的 hairline 图形键：显式 prop > 全局配置 > "plot"（非法键名会被兜底） */
+const figureKey = computed(() => {
+  const appConfig = getConfig();
+  return normalizeHairlineFigure(
+    resolveEmptyFigure(props.figure, appConfig?.other?.emptyState),
+  );
+});
+
 /** 图挂载的位置；plot 布局下是唯一的根元素 */
 const figureEl = ref<HTMLDivElement>();
 const figure = ref<Figure | null>(null);
 
-/** 挂载 plot 图（SSR 安全：没有 DOM 时不创建） */
-function mountFigure() {
+/** 令牌：换图 / 卸载时，尚未回来的异步加载不能覆盖新的图 */
+let mountToken = 0;
+
+/** 挂载 hairline 图（SSR 安全：没有 DOM 时不创建；图库是懒加载的，等它到） */
+async function mountFigure() {
   // SSR 安全：无 DOM 时不创建。
   if (typeof document === "undefined") return;
   const el = figureEl.value;
   if (!el) return;
-  figure.value = plot(el, { theme: "auto" });
-  if (props.description) figure.value.update({ label: props.description });
+  // 挂之前先清：图形切换 / 布局来回切时不能叠层
+  unmountFigure();
+  const mine = mountToken;
+  let made: Figure;
+  try {
+    made = await mountHairlineFigure(el, figureKey.value, { theme: "auto" });
+  } catch {
+    // 图库分包拿不到（离线 / 旧构建）：空状态退回文案，不白屏
+    return;
+  }
+  if (mine !== mountToken || !figureEl.value) {
+    made.destroy();
+    return;
+  }
+  figure.value = made;
+  if (props.description) made.update({ label: props.description });
 }
 
 /** 销毁图（幂等：停止动画，卸下 svg / aria / 属性） */
 function unmountFigure() {
+  mountToken += 1;
   figure.value?.destroy();
   figure.value = null;
 }
 
 onMounted(() => {
-  if (props.layout === "plot") nextTick(mountFigure);
+  if (layout.value === "plot") nextTick(mountFigure);
 });
 
 onBeforeUnmount(unmountFigure);
 
-watch(
-  () => props.layout,
-  (nextLayout) => {
-    if (nextLayout === "plot") nextTick(mountFigure);
-    else unmountFigure();
-  },
-);
+watch(layout, (nextLayout) => {
+  if (nextLayout === "plot") nextTick(mountFigure);
+  else unmountFigure();
+});
+
+// 图形类型变化（主题配置里换一款）→ 重新挂，旧图先销毁
+watch(figureKey, () => {
+  if (layout.value === "plot") nextTick(mountFigure);
+});
 
 watch(
   () => props.description,
   (label) => {
-    if (props.layout !== "plot" || !figure.value) return;
+    if (layout.value !== "plot" || !figure.value) return;
     if (label) figure.value.update({ label });
     else figure.value.update({ label: undefined });
   },
@@ -122,7 +171,18 @@ watch(
 <style scoped>
 /* plot 布局：图占满空块，宽度由宿主（如 .re-table__view-empty）通过
    --re-empty-figure-width 下达（336px），不加注时填充满零块，上限 336px。
-   高由 hairline 的 aspect-ratio: 5/4 控制。
+   高默认跟 Hairline 的 aspect-ratio: 5/4 走，宿主通过 --re-empty-aspect-ratio
+   接管高度逻辑；给死 host 高度的 e.g. height:100% 时 ratio 自动退让。
+
+   ⚠ 这是 ReTable 侧的「宿主 vartight 契约」：宿主 CSS 里写
+     --re-empty-figure-width: 100%;
+     --re-empty-aspect-ratio: auto;
+     height: 100%;
+   图就铺满宿主的宽高（box-sizing 已关）—— 两空零块填满。standalone
+   ReEmpty（不进 ReTable）什么都不写，照旧 336px 宽 / 5/4 高：aspect-ratio
+   兜底，图不塌。aspect-ratio 天生低权的唯一原因：宿主没有显式高度时，
+   它是唯一判定图尺寸的手腕（hairline 的 :where([data-hairline]) 零权，
+   这里的 .re-empty__figure 永远压它）。
 
    ⚠ margin-inline: auto 不是可有可无的。宿主是「width:100% + max-width:336px」的块级元素，
    父级一旦不是「flex 居中」，它就会贴左 —— 实测（test/vue/re-empty-plot/probe.mjs）：
@@ -136,5 +196,7 @@ watch(
   max-width: var(--re-empty-figure-width, 336px);
   box-sizing: border-box;
   margin-inline: auto;
+  height: auto;
+  aspect-ratio: var(--re-empty-aspect-ratio, 5/4);
 }
 </style>

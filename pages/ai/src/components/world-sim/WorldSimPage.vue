@@ -10,7 +10,7 @@
           </svg>
           <input v-model="worldKw" class="ws-search-input" type="text" placeholder="搜索世界" />
         </div>
-        <button class="ws-add" type="button" title="创建世界" @click="openCreateWorld">
+        <button class="ws-add" type="button" title="创建一个新世界，其余交给 AI" @click="openCreateWorld">
           <el-icon><Plus /></el-icon>
         </button>
       </div>
@@ -30,7 +30,7 @@
               <span v-if="w.weather" class="ws-conv-weather" :title="'天气：' + w.weather">{{ w.weather }}</span>
             </div>
             <div class="ws-conv-row2">
-              <span class="ws-conv-preview">{{ w.era || '现代' }} · {{ w.sceneCount || 0 }} 场景 · {{ w.npcCount || 0 }} NPC</span>
+              <span class="ws-conv-preview">{{ w.era || '现代' }} · {{ w.sceneCount || 0 }} 场景 · {{ w.npcCount || 0 }} 角色</span>
               <span class="ws-conv-more" title="更多操作" @click.stop>
                 <el-dropdown trigger="click" placement="bottom-end" @command="(c) => onWorldCmd(c, w)">
                   <el-icon><MoreFilled /></el-icon>
@@ -54,22 +54,28 @@
             stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
           </svg>
-          <p>{{ worlds.length ? '没有匹配的世界' : '还没有世界，点右上角 + 创建' }}</p>
+          <p>{{ worlds.length ? '没有匹配的世界' : '还没有世界，点右上角 + 让 AI 造一个' }}</p>
         </div>
       </div>
     </aside>
 
-    <!-- ============ 中间：场景对话 ============ -->
+    <!-- ============ 中间：台本 ============ -->
     <section class="ws-chat">
       <template v-if="currentWorld">
-        <!-- 世界头部：名称 / 时代 / 时间 / 天气 / 推进 / 设置 -->
+        <!-- 台头：世界名 / 时代 / 时间 / 天气 / 观测 -->
         <header class="ws-chat-head">
           <div class="ws-chat-title-wrap">
             <span class="ws-chat-name">{{ currentWorld.name }}</span>
-            <span class="ws-chat-eras"><el-tag size="small" effect="plain">{{ currentWorld.era || '现代' }}</el-tag></span>
+            <el-tag size="small" effect="plain">{{ currentWorld.era || '现代' }}</el-tag>
             <span class="ws-chat-time">{{ currentWorld.timeLabel || '第 1 天 上午' }}</span>
+            <span v-if="currentWorld.weather" class="ws-chat-weather">{{ currentWorld.weather }}</span>
           </div>
           <div class="ws-chat-head-actions">
+            <button class="ws-auto" type="button" :class="{ on: autoWatch }" :title="autoWatch ? '停止自动观看' : '让世界自己演下去'"
+              @click="toggleAutoWatch">
+              <span class="ws-auto-dot"></span>
+              {{ autoWatch ? '自动观看中' : '自动观看' }}
+            </button>
             <button class="ws-chat-adv" type="button" :disabled="advancing" title="推进时间，生成世界动态"
               @click="advance">
               <el-icon v-if="!advancing"><VideoPlay /></el-icon>
@@ -82,102 +88,227 @@
           </div>
         </header>
 
-        <!-- 场景切换条 -->
-        <div class="ws-scene-bar">
-          <div class="ws-scene-tabs">
+        <!-- 幕次胶片条：横向，一眼看清演到第几幕 -->
+        <div class="ws-reel">
+          <div class="ws-reel-track">
             <button
-              v-for="s in scenes"
-              :key="s.id"
-              class="ws-scene-tab"
-              :class="{ active: currentSceneId === s.id }"
+              v-for="a in acts"
+              :key="a.actNo"
+              class="ws-frame"
+              :class="{ active: currentAct?.actNo === a.actNo }"
               type="button"
-              :data-id="s.id"
-              @click="selectScene(s)"
-            >{{ s.name }}</button>
-            <button class="ws-scene-add" type="button" title="新建场景" @click="openCreateScene">
+              :data-actno="a.actNo"
+              @click="selectAct(a)"
+            >
+              <span class="ws-frame-no">第 {{ a.actNo }} 幕</span>
+              <span class="ws-frame-name">{{ a.title || '未命名幕次' }}</span>
+              <span class="ws-frame-foot">
+                <span class="ws-stage-dot" :class="actStageTone(a.stage)"></span>
+                <span class="ws-frame-stage">{{ actStageName(a.stage) }}</span>
+                <span class="ws-frame-progress">{{ actProgress(a) }}%</span>
+              </span>
+            </button>
+            <button v-if="acts.length" class="ws-frame ws-frame-add" type="button" title="新建幕次" @click="openCreateAct">
               <el-icon><Plus /></el-icon>
             </button>
           </div>
-          <div class="ws-scene-count">{{ sceneNpcs.length }} 位角色在场</div>
+          <div class="ws-reel-side">
+            <span class="ws-reel-count">{{ acts.length ? `共 ${acts.length} 幕` : '还没有幕次' }}</span>
+          </div>
         </div>
 
-        <!-- 消息区 -->
-        <div ref="msgBoxRef" class="ws-msgs">
-          <div
-            v-for="m in messages"
-            :key="m._key"
-            class="ws-msg"
-            :class="m.speakerType === 'user' ? 'is-self' : 'is-other'"
-          >
-            <CardAvatar
-              v-if="m.speakerType !== 'user'"
-              :src="avatarOf(m)"
-              :name="m.speakerName || 'AI'"
-              size="md"
-              class="ws-msg-avatar"
-            />
-            <div class="ws-msg-col">
-              <div v-if="m.speakerType !== 'user'" class="ws-msg-meta">
-                <span class="ws-msg-name">{{ m.speakerName }}</span>
-                <span v-if="m.streaming" class="ws-msg-typing">{{ m.speakerName || 'AI' }} 正在输入…</span>
-                <span v-if="m.modelName" class="ws-msg-model" :title="m.modelName">{{ displayModel(m.modelName) }}</span>
+        <!-- 舞台：当前幕次的演出（正文只读） -->
+        <div ref="msgBoxRef" class="ws-stage">
+          <template v-if="currentAct && actDetail">
+            <div class="ws-act-head">
+              <div class="ws-act-head-main">
+                <span class="ws-act-head-no">第 {{ currentAct.actNo }} 幕</span>
+                <h2 class="ws-act-head-title">{{ actDetail.act?.title || '未命名幕次' }}</h2>
+                <span class="ws-tag" :class="actStageTone(actDetail.act?.stage)">{{ actStageName(actDetail.act?.stage) }}</span>
               </div>
-              <div class="ws-bubble" :class="[m.speakerType === 'user' ? 'b-self' : 'b-other', { 'typing-bubble': m.streaming }]">
-                <MarkdownContent v-if="m.speakerType !== 'user'" class="markdown-text" :content="m.content" />
-                <span v-else class="ws-plain">{{ m.content }}</span>
-                <span v-if="m.streaming" class="typing-dots"><i></i><i></i><i></i></span>
+              <div class="ws-act-head-ops">
+                <button class="btn ghost" type="button" @click="showScript = !showScript">
+                  {{ showScript ? '收起剧本' : '看剧本' }}
+                </button>
+                <button v-for="btn in availablePipeline" :key="btn.label" class="btn" :class="{ primary: btn.primary }"
+                  type="button" :disabled="actProcessing" @click="actPipelineAction(btn)">
+                  {{ btn.label }}
+                </button>
               </div>
             </div>
-            <CardAvatar v-if="m.speakerType === 'user'" name="我" size="md" class="ws-msg-avatar" />
-          </div>
 
-          <div v-if="!messages.length" class="ws-msgs-empty">
-            <p>在【{{ currentScene?.name || '场景' }}】里说点什么吧</p>
-            <p class="sub">@ 指定 NPC，或直接说话让场景里最合适的角色回应</p>
-          </div>
-        </div>
+            <!-- 编剧 / 素材进行中 -->
+            <div v-if="actProcessing" class="ws-stage-hint">
+              <span class="ws-spin"><el-icon><Loading /></el-icon></span>
+              <span>{{ actBusyText }}</span>
+            </div>
 
-        <!-- 输入区 -->
-        <div class="ws-input">
-          <div v-if="pendingAt" class="ws-at-chip">
-            <el-tag closable type="primary" @close="pendingAt = null">@{{ pendingAt.displayName }}</el-tag>
-          </div>
+            <!-- 演出正文 -->
+            <article v-if="storyScenes.length" class="ws-play" data-role="play">
+              <section v-for="(s, i) in storyScenes" :key="i" class="ws-cue">
+                <div class="ws-cue-side">
+                  <span class="ws-cue-no">{{ s.no }}</span>
+                  <span v-if="s.stageName" class="ws-cue-where">{{ s.stageName }}</span>
+                </div>
+                <div class="ws-cue-body">
+                  <h3 class="ws-cue-title">{{ s.title }}</h3>
+                  <div v-if="s.cast" class="ws-cue-cast">在场：{{ s.cast }}</div>
+                  <p class="ws-cue-text">{{ s.body }}</p>
+                  <img v-if="s.image" class="ws-cue-img" :src="s.image" :alt="s.title" />
+                </div>
+              </section>
+            </article>
 
-          <div class="ws-input-tools">
-            <div class="ws-at-wrap">
-              <button class="ws-tool" type="button" title="@ NPC" @click="atMenuVisible = !atMenuVisible">
-                <span class="ws-tool-at">@</span>
-              </button>
-              <div v-if="atMenuVisible" class="ws-at-menu">
-                <div v-if="!npcs.length" class="ws-at-empty">世界里还没有 NPC，去侧栏「管理」添加</div>
-                <div v-for="n in npcs" :key="n.id" class="ws-at-item" @click="onPickAt(n)">
-                  <CardAvatar :src="n.displayAvatar" :name="n.displayName || 'AI'" size="sm" />
-                  <span class="ws-at-name">{{ n.displayName }}</span>
-                  <span class="ws-at-scene">{{ sceneNameOf(n.sceneId) }}</span>
+            <!-- 还没演出：等 AI 写 -->
+            <div v-else class="ws-stage-empty" data-role="stage-empty">
+              <div class="ws-stage-empty-art">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 4h16v12H4z" /><path d="M8 20h8M12 16v4" /><path d="m9 10 2 2 4-4" />
+                </svg>
+              </div>
+              <p class="ws-stage-empty-title">{{ stageEmptyTitle }}</p>
+              <p class="ws-stage-empty-sub">{{ stageEmptySub }}</p>
+              <button v-if="stageEmptyAction" class="btn primary" type="button" :disabled="actProcessing"
+                @click="actPipelineAction(stageEmptyAction)">{{ stageEmptyAction.label }}</button>
+            </div>
+
+            <!-- 剧本原文（折叠） -->
+            <div v-if="showScript && actDetail.script" class="ws-script">
+              <div class="ws-script-head">
+                <span>剧本 act{{ currentAct.actNo }}.json</span>
+                <button class="ws-mini" type="button" @click="showScript = false">✕</button>
+              </div>
+              <pre class="ws-script-body">{{ actDetail.script }}</pre>
+            </div>
+
+            <!-- 素材（折叠） -->
+            <details v-if="actAssetSections().length" class="ws-assets">
+              <summary class="ws-assets-sum">素材 {{ assetDone(actDetail) }} / {{ assetTotal(actDetail) }}</summary>
+              <div class="ws-assets-grid">
+                <div v-for="sec in actAssetSections()" :key="sec.key" class="ws-asset-sec">
+                  <div class="ws-asset-head">{{ sec.label }}（{{ sec.items?.length }}）</div>
+                  <div class="ws-asset-card" v-for="it in sec.items" :key="it.name">
+                    <span class="ws-asset-name">{{ it.name }}</span>
+                    <span class="ws-asset-desc">{{ it.desc || it.text || '暂无描述' }}</span>
+                    <span v-if="it.mediaImage" class="ws-tag sm" :class="mediaStatusClass(it.mediaImage)">{{ mediaStatusName(it.mediaImage) }}</span>
+                  </div>
                 </div>
               </div>
+            </details>
+          </template>
+
+          <!-- 未选幕次：现场对话 -->
+          <template v-else>
+            <div class="ws-scene-bar">
+              <div class="ws-scene-tabs">
+                <button
+                  v-for="s in scenes"
+                  :key="s.id"
+                  class="ws-scene-tab"
+                  :class="{ active: currentSceneId === s.id }"
+                  type="button"
+                  :data-id="s.id"
+                  @click="selectScene(s)"
+                >{{ s.name }}</button>
+                <button class="ws-scene-add" type="button" title="新建场景" @click="openCreateScene">
+                  <el-icon><Plus /></el-icon>
+                </button>
+              </div>
+              <div class="ws-scene-count">{{ sceneNpcs.length }} 位角色在场</div>
             </div>
-          </div>
 
-          <textarea
-            ref="taInputRef"
-            v-model="draft"
-            class="ws-textarea"
-            rows="4"
-            placeholder="说出你的行动或台词…"
-            @keydown.enter.exact.prevent="send"
-            @keydown.enter.shift.exact="onShiftEnter"
-          ></textarea>
+            <div class="ws-msgs">
+              <div
+                v-for="m in messages"
+                :key="m._key"
+                class="ws-msg"
+                :class="m.speakerType === 'system' ? 'is-narr' : (m.speakerType === 'user' ? 'is-self' : 'is-other')"
+              >
+                <template v-if="m.speakerType === 'system'">
+                  <div class="ws-narr">{{ m.content }}</div>
+                </template>
+                <template v-else>
+                  <CardAvatar
+                    v-if="m.speakerType !== 'user'"
+                    :src="avatarOf(m)"
+                    :name="m.speakerName || 'AI'"
+                    size="md"
+                    class="ws-msg-avatar"
+                  />
+                  <div class="ws-msg-col">
+                    <div v-if="m.speakerType !== 'user'" class="ws-msg-meta">
+                      <span class="ws-msg-name">{{ m.speakerName }}</span>
+                      <span v-if="m.streaming" class="ws-msg-typing">{{ m.speakerName || 'AI' }} 正在输入…</span>
+                      <span v-if="m.modelName" class="ws-msg-model" :title="m.modelName">{{ displayModel(m.modelName) }}</span>
+                    </div>
+                    <div class="ws-bubble" :class="[m.speakerType === 'user' ? 'b-self' : 'b-other', { 'typing-bubble': m.streaming }]">
+                      <MarkdownContent v-if="m.speakerType !== 'user'" class="markdown-text" :content="m.content" />
+                      <span v-else class="ws-plain">{{ m.content }}</span>
+                      <span v-if="m.streaming" class="typing-dots"><i></i><i></i><i></i></span>
+                    </div>
+                  </div>
+                  <CardAvatar v-if="m.speakerType === 'user'" name="我" size="md" class="ws-msg-avatar" />
+                </template>
+              </div>
 
-          <div class="ws-input-foot">
-            <span class="ws-foot-hint">回车发送 · Shift + 回车换行</span>
-            <button
-              class="ws-send"
-              type="button"
-              :class="{ ready: draft.trim() }"
-              @click="send"
-            >行动(S)</button>
-          </div>
+              <div v-if="!messages.length" class="ws-msgs-empty">
+                <p>在【{{ currentScene?.name || '场景' }}】里还没开演</p>
+                <p class="sub">点下方「观演一次」，让 AI 自己接下去；也可以 @ 某位角色点名</p>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- 底部：观演 / 介入（只读账号隐藏输入） -->
+        <div class="ws-input">
+          <template v-if="readingOnly">
+            <div class="ws-watch-bar">
+              <span class="ws-watch-hint">只读账号：你只能看。角色与关系可微调，剧情由 AI 推进。</span>
+              <button class="btn primary" type="button" :disabled="spectating || !canSpectate"
+                :title="canSpectate ? '让 AI 在这个场景继续演一段' : '回到对话视图才能观演'"
+                @click="spectate">
+                <el-icon v-if="!spectating"><VideoPlay /></el-icon>
+                <span v-else class="ws-spin"><el-icon><Loading /></el-icon></span>
+                观演一次
+              </button>
+            </div>
+          </template>
+          <template v-else>
+            <div v-if="pendingAt" class="ws-at-chip">
+              <el-tag closable type="primary" @close="pendingAt = null">@{{ pendingAt.displayName }}</el-tag>
+            </div>
+            <div class="ws-input-tools">
+              <div class="ws-at-wrap">
+                <button class="ws-tool" type="button" title="@ 某位角色" @click="atMenuVisible = !atMenuVisible">
+                  <span class="ws-tool-at">@</span>
+                </button>
+                <div v-if="atMenuVisible" class="ws-at-menu">
+                  <div v-if="!npcs.length" class="ws-at-empty">世界里还没有角色</div>
+                  <div v-for="n in npcs" :key="n.id" class="ws-at-item" @click="onPickAt(n)">
+                    <CardAvatar :src="n.displayAvatar" :name="n.displayName || 'AI'" size="sm" />
+                    <span class="ws-at-name">{{ n.displayName }}</span>
+                    <span class="ws-at-scene">{{ sceneNameOf(n.sceneId) }}</span>
+                  </div>
+                </div>
+              </div>
+              <button class="ws-tool ws-tool-watch" type="button" :disabled="spectating || !canSpectate"
+                title="不说话，让 AI 自己演一小段" @click="spectate">观演</button>
+            </div>
+            <textarea
+              ref="taInputRef"
+              v-model="draft"
+              class="ws-textarea"
+              rows="3"
+              placeholder="介入这一幕：说一句话或做一个动作（不填也可点「观演」交给 AI）"
+              @keydown.enter.exact.prevent="send"
+              @keydown.enter.shift.exact="onShiftEnter"
+            ></textarea>
+            <div class="ws-input-foot">
+              <span class="ws-foot-hint">回车发送 · Shift + 回车换行</span>
+              <button class="ws-send" type="button" :class="{ ready: draft.trim() }" @click="send">行动</button>
+            </div>
+          </template>
         </div>
       </template>
 
@@ -189,12 +320,12 @@
             <circle cx="12" cy="12" r="10" />
             <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
           </svg>
-          <p>选择一个世界，或点左上角 + 创建世界沙盒</p>
+          <p>选择一个世界，或点左上角 + 让 AI 造一个</p>
         </div>
       </div>
     </section>
 
-    <!-- ============ 右侧：时间线 / 关系 / 管理 ============ -->
+    <!-- ============ 右侧：人物 / 关系 / 编年 / 舞台 ============ -->
     <aside class="ws-side">
       <div class="ws-side-tabs">
         <button v-for="tab in sideTabs" :key="tab.key" type="button"
@@ -203,24 +334,27 @@
         </button>
       </div>
 
-      <!-- 事件时间线 -->
-      <div v-show="sideTab === 'timeline'" class="ws-side-body">
-        <div class="ws-side-hint">世界动态 · 推进时间后生成</div>
-        <div v-if="!events.length" class="ws-side-empty">还没有事件。点右上角「推进时间」生成世界动态。</div>
-        <div v-for="(ev, i) in events" :key="ev.id ?? i" class="tl-item">
-          <div class="tl-head">
-            <span class="tl-title">{{ ev.eventType === 'advance' ? '⏱' : '💬' }} {{ ev.title }}</span>
-            <span class="tl-time">{{ fmtDay(ev.createTime) }}</span>
+      <!-- 人物：点开微调人设与关系 -->
+      <div v-show="sideTab === 'cast'" class="ws-side-body">
+        <div class="ws-side-hint">AI 造的角色。你可以调性格与关系，其余交给世界。</div>
+        <div v-for="n in npcs" :key="n.id" class="cast-item" :data-npc="n.id" @click="openNpcEdit(n)">
+          <CardAvatar :src="n.displayAvatar" :name="n.displayName || 'AI'" size="md" />
+          <div class="cast-main">
+            <div class="cast-name">
+              {{ n.displayName }}
+              <span v-if="n.isActive === false" class="ws-tag sm">挂起</span>
+            </div>
+            <div class="cast-sub">{{ sceneNameOf(n.sceneId) }}</div>
+            <div class="cast-persona">{{ n.persona || n.sysPrompt || '（没有单独的性格设定）' }}</div>
           </div>
-          <div class="tl-content">{{ ev.content }}</div>
-          <div v-if="eventNpcs(ev).length" class="tl-npcs">{{ eventNpcs(ev).join('、') }}</div>
         </div>
+        <div v-if="!npcs.length" class="ws-side-empty">还没有角色。AI 演出与「让 AI 造角色」会补上。</div>
       </div>
 
-      <!-- 关系网 -->
+      <!-- 关系 -->
       <div v-show="sideTab === 'relations'" class="ws-side-body">
-        <div class="ws-side-hint">NPC 间好感度（-100 ~ 100），互动后自动演化</div>
-        <div v-if="!relationships.length" class="ws-side-empty">还没有关系。NPC 之间互动或推进时间后自动生成。</div>
+        <div class="ws-side-hint">关系程度（-100 ~ 100）。点一条可微调，世界会照着演。</div>
+        <div v-if="!relationships.length" class="ws-side-empty">还没有关系。AI 互动或推进时间后自动生成。</div>
         <div v-for="r in relationships" :key="r.id" class="rel-item" @click="openRelEdit(r)">
           <CardAvatar :src="r.fromAvatar" :name="r.fromName || '?'" size="sm" class="rel-avatar" />
           <div class="rel-main">
@@ -228,7 +362,7 @@
               <span class="rel-name">{{ r.fromName }}</span>
               <span class="rel-arrow">↔</span>
               <span class="rel-name">{{ r.toName }}</span>
-              <el-tag v-if="r.relationTag" size="small" effect="plain" class="rel-tag">{{ r.relationTag }}</el-tag>
+              <span v-if="r.relationTag" class="ws-tag sm">{{ r.relationTag }}</span>
             </div>
             <div v-if="r.memo" class="rel-memo" :title="r.memo">{{ r.memo }}</div>
             <div class="rel-bar-wrap">
@@ -239,141 +373,45 @@
         </div>
       </div>
 
-      <!-- 管理：场景 + NPC -->
-      <div v-show="sideTab === 'manage'" class="ws-side-body">
+      <!-- 编年（事件） -->
+      <div v-show="sideTab === 'timeline'" class="ws-side-body">
+        <div class="ws-side-hint">世界动态。推进时间与演出都会留下记录。</div>
+        <div v-if="!events.length" class="ws-side-empty">还没有事件。点「推进时间」生成世界动态。</div>
+        <div v-for="(ev, i) in events" :key="ev.id ?? i" class="tl-item">
+          <div class="tl-head">
+            <span class="tl-title">{{ ev.eventType === 'advance' ? '⏱' : '💬' }} {{ ev.title }}</span>
+            <span class="tl-time">{{ fmtDay(ev.createTime) }}</span>
+          </div>
+          <div class="tl-content">{{ ev.content }}</div>
+          <div v-if="eventNpcs(ev).length" class="tl-npcs">{{ eventNpcs(ev).join('、') }}</div>
+        </div>
+      </div>
+
+      <!-- 舞台（场景布置） -->
+      <div v-show="sideTab === 'stage'" class="ws-side-body">
         <div class="ws-mg-section">
           <div class="ws-mg-head">
             <span class="ws-mg-title">场景（{{ scenes.length }}）</span>
             <button class="ws-mg-add" type="button" title="新建场景" @click="openCreateScene">+</button>
           </div>
           <div v-for="s in scenes" :key="s.id" class="ws-mg-scene">
-            <span class="ws-mg-scene-name">{{ s.name }}</span>
-            <span class="ws-mg-scene-count">{{ npcs.filter(n => n.sceneId === s.id).length }} 人</span>
+            <span class="ws-mg-scene-name" @click="goScene(s)">{{ s.name }}</span>
+            <span class="ws-mg-scene-count">{{ npcCountOf(s.id) }} 人</span>
             <button class="ws-mg-del" type="button" title="删除场景" @click="deleteScene(s)">✕</button>
           </div>
           <div v-if="!scenes.length" class="ws-side-empty">还没有场景</div>
-        </div>
-
-        <div class="ws-mg-section">
-          <div class="ws-mg-head">
-            <span class="ws-mg-title">世界 NPC（{{ npcs.length }}）</span>
-            <button class="ws-mg-add" type="button" title="添加角色为世界 NPC" @click="addNpcVisible = true">+</button>
-          </div>
-          <div v-for="n in npcs" :key="n.id" class="ws-mg-npc" title="点击编辑该 NPC" @click="openNpcEdit(n)">
-            <CardAvatar :src="n.displayAvatar" :name="n.displayName || 'AI'" size="sm" class="ws-mg-npc-avatar" />
-            <div class="ws-mg-npc-main">
-              <div class="ws-mg-npc-name">
-                {{ n.displayName }}
-                <el-switch
-                  v-model="n.isActive"
-                  size="small"
-                  class="ws-mg-active"
-                  inline-prompt
-                  active-text="参与"
-                  inactive-text="挂起"
-                  @click.stop
-                  @change="saveNpcActive(n)"
-                />
-              </div>
-              <div class="ws-mg-npc-sub">{{ npcSub(n) }}</div>
-            </div>
-            <button class="ws-mg-del" type="button" title="移除 NPC" @click.stop="removeNpc(n)">✕</button>
-          </div>
-          <div v-if="!npcs.length" class="ws-side-empty">还没有 NPC。「+」从角色库添加</div>
-        </div>
-      </div>
-
-      <!-- 剧本幕次 -->
-      <div v-show="sideTab === 'acts'" class="ws-side-body ws-acts-body">
-        <!-- 幕次列表 -->
-        <div class="ws-acts-list">
-          <div class="ws-acts-head">
-            <span class="ws-acts-label">幕次列表</span>
-            <button class="ws-act-create" type="button" title="新建幕次" @click="openCreateAct">
-              <el-icon><Plus /></el-icon>
-            </button>
-          </div>
-          <div v-if="acts.length" class="ws-act-lst">
-            <div v-for="a in acts" :key="a.actNo" class="ws-act-row" :class="{ active: currentAct?.actNo === a.actNo }" @click="selectAct(a)">
-              <div class="ws-act-row-head">
-                <span class="ws-act-row-name">{{ a.title || '未命名幕次' }}</span>
-                <span class="ws-act-stage" :class="actStageTone(a.stage)">{{ actStageName(a.stage) }}</span>
-              </div>
-              <div class="ws-act-row-foot">
-                <span class="ws-act-row-no">第 {{ a.actNo }} 幕</span>
-                <el-progress :percentage="actProgress(a)" :stroke-width="3" :show-text="false" class="ws-act-row-progress" />
-              </div>
-            </div>
-          </div>
-          <div v-else class="ws-side-empty">{{ currentWorldId ? '还没有幕次，点击 + 创建第一幕' : '先选择一个世界' }}</div>
-        </div>
-
-        <!-- 幕次详情 -->
-        <div v-if="currentAct && actDetail" class="ws-act-detail">
-          <div class="ws-act-detail-hd">
-            <h3 class="ws-act-detail-title">第 {{ currentAct.actNo }} 幕：{{ actDetail.act?.title }}</h3>
-            <span class="ws-act-stage" :class="actStageTone(actDetail.act?.stage)">{{ actStageName(actDetail.act?.stage) }}</span>
-            <div class="ws-act-progress">
-              <span class="ws-act-progress-text">{{ assetDone(actDetail) }} / {{ assetTotal(actDetail) }}</span>
-              <el-progress :percentage="actProgress(actDetail)" :stroke-width="4" :show-text="false" />
-            </div>
-          </div>
-
-          <div class="ws-act-detail-body">
-            <!-- 剧本显示 -->
-            <div v-if="showScript && actDetail.script" class="ws-act-script">
-              <div class="ws-act-script-head">
-                <span class="ws-act-script-title">剧本（act{{ currentAct.actNo }}.json）</span>
-                <button class="ws-act-script-close" type="button" @click="showScript = false">✕</button>
-              </div>
-              <pre class="ws-script-item">{{ actDetail.script }}</pre>
-            </div>
-
-            <!-- 场景 / 过场 / 道具 素材 -->
-            <div class="ws-act-assets">
-              <div class="ws-act-asset-section" v-for="sec in actAssetSections()" :key="sec.key">
-                <div class="ws-act-asset-head">{{ sec.label }}（{{ sec.items?.length }}）</div>
-                <div class="ws-act-asset-grid">
-                  <div v-for="it in sec.items" :key="it.name" class="ws-act-asset-card">
-                    <div class="ws-act-asset-info">
-                      <div class="ws-act-asset-name">{{ it.name }}</div>
-                      <div class="ws-act-asset-desc">{{ it.desc || it.text || '暂无描述' }}</div>
-                    </div>
-                    <div class="ws-act-asset-media">
-                      <div class="ws-act-media-band" v-if="it.mediaImage">
-                        <img v-if="it.mediaImage.url" class="ws-act-media-img" :src="it.mediaImage.url" />
-                        <span class="ws-act-media-status" :class="mediaStatusClass(it.mediaImage)">{{ mediaStatusName(it.mediaImage) }}</span>
-                        <a v-if="it.mediaImage.url" class="ws-act-media-url" target="_blank" :href="it.mediaImage.url">原图</a>
-                      </div>
-                      <div class="ws-act-media-band" v-if="it.mediaVideo">
-                        <img v-if="it.mediaVideo.url" class="ws-act-media-img" :src="it.mediaVideo.url" />
-                        <span class="ws-act-media-status" :class="mediaStatusClass(it.mediaVideo)">{{ mediaStatusName(it.mediaVideo) }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 阶段操作 -->
-            <div class="ws-act-stages">
-              <button v-for="btn in actPipeline" :key="btn.label" class="ws-act-stage-btn" :class="{ active: btn.stage === actStage, disabled: btn.stage !== actStage }" :disabled="btn.stage !== actStage || actProcessing" @click="actPipelineAction(btn)">
-                {{ btn.label }}
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </aside>
 
     <!-- ============ 建世界对话框 ============ -->
     <ReDialog :close-on-click-modal="true" v-model="createVisible" width="460" append-to-body class="ws-dialog">
-      <template #header><span class="ws-dlg-title">创建世界</span></template>
+      <template #header><span class="ws-dlg-title">让 AI 造一个世界</span></template>
       <div class="ws-form">
         <div class="ws-field">
-          <label class="ws-label">世界名称 *</label>
-          <el-input v-model="worldForm.name" placeholder="如：雾都侦探社（留空由 AI 取一个）" maxlength="30" />
-          <span class="ws-hint">不填则由 AI 自动生成一个</span>
+          <label class="ws-label">世界名称</label>
+          <el-input v-model="worldForm.name" placeholder="留空由 AI 取一个" maxlength="30" />
+          <span class="ws-hint">不填也可以，AI 会按种子起名</span>
         </div>
         <div class="ws-field">
           <label class="ws-label">时代背景</label>
@@ -381,10 +419,9 @@
             <div v-for="e in ERA_OPTIONS" :key="e" class="ws-era-tag"
               :class="{ active: worldForm.era === e }" @click="worldForm.era = e">{{ e }}</div>
           </div>
-          <span class="ws-hint">点选时代，或点"随机生成"自动抽签</span>
         </div>
         <div class="ws-field">
-          <label class="ws-label">世界观设定（种子）</label>
+          <label class="ws-label">世界观种子</label>
           <div class="ws-seeds">
             <div v-for="s in WORLD_SEEDS" :key="s.label" class="ws-seed"
               :class="{ active: worldForm.description === s.desc }" @click="applySeed(s)">{{ s.label }}</div>
@@ -396,13 +433,13 @@
       <template #footer>
         <el-button @click="randomCreate">随机生成</el-button>
         <el-button @click="createVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmCreate">创建世界</el-button>
+        <el-button type="primary" :loading="creating" @click="confirmCreate">创建世界</el-button>
       </template>
     </ReDialog>
 
     <!-- ============ 编辑世界对话框 ============ -->
     <ReDialog :close-on-click-modal="true" v-model="editVisible" width="460" append-to-body class="ws-dialog">
-      <template #header><span class="ws-dlg-title">编辑世界</span></template>
+      <template #header><span class="ws-dlg-title">世界设置</span></template>
       <div class="ws-form">
         <div class="ws-field">
           <label class="ws-label">世界名称</label>
@@ -451,59 +488,39 @@
       </template>
     </ReDialog>
 
-    <!-- ============ 添加 NPC 对话框 ============ -->
-    <ReDialog :close-on-click-modal="true" v-model="addNpcVisible" width="520" append-to-body class="ws-dialog">
-      <template #header><span class="ws-dlg-title">添加角色为世界 NPC</span></template>
-      <el-input v-model="charFilter" placeholder="搜索角色" class="ws-char-filter" />
-      <div class="ws-char-list">
-        <div v-for="c in filteredCharacters" :key="c.id" class="ws-char-item">
-          <CardAvatar :src="c.avatarUrl" :name="c.name" size="md" />
-          <div class="ws-char-info">
-            <div class="ws-char-name">{{ c.name }}</div>
-            <div class="ws-char-desc">{{ c.description }}</div>
-          </div>
-          <el-select v-model="npcSceneDraft[c.id]" size="small" placeholder="布置到场景" clearable style="width: 130px">
-            <el-option v-for="s in scenes" :key="s.id" :label="s.name" :value="s.id" />
-          </el-select>
-          <el-button type="primary" plain @click="confirmAddNpc(c)">加入</el-button>
-        </div>
-        <div v-if="!filteredCharacters.length" class="ws-char-empty">没有可选角色</div>
-      </div>
-    </ReDialog>
-
-    <!-- ============ 编辑 NPC 对话框 ============ -->
+    <!-- ============ 微调角色对话框 ============ -->
     <ReDialog :close-on-click-modal="true" v-model="npcEditVisible" width="480" append-to-body class="ws-dialog">
-      <template #header><span class="ws-dlg-title">编辑「{{ npcEditTarget?.displayName }}」</span></template>
+      <template #header><span class="ws-dlg-title">微调「{{ npcEditTarget?.displayName }}」</span></template>
       <div v-if="npcEditTarget" class="ws-form">
         <div class="ws-field">
-          <label class="ws-label">世界内昵称</label>
-          <el-input v-model="npcEditForm.nickname" placeholder="留空使用角色名" maxlength="30" />
+          <label class="ws-label">性格 / 人设（prompt）</label>
+          <el-input v-model="npcEditForm.persona" type="textarea" :rows="5"
+            placeholder="在这个世界里的背景与性格，会盖过角色的系统提示词" />
         </div>
         <div class="ws-field">
-          <label class="ws-label">所在场景</label>
-          <el-select v-model="npcEditForm.sceneId" placeholder="暂不在任何场景" clearable style="width: 100%">
-            <el-option v-for="s in scenes" :key="s.id" :label="s.name" :value="s.id" />
-          </el-select>
+          <label class="ws-label">与 {{ npcEditTarget.displayName }} 的关系</label>
+          <div v-if="!npcRelations.length" class="ws-hint">还没有录入关系，AI 演过几轮后会自动生成。</div>
+          <div v-for="r in npcRelations" :key="r.id" class="npc-rel">
+            <span class="npc-rel-name">{{ otherName(r) }}</span>
+            <el-slider v-model="relDraft[r.id]" :min="-100" :max="100" :step="5" size="small" class="npc-rel-slider" />
+            <span class="npc-rel-val">{{ relDraft[r.id] }}</span>
+          </div>
         </div>
         <div class="ws-field">
-          <label class="ws-label">人设补充</label>
-          <el-input v-model="npcEditForm.persona" type="textarea" :rows="3"
-            placeholder="在这个世界里的背景/性格补充，优先于角色原系统提示词" />
-        </div>
-        <div class="ws-field">
-          <label class="ws-label">参与世界推进</label>
+          <label class="ws-label">参与演出</label>
           <el-switch v-model="npcEditForm.isActive" active-text="参与" inactive-text="挂起" />
+          <span class="ws-hint">挂起的角色不会自动开口</span>
         </div>
       </div>
       <template #footer>
-        <el-button @click="npcEditVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmEditNpc">保存</el-button>
+        <el-button @click="npcEditVisible = false">关闭</el-button>
+        <el-button type="primary" :loading="npcSaving" @click="confirmEditNpc">保存微调</el-button>
       </template>
     </ReDialog>
 
     <!-- ============ 编辑关系对话框 ============ -->
     <ReDialog :close-on-click-modal="true" v-model="relEditVisible" width="420" append-to-body class="ws-dialog">
-      <template #header><span class="ws-dlg-title">编辑关系</span></template>
+      <template #header><span class="ws-dlg-title">关系程度</span></template>
       <div v-if="relEditTarget" class="ws-form">
         <div class="ws-field">
           <label class="ws-label">{{ relEditTarget.fromName }} ↔ {{ relEditTarget.toName }}</label>
@@ -529,7 +546,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, nextTick, watch, onMounted } from 'vue'
+import { ref, reactive, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { MoreFilled, Plus, VideoPlay, Loading } from '@element-plus/icons-vue'
 import MarkdownContent from '@/components/ui/MarkdownContent.vue'
@@ -537,6 +554,7 @@ import CardAvatar from '@/components/ui/CardAvatar.vue'
 import ReDialog from '@repo/ui/re-dialog'
 import { message } from '@repo/core'
 import { apiService } from '@/services/ApiService'
+import { useAuthStore } from '@/stores/auth'
 import type {
   WorldAct,
   WorldActDetail,
@@ -548,6 +566,7 @@ import type {
   WorldRelationship,
   WorldEvent,
   WorldMessage,
+  WorldStory,
 } from '@/services/modules/world-sim.api'
 
 const ERA_OPTIONS = ['现代', '古代', '未来', '奇幻', '武侠', '赛博朋克', '末日', '蒸汽朋克']
@@ -597,9 +616,12 @@ const ACT_STAGE_TONE: Record<string, string> = {
   aborted: 'danger',
 }
 
+/** 自动观看的间隔（毫秒）：一轮演出结束后停一会儿再演下一拍 */
+const AUTO_WATCH_INTERVAL = 6000
+
 interface UIMessage {
   _key: number
-  speakerType: 'user' | 'ai'
+  speakerType: 'user' | 'ai' | 'system'
   speakerId?: string
   speakerName?: string
   content: string
@@ -608,6 +630,7 @@ interface UIMessage {
 }
 
 /* ---------------- 状态 ---------------- */
+const auth = useAuthStore()
 const worlds = ref<WorldItem[]>([])
 const currentWorldId = ref<number | null>(null)
 const currentWorld = ref<WorldItem | null>(null)
@@ -618,27 +641,31 @@ const events = ref<WorldEvent[]>([])
 const acts = ref<WorldActListRow[]>([])
 const currentAct = ref<WorldActListRow | null>(null)
 const actDetail = ref<WorldActDetail | null>(null)
+const stories = ref<WorldStory[]>([])
 const showScript = ref(false)
 const actProcessing = ref(false)
+const actBusyText = ref('AI 正在处理这一幕…')
 const currentSceneId = ref<number | null>(null)
 const messages = ref<UIMessage[]>([])
 const draft = ref('')
 const advancing = ref(false)
+const spectating = ref(false)
+const autoWatch = ref(false)
 const pendingAt = ref<WorldNpc | null>(null)
 const atMenuVisible = ref(false)
 const worldKw = ref('')
 const sending = ref(false)
-const sideTab = ref<'timeline' | 'relations' | 'manage' | 'acts'>('timeline')
+const sideTab = ref<'cast' | 'relations' | 'timeline' | 'stage'>('cast')
 
 const createVisible = ref(false)
 const editVisible = ref(false)
+const creating = ref(false)
 const sceneCreateVisible = ref(false)
-const addNpcVisible = ref(false)
 const npcEditVisible = ref(false)
+const npcSaving = ref(false)
 const relEditVisible = ref(false)
-const charFilter = ref('')
-const characters = ref<any[]>([])
 const npcSceneDraft = reactive<Record<string, number | undefined>>({})
+const relDraft = reactive<Record<number, number>>({})
 
 const worldForm = reactive({
   name: '',
@@ -649,8 +676,8 @@ const worldForm = reactive({
 const sceneForm = reactive({ name: '', description: '' })
 const npcEditTarget = ref<WorldNpc | null>(null)
 const npcEditForm = reactive<{
-  nickname: string; sceneId: number | null; persona: string; isActive: boolean;
-}>({ nickname: '', sceneId: null, persona: '', isActive: true })
+  persona: string; isActive: boolean;
+}>({ persona: '', isActive: true })
 const relEditTarget = ref<WorldRelationship | null>(null)
 const relEditForm = reactive<{ affinity: number; relationTag: string; memo: string }>({
   affinity: 0, relationTag: '', memo: '',
@@ -660,13 +687,17 @@ const msgBoxRef = ref<HTMLElement | null>(null)
 const taInputRef = ref<HTMLTextAreaElement | null>(null)
 let keySeq = 1
 let streamHandle: { close: () => void } | null = null
+let autoTimer: number | null = null
 
-const sideTabs: { key: 'timeline' | 'relations' | 'manage' | 'acts'; label: string }[] = [
-  { key: 'timeline', label: '时间线' },
-  { key: 'relations', label: '关系网' },
-  { key: 'manage', label: '管理' },
-  { key: 'acts', label: '幕次' },
+const sideTabs: { key: 'cast' | 'relations' | 'timeline' | 'stage'; label: string }[] = [
+  { key: 'cast', label: '人物' },
+  { key: 'relations', label: '关系' },
+  { key: 'timeline', label: '编年' },
+  { key: 'stage', label: '舞台' },
 ]
+
+/** 只读账号：后端一律拒绝写操作，前端据此收起所有「造」的入口，只留观看与微调 */
+const readingOnly = computed(() => Boolean((auth.user as any)?.readonly))
 
 /* ---------------- 计算 ---------------- */
 const shownWorlds = computed(() => {
@@ -682,20 +713,60 @@ const sceneNpcs = computed(() => {
   return npcs.value.filter((n) => n.sceneId === currentSceneId.value)
 })
 
-const filteredCharacters = computed(() => {
-  const kw = charFilter.value.trim()
-  const inWorld = new Set(npcs.value.map((n) => Number(n.roleId)))
-  return characters.value
-    .filter((c) => !inWorld.has(Number(c.id)))
-    .filter((c) => !kw || (c.name || '').includes(kw))
+/** 对话视图（没在挑某一幕）才允许观演：幕次视图的正文是只读的演出稿 */
+const canSpectate = computed(() => Boolean(currentWorldId.value) && !currentAct.value && currentSceneId.value != null)
+
+/** 当前幕次的演出正文，按「首行标题 + 其余正文」拆好给模板用 */
+const storyScenes = computed(() => {
+  const cur = stories.value.find((s) => s.actNo === currentAct.value?.actNo)
+  if (!cur || !cur.played || !cur.scenes?.length) return []
+  const cn = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十']
+  return cur.scenes
+    .filter((s) => (s.playText || '').trim())
+    .map((s, i) => {
+      const raw = (s.playText || '').trim()
+      const nl = raw.indexOf('\n')
+      const head = nl >= 0 ? raw.slice(0, nl).trim() : ''
+      // 演出的正文首行是「序 · 场景名」，拆出来当小标题；没有首行就退回剧本里的场景名
+      const title = head || s.name || `分场 ${i + 1}`
+      const body = nl >= 0 ? raw.slice(nl + 1).trim() : raw
+      return {
+        no: cn[i] ?? String(i + 1),
+        title,
+        body,
+        cast: s.cast || '',
+        stageName: s.stageName || '',
+        image: s.mediaImage?.url || '',
+      }
+    })
 })
+
+/** 舞台空态文案随阶段变化 */
+const stageEmptyTitle = computed(() => {
+  const stage = actStage.value ?? ''
+  if (stage === 'writing') return '这一幕还没有剧本'
+  if (stage === 'props_ok') return '剧本写好了，还没有演出'
+  if (stage === 'playing') return 'AI 正在演这一幕'
+  return '还没有演出记录'
+})
+
+const stageEmptySub = computed(() => {
+  const stage = actStage.value ?? ''
+  if (stage === 'writing') return '点「生成剧本」，AI 会按世界现状写这一幕'
+  if (stage === 'props_ok') return '点「演出」，AI 会把剧本演成正文'
+  if (stage === 'playing') return '演出完成后会出现在这里'
+  return '先推进幕次，或回到对话视图点「观演」'
+})
+
+/** 空态里直接给可点的动作，避免用户找不到该按哪个 */
+const stageEmptyAction = computed(() => availablePipeline.value.find((b) => b.action === 'advance') || null)
 
 /* ---------------- 生命周期 ---------------- */
 onMounted(() => {
   void loadWorlds()
 })
 
-watch(addNpcVisible, (v) => { if (v) openCharacters() })
+onUnmounted(stopAutoWatch)
 
 /* ---------------- 世界 ---------------- */
 async function loadWorlds() {
@@ -703,25 +774,35 @@ async function loadWorlds() {
 }
 
 async function selectWorld(w: WorldItem) {
+  stopAutoWatch()
   currentWorldId.value = w.id
   currentWorld.value = w
   pendingAt.value = null
   atMenuVisible.value = false
-  sideTab.value = 'timeline'
-  // 换世界先清幕次
   currentAct.value = null
   actDetail.value = null
+  stories.value = []
   showScript.value = false
   const view = await apiService.fetchWorldView(w.id)
   scenes.value = view.scenes || []
   npcs.value = view.npcs || []
   relationships.value = view.relationships || []
   events.value = view.events || []
-  // 默认选中第一个场景
   currentSceneId.value = scenes.value.length ? scenes.value[0].id : null
   await loadMessages()
   await loadActs()
-  // 更新左侧列表上的最新状态
+  // 演出正文单独取：只有演过的幕次才有，取不到不影响页面
+  await loadStories()
+  // 有演出记录时直接进「看戏」：默认选中最新一幕，用户一进来就在剧场里
+  if (acts.value.length) {
+    const done = stories.value.find((s) => s.played)
+    const target = done
+      ? acts.value.find((a) => a.actNo === done.actNo)
+      : acts.value[acts.value.length - 1]
+    if (target) await selectAct(target)
+  } else {
+    sideTab.value = 'cast'
+  }
   syncWorld(w, view.world)
 }
 
@@ -738,13 +819,12 @@ function openCreateWorld() {
   createVisible.value = true
 }
 
-/** 点种子卡片：选定时代 + 填充描述 */
+/** 点种子卡片：填充描述（时代由用户点上面那排标签决定） */
 function applySeed(s: { label: string; desc: string }) {
   worldForm.description = s.desc
-  if (!worldForm.era || worldForm.era === '') worldForm.era = '现代'
 }
 
-/** 随机生成：随机名称 + 抽签时代 + 选种子，点击即创建，纯观影用户一步到位 */
+/** 随机生成：随机名称 + 抽签时代 + 选种子，点击即创建 */
 async function randomCreate() {
   const r = (n: number) => Math.floor(Math.random() * n)
   const names: string[] = ['新冒险', '初探索', '新世界', '新纪元', '新大陆', '新旅程']
@@ -758,11 +838,18 @@ async function confirmCreate() {
   const name = worldForm.name.trim()
   const desc = worldForm.description.trim() || 'AI 自动生成'
   const era = worldForm.era || '现代'
-  const w = await apiService.createWorld(name || `${ERA_PREFIX[era] ?? '世界'} ${Math.floor(Math.random() * 10000)}`, desc, era)
-  await loadWorlds()
-  await selectWorld(w)
-  createVisible.value = false
-  message.success('世界已创建')
+  creating.value = true
+  try {
+    const w = await apiService.createWorld(name || `${ERA_PREFIX[era] ?? '世界'} ${Math.floor(Math.random() * 10000)}`, desc, era)
+    await loadWorlds()
+    await selectWorld(w)
+    createVisible.value = false
+    message.success('世界已创建，接下来交给 AI')
+  } catch (e: any) {
+    message.error(e?.message || '创建失败')
+  } finally {
+    creating.value = false
+  }
 }
 
 function openWorldEdit() {
@@ -796,13 +883,18 @@ async function onWorldCmd(cmd: string, w: WorldItem) {
   } else if (cmd === 'delete') {
     try {
       await ElMessageBox.confirm(
-        `删除世界「${w.name}」？场景、NPC、关系与全部事件都会一并删除。`,
+        `删除世界「${w.name}」？场景、角色、关系与全部事件都会一并删除。`,
         '删除世界', { type: 'warning' })
       await apiService.deleteWorld(w.id)
       if (currentWorldId.value === w.id) {
+        stopAutoWatch()
         currentWorldId.value = null
         currentWorld.value = null
         currentSceneId.value = null
+        currentAct.value = null
+        actDetail.value = null
+        stories.value = []
+        acts.value = []
         messages.value = []
         scenes.value = []
         npcs.value = []
@@ -819,9 +911,20 @@ async function onWorldCmd(cmd: string, w: WorldItem) {
 async function selectScene(s: WorldScene) {
   currentSceneId.value = s.id
   pendingAt.value = null
-  // 切换场景先清空旧消息，避免加载期间还显示上一个场景的对话
   messages.value = []
   await loadMessages()
+}
+
+/** 从幕次视图回到对话视图，并定位到某个场景 */
+async function goScene(s: WorldScene) {
+  currentAct.value = null
+  actDetail.value = null
+  showScript.value = false
+  await selectScene(s)
+}
+
+function npcCountOf(sceneId: number) {
+  return npcs.value.filter((n) => n.sceneId === sceneId).length
 }
 
 function openCreateScene() {
@@ -837,6 +940,7 @@ async function confirmCreateScene() {
   sceneCreateVisible.value = false
   const view = await apiService.fetchWorldView(currentWorldId.value)
   scenes.value = view.scenes || []
+  currentAct.value = null
   currentSceneId.value = s.id
   await loadMessages()
   message.success('场景已创建')
@@ -844,7 +948,7 @@ async function confirmCreateScene() {
 
 async function deleteScene(s: WorldScene) {
   try {
-    await ElMessageBox.confirm(`删除场景「${s.name}」？其中的 NPC 会回到"未布置"状态。`, '删除场景', { type: 'warning' })
+    await ElMessageBox.confirm(`删除场景「${s.name}」？其中的角色会回到"未布置"状态。`, '删除场景', { type: 'warning' })
     await apiService.deleteWorldScene(s.id)
     const view = await apiService.fetchWorldView(currentWorldId.value!)
     scenes.value = view.scenes || []
@@ -856,78 +960,62 @@ async function deleteScene(s: WorldScene) {
   } catch { /* cancel */ }
 }
 
-/* ---------------- NPC ---------------- */
-function npcSub(n: WorldNpc) {
-  const scene = n.sceneId == null ? null : scenes.value.find((s) => s.id === n.sceneId)
-  const parts: string[] = []
-  parts.push(scene ? scene.name : '未布置')
-  if (n.modelOverride) parts.push(displayModel(n.modelOverride))
-  return parts.join(' · ')
-}
-
+/* ---------------- 角色 ---------------- */
 function sceneNameOf(sceneId?: number | null) {
   if (sceneId == null) return '未布置'
   return scenes.value.find((s) => s.id === sceneId)?.name || ''
 }
 
-async function openCharacters() {
-  if (!characters.value.length) {
-    const res = await apiService.fetchCharacters()
-    characters.value = res.items || []
-  }
-}
+/** 选中角色时它与其他角色的全部关系（双向各一条） */
+const npcRelations = computed(() => {
+  const id = npcEditTarget.value?.id
+  if (id == null) return []
+  return relationships.value.filter((r) => r.fromNpcId === id || r.toNpcId === id)
+})
 
-async function confirmAddNpc(c: any) {
-  if (!currentWorldId.value) return
-  await apiService.addWorldNpc(currentWorldId.value, {
-    roleId: Number(c.id),
-    sceneId: npcSceneDraft[c.id] ?? null,
-  })
-  npcSceneDraft[c.id] = undefined
-  addNpcVisible.value = false
-  const view = await apiService.fetchWorldView(currentWorldId.value)
-  npcs.value = view.npcs || []
-  relationships.value = view.relationships || []
-  message.success(`已加入 ${c.name}`)
-}
-
-function saveNpcActive(n: WorldNpc) {
-  void apiService.updateWorldNpc(n.id, { isActive: !!n.isActive }).catch(() => message.error('保存失败'))
+function otherName(r: WorldRelationship) {
+  return r.fromNpcId === npcEditTarget.value?.id ? r.toName : r.fromName
 }
 
 function openNpcEdit(n: WorldNpc) {
   npcEditTarget.value = n
-  npcEditForm.nickname = n.nickname || ''
-  npcEditForm.sceneId = n.sceneId ?? null
   npcEditForm.persona = n.persona || ''
   npcEditForm.isActive = n.isActive !== false
+  for (const r of relationships.value) {
+    if (r.fromNpcId === n.id || r.toNpcId === n.id) relDraft[r.id] = r.affinity ?? 0
+  }
   npcEditVisible.value = true
 }
 
 async function confirmEditNpc() {
   const target = npcEditTarget.value
   if (!target) return
-  await apiService.updateWorldNpc(target.id, {
-    nickname: npcEditForm.nickname || null,
-    sceneId: npcEditForm.sceneId,
-    persona: npcEditForm.persona || null,
-    isActive: npcEditForm.isActive,
-  })
-  npcEditVisible.value = false
-  const view = await apiService.fetchWorldView(currentWorldId.value!)
-  npcs.value = view.npcs || []
-  message.success('NPC 已更新')
+  npcSaving.value = true
+  try {
+    await apiService.updateWorldNpc(target.id, {
+      persona: npcEditForm.persona || null,
+      isActive: npcEditForm.isActive,
+    })
+    // 关系程度一并保存：观众能微调的就这两样（性格 + 关系）
+    const changed = npcRelations.value.filter((r) => (r.affinity ?? 0) !== relDraft[r.id])
+    for (const r of changed) {
+      await apiService.updateWorldRelationship(r.id, { affinity: relDraft[r.id] })
+    }
+    npcEditVisible.value = false
+    await refreshPeople()
+    message.success(changed.length ? '人设与关系已保存' : '人设已保存')
+  } catch (e: any) {
+    message.error(e?.message || '保存失败')
+  } finally {
+    npcSaving.value = false
+  }
 }
 
-async function removeNpc(n: WorldNpc) {
-  try {
-    await ElMessageBox.confirm(`将「${n.displayName}」移出这个世界？相关关系也会清除。`, '移除 NPC', { type: 'warning' })
-    await apiService.removeWorldNpc(n.id)
-    const view = await apiService.fetchWorldView(currentWorldId.value!)
-    npcs.value = view.npcs || []
-    relationships.value = view.relationships || []
-    message.success('已移除')
-  } catch { /* cancel */ }
+async function refreshPeople() {
+  if (!currentWorldId.value) return
+  const view = await apiService.fetchWorldView(currentWorldId.value)
+  npcs.value = view.npcs || []
+  relationships.value = view.relationships || []
 }
 
 /* ---------------- 关系 ---------------- */
@@ -960,12 +1048,11 @@ async function confirmEditRel() {
     memo: relEditForm.memo || null,
   })
   relEditVisible.value = false
-  const view = await apiService.fetchWorldView(currentWorldId.value!)
-  relationships.value = view.relationships || []
+  await refreshPeople()
   message.success('关系已保存')
 }
 
-/* ---------------- 时间推进 ---------------- */
+/* ---------------- 推进时间 ---------------- */
 async function advance() {
   if (!currentWorldId.value || advancing.value) return
   advancing.value = true
@@ -978,12 +1065,159 @@ async function advance() {
     events.value = view.events || []
     syncWorld(currentWorld.value!, res.world)
     await loadWorlds()
+    // 推进时会落一条旁白消息：回到对话视图才能看见，所以这里清掉幕次选中
+    if (currentAct.value) {
+      currentAct.value = null
+      actDetail.value = null
+    }
     await loadMessages()
+    // 旁白落在某个场景里：若当前场景不是它，切过去，避免「推进了却看不到」
+    const evSceneId = (res.event as any)?.sceneId
+    if (evSceneId != null && evSceneId !== currentSceneId.value) {
+      const s = scenes.value.find((x) => x.id === evSceneId)
+      if (s) await selectScene(s)
+    }
     message.success(`时间推进：${res.world.timeLabel || ''}`)
   } catch (e: any) {
     message.error(e?.message || '推进失败')
   } finally {
     advancing.value = false
+  }
+}
+
+/* ---------------- 观演（让 AI 自己演） ---------------- */
+async function spectate() {
+  if (!canSpectate.value || spectating.value) return
+  spectating.value = true
+  try {
+    await runSpectatorTurn('')
+  } catch (e: any) {
+    message.error(e?.message || '观演失败')
+    spectating.value = false
+  }
+}
+
+/** 跑一轮「没有用户发言」的 SSE，返回本轮是否拿到 AI 内容 */
+function runSpectatorTurn(hint: string): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    if (!currentWorldId.value) {
+      resolve(false)
+      return
+    }
+    const turnKey = keySeq++
+    let got = false
+    const aiBySpeaker = new Map<string, UIMessage>()
+    try {
+      streamHandle = apiService.worldChatStream(
+        { worldId: currentWorldId.value, sceneId: currentSceneId.value, content: hint, atNpcId: null },
+        {
+          onEvent: (ev) => {
+            if (ev.type === 'create') {
+              got = true
+              const created: UIMessage = {
+                _key: keySeq++,
+                speakerType: 'ai',
+                speakerId: ev.speakerId,
+                speakerName: ev.speakerName || 'AI',
+                content: '',
+                modelName: ev.modelName,
+                streaming: true,
+              }
+              void turnKey
+              messages.value.push(created)
+              aiBySpeaker.set(created.speakerId || `ai-${created._key}`, created)
+              scrollBottom()
+            } else if (ev.type === 'text') {
+              const target = aiBySpeaker.get(ev.speakerId || '') || evSpeakerFallback(aiBySpeaker)
+              if (target) {
+                target.content += ev.content || ''
+                scrollBottom()
+              }
+            } else if (ev.type === 'finish') {
+              const target = aiBySpeaker.get(ev.speakerId || '') || evSpeakerFallback(aiBySpeaker)
+              if (target) {
+                target.streaming = false
+                if (ev.error) target.content += `\n[错误] ${ev.error}`
+                else if (!target.content.trim()) target.content = '（模型未返回内容）'
+              }
+            } else if (ev.type === 'turn_end') {
+              aiBySpeaker.forEach((m) => { m.streaming = false })
+            }
+          },
+          onError: (err) => {
+            console.error('world watch stream error', err)
+            spectating.value = false
+            reject(err)
+          },
+          onClose: () => {
+            aiBySpeaker.forEach((m) => { m.streaming = false })
+            spectating.value = false
+            if (currentWorldId.value) {
+              apiService.fetchWorldRelationships(currentWorldId.value)
+                .then((rows) => { relationships.value = rows })
+                .catch(() => {})
+            }
+            resolve(got)
+          },
+        },
+      )
+    } catch (e) {
+      reject(e)
+    }
+  })
+}
+
+function toggleAutoWatch() {
+  if (autoWatch.value) {
+    stopAutoWatch()
+    return
+  }
+  if (!canSpectate.value) {
+    message.info('先回到对话视图（点幕次卡以外的地方）再自动观看')
+    return
+  }
+  autoWatch.value = true
+  message.success('自动观看已开启，世界会自己演下去')
+  scheduleAutoWatch(300)
+}
+
+function scheduleAutoWatch(delay: number) {
+  stopAutoWatchTimerOnly()
+  autoTimer = window.setTimeout(() => { void autoWatchStep() }, delay)
+}
+
+async function autoWatchStep() {
+  if (!autoWatch.value) return
+  if (!canSpectate.value) {
+    stopAutoWatch()
+    return
+  }
+  // 上一轮还在流式返回时再等一拍，避免两轮回复交错
+  if (sending.value) {
+    scheduleAutoWatch(1500)
+    return
+  }
+  try {
+    await spectate()
+  } catch {
+    stopAutoWatch()
+    return
+  }
+  if (autoWatch.value) scheduleAutoWatch(AUTO_WATCH_INTERVAL)
+}
+
+function stopAutoWatchTimerOnly() {
+  if (autoTimer !== null) {
+    window.clearTimeout(autoTimer)
+    autoTimer = null
+  }
+}
+
+function stopAutoWatch() {
+  stopAutoWatchTimerOnly()
+  if (autoWatch.value) {
+    autoWatch.value = false
+    message.info('自动观看已停止')
   }
 }
 
@@ -1055,33 +1289,50 @@ function mediaStatusName(head?: Record<string, any>) {
 function mediaStatusClass(head?: Record<string, any>) {
   switch (head?.status) {
     case 'NO_PROMPT':
-      return 'ws-act-media--none'
+      return 'neutral'
     case 'OK':
-      return 'ws-act-media--done'
+      return 'success'
     case 'NOT_STARTED':
-      return 'ws-act-media--waiting'
+      return 'info'
     default:
-      return 'ws-act-media--running'
+      return 'warning'
   }
 }
 
 /** 幕次所在阶段（来自当前选中的幕次行） */
 const actStage = computed(() => actDetail.value?.act?.stage ?? currentAct.value?.stage)
 
-/** 幕次操作序列：每阶段可选的操作（非当前阶段置灰不可点） */
+/** 幕次操作序列：每阶段可选的操作（非当前阶段不展示，避免一排灰按钮） */
 const actPipeline = [
-  { stage: 'writing', label: '生成剧本', action: 'advance' },
-  { stage: 'props_ok', label: '推进素材', action: 'advance' },
-  { stage: 'props_ok', label: '回放', action: 'script' },
-  { stage: 'playing', label: '演出', action: 'advance' },
-  { stage: 'replay', label: '重播', action: 'replay' },
+  { stage: 'writing', label: '生成剧本', action: 'advance', primary: true },
+  { stage: 'props_ok', label: '推进素材', action: 'advance', primary: false },
+  { stage: 'props_ok', label: '演出', action: 'advance', primary: true },
+  { stage: 'playing', label: '演出', action: 'advance', primary: true },
+  { stage: 'replay', label: '重播', action: 'replay', primary: false },
   // 后端 finishAct 只接受 replay/finished 阶段；stage 用 finished 会导致按钮永远置灰
-  { stage: 'replay', label: '结文', action: 'finish' },
+  { stage: 'replay', label: '结文', action: 'finish', primary: true },
 ]
+
+/** 当前阶段真正可点的按钮：只列现在能做的，观众不会被一排灰按钮吓到 */
+const availablePipeline = computed(() => {
+  const stage = actStage.value ?? ''
+  if (!stage || stage === 'finished' || stage === 'aborted') return []
+  return actPipeline.filter((b) => b.stage === stage)
+})
 
 async function loadActs() {
   if (!currentWorldId.value) { acts.value = []; return }
   acts.value = await apiService.fetchWorldActs(currentWorldId.value)
+}
+
+async function loadStories() {
+  if (!currentWorldId.value) { stories.value = []; return }
+  try {
+    stories.value = await apiService.fetchWorldStory(currentWorldId.value)
+  } catch {
+    // 演出正文只是锦上添花：接口异常时不挡页面
+    stories.value = []
+  }
 }
 
 async function openCreateAct() {
@@ -1090,7 +1341,7 @@ async function openCreateAct() {
     const a = await apiService.createWorldAct(currentWorldId.value) as WorldAct
     await loadActs()
     await selectAct(a)
-    message.success(`已创建第 ${a.actNo} 幕`)
+    message.success(`第 ${a.actNo} 幕已建好，接下来交给 AI`)
   } catch (e: any) {
     message.error(e?.message || '创建幕次失败')
   }
@@ -1106,6 +1357,7 @@ async function selectAct(a: WorldActListRow) {
 async function fetchActDetail(actNo: number) {
   if (!currentWorldId.value || actNo == null) return
   actProcessing.value = true
+  actBusyText.value = '正在读取这一幕…'
   try {
     const d = await apiService.fetchWorldActDetail(currentWorldId.value, actNo) as WorldActDetail
     actDetail.value = d
@@ -1121,15 +1373,13 @@ async function fetchActDetail(actNo: number) {
 async function actPipelineAction(btn: { stage?: string; label?: string; action?: string }) {
   if (!currentWorldId.value || currentAct.value?.actNo == null) return
   const stage = actStage.value ?? ''
-  if (btn.action === 'script') {
-    showScript.value = !showScript.value
-    return
-  }
-  // 非当前阶段可允许的操作：写/素材/出演 → 推进，回看/演完 → 重播或结文
   if (btn.action === 'advance' && !['writing', 'props_ok', 'playing'].includes(stage)) return
   if (btn.action === 'replay' && !['replay', 'finished'].includes(stage)) return
   if (btn.action === 'finish' && !['replay', 'finished'].includes(stage)) return
   actProcessing.value = true
+  actBusyText.value = btn.action === 'advance' && stage === 'writing' ? 'AI 正在写这一幕的剧本…'
+    : btn.action === 'advance' && stage === 'playing' ? 'AI 正在演这一幕，可能要几十秒…'
+      : '处理中…'
   try {
     const no = currentAct.value!.actNo as number
     if (btn.action === 'advance') {
@@ -1141,12 +1391,12 @@ async function actPipelineAction(btn: { stage?: string; label?: string; action?:
     } else if (btn.action === 'finish') {
       await apiService.finishWorldAct(currentWorldId.value, no)
       message.success('幕次已完结')
-      // 结文会写一条世界事件，刷新时间线，避免用户切到时间线看不到结果
       const view = await apiService.fetchWorldView(currentWorldId.value)
       events.value = view.events || []
       syncWorld(currentWorld.value!, view.world)
     }
     await loadActs()
+    await loadStories()
     if (currentAct.value) await fetchActDetail(currentAct.value.actNo as number)
   } catch (e: any) {
     message.error(e?.message || '操作失败')
@@ -1154,6 +1404,7 @@ async function actPipelineAction(btn: { stage?: string; label?: string; action?:
     actProcessing.value = false
   }
 }
+
 function avatarOf(m: UIMessage) {
   const f = npcs.value.find((n) => String(n.id) === String(m.speakerId))
   return f?.displayAvatar || null
@@ -1191,7 +1442,8 @@ async function loadMessages() {
   }
   const list = await apiService.fetchWorldMessages(currentWorldId.value, currentSceneId.value)
   messages.value = (list as WorldMessage[])
-    .filter((m) => m.speakerType !== 'ai' || (m.content || '').trim().length > 0)
+    .filter((m) => m.speakerType === 'system' || m.speakerType !== 'ai' || (m.content || '').trim().length > 0)
+    // 后端 speakerType 三态：user / ai / system（旁白）
     .map((m) => ({
       _key: keySeq++,
       speakerType: m.speakerType,
@@ -1306,7 +1558,8 @@ async function send() {
 <style scoped>
 /* ============================================================================
    令牌口径与全应用统一：颜色走 --el-*，圆角走 --el-radius-*，过渡走
-   var(--el-transition-duration-fast, 0.2s)。本页为三栏世界沙盒布局。
+   var(--el-transition-duration-fast, 0.2s)。本页为「台本」三栏布局：
+   左=世界，中=幕次胶片条 + 舞台，右=人物/关系/编年/舞台。
    ============================================================================ */
 .ws-root {
   display: flex;
@@ -1443,10 +1696,6 @@ async function send() {
 }
 .ws-conv:hover .ws-conv-more { opacity: 1; }
 .ws-conv-more:hover { color: var(--el-text-color-primary); background: var(--el-fill-color); }
-.ws-conv-more:focus-visible {
-  opacity: 1;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-}
 .ws-conv-more :deep(.el-icon) { font-size: 16px; }
 
 .ws-list-empty {
@@ -1461,7 +1710,7 @@ async function send() {
 .ws-list-empty svg { width: 40px; height: 40px; }
 .ws-list-empty p { font-size: 12.5px; margin: 0; }
 
-/* ================= 中间对话区 ================= */
+/* ================= 中间：台本 ================= */
 .ws-chat {
   flex: 1;
   min-width: 0;
@@ -1473,17 +1722,13 @@ async function send() {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   padding: 0 16px;
   height: 54px;
   flex-shrink: 0;
   border-bottom: 1px solid var(--el-border-color-lighter);
 }
-.ws-chat-title-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
+.ws-chat-title-wrap { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .ws-chat-name {
   font-size: 15px;
   font-weight: 600;
@@ -1493,7 +1738,45 @@ async function send() {
   text-overflow: ellipsis;
 }
 .ws-chat-time { font-size: 12px; color: var(--el-text-color-secondary); flex-shrink: 0; }
-.ws-chat-head-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.ws-chat-weather {
+  font-size: 11px;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  padding: 1px 7px;
+  border-radius: var(--el-radius-sm, 6px);
+  flex-shrink: 0;
+}
+.ws-chat-head-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.ws-auto {
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-bg-color);
+  color: var(--el-text-color-regular);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all var(--el-transition-duration-fast, 0.2s) ease;
+}
+.ws-auto-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-text-color-placeholder);
+}
+.ws-auto.on {
+  border-color: var(--el-color-success);
+  color: var(--el-color-success);
+  background: var(--el-color-success-light-9);
+}
+.ws-auto.on .ws-auto-dot {
+  background: var(--el-color-success);
+  animation: ws-pulse 1.4s ease-in-out infinite;
+}
+@keyframes ws-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
 .ws-chat-adv {
   height: 30px;
   display: inline-flex;
@@ -1510,7 +1793,6 @@ async function send() {
 }
 .ws-chat-adv:hover:not(:disabled) { background: var(--el-color-primary-light-3); border-color: var(--el-color-primary-light-3); }
 .ws-chat-adv:disabled { opacity: 0.7; cursor: not-allowed; }
-.ws-chat-adv .el-icon { font-size: 15px; }
 .ws-spin { display: inline-flex; }
 .ws-spin .el-icon { animation: ws-rotate 1s linear infinite; }
 @keyframes ws-rotate { to { transform: rotate(360deg); } }
@@ -1525,33 +1807,324 @@ async function send() {
   cursor: pointer;
   color: var(--el-text-color-secondary);
   background: transparent;
-  transition: background-color var(--el-transition-duration-fast, 0.2s) ease,
-    color var(--el-transition-duration-fast, 0.2s) ease;
 }
 .ws-chat-set:hover { background: var(--el-fill-color-light); color: var(--el-text-color-primary); }
-.ws-chat-set:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-}
 .ws-chat-set :deep(.el-icon) { font-size: 19px; }
 
-/* 场景切换条 */
+/* ---- 幕次胶片条 ---- */
+.ws-reel {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  padding: 10px 16px 8px;
+  flex-shrink: 0;
+  background: var(--el-fill-color-lighter, #fafafa);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.ws-reel-track {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+.ws-frame {
+  position: relative;
+  flex: 0 0 auto;
+  width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  text-align: left;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color);
+  cursor: pointer;
+  transition: all var(--el-transition-duration-fast, 0.2s) ease;
+}
+.ws-frame:hover { border-color: var(--el-color-primary-light-5); transform: translateY(-1px); }
+.ws-frame.active {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset;
+}
+.ws-frame-no { font-size: 11px; color: var(--el-text-color-placeholder); }
+.ws-frame.active .ws-frame-no { color: var(--el-color-primary); }
+.ws-frame-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ws-frame-foot { display: flex; align-items: center; gap: 5px; margin-top: 2px; }
+.ws-stage-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-text-color-placeholder);
+  flex-shrink: 0;
+}
+.ws-stage-dot.primary { background: var(--el-color-primary); }
+.ws-stage-dot.info { background: var(--el-color-info); }
+.ws-stage-dot.warning { background: var(--el-color-warning); }
+.ws-stage-dot.success { background: var(--el-color-success); }
+.ws-stage-dot.danger { background: var(--el-color-danger); }
+.ws-frame-stage { font-size: 11px; color: var(--el-text-color-secondary); }
+.ws-frame-progress { margin-left: auto; font-size: 10.5px; color: var(--el-text-color-placeholder); }
+.ws-frame-add {
+  width: 40px;
+  align-items: center;
+  justify-content: center;
+  border-style: dashed;
+  color: var(--el-text-color-secondary);
+}
+.ws-frame-add:hover { color: var(--el-color-primary); border-color: var(--el-color-primary); }
+.ws-reel-side { display: flex; align-items: flex-end; flex-shrink: 0; }
+.ws-reel-count { font-size: 11.5px; color: var(--el-text-color-placeholder); white-space: nowrap; }
+
+/* ---- 舞台 ---- */
+.ws-stage {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 22px 20px;
+  background: var(--el-fill-color);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.ws-act-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ws-act-head-main { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
+.ws-act-head-no { font-size: 11.5px; color: var(--el-color-primary); }
+.ws-act-head-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.ws-act-head-ops { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.btn {
+  font: inherit;
+  height: 28px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-radius-sm, 6px);
+  background: var(--el-bg-color);
+  color: var(--el-text-color-regular);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all var(--el-transition-duration-fast, 0.2s) ease;
+}
+.btn:hover:not(:disabled) { border-color: var(--el-color-primary-light-5); color: var(--el-color-primary); }
+.btn.primary {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary);
+  color: var(--el-color-white);
+}
+.btn.primary:hover:not(:disabled) { background: var(--el-color-primary-light-3); color: var(--el-color-white); }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--el-text-color-secondary); }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.ws-stage-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-size: 12.5px;
+}
+
+/* ---- 演出正文：像剧本页一样排 ---- */
+.ws-play {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 760px;
+}
+.ws-cue { display: flex; gap: 14px; }
+.ws-cue-side {
+  flex: 0 0 62px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  padding-top: 2px;
+}
+.ws-cue-no {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--el-color-primary);
+  font-family: var(--el-font-family, inherit);
+}
+.ws-cue-where { font-size: 11px; color: var(--el-text-color-placeholder); text-align: right; }
+.ws-cue-body {
+  flex: 1;
+  min-width: 0;
+  padding-left: 14px;
+  border-left: 2px solid var(--el-border-color-lighter);
+}
+.ws-cue-title {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.ws-cue-cast { font-size: 11.5px; color: var(--el-text-color-placeholder); margin-bottom: 6px; }
+.ws-cue-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.85;
+  color: var(--el-text-color-regular);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.ws-cue-img {
+  margin-top: 10px;
+  max-width: 100%;
+  border-radius: var(--el-radius-md, 8px);
+  border: 1px solid var(--el-border-color-lighter);
+}
+
+/* ---- 舞台空态 ---- */
+.ws-stage-empty {
+  margin: 24px auto 0;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  color: var(--el-text-color-secondary);
+}
+.ws-stage-empty-art {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  margin-bottom: 4px;
+}
+.ws-stage-empty-art svg { width: 28px; height: 28px; }
+.ws-stage-empty-title { margin: 0; font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); }
+.ws-stage-empty-sub { margin: 0 0 6px; font-size: 12.5px; }
+
+/* ---- 剧本 / 素材 ---- */
+.ws-script {
+  border-radius: var(--el-radius-md, 8px);
+  border: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color);
+  overflow: hidden;
+}
+.ws-script-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.ws-script-body {
+  margin: 0;
+  padding: 10px;
+  max-height: 260px;
+  overflow: auto;
+  font-size: 12px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--el-text-color-regular);
+}
+.ws-mini {
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--el-radius-sm, 6px);
+  background: transparent;
+  color: var(--el-text-color-placeholder);
+  cursor: pointer;
+}
+.ws-mini:hover { background: var(--el-fill-color-light); }
+.ws-assets {
+  border-radius: var(--el-radius-md, 8px);
+  border: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color);
+  padding: 8px 10px;
+}
+.ws-assets-sum {
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  marker: none;
+}
+.ws-assets-grid { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.ws-asset-head { font-size: 12px; font-weight: 600; color: var(--el-text-color-primary); margin-bottom: 4px; }
+.ws-asset-card {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px dashed var(--el-border-color-lighter);
+}
+.ws-asset-card:last-child { border-bottom: 0; }
+.ws-asset-name { font-size: 12.5px; color: var(--el-text-color-primary); flex-shrink: 0; }
+.ws-asset-desc {
+  flex: 1;
+  min-width: 0;
+  font-size: 11.5px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- 标签 ---- */
+.ws-tag {
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-fill-color);
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+}
+.ws-tag.sm { font-size: 10.5px; padding: 0 6px; }
+.ws-tag.primary { background: var(--el-color-primary-light-9); color: var(--el-color-primary); }
+.ws-tag.info { background: var(--el-color-info-light-9); color: var(--el-color-info); }
+.ws-tag.warning { background: var(--el-color-warning-light-9); color: var(--el-color-warning); }
+.ws-tag.success { background: var(--el-color-success-light-9); color: var(--el-color-success); }
+.ws-tag.danger { background: var(--el-color-danger-light-9); color: var(--el-color-danger); }
+
+/* ---- 对话视图 ---- */
 .ws-scene-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 6px 16px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  background: var(--el-fill-color-lighter, #fafafa);
+  padding: 0 0 2px;
   flex-shrink: 0;
 }
-.ws-scene-tabs {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  overflow-x: auto;
-  max-width: calc(100% - 110px);
-}
+.ws-scene-tabs { display: flex; align-items: center; gap: 6px; overflow-x: auto; }
 .ws-scene-tab {
   flex-shrink: 0;
   height: 26px;
@@ -1562,14 +2135,9 @@ async function send() {
   background: transparent;
   color: var(--el-text-color-secondary);
   font-size: 12.5px;
-  transition: background-color var(--el-transition-duration-fast, 0.2s) ease,
-    color var(--el-transition-duration-fast, 0.2s) ease;
 }
 .ws-scene-tab:hover { color: var(--el-text-color-primary); }
-.ws-scene-tab.active {
-  background: var(--el-color-primary);
-  color: var(--el-color-white);
-}
+.ws-scene-tab.active { background: var(--el-color-primary); color: var(--el-color-white); }
 .ws-scene-add {
   flex-shrink: 0;
   width: 26px;
@@ -1579,51 +2147,39 @@ async function send() {
   justify-content: center;
   border: 1px dashed var(--el-border-color);
   border-radius: var(--el-radius-sm, 6px);
-  cursor: pointer;
   background: transparent;
   color: var(--el-text-color-secondary);
+  cursor: pointer;
 }
 .ws-scene-add:hover { color: var(--el-color-primary); border-color: var(--el-color-primary); }
 .ws-scene-count { font-size: 12px; color: var(--el-text-color-secondary); flex-shrink: 0; }
 
-/* 消息区 */
-.ws-msgs {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px 22px 16px;
-  background: var(--el-fill-color);
-}
+.ws-msgs { display: flex; flex-direction: column; }
 .ws-msg { display: flex; align-items: flex-start; margin-bottom: 18px; }
 .ws-msg.is-other { justify-content: flex-start; }
 .ws-msg.is-self { justify-content: flex-end; }
+.ws-msg.is-narr { justify-content: center; }
 .ws-msg-avatar { flex-shrink: 0; }
 .ws-msg-col { max-width: 66%; min-width: 0; margin: 0 10px; }
 .is-self .ws-msg-col { display: flex; flex-direction: column; align-items: flex-end; }
 
-.ws-msg-meta {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin: 0 0 5px 2px;
-  flex-wrap: wrap;
+/* 旁白：居中、无气泡，像小说里的叙述段 */
+.ws-narr {
+  max-width: 78%;
+  padding: 10px 16px;
+  border-left: 3px solid var(--el-color-primary-light-5);
+  border-radius: 0 var(--el-radius-md, 8px) var(--el-radius-md, 8px) 0;
+  background: var(--el-color-primary-light-9);
+  color: var(--el-text-color-regular);
+  font-size: 13px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
+
+.ws-msg-meta { display: flex; align-items: center; gap: 7px; margin: 0 0 5px 2px; flex-wrap: wrap; }
 .ws-msg-name { font-size: 12px; color: var(--el-text-color-secondary); }
-.ws-msg-typing {
-  font-size: 11.5px;
-  color: var(--el-color-primary);
-  display: inline-flex;
-  align-items: center;
-}
-.ws-msg-typing::after {
-  content: '';
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  margin-left: 5px;
-  border-radius: var(--el-radius-full, 9999px);
-  background: currentColor;
-  animation: ws-typing-bounce 1.4s infinite ease-in-out both;
-}
+.ws-msg-typing { font-size: 11.5px; color: var(--el-color-primary); }
 .ws-msg-model {
   font-size: 10.5px;
   color: var(--el-text-color-placeholder);
@@ -1635,7 +2191,6 @@ async function send() {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
 .ws-bubble {
   position: relative;
   padding: 9px 13px;
@@ -1645,18 +2200,8 @@ async function send() {
   word-break: break-word;
   overflow-wrap: anywhere;
 }
-.ws-msg.is-other .ws-bubble.typing-bubble {
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-}
-.typing-dots {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-left: 6px;
-  vertical-align: bottom;
-}
+.ws-msg.is-other .ws-bubble.typing-bubble { min-height: 44px; display: flex; align-items: center; }
+.typing-dots { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; vertical-align: bottom; }
 .typing-dots i {
   width: 6px;
   height: 6px;
@@ -1671,49 +2216,19 @@ async function send() {
   0%, 80%, 100% { transform: scale(0.35); opacity: 0.4; }
   40% { transform: scale(1); opacity: 0.9; }
 }
-.b-other {
-  background: var(--el-bg-color);
-  color: var(--el-text-color-primary);
-  border: 1px solid var(--el-border-color-lighter);
-}
-.b-self {
-  background: var(--el-color-primary);
-  color: var(--el-color-white);
-}
+.b-other { background: var(--el-bg-color); color: var(--el-text-color-primary); border: 1px solid var(--el-border-color-lighter); }
+.b-self { background: var(--el-color-primary); color: var(--el-color-white); }
 .ws-plain { white-space: pre-wrap; }
-.b-other::before {
-  content: '';
-  position: absolute;
-  left: -4px;
-  top: 13px;
-  width: 8px;
-  height: 8px;
-  background: var(--el-bg-color);
-  border-left: 1px solid var(--el-border-color-lighter);
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  transform: rotate(45deg);
-}
-.b-self::before {
-  content: '';
-  position: absolute;
-  right: -4px;
-  top: 13px;
-  width: 8px;
-  height: 8px;
-  background: var(--el-color-primary);
-  transform: rotate(45deg);
-}
 .b-other :deep(.markdown-text) { margin: 0; }
 .b-other :deep(.markdown-text p) { margin: 0 0 6px; }
 .b-other :deep(.markdown-text p:last-child) { margin-bottom: 0; }
 .b-self :deep(.markdown-text p) { margin: 0 0 6px; }
-.b-self :deep(.markdown-text p:last-child) { margin-bottom: 0; }
 
-.ws-msgs-empty { text-align: center; padding: 60px 20px; color: var(--el-text-color-placeholder); }
+.ws-msgs-empty { text-align: center; padding: 48px 20px; color: var(--el-text-color-placeholder); }
 .ws-msgs-empty p { font-size: 13.5px; margin: 0 0 6px; }
 .ws-msgs-empty .sub { font-size: 12px; }
 
-/* 输入区 */
+/* ---- 底部输入 ---- */
 .ws-input {
   flex-shrink: 0;
   display: flex;
@@ -1722,12 +2237,15 @@ async function send() {
   background: var(--el-bg-color);
   border-top: 1px solid var(--el-border-color-lighter);
 }
+.ws-watch-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ws-watch-hint { font-size: 12px; color: var(--el-text-color-placeholder); line-height: 1.6; }
 .ws-at-chip { margin-bottom: 6px; }
 .ws-input-tools { display: flex; align-items: center; gap: 4px; }
 .ws-at-wrap { position: relative; }
 .ws-tool {
-  width: 30px;
-  height: 30px;
+  height: 28px;
+  min-width: 30px;
+  padding: 0 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1736,12 +2254,12 @@ async function send() {
   cursor: pointer;
   background: transparent;
   color: var(--el-text-color-secondary);
+  font-size: 12.5px;
 }
-.ws-tool:hover { background: var(--el-fill-color-light); color: var(--el-text-color-primary); }
-.ws-tool:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-}
+.ws-tool:hover:not(:disabled) { background: var(--el-fill-color-light); color: var(--el-text-color-primary); }
+.ws-tool:disabled { opacity: 0.5; cursor: not-allowed; }
 .ws-tool-at { font-size: 15px; font-weight: 600; }
+.ws-tool-watch { color: var(--el-color-primary); }
 .ws-at-menu {
   position: absolute;
   bottom: 34px;
@@ -1757,15 +2275,7 @@ async function send() {
   z-index: 20;
 }
 .ws-at-empty { padding: 16px; text-align: center; font-size: 12.5px; color: var(--el-text-color-secondary); }
-.ws-at-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 8px;
-  border-radius: var(--el-radius-md, 8px);
-  cursor: pointer;
-  outline: none;
-}
+.ws-at-item { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: var(--el-radius-md, 8px); cursor: pointer; }
 .ws-at-item:hover { background: var(--el-fill-color-light); }
 .ws-at-name { flex: 1; font-size: 13px; color: var(--el-text-color-primary); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ws-at-scene { font-size: 11px; color: var(--el-text-color-placeholder); }
@@ -1782,11 +2292,7 @@ async function send() {
   padding: 6px 2px;
 }
 .ws-textarea::placeholder { color: var(--el-text-color-placeholder); }
-.ws-input-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
+.ws-input-foot { display: flex; align-items: center; justify-content: space-between; }
 .ws-foot-hint { font-size: 11.5px; color: var(--el-text-color-placeholder); }
 .ws-send {
   height: 32px;
@@ -1797,33 +2303,15 @@ async function send() {
   background: var(--el-fill-color);
   color: var(--el-text-color-placeholder);
   font-size: 13px;
-  transition: background-color var(--el-transition-duration-fast, 0.2s) ease,
-    color var(--el-transition-duration-fast, 0.2s) ease;
 }
-.ws-send.ready {
-  cursor: pointer;
-  background: var(--el-color-primary);
-  color: var(--el-color-white);
-}
+.ws-send.ready { cursor: pointer; background: var(--el-color-primary); color: var(--el-color-white); }
 
-.ws-chat-placeholder {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--el-bg-color);
-}
-.ph-inner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  color: var(--el-text-color-placeholder);
-}
+.ws-chat-placeholder { flex: 1; display: flex; align-items: center; justify-content: center; }
+.ph-inner { display: flex; flex-direction: column; align-items: center; gap: 12px; color: var(--el-text-color-placeholder); }
 .ph-inner svg { width: 48px; height: 48px; }
 .ph-inner p { font-size: 13.5px; margin: 0; }
 
-/* ================= 右侧侧栏 ================= */
+/* ================= 右侧 ================= */
 .ws-side {
   width: 300px;
   flex-shrink: 0;
@@ -1832,11 +2320,7 @@ async function send() {
   background: var(--el-bg-color);
   border-left: 1px solid var(--el-border-color-lighter);
 }
-.ws-side-tabs {
-  display: flex;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  flex-shrink: 0;
-}
+.ws-side-tabs { display: flex; border-bottom: 1px solid var(--el-border-color-lighter); flex-shrink: 0; }
 .ws-side-tabs button {
   flex: 1;
   height: 40px;
@@ -1846,47 +2330,45 @@ async function send() {
   font-size: 13px;
   cursor: pointer;
   border-bottom: 2px solid transparent;
-  transition: color var(--el-transition-duration-fast, 0.2s) ease;
 }
 .ws-side-tabs button:hover { color: var(--el-text-color-primary); }
-.ws-side-tabs button.active {
-  color: var(--el-color-primary);
-  border-bottom-color: var(--el-color-primary);
-}
+.ws-side-tabs button.active { color: var(--el-color-primary); border-bottom-color: var(--el-color-primary); }
 .ws-side-body { flex: 1; overflow-y: auto; padding: 12px; }
-.ws-side-hint { font-size: 11.5px; color: var(--el-text-color-placeholder); margin-bottom: 10px; }
-.ws-side-empty {
-  padding: 32px 12px;
-  text-align: center;
-  font-size: 12.5px;
-  color: var(--el-text-color-secondary);
-}
+.ws-side-hint { font-size: 11.5px; color: var(--el-text-color-placeholder); margin-bottom: 10px; line-height: 1.6; }
+.ws-side-empty { padding: 32px 12px; text-align: center; font-size: 12.5px; color: var(--el-text-color-secondary); }
 
-/* 时间线 */
-.tl-item {
-  padding: 10px 0;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+/* 人物 */
+.cast-item {
+  display: flex;
+  gap: 10px;
+  padding: 9px 8px;
+  border-radius: var(--el-radius-lg, 12px);
+  cursor: pointer;
+  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
 }
-.tl-item:last-child { border-bottom: 0; }
-.tl-head {
+.cast-item:hover { background: var(--el-fill-color-light); }
+.cast-main { flex: 1; min-width: 0; }
+.cast-name {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
 }
-.tl-title { font-size: 13px; font-weight: 600; color: var(--el-text-color-primary); }
-.tl-time { font-size: 11px; color: var(--el-text-color-placeholder); flex-shrink: 0; }
-.tl-content {
-  margin-top: 5px;
-  font-size: 12.5px;
-  line-height: 1.6;
-  color: var(--el-text-color-regular);
-  white-space: pre-wrap;
-  word-break: break-word;
+.cast-sub { font-size: 11px; color: var(--el-text-color-placeholder); margin-top: 1px; }
+.cast-persona {
+  margin-top: 3px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
-.tl-npcs { margin-top: 6px; font-size: 11px; color: var(--el-color-primary); }
 
-/* 关系网 */
+/* 关系 */
 .rel-item {
   display: flex;
   align-items: center;
@@ -1894,19 +2376,11 @@ async function send() {
   padding: 9px 6px;
   border-radius: var(--el-radius-lg, 12px);
   cursor: pointer;
-  outline: none;
-  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 .rel-item:hover { background: var(--el-fill-color-light); }
 .rel-avatar { flex-shrink: 0; }
 .rel-main { flex: 1; min-width: 0; }
-.rel-names {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12.5px;
-  color: var(--el-text-color-primary);
-}
+.rel-names { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--el-text-color-primary); }
 .rel-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rel-arrow { color: var(--el-text-color-placeholder); }
 .rel-memo {
@@ -1918,7 +2392,6 @@ async function send() {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.rel-tag { flex-shrink: 0; }
 .rel-bar-wrap {
   position: relative;
   height: 6px;
@@ -1944,14 +2417,25 @@ async function send() {
   color: var(--el-text-color-placeholder);
 }
 
-/* 管理 */
-.ws-mg-section { margin-bottom: 18px; }
-.ws-mg-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
+/* 编年 */
+.tl-item { padding: 10px 0; border-bottom: 1px solid var(--el-border-color-lighter); }
+.tl-item:last-child { border-bottom: 0; }
+.tl-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tl-title { font-size: 13px; font-weight: 600; color: var(--el-text-color-primary); }
+.tl-time { font-size: 11px; color: var(--el-text-color-placeholder); flex-shrink: 0; }
+.tl-content {
+  margin-top: 5px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--el-text-color-regular);
+  white-space: pre-wrap;
+  word-break: break-word;
 }
+.tl-npcs { margin-top: 6px; font-size: 11px; color: var(--el-color-primary); }
+
+/* 舞台 / 场景管理 */
+.ws-mg-section { margin-bottom: 18px; }
+.ws-mg-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .ws-mg-title { font-size: 13px; font-weight: 600; color: var(--el-text-color-primary); }
 .ws-mg-add {
   width: 22px;
@@ -1968,43 +2452,19 @@ async function send() {
   line-height: 1;
 }
 .ws-mg-add:hover { border-color: var(--el-color-primary); }
-.ws-mg-scene {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 8px;
-  border-radius: var(--el-radius-md, 8px);
-}
+.ws-mg-scene { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: var(--el-radius-md, 8px); }
 .ws-mg-scene:hover { background: var(--el-fill-color-light); }
-.ws-mg-scene-name { flex: 1; font-size: 12.5px; color: var(--el-text-color-primary); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ws-mg-scene-count { font-size: 11px; color: var(--el-text-color-placeholder); }
-.ws-mg-npc {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 8px;
-  border-radius: var(--el-radius-md, 8px);
-  cursor: pointer;
-}
-.ws-mg-npc:hover { background: var(--el-fill-color-light); }
-.ws-mg-npc-avatar { flex-shrink: 0; }
-.ws-mg-npc-main { flex: 1; min-width: 0; }
-.ws-mg-npc-name {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.ws-mg-scene-name {
+  flex: 1;
   font-size: 12.5px;
   color: var(--el-text-color-primary);
-}
-.ws-mg-active { flex-shrink: 0; }
-.ws-mg-npc-sub {
-  font-size: 11px;
-  color: var(--el-text-color-placeholder);
-  margin-top: 2px;
-  white-space: nowrap;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
 }
+.ws-mg-scene-count { font-size: 11px; color: var(--el-text-color-placeholder); }
 .ws-mg-del {
   flex-shrink: 0;
   width: 20px;
@@ -2019,11 +2479,8 @@ async function send() {
   cursor: pointer;
   font-size: 11px;
   opacity: 0;
-  transition: opacity var(--el-transition-duration-fast, 0.2s) ease,
-    color var(--el-transition-duration-fast, 0.2s) ease;
 }
-.ws-mg-scene:hover .ws-mg-del,
-.ws-mg-npc:hover .ws-mg-del { opacity: 1; }
+.ws-mg-scene:hover .ws-mg-del { opacity: 1; }
 .ws-mg-del:hover { color: var(--el-color-danger); background: var(--el-color-danger-light-9); }
 
 /* ================= 对话框 ================= */
@@ -2032,156 +2489,38 @@ async function send() {
 .ws-form { display: flex; flex-direction: column; gap: 14px; }
 .ws-field { display: flex; flex-direction: column; gap: 6px; }
 .ws-label { font-size: 12.5px; color: var(--el-text-color-secondary); }
-.ws-char-filter { margin-bottom: 10px; }
-.ws-char-list { max-height: 46vh; overflow-y: auto; }
-.ws-char-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 4px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-}
-.ws-char-item:last-child { border-bottom: 0; }
-.ws-char-info { flex: 1; min-width: 0; }
-.ws-char-name { font-size: 13px; color: var(--el-text-color-primary); }
-.ws-char-desc {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.ws-char-empty { padding: 24px 0; text-align: center; font-size: 13px; color: var(--el-text-color-secondary); }
-
-/* ================= 剧本幕次 ================= */
-.ws-acts-body { flex: 1; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
-.ws-acts-list { flex-shrink: 0; }
-.ws-acts-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
-.ws-acts-label { font-size: 12.5px; font-weight: 600; color: var(--el-text-color-primary); }
-.ws-act-create {
-  width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center;
-  border: 0; border-radius: var(--el-radius-sm, 6px); cursor: pointer;
-  background: var(--el-color-primary-light-9); color: var(--el-color-primary);
-  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
-}
-.ws-act-create:hover { background: var(--el-color-primary-light-8); }
-.ws-act-create :deep(.el-icon) { font-size: 15px; }
-.ws-act-lst { max-height: 220px; overflow-y: auto; }
-.ws-act-row {
-  padding: 9px 10px; border-radius: var(--el-radius-lg, 12px); cursor: pointer; outline: none;
-  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
-}
-.ws-act-row:hover { background: var(--el-fill-color-light); }
-.ws-act-row.active { background: var(--el-color-primary-light-9); }
-.ws-act-row-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
-.ws-act-row-name {
-  font-size: 13.5px; font-weight: 600; color: var(--el-text-color-primary); flex: 1; min-width: 0;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.ws-act-stage {
-  font-size: 11px; padding: 1px 8px; border-radius: var(--el-radius-full, 9999px);
-  color: var(--el-color-white); background: var(--el-text-color-placeholder);
-}
-.ws-act-stage.primary { background: var(--el-color-primary); }
-.ws-act-stage.info { background: var(--el-color-info); }
-.ws-act-stage.warning { background: var(--el-color-warning); }
-.ws-act-stage.success { background: var(--el-color-success); }
-.ws-act-stage.danger { background: var(--el-color-danger); }
-.ws-act-row-foot { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
-.ws-act-row-no { font-size: 11.5px; color: var(--el-text-color-placeholder); white-space: nowrap; }
-.ws-act-row-progress { flex: 1; min-width: 0; }
-
-.ws-act-detail {
-  background: var(--el-fill-color-lighter); border-radius: var(--el-radius-lg, 12px);
-  padding: 12px; border: 1px solid var(--el-border-color-lighter);
-}
-.ws-act-detail-hd { margin-bottom: 12px; }
-.ws-act-detail-title {
-  font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); margin: 0 0 4px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.ws-act-detail-prog { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
-.ws-act-progress-text { font-size: 11px; color: var(--el-text-color-placeholder); flex: 1; text-align: right; }
-.ws-act-detail-body { display: flex; flex-direction: column; gap: 14px; }
-
-.ws-act-script { border-radius: var(--el-radius-md, 8px); border: 1px solid var(--el-border-color-lighter); background: var(--el-bg-color); overflow: hidden; }
-.ws-act-script-head {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px;
-  background: var(--el-fill-color); border-bottom: 1px solid var(--el-border-color-lighter);
-}
-.ws-act-script-title { font-size: 12px; color: var(--el-text-color-secondary); }
-.ws-act-script-close {
-  width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center;
-  border: 0; background: transparent; color: var(--el-text-color-placeholder); cursor: pointer;
-  border-radius: var(--el-radius-sm, 6px); font-size: 13px;
-}
-.ws-act-script-close:hover { background: var(--el-fill-color-light); color: var(--el-text-color-primary); }
-.ws-script-item {
-  margin: 0; padding: 10px; font-size: 12px; line-height: 1.8; color: var(--el-text-color-regular);
-  background: var(--el-bg-color); white-space: pre-wrap; word-break: break-all;
-  max-height: 200px; overflow-y: auto;
-}
-
-.ws-act-assets { display: flex; flex-direction: column; gap: 10px; }
-.ws-act-asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 8px; }
-.ws-act-asset-section {}
-.ws-act-asset-head { font-size: 12.5px; font-weight: 600; color: var(--el-text-color-primary); margin-bottom: 6px; }
-.ws-act-asset-card {
-  padding: 10px; border-radius: var(--el-radius-md, 8px); border: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color); transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
-}
-.ws-act-asset-card:hover { border-color: var(--el-color-primary-light-5); }
-.ws-act-asset-info { min-width: 0; margin-bottom: 6px; }
-.ws-act-asset-name {
-  font-size: 13px; font-weight: 600; color: var(--el-text-color-primary);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.ws-act-asset-desc {
-  font-size: 11.5px; color: var(--el-text-color-secondary); display: -webkit-box;
-  -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4;
-}
-.ws-act-asset-media { display: flex; flex-direction: column; gap: 4px; }
-.ws-act-media-band { display: flex; align-items: center; gap: 6px; }
-.ws-act-media-img { width: 36px; height: 36px; object-fit: cover; border-radius: var(--el-radius-sm, 6px); background: var(--el-fill-color); border: 1px solid var(--el-border-color-lighter); }
-.ws-act-media-status { font-size: 10.5px; padding: 1px 5px; border-radius: var(--el-radius-full, 9999px); color: var(--el-color-white); background: var(--el-text-color-placeholder); }
-.ws-act-media--none { background: var(--el-color-info); }
-.ws-act-media--waiting { background: var(--el-color-info); }
-.ws-act-media--running { background: var(--el-color-warning); }
-.ws-act-media--done { background: var(--el-color-success); }
-.ws-act-media-url { font-size: 10.5px; color: var(--el-color-primary); text-decoration: none; }
-.ws-act-media-url:hover { text-decoration: underline; }
-
-.ws-act-stages {
-  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--el-border-color-lighter);
-}
-.ws-act-stage-btn {
-  flex: 1; min-width: 0; height: 28px; padding: 0 8px; display: inline-flex; align-items: center; justify-content: center;
-  border: 1px solid var(--el-border-color-lighter); border-radius: var(--el-radius-sm, 6px); background: var(--el-bg-color);
-  color: var(--el-text-color-placeholder); font-size: 11.5px; cursor: not-allowed;
-  transition: all var(--el-transition-duration-fast, 0.2s) ease;
-}
-.ws-act-stage-btn.active {
-  border-color: var(--el-color-primary); background: var(--el-color-primary-light-9); color: var(--el-color-primary); cursor: pointer;
-}
-.ws-act-stage-btn.active:hover { background: var(--el-color-primary-light-8); }
-.ws-act-stage-btn.disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* ---- 创建/编辑世界表单 ---- */
-.ws-hint {
-  display: block; font-size: 11.5px; color: var(--el-text-color-placeholder); margin-top: 4px; line-height: 1.5;
-}
+.ws-hint { display: block; font-size: 11.5px; color: var(--el-text-color-placeholder); line-height: 1.5; }
 .ws-eras, .ws-seeds { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
 .ws-era-tag, .ws-seed {
-  display: inline-flex; align-items: center; justify-content: center;
-  max-width: 128px; padding: 6px 12px; border-radius: var(--el-radius-full, 9999px);
-  border: 1px solid var(--el-border-color-lighter); background: var(--el-bg-color);
-  color: var(--el-text-color-regular); font-size: 12.5px; cursor: pointer;
-  transition: all var(--el-transition-duration-fast, 0.2s) ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 128px;
+  padding: 6px 12px;
+  border-radius: var(--el-radius-full, 9999px);
+  border: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color);
+  color: var(--el-text-color-regular);
+  font-size: 12.5px;
+  cursor: pointer;
   user-select: none;
+  transition: all var(--el-transition-duration-fast, 0.2s) ease;
 }
 .ws-era-tag:hover, .ws-seed:hover { border-color: var(--el-color-primary-light-5); color: var(--el-color-primary); }
 .ws-era-tag.active, .ws-seed.active {
-  border-color: var(--el-color-primary); background: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
   color: var(--el-color-primary);
+}
+
+/* 角色微调里的关系滑杆 */
+.npc-rel { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
+.npc-rel-name { font-size: 12px; color: var(--el-text-color-regular); flex: 0 0 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.npc-rel-slider { flex: 1; }
+.npc-rel-val { font-size: 11.5px; color: var(--el-text-color-placeholder); flex: 0 0 34px; text-align: right; }
+
+@media (max-width: 1280px) {
+  .ws-side { width: 264px; }
+  .ws-list { width: 232px; }
 }
 </style>

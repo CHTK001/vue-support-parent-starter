@@ -6,6 +6,85 @@
 import { DEFAULT_THEME } from "@repo/config";
 import type { MessageStateType } from "../types";
 
+/** 主题色所有被写入的变量名（只在这里清理，不可扩散到其他类库） */
+const PRIMARY_VAR_RE = /--el-color-primary(-dark-2|-rgb|-light-[1-9])?:[^;]*;?/g;
+
+/**
+ * 剔除已写入的主题色变量，避免跨次调用在 cssText 里重复堆积
+ * 同一次调用内，重复组由后续组覆盖（CSS 层叠）
+ */
+function stripPrimaryVars(str: string): string {
+  return str.replace(PRIMARY_VAR_RE, "").trim();
+}
+
+/** 核心推进：只写一次，消除 12 次 setProperty 的视图抖动 */
+function writePrimaryVars(
+  target: HTMLElement,
+  color: string,
+  isDark: boolean,
+  varPrefix: string,
+) {
+  const safeColor = normalizeThemeColor(color);
+  const rgb = hexToRgb(safeColor);
+  const rgbVar = rgb ? `${rgb[0]},${rgb[1]},${rgb[2]}` : "";
+  const dark2 = isDark ? getLightColor(safeColor, 2) : getDarkColor(safeColor, 2);
+  const lights = Array.from({ length: 9 }, (_, i) => {
+    const level = isDark ? getDarkColor(safeColor, i + 1) : getLightColor(safeColor, i + 1);
+    return `--el-color-${varPrefix}light-${i + 1}: ${level}`;
+  }).join("; ");
+  const strip = stripPrimaryVars(target.style.cssText);
+  target.style.cssText = `${strip};\
+    --el-color-primary: ${safeColor};\
+    --el-color-primary-rgb: ${rgbVar};\
+    --el-color-primary-dark-2: ${dark2};\
+    ${lights};`;
+}
+
+/** 写入 Element Plus 主题色及 9 级色阶 */
+export function applyPrimaryColorVars(target: HTMLElement, color: string, isDark: boolean) {
+  writePrimaryVars(target, color, isDark, "primary-");
+}
+
+/** 写入 Element Plus 单个状态色变量及 9 级色阶（success / warning / danger / info） */
+function applyStateColorVars(target: HTMLElement, varName: string, color: string, isDark: boolean) {
+  const safeColor = normalizeThemeColor(color);
+  const rgb = hexToRgb(safeColor);
+  const rgbVar = rgb ? `${rgb[0]},${rgb[1]},${rgb[2]}` : "";
+  const dark2 = isDark ? getLightColor(safeColor, 2) : getDarkColor(safeColor, 2);
+  const lights = Array.from({ length: 9 }, (_, i) => {
+    const level = isDark ? getDarkColor(safeColor, i + 1) : getLightColor(safeColor, i + 1);
+    return `--el-color-${varName}-light-${i + 1}: ${level}`;
+  }).join("; ");
+  target.style.cssText = `${target.style.cssText};\
+    --el-color-${varName}: ${safeColor};\
+    --el-color-${varName}-rgb: ${rgbVar};\
+    --el-color-${varName}-dark-2: ${dark2};\
+    ${lights};`;
+}
+
+/**
+ * 实时写入消息状态色 CSS 变量，控制全局 el-message / el-notification 颜色。
+ * @param colors type → hex，缺省项不覆盖
+ */
+export function applyMessageColorVars(
+  target: HTMLElement,
+  colors: Partial<Record<MessageStateType, string>>,
+  isDark: boolean,
+) {
+  const varMap: Record<MessageStateType, string> = {
+    success: "success",
+    warning: "warning",
+    danger: "error",
+    info: "info",
+  };
+  (Object.keys(colors) as MessageStateType[]).forEach((type) => {
+    const color = colors[type];
+    if (color) {
+      applyStateColorVars(target, varMap[type], color, isDark);
+    }
+  });
+}
+
 /** hex 转 rgb 数组 */
 export function hexToRgb(hex: string): number[] | null {
   const normalized = hex.replace("#", "");
@@ -56,69 +135,4 @@ export function getLightColor(color: string, level: number): string {
 /** 暗色模式色阶：向黑色靠拢 */
 export function getDarkColor(color: string, level: number): string {
   return mixColor(color, "#000000", level * 0.1);
-}
-
-/** 写入 Element Plus 主题色及 9 级色阶 */
-export function applyPrimaryColorVars(target: HTMLElement, color: string, isDark: boolean) {
-  const safeColor = normalizeThemeColor(color);
-  target.style.setProperty("--el-color-primary", safeColor);
-  const rgb = hexToRgb(safeColor);
-  if (rgb) {
-    target.style.setProperty("--el-color-primary-rgb", `${rgb[0]},${rgb[1]},${rgb[2]}`);
-  }
-  if (isDark) {
-    target.style.setProperty("--el-color-primary-dark-2", getLightColor(safeColor, 2));
-    for (let i = 1; i <= 9; i++) {
-      target.style.setProperty(`--el-color-primary-light-${i}`, getDarkColor(safeColor, i));
-    }
-  } else {
-    target.style.setProperty("--el-color-primary-dark-2", getDarkColor(safeColor, 2));
-    for (let i = 1; i <= 9; i++) {
-      target.style.setProperty(`--el-color-primary-light-${i}`, getLightColor(safeColor, i));
-    }
-  }
-}
-
-/** 写入 Element Plus 单个状态色变量及 9 级色阶（success / warning / danger / info） */
-function applyStateColorVars(target: HTMLElement, varName: string, color: string, isDark: boolean) {
-  const safeColor = normalizeThemeColor(color);
-  target.style.setProperty(`--el-color-${varName}`, safeColor);
-  const rgb = hexToRgb(safeColor);
-  if (rgb) {
-    target.style.setProperty(`--el-color-${varName}-rgb`, `${rgb[0]},${rgb[1]},${rgb[2]}`);
-  }
-  if (isDark) {
-    target.style.setProperty(`--el-color-${varName}-dark-2`, getLightColor(safeColor, 2));
-    for (let i = 1; i <= 9; i++) {
-      target.style.setProperty(`--el-color-${varName}-light-${i}`, getDarkColor(safeColor, i));
-    }
-  } else {
-    target.style.setProperty(`--el-color-${varName}-dark-2`, getDarkColor(safeColor, 2));
-    for (let i = 1; i <= 9; i++) {
-      target.style.setProperty(`--el-color-${varName}-light-${i}`, getLightColor(safeColor, i));
-    }
-  }
-}
-
-/**
- * 实时写入消息状态色 CSS 变量，控制全局 el-message / el-notification 颜色。
- * @param colors type → hex，缺省项不覆盖
- */
-export function applyMessageColorVars(
-  target: HTMLElement,
-  colors: Partial<Record<MessageStateType, string>>,
-  isDark: boolean,
-) {
-  const varMap: Record<MessageStateType, string> = {
-    success: "success",
-    warning: "warning",
-    danger: "error",
-    info: "info",
-  };
-  (Object.keys(colors) as MessageStateType[]).forEach((type) => {
-    const color = colors[type];
-    if (color) {
-      applyStateColorVars(target, varMap[type], color, isDark);
-    }
-  });
 }

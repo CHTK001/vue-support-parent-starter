@@ -1400,6 +1400,59 @@ export async function createOneTimeLink(
   }
 }
 
+/** 链接管理里的一条访问链接 */
+export interface OneTimeLinkItem {
+  /** 令牌，用于吊销 */
+  token: string;
+  /** 文件名（Key 的最后一段） */
+  name: string;
+  /** 对象 Key */
+  key: string;
+  /** 存储桶 */
+  bucket: string;
+  /** once=一次性 / expiry=限时 */
+  type: "once" | "expiry";
+  /** 是否访问即销毁 */
+  once: boolean;
+  /** 创建时间（毫秒时间戳） */
+  createTime: number;
+  /** 过期时间（毫秒时间戳） */
+  expiresAt: number;
+  /** 剩余有效毫秒数 */
+  remainingMs: number;
+  /** 相对预览地址（/ot/{token}?preview=true） */
+  url: string;
+}
+
+/**
+ * 列出当前有效的分享链接（一次性 / 限时，不含系统内部预览令牌）。
+ *
+ * @return 链接列表，按创建时间倒序
+ */
+export async function listOneTimeLinks(): Promise<OneTimeLinkItem[]> {
+  try {
+    return await storageHttp()
+      .get("/ot")
+      .timeout(10000)
+      .then<OneTimeLinkItem[]>((r) => (Array.isArray(r.data) ? r.data : []));
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "读取链接列表"));
+  }
+}
+
+/**
+ * 吊销指定分享链接（关闭后原地址立即失效）。
+ *
+ * @param token 链接令牌
+ */
+export async function revokeOneTimeLink(token: string): Promise<void> {
+  try {
+    await storageHttp().delete(`/ot/${encodeURIComponent(token)}`).timeout(10000);
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "关闭访问链接"));
+  }
+}
+
 /* ================== 文件管理动作（KodExplorer 风格） ================== */
 
 /**
@@ -1925,10 +1978,75 @@ export function subscribeUploadTasks(
   };
 }
 
+/**
+ * 协同文档变更事件
+ *
+ * <p>对应后端 {@code GET /v2/file/collab/{id}/events} 的 {@code changed} 事件。</p>
+ */
+export interface CollabChangeEvent {
+  /** 协同文档号 */
+  id: string;
+  /** 变更后的版本号 */
+  version: number;
+  /** 变更时间戳 */
+  updatedAt: number;
+  /** 变更类型：snapshot / access / rename / create / delete */
+  kind: string;
+}
+
 // ==================== 协同文档（在线表格协同） ====================
 
 /** 协同文档接口前缀（Spring 侧，与上传任务同通道） */
 const FILE_COLLAB_BASE = "/v2/file/collab";
+
+/**
+ * 订阅单个协同文档的变更推送（SSE）。
+ *
+ * <p>有了这条流，编辑器就不必靠 15s 轮询去发现「别人存过了」：别人一保存，
+ * 这里立刻收到 {@code changed}，客户端再去拉最新快照重放。轮询保留作为兜底
+ * （SSE 断连 / 被代理层掐断时）。</p>
+ *
+ * <p>复用 {@code @repo/core} 的 SSE 服务：令牌走 {@code Authorization} 头
+ * （不落 URL），断线自动重连。</p>
+ *
+ * @param id      协同文档号
+ * @param onChange 变更回调
+ * @return 取消订阅函数（组件卸载时调用）
+ */
+export function subscribeFileCollab(
+  id: string,
+  onChange: (change: CollabChangeEvent) => void,
+): () => void {
+  let dispose: (() => void) | null = null;
+  let cancelled = false;
+  void Promise.all([import("@repo/core"), import("@repo/utils")]).then(([core, utils]) => {
+    if (cancelled) {
+      return;
+    }
+    try {
+      core.setSocketTokenProvider(() => utils.getAccessToken() ?? "");
+    } catch {
+      // 令牌提供者设置失败不影响连接（公开文档匿名可看）
+    }
+    const sse = core.createSseService({
+      urls: [window.location.origin],
+      path: `${FILE_COLLAB_BASE}/${encodeURIComponent(id)}/events`,
+      reconnection: true,
+      reconnectionDelay: 3000,
+    });
+    sse.on("changed", (data) => {
+      if (data && typeof data === "object" && "version" in (data as object)) {
+        onChange(data as CollabChangeEvent);
+      }
+    });
+    sse.connect();
+    dispose = () => sse.close();
+  });
+  return () => {
+    cancelled = true;
+    dispose?.();
+  };
+}
 
 /** 协同文档可见性 */
 export type CollabVisibility = "PUBLIC" | "PRIVATE";
@@ -1958,8 +2076,15 @@ export interface FileCollabInfo {
   updatedAt: number;
   /** 快照版本（乐观锁计数） */
   version: number;
-  /** 当前表格快照（Univer 工作簿 JSON / word 富文本 HTML / text 纯文本；空串 = 未保存） */
-  snapshot: string;
+  /**
+   * 当前快照（Univer 工作簿 JSON / word 富文本 HTML / text 纯文本；空串 = 未保存）
+   *
+   * <p><b>列表与保存响应里没有这个字段。</b>它是「打开 / 预览 / 下载 / 历史」这些
+   * 真需要内容的接口才下发的：列表带上内容会让打开协同管理页变成
+   * 「把库里所有文档都下载一遍」，保存响应再回传一遍则等于保存流量翻倍。
+   * 拿到摘要后要内容的场景，统一按 id 调 {@link getFileCollab} 取详情。</p>
+   */
+  snapshot?: string;
   /** 所在目录（空串 = 根目录；"x/y" = 层级目录） */
   path: string;
   /** 文档类型：excel / word / text */
@@ -2069,6 +2194,36 @@ export async function getFileCollab(id: string, userId?: string): Promise<FileCo
       .then<FileCollabInfo>((r) => unwrapTask<FileCollabInfo>(r));
   } catch (e) {
     throw new Error(toErrorMessage(e, "获取协同文档"));
+  }
+}
+
+/** 协同文档版本探针结果 */
+export interface FileCollabVersion {
+  /** 协同文档号 */
+  id: string;
+  /** 当前版本号 */
+  version: number;
+  /** 最后更新时间戳 */
+  updatedAt: number;
+}
+
+/**
+ * 只取版本号（轮询专用）。
+ *
+ * <p>协同编辑器要判断「别人有没有存过」，此前只能调详情接口 —— 而详情每次都把
+ * 整份快照传回来，编辑期间等于每 15s 白下载并解析一次全文，大文档上就是周期性卡顿。
+ * 这个接口只回几十字节，版本真的变了再去取全文。</p>
+ *
+ * @param id 协同文档号
+ * @return 版本与更新时间
+ */
+export async function getFileCollabVersion(id: string): Promise<FileCollabVersion> {
+  try {
+    return await uploadTaskHttp()
+      .get(`${FILE_COLLAB_BASE}/${id}/version`)
+      .then<FileCollabVersion>((r) => unwrapTask<FileCollabVersion>(r));
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "获取协同文档版本"));
   }
 }
 

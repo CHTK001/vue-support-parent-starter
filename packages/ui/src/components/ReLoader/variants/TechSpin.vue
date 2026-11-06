@@ -2,7 +2,7 @@
   <!--
     科技双环（原 TechScanLoader 的通用化版本）。
     外环顺时针 + 内环逆时针，弧长各约 180°（主弧 + 两段递减余晖），
-    中心点脉冲、一道扫描线；小尺寸下比海浪/进度条更清晰，故保留为内联首选。
+    中心点脉冲、一道扫描线；小尺寸下比圆点/进度条更清晰，故保留为内联首选。
   -->
   <div class="re-loader-spin" :class="[`is-${size}`]" role="status" :aria-label="text || '正在处理'">
     <div class="re-loader-spin__rings" aria-hidden="true">

@@ -69,6 +69,12 @@
 /* 主内容区通用内边距（纵向/横向布局共用） */
 .main-content {
   padding: 8px !important;
+  /* 背景色 / 文字 / 边框 / 阴影 4 组颜色随模式切换过渡（transition 不继承自 :root），
+     与 View Transition 的 300ms 括号动画同步 */
+  transition: background-color var(--el-transition-duration, 0.3s) ease-in,
+    color var(--el-transition-duration, 0.3s) ease-in,
+    border-color var(--el-transition-duration, 0.3s) ease-in,
+    box-shadow var(--el-transition-duration, 0.3s) ease-in;
 }
 
 /* ==================== 全局表格体验增强 ==================== */

@@ -42,42 +42,53 @@
       description="到「人脸重识别」页上传一帧监控画面，观测记录会自动落库。"
     />
 
-    <el-table v-else v-loading="loading" :data="items" size="small" stripe empty-text="暂无观测记录">
-      <el-table-column prop="trackId" label="轨迹 ID" width="150" />
-      <el-table-column prop="group" label="分组" width="120" show-overflow-tooltip>
+    <ReTable
+      v-else
+      :data="items"
+      :loading="loading"
+      size="small"
+      stripe
+      :border="false"
+      empty-text="暂无观测记录"
+      :layout-table="{ minHeight: 0 }"
+      :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+    >
+      <ReTableColumn prop="trackId" label="轨迹 ID" width="150" />
+      <ReTableColumn prop="group" label="分组" width="120" show-overflow-tooltip>
         <template #default="{ row }">
           <span>{{ row.group || 'default' }}</span>
         </template>
-      </el-table-column>
-      <el-table-column prop="cameraId" label="摄像头" width="140" />
-      <el-table-column prop="name" label="记录名" min-width="160" show-overflow-tooltip />
-      <el-table-column prop="faceName" label="关联人脸" width="120">
+      </ReTableColumn>
+      <ReTableColumn prop="cameraId" label="摄像头" width="140" />
+      <ReTableColumn prop="name" label="记录名" min-width="160" show-overflow-tooltip />
+      <ReTableColumn prop="faceName" label="关联人脸" width="120">
         <template #default="{ row }">
           <span v-if="row.faceName">{{ row.faceName }}</span>
           <span v-else class="reid-lib-muted">未关联</span>
         </template>
-      </el-table-column>
-      <el-table-column label="经纬度" width="190">
+      </ReTableColumn>
+      <ReTableColumn label="经纬度" width="190">
         <template #default="{ row }">
           <span v-if="row.lat != null && row.lng != null">{{ row.lat }}, {{ row.lng }}</span>
           <span v-else class="reid-lib-muted">未填写</span>
         </template>
-      </el-table-column>
-      <el-table-column prop="createTime" label="观测时间" width="180">
+      </ReTableColumn>
+      <ReTableColumn prop="createTime" label="观测时间" width="180">
         <template #default="{ row }">{{ formatTime(row.createTime) }}</template>
-      </el-table-column>
-      <el-table-column label="操作" width="90" fixed="right">
+      </ReTableColumn>
+      <ReTableColumn label="操作" width="90" fixed="right">
         <template #default="{ row }">
           <el-button link type="danger" @click="remove(row)">删除</el-button>
         </template>
-      </el-table-column>
-    </el-table>
+      </ReTableColumn>
+    </ReTable>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { message } from '@repo/core'
+import ReTable from '@repo/ui/re-table'
 import { Delete, Refresh } from '@element-plus/icons-vue'
 import { apiService } from '@/services/ApiService'
 import { useLibraryGroups } from '@/composables/useLibraryGroups'

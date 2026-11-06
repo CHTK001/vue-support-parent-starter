@@ -527,6 +527,8 @@ export interface OtherConfig {
   timer: TimerConfig;
   /** 天气配置（Open-Meteo 免费 API，enable 显隐，经纬度定位，默认每小时缓存） */
   weather: WeatherConfig;
+  /** 汇率配置（顶栏汇率组件，symbols 决定面板与查询展示的币种对列表） */
+  exchangeRate: ExchangeRateConfig;
   /** 大屏配置（顶栏入口 + 独立路由 URL，开启后顶栏显示大屏图标、菜单注入大屏路由） */
   bigscreen: BigscreenConfig;
   /** 无障碍配置（读屏优化 / 高对比度 / 语音朗读） */
@@ -545,6 +547,37 @@ export interface OtherConfig {
   avatarFrame: AvatarFrameConfig;
   /** 加载动画配置（部署侧接管，默认关闭） */
   loaderConfig: LoaderDeployConfig;
+  /** 空状态（ReEmpty）默认样式（主题配置里仅 admin 可改） */
+  emptyState: EmptyStateConfig;
+}
+
+/**
+ * 空状态（ReEmpty）默认样式（app.yaml `other.emptyState`）。
+ *
+ * <p>只决定「组件没有显式传 layout 时」用哪种样式：显式 prop 永远优先，
+ * 所以业务里写死的 {@code <ReEmpty layout="plot">} 不受影响。</p>
+ *
+ * <ul>
+ *   <li>{@code enable: false}：一律回落 el-empty，与没有这段配置时逐字一致；</li>
+ *   <li>{@code layout}："el"（el-empty）/ "modern"（扁平空状态）/ "plot"（hairline 动画图）。</li>
+ * </ul>
+ *
+ * <p>主题配置抽屉里的「空状态样式」仅 admin 可见可改，改动写回 appConfig，
+ * 由 config.ts 的持久化 watch 落到用户配置里。</p>
+ */
+export interface EmptyStateConfig {
+  /** 是否启用配置（false 时全部回落 el-empty） */
+  enable: boolean;
+  /** 未显式传 layout 时使用的样式 */
+  layout: "el" | "modern" | "plot";
+  /**
+   * 「plot（动画图）」用哪个 hairline 图形（默认 "plot"）。
+   *
+   * <p>hairline 有三十多个图形，空状态不该写死一款；这里存**键名**，
+   * 可选键见 {@code @repo/ui} 的 {@code HAIRLINE_FIGURE_KEYS}，
+   * 非法值自动回落 "plot"，不会白屏。</p>
+   */
+  hairline: string;
 }
 
 /**
@@ -563,27 +596,65 @@ export interface OtherConfig {
  * </ul>
  *
  * <p>{@code size} 只作用于首屏（应用内按各调用点的尺寸档位，本来就不该被统一成
- * 同一个像素值）；{@code color} 首屏与应用内都生效，保证两处主色一致。</p>
+ * 同一个像素值）；{@code color} 与 {@code speed} 首屏与应用内都生效，
+ * 保证两处主色与节奏一致。</p>
  */
 export interface LoaderDeployConfig {
   /** 是否由部署侧接管（默认 false：不接管，交给用户在主题配置里选） */
   enable: boolean;
   /**
-   * 动画键（默认 wave）：
-   *   - {@code wave}  海浪
-   *   - {@code dots}  三个圆点
-   *   - {@code rings} 科技圆圈
-   *   - {@code dino}  像素恐龙
-   *   - {@code none}  无动画（只留遮罩）
+   * 动画键（默认 dots）：
+   *   - {@code dots}      三个圆点
+   *   - {@code rings}     科技圆圈
+   *   - {@code dino}      像素恐龙
+   *   - {@code ripple}    水波涟漪
+   *   - {@code orbit}     双轨环绕
+   *   - {@code bars}      音量柱
+   *   - {at code matrix}    点阵
+   *   - {at code conveyor}  传送带
+   *   - {at code pillars}   柱阵
+   *   - {at code cards}     卡片翻动
+   *   - {at code none}      无动画（只留遮罩）
+   *
+   * <p>全部是纯 CSS 动画：首屏与应用内共用同一份定义，填哪个都能在首屏看到。</p>
    *
    * 历史键（default / spin / dinoGame / clock 等）也会被折到最近的现行键，
    * 与 localStorage 的读取规则一致。
    */
   animation: string;
-  /** 首屏动画基准边长（px，8~512，默认 96） */
-  size: number;
+  /**
+   * 首屏动画基准边长（px，8~512）。
+   *
+   * <p>写单个数字（如 {@code 96}）表示宽窄屏同值；写对象则按断点分两档
+   * （{@code narrow} < 768px、{@code wide} ≥ 768px）。手机首屏用小尺寸、
+   * 桌面用大尺寸，同一份配置就能兼顾。</p>
+   */
+  size: LoaderDeploySizeConfig | number;
   /** 动画主色（hex / rgb / hsl，默认 #406eeb） */
   color: string;
+  /**
+   * 速度倍率（0.5~3，默认 1 = 原速）。
+   *
+   * <p>实现上是 CSS 变量 {@code --sla-rate}：所有动画时长都写成
+   * {@code calc(Ns / var(--sla-rate,1))}，所以一处改倍率、全部动画同步变快变慢，
+   * 不会出现"某一款还按原速跑"。</p>
+   */
+  speed: number;
+  /**
+   * 主色是否跟随主题主色（{@code --el-color-primary}）。
+   *
+   * <p>为 true 时忽略 {@code color}，动画与系统主题色保持一致（换主题不用重新配 loader）；
+   * 为 false 时用 {@code color}。默认 false，与接入前逐字一致。</p>
+   */
+  adaptColor: boolean;
+}
+
+/** 首屏尺寸的两档取值 */
+export interface LoaderDeploySizeConfig {
+  /** 窄屏（<768px） */
+  narrow: number;
+  /** 宽屏（≥768px） */
+  wide: number;
 }
 
 export interface AvatarFrameConfig {
@@ -664,10 +735,14 @@ export interface ToolbarConfig {
   logo: boolean;
   /** 站内消息（铃铛徽标） */
   message: boolean;
+  /** 快捷便条（顶栏入口创建悬浮便条） */
+  quickNote: boolean;
   /** 全局公告条（活跃公告横幅，数据来自平台 /v2/announcement/active） */
   announcement: boolean;
   /** 顶栏天气组件 */
   weather: boolean;
+  /** 顶栏汇率组件 */
+  exchangeRate: boolean;
   /** 顶栏台风组件 */
   typhoon: boolean;
   /** 工具栏默认折叠（true=折叠只显示头像，false=展开显示全部图标） */
@@ -701,6 +776,17 @@ export interface WeatherConfig {
   longitude: number;
   /** 城市名称显示（默认 "本地"） */
   city: string;
+}
+
+/**
+ * 汇率配置（app.yaml `other.exchangeRate`）
+ *
+ * <p>`symbols` 决定顶栏汇率面板展示和查询哪些币种对（如 USD/EUR、USD/CNY）。
+ * 列表为空时，`@repo/core` 的汇率查询会直接报错，面板进入无数据态。</p>
+ */
+export interface ExchangeRateConfig {
+  /** 关注的币种对列表（如 EUR/USD、USD/CNY），不传取框架默认（一篮子主流货币） */
+  symbols: string[];
 }
 
 /**

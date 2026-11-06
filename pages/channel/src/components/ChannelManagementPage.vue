@@ -27,19 +27,12 @@ import {
   Delete as DeleteIcon,
   Connection as ConnectionIcon,
   DataAnalysis as DataAnalysisIcon,
-  Document as DocumentIcon,
 } from '@element-plus/icons-vue'
 import {
   channelApi,
-  tempAccountApi,
   type ChannelSummary,
   type ChannelConnectionSummary,
-  type TempIdentitySummary,
-  type TempChannelOption,
 } from '../channelApi'
-import SmsInbox from './SmsInbox.vue'
-import MailboxPanel from './MailboxPanel.vue'
-import MessageTemplateManager from './MessageTemplateManager.vue'
 import ChatClientPanel from './ChatClientPanel.vue'
 import ImageChannelPanel from './ImageChannelPanel.vue'
 
@@ -144,9 +137,57 @@ async function loadChannels() {
   loading.value = true
   loadError.value = ''
   try {
-    const res = await channelApi.list()
-    const data = (res as any)?.data ?? res
-    channels.value = Array.isArray(data) ? data : []
+    // /api/channels 只回 AI 账号渠道（AccountChannelAuthManager）；免登录对话 /
+    // 文生图渠道走各自 SPI 端点。三路合并后才是完整渠道清单（DuckDuckGo 在此），
+    // 单路失败不拖垮整页：AI 渠道是主体，其余两路失败仅影响新增渠道的展示。
+    const [ai, chat, image] = await Promise.allSettled([
+      channelApi.list(),
+      channelApi.chatChannels(),
+      channelApi.imageChannels(),
+    ])
+    // 主清单（AI 账号渠道）失败才在错误条里提示；免登录两路失败不弹错误。
+    if (ai.status === 'rejected') loadError.value = ai.reason?.message ?? String(ai.reason)
+    const aiRows: ChannelSummary[] =
+      ai.status === 'fulfilled' && Array.isArray((ai.value as any)?.data ?? ai.value)
+        ? ((ai.value as any).data ?? ai.value)
+        : []
+    /** 免登录 SPI 元数据 → 渠道卡片摘要 */
+    const toSummary = (x: any, kind: 'CHAT' | 'IMAGE'): ChannelSummary => ({
+      channel: x.channel,
+      displayName: x.displayName,
+      kind,
+      enabled: true,
+      priority: x.priority,
+      supportsImage: kind === 'IMAGE' ? true : x.supportsImage,
+      chatClient: kind === 'CHAT',
+      imageClient: kind === 'IMAGE',
+      connections: [],
+      models: (x.models ?? []).map((m: any) => ({
+        model: m.id ?? m.model,
+        enabled: true,
+        alias: m.name ?? m.alias,
+        contextWindow: m.contextWindow,
+      })),
+    })
+    const chatRows: ChannelSummary[] =
+      chat.status === 'fulfilled' ? (chat.value?.channels ?? []).map((x) => toSummary(x, 'CHAT')) : []
+    const imageRows: ChannelSummary[] =
+      image.status === 'fulfilled' ? (image.value?.channels ?? []).map((x) => toSummary(x, 'IMAGE')) : []
+    channels.value = [...aiRows, ...chatRows, ...imageRows]
+    // 对话渠道的模型清单不在元数据里，并发补一次实时拉取，避免面板首屏空模型；
+    // 单渠道失败/未就绪直接跳过（ChatClientPanel 仍可手动「刷新模型」）。
+    await Promise.allSettled(
+      chatRows.map(async (c) => {
+        try {
+          const m = await channelApi.chatModels(c.channel)
+          if (m?.available !== false) {
+            c.models = (m.models ?? []).map((x) => ({
+              model: x.id, enabled: true, alias: x.name, contextWindow: x.contextWindow,
+            }))
+          }
+        } catch { /* 单渠道模型拉取失败不拖垮整页 */ }
+      }),
+    )
     if (!activeChannel.value || !channels.value.some((c) => c.channel === activeChannel.value)) {
       activeChannel.value = channels.value[0]?.channel ?? ''
     }
@@ -747,8 +788,6 @@ const accountTypesOf = (c?: ChannelSummary): string[] =>
   (c?.accountTypes ?? ['FIXED']).map((t) => String(t).toUpperCase())
 /** 是否支持固定账号（长期绑定 / 授权） */
 const supportsFixed = (c?: ChannelSummary): boolean => accountTypesOf(c).includes('FIXED')
-/** 是否支持临时账号（一次性虚拟身份） */
-const supportsTemporary = (c?: ChannelSummary): boolean => accountTypesOf(c).includes('TEMPORARY')
 
 /** 渠道种类展示名 */
 const KIND_TEXT: Record<string, string> = {
@@ -765,196 +804,6 @@ const isStatelessKind = (c?: ChannelSummary): boolean => ['CHAT', 'IMAGE'].inclu
 /** 免账号渠道的副标题说明 */
 const statelessHint = (c?: ChannelSummary): string =>
   kindOf(c) === 'IMAGE' ? '· 文生图渠道（无持久化凭据）' : '· ChatClient 免登录（无持久化凭据）'
-
-// ---------- 临时身份（/api/channels/temp-accounts）----------
-// 页内可创建（设计决策 4）：临时身份 = 接码渠道 + 收信渠道的组合资源，
-// 创建后由后端定时轮询抓取新短信 / 新邮件，经 SSE 实时推送。
-/** 临时身份创建类型选项（仅号码 / 仅邮箱 / 号码 + 邮箱） */
-const TEMP_TYPE_OPTIONS = [
-  { value: 'sms' as const, label: '仅号码' },
-  { value: 'email' as const, label: '仅邮箱' },
-  { value: 'both' as const, label: '号码 + 邮箱' },
-]
-const tempDialogVisible = ref(false)
-const tempType = ref<'sms' | 'email' | 'both'>('both')
-const tempList = ref<TempIdentitySummary[]>([])
-const tempLoading = ref(false)
-const tempCreating = ref(false)
-const tempDetailId = ref('')
-const tempDetail = ref<Record<string, any> | null>(null)
-let tempSse: { close: () => void } | null = null
-/** SSE 增量消息侧写：id → { sms, emails }（详情未拉取时先用它渲染） */
-const tempLive = reactive<Record<string, { sms: Record<string, any>[]; emails: Record<string, any>[] }>>({})
-
-// 短信 / 邮件渠道的「进入优先级」选项：后端按 priority 降序返回，default=true 为缺省渠道。
-// 留空即使用缺省渠道，实现「指定优先 + 优先级降级」。
-const tempChannelOptions = reactive<{ sms: TempChannelOption[]; email: TempChannelOption[] }>({
-  sms: [],
-  email: [],
-})
-const tempSmsChannel = ref('')
-const tempEmailChannel = ref('')
-/** 消息模板管理弹窗 */
-const templateDialogVisible = ref(false)
-
-async function loadTempChannelOptions() {
-  try {
-    const res = await tempAccountApi.availableChannels()
-    const data = ((res as any)?.data ?? res) as { sms?: TempChannelOption[]; email?: TempChannelOption[] }
-    tempChannelOptions.sms = data?.sms ?? []
-    tempChannelOptions.email = data?.email ?? []
-    // 默认选中缺省渠道（default=true），避免下拉出现「未选择」的空态
-    if (!tempSmsChannel.value) {
-      tempSmsChannel.value = tempChannelOptions.sms.find((x) => x.default)?.channel ?? ''
-    }
-    if (!tempEmailChannel.value) {
-      tempEmailChannel.value = tempChannelOptions.email.find((x) => x.default)?.channel ?? ''
-    }
-  } catch {
-    // 渠道选项拉取失败不阻塞创建：留空即走后端缺省渠道
-    tempChannelOptions.sms = []
-    tempChannelOptions.email = []
-  }
-}
-
-function openTempDialog() {
-  tempDialogVisible.value = true
-  void loadTempIdentities()
-  void loadTempChannelOptions()
-  startTempStream()
-}
-
-function closeTempDialog() {
-  stopTempStream()
-  tempDetailId.value = ''
-  tempDetail.value = null
-}
-
-function stopTempStream() {
-  try {
-    tempSse?.close()
-  } catch {
-    /* 已关闭 */
-  }
-  tempSse = null
-}
-
-async function loadTempIdentities() {
-  tempLoading.value = true
-  try {
-    const res = await tempAccountApi.list()
-    const data = (res as any)?.data ?? res
-    tempList.value = Array.isArray(data) ? data : []
-  } catch (e: any) {
-    ElMessage.error('临时身份加载失败：' + (e?.message ?? e))
-  } finally {
-    tempLoading.value = false
-  }
-}
-
-function startTempStream() {
-  stopTempStream()
-  tempSse = tempAccountApi.stream({
-    onAccount: (account) => {
-      if (!account?.id) return
-      tempList.value = [account, ...tempList.value.filter((x) => x.id !== account.id)]
-    },
-    onMessage: (payload) => {
-      if (!payload?.id) return
-      const live = (tempLive[payload.id] ??= { sms: [], emails: [] })
-      if (payload.sms?.length) live.sms.unshift(...payload.sms)
-      if (payload.emails?.length) live.emails.unshift(...payload.emails)
-      const item = tempList.value.find((x) => x.id === payload.id)
-      if (item) {
-        item.smsCount = (item.smsCount ?? 0) + (payload.sms?.length ?? 0)
-        item.emailCount = (item.emailCount ?? 0) + (payload.emails?.length ?? 0)
-      }
-      if (tempDetailId.value === payload.id) {
-        const cur = tempDetail.value ?? {}
-        tempDetail.value = {
-          ...cur,
-          smsMessages: [...(payload.sms ?? []), ...((cur.smsMessages as any[]) ?? [])],
-          emails: [...(payload.emails ?? []), ...((cur.emails as any[]) ?? [])],
-        }
-      }
-    },
-    onRemove: (payload) => {
-      tempList.value = tempList.value.filter((x) => x.id !== payload?.id)
-      if (tempDetailId.value === payload?.id) {
-        tempDetailId.value = ''
-        tempDetail.value = null
-      }
-    },
-  })
-}
-
-async function createTempIdentity() {
-  tempCreating.value = true
-  try {
-    const res = await tempAccountApi.create(tempType.value, {
-      smsChannel: tempType.value === 'email' ? undefined : tempSmsChannel.value || undefined,
-      emailChannel: tempType.value === 'sms' ? undefined : tempEmailChannel.value || undefined,
-    })
-    const created = ((res as any)?.data ?? res) as TempIdentitySummary
-    if (created?.id) {
-      tempList.value = [created, ...tempList.value.filter((x) => x.id !== created.id)]
-    }
-    ElMessage.success('临时身份已创建')
-  } catch (e: any) {
-    ElMessage.error('创建临时身份失败：' + (e?.message ?? e))
-  } finally {
-    tempCreating.value = false
-  }
-}
-
-async function removeTempIdentity(id: string) {
-  try {
-    await ElMessageBox.confirm('删除后该身份的号码与邮箱一并失效，确定删除？', '删除临时身份', { type: 'warning' })
-  } catch {
-    return
-  }
-  try {
-    await tempAccountApi.remove(id)
-    tempList.value = tempList.value.filter((x) => x.id !== id)
-    if (tempDetailId.value === id) {
-      tempDetailId.value = ''
-      tempDetail.value = null
-    }
-    ElMessage.success('已删除')
-  } catch (e: any) {
-    ElMessage.error('删除失败：' + (e?.message ?? e))
-  }
-}
-
-async function toggleTempDetail(id: string) {
-  if (tempDetailId.value === id) {
-    tempDetailId.value = ''
-    tempDetail.value = null
-    return
-  }
-  tempDetailId.value = id
-  tempDetail.value = null
-  try {
-    const res = await tempAccountApi.detail(id)
-    tempDetail.value = ((res as any)?.data ?? res) as Record<string, any>
-  } catch (e: any) {
-    ElMessage.error('消息加载失败：' + (e?.message ?? e))
-  }
-}
-
-/** 某身份当前可见的短信（详情优先，其次 SSE 增量） */
-const tempSmsOf = (id: string): Record<string, any>[] =>
-  (tempDetailId.value === id ? (tempDetail.value?.smsMessages as Record<string, any>[]) : undefined)
-  ?? tempLive[id]?.sms
-  ?? []
-/** 某身份当前可见的邮件（详情优先，其次 SSE 增量） */
-const tempEmailsOf = (id: string): Record<string, any>[] =>
-  (tempDetailId.value === id ? (tempDetail.value?.emails as Record<string, any>[]) : undefined)
-  ?? tempLive[id]?.emails
-  ?? []
-
-/** 时间戳（毫秒）→ 本地可读文本 */
-const fmtTime = (ts?: number) => (ts ? new Date(ts).toLocaleString() : '—')
 
 watch(activeChannel, () => {
   /* 切换渠道卡片时不做额外操作 */
@@ -975,7 +824,6 @@ onBeforeUnmount(() => {
     }
     delete sseClients[key]
   }
-  stopTempStream()
 })
 
 // 模板引用
@@ -988,15 +836,11 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
     <!-- 页头：统一用 RePageHead（全站共用一份页面头实现） -->
     <RePageHead title="渠道管理">
       <template #sub>
-        账号类渠道的账号绑定、轮询、刷新、签到与模型开关；ChatClient 渠道免登录直接试对话；
-        文生图渠道按提示词出图（Pollinations 免登录，Trae 读本机登录态或临时填 JWT）。
+        账号类渠道的账号绑定、轮询、刷新、签到与模型开关；免登录对话渠道（DuckDuckGo / Trae）直接试对话；
+        文生图渠道（DuckDuckGo / Pollinations / Trae）按提示词出图。
         <b>{{ channels.length }}</b> 个已注册渠道
       </template>
       <template #actions>
-        <el-button class="chm-btn" @click="templateDialogVisible = true">
-          <el-icon class="chm-btn__icon" aria-hidden="true"><DocumentIcon /></el-icon>
-          消息模板
-        </el-button>
         <el-button class="chm-btn" :loading="loading" @click="loadChannels">
           <el-icon v-if="!loading" class="chm-btn__icon" aria-hidden="true"><RefreshIcon /></el-icon>
           刷新
@@ -1186,10 +1030,8 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
           </div>
         </div>
 
-        <!-- 新增账号入口：按渠道支持的账号类型决定按钮。
-             FIXED     → 现绑定弹窗（SSE 登录流），不设账号标签输入框，
-                         标签由后端按「账号 N」自动生成。
-             TEMPORARY → 页内创建一次性临时身份（接码 / 收信），复用临时身份 SSE 消息流。 -->
+        <!-- 新增账号入口：固定账号走绑定弹窗（SSE 登录流），不设账号标签输入框，
+             标签由后端按「账号 N」自动生成。 -->
         <div class="chm-panel__binds">
           <button
             v-if="supportsFixed(activeSummary())"
@@ -1202,15 +1044,6 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
               <PlusIcon />
             </el-icon>
             {{ busyFor(activeChannel, 'login') ? '登录中…' : '＋ 绑定固定账号（点击弹出）' }}
-          </button>
-          <button
-            v-if="supportsTemporary(activeSummary())"
-            class="chm-panel__bindbtn is-temp"
-            type="button"
-            @click="openTempDialog()"
-          >
-            <el-icon class="chm-btn__icon" aria-hidden="true"><PlusIcon /></el-icon>
-            ＋ 新建临时身份（接码 / 收信）
           </button>
         </div>
         </template>
@@ -1376,120 +1209,6 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
         <button class="chm-btn chm-btn--primary" type="button" @click="closeBindDialog()">取消</button>
       </template>
     </ReDialog>
-
-    <!--
-      临时身份对话框（页内可创建）：接码 / 收信的一次性虚拟身份。
-      - 顶部：类型选择（仅号码 / 仅邮箱 / 号码 + 邮箱）+ 随机创建
-      - 列表：每个身份的号码 / 邮箱 / 计数 / 删除，展开看收到的最新短信与邮件
-      - 消息经 SSE（ready / account / message / remove）实时增量更新
-    -->
-    <ReDialog
-      v-model="tempDialogVisible"
-      width="680px"
-      append-to-body
-      destroy-on-close
-      class="chm-temp-dialog"
-      @closed="closeTempDialog"
-    >
-      <template #header>
-        <div class="chm-temp__head">
-          <b>临时身份</b>
-          <span>接码 / 收信 · 一次性虚拟身份（{{ tempList.length }}）</span>
-        </div>
-      </template>
-
-      <div class="chm-temp">
-        <div class="chm-temp__bar">
-          <span class="chm-temp__bar-label">类型</span>
-          <div class="chm-temp__types">
-            <button
-              v-for="opt in TEMP_TYPE_OPTIONS"
-              :key="opt.value"
-              type="button"
-              class="chm-temp__type"
-              :class="{ 'is-active': tempType === opt.value }"
-              @click="tempType = opt.value"
-            >{{ opt.label }}</button>
-          </div>
-          <button class="chm-btn" type="button" @click="templateDialogVisible = true">消息模板</button>
-          <button class="chm-btn chm-btn--primary" type="button"
-                  :disabled="tempCreating" @click="createTempIdentity()">
-            {{ tempCreating ? '创建中…' : '随机创建' }}
-          </button>
-          <button class="chm-btn" type="button" :disabled="tempLoading" @click="loadTempIdentities()">刷新</button>
-        </div>
-
-        <!-- 进入优先：指定渠道，留空走优先级最高的缺省渠道（失败时后端降级） -->
-        <div class="chm-temp__chans">
-          <label v-if="tempType !== 'email'" class="chm-temp__chan">
-            <span>短信渠道</span>
-            <select v-model="tempSmsChannel">
-              <option value="">缺省（优先级最高）</option>
-              <option v-for="opt in tempChannelOptions.sms" :key="opt.channel" :value="opt.channel">
-                {{ opt.displayName || opt.channel }} · P{{ opt.priority ?? 0 }}
-              </option>
-            </select>
-          </label>
-          <label v-if="tempType !== 'sms'" class="chm-temp__chan">
-            <span>邮件渠道</span>
-            <select v-model="tempEmailChannel">
-              <option value="">缺省（优先级最高）</option>
-              <option v-for="opt in tempChannelOptions.email" :key="opt.channel" :value="opt.channel">
-                {{ opt.displayName || opt.channel }} · P{{ opt.priority ?? 0 }}
-              </option>
-            </select>
-          </label>
-        </div>
-
-        <div v-if="tempLoading" class="chm-card__empty">加载中…</div>
-        <div v-else-if="!tempList.length" class="chm-card__empty">
-          暂无临时身份，点击「随机创建」生成一个
-        </div>
-
-        <div v-else class="chm-temp__list">
-          <div v-for="t in tempList" :key="t.id" class="chm-temp__item">
-            <div class="chm-temp__row">
-              <span class="chm-temp__id" :title="t.id">{{ t.id.slice(0, 8) }}</span>
-              <span class="chm-temp__phone">{{ t.phone?.phone || '—' }}</span>
-              <span class="chm-temp__email" :title="t.email">{{ t.email || '—' }}</span>
-              <span class="chm-temp__counts">短信 {{ t.smsCount ?? 0 }} · 邮件 {{ t.emailCount ?? 0 }}</span>
-              <span class="chm-temp__time">{{ fmtTime(t.createdAt) }}</span>
-              <div class="chm-temp__actions">
-                <button class="chm-acc__btn" type="button" @click="toggleTempDetail(t.id)">
-                  {{ tempDetailId === t.id ? '收起' : '消息' }}
-                </button>
-                <button class="chm-acc__btn is-danger" type="button" @click="removeTempIdentity(t.id)">删除</button>
-              </div>
-            </div>
-
-            <div v-if="tempDetailId === t.id" class="chm-temp__detail">
-              <SmsInbox
-                v-if="t.phone"
-                :messages="tempSmsOf(t.id)"
-                :phone="t.phone?.phone"
-                :channel="t.smsChannel"
-              />
-              <MailboxPanel
-                v-if="t.email"
-                :messages="tempEmailsOf(t.id)"
-                :email="t.email"
-                :channel="t.emailChannel"
-              />
-              <div v-if="!t.phone && !t.email" class="chm-card__empty">
-                该身份没有领取到号码或邮箱
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <template #footer>
-        <button class="chm-btn chm-btn--primary" type="button" @click="tempDialogVisible = false">关闭</button>
-      </template>
-    </ReDialog>
-
-    <!-- 消息模板管理：短信 / 邮件模板的自定义、默认选择与预览 -->
-    <MessageTemplateManager v-model="templateDialogVisible" />
   </div>
 </template>
 
@@ -1498,7 +1217,13 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 4px 0 24px;
+  /* 撑满宿主：monitor 路由宿主给确定高度（与账号资产页同款 height:100%+min-height:0）；
+     AI 设置页把它放进 ScrollContainer（内容滚动、contentElement 高度 auto），
+     height:100% 会退化成内容高度，不破坏原有滚动语义。box-sizing 让 padding 不溢出 100%。 */
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  padding: 4px 0 8px;
 }
 .chm-btn {
   display: inline-flex;
@@ -1556,6 +1281,9 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   display: flex;
   gap: 14px;
   align-items: stretch;
+  /* 吃掉 .chm 除页头外的全部剩余高度：左右两栏等高，右栏内部自己滚动 */
+  flex: 1;
+  min-height: 0;
 }
 
 /* ---- 左：渠道索引 ---- */
@@ -1569,7 +1297,8 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   display: flex;
   flex-direction: column;
   gap: 2px;
-  max-height: calc(100vh - 220px);
+  /* 高度由 .chm-deck 的 stretch 决定（撑满），内部自己滚；不再写死 100vh-220px 的视口上限 */
+  min-height: 0;
   overflow-y: auto;
 }
 .chm-rail__head {
@@ -1671,6 +1400,7 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 .chm-panel {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   border: 1px solid var(--border-default, #e2e9f3);
   border-radius: 12px;
   background: var(--bg-container, #fff);
@@ -1678,6 +1408,8 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   display: flex;
   flex-direction: column;
   gap: 14px;
+  /* 详情区吃满高度，内容超出时面板内部滚动，表头/KPI 不随整页滚动丢失 */
+  overflow-y: auto;
 }
 .chm-panel__head {
   display: flex;
@@ -1980,17 +1712,11 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   opacity: .55;
   cursor: not-allowed;
 }
-/* 多个新增入口（固定账号 / 临时身份）并排时的容器 */
+/* 新增入口容器（当前只有固定账号绑定） */
 .chm-panel__binds {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-/* 临时身份入口：与固定账号绑定区分（琥珀色虚线） */
-.chm-panel__bindbtn.is-temp:hover {
-  border-color: var(--el-color-warning, #e6a23c);
-  color: var(--el-color-warning, #e6a23c);
-  background: color-mix(in srgb, var(--el-color-warning, #e6a23c) 8%, transparent);
 }
 
 /* ---------- 绑定弹窗（ReDialog 重构） ---------- */
@@ -2330,158 +2056,4 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   color: var(--el-text-color-secondary, #909399);
 }
 
-/* ---------- 临时身份弹窗 ---------- */
-.chm-temp-dialog {
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 20px 50px rgba(15, 23, 42, .18);
-  border: 1px solid var(--border-default, #e2e9f3);
-}
-.chm-temp-dialog :deep(.el-dialog__header) {
-  padding: 16px 20px 0;
-  margin-right: 0;
-  border-bottom: 1px solid var(--border-subtle, #eef2f8);
-  background: var(--bg-elevated, #f8fafc);
-}
-.chm-temp-dialog :deep(.el-dialog__body) {
-  padding: 14px 20px;
-}
-.chm-temp__head {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-.chm-temp__head > b {
-  font-size: 15px;
-  color: var(--el-text-color-primary, #303133);
-}
-.chm-temp__head > span {
-  font-size: 12px;
-  color: var(--el-text-color-secondary, #909399);
-}
-.chm-temp {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-/* 顶部工具条：类型选择 + 创建 + 刷新 */
-.chm-temp__bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.chm-temp__bar-label {
-  font-size: 12px;
-  color: var(--el-text-color-secondary, #909399);
-}
-.chm-temp__types {
-  display: inline-flex;
-  border: 1px solid var(--el-border-color, #dcdfe6);
-  border-radius: 6px;
-  overflow: hidden;
-}
-.chm-temp__type {
-  padding: 5px 12px;
-  font-size: 12px;
-  border: none;
-  background: transparent;
-  color: var(--el-text-color-regular, #606266);
-  cursor: pointer;
-}
-.chm-temp__type + .chm-temp__type {
-  border-left: 1px solid var(--el-border-color, #dcdfe6);
-}
-.chm-temp__type.is-active {
-  background: color-mix(in srgb, var(--el-color-primary, #409eff) 12%, transparent);
-  color: var(--el-color-primary, #409eff);
-  font-weight: 600;
-}
-/* 渠道选择：进入优先（留空走缺省渠道） */
-.chm-temp__chans {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding: 8px 10px;
-  border: 1px dashed var(--el-border-color, #dcdfe6);
-  border-radius: 8px;
-  background: var(--el-fill-color-lighter, #fafafa);
-}
-.chm-temp__chan {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary, #909399);
-}
-.chm-temp__chan select {
-  border: 1px solid var(--el-border-color, #dcdfe6);
-  border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 12px;
-  color: var(--el-text-color-regular, #606266);
-  background: var(--el-bg-color, #fff);
-  outline: none;
-}
-.chm-temp__chan select:focus {
-  border-color: var(--el-color-primary, #409eff);
-}
-.chm-temp__list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 52vh;
-  overflow: auto;
-}
-.chm-temp__item {
-  border: 1px solid var(--el-border-color-lighter, #ebeef5);
-  border-radius: 8px;
-  overflow: hidden;
-}
-.chm-temp__row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  font-size: 12px;
-}
-.chm-temp__id {
-  flex: none;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  color: var(--el-text-color-secondary, #909399);
-}
-.chm-temp__phone {
-  flex: none;
-  min-width: 108px;
-  color: var(--el-text-color-primary, #303133);
-  font-variant-numeric: tabular-nums;
-}
-.chm-temp__email {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--el-text-color-regular, #606266);
-}
-.chm-temp__counts {
-  flex: none;
-  color: var(--el-text-color-secondary, #909399);
-}
-.chm-temp__time {
-  flex: none;
-  color: var(--el-text-color-placeholder, #a8abb2);
-}
-.chm-temp__actions {
-  flex: none;
-  display: flex;
-  gap: 6px;
-}
-.chm-temp__detail {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 10px;
-  padding: 10px;
-  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
-  background: var(--el-fill-color-lighter, #fafafa);
-}
 </style>

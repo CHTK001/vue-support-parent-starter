@@ -15,6 +15,10 @@
       "@pages/docker": ["../../pages/docker/src/index.ts"],
       "@pages/monitor/*": ["../../pages/monitor/*"],
       "@pages/monitor": ["../../pages/monitor/src/index.ts"],
+      // P2P 房间（@pages/room）：不占菜单也不占路由，由「服务管理」页内嵌 RoomView。
+      // paths 保留给类型解析（monitor 与宿主都可能 import 本包）。
+      "@pages/room/*": ["../../pages/room/*"],
+      "@pages/room": ["../../pages/room/src/index.ts"],
       "@pages/filesystem/*": ["../../pages/filesystem/*"],
       "@pages/filesystem": ["../../pages/filesystem/src/index.ts"],
       "@pages/datasource/*": ["../../pages/datasource/*"],
@@ -27,6 +31,13 @@
       // APM 观测台（@pages/apm）：路由入口 = @pages/apm/src/routes
       "@pages/apm/*": ["../../pages/apm/*"],
       "@pages/apm": ["../../pages/apm/src/index.ts"],
+      // 渠道管理（@pages/channel）：宿主直接挂它的 ChannelManagementPage，
+      // 通配符同样落在「页面根」，业务写 @pages/channel/src/...
+      "@pages/channel/*": ["../../pages/channel/*"],
+      "@pages/channel": ["../../pages/channel/src/index.ts"],
+      // 被复用的 @pages/channel 页面头以 "@/components/ui/RePageHead.vue" 引用
+      // pages/ai/src（与根 tsconfig 的 "@/*" 同一口径）；monitor 自身不使用 "@/..."。
+      "@/*": ["../../pages/ai/src/*"],
       // 监控大屏卡片的领域包（apm / actuator）要 import "@pages/system" 的类型与
       // defineMonitorCardContribution；vite 侧由本地 alias 解析，TS 侧必须同时给出
       // 等价 paths，否则这些包内每一处 @pages/system 都是 TS2307。
@@ -51,6 +62,7 @@
     "src/**/*.vue",
     "src/**/*.d.ts",
     "../../packages/core/src/**/*.d.ts",
+    "../../packages/theme/src/**/*.d.ts",
     "../../pages/server/src/**/*.d.ts",
     "../../pages/message/src/**/*.d.ts",
     "../../pages/hotsport/src/**/*.d.ts",

@@ -369,8 +369,72 @@ watch(() => props.hostId, () => {
         </div>
       </section>
 
-      <!-- ==================== 中栏：软件商店 ==================== -->
-      <section class="lb-pane sw-pane">
+      <!-- ==================== 中栏：软件详情（主区，点击条目即在此展开） ==================== -->
+      <aside v-if="detail" class="lb-pane sw-pane sw-detail">
+        <div class="lb-pane__head">
+          <ReIcon name="Box" :size="12" />软件详情
+          <span class="lb-spacer" />
+          <ReButton layout="square" link icon="Close" tip="关闭详情" @click="closeDetail" />
+        </div>
+        <div class="lb-pane__body sw-detail__body">
+          <div class="sw-detail__title">{{ detail.pkg.name }}</div>
+          <div class="sw-detail__meta">
+            <span class="lb-pill" :class="detail.kind === 'installed' ? 'lb-ok' : 'lb-info'">
+              {{ detail.kind === 'installed' ? '已安装' : '仓库' }}
+            </span>
+            <span class="lb-mono lb-dim">{{ detail.pkg.version || "未提供版本" }}</span>
+          </div>
+          <p class="sw-detail__sum">{{ detail.pkg.summary || "该软件未提供描述信息。" }}</p>
+
+          <div v-if="upgradeOf(detail.pkg)" class="sw-detail__upgrade">
+            <ReIcon name="Top" :size="12" />
+            可升级至 <b>{{ upgradeOf(detail.pkg) }}</b>
+          </div>
+
+          <div class="sw-detail__section">依赖关系</div>
+          <div v-if="detail.depsLoading" class="lb-dim sw-detail__hint">读取依赖中…</div>
+          <div v-else-if="detail.deps.length" class="sw-deps">
+            <span v-for="d in detail.deps" :key="d" class="lb-pill lb-mono">{{ d }}</span>
+          </div>
+          <div v-else class="lb-dim sw-detail__hint">无额外依赖，或该包管理器未提供依赖清单。</div>
+
+          <div class="sw-detail__actions">
+            <ReButton
+              v-if="detail.kind === 'store' && !isInstalled(detail.pkg)"
+              show-text
+              layout="square"
+              type="primary"
+              icon="Download"
+              tip="安装该软件"
+              :loading="isBusy(detail.pkg.name)"
+              @click="doInstall(detail.pkg)"
+            ></ReButton>
+            <ReButton
+              v-if="upgradeOf(detail.pkg)"
+              show-text
+              layout="square"
+              type="primary"
+              icon="Top"
+              tip="升级到最新版"
+              :loading="isBusy(detail.pkg.name)"
+              @click="doUpgrade(detail.pkg)"
+            ></ReButton>
+            <ReButton
+              v-if="detail.kind === 'installed'"
+              show-text
+              layout="square"
+              type="danger"
+              icon="Delete"
+              tip="卸载该软件"
+              :loading="isBusy(detail.pkg.name)"
+              @click="doUninstall(detail.pkg)"
+            ></ReButton>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ==================== 右栏：软件商店（窄列，只用来挑软件） ==================== -->
+      <section class="lb-pane sw-pane sw-store">
         <div class="lb-pane__head">
           <ReIcon name="Shop" :size="12" />软件商店
           <span class="lb-spacer" />
@@ -447,70 +511,6 @@ watch(() => props.hostId, () => {
           </div>
         </div>
       </section>
-
-      <!-- ==================== 右栏：软件详情（可关闭） ==================== -->
-      <aside v-if="detail" class="lb-pane sw-pane sw-detail">
-        <div class="lb-pane__head">
-          <ReIcon name="Box" :size="12" />软件详情
-          <span class="lb-spacer" />
-          <ReButton layout="square" link icon="Close" tip="关闭详情" @click="closeDetail" />
-        </div>
-        <div class="lb-pane__body sw-detail__body">
-          <div class="sw-detail__title">{{ detail.pkg.name }}</div>
-          <div class="sw-detail__meta">
-            <span class="lb-pill" :class="detail.kind === 'installed' ? 'lb-ok' : 'lb-info'">
-              {{ detail.kind === 'installed' ? '已安装' : '仓库' }}
-            </span>
-            <span class="lb-mono lb-dim">{{ detail.pkg.version || "未提供版本" }}</span>
-          </div>
-          <p class="sw-detail__sum">{{ detail.pkg.summary || "该软件未提供描述信息。" }}</p>
-
-          <div v-if="upgradeOf(detail.pkg)" class="sw-detail__upgrade">
-            <ReIcon name="Top" :size="12" />
-            可升级至 <b>{{ upgradeOf(detail.pkg) }}</b>
-          </div>
-
-          <div class="sw-detail__section">依赖关系</div>
-          <div v-if="detail.depsLoading" class="lb-dim sw-detail__hint">读取依赖中…</div>
-          <div v-else-if="detail.deps.length" class="sw-deps">
-            <span v-for="d in detail.deps" :key="d" class="lb-pill lb-mono">{{ d }}</span>
-          </div>
-          <div v-else class="lb-dim sw-detail__hint">无额外依赖，或该包管理器未提供依赖清单。</div>
-
-          <div class="sw-detail__actions">
-            <ReButton
-              v-if="detail.kind === 'store' && !isInstalled(detail.pkg)"
-              show-text
-              layout="square"
-              type="primary"
-              icon="Download"
-              tip="安装该软件"
-              :loading="isBusy(detail.pkg.name)"
-              @click="doInstall(detail.pkg)"
-            ></ReButton>
-            <ReButton
-              v-if="upgradeOf(detail.pkg)"
-              show-text
-              layout="square"
-              type="primary"
-              icon="Top"
-              tip="升级到最新版"
-              :loading="isBusy(detail.pkg.name)"
-              @click="doUpgrade(detail.pkg)"
-            ></ReButton>
-            <ReButton
-              v-if="detail.kind === 'installed'"
-              show-text
-              layout="square"
-              type="danger"
-              icon="Delete"
-              tip="卸载该软件"
-              :loading="isBusy(detail.pkg.name)"
-              @click="doUninstall(detail.pkg)"
-            ></ReButton>
-          </div>
-        </div>
-      </aside>
     </div>
 
     <!-- 底部说明 -->
@@ -562,8 +562,11 @@ watch(() => props.hostId, () => {
   flex: 1;
   min-height: 0;
 }
+/* 打开详情后：已安装（窄）| 软件详情（主区，宽）| 软件商店（窄，只用来挑软件）。
+   详情是这一屏的主角——列顺序与列宽都从原来的「商店宽、详情 268px」换过来，
+   点软件时视线落在中间的大面板上，而不是挤在右边缘的一条窄栏里。 */
 .sw-body--detail {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) 268px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) 280px;
 }
 .sw-pane { min-height: 0; }
 .sw-loading {

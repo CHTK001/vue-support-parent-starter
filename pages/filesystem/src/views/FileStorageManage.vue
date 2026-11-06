@@ -105,8 +105,10 @@ import {
   loadFileServerConfig,
   isFileServerConfigDiscovered,
   getFileServerConfigError,
+  listOneTimeLinks,
+  revokeOneTimeLink,
 } from "../api/filestorageApi";
-import type { BucketConfig, CapabilitiesResponse, StorageObject, TreeItem } from "../api/filestorageApi";
+import type { BucketConfig, CapabilitiesResponse, OneTimeLinkItem, StorageObject, TreeItem } from "../api/filestorageApi";
 import { createFileCollab } from "../api/filestorageApi";
 import PreviewIframePanel from "../components/PreviewIframePanel.vue";
 import PreviewImagePanel from "../components/PreviewImagePanel.vue";
@@ -558,6 +560,7 @@ import { extensionOf, isClientRenderable, RENDER_SERVER } from "../utils/officeR
 import { parseExpiryToSeconds } from "../utils/expiry";
 import { CLIENT_DATA_EXTS, CLIENT_PSD_EXTS, fileSvg, fileTypeText, kindOf } from "../utils/fileKind";
 import ReDialog from "@repo/ui/re-dialog";
+import ReTable from "@repo/ui/re-table";
 
 /** 排序字段：name 名称 / size 大小 / lastModified 修改时间 */
 type SortKey = "name" | "size" | "lastModified";
@@ -2187,20 +2190,21 @@ function onCutSelected(): void {
   message.success(`已剪切 ${keys.length} 项，进入目标目录后粘贴`);
 }
 
-/** 粘贴剪贴板对象到当前目录 */
-async function onPaste(): Promise<void> {
+/** 粘贴剪贴板对象到指定目录（缺省为当前目录） */
+async function onPaste(targetDir?: string): Promise<void> {
   const board = clipboard.value;
   if (!board || !board.keys.length) {
     message.warning("剪贴板为空");
     return;
   }
+  const dir = targetDir ?? currentPath.value;
   actionRunning.value = true;
   try {
     if (board.mode === "copy") {
-      await copyObjects(bucket.value, board.keys, currentPath.value);
+      await copyObjects(bucket.value, board.keys, dir);
       message.success("粘贴成功");
     } else {
-      await moveObjects(bucket.value, board.keys, currentPath.value);
+      await moveObjects(bucket.value, board.keys, dir);
       message.success("移动成功");
       clipboard.value = null;
     }
@@ -3640,7 +3644,7 @@ function ctxAction(action: string) {
       onCutSelected();
       break;
     case "paste":
-      void onPaste();
+      void onPaste(ctxPath || undefined);
       break;
     case "unzip":
       void onUnzip(row);
@@ -4784,7 +4788,7 @@ function onPreviewKeydown(e: KeyboardEvent): void {
   }
 }
 watch(previewVisible, (v) => { v ? document.addEventListener("keydown", onPreviewKeydown) : document.removeEventListener("keydown", onPreviewKeydown); });
-onUnmounted(() => { document.removeEventListener("keydown", onPreviewKeydown); });
+onUnmounted(() => { document.removeEventListener("keydown", onPreviewKeydown); stopLinkManageTicker(); });
 
 /**
  * 文件列表快捷键：F2 行内重命名，Ctrl/Cmd+C/X/V 复制/剪切/粘贴。
@@ -5006,6 +5010,115 @@ function copyOneTimeLink(): void {
   try { document.execCommand("copy"); message.success("已复制到剪贴板"); }
   catch { message.error("复制失败"); }
   el.remove();
+}
+
+/* ================== 链接管理（查看 / 关闭指定链接） ================== */
+
+const linkManageVisible = ref(false);
+const linkManageLoading = ref(false);
+const linkManageError = ref("");
+const linkManageRows = ref<OneTimeLinkItem[]>([]);
+/**
+ * ReTable 的 :data 收 Array<Record<string, unknown>>，而 OneTimeLinkItem 没有索引签名，
+ * 直接传 ref 会类型不兼容。这里浅拷贝一层做结构化兼容（与 UploadTaskView.fileRows 同款）。
+ */
+const linkManageTableRows = computed<Array<Record<string, unknown>>>(() =>
+  linkManageRows.value.map((row) => ({ ...row })),
+);
+/** 用于「剩余有效期」每秒重算，避免把首次拉取的 remainingMs 冻结 */
+const linkManageNow = ref(Date.now());
+let linkManageTicker: ReturnType<typeof setInterval> | undefined;
+
+function stopLinkManageTicker(): void {
+  if (linkManageTicker !== undefined) {
+    clearInterval(linkManageTicker);
+    linkManageTicker = undefined;
+  }
+}
+
+async function loadLinkManage(): Promise<void> {
+  linkManageLoading.value = true;
+  linkManageError.value = "";
+  try {
+    linkManageRows.value = await listOneTimeLinks();
+    linkManageNow.value = Date.now();
+  } catch (e) {
+    linkManageError.value = (e as Error)?.message ?? "读取链接列表失败";
+  } finally {
+    linkManageLoading.value = false;
+  }
+}
+
+async function openLinkManage(): Promise<void> {
+  linkManageVisible.value = true;
+  stopLinkManageTicker();
+  linkManageTicker = setInterval(() => {
+    linkManageNow.value = Date.now();
+  }, 1000);
+  await loadLinkManage();
+}
+
+function onLinkManageClosed(): void {
+  stopLinkManageTicker();
+  linkManageRows.value = [];
+  linkManageError.value = "";
+}
+
+/** 链接剩余时间：优先按 expiresAt 与当前时间实时计算 */
+function linkRemainingText(row: OneTimeLinkItem): string {
+  const remain = Math.max(0, (row.expiresAt || 0) - linkManageNow.value);
+  if (remain <= 0) return "已过期";
+  const totalSec = Math.floor(remain / 1000);
+  const d = Math.floor(totalSec / 86400);
+  const h = Math.floor((totalSec % 86400) / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (d > 0) return `${d} 天 ${h} 小时`;
+  if (h > 0) return `${h} 小时 ${m} 分`;
+  if (m > 0) return `${m} 分 ${s} 秒`;
+  return `${s} 秒`;
+}
+
+function linkTypeText(row: OneTimeLinkItem): string {
+  return row.type === "once" || row.once ? "一次性" : "限时";
+}
+
+function linkExpireText(row: OneTimeLinkItem): string {
+  if (!row.expiresAt) return "-";
+  const dt = new Date(row.expiresAt);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())} ${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`;
+}
+
+function copyManagedLink(row: OneTimeLinkItem): void {
+  const full = `${getServerBase().replace(/\/+$/, "")}${row.url}`;
+  const el = document.createElement("textarea");
+  el.value = full;
+  document.body.appendChild(el);
+  el.select();
+  try { document.execCommand("copy"); message.success("链接已复制"); }
+  catch { message.error("复制失败"); }
+  el.remove();
+}
+
+async function closeManagedLink(row: OneTimeLinkItem): Promise<void> {
+  try {
+    await ElMessageBox.confirm(
+      `关闭后该链接立即失效，无法再通过它访问「${row.name}」。确定关闭？`,
+      "关闭访问链接",
+      { type: "warning", confirmButtonText: "关闭链接", cancelButtonText: "取消" },
+    );
+  } catch {
+    return;
+  }
+  try {
+    await revokeOneTimeLink(row.token);
+    linkManageRows.value = linkManageRows.value.filter((it) => it.token !== row.token);
+    message.success(`已关闭「${row.name}」的访问链接`);
+  } catch (e) {
+    message.error((e as Error)?.message ?? "关闭失败");
+    await loadLinkManage();
+  }
 }
 
 onMounted(async () => {
@@ -5305,6 +5418,16 @@ onUnmounted(() => {
                保证上传入口不丢（那一整块曾被误删过一次，openUpload 一度成为孤儿） -->
           <button type="button" class="fs-tb-btn" title="上传" :disabled="nav !== 'all'" @click="openUpload">
             <el-icon :size="15"><Upload /></el-icon>上传
+          </button>
+          <button
+            type="button"
+            class="fs-tb-btn"
+            title="链接管理"
+            aria-label="链接管理"
+            data-testid="fs-link-manage"
+            @click="openLinkManage"
+          >
+            <el-icon :size="15"><Link /></el-icon>链接管理
           </button>
           <button
             v-if="selectedCount > 0 && nav === 'all'"
@@ -5830,6 +5953,18 @@ onUnmounted(() => {
           </button>
         </template>
         <template v-else>
+          <button
+            v-if="clipboard && clipboard.keys.length"
+            type="button"
+            class="fs-ctx__item"
+            role="menuitem"
+            @click="ctxAction('paste')"
+          >
+            <el-icon class="fs-ctx__icon" aria-hidden="true"><CopyDocument /></el-icon>
+            粘贴
+            <kbd class="fs-ctx__kbd">Ctrl+V</kbd>
+          </button>
+          <div v-if="clipboard && clipboard.keys.length" class="fs-ctx__sep" aria-hidden="true" />
           <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('mktext')">
             <el-icon class="fs-ctx__icon" aria-hidden="true"><Document /></el-icon>
             新建 text
@@ -6475,6 +6610,56 @@ onUnmounted(() => {
       <template #footer>
         <el-button v-if="quickExpiryResult" :icon="Document" @click="copyQuickExpiryLink">复制链接</el-button>
         <el-button v-else type="primary" :loading="quickExpiryBusy" :icon="Document" @click="generateQuickExpiryLink">生成</el-button>
+      </template>
+    </ReDialog>
+
+    <!-- ===== 链接管理：列出当前有效的一次性 / 限时链接，可复制、可关闭 ===== -->
+    <ReDialog
+      v-model="linkManageVisible"
+      title="链接管理"
+      width="820px"
+      :append-to-body="true"
+      destroy-on-close
+      @closed="onLinkManageClosed"
+    >
+      <div class="fs-link-manage">
+        <div class="fs-link-manage__bar">
+          <span class="fs-admin__tip">这里只列出当前有效的一次性 / 限时链接；关闭后原地址立即失效。</span>
+          <el-button size="small" :loading="linkManageLoading" @click="loadLinkManage">刷新</el-button>
+        </div>
+        <el-alert v-if="linkManageError" :title="linkManageError" type="error" :closable="false" class="mb-3" />
+        <ReTable
+          :data="linkManageTableRows"
+          :loading="linkManageLoading"
+          :pagination="false"
+          :toolbar="false"
+          size="small"
+          row-key="token"
+          border
+          empty-text="暂无有效链接"
+          :layout-table="{ minHeight: 0 }"
+          data-testid="fs-link-manage-table"
+        >
+          <ReTableColumn prop="name" label="文件" min-width="160" show-overflow-tooltip />
+          <ReTableColumn label="类型" width="80">
+            <template #default="{ row }">{{ linkTypeText(row) }}</template>
+          </ReTableColumn>
+          <ReTableColumn label="过期时间" width="170">
+            <template #default="{ row }">{{ linkExpireText(row) }}</template>
+          </ReTableColumn>
+          <ReTableColumn label="剩余" width="110">
+            <template #default="{ row }">{{ linkRemainingText(row) }}</template>
+          </ReTableColumn>
+          <ReTableColumn label="操作" width="150" fixed="right">
+            <template #default="{ row }">
+              <el-button size="small" text type="primary" @click="copyManagedLink(row)">复制</el-button>
+              <el-button size="small" text type="danger" @click="closeManagedLink(row)">关闭</el-button>
+            </template>
+          </ReTableColumn>
+        </ReTable>
+      </div>
+      <template #footer>
+        <el-button @click="linkManageVisible = false">关闭</el-button>
       </template>
     </ReDialog>
 
@@ -8421,6 +8606,18 @@ onUnmounted(() => {
   margin: 10px 0 0;
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+
+/* 链接管理：顶部说明 + 刷新，下面是链接表格 */
+.fs-link-manage__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.fs-link-manage__bar .fs-admin__tip {
+  margin: 0;
 }
 
 @media (max-width: 900px) {

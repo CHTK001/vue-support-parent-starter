@@ -1,0 +1,24 @@
+error TS6231: Could not resolve the path '(echo' with the extensions: '.vue', '.ts', '.tsx', '.d.ts', '.cts', '.d.cts', '.mts', '.d.mts'.
+  The file is in the program because:
+    Root file specified for compilation
+error TS6231: Could not resolve the path '0' with the extensions: '.vue', '.ts', '.tsx', '.d.ts', '.cts', '.d.cts', '.mts', '.d.mts'.
+  The file is in the program because:
+    Root file specified for compilation
+error TS6231: Could not resolve the path ';' with the extensions: '.vue', '.ts', '.tsx', '.d.ts', '.cts', '.d.cts', '.mts', '.d.mts'.
+  The file is in the program because:
+    Root file specified for compilation
+error TS6231: Could not resolve the path 'EXIT_FAIL)' with the extensions: '.vue', '.ts', '.tsx', '.d.ts', '.cts', '.d.cts', '.mts', '.d.mts'.
+  The file is in the program because:
+    Root file specified for compilation
+error TS6231: Could not resolve the path 'EXIT_OK)' with the extensions: '.vue', '.ts', '.tsx', '.d.ts', '.cts', '.d.cts', '.mts', '.d.mts'.
+  The file is in the program because:
+    Root file specified for compilation
+error TS6231: Could not resolve the path 'else' with the extensions: '.vue', '.ts', '.tsx', '.d.ts', '.cts', '.d.cts', '.mts', '.d.mts'.
+  The file is in the program because:
+    Root file specified for compilation
+error TS6231: Could not resolve the path 'equ' with the extensions: '.vue', '.ts', '.tsx', '.d.ts', '.cts', '.d.cts', '.mts', '.d.mts'.
+  The file is in the program because:
+    Root file specified for compilation
+error TS6231: Could not resolve the path 'if' with the extensions: '.vue', '.ts', '.tsx', '.d.ts', '.cts', '.d.cts', '.mts', '.d.mts'.
+  The file is in the program because:
+    Root file specified for compilation

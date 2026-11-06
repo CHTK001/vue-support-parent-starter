@@ -2,7 +2,7 @@
   <!--
     ReLoader —— 统一加载组件。
     两种用法：
-      · 声明式：<ReLoader v-model:loading="busy" variant="wave" text="正在处理…">内容</ReLoader>
+      · 声明式：<ReLoader v-model:loading="busy" variant="dots" text="正在处理…">内容</ReLoader>
       · 命令式：ReLoader.open({ text, timeout, onClose }) → handle.setProgress(50)
     三种与内容的关系（mode）见 types.ts。
   -->
@@ -58,8 +58,28 @@
               :style="animVars">
               <slot name="animation" :percent="percent" :variant="variant">
                 <ProgressBar v-if="resolvedVariant === 'progress'" :percent="percent" />
-                <!-- 四个等待动画与首屏 loader 共用同一份 HTML/CSS（animations.ts） -->
-                <div v-else class="re-loader__sla" v-html="markup" />
+                <!--
+                  像素恐龙：可玩的小游戏（空格 / ↑ 起跳，撞到结束，可重开）。
+                  不走 v-html —— 游戏需要帧状态，纯 CSS 版本留给首屏。
+                -->
+                <DinoGame
+                  v-else-if="resolvedVariant === 'dino'"
+                  class="re-loader__sla"
+                  mode="play"
+                  :rate="loaderVisuals.speed"
+                />
+                <!-- 内置等待动画与首屏 loader 共用同一份 HTML/CSS（animations.ts）。
+                     矢量款（点阵 / 传送带 / 柱阵 / 卡片翻动）在这份结构上再挂一层 hairline 图形：
+                     绑定完成后库给宿主加 .has-hl，近似层让位给真正的矢量图。 -->
+                <div v-else class="re-loader__sla" :class="{ 'has-hl': hairlineFigure }">
+                  <div v-html="markup" />
+                  <HairlinePreview
+                    v-if="hairlineFigure"
+                    class="sla-hl"
+                    :figure="hairlineFigure"
+                    :play="pageVisible"
+                  />
+                </div>
               </slot>
             </div>
 
@@ -96,14 +116,17 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ElButton } from "element-plus";
 import { WarningFilled } from "@element-plus/icons-vue";
 import ProgressBar from "./variants/ProgressBar.vue";
+import DinoGame from "./DinoGame.vue";
+import HairlinePreview from "./HairlinePreview.vue";
 import {
   LOADER_ANIMATION_NONE,
   ensureLoaderAnimationStyle,
   loaderAnimationMarkup,
+  loaderHairlineFigureOf,
   useLoaderAnimation,
-  useLoaderDeployPolicy,
   type LoaderAnimation,
 } from "./animations";
+import { useLoaderVisuals } from "./prefs";
 import { animSizeVars } from "./sizing";
 import { buildSkeleton, skeletonVars, type SkeletonShape } from "./skeleton";
 import { pageVisible } from "./visibility";
@@ -117,7 +140,7 @@ const props = withDefaults(
      * 动画形态。
      *
      * <p>不传则跟随主题配置里选中的全局动画（{@link useLoaderAnimation}）——
-     * 于是「设置里选了海浪」会让应用内所有加载态一起变成海浪，与首屏保持一致。</p>
+     * 于是「设置里选了像素恐龙」会让应用内所有加载态一起变成同一款，与首屏保持一致。</p>
      */
     variant?: ReLoaderVariant;
     /** 与内容的关系：overlay / replace / skeleton */
@@ -169,7 +192,7 @@ const props = withDefaults(
   }>(),
   {
     loading: false,
-    // 不传 variant：跟随主题配置里选中的全局动画（默认海浪，与首屏 loader 同款）。
+    // 不传 variant：跟随主题配置里选中的全局动画（默认三点，与首屏 loader 同款）。
     // 这样"设置里换了动画"会一次性作用到首屏、应用内遮罩与请求层，不会三处各说各话。
     variant: undefined,
     mode: "overlay",
@@ -231,11 +254,11 @@ const boneStyle = computed(() =>
   props.skeletonHeight ? { '--rl-sk-height': props.skeletonHeight } : {}
 );
 
-/** 全局选中的动画（主题配置里的「加载动画」，默认海浪） */
+/** 全局选中的动画（主题配置里的「加载动画」，默认三点） */
 const globalAnimation = useLoaderAnimation();
 
-/** 部署侧策略（app.yaml other.loaderConfig）；未接管时 locked=false，行为不变 */
-const deployPolicy = useLoaderDeployPolicy();
+/** 部署侧策略 + 用户偏好合并后的观感（速度 / 主色 / 是否跟随主题主色） */
+const loaderVisuals = useLoaderVisuals();
 
 /**
  * 实际使用的动画键。
@@ -249,35 +272,47 @@ const resolvedVariant = computed<ReLoaderVariant>(() => {
   if (v === "progress") return "progress";
   if (v === "spin") return "rings";
   if (v) return v;
-  return globalAnimation.value;
+  return globalAnimation.value as ReLoaderVariant;
 });
 
-/** 渲染的动画 HTML：与首屏 loader 共用 {@link loaderAnimationMarkup} */
-const markup = computed(() =>
-  loaderAnimationMarkup(
-    resolvedVariant.value === "progress"
-      ? LOADER_ANIMATION_NONE
-      : (resolvedVariant.value as LoaderAnimation | typeof LOADER_ANIMATION_NONE),
-    props.percent,
-  ),
-);
+/**
+ * 该变体要用哪个 hairline 图形；纯 CSS 款返回 null。
+ *
+ * <p>四款「矢量款」在应用内由库真画，CSS 生成的同款结构留在 DOM 里当底座：
+ * 库还没下载完时看到的是近似图，绑定完成后库给宿主加上 {at code .has-hl}（见 animations.ts 的 CSS），
+ * 近似层随即让位 —— 既不会白屏，也不会闪成另一个样子。</p>
+ */
+const hairlineFigure = computed(() => loaderHairlineFigureOf(resolvedVariant.value as LoaderAnimation));
 
-/** 尺寸 + 主色统一以 CSS 变量下发 */
+/** 渲染的动画 HTML：与首屏 loader 共用 {@link loaderAnimationMarkup} */
+const markup = computed(() => {
+  if (resolvedVariant.value === "progress") return loaderAnimationMarkup(LOADER_ANIMATION_NONE);
+  return loaderAnimationMarkup(
+    resolvedVariant.value as LoaderAnimation | typeof LOADER_ANIMATION_NONE,
+    props.percent,
+  );
+});
+
+/** 尺寸 + 主色 + 速度统一以 CSS 变量下发 */
 const animVars = computed<Record<string, string>>(() => {
   // 按真实变体算尺寸：圆点、恐龙、圆环的"大中小"不是同一个数值
   const vars: Record<string, string> = {
     ...animSizeVars(props.size, resolvedVariant.value, props.fullscreen),
   };
-  // 主色优先级：调用方显式传入 > 部署侧配置（锁定态）> 样式里的兜底
+  // 主色优先级：调用方显式传入 > 部署配置 / 用户偏好（含"跟随主题主色"）
   // 尺寸只对首屏生效，应用内各调用点的档位不该被统一成一个像素值
-  const color = props.color || (deployPolicy.value.locked ? deployPolicy.value.color : "");
+  const visuals = loaderVisuals.value;
+  const color = props.color || visuals.color;
   if (color) {
     vars["--sla-c"] = color;
-    // 进度条是老组件，读的是 --rl-color；同步一份，免得自定义主色只对四个等待动画生效
+    // 进度条是老组件，读的是 --rl-color；同步一份，免得自定义主色只对等待动画生效
     vars["--rl-color"] = color;
   }
+  // 速度倍率：CSS 里所有时长都是 calc(Ns / var(--sla-rate,1))，这里给一个值即可整体快慢
+  if (visuals.speed !== 1) vars["--sla-rate"] = String(visuals.speed);
   return vars;
 });
+
 let delayTimer: ReturnType<typeof setTimeout> | null = null;
 let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
 let minDurationTimer: ReturnType<typeof setTimeout> | null = null;
@@ -577,7 +612,7 @@ defineOptions({ name: "ReLoader" });
    关键点：.re-loader__box 是 flex 项，默认宽度由内容决定；
    若这里只写 width:100% 而不给 box 定宽，百分比就没有基准可解，
    实测会塌成 0px。所以 auto 模式下把 box 定宽（占遮罩 92%，上限 420px），
-   上级 anim / wave 再逐层 100% 传递，尺寸表达式才算得出来。 */
+   上级 anim / 动画本体的宽度再逐层 100% 传递，尺寸表达式才算得出来。 */
 .re-loader__anim.is-auto {
   width: 100%;
 }

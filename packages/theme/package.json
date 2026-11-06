@@ -40,7 +40,7 @@
     "sass": "^1.102.0",
     "sortablejs": "^1.15.7",
     "typescript": "catalog:",
-    "vite": "^8.2.0",
+    "vite": "catalog:",
     "vue3-count-to": "^1.1.2"
   },
   "dependencies": {

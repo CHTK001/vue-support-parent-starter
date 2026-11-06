@@ -14,8 +14,16 @@
       >
         <span class="loader-card__stage">
           <!-- 缩略预览：与首屏 loader 用同一份 HTML/CSS（animations.ts），不是重画的示意图。
-               部署侧锁定时主色也按配置渲染，看到的即是实际会出现的那个。 -->
-          <span class="loader-card__anim" :style="previewStyle" v-html="markup(opt.value)" />
+               部署侧锁定时主色也按配置渲染，看到的即是实际会出现的那个。
+               像素恐龙用同一个游戏组件跑 demo 模式，预览和实物一致。 -->
+          <span class="loader-card__anim" :style="previewStyle">
+            <ReLoaderDinoGame v-if="opt.value === 'dino'" mode="demo" :rate="visuals.speed" />
+            <span v-else-if="figureOf(opt.value)" class="loader-card__vector">
+              <!-- 矢量款：与真正加载时是同一个图形、同一套配色 -->
+              <ReLoaderHairline :figure="figureOf(opt.value)!" />
+            </span>
+            <span v-else v-html="markup(opt.value)" />
+          </span>
         </span>
         <span class="loader-card__label">{{ opt.name }}</span>
       </button>
@@ -24,6 +32,68 @@
     <p class="koi-loader-style__hint" :class="{ 'is-locked': locked }">
       {{ locked ? t("themeConfig.loaderStyle.lockedHint") : t("themeConfig.loaderStyle.hint") }}
     </p>
+
+    <!-- 观感微调：尺寸两档（首屏）/ 速度倍率 / 主色是否跟随主题。
+         部署侧锁定时整片禁用，值与 app.yaml 一致 —— 不让人改了却看不出来。 -->
+    <div class="koi-loader-style__tweaks" :class="{ 'is-locked': locked }">
+      <div class="tweak-row">
+        <span class="tweak-label">{{ t("themeConfig.loaderStyle.size") }}</span>
+        <div class="tweak-fields">
+          <label class="tweak-field">
+            <span class="tweak-field__name">{{ t("themeConfig.loaderStyle.sizeNarrow") }}</span>
+            <el-input-number
+              :model-value="visuals.size.narrow"
+              :min="SIZE_MIN"
+              :max="SIZE_MAX"
+              :step="4"
+              size="small"
+              controls-position="right"
+              :disabled="locked"
+              @update:model-value="(v: number | undefined) => setSize('narrow', v)"
+            />
+          </label>
+          <label class="tweak-field">
+            <span class="tweak-field__name">{{ t("themeConfig.loaderStyle.sizeWide") }}</span>
+            <el-input-number
+              :model-value="visuals.size.wide"
+              :min="SIZE_MIN"
+              :max="SIZE_MAX"
+              :step="4"
+              size="small"
+              controls-position="right"
+              :disabled="locked"
+              @update:model-value="(v: number | undefined) => setSize('wide', v)"
+            />
+          </label>
+        </div>
+      </div>
+
+      <div class="tweak-row">
+        <span class="tweak-label">{{ t("themeConfig.loaderStyle.speed") }}</span>
+        <div class="tweak-fields tweak-fields--slider">
+          <el-slider
+            :model-value="visuals.speed"
+            :min="SPEED_MIN"
+            :max="SPEED_MAX"
+            :step="0.1"
+            :disabled="locked"
+            :format-tooltip="(v: number) => `${v}x`"
+            @update:model-value="(v: number | number[]) => setSpeed(Number(v))"
+          />
+          <span class="tweak-value">{{ visuals.speed }}x</span>
+        </div>
+      </div>
+
+      <ReSwitch
+        layout="card"
+        :title="t('themeConfig.loaderStyle.adaptColor')"
+        :sub="t('themeConfig.loaderStyle.adaptColorSub')"
+        :tip="t('themeConfig.loaderStyle.adaptColorTip')"
+        :model-value="visuals.adaptColor"
+        :disabled="locked"
+        @update:model-value="setAdaptColor"
+      />
+    </div>
   </div>
 </template>
 
@@ -48,21 +118,44 @@
  */
 import { computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
+import ReSwitch from "@repo/ui/re-switch";
 import {
   LOADER_ANIMATION_META,
   LOADER_ANIMATION_NONE,
+  LOADER_SIZE_MAX,
+  LOADER_SIZE_MIN,
+  LOADER_SPEED_MAX,
+  LOADER_SPEED_MIN,
+  ReLoaderDinoGame,
+  ReLoaderHairline,
   ensureLoaderAnimationStyle,
   loaderAnimationMarkup,
+  loaderHairlineFigureOf,
+  normalizeLoaderSize,
   setLoaderAnimation,
+  setLoaderPrefs,
   useLoaderAnimation,
   useLoaderDeployPolicy,
+  useLoaderVisuals,
   type LoaderAnimationChoice,
 } from "@repo/ui/re-loader";
 
 const { t } = useI18n();
 
-/** 展示顺序：默认款在最前，无动画放最后（它是"关掉"，不是并列的第五款） */
-const OPTION_ORDER: LoaderAnimationChoice[] = ["wave", "dots", "rings", "dino", LOADER_ANIMATION_NONE];
+/** 展示顺序：默认款在最前，无动画放最后（它是"关掉"，不是并列的第十款） */
+const OPTION_ORDER: LoaderAnimationChoice[] = [
+  "dots",
+  "rings",
+  "dino",
+  "ripple",
+  "orbit",
+  "bars",
+  "matrix",
+  "conveyor",
+  "pillars",
+  "cards",
+  LOADER_ANIMATION_NONE,
+];
 
 const current = useLoaderAnimation();
 
@@ -71,15 +164,29 @@ const deployPolicy = useLoaderDeployPolicy();
 const locked = computed(() => deployPolicy.value.locked);
 
 /**
- * 缩略图的主色。
+ * 最终生效的观感（部署 > 用户偏好 > 默认）。
  *
- * <p>只在锁定时覆盖：未锁定时沿用样式里的 --sla-c 兜底（与之前逐字一致），
- * 锁定时则让预览色与部署配置一致 —— 否则用户在这里看到蓝色、
- * 实际加载却是配置里的绿色。</p>
+ * <p>面板上的尺寸 / 速度 / 主色跟随都读写这里：锁定时显示部署值（只读），
+ * 未锁定时显示用户自己的偏好，改完写 localStorage，下次刷新首屏一致。</p>
  */
-const previewStyle = computed<Record<string, string>>(() =>
-  deployPolicy.value.locked ? { "--sla-c": deployPolicy.value.color } : {},
-);
+const visuals = useLoaderVisuals();
+
+/** 尺寸与速度的上下限（与 prefs.ts 同一口径，避免两处写死不同数字） */
+const SIZE_MIN = LOADER_SIZE_MIN;
+const SIZE_MAX = LOADER_SIZE_MAX;
+const SPEED_MIN = LOADER_SPEED_MIN;
+const SPEED_MAX = LOADER_SPEED_MAX;
+
+/**
+ * 缩略图上的实时变量。
+ *
+ * <p>速度与主色在卡片里立刻看得出来（换主题色 / 拖速度立即变），
+ * 尺寸是**首屏专用**（卡片只有 74px 高，放不下 96px 的动画），所以预览固定 56px。</p>
+ */
+const previewStyle = computed<Record<string, string>>(() => ({
+  "--sla-rate": String(visuals.value.speed),
+  "--sla-c": visuals.value.color,
+}));
 
 const options = computed(() =>
   OPTION_ORDER.map((value) => ({ value, ...LOADER_ANIMATION_META[value] })),
@@ -90,11 +197,39 @@ function markup(value: LoaderAnimationChoice): string {
   return loaderAnimationMarkup(value);
 }
 
+/**
+ * 该款在应用内用的 hairline 图形（点阵 / 传送带 / 柱阵 / 卡片翻动）；
+ * 纯 CSS 款返回 null，卡片里渲染 v-html 生成的 CSS 结构。
+ */
+function figureOf(value: LoaderAnimationChoice): string | null {
+  return loaderHairlineFigureOf(value);
+}
+
 function select(value: LoaderAnimationChoice): void {
   // 一处收口：内存态 + localStorage + 首屏重绘都在 setLoaderAnimation 里
   // （锁定态它自己就会 return，这里再判一次只是为了不产生无意义的调用）
   if (locked.value) return;
   setLoaderAnimation(value);
+}
+
+/** 改其中一档尺寸；非法值（清空输入框）按当前值兜底，不会把配置写成 NaN */
+function setSize(part: "narrow" | "wide", value: number | undefined): void {
+  if (locked.value) return;
+  const size = { ...visuals.value.size };
+  size[part] = normalizeLoaderSize(value, size[part]);
+  setLoaderPrefs({ size });
+}
+
+/** 改速度倍率（0.5~3，1 = 原速） */
+function setSpeed(value: number): void {
+  if (locked.value) return;
+  setLoaderPrefs({ speed: value });
+}
+
+/** 主色是否跟随主题主色 */
+function setAdaptColor(value: boolean | string | number): void {
+  if (locked.value) return;
+  setLoaderPrefs({ adaptColor: value === true });
 }
 
 onMounted(() => {
@@ -176,8 +311,17 @@ onMounted(() => {
     transition: border-color var(--el-transition-duration, 0.2s) ease;
   }
 
-  /* 缩略尺寸：--sla-s 就是四个动画唯一的尺寸入口。
+  /* 缩略尺寸：--sla-s 就是动画唯一的尺寸入口。
      56px 与 ReLoader 的 md 档一致，卡片里放得下又不显小。 */
+  /* 矢量款：图形宽度即基准（库按 5/4 出高度），描边细一档，缩略图里才不糊 */
+  &__vector {
+    --hairline-stroke: 0.6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+  }
+
   &__anim {
     --sla-s: 56px;
     display: inline-flex;
@@ -220,5 +364,76 @@ onMounted(() => {
   &.is-locked {
     color: var(--el-color-primary);
   }
+}
+
+/* ── 观感微调（尺寸 / 速度 / 主色跟随） ── */
+.koi-loader-style__tweaks {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: var(--el-fill-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+
+  &.is-locked {
+    opacity: 0.72;
+  }
+}
+
+.tweak-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tweak-label {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-regular);
+}
+
+.tweak-fields {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tweak-field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  &__name {
+    font-size: 11px;
+    color: var(--el-text-color-secondary);
+    white-space: nowrap;
+  }
+
+  /* 两个数字框在窄抽屉里也要放得下 */
+  :deep(.el-input-number) {
+    width: 92px;
+  }
+}
+
+.tweak-fields--slider {
+  flex: 1;
+  min-width: 0;
+
+  :deep(.el-slider) {
+    flex: 1;
+    min-width: 80px;
+  }
+}
+
+.tweak-value {
+  flex: none;
+  min-width: 34px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-secondary);
+  text-align: right;
 }
 </style>

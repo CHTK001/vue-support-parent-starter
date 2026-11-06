@@ -547,13 +547,18 @@ export const getTsharkStatus = () => http().get(`${B}/tshark/status`).then(r => 
 /** 触发服务端异步补齐 tshark（幂等，失败可重试） */
 export const installTshark = () => http().post(`${B}/tshark/install`).then(r => unwrap<TsharkRuntimeStatus>(r));
 /**
- * 安装进度推送（SSE）。
+ * tshark 全局事件流（SSE）。
  *
- * <p>事件名 {@code progress}，载荷同 {@link getTsharkStatus}；建连即回一帧当前状态，
- * 所以中途打开页面也能看到真实进度。</p>
+ * <p>一条连接承载两类事件，页面不再轮询 {@code /tshark/status}、也不靠定时器重拉会话列表：</p>
+ * <ul>
+ *   <li>{@code ready} / {@code progress}：载荷同 {@link getTsharkStatus}（安装进度 / 可用性）；</li>
+ *   <li>{@code session}：任意会话被新建 / 停止 / 解析完成 / 删除时推送会话实体
+ *       （删除事件形如 <code>{ id, deleted: true }</code>）。</li>
+ * </ul>
+ * <p>建连即回一帧当前运行时状态，所以中途打开页面也能直接拿到真实状态。</p>
  */
-export const openTsharkInstallStream = (options: Record<string, any> = {}) =>
-  http().get(`${B}/tshark/install/stream`).sse<any>({ reconnect: true, ...options });
+export const openTsharkGlobalStream = (options: Record<string, any> = {}) =>
+  http().get(`${B}/tshark/stream`).sse<any>({ reconnect: true, ...options });
 export const getTsharkInterfaces = () => http().get(`${B}/tshark/interfaces`).then(r => unwrap<string[]>(r));
 export const startTsharkCapture = (d: any) =>
   http().post(`${B}/tshark/capture`).data(d).then(r => unwrap<any>(r));

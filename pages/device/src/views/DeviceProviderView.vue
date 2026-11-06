@@ -15,15 +15,6 @@
             {{ defaultCount }} 默认
           </span>
           <ReButton
-            v-if="canSyncOrg"
-            icon="Connection"
-            layout="square"
-            size="small"
-            :tip="activeVendor ? `同步「${activeVendor.name}」组织` : '同步全部厂商组织'"
-            :loading="orgSyncing"
-            @click="syncOrg"
-          />
-          <ReButton
             icon="Plus"
             size="small"
             type="primary"
@@ -50,24 +41,53 @@
             <span class="dpv-chip__meta">{{ credentials.length }}</span>
           </button>
 
-          <button
+          <el-popover
             v-for="vendor in vendors"
             :key="vendor.vendor"
-            type="button"
-            class="dpv-chip"
-            :class="{ 'is-active': credentialFilter === vendor.vendor }"
-            role="tab"
-            :aria-selected="credentialFilter === vendor.vendor"
-            :data-vendor="vendor.vendor"
-            @click="filterByVendor(vendor.vendor)"
+            placement="bottom-start"
+            :width="336"
+            trigger="hover"
+            popper-class="dpv-pop"
           >
-            <span class="dpv-chip__tile">{{ monogram(vendor.name) }}</span>
-            <span class="dpv-chip__name">{{ vendor.name }}</span>
-            <span class="dpv-chip__meta">{{ credentialsOf(vendor.vendor).length }}</span>
-            <span class="dpv-chip__caps" :title="capabilityTitle(vendor)">
-              <i v-for="cap in CAP_ORDER" :key="cap" :class="{ 'is-on': vendor.capabilities.includes(cap) }" />
-            </span>
-          </button>
+            <template #reference>
+              <button
+                type="button"
+                class="dpv-chip"
+                :class="{ 'is-active': credentialFilter === vendor.vendor }"
+                role="tab"
+                :aria-selected="credentialFilter === vendor.vendor"
+                :data-vendor="vendor.vendor"
+                @click="filterByVendor(vendor.vendor)"
+              >
+                <span class="dpv-chip__tile">{{ monogram(vendor.name) }}</span>
+                <span class="dpv-chip__name">{{ vendor.name }}</span>
+                <span class="dpv-chip__meta">{{ credentialsOf(vendor.vendor).length }}</span>
+                <span class="dpv-chip__caps" :title="capabilityTitle(vendor)">
+                  <i v-for="cap in CAP_ORDER" :key="cap" :class="{ 'is-on': vendor.capabilities.includes(cap) }" />
+                </span>
+              </button>
+            </template>
+
+            <!-- 悬停一个厂商 = 看这家厂商全部同步效果（按实例独立，未开启不出现） -->
+            <div class="dpv-pop__body" :data-vendor-pop="vendor.vendor">
+              <header class="dpv-pop__head">
+                <span class="dpv-chip__tile">{{ monogram(vendor.name) }}</span>
+                <b>{{ vendor.name }}</b>
+                <span class="dpv-pop__count">{{ credentialsOf(vendor.vendor).length }} 套凭据</span>
+              </header>
+              <div class="dpv-pop__list">
+                <div
+                  v-for="item in vendorEffects(vendor.vendor)"
+                  :key="item.key"
+                  class="dpv-pop__row"
+                >
+                  <span class="dpv-pop__label">{{ item.label }}</span>
+                  <span class="dpv-pop__value" :class="{ 'is-off': !item.on }">{{ item.value }}</span>
+                </div>
+              </div>
+              <p class="dpv-pop__foot">每套凭据各跑各的，未开启的能力不产生任务也不产生记录。</p>
+            </div>
+          </el-popover>
 
           <p v-if="!vendors.length" class="dpv-vendors__empty">
             未发现已注册的设备厂商，请确认后端 device 模块已启用。
@@ -88,34 +108,9 @@
           <span class="dpv-grow" />
           <ReButton icon="Refresh" layout="square" size="small" tip="刷新" :loading="loading" @click="refreshAll" />
           <ReButton icon="Monitor" layout="square" size="small" tip="设备台账" @click="goLedger" />
-          <ReButton
-            icon="Refresh"
-            size="small"
-            :show-text="true"
-            :loading="syncing"
-            :disabled="!vendors.length"
-            @click="syncDevices"
-          >
-            同步设备
-          </ReButton>
         </header>
 
-        <!-- 接入凭据 / 厂商任务 货架页签：定时任务属于厂商维度 -->
-        <nav class="dpv-pages">
-          <button
-            v-for="page in PAGE_TABS"
-            :key="page.key"
-            type="button"
-            class="dpv-page"
-            :class="{ 'is-active': pageTab === page.key }"
-            @click="pageTab = page.key"
-          >
-            <span>{{ page.label }}</span>
-          </button>
-          <span class="dpv-grow" />
-        </nav>
-
-        <div v-show="pageTab === 'credentials'" class="dpv-panes">
+        <div class="dpv-panes">
           <div class="dpv-table-wrap">
             <ReTable
             class="dpv-table"
@@ -144,10 +139,15 @@
             </template>
 
             <template #col-vendor="{ row }">
-              <div class="dpv-cell">
-                <span class="dpv-cell__main">{{ vendorLabel(String(row.deviceCredentialVendor || '')) }}</span>
-                <span class="dpv-cell__sub">
-                  {{ platformLabel(String(row.deviceCredentialVendor || ''), row.deviceCredentialPlatformType as string | undefined) }}
+              <div class="dpv-cell dpv-cell--vendor">
+                <span class="dpv-chip__tile dpv-chip__tile--sm" :data-vendor="row.deviceCredentialVendor">
+                  {{ monogram(vendorLabel(String(row.deviceCredentialVendor || ''))) }}
+                </span>
+                <span class="dpv-cell__body">
+                  <span class="dpv-cell__main">{{ vendorLabel(String(row.deviceCredentialVendor || '')) }}</span>
+                  <span class="dpv-cell__sub">
+                    {{ platformLabel(String(row.deviceCredentialVendor || ''), row.deviceCredentialPlatformType as string | undefined) }}
+                  </span>
                 </span>
               </div>
             </template>
@@ -172,6 +172,14 @@
 
             <template #col-actions="{ row }">
               <span class="dpv-ops" @click.stop>
+                <ReButton
+                  layout="square"
+                  type="primary"
+                  size="small"
+                  icon="Tickets"
+                  tip="任务列表"
+                  @click="openTaskDrawer(asCredential(row))"
+                />
                 <ReButton
                   layout="square"
                   type="primary"
@@ -297,6 +305,15 @@
               测试连接
             </ReButton>
             <ReButton size="small" @click="openEdit(activeCredential)">编辑</ReButton>
+            <ReButton
+              v-if="activeCredential"
+              icon="Setting"
+              size="small"
+              :show-text="true"
+              @click="openCapability(activeCredential)"
+            >
+              编辑能力
+            </ReButton>
           </template>
 
           <template v-else>
@@ -310,10 +327,6 @@
           </template>
         </footer>
         </div>
-
-        <div v-show="pageTab === 'tasks'" class="dpv-panes dpv-panes--tasks">
-          <ReVendorTaskPanel :vendors="vendors" :credentials="credentials" />
-        </div>
       </section>
     </div>
 
@@ -324,7 +337,7 @@
       width="640px"
       destroy-on-close
     >
-      <!-- 四段式：选厂商 → 账号凭据 → 默认与策略 → 高级配置（2026-11 改版） -->
+      <!-- 四段式：选厂商 → 账号凭据 → 能力 → 任务（2026-11 改版） -->
       <ol class="dpv-steps" aria-label="凭据步骤">
         <li
           v-for="(step, i) in STEPS"
@@ -402,91 +415,147 @@
         </el-form-item>
         </div>
 
-        <!-- 第 3 段：默认与策略（离线阈值 / 默认 / 启用） -->
-        <div v-show="stepIndex === 2" class="dpv-step-pane" data-pane="policy">
-        <div class="dpv-form__grid">
-          <el-form-item label="离线阈值（秒，超时判离线）">
+        <!-- 第 3 段：能力（04 配方 · 先选配方，再逐项微调） -->
+        <div v-show="stepIndex === 2" class="dpv-step-pane" data-pane="capability">
+          <div class="cap-recipes">
+            <button
+              v-for="recipe in CAP_RECIPES"
+              :key="recipe.key"
+              type="button"
+              class="cap-recipe"
+              :class="{ 'is-on': activeRecipe === recipe.key }"
+              :data-recipe="recipe.key"
+              @click="applyRecipe(recipe.key)"
+            >
+              <span class="cap-recipe__name">{{ recipe.name }}</span>
+              <span class="cap-recipe__desc">{{ recipe.desc }}</span>
+              <span class="cap-recipe__chips">
+                <span v-for="cap in recipe.caps" :key="cap" class="cap-chip">{{ recipeCapLabel(cap) }}</span>
+              </span>
+            </button>
+          </div>
+
+          <ul class="cap-list">
+            <li
+              v-for="cap in CAP_ROWS"
+              :key="cap.key"
+              class="cap-row"
+              :class="{ 'is-off': !capSupported(cap.key) }"
+              :data-cap="cap.key"
+            >
+              <el-switch
+                :model-value="capEnabled(cap.key)"
+                size="small"
+                :disabled="!capSupported(cap.key)"
+                @update:model-value="(value: string | number | boolean) => setCapability(cap.key, Boolean(value))"
+              />
+              <span class="cap-row__text">
+                <span class="cap-row__name">{{ cap.name }}</span>
+                <span class="cap-row__desc">{{ cap.desc }}</span>
+              </span>
+              <span v-if="!capSupported(cap.key)" class="cap-row__na">当前平台未开通{{ cap.name }}接口</span>
+              <code v-else class="cap-row__code">{{ cap.code }}</code>
+            </li>
+          </ul>
+
+          <p class="cap-count">{{ enabledCapCount }} / {{ supportedCapCount }} 项能力已开启</p>
+        </div>
+
+        <!-- 第 4 段：任务（只列已开启的能力；圆圈倒计时是这一版的身份） -->
+        <div v-show="stepIndex === 3" class="dpv-step-pane" data-pane="tasks">
+          <div class="task-policy">
+            <span class="task-policy__label">离线阈值</span>
             <el-input-number
               v-model="form.deviceCredentialOfflineThreshold"
               :min="5"
               :max="86400"
               :step="5"
-              class="dpv-w"
+              size="small"
+              controls-position="right"
+              class="task-policy__num"
+            />
+            <span class="task-policy__unit">秒</span>
+            <span class="task-policy__sep" />
+            <el-checkbox v-model="form.deviceCredentialIsDefault">设为厂商默认</el-checkbox>
+            <el-checkbox v-model="form.deviceCredentialEnabled">启用</el-checkbox>
+          </div>
+
+          <div v-if="taskCards.length" class="task-grid">
+            <article
+              v-for="task in taskCards"
+              :key="task.key"
+              class="task-card"
+              :class="{ 'is-running': task.running }"
+              :data-task="task.key"
+            >
+              <div
+                class="task-card__dial"
+                :class="{ 'is-due': task.progress >= 1, 'is-idle': !task.hasRun }"
+                :data-progress="task.progress.toFixed(2)"
+                role="img"
+                :aria-label="`${task.name} 间隔 ${task.interval} 秒`"
+              >
+                <svg class="task-card__svg" viewBox="0 0 96 96" aria-hidden="true">
+                  <circle class="task-card__track" cx="48" cy="48" r="40" />
+                  <circle
+                    class="task-card__bar"
+                    cx="48"
+                    cy="48"
+                    r="40"
+                    :stroke-dasharray="DIAL_CIRC"
+                    :stroke-dashoffset="taskOffset(task)"
+                  />
+                </svg>
+                <span class="task-card__center">
+                  <b>{{ task.interval }}</b>
+                  <span class="task-card__unit">秒</span>
+                </span>
+              </div>
+
+              <h4 class="task-card__name">{{ task.name }}</h4>
+              <code class="task-card__code" :title="task.code">{{ task.code }}</code>
+
+              <div class="task-card__step">
+                <button type="button" class="task-step__btn" aria-label="减少间隔" @click="bumpInterval(task.key, -10)">−</button>
+                <input
+                  class="task-step__input"
+                  type="number"
+                  min="1"
+                  max="86400"
+                  :value="task.interval"
+                  @change="onIntervalInput(task.key, ($event.target as HTMLInputElement).value)"
+                />
+                <button type="button" class="task-step__btn" aria-label="增加间隔" @click="bumpInterval(task.key, 10)">+</button>
+              </div>
+
+              <button
+                type="button"
+                class="task-card__run"
+                :disabled="!editingCredentialId || task.running"
+                :title="editingCredentialId ? '立即执行一次' : '保存后即可立即执行'"
+                @click="runTaskNow(task)"
+              >
+                {{ task.running ? '执行中…' : '立即执行' }}
+              </button>
+              <span class="task-card__hint">{{ task.lastText }}</span>
+            </article>
+          </div>
+
+          <p v-if="offTaskNames.length" class="task-note">
+            未开启或不支持：{{ offTaskNames.join('、') }}。这些能力没有任务配置，也不会产生同步记录。
+            <button type="button" class="task-note__link" @click="stepIndex = 2">去第 3 步调整</button>
+          </p>
+
+          <el-form-item label="备注">
+            <el-input
+              v-model="form.deviceCredentialRemark"
+              type="textarea"
+              :rows="2"
+              maxlength="255"
+              show-word-limit
+              placeholder="选填，例如使用范围"
             />
           </el-form-item>
-          <el-form-item label="选项">
-            <div class="dpv-checks">
-              <el-checkbox v-model="form.deviceCredentialIsDefault">设为厂商默认</el-checkbox>
-              <el-checkbox v-model="form.deviceCredentialEnabled">启用</el-checkbox>
-            </div>
-          </el-form-item>
-        </div>
-        </div>
-
-        <!-- 第 4 段：高级配置 —— 该凭据维度的自动任务开关与间隔（默认全部关闭） -->
-        <div v-show="stepIndex === 3" class="dpv-step-pane" data-pane="advanced">
-        <div class="dpv-adv">
-          <header class="dpv-adv__head">
-            <ReIcon name="Timer" :size="15" />
-            <span class="dpv-adv__title">高级配置（定时任务开关）</span>
-          </header>
-          <p class="dpv-adv__desc">打开开关后，该凭据维度的自动任务（在离线检测 / 设备同步 / 组织同步）由时间轮按下方间隔驱动；间隔留空或写 0 时沿用任务页上的间隔（没有则默认 30 秒），开关关闭则整个任务下线。</p>
-          <div class="dpv-adv__grid">
-            <div class="dpv-adv__row">
-              <span class="dpv-adv__row__label">在离线检测</span>
-              <el-switch v-model="form.deviceCredentialOfflineDetectEnabled" size="small" />
-              <el-input-number
-                v-model="form.deviceCredentialOfflineDetectInterval"
-                :min="1"
-                :max="86400"
-                :step="5"
-                size="small"
-                :disabled="!form.deviceCredentialOfflineDetectEnabled"
-                class="dpv-adv__row__input"
-              />
-              <span class="dpv-adv__row__unit">秒</span>
-            </div>
-            <div class="dpv-adv__row">
-              <span class="dpv-adv__row__label">设备自动同步</span>
-              <el-switch v-model="form.deviceCredentialDeviceSyncEnabled" size="small" />
-              <el-input-number
-                v-model="form.deviceCredentialDeviceSyncInterval"
-                :min="1"
-                :max="86400"
-                :step="5"
-                size="small"
-                :disabled="!form.deviceCredentialDeviceSyncEnabled"
-                class="dpv-adv__row__input"
-              />
-              <span class="dpv-adv__row__unit">秒</span>
-            </div>
-            <div class="dpv-adv__row">
-              <span class="dpv-adv__row__label">组织自动同步</span>
-              <el-switch v-model="form.deviceCredentialOrgSyncEnabled" size="small" />
-              <el-input-number
-                v-model="form.deviceCredentialOrgSyncInterval"
-                :min="1"
-                :max="86400"
-                :step="5"
-                size="small"
-                :disabled="!form.deviceCredentialOrgSyncEnabled"
-                class="dpv-adv__row__input"
-              />
-              <span class="dpv-adv__row__unit">秒</span>
-            </div>
-          </div>
-        </div>
-
-        <el-form-item label="备注">
-          <el-input
-            v-model="form.deviceCredentialRemark"
-            type="textarea"
-            :rows="2"
-            maxlength="255"
-            show-word-limit
-            placeholder="选填，例如使用范围"
-          />
-        </el-form-item>
         </div>
       </el-form>
 
@@ -503,6 +572,16 @@
         </div>
       </template>
     </ReDialog>
+
+    <!-- ==================== 厂商任务抽屉（行操作「任务列表」） ==================== -->
+    <ReDrawer v-model="taskDrawerVisible" :title="taskDrawerTitle" size="780px" footer-hidden>
+      <ReVendorTaskPanel
+        v-if="taskDrawerVendor"
+        :vendors="vendors"
+        :credentials="credentials"
+        :vendor="taskDrawerVendor"
+      />
+    </ReDrawer>
   </div>
 </template>
 
@@ -525,12 +604,13 @@
  * @author CH
  * @since 4.0.0.42
  */
-import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { message } from '@repo/core'
 import ReButton from '@repo/ui/re-button'
 import ReDialog from '@repo/ui/re-dialog'
+import ReDrawer from '@repo/ui/re-drawer'
 import ReIcon from '@repo/ui/re-icon'
 import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
@@ -548,7 +628,6 @@ import type {
 } from '@pages/device/src/types/device'
 
 const router = useRouter()
-const route = useRoute()
 
 /** 能力固定顺序：点阵的列位与 tooltip 文案都按它来 */
 const CAP_ORDER: DeviceCapability[] = [
@@ -566,42 +645,32 @@ const vendors = ref<DeviceVendorDescriptor[]>([])
 /** 全量凭据（不再带 vendor 查参，过滤在前端做，统计才稳定） */
 const credentials = ref<ProviderCredential[]>([])
 const credentialFilter = ref('')
-/** 页面级货架页签：接入凭据 / 厂商任务（定时任务属于厂商维度，收在厂商接入页内） */
-const PAGE_TABS = [
-  { key: 'credentials', label: '接入凭据' },
-  { key: 'tasks', label: '厂商任务' }
-]
-const pageTab = ref<(typeof PAGE_TABS)[number]['key']>(
-  (route.query.tab as string | undefined) ?? 'credentials'
-)
-watch(() => route.query.tab, (tab) => {
-  if (!tab) {
-    pageTab.value = 'credentials'
-    return
-  }
-  if (PAGE_TABS.some((item) => item.key === tab)) pageTab.value = tab as (typeof PAGE_TABS)[number]['key']
-})
 const loading = ref(false)
-const orgSyncing = ref(false)
 
 const dialogVisible = ref(false)
 const submitting = ref(false)
-const syncing = ref(false)
 const testingId = ref('')
 const editingCredentialId = ref('')
+
+/** 任务抽屉：按行操作打开，只显示该厂商自己的任务 */
+const taskDrawerVisible = ref(false)
+const taskDrawerVendor = ref('')
+const taskDrawerTitle = computed(() => {
+  const name = vendors.value.find((item) => item.vendor === taskDrawerVendor.value)?.name
+  return name ? `「${name}」任务列表` : '任务列表'
+})
 
 /**
  * 新增 / 编辑凭据的四段式步骤（2026-11 改版）。
  *
- * <p>把 12 个字段糊成一屏时，用户填到「高级配置」早就忘了上面选的是哪家厂商；
- * 拆成「先定接的是谁 → 再给账号 → 再定默认与策略 → 最后才碰定时任务」四段，
- * 每段的必填字段只校验本段，未通过不放行到下一段。</p>
+ * <p>第 3 段定「这台实例开哪些能力」，第 4 段只为已开启的能力配任务；
+ * 没开启的能力不生成任务配置，也不产生同步记录。</p>
  */
 const STEPS = [
   { key: 'vendor', label: '厂商与平台' },
   { key: 'secret', label: '账号凭据' },
-  { key: 'policy', label: '默认与策略' },
-  { key: 'advanced', label: '高级配置' }
+  { key: 'capability', label: '能力' },
+  { key: 'tasks', label: '任务' }
 ] as const
 
 /** 当前段位（0 起），打开弹窗时回到第 1 段 */
@@ -627,8 +696,319 @@ const form = reactive<FormPayload>({
   deviceCredentialOfflineThreshold: 60,
   deviceCredentialIsDefault: false,
   deviceCredentialEnabled: true,
+  deviceCredentialOfflineDetectEnabled: false,
+  deviceCredentialOfflineDetectInterval: 30,
+  deviceCredentialEventPollEnabled: false,
+  deviceCredentialEventPollInterval: 60,
+  deviceCredentialDeviceSyncEnabled: false,
+  deviceCredentialDeviceSyncInterval: 300,
+  deviceCredentialOrgSyncEnabled: false,
+  deviceCredentialOrgSyncInterval: 600,
   deviceCredentialRemark: ''
 })
+
+/* ==================== 能力（第 3 段） ==================== */
+/** 能力行：开关绑定的表单字段 + 依托的厂商能力位 + 任务名前缀 */
+type CapKey = 'offline' | 'event' | 'deviceSync' | 'orgSync' | 'access'
+
+interface CapRow {
+  key: CapKey
+  name: string
+  desc: string
+  capability: DeviceCapability
+  code: string
+  enabledKey?: keyof FormPayload
+  intervalKey?: keyof FormPayload
+  taskPrefix?: string
+  defaultInterval?: number
+}
+
+const CAP_ROWS: CapRow[] = [
+  {
+    key: 'offline',
+    name: '在离线检测',
+    desc: '按间隔探测设备连通性，掉线即标记离线并尝试重连。',
+    capability: 'DEVICE',
+    code: 'DEVICE',
+    enabledKey: 'deviceCredentialOfflineDetectEnabled',
+    intervalKey: 'deviceCredentialOfflineDetectInterval',
+    taskPrefix: 'offlineDetect',
+    defaultInterval: 30
+  },
+  {
+    key: 'event',
+    name: '事件轮询',
+    desc: '从厂商会话拉取移动侦测、报警等事件并落库。',
+    capability: 'EVENT',
+    code: 'EVENT',
+    enabledKey: 'deviceCredentialEventPollEnabled',
+    intervalKey: 'deviceCredentialEventPollInterval',
+    taskPrefix: 'eventPoll',
+    defaultInterval: 60
+  },
+  {
+    key: 'deviceSync',
+    name: '设备同步',
+    desc: '拉取厂商设备目录，按外部 ID 幂等写入设备台账。',
+    capability: 'DEVICE',
+    code: 'DEVICE',
+    enabledKey: 'deviceCredentialDeviceSyncEnabled',
+    intervalKey: 'deviceCredentialDeviceSyncInterval',
+    taskPrefix: 'deviceSync',
+    defaultInterval: 300
+  },
+  {
+    key: 'orgSync',
+    name: '组织同步',
+    desc: '拉取厂商组织树与人员，落到组织与人员表。',
+    capability: 'ORG',
+    code: 'ORG',
+    enabledKey: 'deviceCredentialOrgSyncEnabled',
+    intervalKey: 'deviceCredentialOrgSyncInterval',
+    taskPrefix: 'orgSync',
+    defaultInterval: 600
+  },
+  {
+    key: 'access',
+    name: '门禁记录抽取',
+    desc: '按时间窗抽取门禁出入记录，补进门禁记录台账。',
+    capability: 'ACCESS',
+    code: 'ACCESS'
+  }
+]
+
+/** 预设配方：先选一个常见组合，再逐项微调 */
+const CAP_RECIPES: Array<{ key: string; name: string; desc: string; caps: CapKey[] }> = [
+  { key: 'basic', name: '基础台账', desc: '只把设备接进来，并保持在线状态。', caps: ['offline', 'deviceSync'] },
+  { key: 'org', name: '台账 + 组织', desc: '设备与组织一起同步，人员挂到组织下。', caps: ['offline', 'deviceSync', 'orgSync'] },
+  { key: 'full', name: '全量巡检', desc: '设备、组织、事件一起跑，适合值守场景。', caps: ['offline', 'event', 'deviceSync', 'orgSync'] }
+]
+
+const DIAL_CIRC = 2 * Math.PI * 40
+
+/** 当前厂商是否具备某能力位（不具备的开关置灰，且不生成任务） */
+function capSupported(key: CapKey): boolean {
+  const row = CAP_ROWS.find((item) => item.key === key)
+  if (!row) return false
+  return Boolean(currentVendor.value?.capabilities?.includes(row.capability))
+}
+
+/** 能力开关的当前值 */
+function capEnabled(key: CapKey): boolean {
+  const row = CAP_ROWS.find((item) => item.key === key)
+  if (!row?.enabledKey) return false
+  return Boolean(form[row.enabledKey])
+}
+
+/** 点开关：不支持的能力不允许开；开启时把间隔补成该能力的默认值 */
+function setCapability(key: CapKey, value: boolean): void {
+  const row = CAP_ROWS.find((item) => item.key === key)
+  if (!row?.enabledKey || !capSupported(key)) return
+  form[row.enabledKey] = value
+  if (value && row.intervalKey && row.defaultInterval) {
+    const current = Number(form[row.intervalKey] || 0)
+    if (!Number.isFinite(current) || current <= 0) form[row.intervalKey] = row.defaultInterval
+  }
+}
+
+/** 当前配方（开关集合与某个预设完全一致时高亮） */
+const activeRecipe = computed<string>(() => {
+  const enabled = new Set(CAP_ROWS.filter((row) => capEnabled(row.key)).map((row) => row.key))
+  const hit = CAP_RECIPES.find(
+    (recipe) => recipe.caps.length === enabled.size && recipe.caps.every((key) => enabled.has(key))
+  )
+  return hit?.key || ''
+})
+
+/** 套用配方：只动当前厂商支持的能力，避免把不支持的能力打开 */
+function applyRecipe(key: string): void {
+  const recipe = CAP_RECIPES.find((item) => item.key === key)
+  if (!recipe) return
+  for (const row of CAP_ROWS) {
+    if (!row.enabledKey) continue
+    const shouldOn = recipe.caps.includes(row.key) && capSupported(row.key)
+    form[row.enabledKey] = shouldOn
+    if (shouldOn && row.intervalKey && row.defaultInterval) {
+      const current = Number(form[row.intervalKey] || 0)
+      if (!Number.isFinite(current) || current <= 0) form[row.intervalKey] = row.defaultInterval
+    }
+  }
+}
+
+function recipeCapLabel(key: CapKey): string {
+  return CAP_ROWS.find((item) => item.key === key)?.name || key
+}
+
+const enabledCapCount = computed(() => CAP_ROWS.filter((row) => capSupported(row.key) && capEnabled(row.key)).length)
+const supportedCapCount = computed(() => CAP_ROWS.filter((row) => capSupported(row.key)).length)
+
+/** 第 4 段的「未开启或不支持」清单 */
+const offTaskNames = computed<string[]>(() =>
+  CAP_ROWS.filter((row) => !capSupported(row.key) || !capEnabled(row.key)).map((row) =>
+    capSupported(row.key) ? row.name : `${row.name}（平台未开放）`
+  )
+)
+
+/* ==================== 任务（第 4 段） ==================== */
+interface TaskStateRow {
+  deviceTaskStateName: string
+  deviceTaskStateRunning: boolean
+  deviceTaskStateLastRunAt?: string
+  deviceTaskStateInterval?: number
+}
+
+const taskStates = ref<TaskStateRow[]>([])
+const now = ref(Date.now())
+const runningTask = ref('')
+let ticker: ReturnType<typeof setInterval> | undefined
+
+interface TaskCard {
+  key: CapKey
+  name: string
+  code: string
+  taskName: string
+  interval: number
+  running: boolean
+  hasRun: boolean
+  progress: number
+  lastText: string
+}
+
+/** 任务卡：只出现已开启且厂商支持的能力；未保存的凭据没有真实任务名 */
+const taskCards = computed<TaskCard[]>(() => {
+  const credId = editingCredentialId.value
+  return CAP_ROWS.filter((row) => row.taskPrefix && row.intervalKey && capSupported(row.key) && capEnabled(row.key)).map(
+    (row) => {
+      const taskName = credId ? `${row.taskPrefix}_${credId}` : ''
+      const state = taskName ? taskStates.value.find((item) => item.deviceTaskStateName === taskName) : undefined
+      const interval = Number(form[row.intervalKey as keyof FormPayload] || row.defaultInterval || 30)
+      const last = state?.deviceTaskStateLastRunAt
+      let progress = 0
+      if (state?.deviceTaskStateRunning) progress = 1
+      else if (last) {
+        const lastMs = new Date(last).getTime()
+        if (Number.isFinite(lastMs)) progress = Math.min(1, Math.max(0, (now.value - lastMs) / (interval * 1000)))
+      }
+      return {
+        key: row.key,
+        name: row.name,
+        code: taskName || `${row.taskPrefix}_（保存后生成）`,
+        taskName,
+        interval,
+        running: Boolean(state?.deviceTaskStateRunning) || runningTask.value === row.key,
+        hasRun: Boolean(last),
+        progress,
+        lastText: last ? `上次 ${formatDateTime(last)}` : '尚未执行'
+      }
+    }
+  )
+})
+
+function taskOffset(card: TaskCard): number {
+  return DIAL_CIRC * (1 - card.progress)
+}
+
+/** 间隔步进：夹在 1 ~ 86400 秒 */
+function setIntervalByKey(key: CapKey, value: number): void {
+  const row = CAP_ROWS.find((item) => item.key === key)
+  if (!row?.intervalKey) return
+  const next = Math.min(86400, Math.max(1, Math.round(Number(value) || 0)))
+  form[row.intervalKey] = next
+}
+
+function bumpInterval(key: CapKey, delta: number): void {
+  const card = taskCards.value.find((item) => item.key === key)
+  if (!card) return
+  setIntervalByKey(key, card.interval + delta)
+}
+
+function onIntervalInput(key: CapKey, raw: string): void {
+  setIntervalByKey(key, Number(raw))
+}
+
+async function runTaskNow(card: TaskCard): Promise<void> {
+  if (!card.taskName) return
+  runningTask.value = card.key
+  try {
+    const ok = await deviceApi.runTask(card.taskName)
+    if (ok) message.success(`已触发「${card.name}」`)
+    else message.warning(`「${card.name}」没有对应的执行入口或执行失败`)
+    await fetchTaskStates()
+  } catch (err) {
+    message.error('立即执行失败：' + errorText(err))
+  } finally {
+    runningTask.value = ''
+  }
+}
+
+/* ==================== 厂商同步效果（悬停 popover） ==================== */
+const vendorStats = reactive<Record<string, { total: number; online: number }>>({})
+
+function vendorLastRun(vendor: string, prefix: string): string | undefined {
+  const credIds = new Set(credentialsOf(vendor).map((item) => item.deviceCredentialId || ''))
+  let latest = 0
+  for (const state of taskStates.value) {
+    if (!state.deviceTaskStateName.startsWith(`${prefix}_`)) continue
+    const credId = state.deviceTaskStateName.slice(prefix.length + 1)
+    if (!credIds.has(credId) || !state.deviceTaskStateLastRunAt) continue
+    const ms = new Date(state.deviceTaskStateLastRunAt).getTime()
+    if (Number.isFinite(ms) && ms > latest) latest = ms
+  }
+  return latest ? new Date(latest).toISOString() : undefined
+}
+
+function vendorEffects(vendor: string): Array<{ key: string; label: string; on: boolean; value: string }> {
+  const descriptor = vendors.value.find((item) => item.vendor === vendor)
+  const caps = descriptor?.capabilities || []
+  const stats = vendorStats[vendor]
+  const out: Array<{ key: string; label: string; on: boolean; value: string }> = []
+  const push = (key: string, label: string, prefix: string) => {
+    const last = vendorLastRun(vendor, prefix)
+    out.push({
+      key,
+      label,
+      on: Boolean(last),
+      value: last ? `上次 ${formatDateTime(last)}` : '未开启'
+    })
+  }
+  if (caps.includes('DEVICE')) {
+    push('offline', '在离线检测', 'offlineDetect')
+    out.push({
+      key: 'devices',
+      label: '设备同步',
+      on: Boolean(stats),
+      value: stats ? `${stats.total} 台 · 在线 ${stats.online}` : '未同步'
+    })
+  }
+  if (caps.includes('EVENT')) push('event', '事件轮询', 'eventPoll')
+  if (caps.includes('ORG')) push('org', '组织同步', 'orgSync')
+  return out
+}
+
+async function fetchTaskStates(): Promise<void> {
+  try {
+    taskStates.value = (await deviceApi.listTaskStates()) as unknown as TaskStateRow[]
+  } catch {
+    taskStates.value = []
+  }
+}
+
+async function fetchVendorStats(): Promise<void> {
+  for (const vendor of vendors.value) {
+    try {
+      const stats = await deviceApi.stats({ vendor: vendor.vendor })
+      vendorStats[vendor.vendor] = { total: stats.total, online: stats.online }
+    } catch {
+      // 统计失败不影响主流程，popover 里显示「未同步」
+    }
+  }
+}
+
+/** 行内「任务列表」→ 只显示该厂商的任务 */
+function openTaskDrawer(row: ProviderCredential): void {
+  taskDrawerVendor.value = row.deviceCredentialVendor
+  taskDrawerVisible.value = true
+}
 
 const currentVendor = computed(() =>
   vendors.value.find((item) => item.vendor === form.deviceCredentialVendor)
@@ -689,13 +1069,6 @@ const activeCredential = computed<ProviderCredential | null>(
 
 const enabledCount = computed(() => credentials.value.filter((item) => item.deviceCredentialEnabled !== false).length)
 const defaultCount = computed(() => credentials.value.filter((item) => item.deviceCredentialIsDefault).length)
-
-/** 当前厂商支持 ORG 才给「同步组织」；「全部」时任一厂商支持即可 */
-const canSyncOrg = computed(() =>
-  activeVendor.value
-    ? activeVendor.value.capabilities.includes('ORG')
-    : vendors.value.some((item) => item.capabilities.includes('ORG'))
-)
 
 /* ==================== 凭据表（ReTable） ==================== */
 /** ReTable 只收 Record 数组，真实结构是 ProviderCredential */
@@ -832,10 +1205,12 @@ function resetForm() {
   form.deviceCredentialEnabled = true
   form.deviceCredentialOfflineDetectEnabled = false
   form.deviceCredentialOfflineDetectInterval = 30
+  form.deviceCredentialEventPollEnabled = false
+  form.deviceCredentialEventPollInterval = 60
   form.deviceCredentialDeviceSyncEnabled = false
-  form.deviceCredentialDeviceSyncInterval = 30
+  form.deviceCredentialDeviceSyncInterval = 300
   form.deviceCredentialOrgSyncEnabled = false
-  form.deviceCredentialOrgSyncInterval = 30
+  form.deviceCredentialOrgSyncInterval = 600
   form.deviceCredentialRemark = ''
 }
 
@@ -899,12 +1274,27 @@ function openEdit(row: ProviderCredential) {
   form.deviceCredentialEnabled = row.deviceCredentialEnabled !== false
   form.deviceCredentialOfflineDetectEnabled = !!row.deviceCredentialOfflineDetectEnabled
   form.deviceCredentialOfflineDetectInterval = row.deviceCredentialOfflineDetectInterval ?? 30
+  form.deviceCredentialEventPollEnabled = !!row.deviceCredentialEventPollEnabled
+  form.deviceCredentialEventPollInterval = row.deviceCredentialEventPollInterval ?? 60
   form.deviceCredentialDeviceSyncEnabled = !!row.deviceCredentialDeviceSyncEnabled
-  form.deviceCredentialDeviceSyncInterval = row.deviceCredentialDeviceSyncInterval ?? 30
+  form.deviceCredentialDeviceSyncInterval = row.deviceCredentialDeviceSyncInterval ?? 300
   form.deviceCredentialOrgSyncEnabled = !!row.deviceCredentialOrgSyncEnabled
-  form.deviceCredentialOrgSyncInterval = row.deviceCredentialOrgSyncInterval ?? 30
+  form.deviceCredentialOrgSyncInterval = row.deviceCredentialOrgSyncInterval ?? 600
   form.deviceCredentialRemark = row.deviceCredentialRemark || ''
   dialogVisible.value = true
+}
+
+/**
+ * 直接打开「能力」这一步。
+ *
+ * <p>从底部条进来时，用户明确是要改能力开关，不应该再点两次「下一步」；
+ * 其余字段仍按原值回填，保存时四段一起校验。</p>
+ *
+ * @param row 当前凭据
+ */
+function openCapability(row: ProviderCredential) {
+  openEdit(row)
+  stepIndex.value = 2
 }
 
 function onVendorChange() {
@@ -942,6 +1332,8 @@ async function submit() {
       deviceCredentialEnabled: form.deviceCredentialEnabled,
       deviceCredentialOfflineDetectEnabled: !!form.deviceCredentialOfflineDetectEnabled,
       deviceCredentialOfflineDetectInterval: form.deviceCredentialOfflineDetectInterval,
+      deviceCredentialEventPollEnabled: !!form.deviceCredentialEventPollEnabled,
+      deviceCredentialEventPollInterval: form.deviceCredentialEventPollInterval,
       deviceCredentialDeviceSyncEnabled: !!form.deviceCredentialDeviceSyncEnabled,
       deviceCredentialDeviceSyncInterval: form.deviceCredentialDeviceSyncInterval,
       deviceCredentialOrgSyncEnabled: !!form.deviceCredentialOrgSyncEnabled,
@@ -1005,18 +1397,6 @@ async function removeCredential(row: ProviderCredential) {
     await fetchCredentials()
   } catch (err) {
     message.error('删除凭据失败：' + errorText(err))
-  }
-}
-
-async function syncOrg() {
-  orgSyncing.value = true
-  try {
-    await deviceApi.syncOrg()
-    message.success('组织同步完成，可在设备台账的「组织管理」查看')
-  } catch (err) {
-    message.error('组织同步失败：' + errorText(err))
-  } finally {
-    orgSyncing.value = false
   }
 }
 
@@ -1085,21 +1465,8 @@ function credSyncLoading(kind: 'device' | 'org' | 'person'): boolean {
 function refreshAll() {
   fetchVendors()
   fetchCredentials()
-}
-
-async function syncDevices() {
-  syncing.value = true
-  try {
-    const result = await deviceApi.syncDevices()
-    message.success(
-      `同步完成：新增 ${result.created}，更新 ${result.updated}，跳过 ${result.skipped}`
-    )
-    await fetchVendors()
-  } catch (err) {
-    message.error('同步设备失败：' + errorText(err))
-  } finally {
-    syncing.value = false
-  }
+  fetchTaskStates()
+  fetchVendorStats()
 }
 
 function goLedger() {
@@ -1107,13 +1474,35 @@ function goLedger() {
 }
 
 function errorText(err: unknown): string {
-  return (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-    || (err as Error)?.message
-    || '未知错误'
+  const e = err as {
+    message?: string
+    msg?: string
+    code?: string | number
+    response?: { status?: number; data?: { message?: string; msg?: string } }
+  }
+  const fromBody = e?.response?.data?.message || e?.response?.data?.msg || e?.msg
+  if (fromBody) return fromBody
+  // 框架对 5xx/网络错误弹出通用提示后会清空 message，这里补回可读原因，避免只剩「未知错误」
+  if (e?.message) return e.message
+  if (e?.code === 'ERR_NETWORK' || e?.code === 'ERR_CANCELED') {
+    return e.code === 'ERR_CANCELED' ? '请求已取消' : '网络异常，请确认后端已启动'
+  }
+  if (e?.response?.status) return `服务端错误（HTTP ${e.response.status}）`
+  return '未知错误'
 }
 
 onMounted(() => {
   refreshAll()
+  ticker = setInterval(() => {
+    now.value = Date.now()
+  }, 1000)
+})
+
+onBeforeUnmount(() => {
+  if (ticker) {
+    clearInterval(ticker)
+    ticker = undefined
+  }
 })
 </script>
 
@@ -1258,6 +1647,13 @@ onMounted(() => {
   color: var(--el-text-color-secondary);
 }
 
+/* 表格里的厂商图标：与顶部胶囊同款，只是小一号 */
+.dpv-chip__tile--sm {
+  width: 20px;
+  height: 20px;
+  font-size: 10px;
+}
+
 .dpv-chip.is-active .dpv-chip__tile {
   background: var(--el-color-primary);
   color: var(--el-color-white);
@@ -1376,38 +1772,6 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-/* 接入凭据 / 厂商任务 货架页签：定时任务属于厂商维度，在厂商接入页内分 tab */
-.dpv-pages {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 12px 8px;
-}
-.dpv-page {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 13px;
-  font-size: 13px;
-  color: var(--el-text-color-regular);
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 999px;
-  cursor: pointer;
-  transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease;
-}
-.dpv-page:hover {
-  color: var(--el-color-primary);
-  border-color: var(--el-color-primary-light-7);
-}
-.dpv-page.is-active {
-  color: var(--el-color-primary);
-  border-color: var(--el-color-primary-light-5);
-  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
-  font-weight: 600;
-}
-
 /* 货架页签：凭据表 / 厂商任务 内嵌页签体 */
 .dpv-panes {
   display: flex;
@@ -1415,9 +1779,6 @@ onMounted(() => {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-}
-.dpv-panes--tasks {
-  padding: 0 12px 4px;
 }
 
 .dpv-filter {
@@ -1807,5 +2168,405 @@ onMounted(() => {
   .dpv-foot__item--url {
     max-width: 160px;
   }
+}
+
+/* ============================================================
+   第 3 段：能力（配方卡 + 开关行）
+   ============================================================ */
+.cap-recipes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.cap-recipe {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.cap-recipe:hover {
+  border-color: var(--el-color-primary-light-5);
+}
+.cap-recipe.is-on {
+  border-color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset;
+}
+.cap-recipe__name {
+  font-size: 13px;
+  font-weight: 600;
+}
+.cap-recipe__desc {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+}
+.cap-recipe__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.cap-chip {
+  padding: 1px 7px;
+  font-size: 10.5px;
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 9%, transparent);
+  border-radius: 999px;
+}
+
+.cap-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.cap-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.cap-row:last-child {
+  border-bottom: 0;
+}
+.cap-row.is-off {
+  background: var(--el-fill-color-lighter);
+}
+.cap-row__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.cap-row__name {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.cap-row.is-off .cap-row__name {
+  color: var(--el-text-color-regular);
+}
+.cap-row__desc {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+}
+.cap-row__code {
+  margin-left: auto;
+  padding: 1px 6px;
+  font-size: 10.5px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color);
+  border-radius: 5px;
+}
+.cap-row__na {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+}
+
+.cap-count {
+  margin: 10px 0 0;
+  text-align: right;
+  font-size: 11.5px;
+  font-family: var(--el-font-family-mono, ui-monospace, monospace);
+  color: var(--el-color-primary);
+}
+
+/* 第 4 段顶部的策略条：离线阈值与启停放在任务旁边，第 3 段不再重复 */
+.task-policy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: var(--el-fill-color-lighter);
+  border-radius: 10px;
+}
+.task-policy__label {
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+}
+.task-policy__num {
+  width: 110px;
+}
+.task-policy__unit {
+  font-size: 11.5px;
+  color: var(--el-text-color-secondary);
+}
+.task-policy__sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: var(--el-border-color);
+}
+
+/* ============================================================
+   第 4 段：任务圆盘（圆圈倒计时是这一版的身份）
+   ============================================================ */
+.task-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.task-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 12px 12px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.task-card:hover {
+  border-color: var(--el-color-primary-light-7);
+  box-shadow: var(--el-box-shadow-light);
+}
+.task-card.is-running {
+  border-color: var(--el-color-primary);
+}
+
+.task-card__dial {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  flex: none;
+}
+.task-card__svg {
+  width: 96px;
+  height: 96px;
+  transform: rotate(-90deg);
+}
+.task-card__track {
+  fill: none;
+  stroke: var(--el-border-color-lighter);
+  stroke-width: 6;
+}
+.task-card__bar {
+  fill: none;
+  stroke: var(--el-color-primary);
+  stroke-width: 6;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.5s linear;
+}
+.task-card__dial.is-due .task-card__bar {
+  stroke: var(--el-color-success);
+}
+.task-card__dial.is-idle .task-card__bar {
+  stroke: var(--el-border-color);
+}
+.task-card__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 1px;
+  padding-top: 36px;
+  box-sizing: border-box;
+  font-family: var(--el-font-family-mono, ui-monospace, monospace);
+}
+.task-card__center b {
+  font-size: 20px;
+  line-height: 1;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.task-card__unit {
+  font-size: 10px;
+  color: var(--el-text-color-secondary);
+}
+
+.task-card__name {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.task-card__code {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  color: var(--el-text-color-secondary);
+}
+
+.task-card__step {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 4px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.task-step__btn {
+  width: 26px;
+  height: 26px;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-lighter);
+  border: 0;
+  cursor: pointer;
+}
+.task-step__btn:hover {
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+}
+.task-step__input {
+  width: 54px;
+  height: 26px;
+  padding: 0 4px;
+  text-align: center;
+  font: inherit;
+  font-size: 12px;
+  color: var(--el-text-color-primary);
+  background: var(--el-bg-color);
+  border: 0;
+  outline: none;
+  -moz-appearance: textfield;
+}
+.task-step__input::-webkit-outer-spin-button,
+.task-step__input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.task-card__run {
+  width: 100%;
+  height: 26px;
+  margin-top: 2px;
+  font: inherit;
+  font-size: 11.5px;
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  border: 1px solid var(--el-color-primary-light-7);
+  border-radius: 7px;
+  cursor: pointer;
+}
+.task-card__run:hover:not(:disabled) {
+  color: var(--el-color-white);
+  background: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+}
+.task-card__run:disabled {
+  color: var(--el-text-color-placeholder);
+  background: var(--el-fill-color-lighter);
+  border-color: var(--el-border-color-lighter);
+  cursor: not-allowed;
+}
+.task-card__hint {
+  font-size: 10.5px;
+  color: var(--el-text-color-secondary);
+}
+
+.task-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+  padding: 9px 12px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-lighter);
+  border-radius: 9px;
+}
+.task-note__link {
+  padding: 0;
+  font: inherit;
+  font-size: 11.5px;
+  color: var(--el-color-primary);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* ============================================================
+   厂商悬停：同步效果 popover
+   ============================================================ */
+.dpv-pop__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dpv-pop__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dpv-pop__head b {
+  font-size: 13px;
+}
+.dpv-pop__count {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+}
+.dpv-pop__list {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+.dpv-pop__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.dpv-pop__label {
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+}
+.dpv-pop__value {
+  font-size: 11px;
+  font-family: var(--el-font-family-mono, ui-monospace, monospace);
+  color: var(--el-color-primary);
+}
+.dpv-pop__value.is-off {
+  color: var(--el-text-color-placeholder);
+}
+.dpv-pop__foot {
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+}
+
+/* 表格里的厂商图标 + 名称 */
+.dpv-cell--vendor {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.dpv-cell__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
 }
 </style>

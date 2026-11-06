@@ -70,7 +70,7 @@
     "@vueuse/core": "catalog:",
     "axios": "^1.7.9",
     "crypto-js": "^4.2.0",
-    "dexie": "^4.4.6",
+    "dexie": "^4.4.7",
     "mitt": "^3.0.1",
     "vue": "catalog:"
   },
@@ -79,6 +79,6 @@
     "fake-indexeddb": "^6.2.5",
     "rimraf": "catalog:",
     "typescript": "catalog:",
-    "vitest": "^1.6.0"
+    "vitest": "catalog:"
   }
 }

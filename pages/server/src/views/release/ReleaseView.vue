@@ -3,6 +3,7 @@
     <ReSectionHead description="管理服务器发布与项目 · 支持启动/停止/重启/升级/备份/回滚">
       <template #title>发布管理</template>
       <template #actions>
+        <ReButton icon="Tickets" :show-text="true" @click="opLogVisible = true">日志管理</ReButton>
         <ReButton icon="Top" :show-text="true" :loading="batchLoading" @click="openBatchUpgrade">批量升级</ReButton>
         <ReButton icon="Plus" :show-text="true" type="primary" @click="openCreateDialog">新增发布</ReButton>
       </template>
@@ -60,54 +61,99 @@
       </div>
     </div>
 
-    <!-- 新增/编辑对话框 -->
-    <ReDialog v-model="dialogVisible" :title="editingId != null ? '编辑发布' : '新增发布'" width="500px">
-      <ReForm :model="form" label-position="top">
-        <ReFormItem label="发布名称">
-          <ReInput v-model="form.releaseName" placeholder="如：生产环境发布" style="width:100%" />
-        </ReFormItem>
-        <ReFormItem label="主机">
-          <ReSelect v-model="form.hostId" placeholder="选择主机" style="width:100%" filterable :teleported="true" popper-class="host-select-popper">
-            <ReOption v-for="host in hosts" :key="host.id" :label="host.serverHostName" :value="host.id">
-              <span style="float:left">{{ host.serverHostName }}</span>
-              <span style="float:right;color:var(--el-text-color-secondary);font-size:12px">{{ host.serverHostAddress }}</span>
-            </ReOption>
-          </ReSelect>
-        </ReFormItem>
-        <ReFormItem label="描述">
-          <ReInput v-model="form.description" type="textarea" :rows="3" placeholder="发布描述" style="width:100%" />
-        </ReFormItem>
-        <ReFormItem label="背景图URL">
-          <ReInput v-model="form.backgroundImage" placeholder="输入背景图URL（可选）" style="width:100%" />
-        </ReFormItem>
+    <!-- 新增/编辑对话框：左「基础」右「APM」，两块各管一件事，不再上下堆成一长条 -->
+    <ReDialog
+      v-model="dialogVisible"
+      :title="editingId != null ? '编辑发布' : '新增发布'"
+      width="920px"
+      :close-on-click-modal="false"
+    >
+      <div class="rel-edit">
+        <!-- 左：发布本身（叫什么、落在哪台机器、长什么样） -->
+        <section class="rel-edit__col">
+          <header class="rel-edit__head">
+            <span class="rel-edit__title">基础信息</span>
+            <span class="rel-edit__note">名称、主机与展示</span>
+          </header>
+          <ReForm :model="form" label-position="top" class="rel-edit__form">
+            <ReFormItem label="发布名称" required>
+              <ReInput v-model="form.releaseName" placeholder="如：生产环境发布" style="width:100%" />
+            </ReFormItem>
+            <ReFormItem label="主机" required>
+              <ReSelect v-model="form.hostId" placeholder="选择主机（仅列出已开启 SSH 的主机）" style="width:100%" filterable :teleported="true" popper-class="host-select-popper">
+                <ReOption v-for="host in selectableHosts" :key="host.id" :label="host.serverHostName" :value="host.id">
+                  <span style="float:left">{{ host.serverHostName }}</span>
+                  <span style="float:right;color:var(--el-text-color-secondary);font-size:12px">
+                    {{ host.serverHostAddress }}<template v-if="!sshEnabled(host)"> · 未开启 SSH</template>
+                  </span>
+                </ReOption>
+              </ReSelect>
+              <div v-if="sshBlockedCount" class="apm-divider-sub" style="margin-top:6px">
+                另有 {{ sshBlockedCount }} 台主机未开启 SSH，未列在上面的选项里：发布模块的备份/启停/日志/升级都走 OpenSSH，
+                这类主机选了也执行不了。需要用到它们时，先到「主机管理」打开「开启 SSH」并确认 OpenSSH 已启动。
+              </div>
+              <div v-if="currentHostUnusable" class="apm-warn">
+                当前绑定的主机未开启 SSH，该发布下的项目无法备份/启停/升级；请先开启 SSH，或改绑到已开启 SSH 的主机。
+              </div>
+            </ReFormItem>
+            <ReFormItem label="描述">
+              <ReInput v-model="form.description" type="textarea" :rows="3" placeholder="发布描述" style="width:100%" />
+            </ReFormItem>
+            <ReFormItem label="背景图URL">
+              <ReInput v-model="form.backgroundImage" placeholder="输入背景图URL（可选）" style="width:100%" />
+            </ReFormItem>
+          </ReForm>
+        </section>
 
-        <!-- 发布级 SkyWalking APM 注入 -->
-        <div class="apm-divider">
-          <div class="apm-divider-title">APM 注入（SkyWalking）</div>
-          <div class="apm-divider-sub">
+        <!-- 右：APM 注入（发布级默认值，项目级仍可覆盖） -->
+        <section class="rel-edit__col rel-edit__col--apm">
+          <header class="rel-edit__head">
+            <span class="rel-edit__title">APM 注入</span>
+            <span class="apm-chip">SkyWalking</span>
+            <span class="rel-edit__note">该发布下新项目默认继承</span>
+          </header>
+          <p class="rel-edit__hint">
             启用后，该发布下新建/复制的项目自动挂载 agent jar，并统一上报到集群 OAP；项目级 APM 选项仍优先。
-          </div>
-        </div>
-        <ReFormItem label="启用">
-          <ReSwitch :model-value="!!form.swEnabled" @change="(v: any) => form.swEnabled = !!v" />
-        </ReFormItem>
-        <ReFormItem label="SkyWalking agent jar 路径（目标主机绝对路径）">
-          <ReInput v-model="form.swJarPath" placeholder="如 /opt/skywalking/skywalking-agent.jar" style="width:100%" />
-        </ReFormItem>
-        <ReFormItem label="service_name 前缀（留空则只取项目名）">
-          <ReInput v-model="form.swServiceNamePrefix" placeholder="留空则只取项目名" style="width:100%" />
-        </ReFormItem>
-        <ReFormItem label="collector.backend_service（OAP 地址，如 oap:11800）">
-          <ReInput v-model="form.swBackendService" placeholder="如 192.168.50.198:11800" style="width:100%" />
-        </ReFormItem>
-        <ReFormItem v-if="form.swEnabled && form.swJarPath && form.swBackendService" label="启动命令预览">
-          <pre class="apm-preview">java {{ releaseJvmArgs }} -jar <入口> ...</pre>
-        </ReFormItem>
-      </ReForm>
+          </p>
+          <ReForm :model="form" label-position="top" class="rel-edit__form">
+            <ReFormItem label="启用状态">
+              <div class="sw-toggle">
+                <ReSwitch :model-value="!!form.swEnabled" @change="(v: any) => form.swEnabled = !!v" />
+                <span class="apm-divider-sub">
+                  {{ form.swEnabled ? "新项目将自动带上 -javaagent" : "关闭时发布不下发 APM，项目按自己的配置走" }}
+                </span>
+              </div>
+            </ReFormItem>
+            <ReFormItem label="agent jar 路径（目标主机绝对路径）" :required="!!form.swEnabled">
+              <ReInput v-model="form.swJarPath" placeholder="如 /opt/skywalking/skywalking-agent.jar" style="width:100%" />
+              <div v-if="swMissingJar" class="apm-warn">
+                已勾选启用，但 agent jar 路径为空：该发布不会注入 agent。
+              </div>
+            </ReFormItem>
+            <ReFormItem label="service_name 前缀（留空则只取项目名）">
+              <ReInput v-model="form.swServiceNamePrefix" placeholder="如 prod，最终为 prod-项目名" style="width:100%" />
+            </ReFormItem>
+            <ReFormItem label="collector.backend_service（OAP 地址）" :required="!!form.swEnabled">
+              <ReInput v-model="form.swBackendService" placeholder="如 192.168.50.198:11800" style="width:100%" />
+              <div v-if="swMissingBackend" class="apm-warn">
+                已勾选启用，但 OAP 地址为空：agent 起来了也上报不到任何后端。
+              </div>
+            </ReFormItem>
+            <ReFormItem v-if="form.swEnabled && form.swJarPath && form.swBackendService" label="启动命令预览">
+              <pre class="apm-preview">java {{ releaseJvmArgs }} -jar &lt;入口&gt; ...</pre>
+            </ReFormItem>
+          </ReForm>
+        </section>
+      </div>
       <template #footer>
         <ReButton @click="dialogVisible = false">取消</ReButton>
         <ReButton type="primary" @click="handleSave">保存</ReButton>
       </template>
+    </ReDialog>
+
+    <!-- 日志管理：所有项目操作的审计记录（含失败原因、耗时、操作人） -->
+    <ReDialog v-model="opLogVisible" title="日志管理" width="1080px">
+      <ProjectOpLogPanel />
     </ReDialog>
 
     <!-- 集群批量升级：先选第一个项目定类型，再批量勾选同类型项目 -->
@@ -185,15 +231,21 @@
 
 <script setup lang="ts">
 import { message } from "@repo/core";
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessageBox } from 'element-plus';
 import { Files, Box, ArrowRight, EditPen, Delete, InfoFilled, Top } from '@element-plus/icons-vue';
 import { http, unwrapResult } from '@repo/utils';
 import { osIconSvg, osLabel } from '../../utils/osIcon';
 import { trackTask } from '../../utils/processTasks';
+import { toastError } from '../../utils/errors';
+import { releaseSse } from '../../services/releaseRealtime';
+import ProjectOpLogPanel from '../../components/ProjectOpLogPanel.vue';
 
 const BASE = '/ms/server/release';
+
+/** 日志管理对话框 */
+const opLogVisible = ref(false);
 
 async function api<T>(path: string): Promise<T> {
   const res = await http().get(BASE + path);
@@ -220,6 +272,8 @@ interface Host {
   serverHostName: string;
   serverHostAddress: string;
   serverHostOsType?: string;
+  /** 1=已开启 SSH；0/null=未开启（发布模块全部动作都走 SSH，未开启的主机不可用） */
+  serverHostSshEnabled?: number | null;
 }
 
 const list = ref<Release[]>([]);
@@ -257,10 +311,51 @@ function isBlank(value?: string): boolean {
   return value === null || value === undefined || String(value).trim() === '';
 }
 
+/**
+ * 主机是否开启 SSH。
+ *
+ * <p>口径与后端 {@code ReleaseServiceImpl#resolveSshEnabled} 一致：显式设置取该值，
+ * 未设置时非 Windows 视为开启、Windows 视为关闭。</p>
+ *
+ * <p>为什么要在这里挡：发布模块的备份/启停/日志/升级<b>全部</b>走 OpenSSH 远程执行，
+ * 主机没开 SSH 时任何动作都只会得到一句「无法执行发布操作」。与其让用户配完发布、
+ * 建完项目、点一次失败一次，不如在选主机这一步就不提供这类主机。</p>
+ *
+ * @param h 主机
+ * @returns 是否可被发布使用
+ */
+function sshEnabled(h: Host): boolean {
+  const v = h.serverHostSshEnabled;
+  if (v !== null && v !== undefined) {
+    return Number(v) === 1;
+  }
+  return String(h.serverHostOsType || '').toUpperCase() !== 'WINDOWS';
+}
+
+/** 主机下拉可选项：只列开启 SSH 的主机；编辑时保留当前已绑定的那台（便于改配置/查看问题） */
+const selectableHosts = computed(() =>
+  hosts.value.filter((h) => sshEnabled(h) || h.id === form.value.hostId),
+);
+
+/** 因未开启 SSH 而被隐藏的主机数量（0 时不提示） */
+const sshBlockedCount = computed(() => hosts.value.filter((h) => !sshEnabled(h)).length);
+
+/** 当前选中的主机是否本身不可用（编辑已绑定未开 SSH 的发布时给出警示） */
+const currentHostUnusable = computed(() => {
+  const h = hosts.value.find((x) => x.id === form.value.hostId);
+  return !!h && !sshEnabled(h);
+});
+
 /** 发布是否已下发 SkyWalking APM（均非空才接单） */
 function releaseSwEnabled(item: Release): boolean {
   return !!item.swEnabled && !isBlank(item.swJarPath) && !isBlank(item.swBackendService);
 }
+
+/** 勾了启用但漏填 agent jar：保存后不会注入，必须在表单里就说清楚 */
+const swMissingJar = computed(() => !!form.value.swEnabled && isBlank(form.value.swJarPath));
+
+/** 勾了启用但漏填 OAP 地址：同样只在界面提示，不阻断保存（项目级仍可覆盖） */
+const swMissingBackend = computed(() => !!form.value.swEnabled && isBlank(form.value.swBackendService));
 
 /** 平台类型 -> 样式类 */
 function osType(item: Release): string {
@@ -288,8 +383,8 @@ async function loadList() {
     const res = await api<Release[]>('/list');
     list.value = res || [];
     loadCounts();
-  } catch (e) {
-    message.error('加载发布列表失败');
+  } catch (e: any) {
+    toastError(e, '加载发布列表失败');
   }
 }
 
@@ -364,6 +459,10 @@ async function handleSave() {
     if (body.swEnabled && (isBlank(body.swJarPath) || isBlank(body.swBackendService))) {
       message.warning('启用 SkyWalking 注入需要同时配置 agent jar 路径与 OAP 地址');
     }
+    // 主机没开 SSH：保存不拦（可能还在装 OpenSSH），但必须说明后果
+    if (currentHostUnusable.value) {
+      message.warning('该主机未开启 SSH：保存后发布下的项目将无法备份、启停、升级');
+    }
     if (editingId.value != null) {
       await http().put(BASE + `/${editingId.value}`).data(body);
       message.success('更新成功');
@@ -373,8 +472,8 @@ async function handleSave() {
     }
     dialogVisible.value = false;
     loadList();
-  } catch (e) {
-    message.error('保存失败');
+  } catch (e: any) {
+    toastError(e, '保存失败');
   }
 }
 
@@ -560,8 +659,14 @@ async function submitBatchUpgrade() {
 }
 
 onMounted(() => {
+  // 发布管理全局 SSE（与主机资产独立）：任务进度 / 实时日志 / 操作日志共用
+  releaseSse.open();
   loadList();
   loadHosts();
+});
+
+onBeforeUnmount(() => {
+  releaseSse.close();
 });
 </script>
 
@@ -778,6 +883,80 @@ onMounted(() => {
 .enter-link .el-icon { font-size: 14px; }
 
 /* ===== 发布级 SkyWalking APM 注入 ===== */
+/* 编辑弹框：左「基础」右「APM」两栏。
+   为什么不在手机上堆叠之外还做断点：发布名称/主机这两项是必填主干，APM 是可选下发，
+   左右分开后「APM 关着」时右栏也不空（有开关与说明），比原来一长条更容易看出哪些是必填。 */
+.rel-edit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.rel-edit__col {
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border-subtle, #eef0f6);
+  border-radius: var(--radius-md, 10px);
+  background: var(--bg-surface, #fff);
+}
+/* APM 栏用浅底分色：它是「默认值」，不是发布本身的信息 */
+.rel-edit__col--apm {
+  background: var(--bg-fill, #f7f8fa);
+}
+.rel-edit__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle, #eef0f6);
+}
+.rel-edit__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #1f2430);
+}
+.rel-edit__note {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-tertiary, #9aa1ad);
+}
+.rel-edit__hint {
+  margin: 0 0 12px;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--text-secondary, #6b7280);
+}
+.rel-edit__form :deep(.el-form-item) {
+  margin-bottom: 14px;
+}
+.rel-edit__form :deep(.el-form-item:last-child) {
+  margin-bottom: 0;
+}
+.sw-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+/* 窄屏：两栏改上下，顺序仍是「基础 → APM」 */
+@media (max-width: 900px) {
+  .rel-edit {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+/* 主机不可用警示：未开启 SSH 的发布，任何发布动作都会失败，需在选主机时就提示 */
+.apm-warn {
+  margin-top: 6px;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-color-warning-dark-2, #b88230);
+  background: var(--el-color-warning-light-9, #fdf6ec);
+  border: 1px solid var(--el-color-warning-light-7, #f5dab1);
+  border-radius: 8px;
+}
 .apm-chip {
   display: inline-flex;
   align-items: center;
@@ -790,21 +969,6 @@ onMounted(() => {
   border-radius: 10px;
   padding: 1px 8px;
   white-space: nowrap;
-}
-.apm-divider {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px 16px;
-  margin-bottom: 8px;
-  background: var(--bg-fill, #f7f8fa);
-  border: 1px solid var(--border-subtle, #eef0f6);
-  border-radius: var(--radius-md, 8px);
-}
-.apm-divider-title {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--text-primary, #1f2430);
 }
 .apm-divider-sub {
   font-size: 12.5px;

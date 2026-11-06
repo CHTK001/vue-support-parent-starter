@@ -278,14 +278,13 @@ function onFsChange(): void {
   isFullscreen.value = !!document.fullscreenElement;
 }
 
-/* ===== 全屏/沉浸下工具条自动隐显：默认收起，鼠标移到显示区顶部或悬停工具条时滑出 ===== */
+/* ===== 工具条自动隐显：终端内鼠标一有动作就滑出，静止 1.6s 或移出终端即收起 ===== */
 const toolbarHidden = ref(false);
 const hoverToolbar = ref(false);
+/** 特殊按键下拉是否展开：下拉被 teleport 到 body，悬停态会丢，需单独记住 */
+const dropdownOpen = ref(false);
 let hideTimer: ReturnType<typeof setTimeout> | null = null;
 
-function inFullView(): boolean {
-  return immersive.value || isFullscreen.value;
-}
 function revealToolbar(): void {
   if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
   toolbarHidden.value = false;
@@ -293,17 +292,19 @@ function revealToolbar(): void {
 function scheduleHide(): void {
   if (hideTimer) clearTimeout(hideTimer);
   hideTimer = setTimeout(() => {
-    if (inFullView() && !hoverToolbar.value) toolbarHidden.value = true;
+    if (!hoverToolbar.value && !dropdownOpen.value) toolbarHidden.value = true;
   }, 1600);
 }
-function onTermMouseMove(e: MouseEvent): void {
-  if (!inFullView()) {
-    toolbarHidden.value = false;
-    return;
-  }
-  const top = termMainRef.value ? termMainRef.value.getBoundingClientRect().top : 0;
-  if (e.clientY - top <= 26) revealToolbar();
-  else if (!hoverToolbar.value) scheduleHide();
+/** 终端区域内任意移动 = 用户要操作，先亮出工具条，再从这一刻重新计时 */
+function onTermMouseMove(): void {
+  revealToolbar();
+  scheduleHide();
+}
+/** 移出终端：立刻收起，不等定时器 */
+function onTermMouseLeave(): void {
+  if (hoverToolbar.value || dropdownOpen.value) return;
+  if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+  toolbarHidden.value = true;
 }
 function onToolbarEnter(): void {
   hoverToolbar.value = true;
@@ -314,8 +315,8 @@ function onToolbarLeave(): void {
   scheduleHide();
 }
 watch([immersive, isFullscreen], () => {
-  if (inFullView()) { revealToolbar(); scheduleHide(); }
-  else revealToolbar();
+  revealToolbar();
+  scheduleHide();
 });
 
 /** 切换应用内沉浸（可视范围全屏） */
@@ -482,8 +483,10 @@ async function onMountedInit(): Promise<void> {
 onMounted(onMountedInit);
 onMounted(() => document.addEventListener("fullscreenchange", onFsChange));
 onMounted(() => termMainRef.value?.addEventListener("mousemove", onTermMouseMove));
+onMounted(() => termMainRef.value?.addEventListener("mouseleave", onTermMouseLeave));
 onBeforeUnmount(() => document.removeEventListener("fullscreenchange", onFsChange));
 onBeforeUnmount(() => termMainRef.value?.removeEventListener("mousemove", onTermMouseMove));
+onBeforeUnmount(() => termMainRef.value?.removeEventListener("mouseleave", onTermMouseLeave));
 onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
 </script>
 
@@ -549,7 +552,7 @@ onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
             title="任务管理器（Ctrl+Alt+Del）"
             @click="triggerTaskManager"
           />
-          <ElDropdown trigger="click" placement="bottom" @command="onSpecialCommand">
+          <ElDropdown trigger="click" placement="bottom" @command="onSpecialCommand" @visible-change="dropdownOpen = $event">
             <ReButton layout="square" icon="MoreFilled" title="其它无法透传的按键" />
             <template #dropdown>
               <ElDropdownMenu>
@@ -808,7 +811,7 @@ onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
   transform: translateX(-50%);
   transition: transform 0.28s ease, opacity 0.28s ease;
 }
-/* 全屏/沉浸下收起：向上滑出可视范围，鼠标移到顶部再滑下 */
+/* 自动收起：鼠标静止或移出终端后向上滑出可视范围，再次移动即滑下 */
 .term-toolbar.is-hidden {
   transform: translate(-50%, -130%);
   opacity: 0;

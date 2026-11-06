@@ -259,6 +259,9 @@ function dropProxyOrigin(): PluginOption {
           url.startsWith("/ms/") ||
           url.startsWith("/v2/") ||
           url.startsWith("/api/device") ||
+          // APM 设置是 /api/apm/v1 下的首个写接口（GET /config 不带 Origin 才活着）：
+          // 不剥 Origin 就会出现「设置页能读、点保存 403 Invalid CORS request」
+          url.startsWith("/api/apm") ||
           /^\/(fs|localFileStorage|local|ot|config|recycle|assets|static)(\/|$|\?)/.test(url)
         ) {
           delete req.headers.origin;
@@ -393,6 +396,15 @@ export default createVite({
     "@pages/template": "pages/template",
     // APM 观测台：页面根（业务以 "@pages/apm/src/..." 引用，alias 必须指向 pages/apm）
     "@pages/apm": "pages/apm",
+    // 渠道管理页：直接复用 @pages/channel 的完整页面（品牌表 / 绑定 SSE / 模型开关 /
+    // ChatClient / 文生图），宿主不再自建 api/channel.ts 与绑定逻辑。
+    // createVite 的 REPO_ALIAS 把 @pages/channel 指到 pages/channel/src，与这里的
+    // 「指向页面根、业务写 @pages/channel/src/...」口径不一致，故本地覆盖为页面根。
+    "@pages/channel": "pages/channel",
+    // @pages/channel 的页头 import '@/components/ui/RePageHead.vue'（仓库根 tsconfig
+    // 的 "@/*" 约定，指向 pages/ai/src）。monitor 自身没有 "@/..." 引用，这里只是让
+    // 被复用的页面包能解析，与 system / eduai 等宿主的接法一致。
+    "@": "pages/ai/src",
   },
   server: {
     port: 8848,
@@ -643,6 +655,14 @@ export default createVite({
       // 必须排在下面的 /api/account 之前：Vite 代理按前缀首个匹配生效，
       // 否则 /api/accounts 会被 /api/account 抢到外部账号服务上（404 / 串数据）。
       "/api/accounts": {
+        target: apiTarget,
+        changeOrigin: true,
+      },
+      // 渠道管理（/api/channels，spring-support-account-starter 的渠道控制器）同样在
+      // monitor 后端自身。**必须显式声明**：下面 /api 的缺省目标是 127.0.0.1:8080
+      // （本机没有进程），漏了这条渠道页一打开就是 502、渠道清单全空 —— 页面本身
+      // 复用 @pages/channel，接口契约只认 /api/channels。
+      "/api/channels": {
         target: apiTarget,
         changeOrigin: true,
       },

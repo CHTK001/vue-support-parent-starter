@@ -26,6 +26,11 @@ const REPO_ALIAS: Record<string, string> = {
   // 与 turbo/vite/createVite.ts 的动态 ReXxx / theme/koi 别名同口径
   "@repo/app": path.resolve(WORKSPACE_ROOT, "turbo/app/src"),
   "@repo/ui/re-dialog": path.resolve(WORKSPACE_ROOT, "packages/ui/src/components/ReDialog/index.ts"),
+  // 空状态动画图注册表/解析器：与 turbo/vite/createVite.ts 的精确子路径别名同口径。
+  // 包 exports 的 ./re-empty-figures 在 dev/build 下不参与解析，必须显式指向源文件，
+  // 否则会被下面的 "@repo/ui" 前缀改写成不存在的 src/re-empty-figures。
+  "@repo/ui/re-empty-figures": path.resolve(WORKSPACE_ROOT, "packages/ui/src/components/ReEmpty/figures.ts"),
+  "@repo/ui/re-empty-resolve": path.resolve(WORKSPACE_ROOT, "packages/ui/src/components/ReEmpty/resolve.ts"),
   "@repo/theme/koi": path.resolve(WORKSPACE_ROOT, "packages/theme/src/themes/koi"),
   "@repo/utils": path.resolve(WORKSPACE_ROOT, "packages/utils/src"),
   "@repo/config": path.resolve(WORKSPACE_ROOT, "packages/config/src"),

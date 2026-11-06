@@ -99,6 +99,7 @@ export const unregisterMailbox = (clientId: string) =>
 // ===== SFTP 文件管理 =====
 export const sftpList = (hostId: number, path: string, identityId?: number | null) =>
   http().get(`${B}/sftp/${hostId}?path=${encodeURIComponent(path)}${identityId ? `&identityId=${identityId}` : ''}`)
+    .loading(false)
     .then(r => unwrapResult<any[]>(r));
 export const sftpReadContent = (hostId: number, path: string, identityId?: number | null) =>
   http().get(`${B}/sftp/${hostId}/content?path=${encodeURIComponent(path)}${identityId ? `&identityId=${identityId}` : ''}`)

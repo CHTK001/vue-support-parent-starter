@@ -158,6 +158,13 @@ export const eduaiRoutes: RouteConfigsTable[] = [
       meta: { title: "汉字库", icon: "EditPen", showLink: true, keepAlive: true, isVisible: "1" },
     },
     {
+      // 词语库：整词 / 读音 / 释义 / 造句 / 近义 / 反义 / 同音词；行右键可速查六类关联
+      path: "/edu/words",
+      name: "EduWords",
+      component: () => import("../views/WordBankView.vue"),
+      meta: { title: "词语库", icon: "Collection", showLink: true, keepAlive: true, isVisible: "1" },
+    },
+    {
       // 模块管理：配置**每个学段有哪些趣味模块**（学生端首页卡片由此生成）。
       // 这是纯配置页，不是用来打开模块的 —— 模块由学生端自己的页面消费。
       path: "/edu/fun/config",

@@ -334,6 +334,8 @@ export default {
     apiUrlFirst: 'Please fill in the API URL first',
     apiKeyFirst: 'Please fill in the API Key first',
     connectionSuccess: 'Connection successful',
+    connectionSuccessMulti: 'All {n} keys are usable',
+    connectionSuccessLatency: 'Connection successful (latency {ms} ms)',
     connectionTestSuccess: 'API connection test successful',
     connectionFailed: 'Connection failed',
     connectionTestFailed: 'API connection test failed',

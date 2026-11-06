@@ -61,6 +61,11 @@ const dialogTitle = computed(() => {
 
 /** 编辑器占位提示（含换行，模板属性里用绑定传入） */
 const editorPlaceholder = computed(() => {
+  if (props.lang === "python") {
+    return isFragment.value
+      ? "只写 Python 语句：不要写 if __name__ 入口块。\n上下文里的键都已成为全局变量，也可用 ctx / context 取整个字典；定义 execute(ctx) 或 main(ctx) 作为入口，返回值即结果。"
+      : "写完整 Python 脚本：可 import / 定义函数与类。\n上下文键已成为全局变量，也可用 ctx / context；定义 execute(ctx) 或 main(ctx) 作为入口，或用全局变量 result 作为返回值。";
+  }
   if (isFragment.value) {
     return isJava.value
       ? "只写方法体：不要写 package / class / import / @Job。\n类名、包名、入口方法与 import 由后端合成；可直接用 objectContext 与 environment。"
@@ -73,14 +78,19 @@ const editorPlaceholder = computed(() => {
 
 /** 弹层底部说明：脚本与片段两条链路的运行前提不同，必须说清 */
 const editorTip = computed(() => {
+  if (props.lang === "python") {
+    return isFragment.value
+      ? "执行器需在 PATH 中装有 Python 3；片段正文按 Python 裸语句执行，入口为 execute(ctx) 或 main(ctx)，返回值即结果。"
+      : "执行器需在 PATH 中装有 Python 3；整份脚本以子进程运行，可 import 本机已装的三方库，入口为 execute(ctx) 或 main(ctx)，返回值即结果。";
+  }
   if (isFragment.value) {
     return isJava.value
       ? "执行器需在 JDK 下运行（后端把方法体合成完整类后交 java 引擎编译）；字段上的 @Autowired 已自动装配，取 bean 也可写 objectContext.getBean(Xxx.class)。"
-      : "执行器需安装脚本引擎（utils-support-groovy-starter）；objectContext.getBean(Xxx.class) 可直接取 Spring Bean。";
+      : "执行器需安装脚本引擎（utils-support-groovy-starter）；脚本类上的 @Autowired 已自动装配，脚本里 new 出来的对象要显式 objectContext.inject(对象)，取 bean 也可写 objectContext.getBean(Xxx.class)。";
   }
   return isJava.value
-    ? "执行器需在 JDK 下运行（java 引擎编译整个类）；入口方法加 @Job 注解、命名为 execute，或保证类里只有一个 public 方法。"
-    : "执行器需安装脚本引擎（utils-support-groovy-starter）；整份脚本原样编译执行，objectContext.getBean(Xxx.class) 可直接取 Spring Bean。";
+    ? "执行器需在 JDK 下运行（java 引擎编译整个类）；入口方法加 @Job 注解、命名为 execute，或保证类里只有一个 public 方法。字段 @Autowired 已自动装配。"
+    : "执行器需安装脚本引擎（utils-support-groovy-starter）；整份脚本原样编译执行。脚本类字段 @Autowired 已自动装配，脚本里 new 的对象要显式 objectContext.inject(对象)。";
 });
 
 /**
@@ -137,8 +147,35 @@ objectContext.log("开始执行 {} at {}", jobName, LocalDateTime.now())
 return "ok " + jobName
 `;
 
+/**
+ * Python 片段模板：Python 允许裸语句，正文原样作为脚本执行。
+ *
+ * 与 Groovy 片段同一口径：上下文里的键都成了全局变量，入口优先取 execute(ctx) / main(ctx)。
+ */
+const PYTHON_FRAGMENT_SAMPLE = `# 只写语句：入口为 execute(ctx) 或 main(ctx)，返回值即结果
+# 上下文键已成为全局变量，也可用 ctx 取整个字典
+def execute(ctx):
+    ctx_log = "开始执行 " + str(ctx.get("jobName", ""))
+    return {"ok": True, "message": ctx_log}
+`;
+
+/** Python 完整文件模板：可 import 本机三方库，整份脚本以子进程运行 */
+const PYTHON_FILE_SAMPLE = `# 完整 Python 脚本：可 import 本机已安装的三方库
+# 上下文键已成为全局变量，也可用 ctx 取整个字典
+import json
+
+
+def execute(ctx):
+    job = ctx.get("jobName", "unknown")
+    payload = {"job": job, "ok": True}
+    return json.dumps(payload, ensure_ascii=False)
+`;
+
 /** 当前形态 + 语言对应的插入模板 */
 const sampleText = computed(() => {
+  if (props.lang === "python") {
+    return isFragment.value ? PYTHON_FRAGMENT_SAMPLE : PYTHON_FILE_SAMPLE;
+  }
   if (isFragment.value) {
     return isJava.value ? JAVA_FRAGMENT_SAMPLE : GROOVY_FRAGMENT_SAMPLE;
   }

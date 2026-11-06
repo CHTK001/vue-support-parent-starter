@@ -109,13 +109,18 @@ const fileDir = ref('/')
 const entries = ref<FileEntry[]>([])
 const fileLoading = ref(false)
 
-/** 加载当前目录 */
-async function loadFiles(): Promise<void> {
+/**
+ * 加载当前目录。
+ *
+ * @param quiet 静默刷新（终端 pwd 回传时用）：不显示「加载中…」占位，
+ *              目录内容原地替换，避免敲一个 pwd 就让右侧面板闪一下。
+ */
+async function loadFiles(quiet = false): Promise<void> {
   if (!props.hostId) {
     entries.value = []
     return
   }
-  fileLoading.value = true
+  if (!quiet) fileLoading.value = true
   try {
     const raw = await sftpList(props.hostId, fileDir.value)
     entries.value = (raw ?? []).map(e => ({
@@ -127,7 +132,7 @@ async function loadFiles(): Promise<void> {
   } catch (e) {
     message.error((e as Error).message)
   } finally {
-    fileLoading.value = false
+    if (!quiet) fileLoading.value = false
   }
 }
 
@@ -168,7 +173,7 @@ function gotoDir(raw: string): void {
   if (!dir) return
   tab.value = 'files'
   fileDir.value = dir
-  loadFiles()
+  loadFiles(true)
 }
 
 /* 首次展开：按已回传的目录初始化；后续 pwd 靠序号触发（同一路径也要重新定位） */

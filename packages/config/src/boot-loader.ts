@@ -22,11 +22,23 @@ export const BOOT_LOADER_ANIMATION_KEY = "sys-loader-animation";
 /** 用户自己选的动画键（只读，用于说明两者关系；不要往这里写部署值） */
 export const BOOT_LOADER_USER_STYLE_KEY = "sys-loader-style";
 
-/** 首屏动画基准边长（px） */
+/** 首屏动画基准边长（窄屏，px） */
 export const BOOT_LOADER_SIZE_KEY = "sys-loader-size";
+
+/** 首屏动画基准边长（宽屏，px；缺省时与窄屏同值） */
+export const BOOT_LOADER_SIZE_WIDE_KEY = "sys-loader-size-wide";
 
 /** 首屏动画主色 */
 export const BOOT_LOADER_COLOR_KEY = "sys-loader-color";
+
+/** 首屏动画速度倍率（1 = 原速） */
+export const BOOT_LOADER_SPEED_KEY = "sys-loader-speed";
+
+/** 首屏主色是否跟随主题主色（"true" / "false"） */
+export const BOOT_LOADER_ADAPT_COLOR_KEY = "sys-loader-adapt-color";
+
+/** 宽窄屏断点（与 loader.js 的 media query 一致） */
+export const BOOT_LOADER_WIDTH_BREAKPOINT = 768;
 
 /** 首屏尺寸内置默认值（与 loader.js 的 LOADER_SIZE_DEFAULT 一致） */
 export const BOOT_LOADER_SIZE_DEFAULT = 96;
@@ -34,14 +46,21 @@ export const BOOT_LOADER_SIZE_DEFAULT = 96;
 /** 首屏主色内置默认值（与动画 CSS 的 --sla-c 兜底一致） */
 export const BOOT_LOADER_COLOR_DEFAULT = "#406eeb";
 
+/** 首屏速度内置默认值 */
+export const BOOT_LOADER_SPEED_DEFAULT = 1;
+
 /** 首屏加载偏好（部署侧接管时的最终值） */
 export interface BootLoaderPrefs {
   /** 动画键（历史键已折叠成现行键） */
   animation: string;
-  /** 基准边长（px，已 clamp） */
-  size: number;
+  /** 基准边长（px，已 clamp；宽窄屏两档） */
+  size: { narrow: number; wide: number };
   /** 主色（已校验为安全的 CSS 颜色） */
   color: string;
+  /** 速度倍率（0.5~3） */
+  speed: number;
+  /** 主色是否跟随主题主色 */
+  adaptColor: boolean;
 }
 
 /** 浏览器环境判定（SSR / 构建期没有 localStorage） */
@@ -91,6 +110,8 @@ export function applyLoaderDeployPolicy(): void {
         animation: policy.animation,
         size: policy.size,
         color: policy.color,
+        speed: policy.speed,
+        adaptColor: policy.adaptColor,
       },
       resolveAppCode(),
     );
@@ -102,7 +123,7 @@ export function applyLoaderDeployPolicy(): void {
 /**
  * 写入首屏偏好（下次刷新生效）。
  *
- * <p>三个键都同时写带 appCode 与不带 appCode 两份：首屏脚本在应用起来之前就要读，
+ * <p>所有键都同时写带 appCode 与不带 appCode 两份：首屏脚本在应用起来之前就要读，
  * 那时 appCode 可能来自 meta —— 写两份才保证刷新后立刻生效（与
  * {@code writeLoaderAnimation} 的约定一致）。</p>
  *
@@ -113,14 +134,18 @@ export function writeBootLoaderPrefs(prefs: BootLoaderPrefs, appCode = ""): void
   if (!hasStorage()) return;
   try {
     const code = appCode.trim();
+    const pairs: Array<[string, string]> = [
+      [BOOT_LOADER_ANIMATION_KEY, prefs.animation],
+      [BOOT_LOADER_SIZE_KEY, String(prefs.size.narrow)],
+      [BOOT_LOADER_SIZE_WIDE_KEY, String(prefs.size.wide)],
+      [BOOT_LOADER_COLOR_KEY, prefs.color],
+      [BOOT_LOADER_SPEED_KEY, String(prefs.speed)],
+      [BOOT_LOADER_ADAPT_COLOR_KEY, prefs.adaptColor ? "true" : "false"],
+    ];
     // 只写部署侧自己的键，绝不碰 sys-loader-style（那是用户的选择）
-    localStorage.setItem(BOOT_LOADER_ANIMATION_KEY, prefs.animation);
-    localStorage.setItem(BOOT_LOADER_SIZE_KEY, String(prefs.size));
-    localStorage.setItem(BOOT_LOADER_COLOR_KEY, prefs.color);
-    if (code) {
-      localStorage.setItem(`${BOOT_LOADER_ANIMATION_KEY}:${code}`, prefs.animation);
-      localStorage.setItem(`${BOOT_LOADER_SIZE_KEY}:${code}`, String(prefs.size));
-      localStorage.setItem(`${BOOT_LOADER_COLOR_KEY}:${code}`, prefs.color);
+    for (const [key, value] of pairs) {
+      localStorage.setItem(key, value);
+      if (code) localStorage.setItem(`${key}:${code}`, value);
     }
   } catch {
     // 隐私模式 / 存储被禁用：不抛，应用内仍然按部署配置渲染
@@ -131,7 +156,7 @@ export function writeBootLoaderPrefs(prefs: BootLoaderPrefs, appCode = ""): void
  * 清除首屏偏好（取消接管后回到内置默认：动画回到用户自己的选择 / 96px / 主色默认）。
  *
  * <p><b>不</b>碰 {@code sys-loader-style} —— 那是用户在主题配置里的选择，
- * 清掉会让用户挑好的动画在下次刷新时丢失。这里只清部署侧自己写的那三个键。</p>
+ * 清掉会让用户挑好的动画在下次刷新时丢失。这里只清部署侧自己写的那些键。</p>
  *
  * @param appCode 应用编码（可空）。可空时会把所有带后缀的残留键一并清掉 ——
  *                首屏读取是「后缀键优先」，留着它们会让「已取消接管」在下次刷新时
@@ -139,30 +164,33 @@ export function writeBootLoaderPrefs(prefs: BootLoaderPrefs, appCode = ""): void
  */
 export function clearBootLoaderPrefs(appCode = ""): void {
   if (!hasStorage()) return;
+  const keys = [
+    BOOT_LOADER_ANIMATION_KEY,
+    BOOT_LOADER_SIZE_KEY,
+    BOOT_LOADER_SIZE_WIDE_KEY,
+    BOOT_LOADER_COLOR_KEY,
+    BOOT_LOADER_SPEED_KEY,
+    BOOT_LOADER_ADAPT_COLOR_KEY,
+  ];
   try {
     const code = appCode.trim();
-    localStorage.removeItem(BOOT_LOADER_ANIMATION_KEY);
-    localStorage.removeItem(BOOT_LOADER_SIZE_KEY);
-    localStorage.removeItem(BOOT_LOADER_COLOR_KEY);
     if (code) {
-      localStorage.removeItem(`${BOOT_LOADER_ANIMATION_KEY}:${code}`);
-      localStorage.removeItem(`${BOOT_LOADER_SIZE_KEY}:${code}`);
-      localStorage.removeItem(`${BOOT_LOADER_COLOR_KEY}:${code}`);
+      for (const key of keys) {
+        localStorage.removeItem(key);
+        localStorage.removeItem(`${key}:${code}`);
+      }
       return;
     }
     // 拿不到 appCode 时也必须清干净：首屏读取是「后缀键优先」，
     // 残留的后缀键会让「已取消接管」在下次刷新时又变回锁定值。
-    const prefixes = [
-      `${BOOT_LOADER_ANIMATION_KEY}:`,
-      `${BOOT_LOADER_SIZE_KEY}:`,
-      `${BOOT_LOADER_COLOR_KEY}:`,
-    ];
+    const prefixes = keys.map((key) => `${key}:`);
     for (let i = localStorage.length - 1; i >= 0; i -= 1) {
       const key = localStorage.key(i);
       if (key && prefixes.some((prefix) => key.startsWith(prefix))) {
         localStorage.removeItem(key);
       }
     }
+    for (const key of keys) localStorage.removeItem(key);
   } catch {
     /* 同 writeBootLoaderPrefs */
   }

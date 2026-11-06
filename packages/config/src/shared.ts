@@ -382,6 +382,7 @@ export const defaultAppConfig: AppConfig = {
       weather: true,
       location: true,
       typhoon: true,
+      exchangeRate: true,
       ipLookup: true,
       holiday: true,
     },
@@ -404,8 +405,10 @@ export const defaultAppConfig: AppConfig = {
       tabIcon: true,
       logo: true,
       message: true,
+      quickNote: true,
       announcement: true,
       weather: true,
+      exchangeRate: true,
       typhoon: true,
       collapse: true,
       // 空数组 = 沿用框架固有顺序（各 app.yaml 不配该项时行为完全不变）
@@ -420,6 +423,10 @@ export const defaultAppConfig: AppConfig = {
       latitude: 0,
       longitude: 0,
       city: "",
+    },
+    exchangeRate: {
+      // 一篮子主流货币对（USD 为本位，frankfurter 按 from=USD&to=... 一次拉满）
+      symbols: ["USD/EUR", "USD/GBP", "USD/JPY", "USD/CNY", "USD/HKD", "USD/SGD"],
     },
     bigscreen: {
       enable: false,
@@ -492,12 +499,21 @@ export const defaultAppConfig: AppConfig = {
     },
     // 加载动画部署侧接管：默认关闭 —— 不接管时行为与没有这段配置完全一致，
     // 用户在主题配置抽屉里自选，选择保存在 localStorage。
-    // 写 enable: true 即锁定（选择器置灰），动画/主色由这里决定。
+    // 写 enable: true 即锁定（选择器置灰），动画 / 尺寸 / 速度 / 主色由这里决定。
     loaderConfig: {
       enable: false,
-      animation: "wave",
-      size: 96,
+      animation: "dots",
+      size: { narrow: 96, wide: 96 },
       color: "#406eeb",
+      speed: 1,
+      adaptColor: false,
+    },
+    // 空状态默认样式：默认 true + "el" —— 与没有这段配置时完全一致（el-empty）。
+    // 主题配置抽屉里 admin 可改成 modern / plot，作用于所有未显式传 layout 的 ReEmpty。
+    emptyState: {
+      enable: true,
+      layout: "el",
+      hairline: "plot",
     },
   },
 };

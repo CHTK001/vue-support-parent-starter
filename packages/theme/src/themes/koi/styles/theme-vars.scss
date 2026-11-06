@@ -19,6 +19,8 @@
 
 /* ========== 默认：亮色 + 无反转 ========== */
 :root {
+  /* transition 是继承属性：在 :root 写过渡下推到子元素无效，必须写死在真正吃主题色的元素头上（index.scss + element.scss），见 ReDark.vue View Transition 300ms */
+
   /* header */
   --el-header-logo-text-color: #161616;
   --el-header-bg-color: #ffffff;

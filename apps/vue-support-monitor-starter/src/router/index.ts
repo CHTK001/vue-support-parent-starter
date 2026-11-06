@@ -45,8 +45,8 @@ import { createTunnelRoutes } from "@pages/tunnel/src/routes";
 // 调试中心（CDP）：运维管理分组下唯一的叶子页。
 import { createCdpRoutes } from "@pages/debug/src/routes";
 import { createMonitorRoutes, createMonitorManageRoutes } from "@pages/monitor/src/routes";
-// P2P 房间（@pages/room）：路由工厂 createRoomRoutes 产出 运维管理 分组。
-import { createRoomRoutes } from "@pages/room/src/routes";
+// P2P 房间（@pages/room）：不单独占菜单，也不再注册 /room 路由——
+// 房间是服务侧的一种能力，由「服务管理」页在工作区里以页签打开。
 // APM 观测台（@pages/apm）：按 SkyWalking 语义组织，自动适配当前服务器接入的 APM 引擎。
 // apmConfig 只用于菜单可见性（app.yaml 的 apmConfig.enable），与后端探测无关。
 import { apmRoutes } from "@pages/apm/src/routes";
@@ -302,21 +302,14 @@ export const monitorRoutes: RouteConfigsTable[] = [
         component: () => import("@pages/monitor/src/views/account/ScAccountAssets.vue"),
         meta: { title: "账号资产", icon: "Key", showLink: true, rank: 1 },
       },
-    ],
-  },
-
-  // ==================== 临时账号 ====================
-  // 随机虚拟身份：虚拟号码（接码）+ 临时邮箱，收到的验证码短信 / 邮件经 SSE 实时推送。
-  {
-    path: "/grp-temp-account",
-    name: "GroupTempAccount",
-    meta: { title: "临时账号", icon: "UserFilled", showLink: true, rank: 10 },
-    children: [
+      // 渠道管理：**直接复用** @pages/channel 的完整渠道页（渠道品牌表 / 绑定授权 +
+      // SSE 取凭据 / 刷新 / 签到 / 模型开关 / ChatClient / 文生图），
+      // 宿主只负责挂路由，不再抄一份 API 与绑定业务（抄两份必然漂）。
       {
-        path: "/temp-accounts",
-        name: "TempAccounts",
-        component: () => import("@pages/monitor/src/views/temp-account/ScTempAccountView.vue"),
-        meta: { title: "临时账号", icon: "Message", showLink: true, rank: 10 },
+        path: "/channel-assets",
+        name: "ChannelAssets",
+        component: () => import("@pages/channel/src/components/ChannelManagementPage.vue"),
+        meta: { title: "渠道管理", icon: "Connection", showLink: true, rank: 2 },
       },
     ],
   },
@@ -326,10 +319,6 @@ export const monitorRoutes: RouteConfigsTable[] = [
   //   后端由 spring-support-cdp-starter 提供 /ms/cdp + /ws/cdp，
   //   页面由 @pages/debug 的 createCdpRoutes 产出（路由 + 菜单同源）。
   ...createCdpRoutes({ showLink: true }),
-
-  // P2P 房间工作台：路由 /room，菜单归 运维管理 分组（icon: Connection，rank 15），
-  // 页面内 8 个工作空间页签 + 长连接信令（WebSocket），keepAlive: false。
-  ...createRoomRoutes({ showLink: true }),
 
   // ==================== 系统管理 ====================
   // 本分组只放 monitor 自己的运维页（代理管理 / 系统配置），接口都在 /ms/server/**；
@@ -416,6 +405,7 @@ export const monitorRoutes: RouteConfigsTable[] = [
   // 全部 showLink:false（不进侧边栏），由所属列表页「打开管理」进入。
 
   // 监控侧：服务管理（协议服务器节点，进菜单）+ 服务发现 + 在线节点（隐藏）。
+  // P2P 房间工作台不占菜单也不占路由：它是服务管理页里的一个工作区页签。
   ...createMonitorRoutes({ activeMenu: "/services" }),
   ...createMonitorManageRoutes({ activeMenu: "/services" }),
 
@@ -473,6 +463,14 @@ export const monitorRoutes: RouteConfigsTable[] = [
     name: "FileCollabShare",
     component: () => import("@pages/filesystem/src/views/FileCollabShareView.vue"),
     meta: { title: "协同分享", showLink: false, standalone: true },
+  },
+  {
+    // 协同文档全屏编辑：新标签页打开 #/file-collabs/edit/:id，
+    // 无侧边栏、无返回栏，专注编辑；保存由编辑器内部定时异步完成。
+    path: "/file-collabs/edit/:id",
+    name: "FileCollabEdit",
+    component: () => import("@pages/filesystem/src/views/FileCollabEditView.vue"),
+    meta: { title: "协同编辑", showLink: false, standalone: true },
   },
   {
     path: "/terminal-standalone",

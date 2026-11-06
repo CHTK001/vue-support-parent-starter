@@ -436,12 +436,15 @@ import FileCollabEditor from "../components/collab/FileCollabEditor.vue";
 import WordCollabEditor from "../components/collab/WordCollabEditor.vue";
 import TextCollabEditor from "../components/collab/TextCollabEditor.vue";
 import { fileSvg } from "../utils/fileKind";
-import { docxFileName, htmlToDocxBlob } from "../utils/collabDocx";
+import { docxFileName } from "../utils/collabDocx";
+import { snapshotToBlob } from "../utils/collabExport";
+import { clearImageMetaCache } from "../utils/imageMeta";
 import {
   createFileCollab,
   deleteFileCollab,
   getFileCollab,
   listFileCollabs,
+  putObject,
   updateFileCollabAccess,
   renameFileCollab,
   copyFileCollab,
@@ -1016,6 +1019,8 @@ function isOwnerDoc(c: FileCollabInfo | null): boolean {
  * @param index 该卡片在当前列表中的下标
  */
 function openMenuAt(e: MouseEvent, c: FileCollabInfo, index = -1): void {
+  // 与空白处菜单互斥：先关掉另一个，避免两个右键菜单叠在一起
+  blankMenu.value.visible = false;
   if (!isSelected(c)) {
     selectedIds.value = [c.id];
     selectAnchor = index;
@@ -1058,7 +1063,7 @@ async function menuAction(action: string): Promise<void> {
     case "batchClear": clearSelection(); break;
     // ---- 单个 ----
     case "open":
-      if (c) await openEditor(c);
+      if (c) openFullscreenEditor(c);
       break;
     case "preview":
       if (c) await openPreview(c);
@@ -1199,6 +1204,8 @@ const blankMenuRef = ref<HTMLElement | null>(null);
  * @param e 右键事件（已 preventDefault）
  */
 function openBlankMenu(e: MouseEvent): void {
+  // 与卡片菜单互斥：右键空白先关掉文件卡片菜单
+  ctxMenu.value.visible = false;
   blankMenu.value = { visible: true, x: e.clientX, y: e.clientY };
   void nextTick().then(() => {
     const el = blankMenuRef.value;
@@ -1309,7 +1316,7 @@ function onKeydown(e: KeyboardEvent): void {
   }
   if (e.key === "Enter" && picked.length === 1) {
     e.preventDefault();
-    void openEditor(picked[0]);
+    openFullscreenEditor(picked[0]);
     return;
   }
   if (e.key === "Delete") {
@@ -1365,57 +1372,27 @@ async function onCopy(c: FileCollabInfo): Promise<void> {
   }
 }
 
-/* ==================== 下载 ==================== */
+/* ==================== 下载 / 写回源文件 ==================== */
+
+/**
+ * 取文档当前快照（列表接口只给摘要，导出类动作都要先按 id 取详情）。
+ *
+ * @param c 协同文档（摘要即可）
+ * @return 详情（含 snapshot）
+ */
+async function fetchSnapshotDoc(c: FileCollabInfo): Promise<FileCollabInfo> {
+  return await getFileCollab(c.id, currentUserId.value);
+}
 
 /** 下载当前快照：excel 导出 xlsx（SheetJS），word 导出真 docx，text 导出 txt */
 async function onDownload(c: FileCollabInfo): Promise<void> {
   try {
-    let target = c;
-    if (!c.snapshot && c.version === 0) {
-      target = await getFileCollab(c.id, currentUserId.value);
-    }
-    const snapshot = target.snapshot ?? "";
-    let blob: Blob;
-    let ext = ".txt";
-    if (target.type === "excel") {
-      const XLSX = await import("xlsx");
-      const json = snapshot ? JSON.parse(snapshot) : null;
-      const wb = XLSX.utils.book_new();
-      const sheets = json?.sheets ?? {};
-      const order = json?.sheetOrder ?? Object.keys(sheets);
-      for (const name of order) {
-        const s = sheets[name];
-        const rows: unknown[][] = [];
-        const cellData = s?.cellData ?? {};
-        const maxRow = s?.rowCount ?? 0;
-        const maxCol = s?.columnCount ?? 0;
-        for (let r = 1; r <= maxRow; r++) {
-          const row: unknown[] = [];
-          for (let cIdx = 0; cIdx < maxCol; cIdx++) {
-            const col = String.fromCharCode(65 + cIdx);
-            row.push(cellData[`${col}${r}`]?.v ?? "");
-          }
-          rows.push(row);
-        }
-        const ws = XLSX.utils.aoa_to_sheet(rows);
-        XLSX.utils.book_append_sheet(wb, ws, name.slice(0, 31));
-      }
-      const out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-      blob = new Blob([out]);
-      ext = ".xlsx";
-    } else if (target.type === "word") {
-      // 真 .docx 导出：HTML 快照 → 最小 OOXML（jszip 手写，见 utils/collabDocx.ts）
-      const wordBlob = await htmlToDocxBlob(snapshot);
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(wordBlob);
-      a.download = docxFileName(target.fileName);
-      a.click();
-      URL.revokeObjectURL(a.href);
-      return;
-    } else {
-      blob = new Blob([snapshot], { type: "text/plain;charset=utf-8" });
-      ext = ".txt";
-    }
+    const target = await fetchSnapshotDoc(c);
+    const { blob, ext } = await snapshotToBlob(
+      target.type,
+      target.snapshot ?? "",
+      target.fileName,
+    );
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = (target.fileName.replace(/\.[^.]+$/, "") || "collab") + ext;
@@ -1425,6 +1402,57 @@ async function onDownload(c: FileCollabInfo): Promise<void> {
     message.error(e instanceof Error ? e.message : "下载失败");
   }
 }
+
+/** 该协同文档是否可写回源文件（必须有源文件指针） */
+function canWriteBackToSource(c: FileCollabInfo | null): boolean {
+  return !!(c && c.bucket && c.objectKey && canWriteDoc(c));
+}
+
+/**
+ * 把当前协同内容写回源文件（覆盖存储桶里的原文件）。
+ *
+ * <p><b>这是破坏性操作</b>：会用当前快照重新生成 xlsx/docx/txt 覆盖
+ * {@code bucket/objectKey} 指向的对象，原文件内容不可恢复。所以：</p>
+ * <ol>
+ *   <li>只在文档确实记录了源文件时才给入口；</li>
+ *   <li>执行前必须二次确认，确认框里写明桶、键和「不可恢复」；</li>
+ *   <li>覆盖后不自动重新建协同（协同内容仍是当前快照，版本号不变）。</li>
+ * </ol>
+ *
+ * @param c 协同文档
+ */
+async function onWriteBackToSource(c: FileCollabInfo): Promise<void> {
+  if (!canWriteBackToSource(c)) {
+    message.warning("该协同文档没有关联源文件，无法写回");
+    return;
+  }
+  try {
+    await ElMessageBox.confirm(
+      `将用「${c.fileName}」当前的协同内容覆盖存储桶 ${c.bucket} 中的 `
+        + `${c.objectKey}，原文件内容会被替换且不可恢复。确认继续？`,
+      "写回源文件",
+      { type: "warning", confirmButtonText: "覆盖源文件", cancelButtonText: "取消" },
+    );
+  } catch {
+    return;
+  }
+  writingBackId.value = c.id;
+  try {
+    const target = await fetchSnapshotDoc(c);
+    const { blob } = await snapshotToBlob(target.type, target.snapshot ?? "", target.fileName);
+    await putObject(c.bucket, c.objectKey, blob);
+    message.success("已写回源文件");
+    // 源对象变了，图片/分析等缓存按对象失效（文件存储页复用同一份元信息缓存）
+    clearImageMetaCache();
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : "写回源文件失败");
+  } finally {
+    writingBackId.value = "";
+  }
+}
+
+/** 正在写回源文件的文档 id（按钮 loading 用） */
+const writingBackId = ref("");
 
 /* ==================== 分享连接（全屏只读视图） ==================== */
 
@@ -1555,11 +1583,34 @@ async function openPreview(c: FileCollabInfo): Promise<void> {
   }
 }
 
-/** 弹框右下角「全屏编辑」：关闭弹框，转为全屏专注编辑 */
+/** 弹框右下角「全屏编辑」：在新标签页打开全屏可编辑视图（顶部无返回，专注编辑） */
 async function previewFullscreen(): Promise<void> {
   const c = previewCollab.value;
   previewVisible.value = false;
-  if (c) await openEditor(c);
+  if (c) openFullscreenEditor(c);
+}
+
+/**
+ * 在新浏览器标签页打开全屏编辑视图。
+ *
+ * <p>与页面内的专注编辑浮层不同：新标签页无侧边栏、无返回栏，适合长时间专注编辑；
+ * 无写权限或弹窗被拦截时退回页面内的预览/浮层，避免点了没反应。</p>
+ *
+ * @param c 协同文档
+ */
+function openFullscreenEditor(c: FileCollabInfo): void {
+  if (!canWriteDoc(c)) {
+    message.info("当前账号没有该协同文档的编辑权限，已切换为只读预览");
+    void openPreview(c);
+    return;
+  }
+  const base = window.location.origin + window.location.pathname;
+  const url = `${base}#/file-collabs/edit/${c.id}`;
+  const win = window.open(url, "_blank");
+  if (!win) {
+    message.warning("浏览器拦截了新标签页，已在当前页打开专注编辑");
+    void openEditor(c);
+  }
 }
 
 /* ==================== 专注编辑（非弹框）+ ReLoader 防白屏 ==================== */

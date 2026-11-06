@@ -33,13 +33,16 @@ export function engineOfGlueType(glueType: string | null | undefined): string {
   return (kind === "fragment" ? value.slice(GLUE_FRAGMENT_PREFIX.length) : value).toLowerCase();
 }
 
-/** 引擎展示名：java / groovy 归一成首字母大写，其余引擎名原样，空串落到「脚本」 */
+/** 引擎展示名：java / groovy / python 归一成首字母大写，其余引擎名原样，空串落到「脚本」 */
 export function glueEngineLabel(engine: string): string {
   if (engine === "java") {
     return "Java";
   }
   if (engine === "groovy") {
     return "Groovy";
+  }
+  if (engine === "python") {
+    return "Python";
   }
   return engine || "脚本";
 }

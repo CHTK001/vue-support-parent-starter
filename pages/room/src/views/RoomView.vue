@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * P2P 房间工作台（路由 {@code /room}）
+ * P2P 房间工作台
  *
  * <p>壳：顶部工具条（房间号 / 加入状态 / 连接状态徽标 / 断开）+ 工作空间页签
  * （聊天 / 文件 / 视频 / 语音 / 观看 / 协作 / 画板 / 状态）+ 工作区面板。
@@ -9,6 +9,14 @@
  * <p>进入页面时先连 Socket，再发 hello 加入房间（路由 query 的
  * {@code roomId} 直接进房，没有则创建空房间）；离开时 leave 并断开连接，
  * 保证 WebSocket 与 WebRTC 连接不泄漏到下一页。</p>
+ *
+ * <p><b>两种挂载方式</b>：</p>
+ * <ul>
+ *   <li>独立路由（{@code /room}）：读路由 query 的 roomId，离开时跳回首页；</li>
+ *   <li>{@code embedded}（嵌进「服务管理」页的工作区页签）：房间是服务侧能力，
+ *       不单独占菜单。此时房间号由父级 {@code roomId} prop 传入，离开只发
+ *       {@code leave} 事件，不操纵路由。</li>
+ * </ul>
  *
  * @author CH
  * @since 4.0.0.46
@@ -30,6 +38,21 @@ import WatchWorkspace from "./WatchWorkspace.vue";
 import CollaborateWorkspace from "./CollaborateWorkspace.vue";
 import CanvasWorkspace from "./CanvasWorkspace.vue";
 import StatusWorkspace from "./StatusWorkspace.vue";
+
+const props = withDefaults(
+  defineProps<{
+    /** 嵌入模式：房间号由父级传入，离开时不操纵路由 */
+    embedded?: boolean;
+    /** 嵌入模式下要加入的房间号（空则停在「创建房间」） */
+    roomId?: string;
+  }>(),
+  { embedded: false, roomId: "" },
+);
+
+const emit = defineEmits<{
+  /** 嵌入模式下用户点了「离开」：由父级决定是否关闭工作区页签 */
+  (e: "leave"): void;
+}>();
 
 const route = useRoute();
 const router = useRouter();
@@ -111,27 +134,30 @@ async function copyRoomId(): Promise<void> {
   }
 }
 
-/** 离开房间 */
+/** 离开房间：独立路由下回首页，嵌入时交给父级收页签 */
 function doLeave(): void {
   store.leaveRoom("user");
-  router.push("/");
+  if (props.embedded) emit("leave");
+  else router.push("/");
 }
 
-/** route query 里的 roomId 变化时重新加入（不刷新页面） */
-watch(
-  () => String(route.query.roomId ?? ""),
-  (id) => {
-    if (!id) return;
-    store.joinRoom(id);
-  },
-);
+/** 要加入的房间号：嵌入看 prop，独立路由看 query */
+function targetRoomId(): string {
+  return props.embedded ? String(props.roomId ?? "") : String(route.query.roomId ?? "");
+}
+
+/** 房间号变化时重新加入（独立路由看 query，嵌入看 prop） */
+watch(targetRoomId, (id) => {
+  if (!id) return;
+  store.joinRoom(id);
+});
 
 onMounted(() => {
   // 注册下行信令（unbind 在卸载时调用）
   const unbind = store.bindSignals();
   // 进入页面时先连 Socket，再接入房间
   store.connect();
-  const id = String(route.query.roomId ?? "");
+  const id = targetRoomId();
   if (id) store.joinRoom(id);
   unmounted = unbind;
 });
@@ -147,7 +173,7 @@ let unmounted: (() => void) | undefined;
 </script>
 
 <template>
-  <div class="rm-page">
+  <div class="rm-page" :class="{ 'rm-page--embedded': props.embedded }">
     <!-- 顶部工具条 -->
     <header class="rm-head">
       <span class="rm-title">

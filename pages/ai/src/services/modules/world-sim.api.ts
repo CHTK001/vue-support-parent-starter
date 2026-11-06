@@ -87,7 +87,7 @@ export interface WorldMessage {
   id?: number;
   worldId: number;
   sceneId?: number | null;
-  speakerType: "user" | "ai";
+  speakerType: "user" | "ai" | "system";
   speakerId?: string;
   speakerName?: string;
   content?: string;
@@ -156,6 +156,36 @@ export interface WorldActAdvance {
   restart?: boolean;
 }
 
+/** 演出正文里的一个分场（AI 演出来的正文，只读） */
+export interface WorldStoryScene {
+  sceneId?: number | null;
+  name?: string;
+  /** 世界场景表里的场地名，用于标注「发生在哪」 */
+  stageName?: string | null;
+  /** 在场演员名，如「刘备, 曹操」；无则 null */
+  cast?: string | null;
+  /** 剧本里的画面描述（剧情概览用得上） */
+  desc?: string | null;
+  /** 这一幕的台词 [{speaker, text}] */
+  lines?: { speaker?: string; text?: string }[];
+  playText?: string;
+  mediaImage?: Record<string, any> | null;
+  mediaVideo?: Record<string, any> | null;
+}
+
+/** 一幕的演出正文 */
+export interface WorldStory {
+  actNo: number;
+  stage?: string | null;
+  /** 是否已经演过；false 时 scenes 不存在 */
+  played?: boolean;
+  /** 故事文件损坏，按未演出处理 */
+  broken?: boolean;
+  title?: string;
+  progress?: number;
+  scenes?: WorldStoryScene[];
+}
+
 export interface WorldStreamEvent {
   type?: string;
   content?: string;
@@ -219,6 +249,9 @@ export interface WorldSimApi {
   advanceWorldAct(worldId: number, actNo: number): Promise<WorldActAdvance>;
   replayWorldAct(worldId: number, actNo: number): Promise<WorldActAdvance>;
   finishWorldAct(worldId: number, actNo: number): Promise<WorldAct>;
+
+  /** 演出正文（只读，不触发生成） */
+  fetchWorldStory(worldId: number, actNo?: number): Promise<WorldStory[]>;
 }
 
 export const worldSimApi: WorldSimApi = {
@@ -368,5 +401,11 @@ export const worldSimApi: WorldSimApi = {
 
   async finishWorldAct(this: ApiContext, worldId: number, actNo: number) {
     return await this._request(`/world-sim/worlds/${worldId}/acts/${actNo}/finish`, { method: "POST" });
+  },
+
+  async fetchWorldStory(this: ApiContext, worldId: number, actNo?: number) {
+    const qs = actNo == null ? "" : `?actNo=${actNo}`;
+    const raw = await this._request(`/world-sim/worlds/${worldId}/story${qs}`);
+    return (Array.isArray(raw) ? raw : raw?.items ?? []) as WorldStory[];
   },
 };

@@ -59,6 +59,7 @@ export default {
         loginName: "请输入用户名",
         password: "请输入密码",
         securityCode: "请输入验证码",
+        tenantCode: "租户编码（平台用户留空）",
       },
       rules: {
         loginName: {
@@ -71,6 +72,9 @@ export default {
         },
         securityCode: {
           required: "验证码不能为空",
+        },
+        tenantCode: {
+          validator: "租户编码只能包含数字、字母、下划线和中划线，2-32 位",
         },
         otpCode: {
           required: "请输入 6 位动态口令",
@@ -417,6 +421,13 @@ export default {
     loaderStyle: {
       hint: "首屏加载与页面内的加载遮罩共用同一款动画，选择后本页立即生效，刷新后首屏也是同一款。",
       lockedHint: "动画已由部署配置（app.yaml 的 other.loaderConfig）锁定，此处不可修改。",
+      size: "首屏尺寸",
+      sizeNarrow: "窄屏",
+      sizeWide: "宽屏",
+      speed: "动画速度",
+      adaptColor: "跟随主题主色",
+      adaptColorSub: "动画颜色随主题色变化",
+      adaptColorTip: "关闭时使用部署配置里的固定主色；开启后换主题色不用再改加载动画",
     },
     themeModeTabs: {
       light: "明亮",
@@ -644,6 +655,12 @@ export default {
         tip: "顶栏消息铃铛与未读小红点",
         description: "顶栏消息铃铛与未读小红点",
       },
+      quickNote: {
+        label: "快捷便条",
+        sub: "便签",
+        tip: "顶栏创建悬浮便条",
+        description: "顶栏显示便条入口，点击创建悬浮便条",
+      },
       weather: {
         label: "顶栏天气",
         sub: "天气",
@@ -661,6 +678,12 @@ export default {
         sub: "台风",
         tip: "顶栏右侧显示活跃台风图标，点击查看详情",
         description: "顶栏右侧显示台风监测组件",
+      },
+      exchangeRate: {
+        label: "顶栏汇率",
+        sub: "汇率",
+        tip: "顶栏右侧汇率显示，点击展开面板",
+        description: "顶栏右侧显示汇率组件",
       },
     },
   },
@@ -811,6 +834,28 @@ export default {
       description: "动态加载 CDN 脚本，关闭后自动销毁",
     },
   },
+  emptyState: {
+    title: "空状态样式",
+    desc: "列表 / 表格无数据时展示的样式，仅管理员可改",
+    enable: { title: "统一空状态样式", sub: "全局生效", tip: "关闭后所有未显式指定 layout 的 ReEmpty 回落 el-empty" },
+    layout: { title: "样式类型", el: "经典", modern: "现代", plot: "动画图" },
+    figure: { title: "图形类型" },
+    figures: {
+      plot: "曲线台",
+      phosphor: "磷光点阵",
+      slow: "传送带",
+      terrain: "柱阵",
+      riffle: "卡片翻页",
+      stack: "调用栈",
+      branches: "提交图",
+      drawer: "抽屉",
+      vault: "保险库",
+      turntable: "转台",
+      sieve: "筛网",
+      query: "问号",
+    },
+    tip: "仅对没有显式传 layout 的 ReEmpty 生效，改动即时预览并保存",
+  },
   header: {
     searchMenu: "搜索菜单",
     componentSize: "组件大小",
@@ -846,6 +891,9 @@ export default {
     weather: {
       tip: "查看天气",
     },
+    exchangeRate: {
+      empty: "暂无汇率数据",
+    },
     settings: "设置",
     personalCenter: "个人中心",
     changePassword: "修改密码",
@@ -878,6 +926,15 @@ export default {
       none: "暂无未处置告警",
       open: "有 {n} 条未处置告警",
       empty: "当前没有待处理的告警",
+    },
+    noteEntry: {
+      title: "便签",
+      label: "快捷便条",
+      placeholder: "记录点什么…",
+      confirmDelete: "确认删除该便条？",
+      created: "已保存",
+      deleted: "已删除",
+      count: "条便签",
     },
     commandPalette: {
       tip: "命令面板（Ctrl/⌘ + K）",

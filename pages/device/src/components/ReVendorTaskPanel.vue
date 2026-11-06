@@ -1,7 +1,7 @@
 <template>
   <div class="vtp">
-    <!-- 厂商页签：定时任务是厂商维度的能力，每家厂商一套任务 -->
-    <nav class="vtp-tabs">
+    <!-- 厂商页签：只在整页浏览时出现；抽屉里只看这一家 -->
+    <nav v-if="!vendor" class="vtp-tabs">
       <button
         v-for="tab in tabs"
         :key="tab.key"
@@ -19,10 +19,18 @@
       </ReButton>
     </nav>
 
+    <nav v-else class="vtp-tabs">
+      <span class="vtp-scope">该厂商共 {{ rows.length }} 个任务 · 每套凭据各跑各的</span>
+      <span class="vtp-grow" />
+      <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="load">
+        刷新
+      </ReButton>
+    </nav>
+
     <p class="vtp-desc">
-      定时任务挂在厂商凭据上：开/关与间隔在
-      <b>接入凭据 → 高级配置</b> 中按凭据维护，也可在本页临时调整。
-      间隔优先级为「凭据高级配置 → 本页调整 → 默认 30 秒」；开关关闭或凭据停用时，该任务不注册时间轮。
+      定时任务挂在厂商凭据上：开关与间隔在
+      <b>接入凭据 → 能力 / 任务</b> 中按凭据维护。
+      未开启的能力不注册时间轮，也不产生同步记录。
     </p>
 
     <!-- 任务面板：默认「表盘」卡片（2026-11 定版 B 方案），可切回表格 -->
@@ -182,9 +190,58 @@
         <span class="vtp-ghost__icon"><el-icon><Timer /></el-icon></span>
         <p class="vtp-ghost__title">该厂商还没有注册定时任务</p>
         <p class="vtp-ghost__desc">
-          到「接入凭据 → 高级配置」打开在离线检测 / 设备自动同步 / 组织自动同步，保存后任务会立即补种到这个页签。
+          到「接入凭据 → 能力 / 任务」打开在离线检测 / 事件轮询 / 设备同步 / 组织同步，保存后任务会立即补种到这里。
         </p>
       </article>
+    </section>
+
+    <!-- 组织同步：属于单个厂商的能力，抽屉里单独成卡 -->
+    <section v-if="vendor" class="vtp-org">
+      <header class="vtp-org__head">
+        <span class="vtp-org__title">组织同步</span>
+        <span class="vtp-org__hint">按凭据拉取厂商侧组织树与人员，只影响本厂商</span>
+      </header>
+
+      <div v-if="orgCredentials.length" class="vtp-org__grid">
+        <article
+          v-for="credential in orgCredentials"
+          :key="credential.deviceCredentialId"
+          class="vtp-org__card"
+          :data-org-credential="credential.deviceCredentialId"
+        >
+          <header class="vtp-org__card-head">
+            <span class="vtp-org__name">{{ credential.deviceCredentialName }}</span>
+            <span class="vtp-org__last">
+              {{ orgLastRun(credential) ? `上次 ${ago(orgLastRun(credential))}` : '尚未自动同步' }}
+            </span>
+          </header>
+          <div class="vtp-org__actions">
+            <ReButton
+              size="small"
+              :show-text="true"
+              :loading="orgLoading[`${credential.deviceCredentialId}:org`]"
+              @click="pullOrg(credential, 'org')"
+            >
+              拉取组织
+            </ReButton>
+            <ReButton
+              size="small"
+              :show-text="true"
+              :loading="orgLoading[`${credential.deviceCredentialId}:person`]"
+              @click="pullOrg(credential, 'person')"
+            >
+              拉取人员
+            </ReButton>
+          </div>
+          <span class="vtp-org__result">
+            {{ orgResults[`${credential.deviceCredentialId}:org`] || '组织：—' }}
+            <i>·</i>
+            {{ orgResults[`${credential.deviceCredentialId}:person`] || '人员：—' }}
+          </span>
+        </article>
+      </div>
+
+      <p v-else class="vtp-org__none">当前厂商未开通组织能力，没有组织同步任务，也不会产生组织记录。</p>
     </section>
   </div>
 </template>
@@ -215,7 +272,7 @@
  * @author CH
  * @since 4.0.0.42
  */
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Timer } from '@element-plus/icons-vue'
 
@@ -238,8 +295,10 @@ const props = withDefaults(
     credentials?: ProviderCredential[]
     /** 视图：表盘卡片（默认）或表格 */
     variant?: 'dial' | 'table'
+    /** 只看这一家厂商（行操作打开的任务抽屉）；为空则显示全部厂商页签 */
+    vendor?: string
   }>(),
-  { vendors: () => [], credentials: () => [], variant: 'dial' }
+  { vendors: () => [], credentials: () => [], variant: 'dial', vendor: '' }
 )
 
 /** 后端任务状态行 */
@@ -268,15 +327,13 @@ interface TaskRow {
 /** 凭据级任务前缀 → 展示名 */
 const PREFIX_LABELS: Array<[string, string]> = [
   ['offlineDetect_', '在离线检测'],
+  ['eventPoll_', '事件轮询'],
   ['deviceSync_', '设备自动同步'],
   ['orgSync_', '组织自动同步']
 ]
 
-/** 全局任务 → 展示名 */
+/** 仍由时间轮统一调度的任务 → 展示名 */
 const GLOBAL_LABELS: Record<string, string> = {
-  deviceOfflineCheck: '在离线检测',
-  deviceEventPoll: '事件轮询',
-  deviceSync: '厂商设备目录同步',
   deviceAccessExtract: '门禁记录抽取'
 }
 
@@ -362,11 +419,49 @@ const tabs = computed<Array<{ key: string; label: string; count: number }>>(() =
 const activeTab = ref('all')
 
 const rows = computed<TaskRow[]>(() => {
+  if (props.vendor) return allRows.value.filter((row) => row.vendor === props.vendor)
   if (activeTab.value === 'all') return allRows.value
   if (activeTab.value === 'global') return allRows.value.filter((row) => !row.vendor && !row.credentialId)
   if (activeTab.value === 'unmatched') return allRows.value.filter((row) => !row.vendor && row.credentialId)
   return allRows.value.filter((row) => row.vendor === activeTab.value)
 })
+
+/* ==================== 组织同步卡片（抽屉内，按凭据） ==================== */
+/** 抽屉里属于当前厂商、且平台支持 ORG 的凭据 */
+const orgCredentials = computed<ProviderCredential[]>(() => {
+  if (!props.vendor) return []
+  const descriptor = props.vendors.find((item) => item.vendor === props.vendor)
+  if (!descriptor?.capabilities?.includes('ORG')) return []
+  return props.credentials.filter((item) => item.deviceCredentialVendor === props.vendor)
+})
+
+/** 凭据 id → 最近一次组织/人员同步结果文案 */
+const orgResults = reactive<Record<string, string>>({})
+const orgLoading = reactive<Record<string, boolean>>({})
+
+/** 该凭据组织同步任务的上次执行时间（任务名 orgSync_{credId}） */
+function orgLastRun(credential: ProviderCredential): string | undefined {
+  const name = `orgSync_${credential.deviceCredentialId || ''}`
+  return taskStates.value.find((state) => state.deviceTaskStateName === name)?.deviceTaskStateLastRunAt
+}
+
+async function pullOrg(credential: ProviderCredential, kind: 'org' | 'person'): Promise<void> {
+  const id = credential.deviceCredentialId
+  if (!id) return
+  orgLoading[`${id}:${kind}`] = true
+  try {
+    const result = kind === 'org'
+      ? await deviceApi.syncOrgByCredential(id)
+      : await deviceApi.syncPersonsByCredential(id)
+    orgResults[`${id}:${kind}`] = `新增 ${result.created} · 更新 ${result.updated} · 跳过 ${result.skipped}`
+    ElMessage.success(`${kind === 'org' ? '组织' : '人员'}同步完成`)
+    await load()
+  } catch (err) {
+    message.error('同步失败：' + errorText(err))
+  } finally {
+    orgLoading[`${id}:${kind}`] = false
+  }
+}
 
 /** ReTable 只收 Record 数组，真实结构是 TaskRow */
 const tableRows = computed<Array<Record<string, unknown>>>(
@@ -792,5 +887,85 @@ onBeforeUnmount(() => {
   max-width: 520px;
   font-size: 12px;
   line-height: 1.6;
+}
+
+/* ---- 抽屉里的厂商范围提示 ---- */
+.vtp-scope {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+/* ---- 组织同步卡片 ---- */
+.vtp-org {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+}
+.vtp-org__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.vtp-org__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.vtp-org__hint {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.vtp-org__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+}
+.vtp-org__card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 12px;
+  background: var(--el-fill-color-lighter);
+}
+.vtp-org__card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.vtp-org__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.vtp-org__last {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+}
+.vtp-org__actions {
+  display: flex;
+  gap: 8px;
+}
+.vtp-org__result {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--el-text-color-regular);
+}
+.vtp-org__result i {
+  margin: 0 4px;
+  font-style: normal;
+  color: var(--el-text-color-placeholder);
+}
+.vtp-org__none {
+  margin: 0;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 </style>

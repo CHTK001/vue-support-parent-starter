@@ -16,7 +16,8 @@
         <ElDropdownItem command="flow">会话流</ElDropdownItem>
         <ElDropdownItem command="download" :disabled="session.packetCount === 0">下载原件</ElDropdownItem>
         <ElDropdownItem v-if="canStop && session.running" command="stop">停止抓包</ElDropdownItem>
-        <ElDropdownItem command="remove" divided>删除</ElDropdownItem>
+        <!-- 抓包未停止不显示「删除」：删除会连同 pcap 一起抹掉，先停止才有机会保住原件 -->
+        <ElDropdownItem v-if="!session.running" command="remove" divided>删除</ElDropdownItem>
       </ElDropdownMenu>
     </template>
   </ElDropdown>

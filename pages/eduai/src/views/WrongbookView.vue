@@ -52,15 +52,22 @@
     </ReTable>
 
     <ReDialog v-model="sourceVisible" :title="sourceTitle" width="560">
-      <el-table v-if="sourceRows.length" :data="sourceRows" size="small" border>
-        <el-table-column prop="sourceTaskId" label="来源任务" min-width="200" />
-        <el-table-column prop="sourceTaskTime" label="完成时间" min-width="150">
+      <ReTable
+        v-if="sourceRows.length"
+        :data="sourceRows"
+        size="small"
+        border
+        :layout-table="{ minHeight: 0 }"
+        :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+      >
+        <ReTableColumn prop="sourceTaskId" label="来源任务" min-width="200" />
+        <ReTableColumn prop="sourceTaskTime" label="完成时间" min-width="150">
           <template #default="{ row }">{{ row.sourceTaskTime || '—' }}</template>
-        </el-table-column>
-        <el-table-column prop="paperName" label="试卷" min-width="120">
+        </ReTableColumn>
+        <ReTableColumn prop="paperName" label="试卷" min-width="120">
           <template #default="{ row }">{{ row.paperName || '任意卷' }}</template>
-        </el-table-column>
-      </el-table>
+        </ReTableColumn>
+      </ReTable>
       <div v-else class="text-sm">未查到该题的来源任务（历史数据未记录来源）。</div>
     </ReDialog>
 
@@ -81,6 +88,7 @@ import type { WrongQuestion, WrongSource } from '../api/types';
 import { createPageLoader, numParam, pageLoadError, strParam, useSnapshotSearch } from '../api/pageLoader';
 import type { ReTableSearchConfig } from '@repo/ui/re-table';
 import ReDialog from "@repo/ui/re-dialog";
+import ReTable from "@repo/ui/re-table";
 
 const pageNo = ref(1);
 const pageSize = ref(20);

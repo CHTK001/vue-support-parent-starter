@@ -1,5 +1,21 @@
-/* 默认 */
-.fade-default-enter-active,
+/* 项目过渡类名映射（UnoCSS 未提供，项目内部统一）
+ *
+ * transition-all / transition-300ms / transition-ease 最初是 dev 时靠 Class 切换
+ * 实现的，后来 UnoCSS 跑偏，这些类就只剩名字没有效果了。收口到本文件：
+ * 背景色、文字色、边框色、阴影四组颜色（因主题切换有关的属性）按主题频率过渡 */
+.transition-all {
+  transition: background-color var(--el-transition-duration, 0.3s) ease-in,
+    color var(--el-transition-duration, 0.3s) ease-in,
+    border-color var(--el-transition-duration, 0.3s) ease-in,
+    box-shadow var(--el-transition-duration, 0.3s) ease-in;
+}
+.transition-300ms {
+  transition-duration: 0.3s;
+}
+.transition-ease {
+  transition-timing-function: ease-in;
+}
+
 .fade-default-leave-active {
   transition: none;
 }

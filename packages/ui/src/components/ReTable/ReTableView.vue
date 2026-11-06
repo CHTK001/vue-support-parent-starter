@@ -295,8 +295,12 @@ function indexText(index: number): string {
   flex: 1;
   min-height: 320px;
 }
+/* 空态图铺满 view 容器：100% 宽 + 100% 高，比例关（--re-empty-aspect-ratio: auto），
+   不再回 336px 封顶 / 5/4 卡高。 */
 .re-table__view-empty > .re-empty__figure {
-  --re-empty-figure-width: 336px;
+  --re-empty-figure-width: 100%;
+  --re-empty-aspect-ratio: auto;
+  height: 100%;
 }
 .re-table__view-list {
   display: flex;

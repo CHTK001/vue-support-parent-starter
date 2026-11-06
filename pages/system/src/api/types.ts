@@ -521,7 +521,7 @@ export interface PageQuery {
 
 /** 租户 */
 export interface SysTenant extends Auditable {
-  /** 租户ID（雪花ID，即租户唯一编码） */
+  /** 租户ID（内部雪花ID，不出现在登录页） */
   sysTenantId?: string;
   /** 租户名称 */
   sysTenantName?: string;
@@ -545,7 +545,7 @@ export interface SysTenant extends Auditable {
   sysTenantAddress?: string;
   /** 邮箱 */
   sysTenantEmail?: string;
-  /** 租户编码（兼容字段，保存时同步为 sysTenantId） */
+  /** 租户编码（登录页输入的短码，全平台唯一） */
   sysTenantCode?: string;
   /** 配置唯一ID */
   sysTenantGid?: string;
@@ -587,6 +587,21 @@ export interface TenantServiceBindRequest {
     sysServiceId?: number;
     validTime?: string;
   }>;
+}
+
+/** 租户服务器地址解析结果 */
+export interface TenantEndpointInfo {
+  tenantId?: string;
+  /** 可访问基地址，已去掉末尾斜杠 */
+  url?: string;
+  /** 来源：sync=租户端启动时自报（在线），config=人工登记（无存活证明） */
+  source?: "sync" | "config" | string;
+  /** 是否实时在线 */
+  online?: boolean;
+  /** 同步会话标识 */
+  clientId?: string;
+  /** 租户端应用名 */
+  applicationName?: string;
 }
 
 /** 租户统计 */

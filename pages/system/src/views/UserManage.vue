@@ -1311,8 +1311,14 @@ onMounted(() => {
           <span>文件：{{ importFile?.name }}</span>
           <span class="text-[--el-text-color-secondary]">共 {{ importPreviewData.length }} 条数据</span>
         </div>
-        <el-table :data="importPreviewData" max-height="300" border size="small">
-          <el-table-column
+        <ReTable
+          :data="importPreviewData"
+          size="small"
+          border
+          :layout-table="{ maxHeight: 300, minHeight: 0 }"
+          :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+        >
+          <ReTableColumn
             v-for="col in importPreviewColumns"
             :key="col"
             :prop="col"
@@ -1320,7 +1326,7 @@ onMounted(() => {
             min-width="100"
             show-overflow-tooltip
           />
-        </el-table>
+        </ReTable>
         <div class="import-preview-tip">确认数据无误后点击确定开始导入</div>
       </div>
 

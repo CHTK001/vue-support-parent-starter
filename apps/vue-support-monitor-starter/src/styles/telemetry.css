@@ -398,14 +398,14 @@ html.dark {
   background: var(--bg-container);
 }
 
-/* 寮圭獥鍑虹幇鍔ㄧ敾 */
-.el-overlay-dialog {
-  animation: telDialogIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-@keyframes telDialogIn {
-  from { opacity: 0; transform: translateY(12px) scale(0.97); }
-  to { opacity: 1; transform: none; }
-}
+/* 弹窗入场动画已移除（勿再加回）
+ *
+ * 这里曾给 .el-overlay-dialog 加 telDialogIn（scale 0.97 + translateY 12px）。
+ * 它与 element-plus 自带的 dialog-fade-in、pages/server 的
+ * .dialog-content-wrapper pop-in 叠在同一元素/同一内容上：
+ * 实测打开弹窗时 dialog-fade-in 从 315ms 起跑，telDialogIn 从 446ms 才起跑，
+ * 前一轮淡入刚收尾又起一轮缩放，视觉上就是「弹窗弹了两次」。
+ * 现在只保留 element-plus 的 fade 与内容包裹层的 pop-in。 */
 
 /* ---- 涓嬫媺娴眰锛堟渶甯歌鐨勯粦鑹插潡鏉ユ簮锛?---- */
 .el-popper,

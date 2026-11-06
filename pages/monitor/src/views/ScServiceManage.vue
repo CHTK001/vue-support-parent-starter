@@ -6,9 +6,12 @@
  * 运行态与链路查看（详情 / 过滤器链页签）。
  *
  * 界面形态（「资产管理」式三栏）：左侧按协议分组服务节点，中间是 ReTabs
- * 详情 / 过滤器链工作区，右侧是快捷操作、最近活动与统计。服务常常同时存在
- * 几十个，节点名 / 监听端口与状态灯必须在一屏可横扫；而排障时对同一个节点
- * 往往要「详情、链、再改参数」来回切换，工作区页签把这些上下文并排保住。
+ * 详情 / 过滤器链 / P2P 房间工作区，右侧是快捷操作、最近活动与统计。服务常常
+ * 同时存在几十个，节点名 / 监听端口与状态灯必须在一屏可横扫；而排障时对同一个
+ * 节点往往要「详情、链、再改参数」来回切换，工作区页签把这些上下文并排保住。
+ *
+ * <p>P2P 房间也是 Server 接口的一种能力，因此不单独占菜单：它在工作区里以
+ * 页签打开（{@code kind === 'room'}），关闭页签即离开房间并断开 WebSocket。</p>
  *
  * 分层：
  *   - `service/serviceView.ts`     纯函数：后端行 → 展示对象（端口文本、链路、后端地址）
@@ -18,9 +21,11 @@
  * 本页面只读 {@link ServiceNodesVm} 状态并调用 vm 动作，自己不算节点状态：
  * 过滤、统计、协议下拉的口径全在 vm 和 nodeList/serviceView 里单测锁定。
  */
-import { computed, nextTick, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import { message } from '@repo/core';
+import { useRoute } from 'vue-router';
 import ReTabs, { type ReTabsContextItem, type ReTabsItem } from '@repo/ui/re-tabs';
+import { RoomView } from '@pages/room';
 import ScServerFormDrawer from '../components/ScServerFormDrawer.vue';
 import ScServerDetailDrawer from '../components/ScServerDetailDrawer.vue';
 import { useServiceNodes } from './service/useServiceNodes';
@@ -34,6 +39,7 @@ import { copyText } from '../utils/clipboard';
 import './service/service-kit.css';
 
 const vm = useServiceNodes();
+const route = useRoute();
 
 /** 分布条的悬停说明：分布图没有刻度，悬停要能读到准确数字 */
 const distTitle = computed(
@@ -52,13 +58,19 @@ const statusTabs = computed<
 
 /* ==================== 工作区页签 ==================== */
 
-/** 工作区页签类型 */
-type WorkKind = 'detail' | 'filter';
+/** 工作区页签类型：节点详情 / 过滤器链 / P2P 房间 */
+type WorkKind = 'detail' | 'filter' | 'room';
 
-/** 工作区页签（比 ReTabsItem 多带节点上下文，便于渲染内容） */
+/** 房间页签固定 name（同一时刻只保留一个房间工作台） */
+const ROOM_TAB = 'room';
+
+/** 工作区页签（比 ReTabsItem 多带上下文，便于渲染内容） */
 interface WorkTab extends ReTabsItem {
-  nodeId: number;
+  /** 所属节点 id；房间页签没有节点 */
+  nodeId?: number;
   kind: WorkKind;
+  /** 房间页签要加入的房间号（来自 ?roomId=，空则停在「创建房间」） */
+  roomId?: string;
 }
 
 /** 已打开的页签 */
@@ -92,6 +104,11 @@ function nodeIdOf(tab: ReTabsItem): number | null {
   return workTabOf(tab.name)?.nodeId ?? null;
 }
 
+/** 房间页签要加入的房间号 */
+function roomIdOf(tab: ReTabsItem): string {
+  return workTabOf(tab.name)?.roomId ?? '';
+}
+
 /** 节点状态 → ReTabs 状态点 */
 function tabStatusOf(card: ServiceNodeCard | undefined): 'online' | 'offline' | 'alarm' | 'unknown' | null {
   if (!card) return null;
@@ -109,7 +126,7 @@ function tabStatusOf(card: ServiceNodeCard | undefined): 'online' | 'offline' | 
  * @param card 目标节点卡片
  * @param kind 功能类型
  */
-function openTab(card: ServiceNodeCard, kind: WorkKind): void {
+function openTab(card: ServiceNodeCard, kind: Exclude<WorkKind, 'room'>): void {
   const name = `${card.id}:${kind}`;
   const exist = openTabs.value.find(tab => tab.name === name);
   if (exist) {
@@ -132,6 +149,36 @@ function openTab(card: ServiceNodeCard, kind: WorkKind): void {
   openTabs.value = [...openTabs.value, tab];
   activeTab.value = name;
   pushActivity(`打开 ${card.name} · ${meta.label}`, meta.icon, card.id);
+}
+
+/**
+ * 打开 P2P 房间工作区页签。
+ *
+ * <p>房间是 Server 接口的一种能力，所以入口在实际的服务管理页里而不是菜单：
+ * 同一个房间工作台只开一个页签，重复点击只是切过去。房间号取 {@code ?roomId=}，
+ * 没有则由用户在工作台里「创建房间」。</p>
+ *
+ * <p>关闭页签会卸载 {@link RoomView}，它自己会 leave 并断开 WebSocket，不残留连接。</p>
+ */
+function openRoomTab(): void {
+  const roomId = String(route.query.roomId ?? '');
+  const exist = openTabs.value.find(tab => tab.name === ROOM_TAB);
+  if (exist) {
+    exist.roomId = roomId;
+    activeTab.value = ROOM_TAB;
+    return;
+  }
+  const tab: WorkTab = {
+    name: ROOM_TAB,
+    kind: 'room',
+    roomId,
+    label: roomId ? `P2P 房间 ${roomId}` : 'P2P 房间',
+    icon: 'Connection',
+    closable: true,
+  };
+  openTabs.value = [...openTabs.value, tab];
+  activeTab.value = ROOM_TAB;
+  pushActivity('打开 P2P 房间', 'Connection');
 }
 
 /**
@@ -219,9 +266,14 @@ function onTabCommand(payload: { key: string; tab: ReTabsItem }): void {
       break;
     case 'reopen': {
       const tab = workTabOf(name);
-      const card = tab ? cardOf(tab.nodeId) : undefined;
+      if (!tab) break;
       closeTab(name);
-      if (card && tab) openTab(card, tab.kind);
+      if (tab.kind === 'room') {
+        openRoomTab();
+        break;
+      }
+      const card = tab.nodeId == null ? undefined : cardOf(tab.nodeId);
+      if (card) openTab(card, tab.kind);
       break;
     }
     default:
@@ -530,7 +582,12 @@ watch(
     const prevIdx = openTabs.value.findIndex(tab => tab.name === activeTab.value);
     const kept: WorkTab[] = [];
     for (const tab of openTabs.value) {
-      if (!alive.has(tab.nodeId)) continue;
+      // 房间页签不挂在任何节点上，节点列表刷新与它无关
+      if (tab.kind === 'room') {
+        kept.push(tab);
+        continue;
+      }
+      if (tab.nodeId == null || !alive.has(tab.nodeId)) continue;
       const card = cardOf(tab.nodeId);
       tab.label = card?.name ?? tab.label;
       tab.status = tabStatusOf(card);
@@ -544,6 +601,24 @@ watch(
     if (selectedNodeId.value != null && !alive.has(selectedNodeId.value)) {
       selectedNodeId.value = null;
     }
+  },
+);
+
+/* ==================== 房间深链 ==================== */
+
+/** 带 {@code ?roomId=xxx} 进来时直接把房间工作台页签打开 */
+onMounted(() => {
+  if (route.query.roomId) openRoomTab();
+});
+
+/** 地址栏房间号变化时同步到已打开的房间页签 */
+watch(
+  () => String(route.query.roomId ?? ''),
+  (roomId) => {
+    const tab = openTabs.value.find(item => item.name === ROOM_TAB);
+    if (!tab) return;
+    tab.roomId = roomId;
+    tab.label = roomId ? `P2P 房间 ${roomId}` : 'P2P 房间';
   },
 );
 </script>
@@ -596,6 +671,7 @@ watch(
           clearable
         />
       </div>
+      <ReButton icon="Connection" show-text tip="打开 P2P 房间工作台" @click="openRoomTab">P2P 房间</ReButton>
       <ReButton icon="Plus" layout="square" type="primary" tip="新增服务" @click="vm.openCreate()" />
       <ReButton icon="Refresh" layout="square" tip="刷新" :loading="vm.loading" @click="vm.refresh()" />
     </div>
@@ -713,13 +789,22 @@ watch(
           v-model="activeTab"
           :tabs="openTabs"
           :context-menu="tabContextMenu"
-          empty-text="从左侧选择服务：单击选中，双击或右键打开详情"
+          empty-text="从左侧选择服务：单击选中，双击或右键打开详情；P2P 房间用右上角「P2P 房间」打开"
           @close="closeTab"
           @context-command="onTabCommand"
         >
           <template #default="{ tab }">
+            <!-- 房间工作台：关闭页签即卸载，RoomView 自己 leave + 断开 WebSocket -->
+            <RoomView
+              v-if="kindOf(tab) === 'room'"
+              :key="`${tab.name}:${reloadSeqOf(tab.name)}`"
+              embedded
+              :room-id="roomIdOf(tab)"
+              @leave="closeTab(tab.name)"
+            />
             <!-- 每个页签独立实例 + key 代次：刷新/重开页签时重建内容 -->
             <ScServerDetailDrawer
+              v-else
               :key="`${tab.name}:${reloadSeqOf(tab.name)}`"
               embedded
               :initial-view="kindOf(tab) === 'filter' ? 'filter' : 'detail'"
@@ -776,6 +861,10 @@ watch(
               <button type="button" class="sv-dock__item" @click="vm.openCreate()">
                 <ReIcon name="Plus" :size="13" />
                 <span>新增服务</span>
+              </button>
+              <button type="button" class="sv-dock__item" @click="openRoomTab">
+                <ReIcon name="Connection" :size="13" />
+                <span>P2P 房间</span>
               </button>
             </div>
           </div>

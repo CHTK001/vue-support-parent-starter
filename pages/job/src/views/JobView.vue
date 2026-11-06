@@ -664,6 +664,9 @@ const glueEngineModel = computed<string | number | (string | number)[] | null>({
 /** 正文区标题：形态 + 语言；脚本写完整文件、片段写方法体 */
 const glueSourceTitle = computed(() => {
   const label = glueEngineLabel(glueLang.value);
+  if (glueLang.value === "python") {
+    return taskKind.value === "fragment" ? "Python 片段" : "Python 脚本（完整文件）";
+  }
   return taskKind.value === "fragment"
     ? `${label} 片段${label === "Java" ? "（方法体）" : ""}`
     : `${label} 脚本（${label === "Java" ? "完整类" : "完整文件"}）`;
@@ -671,6 +674,11 @@ const glueSourceTitle = computed(() => {
 
 /** 正文区占位：脚本与片段的写法要求不同，提示必须分开说 */
 const glueSourcePlaceholder = computed(() => {
+  if (glueLang.value === "python") {
+    return taskKind.value === "fragment"
+      ? "点击编辑：只写 Python 语句，入口为 execute(ctx) 或 main(ctx)，返回值即结果"
+      : "点击编辑完整 Python 脚本：入口为 execute(ctx) 或 main(ctx)，可 import 本机三方库";
+  }
   if (taskKind.value === "fragment") {
     return glueLang.value === "java"
       ? "点击编辑：只写 @Job 方法的方法体（不要写 package / class / import / @Job），后端会合成完整类"
@@ -1481,6 +1489,14 @@ watch(formVisible, (visible) => {
           />
           <em class="task-form__help">
             引擎清单来自本进程的 SPI 运行时枚举（{{ taskKind === 'fragment' ? '写方法体' : '写完整文件' }}）
+          </em>
+          <em v-if="glueLang === 'python'" class="task-form__help">
+            Python 以子进程方式运行本机解释器，需在部署机 PATH 中装好 Python 3；
+            脚本可 import 本机已安装的三方库。
+          </em>
+          <em v-else class="task-form__help">
+            脚本类字段的 @Autowired 由执行器自动装配；脚本正文里自己 new 出来的对象不在容器内，
+            需要显式调用 objectContext.inject(对象) 才会注入。
           </em>
         </label>
 

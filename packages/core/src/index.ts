@@ -18,7 +18,7 @@ export { default as nprogress, startLoading, doneLoading, forceDoneLoading } fro
 export * from "./router";
 export * from "./api";
 export * from "./setting";
-export { message, msg, msgPrimary, msgSuccess, msgError, msgWarning, msgInfo, msgBox, msgBoxPrompt, msgBoxAlert, notice, noticeSuccess, noticeError, noticeWarning, noticeInfo } from "./msg";
+export { message, messageBox, msg, msgPrimary, msgSuccess, msgError, msgWarning, msgInfo, msgBox, msgBoxPrompt, msgBoxAlert, notice, noticeSuccess, noticeError, noticeWarning, noticeInfo } from "./msg";
 export * from "./hooks/useDataSource";
 export * from "./hooks/useStationMessage";
 export * from "./obfuscation/fontObfuscator";

@@ -124,26 +124,32 @@
 
     <!-- 充值/消费流水弹窗 -->
     <ReDialog v-model="logsDialogVisible" title="AppKey 充值/消费流水" width="700px" append-to-body>
-      <el-table v-loading="logsLoading" :data="topupLogs" border>
-        <el-table-column prop="createdAt" label="流水时间" min-width="160" align="center" />
-        <el-table-column prop="type" label="类型" width="100" align="center">
+      <ReTable
+        :data="topupLogs"
+        :loading="logsLoading"
+        border
+        :layout-table="{ minHeight: 0 }"
+        :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+      >
+        <ReTableColumn prop="createdAt" label="流水时间" min-width="160" align="center" />
+        <ReTableColumn prop="type" label="类型" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="topupTypeTag(row.type)" size="small">
               {{ topupTypeLabel(row.type) }}
             </el-tag>
           </template>
-        </el-table-column>
-        <el-table-column prop="amount" label="金额(元)" min-width="110" align="right">
+        </ReTableColumn>
+        <ReTableColumn prop="amount" label="金额(元)" min-width="110" align="right">
           <template #default="{ row }">
             <span :class="row.amount >= 0 ? 'charge-green' : 'charge-red'">
               {{ row.amount > 0 ? '+' : '' }}{{ row.amount }}
             </span>
           </template>
-        </el-table-column>
-        <el-table-column prop="balanceBefore" label="变动前余额" min-width="110" align="right" />
-        <el-table-column prop="balanceAfter" label="变动后余额" min-width="110" align="right" />
-        <el-table-column prop="remark" label="备注" min-width="160" />
-      </el-table>
+        </ReTableColumn>
+        <ReTableColumn prop="balanceBefore" label="变动前余额" min-width="110" align="right" />
+        <ReTableColumn prop="balanceAfter" label="变动后余额" min-width="110" align="right" />
+        <ReTableColumn prop="remark" label="备注" min-width="160" />
+      </ReTable>
       <template #footer>
         <el-button @click="logsDialogVisible = false">关闭</el-button>
       </template>

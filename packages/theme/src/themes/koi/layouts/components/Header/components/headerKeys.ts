@@ -12,12 +12,14 @@ export const HEADER_FLAG_KEYS = [
   "searchMenu",
   "refresh",
   "message",
+  "quickNote",
   "dark",
   "language",
   "fullScreen",
   "themeSetting",
   "user",
   "weather",
+  "exchangeRate",
   "typhoon",
 ] as const;
 

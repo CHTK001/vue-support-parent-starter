@@ -2,10 +2,9 @@
  * 全局过程任务管理（project 模块）
  *
  * 业务侧触发项目操作/软件安装拿到 taskId 后调用 {@link trackTask} 注册跟踪：
- * - 订阅 socket（module=project, event=task）实时更新步骤/进度/日志/结果
+ * - 订阅发布管理全局 SSE（事件 {@code project-task}）实时更新步骤/进度/日志/结果
  * - 立即拉一次任务快照（GET /ms/server/release/task/{taskId}）实现断点续传
- * - 未完成任务每 3 秒拉一次快照兜底：socket 丢帧 / 断线重连期间也能把进度补齐
- *   （实测 socket 偶发丢最后一帧，后端已 COMPLETE/100，浮层却停在 55%）
+ * - 不再定时轮询：只在 SSE 重连后对未完成任务补拉一次快照，补齐断线期间丢掉的帧
  *
  * 任务以浮层 ReProcessTask 展示（可拖拽、最小化到四角）。
  *
@@ -15,6 +14,14 @@
 import { reactive } from "vue";
 import { getGlobalSocketService } from "@repo/core";
 import { http, unwrapResult } from "@repo/utils";
+import { releaseSse, type ProjectTaskPush } from "../services/releaseRealtime";
+import {
+  INSTALL_EVENT,
+  INSTALL_MODULE,
+  frameFingerprint,
+  parseInstallProgress,
+  type InstallProgressFrame,
+} from "./installProgress";
 
 /**
  * 过程任务状态
@@ -67,53 +74,82 @@ const tasks: ProcessTask[] =
   g.__PROCESS_TASKS__ ?? (g.__PROCESS_TASKS__ = reactive<ProcessTask[]>([]));
 
 /**
- * socket 是否已经绑定（同样挂 globalThis 去重，防止多实例重复 subscribe）
+ * 任务事件是否已经绑定（同样挂 globalThis 去重，防止多实例重复订阅）
  */
-function isSocketBound(): boolean {
-  return !!g.__PROCESS_SOCKET_BOUND__;
+function isRealtimeBound(): boolean {
+  return !!g.__PROCESS_RELEASE_BOUND__;
 }
-function markSocketBound(): void {
-  g.__PROCESS_SOCKET_BOUND__ = true;
+function markRealtimeBound(): void {
+  g.__PROCESS_RELEASE_BOUND__ = true;
 }
 
 /**
- * 绑定 socket 任务事件（全局仅一次）
+ * 绑定发布管理全局 SSE 的任务事件（全局仅一次）
  */
-function bindSocket(): void {
-  if (isSocketBound()) {
+function bindRealtime(): void {
+  if (isRealtimeBound()) {
     return;
   }
-  const socket = getGlobalSocketService();
-  if (!socket) {
-    return;
-  }
-  markSocketBound();
-  socket.subscribe("project", "task", (msg: any) => {
-    const data = msg?.data ?? msg;
-    const task = tasks.find(t => t.taskId === data?.taskId);
-    if (task) {
-      applyMessage(task, data);
-      // 以 socket 帧事件驱动的一次性兜底（非轮询）：
-      // 收到非终态帧后短暂等待再拉一次快照，若中途有新帧则顺延；
-      // 用于首帧竞态 / 中途丢帧后自动补齐。
-      if (task.finished) {
-        clearCatchUp(task);
-      } else {
-        scheduleCatchUp(task);
-      }
+  markRealtimeBound();
+  releaseSse.onProjectTask((frame: ProjectTaskPush) => {
+    const task = tasks.find(t => t.taskId === frame.taskId);
+    if (!task) {
+      return;
+    }
+    applyMessage(task, frame);
+    if (task.finished) {
+      clearCatchUp(task);
+      releaseConnection(task.taskId);
     }
   });
 
-  // socket（重新）连接成功：立即补拉所有未完成任务，解决重连期间的丢帧
-  const rawSocket = (socket as any)?.socket;
-  rawSocket?.on?.("connect", () => {
+  // SSE（重新）连接成功：对未完成任务各补拉一次快照，补齐断线期间丢掉的帧
+  releaseSse.onStatus((status) => {
+    if (status !== "connected") {
+      return;
+    }
     tasks.forEach(t => {
       if (!t.finished) {
         void fetchSnapshot(t);
-        scheduleCatchUp(t);
       }
     });
   });
+}
+
+/**
+ * 跟踪中的任务持有的 SSE 连接（任务结束即释放，避免长时间空跑长连接）。
+ *
+ * <p>同样挂 globalThis：本模块可能被实例化两次，重复 open 会让持有者计数虚高。</p>
+ */
+function heldTaskIds(): Set<string> {
+  return g.__PROCESS_SSE_HOLDERS__ ?? (g.__PROCESS_SSE_HOLDERS__ = new Set<string>());
+}
+
+/**
+ * 为任务持有发布管理 SSE 连接（重复调用无副作用）。
+ *
+ * @param taskId 任务标识
+ */
+function holdConnection(taskId: string): void {
+  const held = heldTaskIds();
+  if (held.has(taskId)) {
+    return;
+  }
+  held.add(taskId);
+  releaseSse.open();
+}
+
+/**
+ * 释放任务持有的 SSE 连接（任务结束 / 被移除）。
+ *
+ * @param taskId 任务标识
+ */
+function releaseConnection(taskId: string): void {
+  const held = heldTaskIds();
+  if (!held.delete(taskId)) {
+    return;
+  }
+  releaseSse.close();
 }
 
 /**
@@ -147,32 +183,11 @@ const CATCH_UP_DELAY_MS = 1500;
 /** 任务一次性兜底定时器句柄 */
 const catchUpTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
-/** 未完成任务快照轮询间隔（毫秒） */
-const SNAPSHOT_POLL_MS = 3000;
-
-/** 正在拉取快照的任务（避免轮询与一次性兜底并发重复请求） */
+/** 正在进行中的快照请求（避免并发重复请求） */
 const snapshotInflight = new Set<string>();
 
 /**
- * 确保全局快照轮询器已启动（多模块实例经 globalThis 去重）
- *
- * 轮询只针对未完成任务；任务结束后自动不再请求，无需额外清理。
- */
-function ensureSnapshotPoller(): void {
-  if (g.__PROCESS_TASK_POLLER__) {
-    return;
-  }
-  g.__PROCESS_TASK_POLLER__ = setInterval(() => {
-    for (const t of tasks) {
-      if (!t.finished) {
-        void fetchSnapshot(t);
-      }
-    }
-  }, SNAPSHOT_POLL_MS);
-}
-
-/**
- * 应用一帧 socket 消息
+ * 应用一帧任务消息（SSE {@code project-task}）
  */
 function applyMessage(task: ProcessTask, data: any): void {
   if (typeof data.phase === "string") {
@@ -245,6 +260,7 @@ async function fetchSnapshot(task: ProcessTask): Promise<void> {
     }
     if (task.finished) {
       clearCatchUp(task);
+      releaseConnection(task.taskId);
     }
   } catch {
     /* 快照拉取失败不影响实时跟踪 */
@@ -262,8 +278,9 @@ async function fetchSnapshot(task: ProcessTask): Promise<void> {
  * @returns 任务状态对象
  */
 export function trackTask(taskId: string, title: string, operation: string): ProcessTask {
-  bindSocket();
-  ensureSnapshotPoller();
+  bindRealtime();
+  // 任务在跑期间持有发布管理 SSE 连接；任务结束后释放（页面常驻持有另计）
+  holdConnection(taskId);
   let task = tasks.find(t => t.taskId === taskId);
   if (!task) {
     task = reactive<ProcessTask>({
@@ -283,6 +300,10 @@ export function trackTask(taskId: string, title: string, operation: string): Pro
       startedAt: Date.now(),
     });
     tasks.push(task);
+  } else if (task.finished) {
+    // 复用已结束的 taskId（理论上不会发生）：重新占用连接与状态
+    task.finished = false;
+    task.success = false;
   }
   void fetchSnapshot(task);
   // 覆盖「任务在订阅就绪前已跑完」的快速任务：首帧事件尚未到达也能兜底补齐
@@ -295,6 +316,9 @@ export function trackTask(taskId: string, title: string, operation: string): Pro
  */
 export function removeTask(taskId: string): void {
   clearCatchUp({ taskId } as ProcessTask);
+  releaseConnection(taskId);
+  // 指纹一并清掉：任务关掉后同一帧重投要能重新建出任务
+  installFingerprints().delete(taskId);
   const index = tasks.findIndex(t => t.taskId === taskId);
   if (index >= 0) {
     tasks.splice(index, 1);
@@ -327,4 +351,87 @@ export function setTaskPosition(taskId: string, x: number, y: number): void {
  */
 export function getProcessTasks(): ProcessTask[] {
   return tasks;
+}
+
+// ==================== 软件安装进度（socket，与发布管理 SSE 无关） ====================
+
+/** 安装进度去重指纹表（taskId → 帧指纹），挂 globalThis 做多实例去重 */
+function installFingerprints(): Map<string, string> {
+  return g.__PROCESS_INSTALL_FINGERPRINTS__ ?? (g.__PROCESS_INSTALL_FINGERPRINTS__ = new Map<string, string>());
+}
+
+/**
+ * 应用一帧安装进度（归一结果直接落到浮层字段）。
+ *
+ * @param frame 归一后的安装帧
+ */
+function applyInstallFrame(frame: InstallProgressFrame): void {
+  const prints = installFingerprints();
+  const fingerprint = frameFingerprint(frame);
+  // 后端同一帧会同时 broadcast + sendToUser，发起人会收到两份：内容一致就跳过
+  if (prints.get(frame.taskId) === fingerprint) {
+    return;
+  }
+  prints.set(frame.taskId, fingerprint);
+
+  let task = tasks.find(t => t.taskId === frame.taskId);
+  if (!task) {
+    task = reactive<ProcessTask>({
+      taskId: frame.taskId,
+      title: frame.title,
+      operation: frame.operation,
+      phase: "STEP",
+      currentStep: frame.statusText || frame.operationText,
+      progress: frame.progress,
+      logs: [],
+      finished: false,
+      success: false,
+      message: "",
+      minimized: false,
+      x: null,
+      y: null,
+      startedAt: Date.now(),
+    });
+    tasks.push(task);
+  }
+
+  task.operation = frame.operation;
+  task.currentStep = frame.statusText || task.currentStep;
+  task.progress = frame.finished && frame.success ? 100 : frame.progress;
+  if (frame.message) {
+    appendLog(task, `[${frame.statusText || frame.operationText}] ${frame.message}`);
+  }
+  if (frame.finished) {
+    task.finished = true;
+    task.success = frame.success;
+    task.phase = frame.success ? "COMPLETE" : "ERROR";
+    task.message = frame.message || frame.statusText || (frame.success ? "操作成功" : "操作失败");
+  } else {
+    task.phase = "STEP";
+  }
+}
+
+/**
+ * 确保软件安装进度订阅已建立（全局仅一次）。
+ *
+ * <p>安装进度由软件模块经全局 socket 广播（与发布管理的 SSE 是两条独立通道），
+ * 重复调用只会订阅一次，避免每帧被处理两遍。</p>
+ */
+export function ensureInstallProgressSubscription(): void {
+  const socket = getGlobalSocketService();
+  if (!socket) {
+    return;
+  }
+  // 存的是实例本身：换了 socket 实例（重连/切环境）要重新订阅
+  if (g.__PROCESS_INSTALL_SOCKET__ === socket) {
+    return;
+  }
+  g.__PROCESS_INSTALL_SOCKET__ = socket;
+  socket.subscribe(INSTALL_MODULE, INSTALL_EVENT, (msg: unknown) => {
+    const frame = parseInstallProgress(msg);
+    if (!frame) {
+      return;
+    }
+    applyInstallFrame(frame);
+  });
 }

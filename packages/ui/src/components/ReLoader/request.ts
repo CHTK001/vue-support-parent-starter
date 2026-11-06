@@ -27,8 +27,8 @@ export interface LoaderRequestOptions extends ReLoaderServiceOptions {
 /** 默认配置：可通过 {@link configureLoaderRequests} 覆盖 */
 let defaults: LoaderRequestOptions = {
   enabled: true,
-  // 不传 variant：请求层遮罩跟随主题配置里选中的全局动画（默认海浪），
-  // 与首屏 loader 保持一致 —— 否则首屏是海浪、请求一转圈就变回双环。
+  // 不传 variant：请求层遮罩跟随主题配置里选中的全局动画（默认三个圆点），
+  // 与首屏 loader 保持一致 —— 否则首屏是圆点、请求一转圈就变回双环。
   variant: undefined,
   // 请求层多为全屏遮罩；用 lg 档，与各业务页面的全屏遮罩同尺寸
   size: "lg",

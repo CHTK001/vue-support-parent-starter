@@ -34,6 +34,10 @@ export function useEchart(
   /** 每次 render 递增；异步回来的旧请求据此丢弃，避免覆盖新图 */
   let ticker = 0
   let disposed = false
+  /** 容器尺寸变化监听：详情从弹窗换成全屏抽屉后，图表的可用高度会变，
+      只监听 window resize 不够（容器自己变大不会触发 window resize） */
+  let observer: ResizeObserver | null = null
+  let observed: HTMLElement | null = null
 
   /** 重建并绘制；容器还没上屏（标签页未激活）时静默跳过 */
   function render() {
@@ -45,6 +49,14 @@ export function useEchart(
       chart?.dispose()
       chart = echarts.init(el.value)
       draw(chart)
+      if (typeof ResizeObserver !== 'undefined') {
+        if (!observer) observer = new ResizeObserver(() => chart?.resize())
+        if (observed !== el.value) {
+          observer.disconnect()
+          observer.observe(el.value)
+          observed = el.value
+        }
+      }
     })
   }
 
@@ -60,6 +72,9 @@ export function useEchart(
   onBeforeUnmount(() => {
     disposed = true
     window.removeEventListener('resize', resize)
+    observer?.disconnect()
+    observer = null
+    observed = null
     chart?.dispose()
     chart = null
   })

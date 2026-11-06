@@ -12,7 +12,7 @@
 
 import { createModuleHttp } from "@repo/core"
 import type { RequestBody } from '@repo/utils'
-import type { TemplateInfo, TemplatePageQuery, PageResult, TemplateDesignerPayload, PrinterConfig, LogRecord, TemplateLogQuery, ProviderInfo, ProviderSyncResult } from '../types/template'
+import type { TemplateInfo, TemplatePageQuery, PageResult, TemplateDesignerPayload, PrinterConfig, LogRecord, TemplateLogQuery, ProviderInfo, ProviderSyncResult, TemplateSourceDetail } from '../types/template'
 
 /** 模板模块 Http 客户端（懒创建）。 */
 /** 模块可能在 createApp() 注入全局 http 之前被静态导入，因此延迟到首次调用时创建。 */
@@ -60,6 +60,13 @@ export const templateApi = {
     http.get("/page").query(params as unknown as Record<string, unknown>).then(unwrap) as Promise<PageResult<TemplateInfo>>,
   /** 详情 */
   get: (id: string) => http.get(`/${id}`).then(unwrap) as Promise<TemplateInfo>,
+  /**
+   * 模板详情（按模板 ID 取信息）
+   *
+   * <p>比 {@link templateApi.get} 多一层语义：固定模板（三方同步）会带上三方模板 ID、
+   * 归属账号、推送渠道与占位符参数，字段对齐 MessagePush 的发送参数。</p>
+   */
+  detail: (id: string) => http.get(`/${id}/detail`).then(unwrap) as Promise<TemplateSourceDetail>,
   /** 设计器完整数据（info + content） */
   designer: (id: string) =>
     http.get(`/${id}/designer`).then(unwrap) as Promise<TemplateDesignerPayload>,

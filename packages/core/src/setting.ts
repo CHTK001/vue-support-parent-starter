@@ -54,6 +54,27 @@ const SETTING_TO_LOGIN_MAP: Record<string, string> = {
   FeatureTags: "featureTags",
 };
 
+/**
+ * 不在 {@code login} 子树上的旧式设置名到 AppConfig 点号路径的映射。
+ *
+ * <p>水印的旧名是 {@code Watermark*}（WatermarkOpen/WatermarkColor/WatermarkAlpha/
+ * WatermarkRotate），前端读的是 {@code getConfig().security.watermark}（见
+ * {@code directives/waterMarker.ts} 的读数路径），它不在 {@code login} 子树上，
+ * 只能落到 {@code security.watermark} 里。而 {@code SETTING_TO_LOGIN_MAP} 只负责
+ * {@code login.*}。</p>
+ *
+ * <p>它只在白名单允许时才能落盘（{@code security_watermark} 加入
+ * {@code @repo/config} 的 {@code REMOTE_INJECTABLE_PATH_PREFIXES}），
+ * 与 {@code loadConfig} 里 {@code flattenSettingToConfig} 的 {@code LEGACY_NAME_TO_PATH}
+ * 互补/对齐 —— 两端同一份数据落到相同路径，水印配置才真正连通。</p>
+ */
+const SETTING_NAME_TO_CONFIG_PATH: Record<string, string> = {
+  WatermarkOpen: "security.watermark.enable",
+  WatermarkColor: "security.watermark.color",
+  WatermarkAlpha: "security.watermark.alpha",
+  WatermarkRotate: "security.watermark.rotate",
+};
+
 export function mergeDefaultSetting(items: SettingItem[]): void {
   if (!Array.isArray(items)) return;
   const patch: Record<string, unknown> = {};
@@ -82,9 +103,25 @@ export function mergeDefaultSetting(items: SettingItem[]): void {
       });
       return;
     }
-    // ② 兼容旧数据：仅按名称白名单映射到 login.*
+    // ② 兼容旧数据：仅按名称白名单映射到 login.*（旧式登录页名）与
+    //     security.watermark.*（旧式 Watermark* 名）
     const loginKey = SETTING_TO_LOGIN_MAP[item.sysSettingName];
-    if (!loginKey) return;
+    const configPath = SETTING_NAME_TO_CONFIG_PATH[item.sysSettingName];
+    if (!loginKey && !configPath) return;
+    if (configPath) {
+      // 修复：水印旧名（WatermarkOpen/WatermarkColor/WatermarkAlpha/WatermarkRotate）
+      // 不在 login 子树上，必须落到 security.watermark（waterMarker 的读数路径），
+      // 否则后端的水印配置在前端永远不生效。
+      safeSetDotted(patch, configPath, val, {
+        topKeyAllowlist: REMOTE_INJECTABLE_TOP_KEYS,
+        pathPrefixAllowlist: REMOTE_INJECTABLE_PATH_PREFIXES,
+        normalizeTopKey: normalizeTopKey,
+        onReject: (path, reason) => {
+          log.warn(`[setting] 已拒绝远程配置项 "${path}"：${reason}`);
+        },
+      });
+      return;
+    }
     patch.login = patch.login ?? {};
     let loginVal: unknown = boolVal ?? raw;
     if (loginKey === "featureTags") {

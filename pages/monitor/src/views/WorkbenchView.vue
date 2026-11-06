@@ -8,6 +8,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useSocketService } from "@repo/core";
+import ReTable from "@repo/ui/re-table";
 import { queryHosts } from "@pages/server/src/api";
 import { fetchAlarmEvents, alarmLevel, isUnhandled, type AlarmEvent } from "../api/monitorApi";
 
@@ -168,17 +169,33 @@ onBeforeUnmount(() => {
         <div v-if="recentAlarms.length === 0" class="empty-state">
           <ReEmpty description="暂无告警事件，系统运行平稳" />
         </div>
-        <table v-else class="t">
-          <thead><tr><th>级别</th><th>主机</th><th>指标</th><th>时间</th></tr></thead>
-          <tbody>
-            <tr v-for="a in recentAlarms" :key="a.id">
-              <td><span class="tag" :class="`sev-${alarmLevel(a)}`">{{ alarmLevel(a) }}</span></td>
-              <td>{{ a.msMonitorAlarmEventMonitorName }}</td>
-              <td class="truncate">{{ a.msMonitorAlarmEventMetricName }}</td>
-              <td class="mono dim">{{ (a.msMonitorAlarmEventTriggerTime || "").slice(5, 16) }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <ReTable
+          v-else
+          :data="recentAlarms"
+          row-key="id"
+          class="alarm-table"
+          :layout-table="{ minHeight: 0 }"
+          :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+        >
+          <ReTableColumn label="级别" width="64" align="center">
+            <template #default="{ row }">
+              <span class="tag" :class="`sev-${alarmLevel(row)}`">{{ alarmLevel(row) }}</span>
+            </template>
+          </ReTableColumn>
+          <ReTableColumn label="主机" min-width="110">
+            <template #default="{ row }">{{ row.msMonitorAlarmEventMonitorName || "—" }}</template>
+          </ReTableColumn>
+          <ReTableColumn label="指标" min-width="130">
+            <template #default="{ row }">
+              <span class="truncate">{{ row.msMonitorAlarmEventMetricName || "—" }}</span>
+            </template>
+          </ReTableColumn>
+          <ReTableColumn label="时间" width="96">
+            <template #default="{ row }">
+              <span class="mono dim">{{ (row.msMonitorAlarmEventTriggerTime || "").slice(5, 16) }}</span>
+            </template>
+          </ReTableColumn>
+        </ReTable>
         <div v-if="totalAlarms > 5" class="see-all">
           <ReButton icon="ArrowRight" size="small" link type="primary" @click="router.push('/alarms')">查看全部</ReButton>
         </div>
@@ -345,18 +362,8 @@ onBeforeUnmount(() => {
 .sev-P2 { color: var(--status-warning); }
 .sev-P3, .sev-P4 { color: var(--text-tertiary); }
 
-.t {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-.t th, .t td {
-  padding: 8px 6px;
-  text-align: left;
-  border-bottom: 1px solid var(--border-subtle);
-  color: var(--text-primary);
-}
-.t th { color: var(--text-secondary); font-weight: 500; }
+/* 最近告警表：统一走 ReTable（全站唯一数据表实现），这里只压一档字号 */
+.alarm-table { font-size: 12px; }
 .truncate { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mono { font-family: monospace; }
 .dim { color: var(--text-tertiary); }

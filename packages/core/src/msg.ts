@@ -180,7 +180,7 @@ const notification = {
 };
 
 /** ElMessageBox 对象风格 */
-const messageBox = {
+export const messageBox = {
   confirm: msgBox,
   prompt: msgBoxPrompt,
   alert: msgBoxAlert,

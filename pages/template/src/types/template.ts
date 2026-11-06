@@ -76,6 +76,43 @@ export interface ProviderSyncResult {
   failed: number
 }
 
+/**
+ * 模板详情（按模板 ID 取信息）
+ *
+ * <p>字段形态对齐 MessagePush 发送一条模板消息所需的东西：
+ * {@code sourceCode} → templateId、{@code contentType} → contentType、
+ * {@code content} → content、{@code params} → templateParams 的键。
+ * 自定义模板没有账号与渠道，这几项为空。</p>
+ */
+export interface TemplateSourceDetail {
+  /** 统一模板库主键 */
+  id: string
+  /** 模板名称 */
+  name: string
+  /** 来源：hiprint（自定义）/ message / paper（后两者为固定模板） */
+  source: TemplateSource
+  /** 是否固定模板（三方同步，内容不可改） */
+  fixed: boolean
+  /** 来源行 ID */
+  sourceId?: string
+  /** 三方模板 ID（固定模板才有） */
+  sourceCode?: string
+  /** 归属账号 / 提供商 ID */
+  providerId?: string
+  /** 归属账号 / 提供商名称 */
+  providerName?: string
+  /** 推送渠道标识（MessagePush.create 用） */
+  channel?: string
+  /** 内容类型 */
+  contentType?: string
+  /** 模板内容 */
+  content?: string
+  /** 内容里的占位符参数名 */
+  params?: string[]
+  /** 备注 */
+  remark?: string
+}
+
 /** 模板实体（透传后端） */
 export interface TemplateInfo {
   /** 模板 ID */
@@ -96,6 +133,8 @@ export interface TemplateInfo {
   providerId?: string
   /** 来源行 ID（消息/组卷模板的主键 ID，hiprint 时缺省） */
   sourceId?: string
+  /** 三方模板 ID（固定模板才有，来源侧的模板编码；自定义模板为空） */
+  sourceCode?: string
   /** 来源提供方（消息提供商 ID / 组卷归属用户 ID），与 providerId 同理且兼容旧字段 */
   sourceProviderId?: string
   /** 创建者 */

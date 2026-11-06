@@ -10,6 +10,7 @@
  */
 import { computed, onMounted, ref } from "vue";
 import { message } from "@repo/core";
+import ReTable from "@repo/ui/re-table";
 import { Refresh } from "@element-plus/icons-vue";
 import {
   getMonitorNodes,
@@ -127,37 +128,44 @@ onMounted(load);
         <span class="filter-count">共 {{ rows.length }} 条</span>
       </div>
 
-      <el-table v-loading="loading" :data="rows" row-key="clientId" border empty-text="暂无注册节点">
-        <el-table-column prop="applicationName" label="应用名" min-width="180" show-overflow-tooltip>
+      <ReTable
+        :data="rows"
+        :loading="loading"
+        row-key="clientId"
+        border
+        empty-text="暂无注册节点"
+        :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+      >
+        <ReTableColumn prop="applicationName" label="应用名" min-width="180" show-overflow-tooltip>
           <template #default="{ row }">{{ row.applicationName || "—" }}</template>
-        </el-table-column>
-        <el-table-column prop="hostname" label="主机名" min-width="150" show-overflow-tooltip>
+        </ReTableColumn>
+        <ReTableColumn prop="hostname" label="主机名" min-width="150" show-overflow-tooltip>
           <template #default="{ row }">{{ row.hostname || "—" }}</template>
-        </el-table-column>
-        <el-table-column label="地址" min-width="160">
+        </ReTableColumn>
+        <ReTableColumn label="地址" min-width="160">
           <template #default="{ row }">{{ addressText(row) }}</template>
-        </el-table-column>
-        <el-table-column prop="serviceUrl" label="服务地址" min-width="220" show-overflow-tooltip>
+        </ReTableColumn>
+        <ReTableColumn prop="serviceUrl" label="服务地址" min-width="220" show-overflow-tooltip>
           <template #default="{ row }">{{ row.serviceUrl || "—" }}</template>
-        </el-table-column>
-        <el-table-column prop="activeProfiles" label="环境" width="110">
+        </ReTableColumn>
+        <ReTableColumn prop="activeProfiles" label="环境" width="110">
           <template #default="{ row }">{{ row.activeProfiles || "—" }}</template>
-        </el-table-column>
-        <el-table-column prop="javaVersion" label="Java" width="110">
+        </ReTableColumn>
+        <ReTableColumn prop="javaVersion" label="Java" width="110">
           <template #default="{ row }">{{ row.javaVersion || "—" }}</template>
-        </el-table-column>
-        <el-table-column label="状态" width="100">
+        </ReTableColumn>
+        <ReTableColumn label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="row.online ? 'success' : 'info'" effect="plain">{{ row.online ? "在线" : "离线" }}</el-tag>
           </template>
-        </el-table-column>
-        <el-table-column label="最后心跳" width="180">
+        </ReTableColumn>
+        <ReTableColumn label="最后心跳" width="180">
           <template #default="{ row }">{{ timeText(row.lastHeartbeat) }}</template>
-        </el-table-column>
-        <el-table-column label="注册时间" width="180">
+        </ReTableColumn>
+        <ReTableColumn label="注册时间" width="180">
           <template #default="{ row }">{{ timeText(row.registerTime) }}</template>
-        </el-table-column>
-      </el-table>
+        </ReTableColumn>
+      </ReTable>
     </div>
   </div>
 </template>

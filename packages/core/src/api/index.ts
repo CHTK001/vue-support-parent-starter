@@ -328,6 +328,7 @@ export function saveLayout(data: UserLayoutData) {
 export * from "./stationMessage";
 export * from "./backendProbe";
 export * from "./capability";
+export * from "./exchangeRate";
 export * from "./weather";
 export * from "./typhoon";
 export * from "./holiday";

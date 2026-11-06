@@ -43,6 +43,8 @@ const SoftwareTab = defineAsyncComponent(() => import("../components/lab/ScSoftw
 // （Linux：journalctl / /var/log；Windows：wevtutil），不是 @pages/system 里平台软件的
 // SysLogManage / UserLogManage。命令经主机通道下发，页签打开即带 hostId。
 const HostLogsTab = defineAsyncComponent(() => import("../components/lab/ScHostLogs.vue"));
+// 主机告警策略：从主机右键菜单打开，策略按 ms_server_host_id 归属本机
+const HostAlarmPolicyTab = defineAsyncComponent(() => import("../components/lab/ScHostAlarmPolicy.vue"));
 
 /**
  * 弹窗 / 浮层 / 底部指标条：同样异步加载。
@@ -69,6 +71,7 @@ import { privateIpTextOf } from "../utils/hostProfileUi";
 import { submitAgentAction } from "../api";
 import { hostAssetsSse, type HostSummaryPush } from "../services/realtime";
 import ReTabs from "@repo/ui/re-tabs";
+import ReLoader from "@repo/ui/re-loader";
 import type { ReTabsContextItem, ReTabsItem } from "@repo/ui/re-tabs";
 
 export interface Host {
@@ -624,6 +627,7 @@ type TabKind =
   | "ops-snippets"
   | "ops-maintenance"
   | "host-accounts"
+  | "alarm-policy"
   | "software"
   | "schedule";
 
@@ -657,6 +661,7 @@ const TAB_KINDS: Record<TabKind, TabKindMeta> = {
   "ops-snippets": { label: "片段管理", icon: "DocumentCopy" },
   "ops-maintenance": { label: "维护计划", icon: "Clock" },
   "host-accounts": { label: "主机账号", icon: "User" },
+  "alarm-policy": { label: "告警策略", icon: "Bell" },
   software: { label: "软件管理", icon: "Box" },
   schedule: { label: "调度信息", icon: "Clock" },
 };
@@ -776,6 +781,8 @@ function panelLabelOf(p: "screen" | "docker" | "k8s" | "tunnel" | "tunnel-revers
 function closeTab(name: string): void {
   const idx = openTabs.value.findIndex(t => t.name === name);
   if (idx < 0) return;
+  // 页签关掉就把它的异步态一起丢掉：同名页签重开时必须从干净的加载态开始
+  delete tabAsyncBusy[name];
   const rest = openTabs.value.filter(t => t.name !== name);
   openTabs.value = rest;
   if (activeTab.value !== name) return;
@@ -801,6 +808,7 @@ function closeTabsToRight(name: string): void {
 function closeAllTabs(): void {
   openTabs.value = [];
   activeTab.value = "";
+  for (const key of Object.keys(tabAsyncBusy)) delete tabAsyncBusy[key];
 }
 
 /** 当前激活的页签对象 */
@@ -821,6 +829,61 @@ const statusHost = computed<Host | null>(() => activeTabHost.value ?? selectedHo
 
 /** 页签刷新代次（按页签 name 计），作为子组件 key 的一部分，变化即重建内容 */
 const tabReloadSeq = reactive<Record<string, number>>({});
+/** 页签首次打开 / 切换时的局部加载动画；不重建终端会话 */
+const tabLoading = ref(false);
+let tabLoadingTimer: ReturnType<typeof setTimeout> | null = null;
+
+function showTabLoading(): void {
+  if (tabLoadingTimer) clearTimeout(tabLoadingTimer);
+  tabLoading.value = true;
+  tabLoadingTimer = setTimeout(() => {
+    tabLoading.value = false;
+    tabLoadingTimer = null;
+  }, 260);
+}
+
+watch(activeTab, () => showTabLoading());
+onBeforeUnmount(() => {
+  if (tabLoadingTimer) clearTimeout(tabLoadingTimer);
+});
+
+/**
+ * 页签内容是否还在等懒加载分包。
+ *
+ * <p>tabLoading 只管「切页签」那一下的 260ms 视觉过渡，它不知道分包要下多久：
+ * 首次打开画像 / 运维台这类大页面时，Vite 现场编译 + 下载往往超过 260ms，
+ * 过渡动画早早收掉，页签面板就只剩一片白。这里把 <b>真实</b>的异步边界
+ * 接进来 —— 面板里的 Suspense 挂起时点亮、解析完成时熄灭，两种情况取并集，
+ * 加载动画才会一直盖到内容真正渲染为止。</p>
+ *
+ * <p>只记布尔值而不是计数：Suspense 一次挂起只会发一次 pending、全部解析后
+ * 发一次 resolve，重复 pending 不会把状态卡在 true。</p>
+ */
+const tabAsyncBusy = reactive<Record<string, boolean>>({});
+
+/** 页签内的异步依赖开始挂起 */
+function markTabPending(name: string): void {
+  if (!name) return;
+  tabAsyncBusy[name] = true;
+}
+
+/** 页签内的异步依赖全部解析（分包已就绪，可以渲染真实内容） */
+function markTabResolved(name: string): void {
+  if (!name) return;
+  delete tabAsyncBusy[name];
+}
+
+/**
+ * 某个页签内容的加载态。
+ *
+ * <p>两个来源取并集：真在等分包（tabAsyncBusy），或正处于切页签的短暂过渡期
+ * （只有当前页签参与，避免后台页签跟着闪）。</p>
+ *
+ * @param name 页签 name
+ */
+function tabLoadingOf(name: string): boolean {
+  return tabAsyncBusy[name] === true || (name === activeTab.value && tabLoading.value);
+}
 
 /**
  * 取某个页签当前的刷新代次（未刷新过为 0）。
@@ -869,6 +932,8 @@ function onTabCommand(payload: { key: string; tab: ReTabsItem }): void {
     case "refresh":
       // 按页签计数：刷 A 页签不该顺手把 B 页签也重建（B 可能正在跑终端会话）
       tabReloadSeq[name] = reloadSeqOf(name) + 1;
+      // 重建过程本身有读取耗时，给同一块内容区一次加载动画，避免白屏闪一下
+      showTabLoading();
       break;
     case "reopen": {
       // 先关再开：用于终端会话卡死、文件列表脏数据等需要彻底重建的场景
@@ -937,6 +1002,60 @@ function hoverCtxSub(key: CtxSubKey): void {
 function leaveCtxSub(key: CtxSubKey): void {
   if (ctxSub.value === key) ctxSub.value = null;
 }
+
+/** 浮层与视口边缘的最小间距 */
+const CTX_EDGE = 8;
+
+/**
+ * 把当前展开的二级菜单按实测坐标贴进视口。
+ *
+ * <p>子菜单向上还是向下、向左还是向右，不能按「第几个分组」写死：右键菜单本身
+ * 已经被主定位逻辑翻转过，同一个分组在不同屏幕 / 不同主机名宽度下会处在完全
+ * 不同的位置。这里统一按真实 rect 判断——右侧放不下就翻到左侧，底部放不下就
+ * 整体上移，最后用 max-height 兜底，保证任何一项都不会跑到 DOM 视口外面。</p>
+ */
+function fitCtxSub(): void {
+  const menu = ctxMenuEl.value;
+  if (!menu) return;
+  const item = menu.querySelector<HTMLElement>(".host-ctx-item.has-sub.is-open");
+  const sub = item?.querySelector<HTMLElement>(".host-ctx-sub");
+  if (!item || !sub) return;
+
+  // 清掉上一轮写入的内联值，回到 CSS 默认位置重新测量
+  sub.style.left = "";
+  sub.style.right = "";
+  sub.style.top = "";
+  sub.style.bottom = "";
+  sub.style.maxHeight = "";
+
+  const ir = item.getBoundingClientRect();
+  const sw = sub.offsetWidth;
+  const sh = sub.offsetHeight;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  // 横向：默认贴分组项右侧；右边放不下就翻到左边，两边都紧张时贴右边缘收口
+  let left = ir.right + 2;
+  if (left + sw > vw - CTX_EDGE) {
+    const flipped = ir.left - sw - 2;
+    left = flipped >= CTX_EDGE ? flipped : Math.max(CTX_EDGE, vw - sw - CTX_EDGE);
+  }
+
+  // 纵向：与分组项顶端对齐（-6px 视觉贴合），越界则整体上移到视口内
+  let top = ir.top - 6;
+  if (top + sh > vh - CTX_EDGE) top = vh - CTX_EDGE - sh;
+  if (top < CTX_EDGE) top = CTX_EDGE;
+
+  sub.style.left = `${left - ir.left}px`;
+  sub.style.top = `${top - ir.top}px`;
+  sub.style.maxHeight = `${vh - CTX_EDGE * 2}px`;
+}
+
+// 展开哪个分组由 hover / 点击决定，渲染完成后再量真实尺寸回填位置
+watch(ctxSub, async () => {
+  await nextTick();
+  fitCtxSub();
+});
 
 /**
  * 打开主机右键菜单。
@@ -1008,7 +1127,7 @@ function closeCtxMenu(): void {
  *
  * @param kind 页签类型
  */
-function ctxOpenTab(kind: Extract<TabKind, "ops-sessions" | "ops-exec" | "ops-snippets" | "ops-maintenance" | "host-accounts">): void {
+function ctxOpenTab(kind: Extract<TabKind, "ops-sessions" | "ops-exec" | "ops-snippets" | "ops-maintenance" | "host-accounts" | "alarm-policy">): void {
   const h = ctxMenu.host;
   closeCtxMenu();
   if (h) openTab(h, kind);
@@ -1581,22 +1700,23 @@ const statusOverviewRows = computed<MetricRow[]>(() => {
     { label: "分组", value: groupName(h.msServerGroupId) },
     { label: "标签", value: dash(splitTags(h.serverHostTags).join(" / ")) },
     { label: "最近采集", value: dash(h.serverHostLastCollectTime) },
-    {
-      label: "句柄数",
-      value: statusSummary.value.handleCount >= 0 ? statusSummary.value.handleCount.toLocaleString() : "—",
-    },
-    {
-      label: "iNode 使用率",
-      value: statusSummary.value.inodePercent >= 0
-        ? `${statusSummary.value.inodePercent.toFixed(1)}%`
-          + (statusSummary.value.inodeTotal > 0
-            ? `（${statusSummary.value.inodeUsed.toLocaleString()}/${statusSummary.value.inodeTotal.toLocaleString()} · ${statusSummary.value.inodeMount || "/"}）`
-            : "")
-        : "—",
-    },
     { label: "已扫描端口", value: parsePorts(h.serverHostPorts).length ? `${parsePorts(h.serverHostPorts).length} 个` : "未扫描", tip: portTip(h) },
     { label: "Agent", value: h.serverHostAgentInstalled === 1 ? `v${h.serverHostAgentVersion || "?"}` : "未安装" },
   ];
+  // 句柄 / iNode 不是每台主机都取得到（Windows 无 inode、采集通道也可能没回），
+  // 取不到时整行不出现：一排「—」只会让人以为采集坏了。
+  if (statusSummary.value.handleCount >= 0) {
+    rows.push({ label: "句柄数", value: statusSummary.value.handleCount.toLocaleString() });
+  }
+  if (statusSummary.value.inodePercent >= 0) {
+    rows.push({
+      label: "iNode 使用率",
+      value: `${statusSummary.value.inodePercent.toFixed(1)}%`
+        + (statusSummary.value.inodeTotal > 0
+          ? `（${statusSummary.value.inodeUsed.toLocaleString()}/${statusSummary.value.inodeTotal.toLocaleString()} · ${statusSummary.value.inodeMount || "/"}）`
+          : ""),
+    });
+  }
   if (h.serverHostDescription) {
     rows.push({ label: "备注", value: h.serverHostDescription });
   }
@@ -1730,6 +1850,8 @@ function lazyTabOf(name: string): Component | null {
       return OpsMaintenanceTab;
     case "host-accounts":
       return HostAccountTab;
+    case "alarm-policy":
+      return HostAlarmPolicyTab;
     case "schedule":
       return ScheduleTab;
     case "software":
@@ -2372,74 +2494,96 @@ function onGlobalKeydown(e: KeyboardEvent): void {
           @context-command="onTabCommand"
         >
           <template #default="{ tab }">
-            <!-- 画像分区：复用 HostProfileView 的单分区嵌入模式 -->
-            <HostProfileView
-              v-if="tabSectionOf(tab.name)"
-              :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
-              embedded
-              :hosts="hosts"
-              :groups="groups"
-              :host-id="tabHostIdOf(tab.name)"
-              :section="tabSectionOf(tab.name)"
-              :live-delay="liveDelay"
-              :live-online="liveOnline"
-              @connect="openConnect"
-              @edit="openEdit"
-              @detail="(h) => openTab(h, 'metrics')"
-              @deploy-agent="(h) => openDeploy(h, 'install')"
-              @refreshed="fetchAll"
-            />
-            <!-- 远控 -->
-            <TerminalView
-              v-else-if="tabKindOf(tab.name) === 'remote'"
-              :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
-              embedded
-              :host-id="tabHostIdOf(tab.name)"
-              :identity-id="tabOf(tab.name)?.identityId ?? null"
-            />
-            <!-- 文件管理 -->
-            <HostFileManager
-              v-else-if="tabKindOf(tab.name) === 'files'"
-              :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
-              :host-id="tabHostIdOf(tab.name)"
-              :platform="platformOf(tabHostIdOf(tab.name))"
-              :initial-path="tabOf(tab.name)?.path ?? ''"
-            />
-            <!-- 指标监控 -->
-            <HostDetailView
-              v-else-if="tabKindOf(tab.name) === 'metrics'"
-              :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
-              embedded
-              :host-id="tabHostIdOf(tab.name)"
-            />
-            <!-- 主机工作台：分屏 / Docker / K8s / 隧道 / 反向隧道 各开独立页签 -->
-            <ScHostWorkbench
-              v-else-if="tabKindOf(tab.name) === 'workbench'"
-              :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
-              :start="tabOf(tab.name)?.startPanel ?? 'screen'"
-              :host-id="tabHostIdOf(tab.name)"
-              :host-name="hostNameOf(tabHostIdOf(tab.name))"
-              @open-panel="onWorkbenchOpenPanel"
-            />
-            <!-- 目标主机日志页签：系统日志 / 登录日志读的是这台服务器自身（journalctl / wevtutil），
-                 与「运维台 / 软件管理」的通用懒加载区分开，额外传 kind=sys|login -->
-            <HostLogsTab
-              v-else-if="tabKindOf(tab.name) === 'sys-log' || tabKindOf(tab.name) === 'user-log'"
-              :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
-              :host-id="tabHostIdOf(tab.name)"
-              :host-name="hostNameOf(tabHostIdOf(tab.name))"
-              :platform="platformOf(tabHostIdOf(tab.name))"
-              :kind="tabKindOf(tab.name) === 'user-log' ? 'login' : 'sys'"
-            />
-            <!-- 运维台四页 + 主机账号 + 软件管理：懒加载页面收进工作区页签 -->
-            <component
-              :is="lazyTabOf(tab.name)"
-              v-else-if="tabKindOf(tab.name) && lazyTabOf(tab.name)"
-              :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
-              :host-id="tabHostIdOf(tab.name)"
-              :host-name="hostNameOf(tabHostIdOf(tab.name))"
-              :platform="platformOf(tabHostIdOf(tab.name))"
-            />
+            <ReLoader
+              :loading="tabLoadingOf(tab.name)"
+              class="tab-loader"
+              mode="overlay"
+              :fullscreen="false"
+              :mask="false"
+              size="sm"
+              text="加载中…"
+            >
+              <!-- 懒加载页签真正的白屏窗口在分包下载这一段：组件代码没到之前，面板里没有任何节点。
+                   Suspense 把「等分包」接进加载态 —— 挂起即点亮上面这层 ReLoader，解析完成才熄灭；
+                   已缓存的分包只会挂起一个微任务，肉眼看不到闪烁。
+                   fallback 必须自带高度，否则 absolute inset:0 的遮罩没有可覆盖的面。 -->
+              <Suspense
+                @pending="markTabPending(tab.name)"
+                @resolve="markTabResolved(tab.name)"
+              >
+              <!-- 画像分区：复用 HostProfileView 的单分区嵌入模式 -->
+              <HostProfileView
+                v-if="tabSectionOf(tab.name)"
+                :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
+                embedded
+                :hosts="hosts"
+                :groups="groups"
+                :host-id="tabHostIdOf(tab.name)"
+                :section="tabSectionOf(tab.name)"
+                :live-delay="liveDelay"
+                :live-online="liveOnline"
+                @connect="openConnect"
+                @edit="openEdit"
+                @detail="(h) => openTab(h, 'metrics')"
+                @deploy-agent="(h) => openDeploy(h, 'install')"
+                @refreshed="fetchAll"
+              />
+              <!-- 远控 -->
+              <TerminalView
+                v-else-if="tabKindOf(tab.name) === 'remote'"
+                :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
+                embedded
+                :host-id="tabHostIdOf(tab.name)"
+                :identity-id="tabOf(tab.name)?.identityId ?? null"
+              />
+              <!-- 文件管理 -->
+              <HostFileManager
+                v-else-if="tabKindOf(tab.name) === 'files'"
+                :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
+                :host-id="tabHostIdOf(tab.name)"
+                :platform="platformOf(tabHostIdOf(tab.name))"
+                :initial-path="tabOf(tab.name)?.path ?? ''"
+              />
+              <!-- 指标监控 -->
+              <HostDetailView
+                v-else-if="tabKindOf(tab.name) === 'metrics'"
+                :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
+                embedded
+                :host-id="tabHostIdOf(tab.name)"
+              />
+              <!-- 主机工作台：分屏 / Docker / K8s / 隧道 / 反向隧道 各开独立页签 -->
+              <ScHostWorkbench
+                v-else-if="tabKindOf(tab.name) === 'workbench'"
+                :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
+                :start="tabOf(tab.name)?.startPanel ?? 'screen'"
+                :host-id="tabHostIdOf(tab.name)"
+                :host-name="hostNameOf(tabHostIdOf(tab.name))"
+                @open-panel="onWorkbenchOpenPanel"
+              />
+              <!-- 目标主机日志页签：系统日志 / 登录日志读的是这台服务器自身（journalctl / wevtutil），
+                   与「运维台 / 软件管理」的通用懒加载区分开，额外传 kind=sys|login -->
+              <HostLogsTab
+                v-else-if="tabKindOf(tab.name) === 'sys-log' || tabKindOf(tab.name) === 'user-log'"
+                :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
+                :host-id="tabHostIdOf(tab.name)"
+                :host-name="hostNameOf(tabHostIdOf(tab.name))"
+                :platform="platformOf(tabHostIdOf(tab.name))"
+                :kind="tabKindOf(tab.name) === 'user-log' ? 'login' : 'sys'"
+              />
+              <!-- 运维台四页 + 主机账号 + 软件管理：懒加载页面收进工作区页签 -->
+              <component
+                :is="lazyTabOf(tab.name)"
+                v-else-if="tabKindOf(tab.name) && lazyTabOf(tab.name)"
+                :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
+                :host-id="tabHostIdOf(tab.name)"
+                :host-name="hostNameOf(tabHostIdOf(tab.name))"
+                :platform="platformOf(tabHostIdOf(tab.name))"
+              />
+                <template #fallback>
+                  <div class="tab-suspense-fallback" aria-hidden="true" />
+                </template>
+              </Suspense>
+            </ReLoader>
           </template>
 
           <template #empty>
@@ -2683,6 +2827,10 @@ function onGlobalKeydown(e: KeyboardEvent): void {
         <div class="host-ctx-item" @click="ctxCommand('tab-metrics')">
           <ReIcon name="TrendCharts" /><span>指标监控</span>
         </div>
+        <!-- 编辑主机是最高频的改配动作：不再藏进「主机管理」二级菜单 -->
+        <div class="host-ctx-item" @click="ctxCommand('edit')">
+          <ReIcon name="EditPen" /><span>编辑主机</span>
+        </div>
 
         <!-- 主机工作台：分屏 / K8s / 隧道 / 反向隧道（分屏工具条的 Docker 按钮走 /docker 独立页） -->
         <div
@@ -2800,6 +2948,9 @@ function onGlobalKeydown(e: KeyboardEvent): void {
             <div class="host-ctx-item" @click="ctxOpenTab('host-accounts')">
               <ReIcon name="User" /><span>主机账号</span>
             </div>
+            <div class="host-ctx-item" @click="ctxOpenTab('alarm-policy')">
+              <ReIcon name="Bell" /><span>告警策略</span>
+            </div>
             <div class="host-ctx-item" @click="ctxCommand('schedule')">
               <ReIcon name="Clock" /><span>调度信息</span>
             </div>
@@ -2836,7 +2987,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
         >
           <ReIcon name="Setting" /><span>系统</span>
           <ReIcon name="ArrowRight" class="host-ctx-arrow" />
-          <div v-if="ctxSub === 'system'" class="host-ctx-sub is-up" @mouseenter="hoverCtxSub('system')" @mouseleave="leaveCtxSub('system')">
+          <div v-if="ctxSub === 'system'" class="host-ctx-sub" @mouseenter="hoverCtxSub('system')" @mouseleave="leaveCtxSub('system')">
             <div class="host-ctx-item" @click="ctxCommand('open-sys-log')">
               <ReIcon name="Tickets" /><span>系统日志</span>
             </div>
@@ -2850,9 +3001,9 @@ function onGlobalKeydown(e: KeyboardEvent): void {
           </div>
         </div>
 
-        <!-- Agent：只在 Agent 采集模式出现；装没装决定是「安装」还是「重装/升级/卸载」 -->
+        <!-- Agent：非 Agent 采集模式也保留入口——用户要能在这里装 Agent 切换到 Agent 采集；
+             装没装决定是「安装」还是「重装/升级/卸载」 -->
         <div
-          v-if="isAgentMode(ctxMenu.host)"
           class="host-ctx-item has-sub"
           :class="{ 'is-open': ctxSub === 'agent' }"
           @click="toggleCtxSub('agent')"
@@ -2860,7 +3011,8 @@ function onGlobalKeydown(e: KeyboardEvent): void {
         >
           <ReIcon name="Cpu" /><span>Agent</span>
           <ReIcon name="ArrowRight" class="host-ctx-arrow" />
-          <div v-if="ctxSub === 'agent'" class="host-ctx-sub is-up" @mouseenter="hoverCtxSub('agent')" @mouseleave="leaveCtxSub('agent')">
+          <div v-if="ctxSub === 'agent'" class="host-ctx-sub" @mouseenter="hoverCtxSub('agent')" @mouseleave="leaveCtxSub('agent')">
+            <div class="host-ctx-label">采集模式 · {{ isAgentMode(ctxMenu.host) ? 'Agent' : 'SSH' }}</div>
             <div v-if="!isAgentInstalled(ctxMenu.host)" class="host-ctx-item" @click="ctxCommand('agent-install')">
               <ReIcon name="Download" /><span>安装 Agent</span>
             </div>
@@ -2887,7 +3039,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
         >
           <ReIcon name="DocumentCopy" /><span>复制</span>
           <ReIcon name="ArrowRight" class="host-ctx-arrow" />
-          <div v-if="ctxSub === 'copy'" class="host-ctx-sub is-up" @mouseenter="hoverCtxSub('copy')" @mouseleave="leaveCtxSub('copy')">
+          <div v-if="ctxSub === 'copy'" class="host-ctx-sub" @mouseenter="hoverCtxSub('copy')" @mouseleave="leaveCtxSub('copy')">
             <div class="host-ctx-item" @click="ctxCommand('copy-address')">
               <ReIcon name="Link" /><span>复制地址</span>
             </div>
@@ -3801,6 +3953,40 @@ function onGlobalKeydown(e: KeyboardEvent): void {
 /* ============================================================
    右侧：工作区（页签 + 底部指标条）
    ============================================================ */
+/* 工作区页签内容包在 ReLoader 里：让加载容器接管页签面板的整块高度，
+   否则 TerminalView / HostFileManager 这类 height:100% 的子组件会失去基准高度。
+   遮罩只盖内容区（:fullscreen="false"），切页签时内容不重建、会话不受影响。 */
+.tab-loader {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+}
+
+.tab-loader :deep(.re-loader__content) {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Suspense 挂起时的占位：分包还没到时模板里只有它，
+   需要它自己撑满面板 —— ReLoader 的遮罩是 absolute inset:0，
+   容器没有高度时动画就无处可落，看起来仍旧是白屏。 */
+.tab-suspense-fallback {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  background: var(--el-bg-color);
+}
+
+.tab-loader :deep(.re-loader__mask) {
+  /* 只是「正在切换」的视觉提示，不能把页签内容的点击吃掉 */
+  pointer-events: none;
+}
+
 .as-work {
   display: flex;
   flex: 1 1 auto;
@@ -4071,11 +4257,13 @@ function onGlobalKeydown(e: KeyboardEvent): void {
 .host-ctx-sub .host-ctx-item svg {
   font-size: 13.5px;
 }
-/* 靠下的分组（系统 / Agent / 复制）向上展开。
-   768p 屏上右键菜单本身已经贴底，继续向下弹会把最后几项顶出视口。 */
-.host-ctx-sub.is-up {
-  top: auto;
-  bottom: -6px;
+/* 二级菜单的上下/左右不再按分组硬编码：
+   位置由 fitCtxSub() 在展开后按真实 rect 回填（left/top 内联值），
+   这里只留兜底上限，超高时菜单内部滚动而不是撑出视口。 */
+.host-ctx-sub {
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .host-ctx-sep {
   height: 1px;

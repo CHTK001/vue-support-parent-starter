@@ -14,7 +14,7 @@
 import { message } from '@repo/core';
 import { Loading } from '@element-plus/icons-vue';
 import { useTabsStore } from '@repo/pinia';
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, onUnmounted, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import ReDialog from '@repo/ui/re-dialog';
 import ReSelect from '@repo/ui/re-select';
@@ -135,11 +135,55 @@ const saveStudent = async () => {
   }
 };
 
+/**
+ * 判分进度轮询。
+ *
+ * <p>扫描任务提交后详情页会立刻被打开，此时后台还在「识别 → 判分」。
+ * 页面此前只在挂载时拉一次结果，老师看到的状态会一直停在「判分中」，
+ * 必须手动刷新才能看到分数——这正是「无人参与」链路上的一处人为断点。
+ * 这里在未判完时每 3 秒刷一次汇总，判完自动重拉结构（逐题分只在判完后才有）。</p>
+ */
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+const stopPolling = () => {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+};
+
+const startPolling = () => {
+  stopPolling();
+  const currentId = taskId.value;
+  if (!currentId) return;
+  pollTimer = setInterval(async () => {
+    // 期间换了任务：本轮的请求已经过期，直接停
+    if (taskId.value !== currentId) {
+      stopPolling();
+      return;
+    }
+    try {
+      const data = await eduaiApi.getMarkingResult(currentId);
+      if (taskId.value !== currentId) return;
+      result.value = data;
+      if (data?.finished || Number(data?.taskStatus) === 3) {
+        stopPolling();
+        // 判分结束：结构视图里才带逐题分，重拉一次（会短暂显示「正在读取…」）
+        void load();
+      }
+    } catch {
+      // 单轮失败不打断页面，下一轮继续
+    }
+  }, 3000);
+};
+
 const load = async (silent = false) => {
   if (!taskId.value) {
     failToast('缺少任务号', new Error('请从阅卷记录里选择一份试卷查看'));
     return;
   }
+  // 换任务/重拉前先停掉上一轮轮询，避免两个任务的结果互相覆盖
+  stopPolling();
   // 换任务时先清空：否则新数据回来前会短暂显示上一份卷子的分数
   if (!silent) {
     loading.value = true;
@@ -167,6 +211,10 @@ const load = async (silent = false) => {
         // 结构失败不影响主流程：面板会退回自己拉取并在表格区提示
       });
     result.value = await eduaiApi.getMarkingResult(currentId);
+    // 还在判分：交给轮询自动刷新，判完会自己重拉结构
+    if (!result.value?.finished && Number(result.value?.taskStatus) !== 3) {
+      startPolling();
+    }
   } catch (e) {
     failToast('获取阅卷结果失败', e);
   } finally {
@@ -219,6 +267,9 @@ watch(
   },
   { immediate: true },
 );
+
+// 离开详情页必须停轮询，否则定时器会跟着组件对象一直打接口
+onUnmounted(stopPolling);
 </script>
 
 <template>

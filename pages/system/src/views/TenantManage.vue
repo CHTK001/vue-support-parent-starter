@@ -8,10 +8,12 @@
 import { getGlobalSocketService, message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
 import { ElMessageBox } from "element-plus";
-import { pageForTenant, updateTenant, deleteTenant, updateTenantStatus, resetTenantPassword, getTenant, listForTenant, tenantProvisionCapabilities, startTenantProvision, cancelTenantProvision, tenantProvisionStatus } from "../api/systemApi";
-import type { SysTenant } from "../api/types";
+import { pageForTenant, updateTenant, deleteTenant, updateTenantStatus, resetTenantPassword, getTenant, listForTenant, tenantProvisionCapabilities, startTenantProvision, cancelTenantProvision, tenantProvisionStatus, getTenantEndpoint } from "../api/systemApi";
+import type { SysTenant, TenantEndpointInfo } from "../api/types";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 import type { ProgressSnapshot, ProgressStep } from "@repo/ui/re-progress-dialog";
+import ServiceCatalogPanel from "./components/ServiceCatalogPanel.vue";
+import TenantServiceBindDialog from "./components/TenantServiceBindDialog.vue";
 
 const tenantStatusOptions = [
   { label: "启用", value: 0 },
@@ -86,9 +88,66 @@ const pwdDialogVisible = ref(false);
 
 const listForSelect = ref<SysTenant[]>([]);
 
+/** 页签：租户列表 / 服务目录（服务是租户域的一部分，放同一页避免多一个菜单） */
+const activeTab = ref("tenant");
+
+/** 分配服务弹窗 */
+const bindVisible = ref(false);
+const bindTenant = ref<SysTenant>({});
+
+function handleBindService(row: Record<string, unknown>) {
+  bindTenant.value = { ...(row as unknown as SysTenant) };
+  bindVisible.value = true;
+}
+
+function handleBindSuccess() {
+  tableRef.value?.reload();
+}
+
+/* ================== 租户服务地址（租户端启动自报 / 人工登记） ================== */
+
+/** 地址弹窗：回答「这个租户的请求该打到哪台服务器」，来源可分同步注册与人工登记 */
+const endpointVisible = ref(false);
+const endpointLoading = ref(false);
+const endpointError = ref("");
+const endpointInfo = ref<TenantEndpointInfo | null>(null);
+const endpointTenant = ref<SysTenant>({});
+
+async function loadEndpoint() {
+  const tenantId = endpointTenant.value.sysTenantId;
+  if (!tenantId) return;
+  endpointLoading.value = true;
+  endpointError.value = "";
+  try {
+    const res = await getTenantEndpoint(tenantId);
+    endpointInfo.value = (res?.data ?? null) as TenantEndpointInfo | null;
+  } catch (e) {
+    endpointInfo.value = null;
+    endpointError.value = (e as Error)?.message ?? "查询失败";
+  } finally {
+    endpointLoading.value = false;
+  }
+}
+
+function handleEndpoint(row: Record<string, unknown>) {
+  endpointTenant.value = { ...(row as unknown as SysTenant) };
+  endpointInfo.value = null;
+  endpointError.value = "";
+  endpointVisible.value = true;
+  void loadEndpoint();
+}
+
+/** 地址来源的中文说明：同步注册是租户端启动时自己报上来的，人工登记没有存活证明 */
+function endpointSourceText(info: TenantEndpointInfo | null) {
+  if (!info) return "未登记";
+  return info.source === "sync" ? "同步注册（租户端启动自报）" : "人工登记（sys_tenant_home_url）";
+}
+
 function handleAdd() {
   isEdit.value = false;
-  form.value = { sysTenantStatus: 0, sysTenantDelete: 0 };
+  // 独立库地址默认与平台同机同端口：租户创建表单里最常填的是库名，
+  // 让地址/端口留空会让后端判定「未登记库地址」直接跳过建库建表。
+  form.value = { sysTenantStatus: 0, sysTenantDelete: 0, sysTenantHost: "127.0.0.1", sysTenantPort: 3306 };
   dialogVisible.value = true;
 }
 
@@ -117,6 +176,18 @@ async function handleSubmit() {
     message.warning("请输入租户账号");
     return;
   }
+  // 编码是登录页的输入项，不能留空也不能带空格/大写：这里先归一化，
+  // 否则用户填 "Acme " 建完再用 acme 登录会被后端判「编码不存在」
+  const tenantCode = String(form.value.sysTenantCode || "").trim().toLowerCase();
+  if (!tenantCode) {
+    message.warning("请输入租户编码（租户用户登录时输入）");
+    return;
+  }
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]{1,31}$/.test(tenantCode)) {
+    message.warning("租户编码只能包含数字、字母、下划线和中划线，2-32 位");
+    return;
+  }
+  form.value.sysTenantCode = tenantCode;
   if (!isEdit.value && !form.value.sysTenantPassword) {
     message.warning("请输入租户密码");
     return;
@@ -334,6 +405,8 @@ function handleProvisionClose() {
   provisionVisible.value = false;
   stopProvisionPolling();
   stopProvisionSubscription();
+  // 创建成功后列表必须立刻能看到新租户：弹窗一关就刷新，不用用户手动点刷新
+  tableRef.value?.reload();
 }
 
 async function handleStatusChange(row: Record<string, unknown>) {
@@ -421,7 +494,7 @@ const columns: ReTableColumn[] = [
   { prop: "sysTenantContact", label: "联系人", width: 110 },
   { prop: "sysTenantPhone", label: "手机号", width: 120 },
   { prop: "createTime", label: "创建时间", width: 170 },
-  { prop: "action", label: "操作", width: 200, slot: "action", fixed: "right" },
+  { prop: "action", label: "操作", width: 300, slot: "action", fixed: "right" },
 ];
 
 onMounted(() => {
@@ -432,6 +505,8 @@ onMounted(() => {
 
 <template>
   <div class="system-page">
+    <el-tabs v-model="activeTab" class="tenant-tabs">
+      <el-tab-pane label="租户列表" name="tenant">
     <ReTable
       ref="tableRef"
       table-id="system-tenant"
@@ -479,15 +554,9 @@ onMounted(() => {
           :loading="statusLoading === row.sysTenantId"
           @click="handleStatusChange(row)"
         />
-        <ReButton
-          layout="square"
-          type="info"
-          icon="Key"
-          tip="重置密码"
-          v-admin
-          :loading="resetPasswordLoading === row.sysTenantId"
-          @click="handleResetPassword(row)"
-        />
+        <ReButton layout="square" type="info" icon="Key" tip="重置密码" v-admin :loading="resetPasswordLoading === row.sysTenantId" @click="handleResetPassword(row)" />
+        <ReButton layout="square" type="info" icon="Link" tip="服务地址" @click="handleEndpoint(row)" />
+        <ReButton layout="square" type="success" icon="Connection" tip="分配服务" v-admin @click="handleBindService(row)" />
         <ReButton layout="square" type="danger" icon="Delete" tip="删除" v-admin :loading="deleteLoading === row.sysTenantId" @click="handleDelete(row)" />
       </template>
     </ReTable>
@@ -525,11 +594,15 @@ onMounted(() => {
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="租户编码">
-              <ReInput layout="modern" v-model="form.sysTenantCode" placeholder="请输入租户编码" maxlength="255" show-word-limit />
+            <el-form-item label="租户编码" required>
+              <ReInput layout="modern" v-model="form.sysTenantCode" placeholder="登录时输入，如 acme" maxlength="32" show-word-limit />
             </el-form-item>
           </el-col>
         </el-row>
+        <div class="tenant-code-hint">
+          租户编码是租户登录页要人肉输入的短码（2-32 位字母、数字、下划线、中划线，全平台唯一），
+          例如 <code>acme</code>、<code>t-001</code>；它不是内部租户 ID。修改编码后，租户用户必须用新编码登录。
+        </div>
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="公司">
@@ -631,6 +704,62 @@ onMounted(() => {
       @cancel="handleProvisionCancel"
       @close="handleProvisionClose"
     />
+
+    <!-- 分配服务：勾选新增、取消勾选移除、改到期时间即"增删改" -->
+    <TenantServiceBindDialog v-model:visible="bindVisible" :tenant="bindTenant" @success="handleBindSuccess" />
+
+    <!-- 服务地址：平台登录后把租户请求转到这台机器；来源分「租户端启动自报」与「人工登记」 -->
+    <ReDialog v-model="endpointVisible" title="租户服务地址" width="560" layout="modern" compact destroy-on-close>
+      <div class="endpoint-dialog">
+        <div class="endpoint-dialog__head">
+          <span class="endpoint-dialog__name">{{ endpointTenant.sysTenantName || "未命名租户" }}</span>
+          <code class="endpoint-dialog__code">{{ endpointTenant.sysTenantCode || "-" }}</code>
+          <ReTag v-if="endpointInfo" :type="endpointInfo.online ? 'success' : 'info'" effect="plain" dot>
+            {{ endpointInfo.online ? "在线" : "离线" }}
+          </ReTag>
+        </div>
+
+        <el-alert v-if="endpointError" :title="endpointError" type="error" :closable="false" show-icon />
+
+        <div v-else-if="endpointLoading" class="endpoint-dialog__loading">正在查询租户端注册信息…</div>
+
+        <template v-else-if="endpointInfo">
+          <div class="endpoint-row">
+            <span class="endpoint-row__label">可访问地址</span>
+            <code class="endpoint-row__value endpoint-row__value--url">{{ endpointInfo.url || "未登记" }}</code>
+          </div>
+          <div class="endpoint-row">
+            <span class="endpoint-row__label">地址来源</span>
+            <span class="endpoint-row__value">{{ endpointSourceText(endpointInfo) }}</span>
+          </div>
+          <div class="endpoint-row">
+            <span class="endpoint-row__label">实时在线</span>
+            <span class="endpoint-row__value">{{ endpointInfo.online ? "是（租户端正在运行）" : "否（使用最近一次上报或人工登记地址）" }}</span>
+          </div>
+          <div class="endpoint-row">
+            <span class="endpoint-row__label">租户端应用</span>
+            <span class="endpoint-row__value">{{ endpointInfo.applicationName || "未上报" }}</span>
+          </div>
+          <div class="endpoint-row">
+            <span class="endpoint-row__label">同步会话</span>
+            <span class="endpoint-row__value">{{ endpointInfo.clientId || "-" }}</span>
+          </div>
+        </template>
+
+        <div v-else class="endpoint-dialog__empty">
+          这个租户还没有上报过服务地址。租户端启动后会自动注册；也可以在「编辑租户 - 租户首页」里人工登记。
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="loadEndpoint">刷新</el-button>
+        <el-button type="primary" @click="endpointVisible = false">关闭</el-button>
+      </template>
+    </ReDialog>
+      </el-tab-pane>
+      <el-tab-pane label="服务目录" name="service" lazy>
+        <ServiceCatalogPanel />
+      </el-tab-pane>
+    </el-tabs>
   </div>
 </template>
 
@@ -642,6 +771,21 @@ onMounted(() => {
   padding: 0;
   height: 100%;
   box-sizing: border-box;
+}
+
+/* 页签占满剩余高度：ReTable 依赖父级高度撑开，否则表格会塌成一条 */
+.tenant-tabs {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.tenant-tabs :deep(.el-tabs__content) {
+  flex: 1;
+  min-height: 0;
+}
+.tenant-tabs :deep(.el-tab-pane) {
+  height: 100%;
 }
 
 /* 表格外壳（描边 / 圆角 / 卡片投影 / focus-within 转主色）已由 ReTable 插件提供 */
@@ -665,5 +809,86 @@ onMounted(() => {
   :deep(.log-content-link) {
     transition: none;
   }
+}
+
+/* ================== 租户编码说明 / 服务地址弹窗 ================== */
+
+/* 编码是登录页要人肉输入的短码，必须让创建者看懂「改码 = 旧码失效」 */
+.tenant-code-hint {
+  margin: -4px 0 18px;
+  padding: 8px 12px;
+  border-radius: var(--el-radius-base, 6px);
+  background: var(--el-fill-color-light, #f5f7fa);
+  color: var(--el-text-color-secondary, #909399);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.tenant-code-hint code {
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--el-fill-color, #f0f2f5);
+  color: var(--el-color-primary, #409eff);
+  font-family: var(--el-font-family-mono, monospace);
+}
+
+.endpoint-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.endpoint-dialog__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
+}
+.endpoint-dialog__name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary, #303133);
+}
+.endpoint-dialog__code {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--el-fill-color-light, #f5f7fa);
+  color: var(--el-text-color-regular, #606266);
+  font-family: var(--el-font-family-mono, monospace);
+  font-size: 12px;
+}
+.endpoint-dialog__loading,
+.endpoint-dialog__empty {
+  padding: 14px 12px;
+  border-radius: var(--el-radius-base, 6px);
+  background: var(--el-fill-color-lighter, #fafafa);
+  color: var(--el-text-color-secondary, #909399);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.endpoint-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.endpoint-row__label {
+  flex: 0 0 84px;
+  color: var(--el-text-color-secondary, #909399);
+}
+.endpoint-row__value {
+  flex: 1;
+  min-width: 0;
+  color: var(--el-text-color-primary, #303133);
+  word-break: break-all;
+}
+.endpoint-row__value--url {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--el-fill-color-light, #f5f7fa);
+  color: var(--el-color-primary, #409eff);
+  font-family: var(--el-font-family-mono, monospace);
+  user-select: all;
 }
 </style>

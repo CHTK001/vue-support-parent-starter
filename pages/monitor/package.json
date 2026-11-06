@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "catalog:",
+    "@pages/room": "workspace:*",
     "@pages/server": "workspace:*",
     "@repo/app": "workspace:*",
     "@repo/assets": "workspace:*",

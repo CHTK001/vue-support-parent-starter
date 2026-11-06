@@ -25,7 +25,7 @@
     "hls.js": "catalog:",
     "leaflet": "^1.9.4",
     "pinia": "catalog:",
-    "three": "^0.185.1",
+    "three": "^0.187.0",
     "vue": "catalog:",
     "vue-router": "catalog:"
   },

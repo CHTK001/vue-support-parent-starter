@@ -21,6 +21,7 @@ import { onMounted, onUnmounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 
 import RePageHead from '@/components/ui/RePageHead.vue';
+import ReTable from '@repo/ui/re-table';
 import { channelHealthApi, type ChannelHealthSummary } from '@/services/javaApi';
 
 const loading = ref(false);
@@ -197,19 +198,26 @@ onUnmounted(stopPoll);
 
     <!-- 通道列表 -->
     <div class="ch-table-wrap">
-      <el-table :data="states" stripe v-loading="loading" class="ch-table">
-        <el-table-column prop="providerId" label="供应商" min-width="130" show-overflow-tooltip />
-        <el-table-column prop="channel" label="渠道" min-width="100" show-overflow-tooltip />
-        <el-table-column prop="label" label="连接标签" min-width="150" show-overflow-tooltip />
-        <el-table-column label="状态" width="110" align="center">
+      <ReTable
+        :data="states"
+        :loading="loading"
+        stripe
+        :border="false"
+        class="ch-table"
+        :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+      >
+        <ReTableColumn prop="providerId" label="供应商" min-width="130" show-overflow-tooltip />
+        <ReTableColumn prop="channel" label="渠道" min-width="100" show-overflow-tooltip />
+        <ReTableColumn prop="label" label="连接标签" min-width="150" show-overflow-tooltip />
+        <ReTableColumn label="状态" width="110" align="center">
           <template #default="{ row }">
             <span class="ch-status" :class="stateStyle(row.state).class">
               <i class="ch-status__dot" :style="{ background: stateStyle(row.state).dot }" />
               {{ stateStyle(row.state).label }}
             </span>
           </template>
-        </el-table-column>
-        <el-table-column label="探针结果" width="200" align="center">
+        </ReTableColumn>
+        <ReTableColumn label="探针结果" width="200" align="center">
           <template #default="{ row }">
             <div class="ch-probe">
               <span class="ch-probe__status">{{ row.lastProbeStatus ?? '—' }}</span>
@@ -218,20 +226,20 @@ onUnmounted(stopPoll);
               </span>
             </div>
           </template>
-        </el-table-column>
-        <el-table-column label="连续失败" width="100" align="center">
+        </ReTableColumn>
+        <ReTableColumn label="连续失败" width="100" align="center">
           <template #default="{ row }">
             <span :class="{ 'is-critical': row.consecutiveFailures && row.consecutiveFailures >= 3 }">
               {{ row.consecutiveFailures ?? 0 }}
             </span>
           </template>
-        </el-table-column>
-        <el-table-column label="平均延迟" width="120" align="center">
+        </ReTableColumn>
+        <ReTableColumn label="平均延迟" width="120" align="center">
           <template #default="{ row }">
             {{ formatLatency(row.averageLatency) }}
           </template>
-        </el-table-column>
-        <el-table-column label="操作" width="340" align="center">
+        </ReTableColumn>
+        <ReTableColumn label="操作" width="340" align="center">
           <template #default="{ row }">
             <el-button class="ch-op" :loading="probingId === row.connectionId" @click="probe(row.connectionId)">
               探针
@@ -242,8 +250,8 @@ onUnmounted(stopPoll);
             </el-select>
             <el-button class="ch-op ch-op--danger" @click="resetState(row)">重置</el-button>
           </template>
-        </el-table-column>
-      </el-table>
+        </ReTableColumn>
+      </ReTable>
     </div>
   </div>
 </template>

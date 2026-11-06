@@ -134,26 +134,21 @@ const delayBad = computed(() => {
 
 const onlineText = computed(() => (props.online === 1 ? "在线" : "离线"));
 
-/** 句柄数：取不到显示「—」，不写成 0（0 是「一个句柄都没开」的事实，不是缺失） */
-const handleText = computed(() =>
-  props.handleCount >= 0 ? props.handleCount.toLocaleString() : "—");
+/** 句柄数：只在取得到时渲染，缺失时整项不出现（不写 0，也不占一个「—」） */
+const handleText = computed(() => props.handleCount.toLocaleString());
 
-/** inode 使用率：Windows 等平台没有 inode，显示「—」 */
-const inodeText = computed(() =>
-  props.inodePercent >= 0 ? `${props.inodePercent.toFixed(1)}%` : "—");
+/** inode 使用率：Windows 等平台没有 inode，取不到时整项不出现 */
+const inodeText = computed(() => `${props.inodePercent.toFixed(1)}%`);
 
 /** inode 明细（hover 看已用 / 总量 / 挂载点） */
 const inodeTitle = computed(() => {
-  if (props.inodePercent < 0) return "iNode 使用率：当前平台取不到（Windows 无 inode）";
   const used = props.inodeUsed >= 0 ? props.inodeUsed.toLocaleString() : "—";
   const total = props.inodeTotal >= 0 ? props.inodeTotal.toLocaleString() : "—";
   return `iNode 使用率：${used} / ${total}（${props.inodeMount || "/"}）`;
 });
 
 const handleTitle = computed(() =>
-  props.handleCount >= 0
-    ? `系统句柄数：${props.handleCount.toLocaleString()}（POSIX 为打开的文件描述符数，Windows 为各进程 HandleCount 汇总）`
-    : "系统句柄数：采集通道未返回");
+  `系统句柄数：${props.handleCount.toLocaleString()}（POSIX 为打开的文件描述符数，Windows 为各进程 HandleCount 汇总）`);
 
 /** 三条指标的定义，避免模板里重复三份结构 */
 const bars = computed(() => [
@@ -225,8 +220,8 @@ const bars = computed(() => [
 
     <!-- 连接信息 -->
     <div class="hmb__meta">
-      <span class="hmb__pill is-res" :title="handleTitle">句柄 <b class="hmb__res pf-mono">{{ handleText }}</b></span>
-      <span class="hmb__pill is-res" :title="inodeTitle">iNode <b class="hmb__res pf-mono">{{ inodeText }}</b></span>
+      <span v-if="handleCount >= 0" class="hmb__pill is-res" :title="handleTitle">句柄 <b class="hmb__res pf-mono">{{ handleText }}</b></span>
+      <span v-if="inodePercent >= 0" class="hmb__pill is-res" :title="inodeTitle">iNode <b class="hmb__res pf-mono">{{ inodeText }}</b></span>
       <span class="hmb__pill" :class="online === 1 ? 'is-ok' : 'is-bad'">{{ onlineText }}</span>
       <span class="hmb__pill" :class="{ 'is-warn': delayBad }">{{ delayText }}</span>
       <span v-if="protocol" class="hmb__pill is-proto">{{ protocol.toUpperCase() }}</span>
@@ -253,7 +248,10 @@ const bars = computed(() => [
   min-width: 0;
   min-height: 38px;
   padding: 0 14px;
-  overflow: hidden;
+  /* 不能用 overflow: hidden：概要浮层 .hmb__pop 是子元素，向上弹出会被整条裁掉
+     （现象就是 hover 主机名没有任何反应）。横向溢出由各段自己的 ellipsis 收口，
+     不依赖容器裁剪。 */
+  overflow: visible;
   background: var(--el-bg-color);
   font-size: 12px;
   color: var(--el-text-color-secondary);

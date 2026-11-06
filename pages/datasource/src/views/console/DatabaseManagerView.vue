@@ -134,7 +134,7 @@
         <!-- 数据源选择已删除：独立路由 /db-manager 由外层数据源中心带 datasourceId 进入，
              页内再放一个下拉会和外层左栏的选择打架（两个可改同一个值）。
              这里只读展示当前浏览的数据源，切换请回到外层列表。 -->
-        <span class="dbm-ds-chip">
+        <span class="dbm-ds-chip" data-testid="dbm-ds-chip">
           <ReIcon name="Coin" :size="13" />
           {{ currentDatasourceName }}
         </span>
@@ -6583,6 +6583,7 @@ function resolveDatasourceId(): number {
   return DEFAULT_DATASOURCE.id ?? 0;
 }
 
+
 /**
  * 当前是否正在由 {@link loadDatasources} 初始化数据源。
  *
@@ -6613,13 +6614,14 @@ async function loadDatasources() {
     // 在管理台里彻底消失，并静默回落到默认 MySQL 主数据源。
     const jdbc = list.filter(d => isJdbcFamilyType(d.type));
     datasources.value = [DEFAULT_DATASOURCE, ...jdbc];
-    let requested = resolveDatasourceId();
-    // F5：没有显式指定（路由没带 datasourceId、也不是内嵌模式）时，
-    // 回到上次用的数据源 —— Navicat 就是记住连接的。
-    // 记下来的那个若已不存在，走下面的「未登记」分支如实告知，不静默失败。
-    if (requested <= 0 && viewPref.lastDatasourceId > 0 && !embedded) {
-      requested = viewPref.lastDatasourceId;
-    }
+    const requested = resolveDatasourceId();
+    // ⚠ 这里**不能**再回落「上次用的数据源」。
+    // 入口给的 URL 已经表达了用户的选择：裸 `/db-manager` 就是主数据源
+    // （数据源中心里系统数据源/主数据源走的正是这条，见 ScDataSourceView），
+    // 其它数据源一律带 `?datasourceId=X`；F5 刷新时 hash 里的 query 也还在。
+    // 2026-11 实测过的坑：早先这里是 `if (requested <= 0 && lastDatasourceId > 0)`，
+    // 于是「点主数据源 → 打开管理」被上次停留的跨库合并 ACCEPT_MERGE 顶掉，
+    // 明明点的是主数据源，打开的是合并库。URL 是唯一可信的入口语义。
     if (requested > 0) {
       if (jdbc.some(d => d.id === requested)) {
         currentDatasourceId.value = requested;
@@ -6675,7 +6677,13 @@ async function pruneStaleTablePrefs(): Promise<void> {
   }
 }
 
-/** 数据源切换后：记住它（树 / 表清单 / 偏好的清理都在 loadDatasources → loadTree 里做） */
+/**
+ * 数据源切换后：记录它（树 / 表清单 / 偏好的清理都在 loadDatasources → loadTree 里做）。
+ *
+ * <p>{@code lastDatasourceId} 现在**只作为偏好记录保留，不再参与入口解析** ——
+ * 入口数据源以 URL 为准（裸 {@code /db-manager} = 主数据源），原因见
+ * {@code loadDatasources} 里的注释。</p>
+ */
 watch(currentDatasourceId, id => {
   if (id > 0) {
     saveViewPref({ lastDatasourceId: id });

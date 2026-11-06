@@ -6,13 +6,15 @@
     :offset="10"
     popper-class="koi-weather-popover"
     :show-arrow="false"
-    :disabled="!hasWeather"
   >
     <template #reference>
       <div class="weather-trigger">
         <ReIcon v-if="weatherCode != null" :name="wmoToFluentIcon(weatherCode)" size="20" class="trigger-icon" />
         <el-icon v-else :size="16" class="trigger-icon"><Loading /></el-icon>
-          <span v-if="hasWeather" class="trigger-temp">{{ temp }}°C</span>
+        <!-- 温度常驻顶栏（无数据/加载中为 `--`，数据就绪后直接展示实况温度） -->
+        <span class="trigger-temp">
+          {{ temp ?? '--' }}°C
+        </span>
         </div>
       </template>
 

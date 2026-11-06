@@ -4,7 +4,7 @@
 #
 # 结构：一个采集调度系统 app，依赖两个平级 pages 模块——@pages/collect（采集）与 @pages/job（调度）
 # 后端：spring-api-support-collect-scheduler-starter（采集调度系统，18190，context-path /collect/api）
-#       采集能力来自 spring-api-support-collect-starter，调度能力来自 spring-support-job-starter
+#       采集能力来自 spring-support-collect-starter（parent reactor），调度能力来自 spring-support-job-starter
 # 鉴权：完全复用框架 oauth 体系——后端是 oauth-client 的 AuthFilter + static 协议，
 #       登录接口是 common-system 内嵌的 /v2/user/login（校验 sys_user 并自签 SM4 令牌），
 #       前端登录页、令牌守卫、过期跳转都走框架自带能力，本应用不自带登录界面。

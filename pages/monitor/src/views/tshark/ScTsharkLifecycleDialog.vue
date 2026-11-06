@@ -5,20 +5,23 @@
   还原整条流（HTTP / TLS / SSH 等 TCP 上的协议同样支持），返回客户端 / 服务端方向、
   三次或四次握手判定，以及按时间排好的报文序列。
 
-  两段展示：
-    ① 时序图：客户端 / 服务端两条泳道，箭头按方向画，点箭头直接打开该报文详情；
-    ② 明细表：用 ReTable 列出每一步的时间、方向、TCP 标志、长度与摘要 ——
-       时序图给「长什么样」，表给「具体值」，截图与排查都用得上。
+  形态：80% 宽的抽屉，内部左右分栏 ——
+    左：① 头部（握手判定 / RTT / TTFB / 跨度）；② 一次请求的阶段耗时；③ 时序图；
+        ④ 明细表（ReTable）。
+    右：选中报文的字段详情 + 它所属的 HTTP 事务（请求头 / 请求体 / 响应头 / 响应体，
+        由 ScTsharkHttpInfo 渲染，与报文详情抽屉共用一套）。
+
+  交互：点时间线箭头或明细行只切换右侧内容，不再叠第二层抽屉；真要单独看一帧，
+  右栏顶部有「单独打开」。HTTP 头与正文来自解析阶段入库的列，不打开时回扫 pcap。
 
   为什么不画成 ECharts：步骤数通常个位数到几十，原生 DOM 已经够用；
   引入图表库只为一条时间线，打包体积与主题适配都不划算。
 -->
 <template>
-  <ReDialog
+  <ReDrawer
     :model-value="modelValue"
     :title="title"
-    width="1000px"
-    top="5vh"
+    size="80%"
     footer-hidden
     @update:model-value="onOpenChange"
   >
@@ -29,7 +32,8 @@
       <ReButton icon="Refresh" @click="load">重试</ReButton>
     </div>
 
-    <template v-else-if="data">
+    <div v-else-if="data" class="lc-body">
+      <section class="lc-left">
       <div class="lc-head">
         <ReTag :type="kindType" effect="plain">{{ data.handshake.label }}</ReTag>
         <ReTag :type="data.handshake.closed ? 'success' : 'info'" effect="plain">
@@ -113,11 +117,11 @@
             :class="[
               step.fromClient ? 'is-request' : 'is-response',
               phaseClass(step),
-              { 'is-retrans': step.retransmission, 'is-reset': step.reset },
+              { 'is-retrans': step.retransmission, 'is-reset': step.reset, 'is-selected': step.packetId === selectedId },
             ]"
             :style="{ top: 10 + i * STEP_H + 'px' }"
-            :title="`${step.info || ''}${step.restored ? ' · ' + step.restored : ''}（点击查看报文详情）`"
-            @click="emit('open-detail', step.packetId)"
+            :title="`${step.info || ''}${step.restored ? ' · ' + step.restored : ''}（点击在右侧查看详情）`"
+            @click="selectStep(step.packetId)"
           >
             <span class="lc-step__line" />
             <span class="lc-step__arrow" />
@@ -150,7 +154,7 @@
             <span class="tshark-mono">{{ row.relativeMs === 0 ? '0ms' : `+${formatMs(Number(row.relativeMs))}` }}</span>
           </template>
         </ReTableColumn>
-        <ReTableColumn label="阶段" width="82" align="center">
+        <ReTableColumn label="阶段" width="96" align="center">
           <template #default="{ row }">
             <span class="lc-phase" :class="phaseClass(row)">
               <i class="lc-dot" :class="phaseClass(row)"></i>{{ row.phase || 'DATA' }}
@@ -189,20 +193,71 @@
           </template>
         </ReTableColumn>
       </ReTable>
-    </template>
-  </ReDialog>
+      </section>
+
+      <aside class="lc-right">
+        <header class="lc-right__head">
+          <h4>报文详情</h4>
+          <span v-if="selectedStep" class="lc-meta">
+            {{ selectedStep.relativeMs === 0 ? '0ms' : '+' + formatMs(selectedStep.relativeMs) }}
+          </span>
+          <span class="spacer"></span>
+          <ReButton v-if="selectedId != null" link type="primary" @click="emit('open-detail', selectedId)">
+            单独打开
+          </ReButton>
+        </header>
+
+        <template v-if="selectedStep">
+          <ReDescriptions :column="2" border size="small">
+            <ReDescriptionsItem label="时间">{{ selectedStep.time || '—' }}</ReDescriptionsItem>
+            <ReDescriptionsItem label="方向">
+              {{ selectedStep.fromClient ? '客户端 → 服务端' : '服务端 → 客户端' }}
+            </ReDescriptionsItem>
+            <ReDescriptionsItem label="标志">{{ selectedStep.flags || 'DATA' }}</ReDescriptionsItem>
+            <ReDescriptionsItem label="长度">{{ selectedStep.length ?? 0 }} 字节</ReDescriptionsItem>
+            <ReDescriptionsItem label="摘要" :span="2">{{ selectedStep.info || '—' }}</ReDescriptionsItem>
+          </ReDescriptions>
+
+          <div v-if="transaction.request || transaction.response" class="lc-http">
+            <div class="lc-http__head">
+              <h4>HTTP 事务</h4>
+              <span class="lc-meta">请求头 · 请求体 · 响应头 · 响应体</span>
+            </div>
+            <template v-if="transaction.request">
+              <ScTsharkHttpInfo :packet="transaction.request" />
+            </template>
+            <template v-if="transaction.response">
+              <ScTsharkHttpInfo :packet="transaction.response" />
+            </template>
+          </div>
+
+          <div v-else-if="selectedDetail?.httpRequestHead || selectedDetail?.httpResponseHead" class="lc-http">
+            <ScTsharkHttpInfo :packet="selectedDetail" />
+          </div>
+
+          <section v-if="selectedDetail?.restoredText" class="lc-block">
+            <h4>协议还原</h4>
+            <pre class="lc-pre">{{ selectedDetail.restoredText }}</pre>
+          </section>
+        </template>
+
+        <ReEmpty v-else description="点左侧时序图或明细行查看该报文" layout="modern" />
+      </aside>
+    </div>
+  </ReDrawer>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import ReButton from '@repo/ui/re-button'
-import ReDialog from '@repo/ui/re-dialog'
+import ReDrawer from '@repo/ui/re-drawer'
 import ReEmpty from '@repo/ui/re-empty'
 import ReIcon from '@repo/ui/re-icon'
 import ReTable from '@repo/ui/re-table'
 import ReTag from '@repo/ui/re-tag'
-import { getTsharkHandshake } from '../../api'
+import { getTsharkHandshake, getTsharkPacketDetail } from '../../api'
 import { buildLifecycleBreakdown } from './lifecyclePhases'
+import ScTsharkHttpInfo from './ScTsharkHttpInfo.vue'
 import type { TsharkHandshake, TsharkPacket, TsharkStep } from './types'
 
 /** 时序图每步的行高（px）：箭头 + 标签要放得下，又不能把几十步拉成一条长卷 */
@@ -231,6 +286,143 @@ const steps = computed<TsharkStep[]>(() => data.value?.steps ?? [])
 const visibleSteps = computed<TsharkStep[]>(() =>
   hideAck.value ? steps.value.filter(s => !isPureAck(s)) : steps.value)
 const durationMs = computed(() => steps.value.length ? steps.value[steps.value.length - 1].relativeMs : 0)
+
+// ==================== 右侧：选中报文详情 + HTTP 事务 ====================
+/** 当前选中的步骤（右侧详情跟着它走） */
+const selectedId = ref<number | null>(null)
+const selectedStep = computed<TsharkStep | null>(() =>
+  steps.value.find(s => s.packetId === selectedId.value) ?? null)
+
+/** 报文完整详情（含 HTTP 头 / 正文）：按 id 缓存，来回点不用重复拉 */
+const detailCache = new Map<number, TsharkPacket>()
+const selectedDetail = ref<TsharkPacket | null>(null)
+const requestDetail = ref<TsharkPacket | null>(null)
+const responseDetail = ref<TsharkPacket | null>(null)
+
+/** 当前 HTTP 事务：选中请求就是它自己 + 后面的响应；选中响应就是前面的请求 + 它自己 */
+const transaction = computed(() => ({
+  request: requestDetail.value,
+  response: responseDetail.value,
+}))
+
+/** 把步骤区限定为 HTTP 帧（phase 由后端按 info 判定） */
+function isHttpStep(step: TsharkStep): boolean {
+  return String(step.phase || '').toUpperCase() === 'HTTP'
+}
+
+/**
+ * 为某个步骤找出它所属的 HTTP 请求 / 响应。
+ *
+ * <p>生命周期里用户关心的是「这一次请求到底发了什么、回了什么」：选中响应包时
+ * 也要能看到它对应的请求头与请求体，所以按相邻的请求-响应配对，而不是只看选中帧。</p>
+ *
+ * @param id 选中的报文 id
+ * @returns 请求 / 响应各自的报文 id；没有则为 null
+ */
+function pairIds(id: number): { req: number | null, resp: number | null } {
+  const all = steps.value
+  const idx = all.findIndex(s => s.packetId === id)
+  if (idx < 0) {
+    return { req: null, resp: null }
+  }
+  const selected = all[idx]
+  let reqIdx = -1
+  if (isHttpStep(selected)) {
+    if (selected.fromClient) {
+      reqIdx = idx
+    } else {
+      for (let i = idx - 1; i >= 0; i--) {
+        if (isHttpStep(all[i]) && all[i].fromClient) {
+          reqIdx = i
+          break
+        }
+      }
+    }
+  } else {
+    // 握手 / ACK / 挥手帧本身没有 HTTP 头：给它找最近的 HTTP 事务（优先向后），
+    // 右侧仍然能回答「这条流请求了什么、回了什么」
+    for (let i = idx + 1; i < all.length; i++) {
+      if (isHttpStep(all[i]) && all[i].fromClient) {
+        reqIdx = i
+        break
+      }
+    }
+    if (reqIdx < 0) {
+      for (let i = idx - 1; i >= 0; i--) {
+        if (isHttpStep(all[i]) && all[i].fromClient) {
+          reqIdx = i
+          break
+        }
+      }
+    }
+  }
+  let respIdx = -1
+  if (reqIdx >= 0) {
+    for (let i = reqIdx + 1; i < all.length; i++) {
+      if (isHttpStep(all[i]) && !all[i].fromClient) {
+        respIdx = i
+        break
+      }
+    }
+  }
+  return {
+    req: reqIdx >= 0 ? all[reqIdx].packetId : null,
+    resp: respIdx >= 0 ? all[respIdx].packetId : null,
+  }
+}
+
+/**
+ * 选中一步并在右侧补齐详情。
+ *
+ * @param id 报文 id
+ */
+async function selectStep(id: number) {
+  selectedId.value = id
+  await loadSelected()
+}
+
+/**
+ * 拉取选中报文与配对报文的详情。
+ *
+ * <p>详情包含 HTTP 头与正文，列表接口不返回；这里按需取，且同一帧只取一次。</p>
+ */
+async function loadSelected() {
+  const id = selectedId.value
+  const sid = props.sessionId
+  if (id == null || sid == null) return
+
+  const pair = pairIds(id)
+  const need = new Set<number>([id])
+  if (pair.req != null) need.add(pair.req)
+  if (pair.resp != null) need.add(pair.resp)
+
+  // 先用缓存渲染，避免每次点击都空一下
+  applyDetails(pair)
+
+  const pending = [...need].filter(x => !detailCache.has(x))
+  await Promise.allSettled(pending.map(async x => {
+    try {
+      detailCache.set(x, await getTsharkPacketDetail(sid, x) as TsharkPacket)
+    } catch {
+      // 单帧详情失败不影响整条生命周期，右侧保留已拿到的部分
+    }
+  }))
+  // 竞态丢弃：慢请求回来时用户可能已经点了别的步骤
+  if (selectedId.value !== id) return
+  applyDetails(pair)
+}
+
+/**
+ * 把缓存里的详情映射到右侧三个槽位。
+ *
+ * @param pair 请求 / 响应报文 id
+ */
+function applyDetails(pair: { req: number | null, resp: number | null }) {
+  const id = selectedId.value
+  selectedDetail.value = id != null ? (detailCache.get(id) ?? null) : null
+  requestDetail.value = pair.req != null ? (detailCache.get(pair.req) ?? null) : null
+  responseDetail.value = pair.resp != null ? (detailCache.get(pair.resp) ?? null) : null
+}
 
 /**
  * 阶段耗时。
@@ -292,10 +484,21 @@ async function load() {
   loading.value = true
   error.value = ''
   data.value = null
+  // 换了一条流：旧帧详情不能复用（id 是会话内自增，跨流会撞号）
+  detailCache.clear()
+  selectedDetail.value = null
+  requestDetail.value = null
+  responseDetail.value = null
+  selectedId.value = null
   try {
     data.value = await getTsharkHandshake(sid, id) as TsharkHandshake
     if (!data.value?.steps?.length) {
       error.value = '这条流还没有可展示的报文'
+    } else {
+      // 打开就能看到内容：优先选中第一个 HTTP 请求，没有就选第一步
+      const first = data.value.steps.find(s => String(s.phase || '').toUpperCase() === 'HTTP' && s.fromClient)
+        ?? data.value.steps[0]
+      void selectStep(first.packetId)
     }
   } catch (e: any) {
     if (e?.status === 404) {
@@ -312,8 +515,15 @@ function onOpenChange(v: unknown) {
   emit('update:modelValue', !!v)
 }
 
+/**
+ * 明细行点击 = 在右侧看这条报文。
+ *
+ * <p>与时间线箭头保持一致：抽屉内部不再叠一层抽屉，右侧面板就是「详情」。</p>
+ *
+ * @param row 表格行
+ */
 function onRowClick(row: Record<string, unknown>) {
-  emit('open-detail', Number(row.packetId))
+  void selectStep(Number(row.packetId))
 }
 
 /** 箭头上的短标签：标志位优先，没有标志就是数据帧 */
@@ -335,6 +545,102 @@ function formatMs(ms: number): string {
 
 <style scoped>
 .spacer { flex: 1 1 auto; }
+
+/* ==================== 整体：左生命周期 / 右报文详情 ====================
+   80% 宽的抽屉足够把「整条流长什么样」和「这一帧到底发了什么」并排放；
+   左侧自适应宽度并能独立滚动，右侧固定 420px 只滚自己的内容。 */
+.lc-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  gap: 16px;
+  align-items: start;
+}
+.lc-left {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.lc-right {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  max-height: calc(100vh - 140px);
+  overflow: auto;
+  padding-left: 16px;
+  border-left: 1px solid var(--el-border-color-lighter);
+}
+.lc-right__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.lc-right__head h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.lc-http {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-fill-color-lighter);
+}
+.lc-http__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.lc-http__head h4 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.lc-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.lc-block h4 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.lc-pre {
+  margin: 0;
+  padding: 10px 12px;
+  max-height: 220px;
+  overflow: auto;
+  border-radius: var(--el-radius-sm, 6px);
+  background: var(--el-fill-color-lighter);
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-size: 11px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--el-text-color-regular);
+}
+
+/* 窄屏（抽屉 80% 也可能不够宽）时上下堆叠，右侧不再是侧栏 */
+@media (max-width: 1180px) {
+  .lc-body { grid-template-columns: minmax(0, 1fr); }
+  .lc-right {
+    position: static;
+    max-height: none;
+    padding-left: 0;
+    border-left: 0;
+    padding-top: 12px;
+    border-top: 1px solid var(--el-border-color-lighter);
+  }
+}
 
 .lc-loading { height: 220px; }
 .lc-error {
@@ -484,6 +790,7 @@ function formatMs(ms: number): string {
   align-items: center;
   gap: 5px;
   font-size: 11px;
+  white-space: nowrap;
   color: var(--el-text-color-regular);
 }
 .lc-badge {
@@ -629,6 +936,11 @@ function formatMs(ms: number): string {
 }
 .lc-step:hover .lc-step__label {
   background: color-mix(in srgb, var(--lc-c) 14%, var(--el-bg-color));
+}
+/* 当前选中：左侧点谁，右侧就是谁，所以选中态必须显眼（描边 + 底色） */
+.lc-step.is-selected .lc-step__label {
+  background: color-mix(in srgb, var(--lc-c) 20%, var(--el-bg-color));
+  box-shadow: inset 0 0 0 1px var(--lc-c);
 }
 .lc-step:focus-visible {
   outline: 2px solid var(--el-color-primary);

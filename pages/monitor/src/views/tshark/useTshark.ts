@@ -16,7 +16,7 @@ import {
   getTsharkProtocolStats, getTsharkTopFlows, tsharkPcapUrl, importTsharkPcap,
   getTsharkTimeline, getTsharkAnomalies,
   openTsharkPacketStream,
-  getTsharkStatus, installTshark, openTsharkInstallStream,
+  getTsharkStatus, installTshark, openTsharkGlobalStream,
 } from '../../api'
 import type {
   TsharkAnomaly, TsharkFlow, TsharkInterface, TsharkPacket, TsharkProtocolStat,
@@ -231,8 +231,8 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
           return
         }
         if (event.event === 'session') {
-          // 会话状态变化（停止 / 解析完成）：刷新列表与统计，页数停在第一页时顺手对账
-          void loadSessions(false)
+          // 会话状态变化（停止 / 解析完成）：只刷新统计与明细；会话列表由全局 SSE 统一刷新，
+          // 这里不再重复拉一次，避免同一次变化打两次 sessions 接口
           const phase = event.data?.phase
           if (phase === 'parsed' || phase === 'finished') {
             void loadStats()
@@ -338,18 +338,19 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
 
   // ==================== 初始化 ====================
   async function init() {
+      // 只取一次快照：之后的状态变化（安装进度 / 就绪）与所有会话变化都走全局 SSE，
+      // 不再有 setInterval 轮询 /tshark/status 的兜底路径
     await refreshRuntime()
-    if (!runtime.value?.ready) {
-      // 服务端已经在自己补了，这里接上进度流；中途打开页面也能看到真实进度
-      openInstallStream()
-    }
+    openGlobalStream()
     await Promise.allSettled([loadInterfaces(), loadSessions()])
   }
 
   /**
    * 拉一次运行时状态。
    *
-   * <p>后端未升级（没有 /status）时回落到旧的 /check，页面不至于因为探测失败而整块不可用。</p>
+   * <p>只在初始化时取一次快照；后续由 {@link openGlobalStream} 的 {@code ready} /
+   * {@code progress} 事件增量更新。后端未升级（没有 /status）时回落到旧的 /check，
+   * 页面不至于因为探测失败而整块不可用。</p>
    */
   async function refreshRuntime() {
     try {
@@ -372,74 +373,55 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     if (!next) return
     runtime.value = next
     tsharkOk.value = !!next.ready
-    if (next.ready) {
-      closeInstallStream()
-      stopInstallPoll()
-    }
   }
 
   /**
    * 触发一次安装 / 重试。
    *
-   * <p>失败后不需要重启服务：后端接口是幂等的，这里重新接上进度流即可。</p>
+   * <p>失败后不需要重启服务：后端接口是幂等的，重新接上全局流即可继续看进度。</p>
    */
   async function installNow() {
     try {
       applyRuntime(await installTshark())
-      openInstallStream()
+      openGlobalStream()
     } catch (e) {
       message.error('触发安装失败: ' + errorText(e))
     }
   }
 
-  // ==================== 安装进度 SSE ====================
-  let installStream: { close?: () => void } | null = null
-  let installPollTimer: ReturnType<typeof setInterval> | null = null
+  // ==================== 全局 SSE（运行时状态 + 会话变化） ====================
+  let globalStream: { close?: () => void } | null = null
 
-  /** 关掉安装进度流 */
-  function closeInstallStream() {
-    installStream?.close?.()
-    installStream = null
+  /** 关掉全局事件流 */
+  function closeGlobalStream() {
+    globalStream?.close?.()
+    globalStream = null
   }
 
   /**
-   * 接上安装进度流。
+   * 接上全局事件流。
    *
-   * <p>SSE 断线（代理掐长连接、后端重启）时退回 3s 轮询：进度条停住不动比没有进度条更糟。</p>
+   * <p>一条连接做两件事：把安装进度 / 可用性同步到页面顶部，把会话的新建 / 停止 /
+   * 解析完成 / 删除同步到会话列表。这样任何一处状态变化都不需要轮询。</p>
    */
-  function openInstallStream() {
-    closeInstallStream()
-    installStream = openTsharkInstallStream({
+  function openGlobalStream() {
+    closeGlobalStream()
+    globalStream = openTsharkGlobalStream({
       onMessage: (event: { event?: string; data?: any }) => {
-        if (event.event === 'progress' || event.event === 'ready') {
+        if (event.event === 'ready' || event.event === 'progress') {
           applyRuntime(event.data as TsharkRuntimeStatus)
+          return
+        }
+        if (event.event === 'session') {
+          const payload = event.data || {}
+          if (payload.deleted && activeSessionId.value != null
+            && String(payload.id) === String(activeSessionId.value)) {
+            clearActiveSession()
+          }
+          void loadSessions(false)
         }
       },
-      onError: () => {
-        installStream = null
-        startInstallPoll()
-      },
     })
-  }
-
-  /** 兜底轮询：只在 SSE 不可用时启动 */
-  function startInstallPoll() {
-    if (installPollTimer) return
-    installPollTimer = setInterval(async () => {
-      try {
-        applyRuntime(await getTsharkStatus())
-      } catch {
-        /* 轮询失败保持现状，等下一轮 */
-      }
-    }, 3000)
-  }
-
-  /** 停掉兜底轮询 */
-  function stopInstallPoll() {
-    if (installPollTimer) {
-      clearInterval(installPollTimer)
-      installPollTimer = null
-    }
   }
 
   async function loadInterfaces() {
@@ -793,6 +775,15 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
   }
 
   async function deleteSession(id: number) {
+    // 抓包未停止不允许删：后端 deleteSession 也会以 captureStatus=1 拒绝，
+    // 这里先拦一道是为了不弹「确认删除」后又报错（用户会以为删成功了）。
+    const target = sessions.value.find(s => s.id === id)
+    if (target?.captureStatus === 1) {
+      message.warning(target.source === 'import'
+        ? '该会话正在解析中，请等待解析完成后再删除'
+        : '该会话正在抓包中，请先停止抓包再删除')
+      return
+    }
     try {
       await message.confirm('确认删除该会话及其所有数据包？', '提示', '确定', '取消', 'warning')
     } catch {
@@ -865,8 +856,7 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
   onBeforeUnmount(() => {
     socketUnsubs.forEach(fn => fn?.())
     closePacketStream()
-    closeInstallStream()
-    stopInstallPoll()
+    closeGlobalStream()
     if (liveRefreshTimer) clearTimeout(liveRefreshTimer)
   })
 

@@ -14,7 +14,10 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@logicflow/extension": ["src/components/ReFlowGraph/internals/lfe-typing"]
+      "@logicflow/extension": ["src/components/ReFlowGraph/internals/lfe-typing"],
+      // 线稿图库（空状态动画图 + 加载动画的矢量款）。
+      // 包名自身含空格，bundler 解析在 Windows 上不稳，这里按目录写死一次。
+      "at lucasmarkes/hairline": ["node_modules/at lucasmarkes/hairline/dist/index.d.ts"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]

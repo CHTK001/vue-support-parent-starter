@@ -137,6 +137,10 @@
       "@repo/ui/re-upload-chunk": ["packages/ui/src/components/ReUploadChunk/index.ts"],
       "@repo/ui/re-video-gen": ["packages/ui/src/components/ReVideoGen/index.ts"],
       // @repo/ui/re-* end
+      // 线稿图库（加载动画的矢量款 + 空状态图形共用）。
+      // 必须显式指向真实目录：包名本身含空格与 "at " 前缀，
+      // bundler 解析在 Windows 上不稳定，会报 TS2307。
+      "at lucasmarkes/hairline": ["packages/ui/node_modules/at lucasmarkes/hairline/dist/index.d.ts"],
       "@repo/utils": ["packages/utils/src"],
       "@repo/utils/*": ["packages/utils/src/*"],
       "@repo/work": ["packages/work/src"],

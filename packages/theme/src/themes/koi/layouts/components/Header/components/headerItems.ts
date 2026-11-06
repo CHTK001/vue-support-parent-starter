@@ -15,7 +15,7 @@
  * </ul>
  *
  * <p>内置条目的显隐真相仍是 `other.toolbar.<key>` 布尔（`flag`），items 不改变它；
- * 业务条件（天气是否启用、能力是否部署、计时器/大屏开关）由 `enabled` 表达。</p>
+ * 业务条件（天气是否启用、能力是否部署、计时器/大屏开关、汇率/台风等后台能力）由 `enabled` 表达。</p>
  */
 import type { Component } from "vue";
 import type { AppConfig } from "@repo/config";
@@ -33,9 +33,11 @@ import ReUser from "@repo/theme/koi/layouts/components/Header/components/ReUser.
 import ReBigscreen from "@repo/theme/koi/layouts/components/Header/components/ReBigscreen.vue";
 import ReTimer from "@repo/theme/koi/layouts/components/Header/components/ReTimer.vue";
 import ReWeather from "@repo/theme/koi/layouts/components/Header/components/ReWeather.vue";
+import ReExchangeRate from "@repo/theme/koi/layouts/components/Header/components/ReExchangeRate.vue";
 import ReTyphoon from "@repo/theme/koi/layouts/components/Header/components/ReTyphoon.vue";
 import ReEnvBadge from "@repo/theme/koi/layouts/components/Header/components/ReEnvBadge.vue";
 import ReAlerts from "@repo/theme/koi/layouts/components/Header/components/ReAlerts.vue";
+import ReNoteEntry from "@repo/theme/koi/layouts/components/Header/components/ReNoteEntry.vue";
 
 /** 注册表求值上下文（避免各条目自己重复读 getConfig / 能力开关） */
 export interface HeaderItemContext {
@@ -89,6 +91,12 @@ export const HEADER_ITEMS: readonly HeaderItemDef[] = [
   { key: "searchMenu", component: ReSearchMenu, flag: "searchMenu", keepMounted: true },
   { key: "refresh", component: Refresh, flag: "refresh" },
   { key: "message", component: ReStationMessage, flag: "message" },
+  {
+    key: "quickNote",
+    component: ReNoteEntry,
+    flag: "quickNote",
+    collapsible: false,
+  },
   { key: "dark", component: ReDark, flag: "dark" },
   { key: "language", component: ReLanguage, flag: "language" },
   { key: "fullScreen", component: ReFullScreen, flag: "fullScreen" },
@@ -112,6 +120,13 @@ export const HEADER_ITEMS: readonly HeaderItemDef[] = [
     flag: "weather",
     collapsible: false,
     enabled: (ctx) => ctx.weather?.enable !== false && ctx.capability("weather"),
+  },
+  {
+    key: "exchangeRate",
+    component: ReExchangeRate,
+    flag: "exchangeRate",
+    collapsible: false,
+    enabled: (ctx) => ctx.capability("exchangeRate"),
   },
   {
     key: "typhoon",

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import ReDialog from "@repo/ui/re-dialog";
+import ReTable from "@repo/ui/re-table";
 import { getCertDetail, certStatusInfo, serverLabel, type AcmeCertificateDetail } from "../../../api/acmeApi";
 
 const props = defineProps<{
@@ -190,14 +191,20 @@ function progressPercent(): number {
 
         <div class="block">
           <div class="block-title">申请订单</div>
-          <el-table :data="detail.orders ?? []" size="small" border>
-            <el-table-column prop="acmeOrderId" label="ID" width="80" />
-            <el-table-column prop="acmeOrderStatus" label="状态" width="120">
+          <ReTable
+            :data="detail.orders ?? []"
+            size="small"
+            border
+            :layout-table="{ minHeight: 0 }"
+            :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+          >
+            <ReTableColumn prop="acmeOrderId" label="ID" width="80" />
+            <ReTableColumn prop="acmeOrderStatus" label="状态" width="120">
               <template #default="{ row }">{{ row.acmeOrderStatus || "—" }}</template>
-            </el-table-column>
-            <el-table-column prop="acmeOrderUrl" label="订单 URL" min-width="220" show-overflow-tooltip />
-            <el-table-column prop="updateTime" label="更新时间" width="170" />
-          </el-table>
+            </ReTableColumn>
+            <ReTableColumn prop="acmeOrderUrl" label="订单 URL" min-width="220" show-overflow-tooltip />
+            <ReTableColumn prop="updateTime" label="更新时间" width="170" />
+          </ReTable>
         </div>
       </div>
     </template>
