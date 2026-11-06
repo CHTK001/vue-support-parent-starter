@@ -6,9 +6,9 @@
  * 一切深色主题就变成一堆看不清的暗灰）。所以图形颜色必须在运行时从
  * 计算样式里读出来，并跟着 `html` 的 class 变化重新取值。</p>
  *
- * <p><b>Signal 深空遥测</b>：颜色本体全部取自系统 koi 令牌
- * （{@code @repo/theme/styles/tokens.css}），主强调是 koi 的
- * {@code --metric-net} 网络青，跟随 {@code html.dark} 自动切深浅主题。
+ * <p><b>配色</b>：颜色本体全部取自系统 koi 令牌
+ * （{@code @repo/theme/styles/tokens.css}），主强调与页面一致用品牌紫
+ * {@code --brand-500}，跟随 {@code html.dark} 自动切深浅主题。
  * 只暴露图里真正用到的九个颜色，不做一个通用的 var() 求值器。</p>
  *
  * @since 4.0.0.51
@@ -27,7 +27,7 @@ export interface ApmPalette {
   line: string;
   /** 块底色 */
   surface: string;
-  /** 主色（Signal 青） */
+  /** 主色（品牌紫，与按钮 / 选中态同一色系） */
   primary: string;
   /** 成功 */
   ok: string;
@@ -59,7 +59,7 @@ function snapshot(): ApmPalette {
     faint: readVar("--text-tertiary", "#6b7080"),
     line: readVar("--border-subtle", "rgba(255,255,255,.06)"),
     surface: readVar("--bg-container", "#1a1d27"),
-    primary: readVar("--metric-net", "#06b6d4"),
+    primary: readVar("--brand-500", "#6d5dfc"),
     ok: readVar("--status-success", "#4ade80"),
     warn: readVar("--status-warning", "#fbbf24"),
     bad: readVar("--status-error", "#ff6b6b"),

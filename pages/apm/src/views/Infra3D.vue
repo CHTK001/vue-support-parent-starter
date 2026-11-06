@@ -89,20 +89,20 @@ const windowOptions = WINDOW_OPTIONS;
 const stageHeight = "560px";
 
 /** 每层的颜色档：全部取系统 koi 根令牌（cssColor 从 :root 读，读不到
- *  .apm-page 作用域的桥接值）。Signal 主强调 = koi 网络青 --metric-net。 */
+ *  .apm-page 作用域的桥接值）。主强调与页面一致，用品牌紫 --brand-500。 */
 const LAYER_COLORS = [
-  "var(--metric-net)",
+  "var(--brand-500)",
   "var(--status-success)",
   "var(--status-warning)",
-  "var(--brand-500)",
+  "var(--metric-net)",
   "var(--status-error)",
 ];
 
 function layerColor(name: string): string {
   // 未分层的节点最常见（SkyWalking 9.x 的 GENERAL 层在部分版本里为空），
-  // 统一走 koi 网络青，和图例里那颗青点一致。
+  // 统一走品牌紫，和图例里主色一致。
   if (!name || name === "UNKNOWN") {
-    return "var(--metric-net)";
+    return "var(--brand-500)";
   }
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
@@ -398,23 +398,11 @@ onBeforeUnmount(() => {
 <style scoped>
 .infra-stage {
   position: relative;
-  border-radius: var(--radius-sm, 6px);
+  border-radius: var(--radius-md, 8px);
   overflow: hidden;
-  /* Signal 3D 舞台：koi 网络青的中心光晕 + 点阵坐标纸，节点浮在「有光的空间」里 */
-  background:
-    radial-gradient(
-      closest-side at 50% 44%,
-      color-mix(in srgb, var(--metric-net, #06b6d4) 12%, transparent),
-      transparent 74%
-    ),
-    radial-gradient(
-      circle at 1px 1px,
-      color-mix(in srgb, var(--metric-net, #06b6d4) 16%, transparent) 1px,
-      transparent 0
-    ),
-    linear-gradient(180deg, var(--bg-elevated, #fbfbff), var(--bg-container, #fff));
-  background-size: auto, 20px 20px, auto;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--metric-net, #06b6d4) 18%, var(--border-subtle, #eef0f6));
+  /* 3D 舞台：与宿主卡片同色的纯底 + 细边框，不铺点阵/光晕 */
+  background: linear-gradient(180deg, var(--bg-elevated, #fbfbff), var(--bg-container, #fff));
+  box-shadow: inset 0 0 0 1px var(--border-subtle, #eef0f6);
 }
 
 .infra-layer {
