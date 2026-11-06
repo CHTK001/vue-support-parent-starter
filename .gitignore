@@ -438,3 +438,11 @@ node_modules/.tmp/
 test/
 
 
+# H2 / SQLite 数据库文件及备份残留（禁止入库）
+*.mv.db
+*.trace.db
+*.lock.db
+*.db.old
+*.db.bak
+*.db.tmp
+*.db.corrupt
