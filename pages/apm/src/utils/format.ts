@@ -120,6 +120,62 @@ export function fmtAxisClock(ms: unknown, stepMs = 60_000): string {
   return stepMs < 60_000 ? `${clock}:${pad(date.getSeconds())}` : clock;
 }
 
+/** 补格上限：24 小时 × 1 分钟也才 1440，再往上说明步长判错了 */
+const MAX_FILLED_BUCKETS = 1500;
+
+/**
+ * 从一串升序时间戳里取真实的数据步长：相邻间隔里出现次数最多的那个。
+ *
+ * <p>不能直接拿 `times[1] - times[0]`：只要第一个桶缺失，步长就会被算成两格，
+ * 补格的长度随之全错。间隔只能用众数，最小间隔同样会被一次「多缺一格」带偏。</p>
+ *
+ * @param times 升序时间戳（毫秒），长度 ≥ 2 时才有意义
+ * @returns 步长（毫秒）；样本不足时按分钟兜底
+ */
+export function pickStepMs(times: number[]): number {
+  const counts = new Map<number, number>();
+  for (let i = 1; i < times.length; i++) {
+    const delta = times[i] - times[i - 1];
+    if (delta > 0) {
+      counts.set(delta, (counts.get(delta) ?? 0) + 1);
+    }
+  }
+  if (!counts.size) {
+    return 60_000;
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0][0];
+}
+
+/**
+ * 把时间轴补齐成等步长的连续桶。
+ *
+ * <p>APM 的时序接口只返回「有数据的桶」，没有流量的那段直接消失。如果横轴只拿这些点做类目，
+ * 20 分钟的空档会被压成一格（22:02 紧挨着 22:42），曲线还会跨过缺口连成一条，
+ * 看图的人会以为这段时间一直在跑。补齐成 null 之后，缺口就是可见的断线。</p>
+ *
+ * <p>只在首末时间差能被步长整除时补，且总格数不超过 {@link MAX_FILLED_BUCKETS}：
+ * 万一步长判错，宁可退回原始点，也不能把 24 小时铺成一片空网格。</p>
+ *
+ * @param times 升序时间戳（毫秒）
+ * @returns 补齐后的升序时间戳；无法可靠补齐时原样返回
+ */
+export function fillTimeGaps(times: number[]): number[] {
+  if (times.length < 2) {
+    return times;
+  }
+  const step = pickStepMs(times);
+  const first = times[0];
+  const last = times[times.length - 1];
+  if (step <= 0 || (last - first) % step !== 0) {
+    return times;
+  }
+  const total = (last - first) / step + 1;
+  if (total < times.length || total > MAX_FILLED_BUCKETS) {
+    return times;
+  }
+  return Array.from({ length: total }, (_, i) => first + i * step);
+}
+
 /** 「x 分钟前」之类的相对时间，用于心跳/告警 */
 export function fmtAgo(ms: unknown): string {
   const n = Number(ms ?? 0);

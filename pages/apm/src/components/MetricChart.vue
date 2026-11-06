@@ -24,7 +24,7 @@ import type { EChartsOption } from "echarts";
 import ReChart from "@repo/ui/re-chart";
 import type { ApmMetricSeries } from "../api/apmApi";
 import { useApmPalette } from "../composables/useApmPalette";
-import { fmtAxisClock, normalizeMetricValue } from "../utils/format";
+import { fillTimeGaps, fmtAxisClock, normalizeMetricValue, pickStepMs } from "../utils/format";
 
 const props = withDefaults(
   defineProps<{
@@ -59,10 +59,14 @@ const option = computed<EChartsOption>(() => {
   }
   const colors = [p.primary, p.ok, p.warn, p.bad];
 
-  // 时间轴：所有序列的时间戳并集，保证不同长度的序列在同一格上对齐
-  const times = [...new Set(list.flatMap((s) => s.points.map((pt) => pt.time)))].sort((a, b) => a - b);
+  // 时间轴：所有序列的时间戳并集，保证不同长度的序列在同一格上对齐。
+  // 并集只包含「有数据的桶」，中间没流量那段会直接消失：横轴从 22:02 跳到 22:42，
+  // 曲线跨过缺口还连成一条，看着像「一直在跑」。所以按步长把缺口补成空桶（null）。
+  const times = fillTimeGaps(
+    [...new Set(list.flatMap((s) => s.points.map((pt) => pt.time)))].sort((a, b) => a - b),
+  );
   // 轴标签粒度跟着数据步长走：分钟级不重复「:00」的秒，跨日只留月日
-  const stepMs = times.length > 1 ? Math.abs(times[1] - times[0]) : 60_000;
+  const stepMs = pickStepMs(times);
   const index = list.map((s) => {
     const map = new Map<number, number>();
     for (const point of s.points) {
@@ -127,7 +131,8 @@ const option = computed<EChartsOption>(() => {
         type: "line" as const,
         smooth: 0.35,
         showSymbol: false,
-        connectNulls: true,
+        // 缺口补出来的 null 必须让线断掉：连过去等于凭空断言「这段时间也在跑」
+        connectNulls: false,
         symbol: "circle",
         symbolSize: 6,
         lineStyle: { width: props.compact ? 1.8 : 2.2, color },
