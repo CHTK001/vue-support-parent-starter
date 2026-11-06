@@ -105,12 +105,20 @@
             :class="{
               'is-active': row.kind === 'device'
                 ? leafDeviceId === row.id
-                : filterState?.kind === row.kind && filterState?.id === row.id
+                : filterState?.kind === row.kind && filterState?.id === row.id,
+              'is-dragging': draggingRow?.key === row.key,
+              'is-drop': dropTarget?.key === row.key
             }"
             :style="{ paddingLeft: `${10 + row.depth * 14}px` }"
             :title="row.label"
+            :draggable="canDragRow(row)"
             @click="onTreeRowClick(row)"
             @contextmenu="openTreeMenu($event, row)"
+            @dragstart="onTreeDragStart($event, row)"
+            @dragover="onTreeDragOver($event, row)"
+            @dragleave="onTreeDragLeave(row)"
+            @drop="onTreeDrop($event, row)"
+            @dragend="onTreeDragEnd"
           >
             <span
               v-if="row.hasChildren"
@@ -181,32 +189,169 @@
           <template #default="{ tab }">
             <!-- ============ 设备资产：台账列表 + 批量工具条 + 底部信息条 ============ -->
             <div v-if="tab.name === ASSETS_TAB" class="da-assets">
-              <!-- 列表工具条：高度固定，未选中时显示台账概览，选中后切成批量操作（避免多选时列表回流跳动） -->
+              <!-- 台账工具条：左侧是概览 / 批量操作，右侧固定「卡片 / 表格」视图切换 -->
               <div class="da-batch" :class="{ 'is-batch': selection.length > 0 }">
-                <template v-if="selection.length">
-                  <span class="da-batch__text">已选 <b>{{ selection.length }}</b> 台设备</span>
-                  <div class="da-batch__ops">
-                    <ReButton icon="VideoCamera" :show-text="true" size="small" type="primary" plain @click="openVideoWizard">视频预览</ReButton>
-                    <ReButton icon="Refresh" :show-text="true" size="small" @click="batchReconnect">批量重连</ReButton>
-                    <ReButton icon="FolderOpened" :show-text="true" size="small" @click="openBatchGroups">设置分组</ReButton>
-                    <ReButton icon="Delete" :show-text="true" size="small" type="danger" plain @click="batchRemove">批量删除</ReButton>
-                  </div>
-                </template>
-                <template v-else>
-                  <span class="da-batch__text">
-                    共 <b>{{ filtered.length }}</b> 台设备
-                    <span v-if="leafDeviceId" class="da-batch__filter">
-                      · 已定位「{{ leafDeviceLabel }}」
-                      <button type="button" class="da-batch__clear" @click="clearLeafDevice">清除</button>
+                <div class="da-batch__left">
+                  <template v-if="selection.length">
+                    <span class="da-batch__text">已选 <b>{{ selection.length }}</b> 台设备</span>
+                    <div class="da-batch__ops">
+                      <ReButton icon="VideoCamera" :show-text="true" size="small" type="primary" plain @click="openVideoWizard">视频预览</ReButton>
+                      <ReButton icon="Refresh" :show-text="true" size="small" @click="batchReconnect">批量重连</ReButton>
+                      <ReButton icon="FolderOpened" :show-text="true" size="small" @click="openBatchGroups">设置分组</ReButton>
+                      <ReButton icon="Delete" :show-text="true" size="small" type="danger" plain @click="batchRemove">批量删除</ReButton>
+                    </div>
+                  </template>
+                  <template v-else>
+                    <span class="da-batch__text">
+                      共 <b>{{ filtered.length }}</b> 台设备
+                      <span v-if="filterState" class="da-batch__filter">
+                        · 已筛选「{{ filterLabel }}」
+                        <button type="button" class="da-batch__clear" @click="filterState = undefined">清除</button>
+                      </span>
+                      <span v-if="leafDeviceId" class="da-batch__filter">
+                        · 已定位「{{ leafDeviceLabel }}」
+                        <button type="button" class="da-batch__clear" @click="clearLeafDevice">清除</button>
+                      </span>
                     </span>
-                  </span>
-                  <div class="da-batch__ops">
-                    <span class="da-batch__hint">勾选设备后可批量视频预览、重连、设置分组或删除</span>
-                  </div>
-                </template>
+                    <span class="da-batch__hint">
+                      {{ viewMode === 'card' ? '点卡片看基础信息，双击开详情，右键是全部功能' : '点行看基础信息，双击开详情，右键是全部功能' }}
+                    </span>
+                  </template>
+                </div>
+                <div class="da-view" role="group" aria-label="视图切换">
+                  <button
+                    type="button"
+                    class="da-view__btn"
+                    :class="{ 'is-active': viewMode === 'card' }"
+                    title="卡片台账"
+                    @click="viewMode = 'card'"
+                  >
+                    <ReIcon name="Grid" :size="12" />卡片
+                  </button>
+                  <button
+                    type="button"
+                    class="da-view__btn"
+                    :class="{ 'is-active': viewMode === 'table' }"
+                    title="表格台账"
+                    @click="viewMode = 'table'"
+                  >
+                    <ReIcon name="List" :size="12" />表格
+                  </button>
+                </div>
               </div>
 
-              <div class="da-table-wrap">
+              <!-- ============ 卡片台账（默认视图） ============ -->
+              <div v-if="viewMode === 'card'" class="da-cards">
+                <ReScrollbar class="da-cards__scroll">
+                  <div v-if="filtered.length" class="da-cards__grid">
+                    <article
+                      v-for="row in filtered"
+                      :key="row.deviceInfoId"
+                      class="da-card"
+                      :class="[
+                        `is-${row.deviceInfoCategory || 'other'}`,
+                        {
+                          'is-active': activeDevice?.deviceInfoId === row.deviceInfoId,
+                          'is-selected': isCardSelected(row),
+                          'is-offline': !row.deviceInfoOnline
+                        }
+                      ]"
+                      @click="onCardClick($event, row)"
+                      @dblclick="openDetail(row)"
+                      @contextmenu="openCardMenu($event, row)"
+                    >
+                      <header class="da-card__head">
+                        <span class="da-card__icon">
+                          <ReIcon :name="getCategoryIcon(row.deviceInfoCategory)" :size="16" />
+                        </span>
+                        <span class="da-card__title">
+                          <b :title="row.deviceInfoName">
+                            <i class="da-card__dot" :class="row.deviceInfoOnline ? 'is-on' : 'is-off'" />
+                            {{ row.deviceInfoName }}
+                          </b>
+                          <span class="da-card__code mono">{{ row.deviceInfoCode || '未编码' }}</span>
+                        </span>
+                      </header>
+
+                      <div class="da-card__facts">
+                        <span class="da-card__fact mono" :title="row.deviceInfoIp || '平台接入'">
+                          <ReIcon name="Monitor" :size="11" />
+                          <span class="da-card__ellipsis">{{ row.deviceInfoIp ? `${row.deviceInfoIp}:${row.deviceInfoPort ?? ''}` : '平台接入' }}</span>
+                        </span>
+                        <span class="da-card__fact" :title="`${vendorLabel(row.deviceInfoVendor)} · ${row.deviceInfoModel || '—'}`">
+                          <ReIcon name="Shop" :size="11" />
+                          <span class="da-card__ellipsis">{{ vendorLabel(row.deviceInfoVendor) }} · {{ row.deviceInfoModel || '—' }}</span>
+                        </span>
+                        <span class="da-card__fact">
+                          <ReIcon name="Clock" :size="11" />
+                          <ReTime
+                            :value="row.deviceInfoLastOnlineAt"
+                            format="MM-DD HH:mm"
+                            relative
+                            placeholder="从未上线"
+                          />
+                        </span>
+                      </div>
+
+                      <div class="da-card__tags">
+                        <span class="da-card__cat">{{ getCategoryLabel(row.deviceInfoCategory) }}</span>
+                        <ReTag
+                          v-for="g in deviceGroupLabels(row).slice(0, 2)"
+                          :key="g.groupId"
+                          type="primary"
+                          effect="plain"
+                          size="small"
+                          @click.stop="selectGroup(g)"
+                        >
+                          {{ g.groupName }}
+                        </ReTag>
+                        <span v-if="deviceGroupLabels(row).length > 2" class="da-card__more">
+                          +{{ deviceGroupLabels(row).length - 2 }}
+                        </span>
+                      </div>
+
+                      <footer class="da-card__foot">
+                        <span class="da-card__where">
+                          <ReIcon name="LocationInformation" :size="11" />
+                          {{ hasLocation(row) ? '已定位' : '未定位' }}
+                          <template v-if="row.deviceInfoOwnerName"> · {{ row.deviceInfoOwnerName }}</template>
+                        </span>
+                        <div class="da-card__acts">
+                          <button
+                            v-if="isPlayable(row, vendors)"
+                            type="button"
+                            class="da-card__act is-play"
+                            title="播放"
+                            @click.stop="openPlay(row)"
+                          >
+                            <ReIcon name="VideoPlay" :size="12" /><span>播放</span>
+                          </button>
+                          <button type="button" class="da-card__act" title="设备详情" @click.stop="openDetail(row)">
+                            <ReIcon name="Position" :size="12" /><span>详情</span>
+                          </button>
+                        </div>
+                      </footer>
+
+                      <button
+                        type="button"
+                        class="da-card__check"
+                        :class="{ 'is-on': isCardSelected(row) }"
+                        title="勾选设备以批量操作"
+                        @click.stop="toggleCardSelection(row)"
+                      >
+                        <ReIcon :name="isCardSelected(row) ? 'Select' : 'CircleCheck'" :size="13" />
+                      </button>
+                    </article>
+                  </div>
+                  <div v-else class="da-empty">
+                    <ReIcon name="Files" :size="26" />
+                    <span>没有符合条件的设备，试试清除筛选或换个关键词。</span>
+                  </div>
+                </ReScrollbar>
+              </div>
+
+              <!-- ============ 表格台账 ============ -->
+              <div v-else class="da-table-wrap">
                 <ReTable
                   class="da-table"
                   table-id="device-assets"
@@ -291,6 +436,15 @@
                 </ReTable>
               </div>
 
+              <!-- 卡片右键菜单：与表格共用同一套设备命令 -->
+              <ReContextMenu
+                ref="cardMenuRef"
+                :items="cardMenuItems"
+                :title="cardMenuTarget?.deviceInfoName || ''"
+                :subtitle="cardMenuSubtitle"
+                @select="onCardMenuSelect"
+              />
+
               <!-- 底部信息条：选中设备的 IP / 在线 / 经纬度 等基础信息 -->
               <footer class="da-bar">
                 <template v-if="statusDevice">
@@ -347,6 +501,16 @@
               @refreshed="refreshAll"
             />
 
+            <!-- ============ 播放（纯画面页签，仅可播放设备） ============ -->
+            <ReDevicePlayPanel
+              v-else-if="tabKindOf(tab.name) === 'play'"
+              :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
+              mode="device"
+              :device="deviceOfTab(tab.name)"
+              :devices="rows"
+              :vendors="vendors"
+            />
+
             <!-- ============ 通道管理 ============ -->
             <DeviceChannelView
               v-else-if="tabKindOf(tab.name) === 'channels'"
@@ -378,6 +542,9 @@
         </ReTabs>
       </section>
     </div>
+
+    <!-- 设备大屏：页内播放台，左侧可拖拽画面源，右侧拼墙 -->
+    <ReDeviceWallPlayer v-model="wallVisible" :devices="rows" :vendors="vendors" />
 
     <!-- 新增 / 编辑 -->
     <ReDeviceFormDialog
@@ -531,7 +698,8 @@ import {
   Refresh,
   RefreshRight,
   Tickets,
-  VideoCamera
+  VideoCamera,
+  VideoPlay
 } from '@element-plus/icons-vue'
 import { message } from '@repo/core'
 import ReDialog from '@repo/ui/re-dialog'
@@ -559,6 +727,8 @@ import DeviceLocationCell from '@pages/device/src/components/DeviceLocationCell.
 import ReDeviceFormDialog from '@pages/device/src/components/ReDeviceFormDialog.vue'
 import ReDeviceAssetDialog from '@pages/device/src/components/ReDeviceAssetDialog.vue'
 import ReDeviceDetailPanel from '@pages/device/src/components/ReDeviceDetailPanel.vue'
+import ReDevicePlayPanel from '@pages/device/src/components/ReDevicePlayPanel.vue'
+import ReDeviceWallPlayer from '@pages/device/src/components/ReDeviceWallPlayer.vue'
 import DeviceChannelView from '@pages/device/src/views/DeviceChannelView.vue'
 import DeviceEventLogView from '@pages/device/src/views/DeviceEventLogView.vue'
 
@@ -567,6 +737,7 @@ const DeviceTopoView = defineAsyncComponent(() => import('@pages/device/src/view
 
 import { deviceApi } from '@pages/device/src/api/deviceApi'
 import { getCategoryIcon, getCategoryLabel } from '@pages/device/src/utils/deviceCategory'
+import { isPlayable } from '@pages/device/src/utils/deviceCapability'
 import {
   buildOrgTree,
   formatCoord,
@@ -589,6 +760,11 @@ const groups = ref<DeviceGroupNode[]>([])
 const assignments = ref<Array<{ deviceId: string; groupId: string }>>([])
 const loading = ref(false)
 const selection = ref<DeviceInfo[]>([])
+
+/** 台账视图：B 版默认卡片台账，可切回表格 */
+const viewMode = ref<'card' | 'table'>('card')
+/** 设备大屏播放台 */
+const wallVisible = ref(false)
 
 /* ==================== 左侧分组列 ==================== */
 const railCollapsed = ref(false)
@@ -650,6 +826,19 @@ function selectFilter(payload: { kind: RailMode; id: string } | null): void {
   const current = filterState.value
   filterState.value = current && current.kind === payload.kind && current.id === payload.id ? undefined : payload
 }
+
+/** 当前筛选项的显示名（台账工具条用） */
+const filterLabel = computed(() => {
+  const f = filterState.value
+  if (!f) return ''
+  if (f.kind === 'org') {
+    return orgFlat.value.find((node) => node.deviceOrganizationId === f.id)?.deviceOrganizationName || f.id
+  }
+  if (f.kind === 'group') {
+    return flatGroups.value.find((node) => node.groupId === f.id)?.groupName || f.id
+  }
+  return vendorNodes.value.find((node) => node.vendor === f.id)?.label || f.id
+})
 
 /** 组织树平铺（带 depth），供父级选项与组织行用 */
 const orgFlat = computed<Array<OrgNode & { depth: number }>>(() => {
@@ -853,7 +1042,7 @@ function groupParentIdOf(groupId: string): string | undefined {
 const ASSETS_TAB = 'assets'
 
 /** 页签类别 */
-type WorkTabKind = 'assets' | 'detail' | 'channels' | 'events' | 'topo'
+type WorkTabKind = 'assets' | 'detail' | 'play' | 'channels' | 'events' | 'topo'
 
 /**
  * 工作区页签：比 ReTabsItem 多带业务上下文。
@@ -922,6 +1111,23 @@ function openDetail(device: DeviceInfo): void {
     label: device.deviceInfoName,
     hint: '设备详情',
     icon: 'Position',
+    deviceId: device.deviceInfoId,
+    status: device.deviceInfoOnline ? 'online' : 'offline'
+  })
+}
+
+/** 播放页签：纯画面，只有能出流的设备才允许打开 */
+function openPlay(device: DeviceInfo): void {
+  if (!isPlayable(device, vendors.value)) {
+    message.warning('该设备不支持视频播放')
+    return
+  }
+  openWorkTab({
+    name: `device:${device.deviceInfoId}:play`,
+    kind: 'play',
+    label: device.deviceInfoName,
+    hint: '播放',
+    icon: 'VideoPlay',
     deviceId: device.deviceInfoId,
     status: device.deviceInfoOnline ? 'online' : 'offline'
   })
@@ -1061,6 +1267,109 @@ function clearLeafDevice(): void {
   leafDeviceId.value = ''
 }
 
+/* ==================== 左树拖拽：松手即静默保存 ==================== */
+const draggingRow = ref<TreeRow | null>(null)
+const dropTarget = ref<TreeRow | null>(null)
+
+/** 只有分组和设备可以拖 */
+function canDragRow(row: TreeRow): boolean {
+  return row.kind === 'device' || row.kind === 'group'
+}
+
+/** 合法落点：分组/设备 → 分组或组织；分组不能拖进自己或自己的子孙 */
+function canDropOn(target: TreeRow): boolean {
+  const source = draggingRow.value
+  if (!source || source.key === target.key) return false
+  if (source.kind === 'group' && target.kind === 'group') {
+    return !groupSubtreeIds(source.id).has(target.id)
+  }
+  if (source.kind === 'group') return target.kind === 'org'
+  if (source.kind === 'device') return target.kind === 'group' || target.kind === 'org'
+  return false
+}
+
+function onTreeDragStart(event: DragEvent, row: TreeRow): void {
+  if (!canDragRow(row)) return
+  draggingRow.value = row
+  event.dataTransfer?.setData('text/plain', row.key)
+  if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move'
+}
+
+function onTreeDragOver(event: DragEvent, row: TreeRow): void {
+  if (!canDropOn(row)) return
+  event.preventDefault()
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
+  dropTarget.value = row
+}
+
+function onTreeDragLeave(row: TreeRow): void {
+  if (dropTarget.value?.key === row.key) dropTarget.value = null
+}
+
+function onTreeDragEnd(): void {
+  draggingRow.value = null
+  dropTarget.value = null
+}
+
+/**
+ * 松手落点：按「拖的是什么 / 落在哪」决定保存动作，成功后只刷新数据、不弹确认。
+ *
+ * <ul>
+ *   <li>分组 → 分组 / 组织：改 groupParent，分组连同其子分组整体挪过去</li>
+ *   <li>设备 → 分组：追加一条分组归属（设备可同时属于多个分组）</li>
+ *   <li>设备 → 组织：改 deviceInfoOrgId，原有分组归属保持不变</li>
+ * </ul>
+ */
+async function onTreeDrop(event: DragEvent, target: TreeRow): Promise<void> {
+  event.preventDefault()
+  const source = draggingRow.value
+  const valid = canDropOn(target)
+  onTreeDragEnd()
+  if (!source || !valid) return
+
+  // 分组挪窝：上级可能是另一个分组，也可能是组织
+  if (source.kind === 'group') {
+    const node = flatGroups.value.find((item) => item.groupId === source.id)
+    if (!node) return
+    try {
+      await deviceApi.updateGroup(source.id, {
+        groupName: node.groupName,
+        groupParent: target.id,
+        groupRemark: node.groupRemark
+      })
+      await fetchGroups()
+    } catch (err) {
+      message.error('移动分组失败：' + errorText(err))
+    }
+    return
+  }
+
+  // 设备拖进分组：追加归属，不动已有分组
+  if (target.kind === 'group') {
+    const current = assignments.value
+      .filter((item) => item.deviceId === source.id)
+      .map((item) => item.groupId)
+    if (current.includes(target.id)) return
+    try {
+      await deviceApi.assignDeviceGroups(source.id, [...current, target.id])
+      await fetchGroups()
+    } catch (err) {
+      message.error('移入分组失败：' + errorText(err))
+    }
+    return
+  }
+
+  // 设备拖进组织：只改所属组织
+  const device = rows.value.find((item) => item.deviceInfoId === source.id)
+  if (!device || device.deviceInfoOrgId === target.id) return
+  try {
+    await deviceApi.update(source.id, { deviceInfoOrgId: target.id })
+    await fetchAll()
+  } catch (err) {
+    message.error('调整组织失败：' + errorText(err))
+  }
+}
+
 /* ==================== 左树右键菜单（ReContextMenu） ==================== */
 /** 左树右键菜单实例 */
 const treeMenuRef = ref<{ open: (x: number, y: number) => void; close: () => void } | null>(null)
@@ -1113,7 +1422,9 @@ const treeMenuItems = computed<ReContextMenuItem[]>(() => {
   const row = treeMenuTarget.value
   if (!row) return []
   if (row.kind === 'device') {
+    const device = rows.value.find((item) => item.deviceInfoId === row.id) || null
     return [
+      { label: '播放', icon: 'VideoPlay', command: 'play', disabled: !isPlayable(device, vendors.value) },
       { label: '设备详情', icon: 'Position', command: 'detail' },
       { label: '通道管理', icon: 'Connection', command: 'channels' },
       { label: '设备日志', icon: 'Tickets', command: 'events' },
@@ -1164,6 +1475,7 @@ function onTreeMenuSelect(command: string): void {
     const device = rows.value.find((item) => item.deviceInfoId === row.id)
     if (!device) return
     switch (command) {
+      case 'play': openPlay(device); break
       case 'detail': openDetail(device); break
       case 'channels': openChannels(device); break
       case 'events': openEvents(device); break
@@ -1280,6 +1592,7 @@ const activeDevice = ref<DeviceInfo | null>(null)
 
 /** 行右键菜单：功能入口全部打开工作区页签，资产 / 位置各走自己的配置弹窗 */
 const tableMenu: ReTableContextMenuItem[] = [
+  { key: 'play', label: '播放', icon: VideoPlay, disabled: (ctx) => !isPlayable(asDevice(ctx.row), vendors.value) },
   { key: 'detail', label: '设备详情', icon: Position },
   { key: 'channels', label: '通道管理', icon: Connection },
   { key: 'events', label: '设备日志', icon: Tickets },
@@ -1296,9 +1609,21 @@ const tableMenu: ReTableContextMenuItem[] = [
 
 /** 右键菜单选中：ctx.row 就是被右键的设备 */
 function onTableMenuSelect(item: ReTableContextMenuItem, ctx: ReTableContextMenuContext): void {
-  const d = asDevice(ctx.row)
+  runDeviceCommand(item.key, asDevice(ctx.row))
+}
+
+/**
+ * 设备命令统一分发。
+ *
+ * <p>表格右键、卡片右键共用同一套命令，避免两处菜单各写一份 switch 后走偏；
+ * 「播放」只对能出流的设备开放，菜单项本身也会置灰。</p>
+ */
+function runDeviceCommand(command: string, d: DeviceInfo): void {
   activeDevice.value = d
-  switch (item.key) {
+  switch (command) {
+    case 'play':
+      openPlay(d)
+      break
     case 'detail':
       openDetail(d)
       break
@@ -1352,6 +1677,74 @@ function onSelectionChange(value: Array<Record<string, unknown>>): void {
   selection.value = value.map(asDevice)
   // 只勾一台时，底部信息条跟着它走（勾选也算一次「点选」）
   if (value.length === 1) activeDevice.value = asDevice(value[0])
+}
+
+/* ==================== 卡片台账交互 ==================== */
+/** 卡片是否在批量勾选集合里 */
+function isCardSelected(row: DeviceInfo): boolean {
+  return selection.value.some((item) => item.deviceInfoId === row.deviceInfoId)
+}
+
+/** 卡片右上角勾选：与表格勾选共用 selection，批量条实时联动 */
+function toggleCardSelection(row: DeviceInfo): void {
+  activeDevice.value = row
+  const exists = isCardSelected(row)
+  selection.value = exists
+    ? selection.value.filter((item) => item.deviceInfoId !== row.deviceInfoId)
+    : [...selection.value, row]
+}
+
+/** 单击卡片=定位（底部信息条跟随），Ctrl / Cmd + 单击=勾选 */
+function onCardClick(event: MouseEvent, row: DeviceInfo): void {
+  activeDevice.value = row
+  if (event.ctrlKey || event.metaKey) toggleCardSelection(row)
+}
+
+/** 卡片右键菜单 */
+const cardMenuRef = ref<{ open: (x: number, y: number) => void; close: () => void } | null>(null)
+const cardMenuTarget = ref<DeviceInfo | null>(null)
+
+function openCardMenu(event: MouseEvent, row: DeviceInfo): void {
+  event.preventDefault()
+  event.stopPropagation()
+  activeDevice.value = row
+  cardMenuTarget.value = row
+  cardMenuRef.value?.open(event.clientX, event.clientY)
+}
+
+const cardMenuSubtitle = computed(() => {
+  const d = cardMenuTarget.value
+  return d ? [d.deviceInfoCode, d.deviceInfoIp].filter(Boolean).join(' · ') : ''
+})
+
+/** 卡片右键菜单项：与表格同一套设备命令，「播放」按能力位置灰 */
+const cardMenuItems = computed<ReContextMenuItem[]>(() => {
+  const d = cardMenuTarget.value
+  if (!d) return []
+  return [
+    { label: '播放', icon: 'VideoPlay', command: 'play', disabled: !isPlayable(d, vendors.value) },
+    { label: '设备详情', icon: 'Position', command: 'detail' },
+    { label: '通道管理', icon: 'Connection', command: 'channels' },
+    { label: '设备日志', icon: 'Tickets', command: 'events' },
+    { label: '在拓扑中查看', icon: 'Grid', command: 'topo' },
+    { separator: true },
+    { label: '配置资产信息', icon: 'EditPen', command: 'asset' },
+    { label: '配置位置信息', icon: 'LocationInformation', command: 'location' },
+    { label: '编辑设备', icon: 'EditPen', command: 'edit' },
+    { separator: true },
+    { label: '重新连接', icon: 'RefreshRight', command: 'reconnect' },
+    { label: '刷新状态', icon: 'Refresh', command: 'refresh' },
+    { label: '设置分组', icon: 'FolderOpened', command: 'groups' },
+    { label: '视频预览', icon: 'VideoCamera', command: 'preview' },
+    { separator: true },
+    { label: '删除设备', icon: 'Delete', command: 'remove', danger: true }
+  ]
+})
+
+function onCardMenuSelect(command: string): void {
+  const d = cardMenuTarget.value
+  if (!d) return
+  runDeviceCommand(command, d)
 }
 
 /**
@@ -1904,12 +2297,9 @@ function refreshAll() {
   fetchAll()
 }
 
+/** 设备大屏：页内弹出播放台（左侧拖拽画面源组合），不再跳独立路由 */
 function goScreen() {
-  if (!router.hasRoute('DeviceScreen')) {
-    message.warning('当前宿主未接入设备大屏页')
-    return
-  }
-  router.push({ name: 'DeviceScreen' })
+  wallVisible.value = true
 }
 
 /** 厂商接入 = 「提供商配置」菜单页（宿主路由名 DeviceProviders，独立包为 DeviceProvider） */
@@ -2221,6 +2611,13 @@ onMounted(async () => {
 .da-tree__item:hover { background: var(--el-fill-color-light, var(--el-color-primary-light-9)); }
 .da-tree__item.is-active { background: var(--el-color-primary-light-9); color: var(--el-color-primary); }
 .da-tree__item:active { background: var(--el-color-primary-light-8); }
+/* 拖拽：被拖起的行淡出，合法落点高亮（松手即保存） */
+.da-tree__item.is-dragging { opacity: 0.45; cursor: grabbing; }
+.da-tree__item.is-drop {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  box-shadow: inset 0 0 0 1px var(--el-color-primary-light-5);
+}
 .da-tree__dot {
   width: 8px;
   height: 8px;
@@ -2349,6 +2746,299 @@ onMounted(async () => {
   color: var(--el-color-primary);
   text-decoration: underline;
   cursor: pointer;
+}
+
+/* 工具条左侧：概览 / 批量操作共用一个可伸缩容器 */
+.da-batch__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.da-batch__left .da-batch__text {
+  flex: none;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 视图切换：分段控件（卡片 / 表格） */
+.da-view {
+  flex: none;
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--el-fill-color-light);
+}
+.da-view__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.da-view__btn:hover { color: var(--el-color-primary); }
+.da-view__btn.is-active {
+  color: var(--el-color-primary);
+  background: var(--el-bg-color);
+  box-shadow: var(--el-box-shadow-lighter);
+  font-weight: 600;
+}
+
+/* ============ 卡片台账（B 版默认视图） ============ */
+.da-cards {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+}
+.da-cards__scroll {
+  flex: 1;
+  min-height: 0;
+}
+.da-cards__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(254px, 1fr));
+  gap: 10px;
+  padding: 2px 2px 14px;
+  align-content: start;
+}
+
+.da-card {
+  --cat: var(--el-text-color-secondary);
+  --cat-soft: var(--el-fill-color-light);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 12px 13px 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 12px;
+  background: var(--el-bg-color);
+  box-shadow: var(--el-box-shadow-lighter);
+  cursor: pointer;
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+/* 分类色：左侧一条短色带，图标底色跟着分类走 */
+.da-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  border-radius: 12px 0 0 12px;
+  background: var(--cat);
+  opacity: 0.85;
+}
+.da-card:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--cat) 45%, var(--el-border-color-lighter));
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--cat) 12%, transparent);
+}
+.da-card.is-active {
+  border-color: color-mix(in srgb, var(--cat) 60%, var(--el-border-color));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cat) 18%, transparent);
+}
+.da-card.is-selected {
+  outline: 2px solid color-mix(in srgb, var(--el-color-primary) 55%, transparent);
+  outline-offset: -1px;
+}
+.da-card.is-offline .da-card__icon {
+  filter: grayscale(0.65);
+  opacity: 0.75;
+}
+
+/* 分类色板：与表格里的分类图标保持一致 */
+.da-card.is-camera { --cat: #409eff; --cat-soft: rgba(64, 158, 255, 0.12); }
+.da-card.is-accessControl { --cat: #67c23a; --cat-soft: rgba(103, 194, 58, 0.13); }
+.da-card.is-alarm { --cat: #e6a23c; --cat-soft: rgba(230, 162, 60, 0.15); }
+.da-card.is-intercom { --cat: #8b5cf6; --cat-soft: rgba(139, 92, 246, 0.13); }
+.da-card.is-other { --cat: #909399; --cat-soft: rgba(144, 147, 153, 0.14); }
+
+.da-card__head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.da-card__icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--cat-soft);
+  color: var(--cat);
+}
+.da-card__title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* 给右上角勾选按钮留位 */
+  padding-right: 22px;
+}
+.da-card__title b {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.da-card__dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.da-card__dot.is-on {
+  background: var(--el-color-success);
+  box-shadow: 0 0 0 3px rgba(103, 194, 58, 0.16);
+}
+.da-card__dot.is-off { background: var(--el-text-color-placeholder); }
+.da-card__code {
+  font-size: 10.5px;
+  color: var(--el-text-color-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.da-card__facts {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.da-card__fact {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  font-size: 11.5px;
+  color: var(--el-text-color-secondary);
+}
+.da-card__ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.da-card__tags {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  min-height: 20px;
+}
+.da-card__cat {
+  flex: none;
+  padding: 0 6px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--cat);
+  background: var(--cat-soft);
+}
+.da-card__more {
+  font-size: 10px;
+  color: var(--el-text-color-secondary);
+}
+
+.da-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px dashed var(--el-border-color-lighter);
+}
+.da-card__where {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10.5px;
+  color: var(--el-text-color-secondary);
+}
+.da-card__acts {
+  display: inline-flex;
+  gap: 4px;
+  flex: none;
+}
+.da-card__act {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+  background: transparent;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.da-card__act:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
+  background: var(--el-color-primary-light-9);
+}
+.da-card__act.is-play {
+  color: var(--el-color-success);
+  border-color: color-mix(in srgb, var(--el-color-success) 35%, var(--el-border-color-lighter));
+}
+.da-card__act.is-play:hover {
+  color: var(--el-color-success);
+  border-color: var(--el-color-success);
+  background: color-mix(in srgb, var(--el-color-success) 10%, transparent);
+}
+
+/* 卡片右上角勾选：平时淡出，悬浮 / 选中时出现 */
+.da-card__check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--el-text-color-placeholder);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.da-card:hover .da-card__check { opacity: 1; }
+.da-card__check.is-on {
+  opacity: 1;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary-light-7);
 }
 
 /* ReTable 自带卡片内边距与边框，这里只负责让它吃满剩余高度 */

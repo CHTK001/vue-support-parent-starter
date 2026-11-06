@@ -132,10 +132,10 @@
                   <el-option label="FLV" value="flv" />
                   <el-option label="RTSP" value="rtsp" />
                 </el-select>
-                <el-button type="primary" plain @click="reloadStream">
+                <el-button type="primary" plain :disabled="!playable" @click="reloadStream">
                   <el-icon class="mr-1"><Refresh /></el-icon>刷新
                 </el-button>
-                <el-button type="primary" plain @click="openMultiView">
+                <el-button type="primary" plain :disabled="!playable" @click="openMultiView">
                   <el-icon class="mr-1"><Grid /></el-icon>多路
                 </el-button>
               </div>
@@ -216,6 +216,7 @@ import ReChannelManager from '@pages/device/src/components/ReChannelManager.vue'
 import DeviceStatusPulse from '@pages/device/src/components/DeviceStatusPulse.vue'
 import { RTSP_GATEWAY } from '../utils/streamConfig'
 import { deviceApi } from '@pages/device/src/api/deviceApi'
+import { detailTabKeys, isPlayable } from '@pages/device/src/utils/deviceCapability'
 import { getCategoryLabel } from '@pages/device/src/utils/deviceCategory'
 import {
   copyText,
@@ -250,6 +251,19 @@ const emit = defineEmits<{
 }>()
 
 const activeTab = ref('overview')
+
+/**
+ * 这台设备该显示哪些页签。
+ *
+ * <p>按厂商能力位 + 设备大类收敛：门禁不会出现云台，报警主机不会出现视频，
+ * 摄像头才有视频 / 云台。设备切换时若当前页签不再可用，回到概览，
+ * 避免 el-tabs 停在一个不存在的 pane 上显示空白。</p>
+ */
+const tabKeys = computed(() => detailTabKeys(props.device, props.vendors))
+
+/** 能不能出画面（决定「多路 / 播放」这类入口是否可点） */
+const playable = computed(() => isPlayable(props.device, props.vendors))
+
 const videoUrl = ref('')
 const videoProtocol = ref<'hls' | 'flv' | 'rtsp'>('hls')
 const streamType = ref<'main' | 'sub'>('main')
@@ -525,10 +539,12 @@ async function init() {
   activeTab.value = 'overview'
   videoUrl.value = ''
   multiViewVisible.value = false
-  await loadChannels()
-  loadPresets()
-  fetchAccessEvents()
-  fetchEvents()
+  // 页签按能力位裁剪后，只有能出画面的设备才值得去拉通道 / 预置位 / 事件
+  const keys = tabKeys.value
+  if (keys.includes('video') || keys.includes('channel')) await loadChannels()
+  if (keys.includes('ptz')) loadPresets()
+  if (keys.includes('access')) fetchAccessEvents()
+  if (keys.includes('events')) fetchEvents()
 }
 
 onMounted(() => {
@@ -541,6 +557,12 @@ watch(
     if (props.device) init()
   }
 )
+
+/** 页签集合变化（换设备换了类别）：当前页签不在集合里就回概览 */
+watch(tabKeys, (keys) => {
+  if (!keys.includes(activeTab.value as never)) activeTab.value = 'overview'
+})
+
 watch(activeTab, (tab) => {
   if (tab === 'video' && !videoUrl.value) reloadStream()
 })
