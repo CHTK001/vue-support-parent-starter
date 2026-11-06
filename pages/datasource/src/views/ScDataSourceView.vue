@@ -98,7 +98,7 @@ import {
   type DataSourceStatusKey
 } from "../datasourceStatus";
 import { hasRoutePath, nearbyRoutePaths, preloadRouteComponent } from "../managerRoutes";
-import { managerRouteFor } from "../routes";
+import { managerRouteCandidatesFor, SHARED_MANAGER_ROUTE_PATHS } from "../routes";
 import { copyToClipboard } from "../utils/clipboard";
 
 /**
@@ -133,6 +133,9 @@ interface StatusFilterItem {
 }
 
 const router = useRouter();
+
+/** 系统数据源（应用主库）的管理页：数据库管理台，不带 datasourceId 即表示主库 */
+const SYSTEM_MANAGER_ROUTE = "/db-manager";
 
 const list = ref<DataSourceInfo[]>([]);
 const loading = ref(false);
@@ -207,6 +210,12 @@ const BUILTIN_MIDDLEWARE_TYPES = new Set([
   "nginx",
   "prometheus",
   "elasticsearch",
+  // SkyWalking APM：实现打在产品里（引擎 com.chua.skywalking.support.engine.SkywalkingOtnlEngine，
+  // Spring 侧 com.chua.starter.apm.skywalking.SkywalkingApmProvider），且不走
+  // MiddlewareClientProvider 这条中间件 SPI —— 后端 /ms/monitor/middleware/types 里
+  // 永远不会出现它。漏了这一项时，新增选 skywalking 会掉进「填实现类全名 + 上传客户端 jar」
+  // 分支，等于让普通使用者自己写类名：内置能力不该出现在表单里。
+  "skywalking",
 ]);
 
 /**
@@ -689,6 +698,9 @@ const TYPE_META: Record<
   prometheus: { icon: "DataLine", mark: "PR", color: "#e6522c", label: "Prometheus", brand: "M12 0C5.373 0 0 5.372 0 12c0 6.627 5.373 12 12 12s12-5.373 12-12c0-6.628-5.373-12-12-12zm0 22.46c-1.885 0-3.414-1.26-3.414-2.814h6.828c0 1.553-1.528 2.813-3.414 2.813zm5.64-3.745H6.36v-2.046h11.28v2.046zm-.04-3.098H6.391c-.037-.043-.075-.086-.111-.13-1.155-1.401-1.427-2.133-1.69-2.879-.005-.025 1.4.287 2.395.511 0 0 .513.119 1.262.255-.72-.843-1.147-1.915-1.147-3.01 0-2.406 1.845-4.508 1.18-6.207.648.053 1.34 1.367 1.387 3.422.689-.951.977-2.69.977-3.755 0-1.103.727-2.385 1.454-2.429-.648 1.069.168 1.984.894 4.256.272.854.237 2.29.447 3.201.07-1.892.395-4.652 1.595-5.605-.529 1.2.079 2.702.494 3.424.671 1.164 1.078 2.047 1.078 3.716a4.642 4.642 0 01-1.11 2.996c.792-.149 1.34-.283 1.34-.283l2.573-.502s-.374 1.538-1.81 3.019z" },
   mongodb: { icon: "Coin", mark: "MO", color: "#4DB33D", label: "MongoDB", brand: "M17.193 9.555c-1.264-5.58-4.252-7.414-4.573-8.115-.28-.394-.53-.954-.735-1.44-.036.495-.055.685-.523 1.184-.723.566-4.438 3.682-4.74 10.02-.282 5.912 4.27 9.435 4.888 9.884l.07.05A73.49 73.49 0 0111.91 24h.481c.114-1.032.284-2.056.51-3.07.417-.296.604-.463.85-.693a11.342 11.342 0 003.639-8.464c.01-.814-.103-1.662-.197-2.218zm-5.336 8.195s0-8.291.275-8.29c.213 0 .49 10.695.49 10.695-.381-.045-.765-1.76-.765-2.405z" },
   elasticsearch: { icon: "Coin", mark: "ES", color: "#00bfb3", label: "Elasticsearch", brand: "M13.394 0C8.683 0 4.609 2.716 2.644 6.667h15.641a4.77 4.77 0 0 0 3.073-1.11c.446-.375.864-.785 1.247-1.243l.001-.002A11.974 11.974 0 0 0 13.394 0zM1.804 8.889a12.009 12.009 0 0 0 0 6.222h14.7a3.111 3.111 0 1 0 0-6.222zm.84 8.444C4.61 21.283 8.684 24 13.395 24c3.701 0 7.011-1.677 9.212-4.312l-.001-.002a9.958 9.958 0 0 0-1.247-1.243 4.77 4.77 0 0 0-3.073-1.11z" },
+  // SkyWalking APM：宿主内置（引擎与 Spring 适配都在产物里，不需要上传客户端 jar），
+  // 也不走 MiddlewareClientProvider 那条中间件 SPI，所以不做品牌 logo，用 SW 缩写徽标兜底。
+  skywalking: { icon: "DataLine", mark: "SW", color: "#38bdf8", label: "SkyWalking APM" },
   // ClickHouse 与 DuckDB 都走 JDBC，管理台复用 /db-manager（打开表/设计表/查询同一套），
   // 所以这里只需补类型标识与配色；未收录品牌图时用 mark 缩写徽标兜底（同 nacos/zookeeper）。
   clickhouse: { icon: "Coin", mark: "CH", color: "#ffcc01", label: "ClickHouse" },
@@ -801,6 +813,7 @@ const typeDesc = (type: string): string => {
     prometheus: "连接 Prometheus 监控服务，用于指标查询",
     mongodb: "连接 MongoDB 文档数据库，用于集合查询与文档查看",
     elasticsearch: "连接 Elasticsearch 集群（HTTP 接口），用于索引/字段浏览与只读查询",
+    skywalking: "连接 SkyWalking OAP（HTTP 默认 12800，填 OAP 地址），用于服务、链路与告警观测",
     clickhouse: "连接 ClickHouse 列式分析库（HTTP 8123），打开表/设计表/查询复用数据库管理台",
     duckdb: "连接 DuckDB 单文件库（填磁盘路径），可直查 Parquet/CSV；没有主机与端口",
   };
@@ -1425,7 +1438,7 @@ const onItemContextMenu = (e: MouseEvent, item: DataSourceInfo) => {
   // 顺手预取该类型管理页的 chunk：菜单停留的这几百毫秒正好够 36~209KB 下完，
   // 等点「打开管理」时几乎瞬时（详见 openManager 的说明）。
   // 失败静默：预取只是加速，真打开时 openManager 会重新取并给出可重试的失败态。
-  const managerRoute = managerRouteFor(item.type);
+  const managerRoute = resolveManagerRoute(item);
   if (managerRoute && hasRoutePath(router, managerRoute)) {
     void preloadRouteComponent(router, managerRoute).catch(() => undefined);
   }
@@ -1457,13 +1470,7 @@ const onItemMenuSelect = (key: string) => {
     return;
   }
   if (key === "manage-full") {
-    // 系统数据源（应用主库）没有类型管理页，直接走数据库管理台 /db-manager
-    const route = isSystemSource(item) ? "/db-manager" : managerRouteFor(item.type);
-    if (route) {
-      openFullManager(item, route);
-    } else {
-      message.warning(`类型 ${item.type} 的管理页面开发中`);
-    }
+    openFullManager(item);
     return;
   }
   if (key === "users") {
@@ -1862,16 +1869,36 @@ function describeLatency(result: DataSourceTestResult): string {
 }
 
 /**
+ * 某数据源「打开管理」实际要去的路径。
+ *
+ * <p>候选链来自 {@link managerRouteCandidatesFor}（首选 + 回落），按当前路由表
+ * 取第一个已注册的：SkyWalking 在合并了 {@code @pages/apm} 的宿主走 {@code /apm}
+ * 控制中心，在未合并的宿主回落到本包自带的 {@code /skywalking}。两边都能打开，
+ * 而不是其中一边永远弹「未注册」。</p>
+ *
+ * @param item 数据源条目
+ * @returns 已注册的管理页路径；一个都没注册时返回 undefined
+ */
+const resolveManagerRoute = (item: DataSourceInfo): string | undefined => {
+  // 系统数据源（应用主库）没有类型管理页，统一走数据库管理台
+  if (isSystemSource(item)) {
+    return hasRoutePath(router, SYSTEM_MANAGER_ROUTE) ? SYSTEM_MANAGER_ROUTE : undefined;
+  }
+  return managerRouteCandidatesFor(item.type).find(path => hasRoutePath(router, path));
+};
+
+/**
  * 打开对应类型的管理页面。
  *
- * <p>类型→路径的映射（{@code managerRouteFor}）与这些路径的路由声明（{@code routes.ts}）
+ * <p>类型→路径的映射（{@link managerRouteCandidatesFor}）与这些路径的路由声明（{@code routes.ts}）
  * 同出一处：映射写在本包、路由也由本包的 {@code createDatasourceManageRoutes} 产出，
  * 宿主只做合并。两处一旦分开声明就会漂 —— 历史上正是宿主各抄一份、漏了 Prometheus，
  * 导致「打开管理」对 Prometheus 稳定报「未注册」。</p>
  *
  * <p>宿主**不一定**注册了全部管理页（单宿主应用只 merge 自己需要的那些），
  * 没注册时**不能硬跳** —— 2026-10-05 实测落 /404?datasourceId=1。
- * 这里先查当前路由表，没有就给提示，不产生 404。</p>
+ * 这里先查当前路由表，没有就给提示，不产生 404。候选链首选未注册时按回落顺序继续找，
+ * 所以同一个类型在不同宿主里可以落到不同的可用页面（见 {@link resolveManagerRoute}）。</p>
  *
  * <p><strong>提示必须自带定位信息</strong>：只说「未注册 /prometheus 管理页」，
  * 这句话在「路由真的没有」和「路由有但路径写法不一致」两种情况下长得一模一样，
@@ -1891,31 +1918,35 @@ const openManager = (item: DataSourceInfo) => {
   // 系统数据源（应用主库）走 /db-manager 且不传 datasourceId：
   // DatabaseManagerView.resolveDatasourceId 无有效 id 时回落 0 = 容器主 DataSource。
   const system = isSystemSource(item);
-  const route = system ? "/db-manager" : managerRouteFor(item.type);
+  const candidates = system ? [SYSTEM_MANAGER_ROUTE] : managerRouteCandidatesFor(item.type);
+  const route = candidates.find(path => hasRoutePath(router, path));
   if (!route) {
-    message.warning(`类型 ${item.type} 的管理页面开发中`);
-    return;
-  }
-  if (!hasRoutePath(router, route)) {
-    const near = nearbyRoutePaths(router, route);
+    if (candidates.length === 0) {
+      message.warning(`类型 ${item.type} 的管理页面开发中`);
+      return;
+    }
+    const near = nearbyRoutePaths(router, candidates[0]);
     message.warning(
-      `当前应用未注册 ${route} 管理页，无法打开「${item.type}」管理界面`
+      `当前应用未注册 ${candidates.join(" / ")} 管理页，无法打开「${item.type}」管理界面`
       + (near.length ? `（已注册的同前缀路由：${near.join("、")}）` : ""),
     );
     return;
   }
 
+  /** 共享页（如 /apm 控制中心）不认 datasourceId，塞进去只会变成一条无意义参数 */
+  const carriesDatasourceId = !system && !SHARED_MANAGER_ROUTE_PATHS.includes(route);
+
   /** 目标地址（失败恢复时整页刷新直接落到它） */
-  const target = system
-    ? route
-    : `${route}?datasourceId=${encodeURIComponent(String(item.id))}`;
+  const target = carriesDatasourceId
+    ? `${route}?datasourceId=${encodeURIComponent(String(item.id))}`
+    : route;
 
   /**
    * 一次完整的「取包 → 跳转 → 等新页渲染」。
    */
   const go = async (): Promise<void> => {
     await preloadRouteComponent(router, route);
-    await router.push({ path: route, query: system ? {} : { datasourceId: item.id } });
+    await router.push({ path: route, query: carriesDatasourceId ? { datasourceId: item.id } : {} });
     // push 只保证「导航已确认」，此刻新页面还没渲染出来；
     // 立刻收遮罩会露出旧页面一帧，所以等一次渲染。
     await nextTick();
@@ -1978,24 +2009,41 @@ const openManager = (item: DataSourceInfo) => {
 /**
  * 打开管理（新标签·全屏）：新标签页打开整页控制台，无顶部/左侧导航。
  *
- * <p>每个管理页都有同名的「/full」standalone 变体（见 {@link routes.ts} 的
+ * <p>本包产出的管理页都有同名的「/full」standalone 变体（见 {@link routes.ts} 的
  * {@code createDatasourceManageRoutes}，standalone=true 注册为顶层路由、不套 layout）。
  * 用 {@code window.open} 新开标签：既有应用仍在原页签，控制台独占一个新标签，屏幕不挤。</p>
+ *
+ * <p><b>共享页没有 /full 变体</b>：{@code /apm} 由 {@code @pages/apm} 声明，
+ * 布局由它自己决定。这类页面直接开本体，不硬拼一个不存在的 {@code /apm/full}，
+ * 否则「打开管理（新标签）」会在监控台上稳定报「未注册」。</p>
  */
-const openFullManager = (item: DataSourceInfo, baseRoute: string) => {
-  const fullRoute = `${baseRoute}/full`;
-  if (!hasRoutePath(router, fullRoute)) {
-    const near = nearbyRoutePaths(router, fullRoute);
+const openFullManager = (item: DataSourceInfo) => {
+  const system = isSystemSource(item);
+  const candidates = system ? [SYSTEM_MANAGER_ROUTE] : managerRouteCandidatesFor(item.type);
+  if (candidates.length === 0) {
+    message.warning(`类型 ${item.type} 的管理页面开发中`);
+    return;
+  }
+  // 先找本包产出的全屏变体；都没有再看是否存在可直开的共享页
+  const fullRoute = candidates.map(base => `${base}/full`).find(path => hasRoutePath(router, path));
+  const sharedRoute = candidates.find(
+    path => SHARED_MANAGER_ROUTE_PATHS.includes(path) && hasRoutePath(router, path),
+  );
+  const route = fullRoute ?? sharedRoute;
+  if (!route) {
+    const expected = candidates.map(base => `${base}/full`).join(" / ");
+    const near = nearbyRoutePaths(router, candidates[0]);
     message.warning(
-      `当前应用未注册 ${fullRoute} 全屏管理页，无法在新标签打开「${item.type}」管理界面`
+      `当前应用未注册 ${expected} 全屏管理页，无法在新标签打开「${item.type}」管理界面`
       + (near.length ? `（已注册的同前缀路由：${near.join("、")}）` : ""),
     );
     return;
   }
-  const href = router.resolve({
-    path: fullRoute,
-    query: isSystemSource(item) ? {} : { datasourceId: item.id },
-  }).href;
+  // 共享页不认 datasourceId；本包产出的全屏页靠它定位数据源
+  const query = !system && !SHARED_MANAGER_ROUTE_PATHS.includes(route)
+    ? { datasourceId: item.id }
+    : {};
+  const href = router.resolve({ path: route, query }).href;
   window.open(href, "_blank", "noopener");
 };
 
@@ -2052,6 +2100,9 @@ const defaultPort = (type: string): number => {
     // duckdb 是单文件库，没有端口；这里给 0 只是让表单不填一个假端口，
     // 该类型的端口输入框本来就不渲染
     duckdb: 0,
+    // SkyWalking OAP 的 HTTP/GraphQL 端口（后端 DatasourceHubConstants.SKYWALKING_DEFAULT_PORT
+    // 同为 12800；11800 是 gRPC 上报口，不是这里要连的那个）
+    skywalking: 12800,
   };
   return ports[type] ?? 3306;
 };
@@ -2896,7 +2947,7 @@ onMounted(load);
             </section>
             <div class="ds-system__actions">
               <ReButton type="primary" icon="View" :show-text="true" @click="openManager(current)">打开管理</ReButton>
-              <ReButton icon="View" :show-text="true" @click="openFullManager(current, '/db-manager')">打开管理（新标签）</ReButton>
+              <ReButton icon="View" :show-text="true" @click="openFullManager(current)">打开管理（新标签）</ReButton>
             </div>
           </div>
         </template>

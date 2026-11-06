@@ -68,8 +68,11 @@ export { ApiError, setUnauthorizedHandler } from "./api/request";
 export {
   createDatasourceManageRoutes,
   managerRouteFor,
+  managerRouteCandidatesFor,
   MANAGER_ROUTE_MAP,
+  MANAGER_ROUTE_FALLBACKS,
   MANAGER_ROUTE_PATHS,
+  SHARED_MANAGER_ROUTE_PATHS,
   createSyncTaskRoutes,
   createSyncTaskLogRoutes,
 } from "./routes";

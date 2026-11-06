@@ -23,11 +23,12 @@
 import type { RouteConfigsTable } from "@repo/core";
 
 /**
- * 数据源类型 → 管理页路由路径。
+ * 数据源类型 → 管理页路由路径（首选）。
  *
- * <p>这张表与 {@link createDatasourceManageRoutes} 产出的路径必须一一对应：
+ * <p>这张表里<b>由本包产出</b>的路径与 {@link createDatasourceManageRoutes} 必须一一对应：
  * 「打开管理」按类型查路径，再查本应用有没有注册该路由，两处若不同源就会重现
- * 「某类型永远打不开」的老问题。{@link MANAGER_ROUTE_PATHS} 是这份对应关系的可断言形式。</p>
+ * 「某类型永远打不开」的老问题。{@link MANAGER_ROUTE_PATHS} 是这份对应关系的可断言形式
+ * （已剔除 {@link SHARED_MANAGER_ROUTE_PATHS}，它们由宿主自己的页面包提供）。</p>
  */
 export const MANAGER_ROUTE_MAP: Record<string, string> = {
   kafka: "/kafka",
@@ -49,7 +50,30 @@ export const MANAGER_ROUTE_MAP: Record<string, string> = {
   etcd: "/etcd",
   prometheus: "/prometheus",
   mongodb: "/mongodb",
-  skywalking: "/skywalking",
+  // SkyWalking 的管理内容（服务目录 / 实例 / 链路 / 拓扑 / 告警 / 日志）与 APM 工作台
+  // 是同一套，主入口因此指向 @pages/apm 的控制中心 /apm —— 再单独维护一份必然分叉。
+  // 采集调度等未合并 @pages/apm 的宿主回落到本包自带的 /skywalking 深潜页，
+  // 回落链见 {@link MANAGER_ROUTE_FALLBACKS}。
+  skywalking: "/apm",
+};
+
+/**
+ * 由宿主页面包提供、本包不产出的管理页路径。
+ *
+ * <p>这些路径不参与「类型映射 ↔ 本包路由」的一一对应断言：例如 {@code /apm}
+ * 由 {@code @pages/apm} 声明，本包只负责跳过去。</p>
+ */
+export const SHARED_MANAGER_ROUTE_PATHS: string[] = ["/apm"];
+
+/**
+ * 类型 → 首选路由未注册时的回落路径（按顺序尝试）。
+ *
+ * <p>存在的理由：数据源中心被多个宿主复用，只有监控台合并了 {@code @pages/apm}。
+ * 采集调度台没有 APM 控制中心，若只认首选路径，SkyWalking 的「打开管理」会稳定报
+ * 「未注册」—— 而它明明有本包自带的 /skywalking 页可用。</p>
+ */
+export const MANAGER_ROUTE_FALLBACKS: Record<string, string[]> = {
+  skywalking: ["/skywalking"],
 };
 
 /**
@@ -63,6 +87,23 @@ export const MANAGER_ROUTE_MAP: Record<string, string> = {
  */
 export function managerRouteFor(type: string): string | undefined {
   return MANAGER_ROUTE_MAP[type];
+}
+
+/**
+ * 按数据源类型取「打开管理」的候选路径链（首选在前，回落依次在后）。
+ *
+ * <p>调用方按 {@code hasRoutePath} 逐个试：第一个已注册的就是实际要去的页面。
+ * 不在这里判断注册状态 —— 本文件是纯声明，拿不到运行时 router。</p>
+ *
+ * @param type 数据源类型
+ * @returns 候选路径；该类型没有管理页时返回空数组
+ */
+export function managerRouteCandidatesFor(type: string): string[] {
+  const primary = MANAGER_ROUTE_MAP[type];
+  if (!primary) {
+    return [];
+  }
+  return [primary, ...(MANAGER_ROUTE_FALLBACKS[type] ?? [])];
 }
 
 /** {@link createDatasourceManageRoutes} 的可选项 */
@@ -173,9 +214,10 @@ export function createDatasourceManageRoutes(
       meta: { title: "MongoDB 管理", icon: "Coin", ...common },
     },
     {
-      // APM 链路管理：总览 / 服务目录 / 链路 / 拓扑 / 指标 / 告警 / 日志，
-      // 此前只有后端接口与引擎，没有路由与视图，数据源中心点「打开管理」会稳定弹「未注册」
-      // —— 同属 MANAGER_ROUTE_MAP 认领的类型，补上并纳进这张映射表。
+      // SkyWalking 深潜页：服务目录 / 实例 / 链路 / 拓扑 / 告警 / 日志。
+      // 「打开管理」的**首选**是 @pages/apm 的控制中心 /apm（见 MANAGER_ROUTE_MAP），
+      // 因为那套内容与 APM 工作台重合，维护两份必然分叉；本页保留为未合并
+      // @pages/apm 的宿主（采集调度台等）的回落入口，也允许直接输地址访问。
       path: "/skywalking",
       name: "Skywalking",
       component: () => import("./views/console/SkywalkingManageView.vue"),
@@ -203,7 +245,10 @@ export function createDatasourceManageRoutes(
   // 每个管理页追加一条「/full」全屏变体：数据源中心右键「打开管理（新标签）」的落地页。
   // standalone=true 注册为顶层路由（不套 layout），新标签打开时无顶部/左侧导航，
   // 打开的就是整个控制台本身。embed 看板已是 standalone，不重复生成。
-  const managerPaths = new Set(Object.values(MANAGER_ROUTE_MAP));
+  // 宿主共享页（如 /apm）不由本包声明，也不该在这里造一个不存在的 /apm/full。
+  const managerPaths = new Set(
+    Object.values(MANAGER_ROUTE_MAP).filter(path => !SHARED_MANAGER_ROUTE_PATHS.includes(path)),
+  );
   const fullVariants: RouteConfigsTable[] = routes
     .filter(r => managerPaths.has(r.path) && !r.meta?.standalone)
     .map(r => ({
@@ -222,13 +267,17 @@ export function createDatasourceManageRoutes(
 }
 
 /**
- * 管理页路由路径清单（取自上面这份声明，不另写一份常量）。
+ * 由本包产出的管理页路由路径清单（取自上面这份声明，不另写一份常量）。
  *
  * <p>给测试/验收脚本用：断言「宿主注册的管理页覆盖了全部已知类型」时，
  * 拿它与宿主 {@code router.getRoutes()} 对比，而不是把期望路径硬编码在脚本里 ——
  * 否则模块里补了新类型，脚本反而会漏检。</p>
+ *
+ * <p>{@link SHARED_MANAGER_ROUTE_PATHS} 已剔除：那些路径由宿主页面包产出，
+ * 列进来会让「本包声明是否完整」的断言永远差几条。</p>
  */
-export const MANAGER_ROUTE_PATHS: string[] = Object.values(MANAGER_ROUTE_MAP);
+export const MANAGER_ROUTE_PATHS: string[] = Object.values(MANAGER_ROUTE_MAP)
+  .filter(path => !SHARED_MANAGER_ROUTE_PATHS.includes(path));
 
 /**
  * 数据同步任务页的叶子路由。
