@@ -3,14 +3,14 @@
     <header class="dpw__head">
       <div class="dpw__ident">
         <span class="dpw__live"><i />LIVE</span>
-        <b class="dpw__title">{{ wallMode ? 'Φ«╛σñçσñºσ▒Å' : device?.deviceInfoName || 'µÆ¡µö╛' }}</b>
+        <b class="dpw__title">{{ wallMode ? '设备大屏' : device?.deviceInfoName || '播放' }}</b>
         <template v-if="wallMode">
-          <span class="dpw__meta mono">{{ sources.length }} Φ╖»µ║É ┬╖ {{ tiles.length }}/{{ layoutSize }} σ£¿µÆ¡</span>
+          <span class="dpw__meta mono">{{ sources.length }} 路源 · {{ tiles.length }}/{{ layoutSize }} 在播</span>
         </template>
         <template v-else>
-          <span class="dpw__meta mono">{{ device?.deviceInfoIp || 'σ╣│σÅ░µÄÑσàÑ' }} ┬╖ CH{{ currentChannel }}</span>
+          <span class="dpw__meta mono">{{ device?.deviceInfoIp || '平台接入' }} · CH{{ currentChannel }}</span>
         </template>
-        <span class="dpw__meta">{{ protocol.toUpperCase() }} / {{ streamType === 'main' ? 'Σ╕╗τáüµ╡ü' : 'σ¡Éτáüµ╡ü' }}</span>
+        <span class="dpw__meta">{{ protocol.toUpperCase() }} / {{ streamType === 'main' ? '主码流' : '子码流' }}</span>
       </div>
       <div class="dpw__ops">
         <el-select
@@ -25,11 +25,11 @@
         <el-segmented v-model="streamType" :options="streamSegments" size="small" @change="reload" />
         <el-segmented v-model="protocol" :options="protocolSegments" size="small" @change="reload" />
         <el-segmented v-model="layout" :options="layoutSegments" size="small" />
-        <ReButton icon="RefreshRight" layout="square" tip="ΘçìΦ╜╜σ╜ôσëìτö╗Θ¥ó" :loading="loading" @click="reload" />
+        <ReButton icon="RefreshRight" layout="square" tip="重载当前画面" :loading="loading" @click="reload" />
         <ReButton
           icon="Grid"
           layout="square"
-          :tip="wallMode ? 'µîëσ╕âσ▒ÇΘô║µ╗íτö╗Θ¥óµ║É' : 'µîëσ╕âσ▒ÇΦíÑΘ╜ÉΘÇÜΘüô'"
+          :tip="wallMode ? '按布局铺满画面源' : '按布局补齐通道'"
           :disabled="!playable"
           @click="fillFromChannels"
         />
@@ -37,7 +37,7 @@
           v-if="wallMode"
           icon="Delete"
           layout="square"
-          tip="µ╕àτ⌐║τö╗Θ¥óσóÖ"
+          tip="清空画面墙"
           :disabled="!tiles.length"
           @click="clearWall"
         />
@@ -45,13 +45,13 @@
     </header>
 
     <div class="dpw__body">
-      <!-- σ╖ª∩╝ÜσÅ»µïûµï╜τÜäτö╗Θ¥óµ║É∩╝êµ£¼Φ«╛σñçΘÇÜΘüô + σÉîσÄéσòåσÅ»µÆ¡µö╛Φ«╛σñç∩╝ë -->
+      <!-- 左：可拖拽的画面源（本设备通道 + 同厂商可播放设备） -->
       <aside class="dpw__side">
         <div class="dpw__side-head">
-          <span class="dpw__side-title">τö╗Θ¥óµ║É</span>
+          <span class="dpw__side-title">画面源</span>
           <span class="dpw__side-count">{{ sources.length }}</span>
         </div>
-        <ReInput v-model="keyword" placeholder="µÉ£τ┤óΦ«╛σñç / ΘÇÜΘüô" clearable prefix-icon="Search" class="dpw__search" />
+        <ReInput v-model="keyword" placeholder="搜索设备 / 通道" clearable prefix-icon="Search" class="dpw__search" />
         <ReScrollbar class="dpw__sources">
           <div
             v-for="source in filteredSources"
@@ -72,16 +72,16 @@
             </span>
             <i class="dpw-src__dot" :class="source.online ? 'is-on' : 'is-off'" />
           </div>
-          <div v-if="!filteredSources.length" class="dpw__side-empty">µ▓íµ£ëσÅ»µÆ¡µö╛τÜäΦ«╛σñç / ΘÇÜΘüô</div>
+          <div v-if="!filteredSources.length" class="dpw__side-empty">没有可播放的设备 / 通道</div>
         </ReScrollbar>
         <p class="dpw__side-tip">
           {{ wallMode
-            ? 'Σ╗Äσ╖ªΣ╛ºµèèΦ«╛σñçΘÇÜΘüôµïûσê░Σ╗╗µäÅµá╝σ¡É∩╝îΘÜÅµù╢µï╝σç║Φç¬σ╖▒τÜäΣ╕Çσ¥ùσñºσ▒Å∩╝¢µïûσê░τ⌐║τÖ╜σñäΦ┐╜σèá∩╝îσìòσç╗=µö╛Φ┐¢τ¼¼Σ╕ÇΣ╕¬τ⌐║µá╝πÇé'
-            : 'µïûσê░σÅ│Σ╛ºτö╗Θ¥óµá╝σ¡ÉΘçîµ¢┐µìóΦ»Ñµá╝∩╝îµêûµïûσê░τ⌐║τÖ╜σñäΦ┐╜σèá∩╝¢σìòσç╗=µö╛Φ┐¢τ¼¼Σ╕ÇΣ╕¬τ⌐║µá╝πÇé' }}
+            ? '从左侧把设备通道拖到任意格子，随时拼出自己的一块大屏；拖到空白处追加，单击=放进第一个空格。'
+            : '拖到右侧画面格子里替换该格，或拖到空白处追加；单击=放进第一个空格。' }}
         </p>
       </aside>
 
-      <!-- σÅ│∩╝Üτö╗Θ¥óσóÖ -->
+      <!-- 右：画面墙 -->
       <section class="dpw__wall" :class="{ 'is-dragging': !!dragging }" @dragover.prevent @drop="onWallDrop($event, -1)">
         <div class="dpw__grid" :style="gridStyle">
           <article
@@ -105,13 +105,13 @@
             <div class="dpw-tile__bar">
               <span class="dpw-tile__name" :title="tile.label">{{ tile.label }}</span>
               <span class="dpw-tile__ch mono">CH{{ tile.channel }}</span>
-              <button type="button" class="dpw-tile__op" title="σà│Θù¡Φ»Ñτö╗Θ¥ó" @click="removeTile(index)">
+              <button type="button" class="dpw-tile__op" title="关闭该画面" @click="removeTile(index)">
                 <ReIcon name="Close" :size="11" />
               </button>
             </div>
           </article>
 
-          <!-- τ⌐║µá╝σ¡É∩╝ÜµïûΦ┐¢µ¥Ñσì│ΦÉ╜Σ╜ì -->
+          <!-- 空格子：拖进来即落位 -->
           <article
             v-for="slot in emptySlots"
             :key="`empty-${slot}`"
@@ -123,7 +123,7 @@
           >
             <span class="dpw-tile__ghost">
               <ReIcon name="VideoCamera" :size="18" />
-              µïûσàÑτö╗Θ¥óµ║É
+              拖入画面源
             </span>
           </article>
         </div>
@@ -134,14 +134,14 @@
 
 <script setup lang="ts">
 /**
- * µÆ¡µö╛Θí╡τ¡╛∩╝êτ║»µÆ¡µö╛∩╝îΣ╕ìσÉ½σÅ░Φ┤ª∩╝ë
+ * 播放页签（纯播放，不含台账）
  *
- * <p>Σ╕ÄΦ»ªµâàΘí╡πÇîΦºåΘóæπÇìΘí╡τ¡╛τÜäσêåσ╖Ñ∩╝ÜΦ»ªµâàµÿ»Φ«╛σñçµíúµíê + Θí║µëïτ£ïτö╗Θ¥ó∩╝î
- * µÆ¡µö╛Θí╡τ¡╛σÅ¬σüÜΣ╕ÇΣ╗╢Σ║ïΓÇöΓÇöτ¢»τö╗Θ¥óπÇéσ╖ªΣ╛ºµÿ»τö╗Θ¥óµ║É∩╝êµ£¼Φ«╛σñçσÉäΘÇÜΘüô + σÉîσÄéσòåσà╢σ«âσÅ»µÆ¡µö╛Φ«╛σñç∩╝ë∩╝î
- * µïûσê░σÅ│Σ╛ºΣ╗╗Σ╜òµá╝σ¡ÉΘçîµ¢┐µìóΦ»Ñµá╝∩╝îµïûσê░τ⌐║τÖ╜σñäΦ┐╜σèá∩╝îτö¿µ¥ÑτÄ░σ£║Σ╕┤µï╝Σ╕ÇΣ╕¬Σ╕┤µù╢τö╗Θ¥óσóÖπÇé</p>
+ * <p>与详情页「视频」页签的分工：详情是设备档案 + 顺手看画面，
+ * 播放页签只做一件事——盯画面。左侧是画面源（本设备各通道 + 同厂商其它可播放设备），
+ * 拖到右侧任何格子里替换该格，拖到空白处追加，用来现场临拼一个临时画面墙。</p>
  *
- * <p>σÅûµ╡üΦ╡░ {@code deviceApi.getVideoStream}∩╝îΣ╕ÄΦ»ªµâà / ΦºåΘóæΘóäΦºêΘí╡σÉîΣ╕Çµ¥íΘô╛Φ╖»∩╝î
- * Σ╕ìΘó¥σñûσ╝òσàÑτ¼¼Σ║îσÑùµÆ¡µö╛ΘÇ╗Φ╛æπÇé</p>
+ * <p>取流走 {@code deviceApi.getVideoStream}，与详情 / 视频预览页同一条链路，
+ * 不额外引入第二套播放逻辑。</p>
  *
  * @author CH
  * @since 4.0.0.42
@@ -160,18 +160,18 @@ import type { DeviceInfo, DeviceVendorDescriptor } from '@pages/device/src/types
 
 const props = defineProps<{
   device: DeviceInfo | null
-  /** σÅ»σÅéΣ╕Äµï╝σóÖτÜäΦ«╛σñç∩╝êσÉîσÄéσòå / σà¿Θâ¿∩╝ë */
+  /** 可参与拼墙的设备（同厂商 / 全部） */
   devices: DeviceInfo[]
   vendors: DeviceVendorDescriptor[]
   /**
-   * σ╜óµÇü∩╝Ü
-   * - device∩╝ÜΦ«╛σñçΘí╡τ¡╛∩╝îτö╗Θ¥óµ║ÉΣ╗ÑΦ┐ÖσÅ░Φ«╛σñçτÜäΘÇÜΘüôΣ╕║Σ╕╗
-   * - wall∩╝ÜΦ«╛σñçσñºσ▒Åσ╝╣τ¬ù∩╝îτö╗Θ¥óµ║Éµÿ»σà¿Θâ¿σÅ»µÆ¡µö╛Φ«╛σñç
+   * 形态：
+   * - device：设备页签，画面源以这台设备的通道为主
+   * - wall：设备大屏弹窗，画面源是全部可播放设备
    */
   mode?: 'device' | 'wall'
 }>()
 
-/** Σ╕ÇΣ╕¬τö╗Θ¥óµ║É∩╝ÜµƒÉσÅ░Φ«╛σñçτÜäµƒÉΣ╕¬ΘÇÜΘüô */
+/** 一个画面源：某台设备的某个通道 */
 interface PlaySource {
   key: string
   deviceId: string
@@ -182,7 +182,7 @@ interface PlaySource {
   online: boolean
 }
 
-/** σóÖΣ╕èτÜäΣ╕ÇΣ╕¬τö╗Θ¥ó */
+/** 墙上的一个画面 */
 interface Tile {
   key: string
   url: string
@@ -199,12 +199,12 @@ const protocol = ref('hls')
 const layout = ref('4')
 const loading = ref(false)
 
-/** Φ«╛σñçσñºσ▒Åσ╜óµÇü∩╝Üτö╗Θ¥óµ║Éµ¥ÑΦç¬σà¿Θâ¿σÅ»µÆ¡µö╛Φ«╛σñç∩╝îΣ╕ìτ╗æσ«ÜσìòσÅ░Φ«╛σñç */
+/** 设备大屏形态：画面源来自全部可播放设备，不绑定单台设备 */
 const wallMode = computed(() => props.mode === 'wall')
 
 const streamSegments = [
-  { label: 'Σ╕╗τáüµ╡ü', value: 'main' },
-  { label: 'σ¡Éτáüµ╡ü', value: 'sub' }
+  { label: '主码流', value: 'main' },
+  { label: '子码流', value: 'sub' }
 ]
 const protocolSegments = [
   { label: 'HLS', value: 'hls' },
@@ -237,16 +237,16 @@ const gridStyle = computed(() => {
   return { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }
 })
 
-/** µ£¼Φ«╛σñçτÜäΘÇÜΘüôµò░∩╝ÜΣ╝ÿσàêµÄÑσÅú∩╝îΘÇÇσîûΣ╕║ deviceInfoChannelCount */
+/** 本设备的通道数：优先接口，退化为 deviceInfoChannelCount */
 function channelCountOf(device: DeviceInfo): number {
   return Math.max(device.deviceInfoChannelCount || 1, 1)
 }
 
 /**
- * τö╗Θ¥óµ║ÉπÇé
+ * 画面源。
  *
- * <p>Φ«╛σñçΘí╡τ¡╛∩╝Üµ£¼Φ«╛σñçΘÇÜΘüôσà¿σêùσç║∩╝îσÉîσÄéσòåσà╢σ«âσÅ»µÆ¡µö╛Φ«╛σñçσÉäΦíÑ 1 Φ╖»∩╝¢
- * σñºσ▒Åσ╜óµÇü∩╝Üσà¿Θâ¿σÅ»µÆ¡µö╛Φ«╛σñç∩╝îµ»ÅσÅ░µ£ÇσñÜσÅû 4 Φ╖»ΘÇÜΘüô∩╝îµû╣Σ╛┐τÄ░σ£║Φç¬τö▒µï╝σóÖπÇé</p>
+ * <p>设备页签：本设备通道全列出，同厂商其它可播放设备各补 1 路；
+ * 大屏形态：全部可播放设备，每台最多取 4 路通道，方便现场自由拼墙。</p>
  */
 const sources = computed<PlaySource[]>(() => {
   const out: PlaySource[] = []
@@ -256,7 +256,7 @@ const sources = computed<PlaySource[]>(() => {
       deviceId: device.deviceInfoId,
       channel,
       label: channelName || device.deviceInfoName || device.deviceInfoId,
-      sub: `${device.deviceInfoName || device.deviceInfoId} ┬╖ CH${channel}`,
+      sub: `${device.deviceInfoName || device.deviceInfoId} · CH${channel}`,
       icon: getCategoryIcon(device.deviceInfoCategory),
       online: !!device.deviceInfoOnline
     })
@@ -274,11 +274,11 @@ const sources = computed<PlaySource[]>(() => {
       ? channelOptions.value
       : Array.from({ length: channelCountOf(props.device) }, (_, index) => ({
           no: index + 1,
-          name: `ΘÇÜΘüô ${index + 1}`
+          name: `通道 ${index + 1}`
         }))
     for (const ch of list) push(props.device, ch.no, ch.name)
   }
-  // σÉîσÄéσòåτÜäσà╢σ«âσÅ»µÆ¡µö╛Φ«╛σñç∩╝Üµ»ÅσÅ░σàêτ╗Öτ¼¼ 1 Φ╖»∩╝îτÄ░σ£║µï╝σóÖσñƒτö¿Σ╕öσêùΦí¿Σ╕ìΦç│Σ║Äτêåτé╕
+  // 同厂商的其它可播放设备：每台先给第 1 路，现场拼墙够用且列表不至于爆炸
   for (const device of props.devices) {
     if (!device.deviceInfoId || device.deviceInfoId === props.device?.deviceInfoId) continue
     if (device.deviceInfoVendor !== props.device?.deviceInfoVendor) continue
@@ -296,7 +296,7 @@ const filteredSources = computed(() => {
   )
 })
 
-/** σÅûµ╡üσ£░σ¥Ç∩╝êσñ▒Φ┤ÑΦ┐öσ¢₧τ⌐║Σ╕▓∩╝îτö╗Θ¥óµÿ╛τñ║σìáΣ╜ìΦÇîΣ╕ìµÿ»µò┤Θí╡µèÑΘöÖ∩╝ë */
+/** 取流地址（失败返回空串，画面显示占位而不是整页报错） */
 async function streamUrl(deviceId: string, channel: number): Promise<string> {
   try {
     const res = await deviceApi.getVideoStream(deviceId, channel, protocol.value, streamType.value)
@@ -306,7 +306,7 @@ async function streamUrl(deviceId: string, channel: number): Promise<string> {
   }
 }
 
-/** µèèτö╗Θ¥óµ║ÉσÅÿµêÉσóÖΣ╕èτÜäΣ╕ÇΣ╕¬τö╗Θ¥ó */
+/** 把画面源变成墙上的一个画面 */
 async function makeTile(source: PlaySource): Promise<Tile> {
   return {
     key: `${source.key}-${Date.now()}`,
@@ -318,7 +318,7 @@ async function makeTile(source: PlaySource): Promise<Tile> {
   }
 }
 
-/** ΘçìΦ╜╜σà¿Θâ¿τö╗Θ¥ó∩╝êµìóσìÅΦ«« / µìóτáüµ╡ü / ΘÇÜΘüôσÉÄτ╗ƒΣ╕ÇΦ╡░Φ┐ÖΘçî∩╝ë */
+/** 重载全部画面（换协议 / 换码流 / 通道后统一走这里） */
 async function reload(): Promise<void> {
   if (wallMode.value) {
     if (!tiles.value.length) return
@@ -338,7 +338,7 @@ async function reload(): Promise<void> {
   if (!props.device) return
   loading.value = true
   try {
-    // σìòτö╗Θ¥ó∩╝Üτ¢┤µÄÑσê╖µû░σ╜ôσëìΘÇÜΘüô
+    // 单画面：直接刷新当前通道
     if (!tiles.value.length) {
       const source: PlaySource = {
         key: `${props.device.deviceInfoId}#${currentChannel.value}`,
@@ -372,7 +372,7 @@ async function loadChannels(): Promise<void> {
     }>
     channelOptions.value = (res || []).map((item) => ({
       no: item.deviceChannelNo,
-      name: item.deviceChannelName || `ΘÇÜΘüô ${item.deviceChannelNo}`
+      name: item.deviceChannelName || `通道 ${item.deviceChannelNo}`
     }))
   } catch {
     channelOptions.value = []
@@ -380,7 +380,7 @@ async function loadChannels(): Promise<void> {
   currentChannel.value = channelOptions.value[0]?.no || 1
 }
 
-/** σìòσç╗τö╗Θ¥óµ║É∩╝Üµö╛Φ┐¢τ¼¼Σ╕ÇΣ╕¬τ⌐║µá╝∩╝êµ╗íΣ║åσ░▒µ¢┐µìóτ¼¼Σ╕Çµá╝∩╝ë */
+/** 单击画面源：放进第一个空格（满了就替换第一格） */
 async function addSource(source: PlaySource): Promise<void> {
   if (tiles.value.length >= layoutSize.value) {
     tiles.value.splice(0, 1)
@@ -396,7 +396,7 @@ function onDragStart(event: DragEvent, source: PlaySource): void {
 }
 
 function onTileDragStart(event: DragEvent, index: number): void {
-  // µá╝σ¡ÉΣ╣ïΘù┤Σ╣ƒΦâ╜µïû∩╝Üµî¬Σ╜ìτ╜«
+  // 格子之间也能拖：挪位置
   const tile = tiles.value[index]
   dragging.value = {
     key: tile.sourceKey,
@@ -411,7 +411,7 @@ function onTileDragStart(event: DragEvent, index: number): void {
   if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move'
 }
 
-/** ΦÉ╜σê░µƒÉΣ╕Çµá╝∩╝ê-1 = σóÖΣ╕èτÜäτ⌐║τÖ╜σî║σƒƒ∩╝îΦ┐╜σèá∩╝ë */
+/** 落到某一格（-1 = 墙上的空白区域，追加） */
 async function onWallDrop(event: DragEvent, index: number): Promise<void> {
   event.preventDefault()
   overIndex.value = -1
@@ -433,7 +433,7 @@ function removeTile(index: number): void {
   tiles.value = tiles.value.filter((_, i) => i !== index)
 }
 
-/** µîëσ╕âσ▒ÇΘô║µ╗í∩╝ÜΦ«╛σñçΘí╡τ¡╛ΦíÑµ£¼µ£║ΘÇÜΘüô∩╝îσñºσ▒Åσ╜óµÇüΘô║τö╗Θ¥óµ║É */
+/** 按布局铺满：设备页签补本机通道，大屏形态铺画面源 */
 async function fillFromChannels(): Promise<void> {
   const size = layoutSize.value
   if (wallMode.value) {
@@ -467,16 +467,16 @@ async function fillFromChannels(): Promise<void> {
   tiles.value = next
 }
 
-/** µ╕àτ⌐║τö╗Θ¥óσóÖ */
+/** 清空画面墙 */
 function clearWall(): void {
   tiles.value = []
 }
 
 /**
- * σê¥σºïσîû / µìóΦ«╛σñçπÇé
+ * 初始化 / 换设备。
  *
- * <p>Φ«╛σñçΘí╡τ¡╛∩╝ÜΘçìτ╜«σÉÄτ¢┤µÄÑµÆ¡τ¼¼ 1 Φ╖»∩╝¢
- * σñºσ▒Åσ╜óµÇü∩╝Üµëôσ╝Çσì│ΘóäΘô║ 4 µá╝∩╝îσàêτ╗Öσç║Σ╕ÇΣ╕¬Φâ╜τ£ïτÜäτö╗Θ¥óσóÖ∩╝îσåìΦ«⌐τö¿µê╖µïûµï╜Φ░âµò┤πÇé</p>
+ * <p>设备页签：重置后直接播第 1 路；
+ * 大屏形态：打开即预铺 4 格，先给出一个能看的画面墙，再让用户拖拽调整。</p>
  */
 watch(
   () => [props.mode, props.device?.deviceInfoId] as const,
@@ -492,7 +492,7 @@ watch(
   { immediate: true }
 )
 
-/** σ╕âσ▒Çτ╝⌐σ░Å∩╝ÜσñÜσç║µ¥ÑτÜäτö╗Θ¥óτ¢┤µÄÑΦúüµÄë */
+/** 布局缩小：多出来的画面直接裁掉 */
 watch(layoutSize, (size) => {
   if (tiles.value.length > size) tiles.value = tiles.value.slice(0, size)
 })
@@ -550,7 +550,7 @@ defineExpose({ reload })
   gap: 8px;
 }
 
-/* σ╖ª∩╝Üτö╗Θ¥óµ║É */
+/* 左：画面源 */
 .dpw__side {
   flex: none;
   width: 212px;
@@ -614,7 +614,7 @@ defineExpose({ reload })
 .dpw-src__dot.is-on { background: var(--el-color-success); }
 .dpw-src__dot.is-off { background: var(--el-text-color-placeholder); }
 
-/* σÅ│∩╝Üτö╗Θ¥óσóÖ */
+/* 右：画面墙 */
 .dpw__wall {
   flex: 1;
   min-width: 0;
