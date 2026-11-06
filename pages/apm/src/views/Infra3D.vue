@@ -88,20 +88,21 @@ const windowOptions = WINDOW_OPTIONS;
 /** 画布高度固定：3D 场景需要一个确定的视口，跟着内容撑开会一直抖 */
 const stageHeight = "560px";
 
-/** 每层的颜色档（按层名散列到主题色板，同一层每次刷新颜色一致） */
+/** 每层的颜色档：全部取系统 koi 根令牌（cssColor 从 :root 读，读不到
+ *  .apm-page 作用域的桥接值）。Signal 主强调 = koi 网络青 --metric-net。 */
 const LAYER_COLORS = [
-  "var(--el-color-primary)",
-  "var(--el-color-success)",
-  "var(--el-color-warning)",
-  "var(--el-color-info)",
-  "var(--el-color-danger)",
+  "var(--metric-net)",
+  "var(--status-success)",
+  "var(--status-warning)",
+  "var(--brand-500)",
+  "var(--status-error)",
 ];
 
 function layerColor(name: string): string {
   // 未分层的节点最常见（SkyWalking 9.x 的 GENERAL 层在部分版本里为空），
-  // 散列到 warning 会变成一团土黄；统一走主色，和图例里那颗蓝点一致。
+  // 统一走 koi 网络青，和图例里那颗青点一致。
   if (!name || name === "UNKNOWN") {
-    return "var(--el-color-primary)";
+    return "var(--metric-net)";
   }
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
@@ -188,7 +189,7 @@ function buildScene(context: ReThreeContext) {
   });
 
   if (showEdges.value && data.value.calls?.length) {
-    const lineMaterial = new THREE.LineBasicMaterial({ color: new THREE.Color(cssColor("var(--el-color-info)")), transparent: true, opacity: 0.45 });
+    const lineMaterial = new THREE.LineBasicMaterial({ color: new THREE.Color(cssColor("var(--text-tertiary)")), transparent: true, opacity: 0.45 });
     for (const call of data.value.calls) {
       const from = positions.get(call.source);
       const to = positions.get(call.target);
@@ -338,7 +339,7 @@ function makeLabel(THREE: ReThreeContext["THREE"], text: string) {
   const paint = canvas.getContext("2d")!;
   paint.font = `${fontSize * scale}px sans-serif`;
   paint.textBaseline = "middle";
-  paint.fillStyle = cssColor("var(--el-text-color-primary)");
+  paint.fillStyle = cssColor("var(--text-primary)");
   paint.fillText(text, 6 * scale, height / 2);
 
   const texture = new THREE.CanvasTexture(canvas);
@@ -397,18 +398,23 @@ onBeforeUnmount(() => {
 <style scoped>
 .infra-stage {
   position: relative;
-  border-radius: 12px;
+  border-radius: var(--radius-sm, 6px);
   overflow: hidden;
-  /* 3D 舞台：中心一团主色光晕 + 上浅下深的底，节点浮在「有光的空间」里，
-     而不是贴在一块死灰画布上 */
+  /* Signal 3D 舞台：koi 网络青的中心光晕 + 点阵坐标纸，节点浮在「有光的空间」里 */
   background:
     radial-gradient(
       closest-side at 50% 44%,
-      color-mix(in srgb, var(--el-color-primary) 12%, transparent),
+      color-mix(in srgb, var(--metric-net, #06b6d4) 12%, transparent),
       transparent 74%
     ),
-    linear-gradient(180deg, var(--el-fill-color-lighter), var(--el-bg-color));
-  box-shadow: inset 0 0 0 1px var(--el-border-color-lighter);
+    radial-gradient(
+      circle at 1px 1px,
+      color-mix(in srgb, var(--metric-net, #06b6d4) 16%, transparent) 1px,
+      transparent 0
+    ),
+    linear-gradient(180deg, var(--bg-elevated, #fbfbff), var(--bg-container, #fff));
+  background-size: auto, 20px 20px, auto;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--metric-net, #06b6d4) 18%, var(--border-subtle, #eef0f6));
 }
 
 .infra-layer {

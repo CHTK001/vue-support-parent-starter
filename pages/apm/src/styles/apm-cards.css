@@ -10,6 +10,23 @@
  */
 
 .ac-card {
+  /* Element → koi 桥接：本卡可能嵌在监控大屏（不在 .apm-page 作用域内），
+     因此自带一份。下方所有 var(--el-*) 在运行时解析成系统 koi 令牌，
+     html.dark 自动切深浅。Signal 主强调 = koi 网络青 --metric-net。 */
+  --el-color-primary: var(--metric-net, #06b6d4);
+  --el-color-primary-light-7: color-mix(in srgb, var(--metric-net, #06b6d4) 30%, var(--bg-container, #fff));
+  --el-color-success: var(--status-success, #2fbf71);
+  --el-color-warning: var(--status-warning, #f59e0b);
+  --el-color-danger: var(--status-error, #ff4c4c);
+  --el-color-info: var(--text-tertiary, #6b7280);
+  --el-text-color-primary: var(--text-primary, #1f2430);
+  --el-text-color-regular: var(--text-secondary, #5c6270);
+  --el-text-color-secondary: var(--text-tertiary, #6b7280);
+  --el-text-color-placeholder: var(--text-tertiary, #6b7280);
+  --el-fill-color: var(--bg-fill, #f5f7fa);
+  --el-fill-color-light: var(--bg-fill, #f5f7fa);
+  --el-border-color-lighter: var(--border-subtle, #eef0f6);
+
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -59,10 +76,12 @@
 }
 
 .ac-kpi__value {
+  font-family: var(--el-font-family-mono, ui-monospace, "SFMono-Regular", Consolas, monospace);
   font-size: 16px;
   font-weight: 700;
   line-height: 1.25;
-  color: var(--el-text-color-primary);
+  letter-spacing: -0.01em;
+  color: var(--apm-accent, var(--metric-net, var(--el-color-primary)));
   font-variant-numeric: tabular-nums;
   overflow: hidden;
   text-overflow: ellipsis;

@@ -1,85 +1,69 @@
 /**
- * @pages/apm 的视觉系统（全局类，全部 `apm-` 前缀，不会污染宿主）。
+ * @pages/apm 视觉系统 —— Signal 深空遥测（全局类，`apm-` 前缀，不污染宿主）。
  *
- * <p>骨架跟宿主走：一个菜单 + 底部页签，内容区没有页级标题。视觉是一套
- * <b>有层次的现代控制台</b>，和库里 {@code re-surface.css} 的卡片规格同源：</p>
+ * <p>形态语言：点阵画布 / 顶部 ECG 健康脉冲 / 等宽遥测数字 / 发光细边 /
+ * 青色数据线 / 6px 细直角边 / 半透明面板。<b>颜色全部取自系统 koi 令牌</b>
+ * （{@code @repo/theme/styles/tokens.css} 的 {@code --bg-*} / {@code --text-*} /
+ * {@code --border-*} / {@code --brand-*} / {@code --status-*} / {@code --metric-*} /
+ * {@code --radius-*} / {@code --shadow-*}），跟随 {@code html.dark} 自动切深浅主题：
+ * 深色即「深空遥测」，浅色即「冷白遥测台」。签名青色用 koi 的
+ * {@code --metric-net}（网络指标色），不另造一套跟系统脱节的色板。</p>
  *
- * <ul>
- *   <li>卡片 = 16px 圆角 + 透明描边 + 双层柔光投影（近距 1px、远距主色弥散），
- *       静止时就有「浮在画布上」的层次，不再是一张张白纸贴在灰底上；</li>
- *   <li>画布带两团极淡的主题色光晕，页面滚到哪儿都不会是一整片死灰；</li>
- *   <li>读数卡<b>一卡一格</b>：每格按语义色染 8% 底 + 右上角同色柔光，
- *       悬停上浮 2px —— 四个数各有身份，又不会变成四张彩色卡；</li>
- *   <li>过滤条吸顶 + 半透明毛玻璃，滚动时控件始终在手边；</li>
- *   <li>表格去竖线：表头无底色只留一条细线，行高 48px，悬停是主色 5% 的淡染；</li>
- *   <li>正文 13px、卡片标题 14px/600、读数 30px/700 且收紧字距、数字等宽 tabular；</li>
- *   <li>颜色全部走 {@code --el-*}，深浅主题自动跟随。</li>
- * </ul>
+ * <p>骨架仍是「一个菜单 + 底部 ReTabs 页签」，内容区没有页级标题。</p>
  *
- * <p>被废弃的两套：更早的「9px 大字距 + 点阵画布 + 等宽大数字」（像外挂大屏），
- * 以及把它反过来压平的「纯白卡 + 无投影 + 灰表头带」（像后台模板）。</p>
+ * <p>被废弃：更早的「柔光控制台」（16px 圆角 + 染底读数卡），
+ * 以及更更早的「9px 大字距点阵大屏 / 纯白后台模板」。</p>
  *
  * @since 4.0.0.51
  */
 
 /* ==========================================================================
-   0. 令牌
+   0. 令牌 —— 本地别名层，真源全部是系统 koi 令牌
    ========================================================================== */
 
 .apm-page,
 .apm-absent,
 .apm-shell {
-  /* 面：块 / 画布 / 线 */
-  --apm-surface: var(--el-bg-color, #fff);
-  --apm-canvas: var(--el-bg-color-page, #f2f3f5);
-  --apm-line: var(--el-border-color-lighter, #ebeef5);
-  --apm-line-strong: var(--el-border-color, #dcdfe6);
+  /* 面：块 / 画布 / 线 —— koi 中性色 */
+  --apm-surface: var(--bg-container, var(--el-bg-color, #fff));
+  --apm-canvas: var(--bg-page, var(--el-bg-color-page, #f2f3f5));
+  --apm-line: var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+  --apm-line-strong: var(--border-default, var(--el-border-color, #dcdfe6));
 
-  /* 字 */
-  --apm-text: var(--el-text-color-primary, #303133);
-  --apm-dim: var(--el-text-color-regular, #606266);
-  --apm-faint: var(--el-text-color-secondary, #909399);
+  /* 字 —— koi 文字色阶 */
+  --apm-text: var(--text-primary, var(--el-text-color-primary, #303133));
+  --apm-dim: var(--text-secondary, var(--el-text-color-regular, #606266));
+  --apm-faint: var(--text-tertiary, var(--el-text-color-secondary, #909399));
 
-  /* 语义 */
-  --apm-accent: var(--el-color-primary, #409eff);
-  --apm-ok: var(--el-color-success, #67c23a);
-  --apm-warn: var(--el-color-warning, #e6a23c);
-  --apm-bad: var(--el-color-danger, #f56c6c);
-  --apm-info: var(--el-color-info, #909399);
+  /* 语义 —— koi 状态色 + Signal 青 */
+  --apm-accent: var(--metric-net, var(--brand-500, #06b6d4)); /* 主强调 / 数据线 / ECG：青 */
+  --apm-brand: var(--brand-500, #6d5dfc);                    /* 品牌点缀：紫 */
+  --apm-ok: var(--status-success, var(--el-color-success, #67c23a));
+  --apm-warn: var(--status-warning, var(--el-color-warning, #e6a23c));
+  --apm-bad: var(--status-error, var(--el-color-danger, #f56c6c));
+  --apm-info: var(--text-tertiary, var(--el-color-info, #909399));
 
-  /* 只给地址、TraceId、指标键名这类「要逐字符读」的内容用 */
+  /* 只给地址、TraceId、指标键名、读数这类「要逐字符读」的内容用 */
   --apm-mono: var(--el-font-family-mono, ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas, monospace);
 
-  /* 圆角：卡片 16px（与库基线 --re-surface-radius 对齐），控件 10px */
-  --apm-radius: var(--re-surface-radius, 16px);
-  --apm-radius-sm: 10px;
+  /* 直角细边：Signal 用 6px（koi --radius-sm），控件 4px */
+  --apm-radius: var(--radius-sm, 6px);
+  --apm-radius-sm: 4px;
 
-  /* 层次：近距描边 + 远距主色弥散。用 color-mix 让投影跟着主题色走，
-     换主题色时卡片的光晕一起变，不会出现「蓝色卡片配紫色阴影」 */
+  /* 层次：发光细边（青色内高光）+ 极轻投影，深浅都自适应 */
+  --apm-glow: color-mix(in srgb, var(--apm-accent) 22%, transparent);
   --apm-shadow:
-    0 1px 2px color-mix(in srgb, var(--el-color-black, #000) 5%, transparent),
-    0 12px 28px -16px color-mix(in srgb, var(--el-color-primary, #409eff) 34%, transparent);
+    var(--shadow-sm, 0 1px 2px rgba(15, 18, 33, 0.04)),
+    inset 0 1px 0 color-mix(in srgb, var(--apm-accent) 12%, transparent);
   --apm-shadow-lift:
-    0 1px 2px color-mix(in srgb, var(--el-color-black, #000) 6%, transparent),
-    0 20px 38px -18px color-mix(in srgb, var(--el-color-primary, #409eff) 48%, transparent);
+    var(--shadow-md, 0 4px 12px rgba(15, 18, 33, 0.06)),
+    0 0 0 1px color-mix(in srgb, var(--apm-accent) 30%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--apm-accent) 22%, transparent);
 
-  /* 悬停淡染：表格行、页签、行列表共用一份，避免每处各调一个透明度 */
-  --apm-hover: color-mix(in srgb, var(--el-color-primary, #409eff) 6%, transparent);
-  --apm-tint: color-mix(in srgb, var(--el-color-primary, #409eff) 10%, var(--el-bg-color, #fff));
-  --apm-ring: color-mix(in srgb, var(--el-color-primary, #409eff) 22%, transparent);
-}
-
-/* 深色主题下主色弥散会发灰，改成中性黑投影，层次感靠边框亮度拉开 */
-html.dark .apm-page,
-html.dark .apm-absent,
-html.dark .apm-shell {
-  --apm-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.4),
-    0 12px 28px -18px rgba(0, 0, 0, 0.75);
-  --apm-shadow-lift:
-    0 1px 2px rgba(0, 0, 0, 0.45),
-    0 20px 38px -18px rgba(0, 0, 0, 0.85);
-  --apm-hover: color-mix(in srgb, var(--el-color-primary, #409eff) 12%, transparent);
+  /* 悬停淡染：青色，表格行、页签、行列表共用一份 */
+  --apm-hover: color-mix(in srgb, var(--apm-accent) 8%, transparent);
+  --apm-tint: color-mix(in srgb, var(--apm-accent) 10%, var(--bg-container, #fff));
+  --apm-ring: color-mix(in srgb, var(--apm-accent) 26%, transparent);
 }
 
 /* ==========================================================================
@@ -1348,4 +1332,198 @@ html.dark .apm-shell {
 
 .apm-page .apm-bar .el-checkbox__label {
   font-size: 13px;
+}
+
+/* ==========================================================================
+   13. Signal 深空遥测 · 形态层（design-exploration Phase 3 落地方向）
+   --------------------------------------------------------------------------
+   本段只做两件事，不重复上面的功能规则（ReCard isFlex / ReTable 内距 /
+   ReStatCard 0,3,0 权重 / 空态插画隐藏 / ReChart 像素高度都留在上面）：
+     (a) 在 .apm-page 作用域把 Element 的 --el-* 桥接到系统 koi 令牌 ——
+         于是模板内联的 --accent、icon-color，以及各视图 scoped 里的
+         var(--el-color-danger-light-9) 之类，运行时一律解析成 koi 色；
+     (b) 叠加 Signal 形态：点阵、发光细边、等宽遥测数字、青色数据线刻度、
+         四格身份色。颜色本体始终来自 tokens.css，html.dark 自动切深浅。
+   ========================================================================== */
+
+/* (a) Element → koi 桥接：作用域内覆盖，不污染宿主其它页面的 Element 组件 */
+.apm-page,
+.apm-absent,
+.apm-shell {
+  /* 主强调 = koi 网络青（Signal 签名色）；派生态 color-mix 保持同源 */
+  --el-color-primary: var(--metric-net, #06b6d4);
+  --el-color-primary-light-3: color-mix(in srgb, var(--metric-net, #06b6d4) 70%, var(--bg-container, #fff));
+  --el-color-primary-light-5: color-mix(in srgb, var(--metric-net, #06b6d4) 50%, var(--bg-container, #fff));
+  --el-color-primary-light-7: color-mix(in srgb, var(--metric-net, #06b6d4) 30%, var(--bg-container, #fff));
+  --el-color-primary-light-8: color-mix(in srgb, var(--metric-net, #06b6d4) 18%, var(--bg-container, #fff));
+  --el-color-primary-light-9: color-mix(in srgb, var(--metric-net, #06b6d4) 10%, var(--bg-container, #fff));
+  --el-color-primary-dark-2: color-mix(in srgb, var(--metric-net, #06b6d4) 82%, #000);
+
+  --el-color-success: var(--status-success, #2fbf71);
+  --el-color-success-light-9: color-mix(in srgb, var(--status-success, #2fbf71) 10%, var(--bg-container, #fff));
+  --el-color-warning: var(--status-warning, #f59e0b);
+  --el-color-warning-light-5: color-mix(in srgb, var(--status-warning, #f59e0b) 50%, var(--bg-container, #fff));
+  --el-color-warning-light-9: color-mix(in srgb, var(--status-warning, #f59e0b) 12%, var(--bg-container, #fff));
+  --el-color-warning-dark-2: color-mix(in srgb, var(--status-warning, #f59e0b) 80%, #000);
+  --el-color-danger: var(--status-error, #ff4c4c);
+  --el-color-danger-light-5: color-mix(in srgb, var(--status-error, #ff4c4c) 50%, var(--bg-container, #fff));
+  --el-color-danger-light-9: color-mix(in srgb, var(--status-error, #ff4c4c) 10%, var(--bg-container, #fff));
+  --el-color-danger-dark-2: color-mix(in srgb, var(--status-error, #ff4c4c) 80%, #000);
+  --el-color-info: var(--text-tertiary, #6b7280);
+
+  /* 中性面 / 线 / 字：正文与各视图里残留的 var(--el-*) 一并落到 koi */
+  --el-bg-color: var(--bg-container, #fff);
+  --el-bg-color-page: var(--bg-page, #f6f7fb);
+  --el-fill-color: var(--bg-fill, #f5f7fa);
+  --el-fill-color-light: var(--bg-fill, #f5f7fa);
+  --el-fill-color-lighter: var(--bg-elevated, #fbfbff);
+  --el-fill-color-blank: var(--bg-container, #fff);
+  --el-border-color: var(--border-default, #e3e6ef);
+  --el-border-color-light: var(--border-default, #e3e6ef);
+  --el-border-color-lighter: var(--border-subtle, #eef0f6);
+  --el-border-color-extra-light: var(--border-subtle, #eef0f6);
+  --el-text-color-primary: var(--text-primary, #1f2430);
+  --el-text-color-regular: var(--text-secondary, #5c6270);
+  --el-text-color-secondary: var(--text-tertiary, #6b7280);
+  --el-text-color-placeholder: var(--text-tertiary, #6b7280);
+}
+
+/* (b) Signal 形态 ------------------------------------------------------- */
+
+/* 等宽遥测数字：读数 / 表格 / 键值统一 tabular + mono，像仪表读数 */
+.apm-page .apm-kpi__value,
+.apm-page .apm-readout,
+.apm-page .apm-row__num,
+.apm-page .apm-load__num,
+.apm-page .apm-kvline b,
+.apm-page .apm-waterfall__ms,
+.apm-page .apm-kpis .re-stat-card__value,
+.apm-page .el-table .cell {
+  font-family: var(--apm-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* 卡片 / 画布：发光细边取代柔光圆角，深色下青色描边更亮 */
+.apm-page .apm-card,
+.apm-page .koi-card,
+.apm-page .el-card,
+.apm-page .apm-canvas,
+.apm-page .re-table {
+  border: 1px solid color-mix(in srgb, var(--apm-accent) 16%, var(--apm-line));
+  box-shadow: var(--apm-shadow);
+}
+.apm-page .apm-card:hover,
+.apm-page .koi-card:hover {
+  border-color: color-mix(in srgb, var(--apm-accent) 40%, transparent);
+  box-shadow: var(--apm-shadow-lift);
+}
+
+/* 读数卡：一卡一「遥测通道」—— 顶边一条语义色刻度 + 右上角点阵，
+   去掉整块染底与团状光晕，四个数靠顶边刻度的颜色区分身份 */
+.apm-page .apm-kpi,
+.apm-page .apm-kpis > .re-stat-card {
+  background: var(--apm-surface);
+  border-color: color-mix(in srgb, var(--k) 30%, var(--apm-line));
+}
+.apm-page .apm-kpi::before,
+.apm-page .apm-kpis > .re-stat-card::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--k);
+  opacity: 0.85;
+}
+.apm-page .apm-kpi::after,
+.apm-page .apm-kpis > .re-stat-card::after {
+  top: -10px;
+  right: -8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 0;
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--k) 45%, transparent) 1px, transparent 1.4px);
+  background-size: 6px 6px;
+}
+/* 四格身份色直接取 koi，不再依赖模板内联的 --accent */
+.apm-page .apm-kpis > :nth-child(1) { --k: var(--metric-net, #06b6d4); }
+.apm-page .apm-kpis > :nth-child(2) { --k: var(--status-success, #2fbf71); }
+.apm-page .apm-kpis > :nth-child(3) { --k: var(--status-error, #ff4c4c); }
+.apm-page .apm-kpis > :nth-child(4) { --k: var(--status-warning, #f59e0b); }
+
+/* 读数主色用青，警告/危险保留语义色 */
+.apm-page .apm-kpi__value { color: var(--apm-accent); }
+.apm-page .apm-kpi__value.is-warn { color: var(--apm-warn); }
+.apm-page .apm-kpi__value.is-bad { color: var(--apm-bad); }
+
+/* 点阵画布：拓扑/图形区给「这是一张图」的底，1px 青灰点 */
+.apm-page .apm-graph-stage {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    color-mix(in srgb, var(--apm-accent) 26%, transparent) 1px,
+    transparent 0
+  );
+  background-size: 18px 18px;
+}
+
+/* 工具条：细线描边 + 顶边青色刻度，毛玻璃保留 */
+.apm-page .apm-toolbar {
+  border-color: color-mix(in srgb, var(--apm-accent) 24%, var(--apm-line));
+  background: color-mix(in srgb, var(--apm-surface) 82%, transparent);
+}
+
+/* 表格：表头青灰刻度字、行悬停青色淡染、数字等宽 */
+.apm-page .el-table {
+  --el-table-header-text-color: var(--apm-faint);
+  --el-table-row-hover-bg-color: var(--apm-hover);
+  --el-table-border-color: var(--apm-line);
+}
+.apm-page .el-table th.el-table__cell {
+  border-bottom: 1px solid color-mix(in srgb, var(--apm-accent) 22%, var(--apm-line));
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+/* 行列表 / 读数条 / 瀑布：轨道压成细线，填充统一用青 */
+.apm-page .apm-row__track,
+.apm-page .apm-load__track,
+.apm-page .apm-meter,
+.apm-page .apm-waterfall__track,
+.apm-page .apm-row__bar,
+.apm-page .apm-load__bar,
+.apm-page .apm-waterfall__bar {
+  border-radius: 2px;
+}
+.apm-page .apm-row__bar,
+.apm-page .apm-load__bar,
+.apm-page .apm-waterfall__bar {
+  background: var(--apm-accent);
+}
+
+/* 页脚 / 抬头口径：等宽小字，像仪表标注 */
+.apm-page .apm-card-note,
+.apm-page .apm-canvas__hint,
+.apm-page .apm-count,
+.apm-page .apm-kpi__label {
+  font-variant-numeric: tabular-nums;
+}
+.apm-page .apm-card-h {
+  letter-spacing: 0.03em;
+}
+
+/* 空态图标块：青色细边方章，不再是柔光圆角 */
+.apm-page .apm-empty-card__icon {
+  border-radius: var(--apm-radius-sm);
+  color: var(--apm-accent);
+  background: color-mix(in srgb, var(--apm-accent) 8%, var(--apm-surface));
+  border-color: color-mix(in srgb, var(--apm-accent) 28%, transparent);
+}
+
+/* 降级视图：青色虚线细边 */
+.apm-absent {
+  border-color: color-mix(in srgb, var(--apm-accent) 35%, transparent);
 }

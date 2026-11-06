@@ -174,6 +174,19 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+/* ==========================================================================
+   Signal 深空遥测 · 工作台外壳（颜色全部取自系统 koi 令牌，html.dark 自动切深浅）
+   ========================================================================== */
+
+/* 本地别名：Signal 主强调 = koi 网络青 --metric-net */
+.apm-shell {
+  --apm-sig: var(--metric-net, var(--brand-500, #06b6d4));
+  --apm-sig-bg: var(--bg-page, var(--el-bg-color-page, #f6f7fb));
+  --apm-sig-surface: var(--bg-container, var(--el-bg-color, #fff));
+  --apm-sig-line: var(--border-subtle, var(--el-border-color-lighter, #eef0f6));
+  --apm-sig-text: var(--text-secondary, var(--el-text-color-regular, #5c6270));
+}
+
 /* ==================== 骨架 ==================== */
 .apm-shell {
   display: flex;
@@ -183,7 +196,7 @@ onBeforeUnmount(() => {
   height: 100%;
   min-height: 0;
   min-width: 0;
-  background: var(--el-bg-color-page);
+  background: var(--apm-sig-bg);
 }
 
 .apm-shell__body {
@@ -205,63 +218,87 @@ onBeforeUnmount(() => {
   flex: 1 1 auto;
 }
 
-/** 每个页签的内容区：高页面自己滚，页签条始终可见 */
+/** 每个页签的内容区：高页面自己滚，页签条始终可见。
+    Signal 点阵画布 = koi 令牌配色的 1px 青灰点；随内容滚动，页面再长
+    也不会退化成一大片死灰。顶部 ECG 健康脉冲见下方伪元素。 */
 .apm-workbench__view {
+  position: relative;
+  isolation: isolate; /* 建立层叠上下文，让 ::before 的 z-index:-1 稳定落在「背景之上、内容之下」 */
   box-sizing: border-box;
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
-  /* 画布上两团极淡的主题色光晕：滚动时固定在容器上，
-     页面再长也不会退化成一大片死灰 */
-  background-color: var(--el-bg-color-page);
-  background-image:
-    radial-gradient(
-      1100px 460px at 6% -8%,
-      color-mix(in srgb, var(--el-color-primary) 13%, transparent),
-      transparent 68%
-    ),
-    radial-gradient(
-      860px 400px at 98% -6%,
-      color-mix(in srgb, var(--el-color-success) 9%, transparent),
-      transparent 70%
-    );
-  background-repeat: no-repeat;
+  background-color: var(--apm-sig-bg);
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    color-mix(in srgb, var(--apm-sig) 20%, transparent) 1px,
+    transparent 0
+  );
+  background-repeat: repeat;
+  background-size: 20px 20px;
 }
 
-/* ==================== 底部页签：灰底上的白色胶囊 ==================== */
+/* 顶部 ECG 健康脉冲（本方向的签名元素）。SVG data-URI 无法读取 CSS 变量，
+   因此这里只把它当「形状遮罩」：线条颜色由 background 提供，100% 取自 koi
+   --metric-net（--apm-sig），换主题时一起变。纯装饰，不挡交互、不占布局。 */
+.apm-workbench__view::before {
+  content: "";
+  position: absolute;
+  z-index: -1; /* 落在点阵背景之上、卡片内容之下（isolate 保证不被宿主层叠吞掉） */
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 38px;
+  pointer-events: none;
+  opacity: 0.5;
+  background: var(--apm-sig);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='560' height='40' viewBox='0 0 560 40'%3E%3Cpath d='M0 26 H120 L134 26 L142 8 L150 36 L158 26 H300 L314 26 L322 14 L330 32 L338 26 H560' fill='none' stroke='%23000' stroke-width='1.5' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E");
+  -webkit-mask-repeat: repeat-x;
+  -webkit-mask-position: center;
+  -webkit-mask-size: 560px 40px;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='560' height='40' viewBox='0 0 560 40'%3E%3Cpath d='M0 26 H120 L134 26 L142 8 L150 36 L158 26 H300 L314 26 L322 14 L330 32 L338 26 H560' fill='none' stroke='%23000' stroke-width='1.5' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E");
+  mask-repeat: repeat-x;
+  mask-position: center;
+  mask-size: 560px 40px;
+}
+
+/* ==================== 底部页签：遥测刻度条 ==================== */
 .apm-workbench :deep(.re-tabs__bar) {
   flex: none;
   gap: 2px;
   padding: 7px 12px;
-  border-top: 1px solid var(--el-border-color-lighter);
+  border-top: 1px solid color-mix(in srgb, var(--apm-sig) 22%, var(--apm-sig-line));
   border-bottom: none;
-  background: var(--el-fill-color-light);
+  background: color-mix(in srgb, var(--apm-sig-surface) 92%, transparent);
 }
 
 .apm-workbench :deep(.re-tabs__tab) {
   height: 30px;
   padding: 0 12px;
-  border-radius: 999px;
-  font-size: 13px;
-  color: var(--el-text-color-regular);
+  border-radius: 3px;
+  border-bottom: 2px solid transparent;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--apm-sig-text);
   transition:
     background-color 0.18s ease,
     color 0.18s ease,
-    box-shadow 0.18s ease;
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
 }
 
 .apm-workbench :deep(.re-tabs__tab:hover) {
-  background: color-mix(in srgb, var(--el-bg-color) 70%, transparent);
-  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--apm-sig) 8%, transparent);
+  color: var(--apm-sig);
 }
 
+/* 激活态：青色顶边刻度 + 数字发光，遥测通道被选中的读法 */
 .apm-workbench :deep(.re-tabs__tab.is-active) {
-  background: var(--el-bg-color);
-  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--apm-sig) 10%, var(--apm-sig-surface));
+  color: var(--apm-sig);
+  border-bottom-color: var(--apm-sig);
   font-weight: 600;
-  box-shadow:
-    0 1px 2px color-mix(in srgb, var(--el-color-black) 8%, transparent),
-    0 8px 18px -12px color-mix(in srgb, var(--el-color-primary) 60%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--apm-sig) 30%, transparent);
 }
 
 .apm-workbench :deep(.re-tabs__tab.is-active .re-tabs__icon) {

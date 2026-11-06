@@ -1,13 +1,15 @@
 /**
  * APM 图形的主题取色。
  *
- * <p>为什么需要它：ECharts 画在 canvas 上，`fillStyle = "var(--el-color-primary)"`
+ * <p>为什么需要它：ECharts / SVG 画在 canvas 上，`fillStyle = "var(--x)"`
  * 是无效值 —— 浏览器会静默忽略，最后全部退回默认色（浅色主题下刚好能看，
  * 一切深色主题就变成一堆看不清的暗灰）。所以图形颜色必须在运行时从
  * 计算样式里读出来，并跟着 `html` 的 class 变化重新取值。</p>
  *
- * <p>只暴露图里真正用到的九个颜色，不做一个通用的 var() 求值器：
- * 颜色越多，两个主题之间越容易有一处忘了对齐。</p>
+ * <p><b>Signal 深空遥测</b>：颜色本体全部取自系统 koi 令牌
+ * （{@code @repo/theme/styles/tokens.css}），主强调是 koi 的
+ * {@code --metric-net} 网络青，跟随 {@code html.dark} 自动切深浅主题。
+ * 只暴露图里真正用到的九个颜色，不做一个通用的 var() 求值器。</p>
  *
  * @since 4.0.0.51
  */
@@ -25,7 +27,7 @@ export interface ApmPalette {
   line: string;
   /** 块底色 */
   surface: string;
-  /** 主色 */
+  /** 主色（Signal 青） */
   primary: string;
   /** 成功 */
   ok: string;
@@ -35,7 +37,12 @@ export interface ApmPalette {
   bad: string;
 }
 
-/** 读一个 CSS 变量，取不到时用兜底值（SSR / 首帧竞态都走这里） */
+/**
+ * 读一个 CSS 变量，取不到时用兜底值（SSR / koi 令牌尚未注入的首帧都走这里）。
+ *
+ * <p>`color-mix()` 这类计算值在 canvas 里同样无效，因此这里读的是 koi 的
+ * 实色令牌；派生透明度统一在组件里用 {@link withAlpha} 处理。</p>
+ */
 function readVar(name: string, fallback: string): string {
   if (typeof document === "undefined") {
     return fallback;
@@ -44,18 +51,18 @@ function readVar(name: string, fallback: string): string {
   return value || fallback;
 }
 
-/** 当前主题下的一份取值 */
+/** 当前主题下的一份取值（真源 = koi 令牌） */
 function snapshot(): ApmPalette {
   return {
-    text: readVar("--el-text-color-primary", "#0f1b24"),
-    dim: readVar("--el-text-color-secondary", "#6a7c8a"),
-    faint: readVar("--el-text-color-placeholder", "#8b9aa6"),
-    line: readVar("--el-border-color-lighter", "#e3e9ee"),
-    surface: readVar("--el-bg-color", "#ffffff"),
-    primary: readVar("--el-color-primary", "#1f7ae0"),
-    ok: readVar("--el-color-success", "#12a06a"),
-    warn: readVar("--el-color-warning", "#d98b00"),
-    bad: readVar("--el-color-danger", "#d93a3a"),
+    text: readVar("--text-primary", "#e4e6ef"),
+    dim: readVar("--text-secondary", "#9ca0b0"),
+    faint: readVar("--text-tertiary", "#6b7080"),
+    line: readVar("--border-subtle", "rgba(255,255,255,.06)"),
+    surface: readVar("--bg-container", "#1a1d27"),
+    primary: readVar("--metric-net", "#06b6d4"),
+    ok: readVar("--status-success", "#4ade80"),
+    warn: readVar("--status-warning", "#fbbf24"),
+    bad: readVar("--status-error", "#ff6b6b"),
   };
 }
 
