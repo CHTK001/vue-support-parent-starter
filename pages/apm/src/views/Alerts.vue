@@ -33,19 +33,26 @@
         @change="load"
       />
       <ReInput v-model="keyword" placeholder="按告警内容过滤" clearable style="width: 260px" @keyup.enter="load" />
+      <span v-if="entity" class="apm-bar" style="gap: 6px">
+        <ReTag type="danger" round closable @close="entity = ''">实体：{{ entity }}</ReTag>
+      </span>
       <ReSelect v-model="minutes" :options="windowOptions" style="width: 150px" @change="load" />
       <ReButton icon="Search" type="primary" :loading="loading" @click="load">查询</ReButton>
       <span class="apm-bar__spacer" />
-      <span class="apm-count">{{ alarms.length }} 条告警 · {{ byEntity.length }} 个实体 · {{ byScope.length }} 类作用域</span>
+      <span class="apm-count">{{ scopedAlarms.length }} 条告警 · {{ byEntity.length }} 个实体 · {{ byScope.length }} 类作用域</span>
       <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
     </div>
 
     <ReSkeleton v-if="loading && !alarms.length" :rows="6" animated />
 
-    <div v-else-if="!alarms.length" class="apm-empty-card">
+    <div v-else-if="!scopedAlarms.length" class="apm-empty-card">
       <div class="apm-empty-card__title">没有告警事件</div>
       <p class="apm-empty-card__desc">
-        该时间窗口内规则未触发，因此没有可聚合的实体与作用域；如果确认应有告警，请检查 OAP 的 alarm 规则配置。
+        {{
+          entity
+            ? `该窗口内没有「${entity}」的告警，可撤掉实体筛选看全部。`
+            : "该时间窗口内规则未触发，因此没有可聚合的实体与作用域；如果确认应有告警，请检查 OAP 的 alarm 规则配置。"
+        }}
       </p>
     </div>
 
@@ -67,17 +74,24 @@
           <template #header>
             <div class="apm-card-head">
               <span class="apm-card-h">实体排行</span>
-              <span class="apm-muted">哪个服务 / 实例 / 端点最吵</span>
+              <span class="apm-muted">哪个服务 / 实例 / 端点最吵 · 点一行看它的事件</span>
             </div>
           </template>
           <div class="alert-rank">
-            <div v-for="item in byEntity" :key="item.name" class="alert-rank__row">
+            <button
+              v-for="item in byEntity"
+              :key="item.name"
+              type="button"
+              class="alert-rank__row is-clickable"
+              :title="`在告警页只看「${item.name}」`"
+              @click="openAlarmsOf(item.name)"
+            >
               <span class="alert-rank__name apm-mono" :title="item.name">{{ item.name }}</span>
               <div class="alert-rank__track">
                 <div class="alert-rank__bar" :style="{ width: `${item.percent}%` }" />
               </div>
               <span class="alert-rank__count apm-mono">{{ item.count }}</span>
-            </div>
+            </button>
           </div>
         </ReCard>
 
@@ -169,6 +183,7 @@ import { listAlerts, listServices } from "../api/apmApi";
 import type { ApmAlarm } from "../api/apmApi";
 import { useApmPalette } from "../composables/useApmPalette";
 import { useApmStatus } from "../composables/useApmStatus";
+import { consumeApmTabContext, openApmTab } from "../tabs";
 import { WINDOW_OPTIONS, fmtAgo, fmtAxisClock, fmtTime } from "../utils/format";
 
 const { present, ensure } = useApmStatus();
@@ -179,6 +194,8 @@ const alarms = ref<ApmAlarm[]>([]);
 const services = ref<string[]>([]);
 const service = ref("");
 const keyword = ref("");
+/** 实体筛选（从总览 / 告警页下钻过来时带上的名字） */
+const entity = ref("");
 const minutes = ref(180);
 const loading = ref(false);
 const expanded = ref<string[]>([]);
@@ -194,6 +211,18 @@ function toggle(rule: string) {
   } else {
     expanded.value.push(rule);
   }
+}
+
+/**
+ * 排行榜一行 → 告警页只看这个实体。
+ *
+ * <p>排行的用处就是「谁最吵」，看到名字之后的下一步是翻它的事件流水，
+ * 而那一屏在告警页。带实体名过去，落地页直接过滤，不用再照着名字打一遍。</p>
+ *
+ * @param entity 实体名（服务 / 「实例 of 服务」/「端点 in 服务」）
+ */
+function openAlarmsOf(entity: string): void {
+  openApmTab("alarms", { entity, minutes: minutes.value });
 }
 
 /**
@@ -251,8 +280,25 @@ function rank(list: ApmAlarm[], pick: (alarm: ApmAlarm) => string): RankItem[] {
   return entries.map(([name, count]) => ({ name, count, percent: (count / max) * 100 }));
 }
 
-const byEntity = computed(() => rank(alarms.value, (a) => a.name || a.serviceName || ""));
-const byScope = computed(() => rank(alarms.value, (a) => a.scope || ""));
+/**
+ * 按实体过滤后的告警。
+ *
+ * <p>聚合视图的所有读数（趋势 / 排行 / 分组）都以它为准，筛掉实体时三块要一起变，
+ * 否则「实体排行」只剩一个实体、趋势线却还是全部事件的，读起来自相矛盾。</p>
+ */
+const scopedAlarms = computed(() => {
+  const target = entity.value.trim();
+  if (!target) {
+    return alarms.value;
+  }
+  return alarms.value.filter((alarm) => {
+    const name = (alarm.name || alarm.serviceName || "").trim();
+    return name === target || name.includes(target);
+  });
+});
+
+const byEntity = computed(() => rank(scopedAlarms.value, (a) => a.name || a.serviceName || ""));
+const byScope = computed(() => rank(scopedAlarms.value, (a) => a.scope || ""));
 
 /** 一条规则在一个实体下的聚合：次数、首末时间、去重后的事件 */
 interface RuleBucket {
@@ -284,15 +330,15 @@ function mergeEvents(list: ApmAlarm[]): { text: string; count: number }[] {
 /** 按实体分组（组内再按规则聚合、按最近触发倒序），供折叠面板展开 */
 const grouped = computed(() => {
   const map = new Map<string, ApmAlarm[]>();
-  for (const alarm of alarms.value) {
-    const entity = alarm.name || alarm.serviceName || "（未命名实体）";
-    if (!map.has(entity)) {
-      map.set(entity, []);
+  for (const alarm of scopedAlarms.value) {
+    const key = alarm.name || alarm.serviceName || "（未命名实体）";
+    if (!map.has(key)) {
+      map.set(key, []);
     }
-    map.get(entity)!.push(alarm);
+    map.get(key)!.push(alarm);
   }
   return [...map.entries()]
-    .map(([entity, items]) => {
+    .map(([groupEntity, items]) => {
       const sorted = [...items].sort((a, b) => b.startTime - a.startTime);
       const buckets = new Map<string, ApmAlarm[]>();
       for (const alarm of sorted) {
@@ -315,7 +361,7 @@ const grouped = computed(() => {
         };
       });
       rules.sort((a, b) => b.latest - a.latest);
-      return { entity, items: sorted, rules, latest: sorted[0]?.startTime ?? 0 };
+      return { entity: groupEntity, items: sorted, rules, latest: sorted[0]?.startTime ?? 0 };
     })
     .sort((a, b) => b.items.length - a.items.length);
 });
@@ -324,11 +370,11 @@ const grouped = computed(() => {
 const trendOption = computed<EChartsOption>(() => {
   const bucketMs = bucketMinutes.value * 60_000;
   const end = Date.now();
-  const start = Math.min(...alarms.value.map((a) => a.startTime), end);
+  const start = Math.min(...scopedAlarms.value.map((a) => a.startTime), end);
   const from = Math.floor((start || end - minutes.value * 60_000) / bucketMs) * bucketMs;
 
   const buckets = new Map<number, number>();
-  for (const alarm of alarms.value) {
+  for (const alarm of scopedAlarms.value) {
     if (alarm.startTime <= 0) {
       continue;
     }
@@ -407,6 +453,14 @@ async function loadServices() {
 }
 
 onMounted(async () => {
+  // 从告警页 / 总览点某个实体过来时带着名字：直接按它筛，省一次回填
+  const context = consumeApmTabContext();
+  if (context?.entity) {
+    entity.value = context.entity;
+  }
+  if (context?.minutes) {
+    minutes.value = context.minutes;
+  }
   await loadServices();
   load();
 });
@@ -461,6 +515,25 @@ onMounted(async () => {
   align-items: center;
   gap: 10px;
   font-size: 12px;
+}
+
+/* 排行行可点：按钮形态要清掉浏览器默认外观，只保留行本身 */
+.alert-rank__row.is-clickable {
+  width: 100%;
+  padding: 2px 4px;
+  margin: 0 -4px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.alert-rank__row.is-clickable:hover {
+  background: var(--bg-hover, var(--el-fill-color-light));
 }
 
 .alert-rank__name {

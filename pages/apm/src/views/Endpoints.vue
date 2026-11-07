@@ -26,7 +26,7 @@
       />
       <ReButton icon="Search" type="primary" :loading="loading" @click="load">查询</ReButton>
       <span class="apm-bar__spacer" />
-      <span class="apm-count">{{ endpoints.length }} 个端点</span>
+      <span class="apm-count">{{ endpoints.length }} 个端点 · 点行看链路</span>
       <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
     </div>
 
@@ -81,6 +81,8 @@
       empty-text="没有符合条件的端点"
       :layout-table="{ maxHeight: 620 }"
       table-id="apm-endpoints"
+      class="apm-row-click"
+      @row-click="openTraces"
     >
       <template #empty="{ description }">
         <span class="apm-table-empty">{{ description }}</span>
@@ -116,6 +118,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 import { message } from "@repo/core";
 import { Aim, Histogram, Search, Timer, Warning } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
@@ -129,9 +132,11 @@ import ApmGate from "../components/ApmGate.vue";
 import { listEndpoints, listServices } from "../api/apmApi";
 import type { ApmEndpoint } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
+import { ROUTE_PREFIX } from "../config";
 import { consumeApmTabContext } from "../tabs";
 import { errorRateClass, errorRateText, fmtMs, fmtNum, latencyClass } from "../utils/format";
 
+const router = useRouter();
 const { present, ensure } = useApmStatus();
 
 const endpoints = ref<ApmEndpoint[]>([]);
@@ -212,6 +217,27 @@ async function loadServices() {
   } catch {
     services.value = [];
   }
+}
+
+/**
+ * 端点行 → 该端点的链路列表。
+ *
+ * <p>「哪个端点最慢」这张表是结论，下一件事就是看这个端点的调用链。
+ * 走 URL 带 ?tab=traces&service=&endpoint=，落地页重建后也能活着。</p>
+ *
+ * @param row 端点行
+ */
+function openTraces(row: Record<string, unknown>): void {
+  const endpoint = String(row.name ?? "");
+  const svc = String(row.serviceName ?? service.value ?? "");
+  router.push({
+    path: ROUTE_PREFIX,
+    query: {
+      tab: "traces",
+      ...(svc ? { service: svc } : {}),
+      ...(endpoint ? { endpoint } : {}),
+    },
+  });
 }
 
 onMounted(async () => {

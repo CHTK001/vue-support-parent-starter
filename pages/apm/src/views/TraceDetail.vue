@@ -292,8 +292,17 @@ async function load() {
   }
 }
 
+/** 返回列表：把来时带的筛选还原回去，别让人重新选服务和端点 */
 function goBack() {
-  router.push(`${ROUTE_PREFIX}/traces`);
+  router.push({
+    path: ROUTE_PREFIX,
+    query: {
+      tab: "traces",
+      ...(route.query.service ? { service: String(route.query.service) } : {}),
+      ...(route.query.endpoint ? { endpoint: String(route.query.endpoint) } : {}),
+      ...(route.query.minutes ? { minutes: String(route.query.minutes) } : {}),
+    },
+  });
 }
 
 onMounted(load);

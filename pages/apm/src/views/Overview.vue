@@ -95,8 +95,10 @@
             <div
               v-for="alarm in topAlarms"
               :key="alarm.id"
-              class="apm-alert"
+              class="apm-alert is-clickable"
               :class="alarmTone(alarm)"
+              :title="`在告警页只看「${alarmTitle(alarm)}」`"
+              @click="go('alarms', { entity: alarmTitle(alarm) })"
             >
               <i class="apm-alert__bar" />
               <span class="apm-alert__body">

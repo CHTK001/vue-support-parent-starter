@@ -16,6 +16,8 @@
       </template>
       <span v-else class="apm-bar__spacer" />
       <ReButton icon="Back" show-text @click="goBack">返回列表</ReButton>
+      <ReButton v-if="serviceName" icon="Connection" show-text @click="goTraces">调用链</ReButton>
+      <ReButton v-if="serviceName" icon="DataAnalysis" show-text @click="goCompare">对比</ReButton>
       <ReButton v-if="serviceName" icon="Timer" show-text @click="goProfiles">性能剖析</ReButton>
       <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
     </div>
@@ -169,7 +171,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { message } from "@repo/core";
-import { Aim, Back, Histogram, Monitor, Search, Timer } from "@element-plus/icons-vue";
+import { Aim, Back, Connection, DataAnalysis, Histogram, Monitor, Search, Timer } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReCard from "@repo/ui/re-card";
 import ReEmpty from "@repo/ui/re-empty";
@@ -184,6 +186,7 @@ import { getMetrics, listEndpoints, listInstances } from "../api/apmApi";
 import type { ApmEndpoint, ApmInstance, ApmMetricSeries, ApmTag } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
 import { ROUTE_PREFIX } from "../config";
+import { openApmTab } from "../tabs";
 import {
   WINDOW_OPTIONS,
   errorRateClass,
@@ -321,9 +324,24 @@ function goBack() {
   router.push(`${ROUTE_PREFIX}/services`);
 }
 
+/**
+ * 跳到「链路」页签只看这个服务。
+ *
+ * <p>详情页看到「哪个服务有问题」，下一步往往是看它最近的调用链；
+ * 不带 service 过去就得在链路页重选一次服务 —— 那一步是纯浪费。</p>
+ */
+function goTraces() {
+  router.push({ path: ROUTE_PREFIX, query: { tab: "traces", service: serviceName.value, minutes: String(minutes.value) } });
+}
+
 /** 跳到剖析页并带上当前服务：剖析必须先选服务，用户不该再手点一遍 */
 function goProfiles() {
   router.push({ path: `${ROUTE_PREFIX}/profiles`, query: { service: serviceName.value } });
+}
+
+/** 跳到对比页并预选当前服务（页内跳转，用一次性上下文，不污染 URL） */
+function goCompare() {
+  openApmTab("compare", { service: serviceName.value, minutes: minutes.value });
 }
 
 /**

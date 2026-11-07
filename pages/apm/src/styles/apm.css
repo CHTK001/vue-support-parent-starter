@@ -1206,6 +1206,17 @@
   padding-top: 0;
 }
 
+/* 可点的告警条目：整行进告警页并按实体过滤，给出 hover 反馈 */
+.apm-alert.is-clickable {
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
+}
+
+.apm-alert.is-clickable:hover {
+  background: var(--apm-hover);
+}
+
 .apm-alert__bar {
   flex: none;
   width: 3px;

@@ -229,13 +229,21 @@ function nextPage() {
   load();
 }
 
-/** 行点击 → 瀑布详情 */
+/** 行点击 → 瀑布详情；把当前筛选一起带上，详情页「返回列表」才能回到同一屏 */
 function onRowClick(row: Record<string, unknown>) {
   const traceId = String(row.traceId ?? "");
   if (!traceId) {
     return;
   }
-  router.push({ path: `${ROUTE_PREFIX}/traces/detail`, query: { traceId } });
+  router.push({
+    path: `${ROUTE_PREFIX}/traces/detail`,
+    query: {
+      traceId,
+      ...(query.service ? { service: query.service } : {}),
+      ...(query.endpoint ? { endpoint: query.endpoint } : {}),
+      minutes: String(minutes.value),
+    },
+  });
 }
 
 onMounted(async () => {

@@ -121,6 +121,7 @@ import MetricChart from "../components/MetricChart.vue";
 import { getMetricsBatch, getMultiTopology, listMetricDefinitions, listServices } from "../api/apmApi";
 import type { ApmMetricDefinition, ApmMetricSeries, ApmScope, ApmStep, ApmTopology } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
+import { consumeApmTabContext } from "../tabs";
 import { WINDOW_OPTIONS, fmtNum } from "../utils/format";
 
 const { present, ensure } = useApmStatus();
@@ -312,14 +313,27 @@ onMounted(async () => {
   if (!present.value) {
     return;
   }
+  // 从服务详情 / 服务列表点「对比」过来时带着服务名：直接预选它，
+  // 再补一个服务凑成对照 —— 否则落地后还得手点两个服务。
+  const context = consumeApmTabContext();
   try {
     services.value = ((await listServices({})) || []).map((s) => s.name);
   } catch {
     services.value = [];
   }
   await loadDefinitions();
+  const wanted = context?.service && services.value.includes(context.service) ? context.service : "";
   // 默认选前两个服务，让页面一进来就有东西可比（选 0 个只能看到空图）
-  selectedServices.value = services.value.slice(0, 2);
+  const preset = wanted ? [wanted] : [];
+  for (const name of services.value.slice(0, 2)) {
+    if (preset.length >= 2) {
+      break;
+    }
+    if (!preset.includes(name)) {
+      preset.push(name);
+    }
+  }
+  selectedServices.value = preset.slice(0, MAX_SERVICES);
   load();
 });
 
