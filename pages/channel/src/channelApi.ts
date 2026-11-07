@@ -349,4 +349,62 @@ export const channelApi = {
         models?: Array<{ id: string; name?: string }>
       }>
     }>(apiHttp.get('/api/channels/image-channels')),
+  /**
+   * GET /api/accounts?channelKey= —— 某渠道下的账号（统一账号管理）。
+   *
+   * <p>渠道管理只有一种模型：渠道 + 账号。AI 账号渠道与免登录渠道
+   * （DuckDuckGo / Trae / Pollinations）都按同一个接口挂账号，
+   * 免登录渠道的密钥可留空或随意填，不额外提供操作页。</p>
+   */
+  accounts: (channelKey: string) =>
+    unwrapPayload<ChannelAccount[]>(
+      apiHttp.get('/api/accounts').query({ channelKey }),
+    ),
+  /** POST /api/accounts —— 新增账号（secret 为明文，服务端加密落库） */
+  createAccount: (account: ChannelAccountInput) =>
+    unwrapPayload<ChannelAccount>(
+      apiHttp.post('/api/accounts').data(account as unknown as Record<string, unknown>),
+    ),
+  /** DELETE /api/accounts/{accountId} —— 逻辑删除账号 */
+  deleteAccount: (accountId: string) =>
+    unwrapPayload<boolean>(apiHttp.delete(`/api/accounts/${accountId}`)),
+}
+
+/**
+ * 渠道账号（`/api/accounts` 的读模型）。
+ *
+ * <p>敏感字段服务端一律清空，只回 {@code hasSecret}；渠道归属由 {@code channelKey} 表达。</p>
+ */
+export interface ChannelAccount {
+  accountId: string
+  /** 业务唯一键 */
+  code?: string
+  /** 展示名 */
+  name?: string
+  /** 账号种类（API_KEY / EMAIL / SMS） */
+  kind?: string
+  /** 所属渠道标识 */
+  channelKey?: string
+  /** 登录名 / 地址 */
+  username?: string
+  /** 是否已配置凭据（服务端不回明文） */
+  hasSecret?: boolean
+  status?: number
+  defaultAccount?: boolean
+  verifyStatus?: string
+  verifyMessage?: string
+  updatedAt?: number
+  createdAt?: number
+}
+
+/** 新增账号的写入模型（{@code secret} 为明文，仅提交时使用） */
+export interface ChannelAccountInput {
+  code: string
+  name: string
+  kind: string
+  channelKey: string
+  username?: string
+  secret?: string
+  endpoint?: string
+  status?: number
 }

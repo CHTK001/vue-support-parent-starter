@@ -46,6 +46,13 @@ describe("远程注入白名单边界", () => {
     it("既有放行项 security.baiduJs 未被回归", () => {
       expect(setPath("security.baiduJs.enable").allowed).toBe(true);
     });
+
+    it.each(["security.dynamicFont.enable", "security.dynamicFont"])(
+      "放行字体加密 %s",
+      (path) => {
+        expect(setPath(path).allowed).toBe(true);
+      },
+    );
   });
 
   describe("security 其余子树仍拒", () => {
@@ -53,6 +60,8 @@ describe("远程注入白名单边界", () => {
       "security.csrf.enable",
       "security.password.minLength",
       "security.crt.path",
+      "security.ocrObfuscation.enable",
+      "security.dynamicFontX.enable",
     ])("拒绝 %s", (path) => {
       expect(setPath(path).allowed).toBe(false);
     });

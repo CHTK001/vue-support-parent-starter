@@ -83,6 +83,15 @@ function redirectEsbuildTempOnWindows(): void {
   const localTemp = path.join(WORKSPACE_ROOT, '.tmp', 'esbuild-tmp')
   try {
     fs.mkdirSync(localTemp, { recursive: true })
+    // 清理上一轮被打断的构建残留：残留的 esbuild-* 临时文件会触发同样的 Access is denied
+    for (const name of fs.readdirSync(localTemp)) {
+      if (!name.startsWith('esbuild-')) continue
+      try {
+        fs.rmSync(path.join(localTemp, name), { recursive: true, force: true, maxRetries: 3 })
+      } catch {
+        /* 被占用的残留跳过即可，不阻断构建 */
+      }
+    }
   } catch {
     return
   }

@@ -737,6 +737,8 @@ export interface ToolbarConfig {
   message: boolean;
   /** 快捷便条（顶栏入口创建悬浮便条） */
   quickNote: boolean;
+  /** 关闭便条时是否二次确认（默认开启） */
+  quickNoteConfirm?: boolean;
   /** 全局公告条（活跃公告横幅，数据来自平台 /v2/announcement/active） */
   announcement: boolean;
   /** 顶栏天气组件 */

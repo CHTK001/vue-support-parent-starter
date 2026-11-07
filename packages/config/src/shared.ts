@@ -406,6 +406,7 @@ export const defaultAppConfig: AppConfig = {
       logo: true,
       message: true,
       quickNote: true,
+      quickNoteConfirm: true,
       announcement: true,
       weather: true,
       exchangeRate: true,

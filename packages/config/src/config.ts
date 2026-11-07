@@ -244,15 +244,16 @@ const DEPLOY_SIDE_BLOCKED_OTHER_KEYS: ReadonlySet<string> = new Set([
  * `setConfig`（运行时公开写回）的 security 子树放行白名单。
  *
  * 注意它与 safe-path.ts 的远程注入白名单不同：这里是 setConfig 的只读保护拦截器，
- * 只允许用户在运行时改 `security.baiduJs`（反爬脚本下发）；`security.watermark` 虽然
- * 不在运行时可写回范围内（必须随 app.yaml），但可作为授权通道（loadConfig /
- * mergeDefaultSetting）落盘（见 REMOTE_INJECTABLE_PATH_PREFIXES），所以
- * `setConfig({security: {watermark: {...}}})` 仍然会被拒绝。
+ * 只允许用户在运行时改 `security.baiduJs`（反爬脚本下发）；`security.watermark` 与
+ * `security.dynamicFont` 虽然不在运行时可写回范围内（必须随 app.yaml），但可作为
+ * 授权通道（loadConfig / mergeDefaultSetting）落盘（见 REMOTE_INJECTABLE_PATH_PREFIXES），
+ * 所以 `setConfig({security: {watermark: {...}}})` / `setConfig({security: {dynamicFont: {...}}})`
+ * 仍然会被拒绝。
  *
  * 反爬脚本下发（security.baiduJs 子树）被设计为「管理员在后台配值、前端按下发值
  * 注入外部脚本」的产品功能，会被 /v2/setting/default 正常下发；若连它一起拒，
- * 后台配置的安全策略在前端永远不生效。其余 security.*（dynamicFont /
- * ocrObfuscation / watermark）必须随 app.yaml，禁止运行时写回。
+ * 后台配置的安全策略在前端永远不生效。其余 security.*（ocrObfuscation 等）
+ * 必须随 app.yaml，禁止运行时写回。
  */
 const DEPLOY_SIDE_SECURITY_ALLOW_PREFIX = "security.baiduJs";
 

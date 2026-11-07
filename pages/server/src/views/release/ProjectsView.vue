@@ -126,8 +126,17 @@
                             <el-dropdown-item command="edit">
                               <ReIcon name="EditPen" :size="15" class="dd-ic" />编辑
                             </el-dropdown-item>
+                            <el-dropdown-item command="files">
+                              <ReIcon name="FolderOpened" :size="15" class="dd-ic" />文件管理
+                            </el-dropdown-item>
                             <el-dropdown-item v-if="item.enabled !== false && item.logPath" command="log">
                               <ReIcon name="Tickets" :size="15" class="dd-ic" />实时日志
+                            </el-dropdown-item>
+                            <el-dropdown-item v-if="item.projectPath" command="copy-path">
+                              <ReIcon name="DocumentCopy" :size="15" class="dd-ic" />复制项目地址
+                            </el-dropdown-item>
+                            <el-dropdown-item v-if="item.logPath" command="copy-log">
+                              <ReIcon name="DocumentCopy" :size="15" class="dd-ic" />复制日志地址
                             </el-dropdown-item>
                             <el-dropdown-item v-if="item.enabled !== false && isJavaProject(item)" command="arthas">
                               <ReIcon name="Monitor" :size="15" class="dd-ic" />Arthas 诊断
@@ -155,6 +164,9 @@
                             </el-dropdown-item>
                             <el-dropdown-item command="copy">
                               <ReIcon name="CopyDocument" :size="15" class="dd-ic" />复制到其他服务器
+                            </el-dropdown-item>
+                            <el-dropdown-item command="op-log" divided>
+                              <ReIcon name="Tickets" :size="15" class="dd-ic" />操作日志
                             </el-dropdown-item>
                             <el-dropdown-item command="toggle">
                               <ReIcon :name="item.enabled === false ? 'Unlock' : 'Lock'" :size="15" class="dd-ic" />{{ item.enabled === false ? '激活' : '禁用' }}
@@ -921,6 +933,41 @@
       </template>
     </ReDialog>
 
+    <!-- 项目文件管理：直接在项目目录里浏览/上传/下载/改文件，不用先去资产页找主机 -->
+    <ReDialog
+      v-model="filesVisible"
+      :title="filesProject ? `文件管理 - ${filesProject.projectName}` : '文件管理'"
+      width="980px"
+      :close-on-click-modal="false"
+      destroy-on-close
+    >
+      <div class="path-picker-body">
+        <div v-if="!releaseHostId" class="path-picker-empty">该发布未绑定主机，无法浏览主机文件</div>
+        <HostFileManager
+          v-else-if="filesVisible"
+          :host-id="releaseHostId"
+          :platform="hostPlatform"
+          :initial-path="filesInitPath"
+        />
+      </div>
+      <template #footer>
+        <ReButton @click="filesVisible = false">关闭</ReButton>
+      </template>
+    </ReDialog>
+
+    <!-- 单项目操作日志：启动/升级/回滚等审计记录，按项目过滤 -->
+    <ReDialog
+      v-model="projOpLogVisible"
+      :title="projOpLogProject ? `操作日志 - ${projOpLogProject.projectName}` : '操作日志'"
+      width="1000px"
+      :close-on-click-modal="false"
+    >
+      <ProjectOpLogPanel v-if="projOpLogVisible" :project-id="projOpLogProject?.id" />
+      <template #footer>
+        <ReButton @click="projOpLogVisible = false">关闭</ReButton>
+      </template>
+    </ReDialog>
+
     <!-- 实时日志弹窗：每个会话一个，关闭弹窗不影响内嵌列 -->
     <ReDialog
       v-for="session in logSessions"
@@ -1128,6 +1175,7 @@ import { errorText, toastError } from '../../utils/errors';
 import { releaseSse } from '../../services/releaseRealtime';
 import HostFileManager from '../../components/HostFileManager.vue';
 import ProjectLogColumn from '../../components/ProjectLogColumn.vue';
+import ProjectOpLogPanel from '../../components/ProjectOpLogPanel.vue';
 
 const BASE = '/ms/server/release';
 
@@ -2167,6 +2215,18 @@ function onMoreCommand(item: Project, command: string) {
     case 'log':
       openLogTab(item);
       break;
+    case 'files':
+      openFilesDialog(item);
+      break;
+    case 'copy-path':
+      copyText(item.projectPath, '项目地址');
+      break;
+    case 'copy-log':
+      copyText(item.logPath, '日志地址');
+      break;
+    case 'op-log':
+      openProjectOpLog(item);
+      break;
     case 'arthas':
       openArthasDialog(item);
       break;
@@ -2248,7 +2308,6 @@ const ctxMenu = reactive<{ visible: boolean; x: number; y: number; item: Project
 const CTX_MENU_WIDTH = 196;
 const CTX_ROW_HEIGHT = 32;
 const CTX_HEAD_HEIGHT = 38;
-
 /**
  * 某个项目在右键菜单里的命令列表（条件与「更多」下拉一致）。
  *
@@ -2256,7 +2315,18 @@ const CTX_HEAD_HEIGHT = 38;
  * @returns 命令列表
  */
 function ctxCommandsFor(item: Project): CtxCommandItem[] {
-  const out: CtxCommandItem[] = [{ command: 'edit', label: '编辑', icon: 'EditPen' }];
+  const out: CtxCommandItem[] = [
+    { command: 'edit', label: '编辑', icon: 'EditPen' },
+    // 浏览项目目录：与「实时日志」相邻，排障时「看日志 → 翻目录」是连着的两步
+    { command: 'files', label: '文件管理', icon: 'FolderOpened' },
+  ];
+  // 路径复制：排障时经常要把项目目录/日志文件贴到终端或工单里
+  if (item.projectPath) {
+    out.push({ command: 'copy-path', label: '复制项目地址', icon: 'DocumentCopy' });
+  }
+  if (item.logPath) {
+    out.push({ command: 'copy-log', label: '复制日志地址', icon: 'DocumentCopy' });
+  }
   if (item.enabled !== false) {
     if (item.logPath) out.push({ command: 'log', label: '实时日志', icon: 'Tickets' });
     if (isJavaProject(item)) out.push({ command: 'arthas', label: 'Arthas 诊断', icon: 'Monitor' });
@@ -2271,6 +2341,7 @@ function ctxCommandsFor(item: Project): CtxCommandItem[] {
     out.push({ command: 'rollback', label: '回滚', icon: 'RefreshLeft' });
     if (item.gitUrl) out.push({ command: 'git-deploy', label: '从 Git 更新', icon: 'GitBranch' });
   }
+  out.push({ command: 'op-log', label: '操作日志', icon: 'Tickets', divided: true });
   out.push({ command: 'copy', label: '复制到其他服务器', icon: 'CopyDocument' });
   out.push({
     command: 'toggle',
@@ -2736,6 +2807,83 @@ async function handleUninstallService() {
   } catch (e: any) {
     toastError(e, '卸载服务失败');
   }
+}
+
+// ---- 项目文件管理（右键「文件管理」直接开项目目录） ----
+/** 文件管理弹框 */
+const filesVisible = ref(false);
+/** 当前浏览的项目（标题用） */
+const filesProject = ref<Project | null>(null);
+/** 初始目录：项目地址，没有就退回日志所在目录 */
+const filesInitPath = ref('');
+
+/** 单项目操作日志弹框 */
+const projOpLogVisible = ref(false);
+/** 操作日志当前项目（标题用） */
+const projOpLogProject = ref<Project | null>(null);
+
+/**
+ * 复制文本到剪贴板。
+ *
+ * <p>非安全上下文（http 且非 localhost）下 {@code navigator.clipboard} 不存在，
+ * 必须退回 {@code execCommand}，否则右键「复制地址」点了没反应、也没有任何提示。</p>
+ *
+ * @param text  待复制文本
+ * @param label 内容名（提示用）
+ */
+async function copyText(text: string, label: string) {
+  const value = String(text || '').trim();
+  if (!value) {
+    message.warning(`该项目的${label}为空`);
+    return;
+  }
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(value);
+    } else {
+      const el = document.createElement('textarea');
+      el.value = value;
+      el.style.position = 'fixed';
+      el.style.opacity = '0';
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+    }
+    message.success(`已复制${label}：${value}`);
+  } catch (e: any) {
+    message.error(`复制${label}失败：${errorText(e)}`);
+  }
+}
+
+/**
+ * 打开单项目操作日志（只看这个项目的启动/升级/回滚记录）。
+ *
+ * @param item 项目
+ */
+function openProjectOpLog(item: Project) {
+  projOpLogProject.value = item;
+  projOpLogVisible.value = true;
+}
+
+/**
+ * 打开项目的文件管理。
+ *
+ * <p>为什么落到项目地址而不是主机根目录：右键是从某个项目上发起的，用户要看的是
+ * 「这个项目的文件」；从根目录开始翻等于把路径再手抄一遍。项目地址为空时才退回
+ * 日志目录，再没有就交给组件用默认根目录。</p>
+ *
+ * @param item 项目
+ */
+function openFilesDialog(item: Project) {
+  if (!releaseHostId.value) {
+    message.warning('未识别到该发布绑定的主机，无法浏览主机文件');
+    return;
+  }
+  filesProject.value = item;
+  const dir = String(item.projectPath || '').trim();
+  filesInitPath.value = dir || dirOf(String(item.logPath || '')) || '';
+  filesVisible.value = true;
 }
 
 // ---- 主机路径选择器（项目地址 / 日志地址 / Nginx 目录） ----

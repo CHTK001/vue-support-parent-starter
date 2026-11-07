@@ -58,18 +58,33 @@ let workerInitialized = false;
 const progressHandlers = new Set<(p: UseWebLLMProgress) => void>();
 
 /**
+ * 默认 worker 的打包产物地址（由各宿主/打包器按 ?worker 约定生成）
+ * 未注入时无法内联启动 worker，需调用方显式传入 workerUrl。
+ */
+let defaultWorkerUrl: string | URL | null = null;
+
+/**
+ * 注入默认 worker 地址（宿主在打包阶段把 new URL("./worker.ts", import.meta.url) 解析后注入）
+ *
+ * @param url worker 脚本地址
+ */
+export function setWebLLMWorkerUrl(url: string | URL): void {
+  defaultWorkerUrl = url;
+}
+
+/**
  * 获取或创建 Worker 实例（模块级单例）
  */
 function getWorker(workerUrl?: string | URL): Worker {
   if (worker) return worker;
 
-  if (workerUrl) {
-    worker = new Worker(workerUrl, { type: "module" });
+  const url = workerUrl ?? defaultWorkerUrl;
+  if (url) {
+    worker = new Worker(url, { type: "module" });
   } else {
-    // Vite/Webpack 都会识别这种模式：编译时 worker.ts 被单独打包
-    worker = new Worker(new URL("./worker.ts", import.meta.url), {
-      type: "module",
-    });
+    throw new Error(
+      "WebLLM worker 地址未注入：请调用 setWebLLMWorkerUrl() 或显式传入 workerUrl",
+    );
   }
 
   worker.onmessage = (event: MessageEvent) => {

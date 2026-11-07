@@ -32,9 +32,8 @@ import {
   channelApi,
   type ChannelSummary,
   type ChannelConnectionSummary,
+  type ChannelAccount,
 } from '../channelApi'
-import ChatClientPanel from './ChatClientPanel.vue'
-import ImageChannelPanel from './ImageChannelPanel.vue'
 
 // 各渠道的官方图标（本地落地的品牌资源）。
 // 有官方 SVG/ICO 的渠道用图标；没有公开官方资源的渠道（Qoder / Raccoon / Loomy…）
@@ -46,7 +45,6 @@ import geminiIcon from '../assets/channel-icons/gemini.svg'
 import minimaxIcon from '../assets/channel-icons/minimax.ico'
 import zcodeIcon from '../assets/channel-icons/zcode.ico'
 import lobsteraiIcon from '../assets/channel-icons/lobsterai.ico'
-import RePageHead from '@/components/ui/RePageHead.vue'
 
 /** 渠道品牌外观：官方图标（可选）+ 品牌色 + 徽标字形 */
 interface ChannelBrand {
@@ -123,10 +121,6 @@ const channelStateText = (c?: ChannelSummary): string =>
     ? '免登录可用'
     : ({ online: '在线', stale: '待刷新', none: '未绑定' })[channelState(c)]
 
-// 待刷新账号数（过期 / 失效 / 未知凭借据）
-const staleCount = (c?: ChannelSummary): number =>
-  (c?.connections ?? []).filter((x) => x.status === 'expired' || x.status === 'invalid').length
-
 const connState = (conn: ChannelConnectionSummary): 'valid' | 'stale' | 'unknown' =>
   conn.status === 'valid' ? 'valid' : conn.status === 'expired' || conn.status === 'invalid' ? 'stale' : 'unknown'
 const connStateText = (conn: ChannelConnectionSummary): string =>
@@ -175,7 +169,7 @@ async function loadChannels() {
       image.status === 'fulfilled' ? (image.value?.channels ?? []).map((x) => toSummary(x, 'IMAGE')) : []
     channels.value = [...aiRows, ...chatRows, ...imageRows]
     // 对话渠道的模型清单不在元数据里，并发补一次实时拉取，避免面板首屏空模型；
-    // 单渠道失败/未就绪直接跳过（ChatClientPanel 仍可手动「刷新模型」）。
+    // 单渠道失败/未就绪直接跳过（模型区仍可手动「拉取模型」）。
     await Promise.allSettled(
       chatRows.map(async (c) => {
         try {
@@ -789,24 +783,103 @@ const accountTypesOf = (c?: ChannelSummary): string[] =>
 /** 是否支持固定账号（长期绑定 / 授权） */
 const supportsFixed = (c?: ChannelSummary): boolean => accountTypesOf(c).includes('FIXED')
 
-/** 渠道种类展示名 */
+/**
+ * 渠道种类展示名。
+ *
+ * <p>渠道管理只有一种模型：渠道 + 账号。AI 账号渠道与免登录渠道在后台
+ * 都提供 CHAT 能力（AI 走 AccountChannelAuthManager，免登录走 FreeChatClient），
+ * 因此两者角标统一为 CHAT，不再单列「AI」种类。</p>
+ */
 const KIND_TEXT: Record<string, string> = {
-  AI: 'AI 账号',
-  CHAT: '免登录对话',
-  IMAGE: '文生图',
-  SMS: '短信接码',
-  EMAIL: '邮件收信',
+  AI: 'CHAT',
+  CHAT: 'CHAT',
+  IMAGE: 'IMAGE',
+  SMS: 'SMS',
+  EMAIL: 'EMAIL',
 }
 const kindOf = (c?: ChannelSummary): string => String(c?.kind ?? 'AI').toUpperCase()
 const kindText = (c?: ChannelSummary): string => KIND_TEXT[kindOf(c)] ?? kindOf(c)
-/** 免账号渠道（对话 / 文生图）：没有绑定、连接、签到与启停语义 */
-const isStatelessKind = (c?: ChannelSummary): boolean => ['CHAT', 'IMAGE'].includes(kindOf(c))
-/** 免账号渠道的副标题说明 */
-const statelessHint = (c?: ChannelSummary): string =>
-  kindOf(c) === 'IMAGE' ? '· 文生图渠道（无持久化凭据）' : '· ChatClient 免登录（无持久化凭据）'
+
+// ---------- 渠道账号（/api/accounts，按 channelKey 归属） ----------
+/*
+ * 渠道管理只有一种模型：渠道 + 账号。
+ * AI 账号渠道（AccountChannelAuthManager）与免登录渠道（FreeChatClient：
+ * DuckDuckGo / Trae / Pollinations）都按同一套「账号」管理，不再给免登录渠道
+ * 单独做对话 / 出图操作页。免登录渠道的密钥可留空或随意填。
+ */
+const accounts = ref<ChannelAccount[]>([])
+const accountsLoading = ref(false)
+const accountsError = ref('')
+
+/** 拉取当前渠道下的账号 */
+async function loadAccounts() {
+  const channel = activeChannel.value
+  if (!channel) {
+    accounts.value = []
+    return
+  }
+  accountsLoading.value = true
+  accountsError.value = ''
+  try {
+    const rows = await channelApi.accounts(channel)
+    // 切渠道期间返回的旧响应直接丢弃，避免串到新渠道下
+    if (channel !== activeChannel.value) return
+    accounts.value = Array.isArray(rows) ? rows : []
+  } catch (e: any) {
+    if (channel !== activeChannel.value) return
+    accountsError.value = e?.message ?? String(e)
+    accounts.value = []
+  } finally {
+    if (channel === activeChannel.value) accountsLoading.value = false
+  }
+}
+
+/** 新增账号：免登录渠道密钥可留空 */
+async function addAccount() {
+  const channel = activeChannel.value
+  if (!channel) return
+  const summary = activeSummary()
+  const name = window.prompt(`为「${summary?.displayName || channel}」添加账号，输入名称：`, '账号 1')
+  if (name === null) return
+  const secret = window.prompt('凭据 / 密钥（免登录渠道可留空）：', '') ?? ''
+  const stamp = Date.now().toString(36)
+  try {
+    await channelApi.createAccount({
+      code: `${channel}-${stamp}`,
+      name: name.trim() || `账号 ${stamp}`,
+      kind: 'API_KEY',
+      channelKey: channel,
+      secret: secret.trim() || undefined,
+    })
+    ElMessage.success('账号已添加')
+    await loadAccounts()
+  } catch (e: any) {
+    ElMessage.error('添加账号失败：' + (e?.message ?? e))
+  }
+}
+
+/** 删除账号 */
+async function removeAccount(account: ChannelAccount) {
+  try {
+    await ElMessageBox.confirm(
+      `删除账号「${account.name || account.code || account.accountId}」？`,
+      '删除账号',
+      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' },
+    )
+  } catch {
+    return
+  }
+  try {
+    await channelApi.deleteAccount(account.accountId)
+    ElMessage.success('账号已删除')
+    await loadAccounts()
+  } catch (e: any) {
+    ElMessage.error('删除失败：' + (e?.message ?? e))
+  }
+}
 
 watch(activeChannel, () => {
-  /* 切换渠道卡片时不做额外操作 */
+  void loadAccounts()
 }, { immediate: false })
 
 onMounted(() => {
@@ -833,20 +906,11 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 
 <template>
   <div class="chm" data-page="channel">
-    <!-- 页头：统一用 RePageHead（全站共用一份页面头实现） -->
-    <RePageHead title="渠道管理">
-      <template #sub>
-        账号类渠道的账号绑定、轮询、刷新、签到与模型开关；免登录对话渠道（DuckDuckGo / Trae）直接试对话；
-        文生图渠道（DuckDuckGo / Pollinations / Trae）按提示词出图。
-        <b>{{ channels.length }}</b> 个已注册渠道
-      </template>
-      <template #actions>
-        <el-button class="chm-btn" :loading="loading" @click="loadChannels">
-          <el-icon v-if="!loading" class="chm-btn__icon" aria-hidden="true"><RefreshIcon /></el-icon>
-          刷新
-        </el-button>
-      </template>
-    </RePageHead>
+    <!--
+      不自带页头：本页既作 monitor 的独立路由，也被 AI 设置页内嵌，
+      宿主已有自己的页头，重复一层只会白占高度（与账号资产页同一口径）。
+      原先页头里的「刷新」下沉到左栏「渠道索引」标题行。
+    -->
 
     <!-- 错误条 -->
     <div v-if="loadError" class="chm-alert is-danger">
@@ -870,7 +934,20 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
       <aside class="chm-rail">
         <div class="chm-rail__head">
           <span>渠道索引</span>
-          <b>{{ channels.length }}</b>
+          <span class="chm-rail__head-right">
+            <b>{{ channels.length }}</b>
+            <button
+              type="button"
+              class="chm-rail__refresh"
+              :class="{ 'is-busy': loading }"
+              :disabled="loading"
+              title="刷新渠道清单"
+              aria-label="刷新渠道清单"
+              @click="loadChannels"
+            >
+              <el-icon aria-hidden="true"><RefreshIcon /></el-icon>
+            </button>
+          </span>
         </div>
         <button
           v-for="c in channels"
@@ -908,15 +985,13 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
             <h3>{{ activeSummary()!.displayName || activeChannel }}</h3>
             <span>
               <i>{{ brandOf(activeChannel).method || activeSummary()!.loginMethod || '—' }}</i>
-              <span v-if="!isStatelessKind(activeSummary())">· provider {{ activeSummary()!.providerId }}</span>
-              <span v-else>{{ statelessHint(activeSummary()) }}</span>
+              <span v-if="activeSummary()!.providerId">· provider {{ activeSummary()!.providerId }}</span>
               <span class="chm-panel__chip">{{ kindText(activeSummary()) }}</span>
               <span v-if="activeSummary()!.priority !== undefined" class="chm-panel__chip is-muted">
                 优先级 {{ activeSummary()!.priority }}
               </span>
               <span class="chm-panel__chip" v-if="activeSummary()!.supportsImage">可出图</span>
               <span class="chm-panel__chip" v-if="activeSummary()!.supportsCheckin">可签到</span>
-              <span class="chm-panel__chip is-muted" v-else-if="!isStatelessKind(activeSummary())">无签到</span>
             </span>
           </div>
           <div class="chm-panel__state">
@@ -924,36 +999,61 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
             {{ channelStateText(activeSummary()) }}
           </div>
           <el-switch
-            v-if="!isStatelessKind(activeSummary())"
+            v-if="activeSummary()!.supportsCheckin || kindOf(activeSummary()) === 'AI'"
             :model-value="activeSummary()!.enabled"
             class="chm-panel__switch"
             @change="(v: boolean | string | number) => toggleChannelEnabled(activeChannel, !!v)"
           />
         </header>
 
-        <!-- 账号类渠道：KPI + 账号 + 模型 + 绑定入口 -->
-        <template v-if="!isStatelessKind(activeSummary())">
-        <!-- KPI 行 -->
-        <div class="chm-kpis">
-          <div class="chm-kpi">
-            <b>{{ (activeSummary()!.connections ?? []).length }}</b>
-            <span>绑定账号</span>
-          </div>
-          <div class="chm-kpi">
-            <b>{{ (activeSummary()!.models ?? []).length }}</b>
-            <span>可用模型</span>
-          </div>
-          <div class="chm-kpi">
-            <b :class="{ 'is-warn': staleCount(activeSummary()!) > 0 }">{{ staleCount(activeSummary()!) }}</b>
-            <span>待刷新</span>
-          </div>
-        </div>
-
-        <!-- 账号区 -->
+        <!--
+          统一账号区：所有渠道同一种模型 —— 渠道 + 账号。
+          AI 账号渠道与免登录渠道（DuckDuckGo / Trae / Pollinations）都在这里
+          添加 / 删除账号，不再为免登录渠道提供单独的对话 / 出图操作页。
+        -->
         <div class="chm-panel__block">
           <div class="chm-panel__sect-title">
             <el-icon aria-hidden="true"><ConnectionIcon /></el-icon>
-            账号 <i>{{ (activeSummary()!.connections ?? []).length }}</i>
+            账号 <i>{{ accounts.length }}</i>
+            <button class="chm-panel__pull" type="button" :disabled="accountsLoading"
+                    @click.stop="loadAccounts()">
+              {{ accountsLoading ? '加载中…' : '刷新' }}
+            </button>
+            <button class="chm-panel__pull" type="button" @click.stop="addAccount()">
+              ＋ 添加账号
+            </button>
+          </div>
+
+          <p v-if="accountsError" class="chm-panel__error">账号加载失败：{{ accountsError }}</p>
+
+          <div class="chm-accs">
+            <div v-for="acc in accounts" :key="acc.accountId" class="chm-acc">
+              <span class="chm-acc__label" :title="acc.name || acc.code">
+                {{ acc.name || acc.code || acc.accountId }}
+              </span>
+              <span class="chm-acc__state" :class="{ 'is-stale': acc.hasSecret === false }">
+                {{ acc.hasSecret ? '已配置凭据' : '无凭据' }}
+              </span>
+              <span v-if="acc.username" class="chm-acc__expire">{{ acc.username }}</span>
+              <div class="chm-acc__actions">
+                <button class="chm-acc__btn is-danger" @click.stop="removeAccount(acc)">删除</button>
+              </div>
+            </div>
+            <div v-if="!accounts.length && !accountsLoading" class="chm-card__empty">
+              尚无账号，点「＋ 添加账号」创建
+            </div>
+          </div>
+        </div>
+
+        <!--
+          已绑定的登录态账号（AI 账号渠道的 OAuth / 设备码绑定）。
+          与上面的统一账号是两条并存的凭据来源：统一账号供其它模块按
+          accountId 引用，连接由渠道自己的授权流程产生。
+        -->
+        <div v-if="(activeSummary()!.connections ?? []).length" class="chm-panel__block">
+          <div class="chm-panel__sect-title">
+            <el-icon aria-hidden="true"><ConnectionIcon /></el-icon>
+            已授权连接 <i>{{ (activeSummary()!.connections ?? []).length }}</i>
           </div>
           <div class="chm-accs">
             <div
@@ -966,10 +1066,6 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
               <span v-if="conn.primary" class="chm-acc__primary">主账号</span>
               <span class="chm-acc__state" :class="'is-' + connState(conn)">
                 {{ connStateText(conn) }}
-              </span>
-              <span v-if="connExpireText(conn)" class="chm-acc__expire"
-                    :class="{ 'is-expired': connExpireText(conn) === '已过期' }">
-                {{ connExpireText(conn) }}
               </span>
               <div class="chm-acc__actions">
                 <button class="chm-acc__btn"
@@ -985,9 +1081,6 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                 <button class="chm-acc__btn is-danger"
                         @click.stop="deleteAccount(activeChannel, conn)">删除</button>
               </div>
-            </div>
-            <div v-if="!(activeSummary()!.connections ?? []).length" class="chm-card__empty">
-              尚无绑定账号
             </div>
           </div>
         </div>
@@ -1030,11 +1123,9 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
           </div>
         </div>
 
-        <!-- 新增账号入口：固定账号走绑定弹窗（SSE 登录流），不设账号标签输入框，
-             标签由后端按「账号 N」自动生成。 -->
-        <div class="chm-panel__binds">
+        <!-- 绑定登录态账号（AI 账号渠道的授权流程） -->
+        <div v-if="supportsFixed(activeSummary())" class="chm-panel__binds">
           <button
-            v-if="supportsFixed(activeSummary())"
             class="chm-panel__bindbtn"
             type="button"
             :disabled="busyFor(activeChannel, 'login')"
@@ -1043,28 +1134,9 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
             <el-icon v-if="!busyFor(activeChannel, 'login')" class="chm-btn__icon" aria-hidden="true">
               <PlusIcon />
             </el-icon>
-            {{ busyFor(activeChannel, 'login') ? '登录中…' : '＋ 绑定固定账号（点击弹出）' }}
+            {{ busyFor(activeChannel, 'login') ? '登录中…' : '＋ 绑定登录态账号（点击弹出）' }}
           </button>
         </div>
-        </template>
-
-        <!-- ChatClient 免登录对话渠道：无账号 / 无连接，只保留模型与试对话 -->
-        <ChatClientPanel
-          v-else-if="kindOf(activeSummary()) === 'CHAT'"
-          :channel="activeChannel"
-          :display-name="activeSummary()!.displayName"
-          :priority="activeSummary()!.priority"
-          :models="activeSummary()!.models ?? []"
-        />
-
-        <!-- 文生图渠道：提示词 + 画面参数 + 画廊（Trae / Pollinations 共用同一面板） -->
-        <ImageChannelPanel
-          v-else
-          :channel="activeChannel"
-          :display-name="activeSummary()!.displayName"
-          :priority="activeSummary()!.priority"
-          :models="activeSummary()!.models ?? []"
-        />
       </section>
 
       <!-- 选中渠道消失的兜底（列表刷新间隙） -->
@@ -1223,7 +1295,8 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   height: 100%;
   min-height: 0;
   box-sizing: border-box;
-  padding: 4px 0 8px;
+  /* 页头已移除，顶部不再需要留白 */
+  padding: 0 0 8px;
 }
 .chm-btn {
   display: inline-flex;
@@ -1279,7 +1352,8 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 /* ============ 方案 A · 运维甲板（OPS·DECK） ============ */
 .chm-deck {
   display: flex;
-  gap: 14px;
+  /* 左右两栏紧邻：原来是 14px 的缝，视觉上像两块割裂的卡片 */
+  gap: 8px;
   align-items: stretch;
   /* 吃掉 .chm 除页头外的全部剩余高度：左右两栏等高，右栏内部自己滚动 */
   flex: 1;
@@ -1289,7 +1363,8 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 /* ---- 左：渠道索引 ---- */
 .chm-rail {
   flex: none;
-  width: 216px;
+  /* 216 → 188：渠道名够放，把省下的宽度让给右侧详情 */
+  width: 188px;
   border: 1px solid var(--border-default, #e2e9f3);
   border-radius: 12px;
   background: var(--bg-container, #fff);
@@ -1311,9 +1386,42 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   color: var(--text-secondary, #475569);
   letter-spacing: .04em;
 }
+.chm-rail__head-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
 .chm-rail__head b {
   color: var(--text-tertiary, #94a3b8);
   font-variant-numeric: tabular-nums;
+}
+/* 刷新：原先在页头，页头移除后落到索引标题行，保持一键重取 */
+.chm-rail__refresh {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-tertiary, #94a3b8);
+  cursor: pointer;
+  transition: color .15s ease, background-color .15s ease;
+}
+.chm-rail__refresh:hover:not(:disabled) {
+  color: var(--el-color-primary, #409eff);
+  background: var(--bg-hover, #f1f5fb);
+}
+.chm-rail__refresh:disabled {
+  cursor: default;
+  opacity: .6;
+}
+.chm-rail__refresh.is-busy :deep(svg) {
+  animation: chm-spin 1s linear infinite;
+}
+@keyframes chm-spin {
+  to { transform: rotate(360deg); }
 }
 .chm-rail__item {
   display: flex;
@@ -1633,6 +1741,12 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 .chm-acc__state.is-stale {
   background: color-mix(in srgb, var(--el-color-warning, #e6a23c) 14%, transparent);
   color: var(--el-color-warning, #e6a23c);
+}
+/* 统一账号区：加载失败提示 */
+.chm-panel__error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--el-color-danger, #f56c6c);
 }
 .chm-acc__state.is-unknown {
   background: color-mix(in srgb, var(--el-text-color-secondary, #909399) 14%, transparent);

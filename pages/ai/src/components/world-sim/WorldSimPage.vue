@@ -114,6 +114,10 @@
           </div>
           <div class="ws-reel-side">
             <span class="ws-reel-count">{{ acts.length ? `共 ${acts.length} 幕` : '还没有幕次' }}</span>
+            <button v-if="acts.length" class="ws-act-create" type="button" @click="openCreateAct">
+              <el-icon><Plus /></el-icon>
+              <span>新建幕次</span>
+            </button>
           </div>
         </div>
 
@@ -130,7 +134,8 @@
                 <button class="btn ghost" type="button" @click="showScript = !showScript">
                   {{ showScript ? '收起剧本' : '看剧本' }}
                 </button>
-                <button v-for="btn in availablePipeline" :key="btn.label" class="btn" :class="{ primary: btn.primary }"
+                <button v-for="btn in availablePipeline" :key="btn.label" class="btn ws-act-stage-btn"
+                  :class="{ primary: btn.primary }"
                   type="button" :disabled="actProcessing" @click="actPipelineAction(btn)">
                   {{ btn.label }}
                 </button>
@@ -169,29 +174,29 @@
               </div>
               <p class="ws-stage-empty-title">{{ stageEmptyTitle }}</p>
               <p class="ws-stage-empty-sub">{{ stageEmptySub }}</p>
-              <button v-if="stageEmptyAction" class="btn primary" type="button" :disabled="actProcessing"
+              <button v-if="stageEmptyAction" class="btn primary ws-act-stage-btn" type="button" :disabled="actProcessing"
                 @click="actPipelineAction(stageEmptyAction)">{{ stageEmptyAction.label }}</button>
             </div>
 
             <!-- 剧本原文（折叠） -->
-            <div v-if="showScript && actDetail.script" class="ws-script">
+            <div v-if="showScript && actDetail.script" class="ws-act-script">
               <div class="ws-script-head">
                 <span>剧本 act{{ currentAct.actNo }}.json</span>
-                <button class="ws-mini" type="button" @click="showScript = false">✕</button>
+                <button class="ws-act-script-close ws-mini" type="button" @click="showScript = false">✕</button>
               </div>
-              <pre class="ws-script-body">{{ actDetail.script }}</pre>
+              <pre class="ws-script-body ws-script-item">{{ actDetail.script }}</pre>
             </div>
 
             <!-- 素材（折叠） -->
             <details v-if="actAssetSections().length" class="ws-assets">
               <summary class="ws-assets-sum">素材 {{ assetDone(actDetail) }} / {{ assetTotal(actDetail) }}</summary>
               <div class="ws-assets-grid">
-                <div v-for="sec in actAssetSections()" :key="sec.key" class="ws-asset-sec">
+                <div v-for="sec in actAssetSections()" :key="sec.key" class="ws-asset-sec ws-act-asset-section">
                   <div class="ws-asset-head">{{ sec.label }}（{{ sec.items?.length }}）</div>
-                  <div class="ws-asset-card" v-for="it in sec.items" :key="it.name">
+                  <div class="ws-asset-card ws-act-asset-card" v-for="it in sec.items" :key="it.name">
                     <span class="ws-asset-name">{{ it.name }}</span>
                     <span class="ws-asset-desc">{{ it.desc || it.text || '暂无描述' }}</span>
-                    <span v-if="it.mediaImage" class="ws-tag sm" :class="mediaStatusClass(it.mediaImage)">{{ mediaStatusName(it.mediaImage) }}</span>
+                    <span v-if="it.mediaImage" class="ws-tag sm ws-act-media-status" :class="mediaStatusClass(it.mediaImage)">{{ mediaStatusName(it.mediaImage) }}</span>
                   </div>
                 </div>
               </div>
@@ -306,7 +311,7 @@
             ></textarea>
             <div class="ws-input-foot">
               <span class="ws-foot-hint">回车发送 · Shift + 回车换行</span>
-              <button class="ws-send" type="button" :class="{ ready: draft.trim() }" @click="send">行动</button>
+              <button class="ws-send" type="button" :class="{ ready: draft.trim() }" @click="send">行动(S)</button>
             </div>
           </template>
         </div>
@@ -389,7 +394,7 @@
 
       <!-- 舞台（场景布置） -->
       <div v-show="sideTab === 'stage'" class="ws-side-body">
-        <div class="ws-mg-section">
+        <div class="ws-mg-section" data-section="scene">
           <div class="ws-mg-head">
             <span class="ws-mg-title">场景（{{ scenes.length }}）</span>
             <button class="ws-mg-add" type="button" title="新建场景" @click="openCreateScene">+</button>
@@ -401,6 +406,28 @@
           </div>
           <div v-if="!scenes.length" class="ws-side-empty">还没有场景</div>
         </div>
+
+        <!-- 角色：AI 造的都在这里，可调参与/挂起，也能让 AI 再造几个 -->
+        <div class="ws-mg-section" data-section="npc">
+          <div class="ws-mg-head">
+            <span class="ws-mg-title">角色（{{ npcs.length }}）</span>
+            <button class="ws-mg-add" type="button" title="让 AI 造一个角色" data-action="ai-create-npc"
+              @click="openCreateNpc">+</button>
+          </div>
+          <div v-for="n in npcs" :key="n.id" class="ws-mg-npc" @click="openNpcEdit(n)">
+            <CardAvatar :src="n.displayAvatar" :name="n.displayName || 'AI'" size="sm" />
+            <div class="ws-mg-npc-main">
+              <div class="ws-mg-npc-name">{{ n.displayName }}</div>
+              <div class="ws-mg-npc-sub">{{ sceneNameOf(n.sceneId) }}</div>
+            </div>
+            <span class="el-switch ws-mg-npc-switch" @click.stop>
+              <el-switch :model-value="n.isActive !== false" size="small"
+                @update:model-value="(v: any) => toggleNpcActive(n, Boolean(v))" @click.stop />
+            </span>
+            <button class="ws-mg-del" type="button" title="移出世界" @click.stop="removeNpc(n)">✕</button>
+          </div>
+          <div v-if="!npcs.length" class="ws-side-empty">还没有角色。点 + 让 AI 造几个。</div>
+        </div>
       </div>
     </aside>
 
@@ -410,7 +437,7 @@
       <div class="ws-form">
         <div class="ws-field">
           <label class="ws-label">世界名称</label>
-          <el-input v-model="worldForm.name" placeholder="留空由 AI 取一个" maxlength="30" />
+          <el-input v-model="worldForm.name" placeholder="如：雾都侦探社（留空由 AI 取一个）" maxlength="30" />
           <span class="ws-hint">不填也可以，AI 会按种子起名</span>
         </div>
         <div class="ws-field">
@@ -488,10 +515,45 @@
       </template>
     </ReDialog>
 
+    <!-- ============ 让 AI 造角色 ============ -->
+    <ReDialog :close-on-click-modal="true" v-model="npcCreateVisible" width="460" append-to-body class="ws-dialog">
+      <template #header><span class="ws-dlg-title">让 AI 造几个角色</span></template>
+      <div class="ws-form">
+        <div class="ws-field">
+          <label class="ws-label">数量</label>
+          <el-radio-group v-model="npcCreateForm.count">
+            <el-radio-button :value="1">1 个</el-radio-button>
+            <el-radio-button :value="2">2 个</el-radio-button>
+            <el-radio-button :value="3">3 个</el-radio-button>
+          </el-radio-group>
+        </div>
+        <div class="ws-field">
+          <label class="ws-label">倾向（可留空）</label>
+          <el-input v-model="npcCreateForm.hint" type="textarea" :rows="3"
+            placeholder="如：一个与主角有旧怨的商人；或「随便，符合这个时代」" />
+          <span class="ws-hint">AI 会自动起名、写性格、布置到场景，并补上与现有角色的关系</span>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="npcCreateVisible = false">取消</el-button>
+        <el-button type="primary" :loading="npcCreating" @click="confirmCreateNpc">让 AI 造</el-button>
+      </template>
+    </ReDialog>
+
     <!-- ============ 微调角色对话框 ============ -->
     <ReDialog :close-on-click-modal="true" v-model="npcEditVisible" width="480" append-to-body class="ws-dialog">
       <template #header><span class="ws-dlg-title">微调「{{ npcEditTarget?.displayName }}」</span></template>
       <div v-if="npcEditTarget" class="ws-form">
+        <div class="ws-field">
+          <label class="ws-label">世界内昵称</label>
+          <el-input v-model="npcEditForm.nickname" placeholder="留空使用角色名" maxlength="20" />
+        </div>
+        <div class="ws-field">
+          <label class="ws-label">所在场景</label>
+          <el-select v-model="npcEditForm.sceneId" placeholder="未布置" clearable style="width: 100%">
+            <el-option v-for="s in scenes" :key="s.id" :label="s.name" :value="s.id" />
+          </el-select>
+        </div>
         <div class="ws-field">
           <label class="ws-label">性格 / 人设（prompt）</label>
           <el-input v-model="npcEditForm.persona" type="textarea" :rows="5"
@@ -514,7 +576,7 @@
       </div>
       <template #footer>
         <el-button @click="npcEditVisible = false">关闭</el-button>
-        <el-button type="primary" :loading="npcSaving" @click="confirmEditNpc">保存微调</el-button>
+        <el-button type="primary" :loading="npcSaving" @click="confirmEditNpc">保存</el-button>
       </template>
     </ReDialog>
 
@@ -640,6 +702,8 @@ const relationships = ref<WorldRelationship[]>([])
 const events = ref<WorldEvent[]>([])
 const acts = ref<WorldActListRow[]>([])
 const currentAct = ref<WorldActListRow | null>(null)
+/** 自动接续出来的新幕编号：列表刷新后自动跳过去 */
+const pendingActNo = ref<number | null>(null)
 const actDetail = ref<WorldActDetail | null>(null)
 const stories = ref<WorldStory[]>([])
 const showScript = ref(false)
@@ -661,10 +725,11 @@ const createVisible = ref(false)
 const editVisible = ref(false)
 const creating = ref(false)
 const sceneCreateVisible = ref(false)
+const npcCreateVisible = ref(false)
+const npcCreating = ref(false)
 const npcEditVisible = ref(false)
 const npcSaving = ref(false)
 const relEditVisible = ref(false)
-const npcSceneDraft = reactive<Record<string, number | undefined>>({})
 const relDraft = reactive<Record<number, number>>({})
 
 const worldForm = reactive({
@@ -674,10 +739,11 @@ const worldForm = reactive({
   description: '',
 })
 const sceneForm = reactive({ name: '', description: '' })
+const npcCreateForm = reactive<{ count: number; hint: string }>({ count: 2, hint: '' })
 const npcEditTarget = ref<WorldNpc | null>(null)
 const npcEditForm = reactive<{
-  persona: string; isActive: boolean;
-}>({ persona: '', isActive: true })
+  nickname: string; persona: string; sceneId: number | null; isActive: boolean;
+}>({ nickname: '', persona: '', sceneId: null, isActive: true })
 const relEditTarget = ref<WorldRelationship | null>(null)
 const relEditForm = reactive<{ affinity: number; relationTag: string; memo: string }>({
   affinity: 0, relationTag: '', memo: '',
@@ -883,7 +949,7 @@ async function onWorldCmd(cmd: string, w: WorldItem) {
   } else if (cmd === 'delete') {
     try {
       await ElMessageBox.confirm(
-        `删除世界「${w.name}」？场景、角色、关系与全部事件都会一并删除。`,
+        `删除世界「${w.name}」？场景、NPC、关系与全部事件都会一并删除。`,
         '删除世界', { type: 'warning' })
       await apiService.deleteWorld(w.id)
       if (currentWorldId.value === w.id) {
@@ -979,7 +1045,9 @@ function otherName(r: WorldRelationship) {
 
 function openNpcEdit(n: WorldNpc) {
   npcEditTarget.value = n
+  npcEditForm.nickname = n.nickname || ''
   npcEditForm.persona = n.persona || ''
+  npcEditForm.sceneId = n.sceneId ?? null
   npcEditForm.isActive = n.isActive !== false
   for (const r of relationships.value) {
     if (r.fromNpcId === n.id || r.toNpcId === n.id) relDraft[r.id] = r.affinity ?? 0
@@ -993,7 +1061,9 @@ async function confirmEditNpc() {
   npcSaving.value = true
   try {
     await apiService.updateWorldNpc(target.id, {
+      nickname: npcEditForm.nickname || null,
       persona: npcEditForm.persona || null,
+      sceneId: npcEditForm.sceneId ?? null,
       isActive: npcEditForm.isActive,
     })
     // 关系程度一并保存：观众能微调的就这两样（性格 + 关系）
@@ -1003,11 +1073,59 @@ async function confirmEditNpc() {
     }
     npcEditVisible.value = false
     await refreshPeople()
-    message.success(changed.length ? '人设与关系已保存' : '人设已保存')
+    message.success('NPC 已更新')
   } catch (e: any) {
     message.error(e?.message || '保存失败')
   } finally {
     npcSaving.value = false
+  }
+}
+
+/** 管理列表里的参与 / 挂起开关：就地切换，不打开弹窗 */
+async function toggleNpcActive(n: WorldNpc, active: boolean) {
+  const before = n.isActive !== false
+  n.isActive = active
+  try {
+    await apiService.updateWorldNpc(n.id, { isActive: active })
+    message.success(active ? '已恢复参与' : '已挂起')
+  } catch (e: any) {
+    n.isActive = before
+    message.error(e?.message || '切换失败')
+  }
+}
+
+/** 移出世界：连带清除它的关系 */
+async function removeNpc(n: WorldNpc) {
+  try {
+    await ElMessageBox.confirm(`把「${n.displayName}」移出这个世界？它的关系也会清除。`, '移出角色', { type: 'warning' })
+    await apiService.deleteWorldNpc(n.id)
+    await refreshPeople()
+    message.success('已移除')
+  } catch { /* cancel */ }
+}
+
+function openCreateNpc() {
+  npcCreateForm.count = 2
+  npcCreateForm.hint = ''
+  npcCreateVisible.value = true
+}
+
+async function confirmCreateNpc() {
+  if (!currentWorldId.value) return
+  npcCreating.value = true
+  try {
+    await apiService.createWorldNpcByAi(currentWorldId.value, {
+      count: npcCreateForm.count,
+      hint: npcCreateForm.hint.trim() || undefined,
+    })
+    npcCreateVisible.value = false
+    await refreshPeople()
+    await loadActs()
+    message.success('AI 已造好角色并布好关系')
+  } catch (e: any) {
+    message.error(e?.message || 'AI 造角色失败')
+  } finally {
+    npcCreating.value = false
   }
 }
 
@@ -1341,7 +1459,7 @@ async function openCreateAct() {
     const a = await apiService.createWorldAct(currentWorldId.value) as WorldAct
     await loadActs()
     await selectAct(a)
-    message.success(`第 ${a.actNo} 幕已建好，接下来交给 AI`)
+    message.success(`已创建第 ${a.actNo} 幕，接下来交给 AI`)
   } catch (e: any) {
     message.error(e?.message || '创建幕次失败')
   }
@@ -1383,8 +1501,23 @@ async function actPipelineAction(btn: { stage?: string; label?: string; action?:
   try {
     const no = currentAct.value!.actNo as number
     if (btn.action === 'advance') {
-      const r = await apiService.advanceWorldAct(currentWorldId.value, no) as WorldActAdvance
-      message.success(`推进完成：${actStageName(r?.act?.stage)}`)
+      // 幕次自动接续：从当前阶段一路推到「可重播」，中途不停下来等观众点。
+      // 最多推 4 轮（writing → props_ok → playing → replay），防止后端状态异常时空转。
+      let next: WorldActAdvance | null = null
+      for (let i = 0; i < 4; i += 1) {
+        next = await apiService.advanceWorldAct(currentWorldId.value, no) as WorldActAdvance
+        const st = next?.act?.stage
+        if (!['writing', 'props_ok', 'playing'].includes(String(st))) break
+        actBusyText.value = st === 'writing' ? 'AI 正在写这一幕的剧本…'
+          : st === 'playing' ? 'AI 正在演这一幕，可能要几十秒…'
+            : 'AI 正在布景与生成素材…'
+      }
+      const ended = next?.nextAct?.actNo
+      message.success(ended
+        ? `第 ${no} 幕已演完，AI 自行接上第 ${ended} 幕`
+        : `推进完成：${actStageName(next?.act?.stage)}`)
+      // 有新幕时把焦点交给新幕，观众看到的就是后面继续发生的事
+      pendingActNo.value = ended ?? null
     } else if (btn.action === 'replay') {
       await apiService.replayWorldAct(currentWorldId.value, no)
       message.success('已切换到重播')
@@ -1397,6 +1530,15 @@ async function actPipelineAction(btn: { stage?: string; label?: string; action?:
     }
     await loadActs()
     await loadStories()
+    // 自动接续出来的新幕：列表刷新后直接跳到它
+    if (pendingActNo.value != null) {
+      const target = acts.value.find((a) => a.actNo === pendingActNo.value)
+      pendingActNo.value = null
+      if (target) {
+        await selectAct(target)
+        return
+      }
+    }
     if (currentAct.value) await fetchActDetail(currentAct.value.actNo as number)
   } catch (e: any) {
     message.error(e?.message || '操作失败')
@@ -1884,8 +2026,23 @@ async function send() {
   color: var(--el-text-color-secondary);
 }
 .ws-frame-add:hover { color: var(--el-color-primary); border-color: var(--el-color-primary); }
-.ws-reel-side { display: flex; align-items: flex-end; flex-shrink: 0; }
+.ws-reel-side { display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; gap: 4px; flex-shrink: 0; }
 .ws-reel-count { font-size: 11.5px; color: var(--el-text-color-placeholder); white-space: nowrap; }
+.ws-act-create {
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 9px;
+  border: 1px dashed var(--el-border-color);
+  border-radius: var(--el-radius-sm, 6px);
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  font-size: 11.5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ws-act-create:hover { color: var(--el-color-primary); border-color: var(--el-color-primary); }
 
 /* ---- 舞台 ---- */
 .ws-stage {
@@ -2029,7 +2186,7 @@ async function send() {
 .ws-stage-empty-sub { margin: 0 0 6px; font-size: 12.5px; }
 
 /* ---- 剧本 / 素材 ---- */
-.ws-script {
+.ws-act-script {
   border-radius: var(--el-radius-md, 8px);
   border: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color);
@@ -2433,7 +2590,7 @@ async function send() {
 }
 .tl-npcs { margin-top: 6px; font-size: 11px; color: var(--el-color-primary); }
 
-/* 舞台 / 场景管理 */
+/* 舞台 / 场景与角色管理 */
 .ws-mg-section { margin-bottom: 18px; }
 .ws-mg-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .ws-mg-title { font-size: 13px; font-weight: 600; color: var(--el-text-color-primary); }
@@ -2465,6 +2622,25 @@ async function send() {
   cursor: pointer;
 }
 .ws-mg-scene-count { font-size: 11px; color: var(--el-text-color-placeholder); }
+.ws-mg-npc { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: var(--el-radius-md, 8px); cursor: pointer; }
+.ws-mg-npc:hover { background: var(--el-fill-color-light); }
+.ws-mg-npc-main { flex: 1; min-width: 0; }
+.ws-mg-npc-name {
+  font-size: 12.5px;
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-mg-npc-sub { font-size: 11px; color: var(--el-text-color-placeholder); }
+.ws-mg-npc-switch {
+  flex-shrink: 0;
+  display: inline-flex;
+  width: auto;
+  height: auto;
+  background: transparent;
+  padding: 0;
+}
 .ws-mg-del {
   flex-shrink: 0;
   width: 20px;
@@ -2480,7 +2656,7 @@ async function send() {
   font-size: 11px;
   opacity: 0;
 }
-.ws-mg-scene:hover .ws-mg-del { opacity: 1; }
+.ws-mg-scene:hover .ws-mg-del, .ws-mg-npc:hover .ws-mg-del { opacity: 1; }
 .ws-mg-del:hover { color: var(--el-color-danger); background: var(--el-color-danger-light-9); }
 
 /* ================= 对话框 ================= */

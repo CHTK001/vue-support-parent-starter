@@ -313,6 +313,15 @@ export const worldSimApi: WorldSimApi = {
     return await this._request(`/world-sim/npcs/${npcId}`, { method: "DELETE" });
   },
 
+  async deleteWorldNpc(this: ApiContext, npcId: number) {
+    return await this._request(`/world-sim/npcs/${npcId}`, { method: "DELETE" });
+  },
+
+  /** 让 AI 按世界现状自己造角色：起名、写人设、布置场景，并补上关系 */
+  async createWorldNpcByAi(this: ApiContext, worldId: number, data: { count?: number; hint?: string }) {
+    return await this._request(`/world-sim/worlds/${worldId}/npcs/ai-create`, { method: "POST", data });
+  },
+
   async fetchWorldRelationships(this: ApiContext, worldId: number) {
     const raw = await this._request(`/world-sim/worlds/${worldId}/relationships`);
     return (Array.isArray(raw) ? raw : raw?.items ?? []) as WorldRelationship[];

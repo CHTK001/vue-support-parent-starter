@@ -660,6 +660,12 @@ export default {
         tip: "Create a floating sticky note from the toolbar",
         description: "Toolbar note entry that creates floating sticky notes",
       },
+      quickNoteConfirm: {
+        label: "Note close confirmation",
+        sub: "Confirm",
+        tip: "Ask before closing a note",
+        description: "Confirm before closing a note to avoid losing content",
+      },
       weather: {
         label: "Toolbar Weather",
         sub: "Weather",
@@ -933,6 +939,11 @@ export default {
       created: "Saved",
       deleted: "Deleted",
       count: "note(s)",
+      minimize: "Minimize",
+      maximize: "Maximize",
+      fullscreen: "Fullscreen",
+      restore: "Restore",
+      close: "Close",
     },
     commandPalette: {
       tip: "Command palette (Ctrl/⌘ + K)",

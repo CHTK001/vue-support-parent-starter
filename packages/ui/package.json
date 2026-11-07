@@ -51,6 +51,10 @@
       "types": "./src/components/ReDialog/index.ts",
       "default": "./src/components/ReDialog/index.ts"
     },
+    "./re-float-window": {
+      "types": "./src/components/ReFloatWindow/index.ts",
+      "default": "./src/components/ReFloatWindow/index.ts"
+    },
     "./re-progress-dialog": {
       "types": "./src/components/ReProgressDialog/index.ts",
       "default": "./src/components/ReProgressDialog/index.ts"

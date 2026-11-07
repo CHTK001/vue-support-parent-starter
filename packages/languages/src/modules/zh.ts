@@ -661,6 +661,12 @@ export default {
         tip: "顶栏创建悬浮便条",
         description: "顶栏显示便条入口，点击创建悬浮便条",
       },
+      quickNoteConfirm: {
+        label: "便条关闭确认",
+        sub: "二次确认",
+        tip: "关闭便条前弹出确认框",
+        description: "关闭便条时二次确认，避免误删内容",
+      },
       weather: {
         label: "顶栏天气",
         sub: "天气",
@@ -935,6 +941,11 @@ export default {
       created: "已保存",
       deleted: "已删除",
       count: "条便签",
+      minimize: "最小化",
+      maximize: "最大化",
+      fullscreen: "全屏",
+      restore: "还原",
+      close: "关闭",
     },
     commandPalette: {
       tip: "命令面板（Ctrl/⌘ + K）",

@@ -21,6 +21,7 @@ import { ElMessage } from "element-plus";
 import {
   cdpCloseTarget,
   cdpContent,
+  cdpCookies,
   cdpCreateTarget,
   cdpEvaluate,
   cdpNavigate,
@@ -39,9 +40,15 @@ import "../styles/debug.css";
 
 /* ==================== 页面级状态 ==================== */
 
-/** 当前选中的页签 */
-type PageTab = "console" | "network" | "elements" | "svg" | "dom" | "screenshot" | "evaluate";
-const pageTab = ref<PageTab>("network");
+/**
+ * 当前选中的页签
+ *
+ * <p>按 F12 的功能分区组织：元素（含样式 / 计算）、控制台、网络、
+ * 存储（Cookie / localStorage / sessionStorage）、截屏。SVG 抽取收进元素页签的
+ * 侧栏，求值收进元素页签底部的 Console 抽屉。</p>
+ */
+type PageTab = "elements" | "console" | "network" | "app" | "screenshot";
+const pageTab = ref<PageTab>("elements");
 
 /** 浏览器状态 */
 const status = ref<CdpStatus | null>(null);
@@ -238,6 +245,41 @@ function toggleRail(): void {
     // 隐私模式禁用存储时忽略，不影响折叠本身
   }
 }
+
+/** 左侧目标搜索词 */
+const targetKeyword = ref("");
+/** 左侧目标类型筛选（空串 = 全部 page） */
+const targetTypeFilter = ref("page");
+
+/** 目标类型分项（带计数，供筛选胶囊用） */
+const targetTypeOptions = computed(() => {
+  const counts = new Map<string, number>();
+  for (const t of targets.value) {
+    const key = t.type || "other";
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  const list = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  const total = targets.value.length;
+  return [
+    { value: "", label: "全部", count: total },
+    ...list.map(([value, count]) => ({ value, label: value, count })),
+  ];
+});
+
+/** 过滤后的目标（搜索 + 类型） */
+const visibleTargets = computed(() => {
+  const kw = targetKeyword.value.trim().toLowerCase();
+  return targets.value.filter((t) => {
+    if (targetTypeFilter.value && (t.type || "other") !== targetTypeFilter.value) {
+      return false;
+    }
+    if (!kw) {
+      return true;
+    }
+    return `${targetTitle(t)} ${t.url ?? ""} ${t.id}`.toLowerCase().includes(kw);
+  });
+});
+
 /** 右键菜单状态 */
 const contextMenu = ref<{ open: boolean; x: number; y: number; node: DomTreeNode | null }>({
   open: false,
@@ -320,15 +362,13 @@ const uptime = computed(() => {
   return `${pad(Math.floor(seconds / 3600))}:${pad(Math.floor((seconds % 3600) / 60))}:${pad(seconds % 60)}`;
 });
 
-/** 七个页签（带计数） */
+/** 五个页签（带计数）；整页源码与求值入口收在「元素」页签里，不再单开页签 */
 const tabs = computed<{ name: PageTab; label: string; count?: number }[]>(() => [
+  { name: "elements", label: "元素" },
   { name: "console", label: "控制台", count: consoleMessages.value.length },
   { name: "network", label: "网络", count: networkRequests.value.length },
-  { name: "elements", label: "元素" },
-  { name: "svg", label: "SVG", count: svgItems.value.length },
-  { name: "dom", label: "源码" },
+  { name: "app", label: "应用" },
   { name: "screenshot", label: "截屏" },
-  { name: "evaluate", label: "求值" },
 ]);
 
 /** 级别筛选项（带计数；change 是页面变化 tag，单列一项） */
@@ -2379,12 +2419,17 @@ async function clearHighlight() {
 /** 选中节点：页面 Overlay 高亮 + 预览图高亮 + 取 outerHTML */
 async function selectNode(node: DomTreeNode, fromStage = false) {
   selectedNode.value = node;
+  sourceOpen.value = false;
   elementEditing.value = false;
   selectedOuter.value = node.nodeType === 3 ? node.nodeValue : "";
   styleRules.value = [];
   styleError.value = "";
   if (detailTab.value === "style") {
     void loadMatchedStyles();
+  } else if (detailTab.value === "computed") {
+    void loadComputedStyles();
+  } else if (detailTab.value === "box") {
+    void loadBoxModel();
   }
   // 树 → 预览联动：把节点框画到预览图上
   void highlightOnStage(node.nodeId, nodeLabel(node));
@@ -2541,8 +2586,8 @@ interface StyleRule {
   properties: StyleProp[];
 }
 
-/** 详情区当前看的页签：HTML 还是样式 */
-const detailTab = ref<"html" | "style">("html");
+/** 详情区当前看的页签：样式 / 计算 / 布局 / HTML / SVG */
+const detailTab = ref<"html" | "style" | "computed" | "box" | "svg">("style");
 /** 命中样式 */
 const styleRules = ref<StyleRule[]>([]);
 /** 样式读取失败原因 */
@@ -2669,13 +2714,159 @@ async function loadMatchedStyles() {
   }
 }
 
-/** 切换详情页签（样式页签按需读取） */
-function showDetailTab(tab: "html" | "style") {
+/** 切换详情页签（样式 / 计算样式按需读取） */
+function showDetailTab(tab: "html" | "style" | "computed" | "box" | "svg") {
   detailTab.value = tab;
   if (tab === "style") {
     void loadMatchedStyles();
+  } else if (tab === "computed") {
+    void loadComputedStyles();
+  } else if (tab === "box") {
+    void loadBoxModel();
+  } else if (tab === "svg") {
+    if (!svgItems.value.length && selectedTarget.value) {
+      void loadSvgs();
+    }
   }
 }
+
+/* ---------- 计算样式（F12 Computed）与盒模型（F12 Layout） ---------- */
+
+/** 计算后的样式（name -> value，按字母序） */
+const computedStyles = ref<StyleProp[]>([]);
+const computedError = ref("");
+const computedLoading = ref(false);
+/** 计算样式里的关键字过滤 */
+const computedKeyword = ref("");
+
+/** 盒模型量到的尺寸 */
+interface BoxMetric {
+  /** content / padding / border / margin 的宽高 */
+  width: number;
+  height: number;
+  content?: number[];
+  padding?: number[];
+  border?: number[];
+  margin?: number[];
+}
+const boxMetric = ref<BoxMetric | null>(null);
+const boxError = ref("");
+
+/** 过滤后的计算样式 */
+const visibleComputed = computed(() => {
+  const kw = computedKeyword.value.trim().toLowerCase();
+  if (!kw) return computedStyles.value;
+  return computedStyles.value.filter((p) => p.name.toLowerCase().includes(kw) || p.value.toLowerCase().includes(kw));
+});
+
+/** 读取计算后的样式（CSS.getComputedStyleForNode） */
+async function loadComputedStyles() {
+  const node = selectedNode.value;
+  const target = selectedTarget.value;
+  if (!node || !target || node.nodeType !== 1) {
+    computedStyles.value = [];
+    computedError.value = "只有元素节点有计算样式";
+    return;
+  }
+  computedLoading.value = true;
+  computedError.value = "";
+  try {
+    await ensureStyleDomains(target);
+    const result = (await client.call("CSS.getComputedStyleForNode", { nodeId: node.nodeId }, target)) as {
+      computedStyle?: { name?: string; value?: string }[];
+    } | null;
+    const list = Array.isArray(result?.computedStyle) ? result!.computedStyle! : [];
+    computedStyles.value = list
+      .map((item) => ({
+        name: String(item.name ?? ""),
+        value: String(item.value ?? ""),
+        important: false,
+        disabled: false,
+      }))
+      .filter((item) => item.name)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  } catch (error) {
+    computedStyles.value = [];
+    computedError.value = "读取计算样式失败: " + (error as Error).message;
+  } finally {
+    computedLoading.value = false;
+  }
+}
+
+/** 读取盒模型（DOM.getBoxModel，含 content / padding / border / margin 四层） */
+async function loadBoxModel() {
+  const node = selectedNode.value;
+  const target = selectedTarget.value;
+  if (!node || !target || node.nodeType !== 1) {
+    boxMetric.value = null;
+    boxError.value = "只有元素节点有盒模型";
+    return;
+  }
+  boxError.value = "";
+  try {
+    const result = (await client.call("DOM.getBoxModel", { nodeId: node.nodeId }, target)) as {
+      model?: {
+        width?: number;
+        height?: number;
+        content?: number[];
+        padding?: number[];
+        border?: number[];
+        margin?: number[];
+      };
+    } | null;
+    const model = result?.model;
+    if (!model) {
+      boxMetric.value = null;
+      boxError.value = "没有量到盒模型（隐藏节点或文本节点）";
+      return;
+    }
+    boxMetric.value = {
+      width: Number(model.width ?? 0),
+      height: Number(model.height ?? 0),
+      content: model.content,
+      padding: model.padding,
+      border: model.border,
+      margin: model.margin,
+    };
+  } catch (error) {
+    boxMetric.value = null;
+    boxError.value = "读取盒模型失败: " + (error as Error).message;
+  }
+}
+
+/** 从 quad 反推宽高（8 个数 = 4 个点） */
+function quadSize(quad?: number[]): { w: number; h: number } {
+  if (!Array.isArray(quad) || quad.length < 8) {
+    return { w: 0, h: 0 };
+  }
+  const xs = [quad[0], quad[2], quad[4], quad[6]];
+  const ys = [quad[1], quad[3], quad[5], quad[7]];
+  return { w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
+}
+
+/** 选中节点的祖先链（F12 面包屑，根在左） */
+const nodePath = computed(() => {
+  const node = selectedNode.value;
+  if (!node || !elementTree.value) {
+    return [] as DomTreeNode[];
+  }
+  const chain: DomTreeNode[] = [];
+  const walk = (current: DomTreeNode, trail: DomTreeNode[]): boolean => {
+    const nextTrail = [...trail, current];
+    if (current.nodeId === node.nodeId) {
+      chain.push(...nextTrail);
+      return true;
+    }
+    for (const child of current.children) {
+      if (walk(child, nextTrail)) {
+        return true;
+      }
+    }
+    return false;
+  };
+  walk(elementTree.value, []);
+  return chain;
+});
 
 /* ---------- 页内选元素（F12 的检查器） ---------- */
 
@@ -2913,6 +3104,8 @@ watch(selectedTarget, () => {
   domDirty.value = false;
   netDetailId.value = "";
   netBodyRaw.value = "";
+  domRaw.value = "";
+  sourceOpen.value = false;
   stageShot.value = "";
   stageHighlight.value = null;
   stageObserver?.disconnect();
@@ -2964,6 +3157,8 @@ watch([stageLayout, pageTab, railCollapsed, stageOpen], () => {
 
 const domRaw = ref("");
 const domLoading = ref(false);
+/** 元素页签里的「整页 HTML」面板（源码页签并进来后的落点） */
+const sourceOpen = ref(false);
 
 /** 当前页签的地址栏（源码面板里的跳转输入） */
 const navigateUrl = ref("");
@@ -2983,6 +3178,27 @@ async function fetchContent() {
     ElMessage.error("获取内容失败: " + (error as Error).message);
   } finally {
     domLoading.value = false;
+  }
+}
+
+/**
+ * 打开 / 关闭元素页签里的整页 HTML 面板
+ *
+ * <p>源码页签已经并到这里：第一次打开时按需拉一次 document HTML，
+ * 之后保留快照，需要最新内容点面板里的「重新获取」。</p>
+ */
+async function toggleSourcePanel() {
+  if (sourceOpen.value) {
+    sourceOpen.value = false;
+    return;
+  }
+  if (!selectedTarget.value) {
+    ElMessage.warning("请先在左侧选择一个目标");
+    return;
+  }
+  sourceOpen.value = true;
+  if (!domRaw.value) {
+    await fetchContent();
   }
 }
 
@@ -3030,6 +3246,72 @@ async function doScreenshot(fullPage = false) {
 const evaluateExpression = ref("document.title");
 const evaluateResult = ref("");
 const evaluateLoading = ref(false);
+/** Console 抽屉里的历史命令（↑ / ↓ 翻，localStorage 记忆最近 50 条） */
+const evalHistory = ref<string[]>(readEvalHistory());
+const evalHistoryIndex = ref(-1);
+
+function readEvalHistory(): string[] {
+  try {
+    const raw = localStorage.getItem("debug.eval.history");
+    const list = raw ? (JSON.parse(raw) as unknown) : [];
+    return Array.isArray(list) ? list.filter((item): item is string => typeof item === "string").slice(-50) : [];
+  } catch {
+    return [];
+  }
+}
+
+function pushEvalHistory(text: string): void {
+  const value = text.trim();
+  if (!value) return;
+  const list = evalHistory.value.filter((item) => item !== value);
+  list.push(value);
+  evalHistory.value = list.slice(-50);
+  evalHistoryIndex.value = -1;
+  try {
+    localStorage.setItem("debug.eval.history", JSON.stringify(evalHistory.value));
+  } catch {
+    // 隐私模式忽略
+  }
+}
+
+/** ↑ 取上一条历史命令 */
+function historyPrev(): void {
+  if (!evalHistory.value.length) return;
+  const next = evalHistoryIndex.value < 0
+    ? evalHistory.value.length - 1
+    : Math.max(0, evalHistoryIndex.value - 1);
+  evalHistoryIndex.value = next;
+  evaluateExpression.value = evalHistory.value[next] ?? "";
+}
+
+/** ↓ 取下一条历史命令 */
+function historyNext(): void {
+  if (!evalHistory.value.length) return;
+  const next = evalHistoryIndex.value + 1;
+  if (next >= evalHistory.value.length) {
+    evalHistoryIndex.value = -1;
+    evaluateExpression.value = "";
+    return;
+  }
+  evalHistoryIndex.value = next;
+  evaluateExpression.value = evalHistory.value[next] ?? "";
+}
+
+/** Console 抽屉是否展开（元素页签底部） */
+const evaluateOpen = ref(true);
+/** 抽屉标题上的结果摘要（截断成一行，详情在抽屉里） */
+const evaluateSummary = computed(() => {
+  const text = evaluateResult.value.replace(/\s+/g, " ").trim();
+  if (!text) {
+    return evaluateExpression.value ? `待执行：${evaluateExpression.value}` : "没有结果";
+  }
+  return text.length > 90 ? `${text.slice(0, 90)}…` : text;
+});
+
+/** 清空求值输出 */
+function clearEvaluate(): void {
+  evaluateResult.value = "";
+}
 
 /**
  * 把 CDP {@code Runtime.evaluate} 的 result 结构压成便于阅读的文本
@@ -3060,14 +3342,145 @@ async function doEvaluate() {
     ElMessage.warning("请先选择或创建一个页面");
     return;
   }
+  const expression = evaluateExpression.value.trim();
+  if (!expression) {
+    return;
+  }
+  pushEvalHistory(expression);
   evaluateLoading.value = true;
   try {
-    const result = await cdpEvaluate(selectedTarget.value, evaluateExpression.value);
+    const result = await cdpEvaluate(selectedTarget.value, expression);
     evaluateResult.value = formatEvalResult(result);
   } catch (error) {
     evaluateResult.value = "求值失败: " + (error as Error).message;
   } finally {
     evaluateLoading.value = false;
+  }
+}
+
+/* ==================== Storage（Application 面板） ==================== */
+
+/** 存储面板当前分组 */
+const storageTab = ref<"cookies" | "local" | "session">("cookies");
+const storageLoading = ref(false);
+const storageError = ref("");
+const storageCookies = ref<{ name: string; value: string; domain?: string; path?: string; expires?: number; httpOnly?: boolean; secure?: boolean }[]>([]);
+const storageLocal = ref<{ key: string; value: string }[]>([]);
+const storageSession = ref<{ key: string; value: string }[]>([]);
+
+/** 存储表格关键字过滤 */
+const storageKeyword = ref("");
+
+/** 按关键字过滤后的 Cookie */
+const visibleCookies = computed(() => {
+  const kw = storageKeyword.value.trim().toLowerCase();
+  if (!kw) return storageCookies.value;
+  return storageCookies.value.filter((c) => `${c.name}=${c.value}${c.domain ?? ""}`.toLowerCase().includes(kw));
+});
+
+/** 按关键字过滤后的 localStorage */
+const visibleLocal = computed(() => {
+  const kw = storageKeyword.value.trim().toLowerCase();
+  if (!kw) return storageLocal.value;
+  return storageLocal.value.filter((i) => i.key.toLowerCase().includes(kw) || i.value.toLowerCase().includes(kw));
+});
+
+/** 按关键字过滤后的 sessionStorage */
+const visibleSession = computed(() => {
+  const kw = storageKeyword.value.trim().toLowerCase();
+  if (!kw) return storageSession.value;
+  return storageSession.value.filter((i) => i.key.toLowerCase().includes(kw) || i.value.toLowerCase().includes(kw));
+});
+
+/** 当前存储页签的条数 */
+const storageCount = computed(() =>
+  storageTab.value === "cookies"
+    ? storageCookies.value.length
+    : storageTab.value === "local"
+      ? storageLocal.value.length
+      : storageSession.value.length,
+);
+
+/** 时间戳 -> 过期文案 */
+function cookieExpiry(expires?: number): string {
+  if (!expires || expires <= 0) {
+    return "会话";
+  }
+  return new Date(expires * 1000).toLocaleString();
+}
+
+/**
+ * 读取存储
+ *
+ * <p>Cookie 走 REST {@code /ms/cdp/targets/{id}/cookies}（后端已包好
+ * {@code Network.getCookies}）；localStorage / sessionStorage 用一次
+ * {@code Runtime.evaluate} 把整个 Storage 序列化回来。</p>
+ */
+async function loadStorage() {
+  if (!selectedTarget.value) {
+    ElMessage.warning("请先在左侧选择一个目标");
+    return;
+  }
+  storageLoading.value = true;
+  storageError.value = "";
+  try {
+    const cookies = await cdpCookies(selectedTarget.value);
+    storageCookies.value = (Array.isArray(cookies) ? cookies : []).map((item) => ({
+      name: String(item.name ?? ""),
+      value: String(item.value ?? ""),
+      domain: String(item.domain ?? ""),
+      path: String(item.path ?? ""),
+      expires: Number(item.expires ?? 0),
+      httpOnly: item.httpOnly === true,
+      secure: item.secure === true,
+    }));
+  } catch (error) {
+    storageError.value = "Cookie 读取失败: " + (error as Error).message;
+  }
+  try {
+    const raw = await cdpEvaluate(
+      selectedTarget.value,
+      `(function(){var dump=function(s){var out=[];for(var i=0;i<s.length;i++){var k=s.key(i);out.push({key:k,value:String(s.getItem(k))})}return out};` +
+        `return JSON.stringify({local:dump(localStorage),session:dump(sessionStorage)})})()`,
+    );
+    // 后端把 Runtime.evaluate 的 result 框架原样透出：{type, value}
+    const value = raw && typeof raw === "object" ? (raw as { value?: unknown }).value : raw;
+    const text = typeof value === "string" ? value : "";
+    const parsed = text
+      ? (JSON.parse(text) as { local?: { key: string; value: string }[]; session?: { key: string; value: string }[] })
+      : {};
+    storageLocal.value = Array.isArray(parsed.local) ? parsed.local : [];
+    storageSession.value = Array.isArray(parsed.session) ? parsed.session : [];
+  } catch (error) {
+    if (!storageError.value) {
+      storageError.value = "Web Storage 读取失败: " + (error as Error).message;
+    }
+  } finally {
+    storageLoading.value = false;
+  }
+}
+
+/** 清空当前存储页签 */
+async function clearStorage() {
+  if (!selectedTarget.value) {
+    return;
+  }
+  if (storageTab.value === "cookies") {
+    storageCookies.value = [];
+    ElMessage.info("Cookie 只能逐条删除，清空列表仅影响当前视图");
+    return;
+  }
+  const key = storageTab.value === "local" ? "localStorage" : "sessionStorage";
+  try {
+    await cdpEvaluate(selectedTarget.value, `${key}.clear()`);
+    if (storageTab.value === "local") {
+      storageLocal.value = [];
+    } else {
+      storageSession.value = [];
+    }
+    ElMessage.success(`${key} 已清空`);
+  } catch (error) {
+    ElMessage.error("清空失败: " + (error as Error).message);
   }
 }
 
@@ -3126,7 +3539,7 @@ onBeforeUnmount(() => {
       <span v-if="status?.port" class="debug-hdr__port">:{{ status.port }}</span>
       <button
         :class="['debug-btn', 'debug-btn--sm', { 'debug-btn--primary': sw8Enabled }]"
-        :title="'自动为页面 XHR / fetch 注入 SkyWalking sw8 追踪头'"
+        title="自动为页面 XHR / fetch 注入 SkyWalking sw8 追踪头"
         @click="toggleSw8"
       >
         sw8 {{ sw8Enabled ? "开" : "关" }}
@@ -3152,60 +3565,59 @@ onBeforeUnmount(() => {
       </button>
     </header>
 
-    <!-- 原始网站条：显示当前调试的站点，下面是可嵌入 / 弹出的 F12 舞台 -->
-    <div class="debug-sitebar">
-      <img v-if="activeTarget && faviconUrl(activeTarget)" :src="faviconUrl(activeTarget)" class="debug-sitebar__ico" alt="" @error="onFaviconError(activeTarget.id)" />
-      <span v-else class="debug-sitebar__ico debug-sitebar__ico--fallback">◈</span>
-      <span class="debug-sitebar__k">原始网站</span>
-      <span class="debug-sitebar__url" :title="activeUrl || '未选择目标'">{{ activeUrl || "未选择目标" }}</span>
-      <span class="debug-sitebar__spacer" />
-      <span v-if="stageLive" class="debug-sitebar__live"><i class="debug-dot" />实时</span>
-    </div>
-
     <div class="debug-body">
-      <!-- 左侧目标轨道（可折叠为一条目标图标带） -->
+      <!-- ==================== 左侧：调试目标栏（可折叠） ==================== -->
       <aside :class="['debug-rail', { 'is-collapsed': railCollapsed }]">
-        <!-- 折叠态：只留展开按钮 + 目标图标 -->
-        <div v-if="railCollapsed" class="debug-railmini">
-          <button class="debug-rail__fold debug-rail__fold--mini" title="展开目标栏" @click="toggleRail">»</button>
-          <span class="debug-railmini__k">目标</span>
-          <button
-            v-for="t in targets"
-            :key="t.id"
-            :class="['debug-railmini__t', { 'is-active': t.id === selectedTarget }]"
-            :title="`${targetTitle(t)} · ${t.url || t.id}`"
-            @click="selectTarget(t.id)"
-          >
-            <img v-if="faviconUrl(t)" :src="faviconUrl(t)" alt="" @error="onFaviconError(t.id)" />
-            <i v-else class="debug-railmini__fallback">◈</i>
+        <!-- 折叠态：一条竖条，只留计数与展开按钮 -->
+        <div v-if="railCollapsed" class="debug-railstrip">
+          <button class="debug-railstrip__count" title="展开目标栏" @click="toggleRail">
+            <b>{{ visibleTargets.length }}</b><span>/{{ targets.length }}</span>
           </button>
-          <span v-if="!targets.length" class="debug-railmini__none" title="还没有目标">·</span>
-          <span class="debug-railmini__n">{{ targetCount }}</span>
+          <span class="debug-railstrip__dots">
+            <i class="is-on" :title="`页面 ${targets.filter((t) => t.type === 'page').length}`" />
+            <i class="is-off" :title="`其它 ${targets.filter((t) => t.type !== 'page').length}`" />
+          </span>
+          <span class="debug-railstrip__gap" />
+          <button class="debug-railstrip__toggle" title="展开目标栏" @click="toggleRail">»</button>
         </div>
 
         <template v-else>
-          <div class="debug-engine">
-            <span class="debug-engine__k">调试端口</span>
-            <span class="debug-engine__v">{{ status?.port ?? "—" }}</span>
-            <span class="debug-engine__k">浏览器</span>
-            <span class="debug-engine__v" :title="status?.version">{{ status?.version || "—" }}</span>
-            <span class="debug-engine__k">运行时长</span>
-            <span class="debug-engine__v">{{ uptime }}</span>
-            <span class="debug-engine__k">WS 端点</span>
-            <span class="debug-engine__v debug-engine__v--sm" :title="status?.endpoint">
-              {{ status?.endpoint || "—" }}
-            </span>
-          </div>
-
+          <!-- 轨道头：标题 + 计数 + 工具栏 -->
           <div class="debug-railhd">
-            <span>目标</span>
-            <span class="debug-railhd__n">{{ targetCount }} 个</span>
-            <button class="debug-rail__fold" title="收起目标栏" @click="toggleRail">«</button>
+            <span class="debug-railhd__title">调试目标</span>
+            <span class="debug-railhd__n">{{ visibleTargets.length }}<i>/{{ targets.length }}</i></span>
+            <span class="debug-railhd__spacer" />
+            <button class="debug-rail__tool" title="刷新目标列表" :disabled="statusLoading" @click="reloadTargets">
+              ↻
+            </button>
+            <button class="debug-rail__tool is-primary" title="新建页面" :disabled="!running" @click="openCreatePage">
+              +
+            </button>
+            <button class="debug-rail__tool" title="收起目标栏" @click="toggleRail">«</button>
           </div>
 
+          <!-- 搜索 -->
+          <div class="debug-railhd__search">
+            <input v-model="targetKeyword" class="debug-input debug-input--block" placeholder="搜索标题 / 地址" />
+          </div>
+
+          <!-- 类型筛选 -->
+          <div class="debug-railfilters">
+            <button
+              v-for="opt in targetTypeOptions"
+              :key="opt.value"
+              type="button"
+              :class="['debug-railchip', { 'is-active': targetTypeFilter === opt.value }]"
+              @click="targetTypeFilter = opt.value"
+            >
+              <span>{{ opt.label }}</span><b>{{ opt.count }}</b>
+            </button>
+          </div>
+
+          <!-- 目标列表 -->
           <div class="debug-tlist">
             <button
-              v-for="t in targets"
+              v-for="t in visibleTargets"
               :key="t.id"
               :class="['debug-target', { 'is-active': t.id === selectedTarget }]"
               @click="selectTarget(t.id)"
@@ -3222,18 +3634,34 @@ onBeforeUnmount(() => {
                 <span class="debug-target__title">{{ targetTitle(t) }}</span>
                 <span class="debug-target__url" :title="t.url">{{ t.url || t.id }}</span>
               </span>
+              <span class="debug-target__type">{{ t.type || "other" }}</span>
               <span class="debug-target__close" title="关闭页面" @click.stop="closePage(t.id)">×</span>
             </button>
 
-            <div v-if="!targets.length" class="debug-empty debug-empty--rail">
-              <b>还没有目标</b>
-              <span>启动浏览器后，页面 / SW / iframe 会列在这里</span>
+            <div v-if="!visibleTargets.length" class="debug-empty debug-empty--rail">
+              <b>{{ targets.length ? "没有符合条件的目标" : "还没有目标" }}</b>
+              <span v-if="targets.length">换个关键字或类型试试</span>
+              <span v-else>启动浏览器后，页面 / SW / iframe 会列在这里</span>
+            </div>
+          </div>
+
+          <!-- 轨道脚：引擎信息 + 折叠 -->
+          <div class="debug-raiffoot">
+            <div class="debug-engine">
+              <span class="debug-engine__k">端口</span>
+              <span class="debug-engine__v">{{ status?.port ?? "—" }}</span>
+              <span class="debug-engine__k">运行</span>
+              <span class="debug-engine__v">{{ uptime }}</span>
+              <span class="debug-engine__k">端点</span>
+              <span class="debug-engine__v debug-engine__v--sm" :title="status?.endpoint">
+                {{ status?.endpoint || "—" }}
+              </span>
             </div>
           </div>
         </template>
       </aside>
 
-      <!-- 右侧工作面板 -->
+      <!-- ==================== 右侧：DevTools 工作区 ==================== -->
       <section class="debug-main">
         <div class="debug-tabs">
           <button
@@ -3245,10 +3673,62 @@ onBeforeUnmount(() => {
           >
             {{ t.label }}<span v-if="t.count" class="debug-count">{{ t.count }}</span>
           </button>
+          <span class="debug-tabs__spacer" />
+          <span class="debug-tabs__site" :title="activeUrl || '未选择目标'">
+            <img
+              v-if="activeTarget && faviconUrl(activeTarget)"
+              :src="faviconUrl(activeTarget)"
+              alt=""
+              @error="onFaviconError(activeTarget.id)"
+            />
+            <span class="debug-tabs__url">{{ activeUrl || "未选择目标" }}</span>
+          </span>
+          <span v-if="stageLive" class="debug-tabs__live"><i class="debug-dot" />实时</span>
         </div>
 
-        <!-- 控制台工具行 -->
-        <div v-if="pageTab === 'console'" class="debug-tool">
+        <!-- ---------- 元素工具行 ---------- -->
+        <div v-if="pageTab === 'elements'" class="debug-tool">
+          <button class="debug-btn debug-btn--sm" :disabled="elementLoading" @click="loadElementTree">
+            {{ elementLoading ? "读取中…" : "刷新 DOM" }}
+          </button>
+          <button
+            :class="['debug-btn', 'debug-btn--sm', { 'debug-btn--primary': picking }]"
+            :disabled="!selectedTarget"
+            @click="startPickNode"
+          >
+            {{ picking ? "点选取消" : "页内选元素" }}
+          </button>
+          <button class="debug-btn debug-btn--sm" :disabled="!elementTree" @click="collapseAll">折叠全部</button>
+          <span class="debug-tool__divider" />
+          <button :class="['debug-btn', 'debug-btn--sm', { 'is-active': stageOpen }]" @click="stageOpen = !stageOpen">
+            {{ stageOpen ? "收起画面" : "显示画面" }}
+          </button>
+          <button class="debug-btn debug-btn--sm" :disabled="!selectedTarget" @click="refreshStage">截屏</button>
+          <span class="debug-sitebar__seg">
+            <button :class="['debug-sitebar__segb', { 'is-active': stageLayout === 'left' }]" title="画面在左，DOM 与样式在右" @click="stageLayout = 'left'">左右</button>
+            <button :class="['debug-sitebar__segb', { 'is-active': stageLayout === 'top' }]" title="画面在上方" @click="stageLayout = 'top'">上下</button>
+          </span>
+          <span class="debug-tool__divider" />
+          <button :class="['debug-btn', 'debug-btn--sm', { 'is-active': sourceOpen }]" :disabled="!selectedTarget" @click="toggleSourcePanel">
+            页面 HTML
+          </button>
+          <span class="debug-tool__spacer" />
+          <span v-if="domDirty" class="debug-pill debug-pill--warn" title="页面有变化，DOM 是快照">
+            <i class="debug-dot" />页面已变化
+          </span>
+          <span class="debug-tool__hint">
+            {{
+              picking
+                ? "在页面里点一个元素，Esc 取消"
+                : elementTree
+                  ? `${elementNodeCount} 个节点 · 快照，页面改动后点刷新`
+                  : "读取当前页面的节点树"
+            }}
+          </span>
+        </div>
+
+        <!-- ---------- 控制台工具行 ---------- -->
+        <div v-else-if="pageTab === 'console'" class="debug-tool">
           <button
             v-for="opt in levelOptions"
             :key="opt.value"
@@ -3265,7 +3745,7 @@ onBeforeUnmount(() => {
           <button class="debug-btn debug-btn--sm" @click="clearConsole">清空</button>
         </div>
 
-        <!-- 网络工具行（F12 风格：类型筛选 / 保留日志 / 汇总） -->
+        <!-- ---------- 网络工具行 ---------- -->
         <div v-else-if="pageTab === 'network'" class="debug-tool">
           <label class="debug-tool__switch" title="切换目标时不清空请求">
             <input v-model="netPreserveLog" type="checkbox" /> 保留日志
@@ -3287,72 +3767,40 @@ onBeforeUnmount(() => {
           <button class="debug-btn debug-btn--sm" @click="clearNetwork">清空</button>
         </div>
 
-        <!-- 元素工具行 -->
-        <div v-else-if="pageTab === 'elements'" class="debug-tool">
-          <button class="debug-btn debug-btn--sm" :disabled="elementLoading" @click="loadElementTree">
-            {{ elementLoading ? "读取中…" : "刷新 DOM" }}
-          </button>
-          <button
-            :class="['debug-btn', 'debug-btn--sm', { 'debug-btn--primary': picking }]"
-            :disabled="!selectedTarget"
-            @click="startPickNode"
-          >
-            {{ picking ? "点选取消" : "页内选元素" }}
-          </button>
-          <button class="debug-btn debug-btn--sm" :disabled="!elementTree" @click="collapseAll">折叠全部</button>
+        <!-- ---------- 应用（存储）工具行 ---------- -->
+        <div v-else-if="pageTab === 'app'" class="debug-tool">
+          <span class="debug-seg">
+            <button
+              :class="['debug-seg__b', { 'is-active': storageTab === 'cookies' }]"
+              @click="storageTab = 'cookies'"
+            >
+              Cookie<span class="debug-chip__n">{{ storageCookies.length }}</span>
+            </button>
+            <button
+              :class="['debug-seg__b', { 'is-active': storageTab === 'local' }]"
+              @click="storageTab = 'local'"
+            >
+              localStorage<span class="debug-chip__n">{{ storageLocal.length }}</span>
+            </button>
+            <button
+              :class="['debug-seg__b', { 'is-active': storageTab === 'session' }]"
+              @click="storageTab = 'session'"
+            >
+              sessionStorage<span class="debug-chip__n">{{ storageSession.length }}</span>
+            </button>
+          </span>
           <span class="debug-tool__divider" />
-          <button :class="['debug-btn', 'debug-btn--sm', { 'is-active': stageOpen }]" @click="stageOpen = !stageOpen">
-            {{ stageOpen ? "收起画面" : "显示画面" }}
+          <button class="debug-btn debug-btn--sm debug-btn--primary" :disabled="storageLoading" @click="loadStorage">
+            {{ storageLoading ? "读取中…" : "读取存储" }}
           </button>
-          <button class="debug-btn debug-btn--sm" :disabled="!selectedTarget" @click="refreshStage">截屏</button>
-          <span class="debug-sitebar__seg">
-            <button :class="['debug-sitebar__segb', { 'is-active': stageLayout === 'top' }]" title="画面在上方" @click="stageLayout = 'top'">上下</button>
-            <button :class="['debug-sitebar__segb', { 'is-active': stageLayout === 'left' }]" title="画面在左侧" @click="stageLayout = 'left'">左右</button>
-          </span>
           <span class="debug-tool__spacer" />
-          <span v-if="domDirty" class="debug-pill debug-pill--warn" title="页面有变化，DOM 是快照">
-            <i class="debug-dot" />页面已变化
-          </span>
-          <span class="debug-tool__hint">
-            {{
-              picking
-                ? "在页面里点一个元素，Esc 取消"
-                : elementTree
-                  ? `${elementNodeCount} 个节点 · 快照，页面改动后点刷新`
-                  : "读取当前页面的节点树"
-            }}
-          </span>
+          <input v-model="storageKeyword" class="debug-input debug-input--search" placeholder="过滤 key / value" />
+          <span class="debug-tool__hint">{{ storageCount }} 条</span>
+          <button class="debug-btn debug-btn--sm" :disabled="!storageCount" @click="clearStorage">清空</button>
         </div>
 
-        <!-- SVG 工具行 -->
-        <div v-else-if="pageTab === 'svg'" class="debug-tool">
-          <button class="debug-btn debug-btn--sm debug-btn--primary" :disabled="svgLoading" @click="loadSvgs">
-            {{ svgLoading ? "抽取中…" : "重新抽取" }}
-          </button>
-          <label class="debug-tool__switch">
-            <input v-model="svgSavedOnly" type="checkbox" /> 只看已保存（{{ svgSaved.size }}）
-          </label>
-          <span class="debug-tool__spacer" />
-          <span class="debug-tool__hint">{{ svgItems.length }} 个 SVG · 内联 / &lt;use&gt; / 外链</span>
-        </div>
-
-        <!-- 源码工具行 -->
-        <div v-else-if="pageTab === 'dom'" class="debug-tool">
-          <input
-            v-model="navigateUrl"
-            class="debug-input"
-            placeholder="跳转 URL（如 https://example.com）"
-            @keyup.enter="doNavigate(navigateUrl)"
-          />
-          <button class="debug-btn debug-btn--sm" @click="doNavigate(navigateUrl)">跳转</button>
-          <span class="debug-tool__spacer" />
-          <button class="debug-btn debug-btn--sm debug-btn--primary" :disabled="domLoading" @click="fetchContent">
-            获取内容
-          </button>
-        </div>
-
-        <!-- 截屏工具行 -->
-        <div v-else-if="pageTab === 'screenshot'" class="debug-tool">
+        <!-- ---------- 截屏工具行 ---------- -->
+        <div v-else class="debug-tool">
           <span class="debug-tool__hint">
             {{ selectedTarget ? `当前目标: ${selectedTarget}` : "请先在左侧选择或创建目标" }}
           </span>
@@ -3363,21 +3811,365 @@ onBeforeUnmount(() => {
           </button>
         </div>
 
-        <!-- 求值工具行 -->
-        <div v-else class="debug-tool">
-          <input
-            v-model="evaluateExpression"
-            class="debug-input"
-            placeholder="JS 表达式（如 document.title）"
-            @keyup.enter="doEvaluate"
-          />
-          <button class="debug-btn debug-btn--sm debug-btn--primary" :disabled="evaluateLoading" @click="doEvaluate">
-            执行
-          </button>
+        <!-- ==================== 元素（F12 Elements） ==================== -->
+        <div v-if="pageTab === 'elements'" class="debug-elements">
+          <div v-if="!elementTree && !elementLoading" class="debug-empty">
+            <b>还没有读取 DOM</b>
+            <span>点上方「刷新 DOM」把当前页面的节点树拉下来</span>
+          </div>
+          <div v-else class="debug-elwrap">
+            <div :class="['debug-el', `debug-el--${stageLayout}`]">
+              <!-- 画面舞台：默认在左，点画面反查节点 -->
+              <div v-if="stageOpen" class="debug-el__stage">
+                <div ref="stageViewRef" class="debug-stage__view" @click="pickFromStage">
+                  <img
+                    v-if="stageShot"
+                    ref="stageImgRef"
+                    :src="stageShot"
+                    alt="原始网站画面"
+                    draggable="false"
+                    @load="onStageImgLoad"
+                  />
+                  <div v-else class="debug-stage__ph">
+                    <b>{{ stageLoading ? "正在截屏…" : "还没有画面" }}</b>
+                    <span>点上方「截屏」或打开「实时」自动刷新</span>
+                  </div>
+                  <div v-if="stageHighlight && stageShot && stageHlStyle" class="debug-stage__hl" :style="stageHlStyle">
+                    <span class="debug-stage__hltag">{{ stageHighlight.tag }}</span>
+                  </div>
+                  <span v-if="stageLoading && stageShot" class="debug-stage__loading">刷新中…</span>
+                </div>
+                <div class="debug-stage__bar">
+                  <span class="debug-stage__hint">{{ stageHint }}</span>
+                  <span class="debug-tool__spacer" />
+                  <label class="debug-stage__switch">
+                    <input v-model="stageLive" type="checkbox" /> 实时刷新
+                  </label>
+                </div>
+              </div>
+
+              <!-- DOM 树 + 详情：选中节点后样式在右侧，不再压到页面底部 -->
+              <div class="debug-el__body">
+                <div class="debug-el__tree" @mouseleave="clearHighlight">
+                  <!-- 面包屑（F12 的 ancestors 条） -->
+                  <div v-if="nodePath.length > 1" class="debug-el__crumbs">
+                    <template v-for="(n, i) in nodePath" :key="n.nodeId">
+                      <span v-if="i" class="debug-el__crumbsep">›</span>
+                      <button
+                        :class="['debug-el__crumb', { 'is-active': i === nodePath.length - 1 }]"
+                        @click="selectNode(n)"
+                      >
+                        {{ nodeLabel(n) }}
+                      </button>
+                    </template>
+                  </div>
+
+                  <div
+                    v-for="row in elementRows"
+                    :key="row.node.nodeId"
+                    :class="['debug-el__row', { 'is-active': selectedNode?.nodeId === row.node.nodeId }]"
+                    :style="{ paddingLeft: `${8 + row.depth * 14}px` }"
+                    @click="selectNode(row.node)"
+                    @contextmenu.prevent="openContextMenu($event, row.node)"
+                  >
+                    <span
+                      :class="['debug-el__caret', { 'is-open': expandedNodes.has(row.node.nodeId) }]"
+                      @click.stop="toggleNode(row.node)"
+                    >
+                      {{ row.node.childCount ? (expandedNodes.has(row.node.nodeId) ? "▾" : "▸") : "" }}
+                    </span>
+
+                    <template v-if="row.node.nodeType === 1">
+                      <span class="debug-el__tag">&lt;{{ nodeLabel(row.node) }}</span>
+                      <template v-for="(val, key) in row.node.attributes" :key="key">
+                        <span class="debug-el__attr"> {{ key }}</span
+                        ><span class="debug-el__eq">=</span
+                        ><span class="debug-el__val">"{{ attrPreview(val) }}"</span>
+                      </template>
+                      <span class="debug-el__tag">&gt;</span>
+                    </template>
+                    <span v-else-if="row.node.nodeType === 3" class="debug-el__text">
+                      {{ textPreview(`"${row.node.nodeValue}"`) }}
+                    </span>
+                    <span v-else-if="row.node.nodeType === 10" class="debug-el__comment">
+                      &lt;!DOCTYPE {{ row.node.nodeValue || nodeLabel(row.node) }}&gt;
+                    </span>
+                    <span v-else-if="row.node.nodeType === 8" class="debug-el__comment">
+                      {{ textPreview(`<!--${row.node.nodeValue}-->`) }}
+                    </span>
+                    <span v-else class="debug-el__tag">{{ nodeLabel(row.node) }}</span>
+                  </div>
+
+                  <div v-if="!elementRows.length" class="debug-empty">
+                    <b>页面里没有节点</b>
+                    <span>换个目标或刷新试试</span>
+                  </div>
+                </div>
+
+                <div v-if="selectedNode" class="debug-el__detail">
+                  <div class="debug-el__detailhd">
+                    <span class="debug-el__detailtag">&lt;{{ nodeLabel(selectedNode) }}&gt;</span>
+                    <span class="debug-el__hint">
+                      nodeId {{ selectedNode.nodeId }}{{ selectedNode.childCount ? ` · ${selectedNode.childCount} 子节点` : "" }}
+                    </span>
+                    <span class="debug-tool__spacer" />
+                    <button class="debug-el__dclose" title="关闭详情" @click="selectedNode = null">×</button>
+                  </div>
+
+                  <div class="debug-el__dtabs">
+                    <button
+                      :class="['debug-el__dtab', { 'is-active': detailTab === 'style' }]"
+                      :disabled="selectedNode.nodeType !== 1"
+                      @click="showDetailTab('style')"
+                    >
+                      样式<span v-if="styleRules.length" class="debug-el__dtabn">{{ styleRules.length }}</span>
+                    </button>
+                    <button
+                      :class="['debug-el__dtab', { 'is-active': detailTab === 'computed' }]"
+                      :disabled="selectedNode.nodeType !== 1"
+                      @click="showDetailTab('computed')"
+                    >
+                      计算
+                    </button>
+                    <button
+                      :class="['debug-el__dtab', { 'is-active': detailTab === 'box' }]"
+                      :disabled="selectedNode.nodeType !== 1"
+                      @click="showDetailTab('box')"
+                    >
+                      布局
+                    </button>
+                    <button
+                      :class="['debug-el__dtab', { 'is-active': detailTab === 'html' }]"
+                      @click="showDetailTab('html')"
+                    >
+                      HTML
+                    </button>
+                    <button
+                      :class="['debug-el__dtab', { 'is-active': detailTab === 'svg' }]"
+                      @click="showDetailTab('svg')"
+                    >
+                      SVG<span v-if="svgItems.length" class="debug-el__dtabn">{{ svgItems.length }}</span>
+                    </button>
+                  </div>
+
+                  <!-- 样式 -->
+                  <div v-if="detailTab === 'style'" class="debug-el__styles">
+                    <div class="debug-el__stylesbar">
+                      <span class="debug-tool__hint">匹配规则按层叠顺序，内联在最上</span>
+                      <span class="debug-tool__spacer" />
+                      <button class="debug-btn debug-btn--sm" :disabled="styleLoading" @click="loadMatchedStyles">
+                        {{ styleLoading ? "读取中…" : "刷新" }}
+                      </button>
+                    </div>
+                    <div v-if="styleLoading" class="debug-el__styleempty">读取计算后的匹配规则…</div>
+                    <div v-else-if="!styleRules.length" class="debug-el__styleempty">
+                      {{ styleError || "没有命中任何样式规则" }}
+                    </div>
+                    <div v-for="(rule, i) in styleRules" :key="`${i}-${rule.selector}`" class="debug-el__rule">
+                      <div class="debug-el__selrow">
+                        <span class="debug-el__sel">{{ rule.selector }}</span>
+                        <span :class="['debug-el__origin', `debug-el__origin--${rule.origin}`]">
+                          {{ originLabel(rule.origin) }}
+                        </span>
+                      </div>
+                      <div class="debug-el__props">
+                        <div
+                          v-for="(p, j) in rule.properties"
+                          :key="j"
+                          :class="['debug-el__prop', { 'is-off': p.disabled }]"
+                        >
+                          <span class="debug-el__pname">{{ p.name }}</span
+                          ><span class="debug-el__colon">:</span>
+                          <span class="debug-el__pval">{{ p.value }}</span
+                          ><span v-if="p.important" class="debug-el__imp"> !important</span
+                          ><span class="debug-el__semi">;</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 计算样式 -->
+                  <div v-else-if="detailTab === 'computed'" class="debug-el__styles">
+                    <div class="debug-el__stylesbar">
+                      <input v-model="computedKeyword" class="debug-input debug-input--search" placeholder="过滤属性" />
+                      <span class="debug-tool__spacer" />
+                      <button class="debug-btn debug-btn--sm" :disabled="computedLoading" @click="loadComputedStyles">
+                        {{ computedLoading ? "读取中…" : "刷新" }}
+                      </button>
+                    </div>
+                    <div v-if="computedLoading" class="debug-el__styleempty">读取计算后的样式…</div>
+                    <div v-else-if="!computedStyles.length" class="debug-el__styleempty">
+                      {{ computedError || "没有计算样式" }}
+                    </div>
+                    <div v-for="p in visibleComputed" :key="p.name" class="debug-el__prop">
+                      <span class="debug-el__pname">{{ p.name }}</span
+                      ><span class="debug-el__colon">:</span>
+                      <span class="debug-el__pval">{{ p.value }}</span
+                      ><span class="debug-el__semi">;</span>
+                    </div>
+                  </div>
+
+                  <!-- 盒模型 -->
+                  <div v-else-if="detailTab === 'box'" class="debug-el__styles">
+                    <div class="debug-el__stylesbar">
+                      <span class="debug-tool__hint">content / padding / border / margin 四层</span>
+                      <span class="debug-tool__spacer" />
+                      <button class="debug-btn debug-btn--sm" @click="loadBoxModel">重新测量</button>
+                    </div>
+                    <div v-if="boxError" class="debug-el__styleempty">{{ boxError }}</div>
+                    <template v-else-if="boxMetric">
+                      <div class="debug-box">
+                        <div class="debug-box__layer is-margin">
+                          <span class="debug-box__k">margin</span>
+                          <div class="debug-box__layer is-border">
+                            <span class="debug-box__k">border</span>
+                            <div class="debug-box__layer is-padding">
+                              <span class="debug-box__k">padding</span>
+                              <div class="debug-box__layer is-content">
+                                <b>{{ Math.round(boxMetric.width) }} × {{ Math.round(boxMetric.height) }}</b>
+                                <span>content</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="debug-box__rows">
+                        <div class="debug-el__kv"><span>content</span><b>{{ quadSize(boxMetric.content).w }} × {{ quadSize(boxMetric.content).h }}</b></div>
+                        <div class="debug-el__kv"><span>padding</span><b>{{ quadSize(boxMetric.padding).w }} × {{ quadSize(boxMetric.padding).h }}</b></div>
+                        <div class="debug-el__kv"><span>border</span><b>{{ quadSize(boxMetric.border).w }} × {{ quadSize(boxMetric.border).h }}</b></div>
+                        <div class="debug-el__kv"><span>margin</span><b>{{ quadSize(boxMetric.margin).w }} × {{ quadSize(boxMetric.margin).h }}</b></div>
+                      </div>
+                    </template>
+                  </div>
+
+                  <!-- HTML -->
+                  <template v-else-if="detailTab === 'html'">
+                    <div class="debug-el__stylesbar">
+                      <span class="debug-tool__hint">outerHTML，可直接改写回页面</span>
+                      <span class="debug-tool__spacer" />
+                      <button class="debug-btn debug-btn--sm" @click="copyOuter">复制</button>
+                      <button
+                        class="debug-btn debug-btn--sm"
+                        :disabled="selectedNode.nodeType !== 1"
+                        @click="startEditOuter"
+                      >
+                        编辑
+                      </button>
+                    </div>
+                    <textarea
+                      v-if="elementEditing"
+                      v-model="elementEditText"
+                      class="debug-el__edit"
+                      spellcheck="false"
+                    ></textarea>
+                    <div v-if="elementEditing" class="debug-el__editfoot">
+                      <span class="debug-tool__hint">保存后直接写回页面，并重读一次 DOM</span>
+                      <span class="debug-tool__spacer" />
+                      <button class="debug-btn debug-btn--sm" @click="elementEditing = false">取消</button>
+                      <button class="debug-btn debug-btn--sm debug-btn--primary" @click="saveOuter">保存</button>
+                    </div>
+                    <pre v-else class="debug-el__outer">{{ selectedOuter || "（该节点没有 outerHTML）" }}</pre>
+                  </template>
+
+                  <!-- SVG（原 SVG 页签收在这里） -->
+                  <div v-else class="debug-el__styles">
+                    <div class="debug-el__stylesbar">
+                      <span class="debug-tool__hint">{{ svgItems.length }} 个 SVG · 内联 / &lt;use&gt; / 外链</span>
+                      <span class="debug-tool__spacer" />
+                      <label class="debug-tool__switch">
+                        <input v-model="svgSavedOnly" type="checkbox" /> 只看已保存
+                      </label>
+                      <button class="debug-btn debug-btn--sm" :disabled="svgLoading" @click="loadSvgs">
+                        {{ svgLoading ? "抽取中…" : "重新抽取" }}
+                      </button>
+                    </div>
+                    <div v-if="svgError" class="debug-el__styleempty">{{ svgError }}</div>
+                    <div v-else-if="!visibleSvgs.length" class="debug-el__styleempty">
+                      {{ svgSavedOnly ? "还没有保存的 SVG" : "没有 SVG" }}
+                    </div>
+                    <div v-else class="debug-svg__grid">
+                      <div v-for="item in visibleSvgs" :key="item.id" class="debug-svgcard">
+                        <div class="debug-svgcard__preview">
+                          <img :src="item.dataUrl" :alt="item.label" />
+                        </div>
+                        <div class="debug-svgcard__body">
+                          <div class="debug-svgcard__label" :title="item.label">{{ item.label }}</div>
+                          <div class="debug-svgcard__meta">
+                            <span :title="item.source">{{ item.source }}</span>
+                            <span>{{ fmtSize(item.bytes) }}</span>
+                            <span>{{ item.width || "?" }}×{{ item.height || "?" }} px</span>
+                          </div>
+                          <div class="debug-svgcard__acts">
+                            <button class="debug-btn debug-btn--sm" @click="downloadSvg(item)">下载</button>
+                            <button
+                              :class="['debug-btn', 'debug-btn--sm', { 'debug-btn--primary': item.saved }]"
+                              @click="toggleSaveSvg(item)"
+                            >
+                              {{ item.saved ? "已保存" : "保存" }}
+                            </button>
+                            <button class="debug-btn debug-btn--sm" @click="copyText(item.markup, '已复制 SVG 源码')">复制</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 整页 HTML 面板（原「源码」页签） -->
+            <div v-if="sourceOpen" class="debug-source">
+              <div class="debug-source__hd">
+                <b>页面 HTML</b>
+                <span class="debug-tool__hint">{{ domLoading ? "加载中…" : `${domRaw.length} 字符` }}</span>
+                <span class="debug-tool__spacer" />
+                <input
+                  v-model="navigateUrl"
+                  class="debug-input debug-input--search"
+                  placeholder="跳转 URL"
+                  @keyup.enter="doNavigate(navigateUrl)"
+                />
+                <button class="debug-btn debug-btn--sm" :disabled="!navigateUrl" @click="doNavigate(navigateUrl)">跳转</button>
+                <button class="debug-btn debug-btn--sm" :disabled="domLoading" @click="fetchContent">重新获取</button>
+                <button class="debug-btn debug-btn--sm" @click="copyText(domRaw, '已复制页面 HTML')">复制</button>
+                <button class="debug-btn debug-btn--sm" @click="sourceOpen = false">关闭</button>
+              </div>
+              <pre class="debug-source__code">{{ domLoading ? "加载中…" : domRaw || "（空）" }}</pre>
+            </div>
+
+            <!-- 底部 Console 抽屉：在元素 / 样式下方，与上方上下显示 -->
+            <div class="debug-drawer" :class="{ 'is-open': evaluateOpen }">
+              <div class="debug-drawer__hd" @click="evaluateOpen = !evaluateOpen">
+                <span class="debug-drawer__caret">{{ evaluateOpen ? "▾" : "▸" }}</span>
+                <b class="debug-drawer__title">Console</b>
+                <span class="debug-drawer__summary">{{ evaluateSummary }}</span>
+                <span class="debug-tool__spacer" />
+                <button class="debug-btn debug-btn--sm" @click.stop="clearEvaluate">清空</button>
+              </div>
+              <div v-if="evaluateOpen" class="debug-drawer__body">
+                <div class="debug-drawer__inputrow">
+                  <span class="debug-drawer__prompt">›</span>
+                  <input
+                    v-model="evaluateExpression"
+                    class="debug-drawer__input"
+                    placeholder="JS 表达式，↑ / ↓ 翻历史（如 document.title）"
+                    spellcheck="false"
+                    @keyup.enter="doEvaluate"
+                    @keydown.up.prevent="historyPrev"
+                    @keydown.down.prevent="historyNext"
+                  />
+                  <button class="debug-btn debug-btn--sm debug-btn--primary" :disabled="evaluateLoading" @click="doEvaluate">
+                    {{ evaluateLoading ? "执行中…" : "执行" }}
+                  </button>
+                </div>
+                <pre class="debug-drawer__out">{{ evaluateResult || "（执行结果会显示在这里）" }}</pre>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- 控制台（change tag 用专门的配色） -->
-        <div v-if="pageTab === 'console'" class="debug-scroll">
+        <!-- ==================== 控制台 ==================== -->
+        <div v-else-if="pageTab === 'console'" class="debug-scroll">
           <div
             v-for="m in visibleConsole"
             :key="m.key"
@@ -3397,7 +4189,7 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
-        <!-- 网络（F12 风格列表 + 详情） -->
+        <!-- ==================== 网络 ==================== -->
         <div v-else-if="pageTab === 'network'" class="debug-netwrap">
           <div class="debug-scroll debug-scroll--net">
             <table v-if="networkRows.length" class="debug-net">
@@ -3501,232 +4293,66 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
-        <!-- SVG 卡片 -->
-        <div v-else-if="pageTab === 'svg'" class="debug-scroll debug-svg">
-          <div v-if="svgLoading" class="debug-empty"><b>正在抽取 SVG…</b></div>
-          <div v-else-if="!visibleSvgs.length" class="debug-empty">
-            <b>{{ svgError || (svgSavedOnly ? "还没有保存的 SVG" : "没有 SVG") }}</b>
-            <span v-if="!svgError">点上方「重新抽取」扫描当前页面</span>
+        <!-- ==================== 应用（Cookie / Web Storage） ==================== -->
+        <div v-else-if="pageTab === 'app'" class="debug-scroll debug-app">
+          <div v-if="storageError" class="debug-app__err">{{ storageError }}</div>
+          <div v-if="!selectedTarget" class="debug-empty">
+            <b>还没有选择目标</b>
+            <span>选中一个页面后点「读取存储」</span>
           </div>
-          <div v-else class="debug-svg__grid">
-            <div v-for="item in visibleSvgs" :key="item.id" class="debug-svgcard">
-              <div class="debug-svgcard__preview">
-                <img :src="item.dataUrl" :alt="item.label" />
-              </div>
-              <div class="debug-svgcard__body">
-                <div class="debug-svgcard__label" :title="item.label">{{ item.label }}</div>
-                <div class="debug-svgcard__meta">
-                  <span :title="item.source">{{ item.source }}</span>
-                  <span>{{ fmtSize(item.bytes) }}</span>
-                  <span>{{ item.width || "?" }}×{{ item.height || "?" }} px</span>
-                </div>
-                <div class="debug-svgcard__acts">
-                  <button class="debug-btn debug-btn--sm" @click="downloadSvg(item)">下载</button>
-                  <button
-                    :class="['debug-btn', 'debug-btn--sm', { 'debug-btn--primary': item.saved }]"
-                    @click="toggleSaveSvg(item)"
-                  >
-                    {{ item.saved ? "已保存" : "保存" }}
-                  </button>
-                  <button class="debug-btn debug-btn--sm" @click="copyText(item.markup, '已复制 SVG 源码')">复制源码</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        <!-- 元素（F12 Elements） -->
-        <div v-else-if="pageTab === 'elements'" class="debug-elements">
-          <div v-if="!elementTree && !elementLoading" class="debug-empty">
-            <b>还没有读取 DOM</b>
-            <span>点上方「刷新 DOM」把当前页面的节点树拉下来</span>
-          </div>
-          <div v-else :class="['debug-el', `debug-el--${stageLayout}`]">
-            <!-- 元素页签内部的预览舞台：跟 DOM 树上下 / 左右联动，点画面反查节点 -->
-            <div v-if="stageOpen" class="debug-el__stage">
-              <div ref="stageViewRef" class="debug-stage__view" @click="pickFromStage">
-                <img
-                  v-if="stageShot"
-                  ref="stageImgRef"
-                  :src="stageShot"
-                  alt="原始网站画面"
-                  draggable="false"
-                  @load="onStageImgLoad"
-                />
-                <div v-else class="debug-stage__ph">
-                  <b>{{ stageLoading ? "正在截屏…" : "还没有画面" }}</b>
-                  <span>点上方「截屏」或打开「实时」自动刷新</span>
-                </div>
-                <div v-if="stageHighlight && stageShot && stageHlStyle" class="debug-stage__hl" :style="stageHlStyle">
-                  <span class="debug-stage__hltag">{{ stageHighlight.tag }}</span>
-                </div>
-                <span v-if="stageLoading && stageShot" class="debug-stage__loading">刷新中…</span>
-              </div>
-              <div class="debug-stage__bar">
-                <span class="debug-stage__hint">{{ stageHint }}</span>
-                <span class="debug-tool__spacer" />
-                <label class="debug-stage__switch">
-                  <input v-model="stageLive" type="checkbox" /> 实时刷新
-                </label>
-              </div>
-            </div>
+          <table v-else-if="storageTab === 'cookies' && visibleCookies.length" class="debug-app__table">
+            <thead>
+              <tr><th>名称</th><th>值</th><th>域</th><th>路径</th><th>过期</th><th>属性</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="c in visibleCookies" :key="`${c.name}@${c.domain}${c.path}`">
+                <td class="debug-app__k">{{ c.name }}</td>
+                <td class="debug-app__v" :title="c.value">{{ c.value }}</td>
+                <td class="debug-app__mono">{{ c.domain || "—" }}</td>
+                <td class="debug-app__mono">{{ c.path || "/" }}</td>
+                <td class="debug-app__mono">{{ cookieExpiry(c.expires) }}</td>
+                <td class="debug-app__mono">
+                  {{ c.httpOnly ? "HttpOnly " : "" }}{{ c.secure ? "Secure" : "" }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
 
-            <div class="debug-el__body">
-              <div class="debug-el__tree" @mouseleave="clearHighlight">
-                <div
-                  v-for="row in elementRows"
-                  :key="row.node.nodeId"
-                  :class="['debug-el__row', { 'is-active': selectedNode?.nodeId === row.node.nodeId }]"
-                  :style="{ paddingLeft: `${8 + row.depth * 14}px` }"
-                  @click="selectNode(row.node)"
-                  @contextmenu.prevent="openContextMenu($event, row.node)"
-                >
-                  <span
-                    :class="['debug-el__caret', { 'is-open': expandedNodes.has(row.node.nodeId) }]"
-                    @click.stop="toggleNode(row.node)"
-                  >
-                    {{ row.node.childCount ? (expandedNodes.has(row.node.nodeId) ? "▾" : "▸") : "" }}
-                  </span>
+          <table v-else-if="storageTab === 'local' && visibleLocal.length" class="debug-app__table">
+            <thead><tr><th>Key</th><th>Value</th></tr></thead>
+            <tbody>
+              <tr v-for="i in visibleLocal" :key="i.key">
+                <td class="debug-app__k">{{ i.key }}</td>
+                <td class="debug-app__v" :title="i.value">{{ i.value }}</td>
+              </tr>
+            </tbody>
+          </table>
 
-                  <template v-if="row.node.nodeType === 1">
-                    <span class="debug-el__tag">&lt;{{ nodeLabel(row.node) }}</span>
-                    <template v-for="(val, key) in row.node.attributes" :key="key">
-                      <span class="debug-el__attr"> {{ key }}</span
-                      ><span class="debug-el__eq">=</span
-                      ><span class="debug-el__val">"{{ attrPreview(val) }}"</span>
-                    </template>
-                    <span class="debug-el__tag">&gt;</span>
-                  </template>
-                  <span v-else-if="row.node.nodeType === 3" class="debug-el__text">
-                    {{ textPreview(`"${row.node.nodeValue}"`) }}
-                  </span>
-                  <span v-else-if="row.node.nodeType === 10" class="debug-el__comment">
-                    &lt;!DOCTYPE {{ row.node.nodeValue || nodeLabel(row.node) }}&gt;
-                  </span>
-                  <span v-else-if="row.node.nodeType === 8" class="debug-el__comment">
-                    {{ textPreview(`<!--${row.node.nodeValue}-->`) }}
-                  </span>
-                  <span v-else class="debug-el__tag">{{ nodeLabel(row.node) }}</span>
-                </div>
+          <table v-else-if="storageTab === 'session' && visibleSession.length" class="debug-app__table">
+            <thead><tr><th>Key</th><th>Value</th></tr></thead>
+            <tbody>
+              <tr v-for="i in visibleSession" :key="i.key">
+                <td class="debug-app__k">{{ i.key }}</td>
+                <td class="debug-app__v" :title="i.value">{{ i.value }}</td>
+              </tr>
+            </tbody>
+          </table>
 
-                <div v-if="!elementRows.length" class="debug-empty">
-                  <b>页面里没有节点</b>
-                  <span>换个目标或刷新试试</span>
-                </div>
-              </div>
-
-            <div v-if="selectedNode" class="debug-el__detail">
-              <div class="debug-el__detailhd">
-                <span class="debug-el__detailtag">&lt;{{ nodeLabel(selectedNode) }}&gt;</span>
-                <span class="debug-el__hint">
-                  nodeId {{ selectedNode.nodeId }}{{ selectedNode.childCount ? ` · ${selectedNode.childCount} 个子节点` : "" }}
-                </span>
-                <span class="debug-el__dtabs">
-                  <button
-                    :class="['debug-el__dtab', { 'is-active': detailTab === 'html' }]"
-                    @click="showDetailTab('html')"
-                  >
-                    HTML
-                  </button>
-                  <button
-                    :class="['debug-el__dtab', { 'is-active': detailTab === 'style' }]"
-                    :disabled="selectedNode.nodeType !== 1"
-                    @click="showDetailTab('style')"
-                  >
-                    样式<span v-if="styleRules.length" class="debug-el__dtabn">{{ styleRules.length }}</span>
-                  </button>
-                </span>
-                <span class="debug-tool__spacer" />
-                <template v-if="detailTab === 'html'">
-                  <button class="debug-btn debug-btn--sm" @click="copyOuter">复制</button>
-                  <button
-                    class="debug-btn debug-btn--sm"
-                    :disabled="selectedNode.nodeType !== 1"
-                    @click="startEditOuter"
-                  >
-                    编辑
-                  </button>
-                </template>
-                <button
-                  v-else
-                  class="debug-btn debug-btn--sm"
-                  :disabled="styleLoading"
-                  @click="loadMatchedStyles"
-                >
-                  {{ styleLoading ? "读取中…" : "刷新样式" }}
-                </button>
-              </div>
-
-              <template v-if="detailTab === 'html'">
-                <textarea
-                  v-if="elementEditing"
-                  v-model="elementEditText"
-                  class="debug-el__edit"
-                  spellcheck="false"
-                ></textarea>
-                <div v-if="elementEditing" class="debug-el__editfoot">
-                  <span class="debug-tool__hint">保存后直接写回页面，并重读一次 DOM</span>
-                  <span class="debug-tool__spacer" />
-                  <button class="debug-btn debug-btn--sm" @click="elementEditing = false">取消</button>
-                  <button class="debug-btn debug-btn--sm debug-btn--primary" @click="saveOuter">保存</button>
-                </div>
-                <pre v-else class="debug-el__outer">{{ selectedOuter || "（该节点没有 outerHTML）" }}</pre>
-              </template>
-
-              <div v-else class="debug-el__styles">
-                <div v-if="styleLoading" class="debug-el__styleempty">读取计算后的匹配规则…</div>
-                <div v-else-if="!styleRules.length" class="debug-el__styleempty">
-                  {{ styleError || "没有命中任何样式规则" }}
-                </div>
-                <div v-for="(rule, i) in styleRules" :key="`${i}-${rule.selector}`" class="debug-el__rule">
-                  <div class="debug-el__selrow">
-                    <span class="debug-el__sel">{{ rule.selector }}</span>
-                    <span :class="['debug-el__origin', `debug-el__origin--${rule.origin}`]">
-                      {{ originLabel(rule.origin) }}
-                    </span>
-                  </div>
-                  <div class="debug-el__props">
-                    <div
-                      v-for="(p, j) in rule.properties"
-                      :key="j"
-                      :class="['debug-el__prop', { 'is-off': p.disabled }]"
-                    >
-                      <span class="debug-el__pname">{{ p.name }}</span
-                      ><span class="debug-el__colon">:</span>
-                      <span class="debug-el__pval">{{ p.value }}</span
-                      ><span v-if="p.important" class="debug-el__imp"> !important</span
-                      ><span class="debug-el__semi">;</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            </div>
+          <div v-else class="debug-empty">
+            <b>{{ storageLoading ? "正在读取…" : "这里是空的" }}</b>
+            <span>点上方「读取存储」从页面拉一次 Cookie / localStorage / sessionStorage</span>
           </div>
         </div>
 
-        <!-- 源码 -->
-        <div v-else-if="pageTab === 'dom' && !domRaw && !domLoading" class="debug-empty">
-          <b>还没有拉取源码</b>
-          <span>选中目标后点右上「获取内容」</span>
-        </div>
-        <pre v-else-if="pageTab === 'dom'" class="debug-code">{{ domLoading ? "加载中…" : domRaw }}</pre>
-
-        <!-- 截屏 -->
-        <div v-else-if="pageTab === 'screenshot'" class="debug-shot">
+        <!-- ==================== 截屏 ==================== -->
+        <div v-else class="debug-shot">
           <img v-if="screenshotUrl" :src="screenshotUrl" alt="页面截图" />
           <div v-else class="debug-empty">
             <b>暂无截屏</b>
             <span>选中目标后点「截屏」或「全长截屏」</span>
           </div>
         </div>
-
-        <!-- 求值 -->
-        <div v-else-if="!evaluateResult && !evaluateLoading" class="debug-empty">
-          <b>还没有执行结果</b>
-          <span>在右上输入 JS 表达式后回车执行</span>
-        </div>
-        <pre v-else class="debug-code debug-code--out">{{ evaluateResult }}</pre>
       </section>
     </div>
 

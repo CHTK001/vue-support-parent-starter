@@ -77,6 +77,7 @@
       "@repo/ui/re-empty-state": ["packages/ui/src/components/ReEmptyState/index.d.ts", "packages/ui/src/components/ReEmptyState/index.ts"],
       "@repo/ui/re-file-picker": ["packages/ui/src/components/ReFilePicker/index.ts"],
       "@repo/ui/re-filter": ["packages/ui/src/components/ReFilter/index.ts"],
+      "@repo/ui/re-float-window": ["packages/ui/src/components/ReFloatWindow/index.ts"],
       "@repo/ui/re-flow-graph": ["packages/ui/src/components/ReFlowGraph/index.ts"],
       "@repo/ui/re-form": ["packages/ui/src/components/ReForm/index.ts"],
       "@repo/ui/re-icon": ["packages/ui/src/components/ReIcon/index.ts"],

@@ -876,6 +876,7 @@ const toolbarSwitchList = computed(() => {
   { key: "logo", label: t("themeConfig.toolbar.logo.label"), sub: t("themeConfig.toolbar.logo.sub"), tip: t("themeConfig.toolbar.logo.tip"), description: t("themeConfig.toolbar.logo.description") },
   { key: "message", label: t("themeConfig.toolbar.message.label"), sub: t("themeConfig.toolbar.message.sub"), tip: t("themeConfig.toolbar.message.tip"), description: t("themeConfig.toolbar.message.description") },
   { key: "quickNote", label: t("themeConfig.toolbar.quickNote.label"), sub: t("themeConfig.toolbar.quickNote.sub"), tip: t("themeConfig.toolbar.quickNote.tip"), description: t("themeConfig.toolbar.quickNote.description") },
+  { key: "quickNoteConfirm", label: t("themeConfig.toolbar.quickNoteConfirm.label"), sub: t("themeConfig.toolbar.quickNoteConfirm.sub"), tip: t("themeConfig.toolbar.quickNoteConfirm.tip"), description: t("themeConfig.toolbar.quickNoteConfirm.description") },
   // 天气不放在工具栏开关里：独立的「天气配置」分区已提供开关（避免出现两个"天气"）
   { key: "typhoon", label: t("themeConfig.toolbar.typhoon.label"), sub: t("themeConfig.toolbar.typhoon.sub"), tip: t("themeConfig.toolbar.typhoon.tip"), description: t("themeConfig.toolbar.typhoon.description") },
   { key: "exchangeRate", label: t("themeConfig.toolbar.exchangeRate.label"), sub: t("themeConfig.toolbar.exchangeRate.sub"), tip: t("themeConfig.toolbar.exchangeRate.tip"), description: t("themeConfig.toolbar.exchangeRate.description") },

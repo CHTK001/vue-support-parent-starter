@@ -427,13 +427,13 @@
   }
 }
 
-/* 画布：白底，不加点阵 —— 和卡片同一层，靠投影浮起来 */
+/* 画布：白底，不加点阵 —— 和卡片同一层，靠细边与轻投影浮起来 */
 .apm-canvas {
   display: flex;
   flex-direction: column;
   min-width: 0;
   background: var(--apm-surface);
-  border: 1px solid transparent;
+  border: 1px solid var(--apm-line);
   border-radius: var(--apm-radius);
   box-shadow: var(--apm-shadow);
   overflow: hidden;
@@ -444,7 +444,7 @@
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  padding: 14px 18px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--apm-line);
 }
 
@@ -704,7 +704,7 @@
 }
 
 .apm-page .el-card {
-  border: 1px solid transparent;
+  border: 1px solid var(--apm-line);
   border-radius: var(--apm-radius);
   background: var(--apm-surface);
   box-shadow: var(--apm-shadow);
@@ -791,7 +791,7 @@
   --el-table-text-color: var(--apm-dim);
   font-size: 13px;
   /* 列表页里的表格自己就是一张白卡片 */
-  border: 1px solid transparent;
+  border: 1px solid var(--apm-line);
   border-radius: var(--apm-radius);
   overflow: hidden;
 }
@@ -808,7 +808,7 @@
    内距归零，表头直接贴到卡片边上 */
 .apm-page .re-table {
   padding: 0;
-  border: 1px solid transparent;
+  border: 1px solid var(--apm-line);
   border-radius: var(--apm-radius);
   background: var(--apm-surface);
   box-shadow: var(--apm-shadow);
@@ -930,7 +930,7 @@
   justify-content: center;
   padding: 56px 16px;
   background: var(--apm-surface);
-  border: 1px solid transparent;
+  border: 1px solid var(--apm-line);
   border-radius: var(--apm-radius);
   box-shadow: var(--apm-shadow);
 }
@@ -946,7 +946,7 @@
   padding: 40px 16px;
   text-align: center;
   background: var(--apm-surface);
-  border: 1px solid transparent;
+  border: 1px solid var(--apm-line);
   border-radius: var(--apm-radius);
   box-shadow: var(--apm-shadow);
 }

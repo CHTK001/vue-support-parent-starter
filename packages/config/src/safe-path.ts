@@ -103,14 +103,20 @@ export const REMOTE_INJECTABLE_TOP_KEYS: ReadonlySet<string> = new Set([
  *     「后端 Watermark* 设置变更后由热重载联动」），而 `Watermark*` 是旧式
  *     设置名，不在 {@code login} 子树上，只能由 loader 落盘到
  *     `security.watermark`。</li>
+ *   <li>{@code security.dynamicFont} —— 动态字体加密（enable）；后台开关
+ *     {@code sysSettingCode=security.dynamicFont.enable} 下发后，
+ *     {@code packages/ui/src/components/ReText/ReText.vue} 在未显式传
+ *     {@code obfuscate} 时回退读它，决定是否把文本渲染成「PUA 乱码 + 字符位图」
+ *     以对抗 OCR / 爬虫。与水印同属「管理员在后台开关的展示/安全策略」。</li>
  * </ul>
  *
- * <p>只放行这两棵子树：{@code security.crt} / {@code security.csrf} /
- * {@code security.password} 等其余键照旧被白名单拦下。</p>
+ * <p>只放行这三棵子树：{@code security.crt} / {@code security.csrf} /
+ * {@code security.password} / {@code security.ocrObfuscation} 等其余键照旧被白名单拦下。</p>
  */
 export const REMOTE_INJECTABLE_PATH_PREFIXES: ReadonlySet<string> = new Set([
   "security.baiduJs",
   "security.watermark",
+  "security.dynamicFont",
 ]);
 
 
