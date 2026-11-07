@@ -923,7 +923,8 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
       <template #description>
         <p>尚未注册任何渠道</p>
         <p class="chm-empty__hint">
-          渠道清单来自后端 SPI 注册表（AccountChannelAuthManager / ChatChannelProvider / ImageChannelProvider）。
+          渠道清单来自后端注册表：AI 账号渠道（AccountChannelAuthManager）与
+          免登录对话 / 文生图渠道（ChatChannelProvider / ImageChannelProvider）。
         </p>
       </template>
     </el-empty>

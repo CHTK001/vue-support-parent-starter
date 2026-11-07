@@ -17,7 +17,7 @@ import { computed, ref, watch } from "vue";
 import ReDialog from "@repo/ui/re-dialog";
 
 /** 片段语言：与后端 sys_job_glue_type 一一对应（保留旧名以兼容既有调用） */
-export type GlueLang = "groovy" | "java";
+export type GlueLang = "groovy" | "java" | "python";
 
 const props = withDefaults(
   defineProps<{

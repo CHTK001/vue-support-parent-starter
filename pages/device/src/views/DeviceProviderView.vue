@@ -402,10 +402,15 @@
               :type="field.secret ? 'password' : 'text'"
               :show-password="field.secret"
               :maxlength="256"
-              :placeholder="field.placeholder"
+              :placeholder="fieldPlaceholder(field)"
               @keyup.enter="submit"
               class="dpv-w"
             />
+            <!-- 密钥类字段编辑时输入框为空（留空=保持原值），必须把"当前已配置"显式说出来，
+                 否则用户会以为保存后密钥丢了（2026-11-07 反馈） -->
+            <p v-if="field.secret && secretKeepHint(field)" class="dpv-form__keep">
+              已配置 {{ secretKeepHint(field) }}；留空保存即保持原值，填入新值则覆盖。
+            </p>
           </el-form-item>
         </div>
         <p class="dpv-form__hint">凭证由后端加密存储，接口不回传明文；编辑时留空即保持原值。字段由厂商描述符（credentialFields）驱动，新增厂商无需改前端。</p>
@@ -1035,6 +1040,28 @@ function fieldFormValue(field: CredentialFieldDescriptor): string {
   return String(form[fieldFormKey(field)] ?? '')
 }
 
+/** 字段占位文案：密钥类在编辑态明确写出「留空不改」 */
+function fieldPlaceholder(field: CredentialFieldDescriptor): string {
+  if (field.secret && editingCredentialId.value) return '留空则保持原密钥不变'
+  return field.placeholder || ''
+}
+
+/**
+ * 编辑态密钥字段「已配置」提示的取值。
+ *
+ * <p>后端只回传掩码（{@code deviceCredentialAppSecretMasked}），编辑时输入框为空，
+ * 必须把掩码显示出来，用户才能确认密钥还在（2026-11-07：AppSecret 看起来没保存）。</p>
+ *
+ * @param field 描述符字段
+ * @returns 有值则返回掩码或「已配置」；无值返回空串（不显示提示）
+ */
+function secretKeepHint(field: CredentialFieldDescriptor): string {
+  if (!editingCredentialId.value || !field.secret) return ''
+  const masked = String((form as Record<string, unknown>).deviceCredentialAppSecretMasked ?? '')
+  if (masked) return masked
+  return form.deviceCredentialAppSecretConfigured ? '已配置' : ''
+}
+
 /** 字段是否必填（编辑时密钥留空即不修改） */
 function fieldFormRequired(field: CredentialFieldDescriptor): boolean {
   if (!field.required) return false
@@ -1266,6 +1293,9 @@ function openEdit(row: ProviderCredential) {
   form.deviceCredentialName = row.deviceCredentialName
   form.deviceCredentialAppKey = row.deviceCredentialAppKey || ''
   form.deviceCredentialAppSecret = ''
+  // 只把掩码带进表单用于「已配置」提示，真实密钥永远不落到前端
+  form.deviceCredentialAppSecretMasked = row.deviceCredentialAppSecretMasked || ''
+  form.deviceCredentialAppSecretConfigured = !!row.deviceCredentialAppSecretConfigured
   form.deviceCredentialBaseUrl = row.deviceCredentialBaseUrl || ''
   form.deviceCredentialProductCode = row.deviceCredentialProductCode || ''
   form.deviceCredentialProjectId = row.deviceCredentialProjectId || ''
