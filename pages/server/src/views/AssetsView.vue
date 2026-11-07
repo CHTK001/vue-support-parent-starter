@@ -2352,11 +2352,14 @@ function openStandalone(): void {
 }
 
 /**
- * 在新标签页打开某台主机的虚拟桌面。
+ * 打开某台主机的虚拟桌面（<b>应用内页签</b>，不跳浏览器新标签页）。
  *
- * <p>桌面是<b>按主机</b>的（{@code #/desktop/:hostId}）：一台主机一个桌面壳，
- * 进去落地就开这台主机最像「它的桌面」的应用（VNC 远程桌面 / SSH 终端 / 监控）。
- * 没有主机时不打开，避免落到一个没有归属的空壳上。</p>
+ * <p>桌面是<b>按主机</b>的（{@code /desktop/:hostId}）：一台主机一个桌面壳，
+ * 进去落地就开这台主机的 SSH 终端；主机资产页仍在旁边，切回去点页签即可。
+ * 只有桌面里某个窗口的「在新标签页打开」才走浏览器新标签页
+ * （{@code /desktop-window/:hostId?only=<app>}，只渲染那一个窗口）。</p>
+ *
+ * <p>没有主机时不打开，避免落到一个没有归属的空壳上。</p>
  *
  * @param hostId 主机标识；缺省用左栏当前选中的主机
  */
@@ -2366,11 +2369,7 @@ function openDesktop(hostId?: number | null): void {
     message.warning("请先选择一台主机");
     return;
   }
-  // 开成一个普通标签页（不传尺寸参数），用户能用浏览器的标签管理它；
-  // 传 windowFeatures 会变成独立弹窗，反而没有标签可切。
-  const url = `${location.origin}${location.pathname}#/desktop/${id}`;
-  const win = window.open(url, "_blank");
-  if (!win) message.warning("浏览器拦截了弹出窗口，请允许后重试");
+  void router.push({ name: "VirtualDesktop", params: { hostId: String(id) } });
 }
 
 /**
@@ -3025,6 +3024,10 @@ function onGlobalKeydown(e: KeyboardEvent): void {
         <div class="host-ctx-item" @click="ctxCommand('tab-remote')">
           <ReIcon name="Position" /><span>远程控制</span>
         </div>
+        <!-- 虚拟桌面：这台主机的桌面壳（SSH 终端 / 文件 / 监控 / 命令），应用内页签打开 -->
+        <div class="host-ctx-item" @click="ctxCommand('desktop')">
+          <ReIcon name="FullScreen" /><span>虚拟桌面</span>
+        </div>
         <div class="host-ctx-item" @click="ctxCommand('tab-files')">
           <ReIcon name="FolderOpened" /><span>文件管理</span>
         </div>
@@ -3173,10 +3176,6 @@ function onGlobalKeydown(e: KeyboardEvent): void {
             </div>
             <div class="host-ctx-sep" />
             <div class="host-ctx-label">改配与远控</div>
-            <!-- 虚拟桌面：这台主机自己的桌面壳（VNC 桌面 / SSH 终端 / 监控） -->
-            <div class="host-ctx-item" @click="ctxCommand('desktop')">
-              <ReIcon name="FullScreen" /><span>虚拟桌面</span>
-            </div>
             <div class="host-ctx-item" @click="ctxCommand('edit')">
               <ReIcon name="EditPen" /><span>编辑主机</span>
             </div>

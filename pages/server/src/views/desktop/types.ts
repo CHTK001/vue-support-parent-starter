@@ -10,7 +10,7 @@
  */
 
 /** 桌面应用标识 */
-export type DesktopAppKey = "terminal" | "files" | "desktop" | "monitor" | "console";
+export type DesktopAppKey = "terminal" | "files" | "monitor" | "console";
 
 /** 桌面窗口 */
 export interface DesktopWindow {
@@ -68,10 +68,4 @@ export interface DesktopHost {
   serverHostCollectMode?: string | null;
   /** 台账是否开启 SSH（0 = 明确关闭；其余按可用处理） */
   serverHostSshEnabled?: number | null;
-  /** 远控协议：SSH / VNC / RDP */
-  serverHostRemoteProtocol?: string | null;
-  /** 台账远控端口（该协议自己的端口，不要拿它当 SSH 端口） */
-  serverHostRemotePort?: number | null;
-  /** 台账远控入口是否开启 */
-  serverHostRemoteEnabled?: number | null;
 }
