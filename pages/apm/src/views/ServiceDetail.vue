@@ -113,6 +113,8 @@
         <template #header>
           <div class="apm-card-head">
             <span class="apm-card-h">端点</span>
+            <span class="apm-card-note">点端点看它的链路</span>
+            <span class="apm-bar__spacer" />
             <ReInput
               v-model="endpointKeyword"
               placeholder="按端点名过滤"
@@ -132,6 +134,8 @@
           empty-text="没有符合条件的端点"
           :layout-table="{ maxHeight: 420 }"
           table-id="apm-service-endpoints"
+          class="apm-row-click"
+          @row-click="onEndpointRowClick"
         >
           <template #empty="{ description }">
             <span class="apm-table-empty">{{ description }}</span>
@@ -320,6 +324,28 @@ function goBack() {
 /** 跳到剖析页并带上当前服务：剖析必须先选服务，用户不该再手点一遍 */
 function goProfiles() {
   router.push({ path: `${ROUTE_PREFIX}/profiles`, query: { service: serviceName.value } });
+}
+
+/**
+ * 从端点行跳到「链路」页签，并带上服务 / 端点 / 时间窗。
+ *
+ * <p>这条动线是排障里最短的一条：服务详情里看到某个端点 P99 高，
+ * 下一件事一定是看这个端点最近几条调用链。走 URL 而不是一次性上下文，
+ * 因为这里跨了路由（详情是独立地址），落地页会重建，只有 URL 能带过去。</p>
+ *
+ * @param row 端点行
+ */
+function onEndpointRowClick(row: Record<string, unknown>): void {
+  const endpoint = String(row.name ?? "");
+  router.push({
+    path: ROUTE_PREFIX,
+    query: {
+      tab: "traces",
+      service: serviceName.value,
+      ...(endpoint ? { endpoint } : {}),
+      minutes: String(minutes.value),
+    },
+  });
 }
 
 // 支持从别处带着新 service 跳进来（同一路由复用组件时 query 变化）

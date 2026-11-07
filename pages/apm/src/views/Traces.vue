@@ -83,7 +83,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { message } from "@repo/core";
 import { ArrowLeft, ArrowRight, Search } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
@@ -101,8 +101,15 @@ import { ROUTE_PREFIX } from "../config";
 import { consumeApmTabContext } from "../tabs";
 import { WINDOW_OPTIONS, fmtMs, fmtTime, latencyClass } from "../utils/format";
 
+const route = useRoute();
 const router = useRouter();
 const { present, ensure } = useApmStatus();
+
+/** URL 上的单值参数（数组取第一个；外部输入不做信任） */
+function firstParam(value: unknown): string {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return raw == null ? "" : String(raw).trim();
+}
 
 const pageSize = 20;
 const items = ref<ApmTrace[]>([]);
@@ -156,12 +163,24 @@ async function loadServices() {
 /** 换服务后端点下拉跟着换 */
 async function onServiceChange() {
   query.endpoint = "";
-  endpoints.value = [];
-  if (!query.service) {
+  await loadEndpointsOf(query.service);
+}
+
+/**
+ * 取某个服务的端点列表。
+ *
+ * <p>从「服务详情 → 慢端点」跳过来时要先有这份列表，
+ * 否则端点下拉显示一个列表里不存在的值，看起来像没生效。</p>
+ *
+ * @param service 服务名，空则清空列表
+ */
+async function loadEndpointsOf(service: string): Promise<void> {
+  if (!service) {
+    endpoints.value = [];
     return;
   }
   try {
-    endpoints.value = ((await listEndpoints(query.service, undefined, {})) || []).map((e) => e.name);
+    endpoints.value = ((await listEndpoints(service, undefined, {})) || []).map((e) => e.name);
   } catch {
     endpoints.value = [];
   }
@@ -219,14 +238,32 @@ function onRowClick(row: Record<string, unknown>) {
   router.push({ path: `${ROUTE_PREFIX}/traces/detail`, query: { traceId } });
 }
 
-onMounted(() => {
-  // 从其它页跳过来时带着服务 / 时间窗：直接按它筛选，省掉「跳过来再选一次」
+onMounted(async () => {
+  // 两条来路都要接：
+  //   1) URL 带筛选（从服务详情点某个端点过来：?tab=traces&service=X&endpoint=Y&minutes=30）
+  //      —— 这种是跨路由跳转，会重建整页，只有 URL 能活下来；
+  //   2) 页签内跳转带的一次性上下文（总览点慢服务）。
+  // URL 优先：它是用户真正点出来的那一条，上下文只是补充。
   const context = consumeApmTabContext();
-  if (context?.service) {
-    query.service = context.service;
+  const urlService = firstParam(route.query.service);
+  const urlEndpoint = firstParam(route.query.endpoint);
+  const urlMinutes = Number(firstParam(route.query.minutes));
+  const service = urlService || context?.service || "";
+  if (service) {
+    query.service = service;
   }
-  if (context?.minutes) {
+  if (urlMinutes > 0) {
+    minutes.value = urlMinutes;
+  } else if (context?.minutes) {
     minutes.value = context.minutes;
+  }
+  // 端点预填要先有该服务的端点列表，否则下拉里是个不存在的值
+  if (service) {
+    await loadEndpointsOf(service);
+  }
+  const endpoint = urlEndpoint || context?.endpoint || "";
+  if (endpoint) {
+    query.endpoint = endpoint;
   }
   loadServices();
   load();

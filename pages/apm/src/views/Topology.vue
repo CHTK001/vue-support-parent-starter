@@ -32,7 +32,7 @@
         <template #header>
           <div class="apm-card-head">
             <span class="apm-card-h">调用关系图</span>
-            <span class="apm-card-note">节点大小 = 出入调用量 · 边宽 = 调用量</span>
+            <span class="apm-card-note">节点大小 = 出入调用量 · 边宽 = 调用量 · 点节点看服务详情</span>
             <span class="apm-bar__spacer" />
             <span class="apm-legend">
               <span><i class="is-node" />已部署</span>
@@ -47,6 +47,7 @@
             :calls="topology?.calls ?? []"
             height="460px"
             empty-text="该时间窗口内没有拓扑数据（可能没有跨服务调用）"
+            @pick="openService"
           />
         </div>
       </ReCard>
@@ -98,6 +99,8 @@
             :layout-table="{ maxHeight: 380 }"
             empty-text="没有节点"
             table-id="apm-topology-nodes"
+            class="apm-row-click"
+            @row-click="onNodeRowClick"
           >
             <template #empty="{ description }">
               <span class="apm-table-empty">{{ description }}</span>
@@ -123,6 +126,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 import ReButton from "@repo/ui/re-button";
 import ReCard from "@repo/ui/re-card";
 import ReSelect from "@repo/ui/re-select";
@@ -135,8 +139,10 @@ import ApmGraph from "../components/ApmGraph.vue";
 import { getTopology, listServices } from "../api/apmApi";
 import type { ApmTopology, ApmTopologyNode } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
+import { ROUTE_PREFIX } from "../config";
 import { WINDOW_OPTIONS, errorRateClass, errorRateText, fmtMs, fmtNum, latencyClass } from "../utils/format";
 
+const router = useRouter();
 const { present, ensure } = useApmStatus();
 
 const topology = ref<ApmTopology | null>(null);
@@ -159,6 +165,32 @@ const nameMap = computed(() => {
   }
   return map;
 });
+
+/**
+ * 打开某个服务的详情。
+ *
+ * <p>拓扑图上点节点、或节点表点行都走这里：图上能看出「谁最忙」，
+ * 接着要看的就是这个服务的实例与端点 —— 中间那一跳（先回列表再选一次）没有必要。</p>
+ *
+ * <p>推断出来的节点（如 User / 外部系统）不是部署实例，没有详情可看，直接忽略。</p>
+ *
+ * @param name 服务名
+ */
+function openService(name: string): void {
+  if (!name) {
+    return;
+  }
+  const node = nodes.value.find((n) => n.name === name);
+  if (node && (node.real === false || node.isReal === false)) {
+    return;
+  }
+  router.push({ path: `${ROUTE_PREFIX}/services/detail`, query: { service: name } });
+}
+
+/** 节点表行点击：转发给 {@link openService} */
+function onNodeRowClick(row: Record<string, unknown>): void {
+  openService(String(row.name ?? ""));
+}
 
 function nodeName(id: string): string {
   return nameMap.value.get(id) || id;

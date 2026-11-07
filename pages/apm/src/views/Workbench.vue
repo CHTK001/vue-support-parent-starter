@@ -112,8 +112,15 @@ const popoutTab = computed(() => findApmTab(tabFromRoute()) ?? findApmTab(APM_DE
  */
 function syncUrl(name: string): void {
   if (!name) return;
-  const hash = `#${ROUTE_PREFIX}?tab=${encodeURIComponent(name)}`;
-  if (location.hash === hash) return;
+  // 保留除 tab 之外的参数：从服务详情跳过来时会带 service / endpoint / minutes，
+  // 切页签不能把它们抹掉，否则刷新一下就丢了筛选条件（要重新选一遍）。
+  const mark = location.hash.indexOf("?");
+  const search = new URLSearchParams(mark >= 0 ? location.hash.slice(mark + 1) : "");
+  search.set("tab", name);
+  const hash = `#${ROUTE_PREFIX}?${search.toString()}`;
+  if (location.hash === hash) {
+    return;
+  }
   try {
     window.history.replaceState(window.history.state, "", `${location.pathname}${location.search}${hash}`);
   } catch {
