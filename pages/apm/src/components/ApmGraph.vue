@@ -47,10 +47,13 @@
     <template #node-content="{ node }">
       <div class="apm-node" :class="{ 'is-virtual': node.data?.virtual, 'is-self': node.data?.self }">
         <span class="apm-node__name" :title="String(node.data?.label ?? '')">{{ node.data?.label }}</span>
-        <span class="apm-node__meta">
-          <b>{{ node.data?.calls ? fmtNum(node.data.calls) : "—" }}</b>
-          <i>次</i>
-          <em>{{ node.data?.avgMs ? fmtMs(node.data.avgMs) : "—" }}</em>
+        <!-- 边上没有指标时 OAP 返回 -1，卡片上不摆一排「— 次 —」，只留服务名 -->
+        <span v-if="node.data?.calls || node.data?.avgMs" class="apm-node__meta">
+          <template v-if="node.data?.calls">
+            <b>{{ fmtNum(node.data.calls) }}</b>
+            <i>次</i>
+          </template>
+          <em v-if="node.data?.avgMs">{{ fmtMs(node.data.avgMs) }}</em>
         </span>
       </div>
     </template>
@@ -170,9 +173,15 @@ const graphNodes = computed<RelationNode[]>(() => {
     return {
       id: node.id,
       label: node.name,
+      /*
+       * 必须显式写 html：G6Graph 只有在 type === "html" 时才会把 #node-content 插槽
+       * 挂到节点上；不写的话会回落到 circle，插槽静默不生效，卡片退化成「圆点 + 深色胶囊标签」。
+       */
+      type: "html",
       // group 只影响配色（不画轮廓），已部署 / 推断 / 自身三种身份各一色
       group: self ? "self" : virtual ? "virtual" : "deployed",
-      size: 46,
+      // html 节点尺寸要成对给：单给数字会把卡片撑成正方形
+      size: [148, 46],
       data: {
         label: node.name,
         type: node.type,
@@ -237,14 +246,15 @@ function onNodeClick(payload: { id: string; data?: Record<string, unknown> }): v
 </script>
 
 <style scoped>
-/* 节点卡片：白底细边，与服务卡片同一套语言；宽度固定，避免长服务名把图撑变形 */
+/* 节点卡片：白底细边，与服务卡片同一套语言；宽度由 G6 html 节点尺寸给定，卡片填满它 */
 .apm-node {
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 2px;
   box-sizing: border-box;
-  width: 148px;
+  width: 100%;
+  height: 100%;
   padding: 8px 10px;
   border: 1px solid var(--border-default, #e3e6ef);
   border-radius: var(--radius-md, 8px);
