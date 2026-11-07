@@ -4,8 +4,11 @@
    *
    * <p>直接复用后端静态页 {@code /ssh-direct.html}：页面里是 xterm + 平台自研的
    * SSH 直连 WebSocket 桥（PTY、resize、断线重连都由它负责），这里只负责
-   * 组装带主机与令牌的 URL，并把 iframe 铺满窗口。断链由桥自己重试，
-   * 所以这里不提供「重连」按钮，避免手动重建会话造成 PTY 漂移。</p>
+   * 把 iframe 铺满窗口。断链由桥自己重试，所以这里不提供「重连」按钮，
+   * 避免手动重建会话造成 PTY 漂移。</p>
+   *
+   * <p>「在新标签页打开」只保留标题栏那一个按钮（由桌面壳统一提供）：
+   * 窗口里再放一个同样的按钮就是重复入口，谁也不知道两个有什么区别。</p>
    *
    * <p>刻意不做「窗口最小化就销毁」：最小化只是隐藏，PTY 会话必须保住，
    * 否则用户切回来就是一条已经断掉的终端。</p>
@@ -16,9 +19,7 @@
     <div class="dt__bar">
       <span class="dt__host">{{ hostLabel }}</span>
       <span class="dt__spacer" />
-      <button type="button" class="dt__btn" title="在新标签页单独打开" @click="popout">
-        <ReIcon name="TopRight" :size="12" />
-      </button>
+      <span class="dt__hint">断线由 SSH 桥自动重连</span>
     </div>
     <iframe :src="src" class="dt__frame" title="SSH 终端" />
   </div>
@@ -26,7 +27,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { getAccessToken } from "@repo/utils";
+import { terminalFrameUrl } from "../urls";
 
 const props = withDefaults(
   defineProps<{
@@ -42,27 +43,10 @@ const props = withDefaults(
   { hostName: "", identityId: null, active: false },
 );
 
-/** 终端页地址：主机 + 身份 + 令牌 */
-const src = computed(() => {
-  const q = new URLSearchParams({ hostId: String(props.hostId) });
-  if (props.identityId != null) {
-    q.set("identityId", String(props.identityId));
-  }
-  const token = getAccessToken();
-  if (token) {
-    q.set("x-oauth-token", token);
-  }
-  return `/ssh-direct.html?${q.toString()}`;
-});
+/** 终端页地址：主机 + 身份 + 令牌（与标题栏的「在新标签页打开」同一条） */
+const src = computed(() => terminalFrameUrl(props.hostId, props.identityId));
 
 const hostLabel = computed(() => props.hostName || `主机 #${props.hostId}`);
-
-/**
- * 在新标签页打开同一条终端（用于把终端摆到第二块屏幕）。
- */
-function popout(): void {
-  window.open(src.value, "_blank");
-}
 </script>
 
 <style scoped>
@@ -97,24 +81,10 @@ function popout(): void {
   flex: 1;
 }
 
-.dt__btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 20px;
-  padding: 0 7px;
-  font-size: 11px;
-  color: #cfc9da;
-  cursor: pointer;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 5px;
-}
-
-.dt__btn:hover {
-  color: #fff;
-  background: rgba(233, 84, 32, 0.24);
-  border-color: rgba(233, 84, 32, 0.45);
+.dt__hint {
+  flex: none;
+  font-size: 10.5px;
+  color: #7e7889;
 }
 
 .dt__frame {

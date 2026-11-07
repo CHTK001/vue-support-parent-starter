@@ -10,7 +10,7 @@
  */
 
 /** 桌面应用标识 */
-export type DesktopAppKey = "terminal" | "files" | "monitor" | "system" | "console";
+export type DesktopAppKey = "terminal" | "files" | "monitor" | "system" | "process" | "net" | "console" | "notes";
 
 /** 桌面窗口 */
 export interface DesktopWindow {

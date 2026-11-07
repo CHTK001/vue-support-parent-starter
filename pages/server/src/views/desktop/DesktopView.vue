@@ -124,7 +124,7 @@
         <div class="vwin__bar" @pointerdown="startDrag($event, w)" @dblclick="toggleMax(w)" @contextmenu.prevent.stop="openWinMenu($event, w)">
           <span class="vwin__title">{{ w.title }}</span>
           <span class="vwin__btns">
-            <button type="button" title="在新标签页打开（只显示这个窗口）" @pointerdown.stop @click.stop="popOut(w)">
+            <button type="button" :title="popOutTitle(w)" @pointerdown.stop @click.stop="popOut(w)">
               <ReIcon name="TopRight" :size="11" />
             </button>
             <button type="button" title="最小化" @pointerdown.stop @click.stop="minimize(w)">
@@ -149,7 +149,7 @@
     <div v-if="ready && activeHost && !windows.length" class="vdesk__empty">
       <ReIcon name="Monitor" :size="38" />
       <b>从左侧 Dock 打开「{{ activeHost.serverHostName }}」的应用</b>
-      <span>终端、文件、监控、系统、命令都是对这台主机的真实操作</span>
+      <span>终端、文件、监控、系统、进程、网络、命令都是对这台主机的真实操作</span>
     </div>
 
     <!-- 没有带主机进来：桌面是按主机开的，不做全局页 -->
@@ -338,7 +338,11 @@ import DesktopTerminal from "./apps/DesktopTerminal.vue";
 import DesktopFiles from "./apps/DesktopFiles.vue";
 import DesktopMonitor from "./apps/DesktopMonitor.vue";
 import DesktopSystem from "./apps/DesktopSystem.vue";
+import DesktopProcess from "./apps/DesktopProcess.vue";
+import DesktopNet from "./apps/DesktopNet.vue";
 import DesktopConsole from "./apps/DesktopConsole.vue";
+import DesktopNotes from "./apps/DesktopNotes.vue";
+import { terminalFrameUrl } from "./urls";
 
 /** 顶栏高度（窗口拖拽的上边界） */
 const TOP_H = 34;
@@ -361,7 +365,10 @@ const APPS: DesktopAppDef[] = [
   { key: "files", label: "文件", icon: "FolderOpened", w: 980, h: 600, hint: "SFTP 文件管理（三种布局）" },
   { key: "monitor", label: "监控", icon: "Odometer", w: 520, h: 470, hint: "CPU / 内存 / 磁盘 / IO" },
   { key: "system", label: "系统", icon: "InfoFilled", w: 660, h: 560, hint: "主机信息与只读探测" },
+  { key: "process", label: "进程", icon: "Cpu", w: 820, h: 580, hint: "进程快照（可结束进程）" },
+  { key: "net", label: "网络", icon: "Connection", w: 760, h: 540, hint: "Ping / 端口探测 / 监听端口" },
   { key: "console", label: "命令", icon: "Promotion", w: 840, h: 540, hint: "执行命令（记入执行日志）" },
+  { key: "notes", label: "便签", icon: "Notebook", w: 560, h: 460, hint: "本机便签（不碰远端）" },
 ];
 
 /** 应用 → 组件 */
@@ -370,7 +377,10 @@ const APP_COMPONENTS: Record<DesktopAppKey, Component> = {
   files: DesktopFiles,
   monitor: DesktopMonitor,
   system: DesktopSystem,
+  process: DesktopProcess,
+  net: DesktopNet,
   console: DesktopConsole,
+  notes: DesktopNotes,
 };
 
 const route = useRoute();
@@ -621,6 +631,8 @@ const dockApps = computed(() => {
   const online = h.serverHostOnline === 1;
   return APPS.map((a) => {
     if (a.key === "monitor") return { ...a, off: false, offReason: "" };
+    // 便签只写浏览器本地存储，主机离线 / 没开 SSH 也能用
+    if (a.key === "notes") return { ...a, off: false, offReason: "" };
     if (!sshReady.value) return { ...a, off: true, offReason: "台账未开启 SSH" };
     return { ...a, off: !online, offReason: online ? "" : "主机离线" };
   });
@@ -776,8 +788,19 @@ function propsFor(key: DesktopAppKey, id: number, active: boolean): Record<strin
   if (key === "terminal") {
     return { ...base, hostName: h?.serverHostName ?? "" };
   }
-  if (key === "console" || key === "system") {
+  if (key === "console" || key === "system" || key === "process") {
     return { ...base, hostName: h?.serverHostName ?? "", osType: h?.serverHostOsType ?? "" };
+  }
+  if (key === "net") {
+    return {
+      ...base,
+      hostName: h?.serverHostName ?? "",
+      osType: h?.serverHostOsType ?? "",
+      address: h?.serverHostAddress ?? "",
+    };
+  }
+  if (key === "notes") {
+    return { ...base, hostName: h?.serverHostName ?? "" };
   }
   return base;
 }
@@ -792,20 +815,32 @@ function appProps(w: DesktopWindow): Record<string, unknown> {
 }
 
 /**
- * 在新标签页打开这个窗口：新标签页只显示它自己（{@code ?only=<app>}）。
+ * 在新标签页打开这个窗口。
  *
- * <p>走独立的 {@code /desktop-window/:hostId} 路由（standalone），
- * 所以新标签页里没有侧边栏、页签栏和桌面壳，只有这一个窗口。</p>
+ * <p>终端单独走一条路：它弹出去就是一块<b>整屏终端</b>（和窗口里的 iframe 同一条地址），
+ * 不再套一层桌面壳——套了只会多一圈没用的窗框，用户要的是能摆到第二块屏幕的终端本身。</p>
  *
- * <p>终端是长连接 PTY，新标签页会自己再建一条会话，和当前窗口互不影响。</p>
+ * <p>其它应用仍走 {@code /desktop-window/:hostId?only=<app>}：新标签页里没有侧边栏、
+ * 页签栏和桌面壳，只有这一个窗口。</p>
  *
  * @param w 窗口
  */
 function popOut(w: DesktopWindow): void {
-  const url = `${location.origin}${location.pathname}#/desktop-window/${w.hostId}?only=${w.app}`;
+  const url = w.app === "terminal"
+    ? terminalFrameUrl(w.hostId, null)
+    : `${location.origin}${location.pathname}#/desktop-window/${w.hostId}?only=${w.app}`;
   const win = window.open(url, "_blank");
   if (!win) ElMessage.warning("浏览器拦截了弹出窗口，请允许后重试");
   closeDeskMenu();
+}
+
+/**
+ * 标题栏弹出按钮的提示文案。
+ *
+ * @param w 窗口
+ */
+function popOutTitle(w: DesktopWindow): string {
+  return w.app === "terminal" ? "在新标签页打开终端" : "在新标签页打开（只显示这个窗口）";
 }
 
 /**
