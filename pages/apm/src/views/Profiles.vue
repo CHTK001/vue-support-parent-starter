@@ -155,6 +155,7 @@ import ApmGate from "../components/ApmGate.vue";
 import { getProfileAnalysis, listProfileTasks, listProfiledSegments, listServices } from "../api/apmApi";
 import type { ApmProfileAnalysis, ApmProfileStack, ApmProfileTask, ApmProfiledSegment } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
+import { consumeApmTabContext } from "../tabs";
 import { fmtMs, fmtNum, fmtTime, latencyClass } from "../utils/format";
 
 const { present, ensure } = useApmStatus();
@@ -323,9 +324,18 @@ onMounted(async () => {
   await loadServices();
   // 用 useRoute 而不是手解 location.hash：hash 模式下 query 在 # 之后，
   // 手解会把 `#/apm/profiles?service=a` 与 `#/apm/profiles?service=a&x=1` 当成两种格式。
-  const preset = firstQuery(route.query.service);
+  // 跨页跳转带过来的服务名优先级最低：URL 显式指定的 > 跳转上下文 > 第一个服务。
+  const context = consumeApmTabContext();
+  const preset = firstQuery(route.query.service) || context?.service || "";
   if (preset) {
     service.value = preset;
+    await loadTasks();
+    return;
+  }
+  // 没有预设就自动落到第一个服务：原来这里要用户先在下拉里选一次才有内容，
+  // 等于「进页面看到一片空态 → 再点两次」，而第一个服务正是最常看的那一个。
+  if (!service.value && serviceOptions.value.length) {
+    service.value = serviceOptions.value[0].value as string;
     await loadTasks();
   }
 });

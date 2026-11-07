@@ -118,6 +118,7 @@ import MetricChart from "../components/MetricChart.vue";
 import { getMetrics, listEndpoints, listInstances, listMetricDefinitions, listServices } from "../api/apmApi";
 import type { ApmMetricDefinition, ApmMetricSeries, ApmScope, ApmStep } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
+import { consumeApmTabContext } from "../tabs";
 import { WINDOW_OPTIONS, fmtNum, fmtTime } from "../utils/format";
 
 const { present, ensure } = useApmStatus();
@@ -247,14 +248,19 @@ onMounted(async () => {
   if (!present.value) {
     return;
   }
+  // 从其它页跳过来时带着服务：优先用它，别覆盖成「第一个服务」
+  const context = consumeApmTabContext();
   try {
     services.value = ((await listServices({})) || []).map((s) => s.name);
   } catch {
     services.value = [];
   }
   // 服务级指标必须带实体：默认落到第一个服务，页面一打开就有图看
-  if (!entityService.value && services.value.length) {
-    entityService.value = services.value[0];
+  if (!entityService.value) {
+    entityService.value = context?.service || services.value[0] || "";
+  }
+  if (context?.minutes) {
+    minutes.value = context.minutes;
   }
   await loadDefinitions();
   load();

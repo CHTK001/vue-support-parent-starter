@@ -129,6 +129,7 @@ import ApmGate from "../components/ApmGate.vue";
 import { listEndpoints, listServices } from "../api/apmApi";
 import type { ApmEndpoint } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
+import { consumeApmTabContext } from "../tabs";
 import { errorRateClass, errorRateText, fmtMs, fmtNum, latencyClass } from "../utils/format";
 
 const { present, ensure } = useApmStatus();
@@ -214,6 +215,11 @@ async function loadServices() {
 }
 
 onMounted(async () => {
+  // 从其它页跳过来时带着服务：直接按它筛选
+  const context = consumeApmTabContext();
+  if (context?.service) {
+    service.value = context.service;
+  }
   await loadServices();
   load();
 });

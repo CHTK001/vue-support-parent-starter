@@ -127,6 +127,7 @@ import { listServices } from "../api/apmApi";
 import type { ApmService } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
 import { ROUTE_PREFIX } from "../config";
+import { consumeApmTabContext } from "../tabs";
 import { errorRateClass, errorRateText, fmtMs, fmtNum, latencyClass } from "../utils/format";
 
 const router = useRouter();
@@ -245,7 +246,15 @@ async function load() {
   }
 }
 
-onMounted(load);
+onMounted(async () => {
+  // 从总览点「慢服务」跳过来时带着服务名：直接落到该服务，不用再手选一次。
+  // 上下文是一次性的（consume 后即清），刷新页面不会莫名其妙被旧筛选粘住。
+  const context = consumeApmTabContext();
+  if (context?.service) {
+    keyword.value = context.service;
+  }
+  await load();
+});
 </script>
 
 <style scoped>

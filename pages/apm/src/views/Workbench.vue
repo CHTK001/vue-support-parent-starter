@@ -56,7 +56,8 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import ReTabs from "@repo/ui/re-tabs";
 import type { ReTabsItem } from "@repo/ui/re-tabs";
-import { APM_DEFAULT_TAB, APM_OPEN_TAB_EVENT, APM_TABS, APM_WORKBENCH_ID, findApmTab } from "../tabs";
+import { APM_DEFAULT_TAB, APM_OPEN_TAB_EVENT, APM_TABS, APM_WORKBENCH_ID, findApmTab, stashApmTabContext } from "../tabs";
+import type { ApmTabContext } from "../tabs";
 import { ROUTE_PREFIX } from "../config";
 
 defineOptions({ name: "ApmWorkbench" });
@@ -150,11 +151,21 @@ function openPopout(name: string): void {
  *
  * <p>走事件而不是路由：换 query 会让宿主重建整页，页签保活就白做了。</p>
  *
- * @param event 自定义事件，detail 是页签名
+ * <p>detail 兼容两种形态：老调用方直接传页签名字符串；
+ * 新调用方传 {@code { tab, context }}，context 暂存后由落地页取走，
+ * 于是「点慢服务跳过去」不用再手选一次服务。</p>
+ *
+ * @param event 自定义事件
  */
 function onOpenTab(event: Event): void {
-  const name = (event as CustomEvent<string>).detail;
-  if (findApmTab(name)) active.value = name;
+  const detail = (event as CustomEvent<string | { tab: string; context?: ApmTabContext }>).detail;
+  const name = typeof detail === "string" ? detail : detail?.tab;
+  const context = typeof detail === "string" ? undefined : detail?.context;
+  if (!name || !findApmTab(name)) {
+    return;
+  }
+  stashApmTabContext(context);
+  active.value = name;
 }
 
 /**

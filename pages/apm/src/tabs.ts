@@ -171,15 +171,64 @@ export function isApmTabName(name?: string | null): boolean {
 export const APM_OPEN_TAB_EVENT = "apm:open-tab";
 
 /**
+ * 跨视图跳转时携带的上下文。
+ *
+ * <p>为什么需要：原来只带页签名，从总览点一个「慢服务」跳到服务页，服务名没带过去，
+ * 用户还得在下拉里再选一次 —— 排障动线被这一步打断，越钻越烦。
+ * 现在把服务名 / 时间窗 / traceId 一起带过去，落地页直接按它取数。</p>
+ */
+export interface ApmTabContext {
+  /** 要定位的服务名（服务 / 端点 / 链路 / 指标 / 剖析页用它做默认筛选） */
+  service?: string;
+  /** 要定位的端点名 */
+  endpoint?: string;
+  /** 时间窗（分钟），跟随来源页，避免「跳过去窗口又变回 30 分钟」 */
+  minutes?: number;
+  /** 要直接打开的链路 */
+  traceId?: string;
+  /** 要定位的告警实体 */
+  entity?: string;
+}
+
+/**
  * 请求工作台切到某个页签。
  *
  * <p>名字会先校验：调用方可能把 URL 参数直接透传进来，
  * 一个不存在的页签名不应该把工作台打成空白。</p>
  *
  * @param name 页签名
+ * @param context 可选的上下文（服务名 / 时间窗 / traceId），落地页据此预填筛选
  */
-export function openApmTab(name: string): void {
+export function openApmTab(name: string, context?: ApmTabContext): void {
   if (!isApmTabName(name)) return;
   if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent<string>(APM_OPEN_TAB_EVENT, { detail: name }));
+  window.dispatchEvent(
+    new CustomEvent<{ tab: string; context?: ApmTabContext }>(APM_OPEN_TAB_EVENT, {
+      detail: { tab: name, context },
+    }),
+  );
+}
+
+/**
+ * 读取「上一次跨页跳转带过来的上下文」并清空。
+ *
+ * <p>用一次性暂存而不是 URL query：宿主给路由组件挂了 {@code :key="route.fullPath"}，
+ * 往 URL 塞参数会重建整页，页签保活就白做了。落地页在 {@code onMounted} 里取一次即可。</p>
+ */
+export function consumeApmTabContext(): ApmTabContext | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  const box = window as unknown as { __apmTabContext?: ApmTabContext };
+  const context = box.__apmTabContext ?? null;
+  box.__apmTabContext = undefined;
+  return context;
+}
+
+/** 供工作台在派发事件前暂存上下文（内部使用，业务不要直接调） */
+export function stashApmTabContext(context?: ApmTabContext): void {
+  if (typeof window === "undefined" || !context) {
+    return;
+  }
+  (window as unknown as { __apmTabContext?: ApmTabContext }).__apmTabContext = context;
 }

@@ -100,6 +100,7 @@ import { listEndpoints, listServices, listTraces } from "../api/apmApi";
 import type { ApmTrace, ApmTraceState } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
 import { ROUTE_PREFIX } from "../config";
+import { consumeApmTabContext } from "../tabs";
 import { WINDOW_OPTIONS, fmtMs, fmtTime, latencyClass } from "../utils/format";
 
 const router = useRouter();
@@ -221,6 +222,14 @@ function onRowClick(row: Record<string, unknown>) {
 }
 
 onMounted(() => {
+  // 从其它页跳过来时带着服务 / 时间窗：直接按它筛选，省掉「跳过来再选一次」
+  const context = consumeApmTabContext();
+  if (context?.service) {
+    query.value.service = context.service;
+  }
+  if (context?.minutes) {
+    minutes.value = context.minutes;
+  }
   loadServices();
   load();
 });

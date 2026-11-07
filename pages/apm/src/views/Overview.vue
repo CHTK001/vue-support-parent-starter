@@ -148,7 +148,7 @@
             v-for="svc in topServices"
             :key="svc.id"
             class="apm-row apm-row--svc"
-            @click="go('services')"
+            @click="go('services', { service: svc.name })"
           >
             <i class="apm-row__dot" :class="dotTone(svc)" />
             <span class="apm-row__name">{{ svc.name }}</span>
@@ -229,6 +229,7 @@ import { getMetrics, getOverview, getTopology, listAlarms, listServices } from "
 import type { ApmAlarm, ApmHealth, ApmMetricSeries, ApmService, ApmTopology } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
 import { openApmTab } from "../tabs";
+import type { ApmTabContext } from "../tabs";
 import { WINDOW_OPTIONS, errorRateClass, errorRateText, fmtAgo, fmtMs, fmtNum, fmtPercent, fmtTime, latencyClass } from "../utils/format";
 
 const { present, ensure, refresh, status } = useApmStatus();
@@ -354,8 +355,18 @@ function shortVersion(version?: string | null): string {
  *
  * @param tab 页签名
  */
-function go(tab: string): void {
-  openApmTab(tab);
+/**
+ * 跨页签跳转，带上当前窗口与服务名。
+ *
+ * <p>不走 `router.push`：宿主给路由组件挂了 `:key="route.fullPath"`，
+ * 换 query 会重建整页，页签保活就白做了。这里发一个事件，由工作台切页签，
+ * 同时把上下文暂存下来 —— 落地页据此预填筛选，不用再选一次。</p>
+ *
+ * @param tab 页签名
+ * @param context 可选的定位上下文（服务名 / 端点 / 时间窗）
+ */
+function go(tab: string, context?: ApmTabContext): void {
+  openApmTab(tab, { minutes: minutes.value, ...context });
 }
 
 /** 告警的危险级别：能判定的只有「恢复」与默认两类 */
