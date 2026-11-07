@@ -1347,3 +1347,179 @@
 }
 
 /* (b) 形态层已移除：不再叠加点阵/发光/等宽/大写表头，统一回到宿主 koi/Element 卡片语言 */
+
+/* ==========================================================================
+   14. 紧凑运维台（Compact Ops）—— 方向 A
+   --------------------------------------------------------------------------
+   目标不是「好看」，是**同屏看到更多、扫一眼能定位**。三条规则，
+   全部用选择器覆盖，不改任何页面模板：
+     1. 读数压扁：四张大 KPI 卡 → 一行「标签 + 数值」读数带；
+     2. 间距收紧：页面 12→10、卡片内距 16→12、表格行更紧；
+     3. 数字等宽：所有数值列竖着扫不串行。
+   颜色 / 圆角 / 字体仍全部来自 koi 令牌，不引入新色板。
+   本段必须在文件最后：它要覆盖前面所有基础规则。
+   ========================================================================== */
+
+/* ── 1. 读数带 ─────────────────────────────────────────────── */
+.apm-kpis {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.apm-kpi,
+.apm-page .apm-kpis > .re-stat-card {
+  padding: 10px 12px;
+  border-radius: var(--apm-radius-sm);
+}
+
+/* 标签在左、数值在右，像仪表盘的一条读数 */
+.apm-kpi {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 8px;
+}
+
+.apm-kpi__label {
+  order: 0;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--apm-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 一行四个语义色方点比数字本身还吵，去掉；语义交给数值颜色 */
+.apm-kpi__label::before {
+  display: none;
+}
+
+.apm-kpi__value {
+  order: 1;
+  justify-self: end;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.25;
+  font-family: var(--apm-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.apm-kpi__value small {
+  margin-left: 2px;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.apm-kpi__sub {
+  order: 2;
+  grid-column: 1 / -1;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--apm-faint);
+}
+
+/* ReStatCard（列表页顶部那四格）走同一套读数带排法 */
+.apm-page .apm-kpis > .re-stat-card .re-stat-card__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 8px;
+  min-width: 0;
+}
+
+.apm-page .apm-kpis > .re-stat-card .re-stat-card__value {
+  order: 1;
+  justify-self: end;
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.25;
+  font-family: var(--apm-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.apm-page .apm-kpis > .re-stat-card .re-stat-card__title {
+  order: 0;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--apm-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.apm-page .apm-kpis > .re-stat-card .re-stat-card__desc {
+  order: 2;
+  grid-column: 1 / -1;
+  margin-top: 0;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+/* 读数带里不需要右上角图标：占位且挤压数字 */
+.apm-page .apm-kpis > .re-stat-card .re-stat-card__aside {
+  display: none;
+}
+
+/* ── 2. 间距收紧 ───────────────────────────────────────────── */
+.apm-page {
+  gap: 10px;
+  padding: 8px 0 16px;
+}
+
+.apm-card,
+.apm-page .koi-card {
+  padding: 12px;
+  gap: 10px;
+}
+
+.apm-card-head--pad {
+  padding: 12px 12px 8px;
+}
+
+.apm-card--flush {
+  padding: 0;
+}
+
+.apm-grid,
+.apm-hero,
+.apm-side {
+  gap: 10px;
+}
+
+/* 过滤条每次都要经过，不该占掉半行表格 */
+.apm-toolbar {
+  padding: 8px 10px;
+  border-radius: var(--apm-radius-sm);
+}
+
+.apm-bar {
+  gap: 8px;
+}
+
+/* ── 3. 数字等宽 + 表格行收紧 ─────────────────────────────── */
+.apm-page .apm-row__num,
+.apm-page .apm-load__num,
+.apm-page .apm-readout,
+.apm-page .apm-kvline b,
+.apm-page .apm-waterfall__ms,
+.apm-page .el-table .cell {
+  font-variant-numeric: tabular-nums;
+}
+
+.apm-page .apm-row__num,
+.apm-page .apm-load__num,
+.apm-page .apm-waterfall__ms {
+  font-family: var(--apm-mono);
+}
+
+/* 默认行高 48px 太松；压到 ~40px，一屏多两行 */
+.apm-page .el-table .el-table__cell {
+  padding: 7px 0;
+}
+
+.apm-page .el-table th.el-table__cell {
+  padding: 8px 0;
+}
+
