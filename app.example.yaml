@@ -85,8 +85,11 @@ httpConfig:
   retryCount: 0
   # 重试间隔（毫秒）
   retryDelay: 1000
-  # 请求时显示 loading 状态
-  showLoading: true
+  # 请求是否驱动顶部进度条（缺省 false）。
+  # false 时请求静默完成，加载态由页面自己的动画表达；顶栏只服务
+  # 「切换菜单 / 打开页面」的路由跳转，与本项无关。
+  # 个别请求确实需要时，链式调用 http().get(...).loading(true) 单独打开。
+  showLoading: false
   # 是否启用 x-sign 防重放签名（默认 false，未配置签名头时后端跳过）
   sign: false
   # 签名密钥（与后端 NonceSignProperties secretKey 一致）

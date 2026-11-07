@@ -27,15 +27,12 @@ httpConfig:
   # 长查询场景（如 select ... limit 大表）建议 ≥ 30000，否则会看到
   # axios「timeout of 10000ms exceeded」。
   timeout: 30000
-  # 关掉「请求期间顶部 nprogress 进度条 + 右侧 spinner」。
-  # 框架默认 showLoading: true（packages/config/src/shared.ts），每个请求都
-  # start/done 一次（httpCrypto 的请求/响应拦截器），于是页面切页、筛选、刷新时
-  # 顶部一直有动画在跑，视觉噪音很大；且首次进入依赖多的页面时进度条会被拉满再回跳。
-  # 这里置 false 后 HTTP 不再驱动进度条，路由跳转进度条不受影响
-  # （走的是 hooks.onBeforeEach/onAfterEach，与本项是两条独立通路）。
+  # 请求不驱动顶部 nprogress 进度条（框架缺省已是 false，这里显式写一遍防止回退）。
+  # 每个请求都 start/done 会让切页、筛选、刷新时顶部一直有动画在跑，
+  # 首次进入依赖多的页面还会被拉满再回跳，视觉噪音很大。
+  # 顶栏只服务「切换菜单 / 打开页面」的路由跳转（createApp 的 guard hooks），与本项无关。
   # 需要临时给某个请求加进度条时，仍然可以 http().get(...).loading(true)。
-  showLoading:
-    enable: false
+  showLoading: false
   # 各业务模块后端前缀（createModuleHttp 读取，未配置则回退 baseUrl）。
   # device 用 device-starter 的原生前缀 /api/device——该模块未纳入 /ms/* 体系，
   # 后端由 spring-support-monitor-starter 依赖 device-starter 承载。

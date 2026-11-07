@@ -46,8 +46,14 @@ export interface HttpConfig {
   retryCount: number;
   /** 重试间隔（毫秒） */
   retryDelay: number;
-  /** 请求时显示 loading 状态 */
-  showLoading: boolean;
+  /**
+   * 请求时是否驱动顶部进度条（默认 false：请求静默，由页面内部动画表达加载态）。
+   *
+   * <p>兼容两种 yaml 写法：布尔值，或 `{ enable: boolean }` 能力开关写法。
+   * 读取时请统一走 `resolveHttpShowLoading()` 归一化 —— 直接把对象塞进条件判断
+   * 会得到「恒为真」，`{ enable: false }` 也会把进度条打开。</p>
+   */
+  showLoading: boolean | { enable?: boolean };
   /** 是否启用 x-sign 防重放签名（默认 false，未配置签名头时后端跳过） */
   sign: boolean;
   /** 签名密钥（与后端 NonceSignProperties secretKey 一致） */

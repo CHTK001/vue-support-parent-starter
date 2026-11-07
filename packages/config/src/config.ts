@@ -94,6 +94,28 @@ export function resolveGroupNav(): boolean {
 }
 
 /**
+ * 解析「HTTP 请求是否驱动顶部进度条」开关（app.yaml httpConfig.showLoading）。
+ *
+ * <p>两种写法并存，必须都认：布尔值，以及早期被当成能力开关写的
+ * `showLoading: { enable: false }`。</p>
+ *
+ * <p>对象写法一定要先取 enable：把非空对象直接丢进 `if (showLoading)` 恒为真，
+ * 于是 `{ enable: false }` 反而把顶部条打开了 —— 这正是监控端「yaml 里写了
+ * false，切页/筛选时顶部条照旧每个请求跑一次」的根因。</p>
+ *
+ * @param value app.yaml / 默认值里的原始配置（布尔 / 对象 / 缺省）
+ * @returns 是否让 HTTP 请求驱动顶部进度条（缺省 false）
+ */
+export function resolveHttpShowLoading(value?: unknown): boolean {
+  if (typeof value === "boolean") return value;
+  if (isPlainObject(value)) {
+    const enable = (value as { enable?: unknown }).enable;
+    if (typeof enable === "boolean") return enable;
+  }
+  return false;
+}
+
+/**
  * 菜单折叠形态（app.yaml menuConfig.collapse，仅垂直布局生效；迭代自 collapseToButton）。
  *
  * <p>按此组合出折叠后的可见形态：</p>

@@ -211,7 +211,10 @@ export const defaultAppConfig: AppConfig = {
     timeout: 10000,
     retryCount: 0,
     retryDelay: 1000,
-    showLoading: true,
+    // 缺省不驱动顶部进度条：绝大多数请求（筛选、刷新、轮询、后台拉取）应当是静默的，
+    // 由页面自己的加载动画表达；顶栏只留给「切换菜单 / 打开页面」的路由跳转。
+    // 个别确实需要遮罩/顶栏的请求，链式调用 `.loading(true)` 单独打开即可。
+    showLoading: false,
     sign: false,
     signSecret: "",
     authFailAction: "confirm",

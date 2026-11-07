@@ -20,7 +20,15 @@
  *   app.crypto.sm3(...);  app.config.app.title;  app.storage.set(...);
  */
 import { loadCrypto, SystemException, type CryptoModule } from "./crypto";
-import { loadConfig, getConfig, upgrade, restoreUserConfig, type AppConfig, type DeepPartial } from "@repo/config";
+import {
+  loadConfig,
+  getConfig,
+  upgrade,
+  restoreUserConfig,
+  resolveHttpShowLoading,
+  type AppConfig,
+  type DeepPartial,
+} from "@repo/config";
 import {
   browserLocalStorage,
   createStorage,
@@ -39,6 +47,7 @@ import {
   type Http,
 } from "@repo/utils";
 import { createAppRouter, setRouter, type RemoteRoutesLoader } from "./router";
+import { startLoading, doneLoading } from "./progress";
 import {
   setApiHttp,
   probeBackend,
@@ -152,12 +161,41 @@ export async function createApp(options: CreateAppOptions = {}): Promise<AppCont
 
   log.info("createApp", "⑥ createAppRouter...");
   const remoteLoader = options.loadRemoteRoutes ?? (await getRemoteRouteLoader());
+  /**
+   * 路由级进度条闸门。
+   *
+   * <p>顶部条只服务「切换菜单 / 打开页面」这一件事：路由守卫开始时点亮、导航结束收起。
+   * HTTP 请求默认不再驱动它（http.showLoading 缺省 false），筛选/刷新/轮询这类静默请求
+   * 由页面自己的加载动画承担，避免顶栏被反复拉满。</p>
+   *
+   * <p>用布尔闸门而不是直接 start/done：重定向、导航取消、onError 可能让钩子多触发一次，
+   * 裸调会与在途的 `.loading(true)` 请求共用引用计数，把计数减穿（表现为请求没完顶栏就没了）。
+   * 闸门保证「一次导航只占一个计数」。</p>
+   */
+  let routeLoading = false;
   const router = createAppRouter({
     routes: options.routes,
     mode: options.routerMode ?? "hash",
     getAccessToken: () => token.getAccessToken(),
     loadRemoteRoutes: remoteLoader,
     setup: options.setupRouter,
+    hooks: {
+      onBeforeEach: () => {
+        if (routeLoading) return;
+        routeLoading = true;
+        startLoading();
+      },
+      onAfterEach: () => {
+        if (!routeLoading) return;
+        routeLoading = false;
+        doneLoading();
+      },
+      onError: () => {
+        if (!routeLoading) return;
+        routeLoading = false;
+        doneLoading();
+      },
+    },
   });
   setRouter(router);
 
@@ -356,7 +394,9 @@ function buildHttp(crypto: CryptoModule, config: AppConfig): Http {
     encrypt: config.http.encrypt,
     sign: config.http.sign,
     signSecret: config.http.signSecret,
-    showLoading: config.http.showLoading,
+    // 归一化：yaml 里可能写成 { enable: false }，直接透传会让「非空对象」恒为真，
+    // 关不掉顶部条。缺省（含未配置）按 false 处理：请求默认静默。
+    showLoading: resolveHttpShowLoading(config.http.showLoading),
     retryCount: config.http.retryCount,
     retryDelay: config.http.retryDelay,
     requestCodec: config.http.requestCodec,
