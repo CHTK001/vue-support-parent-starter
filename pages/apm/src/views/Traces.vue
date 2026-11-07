@@ -31,6 +31,10 @@
       <el-checkbox v-model="orderByDuration" label="按耗时倒序" />
       <ReButton icon="Search" type="primary" :loading="loading" @click="search">查询</ReButton>
       <span class="apm-bar__spacer" />
+      <!-- 分页并入工具条：原来它是表格下面独立一行，翻页要往下看再往上翻 -->
+      <span class="apm-count">第 {{ query.pageNum }} 页 · {{ items.length }} 条</span>
+      <ReButton icon="ArrowLeft" :disabled="query.pageNum <= 1 || loading" @click="prevPage">上一页</ReButton>
+      <ReButton icon="ArrowRight" :disabled="items.length < pageSize || loading" @click="nextPage">下一页</ReButton>
       <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
     </div>
 
@@ -70,12 +74,6 @@
         </ReTag>
       </template>
     </ReTable>
-
-    <div class="apm-pager">
-      <span>第 {{ query.pageNum }} 页 · 本页 {{ items.length }} 条</span>
-      <ReButton icon="ArrowLeft" :disabled="query.pageNum <= 1 || loading" @click="prevPage">上一页</ReButton>
-      <ReButton icon="ArrowRight" :disabled="items.length < pageSize || loading" @click="nextPage">下一页</ReButton>
-    </div>
 
     <div v-if="!status.capabilities.includes('traces')" class="apm-muted">
       引擎 {{ status.name }} 不支持链路查询。
@@ -225,7 +223,7 @@ onMounted(() => {
   // 从其它页跳过来时带着服务 / 时间窗：直接按它筛选，省掉「跳过来再选一次」
   const context = consumeApmTabContext();
   if (context?.service) {
-    query.value.service = context.service;
+    query.service = context.service;
   }
   if (context?.minutes) {
     minutes.value = context.minutes;

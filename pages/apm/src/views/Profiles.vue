@@ -324,7 +324,8 @@ async function expandTask(taskId: string): Promise<void> {
   await Promise.all([loadSegments(taskId), loadAnalysis(taskId)]);
 }
 
-async function loadSegments(taskId: string) {  segmentsLoading[taskId] = true;
+async function loadSegments(taskId: string) {
+  segmentsLoading[taskId] = true;
   try {
     segments[taskId] = (await listProfiledSegments(taskId)) || [];
     if (!segments[taskId].length) {
