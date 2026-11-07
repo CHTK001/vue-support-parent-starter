@@ -44,6 +44,14 @@ export const getSoftwareDependencies = (hostId: number, name: string) =>
   http().get(`${B}/release/software/dependencies`).query({ hostId, name }).timeout(60000).then(r => unwrapResult<string[]>(r));
 export const refreshHostPublicIp = (id: number) =>
   http().post(`${B}/host/${id}/refresh-public-ip`).then(r => unwrapResult<string>(r));
+
+// ===== 主机资产归档（JSON：主机 + 身份 + 绑定，口令为密文） =====
+/** 导出全部主机资产归档（后端直出，口令字段是库里的 AES 密文） */
+export const exportHostArchive = () =>
+  http().get(`${B}/host/archive`).timeout(60000).then(r => unwrapResult<any>(r));
+/** 导入主机资产归档（幂等：主机按地址+端口、身份按名称去重） */
+export const importHostArchive = (archive: any) =>
+  http().post(`${B}/host/archive`).data(archive).timeout(120000).then(r => unwrapResult<any>(r));
 export const pushAgentData = (agentKey: string, payload: Record<string, unknown>) =>
   http().post(`${B}/host/agent/${agentKey}/push`).data(payload).then(r => unwrapResult<string>(r));
 

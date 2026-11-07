@@ -19,4 +19,13 @@ export interface MetricRow {
   mono?: boolean;
   /** hover 提示（如端口扫描结果明细，title 气泡展示） */
   tip?: string;
+  /**
+   * 该行下方额外渲染的占用率进度条（0-100）。
+   *
+   * <p>只有「总量 + 当前占用」都拿得到才有意义（内存 / 磁盘），
+   * 没有该值时整条不出现，不渲染空外壳。</p>
+   */
+  percent?: number;
+  /** 进度条右侧的用量说明（如「12.3 GB / 32.0 GB」） */
+  percentText?: string;
 }

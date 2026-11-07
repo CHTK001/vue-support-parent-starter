@@ -62,7 +62,11 @@ const HostConfigDialog = defineAsyncComponent(() => import("./HostConfigDialog.v
 const AgentDeployDialog = defineAsyncComponent(() => import("../components/AgentDeployDialog.vue"));
 const HostCommandPalette = defineAsyncComponent(() => import("../components/HostCommandPalette.vue"));
 const ScHostMetricsBar = defineAsyncComponent(() => import("../components/ScHostMetricsBar.vue"));
+const HostMetricHistoryDialog = defineAsyncComponent(() => import("../components/HostMetricHistoryDialog.vue"));
+const ScHostSoftwareInstances = defineAsyncComponent(() => import("../components/ScHostSoftwareInstances.vue"));
+const HostImportExportDialog = defineAsyncComponent(() => import("../components/HostImportExportDialog.vue"));
 import type { MetricRow } from "../components/ScHostMetricsBar.types";
+import type { HostMetricKind } from "../components/HostMetricHistoryDialog.types";
 import type { PaletteItem } from "../components/HostCommandPalette.types";
 import { useDialogPrerender } from "../utils/dialogPrerender";
 import { osIconSvg } from "../utils/osIcon";
@@ -104,6 +108,14 @@ export interface Host {
   serverHostMemUsage?: number | null;
   /** 磁盘使用率 % */
   serverHostDiskUsage?: number | null;
+  /** 磁盘读取速率 KB/s（最近一次采集落库值） */
+  serverHostDiskReadKbs?: number | null;
+  /** 磁盘写入速率 KB/s */
+  serverHostDiskWriteKbs?: number | null;
+  /** 网络接收速率 KB/s */
+  serverHostNetRxKbs?: number | null;
+  /** 网络发送速率 KB/s */
+  serverHostNetTxKbs?: number | null;
   serverHostOnlineEnabled?: number;
   serverHostOnlineInterval?: number;
   serverHostDelayEnabled?: number;
@@ -350,8 +362,28 @@ function groupName(id?: number | null): string {
 }
 
 // ---- 实时指标（socket 推送，不轮询；底部状态条与页签状态点共用这份数据） ----
+/** 一台主机的实时指标快照 */
+interface RtMetric {
+  /** CPU 使用率 % */
+  cpu: number;
+  /** 内存使用率 % */
+  mem: number;
+  /** 磁盘使用率 % */
+  disk: number;
+  /** 磁盘读速率 KB/s */
+  diskRead: number;
+  /** 磁盘写速率 KB/s */
+  diskWrite: number;
+  /** 网络接收速率 KB/s */
+  netRx: number;
+  /** 网络发送速率 KB/s */
+  netTx: number;
+  /** 是否已经有 IO 数值（没有时底部条显示「—」而不是 0） */
+  hasIo: boolean;
+}
+
 const realtimeEnabled = ref(localStorage.getItem('assets-realtime-enabled') !== 'false');
-const rtMetrics = reactive<Record<number, { cpu: number; mem: number; disk: number; tx: string; rx: string }>>({});
+const rtMetrics = reactive<Record<number, RtMetric>>({});
 
 /**
  * 实时监控开关。
@@ -384,12 +416,19 @@ function syncRtFromHosts(): void {
     }
     const prev = rtMetrics[h.id];
     const cpu = Math.round((Number(h.serverHostCpuUsage) || 0) * 10) / 10;
+    // IO 速率只在推送里出现（台账字段是最近一次采集的落库值，首帧也拿来铺）
+    const hasIo = prev?.hasIo
+      || h.serverHostDiskReadKbs != null
+      || h.serverHostDiskWriteKbs != null;
     rtMetrics[h.id] = {
       cpu,
       mem: Math.round((Number(h.serverHostMemUsage) || 0) * 10) / 10,
       disk: Math.round((Number(h.serverHostDiskUsage) || 0) * 10) / 10,
-      tx: prev?.tx ?? '—',
-      rx: prev?.rx ?? '—',
+      diskRead: prev?.hasIo ? prev.diskRead : Number(h.serverHostDiskReadKbs) || 0,
+      diskWrite: prev?.hasIo ? prev.diskWrite : Number(h.serverHostDiskWriteKbs) || 0,
+      netRx: prev?.hasIo ? prev.netRx : Number(h.serverHostNetRxKbs) || 0,
+      netTx: prev?.hasIo ? prev.netTx : Number(h.serverHostNetTxKbs) || 0,
+      hasIo,
     };
   }
 }
@@ -629,6 +668,7 @@ type TabKind =
   | "host-accounts"
   | "alarm-policy"
   | "software"
+  | "software-instance"
   | "schedule";
 
 /** 功能定义：名称 / 图标 / 是否为画像分区 */
@@ -663,6 +703,7 @@ const TAB_KINDS: Record<TabKind, TabKindMeta> = {
   "host-accounts": { label: "主机账号", icon: "User" },
   "alarm-policy": { label: "告警策略", icon: "Bell" },
   software: { label: "软件管理", icon: "Box" },
+  "software-instance": { label: "软件实例", icon: "Cpu" },
   schedule: { label: "调度信息", icon: "Clock" },
 };
 
@@ -1231,6 +1272,9 @@ function ctxCommand(cmd: string): void {
     case "software":
       openTab(h, "software");
       break;
+    case "software-instance":
+      openTab(h, "software-instance");
+      break;
     case "schedule":
       openTab(h, "schedule");
       break;
@@ -1604,10 +1648,21 @@ async function toggleHost(h: Host): Promise<void> {
  */
 const statusMetrics = computed(() => {
   const h = statusHost.value;
-  if (!h) return { cpu: 0, mem: 0, disk: 0, has: false };
+  if (!h) {
+    return { cpu: 0, mem: 0, disk: 0, has: false, diskRead: 0, diskWrite: 0, netRx: 0, netTx: 0, hasIo: false, memTotalMb: 0, diskTotalGb: 0 };
+  }
+  const totals = {
+    memTotalMb: Number(h.serverHostMemoryMb) || 0,
+    diskTotalGb: Number(h.serverHostDiskGb) || 0,
+  };
   const live = rtMetrics[h.id];
   if (live) {
-    return { cpu: live.cpu ?? 0, mem: live.mem ?? 0, disk: live.disk ?? 0, has: true };
+    return {
+      cpu: live.cpu ?? 0, mem: live.mem ?? 0, disk: live.disk ?? 0, has: true,
+      diskRead: live.diskRead ?? 0, diskWrite: live.diskWrite ?? 0,
+      netRx: live.netRx ?? 0, netTx: live.netTx ?? 0, hasIo: !!live.hasIo,
+      ...totals,
+    };
   }
   const cpu = h.serverHostCpuUsage;
   const mem = h.serverHostMemUsage;
@@ -1618,6 +1673,12 @@ const statusMetrics = computed(() => {
     mem: Number(mem) || 0,
     disk: Number(disk) || 0,
     has,
+    diskRead: Number(h.serverHostDiskReadKbs) || 0,
+    diskWrite: Number(h.serverHostDiskWriteKbs) || 0,
+    netRx: Number(h.serverHostNetRxKbs) || 0,
+    netTx: Number(h.serverHostNetTxKbs) || 0,
+    hasIo: h.serverHostDiskReadKbs != null || h.serverHostDiskWriteKbs != null,
+    ...totals,
   };
 });
 
@@ -1678,6 +1739,23 @@ onBeforeUnmount(() => {
   hostAssetsSse.setSummaryHost(null);
 });
 
+/** 内存用量文本：已用 / 总量（拿不到总量时给「—」） */
+const memUsageText = computed(() => {
+  const m = statusMetrics.value;
+  if (!m.memTotalMb) return "";
+  const used = (m.memTotalMb * Math.max(0, Math.min(100, m.mem))) / 100;
+  const fmt = (mb: number) => mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${mb.toFixed(0)} MB`;
+  return `${fmt(used)} / ${fmt(m.memTotalMb)}`;
+});
+
+/** 磁盘用量文本：已用 / 总量 */
+const diskUsageText = computed(() => {
+  const m = statusMetrics.value;
+  if (!m.diskTotalGb) return "";
+  const used = (m.diskTotalGb * Math.max(0, Math.min(100, m.disk))) / 100;
+  return `${used.toFixed(1)} GB / ${m.diskTotalGb.toFixed(1)} GB`;
+});
+
 /** 概要浮层里的行（原先画像页左侧那套「概要信息」） */
 const statusOverviewRows = computed<MetricRow[]>(() => {
   const h = statusHost.value;
@@ -1690,8 +1768,19 @@ const statusOverviewRows = computed<MetricRow[]>(() => {
     { label: "操作系统", value: dash([h.serverHostOsType, h.serverHostOsVersion].filter(Boolean).join(" ")) },
     { label: "架构", value: dash(h.serverHostOsArch) },
     { label: "CPU 核心", value: h.serverHostCpuCores ? `${h.serverHostCpuCores} 核` : "—" },
-    { label: "内存", value: h.serverHostMemoryMb ? `${(h.serverHostMemoryMb / 1024).toFixed(1)} GB` : "—" },
-    { label: "磁盘", value: h.serverHostDiskGb ? `${h.serverHostDiskGb} GB` : "—" },
+    {
+      label: "内存",
+      value: h.serverHostMemoryMb ? `${(h.serverHostMemoryMb / 1024).toFixed(1)} GB` : "—",
+      // 数值下方补一条占用率（外壳 + 内条），用量按当前实时百分比折算
+      percent: statusMetrics.value.has ? statusMetrics.value.mem : undefined,
+      percentText: memUsageText.value,
+    },
+    {
+      label: "磁盘",
+      value: h.serverHostDiskGb ? `${h.serverHostDiskGb} GB` : "—",
+      percent: statusMetrics.value.has ? statusMetrics.value.disk : undefined,
+      percentText: diskUsageText.value,
+    },
     { label: "地址", value: dash(`${h.serverHostAddress}:${h.serverHostPort}`), mono: true },
     { label: "内网 IP", value: privateIpTextOf(h.serverHostPrivateIp) || "—", mono: true },
     { label: "公网 IP", value: dash(h.serverHostPublicIp), mono: true },
@@ -1722,6 +1811,26 @@ const statusOverviewRows = computed<MetricRow[]>(() => {
   }
   return rows;
 });
+
+/* ==================== 底部条：指标历史（复用指标监控那套历史） ==================== */
+
+const metricHistVisible = ref(false);
+const metricHistKind = ref<HostMetricKind>("cpu");
+
+/**
+ * 打开底部条对应指标的历史曲线。
+ *
+ * @param kind 指标
+ */
+function openMetricHistory(kind: HostMetricKind): void {
+  if (!statusHost.value) return;
+  metricHistKind.value = kind;
+  metricHistVisible.value = true;
+}
+
+/* ==================== 主机导入 / 导出（客户端会话 + 资产归档） ==================== */
+
+const hostIeVisible = ref(false);
 
 /* ==================== 左侧栏与页签查询辅助 ==================== */
 
@@ -1856,6 +1965,8 @@ function lazyTabOf(name: string): Component | null {
       return ScheduleTab;
     case "software":
       return SoftwareTab;
+    case "software-instance":
+      return ScHostSoftwareInstances;
     case "sys-log":
     case "user-log":
       // 日志页有专属分支（要额外传 kind=sys|login），不走通用懒加载映射
@@ -1951,14 +2062,24 @@ onMounted(() => {
   });
   unsubMetrics = socket?.subscribe("monitor", "host-metrics", (msg) => {
     try {
-      const d = (msg.data ?? msg) as { hostId?: number; cpu?: number; mem?: number; disk?: number };
+      const d = (msg.data ?? msg) as {
+        hostId?: number; cpu?: number; mem?: number; disk?: number;
+        diskRead?: number; diskWrite?: number; netRx?: number; netTx?: number;
+      };
       if (!realtimeEnabled.value) return;
       if (d && d.hostId != null) {
+        const prev = rtMetrics[d.hostId];
+        // 老后端只推 cpu/mem/disk，此时不把已有 IO 值清零
+        const hasIo = d.diskRead != null || d.diskWrite != null || d.netRx != null || d.netTx != null;
         rtMetrics[d.hostId] = {
           cpu: Math.round((Number(d.cpu) || 0) * 10) / 10,
           mem: Math.round((Number(d.mem) || 0) * 10) / 10,
           disk: Math.round((Number(d.disk) || 0) * 10) / 10,
-          tx: '—', rx: '—'
+          diskRead: hasIo ? Number(d.diskRead) || 0 : prev?.diskRead ?? 0,
+          diskWrite: hasIo ? Number(d.diskWrite) || 0 : prev?.diskWrite ?? 0,
+          netRx: hasIo ? Number(d.netRx) || 0 : prev?.netRx ?? 0,
+          netTx: hasIo ? Number(d.netTx) || 0 : prev?.netTx ?? 0,
+          hasIo: hasIo || !!prev?.hasIo,
         };
       }
     } catch { /* 静默 */ }
@@ -2344,6 +2465,9 @@ function onGlobalKeydown(e: KeyboardEvent): void {
             <button type="button" class="rail-tool" title="刷新列表" :disabled="loading" @click="fetchAll">
               <ReIcon name="RefreshRight" :size="12" />
             </button>
+            <button type="button" class="rail-tool" title="导入 / 导出主机（会话文件、资产归档）" @click="hostIeVisible = true">
+              <ReIcon name="Upload" :size="12" />
+            </button>
             <button type="button" class="rail-tool" title="独立窗口打开（只显示主机资产）" @click="openStandalone">
               <ReIcon name="TopRight" :size="12" />
             </button>
@@ -2614,6 +2738,13 @@ function onGlobalKeydown(e: KeyboardEvent): void {
             :cpu="statusMetrics.cpu"
             :mem="statusMetrics.mem"
             :disk="statusMetrics.disk"
+            :mem-total-mb="statusMetrics.memTotalMb"
+            :disk-total-gb="statusMetrics.diskTotalGb"
+            :disk-read-kbs="statusMetrics.diskRead"
+            :disk-write-kbs="statusMetrics.diskWrite"
+            :net-rx-kbs="statusMetrics.netRx"
+            :net-tx-kbs="statusMetrics.netTx"
+            :has-io="statusMetrics.hasIo"
             :has-metrics="statusMetrics.has"
             :handle-count="statusSummary.handleCount"
             :inode-percent="statusSummary.inodePercent"
@@ -2621,6 +2752,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
             :inode-total="statusSummary.inodeTotal"
             :inode-mount="statusSummary.inodeMount"
             :rows="statusOverviewRows"
+            @metric-click="openMetricHistory"
           />
           <!-- Dock 开关：箭头直接销毁 / 恢复右侧快捷操作面板（不再套一层设置浮窗） -->
           <div class="as-work__foot">
@@ -2792,6 +2924,17 @@ function onGlobalKeydown(e: KeyboardEvent): void {
 
     <HostConfigDialog v-model="configVisible" :host="configHost" :mode="configMode" @saved="fetchAll" />
 
+    <!-- 底部条点数字打开的历史曲线（与指标监控页同一数据源） -->
+    <HostMetricHistoryDialog
+      v-model="metricHistVisible"
+      :host-id="statusHost?.id ?? 0"
+      :host-name="statusHost?.serverHostName ?? ''"
+      :kind="metricHistKind"
+    />
+
+    <!-- 导入 / 导出：客户端会话文件（ssh/plink/xshell）+ 主机资产归档 JSON -->
+    <HostImportExportDialog v-model="hostIeVisible" :hosts="hosts" @imported="fetchAll" />
+
     <!-- 远控配置已并入主机编辑弹窗（HostFormDialog 的「远控配置」区块） -->
 
     <!-- Agent 自动部署进度弹窗（socket 实时推送，支持最小化和断点续传） -->
@@ -2962,6 +3105,10 @@ function onGlobalKeydown(e: KeyboardEvent): void {
             <!-- 软件管理：系统包管理器安装 / 卸载 / 升级 / 检索 -->
             <div class="host-ctx-item" @click="ctxCommand('software')">
               <ReIcon name="Box" /><span>软件管理</span>
+            </div>
+            <!-- 软件实例：运行中的进程级实例，与指标监控页的「软件实例」同一份数据 -->
+            <div class="host-ctx-item" @click="ctxCommand('software-instance')">
+              <ReIcon name="Cpu" /><span>软件实例</span>
             </div>
             <div class="host-ctx-sep" />
             <div class="host-ctx-label">改配与远控</div>

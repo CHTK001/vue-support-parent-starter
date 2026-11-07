@@ -402,9 +402,16 @@ const unwrapResultSeries = (res: any): SeriesPoint[] => {
 };
 
 // ===== 主机内置指标历史（不依赖监控项，供监控详情近1h基础数据/图表历史）=====
-/** [时间戳ms, CPU%, 内存%, 磁盘%, 磁盘读KB/s, 磁盘写KB/s]，缺失值为 null */
+/**
+ * [时间戳ms, CPU%, 内存%, 磁盘%, 磁盘读KB/s, 磁盘写KB/s, 网络接收KB/s, 网络发送KB/s]
+ *
+ * <p>后两列是网络收发速率，4.0.0.54 起由采集通道写入历史表；
+ * 更早的历史行该两列为 null，前端按「无数据」处理，不要当成 0。</p>
+ */
 export type HostMetricPoint = [
   number,
+  number | null,
+  number | null,
   number | null,
   number | null,
   number | null,
