@@ -18,7 +18,7 @@
    */
   -->
 <template>
-  <div class="df" tabindex="0" @contextmenu.prevent="openCtx($event, null)" @keydown="onKey">
+  <div class="df" tabindex="0" @contextmenu.stop.prevent="openCtx($event, null)" @keydown="onKey">
     <!-- 工具条：导航 / 面包屑 / 筛选 / 新建 / 上传 / 布局 / 排序 -->
     <div class="df__bar">
       <button type="button" class="df__btn" title="后退" :disabled="!canBack" @click="back">

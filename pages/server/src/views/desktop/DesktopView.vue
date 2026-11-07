@@ -138,7 +138,12 @@
             </button>
           </span>
         </div>
-        <div class="vwin__body">
+        <!--
+          窗口内容区的右键必须停在这里：桌面菜单是「这台机器能开什么应用」，
+          不是窗口自己的菜单。放它冒泡上去，文件窗口的右键菜单就会和桌面菜单
+          叠在一起出现两份，点哪一层都先被另一层的遮罩吃掉，只能连点两次。
+        -->
+        <div class="vwin__body" @contextmenu.prevent.stop>
           <component :is="APP_COMPONENTS[w.app]" v-bind="appProps(w)" />
         </div>
         <span v-if="!w.max" class="vwin__grip" @pointerdown.stop="startResize($event, w)" />
