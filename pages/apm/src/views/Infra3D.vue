@@ -13,14 +13,11 @@
 <template>
   <ApmGate v-slot="{ status }">
     <div class="apm-bar apm-toolbar">
+      <!-- 时间窗是唯一的数据口径，选了就查；其余都是「这张图怎么画」，挪进图卡头 -->
       <ReSelect v-model="minutes" :options="windowOptions" style="width: 150px" @change="load" />
-      <ReSwitch v-model="autoRotate" size="small" />
-      <span class="apm-count">自动旋转</span>
-      <ReSwitch v-model="showEdges" size="small" />
-      <span class="apm-count">显示调用边</span>
-      <span class="apm-bar__spacer" />
       <span class="apm-count">{{ data?.nodes?.length ?? 0 }} 个节点 · {{ data?.calls?.length ?? 0 }} 条边 · {{ data?.layers?.length ?? 0 }} 层</span>
-      <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
+      <span class="apm-bar__spacer" />
+      <span class="apm-muted">拖拽旋转 · 滚轮缩放</span>
     </div>
 
     <ReSkeleton v-if="loading && !data" :rows="6" animated />
@@ -30,9 +27,29 @@
         <template #header>
           <div class="apm-card-head">
             <span class="apm-card-h">分层视图</span>
-            <span class="apm-muted">鼠标左键拖拽旋转 · 滚轮缩放</span>
+            <span class="apm-bar__spacer" />
+            <!-- 两个开关只影响这张图，贴着它放，用户不用回工具条找 -->
+            <span class="infra-toggle">
+              <ReSwitch v-model="autoRotate" size="small" />
+              <span class="apm-muted">自动旋转</span>
+            </span>
+            <span class="infra-toggle">
+              <ReSwitch v-model="showEdges" size="small" />
+              <span class="apm-muted">调用边</span>
+            </span>
+            <ReButton icon="Refresh" text :loading="loading" title="重新取数" @click="load" />
           </div>
         </template>
+
+        <!-- 层图例：原来是「每层一张卡」的网格，三层就吃掉一整屏；
+             压成一行 chips 后，3D 图与图例在同一屏内可对照。 -->
+        <div v-if="layerLegend.length" class="infra-legend">
+          <span v-for="layer in layerLegend" :key="layer.name" class="infra-legend__item">
+            <span class="infra-legend__dot" :style="{ background: layer.color }" />
+            <span class="apm-mono">{{ layer.name }}</span>
+            <span class="apm-mono apm-muted">{{ layer.count }}</span>
+          </span>
+        </div>
 
         <ReEmpty v-if="!data?.nodes?.length" :image-size="70" description="该时间窗口内没有拓扑数据" />
         <div v-else class="infra-stage">
@@ -41,17 +58,6 @@
           <ReThree :height="stageHeight" :auto-rotate="autoRotate" :auto-rotate-speed="0.5" @ready="onReady" />
         </div>
       </ReCard>
-
-      <div class="apm-grid">
-        <ReCard v-for="layer in data?.layers ?? []" :key="layer.name" :radius="12" shadow="never">
-          <div class="infra-layer">
-            <span class="infra-layer__dot" :style="{ background: layerColor(layer.name) }" />
-            <span class="infra-layer__name apm-mono">{{ layer.name }}</span>
-            <span class="apm-bar__spacer" />
-            <span class="apm-mono">{{ layer.count }}</span>
-          </div>
-        </ReCard>
-      </div>
     </template>
 
     <div v-if="!status.capabilities.includes('topology')" class="apm-muted">
@@ -61,7 +67,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import ReButton from "@repo/ui/re-button";
 import ReCard from "@repo/ui/re-card";
 import ReEmpty from "@repo/ui/re-empty";
@@ -110,6 +116,11 @@ function layerColor(name: string): string {
   }
   return LAYER_COLORS[hash % LAYER_COLORS.length];
 }
+
+/** 层图例（层名 + 数量 + 与 3D 场景一致的颜色） */
+const layerLegend = computed(() =>
+  (data.value?.layers ?? []).map((layer) => ({ ...layer, color: layerColor(layer.name) })),
+);
 
 /** 场景对象引用（用于配置变化时重建，而不是叠着画） */
 let ctx: ReThreeContext | null = null;
@@ -405,20 +416,36 @@ onBeforeUnmount(() => {
   box-shadow: inset 0 0 0 1px var(--border-subtle, #eef0f6);
 }
 
-.infra-layer {
-  display: flex;
+.infra-toggle {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-size: 12px;
+  white-space: nowrap;
 }
 
-.infra-layer__dot {
+/* 层图例：一行 chips，配色与场景里的球体一致 */
+.infra-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-subtle, #eef0f6);
+}
+
+.infra-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary, var(--el-text-color-regular));
+}
+
+.infra-legend__dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-}
-
-.infra-layer__name {
-  color: var(--text-secondary, var(--el-text-color-regular));
+  flex: none;
 }
 </style>

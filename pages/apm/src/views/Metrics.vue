@@ -54,10 +54,11 @@
         style="width: 260px"
         @change="load"
       />
+      <!-- 时间窗是每次都要动的；粒度（秒/分/时/天）是偶尔才动的，
+           把它挪到图表卡头，紧挨着它影响的那张图，工具条少一层。 -->
       <ReSelect v-model="minutes" :options="windowOptions" style="width: 140px" @change="load" />
-      <ReSelect v-model="step" :options="stepOptions" style="width: 110px" @change="load" />
       <span class="apm-bar__spacer" />
-      <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
+      <span class="apm-count">{{ scopeText }}{{ entityService ? ` · ${entityService}` : "" }}</span>
     </div>
 
     <ReSkeleton v-if="loading && !series" :rows="6" animated />
@@ -71,6 +72,9 @@
           <span class="apm-bar__spacer" />
           <span v-if="currentDefinition?.description" class="apm-card-note">{{ currentDefinition.description }}</span>
           <span class="apm-card-note">{{ series?.points?.length ?? 0 }} 个数据点 · 单位 {{ unit || "—" }}</span>
+          <!-- 粒度贴着它影响的曲线放：改这里就是改这张图的采样密度 -->
+          <ReSelect v-model="step" :options="stepOptions" style="width: 102px" @change="load" />
+          <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
         </div>
       </template>
       <MetricChart v-if="series?.points?.length" :series="[series]" height="380px" />
@@ -154,6 +158,7 @@ const stepOptions = [
 ];
 
 const metricOptions = computed(() => definitions.value.map((d) => ({ label: d.label || d.name, value: d.name })));
+const scopeText = computed(() => scopeOptions.find((item) => item.value === scope.value)?.label ?? "");
 const currentDefinition = computed(() => definitions.value.find((d) => d.name === name.value) ?? null);
 const unit = computed(() => currentDefinition.value?.unit ?? series.value?.unit ?? "");
 const serviceOptions = computed(() => services.value.map((v) => ({ label: v, value: v })));
@@ -187,20 +192,26 @@ async function onScopeChange() {
 async function onServiceChange() {
   instance.value = "";
   endpoint.value = "";
+  await loadEntityOptions();
+  load();
+}
+
+/** 只刷新实体下拉，不查询 —— 供 onServiceChange 与首屏预填复用 */
+async function loadEntityOptions() {
   instances.value = [];
   endpoints.value = [];
-  if (entityService.value) {
-    try {
-      if (scope.value === "SERVICE_INSTANCE") {
-        instances.value = ((await listInstances(entityService.value, {})) || []).map((i) => i.name);
-      } else if (scope.value === "ENDPOINT") {
-        endpoints.value = ((await listEndpoints(entityService.value, undefined, {})) || []).map((e) => e.name);
-      }
-    } catch {
-      /* 下拉取不到时图表仍可查服务级数据 */
-    }
+  if (!entityService.value) {
+    return;
   }
-  load();
+  try {
+    if (scope.value === "SERVICE_INSTANCE") {
+      instances.value = ((await listInstances(entityService.value, {})) || []).map((i) => i.name);
+    } else if (scope.value === "ENDPOINT") {
+      endpoints.value = ((await listEndpoints(entityService.value, undefined, {})) || []).map((e) => e.name);
+    }
+  } catch {
+    /* 下拉取不到时图表仍可查服务级数据 */
+  }
 }
 
 async function loadDefinitions() {
@@ -248,8 +259,14 @@ onMounted(async () => {
   if (!present.value) {
     return;
   }
-  // 从其它页跳过来时带着服务：优先用它，别覆盖成「第一个服务」
+  // 从其它页跳过来时带着服务/端点：优先用它，别覆盖成「第一个服务」。
+  // 带端点说明来源是端点维度的排障，作用域直接落到「端点」，省一次手选。
   const context = consumeApmTabContext();
+  if (context?.instance) {
+    scope.value = "SERVICE_INSTANCE";
+  } else if (context?.endpoint) {
+    scope.value = "ENDPOINT";
+  }
   try {
     services.value = ((await listServices({})) || []).map((s) => s.name);
   } catch {
@@ -261,6 +278,16 @@ onMounted(async () => {
   }
   if (context?.minutes) {
     minutes.value = context.minutes;
+  }
+  // 端点 / 实例的取值空间挂在服务下，先把下拉补齐再回填上下文里的选择
+  if (entityService.value && (scope.value === "ENDPOINT" || scope.value === "SERVICE_INSTANCE")) {
+    await loadEntityOptions();
+  }
+  if (context?.endpoint && scope.value === "ENDPOINT") {
+    endpoint.value = context.endpoint;
+  }
+  if (context?.instance && scope.value === "SERVICE_INSTANCE") {
+    instance.value = context.instance;
   }
   await loadDefinitions();
   load();

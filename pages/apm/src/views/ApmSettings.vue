@@ -16,8 +16,8 @@
     <ReSectionHead description="引擎开关、选型与可热改参数；进程级设置只读展示">
       <template #title>APM 设置</template>
       <template #actions>
-        <ReButton icon="Refresh" show-text :loading="loading" @click="load">刷新</ReButton>
-        <ReButton icon="Aim" show-text :loading="detecting" @click="detect">重新探测</ReButton>
+        <!-- 页头只留「保存」：打开页面就已经读过设置，保存后也会把最新状态取回来，
+             因此「刷新」不是日常动作；「重新探测」属于状态卡自己的操作，贴到那张卡头上。 -->
         <ReButton icon="Check" type="primary" show-text :loading="saving" @click="save">保存</ReButton>
       </template>
     </ReSectionHead>
@@ -48,6 +48,19 @@
           <ReTag :type="settings.enabled ? 'primary' : 'info'" round>
             {{ settings.enabled ? "模块已开启" : "模块已关闭" }}
           </ReTag>
+          <!-- 两个动作都只影响「这张卡显示的当前状态」，因此放在卡头而不是页头 -->
+          <ReButton
+            icon="Aim"
+            text
+            :loading="detecting"
+            title="清掉探测缓存并立即重新探活"
+            @click="detect"
+          >
+            重新探测
+          </ReButton>
+          <ReButton icon="Refresh" text :loading="loading" title="从服务端重新读取设置" @click="load">
+            重新读取
+          </ReButton>
         </div>
         <div class="apm-kv">
           <div class="apm-kv__row">

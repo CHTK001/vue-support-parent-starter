@@ -182,6 +182,8 @@ export interface ApmTabContext {
   service?: string;
   /** 要定位的端点名 */
   endpoint?: string;
+  /** 要定位的实例名（指标页在实例作用域下用它预选） */
+  instance?: string;
   /** 时间窗（分钟），跟随来源页，避免「跳过去窗口又变回 30 分钟」 */
   minutes?: number;
   /** 要直接打开的链路 */

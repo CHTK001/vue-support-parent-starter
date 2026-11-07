@@ -19,10 +19,11 @@
       />
       <ReInput v-model="keyword" placeholder="按日志内容 / traceId 过滤" clearable style="width: 260px" @keyup.enter="load" />
       <ReSelect v-model="minutes" :options="windowOptions" style="width: 150px" @change="load" />
+      <!-- 服务与时间窗都是选了就查，只有关键字需要显式提交；
+           因此这里不再单独放「刷新」——它和查询做的是同一件事，只会多一个按钮。 -->
       <ReButton icon="Search" type="primary" :loading="loading" @click="load">查询</ReButton>
       <span class="apm-bar__spacer" />
       <span class="apm-count">{{ logs.length }} 条日志</span>
-      <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
     </div>
 
     <ReSkeleton v-if="loading && !logs.length" :rows="8" animated />
@@ -56,13 +57,22 @@
         <ReTag :type="levelType(row.level)" size="small" round>{{ row.level || "—" }}</ReTag>
       </template>
       <template #col-serviceName="{ row }">
-        <span class="apm-mono">{{ row.serviceName || "—" }}</span>
+        <el-link
+          v-if="row.serviceName"
+          type="primary"
+          :underline="false"
+          class="apm-mono"
+          @click="openService(row.serviceName)"
+        >
+          {{ row.serviceName }}
+        </el-link>
+        <span v-else class="apm-muted">—</span>
       </template>
       <template #col-content="{ row }">
         <span class="apm-mono log-content" :title="row.content">{{ row.content || "—" }}</span>
       </template>
       <template #col-traceId="{ row }">
-        <el-link v-if="row.traceId" type="primary" :underline="false" @click="openTrace(row.traceId)">
+        <el-link v-if="row.traceId" type="primary" :underline="false" @click="openTrace(row)">
           {{ shortId(row.traceId) }}
         </el-link>
         <span v-else class="apm-muted">—</span>
@@ -140,9 +150,26 @@ function shortId(traceId: string): string {
   return traceId.length > 16 ? `…${traceId.slice(-14)}` : traceId;
 }
 
-/** 点 traceId 回到链路详情 */
-function openTrace(traceId: string) {
-  router.push({ path: `${ROUTE_PREFIX}/traces/detail`, query: { traceId } });
+/** 点 traceId 回到链路详情：把服务与时间窗一起带过去。
+ *
+ *  只带 traceId 的话，详情页「返回列表」会退成默认筛选（全部服务、
+ *  默认时间窗），一条日志点进去再退回来就丢了上下文 —— 这正是
+ *  「要点好几次」的来源。TraceDetail 的 goBack 会原样还原这三个参数。
+ */
+function openTrace(row: ApmLogRecord) {
+  router.push({
+    path: `${ROUTE_PREFIX}/traces/detail`,
+    query: {
+      traceId: String(row.traceId ?? ""),
+      ...(row.serviceName ? { service: row.serviceName } : {}),
+      minutes: String(minutes.value),
+    },
+  });
+}
+
+/** 点服务名直接看这个服务的健康与端点，不用回服务列表再找一遍 */
+function openService(name: string) {
+  router.push({ path: `${ROUTE_PREFIX}/services/detail`, query: { service: name } });
 }
 
 async function load() {
