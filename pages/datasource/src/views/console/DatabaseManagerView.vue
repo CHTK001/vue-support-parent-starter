@@ -10010,8 +10010,9 @@ onBeforeUnmount(() => {
   color: var(--el-color-primary);
 }
 
-/* 主体 */
-.dbm-body { display: flex; gap: 16px; flex: 1; min-height: 0; }
+/* 主体：列间距与画布 gap 同为 12px，三层留白（画布→工具条→双卡、双卡之间）走同一个节奏，
+   不再出现「上下 12、左右 16」的错位。 */
+.dbm-body { display: flex; gap: 12px; flex: 1; min-height: 0; }
 
 /* 左侧连接树卡 */
 .dbm-sidebar {
@@ -11181,13 +11182,15 @@ onBeforeUnmount(() => {
   gap: 2px;
   padding: 2px;
   background: var(--el-fill-color-light);
-  border-radius: var(--el-radius-full, 9999px);
+  /* 胶囊：koi 把 --el-radius-full 定成 8px（给 EP round 按钮用），套在这里会变方，
+     所以刻意写死 9999px。 */
+  border-radius: 9999px;
 }
 .dbm-subtab {
   padding: 3px 14px;
   font-size: 12.5px;
   color: var(--el-text-color-secondary);
-  border-radius: var(--el-radius-full, 9999px);
+  border-radius: 9999px;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
 }
