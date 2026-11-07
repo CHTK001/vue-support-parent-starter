@@ -10,7 +10,7 @@
  */
 
 /** 桌面应用标识 */
-export type DesktopAppKey = "terminal" | "files" | "monitor" | "console";
+export type DesktopAppKey = "terminal" | "files" | "desktop" | "monitor" | "console";
 
 /** 桌面窗口 */
 export interface DesktopWindow {
@@ -64,7 +64,14 @@ export interface DesktopHost {
   serverHostPort?: number | null;
   serverHostOsType?: string | null;
   serverHostOnline: number;
-  /** 采集方式；LOCAL 表示平台所在主机自身，后端会拒绝 SSH 远控 */
+  /** 采集方式；只用于展示，不作为「能不能 SSH」的依据（本机同样可能开着 sshd） */
   serverHostCollectMode?: string | null;
+  /** 台账是否开启 SSH（0 = 明确关闭；其余按可用处理） */
+  serverHostSshEnabled?: number | null;
+  /** 远控协议：SSH / VNC / RDP */
   serverHostRemoteProtocol?: string | null;
+  /** 台账远控端口（该协议自己的端口，不要拿它当 SSH 端口） */
+  serverHostRemotePort?: number | null;
+  /** 台账远控入口是否开启 */
+  serverHostRemoteEnabled?: number | null;
 }

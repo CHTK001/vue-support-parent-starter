@@ -3,29 +3,42 @@
    * 虚拟桌面
    *
    * <p>「通过 SSH 模拟桌面」的落点：外观是 Ubuntu 风格的桌面壳（顶栏 + Dock +
-   * 可拖拽窗口），数据面全部走平台已有的 SSH / SFTP / 命令执行通道，
-   * 所以主机不需要装 VNC、不需要额外桌面环境，Linux / Windows / macOS 都能开。</p>
+   * 可拖拽窗口），数据面全部走平台已有的 SSH / SFTP / 命令执行 / VNC 通道，
+   * 所以主机不需要额外装桌面环境。</p>
+   *
+   * <p>桌面是<b>按主机</b>开的（路由 {@code /desktop/:hostId}）：一台主机一个桌面，
+   * 没有全局主机下拉。入口在主机资产页的右键菜单里，换主机就是换桌面。</p>
    *
    * <p>三个刻意的取舍：</p>
    * <ul>
-   *   <li>每个窗口只绑打开时那台主机：切顶栏主机不会偷偷把已开的终端换掉；</li>
+   *   <li>窗口只绑这一台主机：页面里没有「切主机」这种会把已有窗口偷换掉的动作；</li>
    *   <li>最小化只隐藏不销毁：终端是长连接 PTY，销毁等于断线；</li>
    *   <li>不做窗口动画与自由缩放动画：桌面壳的价值在「能用」，不在炫技。</li>
    * </ul>
    */
   -->
 <template>
-  <div class="vdesk">
-    <!-- 顶栏 -->
+  <!-- 单窗口模式（?only=terminal 等）：新标签页里只显示这一个桌面窗口 -->
+  <div v-if="singleKey" class="vdesk vdesk--single">
+    <div v-if="activeHost" class="vdesk__single">
+      <component :is="APP_COMPONENTS[singleKey]" v-bind="propsFor(singleKey, hostId, true)" />
+    </div>
+    <div v-else-if="ready" class="vdesk__empty">
+      <ReIcon name="Monitor" :size="38" />
+      <b>请先选择一台主机</b>
+      <span>虚拟桌面属于具体主机：在主机资产页的右键菜单里打开某一台主机的桌面</span>
+    </div>
+    <div v-else class="vdesk__boot">
+      <span class="vdesk__boot-dot" />
+      正在读取主机…
+    </div>
+  </div>
+
+  <div v-else class="vdesk">
+    <!-- 顶栏：这台主机的桌面，不提供主机切换（换主机请回主机资产页重开） -->
     <header class="vdesk__top">
-      <span class="vdesk__brand">虚拟桌面</span>
-      <span class="vdesk__sep" />
-      <select v-model.number="activeHostId" class="vdesk__sel" @change="onHostChange">
-        <option v-if="!hosts.length" :value="0">暂无主机</option>
-        <option v-for="h in hosts" :key="h.id" :value="h.id">
-          {{ h.serverHostName }} · {{ h.serverHostAddress }}
-        </option>
-      </select>
+      <span class="vdesk__host">{{ activeHost?.serverHostName || "未指定主机" }}</span>
+      <span v-if="activeHost" class="vdesk__addr">{{ activeHost.serverHostAddress }}</span>
       <span class="vdesk__dot" :class="activeHost?.serverHostOnline === 1 ? 'is-on' : 'is-off'" />
       <span class="vdesk__os">{{ activeHost?.serverHostOsType || "—" }}</span>
       <span class="vdesk__spacer" />
@@ -38,24 +51,24 @@
       </button>
     </header>
 
-    <!-- Dock -->
-    <nav class="vdesk__dock">
+    <!-- Dock：只列这台主机真的能用的应用（没有主机就没有 Dock） -->
+    <nav v-if="activeHost" class="vdesk__dock">
       <button
-        v-for="a in APPS"
+        v-for="a in dockApps"
         :key="a.key"
         type="button"
         class="dock"
-        :class="{ 'is-running': hasWindow(a.key), 'is-off': a.key !== 'monitor' && !sshReady(activeHost) }"
-        :title="a.key !== 'monitor' && !sshReady(activeHost) ? `${a.hint}（这台主机不支持 SSH）` : a.hint"
+        :class="{ 'is-running': hasWindow(a.key), 'is-off': a.off }"
+        :title="a.off ? `${a.hint}（${a.offReason}）` : a.hint"
         @click="openApp(a.key)"
       >
         <ReIcon :name="a.icon" :size="19" />
         <span class="dock__label">{{ a.label }}</span>
       </button>
       <i class="dock__sep" />
-      <button type="button" class="dock" title="刷新主机列表" @click="reloadHosts">
+      <button type="button" class="dock" title="重新读取这台主机" @click="reloadHost">
         <ReIcon name="RefreshRight" :size="17" />
-        <span class="dock__label">主机</span>
+        <span class="dock__label">刷新</span>
       </button>
     </nav>
 
@@ -73,6 +86,9 @@
         <div class="vwin__bar" @pointerdown="startDrag($event, w)" @dblclick="toggleMax(w)">
           <span class="vwin__title">{{ w.title }}</span>
           <span class="vwin__btns">
+            <button type="button" title="在新标签页打开（只显示这个窗口）" @pointerdown.stop @click.stop="popOut(w)">
+              <ReIcon name="TopRight" :size="11" />
+            </button>
             <button type="button" title="最小化" @pointerdown.stop @click.stop="minimize(w)">
               <ReIcon name="Minus" :size="11" />
             </button>
@@ -92,28 +108,37 @@
     </div>
 
     <!-- 空桌面提示 -->
-    <div v-if="ready && !windows.length" class="vdesk__empty">
+    <div v-if="ready && activeHost && !windows.length" class="vdesk__empty">
       <ReIcon name="Monitor" :size="38" />
-      <b>选择一台主机，从左侧 Dock 打开应用</b>
-      <span>终端、文件、监控、命令都是对这台主机的真实操作</span>
+      <b>从左侧 Dock 打开「{{ activeHost.serverHostName }}」的应用</b>
+      <span>终端、文件、远程桌面、监控、命令都是对这台主机的真实操作</span>
+    </div>
+
+    <!-- 没有带主机进来：桌面是按主机开的，不做全局页 -->
+    <div v-if="ready && !activeHost" class="vdesk__empty">
+      <ReIcon name="Monitor" :size="38" />
+      <b>请先选择一台主机</b>
+      <span>虚拟桌面属于具体主机：在主机资产页的右键菜单里打开某一台主机的桌面</span>
+      <button type="button" class="vdesk__go" @click="leave">去主机资产</button>
     </div>
 
     <!-- 加载态 -->
     <div v-if="!ready" class="vdesk__boot">
       <span class="vdesk__boot-dot" />
-      正在读取主机列表…
+      正在读取主机…
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, type Component } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch, type Component } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
-import { queryHosts } from "../../api";
+import { getHost } from "../../api";
 import type { DesktopAppDef, DesktopAppKey, DesktopHost, DesktopWindow } from "./types";
 import DesktopTerminal from "./apps/DesktopTerminal.vue";
 import DesktopFiles from "./apps/DesktopFiles.vue";
+import DesktopVnc from "./apps/DesktopVnc.vue";
 import DesktopMonitor from "./apps/DesktopMonitor.vue";
 import DesktopConsole from "./apps/DesktopConsole.vue";
 
@@ -125,10 +150,11 @@ const DOCK_W = 78;
 const MIN_W = 380;
 const MIN_H = 240;
 
-/** Dock 上的应用 */
+/** Dock 上的应用（「桌面」只在能走 VNC 的主机上出现） */
 const APPS: DesktopAppDef[] = [
   { key: "terminal", label: "终端", icon: "Monitor", w: 900, h: 540, hint: "SSH 终端（直连 PTY）" },
   { key: "files", label: "文件", icon: "FolderOpened", w: 900, h: 560, hint: "通过 SFTP 浏览远端文件" },
+  { key: "desktop", label: "桌面", icon: "Picture", w: 1000, h: 620, hint: "VNC 远程桌面（noVNC 直连）" },
   { key: "monitor", label: "监控", icon: "Odometer", w: 520, h: 470, hint: "CPU / 内存 / 磁盘 / IO" },
   { key: "console", label: "命令", icon: "Promotion", w: 840, h: 540, hint: "执行命令（记入执行日志）" },
 ];
@@ -137,6 +163,7 @@ const APPS: DesktopAppDef[] = [
 const APP_COMPONENTS: Record<DesktopAppKey, Component> = {
   terminal: DesktopTerminal,
   files: DesktopFiles,
+  desktop: DesktopVnc,
   monitor: DesktopMonitor,
   console: DesktopConsole,
 };
@@ -144,8 +171,9 @@ const APP_COMPONENTS: Record<DesktopAppKey, Component> = {
 const route = useRoute();
 const router = useRouter();
 
-const hosts = ref<DesktopHost[]>([]);
-const activeHostId = ref(0);
+/** 这台桌面归属的主机（路由参数，页面里不提供切换） */
+const hostId = ref(0);
+const host = ref<DesktopHost | null>(null);
 const windows = ref<DesktopWindow[]>([]);
 const activeId = ref("");
 const ready = ref(false);
@@ -154,7 +182,19 @@ let zSeed = 10;
 let clockTimer: number | undefined;
 let seq = 0;
 
-const activeHost = computed(() => hosts.value.find((h) => h.id === activeHostId.value) ?? null);
+const activeHost = computed(() => host.value);
+
+/**
+ * 单窗口模式：路由带 {@code ?only=<app>} 时只渲染这一个桌面窗口。
+ *
+ * <p>桌面里的每个窗口都能「在新标签页打开」，新标签页只放这一个窗口，
+ * 用来把终端/远程桌面单独摆到第二块屏幕上，不再套 Dock 与顶栏。</p>
+ */
+const singleKey = computed<DesktopAppKey | null>(() => {
+  const raw = Array.isArray(route.query.only) ? route.query.only[0] : route.query.only;
+  const key = String(raw ?? "").trim();
+  return (APPS.some((a) => a.key === key) ? key : null) as DesktopAppKey | null;
+});
 
 /**
  * 当前时刻（每 15 秒刷新一次，分钟精度不需要每秒重排）。
@@ -166,18 +206,34 @@ function tickClock(): void {
 }
 
 /**
- * 主机列表（顶栏下拉与 Dock 的共用数据源）。
+ * 路由里的主机标识：优先路径参数，其次兼容旧的 {@code ?hostId=} 链接。
+ *
+ * @returns 主机标识；没带或非法时为 0
  */
-async function reloadHosts(): Promise<void> {
+function parseHostId(): number {
+  const raw = Array.isArray(route.params.hostId) ? route.params.hostId[0] : route.params.hostId;
+  const fromPath = Number(raw);
+  if (Number.isFinite(fromPath) && fromPath > 0) return fromPath;
+  const fromQuery = Number(route.query.hostId);
+  return Number.isFinite(fromQuery) && fromQuery > 0 ? fromQuery : 0;
+}
+
+/**
+ * 读取这台主机的台账行（桌面的唯一数据源）。
+ */
+async function reloadHost(): Promise<void> {
+  const id = parseHostId();
+  if (!id) {
+    host.value = null;
+    ready.value = true;
+    return;
+  }
   try {
-    const list = (await queryHosts({})) ?? [];
-    hosts.value = list as DesktopHost[];
-    if (!hosts.value.some((h) => h.id === activeHostId.value)) {
-      activeHostId.value = hosts.value[0]?.id ?? 0;
-    }
+    host.value = (await getHost(id)) as DesktopHost;
+    hostId.value = id;
   } catch (e) {
-    ElMessage.error(`主机列表加载失败：${String((e as Error)?.message ?? e)}`);
-    hosts.value = [];
+    host.value = null;
+    ElMessage.error(`主机 ${id} 读取失败：${String((e as Error)?.message ?? e)}`);
   } finally {
     ready.value = true;
   }
@@ -189,38 +245,73 @@ async function reloadHosts(): Promise<void> {
  * @param id 主机标识
  */
 function hostOf(id: number): DesktopHost | undefined {
-  return hosts.value.find((h) => h.id === id);
+  return host.value?.id === id ? host.value : undefined;
 }
 
 /**
- * 顶栏切主机：已开窗口保留（各自绑着原主机），只影响之后新开的应用。
+ * 台账配置的远控协议；没配时按 OS 推断（与远程控制页同一口径）。
+ *
+ * @param h 主机
  */
-function onHostChange(): void {
-  const h = activeHost.value;
-  if (h) ElMessage.success(`当前主机：${h.serverHostName}`);
+function protocolOf(h: DesktopHost | null | undefined): "ssh" | "vnc" | "rdp" {
+  const configured = String(h?.serverHostRemoteProtocol ?? "").toUpperCase();
+  if (configured === "SSH" || configured === "VNC" || configured === "RDP") {
+    return configured.toLowerCase() as "ssh" | "vnc" | "rdp";
+  }
+  const os = String(h?.serverHostOsType ?? "").toUpperCase();
+  if (os.includes("WIN")) return "rdp";
+  if (os.includes("MAC")) return "vnc";
+  return "ssh";
+}
+
+/** 这台主机能不能走 SSH 数据面：只看台账开关，不再按「本机采集」一刀切 */
+const sshReady = computed(() => {
+  const h = host.value;
+  if (!h) return false;
+  return (h.serverHostSshEnabled ?? 1) !== 0;
+});
+
+/** 这台主机有没有可用的 VNC 桌面 */
+const vncReady = computed(() => {
+  const h = host.value;
+  if (!h) return false;
+  return protocolOf(h) === "vnc" && (h.serverHostRemoteEnabled ?? 1) !== 0;
+});
+
+/**
+ * Dock 上真正可用的应用：不可用的照样显示，但降档并说明原因。
+ */
+const dockApps = computed(() => {
+  const h = host.value;
+  // 没有主机就没有 Dock：桌面是按主机开的，不做「全局应用栏」
+  if (!h) return [];
+  const online = h.serverHostOnline === 1;
+  return APPS.filter((a) => a.key !== "desktop" || vncReady.value).map((a) => {
+    if (a.key === "monitor") return { ...a, off: false, offReason: "" };
+    if (a.key === "desktop") {
+      return { ...a, off: !online, offReason: online ? "" : "主机离线" };
+    }
+    if (!sshReady.value) return { ...a, off: true, offReason: "台账未开启 SSH" };
+    return { ...a, off: !online, offReason: online ? "" : "主机离线" };
+  });
+});
+
+/**
+ * 应用不可用的原因（可用时为空串）。
+ *
+ * @param key 应用标识
+ */
+function appOffReason(key: DesktopAppKey): string {
+  return dockApps.value.find((a) => a.key === key)?.offReason ?? "";
 }
 
 /**
- * Dock 上是否已有该应用的窗口（当前主机）。
+ * Dock 上是否已有该应用的窗口。
  *
  * @param key 应用标识
  */
 function hasWindow(key: DesktopAppKey): boolean {
-  return windows.value.some((w) => w.app === key && w.hostId === activeHostId.value);
-}
-
-/**
- * 这台主机能不能走 SSH 数据面。
- *
- * <p>终端 / 文件 / 命令三条通道都建立在 SSH 之上。后端对
- * {@code serverHostCollectMode=LOCAL} 的主机（平台自身）会直接拒绝，
- * 这里提前判掉，避免用户点开一个只剩报错的窗口。</p>
- *
- * @param h 主机
- */
-function sshReady(h: DesktopHost | null | undefined): boolean {
-  if (!h || h.serverHostOnline !== 1) return false;
-  return String(h.serverHostCollectMode ?? "").toUpperCase() !== "LOCAL";
+  return windows.value.some((w) => w.app === key && w.hostId === hostId.value);
 }
 
 /**
@@ -229,18 +320,19 @@ function sshReady(h: DesktopHost | null | undefined): boolean {
  * @param key 应用标识
  */
 function openApp(key: DesktopAppKey): void {
-  const host = activeHost.value;
-  if (!host) {
-    ElMessage.warning("请先在顶栏选择一台主机");
+  const h = host.value;
+  if (!h) {
+    ElMessage.warning("请先从主机资产页打开某一台主机的虚拟桌面");
     return;
   }
-  // 非 SSH 应用（监控）永远可开；其余三条通道没有 SSH 就是空窗
-  if (key !== "monitor" && !sshReady(host)) {
-    ElMessage.warning("这台主机不支持 SSH（本机采集），已改为打开监控");
-    openApp("monitor");
+  // 不可用的应用：说清原因，并退到一个一定能开的窗口，别留一个空桌面
+  const reason = appOffReason(key);
+  if (reason) {
+    ElMessage.warning(`${h.serverHostName} 的${APPS.find((a) => a.key === key)?.label ?? "应用"}不可用：${reason}`);
+    if (key !== "monitor") openApp("monitor");
     return;
   }
-  const exist = windows.value.find((w) => w.app === key && w.hostId === host.id);
+  const exist = windows.value.find((w) => w.app === key && w.hostId === h.id);
   if (exist) {
     exist.min = false;
     focus(exist.id);
@@ -252,16 +344,16 @@ function openApp(key: DesktopAppKey): void {
   const maxW = Math.max(MIN_W, window.innerWidth - DOCK_W - 40);
   const maxH = Math.max(MIN_H, window.innerHeight - TOP_H - 40);
   const w = Math.min(def.w, maxW);
-  const h = Math.min(def.h, maxH);
+  const hh = Math.min(def.h, maxH);
   const win: DesktopWindow = {
     id: `w${++seq}`,
     app: key,
-    hostId: host.id,
-    title: `${def.label} · ${host.serverHostName}`,
+    hostId: h.id,
+    title: `${def.label} · ${h.serverHostName}`,
     x: Math.min(DOCK_W + 14 + (n % 5) * 26, Math.max(DOCK_W + 8, window.innerWidth - w - 16)),
-    y: Math.min(TOP_H + 12 + (n % 5) * 24, Math.max(TOP_H + 8, window.innerHeight - h - 16)),
+    y: Math.min(TOP_H + 12 + (n % 5) * 24, Math.max(TOP_H + 8, window.innerHeight - hh - 16)),
     w,
-    h,
+    h: hh,
     z: ++zSeed,
     min: false,
     max: false,
@@ -344,18 +436,46 @@ function winStyle(w: DesktopWindow): Record<string, string> {
 /**
  * 按应用类型给窗口内容传参，避免多余属性落到子组件根节点上。
  *
- * @param w 窗口
+ * @param key 应用标识
+ * @param id 主机标识
+ * @param active 窗口是否获得焦点
  */
-function appProps(w: DesktopWindow): Record<string, unknown> {
-  const h = hostOf(w.hostId);
-  const base = { hostId: w.hostId, active: activeId.value === w.id };
-  if (w.app === "terminal") {
+function propsFor(key: DesktopAppKey, id: number, active: boolean): Record<string, unknown> {
+  const h = hostOf(id);
+  const base = { hostId: id, active };
+  if (key === "terminal") {
     return { ...base, hostName: h?.serverHostName ?? "" };
   }
-  if (w.app === "console") {
+  if (key === "desktop") {
+    return { ...base, hostName: h?.serverHostName ?? "", remotePort: h?.serverHostRemotePort ?? null };
+  }
+  if (key === "console") {
     return { ...base, hostName: h?.serverHostName ?? "", osType: h?.serverHostOsType ?? "" };
   }
   return base;
+}
+
+/**
+ * 窗口内容传参。
+ *
+ * @param w 窗口
+ */
+function appProps(w: DesktopWindow): Record<string, unknown> {
+  return propsFor(w.app, w.hostId, activeId.value === w.id);
+}
+
+/**
+ * 在新标签页打开这个窗口：新标签页只显示它自己（{@code ?only=<app>}）。
+ *
+ * <p>终端是长连接 PTY，新标签页会自己再建一条会话，和当前窗口互不影响。</p>
+ *
+ * @param w 窗口
+ */
+function popOut(w: DesktopWindow): void {
+  // 同样开成普通标签页：每个窗口一个标签，摆到别的屏幕上盯
+  const url = `${location.origin}${location.pathname}#/desktop/${w.hostId}?only=${w.app}`;
+  const win = window.open(url, "_blank");
+  if (!win) ElMessage.warning("浏览器拦截了弹出窗口，请允许后重试");
 }
 
 /**
@@ -443,25 +563,47 @@ function leave(): void {
   router.push("/assets");
 }
 
+/**
+ * 进入（或换成）一台主机的桌面：清掉上一台的窗口，再落一个窗口。
+ *
+ * <p>路由参数变化时组件实例会被复用，所以这里必须自己把窗口清干净，
+ * 否则从 {@code /desktop/13} 导航到 {@code /desktop} 会带着上一台主机的窗口。</p>
+ */
+async function bootHost(): Promise<void> {
+  windows.value = [];
+  activeId.value = "";
+  ready.value = false;
+  await reloadHost();
+  if (!host.value) return;
+  // 单窗口模式：只给 ?only= 指定的那个应用，没有 Dock 也没有其它窗口
+  if (singleKey.value) return;
+  // 落地给这台主机最像「它的桌面」的应用：VNC 主机直接给远程桌面，
+  // SSH 主机给终端，两种都没有才落到监控。
+  if (host.value.serverHostOnline === 1 && vncReady.value) {
+    openApp("desktop");
+    return;
+  }
+  if (host.value.serverHostOnline === 1 && sshReady.value) {
+    openApp("terminal");
+    return;
+  }
+  openApp("monitor");
+}
+
 onMounted(async () => {
   tickClock();
   clockTimer = window.setInterval(tickClock, 15000);
   window.addEventListener("resize", onViewportResize);
-  await reloadHosts();
-  const q = Number(route.query.hostId);
-  const picked =
-    hosts.value.find((h) => h.id === q) ??
-    hosts.value.find((h) => h.serverHostOnline === 1) ??
-    hosts.value[0];
-  if (picked) {
-    activeHostId.value = picked.id;
-    // 落地就给一个窗口：能走 SSH 的先给终端（一眼判断连不连得上），
-    // 不能走 SSH 的（平台自身）直接给监控，别让人先撞一次“不支持 SSH”。
-    if (picked.serverHostOnline === 1) {
-      openApp(sshReady(picked) ? "terminal" : "monitor");
-    }
-  }
+  await bootHost();
 });
+
+// 同一页内换主机（改路径参数）时按新主机重建桌面
+watch(
+  () => route.fullPath,
+  () => {
+    if (route.name === "VirtualDesktop") void bootHost();
+  },
+);
 
 onBeforeUnmount(() => {
   if (clockTimer) window.clearInterval(clockTimer);
@@ -483,6 +625,18 @@ onBeforeUnmount(() => {
     linear-gradient(158deg, #2c0d27 0%, #1b0716 58%, #120510 100%);
 }
 
+/* 单窗口模式（新标签页）：整页只有这一个窗口，不留 Dock / 顶栏 */
+.vdesk--single {
+  display: flex;
+  flex-direction: column;
+}
+
+.vdesk__single {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 /* ---------- 顶栏 ---------- */
 .vdesk__top {
   position: absolute;
@@ -501,34 +655,20 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 }
 
-.vdesk__brand {
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  color: #fff;
-}
-
-.vdesk__sep {
-  width: 1px;
-  height: 14px;
-  background: rgba(255, 255, 255, 0.18);
-}
-
-.vdesk__sel {
-  max-width: 320px;
-  height: 22px;
-  padding: 0 6px;
+.vdesk__host {
+  max-width: 260px;
+  overflow: hidden;
   font-size: 11.5px;
-  color: #e6e1ef;
-  cursor: pointer;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 5px;
-  outline: none;
+  font-weight: 600;
+  color: #f2edf8;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.vdesk__sel option {
-  color: #1b0716;
-  background: #fff;
+.vdesk__addr {
+  font-family: var(--font-mono, ui-monospace, Consolas, monospace);
+  font-size: 11px;
+  color: #b9b4c2;
 }
 
 .vdesk__dot {
@@ -629,7 +769,7 @@ onBeforeUnmount(() => {
   color: #b9b4c2;
 }
 
-/* 没有 SSH 的主机：终端 / 文件 / 命令点了也只会提示，视觉上先降一档 */
+/* 这台主机用不了的应用：照样留在 Dock 上，但降一档并说明原因 */
 .dock.is-off {
   opacity: 0.45;
 }
@@ -780,6 +920,23 @@ onBeforeUnmount(() => {
 
 .vdesk__empty span {
   font-size: 11.5px;
+}
+
+/* 没带主机时给一个回主机的出口；容器本身 pointer-events:none，按钮要自己收回 */
+.vdesk__go {
+  margin-top: 4px;
+  padding: 4px 12px;
+  font-size: 11.5px;
+  color: #fff;
+  cursor: pointer;
+  pointer-events: auto;
+  background: rgba(233, 84, 32, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+}
+
+.vdesk__go:hover {
+  background: #e95420;
 }
 
 .vdesk__boot {

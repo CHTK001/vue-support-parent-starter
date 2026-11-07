@@ -98,7 +98,6 @@ const groups = computed(() => {
         { path: "/datasource", label: "数据源管理", icon: "Coin" },
         { path: "/db-manager", label: "数据库管理", icon: "Coin" },
         { path: "/terminal", label: "远程控制", icon: "Position" },
-        { path: "/desktop", label: "虚拟桌面", icon: "FullScreen" },
       ],
     },
     {

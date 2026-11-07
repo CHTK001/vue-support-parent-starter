@@ -1275,6 +1275,9 @@ function ctxCommand(cmd: string): void {
     case "software-instance":
       openTab(h, "software-instance");
       break;
+    case "desktop":
+      openDesktop(h.id);
+      break;
     case "schedule":
       openTab(h, "schedule");
       break;
@@ -2349,17 +2352,24 @@ function openStandalone(): void {
 }
 
 /**
- * 在新标签页打开虚拟桌面。
+ * 在新标签页打开某台主机的虚拟桌面。
  *
- * <p>带上当前选中主机：桌面落地就直接开一个终端窗口，
- * 不用先在顶栏下拉里再找一遍。桌面自身是 standalone 路由，
- * 新标签页里没有侧边栏干扰，适合长期摆着盯机器。</p>
+ * <p>桌面是<b>按主机</b>的（{@code #/desktop/:hostId}）：一台主机一个桌面壳，
+ * 进去落地就开这台主机最像「它的桌面」的应用（VNC 远程桌面 / SSH 终端 / 监控）。
+ * 没有主机时不打开，避免落到一个没有归属的空壳上。</p>
+ *
+ * @param hostId 主机标识；缺省用左栏当前选中的主机
  */
-function openDesktop(): void {
-  const id = statusHost.value?.id;
-  const q = id ? `?hostId=${id}` : "";
-  const url = `${location.origin}${location.pathname}#/desktop${q}`;
-  const win = window.open(url, "_blank", "width=1480,height=920");
+function openDesktop(hostId?: number | null): void {
+  const id = hostId ?? statusHost.value?.id;
+  if (!id) {
+    message.warning("请先选择一台主机");
+    return;
+  }
+  // 开成一个普通标签页（不传尺寸参数），用户能用浏览器的标签管理它；
+  // 传 windowFeatures 会变成独立弹窗，反而没有标签可切。
+  const url = `${location.origin}${location.pathname}#/desktop/${id}`;
+  const win = window.open(url, "_blank");
   if (!win) message.warning("浏览器拦截了弹出窗口，请允许后重试");
 }
 
@@ -3163,6 +3173,10 @@ function onGlobalKeydown(e: KeyboardEvent): void {
             </div>
             <div class="host-ctx-sep" />
             <div class="host-ctx-label">改配与远控</div>
+            <!-- 虚拟桌面：这台主机自己的桌面壳（VNC 桌面 / SSH 终端 / 监控） -->
+            <div class="host-ctx-item" @click="ctxCommand('desktop')">
+              <ReIcon name="FullScreen" /><span>虚拟桌面</span>
+            </div>
             <div class="host-ctx-item" @click="ctxCommand('edit')">
               <ReIcon name="EditPen" /><span>编辑主机</span>
             </div>
