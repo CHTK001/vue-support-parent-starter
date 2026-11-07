@@ -3144,10 +3144,18 @@ onUnmounted(() => {
 /* ==================== 页面底 ==================== */
 /* koi 变量口径：--bg-page 页面底 / --bg-container 卡面 / --border-subtle 柔和边框 /
    --text-primary/secondary/tertiary 三档文本 / --el-color-* 语义色（主题色联动） */
+/* 页面底沿用 .tel-page 的卡面（背景 / 边框 / 圆角 / 阴影），这里不再覆盖 background：
+   之前改成 --bg-page 会让本页变成灰底，与数据源中心等同组页面（白卡面）不一致。
+   纵向 flex 是为了让表格卡吃掉剩余高度（见 .st-body），页面本身不再出滚动条。 */
 .sync-tasks {
-  background: var(--bg-page);
-  min-height: 100%;
+  display: flex;
+  flex-direction: column;
   padding-bottom: 16px;
+}
+/* 页头 / KPI / 告警 / 筛选条都按内容高度定死，不许被 flex 压缩；
+   只有下面的表格卡吃剩余高度（.st-body）。 */
+.sync-tasks > * {
+  flex: 0 0 auto;
 }
 .sync-tasks .dsm-toolbar {
   display: flex;
@@ -3184,7 +3192,16 @@ onUnmounted(() => {
   color: var(--text-tertiary);
 }
 .st-head-actions { gap: 12px; }
+/* 表格卡吃掉页面剩余高度：这是本页唯一允许伸缩的一块。
+   contain: layout size 是给 ReTable 看的契约声明 —— 它的高度由 flex 分配决定、
+   与内部表格内容无关，因此 ReTable 走 CSS height:100% 路径，
+   不再按「到滚动容器下沿」做像素测量（那条路会把告警条插入前后的旧值写死，
+   实测页面因此多出 175px 溢出滚动）。 */
 .st-body {
+  flex: 1 1 auto;
+  /* 下限：窗口极矮时宁可让 .tel-page 自己出滚动条，也不把表格压成看不见 */
+  min-height: 240px;
+  contain: layout size;
   margin: 0 24px;
   border: 1px solid var(--border-subtle);
   border-radius: 12px;

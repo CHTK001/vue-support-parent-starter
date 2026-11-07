@@ -58,70 +58,74 @@
       <span class="flow-filters-hint">保留 30 天 · 每天 03:30 自动清理过期记录</span>
     </section>
 
-    <!-- 记录列表：ReTable 远程分页 -->
-    <ReTable
-      ref="tableRef"
-      table-id="sync-task-run-logs"
-      class="flow-table"
-      :loader="loadLogs"
-      :columns="columns"
-      :pagination="true"
-      :params="pageQuery"
-      row-key="id"
-      v-model:page="pageQuery.page"
-      v-model:page-size="pageQuery.pageSize"
-    >
-      <template #empty>
-        <div class="flow-empty">
-          <span class="flow-empty-icon"><ReIcon name="Document" :size="22" /></span>
-          <span class="flow-empty-title">还没有执行日志</span>
-          <span class="flow-empty-desc">从「数据同步」页手动执行一次，或等定时任务触发，这里会记录每次执行的旅程与过程日志。</span>
-          <ReButton icon="Refresh" @click="reload">刷新</ReButton>
-        </div>
-      </template>
-      <template #runTime="{ row }">
-        <span class="flow-mono">{{ row.runTime }}</span>
-      </template>
-      <template #taskName="{ row }">
-        <span class="flow-task" :class="{ 'is-deleted': /已删除/.test(row.taskName) }">{{ row.taskName }}</span>
-      </template>
-      <template #trigger="{ row }">
-        <span class="flow-trigger" :class="`is-${row.trigger.toLowerCase()}`">{{ triggerLabel(row.trigger) }}</span>
-      </template>
-      <template #status="{ row }">
-        <span class="flow-status" :class="row.status === 'SUCCESS' ? 'ok' : 'bad'">
-          {{ row.status === "SUCCESS" ? "成功" : "失败" }}
-        </span>
-      </template>
-      <template #journey="{ row }">
-        <div
-          class="flow-mini"
-          :class="row.status === 'SUCCESS' ? 'ok' : 'bad'"
-          :title="`读源 → 映射 → 写入：${row.status === 'SUCCESS' ? '顺利走完' : '以失败告终'}`"
-        >
-          <span class="flow-mini-node">1</span>
-          <span class="flow-mini-line" />
-          <span class="flow-mini-node">2</span>
-          <span class="flow-mini-line" />
-          <span class="flow-mini-node">3</span>
-        </div>
-      </template>
-      <template #rw="{ row }">
-        <span v-if="row.readCount != null || row.writeCount != null" class="flow-rw">
-          读 <b class="flow-mono">{{ row.readCount ?? "—" }}</b> / 写 <b class="flow-mono">{{ row.writeCount ?? "—" }}</b> 行
-        </span>
-        <span v-else class="flow-rw flow-rw--empty">—</span>
-      </template>
-      <template #costMs="{ row }">
-        <span class="flow-mono">{{ row.costMs ?? "—" }} ms</span>
-      </template>
-      <template #lineCount="{ row }">
-        <span class="flow-mono">{{ row.lineCount }} 行</span>
-      </template>
-      <template #action="{ row }">
-        <ReButton layout="square" type="primary" icon="View" tip="查看过程日志" @click="openDetail(row)" />
-      </template>
-    </ReTable>
+    <!-- 记录列表：ReTable 远程分页。
+         外层 .flow-table-wrap 是「确定高度」的盒子（页面 flex 列分配 + contain），
+         ReTable 据此走 CSS height:100% 路径，不再做像素测量，页面本身不出滚动条。 -->
+    <div class="flow-table-wrap">
+      <ReTable
+        ref="tableRef"
+        table-id="sync-task-run-logs"
+        class="flow-table"
+        :loader="loadLogs"
+        :columns="columns"
+        :pagination="true"
+        :params="pageQuery"
+        row-key="id"
+        v-model:page="pageQuery.page"
+        v-model:page-size="pageQuery.pageSize"
+      >
+        <template #empty>
+          <div class="flow-empty">
+            <span class="flow-empty-icon"><ReIcon name="Document" :size="22" /></span>
+            <span class="flow-empty-title">还没有执行日志</span>
+            <span class="flow-empty-desc">从「数据同步」页手动执行一次，或等定时任务触发，这里会记录每次执行的旅程与过程日志。</span>
+            <ReButton icon="Refresh" @click="reload">刷新</ReButton>
+          </div>
+        </template>
+        <template #runTime="{ row }">
+          <span class="flow-mono">{{ row.runTime }}</span>
+        </template>
+        <template #taskName="{ row }">
+          <span class="flow-task" :class="{ 'is-deleted': /已删除/.test(row.taskName) }">{{ row.taskName }}</span>
+        </template>
+        <template #trigger="{ row }">
+          <span class="flow-trigger" :class="`is-${row.trigger.toLowerCase()}`">{{ triggerLabel(row.trigger) }}</span>
+        </template>
+        <template #status="{ row }">
+          <span class="flow-status" :class="row.status === 'SUCCESS' ? 'ok' : 'bad'">
+            {{ row.status === "SUCCESS" ? "成功" : "失败" }}
+          </span>
+        </template>
+        <template #journey="{ row }">
+          <div
+            class="flow-mini"
+            :class="row.status === 'SUCCESS' ? 'ok' : 'bad'"
+            :title="`读源 → 映射 → 写入：${row.status === 'SUCCESS' ? '顺利走完' : '以失败告终'}`"
+          >
+            <span class="flow-mini-node">1</span>
+            <span class="flow-mini-line" />
+            <span class="flow-mini-node">2</span>
+            <span class="flow-mini-line" />
+            <span class="flow-mini-node">3</span>
+          </div>
+        </template>
+        <template #rw="{ row }">
+          <span v-if="row.readCount != null || row.writeCount != null" class="flow-rw">
+            读 <b class="flow-mono">{{ row.readCount ?? "—" }}</b> / 写 <b class="flow-mono">{{ row.writeCount ?? "—" }}</b> 行
+          </span>
+          <span v-else class="flow-rw flow-rw--empty">—</span>
+        </template>
+        <template #costMs="{ row }">
+          <span class="flow-mono">{{ row.costMs ?? "—" }} ms</span>
+        </template>
+        <template #lineCount="{ row }">
+          <span class="flow-mono">{{ row.lineCount }} 行</span>
+        </template>
+        <template #action="{ row }">
+          <ReButton layout="square" type="primary" icon="View" tip="查看过程日志" @click="openDetail(row)" />
+        </template>
+      </ReTable>
+    </div>
 
     <!-- 详情弹窗：旅程瀑布 + 摘要（读/写）+ 过程日志 + 耗时趋势 + 失败重跑 -->
     <ReDialog
@@ -742,11 +746,18 @@ onMounted(async () => {
 
 <style scoped>
 /* 透明型根容器（与 .tel-page 卡片型二选一）：外层 .main-content 已给 8px 留白，
-   这里不再叠 padding —— 否则透明根自带一圈边距会与外壳留白重复堆积（历史罪案）。 */
+   这里不再叠 padding —— 否则透明根自带一圈边距会与外壳留白重复堆积（历史罪案）。
+   height:100% 把本页钉死在 .main-content 的内容盒里：页头与筛选条按内容高度排，
+   表格外层 .flow-table-wrap 吃剩余高度，页面自身不再产生滚动条（滚动交给表格内部）。 */
 .flow-page {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  height: 100%;
+  min-height: 0;
+}
+.flow-page > * {
+  flex: 0 0 auto;
 }
 
 /* ---------- 健康度总览（ReStatCard 四卡，与数据同步 KPI 同款） ---------- */
@@ -844,6 +855,16 @@ onMounted(async () => {
 .flow-filters-hint { margin-left: auto; flex: none; font-size: 11.5px; color: var(--text-tertiary); white-space: nowrap; }
 
 /* ---------- 表格 ---------- */
+/* 表格外层「确定高度」盒子：flex 吃掉页面剩余高度 + contain: layout size，
+   ReTable 见 contain:size 即走 CSS height:100%，不再按「到滚动容器下沿」量像素。
+   旧行为把 .main-content 的 8px padding 也量了进去，表格比可用区高 7.39px，
+   于是页面底部冒出一条「一点点」滚动条。 */
+.flow-table-wrap {
+  flex: 1 1 auto;
+  min-height: 240px;
+  contain: layout size;
+  overflow: hidden;
+}
 .flow-table { width: 100%; }
 .flow-mono { font-family: var(--el-font-family-mono, "JetBrains Mono", "Consolas", monospace); font-variant-numeric: tabular-nums; }
 .flow-task { font-weight: 600; color: var(--text-primary); }
