@@ -344,8 +344,9 @@
                     </article>
                   </div>
                   <div v-else class="da-empty">
-                    <ReIcon name="Files" :size="26" />
-                    <span>没有符合条件的设备，试试清除筛选或换个关键词。</span>
+                    <span class="da-empty__icon"><ReIcon name="Files" :size="24" /></span>
+                    <span class="da-empty__title">没有符合条件的设备</span>
+                    <span class="da-empty__text">试试清除筛选或换个关键词。</span>
                   </div>
                 </ReScrollbar>
               </div>
@@ -429,8 +430,9 @@
                   </template>
                   <template #empty>
                     <div class="da-empty">
-                      <ReIcon name="Files" :size="26" />
-                      <span>暂无设备，可点左上角「+」新增，或前往「厂商接入」同步。</span>
+                      <span class="da-empty__icon"><ReIcon name="Files" :size="24" /></span>
+                      <span class="da-empty__title">暂无设备</span>
+                      <span class="da-empty__text">可点左上角「+」新增，或前往「厂商接入」同步。</span>
                     </div>
                   </template>
                 </ReTable>
@@ -535,8 +537,9 @@
 
           <template #empty>
             <div class="da-empty">
-              <ReIcon name="Files" :size="26" />
-              <span>还没有打开其它页签，右键左侧设备叶子可打开详情 / 通道 / 日志 / 拓扑。</span>
+              <span class="da-empty__icon"><ReIcon name="Files" :size="24" /></span>
+              <span class="da-empty__title">还没有打开其它页签</span>
+              <span class="da-empty__text">右键左侧设备叶子可打开详情 / 通道 / 日志 / 拓扑。</span>
             </div>
           </template>
         </ReTabs>
@@ -3121,14 +3124,43 @@ onMounted(async () => {
   font-size: 12.5px;
 }
 
+/* 空态：淡主题色底 + 虚线边 + 图标块。
+   2026-11-07 反馈：原来是裸文字压在面板底色上，「直接底色不好看」。
+   这里给一层可见但克制的主题色浅底（深浅色主题都由 color-mix 自适应）。 */
 .da-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 40px 20px;
+  gap: 7px;
+  margin: 10px;
+  padding: 26px 20px;
+  border: 1px dashed color-mix(in srgb, var(--el-color-primary) 30%, var(--el-border-color));
+  border-radius: var(--el-radius-xl, 16px);
+  background: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-bg-color));
+  text-align: center;
+}
+
+.da-empty__icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+.da-empty__title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.da-empty__text {
+  max-width: 420px;
+  font-size: 12px;
+  line-height: 1.7;
   color: var(--el-text-color-secondary);
-  font-size: 13px;
 }
 
 .mono { font-family: var(--el-font-family-mono, monospace); }

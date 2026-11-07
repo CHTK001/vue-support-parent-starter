@@ -11,6 +11,7 @@ import { createHttp } from "@repo/utils";
 import { getMenuCache, setMenuCache, getLayoutCache, setLayoutCache } from "@repo/utils";
 import { getConfig } from "@repo/config";
 import { log } from "@repo/utils";
+import { resolveRequestBaseUrl } from "../loginEntry";
 
 /** http 单例（由 createApp 注入） */
 let httpInstance: Http | null = null;
@@ -91,9 +92,43 @@ export interface SettingItem {
   [key: string]: unknown;
 }
 
-/** 登录（.codec(true)：按后端 codec 协议加密密码；未配置 requestCodec 时自动退化为明文，不影响其它应用） */
+/**
+ * 登录（.codec(true)：按后端 codec 协议加密密码；未配置 requestCodec 时自动退化为明文，不影响其它应用）
+ *
+ * <p>登录页可能配了多个入口（平台 / 租户独立站点，app.yaml {@code loginConfig.types}）。
+ * 选中入口后，登录请求必须发往该入口的地址 —— 否则验证码与令牌会签在另一个站点上，
+ * 后续业务请求带着这个令牌打到别处只会 401。</p>
+ */
 export function login(data: Record<string, unknown>) {
-  return getApiHttp().post(getConfig().url.login).data(data).codec(true).then<ApiResult<LoginResult>>((r) => r.data);
+  return loginHttp()
+    .post(getConfig().url.login)
+    .data(data)
+    .codec(true)
+    .then<ApiResult<LoginResult>>((r) => r.data);
+}
+
+/**
+ * 登录用的 Http 实例：选中了非默认入口时，复用默认实例的 axios 管线（保留加密/签名拦截器），
+ * 只替换 baseUrl。
+ *
+ * <p>与 {@link createModuleHttp} 同一做法，区别是地址来自登录入口而不是模块配置。</p>
+ */
+function loginHttp(): Http {
+  const entry = entryBaseUrl();
+  if (!entry) return getApiHttp();
+  return createHttp({ baseUrl: entry, instance: getApiHttp().getInstance() });
+}
+
+/** 登录入口地址：与全局 httpConfig.baseUrl 相同时返回 undefined（沿用默认管线）。
+ *
+ * <p>返回 undefined 而不是空串：Http 的 baseUrl 语义里 undefined = 读全局配置， * 空串 = 不发任何前缀（绝对同源根），两者对带子路径部署的应用差别很大。</p>
+ */
+function entryBaseUrl(): string | undefined {
+  const entry = resolveRequestBaseUrl();
+  const global = String(getConfig().http.baseUrl ?? "")
+    .trim()
+    .replace(/\/+$/, "");
+  return !entry || entry === global ? undefined : entry;
 }
 
 /** 登出 */
@@ -114,9 +149,9 @@ export function refreshToken(data?: Record<string, unknown>) {
   return getApiHttp().post(getConfig().url.refreshToken).data(data ?? {}).then<ApiResult<LoginResult>>((r) => r.data);
 }
 
-/** 获取验证码 */
+/** 获取验证码（必须与登录同源：验证码在 A 站签发、登录提交到 B 站会被判无效） */
 export function getCaptcha() {
-  return getApiHttp().get(getConfig().url.captcha).then<ApiResult<CaptchaResult>>((r) => r.data);
+  return loginHttp().get(getConfig().url.captcha).then<ApiResult<CaptchaResult>>((r) => r.data);
 }
 
 /** 获取默认配置（登录页/首页拉取后端配置合并到 getConfig） */

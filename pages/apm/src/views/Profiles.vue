@@ -66,17 +66,25 @@
           </div>
         </div>
 
+        <!-- 一次点击同时取「采样片段 + 栈分析」：原来这是两个按钮，
+             点两次才看得全，而它们本来就是同一个任务的两面 -->
         <div class="apm-bar">
-          <ReButton size="small" icon="List" :loading="segmentsLoading[task.id]" @click="loadSegments(task.id)">
-            采样片段
+          <ReButton
+            size="small"
+            type="primary"
+            icon="TrendCharts"
+            :loading="segmentsLoading[task.id] || analysisLoading[task.id]"
+            @click="expandTask(task.id)"
+          >
+            {{ expanded[task.id] ? "收起详情" : "展开详情" }}
           </ReButton>
-          <ReButton size="small" type="primary" icon="TrendCharts" :loading="analysisLoading[task.id]" @click="loadAnalysis(task.id)">
-            栈分析
-          </ReButton>
+          <span class="apm-muted">
+            采样片段 {{ segmentsOf(task.id).length }} 条 · 栈分析 {{ flamesOf(task.id).length }} 段
+          </span>
         </div>
 
         <!-- 采样片段 -->
-        <template v-if="segmentsOf(task.id).length">
+        <template v-if="expanded[task.id] && segmentsOf(task.id).length">
           <div class="profile-sub">采样片段</div>
           <ReTable
             :data="segmentsOf(task.id) as unknown as Record<string, unknown>[]"
@@ -107,7 +115,7 @@
         </template>
 
         <!-- 栈分析（火焰条） -->
-        <template v-if="analysisOf(task.id)">
+        <template v-if="expanded[task.id] && analysisOf(task.id)">
           <div class="profile-sub">
             栈分析
             <span v-if="analysisOf(task.id)?.tip" class="apm-muted">· {{ analysisOf(task.id)?.tip }}</span>
@@ -173,6 +181,14 @@ const segmentsLoading = reactive<Record<string, boolean>>({});
 /** taskId → 分析结果 */
 const analyses = reactive<Record<string, ApmProfileAnalysis>>({});
 const analysisLoading = reactive<Record<string, boolean>>({});
+
+/**
+ * taskId → 是否已展开详情。
+ *
+ * <p>「采样片段」与「栈分析」本来是同一任务的两面，原来要点两个按钮才看得全；
+ * 现在一个「展开详情」同时取两者，再点一次收起。</p>
+ */
+const expanded = reactive<Record<string, boolean>>({});
 
 const serviceOptions = computed(() => services.value.map((s) => ({ label: s, value: s })));
 
@@ -291,8 +307,24 @@ async function loadTasks() {
   }
 }
 
-async function loadSegments(taskId: string) {
-  segmentsLoading[taskId] = true;
+/**
+ * 展开 / 收起某个任务的详情。
+ *
+ * <p>展开时并发取「采样片段 + 栈分析」——两者都来自同一个 taskId，
+ * 串行等只会让点击后多空等一轮；收起时不重新请求，数据留着，再展开即显示。</p>
+ *
+ * @param taskId 任务 id
+ */
+async function expandTask(taskId: string): Promise<void> {
+  if (expanded[taskId]) {
+    expanded[taskId] = false;
+    return;
+  }
+  expanded[taskId] = true;
+  await Promise.all([loadSegments(taskId), loadAnalysis(taskId)]);
+}
+
+async function loadSegments(taskId: string) {  segmentsLoading[taskId] = true;
   try {
     segments[taskId] = (await listProfiledSegments(taskId)) || [];
     if (!segments[taskId].length) {

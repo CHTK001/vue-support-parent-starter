@@ -2,6 +2,7 @@ export * from "./storage";
 export * from "./http";
 export * from "./log";
 export * from "./indexeddb";
+export * from "./persist";
 export * from "./modules/debounce";
 export * from "./types";
 

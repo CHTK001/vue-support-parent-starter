@@ -224,6 +224,16 @@
         <FileChangesBar v-if="!streamingState.isStreaming && fileChanges.length > 0" :changes="fileChanges"
           @open-diff="openDiffDialog" />
 
+        <!-- 模型签名行（用户需求 2026-11-07 参考图底部）：✦ 模型名，小字弱化。
+             仅在非流式且有模型名时显示；displayName 是角色名，这里要的是真模型。 -->
+        <div v-if="!streamingState.isStreaming && currentModelName && currentModelName !== 'unknown'"
+          class="turn-model-signature">
+          <svg class="turn-model-signature__icon" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
+            <path d="M8 1l1.8 4.6L14.5 7l-4.7 1.4L8 13l-1.8-4.6L1.5 7l4.7-1.4z" fill="currentColor" />
+          </svg>
+          <span>{{ currentModelName }}</span>
+        </div>
+
         <!-- 操作按钮（含版本切换 / 从此处回退 / 从此处分叉） -->
         <MessageActions v-if="!streamingState.isStreaming" :is-assistant="true" :is-last="isLast"
           :allow-generate="false"
@@ -871,6 +881,22 @@ const handleClick = (event: MouseEvent) => {
 .message-item__card {
   font-size: var(--size-text-base);
   max-width: 100%;
+}
+
+/* 模型签名行：✦ 模型名，弱化小字（参考图回合底部样式） */
+.turn-model-signature {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  user-select: none;
+}
+
+.turn-model-signature__icon {
+  color: var(--el-text-color-placeholder);
+  flex-shrink: 0;
 }
 
 /* 用户消息气泡 */

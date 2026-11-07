@@ -42,7 +42,7 @@ import { createServerHostRoutes } from "@pages/server/src/routes";
 import { createDockerRoutes } from "@pages/docker/src/routes";
 // 内网穿透：统一隧道管理页，通过 @pages/tunnel/src/routes 的 createTunnelRoutes 展开。
 import { createTunnelRoutes } from "@pages/tunnel/src/routes";
-// 调试中心（CDP）：运维管理分组下唯一的叶子页。
+// 调试中心（CDP）：并进「分析管理」分组的叶子页（不再单开「运维管理」）。
 import { createCdpRoutes } from "@pages/debug/src/routes";
 import { createMonitorRoutes, createMonitorManageRoutes } from "@pages/monitor/src/routes";
 // P2P 房间（@pages/room）：不单独占菜单，也不再注册 /room 路由——
@@ -111,10 +111,12 @@ export const monitorRoutes: RouteConfigsTable[] = [
   },
 
   // ==================== 分析管理 ====================
-  // 这个分组的两个子页是同一套抓包分析能力的两条入口：
+  // 这个分组的子页都是「分析工具」这一路的入口：
   //   「抓包分析」= 网卡实时抓包（起会话、管 BPF、边抓边看）
   //   「PCAP 分析」= 导入既有 pcap（上传、解析入库、原件下载）
-  // 两者共用报文分页 / 协议分布 / Top 流 / 详情抽屉，所以归在一个分组下。
+  //   「调试中心」= 基于 Chrome DevTools Protocol 的浏览器现场分析（元素 / 控制台 / 网络）
+  // 三者共用报文/请求这层「现场取证」语义，所以归在一个分组下；原先调试中心单独占
+  // 一个「运维管理」一级菜单，只有一个子页，纯属多一层点击，已并入这里。
   //
   // 分组名从「抓包分析」改成「分析管理」：加了导入这一路之后，「抓包分析」既当分组名
   // 又当子页名（菜单上会出现两条一模一样的「抓包分析」），且盖不住「导入文件」这种
@@ -136,6 +138,9 @@ export const monitorRoutes: RouteConfigsTable[] = [
         component: () => import("@pages/monitor/src/views/tshark/ScTsharkPcapAnalysis.vue"),
         meta: { title: "PCAP 分析", icon: "Files", showLink: true, rank: 2 },
       },
+      // 调试中心：@pages/debug 的 createCdpRoutes 现在只产出扁平的 /debug 叶子路由
+      // （不自建分组），这里直接展开到「分析管理」下，排在两条抓包页之后。
+      ...createCdpRoutes({ showLink: true, rank: 3 }),
     ],
   },
 
@@ -314,11 +319,8 @@ export const monitorRoutes: RouteConfigsTable[] = [
     ],
   },
 
-  // ==================== 运维管理 ====================
-  // 浏览器级调试面板（Chrome DevTools Protocol）：
-  //   后端由 spring-support-cdp-starter 提供 /ms/cdp + /ws/cdp，
-  //   页面由 @pages/debug 的 createCdpRoutes 产出（路由 + 菜单同源）。
-  ...createCdpRoutes({ showLink: true }),
+  // 调试中心已并入上面的「分析管理」分组（/grp-capture → /debug），
+  // 原先在这里展开 createCdpRoutes 的「运维管理」分组已删除。
 
   // ==================== 系统管理 ====================
   // 本分组只放 monitor 自己的运维页（代理管理 / 系统配置），接口都在 /ms/server/**；

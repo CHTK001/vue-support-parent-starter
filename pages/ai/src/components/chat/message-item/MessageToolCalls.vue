@@ -29,9 +29,6 @@
             <el-icon v-else class="glyph-icon" size="15" :class="{ 'shimmer-icon': isToolExecuting(tool, toolIndex) }">
               <component :is="getToolIcon(tool)" class="text-gray-500" />
             </el-icon>
-            <el-icon class="glyph-chevron" size="12">
-              <ChevronRight12Regular />
-            </el-icon>
           </span>
           <div class="ml-1.5 min-w-0 flex-1 flex items-baseline overflow-hidden">
             <!-- 动作名：按工具给出可辨认的动词（编辑 / 写入 / 搜索文件内容 / 运行命令 …） -->
@@ -69,6 +66,19 @@
             <span v-if="rowInfo(toolIndex).durationMs" class="tool-duration shrink-0">{{ formatToolDuration(rowInfo(toolIndex).durationMs) }}</span>
           </div>
         </div>
+
+        <!-- 行尾右箭头（需求 8：命令右侧箭头点开 = 展开参数/结果）。
+             常驻可见，不靠悬停出现；与「详情」弹窗入口并列，各司其职。 -->
+        <button type="button" class="tool-row__chevron shrink-0"
+          :class="{ 'is-open': isExpanded(toolIndex) }"
+          :title="isExpanded(toolIndex) ? '收起' : '展开详情'"
+          :aria-label="isExpanded(toolIndex) ? '收起' : '展开详情'"
+          :aria-expanded="isExpanded(toolIndex)"
+          @click.stop="toggleTool(toolIndex)">
+          <el-icon size="12">
+            <ChevronRight12Regular />
+          </el-icon>
+        </button>
 
         <!-- 「详情」入口（与行体同级）：悬停/展开时出现；单独弹窗承载超长内容 -->
         <button type="button" class="tool-row__detail shrink-0" :title="t('chat.toolCalls.viewDetail')"
@@ -480,6 +490,9 @@ const closeDialog = () => {
   height: 20px;
 }
 
+/* 行首字形：默认工具图标；展开态换成折下的箭头（v）。
+   悬停换箭头的旧口径已改：箭头常驻（用户需求 2026-11-07「命令右侧右箭头点开」），
+   悬停只做变色反馈，不再让图标/箭头互换导致行高抖动。 */
 .tool-row__glyph .glyph-icon {
   display: inline-flex;
 }
@@ -490,16 +503,6 @@ const closeDialog = () => {
   transition: transform 0.15s ease;
 }
 
-/* 悬停（未展开）：图标让位给右折角 */
-.tool-row:not(.is-expanded):hover .glyph-icon {
-  display: none;
-}
-
-.tool-row:not(.is-expanded):hover .glyph-chevron {
-  display: inline-flex;
-}
-
-/* 展开：折下的箭头（右折角旋转 90°），优先于悬停态 */
 .tool-row.is-expanded .glyph-icon {
   display: none;
 }
@@ -507,6 +510,43 @@ const closeDialog = () => {
 .tool-row.is-expanded .glyph-chevron {
   display: inline-flex;
   transform: rotate(90deg);
+}
+
+/* 行尾右箭头：常驻可见，展开时旋转 90°（需求 8：命令右侧箭头点开详情）。
+   与左侧工具图标分工——图标表「是什么工具」，箭头表「可展开」。 */
+.tool-row__chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-left: 4px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--el-text-color-placeholder);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.tool-row__chevron el-icon,
+.tool-row__chevron .el-icon {
+  transition: transform 0.18s ease;
+}
+
+.tool-row__chevron.is-open .el-icon {
+  transform: rotate(90deg);
+}
+
+.tool-row__chevron:hover {
+  background: var(--el-fill-color);
+  color: var(--el-text-color-primary);
+}
+
+.tool-row__chevron.is-open {
+  color: var(--el-text-color-regular);
 }
 
 /* 「详情」入口：悬停或展开时可见（触屏/键盘聚焦也能看到） */

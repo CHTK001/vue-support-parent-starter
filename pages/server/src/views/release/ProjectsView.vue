@@ -129,6 +129,9 @@
                             <el-dropdown-item command="files">
                               <ReIcon name="FolderOpened" :size="15" class="dd-ic" />文件管理
                             </el-dropdown-item>
+                            <el-dropdown-item v-if="item.gitUrl" command="git-repo">
+                              <ReIcon name="GitBranch" :size="15" class="dd-ic" />打开 Git 仓库
+                            </el-dropdown-item>
                             <el-dropdown-item v-if="item.enabled !== false && item.logPath" command="log">
                               <ReIcon name="Tickets" :size="15" class="dd-ic" />实时日志
                             </el-dropdown-item>
@@ -955,6 +958,9 @@
       </template>
     </ReDialog>
 
+    <!-- 项目 Git 仓库：分支 / 提交 / 工作区改动 + 拉取（不可关闭的进度弹窗） -->
+    <GitRepositoryDialog ref="gitDialogRef" :project="gitRepoProject" @edit="onGitRepoEdit" />
+
     <!-- 单项目操作日志：启动/升级/回滚等审计记录，按项目过滤 -->
     <ReDialog
       v-model="projOpLogVisible"
@@ -1176,6 +1182,7 @@ import { releaseSse } from '../../services/releaseRealtime';
 import HostFileManager from '../../components/HostFileManager.vue';
 import ProjectLogColumn from '../../components/ProjectLogColumn.vue';
 import ProjectOpLogPanel from '../../components/ProjectOpLogPanel.vue';
+import GitRepositoryDialog from '../../components/GitRepositoryDialog.vue';
 
 const BASE = '/ms/server/release';
 
@@ -2218,6 +2225,9 @@ function onMoreCommand(item: Project, command: string) {
     case 'files':
       openFilesDialog(item);
       break;
+    case 'git-repo':
+      openGitRepository(item);
+      break;
     case 'copy-path':
       copyText(item.projectPath, '项目地址');
       break;
@@ -2320,6 +2330,10 @@ function ctxCommandsFor(item: Project): CtxCommandItem[] {
     // 浏览项目目录：与「实时日志」相邻，排障时「看日志 → 翻目录」是连着的两步
     { command: 'files', label: '文件管理', icon: 'FolderOpened' },
   ];
+  // Git 仓库：配了地址才给入口，点了看分支/提交/改动并能拉取
+  if (item.gitUrl) {
+    out.push({ command: 'git-repo', label: '打开 Git 仓库', icon: 'GitBranch' });
+  }
   // 路径复制：排障时经常要把项目目录/日志文件贴到终端或工单里
   if (item.projectPath) {
     out.push({ command: 'copy-path', label: '复制项目地址', icon: 'DocumentCopy' });
@@ -2822,6 +2836,11 @@ const projOpLogVisible = ref(false);
 /** 操作日志当前项目（标题用） */
 const projOpLogProject = ref<Project | null>(null);
 
+/** Git 仓库面板（右键「打开 Git 仓库」） */
+const gitDialogRef = ref<{ open: (p: { id: number; projectName: string }) => void } | null>(null);
+/** Git 面板当前项目（标题与拉取进度文案用） */
+const gitRepoProject = ref<{ id: number; projectName: string } | null>(null);
+
 /**
  * 复制文本到剪贴板。
  *
@@ -2884,6 +2903,28 @@ function openFilesDialog(item: Project) {
   const dir = String(item.projectPath || '').trim();
   filesInitPath.value = dir || dirOf(String(item.logPath || '')) || '';
   filesVisible.value = true;
+}
+
+/**
+ * 打开项目的 Git 仓库面板（分支 / 提交 / 工作区改动，可拉取）。
+ *
+ * @param item 项目
+ */
+function openGitRepository(item: Project) {
+  gitRepoProject.value = { id: item.id, projectName: item.projectName };
+  gitDialogRef.value?.open({ id: item.id, projectName: item.projectName });
+}
+
+/**
+ * Git 面板里「去配置」：关掉面板并打开项目的编辑弹框。
+ *
+ * @param p 项目引用
+ */
+function onGitRepoEdit(p: { id: number; projectName: string }) {
+  const item = list.value.find((row) => row.id === p.id);
+  if (item) {
+    openEditDialog(item);
+  }
 }
 
 // ---- 主机路径选择器（项目地址 / 日志地址 / Nginx 目录） ----

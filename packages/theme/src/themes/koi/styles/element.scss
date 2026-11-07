@@ -55,14 +55,24 @@ html.dark {
   --el-header-padding: 0 #{$layout-header-padding-x};
 }
 
-/* 頂栏背景色 / 文字色 / 边框色 / 灰影过渡（transition 不会从 :root 继承，必须写死在頂栏自己身上），
-   与 View Transition 的 300ms 画刷动画同步 */
+/* 頂栏背景色 / 边框色 / 灰影过渡（transition 不会从 :root 继承，必须写死在頂栏自己身上），
+   与 View Transition 的 300ms 画刷动画同步。
+   ⚠ 不含 color（2026-11-07 实测）：color 被整棵顶栏子树继承，300ms 内逐帧重算
+   会额外吃掉约一半帧率；文字色瞬时切换肉眼几乎不可察。 */
 .el-header.layout-header,
 .el-header.layout-group-header {
   transition: background-color var(--el-transition-duration, 0.3s) ease-in,
-    color var(--el-transition-duration, 0.3s) ease-in,
     border-color var(--el-transition-duration, 0.3s) ease-in,
     box-shadow var(--el-transition-duration, 0.3s) ease-in;
+}
+
+/* Element Plus 给 .el-menu-item 自带 `transition: border-color, background-color, color`。
+ * 侧栏菜单有 25+ 个项，每项都继承过渡时主题切换要逐帧重算全部菜单文字色，
+ * 是暗色切换卡顿的最大单一来源（实测 27fps 的主因）。这里只保留背景/边框过渡。 */
+.el-menu-item,
+.el-menu-item.is-active {
+  transition: background-color var(--el-transition-duration, 0.3s) ease-in,
+    border-color var(--el-transition-duration, 0.3s) ease-in;
 }
 
 /* 鍥炬爣棰滆壊 */

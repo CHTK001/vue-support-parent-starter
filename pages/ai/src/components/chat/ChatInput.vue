@@ -2151,7 +2151,7 @@ function insertBadge(data: {
   editorContent.value = editor.value.getText();
 }
 
-defineExpose({ insertText, insertBadge });
+defineExpose({ insertText, insertBadge, currentModelName });
 </script>
 <style scoped>
 /* ============================================================================

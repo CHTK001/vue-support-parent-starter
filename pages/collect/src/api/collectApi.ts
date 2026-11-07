@@ -69,6 +69,8 @@ export interface CollectPreviewPayload {
   length: number;
   /** 正文原文（后端不清洗，剥 script 由前端渲染前做） */
   html: string;
+  /** 是否经过真实浏览器渲染（执行了 JS）；false 表示 HTTP 直取的原始响应 */
+  rendered?: boolean;
 }
 
 /**
@@ -79,10 +81,11 @@ export interface CollectPreviewPayload {
  *
  * @param url       目标地址
  * @param timeoutMs 可选超时毫秒
+ * @param render    是否用真实浏览器执行 JS 后取 DOM（SPA 站点必需，单次开销秒级）
  * @returns 抓取结果
  */
-export const fetchPreview = (url: string, timeoutMs?: number) =>
-  get<CollectPreviewPayload>(`${API}/designer/fetch-preview`, { url, timeoutMs });
+export const fetchPreview = (url: string, timeoutMs?: number, render?: boolean) =>
+  get<CollectPreviewPayload>(`${API}/designer/fetch-preview`, { url, timeoutMs, render });
 
 /* ---------------------------------- 流程 ---------------------------------- */
 

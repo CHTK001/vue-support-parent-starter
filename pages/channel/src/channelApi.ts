@@ -102,6 +102,10 @@ export interface ChannelSummary {
   accountTypes?: Array<AccountType | string>
   supportsCheckin?: boolean
   supportsRefresh?: boolean
+  /** 是否支持积分 / 余额查询（ChannelCreditProvider SPI 存在时为 true） */
+  supportsCredit?: boolean
+  /** 是否支持成长任务（ChannelTaskProvider SPI 存在时为 true） */
+  supportsTask?: boolean
   providerId?: string
   enabled?: boolean
   /**
@@ -180,6 +184,70 @@ export const channelApi = {
     unwrapPayload<{ ok: boolean; channel: string; label: string; result: Record<string, any> }>(
       apiHttp.post(`/api/channels/${channel}/checkin`).data(body),
     ),
+  /**
+   * POST /api/channels/{channel}/credit —— 积分 / 余额查询（只读，不触发签到）。
+   *
+   * 与 `checkin` 分开：签到是动作（每天一次），本接口是读数（随时可查）。
+   * 渠道页的「积分」页签靠它渲染。
+   */
+  credit: (channel: string, body: ChannelAccountRef) =>
+    unwrapPayload<{
+      ok: boolean
+      channel: string
+      label: string
+      message?: string
+      credit: {
+        remain?: number
+        total?: number
+        unit?: string
+        currency?: string
+        plan?: string
+        exceeded?: boolean
+        expiresAt?: number
+        updatedAt?: number
+        packages?: Array<{ name?: string; remain?: number; size?: number; expiresAt?: number | string }>
+        error?: string
+        warning?: string
+      }
+    }>(apiHttp.post(`/api/channels/${channel}/credit`).data(body)),
+  /** POST /api/channels/{channel}/tasks —— 成长任务清单（只读） */
+  tasks: (channel: string, body: ChannelAccountRef) =>
+    unwrapPayload<{
+      ok: boolean
+      channel: string
+      label: string
+      message?: string
+      tasks: Array<{
+        code: string
+        title?: string
+        description?: string
+        current?: number
+        target?: number
+        acceptStatus?: string
+        claimable?: boolean
+        claimed?: boolean
+        credit?: number
+        energy?: number
+        jumpUrl?: string
+        error?: string
+      }>
+    }>(apiHttp.post(`/api/channels/${channel}/tasks`).data(body)),
+  /** POST /api/channels/{channel}/tasks/claim —— 领取单个任务奖励 */
+  claimTask: (channel: string, body: ChannelAccountRef & { taskCode: string }) =>
+    unwrapPayload<{
+      ok: boolean
+      channel: string
+      label: string
+      result: { ok?: boolean; claimed?: boolean; credit?: number; message?: string }
+    }>(apiHttp.post(`/api/channels/${channel}/tasks/claim`).data(body)),
+  /** POST /api/channels/{channel}/tasks/run —— 一键做任务（报名 + 领奖，幂等） */
+  runTasks: (channel: string, body: ChannelAccountRef) =>
+    unwrapPayload<{
+      ok: boolean
+      channel: string
+      label: string
+      summary: { accepted?: number; claimed?: number; credit?: number; messages?: string[] }
+    }>(apiHttp.post(`/api/channels/${channel}/tasks/run`).data(body)),
   /** POST /api/channels/{channel}/list-models —— 拉取账号当前可用模型（寻址同 refresh） */
   listModels: (channel: string, body: ChannelAccountRef) =>
     unwrapPayload<{ ok: boolean; models: Array<{ id: string; name?: string; contextWindow?: number }> }>(
@@ -368,6 +436,53 @@ export const channelApi = {
   /** DELETE /api/accounts/{accountId} —— 逻辑删除账号 */
   deleteAccount: (accountId: string) =>
     unwrapPayload<boolean>(apiHttp.delete(`/api/accounts/${accountId}`)),
+  /**
+   * GET /api/channels/{channel}/providers —— Magpie 网关的上游 provider 清单。
+   *
+   * <p>只有 {@code magpie} 渠道有这一层：magpie 是常驻网关，上游 provider 由它自己
+   * 维护。接口代理 magpie 管理面的 {@code /api/providers}，API key 已脱敏。</p>
+   */
+  magpieProviders: (channel: string, ref?: ChannelAccountRef) =>
+    unwrapPayload<MagpieProviderList>(
+      apiHttp.get(`/api/channels/${channel}/providers`).query(ref ?? {}),
+    ),
+  /**
+   * POST /api/channels/{channel}/providers —— 新增 / 覆盖 / 重命名上游 provider。
+   *
+   * <p>{@code provider.key} 留空表示保留原 key（magpie 的 save 语义）；
+   * 改名时把旧 id 放 {@code from}。</p>
+   */
+  saveMagpieProvider: (
+    channel: string,
+    body: {
+      connectionId?: string
+      label?: string
+      provider: Record<string, unknown>
+      isNew?: boolean
+      from?: string
+    },
+  ) =>
+    unwrapPayload<{ ok: boolean; channel: string; result: Record<string, unknown> }>(
+      apiHttp.post(`/api/channels/${channel}/providers`).data(body),
+    ),
+  /** POST /api/channels/{channel}/providers/delete —— 删除上游 provider */
+  deleteMagpieProvider: (channel: string, body: { connectionId?: string; label?: string; id: string }) =>
+    unwrapPayload<{ ok: boolean; channel: string; result: Record<string, unknown> }>(
+      apiHttp.post(`/api/channels/${channel}/providers/delete`).data(body),
+    ),
+  /**
+   * POST /api/channels/{channel}/providers/{action} —— 上游分项动作。
+   *
+   * <p>{@code action} 仅 {@code detect} / {@code models} / {@code test}。</p>
+   */
+  magpieProviderAction: (
+    channel: string,
+    action: 'detect' | 'models' | 'test',
+    body: { connectionId?: string; label?: string; provider: Record<string, unknown> },
+  ) =>
+    unwrapPayload<{ ok: boolean; channel: string; result: Record<string, unknown> }>(
+      apiHttp.post(`/api/channels/${channel}/providers/${action}`).data(body),
+    ),
 }
 
 /**
@@ -407,4 +522,46 @@ export interface ChannelAccountInput {
   secret?: string
   endpoint?: string
   status?: number
+}
+
+/**
+ * Magpie 网关的上游 provider（管理面 {@code /api/providers} 的脱敏视图）。
+ *
+ * <p>{@code key} 只回末四位；{@code hasKey} 表示网关里是否配置了凭据。
+ * 其余字段（routing/fallback/keys 等）原样透传，前端不解释。</p>
+ */
+export interface MagpieProvider {
+  id?: string
+  name?: string
+  /** 创建时使用的内置 preset 标识 */
+  preset?: string
+  /** 脱敏后的 API key（如 {@code ****abcd}） */
+  key?: string
+  /** 是否已配置 API key */
+  hasKey?: boolean
+  /** OpenAI 兼容 chat 基址 */
+  chat?: string
+  /** Responses 协议基址 */
+  responses?: string
+  /** Anthropic 协议基址 */
+  anthropic?: string
+  /** Gemini 协议基址 */
+  gemini?: string
+  /** 该上游声明的模型 id */
+  models?: string[]
+  /** 其余 magpie 字段原样透传 */
+  [key: string]: unknown
+}
+
+/** {@code /api/channels/{channel}/providers} 的响应 */
+export interface MagpieProviderList {
+  ok: boolean
+  channel?: string
+  /** 网关根地址（回显，便于确认连的是哪台） */
+  baseUrl?: string
+  /** 管理面是否可用（旧版本 magpie 可能没有 /api/providers） */
+  manageable?: boolean
+  providers?: MagpieProvider[]
+  /** {@code ok=false} 时的原因 */
+  message?: string
 }

@@ -161,7 +161,7 @@
         </div>
         <div v-else class="model-grid">
           <article v-for="model in filteredModels" :key="model.id" class="mc"
-            :class="{ 'is-selected': selected.includes(getModelId(model)), 'is-multi': multiSelect }">
+            :class="{ 'is-selected': selected.includes(getModelId(model)), 'is-multi': multiSelect, 'is-off': !model.isActive }">
             <div class="mc-head">
               <Avatar class="w-10 h-10 shrink-0 mr-3" :src="getModelAvatar(model)"
                 :name="getModelDisplayName(model.modelName)" type="assistant" :round="false" />
@@ -211,9 +211,18 @@
               </span>
             </div>
 
-            <!-- 参数与官方指标：手填值优先，缺失回退指标表（sys_ai_model_metrics） -->
+            <!-- 参数与官方指标：手填值优先，缺失回退指标表（sys_ai_model_metrics）。
+                 本版把指标做成 2×2 等宽色块：同一行里的「输入 / 输出」或
+                 「价格 / 速度」可以直接横向比较，比一行小字更容易扫读。
+                 条目数不定（0～8），色块网格自动铺满，不会留下空洞。 -->
             <div v-if="cardMeta(model).length" class="mc-meta">
-              <span v-for="item in cardMeta(model)" :key="item.label" class="mc-meta-item" :title="item.title">
+              <span
+                v-for="(item, mi) in cardMeta(model)"
+                :key="item.label"
+                class="mc-meta-item"
+                :class="{ 'is-lead': mi === 0 }"
+                :title="item.title"
+              >
                 <span class="mc-meta-label">{{ item.label }}</span>
                 <span class="mc-meta-val">{{ item.value }}</span>
               </span>
@@ -967,29 +976,44 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
    背景：模型管理里超长文字（如 NewAPI 模板描述）曾把整页顶出水平滚动条（用户需求 1）。 */
 .detail-scroll { scrollbar-gutter: stable both-edges; overflow-x: hidden; }
 
-/* 供应商头部（扁平：实色表面，无渐变） */
+/* 供应商头部：实色表面 + 发丝描边 + 极淡投影。
+   不用渐变：这一版把「彩色」全部留给模型卡片的顶部色带与指标块，
+   头部再上渐变会和卡片抢视觉焦点。 */
 .d-band {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 18px 20px;
-  border-radius: calc(var(--size-surface-radius) + 4px);
+  padding: 15px 17px;
+  border-radius: var(--radius-lg, 12px);
   background: var(--color-surface);
-  border: 1px solid var(--color-surface-border);
+  border: 1px solid var(--border-subtle, var(--color-surface-border));
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.04));
 }
 .d-band-logo {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 52px;
-  height: 52px;
+  width: 46px;
+  height: 46px;
   flex-shrink: 0;
-  border-radius: calc(var(--size-surface-radius) + 2px);
-  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  border-radius: var(--radius-lg, 12px);
+  /* 主色淡染 + 内描边：色块有体积感，但不至于变成实心按钮 */
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-primary) 15%, transparent),
+    color-mix(in srgb, var(--color-primary) 5%, transparent)
+  );
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 12%, transparent);
 }
 .d-band-info { flex: 1; min-width: 0; }
 .d-band-name-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.d-band-name { margin: 0; font-size: 18px; font-weight: 700; color: var(--color-text); }
+.d-band-name {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
 .d-band-url { display: flex; align-items: center; gap: 5px; margin-top: 4px; color: var(--color-text-disabled); }
 .d-band-url-text {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -1013,25 +1037,30 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 16px;
+  margin-top: 14px;
   padding: 52px 20px;
-  border-radius: calc(var(--size-surface-radius) + 4px);
-  background: var(--color-surface);
-  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--bg-elevated, var(--color-surface));
+  border: 1px solid var(--border-subtle, var(--color-surface-border));
 }
 .d-empty-icon { color: var(--color-text-disabled); }
 .d-empty-title { margin: 16px 0 0; font-size: 15px; font-weight: 600; color: var(--color-text-gray); }
 .d-empty-desc { margin: 6px 0 0; font-size: 13px; color: var(--color-text-disabled); }
 
 /* 区块标题 */
-.d-section-head { display: flex; flex-direction: column; gap: 8px; margin: 22px 2px 12px; }
+.d-section-head { display: flex; flex-direction: column; gap: 8px; margin: 20px 2px 12px; }
 .d-head-row {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
 }
 .d-head-filters {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
 }
-.d-section-title { font-size: 13px; font-weight: 700; color: var(--color-text); }
+.d-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  color: var(--color-text);
+}
 .d-section-count {
   display: inline-flex;
   align-items: center;
@@ -1058,14 +1087,17 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   gap: 6px;
   margin-left: auto;
   min-height: 34px;
-  padding: 4px 8px;
+  padding: 4px 10px;
   border-radius: var(--el-radius-base);
-  background: var(--el-fill-color-light);
-  border: 1px dashed var(--el-border-color-lighter);
+  /* 去掉虚线框：虚线在浅底上显得像「未完成的占位」，
+     改用一层很淡的填充 + 发丝内描边表达「工具条」 */
+  background: var(--bg-elevated, var(--el-fill-color-light));
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter));
   transition: background 0.18s ease, border-color 0.18s ease;
 }
 .batch-toolbar:hover {
-  background: var(--el-fill-color-dark);
+  background: var(--el-fill-color-light);
+  border-color: var(--border-default, var(--el-border-color-lighter));
 }
 .batch-count { 
   font-size: 12px; color: var(--el-text-color-secondary); 
@@ -1090,19 +1122,29 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 }
 .ctx-filter-title { font-size: 12px; color: var(--color-text-gray); }
 .ctx-tag {
-  padding: 2px 8px;
+  padding: 3px 9px;
   /* 原值 99px → 胶囊最小档 */
   border-radius: var(--el-radius-full, 9999px);
   font-size: 11px;
   line-height: 16px;
   color: var(--el-text-color-secondary);
-  background: var(--el-fill-color);
+  background: var(--bg-fill, var(--el-fill-color));
+  border: 1px solid transparent;
   cursor: pointer;
   user-select: none;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-.ctx-tag:hover { background: var(--el-fill-color-dark); }
-.ctx-tag-active { color: #fff; background: var(--color-primary); }
+.ctx-tag:hover {
+  color: var(--el-text-color-primary);
+  background: var(--el-fill-color-light);
+  border-color: var(--border-default, var(--el-border-color-lighter));
+}
+.ctx-tag-active {
+  color: #fff;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--color-primary) 32%, transparent);
+}
 .ctx-no-match {
   padding: 34px 0 20px;
   text-align: center;
@@ -1116,26 +1158,44 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   grid-template-columns: repeat(auto-fill, minmax(258px, 1fr));
   /* 每行等高，信息少的卡片底栏也贴底，不会出现按钮悬在半空 */
   grid-auto-rows: 1fr;
-  gap: 13px;
+  gap: 12px;
 }
+/* 卡片：顶部一条主色→紫的柔和色带作为「身份标记」，其余部分保持素净。
+   色带用伪元素而不是 border-top —— border 会跟着圆角走形，伪元素可以
+   单独控制顶部两个圆角，且不参与盒模型、不影响内容对齐。 */
 .mc {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-height: 100%;
   padding: 16px;
-  border-radius: calc(var(--size-surface-radius) + 4px);
+  border-radius: var(--radius-lg, 12px);
   background: var(--color-surface);
-  border: 1px solid var(--color-surface-border);
-  transition: border-color 0.18s ease, background 0.18s ease;
+  border: 1px solid var(--border-subtle, var(--color-surface-border));
+  overflow: hidden;
+  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+.mc::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-primary), #6d28d9);
+  transition: opacity 0.18s ease;
+}
+/* 未启用：色带降为灰阶，一眼区分「停用」，不必再去找开关 */
+.mc.is-off::before {
+  background: linear-gradient(90deg, var(--border-strong, #d3dceb), var(--border-subtle, #eef2f8));
 }
 .mc:hover {
-  border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-surface-border));
-  background: color-mix(in srgb, var(--color-primary) 3%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--color-primary) 32%, var(--color-surface-border));
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(15, 23, 42, 0.06));
 }
 /* 批量选中态 */
 .mc.is-selected {
   border-color: var(--color-primary);
-  background: color-mix(in srgb, var(--color-primary) 4%, var(--color-surface));
+  background: color-mix(in srgb, var(--color-primary) 3%, var(--color-surface));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 10%, transparent);
 }
 /* 批量选择 checkbox：放在头部右侧，小圆底背景让元素看起来像可控件而非占位 */
 .mc-check {
@@ -1212,18 +1272,51 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 .cap-arrow { color: var(--color-text-disabled); }
 /* .mc-feature 已随「其它标签」改造移除：特性改由 ModelTagStrip 以图标 + tooltip 渲染 */
 
+/* 指标区：等宽色块网格（每行 2 个）。
+   原来是一行「标签 + 值」的小字（gap 14px、无背景），多个指标挤在一起时
+   需要逐个读；改成色块后，同一个位置上的数字可以直接上下比较，
+   并且首个指标（通常是「输入」或「最近使用」）用主色淡底强调。
+   auto-fit + minmax 让只有 1 个指标时它铺满整行、3 个以上时自动换行，
+   不会留出半格空洞。 */
 .mc-meta {
-  display: flex;
-  /* 条目数量不定（输入/输出/价格/速度/智能），允许换行避免撑破卡片 */
-  flex-wrap: wrap;
-  gap: 6px 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 6px;
   margin-top: 11px;
   padding-top: 11px;
-  border-top: 1px solid var(--color-surface-border);
+  border-top: 1px solid var(--border-subtle, var(--color-surface-border));
 }
-.mc-meta-item { display: inline-flex; align-items: baseline; gap: 5px; }
-.mc-meta-label { font-size: 11px; color: var(--color-text-gray); }
-.mc-meta-val { font-size: 12px; font-weight: 700; color: var(--color-text); }
+.mc-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-elevated, #f8fafc);
+}
+/* 首个指标：主色淡底 + 主色数值，作为这张卡的「主指标」 */
+.mc-meta-item.is-lead {
+  background: color-mix(in srgb, var(--color-primary) 7%, transparent);
+}
+.mc-meta-label {
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--color-text-gray);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mc-meta-val {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mc-meta-item.is-lead .mc-meta-val { color: var(--color-primary); }
 
 .mc-foot {
   display: flex;
@@ -1232,44 +1325,55 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   /* 信息少/多导致卡片内容高度不齐时，底部工具栏始终贴齐卡片底边 */
   margin-top: auto;
   padding-top: 12px;
-  border-top: 1px solid var(--color-surface-border);
+  border-top: 1px solid var(--border-subtle, var(--color-surface-border));
 }
 .mc-src {
   display: inline-flex;
   align-items: center;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
-  padding: 3px 9px;
+  padding: 3px 8px;
   border-radius: 999px;
 }
 .mc-src.is-in { color: var(--el-text-color-secondary); background: var(--el-fill-color); }
-.mc-src.is-ext { color: var(--el-color-primary); background: var(--el-color-primary-light-9); }
-.mc-foot-btns { display: flex; gap: 2px; }
+.mc-src.is-ext {
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 9%, transparent);
+}
+.mc-foot-btns { display: flex; gap: 1px; }
 .mc-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px; height: 30px;
+  width: 29px; height: 29px;
   border: none;
-  border-radius: calc(var(--size-surface-radius) - 2px);
+  border-radius: var(--radius-md, 8px);
   color: var(--color-text-gray);
   background: transparent;
   cursor: pointer;
   transition: color 0.15s ease, background 0.15s ease;
 }
-.mc-btn:hover { color: var(--color-primary); background: var(--color-surface-border); }
+.mc-btn:hover {
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 9%, transparent);
+}
 .mc-btn:disabled { cursor: not-allowed; opacity: .45; }
 .mc-btn:disabled:hover { color: var(--color-text-gray); background: transparent; }
 .mc-btn.danger:hover { color: var(--el-color-danger); background: color-mix(in srgb, var(--el-color-danger) 12%, transparent); }
 
-/* 动效降级：系统开启「减少动态效果」时，模型卡的描边/底色与卡片按钮的颜色直接到位。
+/* 动效降级：系统开启「减少动态效果」时，模型卡的描边/底色/阴影与卡片按钮的颜色直接到位。
    逐个列出，不写 `*` / .mc * 通配，
    避免把卡内 el-tag / el-switch / el-dialog 内部 Element Plus 组件的合法过渡一起掐掉。
-   这两个都只带 transition（无 animation），hover 态本身是静态样式，照常成立。 */
+   这些都只带 transition（无 animation），hover 态本身是静态样式，照常成立。 */
 @media (prefers-reduced-motion: reduce) {
   .mc,
-  .mc-btn {
+  .mc::before,
+  .mc-btn,
+  .batch-toolbar,
+  .ctx-tag {
     transition: none;
   }
+  /* 悬停不再位移/投影，避免「减少动效」下仍出现位移观感 */
+  .mc:hover { box-shadow: none; }
 }
 </style>

@@ -1,18 +1,23 @@
-/**
- * ReFloatWindow —— 可浮动窗口（拖拽 / 缩放 / 最小化浮标 / 最大化 / 全屏 / 边缘自动收起）
- *
- * <p>非模态，内容与头部尽量走 slot，行为尽量走 props：
- * `v-model` 控制显隐，`x/y/width/height` 双向同步几何，`confirm-close` 控制关闭二次确认。</p>
- */
-import type { App, Plugin } from "vue";
 import ReFloatWindow from "./ReFloatWindow.vue";
 
-const plugin: Plugin = {
-  install(app: App) {
-    app.component("ReFloatWindow", ReFloatWindow);
+export { ReFloatWindow };
+export type {
+  AlignLine,
+  EdgeSide,
+  GeometrySnapConfig,
+  GeometryWorkerRequest,
+  GeometryWorkerResponse,
+  Rect,
+} from "./geometry.types";
+
+/**
+ * 全局安装入口：`install.ts` 的懒加载注册表要求每个组件模块导出一个带 install 的对象。
+ * 构造型组件不注册为全局标签，这里给个空实现即可（install.ts 走 app.use(module.install)）。
+ */
+export const install = {
+  install: () => {
+    // 无需注册：调用方按需 import { ReFloatWindow }
   },
 };
 
-export { plugin as install };
 export default ReFloatWindow;
-export type ReFloatWindowInstance = InstanceType<typeof ReFloatWindow>;

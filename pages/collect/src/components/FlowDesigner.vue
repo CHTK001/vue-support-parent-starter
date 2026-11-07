@@ -1087,7 +1087,7 @@ const formContext = computed<NodeFormContext>(() => ({
   previewUrl: nodeForm.value ? upstreamUrlOf(nodeForm.value.id) : "",
   // fetchPreview 的第二参 timeoutMs 是可选的，函数整体可直接赋给只收 url 的签名；
   // 返回值 CollectPreviewPayload 与 PreviewPayload 字段一致，可直接赋值。
-  loadPreview: (url: string): Promise<PreviewPayload> => fetchPreview(url),
+  loadPreview: (url: string, render?: boolean): Promise<PreviewPayload> => fetchPreview(url, undefined, render),
   flowOptions: flowOptionsOf.value,
   datasourceOptions: datasourceOptionsOf.value,
   tableOptions: tableOptions.value,

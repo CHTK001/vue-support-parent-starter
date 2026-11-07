@@ -76,6 +76,12 @@
               <span class="ws-auto-dot"></span>
               {{ autoWatch ? '自动观看中' : '自动观看' }}
             </button>
+            <button class="ws-auto" type="button" :class="{ on: autoEvolve }"
+              :title="autoEvolve ? '停止自动演化' : '让 AI 自己往下演，你只管看'" @click="toggleAutoEvolve"
+              data-role="auto-evolve">
+              <span class="ws-auto-dot"></span>
+              {{ autoEvolve ? '自演化中' : '自动演化' }}
+            </button>
             <button class="ws-chat-adv" type="button" :disabled="advancing" title="推进时间，生成世界动态"
               @click="advance">
               <el-icon v-if="!advancing"><VideoPlay /></el-icon>
@@ -159,6 +165,12 @@
                   <h3 class="ws-cue-title">{{ s.title }}</h3>
                   <div v-if="s.cast" class="ws-cue-cast">在场：{{ s.cast }}</div>
                   <p class="ws-cue-text">{{ s.body }}</p>
+                  <ul v-if="s.lines.length" class="ws-cue-lines" data-role="play-lines">
+                    <li v-for="(l, li) in s.lines" :key="li" class="ws-cue-line">
+                      <span v-if="l.speaker" class="ws-cue-who">{{ l.speaker }}</span>
+                      <span class="ws-cue-say">{{ l.text }}</span>
+                    </li>
+                  </ul>
                   <img v-if="s.image" class="ws-cue-img" :src="s.image" :alt="s.title" />
                 </div>
               </section>
@@ -800,6 +812,8 @@ const storyScenes = computed(() => {
         no: cn[i] ?? String(i + 1),
         title,
         body,
+        // 台词单独排版：旁白之后再逐句列出「说话人：内容」，这是演出正文里观众最看的部分
+        lines: Array.isArray(s.lines) ? s.lines.filter((l) => (l.text || '').trim()) : [],
         cast: s.cast || '',
         stageName: s.stageName || '',
         image: s.mediaImage?.url || '',
@@ -1203,6 +1217,67 @@ async function advance() {
   }
 }
 
+/* ---------------- 世界自演化（自动推进） ---------------- */
+/** 自动推进间隔：一轮演出 + 一次时间推进，节奏由 AI 定，观众只负责看 */
+const AUTO_EVOLVE_MS = 6000
+let evolveTimer: ReturnType<typeof setTimeout> | null = null
+
+/** 自动演化开关由用户控制，默认关闭，避免一进页面就消耗模型额度 */
+const autoEvolve = ref(false)
+
+function stopAutoEvolve() {
+  if (evolveTimer) {
+    clearTimeout(evolveTimer)
+    evolveTimer = null
+  }
+}
+
+/** 排下一轮：先演一幕（若在演），再推进世界时间 */
+function scheduleEvolve() {
+  stopAutoEvolve()
+  if (!autoEvolve.value || !currentWorldId.value) return
+  evolveTimer = setTimeout(async () => {
+    evolveTimer = null
+    if (!autoEvolve.value || !currentWorldId.value) return
+    try {
+      if (currentAct.value && actStage.value && actStage.value !== 'replay' && actStage.value !== 'finished') {
+        await actPipelineAction('advance')
+      } else {
+        await advance()
+      }
+    } catch (e: any) {
+      // 单轮失败不打断演化：下一轮自然重试，观众看到的是一次停顿而不是整个页面报错
+      // 只读账号推进世界会 403，那就停下等用户自己再点，不要每 6 秒弹一次错误
+      console.warn('[world-sim] 自演化单轮失败', e)
+      if (e?.statusCode === 403 || e?.status === 403) {
+        autoEvolve.value = false
+      }
+    } finally {
+      scheduleEvolve()
+    }
+  }, AUTO_EVOLVE_MS)
+}
+
+function toggleAutoEvolve() {
+  if (autoEvolve.value) {
+    autoEvolve.value = false
+    stopAutoEvolve()
+    return
+  }
+  if (!currentWorldId.value) {
+    message.info('先选一个世界')
+    return
+  }
+  // 与「自动观看」互斥：同一时刻只让一种节奏在跑
+  if (autoWatch.value) {
+    stopAutoWatch()
+  }
+  autoEvolve.value = true
+  scheduleEvolve()
+}
+
+onUnmounted(stopAutoEvolve)
+
 /* ---------------- 观演（让 AI 自己演） ---------------- */
 async function spectate() {
   if (!canSpectate.value || spectating.value) return
@@ -1293,6 +1368,11 @@ function toggleAutoWatch() {
   if (!canSpectate.value) {
     message.info('先回到对话视图（点幕次卡以外的地方）再自动观看')
     return
+  }
+  // 两个自动开关同开会让同一轮里既推幕次又推对话，节奏互相打架
+  if (autoEvolve.value) {
+    autoEvolve.value = false
+    stopAutoEvolve()
   }
   autoWatch.value = true
   message.success('自动观看已开启，世界会自己演下去')
@@ -1502,9 +1582,9 @@ async function actPipelineAction(btn: { stage?: string; label?: string; action?:
     const no = currentAct.value!.actNo as number
     if (btn.action === 'advance') {
       // 幕次自动接续：从当前阶段一路推到「可重播」，中途不停下来等观众点。
-      // 最多推 4 轮（writing → props_ok → playing → replay），防止后端状态异常时空转。
+      // 最多推 8 轮（writing → props_ok → playing → replay），后端一轮会尽量把素材一次建完。
       let next: WorldActAdvance | null = null
-      for (let i = 0; i < 4; i += 1) {
+      for (let i = 0; i < 8; i += 1) {
         next = await apiService.advanceWorldAct(currentWorldId.value, no) as WorldActAdvance
         const st = next?.act?.stage
         if (!['writing', 'props_ok', 'playing'].includes(String(st))) break
@@ -2158,6 +2238,29 @@ async function send() {
   border-radius: var(--el-radius-md, 8px);
   border: 1px solid var(--el-border-color-lighter);
 }
+/* 台词：说话人与内容分开，说话人弱化，读起来像剧本而不是一整段旁白 */
+.ws-cue-lines {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ws-cue-line {
+  display: flex;
+  gap: 8px;
+  font-size: 13.5px;
+  line-height: 1.75;
+  color: var(--el-text-color-primary);
+}
+.ws-cue-who {
+  flex: none;
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+.ws-cue-who::after { content: '：'; }
+.ws-cue-say { word-break: break-word; }
 
 /* ---- 舞台空态 ---- */
 .ws-stage-empty {

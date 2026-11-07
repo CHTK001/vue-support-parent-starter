@@ -435,8 +435,45 @@ export interface PuzzleVerifyConfig {
   correctIndex?: number;
 }
 
+/**
+ * 登录类型（app.yaml loginConfig.types 的一项）
+ *
+ * <p>一个登录类型 = 登录页上的一张选择卡片 + 登录时使用的一套后端地址。
+ * 数组顺序即卡片顺序；只配一项时登录页不显示切换器。</p>
+ */
+export interface LoginTypeConfig {
+  /** 类型标识（web / tenant 等，自定义，用于日志与埋点） */
+  type: string;
+  /** 卡片标题（支持 i18n key 或直接写中文） */
+  title: string;
+  /** 卡片描述（一行说明这个入口适合谁） */
+  description?: string;
+  /** 卡片图标：Element Plus 图标名（User / OfficeBuilding 等） */
+  icon?: string;
+  /**
+   * 该类型的后端基础地址。
+   *
+   * <p>留空 = 沿用 app.yaml 的 httpConfig.baseUrl（同源，走 vite/nginx 代理）；
+   * 填了绝对地址（如 https://tenant.example.com）则登录与后续请求都发往该地址。</p>
+   */
+  baseUrl?: string;
+  /**
+   * 是否需要用户手填租户编码。
+   *
+   * <p>租户入口的地址若是固定的独立站点，这里保持 false：地址已经决定了租户；
+   * 只有「一个地址服务多个租户、按编码分流」时才置 true。</p>
+   */
+  tenantCode?: boolean;
+}
+
 /** 登录页配置 */
 export interface LoginConfig {
+  /**
+   * 登录类型列表（app.yaml loginConfig.types）。不配时等价于只有一项 web 普通登录。
+   *
+   * <p>登录页按数组顺序渲染卡片与描述；只有一个类型时不显示选择器。</p>
+   */
+  types: LoginTypeConfig[];
   /** 是否启用图形验证码 */
   captcha: boolean;
   /** 是否启用 OTP 动态口令（TOTP，6 位数字） */

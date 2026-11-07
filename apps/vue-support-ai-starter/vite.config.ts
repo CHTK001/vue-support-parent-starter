@@ -459,6 +459,10 @@ export default defineConfig({
       { find: '@pages/filesystem', replacement: path.resolve(WORKSPACE_ROOT, 'pages/filesystem/src') },
       // PascalCase 的组件入口（@repo/ui 的 exports 未收录）由目录扫描生成
       ...Object.entries(uiComponentAliases()).map(([find, replacement]) => ({ find, replacement })),
+      // 还存在 `@repo/ui/components/ReXxx` 这种「目录直引」写法（如 koi 的 ReNoteEntry.vue）。
+      // 它不是 exports 里的键，node 解析不到；指到真实目录即可按文件路径解析。
+      // 必须排在组件别名之后：更长的键先于 `@repo/ui/...` 短键匹配不到的风险由精确目录承担。
+      { find: '@repo/ui/components', replacement: path.resolve(WORKSPACE_ROOT, 'packages/ui/src/components') },
     ],
   },
   css: {

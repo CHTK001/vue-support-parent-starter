@@ -12,10 +12,14 @@
       <span v-if="notes.length" class="re-note-entry__badge">{{ notes.length }}</span>
     </button>
 
-    <!-- 悬浮便条：复用 ReFloatWindow（拖拽 / 缩放 / 最小化浮标 / 最大化 / 全屏 / 边缘收起） -->
+    <!-- 悬浮便条：窗口能力全在 ReFloatWindow，这里只提供内容与数据 -->
     <template v-for="note in notes" :key="note.id">
       <ReFloatWindow
         v-if="enabled"
+        :win-id="note.id"
+        :persist="NOTE_PERSIST"
+        :dock-scale="NOTE_DOCK_SCALE"
+        :guide-grid="NOTE_GUIDE_GRID"
         :model-value="true"
         :title="t('header.noteEntry.title')"
         :color="note.color"
@@ -38,19 +42,13 @@
         :exit-fullscreen-text="t('header.noteEntry.restore')"
         :close-text="t('header.noteEntry.close')"
         :restore-text="t('header.noteEntry.restore')"
-        @update:x="note.x = $event"
-        @update:y="note.y = $event"
-        @update:width="note.w = $event"
-        @update:height="note.h = $event"
-        @move="persistNote(note)"
-        @resize="persistNote(note)"
+        :dock-icon-only="true"
+        edge-sides="all"
+        @change="onNoteChange(note, $event)"
         @close="removeNote(note.id)"
       >
         <template #header>
           <span class="re-note-card__title">{{ t("header.noteEntry.title") }}</span>
-          <span class="re-note-card__count" v-if="notes.length">
-            {{ notes.length }} {{ t("header.noteEntry.count") }}
-          </span>
         </template>
 
         <!-- 顶栏右侧：换色 -->
@@ -90,20 +88,20 @@
 /**
  * 快捷便条（顶栏入口 + 悬浮便条）
  *
- * <p>组件由 ReToolbar 在工具栏中渲染（见 headerItems.ts `quickNote` 条目）。
- * 点击按钮创建便条；便条本体复用 `@repo/ui` 的 ReFloatWindow（拖拽、缩放、最小化浮标、
- * 最大化、全屏、拖到边缘自动收起），数据通过 IndexedDB `createNoteStore(userId)` 持久化
- * （DB 名 `koi-home-note-{userId}`，store `notes`，keyPath `id`）。</p>
+ * <p>只是 ReFloatWindow 的一个使用方：窗口行为（拖拽 / 缩放 / 最小化 / 最大化 / 全屏 /
+ * 边缘收起 / 对齐辅助线 / 独占）全部由 `@repo/ui` 的 ReFloatWindow 提供，这里只负责
+ * 内容和数据。</p>
  *
- * <p>关闭二次确认可用 `other.toolbar.quickNoteConfirm` 关闭，默认开启。</p>
+ * <p>持久化分两层：几何与最小化态由 ReFloatWindow 自己实时写 localStorage（拖拽中节流、
+ * 松手立即写）；正文与配色由本组件写入 IndexedDB（输入时节流合并写、卸载 / 隐藏前冲刷）。</p>
  */
 import { computed, onBeforeUnmount, onMounted, reactive, ref, toRaw } from "vue";
 import { useI18n } from "vue-i18n";
 import { Memo } from "@element-plus/icons-vue";
 import { message, messageBox } from "@repo/core";
 import { getConfig } from "@repo/config";
-import ReFloatWindow from "@repo/ui/components/ReFloatWindow";
-import { createNoteStore } from "@repo/utils";
+import ReFloatWindow from "@repo/ui/re-float-window";
+import { createCoalescer, createNoteStore } from "@repo/utils";
 import useAuthStore from "@repo/pinia/modules/auth";
 
 const { t } = useI18n();
@@ -118,6 +116,13 @@ const MIN_H = 140;
 /** 新建便条默认宽高 */
 const DEFAULT_W = 260;
 const DEFAULT_H = 220;
+
+/** 窗口几何实时持久化到 localStorage（刷新后回到同一位置） */
+const NOTE_PERSIST = true;
+/** 最小化图标的缩放倍率 */
+const NOTE_DOCK_SCALE = 1;
+/** 对齐辅助线：同类便条互相对齐 */
+const NOTE_GUIDE_GRID = -1;
 
 /** 便条数据模型（与 IndexedDB store notes 的 keyPath `id` 对齐） */
 interface Note {
@@ -152,8 +157,11 @@ const notes = ref<Note[]>([]);
 /** 按当前登录用户隔离的 IndexedDB store */
 const saveStore = computed(() => createNoteStore(userId.value));
 
-/** 每条便条独立的防抖定时器：按 id 分桶，互不取消 */
-const saveTimers = new Map<string, ReturnType<typeof setTimeout>>();
+/**
+ * 写入合并器：同一便条 400ms 内的多次写只落盘一次。
+ * 正文输入 + 拖拽几何都走这里，避免 IO 风暴；按便条 id 分桶，多条互不影响。
+ */
+const writes = createCoalescer(400);
 
 /** 立即写入单条便条（失败只告警，不打断交互） */
 function writeNote(note: Note) {
@@ -163,40 +171,22 @@ function writeNote(note: Note) {
     .catch((err) => console.warn("[note-entry] 保存便条失败", err));
 }
 
-/**
- * 防抖写库：同一便条 400ms 内的多次修改只写最后一次，避免拖拽时 IO 风暴。
- * 按便条 id 分桶，避免多条便条互相取消。
- */
+/** 排一次合并写（同一便条的多次调用会被合并） */
 function save(note: Note) {
-  const prev = saveTimers.get(note.id);
-  if (prev) clearTimeout(prev);
-  saveTimers.set(
-    note.id,
-    setTimeout(() => {
-      saveTimers.delete(note.id);
-      writeNote(note);
-    }, 400),
-  );
+  writes.push(note.id, () => writeNote(note));
 }
 
 /** 取消某条便条的挂起写入（删除前调用，避免挂起写入把便条又写回来） */
 function cancelSave(id: string) {
-  const timer = saveTimers.get(id);
-  if (timer) clearTimeout(timer);
-  saveTimers.delete(id);
+  writes.cancel(id);
 }
 
-/** 卸载前把挂起的写入立即落库，避免丢失最后一次编辑 */
+/** 把挂起的写入立刻落库 */
 function flushSaves() {
-  saveTimers.forEach((timer, id) => {
-    clearTimeout(timer);
-    const note = notes.value.find((n) => n.id === id);
-    if (note) writeNote(note);
-  });
-  saveTimers.clear();
+  writes.flush();
 }
 
-/** 几何/正文变化后落库 */
+/** 正文变化后落库（输入过程中合并写，失焦 / 卸载时立即写） */
 function persistNote(note: Note) {
   note.updatedAt = Date.now();
   save(note);
@@ -207,12 +197,28 @@ function setNoteColor(id: string, color: string) {
   const note = notes.value.find((n) => n.id === id);
   if (!note) return;
   note.color = color;
+  note.updatedAt = Date.now();
+  // 换色是低频操作，直接落库
+  writeNote(note);
+}
+
+/** 正文修改时写（合并写） */
+function onNoteInput(note: Note) {
   persistNote(note);
 }
 
-/** 正文修改时写（防抖），确保输入不丢失 */
-function onNoteInput(note: Note) {
-  persistNote(note);
+/**
+ * 窗口几何变化：拖拽中每帧都会来，这里只更新内存 + 排一次合并写；
+ * 位置尺寸同时回填到 note 上，窗口重建 / 刷新后能落在同一处。
+ */
+function onNoteChange(note: Note, rect: { x: number; y: number; width: number; height: number }) {
+  if (note.x === rect.x && note.y === rect.y && note.w === rect.width && note.h === rect.height) return;
+  note.x = rect.x;
+  note.y = rect.y;
+  note.w = rect.width;
+  note.h = rect.height;
+  note.updatedAt = Date.now();
+  save(note);
 }
 
 /** 从顶栏入口创建一条新便条 */
@@ -238,7 +244,8 @@ function createNote() {
 
 /** 关闭确认：走 @repo/core 的 messageBox */
 async function confirmDelete(note: Note): Promise<boolean> {
-  if (!confirmClose.value) return true;
+  // 有正文才值得确认；空便条直接关，少一次打断（confirmClose 关掉时永远直接关）
+  if (!confirmClose.value || !note.text.trim()) return true;
   try {
     await messageBox.confirm(
       t("header.noteEntry.confirmDelete"),
@@ -251,8 +258,6 @@ async function confirmDelete(note: Note): Promise<boolean> {
   } catch {
     return false;
   }
-  // note 参数保留：后续若需要“有正文才确认”等策略可在此判断
-  void note;
 }
 
 /** 删除一条便条 */
@@ -278,12 +283,27 @@ function load() {
     });
 }
 
+/** 页面隐藏 / 关闭前把挂起的写落库（比 beforeunload 更可靠，手机端也生效） */
+function onVisibilityChange() {
+  if (document.visibilityState === "hidden") flushSaves();
+}
+
+/** 输入框失焦时立刻落库，避免“刚输入就刷新”丢失最后一次 */
+function onFocusOut(e: FocusEvent) {
+  const el = e.target as HTMLElement | null;
+  if (el && el.closest(".re-note-card__textarea")) flushSaves();
+}
+
 onMounted(() => {
   load();
+  document.addEventListener("visibilitychange", onVisibilityChange);
+  document.addEventListener("focusout", onFocusOut);
 });
 
 onBeforeUnmount(() => {
   flushSaves();
+  document.removeEventListener("visibilitychange", onVisibilityChange);
+  document.removeEventListener("focusout", onFocusOut);
 });
 </script>
 
@@ -357,40 +377,34 @@ onBeforeUnmount(() => {
   border: 1px solid var(--el-fill-color-blank);
 }
 
-/* 便条内部：标题 / 计数 / 色板 / 正文 */
+/* 便条内部：标题 / 色板 / 正文 */
 .re-note-card__title {
+  flex-shrink: 0;
   font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
   color: var(--el-text-color-primary);
-}
-
-.re-note-card__count {
-  margin-left: 6px;
-  padding: 1px 7px;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--el-text-color-regular);
-  background: rgba(255, 255, 255, 0.55);
-  border-radius: var(--el-radius-full, 9999px);
 }
 
 .re-note-card__colors {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 
 .re-note-card__color {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   padding: 0;
   cursor: pointer;
   border: 2px solid transparent;
   border-radius: var(--el-radius-sm, 6px);
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease;
 
   &:hover {
     transform: scale(1.12);

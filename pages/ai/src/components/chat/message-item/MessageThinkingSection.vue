@@ -1,15 +1,18 @@
 <template>
   <div class="process-section thinking-section">
-    <!-- 标题行 -->
+    <!-- 标题行：状态词 + 思考内容首行摘要（用户需求 2026-11-07：过程行直接给出内容预览，
+         与工具行的「动作名 + 命令摘要」同构，扫一眼就知道这轮思考在想什么） -->
     <div
       class="thinking-section__header flex items-center text-sm text-gray-700 dark:text-gray-400 cursor-pointer font-medium transition-colors duration-200"
       @click.stop="handleToggle">
       <!-- 不再重复画思考图标：外层 ProcessTimeline 的 timeline-rail 已经给了一个，
            组件内再画会导致同一块思考出现两个图标（用户反馈「思考的图标重复出现」） -->
-      <span class="text-gray-600 dark:text-gray-400">{{ isThinking ? t('chat.turn.thinkingActive') : t('chat.turn.thinkingDone') }}</span>
-      <span v-if="thinkingDuration" class="text-xs text-gray-400 ml-2">
+      <span class="text-gray-600 dark:text-gray-400 shrink-0">{{ isThinking ? t('chat.turn.thinkingActive') : t('chat.turn.thinkingDone') }}</span>
+      <span v-if="thinkingDuration" class="text-xs text-gray-400 ml-2 shrink-0">
         {{ formattedDuration }}
       </span>
+      <!-- 折叠态的内容摘要：取推理首行，截断显示（展开后隐藏，正文自见） -->
+      <span v-if="!isExpanded && contentPreview" class="thinking-section__preview">{{ contentPreview }}</span>
     </div>
 
     <!-- 内容区：极简展开态（用户要求 2026-10-24）——细左侧导轨 + 纯文本，
@@ -66,6 +69,20 @@ const formattedDuration = computed(() => {
   return formatDuration(thinkingDuration.value);
 });
 
+/**
+ * 折叠态标题行的思考摘要：取推理正文的首段非空文本，去 Markdown 记号后截断。
+ * 只做展示预览（约 80 字符），展开后隐藏——完整内容仍由下方内容区承载。
+ */
+const contentPreview = computed(() => {
+  const raw = (props.reasoningContent || '').trim();
+  if (!raw) return '';
+  const plain = raw
+    .replace(/[#*`>\-\[\]()]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return plain.length > 80 ? plain.slice(0, 80) + '…' : plain;
+});
+
 watch(() => props.isThinking, (isThinking: boolean) => {
   if (isThinking) {
     isExpanded.value = true;
@@ -85,6 +102,19 @@ watch(() => props.isThinking, (isThinking: boolean) => {
 
 .thinking-section__header {
   user-select: none;
+}
+
+/* 折叠态的思考摘要：弱化、单行截断，与工具行的目标摘要同一视觉档 */
+.thinking-section__preview {
+  margin-left: 10px;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 400;
+  color: var(--el-text-color-placeholder);
+  font-size: 13px;
 }
 
 /* 极简展开态：一条细导轨 + 纯文本（与工具行 / 检索行同一套视觉口径）。

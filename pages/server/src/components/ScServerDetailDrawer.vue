@@ -273,7 +273,7 @@ async function applyParams() {
             <ReDescriptions :column="2" border >
               <ReDescriptionsItem label="服务名称">
                 {{ node.name }}
-                <ReText v-if="node.id" type="secondary" style="margin-left: 8px; font-size: 11px">#{{ node.id }}</ReText>
+                <ReText v-if="node.id" style="margin-left: 8px; font-size: 11px">#{{ node.id }}</ReText>
               </ReDescriptionsItem>
               <ReDescriptionsItem label="运行状态">
                 <span class="status-cell">

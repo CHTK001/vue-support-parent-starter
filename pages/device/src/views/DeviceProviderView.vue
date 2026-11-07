@@ -396,24 +396,44 @@
             :label="field.label"
             :required="fieldFormRequired(field)"
           >
-            <el-input
-              :model-value="fieldFormValue(field)"
-              @update:model-value="(v: string) => form[fieldFormKey(field)] = v"
-              :type="field.secret ? 'password' : 'text'"
-              :show-password="field.secret"
-              :maxlength="256"
-              :placeholder="fieldPlaceholder(field)"
-              @keyup.enter="submit"
-              class="dpv-w"
-            />
-            <!-- 密钥类字段编辑时输入框为空（留空=保持原值），必须把"当前已配置"显式说出来，
-                 否则用户会以为保存后密钥丢了（2026-11-07 反馈） -->
-            <p v-if="field.secret && secretKeepHint(field)" class="dpv-form__keep">
-              已配置 {{ secretKeepHint(field) }}；留空保存即保持原值，填入新值则覆盖。
-            </p>
+            <!-- 密钥字段在编辑态直接显示后端回传的掩码，不留空：
+                 空框会被当成「值丢了」（2026-11-07 反馈）。要换值再点「修改」。 -->
+            <div v-if="secretReadonly(field)" class="dpv-secret">
+              <el-input
+                :model-value="secretMaskText(field)"
+                readonly
+                class="dpv-w dpv-secret__mask"
+                title="出于安全只显示掩码，点「修改」可填写新值"
+              >
+                <template #suffix><span class="dpv-secret__tag">已配置</span></template>
+              </el-input>
+              <el-button link type="primary" class="dpv-secret__act" @click="startSecretEdit(field)">
+                修改
+              </el-button>
+            </div>
+            <div v-else class="dpv-secret">
+              <el-input
+                :model-value="fieldFormValue(field)"
+                @update:model-value="(v: string) => form[fieldFormKey(field)] = v"
+                :type="field.secret ? 'password' : 'text'"
+                :show-password="field.secret"
+                :maxlength="256"
+                :placeholder="fieldPlaceholder(field)"
+                @keyup.enter="submit"
+                class="dpv-w"
+              />
+              <el-button
+                v-if="field.secret && editingCredentialId"
+                link
+                class="dpv-secret__act"
+                @click="cancelSecretEdit(field)"
+              >
+                取消
+              </el-button>
+            </div>
           </el-form-item>
         </div>
-        <p class="dpv-form__hint">凭证由后端加密存储，接口不回传明文；编辑时留空即保持原值。字段由厂商描述符（credentialFields）驱动，新增厂商无需改前端。</p>
+        <p class="dpv-form__hint">凭证由后端加密存储，接口不回传明文，编辑时显示的是掩码；点「修改」填写新值才会覆盖。字段由厂商描述符（credentialFields）驱动，新增厂商无需改前端。</p>
 
         <el-form-item label="Base URL">
           <el-input v-model="form.deviceCredentialBaseUrl" maxlength="255" placeholder="留空使用平台默认地址" />
@@ -1040,26 +1060,57 @@ function fieldFormValue(field: CredentialFieldDescriptor): string {
   return String(form[fieldFormKey(field)] ?? '')
 }
 
-/** 字段占位文案：密钥类在编辑态明确写出「留空不改」 */
+/** 字段占位文案：编辑态点开「修改」后提示填新值，新建时用描述符自带的提示 */
 function fieldPlaceholder(field: CredentialFieldDescriptor): string {
-  if (field.secret && editingCredentialId.value) return '留空则保持原密钥不变'
+  if (field.secret && editingCredentialId.value) return `输入新的${field.label}`
   return field.placeholder || ''
 }
 
+/** 正在改写的密钥字段（key → true）；未点「修改」时显示掩码 */
+const secretEditing = reactive<Record<string, boolean>>({})
+
 /**
- * 编辑态密钥字段「已配置」提示的取值。
+ * 密钥字段是否处于「显示掩码」的只读态。
  *
- * <p>后端只回传掩码（{@code deviceCredentialAppSecretMasked}），编辑时输入框为空，
- * 必须把掩码显示出来，用户才能确认密钥还在（2026-11-07：AppSecret 看起来没保存）。</p>
+ * <p>编辑已有凭据时，密钥框直接显示 {@code sn****nkfV} 这样的掩码，而不是空框——
+ * 空框会被当成「值丢了」（2026-11-07 反馈）。点「修改」才切成可输入。</p>
  *
  * @param field 描述符字段
- * @returns 有值则返回掩码或「已配置」；无值返回空串（不显示提示）
+ * @returns true 表示只读展示掩码
  */
-function secretKeepHint(field: CredentialFieldDescriptor): string {
-  if (!editingCredentialId.value || !field.secret) return ''
+function secretReadonly(field: CredentialFieldDescriptor): boolean {
+  if (!field.secret || !editingCredentialId.value) return false
+  if (secretEditing[field.key]) return false
+  return !!secretMaskText(field)
+}
+
+/**
+ * 只读态展示的掩码文本。
+ *
+ * @param field 描述符字段
+ * @returns 掩码；后端只给了「已配置」标记时退化为该标记
+ */
+function secretMaskText(field: CredentialFieldDescriptor): string {
   const masked = String((form as Record<string, unknown>).deviceCredentialAppSecretMasked ?? '')
   if (masked) return masked
-  return form.deviceCredentialAppSecretConfigured ? '已配置' : ''
+  return form.deviceCredentialAppSecretConfigured ? '已配置（不显示明文）' : ''
+}
+
+/** 点「修改」：清空输入框，切成可编辑 */
+function startSecretEdit(field: CredentialFieldDescriptor): void {
+  form[fieldFormKey(field)] = ''
+  secretEditing[field.key] = true
+}
+
+/** 点「取消」：丢掉输入，回到掩码展示（不提交即保持原值） */
+function cancelSecretEdit(field: CredentialFieldDescriptor): void {
+  form[fieldFormKey(field)] = ''
+  secretEditing[field.key] = false
+}
+
+/** 重置所有密钥字段的「修改中」标记（打开弹窗时调用，避免上一次的编辑态残留） */
+function resetSecretEditing(): void {
+  for (const key of Object.keys(secretEditing)) delete secretEditing[key]
 }
 
 /** 字段是否必填（编辑时密钥留空即不修改） */
@@ -1224,6 +1275,9 @@ function resetForm() {
   form.deviceCredentialName = ''
   form.deviceCredentialAppKey = ''
   form.deviceCredentialAppSecret = ''
+  form.deviceCredentialAppSecretMasked = ''
+  form.deviceCredentialAppSecretConfigured = false
+  resetSecretEditing()
   form.deviceCredentialBaseUrl = vendors.value[0]?.platforms[0]?.defaultBaseUrl || ''
   form.deviceCredentialProductCode = ''
   form.deviceCredentialProjectId = ''
@@ -1293,9 +1347,10 @@ function openEdit(row: ProviderCredential) {
   form.deviceCredentialName = row.deviceCredentialName
   form.deviceCredentialAppKey = row.deviceCredentialAppKey || ''
   form.deviceCredentialAppSecret = ''
-  // 只把掩码带进表单用于「已配置」提示，真实密钥永远不落到前端
+  // 只把掩码带进表单用于展示，真实密钥永远不落到前端
   form.deviceCredentialAppSecretMasked = row.deviceCredentialAppSecretMasked || ''
   form.deviceCredentialAppSecretConfigured = !!row.deviceCredentialAppSecretConfigured
+  resetSecretEditing()
   form.deviceCredentialBaseUrl = row.deviceCredentialBaseUrl || ''
   form.deviceCredentialProductCode = row.deviceCredentialProductCode || ''
   form.deviceCredentialProjectId = row.deviceCredentialProjectId || ''
@@ -2116,6 +2171,34 @@ onBeforeUnmount(() => {
   font-size: 11.5px;
   line-height: 1.6;
   color: var(--el-text-color-secondary);
+}
+
+/* 密钥字段：编辑态直接显示掩码 + 「修改」，不留空框（2026-11-07 反馈） */
+.dpv-secret {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.dpv-secret__mask :deep(.el-input__inner) {
+  color: var(--el-text-color-regular);
+  font-family: var(--el-font-family-mono, monospace);
+  letter-spacing: 0.4px;
+  background: var(--el-fill-color-light);
+}
+
+.dpv-secret__tag {
+  padding: 0 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 18px;
+  color: var(--el-color-success);
+  background: color-mix(in srgb, var(--el-color-success) 12%, transparent);
+}
+
+.dpv-secret__act {
+  flex: none;
 }
 
 .dpv-checks {

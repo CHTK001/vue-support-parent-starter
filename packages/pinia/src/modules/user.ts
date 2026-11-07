@@ -102,7 +102,7 @@ const userStore = defineStore("user", {
     },
     /** 登出 */
     async logOut() {
-      const { logout, invalidateSessionScope } = await import("@repo/core");
+      const { logout, invalidateSessionScope, resetActiveBaseUrl } = await import("@repo/core");
       // <b>先作废会话作用域，再发登出请求。</b>顺序不能反：
       // ① 登出只清本地令牌，**停不掉已发出的请求**。不中断的话，登出前发的那批
       //    请求（定时刷新、菜单、列表）还会陆续返回并写回本地 ——
@@ -115,6 +115,9 @@ const userStore = defineStore("user", {
       } catch {
         // 忽略登出接口异常：本地态照常清理，否则用户会卡在「登不出去」
       }
+      // 登录入口地址属于「这个人这次登录」，登出后必须清掉：
+      // 否则下一个登录者会继续用上一个入口的地址发请求
+      resetActiveBaseUrl();
       this.$reset();
       // 清除令牌 + 菜单缓存 + 布局缓存，下次登录重新拉取
       clearAllAuthData();

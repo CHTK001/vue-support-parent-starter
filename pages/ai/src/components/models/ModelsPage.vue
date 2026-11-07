@@ -339,53 +339,63 @@ onMounted(async () => {
   flex-direction: column;
   width: 264px;
   flex-shrink: 0;
-  border-right: 1px solid var(--color-surface-border);
+  border-right: 1px solid var(--border-subtle, var(--color-surface-border));
   background: var(--color-surface);
 }
 .mw-aside-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 16px 12px;
+  padding: 16px 14px 10px;
 }
-.mw-aside-title { font-size: 13px; font-weight: 700; color: var(--color-text); }
+.mw-aside-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--color-text-gray);
+}
 .mw-round {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border: none;
-  border-radius: calc(var(--size-surface-radius) - 2px);
+  border-radius: var(--radius-md, 8px);
   color: var(--color-text-gray);
-  background: var(--color-surface-border);
+  background: var(--bg-fill, var(--color-surface-border));
   cursor: pointer;
   transition: color 0.15s ease, background 0.15s ease;
 }
-.mw-round:hover { color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 14%, transparent); }
+.mw-round:hover { color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 12%, transparent); }
 
 .mw-list {
   list-style: none;
   margin: 0;
-  padding: 0 10px;
+  padding: 0 8px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 .mw-item {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 8px 9px;
-  border-radius: var(--size-surface-radius);
+  border-radius: var(--radius-md, 8px);
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
 }
-.mw-item:hover { background: var(--color-surface-border); }
-.mw-item.active { background: color-mix(in srgb, var(--color-primary) 13%, transparent); }
+.mw-item:hover { background: var(--bg-hover, var(--color-surface-border)); }
+/* 选中态：淡主色胶囊 + 左内侧一条主色线。
+   不用整块深色填充 —— 侧栏有多个供应商时，深填充会让整列显得很重。 */
+.mw-item.active {
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  box-shadow: inset 2px 0 0 var(--color-primary);
+}
 .mw-item-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 .mw-item-name {
   font-size: 13px;
@@ -395,6 +405,7 @@ onMounted(async () => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.mw-item.active .mw-item-name { color: var(--color-primary); }
 .mw-item-meta { font-size: 11px; color: var(--color-text-gray); margin-top: 1px; }
 .mw-item-tail {
   position: relative;
@@ -441,20 +452,20 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 9px;
-  margin: 10px;
-  padding: 11px 13px;
-  border: 1px solid var(--el-border-color-lighter);
-  /* 原值 calc(var(--size-surface-radius) + 2px)（=22px）→ xl 档 */
-  border-radius: var(--el-radius-xl, 16px);
-  color: var(--el-text-color-secondary);
-  background: var(--el-bg-color);
+  margin: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-default, var(--el-border-color-lighter));
+  border-radius: var(--radius-lg, 12px);
+  color: var(--color-text-gray);
+  background: var(--color-surface);
   cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 .mw-store:hover {
-  color: var(--el-color-primary);
-  border-color: color-mix(in srgb, var(--el-color-primary) 50%, var(--el-border-color-lighter));
-  background: color-mix(in srgb, var(--el-color-primary) 7%, transparent);
+  color: var(--color-primary);
+  border-color: color-mix(in srgb, var(--color-primary) 42%, var(--border-default, var(--el-border-color-lighter)));
+  background: color-mix(in srgb, var(--color-primary) 5%, transparent);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.04));
 }
 .mw-store-label { font-size: 13px; font-weight: 600; flex: 1; text-align: left; }
 .mw-store-count {
@@ -473,7 +484,7 @@ onMounted(async () => {
 }
 
 /* 右侧工作区 */
-.mw-main { flex: 1; min-width: 0; background: var(--el-bg-color); }
+.mw-main { flex: 1; min-width: 0; background: var(--color-surface); }
 .mw-main-empty {
   display: flex;
   flex-direction: column;

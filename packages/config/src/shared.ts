@@ -275,6 +275,17 @@ export const defaultAppConfig: AppConfig = {
     algorithm: "aes",
   },
   login: {
+    // 登录类型：默认只有普通登录一种。配了多项时登录页会渲染选择卡片，
+    // 选中项决定登录请求发往哪个 baseUrl（见 LoginTypeConfig）。
+    types: [
+      {
+        type: "web",
+        title: "普通登录",
+        description: "使用平台账号登录",
+        icon: "User",
+        baseUrl: "",
+      },
+    ],
     captcha: true,
     otp: false,
     slider: false,

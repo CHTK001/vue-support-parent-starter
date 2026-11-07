@@ -20,39 +20,6 @@
         </div>
       </div>
 
-      <!-- 近 24 小时执行分布（SVG 柱状：绿=成功 红=失败）——该窗口内有真实执行记录才展示，全空不占位 -->
-      <div v-if="hasHourlyData" class="flow-health-chart">
-        <div class="flow-health-chart-head">
-          <span class="flow-health-chart-title">近 24 小时执行</span>
-          <span class="flow-health-chart-hint">绿=成功 · 红=失败</span>
-        </div>
-        <div class="flow-bars">
-          <div v-for="h in stats.hourly" :key="h.hour" class="flow-bar-col" :title="`${h.hour} · ${h.total} 次（成功 ${h.success} / 失败 ${h.failed}）`">
-            <div class="flow-bar-stack">
-              <div v-if="h.failed" class="flow-bar-seg is-fail" :style="{ height: barHeight(h.failed, maxHour) }" />
-              <div v-if="h.success" class="flow-bar-seg is-ok" :style="{ height: barHeight(h.success, maxHour) }" />
-              <!-- 窗口内有数据的空小时画 2% 基线，柱子不悬空 -->
-              <div v-if="!h.failed && !h.success" class="flow-bar-seg is-zero" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 失败原因归类：点击某类 → 以该关键词搜索 -->
-      <div v-if="stats.failureGroups.length" class="flow-health-fail">
-        <span class="flow-health-chart-title">失败原因归类</span>
-        <button
-          v-for="g in stats.failureGroups"
-          :key="g.label"
-          type="button"
-          class="flow-fail-chip"
-          :class="{ 'is-active': keyword === g.label }"
-          @click="applyFailureFilter(g.label)"
-        >
-          {{ g.label }}
-          <span class="flow-fail-chip-count">{{ g.count }}</span>
-        </button>
-      </div>
     </section>
 
     <!-- 筛选卡片：任务 / 状态 / 触发 / 关键词 一行 -->
@@ -515,9 +482,6 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
 /** 完全没有执行记录：整块健康度总览都不渲染（用户明确不要 0 值占位卡片） */
 const noRunData = computed(() => stats.value.total === 0);
 
-/** 24h 窗口内有真实执行记录（任意小时有计数）才展示柱状图；全零/空窗口不占位 */
-const hasHourlyData = computed(() => stats.value.hourly.some(h => h.total > 0));
-
 /** 24h 柱状：最大计数（归一化用） */
 const maxHour = computed(() => Math.max(1, ...stats.value.hourly.map(h => h.total)));
 const barHeight = (n: number, max: number) => `${Math.max(2, Math.round((n / max) * 100))}%`;
@@ -790,7 +754,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 14px 0 16px;
+  padding: 0px;
 }
 /* 四卡一行（窄屏折行）。每格 = ReStatCard + 叠在卡内右下角的迷你趋势线 */
 .flow-health-stats {

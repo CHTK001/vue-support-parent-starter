@@ -140,6 +140,8 @@ export interface PreviewPayload {
   length?: number;
   /** 正文原文 */
   html: string;
+  /** 是否经过真实浏览器渲染（执行了 JS）；false/缺省表示 HTTP 直取的原始响应 */
+  rendered?: boolean;
 }
 
 /** 表单共享上下文：下拉候选、表/列联动状态与刷新回调，由 FlowDesigner 统一提供 */
@@ -149,7 +151,7 @@ export interface NodeFormContext {
   /** 元素拾取器的预填地址：当前节点的上游抓取节点 URL；空串则拾取器里由用户自己填 */
   previewUrl: string;
   /** 元素拾取器的加载器；缺省时不显示「选取」入口（拾取器自身不发 HTTP） */
-  loadPreview?: (url: string) => Promise<PreviewPayload>;
+  loadPreview?: (url: string, render?: boolean) => Promise<PreviewPayload>;
   /** flow 类型下拉候选 */
   flowOptions: { value: string; label: string }[];
   /** datasource 类型下拉候选 */

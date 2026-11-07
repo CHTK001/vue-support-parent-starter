@@ -130,6 +130,12 @@
           <AgentPanel v-if="!editMode" :agent-tabs="props.agentTabs" :active-tab-id="props.activeTabId"
             @switch="emit('switch-agent', $event)" />
 
+          <!-- 模型动作条：输入框上方的「模型此刻在干什么」
+               （执行中命令卡可展开/停止；等待用户/思考/生成三种轻量态）。
+               编辑消息时隐藏，避免与编辑条叠在一起（与 AiNextTaskPanel 同口径）。 -->
+          <ModelActionBar v-if="!editMode" :kind="actionBarKind" :text="processingStatus"
+            :model-name="actionBarModelName" :card="actionBarCard" @stop="abortResponse" />
+
           <div class="w-full flex items-center relative">
 
             <ChatInput ref="chatInputRef" v-model:value="inputMessage.content" v-model:files="inputMessage.files"
@@ -178,7 +184,7 @@ import { useSessionStore } from "../../stores/session";
 import { useAuthStore } from "../../stores/auth"
 import { useLayoutStore } from "@/stores/layout"
 import { getCurrentTurns, flattenContentsForTimeline } from "@/utils/messageUtils"
-import { getToolActionLabel } from "@/utils/toolDisplay"
+import { getToolActionLabel, getToolIcon, getArgsText } from "@/utils/toolDisplay"
 import { useStreamResponse } from "@/composables/useStreamResponse"
 import type { InputMessageState, Session, QueuedMessage } from '@/types/session';
 import type { Character } from '@/types/character';
@@ -202,6 +208,7 @@ import { Edit20Regular, DataLine20Regular } from '@vicons/fluent'
 import { Close } from '@element-plus/icons-vue'
 import AgentPanel from './AgentPanel.vue';
 import LTooltip from '../ui/LTooltip.vue';
+import ModelActionBar, { type ModelActionCard } from './ModelActionBar.vue';
 import ReDialog from '@repo/ui/re-dialog'
 
 
@@ -549,6 +556,54 @@ const processingStatus = computed(() => {
   }
   return isStreaming.value ? t('chat.panel.statusGenerating') : '';
 });
+
+// ============================================
+// 模型动作条（输入框上方）：从 currentProcessItem 派生四种形态
+// ============================================
+
+/**
+ * 动作条形态：executing（跑工具，带命令卡）/ thinking / streaming / waiting / null。
+ * waiting 优先于 executing：plan_exit 人工确认挂起时，轮次已不再推进，
+ * 最后一个「过程项」会永远停在工具行上——必须先看确认请求再把其余状态兜底。
+ */
+const actionBarKind = computed<'executing' | 'thinking' | 'streaming' | 'waiting' | null>(() => {
+  // 等待用户：最后一条助手轨迹带未决的 confirmationRequest（plan_exit）
+  const list = visibleTurns.value || [];
+  for (let i = list.length - 1; i >= 0; i -= 1) {
+    const assistants = (list[i] as any)?.assistants || [];
+    const last = assistants[assistants.length - 1];
+    if (!last) continue;
+    for (const c of last.contents || []) {
+      const req = c?.metadata?.confirmationRequest;
+      if (req && req.replyId) return 'waiting';
+    }
+    break; // 只看最后一个有内容的助手轨迹
+  }
+  const current = currentProcessItem.value;
+  if (current?.kind === 'tool') return 'executing';
+  if (current?.kind === 'think') return 'thinking';
+  return isStreaming.value ? 'streaming' : null;
+});
+
+/** 动作条里的模型名：与 ChatInput 模型按钮同源（该组件已加载模型目录并做了去命名空间显示） */
+const actionBarModelName = computed(() => chatInputRef.value?.currentModelName || '');
+
+/** executing 态的命令卡数据：摘要一行 + 展开详情（参数全文） */
+const actionBarCard = computed<ModelActionCard | null>(() => {
+  const current = currentProcessItem.value;
+  if (current?.kind !== 'tool') return null;
+  const tool = current.tool;
+  const args = getArgsText(tool);
+  return {
+    label: getToolActionLabel(tool),
+    summary: args || getToolActionLabel(tool),
+    fullCommand: args,
+    detail: args || undefined,
+    elapsedText: '',
+    icon: getToolIcon(tool),
+  };
+});
+
 
 // 监听轮次变化：仅 handleSendMessage 发送的新消息才标记动画
 watch(() => visibleTurns.value.length, (newLen, oldLen) => {

@@ -4,11 +4,13 @@
  * <p>基于 {@code spring-support-cdp-starter}（{@code /ms/cdp/**} REST +
  * {@code /ws/cdp} WebSocket）实现的一个轻量级 DevTools 面板，覆盖：</p>
  * <ul>
- *   <li>Console：浏览器 {@code Console.messageAdded} 事件实时回显；</li>
- *   <li>Network：{ @code Network.requestWillBeSent / responseReceived } 事件；</li>
- *   <li>DOM：当前页面的 URL / title / HTML 内容；</li>
- *   <li>Screenshot：截屏（PNG，base64）；</li>
- *   <li>Evaluate：在选中页面上执行 {@code Runtime.evaluate}。</li>
+ *   <li>元素：DOM 树 + 样式 / 计算样式 / 盒模型 / outerHTML 编辑 / SVG 抽取，
+ *       左侧可嵌入页面画面舞台，点画面反查节点；</li>
+ *   <li>控制台：浏览器 {@code Console.messageAdded} 事件实时回显；</li>
+ *   <li>网络：{ @code Network.requestWillBeSent / responseReceived } 事件；</li>
+ *   <li>应用：Cookie / localStorage / sessionStorage；</li>
+ *   <li>截屏：视口 / 全长截屏（PNG，base64）；</li>
+ *   <li>求值：元素页签底部的 Console 抽屉，执行 {@code Runtime.evaluate}。</li>
  * </ul>
  *
  * <p>页面组件（{@link DebugCenter}）自动挂载到 {@code /debug} 路由，

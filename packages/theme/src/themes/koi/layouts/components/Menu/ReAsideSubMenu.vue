@@ -391,12 +391,14 @@ const handleMenuRouter = (value: any) => {
 }
 
 /** 分组标题内的文字/箭头继承上面的灰字色；hover 时略深一点，给出可点反馈 */
+/* ⚠ color 过渡只在 hover 时启用（见下方 :hover）：若常驻，主题切换的 300ms 内
+ * 14 个分组标题会一起逐帧重算文字色，是暗色切换掉帧的来源之一。 */
 .el-menu.is-group-nav .el-menu-item-group__title .menu-group-title {
   color: var(--el-text-color-secondary);
-  transition: color 0.2s ease;
 }
 .el-menu.is-group-nav .el-menu-item-group__title .menu-group-title:hover {
   color: var(--el-text-color-primary);
+  transition: color 0.2s ease;
 }
 
 /**

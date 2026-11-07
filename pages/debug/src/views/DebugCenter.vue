@@ -5,8 +5,9 @@
  * <p>页面级路线 {@code /debug}，采用「工作台」布局：</p>
  * <ul>
  *   <li>顶部状态带：浏览器状态 / WS 状态 / 调试端口，以及刷新、新建页面、启动、停止；</li>
- *   <li>左侧目标轨道：调试端口、浏览器版本、运行时长、WS 端点常驻首屏，下面是目标列表；</li>
- *   <li>右侧单面板：控制台 / 网络 / 源码 / 截屏 / 求值 五个页签，每次只开一个。</li>
+ *   <li>左侧目标轨道（可折叠）：搜索 / 类型筛选 + 目标列表，底部常驻引擎信息；</li>
+ *   <li>右侧 DevTools 工作区：元素 / 控制台 / 网络 / 应用 / 截屏 五个页签；
+ *       元素页签内为「画面舞台 | DOM 树 + 样式/计算/布局/SVG 详情 | Console 抽屉」三栏。</li>
  * </ul>
  *
  * <p>跟后端的通道有两路：REST {@code /ms/cdp/**}（一次性操作：状态、启动、停止、截屏…）
@@ -109,6 +110,8 @@ interface NetEntry {
   timestamp: number;
   /** 请求头 */
   requestHeaders: Record<string, string>;
+  /** 请求体（POST / PUT 时 CDP 回传的 postData，用于重发） */
+  postData: string;
   /** 响应头 */
   responseHeaders: Record<string, string>;
   /** 发起者（type + url + lineNumber） */
@@ -3115,7 +3118,7 @@ watch(selectedTarget, () => {
   injectPageScripts();
 });
 
-// 切到「元素」页签时读一次；切到 SVG 时抽一次，省掉手动点击
+// 切到「元素」页签时读一次 DOM / 补一张截屏，省掉手动点击
 watch(pageTab, (tab) => {
   if (tab !== "elements") {
     void stopPickNode();
@@ -3127,9 +3130,10 @@ watch(pageTab, (tab) => {
     if (stageOpen.value && !stageShot.value) {
       void refreshStage();
     }
-  } else if (tab === "svg") {
-    if (!svgItems.value.length && selectedTarget.value) {
-      void loadSvgs();
+  } else if (tab === "app") {
+    // 进「应用」页签顺手拉一次存储，省一次点击
+    if (selectedTarget.value && !storageCookies.value.length && !storageLocal.value.length) {
+      void loadStorage();
     }
   }
 });

@@ -29,8 +29,11 @@
     </div>
 
     <el-form v-if="!systemUnavailable" ref="loginFormRef" :model="loginForm" :rules="loginRules" class="login-form">
-      <!-- 租户编码：留空 = 平台入口；填写后由平台按编码定位租户并决定服务端路由 -->
-      <el-form-item prop="tenantCode">
+      <!-- 登录类型选择卡片：只在 app.yaml loginConfig.types 配了多项时出现 -->
+      <ReLoginTypePicker v-if="loginTypes.length > 1" v-model="activeLoginType" :disabled="loading" />
+
+      <!-- 租户编码：仅当所选入口需要按编码定位租户时才显示 -->
+      <el-form-item v-if="activeLoginEntry?.tenantCode" prop="tenantCode">
         <el-input
           v-model="loginForm.tenantCode"
           type="text"
@@ -169,9 +172,10 @@
 
 <script lang="ts" setup>
 import { User, Lock, Postcard, WarningFilled, OfficeBuilding } from "@element-plus/icons-vue";
-import { ref, reactive, toRef, computed, onMounted, nextTick } from "vue";
+import { ref, reactive, toRef, computed, onMounted, nextTick, watch } from "vue";
 import type { FormInstance, FormRules } from "element-plus";
-import { msgWarning, msgError, getCaptcha, thirdLoginExchange, takeThirdCallbackParams, setUserRoles, setUserPerms, refreshDefaultSetting } from "@repo/core";
+import type { LoginTypeConfig } from "@repo/config";
+import { msgWarning, msgError, getCaptcha, thirdLoginExchange, takeThirdCallbackParams, setUserRoles, setUserPerms, refreshDefaultSetting, setActiveBaseUrl, applyActiveBaseUrl, resetActiveBaseUrl } from "@repo/core";
 import { useRouter } from "vue-router";
 import useUserStore from "@repo/pinia/modules/user";
 import useAuthStore from "@repo/pinia/modules/auth";
@@ -186,6 +190,7 @@ import { useI18n } from "vue-i18n";
 import ReOtpDialog from "./ReOtpDialog.vue";
 import ReSliderVerify from "./ReSliderVerify.vue";
 import ReThirdLogin from "./ReThirdLogin.vue";
+import ReLoginTypePicker from "./ReLoginTypePicker.vue";
 
 const props = withDefaults(
   defineProps<{
@@ -211,6 +216,32 @@ const { t } = useI18n();
 const emit = defineEmits<{ (e: "success"): void }>();
 // loginConfig 跟随 getConfig().login 响应式变化；loadDefaultSetting() 后自动同步
 const loginConfig = toRef(getConfig(), "login");
+
+/** 登录类型列表（app.yaml loginConfig.types）；未配时回落为单个普通登录 */
+const DEFAULT_LOGIN_TYPE: LoginTypeConfig = { type: "web", title: "普通登录", baseUrl: "" };
+
+const loginTypes = computed<LoginTypeConfig[]>(() => {
+  const list = loginConfig.value.types;
+  return Array.isArray(list) && list.length ? list : [DEFAULT_LOGIN_TYPE];
+});
+
+/** 当前选中的登录类型标识；默认取数组第一项（yaml 里第一项即普通登录） */
+const activeLoginType = ref<string>(loginTypes.value[0]?.type ?? DEFAULT_LOGIN_TYPE.type);
+
+// 配置热重载后列表可能变短甚至消失：选中项已不存在时退回第一项
+watch(
+  () => loginTypes.value.map((item) => item.type).join(","),
+  () => {
+    if (!loginTypes.value.some((item) => item.type === activeLoginType.value)) {
+      activeLoginType.value = loginTypes.value[0]?.type ?? DEFAULT_LOGIN_TYPE.type;
+    }
+  },
+);
+
+/** 当前选中的入口配置（决定是否显示租户码、登录发往哪个地址） */
+const activeLoginEntry = computed<LoginTypeConfig>(
+  () => loginTypes.value.find((item) => item.type === activeLoginType.value) ?? loginTypes.value[0] ?? DEFAULT_LOGIN_TYPE,
+);
 // 品牌 Logo：支持 app.yaml 配置（本地资源路径或外部 URL），为空时回退内置 logo
 const resolvedLogoUrl = computed(() => {
   const custom = loginConfig.value.logoUrl;
@@ -293,6 +324,8 @@ const loginRules: any = reactive<FormRules<ILoginUser>>({
 /** 获取验证码 */
 const handleCaptcha = async () => {
   userStore.setToken({});
+  // 验证码由所选入口的后端签发，必须把入口地址先交给请求层，否则会拿到默认站点的验证码
+  setActiveBaseUrl(activeLoginEntry.value.baseUrl);
   try {
     const res = await getCaptcha();
     const data = res?.data as any;
@@ -303,6 +336,17 @@ const handleCaptcha = async () => {
     msgError(t("msg.yzmFail"));
   }
 };
+
+/** 切换登录类型＝换一个后端：旧验证码在新站点上无效，清空并重新拉取 */
+watch(activeLoginType, () => {
+  loginForm.tenantCode = "";
+  loginForm.securityCode = "";
+  loginForm.codeKey = "";
+  loginForm.captchaPicture = "";
+  sliderPassed.value = false;
+  sliderRef.value?.reset();
+  if (loginConfig.value.captcha) void handleCaptcha();
+});
 
 // 系统是否可用：loadDefaultSetting 已静默降级（远程配置失败保留本地配置），
 // 仅当加载流程本身出现非预期异常时才标记系统不可用。
@@ -451,6 +495,9 @@ const submitLogin = async (otpCode: string) => {
     loading.value = true;
     authStore.$reset();
     resetRouter();
+    // 入口地址必须在发请求前落定：先用它签出令牌，登录成功后再写进全局配置，
+    // 保证之后 refreshDefaultSetting / initAuthRouter 拉数据时打的是同一个后端
+    setActiveBaseUrl(activeLoginEntry.value.baseUrl);
     await userStore.loginByUsername({
       username: loginName,
       password: String(password),
@@ -459,6 +506,7 @@ const submitLogin = async (otpCode: string) => {
       ...(tenantCode ? { tenantCode } : {}),
       ...(otpCode ? { otpCode } : {}),
     });
+    applyActiveBaseUrl();
 
     if (userStore?.token) {
       try {
@@ -497,6 +545,8 @@ const submitLogin = async (otpCode: string) => {
   } catch (error: any) {
     sliderPassed.value = false;
     sliderRef.value?.reset();
+    // 登录失败：撤销入口地址，避免停留在错误站点（例如租户站点 500）上反复重试
+    resetActiveBaseUrl();
     // 显示登录失败错误提示
     const errorMsg = error?.message || error?.msg || t("msg.logInFail");
     if (String(errorMsg).includes(OTP_REQUIRED_MESSAGE)) {

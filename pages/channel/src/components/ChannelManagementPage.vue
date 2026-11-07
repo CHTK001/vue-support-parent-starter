@@ -15,7 +15,7 @@
 //   Loomy 走微信扫码（官方授权页 + 弹窗内二维码），不收集手机号。
 // - 自动签到走后端 ChannelCheckinTask，前端「签到」按钮仅做手动补一次。
 
-import { onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ReDialog from '@repo/ui/re-dialog'
 import {
@@ -28,12 +28,16 @@ import {
   Connection as ConnectionIcon,
   DataAnalysis as DataAnalysisIcon,
 } from '@element-plus/icons-vue'
-import {
-  channelApi,
-  type ChannelSummary,
-  type ChannelConnectionSummary,
-  type ChannelAccount,
+import { channelApi } from '../channelApi'
+import type {
+  ChannelSummary,
+  ChannelConnectionSummary,
+  ChannelAccount,
 } from '../channelApi'
+import ReButton from '@repo/ui/re-button'
+import ReTabs from '@repo/ui/re-tabs'
+import ChannelAccountDialog from './ChannelAccountDialog.vue'
+import MagpieProviderPanel from './MagpieProviderPanel.vue'
 
 // 各渠道的官方图标（本地落地的品牌资源）。
 // 有官方 SVG/ICO 的渠道用图标；没有公开官方资源的渠道（Qoder / Raccoon / Loomy…）
@@ -72,6 +76,8 @@ const CHANNEL_BRANDS: Record<string, ChannelBrand> = {
   lobsterai: { icon: lobsteraiIcon, color: '#F03D64', glyph: 'L', method: '浏览器授权' },
   opencode: { icon: opencodeIcon, color: '#111827', glyph: 'O', method: 'API Key' },
   workbuddy: { color: '#5A4FF3', glyph: 'W', method: '浏览器授权' },
+  // Magpie 统一网关：本机 / Docker 常驻，凭据是「网关地址 + 网关 key」
+  magpie: { color: '#0EA5A4', glyph: 'M', method: 'API Key' },
   // ChatClient 免登录渠道：无官方图标，用 DuckDuckGo 品牌橙 + 首字母徽标
   'chat-duckduckgo': { color: '#DE5833', glyph: 'D', method: '免登录' },
   // Trae：对话复用本机登录态（也可在面板里临时填 JWT），同时具备文生图能力
@@ -220,7 +226,7 @@ async function toggleChannelEnabled(channel: string, enabled: boolean) {
 // ⚠️ 用 reactive：模板直接读 bindState[c.channel]，必须响应式才能渲染弹窗内容。
 const bindState = reactive<Record<string, {
   handle: Record<string, any>
-  input: { apiKey: string }
+  input: { apiKey: string; baseUrl: string }
 }>>({})
 
 // 进行中的 SSE 客户端（按渠道），用于「关闭弹窗 / 重新发起」时中止旧流。
@@ -242,7 +248,7 @@ let bindTimer: ReturnType<typeof setInterval> | null = null
 const qrImages = reactive<Record<string, string>>({})
 
 function resetBindChannel(channel: string) {
-  bindState[channel] = { handle: {}, input: { apiKey: '' } }
+  bindState[channel] = { handle: {}, input: { apiKey: '', baseUrl: '' } }
 }
 function ensureBindState(channel: string) {
   if (!bindState[channel]) resetBindChannel(channel)
@@ -256,8 +262,10 @@ function ensureBindState(channel: string) {
 function buildPollHandle(channel: string): Record<string, any> {
   const state = bindState[channel]
   const handle: Record<string, any> = { ...(state?.handle ?? {}) }
-  const input = state?.input ?? { apiKey: '' }
+  const input = state?.input ?? { apiKey: '', baseUrl: '' }
   if (input.apiKey?.trim()) handle.apiKey = input.apiKey.trim()
+  // Magpie：除网关 key 外还要带上自定义网关地址（远程 / Docker 时不是 localhost）
+  if (channel === 'magpie' && input.baseUrl?.trim()) handle.baseUrl = input.baseUrl.trim()
   return handle
 }
 
@@ -445,6 +453,10 @@ async function openBindDialog(channel: string) {
     const out = (res as any)?.data ?? res
     const handle = (out?.handle ?? {}) as Record<string, any>
     bindState[channel]!.handle = handle
+    // Magpie：把后端给的默认网关地址预填到输入框（用户可改成远程地址）
+    if (channel === 'magpie' && !bindState[channel]!.input.baseUrl) {
+      bindState[channel]!.input.baseUrl = String(handle.baseUrl ?? '')
+    }
 
     const url = handleVerifyUrl(handle)
     if (isQrBind() && url) {
@@ -497,11 +509,19 @@ function submitBindInput() {
   const channel = bindChannel.value
   const state = bindState[channel]
   if (!state) return
-  if (isApiKeyBind() && !state.input.apiKey.trim()) {
+  if (isApiKeyBind() && !state.input.apiKey.trim() && channel !== 'magpie') {
     ElMessage.warning('请填写 API key（匿名通道填 public）')
     return
   }
   startSse(channel)
+}
+
+// Magpie 网关地址输入（远程 / Docker 部署时填非本机地址）
+function onBaseUrlInput(event: Event) {
+  const channel = bindChannel.value
+  const state = bindState[channel]
+  if (!state) return
+  state.input.baseUrl = (event.target as HTMLInputElement).value
 }
 
 // api-key 输入：直接写响应式状态（模板里用 $event 取 target，避免用未定义变量）
@@ -834,28 +854,12 @@ async function loadAccounts() {
   }
 }
 
-/** 新增账号：免登录渠道密钥可留空 */
-async function addAccount() {
-  const channel = activeChannel.value
-  if (!channel) return
-  const summary = activeSummary()
-  const name = window.prompt(`为「${summary?.displayName || channel}」添加账号，输入名称：`, '账号 1')
-  if (name === null) return
-  const secret = window.prompt('凭据 / 密钥（免登录渠道可留空）：', '') ?? ''
-  const stamp = Date.now().toString(36)
-  try {
-    await channelApi.createAccount({
-      code: `${channel}-${stamp}`,
-      name: name.trim() || `账号 ${stamp}`,
-      kind: 'API_KEY',
-      channelKey: channel,
-      secret: secret.trim() || undefined,
-    })
-    ElMessage.success('账号已添加')
-    await loadAccounts()
-  } catch (e: any) {
-    ElMessage.error('添加账号失败：' + (e?.message ?? e))
-  }
+/** 新增账号：走框架统一的 ReDialog 表单 */
+const accountDialogVisible = ref(false)
+
+function addAccount() {
+  if (!activeChannel.value) return
+  accountDialogVisible.value = true
 }
 
 /** 删除账号 */
@@ -880,7 +884,227 @@ async function removeAccount(account: ChannelAccount) {
 
 watch(activeChannel, () => {
   void loadAccounts()
+  resetDetailTabs()
 }, { immediate: false })
+
+/* ==================== 详情页签（ReTabs） ==================== */
+
+/**
+ * 详情页签：账号 / 模型 / 积分 / 任务。
+ *
+ * <p>「积分」「任务」只在渠道具备对应 SPI 能力时出现——否则点进去是一片
+ * 「该渠道不支持」，等于把内部实现细节漏给用户。能力来自后端
+ * {@code /api/channels} 的 {@code supportsCredit} / {@code supportsTask}。</p>
+ */
+const detailTab = ref<string>('accounts')
+
+/** 可选页签（随选中渠道能力变化） */
+const detailTabs = computed(() => {
+  const summary = activeSummary()
+  const tabs = [
+    { name: 'accounts', label: '账号', icon: 'Connection' },
+    { name: 'models', label: '模型', icon: 'DataAnalysis' },
+  ]
+  if (summary?.supportsCredit) {
+    tabs.push({ name: 'credit', label: '积分', icon: 'Wallet' })
+  }
+  if (summary?.supportsTask) {
+    tabs.push({ name: 'tasks', label: '任务', icon: 'Trophy' })
+  }
+  // Magpie 是常驻网关：上游 provider 由网关自己维护，本页通过管理面做增删改查。
+  // 其它渠道没有这一层，不显示该页签。
+  if (activeChannel.value === 'magpie') {
+    tabs.push({ name: 'upstream', label: '上游', icon: 'Coin' })
+  }
+  return tabs
+})
+
+/** 切渠道时把页签复位到「账号」并清掉上一渠道的积分 / 任务缓存 */
+function resetDetailTabs() {
+  detailTab.value = 'accounts'
+  creditState.value = {}
+  taskState.value = {}
+}
+
+/** 积分 / 任务：按 connectionId 维度的加载与错误状态 */
+const creditState = ref<Record<string, { loading?: boolean; error?: string; data?: any }>>({})
+const taskState = ref<Record<string, { loading?: boolean; error?: string; rows?: any[] }>>({})
+
+/**
+ * 拉取某账号的积分快照。
+ *
+ * <p>刻意与「签到」分开：签到是动作（每天一次、有副作用），积分是读数。
+ * 混在一起会让「看一眼余额」变成「顺手签到」。</p>
+ *
+ * @param conn 账号连接
+ */
+async function loadCredit(conn: ChannelConnectionSummary) {
+  const key = conn.connectionId
+  const state = (creditState.value[key] ??= {})
+  state.loading = true
+  state.error = ''
+  try {
+    const res = await channelApi.credit(activeChannel.value, accountRef(conn))
+    const out = (res as any)?.data ?? res
+    state.data = out?.credit ?? {}
+    if (state.data?.error) {
+      state.error = String(state.data.error)
+    }
+  } catch (e: any) {
+    state.error = e?.message ?? String(e)
+  } finally {
+    state.loading = false
+  }
+}
+
+/**
+ * 拉取某账号的成长任务清单（只读）。
+ *
+ * @param conn 账号连接
+ */
+async function loadTasks(conn: ChannelConnectionSummary) {
+  const key = conn.connectionId
+  const state = (taskState.value[key] ??= {})
+  state.loading = true
+  state.error = ''
+  try {
+    const res = await channelApi.tasks(activeChannel.value, accountRef(conn))
+    const out = (res as any)?.data ?? res
+    state.rows = out?.tasks ?? []
+    if (out?.ok === false && out?.message) {
+      state.error = String(out.message)
+    }
+  } catch (e: any) {
+    state.error = e?.message ?? String(e)
+  } finally {
+    state.loading = false
+  }
+}
+
+/**
+ * 领取单个任务奖励。
+ *
+ * @param conn 账号连接
+ * @param task 任务行
+ */
+async function claimTask(conn: ChannelConnectionSummary, task: any) {
+  const b = busyOf(activeChannel.value)
+  b.sign = true
+  try {
+    const res = await channelApi.claimTask(activeChannel.value, {
+      ...accountRef(conn),
+      taskCode: String(task.code),
+    })
+    const out = (res as any)?.data ?? res
+    const result = out?.result ?? {}
+    if (result.claimed) {
+      ElMessage.success(result.message ?? '奖励已领取')
+    } else {
+      ElMessage.info(result.message ?? '未产生新奖励')
+    }
+    await loadTasks(conn)
+    await loadCredit(conn)
+  } catch (e: any) {
+    ElMessage.error('领取失败：' + (e?.message ?? e))
+  } finally {
+    b.sign = false
+  }
+}
+
+/**
+ * 一键做任务：报名未报名的 + 领取已达标的（幂等）。
+ *
+ * @param conn 账号连接
+ */
+async function runTasks(conn: ChannelConnectionSummary) {
+  const b = busyOf(activeChannel.value)
+  b.sign = true
+  try {
+    const res = await channelApi.runTasks(activeChannel.value, accountRef(conn))
+    const out = (res as any)?.data ?? res
+    const messages: string[] = out?.summary?.messages ?? []
+    if (messages.length) {
+      ElMessage.success(messages.join('；'))
+    } else {
+      ElMessage.info('当前没有可执行的任务')
+    }
+    await loadTasks(conn)
+    await loadCredit(conn)
+  } catch (e: any) {
+    ElMessage.error('执行失败：' + (e?.message ?? e))
+  } finally {
+    b.sign = false
+  }
+}
+
+/** 时间戳短格式（积分刷新时间展示用） */
+function shortTime(ts: number | string | undefined): string {
+  const value = typeof ts === 'string' ? Date.parse(ts) : Number(ts ?? 0)
+  if (!Number.isFinite(value) || value <= 0) return '—'
+  const diff = Date.now() - value
+  if (diff < 60_000) return '刚刚'
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} 分钟前`
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)} 小时前`
+  return new Date(value).toLocaleDateString()
+}
+
+/** 单位文案：已知单位说人话，未知单位（percent / requests 等）原样透出 */
+const creditUnitText = (unit?: string): string => {
+  if (!unit) return ''
+  if (unit === 'credit') return '积分'
+  if (unit === 'token') return 'Token'
+  if (unit === 'currency') return ''
+  return unit
+}
+
+/** 积分展示文案：有单位就带单位，缺失剩余时显示「未知」而不是 0 */
+const creditText = (credit: any): string => {
+  if (!credit) return '—'
+  const unit = credit.unit === 'currency' ? (credit.currency ?? '') : creditUnitText(credit.unit)
+  const total = credit.total
+  const remainMissing = credit.remain === undefined || credit.remain === null || credit.remain === ''
+  // 上游只给了总量 / 只给了单位不一致的明细时，剩余就是「未知」，不能当 0 报给用户
+  if (remainMissing) {
+    return total === undefined || total === null || total === ''
+      ? '额度未知'
+      : `— / ${total}${unit ? ' ' + unit : ''}`
+  }
+  const remain = Number(credit.remain)
+  const head = `${remain}${unit ? ' ' + unit : ''}`
+  return total === undefined || total === null || total === '' ? head : `${head} / ${total}${unit ? ' ' + unit : ''}`
+}
+
+/** 明细行文案：上游给了 display 就照抄，避免把 1.2k 换算错 */
+const creditPkgText = (pkg: any): string => {
+  if (!pkg) return '—'
+  if (pkg.display !== undefined && pkg.display !== null && pkg.display !== '') {
+    return String(pkg.display)
+  }
+  const unit = creditUnitText(pkg.unit)
+  const remain = pkg.remain
+  const size = pkg.size
+  const suffix = unit ? ' ' + unit : ''
+  if (remain === undefined || remain === null) {
+    return size === undefined || size === null ? (unit || '—') : `— / ${size}${suffix}`
+  }
+  return size === undefined || size === null ? `${remain}${suffix}` : `${remain}${suffix} / ${size}${suffix}`
+}
+
+/** 积分百分比（用于进度条；总量未知或为负时不显示） */
+const creditPercent = (credit: any): number => {
+  const total = Number(credit?.total ?? 0)
+  const remain = Number(credit?.remain ?? 0)
+  if (!total || total < 0) return 0
+  return Math.max(0, Math.min(100, Math.round((remain / total) * 100)))
+}
+
+/** 任务进度百分比 */
+const taskPercent = (task: any): number => {
+  const target = Number(task?.target ?? 0)
+  const current = Number(task?.current ?? 0)
+  if (!target) return 0
+  return Math.max(0, Math.min(100, Math.round((current / target) * 100)))
+}
 
 onMounted(() => {
   loadChannels()
@@ -993,6 +1217,8 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
               </span>
               <span class="chm-panel__chip" v-if="activeSummary()!.supportsImage">可出图</span>
               <span class="chm-panel__chip" v-if="activeSummary()!.supportsCheckin">可签到</span>
+              <span class="chm-panel__chip is-credit" v-if="activeSummary()!.supportsCredit">积分</span>
+              <span class="chm-panel__chip is-task" v-if="activeSummary()!.supportsTask">任务</span>
             </span>
           </div>
           <div class="chm-panel__state">
@@ -1008,136 +1234,301 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
         </header>
 
         <!--
-          统一账号区：所有渠道同一种模型 —— 渠道 + 账号。
-          AI 账号渠道与免登录渠道（DuckDuckGo / Trae / Pollinations）都在这里
-          添加 / 删除账号，不再为免登录渠道提供单独的对话 / 出图操作页。
+          详情页签：账号 / 模型 /（积分）/（任务）。
+
+          「积分」「任务」只在渠道具备对应 SPI 能力时出现——渠道之间能力差异很大
+          （Cline 只有余额、Raccoon 只有自动发放、Trae 两者都有），
+          无条件显示会让人点进一片「该渠道不支持」。
         -->
-        <div class="chm-panel__block">
-          <div class="chm-panel__sect-title">
-            <el-icon aria-hidden="true"><ConnectionIcon /></el-icon>
-            账号 <i>{{ accounts.length }}</i>
-            <button class="chm-panel__pull" type="button" :disabled="accountsLoading"
-                    @click.stop="loadAccounts()">
-              {{ accountsLoading ? '加载中…' : '刷新' }}
-            </button>
-            <button class="chm-panel__pull" type="button" @click.stop="addAccount()">
-              ＋ 添加账号
-            </button>
-          </div>
+        <ReTabs
+          v-model="detailTab"
+          :tabs="detailTabs"
+          :closable="false"
+          size="small"
+          id="channel-detail"
+          class="chm-panel__tabs"
+        >
+          <template #default="{ tab }">
+            <!-- ════════ 账号 ════════ -->
+            <div v-if="tab.name === 'accounts'" class="chm-panel__tabbody">
+              <!--
+                统一账号区：所有渠道同一种模型 —— 渠道 + 账号。
+                AI 账号渠道与免登录渠道（DuckDuckGo / Trae / Pollinations）都在这里
+                添加 / 删除账号，不再为免登录渠道提供单独的对话 / 出图操作页。
+              -->
+              <div class="chm-panel__block">
+                <div class="chm-panel__sect-title">
+                  <el-icon aria-hidden="true"><ConnectionIcon /></el-icon>
+                  账号 <i>{{ accounts.length }}</i>
+                  <ReButton
+                    link
+                    size="small"
+                    :loading="accountsLoading"
+                    @click.stop="loadAccounts()"
+                  >刷新</ReButton>
+                  <ReButton link size="small" type="primary" @click.stop="addAccount()">
+                    ＋ 添加账号
+                  </ReButton>
+                </div>
 
-          <p v-if="accountsError" class="chm-panel__error">账号加载失败：{{ accountsError }}</p>
+                <p v-if="accountsError" class="chm-panel__error">账号加载失败：{{ accountsError }}</p>
 
-          <div class="chm-accs">
-            <div v-for="acc in accounts" :key="acc.accountId" class="chm-acc">
-              <span class="chm-acc__label" :title="acc.name || acc.code">
-                {{ acc.name || acc.code || acc.accountId }}
-              </span>
-              <span class="chm-acc__state" :class="{ 'is-stale': acc.hasSecret === false }">
-                {{ acc.hasSecret ? '已配置凭据' : '无凭据' }}
-              </span>
-              <span v-if="acc.username" class="chm-acc__expire">{{ acc.username }}</span>
-              <div class="chm-acc__actions">
-                <button class="chm-acc__btn is-danger" @click.stop="removeAccount(acc)">删除</button>
+                <div class="chm-accs">
+                  <div v-for="acc in accounts" :key="acc.accountId" class="chm-acc">
+                    <span class="chm-acc__label" :title="acc.name || acc.code">
+                      {{ acc.name || acc.code || acc.accountId }}
+                    </span>
+                    <span class="chm-acc__state" :class="{ 'is-stale': acc.hasSecret === false }">
+                      {{ acc.hasSecret ? '已配置凭据' : '无凭据' }}
+                    </span>
+                    <span v-if="acc.username" class="chm-acc__expire">{{ acc.username }}</span>
+                    <div class="chm-acc__actions">
+                      <ReButton link size="small" type="danger" @click.stop="removeAccount(acc)">删除</ReButton>
+                    </div>
+                  </div>
+                  <div v-if="!accounts.length && !accountsLoading" class="chm-card__empty">
+                    尚无账号，点「＋ 添加账号」创建
+                  </div>
+                </div>
+              </div>
+
+              <!--
+                已绑定的登录态账号（AI 账号渠道的 OAuth / 设备码绑定）。
+                与上面的统一账号是两条并存的凭据来源：统一账号供其它模块按
+                accountId 引用，连接由渠道自己的授权流程产生。
+              -->
+              <div v-if="(activeSummary()!.connections ?? []).length" class="chm-panel__block">
+                <div class="chm-panel__sect-title">
+                  <el-icon aria-hidden="true"><ConnectionIcon /></el-icon>
+                  已授权连接 <i>{{ (activeSummary()!.connections ?? []).length }}</i>
+                </div>
+                <div class="chm-accs">
+                  <div
+                    v-for="conn in sortedConnections(activeSummary())"
+                    :key="conn.connectionId"
+                    class="chm-acc"
+                    :class="{ 'is-stale': connState(conn) !== 'valid', 'is-primary': conn.primary }"
+                  >
+                    <span class="chm-acc__label" :title="conn.label">{{ conn.label || '未命名' }}</span>
+                    <span v-if="conn.primary" class="chm-acc__primary">主账号</span>
+                    <span class="chm-acc__state" :class="'is-' + connState(conn)">
+                      {{ connStateText(conn) }}
+                    </span>
+                    <div class="chm-acc__actions">
+                      <button class="chm-acc__btn"
+                              @click.stop="renameAccount(activeChannel, conn)">改名</button>
+                      <button v-if="!conn.primary" class="chm-acc__btn"
+                              @click.stop="setPrimaryAccount(activeChannel, conn)">设为主账号</button>
+                      <button v-if="activeSummary()!.supportsRefresh !== false"
+                              class="chm-acc__btn" :disabled="busyFor(activeChannel, 'refresh')"
+                              @click.stop="refreshAccount(activeChannel, conn)">刷新</button>
+                      <button v-if="activeSummary()!.supportsCheckin" class="chm-acc__btn"
+                              :disabled="busyFor(activeChannel, 'sign')"
+                              @click.stop="checkin(activeChannel, conn)">签到</button>
+                      <button class="chm-acc__btn is-danger"
+                              @click.stop="deleteAccount(activeChannel, conn)">删除</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 绑定登录态账号（AI 账号渠道的授权流程） -->
+              <div v-if="supportsFixed(activeSummary())" class="chm-panel__binds">
+                <button
+                  class="chm-panel__bindbtn"
+                  type="button"
+                  :disabled="busyFor(activeChannel, 'login')"
+                  @click="openBindDialog(activeChannel)"
+                >
+                  <el-icon v-if="!busyFor(activeChannel, 'login')" class="chm-btn__icon" aria-hidden="true">
+                    <PlusIcon />
+                  </el-icon>
+                  {{ busyFor(activeChannel, 'login') ? '登录中…' : '＋ 绑定登录态账号（点击弹出）' }}
+                </button>
               </div>
             </div>
-            <div v-if="!accounts.length && !accountsLoading" class="chm-card__empty">
-              尚无账号，点「＋ 添加账号」创建
-            </div>
-          </div>
-        </div>
 
-        <!--
-          已绑定的登录态账号（AI 账号渠道的 OAuth / 设备码绑定）。
-          与上面的统一账号是两条并存的凭据来源：统一账号供其它模块按
-          accountId 引用，连接由渠道自己的授权流程产生。
-        -->
-        <div v-if="(activeSummary()!.connections ?? []).length" class="chm-panel__block">
-          <div class="chm-panel__sect-title">
-            <el-icon aria-hidden="true"><ConnectionIcon /></el-icon>
-            已授权连接 <i>{{ (activeSummary()!.connections ?? []).length }}</i>
-          </div>
-          <div class="chm-accs">
-            <div
-              v-for="conn in sortedConnections(activeSummary())"
-              :key="conn.connectionId"
-              class="chm-acc"
-              :class="{ 'is-stale': connState(conn) !== 'valid', 'is-primary': conn.primary }"
-            >
-              <span class="chm-acc__label" :title="conn.label">{{ conn.label || '未命名' }}</span>
-              <span v-if="conn.primary" class="chm-acc__primary">主账号</span>
-              <span class="chm-acc__state" :class="'is-' + connState(conn)">
-                {{ connStateText(conn) }}
-              </span>
-              <div class="chm-acc__actions">
-                <button class="chm-acc__btn"
-                        @click.stop="renameAccount(activeChannel, conn)">改名</button>
-                <button v-if="!conn.primary" class="chm-acc__btn"
-                        @click.stop="setPrimaryAccount(activeChannel, conn)">设为主账号</button>
-                <button v-if="activeSummary()!.supportsRefresh !== false"
-                        class="chm-acc__btn" :disabled="busyFor(activeChannel, 'refresh')"
-                        @click.stop="refreshAccount(activeChannel, conn)">刷新</button>
-                <button v-if="activeSummary()!.supportsCheckin" class="chm-acc__btn"
-                        :disabled="busyFor(activeChannel, 'sign')"
-                        @click.stop="checkin(activeChannel, conn)">签到</button>
-                <button class="chm-acc__btn is-danger"
-                        @click.stop="deleteAccount(activeChannel, conn)">删除</button>
+            <!-- ════════ 模型 ════════ -->
+            <div v-else-if="tab.name === 'models'" class="chm-panel__tabbody">
+              <div class="chm-panel__block">
+                <div class="chm-panel__sect-title">
+                  <el-icon aria-hidden="true"><DataAnalysisIcon /></el-icon>
+                  模型 <i>{{ (activeSummary()!.models ?? []).length }}</i>
+                  <button class="chm-panel__pull" :disabled="busyFor(activeChannel, 'models')"
+                          @click.stop="pullModels(activeChannel)">
+                    {{ busyFor(activeChannel, 'models') ? '拉取中…' : '拉取模型' }}
+                  </button>
+                </div>
+                <!-- 批量快捷操作：全选 / 反选 / 全不选 -->
+                <div v-if="(activeSummary()!.models ?? []).length" class="chm-models__ops">
+                  <span class="chm-models__ops-title">批量：</span>
+                  <button type="button" class="chm-panel__pull" :disabled="busyFor(activeChannel, 'models')"
+                          @click.stop="selectAllModels()">全选</button>
+                  <button type="button" class="chm-panel__pull" :disabled="busyFor(activeChannel, 'models')"
+                          @click.stop="invertModels()">反选</button>
+                  <button type="button" class="chm-panel__pull" :disabled="busyFor(activeChannel, 'models')"
+                          @click.stop="deselectAllModels()">全不选</button>
+                </div>
+                <div class="chm-models">
+                  <label
+                    v-for="m in activeSummary()!.models ?? []"
+                    :key="m.model"
+                    class="chm-model"
+                    :class="{ 'is-off': !m.enabled }"
+                  >
+                    <input type="checkbox" :checked="m.enabled"
+                           @change="onModelToggle(m.model, $event)" />
+                    <span class="chm-model__name" :title="m.model">{{ m.model }}</span>
+                    <span v-if="m.contextWindow" class="chm-model__ctx">{{ m.contextWindow }}</span>
+                  </label>
+                  <div v-if="!(activeSummary()!.models ?? []).length" class="chm-card__empty">
+                    该渠道暂无已启用模型
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        <!-- 模型区 -->
-        <div class="chm-panel__block">
-          <div class="chm-panel__sect-title">
-            <el-icon aria-hidden="true"><DataAnalysisIcon /></el-icon>
-            模型 <i>{{ (activeSummary()!.models ?? []).length }}</i>
-            <button class="chm-panel__pull" :disabled="busyFor(activeChannel, 'models')"
-                    @click.stop="pullModels(activeChannel)">
-              {{ busyFor(activeChannel, 'models') ? '拉取中…' : '拉取模型' }}
-            </button>
-          </div>
-          <!-- 批量快捷操作：全选 / 反选 / 全不选 -->
-          <div v-if="(activeSummary()!.models ?? []).length" class="chm-models__ops">
-            <span class="chm-models__ops-title">批量：</span>
-            <button type="button" class="chm-panel__pull" :disabled="busyFor(activeChannel, 'models')"
-                    @click.stop="selectAllModels()">全选</button>
-            <button type="button" class="chm-panel__pull" :disabled="busyFor(activeChannel, 'models')"
-                    @click.stop="invertModels()">反选</button>
-            <button type="button" class="chm-panel__pull" :disabled="busyFor(activeChannel, 'models')"
-                    @click.stop="deselectAllModels()">全不选</button>
-          </div>
-          <div class="chm-models">
-            <label
-              v-for="m in activeSummary()!.models ?? []"
-              :key="m.model"
-              class="chm-model"
-              :class="{ 'is-off': !m.enabled }"
-            >
-              <input type="checkbox" :checked="m.enabled"
-                     @change="onModelToggle(m.model, $event)" />
-              <span class="chm-model__name" :title="m.model">{{ m.model }}</span>
-              <span v-if="m.contextWindow" class="chm-model__ctx">{{ m.contextWindow }}</span>
-            </label>
-            <div v-if="!(activeSummary()!.models ?? []).length" class="chm-card__empty">
-              该渠道暂无已启用模型
+            <!-- ════════ 积分 ════════ -->
+            <div v-else-if="tab.name === 'credit'" class="chm-panel__tabbody">
+              <div v-if="!(activeSummary()!.connections ?? []).length" class="chm-card__empty">
+                先绑定账号，才能查询积分
+              </div>
+              <div
+                v-for="conn in sortedConnections(activeSummary())"
+                v-else
+                :key="'credit-' + conn.connectionId"
+                class="chm-credit"
+              >
+                <div class="chm-credit__head">
+                  <span class="chm-credit__label">{{ conn.label || '未命名' }}</span>
+                  <span v-if="conn.primary" class="chm-acc__primary">主账号</span>
+                  <button
+                    class="chm-panel__pull"
+                    type="button"
+                    :disabled="creditState[conn.connectionId]?.loading"
+                    @click.stop="loadCredit(conn)"
+                  >{{ creditState[conn.connectionId]?.loading ? '查询中…' : '查询积分' }}</button>
+                </div>
+                <p v-if="creditState[conn.connectionId]?.error" class="chm-panel__error">
+                  {{ creditState[conn.connectionId]!.error }}
+                </p>
+                <div v-else-if="creditState[conn.connectionId]?.data" class="chm-credit__body">
+                  <div class="chm-credit__value">
+                    {{ creditText(creditState[conn.connectionId]!.data) }}
+                  </div>
+                  <div
+                    v-if="creditPercent(creditState[conn.connectionId]!.data) > 0"
+                    class="chm-credit__bar"
+                    role="progressbar"
+                    :aria-valuenow="creditPercent(creditState[conn.connectionId]!.data)"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                  >
+                    <i :style="{ width: creditPercent(creditState[conn.connectionId]!.data) + '%' }" />
+                  </div>
+                  <div class="chm-credit__meta">
+                    <span v-if="creditState[conn.connectionId]!.data.plan">
+                      套餐 {{ creditState[conn.connectionId]!.data.plan }}
+                    </span>
+                    <span v-if="creditState[conn.connectionId]!.data.exceeded" class="is-warn">额度已用尽</span>
+                    <span v-if="creditState[conn.connectionId]!.data.updatedAt">
+                      更新于 {{ shortTime(creditState[conn.connectionId]!.data.updatedAt) }}
+                    </span>
+                  </div>
+                  <ul
+                    v-if="(creditState[conn.connectionId]!.data.packages ?? []).length"
+                    class="chm-credit__pkgs"
+                  >
+                    <li
+                      v-for="(pkg, idx) in creditState[conn.connectionId]!.data.packages"
+                      :key="'pkg-' + idx"
+                    >
+                      <span class="chm-credit__pkgname">{{ pkg.name || '额度包' }}</span>
+                      <span class="chm-credit__pkgval">{{ creditPkgText(pkg) }}</span>
+                    </li>
+                  </ul>
+                  <p v-if="creditState[conn.connectionId]!.data.warning" class="chm-credit__warn">
+                    {{ creditState[conn.connectionId]!.data.warning }}
+                  </p>
+                </div>
+                <div v-else class="chm-card__empty">尚未查询</div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        <!-- 绑定登录态账号（AI 账号渠道的授权流程） -->
-        <div v-if="supportsFixed(activeSummary())" class="chm-panel__binds">
-          <button
-            class="chm-panel__bindbtn"
-            type="button"
-            :disabled="busyFor(activeChannel, 'login')"
-            @click="openBindDialog(activeChannel)"
-          >
-            <el-icon v-if="!busyFor(activeChannel, 'login')" class="chm-btn__icon" aria-hidden="true">
-              <PlusIcon />
-            </el-icon>
-            {{ busyFor(activeChannel, 'login') ? '登录中…' : '＋ 绑定登录态账号（点击弹出）' }}
-          </button>
-        </div>
+            <!-- ════════ 任务 ════════ -->
+            <div v-else-if="tab.name === 'tasks'" class="chm-panel__tabbody">
+              <div v-if="!(activeSummary()!.connections ?? []).length" class="chm-card__empty">
+                先绑定账号，才能查看成长任务
+              </div>
+              <div
+                v-for="conn in sortedConnections(activeSummary())"
+                v-else
+                :key="'task-' + conn.connectionId"
+                class="chm-tasks"
+              >
+                <div class="chm-tasks__head">
+                  <span class="chm-credit__label">{{ conn.label || '未命名' }}</span>
+                  <button
+                    class="chm-panel__pull"
+                    type="button"
+                    :disabled="taskState[conn.connectionId]?.loading"
+                    @click.stop="loadTasks(conn)"
+                  >{{ taskState[conn.connectionId]?.loading ? '加载中…' : '刷新任务' }}</button>
+                  <button
+                    class="chm-panel__pull is-primary"
+                    type="button"
+                    :disabled="busyFor(activeChannel, 'sign')"
+                    @click.stop="runTasks(conn)"
+                  >一键做任务</button>
+                </div>
+                <p v-if="taskState[conn.connectionId]?.error" class="chm-panel__error">
+                  {{ taskState[conn.connectionId]!.error }}
+                </p>
+                <ul v-if="(taskState[conn.connectionId]?.rows ?? []).length" class="chm-tasks__list">
+                  <li
+                    v-for="task in taskState[conn.connectionId]!.rows"
+                    :key="task.code"
+                    class="chm-task"
+                    :class="{ 'is-done': task.claimed }"
+                  >
+                    <div class="chm-task__main">
+                      <span class="chm-task__title">{{ task.title || task.code }}</span>
+                      <span v-if="task.description" class="chm-task__desc">{{ task.description }}</span>
+                    </div>
+                    <div v-if="Number(task.target ?? 0) > 0" class="chm-task__progress">
+                      <div class="chm-credit__bar">
+                        <i :style="{ width: taskPercent(task) + '%' }" />
+                      </div>
+                      <span class="chm-task__count">{{ task.current ?? 0 }} / {{ task.target }}</span>
+                    </div>
+                    <div class="chm-task__ops">
+                      <span v-if="task.claimed" class="chm-task__badge is-done">已领取</span>
+                      <span v-else-if="task.credit" class="chm-task__badge">+{{ task.credit }}</span>
+                      <button
+                        class="chm-panel__pull"
+                        type="button"
+                        :disabled="!task.claimable || busyFor(activeChannel, 'sign')"
+                        @click.stop="claimTask(conn, task)"
+                      >{{ task.claimable ? '领取' : '未达标' }}</button>
+                    </div>
+                  </li>
+                </ul>
+                <div v-else-if="!taskState[conn.connectionId]?.loading" class="chm-card__empty">
+                  暂无任务（或尚未加载）
+                </div>
+              </div>
+            </div>
+
+            <!-- ════════ 上游（仅 Magpie） ════════ -->
+            <div v-else-if="tab.name === 'upstream'" class="chm-panel__tabbody">
+              <MagpieProviderPanel
+                :channel="activeChannel"
+                :connections="activeSummary()!.connections ?? []"
+                @changed="loadChannels()"
+              />
+            </div>
+          </template>
+        </ReTabs>
       </section>
 
       <!-- 选中渠道消失的兜底（列表刷新间隙） -->
@@ -1247,14 +1638,24 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                target="_blank" rel="noopener noreferrer">或点此链接</a>
           </div>
 
-          <!-- (4) API key（OpenCode） -->
+          <!-- (4) API key（OpenCode / Magpie 网关凭据） -->
           <div v-if="isApiKeyBind()" class="chm-bind__form">
+            <div v-if="bindChannel === 'magpie'" class="chm-bind__row">
+              <input
+                :value="bindState[bindChannel]?.input?.baseUrl ?? ''"
+                @input="onBaseUrlInput($event)"
+                class="chm-input"
+                placeholder="网关地址，如 http://127.0.0.1:3425（本机可留默认）"
+              />
+            </div>
             <div class="chm-bind__row">
               <input
                 :value="bindState[bindChannel]?.input?.apiKey ?? ''"
                 @input="onApiKeyInput($event)"
                 class="chm-input"
-                placeholder="Zen API key（匿名通道填 public）"
+                :placeholder="bindChannel === 'magpie'
+                  ? '网关 key（本机未开启鉴权可留空）'
+                  : 'Zen API key（匿名通道填 public）'"
               />
               <button class="chm-btn chm-btn--primary" type="button" @click="submitBindInput()">提交</button>
             </div>
@@ -1282,6 +1683,14 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
         <button class="chm-btn chm-btn--primary" type="button" @click="closeBindDialog()">取消</button>
       </template>
     </ReDialog>
+
+    <!-- 添加渠道账号：与 Cookie 池 / AppKey 同款 ReDialog 表单 -->
+    <ChannelAccountDialog
+      v-model="accountDialogVisible"
+      :channel-key="activeChannel"
+      :channel-name="activeSummary()?.displayName"
+      @saved="loadAccounts()"
+    />
   </div>
 </template>
 
@@ -1589,6 +1998,189 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 .chm-panel__chip.is-muted {
   background: color-mix(in srgb, var(--el-text-color-secondary, #909399) 14%, transparent);
   color: var(--el-text-color-secondary, #909399);
+}
+/* 能力标签：积分（琥珀）/ 任务（靛蓝），与「可签到」的绿色区分开 */
+.chm-panel__chip.is-credit {
+  background: color-mix(in srgb, var(--el-color-warning, #e6a23c) 16%, transparent);
+  color: var(--el-color-warning, #b88230);
+}
+.chm-panel__chip.is-task {
+  background: color-mix(in srgb, var(--el-color-primary, #409eff) 16%, transparent);
+  color: var(--el-color-primary, #337ecc);
+}
+
+/* ===== 详情页签（ReTabs 容器） ===== */
+.chm-panel__tabs {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.chm-panel__tabbody {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-top: 10px;
+}
+
+/* ===== 积分 ===== */
+.chm-credit,
+.chm-tasks {
+  border: 1px solid var(--border-subtle, #eef2f8);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.chm-credit__head,
+.chm-tasks__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.chm-credit__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #1e293b);
+}
+.chm-credit__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.chm-credit__value {
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary, #1e293b);
+}
+.chm-credit__bar {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--el-fill-color, #f0f2f5);
+  overflow: hidden;
+}
+.chm-credit__bar i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--el-color-primary, #409eff);
+  transition: width 0.25s ease;
+}
+.chm-credit__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--text-secondary, #64748b);
+}
+.chm-credit__meta .is-warn {
+  color: var(--el-color-danger, #f56c6c);
+}
+.chm-credit__pkgs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.chm-credit__pkgs li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-secondary, #475569);
+}
+.chm-credit__pkgval {
+  font-variant-numeric: tabular-nums;
+}
+.chm-credit__warn {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--el-color-warning, #e6a23c);
+}
+
+/* ===== 任务 ===== */
+.chm-tasks__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.chm-task {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: var(--el-fill-color-lighter, #fafbfc);
+}
+.chm-task.is-done {
+  opacity: 0.62;
+}
+.chm-task__main {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.chm-task__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #1e293b);
+}
+.chm-task__desc {
+  font-size: 11px;
+  color: var(--text-secondary, #64748b);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chm-task__progress {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  width: 120px;
+}
+.chm-task__progress .chm-credit__bar {
+  flex: 1 1 auto;
+}
+.chm-task__count {
+  flex: none;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary, #64748b);
+}
+.chm-task__ops {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+}
+.chm-task__badge {
+  padding: 1px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--el-color-primary, #409eff) 14%, transparent);
+  color: var(--el-color-primary, #337ecc);
+}
+.chm-task__badge.is-done {
+  background: color-mix(in srgb, var(--el-color-success, #67c23a) 14%, transparent);
+  color: var(--el-color-success, #529b2e);
+}
+.chm-panel__pull.is-primary {
+  color: var(--el-color-primary, #409eff);
+  border-color: color-mix(in srgb, var(--el-color-primary, #409eff) 40%, transparent);
 }
 .chm-panel__state {
   display: flex;

@@ -16,6 +16,22 @@ const plugin: Plugin = {
   },
 };
 
+/**
+ * 全局组件类型声明。
+ *
+ * <p>业务页面几乎都是通过 {@code installUi({ components: ["ReText"] })}
+ * 全局使用 {@code <ReText>}，全仓库没有一处 import 它。若不在这里补
+ * {@code GlobalComponents}，`vue-tsc` 会把 `ReText` 当作未知组件，
+ * props 完全不校验（`type="secondary"` 这类非法值就查不出来）。</p>
+ *
+ * <p>只声明 ReText：其余 Re 组件暂未纳入，避免一次性放出海量既有报错。</p>
+ */
+declare module "vue" {
+  export interface GlobalComponents {
+    ReText: typeof ReText;
+  }
+}
+
 export { plugin as install };
 export default ReText;
 export * from "./types";

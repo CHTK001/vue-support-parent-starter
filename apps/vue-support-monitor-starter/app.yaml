@@ -46,6 +46,23 @@ httpConfig:
 
 # 登录页配置（本地验收期间关闭滑块：自动化工具无法拖拽滑块；验收完成后还原为 true）
 loginConfig:
+  # 登录类型：数组顺序即登录页卡片顺序；只配一项时登录页不显示切换器。
+  # 每项可带自己的 baseUrl（指向租户独立站点）；留空 = 同源，走 vite/nginx 代理。
+  #   type       类型标识（日志/埋点用，自定义）
+  #   title      卡片标题            description 卡片描述
+  #   icon       Element Plus 图标名（User / OfficeBuilding / Monitor / Setting / Grid）
+  #   baseUrl    该入口的后端地址，留空沿用 httpConfig.baseUrl
+  #   tenantCode 是否手填租户编码（地址已能确定租户时保持不写）
+  #
+  # 需要「平台 + 租户两个入口」时改成两项，例如：
+  #   - { type: web,    title: 普通登录, description: 使用平台账号登录, icon: User }
+  #   - { type: tenant, title: 租户登录, description: 使用租户账号登录, icon: OfficeBuilding,
+  #       baseUrl: https://tenant.example.com }
+  types:
+    - type: web
+      title: 普通登录
+      description: 使用平台账号登录
+      icon: User
   captcha: false
   otp: false
   slider: false

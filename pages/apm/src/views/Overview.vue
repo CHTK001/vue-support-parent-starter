@@ -148,7 +148,8 @@
             v-for="svc in topServices"
             :key="svc.id"
             class="apm-row apm-row--svc"
-            @click="go('services', { service: svc.name })"
+            :title="`打开 ${svc.name} 详情（实例 / 端点 / 指标）`"
+            @click="openService(svc.name)"
           >
             <i class="apm-row__dot" :class="dotTone(svc)" />
             <span class="apm-row__name">{{ svc.name }}</span>
@@ -216,6 +217,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 import ReButton from "@repo/ui/re-button";
 import ReSkeleton from "@repo/ui/re-skeleton";
 import ReSelect from "@repo/ui/re-select";
@@ -228,11 +230,14 @@ import MetricChart from "../components/MetricChart.vue";
 import { getMetrics, getOverview, getTopology, listAlarms, listServices } from "../api/apmApi";
 import type { ApmAlarm, ApmHealth, ApmMetricSeries, ApmService, ApmTopology } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
+import { ROUTE_PREFIX } from "../config";
 import { openApmTab } from "../tabs";
 import type { ApmTabContext } from "../tabs";
 import { WINDOW_OPTIONS, errorRateClass, errorRateText, fmtAgo, fmtMs, fmtNum, fmtPercent, fmtTime, latencyClass } from "../utils/format";
 
 const { present, ensure, refresh, status } = useApmStatus();
+
+const router = useRouter();
 
 const loading = ref(false);
 const probing = ref(false);
@@ -367,6 +372,22 @@ function shortVersion(version?: string | null): string {
  */
 function go(tab: string, context?: ApmTabContext): void {
   openApmTab(tab, { minutes: minutes.value, ...context });
+}
+
+/**
+ * 打开某个服务的详情页。
+ *
+ * <p>为什么不先跳服务列表再点一次：总览这张表就是「谁在拖后腿」的结论，
+ * 点一行本来就想看这个服务的实例 / 端点 / 指标；先落到列表等于让人再点一次。
+ * 详情页是独立地址（可分享、可后退），这里直接 push 过去。</p>
+ *
+ * @param name 服务名
+ */
+function openService(name: string): void {
+  if (!name) {
+    return;
+  }
+  router.push({ path: `${ROUTE_PREFIX}/services/detail`, query: { service: name } });
 }
 
 /** 告警的危险级别：能判定的只有「恢复」与默认两类 */
