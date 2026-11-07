@@ -2689,6 +2689,12 @@ const initGraph = () => {
     // 若那一刻容器还没铺开（路由入场 / 标签页切换 / 折叠面板），画布会停在旧尺寸且不再变大。
     // 渲染落定后按容器实测尺寸校正一次，之后交给 ResizeObserver 跟随。
     syncCanvasToContainer();
+    // html 节点的真实尺寸要等插槽挂上去才确定：首次 autoFit 用的是占位尺寸，
+    // 卡片（.apm-node 宽 148）会被排到视口外 —— 实测 974px 宽容器里右列卡片落到 x=1212。
+    // 插槽挂载后再适配一次；只在首帧做，不打断用户之后的手动缩放。
+    if (hasNodeSlot.value && graph) {
+      graph.fitView({ when: "overflow" }).catch(() => {});
+    }
     if (graph) emit("ready", graph);
   });
 };
