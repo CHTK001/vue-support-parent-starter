@@ -183,7 +183,11 @@ const handleMenuRouter = (value: any) => {
 /** 图标本身 - 负责动画 */
 .menu-icon {
   display: block;
-  transition: transform 0.3s ease;
+  /* ⚠ 不要给菜单图标加 transition / animation（2026-11-07 实测，拖拽卡顿成因）：
+   * 侧栏有 70+ 个菜单项，图标只要带常驻过渡，鼠标扫过时每一项都会进入过渡态
+   * 并让含 is-active 标记的子元素参与逐帧重算；而弹窗拖拽时鼠标同样在页面上移动，
+   * 整个文档每帧都要多做一次样式重算（实测拖拽 120 帧 = 197 次重算）。
+   * 图标旋转 / 放大改为瞬时切换，肉眼几乎无差别。 */
 }
 
 /** 父节点 */

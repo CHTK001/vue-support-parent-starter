@@ -38,6 +38,7 @@ import ReButton from '@repo/ui/re-button'
 import ReTabs from '@repo/ui/re-tabs'
 import ChannelAccountDialog from './ChannelAccountDialog.vue'
 import MagpieProviderPanel from './MagpieProviderPanel.vue'
+import MagpiePluginPanel from './MagpiePluginPanel.vue'
 
 // 各渠道的官方图标（本地落地的品牌资源）。
 // 有官方 SVG/ICO 的渠道用图标；没有公开官方资源的渠道（Qoder / Raccoon / Loomy…）
@@ -226,7 +227,7 @@ async function toggleChannelEnabled(channel: string, enabled: boolean) {
 // ⚠️ 用 reactive：模板直接读 bindState[c.channel]，必须响应式才能渲染弹窗内容。
 const bindState = reactive<Record<string, {
   handle: Record<string, any>
-  input: { apiKey: string; baseUrl: string }
+  input: { apiKey: string; baseUrl: string; pageKey: string; pageUrl: string }
 }>>({})
 
 // 进行中的 SSE 客户端（按渠道），用于「关闭弹窗 / 重新发起」时中止旧流。
@@ -248,7 +249,7 @@ let bindTimer: ReturnType<typeof setInterval> | null = null
 const qrImages = reactive<Record<string, string>>({})
 
 function resetBindChannel(channel: string) {
-  bindState[channel] = { handle: {}, input: { apiKey: '', baseUrl: '' } }
+  bindState[channel] = { handle: {}, input: { apiKey: '', baseUrl: '', pageKey: '', pageUrl: '' } }
 }
 function ensureBindState(channel: string) {
   if (!bindState[channel]) resetBindChannel(channel)
@@ -262,10 +263,14 @@ function ensureBindState(channel: string) {
 function buildPollHandle(channel: string): Record<string, any> {
   const state = bindState[channel]
   const handle: Record<string, any> = { ...(state?.handle ?? {}) }
-  const input = state?.input ?? { apiKey: '', baseUrl: '' }
+  const input = state?.input ?? { apiKey: '', baseUrl: '', pageKey: '', pageUrl: '' }
   if (input.apiKey?.trim()) handle.apiKey = input.apiKey.trim()
-  // Magpie：除网关 key 外还要带上自定义网关地址（远程 / Docker 时不是 localhost）
-  if (channel === 'magpie' && input.baseUrl?.trim()) handle.baseUrl = input.baseUrl.trim()
+  // Magpie：数据面地址 / 管理面地址 / 页面 Key 分开传（后端会互相推导，可只填其一）
+  if (channel === 'magpie') {
+    if (input.baseUrl?.trim()) handle.baseUrl = input.baseUrl.trim()
+    if (input.pageKey?.trim()) handle.pageKey = input.pageKey.trim()
+    if (input.pageUrl?.trim()) handle.pageUrl = input.pageUrl.trim()
+  }
   return handle
 }
 
@@ -292,6 +297,13 @@ const callbackAuto = (channel: string) => bindState[channel]?.handle?.callbackLi
 const bindMethod = () => String(channels.value.find((c) => c.channel === bindChannel.value)?.loginMethod ?? '')
 const isApiKeyBind = () => /^api-key$/i.test(bindMethod())
 const isQrBind = () => /^qr-code$/i.test(bindMethod())
+/**
+ * 免鉴权渠道（如 Kilo 免费池）：无凭据、无授权页，点「绑定账号」后直接开流即可。
+ *
+ * <p>后端用 {@code loginMethod=keyless} 表达。缺少这一支时 Kilo 会被当成
+ * {@code api-key}，弹窗要求填一个根本不存在的 key，用户以为绑定失败。</p>
+ */
+const isKeylessBind = () => /^keyless$/i.test(bindMethod())
 const bindNeedsInput = () => isApiKeyBind()
 
 // 设备码：优先读句柄的 user_code；没有时从 verifyUrl 的 query 里兜底解析。
@@ -453,9 +465,14 @@ async function openBindDialog(channel: string) {
     const out = (res as any)?.data ?? res
     const handle = (out?.handle ?? {}) as Record<string, any>
     bindState[channel]!.handle = handle
-    // Magpie：把后端给的默认网关地址预填到输入框（用户可改成远程地址）
-    if (channel === 'magpie' && !bindState[channel]!.input.baseUrl) {
-      bindState[channel]!.input.baseUrl = String(handle.baseUrl ?? '')
+    // Magpie：把后端给的默认网关地址 / 页面地址预填到输入框（用户可改成远程地址）
+    if (channel === 'magpie') {
+      if (!bindState[channel]!.input.baseUrl) {
+        bindState[channel]!.input.baseUrl = String(handle.baseUrl ?? '')
+      }
+      if (!bindState[channel]!.input.pageUrl) {
+        bindState[channel]!.input.pageUrl = String(handle.pageUrl ?? '')
+      }
     }
 
     const url = handleVerifyUrl(handle)
@@ -516,12 +533,60 @@ function submitBindInput() {
   startSse(channel)
 }
 
-// Magpie 网关地址输入（远程 / Docker 部署时填非本机地址）
+// Magpie 网关地址输入（远程 / Docker 部署时填非本机地址；
+// 也允许整条粘贴 magpie web 启动链接 http://127.0.0.1:3430/?k=…）
 function onBaseUrlInput(event: Event) {
   const channel = bindChannel.value
   const state = bindState[channel]
   if (!state) return
-  state.input.baseUrl = (event.target as HTMLInputElement).value
+  const raw = (event.target as HTMLInputElement).value
+  state.input.baseUrl = raw
+  if (channel !== 'magpie') return
+  const split = splitMagpieLink(raw)
+  if (!split) return
+  state.input.baseUrl = split.gateway
+  state.input.pageUrl = split.pageUrl
+  state.input.pageKey = split.pageKey
+  ;(event.target as HTMLInputElement).value = split.gateway
+}
+
+// Magpie：整条启动链接拆成「数据面地址 / 页面地址 / 页面 Key」
+function splitMagpieLink(raw: string): { gateway: string; pageUrl: string; pageKey: string } | null {
+  const text = raw.trim()
+  const queryAt = text.indexOf('?')
+  if (queryAt < 0) return null
+  const base = text.slice(0, queryAt)
+  let key = ''
+  for (const piece of text.slice(queryAt + 1).split('&')) {
+    const eq = piece.indexOf('=')
+    if (eq > 0 && piece.slice(0, eq) === 'k') {
+      try {
+        key = decodeURIComponent(piece.slice(eq + 1))
+      } catch {
+        key = piece.slice(eq + 1)
+      }
+    }
+  }
+  if (!key) return null
+  // 页面端口 3430 → 数据面 3425；其它端口视为同一个反代入口，原样保留
+  const gateway = base.replace(/:3430(?=\/|$)/, ':3425')
+  return { gateway, pageUrl: base, pageKey: key }
+}
+
+// Magpie 页面地址输入（管理面，可空）
+function onPageUrlInput(event: Event) {
+  const channel = bindChannel.value
+  const state = bindState[channel]
+  if (!state) return
+  state.input.pageUrl = (event.target as HTMLInputElement).value
+}
+
+// Magpie 页面 Key 输入（管理面必需，只在管理上游 / 签到用）
+function onPageKeyInput(event: Event) {
+  const channel = bindChannel.value
+  const state = bindState[channel]
+  if (!state) return
+  state.input.pageKey = (event.target as HTMLInputElement).value
 }
 
 // api-key 输入：直接写响应式状态（模板里用 $event 取 target，避免用未定义变量）
@@ -601,6 +666,62 @@ async function checkin(channel: string, conn: ChannelConnectionSummary) {
     b.sign = false
   }
 }
+
+/**
+ * 自动签到：全局开关，不按渠道存。
+ *
+ * 后端 {@code ChannelCheckinTask} 读全局键 {@code enable_channel_checkin}
+ * （默认开启），每天 00:30 后替所有支持签到的渠道签到一次。渠道页这里只是
+ * 一个入口：进入带签到能力的渠道时读一次回显，改动走 {@code PUT /v2/settings/global}
+ * 写全局层（仅管理员）。
+ */
+const autoCheckin = ref(true)
+const autoCheckinLoading = ref(false)
+const autoCheckinLoaded = ref(false)
+
+/** 读全局自动签到开关：一次成功即不再重复请求 */
+async function loadAutoCheckin() {
+  if (autoCheckinLoaded.value || autoCheckinLoading.value) return
+  autoCheckinLoading.value = true
+  try {
+    const data = await channelApi.globalSettings()
+    const raw = (data as any)?.enable_channel_checkin
+    // 没有存过就用后端默认值（开启），不要把「缺省」当成「关闭」
+    autoCheckin.value = raw === undefined || raw === null || String(raw).trim() === ''
+      ? true
+      : !/^(false|0|off|no)$/i.test(String(raw).trim())
+    autoCheckinLoaded.value = true
+  } catch {
+    // 读不到只影响开关回显，不影响后端签到；保持默认值，等下次进页再试
+  } finally {
+    autoCheckinLoading.value = false
+  }
+}
+
+/** 改全局自动签到开关：失败回滚，避免界面显示与实际不符 */
+async function toggleAutoCheckin(enabled: boolean) {
+  const previous = autoCheckin.value
+  autoCheckin.value = enabled
+  autoCheckinLoading.value = true
+  try {
+    await channelApi.saveGlobalSettings({ enable_channel_checkin: enabled ? 'true' : 'false' })
+    autoCheckinLoaded.value = true
+    ElMessage.success(enabled ? '已开启自动签到' : '已关闭自动签到')
+  } catch (e: any) {
+    autoCheckin.value = previous
+    ElMessage.error('自动签到开关保存失败：' + (e?.message ?? e))
+  } finally {
+    autoCheckinLoading.value = false
+  }
+}
+
+// 只有切到「支持签到」的渠道才去读开关，其它渠道不产生多余请求
+watch(
+  () => activeSummary()?.supportsCheckin,
+  (on) => {
+    if (on) void loadAutoCheckin()
+  },
+)
 
 /**
  * 改名：弹输入框，默认填当前名。
@@ -911,10 +1032,13 @@ const detailTabs = computed(() => {
   if (summary?.supportsTask) {
     tabs.push({ name: 'tasks', label: '任务', icon: 'Trophy' })
   }
-  // Magpie 是常驻网关：上游 provider 由网关自己维护，本页通过管理面做增删改查。
-  // 其它渠道没有这一层，不显示该页签。
-  if (activeChannel.value === 'magpie') {
+  // 网关型渠道：上游 provider / 插件由网关自己维护，本页通过管理面做增删改查。
+  // 能力来自后端 supportsUpstream / supportsPlugins，不再按渠道名硬编码。
+  if (summary?.supportsUpstream) {
     tabs.push({ name: 'upstream', label: '上游', icon: 'Coin' })
+  }
+  if (summary?.supportsPlugins) {
+    tabs.push({ name: 'plugins', label: '插件', icon: 'Box' })
   }
   return tabs
 })
@@ -1037,8 +1161,8 @@ async function runTasks(conn: ChannelConnectionSummary) {
   }
 }
 
-/** 时间戳短格式（积分刷新时间展示用） */
-function shortTime(ts: number | string | undefined): string {
+/** 时间戳短格式（积分刷新时间 / 上次签到展示用） */
+function shortTime(ts: number | string | null | undefined): string {
   const value = typeof ts === 'string' ? Date.parse(ts) : Number(ts ?? 0)
   if (!Number.isFinite(value) || value <= 0) return '—'
   const diff = Date.now() - value
@@ -1301,6 +1425,24 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                 <div class="chm-panel__sect-title">
                   <el-icon aria-hidden="true"><ConnectionIcon /></el-icon>
                   已授权连接 <i>{{ (activeSummary()!.connections ?? []).length }}</i>
+                  <!--
+                    自动签到是全局开关（后端 ChannelCheckinTask 读
+                    enable_channel_checkin），开关放这里是因为它只对本区块的
+                    「签到」按钮有意义；写接口仅管理员可调，失败会回滚并提示。
+                  -->
+                  <span
+                    v-if="activeSummary()!.supportsCheckin"
+                    class="chm-auto"
+                    title="全局开关：所有支持签到的渠道每天 00:30 后自动签到一次"
+                  >
+                    自动签到
+                    <el-switch
+                      size="small"
+                      :model-value="autoCheckin"
+                      :loading="autoCheckinLoading"
+                      @change="(v: boolean | string | number) => toggleAutoCheckin(!!v)"
+                    />
+                  </span>
                 </div>
                 <div class="chm-accs">
                   <div
@@ -1314,6 +1456,24 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                     <span class="chm-acc__state" :class="'is-' + connState(conn)">
                       {{ connStateText(conn) }}
                     </span>
+                    <!--
+                      到期文案：connExpireText 缺 expiresAt 时返回空串，不占位。
+                      「已过期」单独上危险色，与「N 天后到期」的警告色区分。
+                    -->
+                    <span
+                      v-if="connExpireText(conn)"
+                      class="chm-acc__expire"
+                      :class="{ 'is-expired': connExpireText(conn) === '已过期' }"
+                    >{{ connExpireText(conn) }}</span>
+                    <!--
+                      上次签到：签到摘要由各 SPI 写进连接凭据（checkin_at /
+                      checkin_message），刷新页面仍在；hover 看上游返回的原话。
+                    -->
+                    <span
+                      v-if="conn.checkinAt"
+                      class="chm-acc__checkin"
+                      :title="conn.checkinMessage || ''"
+                    >签到 {{ shortTime(conn.checkinAt) }}</span>
                     <div class="chm-acc__actions">
                       <button class="chm-acc__btn"
                               @click.stop="renameAccount(activeChannel, conn)">改名</button>
@@ -1519,9 +1679,19 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
               </div>
             </div>
 
-            <!-- ════════ 上游（仅 Magpie） ════════ -->
+            <!-- ════════ 上游（网关型渠道） ════════ -->
             <div v-else-if="tab.name === 'upstream'" class="chm-panel__tabbody">
               <MagpieProviderPanel
+                :channel="activeChannel"
+                :connections="activeSummary()!.connections ?? []"
+                :signin-enabled="activeSummary()?.supportsSignin ?? false"
+                @changed="loadChannels()"
+              />
+            </div>
+
+            <!-- ════════ 插件（网关型渠道） ════════ -->
+            <div v-else-if="tab.name === 'plugins'" class="chm-panel__tabbody">
+              <MagpiePluginPanel
                 :channel="activeChannel"
                 :connections="activeSummary()!.connections ?? []"
                 @changed="loadChannels()"
@@ -1591,6 +1761,7 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
           <span class="chm-bind__status-text">
             <span v-if="bindPhase === 'starting'">正在创建登录会话…</span>
             <span v-else-if="bindPhase === 'error'">失败：{{ bindError }}</span>
+            <span v-else-if="isKeylessBind()">免鉴权渠道，正在自动完成绑定（无需填写凭据）</span>
             <span v-else-if="isApiKeyBind()">请填写 API key 后提交</span>
             <span v-else-if="isQrBind()">请用微信扫码授权</span>
             <span v-else-if="callbackAuto(bindChannel)">已打开授权页，完成后会自动绑定（无需回到本页）</span>
@@ -1645,7 +1816,23 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                 :value="bindState[bindChannel]?.input?.baseUrl ?? ''"
                 @input="onBaseUrlInput($event)"
                 class="chm-input"
-                placeholder="网关地址，如 http://127.0.0.1:3425（本机可留默认）"
+                placeholder="网关地址，如 http://127.0.0.1:3425（也可整条粘贴 magpie web 的链接）"
+              />
+            </div>
+            <div v-if="bindChannel === 'magpie'" class="chm-bind__row">
+              <input
+                :value="bindState[bindChannel]?.input?.pageUrl ?? ''"
+                @input="onPageUrlInput($event)"
+                class="chm-input"
+                placeholder="页面地址，如 http://127.0.0.1:3430（缺省按网关地址推导）"
+              />
+            </div>
+            <div v-if="bindChannel === 'magpie'" class="chm-bind__row">
+              <input
+                :value="bindState[bindChannel]?.input?.pageKey ?? ''"
+                @input="onPageKeyInput($event)"
+                class="chm-input"
+                placeholder="页面 Key（启动链接里的 k=…，管理上游与签到用）"
               />
             </div>
             <div class="chm-bind__row">
@@ -1659,6 +1846,10 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
               />
               <button class="chm-btn chm-btn--primary" type="button" @click="submitBindInput()">提交</button>
             </div>
+            <span v-if="bindChannel === 'magpie'" class="chm-bind__code-hint">
+              网关地址用于对话 / 模型 / 配额；页面地址与页面 Key 只用于上游管理与签到
+              （桌面版需在 magpie 设置里打开「浏览器访问」）。
+            </span>
           </div>
 
           <!-- (5) 本地回调不可用时的兜底：允许手工粘贴回调地址 -->
@@ -2249,6 +2440,16 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 .chm-panel__sect-title .el-icon {
   color: var(--text-tertiary, #94a3b8);
 }
+/* 自动签到：全局开关，右对齐到标题行末尾（与「刷新 / 添加」按钮同侧） */
+.chm-auto {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  color: var(--text-tertiary, #94a3b8);
+  cursor: help;
+}
 .chm-panel__pull {
   margin-left: auto;
   border: 1px solid var(--border-default, #e2e9f3);
@@ -2366,6 +2567,14 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 .chm-acc__expire.is-expired {
   color: var(--el-color-danger, #f56c6c);
   font-weight: 600;
+}
+/* 上次签到：中性色，只作「做过」的痕迹，不与到期告警抢注意力 */
+.chm-acc__checkin {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-tertiary, #94a3b8);
+  white-space: nowrap;
+  cursor: help;
 }
 .chm-acc__actions {
   display: flex;

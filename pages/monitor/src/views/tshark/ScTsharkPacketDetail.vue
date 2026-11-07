@@ -27,27 +27,68 @@
       </div>
 
       <ReDescriptions :column="2" border>
+        <ReDescriptionsItem label="帧号">{{ packet.frameNo ?? '—' }}</ReDescriptionsItem>
         <ReDescriptionsItem label="协议">{{ packet.protocol || '—' }}</ReDescriptionsItem>
         <ReDescriptionsItem label="长度">{{ packet.packetLength ?? 0 }} 字节</ReDescriptionsItem>
+        <ReDescriptionsItem label="时间">{{ packet.packetTime || '—' }}</ReDescriptionsItem>
         <ReDescriptionsItem label="源地址">{{ addr(packet.sourceIp, packet.sourcePort) }}</ReDescriptionsItem>
         <ReDescriptionsItem label="目的地址">{{ addr(packet.destIp, packet.destPort) }}</ReDescriptionsItem>
-        <ReDescriptionsItem label="时间" :span="2">{{ packet.packetTime || '—' }}</ReDescriptionsItem>
       </ReDescriptions>
+
+      <!-- 协议明细：传输层 / 网络层 / 应用层的关键字段，有值才显示，避免一屏都是「—」 -->
+      <section v-if="hasProtocolDetail" class="detail-section">
+        <header class="detail-section__head">
+          <h4>协议明细</h4>
+        </header>
+        <ReDescriptions :column="2" border size="small">
+          <ReDescriptionsItem v-if="packet.tcpStream != null" label="TCP 流">{{ packet.tcpStream }}</ReDescriptionsItem>
+          <ReDescriptionsItem v-if="packet.tcpFlags" label="TCP 标志">{{ packet.tcpFlags }}</ReDescriptionsItem>
+          <ReDescriptionsItem v-if="packet.tcpSeq != null" label="TCP 序列号">{{ packet.tcpSeq }}</ReDescriptionsItem>
+          <ReDescriptionsItem v-if="packet.ipTtl != null" label="IP TTL">{{ packet.ipTtl }}</ReDescriptionsItem>
+          <ReDescriptionsItem v-if="packet.httpMethod" label="HTTP 方法">{{ packet.httpMethod }}</ReDescriptionsItem>
+          <ReDescriptionsItem v-if="packet.httpStatus != null" label="HTTP 状态码">{{ packet.httpStatus }}</ReDescriptionsItem>
+          <ReDescriptionsItem v-if="packet.httpUri" label="HTTP URI" :span="2">
+            <span class="tshark-mono">{{ packet.httpUri }}</span>
+          </ReDescriptionsItem>
+          <ReDescriptionsItem v-if="packet.httpContentType" label="内容类型">{{ packet.httpContentType }}</ReDescriptionsItem>
+          <ReDescriptionsItem v-if="packet.httpContentLength != null" label="内容长度">{{ packet.httpContentLength }} 字节</ReDescriptionsItem>
+          <ReDescriptionsItem v-if="packet.tlsSni" label="TLS SNI">{{ packet.tlsSni }}</ReDescriptionsItem>
+          <ReDescriptionsItem v-if="packet.dnsQueryName" label="DNS 查询" :span="2">
+            <span class="tshark-mono">{{ packet.dnsQueryName }}</span>
+          </ReDescriptionsItem>
+        </ReDescriptions>
+      </section>
 
       <section class="detail-section">
         <header class="detail-section__head">
           <h4>摘要</h4>
-          <ReButton v-if="packet.packetInfo" link type="primary" @click="copy(packet.packetInfo || '', '摘要已复制')">复制</ReButton>
+          <ReButton v-if="packet.packetInfo" text type="primary" @click="copy(packet.packetInfo || '', '摘要已复制')">复制</ReButton>
         </header>
         <p class="tshark-mono detail-text">{{ packet.packetInfo || '—' }}</p>
       </section>
 
-      <ScTsharkHttpInfo v-if="packet.httpRequestHead || packet.httpResponseHead" :packet="packet" />
+      <!--
+        HTTP 事务：请求头 / 请求体 / 响应头 / 响应体
+        一帧只有一个方向，四段数据分别落在请求帧与响应帧上，所以这里渲染配好对的两帧
+        （httpTransaction 由父组件按 TCP 流拉取）；拿不到配对时退回当前帧自己的方向。
+      -->
+      <section v-if="txRequest || txResponse" class="detail-section">
+        <header class="detail-section__head">
+          <h4>HTTP 事务</h4>
+          <span class="detail-note">请求头 · 请求体 · 响应头 · 响应体</span>
+        </header>
+        <ScTsharkHttpInfo v-if="txRequest" :packet="txRequest" />
+        <ScTsharkHttpInfo v-if="txResponse" :packet="txResponse" />
+      </section>
+      <ScTsharkHttpInfo
+        v-else-if="packet.httpRequestHead || packet.httpResponseHead || packet.httpBody"
+        :packet="packet"
+      />
 
       <section v-if="packet.restoredText" class="detail-section">
         <header class="detail-section__head">
           <h4>协议还原</h4>
-          <ReButton link type="primary" @click="copy(packet.restoredText || '', '协议还原已复制')">复制</ReButton>
+          <ReButton text type="primary" @click="copy(packet.restoredText || '', '协议还原已复制')">复制</ReButton>
         </header>
         <pre class="detail-block">{{ packet.restoredText }}</pre>
       </section>
@@ -56,7 +97,7 @@
         <header class="detail-section__head">
           <h4>原始数据</h4>
           <span v-if="rawTruncated" class="tshark-dim detail-note">仅显示前 {{ RAW_LIMIT }} 字符</span>
-          <ReButton link type="primary" @click="copy(packet.rawData || '', '原始数据已复制')">复制</ReButton>
+          <ReButton text type="primary" @click="copy(packet.rawData || '', '原始数据已复制')">复制</ReButton>
         </header>
         <pre class="detail-block">{{ rawPreview }}</pre>
       </section>
@@ -72,7 +113,7 @@
 import { computed } from 'vue'
 import { message } from '@repo/core'
 import ScTsharkHttpInfo from './ScTsharkHttpInfo.vue'
-import type { TsharkPacket } from './types'
+import type { TsharkHttpTransaction, TsharkPacket } from './types'
 
 /** 原始数据一次最多渲染的字符数：几十 KB 的十六进制串直接塞进 <pre> 会把抽屉卡住 */
 const RAW_LIMIT = 4000
@@ -80,9 +121,34 @@ const RAW_LIMIT = 4000
 const props = defineProps<{
   modelValue: boolean
   packet: TsharkPacket | null
+  /** 与当前报文配成一对的 HTTP 请求 / 响应（后端按 TCP 流配对；可为空） */
+  httpTransaction?: TsharkHttpTransaction | null
 }>()
 
 const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void }>()
+
+/** 事务里的请求方向；配对缺失时退回当前帧自己的请求字段 */
+const txRequest = computed<TsharkPacket | null>(() => {
+  const request = props.httpTransaction?.request
+  if (request) return request
+  return props.packet?.httpRequestHead ? props.packet : null
+})
+/** 事务里的响应方向；配对缺失时退回当前帧自己的响应字段 */
+const txResponse = computed<TsharkPacket | null>(() => {
+  const response = props.httpTransaction?.response
+  if (response) return response
+  return props.packet?.httpResponseHead ? props.packet : null
+})
+
+/** 协议明细里是否有任何一行要显示 */
+const hasProtocolDetail = computed(() => {
+  const p = props.packet
+  if (!p) return false
+  return p.tcpStream != null || !!p.tcpFlags || p.tcpSeq != null || p.ipTtl != null
+    || !!p.httpMethod || p.httpStatus != null || !!p.httpUri
+    || !!p.httpContentType || p.httpContentLength != null
+    || !!p.tlsSni || !!p.dnsQueryName
+})
 
 const rawPreview = computed(() => (props.packet?.rawData || '').slice(0, RAW_LIMIT))
 const rawTruncated = computed(() => (props.packet?.rawData || '').length > RAW_LIMIT)

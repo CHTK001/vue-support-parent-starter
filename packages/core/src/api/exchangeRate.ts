@@ -11,12 +11,15 @@
  *   - 每条汇率点 = 最新价 + 较周期起点的涨跌（额/率） + 周期内的最高/最低；
  *   - frankfurter 的历史接口只支持 `/YYYY-MM-DD?from=BASE&to=Q1,Q2`，
  *     日期范围语法 `/YYYY-MM-DD&YYYY-MM-DD` 返回 404，所以必须逐日查询；
+ *     且旧域名已 301 到 `api.frankfurter.dev/v1`（跨域 301 不携带 CORS 头），
+ *     直连时统一用 `https://api.frankfurter.dev/v1`， fetch 会把 `from=`/`to=` 接在路径后。
  *   - `from` 不支持逗号分隔多个 base，`to` 支持多目标币种。先按 base 分组再请求；
  *   - 非交易日（周末 / 法定假日）不吐数据，按"无数据日"处理。
  *
  * 三方请求不走项目 http 拦截器（跨域公开接口，无需签名/加密），用原生 fetch + 超时。
  * dev 期若应用配了 /exchange-api、/fx-api 等代理前缀，会优先用代理（免跨域、可走内网），
- * 代理不存在时自动退回直连。
+ * 代理不存在时自动退回直连：直连时**必须**使用新域名 `https://api.frankfurter.dev/v1`，
+ * 旧域名 301 到 `/v1/` 时不返回 CORS 头，浏览器直接卡死。
  */
 import { getConfig } from "@repo/config";
 import { log } from "@repo/utils";
@@ -39,8 +42,12 @@ const PERIOD_DAYS: Record<ExchangeRatePeriod, number> = {
 /** 默认周期 */
 const DEFAULT_PERIOD = "1m";
 
-/** frankfurter 三方地址表（代理前缀优先，其次公网域名） */
-const FRANKFURTER_CANDIDATES = ["/exchange-api", "https://api.frankfurter.app"];
+/**
+ * frankfurter 已迁至 `https://api.frankfurter.dev/v1`（旧域名 `api.frankfurter.app` 现在 301
+ * 到 `/v1/`，该跨域重定向**不携带 `Access-Control-Allow-Origin`**，浏览器端整条请求链被
+ * 卡在"CORS 缺少响应头"上，所有历史日查询都会 403）
+ */
+const FRANKFURTER_CANDIDATES = ["/exchange-api", "https://api.frankfurter.dev/v1"];
 
 /** 三方 HTTP 请求超时（ms） */
 const THIRD_PARTY_TIMEOUT = 8000;
@@ -191,7 +198,12 @@ async function fetchJson(candidates: string[], path: string): Promise<unknown> {
   let lastError: unknown = null;
   for (const base of candidates) {
     try {
-      const res = await fetch(`${base}${path}`, {
+      // 路径必须带前导 /：候选基址混用了相对前缀（/exchange-api）与绝对域名
+      // （https://api.frankfurter.dev/v1），历史日如果不补 /，请求路径会粘到域名上
+      // （api.frankfurter.dev/v1+2026-10-10 = api.frankfurter.dev/v12026-10-10），
+      // 表现为 ERR_NAME_NOT_RESOLVED 类型的网络错误而非 404。
+      const url = `${base}${path.startsWith("/") ? path : `/${path}`}`;
+      const res = await fetch(url, {
         headers: { Accept: "application/json" },
         signal: AbortSignal.timeout(THIRD_PARTY_TIMEOUT),
       });
@@ -264,7 +276,7 @@ async function fetchLatestRates(groups: SymbolGroup[]): Promise<Record<string, n
  * 历史数据：从 start 到 end（含）逐日请求。
  *
  * frankfurter 的日期范围语法（`/YYYY-MM-DD&YYYY-MM-DD`）返回 404，只能逐日请求：
- * `https://api.frankfurter.app/2019-05-01?from=EUR&to=USD`。
+ * `https://api.frankfurter.dev/v1/2019-05-01?from=EUR&to=USD`。
  * 同一个 base 组在一次日查询里带过，所以单日最多一次请求（多 to 一次返回）。
  *
  * 给同一天内重复发生的请求（不同周期、不同 base）做了 session 级日缓存，
@@ -282,7 +294,7 @@ async function fetchHistoryDays(groups: SymbolGroup[], start: Date, end: Date): 
     for (const group of groups) {
       units.push({
         date,
-        url: `${date}?from=${group.base}&to=${group.quotes.join(",")}`,
+        url: `/${date}?from=${group.base}&to=${group.quotes.join(",")}`,
       });
     }
   }

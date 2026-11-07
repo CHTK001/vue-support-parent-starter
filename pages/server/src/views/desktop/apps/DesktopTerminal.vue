@@ -10,17 +10,15 @@
    * <p>「在新标签页打开」只保留标题栏那一个按钮（由桌面壳统一提供）：
    * 窗口里再放一个同样的按钮就是重复入口，谁也不知道两个有什么区别。</p>
    *
+   * <p>窗口标题栏已经写着主机名，内容区不再补一条「主机 + 提示」的横条：
+   * 那一条占的是终端可用的行数，却没有任何新信息。</p>
+   *
    * <p>刻意不做「窗口最小化就销毁」：最小化只是隐藏，PTY 会话必须保住，
    * 否则用户切回来就是一条已经断掉的终端。</p>
    */
   -->
 <template>
   <div class="dt">
-    <div class="dt__bar">
-      <span class="dt__host">{{ hostLabel }}</span>
-      <span class="dt__spacer" />
-      <span class="dt__hint">断线由 SSH 桥自动重连</span>
-    </div>
     <iframe :src="src" class="dt__frame" title="SSH 终端" />
   </div>
 </template>
@@ -45,8 +43,6 @@ const props = withDefaults(
 
 /** 终端页地址：主机 + 身份 + 令牌（与标题栏的「在新标签页打开」同一条） */
 const src = computed(() => terminalFrameUrl(props.hostId, props.identityId));
-
-const hostLabel = computed(() => props.hostName || `主机 #${props.hostId}`);
 </script>
 
 <style scoped>
@@ -56,35 +52,6 @@ const hostLabel = computed(() => props.hostName || `主机 #${props.hostId}`);
   height: 100%;
   min-height: 0;
   background: #101014;
-}
-
-.dt__bar {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 8px;
-  height: 28px;
-  padding: 0 10px;
-  font-size: 11.5px;
-  color: #b9b4c2;
-  background: #191720;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.dt__host {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.dt__spacer {
-  flex: 1;
-}
-
-.dt__hint {
-  flex: none;
-  font-size: 10.5px;
-  color: #7e7889;
 }
 
 .dt__frame {

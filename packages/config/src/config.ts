@@ -1,8 +1,8 @@
 /**
  * 统一应用配置
  *
- * 默认值来源：apps/vue-support-template-starter/app.yaml（模板配置文件）。
- * 所有 starter 的 app.yaml 均从此模板复制，修改模板即可统一更新默认值。
+ * 默认值来源：spring-support-account-starter/web/app.yaml（模板配置文件，
+ * 账号管理应用与各 starter 的 app.yaml 均从此模板复制，修改模板即可统一更新默认值）。
  *
  * createApp 会把 apps/{appName}/app.yaml 解析后写入这里。
  * app.yaml 缺失或加载失败时，使用默认配置（defaultAppConfig）。

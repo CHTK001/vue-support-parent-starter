@@ -15,6 +15,8 @@ import { createContextApp } from "@repo/app";
 import { useGlobalStore, useUserStore } from "@repo/pinia";
 // 路由级加载态兜底（见文件末的 attachRouterLoader 说明）
 import { attachRouterLoader } from "@repo/ui/re-loader";
+// home widget 贡献器：各 pages 模块贡献的 widget 挂到 app 上
+import { defineWidgetContribution } from "@repo/theme/koi/views/home/registry";
 // 挂载完成后预热路由 chunk（菜单 hover 时 theme 层也会预取，见 routePrefetch.ts）
 import {
   prefetchRecentlyVisited,
@@ -53,6 +55,7 @@ import monitorRoutes from "./router";
 // 大屏本体（@pages/system）不认识任何具体卡片，也不 import 这两个包。
 import { actuatorContribution } from "@pages/actuator";
 import { apmContribution } from "@pages/apm/src/monitor";
+import { serverWidgets } from "@pages/server";
 
 const app = await createContextApp({
   appName: "vue-support-monitor-starter",
@@ -60,7 +63,7 @@ const app = await createContextApp({
   mode: "router",
   routerMode: "hash",
 })
-  .widgets([actuatorContribution, apmContribution])
+  .widgets([actuatorContribution, apmContribution, defineWidgetContribution(serverWidgets)])
   .ui({ preset: "monitor" })
   .host(ProcessHost)
   .routes(monitorRoutes)

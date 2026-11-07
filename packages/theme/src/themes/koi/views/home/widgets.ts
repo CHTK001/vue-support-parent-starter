@@ -30,7 +30,9 @@ export type BuiltinWidgetType =
   | "alarm"
   | "bookmark"
   | "quick-access"
-  | "weather";
+  | "weather"
+  | "metals"
+  | "machine-info";
 
 /**
  * widget 类型标识。
@@ -94,6 +96,25 @@ export interface WidgetAppearance {
   borderRadius?: number;
   showHorizontalScrollbar?: boolean;
   showVerticalScrollbar?: boolean;
+  /**
+   * 背景控制：`auto`｜默认主题色（var(--el-bg-color))；`none`｜无背景色（透明，直接透底层
+   * 容器颜色）；其他值＝自由颜色（如 `#f0f2f5`），会覆盖默认主色。
+   */
+  background?: "auto" | "none" | string;
+  /** 是否显示刷新图标（放在标题栏右侧，默认开启） */
+  showRefresh?: boolean;
+  /**
+   * 组件的额外样式（例如 `--custom-primary: #e6a23c`），会原样注入到 widget 根节点上。
+   * 让每个 widget 自己管理自己的样式，不用改主题变量。
+   */
+  style?: string;
+  /**
+   * 组件的额外 class（例如 `my-widget`）。
+   *
+   * <p>WidgetRenderer 负责把 style/class 透给组件根节点；组件内部用这些 class/变量
+   * 写自己的样式，等于每个 widget 都能自己配置自定义样式。</p>
+   */
+  styleClass?: string;
 }
 
 /** 便签组件配置 */
@@ -220,6 +241,13 @@ export const WIDGET_SHADOW_OPTIONS: { value: WidgetShadowLevel; label: string }[
   { value: "soft", label: "柔和" },
   { value: "medium", label: "中等" },
   { value: "strong", label: "强烈" },
+];
+
+/** 背景选项（按钮展示） */
+export const WIDGET_BACKGROUND_OPTIONS: { value: "auto" | "none" | "custom"; label: string; preview: string }[] = [
+  { value: "auto", label: "默认", preview: "#ffffff" },
+  { value: "none", label: "透明", preview: "repeating-conic-gradient(#eee 0% 25%, #fff 0% 50%) 50% / 16px 16px" },
+  { value: "custom", label: "自由", preview: "#f0f2f5" },
 ];
 
 export type WidgetScrollDir = "none" | "horizontal" | "vertical" | "both";
@@ -433,6 +461,30 @@ const BUILTIN_WIDGETS: WidgetRegistration[] = [
     requiredPermission: "user",
     maxCount: 1,
     component: () => import("./widgets/WeatherWidget.vue"),
+  },
+  {
+    type: "metals",
+    title: "贵金属行情",
+    description: "金/银/铂/钯现货价格与前 30 秒涨跌幅",
+    icon: "TrendCharts",
+    defaultSize: { w: 8, h: 5 },
+    category: "common",
+    environment: "prod",
+    requiredPermission: "user",
+    maxCount: 1,
+    component: () => import("./widgets/MetalsPriceWidget.vue"),
+  },
+  {
+    type: "machine-info",
+    title: "本机指标",
+    description: "本机 CPU / 内存 / 电池 / 存储与网络状态",
+    icon: "Monitor",
+    defaultSize: { w: 6, h: 4 },
+    category: "common",
+    environment: "prod",
+    requiredPermission: "user",
+    maxCount: 1,
+    component: () => import("./widgets/MachineInfoWidget.vue"),
   },
 ];
 

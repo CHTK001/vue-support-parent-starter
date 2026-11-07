@@ -9,12 +9,13 @@
  *
  * 短信 / 邮件模板的**唯一编辑入口就是本页的「消息模板」页签**。
  * 原先 pages/message 的 TemplateManage.vue 打同一组 `/v2/message/template/*` 接口却另做一套表单，
- * 已从其路由与菜单注册里下线；统一模板库（pages/template）是 provider 维度的只读视图 + 打印/预览。
+ * 已从其路由与菜单注册里下线；统一模板库（@account/web 的 TemplateView）是 provider 维度的只读视图 + 打印/预览。
  */
 import { message } from "@repo/core";
 import { computed, onMounted, ref, watch, nextTick, defineAsyncComponent, getCurrentInstance } from "vue";
 import { ElMessageBox } from "element-plus";
 import ReTab from "@repo/ui/re-tab";
+import MessageTemplateSelect from "./components/MessageTemplateSelect.vue";
 /** 耗时着色文本：绿 / 黄 / 红标识推送快慢（同系统日志页） */
 const ReCostText = defineAsyncComponent(() =>
   import("@repo/ui/re-cost-text").then((m) => m.default),
@@ -29,7 +30,6 @@ import {
   recallMessage,
   deleteMessage,
   pageForMessageTemplate,
-  listForMessageTemplate,
   saveMessageTemplate,
   updateMessageTemplate,
   deleteMessageTemplate,
@@ -349,32 +349,21 @@ function handleMsgDetail(row: Record<string, unknown>) {
 /* ================== 发送消息弹窗（站内消息） ================== */
 const sendVisible = ref(false);
 const sendSaving = ref(false);
-const templates = ref<SysMessageTemplate[]>([]);
 const sendForm = ref<SysMessageSendRequest>({ sysMessageTitle: "" });
-
-async function loadTemplates() {
-  try {
-    const res = await listForMessageTemplate();
-    templates.value = (res?.data ?? []) as SysMessageTemplate[];
-  } catch (e) {
-    console.warn("[message] 模板列表加载失败", e);
-  }
-}
 
 function handleAdd() {
   sendForm.value = { sysMessageTitle: "", sysMessageType: "notice", sysMessageLevel: "normal" };
   sendVisible.value = true;
 }
 
-function onTemplateChange(code?: string) {
-  if (!code) return;
-  const tpl = templates.value.find((t) => t.sysMessageTemplateCode === code);
+/** 选中模板后回填标题 / 正文（模板选择器回传完整对象） */
+function onTemplateChange(tpl?: SysMessageTemplate) {
   if (!tpl) return;
   sendForm.value = {
     ...sendForm.value,
     sysMessageTitle: tpl.sysMessageTemplateTitle || sendForm.value.sysMessageTitle,
     sysMessageContent: tpl.sysMessageTemplateContent || sendForm.value.sysMessageContent,
-    templateCode: code,
+    templateCode: tpl.sysMessageTemplateCode,
   };
 }
 
@@ -523,7 +512,6 @@ async function handleTplSubmit() {
     }
     tplDialogVisible.value = false;
     tplTableRef.value?.reload();
-    loadTemplates();
   } catch (e) {
     message.error((e as Error)?.message ?? "保存失败");
   } finally {
@@ -559,7 +547,6 @@ async function handleTplDelete(row: Record<string, unknown>) {
     await deleteMessageTemplate(tpl.sysMessageTemplateId!);
     message.success("删除成功");
     tplTableRef.value?.reload();
-    loadTemplates();
   } catch (e) {
     message.error((e as Error)?.message ?? "删除失败");
   } finally {
@@ -844,7 +831,6 @@ const logColumns: ReTableColumn[] = [
 
 onMounted(() => {
   applyTabFromRoute();
-  loadTemplates();
   loadRoles();
 });
 </script>
@@ -1087,12 +1073,8 @@ onMounted(() => {
     >
       <el-form label-width="90px" :model="sendForm">
         <el-form-item label="模板选择">
-          <ReSelect
+          <MessageTemplateSelect
             v-model="sendForm.templateCode"
-            placeholder="选择模板自动填充"
-            clearable
-            class="!w-full"
-            :data="templates.map((t) => ({ label: t.sysMessageTemplateName, value: t.sysMessageTemplateCode }))"
             @change="onTemplateChange"
           />
         </el-form-item>

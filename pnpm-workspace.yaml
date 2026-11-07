@@ -4,6 +4,10 @@ packages:
   - "turbo/*"
   - "apps/*"
   - "pages/*"
+  # 账号管理（账号资产 + 模板管理 + 消息模板）的前端源码已并入后端项目：
+  # spring-support-parent-starter/spring-support-account-starter/web（包名 @account/web）。
+  # 源码在后端仓、依赖仍用本仓的 @repo/* 共享包，故登记为本工作区的外部成员。
+  - "../spring-support-parent-starter/spring-support-account-starter/web"
   # vue-support-spider-starter 已下线 (2026-09-26)：旧爬虫控制台，能力已被
   # apps/vue-support-collect-scheduler-starter（原 vue-support-collect-starter 更名）承接。
   # 与后端 spring-support-spider-starter 同步退役。源码已删除（见下方 ! 条目对应的删除提交），

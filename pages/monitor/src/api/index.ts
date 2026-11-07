@@ -612,6 +612,16 @@ export const getTsharkPacketDetail = (sessionId: number, id: number) =>
   http().get(`${B}/tshark/sessions/${sessionId}/packets/${id}`).then(r => unwrap<any>(r));
 
 /**
+ * 报文所属的 HTTP 事务（请求 + 响应两帧）。
+ *
+ * <p>列表 / 详情接口里的 HTTP 字段是按帧存的：请求头体在请求起始帧、响应头体在
+ * 响应起始帧。详情抽屉靠这个接口把同一条 TCP 流上的两侧配成一对，
+ * 「请求头 · 请求体 · 响应头 · 响应体」四段才能同时出现。</p>
+ */
+export const getTsharkHttpTransaction = (sessionId: number, packetId: number) =>
+  http().get(`${B}/tshark/sessions/${sessionId}/packets/${packetId}/http-transaction`).then(r => unwrap<any>(r));
+
+/**
  * 某报文所属 TCP 流的握手 / 关闭生命周期。
  *
  * <p>Controller 返回实体被全局响应包装成 `{code,data,msg}` 信封（后端返回

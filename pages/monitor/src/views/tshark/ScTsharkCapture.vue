@@ -152,7 +152,7 @@
       </template>
     </ScTsharkSessionDetailDialog>
 
-    <ScTsharkPacketDetail v-model="detailOpen" :packet="packetDetail" />
+    <ScTsharkPacketDetail v-model="detailOpen" :packet="packetDetail" :http-transaction="packetHttpTx" />
     <ScTsharkLifecycleDialog
       v-model="lifecycleVisible"
       :packet="lifecyclePacket"
@@ -192,7 +192,7 @@ const {
   loadingPackets, packets, packetPage, packetTotal, packetFilter, filterError, packetPageSize,
   protoStats, topFlows, statsVersion, liveConnected, liveCount, loadingStats,
   timeline, timelineBucket, anomalies,
-  detailOpen, packetDetail,
+  detailOpen, packetDetail, packetHttpTx,
   init, loadPackets, applyPacketFilter, selectSession, clearActiveSession,
   filterByProtocol, filterByFlow, refresh, exportCsv, downloadPcap, startCapture, stopSession, deleteSession,
   loadTimeline,

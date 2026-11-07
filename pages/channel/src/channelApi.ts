@@ -22,6 +22,48 @@ import type {
 } from '@repo/utils'
 
 /**
+ * 把 axios / 业务失败统一转成「能给人看」的 Error。
+ *
+ * <p>axios 对非 2xx 只给 {@code Request failed with status code 403}，真正的原因
+ * （后端 msg、跨域白名单拒绝的纯文本等）全在 {@code error.response.data} 里。
+ * 页面若直接取 {@code e.message}，用户看到的永远是一句和业务无关的英文状态码
+ * ——「绑定 Kilo 时报 403」当初就是这样把「Origin 被 CORS 白名单拒绝」藏掉的。</p>
+ *
+ * @param error 捕获到的异常
+ * @returns 带后端信息的 Error（保留原始 HTTP 状态码）
+ */
+function toReadableError(error: unknown): Error {
+  const source = error as {
+    message?: string
+    response?: { data?: unknown; status?: number }
+  }
+  const data = source?.response?.data
+  let text = ''
+  if (typeof data === 'string') {
+    text = data.trim()
+  } else if (data && typeof data === 'object') {
+    const body = data as Record<string, unknown>
+    text = String(body.msg ?? body.message ?? body.error ?? '').trim()
+  }
+  if (!text) {
+    text = String(source?.message ?? error ?? '').trim()
+  }
+  if (!text) {
+    text = '请求失败'
+  }
+  if (/invalid cors request/i.test(text)) {
+    // 后端 CorsFilter 只回这一句纯文本，不解释是哪个 Origin 被拒
+    text = '被后端跨域白名单拒绝（Invalid CORS request）：'
+      + '请确认 dev 代理已剥离 Origin，或把当前访问地址加入 plugin.api.cors.allowed-origins'
+  }
+  const readable = new Error(text) as Error & { status?: number }
+  if (source?.response?.status !== undefined) {
+    readable.status = source.response.status
+  }
+  return readable
+}
+
+/**
  * 兼容两种返回形态：统一包装（`{ code, data }`）与直接返回体。
  *
  * 后端部分接口经 `@ApiReturnFormatIgnore` 直接返回 `ApiResult`，其余由统一响应
@@ -29,11 +71,20 @@ import type {
  * 既剥掉 `{ code, data, msg }` 信封，也把后端业务失败码转成可 catch 的 Error，
  * 避免「HTTP 200 + 业务失败」被当成成功数据渲染。
  *
+ * <p>HTTP 层失败（4xx/5xx）在这里统一转成 {@link toReadableError}，
+ * 页面拿到的 {@code e.message} 即后端真实原因。</p>
+ *
  * @param request 可等待的请求句柄
  * @returns 业务数据
  */
 async function unwrapPayload<T>(request: unknown): Promise<T> {
-  return unwrapResult<T>(await (request as Promise<unknown>))
+  let payload: unknown
+  try {
+    payload = await (request as Promise<unknown>)
+  } catch (error) {
+    throw toReadableError(error)
+  }
+  return unwrapResult<T>(payload)
 }
 
 /** SseClient 构造参数（SSE 事件回调，与 pages/ai 的原始契约一致） */
@@ -67,6 +118,10 @@ export interface ChannelConnectionSummary {
   updatedAt?: number
   /** 凭据到期时间（毫秒），缺省表示长期有效 */
   expiresAt?: number | null
+  /** 最近一次签到时间（毫秒）；由各渠道 SPI 写入连接凭据的 checkin_at */
+  checkinAt?: number | null
+  /** 最近一次签到的人话摘要（如「workbuddy 处理 1 个账号」）；无则不回字段 */
+  checkinMessage?: string
   /** 连接所属渠道标识 */
   channel?: string
 }
@@ -101,6 +156,24 @@ export interface ChannelSummary {
   /** 本渠道支持的账号类型（缺省按仅 FIXED 处理） */
   accountTypes?: Array<AccountType | string>
   supportsCheckin?: boolean
+  /**
+   * 是否由本服务代为自动签到。
+   *
+   * <p>magpie 这类网关自己就有签到定时器，本服务必须让开，否则两边同时打上游；
+   * 缺省按 {@code true} 处理（历史渠道都是本服务代签）。</p>
+   */
+  supportsAutoCheckin?: boolean
+  /**
+   * 是否有上游控制台（{@code ChannelUpstreamAdmin}）。
+   *
+   * <p>为 {@code true} 时前端才显示「上游 provider / 插件 / 登录」这些页签，
+   * 不再靠 {@code channel === 'magpie'} 硬编码。</p>
+   */
+  supportsUpstream?: boolean
+  /** 上游插件管理（网关型渠道，如 magpie） */
+  supportsPlugins?: boolean
+  /** 上游登录（打开授权页 + 轮询会话） */
+  supportsSignin?: boolean
   supportsRefresh?: boolean
   /** 是否支持积分 / 余额查询（ChannelCreditProvider SPI 存在时为 true） */
   supportsCredit?: boolean
@@ -183,6 +256,25 @@ export const channelApi = {
   checkin: (channel: string, body: ChannelAccountRef) =>
     unwrapPayload<{ ok: boolean; channel: string; label: string; result: Record<string, any> }>(
       apiHttp.post(`/api/channels/${channel}/checkin`).data(body),
+    ),
+  /**
+   * GET /v2/settings/global —— 全局分组设置（含自动签到开关）。
+   *
+   * 「自动签到」由后端 {@code ChannelCheckinTask} 读全局键
+   * {@code enable_channel_checkin} 驱动，不按渠道落库；渠道页只在带签到能力的
+   * 渠道下读它回显开关，避免每次进页都多打一次设置接口。
+   */
+  globalSettings: () =>
+    unwrapPayload<Record<string, any>>(apiHttp.get('/v2/settings/global')),
+  /**
+   * PUT /v2/settings/global —— 写全局分组设置（仅管理员；普通账号会 403）。
+   *
+   * 自动签到传 {@code { enable_channel_checkin: 'true' | 'false' }}：设置值统一
+   * 按字符串落库，后端 {@code GlobalSettingReader#getBool} 能解析。
+   */
+  saveGlobalSettings: (patch: Record<string, unknown>) =>
+    unwrapPayload<Record<string, any>>(
+      apiHttp.put('/v2/settings/global').data(patch),
     ),
   /**
    * POST /api/channels/{channel}/credit —— 积分 / 余额查询（只读，不触发签到）。
@@ -483,6 +575,92 @@ export const channelApi = {
     unwrapPayload<{ ok: boolean; channel: string; result: Record<string, unknown> }>(
       apiHttp.post(`/api/channels/${channel}/providers/${action}`).data(body),
     ),
+  /**
+   * GET /api/channels/{channel}/plugins —— 网关插件清单（可带市场）。
+   *
+   * <p>{@code market=true} 会访问 npm / GitHub，较慢，应单独触发。</p>
+   */
+  magpiePlugins: (channel: string, ref?: ChannelAccountRef, market = false) =>
+    unwrapPayload<{ ok: boolean; channel: string; result: MagpiePluginState }>(
+      apiHttp.get(`/api/channels/${channel}/plugins`).query({ ...(ref ?? {}), market }),
+    ),
+  /**
+   * POST /api/channels/{channel}/plugins/{op} —— 插件动作。
+   *
+   * <p>{@code add} 首次会下载 Bun，可能超过 100 秒，调用方要按长任务处理。</p>
+   */
+  magpiePluginAction: (
+    channel: string,
+    op: 'add' | 'remove' | 'update' | 'upgrade' | 'off' | 'options' | 'prefer' | 'registry' | 'mirror' | 'check',
+    body: {
+      connectionId?: string
+      label?: string
+      spec?: string
+      off?: boolean
+      options?: Record<string, unknown>
+      provider?: string
+      [key: string]: unknown
+    },
+  ) =>
+    unwrapPayload<{ ok: boolean; channel: string; result: MagpiePluginState }>(
+      apiHttp.post(`/api/channels/${channel}/plugins/${op}`).data(body),
+    ),
+  /**
+   * POST /api/channels/{channel}/signin —— 发起上游登录。
+   *
+   * <p>插件 provider 传 {@code provider + method}，内置 provider 传 {@code agent}。
+   * 返回的 {@code url} 由页面打开，凭据不经过本服务。</p>
+   */
+  magpieSignin: (
+    channel: string,
+    body: {
+      connectionId?: string
+      label?: string
+      plugin?: boolean
+      provider?: string
+      method?: number
+      inputs?: Record<string, string>
+      key?: string
+      agent?: string
+      site?: string
+    },
+  ) =>
+    unwrapPayload<{ ok: boolean; channel: string; result: MagpieSigninSession }>(
+      apiHttp.post(`/api/channels/${channel}/signin`).data(body),
+    ),
+  /** GET /api/channels/{channel}/signin/{id} —— 轮询登录会话 */
+  magpieSigninStatus: (channel: string, id: string, ref?: ChannelAccountRef) =>
+    unwrapPayload<{ ok: boolean; channel: string; result: MagpieSigninSession }>(
+      apiHttp.get(`/api/channels/${channel}/signin/${encodeURIComponent(id)}`).query(ref ?? {}),
+    ),
+  /** POST /api/channels/{channel}/signin/{id}/cancel —— 取消登录会话 */
+  magpieSigninCancel: (channel: string, id: string, body?: { connectionId?: string; label?: string }) =>
+    unwrapPayload<{ ok: boolean; channel: string; result: Record<string, unknown> }>(
+      apiHttp.post(`/api/channels/${channel}/signin/${encodeURIComponent(id)}/cancel`).data(body ?? {}),
+    ),
+  /** GET /api/channels/{channel}/quotas —— 管理面额度卡（含签到状态与插件账号） */
+  magpieQuotas: (channel: string, ref?: ChannelAccountRef, provider?: string, user?: string) =>
+    unwrapPayload<{ ok: boolean; channel: string; result: { quotas?: MagpieQuota[] } }>(
+      apiHttp.get(`/api/channels/${channel}/quotas`).query({
+        ...(ref ?? {}),
+        ...(provider ? { provider } : {}),
+        ...(user ? { user } : {}),
+      }),
+    ),
+  /** POST /api/channels/{channel}/quotas/refresh —— 让网关重新读一张额度卡 */
+  magpieQuotaRefresh: (
+    channel: string,
+    provider: string,
+    user?: string,
+    ref?: ChannelAccountRef,
+  ) =>
+    unwrapPayload<{ ok: boolean; channel: string; result: { quotas?: MagpieQuota[] } }>(
+      apiHttp.post(`/api/channels/${channel}/quotas/refresh`).query({
+        ...(ref ?? {}),
+        provider,
+        ...(user ? { user } : {}),
+      }),
+    ),
 }
 
 /**
@@ -527,8 +705,9 @@ export interface ChannelAccountInput {
 /**
  * Magpie 网关的上游 provider（管理面 {@code /api/providers} 的脱敏视图）。
  *
- * <p>{@code key} 只回末四位；{@code hasKey} 表示网关里是否配置了凭据。
- * 其余字段（routing/fallback/keys 等）原样透传，前端不解释。</p>
+ * <p>{@code key} 只回末四位；{@code keyCount} 是 {@code keyList} 的条数
+ * （magpie 的凭据在 {@code keyList} 里，不在 {@code provider.key} 上），
+ * {@code hasKey} 表示网关里是否配置了凭据。其余字段原样透传，前端不解释。</p>
  */
 export interface MagpieProvider {
   id?: string
@@ -537,8 +716,14 @@ export interface MagpieProvider {
   preset?: string
   /** 脱敏后的 API key（如 {@code ****abcd}） */
   key?: string
-  /** 是否已配置 API key */
+  /** 是否已配置凭据（{@code key} 有值或 {@code keyList} 非空） */
   hasKey?: boolean
+  /** {@code keyList} 条数 */
+  keyCount?: number
+  /** 插件接管后的账号数（magpie 的 {@code pluginAccounts}） */
+  pluginAccounts?: number
+  /** 脱敏后的凭据行 */
+  keyList?: Array<Record<string, unknown>>
   /** OpenAI 兼容 chat 基址 */
   chat?: string
   /** Responses 协议基址 */
@@ -547,8 +732,8 @@ export interface MagpieProvider {
   anthropic?: string
   /** Gemini 协议基址 */
   gemini?: string
-  /** 该上游声明的模型 id */
-  models?: string[]
+  /** 该上游的模型（magpie 下发对象数组 {@code [{id,name}]}，也兼容字符串数组） */
+  models?: Array<string | { id?: string; name?: string }>
   /** 其余 magpie 字段原样透传 */
   [key: string]: unknown
 }
@@ -559,9 +744,88 @@ export interface MagpieProviderList {
   channel?: string
   /** 网关根地址（回显，便于确认连的是哪台） */
   baseUrl?: string
-  /** 管理面是否可用（旧版本 magpie 可能没有 /api/providers） */
+  /** 管理面地址（页面端口，默认 3430） */
+  pageUrl?: string
+  /** 管理面是否可用（页面没开 / 页面 Key 缺失时为 false） */
   manageable?: boolean
   providers?: MagpieProvider[]
   /** {@code ok=false} 时的原因 */
   message?: string
+}
+
+/**
+ * 网关插件行（后端已把 magpie 内嵌的包 Entry 归一过）。
+ *
+ * <p>{@code moved} 是「接管了哪些内置 provider」，装完这个插件后这些 provider
+ * 的 {@code move.state} 会变成 {@code plugin}，签到也得改走插件端点。</p>
+ */
+export interface MagpiePlugin {
+  /** npm 规格，如 {@code @magpie-community/opencode-workbuddy-auth} */
+  spec?: string
+  name?: string
+  /** 是否被手动停用（停用不等于卸载） */
+  off?: boolean
+  /** 已安装版本 */
+  version?: string
+  /** 市场最新版本，与 {@code version} 不同说明可升级 */
+  latest?: string
+  providers?: string[]
+  /** 被本插件接管的内置 provider */
+  moved?: string[]
+  error?: string
+  [key: string]: unknown
+}
+
+/** 插件状态：{@code GET /api/channels/{channel}/plugins} 的 {@code result} */
+export interface MagpiePluginState {
+  plugins?: MagpiePlugin[]
+  /** 市场清单（仅 {@code market=true} 时返回），字段由 npm 决定，原样展示 */
+  listings?: Array<Record<string, unknown>>
+  /** 本机是否已就绪 Bun（没装插件前通常为 false） */
+  bun?: boolean
+  bunVer?: string
+  mirror?: boolean
+  registry?: string
+  error?: string
+  marketError?: string
+}
+
+/**
+ * 上游登录会话（内置与插件同一个轮询端点）。
+ *
+ * <p>{@code state}：{@code installing}（插件在装）/ {@code waiting}（等人在浏览器里
+ * 完成授权）/ {@code done} / {@code failed} / {@code canceled}。只有前两个是「还没结束」。</p>
+ */
+export interface MagpieSigninSession {
+  id?: string
+  /** 内置登录的 agent，或插件登录的 provider */
+  agent?: string
+  provider?: string
+  /** 授权地址，由页面打开（{@code https} 外链或 {@code http} 本机回调） */
+  url?: string
+  state?: string
+  /** 需要人工把回调地址 / 验证码贴回来时，页面要显示输入框 */
+  pasteCallback?: boolean
+  /** 登录成功的账号名 */
+  user?: string
+  message?: string
+  [key: string]: unknown
+}
+
+/**
+ * 管理面额度卡（{@code GET /api/usage/quotas}）。
+ *
+ * <p>magpie 的卡分 {@code balance}（余额）与 {@code subscription}（订阅窗口）两类，
+ * 窗口里既有 token 也有 credit，前端只做展示，不参与计算。</p>
+ */
+export interface MagpieQuota {
+  provider?: string
+  kind?: string
+  plan?: string
+  user?: string
+  balance?: string | number
+  windows?: Array<Record<string, unknown>>
+  /** 签到状态（管理面独有） */
+  checkin?: Record<string, unknown>
+  [key: string]: unknown
 }

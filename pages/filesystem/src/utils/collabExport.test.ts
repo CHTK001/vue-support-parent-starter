@@ -8,7 +8,8 @@
  * @since 2026/11/06
  */
 import { describe, expect, it } from "vitest";
-import { columnName, snapshotToBlob } from "./collabExport";
+import { columnName, snapshotToBlob, snapshotToOfficeBytes } from "./collabExport";
+import { decodeOfficeSnapshot, encodeOfficeSnapshot, isOfficeSnapshot, officeSnapshotBytes } from "./collabOffice";
 
 describe("columnName（列下标 → 列名）", () => {
   it("前 26 列是 A..Z", () => {
@@ -70,5 +71,42 @@ describe("snapshotToBlob（快照 → 文件字节）", () => {
     expect(ext).toBe(".docx");
     const head = new Uint8Array(await blob.slice(0, 2).arrayBuffer());
     expect([head[0], head[1]]).toEqual([0x50, 0x4b]);
+  });
+});
+
+describe("新格式快照（ooxml1:base64）", () => {
+  it("编码后再解码，字节完全一致", () => {
+    const bytes = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0x00, 0xff, 0x80]);
+    const snapshot = encodeOfficeSnapshot(bytes);
+    expect(isOfficeSnapshot(snapshot)).toBe(true);
+    expect(decodeOfficeSnapshot(snapshot)).toEqual(bytes);
+  });
+
+  it("officeSnapshotBytes 按解码长度算（不虚高 33%）", () => {
+    const bytes = new Uint8Array(1000);
+    const snapshot = encodeOfficeSnapshot(bytes);
+    expect(officeSnapshotBytes(snapshot)).toBe(1000);
+  });
+
+  it("非新格式按 UTF-8 文本长度算", () => {
+    expect(officeSnapshotBytes("中文")).toBe(6);
+  });
+
+  it("snapshotToBlob 对新格式原样还原，不走任何转换", async () => {
+    const bytes = new Uint8Array([1, 2, 3, 4, 5]);
+    const { blob, ext } = await snapshotToBlob("excel", encodeOfficeSnapshot(bytes), "a.xlsx");
+    expect(ext).toBe(".xlsx");
+    expect(new Uint8Array(await blob.arrayBuffer())).toEqual(bytes);
+  });
+
+  it("snapshotToOfficeBytes 对新格式返回原字节", async () => {
+    const bytes = new Uint8Array([9, 8, 7]);
+    expect(await snapshotToOfficeBytes("word", encodeOfficeSnapshot(bytes))).toEqual(bytes);
+  });
+
+  it("snapshotToOfficeBytes 对旧格式兜底成可打开的文件", async () => {
+    const bytes = await snapshotToOfficeBytes("excel", "");
+    expect(bytes[0]).toBe(0x50);
+    expect(bytes[1]).toBe(0x4b);
   });
 });

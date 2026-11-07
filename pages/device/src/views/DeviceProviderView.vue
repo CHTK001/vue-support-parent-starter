@@ -396,20 +396,22 @@
             :label="field.label"
             :required="fieldFormRequired(field)"
           >
-            <!-- 密钥字段在编辑态直接显示后端回传的掩码，不留空：
-                 空框会被当成「值丢了」（2026-11-07 反馈）。要换值再点「修改」。 -->
+            <!-- 密钥字段：掩码与「修改 / 取消」都收在输入框内（2026-11-07 反馈：按钮不要挂在框外）。
+                 编辑态直接显示后端回传的掩码，不留空：空框会被当成「值丢了」。要换值再点框内的「修改」。 -->
             <div v-if="secretReadonly(field)" class="dpv-secret">
               <el-input
                 :model-value="secretMaskText(field)"
                 readonly
                 class="dpv-w dpv-secret__mask"
-                title="出于安全只显示掩码，点「修改」可填写新值"
+                title="出于安全只显示掩码，点框内「修改」可填写新值"
               >
-                <template #suffix><span class="dpv-secret__tag">已配置</span></template>
+                <template #suffix>
+                  <span class="dpv-secret__tag">已配置</span>
+                  <button type="button" class="dpv-secret__act" @mousedown.prevent @click="startSecretEdit(field)">
+                    修改
+                  </button>
+                </template>
               </el-input>
-              <el-button link type="primary" class="dpv-secret__act" @click="startSecretEdit(field)">
-                修改
-              </el-button>
             </div>
             <div v-else class="dpv-secret">
               <el-input
@@ -420,16 +422,14 @@
                 :maxlength="256"
                 :placeholder="fieldPlaceholder(field)"
                 @keyup.enter="submit"
-                class="dpv-w"
-              />
-              <el-button
-                v-if="field.secret && editingCredentialId"
-                link
-                class="dpv-secret__act"
-                @click="cancelSecretEdit(field)"
+                :class="['dpv-w', { 'dpv-secret__edit': field.secret && editingCredentialId }]"
               >
-                取消
-              </el-button>
+                <template v-if="field.secret && editingCredentialId" #suffix>
+                  <button type="button" class="dpv-secret__act is-cancel" @mousedown.prevent @click="cancelSecretEdit(field)">
+                    取消
+                  </button>
+                </template>
+              </el-input>
             </div>
           </el-form-item>
         </div>
@@ -2173,19 +2173,24 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-secondary);
 }
 
-/* 密钥字段：编辑态直接显示掩码 + 「修改」，不留空框（2026-11-07 反馈） */
+/* 密钥字段：掩码与「修改 / 取消」都收在输入框内（2026-11-07 反馈：按钮不要挂在框外） */
 .dpv-secret {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   width: 100%;
+}
+
+.dpv-secret__mask :deep(.el-input__wrapper) {
+  background: var(--el-fill-color-light);
 }
 
 .dpv-secret__mask :deep(.el-input__inner) {
   color: var(--el-text-color-regular);
   font-family: var(--el-font-family-mono, monospace);
   letter-spacing: 0.4px;
-  background: var(--el-fill-color-light);
+  cursor: default;
+}
+
+.dpv-secret__mask :deep(.el-input__suffix-inner) {
+  gap: 6px;
 }
 
 .dpv-secret__tag {
@@ -2197,8 +2202,39 @@ onBeforeUnmount(() => {
   background: color-mix(in srgb, var(--el-color-success) 12%, transparent);
 }
 
+/* 框内动作：链接式小按钮，点击不抢输入框焦点。
+   .el-input__suffix 是 pointer-events:none，只有 .el-input__suffix-inner 恢复接收事件；
+   这里给按钮再加一道 pointer-events:auto + padding，确保可点且不压住掩码文字。 */
 .dpv-secret__act {
   flex: none;
+  margin-left: 6px;
+  padding: 0 2px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--el-color-primary);
+  white-space: nowrap;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.dpv-secret__act:focus-visible {
+  outline: 1px solid var(--el-color-primary);
+  outline-offset: 1px;
+}
+
+.dpv-secret__act:hover {
+  text-decoration: underline;
+}
+
+.dpv-secret__act.is-cancel {
+  color: var(--el-text-color-secondary);
+}
+
+.dpv-secret__act.is-cancel:hover {
+  color: var(--el-text-color-primary);
 }
 
 .dpv-checks {

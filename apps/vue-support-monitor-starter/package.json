@@ -32,7 +32,7 @@
     "@pages/remote": "workspace:*",
     "@pages/server": "workspace:*",
     "@pages/system": "workspace:*",
-    "@pages/template": "workspace:*",
+    "@account/web": "workspace:*",
     "@pages/tunnel": "workspace:*",
     "@repo/app": "workspace:*",
     "@repo/assets": "workspace:*",

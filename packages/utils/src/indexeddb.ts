@@ -124,10 +124,25 @@ export class IndexedDBStore {
     this.version = options.version ?? 1;
   }
 
-  private ready(): Promise<IDBDatabase> {
-    if (this.dbPromise) return this.dbPromise;
-    this.dbPromise = openDb(this.dbName, this.storeName, this.keyPath, this.version);
-    return this.dbPromise;
+  // 暂态故障：第一次打开可能因为索引 DB 被另一个版本变更请求（或删除）挂起而报错
+  // `UnknownError: Internal error`。此时必须关掉旧连接、清空共享缓存，否则下一轮
+  // `ready()` 直接返回同一个 rejected promise，熔断就成永久故障了。重试机制给三次机会，
+  // 每次递增退避，让浏览器有时间恢复。
+  private async ready(): Promise<IDBDatabase> {
+    let attempt = 0;
+    while (true) {
+      if (this.dbPromise) return this.dbPromise;
+      const cacheKey = `${this.dbName}@${this.storeName}@${this.keyPath}@${this.version}`;
+      try {
+        this.dbPromise = openDb(this.dbName, this.storeName, this.keyPath, this.version);
+        return await this.dbPromise;
+      } catch (err) {
+        this.dbPromise = null;
+        connectionCache.delete(cacheKey);
+        if (++attempt >= 3) throw err;
+        await new Promise((r) => setTimeout(r, 500 * attempt));
+      }
+    }
   }
 
   /** 写入一条记录（按 keyPath 主键 upsert） */

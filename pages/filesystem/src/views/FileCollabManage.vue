@@ -357,16 +357,16 @@
     <el-dialog v-model="previewVisible" :title="previewCollab?.fileName || '文档预览'" width="720px" append-to-body>
       <div v-loading="previewLoading" class="cm-preview">
         <template v-if="previewCollab">
-          <div v-if="previewCollab.type === 'excel'" class="cm-preview-excel">
+          <div v-if="previewCollab.type === 'excel' || previewCollab.type === 'word'" class="cm-preview-excel">
             <FileCollabEditor
               :collab-id="previewCollab.id"
               :file-name="previewCollab.fileName"
+              :doc-type="previewCollab.type"
               readonly
               :initial-snapshot="previewSnapshot"
               :initial-version="previewVersion"
             />
           </div>
-          <div v-else-if="previewCollab.type === 'word'" class="cm-preview-html" v-html="previewSnapshot || '<p>（空文档）</p>'" />
           <pre v-else class="cm-preview-text">{{ previewSnapshot || "（空文档）" }}</pre>
         </template>
         <div v-else class="cm-preview-empty">暂无可预览内容</div>
@@ -396,16 +396,10 @@
           </div>
           <div class="cm-focus-body">
             <FileCollabEditor
-              v-if="focusCollab && focusCollab.type === 'excel'"
+              v-if="focusCollab && (focusCollab.type === 'excel' || focusCollab.type === 'word')"
               :collab-id="focusCollab.id"
               :file-name="focusCollab.fileName"
-              v-model:initial-snapshot="focusSnapshot"
-              v-model:initial-version="focusVersion"
-            />
-            <WordCollabEditor
-              v-else-if="focusCollab && focusCollab.type === 'word'"
-              :collab-id="focusCollab.id"
-              :file-name="focusCollab.fileName"
+              :doc-type="focusCollab.type"
               v-model:initial-snapshot="focusSnapshot"
               v-model:initial-version="focusVersion"
             />
@@ -433,11 +427,11 @@ import {
 import { message } from "@repo/core";
 import ReLoader from "@repo/ui/re-loader";
 import FileCollabEditor from "../components/collab/FileCollabEditor.vue";
-import WordCollabEditor from "../components/collab/WordCollabEditor.vue";
 import TextCollabEditor from "../components/collab/TextCollabEditor.vue";
 import { fileSvg } from "../utils/fileKind";
 import { docxFileName } from "../utils/collabDocx";
 import { snapshotToBlob } from "../utils/collabExport";
+import { encodeOfficeSnapshot } from "../utils/collabOffice";
 import { clearImageMetaCache } from "../utils/imageMeta";
 import {
   createFileCollab,
@@ -844,37 +838,35 @@ function onUploadFilePicked(e: Event): void {
   uploadFileSize.value = file.size;
 }
 
-/** 把上传文件转为协同快照：xlsx→Univer JSON（可导入 xlsx），docx→HTML（mammoth），txt/md→文本 */
+/**
+ * 把上传文件转为协同快照。
+ *
+ * <p>office-engine 之后快照就是真实文件字节（见 {@code utils/collabOffice.ts}），
+ * 所以能直接装的格式一律原样封装、零转换（保真度最高）：</p>
+ * <ul>
+ *   <li>xlsx / docx → 原字节直接 {@code ooxml1:} 封装；</li>
+ *   <li>xls / csv / ods → SheetJS 读出来再写成 xlsx 字节；</li>
+ *   <li>doc / rtf → mammoth 转 HTML，再走最小 docx 生成；</li>
+ *   <li>txt / md → 纯文本（不套壳）。</li>
+ * </ul>
+ */
 async function convertFileToSnapshot(file: File, type: CollabDocType): Promise<string> {
-  const name = file.name.toLowerCase();
+  const lower = file.name.toLowerCase();
   if (type === "excel") {
+    const buf = new Uint8Array(await file.arrayBuffer());
+    if (/\.xlsx$/.test(lower)) return encodeOfficeSnapshot(buf);
     const XLSX = await import("xlsx");
-    const buf = await file.arrayBuffer();
     const wb = XLSX.read(buf, { type: "array" });
-    // SheetJS → Univer 工作表 JSON：构造 Univer createWorkbook 需要的结构
-    const sheetOrder: string[] = [];
-    const sheets: Record<string, unknown> = {};
-    for (const sname of wb.SheetNames) {
-      const sheet = wb.Sheets[sname];
-      sheetOrder.push(sname);
-      const json = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" }) as unknown[][];
-      const cellData: Record<string, unknown> = {};
-      json.forEach((row, r) => {
-        row.forEach((v, c) => {
-          if (v === "" || v === null || v === undefined) return;
-          const col = String.fromCharCode(65 + c);
-          cellData[`${col}${r + 1}`] = { v: String(v) };
-        });
-      });
-      sheets[sname] = { cellData, rowCount: Math.max(json.length, 1), columnCount: Math.max(json[0]?.length ?? 0, 1) };
-    }
-    return JSON.stringify({ id: "", name: file.name, sheetOrder, appVersion: "", sheets });
+    const out = XLSX.write(wb, { bookType: "xlsx", type: "array" }) as ArrayBuffer;
+    return encodeOfficeSnapshot(new Uint8Array(out));
   }
   if (type === "word") {
+    if (/\.docx$/.test(lower)) return encodeOfficeSnapshot(new Uint8Array(await file.arrayBuffer()));
+    // .doc / .rtf 引擎不能直接开：先转 HTML，再生成最小 docx
     const mammoth = await import("mammoth");
-    const buf = await file.arrayBuffer();
-    const result = await mammoth.convertToHtml({ arrayBuffer: buf });
-    return result.value || "";
+    const result = await mammoth.convertToHtml({ arrayBuffer: await file.arrayBuffer() });
+    const { blob } = await snapshotToBlob("word", result.value || "", file.name);
+    return encodeOfficeSnapshot(new Uint8Array(await blob.arrayBuffer()));
   }
   // text
   return await file.text();

@@ -239,14 +239,33 @@ function openAdd(): void {
   dialogVisible.value = true;
 }
 
+/**
+ * 保存闹钟（新建 / 编辑）
+ *
+ * <p>上一次修过这里之后又冒回来两个空子：
+ *   <ol>
+ *     <li>{@code form.time} 为空（用户清除了时间选择器）时，{@code form.time.getHours()} 直接抛出
+ *         TypeError，前面的标题校验通过、后面的 `store.put` 还没执行，整个保存就中断了，
+ *         用户看到的是点保存按钮没反应，控制台只有 TypeError。</li>
+ *     <li>{@code store.put(alarm)} 没有 try/catch。IndexedDB 写入失败（配额满了 / 权限被拒绝 /
+ *         数据库升级中）时，Promise 被静默丢弃，用户看到「已保存」的提示但数据没写进去。</li>
+ *   </ol>
+ * 两处都补上了拦截与日志。</p>
+ */
 async function save(): Promise<void> {
   const title = form.title.trim();
   if (!title) {
     message.warning("请输入闹钟标题");
     return;
   }
-  const hour = form.time.getHours();
-  const minute = form.time.getMinutes();
+  // el-time-picker 允许清空，此时 form.time === null；强行读时分会 TypeError 中断整个保存
+  const time = form.time instanceof Date ? form.time : null;
+  if (!time || Number.isNaN(time.getTime())) {
+    message.warning("请选择闹钟时间");
+    return;
+  }
+  const hour = time.getHours();
+  const minute = time.getMinutes();
   const now = Date.now();
   const alarm: Alarm = {
     id: editingId.value ?? `alarm_${now}_${Math.random().toString(36).slice(2, 6)}`,
@@ -258,7 +277,14 @@ async function save(): Promise<void> {
     enabled: true,
     fired: false,
   };
-  await store.put(alarm);
+  try {
+    await store.put(alarm);
+  } catch (e) {
+    console.error("[alarm] 写入 IndexedDB 失败", e);
+    message.error("闹钟保存失败，请检查浏览器存储权限");
+    // 没写进去就别进编辑列表与 worker，留给用户重试
+    return;
+  }
   if (editingId.value) {
     const idx = alarms.value.findIndex((x) => x.id === editingId.value);
     if (idx >= 0) alarms.value[idx] = alarm;
@@ -293,7 +319,7 @@ onBeforeUnmount(() => {
   height: 100%;
   width: 100%;
   min-height: 0;
-  background: var(--el-bg-color);
+  background: var(--koi-widget-bg, var(--el-bg-color));
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-card-border-radius, var(--el-radius-lg, 12px));
   overflow: hidden;
@@ -406,7 +432,7 @@ onBeforeUnmount(() => {
 }
 
 .aw__item:hover {
-  background: var(--el-bg-color);
+  background: var(--koi-widget-bg, var(--el-bg-color));
   border-color: var(--el-border-color);
 }
 

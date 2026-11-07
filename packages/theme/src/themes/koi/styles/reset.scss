@@ -23,7 +23,9 @@ a {
   color: var(--el-color-primary);
   text-decoration: none;
   outline: 0;
-  transition: color var(--el-transition-duration-fast, 0.2s) ease;
+  /* ⚠ 不要给 a 加 transition（2026-11-07 实测）：a 在导航 / 表格 / 卡片里以千计，
+   * 每次鼠标划过都会进过渡态并触发全文档 recalcStyle，与菜单项上的
+   * transition 是同一类开销。颜色即时切换肉眼无差别。 */
 }
 
 a:hover,

@@ -102,7 +102,7 @@ onMounted(() => load());
 /* 统一规范：圆角只用令牌、字号最小 12px、间距 4/8 基准、过渡走 --el-transition-duration */
 .bw {
   display: flex; flex-direction: column; height: 100%; width: 100%; min-height: 0;
-  background: var(--el-bg-color);
+  background: var(--koi-widget-bg, var(--el-bg-color));
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-card-border-radius, var(--el-radius-lg, 12px));
   overflow: hidden;

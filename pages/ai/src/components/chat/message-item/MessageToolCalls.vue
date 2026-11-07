@@ -93,6 +93,19 @@
       <transition name="tool-expand">
         <div v-if="isExpanded(toolIndex)" class="tool-inline" @click.stop>
           <!--
+            运行中命令的操作条（需求 7/8：命令右侧箭头点开就是「运行中的命令 + 停止」）。
+            只在工具未返回 outcome 时出现——已结束的工具没有「停止」语义。
+            停止动作沿 MessageToolCalls → ProcessTimeline → TurnItem → ChatPanel
+            逐级上抛到 abortResponse，组件自己不去碰 apiService / store。
+          -->
+          <div v-if="isToolExecuting(tool, toolIndex)" class="tool-inline__running">
+            <span class="tool-inline__running-dot" aria-hidden="true"></span>
+            <span class="tool-inline__running-text">{{ t('chat.toolCalls.executing') }}</span>
+            <button type="button" class="tool-inline__stop" @click.stop="$emit('abort')">
+              {{ t('chat.panel.actionBarStop') }}
+            </button>
+          </div>
+          <!--
             详情直读消息自带的 toolCalls / toolCallsResponse 轨迹（历史消息接口随消息返回，
             AiSessionController 已把 toolTrace 写进 contentMetadata）。
             不再请求 /message-content/{id}/tool-details：该端点后端从未存在，
@@ -270,6 +283,11 @@ const props = defineProps<{
   toolCalls: ToolCall[];
   toolResponses?: any[];
   isStreaming?: boolean;
+}>();
+
+defineEmits<{
+  /** 终止本轮执行：运行中工具行展开后的「停止」按钮（需求 7/8） */
+  abort: [];
 }>();
 
 const { t } = useI18n();
@@ -490,26 +508,9 @@ const closeDialog = () => {
   height: 20px;
 }
 
-/* 行首字形：默认工具图标；展开态换成折下的箭头（v）。
-   悬停换箭头的旧口径已改：箭头常驻（用户需求 2026-11-07「命令右侧右箭头点开」），
-   悬停只做变色反馈，不再让图标/箭头互换导致行高抖动。 */
+/* 行首字形：只放工具图标（展开提示已移到行尾右箭头，见 .tool-row__chevron） */
 .tool-row__glyph .glyph-icon {
   display: inline-flex;
-}
-
-.tool-row__glyph .glyph-chevron {
-  display: none;
-  color: var(--el-text-color-secondary);
-  transition: transform 0.15s ease;
-}
-
-.tool-row.is-expanded .glyph-icon {
-  display: none;
-}
-
-.tool-row.is-expanded .glyph-chevron {
-  display: inline-flex;
-  transform: rotate(90deg);
 }
 
 /* 行尾右箭头：常驻可见，展开时旋转 90°（需求 8：命令右侧箭头点开详情）。
@@ -585,6 +586,65 @@ const closeDialog = () => {
   margin: 4px 0 2px 7px;
   padding-left: 16px;
   border-left: 2px solid var(--el-border-color-lighter);
+}
+
+/* 运行中命令的操作条（需求 7/8）：状态点 + 「执行中…」+ 停止。
+   与输入框上方 ModelActionBar 的命令卡同一语义，只是入口在命令行右侧箭头。 */
+.tool-inline__running {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  background: var(--el-fill-color-lighter);
+}
+
+/* 脉冲点：只用 opacity/transform，避免触发布局 */
+.tool-inline__running-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--el-color-primary);
+  animation: tool-running-pulse 1.2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes tool-running-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.82); }
+}
+
+.tool-inline__running-text {
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tool-inline__stop {
+  border: none;
+  background: transparent;
+  color: var(--el-color-danger);
+  font-size: 12.5px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.tool-inline__stop:hover {
+  background: color-mix(in srgb, var(--el-color-danger) 10%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tool-inline__running-dot {
+    animation: none;
+  }
 }
 
 /* 展开/收起过渡：max-height + opacity 平滑（与 FileChangesBar 同一档动画口径），

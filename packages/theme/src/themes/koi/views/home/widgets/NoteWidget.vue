@@ -178,7 +178,7 @@ function load(): void {
     })
     .catch((err) => {
       errored.value = true;
-      console.warn("[note-widget] load failed", err);
+      console.warn("[note-widget] load failed", err?.name, err?.message ?? err);
     })
     .finally(() => {
       loading.value = false;
@@ -323,7 +323,7 @@ watch(userId, () => load());
   gap: 8px;
   padding: 12px 16px;
   cursor: pointer;
-  background: var(--el-bg-color);
+  background: var(--koi-widget-bg, var(--el-bg-color));
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-md, 8px);
   transition: border-color var(--el-transition-duration, 0.2s),

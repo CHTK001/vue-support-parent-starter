@@ -13,14 +13,15 @@ import { message, useSocketService } from '@repo/core'
 import {
   checkTshark, getTsharkInterfaces, startTsharkCapture, stopTsharkCapture,
   delTsharkSession, getTsharkSessions, getTsharkPackets, getTsharkPacketDetail,
+  getTsharkHttpTransaction,
   getTsharkProtocolStats, getTsharkTopFlows, tsharkPcapUrl, importTsharkPcap,
   getTsharkTimeline, getTsharkAnomalies,
   openTsharkPacketStream,
   getTsharkStatus, installTshark, openTsharkGlobalStream,
 } from '../../api'
 import type {
-  TsharkAnomaly, TsharkFlow, TsharkInterface, TsharkPacket, TsharkProtocolStat,
-  TsharkRuntimeStatus, TsharkSession, TsharkSessionFilter, TsharkTimelinePoint,
+  TsharkAnomaly, TsharkFlow, TsharkHttpTransaction, TsharkInterface, TsharkPacket,
+  TsharkProtocolStat, TsharkRuntimeStatus, TsharkSession, TsharkSessionFilter, TsharkTimelinePoint,
 } from './types'
 
 /** 会话列表每页条数（前端分页） */
@@ -184,6 +185,14 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
   // ===== 报文详情 =====
   const detailOpen = ref(false)
   const packetDetail = ref<TsharkPacket | null>(null)
+  /**
+   * 当前报文所属的 HTTP 事务（请求 / 响应两帧）。
+   *
+   * <p>列表和详情接口的 HTTP 字段是「按帧」的，请求头体与响应头体分别落在两个帧上；
+   * 这里额外拉一次事务配对，详情抽屉才能把请求头 / 请求体 / 响应头 / 响应体
+   * 四段同时展示。</p>
+   */
+  const packetHttpTx = ref<TsharkHttpTransaction | null>(null)
 
   // ===== 实时推送 =====
   const liveCount = ref(0)
@@ -796,6 +805,7 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
         clearActiveSession()
         detailOpen.value = false
         packetDetail.value = null
+        packetHttpTx.value = null
       }
       // 传 true：被删的正好是当前会话时（现在已经没有选中项），顺手选中列表第一个；
       // 删的是别的会话时选中项没被清掉，这里也不会被换走（见 loadSessions 里的判定）。
@@ -809,15 +819,22 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     // 列表接口把「协议还原 / 原始数据」两大字段排除掉了（每页 20 条不背几十 KB 的
     // 十六进制串），但其余字段都在 —— 先用行数据秒开详情，再后台拉详情接口补齐大字段。
     packetDetail.value = row
+    packetHttpTx.value = null
     detailOpen.value = true
     const sid = activeSessionId.value
     if (sid == null || row.id == null) return
-    try {
-      const full = await getTsharkPacketDetail(sid, row.id) as TsharkPacket
-      // 竞态丢弃：慢请求回来时用户可能已经切到别的报文/会话
-      if (packetDetail.value?.id === row.id) packetDetail.value = full
-    } catch {
-      // 基础字段已经在展示了，补齐失败不必打扰
+      // 详情与 HTTP 事务并行取：两者都只按帧号 / 流号查一次，串行会让抽屉多空一拍
+    const [full, tx] = await Promise.allSettled([
+      getTsharkPacketDetail(sid, row.id),
+      getTsharkHttpTransaction(sid, row.id),
+    ])
+    // 竞态丢弃：慢请求回来时用户可能已经切到别的报文/会话
+    if (packetDetail.value?.id !== row.id) return
+    if (full.status === 'fulfilled') {
+      packetDetail.value = full.value as TsharkPacket
+    }
+    if (tx.status === 'fulfilled') {
+      packetHttpTx.value = tx.value as TsharkHttpTransaction
     }
   }
 
@@ -834,7 +851,12 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     const sid = activeSessionId.value
     if (sid == null) return
     try {
-      packetDetail.value = await getTsharkPacketDetail(sid, id) as TsharkPacket
+      const [full, tx] = await Promise.all([
+        getTsharkPacketDetail(sid, id),
+        getTsharkHttpTransaction(sid, id),
+      ])
+      packetDetail.value = full as TsharkPacket
+      packetHttpTx.value = tx as TsharkHttpTransaction
       detailOpen.value = true
     } catch (e: any) {
       message.error('加载详情失败: ' + (e?.message || e))
@@ -875,7 +897,7 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     // 统计
     loadingStats, protoStats, topFlows, statsVersion, timeline, timelineBucket, anomalies,
     // 详情
-    detailOpen, packetDetail,
+    detailOpen, packetDetail, packetHttpTx,
     // 实时
     liveCount, liveConnected,
     // 动作

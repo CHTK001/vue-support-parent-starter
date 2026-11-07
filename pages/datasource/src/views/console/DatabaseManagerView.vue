@@ -9864,6 +9864,16 @@ onBeforeUnmount(() => {
    数据库管理（Web Navicat 风格）——与 Redis 控制中心同构：灰底双白卡
    全部使用 koi 变量（--el-* / --metric-* / --radius 等）
    ============================================================ */
+/* 圆角阶梯（统一走 packages/ui 的 --el-radius-* 六档，禁止再写死 px）：
+     lg 12px  外层卡 / 大面板（.dbm-sidebar / .dbm-content / 编辑器 / 结果错误 /
+              查询历史 / 同步双面板）：与 .tel-page 的 12px 卡面对齐，不再用 xl(16)——
+              xl 是浮层（dialog）档，用在页内卡片会比外框还圆，层次颠倒。
+     md  8px  面板内的小盒（同步信息 / 执行日志 / 脚本 / 分组 / 列设置 / blob 查看器）
+     sm  6px  控件与行（树节点 / 页签 / 下拉 / 小标签页 / 历史行 / 图钉按钮）
+     xs  4px  微元素（备注笔 / 差异操作符 / ER 标记 / 列序项 / 过滤徽标）
+     full     胶囊（数据源 chip / 进度条 / 子页签）：这里刻意写死 9999px，
+              koi 把 --el-radius-full 定成 8px（供 EP round 按钮用），套在胶囊上会变方。
+   圆形（50%）与数据库图标（1px 3px 3px 1px）是图形本身，不走阶梯。 */
 .dbm {
   display: flex;
   flex-direction: column;
@@ -9984,7 +9994,7 @@ onBeforeUnmount(() => {
   margin-left: 2px;
   padding: 0;
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--el-radius-xs, 4px);
   background: transparent;
   color: var(--el-text-color-placeholder);
   cursor: pointer;
@@ -10011,7 +10021,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
+  border-radius: var(--el-radius-lg, 12px);
   box-shadow: var(--el-box-shadow-light, var(--shadow-1));
   overflow: hidden;
 }
@@ -10021,7 +10031,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 6px;
   padding: 6px 8px;
-  border-radius: var(--el-radius-md, 8px);
+  border-radius: var(--el-radius-sm, 6px);
   cursor: pointer;
   transition: background 0.15s ease;
 }
@@ -10090,7 +10100,7 @@ onBeforeUnmount(() => {
   margin-top: 6px;
   border-top: 1px solid var(--el-border-color-lighter);
   padding-top: 8px;
-  border-radius: 0 0 var(--el-radius-md, 8px) var(--el-radius-md, 8px);
+  border-radius: 0 0 var(--el-radius-sm, 6px) var(--el-radius-sm, 6px);
 }
 
 /* 右侧内容卡 */
@@ -10101,7 +10111,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
+  border-radius: var(--el-radius-lg, 12px);
   box-shadow: var(--el-box-shadow-light, var(--shadow-1));
   overflow: hidden;
 }
@@ -10123,7 +10133,7 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-secondary);
   border: 1px solid transparent;
   border-bottom: none;
-  border-radius: var(--el-radius-md, 8px) var(--el-radius-md, 8px) 0 0;
+  border-radius: var(--el-radius-sm, 6px) var(--el-radius-sm, 6px) 0 0;
   white-space: nowrap;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
@@ -10301,7 +10311,7 @@ onBeforeUnmount(() => {
   padding: 14px;
   background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-lg, 8px);
+  border-radius: var(--el-radius-lg, 12px);
 }
 .dbm-sync-pane--src { border-top: 3px solid var(--el-color-success); }
 .dbm-sync-pane--dst { border-top: 3px solid var(--el-color-primary); }
@@ -10319,7 +10329,7 @@ onBeforeUnmount(() => {
   padding: 8px 10px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-base, 4px);
+  border-radius: var(--el-radius-md, 8px);
   font-size: 12px;
 }
 .dbm-sync-info-row { display: flex; justify-content: space-between; gap: 8px; }
@@ -10340,7 +10350,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   background: color-mix(in srgb, var(--el-mask-color, #000) 35%, transparent);
-  border-radius: var(--el-radius-base, 4px);
+  border-radius: var(--el-radius-lg, 12px);
 }
 .dbm-sync-compare {
   display: flex;
@@ -10351,7 +10361,7 @@ onBeforeUnmount(() => {
   padding: 26px 22px 20px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-base, 6px);
+  border-radius: var(--el-radius-lg, 12px);
   box-shadow: var(--el-box-shadow, 0 2px 12px rgba(0, 0, 0, 0.12));
 }
 .dbm-sync-compare-spin { color: var(--el-color-primary); animation: dbm-sync-spin 1s linear infinite; }
@@ -10376,12 +10386,13 @@ onBeforeUnmount(() => {
 /* 差异页分组列表（图 3：源对象 / 操作 / 目标对象 三列，按操作分组折叠）
    —— 这里不要再自带 overflow-y：滚动交给外层 .dbm-sync-body，否则出现嵌套双滚动条。 */
 .dbm-sync-groups { display: flex; flex-direction: column; gap: 4px; flex: 1 0 auto; }
-.dbm-sync-group { border: 1px solid var(--el-border-color-lighter); border-radius: var(--el-radius-base, 4px); }
+.dbm-sync-group { border: 1px solid var(--el-border-color-lighter); border-radius: var(--el-radius-md, 8px); }
 .dbm-sync-group-head {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 7px 10px;
+  border-radius: var(--el-radius-md, 8px) var(--el-radius-md, 8px) 0 0;
   cursor: pointer;
   font-size: 12.5px;
   font-weight: 600;
@@ -10441,7 +10452,7 @@ onBeforeUnmount(() => {
   font-size: 12px;
   font-weight: 700;
   line-height: 18px;
-  border-radius: 3px;
+  border-radius: var(--el-radius-xs, 4px);
 }
 .dbm-sync-diff-op.op-modify { color: var(--el-color-warning); background: var(--el-color-warning-light-9, var(--el-fill-color-light)); }
 .dbm-sync-diff-op.op-create { color: var(--el-color-success); background: var(--el-color-success-light-9, var(--el-fill-color-light)); }
@@ -10481,7 +10492,7 @@ onBeforeUnmount(() => {
   min-height: 0;
   overflow: hidden;
   border: 1px solid var(--el-border-color);
-  border-radius: var(--el-radius-base, 4px);
+  border-radius: var(--el-radius-md, 8px);
   background: var(--el-fill-color-blank);
 }
 /* 下层高亮层：逐字对齐 textarea（相同字体/字号/行高/内边距），仅作显示 */
@@ -10538,7 +10549,7 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-primary);
   background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-base, 4px);
+  border-radius: var(--el-radius-sm, 6px);
 }
 .dbm-sync-run-stats span { font-weight: 600; }
 .dbm-sync-run-stats span:first-child { color: var(--el-text-color-secondary); font-weight: 400; }
@@ -10554,7 +10565,7 @@ onBeforeUnmount(() => {
   padding: 10px 12px;
   background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-base, 4px);
+  border-radius: var(--el-radius-md, 8px);
   font-family: var(--el-font-family-mono, Consolas, monospace);
   font-size: 12.5px;
   line-height: 1.7;
@@ -10624,7 +10635,7 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-primary);
   background: var(--el-fill-color-blank);
   border: 1px solid var(--el-border-color);
-  border-radius: 4px;
+  border-radius: var(--el-radius-sm, 6px);
 }
 .dbm-doc-hint {
   margin: 0;
@@ -10683,7 +10694,7 @@ onBeforeUnmount(() => {
   line-height: 1.7;
   background: var(--el-fill-color-lighter);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-base, 4px);
+  border-radius: var(--el-radius-md, 8px);
   white-space: pre-wrap;
   word-break: break-all;
 }
@@ -10728,7 +10739,7 @@ onBeforeUnmount(() => {
   padding: 0 6px;
   font-size: 11px;
   line-height: 17px;
-  border-radius: 3px;
+  border-radius: var(--el-radius-xs, 4px);
 }
 .dbm-er-flag.pk {
   color: var(--el-color-primary);
@@ -10744,7 +10755,7 @@ onBeforeUnmount(() => {
    而这一点除了这条提示之外没有任何界面证据 —— 用户会以为改动已经存了 */
 .dbm-tx-switch.on {
   padding: 2px 8px;
-  border-radius: var(--el-radius-base, 4px);
+  border-radius: var(--el-radius-sm, 6px);
   background: var(--el-color-warning-light-9, var(--el-fill-color-light));
   box-shadow: inset 0 0 0 1px var(--el-color-warning);
 }
@@ -10756,7 +10767,7 @@ onBeforeUnmount(() => {
   max-height: 360px;
   overflow-y: auto;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-base, 4px);
+  border-radius: var(--el-radius-md, 8px);
 }
 .dbm-colset-row {
   display: flex;
@@ -10789,7 +10800,7 @@ onBeforeUnmount(() => {
   line-height: 1.4;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: var(--el-radius-base, 4px);
+  border-radius: var(--el-radius-sm, 6px);
   cursor: pointer;
   /* 未选中时压暗，避免满屏图钉抢注意力 */
   opacity: 0.3;
@@ -10816,7 +10827,7 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-regular);
   background: var(--el-fill-color-lighter);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-base, 4px);
+  border-radius: var(--el-radius-sm, 6px);
   cursor: pointer;
   max-width: 100%;
 }
@@ -10842,7 +10853,7 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-regular);
   background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-base, 4px);
+  border-radius: var(--el-radius-sm, 6px);
   cursor: pointer;
 }
 .dbm-blob-tab.active {
@@ -10865,7 +10876,7 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-primary);
   background: var(--el-fill-color-lighter);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-base, 4px);
+  border-radius: var(--el-radius-md, 8px);
   word-break: break-all;
 }
 .dbm-blob-image {
@@ -10878,7 +10889,7 @@ onBeforeUnmount(() => {
   padding: 10px;
   background: var(--el-fill-color-lighter);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-base, 4px);
+  border-radius: var(--el-radius-md, 8px);
   /* 图片在深色底上要有对比边界，否则透明 PNG 会「看不见」 */
   background-image:
     linear-gradient(45deg, var(--el-border-color-lighter) 25%, transparent 25%),
@@ -10914,7 +10925,7 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-regular);
   background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-base, 4px);
+  border-radius: var(--el-radius-sm, 6px);
   cursor: pointer;
   white-space: nowrap;
 }
@@ -10948,7 +10959,7 @@ onBeforeUnmount(() => {
   gap: 10px;
   align-items: baseline;
   padding: 6px 8px;
-  border-radius: var(--el-radius-base, 4px);
+  border-radius: var(--el-radius-sm, 6px);
   cursor: pointer;
   border: 1px solid transparent;
 }
@@ -11002,7 +11013,7 @@ onBeforeUnmount(() => {
   padding: 10px 12px;
   background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-base, 4px);
+  border-radius: var(--el-radius-md, 8px);
   font-family: var(--el-font-family-mono, monospace);
   font-size: 13px;
   line-height: 1.55;
@@ -11237,7 +11248,7 @@ onBeforeUnmount(() => {
   gap: 6px;
   padding: 8px 10px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 6px;
+  border-radius: var(--el-radius-md, 8px);
   background: var(--el-fill-color-lighter);
 }
 .dbm-idx-order-label {
@@ -11251,7 +11262,7 @@ onBeforeUnmount(() => {
   gap: 4px;
   padding: 2px 6px 2px 2px;
   border: 1px solid var(--el-border-color);
-  border-radius: 4px;
+  border-radius: var(--el-radius-xs, 4px);
   font-family: var(--el-font-family-monospace, monospace);
   font-size: 12px;
   background: var(--el-bg-color);
@@ -11279,7 +11290,7 @@ onBeforeUnmount(() => {
   height: 16px;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 3px;
+  border-radius: var(--el-radius-xs, 4px);
   background: transparent;
   cursor: pointer;
   color: var(--el-text-color-placeholder);
@@ -11389,7 +11400,7 @@ onBeforeUnmount(() => {
   gap: 8px;
   padding: 10px 12px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-border-radius-base);
+  border-radius: var(--el-radius-md, 8px);
   background: var(--el-fill-color-lighter);
 }
 .dbm-import-result-head { font-size: 13px; color: var(--el-text-color-regular); }
@@ -11442,7 +11453,7 @@ onBeforeUnmount(() => {
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9, var(--el-fill-color-light));
   border: 1px solid var(--el-color-primary-light-7, var(--el-border-color-lighter));
-  border-radius: var(--el-radius-base, 4px);
+  border-radius: var(--el-radius-sm, 6px);
   padding: 1px 7px;
   white-space: nowrap;
 }

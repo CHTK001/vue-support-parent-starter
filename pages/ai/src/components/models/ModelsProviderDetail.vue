@@ -1156,8 +1156,12 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 .model-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(258px, 1fr));
-  /* 每行等高，信息少的卡片底栏也贴底，不会出现按钮悬在半空 */
-  grid-auto-rows: 1fr;
+  /* 卡片按内容高度自适应，不再拉伸成整行等高。
+     过去用 grid-auto-rows: 1fr + margin-top:auto 让底栏贴底，
+     代价是没有指标、也没有能力图标的卡片被拉到与同排最高卡同高，
+     正文与底栏之间会留出一大块空洞（实测 ONNX 列表最明显）。
+     改为 align-items: start 后卡片各自贴住内容，行内顶边仍然对齐。 */
+  align-items: start;
   gap: 12px;
 }
 /* 卡片：顶部一条主色→紫的柔和色带作为「身份标记」，其余部分保持素净。
@@ -1167,7 +1171,6 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 100%;
   padding: 16px;
   border-radius: var(--radius-lg, 12px);
   background: var(--color-surface);
@@ -1260,7 +1263,9 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 /* .mc-type / .mc-type.sub 已随标签改造移除：类型、细分类型、特性
    统一由 ModelTagStrip 以「图标 + tooltip」渲染，不再占用文字宽度。 */
 
-.mc-caps { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 24px; }
+/* 能力行不再预留固定高度：无输入/输出能力的模型（如部分 ONNX 卡片）
+   过去会空出一条 24px 的占位带，是「空白很大」的一部分来源。 */
+.mc-caps { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .mc-cap-group { display: inline-flex; align-items: center; gap: 2px; color: var(--color-primary); }
 .mc-cap-group.dim { color: var(--color-text-disabled); font-size: 12px; }
 .cap-i { color: var(--color-primary); }
@@ -1322,7 +1327,7 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* 信息少/多导致卡片内容高度不齐时，底部工具栏始终贴齐卡片底边 */
+  /* 卡片已按内容高度自适应，auto 只在极端布局（外部把卡片拉高）时兜底贴底 */
   margin-top: auto;
   padding-top: 12px;
   border-top: 1px solid var(--border-subtle, var(--color-surface-border));

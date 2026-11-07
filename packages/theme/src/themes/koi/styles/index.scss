@@ -69,10 +69,10 @@
 /* 主内容区通用内边距（纵向/横向布局共用） */
 .main-content {
   padding: 8px !important;
-  /* 背景色 / 文字 / 边框 / 阴影 4 组颜色随模式切换过渡（transition 不继承自 :root），
-     与 View Transition 的 300ms 括号动画同步 */
+  /* 背景色 / 边框 / 阴影随模式切换过渡（transition 不继承自 :root）。
+     ⚠ 不含 color（2026-11-07 实测）：主内容区子树有上千个元素继承文字色，
+     color 进入过渡会让整块区域逐帧重算，暗色切换帧率约掉一半。 */
   transition: background-color var(--el-transition-duration, 0.3s) ease-in,
-    color var(--el-transition-duration, 0.3s) ease-in,
     border-color var(--el-transition-duration, 0.3s) ease-in,
     box-shadow var(--el-transition-duration, 0.3s) ease-in;
 }
@@ -80,11 +80,14 @@
 /* ==================== 全局表格体验增强 ==================== */
 
 /* 表格行悬停高亮（全局生效，不需要每个页面单独写） */
+/* ⚠ 不要在这里加 transition（2026-11-07 实测）：
+ * 该规则落在 :hover 作用域内，transition 只在「已经悬停」时才生效，
+ * 起不到过渡作用（真正需要过渡的起始态拿不到它），却会让每次鼠标划过
+ * 表格行都进一次过渡态，触发全文档 recalcStyle。数据表越大越明显。 */
 .el-table__body > tr:hover > td,
 .vxe-table .vxe-body--row:hover > td,
 .re-table-view__body > tr:hover > td {
   background-color: var(--el-fill-color-light) !important;
-  transition: background-color 0.12s ease;
 }
 
 /* 表格行悬停时，光标移动到可点击单元格时变为手型 */

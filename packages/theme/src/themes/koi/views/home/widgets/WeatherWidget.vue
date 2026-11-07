@@ -118,6 +118,7 @@
 import { ref, watch, nextTick, onMounted, onBeforeUnmount } from "vue";
 import { Sunny } from "@element-plus/icons-vue";
 import { useWeather } from "@repo/theme/composables/useWeather";
+import { subscribeRefresh, unregisterRefresh } from "./refreshRegistry";
 import type { WidgetItem } from "../types";
 
 const props = defineProps<{ widget: WidgetItem }>();
@@ -148,15 +149,17 @@ watch(hourForecast, () => {
   });
 }, { immediate: true });
 
-let timer: ReturnType<typeof setInterval> | null = null;
-
+/**
+ * 轮询托管给全局刷新调度：页面上的 tick 到达时按 type 与频率认领（见 refreshRegistry.ts）。
+ * 页面挂上 widget 就注册，摘除就注销，不留定时器。
+ */
 onMounted(() => {
   fetchWeather();
-  timer = setInterval(fetchWeather, 600000);
+  subscribeRefresh("weather", fetchWeather);
 });
 
 onBeforeUnmount(() => {
-  if (timer) clearInterval(timer);
+  unregisterRefresh("weather", fetchWeather);
 });
 </script>
 
@@ -169,7 +172,7 @@ onBeforeUnmount(() => {
   height: 100%;
   width: 100%;
   min-height: 0;
-  background: var(--el-bg-color);
+  background: var(--koi-widget-bg, var(--el-bg-color));
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-card-border-radius, var(--el-radius-lg, 12px));
   overflow: hidden;

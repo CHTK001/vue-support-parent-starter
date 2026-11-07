@@ -1,35 +1,51 @@
 <!--
-  协同表格编辑器 —— Vue 3 封装 Univer（@univerjs/preset-sheets-core）。
+  协同文档编辑器 —— office-engine 版（excel = xlsx，word = docx）。
 
-  职责：
-    1) 初始化 Univer（createUniver + UniverSheetsCorePreset + zh-CN locale），
-       容器挂到本组件 DOM；
-    2) 加载快照：createWorkbook(JSON.parse(snapshot))（无快照则空工作簿）；
-    3) 保存快照：fWorkbook.save() → 后端（版本乐观锁，冲突提示）；
-    4) 协同同步：轮询详情接口比版本号，版本变化（他人已保存）且本地无
-       未保存改动时自动刷新快照重放；保存冲突时提示刷新。
+  <p><b>为什么换成 office-engine</b>：旧实现 excel 用 Univer、word 用
+  contenteditable 富文本，两套引擎各自维护「服务端不认识的私有表示」，而且
+  Univer 首屏要拉公式 worker + 十余个分包，新建文档先白屏数秒。现在统一交给
+  {@code @p10node/office-engine}：文档就是真实的 xlsx/docx 字节，解析与保存都在
+  Web Worker 里完成，主线程不参与解压/序列化。</p>
 
-  数据来源：@pages/filesystem/api/filestorageApi 的 fileCollab* 系列
-  （后端 FileCollabStore，快照式协同，SSE 通知 + 轮询兜底）。
+  <p><b>快照格式</b>：见 {@code utils/collabOffice.ts}。新格式 {@code ooxml1:<base64>}
+  直接装文件字节；历史快照（Univer JSON / 富文本 HTML）在打开时经
+  {@code snapshotToBlob} 转成字节，用户首次保存后自动升级。</p>
+
+  <p><b>保存策略</b>：不做实时保存。用户停手约 3s 才写一次（连续输入零请求），
+  但连续输入最多 15s 一定强制写一次（见 {@code utils/collabAutosave.ts}）。
+  写入动作复用引擎自己的保存链路（工具栏 Save / Ctrl+S 同一条），因为它保存完
+  会把引擎内部的 dirty 状态清零；直接调 {@code client.call("save")} 不会清零，
+  第二次编辑就再也收不到 dirty 回调，自动保存会静默失效。</p>
+
+  <p><b>协同同步</b>：版本号乐观锁 + SSE 推送 + 15s 轮询兜底。轮询只取版本号
+  （几十字节），版本没变就结束；本地有未保存改动时静默跳过，不打断输入。</p>
+
+  @author Buffy
+  @since 2026/11/06（office-engine 迁移：2026/11/07）
 -->
 
 <template>
-  <div class="fc-editor">
+  <div class="fc-editor" data-testid="fc-collab-editor" :data-doc-type="collabType()">
     <div class="fc-editor-bar">
-      <span class="fc-editor-title">{{ fileName }}</span>
-      <span class="fc-editor-status" :class="saveState">{{ saveStatusText }}</span>
-      <span class="fc-editor-ver">版本 v{{ currentVersion }}</span>
+      <!-- 文件名由引擎工具栏与页面标题展示，这里不再重复，只留同步状态 -->
+      <span class="fc-editor-status" :class="saveState" data-testid="fc-collab-status">{{ saveStatusText }}</span>
+      <span class="fc-editor-ver">v{{ currentVersion }}</span>
       <template v-if="!readonly">
-        <el-button size="small" :loading="saving" @click="saveNow()">保存</el-button>
-        <el-button size="small" text @click="refreshSnapshot()">从服务器刷新</el-button>
+        <el-button
+          size="small"
+          :loading="saving"
+          data-testid="fc-collab-save"
+          @click="saveNow()"
+        >保存</el-button>
+        <el-button size="small" text data-testid="fc-collab-refresh" @click="refreshSnapshot(false)">从服务器刷新</el-button>
       </template>
-      <span v-else class="fc-editor-readonly">只读分享</span>
+      <span v-else class="fc-editor-readonly">只读</span>
     </div>
     <div class="fc-editor-body">
-      <div ref="containerRef" class="fc-editor-container" />
-      <!-- 引擎加载态：Univer 首次进入要拉公式 worker + 十余个分包，
-           没有遮罩时容器是一块纯白，用户会以为白屏。 -->
-      <div v-if="!ready" class="fc-editor-loading" role="status" aria-live="polite">
+      <div ref="mountRef" class="fc-editor-mount" data-testid="fc-collab-mount" />
+      <!-- 引擎加载态：解析 xlsx/docx 在 worker 里跑，大文件要几百毫秒到数秒，
+           没有遮罩时容器是一片纯白，用户会以为白屏。 -->
+      <div v-if="!ready" class="fc-editor-loading" role="status" aria-live="polite" data-testid="fc-collab-loading">
         <span class="fc-editor-spinner" aria-hidden="true" />
         <span class="fc-editor-loading-text">{{ loadingText }}</span>
       </div>
@@ -38,37 +54,32 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, shallowRef } from "vue";
+import { onBeforeUnmount, onMounted, ref, shallowRef } from "vue";
 import { ElMessage } from "element-plus";
-import type { FUniver } from "@univerjs/presets";
-// worker：Univer 公式引擎运行在独立 worker，Vite 用 ?worker&url 打包。
-// 注意：worker.js 是 ESM（顶层 import），但 @univerjs/rpc 的 UniverRPCMainThreadPlugin
-// 内部是 `new Worker(url)`（classic 模式），直接传 URL 会报
-// "Cannot use import statement outside a module"。这里手动按 { type: "module" }
-// 创建 Worker 实例再传入（IUniverRPCMainThreadConfig.workerURL 支持 Worker 实例直通）。
-import workerUrl from "@univerjs/preset-sheets-core/lib/worker.js?worker&url";
-// 样式副作用导入（preset-sheets-core/lib/index.css）
-import "@univerjs/preset-sheets-core/lib/index.css";
+import { mount, type MountedViewer } from "@p10node/office-engine/embed";
 import {
   getFileCollab,
   getFileCollabVersion,
   saveFileCollabSnapshot,
   subscribeFileCollab,
+  type CollabDocType,
   type FileCollabInfo,
 } from "../../api/filestorageApi";
 import { nextAutoSaveDelay, shouldPollCollab } from "../../utils/collabAutosave";
+import { blobToOfficeSnapshot, officeMimeOf } from "../../utils/collabOffice";
+import { snapshotToOfficeBytes } from "../../utils/collabExport";
 
 const props = defineProps<{
   /** 协同文档号 */
   collabId: string;
   /** 展示文件名 */
   fileName: string;
-  /** 只读模式（分享视图用）：隐藏保存/刷新按钮，不做轮询同步 */
+  /** 文档类型：excel → xlsx，word → docx（text 不走本组件） */
+  docType?: CollabDocType;
+  /** 只读模式（分享 / 预览）：隐藏保存与刷新，不做轮询同步 */
   readonly?: boolean;
 }>();
 
-/** Univer 容器引用 */
-const containerRef = ref<HTMLElement | null>(null);
 /** 初始快照（打开时的最新版本，父组件传入避免首帧空窗） */
 const initialSnapshot = defineModel<string>("initialSnapshot", { default: "" });
 /** 初始版本号 */
@@ -77,10 +88,17 @@ const initialVersion = defineModel<number>("initialVersion", { default: 0 });
 /** 向父组件报告「引擎就绪、首帧已绘制」 */
 const emit = defineEmits<{ (e: "ready"): void }>();
 
-/** 引擎是否就绪（false = 显示加载遮罩，避免白屏） */
+/** 引擎挂载点 */
+const mountRef = ref<HTMLElement | null>(null);
+/** mount() 返回的句柄（update / destroy） */
+const viewer = shallowRef<MountedViewer | null>(null);
+/** 引擎文档句柄（加载完成后由 onLoad 给出） */
+const client = shallowRef<{ call: (m: string, ...a: unknown[]) => Promise<unknown> } | null>(null);
+
+/** 引擎是否就绪（false = 显示加载遮罩） */
 const ready = ref(false);
-/** 加载态文案（引擎初始化/重放快照分两段，用户能看出还在动） */
-const loadingText = ref("正在加载表格引擎…");
+/** 加载态文案 */
+const loadingText = ref("正在加载文档引擎…");
 
 /** 当前已加载版本号（乐观锁基准） */
 const currentVersion = ref(initialVersion.value);
@@ -88,21 +106,32 @@ const currentVersion = ref(initialVersion.value);
 const saving = ref(false);
 /** 保存状态：saved / dirty / saving / conflict */
 const saveState = ref<"saved" | "dirty" | "saving" | "conflict">("saved");
-
 const saveStatusText = ref(`已同步 · v${initialVersion.value}`);
 
-/** Univer facade 实例（懒加载后持有） */
-const univerAPI = shallowRef<FUniver | null>(null);
-/** Univer 公式 worker（module 模式，随组件卸载一并释放） */
-let univerWorker: Worker | null = null;
 /** 卸载标记 */
 let disposed = false;
-/** 轮询定时器 */
-let pollTimer: ReturnType<typeof setInterval> | null = null;
 /** 是否已有未保存改动 */
 let dirtyFlag = false;
-/** 本轮「首次变脏」的时刻：自动保存最长等待以它为起点（连续输入也不能永远不写） */
+/** 本轮「首次变脏」的时刻：自动保存最长等待以它为起点 */
 let dirtySince = 0;
+/** 编辑序号：每次编辑自增，用于判断「保存期间是否又有新编辑」 */
+let dirtySeq = 0;
+/** 最近一次成功保存对应的编辑序号 */
+let savedSeq = 0;
+/** 自动保存定时器 */
+let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+/** 轮询定时器 */
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+/** 就绪兜底定时器（异常时也不能永久转圈） */
+let readyFallbackTimer: ReturnType<typeof setTimeout> | null = null;
+/** 保存失败时抑制引擎 onError 的通用提示（错误已由 pushBlob 明确提示过） */
+let suppressEngineError = false;
+
+/** 协同类型（父组件未显式传时按文件名猜，兼容旧调用方） */
+function collabType(): CollabDocType {
+  if (props.docType) return props.docType;
+  return /\.docx?$/i.test(props.fileName) ? "word" : "excel";
+}
 
 /** 保存状态文案 */
 function renderSaveStatus(): void {
@@ -123,247 +152,148 @@ function renderSaveStatus(): void {
 }
 
 /**
- * 创建 Univer 公式引擎 worker（module 模式）。
+ * 把引擎当前内容写进协同服务（版本乐观锁）。
  *
- * <p>worker.js 为 ESM（顶层 import），浏览器必须按 {@code { type: "module" }}
- * 加载；而 {@code UniverRPCMainThreadPlugin} 内部对 string/URL 走 classic
- * {@code new Worker(e)}，会抛 "Cannot use import statement outside a module"。
- * 因此这里手动创建 module Worker 实例（{@code IUniverRPCMainThreadConfig.workerURL}
- * 接受 Worker 实例并直通），并记录引用以便随组件卸载释放。</p>
- *
- * @return module Worker 实例
+ * @param file 引擎产出的文件字节
  */
-function createUniverWorker(): Worker {
-  if (!univerWorker) {
-    univerWorker = new Worker(workerUrl as unknown as string, { type: "module" });
-  }
-  return univerWorker;
-}
-
-/** 懒加载并初始化 Univer */
-async function initUniver(): Promise<FUniver | null> {
-  const container = containerRef.value;
-  if (!container) return null;
-  try {
-    const [{ createUniver, LocaleType, mergeLocales }, { UniverSheetsCorePreset }, zhCN] =
-      await Promise.all([
-        import("@univerjs/presets"),
-        import("@univerjs/preset-sheets-core"),
-        import("@univerjs/preset-sheets-core/locales/zh-CN"),
-      ]);
-    const { univerAPI: api } = createUniver({
-      locale: LocaleType.ZH_CN,
-      locales: {
-        [LocaleType.ZH_CN]: mergeLocales((zhCN as { default?: unknown }).default ?? {}),
-      },
-      presets: [
-        UniverSheetsCorePreset({
-          container,
-          workerURL: createUniverWorker(),
-        }),
-      ],
-    });
-    // 加载初始快照：有快照用快照重建工作簿，否则空工作簿
-    // （initialSnapshot 是 defineModel 的本地 ref，不在 props 上，不能写 props.initialSnapshot）
-    if (initialSnapshot.value) {
-      const raw = initialSnapshot.value;
-      try {
-        const data = typeof raw === "string" ? JSON.parse(raw) : raw;
-        api.createWorkbook(data ?? {});
-      } catch {
-        api.createWorkbook({});
-      }
-    } else {
-      api.createWorkbook({});
-    }
-    univerAPI.value = api;
-    // 命令级监听：只有「会改内容」的命令才标脏。选区/滚动/激活这类纯浏览命令
-    // 不参与，否则用户点一下格子就排一次自动保存，既吵又浪费带宽。
-    bindDirtyWatcher(api);
-    // 首帧绘制完成后再撤加载遮罩：requestAnimationFrame 保证 canvas 已经出图，
-    // 否则撤罩子的瞬间仍是一片空白（用户感知就是「白屏一闪」）。
-    await nextTick();
-    requestAnimationFrame(() => {
-      ready.value = true;
-      emit("ready");
-    });
-    return api;
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.warn("[FileCollabEditor] Univer 初始化失败", e);
-    ElMessage.error("协同表格初始化失败：" + (e as Error)?.message);
-    ready.value = true;
-    emit("ready");
-    return null;
-  }
-}
-
-/** 纯浏览类命令：命中即不标脏（不触发自动保存） */
-const NON_EDIT_COMMAND = /(set-selections?|set-active|change-selection|scroll|move-selection|toggle|activate|focus|set-zoom|set-frozen|set-visible)/i;
-
-/**
- * 绑定「脏标记」监听。
- *
- * <p>Univer 的 facade 在不同版本里可能没有 {@code onCommandExecuted}，
- * 这里做能力探测；不可用时仍可手动保存，不影响主流程。</p>
- *
- * @param api Univer facade
- */
-function bindDirtyWatcher(api: FUniver): void {
-  const anyApi = api as unknown as {
-    onCommandExecuted?: (cb: (command: { id?: string }) => void) => unknown;
-  };
-  if (typeof anyApi.onCommandExecuted !== "function") return;
-  try {
-    anyApi.onCommandExecuted((command) => {
-      const id = String(command?.id ?? "");
-      if (NON_EDIT_COMMAND.test(id)) return;
-      markDirty();
-    });
-  } catch {
-    // 监听注册失败不阻断编辑：只是失去自动保存，手动保存仍在
-  }
-}
-
-/** 自动保存定时器 */
-let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
-
-/**
- * 标脏并安排一次延迟自动保存。
- *
- * <p>用户要求：不做实时保存，改为定时异步保存，且不得阻塞输入。
- * 因此这里只在「最后一次编辑后约 3s」触发一次；每次新编辑都会重置计时器，
- * 连续输入期间一条请求都不会发。</p>
- *
- * <p>但连续输入不能等于永远不保存：第一次改动开始计时，最多
- * {@link COLLAB_AUTOSAVE_MAX_WAIT_MS} 一定强制写一次（见 {@link nextAutoSaveDelay}）。</p>
- */
-function markDirty(): void {
-  if (props.readonly) return;
-  const now = Date.now();
-  if (!dirtyFlag) {
-    dirtySince = now;
-  }
-  dirtyFlag = true;
-  if (saveState.value !== "saving") {
-    saveState.value = "dirty";
-    renderSaveStatus();
-  }
-  if (autoSaveTimer) clearTimeout(autoSaveTimer);
-  autoSaveTimer = setTimeout(() => {
-    autoSaveTimer = null;
-    void saveNow(true);
-  }, nextAutoSaveDelay(dirtySince, now));
-}
-
-/** 立即保存当前快照（版本乐观锁） */
-async function saveNow(auto = false): Promise<void> {
-  if (saving.value) {
-    // 已经有一次保存在飞：等它结束后补一次，别把这次改动漏掉
-    // （老实现直接 return，定时器又已清空，用户不再编辑就再也存不上去）
-    if (dirtyFlag && !autoSaveTimer) {
-      autoSaveTimer = setTimeout(() => {
-        autoSaveTimer = null;
-        void saveNow(true);
-      }, 800);
-    }
-    return;
-  }
-  if (auto && !dirtyFlag) return;
-  const api = univerAPI.value;
-  if (!api) return;
-  const wb = api.getActiveWorkbook();
-  if (!wb) return;
-  if (autoSaveTimer) {
-    clearTimeout(autoSaveTimer);
-    autoSaveTimer = null;
-  }
+async function pushBlob(file: Blob): Promise<void> {
+  const seqAtStart = dirtySeq;
   saving.value = true;
   saveState.value = "saving";
   renderSaveStatus();
   try {
-    // 快照序列化是主线程 CPU：放在 requestIdleCallback 里跑，尽量避开用户正在输入的时刻
-    const snapshot = await idleStringify(wb);
-    const updated = await saveFileCollabSnapshot(
-      props.collabId,
-      snapshot,
-      currentVersion.value,
-    );
+    const snapshot = await blobToOfficeSnapshot(file);
+    const updated = await saveFileCollabSnapshot(props.collabId, snapshot, currentVersion.value);
     currentVersion.value = updated.version;
-    dirtyFlag = false;
-    saveState.value = "saved";
+    savedSeq = seqAtStart;
+    // 保存期间用户又改了：这一版已经落后，仍算「有未保存改动」
+    dirtyFlag = dirtySeq !== savedSeq;
+    saveState.value = dirtyFlag ? "dirty" : "saved";
     renderSaveStatus();
+    if (dirtyFlag) scheduleAutoSave(250);
   } catch (e) {
+    // 不吞错：抛回引擎，引擎就不会把 dirty 清零，避免「保存失败却显示已同步」
     saveState.value = "conflict";
     renderSaveStatus();
+    suppressEngineError = true;
     ElMessage.warning(e instanceof Error ? e.message : "保存失败（可能与他人冲突）");
+    // 冲突/网络错误都不自动重试（会一直撞版本），等用户手动刷新或再改一次
+    throw e;
   } finally {
     saving.value = false;
   }
 }
 
 /**
- * 在浏览器空闲时把工作簿序列化成 JSON 字符串。
+ * 触发引擎自己的保存链路（与用户点工具栏 Save / Ctrl+S 完全同一条路径）。
  *
- * <p>大工作簿的 {@code save() + JSON.stringify} 是几百毫秒的主线程计算，
- * 紧跟在用户最后一下输入之后跑就表现为「停手瞬间卡一下」。这里先让一帧空闲
- * （最长等 {@code timeout}），没有 requestIdleCallback 的环境直接同步跑。</p>
+ * <p>为什么不直接 {@code client.call("save")}：那条路不会清掉引擎内部的 dirty
+ * 状态，React 侧的 {@code onDirtyChange} 只在值变化时回调，于是第二次编辑就再也
+ * 收不到通知 —— 自动保存看起来在跑，实际一次都没写。</p>
  *
- * @param wb 当前工作簿 facade
- * @returns 快照 JSON 字符串
+ * @returns 是否成功点到保存按钮
  */
-function idleStringify(wb: { save: () => unknown }): Promise<string> {
-  const build = (): string => JSON.stringify(wb.save());
-  const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number })
-    .requestIdleCallback;
-  if (typeof ric !== "function") {
-    return Promise.resolve(build());
-  }
-  return new Promise<string>((resolve) => {
-    ric(() => resolve(build()), { timeout: 1200 });
+function triggerEngineSave(): boolean {
+  const root = mountRef.value?.querySelector(".de-root");
+  if (!root) return false;
+  const buttons = Array.from(root.querySelectorAll<HTMLButtonElement>("button.de-mode"));
+  const saveBtn = buttons.find((b) => {
+    const title = (b.getAttribute("title") ?? "").toLowerCase();
+    const text = (b.textContent ?? "").trim().toLowerCase();
+    return title.startsWith("save") || text === "save" || text.startsWith("saving");
   });
+  if (!saveBtn || saveBtn.disabled) return false;
+  saveBtn.click();
+  return true;
+}
+
+/** 安排一次延迟自动保存（连续输入时不断顺延，最长 15s 强制写一次） */
+function scheduleAutoSave(delay?: number): void {
+  if (props.readonly) return;
+  if (autoSaveTimer) {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = null;
+  }
+  autoSaveTimer = setTimeout(() => {
+    autoSaveTimer = null;
+    void saveNow(true);
+  }, delay ?? nextAutoSaveDelay(dirtySince, Date.now()));
+}
+
+/** 标脏并安排自动保存 */
+function markDirty(): void {
+  if (props.readonly) return;
+  const now = Date.now();
+  dirtySeq += 1;
+  if (!dirtyFlag) {
+    dirtyFlag = true;
+    dirtySince = now;
+  }
+  if (saveState.value !== "saving" && saveState.value !== "conflict") {
+    saveState.value = "dirty";
+    renderSaveStatus();
+  }
+  scheduleAutoSave();
+}
+
+/** 立即保存（版本乐观锁） */
+async function saveNow(auto = false): Promise<void> {
+  if (props.readonly) return;
+  if (auto && !dirtyFlag) return;
+  if (saving.value) {
+    // 已有一次保存在飞：等它结束后补一次，别把这次改动漏掉
+    if (dirtyFlag) scheduleAutoSave(800);
+    return;
+  }
+  if (autoSaveTimer) {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = null;
+  }
+  // 走引擎保存链路：它保存完会把 dirty 清零
+  if (triggerEngineSave()) return;
+  // 兜底（工具栏不可用）：直接问 worker 要字节
+  const c = client.value;
+  if (!c) return;
+  try {
+    const blob = (await c.call("save")) as Blob;
+    await pushBlob(blob);
+  } catch {
+    // 错误已在 pushBlob / 引擎里提示
+  }
 }
 
 /**
- * 从服务器拉最新快照并重放（本地无未保存改动时直接覆盖；有改动则提示）
+ * 从服务器拉最新内容并重放。
  *
  * @param silent       静默模式（轮询/SSE 触发时不打扰用户）
  * @param knownVersion 已知的最新版本（SSE 推送里带了版本号，省掉一次版本探针）
  */
 async function refreshSnapshot(silent = false, knownVersion?: number): Promise<void> {
-  const api = univerAPI.value;
-  if (!api) return;
   try {
-    // 有版本提示（SSE）就直接用，否则先只问版本号：编辑期间绝大多数轮询到这里就结束了
     const version = knownVersion ?? (await getFileCollabVersion(props.collabId)).version;
-    if (version === currentVersion.value) {
-      return;
-    }
+    if (version === currentVersion.value) return;
     if (dirtyFlag) {
-      // 轮询触发的检查不打扰用户：本地有改动时静默跳过，等自动保存完成后再同步
       if (!silent) {
         ElMessage.warning("本地有未保存改动，为避免覆盖他人内容请先保存或放弃本地改动");
       }
       return;
     }
-    // 版本真的变了（且有新内容）才取全文
     const latest: FileCollabInfo = await getFileCollab(props.collabId);
-    if (latest.version === currentVersion.value) {
-      currentVersion.value = latest.version;
-      return;
-    }
-    // 版本变化且无本地改动 → 直接重放最新快照
-    const data = latest.snapshot ? JSON.parse(latest.snapshot) : {};
-    // 重建工作簿：简单可靠（快照式协同）
-    // Univer 无公开的"原地 load"facade，重开一个工作簿并切换当前
-    api.createWorkbook(data);
+    if (latest.version === currentVersion.value) return;
+    const bytes = await snapshotToOfficeBytes(collabType(), latest.snapshot ?? "");
+    const src = new File([bytes as unknown as BlobPart], latest.fileName || props.fileName, {
+      type: officeMimeOf(collabType()),
+    });
+    // update 会整树重渲染 DocViewer，src 换了就等于换文档
+    client.value = null;
+    viewer.value?.update({ src, name: latest.fileName || props.fileName });
     currentVersion.value = latest.version;
+    dirtyFlag = false;
+    dirtySeq = 0;
+    savedSeq = 0;
     saveState.value = "saved";
     renderSaveStatus();
-    if (!silent) {
-      // 提示已用他人版本刷新
-      ElMessage.success(`已刷新到他人保存的版本 v${latest.version}`);
-    }
+    if (!silent) ElMessage.success(`已刷新到他人保存的版本 v${latest.version}`);
   } catch (e) {
     if (!silent) ElMessage.error(e instanceof Error ? e.message : "刷新快照失败");
   }
@@ -372,26 +302,99 @@ async function refreshSnapshot(silent = false, knownVersion?: number): Promise<v
 /** SSE 变更订阅的取消函数（卸载时调用） */
 let unsubscribe: (() => void) | null = null;
 
-onMounted(async () => {
-  await initUniver();
-  // 容器缺失 / 初始化异常时也要撤掉遮罩，不能把用户永远锁在加载态
-  if (!ready.value) {
+/** 启动 office-engine 并把初始快照作为文档打开 */
+async function initEngine(): Promise<void> {
+  const host = mountRef.value;
+  if (!host) return;
+  const type = collabType();
+  try {
+    loadingText.value = type === "word" ? "正在解析 Word 文档…" : "正在解析 Excel 工作簿…";
+    const bytes = await snapshotToOfficeBytes(type, initialSnapshot.value ?? "");
+    const fileName = props.fileName || (type === "word" ? "document.docx" : "workbook.xlsx");
+    const src = new File([bytes as unknown as BlobPart], fileName, { type: officeMimeOf(type) });
+
+    viewer.value = mount(host, {
+      src,
+      name: fileName,
+      // 编辑能力全部交给协同层控制：只读时连 Edit 开关都不给
+      editable: !props.readonly,
+      allowEdit: !props.readonly,
+      allowSave: !props.readonly,
+      allowDownload: false,
+      fileMenu: false,
+      allowOpen: false,
+      theme: "light",
+      onLoad: (c) => {
+        client.value = c as unknown as typeof client.value;
+        if (readyFallbackTimer) {
+          clearTimeout(readyFallbackTimer);
+          readyFallbackTimer = null;
+        }
+        ready.value = true;
+        emit("ready");
+      },
+      onError: (err) => {
+        // 引擎自身会渲染错误面板；这里只撤遮罩，避免永远转圈
+        ready.value = true;
+        emit("ready");
+        if (suppressEngineError) {
+          suppressEngineError = false;
+          return;
+        }
+        ElMessage.error(`文档打开失败：${err.message}`);
+      },
+      onDirtyChange: (dirty) => {
+        if (props.readonly) return;
+        if (dirty) {
+          markDirty();
+          return;
+        }
+        // 引擎在「保存完成」时回调 false；如果保存期间又有新编辑，
+        // 这一版已经落后，不能把本地脏标记清掉。
+        if (dirtySeq !== savedSeq) {
+          dirtyFlag = true;
+          saveState.value = "dirty";
+          renderSaveStatus();
+          scheduleAutoSave(250);
+          return;
+        }
+        dirtyFlag = false;
+        dirtySince = 0;
+        if (saveState.value !== "conflict") {
+          saveState.value = "saved";
+          renderSaveStatus();
+        }
+      },
+      onSave: async (file) => {
+        await pushBlob(file);
+      },
+    });
+  } catch (e) {
     ready.value = true;
     emit("ready");
+    ElMessage.error(`文档引擎初始化失败：${(e as Error)?.message ?? e}`);
   }
-  // 轮询兜底（SSE 断连时保同步）：15s 一次即可。
-  // 原来 5s 且带全量快照，等于每 5s 拉一次整本工作簿；改慢 + 本地有改动时静默跳过，
-  // 避免后台请求和用户输入抢主线程。
+}
+
+onMounted(async () => {
+  await initEngine();
+  // 容器缺失 / 初始化异常时也要撤掉遮罩，不能把用户永远锁在加载态
+  if (!ready.value) {
+    readyFallbackTimer = setTimeout(() => {
+      readyFallbackTimer = null;
+      if (!ready.value) {
+        ready.value = true;
+        emit("ready");
+      }
+    }, 8000);
+  }
   if (props.readonly) return;
   // 主通道：SSE 变更推送 —— 别人一保存就立刻知道，不用等轮询
   unsubscribe = subscribeFileCollab(props.collabId, (change) => {
-    if (disposed || change.version <= currentVersion.value) {
-      return;
-    }
+    if (disposed || change.version <= currentVersion.value) return;
     void refreshSnapshot(true, change.version);
   });
-  // 兜底通道（SSE 断连时保同步）：15s 一次，但只问版本号（几十字节）。
-  // 后台标签页不轮询；本地有未保存改动 / 正在保存也不轮询（此时版本检查没意义）。
+  // 兜底通道（SSE 断连时保同步）：15s 一次，只问版本号
   pollTimer = setInterval(() => {
     if (disposed || !shouldPollCollab(document.visibilityState === "visible", saving.value, dirtyFlag)) {
       return;
@@ -403,6 +406,10 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   disposed = true;
   if (pollTimer) clearInterval(pollTimer);
+  if (readyFallbackTimer) {
+    clearTimeout(readyFallbackTimer);
+    readyFallbackTimer = null;
+  }
   if (unsubscribe) {
     unsubscribe();
     unsubscribe = null;
@@ -411,26 +418,36 @@ onBeforeUnmount(() => {
     clearTimeout(autoSaveTimer);
     autoSaveTimer = null;
   }
-  // 卸载前把未落盘的改动补一次保存（不等待结果，避免卡住路由切换）
-  if (dirtyFlag && !props.readonly) {
-    void saveNow(true);
+  const v = viewer.value;
+  const c = client.value;
+  viewer.value = null;
+  client.value = null;
+  // 卸载前把未落盘的改动补一次：先问 worker 要字节（destroy 之后再问就没了），
+  // 写完再销毁 React 根。加超时兜底，别让路由切换卡在一个坏掉的文档上。
+  if (dirtyFlag && !props.readonly && c) {
+    const flush = (c.call("save") as Promise<Blob>)
+      .then((blob) => pushBlobUnmount(blob))
+      .catch(() => undefined);
+    const timeout = new Promise<void>((resolve) => setTimeout(resolve, 4000));
+    void Promise.race([flush, timeout]).finally(() => v?.destroy());
+    return;
   }
-  if (univerAPI.value) {
-    try {
-      univerAPI.value.dispose();
-    } catch {
-      // 卸载时 dispose 失败可忽略
-    }
-  }
-  if (univerWorker) {
-    try {
-      univerWorker.terminate();
-    } catch {
-      // worker 已退出时忽略
-    }
-    univerWorker = null;
-  }
+  v?.destroy();
 });
+
+/**
+ * 卸载途中的补存：不再更新 UI 状态，只把字节写进服务端。
+ *
+ * @param blob 引擎产出的文件
+ */
+async function pushBlobUnmount(blob: Blob): Promise<void> {
+  try {
+    const snapshot = await blobToOfficeSnapshot(blob);
+    await saveFileCollabSnapshot(props.collabId, snapshot, currentVersion.value);
+  } catch {
+    // 卸载时的补存失败只能放弃：组件已经不可见，弹提示反而打断用户下一步操作
+  }
+}
 </script>
 
 <style scoped>
@@ -448,18 +465,10 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 12px;
+  padding: 6px 12px;
   border-bottom: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
   flex-wrap: wrap;
-}
-.fc-editor-title {
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--text-primary, var(--el-text-color-primary, #303133));
-  max-width: 260px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  flex: none;
 }
 .fc-editor-status {
   font-size: 12px;
@@ -467,6 +476,7 @@ onBeforeUnmount(() => {
   border-radius: 999px;
   background: var(--brand-500, #409eff);
   color: #fff;
+  white-space: nowrap;
 }
 .fc-editor-status.saving {
   background: var(--metric-cpu, #409eff);
@@ -481,7 +491,6 @@ onBeforeUnmount(() => {
   font-size: 12px;
   color: var(--text-secondary, var(--el-text-color-secondary, #909399));
   font-variant-numeric: tabular-nums;
-  margin-left: auto;
 }
 .fc-editor-readonly {
   font-size: 12px;
@@ -489,25 +498,20 @@ onBeforeUnmount(() => {
   border-radius: 999px;
   border: 1px solid var(--el-border-color-lighter, #e8ebf0);
   color: var(--text-secondary, var(--el-text-color-secondary, #909399));
-  margin-left: auto;
-}
-.fc-editor-container {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  /* Univer 根节点靠 .univer-h-full { height: 100% } 撑满容器。
-     容器若是 display:block + 由 flex 分配高度，该 100% 在部分浏览器/嵌套场景下
-     解析不出基准（实测根节点停在内容高度 141px，表格 canvas 变成 0 高、
-     只剩工具栏），因此这里把容器改成 flex 列，直接用 flex 把根节点撑满，
-     不依赖 Univer 内部的百分比高度。 */
-  display: flex;
-  flex-direction: column;
 }
 .fc-editor-body {
   position: relative;
   flex: 1;
   min-height: 0;
   display: flex;
+}
+.fc-editor-mount {
+  position: absolute;
+  inset: 0;
+}
+/* 引擎根节点自己带 height:100%，父级必须有确定高度才解析得出来 */
+.fc-editor-mount :deep(.de-root) {
+  height: 100%;
 }
 .fc-editor-loading {
   position: absolute;
@@ -535,11 +539,5 @@ onBeforeUnmount(() => {
 }
 @media (prefers-reduced-motion: reduce) {
   .fc-editor-spinner { animation-duration: 2s; }
-}
-/* Univer 的根节点（唯一直接子元素）：吃满容器高度 */
-.fc-editor-container > :deep(*) {
-  flex: 1 1 auto;
-  min-height: 0;
-  width: 100%;
 }
 </style>

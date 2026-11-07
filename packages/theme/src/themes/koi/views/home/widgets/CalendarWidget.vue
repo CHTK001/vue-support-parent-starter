@@ -101,7 +101,46 @@
       :style="cellHeightStyle"
       v-loading="loading"
     >
-      <el-calendar v-model="calendarDate">
+      <!-- 月份切换：左右箭头（上个月 / 下个月），中间月份标题（文字），右侧今天按钮 -->
+      <el-calendar v-model="calendarDate" ref="calendarRef">
+        <template #header="{ date }">
+          <div class="calendar-widget__cal-header">
+            <!-- 上个月：图标 -->
+            <button
+              type="button"
+              class="calendar-widget__cal-header__prev"
+              aria-label="上个月"
+              @click="calendarSelectDate('prev-month')"
+            >
+              <el-icon class="calendar-widget__cal-header__icon">
+                <ArrowLeft />
+              </el-icon>
+            </button>
+            <!-- 月份标题：左右各 32px，标题撑满中间，文本居中 -->
+            <span class="calendar-widget__cal-header__title">{{ date }}</span>
+            <!-- 今天（文字）+ 下个月（图标），靠右排列 -->
+            <div class="calendar-widget__cal-header__right">
+              <button
+                type="button"
+                class="calendar-widget__cal-header__today"
+                aria-label="今天"
+                @click="calendarSelectDate('today')"
+              >
+                今天
+              </button>
+              <button
+                type="button"
+                class="calendar-widget__cal-header__next"
+                aria-label="下个月"
+                @click="calendarSelectDate('next-month')"
+              >
+                <el-icon class="calendar-widget__cal-header__icon">
+                  <ArrowRight />
+                </el-icon>
+              </button>
+            </div>
+          </div>
+        </template>
         <template #date-cell="{ data }">
           <div
             class="calendar-widget__cell"
@@ -240,7 +279,8 @@
  */
 import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ElMessageBox } from "element-plus";
-import { Calendar, Plus, Present, Right, Sunny } from "@element-plus/icons-vue";
+import type { CalendarDateType, CalendarInstance } from "element-plus";
+import { ArrowLeft, ArrowRight, Calendar, Plus, Present, Right, Sunny } from "@element-plus/icons-vue";
 // CalendarCategory 由 calendarStore 定义（calendarCategories 只导入未再导出），
 // 从来源直接取，避免依赖一个并不存在的再导出
 import { getCalendarStore, type CalendarCategory, type CalendarEvent } from "./calendarStore";
@@ -291,6 +331,22 @@ const calendarDate = ref<Date>(new Date());
 const events = ref<CalendarEvent[]>([]);
 const loading = ref(true);
 const errored = ref(false);
+
+/** el-calendar 的 ref，表头按钮借它的 `selectDate` 切换年月（暴露给 ref 的方法有前四个） */
+const calendarRef = ref<CalendarInstance | null>(null);
+
+/**
+ * 日历表头“上个月 / 今天 / 下个月”。
+ *
+ * <p>Element Plus 的 `selectDate` 在内部把选中态设为目标第一天（上个月或下个月
+ * 的第 1 天 / 今天），再触发 v-model 更新，所以本站格 + 表头 / 农历一起刷新，
+ * 不需要在父级单写月份跳转逻辑。</p>
+ *
+ * @param type `prev-month` 上个月 · `next-month` 下个月 · `today` 今天
+ */
+function calendarSelectDate(type: CalendarDateType): void {
+  calendarRef.value?.selectDate(type);
+}
 
 /**
  * 显示配置。
@@ -744,7 +800,7 @@ watch(userId, () => load());
 .calendar-widget__actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
@@ -763,8 +819,18 @@ watch(userId, () => load());
   background: transparent;
   color: var(--el-text-color-secondary);
   cursor: pointer;
+  user-select: none;
+  /* 只过渡绘制属性：背景 / 文字色 / 缩放，按照按压节奏分开过渡，
+     12px 级别的 icon 不靠背景跳变回答用户。 */
   transition: background var(--el-transition-duration, 0.2s),
-    color var(--el-transition-duration, 0.2s);
+    color var(--el-transition-duration, 0.2s),
+    transform 0.12s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 按 PRESS 回弹：32px 命中区里需要体感，轻触时才像按钮 */
+.calendar-widget__add:active,
+.calendar-widget__action:active {
+  transform: scale(0.92);
 }
 
 /* 键盘可达：图标按钮同样需要焦点环，否则只能靠鼠标点 */
@@ -788,10 +854,12 @@ watch(userId, () => load());
   color: var(--el-color-primary);
 }
 
-/* 开启态与「+」同色系，让用户看得出这个开关现在是开的 */
+/* 开启态与「+」同色系，让用户看得出这个开关现在是开的。
+   补 1px 主色描边：暗色主题下从背景里也能浮出来，而不是只靠一个色块。 */
 .calendar-widget__action.is-on {
   background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
   color: var(--el-color-primary);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 30%, transparent);
 }
 
 /* ---------------- 今日摘要 ---------------- */
@@ -813,8 +881,9 @@ watch(userId, () => load());
   min-width: 0;
 }
 
+/* 行间距从 4px 拉到 6px，让两行摘要各自成组 */
 .calendar-widget__today-row + .calendar-widget__today-row {
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .calendar-widget__today-date {
@@ -835,18 +904,18 @@ watch(userId, () => load());
   color: var(--el-color-primary);
 }
 
-/* 假期进度：名称 + 天数 + 进度点，一眼看出「还剩几天」 */
+/* 假期进度：名称 + 天数 + 进度点，一眼看出「还剩几天」。东西拉大到 12px，让数字与点的呼吸空间一致。 */
 .calendar-widget__today-holiday {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   min-width: 0;
 }
 
 .calendar-widget__today-progress {
   display: inline-flex;
   align-items: baseline;
-  gap: 4px;
+  gap: 8px;
   flex-shrink: 0;
   font-size: 12px;
   font-weight: 500;
@@ -862,54 +931,76 @@ watch(userId, () => load());
 .calendar-widget__today-pips {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
 }
 
 .calendar-widget__today-pip {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
   border-radius: var(--el-radius-full, 9999px);
   background: var(--el-border-color);
+  /* 进度条点只过渡颜色与缩放：悬停在「未开始」条上不加干扰 */
+  transition: background var(--el-transition-duration, 0.2s),
+    transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* 已完成点、当前点、未到点：亮度 + 缩放，一环接一环读区间 */
 .calendar-widget__today-pip.is-done {
   background: var(--el-color-success);
+  transform: scale(1.15);
 }
 
-.calendar-widget__today-work {
-  flex-shrink: 0;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--el-color-warning);
-}
-
+/* 工作日 / 休息日：用标签态区分，不靠大小取胜。
+   半透底色撑出轻浅的 surface 效果，比冲天的色块更好扫。*/
+.calendar-widget__today-work,
 .calendar-widget__today-rest {
   flex-shrink: 0;
   font-size: 12px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: var(--el-radius-full, 9999px);
+  line-height: 1;
+}
+
+/* 颜色水平降落，不靠字重压场 */
+.calendar-widget__today-work {
+  color: var(--el-color-warning);
+  background: color-mix(in srgb, var(--el-color-warning) 10%, transparent);
+}
+
+.calendar-widget__today-rest {
   color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
 }
 
 /* 推算值必须弱化：它是「按放假办法推出法定假日当天」，不是官方调休安排 */
 .calendar-widget__today-provisional {
   flex-shrink: 0;
-  padding: 0 4px;
+  padding: 3px 8px;
   font-style: normal;
   font-size: 12px;
-  color: var(--el-text-color-placeholder);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xs, 4px);
+  font-weight: 500;
+  color: var(--el-color-info);
+  background: color-mix(in srgb, var(--el-color-info) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-info) 20%, transparent);
+  border-radius: var(--el-radius-full, 9999px);
 }
 
+/* 下一段假期预告：底部靠“更多时间”的箭头用主色强调，分割线用实线 */
 .calendar-widget__today-next {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-top: 4px;
-  padding-top: 4px;
-  border-top: 1px dashed var(--el-border-color-lighter);
+  gap: 6px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--el-border-color-lighter);
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+
+.calendar-widget__today-next .el-icon {
+  color: var(--el-color-primary);
 }
 
 /* ---------------- 图例 ----------------
@@ -919,7 +1010,7 @@ watch(userId, () => load());
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 16px;
+  gap: 6px 16px;
   margin: 0 12px 8px;
   font-size: 12px;
   color: var(--el-text-color-secondary);
@@ -928,20 +1019,22 @@ watch(userId, () => load());
 .calendar-widget__legend-item {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
+/* 标签态：圆角 sm 代替 xs，高度与文字同高，字距更呼吸 */
 .calendar-widget__legend-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 16px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 3px;
   font-style: normal;
   font-size: 12px;
   line-height: 1;
   color: #fff;
-  border-radius: var(--el-radius-xs, 4px);
+  border-radius: var(--el-radius-sm, 6px);
   background: var(--el-color-success);
 }
 
@@ -949,9 +1042,10 @@ watch(userId, () => load());
   background: var(--el-color-warning);
 }
 
+/* 坚条改成横截面圆角短棒，避免视觉残留 */
 .calendar-widget__legend-bar {
-  width: 3px;
-  height: 12px;
+  width: 20px;
+  height: 3px;
   border-radius: var(--el-radius-full, 9999px);
   background: var(--el-color-danger);
 }
@@ -987,7 +1081,14 @@ watch(userId, () => load());
      跨行时色条会断开 —— 强行做首尾圆角在表格跨行结构上极易错位，不值得。*/
   border-top: 2px solid transparent;
   transition: background var(--el-transition-duration, 0.2s),
-    border-color var(--el-transition-duration, 0.2s);
+    border-color var(--el-transition-duration, 0.2s),
+    transform var(--el-transition-duration, 0.2s);
+}
+
+/* 格内悬浮（普通格）：只亮浅灰底，不动边距/行高，确保固定密度模式的网格线别乱动。
+   holiday / workday / today 是语义色底，用 :not() 排除，它们各自的底色留在下面。*/
+.calendar-widget__cell:not(.is-holiday):not(.is-workday):not(.is-today):hover {
+  background: var(--el-fill-color-lighter);
 }
 
 /* 放假日：淡绿底 + 绿条 */
@@ -1034,13 +1135,15 @@ watch(userId, () => load());
   color: var(--el-color-primary);
 }
 
+/* 节假日 / 调休角标：圆角 full 胶囊，重量感高于 xs 方角 */
 .calendar-widget__cell-badge {
   flex-shrink: 0;
-  padding: 0 4px;
+  padding: 0 6px;
   font-size: 12px;
+  font-weight: 500;
   line-height: 16px;
   color: #fff;
-  border-radius: var(--el-radius-xs, 4px);
+  border-radius: var(--el-radius-full, 9999px);
   background: var(--el-color-success);
 }
 
@@ -1062,7 +1165,8 @@ watch(userId, () => load());
      色条 2px + padding 4px = 6px 缩进：这是「节日名能显示几个字」与
      「色条够不够显眼」的直接换算 —— 420px 宽的组件，7 列下每格可用宽度
      只有约 36px，12px 字号刚好 3 个汉字（「国庆节」），缩进每多 1px
-     就少一个字。padding-left 必须大于 border-left，否则首字会贴着色条。*/
+     就少一个字。padding-left 必须大于 border-left，否则首字会贴着色条。
+     圆角只给色条的端点，不收进文字区。*/
   padding-left: 4px;
   font-size: 12px;
   line-height: 1.4;
@@ -1071,6 +1175,8 @@ watch(userId, () => load());
   overflow: hidden;
   text-overflow: ellipsis;
   border-left: 2px solid var(--el-text-color-placeholder);
+  border-top-left-radius: var(--el-radius-sm, 6px);
+  border-bottom-left-radius: var(--el-radius-sm, 6px);
 }
 
 /* 农历（无节日时的回退文本）最弱 */
@@ -1104,6 +1210,7 @@ watch(userId, () => load());
 }
 
 /* ---------------- 日程 ---------------- */
+/* 日程列表：4px 行距足够紧凑，再多就与格子内的 18px 行高强凑不到一起 */
 .calendar-widget__cell-events {
   display: flex;
   flex-direction: column;
@@ -1116,7 +1223,7 @@ watch(userId, () => load());
 .calendar-widget__cell-event {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
   font-size: 12px;
   /* 同 .cell-head：固定模式格高由行高推算，日程行必须可预测 */
@@ -1124,19 +1231,29 @@ watch(userId, () => load());
   color: var(--el-text-color-regular);
   cursor: pointer;
   overflow: hidden;
+  border-radius: var(--el-radius-sm, 6px);
+  /* 悬浮底色 + 左侧指示灯：单行点按区体感 */
+  transition: background var(--el-transition-duration, 0.2s),
+    color var(--el-transition-duration, 0.2s);
+}
+
+.calendar-widget__cell-event:hover {
+  background: var(--el-fill-color-lighter);
 }
 
 .calendar-widget__cell-event:hover .calendar-widget__cell-text {
   color: var(--el-color-primary);
 }
 
+/* 日程圆点收 6px，取消原 8px + 圆环的视觉重量；
+   1px 外环描边让彩色点落在任何格底上都清晰可分离 */
 .calendar-widget__cell-bullet {
   flex-shrink: 0;
-  /* 8px 而非 6px：圆点宽度 + gap(4) 必须落在 4/8 基准上，末尾「+N 更多」
-     才能用 padding-left 精确对齐日程文字（8 + 4 = 12）。 */
-  width: 8px;
-  height: 8px;
+  /* 6px + gap 6px = 12px，与「+N 更多」（12px 左控) 同左缘对齐 */
+  width: 6px;
+  height: 6px;
   border-radius: var(--el-radius-full, 9999px);
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .calendar-widget__cell-text {
@@ -1147,10 +1264,18 @@ watch(userId, () => load());
 }
 
 .calendar-widget__cell-more {
-  /* 12 = 圆点 8 + gap 4，与日程文字左缘对齐 */
+  /* 12 = 圆点 6 + gap 6，与日程文字左缘对齐 */
   padding-left: 12px;
   font-size: 12px;
   color: var(--el-text-color-placeholder);
+  border-radius: var(--el-radius-sm, 6px);
+  transition: background var(--el-transition-duration, 0.2s);
+}
+
+/* "+N" 行：hover 给浅底 + 数字 + 主色小箭头（如果有） */
+.calendar-widget__cell-more:hover {
+  background: var(--el-fill-color-lighter);
+  color: var(--el-color-primary);
 }
 
 /* 固定密度模式内嵌在末条日程行尾的「+N」：写死的格高装不下单独一行，
@@ -1159,20 +1284,37 @@ watch(userId, () => load());
 .calendar-widget__cell-more-inline {
   flex-shrink: 0;
   font-size: 12px;
+  font-weight: 500;
   color: var(--el-text-color-placeholder);
+  padding: 0 2px;
+  border-radius: var(--el-radius-sm, 6px);
+  transition: background var(--el-transition-duration, 0.2s),
+    color var(--el-transition-duration, 0.2s);
 }
 
+/* 悬浮时从“背景数字”变成行动点 */
+.calendar-widget__cell-more-inline:hover {
+  background: var(--el-fill-color-lighter);
+  color: var(--el-color-primary);
+}
+
+/* 选项里的分类圆点：9px 与 option 文字的 14px 视觉中心对齐，
+   右侧留 10px 给它对应的标签，避免文字贴点。 */
 .calendar-widget__category-dot {
   display: inline-block;
-  width: 8px;
-  height: 8px;
-  margin-right: 8px;
+  width: 9px;
+  height: 9px;
+  margin-right: 10px;
   border-radius: var(--el-radius-full, 9999px);
+  /* 可能跟着 option 的 hover 改变宿主，先启过渡 */
+  transition: opacity var(--el-transition-duration, 0.2s);
 }
 
+/* 操作区顶到右侧：与下方表单之间多留 8px，删改按钮不挤在一起 */
 .calendar-widget__form-head {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   margin-bottom: 8px;
 }
 
@@ -1210,9 +1352,122 @@ watch(userId, () => load());
   border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
+/* 原 el-calendar 原生标题样式：slot #header 已接管标题，这一层不再自渲染，
+   留着一时备用，等确认不再需要时再删。 */
 :deep(.el-calendar__title) {
   font-size: 15px;
   font-weight: 600;
+}
+
+/* 表头：左右箭头（上个月 / 下个月），中间月份标题，右侧今天文字 + 下月箭头 */
+/* slot #header 覆盖后，el-calendar 原生的「月份标题 + 按钮组」不再渲染，
+   这里就是新的全部。 */
+.calendar-widget__cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 32px;
+}
+
+/* 上个月 / 下个月：纯图标按钮，icon-only，32px 命中区，sm 圆角；
+   平时二级色，hover 反色，active 做压感缩放 */
+.calendar-widget__cal-header__prev,
+.calendar-widget__cal-header__next {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--el-radius-sm, 6px);
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+  transition: background-color var(--el-transition-duration, 0.2s),
+              color var(--el-transition-duration, 0.2s),
+              transform var(--el-transition-duration, 0.2s);
+}
+
+.calendar-widget__cal-header__prev:hover,
+.calendar-widget__cal-header__next:hover {
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
+}
+
+.calendar-widget__cal-header__prev:active,
+.calendar-widget__cal-header__next:active {
+  transform: scale(0.94);
+}
+
+.calendar-widget__cal-header__prev:focus-visible,
+.calendar-widget__cal-header__next:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 1px;
+}
+
+/* 箭头本身 16px（el-icon 内 svg 按 1em 跟进） */
+.calendar-widget__cal-header__icon {
+  font-size: 16px;
+  line-height: 1em;
+  color: currentcolor;
+}
+
+/* 月份标题：字号、字重与 `.el-calendar__title` 同级（15px/600），
+   在圆角过渡期用 14px 和 600 与之对齐视觉 */
+.calendar-widget__cal-header__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  text-align: center;
+  /* 标题可能在宽屏上放宽，由父级居中伸缩；中间空出父级的占比 */
+  flex: 1;
+  min-width: 0;
+}
+
+/* 右侧：今天文字 + 下月箭头，左右并排 */
+.calendar-widget__cal-header__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* 今天：文字按钮，primary 描边，hover 加淡色底。primary 文字在白底上跑 4.5/1，
+   过 WCAG AA；hover 时 `--el-color-primary-light-5` 陪衬，底色不反客为主。 */
+.calendar-widget__cal-header__today {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--el-color-primary);
+  border-radius: var(--el-radius-sm, 6px);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--el-color-primary);
+  background: transparent;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--el-transition-duration, 0.2s),
+              transform var(--el-transition-duration, 0.2s);
+}
+
+.calendar-widget__cal-header__today:hover {
+  background: var(--el-color-primary-light-5);
+  color: var(--el-color-primary);
+}
+
+.calendar-widget__cal-header__today:active {
+  transform: scale(0.96);
+}
+
+.calendar-widget__cal-header__today:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 1px;
 }
 
 :deep(.el-calendar-table thead th) {

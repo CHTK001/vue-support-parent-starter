@@ -1,15 +1,22 @@
 /**
  * 协同快照 → 真实文件的导出
  *
- * <p>协同文档的内容是「客户端渲染器吃的表示」：excel 是 Univer 工作簿 JSON、
- * word 是富文本 HTML、text 是纯文本。要把它们变回用户能打开的文件（xlsx / docx / txt），
- * 需要各转一次。下载与「写回源文件」两个动作都要同一套转换，所以抽到这里，
- * 避免两份实现慢慢跑偏（比如一边用了 SheetJS 的日期格式，一边没有）。</p>
+ * <p>协同文档的内容有两种表示：</p>
+ * <ul>
+ *   <li><b>新格式</b>（{@code ooxml1:<base64>}）：office-engine 直接产出的 xlsx/docx 字节，
+ *       导出时原样还原即可，不经任何转换（保真度最高）；</li>
+ *   <li><b>历史格式</b>：excel 是 Univer 工作簿 JSON、word 是富文本 HTML、text 是纯文本。
+ *       老文档仍需能下载/写回，所以保留旧转换路径。</li>
+ * </ul>
+ *
+ * <p>下载、「写回源文件」、历史回退都走同一套转换，避免多份实现慢慢跑偏
+ * （比如一边用了 SheetJS 的日期格式，一边没有）。</p>
  *
  * @author Buffy
  * @since 2026/11/06
  */
 import { htmlToDocxBlob } from "./collabDocx";
+import { decodeOfficeSnapshot, isOfficeSnapshot, officeExtOf, officeMimeOf } from "./collabOffice";
 import type { CollabDocType } from "../api/filestorageApi";
 
 /** 导出结果 */
@@ -34,6 +41,14 @@ export async function snapshotToBlob(
   fileName: string,
 ): Promise<SnapshotExport> {
   void fileName;
+  // 新格式（office-engine 产物）：原样还原字节，零转换 = 零失真
+  if (type !== "text" && isOfficeSnapshot(snapshot)) {
+    const bytes = decodeOfficeSnapshot(snapshot);
+    return {
+      blob: new Blob([bytes as unknown as BlobPart], { type: officeMimeOf(type) }),
+      ext: officeExtOf(type),
+    };
+  }
   if (type === "word") {
     return { blob: await htmlToDocxBlob(snapshot), ext: ".docx" };
   }
@@ -41,6 +56,26 @@ export async function snapshotToBlob(
     return { blob: new Blob([snapshot], { type: "text/plain;charset=utf-8" }), ext: ".txt" };
   }
   return { blob: await excelSnapshotToBlob(snapshot), ext: ".xlsx" };
+}
+
+/**
+ * 协同快照 → 文件字节（给 office-engine 当 {@code src} 用）。
+ *
+ * <p>与 {@link snapshotToBlob} 的区别只在返回形态：编辑面要的是字节数组，
+ * 不是带 MIME 的 Blob（Blob 也能用，但编辑器内部还要再取一次 arrayBuffer）。
+ * 旧格式一律走 {@link snapshotToBlob} 兜底转换，保证历史文档仍能打开。</p>
+ *
+ * @param type     文档类型：excel / word（text 不走本函数）
+ * @param snapshot 快照内容
+ * @returns 文件字节
+ */
+export async function snapshotToOfficeBytes(
+  type: CollabDocType,
+  snapshot: string,
+): Promise<Uint8Array> {
+  if (isOfficeSnapshot(snapshot)) return decodeOfficeSnapshot(snapshot);
+  const { blob } = await snapshotToBlob(type, snapshot, "");
+  return new Uint8Array(await blob.arrayBuffer());
 }
 
 /**

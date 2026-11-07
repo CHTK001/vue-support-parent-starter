@@ -45,7 +45,7 @@
         <span class="timeline-rail"><el-icon size="14"><Wrench24Filled /></el-icon></span>
         <div class="timeline-body">
           <MessageToolCalls :tool-calls="item.toolCalls || []" :tool-responses="item.toolResponses"
-            :is-streaming="isStreaming" />
+            :is-streaming="isStreaming" @abort="$emit('abort')" />
         </div>
       </div>
     </template>
@@ -75,6 +75,8 @@ withDefaults(defineProps<{
 
 defineEmits<{
   click: [event: MouseEvent];
+  /** 终止本轮执行：运行中工具行展开后的「停止」按钮（需求 7/8） */
+  abort: [];
 }>();
 </script>
 

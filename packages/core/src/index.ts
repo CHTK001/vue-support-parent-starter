@@ -23,6 +23,7 @@ export { message, messageBox, msg, msgPrimary, msgSuccess, msgError, msgWarning,
 export * from "./hooks/useDataSource";
 export * from "./hooks/useStationMessage";
 export * from "./obfuscation/fontObfuscator";
+export * from "./obfuscation/obfuscationMap";
 export * from "./obfuscation/ocrNoise";
 export * from "./security/antiDebug";
 export * from "./socket";

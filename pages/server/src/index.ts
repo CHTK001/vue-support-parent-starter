@@ -2,7 +2,7 @@
  * @pages/server —— 服务器资产管理页面包
  *
  * 提供服务器资产核心页面：主机/批量作业/会话审计/维护计划/分组/片段，
- * 以及后端 API 封装、路由表、静态菜单。
+ * 以及后端 API 封装、路由表、静态菜单、向 home 仪表板贡献Widget。
  *
  * 命名规范：仅通用组件用 ReXxx（@repo/ui），本项目自有组件统一 ScXxx。
  *
@@ -26,3 +26,6 @@ export { default as ScSftpPanel } from "./components/ScSftpPanel.vue";
 export { default as ScTerminal } from "./components/ScGuacViewer.vue";
 export * from "./api";
 export * from "./services";
+/** 向 home 仪表板贡献的 widget 目录：由宿主 app 登记（与 routes 同级） */
+export { serverWidgets } from "./widgets/serverWidgets";
+export { default as ServerHostOfflineWidget } from "./widgets/ServerHostOfflineWidget.vue";

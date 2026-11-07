@@ -2,7 +2,7 @@
   <ReDialog
     :model-value="visible"
     :title="'「' + widget.title + '」设置'"
-    width="580px"
+    width="680px"
     :close-on-click-modal="false"
     @update:model-value="emit('update:visible', $event)"
     @close="handleClose"
@@ -27,48 +27,82 @@
       <!-- 通用设置 -->
       <div class="ws__section">
         <div class="ws__section-title">通用</div>
-        <div class="ws__field">
-          <label class="ws__label">标题</label>
-          <el-input v-model="form.title" maxlength="20" placeholder="widget 显示标题" clearable />
-        </div>
-        <div class="ws__field">
-          <label class="ws__label">显示标题</label>
-          <el-switch v-model="form.showTitle" />
-        </div>
-        <div class="ws__field">
-          <label class="ws__label">阴影</label>
-          <div class="ws__shadow-options">
-            <button
-              v-for="opt in WIDGET_SHADOW_OPTIONS"
-              :key="opt.value"
-              type="button"
-              class="ws__shadow-btn"
-              :class="{ 'ws__shadow-btn--active': form.shadow === opt.value }"
-              @click="form.shadow = opt.value"
-            >
-              <span class="ws__shadow-preview" :style="{ boxShadow: WIDGET_SHADOW_MAP[opt.value] }" />
-              <span>{{ opt.label }}</span>
-            </button>
+
+        <div class="ws__two-col">
+          <div class="ws__field">
+            <label class="ws__label">标题</label>
+            <el-input v-model="form.title" maxlength="20" placeholder="widget 显示标题" clearable style="flex: 1" />
           </div>
-        </div>
-        <div class="ws__field">
-          <label class="ws__label">圆角</label>
-          <el-slider v-model="form.borderRadius" :min="0" :max="24" :step="2" show-input style="flex:1" />
-        </div>
-        <div class="ws__field">
-          <label class="ws__label">滚动方向</label>
-          <div class="ws__scroll-options">
-            <button
-              v-for="opt in WIDGET_SCROLL_OPTIONS"
-              :key="opt.value"
-              type="button"
-              class="ws__scroll-btn"
-              :class="{ 'ws__scroll-btn--active': scrollDir === opt.value }"
-              @click="setScrollDir(opt.value)"
-            >
-              <span class="ws__scroll-icon">{{ opt.icon }}</span>
-              <span>{{ opt.label }}</span>
-            </button>
+
+          <div class="ws__field">
+            <label class="ws__label">显示标题</label>
+            <el-switch v-model="form.showTitle" />
+          </div>
+
+          <div class="ws__field">
+            <label class="ws__label">阴影</label>
+            <el-radio-group v-model="form.shadow" class="ws__feature-group">
+              <el-radio-button v-for="opt in WIDGET_SHADOW_OPTIONS" :key="opt.value" :label="opt.value">
+                <span class="ws__shadow-preview" :style="{ boxShadow: WIDGET_SHADOW_MAP[opt.value] }" />
+                <span>{{ opt.label }}</span>
+              </el-radio-button>
+            </el-radio-group>
+          </div>
+
+          <div class="ws__field">
+            <label class="ws__label">圆角</label>
+            <el-slider v-model="form.borderRadius" :min="0" :max="24" :step="2" style="flex: 1" />
+          </div>
+
+          <div class="ws__field">
+            <label class="ws__label">滚动方向</label>
+            <el-radio-group v-model="scrollDir" class="ws__feature-group">
+              <el-radio-button v-for="opt in WIDGET_SCROLL_OPTIONS" :key="opt.value" :label="opt.value">
+                <span class="ws__scroll-icon">{{ opt.icon }}</span>
+                <span>{{ opt.label }}</span>
+              </el-radio-button>
+            </el-radio-group>
+          </div>
+
+          <div class="ws__field">
+            <label class="ws__label">背景</label>
+            <el-radio-group v-model="form.background" class="ws__feature-group">
+              <el-radio-button v-for="opt in WIDGET_BACKGROUND_OPTIONS" :key="opt.value" :label="opt.value">
+                <span class="ws__background-preview" :style="{ background: opt.preview }" />
+                <span>{{ opt.label }}</span>
+              </el-radio-button>
+            </el-radio-group>
+          </div>
+
+          <div class="ws__field">
+            <label class="ws__label">自由颜色</label>
+            <el-color-picker v-model="form.backgroundColor" :disabled="form.background !== 'custom'" />
+            <span class="ws__hint-text">设为自由颜色后生效</span>
+          </div>
+
+          <div class="ws__field">
+            <label class="ws__label">刷新图标</label>
+            <el-switch v-model="form.showRefresh" />
+            <span class="ws__hint-text">标题栏右侧的刷新按钮，默认开启</span>
+          </div>
+
+          <div class="ws__field ws__field--column">
+            <label class="ws__label ws__label--top">附加样式</label>
+            <el-input
+              v-model="form.customStyle"
+              type="textarea"
+              :rows="3"
+              placeholder="--my-color: #e6a23c; --my-fg: #333"
+              maxlength="120"
+              show-word-limit
+            />
+            <span class="ws__hint-text">原样注入 widget 根节点，每个 widget 可管理自己的样式</span>
+          </div>
+
+          <div class="ws__field ws__field--column">
+            <label class="ws__label ws__label--top">附加 class</label>
+            <el-input v-model="form.customStyleClass" maxlength="120" show-word-limit placeholder="my-widget, other-widget" />
+            <span class="ws__hint-text">为 widget 根节点追加 class，内容可写自己的样式</span>
           </div>
         </div>
       </div>
@@ -147,6 +181,7 @@ import { computed, reactive, ref, watch } from "vue";
 import { InfoFilled } from "@element-plus/icons-vue";
 import {
   CALENDAR_CELL_MODE_OPTIONS,
+  WIDGET_BACKGROUND_OPTIONS,
   WIDGET_SCROLL_OPTIONS,
   WIDGET_SHADOW_MAP,
   WIDGET_SHADOW_OPTIONS,
@@ -174,6 +209,11 @@ interface FormState {
   borderRadius: number;
   showHorizontalScrollbar: boolean;
   showVerticalScrollbar: boolean;
+  background: "auto" | "none" | "custom";
+  backgroundColor: string;
+  showRefresh: boolean;
+  customStyle: string;
+  customStyleClass: string;
 }
 
 const form = reactive<FormState>({
@@ -202,13 +242,16 @@ const cellModeHint = computed(
 
 const shadowCss = computed(() => WIDGET_SHADOW_MAP[form.shadow] ?? WIDGET_SHADOW_MAP.none);
 
-const scrollDir = computed<WidgetScrollDir>(() => {
-  const h = form.showHorizontalScrollbar;
-  const v = form.showVerticalScrollbar;
-  if (h && v) return "both";
-  if (h) return "horizontal";
-  if (v) return "vertical";
-  return "none";
+const scrollDir = computed<WidgetScrollDir>({
+  get: () => {
+    const h = form.showHorizontalScrollbar;
+    const v = form.showVerticalScrollbar;
+    if (h && v) return "both";
+    if (h) return "horizontal";
+    if (v) return "vertical";
+    return "none";
+  },
+  set: (dir: WidgetScrollDir) => setScrollDir(dir),
 });
 
 function setScrollDir(dir: WidgetScrollDir): void {
@@ -226,6 +269,16 @@ watch(
     form.borderRadius = props.widget.appearance?.borderRadius ?? 12;
     form.showHorizontalScrollbar = props.widget.appearance?.showHorizontalScrollbar ?? false;
     form.showVerticalScrollbar = props.widget.appearance?.showVerticalScrollbar ?? false;
+
+    const rawBackground = props.widget.appearance?.background;
+    form.background =
+      typeof rawBackground === "string" && rawBackground.length > 0 && rawBackground !== "auto" && rawBackground !== "none"
+        ? "custom"
+        : rawBackground ?? "auto";
+    form.backgroundColor = rawBackground ?? "#ffffff";
+    form.showRefresh = props.widget.appearance?.showRefresh ?? true;
+    form.customStyle = props.widget.appearance?.style ?? "";
+    form.customStyleClass = props.widget.appearance?.styleClass ?? "";
 
     if (props.widget.type === "custom" && props.widget.config) {
       customUrl.value = props.widget.config.url ?? "";
@@ -259,6 +312,10 @@ function handleSave(): void {
       borderRadius: form.borderRadius,
       showHorizontalScrollbar: form.showHorizontalScrollbar,
       showVerticalScrollbar: form.showVerticalScrollbar,
+      background: form.background === "custom" ? form.backgroundColor : form.background,
+      showRefresh: form.showRefresh,
+      style: form.customStyle,
+      styleClass: form.customStyleClass,
     },
   };
 
@@ -358,7 +415,14 @@ function handleSave(): void {
 .ws__section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 20px;
+}
+
+/* 通用区：左右两列网格，每列仍是标签左（右对齐）/控件右的左右结构 */
+.ws__two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px 24px;
 }
 
 .ws__section-title {
@@ -403,8 +467,45 @@ function handleSave(): void {
   text-align: left;
 }
 
-.ws__mode-group {
-  flex-wrap: wrap;
+/* 选项组：el-radio-button 框架组件，激活态跟主题设置页保持一致 */
+.ws__feature-group {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+
+  :deep(.el-radio-button) {
+    margin-left: 0 !important;
+  }
+
+  :deep(.el-radio-button__inner) {
+    font-size: 12px;
+    padding: 6px 10px;
+    border: 1px solid var(--el-border-color-light) !important;
+    border-radius: 6px;
+    background: var(--el-fill-color-blank);
+    color: var(--el-text-color-secondary);
+    line-height: 1;
+    transition: all var(--el-transition-duration, 0.2s);
+  }
+
+  :deep(.el-radio-button.is-active .el-radio-button__inner) {
+    background: var(--el-color-primary);
+    color: #fff;
+    border-color: var(--el-color-primary) !important;
+  }
+
+  :deep(.el-radio-button:focus-visible .el-radio-button__inner) {
+    outline: 2px solid var(--el-color-primary);
+    outline-offset: 1px;
+  }
+
+  /* 按钮内的预览元素：默认亮色底 */
+  .ws__shadow-preview,
+  .ws__background-preview,
+  .ws__scroll-icon {
+    display: block;
+  }
 }
 
 /* 选项说明：与选项表里的 hint 同源，不另写一份文案 */
@@ -418,42 +519,7 @@ function handleSave(): void {
 }
 
 /* 阴影选择器 */
-.ws__shadow-options {
-  display: flex;
-  gap: 8px;
-  flex: 1;
-}
-
-.ws__shadow-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  flex: 1;
-  padding: 12px 8px;
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 8px;
-  background: var(--el-fill-color-blank);
-  cursor: pointer;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  transition: border-color var(--el-transition-duration, 0.2s), background var(--el-transition-duration, 0.2s);
-}
-
-.ws__shadow-btn:hover {
-  border-color: var(--el-color-primary);
-  color: var(--el-color-primary);
-}
-
-.ws__shadow-btn--active {
-  border-color: var(--el-color-primary);
-  background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
-  color: var(--el-color-primary);
-  font-weight: 600;
-}
-
 .ws__shadow-preview {
-  display: block;
   width: 32px;
   height: 20px;
   border-radius: 4px;
@@ -462,43 +528,17 @@ function handleSave(): void {
 }
 
 /* 滚动方向选择器 */
-.ws__scroll-options {
-  display: flex;
-  gap: 8px;
-  flex: 1;
-}
-
-.ws__scroll-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  flex: 1;
-  padding: 8px 8px;
-  border: 1px solid var(--el-border-color-light);
-  border-radius: var(--el-radius-md, 8px);
-  background: var(--el-fill-color-blank);
-  cursor: pointer;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  transition: border-color var(--el-transition-duration, 0.2s), background var(--el-transition-duration, 0.2s);
-}
-
-.ws__scroll-btn:hover {
-  border-color: var(--el-color-primary);
-  color: var(--el-color-primary);
-}
-
-.ws__scroll-btn--active {
-  border-color: var(--el-color-primary);
-  background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
-  color: var(--el-color-primary);
-  font-weight: 600;
-}
-
 .ws__scroll-icon {
   font-size: 18px;
   line-height: 1;
+}
+
+/* 背景选择器 */
+.ws__background-preview {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid var(--el-border-color-light);
 }
 
 /* 提示 */

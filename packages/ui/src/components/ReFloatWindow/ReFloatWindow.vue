@@ -1,16 +1,5 @@
 <template>
   <Teleport to="body" :disabled="!teleport">
-    <!-- 对齐辅助线：拖拽时出现，松手消失 -->
-    <div v-if="visible && guides.length" class="rfw-guides" aria-hidden="true">
-      <i
-        v-for="(g, i) in guides"
-        :key="i"
-        class="rfw-guides__line"
-        :class="`is-${g.axis}`"
-        :style="guideStyle(g)"
-      />
-    </div>
-
     <!-- 边缘停靠条：拖到边缘后只剩这条小条，hover 探出，点击还原 -->
     <div
       v-if="visible && mode === 'edge'"
@@ -51,7 +40,7 @@
       :class="[
         `rfw--${mode}`,
         `rfw--${dockPosition}`,
-        { 'rfw--dragging': dragState.active, 'rfw--colored': !!color, 'rfw--active': active },
+        { 'rfw--dragging': dragActive, 'rfw--colored': !!color, 'rfw--active': active },
       ]"
       :style="windowStyle"
       @pointerdown.capture="bringToFront"
@@ -131,7 +120,8 @@
         </div>
       </div>
 
-      <div class="rfw__body">
+      <!-- 正文：放在抓取热区之上（z=2），输入框/按钮/文字才能正常点击 -->
+      <div class="rfw__body" @pointerdown="onGrabPointerDown">
         <slot />
       </div>
 
@@ -139,7 +129,10 @@
         <slot name="footer" />
       </div>
 
-      <!-- 缩放手柄：只保留不可见热区 -->
+      <!-- 兜底热区：整窗体按下即拖（抓在文字/空白处也能拖），盖在内容之上、窗体按钮之下 -->
+      <div class="rfw__grab" :data-gx="1" @pointerdown="onGrabPointerDown" />
+
+      <!-- 缩放手柄：只保留不可见热区（盖在抓取热区之上） -->
       <div
         v-for="h in RESIZE_HANDLES"
         v-show="resizable && mode === 'normal'"
@@ -149,9 +142,6 @@
         :data-handle="h"
         @pointerdown.stop="onResizerPointerDown($event, h)"
       />
-
-      <!-- 兜底热区：整窗口按下即拖（抓在文字/空白处也能拖），位于内容之上、按钮之下 -->
-      <div class="rfw__grab" @pointerdown="onGrabPointerDown" />
     </div>
 
     <!-- 最小化：只渲染一个小图标，不保留窗体 DOM -->
@@ -213,7 +203,6 @@ import {
   ScaleToOriginal,
 } from "@element-plus/icons-vue";
 import type {
-  AlignLine,
   EdgeSide,
   GeometryWorkerRequest,
   GeometryWorkerResponse,
@@ -281,17 +270,18 @@ const props = withDefaults(
     multiple?: boolean;
     /** 独占：点窗外任意地方窗口抖动并把焦点拉回来，强迫先收掉它 */
     exclusive?: boolean;
-    /** 拖拽时显示对齐辅助线 */
-    guides?: boolean;
-    /** 对齐目标：-1 = 同类窗口，0 = 视口中线，>0 = 视口栅格（px） */
-    guideGrid?: number;
     /** 位置尺寸实时持久化到 localStorage */
     persist?: boolean;
     /** 持久化键名，不复用时按 winId 生成 */
     persistKey?: string;
     /** 是否 Teleport 到 body */
     teleport?: boolean;
-    /** 基础层级（浮标与边缘条会 +1） */
+    /**
+     * 基础层级（浮标与边缘条会 +1）。
+     *
+     * <p>默认不给值：由模块级计数器分配（2001 起），保证多实例下“后激活的一定在最上”。
+     * 调用方显式传值时（例如要跟随外部面板层级）才使用固定值。</p>
+     */
     zIndex?: number;
     /** 按钮文案（便于调用方本地化） */
     minimizeText?: string;
@@ -333,12 +323,10 @@ const props = withDefaults(
     cancelText: "取消",
     multiple: true,
     exclusive: false,
-    guides: true,
-    guideGrid: -1,
     persist: false,
     persistKey: "",
     teleport: true,
-    zIndex: 1000,
+    zIndex: undefined,
     minimizeText: "最小化",
     maximizeText: "最大化",
     unmaximizeText: "还原",
@@ -383,29 +371,76 @@ function readViewport() {
   viewport.h = window.innerHeight;
 }
 
-/** 层级区间：1001 起步，超过上限回到下限循环，永远给 Element Plus 弹层（2000+）留空间 */
-const Z_MIN = 1001;
-const Z_MAX = 1900;
-let zSeq = Z_MIN - 1;
+/** 层级区间：2000 起步（高于 Element Plus 常规弹层），超过上限回到下限循环 */
+const Z_MIN = 2001;
+const Z_MAX = 2900;
 
 const active = ref(true);
+
+/**
+ * 已激活顺序的共享计数器（挂在全局，不随模块重新求值丢失）。
+ *
+ * <p>热更新 / 分包重复求值时模块级 `zSeq` 会回到 Z_MIN，但页面上的旧实例仍持有旧闭包，
+ * 新窗口就会和它们撞到同一层级（表现为“点谁都不置顶”）。计数器放在全局，
+ * 保证同一页面里所有实例——包括热更新前后创建的——共用一个序列。</p>
+ */
+const Z_COUNTER_KEY = "__reFloatWindowZSeq";
+
+function zCounter(): { value: number } {
+  const g = globalThis as unknown as Record<string, { value: number } | undefined>;
+  let box = g[Z_COUNTER_KEY];
+  if (!box) {
+    box = { value: Z_MIN - 1 };
+    g[Z_COUNTER_KEY] = box;
+  }
+  return box;
+}
 
 /**
  * 层级序列：所有实例共用一个模块级计数器，保证“后激活的一定更大”。
  * 旧实现每个实例各自 bump + 固定起点 1000，导致后来创建的窗口激活后反而比先创建的小。
  */
 function bumpZ(): number {
-  zSeq += 1;
-  if (zSeq > Z_MAX) zSeq = Z_MIN;
-  return zSeq;
+  const box = zCounter();
+  box.value += 1;
+  if (box.value > Z_MAX) box.value = Z_MIN;
+  return box.value;
 }
 
-const z = ref(props.zIndex ?? bumpZ());
+/**
+ * 初始层级：新窗口必须比「已经在页面上的窗口」都高。
+ *
+ * <p>全局计数器在热更新后仍然延续，但为防实例被外部改写层级，初始值仍与 DOM 现状取较大者。</p>
+ */
+function initialZ(): number {
+  if (props.zIndex !== undefined) return props.zIndex;
+  let top = Z_MIN - 1;
+  for (const el of Array.from(document.querySelectorAll<HTMLElement>(".rfw"))) {
+    const v = Number.parseInt(el.style.zIndex || getComputedStyle(el).zIndex, 10);
+    if (Number.isFinite(v) && v > top) top = v;
+  }
+  if (top < Z_MIN) return bumpZ();
+  const next = Math.min(top + 1, Z_MAX);
+  // 同步计数器，让后续 bumpZ 也落在新窗口之上
+  const box = zCounter();
+  box.value = Math.max(box.value, next);
+  return next;
+}
 
-/** 激活到最前：层级永远比其它所有实例都大（同一模块共享计数器） */
+/** 是否由本组件分配层级（调用方没显式传 zIndex） */
+const autoZ = props.zIndex === undefined;
+
+/** 初始层级：显式传了 zIndex 用它，否则取「计数器 / 在场窗口」的最大值之上 */
+const z = ref(initialZ());
+
+/** 激活到最前：层级永远比其它所有实例都大（同一页面共享一个计数器） */
 function bringToFront() {
   if (mode.value !== "normal") return;
+  // 已经拿到计数器上的最新值（即在场最上）：不无谓地刷新层级、不打扰子组件。
+  // 显式指定 zIndex 的调用方由自己管理层级，这里只在首次激活时标记。
+  if (autoZ && active.value && z.value >= zCounter().value) return;
   active.value = true;
+  if (!autoZ) return;
   // 计数器只增不减：任何一次激活（含按下即拖拽）都拿到比在场所有窗口更大的值
   z.value = bumpZ();
 }
@@ -522,7 +557,7 @@ function initRect(): void {
 watch(
   () => [props.x, props.y, props.width, props.height] as const,
   ([px, py, pw, ph]) => {
-    if (dragState.activeValue) return;
+    if (dragActive.value) return;
     if (typeof pw === "number") rect.w = pw;
     if (typeof ph === "number") rect.h = ph;
     if (typeof px === "number") rect.x = px;
@@ -531,7 +566,28 @@ watch(
   },
 );
 
+/**
+ * 拖动/缩放的响应式状态。
+ *
+ * <p>位置落在 `windowStyle` 之前：`windowStyle` 是 computed，它在「首次求值」时才读取这些 ref，
+ * 而首次求值可能早于 setup 末尾。提前声明可保证它们一定是解包后的数值（否则模板里会
+ * 拼出 `translate3d([object Object]px, ...)`，表现为拖动期间窗口完全不动）。</p>
+ */
+const dragActive = ref(false);
+const dragKind = ref<"move" | "resize">("move");
+/**
+ * 累计位移：**刻意不是 ref**。
+ *
+ * <p>拖动时它每帧都变，若是响应式会让整个组件进入重渲染排期，
+ * 指针到画面因此跨 2–3 帧（实测 p50 24ms）。现在拖动由 flushDrag 直接写 style.transform，
+ * 这两个变量只用来在松手/缩放时算落点，不进渲染路径。</p>
+ */
+let moveDx = 0;
+let moveDy = 0;
+
 const windowStyle = computed(() => {
+  // z-index 及其它几何样式在这里统一出；拖动中的 transform 由 flushDrag 直接写 DOM
+  // （不进响应式调度，避免指针到画面跨帧），所以这里刻意不输出 transform。
   const base: Record<string, string> = { zIndex: String(z.value) };
   if (props.color) base.background = props.color;
 
@@ -601,35 +657,27 @@ const windowStyle = computed(() => {
 
 const winRef = ref<HTMLElement | null>(null);
 
-/**
- * 拖拽期间的视觉偏移：只在 wrapper 上写 transform，不触发 Vue 响应式，
- * 松手时一次性落回 left/top。Worker 回包只用于夹取与吸附校验。
- */
-const dragState = reactive({
-  get activeValue() {
-    return dragActive;
-  },
-});
-let dragActive = false;
-let dragKind: "move" | "resize" = "move";
 let dragHandle: ResizeHandle | "" = "";
 let dragOx = 0;
 let dragOy = 0;
 let dragOw = 0;
 let dragOh = 0;
 let seq = 0;
+
 /** 最近一次指针位置（client 坐标） */
 let lastPx = 0;
 let lastPy = 0;
-/** 拖拽期间的累计位移（键盘/触摸与抓重点吸附都更稳，避免 client 坐标被 Snap 到元素边界） */
-let moveDx = 0;
-let moveDy = 0;
+/** 位移基准点：按下点，之后按 client 增量算 */
+let moveBaseX = 0;
+let moveBaseY = 0;
 let rafId = 0;
-/** 最近一次 Worker 回包的（已吸附）坐标，拖拽中的 visual/final 都基于它 */
-let lastSnapX: number | null = null;
-let lastSnapY: number | null = null;
 
-const guides = ref<AlignLine[]>([]);
+/** 已发出、等回包的 seq（0 = 空闲）：Worker 未回包时不再叠帧发送 */
+let waitingCommit = 0;
+/** 指针捕获的宿主元素：松手时释放 */
+let pointerHolder: HTMLElement | null = null;
+/** 当前拖拽的 pointerId */
+let pointerId = -1;
 
 let worker: Worker | null = null;
 let workerBroken = false;
@@ -638,22 +686,6 @@ function edgeList(): EdgeSide[] {
   const v = props.edgeSides;
   if (v === "all") return [...ALL_EDGES];
   return Array.isArray(v) ? v : [v as EdgeSide];
-}
-
-function snapConfig() {
-  if (!props.guides) return { enabled: false, others: [] as Rect[], grid: props.guideGrid };
-  const others =
-    props.guideGrid === -1
-      ? Array.from(document.querySelectorAll<HTMLElement>(".rfw--normal")).filter((el) => el !== winRef.value)
-          .map((el) => ({
-            x: el.offsetLeft,
-            y: el.offsetTop,
-            w: el.offsetWidth,
-            h: el.offsetHeight,
-          }))
-      : [];
-  console.debug("[rfw] snapConfig", JSON.stringify({ self: winRef.value?.className, others }));
-  return { enabled: true, others, grid: props.guideGrid };
 }
 
 function sendWorker(msg: GeometryWorkerRequest) {
@@ -666,38 +698,18 @@ function sendWorker(msg: GeometryWorkerRequest) {
   }
 }
 
-/** Worker 回包：普通拖拽只看位置，缩放在这里直接写样式 */
+/** Worker 回包：缩放直接写 DOM（每帧一次，开销可控）；拖动位置由指针位移直接决定 */
 function onWorkerMessage(e: MessageEvent<GeometryWorkerResponse>) {
   const msg = e.data;
-  // 诊断：确认回包内容与当前 seq（去掉这行不影响行为）
-  console.debug("[rfw] worker->main", msg.type, msg.seq, seq, dragActive, JSON.stringify(msg.lines ?? null));
-  if (msg.type === "rect" && dragActive) {
+  if (msg.type === "rect" && dragActive.value) {
     if (msg.seq !== seq) return; // 过期回包丢掉
-    guides.value = msg.lines;
-    if (dragKind === "resize" && winRef.value) {
-      // 缩放在主线程也要即时反馈，这里直接用回包（每帧一次，开销可控）
-      applyRectToDom(msg.rect);
-      return;
-    }
-    // 吸附：把落点差异折进 transform，视觉上直接贴齐，而不是松手才跳
-    lastSnapX = msg.rect.x;
-    lastSnapY = msg.rect.y;
-    applyMoveTransform();
+    if (msg.seq === waitingCommit) waitingCommit = 0;
+    if (dragKind.value === "resize") applyRectToDom(msg.rect);
     return;
   }
   if (msg.type === "commit") {
     onDragCommitted(msg.rect, msg.edge);
   }
-}
-
-/** 按“指针位移 + 吸附修正”写 transform（每帧一次，只碰合成层，不触发布局） */
-function applyMoveTransform() {
-  const el = winRef.value;
-  if (!el || dragKind !== "move") return;
-  const nx = lastSnapX ?? dragOx + lastPx - startX;
-  const ny = lastSnapY ?? dragOy + lastPy - startY;
-  el.style.transform = `translate3d(${nx - dragOx}px, ${ny - dragOy}px, 0)`;
-  el.classList.add("rfw--moving");
 }
 
 function applyRectToDom(r: Rect) {
@@ -710,93 +722,112 @@ function applyRectToDom(r: Rect) {
 }
 
 function startDrag(kind: "move" | "resize", handle: ResizeHandle | "", e: PointerEvent) {
-  // 拖拽必须压在最上面：捕获阶段的 bringToFront 会被 .stop 的子元素拦下，这里再兜一次
-  bringToFront();
-  dragActive = true;
-  dragKind = kind;
-  dragHandle = handle;
+  // 缩放与拖动共用真实指针轨迹
+  resizeGripX = e.clientX;
+  resizeGripY = e.clientY;
   dragOx = rect.x;
   dragOy = rect.y;
   dragOw = rect.w;
   dragOh = rect.h;
-  lastSnapX = null;
-  lastSnapY = null;
-  guides.value = [];
+  moveDx = 0;
+  moveDy = 0;
+  dragHandle = handle;
+  dragKind.value = kind;
+  dragActive.value = true;
   winRef.value?.classList.add("rfw--dragging");
 
   document.addEventListener("pointermove", onPointerMove, { passive: true });
   document.addEventListener("pointerup", onPointerUp);
   document.addEventListener("pointercancel", onPointerUp);
 
-  // 指针捕获：拖到窗口外也继续跟手（含 iframe 之外）
+  // 指针捕获：一旦捕获，后续 pointermove 全部投递给这个元素，
+  // 不会因为鼠标划过被子级/影子层命中而中断（否则拖动会“粘住”不动）。
   try {
-    (e.currentTarget as HTMLElement | null)?.setPointerCapture?.(e.pointerId);
+    const holder = (e.currentTarget as HTMLElement | null) ?? winRef.value;
+    holder?.setPointerCapture?.(e.pointerId);
+    pointerHolder = holder;
+    pointerId = e.pointerId;
   } catch {
-    // 某些元素不支持捕获，忽略
+    pointerHolder = null;
+    pointerId = -1;
   }
-  sendWorker({ type: "configure", payload: { edgeThreshold: props.edgeThreshold, snap: snapConfig() } });
+  sendWorker({ type: "configure", payload: { edgeThreshold: props.edgeThreshold } });
+}
+
+/** 释放指针捕获（不释放会让该元素的 hover / click 一直粘住指针） */
+function releasePointer(): void {
+  const el = pointerHolder;
+  const id = pointerId;
+  pointerHolder = null;
+  pointerId = -1;
+  if (!el || id < 0) return;
+  try {
+    el.releasePointerCapture?.(id);
+  } catch {
+    // 捕获已释放，忽略
+  }
 }
 
 function onPointerMove(e: PointerEvent) {
-  if (!dragActive) return;
+  if (!dragActive.value) return;
+  // 只记最新指针位置，位移与 transform 统一在动画帧里写一次（每帧只 patch 一次）
   lastPx = e.clientX;
   lastPy = e.clientY;
-  // 抓重点已对齐的窗口拖动时，PointerEvent.clientX 会 Snap 到元素边界（如左下角），
-  // 直接用运动会瞬移；用 movementX/movementY 累加真实位移。
-  // 少数环境 movement 为 0（部分合成事件），此时回落到直接用 client 坐标。
-  if (e.movementX || e.movementY) {
-    moveDx += e.movementX;
-    moveDy += e.movementY;
-    lastPx = startX + moveDx;
-    lastPy = startY + moveDy;
-  } else {
-    moveDx = lastPx - startX;
-    moveDy = lastPy - startY;
-  }
   if (rafId) return;
   rafId = requestAnimationFrame(flushDrag);
 }
 
 /**
- * 每个动画帧只做一件事：写一次 transform + 发一次 Worker 计算。
+ * 每个动画帧只做一件事：把最新指针位移直接写进 DOM 的 transform。
  *
- * <p>不再用“上一帧的待处理指针位置”（pointermove 频率常低于 rAF，会滞后一帧），
- * 直接取最新指针位置；Worker 回包里的吸附坐标会覆盖视觉位置。</p>
+ * <p>拖动刻意**不走响应式**：每帧改响应式状态会让组件进入重渲染排期，
+ * 指针到画面要跨 2–3 帧（实测 p50 24ms / p95 37ms），手感就是「拖着不走、再猛追」。
+ * 直接写 style 则在同一个 rAF 里落地，指针到画面只差一次合成。</p>
+ *
+ * <p>moveDx/moveDy 只作为「松手算落点」用的普通变量，不参与渲染。</p>
  */
 function flushDrag() {
   rafId = 0;
-  console.debug("[rfw] flush", dragActive, dragKind, dragHandle, moveDx, moveDy);
-  if (!dragActive) return;
-  if (!lastPx && !lastPy) return;
-  seq += 1;
-  const dx = moveDx;
-  const dy = moveDy;
-  if (dragKind === "resize") {
-    // 缩放也先按“起点尺寸 + 位移”自己算一版（Worker 回包到了再覆盖），保证跟手，
-    // 避免 Worker 处理积压时尺寸滞后甚至卡住。
-    applyResizePreview(dragOx, dragOy, dragOw, dragOh, dragHandle, dx, dy);
-  } else {
-    lastSnapX = null;
-    lastSnapY = null;
-    applyMoveTransform();
+  if (!dragActive.value) return;
+  const dx = lastPx - moveBaseX;
+  const dy = lastPy - moveBaseY;
+  moveDx = dx;
+  moveDy = dy;
+  const el = winRef.value;
+  if (dragKind.value !== "resize") {
+    // 拖动：只改合成层，不触发布局、不等 Vue 调度
+    if (el) el.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
+    return;
   }
+  // 缩放需要按“起点尺寸 + 位移”算尺寸，先本地预览，Worker 回包到了再校正
+  applyResizePreview(dragOx, dragOy, dragOw, dragOh, dragHandle, dx, dy);
+  sendMoveToWorker();
+}
+
+/** 交给 Worker 做尺寸校正（只有缩放需要；拖动不经过 Worker，避免回包延迟变成视觉卡顿） */
+function sendMoveToWorker() {
+  if (!worker) return;
+  if (waitingCommit > 0) return;
+  seq += 1;
+  const mySeq = seq;
   sendWorker({
     type: "move",
     payload: {
-      seq,
-      kind: dragKind,
+      seq: mySeq,
+      kind: dragKind.value,
       handle: dragHandle,
       ox: dragOx,
       oy: dragOy,
       ow: dragOw,
       oh: dragOh,
-      dx,
-      dy,
+      dx: moveDx,
+      dy: moveDy,
       viewport: { w: viewport.w, h: viewport.h },
       minWidth: props.minWidth,
       minHeight: props.minHeight,
     },
   });
+  waitingCommit = mySeq;
 }
 
 /** 缩放预览：与 Worker 内 computeRect 同口径（只夹尺寸不夹位置，位置留到提交时统一夹） */
@@ -811,6 +842,28 @@ function applyResizePreview(
 ): void {
   const el = winRef.value;
   if (!el) return;
+  const r = resizeRectFrom(ox, oy, ow, oh, handle, dx, dy);
+  el.style.left = `${Math.round(r.x)}px`;
+  el.style.top = `${Math.round(r.y)}px`;
+  el.style.width = `${Math.round(r.w)}px`;
+  el.style.height = `${Math.round(r.h)}px`;
+  // 让“窗体样式”以预览尺寸为准，避免同一 tick 内其它响应式更新（z-index/位移）把尺寸 patch 回旧值
+  rect.x = Math.round(r.x);
+  rect.y = Math.round(r.y);
+  rect.w = Math.round(r.w);
+  rect.h = Math.round(r.h);
+}
+
+/** 纯函数版的缩放手柄计算（预览、提交、Worker 回包三处共用同一口径） */
+function resizeRectFrom(
+  ox: number,
+  oy: number,
+  ow: number,
+  oh: number,
+  handle: string,
+  dx: number,
+  dy: number,
+): Rect {
   let x = ox;
   let y = oy;
   let w = ow;
@@ -834,18 +887,22 @@ function applyResizePreview(
     if (handle.includes("n")) y = oy + oh - props.minHeight;
     h = props.minHeight;
   }
-  el.style.left = `${Math.round(x)}px`;
-  el.style.top = `${Math.round(y)}px`;
-  el.style.width = `${Math.round(w)}px`;
-  el.style.height = `${Math.round(h)}px`;
+  return { x, y, w, h };
 }
 
+/** 拖拽的起点抓取点（client 坐标） */
 let startX = 0;
 let startY = 0;
+/** 缩放时手柄的抓取点：按“指针位移”算尺寸，而不是相对元素边界（会被 Snap） */
+let resizeGripX = 0;
+let resizeGripY = 0;
 
 function beginStart(e: PointerEvent) {
   startX = e.clientX;
   startY = e.clientY;
+  // 基准 = 按下点：首个 pointermove 与按下点的差就是真实位移，不丢第一段行程
+  moveBaseX = e.clientX;
+  moveBaseY = e.clientY;
   lastPx = e.clientX;
   lastPy = e.clientY;
   moveDx = 0;
@@ -853,8 +910,10 @@ function beginStart(e: PointerEvent) {
 }
 
 function onPointerUp() {
-  if (!dragActive) return;
-  dragActive = false;
+  if (!dragActive.value) return;
+  // 顺序要紧：位移必须在清零之前用来算落点，否则松手会回到起点
+  const dxAtUp = moveDx;
+  const dyAtUp = moveDy;
   if (rafId) {
     cancelAnimationFrame(rafId);
     rafId = 0;
@@ -862,39 +921,42 @@ function onPointerUp() {
   document.removeEventListener("pointermove", onPointerMove);
   document.removeEventListener("pointerup", onPointerUp);
   document.removeEventListener("pointercancel", onPointerUp);
+  releasePointer();
 
-  // 把视觉偏移折算成真实坐标（吸附修正已经体现在 lastSnapX/lastSnapY 里）
+  // 把视觉偏移折算成真实坐标（拖动期间位置从不被改写，落点就是指针位置）
   const el = winRef.value;
-  const dxEnd = lastPx - startX;
-  const dyEnd = lastPy - startY;
+  // 缩放：用“手柄抓取点 + 指针位移”算尺寸（DOM 上的 left/top/宽高可能还没跟上本帧）
+  const rdx = lastPx - resizeGripX;
+  const rdy = lastPy - resizeGripY;
   const finalRect: Rect =
-    dragKind === "move"
+    dragKind.value === "move"
       ? {
-          x: lastSnapX ?? clamp(dragOx + dxEnd, 0, Math.max(0, viewport.w - rect.w)),
-          y: lastSnapY ?? clamp(dragOy + dyEnd, 0, Math.max(0, viewport.h - rect.h)),
+          x: clamp(dragOx + dxAtUp, 0, Math.max(0, viewport.w - rect.w)),
+          y: clamp(dragOy + dyAtUp, 0, Math.max(0, viewport.h - rect.h)),
           w: rect.w,
           h: rect.h,
         }
-      : {
-          x: el ? parseFloat(el.style.left) || rect.x : rect.x,
-          y: el ? parseFloat(el.style.top) || rect.y : rect.y,
-          w: el ? parseFloat(el.style.width) || rect.w : rect.w,
-          h: el ? parseFloat(el.style.height) || rect.h : rect.h,
-        };
+      : resizeRectFrom(dragOx, dragOy, dragOw, dragOh, dragHandle, rdx, rdy);
+  // 关键顺序：先让 rect 落到最终位置，再关掉拖拽态、清 transform。
+  // 反过来的话 windowStyle 会先用旧 rect 出一帧（窗口弹回起点），
+  // 等 Worker 的 commit 回包到了再跳到落点——这就是肉眼看到的“回弹”。
+  Object.assign(rect, finalRect);
   if (el) {
     el.style.transform = "";
     el.classList.remove("rfw--moving");
   }
-  guides.value = [];
-  lastSnapX = null;
-  lastSnapY = null;
+  dragActive.value = false;
+  moveDx = 0;
+  moveDy = 0;
   seq += 1;
+  // 边缘收起只对「拖动」生效：缩放贴着边改尺寸是正常操作，不该被收成边缘条
+  const edgeAutoHide = props.edgeAutoHide && dragKind.value === "move";
   if (!worker) {
-    // Worker 不可用时的兜底：主线程直接提交
-    const snapped = props.guides ? snapRectMain(finalRect) : { rect: finalRect, lines: [] as AlignLine[] };
-    onDragCommitted(snapped.rect, fallbackEdge(snapped.rect));
+    // Worker 不可用时的兜底：主线程直接提交（不做任何吸附，落点即指针位置）
+    onDragCommitted(finalRect, edgeAutoHide ? fallbackEdge(finalRect) : null);
     return;
   }
+  waitingCommit = 0;
   sendWorker({
     type: "end",
     payload: {
@@ -903,36 +965,10 @@ function onPointerUp() {
       viewport: { w: viewport.w, h: viewport.h },
       minWidth: props.minWidth,
       minHeight: props.minHeight,
-      edgeAutoHide: props.edgeAutoHide,
+      edgeAutoHide,
       edgeThreshold: props.edgeThreshold,
     },
   });
-}
-
-/** 主线程兜底吸附（只在 Worker 创建失败时用，逻辑与 Worker 内一致的精简版） */
-function snapRectMain(r: Rect): { rect: Rect; lines: AlignLine[] } {
-  const others = snapConfig().others as Rect[];
-  if (!others.length) return { rect: r, lines: [] };
-  const GAP = 8;
-  const pick = (values: number[], targets: number[]): number => {
-    let best = 0;
-    let bestAbs = GAP + 1;
-    for (const v of values) {
-      for (const t of targets) {
-        const d = t - v;
-        if (Math.abs(d) < bestAbs) {
-          bestAbs = Math.abs(d);
-          best = d;
-        }
-      }
-    }
-    return best;
-  };
-  const tx = others.flatMap((o) => [o.x, o.x + o.w / 2, o.x + o.w]);
-  const ty = others.flatMap((o) => [o.y, o.y + o.h / 2, o.y + o.h]);
-  const dx = pick([r.x, r.x + r.w / 2, r.x + r.w], tx);
-  const dy = pick([r.y, r.y + r.h / 2, r.y + r.h], ty);
-  return { rect: { ...r, x: Math.round(r.x + dx), y: Math.round(r.y + dy) }, lines: [] };
 }
 
 function fallbackEdge(r: Rect): EdgeSide | null {
@@ -957,7 +993,7 @@ function onDragCommitted(r: Rect, edge: EdgeSide | null) {
   emit("update:height", rect.h);
   emit("change", { x: rect.x, y: rect.y, width: rect.w, height: rect.h });
 
-  if (dragKind === "move") emit("move", { x: rect.x, y: rect.y });
+  if (dragKind.value === "move") emit("move", { x: rect.x, y: rect.y });
   else emit("resize", { width: rect.w, height: rect.h });
 
   if (edge && edgeList().includes(edge)) enterEdge(edge);
@@ -976,7 +1012,6 @@ function onHeaderPointerDown(e: PointerEvent) {
 }
 
 function onResizerPointerDown(e: PointerEvent, handle: ResizeHandle) {
-  console.debug("[rfw] resizer down", handle, e.button, mode.value, props.resizable);
   if (!props.resizable || mode.value !== "normal") return;
   if (e.button !== 0) return;
   beginStart(e);
@@ -984,15 +1019,24 @@ function onResizerPointerDown(e: PointerEvent, handle: ResizeHandle) {
 }
 
 /**
- * 兜底抓取：按在窗口主体（非按钮/输入框）上也能拖动。
+ * 兜底抓取：按在窗口正文的空白处也能拖动。
  *
- * <p>真实的 pointer down 一定发生在按下的那一刻（coordinates 是准确的），
- * 这里用它做位移原点；之后靠 pointermove 的 movement 累加，不受抓重点对齐影响。</p>
+ * <p>正文（z=2）盖在整窗热区之上，所以抓取由正文这一层直接监听。
+ * 命中输入框 / 按钮 / 可编辑区域时一律放行，交给控件自己处理（否则便签无法输入）。
+ * 命中的是正文本身（空白区）时拖动，按 client 坐标算位移。</p>
  */
 function onGrabPointerDown(e: PointerEvent) {
   if (!props.draggable || mode.value !== "normal") return;
   if (e.button !== 0) return;
-  dragActive = true; dragKind = "move"; dragHandle = "";
+  const target = e.target as HTMLElement;
+  if (
+    target.closest(
+      "button, input, textarea, select, a[href], [contenteditable='true'], [contenteditable=''], .rfw__resizer",
+    )
+  ) {
+    return;
+  }
+  // 正文里没有独立位移的元素（纯文本块）按下即拖；有交互的元素已在上面放行
   beginStart(e);
   startDrag("move", "", e);
 }
@@ -1067,12 +1111,6 @@ const edgeTabStyle = computed(() => {
   if (edgeSide.value === "bottom") return { ...base, bottom: "0px", left: `${anchor}px` };
   return { ...base, top: "0px", left: `${anchor}px` };
 });
-
-function guideStyle(g: AlignLine): Record<string, string> {
-  return g.axis === "v"
-    ? { left: `${g.pos}px`, top: `${g.start}px`, height: `${Math.max(0, g.end - g.start)}px` }
-    : { top: `${g.pos}px`, left: `${g.start}px`, width: `${Math.max(0, g.end - g.start)}px` };
-}
 
 /* ------------------------------ 最小化 ------------------------------ */
 
@@ -1265,11 +1303,12 @@ function onOccluderShake() {
 /* ------------------------------ 同步与生命周期 ------------------------------ */
 
 function syncRect() {
+  const box = { x: rect.x, y: rect.y, width: rect.w, height: rect.h };
   emit("update:x", rect.x);
   emit("update:y", rect.y);
   emit("update:width", rect.w);
   emit("update:height", rect.h);
-  emit("change", { x: rect.x, y: rect.y, width: rect.w, height: rect.h });
+  emit("change", box);
 }
 
 function onViewportResize() {
@@ -1324,7 +1363,7 @@ onMounted(() => {
       worker.onerror = () => {
         worker = null;
       };
-      sendWorker({ type: "start", payload: { edgeThreshold: props.edgeThreshold, snap: snapConfig() } });
+      sendWorker({ type: "start", payload: { edgeThreshold: props.edgeThreshold } });
     }
   } catch {
     worker = null;
@@ -1382,12 +1421,28 @@ defineExpose({
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  overflow: hidden;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 12px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
   transition: box-shadow 0.2s ease;
+
+  /* 内容裁切放在内层：根节点必须 overflow: visible，否则绝对热区定不到视口坐标。
+   * 层级分层（自下而上）：抓取热区 1 → 正文 2 → 标题栏/底栏/缩放热区 3。
+   * 正文必须在热区之上，否则正文里的输入框永远收不到点击（整窗都是热区，无法输入）；
+   * 正文空白处的拖动由 .rfw__body 自己兜底（见 onGrabPointerDown 与 body 上的 pointerdown）。 */
+  > .rfw__header,
+  > .rfw__footer {
+    position: relative;
+    z-index: 3;
+    min-height: 0;
+  }
+
+  > .rfw__body {
+    position: relative;
+    z-index: 2;
+    min-height: 0;
+  }
 
   &.rfw--normal:hover {
     box-shadow: 0 14px 44px rgba(0, 0, 0, 0.22);
@@ -1401,6 +1456,15 @@ defineExpose({
   &.rfw--shake {
     animation: rfw-shake 0.36s cubic-bezier(0.36, 0.07, 0.19, 0.97);
   }
+}
+
+/* 兜底抓取热区：整窗体按下即拖（只在正文之外的空白处生效，正文 z=2 压在它上面） */
+.rfw__grab {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  pointer-events: auto;
 }
 
 @keyframes rfw-shake {
@@ -1426,42 +1490,12 @@ defineExpose({
   }
 }
 
-/* 对齐辅助线 */
-.rfw-guides {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1899;
-}
-
 /* 独占遮罩：透明但吃掉点击 */
 .rfw-occluder {
   position: fixed;
   inset: 0;
   background: transparent;
   cursor: not-allowed;
-}
-
-/* 对齐辅助线 */
-.rfw-guides {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1899;
-}
-
-.rfw-guides__line {
-  position: absolute;
-  background: var(--el-color-primary);
-  opacity: 0.85;
-
-  &.is-v {
-    width: 1px;
-  }
-
-  &.is-h {
-    height: 1px;
-  }
 }
 
 .rfw__header {
@@ -1575,7 +1609,7 @@ defineExpose({
 /* 缩放手柄：不可见热区 */
 .rfw__resizer {
   position: absolute;
-  z-index: 2;
+  z-index: 3;
   background: transparent;
 }
 
@@ -1756,5 +1790,13 @@ defineExpose({
   font-size: 12px;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+/* 最小化图标的拖拽热区：铺满图标但不挡点击（pointer-events 由父级 pointerdown 处理） */
+.rfw-dock__grab {
+  position: absolute;
+  inset: 0;
+  display: block;
+  pointer-events: none;
 }
 </style>

@@ -23,7 +23,7 @@
       "@pages/filesystem": ["../../pages/filesystem/src/index.ts"],
       "@pages/datasource/*": ["../../pages/datasource/*"],
       "@pages/datasource": ["../../pages/datasource/src/index.ts"],
-      // 调试中心（CDP）：运维管理菜单 -> /debug，视图 + API + 路由同源
+      // 调试中心（CDP）：并进「分析管理」菜单 -> /debug，视图 + API + 路由同源
       "@pages/debug/*": ["../../pages/debug/*"],
       "@pages/debug": ["../../pages/debug/src/index.ts"],
       "@pages/device/*": ["../../pages/device/*"],
@@ -48,6 +48,10 @@
       // 内网穿透（ngrok / Cloudflare）页面包：业务代码统一写 @pages/tunnel/src/...
       "@pages/tunnel/*": ["../../pages/tunnel/*"],
       "@pages/tunnel": ["../../pages/tunnel/src/index.ts"],
+      // 账号管理（账号资产 + 模板管理 + 消息模板）：源码在后端项目
+      // spring-support-account-starter/web，位于本工作区之外，故必须显式给出路径。
+      "@account/web/*": ["../../../spring-support-parent-starter/spring-support-account-starter/web/*"],
+      "@account/web": ["../../../spring-support-parent-starter/spring-support-account-starter/web/src/index.ts"],
       // ReMap 内部用（workspace 包，pages/device 已声明依赖；此处给 TS 提供解析，
       // 与根 tsconfig 的 "@repo/re-map"、device-starter 同一口径）
       "@repo/re-map": ["../../packages/ui/re-map"],
@@ -70,6 +74,9 @@
     "../../pages/datasource/src/**/*.d.ts",
     "../../pages/docker/src/**/*.d.ts",
       "../../pages/device/src/**/*.d.ts",
-      "../../pages/debug/src/**/*.d.ts"
+      "../../pages/debug/src/**/*.d.ts",
+      // 账号管理前端（外部项目）的全局声明：jquery / vue-plugin-hiprint 的 UMD 类型、
+      // window.$ / window.hiprint 扩展。缺了它模板设计器与预览页全是 TS7016/TS2551。
+      "../../../spring-support-parent-starter/spring-support-account-starter/web/src/**/*.d.ts"
   ]
 }

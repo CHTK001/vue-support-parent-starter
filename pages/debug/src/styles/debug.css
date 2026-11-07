@@ -155,14 +155,16 @@
   color: var(--brand-500);
   background: rgba(109, 93, 252, 0.12);
 }
-
+.debug-hdr {
+  border-radius: var(--radius-lg, 12px) var(--radius-lg, 12px);
+}
 /* ---------- 主体：左轨道 + 右侧工作区（Deck 卡片式） ---------- */
 .debug-body {
   display: flex;
   flex: 1 1 auto;
   gap: 10px;
   min-height: 0;
-  padding: 10px 12px 12px;
+  padding: 10px 0px 12px 0px;
   overflow: hidden;
   background: var(--bg-layout);
 }
@@ -456,6 +458,21 @@
   flex: 0 0 auto;
   border-radius: 3px;
   object-fit: contain;
+}
+/* favicon 拿不到时（about:blank 等）补一个图标槽位，避免原始网站条只剩文字 */
+.debug-tabs__ico {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-style: normal;
+  line-height: 1;
+  color: var(--text-quaternary, var(--text-tertiary));
+  border-radius: 3px;
+  background: var(--bg-layout);
 }
 .debug-tabs__url {
   overflow: hidden;
@@ -868,6 +885,7 @@
 .debug-elements {
   display: flex;
   flex: 1 1 auto;
+  flex-direction: column;
   min-height: 0;
   overflow: hidden;
 }
@@ -877,6 +895,18 @@
   flex-direction: column;
   min-height: 0;
   min-width: 0;
+}
+/* 左右布局：画面在左，DOM + 详情 + 页面 HTML 在右（HTML 不占底部，避免挤掉画面） */
+.debug-elwrap--left {
+  flex-direction: row;
+}
+.debug-elwrap--top {
+  flex-direction: column;
+}
+/* 左右布局 + 页面 HTML 打开：舞台略收窄，把宽度让给 DOM 树与详情（但不小于 240px，保证画面可读） */
+.debug-elwrap--left.debug-elwrap--src .debug-el__stage {
+  width: 38%;
+  min-width: 240px;
 }
 /* 上下 / 左右 两种舞台布局 */
 .debug-el {
@@ -1272,11 +1302,25 @@
 /* 页面 HTML 面板（原「源码」页签） */
 .debug-source {
   display: flex;
-  flex: 1 1 45%;
+  flex: 0 0 auto;
   flex-direction: column;
   min-height: 0;
-  border-top: 1px solid var(--border-default, var(--border-subtle));
+  min-width: 0;
   background: var(--bg-container);
+}
+/* 上下布局：HTML 停靠底部 */
+.debug-elwrap--top .debug-source {
+  flex: 1 1 45%;
+  width: 100%;
+  border-top: 1px solid var(--border-default, var(--border-subtle));
+}
+/* 左右布局：HTML 停靠右侧，和画面 / 树 / 详情并排，不再压到底部 */
+.debug-elwrap--left .debug-source {
+  flex: 0 0 36%;
+  width: 36%;
+  min-width: 300px;
+  height: 100%;
+  border-left: 1px solid var(--border-default, var(--border-subtle));
 }
 .debug-source__hd {
   display: flex;

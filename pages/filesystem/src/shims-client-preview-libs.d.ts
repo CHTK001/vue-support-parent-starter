@@ -100,8 +100,8 @@ declare module "@cornerstonejs/codec-libjxl/decodewasmjs" {
 /**
  * mammoth（docx → HTML）没有自带类型声明。
  *
- * <p>协同 Word 编辑器（WordCollabEditor.vue）与协同管理页上传转协同
- * （FileCollabManage.vue）只用 convertToHtml，这里声明最小形状。</p>
+ * <p>协同管理页上传转协同（FileCollabManage.vue，.doc/.rtf → HTML → docx）
+ * 只用 convertToHtml，这里声明最小形状。</p>
  */
 declare module "mammoth" {
   /** 转换选项：arrayBuffer 为源文件字节 */

@@ -154,8 +154,49 @@
               <span>{{ actBusyText }}</span>
             </div>
 
-            <!-- 演出正文 -->
-            <article v-if="storyScenes.length" class="ws-play" data-role="play">
+            <!-- 演出正文（视频优先：分镜视频连播，没有视频才用文字演出） -->
+            <div v-if="playVideos.length" class="ws-film" data-role="film">
+              <div class="ws-film-stage">
+                <video
+                  :key="playVideos[filmIndex]?.src"
+                  class="ws-film-video"
+                  :src="videoSrc(playVideos[filmIndex]?.src)"
+                  data-role="film-video"
+                  :poster="imageSrc(playVideos[filmIndex]?.poster)"
+                  autoplay
+                  playsinline
+                  controls
+                  preload="metadata"
+                  @ended="onFilmEnded"
+                  @error="onFilmError"
+                ></video>
+                <div class="ws-film-badge">
+                  {{ playVideos[filmIndex]?.stageName || '分镜' }} · 第 {{ filmIndex + 1 }} / {{ playVideos.length }} 段
+                </div>
+                <div v-if="currentShotBroken" class="ws-film-broken" data-role="film-broken">
+                  这一段播不出来，已跳过
+                </div>
+              </div>
+              <div class="ws-film-strip">
+                <button
+                  v-for="(v, i) in playVideos"
+                  :key="v.src"
+                  class="ws-film-thumb"
+                  :class="{ active: i === filmIndex, broken: brokenShots.includes(i) }"
+                  type="button"
+                  :title="v.title"
+                  :data-broken="brokenShots.includes(i) ? '1' : '0'"
+                  @click="filmIndex = i"
+                >
+                  <span class="ws-film-thumb-no">{{ i + 1 }}</span>
+                  <img v-if="v.poster" :src="imageSrc(v.poster)" :alt="v.title" />
+                  <span v-else class="ws-film-thumb-name">{{ v.title }}</span>
+                </button>
+                <button class="ws-film-to-text" type="button" @click="showTextPlay = true">看文字演出</button>
+              </div>
+            </div>
+
+            <article v-if="storyScenes.length && (!playVideos.length || showTextPlay)" class="ws-play" data-role="play">
               <section v-for="(s, i) in storyScenes" :key="i" class="ws-cue">
                 <div class="ws-cue-side">
                   <span class="ws-cue-no">{{ s.no }}</span>
@@ -171,13 +212,13 @@
                       <span class="ws-cue-say">{{ l.text }}</span>
                     </li>
                   </ul>
-                  <img v-if="s.image" class="ws-cue-img" :src="s.image" :alt="s.title" />
+                  <img v-if="s.image" class="ws-cue-img" :src="imageSrc(s.image)" :alt="s.title" />
                 </div>
               </section>
             </article>
 
             <!-- 还没演出：等 AI 写 -->
-            <div v-else class="ws-stage-empty" data-role="stage-empty">
+            <div v-if="!storyScenes.length" class="ws-stage-empty" data-role="stage-empty">
               <div class="ws-stage-empty-art">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"
                   stroke-linecap="round" stroke-linejoin="round">
@@ -208,7 +249,11 @@
                   <div class="ws-asset-card ws-act-asset-card" v-for="it in sec.items" :key="it.name">
                     <span class="ws-asset-name">{{ it.name }}</span>
                     <span class="ws-asset-desc">{{ it.desc || it.text || '暂无描述' }}</span>
-                    <span v-if="it.mediaImage" class="ws-tag sm ws-act-media-status" :class="mediaStatusClass(it.mediaImage)">{{ mediaStatusName(it.mediaImage) }}</span>
+                    <!-- 纯文本形态不产出素材，状态一律是「无需求」，显示它会让用户以为出错 -->
+                    <span v-if="it.mediaImage && it.mediaImage.status !== 'NO_PROMPT'" class="ws-tag sm ws-act-media-status" :class="mediaStatusClass(it.mediaImage)">图 · {{ mediaStatusName(it.mediaImage) }}</span>
+                    <span v-if="it.mediaVideo && it.mediaVideo.status !== 'NO_PROMPT'" class="ws-tag sm ws-act-media-status"
+                      :class="mediaStatusClass(it.mediaVideo)"
+                      :title="mediaModeName(it.mediaVideo)">{{ mediaModeName(it.mediaVideo) }}</span>
                   </div>
                 </div>
               </div>
@@ -468,6 +513,14 @@
           <el-input v-model="worldForm.description" type="textarea" :rows="2"
             placeholder="AI 会按这个描述生成世界，不写也不要紧" />
         </div>
+        <div class="ws-field">
+          <label class="ws-label">舞台出片</label>
+          <el-radio-group v-model="mediaForm.mediaMode" data-role="media-mode-create">
+            <el-radio-button value="video">AI 生成视频</el-radio-button>
+            <el-radio-button value="image">场景图 + 文字</el-radio-button>
+          </el-radio-group>
+          <span class="ws-hint">每一幕由 AI 写剧本、出图、再让图动起来连成短片</span>
+        </div>
       </div>
       <template #footer>
         <el-button @click="randomCreate">随机生成</el-button>
@@ -500,10 +553,26 @@
           <label class="ws-label">世界观设定</label>
           <el-input v-model="worldForm.description" type="textarea" :rows="4" />
         </div>
+        <div class="ws-field">
+          <label class="ws-label">舞台出片（这个世界的每一幕）</label>
+          <el-radio-group v-model="mediaForm.mediaMode" data-role="media-mode">
+            <el-radio-button value="video">AI 生成视频</el-radio-button>
+            <el-radio-button value="image">只看场景图 + 文字</el-radio-button>
+          </el-radio-group>
+          <span class="ws-hint">视频会按分镜逐段生成后连播；图生视频指 AI 先画好场景图，再让图动起来。</span>
+        </div>
+        <div v-if="mediaForm.mediaMode === 'video'" class="ws-field">
+          <label class="ws-label">视频模型</label>
+          <el-select v-model="mediaForm.videoModel" clearable filterable allow-create
+            style="width: 100%" placeholder="留空则由 AI 自动挑一个可用的视频模型">
+            <el-option v-for="m in mediaForm.videoModels" :key="m" :label="m" :value="m" />
+          </el-select>
+          <span class="ws-hint">选哪个模型，决定了是文生视频还是图生视频；未配置时按场景图自动走图生视频。</span>
+        </div>
       </div>
       <template #footer>
         <el-button @click="editVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmEdit">保存</el-button>
+        <el-button type="primary" :loading="savingWorld" @click="confirmEdit">保存</el-button>
       </template>
     </ReDialog>
 
@@ -620,7 +689,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { MoreFilled, Plus, VideoPlay, Loading } from '@element-plus/icons-vue'
 import MarkdownContent from '@/components/ui/MarkdownContent.vue'
@@ -629,6 +698,8 @@ import ReDialog from '@repo/ui/re-dialog'
 import { message } from '@repo/core'
 import { apiService } from '@/services/ApiService'
 import { useAuthStore } from '@/stores/auth'
+import { createAuthImageLoader } from '@/utils/authImage'
+import { isInlineMedia } from '@/services/modules/generate.api'
 import type {
   WorldAct,
   WorldActDetail,
@@ -751,6 +822,19 @@ const worldForm = reactive({
   description: '',
 })
 const sceneForm = reactive({ name: '', description: '' })
+
+/**
+ * 舞台出片方式（sim 分组设置，全站共用）：
+ * - mediaMode = video：素材阶段让 AI 出视频，舞台按分镜连播；
+ * - mediaMode = image：只出场景图，舞台用图文演出（省算力、也适合还没接视频模型的部署）。
+ * videoModel 留空时由后端自动挑一个可用视频模型。
+ */
+const mediaForm = reactive<{ mediaMode: 'video' | 'image'; videoModel: string; videoModels: string[] }>({
+  mediaMode: 'video',
+  videoModel: '',
+  videoModels: [],
+})
+const savingWorld = ref(false)
 const npcCreateForm = reactive<{ count: number; hint: string }>({ count: 2, hint: '' })
 const npcEditTarget = ref<WorldNpc | null>(null)
 const npcEditForm = reactive<{
@@ -786,6 +870,29 @@ const shownWorlds = computed(() => {
 
 const currentScene = computed(() => scenes.value.find((s) => s.id === currentSceneId.value) || null)
 
+/*
+ * 素材（场景图 / 分镜视频）取字节。
+ *
+ * 生成侧落盘的结果会换成 `/v2/ai/generate/tasks/{id}/media/0`，而这个接口要鉴权，
+ * `<img>` / `<video>` 带不了请求头 —— 直接把地址挂上去就是 404（实测：页面里
+ * src 有值、naturalWidth=0，后端直连却是 200 / 1.5MB）。
+ * 所以内联地址一律走 blob 加载器，令牌不进 URL；供应商直链不需要鉴权，原样给。
+ */
+const mediaImages = createAuthImageLoader({ withBaseUrl: false })
+
+/** 图片地址 → 可直接放 img.src 的地址 */
+const imageSrc = (url: string | null | undefined): string =>
+  isInlineMedia(url) ? mediaImages.resolve(url) : (url ?? '')
+
+/**
+ * 视频地址 → 可直接放 video.src 的地址。
+ *
+ * 加载器未就绪时返回的是 1×1 GIF，对 `<video>` 是非法媒体源（会误触一次 error、
+ * 把好端端的分镜判成「播不出来」），因此未就绪时给空串，等 blob 就绪再挂。
+ */
+const videoSrc = (url: string | null | undefined): string =>
+  isInlineMedia(url) && !mediaImages.isReady(url) ? '' : imageSrc(url)
+
 const sceneNpcs = computed(() => {
   if (currentSceneId.value == null) return npcs.value.filter((n) => n.sceneId == null)
   return npcs.value.filter((n) => n.sceneId === currentSceneId.value)
@@ -795,8 +902,7 @@ const sceneNpcs = computed(() => {
 const canSpectate = computed(() => Boolean(currentWorldId.value) && !currentAct.value && currentSceneId.value != null)
 
 /** 当前幕次的演出正文，按「首行标题 + 其余正文」拆好给模板用 */
-const storyScenes = computed(() => {
-  const cur = stories.value.find((s) => s.actNo === currentAct.value?.actNo)
+const storyScenes = computed(() => {  const cur = stories.value.find((s) => s.actNo === currentAct.value?.actNo)
   if (!cur || !cur.played || !cur.scenes?.length) return []
   const cn = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十']
   return cur.scenes
@@ -821,9 +927,90 @@ const storyScenes = computed(() => {
     })
 })
 
+/** 舞台上的分镜视频：这一幕每个场景生成成功的视频按顺序连播 */
+interface FilmShot {
+  src: string
+  poster: string
+  title: string
+  stageName: string
+}
+
+/** 当前播放第几段（一幕有多段视频时按序播，播完自动接下一段） */
+const filmIndex = ref(0)
+
+/** 有视频时是否同时展开文字演出（默认收起，视频就是主画面） */
+const showTextPlay = ref(false)
+
+const playVideos = computed<FilmShot[]>(() => {
+  const cur = stories.value.find((s) => s.actNo === currentAct.value?.actNo)
+  if (!cur || !cur.scenes?.length) return []
+  const shots: FilmShot[] = []
+  for (const s of cur.scenes as Array<Record<string, any>>) {
+    let src = ''
+    // 视频生成侧两种返回都可能：直接给地址，或给了任务句柄 media:xxx（由站点转成可播地址）
+    const v = s.mediaVideo
+    if (v && typeof v === 'object' && String(v.status) === 'OK' && v.url) {
+      src = String(v.url)
+    }
+    if (!src) continue
+    const cn = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十']
+    const idx = shots.length
+    shots.push({
+      src,
+      // 首帧用同场景的图，缩略条没图时退化成场次名
+      poster: String(s.mediaImage?.url || ''),
+      title: String(s.name || `分镜 ${idx + 1}`),
+      stageName: String(s.name || cn[idx] || `第 ${idx + 1} 场`),
+    })
+  }
+  return shots
+})
+
+/** 一段播完自动接下一段，形成连续播放；播到末段停在末段（不循环，观众可拖回去看） */
+function onFilmEnded() {
+  if (filmIndex.value < playVideos.value.length - 1) {
+    filmIndex.value += 1
+  }
+}
+
+/** 哪些分镜播不出来（地址 404 / 编码不认识 / 浏览器不支持） */
+const brokenShots = ref<number[]>([])
+
+/**
+ * 某一段播不出来：记下来并从连播里跳过。
+ *
+ * <p>视频地址是生成任务给的，随时可能过期或压根没落地；
+ * 不处理的话舞台会一直停在一帧黑屏上，比退回文字演出更糟。</p>
+ */
+function onFilmError() {
+  const idx = filmIndex.value
+  if (!brokenShots.value.includes(idx)) {
+    brokenShots.value = [...brokenShots.value, idx]
+  }
+  const next = playVideos.value.findIndex((_, i) => !brokenShots.value.includes(i))
+  if (next >= 0 && next !== idx) {
+    filmIndex.value = next
+  } else if (playVideos.value.every((_, i) => brokenShots.value.includes(i))) {
+    // 全段都坏：直接给出演正文，别让观众对着黑屏
+    showTextPlay.value = true
+  }
+}
+
+/** 当前这段是否已确认播不出来（用于在播放器上给出提示） */
+const currentShotBroken = computed(() => brokenShots.value.includes(filmIndex.value))
+
+// 切幕 / 视频集合变了都要从头播，否则会停在上一次的末段位置
+watch(
+  () => [currentAct.value?.actNo, playVideos.value.map((v) => v.src).join('|')],
+  () => {
+    filmIndex.value = 0
+    brokenShots.value = []
+    showTextPlay.value = false
+  },
+)
+
 /** 舞台空态文案随阶段变化 */
-const stageEmptyTitle = computed(() => {
-  const stage = actStage.value ?? ''
+const stageEmptyTitle = computed(() => {  const stage = actStage.value ?? ''
   if (stage === 'writing') return '这一幕还没有剧本'
   if (stage === 'props_ok') return '剧本写好了，还没有演出'
   if (stage === 'playing') return 'AI 正在演这一幕'
@@ -896,6 +1083,7 @@ function openCreateWorld() {
   worldForm.era = '现代'
   worldForm.weather = '晴'
   worldForm.description = ''
+  void loadMediaSettings()
   createVisible.value = true
 }
 
@@ -921,6 +1109,8 @@ async function confirmCreate() {
   creating.value = true
   try {
     const w = await apiService.createWorld(name || `${ERA_PREFIX[era] ?? '世界'} ${Math.floor(Math.random() * 10000)}`, desc, era)
+    // 出片方式是全站设置：新建世界时按这里选的写一次，免得用户建完还得再进设置改
+    await saveMediaSettings()
     await loadWorlds()
     await selectWorld(w)
     createVisible.value = false
@@ -938,17 +1128,61 @@ function openWorldEdit() {
   worldForm.era = currentWorld.value.era || '现代'
   worldForm.weather = currentWorld.value.weather || '晴'
   worldForm.description = currentWorld.value.description || ''
+  void loadMediaSettings()
   editVisible.value = true
+}
+
+/** 读 sim 分组设置：出片方式与视频模型（读不到就用默认：出视频、自动挑模型） */
+async function loadMediaSettings() {
+  try {
+    const s = await apiService.fetchGroupSettings('sim') as Record<string, any>
+    const mode = String(s?.media_mode ?? s?.mediaMode ?? '').trim()
+    mediaForm.mediaMode = mode === 'image' ? 'image' : 'video'
+    mediaForm.videoModel = String(s?.video_model ?? s?.videoModel ?? '').trim()
+  } catch {
+    // 设置读不到不该挡住世界设置面板：保持默认值
+  }
+  if (!mediaForm.videoModels.length) void loadVideoModels()
+}
+
+/** 可选视频模型：只列当前确实有视频实现（能建任务）的模型 */
+async function loadVideoModels() {
+  try {
+    const list = await apiService.fetchGenerateModels('video') as any[]
+    const rows = Array.isArray(list) ? list : (list?.data ?? list?.list ?? [])
+    mediaForm.videoModels = rows
+      .map((m: any) => (typeof m === 'string' ? m : (m?.model ?? m?.name ?? '')))
+      .filter((x: string) => Boolean(x))
+  } catch {
+    mediaForm.videoModels = []
+  }
+}
+
+/** 把出片方式写回 sim 分组设置（只提交这两个键，避免覆盖别人改的其他设置） */
+async function saveMediaSettings() {
+  await apiService.updateGroupSettings('sim', {
+    media_mode: mediaForm.mediaMode,
+    video_model: mediaForm.videoModel || '',
+  })
 }
 
 async function confirmEdit() {
   if (!currentWorldId.value) return
-  await apiService.updateWorld(currentWorldId.value, {
-    name: worldForm.name,
-    era: worldForm.era,
-    weather: worldForm.weather,
-    description: worldForm.description,
-  })
+  savingWorld.value = true
+  try {
+    await apiService.updateWorld(currentWorldId.value, {
+      name: worldForm.name,
+      era: worldForm.era,
+      weather: worldForm.weather,
+      description: worldForm.description,
+    })
+    await saveMediaSettings()
+  } catch (e: any) {
+    message.error(e?.message || '保存失败')
+    return
+  } finally {
+    savingWorld.value = false
+  }
   editVisible.value = false
   await loadWorlds()
   await selectWorld(currentWorld.value!)
@@ -1185,7 +1419,13 @@ async function confirmEditRel() {
 }
 
 /* ---------------- 推进时间 ---------------- */
-async function advance() {
+/**
+ * 推进世界时间。
+ *
+ * @param keepAct 保留当前幕次选中。自动演化每次推进后会立刻接下一拍，
+ *                若像手动推进那样清掉幕次，观众会看到舞台反复黑屏、什么也留不住。
+ */
+async function advance(keepAct = false) {
   if (!currentWorldId.value || advancing.value) return
   advancing.value = true
   try {
@@ -1198,7 +1438,7 @@ async function advance() {
     syncWorld(currentWorld.value!, res.world)
     await loadWorlds()
     // 推进时会落一条旁白消息：回到对话视图才能看见，所以这里清掉幕次选中
-    if (currentAct.value) {
+    if (!keepAct && currentAct.value) {
       currentAct.value = null
       actDetail.value = null
     }
@@ -1232,7 +1472,7 @@ function stopAutoEvolve() {
   }
 }
 
-/** 排下一轮：先演一幕（若在演），再推进世界时间 */
+/** 排下一轮：先把待演的幕演完，再推进世界时间 */
 function scheduleEvolve() {
   stopAutoEvolve()
   if (!autoEvolve.value || !currentWorldId.value) return
@@ -1240,10 +1480,21 @@ function scheduleEvolve() {
     evolveTimer = null
     if (!autoEvolve.value || !currentWorldId.value) return
     try {
-      if (currentAct.value && actStage.value && actStage.value !== 'replay' && actStage.value !== 'finished') {
-        await actPipelineAction('advance')
+      // 「待演」幕：上一幕演完时 AI 已把下一幕建出来停在 writing，
+      // 此时焦点通常还在刚演完的 replay 幕上。若不主动把待演幕接上，
+      // 自动演化就只会空推世界时间，剧本永远停在第一幕。
+      const waiting = acts.value.find((a) => ['writing', 'props_ok', 'playing'].includes(String(a.stage)))
+      if (waiting && waiting.actNo !== currentAct.value?.actNo) {
+        await selectAct(waiting)
+      }
+      const stage = actStage.value
+      if (currentAct.value && stage && stage !== 'replay' && stage !== 'finished') {
+        // 形参是 { stage, label, action } 对象：传字符串会让 btn.action 恒为 undefined，
+        // 函数里所有分支都不命中，等于空转（自动演化会一直停在写作阶段）。
+        await actPipelineAction({ action: 'advance' })
       } else {
-        await advance()
+        // keepAct：自动演化是连续节奏，幕次不能被清掉，否则每一拍都黑屏
+        await advance(true)
       }
     } catch (e: any) {
       // 单轮失败不打断演化：下一轮自然重试，观众看到的是一次停顿而不是整个页面报错
@@ -1483,8 +1734,16 @@ function mediaStatusName(head?: Record<string, any>) {
   return '生成中'
 }
 
-/** 素材媒体的状态展示样式 */
-function mediaStatusClass(head?: Record<string, any>) {
+/** 视频素材的展示名：区分「图生视频（AI 先画好这一帧）」与「文生视频」 */
+function mediaModeName(head?: Record<string, any>) {
+  if (!head) return '无'
+  if (head.videoMode === 'image2video') return '视频 · 图生'
+  if (head.videoMode === 'text2video' && head.referenceImage) return '视频 · 文生（已退回）'
+  const st = mediaStatusName(head)
+  return st === '无' || st === '无需求' ? '视频' : '视频 · ' + st
+}
+
+/** 素材媒体的状态展示样式 */function mediaStatusClass(head?: Record<string, any>) {
   switch (head?.status) {
     case 'NO_PROMPT':
       return 'neutral'
@@ -1554,16 +1813,14 @@ async function selectAct(a: WorldActListRow) {
 
 async function fetchActDetail(actNo: number) {
   if (!currentWorldId.value || actNo == null) return
-  actProcessing.value = true
-  actBusyText.value = '正在读取这一幕…'
+  // 只读取详情：不占用 actProcessing，否则会和 actPipelineAction 的处理中状态互相踩，
+  // 自动演化时观众会看到进度提示突然消失。
   try {
     const d = await apiService.fetchWorldActDetail(currentWorldId.value, actNo) as WorldActDetail
     actDetail.value = d
     showScript.value = false
   } catch (e: any) {
     message.error(e?.message || '获取幕次详情失败')
-  } finally {
-    actProcessing.value = false
   }
 }
 
@@ -2186,6 +2443,113 @@ async function send() {
   color: var(--el-color-primary);
   font-size: 12.5px;
 }
+
+/* ---- 舞台放映：分镜视频连播 ---- */
+/* 尺寸都收在舞台这一栏里：竖屏按高度约束，横屏按宽度约束，不撑破台本三栏 */
+.ws-film {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 760px;
+}
+.ws-film-stage {
+  position: relative;
+  background: #0d0f12;
+  border-radius: var(--el-radius-md, 8px);
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+}
+.ws-film-video {
+  display: block;
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  background: #000;
+}
+.ws-film-badge {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+}
+/* 缩略条：每一段分镜一格，点哪格播哪段；播完自动接下一格 */
+.ws-film-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ws-film-thumb {
+  position: relative;
+  width: 92px;
+  height: 56px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--el-fill-color-light);
+  cursor: pointer;
+}
+.ws-film-thumb.active { border-color: var(--el-color-primary); }
+.ws-film-thumb.broken { opacity: 0.45; }
+.ws-film-thumb.broken::after {
+  content: '!';
+  position: absolute;
+  right: 3px;
+  bottom: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--el-color-danger);
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 3px;
+  padding: 0 3px;
+}
+.ws-film-broken {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.62);
+  pointer-events: none;
+}
+.ws-film-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ws-film-thumb-no {
+  position: absolute;
+  left: 4px;
+  top: 2px;
+  font-size: 11px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+.ws-film-thumb-name {
+  display: block;
+  padding: 6px 6px 0;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--el-text-color-regular);
+  text-align: left;
+}
+.ws-film-to-text {
+  margin-left: auto;
+  padding: 4px 10px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 999px;
+  background: transparent;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  cursor: pointer;
+}
+.ws-film-to-text:hover { color: var(--el-color-primary); border-color: var(--el-color-primary); }
 
 /* ---- 演出正文：像剧本页一样排 ---- */
 .ws-play {

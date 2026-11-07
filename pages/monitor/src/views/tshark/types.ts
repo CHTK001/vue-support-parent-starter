@@ -79,6 +79,39 @@ export interface TsharkPacket {
   httpContentEncoding?: string | null
   /** HTTP 正文原始字节数（不是截断后的字符数） */
   httpContentLength?: number | null
+  /** TCP 流编号（tshark `tcp.stream`）：同一四元组可能复用成多条连接 */
+  tcpStream?: number | null
+  /** TCP 绝对序列号（`tcp.seq_raw`） */
+  tcpSeq?: number | null
+  /** TCP 标志位组合，如 `SYN,ACK` / `PSH,ACK` */
+  tcpFlags?: string | null
+  /** IP 跳数（IPv4 TTL / IPv6 跳数上限） */
+  ipTtl?: number | null
+  /** HTTP 请求方法（仅请求帧） */
+  httpMethod?: string | null
+  /** HTTP 请求 URI（含查询串，仅请求帧） */
+  httpUri?: string | null
+  /** HTTP 响应状态码（仅响应帧） */
+  httpStatus?: number | null
+  /** TLS 握手里的服务器名（SNI） */
+  tlsSni?: string | null
+  /** DNS 查询名（多值时以逗号分隔） */
+  dnsQueryName?: string | null
+}
+
+/**
+ * 一次 HTTP 事务的两帧（`GET /tshark/sessions/{id}/packets/{id}/http-transaction`）。
+ *
+ * <p>请求头和请求体在请求起始帧、响应头和响应体在响应起始帧；详情抽屉用它把四段
+ * 数据放在同一个面板里，避免点哪一帧都只看到一半。</p>
+ */
+export interface TsharkHttpTransaction {
+  /** 发起查询的报文 id */
+  anchorId?: number
+  /** 请求方向（可能为 null：响应还没到 / 没有请求） */
+  request?: TsharkPacket | null
+  /** 响应方向（可能为 null：请求还没回 / 单向报文） */
+  response?: TsharkPacket | null
 }
 
 /**

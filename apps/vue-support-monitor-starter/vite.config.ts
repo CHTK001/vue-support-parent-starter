@@ -238,14 +238,49 @@ const apiTargetSelfCheck = (): PluginOption => ({
 });
 
 /**
+ * 指向**外部**服务的 `/api/**` 前缀：它们的 CORS 口径不归本应用后端管，
+ * Origin 必须原样转发，不能被 {@link dropProxyOrigin} 摘掉。
+ *
+ * <p>目前只有两条（见下方 `server.proxy`）：</p>
+ * <ul>
+ *   <li>{@code /api/account} → {@code 124.221.230.112:8080}（历史账号服务）</li>
+ *   <li>{@code /api/template} → {@code TEMPLATE_API_TARGET}（独立模板后端）</li>
+ * </ul>
+ *
+ * <p>末尾的 {@code (?:\/|$|\?)} 不能省：{@code /api/accounts}（统一账号管理，
+ * 落在本应用后端）也以 {@code /api/account} 开头，少了它就会让真正的自己人
+ * 继续带着 Origin 去撞 CORS。</p>
+ */
+const EXTERNAL_API_PATH = /^\/api\/(?:account|template)(?:\/|$|\?)/;
+
+/**
+ * 该 URL 是否打到**本应用后端**的 `/api/**`。
+ *
+ * @param url 请求路径（含 query）
+ * @returns 属于本应用后端的 API 返回 true
+ */
+function isFirstPartyApi(url: string): boolean {
+  return url.startsWith("/api/") && !EXTERNAL_API_PATH.test(url);
+}
+
+/**
  * dev 代理统一剥掉 `Origin` 头。
  *
- * <p>后端 `plugin.oauth.cors.allowed-origins` 是白名单（只列 8848 系地址），
- * 浏览器同源 POST 会带 `Origin: http://<本机端口>`，端口不在白名单时
- * Spring 直接回 403 `Invalid CORS request`（GET 不带 Origin 不受影响，
- * 这就是「读全绿、写全 403」的分裂）。dev 下页面与代理**同源**，
+ * <p>后端 CORS 是白名单制（`plugin.api.cors.allowed-origins`）：浏览器每次
+ * POST/PUT/DELETE 都会带 `Origin: http://<本机端口>`，而代理的
+ * `changeOrigin: true` 又把 `Host` 改成了后端自己的 host:port，于是
+ * `CorsUtils.isCorsRequest` 判定 Origin 与 Host 不同源；白名单里没有这个
+ * 来源时 Spring 直接回 403 `Invalid CORS request`。**GET 不带 Origin，
+ * 所以读全绿、写全 403** —— 这正是「渠道列表正常、点『绑定账号』报 403」的
+ * 成因：`POST /api/channels/kilo/start-login` 被 CORS 层挡下，前端只拿到
+ * `Request failed with status code 403`。dev 下页面与代理**同源**，
  * 浏览器根本不校验 ACAO 响应头，所以在进 proxy 前把 Origin 摘掉即可：
  * 任何端口都能开发，也不用动共享后端的白名单。</p>
+ *
+ * <p>为什么按 `/api/**` 整体判断，而不是继续逐个列举前缀：`/api/device`、
+ * `/api/apm` 都是历史上同一类 403 补出来的痕迹，补一个前缀只救一个页面；
+ * 而 `@pages/channel` 一被复用进本应用就带着 `/api/channels`、`/api/accounts`
+ * 两组写接口撞同一堵墙。</p>
  */
 function dropProxyOrigin(): PluginOption {
   return {
@@ -258,10 +293,7 @@ function dropProxyOrigin(): PluginOption {
         if (
           url.startsWith("/ms/") ||
           url.startsWith("/v2/") ||
-          url.startsWith("/api/device") ||
-          // APM 设置是 /api/apm/v1 下的首个写接口（GET /config 不带 Origin 才活着）：
-          // 不剥 Origin 就会出现「设置页能读、点保存 403 Invalid CORS request」
-          url.startsWith("/api/apm") ||
+          isFirstPartyApi(url) ||
           /^\/(fs|localFileStorage|local|ot|config|recycle|assets|static)(\/|$|\?)/.test(url)
         ) {
           delete req.headers.origin;
@@ -393,7 +425,10 @@ export default createVite({
     "@pages/docker": "pages/docker",
     // pages/tunnel 已交付：内网穿透路由（单页面 TunnelPage，提供方在页内选）
     "@pages/tunnel": "pages/tunnel",
-    "@pages/template": "pages/template",
+    // 账号管理（含模板管理 / 消息模板）的前端源码已并入后端项目
+    // spring-support-account-starter/web；宿主只挂路由，页面本体、API、路由声明
+    // 都在该包里（包名 @account/web）。
+    "@account/web": "../spring-support-parent-starter/spring-support-account-starter/web",
     // APM 观测台：页面根（业务以 "@pages/apm/src/..." 引用，alias 必须指向 pages/apm）
     "@pages/apm": "pages/apm",
     // 渠道管理页：直接复用 @pages/channel 的完整页面（品牌表 / 绑定 SSE / 模型开关 /
@@ -433,8 +468,11 @@ export default createVite({
         // apps/<app> → 仓库（worktree）根：默认 allow 会包含它，这里替换数组后必须补回，
         // 否则 @fs/<worktree>/packages/** 会被 403（worker / 字体 / 共享包全部加载失败）。
         const repoRoot = real(join(cwd, "..", ".."));
+        // 账号管理前端源码在后端仓（spring-support-account-starter/web），位于本工作区
+        // 之外；不放行时 dev 对 @fs/<外部绝对路径> 一律 403（页面白屏、sourcemap 报错）。
+        const accountWeb = real(join(cwd, "..", "..", "..", "spring-support-parent-starter", "spring-support-account-starter", "web"));
         // 同时放行 node_modules 本身与其上级（主检出根），覆盖 .pnpm 下的深层真实路径
-        return [real(cwd), repoRoot, nm, dirname(nm)];
+        return [real(cwd), repoRoot, nm, dirname(nm), accountWeb];
       })(),
     },
     watch: {

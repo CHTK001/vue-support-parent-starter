@@ -96,7 +96,8 @@
             v-if="timelineItems.length"
             :items="timelineItems"
             :is-streaming="streamingState.isStreaming"
-            @click="handleClick" />
+            @click="handleClick"
+            @abort="emit('abort')" />
 
           <!--
             首字未返回时的思考占位：随机文案（会话管理可配）+ 三点/呼吸动画。
@@ -311,6 +312,8 @@ const emit = defineEmits<{
   rewind: [message: Message]
   /** 从此处分叉：把截至本轮的消息复制成新会话 */
   fork: [message: Message]
+  /** 终止本轮执行：运行中工具行展开后的「停止」（需求 7/8） */
+  abort: []
   resumeConfirmation: [payload: { replyId: string; confirmed: boolean; items: any[]; feedback?: string }]
 }>();
 
@@ -859,6 +862,43 @@ const handleClick = (event: MouseEvent) => {
   margin-bottom: 25px;
   contain: layout style;
   transition: opacity var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+/*
+  消息操作工具条（复制/重新生成/回退/分叉/更多）：默认隐藏，鼠标经过本回合才出现
+  （用户需求 2026-11-07 参考图：ai 回复与 user 发送的下方，鼠标经过才显示工具）。
+
+  用 opacity + visibility 而不是 display:none：
+    1. display 切换会让整行高度跳变，鼠标移入时下面的内容被顶走，形成抖动；
+    2. visibility:hidden 的元素不可聚焦，键盘用户仍需可达 —— 故配合 :focus-within
+       让键盘 Tab 到按钮时同样显示（纯 :hover 会把键盘用户挡在外面）。
+
+  触屏没有 hover：@media (hover: none) 下常驻显示，否则手机上永远看不到这些按钮。
+*/
+.turn-wrapper :deep(.message-actions) {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--el-transition-duration-fast, 0.2s) ease,
+    visibility var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+.turn-wrapper:hover :deep(.message-actions),
+.turn-wrapper:focus-within :deep(.message-actions) {
+  opacity: 1;
+  visibility: visible;
+}
+
+@media (hover: none) {
+  .turn-wrapper :deep(.message-actions) {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .turn-wrapper :deep(.message-actions) {
+    transition: none;
+  }
 }
 
 .turn-wrapper.animate-in {

@@ -19,7 +19,6 @@
         :win-id="note.id"
         :persist="NOTE_PERSIST"
         :dock-scale="NOTE_DOCK_SCALE"
-        :guide-grid="NOTE_GUIDE_GRID"
         :model-value="true"
         :title="t('header.noteEntry.title')"
         :color="note.color"
@@ -121,8 +120,6 @@ const DEFAULT_H = 220;
 const NOTE_PERSIST = true;
 /** 最小化图标的缩放倍率 */
 const NOTE_DOCK_SCALE = 1;
-/** 对齐辅助线：同类便条互相对齐 */
-const NOTE_GUIDE_GRID = -1;
 
 /** 便条数据模型（与 IndexedDB store notes 的 keyPath `id` 对齐） */
 interface Note {
@@ -278,7 +275,7 @@ function load() {
       notes.value = list.map((n) => reactive(n));
     })
     .catch((err) => {
-      console.warn("[note-entry] 加载便条失败", err);
+      console.warn("[note-entry] 加载便条失败", err?.name, err?.message ?? err);
       notes.value = [];
     });
 }
@@ -421,6 +418,9 @@ onBeforeUnmount(() => {
 }
 
 .re-note-card__textarea {
+  /* 必须压在浮动窗口的抓取热区（z-index 2）之上，否则输入框点不到、无法聚焦 */
+  position: relative;
+  z-index: 3;
   display: block;
   box-sizing: border-box;
   width: 100%;

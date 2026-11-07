@@ -2,8 +2,9 @@
   协同文档全屏编辑视图 —— 新浏览器标签页打开，顶部无返回，专注编辑。
 
   路由：/file-collabs/edit/:id
-  能力：加载协同文档 → 按类型进入可编辑编辑器（excel=Univer / word=富文本 / text=纯文本）。
-        页面不提供返回按钮，关闭标签页即离开；保存由各编辑器内部定时异步完成。
+  能力：加载协同文档 → 按类型进入可编辑编辑器（excel=xlsx / word=docx，统一由
+        office-engine 渲染；text=纯文本）。页面不提供返回按钮，关闭标签页即离开；
+        保存由各编辑器内部定时异步完成。
 -->
 
 <template>
@@ -21,16 +22,10 @@
     </div>
     <div class="ce-body">
       <FileCollabEditor
-        v-if="doc.type === 'excel'"
+        v-if="doc.type === 'excel' || doc.type === 'word'"
         :collab-id="doc.id"
         :file-name="doc.fileName"
-        :initial-snapshot="snapshot"
-        :initial-version="version"
-      />
-      <WordCollabEditor
-        v-else-if="doc.type === 'word'"
-        :collab-id="doc.id"
-        :file-name="doc.fileName"
+        :doc-type="doc.type"
         :initial-snapshot="snapshot"
         :initial-version="version"
       />
@@ -50,7 +45,6 @@ import { onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import ReLoader from "@repo/ui/re-loader";
 import FileCollabEditor from "../components/collab/FileCollabEditor.vue";
-import WordCollabEditor from "../components/collab/WordCollabEditor.vue";
 import TextCollabEditor from "../components/collab/TextCollabEditor.vue";
 import { fileSvg } from "../utils/fileKind";
 import { getFileCollab, type FileCollabInfo } from "../api/filestorageApi";

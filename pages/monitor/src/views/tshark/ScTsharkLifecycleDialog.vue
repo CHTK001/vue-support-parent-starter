@@ -81,7 +81,7 @@
       </div>
 
       <div class="lc-tools">
-        <ReButton link type="primary" @click="hideAck = !hideAck">
+        <ReButton text type="primary" @click="hideAck = !hideAck">
           {{ hideAck ? '显示全部报文' : '隐藏纯 ACK' }}
         </ReButton>
         <span class="lc-meta">
@@ -189,7 +189,7 @@
         </ReTableColumn>
         <ReTableColumn label="操作" width="72" align="center">
           <template #default="{ row }">
-            <ReButton link type="primary" @click.stop="emit('open-detail', row.packetId)">详情</ReButton>
+            <ReButton text type="primary" @click.stop="emit('open-detail', row.packetId)">详情</ReButton>
           </template>
         </ReTableColumn>
       </ReTable>
@@ -202,7 +202,7 @@
             {{ selectedStep.relativeMs === 0 ? '0ms' : '+' + formatMs(selectedStep.relativeMs) }}
           </span>
           <span class="spacer"></span>
-          <ReButton v-if="selectedId != null" link type="primary" @click="emit('open-detail', selectedId)">
+          <ReButton v-if="selectedId != null" text type="primary" @click="emit('open-detail', selectedId)">
             单独打开
           </ReButton>
         </header>

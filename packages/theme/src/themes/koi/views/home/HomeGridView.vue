@@ -126,6 +126,9 @@ const { hostRef, rowHeight } = useFillRowHeight(totalRows);
   flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
+  box-sizing: border-box;
+  /* 与欢迎区卡片对齐：welcome 内容盒左右 20px，widget 卡片距 grid 边缘只有 12px，差 8px */
+  padding: 0 8px;
 }
 
 .home-grid__layout {

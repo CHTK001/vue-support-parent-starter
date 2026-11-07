@@ -125,6 +125,9 @@ function unoConfig(themeColors?: Record<string, string>, rules?: UnoConfig["rule
         path.resolve(WORKSPACE_ROOT, "apps/**/*.{vue,ts,tsx,js,jsx,html}"),
         path.resolve(WORKSPACE_ROOT, "packages/**/*.{vue,ts,tsx,js,jsx,html}"),
         path.resolve(WORKSPACE_ROOT, "pages/**/*.{vue,ts,tsx,js,jsx,html}"),
+        // 账号管理前端源码在后端仓（spring-support-account-starter/web），
+        // 不在上面三个目录里；不扫描它，模板页与账号页的 UnoCSS 原子类会全部丢失。
+        path.resolve(WORKSPACE_ROOT, "../spring-support-parent-starter/spring-support-account-starter/web/src/**/*.{vue,ts,tsx,js,jsx,html}"),
       ],
     },
     ...(themeColors ? { theme: { colors: themeColors } } : {}),

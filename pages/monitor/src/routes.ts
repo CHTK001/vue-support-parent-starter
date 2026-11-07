@@ -63,27 +63,11 @@ export function createMonitorRoutes(options: MonitorRoutesOptions = {}): RouteCo
       ],
     },
 
-    // ==================== 模板管理 ====================
-    // 模板库（hiprint 绘制/消息/组卷模板）的台账：列表 + 打开设计 / 预览。
-    // 数据层管模板 CRUD，监控侧只做台账与入口（设计器/预览页由 @pages/template 承载）。
-    {
-      path: "/grp-template",
-      name: "GroupTemplate",
-      meta: { title: "模板管理", icon: "MagicStick", showLink: true, rank: 21 },
-      children: [
-        {
-          path: "/templates",
-          name: "Templates",
-          component: () => import("./views/TemplateManageView.vue"),
-          meta: { title: "模板管理", icon: "Files", showLink: true, rank: 21 },
-        },
-      ],
-    },
-    // 只有分组下那一条「模板管理」叶子；此处曾有第二条顶层 /template 路由，
-    // 与分组内 /templates 指向同一个 TemplateManageView —— 侧边栏会同时出现
-    // 「模板管理（分组）」和一条平铺的「模板管理」，属重复项，已删除。
-    // 顺带一提：模板接口是 /api/template（@pages/template 的能力，部署在 18170，
-    // 由 app.yaml moduleBaseUrl.template 代理），不在 monitor 后端进程内。
+    // ==================== 模板管理（已并入账号管理） ====================
+    // 模板库（hiprint 绘制/消息/组卷模板）不再是独立菜单：它是「账号管理」页里的
+    // 一个视图（账号资产 / 模板管理 / 消息模板），页面与路由都由 @account/web 提供。
+    // 原先的 /grp-template 分组 + /templates（TemplateManageView.vue）已删除，
+    // 避免侧边栏出现两个模板入口、以及监控侧再抄一份模板台账。
 
     // ==================== 隐藏路由（不进菜单，仍可访问） ====================
     {

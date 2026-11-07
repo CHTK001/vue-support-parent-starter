@@ -8,10 +8,18 @@
  * 300ms 过渡期间每一帧都要重算并重绘继承链上的文字色。实测把 color
  * 放回来会让暗色切换从 ~54fps 掉到 ~27fps（p95 帧间隔 74ms）。
  * 文字色改为瞬时切换，观感几乎无差别，但省掉整棵子树的重绘。 */
+/* ⚠ 第二重口径（2026-11-07 实测，鼠标移动 / 弹窗拖拽卡顿的根因）：
+ * 本类一旦包含 background-color / border-color，容器就永远「可过渡」。
+ * 鼠标在容器内的子元素之间移动时，Blink 会不停给容器及其命中链重算样式，
+ * 过渡期间更是逐帧标脏 —— 真实 monitor 页实测：150 次鼠标移动 = 156~219
+ * 次样式重算（约占全部重算的 4/6），弹窗拖拽与侧栏悬停都受影响。
+ *
+ * 处理方式：只保留 box-shadow（阴影变化不影响布局与重算继承，主题切换时
+ * 也没有背景色需要跟随）。容器背景色改为随主题瞬时切换。
+ * 登录页等依赖本类做背景渐变的地方不受影响，因为渐变的是它自己的
+ * background 属性，不经过这里的颜色过渡。 */
 .transition-all {
-  transition: background-color var(--el-transition-duration, 0.3s) ease-in,
-    border-color var(--el-transition-duration, 0.3s) ease-in,
-    box-shadow var(--el-transition-duration, 0.3s) ease-in;
+  transition: box-shadow var(--el-transition-duration, 0.3s) ease-in;
 }
 .transition-300ms {
   transition-duration: 0.3s;

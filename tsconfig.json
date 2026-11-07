@@ -159,8 +159,10 @@
       "@pages/apm": ["pages/apm/src"],
       "@pages/apm/*": ["pages/apm/*"],
       "@pages/device": ["pages/device/src"],
-      "@pages/template": ["pages/template/src"],
-      "@pages/template/*": ["pages/template/src/*"],
+      // 账号管理（账号资产 + 模板管理 + 消息模板）前端源码在后端仓：
+      // spring-support-account-starter/web，包名 @account/web。
+      "@account/web": ["../spring-support-parent-starter/spring-support-account-starter/web"],
+      "@account/web/*": ["../spring-support-parent-starter/spring-support-account-starter/web/*"],
       "@pages/eduai": ["pages/eduai/src"],
       "@pages/eduai/*": ["pages/eduai/src/*"],
       "@pages/filesystem": ["pages/filesystem/src"],

@@ -99,10 +99,11 @@ import HomeGridView from "./HomeGridView.vue";
 import CustomLayoutEditor from "./CustomLayoutEditor.vue";
 import WidgetRenderer from "./WidgetRenderer.vue";
 import WidgetSettingsDialog from "./widgets/WidgetSettingsDialog.vue";
+import { getWidgetRegistration, getWidgetRegistrations, widgetCatalog } from "./registry";
 import { useHomeLayout } from "./useHomeLayout";
 import { preloadWidgetComponents } from "./useWidgetLoader";
 import { filterCatalogByPermission } from "./widgets";
-import { getWidgetRegistration, getWidgetRegistrations, widgetCatalog } from "./registry";
+import { useWidgetRefresh } from "./useWidgetRefresh";
 import type { GridPosition, WidgetItem, WidgetType } from "./types";
 
 const authStore = useAuthStore();
@@ -302,6 +303,9 @@ function patchWidget(id: string, patch: Partial<WidgetItem>): void {
 /** 正在编辑的 widget（点击预览中的「设置」按钮时赋值） */
 const editingWidget = ref<WidgetItem | null>(null);
 const settingsVisible = ref(false);
+
+/** 页面刷新调度：编辑 / 设置弹窗打开 / 手动保存期间暂停 worker tick */
+useWidgetRefresh(() => editMode.value || settingsVisible.value);
 
 function openWidgetSettings(id: string): void {
   const widget = state.widgets.find((w) => w.id === id);

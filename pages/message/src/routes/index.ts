@@ -10,7 +10,7 @@
  * 参数说明、富文本、预览、按模板发送），且带页面测试。
  * 原先本模块的 TemplateManage.vue 与它完全重复，又没有任何应用挂载，
  * 属未接线的死代码，故不再注册路由与菜单。
- * 只读查看统一模板库请走 {@code /template}（pages/template）。
+ * 只读查看统一模板库请走 {@code /account-assets} 的「模板管理」页签（@account/web）。
  */
 import type { RouteConfigsTable } from "@repo/core";
 

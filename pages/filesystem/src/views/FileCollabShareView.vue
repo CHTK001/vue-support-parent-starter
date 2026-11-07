@@ -2,8 +2,8 @@
   协同分享只读视图 —— 全屏展示，无返回栏（按分享需求「全屏显示，不再有返回」）。
 
   路由：/file-collabs/share/:id
-  能力：加载协同文档 → 按类型渲染只读内容（word/text 直接渲染快照；excel 用
-        FileCollabEditor 全屏打开）。页面不提供返回按钮，浏览器后退可离开。
+  能力：加载协同文档 → 按类型渲染只读内容（excel/word 由 office-engine 只读渲染，
+        text 直接渲染快照）。页面不提供返回按钮，浏览器后退可离开。
 -->
 
 <template>
@@ -21,14 +21,14 @@
     </div>
     <div class="cs-body">
       <FileCollabEditor
-        v-if="doc.type === 'excel'"
+        v-if="doc.type === 'excel' || doc.type === 'word'"
         :collab-id="doc.id"
         :file-name="doc.fileName"
+        :doc-type="doc.type"
         readonly
         :initial-snapshot="doc.snapshot"
         :initial-version="doc.version"
       />
-      <div v-else-if="doc.type === 'word'" class="cs-html" v-html="doc.snapshot" />
       <pre v-else class="cs-text">{{ doc.snapshot }}</pre>
     </div>
   </div>

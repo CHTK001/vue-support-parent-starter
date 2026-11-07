@@ -17,12 +17,17 @@
       - 配了 items → 按 yaml 给的顺序渲染，未列入的内置条目不再渲染
       - keepMounted 的条目用 v-show 隐藏（保留搜索态等组件状态）；
         其余用 v-if 卸载（天气/台风这类挂载即发请求的，不能留在后台空转）
+      - v-show 必须落到 <div> 上：顶栏条目组件（ReWeather / ReExchangeRate / ReTyphoon）
+        的根是 <el-popover> 这种 Fragment，v-show 拿不到元素根会报
+        "Runtime directive used on component with non-element root node" 并且指令失效。
     -->
     <template v-for="item in renderItems" :key="item.key">
+      <div v-if="item.keepMounted" v-show="item.visible">
+        <component :is="item.component" v-bind="item.props" />
+      </div>
       <component
+        v-else-if="item.visible"
         :is="item.component"
-        v-if="item.keepMounted || item.visible"
-        v-show="item.visible"
         v-bind="item.props"
       />
     </template>

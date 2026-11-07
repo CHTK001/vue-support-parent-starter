@@ -180,8 +180,8 @@ const historyDayCache = new Map<string, Record<string, number>>();
 /** 连续查询的并发量（天不是本地的，并发太大会被网关打流） */
 const HISTORY_CONCURRENCY = 8;
 
-/** frankfurter 公网地址（代理前缀由核心层处理，这里只能兜底） */
-const FRANKFURTER_CANDIDATE = "https://api.frankfurter.app";
+/** frankfurter 最新公网地址（server 未实现时直连，已迁至 api.frankfurter.dev/v1） */
+const FRANKFURTER_CANDIDATE = "https://api.frankfurter.dev/v1";
 
 /** 三方请求超时（ms） */
 const THIRD_PARTY_TIMEOUT = 8000;

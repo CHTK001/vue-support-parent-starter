@@ -675,10 +675,12 @@ watch(hasRates, (ready) => {
   if (ready) void ensurePinPoint();
 });
 
-/** 周期切换：极值/涨跌随周期变，固定币对要丢掉旧点重新取 */
+/** 周期切换：极值/涨跌随周期变，已按需取过的币对都要丢掉重新取 */
 watch(period, () => {
-  if (!pinned.value) return;
-  delete extraPoints[`${pinned.value.from}/${pinned.value.to}`];
+  for (const key of Object.keys(extraPoints)) {
+    delete extraPoints[key];
+  }
+  void ensureCalcPoint();
   if (hasRates.value) void ensurePinPoint();
 });
 

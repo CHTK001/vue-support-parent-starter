@@ -19,22 +19,15 @@
         </transition>
       </router-view>
       <!--
-        路由切换骨架：先出页面框架（页头 + 内容块），再等页面 chunk 就绪后替换成真实页面。
+        路由切换骨架：先出内容骨架（两张堆叠的信息卡），再等页面 chunk 就绪后替换成真实页面。
         为什么需要：懒加载路由在点击那一刻才开始下载 chunk，期间旧页面一动不动，
         用户会以为"点了没反应"。120ms 内的快速切换不显示，避免闪一下。
+        页头/工具栏不属于骨架：每个页面的标题、Tab、搜索行各不相同，单独占位比写进内容卡
+        更会引起布局跳跃（标题行的高度不确定，骨架撑开后真实页头出现，高度一变页面会先缩紧
+        再弹回，比直接画内容块更刺眼），所以骨架只保留两张内容卡。
       -->
       <transition name="route-skeleton-fade">
         <div v-if="routePending" class="route-skeleton" aria-busy="true" aria-label="页面加载中">
-          <div class="rs-head">
-            <span class="rs-bone rs-title"></span>
-            <span class="rs-bone rs-action"></span>
-          </div>
-          <div class="rs-toolbar">
-            <span class="rs-bone rs-tab is-active"></span>
-            <span class="rs-bone rs-tab"></span>
-            <span class="rs-bone rs-tab"></span>
-            <span class="rs-bone rs-tab is-short"></span>
-          </div>
           <div class="rs-card">
             <span class="rs-bone rs-line"></span>
             <span class="rs-bone rs-line"></span>
@@ -203,20 +196,6 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 
-.rs-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 4px 2px;
-}
-
-.rs-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 2px;
-}
-
 .rs-card {
   border-radius: 10px;
   border: 1px solid var(--el-border-color-lighter);
@@ -270,34 +249,6 @@ onBeforeUnmount(() => {
   );
   background-size: 200% 100%;
   animation: rs-shimmer 1.4s ease-in-out infinite;
-}
-
-.rs-title {
-  width: 180px;
-  height: 22px;
-  border-radius: 8px;
-}
-
-.rs-action {
-  width: 96px;
-  height: 30px;
-  border-radius: 8px;
-}
-
-.rs-tab {
-  width: 78px;
-  height: 26px;
-  border-radius: 8px;
-  background: var(--el-fill-color-lighter);
-  animation: none;
-
-  &.is-active {
-    background: var(--el-color-primary-light-8);
-  }
-
-  &.is-short {
-    width: 48px;
-  }
 }
 
 .rs-line {

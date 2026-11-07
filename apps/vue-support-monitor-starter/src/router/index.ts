@@ -51,6 +51,10 @@ import { createMonitorRoutes, createMonitorManageRoutes } from "@pages/monitor/s
 // apmConfig 只用于菜单可见性（app.yaml 的 apmConfig.enable），与后端探测无关。
 import { apmRoutes } from "@pages/apm/src/routes";
 import { apmConfig } from "@pages/apm/src/config";
+// 账号管理（账号资产 + 模板管理 + 消息模板）：源码在后端项目
+// spring-support-account-starter/web（包名 @account/web），这里只合并它的隐藏子路由
+// （打印机管理 / 调用日志 / 设计器 / 预览），供模板工作台的 router.push({name}) 命中。
+import { templateChildRoutes } from "@account/web/src/router";
 // 已并入又移除的包（留档，避免有人再加回来）：
 //   - 2026-11-02 曾并入 achievement / collect / job / message / signin / task 六包；
 //   - 本次再移除 @pages/system（systemRoutes 与下方「日志管理」分组）。
@@ -108,6 +112,20 @@ export const monitorRoutes: RouteConfigsTable[] = [
     name: "Workbench",
     component: () => import("@pages/monitor/src/views/WorkbenchView.vue"),
     meta: { title: "监控概览", icon: "DataBoard", showLink: false, rank: 1 },
+  },
+
+  // ==================== 监控大屏 ====================
+  // 大屏本体在 @pages/system/src/views/monitor/ServerMonitor.vue：页头按钮
+  // （自定义 ↔ 保存 / 恢复默认）、卡片栅格与 Actuator / APM 页签都在那里。
+  // 它读的是 monitor 后端（/v2/server/**、/actuator/**），属于本应用，不是系统域页面。
+  // 上面整体移除 @pages/system 时它被一并带走，/#/monitor/server 就落到 404；
+  // 所以这里只补回这一条隐藏路由（showLink:false，不进侧边栏），
+  // /manage/** 的那些系统域页面仍然不挂（monitor 后端确实没有这些接口）。
+  {
+    path: "/monitor/server",
+    name: "MonitorServer",
+    component: () => import("@pages/system/src/views/monitor/ServerMonitor.vue"),
+    meta: { title: "监控大屏", icon: "Cpu", showLink: false, keepAlive: true, rank: 2 },
   },
 
   // ==================== 分析管理 ====================
@@ -185,41 +203,13 @@ export const monitorRoutes: RouteConfigsTable[] = [
   // 视图、API、路由三者同源，宿主只做一行展开；/projects 等隐藏路由也一并展开到顶层。
   ...createServerHostRoutes({ activeMenu: "/assets" }),
 
-  // ==================== 文件管理 ====================
-  // 与「主机管理」平级的独立分组：文件服务器(FileStorageServerFilter)由后端
-  // monitor 的 MonitorFileStorageGatewayConfig 随应用启动（plugin.filesystem.
-  // storage-server，默认 18082），是应用进程内的独立 HTTP 服务，不走网关 /ms 前缀。
-  // 开发环境(pnpm dev)：文件服务在 198 上，浏览器直连会跨域且本机无该进程，
-  // 由 Vite 代理 /localFileStorage 等前缀转发到 198:18082（见 vite.config.ts）；
-  // 生产环境走应用配置 otherConfig.filestorage.server 或用户手动选定。
-  {
-    path: "/grp-file",
-    name: "GroupFile",
-    meta: { title: "文件管理", icon: "Folder", showLink: true, rank: 12 },
-    children: [
-      {
-        path: "/files",
-        name: "FileAssets",
-        component: () => import("@pages/filesystem/src/views/FileStorageManage.vue"),
-        meta: { title: "文件资产", icon: "FolderOpened", showLink: true, rank: 1 },
-      },
-      {
-        // 文件记录页更名「文件管理」：任务化分片上传的发起与状态展示
-        // （后台时间轮 + 虚拟线程合并）。分组名同为「文件管理」，接受两级同名。
-        path: "/upload-tasks",
-        name: "UploadTasks",
-        component: () => import("@pages/filesystem/src/views/UploadTaskView.vue"),
-        meta: { title: "文件管理", icon: "Upload", showLink: true, rank: 2 },
-      },
-      {
-        // 协同管理：在线表格协同（Univer）文档的列表与权限管理
-        path: "/file-collabs",
-        name: "FileCollabs",
-        component: () => import("@pages/filesystem/src/views/FileCollabManage.vue"),
-        meta: { title: "协同管理", icon: "Grid", showLink: true, rank: 4 },
-      },
-    ],
-  },
+  // ==================== 文件管理（已从监控管理平台的入口移除） ====================
+  // 文件服务器的能力属于同仓的 `vue-support-filestorage-starter`（独立应用），
+  // 不跟 monitor 后端同进程；目前 DUI 的代理目标（instabox 8082）已下线，
+  // `/files` 页打开后 @pages/filesystem 发出的全部接口请求 404/502，无法修复。
+  // 把路由 + 菜单分组删掉，节点不进侧边栏，避免死入口；配合 App.vue 资产侧栏
+  // 快捷入口的对应行一起清理。需要文件管理请以文件管理应用（filestorage-starter）
+  // 的入口为准，不要把这个页面重新走回 monitor 壳。
 
   // ==================== Docker ====================
   // Docker 是独立页面包（@pages/docker），页面内再分容器 / 镜像 / 网络 / 卷 /
@@ -302,11 +292,18 @@ export const monitorRoutes: RouteConfigsTable[] = [
     meta: { title: "账号管理", icon: "Key", showLink: true, rank: 14 },
     children: [
       {
+        // 账号管理（账号资产 + 模板管理 + 消息模板）：页面本体、API、隐藏子路由
+        // 都在 @account/web（后端项目 spring-support-account-starter/web）里，
+        // 宿主只挂这一条，不再各自维护模板库代码。
         path: "/account-assets",
         name: "AccountAssets",
-        component: () => import("@pages/monitor/src/views/account/ScAccountAssets.vue"),
+        component: () => import("@account/web/src/account/views/ScAccountAssets.vue"),
         meta: { title: "账号资产", icon: "Key", showLink: true, rank: 1 },
       },
+      // 模板工作台里的「打印机管理」「调用日志」及设计器/预览用 router.push({name}) 跳转，
+      // 这些路由必须真实存在。showLink:false 保证它们不进侧边栏
+      // （模板管理是账号管理页里的一个视图，不再是独立菜单）。
+      ...templateChildRoutes,
       // 渠道管理：**直接复用** @pages/channel 的完整渠道页（渠道品牌表 / 绑定授权 +
       // SSE 取凭据 / 刷新 / 签到 / 模型开关 / ChatClient / 文生图），
       // 宿主只负责挂路由，不再抄一份 API 与绑定业务（抄两份必然漂）。

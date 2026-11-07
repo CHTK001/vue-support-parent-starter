@@ -98,7 +98,7 @@
     <!-- ==================== ② 详情：某一份文件的报文 ==================== -->
     <template v-else>
       <div class="tshark-bar pcap-detail-bar">
-        <ReButton class="pcap-back" link type="primary" icon="ArrowLeft" show-text @click="backToList">
+        <ReButton class="pcap-back" text type="primary" icon="ArrowLeft" show-text @click="backToList">
           返回导入记录
         </ReButton>
 
@@ -197,7 +197,7 @@
       </div>
     </template>
 
-    <ScTsharkPacketDetail v-model="detailOpen" :packet="packetDetail" />
+    <ScTsharkPacketDetail v-model="detailOpen" :packet="packetDetail" :http-transaction="packetHttpTx" />
     <ScTsharkLifecycleDialog
       v-model="lifecycleVisible"
       :packet="lifecyclePacket"
@@ -252,7 +252,7 @@ const {
   loadingPackets, packets, packetPage, packetTotal, packetFilter, filterError,
   packetPageSize, protoStats, topFlows, statsVersion, loadingStats,
   timeline, timelineBucket, anomalies,
-  detailOpen, packetDetail,
+  detailOpen, packetDetail, packetHttpTx,
   init, loadSessions, selectSession,
   clearActiveSession, loadPackets, applyPacketFilter, filterByProtocol, filterByFlow,
   loadTimeline,

@@ -63,8 +63,8 @@
           <span class="tshark-ellipsis" :title="row.packetInfo">{{ row.packetInfo || row.restoredText || '—' }}</span>
         </template>
         <template #actions="{ row }">
-          <ReButton link type="primary" @click="emit('open-detail', row)">详情</ReButton>
-          <ReButton link type="primary" @click="emit('open-lifecycle', row)">生命周期</ReButton>
+          <ReButton text type="primary" @click="emit('open-detail', row)">详情</ReButton>
+          <ReButton text type="primary" @click="emit('open-lifecycle', row)">生命周期</ReButton>
         </template>
       </ReTable>
     </div>

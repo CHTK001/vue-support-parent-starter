@@ -75,6 +75,24 @@ html.dark {
     border-color var(--el-transition-duration, 0.3s) ease-in;
 }
 
+/* ⚠ 菜单项的 background-color / border-color 过渡会拖慢鼠标移动（2026-11-07 实测，勿加回）：
+ *
+ * 元素带 transition 时，鼠标每次划入划出都会让它进入「过渡态」并在过渡期间被
+ * 逐帧重算；侧栏有 70+ 个菜单项，鼠标扫过时每次移动都要重算命中链上的若干元素。
+ * 弹窗拖拽时鼠标同样在页面上移动，所以 ReDialog 与原生 el-dialog 会跟着发涩；
+ * 给弹窗加 will-change / contain 无效（Paint 降 96%，重算一次不少）。
+ * 静态复刻页上关掉本规则：150 次移动的重算 170 -> 15 次（-91%）。
+ *
+ * 这里把菜单项的过渡时长压到 0：声明仍在（主题切换观感不受影响，
+ * 因为这两个属性本来也随主题一起瞬时变化），但不再产生过渡态。
+ * 悬停反馈改由 element-plus 自带的 background-color 即时切换承担。
+ * 注意：侧栏容器的 .transition-all 必须同步收窄，否则外层过渡仍会逐帧标脏
+ * （见 transition.scss 的同名告警）。 */
+.el-menu-item,
+.el-menu-item.is-active {
+  transition-duration: 0s;
+}
+
 /* 鍥炬爣棰滆壊 */
 .koi-icon {
   // 缈昏浆鑹插瓧浣撻鑹?

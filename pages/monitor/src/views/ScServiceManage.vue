@@ -71,6 +71,10 @@ interface WorkTab extends ReTabsItem {
   kind: WorkKind;
   /** 房间页签要加入的房间号（来自 ?roomId=，空则停在「创建房间」） */
   roomId?: string;
+  /** 房间页签指向的信令节点地址（ROOM 节点的 serverUrl；空则用宿主同端口） */
+  serverUrl?: string;
+  /** 房间页签来源节点名（展示用，空表示宿主同端口房间） */
+  nodeName?: string;
 }
 
 /** 已打开的页签 */
@@ -107,6 +111,32 @@ function nodeIdOf(tab: ReTabsItem): number | null {
 /** 房间页签要加入的房间号 */
 function roomIdOf(tab: ReTabsItem): string {
   return workTabOf(tab.name)?.roomId ?? '';
+}
+
+/** 房间页签指向的信令节点地址（空则宿主同端口） */
+function serverUrlOf(tab: ReTabsItem): string {
+  return workTabOf(tab.name)?.serverUrl ?? '';
+}
+
+/** 是否为 P2P 房间协议节点（协议编码可能是 ROOM / room） */
+function isRoomCard(card: ServiceNodeCard): boolean {
+  const code = String(card.protocolCode || '').trim().toLowerCase();
+  return code === 'room';
+}
+
+/** 优先取运行中的 ROOM 节点地址；没有可用的返回空串 */
+function resolveRoomUrl(): string {
+  const roomNodes = vm.cards.filter(isRoomCard);
+  const running = roomNodes.find(card => card.status === 'RUNNING' && !!card.url);
+  return running?.url ?? '';
+}
+
+/** 房间页签标题：带节点名时标出「房间在哪个信令节点上」 */
+function roomLabel(roomId: string, nodeName?: string): string {
+  const parts = ['P2P 房间'];
+  if (roomId) parts.push(roomId);
+  if (nodeName) parts.push(`@${nodeName}`);
+  return parts.join(' ');
 }
 
 /** 节点状态 → ReTabs 状态点 */
@@ -158,13 +188,27 @@ function openTab(card: ServiceNodeCard, kind: Exclude<WorkKind, 'room'>): void {
  * 同一个房间工作台只开一个页签，重复点击只是切过去。房间号取 {@code ?roomId=}，
  * 没有则由用户在工作台里「创建房间」。</p>
  *
+ * <p>信令地址来自 ROOM 节点（{@code serverUrl}）：房间节点是独立端口的 WebSocket
+ * 服务，页面不能默认连宿主同端口——那个端口上没有房间端点。传空表示沿用当前
+ * 页签已指向的节点；两者都空时退回宿主同端口（服务管理与房间同进程部署的老形态）。</p>
+ *
  * <p>关闭页签会卸载 {@link RoomView}，它自己会 leave 并断开 WebSocket，不残留连接。</p>
+ *
+ * @param serverUrl 目标 ROOM 节点地址（空表示沿用/宿主同端口）
+ * @param roomIdArg 要加入的房间号（空则读 {@code ?roomId=}）
+ * @param nodeName  房间所在节点名（展示用）
  */
-function openRoomTab(): void {
-  const roomId = String(route.query.roomId ?? '');
+function openRoomTab(serverUrl?: string, roomIdArg?: string, nodeName?: string): void {
+  const roomId = roomIdArg ?? String(route.query.roomId ?? '');
+  const target = String(serverUrl ?? '').trim();
   const exist = openTabs.value.find(tab => tab.name === ROOM_TAB);
   if (exist) {
-    exist.roomId = roomId;
+    if (roomId) exist.roomId = roomId;
+    if (target) {
+      exist.serverUrl = target;
+      exist.nodeName = nodeName;
+    }
+    exist.label = roomLabel(exist.roomId ?? '', exist.nodeName);
     activeTab.value = ROOM_TAB;
     return;
   }
@@ -172,13 +216,54 @@ function openRoomTab(): void {
     name: ROOM_TAB,
     kind: 'room',
     roomId,
-    label: roomId ? `P2P 房间 ${roomId}` : 'P2P 房间',
+    serverUrl: target,
+    nodeName,
+    label: roomLabel(roomId, nodeName),
     icon: 'Connection',
     closable: true,
   };
   openTabs.value = [...openTabs.value, tab];
   activeTab.value = ROOM_TAB;
   pushActivity('打开 P2P 房间', 'Connection');
+}
+
+/**
+ * 顶部 / 快捷面板的房间入口：先找一个运行中的 ROOM 节点。
+ *
+ * <p>没有房间节点时不硬开页签：宿主端口上并没有房间端点，开了只会显示「已断开」，
+ * 让人以为功能坏了。这里直接说清楚缺什么。</p>
+ */
+function openRoomEntrance(): void {
+  const roomNodes = vm.cards.filter(isRoomCard);
+  const running = roomNodes.find(card => card.status === 'RUNNING' && !!card.url);
+  if (running) {
+    openRoomTab(running.url, undefined, running.name);
+    return;
+  }
+  if (roomNodes.length) {
+    message.warning('房间节点未运行：先在左侧启动 ROOM 节点');
+    return;
+  }
+  message.warning('还没有 ROOM 房间节点：先新建一个协议为 room 的服务');
+}
+
+/**
+ * 从节点行直接打开房间工作台。
+ *
+ * <p>只有运行中的节点才开：没监听就没有信令面，连上去必然失败。</p>
+ *
+ * @param card 房间节点卡片
+ */
+function openRoomFromCard(card: ServiceNodeCard): void {
+  if (card.status !== 'RUNNING') {
+    message.warning(`房间节点「${card.name}」未运行，请先启动`);
+    return;
+  }
+  if (!card.url) {
+    message.warning('房间节点没有可用地址（检查监听地址与端口）');
+    return;
+  }
+  openRoomTab(card.url, undefined, card.name);
 }
 
 /**
@@ -269,7 +354,7 @@ function onTabCommand(payload: { key: string; tab: ReTabsItem }): void {
       if (!tab) break;
       closeTab(name);
       if (tab.kind === 'room') {
-        openRoomTab();
+        openRoomTab(tab.serverUrl, tab.roomId, tab.nodeName);
         break;
       }
       const card = tab.nodeId == null ? undefined : cardOf(tab.nodeId);
@@ -425,6 +510,9 @@ function ctxCommand(cmd: string): void {
       break;
     case 'detail':
       openTab(card, 'detail');
+      break;
+    case 'room':
+      openRoomFromCard(card);
       break;
     case 'filter':
       openTab(card, 'filter');
@@ -606,9 +694,9 @@ watch(
 
 /* ==================== 房间深链 ==================== */
 
-/** 带 {@code ?roomId=xxx} 进来时直接把房间工作台页签打开 */
+/** 带 {@code ?roomId=xxx} 进来时直接把房间工作台页签打开（优先挂到运行中的 ROOM 节点） */
 onMounted(() => {
-  if (route.query.roomId) openRoomTab();
+  if (route.query.roomId) openRoomTab(resolveRoomUrl(), String(route.query.roomId));
 });
 
 /** 地址栏房间号变化时同步到已打开的房间页签 */
@@ -618,7 +706,7 @@ watch(
     const tab = openTabs.value.find(item => item.name === ROOM_TAB);
     if (!tab) return;
     tab.roomId = roomId;
-    tab.label = roomId ? `P2P 房间 ${roomId}` : 'P2P 房间';
+    tab.label = roomLabel(roomId, tab.nodeName);
   },
 );
 </script>
@@ -671,7 +759,7 @@ watch(
           clearable
         />
       </div>
-      <ReButton icon="Connection" show-text tip="打开 P2P 房间工作台" @click="openRoomTab">P2P 房间</ReButton>
+      <ReButton icon="Connection" show-text tip="打开 P2P 房间工作台" @click="openRoomEntrance">P2P 房间</ReButton>
       <ReButton icon="Plus" layout="square" type="primary" tip="新增服务" @click="vm.openCreate()" />
       <ReButton icon="Refresh" layout="square" tip="刷新" :loading="vm.loading" @click="vm.refresh()" />
     </div>
@@ -752,6 +840,14 @@ watch(
                 <!-- 行内操作：悬停浮出，不占常态宽度 -->
                 <span class="sv-node__ops">
                   <button
+                    v-if="isRoomCard(card)"
+                    type="button"
+                    title="打开房间工作台"
+                    @click.stop="openRoomFromCard(card)"
+                  >
+                    <ReIcon name="Connection" :size="13" />
+                  </button>
+                  <button
                     type="button"
                     :title="primaryLabel(card)"
                     :disabled="vm.actingId === card.id"
@@ -789,7 +885,7 @@ watch(
           v-model="activeTab"
           :tabs="openTabs"
           :context-menu="tabContextMenu"
-          empty-text="从左侧选择服务：单击选中，双击或右键打开详情；P2P 房间用右上角「P2P 房间」打开"
+          empty-text="从左侧选择服务：单击选中，双击或右键打开详情；P2P 房间在 ROOM 节点行点连接图标打开"
           @close="closeTab"
           @context-command="onTabCommand"
         >
@@ -800,6 +896,7 @@ watch(
               :key="`${tab.name}:${reloadSeqOf(tab.name)}`"
               embedded
               :room-id="roomIdOf(tab)"
+              :server-url="serverUrlOf(tab)"
               @leave="closeTab(tab.name)"
             />
             <!-- 每个页签独立实例 + key 代次：刷新/重开页签时重建内容 -->
@@ -862,7 +959,7 @@ watch(
                 <ReIcon name="Plus" :size="13" />
                 <span>新增服务</span>
               </button>
-              <button type="button" class="sv-dock__item" @click="openRoomTab">
+              <button type="button" class="sv-dock__item" @click="openRoomEntrance">
                 <ReIcon name="Connection" :size="13" />
                 <span>P2P 房间</span>
               </button>
@@ -967,6 +1064,10 @@ watch(
         <div class="sv-ctx-item" @click="ctxCommand('primary')">
           <ReIcon :name="primaryIcon(ctxMenu.card)" />
           <span>{{ primaryLabel(ctxMenu.card) }}</span>
+        </div>
+        <div v-if="isRoomCard(ctxMenu.card)" class="sv-ctx-item" @click="ctxCommand('room')">
+          <ReIcon name="Connection" />
+          <span>打开房间工作台</span>
         </div>
         <div class="sv-ctx-item" @click="ctxCommand('detail')">
           <ReIcon name="View" />

@@ -99,6 +99,24 @@ export class RoomSocket {
 
   /* ==================== 连接管理 ==================== */
 
+  /** 当前信令服务基地址（用于父级把房间页签指到独立房间节点） */
+  getBaseUrl(): string {
+    return this.baseUrl;
+  }
+
+  /**
+   * 设置信令服务基地址。
+   *
+   * <p>房间有两种接入：与应用同端口（默认当前站点）、服务管理里的 ROOM 独立节点
+   * （节点 serverUrl）。嵌入页签挂载前调本方法指到节点，卸载时传回上一个值即可恢复。</p>
+   *
+   * @param url 节点地址（http/https/ws/wss 均可），空值回落到当前站点
+   */
+  setBaseUrl(url?: string): void {
+    const next = url?.trim();
+    this.baseUrl = next ? next : new URL(window.location.href).origin;
+  }
+
   /** 建立连接（不自动重连，连接断开后由心跳/重连机制续接） */
   connect(): void {
     if (this.ws?.readyState === WebSocket.OPEN) {

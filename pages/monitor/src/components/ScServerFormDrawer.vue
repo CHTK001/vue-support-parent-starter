@@ -118,6 +118,22 @@ const SIP_FIELDS = [
   { name: 'dataPlaneMode', label: '数据平面模式', type: 'string', placeholder: 'tcp / udp' },
 ];
 
+/**
+ * P2P 房间专属字段（后端 RoomProperties 同名键）。
+ *
+ * <p>房间节点没有「后端地址」：它是信令面的终点，不需要转发到别处。
+ * maxPeers 与 STUN/TURN 会随 welcome 下发，客户端据此建 P2P 通道。</p>
+ */
+const ROOM_FIELDS = [
+  { name: 'maxPeers', label: '每房间端点数', type: 'number', placeholder: '2' },
+  { name: 'stunServer', label: 'STUN 服务器', type: 'string', placeholder: 'stun:stun.l.google.com:19302' },
+  { name: 'turnServer', label: 'TURN 服务器', type: 'string', placeholder: 'turn:turn.example.com:3478' },
+  { name: 'turnUser', label: 'TURN 用户', type: 'string' },
+  { name: 'turnPassword', label: 'TURN 密码', type: 'string' },
+  { name: 'leaseExpiresMs', label: '端点续期(ms)', type: 'number', placeholder: '30000' },
+  { name: 'removeEmptyRoomMs', label: '空房回收(ms)', type: 'number', placeholder: '240000' },
+];
+
 /** 当前协议元数据 */
 const currentProtocol = computed<ProtocolMeta | undefined>(() =>
   props.protocols.find(p => p.alias === form.value.protocol),
@@ -129,6 +145,9 @@ const isProxy = computed(() => !!currentProtocol.value?.requiresBackend);
 /** 是否 SIP 协议 */
 const isSip = computed(() => form.value.protocol === 'sip');
 
+/** 是否 P2P 房间协议（WebSocket 信令节点，无后端地址） */
+const isRoom = computed(() => form.value.protocol === 'room');
+
 /** 协议专属字段集合（按协议类型动态过滤，不再对所有协议展示全部 11 项通用字段） */
 const protocolFields = computed(() => {
   const fields: Array<{ name: string; label: string; type: string; placeholder?: string }> = [];
@@ -136,6 +155,7 @@ const protocolFields = computed(() => {
   const meta = currentProtocol.value;
   if (isProxy.value) fields.push(...PROXY_FIELDS);
   if (isSip.value) fields.push(...SIP_FIELDS);
+  if (isRoom.value) fields.push(...ROOM_FIELDS);
   // HTTP 类协议展示通用传输配置
   if (alias === 'http' || alias === 'https' || alias === 'http2') {
     fields.push(...COMMON_FIELDS);

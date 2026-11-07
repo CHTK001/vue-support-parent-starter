@@ -28,7 +28,7 @@ import { message } from "@repo/core";
 // 因此把 CSS 挂在页面组件上，保证任何挂载方式都有一份样式。
 import "../styles/room.css";
 import { useRoomStore } from "../stores/room";
-import { ConnectionState } from "../services/roomSocket";
+import { ConnectionState, roomSocket } from "../services/roomSocket";
 import { WORKSPACE_LABELS, type Workspace, Workspace as W } from "../types/room";
 import ChatWorkspace from "./ChatWorkspace.vue";
 import FilesWorkspace from "./FilesWorkspace.vue";
@@ -45,8 +45,10 @@ const props = withDefaults(
     embedded?: boolean;
     /** 嵌入模式下要加入的房间号（空则停在「创建房间」） */
     roomId?: string;
+    /** 信令服务基地址（服务管理里的 ROOM 节点地址；空则用当前站点同端口） */
+    serverUrl?: string;
   }>(),
-  { embedded: false, roomId: "" },
+  { embedded: false, roomId: "", serverUrl: "" },
 );
 
 const emit = defineEmits<{
@@ -155,18 +157,26 @@ watch(targetRoomId, (id) => {
 onMounted(() => {
   // 注册下行信令（unbind 在卸载时调用）
   const unbind = store.bindSignals();
+  // 房间节点是独立端口：先把信令基地址指到节点，再连接
+  const previousBase = roomSocket.getBaseUrl();
+  roomSocket.setBaseUrl(props.serverUrl);
   // 进入页面时先连 Socket，再接入房间
   store.connect();
   const id = targetRoomId();
   if (id) store.joinRoom(id);
   unmounted = unbind;
+  restoreBase = () => roomSocket.setBaseUrl(previousBase);
 });
 
 onBeforeUnmount(() => {
-  // 卸载：离开房间 + 关闭连接 + 解绑信令
+  // 卸载：离开房间 + 关闭连接 + 解绑信令，并恢复上级站点地址
   store.leaveRoom("user");
   unmounted?.();
+  restoreBase?.();
 });
+
+/** 恢复进入前的信令基地址 */
+let restoreBase: (() => void) | undefined;
 
 /** 存储 unbind（模块作用域可搜） */
 let unmounted: (() => void) | undefined;

@@ -2,9 +2,7 @@ import ReFloatWindow from "./ReFloatWindow.vue";
 
 export { ReFloatWindow };
 export type {
-  AlignLine,
   EdgeSide,
-  GeometrySnapConfig,
   GeometryWorkerRequest,
   GeometryWorkerResponse,
   Rect,

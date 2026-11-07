@@ -14,7 +14,7 @@
 <template>
   <ReDialog
     v-model="visible"
-    :title="project ? `Git 仓库 - ${project.projectName}` : 'Git 仓库'"
+    :title="active || project ? `Git 仓库 - ${(active ?? project)!.projectName}` : 'Git 仓库'"
     width="1000px"
     :close-on-click-modal="false"
     destroy-on-close
@@ -193,6 +193,14 @@ const emit = defineEmits<{
 }>();
 
 const visible = ref(false);
+/**
+ * 本次打开的项目。
+ *
+ * <p>不能只靠 props：父级是「先改 ref、紧接着调 open()」，Vue 的 props 更新要到下一次
+ * 刷新才落到子组件，open() 里立刻读 props.project 会拿到上一个值（首次打开是 null）——
+ * 表现为弹框打开后一片空白。故由 open() 自己收下这份项目引用。</p>
+ */
+const active = ref<GitProjectRef | null>(null);
 const loading = ref(false);
 const pulling = ref(false);
 const deploying = ref(false);
@@ -210,7 +218,7 @@ const deployTask = ref<ProcessTask | null>(null);
 let stopDeployWatch: (() => void) | null = null;
 
 const progressTitle = computed(() => {
-  const name = props.project?.projectName ?? "";
+  const name = (active.value ?? props.project)?.projectName ?? "";
   if (deployTask.value) {
     return `正在发布 ${name}`;
   }
@@ -277,7 +285,7 @@ function setProgress(
   }
   const current = list.find((s) => s.status === "RUNNING") ?? list[list.length - 1];
   progressSnapshot.value = {
-    taskId: `git-pull-${props.project?.id ?? 0}`,
+    taskId: `git-pull-${active.value?.id ?? 0}`,
     status: finished ? status : "RUNNING",
     percentage: pct,
     currentKey: current?.key,
@@ -315,7 +323,7 @@ function fmtTime(ms: number): string {
 
 /** 读取仓库概览 */
 async function load() {
-  const project = props.project;
+  const project = active.value ?? props.project;
   if (!project) {
     return;
   }
@@ -336,6 +344,7 @@ async function load() {
  * @param project 目标项目
  */
 async function open(project: GitProjectRef) {
+  active.value = project;
   visible.value = true;
   repo.value = null;
   loadError.value = "";
@@ -347,6 +356,7 @@ async function open(project: GitProjectRef) {
 function reset() {
   repo.value = null;
   loadError.value = "";
+  active.value = null;
   progressVisible.value = false;
   progressSnapshot.value = null;
   stopDeployWatch?.();
@@ -361,7 +371,7 @@ function reset() {
  * @param branch 目标分支；空表示跟随项目配置 / 当前分支
  */
 async function pull(branch?: string) {
-  const project = props.project;
+  const project = active.value ?? props.project;
   if (!project || pulling.value) {
     return;
   }
@@ -397,7 +407,7 @@ async function pull(branch?: string) {
  * ReProgressDialog 的快照。用户点的是「发布」，看到的就该是发布链路真实走到哪一步。</p>
  */
 async function deploy() {
-  const project = props.project;
+  const project = active.value ?? props.project;
   if (!project || deploying.value) {
     return;
   }

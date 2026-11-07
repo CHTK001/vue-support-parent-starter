@@ -39,6 +39,39 @@ import { createSseClient } from "@repo/utils";
 import type { SseClient } from "@repo/utils";
 import "../styles/debug.css";
 
+/* ==================== 视图偏好（localStorage） ==================== */
+
+/**
+ * 视图偏好存储前缀
+ *
+ * <p>页签、画面布局、网络详情高度这些「下次进来还想保持」的状态统一放在
+ * {@code debug.ui.*} 下，和业务数据（SVG 保存、求值历史）分开，便于单独清理。</p>
+ */
+const PREF_PREFIX = "debug.ui.";
+
+/** 读一个视图偏好；没存过、解析失败或隐私模式禁用存储时回落到默认值 */
+function readPref<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(PREF_PREFIX + key);
+    if (raw === null) {
+      return fallback;
+    }
+    const value = JSON.parse(raw) as T;
+    return value === null || value === undefined ? fallback : value;
+  } catch {
+    return fallback;
+  }
+}
+
+/** 写一个视图偏好（失败时忽略：隐私模式或配额满都不该影响页面本身） */
+function writePref(key: string, value: unknown): void {
+  try {
+    localStorage.setItem(PREF_PREFIX + key, JSON.stringify(value));
+  } catch {
+    // 存储不可用时只丢「记住状态」，不影响功能
+  }
+}
+
 /* ==================== 页面级状态 ==================== */
 
 /**
@@ -49,7 +82,16 @@ import "../styles/debug.css";
  * 侧栏，求值收进元素页签底部的 Console 抽屉。</p>
  */
 type PageTab = "elements" | "console" | "network" | "app" | "screenshot";
-const pageTab = ref<PageTab>("elements");
+
+const PAGE_TABS: readonly PageTab[] = ["elements", "console", "network", "app", "screenshot"];
+
+/** 页签默认落在「网络」；上次停留的页签会记住，下次进来直接续上 */
+function readPageTab(): PageTab {
+  const saved = readPref<string>("tab", "network");
+  return PAGE_TABS.includes(saved as PageTab) ? (saved as PageTab) : "network";
+}
+
+const pageTab = ref<PageTab>(readPageTab());
 
 /** 浏览器状态 */
 const status = ref<CdpStatus | null>(null);
@@ -58,8 +100,8 @@ const statusLoading = ref(false);
 /** 页面（目标）列表 */
 const targets = ref<CdpTarget[]>([]);
 
-/** 选中的目标标识（浏览器级时为空） */
-const selectedTarget = ref<string>("");
+/** 选中的目标标识（浏览器级时为空；记住上次选中的目标，刷新后尽量续上） */
+const selectedTarget = ref<string>(readPref<string>("target", ""));
 
 /** 控制台日志（CDP 事件的展示态） */
 interface ConsoleEntry {
@@ -156,25 +198,27 @@ const searchText = ref("");
 const netTypeFilter = ref("");
 
 /** 网络：保留日志（切目标时不清空） */
-const netPreserveLog = ref(false);
+const netPreserveLog = ref<boolean>(readPref<boolean>("net.preserveLog", false));
 
 /** 网络：当前展开详情的请求 */
 const netDetailId = ref("");
 /** 网络详情当前页签 */
-const netDetailTab = ref<"headers" | "response" | "initiator">("headers");
-/** 详情区固定高度（px，可拖拽调整，避免高度随内容跳变） */
-const netDetailHeight = ref(260);
+const netDetailTab = ref<"headers" | "response" | "initiator">(
+  readPref<"headers" | "response" | "initiator">("net.detailTab", "headers"),
+);
+/** 详情区固定高度（px，可拖拽调整，避免高度随内容跳变；高度也会记住） */
+const netDetailHeight = ref<number>(readPref<number>("net.detailHeight", 260));
 /** 详情区是否正在拖拽分隔条 */
 let netResizing = false;
 /** 响应体是否格式化展示 */
-const netBodyPretty = ref(true);
+const netBodyPretty = ref<boolean>(readPref<boolean>("net.pretty", true));
 const netBodyLoading = ref(false);
 
 /** 变化监视（DOM / 导航）是否开启 */
-const watchEnabled = ref(true);
+const watchEnabled = ref<boolean>(readPref<boolean>("watch.enabled", true));
 
 /** 自动注入 SkyWalking sw8 追踪头 */
-const sw8Enabled = ref(true);
+const sw8Enabled = ref<boolean>(readPref<boolean>("sw8.enabled", true));
 
 /** SVG 抽取结果 */
 const svgItems = ref<SvgItem[]>([]);
@@ -185,15 +229,20 @@ const svgSavedOnly = ref(false);
 /** 已保存 SVG 的 id（localStorage 持久化） */
 const svgSaved = ref<Set<string>>(new Set(loadSavedSvg()));
 
+/** 读画面布局偏好：只认 left / top，其余一律回落「左右」 */
+function readStageLayout(): "top" | "left" {
+  return readPref<string>("stage.layout", "left") === "top" ? "top" : "left";
+}
+
 /** 原始网站舞台：布局（上下 / 左右），默认左右：画面在左，DOM 与样式在右 */
-const stageLayout = ref<"top" | "left">("left");
+const stageLayout = ref<"top" | "left">(readStageLayout());
 /** 原始网站舞台是否展开 */
-const stageOpen = ref(true);
+const stageOpen = ref<boolean>(readPref<boolean>("stage.open", true));
 /** 舞台截屏（data url） */
 const stageShot = ref("");
 const stageLoading = ref(false);
 /** 舞台截屏自动刷新 */
-const stageLive = ref(true);
+const stageLive = ref<boolean>(readPref<boolean>("stage.live", true));
 /** 舞台图片元素（算点击坐标用） */
 const stageImgRef = ref<HTMLImageElement | null>(null);
 /** 舞台可视容器（算图片实际显示位置用） */
@@ -584,6 +633,8 @@ async function reloadTargets() {
         void loadFavicon(t);
       }
     }
+    // 目标校正后，若停在「元素」页签就自动补一次 DOM / 画面，避免刷新后左侧空着
+    void ensureElementReady();
   } catch (error) {
     console.warn("[cdp] 目标列表拉取失败", error);
     targets.value = [];
@@ -832,8 +883,9 @@ function connectWs() {
     wsConnected.value = true;
     // WS 每次（重）连上都要对账一次：浏览器可能在断线期间被重建，
     // 旧 selectedTarget 已失效；重新拉目标列表并校正选中态，才能继续用。
-    void reloadTargets();
-    void reloadStatus();
+    void reloadTargets().then(() => {
+      void reloadStatus().then(() => ensureElementReady());
+    });
     // 页面脚本（变化监视 / sw8）依赖 WS 指令通道，连上后补挂一次
     injectPageScripts();
   });
@@ -877,7 +929,9 @@ function connectSse() {
     onOpen: () => {
       sseConnected.value = true;
       // SSE 重连往往意味着浏览器 / 页面重建，重新对账目标并重挂页面脚本
-      void reloadTargets();
+      void reloadTargets().then(() => {
+        void reloadStatus().then(() => ensureElementReady());
+      });
       injectPageScripts();
     },
     onMessage: (e) => {
@@ -961,6 +1015,24 @@ function onPageChanged(kind: string, m: Record<string, unknown>) {
   }
   appendChange(`${kind}${url ? ": " + url : ""}`, targetId);
   domDirty.value = true;
+  // 主框架导航后本地同步目标 URL：左侧目标和顶部「原始网站条」不应等到下一次
+  // /targets 对账才更新（之前会一直显示上一个地址，刷新后才对）。
+  if (url && targetId) {
+    const hit = targets.value.find((t) => t.id === targetId);
+    if (hit && hit.url !== url) {
+      hit.url = url;
+      // 换了 origin，旧的 favicon 缓存/失败标记都要清掉，重新按新地址取一次
+      if (faviconCache.value[targetId] || faviconFailed.value.has(targetId)) {
+        const cache = { ...faviconCache.value };
+        delete cache[targetId];
+        faviconCache.value = cache;
+        const failed = new Set(faviconFailed.value);
+        failed.delete(targetId);
+        faviconFailed.value = failed;
+      }
+      void loadFavicon(hit);
+    }
+  }
   if (stageLive.value && pageTab.value === "elements") {
     void refreshStage();
   }
@@ -1272,6 +1344,7 @@ function blankNet(): NetEntry {
     received: 0,
     duration: 0,
     timestamp: Date.now(),
+    postData: "",
     requestHeaders: {},
     responseHeaders: {},
     initiator: "",
@@ -1512,6 +1585,7 @@ function startNetResize(event: PointerEvent) {
   };
   const onUp = () => {
     netResizing = false;
+    writePref("net.detailHeight", netDetailHeight.value);
     window.removeEventListener("pointermove", onMove);
     window.removeEventListener("pointerup", onUp);
     document.body.style.userSelect = "";
@@ -2333,9 +2407,11 @@ function attrPreview(value: string): string {
  * 白名单里的页面事件，{@code DOM.setChildNodes} 这类不在其中，增量展开收不到，
  * 所以前端一次性建树，展开 / 折叠全在本地做。</p>
  */
-async function loadElementTree() {
+async function loadElementTree(silent = false) {
   if (!selectedTarget.value) {
-    ElMessage.warning("请先在左侧选择一个目标");
+    if (!silent) {
+      ElMessage.warning("请先在左侧选择一个目标");
+    }
     return;
   }
   elementLoading.value = true;
@@ -2373,7 +2449,9 @@ async function loadElementTree() {
       void refreshStage();
     }
   } catch (error) {
-    ElMessage.error("读取 DOM 失败: " + (error as Error).message);
+    if (!silent) {
+      ElMessage.error("读取 DOM 失败: " + (error as Error).message);
+    }
   } finally {
     elementLoading.value = false;
   }
@@ -2590,7 +2668,9 @@ interface StyleRule {
 }
 
 /** 详情区当前看的页签：样式 / 计算 / 布局 / HTML / SVG */
-const detailTab = ref<"html" | "style" | "computed" | "box" | "svg">("style");
+const detailTab = ref<"html" | "style" | "computed" | "box" | "svg">(
+  readPref<"html" | "style" | "computed" | "box" | "svg">("element.detailTab", "style"),
+);
 /** 命中样式 */
 const styleRules = ref<StyleRule[]>([]);
 /** 样式读取失败原因 */
@@ -3089,8 +3169,54 @@ const elementRows = computed<{ node: DomTreeNode; depth: number }[]>(() => {
   return rows;
 });
 
+/** 自动补载过 DOM 的目标，避免 reloadTargets / 通道对账重复触发生成整树拉取 */
+let autoLoadedTarget = "";
+/** 自动补载是否正在进行（watch 与通道对账可能同时触发） */
+let autoLoading = false;
+
+/**
+ * 目标就绪后自动补齐当前页签的内容
+ *
+ * <p>刷新页面 / WS 重连 / SSE 重连后 {@code selectedTarget} 会被重新校正；此时若停在
+ * 「元素」页签，必须自动拉一次 DOM 与截屏，否则左侧画面和节点树会空着等人手点
+ * 「刷新 DOM」——表现就是「左侧每次都消失」。同一目标只补载一次，避免对账循环。
+ * 「应用」页签同理：恢复页签后顺手把存储拉一次。</p>
+ */
+async function ensureElementReady(): Promise<void> {
+  const id = selectedTarget.value;
+  if (!id || !running.value) {
+    return;
+  }
+  if (pageTab.value === "app") {
+    if (!storageCookies.value.length && !storageLocal.value.length && !storageSession.value.length) {
+      void loadStorage();
+    }
+    return;
+  }
+  if (pageTab.value !== "elements" || !wsReady()) {
+    return;
+  }
+  if (autoLoading || (elementTree.value && autoLoadedTarget === id)) {
+    return;
+  }
+  autoLoading = true;
+  autoLoadedTarget = id;
+  try {
+    await loadElementTree(true);
+  } finally {
+    autoLoading = false;
+  }
+  if (stageOpen.value && !stageShot.value) {
+    void refreshStage();
+  }
+  if (sourceOpen.value && !domRaw.value) {
+    void fetchContent();
+  }
+}
+
 // 换目标后旧的 DOM 树不再属于当前页面，全部丢掉
-watch(selectedTarget, () => {
+watch(selectedTarget, (id) => {
+  writePref("target", id);
   void stopPickNode();
   elementTree.value = null;
   elementNodeCount.value = 0;
@@ -3101,14 +3227,16 @@ watch(selectedTarget, () => {
   styleRules.value = [];
   styleError.value = "";
   styleDomainsTarget = "";
-  detailTab.value = "html";
   svgItems.value = [];
   svgError.value = "";
   domDirty.value = false;
   netDetailId.value = "";
   netBodyRaw.value = "";
+  // 注意：不清 detailTab / sourceOpen——它们是「视图偏好」不是「页面数据」。
+  // 清掉会让用户刚记住的详情页签 / 页面 HTML 面板在刷新后又被扳回默认值。
+  // domRaw 要清（上一个页面的 HTML 已失效）；sourceOpen 仍开着时由
+  // ensureElementReady() 自动按新目标重取一次。
   domRaw.value = "";
-  sourceOpen.value = false;
   stageShot.value = "";
   stageHighlight.value = null;
   stageObserver?.disconnect();
@@ -3116,20 +3244,17 @@ watch(selectedTarget, () => {
   watchInjected.clear();
   sw8Injected.clear();
   injectPageScripts();
+  void ensureElementReady();
 });
 
 // 切到「元素」页签时读一次 DOM / 补一张截屏，省掉手动点击
 watch(pageTab, (tab) => {
+  writePref("tab", tab);
   if (tab !== "elements") {
     void stopPickNode();
   }
   if (tab === "elements") {
-    if (!elementTree.value && selectedTarget.value) {
-      loadElementTree();
-    }
-    if (stageOpen.value && !stageShot.value) {
-      void refreshStage();
-    }
+    void ensureElementReady();
   } else if (tab === "app") {
     // 进「应用」页签顺手拉一次存储，省一次点击
     if (selectedTarget.value && !storageCookies.value.length && !storageLocal.value.length) {
@@ -3139,9 +3264,14 @@ watch(pageTab, (tab) => {
 });
 
 // 变化开关：开启补注入、关闭让页面观察者下线（事件驱动，无定时器）
-watch(watchEnabled, () => syncWatchInjection());
+watch(watchEnabled, (on) => {
+  writePref("watch.enabled", on);
+  syncWatchInjection();
+});
 // 打开画面 / 开启实时：补一次截屏；实时刷新由页面事件驱动，不再定时轮询
 watch([stageOpen, stageLive], () => {
+  writePref("stage.open", stageOpen.value);
+  writePref("stage.live", stageLive.value);
   if (stageOpen.value && stageLive.value && pageTab.value === "elements") {
     void refreshStage();
   }
@@ -3149,6 +3279,7 @@ watch([stageOpen, stageLive], () => {
 
 // 画面布局切换 / 页签重新进入 / 目标栏折叠：容器尺寸变了，重新校准高亮框
 watch([stageLayout, pageTab, railCollapsed, stageOpen], () => {
+  writePref("stage.layout", stageLayout.value);
   void nextTick(() => {
     bindStageObserver();
     if (selectedNode.value) {
@@ -3161,8 +3292,8 @@ watch([stageLayout, pageTab, railCollapsed, stageOpen], () => {
 
 const domRaw = ref("");
 const domLoading = ref(false);
-/** 元素页签里的「整页 HTML」面板（源码页签并进来后的落点） */
-const sourceOpen = ref(false);
+/** 元素页签里的「整页 HTML」面板（源码页签并进来后的落点；开关状态会记住） */
+const sourceOpen = ref<boolean>(readPref<boolean>("element.sourceOpen", false));
 
 /** 当前页签的地址栏（源码面板里的跳转输入） */
 const navigateUrl = ref("");
@@ -3302,7 +3433,7 @@ function historyNext(): void {
 }
 
 /** Console 抽屉是否展开（元素页签底部） */
-const evaluateOpen = ref(true);
+const evaluateOpen = ref<boolean>(readPref<boolean>("console.drawerOpen", true));
 /** 抽屉标题上的结果摘要（截断成一行，详情在抽屉里） */
 const evaluateSummary = computed(() => {
   const text = evaluateResult.value.replace(/\s+/g, " ").trim();
@@ -3365,7 +3496,9 @@ async function doEvaluate() {
 /* ==================== Storage（Application 面板） ==================== */
 
 /** 存储面板当前分组 */
-const storageTab = ref<"cookies" | "local" | "session">("cookies");
+const storageTab = ref<"cookies" | "local" | "session">(
+  readPref<"cookies" | "local" | "session">("app.storageTab", "cookies"),
+);
 const storageLoading = ref(false);
 const storageError = ref("");
 const storageCookies = ref<{ name: string; value: string; domain?: string; path?: string; expires?: number; httpOnly?: boolean; secure?: boolean }[]>([]);
@@ -3488,11 +3621,26 @@ async function clearStorage() {
   }
 }
 
+// 视图偏好：改动即落盘，下次进来保持原位。
+// 必须放在这里（脚本末尾）：sourceOpen / evaluateOpen / storageTab 在各自的功能段里声明，
+// 放到声明之前会在 setup 求值 watch 源时抛 TDZ（Cannot access 'sourceOpen' before initialization），
+// 整个调试中心页面因此挂不上。
+watch(sourceOpen, (on) => writePref("element.sourceOpen", on));
+watch(detailTab, (tab) => writePref("element.detailTab", tab));
+watch(netPreserveLog, (on) => writePref("net.preserveLog", on));
+watch(netDetailTab, (tab) => writePref("net.detailTab", tab));
+watch(netBodyPretty, (on) => writePref("net.pretty", on));
+watch(sw8Enabled, (on) => writePref("sw8.enabled", on));
+watch(storageTab, (tab) => writePref("app.storageTab", tab));
+watch(evaluateOpen, (on) => writePref("console.drawerOpen", on));
+
 /* ==================== 生命周期 ==================== */
 
-onMounted(() => {
-  reloadStatus();
-  reloadTargets();
+onMounted(async () => {
+  // 先把「运行状态」和「目标列表」对完，再按记住的页签补载内容：
+  // 只加载目标不等状态，running 还是空，DOM / 截屏都会被守卫挡掉。
+  await Promise.all([reloadStatus(), reloadTargets()]);
+  void ensureElementReady();
   // 指令通道（WS）+ 事件通道（全局 SSE）双通道，职责分离
   connectWs();
   connectSse();
@@ -3685,6 +3833,7 @@ onBeforeUnmount(() => {
               alt=""
               @error="onFaviconError(activeTarget.id)"
             />
+            <i v-else class="debug-tabs__ico debug-tabs__ico--fallback">◈</i>
             <span class="debug-tabs__url">{{ activeUrl || "未选择目标" }}</span>
           </span>
           <span v-if="stageLive" class="debug-tabs__live"><i class="debug-dot" />实时</span>
@@ -3692,7 +3841,7 @@ onBeforeUnmount(() => {
 
         <!-- ---------- 元素工具行 ---------- -->
         <div v-if="pageTab === 'elements'" class="debug-tool">
-          <button class="debug-btn debug-btn--sm" :disabled="elementLoading" @click="loadElementTree">
+          <button class="debug-btn debug-btn--sm" :disabled="elementLoading" @click="loadElementTree()">
             {{ elementLoading ? "读取中…" : "刷新 DOM" }}
           </button>
           <button
@@ -3817,11 +3966,14 @@ onBeforeUnmount(() => {
 
         <!-- ==================== 元素（F12 Elements） ==================== -->
         <div v-if="pageTab === 'elements'" class="debug-elements">
-          <div v-if="!elementTree && !elementLoading" class="debug-empty">
+          <div v-if="!elementTree && !elementLoading && !sourceOpen" class="debug-empty">
             <b>还没有读取 DOM</b>
             <span>点上方「刷新 DOM」把当前页面的节点树拉下来</span>
           </div>
-          <div v-else class="debug-elwrap">
+          <div
+            v-else
+            :class="['debug-elwrap', `debug-elwrap--${stageLayout}`, { 'debug-elwrap--src': sourceOpen }]"
+          >
             <div :class="['debug-el', `debug-el--${stageLayout}`]">
               <!-- 画面舞台：默认在左，点画面反查节点 -->
               <div v-if="stageOpen" class="debug-el__stage">
@@ -4140,34 +4292,34 @@ onBeforeUnmount(() => {
               </div>
               <pre class="debug-source__code">{{ domLoading ? "加载中…" : domRaw || "（空）" }}</pre>
             </div>
+          </div>
 
-            <!-- 底部 Console 抽屉：在元素 / 样式下方，与上方上下显示 -->
-            <div class="debug-drawer" :class="{ 'is-open': evaluateOpen }">
-              <div class="debug-drawer__hd" @click="evaluateOpen = !evaluateOpen">
-                <span class="debug-drawer__caret">{{ evaluateOpen ? "▾" : "▸" }}</span>
-                <b class="debug-drawer__title">Console</b>
-                <span class="debug-drawer__summary">{{ evaluateSummary }}</span>
-                <span class="debug-tool__spacer" />
-                <button class="debug-btn debug-btn--sm" @click.stop="clearEvaluate">清空</button>
+          <!-- 底部 Console 抽屉：整条工作区的底栏，不参与左右分栏 -->
+          <div class="debug-drawer" :class="{ 'is-open': evaluateOpen }">
+            <div class="debug-drawer__hd" @click="evaluateOpen = !evaluateOpen">
+              <span class="debug-drawer__caret">{{ evaluateOpen ? "▾" : "▸" }}</span>
+              <b class="debug-drawer__title">Console</b>
+              <span class="debug-drawer__summary">{{ evaluateSummary }}</span>
+              <span class="debug-tool__spacer" />
+              <button class="debug-btn debug-btn--sm" @click.stop="clearEvaluate">清空</button>
+            </div>
+            <div v-if="evaluateOpen" class="debug-drawer__body">
+              <div class="debug-drawer__inputrow">
+                <span class="debug-drawer__prompt">›</span>
+                <input
+                  v-model="evaluateExpression"
+                  class="debug-drawer__input"
+                  placeholder="JS 表达式，↑ / ↓ 翻历史（如 document.title）"
+                  spellcheck="false"
+                  @keyup.enter="doEvaluate"
+                  @keydown.up.prevent="historyPrev"
+                  @keydown.down.prevent="historyNext"
+                />
+                <button class="debug-btn debug-btn--sm debug-btn--primary" :disabled="evaluateLoading" @click="doEvaluate">
+                  {{ evaluateLoading ? "执行中…" : "执行" }}
+                </button>
               </div>
-              <div v-if="evaluateOpen" class="debug-drawer__body">
-                <div class="debug-drawer__inputrow">
-                  <span class="debug-drawer__prompt">›</span>
-                  <input
-                    v-model="evaluateExpression"
-                    class="debug-drawer__input"
-                    placeholder="JS 表达式，↑ / ↓ 翻历史（如 document.title）"
-                    spellcheck="false"
-                    @keyup.enter="doEvaluate"
-                    @keydown.up.prevent="historyPrev"
-                    @keydown.down.prevent="historyNext"
-                  />
-                  <button class="debug-btn debug-btn--sm debug-btn--primary" :disabled="evaluateLoading" @click="doEvaluate">
-                    {{ evaluateLoading ? "执行中…" : "执行" }}
-                  </button>
-                </div>
-                <pre class="debug-drawer__out">{{ evaluateResult || "（执行结果会显示在这里）" }}</pre>
-              </div>
+              <pre class="debug-drawer__out">{{ evaluateResult || "（执行结果会显示在这里）" }}</pre>
             </div>
           </div>
         </div>

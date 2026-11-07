@@ -2798,11 +2798,21 @@ onMounted(async () => {
   font-weight: 600;
 }
 
-/* ============ 卡片台账（B 版默认视图） ============ */
+/* ============ 卡片台账（B 版默认视图） ============
+   2026-11-07 反馈：这块原来是裸的卡片网格直接压在页面底色上，看着像「漏了一块」。
+   现在外层按 card 口径包裹（与左树 / 底栏同色面 + 1px 边 + 16px 圆角 + 轻投影），
+   卡片网格收进 card 内部滚动，边界一眼可见。 */
 .da-cards {
   flex: 1 1 0;
   min-height: 0;
   display: flex;
+  box-sizing: border-box;
+  padding: 10px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  overflow: hidden;
 }
 .da-cards__scroll {
   flex: 1;
@@ -2812,7 +2822,7 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(254px, 1fr));
   gap: 10px;
-  padding: 2px 2px 14px;
+  padding: 2px 2px 8px;
   align-content: start;
 }
 
@@ -3161,6 +3171,14 @@ onMounted(async () => {
   font-size: 12px;
   line-height: 1.7;
   color: var(--el-text-color-secondary);
+}
+
+/* 卡片台账里的空态：外层已有一层卡面包裹，这里去掉重复外边距并撑出高度，
+   避免出现「卡里一小块浅底、其余全空」的观感。 */
+.da-cards__scroll .da-empty {
+  margin: 0;
+  min-height: 240px;
+  justify-content: center;
 }
 
 .mono { font-family: var(--el-font-family-mono, monospace); }

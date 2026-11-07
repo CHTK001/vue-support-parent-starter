@@ -67,7 +67,8 @@
               @copy="copyMessage" @generate="generateResponse" @regenerate="regenerateResponse"
               @continue="continueResponse"
               @rewind="rewindFromHere" @fork="forkFromHere"
-              @resume-confirmation="resumeConfirmation" />
+              @resume-confirmation="resumeConfirmation"
+              @abort="abortResponse" />
             <!-- <div class="min-h-60"></div> -->
 
             <!-- 压缩中状态显示 -->
@@ -134,7 +135,8 @@
                （执行中命令卡可展开/停止；等待用户/思考/生成三种轻量态）。
                编辑消息时隐藏，避免与编辑条叠在一起（与 AiNextTaskPanel 同口径）。 -->
           <ModelActionBar v-if="!editMode" :kind="actionBarKind" :text="processingStatus"
-            :model-name="actionBarModelName" :card="actionBarCard" @stop="abortResponse" />
+            :model-name="actionBarModelName" :card="actionBarCard" @stop="abortResponse"
+            @locate="handleActionBarLocate" />
 
           <div class="w-full flex items-center relative">
 
@@ -558,31 +560,87 @@ const processingStatus = computed(() => {
 });
 
 // ============================================
-// 模型动作条（输入框上方）：从 currentProcessItem 派生四种形态
+// 模型动作条（输入框上方）：从会话轨迹派生形态
 // ============================================
 
+/** 取某回合里用户当时选中的那条回复（与 TurnItem.activeAssistant 同口径） */
+function activeAssistantOf(turn: any): any | null {
+  const assistants = turn?.assistants || [];
+  const activeId = turn?.user?.currentVersionId;
+  if (activeId) {
+    const hit = assistants.find((a: any) => a.id === activeId);
+    if (hit) return hit;
+  }
+  return assistants[assistants.length - 1] || null;
+}
+
 /**
- * 动作条形态：executing（跑工具，带命令卡）/ thinking / streaming / waiting / null。
- * waiting 优先于 executing：plan_exit 人工确认挂起时，轮次已不再推进，
- * 最后一个「过程项」会永远停在工具行上——必须先看确认请求再把其余状态兜底。
+ * 空闲等待：最后一轮已经答完，轮到你了。
+ *
+ * 需求 5 的「AI 等待」不止「等工具返回」和「等你确认」，最常见的其实是这一种：
+ * AI 说完了、没有下一步动作，就在等你的下一句话。它只在
+ * 「输入框为空 + 最后一轮已有正文」时出现——一打字就消失，避免常驻噪音。
  */
-const actionBarKind = computed<'executing' | 'thinking' | 'streaming' | 'waiting' | null>(() => {
-  // 等待用户：最后一条助手轨迹带未决的 confirmationRequest（plan_exit）
+const actionBarIdle = computed(() => {
+  if (isStreaming.value) return false;
+  if (inputMessage.value?.content?.trim()) return false;
+  const list = visibleTurns.value || [];
+  const lastTurn = list[list.length - 1];
+  if (!lastTurn?.user) return false;
+  const active = activeAssistantOf(lastTurn);
+  if (!active) return false;
+  // 有正文才算「答完」：刚创建、还在等首字的空壳不算
+  return (active.contents || []).some((c: any) => String(c?.content || '').trim().length > 0);
+});
+
+/**
+ * 网络重试：流式过程中后端回报 retry（连接抖动 / 限流），此时 AI 没有在思考，
+ * 只是在等网络。useStreamResponse 把 retryInfo 写进内容 metadata，内容恢复后清除，
+ * 所以「存在 retryInfo」就是当时的等待信号，不需要额外状态机。
+ */
+const actionBarRetrying = computed(() => {
+  if (!isStreaming.value) return false;
+  const list = visibleTurns.value || [];
+  const active = activeAssistantOf(list[list.length - 1]);
+  for (const c of active?.contents || []) {
+    if (c?.metadata?.retryInfo) return true;
+  }
+  return false;
+});
+
+/**
+ * 动作条形态：executing（跑工具，带命令卡）/ retrying（等网络重试）/
+ * thinking / streaming / waiting（等你确认）/ idle（等你的输入）/ null。
+ *
+ * waiting 的来源是**未决**的 plan_exit 人工确认：确认后 confirmationRequest
+ * 仍留在 metadata 里，只是多了 status: 'approved' | 'rejected'（持久化终态）。
+ * 只判断 replyId 会让动作条在用户点完确认后一直挂着「等待」，恢复失败时永久显示。
+ *
+ * waiting 优先于 executing：挂起时轮次不再推进，最后一个「过程项」会永远停在
+ * 工具行上（该工具其实早已返回），不先看确认请求就会误报「正在执行命令」。
+ */
+const actionBarKind = computed<'executing' | 'retrying' | 'thinking' | 'streaming' | 'waiting' | 'idle' | null>(() => {
+  // 只看最后一个回合：更早回合的确认请求都已被后续回合超越
   const list = visibleTurns.value || [];
   for (let i = list.length - 1; i >= 0; i -= 1) {
     const assistants = (list[i] as any)?.assistants || [];
-    const last = assistants[assistants.length - 1];
-    if (!last) continue;
-    for (const c of last.contents || []) {
-      const req = c?.metadata?.confirmationRequest;
-      if (req && req.replyId) return 'waiting';
+    // 该回合内从新到旧扫：挂起时确认请求可能不在最后一条空壳助手消息上
+    for (let j = assistants.length - 1; j >= 0; j -= 1) {
+      for (const c of assistants[j]?.contents || []) {
+        const req = c?.metadata?.confirmationRequest;
+        const resolved = req?.status === 'approved' || req?.status === 'rejected';
+        if (req && req.replyId && !resolved) return 'waiting';
+      }
     }
-    break; // 只看最后一个有内容的助手轨迹
+    break;
   }
   const current = currentProcessItem.value;
   if (current?.kind === 'tool') return 'executing';
+  // 网络重试期间同样「什么都没在做」，必须在 thinking 之前拦下
+  if (actionBarRetrying.value) return 'retrying';
   if (current?.kind === 'think') return 'thinking';
-  return isStreaming.value ? 'streaming' : null;
+  if (isStreaming.value) return 'streaming';
+  return actionBarIdle.value ? 'idle' : null;
 });
 
 /** 动作条里的模型名：与 ChatInput 模型按钮同源（该组件已加载模型目录并做了去命名空间显示） */
@@ -595,6 +653,7 @@ const actionBarCard = computed<ModelActionCard | null>(() => {
   const tool = current.tool;
   const args = getArgsText(tool);
   return {
+    id: tool?.id ? String(tool.id) : undefined,
     label: getToolActionLabel(tool),
     summary: args || getToolActionLabel(tool),
     fullCommand: args,
@@ -603,6 +662,16 @@ const actionBarCard = computed<ModelActionCard | null>(() => {
     icon: getToolIcon(tool),
   };
 });
+
+/**
+ * 等待态「去处理」：把待确认的计划卡滚进视野。
+ *
+ * 卡片固定渲染在最后一个回合的尾部，滚到底部即可命中；不用 querySelector
+ * 按类名找——PlanApprovalCard 是异步组件，类名一改这里就静默失效。
+ */
+function handleActionBarLocate() {
+  nextTick(() => scrollToBottom());
+}
 
 
 // 监听轮次变化：仅 handleSendMessage 发送的新消息才标记动画
