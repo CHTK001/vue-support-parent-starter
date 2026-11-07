@@ -2348,6 +2348,44 @@ function openStandalone(): void {
   if (!win) message.warning("浏览器拦截了弹出窗口，请允许后重试");
 }
 
+/**
+ * 在新标签页打开虚拟桌面。
+ *
+ * <p>带上当前选中主机：桌面落地就直接开一个终端窗口，
+ * 不用先在顶栏下拉里再找一遍。桌面自身是 standalone 路由，
+ * 新标签页里没有侧边栏干扰，适合长期摆着盯机器。</p>
+ */
+function openDesktop(): void {
+  const id = statusHost.value?.id;
+  const q = id ? `?hostId=${id}` : "";
+  const url = `${location.origin}${location.pathname}#/desktop${q}`;
+  const win = window.open(url, "_blank", "width=1480,height=920");
+  if (!win) message.warning("浏览器拦截了弹出窗口，请允许后重试");
+}
+
+/**
+ * 左栏顶部「更多」菜单的动作分发。
+ *
+ * <p>268px 的栏宽减去左右内边距只剩 244px，标题与计数固定占掉约 90px，
+ * 一行最多容得下 5 个 24px 图标按钮。导入 / 导出与独立窗口都是低频动作，
+ * 收进菜单后刷新、新增这几个高频按钮才不会被挤出边界。</p>
+ *
+ * @param command 菜单命令
+ */
+function onRailMore(command: string): void {
+  if (command === "import-export") {
+    hostIeVisible.value = true;
+    return;
+  }
+  if (command === "standalone") {
+    openStandalone();
+    return;
+  }
+  if (command === "desktop") {
+    openDesktop();
+  }
+}
+
 /** 清空最近活动 */
 function clearActivities(): void {
   activities.value = [];
@@ -2465,12 +2503,25 @@ function onGlobalKeydown(e: KeyboardEvent): void {
             <button type="button" class="rail-tool" title="刷新列表" :disabled="loading" @click="fetchAll">
               <ReIcon name="RefreshRight" :size="12" />
             </button>
-            <button type="button" class="rail-tool" title="导入 / 导出主机（会话文件、资产归档）" @click="hostIeVisible = true">
-              <ReIcon name="Upload" :size="12" />
-            </button>
-            <button type="button" class="rail-tool" title="独立窗口打开（只显示主机资产）" @click="openStandalone">
-              <ReIcon name="TopRight" :size="12" />
-            </button>
+            <!-- 低频动作收进「更多」：顶部一行放不下第 6 个图标按钮 -->
+            <el-dropdown class="rail-tool-dd" trigger="click" placement="bottom-end" @command="onRailMore">
+              <button type="button" class="rail-tool" title="更多：导入 / 导出主机、独立窗口、虚拟桌面">
+                <ReIcon name="MoreFilled" :size="12" />
+              </button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="import-export">
+                    <ReIcon name="Upload" :size="14" :style="{ marginRight: '6px' }" />导入 / 导出主机
+                  </el-dropdown-item>
+                  <el-dropdown-item command="standalone">
+                    <ReIcon name="TopRight" :size="14" :style="{ marginRight: '6px' }" />独立窗口打开
+                  </el-dropdown-item>
+                  <el-dropdown-item command="desktop" divided>
+                    <ReIcon name="FullScreen" :size="14" :style="{ marginRight: '6px' }" />虚拟桌面
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
             <button type="button" class="rail-tool is-primary" title="新增主机" @click="openAdd">
               <ReIcon name="Plus" :size="12" />
             </button>
@@ -3426,6 +3477,12 @@ function onGlobalKeydown(e: KeyboardEvent): void {
 .rail-tool.is-primary:hover {
   color: #fff;
   background: var(--el-color-primary-light-3);
+}
+
+/* 「更多」下拉的触发器：不参与收缩，按钮外观仍复用 .rail-tool */
+.rail-tool-dd {
+  display: inline-flex;
+  flex: none;
 }
 
 .rail-chip {

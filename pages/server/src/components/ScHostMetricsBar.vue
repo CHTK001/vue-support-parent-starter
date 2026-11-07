@@ -270,7 +270,7 @@ const bars = computed(() => [
           <div v-if="rows.length" class="hmb__pop-rows">
             <div v-for="r in rows" :key="r.label" class="hmb__pop-row" :class="{ 'is-barred': r.percent != null }">
               <span class="hmb__pop-label">{{ r.label }}</span>
-              <span class="hmb__pop-val" :class="{ 'is-multiline': r.value.includes('\n'), 'is-mono': r.mono, 'is-dim': r.value === '—' }">{{ r.value }}</span>
+              <span v-if="r.percent == null" class="hmb__pop-val" :class="{ 'is-multiline': r.value.includes('\n'), 'is-mono': r.mono, 'is-dim': r.value === '—' }">{{ r.value }}</span>
               <!-- 已扫描端口明细：hover 浮出端口列表（原 title 改为 popover，长列表可读） -->
               <el-popover
                 v-if="r.tip"
@@ -565,19 +565,19 @@ const bars = computed(() => [
   line-height: 1.6;
 }
 
-/* 带占用率条的概要行（内存 / 磁盘）：值占一行，进度条独占第二行 */
+/* 带占用率条的概要行（内存 / 磁盘）：标签 + 进度条 + 右侧用量同行显示，
+   总量已包含在右侧「已用 / 总量」文案里，不再单独占一行 */
 .hmb__pop-row.is-barred {
-  flex-wrap: wrap;
-  row-gap: 4px;
+  flex-wrap: nowrap;
+  align-items: center;
 }
 
 .hmb__pop-bar {
   display: flex;
-  flex: 0 0 100%;
+  flex: 1 1 auto;
+  min-width: 0;
   align-items: center;
   gap: 8px;
-  /* 与上方数值左对齐（标签宽 66 + 间距 10） */
-  margin-left: 76px;
 }
 
 /* 外壳 + 内条：外壳负责边界，内条只负责填充 */
@@ -605,6 +605,7 @@ const bars = computed(() => [
   font-family: var(--font-mono, ui-monospace, Consolas, monospace);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
   color: var(--el-text-color-secondary);
 }
 

@@ -480,6 +480,14 @@ export const monitorRoutes: RouteConfigsTable[] = [
     component: () => import("@pages/server/src/views/StandaloneTerminal.vue"),
     meta: { title: "远程控制", showLink: false, standalone: true },
   },
+  {
+    // 虚拟桌面：整页接管视口（顶栏 + Dock + 窗口），必须走 standalone，
+    // 否则应用的侧边栏与顶栏会把桌面壳挤成「一个大卡片」。
+    path: "/desktop",
+    name: "VirtualDesktop",
+    component: () => import("@pages/server/src/views/desktop/DesktopView.vue"),
+    meta: { title: "虚拟桌面", showLink: false, standalone: true },
+  },
 ];
 
 export default monitorRoutes;
