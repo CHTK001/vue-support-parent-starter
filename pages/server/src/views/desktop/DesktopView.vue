@@ -6,10 +6,12 @@
    * 可拖拽窗口），数据面全部走平台已有的 SSH / SFTP / 命令执行 / 指标通道，
    * 所以主机不需要额外装桌面环境，也不镜像真实屏幕。</p>
    *
-   * <p>桌面是<b>按主机</b>开的（路由 {@code /desktop/:hostId}）：一台主机一个桌面，
-   * 没有全局主机下拉。入口在主机资产页的右键菜单里，换主机就是换桌面。
-   * 桌面本身是<b>应用内页签</b>，不进浏览器新标签页；只有单个窗口可以「在新标签页打开」，
-   * 那个标签页走 {@code /desktop-window/:hostId?only=<app>}，只渲染这一个窗口。</p>
+   * <p>桌面是<b>按主机</b>开的：一台主机一个桌面，没有全局主机下拉。
+   * 默认入口是主机资产页的右键菜单，打开的是<b>主机资产右侧工作区里的一个页签</b>
+   * （与远控 / 文件管理 / 指标监控平级，{@code embedded} 模式 + {@code host-id} 传入主机），
+   * 所以关掉页签就留在主机资产，主机上下文不丢，也不会开浏览器新标签页。
+   * 只有桌面里的单个窗口可以「在新标签页打开」，那个标签页走
+   * {@code /desktop-window/:hostId?only=<app>}（{@code singleKey} 模式），只渲染这一个窗口。</p>
    *
    * <p>三个刻意的取舍：</p>
    * <ul>
@@ -36,9 +38,26 @@
     </div>
   </div>
 
-  <div v-else ref="rootRef" class="vdesk" @contextmenu.prevent="openDeskMenu">
+  <div
+    v-else
+    ref="rootRef"
+    class="vdesk"
+    :class="{ 'vdesk--embed': embedded, 'is-start': startOpen }"
+    :style="{ background: wallpaperCss }"
+    @contextmenu.prevent="openDeskMenu"
+  >
     <!-- 顶栏：这台主机的桌面，不提供主机切换（换主机请回主机资产页重开） -->
     <header class="vdesk__top">
+      <button
+        type="button"
+        class="vdesk__startbtn"
+        :class="{ 'is-on': startOpen }"
+        title="应用菜单（Ctrl+K）"
+        @pointerdown.stop
+        @click.stop="toggleStart"
+      >
+        <ReIcon name="Grid" :size="13" />
+      </button>
       <span class="vdesk__host">{{ activeHost?.serverHostName || "未指定主机" }}</span>
       <span v-if="activeHost" class="vdesk__addr">{{ activeHost.serverHostAddress }}</span>
       <span class="vdesk__dot" :class="activeHost?.serverHostOnline === 1 ? 'is-on' : 'is-off'" />
@@ -48,7 +67,7 @@
       <button type="button" class="vdesk__act" title="全屏 / 退出全屏" @click="toggleFullscreen">
         <ReIcon name="FullScreen" :size="12" />
       </button>
-      <button type="button" class="vdesk__act" title="返回主机资产" @click="leave">
+      <button v-if="!embedded" type="button" class="vdesk__act" title="返回主机资产" @click="leave">
         <ReIcon name="Back" :size="12" />
       </button>
     </header>
@@ -73,6 +92,23 @@
         <span class="dock__label">刷新</span>
       </button>
     </nav>
+
+    <!-- 桌面快捷方式：与 Dock 同一份应用清单，双击打开（单击只选中） -->
+    <div v-if="activeHost" class="vdesk__icons">
+      <button
+        v-for="a in dockApps"
+        :key="a.key"
+        type="button"
+        class="dicon"
+        :class="{ 'is-off': a.off, 'is-sel': iconSel === a.key }"
+        :title="a.off ? `${a.hint}（${a.offReason}）` : `${a.hint}\n双击打开`"
+        @click.stop="iconSel = a.key"
+        @dblclick.stop="openApp(a.key)"
+      >
+        <ReIcon :name="a.icon" :size="30" class="dicon__ico" />
+        <span class="dicon__label">{{ a.label }}</span>
+      </button>
+    </div>
 
     <!-- 窗口层 -->
     <div class="vdesk__layer">
@@ -113,7 +149,7 @@
     <div v-if="ready && activeHost && !windows.length" class="vdesk__empty">
       <ReIcon name="Monitor" :size="38" />
       <b>从左侧 Dock 打开「{{ activeHost.serverHostName }}」的应用</b>
-      <span>终端、文件、监控、命令都是对这台主机的真实操作</span>
+      <span>终端、文件、监控、系统、命令都是对这台主机的真实操作</span>
     </div>
 
     <!-- 没有带主机进来：桌面是按主机开的，不做全局页 -->
@@ -121,7 +157,7 @@
       <ReIcon name="Monitor" :size="38" />
       <b>请先选择一台主机</b>
       <span>虚拟桌面属于具体主机：在主机资产页的右键菜单里打开某一台主机的桌面</span>
-      <button type="button" class="vdesk__go" @click="leave">去主机资产</button>
+      <button v-if="!embedded" type="button" class="vdesk__go" @click="leave">去主机资产</button>
     </div>
 
     <!-- 加载态 -->
@@ -129,6 +165,106 @@
       <span class="vdesk__boot-dot" />
       正在读取主机…
     </div>
+
+    <!-- 贴边分屏预览：拖窗口到左/右/上边缘时先给出落点，松手才真的贴过去 -->
+    <div
+      v-if="snapPreview"
+      class="vdesk__snap"
+      :style="{
+        left: `${snapPreview.x}px`,
+        top: `${snapPreview.y}px`,
+        width: `${snapPreview.w}px`,
+        height: `${snapPreview.h}px`,
+      }"
+    />
+
+    <!-- 任务栏：所有已打开窗口的入口，点当前窗口最小化、点最小化的窗口还原 -->
+    <footer v-if="activeHost" class="vdesk__tasks">
+      <button type="button" class="vtask is-start" title="应用菜单（Ctrl+K）" @click.stop="toggleStart">
+        <ReIcon name="Grid" :size="14" />
+      </button>
+      <button
+        v-for="w in windows"
+        :key="w.id"
+        type="button"
+        class="vtask"
+        :class="{ 'is-on': activeId === w.id && !w.min, 'is-min': w.min }"
+        :title="w.title"
+        @click="taskClick(w)"
+      >
+        <ReIcon :name="appIcon(w.app)" :size="12" />
+        <span class="vtask__label">{{ w.title }}</span>
+      </button>
+      <span class="vdesk__spacer" />
+      <button type="button" class="vtask is-clock" :title="`${dateText} ${clock}`" @click.stop="toggleStart">
+        <span class="vtask__clock">{{ clock }}</span>
+        <em class="vtask__date">{{ dateText }}</em>
+      </button>
+    </footer>
+
+    <!-- 应用菜单（开始菜单）：应用、常用动作、壁纸都收在这里 -->
+    <template v-if="startOpen && activeHost">
+      <div class="vstart-mask" @pointerdown="closeStart" @contextmenu.prevent="closeStart" />
+      <section class="vstart" @pointerdown.stop @contextmenu.prevent>
+        <header class="vstart__head">
+          <span class="vstart__avatar"><ReIcon name="Monitor" :size="16" /></span>
+          <div class="vstart__meta">
+            <b>{{ activeHost.serverHostName }}</b>
+            <span class="mono">{{ activeHost.serverHostAddress }}:{{ activeHost.serverHostPort ?? 22 }}</span>
+          </div>
+          <span class="vdesk__dot" :class="activeHost.serverHostOnline === 1 ? 'is-on' : 'is-off'" />
+        </header>
+
+        <div class="vstart__apps">
+          <button
+            v-for="a in dockApps"
+            :key="a.key"
+            type="button"
+            class="vstart__app"
+            :class="{ 'is-off': a.off }"
+            :title="a.off ? a.offReason : a.hint"
+            @click="menuApp(a.key)"
+          >
+            <ReIcon :name="a.icon" :size="18" />
+            <span>{{ a.label }}</span>
+            <em v-if="a.off">{{ a.offReason }}</em>
+          </button>
+        </div>
+
+        <div class="vstart__acts">
+          <button type="button" class="vstart__act" @click="menuRefresh">
+            <ReIcon name="RefreshRight" :size="12" /><span>刷新主机</span>
+          </button>
+          <button type="button" class="vstart__act" :disabled="!windows.length" @click="menuMinAll">
+            <ReIcon name="Minus" :size="12" /><span>全部最小化</span>
+          </button>
+          <button type="button" class="vstart__act" :disabled="!windows.length" @click="menuCloseAll">
+            <ReIcon name="CircleClose" :size="12" /><span>关闭全部</span>
+          </button>
+          <button type="button" class="vstart__act" @click="menuFullscreen">
+            <ReIcon name="FullScreen" :size="12" /><span>全屏</span>
+          </button>
+        </div>
+
+        <div class="vstart__wp">
+          <span class="vstart__wp-label">壁纸</span>
+          <button
+            v-for="w in WALLPAPERS"
+            :key="w.key"
+            type="button"
+            class="vstart__swatch"
+            :class="{ 'is-on': wallpaper === w.key }"
+            :style="{ background: w.css }"
+            :title="w.label"
+            @click="setWallpaper(w.key)"
+          />
+        </div>
+
+        <footer class="vstart__foot">
+          Ctrl+K 菜单 · Alt+Tab 切换窗口 · 窗口拖到边缘分屏
+        </footer>
+      </section>
+    </template>
 
     <!--
       桌面右键菜单：接管浏览器原生菜单。
@@ -201,12 +337,15 @@ import type { DesktopAppDef, DesktopAppKey, DesktopHost, DesktopWindow } from ".
 import DesktopTerminal from "./apps/DesktopTerminal.vue";
 import DesktopFiles from "./apps/DesktopFiles.vue";
 import DesktopMonitor from "./apps/DesktopMonitor.vue";
+import DesktopSystem from "./apps/DesktopSystem.vue";
 import DesktopConsole from "./apps/DesktopConsole.vue";
 
 /** 顶栏高度（窗口拖拽的上边界） */
 const TOP_H = 34;
 /** Dock 宽度（窗口拖拽的左边界） */
 const DOCK_W = 78;
+/** 底部任务栏高度（窗口的下边界） */
+const TASKBAR_H = 34;
 /** 窗口最小尺寸 */
 const MIN_W = 380;
 const MIN_H = 240;
@@ -219,8 +358,9 @@ const MIN_H = 240;
  */
 const APPS: DesktopAppDef[] = [
   { key: "terminal", label: "终端", icon: "Monitor", w: 900, h: 540, hint: "SSH 终端（直连 PTY）" },
-  { key: "files", label: "文件", icon: "FolderOpened", w: 900, h: 560, hint: "通过 SFTP 浏览远端文件" },
+  { key: "files", label: "文件", icon: "FolderOpened", w: 980, h: 600, hint: "SFTP 文件管理（三种布局）" },
   { key: "monitor", label: "监控", icon: "Odometer", w: 520, h: 470, hint: "CPU / 内存 / 磁盘 / IO" },
+  { key: "system", label: "系统", icon: "InfoFilled", w: 660, h: 560, hint: "主机信息与只读探测" },
   { key: "console", label: "命令", icon: "Promotion", w: 840, h: 540, hint: "执行命令（记入执行日志）" },
 ];
 
@@ -229,12 +369,27 @@ const APP_COMPONENTS: Record<DesktopAppKey, Component> = {
   terminal: DesktopTerminal,
   files: DesktopFiles,
   monitor: DesktopMonitor,
+  system: DesktopSystem,
   console: DesktopConsole,
 };
 
 const route = useRoute();
 const router = useRouter();
 const tabsStore = useTabsStore();
+
+/**
+ * 外部传入的主机与嵌入模式。
+ *
+ * <p>嵌入模式是默认入口：桌面作为「主机资产」工作区里的一个页签渲染，
+ * 主机由页签回传的 {@code host-id} 指定，不再读路由参数；独立弹出页
+ * （{@code /desktop-window/:hostId?only=<app>}）仍走路由，不传 props。</p>
+ */
+const props = defineProps<{
+  /** 嵌入模式下的主机标识；缺省时回落到路由参数 */
+  hostId?: number | null;
+  /** 是否嵌在工作区页签里（不是整页独立壳） */
+  embedded?: boolean;
+}>();
 
 /** 桌面壳根节点：窗口坐标以它为参照（应用内页签里不是整个视口） */
 const rootRef = ref<HTMLElement | null>(null);
@@ -257,6 +412,96 @@ let seq = 0;
 const activeHost = computed(() => host.value);
 
 /**
+ * 桌面壁纸。
+ *
+ * <p>只是外观，但桌面壳没有壁纸切换会显得像一块面板；四套渐变都压成深色，
+ * 保证上面的窗口与文字对比度不变。</p>
+ */
+const WALLPAPERS = [
+  {
+    key: "ubuntu",
+    label: "Ubuntu 紫",
+    css:
+      "radial-gradient(1100px 780px at 18% 8%, rgba(122,45,92,0.55) 0%, transparent 62%)," +
+      "radial-gradient(900px 680px at 86% 92%, rgba(233,84,32,0.22) 0%, transparent 58%)," +
+      "linear-gradient(158deg, #2c0d27 0%, #1b0716 58%, #120510 100%)",
+  },
+  {
+    key: "ocean",
+    label: "深海蓝",
+    css:
+      "radial-gradient(1000px 720px at 12% 6%, rgba(35,110,180,0.5) 0%, transparent 60%)," +
+      "radial-gradient(820px 620px at 88% 88%, rgba(72,201,176,0.2) 0%, transparent 56%)," +
+      "linear-gradient(160deg, #0b1c2c 0%, #081420 60%, #050b12 100%)",
+  },
+  {
+    key: "forest",
+    label: "苔原绿",
+    css:
+      "radial-gradient(1000px 720px at 16% 10%, rgba(58,130,96,0.45) 0%, transparent 60%)," +
+      "radial-gradient(780px 600px at 90% 90%, rgba(180,190,90,0.18) 0%, transparent 55%)," +
+      "linear-gradient(158deg, #10221a 0%, #0b1712 60%, #060d09 100%)",
+  },
+  {
+    key: "graphite",
+    label: "石墨灰",
+    css:
+      "radial-gradient(1000px 720px at 20% 8%, rgba(90,94,110,0.4) 0%, transparent 62%)," +
+      "radial-gradient(820px 620px at 84% 90%, rgba(233,120,60,0.14) 0%, transparent 56%)," +
+      "linear-gradient(158deg, #23232b 0%, #16161c 60%, #0d0d11 100%)",
+  },
+] as const;
+
+const wallpaper = ref<string>(readLocal("vdesk.wallpaper", "ubuntu"));
+const wallpaperCss = computed(
+  () => (WALLPAPERS.find((w) => w.key === wallpaper.value) ?? WALLPAPERS[0]).css,
+);
+
+/** 应用菜单（开始菜单）是否展开 */
+const startOpen = ref(false);
+/** 桌面上被单击选中的快捷方式 */
+const iconSel = ref("");
+
+/** 贴边分屏的落点预览（拖拽过程中显示，松手清空） */
+const snapPreview = ref<{ x: number; y: number; w: number; h: number } | null>(null);
+
+/** 日期文案：任务栏与开始菜单都要看得到「今天」 */
+const dateText = computed(() => {
+  const d = new Date();
+  const week = ["日", "一", "二", "三", "四", "五", "六"][d.getDay()];
+  return `${d.getMonth() + 1}月${d.getDate()}日 周${week}`;
+});
+
+/**
+ * 读一个本地偏好（坏值一律回落到默认）。
+ *
+ * @param key 存储键
+ * @param fallback 默认值
+ */
+function readLocal(key: string, fallback: string): string {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw && WALLPAPERS.some((w) => w.key === raw) ? raw : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * 切换壁纸并记住。
+ *
+ * @param key 壁纸标识
+ */
+function setWallpaper(key: string): void {
+  wallpaper.value = key;
+  try {
+    localStorage.setItem("vdesk.wallpaper", key);
+  } catch {
+    /* 隐私模式下写不进去，不影响使用 */
+  }
+}
+
+/**
  * 桌面右键菜单状态。
  *
  * <p>win 为空表示在桌面空白处右键（应用菜单），否则是某个窗口标题栏右键（窗口菜单）。</p>
@@ -275,6 +520,8 @@ const deskMenu = ref<{
  * 用来把终端 / 文件 / 监控里的某一个单独摆到第二块屏幕上，不再套 Dock 与顶栏。</p>
  */
 const singleKey = computed<DesktopAppKey | null>(() => {
+  // 工作区页签里是完整桌面（Dock + 多窗口），单窗口模式只属于独立弹出页
+  if (props.embedded) return null;
   const raw = Array.isArray(route.query.only) ? route.query.only[0] : route.query.only;
   const key = String(raw ?? "").trim();
   return (APPS.some((a) => a.key === key) ? key : null) as DesktopAppKey | null;
@@ -290,11 +537,15 @@ function tickClock(): void {
 }
 
 /**
- * 路由里的主机标识：优先路径参数，其次兼容旧的 {@code ?hostId=} 链接。
+ * 主机标识：嵌入模式用页签传入的 {@code host-id}，独立页读路由。
+ *
+ * <p>路由优先取路径参数，其次兼容旧的 {@code ?hostId=} 链接。</p>
  *
  * @returns 主机标识；没带或非法时为 0
  */
 function parseHostId(): number {
+  const fromProp = Number(props.hostId ?? 0);
+  if (Number.isFinite(fromProp) && fromProp > 0) return fromProp;
   const raw = Array.isArray(route.params.hostId) ? route.params.hostId[0] : route.params.hostId;
   const fromPath = Number(raw);
   if (Number.isFinite(fromPath) && fromPath > 0) return fromPath;
@@ -421,7 +672,7 @@ function openApp(key: DesktopAppKey): void {
   if (!def) return;
   const n = windows.value.length;
   const maxW = Math.max(MIN_W, viewW.value - DOCK_W - 40);
-  const maxH = Math.max(MIN_H, viewH.value - TOP_H - 40);
+  const maxH = Math.max(MIN_H, viewH.value - TOP_H - TASKBAR_H - 40);
   const w = Math.min(def.w, maxW);
   const hh = Math.min(def.h, maxH);
   const win: DesktopWindow = {
@@ -430,7 +681,7 @@ function openApp(key: DesktopAppKey): void {
     hostId: h.id,
     title: `${def.label} · ${h.serverHostName}`,
     x: Math.min(DOCK_W + 14 + (n % 5) * 26, Math.max(DOCK_W + 8, viewW.value - w - 16)),
-    y: Math.min(TOP_H + 12 + (n % 5) * 24, Math.max(TOP_H + 8, viewH.value - hh - 16)),
+    y: Math.min(TOP_H + 12 + (n % 5) * 24, Math.max(TOP_H + 8, viewH.value - hh - TASKBAR_H - 16)),
     w,
     h: hh,
     z: ++zSeed,
@@ -494,7 +745,7 @@ function toggleMax(w: DesktopWindow): void {
   w.x = DOCK_W;
   w.y = TOP_H + 6;
   w.w = viewW.value - DOCK_W - 8;
-  w.h = viewH.value - TOP_H - 12;
+  w.h = viewH.value - TOP_H - TASKBAR_H - 12;
 }
 
 /**
@@ -525,7 +776,7 @@ function propsFor(key: DesktopAppKey, id: number, active: boolean): Record<strin
   if (key === "terminal") {
     return { ...base, hostName: h?.serverHostName ?? "" };
   }
-  if (key === "console") {
+  if (key === "console" || key === "system") {
     return { ...base, hostName: h?.serverHostName ?? "", osType: h?.serverHostOsType ?? "" };
   }
   return base;
@@ -558,7 +809,10 @@ function popOut(w: DesktopWindow): void {
 }
 
 /**
- * 拖拽标题栏移动窗口。
+ * 拖拽标题栏移动窗口；同时探测贴边分屏。
+ *
+ * <p>分屏只在「真的拖动过」时才触发：单击标题栏只是聚焦，
+ * 不能因为鼠标刚好停在窗口边缘就把窗口拉成半屏。</p>
  *
  * @param e 指针事件
  * @param w 窗口
@@ -570,16 +824,81 @@ function startDrag(e: PointerEvent, w: DesktopWindow): void {
   const sy = e.clientY;
   const ox = w.x;
   const oy = w.y;
+  let moved = false;
+  let zone: SnapZone = null;
   const move = (ev: PointerEvent) => {
+    if (Math.abs(ev.clientX - sx) > 4 || Math.abs(ev.clientY - sy) > 4) moved = true;
     w.x = Math.max(DOCK_W + 2, Math.min(ox + ev.clientX - sx, viewW.value - 120));
-    w.y = Math.max(TOP_H + 2, Math.min(oy + ev.clientY - sy, viewH.value - 48));
+    w.y = Math.max(TOP_H + 2, Math.min(oy + ev.clientY - sy, viewH.value - TASKBAR_H - 48));
+    zone = moved ? snapZoneOf(ev.clientX, ev.clientY) : null;
+    snapPreview.value = zone ? snapRectOf(zone) : null;
   };
   const up = () => {
     window.removeEventListener("pointermove", move);
     window.removeEventListener("pointerup", up);
+    snapPreview.value = null;
+    if (moved && zone) applySnap(w, zone);
   };
   window.addEventListener("pointermove", move);
   window.addEventListener("pointerup", up);
+}
+
+/** 贴边区域 */
+type SnapZone = "left" | "right" | "top" | null;
+
+/**
+ * 判断指针落在桌面的哪条边（用桌面根节点的矩形，不是视口）。
+ *
+ * @param x 指针 clientX
+ * @param y 指针 clientY
+ */
+function snapZoneOf(x: number, y: number): SnapZone {
+  const rect = rootRef.value?.getBoundingClientRect();
+  if (!rect) return null;
+  if (y <= rect.top + 8) return "top";
+  if (x <= rect.left + 8) return "left";
+  if (x >= rect.right - 8) return "right";
+  return null;
+}
+
+/**
+ * 某一侧的落点矩形。
+ *
+ * @param zone 贴边区域
+ */
+function snapRectOf(zone: Exclude<SnapZone, null>): { x: number; y: number; w: number; h: number } {
+  const top = TOP_H + 6;
+  const bottom = viewH.value - TASKBAR_H - 8;
+  const height = Math.max(MIN_H, bottom - top);
+  if (zone === "top") {
+    return { x: DOCK_W, y: top, w: Math.max(MIN_W, viewW.value - DOCK_W - 8), h: height };
+  }
+  const width = Math.max(MIN_W, Math.floor((viewW.value - DOCK_W) / 2) - 8);
+  return {
+    x: zone === "left" ? DOCK_W : viewW.value - width - 6,
+    y: top,
+    w: width,
+    h: height,
+  };
+}
+
+/**
+ * 把窗口贴到指定边缘：上边等于最大化，左右是半屏。
+ *
+ * @param w 窗口
+ * @param zone 贴边区域
+ */
+function applySnap(w: DesktopWindow, zone: Exclude<SnapZone, null>): void {
+  if (zone === "top") {
+    if (!w.max) toggleMax(w);
+    return;
+  }
+  if (w.max) toggleMax(w);
+  const rect = snapRectOf(zone);
+  w.x = rect.x;
+  w.y = rect.y;
+  w.w = rect.w;
+  w.h = rect.h;
 }
 
 /**
@@ -597,7 +916,7 @@ function startResize(e: PointerEvent, w: DesktopWindow): void {
   const oh = w.h;
   const move = (ev: PointerEvent) => {
     w.w = Math.max(MIN_W, Math.min(ow + ev.clientX - sx, viewW.value - w.x - 6));
-    w.h = Math.max(MIN_H, Math.min(oh + ev.clientY - sy, viewH.value - w.y - 6));
+    w.h = Math.max(MIN_H, Math.min(oh + ev.clientY - sy, viewH.value - w.y - TASKBAR_H - 6));
   };
   const up = () => {
     window.removeEventListener("pointermove", move);
@@ -615,13 +934,13 @@ function onViewportResize(): void {
   for (const w of windows.value) {
     if (w.max) {
       w.w = viewW.value - DOCK_W - 8;
-      w.h = viewH.value - TOP_H - 12;
+      w.h = viewH.value - TOP_H - TASKBAR_H - 12;
       continue;
     }
     w.w = Math.min(w.w, Math.max(MIN_W, viewW.value - DOCK_W - 20));
-    w.h = Math.min(w.h, Math.max(MIN_H, viewH.value - TOP_H - 20));
+    w.h = Math.min(w.h, Math.max(MIN_H, viewH.value - TOP_H - TASKBAR_H - 20));
     w.x = Math.max(DOCK_W + 2, Math.min(w.x, viewW.value - 120));
-    w.y = Math.max(TOP_H + 2, Math.min(w.y, viewH.value - 48));
+    w.y = Math.max(TOP_H + 2, Math.min(w.y, viewH.value - TASKBAR_H - 48));
   }
 }
 
@@ -640,6 +959,8 @@ function toggleFullscreen(): void {
  * 返回主机资产页。
  */
 function leave(): void {
+  // 工作区页签里没有「返回」这一步：关页签就是返回
+  if (props.embedded) return;
   router.push("/assets");
 }
 
@@ -675,6 +996,8 @@ async function bootHost(): Promise<void> {
  * 读完台账再补一次，用户才能在多个主机桌面之间分清哪个是哪个。</p>
  */
 function syncTabTitle(): void {
+  // 嵌在工作区页签里时标题由页签自己维护（主机名 + 功能名），不碰顶部页签
+  if (props.embedded) return;
   const name = host.value?.serverHostName;
   if (!name) return;
   const tab = tabsStore.tabList.find((item: { path?: string }) => item.path === route.path) as
@@ -734,20 +1057,24 @@ function closeDeskMenu(): void {
  */
 function menuApp(key: DesktopAppKey): void {
   closeDeskMenu();
+  closeStart();
   openApp(key);
 }
 
 /** 桌面右键菜单 → 重新读取主机 */
 function menuRefresh(): void {
   closeDeskMenu();
+  closeStart();
   void reloadHost().then(syncTabTitle);
 }
 
 /** 桌面右键菜单 → 关闭所有窗口 */
 function menuCloseAll(): void {
   closeDeskMenu();
+  closeStart();
   windows.value = [];
   activeId.value = "";
+  snapPreview.value = null;
 }
 
 /**
@@ -765,10 +1092,132 @@ function menuWin(action: "min" | "max" | "pop" | "close"): void {
   else closeWin(w);
 }
 
+/**
+ * 应用菜单开合（顶栏按钮、任务栏按钮、Ctrl+K 都走这里）。
+ */
+function toggleStart(): void {
+  startOpen.value = !startOpen.value;
+  if (startOpen.value) closeDeskMenu();
+}
+
+/** 关闭应用菜单 */
+function closeStart(): void {
+  startOpen.value = false;
+}
+
+/**
+ * 应用图标名（任务栏用）。
+ *
+ * @param key 应用标识
+ */
+function appIcon(key: DesktopAppKey): string {
+  return APPS.find((a) => a.key === key)?.icon ?? "Monitor";
+}
+
+/**
+ * 任务栏点击：当前窗口 → 最小化；最小化的窗口 → 还原并聚焦；其它 → 聚焦。
+ *
+ * @param w 窗口
+ */
+function taskClick(w: DesktopWindow): void {
+  if (w.min) {
+    w.min = false;
+    focus(w.id);
+    return;
+  }
+  if (activeId.value === w.id) minimize(w);
+  else focus(w.id);
+}
+
+/** 最小化所有窗口 */
+function minimizeAll(): void {
+  windows.value.forEach((w) => {
+    w.min = true;
+  });
+  activeId.value = "";
+}
+
+/** 菜单 → 全部最小化 */
+function menuMinAll(): void {
+  closeStart();
+  minimizeAll();
+}
+
+/** 菜单 → 全屏 */
+function menuFullscreen(): void {
+  closeStart();
+  toggleFullscreen();
+}
+
+/**
+ * 桌面是否还在屏幕上。
+ *
+ * <p>工作区页签切走后只是 v-show 隐藏，如果快捷键还挂着，
+ * 用户在别的页签里按 Ctrl+K 会把看不见的菜单打开。</p>
+ */
+function deskVisible(): boolean {
+  const el = rootRef.value;
+  return Boolean(el && el.getClientRects().length > 0);
+}
+
+/** Alt+Tab：在所有已开窗口里轮换（最小化的先还原） */
+function cycleWindows(): void {
+  const list = windows.value;
+  if (!list.length) return;
+  const i = list.findIndex((w) => w.id === activeId.value);
+  const next = list[(i + 1) % list.length];
+  next.min = false;
+  focus(next.id);
+}
+
+/**
+ * Ctrl+K：桌面在屏幕上时由桌面接管。
+ *
+ * <p>平台里 Ctrl+K 已经被占了两处：顶栏的全局搜索（ReSearchMenu，
+ * 挂在 document 的冒泡阶段）和主机资产页的主机命令面板（同样挂在 document，
+ * 但用的是捕获阶段并且会 stopImmediatePropagation）。桌面如果也挂在 document 上，
+ * 就只能排在命令面板后面，永远抢不到。</p>
+ *
+ * <p>所以这里挂在 <b>window 的捕获阶段</b>：window 捕获先于 document 捕获，
+ * 命中后立即 stopImmediatePropagation，两个平台浮层都不会再弹。
+ * 桌面被切走（v-show 隐藏）后 deskVisible() 为假，Ctrl+K 照旧交还给平台。</p>
+ *
+ * @param e 键盘事件
+ */
+function onKeydownCapture(e: KeyboardEvent): void {
+  if (e.key.toLowerCase() !== "k") return;
+  if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
+  if (!deskVisible()) return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  toggleStart();
+}
+
+/**
+ * 桌面快捷键：Alt+Tab 轮换、Esc 收起浮层。
+ *
+ * @param e 键盘事件
+ */
+function onKeydown(e: KeyboardEvent): void {
+  if (!deskVisible()) return;
+  const key = e.key.toLowerCase();
+  if (e.altKey && key === "tab") {
+    e.preventDefault();
+    cycleWindows();
+    return;
+  }
+  if (key === "escape") {
+    closeStart();
+    closeDeskMenu();
+  }
+}
+
 onMounted(async () => {
   tickClock();
   clockTimer = window.setInterval(tickClock, 15000);
   window.addEventListener("resize", onViewportResize);
+  window.addEventListener("keydown", onKeydown);
+  window.addEventListener("keydown", onKeydownCapture, true);
   await nextTick();
   measure();
   if (rootRef.value && typeof ResizeObserver !== "undefined") {
@@ -778,17 +1227,29 @@ onMounted(async () => {
   await bootHost();
 });
 
-// 同一页内换主机（改路径参数）时按新主机重建桌面
+// 独立页：路由变化（换主机 / 换 ?only=）时按新主机重建桌面
 watch(
   () => route.fullPath,
   () => {
+    if (props.embedded) return;
     if (route.name === "VirtualDesktop" || route.name === "VirtualDesktopWindow") void bootHost();
+  },
+);
+
+// 嵌入页签：只有页签传来的主机变了才重建（一个页签固定服务一台主机）
+watch(
+  () => props.hostId,
+  () => {
+    if (!props.embedded) return;
+    if (Number(props.hostId ?? 0) > 0) void bootHost();
   },
 );
 
 onBeforeUnmount(() => {
   if (clockTimer) window.clearInterval(clockTimer);
   window.removeEventListener("resize", onViewportResize);
+  window.removeEventListener("keydown", onKeydown);
+  window.removeEventListener("keydown", onKeydownCapture, true);
   resizeObserver?.disconnect();
   resizeObserver = undefined;
 });
@@ -811,6 +1272,17 @@ onBeforeUnmount(() => {
     radial-gradient(1100px 780px at 18% 8%, rgba(122, 45, 92, 0.55) 0%, transparent 62%),
     radial-gradient(900px 680px at 86% 92%, rgba(233, 84, 32, 0.22) 0%, transparent 58%),
     linear-gradient(158deg, #2c0d27 0%, #1b0716 58%, #120510 100%);
+}
+
+/* 工作区页签模式：桌面是「主机资产」右侧面板里的一个页签，
+   高度由 ReTabs 面板的 flex 链给定；不能用 absolute，否则会盖住页签栏与左栏。 */
+.vdesk--embed {
+  position: relative;
+  inset: auto;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  border-radius: 0;
 }
 
 /* 单窗口模式（新标签页）：整页只有这一个窗口，不留 Dock / 顶栏 */
@@ -910,6 +1382,28 @@ onBeforeUnmount(() => {
   border-color: rgba(233, 84, 32, 0.6);
 }
 
+/* 顶栏左侧的应用菜单按钮：和任务栏左下角那颗是同一个动作 */
+.vdesk__startbtn {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 21px;
+  color: #d8d3e0;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+}
+
+.vdesk__startbtn:hover,
+.vdesk__startbtn.is-on {
+  color: #fff;
+  background: rgba(233, 84, 32, 0.45);
+  border-color: rgba(233, 84, 32, 0.7);
+}
+
 /* ---------- Dock ---------- */
 .vdesk__dock {
   position: absolute;
@@ -979,6 +1473,56 @@ onBeforeUnmount(() => {
   width: 24px;
   height: 1px;
   background: rgba(255, 255, 255, 0.14);
+}
+
+/* ---------- 桌面快捷方式 ---------- */
+.vdesk__icons {
+  position: absolute;
+  top: 50px;
+  left: 92px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+}
+
+.dicon {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: center;
+  width: 66px;
+  padding: 7px 4px 6px;
+  color: #e6e1ef;
+  cursor: default;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+
+.dicon:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dicon.is-sel {
+  background: rgba(233, 84, 32, 0.22);
+  border-color: rgba(233, 84, 32, 0.5);
+}
+
+.dicon.is-off {
+  opacity: 0.5;
+}
+
+.dicon__ico {
+  color: #d9d3e3;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
+}
+
+.dicon__label {
+  font-size: 10.5px;
+  line-height: 1.2;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
 }
 
 /* ---------- 窗口 ---------- */
@@ -1084,6 +1628,276 @@ onBeforeUnmount(() => {
   content: "";
   border-right: 1.5px solid rgba(255, 255, 255, 0.35);
   border-bottom: 1.5px solid rgba(255, 255, 255, 0.35);
+}
+
+/* ---------- 贴边分屏预览 ---------- */
+.vdesk__snap {
+  position: absolute;
+  z-index: 900;
+  pointer-events: none;
+  background: rgba(233, 84, 32, 0.14);
+  border: 1.5px dashed rgba(233, 84, 32, 0.9);
+  border-radius: 8px;
+  transition: left 0.07s ease, top 0.07s ease, width 0.07s ease, height 0.07s ease;
+}
+
+/* ---------- 任务栏 ---------- */
+.vdesk__tasks {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1000;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  height: 34px;
+  padding: 0 8px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.vtask {
+  display: inline-flex;
+  flex: none;
+  gap: 5px;
+  align-items: center;
+  max-width: 190px;
+  height: 24px;
+  padding: 0 9px;
+  font-size: 11px;
+  color: #cfc9da;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 5px;
+}
+
+.vtask:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.vtask.is-on {
+  color: #fff;
+  background: rgba(233, 84, 32, 0.55);
+  border-color: rgba(233, 84, 32, 0.75);
+}
+
+.vtask.is-min {
+  opacity: 0.62;
+}
+
+.vtask__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vtask.is-start {
+  justify-content: center;
+  width: 28px;
+  padding: 0;
+}
+
+.vtask.is-clock {
+  flex-direction: column;
+  gap: 0;
+  align-items: flex-end;
+  height: 28px;
+  padding: 0 8px;
+  line-height: 1.15;
+  background: transparent;
+  border-color: transparent;
+}
+
+.vtask.is-clock:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.vtask__clock {
+  font-family: var(--font-mono, ui-monospace, Consolas, monospace);
+  font-size: 12px;
+  font-weight: 600;
+  color: #efeaf7;
+}
+
+.vtask__date {
+  font-size: 9.5px;
+  font-style: normal;
+  color: #9d97ab;
+}
+
+/* ---------- 应用菜单（开始菜单） ---------- */
+.vstart-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+}
+
+.vstart {
+  position: absolute;
+  bottom: 42px;
+  left: 10px;
+  z-index: 1002;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 326px;
+  padding: 10px;
+  color: #efeaf7;
+  background: rgba(26, 16, 24, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 12px;
+  box-shadow: 0 24px 54px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(20px);
+}
+
+.vstart__head {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  padding: 4px 4px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.vstart__avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  color: #ffd9c4;
+  background: rgba(233, 84, 32, 0.35);
+  border-radius: 9px;
+}
+
+.vstart__meta {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.vstart__meta b {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vstart__meta .mono {
+  font-family: var(--font-mono, ui-monospace, Consolas, monospace);
+  font-size: 10.5px;
+  color: #9d97ab;
+}
+
+.vstart__apps {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.vstart__app {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  padding: 7px 8px;
+  font-size: 12px;
+  color: #e6e1ef;
+  text-align: left;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 7px;
+}
+
+.vstart__app:hover {
+  color: #fff;
+  background: rgba(233, 84, 32, 0.32);
+}
+
+.vstart__app.is-off {
+  opacity: 0.45;
+}
+
+.vstart__app em {
+  margin-left: auto;
+  overflow: hidden;
+  font-size: 9.5px;
+  font-style: normal;
+  color: rgba(255, 255, 255, 0.45);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vstart__acts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.vstart__act {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 8px;
+  font-size: 11.5px;
+  color: #cfc9da;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+
+.vstart__act:hover:not(:disabled) {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.vstart__act:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.vstart__wp {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.vstart__wp-label {
+  font-size: 11px;
+  color: #9d97ab;
+}
+
+.vstart__swatch {
+  width: 30px;
+  height: 20px;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+}
+
+.vstart__swatch.is-on {
+  border-color: #e95420;
+  box-shadow: 0 0 0 1px rgba(233, 84, 32, 0.6);
+}
+
+.vstart__foot {
+  padding-top: 6px;
+  font-size: 9.5px;
+  color: #6f6a79;
+  text-align: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 /* ---------- 空桌面 / 加载 ---------- */

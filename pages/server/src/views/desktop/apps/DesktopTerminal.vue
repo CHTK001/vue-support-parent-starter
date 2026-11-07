@@ -4,7 +4,8 @@
    *
    * <p>直接复用后端静态页 {@code /ssh-direct.html}：页面里是 xterm + 平台自研的
    * SSH 直连 WebSocket 桥（PTY、resize、断线重连都由它负责），这里只负责
-   * 组装带主机与令牌的 URL，并把 iframe 铺满窗口。</p>
+   * 组装带主机与令牌的 URL，并把 iframe 铺满窗口。断链由桥自己重试，
+   * 所以这里不提供「重连」按钮，避免手动重建会话造成 PTY 漂移。</p>
    *
    * <p>刻意不做「窗口最小化就销毁」：最小化只是隐藏，PTY 会话必须保住，
    * 否则用户切回来就是一条已经断掉的终端。</p>
@@ -15,20 +16,16 @@
     <div class="dt__bar">
       <span class="dt__host">{{ hostLabel }}</span>
       <span class="dt__spacer" />
-      <button type="button" class="dt__btn" title="重连（会新建一条 SSH 会话）" @click="reload">
-        <ReIcon name="RefreshRight" :size="12" />
-        <span>重连</span>
-      </button>
       <button type="button" class="dt__btn" title="在新标签页单独打开" @click="popout">
         <ReIcon name="TopRight" :size="12" />
       </button>
     </div>
-    <iframe :key="nonce" :src="src" class="dt__frame" title="SSH 终端" />
+    <iframe :src="src" class="dt__frame" title="SSH 终端" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed } from "vue";
 import { getAccessToken } from "@repo/utils";
 
 const props = withDefaults(
@@ -45,10 +42,7 @@ const props = withDefaults(
   { hostName: "", identityId: null, active: false },
 );
 
-/** 递增即重载 iframe（同 URL 不会重建文档） */
-const nonce = ref(0);
-
-/** 终端页地址：主机 + 身份 + 令牌，重连时带一个一次性参数强制重建 */
+/** 终端页地址：主机 + 身份 + 令牌 */
 const src = computed(() => {
   const q = new URLSearchParams({ hostId: String(props.hostId) });
   if (props.identityId != null) {
@@ -58,18 +52,10 @@ const src = computed(() => {
   if (token) {
     q.set("x-oauth-token", token);
   }
-  q.set("r", String(nonce.value));
   return `/ssh-direct.html?${q.toString()}`;
 });
 
 const hostLabel = computed(() => props.hostName || `主机 #${props.hostId}`);
-
-/**
- * 重连：换一个 nonce，强制 iframe 重新加载并重新建立 SSH 会话。
- */
-function reload(): void {
-  nonce.value += 1;
-}
 
 /**
  * 在新标签页打开同一条终端（用于把终端摆到第二块屏幕）。

@@ -30,6 +30,8 @@ const HostProfileView = defineAsyncComponent(() => import("./HostProfileView.vue
 const HostDetailView = defineAsyncComponent(() => import("./HostDetailView.vue"));
 const ScHostWorkbench = defineAsyncComponent(() => import("./ScHostWorkbench.vue"));
 const TerminalView = defineAsyncComponent(() => import("./TerminalView.vue"));
+// 虚拟桌面：SSH 模拟桌面壳（终端 / 文件 / 监控 / 命令），嵌在工作区页签里
+const DesktopView = defineAsyncComponent(() => import("./desktop/DesktopView.vue"));
 const HostFileManager = defineAsyncComponent(() => import("../components/HostFileManager.vue"));
 // 运维台四页 + 主机账号：右键打开时内嵌为工作区页签（懒加载，避免拖慢首屏）
 const OpsSessionTab = defineAsyncComponent(() => import("./ScSessionTab.vue"));
@@ -656,6 +658,7 @@ type TabKind =
   | "sysconfig"
   | "deleted"
   | "remote"
+  | "desktop"
   | "files"
   | "metrics"
   | "workbench"
@@ -691,6 +694,7 @@ const TAB_KINDS: Record<TabKind, TabKindMeta> = {
   sysconfig: { label: "系统配置", icon: "Setting", section: "sysconfig" },
   deleted: { label: "已删除文件", icon: "Delete", section: "deleted" },
   remote: { label: "远控", icon: "Position" },
+  desktop: { label: "虚拟桌面", icon: "FullScreen" },
   files: { label: "文件管理", icon: "FolderOpened" },
   metrics: { label: "指标监控", icon: "TrendCharts" },
   workbench: { label: "工作台", icon: "Box" },
@@ -805,6 +809,15 @@ async function applyDeepLink(): Promise<void> {
   selectHost(host);
   openTab(host, kind);
 }
+
+// 深链参数变化时也要补开页签：/desktop/:hostId 的兼容跳板只改 query，
+// 不会重新挂载主机资产页，不补这一次就只剩一个空的工作区。
+watch(
+  () => [route.query.hostId, route.query.tab],
+  () => {
+    if (route.path === "/assets") void applyDeepLink();
+  },
+);
 
 /** 工作台面板的展示名（页签 hint / 右键菜单共用） */
 function panelLabelOf(p: "screen" | "docker" | "k8s" | "tunnel" | "tunnel-reverse"): string {
@@ -2352,11 +2365,13 @@ function openStandalone(): void {
 }
 
 /**
- * 打开某台主机的虚拟桌面（<b>应用内页签</b>，不跳浏览器新标签页）。
+ * 打开某台主机的虚拟桌面：<b>「主机资产」右侧工作区里的一个页签</b>。
  *
- * <p>桌面是<b>按主机</b>的（{@code /desktop/:hostId}）：一台主机一个桌面壳，
- * 进去落地就开这台主机的 SSH 终端；主机资产页仍在旁边，切回去点页签即可。
- * 只有桌面里某个窗口的「在新标签页打开」才走浏览器新标签页
+ * <p>桌面是按主机开的：页签名用 {@code hostId:desktop} 去重，一台主机一个桌面页签，
+ * 与远控 / 文件管理 / 指标监控平级 —— 关掉页签就回到主机资产的其它页签，
+ * 不会开浏览器新标签页，也不会把整页从主机资产带走。</p>
+ *
+ * <p>只有桌面里某个窗口的「在新标签页打开」才走浏览器新标签页
  * （{@code /desktop-window/:hostId?only=<app>}，只渲染那一个窗口）。</p>
  *
  * <p>没有主机时不打开，避免落到一个没有归属的空壳上。</p>
@@ -2364,12 +2379,18 @@ function openStandalone(): void {
  * @param hostId 主机标识；缺省用左栏当前选中的主机
  */
 function openDesktop(hostId?: number | null): void {
-  const id = hostId ?? statusHost.value?.id;
+  const id = hostId ?? statusHost.value?.id ?? 0;
   if (!id) {
     message.warning("请先选择一台主机");
     return;
   }
-  void router.push({ name: "VirtualDesktop", params: { hostId: String(id) } });
+  const host = hosts.value.find(h => h.id === id)
+    ?? (statusHost.value?.id === id ? statusHost.value : null);
+  if (!host) {
+    message.warning("未找到该主机，无法打开虚拟桌面");
+    return;
+  }
+  openTab(host, "desktop");
 }
 
 /**
@@ -2719,6 +2740,14 @@ function onGlobalKeydown(e: KeyboardEvent): void {
                 embedded
                 :host-id="tabHostIdOf(tab.name)"
                 :identity-id="tabOf(tab.name)?.identityId ?? null"
+              />
+              <!-- 虚拟桌面：这台主机的桌面壳（SSH 终端 / 文件 / 监控 / 命令），
+                   占满整个工作区面板；关页签就回主机资产，不开浏览器新标签页 -->
+              <DesktopView
+                v-else-if="tabKindOf(tab.name) === 'desktop'"
+                :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
+                embedded
+                :host-id="tabHostIdOf(tab.name)"
               />
               <!-- 文件管理 -->
               <HostFileManager

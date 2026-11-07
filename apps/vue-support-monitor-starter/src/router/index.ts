@@ -481,17 +481,21 @@ export const monitorRoutes: RouteConfigsTable[] = [
     meta: { title: "远程控制", showLink: false, standalone: true },
   },
   {
-    // 虚拟桌面：**应用内页签**（挂在 layout 下，由顶部页签栏承载），
-    // 不是 window.open 出来的浏览器新标签页。桌面壳自己填满内容区，
-    // 侧边栏与顶栏保持原样，切回主机资产就是点一下页签。
+    // 虚拟桌面：主入口是「主机资产」右侧工作区里的一个页签（与远控 / 文件管理平级），
+    // 由 AssetsView 的 openDesktop 直接 openTab，不经过路由跳转。
     //
-    // 桌面是**按主机**的：hostId 走路径参数，一台主机一个页签，
-    // 所以也不给它挂在全局侧边栏上（入口在主机资产的右键菜单里）。
+    // 这里只留一条兼容跳板：旧的 /desktop/:hostId 书签落到主机资产深链
+    // （/assets?hostId=13&tab=desktop），落地后由 applyDeepLink 打开那个桌面页签。
+    // 桌面是按主机开的，所以也不给它挂在全局侧边栏上。
     path: "/desktop/:hostId?",
     name: "VirtualDesktop",
-    component: () => import("@pages/server/src/views/desktop/DesktopView.vue"),
-    // keep-alive：切到别的页签再切回来时桌面不能重建，否则终端 PTY 会被掐断
-    meta: { title: "虚拟桌面", showLink: false, isKeepAlive: true },
+    redirect: (to) => {
+      const raw = Array.isArray(to.params.hostId) ? to.params.hostId[0] : to.params.hostId;
+      return {
+        path: "/assets",
+        query: raw ? { hostId: String(raw), tab: "desktop" } : { tab: "desktop" },
+      };
+    },
   },
   {
     // 桌面窗口的独立弹出页：窗口标题栏的「在新标签页打开」走这里。
