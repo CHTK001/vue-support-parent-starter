@@ -769,7 +769,11 @@ const loadRegisteredModel = async () => {
   if (!currentAgent.value?.id) return;
   try {
     const res = await agentApi.getRegisteredModel(currentAgent.value.id);
-    registeredModel.value = res?.data || res || null;
+    // 接口恒返回 { registered, modelName, ... }，未注册时 registered=false。
+    // 只按 data 真假赋给 registeredModel 会把「未注册」也当成已注册渲染，
+    // 这里必须以 registered 位为准。
+    const data = res?.data ?? res ?? null;
+    registeredModel.value = data && data.registered === true ? data : null;
   } catch (e) {
     registeredModel.value = null;
   }

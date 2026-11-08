@@ -57,7 +57,7 @@
           #[`col-${col.prop}`]="scope"
         >
           <slot :name="`cell-${col.prop}`" :row="scope.row" :value="scope.row[col.prop]">
-            {{ scope.row[col.prop] }}
+            {{ cellText(col, scope.row) }}
           </slot>
         </template>
         <!-- 操作列统一 ReButton square（纯图标 + tooltip）；
@@ -111,7 +111,7 @@
             v-model="formData[field.prop]"
             :placeholder="field.placeholder || `请输入${field.label}`"
             :type="field.inputType || 'text'"
-            show-password
+            :show-password="field.inputType === 'password'"
           />
           <ReNumberInput
             v-else-if="field.type === 'number'"
@@ -235,6 +235,24 @@ const tableColumns = computed<ReTableColumn[]>(() =>
 
 const contentColumns = computed(() => props.columns.filter((col) => col.prop !== 'actions'));
 
+/**
+ * 单元格兜底文案。
+ *
+ * <p>原实现直接输出 {@code row[col.prop]}，导致列定义里的 {@code formatter}
+ * （如状态列「启用/禁用」）完全不被使用，表格里出现 {@code true}/{@code false}。
+ * 这里让 formatter 参与兜底渲染：有 formatter 走 formatter，没有才回落到原值。</p>
+ */
+function cellText(col: Column, row: any): any {
+  if (typeof col.formatter === 'function') {
+    try {
+      return col.formatter(row);
+    } catch {
+      return row[col.prop];
+    }
+  }
+  return row[col.prop];
+}
+
 const loading = ref(false);
 const saving = ref(false);
 const tableData = ref<any[]>([]);
@@ -334,9 +352,10 @@ async function handleSubmit() {
     dialogVisible.value = false;
     loadData();
   } catch (e: any) {
-    if (e !== false) {
-      message.error(`保存失败: ${e.message || '验证未通过'}`);
-    }
+    // Element Plus 的 validate() 校验失败会 reject 一个「字段名 → 错误数组」对象，
+    // 字段下方已经有红字提示；此时再弹一条「保存失败」既误导又重复。
+    if (e === false || !(e instanceof Error)) return;
+    message.error(`保存失败: ${e.message || '验证未通过'}`);
   } finally {
     saving.value = false;
   }
