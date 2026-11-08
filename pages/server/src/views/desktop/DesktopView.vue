@@ -24,6 +24,21 @@
 <template>
   <!-- 单窗口模式（/desktop-window/:hostId?only=terminal 等）：新标签页里只显示这一个窗口 -->
   <div v-if="singleKey" class="vdesk vdesk--single">
+    <!--
+      新标签页里没有窗口标题栏，页面顶部就必须说清「这是哪台主机的哪个应用」：
+      否则从桌面弹出来的服务/存储/软件页只剩一块没有归属的表格。
+    -->
+    <header v-if="activeHost" class="vsb">
+      <ReIcon :name="singleApp?.icon || 'Monitor'" :size="13" />
+      <b class="vsb__app">{{ singleApp?.label || "窗口" }}</b>
+      <span class="vsb__sep" />
+      <span class="vsb__host">{{ activeHost.serverHostName }}</span>
+      <span class="vsb__addr">{{ activeHost.serverHostAddress }}</span>
+      <span class="vdesk__dot" :class="activeHost.serverHostOnline === 1 ? 'is-on' : 'is-off'" />
+      <span class="vsb__os">{{ activeHost.serverHostOsType || "—" }}</span>
+      <span class="vdesk__spacer" />
+      <span class="vsb__hint">{{ singleApp?.hint || "" }}</span>
+    </header>
     <div v-if="activeHost" class="vdesk__single">
       <component :is="APP_COMPONENTS[singleKey]" v-bind="propsFor(singleKey, hostId, true)" />
     </div>
@@ -573,6 +588,11 @@ const singleKey = computed<DesktopAppKey | null>(() => {
   const key = String(raw ?? "").trim();
   return (APPS.some((a) => a.key === key) ? key : null) as DesktopAppKey | null;
 });
+
+/** 单窗口模式要打开的那个应用（标题条与标签页标题用） */
+const singleApp = computed<DesktopAppDef | null>(
+  () => (singleKey.value ? APPS.find((a) => a.key === singleKey.value) ?? null : null),
+);
 
 /**
  * 当前时刻（每 15 秒刷新一次，分钟精度不需要每秒重排）。
@@ -1332,6 +1352,16 @@ watch(
   },
 );
 
+// 单窗口独立页：标签页标题写成「服务 · 本机」，浏览器多标签时也分得清
+watch(
+  () => [singleApp.value?.label ?? "", activeHost.value?.serverHostName ?? ""] as const,
+  ([label, name]) => {
+    if (!label) return;
+    document.title = `${name ? `${name} ` : ""}${label} - 虚拟桌面`;
+  },
+  { immediate: true },
+);
+
 onBeforeUnmount(() => {
   if (clockTimer) window.clearInterval(clockTimer);
   window.removeEventListener("resize", onViewportResize);
@@ -1383,6 +1413,52 @@ onBeforeUnmount(() => {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+}
+
+/*
+ * 单窗口页的标题条：没有窗口框，也要能看出这是哪台主机的哪个应用。
+ * 高度压在 30px，页面本身才是主体。
+ */
+.vsb {
+  display: flex;
+  flex: 0 0 30px;
+  gap: 8px;
+  align-items: center;
+  height: 30px;
+  padding: 0 12px;
+  font-size: 12px;
+  color: #d8d3e0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.vsb__app {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #f4f0fa;
+}
+
+.vsb__sep {
+  width: 1px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.vsb__host {
+  color: #efeaf7;
+}
+
+.vsb__addr,
+.vsb__os,
+.vsb__hint {
+  color: #a49db2;
+}
+
+.vsb__hint {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ---------- 顶栏 ---------- */
