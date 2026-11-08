@@ -115,6 +115,60 @@ function serveFileViewerOfficeWorkers(): PluginOption {
   };
 }
 
+/**
+ * dev 下补位「统一预览壳」的构建产物请求。
+ *
+ * <p>临时链接预览（{@code /fs/ot/{token}?preview=true}）返回的壳是
+ * {@code apps/vue-support-filestorage-starter} 的构建产物，按 {@code base:"/"} 打包：
+ * 入口 chunk 在 HTML 里由后端改写成挂载前缀（{@code /fs/assets/*}），但 chunk 之间
+ * {@code import("/assets/xxx.js")} 的路径是**烘进 JS 的根绝对路径**，HTML 改写碰不到。
+ * 生产态这些根路径由文件存储过滤器的 classpath 静态白名单兜住（8082 直连因此正常）；
+ * dev 下根 {@code /assets} 归 Vite，工作区 {@code public/assets} 只有 avatar-frames，
+ * 于是 404 → 「Unable to preload CSS」→ 临时链接整页渲染失败。</p>
+ *
+ * <p>这里只把 dev 下 <b>没有被 public 命中</b> 的 {@code /assets/*} 转发到后端同一前缀
+ * （{@code apiTarget + /fs/assets/*}），不新增根路径语义，也不影响 build 产物。</p>
+ */
+function servePreviewShellAssets(): PluginOption {
+  // 工作区 publicDir（createVite 的 sharedPublic）是仓库根 public，app 内 public 仅作兜底。
+  const publicDirs = [join(process.cwd(), "../../public"), join(process.cwd(), "public")];
+
+  return {
+    name: "serve-preview-shell-assets",
+    apply: "serve",
+    configureServer(server) {
+      server.middlewares.use(
+        (req: IncomingMessage, res: ServerResponse, next: NextFunction) => {
+          const raw = req.url || "";
+          const pathname = raw.split("?")[0];
+          if (!pathname.startsWith("/assets/")) {
+            next();
+            return;
+          }
+          const owned = publicDirs.some((dir) => existsSync(join(dir, decodeURIComponent(pathname))));
+          if (owned) {
+            next();
+            return;
+          }
+          void (async () => {
+            try {
+              const upstream = await fetch(`${apiTarget}/fs${raw}`);
+              res.statusCode = upstream.status;
+              const type = upstream.headers.get("content-type");
+              if (type) {
+                res.setHeader("Content-Type", type);
+              }
+              res.end(Buffer.from(await upstream.arrayBuffer()));
+            } catch (err) {
+              next(err as Error);
+            }
+          })();
+        },
+      );
+    },
+  };
+}
+
 // 后端实例：后台只跑在 Kali 上，本机不起后端进程，所以缺省值指向远端而不是 127.0.0.1。
 // 与 vue-support-ai-starter / vue-support-system-starter 同一口径
 // （见 a2b20b189「前端代理默认指向远端后端」）。
@@ -293,6 +347,11 @@ function dropProxyOrigin(): PluginOption {
         if (
           url.startsWith("/ms/") ||
           url.startsWith("/v2/") ||
+          // Actuator 也归本应用后端（同 /api/**）：读接口是 GET 不带 Origin，
+          // 但写接口（POST /actuator/loggers/{name} 改日志级别）会带
+          // Origin: http://127.0.0.1:8848，而后端 CORS 白名单里没有 dev 端口，
+          // 于是 403 Invalid CORS request —— 表现为「下拉选了新级别但什么都没发生」。
+          url.startsWith("/actuator") ||
           isFirstPartyApi(url) ||
           /^\/(fs|localFileStorage|local|ot|config|recycle|assets|static)(\/|$|\?)/.test(url)
         ) {
@@ -404,6 +463,9 @@ export default createVite({
     // 这里用 dev 中间件从 node_modules 直接补齐（见上方
     // serveFileViewerOfficeWorkers 头注）。只对 serve 生效，不影响 build。
     serveFileViewerOfficeWorkers(),
+    // 临时链接预览壳的 chunk 用根绝对 /assets/*（见 servePreviewShellAssets 头注），
+    // dev 下转发到后端同一前缀，否则 dev 8899 打开临时链接必然白屏。
+    servePreviewShellAssets(),
   ],
   // @pages/server、@pages/monitor 未收录在 createVite 共享 REPO_ALIAS，这里按 monorepo 惯例
   // （见 createVite: alias 值相对 WORKSPACE_ROOT 解析）应用本地补全。

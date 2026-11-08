@@ -12,6 +12,7 @@ import type { FileViewerExpose } from "@file-viewer/vue3";
 import { message } from "@repo/core";
 // 可选能力装配（RTF loader 注册 + iWork 渲染器 + 资产基路径），side-effect 模块
 import { iworkRenderer } from "../../utils/fileViewersOptional.js";
+import { previewAssetBase } from "../../utils/previewAssetBase";
 
 const props = defineProps<{
   /** 交给 file-viewer 渲染的文件（file-viewer 按其 name 的扩展名选渲染器） */
@@ -94,10 +95,13 @@ async function ensureFileViewerLoaded(): Promise<boolean> {
     //
     // 这些资产（public/vendor/**）由 @file-viewer/vite-plugin 的 copyAssets
     // 落到前端 public，前端同源即可加载，与文件字节的域无关。
+    //
+    // previewAssetBase()：统一预览壳内嵌态返回后端注入的挂载前缀（如 /fs/），
+    // 其余场景（管理页弹窗）返回同源根 /，与旧行为一致。
     (vueMod as { setDefaultFullAssetBaseUrl?: (base?: string | URL | null) => void })
-      .setDefaultFullAssetBaseUrl?.("/");
+      .setDefaultFullAssetBaseUrl?.(previewAssetBase());
     (coreMod as { setDefaultFileViewerAssetBaseUrl?: (base?: string | URL | null) => void })
-      .setDefaultFileViewerAssetBaseUrl?.("/");
+      .setDefaultFileViewerAssetBaseUrl?.(previewAssetBase());
     viewerComp.value =
       (vueMod as { FileViewer?: Component; default?: Component }).FileViewer ??
       (vueMod as { default?: Component }).default ??

@@ -728,11 +728,18 @@ const trendPoints = computed(() =>
   trendMatrix.value ? trendMatrix.value.map((p) => `${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(" ") : "",
 );
 
-/** 走势面积（折线 → 底部闭合） */
+/**
+ * 走势面积（折线 → 底部闭合）
+ *
+ * <p>路径必须以 {@code M} 开头：SVG 的 {@code d} 只允许在 {@code M} 之后省略命令字母，
+ * 首段坐标前面没有命令会被浏览器判为非法路径（{@code Expected moveto path command}），
+ * 面积填充整块不渲染并往控制台写一条 error。折线用 {@code polyline points} 没有这个约束，
+ * 所以只有面积会坏 —— 这也是当初只测线条没发现的原因。</p>
+ */
 const trendArea = computed(() => {
   if (!trendMatrix.value) return "";
   const line = trendMatrix.value.map((p) => `${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(" ");
-  return `${line} L ${CHART_W} ${CHART_H} L 0 ${CHART_H} Z`;
+  return `M ${line} L ${CHART_W} ${CHART_H} L 0 ${CHART_H} Z`;
 });
 
 /**

@@ -109,7 +109,19 @@ const activeChannel = ref<string>('')
 // 渠道卡片内的状态：是否正在签到 / 正在拉模型 / 正在刷新
 const busy = ref<Record<string, { sign?: boolean; models?: boolean; refresh?: boolean; login?: boolean }>>({})
 
-const busyOf = (channel: string) => (busy.value[channel] ??= {})
+/**
+ * 渠道级忙碌标记。
+ *
+ * <p>⚠️ 必须返回响应式代理，不能写成 {@code busy.value[channel] ??= {}}：赋值表达式的
+ * 值是<b>右侧原始对象</b>，后续直接改它不会触发依赖收集，按钮的「刷新中…」永远不出现。</p>
+ *
+ * @param channel 渠道标识
+ * @returns 该渠道的忙碌标记（已是 reactive 代理）
+ */
+const busyOf = (channel: string) => {
+  if (!busy.value[channel]) busy.value[channel] = {}
+  return busy.value[channel]
+}
 
 const activeSummary = () => channels.value.find((c) => c.channel === activeChannel.value)
 
@@ -1064,7 +1076,11 @@ const taskState = ref<Record<string, { loading?: boolean; error?: string; rows?:
  */
 async function loadCredit(conn: ChannelConnectionSummary) {
   const key = conn.connectionId
-  const state = (creditState.value[key] ??= {})
+  // ⚠️ 不能写 `creditState.value[key] ??= {}`：赋值表达式的值是右侧的原始对象，
+  // 之后改 state.loading / state.data 都不会触发渲染（页面永远停在「查询中…」）。
+  // 先建号，再通过 ref 读回来拿到 reactive 代理。
+  if (!creditState.value[key]) creditState.value[key] = {}
+  const state = creditState.value[key]
   state.loading = true
   state.error = ''
   try {
@@ -1088,7 +1104,9 @@ async function loadCredit(conn: ChannelConnectionSummary) {
  */
 async function loadTasks(conn: ChannelConnectionSummary) {
   const key = conn.connectionId
-  const state = (taskState.value[key] ??= {})
+  // 同上：必须拿到 reactive 代理，`??=` 拿到的是原始对象，改它不会重渲染。
+  if (!taskState.value[key]) taskState.value[key] = {}
+  const state = taskState.value[key]
   state.loading = true
   state.error = ''
   try {

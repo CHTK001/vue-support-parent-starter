@@ -46,6 +46,7 @@ import {
   installEVirtTableFillerColumns,
   installEVirtTableSelectionBridge,
 } from "../utils/eVirtTableSelectionBridge";
+import { previewAssetBase } from "../utils/previewAssetBase";
 
 /**
  * 可做选区统计的表格扩展名。
@@ -167,10 +168,11 @@ async function ensureFileViewerLoaded(): Promise<boolean> {
     // full 层 + core 层都要显式指到前端同源：core 层不设时会走 automatic
     // 推断，把 file-viewer 运行期 chunk 拼到存储域（文件字节的来源），
     // 于是 /assets/*.js 请求失败、渲染器整体崩掉。详见 FvPanelBase 的注释。
+    // previewAssetBase()：预览壳内嵌态返回挂载前缀（如 /fs/），其余同源根 /。
     (vueMod as { setDefaultFullAssetBaseUrl?: (base?: string | URL | null) => void })
-      .setDefaultFullAssetBaseUrl?.("/");
+      .setDefaultFullAssetBaseUrl?.(previewAssetBase());
     (coreMod as { setDefaultFileViewerAssetBaseUrl?: (base?: string | URL | null) => void })
-      .setDefaultFileViewerAssetBaseUrl?.("/");
+      .setDefaultFileViewerAssetBaseUrl?.(previewAssetBase());
     officePreset =
       (presetMod as { default?: unknown; officeRenderers?: unknown }).default
       ?? (presetMod as { officeRenderers?: unknown }).officeRenderers;

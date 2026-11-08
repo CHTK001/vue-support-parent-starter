@@ -203,13 +203,40 @@ export const monitorRoutes: RouteConfigsTable[] = [
   // 视图、API、路由三者同源，宿主只做一行展开；/projects 等隐藏路由也一并展开到顶层。
   ...createServerHostRoutes({ activeMenu: "/assets" }),
 
-  // ==================== 文件管理（已从监控管理平台的入口移除） ====================
-  // 文件服务器的能力属于同仓的 `vue-support-filestorage-starter`（独立应用），
-  // 不跟 monitor 后端同进程；目前 DUI 的代理目标（instabox 8082）已下线，
-  // `/files` 页打开后 @pages/filesystem 发出的全部接口请求 404/502，无法修复。
-  // 把路由 + 菜单分组删掉，节点不进侧边栏，避免死入口；配合 App.vue 资产侧栏
-  // 快捷入口的对应行一起清理。需要文件管理请以文件管理应用（filestorage-starter）
-  // 的入口为准，不要把这个页面重新走回 monitor 壳。
+  // ==================== 文件管理 ====================
+  // 与「主机管理」平级的独立分组：文件服务器(FileStorageServerFilter)可由
+  // monitor 的 MonitorFileStorageGatewayConfig 随应用启动，也是本机验收场景
+  // （FS_API_TARGET=http://127.0.0.1:8082 指向同进程 8082）。
+  // 开发环境（pnpm dev）通过 Vite 的 /fs、/localFileStorage、/local、/ot、
+  // /config、/recycle 前缀代理转发，目标由 FS_API_TARGET 决定（见 vite.config.ts）。
+  {
+    path: "/grp-file",
+    name: "GroupFile",
+    meta: { title: "文件管理", icon: "Folder", showLink: true, rank: 12 },
+    children: [
+      {
+        path: "/files",
+        name: "FileAssets",
+        component: () => import("@pages/filesystem/src/views/FileStorageManage.vue"),
+        meta: { title: "文件资产", icon: "FolderOpened", showLink: true, rank: 1 },
+      },
+      {
+        // 文件记录页更名「文件管理」：任务化分片上传的发起与状态展示
+        // （后台时间轮 + 虚拟线程合并）。分组名同为「文件管理」，接受两级同名。
+        path: "/upload-tasks",
+        name: "UploadTasks",
+        component: () => import("@pages/filesystem/src/views/UploadTaskView.vue"),
+        meta: { title: "文件管理", icon: "Upload", showLink: true, rank: 2 },
+      },
+      {
+        // 协同管理：在线表格协同文档的列表与权限管理
+        path: "/file-collabs",
+        name: "FileCollabs",
+        component: () => import("@pages/filesystem/src/views/FileCollabManage.vue"),
+        meta: { title: "协同管理", icon: "Grid", showLink: true, rank: 4 },
+      },
+    ],
+  },
 
   // ==================== Docker ====================
   // Docker 是独立页面包（@pages/docker），页面内再分容器 / 镜像 / 网络 / 卷 /

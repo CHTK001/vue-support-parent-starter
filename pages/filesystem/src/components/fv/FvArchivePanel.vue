@@ -9,6 +9,7 @@
 import { computed, ref, shallowRef, watch } from "vue";
 import type { Component } from "vue";
 import { resolveObjectUrl } from "../../api/filestorageApi";
+import { previewAssetBase } from "../../utils/previewAssetBase";
 
 const props = defineProps<{
   /** 存储桶名 */
@@ -74,10 +75,11 @@ async function ensureFileViewerLoaded(): Promise<boolean> {
     // 会把 file-viewer 运行期 chunk / design worker 拼到存储域（文件字节来源），
     // 造成 /assets/*.js 与 /ot/vendor/design/*.worker.js 跨域失败。
     // 详见 FvPanelBase.vue 中同处的注释。
+    // previewAssetBase()：预览壳内嵌态返回挂载前缀（如 /fs/），其余同源根 /。
     (vueMod as { setDefaultFullAssetBaseUrl?: (base?: string | URL | null) => void })
-      .setDefaultFullAssetBaseUrl?.("/");
+      .setDefaultFullAssetBaseUrl?.(previewAssetBase());
     (coreMod as { setDefaultFileViewerAssetBaseUrl?: (base?: string | URL | null) => void })
-      .setDefaultFileViewerAssetBaseUrl?.("/");
+      .setDefaultFileViewerAssetBaseUrl?.(previewAssetBase());
     viewerComp.value =
       (vueMod as { FileViewer?: Component; default?: Component }).FileViewer
       ?? (vueMod as { default?: Component }).default

@@ -14,6 +14,7 @@
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue";
 import type { Component } from "vue";
 import { resolveObjectUrl } from "../../api/filestorageApi";
+import { previewAssetRoot } from "../../utils/previewAssetBase";
 
 const props = defineProps<{
   /** 存储桶名 */
@@ -112,7 +113,7 @@ async function ensureFileViewerLoaded(): Promise<boolean> {
  * <p>这些文件由 {@code @file-viewer/vite-plugin} 的 copyAssets 落到
  * {@code public/vendor/design/}，前端同源即可加载，与文件字节的域无关。</p>
  */
-const DESIGN_ASSET_BASE = "/vendor/design/";
+const DESIGN_ASSET_BASE = `${previewAssetRoot()}/vendor/design/`;
 
 /** 传给 file-viewer 的 options（preset + replace 模式 + 主题 + 工具条位置 + design 资产） */
 const viewerOptions = computed(() => ({
