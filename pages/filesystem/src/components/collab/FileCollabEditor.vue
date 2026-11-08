@@ -30,6 +30,20 @@
       <!-- 文件名由引擎工具栏与页面标题展示，这里不再重复，只留同步状态 -->
       <span class="fc-editor-status" :class="saveState" data-testid="fc-collab-status">{{ saveStatusText }}</span>
       <span class="fc-editor-ver">v{{ currentVersion }}</span>
+      <!-- 实时协同状态：连接态 + 在线人数。引擎会把远程操作直接应用到文档，
+           所以「是否同步」对用户来说是第一等信息，不能只在控制台里看。 -->
+      <span
+        v-if="hubState !== 'idle'"
+        class="fc-editor-hub"
+        :class="`hub-${hubState}`"
+        :title="hubTitle"
+        data-testid="fc-collab-hub"
+        :data-hub-state="hubState"
+        :data-hub-peers="hubPeers.length"
+      >
+        <i class="fc-editor-hub-dot" aria-hidden="true" />
+        {{ hubText }}
+      </span>
       <template v-if="!readonly">
         <el-button
           size="small"
@@ -37,7 +51,7 @@
           data-testid="fc-collab-save"
           @click="saveNow()"
         >保存</el-button>
-        <el-button size="small" text data-testid="fc-collab-refresh" @click="refreshSnapshot(false)">从服务器刷新</el-button>
+        <el-button size="small" text data-testid="fc-collab-refresh" @click="refreshSnapshot(false, undefined, true)">从服务器刷新</el-button>
       </template>
       <span v-else class="fc-editor-readonly">只读</span>
     </div>
@@ -57,9 +71,14 @@
 import { onBeforeUnmount, onMounted, ref, shallowRef } from "vue";
 import { ElMessage } from "element-plus";
 import { mount, type MountedViewer } from "@p10node/office-engine/embed";
+import type { CollabStatus } from "@p10node/office-engine/collab";
 import {
+  collabCurrentUserId,
+  collabCurrentUserName,
   getFileCollab,
+  getFileCollabHubState,
   getFileCollabVersion,
+  registerFileCollabHubSnapshot,
   saveFileCollabSnapshot,
   subscribeFileCollab,
   type CollabDocType,
@@ -68,6 +87,7 @@ import {
 import { nextAutoSaveDelay, shouldPollCollab } from "../../utils/collabAutosave";
 import { blobToOfficeSnapshot, officeMimeOf } from "../../utils/collabOffice";
 import { snapshotToOfficeBytes } from "../../utils/collabExport";
+import { CollabHubTransport } from "../../utils/collabHubTransport";
 
 const props = defineProps<{
   /** 协同文档号 */
@@ -127,6 +147,51 @@ let readyFallbackTimer: ReturnType<typeof setTimeout> | null = null;
 /** 保存失败时抑制引擎 onError 的通用提示（错误已由 pushBlob 明确提示过） */
 let suppressEngineError = false;
 
+/** 实时协同传输层（SSE 下行 + POST 上行；每次换文档都要新建实例） */
+let transport: CollabHubTransport | null = null;
+/** 观察引擎自带协同条（.de-collab-* / .de-peers）的 DOM 观察器 */
+let hubObserver: MutationObserver | null = null;
+
+/** 协同连接状态：idle = 未启用 */
+const hubState = ref<CollabStatus | "idle">("idle");
+/** 在线协作者（不含自己） */
+const hubPeers = ref<{ name: string; color: string }[]>([]);
+/** 协同状态说明（悬停提示，含失败原因） */
+const hubTitle = ref("");
+
+/**
+ * 协同状态文案。
+ *
+ * <p>只读用户也挂协同层（要看在线成员和实时内容），所以文案不区分角色；
+ * error 时把具体原因放进 title，页面标题区不放长句。</p>
+ */
+const hubText = ref("");
+
+/** 同步状态文案与提示 */
+function renderHubState(): void {
+  const peers = hubPeers.value.length;
+  switch (hubState.value) {
+    case "connecting":
+      hubText.value = "协同连接中…";
+      break;
+    case "syncing":
+      hubText.value = "协同同步中…";
+      break;
+    case "live":
+      hubText.value = peers > 0 ? `协同在线 · ${peers} 人` : "协同在线";
+      break;
+    case "offline":
+      hubText.value = "协同离线 · 改动待同步";
+      break;
+    case "error":
+      hubText.value = "协同异常";
+      break;
+    default:
+      hubText.value = "";
+      break;
+  }
+}
+
 /** 协同类型（父组件未显式传时按文件名猜，兼容旧调用方） */
 function collabType(): CollabDocType {
   if (props.docType) return props.docType;
@@ -152,6 +217,84 @@ function renderSaveStatus(): void {
 }
 
 /**
+ * 观察引擎自带的协同状态条与成员头像。
+ *
+ * <p>引擎已经在自己的工具栏里渲染 {@code .de-collab-status} 与 {@code .de-peers}，
+ * 并且持有真正的 {@code CollabSession}。如果这里再调一次 {@code startCollab}，
+ * 就会开出第二条会话、把同一批操作投递两遍。所以状态只从 DOM 读，不复制会话。</p>
+ */
+function observeHub(): void {
+  const host = mountRef.value;
+  if (!host || hubObserver) return;
+  const scan = () => scanHubDom();
+  hubObserver = new MutationObserver(scan);
+  hubObserver.observe(host, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+    attributes: true,
+    attributeFilter: ["class", "title"],
+  });
+  scan();
+}
+
+/** 断开协同 DOM 观察器 */
+function stopHubObserver(): void {
+  hubObserver?.disconnect();
+  hubObserver = null;
+}
+
+/** 把引擎协同条映射到页面状态（连接态 + 在线人数） */
+function scanHubDom(): void {
+  const host = mountRef.value;
+  if (!host) return;
+  const statusEl = host.querySelector<HTMLElement>(".de-collab-status");
+  if (!statusEl) {
+    return;
+  }
+  const matched = /de-collab-(connecting|syncing|live|offline|error)/.exec(statusEl.className);
+  const next = (matched?.[1] as CollabStatus | undefined) ?? "live";
+  const peers: { name: string; color: string }[] = [];
+  host.querySelectorAll<HTMLElement>(".de-peers .de-peer").forEach((el) => {
+    if (el.classList.contains("de-peer-more")) {
+      // 「+N」不是人，是溢出标记：把 N 折算成占位人数
+      const more = Number.parseInt((el.textContent ?? "").replace(/[^\d]/g, ""), 10);
+      for (let i = 0; i < (Number.isFinite(more) ? more : 0); i += 1) {
+        peers.push({ name: "", color: "" });
+      }
+      return;
+    }
+    peers.push({ name: el.title ?? "", color: el.style.background ?? "" });
+  });
+  const changed =
+    hubState.value !== next ||
+    hubPeers.value.length !== peers.length ||
+    hubPeers.value.some((p, i) => p.name !== peers[i]?.name);
+  if (!changed) return;
+  hubState.value = next;
+  hubPeers.value = peers;
+  hubTitle.value = statusEl.title ?? "";
+  renderHubState();
+}
+
+/**
+ * 等待本地改动全部定序（保存快照前必须为 0，否则文件内容会超前于 seq）。
+ *
+ * @param timeoutMs 最长等待时间
+ * @returns 是否已清空
+ */
+async function waitHubIdle(timeoutMs = 4000): Promise<boolean> {
+  const t = transport;
+  if (!t) return true;
+  const deadline = Date.now() + timeoutMs;
+  while (t.pending > 0) {
+    if (disposed || Date.now() > deadline) return false;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  return true;
+}
+
+/**
  * 把引擎当前内容写进协同服务（版本乐观锁）。
  *
  * @param file 引擎产出的文件字节
@@ -162,9 +305,24 @@ async function pushBlob(file: Blob): Promise<void> {
   saveState.value = "saving";
   renderSaveStatus();
   try {
+    // 快照点的 seq 必须与文件内容对齐：先等本地批次全部定序，再取 lastSeq。
+    // 超时也继续保存，但只写文件、不登记 hub 快照，避免把「文档内容对应的 seq」
+    // 指到一个文件里并不包含的位置。
+    const settled = await waitHubIdle();
+    const hubSeq = settled && transport ? transport.lastSeq : 0;
+    const hubCtx = settled && transport ? transport.context() : [];
     const snapshot = await blobToOfficeSnapshot(file);
-    const updated = await saveFileCollabSnapshot(props.collabId, snapshot, currentVersion.value);
+    const updated = await saveFileCollabSnapshot(props.collabId, snapshot, currentVersion.value, undefined, hubSeq);
     currentVersion.value = updated.version;
+    if (hubSeq > 0) {
+      // ctx 单独 POST：条目数组塞进 URL 会撞网关长度上限
+      try {
+        await registerFileCollabHubSnapshot(props.collabId, hubSeq, hubCtx);
+      } catch {
+        // 上下文登记失败不影响文件本身：新加入者会从更早的 base 重放，
+        // 属于「多算一次」而不是丢内容，下一次保存会自动纠正。
+      }
+    }
     savedSeq = seqAtStart;
     // 保存期间用户又改了：这一版已经落后，仍算「有未保存改动」
     dirtyFlag = dirtySeq !== savedSeq;
@@ -249,6 +407,12 @@ async function saveNow(auto = false): Promise<void> {
     clearTimeout(autoSaveTimer);
     autoSaveTimer = null;
   }
+  // 协同层还有未定序的本地改动时先等它们落地：写进文件的字节里包含的操作
+  // 必须都已经有 seq，否则新加入者会把它们再应用一遍。
+  if (!(await waitHubIdle())) {
+    scheduleAutoSave(600);
+    return;
+  }
   // 走引擎保存链路：它保存完会把 dirty 清零
   if (triggerEngineSave()) return;
   // 兜底（工具栏不可用）：直接问 worker 要字节
@@ -267,12 +431,16 @@ async function saveNow(auto = false): Promise<void> {
  *
  * @param silent       静默模式（轮询/SSE 触发时不打扰用户）
  * @param knownVersion 已知的最新版本（SSE 推送里带了版本号，省掉一次版本探针）
+ * @param force        用户主动点「从服务器刷新」：本地未保存改动按放弃处理
  */
-async function refreshSnapshot(silent = false, knownVersion?: number): Promise<void> {
+async function refreshSnapshot(silent = false, knownVersion?: number, force = false): Promise<void> {
   try {
     const version = knownVersion ?? (await getFileCollabVersion(props.collabId)).version;
-    if (version === currentVersion.value) return;
-    if (dirtyFlag) {
+    if (version === currentVersion.value) {
+      if (!silent && force) ElMessage.info("当前已是最新版本");
+      return;
+    }
+    if (dirtyFlag && !force) {
       if (!silent) {
         ElMessage.warning("本地有未保存改动，为避免覆盖他人内容请先保存或放弃本地改动");
       }
@@ -281,12 +449,34 @@ async function refreshSnapshot(silent = false, knownVersion?: number): Promise<v
     const latest: FileCollabInfo = await getFileCollab(props.collabId);
     if (latest.version === currentVersion.value) return;
     const bytes = await snapshotToOfficeBytes(collabType(), latest.snapshot ?? "");
-    const src = new File([bytes as unknown as BlobPart], latest.fileName || props.fileName, {
+    const fileName = latest.fileName || props.fileName;
+    const src = new File([bytes as unknown as BlobPart], fileName, {
       type: officeMimeOf(collabType()),
     });
+    // 换 src 会重建引擎会话，旧 transport 也随之作废：引擎的 collabKey 里带了
+    // transport 身份，复用同一个实例会把新旧两段日志接到一起。
+    let base = 0;
+    try {
+      base = (await getFileCollabHubState(props.collabId)).snapshotSeq ?? 0;
+    } catch {
+      base = 0;
+    }
+    const previous = transport;
+    const nextTransport = new CollabHubTransport(props.collabId);
+    transport = nextTransport;
+    previous?.close();
     // update 会整树重渲染 DocViewer，src 换了就等于换文档
     client.value = null;
-    viewer.value?.update({ src, name: latest.fileName || props.fileName });
+    viewer.value?.update({
+      src,
+      name: fileName,
+      collab: {
+        transport: nextTransport,
+        room: props.collabId,
+        user: { id: collabCurrentUserId(), name: collabCurrentUserName() },
+        base,
+      },
+    });
     currentVersion.value = latest.version;
     dirtyFlag = false;
     dirtySeq = 0;
@@ -309,10 +499,21 @@ async function initEngine(): Promise<void> {
   const type = collabType();
   try {
     loadingText.value = type === "word" ? "正在解析 Word 文档…" : "正在解析 Excel 工作簿…";
+    // 协同基线：文档文件里已经包含到哪一批操作。必须在 mount() 之前定值——
+    // 它参与引擎的 collabKey，首帧之后再改会导致会话重建。
+    let base = 0;
+    try {
+      base = (await getFileCollabHubState(props.collabId)).snapshotSeq ?? 0;
+    } catch {
+      // 房间还不存在（从没人协同编辑过）时按 0 处理，等同「原始上传」
+    }
+    if (disposed) return;
     const bytes = await snapshotToOfficeBytes(type, initialSnapshot.value ?? "");
     const fileName = props.fileName || (type === "word" ? "document.docx" : "workbook.xlsx");
     const src = new File([bytes as unknown as BlobPart], fileName, { type: officeMimeOf(type) });
 
+    transport = new CollabHubTransport(props.collabId);
+    const hubTransport = transport;
     viewer.value = mount(host, {
       src,
       name: fileName,
@@ -324,6 +525,13 @@ async function initEngine(): Promise<void> {
       fileMenu: false,
       allowOpen: false,
       theme: "light",
+      // 实时协同：只读用户也挂（要看在线成员与最新内容），由引擎的门控决定能否编辑
+      collab: {
+        transport: hubTransport,
+        room: props.collabId,
+        user: { id: collabCurrentUserId(), name: collabCurrentUserName() },
+        base,
+      },
       onLoad: (c) => {
         client.value = c as unknown as typeof client.value;
         if (readyFallbackTimer) {
@@ -331,6 +539,7 @@ async function initEngine(): Promise<void> {
           readyFallbackTimer = null;
         }
         ready.value = true;
+        observeHub();
         emit("ready");
       },
       onError: (err) => {
@@ -392,6 +601,14 @@ onMounted(async () => {
   // 主通道：SSE 变更推送 —— 别人一保存就立刻知道，不用等轮询
   unsubscribe = subscribeFileCollab(props.collabId, (change) => {
     if (disposed || change.version <= currentVersion.value) return;
+    // 实时协同在线时内容已通过操作流到达本端，重建文档只会打断输入与光标位置；
+    // 只有协同不在线（离线/异常）才退回到「拉整份快照」这条老路。
+    if (hubState.value === "live") {
+      currentVersion.value = change.version;
+      saveState.value = dirtyFlag ? "dirty" : "saved";
+      renderSaveStatus();
+      return;
+    }
     void refreshSnapshot(true, change.version);
   });
   // 兜底通道（SSE 断连时保同步）：15s 一次，只问版本号
@@ -399,12 +616,14 @@ onMounted(async () => {
     if (disposed || !shouldPollCollab(document.visibilityState === "visible", saving.value, dirtyFlag)) {
       return;
     }
+    if (hubState.value === "live") return;
     void refreshSnapshot(true);
   }, 15000);
 });
 
 onBeforeUnmount(() => {
   disposed = true;
+  stopHubObserver();
   if (pollTimer) clearInterval(pollTimer);
   if (readyFallbackTimer) {
     clearTimeout(readyFallbackTimer);
@@ -429,10 +648,16 @@ onBeforeUnmount(() => {
       .then((blob) => pushBlobUnmount(blob))
       .catch(() => undefined);
     const timeout = new Promise<void>((resolve) => setTimeout(resolve, 4000));
-    void Promise.race([flush, timeout]).finally(() => v?.destroy());
+    void Promise.race([flush, timeout]).finally(() => {
+      v?.destroy();
+      transport?.close();
+      transport = null;
+    });
     return;
   }
   v?.destroy();
+  transport?.close();
+  transport = null;
 });
 
 /**
@@ -442,8 +667,13 @@ onBeforeUnmount(() => {
  */
 async function pushBlobUnmount(blob: Blob): Promise<void> {
   try {
+    const t = transport;
+    const hubSeq = t && t.pending === 0 ? t.lastSeq : 0;
     const snapshot = await blobToOfficeSnapshot(blob);
-    await saveFileCollabSnapshot(props.collabId, snapshot, currentVersion.value);
+    await saveFileCollabSnapshot(props.collabId, snapshot, currentVersion.value, undefined, hubSeq);
+    if (hubSeq > 0 && t) {
+      await registerFileCollabHubSnapshot(props.collabId, hubSeq, t.context()).catch(() => undefined);
+    }
   } catch {
     // 卸载时的补存失败只能放弃：组件已经不可见，弹提示反而打断用户下一步操作
   }
@@ -486,6 +716,52 @@ async function pushBlobUnmount(blob: Blob): Promise<void> {
 }
 .fc-editor-status.conflict {
   background: var(--status-error, #f56c6c);
+}
+.fc-editor-hub {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--el-border-color-lighter, #e8ebf0);
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+  white-space: nowrap;
+}
+.fc-editor-hub-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--el-color-info, #909399);
+}
+.fc-editor-hub.hub-live {
+  border-color: var(--el-color-success-light-5, #b3e19d);
+  color: var(--el-color-success, #67c23a);
+}
+.fc-editor-hub.hub-live .fc-editor-hub-dot {
+  background: var(--el-color-success, #67c23a);
+}
+.fc-editor-hub.hub-connecting .fc-editor-hub-dot,
+.fc-editor-hub.hub-syncing .fc-editor-hub-dot {
+  background: var(--el-color-warning, #e6a23c);
+  animation: fc-editor-pulse 1.2s ease-in-out infinite;
+}
+.fc-editor-hub.hub-offline {
+  border-color: var(--el-color-warning-light-5, #f3d19e);
+  color: var(--el-color-warning, #e6a23c);
+}
+.fc-editor-hub.hub-offline .fc-editor-hub-dot {
+  background: var(--el-color-warning, #e6a23c);
+}
+.fc-editor-hub.hub-error {
+  border-color: var(--el-color-danger-light-5, #fab6b6);
+  color: var(--el-color-danger, #f56c6c);
+}
+.fc-editor-hub.hub-error .fc-editor-hub-dot {
+  background: var(--el-color-danger, #f56c6c);
+}
+@keyframes fc-editor-pulse {
+  50% { opacity: 0.35; }
 }
 .fc-editor-ver {
   font-size: 12px;

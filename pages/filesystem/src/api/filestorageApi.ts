@@ -38,6 +38,23 @@ export function collabCurrentUserId(): string {
   return id == null || id === "" ? "anonymous" : String(id);
 }
 
+/**
+ * 当前登录用户的显示名（协同光标 / 在线成员列表用）。
+ *
+ * <p>取值顺序与账号域一致：昵称 → 用户名 → 姓名 → 标识；都没有时退回
+ * {@code 用户 <id>}，保证协同里不会出现空白名字。</p>
+ *
+ * @return 显示名
+ */
+export function collabCurrentUserName(): string {
+  const info = getUserInfo<Record<string, unknown>>() ?? {};
+  const name =
+    info.sysUserNickname ?? info.nickName ?? info.nickname ??
+    info.sysUserUsername ?? info.userName ?? info.username ??
+    info.realName ?? info.name;
+  return name == null || name === "" ? `用户 ${collabCurrentUserId()}` : String(name);
+}
+
 /** localStorage 中服务器地址的键名 */
 const SERVER_KEY = "filestorage.server";
 
@@ -2240,6 +2257,42 @@ export async function getFileCollabVersion(id: string): Promise<FileCollabVersio
 }
 
 /**
+ * 实时协同房间状态。
+ *
+ * <p>新加入的客户端必须以 {@code snapshotSeq} 作为 {@code base}：它是「当前文档
+ * 文件里已经包含到哪一批操作」。从 0 开始会重放整条历史，把已经写进文件的改动
+ * 再应用一遍。</p>
+ *
+ * @param id 协同文档号
+ * @return {@code {seq, snapshotSeq, start, logSize, peers, version}}
+ */
+export async function getFileCollabHubState(id: string): Promise<FileCollabHubState> {
+  try {
+    return await uploadTaskHttp()
+      .get(`${FILE_COLLAB_BASE}/${id}/hub/state`)
+      .then<FileCollabHubState>((r) => unwrapTask<FileCollabHubState>(r));
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "获取协同房间状态"));
+  }
+}
+
+/** 实时协同房间状态 */
+export interface FileCollabHubState {
+  /** 已定序到的最新 seq */
+  seq: number;
+  /** 文档内容对应的 seq（新客户端作为 base） */
+  snapshotSeq: number;
+  /** 日志起点：比它更早的 seq 已被裁掉 */
+  start: number;
+  /** 快照之后的日志条数 */
+  logSize: number;
+  /** 在线人数 */
+  peers: number;
+  /** 文件版本号 */
+  version: number;
+}
+
+/**
  * 保存协同快照（版本乐观锁）。
  *
  * <p><b>必须显式声明 Content-Type 为 text/plain。</b>请求体是 Univer 工作簿快照的
@@ -2253,6 +2306,10 @@ export async function getFileCollabVersion(id: string): Promise<FileCollabVersio
  * @param snapshot        Univer 工作簿快照 JSON
  * @param expectedVersion 期望的当前版本
  * @param userId          当前用户标识（后端据此校验写权限）
+ * @param hubSeq          实时协同快照点（{@code session.rev}）；带上它，服务端才能把
+ *                        「文档内容对应的 seq」与文件版本对齐，新加入者不会重放已经
+ *                        写进文件的操作。上下文用 {@link registerFileCollabHubSnapshot}
+ *                        单独提交——它是条目数组，塞进 URL 会撞网关的长度上限
  * @return 更新后的文档（含新版本）
  */
 export async function saveFileCollabSnapshot(
@@ -2260,11 +2317,15 @@ export async function saveFileCollabSnapshot(
   snapshot: string,
   expectedVersion: number,
   userId?: string,
+  hubSeq?: number,
 ): Promise<FileCollabInfo> {
   try {
     const params = new URLSearchParams();
     params.set("expectedVersion", String(expectedVersion));
     params.set("userId", userId ?? collabCurrentUserId());
+    if (hubSeq != null && hubSeq > 0) {
+      params.set("hubSeq", String(hubSeq));
+    }
     return await uploadTaskHttp()
       .put(`${FILE_COLLAB_BASE}/${id}/snapshot?${params.toString()}`)
       // 不能省：省掉就会是 application/x-www-form-urlencoded，后端读到空 body
@@ -2273,6 +2334,36 @@ export async function saveFileCollabSnapshot(
       .then<FileCollabInfo>((r) => unwrapTask<FileCollabInfo>(r));
   } catch (e) {
     throw new Error(toErrorMessage(e, "保存协同快照"));
+  }
+}
+
+/**
+ * 登记实时协同快照上下文。
+ *
+ * <p>快照文件保存成功后调用：{@code seq} 必须与 {@link saveFileCollabSnapshot} 里
+ * 的 {@code hubSeq} 一致。hub 用这条登记把「文件内容是到第几批操作为止」钉住，
+ * 此后新加入的客户端从这个 seq 起 {@code base}，既不会漏也不会重放。</p>
+ *
+ * <p>上下文必须是 canonical ops 数组：客户端把它 {@code JSON.stringify} 后作为
+ * 请求体，服务端原样存储，不做二次编码。</p>
+ *
+ * @param id  协同文档号
+ * @param seq 快照对应的 seq
+ * @param ctx 该 seq 之前的操作日志（{@code session.context()}）
+ */
+export async function registerFileCollabHubSnapshot(
+  id: string,
+  seq: number,
+  ctx: unknown[],
+): Promise<void> {
+  try {
+    await uploadTaskHttp()
+      .post(`${FILE_COLLAB_BASE}/${id}/hub/snapshot`)
+      .headers({ "Content-Type": "application/json;charset=UTF-8" })
+      .data(JSON.stringify({ seq, ctx: ctx ?? [] }))
+      .then((r) => unwrapTask<unknown>(r));
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "登记协同快照上下文"));
   }
 }
 

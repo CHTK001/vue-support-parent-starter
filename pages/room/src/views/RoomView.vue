@@ -154,12 +154,35 @@ watch(targetRoomId, (id) => {
   store.joinRoom(id);
 });
 
+/**
+ * 信令地址变化时重新对准。
+ *
+ * <p>深链（{@code ?roomId=}）先开页签、节点列表后到的场景下，页签的 serverUrl
+ * 会从空补成真实节点地址；只改 prop 不会重建已挂载的 {@link RoomView}，旧的
+ * WebSocket 仍指着宿主端口，症状是页面永远停在「连接中」。这里在地址真的变化时
+ * 断开旧连接、按新地址重连并回到房间。</p>
+ */
+watch(
+  () => props.serverUrl,
+  (url) => {
+    roomSocket.setBaseUrl(url);
+    const next = roomSocket.getBaseUrl();
+    if (next === appliedBase) return;
+    appliedBase = next;
+    const rid = store.roomId || targetRoomId();
+    roomSocket.disconnect();
+    store.connect();
+    if (rid) store.joinRoom(rid);
+  },
+);
+
 onMounted(() => {
   // 注册下行信令（unbind 在卸载时调用）
   const unbind = store.bindSignals();
   // 房间节点是独立端口：先把信令基地址指到节点，再连接
   const previousBase = roomSocket.getBaseUrl();
   roomSocket.setBaseUrl(props.serverUrl);
+  appliedBase = roomSocket.getBaseUrl();
   // 进入页面时先连 Socket，再接入房间
   store.connect();
   const id = targetRoomId();
@@ -177,6 +200,9 @@ onBeforeUnmount(() => {
 
 /** 恢复进入前的信令基地址 */
 let restoreBase: (() => void) | undefined;
+
+/** 当前已应用的信令基地址（serverUrl 变化时用来判断是否需要重连） */
+let appliedBase = "";
 
 /** 存储 unbind（模块作用域可搜） */
 let unmounted: (() => void) | undefined;

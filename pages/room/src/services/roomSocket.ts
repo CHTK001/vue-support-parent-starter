@@ -185,9 +185,9 @@ export class RoomSocket {
         this.lastPongAt = Date.now();
         this.startHeartbeat();
         this.startStatusGuard();
-        // 重连回房：连接建立后再补发 hello（续接令牌带上才可能续上原端点）
+        // 连接建立后再补发 hello（建房间时没有房间号，由服务端分配，所以不能以 roomId 为条件）
         const pending = this.pendingRejoin;
-        if (pending?.roomId) {
+        if (pending) {
           this.pendingRejoin = undefined;
           this.send({ type: "hello", roomId: pending.roomId, resumeToken: pending.resumeToken, epoch: 0 });
         }
@@ -240,9 +240,24 @@ export class RoomSocket {
     }
   }
 
-  /** 加入房间（创建房间或续接旧连接） */
+  /**
+   * 加入房间（创建房间或续接旧连接）。
+   *
+   * <p>页面进来时先 {@code connect()} 再 {@code joinRoom()}，而 WebSocket 的 open 是
+   * 异步的：此刻直接 send 会因 {@code readyState=CONNECTING} 被丢掉，hello 永远到不了
+   * 服务端（症状是「已连接但一直未加入」）。先把入房参数记到 {@code pendingRejoin}，
+   * 由 {@code onopen} 补发。</p>
+   *
+   * @param roomId      房间号（空则由服务端分配）
+   * @param resumeToken 续接令牌
+   */
   joinRoom(roomId?: string, resumeToken?: string): void {
     this.lastJoin = { roomId, resumeToken };
+    if (this.ws?.readyState !== WebSocket.OPEN) {
+      // 连接还没打开：排队，等 onopen 补发（建房间时 roomId 为空，由服务端分配）
+      this.pendingRejoin = { roomId, resumeToken };
+      return;
+    }
     this.send({
       type: "hello",
       roomId,
@@ -311,7 +326,8 @@ export class RoomSocket {
   private scheduleReconnect(roomId?: string, resumeToken?: string): void {
     const target = roomId ?? this.lastJoin?.roomId;
     const token = resumeToken ?? this.lastJoin?.resumeToken;
-    this.pendingRejoin = target ? { roomId: target, resumeToken: token } : undefined;
+    // 创建房间时还没有房间号：只要发起过入房，就排一次 hello（服务端会分配新号）
+    this.pendingRejoin = this.lastJoin || target ? { roomId: target, resumeToken: token } : undefined;
     this.needReconnect = true;
     this.closed = false;
     this.reconnectAttempts++;

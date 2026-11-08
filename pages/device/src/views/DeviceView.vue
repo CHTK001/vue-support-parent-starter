@@ -276,8 +276,8 @@
 
               <!-- ============ 卡片台账（默认视图） ============ -->
               <div v-if="viewMode === 'card'" class="da-cards">
-                <ReScrollbar class="da-cards__scroll">
-                  <div v-if="filtered.length" class="da-cards__grid">
+                <ReScrollbar v-if="filtered.length" class="da-cards__scroll">
+                  <div class="da-cards__grid">
                     <article
                       v-for="row in filtered"
                       :key="row.deviceInfoId"
@@ -377,12 +377,12 @@
                       </button>
                     </article>
                   </div>
-                  <div v-else class="da-empty">
-                    <span class="da-empty__icon"><ReIcon name="Files" :size="22" /></span>
-                    <b class="da-empty__title">没有符合条件的设备</b>
-                    <span class="da-empty__text">试试清除筛选，或点左上角「+」新增设备</span>
-                  </div>
                 </ReScrollbar>
+                <div v-else class="da-empty">
+                  <span class="da-empty__icon"><ReIcon name="Files" :size="22" /></span>
+                  <b class="da-empty__title">没有符合条件的设备</b>
+                  <span class="da-empty__text">试试清除筛选，或点左上角「+」新增设备</span>
+                </div>
               </div>
 
               <!-- ============ 表格台账 ============ -->
@@ -1699,7 +1699,9 @@ function syncQuickFilter(kind: 'all' | 'online' | 'offline' | 'warranty' | 'unlo
 /** 轻索引：全量设备的 id/名称/组织/厂商/状态/标签（计数、树种、快速筛选/标签池的唯一来源） */
 async function loadIndex() {
   try {
-    allIndex.value = (await deviceApi.listIndex()) as DeviceIndexItem[]
+    const idx = await deviceApi.listIndex()
+    // 后端异常时可能返回非数组（缺 data / 对象体），这里收敛成数组，避免一次异常把整页渲染链带崩
+    allIndex.value = Array.isArray(idx) ? (idx as DeviceIndexItem[]) : []
     cacheDevices(allIndex.value)
     syncPicked(allIndex.value)
   } catch (err) {
@@ -1734,9 +1736,9 @@ const pageParams = computed<DevicePageQuery>(() => {
 async function pageLoader(params: ReTableLoadParams): Promise<RePageResult<Record<string, unknown>>> {
   try {
     const res = await deviceApi.page({ ...pageParams.value, pageNo: params.page, pageSize: params.pageSize })
-    const entries = (res as unknown as { data?: DeviceInfo[]; records?: DeviceInfo[] }).data
+    const raw = (res as unknown as { data?: DeviceInfo[]; records?: DeviceInfo[] }).data
       ?? (res as unknown as { records?: DeviceInfo[] }).records
-      ?? []
+    const entries = Array.isArray(raw) ? raw : []
     rows.value = entries as DeviceInfo[]
     cacheDevices(rows.value)
     syncPicked(rows.value)
@@ -3093,7 +3095,8 @@ onMounted(async () => {
 }
 .da-work > .re-tabs { flex: 1; min-height: 0; }
 
-/* 「设备资产」页签内容：批量条 + 列表 + 底部信息条 */
+/* 「设备资产」页签内容：批量条 + 列表 + 底部信息条
+   —— 三块同属一张卡面，块间留白由卡面自己填，不会再露出页面底色 */
 .da-assets {
   display: flex;
   flex: 1;
@@ -3101,6 +3104,12 @@ onMounted(async () => {
   gap: 8px;
   height: 100%;
   min-height: 0;
+  padding: 10px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  overflow: hidden;
 }
 
 /* 列表工具条：高度固定，未选中时是台账概览，选中后变成批量操作条
@@ -3113,8 +3122,8 @@ onMounted(async () => {
   gap: 10px;
   height: 46px;
   padding: 0 12px;
-  border: 1px solid var(--el-border-color-lighter);
-  background: var(--el-fill-color-blank, var(--el-bg-color));
+  border: 1px solid transparent;
+  background: transparent;
   border-radius: 10px;
   transition: background 0.16s ease, border-color 0.16s ease;
 }
@@ -3191,18 +3200,24 @@ onMounted(async () => {
 }
 
 /* ============ 卡片台账（B 版默认视图） ============ */
+/* 卡面已上移到 .da-assets，这里只负责撑满与排版，不再叠第二层卡 */
 .da-cards {
   flex: 1 1 0;
   min-height: 0;
   display: flex;
-  padding: 10px;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  flex-direction: column;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
   overflow: hidden;
 }
 .da-cards__scroll {
+  flex: 1;
+  min-height: 0;
+}
+/* 空态自己吃满整块内容区，不留一条看着像背景的空白 */
+.da-cards > .da-empty {
   flex: 1;
   min-height: 0;
 }
@@ -3571,12 +3586,11 @@ onMounted(async () => {
   align-items: center;
   gap: 14px;
   flex-wrap: wrap;
-  padding: 8px 14px;
+  padding: 8px 4px;
   min-height: 40px;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  background: transparent;
+  border: 0;
+  box-shadow: none;
   font-size: 12.5px;
   color: var(--el-text-color-regular);
 }

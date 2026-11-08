@@ -124,11 +124,14 @@ function isRoomCard(card: ServiceNodeCard): boolean {
   return code === 'room';
 }
 
+/** 找一个运行中、且有可连接地址的 ROOM 节点 */
+function findRunningRoom(): ServiceNodeCard | undefined {
+  return vm.cards.filter(isRoomCard).find(card => card.status === 'RUNNING' && !!card.url);
+}
+
 /** 优先取运行中的 ROOM 节点地址；没有可用的返回空串 */
 function resolveRoomUrl(): string {
-  const roomNodes = vm.cards.filter(isRoomCard);
-  const running = roomNodes.find(card => card.status === 'RUNNING' && !!card.url);
-  return running?.url ?? '';
+  return findRunningRoom()?.url ?? '';
 }
 
 /** 房间页签标题：带节点名时标出「房间在哪个信令节点上」 */
@@ -235,7 +238,7 @@ function openRoomTab(serverUrl?: string, roomIdArg?: string, nodeName?: string):
  */
 function openRoomEntrance(): void {
   const roomNodes = vm.cards.filter(isRoomCard);
-  const running = roomNodes.find(card => card.status === 'RUNNING' && !!card.url);
+  const running = findRunningRoom();
   if (running) {
     openRoomTab(running.url, undefined, running.name);
     return;
@@ -694,10 +697,36 @@ watch(
 
 /* ==================== 房间深链 ==================== */
 
-/** 带 {@code ?roomId=xxx} 进来时直接把房间工作台页签打开（优先挂到运行中的 ROOM 节点） */
-onMounted(() => {
-  if (route.query.roomId) openRoomTab(resolveRoomUrl(), String(route.query.roomId));
-});
+/** 深链页签是否已处理过（`?roomId=` 只开一次，之后交给用户） */
+let deepLinkHandled = false;
+
+/**
+ * 用 `?roomId=` 直接打开房间工作台。
+ *
+ * <p>必须在节点列表落地之后再开：房间信令跑在 ROOM 节点自己的端口上，节点还没
+ * 取回来时 {@link resolveRoomUrl} 是空串，页签会连到宿主端口，症状是永远
+ * 「连接中」/「未加入」。没有可用的房间节点时不硬开页签，直接说明原因。</p>
+ */
+function openDeepLinkRoom(): void {
+  const roomId = String(route.query.roomId ?? '');
+  if (!roomId || deepLinkHandled) return;
+  // 节点列表还没回来（首轮取数中），等 watch 再试
+  if (vm.loading && !vm.cards.length) return;
+  deepLinkHandled = true;
+  const running = findRunningRoom();
+  if (!running) {
+    message.warning(vm.cards.some(isRoomCard)
+      ? '房间节点未运行：先在左侧启动 ROOM 节点'
+      : '还没有 ROOM 房间节点：先新建一个协议为 room 的服务');
+    return;
+  }
+  openRoomTab(running.url, roomId, running.name);
+}
+
+onMounted(openDeepLinkRoom);
+
+/** 首轮节点列表落地后再处理深链 */
+watch(() => vm.cards.length, () => openDeepLinkRoom());
 
 /** 地址栏房间号变化时同步到已打开的房间页签 */
 watch(

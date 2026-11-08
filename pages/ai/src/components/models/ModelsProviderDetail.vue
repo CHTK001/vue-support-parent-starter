@@ -113,12 +113,19 @@
               <template v-else>
                 <span class="batch-count">多选模型进行批量操作</span>
                 <el-button v-if="!multiSelect" size="small" type="primary" @click="enterMultiSelect">多选</el-button>
-                <span
-                  v-else
-                  class="batch-select-all"
-                  :class="{ 'is-all': selected.length === filteredModels.length && filteredModels.length > 0 }"
-                  @click="toggleSelectAllFiltered"
-                >{{ selected.length === filteredModels.length ? '取消全选' : '全选当前筛选' }}</span>
+                <template v-else>
+                  <span
+                    class="batch-select-all"
+                    :class="{ 'is-all': selected.length === filteredModels.length && filteredModels.length > 0 }"
+                    @click="toggleSelectAllFiltered"
+                  >{{ selected.length === filteredModels.length ? '取消全选' : '全选当前筛选' }}</span>
+                  <!--
+                    批量启用/停用后 selected 会被清空，但 multiSelect 仍是 true；
+                    此前这个分支只剩「全选当前筛选」，没有退出入口，用户会被困在多选态
+                    （2026-11-09 浏览器验收实测）。补一个取消，随时能回到普通浏览。
+                  -->
+                  <el-button size="small" @click="exitMultiSelect">取消</el-button>
+                </template>
               </template>
             </div>
           </div>
@@ -133,16 +140,20 @@
               </el-radio-group>
             </div>
             <div class="filter-group">
+              <!--
+                类型下拉必须与 model.modelType 的取值同源：以前这里手写了
+                chat / vision / stt / image 等「业务别名」，而数据里存的是
+                text / image_cv / asr / image，结果选中任何类型都筛出 0 条
+                （2026-11-09 浏览器验收实测）。直接用 MODEL_TYPE_OPTIONS，
+                加类型时也只改 model.constants 一处。
+              -->
               <el-select v-model="typeFilter" placeholder="按类型" clearable size="small" class="type-select">
-                <el-option value="chat" label="对话" />
-                <el-option value="embedding" label="嵌入" />
-                <el-option value="ocr" label="OCR" />
-                <el-option value="vision" label="视觉" />
-                <el-option value="rerank" label="重排序" />
-                <el-option value="tts" label="语音合成" />
-                <el-option value="stt" label="语音识别" />
-                <el-option value="face" label="人脸" />
-                <el-option value="image" label="图像生成" />
+                <el-option
+                  v-for="opt in MODEL_TYPE_OPTIONS"
+                  :key="opt.value"
+                  :value="opt.value"
+                  :label="opt.label"
+                />
               </el-select>
             </div>
             <!-- 上下文大小过滤：常用档位标签，多选 = 并集；「未知」= 无上下文数据 -->
@@ -166,8 +177,8 @@
               <Avatar class="w-10 h-10 shrink-0 mr-3" :src="getModelAvatar(model)"
                 :name="getModelDisplayName(model.modelName)" type="assistant" :round="false" />
               <div class="mc-head-text min-w-0">
-                <span class="mc-name" :title="getModelDisplayName(model.modelName)">
-                  {{ getModelDisplayName(model.modelName) }}
+                <span class="mc-name" :title="model.alias ? `${model.alias} · ${model.modelName}` : getModelDisplayName(model.modelName)">
+                  {{ model.alias || getModelDisplayName(model.modelName) }}
                 </span>
                 <!--
                   模型的全部标签统一走 ModelTagStrip（图标 + tooltip）：
@@ -326,7 +337,7 @@ import ModelFetchDialog from './ModelFetchDialog.vue'
 import ModelTagStrip from './ModelTagStrip.vue'
 import {
   LOCAL_PROVIDER_IDS, MODEL_SUBTYPE_LABELS, MODEL_SUBTYPE_OPTIONS,
-  MODEL_TYPE_ICON, MODEL_TYPE_KIND,
+  MODEL_TYPE_ICON, MODEL_TYPE_KIND, MODEL_TYPE_OPTIONS,
 } from './model.constants'
 
 const props = defineProps<{
@@ -415,6 +426,8 @@ const SEARCH_ALIASES: Record<string, string[]> = {
 
 const matchesSearch = (m: any, kw: string) => {
   const displayName = getModelDisplayName(m.modelName).toLowerCase()
+  // 别名是用户在卡片上看到的展示名，搜索必须能命中它，否则「看得见却搜不到」
+  const alias = String(m.alias || '').toLowerCase()
   const typeLabel = typeMeta(m.modelType).label.toLowerCase()
   const subLabel = (subTypeLabel(m.subType) || '').toLowerCase()
   const features = (m.config?.features || []).join(' ').toLowerCase()
@@ -424,6 +437,7 @@ const matchesSearch = (m: any, kw: string) => {
     .toLowerCase()
   return (
     displayName.includes(kw) ||
+    alias.includes(kw) ||
     typeLabel.includes(kw) ||
     subLabel.includes(kw) ||
     features.includes(kw) ||
