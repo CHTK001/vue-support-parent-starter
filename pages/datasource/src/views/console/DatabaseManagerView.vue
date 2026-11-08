@@ -161,7 +161,7 @@
             <div v-for="db in databases" :key="db">
               <!-- 库节点 -->
               <div
-                class="dbm-tree-node"
+                class="dbm-tree-node dbm-db-node"
                 :class="{ active: activeDatabase === db && !activeTable }"
                 @click="toggleNode('db:' + db)"
                 @contextmenu.prevent="onDatabaseContextMenu($event, db)"
@@ -10039,7 +10039,17 @@ onBeforeUnmount(() => {
 .dbm-tree-node:hover { background: var(--el-fill-color-light); }
 .dbm-tree-node.active { background: var(--el-color-primary-light-9); }
 .dbm-tree-node.active .dbm-tree-label { color: var(--el-color-primary); }
-.dbm-tree-root { font-weight: 600; color: var(--el-text-color-primary); }
+/* 树的三层字重：根（当前数据源）700/14px → 库 600/13px → 表·字段·对象 400。
+   早先根是 600、库和表共用 .dbm-tree-node 的 400：库名跟表名一样重，三层认不出层级。
+   注意系统字体（微软雅黑）只有 400/700 两档，600 实际渲染成 700 —— 所以根与库的差别
+   必须靠字号（14 vs 13）落地，光给 500/600 是看不出来的。 */
+.dbm-tree-root { color: var(--el-text-color-primary); }
+/* 根（数据源）= 树的标题，与工具条 .dbm-table-name 同档 14px/700 */
+.dbm-tree-root .dbm-tree-label { font-weight: 700; font-size: 14px; }
+/* 库 = 容器层，13px 加粗；只命中 label，图标/备注不跟着变粗 */
+.dbm-db-node .dbm-tree-label { font-weight: 600; color: var(--el-text-color-primary); }
+/* 字段 = 条目层，比表/视图再降一档字号（12px），否则字段名和表名同重同号分不开 */
+.dbm-column-node .dbm-tree-label { font-size: 12px; }
 .dbm-tree-children { padding-left: 14px; }
 .dbm-tree-icon { flex: none; }
 .dbm-db-icon { color: var(--el-color-warning); }
@@ -10130,7 +10140,9 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  font-size: 12.5px;
+  /* 半像素字号（12.5）在 100% 缩放下会被舍入成 12 或 13 不定，页签文字偶尔发虚；
+     取 13px 与树里的表名/库名同档（对象名层），也保住比 12px 辅助信息高一档。 */
+  font-size: 13px;
   color: var(--el-text-color-secondary);
   border: 1px solid transparent;
   border-bottom: none;
@@ -10193,7 +10205,7 @@ onBeforeUnmount(() => {
   height: 180px;
   padding: 12px 14px;
   font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.6;
   color: var(--el-text-color-primary);
   background: var(--el-fill-color-extra-light, var(--el-fill-color-light));
@@ -10209,7 +10221,7 @@ onBeforeUnmount(() => {
 }
 .dbm-ddl { height: 300px; resize: vertical; }
 .dbm-query-result { flex: 1; display: flex; flex-direction: column; gap: 8px; min-height: 0; overflow: hidden; }
-.dbm-result-header { font-size: 12.5px; color: var(--el-text-color-secondary); display: flex; align-items: center; }
+.dbm-result-header { font-size: 12px; color: var(--el-text-color-secondary); display: flex; align-items: center; }
 .dbm-result-message { color: var(--el-color-success); }
 /* 失败那条：整段错误信息（可滚动），不要只留一句话 */
 .dbm-result-error {
@@ -10231,7 +10243,7 @@ onBeforeUnmount(() => {
   margin: 0;
   overflow: auto;
   font-family: var(--el-font-family-mono, monospace);
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.6;
   color: var(--el-text-color-primary);
   white-space: pre-wrap;
@@ -10281,7 +10293,7 @@ onBeforeUnmount(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--el-font-family-mono, monospace);
-  font-size: 12.5px;
+  font-size: 12px;
 }
 .dbm-sync-db-icon {
   display: inline-block;
@@ -10368,7 +10380,7 @@ onBeforeUnmount(() => {
 .dbm-sync-compare-spin { color: var(--el-color-primary); animation: dbm-sync-spin 1s linear infinite; }
 @keyframes dbm-sync-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .dbm-sync-compare-title { font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); }
-.dbm-sync-compare-sub { font-size: 12.5px; color: var(--el-text-color-secondary); }
+.dbm-sync-compare-sub { font-size: 12px; color: var(--el-text-color-secondary); }
 .dbm-sync-compare-track {
   width: 100%;
   max-width: 300px;
@@ -10395,7 +10407,7 @@ onBeforeUnmount(() => {
   padding: 7px 10px;
   border-radius: var(--el-radius-md, 8px) var(--el-radius-md, 8px) 0 0;
   cursor: pointer;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--el-text-color-primary);
   background: var(--el-fill-color-light);
@@ -10430,11 +10442,11 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 8px;
   padding: 5px 10px;
-  font-size: 12.5px;
+  font-size: 12px;
   border-top: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
 }
 .dbm-sync-grid-row--head {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--el-text-color-secondary);
   background: var(--el-fill-color);
@@ -10486,7 +10498,7 @@ onBeforeUnmount(() => {
 
 /* 部署脚本：可编辑（图 4），SQL 语法高亮 overlay：下层 pre 高亮、上层透明 textarea 同步滚动 */
 .dbm-sync-script-panel { display: flex; flex-direction: column; gap: 6px; flex: 1 0 auto; min-height: 180px; }
-.dbm-sync-script-head { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--el-text-color-secondary); }
+.dbm-sync-script-head { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--el-text-color-secondary); }
 .dbm-sync-sql-editor {
   position: relative;
   flex: 1;
@@ -10505,7 +10517,7 @@ onBeforeUnmount(() => {
   padding: 10px 12px;
   box-sizing: border-box;
   font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.6;
   white-space: pre;
   color: var(--el-text-color-primary);
@@ -10521,7 +10533,7 @@ onBeforeUnmount(() => {
   padding: 10px 12px;
   box-sizing: border-box;
   font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.6;
   white-space: pre;
   overflow: auto;
@@ -10546,7 +10558,7 @@ onBeforeUnmount(() => {
   gap: 20px;
   align-items: center;
   padding: 8px 12px;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--el-text-color-primary);
   background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color-lighter);
@@ -10568,7 +10580,7 @@ onBeforeUnmount(() => {
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-md, 8px);
   font-family: var(--el-font-family-mono, Consolas, monospace);
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.7;
   white-space: pre-wrap;
   word-break: break-all;
@@ -10682,7 +10694,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--el-text-color-secondary);
 }
 .dbm-sync-script {
@@ -10734,7 +10746,7 @@ onBeforeUnmount(() => {
 .dbm-er-col-type {
   flex: 1;
   color: var(--el-text-color-secondary);
-  font-size: 12.5px;
+  font-size: 12px;
 }
 .dbm-er-flag {
   padding: 0 6px;
@@ -10763,7 +10775,7 @@ onBeforeUnmount(() => {
 
 .dbm-colset { display: flex; flex-direction: column; gap: 8px; }
 .dbm-colset-head { display: flex; align-items: center; gap: 8px; }
-.dbm-colset-hint { font-size: 12.5px; color: var(--el-text-color-secondary); }
+.dbm-colset-hint { font-size: 12px; color: var(--el-text-color-secondary); }
 .dbm-colset-list {
   max-height: 360px;
   overflow-y: auto;
@@ -10845,7 +10857,7 @@ onBeforeUnmount(() => {
 /* 内容查看器 */
 .dbm-blob { display: flex; flex-direction: column; gap: 10px; }
 .dbm-blob-head { display: flex; align-items: center; gap: 8px; }
-.dbm-blob-meta { font-size: 12.5px; color: var(--el-text-color-secondary); }
+.dbm-blob-meta { font-size: 12px; color: var(--el-text-color-secondary); }
 .dbm-blob-tabs { display: flex; align-items: center; gap: 6px; }
 .dbm-blob-tab {
   padding: 3px 10px;
@@ -10864,7 +10876,7 @@ onBeforeUnmount(() => {
 }
 .dbm-blob-text {
   font-family: var(--el-font-family-mono, monospace);
-  font-size: 12.5px;
+  font-size: 12px;
 }
 .dbm-blob-hex {
   height: 320px;
@@ -10872,7 +10884,7 @@ onBeforeUnmount(() => {
   overflow: auto;
   padding: 10px;
   font-family: var(--el-font-family-mono, monospace);
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.7;
   color: var(--el-text-color-primary);
   background: var(--el-fill-color-lighter);
@@ -10970,7 +10982,7 @@ onBeforeUnmount(() => {
 }
 .dbm-history-time { font-size: 12px; color: var(--el-text-color-placeholder); font-variant-numeric: tabular-nums; }
 .dbm-history-sql {
-  font-size: 12.5px;
+  font-size: 12px;
   font-family: var(--el-font-family-mono, monospace);
   color: var(--el-text-color-primary);
   overflow: hidden;
@@ -10982,7 +10994,7 @@ onBeforeUnmount(() => {
 /* SQL 模板面板（复用历史面板骨架；四列：时刻 | 名 | SQL 预览 | 删除） */
 .dbm-tpl-item { grid-template-columns: auto auto 1fr auto; align-items: center; }
 .dbm-tpl-name {
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--el-color-primary);
   white-space: nowrap;
@@ -11110,7 +11122,7 @@ onBeforeUnmount(() => {
 /* 纯说明行（如「再点一次当前方向即取消排序」）：不可点、不响应悬停，
    用来解释它上面那组菜单项的操作语义。 */
 .dbm-context-item--hint {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--el-text-color-placeholder);
   cursor: default;
   padding-top: 0;
@@ -11188,7 +11200,8 @@ onBeforeUnmount(() => {
 }
 .dbm-subtab {
   padding: 3px 14px;
-  font-size: 12.5px;
+  /* 与页签同为导航名一档 13px（半像素 12.5 在两处都清掉） */
+  font-size: 13px;
   color: var(--el-text-color-secondary);
   border-radius: 9999px;
   cursor: pointer;
@@ -11228,7 +11241,7 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--el-text-color-secondary);
 }
 .dbm-hint { font-size: 12px; color: var(--el-text-color-placeholder); }
@@ -11436,7 +11449,7 @@ onBeforeUnmount(() => {
 .dbm-filter-label {
   flex: none;
   font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--el-color-primary);
 }
@@ -11477,7 +11490,7 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-placeholder);
   width: 150px;
 }
-.dbm-sel-count { flex: none; font-size: 12.5px; color: var(--el-text-color-secondary); }
+.dbm-sel-count { flex: none; font-size: 12px; color: var(--el-text-color-secondary); }
 
 .dbm-view-icon { color: var(--metric-net, var(--el-color-info)); }
 .dbm-cell-box { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -11546,7 +11559,7 @@ onBeforeUnmount(() => {
    原来这里那套 .dbm-dgrid-* 手写 grid 样式随模板块一并删除，避免留下会误导人的死样式。 */
 .dbm-mono .el-input__inner {
   font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
-  font-size: 12.5px;
+  font-size: 12px;
 }
 
 /* ==================== SQL 编辑器 ==================== */
@@ -11627,12 +11640,12 @@ onBeforeUnmount(() => {
   gap: 12px;
 }
 .dbm-pager-config__label {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--el-text-color-regular);
 }
 .dbm-pager-config__hint {
   margin: 0;
-  font-size: 11.5px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--el-text-color-placeholder);
 }
