@@ -276,7 +276,8 @@ export class RoomSocket {
 
   /** 转发 WebRTC 信号给对端 */
   signal(payload: string): void {
-    this.send({ type: "signal", payload });
+    // 带上房间号：服务端据此校验信号确实发往当前会话所属的房间
+    this.send({ type: "signal", roomId: this.lastJoin?.roomId, payload });
   }
 
   /** 心跳续期 */
