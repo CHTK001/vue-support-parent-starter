@@ -4334,7 +4334,13 @@ async function loadFileInventory(): Promise<void> {
       ?? []
     inventoryFiles.value = Array.isArray(rows) ? rows : []
   } catch (error) {
-    console.error('获取文件清单失败:', error)
+    const msg = String((error as any)?.message || '')
+    // 空库的磁盘目录可能还不存在，按 0 篇处理即可（页面已有空态卡片），不刷控制台错误
+    if (/目录不存在|not exist|NoSuchFile/i.test(msg)) {
+      console.log(`[DEBUG] 知识库目录尚未创建，按空清单处理: ${msg.slice(0, 80)}`)
+    } else {
+      console.error('获取文件清单失败:', error)
+    }
     inventoryFiles.value = []
   }
 }

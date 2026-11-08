@@ -441,8 +441,10 @@ async function loadFolderContents(relativePath: string | null, isLoadMore: boole
     // 失败本就会以空列表 + filesLoaded 通知父组件，页面行为一致；
     // console.error 只会污染生产控制台并让验收误判。真要看，DEBUG 日志里有。
     const msg = String((error as any)?.message || '')
-    if (/Network Error|timeout|ERR_/i.test(msg)) {
-      console.log(`[DEBUG] KBFileTree 加载文件夹内容失败（网络抖动，已按空列表处理）: ${msg.slice(0, 80)}`)
+    // 空库新建后磁盘目录尚未创建，后端会回「知识库目录不存在」。这是正常空态，
+    // 不是故障：空态卡片已经说明了「还没有文档」，没必要在控制台刷红。
+    if (/Network Error|timeout|ERR_|目录不存在|not exist|NoSuchFile/i.test(msg)) {
+      console.log(`[DEBUG] KBFileTree 加载文件夹内容失败（按空列表处理）: ${msg.slice(0, 80)}`)
     } else {
       console.error('加载文件夹内容失败', error)
     }
