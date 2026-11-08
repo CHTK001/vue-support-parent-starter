@@ -154,7 +154,7 @@
     <div v-if="ready && activeHost && !windows.length" class="vdesk__empty">
       <ReIcon name="Monitor" :size="38" />
       <b>从左侧 Dock 打开「{{ activeHost.serverHostName }}」的应用</b>
-      <span>终端、文件、监控、系统、进程、网络、命令都是对这台主机的真实操作</span>
+      <span>终端、文件、进程、网络都是对这台主机的真实操作；服务、存储、配置、运维、软件、监控是它的台账与作业</span>
     </div>
 
     <!-- 没有带主机进来：桌面是按主机开的，不做全局页 -->
@@ -347,6 +347,9 @@ import DesktopProcess from "./apps/DesktopProcess.vue";
 import DesktopNet from "./apps/DesktopNet.vue";
 import DesktopConsole from "./apps/DesktopConsole.vue";
 import DesktopNotes from "./apps/DesktopNotes.vue";
+import DesktopProfile from "./apps/DesktopProfile.vue";
+import DesktopOps from "./apps/DesktopOps.vue";
+import DesktopSoftware from "./apps/DesktopSoftware.vue";
 import { terminalFrameUrl } from "./urls";
 
 /** 顶栏高度（窗口拖拽的上边界） */
@@ -373,6 +376,11 @@ const APPS: DesktopAppDef[] = [
   { key: "process", label: "进程", icon: "Cpu", w: 820, h: 580, hint: "进程快照（可结束进程）" },
   { key: "net", label: "网络", icon: "Connection", w: 760, h: 540, hint: "Ping / 端口探测 / 监听端口" },
   { key: "console", label: "命令", icon: "Promotion", w: 840, h: 540, hint: "执行命令（记入执行日志）" },
+  { key: "service", label: "服务", icon: "SetUp", w: 900, h: 600, hint: "服务列表与运行状态" },
+  { key: "storage", label: "存储", icon: "Coin", w: 900, h: 600, hint: "磁盘容量与挂载点" },
+  { key: "config", label: "配置", icon: "Setting", w: 900, h: 600, hint: "环境变量 / 防火墙 / 系统配置" },
+  { key: "ops", label: "运维", icon: "Tools", w: 940, h: 600, hint: "命令片段与终端会话审计" },
+  { key: "software", label: "软件", icon: "Box", w: 900, h: 620, hint: "软件实例与调度信息" },
   { key: "notes", label: "便签", icon: "Notebook", w: 560, h: 460, hint: "本机便签（不碰远端）" },
 ];
 
@@ -385,7 +393,31 @@ const APP_COMPONENTS: Record<DesktopAppKey, Component> = {
   process: DesktopProcess,
   net: DesktopNet,
   console: DesktopConsole,
+  service: DesktopProfile,
+  storage: DesktopProfile,
+  config: DesktopProfile,
+  ops: DesktopOps,
+  software: DesktopSoftware,
   notes: DesktopNotes,
+};
+
+/**
+ * 画像类窗口的分区。
+ *
+ * <p>key 必须与主机画像的分区名一致（{@code services / disks / mounts / env /
+ * firewall / sysconfig}），否则画像组件会静默回落到磁盘分区。</p>
+ */
+const PROFILE_SECTIONS: Record<"service" | "storage" | "config", { key: string; label: string }[]> = {
+  service: [{ key: "services", label: "服务" }],
+  storage: [
+    { key: "disks", label: "磁盘" },
+    { key: "mounts", label: "挂载" },
+  ],
+  config: [
+    { key: "env", label: "环境变量" },
+    { key: "firewall", label: "防火墙" },
+    { key: "sysconfig", label: "系统配置" },
+  ],
 };
 
 const route = useRoute();
@@ -627,6 +659,15 @@ const sshReady = computed(() => {
 });
 
 /**
+ * 只读台账 / 平台自身数据的应用。
+ *
+ * <p>它们的数据来自采集通道落库的台账或平台自己的表（片段、会话、调度、便签），
+ * 不走 SSH 数据面，所以主机离线、台账没开 SSH 也照样能看：巡检时经常先看
+ * 「最后一次采集的磁盘 / 服务」，再去连主机。</p>
+ */
+const LOCAL_APPS: DesktopAppKey[] = ["monitor", "service", "storage", "config", "software", "ops", "notes"];
+
+/**
  * Dock 上真正可用的应用：不可用的照样显示，但降档并说明原因。
  */
 const dockApps = computed(() => {
@@ -635,9 +676,7 @@ const dockApps = computed(() => {
   if (!h) return [];
   const online = h.serverHostOnline === 1;
   return APPS.map((a) => {
-    if (a.key === "monitor") return { ...a, off: false, offReason: "" };
-    // 便签只写浏览器本地存储，主机离线 / 没开 SSH 也能用
-    if (a.key === "notes") return { ...a, off: false, offReason: "" };
+    if (LOCAL_APPS.includes(a.key)) return { ...a, off: false, offReason: "" };
     if (!sshReady.value) return { ...a, off: true, offReason: "台账未开启 SSH" };
     return { ...a, off: !online, offReason: online ? "" : "主机离线" };
   });
@@ -805,6 +844,14 @@ function propsFor(key: DesktopAppKey, id: number, active: boolean): Record<strin
     };
   }
   if (key === "notes") {
+    return { ...base, hostName: h?.serverHostName ?? "" };
+  }
+  // 画像类窗口：一台主机一个窗口，分区由应用决定（服务 / 存储 / 配置）
+  if (key === "service" || key === "storage" || key === "config") {
+    return { ...base, hostName: h?.serverHostName ?? "", sections: PROFILE_SECTIONS[key] };
+  }
+  // 运维 / 软件：都只需要主机标识与主机名，数据自己按 hostId 拉
+  if (key === "ops" || key === "software") {
     return { ...base, hostName: h?.serverHostName ?? "" };
   }
   return base;
@@ -1455,12 +1502,21 @@ onBeforeUnmount(() => {
   gap: 8px;
   align-items: center;
   width: 58px;
+  max-height: calc(100% - 96px);
   padding: 9px 6px;
+  overflow-x: hidden;
+  overflow-y: auto;
   background: rgba(0, 0, 0, 0.42);
   backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 16px;
   transform: translateY(-50%);
+  scrollbar-width: none;
+}
+
+/* Dock 已经有两个「滚动暗示」（被切一半的图标），再加滚动条会挤掉图标宽度 */
+.vdesk__dock::-webkit-scrollbar {
+  display: none;
 }
 
 .dock {
@@ -1516,15 +1572,36 @@ onBeforeUnmount(() => {
 }
 
 /* ---------- 桌面快捷方式 ---------- */
+/*
+ * 快捷方式与 Dock 同一份应用清单，13 个应用一列放不下（一列 13×61≈790px，
+ * 内容区通常只有 600 上下），所以按「先竖后横」流成多列：列高就是可用高度，
+ * 放不下自动往右开一列，不会顶到任务栏。
+ */
 .vdesk__icons {
   position: absolute;
   top: 50px;
+  bottom: 48px;
   left: 92px;
   z-index: 1;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(auto-fill, 62px);
+  grid-auto-columns: 66px;
   gap: 2px;
-  align-items: center;
+  align-content: start;
+  justify-content: start;
+  justify-items: center;
+  /*
+   * auto-fill 的列数由高度决定，max-content 却按「一行排完」算宽度，
+   * 所以这块容器的盒子会比实际用到的列更宽：空白部分不能吃指针事件，
+   * 否则桌面的空白右键菜单会被它盖住。图标自己把事件要回来。
+   */
+  width: max-content;
+  pointer-events: none;
+}
+
+.vdesk__icons .dicon {
+  pointer-events: auto;
 }
 
 .dicon {
