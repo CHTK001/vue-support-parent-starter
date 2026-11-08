@@ -48,6 +48,8 @@ import "@pages/system/src/styles/system-page.css";
 import "@pages/debug/src/styles/debug.css";
 // P2P 房间页面样式（rm- 前缀，自包含）
 import "@pages/room/src/styles/room.css";
+// 设备远程控制（@pages/control）页面级变量与通用样式
+import "@pages/control/src/styles/control.css";
 import ProcessHost from "./components/ProcessHost.vue";
 import monitorRoutes from "./router";
 // 监控大屏卡片的领域贡献：卡片元数据 + 组件加载器留在各自 pages 包里，

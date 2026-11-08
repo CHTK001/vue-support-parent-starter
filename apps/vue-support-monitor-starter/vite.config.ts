@@ -498,6 +498,8 @@ export default createVite({
     // createVite 的 REPO_ALIAS 把 @pages/channel 指到 pages/channel/src，与这里的
     // 「指向页面根、业务写 @pages/channel/src/...」口径不一致，故本地覆盖为页面根。
     "@pages/channel": "pages/channel",
+    // 设备远程控制：页面根（业务以 "@pages/control/src/..." 引用）
+    "@pages/control": "pages/control",
     // @pages/channel 的页头 import '@/components/ui/RePageHead.vue'（仓库根 tsconfig
     // 的 "@/*" 约定，指向 pages/ai/src）。monitor 自身没有 "@/..." 引用，这里只是让
     // 被复用的页面包能解析，与 system / eduai 等宿主的接法一致。

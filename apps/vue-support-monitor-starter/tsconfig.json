@@ -35,6 +35,10 @@
       // 通配符同样落在「页面根」，业务写 @pages/channel/src/...
       "@pages/channel/*": ["../../pages/channel/*"],
       "@pages/channel": ["../../pages/channel/src/index.ts"],
+      // 设备远程控制（@pages/control）：WebRTC 信令 + 桌面视频 + 键鼠遥控，
+      // 路由入口 = @pages/control/src/routes。
+      "@pages/control/*": ["../../pages/control/*"],
+      "@pages/control": ["../../pages/control/src/index.ts"],
       // 被复用的 @pages/channel 页面头以 "@/components/ui/RePageHead.vue" 引用
       // pages/ai/src（与根 tsconfig 的 "@/*" 同一口径）；monitor 自身不使用 "@/..."。
       "@/*": ["../../pages/ai/src/*"],

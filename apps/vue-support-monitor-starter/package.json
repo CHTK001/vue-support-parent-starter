@@ -21,6 +21,7 @@
     "@pages/actuator": "workspace:*",
     "@pages/apm": "workspace:*",
     "@pages/channel": "workspace:*",
+    "@pages/control": "workspace:*",
     "@pages/datasource": "workspace:*",
     "@pages/debug": "workspace:*",
     "@pages/device": "workspace:*",

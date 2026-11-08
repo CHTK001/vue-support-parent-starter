@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.json",
+  "//": "/pages/control ── @pages/control routes + view, baseUrl + paths = `@pages/control: ./src/index.ts`",
+  "include": ["src/**/*.ts", "src/**/*.vue"]
+}
