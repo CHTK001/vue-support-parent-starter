@@ -1,7 +1,7 @@
 <template>
     <teleport to="body">
         <div v-if="show" ref="popoverRef"
-            class="fixed rounded-(--size-dialog-rounded-radius) border border-white/40 dark:border-white/10 shadow-[0_0_16px_rgba(0,0,0,0.10)] dark:shadow-[0_0_8px_rgba(0,0,0,0.4)] overflow-hidden flex flex-col z-2000 pointer-events-auto px-1 py-1 bg-(--color-surface)/70 backdrop-blur-xl backdrop-saturate-150"
+            class="popover-shell fixed border border-white/40 dark:border-white/10 shadow-[0_0_16px_rgba(0,0,0,0.10)] dark:shadow-[0_0_8px_rgba(0,0,0,0.4)] overflow-hidden flex flex-col z-2000 pointer-events-auto px-1 py-1 backdrop-blur-xl backdrop-saturate-150"
             :class="[popperClass, entering ? 'pop-init' : 'pop-run']" :style="popoverStyle" @click.stop
             @mouseenter="$emit('mouseenter', $event)" @mouseleave="$emit('mouseleave', $event)">
                 <!-- Header 槽位 -->
@@ -15,6 +15,17 @@
     </teleport>
 </template>
 <style scoped>
+/* 外壳圆角与底色。
+   原本写在模板里的 rounded-(--size-dialog-rounded-radius) / bg-(--color-surface)/70
+   会被基线的 UnoCSS transformerVariantGroup() 当成变体分组，改写成
+   rounded---size-dialog-rounded-radius / bg---color-surface/70，编译产物对不上，
+   于是浮层实际是「0 圆角 + 全透明」——只剩毛玻璃，压住内容时直接透字。
+   按项目口径把令牌值落到 scoped 样式里，模板只保留结构类。 */
+.popover-shell {
+    border-radius: var(--size-dialog-rounded-radius, 18px);
+    background: color-mix(in srgb, var(--color-surface, #ffffff) 70%, transparent);
+}
+
 .popover-content {
     overflow-y: auto;
 }

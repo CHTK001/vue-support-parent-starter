@@ -153,6 +153,10 @@ export interface WorldActAdvance {
   taskId?: string;
   inProgress?: boolean;
   playedScenes?: number;
+  /** 这一幕一共几场（演出为分场增量，前端据此显示「已演 k/n 场」） */
+  totalScenes?: number;
+  /** 演完一幕时后端顺带开出的下一幕空壳 */
+  nextAct?: WorldActListRow;
   restart?: boolean;
 }
 
@@ -223,6 +227,10 @@ export interface WorldSimApi {
   addWorldNpc(worldId: number, data: Partial<WorldNpc>): Promise<WorldNpc>;
   updateWorldNpc(npcId: number, patch: Partial<WorldNpc>): Promise<WorldNpc>;
   removeWorldNpc(npcId: number): Promise<unknown>;
+  /** 把角色移出世界（与 removeWorldNpc 同一个接口，页面语义更直接） */
+  deleteWorldNpc(npcId: number): Promise<unknown>;
+  /** 让 AI 按世界现状自己造角色：起名、写人设、布置场景，并补上关系 */
+  createWorldNpcByAi(worldId: number, data: { count?: number; hint?: string }): Promise<unknown>;
 
   fetchWorldRelationships(worldId: number): Promise<WorldRelationship[]>;
   updateWorldRelationship(relId: number, patch: Partial<WorldRelationship>): Promise<WorldRelationship>;

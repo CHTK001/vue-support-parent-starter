@@ -83,7 +83,7 @@
               {{ autoEvolve ? '自演化中' : '自动演化' }}
             </button>
             <button class="ws-chat-adv" type="button" :disabled="advancing" title="推进时间，生成世界动态"
-              @click="advance">
+              @click="advance()">
               <el-icon v-if="!advancing"><VideoPlay /></el-icon>
               <span v-else class="ws-spin"><el-icon><Loading /></el-icon></span>
               <span class="ws-adv-text">推进时间</span>
@@ -229,6 +229,11 @@
               <p class="ws-stage-empty-sub">{{ stageEmptySub }}</p>
               <button v-if="stageEmptyAction" class="btn primary ws-act-stage-btn" type="button" :disabled="actProcessing"
                 @click="actPipelineAction(stageEmptyAction)">{{ stageEmptyAction.label }}</button>
+              <!-- 可直接跳去没演的那一幕：列表里堆着几幕空幕时，观众不该自己挨个点 -->
+              <button v-if="unplayedAct" class="btn ghost ws-act-stage-btn" type="button"
+                :data-role="'goto-' + unplayedAct.actNo" @click="selectAct(unplayedAct)">
+                去看第 {{ unplayedAct.actNo }} 幕
+              </button>
             </div>
 
             <!-- 剧本原文（折叠） -->
@@ -322,8 +327,8 @@
           </template>
         </div>
 
-        <!-- 底部：观演 / 介入（只读账号隐藏输入） -->
-        <div class="ws-input">
+        <!-- 底部：演出的幕次只读，不给输入框；对话视图才允许介入 -->
+        <div v-if="!currentAct" class="ws-input">
           <template v-if="readingOnly">
             <div class="ws-watch-bar">
               <span class="ws-watch-hint">只读账号：你只能看。角色与关系可微调，剧情由 AI 推进。</span>
@@ -796,6 +801,8 @@ const acts = ref<WorldActListRow[]>([])
 const currentAct = ref<WorldActListRow | null>(null)
 /** 自动接续出来的新幕编号：列表刷新后自动跳过去 */
 const pendingActNo = ref<number | null>(null)
+/** 正在重播：这段时间里舞台短暂没有正文，空态别报成「演出正文没读到」 */
+const awaitingPlay = ref(false)
 const actDetail = ref<WorldActDetail | null>(null)
 const stories = ref<WorldStory[]>([])
 const showScript = ref(false)
@@ -1021,6 +1028,7 @@ watch(
 
 /** 舞台空态文案随阶段变化 */
 const stageEmptyTitle = computed(() => {  const stage = actStage.value ?? ''
+  if (awaitingPlay.value) return '正在重播'
   if (stage === 'writing') return '这一幕还没有剧本'
   if (stage === 'props_ok') return '剧本写好了，还没有演出'
   if (stage === 'playing') return 'AI 正在演这一幕'
@@ -1029,14 +1037,29 @@ const stageEmptyTitle = computed(() => {  const stage = actStage.value ?? ''
 
 const stageEmptySub = computed(() => {
   const stage = actStage.value ?? ''
+  if (awaitingPlay.value) return 'AI 正在把这一幕从头演一遍…'
   if (stage === 'writing') return '点「生成剧本」，AI 会按世界现状写这一幕'
   if (stage === 'props_ok') return '点「演出」，AI 会把剧本演成正文'
   if (stage === 'playing') return '演出完成后会出现在这里'
-  return '先推进幕次，或回到对话视图点「观演」'
+  // 幕次行是 replay，但演出正文读不出来：要演的是这一幕，不是后面某幕
+  if (actDetail.value?.act?.stage === 'replay') return '这一幕的演出正文没读到，点「演出」重新演一次'
+  return '这一幕已经演过；要看接下来的戏，去后面那幕点「生成剧本」'
 })
 
 /** 空态里直接给可点的动作，避免用户找不到该按哪个 */
 const stageEmptyAction = computed(() => availablePipeline.value.find((b) => b.action === 'advance') || null)
+
+/**
+ * 舞台形态是整幕的：这一幕没演出时，替观众找出「真正能继续演」的那一幕。
+ *
+ * <p>演完一幕会顺带开下一幕的空壳。如果观众停在刚演完的那幕上点「演出」，
+ * 只会把已经演过的再演一遍——这正是「幕次怎么没生成」的来源。这里给一个直达按钮。</p>
+ */
+const unplayedAct = computed(() => {
+  if (!currentAct.value || actStage.value === 'writing') return null
+  const cur = currentAct.value.actNo ?? 0
+  return acts.value.find((a) => (a.actNo ?? 0) > cur && ['writing', 'props_ok', 'playing'].includes(String(a.stage))) ?? null
+})
 
 /* ---------------- 生命周期 ---------------- */
 onMounted(() => {
@@ -1161,7 +1184,7 @@ async function loadMediaSettings() {
 /** 可选视频模型：只列当前确实有视频实现（能建任务）的模型 */
 async function loadVideoModels() {
   try {
-    const list = await apiService.fetchGenerateModels('video') as any[]
+    const list = await apiService.fetchGenerateModels('video') as any
     const rows = Array.isArray(list) ? list : (list?.data ?? list?.list ?? [])
     mediaForm.videoModels = rows
       .map((m: any) => (typeof m === 'string' ? m : (m?.model ?? m?.name ?? '')))
@@ -1852,15 +1875,35 @@ async function actPipelineAction(btn: { stage?: string; label?: string; action?:
     const no = currentAct.value!.actNo as number
     if (btn.action === 'advance') {
       // 幕次自动接续：从当前阶段一路推到「可重播」，中途不停下来等观众点。
-      // 最多推 8 轮（writing → props_ok → playing → replay），后端一轮会尽量把素材一次建完。
+      // 演出已改成分场增量：一次 advance 只演一场，演完就把稿子落盘。
+      // 所以每一轮结束都要刷新「演出稿 + 幕次详情」，已演的场次立刻上舞台，
+      // 观众能一边看一边等下一场，而不是对着空舞台干等整幕跑完。
       let next: WorldActAdvance | null = null
-      for (let i = 0; i < 8; i += 1) {
+      let lastDone = -1
+      let total = 0
+      // 上限按场次数放：writing/props_ok 各占 1 轮，演出每场 1 轮，再多留几轮余量
+      for (let i = 0; i < 32; i += 1) {
         next = await apiService.advanceWorldAct(currentWorldId.value, no) as WorldActAdvance
-        const st = next?.act?.stage
-        if (!['writing', 'props_ok', 'playing'].includes(String(st))) break
+        const st = String(next?.act?.stage ?? '')
+        const done = Number(next?.playedScenes ?? 0)
+        const all = Number(next?.totalScenes ?? 0)
+        if (all > 0) total = all
+        if (st === 'playing' || done > 0) {
+          // 每演完一场就把稿子取回来铺到舞台上（先取稿再提示，避免进度与正文错位）
+          await loadStories()
+          await fetchActDetail(no)
+        }
+        if (!['writing', 'props_ok', 'playing'].includes(st)) break
         actBusyText.value = st === 'writing' ? 'AI 正在写这一幕的剧本…'
-          : st === 'playing' ? 'AI 正在演这一幕，可能要几十秒…'
+          : st === 'playing' ? (total > 0
+            ? `AI 正在演这一幕：已演 ${done}/${total} 场…`
+            : 'AI 正在演这一幕…')
             : 'AI 正在布景与生成素材…'
+        // 后端整幕演完会把 nextAct 一起带回来；还在演就继续推
+        if (next?.nextAct?.actNo) break
+        // 没有任何进展就别空转，直接交给用户看现有结果
+        if (st === 'playing' && done > 0 && done === lastDone) break
+        lastDone = done
       }
       const ended = next?.nextAct?.actNo
       message.success(ended
@@ -1869,8 +1912,24 @@ async function actPipelineAction(btn: { stage?: string; label?: string; action?:
       // 有新幕时把焦点交给新幕，观众看到的就是后面继续发生的事
       pendingActNo.value = ended ?? null
     } else if (btn.action === 'replay') {
-      await apiService.replayWorldAct(currentWorldId.value, no)
-      message.success('已切换到重播')
+      // 重播必须看得见：把舞台拉回顶部、重置分镜指针，否则正文不动、观众以为没反应。
+      // 演出稿不做任何改动，重播就是「从头再放一遍」。
+      filmIndex.value = 0
+      brokenShots.value = []
+      showTextPlay.value = false
+      // 重播完 AI 自己接下一幕：接口会把新开的空幕带回来，列表刷新后直接跳过去。
+      awaitingPlay.value = true
+      let started: WorldActAdvance | null = null
+      try {
+        started = await apiService.replayWorldAct(currentWorldId.value, no) as WorldActAdvance
+      } finally {
+        awaitingPlay.value = false
+      }
+      const nextNo = started?.nextAct?.actNo
+      if (nextNo) pendingActNo.value = nextNo
+      message.success(nextNo ? `已从头重播，AI 接上了第 ${nextNo} 幕` : '已从头重播')
+      await nextTick()
+      msgBoxRef.value?.scrollTo?.({ top: 0, behavior: 'smooth' })
     } else if (btn.action === 'finish') {
       await apiService.finishWorldAct(currentWorldId.value, no)
       message.success('幕次已完结')

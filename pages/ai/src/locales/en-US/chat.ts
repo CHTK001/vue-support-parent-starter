@@ -14,7 +14,7 @@ export default {
     custom: 'Custom',
     featureTools: 'Tool Calls',
     featureThinking: 'Hybrid Thinking',
-    editorPlaceholder: "Press / for skills, {'@'} to summon agent, Shift+Enter for newline",
+    editorPlaceholder: "Plan, build, or ask. {'@'} mention, $ skills, / commands",
     optimizeFailed: 'Optimization failed, please try again later',
     optimizeUnavailable: 'Optimization service is unavailable. Please configure an optimizer model in settings',
     optimizeNoChange: 'The content is already clear enough; no optimization needed',
@@ -88,6 +88,19 @@ export default {
 
     // ModelSelectorPanel —— model search box placeholder
     modelSearchPlaceholder: 'Search models',
+    // ModelSelectorPanel —— section captions
+    currentModel: 'Current model',
+    allModels: 'All models',
+    addModel: 'Add model',
+    noModelsHint: 'No models available. Add a model provider first.',
+    // Dropdown panels (target UI): section titles and footer key hints
+    modelSectionTitle: 'Models',
+    agentSectionTitle: 'Agents',
+    thinkingSectionTitle: 'Thinking',
+    addProvider: 'Add provider',
+    hintNavigate: '↑↓ Navigate',
+    hintSelect: 'Enter to select',
+    hintClose: 'Esc to close',
 
     // WorkspaceSelectorPopover.vue
     recent: 'Recent',
@@ -170,6 +183,8 @@ export default {
     actionBarNoPlanItems: 'The model finished planning; confirm to start executing',
     actionBarToolIndex: 'tool #{index}',
     actionBarToolIndexTotal: 'tool #{index}/{total}',
+    actionBarSuggest: 'Suggest next steps',
+    actionBarSuggesting: 'Suggesting…',
     actionBarLiveOutput: 'Live output',
     actionBarOutputEmpty: 'Waiting for output…',
     editingMessage: 'Editing message',
@@ -272,6 +287,8 @@ export default {
     routeUnknownProvider: 'Unknown provider',
     serverNoResponse: 'The server has not responded with data for a while, please try again later',
     manuallyTerminated: 'Manually Terminated',
+    planApproved: 'Approved — executing the plan…',
+    planRejected: 'Rejected — please revise the plan',
     maxIterationsReached: 'Maximum tool call iterations reached',
     continueExecution: 'Continue Execution',
     working: 'Working',

@@ -18,23 +18,66 @@
     <aside class="cm-side">
       <div class="cm-side-hd">
         <span>目录</span>
-        <span class="cm-side-sub">按文档所属目录聚合</span>
+        <span class="cm-side-sub">右键可新建 / 删除目录</span>
       </div>
-      <div class="cm-tree" role="tree" aria-label="协同目录">
+      <div
+        class="cm-tree"
+        role="tree"
+        aria-label="协同目录"
+        @contextmenu.prevent="openTreeMenu($event, '')"
+      >
         <button
           v-for="node in treeNodes"
           :key="node.key"
           type="button"
           class="cm-node"
-          :class="{ active: node.path === currentPath }"
+          :class="{ active: viewMode === 'all' && node.path === currentPath }"
           :style="{ paddingLeft: 10 + node.depth * 16 + 'px' }"
           role="treeitem"
-          :aria-selected="node.path === currentPath"
+          :aria-selected="viewMode === 'all' && node.path === currentPath"
+          :data-dir-path="node.path"
           @click="selectDir(node.path)"
+          @contextmenu.prevent.stop="openTreeMenu($event, node.path)"
         >
           <span class="cm-node-icon">{{ node.depth === 0 ? "🗂️" : "📁" }}</span>
           <span class="cm-node-label">{{ node.label }}</span>
           <span class="cm-node-count">{{ node.count }}</span>
+        </button>
+      </div>
+      <!-- 底部固定入口：全部 / 归档 / 回收桶（带计数，点击切换视图） -->
+      <div class="cm-side-ft">
+        <button
+          type="button"
+          class="cm-side-view"
+          :class="{ active: viewMode === 'all' }"
+          data-view="all"
+          @click="switchView('all')"
+        >
+          <span class="cm-side-view-icon">📄</span>
+          <span class="cm-side-view-label">全部文件</span>
+          <span class="cm-side-view-count">{{ allDocs.length }}</span>
+        </button>
+        <button
+          type="button"
+          class="cm-side-view"
+          :class="{ active: viewMode === 'archived' }"
+          data-view="archived"
+          @click="switchView('archived')"
+        >
+          <span class="cm-side-view-icon">📦</span>
+          <span class="cm-side-view-label">归档</span>
+          <span class="cm-side-view-count">{{ archivedDocs.length }}</span>
+        </button>
+        <button
+          type="button"
+          class="cm-side-view"
+          :class="{ active: viewMode === 'trash' }"
+          data-view="trash"
+          @click="switchView('trash')"
+        >
+          <span class="cm-side-view-icon">🗑️</span>
+          <span class="cm-side-view-label">回收桶</span>
+          <span class="cm-side-view-count">{{ trashDocs.length }}</span>
         </button>
       </div>
     </aside>
@@ -61,11 +104,9 @@
         </div>
 
         <div v-if="docs.length === 0" class="cm-empty">
-          <span class="cm-empty-icon">📄</span>
+          <span class="cm-empty-icon">{{ viewMode === "trash" ? "🗑️" : viewMode === "archived" ? "📦" : "📄" }}</span>
           <span>{{ collabEmptyText }}</span>
-          <span class="cm-empty-sub">
-            在空白处右键「新建协同」创建文档，右键「上传为协同」把 xlsx/docx/txt 转为协同文档
-          </span>
+          <span class="cm-empty-sub">{{ emptyHint }}</span>
         </div>
 
         <div v-else class="cm-grid">
@@ -90,7 +131,15 @@
               <span class="cm-card-icon" v-html="collabIcon(c)" />
             </div>
             <div class="cm-card-name" :title="c.fileName">{{ c.fileName }}</div>
-            <div class="cm-card-sub">{{ formatSize(c.size) }}</div>
+            <div class="cm-card-sub">
+              <template v-if="viewMode === 'archived' && c.archivedAt">
+                归档于 {{ formatTime(c.archivedAt) }}
+              </template>
+              <template v-else-if="viewMode === 'trash' && c.deletedAt">
+                删除于 {{ formatTime(c.deletedAt) }}
+              </template>
+              <template v-else>{{ formatSize(c.size) }}</template>
+            </div>
           </div>
         </div>
       </div>
@@ -105,12 +154,29 @@
         :style="{ left: blankMenu.x + 'px', top: blankMenu.y + 'px' }"
         @contextmenu.prevent
       >
-        <div class="cm-ctx-item" @click="blankAction('excel')"><el-icon><Plus /></el-icon>新建表格（Excel）</div>
-        <div class="cm-ctx-item" @click="blankAction('word')"><el-icon><Plus /></el-icon>新建文档（Word）</div>
-        <div class="cm-ctx-item" @click="blankAction('text')"><el-icon><Plus /></el-icon>新建文本（Text）</div>
-        <div class="cm-ctx-sep" />
-        <div class="cm-ctx-item" @click="blankAction('upload')"><el-icon><Upload /></el-icon>上传为协同</div>
-        <div class="cm-ctx-sep" />
+        <!-- 新建 / 上传 / 建目录 / 归档只在「全部文件」视图出现：
+             归档视图与回收桶是「整理旧文档」的场景，混进新建入口会让人以为建到了桶里 -->
+        <template v-if="viewMode === 'all'">
+          <div class="cm-ctx-item" @click="blankAction('excel')"><el-icon><Plus /></el-icon>新建表格（Excel）</div>
+          <div class="cm-ctx-item" @click="blankAction('word')"><el-icon><Plus /></el-icon>新建文档（Word）</div>
+          <div class="cm-ctx-item" @click="blankAction('text')"><el-icon><Plus /></el-icon>新建文本（Text）</div>
+          <div class="cm-ctx-sep" />
+          <div class="cm-ctx-item" data-action="new-dir" @click="blankAction('newDir')">
+            <el-icon><FolderAdd /></el-icon>新建目录
+          </div>
+          <div class="cm-ctx-sep" />
+          <div class="cm-ctx-item" @click="blankAction('upload')"><el-icon><Upload /></el-icon>上传为协同</div>
+          <div class="cm-ctx-sep" />
+          <div
+            class="cm-ctx-item"
+            :class="{ 'is-disabled': selectedIds.length === 0 }"
+            data-action="archive-selected"
+            @click="blankAction('archiveSelected')"
+          >
+            <el-icon><Box /></el-icon>归档选中项{{ selectedIds.length > 0 ? `（${selectedIds.length}）` : "" }}
+          </div>
+          <div class="cm-ctx-sep" />
+        </template>
         <div class="cm-ctx-item" @click="blankAction('search')">
           <el-icon><Search /></el-icon>搜索文件名（{{ currentPath || "全部文件" }}）
         </div>
@@ -126,6 +192,29 @@
       </div>
     </teleport>
 
+    <!-- ===== 左侧目录树右键菜单 ===== -->
+    <teleport to="body">
+      <div
+        v-if="treeMenu.visible"
+        ref="treeMenuRef"
+        class="cm-ctx"
+        :style="{ left: treeMenu.x + 'px', top: treeMenu.y + 'px' }"
+        @contextmenu.prevent
+      >
+        <div class="cm-ctx-title">{{ treeMenu.path ? `目录：${treeMenu.path}` : "根目录" }}</div>
+        <div class="cm-ctx-item" data-action="tree-new-dir" @click="treeAction('newDir')">
+          <el-icon><FolderAdd /></el-icon>{{ treeMenu.path ? "新建子目录" : "新建目录" }}
+        </div>
+        <template v-if="treeMenu.path">
+          <div class="cm-ctx-sep" />
+          <div class="cm-ctx-item is-danger" data-action="tree-delete-dir" @click="treeAction('deleteDir')">
+            <el-icon><Delete /></el-icon>删除目录
+          </div>
+        </template>
+        <div class="cm-ctx-note">删除目录只允许空目录；目录内还有文档时请先移走它们</div>
+      </div>
+    </teleport>
+
     <!-- ===== 卡片右键菜单（多选时为批量菜单） ===== -->
     <teleport to="body">
       <div
@@ -138,15 +227,39 @@
         <!-- 批量：选中的卡片被右键时，作用对象是整批 -->
         <template v-if="ctxMenu.batch">
           <div class="cm-ctx-title">已选 {{ selectedIds.length }} 个</div>
-          <div class="cm-ctx-item" @click="menuAction('batchOpen')"><el-icon><View /></el-icon>打开第一个</div>
-          <div class="cm-ctx-item" @click="menuAction('batchDownload')"><el-icon><Download /></el-icon>批量下载</div>
-          <div class="cm-ctx-sep" />
-          <div class="cm-ctx-item" @click="menuAction('batchPublic')"><el-icon><Lock /></el-icon>批量设为公开</div>
-          <div class="cm-ctx-item" @click="menuAction('batchPrivate')"><el-icon><Lock /></el-icon>批量设为私有</div>
-          <div class="cm-ctx-sep" />
-          <div class="cm-ctx-item is-danger" @click="menuAction('batchDelete')"><el-icon><Delete /></el-icon>批量删除</div>
-          <div class="cm-ctx-sep" />
-          <div class="cm-ctx-item" @click="menuAction('batchClear')"><el-icon><Close /></el-icon>取消选择</div>
+          <template v-if="viewMode === 'trash'">
+            <div class="cm-ctx-item" data-action="batchRestore" @click="menuAction('batchRestore')">
+              <el-icon><Refresh /></el-icon>批量恢复
+            </div>
+            <div class="cm-ctx-item is-danger" data-action="batchPurge" @click="menuAction('batchPurge')">
+              <el-icon><Delete /></el-icon>批量彻底删除
+            </div>
+            <div class="cm-ctx-sep" />
+            <div class="cm-ctx-item" @click="menuAction('batchClear')"><el-icon><Close /></el-icon>取消选择</div>
+          </template>
+          <template v-else-if="viewMode === 'archived'">
+            <div class="cm-ctx-item" data-action="batchUnarchive" @click="menuAction('batchUnarchive')">
+              <el-icon><Refresh /></el-icon>批量取消归档
+            </div>
+            <div class="cm-ctx-sep" />
+            <div class="cm-ctx-item" @click="menuAction('batchClear')"><el-icon><Close /></el-icon>取消选择</div>
+          </template>
+          <template v-else>
+            <div class="cm-ctx-item" @click="menuAction('batchOpen')"><el-icon><View /></el-icon>打开第一个</div>
+            <div class="cm-ctx-item" @click="menuAction('batchDownload')"><el-icon><Download /></el-icon>批量下载</div>
+            <div class="cm-ctx-sep" />
+            <div class="cm-ctx-item" @click="menuAction('batchPublic')"><el-icon><Lock /></el-icon>批量设为公开</div>
+            <div class="cm-ctx-item" @click="menuAction('batchPrivate')"><el-icon><Lock /></el-icon>批量设为私有</div>
+            <div class="cm-ctx-sep" />
+            <div class="cm-ctx-item" data-action="batchArchive" @click="menuAction('batchArchive')">
+              <el-icon><Box /></el-icon>批量归档
+            </div>
+            <div class="cm-ctx-item is-danger" data-action="batchDelete" @click="menuAction('batchDelete')">
+              <el-icon><Delete /></el-icon>批量删除（移入回收桶）
+            </div>
+            <div class="cm-ctx-sep" />
+            <div class="cm-ctx-item" @click="menuAction('batchClear')"><el-icon><Close /></el-icon>取消选择</div>
+          </template>
         </template>
         <template v-else>
           <!-- 无写权限时不给「全屏编辑」入口：进去也只能只读，不如直接标成只读预览 -->
@@ -164,17 +277,52 @@
           <div class="cm-ctx-item" @click="menuAction('share')"><el-icon><Link /></el-icon>分享连接</div>
           <div class="cm-ctx-item" @click="menuAction('history')"><el-icon><Clock /></el-icon>历史记录</div>
           <div class="cm-ctx-sep" />
-          <!-- 权限与删除只对创建者开放：与终端共享「仅发起者可改权限 / 取消共享」一致 -->
-          <div
-            v-if="isOwnerDoc(ctxMenu.row)"
-            class="cm-ctx-item"
-            @click="menuAction('access')"
-          ><el-icon><Lock /></el-icon>权限</div>
-          <div
-            v-if="isOwnerDoc(ctxMenu.row)"
-            class="cm-ctx-item is-danger"
-            @click="menuAction('delete')"
-          ><el-icon><Delete /></el-icon>删除</div>
+          <!-- 归档 / 恢复 / 彻底删除：按当前视图给对应动作，避免出现「在回收桶里点归档」这种无效入口 -->
+          <template v-if="viewMode === 'all'">
+            <div
+              v-if="canWriteDoc(ctxMenu.row)"
+              class="cm-ctx-item"
+              data-action="archive"
+              @click="menuAction('archive')"
+            ><el-icon><Box /></el-icon>归档</div>
+          </template>
+          <template v-else-if="viewMode === 'archived'">
+            <div
+              v-if="canWriteDoc(ctxMenu.row)"
+              class="cm-ctx-item"
+              data-action="unarchive"
+              @click="menuAction('unarchive')"
+            ><el-icon><Refresh /></el-icon>取消归档</div>
+          </template>
+          <template v-else-if="viewMode === 'trash'">
+            <div
+              v-if="isOwnerDoc(ctxMenu.row)"
+              class="cm-ctx-item"
+              data-action="restore"
+              @click="menuAction('restore')"
+            ><el-icon><Refresh /></el-icon>恢复</div>
+            <div
+              v-if="isOwnerDoc(ctxMenu.row)"
+              class="cm-ctx-item is-danger"
+              data-action="purge"
+              @click="menuAction('purge')"
+            ><el-icon><Delete /></el-icon>彻底删除</div>
+          </template>
+          <template v-if="viewMode === 'all'">
+            <div class="cm-ctx-sep" />
+            <!-- 权限与删除只对创建者开放：与终端共享「仅发起者可改权限 / 取消共享」一致 -->
+            <div
+              v-if="isOwnerDoc(ctxMenu.row)"
+              class="cm-ctx-item"
+              @click="menuAction('access')"
+            ><el-icon><Lock /></el-icon>权限</div>
+            <div
+              v-if="isOwnerDoc(ctxMenu.row)"
+              class="cm-ctx-item is-danger"
+              data-action="delete"
+              @click="menuAction('delete')"
+            ><el-icon><Delete /></el-icon>删除（移入回收桶）</div>
+          </template>
           <div
             v-if="!canWriteDoc(ctxMenu.row)"
             class="cm-ctx-note"
@@ -421,8 +569,8 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { ElMessageBox } from "element-plus";
 import {
-  ArrowLeft, Clock, Close, CopyDocument, Delete, Download, EditPen, Link,
-  Lock, MoreFilled, Plus, Refresh, Search, Upload, UploadFilled, View,
+  ArrowLeft, Box, Clock, Close, CopyDocument, Delete, Download, EditPen, FolderAdd,
+  Link, Lock, MoreFilled, Plus, Refresh, Search, Upload, UploadFilled, View,
 } from "@element-plus/icons-vue";
 import { message } from "@repo/core";
 import ReLoader from "@repo/ui/re-loader";
@@ -434,11 +582,19 @@ import { snapshotToBlob } from "../utils/collabExport";
 import { encodeOfficeSnapshot } from "../utils/collabOffice";
 import { clearImageMetaCache } from "../utils/imageMeta";
 import {
+  archiveFileCollab,
   createFileCollab,
+  createFileCollabDir,
   deleteFileCollab,
+  deleteFileCollabDir,
   getFileCollab,
+  listArchivedFileCollabs,
+  listFileCollabDirs,
   listFileCollabs,
+  listTrashedFileCollabs,
   putObject,
+  restoreFileCollab,
+  unarchiveFileCollab,
   updateFileCollabAccess,
   renameFileCollab,
   copyFileCollab,
@@ -460,6 +616,21 @@ const allDocs = ref<FileCollabInfo[]>([]);
 /** 当前作用域下展示的文档 */
 const docs = ref<FileCollabInfo[]>([]);
 const listLoading = ref(false);
+
+/**
+ * 当前视图：常规 / 归档 / 回收桶
+ *
+ * <p>三态用后端独立接口取数，前端不再自己从 allDocs 里猜：
+ * 「常规列表不含归档与回收桶」是后端 {@code list()} 的口径，前端重复实现只会漂移。</p>
+ */
+type CollabView = "all" | "archived" | "trash";
+const viewMode = ref<CollabView>("all");
+/** 归档文档（归档视图数据源 + 左侧计数） */
+const archivedDocs = ref<FileCollabInfo[]>([]);
+/** 回收桶文档（回收桶视图数据源 + 左侧计数） */
+const trashDocs = ref<FileCollabInfo[]>([]);
+/** 显式创建的目录（空目录也要显示，不能只靠文档 path 聚合） */
+const explicitDirs = ref<string[]>([]);
 
 /** 搜索关键字（防抖） */
 const keyword = ref("");
@@ -488,6 +659,8 @@ const currentUserId = ref(collabCurrentUserId());
  */
 const bodyTitle = computed(() => {
   const kw = keyword.value.trim();
+  if (viewMode.value === "archived") return kw ? `归档中搜索「${kw}」` : "归档";
+  if (viewMode.value === "trash") return kw ? `回收桶中搜索「${kw}」` : "回收桶";
   if (globalSearch.value && kw) return `全局搜索「${kw}」`;
   const where = currentPath.value || "全部文件";
   return kw ? `${where}中搜索「${kw}」` : where;
@@ -592,18 +765,29 @@ interface DirNode {
   children: DirNode[];
 }
 
-/** 现有目录选项（datalist 建议用） */
+/** 现有目录选项（新建/上传弹框的 datalist 建议用） */
 const dirOptions = computed(() =>
-  [...new Set(allDocs.value.map((c) => c.path).filter(Boolean))].sort(),
+  [...new Set([...explicitDirs.value, ...allDocs.value.map((c) => c.path).filter(Boolean)])].sort(),
 );
 
-/** 从全部文档聚合出层级目录树（拍平成数组供渲染，含中间目录） */
+/**
+ * 从「显式目录 + 全部文档 path」聚合出层级目录树（拍平成数组供渲染）。
+ *
+ * <p>两个来源缺一不可：</p>
+ * <ul>
+ *   <li>只按文档 path 聚合 → 新建的空目录立刻消失，用户以为「建目录没生效」；</li>
+ *   <li>只看显式目录 → 老数据里没登记过的 path 全部看不到。</li>
+ * </ul>
+ *
+ * @return 拍平的目录节点数组（首项为根）
+ */
 const treeNodes = computed<DirNode[]>(() => {
   const root: DirNode = { key: "__root__", label: "全部文件", path: "", depth: 0, count: 0, children: [] };
   const byPath = new Map<string, DirNode>();
   byPath.set("", root);
-  for (const c of allDocs.value) {
-    const segs = c.path.split("/").filter(Boolean);
+  /** 把一条路径逐级登记进树（中间目录一并建出来） */
+  const ensure = (full: string): DirNode => {
+    const segs = full.split("/").filter(Boolean);
     let cur = "";
     let parent = root;
     for (const s of segs) {
@@ -616,7 +800,12 @@ const treeNodes = computed<DirNode[]>(() => {
       }
       parent = node;
     }
-    parent.count += 1;
+    return parent;
+  };
+  // 显式目录先建（空目录也要出现在树里），不带计数
+  for (const dir of explicitDirs.value) ensure(dir);
+  for (const c of allDocs.value) {
+    ensure(c.path).count += 1;
   }
   // 目录计数向上汇总：父目录要包含子目录里的文档，
   // 否则「项目A」显示 0、展开后却有几十份文档，看着像统计坏了。
@@ -638,9 +827,92 @@ const treeNodes = computed<DirNode[]>(() => {
 
 function selectDir(path: string): void {
   globalSearch.value = false;
+  viewMode.value = "all";
   currentPath.value = path;
   clearSelection();
   void loadDocs();
+}
+
+/**
+ * 切换视图：全部 / 归档 / 回收桶
+ *
+ * <p>三个视图各自有独立的数据源，切换时必须重新取数而不是在本地过滤：
+ * 归档与回收桶的条目根本不在常规列表里（后端 {@code list()} 已过滤）。</p>
+ *
+ * @param view 目标视图
+ */
+async function switchView(view: CollabView): Promise<void> {
+  viewMode.value = view;
+  clearSelection();
+  keyword.value = "";
+  globalSearch.value = false;
+  if (view === "all") {
+    await reloadAll();
+    return;
+  }
+  currentPath.value = "";
+  await loadScopedList();
+}
+
+/**
+ * 按当前视图取列表
+ *
+ * <p>{@code all} 走常规列表（受目录与关键字约束）；{@code archived} / {@code trash}
+ * 走各自的后端接口，忽略目录（归档/回收桶不保留目录层级语义）。</p>
+ */
+async function loadScopedList(): Promise<void> {
+  const kw = keyword.value.trim();
+  loadSeq += 1;
+  const seq = loadSeq;
+  listLoading.value = true;
+  try {
+    let list: FileCollabInfo[];
+    if (viewMode.value === "archived") {
+      list = await listArchivedFileCollabs(currentUserId.value, kw || undefined);
+    } else if (viewMode.value === "trash") {
+      list = await listTrashedFileCollabs(currentUserId.value, kw || undefined);
+    } else {
+      list = await listFileCollabs(
+        currentUserId.value,
+        globalSearch.value ? undefined : currentPath.value || undefined,
+        kw || undefined,
+      );
+    }
+    if (seq === loadSeq && viewMode.value !== "all") docs.value = list;
+  } catch (e) {
+    if (seq === loadSeq) message.error(e instanceof Error ? e.message : "获取协同列表失败");
+  } finally {
+    if (seq === loadSeq) listLoading.value = false;
+  }
+}
+
+/** 拉取显式目录列表（左侧树里空目录也要能显示） */
+async function loadDirs(): Promise<void> {
+  try {
+    explicitDirs.value = await listFileCollabDirs();
+  } catch {
+    // 目录接口失败不该阻断文档列表：退回只按文档 path 聚合
+    explicitDirs.value = [];
+  }
+}
+
+/**
+ * 刷新三份计数（全部 / 归档 / 回收桶）
+ *
+ * <p>左侧底部三个入口上的数字必须和切换过去看到的条目数一致，
+ * 否则「归档 0」点进去却有一堆文档。归档/回收桶只取一次全量（不带关键字）。</p>
+ */
+async function refreshCounts(): Promise<void> {
+  try {
+    const [archived, trashed] = await Promise.all([
+      listArchivedFileCollabs(currentUserId.value),
+      listTrashedFileCollabs(currentUserId.value),
+    ]);
+    archivedDocs.value = archived;
+    trashDocs.value = trashed;
+  } catch {
+    // 计数失败不阻断主流程
+  }
 }
 
 /* ==================== 检索（入口在右键菜单 / Ctrl+F） ==================== */
@@ -676,6 +948,11 @@ async function promptSearch(global: boolean): Promise<void> {
 
 let loadSeq = 0;
 async function loadDocs(): Promise<void> {
+  // 归档 / 回收桶有独立数据源：routes 到 loadScopedList，避免在常规列表里搜索
+  if (viewMode.value !== "all") {
+    await loadScopedList();
+    return;
+  }
   const kw = keyword.value.trim();
   const path = globalSearch.value ? "" : currentPath.value;
   loadSeq += 1;
@@ -691,11 +968,20 @@ async function loadDocs(): Promise<void> {
 async function reloadAll(): Promise<void> {
   listLoading.value = true;
   try {
-    allDocs.value = await listFileCollabs(currentUserId.value);
+    const [list] = await Promise.all([
+      listFileCollabs(currentUserId.value),
+      loadDirs(),
+      refreshCounts(),
+    ]);
+    allDocs.value = list;
   } catch (e) {
     message.error(e instanceof Error ? e.message : "获取协同列表失败");
   } finally {
     listLoading.value = false;
+  }
+  if (viewMode.value !== "all") {
+    await loadScopedList();
+    return;
   }
   // 根目录 + 无关键字时，allDocs 就是 docs 的全集：
   // 再调一次 loadDocs() 会打出与上面完全相同的 /collab/list，纯属重复请求。
@@ -707,9 +993,19 @@ async function reloadAll(): Promise<void> {
   await loadDocs();
 }
 
-const collabEmptyText = computed(() =>
-  allDocs.value.length === 0 ? "暂无协同文档" : "没有匹配的协同文档",
-);
+/** 当前视图下「空列表」的文案 */
+const collabEmptyText = computed(() => {
+  if (viewMode.value === "archived") return archivedDocs.value.length === 0 ? "暂无归档文档" : "没有匹配的归档文档";
+  if (viewMode.value === "trash") return trashDocs.value.length === 0 ? "回收桶是空的" : "没有匹配的回收文档";
+  return allDocs.value.length === 0 ? "暂无协同文档" : "没有匹配的协同文档";
+});
+
+/** 空列表时给下一步动作提示（三种视图给三种建议） */
+const emptyHint = computed(() => {
+  if (viewMode.value === "archived") return "在「全部文件」里右键文档选「归档」，它就会收进这里，内容与权限都保留";
+  if (viewMode.value === "trash") return "删除的文档会先进回收桶；在这里可以「恢复」，也可以「彻底删除」";
+  return "在空白处右键「新建协同」创建文档，右键「上传为协同」把 xlsx/docx/txt 转为协同文档";
+});
 
 /* ==================== 展示辅助 ==================== */
 
@@ -965,6 +1261,118 @@ const ctxMenu = ref<{
 }>({ visible: false, x: 0, y: 0, row: null, batch: false });
 const ctxMenuRef = ref<HTMLElement | null>(null);
 
+/* ==================== 左侧目录树右键菜单 ==================== */
+
+/** 左侧目录树右键菜单状态（path 为空 = 根目录 / 空白处） */
+const treeMenu = ref<{ visible: boolean; x: number; y: number; path: string }>({
+  visible: false, x: 0, y: 0, path: "",
+});
+const treeMenuRef = ref<HTMLElement | null>(null);
+
+/**
+ * 在左侧目录树上打开右键菜单
+ *
+ * @param e    右键事件（已 preventDefault）
+ * @param path 目标目录路径（空 = 根目录）
+ */
+function openTreeMenu(e: MouseEvent, path: string): void {
+  // 三套菜单互斥：目录树 / 卡片 / 空白处，同时开两个会叠在一起
+  ctxMenu.value.visible = false;
+  blankMenu.value.visible = false;
+  treeMenu.value = { visible: true, x: e.clientX, y: e.clientY, path };
+  void nextTick().then(() => {
+    const el = treeMenuRef.value;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const margin = 8;
+    treeMenu.value.x = Math.max(margin, Math.min(treeMenu.value.x, window.innerWidth - rect.width - margin));
+    treeMenu.value.y = Math.max(margin, Math.min(treeMenu.value.y, window.innerHeight - rect.height - margin));
+  });
+}
+
+/**
+ * 弹出输入框新建目录
+ *
+ * <p>只接受相对路径（如 {@code 项目A/台账}）：父级会自动补建，
+ * 输入里带了前导/尾随斜杠先归一化掉，避免同一目录出现两条记录。</p>
+ *
+ * @param parent 父目录路径（空 = 根目录）
+ */
+async function promptCreateDir(parent: string): Promise<void> {
+  let input: string;
+  try {
+    const { value } = await ElMessageBox.prompt(
+      parent ? `在「${parent}」下新建子目录` : "新建目录（可用 / 分隔多级，如 项目A/台账）",
+      parent ? "新建子目录" : "新建目录",
+      {
+        inputPlaceholder: "目录名",
+        confirmButtonText: "创建",
+        cancelButtonText: "取消",
+        inputValidator: (v: string) => {
+          const name = (v ?? "").trim();
+          if (!name) return "目录名不能为空";
+          if (/^[\/\\]+$/.test(name)) return "目录名不能只有斜杠";
+          return true;
+        },
+      },
+    );
+    input = (value ?? "").trim();
+  } catch {
+    return;
+  }
+  const rel = input.replace(/^[\/\\]+|[\/\\]+$/g, "").replace(/\\/g, "/");
+  if (!rel) return;
+  const full = parent ? `${parent}/${rel}` : rel;
+  try {
+    const created = await createFileCollabDir(full);
+    if (created) message.success(`已创建目录「${full}」`);
+    else message.info(`目录「${full}」已存在`);
+    await loadDirs();
+    // 建完直接切过去：空目录也能看得见，否则用户会以为没建成
+    if (created) selectDir(full);
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : "新建目录失败");
+  }
+}
+
+/**
+ * 删除目录（只允许空目录）
+ *
+ * @param path 目录路径
+ */
+async function removeDir(path: string): Promise<void> {
+  try {
+    await ElMessageBox.confirm(
+      `确认删除目录「${path}」？目录内还有文档时无法删除。`,
+      "删除目录",
+      { confirmButtonText: "删除", cancelButtonText: "取消", type: "warning" },
+    );
+  } catch {
+    return;
+  }
+  try {
+    await deleteFileCollabDir(path);
+    message.success(`已删除目录「${path}」`);
+    if (currentPath.value === path || currentPath.value.startsWith(`${path}/`)) currentPath.value = "";
+    await loadDirs();
+    await reloadAll();
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : "删除目录失败");
+  }
+}
+
+/**
+ * 左侧目录树菜单动作
+ *
+ * @param action newDir 新建（子）目录 / deleteDir 删除目录
+ */
+async function treeAction(action: string): Promise<void> {
+  const path = treeMenu.value.path;
+  treeMenu.value.visible = false;
+  if (action === "newDir") await promptCreateDir(path);
+  else if (action === "deleteDir") await removeDir(path);
+}
+
 /**
  * 当前账号对某份协同文档是否可写
  *
@@ -1034,12 +1442,14 @@ async function menuAction(action: string): Promise<void> {
   ctxMenu.value.visible = false;
   // 入口已按权限裁剪；这里再兜一道，防止键盘/脚本绕过 v-if 直接触发
   if (c) {
-    if ((action === "rename" || action === "copy") && !canWriteDoc(c)) {
+    if ((action === "rename" || action === "copy" || action === "archive" || action === "unarchive")
+      && !canWriteDoc(c)) {
       message.warning("当前账号没有该协同文档的编辑权限，请联系创建者授权");
       return;
     }
-    if ((action === "access" || action === "delete") && !isOwnerDoc(c)) {
-      message.warning("只有创建者可以修改权限或删除该协同文档");
+    if ((action === "access" || action === "delete" || action === "restore" || action === "purge")
+      && !isOwnerDoc(c)) {
+      message.warning("只有创建者可以修改权限、删除或恢复该协同文档");
       return;
     }
   }
@@ -1052,6 +1462,10 @@ async function menuAction(action: string): Promise<void> {
     case "batchPublic": await batchSetVisibility("PUBLIC"); break;
     case "batchPrivate": await batchSetVisibility("PRIVATE"); break;
     case "batchDelete": await batchDelete(); break;
+    case "batchArchive": await batchArchive(); break;
+    case "batchUnarchive": await batchUnarchive(); break;
+    case "batchRestore": await batchRestore(); break;
+    case "batchPurge": await batchPurge(); break;
     case "batchClear": clearSelection(); break;
     // ---- 单个 ----
     case "open":
@@ -1081,6 +1495,18 @@ async function menuAction(action: string): Promise<void> {
     case "delete":
       if (c) await onDelete(c);
       break;
+    case "archive":
+      if (c) await onArchive(c);
+      break;
+    case "unarchive":
+      if (c) await onUnarchive(c);
+      break;
+    case "restore":
+      if (c) await onRestore(c);
+      break;
+    case "purge":
+      if (c) await onPurge(c);
+      break;
   }
 }
 
@@ -1104,10 +1530,10 @@ async function batchDelete(): Promise<void> {
   }
   try {
     await ElMessageBox.confirm(
-      `确认删除选中的 ${list.length} 个协同文档？此操作不可撤销。`
+      `确认删除选中的 ${list.length} 个协同文档？它们会移入回收桶，可随时恢复。`
         + (denied > 0 ? `（另有 ${denied} 个非本人创建，已跳过）` : ""),
       "批量删除",
-      { confirmButtonText: "删除", cancelButtonText: "取消", type: "warning" },
+      { confirmButtonText: "移入回收桶", cancelButtonText: "取消", type: "warning" },
     );
   } catch {
     return;
@@ -1122,7 +1548,7 @@ async function batchDelete(): Promise<void> {
       bad += 1;
     }
   }
-  if (bad === 0) message.success(`已删除 ${ok} 个协同文档`);
+  if (bad === 0) message.success(`已把 ${ok} 个协同文档移入回收桶`);
   else message.warning(`已删除 ${ok} 个，${bad} 个失败`);
   clearSelection();
   await reloadAll();
@@ -1184,6 +1610,213 @@ async function batchSetVisibility(visibility: CollabVisibility): Promise<void> {
   await reloadAll();
 }
 
+/* ==================== 归档 / 回收桶 ==================== */
+
+/**
+ * 归档一份协同文档：从常规列表收起，内容、权限、历史全部保留。
+ *
+ * <p>可逆操作，不做二次确认 —— 归档的语义就是「暂时不用了」，
+ * 每点一次都要确认会让人不敢整理列表。</p>
+ *
+ * @param c 协同文档
+ */
+async function onArchive(c: FileCollabInfo): Promise<void> {
+  if (!canWriteDoc(c)) {
+    message.warning("当前账号没有该协同文档的编辑权限，请联系创建者授权");
+    return;
+  }
+  try {
+    await archiveFileCollab(c.id, currentUserId.value);
+    message.success(`已归档「${c.fileName}」`);
+    clearSelection();
+    await reloadAll();
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : "归档失败");
+  }
+}
+
+/**
+ * 取消归档：回到常规列表。
+ *
+ * @param c 协同文档
+ */
+async function onUnarchive(c: FileCollabInfo): Promise<void> {
+  try {
+    await unarchiveFileCollab(c.id, currentUserId.value);
+    message.success(`已取消归档「${c.fileName}」`);
+    clearSelection();
+    await reloadAll();
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : "取消归档失败");
+  }
+}
+
+/**
+ * 从回收桶恢复。
+ *
+ * @param c 协同文档
+ */
+async function onRestore(c: FileCollabInfo): Promise<void> {
+  if (!isOwnerDoc(c)) {
+    message.warning("只有创建者可以恢复该协同文档");
+    return;
+  }
+  try {
+    await restoreFileCollab(c.id, currentUserId.value);
+    message.success(`已恢复「${c.fileName}」`);
+    clearSelection();
+    await reloadAll();
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : "恢复失败");
+  }
+}
+
+/**
+ * 彻底删除（不可恢复）：只从回收桶里给入口。
+ *
+ * @param c 协同文档
+ */
+async function onPurge(c: FileCollabInfo): Promise<void> {
+  if (!isOwnerDoc(c)) {
+    message.warning("只有创建者可以彻底删除该协同文档");
+    return;
+  }
+  try {
+    await ElMessageBox.confirm(
+      `「${c.fileName}」将被彻底删除，内容与历史版本都无法恢复。确认继续？`,
+      "彻底删除",
+      { confirmButtonText: "彻底删除", cancelButtonText: "取消", type: "warning" },
+    );
+  } catch {
+    return;
+  }
+  try {
+    await deleteFileCollab(c.id, currentUserId.value, true);
+    message.success(`已彻底删除「${c.fileName}」`);
+    clearSelection();
+    await reloadAll();
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : "彻底删除失败");
+  }
+}
+
+/**
+ * 批量归档（可写即可，不需要创建者身份）
+ *
+ * <p>失败不中断：逐个串行调用，最后统一汇报条数。</p>
+ */
+async function batchArchive(): Promise<void> {
+  const all = selectedDocs.value;
+  const list = all.filter((d) => canWriteDoc(d));
+  if (list.length === 0) {
+    message.warning("选中的文档都没有编辑权限，无法归档");
+    return;
+  }
+  const denied = all.length - list.length;
+  let ok = 0;
+  let bad = 0;
+  for (const d of list) {
+    try {
+      await archiveFileCollab(d.id, currentUserId.value);
+      ok += 1;
+    } catch {
+      bad += 1;
+    }
+  }
+  if (bad === 0) {
+    message.success(`已归档 ${ok} 个协同文档${denied > 0 ? `（${denied} 个无权限已跳过）` : ""}`);
+  } else {
+    message.warning(`已归档 ${ok} 个，${bad} 个失败`);
+  }
+  clearSelection();
+  await reloadAll();
+}
+
+/** 批量取消归档 */
+async function batchUnarchive(): Promise<void> {
+  const all = selectedDocs.value;
+  const list = all.filter((d) => canWriteDoc(d));
+  if (list.length === 0) {
+    message.warning("选中的文档都没有编辑权限，无法取消归档");
+    return;
+  }
+  let ok = 0;
+  let bad = 0;
+  for (const d of list) {
+    try {
+      await unarchiveFileCollab(d.id, currentUserId.value);
+      ok += 1;
+    } catch {
+      bad += 1;
+    }
+  }
+  if (bad === 0) message.success(`已取消归档 ${ok} 个协同文档`);
+  else message.warning(`成功 ${ok} 个，失败 ${bad} 个`);
+  clearSelection();
+  await reloadAll();
+}
+
+/** 批量恢复（只有创建者的文档会被处理） */
+async function batchRestore(): Promise<void> {
+  const all = selectedDocs.value;
+  const list = all.filter((d) => isOwnerDoc(d));
+  if (list.length === 0) {
+    message.warning("选中的文档都不是你创建的，只有创建者可以恢复");
+    return;
+  }
+  let ok = 0;
+  let bad = 0;
+  for (const d of list) {
+    try {
+      await restoreFileCollab(d.id, currentUserId.value);
+      ok += 1;
+    } catch {
+      bad += 1;
+    }
+  }
+  if (bad === 0) message.success(`已恢复 ${ok} 个协同文档`);
+  else message.warning(`成功 ${ok} 个，失败 ${bad} 个`);
+  clearSelection();
+  await reloadAll();
+}
+
+/** 批量彻底删除（不可恢复，必须二次确认） */
+async function batchPurge(): Promise<void> {
+  const all = selectedDocs.value;
+  const list = all.filter((d) => isOwnerDoc(d));
+  const denied = all.length - list.length;
+  if (list.length === 0) {
+    message.warning("选中的文档都不是你创建的，只有创建者可以彻底删除");
+    return;
+  }
+  try {
+    await ElMessageBox.confirm(
+      `选中的 ${list.length} 个协同文档将被彻底删除，内容与历史都无法恢复。`
+        + (denied > 0 ? `（另有 ${denied} 个非本人创建，已跳过）` : ""),
+      "批量彻底删除",
+      { confirmButtonText: "彻底删除", cancelButtonText: "取消", type: "warning" },
+    );
+  } catch {
+    return;
+  }
+  let ok = 0;
+  let bad = 0;
+  for (const d of list) {
+    try {
+      await deleteFileCollab(d.id, currentUserId.value, true);
+      ok += 1;
+    } catch {
+      bad += 1;
+    }
+  }
+  if (bad === 0) message.success(`已彻底删除 ${ok} 个协同文档`);
+  else message.warning(`成功 ${ok} 个，失败 ${bad} 个`);
+  clearSelection();
+  await reloadAll();
+}
+
+
+
 /* ==================== 空白处右键菜单（全部操作入口） ==================== */
 
 /** 空白处右键菜单状态 */
@@ -1196,8 +1829,9 @@ const blankMenuRef = ref<HTMLElement | null>(null);
  * @param e 右键事件（已 preventDefault）
  */
 function openBlankMenu(e: MouseEvent): void {
-  // 与卡片菜单互斥：右键空白先关掉文件卡片菜单
+  // 与另外两套菜单互斥：右键空白先关掉文件卡片菜单与目录树菜单
   ctxMenu.value.visible = false;
+  treeMenu.value.visible = false;
   blankMenu.value = { visible: true, x: e.clientX, y: e.clientY };
   void nextTick().then(() => {
     const el = blankMenuRef.value;
@@ -1221,6 +1855,16 @@ async function blankAction(action: string): Promise<void> {
     case "word":
     case "text":
       openCreateDialog(action as CollabDocType);
+      break;
+    case "newDir":
+      await promptCreateDir(currentPath.value);
+      break;
+    case "archiveSelected":
+      if (selectedIds.value.length === 0) {
+        message.info("先在卡片上点选要归档的文档，再回到这里执行");
+        break;
+      }
+      await batchArchive();
       break;
     case "upload":
       openUploadDialog();
@@ -1291,6 +1935,7 @@ function onKeydown(e: KeyboardEvent): void {
     clearSelection();
     ctxMenu.value.visible = false;
     blankMenu.value.visible = false;
+    treeMenu.value.visible = false;
     return;
   }
   const picked = selectedDocs.value;
@@ -1313,14 +1958,17 @@ function onKeydown(e: KeyboardEvent): void {
   }
   if (e.key === "Delete") {
     e.preventDefault();
-    void batchDelete();
+    // Delete 的含义随视图变：常规=移入回收桶，回收桶=彻底删除，归档视图没有删除语义
+    if (viewMode.value === "trash") void batchPurge();
+    else if (viewMode.value === "all") void batchDelete();
   }
 }
 
-/** 点页面任意处收起两套右键菜单（卸载时摘掉，避免重复注册） */
+/** 点页面任意处收起三套右键菜单（卸载时摘掉，避免重复注册） */
 function onGlobalClick(): void {
   ctxMenu.value.visible = false;
   blankMenu.value.visible = false;
+  treeMenu.value.visible = false;
 }
 window.addEventListener("click", onGlobalClick);
 window.addEventListener("keydown", onKeydown);
@@ -1530,8 +2178,8 @@ async function onDelete(c: FileCollabInfo): Promise<void> {
     return;
   }
   try {
-    await ElMessageBox.confirm(`确认删除协同文档「${c.fileName}」？`, "删除协同", {
-      confirmButtonText: "删除",
+    await ElMessageBox.confirm(`确认删除协同文档「${c.fileName}」？文档会移入回收桶，可随时恢复。`, "删除协同", {
+      confirmButtonText: "移入回收桶",
       cancelButtonText: "取消",
       type: "warning",
     });
@@ -1540,7 +2188,7 @@ async function onDelete(c: FileCollabInfo): Promise<void> {
   }
   try {
     await deleteFileCollab(c.id, currentUserId.value);
-    message.success("协同文档已删除");
+    message.success("已移入回收桶");
     await reloadAll();
   } catch (e) {
     message.error(e instanceof Error ? e.message : "删除协同失败");
@@ -1738,6 +2386,54 @@ onBeforeUnmount(() => {
   font-size: 11px;
   color: var(--text-secondary, var(--el-text-color-secondary, #909399));
   font-variant-numeric: tabular-nums;
+}
+
+/* 底部固定入口：全部 / 归档 / 回收桶 */
+.cm-side-ft {
+  flex: 0 0 auto;
+  padding: 8px;
+  border-top: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--el-fill-color-blank, #fff);
+}
+.cm-side-view {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 13px;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 0.15s ease;
+}
+.cm-side-view:hover { background: var(--brand-50, var(--el-fill-color-light, #f5f7fa)); }
+.cm-side-view.active {
+  background: var(--brand-100, var(--el-color-primary-light-9, #ecf5ff));
+  color: var(--brand-600, var(--el-color-primary, #409eff));
+  font-weight: 600;
+}
+.cm-side-view-icon { font-size: 14px; flex: 0 0 auto; }
+.cm-side-view-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cm-side-view-count {
+  font-size: 11px;
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+  font-variant-numeric: tabular-nums;
+}
+.cm-side-view.active .cm-side-view-count {
+  color: inherit;
 }
 
 /* ===== 主区 ===== */

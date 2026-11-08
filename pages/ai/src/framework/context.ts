@@ -43,6 +43,13 @@ export interface RequestOptions {
   loading?: boolean;
   /** 失败时是否静默（不弹统一提示） */
   noToast?: boolean;
+  /**
+   * 失败时不打 console。
+   *
+   * 只给「后端可能还没上线、失败本就是预期」的可选端点用（如会话目标），
+   * 普通业务请求不要开——那会把真正的故障藏起来。
+   */
+  silent?: boolean;
   /** 上传进度回调 */
   onUploadProgress?: (event: { loaded: number; total?: number }) => void;
 }

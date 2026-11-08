@@ -1,16 +1,22 @@
-<script setup lang="ts">
-/**
- * 租户新增/编辑表单弹窗组件
- *
- * 通过 v-model:visible 控制显隐，v-model:model 绑定租户表单数据。
- * 新增模式必填初始密码，编辑模式不传密码表示不修改。
- * 保存成功后通过 success 事件通知父组件刷新。
- */
-import { message } from "@repo/core";
-import { reactive, ref, watch } from "vue";
+<!--
+  租户表单弹窗（当前未挂到任何页面：TenantManage 用的是内联表单）。
 
-import { saveTenant, updateTenant } from "../../api/systemApi";
-import type { SysTenant } from "../../api/types";
+  保留原因：里面是「租户库实例来源」下拉的完整交互实现（选台账/平台自身后
+  地址端口只读回显、显示库名与账号口令两类字段的取舍）。若要把 TenantManage
+  的内联表单抽成组件，直接用这里，别重写一遍。
+
+  独立数据库（选填）
+-->
+<script setup lang="ts">
+import { message } from "@repo/core";
+import { computed, reactive, ref, watch } from "vue";
+
+import {
+  saveTenant,
+  tenantDatasourceOptions,
+  updateTenant,
+} from "../../api/systemApi";
+import type { SysTenant, TenantDatasourceOption } from "../../api/types";
 import ReDialog from "@repo/ui/re-dialog";
 
 const visible = defineModel<boolean>("visible", { required: true });
@@ -31,18 +37,72 @@ const formRef = ref();
 /** 表单数据（与 model 解耦，打开时按 model 快照） */
 const form = reactive<Partial<SysTenant>>({});
 
+/** 库来源下拉项：0=自填，-1=平台自身实例，>0=数据源台账 */
+const datasourceOptions = ref<TenantDatasourceOption[]>([]);
+
+/** 下拉项加载中 */
+const datasourceLoading = ref(false);
+
+/** 当前所选项；未选或为 0 都按「自填」处理 */
+const selectedDatasource = computed<TenantDatasourceOption | undefined>(() => {
+  const id = form.sysTenantDatasourceId;
+  if (id === null || id === undefined) {
+    return datasourceOptions.value.find((item) => item.id === 0);
+  }
+  return datasourceOptions.value.find((item) => item.id === Number(id));
+});
+
+/** 是否引用了现成实例（平台自身或台账）：此时地址/端口/账号/口令都来自实例，只填库名 */
+const useSharedInstance = computed(() => {
+  const id = form.sysTenantDatasourceId;
+  return id !== null && id !== undefined && Number(id) !== 0;
+});
+
+/**
+ * 引用实例时地址与端口展示用的只读值。
+ *
+ * <p>取下拉项里的实例信息；下拉项还没回来时退回租户记录里自填的字段，
+ * 免得表单在打开瞬间显示成空白。</p>
+ */
+const readonlyEndpoint = computed(() => {
+  const option = selectedDatasource.value;
+  const id = form.sysTenantDatasourceId;
+  const isSelf = id !== null && id !== undefined && Number(id) === -1;
+  const host = option?.host || (isSelf ? "" : form.sysTenantHost) || "";
+  const port = option?.port ?? (isSelf ? null : form.sysTenantPort) ?? null;
+  return { host: host || (isSelf ? "（平台管理连接）" : "—"), port: port ? String(port) : "—" };
+});
+
+/** 加载库来源下拉项；失败时只保留「自填」，不让整个表单不可用 */
+async function loadDatasourceOptions() {
+  datasourceLoading.value = true;
+  try {
+    const result = await tenantDatasourceOptions();
+    datasourceOptions.value = result.data ?? [];
+  } catch {
+    datasourceOptions.value = [
+      { id: 0, name: "由租户自己填写实例信息", type: "manual" },
+    ];
+  } finally {
+    datasourceLoading.value = false;
+  }
+}
+
 /** 打开弹窗时按 model 重置表单 */
 watch(
   () => visible.value,
   (open) => {
-    if (open) {
-      const source = model.value ?? {};
-      Object.assign(form, source);
-      if (props.mode === "create") {
-        form.sysTenantStatus = 0;
-        form.sysTenantDelete = 0;
-      }
+    if (!open) {
+      return;
     }
+    const source = model.value ?? {};
+    Object.assign(form, source);
+    if (props.mode === "create") {
+      form.sysTenantStatus = 0;
+      form.sysTenantDelete = 0;
+      form.sysTenantDatasourceId = 0;
+    }
+    loadDatasourceOptions();
   },
 );
 
@@ -117,7 +177,33 @@ async function handleSubmit() {
       </el-form-item>
 
       <el-divider content-position="left">独立数据库（选填）</el-divider>
-      <el-form-item label="库地址">
+      <el-form-item label="实例来源">
+        <el-select
+          v-model="form.sysTenantDatasourceId"
+          :loading="datasourceLoading"
+          placeholder="选择数据库实例"
+          style="width: 100%"
+        >
+          <el-option
+            v-for="item in datasourceOptions"
+            :key="item.id"
+            :label="item.name"
+            :value="item.id"
+          >
+            <span>{{ item.name }}</span>
+            <span v-if="item.host" class="tenant-db-option-host">
+              {{ item.host }}{{ item.port ? `:${item.port}` : "" }}
+            </span>
+          </el-option>
+        </el-select>
+      </el-form-item>
+      <el-form-item v-if="useSharedInstance" label="库地址">
+        <div class="tenant-db-readonly">
+          <span>{{ readonlyEndpoint.host }}</span>
+          <span class="tenant-db-port">{{ readonlyEndpoint.port }}</span>
+        </div>
+      </el-form-item>
+      <el-form-item v-else label="库地址">
         <div class="tenant-db-row">
           <el-input v-model="form.sysTenantHost" placeholder="数据库实例地址，如 10.0.0.8" maxlength="255" />
           <el-input v-model.number="form.sysTenantPort" placeholder="端口" maxlength="6" />
@@ -126,20 +212,28 @@ async function handleSubmit() {
       <el-form-item label="库名">
         <el-input v-model="form.sysTenantDbname" placeholder="租户专属数据库名" maxlength="64" show-word-limit />
       </el-form-item>
-      <el-form-item label="库账号">
-        <el-input v-model="form.sysTenantSqlUsername" placeholder="数据库登录账号" maxlength="64" show-word-limit />
-      </el-form-item>
-      <el-form-item label="库口令">
-        <el-input
-          v-model="form.sysTenantSqlPassword"
-          type="password"
-          show-password
-          :placeholder="mode === 'edit' ? '留空表示不修改' : '数据库登录口令'"
-          maxlength="128"
-        />
-      </el-form-item>
+      <template v-if="!useSharedInstance">
+        <el-form-item label="库账号">
+          <el-input v-model="form.sysTenantSqlUsername" placeholder="数据库登录账号" maxlength="64" show-word-limit />
+        </el-form-item>
+        <el-form-item label="库口令">
+          <el-input
+            v-model="form.sysTenantSqlPassword"
+            type="password"
+            show-password
+            :placeholder="mode === 'edit' ? '留空表示不修改' : '数据库登录口令'"
+            maxlength="128"
+          />
+        </el-form-item>
+      </template>
       <p class="tenant-db-hint">
-        填写完整后，登录该租户的用户请求会自动路由到该库；留空则继续走平台共享库。
+        <template v-if="useSharedInstance">
+          地址、端口与账号取自所选实例，这里只需填写该租户要用的库名。
+          多个租户共用同一实例时，务必各自使用不同的库名。
+        </template>
+        <template v-else>
+          填写完整后，登录该租户的用户请求会自动路由到该库；留空则继续走平台共享库。
+        </template>
       </p>
     </el-form>
     <template #footer>
@@ -162,6 +256,32 @@ async function handleSubmit() {
 
 .tenant-db-row > :last-child {
   flex: 0 0 110px;
+}
+
+.tenant-db-readonly {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  color: var(--el-text-color-regular);
+}
+
+.tenant-db-readonly > :first-child {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tenant-db-port {
+  flex: 0 0 110px;
+  color: var(--el-text-color-secondary);
+}
+
+.tenant-db-option-host {
+  float: right;
+  margin-left: 12px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
 }
 
 .tenant-db-hint {

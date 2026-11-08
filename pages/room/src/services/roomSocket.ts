@@ -33,6 +33,22 @@ const DEFAULT_RECONNECT_DELAY = 1000;
 /** 端点路径 */
 const WS_PATH = "/ws";
 
+/**
+ * 把「监听全部网卡」的绑定地址换成浏览器真正能连的主机。
+ *
+ * <p>节点 serverUrl 用绑定地址拼成 {@code ws://0.0.0.0:18083/}，而 {@code 0.0.0.0}
+ * 只是服务端的写法，浏览器发起握手会直接失败。页面既然能打开，就说明当前
+ * 主机名可达，用它替换即可。</p>
+ *
+ * @param url 节点地址
+ * @returns 可直连的地址（不含通配主机时原样返回）
+ */
+function normalizeHost(url: string): string {
+  const pageHost = window.location.hostname || "127.0.0.1";
+  const replacement = pageHost.includes(":") ? `[${pageHost}]` : pageHost;
+  return url.replace(/\/\/(0\.0\.0\.0|\[::\]|::)(?=[:/]|$)/, `//${replacement}`);
+}
+
 /** 消息处理函数 */
 export type RoomMessageHandler = (msg: RoomMessageEnvelope) => void;
 
@@ -88,6 +104,25 @@ export class RoomSocket {
   /** 最后收到 pong 的时间 */
   private lastPongAt = Date.now();
 
+  /**
+   * 重连后要补发的入房请求。
+   *
+   * <p>WebSocket 的 open 是异步的，重连那一瞬间不能直接发 hello（会因
+   * readyState=CONNECTING 被丢掉），先记在这里，由 {@code onopen} 补发。</p>
+   */
+  private pendingRejoin?: { roomId?: string; resumeToken?: string };
+
+  /** 最近一次 joinRoom 的参数（自动重连时用来回房） */
+  private lastJoin?: { roomId?: string; resumeToken?: string };
+
+  /**
+   * 连接代次。
+   *
+   * <p>主动重连会关掉旧连接，旧 socket 的 onclose 随后才回放；用代次把
+   * 过期回调挡掉，否则一次「重连」会被当成掉线再重连一轮。</p>
+   */
+  private generation = 0;
+
   constructor(
     private baseUrl: string = new URL(window.location.href).origin,
     private heartbeatInterval: number = DEFAULT_HEARTBEAT_INTERVAL,
@@ -110,11 +145,15 @@ export class RoomSocket {
    * <p>房间有两种接入：与应用同端口（默认当前站点）、服务管理里的 ROOM 独立节点
    * （节点 serverUrl）。嵌入页签挂载前调本方法指到节点，卸载时传回上一个值即可恢复。</p>
    *
+   * <p>节点地址按绑定地址生成，{@code 0.0.0.0} / {@code ::} 表示「监听全部网卡」，
+   * 浏览器连不上（直接握手失败）。这里统一换成访问当前页所用的主机名：本机互访
+   * 是 127.0.0.1，远程访问就是那台机器的地址。</p>
+   *
    * @param url 节点地址（http/https/ws/wss 均可），空值回落到当前站点
    */
   setBaseUrl(url?: string): void {
     const next = url?.trim();
-    this.baseUrl = next ? next : new URL(window.location.href).origin;
+    this.baseUrl = next ? normalizeHost(next) : new URL(window.location.href).origin;
   }
 
   /** 建立连接（不自动重连，连接断开后由心跳/重连机制续接） */
@@ -123,9 +162,9 @@ export class RoomSocket {
       return;
     }
     this.connectionState.value = ConnectionState.CONNECTING;
-    this.reconnectAttempts = 0;
     this.closed = false;
-    this.needReconnect = false;
+    // 连接建立后若被非主动关闭（对端重启/网络中断），onClose 里据此自动续接
+    this.needReconnect = true;
 
     try {
       const token = getSocketToken();
@@ -136,21 +175,31 @@ export class RoomSocket {
       }
       wsUrl.searchParams.set("path", WS_PATH);
 
+      const gen = ++this.generation;
       this.ws = new WebSocket(wsUrl.toString());
 
       this.ws.onopen = () => {
+        if (gen !== this.generation) return;
         this.connectionState.value = ConnectionState.OPEN;
         this.reconnectAttempts = 0;
         this.lastPongAt = Date.now();
         this.startHeartbeat();
         this.startStatusGuard();
+        // 重连回房：连接建立后再补发 hello（续接令牌带上才可能续上原端点）
+        const pending = this.pendingRejoin;
+        if (pending?.roomId) {
+          this.pendingRejoin = undefined;
+          this.send({ type: "hello", roomId: pending.roomId, resumeToken: pending.resumeToken, epoch: 0 });
+        }
       };
 
       this.ws.onmessage = (event) => {
+        if (gen !== this.generation) return;
         this.onMessage(event.data);
       };
 
       this.ws.onclose = (event) => {
+        if (gen !== this.generation) return;
         this.onClose(event);
       };
 
@@ -169,6 +218,8 @@ export class RoomSocket {
     this.stopHeartbeat();
     this.stopStatusGuard();
     this.closed = true;
+    // 让旧 socket 的回调全部作废：主动断开后，它的 onclose 不能再触发一轮重连
+    this.generation++;
     try {
       this.ws?.close();
       this.ws = undefined;
@@ -191,6 +242,7 @@ export class RoomSocket {
 
   /** 加入房间（创建房间或续接旧连接） */
   joinRoom(roomId?: string, resumeToken?: string): void {
+    this.lastJoin = { roomId, resumeToken };
     this.send({
       type: "hello",
       roomId,
@@ -199,9 +251,26 @@ export class RoomSocket {
     });
   }
 
+  /**
+   * 记录服务端确认的房间与续接令牌。
+   *
+   * <p>新建房间时 hello 里的房间号是客户端生成的，welcome 回来后才算定案；
+   * 把这一份写进 {@code lastJoin}，掉线自动重连时才能带着它回原房间。</p>
+   *
+   * @param roomId      房间号
+   * @param resumeToken 续接令牌
+   */
+  adoptRoom(roomId?: string, resumeToken?: string): void {
+    if (!roomId) {
+      return;
+    }
+    this.lastJoin = { roomId, resumeToken };
+  }
+
   /** 离开房间 */
   leaveRoom(reason = "user"): void {
     this.send({ type: "leave", reason });
+    this.lastJoin = undefined;
     this.disconnect();
   }
 
@@ -215,16 +284,52 @@ export class RoomSocket {
     this.send({ type: "heartbeat" });
   }
 
-  /** 关闭后自动重连（leave 不触发；断线续接时由业务层调用） */
-  reconnect(): void {
+  /**
+   * 断线续接（手动）：关掉当前连接，延迟重建，连接建立后自动回到原房间。
+   *
+   * <p>手动重连会把失败计数清零——用户点了按钮就该重新获得完整的重试额度。</p>
+   *
+   * @param roomId      要续接的房间号（空则用最近一次 joinRoom 的参数）
+   * @param resumeToken 续接令牌（配合房间号才能回到原端点）
+   */
+  reconnect(roomId?: string, resumeToken?: string): void {
+    this.reconnectAttempts = 0;
+    this.scheduleReconnect(roomId, resumeToken);
+  }
+
+  /**
+   * 安排一次续接（内部）。
+   *
+   * <p><b>不能</b>先调 {@link disconnect} 再在定时器里判 {@code closed}：
+   * disconnect 会把 closed 置 true，那个守卫永远命中，重连就成了空操作。
+   * 这里只关 socket，入房参数留在 {@code pendingRejoin}，由 onopen 补发 hello。</p>
+   *
+   * @param roomId      要续接的房间号（空则用最近一次 joinRoom 的参数）
+   * @param resumeToken 续接令牌（配合房间号才能回到原端点）
+   */
+  private scheduleReconnect(roomId?: string, resumeToken?: string): void {
+    const target = roomId ?? this.lastJoin?.roomId;
+    const token = resumeToken ?? this.lastJoin?.resumeToken;
+    this.pendingRejoin = target ? { roomId: target, resumeToken: token } : undefined;
     this.needReconnect = true;
-    this.disconnect();
+    this.closed = false;
+    this.reconnectAttempts++;
+    this.stopHeartbeat();
+    this.stopStatusGuard();
+    // 代次 +1：旧 socket 的 onclose/onmessage 全部作废，免得再触发一轮重连
+    this.generation++;
+    try {
+      this.ws?.close();
+    } catch {
+      /* ignore */
+    }
+    this.ws = undefined;
+    this.connectionState.value = ConnectionState.CONNECTING;
     setTimeout(() => {
       if (this.closed) {
         return;
       }
       this.connect();
-      this.joinRoom();
     }, this.reconnectDelay);
   }
 
@@ -291,10 +396,17 @@ export class RoomSocket {
       return;
     }
 
-    // 不是主动 leave 的关闭，尝试重连
-    if (this.needReconnect) {
-      this.reconnect();
+    // 不是主动 leave 的关闭，尝试续接（次数到上限就停，避免无限重试打满控制台）
+    if (!this.needReconnect) {
+      return;
     }
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      this.needReconnect = false;
+      this.connectionState.value = ConnectionState.CLOSED;
+      log.error(`[Room] 重连 ${this.reconnectAttempts} 次仍失败，停止续接`);
+      return;
+    }
+    this.scheduleReconnect();
   }
 
   /** 心跳保活 */

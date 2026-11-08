@@ -134,6 +134,82 @@
   color: var(--kb-ink-3);
 }
 
+/* 顶栏身份区：印章（库名首字）+ 名称 / 副标题。
+   列表模式下它是「返回列表」的入口，所以悬停时按链接给反馈；
+   详情模式下只是标识，不做交互态，免得读者以为点了会去哪。
+   宽度上限 220px：库名很长时截断，别把右侧胶囊和动作按钮挤下行。 */
+.kb-bar__id {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: var(--kb-sp-2);
+  min-width: 0;
+  max-width: 220px;
+  padding: 3px 6px 3px 3px;
+  border: 1px solid transparent;
+  border-radius: var(--kb-r-md);
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  color: var(--kb-ink);
+}
+
+.kb-bar__id.is-link {
+  cursor: pointer;
+  transition: background-color var(--kb-dur) var(--kb-ease), border-color var(--kb-dur) var(--kb-ease);
+}
+
+.kb-bar__id.is-link:hover {
+  background: var(--kb-hover);
+  border-color: var(--kb-line);
+}
+
+.kb-bar__id:focus-visible {
+  outline: 2px solid var(--kb-accent);
+  outline-offset: 1px;
+}
+
+/* 印章：与左栏「卷宗脊」同源的 3px 竖条 + 首字方块，形成身份重复 */
+.kb-bar__seal {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--kb-r-sm);
+  background: var(--kb-accent-soft);
+  color: var(--kb-accent);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.kb-bar__id-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.kb-bar__id-text b {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kb-bar__id-text i {
+  font-style: normal;
+  font-size: 10.5px;
+  line-height: 1.2;
+  color: var(--kb-ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .kb-bar__right {
   margin-left: auto;
   display: flex;
@@ -189,8 +265,22 @@
   padding: var(--kb-sp-3) 10px var(--kb-sp-3) var(--kb-sp-3);
   border-right: 1px solid var(--kb-line);
   background: var(--kb-card);
-  overflow-y: auto;
+  overflow: hidden;
   min-height: 0;
+}
+
+.kb-nav__group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+/* 视图段常驻左栏顶部，不参与压缩：它是切换上下文的主入口，
+   被库目录或卷内文档挤掉就等于没有。 */
+.kb-nav__group--views {
+  padding-bottom: var(--kb-sp-3);
+  border-bottom: 1px solid var(--kb-line-soft);
 }
 
 .kb-nav__group--grow {
@@ -200,21 +290,105 @@
   flex-direction: column;
 }
 
-/* 库目录滚动区。
-   不加这层时，15 个库会把「视图 / 维护 / 卷内文档」一起推到 1100px 之外，
-   左栏只剩一排库名（实测 scrollHeight 1104 > 857）。库列表自己滚，
-   下面三段常驻，用户不必滚动就能换视图。
-   高度上限用 --kb-nav-list-max，窄屏（860px 以下整栏 38vh）也跟着收。 */
+/* ---------- 待处理失败：失败项提到一级位置 ---------- */
+.kb-nav__group--fail {
+  order: -1;
+  gap: 4px;
+  padding: 8px;
+  border-radius: var(--kb-r-md);
+  border: 1px solid color-mix(in srgb, var(--kb-err) 26%, var(--kb-line));
+  background: color-mix(in srgb, var(--kb-err) 5%, var(--kb-card));
+}
+
+.kb-nav__group--fail .kb-nav__title {
+  margin-bottom: 2px;
+  color: var(--kb-err);
+}
+
+.kb-nav__group--fail .kb-nav__title em {
+  background: color-mix(in srgb, var(--kb-err) 12%, transparent);
+  color: var(--kb-err);
+}
+
+.kb-failrow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "name retry" "why why";
+  gap: 2px 6px;
+  padding: 4px 0;
+  border-top: 1px solid color-mix(in srgb, var(--kb-err) 14%, transparent);
+}
+
+.kb-failrow:first-of-type { border-top: 0; }
+
+.kb-failrow__name {
+  grid-area: name;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--kb-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kb-failrow__why {
+  grid-area: why;
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--kb-ink-2);
+  /* 失败原因可能是一整段后端异常；左栏只留两行，点「重试」或去文档视图看全文 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.kb-failrow__retry {
+  grid-area: retry;
+  appearance: none;
+  cursor: pointer;
+  align-self: center;
+  padding: 1px 7px;
+  border: 1px solid color-mix(in srgb, var(--kb-err) 40%, var(--kb-line));
+  border-radius: 999px;
+  background: var(--kb-card);
+  color: var(--kb-err);
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.5;
+  transition: background-color var(--kb-dur) var(--kb-ease);
+}
+
+.kb-failrow__retry:hover { background: color-mix(in srgb, var(--kb-err) 10%, var(--kb-card)); }
+
+.kb-nav__more {
+  appearance: none;
+  cursor: pointer;
+  border: 0;
+  background: none;
+  padding: 2px 0 0;
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--kb-ink-2);
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.kb-nav__more:hover { color: var(--kb-accent); }
+
+  /* 视图段已固定在左栏顶部，库目录只占三成高度自己滚；
+     15 个库也不会把「维护 / 卷内文档」推离首屏。
+     失败段带 order:-1 要贴在视图段之下，所以库目录不能抢在它前面。 */
 .kb-nav__kbs {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-height: 0;
-  /* 最多占左栏一半高度，避免一个库都没有时留出一大片空白 */
-  max-height: max(120px, calc(50vh - 120px));
-  overflow-y: auto;
+  max-height: max(110px, min(260px, 30vh));
   margin: 0 -2px;
   padding: 0 2px;
+  overflow-y: auto;
   overscroll-behavior: contain;
 }
 
@@ -570,6 +744,15 @@
   color: var(--kb-ink-3);
 }
 
+/* 导语里的就地动作：空库 / 有失败时把下一步挂在说明后面，
+   不另起一块按钮行，保持概览读起来还是一段话 */
+.kb-lede__sep {
+  margin: 0 6px;
+  color: var(--kb-line);
+}
+
+.kb-lede__warn { color: var(--kb-err); }
+
 /* 概览下半部：类型分布与枢纽实体并置 */
 .kb-overview-grid {
   display: grid;
@@ -805,6 +988,22 @@
 .kb-search__tips b {
   font-weight: 600;
   color: var(--kb-ink);
+}
+
+/* 空库时检索面板顶部的告知条：检索一定为空，先给去文档的入口 */
+.kb-search__warn {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: var(--kb-sp-3) 0 0;
+  padding: 7px 10px;
+  border-radius: var(--kb-r-sm);
+  border: 1px solid color-mix(in srgb, var(--kb-warn) 28%, var(--kb-line));
+  background: color-mix(in srgb, var(--kb-warn) 7%, var(--kb-card));
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--kb-ink-2);
 }
 
 /* 概览视图里紧跟统计卡的文字块不要贴边 */
@@ -1269,6 +1468,70 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
+  /* 空态卡片相对文件树居中，需要定位上下文 */
+  position: relative;
+}
+
+/* 失败提示条：失败此前只有左栏一个红色计数，进文档视图后完全看不到 */
+.kb-docview__banner {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--kb-sp-3);
+  margin: 0 var(--kb-sp-3) var(--kb-sp-2);
+  padding: 7px 12px;
+  border-radius: var(--kb-r-sm);
+  border: 1px solid color-mix(in srgb, var(--kb-err) 26%, var(--kb-line));
+  background: color-mix(in srgb, var(--kb-err) 6%, var(--kb-card));
+  font-size: 12px;
+  color: var(--kb-ink-2);
+}
+
+.kb-docview__banner b {
+  font-family: var(--kb-mono);
+  color: var(--kb-err);
+}
+
+/* 空文档：居中卡片，把「上传」从工具栏图标提升为主按钮 */
+.kb-docview__blank {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--kb-sp-5);
+  pointer-events: none;
+}
+
+.kb-docview__blank-card {
+  pointer-events: auto;
+  width: min(460px, 100%);
+  padding: var(--kb-sp-6) var(--kb-sp-5);
+  text-align: center;
+  border-radius: var(--kb-r-lg);
+  border: 1px dashed var(--kb-line);
+  background: linear-gradient(var(--kb-card), var(--kb-card)) padding-box;
+}
+
+.kb-docview__blank-t {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--kb-ink);
+}
+
+.kb-docview__blank-d {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: var(--kb-ink-3);
+}
+
+.kb-docview__blank-acts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--kb-sp-2);
+  margin: var(--kb-sp-4) 0;
 }
 
 /* 图谱视图 */
@@ -1341,6 +1604,55 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
+}
+
+/* 空图谱：画布中央给一张可操作的卡片。
+   此前空态只有工具栏上一行小字，画布是一整块白 —— 看不出「下一步做什么」，
+   而「生成图谱」又只是工具栏末尾一个不带文字的方形图标。 */
+.kb-graph__blank {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  padding: var(--kb-sp-4);
+  /* 空态卡片居中；不拦截画布自身的滚轮缩放与拖拽 */
+  pointer-events: none;
+}
+
+.kb-graph__blank-card {
+  pointer-events: auto;
+  width: min(420px, 100%);
+  padding: var(--kb-sp-5);
+  border: 1px solid var(--kb-line);
+  border-radius: var(--kb-r-lg);
+  background: var(--kb-card);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgb(0 0 0 / 6%));
+  text-align: center;
+}
+
+.kb-graph__blank-t {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--kb-ink);
+}
+
+.kb-graph__blank-d {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--kb-ink-3);
+}
+
+.kb-graph__blank-d--warn { margin-top: var(--kb-sp-3); color: var(--kb-warn); }
+
+.kb-graph__blank-acts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--kb-sp-2);
+  margin-top: var(--kb-sp-4);
 }
 
 /* 过滤后无匹配：覆盖在画布中央 */
@@ -1508,6 +1820,37 @@
   flex-direction: column;
   min-height: 0;
   flex: 1;
+}
+
+/* 表格空态卡片（实体 / 关系）。
+   ReTable 默认回落的 ReEmpty 是整幅插图，在满高表格里等于一整张白页，
+   而且不给下一步。这里换成紧凑卡片，和文档 / 图谱空态同一口径。 */
+.kb-tempty {
+  padding: var(--kb-sp-6) var(--kb-sp-4);
+  text-align: center;
+}
+
+.kb-tempty__t {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--kb-ink);
+}
+
+.kb-tempty__d {
+  max-width: 460px;
+  margin: 0 auto;
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: var(--kb-ink-3);
+}
+
+.kb-tempty__acts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--kb-sp-2);
+  margin-top: var(--kb-sp-4);
 }
 
 /* ##########  3.9 右栏问答（KBAskPanel） ##########
@@ -1986,11 +2329,28 @@ html.dark .kb {
 @media (max-width: 860px) {
   .kb-cols { grid-template-columns: 1fr; }
 
+  /* 视图段在窄屏横排，否则 38vh 的左栏只剩两三个视图可见 */
+  .kb-nav__group--views {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding-bottom: 8px;
+  }
+
+  .kb-nav__group--views .kb-nav__kb--view {
+    width: auto;
+    padding: 5px 9px;
+  }
+
+  /* 窄屏视图段横排后，左侧游标（2px 竖条）失去参照，改用底色表示选中 */
+  .kb-nav__group--views .kb-nav__tick { display: none; }
+
   .kb-nav {
     border-right: 0;
     border-bottom: 1px solid var(--kb-line);
     max-height: 38vh;
     padding: 10px;
+    overflow-y: auto;
   }
 
   .kb-main { padding: var(--kb-sp-4) var(--kb-sp-3); }

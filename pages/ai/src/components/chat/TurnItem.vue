@@ -121,12 +121,21 @@
             同一个数字和状态文字被拆到对角，读起来像两件事。
           -->
 
-          <!-- 计划批准卡片（plan_exit 人工确认） -->
+          <!-- 计划批准卡片（plan_exit 人工确认）；已决的不再要求决策 -->
           <PlanApprovalCard
-            v-if="confirmationRequest"
+            v-if="confirmationRequest && !confirmationResolved"
             :request="confirmationRequest"
             @decision="handleConfirmationDecision"
           />
+          <!-- 已决终态：一行说明，避免卡片在批准后仍挂着「批准并执行」按钮 -->
+          <div v-else-if="confirmationResolved" class="plan-approval-resolved"
+            :class="`plan-approval-resolved--${confirmationResolved}`">
+            <el-icon size="14">
+              <CircleCheckFilled v-if="confirmationResolved === 'approved'" />
+              <CircleCloseFilled v-else />
+            </el-icon>
+            <span>{{ confirmationResolved === 'approved' ? t('chat.turn.planApproved') : t('chat.turn.planRejected') }}</span>
+          </div>
 
           <!--
             执行日志（agentscope 全量 trace 控制台）已按用户要求下线：
@@ -261,6 +270,8 @@ import { ElAlert, ElIcon, ElImageViewer, ElButton } from "element-plus";
 import { useI18n } from "vue-i18n";
 import { InsightsTwotone, MenuBookOutlined, CodeOutlined } from "@vicons/material";
 import { Alert16Regular, BrainCircuit20Regular, Wrench24Filled, ChevronDown12Regular, GlobeShield20Regular } from "@vicons/fluent";
+// 计划已决终态图标走 Element Plus，与卡片按钮同源（vicons/fluent 无 CircleCheck20Regular）
+import { CircleCheckFilled, CircleCloseFilled } from "@element-plus/icons-vue";
 import { Loading, Bottom, Top, Box, InfoFilled } from "@element-plus/icons-vue";
 import { FileItem, Avatar } from "../ui";
 import { formatTime } from '../../utils';
@@ -442,6 +453,12 @@ const confirmationRequest = computed<{ replyId: string; items: any[] } | null>((
 });
 
 const handleConfirmationDecision = (payload: { replyId: string; confirmed: boolean; feedback?: string }) => {
+  // 立即回填本地终态：动作条与计划卡片都据此收起，不必等下一次拉取。
+  // 真实终态仍以后端持久化的 status 为准，恢复失败时下次拉取会纠正回来。
+  const req: any = confirmationRequest.value;
+  if (req) {
+    req.status = payload.confirmed ? 'approved' : 'rejected';
+  }
   emit('resumeConfirmation', {
     replyId: payload.replyId,
     confirmed: payload.confirmed,
@@ -473,8 +490,21 @@ const traceKindLabel = (kind: string): string => {
   return map[kind] || kind || "";
 };
 
+/**
+ * 待确认的计划是否已经决定过。
+ *
+ * PlanApprovalCard 只在内部记住「点过按钮」，父级回填的终态（status）它不看，
+ * 于是批准后计划卡片仍然显示「批准并执行」。这里统一在回合层拦截：
+ * 已决（approved/rejected）的不再渲染待办卡片，换成一行终态提示。
+ */
+const confirmationResolved = computed(() => {
+  const st = (confirmationRequest.value as any)?.status;
+  return st === 'approved' || st === 'rejected' ? st : null;
+});
+
 // 文件变更记录
 const { fileChanges } = useFileChanges(turnsCache);
+
 // 「回合级执行摘要（阶段序列）」已随执行过程折叠条一起下线（2026-10-09 用户要求），
 // deriveTurnPhases 不再被回合组件消费。
 const diffDialogVisible = ref(false);
@@ -923,9 +953,28 @@ const handleClick = (event: MouseEvent) => {
   max-width: 100%;
 }
 
+/* 计划已决：一行终态提示，弱于正文、强于空白 */
+.plan-approval-resolved {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-lighter, #fafafa);
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+}
+
+.plan-approval-resolved--approved {
+  color: var(--el-color-success);
+  border-color: color-mix(in srgb, var(--el-color-success) 25%, transparent);
+  background: color-mix(in srgb, var(--el-color-success) 6%, transparent);
+}
+
 /* 模型签名行：✦ 模型名，弱化小字（参考图回合底部样式） */
-.turn-model-signature {
-  display: flex;
+.turn-model-signature {  display: flex;
   align-items: center;
   gap: 5px;
   margin-top: 10px;

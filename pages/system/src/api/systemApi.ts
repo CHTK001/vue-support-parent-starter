@@ -38,6 +38,8 @@ import type {
   SysUserUpdate,
   SysAvatarFrame,
   TenantServiceBindRequest,
+  TenantDatasourceOption,
+  TenantDatasourceView,
   TenantEndpointInfo,
   SysPost,
   CacheModule,
@@ -771,6 +773,26 @@ export function getTenantEndpoint(sysTenantId: string) {
     .get("/v2/tenant/endpoint")
     .query({ sysTenantId })
     .then<ApiResult<TenantEndpointInfo | null>>((r) => r.data);
+}
+
+/**
+ * 租户库来源下拉项。
+ *
+ * <p>由平台代理数据源台账，只含实例级信息（名称/地址/端口），不含口令；
+ * 依赖 sys:tenant:get 权限，租户管理员无需数据源中心权限。</p>
+ */
+export function tenantDatasourceOptions() {
+  return http()
+    .get("/v2/tenant/datasource/options")
+    .then<ApiResult<TenantDatasourceOption[]>>((r) => r.data);
+}
+
+/** 租户库连接信息只读回显（未登记独立库时为 null） */
+export function tenantDatasourceCurrent(sysTenantId: string) {
+  return http()
+    .get("/v2/tenant/datasource/current")
+    .query({ sysTenantId })
+    .then<ApiResult<TenantDatasourceView | null>>((r) => r.data);
 }
 
 /** 租户统计 */

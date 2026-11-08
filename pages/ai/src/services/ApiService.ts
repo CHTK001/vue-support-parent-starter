@@ -232,7 +232,9 @@ class ApiService {
     try {
       return (await this.client.request(endpoint, options)) as T;
     } catch (error: any) {
-      console.error(`API 请求失败：${endpoint}`, error);
+      if (!options?.silent) {
+        console.error(`API 请求失败：${endpoint}`, error);
+      }
       throw normalizeApiError(error);
     }
   }

@@ -56,7 +56,7 @@
          左「库目录 + 文档」/ 中「当前视图」/ 右「问答」常驻，不换页。
          data-kb-ask 仍由「设置 → 显示 → 右侧问答栏宽度」驱动。 -->
     <div v-else class="flex-1 flex flex-col overflow-hidden min-h-0">
-      <!-- 顶栏：命令条（签名元素）+ 状态胶囊 + 动作组 -->
+      <!-- 顶栏：命令条（签名元素）+ 当前库身份 + 状态胶囊 + 动作组 -->
       <div class="kb-bar">
         <button type="button" class="kb-cmd" @click="openCommand">
           <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" style="flex-shrink:0">
@@ -66,6 +66,17 @@
           <span class="kb-cmd__text">搜索文档、实体、问答记录</span>
           <kbd class="kb-cmd__kbd">Ctrl K</kbd>
         </button>
+
+        <!-- 身份区：顶栏之前只有裸图标按钮，读者看不出「现在在哪个库」。
+             这段只在详情分支（列表由 v-else-if 单独渲染），所以不按 viewMode 分支，
+             直接展示当前库；回列表仍在左栏与列表页入口里。 -->
+        <div class="kb-bar__id">
+          <span class="kb-bar__seal">{{ String(currentKB?.name || '知').slice(0, 1) }}</span>
+          <span class="kb-bar__id-text">
+            <b>{{ currentKB?.name || '知识库' }}</b>
+            <i>档案台</i>
+          </span>
+        </div>
 
         <div class="kb-bar__right">
           <span class="kb-chip kb-chip--ok"><b>{{ filesForFilter.length }}</b> 文档</span>
@@ -80,6 +91,7 @@
             <ReSquareButton layout="square" class="kb-btn" :icon="Refresh" :loading="detailRefreshing"
               @click="refreshDetail" />
           </el-tooltip>
+          <!-- 逐条编辑 / 删除在列表页的条目右键区，这里只针对「当前库」 -->
           <el-tooltip content="设置" placement="bottom" :show-after="200">
             <ReSquareButton layout="square" class="kb-btn" type="primary" :icon="Setting"
               :disabled="!canEditCurrent" @click="handleMenuAction('settings')" />
@@ -95,6 +107,25 @@
       <div class="kb-cols" data-ask="on">
         <!-- ============ 左栏：卷宗脊（库目录 + 视图 + 卷内文档） ============ -->
         <aside class="kb-nav">
+          <!-- 视图入口放在库目录之前：库一多（实测 15 个）时，视图段会被挤到
+               首屏以下，每次换视图都要滚动。阅读 5 个 + 维护 2 个两段常驻顶部。 -->
+          <div class="kb-nav__group kb-nav__group--views">
+            <h2 class="kb-nav__title">视图</h2>
+            <button
+              v-for="v in navViewsRead"
+              :key="v.key"
+              type="button"
+              class="kb-nav__kb kb-nav__kb--view"
+              :class="{ 'is-on': activeTab === v.key }"
+              @click="handleMenuSelect(v.key)"
+            >
+              <span class="kb-nav__tick" />
+              <el-icon :size="13"><component :is="v.icon" /></el-icon>
+              <span class="kb-nav__kb-name">{{ v.label }}</span>
+              <span class="kb-nav__kb-n">{{ navCount(v.key) }}</span>
+            </button>
+          </div>
+
           <div class="kb-nav__group">
             <h2 class="kb-nav__title">知识库<em>{{ store.knowledgeBases.length }}</em></h2>
             <!-- 库目录单独滚动：库多时（实测 15 个）不把下面的「视图 / 维护 / 卷内文档」
@@ -129,24 +160,6 @@
             </ReButton>
           </div>
 
-          <!-- 视图入口（7 个平级 Tab → 阅读 5 个 + 维护 2 个两段） -->
-          <div class="kb-nav__group">
-            <h2 class="kb-nav__title">视图</h2>
-            <button
-              v-for="v in navViewsRead"
-              :key="v.key"
-              type="button"
-              class="kb-nav__kb kb-nav__kb--view"
-              :class="{ 'is-on': activeTab === v.key }"
-              @click="handleMenuSelect(v.key)"
-            >
-              <span class="kb-nav__tick" />
-              <el-icon :size="13"><component :is="v.icon" /></el-icon>
-              <span class="kb-nav__kb-name">{{ v.label }}</span>
-              <span class="kb-nav__kb-n">{{ navCount(v.key) }}</span>
-            </button>
-          </div>
-
           <div class="kb-nav__group kb-nav__group--manage">
             <h2 class="kb-nav__title">维护</h2>
             <button
@@ -162,6 +175,28 @@
               <span class="kb-nav__kb-name">{{ v.label }}</span>
               <span class="kb-nav__kb-n">{{ navCount(v.key) }}</span>
             </button>
+          </div>
+
+          <!-- 失败文档：失败只出现在卷内文档列表里等于没提示（那一格只有一个红点）。
+               这里把失败项提到一级位置，原因与端点都给全，原地重试。 -->
+          <div v-if="failedFiles.length > 0" class="kb-nav__group kb-nav__group--fail">
+            <h2 class="kb-nav__title">待处理失败<em>{{ failedFiles.length }}</em></h2>
+            <div v-for="f in failedFiles.slice(0, 4)" :key="f.id" class="kb-failrow">
+              <span class="kb-failrow__name">{{ f.displayName || f.fileName }}</span>
+              <span class="kb-failrow__why">{{ f.errorMessage || '解析失败，原因未返回' }}</span>
+              <button
+                v-if="canEditCurrent"
+                type="button"
+                class="kb-failrow__retry"
+                @click="handleRetryFile(f)"
+              >重试</button>
+            </div>
+            <button
+              v-if="failedFiles.length > 4"
+              type="button"
+              class="kb-nav__more"
+              @click="handleMenuSelect('files')"
+            >另有 {{ failedFiles.length - 4 }} 篇失败 · 去文档视图</button>
           </div>
 
           <!-- 卷内文档：除文档视图外做上下文索引（文档视图里文件树才是全量，避免两处重复） -->
@@ -229,10 +264,37 @@
                   </button>
                 </div>
                 <div class="kb-toolbar__grow" />
-                <KBFileUploader v-if="canEditCurrent" :kb-id="store.activeKnowledgeBaseId!"
+                <KBFileUploader v-if="canEditCurrent" ref="fileUploaderRef" :kb-id="store.activeKnowledgeBaseId!"
                   :current-folder-path="getCurrentFolderPath()" :get-current-files="getCurrentFiles"
                   @uploaded="handleUploadComplete" @show-upload-task="showUploadTaskModal = true"
                   @folder-created="handleFolderCreated" />
+              </div>
+
+              <!-- 空文档：此前文件树中央只有一行「暂无文件」，而上传入口是工具栏末尾
+                   一排 20px 的方形图标，看不出这里是起步点。空态把「上传」变成主按钮。 -->
+              <div v-if="failedFileCount > 0 && fileStatusFilter !== 'failed'" class="kb-docview__banner">
+                <span><b>{{ failedFileCount }}</b> 篇解析失败，原因在左栏「待处理失败」里，可原地重试。</span>
+                <ReButton type="primary" link @click="fileStatusFilter = 'failed'">只看失败</ReButton>
+              </div>
+
+              <div v-if="filesForFilter.length === 0 && fileStatusFilter === 'all'" class="kb-docview__blank">
+                <div class="kb-docview__blank-card">
+                  <h3 class="kb-docview__blank-t">这个卷宗还没有文档</h3>
+                  <p class="kb-docview__blank-d">
+                    支持 PDF / Word / Markdown / 纯文本 / 网页等格式。上传后先切分再向量化，
+                    完成即可在「检索」里命中、在右栏问答里被引用。
+                  </p>
+                  <div class="kb-docview__blank-acts">
+                    <ReButton v-if="canEditCurrent" type="primary" :icon="Plus"
+                      @click="fileUploaderRef?.triggerFileInput?.()">上传文件</ReButton>
+                    <ReButton v-if="canEditCurrent" @click="fileUploaderRef?.triggerFolderInput?.()">上传整个文件夹</ReButton>
+                    <ReButton v-else disabled>只读：无上传权限</ReButton>
+                  </div>
+                  <p class="kb-docview__blank-d">
+                    也可以从「<ReButton type="primary" link @click="showTplGallery = true">模板集</ReButton>」一键建库，
+                    模板会带回文档、实体与关系。
+                  </p>
+                </div>
               </div>
 
               <div v-if="!canEditCurrent" class="kb-readonly" style="margin: 0 12px 8px">
@@ -242,6 +304,7 @@
               <div class="kb-docview__tree">
                 <KBFileTree ref="fileTreeRef" :kb-id="store.activeKnowledgeBaseId!" :readonly="!canEditCurrent"
                   :status-filter="fileStatusFilter"
+                  :suppress-empty="filesForFilter.length === 0 && fileStatusFilter === 'all'"
                   @view="handleViewFile" @retry="handleRetryFile" @delete="handleDeleteFile"
                   @chunks="handleViewChunks"
                   @folder-change="handleFolderChange" @files-loaded="handleFilesLoaded" />
@@ -269,7 +332,22 @@
               </div>
             </header>
 
-            <p class="kb-lede">{{ currentKB?.description || '这个卷宗还没有填写描述。' }}</p>
+            <p class="kb-lede">
+              {{ currentKB?.description || '这个卷宗还没有填写描述。' }}
+              <!-- 空库的概览此前只有一行行「—」与「暂无」，看不出下一步做什么。
+                   这里在导语后面直接给动作，把首屏变成起点而不是报告。 -->
+              <template v-if="filesForFilter.length === 0">
+                <span class="kb-lede__sep">·</span>
+                <ReButton type="primary" link @click="handleMenuSelect('files')">上传第一批文档</ReButton>
+                <span class="kb-lede__sep">/</span>
+                <ReButton type="primary" link @click="showTplGallery = true">用模板建库</ReButton>
+              </template>
+              <template v-else-if="failedFileCount > 0">
+                <span class="kb-lede__sep">·</span>
+                <span class="kb-lede__warn">{{ failedFileCount }} 篇解析失败，</span>
+                <ReButton type="primary" link @click="handleMenuSelect('files')">去处理</ReButton>
+              </template>
+            </p>
 
             <!-- 签名：四道工序横排，处理中的工序底部走扫描线 -->
             <ol class="kb-stages">
@@ -330,7 +408,13 @@
                 </ul>
                 <!-- 空态用紧凑行而不是 ReEmpty：概览下半部是两个并排窄栏，
                      插图占满一栏会把这半屏撑成一整张「空页面」，读数反而被挤走 -->
-                <p v-else class="kb-empty">暂无实体，上传文档或生成图谱后可见</p>
+                <p v-else class="kb-empty">
+                  {{ filesForFilter.length === 0 ? '还没有文档，先上传一批；实体由文档抽取而来。' : '还没有抽取到实体。' }}
+                  <ReButton v-if="filesForFilter.length === 0" type="primary" link @click="handleMenuSelect('files')">去文档</ReButton>
+                  <template v-else-if="ragReady">
+                    <ReButton type="primary" link :loading="graphGenerating" @click="handleGenerateGraph">生成图谱</ReButton>
+                  </template>
+                </p>
               </section>
 
               <!-- 关联最多的实体：编号表，按关系数排序 -->
@@ -352,7 +436,11 @@
                     <span class="kb-top__deg">{{ e.degree }}<i>关系</i></span>
                   </li>
                 </ul>
-                <p v-else class="kb-empty">暂无实体</p>
+                <p v-else class="kb-empty">
+                  {{ filesForFilter.length === 0 ? '还没有文档与实体。' : '还没有可排名的实体。' }}
+                  <ReButton v-if="filesForFilter.length === 0" type="primary" link @click="handleMenuSelect('files')">去文档</ReButton>
+                  <ReButton v-else-if="ragReady" type="primary" link :loading="graphGenerating" @click="handleGenerateGraph">生成图谱</ReButton>
+                </p>
               </section>
             </div>
           </template>
@@ -373,7 +461,8 @@
 
             <div class="kb-view">
               <KBSearchPanel :knowledge-bases="store.knowledgeBases" :default-kb-id="store.activeKnowledgeBaseId"
-                @result-click="handleSearchResultClick" />
+                :doc-count="filesForFilter.length"
+                @result-click="handleSearchResultClick" @go-files="handleMenuSelect('files')" />
             </div>
           </template>
 
@@ -467,6 +556,8 @@
 
             <div class="kb-view kb-graphview">
               <div class="kb-toolbar">
+                <!-- 说明文字压缩到一行：整段说明此前占了中栏三分之一高度，
+                     而它只在第一次检索前才有用 -->
                 <span class="kb-docview__count">
                   <template v-if="isGraphFiltered">
                     实体 {{ graphNodes.length }} / {{ graphView.entityCount }} ·
@@ -540,11 +631,33 @@
                     :node-size="36" empty-text="该知识库还没有可展示的实体关系"
                     @ready="handleGraphReady" @node-click="handleGraphNodeClick" />
 
-                  <div v-if="!graphLoading && graphView.nodes.length > 0 && graphNodes.length === 0"
-                    class="kb-graph__filtered">
-                    <el-icon :size="26"><Search /></el-icon>
-                    <span>当前过滤条件下没有匹配的实体</span>
-                    <ReButton type="primary" link @click="clearGraphFilters">清空过滤条件</ReButton>
+                  <div v-if="!graphLoading && graphView.nodes.length === 0" class="kb-graph__blank">
+                    <div class="kb-graph__blank-card">
+                      <h3 class="kb-graph__blank-t">
+                        {{ graphView.placeholder ? '这张图还是空的' : '当前范围没有关系' }}
+                      </h3>
+                      <p class="kb-graph__blank-d">
+                        <template v-if="graphView.placeholder">
+                          图谱要由 AI 从已索引的 {{ filesForFilter.length }} 篇文档里抽取，
+                          抽完才能关系查询、下钻实体。抽取是异步任务，可以离开这一页。
+                        </template>
+                        <template v-else>
+                          过滤条件下没有可画的关系，清空过滤或按最新原文重新抽一次。
+                        </template>
+                      </p>
+                      <div class="kb-graph__blank-acts">
+                        <ReButton v-if="ragReady" type="primary" :loading="graphGenerating" @click="handleGenerateGraph">
+                          {{ graphView.placeholder ? '生成图谱' : '重新生成' }}
+                        </ReButton>
+                        <ReButton @click="handleMenuSelect('files')">去文档</ReButton>
+                        <ReButton v-if="!graphView.placeholder && isGraphFiltered" @click="clearGraphFilters">
+                          清空过滤条件
+                        </ReButton>
+                      </div>
+                      <p v-if="!ragReady" class="kb-graph__blank-d kb-graph__blank-d--warn">
+                        当前库还没开启知识库检索能力（RAG），抽取不可用。
+                      </p>
+                    </div>
                   </div>
 
                   <div v-if="graphLegend.length > 0" class="kb-graph__legend">
@@ -644,6 +757,31 @@
                     <ReSquareButton layout="square" class="kb-btn" size="small" type="primary" :icon="Edit" tip="编辑" @click="openEntityForm(row)" />
                     <ReSquareButton layout="square" class="kb-btn" size="small" type="danger" :icon="Delete" tip="删除" @click="handleDeleteEntity(row)" />
                   </template>
+                  <!-- 空态：ReEmpty 的插图在表格里会撑满整块，看不出下一步。
+                       换成紧凑卡片，直接给「新增实体 / 生成图谱 / 去文档」。 -->
+                  <template #empty>
+                    <div class="kb-tempty">
+                      <h3 class="kb-tempty__t">
+                        {{ graphEntityKeyword ? '没有匹配的实体' : '这个卷宗还没有实体' }}
+                      </h3>
+                      <p class="kb-tempty__d">
+                        <template v-if="graphEntityKeyword">
+                          按名称过滤后没有命中，换个关键词或清空过滤。
+                        </template>
+                        <template v-else>
+                          实体由 AI 从已索引的文档里抽取，也可以手工补录。抽完才能在知识图谱里连线、在右栏问答里被引用。
+                        </template>
+                      </p>
+                      <div class="kb-tempty__acts">
+                        <ReButton v-if="graphEntityKeyword" @click="graphEntityKeyword = ''">清空过滤</ReButton>
+                        <template v-else>
+                          <ReButton type="primary" @click="openEntityForm()">新增实体</ReButton>
+                          <ReButton v-if="ragReady" :loading="graphGenerating" @click="handleGenerateGraph">生成图谱</ReButton>
+                          <ReButton @click="handleMenuSelect('files')">去文档</ReButton>
+                        </template>
+                      </div>
+                    </div>
+                  </template>
                 </ReTable>
                 <div class="pagination-wrapper">
                   <el-pagination
@@ -721,6 +859,29 @@
                   </template>
                   <template #col-actions="{ row }">
                     <ReSquareButton layout="square" class="kb-btn" size="small" type="danger" :icon="Delete" tip="删除" @click="handleDeleteRelation(row)" />
+                  </template>
+                  <template #empty>
+                    <div class="kb-tempty">
+                      <h3 class="kb-tempty__t">
+                        {{ graphRelationKeyword ? '没有匹配的关系' : '这个卷宗还没有关系' }}
+                      </h3>
+                      <p class="kb-tempty__d">
+                        <template v-if="graphRelationKeyword">
+                          按实体名或关系类型过滤后没有命中，换个关键词或清空过滤。
+                        </template>
+                        <template v-else>
+                          关系连接两个已有实体。可以由 AI 从文档里抽取，也可以手工连一条。
+                        </template>
+                      </p>
+                      <div class="kb-tempty__acts">
+                        <ReButton v-if="graphRelationKeyword" @click="graphRelationKeyword = ''">清空过滤</ReButton>
+                        <template v-else>
+                          <ReButton type="primary" :disabled="graphNodes.length === 0" @click="openRelationForm()">新增关系</ReButton>
+                          <ReButton v-if="graphNodes.length === 0" @click="openEntityForm()">先建实体</ReButton>
+                          <ReButton v-if="ragReady" :loading="graphGenerating" @click="handleGenerateGraph">生成图谱</ReButton>
+                        </template>
+                      </div>
+                    </div>
                   </template>
                 </ReTable>
                 <div class="pagination-wrapper">
@@ -2870,6 +3031,9 @@ let cachedCurrentFolderPath: string | null = null
 // 无限滚动相关状态
 const fileListContainer = ref<any>(null) // 文件列表容器引用（ScrollContainer 组件）
 const fileTreeRef = ref<any>(null) // 文件树组件引用
+// 上传器引用：空态里的「上传文件 / 文件夹」主按钮要复用同一套选择与上传逻辑，
+// 不另起一份实现（否则两条路径的分片、轮询、任务记录会分叉）
+const fileUploaderRef = ref<any>(null)
 const scrollThreshold = 50 // 滚动触发阈值(像素)
 
 // ========== 对话框表单（创建/编辑共用） ==========
@@ -3704,6 +3868,14 @@ const failedFileCount = computed(() => filesForFilter.value.filter((f) => f.proc
 
 /** 已成功索引的文档数 */
 const indexedFileCount = computed(() => filesForFilter.value.filter((f) => f.processingStatus === 'completed').length)
+
+/**
+ * 解析失败的文档（左栏「待处理失败」段的数据源）。
+ *
+ * <p>失败项此前只在卷内文档行右侧显示一个红点，原因只能到文档视图右键看分块才知道。
+ * 这里把失败项提出来，供左栏在原地展示原因和重试入口。</p>
+ */
+const failedFiles = computed(() => filesForFilter.value.filter((f) => f.processingStatus === 'failed'))
 
 /** 台账里所有轮次的引用总数 */
 const askCiteTotal = computed(() => askTurns.value.reduce((a, t) => a + (t.citeCount || 0), 0))

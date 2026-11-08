@@ -213,13 +213,16 @@ const tab = ref<"commits" | "branches" | "changes">("commits");
 const progressVisible = ref(false);
 const progressSnapshot = ref<ProgressSnapshot | null>(null);
 const progressTargetBranch = ref("");
-/** 「拉取并发布」跟踪的任务（有值时进度来自任务帧，而不是本地推算） */
-const deployTask = ref<ProcessTask | null>(null);
 let stopDeployWatch: (() => void) | null = null;
+
+/** 进度弹窗当前是哪种操作：拉取（含克隆）还是拉取并发布 */
+const progressMode = ref<"pull" | "deploy">("pull");
+/** 本次拉取开始时本地是否还没有仓库（决定步骤清单里要不要「克隆仓库」这一步） */
+const progressFreshClone = ref(false);
 
 const progressTitle = computed(() => {
   const name = (active.value ?? props.project)?.projectName ?? "";
-  if (deployTask.value) {
+  if (progressMode.value === "deploy") {
     return `正在发布 ${name}`;
   }
   return progressTargetBranch.value
@@ -227,19 +230,50 @@ const progressTitle = computed(() => {
     : `正在拉取 ${name}`;
 });
 
+/**
+ * 把后端任务帧里的步骤名归到「四段式总览」的哪一段。
+ *
+ * <p>后端编排是动态的（停服务/备份/投放/日志目录/重启……按项目配置增减），
+ * 这里不逐条复刻，只回答「现在整体走到第几段」，否则步骤名对不上就一个都不亮。</p>
+ *
+ * <p>第一段刻意合成「拉取并构建」：后端就是一整步 {@code 拉取源码并构建}，
+ * 拆成两步会出现「代码还没拉完却已经点亮构建」或「构建失败却标在拉取上」的假进度。</p>
+ *
+ * @param step 后端当前步骤名
+ * @returns 0~3 的段号；无法判断时 -1
+ */
+function phaseIndex(step: string): number {
+  const s = step || "";
+  if (/拉取|克隆|构建|源码/.test(s)) {
+    return 0;
+  }
+  if (/停止|备份/.test(s)) {
+    return 1;
+  }
+  if (/投放|上传|解压|复制|部署|安装|日志|目录/.test(s)) {
+    return 2;
+  }
+  if (/重启|启动|健康|回滚|完成|PID/i.test(s)) {
+    return 3;
+  }
+  return -1;
+}
+
 /** 步骤定义：与后端 gitPull 的实际动作一一对应（克隆时多一步） */
 const progressSteps = computed<ProgressStep[]>(() => {
-  if (deployTask.value) {
-    // 发布是后端编排的多步任务，步骤名由任务帧给出，这里只给「总览」
+  if (progressMode.value === "deploy") {
+    // 发布是后端编排的多步任务，步骤名由任务帧给出，这里只给「四段总览」
     return [
-      { key: "pull", title: "拉取代码", description: "同步远端提交到本地工作区" },
-      { key: "build", title: "Maven 构建", description: "按项目配置的 goals 打包" },
-      { key: "upload", title: "上传产物", description: "把构建产物投放到目标主机" },
-      { key: "restart", title: "备份并重启", description: "备份当前版本、投放、健康检查" },
+      { key: "build", title: "拉取并构建", description: "同步远端提交，按项目配置的 goals 打包" },
+      { key: "stop", title: "停止并备份", description: "停掉旧进程，备份当前版本" },
+      { key: "upload", title: "投放产物", description: "把构建产物投放到目标目录" },
+      { key: "restart", title: "重启并健康检查", description: "启动服务，健康检查失败可回滚" },
     ];
   }
   const steps: ProgressStep[] = [];
-  if (repo.value && repo.value.cloned === false) {
+  // 用「开始拉取时是否已克隆」而不是当前 repo 状态：中途 load() 会把 cloned 刷新成 true，
+  // 步骤清单若跟着变，会在跑完那一刻凭空少掉「克隆仓库」一步（4 步变 3 步）
+  if (progressFreshClone.value) {
     steps.push({ key: "clone", title: "克隆仓库", description: "首次拉取，把整个仓库下载到本地工作区" });
   }
   steps.push({ key: "fetch", title: "同步远端", description: "读取远端分支与对象" });
@@ -359,9 +393,10 @@ function reset() {
   active.value = null;
   progressVisible.value = false;
   progressSnapshot.value = null;
+  progressMode.value = "pull";
+  progressFreshClone.value = false;
   stopDeployWatch?.();
   stopDeployWatch = null;
-  deployTask.value = null;
   deploying.value = false;
 }
 
@@ -376,22 +411,26 @@ async function pull(branch?: string) {
     return;
   }
   pulling.value = true;
+  progressMode.value = "pull";
   progressTargetBranch.value = branch ?? "";
+  progressFreshClone.value = repo.value?.cloned === false;
   progressVisible.value = true;
-  const willClone = repo.value?.cloned === false;
   const steps = progressSteps.value.map((s) => s.key);
-  setProgress(willClone ? [steps[0]] : [steps[0]], "RUNNING", 10);
+  // 请求刚发出：只有第一步在跑（克隆或同步远端）
+  setProgress([steps[0]], "RUNNING", 10);
 
   try {
     // 后端是一个同步接口：这里只能按「请求已发出 / 请求返回」两个真实节点推进，
     // 不伪造中间百分比（伪造的进度条比没有更糟）
-    setProgress(willClone ? ["clone", "fetch"] : ["fetch"], "RUNNING", 45);
+    setProgress(progressFreshClone.value ? ["clone", "fetch"] : ["fetch"], "RUNNING", 45);
+    // 先刷新仓库状态，再宣告完成：否则弹窗已经写「完成」而面板还是旧数据
+    // （「未克隆」变「已克隆」、分支/提交清单都要重新读一次）
     const result = await pullGitRepository(project.id, branch);
+    await load();
     setProgress(steps, "SUCCESS", 100, result.updated ? "已更新到最新提交" : "已是最新，无需更新", true);
     message.success(
       result.updated ? `已更新到 ${String(result.commit ?? "").slice(0, 8)}` : "已是最新，无需更新",
     );
-    await load();
   } catch (e: any) {
     setProgress(steps, "FAILED", 100, errorText(e, "拉取失败"), true);
     message.error(`拉取失败：${errorText(e, "未知原因")}`);
@@ -412,6 +451,7 @@ async function deploy() {
     return;
   }
   deploying.value = true;
+  progressMode.value = "deploy";
   progressTargetBranch.value = "";
   progressVisible.value = true;
   progressSnapshot.value = {
@@ -419,7 +459,7 @@ async function deploy() {
     status: "RUNNING",
     percentage: 0,
     currentTitle: "正在提交发布任务",
-    currentDescription: "拉取代码 → Maven 构建 → 上传 → 备份重启",
+    currentDescription: "拉取并构建 → 停止并备份 → 投放产物 → 重启并健康检查",
     steps: progressSteps.value,
     details: [],
     finished: false,
@@ -431,7 +471,6 @@ async function deploy() {
       throw new Error("项目有操作正在进行，请稍后再试");
     }
     const task = trackTask(taskId, project.projectName, "deploy");
-    deployTask.value = task;
     // 任务状态是 reactive 的：watch 一帧一帧映射到弹窗
     stopDeployWatch = watch(
       () => [task.phase, task.currentStep, task.progress, task.finished, task.success, task.message, task.logs.length],
@@ -457,22 +496,18 @@ async function deploy() {
  * @param task 任务（reactive）
  */
 function applyDeployTask(task: ProcessTask) {
-  const steps: ProgressStep[] = progressSteps.value.map((step) => {
-    const done = task.finished && task.success;
-    return {
-      ...step,
-      status: done ? "SUCCESS" : task.finished && !task.success ? "WAIT" : "WAIT",
-      statusLabel: done ? "已完成" : "待执行",
-    };
-  });
-  // 当前步骤名来自后端（「拉取代码」「Maven 构建」…），按包含关系点亮对应步骤
-  const current = task.currentStep || "";
-  const hit = steps.findIndex((s) => current && (current.includes(s.title) || s.title.includes(current)));
+  const steps: ProgressStep[] = progressSteps.value.map((step) => ({
+    ...step,
+    status: "WAIT",
+    statusLabel: "待执行",
+  }));
+  // 当前步骤名来自后端（「拉取源码并构建」「投放」「重启」…），归到总览的某一段
+  const hit = phaseIndex(task.currentStep || "");
   steps.forEach((s, i) => {
     if (hit >= 0 && i < hit) {
       s.status = "SUCCESS";
       s.statusLabel = "已完成";
-    } else if (hit >= 0 && i === hit) {
+    } else if (i === hit) {
       s.status = task.finished ? (task.success ? "SUCCESS" : "ERROR") : "RUNNING";
       s.statusLabel = task.finished ? (task.success ? "已完成" : "失败") : "进行中";
       if (task.finished && !task.success) {
@@ -490,7 +525,7 @@ function applyDeployTask(task: ProcessTask) {
     taskId: task.taskId,
     status: task.finished ? (task.success ? "SUCCESS" : "FAILED") : "RUNNING",
     percentage: task.progress,
-    currentKey: steps[Math.max(0, hit)]?.key,
+    currentKey: hit >= 0 ? steps[hit]?.key : undefined,
     currentTitle: task.currentStep || "正在发布",
     currentDescription: task.finished ? task.message : task.currentStep,
     message: task.finished ? task.message : "",
@@ -503,7 +538,6 @@ function applyDeployTask(task: ProcessTask) {
     deploying.value = false;
     stopDeployWatch?.();
     stopDeployWatch = null;
-    deployTask.value = null;
     if (task.success) {
       message.success("发布完成");
       void load();

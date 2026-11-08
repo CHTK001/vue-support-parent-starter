@@ -52,7 +52,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="p in providers" :key="String(p.id)">
+          <tr v-for="p in providers" :key="String(p.id)" :class="{ 'is-focus': !!resolvedFocus && String(p.id) === resolvedFocus }">
             <td class="is-name" :title="String(p.name ?? '')">
               {{ p.name || p.id }}
               <span v-if="isPluginManaged(p)" class="mg-up__tag is-plugin" title="该上游由插件接管，登录与签到走插件">
@@ -117,49 +117,108 @@
       :close-on-click-modal="false"
     >
       <el-form label-width="110px" class="mg-up__form">
+        <!-- 两条接入路径分开：预设（magpie 补地址）不该让人面对一堆地址框 -->
+        <div class="mg-up__mode">
+          <span class="mg-up__mode-name">接入方式</span>
+          <div class="mg-up__seg">
+            <button type="button" :aria-pressed="presetMode" :class="{ 'is-on': presetMode }" @click="usePresetMode()">
+              用 magpie 预设
+            </button>
+            <button type="button" :aria-pressed="!presetMode" :class="{ 'is-on': !presetMode }" @click="useCustomMode()">
+              自定义地址
+            </button>
+          </div>
+        </div>
+        <p class="mg-up__modehint">
+          {{ presetMode
+            ? '选一个预设：地址与模型目录由网关补全，通常只需要填 API Key。'
+            : '没有对应预设时用这个：上游 ID 与 Chat 地址要自己填。' }}
+        </p>
+
+        <el-form-item v-if="presetMode" label="预设" required>
+          <el-select
+            v-model="form.preset"
+            class="mg-up__select-wide"
+            filterable
+            clearable
+            placeholder="搜索厂商或预设 id，如 opencode / deepseek / kimi"
+            @change="onPresetChange"
+          >
+            <el-option
+              v-for="p in presetOptions"
+              :key="p.id"
+              :value="p.id"
+              :label="p.name + ' · ' + p.id"
+            >
+              <span class="mg-up__opt-name">{{ p.name }}</span>
+              <span class="mg-up__opt-hint">{{ p.host || p.kind }}</span>
+            </el-option>
+          </el-select>
+          <p v-if="pickedPreset" class="mg-up__presethint">
+            地址与模型目录由预设补全。
+            <a v-if="pickedPreset.keys" :href="pickedPreset.keys" target="_blank" rel="noopener noreferrer">
+              去 {{ pickedPreset.host || pickedPreset.name }} 拿 Key ↗
+            </a>
+          </p>
+        </el-form-item>
+
         <div class="mg-up__grid">
-          <el-form-item label="ID" required>
-            <el-input v-model="form.id" placeholder="如 codex / claude" maxlength="64" :disabled="editing" />
+          <el-form-item label="ID" :required="!presetMode">
+            <el-input
+              v-model="form.id"
+              placeholder="如 codex / claude"
+              maxlength="64"
+              :disabled="editing"
+            />
           </el-form-item>
           <el-form-item label="显示名">
             <el-input v-model="form.name" placeholder="如 Codex 订阅" maxlength="128" />
           </el-form-item>
         </div>
-        <el-form-item label="预设">
-          <el-input v-model="form.preset" placeholder="可选：magpie 内置 preset 标识" maxlength="64" />
-        </el-form-item>
         <el-form-item label="API Key">
           <el-input
             v-model="form.key"
             type="password"
             show-password
             spellcheck="false"
-            :placeholder="editing ? '留空表示保留原 key' : '上游自己的 API key'"
+            :placeholder="editing ? '留空表示保留原 key' : '粘贴上游的 API Key'"
           />
-          <span class="mg-up__formhint">只写不改：读接口只回脱敏值，留空即保留原 key。</span>
+          <span class="mg-up__formhint">
+            {{ editing
+              ? '只写不改：读接口只回脱敏值，留空即保留原 key。'
+              : '多数预设必填；个别免费预设可留空，保存报 needs an API key 时再补。' }}
+          </span>
         </el-form-item>
-        <div class="mg-up__grid">
-          <el-form-item label="Chat 地址">
-            <el-input v-model="form.chat" placeholder="https://…/v1" maxlength="512" />
+
+        <button v-if="presetMode" type="button" class="mg-up__more" @click="advancedOpen = !advancedOpen">
+          <span>{{ advancedOpen ? '收起高级' : '高级：地址 / 模型覆盖（一般不用填）' }}</span>
+          <span aria-hidden="true">{{ advancedOpen ? '▴' : '▾' }}</span>
+        </button>
+
+        <template v-if="!presetMode || advancedOpen">
+          <div class="mg-up__grid">
+            <el-form-item label="Chat 地址">
+              <el-input v-model="form.chat" placeholder="https://…/v1" maxlength="512" />
+            </el-form-item>
+            <el-form-item label="Responses">
+              <el-input v-model="form.responses" placeholder="可留空" maxlength="512" />
+            </el-form-item>
+            <el-form-item label="Anthropic">
+              <el-input v-model="form.anthropic" placeholder="可留空" maxlength="512" />
+            </el-form-item>
+            <el-form-item label="Gemini">
+              <el-input v-model="form.gemini" placeholder="可留空" maxlength="512" />
+            </el-form-item>
+          </div>
+          <el-form-item label="模型">
+            <el-input
+              v-model="form.modelsText"
+              type="textarea"
+              :rows="4"
+              placeholder="一行一个模型 id，也可用逗号分隔；留空表示使用上游 / 预设的目录"
+            />
           </el-form-item>
-          <el-form-item label="Responses">
-            <el-input v-model="form.responses" placeholder="可留空" maxlength="512" />
-          </el-form-item>
-          <el-form-item label="Anthropic">
-            <el-input v-model="form.anthropic" placeholder="可留空" maxlength="512" />
-          </el-form-item>
-          <el-form-item label="Gemini">
-            <el-input v-model="form.gemini" placeholder="可留空" maxlength="512" />
-          </el-form-item>
-        </div>
-        <el-form-item label="模型">
-          <el-input
-            v-model="form.modelsText"
-            type="textarea"
-            :rows="4"
-            placeholder="一行一个模型 id，也可用逗号分隔；留空表示使用上游 / 预设的目录"
-          />
-        </el-form-item>
+        </template>
       </el-form>
 
       <template #footer>
@@ -257,10 +316,11 @@
  *
  * <p>凭据口径：列表只回脱敏 key；编辑留空表示保留原值（magpie 的 save 语义）。</p>
  */
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ReButton from '@repo/ui/re-button'
 import ReDialog from '@repo/ui/re-dialog'
+import { MAGPIE_PRESETS, magpiePresetOf, type MagpiePreset } from '../magpiePresets'
 import {
   channelApi,
   type ChannelConnectionSummary,
@@ -276,6 +336,14 @@ const props = defineProps<{
   connections: ChannelConnectionSummary[]
   /** 是否显示「登录」入口（后端 supportsSignin） */
   signinEnabled?: boolean
+  /** 从「Magpie 托管」分组点进来时要高亮的 provider id */
+  focus?: string
+  /** focus 不在网关里时的备选 provider id（插件 / 预设两种装法） */
+  focusAlt?: string[]
+  /** 备选也没有时，「新增上游」预填的 magpie preset id（只预填，不自动保存） */
+  preset?: string
+  /** 预填「新增上游」时用的显示名 */
+  presetLabel?: string
 }>()
 
 const emit = defineEmits<{
@@ -337,6 +405,13 @@ const editing = ref(false)
 const saving = ref(false)
 const originalId = ref('')
 
+/** 预设模式：地址与模型目录由网关补；自定义模式：全部手填 */
+const presetMode = ref(true)
+/** 预设模式下「高级」是否展开（地址 / 模型覆盖） */
+const advancedOpen = ref(false)
+/** 编辑时原有的预设：即使切到「自定义地址」也要保留，别把上游的预设悄悄抹掉 */
+const originalPreset = ref('')
+
 const form = reactive({
   id: '',
   name: '',
@@ -347,6 +422,16 @@ const form = reactive({
   anthropic: '',
   gemini: '',
   modelsText: '',
+})
+
+/** 当前选中的预设；编辑更新版 magpie 建的上游时可能不在内置目录里 */
+const pickedPreset = computed<MagpiePreset | undefined>(() => magpiePresetOf(form.preset.trim()))
+
+/** 下拉选项：内置目录 + 当前值（保证老数据回显时不会变成空白） */
+const presetOptions = computed<MagpiePreset[]>(() => {
+  const cur = form.preset.trim()
+  if (!cur || MAGPIE_PRESETS.some((p) => p.id === cur)) return MAGPIE_PRESETS
+  return [{ id: cur, name: `${cur}（不在内置目录）`, kind: '', host: '', keys: '' }, ...MAGPIE_PRESETS]
 })
 
 const selectedConnection = computed(
@@ -376,6 +461,54 @@ watch(connectionId, (id, prev) => {
   if (id && id !== prev) void load()
 })
 
+/**
+ * 从「Magpie 托管」分组点进来时，滚动到对应上游并高亮。
+ *
+ * <p>必须等 providers 渲染完再定位（{@code flush: 'post'}），否则首次进入时
+ * 目标行还不存在，滚动会落空。</p>
+ *
+ * <p>三条落点，按优先级：</p>
+ * <ol>
+ *   <li>{@code focus} 就是这个网关里的 provider → 高亮并滚到中间；</li>
+ *   <li>{@code focusAlt} 里有（插件装法与预设装法不同 id，如 cline → clinepass）；</li>
+ *   <li>一个都没有、但给了 {@code preset}（opencode / kilo / gemini 这类）→
+ *       打开「新增上游」并按预设预填。<b>只预填不保存</b>：点一下左栏不该写网关。</li>
+ * </ol>
+ */
+const resolvedFocus = ref('')
+
+/** 已经为哪个 focus 自动弹过预填框：同一次跳转只弹一次，取消后刷新不重弹 */
+let presetPromptedFor = ''
+
+watch(
+  [() => props.focus, () => props.focusAlt, providers, loading],
+  () => {
+    const wanted = props.focus
+    if (!wanted) {
+      resolvedFocus.value = ''
+      presetPromptedFor = ''
+      return
+    }
+    if (loading.value) return
+    const ids = [wanted, ...(props.focusAlt ?? [])]
+    const hit = ids.find((id) => providers.value.some((p) => String(p.id) === id)) ?? ''
+    resolvedFocus.value = hit
+    if (hit) {
+      void nextTick(() => {
+        document
+          .querySelector('.mg-up__table tbody tr.is-focus')
+          ?.scrollIntoView({ block: 'center' })
+      })
+      return
+    }
+    if (props.preset && presetPromptedFor !== wanted) {
+      presetPromptedFor = wanted
+      openEditor(null, props.preset)
+    }
+  },
+  { flush: 'post' },
+)
+
 /** 读取上游清单 */
 async function load(): Promise<void> {
   if (!connectionId.value) {
@@ -401,8 +534,8 @@ async function load(): Promise<void> {
   }
 }
 
-/** 打开新增 / 编辑弹窗 */
-function openEditor(provider: MagpieProvider | null): void {
+/** 打开新增 / 编辑弹窗；新增时可用预设预填（只预填，不保存） */
+function openEditor(provider: MagpieProvider | null, preset = ''): void {
   editing.value = !!provider
   originalId.value = provider ? String(provider.id ?? '') : ''
   form.id = originalId.value
@@ -414,7 +547,57 @@ function openEditor(provider: MagpieProvider | null): void {
   form.anthropic = String(provider?.anthropic ?? '')
   form.gemini = String(provider?.gemini ?? '')
   form.modelsText = modelIdsOf(provider?.models).join('\n')
+  originalPreset.value = provider?.preset ? String(provider.preset) : ''
+  if (!provider && preset) {
+    // 预设自带地址与模型目录，这里只落 id / 显示名 / preset，地址留空交给 magpie 补
+    form.id = preset
+    form.name = props.presetLabel || preset
+    form.preset = preset
+    originalPreset.value = preset
+  }
+  // 有预设就走「预设」路径；没有预设（纯自定义上游）直接摊开地址，别让用户再点一次
+  presetMode.value = !!form.preset.trim()
+  // 已经填了地址/模型的老数据，展开高级让人看得见，避免「编辑时字段消失」
+  advancedOpen.value = presetMode.value && hasAdvancedValues()
   dialogVisible.value = true
+}
+
+/** 表单里是否已经有地址或模型覆盖（决定高级面板要不要默认展开） */
+function hasAdvancedValues(): boolean {
+  return (
+    !!form.chat.trim() ||
+    !!form.responses.trim() ||
+    !!form.anthropic.trim() ||
+    !!form.gemini.trim() ||
+    !!form.modelsText.trim()
+  )
+}
+
+/** 切到「用预设」：清掉上一模式留下的必填提示，但不动已填的地址 */
+function usePresetMode(): void {
+  presetMode.value = true
+}
+
+/** 切到「自定义地址」：地址是必填，直接展开并聚焦 */
+function useCustomMode(): void {
+  presetMode.value = false
+  advancedOpen.value = false
+}
+
+/** 选中预设：ID 与显示名跟着走，用户仍可改；地址交给网关补 */
+function onPresetChange(id: string): void {
+  const picked = magpiePresetOf(String(id ?? '').trim())
+  if (!picked) return
+  // 只在「ID 还是上一个预设的默认值」时才改写，别覆盖用户手动起的名字
+  const prev = originalPreset.value ? magpiePresetOf(originalPreset.value) : undefined
+  const idIsDefault = !form.id.trim() || form.id.trim() === prev?.id || form.id.trim() === originalPreset.value
+  if (idIsDefault) form.id = picked.id
+  if (!form.name.trim() || form.name.trim() === prev?.name || form.name.trim() === originalPreset.value) {
+    form.name = picked.name
+  }
+  originalPreset.value = picked.id
+  // 预设自己带地址，默认不收着，免得用户以为还要填
+  advancedOpen.value = false
 }
 
 /** 保存（新增 / 覆盖 / 改名） */
@@ -422,6 +605,10 @@ async function submit(): Promise<void> {
   const id = form.id.trim()
   if (!id) {
     ElMessage.warning('请填写 provider ID')
+    return
+  }
+  if (presetMode.value && !form.preset.trim()) {
+    ElMessage.warning('请选择预设；没有对应预设就切到「自定义地址」')
     return
   }
   const provider: Record<string, unknown> = { id }
@@ -438,7 +625,8 @@ async function submit(): Promise<void> {
     .split(/[\n,，\s]+/)
     .map((item) => item.trim())
     .filter(Boolean)
-  provider.models = models
+  // 空目录在预设模式下不发送：让 magpie 用预设自带的模型目录，而不是覆盖成空
+  if (models.length || !presetMode.value) provider.models = models
 
   saving.value = true
   try {
@@ -945,6 +1133,10 @@ function brief(value: unknown): string {
 .mg-up__table tbody tr:last-child td {
   border-bottom: none;
 }
+/* 从「Magpie 托管」分组点进来时，高亮对应上游这一行 */
+.mg-up__table tbody tr.is-focus td {
+  background: color-mix(in srgb, var(--el-color-primary, #409eff) 8%, transparent);
+}
 .mg-up__table td.is-name {
   max-width: 160px;
   overflow: hidden;
@@ -1008,6 +1200,92 @@ function brief(value: unknown): string {
   font-size: 11px;
   line-height: 1.5;
   color: var(--el-text-color-secondary, #909399);
+}
+
+/* ── 接入方式切换 ── */
+.mg-up__mode {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.mg-up__mode-name {
+  flex: 0 0 auto;
+  font-size: 12.5px;
+  color: var(--el-text-color-regular, #606266);
+}
+.mg-up__seg {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--el-fill-color-light, #f5f7fa);
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+}
+.mg-up__seg button {
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 12.5px;
+  line-height: 18px;
+  color: var(--el-text-color-regular, #606266);
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.mg-up__seg button.is-on {
+  background: var(--el-bg-color, #fff);
+  color: var(--el-color-primary, #409eff);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 8%);
+}
+.mg-up__modehint {
+  margin: 0 0 12px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary, #909399);
+}
+.mg-up__select-wide {
+  width: 100%;
+}
+.mg-up__opt-name {
+  margin-right: 8px;
+}
+.mg-up__opt-hint {
+  font-size: 11px;
+  color: var(--el-text-color-secondary, #909399);
+}
+.mg-up__presethint {
+  margin: 4px 0 0;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary, #909399);
+}
+.mg-up__presethint a {
+  margin-left: 4px;
+  color: var(--el-color-primary, #409eff);
+  text-decoration: none;
+}
+.mg-up__presethint a:hover {
+  text-decoration: underline;
+}
+.mg-up__more {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border: 1px dashed var(--el-border-color, #dcdfe6);
+  border-radius: 6px;
+  background: transparent;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--el-text-color-regular, #606266);
+  cursor: pointer;
+}
+.mg-up__more:hover {
+  border-color: var(--el-color-primary-light-5, #a0cfff);
+  color: var(--el-color-primary, #409eff);
 }
 .mg-up__tag.is-plugin {
   margin-left: 6px;

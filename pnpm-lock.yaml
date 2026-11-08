@@ -1745,6 +1745,9 @@ importers:
       '@repo/utils':
         specifier: workspace:*
         version: link:../utils
+      '@repo/work':
+        specifier: workspace:*
+        version: link:../work
       '@tiptap/core':
         specifier: ^3.26.0
         version: 3.31.3(@tiptap/pm@3.31.3)

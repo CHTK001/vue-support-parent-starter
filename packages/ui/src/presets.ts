@@ -53,6 +53,7 @@ export const CORE_PRESET: UiPreset = [
   "ReFilter",
   "ReText",
   "ReCountup",
+  "ReCountdown",
   "ReTrend",
   "ReRemoteSelect",
   "ReLoading",

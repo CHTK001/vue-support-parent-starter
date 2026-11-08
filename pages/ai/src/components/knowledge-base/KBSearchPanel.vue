@@ -100,6 +100,10 @@
     <div v-else-if="hasSearched" class="kb-search__hint">
       <p class="kb-search__hint-t">{{ t('knowledge.search.notFound') }}</p>
       <p class="kb-search__hint-d">{{ t('knowledge.search.notFoundHint') }}</p>
+      <p v-if="docCount === 0" class="kb-search__warn">
+        这个卷宗还没有可检索的文档，检索一定为空。
+        <ReButton type="primary" link @click="emit('goFiles')">去上传文档</ReButton>
+      </p>
       <ul class="kb-search__tips">
         <li>换个说法再试：把长句拆成<b>人名 + 关系</b>（例如「董卓 与 吕布 的关系」）。</li>
         <li>把「返回条数」调大：它决定召回上限，太小会漏掉次要切片。</li>
@@ -111,6 +115,10 @@
     <div v-else class="kb-search__hint">
       <p class="kb-search__hint-t">{{ t('knowledge.search.initial') }}</p>
       <p class="kb-search__hint-d">{{ t('knowledge.search.initialHint') }}</p>
+      <p v-if="docCount === 0" class="kb-search__warn">
+        这个卷宗还没有文档，检索不会有结果；先上传并等待索引完成。
+        <ReButton type="primary" link @click="emit('goFiles')">去文档</ReButton>
+      </p>
       <ul class="kb-search__tips">
         <li><b>语义</b>按意思找，问句也能命中；<b>关键词</b>按字面找，专有名词更准。</li>
         <li>结果里的 <b>语义 / 关键词 / 综合</b> 三个分数同时列出，一眼看出它为什么被召回。</li>
@@ -167,6 +175,13 @@ interface Props {
   knowledgeBases: KnowledgeBase[]
   /** 默认检索的知识库 ID */
   defaultKbId?: string | null
+  /**
+   * 当前库的文档数。
+   *
+   * <p>0 篇时提前告知「检索一定为空」，并给出去上传的入口；
+   * 不传（undefined）则与旧行为一致，不显示该提示。</p>
+   */
+  docCount?: number
 }
 
 const props = defineProps<Props>()
@@ -174,6 +189,8 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   /** 点击某条结果 */
   resultClick: [result: SearchResult]
+  /** 空库时引导去文档视图 */
+  goFiles: []
 }>()
 
 const { t } = useI18n()

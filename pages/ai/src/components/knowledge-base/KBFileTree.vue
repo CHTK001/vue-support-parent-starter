@@ -106,8 +106,8 @@
       </div>
     </div>
 
-    <!-- 空文件夹-->
-    <div v-else class="text-center py-8 text-[var(--rm-text-secondary)]">
+    <!-- 空文件夹：父组件已铺空态卡片时不再重复提示 -->
+    <div v-else-if="!suppressEmpty" class="text-center py-8 text-[var(--rm-text-secondary)]">
       <p>{{ currentRelativePath ? t('knowledge.tree.folderEmpty') : t('knowledge.tree.empty') }}</p>
     </div>
 
@@ -208,6 +208,13 @@ interface Props {
    * 就没法进子目录去找未索引的文件了。</p>
    */
   statusFilter?: string
+  /**
+   * 隐藏本组件的空文件夹提示。
+   *
+   * <p>文档视图在「全部 + 0 篇」时会在树上方铺一张可操作的空态卡片，
+   * 树自己再喊一句「暂无文件」就是同一个意思说两遍，这里由父组件关掉。</p>
+   */
+  suppressEmpty?: boolean
 }
 
 /** 状态分栏 → processingStatus 集合。indexed=已建索引，parsing=处理中，failed=失败。 */
@@ -217,7 +224,7 @@ const STATUS_GROUPS: Record<string, string[]> = {
   failed: ['failed'],
 }
 
-const props = withDefaults(defineProps<Props>(), { readonly: false, statusFilter: 'all' })
+const props = withDefaults(defineProps<Props>(), { readonly: false, statusFilter: 'all', suppressEmpty: false })
 
 const { t } = useI18n()
 

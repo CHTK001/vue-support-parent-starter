@@ -1,38 +1,33 @@
 <template>
-  <CustomPopover :show="visible" @update:show="onMainShowChange" :width="320" :max-height="400" :anchor-el="anchorEl"
+  <CustomPopover :show="visible" @update:show="onMainShowChange" :width="340" :max-height="440" :anchor-el="anchorEl"
     popper-class="model-popover simple-model-popover">
-    <div class="model-panel">
-      <!-- 当前选中模型 -->
-      <div v-if="currentModel" class="current-model-item" @click="closePanel"
-        @mouseenter="onItemEnter(currentModel, $event)" @mouseleave="onItemLeave">
-        <div class="w-6 h-6 shrink-0">
-          <Avatar :src="getModelAvatarPath(currentModel.modelName, currentModelProviderName) || undefined"
-            :name="getModelDisplayName(currentModel.modelName)" type="assistant" :round="false"
-            class="w-full h-full" />
+    <!-- 键盘导航容器：焦点落在检索框时，↑↓/Enter/Esc 由这里统一接管 -->
+    <div ref="panelRef" class="model-panel" tabindex="-1" @keydown="onKeydown">
+      <!-- 顶部：检索框 + 「添加新提供商」（截图右上角的灰色链接） -->
+      <div class="model-search-row">
+        <div v-if="allModels.length > 1" class="model-search">
+          <el-icon :size="14" class="model-search__ico">
+            <Search16Filled />
+          </el-icon>
+          <input ref="searchInputRef" v-model="searchKw" class="model-search__input" type="text"
+            :placeholder="t('chat.input.modelSearchPlaceholder')" />
+          <button v-if="searchKw" type="button" class="model-search__clear" :aria-label="t('common.clear')"
+            @click="searchKw = ''">
+            <el-icon :size="12">
+              <Dismiss16Regular />
+            </el-icon>
+          </button>
         </div>
-        <span class="flex-1 text-sm font-medium truncate">{{ getModelDisplayName(currentModel.modelName) }}</span>
-        <el-icon size="16" class="text-primary shrink-0">
-          <Checkmark24Regular />
-        </el-icon>
+        <button type="button" class="model-add" @click="goToModelSettings">
+          <span aria-hidden="true">+</span>
+          <span>{{ t('chat.input.addProvider') }}</span>
+        </button>
       </div>
 
-      <!--
-        模型检索框：按「显示名 / 裸模型名 / 供应商名」即时过滤（用户需求 2026-10-09）。
-        上下文大小过滤已按用户要求移除（原 .ctx-filter 标签行）；
-        行尾的上下文徽标（128K/1M）保留，仅展示不过滤。
-      -->
-      <div v-if="allModels.length > 1" class="model-search">
-        <el-icon size="14" class="model-search__ico">
-          <Search16Filled />
-        </el-icon>
-        <input ref="searchInputRef" v-model="searchKw" class="model-search__input" type="text"
-          :placeholder="t('chat.input.modelSearchPlaceholder')" />
-        <button v-if="searchKw" type="button" class="model-search__clear" :aria-label="t('common.clear')"
-          @click="searchKw = ''">
-          <el-icon size="12">
-            <Dismiss16Regular />
-          </el-icon>
-        </button>
+      <!-- 列表标题固定在滚动区外：滚动时它不动，读者始终知道这一段是什么 -->
+      <div class="panel-caption panel-caption--list">
+        <span>{{ t('chat.input.modelSectionTitle') }}</span>
+        <span class="panel-caption__count">{{ filteredModels.length }}</span>
       </div>
 
       <!-- 所有模型列表 -->
@@ -40,12 +35,12 @@
         <!-- 空状态：显示添加模型按钮 -->
         <div v-if="allModels.length === 0" class="empty-models">
           <div class="add-model-btn" @click="goToModelSettings">
-            <el-icon size="16">
+            <el-icon :size="14">
               <Add24Regular />
             </el-icon>
-            <span>+ 添加模型</span>
+            <span>{{ t('chat.input.addModel') }}</span>
           </div>
-          <div class="empty-hint">暂无可用模型，请先添加模型供应商</div>
+          <div class="empty-hint">{{ t('chat.input.noModelsHint') }}</div>
         </div>
 
         <!-- 筛选后无匹配 -->
@@ -53,29 +48,33 @@
           {{ t('common.contextSize.noMatch') }}
         </div>
 
-        <!-- 模型列表 -->
-        <div v-for="model in filteredModels" :key="model.id"
-          class="model-item"
-          :class="{ 'model-item-active': currentModelId === model.id }"
-          @click="handleSelect(model.id)"
-          @mouseenter="onItemEnter(model, $event)" @mouseleave="onItemLeave">
-          <div class="w-6 h-6 shrink-0">
-            <Avatar :src="getModelAvatarPath(model.modelName, getModelProviderName(model)) || undefined"
-              :name="getModelDisplayName(model.modelName)" type="assistant" :round="false" class="w-full h-full" />
+        <!-- 模型列表：一行一个模型（名称 + 上下文 + 选中勾），不再有「当前模型」分区 -->
+        <template v-else>
+          <div v-for="(model, i) in filteredModels" :key="model.id" class="model-item"
+            :class="{ 'model-item-active': currentModelId === model.id, 'is-active': i === activeIndex }"
+            :title="getModelProviderName(model) || undefined" @click="handleSelect(model.id)"
+            @mouseenter="onItemEnter(model, $event)" @mouseleave="onItemLeave">
+            <div class="model-avatar">
+              <Avatar :src="getModelAvatarPath(model.modelName, getModelProviderName(model)) || undefined"
+                :name="getModelDisplayName(model.modelName)" type="assistant" :round="false" class="w-full h-full" />
+            </div>
+            <span class="model-item__name">{{ getModelDisplayName(model.modelName) }}</span>
+            <!-- 上下文徽标：128K / 1M；无数据显示空（不占位） -->
+            <span v-if="formatContextSize(getModelContextWindow(model))" class="model-ctx">
+              {{ formatContextSize(getModelContextWindow(model)) }}
+            </span>
+            <el-icon v-if="currentModelId === model.id" :size="14" class="model-item__check">
+              <Checkmark24Regular />
+            </el-icon>
           </div>
-          <div class="flex-1 min-w-0">
-            <div class="text-sm font-medium truncate">{{ getModelDisplayName(model.modelName) }}</div>
-            <div v-if="getModelProviderName(model) && getModelProviderName(model) !== getModelDisplayName(model.modelName)"
-              class="text-xs text-gray-400 truncate">{{ getModelProviderName(model) }}</div>
-          </div>
-          <!-- 上下文徽标：128K / 1M；无数据显示空（不占位） -->
-          <span v-if="formatContextSize(getModelContextWindow(model))" class="model-ctx">
-            {{ formatContextSize(getModelContextWindow(model)) }}
-          </span>
-        </div>
+        </template>
       </div>
 
-      <!-- 推理强度已合并到输入框工具条上的「思考等级」入口（用户需求 4.2），此处不再重复展示。 -->
+      <div class="panel-foot">
+        <span>{{ t('chat.input.hintNavigate') }}</span>
+        <span>{{ t('chat.input.hintSelect') }}</span>
+        <span>{{ t('chat.input.hintClose') }}</span>
+      </div>
     </div>
   </CustomPopover>
 
@@ -148,21 +147,6 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const currentModel = computed(() => {
-  if (!props.currentModelId) return null
-  // id 可能是「供应商id:模型名」或裸模型名：先精确匹配，再按后缀兜底，
-  // 否则顶部的当前选中行直接不渲染，悬停卡自然也出不来。
-  return props.models.find(m => m.id === props.currentModelId)
-    || props.models.find(m => props.currentModelId!.endsWith(`:${m.modelName}`))
-    || props.models.find(m => m.modelName === props.currentModelId)
-    || null
-})
-
-const currentModelProviderName = computed(() => {
-  if (!currentModel.value) return ''
-  return getModelProviderName(currentModel.value)
-})
-
 const allModels = computed(() => {
   // 按收藏优先排序
   const favorites = props.models.filter(m => m.isFavorite)
@@ -183,6 +167,41 @@ const filteredModels = computed(() => {
     || getModelProviderName(m).toLowerCase().includes(kw),
   )
 })
+
+/** 键盘高亮行：与「当前生效模型」分离，↑↓ 只移动高亮，Enter 才真正切换 */
+const activeIndex = ref(0)
+const panelRef = ref<HTMLElement | null>(null)
+
+/**
+ * 键盘导航：↑↓ 移动、Enter 选中、Esc 关闭。
+ *
+ * <p>检索框聚焦时事件从 input 冒泡到面板容器，因此这里统一接管，
+ * 不需要额外给 input 挂监听。</p>
+ *
+ * @param e 键盘事件
+ */
+function onKeydown(e: KeyboardEvent): void {
+  const len = filteredModels.value.length
+  if (!len) {
+    return
+  }
+  if (e.key === 'ArrowDown') {
+    e.preventDefault()
+    activeIndex.value = (activeIndex.value + 1) % len
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault()
+    activeIndex.value = (activeIndex.value - 1 + len) % len
+  } else if (e.key === 'Enter') {
+    e.preventDefault()
+    const model = filteredModels.value[activeIndex.value]
+    if (model) {
+      handleSelect(model.id)
+    }
+  } else if (e.key === 'Escape') {
+    e.preventDefault()
+    closePanel()
+  }
+}
 
 /**
  * 供应商 id：模型侧优先 providerId（模型管理页映射后的字段）→ provider_id（后端原始字段）
@@ -371,8 +390,11 @@ watch(() => props.visible, (newVal) => {
     searchKw.value = ''
     return
   }
+  // 打开时键盘高亮落在「当前生效模型」上；找不到就落第一行
+  const idx = filteredModels.value.findIndex(m => m.id === props.currentModelId)
+  activeIndex.value = idx === -1 ? 0 : idx
   // 打开即聚焦检索框（弹层内容可能晚一拍挂载 → 短重试兜底；
-  // 单模型变体不渲染检索框，重试若干次后放弃即可）
+  // 单模型变体不渲染检索框，重试耗尽后把焦点交给面板本身，键盘导航仍可用）
   void nextTick(() => {
     if (searchInputRef.value) {
       searchInputRef.value.focus()
@@ -386,6 +408,7 @@ watch(() => props.visible, (newVal) => {
         clearInterval(timer)
       } else if (tries >= 10) {
         clearInterval(timer)
+        panelRef.value?.focus()
       }
     }, 50)
   })
@@ -393,82 +416,83 @@ watch(() => props.visible, (newVal) => {
 
 // 检索词变化后列表行被整体替换，旧悬停元素已失效 → 立即收起信息卡，避免卡片挂空行
 watch(searchKw, () => {
-  if (searchKw.value) {
-    closeHoverCard()
-  }
+  closeHoverCard()
+  activeIndex.value = 0
 })
 </script>
 
 <style scoped>
+/* ===== 模型下拉面板（2026-11-08 目标 UI 对齐） =====
+   面板本体的圆角与底色由 CustomPopover 外壳负责，这里只管内容排版。
+   行高收到 30px、主行 13px、辅助 11px，与思考 / 智能体两个下拉完全同源。 */
+
 .model-panel {
   display: flex;
   flex-direction: column;
-  padding: 8px;
+  padding: 4px 4px 2px;
+  outline: none;
 }
 
-/* 当前选中模型 */
-.current-model-item {
+/* 顶部一行：检索框在左、添加提供商在右，两者共用一条 28px 基线 */
+.model-search-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  /* 原值 8px → md 档 */
-  border-radius: var(--el-radius-md, 8px);
-  cursor: pointer;
-  transition: background 0.15s;
+  gap: 8px;
+  padding: 2px 4px 2px;
 }
 
-.current-model-item:hover {
-  background: var(--el-fill-color-light);
-}
-
-/* 模型列表 */
-.models-list {
-  margin-top: 4px;
-  max-height: 240px;
-  overflow-y: auto;
-}
-
-.model-item {
+/* 分区标题：小号、字重 500、字距微收，只做定位不做强调 */
+.panel-caption {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  /* 原值 8px → md 档 */
-  border-radius: var(--el-radius-md, 8px);
-  cursor: pointer;
-  transition: background 0.15s;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 8px 4px;
+  color: var(--text-tertiary, var(--el-text-color-secondary));
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  user-select: none;
 }
 
-.model-item:hover {
-  background: var(--el-fill-color-light);
+.panel-caption__count {
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary, var(--el-text-color-secondary));
 }
 
-.model-item-active {
-  background: var(--el-fill-color);
+/* 头像统一 18px、4px 圆角：这是列表行里唯一的图形元素，不能再大 */
+.model-avatar {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  overflow: hidden;
+  border-radius: 4px;
 }
 
-/* 模型检索框（原上下文过滤标签行已按用户要求移除，2026-10-09） */
+/* ===== 检索框：无描边、无填充，只有放大镜与一行占位文字（目标 UI 的极简形态） ===== */
 .model-search {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: 6px 4px 0;
-  padding: 5px 9px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-md, 8px);
-  background: var(--el-fill-color-light);
-  transition: border-color 0.15s, background 0.15s;
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 4px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  transition: background-color 0.15s ease;
 }
 
 .model-search:focus-within {
-  border-color: var(--el-color-primary);
-  background: var(--el-bg-color-overlay);
+  background: color-mix(in srgb, var(--text-primary, #0f172a) 4%, transparent);
 }
 
 .model-search__ico {
   flex-shrink: 0;
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary, var(--el-text-color-placeholder));
 }
 
 .model-search__input {
@@ -478,11 +502,12 @@ watch(searchKw, () => {
   outline: none;
   background: transparent;
   font-size: 13px;
-  color: var(--el-text-color-primary);
+  line-height: 18px;
+  color: var(--text-primary, var(--el-text-color-primary));
 }
 
 .model-search__input::placeholder {
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary, var(--el-text-color-placeholder));
 }
 
 .model-search__clear {
@@ -493,22 +518,149 @@ watch(searchKw, () => {
   height: 18px;
   padding: 0;
   border: none;
-  border-radius: var(--el-radius-full, 9999px);
+  border-radius: 999px;
   background: transparent;
-  color: var(--el-text-color-secondary);
+  color: var(--text-tertiary, var(--el-text-color-secondary));
   cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .model-search__clear:hover {
-  background: var(--el-fill-color-dark);
-  color: var(--el-text-color-primary);
+  background: var(--bg-hover, var(--el-fill-color-dark));
+  color: var(--text-primary, var(--el-text-color-primary));
 }
 
-/* 行尾上下文徽标：128K / 1M */
+/* 「添加新提供商」：右对齐的低对比文字链接，不抢列表的视觉权重 */
+.model-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  height: 24px;
+  padding: 0 4px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-tertiary, var(--el-text-color-secondary));
+  font-size: 11px;
+  line-height: 16px;
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.model-add:hover {
+  color: var(--text-primary, var(--el-text-color-primary));
+  background: color-mix(in srgb, var(--text-primary, #0f172a) 5%, transparent);
+}
+
+/* ===== 模型列表 ===== */
+.panel-caption--list {
+  margin-top: 2px;
+}
+
+.models-list {
+  padding: 0 2px 2px;
+  max-height: 300px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* 行高 30px：与思考 / 智能体下拉同源，三个面板来回切不会跳高度 */
+.model-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.model-item:hover,
+.model-item.is-active {
+  background: color-mix(in srgb, var(--text-primary, #0f172a) 5%, transparent);
+}
+
+/* 选中项：底色再加一档，并保留行尾的勾（勾才是「这就是当前项」的硬信号） */
+.model-item-active {
+  background: color-mix(in srgb, var(--text-primary, #0f172a) 7%, transparent);
+}
+
+.model-item__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary, var(--el-text-color-primary));
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+}
+
+/* 行尾上下文：128K / 1M。目标 UI 里是纯灰文字，不做胶囊底 */
 .model-ctx {
   flex-shrink: 0;
+  color: var(--text-tertiary, var(--el-text-color-secondary));
   font-size: 11px;
-  color: var(--el-text-color-placeholder);
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.model-item__check {
+  flex-shrink: 0;
+  color: var(--text-primary, var(--el-text-color-primary));
+}
+
+/* 页脚按键提示：与内容用一条极淡分割线隔开 */
+.panel-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 2px;
+  padding: 6px 8px 2px;
+  border-top: 1px solid var(--border-default, var(--el-border-color-lighter));
+  color: var(--text-tertiary, var(--el-text-color-placeholder));
+  font-size: 11px;
+  line-height: 16px;
+  user-select: none;
+}
+
+/* ===== 空态 ===== */
+.empty-models {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 8px 16px;
+  text-align: center;
+}
+
+.add-model-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px dashed var(--border-strong, var(--el-border-color));
+  border-radius: 8px;
+  color: var(--text-secondary, var(--el-text-color-secondary));
+  font-size: 12px;
+  line-height: 18px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.add-model-btn:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 5%, transparent);
+}
+
+.empty-hint {
+  color: var(--text-tertiary, var(--el-text-color-placeholder));
+  font-size: 12px;
+  line-height: 18px;
 }
 
 /* 筛选后无匹配 */
@@ -516,7 +668,8 @@ watch(searchKw, () => {
   padding: 14px 12px;
   text-align: center;
   font-size: 12px;
-  color: var(--el-text-color-placeholder);
+  line-height: 18px;
+  color: var(--text-tertiary, var(--el-text-color-placeholder));
 }
 
 /* 推理强度/分割线相关样式已随「思考等级」入口一起合并到 ChatInput 工具条（用户需求 4.2），此处不再保留。 */
@@ -531,44 +684,35 @@ watch(searchKw, () => {
 }
 
 .models-list::-webkit-scrollbar-thumb {
-  background: var(--el-border-color-lighter);
-  /* 原值 3px，恰为 6px 宽的半径即胶囊；用 full 令牌表达同一种形状 */
-  border-radius: var(--el-radius-full, 9999px);
+  background: var(--border-default, var(--el-border-color-lighter));
+  border-radius: 999px;
 }
 
 .models-list::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-gray);
 }
 
-/* 动效降级：系统开启「减少动态效果」时，三类条目的悬停底色直接到位。
-   逐个列出，不写 `*` / `.model-panel *` 通配，
-   避免把 el-icon / Avatar / CustomPopover 内部组件的合法过渡一起掐掉。
-   三者都只带 transition（无 animation），选中态底色是静态声明，照常成立。 */
+/* 动效降级：系统开启「减少动态效果」时，悬停/聚焦底色直接到位。
+   逐个列出，不写通配，避免把 el-icon / Avatar / CustomPopover 内部组件的合法过渡一起掐掉。 */
 @media (prefers-reduced-motion: reduce) {
-  .current-model-item,
-  .model-item {
+  .model-item,
+  .model-search,
+  .model-search__clear,
+  .model-add,
+  .add-model-btn {
     transition: none;
   }
 }
 
-/* 键盘焦点可见性：模型行 / 推理强度行 / 「添加模型」入口都是带 @click 的 div
-   （不是可聚焦控件），浏览器不给默认焦点环。
-   前三者原有 cursor: pointer 已在上面声明，不重复写；
-   .add-model-btn 在本文件原本连指针样式都没有（只有模板里的 class 名），
-   属于「可点却看不出可点」，这里一并补上。 */
-.current-model-item,
+/* 键盘焦点可见性：模型行 / 添加入口都是带 @click 的 div（不是可聚焦控件），
+   浏览器不给默认焦点环，这里补一个与输入卡同色的光环。 */
 .model-item,
 .add-model-btn {
   outline: none;
 }
 
-.add-model-btn {
-  cursor: pointer;
-}
-
-.current-model-item:focus-visible,
 .model-item:focus-visible,
 .add-model-btn:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
 }
 </style>

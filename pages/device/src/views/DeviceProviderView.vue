@@ -13,6 +13,14 @@
             <span class="dpv-live" />{{ enabledCount }} 启用
             <span class="dpv-sep" />
             {{ defaultCount }} 默认
+            <span class="dpv-sep" />
+            <span class="dpv-health" :title="healthSummaryTitle">
+              <i class="dpv-health__dot is-ok" />{{ okCount }}
+              <i class="dpv-health__dot is-fail" />{{ failCount }}
+              <template v-if="untestedCount">
+                <i class="dpv-health__dot is-idle" />{{ untestedCount }}
+              </template>
+            </span>
           </span>
           <ReButton
             icon="Plus"
@@ -106,6 +114,17 @@
             <span class="dpv-filter__x">×</span>
           </button>
           <span class="dpv-grow" />
+          <ReButton
+            icon="Connection"
+            size="small"
+            :show-text="true"
+            :disabled="!filteredCredentials.length"
+            :loading="testingAll"
+            tip="按当前厂商过滤逐条探测连通性（最多 50 条）"
+            @click="testAllCredentials"
+          >
+            全部检测
+          </ReButton>
           <ReButton icon="Refresh" layout="square" size="small" tip="刷新" :loading="loading" @click="refreshAll" />
           <ReButton icon="Monitor" layout="square" size="small" tip="设备台账" @click="goLedger" />
         </header>
@@ -162,6 +181,30 @@
               <ReTag :type="row.deviceCredentialEnabled ? 'success' : 'info'" size="small" effect="plain">
                 {{ row.deviceCredentialEnabled ? '启用' : '停用' }}
               </ReTag>
+            </template>
+
+            <template #col-health="{ row }">
+              <span class="dpv-health-cell">
+                <ReTag
+                  v-if="row.deviceCredentialLastTestOk == null"
+                  type="info"
+                  size="small"
+                  effect="plain"
+                >
+                  未检测
+                </ReTag>
+                <ReTag
+                  v-else
+                  :type="row.deviceCredentialLastTestOk ? 'success' : 'danger'"
+                  size="small"
+                  effect="plain"
+                >
+                  {{ row.deviceCredentialLastTestOk ? '正常' : '失败' }}
+                </ReTag>
+                <span class="dpv-time dpv-health-cell__at">
+                  {{ formatDateTime(row.deviceCredentialLastTestAt as string | undefined) }}
+                </span>
+              </span>
             </template>
 
             <template #col-updated="{ row }">
@@ -1148,6 +1191,23 @@ const activeCredential = computed<ProviderCredential | null>(
 const enabledCount = computed(() => credentials.value.filter((item) => item.deviceCredentialEnabled !== false).length)
 const defaultCount = computed(() => credentials.value.filter((item) => item.deviceCredentialIsDefault).length)
 
+/* ==================== 连通性健康（单条测试 / 全部检测共用留痕） ==================== */
+const testingAll = ref(false)
+
+/** 当前过滤范围内的健康分布：正常 / 失败 / 未检测 */
+const okCount = computed(
+  () => filteredCredentials.value.filter((item) => item.deviceCredentialLastTestOk === true).length
+)
+const failCount = computed(
+  () => filteredCredentials.value.filter((item) => item.deviceCredentialLastTestOk === false).length
+)
+const untestedCount = computed(
+  () => filteredCredentials.value.filter((item) => item.deviceCredentialLastTestOk == null).length
+)
+const healthSummaryTitle = computed(
+  () => `连通性：正常 ${okCount.value} · 失败 ${failCount.value} · 未检测 ${untestedCount.value}`
+)
+
 /* ==================== 凭据表（ReTable） ==================== */
 /** ReTable 只收 Record 数组，真实结构是 ProviderCredential */
 const tableRows = computed<Array<Record<string, unknown>>>(
@@ -1167,6 +1227,7 @@ const columns: ReTableColumn[] = [
       row.deviceCredentialOfflineThreshold == null ? '—' : `${row.deviceCredentialOfflineThreshold} 秒`
   },
   { prop: 'deviceCredentialEnabled', label: '状态', slot: 'status', width: 84 },
+  { prop: 'deviceCredentialHealth', label: '健康', slot: 'health', minWidth: 132 },
   { prop: 'deviceCredentialUpdatedAt', label: '更新时间', slot: 'updated', minWidth: 140 },
   { prop: 'deviceCredentialActions', label: '操作', slot: 'actions', width: 158, fixed: 'right' }
 ]
@@ -1453,6 +1514,9 @@ async function testCredential(row: ProviderCredential) {
   testingId.value = row.deviceCredentialId
   try {
     const ok = await deviceApi.testCredential(row.deviceCredentialId)
+    // 后端会写留痕，这里同步本地行，健康列立刻变（省一次整表刷新）
+    row.deviceCredentialLastTestOk = ok
+    row.deviceCredentialLastTestAt = new Date().toISOString()
     if (ok) {
       message.success(`「${row.deviceCredentialName}」连接成功`)
     } else {
@@ -1462,6 +1526,48 @@ async function testCredential(row: ProviderCredential) {
     message.error('连接测试失败：' + errorText(err))
   } finally {
     testingId.value = ''
+  }
+}
+
+/**
+ * 全部检测：按当前厂商过滤逐条探测连通性。
+ *
+ * <p>后端限并发 4、单条超时 20 秒、单次最多 50 条；超量时提示先按厂商收敛，
+ * 避免一次把整个池子打满。结果写回每行健康留痕，并汇总成功 / 失败条数。</p>
+ */
+async function testAllCredentials() {
+  const targets = filteredCredentials.value.filter((item) => item.deviceCredentialId)
+  if (!targets.length) {
+    message.warning('当前没有可检测的凭据')
+    return
+  }
+  if (targets.length > 50) {
+    message.warning(`一次最多检测 50 条，当前 ${targets.length} 条，请先按厂商过滤`)
+    return
+  }
+  testingAll.value = true
+  try {
+    const results = await deviceApi.testAllCredentials(targets.map((item) => item.deviceCredentialId as string))
+    const ok = results.filter((item) => item.ok).length
+    const fail = results.length - ok
+    const at = new Date().toISOString()
+    const byId = new Map(results.map((item) => [item.credentialId, item]))
+    for (const item of credentials.value) {
+      if (!item.deviceCredentialId) continue
+      const hit = byId.get(item.deviceCredentialId)
+      if (!hit) continue
+      item.deviceCredentialLastTestOk = hit.ok
+      item.deviceCredentialLastTestAt = at
+    }
+    if (fail) {
+      message.warning(`检测完成：成功 ${ok} · 失败 ${fail}`)
+    } else {
+      message.success(`检测完成：${ok} 条全部正常`)
+    }
+  } catch (err) {
+    message.error('全部检测失败：' + errorText(err))
+  } finally {
+    testingAll.value = false
   }
 }
 
@@ -1824,6 +1930,38 @@ onBeforeUnmount(() => {
   width: 1px;
   height: 10px;
   background: var(--el-border-color);
+}
+
+/* 健康分布：正常 / 失败 / 未检测，颜色点 + 数字，悬停出完整说明 */
+.dpv-health {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dpv-health__dot {
+  width: 5px;
+  height: 5px;
+  margin-left: 3px;
+  border-radius: 50%;
+  background: var(--el-text-color-placeholder);
+}
+
+.dpv-health__dot.is-ok { background: var(--el-color-success); }
+.dpv-health__dot.is-fail { background: var(--el-color-danger); }
+.dpv-health__dot.is-idle { background: var(--el-color-info); }
+
+.dpv-health-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dpv-health-cell__at {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ============================================================

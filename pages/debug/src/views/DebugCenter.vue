@@ -2209,11 +2209,13 @@ function clearPerf() {
   perfStopAt.value = 0;
 }
 
-/** 录制时长文案 */
+/** 录制时长文案（依赖 now 心跳，录制过程中也会每秒走字） */
 const perfElapsed = computed(() => {
-  const end = perfStopAt.value || (perfStartAt.value ? Date.now() : 0);
+  void now.value;
   if (!perfStartAt.value) return "0.0s";
-  return `${((Math.max(0, end - perfStartAt.value)) / 1000).toFixed(1)}s`;
+  const end = perfStopAt.value || now.value;
+  const ms = Math.max(0, end - perfStartAt.value);
+  return ms < 60000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.floor(ms / 60000)}m${Math.round((ms % 60000) / 1000)}s`;
 });
 
 /** 各阶段占比（用于汇总条） */
@@ -5082,7 +5084,7 @@ onBeforeUnmount(() => {
             <div class="debug-perf__stats">
               <div class="debug-perf__stat">
                 <span class="debug-perf__k">录制窗口</span>
-                <b class="debug-perf__v">{{ (perfSummary.window / 1000).toFixed(2) }}s</b>
+                <b class="debug-perf__v">{{ (perfSummary.window / 1000000).toFixed(2) }}s</b>
               </div>
               <div class="debug-perf__stat">
                 <span class="debug-perf__k">事件</span>

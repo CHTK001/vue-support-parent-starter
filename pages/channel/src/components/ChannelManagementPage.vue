@@ -15,7 +15,7 @@
 //   Loomy 走微信扫码（官方授权页 + 弹窗内二维码），不收集手机号。
 // - 自动签到走后端 ChannelCheckinTask，前端「签到」按钮仅做手动补一次。
 
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ReDialog from '@repo/ui/re-dialog'
 import {
@@ -39,6 +39,13 @@ import ReTabs from '@repo/ui/re-tabs'
 import ChannelAccountDialog from './ChannelAccountDialog.vue'
 import MagpieProviderPanel from './MagpieProviderPanel.vue'
 import MagpiePluginPanel from './MagpiePluginPanel.vue'
+import { MAGPIE_OWNED_VENDORS, magpieOwnedOf, type MagpieOwnedVendor } from '../magpieOwnership'
+import {
+  MAGPIE_PLUGIN_CHANNELS,
+  magpiePluginOfProviders,
+  magpiePluginOfSpec,
+  type MagpiePluginChannel,
+} from '../magpiePlugins'
 
 // 各渠道的官方图标（本地落地的品牌资源）。
 // 有官方 SVG/ICO 的渠道用图标；没有公开官方资源的渠道（Qoder / Raccoon / Loomy…）
@@ -92,6 +99,28 @@ const CHANNEL_BRANDS: Record<string, ChannelBrand> = {
 /** 渠道品牌外观（未知渠道给中性灰兜底） */
 const brandOf = (channel: string): ChannelBrand =>
   CHANNEL_BRANDS[channel] ?? { color: '#64748B', glyph: (channel || '?').slice(0, 1).toUpperCase() }
+
+/**
+ * 插件渠道的品牌外观：先按它的第一个 provider 复用渠道品牌（cline / trae / zcode
+ * 这些已有官方图标），没有就按名字散列一个稳定色 + 首字。
+ *
+ * <p>散列而不是「全部用 Magpie 青」：44 行插件同色圆点会分不出谁是谁；按名字散列
+ * 保证同一插件每次刷新颜色一致。</p>
+ */
+const PLUGIN_BRAND_COLORS = [
+  '#4F6BFF', '#0FA47F', '#F59E0B', '#F03D64',
+  '#8E75B2', '#0C5CFF', '#DE5833', '#7C3AED',
+]
+function pluginBrand(plugin: MagpiePluginChannel): ChannelBrand {
+  const known = plugin.providers.map((id) => CHANNEL_BRANDS[id]).find(Boolean)
+  if (known) return known
+  const seed = [...plugin.name].reduce((n, ch) => n + (ch.codePointAt(0) ?? 0), 0)
+  return {
+    color: PLUGIN_BRAND_COLORS[seed % PLUGIN_BRAND_COLORS.length],
+    glyph: plugin.name.slice(0, 1).toUpperCase(),
+    method: '插件',
+  }
+}
 
 interface ParsedHandle {
   channel: string
@@ -201,9 +230,20 @@ async function loadChannels() {
         } catch { /* 单渠道模型拉取失败不拖垮整页 */ }
       }),
     )
-    if (!activeChannel.value || !channels.value.some((c) => c.channel === activeChannel.value)) {
-      activeChannel.value = channels.value[0]?.channel ?? ''
+    // 默认选中要跳过被收进「Magpie 托管」的渠道：它们已不在左栏，
+    // 一进页面右侧却显示一个左栏里找不到的渠道（例如 qoder），会让人以为丢了入口。
+    const hiddenChannels = new Set(managedChannels.value.map((c) => c.channel))
+    const current = activeChannel.value
+    if (!current || !channels.value.some((c) => c.channel === current) || hiddenChannels.has(current)) {
+      activeChannel.value =
+        gatewayChannel.value?.channel ??
+        channels.value.find((c) => !hiddenChannels.has(c.channel))?.channel ??
+        channels.value[0]?.channel ??
+        ''
     }
+    // 左栏状态灯与「点进去落到上游还是插件」要看网关现状：只读拉一次，
+    // 管理面不可用时按「未接入」处理，点开仍有预设 / 插件两条路。
+    void loadGatewayIndex()
   } catch (e: any) {
     loadError.value = e?.message ?? String(e)
     ElMessage.error('渠道列表加载失败：' + loadError.value)
@@ -1031,6 +1071,311 @@ watch(activeChannel, () => {
  */
 const detailTab = ref<string>('accounts')
 
+// ---------- Magpie 托管收敛（左栏） ----------
+
+/** 网关型渠道：能力位驱动，不按渠道名硬编码 */
+const gatewayChannel = computed(() => channels.value.find((c) => c.supportsUpstream))
+
+/**
+ * 已经可以整体交给 Magpie 的渠道。
+ *
+ * <p>三个条件缺一不可：</p>
+ * <ol>
+ *   <li>名单里有一个网关型渠道（能力位 {@code supportsUpstream}），它是收纳方；</li>
+ *   <li>网关自己至少绑定了一个连接——没绑连接时跳过去只会看到「未绑定」，
+ *       这时宁可让各渠道继续各占一行，也不要先把入口收走；</li>
+ *   <li>被收纳的渠道在 {@link MAGPIE_OWNED_VENDORS} 名单里，且自己没有绑定账号——
+ *       有连接就说明有存量凭据要展示，宁可多一行，也不把在用的入口藏起来。</li>
+ * </ol>
+ */
+const managedChannels = computed(() => {
+  const gateway = gatewayChannel.value
+  if (!gateway || !(gateway.connections ?? []).length) return []
+  return channels.value.filter(
+    (c) =>
+      MAGPIE_OWNED_VENDORS.some((v) => v.channel === c.channel) &&
+      !(c.connections ?? []).length,
+  )
+})
+
+/** 「Magpie 托管」分组是否展开（默认收起：十几个渠道收敛成 1 行） */
+const managedOpen = ref(false)
+
+/** 「Magpie 插件」分组是否展开（默认收起：44 个社区插件） */
+const pluginOpen = ref(false)
+
+/** 插件分组过滤词：44 行不靠滚动找，输入名字 / provider / 说明都能命中 */
+const pluginFilter = ref('')
+
+/** 托管子项：渠道摘要 + 归属条目（顺序跟随 MAGPIE_OWNED_VENDORS） */
+interface ManagedEntry {
+  channel: ChannelSummary
+  vendor: MagpieOwnedVendor
+}
+
+const managedEntries = computed<ManagedEntry[]>(() => {
+  const rows = new Map(managedChannels.value.map((c) => [c.channel, c]))
+  return MAGPIE_OWNED_VENDORS.map((vendor) => ({ vendor, channel: rows.get(vendor.channel) }))
+    .filter((x): x is ManagedEntry => !!x.channel)
+})
+
+/**
+ * 网关现状索引：已有上游 provider 与已安装插件。
+ *
+ * <p>只用来做两件事：左栏状态灯，以及点击时判断该落「上游」还是「插件」。
+ * 管理面没开 / pageKey 缺失时静默失败——点开仍可按预设或插件路径继续。</p>
+ */
+const gatewayProviders = ref<string[]>([])
+const gatewayPlugins = ref<string[]>([])
+
+async function loadGatewayIndex(): Promise<void> {
+  const gateway = gatewayChannel.value
+  const conn = gateway?.connections?.find((c) => c.primary) ?? gateway?.connections?.[0]
+  if (!gateway || !conn?.connectionId) {
+    gatewayProviders.value = []
+    gatewayPlugins.value = []
+    return
+  }
+  const ref = { connectionId: conn.connectionId }
+  const [prov, plug] = await Promise.allSettled([
+    channelApi.magpieProviders(gateway.channel, ref),
+    channelApi.magpiePlugins(gateway.channel, ref),
+  ])
+  if (prov.status === 'fulfilled') {
+    const out = (prov.value as any)?.data ?? prov.value
+    const list = out?.providers ?? out?.result?.providers ?? []
+    gatewayProviders.value = (Array.isArray(list) ? list : [])
+      .map((p: any) => String(typeof p === 'string' ? p : (p?.id ?? '')))
+      .filter(Boolean)
+  }
+  if (plug.status === 'fulfilled') {
+    const out = (plug.value as any)?.data ?? plug.value
+    const state = out?.result ?? out
+    gatewayPlugins.value = (state?.plugins ?? [])
+      .map((p: any) => String(p?.spec ?? ''))
+      .filter(Boolean)
+  }
+}
+
+/** 网关里已经有这条渠道的上游时返回命中的 provider id */
+function liveProvider(ids: string[]): string {
+  return ids.find((id) => gatewayProviders.value.includes(id)) ?? ''
+}
+
+/** 插件是否已安装（规格可能带 {@code @版本} 后缀） */
+function pluginInstalled(spec?: string): boolean {
+  if (!spec) return false
+  return gatewayPlugins.value.some((x) => x === spec || x.startsWith(spec + '@'))
+}
+
+/** 托管子项状态灯：网关已接上（有上游或插件已装）→ 绿，否则灰 */
+function managedState(entry: ManagedEntry): 'online' | 'none' {
+  return liveProvider(entry.vendor.providers) || pluginInstalled(entry.vendor.plugin)
+    ? 'online'
+    : 'none'
+}
+
+/** 插件渠道状态灯：已装或有上游 → 绿 */
+function pluginState(plugin: MagpiePluginChannel): 'online' | 'none' {
+  return liveProvider(plugin.providers) || pluginInstalled(plugin.spec) ? 'online' : 'none'
+}
+
+/** 过滤后的插件渠道（名称 / provider / 说明都可搜） */
+const pluginRows = computed<MagpiePluginChannel[]>(() => {
+  const q = pluginFilter.value.trim().toLowerCase()
+  if (!q) return MAGPIE_PLUGIN_CHANNELS
+  return MAGPIE_PLUGIN_CHANNELS.filter((p) =>
+    `${p.name} ${p.providers.join(' ')} ${p.summary}`.toLowerCase().includes(q),
+  )
+})
+
+/** 从托管分组点进去的渠道 id（不是网关 id） */
+const focusChannel = ref('')
+
+/** 直接指定要定位的 provider（插件行没有对应原生渠道时用） */
+const focusProviderId = ref('')
+/** 直接指定备选 provider id */
+const focusAltIds = ref<string[]>([])
+/** 直接指定「新增上游」预填的 preset */
+const focusPresetId = ref('')
+/** 直接指定预填显示名 */
+const focusLabelText = ref('')
+
+/** 从插件分组点进去的插件（「插件」页签置顶 + 安装入口） */
+const focusPluginSpec = ref('')
+const focusPluginName = ref('')
+const focusPluginSummary = ref('')
+const focusPluginProviders = ref<string[]>([])
+
+/** 该渠道的归属条目；没点托管子项时为空 */
+const focusVendor = computed(() =>
+  focusChannel.value ? magpieOwnedOf(focusChannel.value) : undefined,
+)
+
+/** 从托管分组点进去时要高亮的 magpie provider id */
+const focusProvider = computed(() => focusProviderId.value || focusVendor.value?.providers[0] || '')
+
+/** 备选 provider id（插件 / 预设两种装法，如 cline → clinepass） */
+const focusAlt = computed(() =>
+  focusAltIds.value.length ? focusAltIds.value : (focusVendor.value?.providers.slice(1) ?? []),
+)
+
+/**
+ * 网关里还没有该渠道的上游时，预填进「新增上游」的 preset。
+ *
+ * <p>只预填、不自动保存：新增上游是写操作，必须由用户补 key 后自己点保存。</p>
+ */
+const focusPreset = computed(() => focusPresetId.value || focusVendor.value?.preset || '')
+
+/** 预填「新增上游」时用的显示名（左栏同一份 displayName） */
+const focusLabel = computed(() => {
+  if (focusLabelText.value) return focusLabelText.value
+  const id = focusChannel.value
+  if (!id) return ''
+  return channels.value.find((c) => c.channel === id)?.displayName || id
+})
+
+type RailItem =
+  | { kind: 'channel'; channel: ChannelSummary }
+  | { kind: 'managed-group' }
+  | { kind: 'plugin-group' }
+
+/** 左栏渲染顺序：托管分组、插件分组都紧跟网关那一行 */
+const railItems = computed<RailItem[]>(() => {
+  const hidden = new Set(managedChannels.value.map((c) => c.channel))
+  const gateway = gatewayChannel.value
+  const ready = !!gateway && (gateway.connections ?? []).length > 0
+  const items: RailItem[] = []
+  for (const c of channels.value) {
+    if (hidden.has(c.channel)) continue
+    items.push({ kind: 'channel', channel: c })
+    if (c.channel === gateway?.channel && ready) {
+      if (managedEntries.value.length) items.push({ kind: 'managed-group' })
+      items.push({ kind: 'plugin-group' })
+    }
+  }
+  return items
+})
+
+/** 清掉所有「刚才那一跳」的定位与预填 */
+function clearManagedFocus(): void {
+  focusChannel.value = ''
+  focusProviderId.value = ''
+  focusAltIds.value = []
+  focusPresetId.value = ''
+  focusLabelText.value = ''
+  focusPluginSpec.value = ''
+  focusPluginName.value = ''
+  focusPluginSummary.value = ''
+  focusPluginProviders.value = []
+}
+
+/** 记录一个插件行的定位（不触发任何写操作） */
+function applyPluginFocus(plugin: MagpiePluginChannel): void {
+  focusPluginSpec.value = plugin.spec
+  focusPluginName.value = plugin.name
+  focusPluginSummary.value = plugin.summary
+  focusPluginProviders.value = [...plugin.providers]
+}
+
+/**
+ * 切到网关渠道的某个页签。
+ *
+ * <p>{@code activeChannel} 的 watcher 会把页签复位到「账号」（{@code resetDetailTabs}），
+ * 而 watcher 在本次同步代码之后才跑，所以页签和定位必须放到 {@code nextTick} 里，
+ * 否则刚设好就被复位成「账号」。</p>
+ *
+ * @param tab   目标页签
+ * @param apply 页签就位后再写定位（避免被 resetDetailTabs 清掉）
+ */
+function openGateway(tab: string, apply: () => void): void {
+  const gateway = gatewayChannel.value
+  if (!gateway) return
+  activeChannel.value = gateway.channel
+  void nextTick(() => {
+    detailTab.value = tab
+    apply()
+  })
+}
+
+/**
+ * 点开一个被托管渠道：
+ *
+ * <ul>
+ *   <li>网关里已有 provider → 「上游」并高亮该行；</li>
+ *   <li>没有 provider 但有预设 → 「上游」并打开新增、按 preset 预填（只预填）；</li>
+ *   <li>两者都没有 → 「插件」页签，把接管插件置顶并给出安装入口。</li>
+ * </ul>
+ *
+ * @param entry 托管子项
+ */
+function openManaged(entry: ManagedEntry): void {
+  const { vendor, channel } = entry
+  const name = channel.displayName || channel.channel
+  const hit = liveProvider(vendor.providers)
+  if (hit) {
+    openGateway('upstream', () => {
+      clearManagedFocus()
+      focusChannel.value = channel.channel
+      focusProviderId.value = hit
+      focusAltIds.value = vendor.providers.filter((x) => x !== hit)
+      focusLabelText.value = name
+    })
+    return
+  }
+  if (vendor.preset) {
+    openGateway('upstream', () => {
+      clearManagedFocus()
+      focusChannel.value = channel.channel
+      focusLabelText.value = name
+    })
+    return
+  }
+  const plugin = vendor.plugin
+    ? magpiePluginOfSpec(vendor.plugin)
+    : magpiePluginOfProviders(vendor.providers)
+  openGateway(plugin ? 'plugins' : 'upstream', () => {
+    clearManagedFocus()
+    focusChannel.value = channel.channel
+    focusLabelText.value = name
+    if (plugin) applyPluginFocus(plugin)
+  })
+}
+
+/**
+ * 点开一个插件渠道：网关里已经有它的上游就去上游高亮，否则去「插件」页签置顶，
+ * 由插件面板给出「安装」入口（安装要用户自己点并二次确认）。
+ *
+ * @param plugin 插件渠道
+ */
+function openPlugin(plugin: MagpiePluginChannel): void {
+  const hit = liveProvider(plugin.providers)
+  openGateway(hit ? 'upstream' : 'plugins', () => {
+    clearManagedFocus()
+    applyPluginFocus(plugin)
+    if (hit) {
+      focusProviderId.value = hit
+      focusAltIds.value = plugin.providers.filter((x) => x !== hit)
+      focusLabelText.value = plugin.name
+    }
+  })
+}
+
+/**
+ * 托管子项的悬停提示。
+ *
+ * <p>两类渠道的「托管」含义不同：插件那批是登录、签到、额度都在网关；
+ * 预设那批只是上游地址、key、模型目录在网关。提示语照实说，不把两者混为一谈。</p>
+ */
+function managedHint(entry: ManagedEntry): string {
+  const name = entry.channel.displayName || entry.channel.channel
+  if (entry.vendor.preset) return `到 Magpie 里接入「${name}」的上游（预设 + API Key）`
+  const plugin = entry.vendor.plugin ? magpiePluginOfSpec(entry.vendor.plugin) : undefined
+  return plugin
+    ? `到 Magpie 里用插件「${plugin.name}」接管「${name}」的登录与签到`
+    : `到 Magpie 里管理「${name}」的登录与签到`
+}
+
 /** 可选页签（随选中渠道能力变化） */
 const detailTabs = computed(() => {
   const summary = activeSummary()
@@ -1058,6 +1403,8 @@ const detailTabs = computed(() => {
 /** 切渠道时把页签复位到「账号」并清掉上一渠道的积分 / 任务缓存 */
 function resetDetailTabs() {
   detailTab.value = 'accounts'
+  // 托管 / 插件分组的定位高亮只对「刚才那一跳」有效，换渠道就清掉
+  clearManagedFocus()
   creditState.value = {}
   taskState.value = {}
 }
@@ -1316,27 +1663,115 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
             </button>
           </span>
         </div>
-        <button
-          v-for="c in channels"
-          :key="c.channel"
-          type="button"
-          class="chm-rail__item"
-          :class="{ 'is-active': c.channel === activeChannel }"
-          @click="activeChannel = c.channel"
-        >
-          <span class="chm-rail__logo"
-                :class="{ 'is-ico': !!brandOf(c.channel).icon }"
-                :style="brandOf(c.channel).icon ? undefined : { background: brandOf(c.channel).color }">
-            <img v-if="brandOf(c.channel).icon" :src="brandOf(c.channel).icon" :alt="c.channel" />
-            <b v-else>{{ brandOf(c.channel).glyph }}</b>
-          </span>
-          <span class="chm-rail__name" :title="c.displayName || c.channel">
-            {{ c.displayName || c.channel }}
-          </span>
-          <span class="chm-rail__kind" :title="kindText(c)">{{ kindOf(c) }}</span>
-          <span class="chm-rail__dot" :class="'is-' + channelState(c)"
-                :title="channelStateText(c)" />
-        </button>
+        <template v-for="item in railItems" :key="item.kind === 'channel' ? item.channel.channel : item.kind">
+          <button
+            v-if="item.kind === 'channel'"
+            type="button"
+            class="chm-rail__item"
+            :class="{ 'is-active': item.channel.channel === activeChannel }"
+            @click="activeChannel = item.channel.channel; clearManagedFocus()"
+          >
+            <span class="chm-rail__logo"
+                  :class="{ 'is-ico': !!brandOf(item.channel.channel).icon }"
+                  :style="brandOf(item.channel.channel).icon ? undefined : { background: brandOf(item.channel.channel).color }">
+              <img v-if="brandOf(item.channel.channel).icon" :src="brandOf(item.channel.channel).icon" :alt="item.channel.channel" />
+              <b v-else>{{ brandOf(item.channel.channel).glyph }}</b>
+            </span>
+            <span class="chm-rail__name" :title="item.channel.displayName || item.channel.channel">
+              {{ item.channel.displayName || item.channel.channel }}
+            </span>
+            <span class="chm-rail__kind" :title="kindText(item.channel)">{{ kindOf(item.channel) }}</span>
+            <span class="chm-rail__dot" :class="'is-' + channelState(item.channel)"
+                  :title="channelStateText(item.channel)" />
+          </button>
+
+          <!-- 托管分组：能交给 Magpie 的渠道收成一行，登录/签到/上游都去网关里管 -->
+          <template v-else-if="item.kind === 'managed-group'">
+            <button
+              type="button"
+              class="chm-rail__item chm-rail__item--group"
+              :class="{ 'is-open': managedOpen }"
+              :title="`Magpie 托管：这 ${managedEntries.length} 个渠道统一在 Magpie 网关上配置——能接管的登录/签到由网关与插件负责，其余按预设接入上游；点开进入上游清单`"
+              @click="managedOpen = !managedOpen"
+            >
+              <span class="chm-rail__logo is-group"><b>M</b></span>
+              <!-- 188px 左栏装不下「Magpie 托管」全名，标题用「托管」+ 数量；
+                   完整说明在 title 里（同一行紧跟 Magpie 网关，M 图标也点明归属） -->
+              <span class="chm-rail__name">托管</span>
+              <span class="chm-rail__kind">{{ managedEntries.length }}</span>
+              <span class="chm-rail__chev">{{ managedOpen ? '▾' : '▸' }}</span>
+            </button>
+            <template v-if="managedOpen">
+              <button
+                v-for="entry in managedEntries"
+                :key="'managed-' + entry.channel.channel"
+                type="button"
+                class="chm-rail__item is-managed"
+                :class="{ 'is-active': activeChannel === gatewayChannel?.channel && focusChannel === entry.channel.channel }"
+                :title="managedHint(entry)"
+                @click="openManaged(entry)"
+              >
+                <span class="chm-rail__logo"
+                      :class="{ 'is-ico': !!brandOf(entry.channel.channel).icon }"
+                      :style="brandOf(entry.channel.channel).icon ? undefined : { background: brandOf(entry.channel.channel).color }">
+                  <img v-if="brandOf(entry.channel.channel).icon" :src="brandOf(entry.channel.channel).icon" :alt="entry.channel.channel" />
+                  <b v-else>{{ brandOf(entry.channel.channel).glyph }}</b>
+                </span>
+                <!-- 分组标题已写明「托管」，子项不再重复角标，把宽度留给渠道名 -->
+                <span class="chm-rail__name" :title="entry.channel.displayName || entry.channel.channel">{{ entry.channel.displayName || entry.channel.channel }}</span>
+                <span class="chm-rail__dot" :class="'is-' + managedState(entry)"
+                      :title="managedState(entry) === 'online' ? '网关里已接入' : '网关里还没接入，点开可接'" />
+              </button>
+            </template>
+          </template>
+
+          <!-- 插件分组：magpie 社区插件能接管的渠道（含免费 / 反代），一行一个入口 -->
+          <template v-else>
+            <button
+              type="button"
+              class="chm-rail__item chm-rail__item--group"
+              :class="{ 'is-open': pluginOpen }"
+              :title="`Magpie 插件：magpie 社区插件能接管这 ${MAGPIE_PLUGIN_CHANNELS.length} 个渠道（含免费与反代聚合）——点开挑一个，未装时给出安装入口；安装、登录都要你自己点`"
+              @click="pluginOpen = !pluginOpen"
+            >
+              <span class="chm-rail__logo is-group is-plugin"><b>P</b></span>
+              <span class="chm-rail__name">插件</span>
+              <span class="chm-rail__kind">{{ MAGPIE_PLUGIN_CHANNELS.length }}</span>
+              <span class="chm-rail__chev">{{ pluginOpen ? '▾' : '▸' }}</span>
+            </button>
+            <template v-if="pluginOpen">
+              <div class="chm-rail__filter">
+                <input
+                  v-model="pluginFilter"
+                  type="search"
+                  placeholder="过滤插件渠道…"
+                  aria-label="过滤插件渠道"
+                />
+              </div>
+              <button
+                v-for="plugin in pluginRows"
+                :key="'plugin-' + plugin.spec"
+                type="button"
+                class="chm-rail__item is-plugin"
+                :class="{ 'is-active': activeChannel === gatewayChannel?.channel && focusPluginSpec === plugin.spec }"
+                :title="plugin.summary"
+                @click="openPlugin(plugin)"
+              >
+                <span class="chm-rail__logo"
+                      :class="{ 'is-ico': !!pluginBrand(plugin).icon }"
+                      :style="pluginBrand(plugin).icon ? undefined : { background: pluginBrand(plugin).color }">
+                  <img v-if="pluginBrand(plugin).icon" :src="pluginBrand(plugin).icon" :alt="plugin.name" />
+                  <b v-else>{{ pluginBrand(plugin).glyph }}</b>
+                </span>
+                <span class="chm-rail__name" :title="plugin.name">{{ plugin.name }}</span>
+                <span v-if="plugin.free" class="chm-rail__chip is-free">免费</span>
+                <span class="chm-rail__dot" :class="'is-' + pluginState(plugin)"
+                      :title="pluginState(plugin) === 'online' ? '网关里已接入' : '网关里还没接入，点开可装'" />
+              </button>
+              <p v-if="!pluginRows.length" class="chm-rail__empty">没有匹配的插件渠道</p>
+            </template>
+          </template>
+        </template>
       </aside>
 
       <!-- 右：选中渠道详情 -->
@@ -1703,6 +2138,10 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                 :channel="activeChannel"
                 :connections="activeSummary()!.connections ?? []"
                 :signin-enabled="activeSummary()?.supportsSignin ?? false"
+                :focus="focusProvider"
+                :focus-alt="focusAlt"
+                :preset="focusPreset"
+                :preset-label="focusLabel"
                 @changed="loadChannels()"
               />
             </div>
@@ -1712,6 +2151,10 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
               <MagpiePluginPanel
                 :channel="activeChannel"
                 :connections="activeSummary()!.connections ?? []"
+                :focus-spec="focusPluginSpec"
+                :focus-name="focusPluginName"
+                :focus-summary="focusPluginSummary"
+                :focus-providers="focusPluginProviders"
                 @changed="loadChannels()"
               />
             </div>
@@ -2064,6 +2507,31 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   background: color-mix(in srgb, var(--brand-500, #3b82f6) 10%, transparent);
   font-weight: 600;
 }
+/* Magpie 托管分组：把已托管的 N 个渠道收敛成一行，展开才是子项 */
+.chm-rail__item--group {
+  color: var(--text-secondary, #475569);
+}
+.chm-rail__item--group.is-open {
+  background: var(--bg-hover, #f1f5fb);
+}
+.chm-rail__logo.is-group {
+  background: color-mix(in srgb, var(--brand-500, #3b82f6) 14%, transparent);
+}
+.chm-rail__logo.is-group b {
+  color: var(--brand-500, #3b82f6);
+}
+.chm-rail__chev {
+  flex: none;
+  width: 12px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-tertiary, #94a3b8);
+}
+/* 分组里的子项：缩进一档表示归属；「托管」角标已去掉，宽度留给渠道名 */
+.chm-rail__item.is-managed,
+.chm-rail__item.is-plugin {
+  padding-left: 18px;
+}
 .chm-rail__logo {
   flex: none;
   width: 26px;
@@ -2121,6 +2589,51 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 }
 .chm-rail__dot.is-none {
   background: #cbd5e1;
+}
+/* 插件分组：与「托管」同形，但用青色图标区分「社区插件」语义 */
+.chm-rail__logo.is-group.is-plugin {
+  background: color-mix(in srgb, #0ea5a4 15%, transparent);
+}
+.chm-rail__logo.is-group.is-plugin b {
+  color: #0d9488;
+}
+/* 行内小标：目前只给「明确免费」的插件（如 OpenCode Zen Free） */
+.chm-rail__chip {
+  flex: none;
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 4px;
+  color: var(--text-secondary, #64748b);
+  background: var(--fill-quaternary, #f1f5f9);
+}
+.chm-rail__chip.is-free {
+  color: #0f766e;
+  background: color-mix(in srgb, #14b8a6 16%, transparent);
+}
+/* 插件过滤：44 行不靠滚动找 */
+.chm-rail__filter {
+  padding: 2px 8px 6px 18px;
+}
+.chm-rail__filter input {
+  width: 100%;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--border-default, #e2e9f3);
+  border-radius: 6px;
+  background: var(--bg-container, #fff);
+  color: var(--text-primary, #0f172a);
+  font-size: 12px;
+  outline: none;
+}
+.chm-rail__filter input:focus {
+  border-color: var(--brand-500, #3b82f6);
+}
+.chm-rail__empty {
+  margin: 0;
+  padding: 6px 12px 8px 18px;
+  font-size: 11.5px;
+  color: var(--text-tertiary, #94a3b8);
 }
 
 /* ---- 右：选中渠道详情 ---- */

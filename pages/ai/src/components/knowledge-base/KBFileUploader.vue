@@ -510,6 +510,9 @@ function triggerFolderInput() {
     folderInputRef.value?.click()
 }
 
+// 空态主按钮复用同一套选择 + 上传流程：父组件只调这里，不重写上传逻辑
+defineExpose({ triggerFileInput, triggerFolderInput })
+
 /**
  * 处理文件选择(普通文件上传)
  */

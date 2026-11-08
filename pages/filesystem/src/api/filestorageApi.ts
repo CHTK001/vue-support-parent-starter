@@ -2100,6 +2100,18 @@ export interface FileCollabInfo {
   canWrite?: boolean;
   /** 当前账号是否是创建者（改权限 / 删除的归属判定） */
   isOwner?: boolean;
+  /**
+   * 归档时间戳（0 = 未归档）
+   *
+   * <p>常规列表里恒为 0；「归档」视图下非 0，用于显示「归档于 …」。</p>
+   */
+  archivedAt?: number;
+  /**
+   * 移入回收桶时间戳（0 = 不在回收桶）
+   *
+   * <p>常规列表与归档视图里恒为 0；「回收桶」视图下非 0。</p>
+   */
+  deletedAt?: number;
 }
 
 /** 协同历史版本条目 */
@@ -2293,20 +2305,184 @@ export async function updateFileCollabAccess(
 }
 
 /**
- * 删除协同文档（仅创建者可删）。
+ * 删除协同文档（默认移入回收桶，可恢复）。
  *
- * @param id     协同文档号
- * @param userId 操作者用户标识
- * @return 是否删除成功
+ * <p>{@code permanent=true} 才是「彻底删除」：清掉内容与历史，不可恢复。
+ * 默认走回收桶，是为了把误删从不可逆操作降级成可恢复操作。</p>
+ *
+ * @param id        协同文档号
+ * @param userId    操作者用户标识
+ * @param permanent 是否彻底删除（默认 false = 移入回收桶）
+ * @return 是否生效
  */
-export async function deleteFileCollab(id: string, userId?: string): Promise<boolean> {
+export async function deleteFileCollab(
+  id: string,
+  userId?: string,
+  permanent = false,
+): Promise<boolean> {
   try {
-    const qs = `?userId=${encodeURIComponent(userId ?? collabCurrentUserId())}`;
+    const params = new URLSearchParams();
+    params.set("userId", userId ?? collabCurrentUserId());
+    if (permanent) params.set("permanent", "true");
     return await uploadTaskHttp()
-      .delete(`${FILE_COLLAB_BASE}/${id}${qs}`)
+      .delete(`${FILE_COLLAB_BASE}/${id}?${params.toString()}`)
       .then<boolean>((r) => unwrapTask<boolean>(r) ?? false);
   } catch (e) {
     throw new Error(toErrorMessage(e, "删除协同文档"));
+  }
+}
+
+/**
+ * 列出显式创建的协同目录（空目录也返回）。
+ *
+ * <p>左侧目录树此前完全从文档 path 聚合：没有文档的目录根本不存在，
+ * 于是「新建目录」后空目录立刻消失。这个接口把目录本身也作为一等数据取回来。</p>
+ *
+ * @return 目录路径列表（升序）
+ */
+export async function listFileCollabDirs(): Promise<string[]> {
+  try {
+    return await uploadTaskHttp()
+      .get(`${FILE_COLLAB_BASE}/dirs`)
+      .then<string[]>((r) => unwrapTask<string[]>(r) ?? []);
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "获取协同目录"));
+  }
+}
+
+/**
+ * 新建协同目录（父级路径一并创建）。
+ *
+ * @param path 目录路径（如 {@code 项目A/台账}）
+ * @return true = 新增成功；false = 目录已存在
+ */
+export async function createFileCollabDir(path: string): Promise<boolean> {
+  try {
+    const params = new URLSearchParams();
+    params.set("path", path);
+    return await uploadTaskHttp()
+      .post(`${FILE_COLLAB_BASE}/dirs?${params.toString()}`)
+      .then<boolean>((r) => unwrapTask<boolean>(r) ?? false);
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "新建协同目录"));
+  }
+}
+
+/**
+ * 删除协同目录（仅空目录可删）。
+ *
+ * @param path 目录路径
+ * @return true = 已删除
+ */
+export async function deleteFileCollabDir(path: string): Promise<boolean> {
+  try {
+    const params = new URLSearchParams();
+    params.set("path", path);
+    return await uploadTaskHttp()
+      .delete(`${FILE_COLLAB_BASE}/dirs?${params.toString()}`)
+      .then<boolean>((r) => unwrapTask<boolean>(r) ?? false);
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "删除协同目录"));
+  }
+}
+
+/**
+ * 归档协同文档（从常规列表收起，内容与权限保留）。
+ *
+ * @param id     协同文档号
+ * @param userId 操作者用户标识
+ * @return true = 已归档
+ */
+export async function archiveFileCollab(id: string, userId?: string): Promise<boolean> {
+  try {
+    const qs = `?userId=${encodeURIComponent(userId ?? collabCurrentUserId())}`;
+    return await uploadTaskHttp()
+      .post(`${FILE_COLLAB_BASE}/${id}/archive${qs}`)
+      .then<boolean>((r) => unwrapTask<boolean>(r) ?? false);
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "归档协同文档"));
+  }
+}
+
+/**
+ * 取消归档（回到常规列表）。
+ *
+ * @param id     协同文档号
+ * @param userId 操作者用户标识
+ * @return true = 已取消归档
+ */
+export async function unarchiveFileCollab(id: string, userId?: string): Promise<boolean> {
+  try {
+    const qs = `?userId=${encodeURIComponent(userId ?? collabCurrentUserId())}`;
+    return await uploadTaskHttp()
+      .post(`${FILE_COLLAB_BASE}/${id}/unarchive${qs}`)
+      .then<boolean>((r) => unwrapTask<boolean>(r) ?? false);
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "取消归档"));
+  }
+}
+
+/**
+ * 从回收桶恢复。
+ *
+ * @param id     协同文档号
+ * @param userId 操作者用户标识
+ * @return true = 已恢复
+ */
+export async function restoreFileCollab(id: string, userId?: string): Promise<boolean> {
+  try {
+    const qs = `?userId=${encodeURIComponent(userId ?? collabCurrentUserId())}`;
+    return await uploadTaskHttp()
+      .post(`${FILE_COLLAB_BASE}/${id}/restore${qs}`)
+      .then<boolean>((r) => unwrapTask<boolean>(r) ?? false);
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "恢复协同文档"));
+  }
+}
+
+/**
+ * 归档视图列表。
+ *
+ * @param userId  当前用户标识
+ * @param keyword 关键字过滤
+ * @return 已归档文档
+ */
+export async function listArchivedFileCollabs(
+  userId?: string,
+  keyword?: string,
+): Promise<FileCollabInfo[]> {
+  try {
+    const params = new URLSearchParams();
+    params.set("userId", userId ?? collabCurrentUserId());
+    if (keyword) params.set("keyword", keyword);
+    return await uploadTaskHttp()
+      .get(`${FILE_COLLAB_BASE}/archived?${params.toString()}`)
+      .then<FileCollabInfo[]>((r) => unwrapTask<FileCollabInfo[]>(r) ?? []);
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "获取归档列表"));
+  }
+}
+
+/**
+ * 回收桶视图列表。
+ *
+ * @param userId  当前用户标识
+ * @param keyword 关键字过滤
+ * @return 回收桶文档
+ */
+export async function listTrashedFileCollabs(
+  userId?: string,
+  keyword?: string,
+): Promise<FileCollabInfo[]> {
+  try {
+    const params = new URLSearchParams();
+    params.set("userId", userId ?? collabCurrentUserId());
+    if (keyword) params.set("keyword", keyword);
+    return await uploadTaskHttp()
+      .get(`${FILE_COLLAB_BASE}/trash?${params.toString()}`)
+      .then<FileCollabInfo[]>((r) => unwrapTask<FileCollabInfo[]>(r) ?? []);
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "获取回收桶列表"));
   }
 }
 

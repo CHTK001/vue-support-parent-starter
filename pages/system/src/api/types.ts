@@ -565,10 +565,53 @@ export interface SysTenant extends Auditable {
   sysTenantDbname?: string;
   /** 主库IP（sysTenantHost 为空时作为地址回退） */
   sysTenantIp?: string;
+  /**
+   * 引用的数据源台账 id（ms_datasource.id）
+   *
+   * - `null` / `0`：用本租户自填的 host/port/账号/口令（存量行为）
+   * - `-1`：用平台自身实例，只填库名即可
+   * - `> 0`：用数据源中心台账里的那条实例，只填库名即可
+   */
+  sysTenantDatasourceId?: number | null;
   /** 关联服务ID列表（只读） */
   serviceIds?: number[];
   /** 关联服务列表（只读） */
   sysTenantService?: SysTenantService[];
+}
+
+/** 租户库来源下拉项（不含口令） */
+/** 租户库来源下拉项（不含口令） */
+export type TenantDatasourceOptionType = "manual" | "jdbc" | string;
+
+export interface TenantDatasourceOption {
+  /** 0=自填，-1=平台自身实例，>0=数据源台账 id */
+  id?: number;
+  /** 展示名 */
+  name?: string;
+  /** 类型：manual / jdbc */
+  type?: string;
+  /** 实例地址 */
+  host?: string | null;
+  /** 实例端口 */
+  port?: number | null;
+  /** 实例侧默认库名（仅供参考，租户库名以 sysTenantDbname 为准） */
+  dbName?: string | null;
+  /** 台账最近一次连通性探测结果，null=未探测 */
+  online?: boolean | null;
+}
+
+/** 租户库连接信息只读回显 */
+export interface TenantDatasourceView {
+  /** 来源：TENANT_FIELDS / DATASOURCE_HUB / PLATFORM_SELF */
+  origin?: string;
+  /** 来源中文名 */
+  originLabel?: string;
+  host?: string | null;
+  port?: number | null;
+  dbName?: string | null;
+  username?: string | null;
+  /** 台账数据源名称（仅引用台账时有值） */
+  datasourceName?: string | null;
 }
 
 /** 租户-服务关联 */

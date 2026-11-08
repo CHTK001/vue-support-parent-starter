@@ -18,10 +18,6 @@
                像素恐龙用同一个游戏组件跑 demo 模式，预览和实物一致。 -->
           <span class="loader-card__anim" :style="previewStyle">
             <ReLoaderDinoGame v-if="opt.value === 'dino'" mode="demo" :rate="visuals.speed" />
-            <span v-else-if="figureOf(opt.value)" class="loader-card__vector">
-              <!-- 矢量款：与真正加载时是同一个图形、同一套配色 -->
-              <ReLoaderHairline :figure="figureOf(opt.value)!" />
-            </span>
             <span v-else v-html="markup(opt.value)" />
           </span>
         </span>
@@ -127,10 +123,8 @@ import {
   LOADER_SPEED_MAX,
   LOADER_SPEED_MIN,
   ReLoaderDinoGame,
-  ReLoaderHairline,
   ensureLoaderAnimationStyle,
   loaderAnimationMarkup,
-  loaderHairlineFigureOf,
   normalizeLoaderSize,
   setLoaderAnimation,
   setLoaderPrefs,
@@ -150,10 +144,6 @@ const OPTION_ORDER: LoaderAnimationChoice[] = [
   "ripple",
   "orbit",
   "bars",
-  "matrix",
-  "conveyor",
-  "pillars",
-  "cards",
   LOADER_ANIMATION_NONE,
 ];
 
@@ -195,14 +185,6 @@ const options = computed(() =>
 /** 与首屏同一份生成函数，保证面板里看到的就是真实结构 */
 function markup(value: LoaderAnimationChoice): string {
   return loaderAnimationMarkup(value);
-}
-
-/**
- * 该款在应用内用的 hairline 图形（点阵 / 传送带 / 柱阵 / 卡片翻动）；
- * 纯 CSS 款返回 null，卡片里渲染 v-html 生成的 CSS 结构。
- */
-function figureOf(value: LoaderAnimationChoice): string | null {
-  return loaderHairlineFigureOf(value);
 }
 
 function select(value: LoaderAnimationChoice): void {
@@ -313,15 +295,6 @@ onMounted(() => {
 
   /* 缩略尺寸：--sla-s 就是动画唯一的尺寸入口。
      56px 与 ReLoader 的 md 档一致，卡片里放得下又不显小。 */
-  /* 矢量款：图形宽度即基准（库按 5/4 出高度），描边细一档，缩略图里才不糊 */
-  &__vector {
-    --hairline-stroke: 0.6;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 56px;
-  }
-
   &__anim {
     --sla-s: 56px;
     display: inline-flex;

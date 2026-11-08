@@ -8,8 +8,8 @@
 import { getGlobalSocketService, message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
 import { ElMessageBox } from "element-plus";
-import { pageForTenant, updateTenant, deleteTenant, updateTenantStatus, resetTenantPassword, getTenant, listForTenant, tenantProvisionCapabilities, startTenantProvision, cancelTenantProvision, tenantProvisionStatus, getTenantEndpoint } from "../api/systemApi";
-import type { SysTenant, TenantEndpointInfo } from "../api/types";
+import { pageForTenant, updateTenant, deleteTenant, updateTenantStatus, resetTenantPassword, getTenant, listForTenant, tenantProvisionCapabilities, startTenantProvision, cancelTenantProvision, tenantProvisionStatus, getTenantEndpoint, tenantDatasourceOptions } from "../api/systemApi";
+import type { SysTenant, TenantDatasourceOption, TenantEndpointInfo } from "../api/types";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 import type { ProgressSnapshot, ProgressStep } from "@repo/ui/re-progress-dialog";
 import ServiceCatalogPanel from "./components/ServiceCatalogPanel.vue";
@@ -83,6 +83,41 @@ const saving = ref(false);
 const isEdit = ref(false);
 const form = ref<SysTenant>({ sysTenantStatus: 0, sysTenantDelete: 0 });
 
+/* ---------------- 租户库实例来源 ----------------
+ * 实例来源有两种：自填（存量行为，每个租户自己填地址/端口/账号/口令）；
+ * 引用现成实例（平台自身实例或数据源中心台账里的 jdbc 数据源），此时只需填库名。
+ * 下拉项由平台代理数据源台账下发，不含口令。
+ */
+const datasourceOptions = ref<TenantDatasourceOption[]>([]);
+const datasourceLoading = ref(false);
+
+/** 是否引用了现成实例（-1=平台自身，>0=台账）：地址/端口/账号/口令全部来自实例 */
+const useSharedInstance = computed(() => {
+  const id = form.value.sysTenantDatasourceId;
+  return id !== null && id !== undefined && Number(id) !== 0;
+});
+
+/** 所选项在实例侧给出的地址与端口（自填时为空） */
+const sharedEndpoint = computed(() => {
+  const id = form.value.sysTenantDatasourceId;
+  if (id === null || id === undefined) return { host: "", port: null as number | null };
+  const option = datasourceOptions.value.find((item) => item.id === Number(id));
+  return { host: option?.host ?? "", port: option?.port ?? null };
+});
+
+/** 加载实例来源下拉项；失败时退化为只有「自填」，表单仍可用 */
+async function loadDatasourceOptions() {
+  datasourceLoading.value = true;
+  try {
+    const res = await tenantDatasourceOptions();
+    datasourceOptions.value = res?.data ?? [];
+  } catch {
+    datasourceOptions.value = [{ id: 0, name: "由租户自己填写实例信息", type: "manual" }];
+  } finally {
+    datasourceLoading.value = false;
+  }
+}
+
 const pwdForm = ref({ sysTenantId: "", sysTenantPassword: "admin123456" });
 const pwdDialogVisible = ref(false);
 
@@ -147,14 +182,23 @@ function handleAdd() {
   isEdit.value = false;
   // 独立库地址默认与平台同机同端口：租户创建表单里最常填的是库名，
   // 让地址/端口留空会让后端判定「未登记库地址」直接跳过建库建表。
-  form.value = { sysTenantStatus: 0, sysTenantDelete: 0, sysTenantHost: "127.0.0.1", sysTenantPort: 3306 };
+  form.value = {
+    sysTenantStatus: 0,
+    sysTenantDelete: 0,
+    sysTenantHost: "127.0.0.1",
+    sysTenantPort: 3306,
+    // 0 = 自填，与存量行为一致；要复用平台自身实例或台账实例时在表单里改
+    sysTenantDatasourceId: 0,
+  };
   dialogVisible.value = true;
+  void loadDatasourceOptions();
 }
 
 function handleEdit(row: Record<string, unknown>) {
   isEdit.value = true;
   form.value = { ...(row as unknown as SysTenant) };
   dialogVisible.value = true;
+  void loadDatasourceOptions();
 }
 
 /** 下拉列表（新增/编辑弹窗中分配菜单选择用） */
@@ -191,6 +235,24 @@ async function handleSubmit() {
   if (!isEdit.value && !form.value.sysTenantPassword) {
     message.warning("请输入租户密码");
     return;
+  }
+  // 独立库要么全空（共用主库），要么库名齐全；引用现成实例时只需库名
+  if (useSharedInstance.value) {
+    if (!String(form.value.sysTenantDbname || "").trim()) {
+      message.warning("已选择共享数据库实例，请填写该租户要用的库名");
+      return;
+    }
+  } else if (
+    [
+      form.value.sysTenantDbname,
+      form.value.sysTenantSqlUsername,
+      form.value.sysTenantSqlPassword,
+    ].some((v) => String(v ?? "").trim())
+  ) {
+    if (!form.value.sysTenantDbname || !form.value.sysTenantSqlUsername || !form.value.sysTenantSqlPassword) {
+      message.warning("独立库信息不完整：库名、数据库账号、数据库口令需同时填写");
+      return;
+    }
   }
   if (isEdit.value) {
     saving.value = true;
@@ -640,6 +702,46 @@ onMounted(() => {
           </el-col>
         </el-row>
         <el-row :gutter="16">
+          <el-col :span="24">
+            <el-form-item label="实例来源">
+              <el-select
+                v-model="form.sysTenantDatasourceId"
+                :loading="datasourceLoading"
+                placeholder="选择数据库实例"
+                class="!w-full"
+              >
+                <el-option
+                  v-for="item in datasourceOptions"
+                  :key="item.id"
+                  :label="item.name || `数据源#${item.id}`"
+                  :value="item.id ?? 0"
+                >
+                  <span>{{ item.name }}</span>
+                  <span v-if="item.host" class="tenant-ds-option-host">
+                    {{ item.host }}{{ item.port ? `:${item.port}` : "" }}
+                  </span>
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row v-if="useSharedInstance" :gutter="16">
+          <el-col :span="16">
+            <el-form-item label="数据库地址">
+              <div class="tenant-ds-readonly">
+                {{ sharedEndpoint.host || "（由所选实例提供）" }}
+              </div>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="数据库端口">
+              <div class="tenant-ds-readonly">
+                {{ sharedEndpoint.port ?? "（实例默认）" }}
+              </div>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row v-else :gutter="16">
           <el-col :span="12">
             <el-form-item label="数据库地址">
               <ReInput layout="modern" v-model="form.sysTenantHost" placeholder="如 127.0.0.1" maxlength="255" show-word-limit />
@@ -657,15 +759,20 @@ onMounted(() => {
               <ReInput layout="modern" v-model="form.sysTenantDbname" placeholder="请输入数据库名" maxlength="255" show-word-limit />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="数据库账号">
-              <ReInput layout="modern" v-model="form.sysTenantSqlUsername" placeholder="请输入数据库账号" maxlength="255" show-word-limit />
-            </el-form-item>
-          </el-col>
+          <template v-if="!useSharedInstance">
+            <el-col :span="12">
+              <el-form-item label="数据库账号">
+                <ReInput layout="modern" v-model="form.sysTenantSqlUsername" placeholder="请输入数据库账号" maxlength="255" show-word-limit />
+              </el-form-item>
+            </el-col>
+          </template>
         </el-row>
-        <el-form-item label="数据库口令">
+        <el-form-item v-if="!useSharedInstance" label="数据库口令">
           <ReInput layout="modern" v-model="form.sysTenantSqlPassword" type="password" placeholder="明文传入，落库为密文" maxlength="255" show-word-limit />
         </el-form-item>
+        <div v-if="useSharedInstance" class="tenant-ds-hint">
+          地址、端口与账号取自所选实例，这里只需填写该租户要用的库名。多个租户共用同一实例时，务必各自使用不同的库名。
+        </div>
         <el-form-item label="备注">
           <ReInput layout="modern" v-model="form.sysTenantRemark" type="textarea" :rows="2" maxlength="255" show-word-limit />
         </el-form-item>
@@ -829,6 +936,39 @@ onMounted(() => {
   background: var(--el-fill-color, #f0f2f5);
   color: var(--el-color-primary, #409eff);
   font-family: var(--el-font-family-mono, monospace);
+}
+
+/* 实例来源下拉项右侧的地址提示 */
+.tenant-ds-option-host {
+  float: right;
+  margin-left: 12px;
+  color: var(--el-text-color-secondary, #909399);
+  font-size: 12px;
+}
+
+/* 引用现成实例时，地址与端口只读回显 */
+.tenant-ds-readonly {
+  width: 100%;
+  padding: 0 11px;
+  height: 32px;
+  line-height: 30px;
+  border: 1px solid var(--el-border-color, #dcdfe6);
+  border-radius: var(--el-border-radius-base, 4px);
+  background: var(--el-fill-color-light, #f5f7fa);
+  color: var(--el-text-color-regular, #606266);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tenant-ds-hint {
+  margin: -4px 0 18px;
+  padding: 8px 12px;
+  border-radius: var(--el-radius-base, 6px);
+  background: var(--el-fill-color-light, #f5f7fa);
+  color: var(--el-text-color-secondary, #909399);
+  font-size: 12px;
+  line-height: 1.7;
 }
 
 .endpoint-dialog {

@@ -44,7 +44,7 @@
       <div v-else-if="item.type === 'tool' && showProcess" class="timeline-row">
         <span class="timeline-rail"><el-icon size="14"><Wrench24Filled /></el-icon></span>
         <div class="timeline-body">
-          <MessageToolCalls :tool-calls="item.toolCalls || []" :tool-responses="item.toolResponses"
+          <MessageToolCalls :key="toolSignature(item)" :tool-calls="item.toolCalls || []" :tool-responses="item.toolResponses"
             :is-streaming="isStreaming" @abort="$emit('abort')" />
         </div>
       </div>
@@ -72,6 +72,19 @@ withDefaults(defineProps<{
   showProcess: true,
   isStreaming: false,
 });
+
+// 父级只在收到新内容时重建 props，接收用到的字段拍平后作为子组件的刷新键：
+// 流式期间工具行的 arguments / result / outcome 都是**就地增量修改**的，
+// `item` 对象本身的引用不变，直接传 `item.toolCalls` 会让子组件插槽编译出的
+// 判值缓存看不见变化——表现为「执行中输出一直停留在首帧」。
+const toolSignature = (item: DisplayItem): string => {
+  const rows = (item.toolCalls || []) as any[];
+  let sig = '';
+  for (const r of rows) {
+    sig += `${r?.name || ''}|${(r?.arguments || '').length}|${(r?.result || '').length}|${r?.outcome || ''};`;
+  }
+  return sig;
+};
 
 defineEmits<{
   click: [event: MouseEvent];

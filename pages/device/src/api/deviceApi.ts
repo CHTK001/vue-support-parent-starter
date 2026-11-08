@@ -102,11 +102,15 @@ export const deviceApi = {
   /**
    * 导出设备台账。
    *
-   * <p>参数与 `/page` 完全一致，按当前列表筛选导出（所见即所得）：
-   * 关键字、厂商、在线状态、组织/分组/设备集合都可带上。</p>
+   * <p>用 POST 传条件：除了与 `/page` 一致的关键字/厂商/在线状态外，还能带上
+   * 组织/分组/设备集合（左树选中项），保证导出内容与列表「所见即所得」。</p>
    */
   exportDevices: (params?: DevicePageQuery) =>
-    http.get("/export").query(params as unknown as Record<string, unknown>).responseType("blob").then(unwrap),
+    http
+      .post("/export")
+      .data((params ?? {}) as unknown as Record<string, unknown>)
+      .responseType("blob")
+      .then(unwrap),
   /** 下载台账导入模板（Excel） */
   downloadImportTemplate: () =>
     http.get("/import/template").responseType("blob").then(unwrap),

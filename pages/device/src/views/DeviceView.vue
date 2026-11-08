@@ -378,8 +378,9 @@
                     </article>
                   </div>
                   <div v-else class="da-empty">
-                    <ReIcon name="Files" :size="26" />
-                    <span>没有符合条件的设备，试试清除筛选或换个关键词。</span>
+                    <span class="da-empty__icon"><ReIcon name="Files" :size="22" /></span>
+                    <b class="da-empty__title">没有符合条件的设备</b>
+                    <span class="da-empty__text">试试清除筛选，或点左上角「+」新增设备</span>
                   </div>
                 </ReScrollbar>
               </div>
@@ -466,9 +467,10 @@
                     </div>
                   </template>
                   <template #empty>
-                    <div class="da-empty">
-                      <ReIcon name="Files" :size="26" />
-                      <span>暂无设备，可点左上角「+」新增，或前往「厂商接入」同步。</span>
+                    <div class="da-empty is-flat">
+                      <span class="da-empty__icon"><ReIcon name="Files" :size="22" /></span>
+                      <b class="da-empty__title">暂无设备</b>
+                      <span class="da-empty__text">点左上角「+」新增，或前往「厂商接入」同步设备目录</span>
                     </div>
                   </template>
                 </ReTable>
@@ -572,9 +574,10 @@
           </template>
 
           <template #empty>
-            <div class="da-empty">
-              <ReIcon name="Files" :size="26" />
-              <span>还没有打开其它页签，右键左侧设备叶子可打开详情 / 通道 / 日志 / 拓扑。</span>
+            <div class="da-empty is-flat">
+              <span class="da-empty__icon"><ReIcon name="Files" :size="22" /></span>
+              <b class="da-empty__title">还没有打开其它页签</b>
+              <span class="da-empty__text">右键左侧设备叶子，打开详情 / 通道 / 日志 / 拓扑</span>
             </div>
           </template>
         </ReTabs>
@@ -1715,8 +1718,11 @@ const pageParams = computed<DevicePageQuery>(() => {
   }
   const f = filterState.value
   if (f) {
-    if (f.kind === 'org') params.orgId = f.id
-    else if (f.kind === 'group') params.groupId = f.id
+    // 组织 / 分组按「含子孙」口径传集合：与左树计数（orgDeviceCount / groupDeviceCount）、
+    // 轻索引筛选（indexFilterByFilterState）以及导出口径完全一致，避免树上有数、列表对不上。
+    // 集合在服务端优先于单值 orgId / groupId。
+    if (f.kind === 'org') params.orgIds = Array.from(orgDescendants(f.id))
+    else if (f.kind === 'group') params.groupIds = Array.from(groupSubtreeIds(f.id))
     else if (f.kind === 'vendor') params.vendor = f.id
   }
   params.tag = tagFilter.value
@@ -1725,7 +1731,8 @@ const pageParams = computed<DevicePageQuery>(() => {
 })
 
 /** 远程 loader：ReTable 交出页码/条数，页面拼参数；数据同时写回 rows（给卡片筛选用） */
-async function pageLoader(params: ReTableLoadParams): Promise<RePageResult<Record<string, unknown>>> {  try {
+async function pageLoader(params: ReTableLoadParams): Promise<RePageResult<Record<string, unknown>>> {
+  try {
     const res = await deviceApi.page({ ...pageParams.value, pageNo: params.page, pageSize: params.pageSize })
     const entries = (res as unknown as { data?: DeviceInfo[]; records?: DeviceInfo[] }).data
       ?? (res as unknown as { records?: DeviceInfo[] }).records
@@ -2681,9 +2688,27 @@ function goProvider() {
   }
 }
 
+/**
+ * 导出条件：与列表当前筛选严格同源。
+ *
+ * <p>服务端能表达的筛选直接透传 {@link pageParams}（组织/分组/厂家/在线/未分组/标签/关键词）；
+ * 「维保到期 / 未定位」只在轻索引上算，这两种情况改用轻索引筛出的 id 集合，
+ * 保证导出的就是当前看到的那些行，而不是整库。</p>
+ */
+const exportParams = computed<DevicePageQuery>(() => {
+  const params: DevicePageQuery = { ...pageParams.value }
+  if (quickFilter.value === 'warranty' || quickFilter.value === 'unlocated') {
+    params.ids = indexFiltered.value.map((item) => item.deviceInfoId)
+  }
+  if (leafDeviceId.value) {
+    params.ids = [leafDeviceId.value]
+  }
+  return params
+})
+
 async function exportDevices() {
   try {
-    const blob = await deviceApi.exportDevices()
+    const blob = await deviceApi.exportDevices(exportParams.value)
     const url = URL.createObjectURL(new Blob([blob as BlobPart], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     }))
@@ -2692,7 +2717,7 @@ async function exportDevices() {
     link.download = `设备台账_${new Date().toISOString().slice(0, 10)}.xlsx`
     link.click()
     URL.revokeObjectURL(url)
-    message.success('导出成功')
+    message.success('已按当前筛选导出')
   } catch (err) {
     message.error('导出失败：' + errorText(err))
   }
@@ -3170,6 +3195,12 @@ onMounted(async () => {
   flex: 1 1 0;
   min-height: 0;
   display: flex;
+  padding: 10px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  overflow: hidden;
 }
 .da-cards__scroll {
   flex: 1;
@@ -3491,14 +3522,44 @@ onMounted(async () => {
   font-size: 12.5px;
 }
 
+/* 空态：一张带底色的虚线卡，避免裸文字直接压在面板/卡片底上 */
 .da-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 40px 20px;
+  margin: 0;
+  padding: 28px 20px;
+  min-height: 240px;
+  border: 1px dashed color-mix(in srgb, var(--el-color-primary) 45%, var(--el-border-color-lighter));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-bg-color));
   color: var(--el-text-color-secondary);
   font-size: 13px;
+  text-align: center;
+}
+.da-empty__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--el-color-primary) 12%, var(--el-bg-color));
+  color: var(--el-color-primary);
+}
+.da-empty__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.da-empty__text { font-size: 12px; line-height: 1.5; }
+/* 表格 / 页签自带的空态槽已经有卡面，这里只保留排版，不重复叠一张卡 */
+.da-empty.is-flat {
+  min-height: 200px;
+  border: 0;
+  background: transparent;
 }
 
 .mono { font-family: var(--el-font-family-mono, monospace); }

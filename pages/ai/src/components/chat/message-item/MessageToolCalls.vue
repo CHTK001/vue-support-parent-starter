@@ -381,6 +381,22 @@ watch(executingSignature, () => {
   expandedIndexes.value = [...next];
 }, { immediate: true });
 
+/**
+ * 从既有 toolCalls 恢复展开态。
+ *
+ * 执行中输出是增量进来的，父级用「工具调用签名」作 key 让本组件随内容重建；
+ * 重建后本地 expandedIndexes 会回到初始值，若用户是手动点开的、或正处在流式尾部，
+ * 行就会自己合上。这里按「有运行中的行」或「用户此前展开过」恢复，不抢用户的手。
+ */
+watch(() => props.toolCalls, (rows) => {
+  const list = rows || [];
+  const running = list.map((tc, i) => (isToolExecuting(tc, i) ? i : -1)).filter((i) => i >= 0);
+  if (!running.length) return;
+  const next = new Set(expandedIndexes.value);
+  running.forEach((i) => next.add(i));
+  expandedIndexes.value = [...next];
+});
+
 // ── 展示文案 ──
 
 const getToolDisplayName = (tool: ToolCall): string => {

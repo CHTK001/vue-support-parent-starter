@@ -134,9 +134,13 @@
           <!-- 模型动作条：输入框上方的「模型此刻在干什么」
                （执行中命令卡可展开/停止；等待用户/思考/生成三种轻量态）。
                编辑消息时隐藏，避免与编辑条叠在一起（与 AiNextTaskPanel 同口径）。 -->
-          <ModelActionBar v-if="!editMode" :kind="actionBarKind" :text="processingStatus"
-            :model-name="actionBarModelName" :card="actionBarCard" @stop="abortResponse"
-            @locate="handleActionBarLocate" />
+          <ModelActionBar v-if="!editMode" :kind="actionBarKind"
+            :model-name="actionBarModelName" :card="actionBarCard" :progress="actionBarProgressText"
+            :pending="actionBarPending" :retry="actionBarRetry" :suggestions="actionBarSuggestions"
+            :suggestions-enabled="actionBarSuggestEnabled" :session-id="effectiveSessionId"
+            @stop="abortResponse" @locate="handleActionBarLocate"
+            @approve="handleActionBarApproveAll" @suggestion="handleActionBarSuggestion"
+            @suggested="loadNextTaskState" />
 
           <div class="w-full flex items-center relative">
 
@@ -183,6 +187,7 @@ import { apiService } from "../../services/ApiService";
 import { usePopup } from "@/composables/usePopup";
 import { useDebounceFn } from "@vueuse/core";
 import { useSessionStore } from "../../stores/session";
+import { useGoalStore } from "../../stores/goal";
 import { useAuthStore } from "../../stores/auth"
 import { useLayoutStore } from "@/stores/layout"
 import { getCurrentTurns, flattenContentsForTimeline } from "@/utils/messageUtils"
@@ -190,6 +195,7 @@ import { getToolActionLabel, getToolIcon, getArgsText } from "@/utils/toolDispla
 import { useStreamResponse } from "@/composables/useStreamResponse"
 import type { InputMessageState, Session, QueuedMessage } from '@/types/session';
 import type { Character } from '@/types/character';
+import type { SessionNextTaskState } from '@/services/modules/session-next-task.api';
 
 // 导入新创建的 composables
 import { useSessionChat } from '@/composables/useSessionChat'
@@ -210,7 +216,7 @@ import { Edit20Regular, DataLine20Regular } from '@vicons/fluent'
 import { Close } from '@element-plus/icons-vue'
 import AgentPanel from './AgentPanel.vue';
 import LTooltip from '../ui/LTooltip.vue';
-import ModelActionBar, { type ModelActionCard } from './ModelActionBar.vue';
+import ModelActionBar, { type ModelActionCard, type ModelActionPending } from './ModelActionBar.vue';
 import ReDialog from '@repo/ui/re-dialog'
 
 
@@ -598,14 +604,79 @@ const actionBarIdle = computed(() => {
  * 只是在等网络。useStreamResponse 把 retryInfo 写进内容 metadata，内容恢复后清除，
  * 所以「存在 retryInfo」就是当时的等待信号，不需要额外状态机。
  */
-const actionBarRetrying = computed(() => {
-  if (!isStreaming.value) return false;
+/**
+ * 待确认的计划（waiting 形态的数据源）。
+ *
+ * 只取**最后一个回合**里最近一条未决的 confirmationRequest：更早回合的确认
+ * 都已被后续回合超越；已决（approved/rejected）的不算等待。
+ * 独立成 computed 是为了让动作条能就地「全部批准」，不必滚到计划卡片。
+ */
+const actionBarPending = computed<ModelActionPending | null>(() => {
+  const list = visibleTurns.value || [];
+  for (let i = list.length - 1; i >= 0; i -= 1) {
+    const assistants = (list[i] as any)?.assistants || [];
+    // 该回合内从新到旧扫：挂起时确认请求可能不在最后一条空壳助手消息上
+    for (let j = assistants.length - 1; j >= 0; j -= 1) {
+      const contents = assistants[j]?.contents || [];
+      for (let k = contents.length - 1; k >= 0; k -= 1) {
+        const req = contents[k]?.metadata?.confirmationRequest;
+        const resolved = req?.status === 'approved' || req?.status === 'rejected';
+        if (req && req.replyId && !resolved) {
+          return { replyId: req.replyId, items: req.items || [] };
+        }
+      }
+    }
+    break;
+  }
+  return null;
+});
+
+const actionBarRetrying = computed(() => actionBarRetry.value !== null);
+
+/**
+ * 网络重试：流式过程中后端回报 retry（连接抖动 / 限流），此时 AI 没有在思考，
+ * 只是在等网络。useStreamResponse 把 retryInfo 写进内容 metadata，内容恢复后清除，
+ * 所以「存在 retryInfo」就是当时的等待信号，不需要额外状态机。
+ */
+const actionBarRetry = computed<{ attempt?: number; maxRetries?: number; reason?: string } | null>(() => {
+  if (!isStreaming.value) return null;
   const list = visibleTurns.value || [];
   const active = activeAssistantOf(list[list.length - 1]);
   for (const c of active?.contents || []) {
-    if (c?.metadata?.retryInfo) return true;
+    const info = c?.metadata?.retryInfo;
+    if (info) {
+      return {
+        attempt: info.attempt,
+        maxRetries: info.maxRetries,
+        reason: info.reason || info.message,
+      };
+    }
   }
-  return false;
+  return null;
+});
+
+/**
+ * 执行进度：本轮已开过几个工具。
+ *
+ * 后端不下发「一共几个工具」（模型跑到哪算哪），所以只报「第 N 个」这种诚实口径，
+ * 不假装成带百分比的进度条。
+ */
+const actionBarProgressText = computed(() => {
+  if (actionBarKind.value !== 'executing') return '';
+  const list = visibleTurns.value || [];
+  const active = activeAssistantOf(list[list.length - 1]);
+  let total = 0;
+  for (const c of active?.contents || []) {
+    // 两条通道都要算：
+    //  · toolIteration 是 trace/智能体路径的累计序号（useStreamResponse 逐次 +1）；
+    //  · toolCalls 是经典 tool_call 事件收集到的调用列表（该路径不写 toolIteration）。
+    // 只认前者时，经典路径下永远拿不到序号，动作条就少了「第 N 个工具」。
+    const iterations = Number(c?.metadata?.toolIteration) || 0;
+    const calls = Array.isArray(c?.metadata?.toolCalls) ? c.metadata.toolCalls.length : 0;
+    total = Math.max(total, iterations, calls);
+  }
+  if (total <= 1) return '';
+  return t('chat.panel.actionBarToolIndex', { index: total });
 });
 
 /**
@@ -620,22 +691,8 @@ const actionBarRetrying = computed(() => {
  * 工具行上（该工具其实早已返回），不先看确认请求就会误报「正在执行命令」。
  */
 const actionBarKind = computed<'executing' | 'retrying' | 'thinking' | 'streaming' | 'waiting' | 'idle' | null>(() => {
-  // 只看最后一个回合：更早回合的确认请求都已被后续回合超越
-  const list = visibleTurns.value || [];
-  for (let i = list.length - 1; i >= 0; i -= 1) {
-    const assistants = (list[i] as any)?.assistants || [];
-    // 该回合内从新到旧扫：挂起时确认请求可能不在最后一条空壳助手消息上
-    for (let j = assistants.length - 1; j >= 0; j -= 1) {
-      for (const c of assistants[j]?.contents || []) {
-        const req = c?.metadata?.confirmationRequest;
-        const resolved = req?.status === 'approved' || req?.status === 'rejected';
-        if (req && req.replyId && !resolved) return 'waiting';
-      }
-    }
-    break;
-  }
-  const current = currentProcessItem.value;
-  if (current?.kind === 'tool') return 'executing';
+  if (actionBarPending.value) return 'waiting';
+  const current = currentProcessItem.value;  if (current?.kind === 'tool') return 'executing';
   // 网络重试期间同样「什么都没在做」，必须在 thinking 之前拦下
   if (actionBarRetrying.value) return 'retrying';
   if (current?.kind === 'think') return 'thinking';
@@ -643,15 +700,74 @@ const actionBarKind = computed<'executing' | 'retrying' | 'thinking' | 'streamin
   return actionBarIdle.value ? 'idle' : null;
 });
 
+/**
+ * 会话累计执行统计（回答速度 / 模型耗时 / 工具耗时），供动作条在空闲态展示。
+ *
+ * 口径与 SessionStatusPanel 一致：只聚合助手消息上的 usage / totalDurationMs /
+ * toolDurationMs，缺失的项不臆造（例如旧消息没有 totalDurationMs 就不显示该项）。
+ */
+const actionBarSessionStats = computed(() => {
+  let modelMs = 0;
+  let toolMs = 0;
+  let completion = 0;
+  let answers = 0;
+  for (const turn of visibleTurns.value || []) {
+    for (const m of turn?.assistants || []) {
+      const mm = Number(m?.totalDurationMs)
+      if (Number.isFinite(mm) && mm > 0) modelMs += mm
+      const tm = Number(m?.toolDurationMs)
+      if (Number.isFinite(tm) && tm > 0) toolMs += tm
+      const usage = (m?.contents || []).map((c: any) => c?.metadata?.usage).find(Boolean)
+      if (usage) {
+        completion += Number(usage.completionTokens || usage.outputTokens || 0)
+        answers += 1
+      }
+    }
+  }
+  return { modelMs, toolMs, answers, completion }
+});
+
+/**
+ * 把会话累计令牌同步给「目标」计数器。
+ *
+ * <p>口径：优先用后端 token-stats 的累计 prompt + completion（刷新后仍有）；
+ * 后端没给累计值（0）时退回本地按消息汇总的 completion。
+ * 目标创建时的会话总量会被 store 记成基线，计数器显示的是「目标开始之后」的消耗。</p>
+ */
+const goalStore = useGoalStore();
+
+watch(
+  () => {
+    const sid = effectiveSessionId.value;
+    const stats = tokenStats.value;
+    const fromStats = (Number(stats?.promptTokens) || 0) + (Number(stats?.completionTokens) || 0);
+    const total = fromStats > 0 ? fromStats : actionBarSessionStats.value.completion;
+    // 把目标 id 也放进依赖：新建目标时令牌总量没变，但基线必须立刻采一次，
+    // 否则第一条回复到达时才会记基线，那一条的消耗就被吞掉了。
+    const goal = sid == null ? null : goalStore.goalOf(String(sid));
+    return [sid, total, goal?.id ?? null] as const;
+  },
+  ([sid, tokens]) => {
+    if (sid == null || !String(sid)) {
+      return;
+    }
+    goalStore.syncTokens(String(sid), Number(tokens) || 0);
+  },
+  { immediate: true },
+);
+
 /** 动作条里的模型名：与 ChatInput 模型按钮同源（该组件已加载模型目录并做了去命名空间显示） */
 const actionBarModelName = computed(() => chatInputRef.value?.currentModelName || '');
 
-/** executing 态的命令卡数据：摘要一行 + 展开详情（参数全文） */
+/** executing 态的命令卡数据：摘要一行 + 实时输出 + 展开详情（参数全文） */
 const actionBarCard = computed<ModelActionCard | null>(() => {
   const current = currentProcessItem.value;
   if (current?.kind !== 'tool') return null;
   const tool = current.tool;
   const args = getArgsText(tool);
+  // 增量输出（trace 的 tool_result 片段）由 useStreamResponse 累加到 tool.result；
+  // undefined 表示这个工具根本不产流（如写文件），不渲染输出区；空串表示在等首字节。
+  const rawResult = (tool as any)?.result;
   return {
     id: tool?.id ? String(tool.id) : undefined,
     label: getToolActionLabel(tool),
@@ -660,8 +776,56 @@ const actionBarCard = computed<ModelActionCard | null>(() => {
     detail: args || undefined,
     elapsedText: '',
     icon: getToolIcon(tool),
+    liveOutput: typeof rawResult === 'string' ? rawResult : undefined,
   };
 });
+
+/**
+ * 空闲态的下一步建议：复用会话已有的「AI 联想下一个任务」接口。
+ *
+ * 不新造接口——后端 GET /sessions/{id}/ai-next-task 已把开关、建议与生成时间
+ * 一起返回（AiNextTaskPanel 也在用）。这里只取「已开启 + 有建议」两种信息，
+ * 在 idle 时把建议摆到输入框正上方，点一条即发送。
+ */
+const nextTaskState = ref<SessionNextTaskState | null>(null);
+
+async function loadNextTaskState() {
+  const sid = effectiveSessionId.value;
+  if (!sid) { nextTaskState.value = null; return }
+  try {
+    nextTaskState.value = await apiService.fetchSessionNextTaskState(String(sid))
+  } catch {
+    // 端点未上线/无权限：动作条退化成纯状态提示，不显示「联想下一步」
+    nextTaskState.value = null
+  }
+}
+
+// 会话切换、每轮答完（idle 出现）各读一次；只读，不写库
+watch([effectiveSessionId, () => actionBarIdle.value], ([sid, idle], [oldSid]) => {
+  if (!sid) { nextTaskState.value = null; return }
+  if (sid !== oldSid || idle) void loadNextTaskState()
+});
+
+const actionBarSuggestions = computed(() => {
+  const st = nextTaskState.value
+  if (!st?.enabled) return []
+  return st.tasks || []
+})
+
+const actionBarSuggestEnabled = computed(() => !!nextTaskState.value?.enabled)
+
+/** 点了一条建议：按用户已明确的口径「点击即作为用户消息发出」 */
+function handleActionBarSuggestion(item: any) {
+  const text = [item?.title, item?.detail].filter(Boolean).join('\n')
+  if (!text.trim()) return
+  handleSendMessage({ content: text, files: [] } as any)
+}
+
+/** 动作条上「全部批准」：与计划卡片同一条恢复链路（resumeConfirmation） */
+function handleActionBarApproveAll(replyId: string) {
+  const items = actionBarPending.value?.items || []
+  void resumeConfirmation({ replyId, confirmed: true, items })
+}
 
 /**
  * 等待态「去处理」：把待确认的计划卡滚进视野。
@@ -1404,7 +1568,7 @@ async function copyMessage(message: any) {
  */
 async function handleSendMessage(payload?: InputMessageState) {
   const data = payload;
-  if (!data || (!data.content?.trim() && !data.files.length)) return;
+  if (!data || (!data.content?.trim() && !(data.files?.length))) return;
 
   try {
     const { content, files, knowledgeBaseIds, think, search, skillNames } = data;

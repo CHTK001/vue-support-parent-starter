@@ -73,6 +73,7 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
   ReLazy: () => import("./components/ReLazy"),
   ReAsync: () => import("./components/ReAsync"),
   ReCountup: () => import("./components/ReCountup"),
+  ReCountdown: () => import("./components/ReCountdown"),
   ReImageCompare: () => import("./components/ReImageCompare"),
   ReImage: () => import("./components/ReImage"),
   ReImageGroup: () => import("./components/ReImageGroup"),

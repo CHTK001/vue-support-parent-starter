@@ -714,6 +714,8 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
     let hasUpdatedActiveTime = false;
     // 工具执行阶段计时：tool_call 到达时开始，tool_calls_response 到达时结算
     let toolPhaseStart: number | null = null;
+    // 上一条工具 trace：判断「还是不是同一次工具调用」（同名工具可能连续调用多次）
+    let lastToolTrace: { name: string; ended: boolean } | null = null;
 
     try {
       let responseContent = "";
@@ -928,6 +930,12 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
           if (message && contentIndex !== undefined) {
             const content = message.contents[contentIndex];
             if (content) {
+              // 清掉可能残留的确认终态：新一轮确认必须重新判为「未决」，
+              // 否则动作条会因 status=approved 直接跳过 waiting。
+              const existing = content.metadata?.confirmationRequest;
+              if (existing && existing.replyId !== response.replyId) {
+                delete content.metadata.confirmationRequest;
+              }
               content.metadata = {
                 ...content.metadata,
                 confirmationRequest: {
@@ -959,6 +967,10 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
               const tr: any = response.trace;
               const toolName = tr?.toolName;
               if (toolName) {
+                // 同一工具连续多次调用：上一条 trace 不是工具结束标记（spanEnd），
+                // 说明仍在同一次调用里（tool_call → tool_args → tool_result 片段 → spanEnd）。
+                const continueSameCall = !!lastToolTrace && lastToolTrace.name === toolName && !lastToolTrace.ended;
+                lastToolTrace = { name: toolName, ended: !!tr.spanEnd };
                 if (!content.metadata) {
                   content.metadata = {} as any;
                 }
@@ -968,22 +980,32 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
                 const rows = content.metadata.toolCalls as any[];
                 const kind = tr.kind || '';
                 let row: any = rows.length > 0 ? rows[rows.length - 1] : null;
-                if (!row || kind === 'tool_call' || row.name !== toolName) {
+                // 一次 run 里同一个工具会被调用多次：只看「最后一行是否同名」会把
+                // 第二次调用误判成第一行的参数/结果。以「上一次是否已结束」为边界。
+                const insideCall = !!row && continueSameCall;
+                if (!row || kind === 'tool_call' || !insideCall) {
                   row = {
                     name: toolName,
-                    arguments: kind === 'tool_call' ? '' : (tr.text || ''),
-                    outcome: 'success',
+                    arguments: kind === 'tool_args' ? (tr.text || '') : '',
+                    outcome: kind === 'tool_result' && tr.spanEnd ? 'success' : undefined,
                   };
                   rows.push(row);
+                  content.metadata.toolIteration = (content.metadata.toolIteration || 0) + 1;
                 } else if (kind === 'tool_args') {
                   row.arguments = tr.text || '';
                 } else if (kind === 'tool_result') {
-                  const txt = String(tr.text || '');
-                  row.result = txt;
-                  row.outcome =
-                    txt.startsWith('Error') || txt.startsWith('error') || txt.includes('validation failed')
-                      ? 'failed'
-                      : 'success';
+                  // 增量片段（ToolResultTextDeltaEvent）：边跑边看；span 结束标记
+                  // （spanEnd，text=工具执行完成）不拼进结果，否则末尾会多一句噪音。
+                  if (tr.spanEnd) {
+                    if (row.outcome === undefined) row.outcome = 'success';
+                  } else {
+                    const txt = String(tr.text || '');
+                    row.result = String(row.result || '') + txt;
+                    row.outcome =
+                      String(row.result).startsWith('Error') || String(row.result).includes('validation failed')
+                        ? 'failed'
+                        : 'success';
+                  }
                 }
               }
             }

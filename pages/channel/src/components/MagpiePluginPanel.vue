@@ -1,5 +1,5 @@
 <template>
-  <div class="mg-pl">
+  <div ref="panelEl" class="mg-pl">
     <div class="mg-pl__head">
       <span class="mg-pl__title">
         网关插件
@@ -40,6 +40,32 @@
       本机尚未就绪 Bun：首次安装插件时 magpie 会先下载 Bun，可能要几分钟，请勿关闭页面。
     </p>
 
+    <!-- 从左栏插件渠道点进来：置顶说明 + 安装入口（不自动安装） -->
+    <div v-if="focusSpec" class="mg-pl__focus">
+      <div class="mg-pl__focus-main">
+        <b>{{ focusName || shortSpec(focusSpec) }}</b>
+        <span
+          class="mg-pl__tag"
+          :class="{ 'is-off': !focusInstalled && !loading }"
+        >{{ loading ? '读取中…' : focusInstalled ? '已安装' : '未安装' }}</span>
+        <span v-if="focusInstalled && focusVersion" class="mg-pl__focus-ver">v{{ focusVersion }}</span>
+      </div>
+      <p class="mg-pl__focus-desc">
+        {{ focusSummary || '这个渠道的登录、签到与额度都由 magpie 插件接管。' }}
+      </p>
+      <div class="mg-pl__focus-ops">
+        <code class="mg-pl__focus-spec">{{ focusSpec }}</code>
+        <button
+          v-if="!focusInstalled"
+          type="button"
+          class="mg-pl__btn is-primary"
+          :disabled="installing || loading || !connections.length"
+          @click="install(focusSpec)"
+        >安装这个插件</button>
+        <span v-else class="mg-pl__focus-hint">在下面这一行可以停用 / 升级 / 卸载</span>
+      </div>
+    </div>
+
     <div v-if="!connections.length" class="mg-pl__empty">
       先在「账号」页绑定 Magpie 网关（地址 + 网关 key），再回到这里管理插件。
     </div>
@@ -57,7 +83,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="plugin in plugins" :key="String(plugin.spec)">
+            <tr v-for="plugin in plugins" :key="String(plugin.spec)" :class="{ 'is-focus': isFocused(plugin) }">
               <td class="is-name" :title="String(plugin.name ?? '')">
                 {{ plugin.name || shortSpec(plugin.spec) }}
               </td>
@@ -178,7 +204,7 @@
  * <p><b>为什么动作要二次确认</b>：安装与卸载会改变路由与签到行为，且安装是
  * 分钟级长任务（下载 Bun + npm 安装）。误点一次代价很高，所以统一走确认框。</p>
  */
-import { onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ReButton from '@repo/ui/re-button'
 import ReDialog from '@repo/ui/re-dialog'
@@ -193,6 +219,14 @@ const props = defineProps<{
   channel: string
   /** 该渠道下已绑定的网关连接 */
   connections: ChannelConnectionSummary[]
+  /** 从左栏「Magpie 插件」点进来时要置顶的插件规格（npm spec） */
+  focusSpec?: string
+  /** 置顶时展示的渠道名（快照里的 name） */
+  focusName?: string
+  /** 置顶时展示的一句话说明 */
+  focusSummary?: string
+  /** 置顶插件的 provider id（规格在不同版本间变化时用它兜底匹配） */
+  focusProviders?: string[]
 }>()
 
 const emit = defineEmits<{
@@ -212,6 +246,45 @@ const busySpec = ref('')
 
 const dialogVisible = ref(false)
 const specInput = ref('')
+
+/** 面板根节点：定位到置顶行时用来滚动 */
+const panelEl = ref<HTMLElement | null>(null)
+
+/** 从左栏点进来的插件在已装清单里的对应行（规格 / provider 任一命中） */
+const focusPlugin = computed<MagpiePlugin | undefined>(() => {
+  const spec = (props.focusSpec ?? '').trim()
+  const providers = props.focusProviders ?? []
+  if (!spec && !providers.length) return undefined
+  return plugins.value.find((p) => {
+    const installedSpec = String(p.spec ?? '')
+    if (spec && (installedSpec === spec || installedSpec.startsWith(spec + '@'))) return true
+    const owned = [...(p.providers ?? []), ...(p.moved ?? [])].map(String)
+    return owned.some((x) => providers.includes(x))
+  })
+})
+
+const focusInstalled = computed(() => !!focusPlugin.value)
+const focusVersion = computed(() => String(focusPlugin.value?.version ?? ''))
+
+/** 该行是否就是左栏点进来的插件 */
+function isFocused(plugin: MagpiePlugin): boolean {
+  const hit = focusPlugin.value
+  if (!hit) return false
+  return String(plugin.spec ?? '') === String(hit.spec ?? '')
+}
+
+/** 置顶行出现后滚到中间：44 行插件里翻到目标太费眼 */
+watch(
+  [() => props.focusSpec, () => props.focusProviders, focusPlugin, loading],
+  async () => {
+    if (!props.focusSpec && !(props.focusProviders ?? []).length) return
+    await nextTick()
+    panelEl.value
+      ?.querySelector('.mg-pl__table tbody tr.is-focus')
+      ?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  },
+  { flush: 'post' },
+)
 
 /** 同步默认连接：优先主账号，其次第一条 */
 watch(
@@ -708,5 +781,58 @@ function shortSpec(spec: unknown): string {
   font-size: 11px;
   line-height: 1.5;
   color: var(--el-text-color-secondary, #909399);
+}
+/* 从左栏插件渠道点进来的置顶卡：先说清「谁接管、装没装」，再给一个安装按钮 */
+.mg-pl__focus {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--el-color-primary, #409eff) 28%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--el-color-primary, #409eff) 6%, transparent);
+}
+.mg-pl__focus-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.mg-pl__focus-main b {
+  font-size: 13px;
+  color: var(--el-text-color-primary, #303133);
+}
+.mg-pl__focus-ver {
+  font-size: 11.5px;
+  color: var(--el-text-color-secondary, #909399);
+}
+.mg-pl__focus-desc {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--el-text-color-regular, #606266);
+}
+.mg-pl__focus-ops {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.mg-pl__focus-spec {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 11.5px;
+  background: var(--el-fill-color-light, #f5f7fa);
+  color: var(--el-text-color-secondary, #909399);
+}
+.mg-pl__focus-hint {
+  font-size: 11.5px;
+  color: var(--el-text-color-secondary, #909399);
+}
+.mg-pl__table tbody tr.is-focus td {
+  background: color-mix(in srgb, var(--el-color-primary, #409eff) 8%, transparent);
+}
+.mg-pl__table tbody tr.is-focus td:first-child {
+  box-shadow: inset 3px 0 0 var(--el-color-primary, #409eff);
 }
 </style>

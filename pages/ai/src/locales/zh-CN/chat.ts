@@ -14,7 +14,7 @@ export default {
     custom: '自定义',
     featureTools: '工具调用',
     featureThinking: '混合思考',
-    editorPlaceholder: "按 / 使用技能，{'@'} 召唤agent，Shift+Enter 换行",
+    editorPlaceholder: "规划、构建或提问。 {'@'} 提及，$ 技能，/ 命令",
     optimizeFailed: '优化失败，请稍后重试',
     optimizeUnavailable: '优化服务暂不可用，请在设置中配置优化模型',
     optimizeNoChange: '内容已经足够清晰，无需优化',
@@ -88,6 +88,19 @@ export default {
 
     // ModelSelectorPanel.vue —— 模型检索框占位文案
     modelSearchPlaceholder: '搜索模型',
+    // ModelSelectorPanel.vue —— 面板分区标题
+    currentModel: '当前模型',
+    allModels: '全部模型',
+    addModel: '添加模型',
+    noModelsHint: '暂无可用模型，请先添加模型供应商',
+    // 下拉面板（对齐目标 UI）：分区标题与页脚按键提示
+    modelSectionTitle: '模型',
+    agentSectionTitle: '智能体',
+    thinkingSectionTitle: '思考',
+    addProvider: '添加新提供商',
+    hintNavigate: '↑↓ 导航',
+    hintSelect: 'Enter 选择',
+    hintClose: 'Esc 关闭',
 
     // WorkspaceSelectorPopover.vue
     recent: '最近选择',
@@ -173,6 +186,8 @@ export default {
     // 执行进度
     actionBarToolIndex: '第 {index} 个工具',
     actionBarToolIndexTotal: '第 {index}/{total} 个工具',
+    actionBarSuggest: '联想下一步',
+    actionBarSuggesting: '联想中…',
     // 命令实时输出
     actionBarLiveOutput: '实时输出',
     actionBarOutputEmpty: '等待命令输出…',
@@ -276,6 +291,8 @@ export default {
     routeUnknownProvider: '未知供应商',
     serverNoResponse: '服务器长时间未响应数据，请稍后重试',
     manuallyTerminated: '已手动终止',
+    planApproved: '已批准，正在执行计划…',
+    planRejected: '已拒绝，请继续修订计划',
     maxIterationsReached: '已达到最大工具调用轮次限制',
     continueExecution: '继续执行',
     working: '工作中',

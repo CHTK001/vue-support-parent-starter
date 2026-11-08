@@ -34,6 +34,11 @@
           <span class="kb-statband__num">{{ relationCount }}</span>
           <span class="kb-statband__label">关系连线</span>
         </div>
+        <!-- 空库数单独一格：15 个库里 13 个空着时，前四格看不出「哪些其实还没用起来」 -->
+        <div v-if="emptyCount > 0" class="kb-statband__cell kb-statband__cell--warn">
+          <span class="kb-statband__num">{{ emptyCount }}</span>
+          <span class="kb-statband__label">空库（待上传）</span>
+        </div>
       </div>
 
       <div class="kb-grid">
@@ -46,14 +51,22 @@
               <h2 class="kb-sect__title">我的知识库</h2>
               <div class="kb-sect__extra">
                 <span class="kb-badge kb-badge--mute">{{ bases.length }} 个</span>
+                <!-- 原先没有搜索入口，15 个同名库只能靠编号认；这里按名称/描述过滤 -->
+                <el-input v-model="kw" :prefix-icon="Search" placeholder="按名称过滤" clearable
+                  class="kb-sect__search" />
               </div>
+            </div>
+
+            <div v-if="bases.length > 0 && filteredBases.length === 0" class="kb-nohit">
+              没有匹配「{{ kw.trim() }}」的知识库，<ReButton type="primary" link @click="kw = ''">清空过滤</ReButton>
             </div>
 
             <div class="kb-entries">
               <div
-                v-for="(kb, i) in bases"
+                v-for="kb in filteredBases"
                 :key="kb.id"
                 class="kb-entry"
+                :class="{ 'is-empty': kb.fileCount === 0 }"
                 role="button"
                 tabindex="0"
                 :aria-label="`打开知识库 ${kb.name}`"
@@ -61,7 +74,7 @@
                 @keydown.enter="emit('open', { id: kb.id })"
                 @keydown.space.prevent="emit('open', { id: kb.id })"
               >
-                <span class="kb-entry__no">{{ no(i) }}</span>
+                <span class="kb-entry__no">{{ no(filteredBases.indexOf(kb)) }}</span>
                 <span class="kb-entry__cover">
                   <img v-if="kb.cover" :src="kb.cover" :alt="kb.name" />
                   <template v-else>{{ initialsOf(kb.name) }}</template>
@@ -255,9 +268,9 @@
  *
  * <p><b>数据</b>：本组件不发请求，只渲染 props 并上抛事件。</p>
  */
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Plus, Edit, Delete, Document, Select, Grid, UploadFilled } from '@element-plus/icons-vue'
+import { Plus, Edit, Delete, Document, Select, Grid, UploadFilled, Search } from '@element-plus/icons-vue'
 import ReDialog from '@repo/ui/re-dialog'
 import ReButton from '@/components/ui/ReButton.vue'
 import ReEmpty from '@/components/ui/ReEmpty.vue'
@@ -294,7 +307,7 @@ interface BaseItem {
   isPublic: boolean
 }
 
-defineProps<{
+const props = defineProps<{
   kbCount: number
   fileCount: number
   entityCount: number
@@ -303,6 +316,26 @@ defineProps<{
   templates: TemplateItem[]
   bases: BaseItem[]
 }>()
+
+/**
+ * 列表过滤词。
+ *
+ * <p>同名知识库（验收数据里 6 个都叫「AI 验收知识库」）靠编号认人很吃力，
+ * 这里按名称与描述过滤；不新增任何请求，只在已有 props 上筛。</p>
+ */
+const kw = ref('')
+
+/** 当前过滤词筛选后的条目（过滤词为空时原样返回） */
+const filteredBases = computed(() => {
+  const q = kw.value.trim().toLowerCase()
+  if (!q) return props.bases
+  return props.bases.filter((kb) =>
+    String(kb.name || '').toLowerCase().includes(q)
+    || String(kb.description || '').toLowerCase().includes(q))
+})
+
+/** 空库（一篇文档都没有）：统计带与条目样式都用它 */
+const emptyCount = computed(() => props.bases.filter((kb) => kb.fileCount === 0).length)
 
 const emit = defineEmits<{
   (e: 'create', p: { name: string; description: string; isPublic: boolean }): void

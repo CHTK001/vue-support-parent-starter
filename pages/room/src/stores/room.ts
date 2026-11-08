@@ -67,8 +67,14 @@ interface RoomFlags {
 export const useRoomStore = defineStore("room", () => {
   /* ==================== 状态 ==================== */
 
-  /** 连接状态（传输层） */
-  const connectionState = ref<ConnectionState>(ConnectionState.IDLE);
+  /**
+   * 连接状态（传输层）。
+   *
+   * <p>必须是派生值：真正维护连接的是 {@link roomSocket}（open/close 都在它内部
+   * 回调里改），store 若自己持有一个 ref，就会永远停在 idle，页面上的
+   * 「创建房间 / 重连 / 离开」按钮也就一直禁用。</p>
+   */
+  const connectionState = computed(() => roomSocket.connectionState.value);
 
   /** 房间状态（由下行信令驱动） */
   const status = ref<RoomStatus>(RoomStatus.IDLE);
@@ -144,7 +150,6 @@ export const useRoomStore = defineStore("room", () => {
     status.value = RoomStatus.LEFT;
   }
 
-  /** 加入房间（创建/续接） */
   function joinRoom(id?: string, resume = resumeToken.value): void {
     error.value = undefined;
     roomSocket.joinRoom(id, resume);
@@ -158,7 +163,7 @@ export const useRoomStore = defineStore("room", () => {
 
   /** 断线续接（leave 不触发，业务层在需要时调用） */
   function reconnect(): void {
-    roomSocket.reconnect();
+    roomSocket.reconnect(roomId.value, resumeToken.value);
   }
 
   /** 对整个房间发信号（WebRTC offer/answer/candidate） */
@@ -166,16 +171,19 @@ export const useRoomStore = defineStore("room", () => {
     roomSocket.signal(payload);
   }
 
-  /** 发聊天 */
+  /** 发聊天（本地先入列，再经信令转发给对端） */
   function sendChat(text: string): void {
-    if (!text.trim() || !inRoom.value) return;
+    const body = text.trim();
+    if (!body || !inRoom.value) return;
     messages.value.push({
       from: "me",
       id: uuid(),
-      text: text.trim(),
+      text: body,
       time: Date.now(),
       direction: "out",
     });
+    // 经 signal 信封下发：对端 onSignal 解出 {event:"chat"} 后追加为 in 气泡
+    roomSocket.signal(JSON.stringify({ event: "chat", data: body }));
   }
 
   /** 追加对端的聊天 */
@@ -225,6 +233,8 @@ export const useRoomStore = defineStore("room", () => {
     offererSlotId.value = msg.offererSlotId;
     epoch.value = msg.epoch ?? 0;
     resumeToken.value = msg.resumeToken ?? "";
+    // 记到传输层：掉线自动重连时用它补发 hello，回到同一个端点
+    roomSocket.adoptRoom(msg.roomId, msg.resumeToken);
     peers.value = [];
     flags.value = {};
     // initiator / resumed 只出现在 welcome 信封里（TS 按 type 归派）

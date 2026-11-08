@@ -81,18 +81,12 @@ const loading = ref(false)
 let currentSessionId: string | null = null
 
 /**
- * SSE 上下文统计已更新标志
- * 当 finish 事件携带 contextStats 时置为 true，
- * debouncedRefresh 检测到此标志后跳过 REST 刷新。
- */
-let sseUpdated = false
-
-/**
  * 从 SSE finish 事件注入上下文统计
  *
  * 后端在 finish 事件中携带轻量上下文统计（usedTokens / effectiveContextWindow），
- * 前端直接更新环形指示器，无需流式结束后再发起 REST 请求重建上下文。
- * 详细 breakdown 仍由弹窗按需通过 REST 获取。
+ * 前端先用它把环形指示器更新到最新，流结束后仍会拉一次 REST 补全累计字段
+ * （见 debouncedRefresh 的说明）：快照里没有累计 prompt/completion，
+ * 而「目标」计数器与用量卡都按累计值算。
  *
  * 同时把快照落库到会话（PUT /sessions/{id}/token-stats），使页面刷新后
  * 仍能从后台恢复上下文占用率，而不是必须再对话一轮。
@@ -106,7 +100,6 @@ export function updateTokenStatsFromSSE(
   },
   sessionId?: string | null,
 ) {
-  sseUpdated = true
   // 后端只在拿得到模型窗口时才下发 effectiveContextWindow。
   //
   // 缺省时这里曾退回 `tokenStats.value?.totalTokens`，同样是把「用量」当「窗口」：
@@ -172,15 +165,14 @@ export function useSessionTokenStats(sessionId: Ref<string | null>) {
   }
 
   /**
-   * 流结束后自动刷新（防抖 1s）
-   * 若 SSE finish 已携带 contextStats，则跳过 REST 刷新
+   * 流结束后自动刷新（防抖 1s）。
+   *
+   * <p>无论 finish 是否带过快照都要拉一次 REST：快照不含累计 prompt/completion，
+   * 而目标计数器（SessionGoal 的「已用」）与用量卡都按累计值算。
+   * 曾用 `sseUpdated` 跳过这次请求，结果是目标计数器整轮不动、刷新页面才变。</p>
    */
   const debouncedRefresh = useDebounceFn(() => {
     if (!sessionId.value) return
-    if (sseUpdated) {
-      sseUpdated = false
-      return
-    }
     fetchTokenStats()
   }, 1000)
 

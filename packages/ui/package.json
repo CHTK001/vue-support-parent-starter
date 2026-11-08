@@ -179,6 +179,10 @@
       "types": "./src/components/ReCountup/index.ts",
       "default": "./src/components/ReCountup/index.ts"
     },
+    "./re-countdown": {
+      "types": "./src/components/ReCountdown/index.ts",
+      "default": "./src/components/ReCountdown/index.ts"
+    },
     "./re-image-compare": {
       "types": "./src/components/ReImageCompare/index.ts",
       "default": "./src/components/ReImageCompare/index.ts"
@@ -434,6 +438,7 @@
     "@repo/languages": "workspace:^",
     "@repo/pinia": "workspace:*",
     "@repo/utils": "workspace:*",
+    "@repo/work": "workspace:*",
     "@tiptap/core": "^3.26.0",
     "@tiptap/extension-blockquote": "^3.26.0",
     "@tiptap/extension-bold": "^3.26.0",

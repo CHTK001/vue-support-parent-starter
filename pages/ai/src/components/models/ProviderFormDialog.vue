@@ -495,7 +495,10 @@ const handleSave = async () => {
     // ONNX 的 base_url 是后端占位值（模型注册表驱动），表单已不展示该字段，
     // 不回传，避免把空串覆盖进库里
     if (!isLocalProvider.value) updateData.base_url = form.apiUrl
-    if (newApiKeys.length > 0) updateData.apiKey = newApiKeys.join(',')
+    // 凭证必须走 credentials：后端 ApiProviderController#updateProvider 只认 body.credentials，
+    // 顶层 apiKey 不在它的字段表里 —— 早先这里发 apiKey，接口照样 200、前端照样弹「已更新」，
+    // 但 Key 一个字节都没落库（用户报的「key 无法修改、无法保存」）。
+    if (newApiKeys.length > 0) updateData.credentials = { api_key: newApiKeys.join(',') }
     if (form.proxyUrl.trim()) updateData.proxy = form.proxyUrl.trim()
     // 管理员可编辑所有字段：始终提交名称与协议
     updateData.name = form.name

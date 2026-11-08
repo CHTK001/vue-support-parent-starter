@@ -7,6 +7,14 @@ import type { GoalDto, GoalState } from '@/services/modules/goal.api'
 const STORAGE_KEY = 'ai-guada:session-goals:v1'
 
 /**
+ * 目标模式的默认令牌预算。
+ *
+ * 与工具侧 goal 模式的 `goalTokenBudget` 同义：计数器显示「已用 / 预算」，
+ * 后端未下发预算时用它兜底（5000 是产品口径的默认档）。
+ */
+export const DEFAULT_GOAL_TOKEN_BUDGET = 5000
+
+/**
  * 目标状态的中文标签，与后端 GoalStatus 的文案保持同一套，避免两端各写一份。
  */
 const STATE_LABELS: Record<GoalState, string> = {
@@ -33,6 +41,26 @@ export function formatTokens(tokens: number): string {
     return `${trimZero(value / 1000)}K 令牌`
   }
   return `${trimZero(value / 1_000_000)}M 令牌`
+}
+
+/**
+ * 令牌数格式化为计数器口径：一万以内原样，更大用 K，百万级用 M。
+ *
+ * 与 formatTokens 的区别是不带「令牌」后缀 —— 计数器里写 `27/5000`，
+ * 预算 5000 这种四位数也要原样显示，不能被压成 `5K`。
+ *
+ * @param tokens 令牌数
+ * @returns 如 `27` / `5000` / `12K` / `3M`
+ */
+export function formatTokenCounter(tokens: number): string {
+  const value = Number.isFinite(tokens) ? Math.max(0, Math.floor(tokens)) : 0
+  if (value < 10_000) {
+    return String(value)
+  }
+  if (value < 1_000_000) {
+    return `${trimZero(value / 1000)}K`
+  }
+  return `${trimZero(value / 1_000_000)}M`
 }
 
 /**
@@ -117,7 +145,15 @@ export const useGoalStore = defineStore('goal', () => {
    * @param goal      目标
    */
   function put(sessionId: string, goal: GoalDto): void {
-    goals.value = { ...goals.value, [sessionId]: goal }
+    const prev = goals.value[sessionId]
+    // 后端 DTO 不带预算 / 基线（那是前端口径）：合并时保留本地值，别被一次远端回包清掉。
+    const merged: GoalDto = {
+      ...goal,
+      sessionId,
+      tokenBudget: goal.tokenBudget ?? prev?.tokenBudget ?? DEFAULT_GOAL_TOKEN_BUDGET,
+      tokensBase: goal.tokensBase !== undefined ? goal.tokensBase : (prev?.tokensBase ?? null),
+    }
+    goals.value = { ...goals.value, [sessionId]: merged }
     saveAll(goals.value)
   }
 
@@ -137,15 +173,20 @@ export const useGoalStore = defineStore('goal', () => {
     detail: string,
     state: GoalState,
     base?: GoalDto | null,
+    tokenBudget: number = DEFAULT_GOAL_TOKEN_BUDGET,
   ): GoalDto {
+    // 换了标题 = 换了一个目标：令牌与轮次必须归零，否则新目标一上来就带着旧目标的用量。
+    const prev = base && base.title === title ? base : null
     return {
       id: base?.id ?? `goal-${sessionId}-${Date.now()}`,
       sessionId,
       title,
       detail,
       state,
-      tokensUsed: base?.tokensUsed ?? 0,
-      rounds: base?.rounds ?? 0,
+      tokensUsed: prev?.tokensUsed ?? 0,
+      rounds: prev?.rounds ?? 0,
+      tokenBudget,
+      tokensBase: prev?.tokensBase ?? null,
       updatedAt: Date.now(),
     }
   }
@@ -169,18 +210,24 @@ export const useGoalStore = defineStore('goal', () => {
   /**
    * 新建或覆盖目标（默认进入进行中）。
    *
-   * @param sessionId 会话标识
-   * @param title     目标标题
-   * @param detail    目标说明
+   * @param sessionId   会话标识
+   * @param title       目标标题
+   * @param detail      目标说明
+   * @param tokenBudget 令牌预算（默认 5000）
    */
-  async function setGoal(sessionId: string, title: string, detail = ''): Promise<GoalDto> {
-    const local = localGoal(sessionId, title, detail, 'RUNNING', goals.value[sessionId])
+  async function setGoal(
+    sessionId: string,
+    title: string,
+    detail = '',
+    tokenBudget: number = DEFAULT_GOAL_TOKEN_BUDGET,
+  ): Promise<GoalDto> {
+    const local = localGoal(sessionId, title, detail, 'RUNNING', goals.value[sessionId], tokenBudget)
     put(sessionId, local)
     try {
       const remote = await apiService.saveGoal(sessionId, { title, detail })
       if (remote && remote.id) {
         put(sessionId, remote)
-        return remote
+        return goals.value[sessionId] ?? local
       }
     } catch {
       // 端点未上线：以本地态为准
@@ -228,6 +275,30 @@ export const useGoalStore = defineStore('goal', () => {
     } catch {
       // 保留本地态
     }
+  }
+
+  /**
+   * 用会话累计令牌刷新目标的「已用」计数。
+   *
+   * <p>口径：目标创建后第一次拿到会话累计值时记下基线，此后
+   * `已用 = 会话累计 - 基线`。这样目标加在会话中途时，计数器不会把
+   * 目标之前的花费也算进来；刷新页面后基线仍在 localStorage 里，数值不跳变。</p>
+   *
+   * @param sessionId     会话标识
+   * @param sessionTokens 会话累计令牌（prompt + completion）
+   */
+  function syncTokens(sessionId: string, sessionTokens: number): void {
+    const current = goals.value[sessionId]
+    if (!current || !Number.isFinite(sessionTokens)) {
+      return
+    }
+    const total = Math.max(0, Math.floor(sessionTokens))
+    const base = current.tokensBase ?? total
+    const used = Math.max(0, total - base)
+    if (current.tokensBase === base && current.tokensUsed === used) {
+      return
+    }
+    put(sessionId, { ...current, tokensBase: base, tokensUsed: used, updatedAt: Date.now() })
   }
 
   /**
@@ -279,6 +350,7 @@ export const useGoalStore = defineStore('goal', () => {
     setGoal,
     pause,
     resume,
+    syncTokens,
     cancel,
     remove,
     stateLabel,

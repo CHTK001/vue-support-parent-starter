@@ -12,9 +12,17 @@
     <AiNextTaskPanel v-if="!props.editing" :session-id="sessionId == null ? null : String(sessionId)"
       :dismiss-signal="suggestionDismissSignal" @send-suggestion="onSendSuggestion" />
     <!-- 输入框区域 -->
+    <!--
+      为什么这里是 .input-area 而不是一组 tailwind 工具类（2026-11-08 实测）：
+      基线 createVite 挂了 UnoCSS 的 transformerVariantGroup，它把括号当变体分组符，
+      `bg-(--color-input-bg)` 会被改写成 `bg---color-input-bg`，而 Tailwind 编译出来的是
+      `.bg-\(--color-input-bg\)` —— 类名对不上，整组「底色 / 边框 / 圆角」全部失效，
+      浏览器退回初始值（透明底、1px currentColor 近黑边、0 圆角）。所以：
+      这些值一律写进 <style scoped> 的 .input-area 里，模板只留结构类。
+    -->
     <div
-      class="input-area p-[12px_8px_10px_8px] min-h-15 w-full bg-(--color-input-bg) border border-(--color-input-border) rounded-(--size-rounded-radius) transition-[border-color,background-color] duration-150"
-      :class="[styleClass, { 'drag-over': isDragOver }, { 'bg-(--color-input-bg)': !backdrop }, { 'bg-(--color-input-bg)/60 backdrop-blur-xl ': backdrop }, { 'input-area--continues-banner': props.editing }]"
+      class="input-area min-h-15 w-full"
+      :class="[styleClass, { 'drag-over': isDragOver }, { 'is-backdrop': backdrop }, { 'input-area--continues-banner': props.editing }]"
       @dragover.prevent @dragenter.prevent="handleDragEnter" @dragleave.prevent="handleDragLeave"
       @drop.prevent="handleDrop">
       <!-- 文件列表显示区域 -->
@@ -124,51 +132,78 @@
                 <el-icon size="16"><GlobeShield20Regular /></el-icon>
               </button>
             </LTooltip>
+
+            <!-- 输入优化（图标+tip）：与左组同为纯图标按钮，不再单独挂在右组 -->
+            <LTooltip :content="optimizing ? '优化中…' : '优化输入'" placement="top">
+              <button class="tool-btn" :aria-label="optimizing ? '优化中…' : '优化输入'"
+                :disabled="optimizing || !editor?.getText().trim()" @click.stop="handleOptimize">
+                <el-icon size="16" v-if="!optimizing"><Wand20Regular /></el-icon>
+                <el-icon size="16" v-else class="is-loading"><SpinnerIos20Filled /></el-icon>
+              </button>
+            </LTooltip>
+
+            <!-- 目标（Goal）：从「输入框上方的虚线添加入口」收进工具条，图标与目标条同形。
+                 未设目标 → 点击弹目标输入框；已设目标 → 点击切换暂停 / 继续。
+                 右侧小字是「已用 / 预算」令牌，由 ChatPanel 用会话累计 token 回填。 -->
+            <LTooltip :content="goalTooltip" placement="top">
+              <button v-if="!props.readonly && !props.editing && sessionId" ref="goalButtonRef" class="tool-btn goal-btn"
+                :class="{ 'goal-btn--on': goalRunning, 'goal-btn--paused': goalPaused, 'goal-btn--done': goalDone }"
+                :aria-label="goalTooltip" :aria-pressed="goalRunning" @click.stop="onGoalClick">
+                <svg class="goal-btn__glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="11.4" cy="12.6" r="7.4" />
+                  <circle cx="11.4" cy="12.6" r="2.8" />
+                  <path d="M15.6 8.4 21 3" />
+                  <path d="M21 3h-3.4M21 3v3.4" />
+                </svg>
+                <span v-if="goal" class="goal-btn__count">{{ goalCounter }}</span>
+              </button>
+            </LTooltip>
         </div>
-        <div class="right-actions flex items-center gap-1">
+
+        <!-- 右组：模型 + 思考档位合成一个控件（截图里的「✳ 模型名 / 默认」），
+             其后是智能体（形态）与发送。整组不带描边胶囊，靠文字与间距分层。 -->
+        <div class="right-actions flex items-center">
           <slot name="right-actions-before" />
-          <!-- 输入优化按钮（图标+tip）：右侧、思考等级左侧（用户需求） -->
-          <LTooltip :content="optimizing ? '优化中…' : '优化输入'" placement="top">
-            <button class="tool-btn" :aria-label="optimizing ? '优化中…' : '优化输入'"
-              :disabled="optimizing || !editor?.getText().trim()" @click.stop="handleOptimize">
-              <el-icon size="16" v-if="!optimizing"><Wand20Regular /></el-icon>
-              <el-icon size="16" v-else class="is-loading"><SpinnerIos20Filled /></el-icon>
-            </button>
-          </LTooltip>
-          <!-- 思考等级：排在模型按钮**左侧**的独立胶囊，图标 + 当前档位短文案（用户需求） -->
-          <LTooltip v-if="modelReasoningVisible" :content="t('chat.input.thinkingLevelTitle')" placement="top">
-            <button ref="thinkingLevelButtonRef" class="thinking-chip" :class="{ 'is-on': thinkingEnabled }"
-              :aria-label="t('chat.input.thinkingLevelTitle')" :aria-pressed="thinkingEnabled"
-              @click.stop="toggleThinkingLevelPopover">
-              <el-icon size="14"><BrainCircuit20Regular /></el-icon>
-              <span v-if="currentThinkingLabel" class="thinking-chip-text">{{ currentThinkingLabel }}</span>
-            </button>
-          </LTooltip>
-          <ThinkingEffortPopover v-if="modelReasoningVisible" v-model:visible="thinkingLevelPopoverVisible" :anchor-el="thinkingLevelButtonRef"
-            :options="thinkingLevelOptions" :current-value="currentThinkingValue"
+
+          <div class="model-chip" :class="{ 'is-open': modelPanelVisible || thinkingLevelPopoverVisible }">
+            <LTooltip :content="modelInfoTooltip" placement="top">
+              <button ref="modelButtonRef" @click.stop="openModelPanel" class="model-chip__name"
+                :class="{ 'is-open': modelButtonExpanded }" :style="{ width: modelButtonWidth }"
+                :aria-label="t('chat.input.selectModel')">
+                <svg class="model-chip__glyph" viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M8 1c.52 3.36 2.12 4.96 5.48 5.48C10.12 7 8.52 8.6 8 11.96 7.48 8.6 5.88 7 2.52 6.48 5.88 5.96 7.48 4.36 8 1Z"
+                    fill="currentColor" />
+                </svg>
+                <span class="model-chip__text model-name-text">{{ currentModelNameOnly }}</span>
+              </button>
+            </LTooltip>
+            <template v-if="modelReasoningVisible">
+              <span class="model-chip__sep" aria-hidden="true">/</span>
+              <LTooltip :content="t('chat.input.thinkingLevelTitle')" placement="top">
+                <button ref="thinkingLevelButtonRef" class="model-chip__effort" :class="{ 'is-on': thinkingEnabled }"
+                  :aria-label="t('chat.input.thinkingLevelTitle')" :aria-pressed="thinkingEnabled"
+                  @click.stop="toggleThinkingLevelPopover">{{ currentThinkingValueLabel }}</button>
+              </LTooltip>
+            </template>
+          </div>
+          <ThinkingEffortPopover v-if="modelReasoningVisible" v-model:visible="thinkingLevelPopoverVisible"
+            :anchor-el="thinkingLevelButtonRef" :options="thinkingLevelOptions" :current-value="currentThinkingValue"
             @select="handleThinkingLevelSelect" />
 
-          <!-- 模型选择按钮：悬停显示当前模型信息；宽度为自然宽的 2 倍 -->
-          <LTooltip :content="modelInfoTooltip" placement="top">
-            <button ref="modelButtonRef" @click.stop="openModelPanel" class="model-selector-btn"
-              :class="{ 'is-open': modelButtonExpanded }" :style="{ width: modelButtonWidth }">
-              <div class="w-5 h-5 shrink-0 mr-1">
-                <Avatar v-if="currentModel" :src="getModelAvatarPath(currentModel.modelName, detectModelProvider(currentModel.modelName)) || undefined"
-                  :name="currentModel.modelName" type="assistant" :round="false" class="w-full h-full" />
-              </div>
-              <span class="model-name-text text-sm font-medium truncate flex-1 min-w-0"
-                style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{
-                  currentModelNameOnly }}</span>
-            </button>
-          </LTooltip>
-
-          <!-- 形态徽标（仅管理员）：放到模型右侧。形态由角色配置决定，不再写死构建/规划 -->
+          <!-- 智能体（形态）：截图里是「橙底人像 + Build」，不带描边胶囊 -->
           <LTooltip v-if="admin" :content="runModeLabel" placement="top">
-            <button ref="runModeButtonRef" class="run-mode-chip"
+            <button ref="runModeButtonRef" class="mode-chip"
               :class="currentRunMode === 'plan' ? 'is-plan' : 'is-build'" :aria-label="runModeLabel"
               @click.stop="toggleRunModePopover">
-              <el-icon size="14"><component :is="runModeIcon" /></el-icon>
-              <span class="run-mode-chip-text">{{ runModeShortLabel }}</span>
+              <span class="mode-chip__badge" aria-hidden="true">
+                <svg viewBox="0 0 16 16">
+                  <circle cx="8" cy="8" r="7" fill="currentColor" />
+                  <circle cx="8" cy="6.2" r="2" fill="#fff" />
+                  <path d="M4.4 12.2c.6-1.9 2-2.9 3.6-2.9s3 1 3.6 2.9z" fill="#fff" />
+                </svg>
+              </span>
+              <span class="mode-chip__text">{{ runModeLabel }}</span>
             </button>
           </LTooltip>
           <RunModePopover v-if="admin" v-model:visible="runModePopoverVisible" :anchor-el="runModeButtonRef"
@@ -177,7 +212,7 @@
           <!-- 发送/停止按钮（流式时：无输入=停止，有输入=入队） -->
           <LTooltip v-if="streaming && !inputContent.trim()" :content="t('chat.input.stopGenerating')" placement="top">
             <button class="send-btn stop-btn" :aria-label="t('chat.input.stopGenerating')" @click="abortResponse">
-              <el-icon size="18">
+              <el-icon size="16">
                 <Stop24Filled />
               </el-icon>
             </button>
@@ -186,9 +221,9 @@
             <button class="send-btn" :class="{ 'queue-btn': streaming }"
               :aria-label="streaming ? t('chat.input.enqueue') : t('chat.input.send')" @click="sendMessage"
               :disabled="props.readonly || !inputContent.trim() || !props.config?.modelId">
-              <el-icon size="18">
-                <Send24Filled />
-              </el-icon>
+              <svg class="send-glyph" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 4.4 19.1 12 6 19.6V4.4Z" />
+              </svg>
             </button>
           </LTooltip>
         </div>
@@ -244,13 +279,11 @@ import McpSelectorPopover from './chat-input/McpSelectorPopover.vue';
 import { CommandNode } from './chat-input/commandNode';
 import CommandPicker from './chat-input/CommandPicker.vue';
 import { getModelThinkingEfforts, getThinkingEffortLabel, getModelDisplayName } from '@/utils/modelUtils';
-import Avatar from '../ui/Avatar.vue';
-import { getModelAvatarPath } from '@/utils/modelUtils';
 import { detectModelProvider } from '@/utils/modelUtils';
 import {
 
-  Send24Filled, Stop24Filled, BookSearch24Regular, Cloud24Regular,
-  Add24Regular, Wrench24Regular, BrainCircuit20Regular, GlobeShield20Regular, Wand20Regular, PlugConnected20Regular,
+  Stop24Filled, BookSearch24Regular, Cloud24Regular,
+  Add24Regular, Wrench24Regular, GlobeShield20Regular, Wand20Regular, PlugConnected20Regular,
   // 「优化输入」按钮的加载态：原先写的是 <Loading />，@vicons/fluent 并没有这个导出，
   // 控制台一直报 "Failed to resolve component: Loading"，加载时按钮里是空的。
   SpinnerIos20Filled
@@ -258,6 +291,7 @@ import {
 import { usePopup } from '@/composables/usePopup';
 import { useRouter } from 'vue-router';
 import { useSessionStore } from '@/stores/session';
+import { useGoalStore, formatTokenCounter, DEFAULT_GOAL_TOKEN_BUDGET } from '@/stores/goal';
 import { useBreakpoints, breakpointsTailwind } from '@vueuse/core'
 import { apiService } from '@/services/ApiService';
 import {isAdmin, message} from '@repo/core';
@@ -471,6 +505,99 @@ const inputContent = computed({
   set: (value) => emit('update:value', value)
 });
 
+// ===== 会话目标（Goal）=====
+// 目标条（GoalBar）只负责展示与暂停/继续；入口收在工具条的靶心按钮里，
+// 这样「没有目标时」不再在输入框上方占一整行虚线窄条。
+const goalStore = useGoalStore();
+
+/** 当前会话的目标；无会话或未设置时为 null */
+const goal = computed(() => goalStore.goalOf(props.sessionId == null ? null : String(props.sessionId)));
+
+const goalRunning = computed(() => goal.value?.state === 'RUNNING' || goal.value?.state === 'PENDING');
+const goalPaused = computed(() => goal.value?.state === 'PAUSED');
+const goalDone = computed(() => goal.value?.state === 'COMPLETED');
+
+/** 目标计数器：已用 / 预算。已用由 ChatPanel 从会话累计 token 回填（见 stores/goal.syncTokens） */
+const goalCounter = computed(() => {
+  const current = goal.value;
+  if (!current) {
+    return '';
+  }
+  const budget = current.tokenBudget ?? DEFAULT_GOAL_TOKEN_BUDGET;
+  return `${formatTokenCounter(current.tokensUsed)}/${formatTokenCounter(budget)}`;
+});
+
+/** 靶心按钮的提示：说明当前状态与「点一下会发生什么」 */
+const goalTooltip = computed(() => {
+  const current = goal.value;
+  if (!current) {
+    return '添加目标：让 AI 围绕一个目标持续工作';
+  }
+  const prefix = `目标：${current.title}`;
+  if (current.state === 'PAUSED') {
+    return `${prefix}（已暂停，点击继续）`;
+  }
+  if (current.state === 'COMPLETED') {
+    return `${prefix}（已完成，点击新建）`;
+  }
+  if (current.state === 'FAILED' || current.state === 'CANCELED') {
+    return `${prefix}（已结束，点击新建）`;
+  }
+  return `${prefix}（进行中，点击暂停）`;
+});
+
+/**
+ * 添加目标：与 GoalBar 原先的添加入口同一套文案与校验。
+ */
+async function promptAddGoal(): Promise<void> {
+  const sid = props.sessionId == null ? '' : String(props.sessionId);
+  if (!sid) {
+    return;
+  }
+  try {
+    const { value } = await ElMessageBox.prompt(
+      '描述这次会话要达成的目标，AI 会围绕它持续工作，直到完成或被暂停。',
+      '添加目标',
+      {
+        confirmButtonText: '开始',
+        cancelButtonText: '取消',
+        inputPlaceholder: '例如：把默认角色改成通用并自测通过',
+        inputValidator: (input: string) => (!!input && input.trim().length > 0) || '目标不能为空',
+      },
+    );
+    await goalStore.setGoal(sid, value.trim());
+  } catch {
+    // 用户取消输入，无需处理
+  }
+}
+
+/**
+ * 点击靶心：无目标 / 已结束 → 新建；进行中 → 暂停；已暂停 → 继续。
+ */
+async function onGoalClick(): Promise<void> {
+  const sid = props.sessionId == null ? '' : String(props.sessionId);
+  if (!sid) {
+    return;
+  }
+  const current = goal.value;
+  if (!current || current.state === 'COMPLETED' || current.state === 'FAILED' || current.state === 'CANCELED') {
+    await promptAddGoal();
+    return;
+  }
+  if (current.state === 'PAUSED') {
+    await goalStore.resume(sid);
+  } else {
+    await goalStore.pause(sid);
+  }
+}
+
+// 打开 / 切换会话时向后端要一次目标（端点未上线时 store 静默保留本地态）
+watch(() => props.sessionId, (sid) => {
+  if (sid != null && String(sid)) {
+    void goalStore.load(String(sid));
+  }
+}, { immediate: true });
+
 // Tiptap 编辑器内容同步
 watch(editorContent, (val) => {
   if (inputContent.value !== val) {
@@ -629,13 +756,6 @@ const activeForm = computed(() =>
 );
 
 const runModeLabel = computed(() => activeForm.value?.label || FORM_KEY_BUILD);
-const runModeIcon = computed(() => activeForm.value?.icon || resolvePromptFormIcon(null));
-
-/** 徽标短文案：形态名本身已是短词，直接用；过长时截断避免撑破输入框 */
-const runModeShortLabel = computed(() => {
-  const label = runModeLabel.value;
-  return label.length > 4 ? label.slice(0, 4) : label;
-});
 
 /** 拉取形态列表；失败时保持空数组，由上面的降级分支兜底 */
 const loadPromptForms = async () => {
@@ -705,6 +825,15 @@ const currentThinkingLabel = computed(() => {
   if (!thinkingEnabled.value) return '';
   return getThinkingEffortLabel(localThinkingEffort.value);
 });
+
+/**
+ * 模型名右侧「/ 档位」的文案：**恒有值**。
+ *
+ * <p>截图里模型名后面永远跟着 `/ 默认`，它是「当前思考档位」而不是「思考是否开启」。
+ * 旧实现只在开启时回显，关闭时留空，结果那半段整个消失、`/` 悬空。
+ * 关闭态显示「不思考」，语义与下拉首项一致。</p>
+ */
+const currentThinkingValueLabel = computed(() => getThinkingEffortLabel(currentThinkingValue.value));
 
 const currentModelName = computed(() => {
   const name = currentModelNameOnly.value;
@@ -2180,6 +2309,31 @@ defineExpose({ insertText, insertBadge, currentModelName });
 .input-area {
   position: relative;
   z-index: 10;
+  /* 卡片改为「填充底 + 细描边」的浅灰面（对齐目标 UI）：
+     · 不再用纯白 + 重投影，整张卡靠与页面底色的明度差分层；
+     · 底色走 --bg-fill（主题里的填充一档），换肤时跟着走；
+     · 圆角收到 --radius-lg(12px)，与下拉面板、动作条同一语言。 */
+  padding: 10px 10px 6px;
+  background: var(--bg-fill, var(--el-fill-color-light, #f1f5fb));
+  border: 1px solid var(--border-default, var(--color-input-border, #e2e9f3));
+  border-radius: var(--radius-lg, 12px);
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    background-color 0.16s ease;
+}
+
+/* 聚焦：只提亮描边 + 一圈极淡主色光环。用 box-shadow 而非 outline，
+   不会挤压内部布局，也不会在圆角处画成方形。 */
+.input-area:focus-within {
+  border-color: color-mix(in srgb, var(--el-color-primary) 42%, var(--color-input-border, #e2e9f3));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+}
+
+/* 壁纸场景：半透明 + 背景模糊（与编辑提示条同一口径，两段不会一实一透） */
+.input-area.is-backdrop {
+  background: color-mix(in srgb, var(--bg-fill, var(--el-fill-color-light, #f1f5fb)) 60%, transparent);
+  backdrop-filter: blur(16px);
 }
 
 /* 编辑态：与上方「正在编辑消息」提示条拼成同一张卡。
@@ -2194,7 +2348,9 @@ defineExpose({ insertText, insertBadge, currentModelName });
   margin-top: 0;
   /* 投影必须只向下。0 2px 12px 的模糊上下各漫出 blur/2 = 6px，减去 2px 的下移后
      仍有约 4px 糊在提示条上，在交界处压出一条灰带 —— 这才是「看起来还是两张卡」
-     的主因，和宽度/圆角无关。负 spread 把上边界拉回输入卡内，向下那侧几乎不变。 */
+     的主因，和宽度/圆角无关。负 spread 把上边界拉回输入卡内，向下那侧几乎不变。
+     （2026-11-08：B 案改版后常态已无投影，这条只在编辑态保留，
+       保证与提示条拼接处仍然没有灰带。） */
   box-shadow: 0 2px 12px -6px rgb(0 0 0 / 12%);
 }
 
@@ -2212,14 +2368,16 @@ html.dark .input-area--continues-banner {
 /* Tiptap 编辑器样式 - 模拟 textarea */
 :deep(.message-editor .ProseMirror) {
   width: 100%;
-  min-height: 52px;
+  min-height: 44px;
   max-height: 240px;
   border: none;
   resize: none;
   outline: none;
   font-size: var(--size-text-base, 14px);
-  line-height: calc(var(--size-text-base) * 1.6);
-  padding: 0 8px;
+  line-height: 1.55;
+  /* 左右留 4px：卡片自身有 10px 内边距，正文文字落在 14px 处，
+     与底栏左组第一个图标（10px + 8px 内边距）视觉上同一条竖线 */
+  padding: 0 4px;
   background: transparent;
   overflow-y: auto;
   box-sizing: border-box;
@@ -2279,19 +2437,26 @@ html.dark .input-area--continues-banner {
 }
 
 
-/* 底栏窄窗防溢出（2026-10-09 实测）：≤420px 时左右两组合计超出容器
-   （scrollW 383 > 行宽 361），justify-between 撑开整行、发送钮被挤出输入卡片。
-   两组作为整体换行（左组一行、右组一行），不隐藏任何按钮；右组用
-   margin-left:auto 保证单行时贴右、换行后仍贴右。宽窗表现与原先一致。 */
+/* 底栏：与卡身同一块底色，不再是一条独立的灰带（目标 UI 里整张卡就是一个面）。
+   竖直方向压到 32px 一档：图标 28px 见方 + 上下各 2px，
+   右侧三个控件（模型 / 智能体 / 发送）共用同一条基线。
+
+   窄窗兜底（2026-10-09 实测）：≤420px 时左右两组合计超出容器，两组作为整体换行，
+   不隐藏任何按钮；右组用 margin-left:auto 保证单行时贴右、换行后仍贴右。 */
 .input-actions {
   flex-wrap: wrap;
   row-gap: 4px;
+  align-items: center;
   justify-content: flex-start;
+  margin: 2px -10px -6px;
+  padding: 0 2px 2px;
+  min-height: 34px;
 }
 
 .left-tools {
   display: flex;
   align-items: center;
+  gap: 4px;
   /* 极窄窗兜底：组内按钮也允许换行（正常宽度下不会触发） */
   flex-wrap: wrap;
   row-gap: 4px;
@@ -2316,22 +2481,26 @@ html.dark .input-area--continues-banner {
 }
 
 
-/* 工具按钮 - 原生 button */
+/* 工具按钮 - 原生 button
+   目标 UI 里左组是三个**无边框、无底色**的纯图标按钮：常态只有图标本身，
+   悬停才浮出一层极淡的底色。尺寸 28×28，与右侧模型/智能体/发送同一基线。 */
 .tool-btn {
-  color: var(--color-text-gray);
+  color: var(--text-tertiary, var(--color-text-gray));
   cursor: pointer;
   font-size: 14px;
   height: 28px;
+  min-width: 28px;
   padding: 0 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  transition: all var(--el-transition-duration-fast, 0.2s);
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease;
   background: transparent;
   border: none;
-  /* 原值 6px → sm 档 */
-  border-radius: var(--el-radius-sm, 6px);
+  border-radius: var(--radius-md, 8px);
   outline: none;
 }
 
@@ -2340,18 +2509,21 @@ html.dark .input-area--continues-banner {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
-.tool-btn:hover {
-  background: var(--color-sidebar-bg-hover);
-  color: var(--color-text);
+.tool-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--text-primary, #0f172a) 6%, transparent);
+  color: var(--text-primary, var(--color-text));
 }
 
-.tool-btn:active {
-  background: var(--color-sidebar-bg-active);
+.tool-btn:active:not(:disabled) {
+  background: color-mix(in srgb, var(--text-primary, #0f172a) 10%, transparent);
 }
 
-/* 激活态原用 Ant Design 蓝阶（#e6f7ff / #bae7ff / #1890ff）写死，
-   暗色下浅蓝底会刺眼。改为「主色 + 透明度」派生：
-   浅色下仍是淡蓝底，暗色下自动变成暗底，等于顺手修掉了暗色模式缺陷 */
+.tool-btn:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+/* 激活态：主色图标 + 一层主色薄底（原为 Ant Design 蓝阶写死，暗色下刺眼） */
 .tool-btn-active {
   background: color-mix(in srgb, var(--el-color-primary) 8%, transparent) !important;
   color: var(--el-color-primary) !important;
@@ -2362,177 +2534,212 @@ html.dark .input-area--continues-banner {
   color: var(--el-color-primary) !important;
 }
 
-/* 模型选择器按钮 - 原生 button */
-/* 响应式：窗口太窄时隐藏按钮文字 */
-@media (max-width: 1100px) {
-  .btn-label {
-    display: none;
-  }
+/* ===== 目标按钮（靶心 + 已用/预算）=====
+   颜色与目标条同源：进行中主色、已暂停警示色、已完成成功色；
+   计数器始终是低对比灰，只有数字本身要读。 */
+.goal-btn__glyph {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
-/* 响应式：更窄窗口隐藏技能/深度思考/在线检索按钮，收敛到 + 菜单 */
-@media (max-width: 900px) {
-  .skill-btn,
-  .thinking-toggle,
-  .search-toggle {
-    display: none !important;
-  }
+.goal-btn__count {
+  color: var(--text-tertiary, var(--color-text-gray));
+  font-size: 12px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
 }
 
-/* 技能按钮没有自己的样式：它与 MCP / + / 在线检索 / 优化输入共用 .tool-btn，
-   原先这里那份 .skill-btn 规则（display/align-items/gap）与 .tool-btn 逐条重复，
-   一旦只改了其中一处就会出现「同排按钮不一样大」的偏差，故整块删除。
-   类名本身保留在模板上，仅作为点击外部判定的锚点与窄窗隐藏钩子（见上面的媒体查询）。 */
+.goal-btn--on {
+  color: var(--el-color-primary);
+}
 
-.model-selector-btn {
-  cursor: pointer;
-  height: 28px;
-  padding: 0 8px;
-  border: none;
-  /* 原值 16px → xl 档（胶囊按钮） */
-  border-radius: var(--el-radius-xl, 16px);
-  background-color: transparent;
-  color: var(--color-text);
+.goal-btn--on:hover:not(:disabled) {
+  color: var(--el-color-primary);
+}
+
+.goal-btn--paused {
+  color: var(--el-color-warning, #d97706);
+}
+
+.goal-btn--paused:hover:not(:disabled) {
+  color: var(--el-color-warning, #d97706);
+}
+
+.goal-btn--done {
+  color: var(--el-color-success, #3da35d);
+}
+
+/* ===== 模型 + 思考档位：一个控件，两段可点 =====
+   截图形态：`✳ 模型名 / 默认`。左半段点开模型面板，右半段点开思考档位；
+   两段之间是一个 5px 的 `/`，整组没有描边与底色，只在悬停时浮一层极淡的底。 */
+.model-chip {
   display: flex;
   align-items: center;
-  justify-content: center;
-  /* 宽度自适应模型名内容，最小宽度兜底（用户需求 4.1） */
-  min-width: 96px;
-  overflow: hidden;
-  outline: none;
-  font-size: 12px;
+  min-width: 0;
+  border-radius: var(--radius-md, 8px);
+  transition: background-color 0.16s ease;
 }
 
-.model-selector-btn:focus-visible {
+.model-chip:hover {
+  background: color-mix(in srgb, var(--text-primary, #0f172a) 5%, transparent);
+}
+
+.model-chip.is-open {
+  background: color-mix(in srgb, var(--text-primary, #0f172a) 7%, transparent);
+}
+
+.model-chip__name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  min-width: 0;
+  max-width: 260px;
+  padding: 0 3px 0 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, var(--color-text));
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  outline: none;
+  border-radius: var(--radius-md, 8px) 0 0 var(--radius-md, 8px);
+}
+
+.model-chip__name:focus-visible,
+.model-chip__effort:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
-.model-selector-btn:hover {
-  background: var(--color-sidebar-bg-hover);
-  color: var(--color-text);
+.model-chip__glyph {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  color: var(--text-secondary, var(--color-text-gray));
 }
 
-.model-selector-btn:active {
-  background: var(--color-sidebar-bg-active);
+.model-chip__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
-.model-selector-btn.is-open {
-  background: var(--color-sidebar-bg-active);
+.model-chip__sep {
+  flex-shrink: 0;
+  color: var(--text-tertiary, var(--color-text-gray));
+  font-size: 12px;
+  line-height: 1;
+  user-select: none;
 }
 
-/* 思考等级徽标：放模型按钮**左侧**（用户需求：贴近模型但排在模型之前），
-   与运行模式徽标同一套胶囊语言：图标 + 短文案，开启时高亮、关闭时淡化。
-   蓝色系与运行模式的绿/紫区分开，避免两个胶囊混淆。 */
-.thinking-chip {
+.model-chip__effort {
+  height: 28px;
+  max-width: 120px;
+  padding: 0 8px 0 3px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary, var(--color-text-gray));
+  font-size: 12.5px;
+  line-height: 1;
   cursor: pointer;
+  outline: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 0 var(--radius-md, 8px) var(--radius-md, 8px) 0;
+  transition: color 0.16s ease;
+}
+
+.model-chip__effort:hover,
+.model-chip__effort.is-on {
+  color: var(--text-primary, var(--color-text));
+}
+
+/* ===== 智能体（形态） =====
+   截图：一个橙色圆形人像徽标 + 形态名，没有描边胶囊。
+   徽标颜色按形态区分：构建 = warning（暖橙），规划 = success（青绿），
+   其余自定义形态回落主色 —— 与下拉面板里的圆点同源。 */
+.mode-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   height: 28px;
   padding: 0 8px;
   border: none;
-  border-radius: var(--el-radius-xl, 16px);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  font-weight: 500;
+  border-radius: var(--radius-md, 8px);
   background: transparent;
+  color: var(--text-primary, var(--color-text));
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
   outline: none;
-  transition: all var(--el-transition-duration-fast, 0.2s);
-  --thinking-color: #3b82f6;
-  color: var(--el-text-color-placeholder);
+  transition: background-color 0.16s ease;
+  --mode-color: var(--el-color-primary);
 }
 
-/* 用硬编码色值而非 var(--el-color-primary)：该变量在本项目 tailwind/element 混用下
-   未定义，color-mix 会整体失效（实测选中态无颜色）。与 .run-mode-chip 同一处理方式。 */
-.thinking-chip.is-on {
-  color: var(--thinking-color);
-  background: color-mix(in srgb, var(--thinking-color) 10%, transparent);
+.mode-chip.is-build {
+  --mode-color: var(--el-color-warning, #e6a23c);
 }
 
-.thinking-chip.is-on:hover {
-  background: color-mix(in srgb, var(--thinking-color) 18%, transparent);
+.mode-chip.is-plan {
+  --mode-color: var(--el-color-success, #3da35d);
 }
 
-.thinking-chip:not(.is-on):hover {
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-regular);
+.mode-chip:hover {
+  background: color-mix(in srgb, var(--text-primary, #0f172a) 5%, transparent);
 }
 
-.thinking-chip:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--thinking-color) 22%, transparent);
+.mode-chip:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mode-color) 22%, transparent);
 }
 
-.thinking-chip-text {
+.mode-chip__badge {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--mode-color);
+}
+
+.mode-chip__badge svg {
+  width: 100%;
+  height: 100%;
+}
+
+.mode-chip__text {
   line-height: 1;
   white-space: nowrap;
 }
 
-/* 运行模式徽标（构建/规划）：放模型按钮右侧，两种模式用不同色系区分（用户需求 3）。
-   绿色 = 构建（可直接动手）；紫色 = 规划（先只读调研）。颜色用 color-mix 派生，
-   暗色模式下自动降饱和，不需要单独维护暗色值。 */
-.run-mode-chip {
-  cursor: pointer;
-  height: 28px;
-  padding: 0 8px;
-  border: none;
-  border-radius: var(--el-radius-xl, 16px);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  background: transparent;
-  outline: none;
-  transition: all var(--el-transition-duration-fast, 0.2s);
-  --run-mode-color: var(--el-color-success);
-}
-
-.run-mode-chip.is-build {
-  --run-mode-color: #3da35d;
-}
-
-.run-mode-chip.is-plan {
-  --run-mode-color: #7c5cff;
-}
-
-.run-mode-chip {
-  color: var(--run-mode-color);
-  background: color-mix(in srgb, var(--run-mode-color) 10%, transparent);
-}
-
-.run-mode-chip:hover {
-  background: color-mix(in srgb, var(--run-mode-color) 18%, transparent);
-}
-
-.run-mode-chip:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--run-mode-color) 22%, transparent);
-}
-
-.run-mode-chip-text {
-  line-height: 1;
-  white-space: nowrap;
-}
-
-/* 发送按钮 - 原生 button */
+/* 发送按钮 - 原生 button
+   截图里它是一个**纯箭头**：没有实心圆底，禁用时是灰色箭头，可用时是主色箭头。
+   这里保留 30×30 的点击区（图标 19px），悬停才浮一层主色薄底。 */
 .send-btn {
   cursor: pointer;
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border: none;
-  /* 原值 50%（圆形）→ full 档 */
-  border-radius: var(--el-radius-full, 9999px);
-  background-color: var(--color-primary);
-  color: var(--color-primary-text);
+  border-radius: var(--radius-md, 8px);
+  background: transparent;
+  color: var(--el-color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--el-transition-duration-fast, 0.2s);
+  transition: background-color 0.16s ease, color 0.16s ease, transform 0.12s ease;
   outline: none;
   flex-shrink: 0;
-  /* 与左侧胶囊（thinking/model/run-mode，均 padding 0 8px）拉开一档：
-     胶囊的文字到边缘有 8px 内边距，而发送是实心圆、无内边距，
-     若只靠容器 gap-1（2px），绿色胶囊底会视觉上贴住灰色圆点（用户反馈）。
-     8px = 胶囊内边距，使「文字→圆点」与「胶囊→圆点」的空白读起来一致。 */
-  margin-left: 8px;
+  margin-left: 2px;
+}
+
+.send-glyph {
+  width: 19px;
+  height: 19px;
+  fill: currentColor;
 }
 
 .send-btn:focus-visible {
@@ -2540,46 +2747,36 @@ html.dark .input-area--continues-banner {
 }
 
 .send-btn:hover:not(:disabled) {
-  background-color: var(--color-primary-hover);
+  background: color-mix(in srgb, var(--el-color-primary) 9%, transparent);
 }
 
 .send-btn:active:not(:disabled) {
-  background-color: var(--color-primary-active);
-  transform: scale(0.92);
+  transform: scale(0.9);
 }
 
 .send-btn:disabled {
-  background-color: var(--color-text-disabled);
+  color: var(--text-tertiary, var(--color-text-gray));
   cursor: not-allowed;
-  /* 禁用态可读性：主题色系的禁用底色只是"淡化的主题色"（如涂鸦本的
-     米色、蒸汽朋克的黄铜色），看不出"关"。降不透明度 + 去饱和，
-     任何主题下都能一眼区分 */
-  opacity: 0.45;
-  filter: saturate(0.4);
+  opacity: 0.6;
 }
 
-/* 停止按钮是危险语义：改用 danger 三档派生 hover / active
-   （原值 #f56c6c / #f78989 / #e64242 分别对应 base / light-3 / dark-2） */
+/* 停止按钮是危险语义：箭头换成方块图标，底色走 danger 的薄底 */
 .send-btn.stop-btn {
-  background-color: var(--el-color-danger);
-  color: var(--el-color-white);
+  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 10%, transparent);
 }
 
 .send-btn.stop-btn:hover {
-  background-color: var(--el-color-danger-light-3);
+  background: color-mix(in srgb, var(--el-color-danger) 16%, transparent);
 }
 
 .send-btn.stop-btn:active {
-  background-color: var(--el-color-danger-dark-2);
+  transform: scale(0.9);
 }
 
+/* 入队态与普通发送同形，只把箭头换成「加号叠加」的语义色 */
 .send-btn.queue-btn {
-  background-color: var(--color-primary);
-  position: relative;
-}
-
-.send-btn.queue-btn:hover:not(:disabled) {
-  background-color: var(--color-primary-hover);
+  color: var(--el-color-primary);
 }
 
 /* ========== 粘贴文本预览弹窗样式 ========== */
@@ -2604,6 +2801,13 @@ html.dark .input-area--continues-banner {
   word-break: break-word;
   font-family: 'Cascadia Code', 'Fira Code', 'Consolas', 'Menlo', monospace;
   color: var(--el-text-color-primary);
+}
+
+/* 响应式：更窄窗口把技能入口收敛回「+」菜单（沿用原有窄窗策略） */
+@media (max-width: 900px) {
+  .skill-btn {
+    display: none !important;
+  }
 }
 
 /* 尊重系统「减少动态效果」偏好 */

@@ -198,10 +198,38 @@ export const messageApi: MessageApi = {
     });
   },
 
+  /**
+   * 清空会话的全部消息。
+   *
+   * <p>后端没有「整会话清空」端点：`DELETE /sessions/{id}/messages` 会命中同一路径的
+   * GET 映射，返回 405「不支持DELETE请求，请使用GET方法」，顶栏「更多操作 → 清空记录」
+   * 因此必然提示「操作失败」。这里改走既有可用的 `DELETE /sessions/messages/{messageId}`：
+   * 先按批量 limit 取回历史（不传 initialTurns，避免只拿到首屏窗口），再逐条删除。
+   * 删用户消息时后端会级联删除对应助手消息，重复删除返回成功，因此可以安全循环到取空。</p>
+   *
+   * <p>等后端补上真正的批量清理端点，把这里换回单个请求即可。</p>
+   */
   async clearSessionMessages(this: ApiContext, sessionId: string) {
-    return await this._request(`/sessions/${sessionId}/messages`, {
-      method: "DELETE",
-    });
+    // 单次取回上限：与后端 limit 参数一致，按条数截断；循环直到取空
+    const PAGE_SIZE = 200;
+    // 上限保护：即使后端持续返回不可删除的数据也不会无限循环
+    const MAX_PASSES = 50;
+    for (let pass = 0; pass < MAX_PASSES; pass++) {
+      const response: any = await this._request(
+        `/sessions/${sessionId}/messages?limit=${PAGE_SIZE}`,
+      );
+      const items: any[] = Array.isArray(response?.items) ? response.items : [];
+      if (items.length === 0) break;
+      let deletedThisPass = 0;
+      for (const item of items) {
+        const id = item?.id;
+        if (id === undefined || id === null || id === "") continue;
+        await this._request(`/sessions/messages/${id}`, { method: "DELETE" });
+        deletedThisPass += 1;
+      }
+      if (deletedThisPass === 0) break;
+    }
+    return true;
   },
 
   async deleteMessage(this: ApiContext, messageId: string) {

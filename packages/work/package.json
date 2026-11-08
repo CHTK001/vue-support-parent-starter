@@ -15,6 +15,10 @@
       "types": "./src/timer/index.ts",
       "default": "./src/timer/index.ts"
     },
+    "./countdown": {
+      "types": "./src/countdown/index.ts",
+      "default": "./src/countdown/index.ts"
+    },
     "./*": "./src/*"
   },
   "scripts": {

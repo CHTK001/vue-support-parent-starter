@@ -74,6 +74,8 @@
         <Loading />
       </el-icon>
       <span>{{ t('chat.toolCalls.executing') }}</span>
+      <!-- 已收到的部分输出：命令还在跑就有内容可看，不必等它结束 -->
+      <pre v-if="liveText" class="tool-call-detail__live">{{ liveText }}</pre>
     </div>
   </div>
 </template>
@@ -104,6 +106,19 @@ const { t } = useI18n();
 
 /** 调用参数（沿用 toolDisplay 的解析口径） */
 const args = computed(() => getToolArgs(props.tool));
+
+/**
+ * 执行中已收到的部分输出。
+ *
+ * 来源：流式 trace 的 `tool_result` 增量片段（AgentScope 的 ToolResultTextDeltaEvent），
+ * 由 useStreamResponse 累加到 toolCalls[i].result。命令还在跑时前端就已经有内容了，
+ * 之前只在结束时才展示整块结果，表现为「跑了几十秒、展开一片空白」。
+ */
+const liveText = computed(() => {
+  if (!props.executing) return '';
+  const txt = String((props.tool as any)?.result || '');
+  return txt.trim();
+});
 
 /** 失败态：error / rejected 记为执行失败，其余记为执行结果 */
 const failed = computed(() => props.tool?.outcome === 'error' || props.tool?.outcome === 'rejected');
@@ -219,8 +234,25 @@ const parseResult = (value: any): Record<string, any> => {
 .tool-call-detail__executing {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   font-size: 13px;
   color: var(--el-text-color-secondary);
+}
+
+/* 执行中已经收到的部分输出：限高滚动，跟随到底部由模板不控制、交给用户滚动，
+   避免长命令把整条时间线顶走。 */
+.tool-call-detail__live {
+  flex-basis: 100%;
+  margin-top: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--el-fill-color-lighter, #fafafa);
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
 .tool-call-detail pre {
