@@ -1691,6 +1691,241 @@
   border-radius: 4px;
 }
 
+/* ==================== 性能（Tracing） ==================== */
+.debug-perf {
+  gap: 10px;
+  padding: 10px 12px 16px;
+}
+.debug-perf__err {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid var(--status-error, #ff4c4c);
+  background: rgba(255, 76, 76, 0.08);
+  color: var(--status-error, #ff4c4c);
+  font-size: 12px;
+}
+.debug-perf__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.debug-perf__stat {
+  flex: 1 1 120px;
+  min-width: 110px;
+  padding: 8px 10px;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-1, 0 1px 2px rgba(0, 0, 0, 0.06));
+}
+.debug-perf__k {
+  display: block;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-bottom: 2px;
+}
+.debug-perf__v {
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 18px;
+  color: var(--text-primary);
+}
+.debug-perf__v.is-warn { color: var(--status-warning, #f59e0b); }
+
+.debug-perf__sec {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding-top: 2px;
+}
+.debug-perf__secn {
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.debug-perf__phases {
+  padding: 10px;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg, 12px);
+}
+.debug-perf__stack {
+  display: flex;
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--bg-hover);
+}
+.debug-perf__seg {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  transition: width 0.2s ease;
+}
+.debug-perf__seg--loading { background: var(--status-warning, #f59e0b); }
+.debug-perf__seg--scripting { background: var(--brand-500, #6d5dfc); }
+.debug-perf__seg--rendering { background: var(--status-info, #3b82f6); }
+.debug-perf__seg--painting { background: var(--status-success, #2fbf71); }
+.debug-perf__seg--idle { background: #8b8b99; }
+.debug-perf__seg--other { background: #a78bfa; }
+.debug-perf__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 8px;
+}
+.debug-perf__leg {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.debug-perf__leg b {
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.debug-perf__leg em {
+  font-style: normal;
+  color: var(--text-tertiary);
+  opacity: 0.7;
+}
+.debug-perf__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+
+.debug-perf__chart {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg, 12px);
+}
+.debug-perf__block {
+  position: absolute;
+  height: 10px;
+  border-radius: 2px;
+  overflow: hidden;
+  opacity: 0.9;
+  cursor: default;
+}
+.debug-perf__block:hover { opacity: 1; outline: 1px solid var(--text-primary); }
+.debug-perf__block span {
+  display: none;
+  position: absolute;
+  inset: 0 3px;
+  font-size: 9px;
+  line-height: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #fff;
+}
+.debug-perf__chart:hover .debug-perf__block span { display: block; }
+.debug-perf__block--loading { background: var(--status-warning, #f59e0b); }
+.debug-perf__block--scripting { background: var(--brand-500, #6d5dfc); }
+.debug-perf__block--rendering { background: var(--status-info, #3b82f6); }
+.debug-perf__block--painting { background: var(--status-success, #2fbf71); }
+.debug-perf__block--idle { background: #8b8b99; }
+.debug-perf__block--other { background: #a78bfa; }
+.debug-perf__chartempty {
+  padding: 16px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.debug-perf__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.debug-perf__table thead th {
+  text-align: left;
+  padding: 6px 8px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.debug-perf__table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid rgba(128, 128, 140, 0.16);
+}
+.debug-perf__tname {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+}
+.debug-perf__tcat {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+.debug-perf__tdur {
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.debug-perf__tag {
+  display: inline-block;
+  padding: 0 6px;
+  line-height: 16px;
+  border-radius: 4px;
+  font-size: 10px;
+  color: #fff;
+}
+
+/* ==================== 网络：链路 ==================== */
+.debug-net__trace { color: var(--text-tertiary); }
+.debug-net__traceid {
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  color: var(--brand-500);
+  font-size: 11px;
+}
+.debug-net__none { color: var(--border-default, var(--text-tertiary)); }
+.debug-netdetail__trace {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(128, 128, 140, 0.12);
+  font-size: 12px;
+}
+.debug-netdetail__tstat {
+  flex: 0 0 34px;
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 11px;
+}
+.debug-netdetail__tmethod {
+  flex: 0 0 48px;
+  color: var(--status-info, #3b82f6);
+  font-size: 11px;
+}
+.debug-netdetail__turl {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.debug-netdetail__ttime {
+  flex: 0 0 auto;
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
 /* ==================== 窄屏 ==================== */
 @media (max-width: 900px) {
   .debug-body { padding: 8px; gap: 8px; }

@@ -197,7 +197,7 @@ onBeforeUnmount(() => {
           </ReTableColumn>
         </ReTable>
         <div v-if="totalAlarms > 5" class="see-all">
-          <ReButton icon="ArrowRight" size="small" link type="primary" @click="router.push('/alarms')">查看全部</ReButton>
+          <ReButton icon="ArrowRight" size="small" text type="primary" @click="router.push('/alarms')">查看全部</ReButton>
         </div>
       </div>
 

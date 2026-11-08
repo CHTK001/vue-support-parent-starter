@@ -19,7 +19,7 @@ const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
 
 defineOptions({ name: "ReInputNumber", inheritAttrs: true });
 
-const model = defineModel<number | undefined>({ default: undefined });
+const model = defineModel<number | null | undefined>({ default: undefined });
 
 const props = withDefaults(
   defineProps<{

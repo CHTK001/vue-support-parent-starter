@@ -515,11 +515,12 @@
         </div>
         <div class="ws-field">
           <label class="ws-label">舞台出片</label>
-          <el-radio-group v-model="mediaForm.mediaMode" data-role="media-mode-create">
-            <el-radio-button value="video">AI 生成视频</el-radio-button>
+           <el-radio-group v-model="mediaForm.mediaMode" data-role="media-mode-create">
+            <el-radio-button value="text">纯文字</el-radio-button>
             <el-radio-button value="image">场景图 + 文字</el-radio-button>
+            <el-radio-button value="video">AI 生成视频</el-radio-button>
           </el-radio-group>
-          <span class="ws-hint">每一幕由 AI 写剧本、出图、再让图动起来连成短片</span>
+          <span class="ws-hint">{{ MEDIA_MODE_HINT[mediaForm.mediaMode] }}</span>
         </div>
       </div>
       <template #footer>
@@ -556,10 +557,11 @@
         <div class="ws-field">
           <label class="ws-label">舞台出片（这个世界的每一幕）</label>
           <el-radio-group v-model="mediaForm.mediaMode" data-role="media-mode">
+            <el-radio-button value="text">纯文字演出</el-radio-button>
+            <el-radio-button value="image">场景图 + 文字</el-radio-button>
             <el-radio-button value="video">AI 生成视频</el-radio-button>
-            <el-radio-button value="image">只看场景图 + 文字</el-radio-button>
           </el-radio-group>
-          <span class="ws-hint">视频会按分镜逐段生成后连播；图生视频指 AI 先画好场景图，再让图动起来。</span>
+          <span class="ws-hint">{{ MEDIA_MODE_HINT[mediaForm.mediaMode] }}</span>
         </div>
         <div v-if="mediaForm.mediaMode === 'video'" class="ws-field">
           <label class="ws-label">视频模型</label>
@@ -741,6 +743,13 @@ const WORLD_SEEDS = [
 const WEATHER_OPTIONS = ['晴', '多云', '阴', '雨', '雪', '风', '雷暴', '雾']
 const REL_TAGS = ['好友', '挚友', '恋人', '家人', '同事', '宿敌', '敌人', '陌生人', '崇拜', '依赖']
 
+/** 三种舞台形态互斥，选中哪个就只产出哪种；文案随选中项切换，避免用户误以为会同时出图 */
+const MEDIA_MODE_HINT: Record<string, string> = {
+  text: '只出文字演出：AI 写剧本直接上演，不生成图片和视频，出幕最快',
+  image: '每个场景配一张 AI 场景图，图文一起演出',
+  video: '按分镜逐段生成后连播；图生视频指 AI 先画好场景图，再让图动起来',
+}
+
 /** 幕次阶段展示名（与后端 ACT_STATUS_ 常量对齐） */
 const ACT_STAGE_NAME: Record<string, string> = {
   writing: '编剧中',
@@ -824,12 +833,13 @@ const worldForm = reactive({
 const sceneForm = reactive({ name: '', description: '' })
 
 /**
- * 舞台出片方式（sim 分组设置，全站共用）：
- * - mediaMode = video：素材阶段让 AI 出视频，舞台按分镜连播；
- * - mediaMode = image：只出场景图，舞台用图文演出（省算力、也适合还没接视频模型的部署）。
+ * 舞台出片方式（sim 分组设置，全站共用），三种形态互斥：
+ * - mediaMode = text：只出文字演出，整幕不建任何生成任务（最快，也不产生出图费用）；
+ * - mediaMode = image：只出场景图，舞台用图文演出；
+ * - mediaMode = video：素材阶段让 AI 出视频，舞台按分镜连播。
  * videoModel 留空时由后端自动挑一个可用视频模型。
  */
-const mediaForm = reactive<{ mediaMode: 'video' | 'image'; videoModel: string; videoModels: string[] }>({
+const mediaForm = reactive<{ mediaMode: 'text' | 'video' | 'image'; videoModel: string; videoModels: string[] }>({
   mediaMode: 'video',
   videoModel: '',
   videoModels: [],
@@ -1135,10 +1145,13 @@ function openWorldEdit() {
 /** 读 sim 分组设置：出片方式与视频模型（读不到就用默认：出视频、自动挑模型） */
 async function loadMediaSettings() {
   try {
-    const s = await apiService.fetchGroupSettings('sim') as Record<string, any>
-    const mode = String(s?.media_mode ?? s?.mediaMode ?? '').trim()
-    mediaForm.mediaMode = mode === 'image' ? 'image' : 'video'
-    mediaForm.videoModel = String(s?.video_model ?? s?.videoModel ?? '').trim()
+    const s: any = await apiService.fetchGroupSettings('sim')
+    // 该出口回的是双层信封 {success, data:{field->value}}（部分封装还会再包一层 {code,data}），
+    // 直接在外层找 media_mode 永远找不到，界面就会一直停在默认的「生成视频」。
+    const flat: Record<string, any> = s?.data?.data ?? s?.data ?? s ?? {}
+    const mode = String(flat.media_mode ?? flat.mediaMode ?? '').trim()
+    mediaForm.mediaMode = mode === 'text' || mode === 'image' ? mode : 'video'
+    mediaForm.videoModel = String(flat.video_model ?? flat.videoModel ?? '').trim()
   } catch {
     // 设置读不到不该挡住世界设置面板：保持默认值
   }
@@ -1158,12 +1171,12 @@ async function loadVideoModels() {
   }
 }
 
-/** 把出片方式写回 sim 分组设置（只提交这两个键，避免覆盖别人改的其他设置） */
+/** 把出片方式写回 sim 分组设置（只提交出片相关键，避免覆盖别人改的其他设置） */
 async function saveMediaSettings() {
-  await apiService.updateGroupSettings('sim', {
-    media_mode: mediaForm.mediaMode,
-    video_model: mediaForm.videoModel || '',
-  })
+  const payload: Record<string, string> = { media_mode: mediaForm.mediaMode }
+  // 纯文字形态不需要视频模型；提交空串会把别人配好的模型清掉，所以干脆不带这个键
+  if (mediaForm.mediaMode === 'video') payload.video_model = mediaForm.videoModel || ''
+  await apiService.updateGroupSettings('sim', payload)
 }
 
 async function confirmEdit() {

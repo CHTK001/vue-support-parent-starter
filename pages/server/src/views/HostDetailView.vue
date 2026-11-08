@@ -1297,7 +1297,7 @@ function onProfileCommit(kw: string): void {
       <!-- 无监控项但有内置指标：软提示，不阻断仪表 -->
       <div v-if="!monitorId" class="builtin-hint">
         <span>当前显示主机内置实时指标（CPU / 内存 / 磁盘 / 磁盘IO / 网络 / 软件）；配置监控项后可获得 JVM 堆与 24h 历史。</span>
-        <ReButton icon="Setting" link :show-text="true" @click="router.push('/config')">配置监控项</ReButton>
+        <ReButton icon="Setting" text :show-text="true" @click="router.push('/config')">配置监控项</ReButton>
       </div>
       <!-- 实时仪表（响应式自适应） -->
       <section class="gauge-grid">

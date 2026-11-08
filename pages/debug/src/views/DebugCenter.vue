@@ -81,9 +81,9 @@ function writePref(key: string, value: unknown): void {
  * 存储（Cookie / localStorage / sessionStorage）、截屏。SVG 抽取收进元素页签的
  * 侧栏，求值收进元素页签底部的 Console 抽屉。</p>
  */
-type PageTab = "elements" | "console" | "network" | "app" | "screenshot";
+type PageTab = "elements" | "console" | "network" | "performance" | "app" | "screenshot";
 
-const PAGE_TABS: readonly PageTab[] = ["elements", "console", "network", "app", "screenshot"];
+const PAGE_TABS: readonly PageTab[] = ["elements", "console", "network", "performance", "app", "screenshot"];
 
 /** 页签默认落在「网络」；上次停留的页签会记住，下次进来直接续上 */
 function readPageTab(): PageTab {
@@ -162,6 +162,14 @@ interface NetEntry {
   errorText: string;
   /** 来源目标 */
   targetId: string;
+  /** 链路追踪：traceId（从 sw8 / traceparent 解析） */
+  traceId: string;
+  /** 链路追踪：segmentId（sw8 的 segment 段） */
+  segmentId: string;
+  /** 链路追踪：spanId（sw8 的 span 段 / traceparent 的 parent-id） */
+  spanId: string;
+  /** 链路追踪：来源协议（sw8 / traceparent） */
+  traceSource: string;
 }
 
 /** 抽取出来的一个 SVG */
@@ -203,8 +211,8 @@ const netPreserveLog = ref<boolean>(readPref<boolean>("net.preserveLog", false))
 /** 网络：当前展开详情的请求 */
 const netDetailId = ref("");
 /** 网络详情当前页签 */
-const netDetailTab = ref<"headers" | "response" | "initiator">(
-  readPref<"headers" | "response" | "initiator">("net.detailTab", "headers"),
+const netDetailTab = ref<"headers" | "response" | "initiator" | "trace">(
+  readPref<"headers" | "response" | "initiator" | "trace">("net.detailTab", "headers"),
 );
 /** 详情区固定高度（px，可拖拽调整，避免高度随内容跳变；高度也会记住） */
 const netDetailHeight = ref<number>(readPref<number>("net.detailHeight", 260));
@@ -414,11 +422,16 @@ const uptime = computed(() => {
   return `${pad(Math.floor(seconds / 3600))}:${pad(Math.floor((seconds % 3600) / 60))}:${pad(seconds % 60)}`;
 });
 
-/** 五个页签（带计数）；整页源码与求值入口收在「元素」页签里，不再单开页签 */
+/** 六个页签（带计数）；整页源码与求值入口收在「元素」页签里，不再单开页签 */
 const tabs = computed<{ name: PageTab; label: string; count?: number }[]>(() => [
   { name: "elements", label: "元素" },
   { name: "console", label: "控制台", count: consoleMessages.value.length },
   { name: "network", label: "网络", count: networkRequests.value.length },
+  {
+    name: "performance",
+    label: "性能",
+    count: perfEventCount.value || perfSummary.value?.total || undefined,
+  },
   { name: "app", label: "应用" },
   { name: "screenshot", label: "截屏" },
 ]);
@@ -481,6 +494,36 @@ const netSummary = computed(() => {
   const failed = rows.filter((n) => n.errorText || /^[45]/.test(n.status)).length;
   return { count: rows.length, bytes, failed };
 });
+
+/** 按 traceId 聚合的请求（链路视角） */
+const traceGroups = computed(() => {
+  const map = new Map<string, { traceId: string; count: number; failed: number; entries: NetEntry[] }>();
+  for (const n of networkRequests.value) {
+    if (!n.traceId) continue;
+    let group = map.get(n.traceId);
+    if (!group) {
+      group = { traceId: n.traceId, count: 0, failed: 0, entries: [] };
+      map.set(n.traceId, group);
+    }
+    group.count++;
+    if (n.errorText || /^[45]/.test(n.status)) group.failed++;
+    group.entries.push(n);
+  }
+  return [...map.values()].sort((a, b) => b.count - a.count);
+});
+
+/** 当前详情请求所属的链路分组 */
+const currentTraceGroup = computed(() => {
+  const id = netDetail.value?.traceId;
+  return id ? traceGroups.value.find((g) => g.traceId === id) ?? null : null;
+});
+
+/** 跳到 APM 链路详情（新窗口打开，保留调试现场） */
+function openTraceInApm(traceId: string) {
+  if (!traceId) return;
+  const url = `${window.location.origin}/apm/traces/detail?traceId=${encodeURIComponent(traceId)}`;
+  window.open(url, "_blank");
+}
 
 /** 时间戳 -> hh:mm:ss */
 function fmtTime(ts?: number): string {
@@ -971,6 +1014,16 @@ function dispatchCdpEvent(m: Record<string, unknown>) {
     case "Network.requestServedFromCache":
       appendNetwork(m);
       break;
+    // 性能追踪：Tracing.dataCollected 分批回推，累积到暂存区；tracingComplete 收尾
+    case "Tracing.dataCollected":
+      onTracingData((m.params ?? {}) as Record<string, unknown>, String(m.targetId ?? ""));
+      break;
+    case "Tracing.tracingComplete":
+      onTracingComplete();
+      break;
+    case "Tracing.bufferUsage":
+      perfBufferUsage.value = Math.round(Number(((m.params ?? {}) as Record<string, unknown>).percentFull ?? 0) * 100);
+      break;
     // 页面变化：页面里 MutationObserver 经 Runtime.addBinding 主动回推，零轮询
     case "Runtime.bindingCalled": {
       const params = (m.params ?? {}) as Record<string, unknown>;
@@ -1328,6 +1381,51 @@ function initiatorText(raw: unknown): string {
   return `${type || "other"}${url ? " · " + url + line : ""}`;
 }
 
+/**
+ * 从请求头解析链路标识
+ *
+ * <p>优先认 SkyWalking 的 {@code sw8}（{@code 1-traceId-segmentId-spanId-parentSpanId-...}，
+ * 各段 base64），其次认 W3C {@code traceparent}（{@code 00-traceId-spanId-flags}）。
+ * 解析结果写回条目，网络列表与详情「链路」子页签、APM 跳转都基于它。</p>
+ */
+function parseTrace(headers: Record<string, string>): { traceId: string; segmentId: string; spanId: string; source: string } {
+  const out = { traceId: "", segmentId: "", spanId: "", source: "" };
+  const pick = (name: string): string => {
+    const hit = Object.keys(headers).find((k) => k.toLowerCase() === name);
+    return hit ? String(headers[hit] ?? "").trim() : "";
+  };
+  const decode = (v: string): string => {
+    if (!v) return "";
+    try {
+      return decodeURIComponent(escape(atob(v)));
+    } catch {
+      return v;
+    }
+  };
+  const sw8 = pick("sw8");
+  if (sw8) {
+    const parts = sw8.split("-");
+    // 1 / traceId / segmentId / spanId / parentSpanId / service / instance / endpoint / peer
+    if (parts.length >= 4) {
+      out.traceId = decode(parts[1]);
+      out.segmentId = decode(parts[2]);
+      out.spanId = decode(parts[3]);
+      out.source = "sw8";
+      return out;
+    }
+  }
+  const tp = pick("traceparent");
+  if (tp) {
+    const parts = tp.split("-");
+    if (parts.length >= 4) {
+      out.traceId = parts[1];
+      out.spanId = parts[2];
+      out.source = "traceparent";
+    }
+  }
+  return out;
+}
+
 /** 造一条空的网络条目 */
 function blankNet(): NetEntry {
   return {
@@ -1350,6 +1448,10 @@ function blankNet(): NetEntry {
     initiator: "",
     errorText: "",
     targetId: "",
+    traceId: "",
+    segmentId: "",
+    spanId: "",
+    traceSource: "",
   };
 }
 
@@ -1399,6 +1501,13 @@ function appendNetwork(m: Record<string, unknown> = {}) {
     hit.type = String(params.type ?? "other");
     hit.timestamp = Number(params.timestamp ?? 0) * 1000 || Date.now();
     hit.requestHeaders = toHeaderMap(req.headers);
+    const trace = parseTrace(hit.requestHeaders);
+    if (trace.traceId) {
+      hit.traceId = trace.traceId;
+      hit.segmentId = trace.segmentId;
+      hit.spanId = trace.spanId;
+      hit.traceSource = trace.source;
+    }
     hit.initiator = initiatorText(params.initiator);
     hit.targetId = targetId;
     hit.status = redirect.status ? String(redirect.status) : "";
@@ -1481,7 +1590,7 @@ function toggleNetDetail(id: string) {
 }
 
 /** 切换详情子页签（响应按需拉取） */
-function showNetTab(tab: "headers" | "response" | "initiator") {
+function showNetTab(tab: "headers" | "response" | "initiator" | "trace") {
   netDetailTab.value = tab;
   netBodyRaw.value = "";
   if (tab === "response") {
@@ -1611,13 +1720,14 @@ async function copyText(text: string, ok = "已复制到剪贴板") {
 /**
  * 生成 sw8 追踪头（SkyWalking 8/9 的跨进程传播协议）
  *
- * <p>格式：{@code 1-<traceId>-<segmentId>-<spanId>-<service>-<instance>-<endpoint>-<peer>}，
- * 各段 base64 编码。traceId / segmentId / spanId 用页面侧随机串构造，
- * 这样页面里发出的 XHR / fetch 会带上同一条链路标，后端 OAP 能把浏览器请求
- * 串进 SkyWalking 的调用链（skywalking-client-js 同款口径，这里内联实现，
- * 不引 CDN，避免离线环境失败）。</p>
+ * <p>格式：{@code 1-<traceId>-<segmentId>-<spanId>-<parentSpanId>-<entryServiceInstanceId>-<entryEndpoint>-<peerHost>}，
+ * 除采样位 {@code 1} 外各段 base64 编码，与 skywalking-client-js 一致。</p>
+ *
+ * <p>口径要点：<b>一个页面只用一个 traceId</b>，每个请求一个新 segmentId（span 0 / parent -1）。
+ * 早先每请求随机 traceId，网络面板里每个请求各成一条链，按 trace 聚合永远是 1 条，
+ * 也跳不到同一个 APM 链路详情。</p>
  */
-function newSw8(service: string, endpoint: string, peer: string): string {
+function newSw8(service: string, endpoint: string, peer: string, traceId?: string): string {
   const b64 = (s: string) => {
     try {
       return btoa(unescape(encodeURIComponent(s)));
@@ -1630,9 +1740,18 @@ function newSw8(service: string, endpoint: string, peer: string): string {
     for (let i = 0; i < n; i++) out += Math.floor(Math.random() * 16).toString(16);
     return out;
   };
-  const traceId = `${Date.now().toString(16)}.${rand(8)}.${rand(16)}`;
-  const segmentId = `${Date.now().toString(16)}.${rand(8)}.${rand(16)}`;
-  const parts = ["1", b64(traceId), b64(segmentId), b64("0"), b64(service), b64("browser"), b64(endpoint), b64(peer)];
+  const trace = traceId || `${Date.now().toString(16)}.${rand(8)}.${rand(16)}`;
+  const segment = `${Date.now().toString(16)}.${rand(8)}.${rand(16)}`;
+  const parts = [
+    "1",
+    b64(trace),
+    b64(segment),
+    b64("0"),
+    b64("-1"),
+    b64(`${service}@browser`),
+    b64(endpoint),
+    b64(peer),
+  ];
   return parts.join("-");
 }
 
@@ -1640,9 +1759,9 @@ function newSw8(service: string, endpoint: string, peer: string): string {
  * 注入到页面的 sw8 追踪脚本
  *
  * <p>包住 {@code window.fetch} 与 {@code XMLHttpRequest.prototype.open/send}：
- * 同源请求自动补 {@code sw8} / {@code sw8-correlation} 头，跨域请求只补白名单
- * （默认放行当前站点与常见 OAP 地址），不破坏页面原有逻辑。开关写进
- * {@code window.__cdpSw8}，前端切目标 / 关开关时重挂即可。</p>
+ * 同源请求自动补 {@code sw8} / {@code sw8-correlation} 头，不破坏页面原有逻辑。
+ * 开关写进 {@code window.__cdpSw8}，traceId 存在 {@code window.__cdpSw8TraceId}，
+ * 页面内所有请求共用同一条链路，网络面板才能按 trace 聚合成一棵调用树。</p>
  */
 const SW8_SCRIPT = `(function () {
   var KEY = 'sw8', CORR = 'sw8-correlation';
@@ -1651,10 +1770,16 @@ const SW8_SCRIPT = `(function () {
   function peerOf(u) { try { return new URL(u, location.href).host; } catch (e) { return location.host; } }
   function rand(n) { var s = ''; for (var i = 0; i < n; i++) { s += Math.floor(Math.random() * 16).toString(16); } return s; }
   function b64(s) { try { return btoa(unescape(encodeURIComponent(s))); } catch (e) { return btoa(s); } }
+  function uu(prefix) { return prefix + '.' + rand(8) + '.' + rand(16); }
+  // 一页一个 traceId：脚本重挂（导航 / 开关切换）后继续沿用，除非页面上下文重建
+  function traceId() {
+    if (!window.__cdpSw8TraceId) { window.__cdpSw8TraceId = uu(Date.now().toString(16)); }
+    return window.__cdpSw8TraceId;
+  }
   function newSw8(endpoint, peer) {
-    var t = Date.now().toString(16) + '.' + rand(8) + '.' + rand(16);
-    var g = Date.now().toString(16) + '.' + rand(8) + '.' + rand(16);
-    return ['1', b64(t), b64(g), b64('0'), b64(SERVICE), b64('browser'), b64(endpoint), b64(peer)].join('-');
+    var t = traceId();
+    var g = uu(Date.now().toString(16));
+    return ['1', b64(t), b64(g), b64('0'), b64('-1'), b64(SERVICE + '@browser'), b64(endpoint), b64(peer)].join('-');
   }
   function trim(v) { try { return String(v).slice(0, 160); } catch (e) { return ''; } }
   function headerMap(init) {
@@ -1733,6 +1858,405 @@ function toggleSw8() {
   }
   ElMessage.info(sw8Enabled.value ? "已为页面请求注入 sw8 追踪头" : "已暂停 sw8 注入");
   void ensureSw8();
+}
+
+/* ==================== 性能（Tracing） ==================== */
+
+/**
+ * 录制时可选的追踪类别
+ *
+ * <p>对应 Chrome DevTools 的 Performance 面板：{@code devtools.timeline} 是主线程
+ * 时间线（Layout / Paint / Script 都在里面），{@code v8.execute} 补脚本细节，
+ * {@code loading} 补资源加载阶段，帧类别用于算 FPS。</p>
+ */
+const PERF_CATEGORY_OPTIONS = [
+  { value: "devtools.timeline", label: "时间线", hint: "Layout / Paint / Script 主线程事件" },
+  { value: "v8.execute", label: "脚本", hint: "V8 执行、编译、GC" },
+  { value: "loading", label: "加载", hint: "资源请求与解析" },
+  { value: "blink.user_timing", label: "用户打点", hint: "performance.mark / measure" },
+  { value: "disabled-by-default-devtools.timeline.frame", label: "帧", hint: "用于计算 FPS" },
+];
+
+/** 当前勾选的追踪类别（全部取消时至少保留时间线，否则录制没有意义） */
+const perfCategories = ref<string[]>(
+  readPref<string[]>("perf.categories", ["devtools.timeline", "v8.execute", "loading", "blink.user_timing"]),
+);
+
+/** 是否正在录制 */
+const perfRecording = ref(false);
+/** 已经发了 Tracing.end、等 tracingComplete 收尾 */
+const perfStopping = ref(false);
+/** 已收集的事件数（录制过程中增量更新，用于状态条） */
+const perfEventCount = ref(0);
+/** 缓冲区占用（0~1，Tracing.bufferUsage 回推） */
+const perfBufferUsage = ref(0);
+/** 本次录制开始时间 / 结束时间（ms） */
+const perfStartAt = ref(0);
+const perfStopAt = ref(0);
+/** 录制时选中的目标（只收该目标的事件，避免多页面串味） */
+const perfTarget = ref("");
+/** 分析结果 */
+const perfSummary = ref<PerfSummary | null>(null);
+const perfError = ref("");
+
+/** 主线程事件的一帧（用于火焰图） */
+interface PerfBlock {
+  name: string;
+  cat: string;
+  phase: PerfPhase;
+  /** 相对录制起点的毫秒偏移 */
+  offset: number;
+  /** 时长（ms） */
+  dur: number;
+  /** 相对录制窗口的百分比位置 / 宽度 */
+  left: number;
+  width: number;
+  /** 嵌套深度（火焰图行号） */
+  depth: number;
+}
+
+/** 阶段分类 */
+type PerfPhase = "loading" | "scripting" | "rendering" | "painting" | "idle" | "other";
+
+/** 一次录制分析后的汇总模型 */
+interface PerfSummary {
+  /** 录制窗口（ms，主线程事件跨度） */
+  window: number;
+  /** 事件总数 */
+  total: number;
+  /** 主线程完整事件数 */
+  mainCount: number;
+  /** 长任务数（主线程顶层事件 > 50ms） */
+  longTasks: number;
+  /** 帧数（DrawFrame / BeginFrame） */
+  frames: number;
+  /** 各阶段自耗时（ms） */
+  phases: { phase: PerfPhase; label: string; ms: number }[];
+  /** 火焰图方块 */
+  blocks: PerfBlock[];
+  /** 耗时最长的若干个事件 */
+  top: { name: string; cat: string; phase: PerfPhase; dur: number }[];
+}
+
+const PERF_PHASE_LABEL: Record<PerfPhase, string> = {
+  loading: "加载",
+  scripting: "脚本",
+  rendering: "渲染",
+  painting: "绘制",
+  idle: "空闲",
+  other: "其他",
+};
+
+/** 按事件名归类到 DevTools 的六个阶段（够用即可，不求覆盖全部 Chrome 内部事件） */
+function perfPhaseOf(name: string): PerfPhase {
+  if (/^(Resource|ParseHTML|ParseAuthorStyleSheet)/.test(name)) return "loading";
+  if (/^(EvaluateScript|FunctionCall|v8\.|V8\.|XHRLoad|XHRReadyStateChange|TimerFire|FireAnimationFrame|EventDispatch|RunMicrotasks|RunTask|MajorGC|MinorGC|GC)/.test(name)) return "scripting";
+  if (/^(UpdateLayoutTree|RecalculateStyles|Layout|PrePaint|UpdateLayerTree|CompositeLayers|Commit|HitTest)/.test(name)) return "rendering";
+  if (/^(Paint|PaintImage|Rasterize|RasterTask|DecodeImage|ImageDecodeTask|DrawFrame)/.test(name)) return "painting";
+  if (/Idle/.test(name)) return "idle";
+  return "other";
+}
+
+/** 录制期间的事件暂存区：不进响应式，避免上万条事件把渲染拖死 */
+let perfSink: Record<string, unknown>[] = [];
+/** tracingComplete 迟迟不来时的兜底计时器 */
+let perfFallbackTimer: ReturnType<typeof setTimeout> | undefined;
+/** 事件上限（防止录太久把浏览器内存吃光） */
+const PERF_MAX_EVENTS = 120000;
+
+/** 切换一个追踪类别 */
+function togglePerfCategory(value: string) {
+  const set = new Set(perfCategories.value);
+  if (set.has(value)) set.delete(value);
+  else set.add(value);
+  perfCategories.value = [...set];
+}
+
+/** 开始录制 */
+async function startPerf() {
+  if (perfRecording.value) return;
+  if (!selectedTarget.value) {
+    ElMessage.warning("先在左侧选择一个页面目标");
+    return;
+  }
+  if (!wsReady()) {
+    ElMessage.warning("指令通道还没连上，稍后再试");
+    return;
+  }
+  perfError.value = "";
+  perfSink = [];
+  perfEventCount.value = 0;
+  perfBufferUsage.value = 0;
+  perfSummary.value = null;
+  perfStartAt.value = Date.now();
+  perfStopAt.value = 0;
+  perfTarget.value = selectedTarget.value;
+  const included = perfCategories.value.length
+    ? [...perfCategories.value]
+    : ["devtools.timeline"];
+  try {
+    await client.call(
+      "Tracing.start",
+      {
+        transferMode: "ReportEvents",
+        traceConfig: {
+          recordMode: "recordAsMuchAsPossible",
+          includedCategories: included,
+        },
+      },
+      perfTarget.value,
+    );
+    perfRecording.value = true;
+    ElMessage.success("开始录制性能，操作页面后点「停止」");
+  } catch (error) {
+    perfError.value = "开始录制失败: " + (error as Error).message;
+    ElMessage.error(perfError.value);
+  }
+}
+
+/** 停止录制（数据经 SSE 的 Tracing.tracingComplete 收尾） */
+async function stopPerf() {
+  if (!perfRecording.value || perfStopping.value) return;
+  perfStopping.value = true;
+  perfStopAt.value = Date.now();
+  try {
+    await client.call("Tracing.end", {}, perfTarget.value || selectedTarget.value);
+  } catch (error) {
+    perfError.value = "停止录制失败: " + (error as Error).message;
+    perfRecording.value = false;
+    perfStopping.value = false;
+    analyzePerf();
+    return;
+  }
+  // tracingComplete 正常几百毫秒内到；万一被 SSE 丢帧，也要让界面能收尾
+  clearTimeout(perfFallbackTimer);
+  perfFallbackTimer = setTimeout(() => {
+    if (perfStopping.value) {
+      perfRecording.value = false;
+      perfStopping.value = false;
+      analyzePerf();
+    }
+  }, 8000);
+}
+
+/** 收到 Tracing.dataCollected：只收录制目标的事件 */
+function onTracingData(params: Record<string, unknown>, targetId: string) {
+  if (!perfRecording.value) return;
+  if (perfTarget.value && targetId && targetId !== perfTarget.value) return;
+  const value = params.value;
+  if (!Array.isArray(value)) return;
+  let added = 0;
+  for (const item of value) {
+    if (perfSink.length >= PERF_MAX_EVENTS) break;
+    if (item && typeof item === "object") {
+      perfSink.push(item as Record<string, unknown>);
+      added++;
+    }
+  }
+  if (added) perfEventCount.value = perfSink.length;
+}
+
+/** 收到 Tracing.tracingComplete：结束录制并分析 */
+function onTracingComplete() {
+  clearTimeout(perfFallbackTimer);
+  if (!perfRecording.value && !perfStopping.value) return;
+  perfRecording.value = false;
+  perfStopping.value = false;
+  if (!perfStopAt.value) perfStopAt.value = Date.now();
+  analyzePerf();
+}
+
+/** 把暂存区的事件压成汇总模型 + 火焰图方块 */
+function analyzePerf() {
+  const raw = perfSink;
+  if (!raw.length) {
+    perfSummary.value = null;
+    perfError.value = "没有捕获到任何事件，换个类别组合再试";
+    return;
+  }
+  // 1. 找渲染主线程：TracingStartedInPage 给出页面所属 pid，thread_name 给出 CrRendererMain
+  let pagePid = 0;
+  for (const e of raw) {
+    if (e.name === "TracingStartedInPage") {
+      const args = (e.args ?? {}) as Record<string, unknown>;
+      const data = (args.data ?? {}) as Record<string, unknown>;
+      if (data.page) pagePid = Number(e.pid ?? 0);
+      if (pagePid) break;
+    }
+  }
+  const mainThreads = new Map<string, string>();
+  for (const e of raw) {
+    if (e.ph === "M" && e.name === "thread_name") {
+      const args = (e.args ?? {}) as Record<string, unknown>;
+      mainThreads.set(`${e.pid}:${e.tid}`, String(args.name ?? ""));
+    }
+  }
+  let mainKey = "";
+  if (pagePid) {
+    for (const [key, name] of mainThreads) {
+      if (key.startsWith(`${pagePid}:`) && name === "CrRendererMain") {
+        mainKey = key;
+        break;
+      }
+    }
+  }
+  if (!mainKey) {
+    // 没有元数据：退化为「完整事件最多」的线程
+    const counts = new Map<string, number>();
+    for (const e of raw) {
+      if (e.ph !== "X") continue;
+      const key = `${e.pid}:${e.tid}`;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    let best = -1;
+    for (const [key, n] of counts) {
+      if (n > best) {
+        best = n;
+        mainKey = key;
+      }
+    }
+  }
+
+  // 2. 主线程完整事件（ph=X 带 dur），按开始时间排序
+  const events = raw.filter(
+    (e) => e.ph === "X" && e.dur != null && `${e.pid}:${e.tid}` === mainKey,
+  );
+  events.sort((a, b) => Number(a.ts ?? 0) - Number(b.ts ?? 0) || Number(b.dur ?? 0) - Number(a.dur ?? 0));
+  if (!events.length) {
+    perfSummary.value = null;
+    perfError.value = "主线程没有可分析的事件";
+    return;
+  }
+  const t0 = Number(events[0].ts ?? 0);
+  let t1 = t0;
+  for (const e of events) {
+    t1 = Math.max(t1, Number(e.ts ?? 0) + Number(e.dur ?? 0));
+  }
+  const span = Math.max(1, t1 - t0);
+
+  // 3. 自耗时：用结束时间栈扣掉子事件，避免嵌套把总时长算重
+  const phaseMs = new Map<PerfPhase, number>();
+  const stack: { start: number; end: number; childMs: number; phase: PerfPhase }[] = [];
+  const blocks: PerfBlock[] = [];
+  let longTasks = 0;
+  const top: { name: string; cat: string; phase: PerfPhase; dur: number }[] = [];
+  const closeFrame = () => {
+    const frame = stack.pop();
+    if (!frame) return;
+    const self = Math.max(0, frame.end - frame.start - frame.childMs);
+    phaseMs.set(frame.phase, (phaseMs.get(frame.phase) ?? 0) + self);
+    const parent = stack[stack.length - 1];
+    if (parent) {
+      parent.childMs += Math.max(0, frame.end - frame.start);
+    } else if (frame.end - frame.start > 50) {
+      longTasks++;
+    }
+  };
+  for (const e of events) {
+    const ts = Number(e.ts ?? 0);
+    const dur = Number(e.dur ?? 0);
+    const end = ts + dur;
+    // 先关掉所有在本次事件开始前就结束的帧
+    while (stack.length && stack[stack.length - 1].end <= ts) closeFrame();
+    const name = String(e.name ?? "");
+    const phase = perfPhaseOf(name);
+    const cat = String(e.cat ?? "");
+    const depth = stack.length;
+    stack.push({ start: ts, end, childMs: 0, phase });
+    if (blocks.length < 900) {
+      blocks.push({
+        name,
+        cat,
+        phase,
+        offset: ts - t0,
+        dur,
+        left: ((ts - t0) / span) * 100,
+        width: Math.max(0.12, (dur / span) * 100),
+        depth,
+      });
+    }
+    if (dur > 0) {
+      top.push({ name, cat, phase, dur });
+    }
+  }
+  while (stack.length) closeFrame();
+  top.sort((a, b) => b.dur - a.dur);
+  const phases = (["loading", "scripting", "rendering", "painting", "idle", "other"] as PerfPhase[]).map(
+    (phase) => ({ phase, label: PERF_PHASE_LABEL[phase], ms: Math.round(phaseMs.get(phase) ?? 0) }),
+  );
+  const frames = raw.filter((e) => e.name === "DrawFrame" || e.name === "BeginFrame").length;
+  perfSummary.value = {
+    window: Math.round(span),
+    total: raw.length,
+    mainCount: events.length,
+    longTasks,
+    frames,
+    phases,
+    blocks,
+    top: top.slice(0, 30),
+  };
+  perfError.value = "";
+}
+
+/** 清空录制结果 */
+function clearPerf() {
+  perfSink = [];
+  perfEventCount.value = 0;
+  perfSummary.value = null;
+  perfError.value = "";
+  perfBufferUsage.value = 0;
+  perfStartAt.value = 0;
+  perfStopAt.value = 0;
+}
+
+/** 录制时长文案 */
+const perfElapsed = computed(() => {
+  const end = perfStopAt.value || (perfStartAt.value ? Date.now() : 0);
+  if (!perfStartAt.value) return "0.0s";
+  return `${((Math.max(0, end - perfStartAt.value)) / 1000).toFixed(1)}s`;
+});
+
+/** 各阶段占比（用于汇总条） */
+const perfPhaseTotal = computed(() => {
+  const sum = (perfSummary.value?.phases ?? []).reduce((s, p) => s + p.ms, 0);
+  return sum || 1;
+});
+
+/** 火焰图总高度 */
+const perfChartHeight = computed(() => {
+  const blocks = perfSummary.value?.blocks ?? [];
+  let max = 1;
+  for (const b of blocks) max = Math.max(max, b.depth + 1);
+  return Math.min(320, max * 12 + 8);
+});
+
+/** 导出 trace JSON（Chrome DevTools / Perfetto 都能直接吃） */
+function exportPerf() {
+  if (!perfSink.length) {
+    ElMessage.warning("还没有可导出的录制数据");
+    return;
+  }
+  const payload = {
+    traceEvents: perfSink,
+    metadata: {
+      recordedAt: new Date(perfStartAt.value || Date.now()).toISOString(),
+      windowMs: perfSummary.value?.window ?? 0,
+      targetId: perfTarget.value,
+      source: "monitor-debug-center",
+    },
+  };
+  try {
+    const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `debug-trace-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    ElMessage.success(`已导出 ${perfSink.length} 条 trace 事件`);
+  } catch (error) {
+    ElMessage.error("导出失败: " + (error as Error).message);
+  }
 }
 
 /* ==================== SVG 抽取 ==================== */
@@ -3632,6 +4156,7 @@ watch(netDetailTab, (tab) => writePref("net.detailTab", tab));
 watch(netBodyPretty, (on) => writePref("net.pretty", on));
 watch(sw8Enabled, (on) => writePref("sw8.enabled", on));
 watch(storageTab, (tab) => writePref("app.storageTab", tab));
+watch(perfCategories, (list) => writePref("perf.categories", list));
 watch(evaluateOpen, (on) => writePref("console.drawerOpen", on));
 
 /* ==================== 生命周期 ==================== */
@@ -3667,6 +4192,7 @@ onBeforeUnmount(() => {
   window.removeEventListener("keydown", onGlobalKeydown);
   stageObserver?.disconnect();
   clearInterval(uptimeTimer);
+  clearTimeout(perfFallbackTimer);
   if (pickTimer) {
     clearInterval(pickTimer);
     pickTimer = undefined;
@@ -3918,6 +4444,45 @@ onBeforeUnmount(() => {
             {{ netSummary.count }} 条 · {{ fmtSize(netSummary.bytes) }}<template v-if="netSummary.failed"> · {{ netSummary.failed }} 失败</template>
           </span>
           <button class="debug-btn debug-btn--sm" @click="clearNetwork">清空</button>
+        </div>
+
+        <!-- ---------- 性能（Tracing）工具行 ---------- -->
+        <div v-else-if="pageTab === 'performance'" class="debug-tool">
+          <button
+            :class="['debug-btn', 'debug-btn--sm', { 'debug-btn--primary': !perfRecording }]"
+            :disabled="perfRecording || perfStopping || !selectedTarget"
+            @click="startPerf"
+          >
+            {{ perfStopping ? "收尾中…" : "开始录制" }}
+          </button>
+          <button
+            :class="['debug-btn', 'debug-btn--sm', { 'debug-btn--danger': perfRecording }]"
+            :disabled="!perfRecording || perfStopping"
+            @click="stopPerf"
+          >
+            停止
+          </button>
+          <span v-if="perfRecording" class="debug-pill debug-pill--warn">
+            <i class="debug-dot" />录制中 {{ perfElapsed }} · {{ perfEventCount }} 事件
+          </span>
+          <span v-else-if="perfSummary" class="debug-pill debug-pill--info">
+            {{ perfElapsed }} · {{ perfSummary.total }} 事件
+          </span>
+          <span class="debug-tool__divider" />
+          <button
+            v-for="opt in PERF_CATEGORY_OPTIONS"
+            :key="opt.value"
+            :class="['debug-chip', { 'is-active': perfCategories.includes(opt.value) }]"
+            :title="opt.hint"
+            :disabled="perfRecording"
+            @click="togglePerfCategory(opt.value)"
+          >
+            {{ opt.label }}
+          </button>
+          <span class="debug-tool__spacer" />
+          <span v-if="perfBufferUsage" class="debug-tool__hint">缓冲 {{ perfBufferUsage }}%</span>
+          <button class="debug-btn debug-btn--sm" :disabled="!perfSummary" @click="exportPerf">导出 trace</button>
+          <button class="debug-btn debug-btn--sm" :disabled="perfRecording || !perfEventCount" @click="clearPerf">清空</button>
         </div>
 
         <!-- ---------- 应用（存储）工具行 ---------- -->
@@ -4355,6 +4920,7 @@ onBeforeUnmount(() => {
                   <th>方法</th>
                   <th>状态</th>
                   <th>类型</th>
+                  <th>链路</th>
                   <th>大小</th>
                   <th>时间</th>
                   <th>耗时</th>
@@ -4376,6 +4942,12 @@ onBeforeUnmount(() => {
                       {{ n.errorText ? "ERR" : n.status || "pending" }}
                     </td>
                     <td class="debug-net__type">{{ n.type || "other" }}</td>
+                    <td class="debug-net__trace">
+                      <span v-if="n.traceId" class="debug-net__traceid" :title="`traceId ${n.traceId}（${n.traceSource}）`">
+                        {{ n.traceId.slice(0, 8) }}
+                      </span>
+                      <span v-else class="debug-net__none">—</span>
+                    </td>
                     <td class="debug-net__size">{{ n.fromCache ? "缓存" : fmtSize(n.size || n.received) }}</td>
                     <td class="debug-net__time">{{ fmtTime(n.timestamp) }}</td>
                     <td class="debug-net__dur">{{ fmtDuration(n.duration) }}</td>
@@ -4405,6 +4977,9 @@ onBeforeUnmount(() => {
               <button :class="['debug-el__dtab', { 'is-active': netDetailTab === 'headers' }]" @click="showNetTab('headers')">标头</button>
               <button :class="['debug-el__dtab', { 'is-active': netDetailTab === 'response' }]" @click="showNetTab('response')">响应</button>
               <button :class="['debug-el__dtab', { 'is-active': netDetailTab === 'initiator' }]" @click="showNetTab('initiator')">发起者</button>
+              <button :class="['debug-el__dtab', { 'is-active': netDetailTab === 'trace' }]" @click="showNetTab('trace')">
+                链路<span v-if="currentTraceGroup" class="debug-el__dtabn">{{ currentTraceGroup.count }}</span>
+              </button>
             </div>
             <div class="debug-netdetail__body">
               <template v-if="netDetailTab === 'headers'">
@@ -4437,6 +5012,51 @@ onBeforeUnmount(() => {
                 </div>
                 <pre class="debug-netdetail__pre">{{ netBodyLoading ? "读取中…" : netBodyDisplay || "（空）" }}</pre>
               </template>
+              <template v-else-if="netDetailTab === 'trace'">
+                <div class="debug-netdetail__respbar">
+                  <span class="debug-tool__hint">
+                    {{
+                      netDetail.traceId
+                        ? `来源 ${netDetail.traceSource || "header"} · 同链路 ${currentTraceGroup?.count ?? 1} 个请求`
+                        : "该请求没有 sw8 / traceparent 头"
+                    }}
+                  </span>
+                  <span class="debug-tool__spacer" />
+                  <button
+                    class="debug-btn debug-btn--sm"
+                    :disabled="!netDetail.traceId"
+                    @click="copyText(netDetail.traceId, '已复制 traceId')"
+                  >
+                    复制 traceId
+                  </button>
+                  <button
+                    class="debug-btn debug-btn--sm debug-btn--primary"
+                    :disabled="!netDetail.traceId"
+                    @click="openTraceInApm(netDetail.traceId)"
+                  >
+                    在 APM 查看
+                  </button>
+                </div>
+                <template v-if="netDetail.traceId">
+                  <div class="debug-netdetail__kv"><span class="debug-netdetail__k">traceId</span><span class="debug-netdetail__v">{{ netDetail.traceId }}</span></div>
+                  <div class="debug-netdetail__kv"><span class="debug-netdetail__k">segmentId</span><span class="debug-netdetail__v">{{ netDetail.segmentId || "—" }}</span></div>
+                  <div class="debug-netdetail__kv"><span class="debug-netdetail__k">spanId</span><span class="debug-netdetail__v">{{ netDetail.spanId || "—" }}</span></div>
+                  <div class="debug-netdetail__kv"><span class="debug-netdetail__k">来源</span><span class="debug-netdetail__v">{{ netDetail.traceSource }}</span></div>
+                  <div class="debug-netdetail__sec">同一条链路上的请求</div>
+                  <div v-for="g in currentTraceGroup?.entries ?? []" :key="g.seq" class="debug-netdetail__trace">
+                    <span :class="['debug-netdetail__tstat', `debug-net__status--${statusTone(g.status)}`]">
+                      {{ g.errorText ? "ERR" : g.status || "…" }}
+                    </span>
+                    <span class="debug-netdetail__tmethod">{{ g.method }}</span>
+                    <span class="debug-netdetail__turl" :title="g.url">{{ urlName(g.url) }}</span>
+                    <span class="debug-netdetail__ttime">{{ fmtDuration(g.duration) }}</span>
+                  </div>
+                </template>
+                <div v-else class="debug-netdetail__none">
+                  未解析到链路头。打开工具栏的 sw8 注入开关后重新发一次请求即可。
+                  <span v-if="traceGroups.length">当前会话已聚合 {{ traceGroups.length }} 条链路。</span>
+                </div>
+              </template>
               <template v-else>
                 <div class="debug-netdetail__sec">发起者</div>
                 <div class="debug-netdetail__pre">{{ netDetail.initiator || "（页面脚本）" }}</div>
@@ -4447,6 +5067,93 @@ onBeforeUnmount(() => {
               </template>
             </div>
           </div>
+        </div>
+
+        <!-- ==================== 性能（Tracing） ==================== -->
+        <div v-else-if="pageTab === 'performance'" class="debug-scroll debug-perf">
+          <div v-if="perfError" class="debug-perf__err">{{ perfError }}</div>
+          <div v-if="!perfSummary" class="debug-empty">
+            <b>{{ perfRecording ? "正在录制…" : "还没有录制数据" }}</b>
+            <span v-if="perfRecording">操作页面（滚动、点击、切路由），然后点「停止」分析</span>
+            <span v-else>点上方「开始录制」，操作页面后停止，这里会出主线程时间线与汇总指标</span>
+          </div>
+
+          <template v-else>
+            <div class="debug-perf__stats">
+              <div class="debug-perf__stat">
+                <span class="debug-perf__k">录制窗口</span>
+                <b class="debug-perf__v">{{ (perfSummary.window / 1000).toFixed(2) }}s</b>
+              </div>
+              <div class="debug-perf__stat">
+                <span class="debug-perf__k">事件</span>
+                <b class="debug-perf__v">{{ perfSummary.total }}</b>
+              </div>
+              <div class="debug-perf__stat">
+                <span class="debug-perf__k">主线程</span>
+                <b class="debug-perf__v">{{ perfSummary.mainCount }}</b>
+              </div>
+              <div class="debug-perf__stat">
+                <span class="debug-perf__k">长任务</span>
+                <b :class="['debug-perf__v', { 'is-warn': perfSummary.longTasks > 0 }]">{{ perfSummary.longTasks }}</b>
+              </div>
+              <div class="debug-perf__stat">
+                <span class="debug-perf__k">帧</span>
+                <b class="debug-perf__v">{{ perfSummary.frames }}</b>
+              </div>
+            </div>
+
+            <div class="debug-perf__sec">阶段占比（主线程自耗时）</div>
+            <div class="debug-perf__phases">
+              <div class="debug-perf__stack">
+                <span
+                  v-for="p in perfSummary.phases.filter((x) => x.ms > 0)"
+                  :key="p.phase"
+                  :class="['debug-perf__seg', `debug-perf__seg--${p.phase}`]"
+                  :style="{ width: (p.ms / perfPhaseTotal) * 100 + '%' }"
+                  :title="`${p.label} ${p.ms}ms`"
+                />
+              </div>
+              <div class="debug-perf__legend">
+                <span v-for="p in perfSummary.phases" :key="p.phase" class="debug-perf__leg">
+                  <i :class="['debug-perf__dot', `debug-perf__seg--${p.phase}`]" />
+                  {{ p.label }}<b>{{ p.ms }}ms</b>
+                  <em>{{ ((p.ms / perfPhaseTotal) * 100).toFixed(0) }}%</em>
+                </span>
+              </div>
+            </div>
+
+            <div class="debug-perf__sec">
+              主线程火焰图
+              <span class="debug-perf__secn">前 {{ perfSummary.blocks.length }} 个事件 · 宽度按时长占比</span>
+            </div>
+            <div class="debug-perf__chart" :style="{ height: perfChartHeight + 'px' }">
+              <div
+                v-for="(b, i) in perfSummary.blocks"
+                :key="i"
+                :class="['debug-perf__block', `debug-perf__block--${b.phase}`]"
+                :style="{ left: b.left + '%', width: b.width + '%', top: b.depth * 12 + 'px' }"
+                :title="`${b.name}\n${b.dur.toFixed(2)}ms · ${b.cat}`"
+              >
+                <span>{{ b.name }}</span>
+              </div>
+              <div v-if="!perfSummary.blocks.length" class="debug-perf__chartempty">没有可绘制的主线程事件</div>
+            </div>
+
+            <div class="debug-perf__sec">最耗时的 {{ perfSummary.top.length }} 个事件</div>
+            <table class="debug-perf__table">
+              <thead>
+                <tr><th>事件</th><th>阶段</th><th>类别</th><th>耗时</th></tr>
+              </thead>
+              <tbody>
+                <tr v-for="(t, i) in perfSummary.top" :key="i">
+                  <td class="debug-perf__tname" :title="t.name">{{ t.name }}</td>
+                  <td><span :class="['debug-perf__tag', `debug-perf__block--${t.phase}`]">{{ PERF_PHASE_LABEL[t.phase] }}</span></td>
+                  <td class="debug-perf__tcat" :title="t.cat">{{ t.cat }}</td>
+                  <td class="debug-perf__tdur">{{ t.dur.toFixed(2) }}ms</td>
+                </tr>
+              </tbody>
+            </table>
+          </template>
         </div>
 
         <!-- ==================== 应用（Cookie / Web Storage） ==================== -->

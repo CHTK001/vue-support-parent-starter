@@ -602,6 +602,19 @@ const cardMeta = (model: any) => {
     })
   }
 
+  // 官方首字延迟（TTFT）：指标表 latency_first_token_seconds 的单位是秒，
+  // 卡片上统一按毫秒展示。它和上面的「延迟」不是一回事 ——
+  // 延迟是本机探活的实测耗时，首字是官方评测源给出的中位首 Token 时间，
+  // 两者都存在时并列展示，各自有 tooltip 说明，避免被当成重复项。
+  const ttftSec = numOrNull(mt.latency_first_token_seconds)
+  if (ttftSec != null && ttftSec > 0) {
+    items.push({
+      label: '首字',
+      value: `${Math.round(ttftSec * 1000)}ms`,
+      title: `官方首字延迟（TTFT，中位数）：${ttftSec.toFixed(2)}s`,
+    })
+  }
+
   const pIn = numOrNull(mt.price_input_per_musd)
   const pOut = numOrNull(mt.price_output_per_musd)
   if (pIn != null || pOut != null) {
@@ -1277,15 +1290,19 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 .cap-arrow { color: var(--color-text-disabled); }
 /* .mc-feature 已随「其它标签」改造移除：特性改由 ModelTagStrip 以图标 + tooltip 渲染 */
 
-/* 指标区：等宽色块网格（每行 2 个）。
+/* 指标区：等宽色块，每行 2 个（窄容器自动变 3 个）。
    原来是一行「标签 + 值」的小字（gap 14px、无背景），多个指标挤在一起时
    需要逐个读；改成色块后，同一个位置上的数字可以直接上下比较，
    并且首个指标（通常是「输入」或「最近使用」）用主色淡底强调。
-   auto-fit + minmax 让只有 1 个指标时它铺满整行、3 个以上时自动换行，
-   不会留出半格空洞。 */
+
+   为什么用 flex 换行而不是 grid auto-fit：指标个数随模型变化，可能是
+   1/2/3/5 项。grid 下奇数的最后一行会只剩一个色块、旁边的半格空着
+   （实测 5 项时末行 126px 半格空洞）；容器变窄时列数又会在 2/3 之间跳，
+   grid 无法同时兼顾。flex + flex:1 1 92px 让最后一行剩下的项自动
+   stretch 占满整行 —— 1 项铺满、2 项各半、3 项时第 3 项铺满，永不留空洞。 */
 .mc-meta {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   margin-top: 11px;
   padding-top: 11px;
@@ -1295,7 +1312,8 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   display: flex;
   flex-direction: column;
   gap: 1px;
-  min-width: 0;
+  flex: 1 1 92px;
+  min-width: 92px;
   padding: 6px 8px;
   border-radius: var(--radius-md, 8px);
   background: var(--bg-elevated, #f8fafc);

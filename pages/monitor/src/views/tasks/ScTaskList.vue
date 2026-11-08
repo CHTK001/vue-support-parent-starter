@@ -73,9 +73,9 @@
       </ReTableColumn>
       <ReTableColumn label="操作" width="160" fixed="right">
         <template #default="{ row }">
-          <ReButton link @click="handleTrigger(row.id)">采集</ReButton>
-          <ReButton link @click="editRow(row)">编辑</ReButton>
-          <ReButton link type="danger" @click="handleDelete(row.id)">删除</ReButton>
+          <ReButton text @click="handleTrigger(row.id)">采集</ReButton>
+          <ReButton text @click="editRow(row)">编辑</ReButton>
+          <ReButton text type="danger" @click="handleDelete(row.id)">删除</ReButton>
         </template>
       </ReTableColumn>
     </ReTable>

@@ -347,7 +347,11 @@ export function useServiceNodes(): ServiceNodesVm {
       formVisible.value = true
     },
     /**
-     * 克隆：复制全部字段，名称加 -clone 后缀，列表校验时排除自身。
+     * 克隆：复制全部字段，id 置零表示「尚未落库」。
+     *
+     * <p>名称后缀由表单抽屉统一追加（{@code ScServerFormDrawer} 的克隆分支），
+     * 这里保持原名称：否则两处各拼一次 {@code -clone}，会得到
+     * {@code xxx-clone-clone}。</p>
      *
      * @param node 源节点
      */
@@ -355,7 +359,6 @@ export function useServiceNodes(): ServiceNodesVm {
       editingNode.value = {
         ...node,
         id: 0,
-        name: `${node.name}-clone`,
         status: 'STOPPED',
         error: undefined,
         serverUrl: undefined,

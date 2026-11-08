@@ -350,10 +350,10 @@ async function removeBookmark(id: number): Promise<void> {
         </ReTableColumn>
         <ReTableColumn label="操作" width="200">
           <template #default="{ row }">
-            <ReButton v-if="!row.directory" link @click="openEditor(joint(row.name))">编辑</ReButton>
-            <ReButton v-if="!row.directory" link @click="download(row)">下载</ReButton>
-            <ReButton link @click="onRename(row)">改名</ReButton>
-            <ReButton link type="danger" @click="onDelete(row)">删除</ReButton>
+            <ReButton v-if="!row.directory" text @click="openEditor(joint(row.name))">编辑</ReButton>
+            <ReButton v-if="!row.directory" text @click="download(row)">下载</ReButton>
+            <ReButton text @click="onRename(row)">改名</ReButton>
+            <ReButton text type="danger" @click="onDelete(row)">删除</ReButton>
           </template>
         </ReTableColumn>
       </ReTable>

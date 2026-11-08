@@ -142,6 +142,8 @@ export interface DevicePageQuery {
   pageSize?: number
   keyword?: string
   orgId?: string
+  /** 组织 ID 集合（左树选中组织时连同子孙组织一起导出，优先于 orgId） */
+  orgIds?: string[]
   vendor?: string
   category?: string
   subCategory?: string
@@ -151,6 +153,10 @@ export interface DevicePageQuery {
   tag?: string
   /** 所属分组 ID */
   groupId?: string
+  /** 分组 ID 集合（左树选中分组时连同子分组一起导出，优先于 groupId） */
+  groupIds?: string[]
+  /** 设备 ID 集合（左树定位到单台设备时只导出该设备） */
+  ids?: string[]
   /** 仅看未分组设备 */
   ungrouped?: boolean
   sortBy?: 'updatedAt' | 'createdAt' | 'lastOnlineAt' | 'name'
@@ -340,8 +346,22 @@ export interface ProviderCredential {
   deviceCredentialOrgSyncEnabled?: boolean
   /** 组织自动同步间隔（秒） */
   deviceCredentialOrgSyncInterval?: number
+  /** 最近一次连通性探测时间（单条测试 / 全部检测写入） */
+  deviceCredentialLastTestAt?: string
+  /** 最近一次连通性探测结果：true 成功、false 失败、null/undefined 未检测 */
+  deviceCredentialLastTestOk?: boolean | null
   deviceCredentialCreatedAt?: string
   deviceCredentialUpdatedAt?: string
+}
+
+/** 单套凭据的连通性探测结果（POST /provider-credential/test-all） */
+export interface CredentialHealthResult {
+  credentialId: string
+  name: string
+  vendor: string
+  ok: boolean
+  elapsedMs: number
+  message?: string | null
 }
 
 /** 机房拓扑的节点/边（与 ReRelationGraph 的节点契约对齐：{ id, label, group, type, size }） */

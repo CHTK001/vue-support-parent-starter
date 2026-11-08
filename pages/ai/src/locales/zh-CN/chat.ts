@@ -159,6 +159,23 @@ export default {
     actionBarElapsed: '{s}秒',
     actionBarIdle: '已作答，轮到你补充',
     actionBarNetworkWaiting: '{model}正在等待网络重试',
+    // 重试细节：后端 retryInfo 带了 attempt / maxRetries / reason
+    actionBarRetryAttempt: '（第 {attempt}/{max} 次）',
+    actionBarRetryReasonRateLimit: '触发了限流',
+    actionBarRetryReasonNetwork: '网络抖动',
+    actionBarRetryReasonTimeout: '请求超时',
+    actionBarRetryReasonServer: '服务端繁忙',
+    // 等你确认：摘要 + 就地批准
+    actionBarPendingItems: '待你确认 {count} 项',
+    actionBarApproveAll: '全部批准',
+    actionBarViewPlan: '查看',
+    actionBarNoPlanItems: '模型已完成规划，确认后进入执行',
+    // 执行进度
+    actionBarToolIndex: '第 {index} 个工具',
+    actionBarToolIndexTotal: '第 {index}/{total} 个工具',
+    // 命令实时输出
+    actionBarLiveOutput: '实时输出',
+    actionBarOutputEmpty: '等待命令输出…',
     editingMessage: '正在编辑消息',
     memoryManagement: '记忆管理',
     contextUsage: '上下文使用率',

@@ -20,6 +20,7 @@ import type {
   DeviceImportResult,
   DeviceVendorDescriptor,
   SyncResult,
+  CredentialHealthResult,
   TopologyNode,
   TopologyEdge
 } from '@pages/device/src/types/device'
@@ -98,8 +99,14 @@ export const deviceApi = {
     http.get("/org/tree").query({ vendor }).then(unwrap) as Promise<import('@pages/device/src/types/device').OrgNode[]>,
 
   // ==================== Excel 导出 ====================
-  exportDevices: (orgId?: string) =>
-    http.get("/export").query({ orgId }).responseType("blob").then(unwrap),
+  /**
+   * 导出设备台账。
+   *
+   * <p>参数与 `/page` 完全一致，按当前列表筛选导出（所见即所得）：
+   * 关键字、厂商、在线状态、组织/分组/设备集合都可带上。</p>
+   */
+  exportDevices: (params?: DevicePageQuery) =>
+    http.get("/export").query(params as unknown as Record<string, unknown>).responseType("blob").then(unwrap),
   /** 下载台账导入模板（Excel） */
   downloadImportTemplate: () =>
     http.get("/import/template").responseType("blob").then(unwrap),
@@ -171,6 +178,13 @@ export const deviceApi = {
     http.put(`/provider-credential/${id}`).data(credential).then(unwrap),
   deleteCredential: (id: string) => http.delete(`/provider-credential/${id}`).then(unwrap),
   testCredential: (id: string) => http.post(`/provider-credential/${id}/test`).then(unwrap) as Promise<boolean>,
+  /**
+   * 批量测试凭据连通性（凭据表「全部检测」）。
+   *
+   * <p>不传 IDs 表示检测全部启用中的凭据；后端并发 4、单条超时 20 秒、单次上限 50 条。</p>
+   */
+  testAllCredentials: (ids?: string[]) =>
+    http.post('/provider-credential/test-all').data(ids ?? []).then(unwrap) as Promise<CredentialHealthResult[]>,
   /** 按厂商同步设备目录（拉取方向；未指定 vendor 则同步全部厂商） */
   syncDevices: (vendor?: string) =>
     http.post("/sync").query({ vendor }).then(unwrap) as Promise<SyncResult>,

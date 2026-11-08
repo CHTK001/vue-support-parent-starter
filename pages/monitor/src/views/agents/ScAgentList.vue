@@ -28,7 +28,7 @@
       </ReTableColumn>
       <ReTableColumn label="操作" width="120" fixed="right">
         <template #default="{ row }">
-          <ReButton link type="primary" @click="viewConfig(row)">配置</ReButton>
+          <ReButton text type="primary" @click="viewConfig(row)">配置</ReButton>
         </template>
       </ReTableColumn>
     </ReTable>

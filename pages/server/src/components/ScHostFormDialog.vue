@@ -426,7 +426,7 @@ function onSubmit(): void {
         <div class="form-section">
           <ReSectionHead title="硬件规格">
             <template #actions>
-              <ReButton link type="primary" :loading="detecting" @click="onDetect" class="section-action">
+              <ReButton text type="primary" :loading="detecting" @click="onDetect" class="section-action">
                 <ReIcon name="Cpu" :size="14" style="margin-right: 4px" />重新探测
               </ReButton>
             </template>
@@ -460,7 +460,7 @@ function onSubmit(): void {
         <div class="form-section">
           <ReSectionHead title="网络地址">
             <template #actions>
-              <ReButton link type="primary" :loading="refreshingIp" @click="onRefreshPublicIp" class="section-action">
+              <ReButton text type="primary" :loading="refreshingIp" @click="onRefreshPublicIp" class="section-action">
                 <ReIcon name="Refresh" :size="14" style="margin-right: 4px" />刷新公网 IP
               </ReButton>
             </template>

@@ -35,6 +35,7 @@ registerMenuViewModules({
 });
 
 export { systemRoutes, systemMenus } from "./routes";
+export { systemWidgets } from "./widgets/systemWidgets";
 export * from "./api/types";
 export * from "./api/systemApi";
 /**

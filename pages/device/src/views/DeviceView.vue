@@ -1725,8 +1725,7 @@ const pageParams = computed<DevicePageQuery>(() => {
 })
 
 /** 远程 loader：ReTable 交出页码/条数，页面拼参数；数据同时写回 rows（给卡片筛选用） */
-async function pageLoader(params: ReTableLoadParams): Promise<RePageResult<Record<string, unknown>>> {
-  try {
+async function pageLoader(params: ReTableLoadParams): Promise<RePageResult<Record<string, unknown>>> {  try {
     const res = await deviceApi.page({ ...pageParams.value, pageNo: params.page, pageSize: params.pageSize })
     const entries = (res as unknown as { data?: DeviceInfo[]; records?: DeviceInfo[] }).data
       ?? (res as unknown as { records?: DeviceInfo[] }).records

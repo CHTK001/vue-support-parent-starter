@@ -38,7 +38,7 @@
           <div v-else>
             <div v-for="k in filteredKeys" :key="k" :class="['key-item', { active: selectedKey === k }]" @click="selectedKey = k; loadValue()" :title="k">
               <span class="key-text">{{ k }}</span>
-              <ReButton link type="danger" @click.stop="handleDeleteKey(k)" class="del-btn"><ReIcon name="Close" /></ReButton>
+              <ReButton text type="danger" @click.stop="handleDeleteKey(k)" class="del-btn"><ReIcon name="Close" /></ReButton>
             </div>
           </div>
         </div>

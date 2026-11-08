@@ -46,7 +46,7 @@
     <template #alerts>
       <div v-if="loadError" class="as-error">
         <span>告警读取失败：{{ loadError }}</span>
-        <ReButton link type="primary" @click="refresh">重试</ReButton>
+        <ReButton text type="primary" @click="refresh">重试</ReButton>
       </div>
     </template>
 

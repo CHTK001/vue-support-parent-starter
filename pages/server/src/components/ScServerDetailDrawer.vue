@@ -361,7 +361,7 @@ async function applyParams() {
                     :disabled="!isLive"
                     @change="(v: any) => onToggleFilter(index, !!v)"
                   />
-                  <ReButton link type="primary" @click="openConfig(index)">配置</ReButton>
+                  <ReButton text type="primary" @click="openConfig(index)">配置</ReButton>
                   <ReButton
                     v-if="hasDetail(index)"
                     icon="TopRight"

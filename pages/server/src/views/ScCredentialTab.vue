@@ -461,8 +461,8 @@ async function viewMessage(email: any): Promise<void> {
                   icon="DocumentCopy"
                   @click="copyToClipboard(row.msServerKeyPublicKey, '公钥')"
                 >复制公钥</ReButton>
-                <ReButton link @click="openKeyForm(row)">编辑</ReButton>
-                <ReButton link type="danger" @click="deleteKey(row)">删除</ReButton>
+                <ReButton text @click="openKeyForm(row)">编辑</ReButton>
+                <ReButton text type="danger" @click="deleteKey(row)">删除</ReButton>
               </template>
             </ReTableColumn>
           </ReTable>
@@ -496,9 +496,9 @@ async function viewMessage(email: any): Promise<void> {
                   icon="User"
                   @click="copyToClipboard(row.msServerIdentityUsername, '用户名')"
                 >复制用户</ReButton>
-                <ReButton v-if="row.msServerIdentityAuthType === 'MAILBOX'" link type="primary" @click="openMailbox(row)">邮件箱</ReButton>
-                <ReButton link @click="openIdentityForm(row)">编辑</ReButton>
-                <ReButton link type="danger" @click="deleteIdentity(row)">删除</ReButton>
+                <ReButton v-if="row.msServerIdentityAuthType === 'MAILBOX'" text type="primary" @click="openMailbox(row)">邮件箱</ReButton>
+                <ReButton text @click="openIdentityForm(row)">编辑</ReButton>
+                <ReButton text type="danger" @click="deleteIdentity(row)">删除</ReButton>
               </template>
             </ReTableColumn>
           </ReTable>
@@ -640,7 +640,7 @@ async function viewMessage(email: any): Promise<void> {
           <div class="mailbox-detail-head">
             <strong>{{ selectedEmail.subject || '(无主题)' }}</strong>
             <span class="mailbox-detail-meta">发件人：{{ selectedEmail.from }} ｜ 日期：{{ selectedEmail.date }} ｜ 大小：{{ selectedEmail.size }} bytes</span>
-            <ReButton link @click="selectedEmail = null; mailboxNewEmailCount = 0">返回列表</ReButton>
+            <ReButton text @click="selectedEmail = null; mailboxNewEmailCount = 0">返回列表</ReButton>
           </div>
           <ReLoading :loading="mailboxDetailLoading">
             <pre class="mailbox-content">{{ selectedEmail.content }}</pre>

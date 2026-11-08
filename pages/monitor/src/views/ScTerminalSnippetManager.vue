@@ -13,8 +13,8 @@
         <ReTableColumn prop="category" label="分类" width="100" />
         <ReTableColumn label="操作" width="150">
           <template #default="{ row }">
-            <ReButton link type="primary" @click="handleEdit(row)">编辑</ReButton>
-            <ReButton link type="danger" @click="handleDelete(row.id)">删除</ReButton>
+            <ReButton text type="primary" @click="handleEdit(row)">编辑</ReButton>
+            <ReButton text type="danger" @click="handleDelete(row.id)">删除</ReButton>
           </template>
         </ReTableColumn>
       </ReTable>

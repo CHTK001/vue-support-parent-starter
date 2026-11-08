@@ -108,7 +108,7 @@
       </ReTableColumn>
       <ReTableColumn label="操作" width="100" fixed="right">
         <template #default="{ row }">
-          <ReButton link @click="openDetail(row)">详情</ReButton>
+          <ReButton text @click="openDetail(row)">详情</ReButton>
         </template>
       </ReTableColumn>
     </ReTable>

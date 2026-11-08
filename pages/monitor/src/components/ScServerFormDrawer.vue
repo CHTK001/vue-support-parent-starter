@@ -408,22 +408,46 @@ function backToEdit(commit = true) {
   view.value = 'edit';
 }
 
+/**
+ * 草稿过滤器在「线上过滤器链」里的下标。
+ *
+ * <p>{@code /filters/{index}/...} 这两组热操作接口的 index 指**已落库**的链，
+ * 而编辑抽屉允许先增删、排序再进入某个插件的配置页——此时草稿下标与线上下标
+ * 不再相等。过滤器名在同一服务内唯一，因此按 name 映射；找不到说明该插件
+ * 尚未保存，返回 -1。</p>
+ *
+ * @param target 草稿里的过滤器
+ * @returns 线上链下标；未落库时为 -1
+ */
+function liveFilterIndex(target?: ServerFilterDescriptor): number {
+  if (!target) return -1;
+  return (props.node?.filters || []).findIndex(f => f.name === target.name);
+}
+
 /** 该服务是否运行中 */
 const isLive = computed(() => props.node?.status === 'RUNNING');
 
 /** 热更新当前过滤器参数（需节点已存在） */
 async function applyFilterParams() {
   const node = props.node;
+  const f = form.value.filters[activeIndex.value];
+  // 原链上已有该插件：只把参数写回草稿会让用户误以为已生效，因此先落地草稿再热更新
+  if (f) f.params = { ...filterParams.value };
   if (!node) {
     message.info('服务尚未创建，参数将随创建一并提交');
-    backToEdit();
+    backToEdit(false);
     return;
   }
-  const f = form.value.filters[activeIndex.value];
-  if (f) f.params = { ...filterParams.value };
+  const index = liveFilterIndex(f);
+  if (index < 0) {
+    // 新挂载、尚未保存到服务上的插件：线上链里没有它，热更新无处可打
+    message.info('该插件尚未保存到服务，参数将随「保存」一并提交');
+    backToEdit(false);
+    return;
+  }
   applying.value = true;
   try {
-    await updateServerFilterParams(node.id, activeIndex.value, filterParams.value);
+    await updateServerFilterParams(node.id, index, filterParams.value);
     message.success('过滤器参数已热更新，服务未中断');
     emit('saved');
     backToEdit(false);
@@ -572,9 +596,16 @@ async function submitHot() {
 }
 
 /** 热切换已保存节点上的过滤器启停 */
-async function toggleLive(index: number, enabled: boolean) {
+async function toggleLive(draftIndex: number, enabled: boolean) {
   const node = props.node;
   if (!node || node.status !== 'RUNNING') return;
+  // 与参数热更新同理：接口下标指线上链，必须按名称回查，未落库的插件没有线上下标
+  const target = form.value.filters[draftIndex];
+  const index = liveFilterIndex(target);
+  if (index < 0) {
+    message.info('该插件尚未保存到服务，启停将随「保存」一并生效');
+    return;
+  }
   try {
     await toggleServerFilter(node.id, index, enabled);
     message.success(`过滤器已${enabled ? '启用' : '停用'}（热生效）`);

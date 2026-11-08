@@ -16,7 +16,13 @@ import type { ReInputNumberControlsPosition, ReInputNumberSize } from "../types"
 
 defineOptions({ name: "ReInputNumberModern", inheritAttrs: true });
 
-const model = defineModel<number | undefined>({ default: undefined });
+/**
+ * 数字模型。
+ *
+ * 允许 null：业务侧常用 null 表示「未填写」（如切换协议后清空端口），
+ * 组件必须把它当空值渲染，不能 String(null) 成字面量「null」。
+ */
+const model = defineModel<number | null | undefined>({ default: undefined });
 
 const props = withDefaults(
   defineProps<{
@@ -69,23 +75,27 @@ const roundPrecision = (v: number): number => {
   return Math.round(v * factor) / factor;
 };
 
+/** 是否有值：null 与 undefined 都算「未填写」 */
+const hasValue = computed(() => model.value !== undefined && model.value !== null);
+
 /** 输入框展示值（草稿优先，否则格式化 model） */
 const display = computed<string>(() => {
   if (draft.value !== undefined) return draft.value;
-  if (model.value === undefined) return "";
-  if (props.precision !== undefined) return model.value.toFixed(props.precision);
-  return String(model.value);
+  if (!hasValue.value) return "";
+  const v = model.value as number;
+  if (props.precision !== undefined) return v.toFixed(props.precision);
+  return String(v);
 });
 
 const canMinus = computed(() => {
-  if (props.disabled || props.readonly || model.value === undefined) return false;
-  const next = model.value - props.step;
+  if (props.disabled || props.readonly || !hasValue.value) return false;
+  const next = (model.value as number) - props.step;
   return props.min === undefined || next >= props.min;
 });
 
 const canPlus = computed(() => {
-  if (props.disabled || props.readonly || model.value === undefined) return false;
-  const next = model.value + props.step;
+  if (props.disabled || props.readonly || !hasValue.value) return false;
+  const next = (model.value as number) + props.step;
   return props.max === undefined || next <= props.max;
 });
 
