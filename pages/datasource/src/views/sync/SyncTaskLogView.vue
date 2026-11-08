@@ -797,7 +797,7 @@ onMounted(async () => {
 }
 
 .flow-health-chart-head, .flow-detail-block-head { display: flex; align-items: baseline; gap: 10px; }
-.flow-health-chart-title { font-size: 12.5px; font-weight: 700; color: var(--text-primary); }
+.flow-health-chart-title { font-size: 13px; font-weight: 700; color: var(--text-primary); }
 .flow-health-chart-hint { font-size: 11px; color: var(--text-tertiary); }
 
 .flow-bars { display: flex; align-items: flex-end; gap: 3px; height: 58px; margin-top: 6px; }
@@ -817,7 +817,7 @@ onMounted(async () => {
   color: var(--text-secondary);
   border-radius: 999px;
   padding: 3px 10px;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
@@ -852,7 +852,7 @@ onMounted(async () => {
 .flow-filter-keyword { width: 260px; flex: none; }
 .flow-filter-search-btn { height: 100%; }
 .flow-seg { flex: none; }
-.flow-filters-hint { margin-left: auto; flex: none; font-size: 11.5px; color: var(--text-tertiary); white-space: nowrap; }
+.flow-filters-hint { margin-left: auto; flex: none; font-size: 12px; color: var(--text-tertiary); white-space: nowrap; }
 
 /* ---------- 表格 ---------- */
 /* 表格外层「确定高度」盒子：flex 吃掉页面剩余高度 + contain: layout size，
@@ -917,8 +917,8 @@ onMounted(async () => {
 
 .flow-detail-block { display: flex; flex-direction: column; gap: 8px; }
 .flow-detail-block-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
-.flow-detail-block-hint { font-size: 11.5px; color: var(--text-tertiary); }
-.flow-detail-loading { padding: 30px 0; text-align: center; font-size: 12.5px; color: var(--text-tertiary); }
+.flow-detail-block-hint { font-size: 12px; color: var(--text-tertiary); }
+.flow-detail-loading { padding: 30px 0; text-align: center; font-size: 12px; color: var(--text-tertiary); }
 
 /* 阶段瀑布 */
 .flow-waterfall { display: flex; flex-direction: column; gap: 6px; }
@@ -977,7 +977,7 @@ onMounted(async () => {
 
 /* footer 重跑 */
 .flow-detail-actions { display: flex; align-items: center; gap: 10px; }
-.flow-detail-actions-hint { font-size: 11.5px; color: var(--text-tertiary); }
+.flow-detail-actions-hint { font-size: 12px; color: var(--text-tertiary); }
 
 /* ---------- 响应式 ---------- */
 @media (max-width: 720px) {

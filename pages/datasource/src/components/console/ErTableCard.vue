@@ -124,7 +124,7 @@ function onCardClick(): void {
   gap: 6px;
 }
 .er-card__name {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--el-text-color-primary);
   font-family: var(--el-font-family-mono, monospace);

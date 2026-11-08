@@ -182,7 +182,7 @@ onMounted(() => {
       }),
       EditorView.theme({
         "&": {
-          fontSize: "12.5px",
+          fontSize: "12px",
           border: "1px solid var(--el-border-color-lighter)",
           borderRadius: "var(--es-radius-sm, 8px)",
           backgroundColor: "color-mix(in srgb, var(--el-fill-color-light) 50%, color-mix(in srgb, var(--el-color-primary) 3%, #fff))",

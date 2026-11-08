@@ -4294,7 +4294,7 @@ onMounted(load);
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--text-tertiary, #6b7280);
 }
 .ds-crumb__icon {
@@ -5118,7 +5118,7 @@ onMounted(load);
 
 .mono {
   font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
-  font-size: 12.5px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 

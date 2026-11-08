@@ -568,7 +568,7 @@ onBeforeUnmount(() => {
 .dsm-query-meta { font-size: 12px; font-weight: 400; color: var(--text-tertiary, var(--apm-muted)); }
 .dsm-query-warn { margin-left: 8px; color: var(--status-warning, var(--apm-warning)); }
 /* 文档查看：美化 JSON */
-.dsm-doc-json { margin: 0; padding: 12px; background: var(--bg-fill, var(--apm-neutral-bg)); border-radius: var(--radius-sm, var(--apm-radius-sm)); font-family: "JetBrains Mono", "Consolas", monospace; font-size: 12.5px; line-height: 1.6; color: var(--text-primary, var(--apm-fg)); white-space: pre-wrap; word-break: break-all; overflow: auto; max-height: 60vh; }
+.dsm-doc-json { margin: 0; padding: 12px; background: var(--bg-fill, var(--apm-neutral-bg)); border-radius: var(--radius-sm, var(--apm-radius-sm)); font-family: "JetBrains Mono", "Consolas", monospace; font-size: 12px; line-height: 1.6; color: var(--text-primary, var(--apm-fg)); white-space: pre-wrap; word-break: break-all; overflow: auto; max-height: 60vh; }
 .dsm-empty-inline { padding: 16px; color: var(--text-tertiary, var(--apm-muted)); font-size: 13px; }
 .mono { font-family: "JetBrains Mono", "Consolas", monospace; }
 

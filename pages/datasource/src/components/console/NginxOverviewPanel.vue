@@ -1214,7 +1214,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
 }
 
 .ngx-hero-sub {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--text-secondary);
   margin-top: 2px;
 }
@@ -1318,7 +1318,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--text-secondary);
 }
 
@@ -1360,7 +1360,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
 }
 
 .ngx-kpi-sub {
-  font-size: 11.5px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--text-secondary);
   overflow: hidden;
@@ -1435,7 +1435,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   align-items: center;
   gap: 4px 8px;
   padding: 5px 0;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 
 .ngx-top-key {
@@ -1454,7 +1454,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   border-radius: 6px;
   background: var(--bg-fill);
   color: var(--text-secondary);
-  font-size: 11.5px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -1727,7 +1727,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   align-items: flex-start;
   gap: 6px;
   margin-top: 12px;
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.7;
   color: var(--text-secondary);
 }
@@ -1741,7 +1741,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
 .ngx-issues {
   margin: 12px 0 0;
   padding-left: 18px;
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.75;
   color: var(--text-secondary);
 
@@ -1758,7 +1758,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   border-radius: 6px;
   background: var(--bg-fill);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 11.5px;
+  font-size: 12px;
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-all;

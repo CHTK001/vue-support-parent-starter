@@ -77,7 +77,7 @@ function fmt(v: number | null | undefined): string {
   }
 }
 .ugp__label {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--el-text-color-secondary);
   margin-top: 2px;
 }
@@ -89,7 +89,7 @@ function fmt(v: number | null | undefined): string {
   overflow-y: auto;
 }
 .ugp__grant {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--el-text-color-regular);
   background: var(--el-fill-color-light);
   border-radius: 4px;
@@ -99,7 +99,7 @@ function fmt(v: number | null | undefined): string {
   white-space: pre-wrap;
 }
 .ugp__empty {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--el-text-color-placeholder);
   padding: 4px 0;
 }
@@ -112,7 +112,7 @@ function fmt(v: number | null | undefined): string {
   padding-top: 6px;
 }
 .ugp__chip {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--el-text-color-regular);
   background: var(--el-fill-color);
   border-radius: 4px;

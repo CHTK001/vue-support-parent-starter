@@ -426,7 +426,7 @@ onMounted(() => {
       }),
       EditorView.theme({
         "&": {
-          fontSize: "12.5px",
+          fontSize: "12px",
           border: "1px solid var(--el-border-color-lighter)",
           borderRadius: "var(--el-radius-lg, 12px)",
           backgroundColor: "var(--el-fill-color-extra-light, var(--el-fill-color-light))",

@@ -806,7 +806,7 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
 /* 新建文件弹窗里的初始内容编辑框占满整行 */
 .ngc-create-content {
   width: 100%;
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -949,7 +949,7 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
 
 .ngc-lineno {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.6;
   font-variant-numeric: tabular-nums;
   color: var(--text-tertiary);
@@ -964,7 +964,7 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
   resize: none;
   padding: 12px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.6;
   background: var(--bg-container);
   color: var(--text-primary);
@@ -1038,7 +1038,7 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
 .ngc-steps {
   margin: 0;
   padding-left: 20px;
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.8;
   color: var(--text-secondary);
 }

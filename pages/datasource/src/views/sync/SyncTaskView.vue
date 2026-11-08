@@ -3752,7 +3752,7 @@ onUnmounted(() => {
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-md, 8px);
   background: var(--el-fill-color-light);
-  font-size: 12.5px;
+  font-size: 12px;
 }
 .st-log-summary-meta { color: var(--el-text-color-secondary); font-variant-numeric: tabular-nums; }
 .st-log-summary-msg {
@@ -3772,10 +3772,10 @@ onUnmounted(() => {
 .st-log-block-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .st-log-block-title { font-size: 13px; font-weight: 600; color: var(--el-text-color-primary); }
 .st-log-running { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--el-color-primary); }
-.st-log-hint { margin: -2px 0 8px; font-size: 11.5px; line-height: 1.6; color: var(--el-text-color-placeholder); }
-.st-log-hint-inline { margin-left: auto; font-size: 11.5px; color: var(--el-text-color-placeholder); }
+.st-log-hint { margin: -2px 0 8px; font-size: 12px; line-height: 1.6; color: var(--el-text-color-placeholder); }
+.st-log-hint-inline { margin-left: auto; font-size: 12px; color: var(--el-text-color-placeholder); }
 .st-log-fetch-error { color: var(--el-color-warning); }
-.st-log-empty { font-size: 12.5px; color: var(--el-text-color-placeholder); padding: 4px 0; }
+.st-log-empty { font-size: 12px; color: var(--el-text-color-placeholder); padding: 4px 0; }
 
 /* 服务端调试日志：执行条目（头可点开合）+ 等宽着色过程行 */
 .st-log-runs { display: flex; flex-direction: column; gap: 8px; max-height: 430px; overflow: auto; padding-right: 2px; }
@@ -3898,7 +3898,7 @@ onUnmounted(() => {
   color: var(--text-primary);
 }
 .st-sync-dlg.el-dialog .koi-dialog-custom-header .koi-dialog-subtitle {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--text-tertiary);
 }
 /* koi 壳默认 body 8px / footer 4px 20px 6px（均 !important）——本弹窗放宽为 24px 版心 */

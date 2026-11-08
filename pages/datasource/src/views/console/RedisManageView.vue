@@ -1915,8 +1915,8 @@ onBeforeUnmount(stopTtlCountdown);
 .dsm-command-error { padding: 10px 14px; font-size: 13px; color: var(--status-error, var(--apm-danger)); background: color-mix(in srgb, var(--status-error, var(--apm-danger)) 8%, transparent); border: 1px solid color-mix(in srgb, var(--status-error, var(--apm-danger)) 30%, transparent); border-radius: 6px; word-break: break-all; flex-shrink: 0; }
 .dsm-command-result { flex: 1; display: flex; flex-direction: column; min-height: 260px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); overflow: hidden; padding: 12px 14px; }
 .dsm-command-result :deep(.dsm-table-wrap) { flex: 1; min-height: 0; }
-.dsm-reply-pre { margin: 0; padding: 12px; background: var(--bg-fill); border-radius: 6px; font-family: "JetBrains Mono", "Consolas", monospace; font-size: 12.5px; line-height: 1.6; color: var(--text-primary); white-space: pre-wrap; word-break: break-all; overflow: auto; max-height: 480px; flex-shrink: 0; }
-.dsm-reply-nil { padding: 12px; color: var(--text-tertiary); font-family: "JetBrains Mono", "Consolas", monospace; font-size: 12.5px; flex-shrink: 0; }
+.dsm-reply-pre { margin: 0; padding: 12px; background: var(--bg-fill); border-radius: 6px; font-family: "JetBrains Mono", "Consolas", monospace; font-size: 12px; line-height: 1.6; color: var(--text-primary); white-space: pre-wrap; word-break: break-all; overflow: auto; max-height: 480px; flex-shrink: 0; }
+.dsm-reply-nil { padding: 12px; color: var(--text-tertiary); font-family: "JetBrains Mono", "Consolas", monospace; font-size: 12px; flex-shrink: 0; }
 /* 顶部信息带：视觉（圆角/边框/投影/底色）由模板上的 re-surface 类统一提供（16px 圆角、
    透明边框 + 双层柔光投影），这里只留网格布局——不再自写一套卡片壳防漂移（surface:check） */
 .dsm-info-card { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; flex-shrink: 0; }

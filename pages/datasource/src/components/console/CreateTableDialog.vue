@@ -458,13 +458,13 @@ async function submit(): Promise<void> {
   margin: 0;
   padding: 16px;
   text-align: center;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--el-text-color-placeholder);
 }
 
 .ct-mono :deep(.el-input__inner) {
   font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
-  font-size: 12.5px;
+  font-size: 12px;
 }
 
 .ct-form__tip {

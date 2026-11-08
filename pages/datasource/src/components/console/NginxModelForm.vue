@@ -306,7 +306,7 @@ function onChildAdd(parent: NginxConfigNode, kind: "directive" | "block") {
 .ngf-blockname {
   flex: 0 0 auto;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--brand-500);
   white-space: nowrap;
@@ -373,7 +373,7 @@ function onChildAdd(parent: NginxConfigNode, kind: "directive" | "block") {
   align-items: center;
   gap: 4px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--text-primary);
   /* 名字是主要信息：宽度不够时压缩它，而不是换行 */
   white-space: nowrap;
@@ -440,7 +440,7 @@ function onChildAdd(parent: NginxConfigNode, kind: "directive" | "block") {
      指令名列改成按内容伸缩后这里再写死就会和上方内容错位）。
      用 padding-left 只做视觉缩进，宽度交由内容。 */
   padding: 0 6px 6px 8px;
-  font-size: 11.5px;
+  font-size: 12px;
   line-height: 1.55;
   color: var(--text-secondary);
 

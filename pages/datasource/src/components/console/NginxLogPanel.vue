@@ -439,7 +439,7 @@ defineExpose({ refresh, clear, stopTimer, loadFiles });
 .ngl-empty {
   margin: 0;
   padding: 24px 16px;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--text-secondary);
   text-align: center;
 }

@@ -575,7 +575,7 @@ onMounted(loadUsers);
 }
 .dus-mono {
   font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
-  font-size: 12.5px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 .dus-num {
@@ -633,7 +633,7 @@ onMounted(loadUsers);
   flex-direction: column;
   gap: 6px;
   > label {
-    font-size: 12.5px;
+    font-size: 12px;
     color: var(--el-text-color-regular);
   }
 }

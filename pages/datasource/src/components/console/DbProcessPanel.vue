@@ -266,7 +266,7 @@ defineExpose({ reload: load });
 }
 
 .dbp-count {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--el-text-color-secondary);
 }
 
@@ -288,7 +288,7 @@ defineExpose({ reload: load });
   margin: 0;
   padding: 8px 12px;
   border-radius: 6px;
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.6;
   color: var(--el-color-warning-dark-2);
   background: var(--el-color-warning-light-9);

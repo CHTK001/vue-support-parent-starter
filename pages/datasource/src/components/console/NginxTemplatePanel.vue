@@ -329,7 +329,7 @@ defineExpose({ load, templates });
 
 .ngt-summary {
   margin-top: 6px;
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.6;
   color: var(--text-secondary);
 }
@@ -359,7 +359,7 @@ defineExpose({ load, templates });
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--text-secondary);
 
   &.active {
@@ -395,7 +395,7 @@ defineExpose({ load, templates });
 }
 
 .ngw-intro {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--text-secondary);
 }
 

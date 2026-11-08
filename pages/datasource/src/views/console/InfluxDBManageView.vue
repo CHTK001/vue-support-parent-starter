@@ -1900,7 +1900,7 @@ watch(source, applyConnectionInfo);
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--el-text-color-secondary);
   border: 1px solid transparent;
   border-bottom: none;
@@ -2248,7 +2248,7 @@ watch(source, applyConnectionInfo);
 }
 .dsm-field-name {
   font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--el-text-color-primary);
 }
 .dsm-kind-badge {

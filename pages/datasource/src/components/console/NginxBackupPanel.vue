@@ -703,7 +703,7 @@ defineExpose({ load });
 }
 
 .ngb-name {
-  font-size: 12.5px;
+  font-size: 13px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

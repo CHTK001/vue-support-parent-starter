@@ -463,7 +463,7 @@ const emptyText = computed(() => (props.filter ? "没有匹配的表" : "这个�
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--el-text-color-primary);
 }
@@ -688,7 +688,7 @@ const emptyText = computed(() => (props.filter ? "没有匹配的表" : "这个�
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   font-family: var(--el-font-family-mono, monospace);
   color: var(--el-text-color-primary);
@@ -710,7 +710,7 @@ const emptyText = computed(() => (props.filter ? "没有匹配的表" : "这个�
 }
 
 .erw-insp-cmt {
-  font-size: 11.5px;
+  font-size: 12px;
   line-height: 1.45;
   color: var(--el-text-color-secondary);
   max-height: 34px;
@@ -725,7 +725,7 @@ const emptyText = computed(() => (props.filter ? "没有匹配的表" : "这个�
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
-  font-size: 11.5px;
+  font-size: 12px;
 }
 
 .erw-kv-k { flex: none; color: var(--el-text-color-secondary); }
@@ -812,7 +812,7 @@ const emptyText = computed(() => (props.filter ? "没有匹配的表" : "这个�
   background: none;
   text-align: left;
   cursor: pointer;
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--el-color-primary);
 }
 
@@ -825,14 +825,14 @@ const emptyText = computed(() => (props.filter ? "没有匹配的表" : "这个�
 }
 
 .erw-insp-empty-t {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--el-text-color-regular);
   margin-bottom: 4px;
 }
 
 .erw-insp-empty-d {
-  font-size: 11.5px;
+  font-size: 12px;
   line-height: 1.55;
   color: var(--el-text-color-placeholder);
 }
