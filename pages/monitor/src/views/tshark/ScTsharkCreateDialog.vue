@@ -27,12 +27,13 @@
       <div class="create-row">
         <span class="create-label">网卡</span>
         <ReSelect
-          :model-value="iface"
+          :model-value="ifaces"
           :data="ifaceOptions"
           placeholder="选择要抓包的网卡"
+          multiple
           filterable
           clearable
-          @update:model-value="onIface"
+          @update:model-value="onIfaces"
         />
       </div>
 
@@ -128,7 +129,8 @@ const props = defineProps<{
   /** 是否存在可用抓包接口；缺 Npcap / libpcap 时为 false */
   captureReady?: boolean
   ifaceOptions: Array<{ label: string; value: string }>
-  iface: string
+  /** 选中的网卡，可多选，多选时后端每张网卡建一条会话 */
+  ifaces: string[]
   filter: string
   filterType: string
   captureName: string
@@ -140,7 +142,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:modelValue', v: boolean): void
-  (e: 'update:iface', v: string): void
+  (e: 'update:ifaces', v: string[]): void
   (e: 'update:filter', v: string): void
   (e: 'update:filterType', v: string): void
   (e: 'update:captureName', v: string): void
@@ -178,8 +180,8 @@ function onOpenChange(v: unknown) {
 function onName(v: unknown) {
   emit('update:captureName', v == null ? '' : String(v))
 }
-function onIface(v: unknown) {
-  emit('update:iface', v == null ? '' : String(v))
+function onIfaces(v: unknown) {
+  emit('update:ifaces', Array.isArray(v) ? v : (v == null ? [] : [String(v)]))
 }
 function onFilter(v: unknown) {
   emit('update:filter', v == null ? '' : String(v))

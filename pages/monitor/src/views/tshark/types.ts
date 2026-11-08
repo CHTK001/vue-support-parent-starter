@@ -62,56 +62,6 @@ export interface TsharkPacket {
   restoredText?: string | null
   /** 报文原始十六进制 / 转义文本 */
   rawData?: string | null
-  /**
-   * HTTP 请求头（起始行 + 逐行头字段，`\n` 换行）。
-   *
-   * <p>解析阶段随报文一起入库，详情接口才返回；列表接口不取这两列
-   * （Cookie 一条就能上 KB，分页几十行会把响应撑大）。</p>
-   */
-  httpRequestHead?: string | null
-  /** HTTP 响应头（状态行 + 逐行头字段） */
-  httpResponseHead?: string | null
-  /** HTTP 正文（已解码；二进制为 `HEX …` 预览，超长带「已截断」标注） */
-  httpBody?: string | null
-  /** HTTP 内容类型，如 text/html; charset=utf-8 */
-  httpContentType?: string | null
-  /** HTTP 内容编码（gzip / deflate / br），正文已按它解压 */
-  httpContentEncoding?: string | null
-  /** HTTP 正文原始字节数（不是截断后的字符数） */
-  httpContentLength?: number | null
-  /** TCP 流编号（tshark `tcp.stream`）：同一四元组可能复用成多条连接 */
-  tcpStream?: number | null
-  /** TCP 绝对序列号（`tcp.seq_raw`） */
-  tcpSeq?: number | null
-  /** TCP 标志位组合，如 `SYN,ACK` / `PSH,ACK` */
-  tcpFlags?: string | null
-  /** IP 跳数（IPv4 TTL / IPv6 跳数上限） */
-  ipTtl?: number | null
-  /** HTTP 请求方法（仅请求帧） */
-  httpMethod?: string | null
-  /** HTTP 请求 URI（含查询串，仅请求帧） */
-  httpUri?: string | null
-  /** HTTP 响应状态码（仅响应帧） */
-  httpStatus?: number | null
-  /** TLS 握手里的服务器名（SNI） */
-  tlsSni?: string | null
-  /** DNS 查询名（多值时以逗号分隔） */
-  dnsQueryName?: string | null
-}
-
-/**
- * 一次 HTTP 事务的两帧（`GET /tshark/sessions/{id}/packets/{id}/http-transaction`）。
- *
- * <p>请求头和请求体在请求起始帧、响应头和响应体在响应起始帧；详情抽屉用它把四段
- * 数据放在同一个面板里，避免点哪一帧都只看到一半。</p>
- */
-export interface TsharkHttpTransaction {
-  /** 发起查询的报文 id */
-  anchorId?: number
-  /** 请求方向（可能为 null：响应还没到 / 没有请求） */
-  request?: TsharkPacket | null
-  /** 响应方向（可能为 null：请求还没回 / 单向报文） */
-  response?: TsharkPacket | null
 }
 
 /**
@@ -174,6 +124,43 @@ export interface TsharkStep {
   reset?: boolean
   /** 该包的协议还原明文（来自 -T json 通道的回填，离线也留得下）：HTTP / TLS / SSH / DNS / FTP / SMTP / MQTT ...，不一定有 */
   restored?: string | null
+}
+
+/**
+ * TsharkTcpStreamFrame：Follow TCP Stream 还原出的一条载荷帧。
+ *
+ * <p>按 frame.time 排序后，从同一端连续发出的报文段合成一条帧；
+ * 控制帧（ACK / RST / PSH-Only）没有 hex / 文字，前端不占载荷位。</p>
+ */
+export interface TsharkTcpStreamFrame {
+  /** pcap 内自然递增的帧号 */
+  frameNo: number
+  /** 帧时间 */
+  time: string
+  /** 载荷十六进制（tshark -x） */
+  payload?: string | null
+  /** 载荷文字（tshark -T fields 人可读摘要） */
+  text?: string | null
+  /** 该帧相对于流的 START 时间偏移（秒） */
+  offset: number
+}
+
+/**
+ * TsharkTcpStream：Once TCP 流的双向载荷还原。
+ *
+ * <p>与 `TsharkHandshake` 合用：一个看握手，一个看数据。
+ * 前端按 `src/srcPort → dst/dstPort` 拆出双向载荷帧展示：
+ * 源侧发出的标 S，对端发回的标 R。</p>
+ */
+export interface TsharkTcpStream {
+  sessionId: number
+  protocol: string
+  /** 链路初始方向的源侧 */
+  src: string
+  srcPort: number
+  dst: string
+  dstPort: number
+  frames: TsharkTcpStreamFrame[]
 }
 
 /** 协议分布的一项 */

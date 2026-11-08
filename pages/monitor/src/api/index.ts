@@ -402,16 +402,9 @@ const unwrapResultSeries = (res: any): SeriesPoint[] => {
 };
 
 // ===== 主机内置指标历史（不依赖监控项，供监控详情近1h基础数据/图表历史）=====
-/**
- * [时间戳ms, CPU%, 内存%, 磁盘%, 磁盘读KB/s, 磁盘写KB/s, 网络接收KB/s, 网络发送KB/s]
- *
- * <p>后两列是网络收发速率，4.0.0.54 起由采集通道写入历史表；
- * 更早的历史行该两列为 null，前端按「无数据」处理，不要当成 0。</p>
- */
+/** [时间戳ms, CPU%, 内存%, 磁盘%, 磁盘读KB/s, 磁盘写KB/s]，缺失值为 null */
 export type HostMetricPoint = [
   number,
-  number | null,
-  number | null,
   number | null,
   number | null,
   number | null,
@@ -554,18 +547,13 @@ export const getTsharkStatus = () => http().get(`${B}/tshark/status`).then(r => 
 /** 触发服务端异步补齐 tshark（幂等，失败可重试） */
 export const installTshark = () => http().post(`${B}/tshark/install`).then(r => unwrap<TsharkRuntimeStatus>(r));
 /**
- * tshark 全局事件流（SSE）。
+ * 安装进度推送（SSE）。
  *
- * <p>一条连接承载两类事件，页面不再轮询 {@code /tshark/status}、也不靠定时器重拉会话列表：</p>
- * <ul>
- *   <li>{@code ready} / {@code progress}：载荷同 {@link getTsharkStatus}（安装进度 / 可用性）；</li>
- *   <li>{@code session}：任意会话被新建 / 停止 / 解析完成 / 删除时推送会话实体
- *       （删除事件形如 <code>{ id, deleted: true }</code>）。</li>
- * </ul>
- * <p>建连即回一帧当前运行时状态，所以中途打开页面也能直接拿到真实状态。</p>
+ * <p>事件名 {@code progress}，载荷同 {@link getTsharkStatus}；建连即回一帧当前状态，
+ * 所以中途打开页面也能看到真实进度。</p>
  */
-export const openTsharkGlobalStream = (options: Record<string, any> = {}) =>
-  http().get(`${B}/tshark/stream`).sse<any>({ reconnect: true, ...options });
+export const openTsharkInstallStream = (options: Record<string, any> = {}) =>
+  http().get(`${B}/tshark/install/stream`).sse<any>({ reconnect: true, ...options });
 export const getTsharkInterfaces = () => http().get(`${B}/tshark/interfaces`).then(r => unwrap<string[]>(r));
 export const startTsharkCapture = (d: any) =>
   http().post(`${B}/tshark/capture`).data(d).then(r => unwrap<any>(r));
@@ -596,11 +584,57 @@ export const importTsharkPcap = (file: File, name = '') => {
   if (name) form.append('name', name);
   return http().post(`${B}/tshark/pcap/import`).data(form).then(r => unwrap<any>(r));
 };
-export const getTsharkPackets = (sessionId: number, page = 1, size = 20, keyword = '') =>
+export const getTsharkPackets = (sessionId: number, page = 1, size = 20, keyword = '',
+  startTime = '', endTime = '') =>
   http().get(`${B}/tshark/sessions/${sessionId}/packets?page=${page}&size=${size}` +
-    (keyword ? `&keyword=${encodeURIComponent(keyword)}` : '')).then(r => unwrap<any>(r));
+    (keyword ? `&keyword=${encodeURIComponent(keyword)}` : '') +
+    (startTime ? `&startTime=${encodeURIComponent(startTime)}` : '') +
+    (endTime ? `&endTime=${encodeURIComponent(endTime)}` : '')).then(r => unwrap<any>(r));
 /** 原始 pcap 下载地址：页面上的摘要只是 tshark 的解析结果，要深挖得拿原件去 Wireshark 打开 */
 export const tsharkPcapUrl = (sessionId: number) => `${B}/tshark/sessions/${sessionId}/pcap`;
+/**
+ * 暂停抓包会话的实时推送。
+ *
+ * <p>`POST /tshark/capture/{id}/pause`：抓包进程、pcap 写盘与报文入库全不受影响，
+ * 只是不往下游推了；与 `resumeTsharkCapture` 配对，恢复后从断点继续推。</p>
+ */
+export const pauseTsharkCapture = (id: number) =>
+  http().post(`${B}/tshark/capture/${id}/pause`).then(r => unwrap<any>(r));
+/** 恢复抓包会话的实时推送（与 pauseTsharkCapture 配对） */
+export const resumeTsharkCapture = (id: number) =>
+  http().post(`${B}/tshark/capture/${id}/resume`).then(r => unwrap<any>(r));
+/**
+ * 按显示过滤导出 pcap 子集。
+ *
+ * <p>`GET /tshark/sessions/{id}/packets/export?displayFilter=...`：后端用
+ * `tshark -r <pcap> -w <out> -Y <filter>` 把过滤后的报文再写回 pcap，
+ * 前端以下载文件的方式拿回去。</p>
+ *
+ * <p>返回 blob 形 data，直接 `new Blob` + `URL.createObjectURL` 下载。</p>
+ */
+export const exportTsharkPcap = (sessionId: number, displayFilter = '') =>
+  http().get(`${B}/tshark/sessions/${sessionId}/packets/export` +
+    (displayFilter ? `?displayFilter=${encodeURIComponent(displayFilter)}` : ''))
+  .then(r => r.data as Blob);
+/**
+ * Follow TCP Stream：按报文所在连接还原双向载荷帧。
+ *
+ * <p>`GET /tshark/sessions/{id}/packets/{packetId}/stream`，返回按时间排好的
+ * 载荷帧（hex + 文字），与 `TsharkHandshake` 的生命周期配合：一个看握手，
+ * 一个看数据。</p>
+ */
+export const followTsharkTcpStream = (sessionId: number, packetId: number) =>
+  http().get(`${B}/tshark/sessions/${sessionId}/packets/${packetId}/stream`).then(r => unwrap<any>(r));
+/**
+ * 立即清理过期与超空间的抓包数据。
+ *
+ * <p>`GET /tshark/sessions/retention/cleanup`：与 `TsharkRetentionCleanupScheduler`
+ * 同一条规则（过期天数 / 目录空间），手动触发看结果（删了多少条会话）。</p>
+ *
+ * @returns 删除的会话数
+ */
+export const cleanupTsharkRetention = () =>
+  http().get(`${B}/tshark/sessions/retention/cleanup`).then(r => unwrap<any>(r));
 /**
  * 报文详情（含协议还原 / 原始数据两大字段）。
  *
@@ -610,16 +644,6 @@ export const tsharkPcapUrl = (sessionId: number) => `${B}/tshark/sessions/${sess
  */
 export const getTsharkPacketDetail = (sessionId: number, id: number) =>
   http().get(`${B}/tshark/sessions/${sessionId}/packets/${id}`).then(r => unwrap<any>(r));
-
-/**
- * 报文所属的 HTTP 事务（请求 + 响应两帧）。
- *
- * <p>列表 / 详情接口里的 HTTP 字段是按帧存的：请求头体在请求起始帧、响应头体在
- * 响应起始帧。详情抽屉靠这个接口把同一条 TCP 流上的两侧配成一对，
- * 「请求头 · 请求体 · 响应头 · 响应体」四段才能同时出现。</p>
- */
-export const getTsharkHttpTransaction = (sessionId: number, packetId: number) =>
-  http().get(`${B}/tshark/sessions/${sessionId}/packets/${packetId}/http-transaction`).then(r => unwrap<any>(r));
 
 /**
  * 某报文所属 TCP 流的握手 / 关闭生命周期。

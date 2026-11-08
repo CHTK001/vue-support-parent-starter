@@ -59,6 +59,19 @@
       <p class="ti-hint__note">配置后点「重试」，不需要重启服务。</p>
     </div>
 
+    <div class="ti-retention">
+      <header class="ti-retention__head">
+        <h4>数据保留</h4>
+        <span class="ti-retention__text">
+          会话 + 报文 + pcap + SQLite 报文 + 日志：超过 {{ retentionDays }} 天或目录空间达
+          {{ retentionSizeMb }} MB 时自动清理（每 30 分钟一次，不在业务高峰跑），也可以手动清一次。
+        </span>
+      </header>
+      <div class="ti-retention__actions">
+        <ReButton type="primary" @click="onCleanup" :loading="cleanupLoading">立即清理</ReButton>
+      </div>
+    </div>
+
     <div class="ti-actions">
       <ReButton
         v-if="canRetry"
@@ -81,16 +94,31 @@ import ReDialog from '@repo/ui/re-dialog'
 import ReProgress from '@repo/ui/re-progress'
 import type { TsharkRuntimeStatus } from './types'
 
-const props = defineProps<{
-  modelValue: boolean
-  /** 运行时状态；为 null 表示还没取到 */
-  status: TsharkRuntimeStatus | null
-}>()
+const props = withDefaults(
+  defineProps<{
+    modelValue: boolean
+    /** 运行时状态；为 null 表示还没取到 */
+    status: TsharkRuntimeStatus | null
+    /** 保留天数 */
+    retentionDays?: number
+    /** 保留空间（MB） */
+    retentionSizeMb?: number
+    /** 立即清理按钮 Loading */
+    cleanupLoading?: boolean
+  }>(),
+  {
+    retentionDays: 7,
+    retentionSizeMb: 512,
+  },
+)
 
 const emit = defineEmits<{
   (e: 'update:modelValue', v: boolean): void
   (e: 'retry'): void
+  (e: 'cleanup'): void
 }>()
+
+const onCleanup = () => emit('cleanup')
 
 /** 进度条取值 0~1（ReProgress 约定） */
 const barValue = computed(() => Math.max(0, Math.min(100, props.status?.progress ?? 0)) / 100)

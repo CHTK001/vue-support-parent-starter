@@ -10,7 +10,9 @@
  * @author CH
  * @since 4.0.0.50
  */
-const GATEWAY_HTTP = import.meta.env.VITE_GATEWAY_HTTP || "http://localhost:9001";
+// 默认走同源相对路径，由 dev server 的 /control 代理转发到后端；
+// 跨域部署时用 VITE_GATEWAY_HTTP 指定后端绝对地址。
+const GATEWAY_HTTP = import.meta.env.VITE_GATEWAY_HTTP || "";
 const RTC_WS = import.meta.env.VITE_RTC_WS || "ws://127.0.0.1:10000/webrtc";
 
 /** 后端统一响应（com.chua.common.support.lang.code.ReturnResult） */

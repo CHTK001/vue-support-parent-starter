@@ -33,5 +33,7 @@ watchEffect(() => {
 </script>
 
 <template>
-  <span class="re-loading" v-bind="$attrs"></span>
+  <span class="re-loading" v-bind="$attrs">
+    <slot />
+  </span>
 </template>

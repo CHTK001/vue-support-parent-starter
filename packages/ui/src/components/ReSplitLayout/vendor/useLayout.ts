@@ -6,6 +6,10 @@
  *
  * <p>相比上游仅做两处调整：`PanelTab.panelType` 改为可选（本项目不用页签类型图标），
  * 以及导出 `findPanelById` 供业务侧查询。</p>
+ *
+ * <p>新增 `movePanel`：支持把同一分割组里的块（面板或嵌套分组）拖动重排序，
+ * 让 `A | B | C` 在拖到 A 左侧后变成 `B | A | C` — 它就是本机的全屏终端
+ * 可像 VS Code 一样随意调换区域顺序的能力。</p>
  */
 import { ref, watch } from 'vue';
 
@@ -74,6 +78,46 @@ function findTabOwner(node: LayoutNode, tabId: string): PanelNode | null {
   }
   return null;
 }
+
+/** 判断节点子树（含嵌套 split）是否包含指定面板 */
+function containsPanel(node: LayoutNode, id: string): boolean {
+  if (node.type === 'panel') return node.id === id;
+  return node.children.some((child) => containsPanel(child, id));
+}
+
+/**
+ * 找到包含 panelId 的面板所在分割组的直子节点下标；找不到返回 -1。
+ *
+ * <p>如果面板嵌套在分割组里，返回的锚点是包含着它的那一整块（split 节点），
+ * 拖动时整块分组一起移动，避免拆开嵌套结构。</p>
+ */
+function findPanelLocationIndex(split: SplitNode, panelId: string): number {
+  for (let i = 0; i < split.children.length; i++) {
+    const child = split.children[i];
+    if (child.type === 'panel') {
+      if (child.id === panelId) return i;
+    } else if (containsPanel(child, panelId)) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+/** 两个面板的最近（最深）共同祖先分割：只有在同一组里拖出来才能重新排序 */
+function findCommonAncestor(root: SplitNode, sourceId: string, targetId: string): SplitNode | null {
+  let hit: SplitNode | null = null;
+  function walk(node: LayoutNode): void {
+    if (node.type === 'panel') return;
+    const hasSource = node.children.some((child) => containsPanel(child, sourceId));
+    const hasTarget = node.children.some((child) => containsPanel(child, targetId));
+    if (hasSource && hasTarget) hit = node;  // 越往深越更新，最终留下最近的祖先
+    for (const child of node.children) walk(child);
+  }
+  walk(root);
+  return hit;
+}
+
+
 
 function cleanupTree(root: SplitNode): void {
   for (let i = root.children.length - 1; i >= 0; i--) {
@@ -165,6 +209,37 @@ export function useLayout(options: UseLayoutOptions) {
     toPanel.activeTabId = tab.id;
 
     cleanupTree(root);
+    layout.value = { ...root };
+  }
+
+  /**
+   * 把整块区域拖动重排序（A | B | C 把 B 拖到 A 左侧 → B | A | C）。
+   *
+   * <p>与页签拆分不同：页签拆分会创建新面板，这里是同一分割组里子节点的
+   * 顺序变更。大小比 / 嵌套分组全部保留，只移动锚点节点，所以拖完的区域拥有
+   * 完整的大小和结构，不是「清空重开」。</p>
+   *
+   * @param sourceId 被拖动面板的 id
+   * @param targetId 接收拖动的目标面板的 id
+   * @param position 'before' 插到目标左侧/上方，'after' 插到右侧/下方
+   */
+  function movePanel(sourceId: string, targetId: string, position: 'before' | 'after'): void {
+    const root = layout.value;
+    const common = findCommonAncestor(root, sourceId, targetId);
+    if (!common) return;
+    const sourceIndex = findPanelLocationIndex(common, sourceId);
+    const targetIndex = findPanelLocationIndex(common, targetId);
+    if (sourceIndex === -1 || targetIndex === -1 || sourceIndex === targetIndex) return;
+    if (sourceId === targetId) return;
+
+    const { children, sizes } = common;
+    const moved = children.splice(sourceIndex, 1)[0];
+    const size = sizes.splice(sourceIndex, 1)[0];
+    // 取出源节点后，目标（如果在其右侧）自然前移一位，再算插入位置
+    const afterRemove = targetIndex > sourceIndex ? targetIndex - 1 : targetIndex;
+    const insertIndex = position === 'before' ? afterRemove : afterRemove + 1;
+    children.splice(insertIndex, 0, moved);
+    sizes.splice(insertIndex, 0, size);
     layout.value = { ...root };
   }
 
@@ -265,6 +340,7 @@ export function useLayout(options: UseLayoutOptions) {
     addTab,
     removeTab,
     splitPanel,
+    movePanel,
     updateSizesForSplit,
     resetLayout,
     findPanelById: (id: string) => findPanelById(layout.value, id),

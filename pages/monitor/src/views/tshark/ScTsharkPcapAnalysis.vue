@@ -98,7 +98,7 @@
     <!-- ==================== ② 详情：某一份文件的报文 ==================== -->
     <template v-else>
       <div class="tshark-bar pcap-detail-bar">
-        <ReButton class="pcap-back" text type="primary" icon="ArrowLeft" show-text @click="backToList">
+        <ReButton class="pcap-back" link type="primary" icon="ArrowLeft" show-text @click="backToList">
           返回导入记录
         </ReButton>
 
@@ -197,7 +197,13 @@
       </div>
     </template>
 
-    <ScTsharkPacketDetail v-model="detailOpen" :packet="packetDetail" :http-transaction="packetHttpTx" />
+    <ScTsharkPacketDetail
+      v-model="detailOpen"
+      :packet="packetDetail"
+      :tcp-stream="tcpStream"
+      :tcp-stream-loading="tcpStreamLoading"
+      @follow-tcp-stream="openTcpStream"
+    />
     <ScTsharkLifecycleDialog
       v-model="lifecycleVisible"
       :packet="lifecyclePacket"
@@ -252,11 +258,12 @@ const {
   loadingPackets, packets, packetPage, packetTotal, packetFilter, filterError,
   packetPageSize, protoStats, topFlows, statsVersion, loadingStats,
   timeline, timelineBucket, anomalies,
-  detailOpen, packetDetail, packetHttpTx,
+  detailOpen, packetDetail,
+  tcpStream, tcpStreamLoading,
   init, loadSessions, selectSession,
   clearActiveSession, loadPackets, applyPacketFilter, filterByProtocol, filterByFlow,
   loadTimeline,
-  exportCsv, downloadPcap, deleteSession, openPacketDetail, openPacketDetailById, importPcap,
+  exportCsv, downloadPcap, deleteSession, openPacketDetail, openPacketDetailById, importPcap, openTcpStream,
 } = useTshark({ source: 'import', autoSelectFirst: false })
 
 /** 安装进度框：两个页面共用同一个组件与同一份状态 */

@@ -122,9 +122,12 @@
           <TsharkSessionActions
             :session="viewOf(row)"
             :can-stop="canStop"
+            :paused="pausedSessions?.[viewOf(row).id] ?? false"
             @open="(tab) => openOf(row, tab)"
             @download="emit('download', viewOf(row).id, viewOf(row).name)"
             @stop="emit('stop', viewOf(row).id)"
+            @pause="emit('pause', viewOf(row).id)"
+            @resume="emit('resume', viewOf(row).id)"
             @remove="emit('remove', viewOf(row).id)"
           />
         </template>
@@ -190,6 +193,18 @@ const props = withDefaults(
     loading?: boolean
     /** 网卡友好名解析 */
     ifaceLabel?: (value?: string | null) => string
+    /**
+     * 各会话的本地暂停态：后端把暂停记在内存 Registry 里，页面做一次本地跟踪，
+     * 否则一行会话里永远看不到「已暂停」该点暂停还是恢复。
+     */
+    pausedSessions?: Record<number, boolean>
+    /**
+     * 当前"运行中"的会话数：不在列表计数里，只靠它实时告诉用户现在跑着几个。
+     *
+     * <p>这样可以只做一件事：页面打开就读列表里 `captureStatus == 1` 的行数，
+     * 不用等 SSE/socket.io 推送。PCAP 分析页传「解析中」的份数。</p>
+     */
+    runningCount?: number
   }>(),
   {
     noun: '会话',
@@ -217,6 +232,10 @@ const emit = defineEmits<{
   (e: 'download', id: number, name: string): void
   /** 停止抓包 */
   (e: 'stop', id: number): void
+  /** 暂停实时推送 */
+  (e: 'pause', id: number): void
+  /** 恢复实时推送 */
+  (e: 'resume', id: number): void
   /** 删除 */
   (e: 'remove', id: number): void
   /** 刷新 */
@@ -264,11 +283,22 @@ const tabs = computed<TabItem[]>(() => [
   { label: '异常', value: 'err', count: counts.value.error },
 ])
 
-const countText = computed(() =>
-  filtered.value.length === allViews.value.length
-    ? `共 ${allViews.value.length} 个${props.noun}`
-    : `筛选出 ${filtered.value.length} / ${allViews.value.length} 个`,
-)
+/**
+ * 当前处于运行中的会话数（实时抓包页叫「抓包中」，PCAP 分析页叫「解析中」）。
+ *
+ * <p>父级直接传总笔数或 0 都行；不传时退回到本地列表的实时状态数。</p>
+ */
+const runningCount = computed(() => props.runningCount ?? counts.value.running)
+
+const countText = computed(() => {
+  const total = allViews.value.length
+  const base = filtered.value.length === total
+    ? `共 ${total} 个${props.noun}`
+    : `筛选出 ${filtered.value.length} / ${total} 个${props.noun}`
+  // P10：一回目录就显示当前实时跑着的会话数，不落推送接口
+  const live = runningCount.value > 0 ? `，${props.runningLabel} ${runningCount.value}` : ''
+  return base + live
+})
 
 /** 状态档配色（图例、时间带共用一份，免得两处颜色跑偏） */
 const runColor = 'var(--el-color-primary)'

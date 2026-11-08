@@ -29,9 +29,13 @@
       empty-hint="点搜索栏里的「新增会话」选择网卡开始抓包。"
       :loading="loadingSessions"
       :iface-label="ifaceLabel"
+      :running-count="runningCount"
+      :paused-sessions="sessionPaused"
       @open="openDetail"
       @download="downloadPcap"
       @stop="stopSession"
+      @pause="pauseSession"
+      @resume="resumeSession"
       @remove="deleteSession"
       @refresh="refresh"
     >
@@ -56,13 +60,15 @@
     <ScTsharkInstallDialog
       v-model="installVisible"
       :status="runtime"
+      :cleanup-loading="cleanupLoading"
       @retry="onRetryInstall"
+      @cleanup="cleanupRetention"
     />
 
     <!-- 新增会话 -->
     <ScTsharkCreateDialog
       v-model="createVisible"
-      v-model:iface="iface"
+      v-model:ifaces="ifaces"
       v-model:filter="filter"
       v-model:filter-type="filterType"
       v-model:capture-name="captureName"
@@ -98,10 +104,15 @@
           :page-size="packetPageSize"
           :total="packetTotal"
           :empty-text="packetEmptyText"
+          :packet-start-time="packetStartTime"
+          :packet-end-time="packetEndTime"
           @page-change="loadPackets"
           @open-detail="openPacketDetail"
           @open-lifecycle="openLifecycle"
           @export="exportCsv"
+          @export-pcap="exportPcapSession"
+          @time-range-change="onPacketTimeRangeChange"
+          @clear-time-range="clearPacketTimeRange"
         />
         <div v-else class="tshark-panel__empty">
           <ReEmpty description="选择一个抓包会话后查看报文" layout="modern" />
@@ -152,7 +163,13 @@
       </template>
     </ScTsharkSessionDetailDialog>
 
-    <ScTsharkPacketDetail v-model="detailOpen" :packet="packetDetail" :http-transaction="packetHttpTx" />
+    <ScTsharkPacketDetail
+      v-model="detailOpen"
+      :packet="packetDetail"
+      :tcp-stream="tcpStream"
+      :tcp-stream-loading="tcpStreamLoading"
+      @follow-tcp-stream="openTcpStream"
+    />
     <ScTsharkLifecycleDialog
       v-model="lifecycleVisible"
       :packet="lifecyclePacket"
@@ -186,17 +203,22 @@ import './tshark.css'
  */
 const {
   tsharkOk, runtime, installActive, captureReady, statusText, installNow,
-  ifaceOptions, iface, filter, filterType, captureName, count, timeout, maxSizeMb, starting,
+  ifaceOptions, ifaces, filter, filterType, captureName, count, timeout, maxSizeMb, starting,
   loadingSessions, sessions,
   activeSessionId, activeSession,
+  runningCount,
+  sessionPaused,
   loadingPackets, packets, packetPage, packetTotal, packetFilter, filterError, packetPageSize,
+  packetStartTime, packetEndTime,
   protoStats, topFlows, statsVersion, liveConnected, liveCount, loadingStats,
   timeline, timelineBucket, anomalies,
-  detailOpen, packetDetail, packetHttpTx,
+  detailOpen, packetDetail,
+  tcpStream, tcpStreamLoading,
   init, loadPackets, applyPacketFilter, selectSession, clearActiveSession,
   filterByProtocol, filterByFlow, refresh, exportCsv, downloadPcap, startCapture, stopSession, deleteSession,
   loadTimeline,
-  openPacketDetail, openPacketDetailById,
+  openPacketDetail, openPacketDetailById, exportPcapSession, openTcpStream,
+  onPacketTimeRangeChange, clearPacketTimeRange, cleanupLoading, cleanupRetention,
 } = useTshark({ source: 'live', autoSelectFirst: false })
 
 const createVisible = ref(false)
