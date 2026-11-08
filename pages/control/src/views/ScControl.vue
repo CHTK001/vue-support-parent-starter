@@ -1,99 +1,180 @@
 <template>
   <div class="sc-control">
-    <!-- 顶部状态栏 -->
-    <div class="top-bar">
-      <div class="left-side">
-        <span class="title">设备远程控制</span>
-        <el-tag :type="status.type" round size="small" class="status-tag">
-          {{ status.text }}
-        </el-tag>
-      </div>
-      <div class="right-side">
-        <el-button size="small" :icon="Key" :type="keyboardMode ? 'primary' : 'default'" @click="onToggleKeyboard" :disabled="!controls.connected">
-          {{ keyboardMode ? '键盘已开启' : '开启键盘' }}
-        </el-button>
-        <el-button size="small" type="danger" :disabled="!controls.connected" @click="onDisconnect">
-          断开
-        </el-button>
-      </div>
+    <!-- 顶部工具条：状态 + 全局动作 -->
+    <div class="ctrl-bar">
+      <div class="bar-title">设备远程控制</div>
+      <span class="pill" :class="statusTone">
+        <i class="dot" :class="statusTone"></i>
+        {{ status.text }}
+      </span>
+      <span v-if="form.sessionId" class="pill mono">{{ form.sessionId }}</span>
+      <span class="bar-grow"></span>
+      <el-button size="small" :icon="Key" :type="keyboardMode ? 'primary' : 'default'" plain
+                 :disabled="!controls.connected" @click="onToggleKeyboard">
+        {{ keyboardMode ? '键盘已开启' : '开启键盘' }}
+      </el-button>
+      <el-button size="small" plain @click="toggleLog">
+        {{ logOpen ? '收起日志' : '展开日志' }}
+      </el-button>
+      <el-button size="small" type="danger" plain :disabled="!controls.connected" @click="onDisconnect">
+        断开
+      </el-button>
     </div>
 
-    <div class="body-area">
-      <!-- 左侧：连接面板 -->
-      <el-card class="connect-panel" shadow="never">
-        <template #header>
-          <span>连接设置</span>
-        </template>
-        <el-form :model="form" label-width="100px" :disabled="controls.connected">
-          <el-form-item label="会话 ID">
-            <el-input v-model="form.sessionId" placeholder="device-001" />
-          </el-form-item>
-          <el-form-item label="Peer ID">
-            <el-input v-model="form.peerId" placeholder="browser-001" />
-          </el-form-item>
-          <el-form-item label="信令地址">
-            <el-input v-model="form.wsUrl" placeholder="ws://host:10000/webrtc" />
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary" :loading="controls.connecting" @click="onConnect" :disabled="!form.sessionId">
-              连接
-            </el-button>
-            <el-button type="success" @click="onShare" :disabled="!controls.connected">
-              屏幕共享
-            </el-button>
-            <el-button type="danger" @click="onDisconnect" :disabled="!controls.connected">
-              断开
-            </el-button>
-          </el-form-item>
-        </el-form>
+    <!-- 后端不可用时的可读提示（代替一片黑） -->
+    <div v-if="backendNotice" class="notice">
+      <span class="notice-tag">后端</span>
+      <span class="notice-text">{{ backendNotice }}</span>
+      <el-button link type="primary" size="small" @click="refreshBackend">重新检测</el-button>
+    </div>
 
-        <div class="panel-section">
-          <div class="panel-title">活跃会话</div>
-          <el-tree
-            v-if="sessions.length"
-            :data="sessions"
-            node-key="sessionId"
-            :props="treeProps"
-            default-expand-all
-            :expand-on-click-node="false"
-            class="sessions-tree"
-          />
-          <el-empty v-else description="无活跃会话" :image-size="40" />
+    <div class="ctrl-body">
+      <!-- 左栏：接入设置（选目标 → 信令 → 建立连接）+ 活跃会话 -->
+      <div class="rail">
+        <section class="card">
+          <header class="card-head">
+            <span>接入设置</span>
+            <span class="bar-grow"></span>
+            <span class="conn" :class="controls.connected ? 'ok' : controls.connecting ? 'warn' : 'idle'">
+              {{ controls.connected ? '信令已连接' : controls.connecting ? '连接中' : '信令未连接' }}
+            </span>
+          </header>
+          <div class="card-body">
+            <div class="group">
+              <div class="group-title">
+                <span class="step" :class="{ dim: !!form.sessionId }">1</span>
+                <span>目标设备</span>
+              </div>
+              <label class="field">
+                <span>会话 ID</span>
+                <el-input v-model="form.sessionId" placeholder="device-001" :disabled="controls.connected" />
+              </label>
+              <label class="field">
+                <span>Peer ID</span>
+                <el-input v-model="form.peerId" placeholder="browser-001" :disabled="controls.connected" />
+              </label>
+              <em class="field-tip">与后端会话一致；重复填写同一 ID 会复用会话</em>
+            </div>
+
+            <div class="group">
+              <div class="group-title">
+                <span class="step" :class="{ dim: controls.connected }">2</span>
+                <span>信令地址</span>
+              </div>
+              <label class="field">
+                <el-input v-model="form.wsUrl" class="mono" placeholder="ws://host:10000/webrtc"
+                          :disabled="controls.connected" />
+              </label>
+            </div>
+
+            <el-button type="primary" class="full" :loading="controls.connecting" :disabled="!form.sessionId"
+                       @click="onConnect">
+              建立连接
+            </el-button>
+          </div>
+        </section>
+
+        <section class="card grow">
+          <header class="card-head">
+            <span>活跃会话</span>
+            <span class="count">{{ sessions.length }}</span>
+            <span class="bar-grow"></span>
+            <el-button link type="primary" size="small" :loading="sessionLoading" @click="refreshSessions">
+              刷新
+            </el-button>
+          </header>
+          <div class="card-body tight">
+            <div v-for="s in sessions" :key="s.sessionId" class="session" @click="onPickSession(s.sessionId)">
+              <i class="dot" :class="s.capturing ? 'ok' : 'idle'"></i>
+              <span class="session-id mono">{{ s.sessionId }}</span>
+              <span class="session-meta">{{ s.peerCount }} 端</span>
+              <span class="session-pick">接入</span>
+            </div>
+            <div v-if="!sessions.length" class="empty-mini">无活跃会话</div>
+          </div>
+        </section>
+      </div>
+
+      <!-- 右栏：画面 -->
+      <section class="screen">
+        <header class="screen-head">
+          <div class="tabs">
+            <button type="button" class="tab" :class="{ on: activeTab === 'video' }" @click="activeTab = 'video'">
+              画面
+            </button>
+            <button type="button" class="tab" :class="{ on: activeTab === 'screens' }" @click="switchScreens">
+              屏幕源
+            </button>
+          </div>
+          <span class="bar-grow"></span>
+          <span class="hint mono">{{ coords }}</span>
+        </header>
+
+        <div v-show="activeTab === 'video'" class="stage"
+             @mousedown="onMouseDown"
+             @mouseup="onMouseUp"
+             @mousemove="onMouseMove"
+             @wheel.prevent="onWheel"
+             @contextmenu.prevent>
+          <video id="remoteVideo" ref="videoRef" preload="auto" muted></video>
+
+          <div v-if="!controls.connected" class="stage-empty">
+            <div class="ring">▣</div>
+            <h4>{{ form.sessionId ? '还没有接入画面' : '还没有选择目标设备' }}</h4>
+            <p>
+              填好左侧会话 ID 后点「建立连接」。连上之后，鼠标与键盘会直接作用在远端桌面。
+            </p>
+            <div class="chips">
+              <span>1 填会话 ID</span>
+              <span>2 建立连接</span>
+              <span>3 开始操作</span>
+            </div>
+          </div>
+
+          <span class="stage-badge">{{ controls.connected ? 'LIVE' : 'OFFLINE' }}</span>
         </div>
-      </el-card>
 
-      <!-- 中心：远程桌面 -->
-      <div
-        class="video-area"
-        @mousedown="onMouseDown"
-        @mouseup="onMouseUp"
-        @mousemove="onMouseMove"
-        @wheel.prevent="onWheel"
-        @contextmenu.prevent
-      >
-        <video id="remoteVideo" ref="videoRef" preload="auto" muted></video>
-        <div class="coords-display">{{ coords }}</div>
-      </div>
+        <div v-show="activeTab === 'screens'" class="screen-list">
+          <div class="screen-list-head">
+            <span>桌面采集源</span>
+            <span class="bar-grow"></span>
+            <el-button size="small" plain :loading="screenLoading" @click="loadScreens">重新枚举</el-button>
+          </div>
+          <div v-for="s in screens" :key="s.id" class="screen-row">
+            <span class="mono">{{ s.id }}</span>
+            <span class="screen-name">{{ s.name }}</span>
+            <span class="mono">{{ s.width }} × {{ s.height }}</span>
+          </div>
+          <div v-if="!screens.length" class="empty-mini">
+            {{ screenLoading ? '枚举中…' : '没有可用的桌面源（后端未提供采集实现时恒为空）' }}
+          </div>
+        </div>
+      </section>
     </div>
 
-    <!-- 底部：日志控制台 -->
-    <div class="log-panel">
-      <div class="log-header">
+    <!-- 底部日志抽屉 -->
+    <section v-show="logOpen" class="log">
+      <header class="log-head">
         <span>输出日志</span>
-        <el-button size="small" @click="clearLog">清空</el-button>
-      </div>
-      <div ref="logContent" class="log-content">
-        <div v-for="(line, i) in logLines" :key="i" class="log-entry" :class="line.type">
-          {{ line.text }}
+        <span class="count">{{ logLines.length }}</span>
+        <span class="bar-grow"></span>
+        <el-button link size="small" @click="clearLog">清空</el-button>
+        <el-button link size="small" @click="toggleLog">收起</el-button>
+      </header>
+      <div ref="logContent" class="log-body">
+        <div v-for="(line, i) in logLines" :key="i" class="log-line" :class="line.type">
+          <span class="tm">{{ line.time }}</span>
+          <span class="msg">{{ line.text }}</span>
         </div>
+        <div v-if="!logLines.length" class="empty-mini">暂无日志</div>
       </div>
-    </div>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
   /**
-   * 设备远程控制页面
+   * 设备远程控制页面（任务流版式）
    *
    * <p>与 Java WebRtcServer 的交互协议（`/webrtc` 信令 WebSocket）：</p>
    * <ul>
@@ -108,10 +189,13 @@
    * <p>注意：Java 端把首个帧里的 `peerId` 当作会话 ID，因此这里发送的 `peerId`
    * 使用表单里的「会话 ID」，保证与 REST 创建的会话一致。</p>
    *
+   * <p>版式：左栏是一条三步流程（选目标 → 信令 → 会话），右栏是画面，日志收进可折叠抽屉。
+   * 后端未挂载时（`/control/**` 404/403/500）在顶部给出可读提示，而不是让画面一片黑。</p>
+   *
    * @author CH
    * @since 4.0.0.50
    */
-  import { ref, reactive, onMounted, onBeforeUnmount, nextTick } from 'vue'
+  import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
   import { ElMessage } from 'element-plus'
   import { Key } from '@element-plus/icons-vue'
   import {
@@ -123,7 +207,7 @@
     mouseEventJson,
     signalingUrl,
   } from '../api/controlApi'
-  import type { ControlSession, KeyboardEventPayload, MouseEventPayload } from '../api/controlApi'
+  import type { ControlScreen, ControlSession, KeyboardEventPayload, MouseEventPayload } from '../api/controlApi'
 
   /** WebRTC 信令服务端点 */
   const WS_URL = signalingUrl()
@@ -153,6 +237,14 @@
 
   const logLines = ref<{ time: string; type: string; text: string }[]>([])
   const sessions = ref<ControlSession[]>([])
+  const screens = ref<ControlScreen[]>([])
+
+  /** 面板状态：日志抽屉、右侧页签、加载中、后端可用性 */
+  const logOpen = ref(true)
+  const activeTab = ref<'video' | 'screens'>('video')
+  const sessionLoading = ref(false)
+  const screenLoading = ref(false)
+  const backendNotice = ref('')
 
   /** 连入端通道 */
   let ws: WebSocket | null = null
@@ -167,14 +259,22 @@
   /** 键盘模式 */
   const keyboardMode = ref(false)
 
-  /** 鼠标坐标显示 */
-  const coords = ref('未连接')
+  /** 鼠标坐标显示（未进入画面时是占位符，不代表连接状态） */
+  const coords = ref('—')
 
-  /** 会话树 */
-  const treeProps = {
-    children: 'peers',
-    label: 'sessionId',
-  }
+  /** 状态胶囊的色调 */
+  const statusTone = computed(() => {
+    switch (status.type) {
+      case 'success':
+        return 'ok'
+      case 'warning':
+        return 'warn'
+      case 'error':
+        return 'err'
+      default:
+        return 'idle'
+    }
+  })
 
   function addLog(type: string, ...args: any[]): void {
     const now = new Date().toLocaleTimeString('zh-CN', { hour12: false })
@@ -189,10 +289,40 @@
     logLines.value = []
   }
 
+  function toggleLog(): void {
+    logOpen.value = !logOpen.value
+  }
+
   function setStatus(type: 'info' | 'success' | 'warning' | 'error', text: string): void {
     status.type = type
     status.text = text
     addLog(type === 'error' ? 'err' : type === 'warning' ? 'warn' : 'ok', `[status] ${text}`)
+  }
+
+  /**
+   * 把后端请求失败翻译成一句人话。
+   *
+   * <p>`/control/**` 在网关鉴权兜底与「映射不存在」两种情况下都可能返回 403，
+   * 前端看到的只是状态码，因此这里按状态码给出可执行的下一步提示。</p>
+   *
+   * @param e 抛出的异常
+   * @returns 提示文本；能确认后端可用时返回空串
+   */
+  function describeBackendError(e: unknown): string {
+    const text = String((e as Error)?.message ?? e)
+    if (/\b500\b/.test(text)) {
+      return '后端 /control 接口返回 500：控制模块已挂载但内部实现不可用（多为 WebRTC 采集/信令未就绪）。'
+    }
+    if (/\b403\b/.test(text)) {
+      return '后端 /control 接口返回 403：monitor 后端没有挂载远程控制模块，或当前会话未通过鉴权。'
+    }
+    if (/\b404\b/.test(text)) {
+      return '后端 /control 接口返回 404：monitor 后端没有挂载远程控制模块。'
+    }
+    if (/用户信息不存在|重新登录/.test(text)) {
+      return '后端 /control 接口未放行：网关报「用户信息不存在」，通常是该路径未在鉴权白名单内。'
+    }
+    return ''
   }
 
   /** 创建并挂接本地 PeerConnection */
@@ -202,6 +332,12 @@
     // 关键：offerer 必须先建 DataChannel，SDP 才会带 m=application(SCTP)，
     // Java 端创建的 "control" 通道才能协商成功。
     rtc.createDataChannel('browser')
+
+    // 关键：offer 必须自带一条 video m-line（只收不发）。
+    // 后端 WebRtcPeerImpl 是在收到 offer 之后才 addTrack(桌面轨道) 并 createAnswer；
+    // 而 answer 不允许新增 offer 里没有的 m-line。少了这句，SDP 只有 data channel，
+    // 后端加轨被 Chrome 丢弃 —— 表现为「已连接、DataChannel 通、但没有画面、video 宽高为 0」。
+    rtc.addTransceiver('video', { direction: 'recvonly' })
 
     rtc.ondatachannel = (e: RTCDataChannelEvent) => {
       const ch = e.channel
@@ -242,7 +378,11 @@
         case 'connected':
           controls.online = true
           controls.connected = true
+          coords.value = '—'
           setStatus('success', '已连接')
+          // 会话在 onConnect 里才创建，挂载时那一次刷新拿不到；连上后补一次，
+          // 左栏「活跃会话」才不会一直是 0。
+          void refreshSessions()
           break
         case 'failed':
           controls.connected = false
@@ -431,7 +571,7 @@
     controls.connected = false
     controls.online = false
     keyboardMode.value = false
-    coords.value = '未连接'
+    coords.value = '—'
     setStatus('info', '已断开')
     if (sessionId) {
       try {
@@ -469,7 +609,18 @@
     } catch (e) {
       addLog('err', `[ws] signaling fail: ${String(e)}`)
       ElMessage.error('信令连接失败: ' + String(e))
+      // 失败后必须落回可重试的状态，否则顶部胶囊会一直停在「连接中...」
+      if (ws) {
+        ws.onclose = null
+        ws.onerror = null
+        ws.onmessage = null
+        try { ws.close() } catch { /* 已关闭 */ }
+        ws = null
+      }
       controls.connecting = false
+      controls.connected = false
+      controls.online = false
+      setStatus('error', '信令连接失败')
       return
     }
 
@@ -497,14 +648,59 @@
     }
   }
 
-  async function onShare(): Promise<void> {
+  /** 枚举远端桌面源 */
+  async function loadScreens(): Promise<void> {
+    screenLoading.value = true
     try {
       const screensList = await listControlScreens()
+      screens.value = screensList
+      backendNotice.value = ''
       addLog('ok', `[screens] ${screensList.length} 个屏幕源`)
       screensList.forEach((s) => addLog('ok', `[screens] ${s.id} ${s.name} ${s.width}x${s.height}`))
     } catch (e) {
+      screens.value = []
+      const hint = describeBackendError(e)
+      if (hint) backendNotice.value = hint
       addLog('warn', `[screens] load fail: ${String(e)}`)
+    } finally {
+      screenLoading.value = false
     }
+  }
+
+  /** 切到「屏幕源」页签并刷新 */
+  async function switchScreens(): Promise<void> {
+    activeTab.value = 'screens'
+    await loadScreens()
+  }
+
+  /** 刷新活跃会话；失败时给出后端状态提示 */
+  async function refreshSessions(): Promise<void> {
+    sessionLoading.value = true
+    try {
+      const list = await listControlSessions()
+      sessions.value = list
+      backendNotice.value = ''
+      addLog('ok', `[session] ${list.length} active sessions`)
+    } catch (e) {
+      sessions.value = []
+      const hint = describeBackendError(e)
+      backendNotice.value = hint
+      addLog('warn', `[session] load fail: ${String(e)}`)
+    } finally {
+      sessionLoading.value = false
+    }
+  }
+
+  /** 顶部「重新检测」：重新探一次会话列表 */
+  async function refreshBackend(): Promise<void> {
+    await refreshSessions()
+  }
+
+  /** 点会话行：填进目标设备 */
+  function onPickSession(sessionId: string): void {
+    if (controls.connected) return
+    form.sessionId = sessionId
+    addLog('ok', `[session] 选中 ${sessionId}`)
   }
 
   function onToggleKeyboard(): void {
@@ -583,13 +779,7 @@
   onMounted(async () => {
     addLog('ok', '[control] loaded')
     setStatus('warning', '准备连接')
-    try {
-      const list = await listControlSessions()
-      sessions.value = list
-      addLog('ok', `[session] ${list.length} active sessions`)
-    } catch (e) {
-      addLog('warn', `[session] load fail: ${String(e)}`)
-    }
+    await refreshSessions()
   })
 
   onBeforeUnmount(() => {
@@ -600,144 +790,576 @@
 </script>
 
 <style scoped>
+  /*
+   * 版式令牌全部走 monitor（koi/Element）的全局变量，并给出同色 fallback，
+   * 这样本页被单独挂载时也不会退回自造暗色皮肤。
+   */
   .sc-control {
+    --c-brand: var(--brand-500, #1677ff);
+    --c-brand-weak: #eef5ff;
+    --c-bg: var(--bg-layout, #f2f3f7);
+    --c-surface: var(--bg-container, #fff);
+    --c-fill: var(--bg-fill, #f5f7fa);
+    --c-line: var(--border-subtle, #e5e6eb);
+    --c-line-2: var(--border-secondary, #d0d3d8);
+    --c-text: var(--text-primary, #1d2129);
+    --c-text-2: var(--text-secondary, #4e5359);
+    --c-text-3: var(--text-tertiary, #8d9196);
+    --c-ok: #16a34a;
+    --c-warn: #d97706;
+    --c-err: #dc2626;
+    --c-radius: var(--radius-md, 8px);
+    --c-mono: var(--font-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: var(--ctrl-panel, #151922);
-    color: var(--ctrl-text, #e6e9ef);
+    min-height: 0;
+    background: var(--c-bg);
+    color: var(--c-text);
+    font-size: 13px;
   }
 
-  .top-bar {
+  /* ── 顶部工具条 ───────────────────────────── */
+  .ctrl-bar {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 8px 16px;
-    background: var(--ctrl-panel, #151922);
-    border-bottom: 1px solid var(--ctrl-border, #252a36);
+    gap: 10px;
+    padding: 9px 16px;
+    background: var(--c-surface);
+    border-bottom: 1px solid var(--c-line);
+    flex: none;
   }
 
-  .title {
+  .bar-title {
     font-size: 14px;
     font-weight: 600;
-    color: var(--ctrl-text, #e6e9ef);
+    color: var(--c-text);
   }
 
-  .body-area {
-    display: flex;
+  .bar-grow {
     flex: 1;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: var(--c-fill);
+    border: 1px solid var(--c-line);
+    color: var(--c-text-2);
+    font-size: 12px;
+    line-height: 18px;
+  }
+
+  .pill.mono {
+    font-family: var(--c-mono);
+  }
+
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--c-text-3);
+    flex: none;
+  }
+
+  .dot.ok {
+    background: var(--c-ok);
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.16);
+  }
+
+  .dot.warn {
+    background: var(--c-warn);
+  }
+
+  .dot.err {
+    background: var(--c-err);
+  }
+
+  .dot.idle {
+    background: var(--c-line-2);
+  }
+
+  /* ── 后端提示 ─────────────────────────────── */
+  .notice {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 16px 0;
+    padding: 8px 12px;
+    border: 1px solid rgba(217, 119, 6, 0.35);
+    background: #fffbeb;
+    border-radius: var(--c-radius);
+    color: #92400e;
+    font-size: 12.5px;
+    flex: none;
+  }
+
+  .notice-tag {
+    flex: none;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--c-warn);
+    color: #fff;
+    font-size: 11px;
+  }
+
+  .notice-text {
+    flex: 1;
+    line-height: 1.5;
+  }
+
+  /* ── 主体 ────────────────────────────────── */
+  .ctrl-body {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: 14px;
+    padding: 14px 16px;
     min-height: 0;
   }
 
-  .connect-panel {
-    width: 300px;
-    margin: 8px;
-    background: var(--ctrl-panel, #151922);
-    border: 1px solid var(--ctrl-border, #252a36);
-    border-radius: 6px;
+  .rail {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+    /* 步骤卡按内容占高；剩余高度给「活跃会话」，不够时整栏滚动而不是压扁 */
+    overflow-y: auto;
+    padding-right: 2px;
   }
 
-  .connect-panel :deep(.el-card__header) {
-    border-bottom: 1px solid var(--ctrl-border, #252a36);
-    background: var(--ctrl-panel, #151922);
-    color: var(--ctrl-text, #e6e9ef);
+  /*
+   * monitor 的 pages.css 里有同名全局类（.card / .card-head / .tabs / .mono），
+   * 这里把它们漏出来的 padding / shadow / margin / justify-content 显式覆盖掉，
+   * 否则卡片会被撑开、标题被推到右边、页签下面多一条线。
+   */
+  .card {
+    background: var(--c-surface);
+    border: 1px solid var(--c-line);
+    border-radius: var(--c-radius);
+    box-shadow: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 0 0 auto;
   }
 
-  .panel-section {
-    margin-top: 12px;
+  .card.grow {
+    flex: 1 1 0;
+    min-height: 96px;
   }
 
-  .panel-title {
+  .card-head {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 9px 12px;
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--c-line);
+    font-weight: 600;
+    font-size: 12.5px;
+    color: var(--c-text);
+    flex: none;
+  }
+
+  .card-body {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+  }
+
+  .card-body.tight {
+    padding: 6px;
+    gap: 2px;
+    overflow: auto;
+  }
+
+  .step {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--c-brand);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+    font-weight: 600;
+    flex: none;
+  }
+
+  .step.dim {
+    background: var(--c-line-2);
+  }
+
+  .count {
+    padding: 0 6px;
+    border-radius: 8px;
+    background: var(--c-fill);
+    color: var(--c-text-2);
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .field > span {
     font-size: 12px;
-    color: var(--ctrl-text, #e6e9ef);
-    margin-bottom: 4px;
+    color: var(--c-text-2);
   }
 
-  .video-area {
-    flex: 1;
-    margin: 8px;
-    position: relative;
-    background: #000;
+  .field-tip {
+    font-style: normal;
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: var(--c-text-3);
+  }
+
+  .field.mono :deep(.el-input__inner),
+  .mono {
+    font-family: var(--c-mono);
+    font-size: 12px;
+  }
+
+  /* ── 接入设置里的分组（目标 / 信令） ───────── */
+  .group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed var(--c-line);
+  }
+
+  .group:last-of-type {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+
+  .group-title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--c-text);
+  }
+
+  /* 卡片标题右侧的信令状态 */
+  .conn {
+    font-size: 11.5px;
+    color: var(--c-text-3);
+    font-weight: 500;
+  }
+
+  .conn.ok {
+    color: var(--c-ok);
+  }
+
+  .conn.warn {
+    color: var(--c-warn);
+  }
+
+  .full {
+    width: 100%;
+  }
+
+  .session {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px;
     border-radius: 6px;
+    cursor: pointer;
+  }
+
+  .session:hover {
+    background: var(--c-fill);
+  }
+
+  .session-id {
+    flex: 1;
+    min-width: 0;
     overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    color: var(--c-text);
+  }
+
+  .session-meta,
+  .session-pick {
+    font-size: 11.5px;
+    color: var(--c-text-3);
+    flex: none;
+  }
+
+  .session-pick {
+    color: var(--c-brand);
+  }
+
+  .empty-mini {
+    padding: 14px 8px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--c-text-3);
+  }
+
+  /* ── 画面区 ──────────────────────────────── */
+  .screen {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    background: var(--c-surface);
+    border: 1px solid var(--c-line);
+    border-radius: var(--c-radius);
+    overflow: hidden;
+  }
+
+  .screen-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--c-line);
+    flex: none;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 2px;
+    border-bottom: 0;
+    margin-bottom: 0;
+  }
+
+  .tab {
+    border: 0;
+    background: transparent;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font: inherit;
+    font-size: 12.5px;
+    color: var(--c-text-2);
+    cursor: pointer;
+  }
+
+  .tab:hover {
+    background: var(--c-fill);
+  }
+
+  .tab.on {
+    background: var(--c-brand-weak);
+    color: var(--c-brand);
+    font-weight: 600;
+  }
+
+  .hint {
+    font-size: 11.5px;
+    color: var(--c-text-3);
+  }
+
+  .stage {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    background: #0d1117;
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: crosshair;
   }
 
   #remoteVideo {
     width: 100%;
     height: 100%;
     object-fit: contain;
+    display: block;
   }
 
-  .coords-display {
+  .stage-empty {
     position: absolute;
-    top: 10px;
-    left: 10px;
-    background: rgba(0, 0, 0, 0.6);
-    color: #fff;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-family: Consolas, monospace;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 24px;
+    text-align: center;
+    color: #93a1b5;
     pointer-events: none;
   }
 
-  .log-panel {
-    height: 160px;
-    border-top: 1px solid var(--ctrl-border, #252a36);
-    background: var(--ctrl-panel, #151922);
+  .stage-empty h4 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #d8e0ea;
+  }
+
+  .stage-empty p {
+    margin: 0;
+    max-width: 420px;
+    font-size: 12.5px;
+    line-height: 1.7;
+  }
+
+  .ring {
+    width: 52px;
+    height: 52px;
+    border: 2px dashed #2a3444;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: #6d7d92;
+    font-size: 16px;
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+  }
+
+  .chips span {
+    padding: 3px 10px;
+    border: 1px solid #2a3444;
+    background: #121a25;
+    border-radius: 999px;
+    font-size: 12px;
+    color: #9fb0c6;
+  }
+
+  .stage-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(6, 12, 20, 0.72);
+    color: #cfe0f6;
+    font-family: var(--c-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    pointer-events: none;
+  }
+
+  .screen-list {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 0 0 8px;
+  }
+
+  .screen-list-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--c-line);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--c-text);
+  }
+
+  .screen-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 12px;
+    border-bottom: 1px dashed var(--c-line);
+    font-size: 12px;
+    color: var(--c-text-2);
+  }
+
+  .screen-name {
+    flex: 1;
+    color: var(--c-text);
+  }
+
+  /* ── 日志抽屉 ────────────────────────────── */
+  .log {
+    flex: none;
+    height: 150px;
+    margin: 0 16px 14px;
     display: flex;
     flex-direction: column;
+    background: var(--c-surface);
+    border: 1px solid var(--c-line);
+    border-radius: var(--c-radius);
+    overflow: hidden;
   }
 
-  .log-header {
+  .log-head {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 6px 12px;
-    border-bottom: 1px solid var(--ctrl-border, #252a36);
-    font-size: 13px;
-    color: var(--ctrl-text, #e6e9ef);
+    gap: 8px;
+    padding: 5px 12px;
+    border-bottom: 1px solid var(--c-line);
+    font-size: 12px;
+    color: var(--c-text-2);
+    flex: none;
   }
 
-  .log-content {
+  .log-body {
     flex: 1;
     overflow-y: auto;
-    font-family: 'Fira Code', Consolas, monospace;
-    font-size: 12px;
-    line-height: 1.6;
+    padding: 4px 0;
+    font-family: var(--c-mono);
+    font-size: 11.5px;
+    line-height: 1.65;
   }
 
-  .log-entry {
-    padding: 2px 8px;
+  .log-line {
+    display: flex;
+    gap: 10px;
+    padding: 1px 12px;
+    color: var(--c-text-2);
   }
 
-  .log-entry.warn {
-    color: var(--ctrl-warning, #e6a23c);
+  .log-line .tm {
+    flex: none;
+    color: var(--c-text-3);
   }
 
-  .log-entry.err {
-    color: var(--ctrl-danger, #f56c6c);
+  .log-line .msg {
+    word-break: break-all;
   }
 
-  .log-entry.ok {
-    color: var(--ctrl-success, #67c23a);
+  .log-line.ok .msg {
+    color: #2f7d32;
   }
 
-  /** 滚动条 */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+  .log-line.warn .msg {
+    color: #b26a00;
   }
 
-  ::-webkit-scrollbar-track {
-    background: var(--ctrl-panel, #151922);
+  .log-line.err .msg {
+    color: #c0392b;
   }
 
-  ::-webkit-scrollbar-thumb {
-    background: var(--ctrl-border, #252a36);
-    border-radius: 4px;
+  /* 窄屏：左栏折到上面，画面保底高度 */
+  @media (max-width: 1100px) {
+    .ctrl-body {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto minmax(320px, 1fr);
+    }
+
+    .rail {
+      max-height: 260px;
+      overflow: auto;
+    }
   }
 </style>

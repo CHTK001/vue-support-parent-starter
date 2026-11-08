@@ -347,6 +347,11 @@ function dropProxyOrigin(): PluginOption {
         if (
           url.startsWith("/ms/") ||
           url.startsWith("/v2/") ||
+          // 远控页（@pages/control）归本应用后端：读接口是 GET 不带 Origin，
+          // 但 POST /control/session/create、/control/event/send 会带
+          // Origin: http://127.0.0.1:<dev端口>，后端 CORS 白名单里只有部署端口，
+          // 于是 403 Invalid CORS request —— 表现为「建立连接」永远失败、日志写 403。
+          url.startsWith("/control") ||
           // Actuator 也归本应用后端（同 /api/**）：读接口是 GET 不带 Origin，
           // 但写接口（POST /actuator/loggers/{name} 改日志级别）会带
           // Origin: http://127.0.0.1:8848，而后端 CORS 白名单里没有 dev 端口，
