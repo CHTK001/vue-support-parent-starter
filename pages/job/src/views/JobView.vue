@@ -240,9 +240,10 @@ const columns = computed<ReTableColumn[]>(() => [
   { prop: "fireTrail", label: "触发轨迹", width: 172, slot: "trail" },
   { prop: "lastFireTime", label: "最近触发", width: 180, slot: "last" },
   { prop: "author", label: "负责人", width: 74, slot: "author" },
-  /* 操作列：3 个常用方形按钮 + 1 个「更多」下拉触发器 = 4×38 的间距。
-     低频/危险动作收进下拉后，不再需要为平铺 6 个按钮留 268px。 */
-  { prop: "action", label: "操作", width: 180, slot: "action", fixed: "right" },
+  /* 操作列：4 个常用方形按钮 + 1 个「更多」下拉触发器，小档按钮 28px + 间距 8px，
+     4×28 + 3×8（按钮间）+ 30（更多，含自身 8px 间距）= 182px；cell 左右各 12px padding
+     包在 180px 宽里放不下第 5 项，列宽 210 刚好容下。 */
+  { prop: "action", label: "操作", width: 210, slot: "action", fixed: "right" },
 ]);
 
 
@@ -630,6 +631,17 @@ watch([() => form.alarmEmail, () => form.alarmType], () => {
   delete formErrors.alarmEmail;
 });
 
+/**
+ * 告警目标多选面板：ReSelect 的 v-model 是数组（新标签列表），存库仍用逗号字符串，
+ * 打开弹层/收派前手动转一次，计算与校验都不依赖计算属性间接触发时机。
+ */
+const alarmEmails = ref<string[]>([]);
+
+/** 标签面板一改动，自己的红字就先撤掉，不让报错态贴在后面 */
+watch(alarmEmails, () => {
+  delete formErrors.alarmEmail;
+});
+
 const isScriptForm = computed(() => Boolean(form.glueType) && form.glueType !== GLUE_BEAN);
 
 /**
@@ -664,9 +676,6 @@ const glueEngineModel = computed<string | number | (string | number)[] | null>({
 /** 正文区标题：形态 + 语言；脚本写完整文件、片段写方法体 */
 const glueSourceTitle = computed(() => {
   const label = glueEngineLabel(glueLang.value);
-  if (glueLang.value === "python") {
-    return taskKind.value === "fragment" ? "Python 片段" : "Python 脚本（完整文件）";
-  }
   return taskKind.value === "fragment"
     ? `${label} 片段${label === "Java" ? "（方法体）" : ""}`
     : `${label} 脚本（${label === "Java" ? "完整类" : "完整文件"}）`;
@@ -674,11 +683,6 @@ const glueSourceTitle = computed(() => {
 
 /** 正文区占位：脚本与片段的写法要求不同，提示必须分开说 */
 const glueSourcePlaceholder = computed(() => {
-  if (glueLang.value === "python") {
-    return taskKind.value === "fragment"
-      ? "点击编辑：只写 Python 语句，入口为 execute(ctx) 或 main(ctx)，返回值即结果"
-      : "点击编辑完整 Python 脚本：入口为 execute(ctx) 或 main(ctx)，可 import 本机三方库";
-  }
   if (taskKind.value === "fragment") {
     return glueLang.value === "java"
       ? "点击编辑：只写 @Job 方法的方法体（不要写 package / class / import / @Job），后端会合成完整类"
@@ -886,6 +890,7 @@ function openCreate(): void {
     flowThreadCount: 0,
   });
   cronBroken.value = false;
+  alarmEmails.value = [];
   formVisible.value = true;
   clearFormValidate();
 }
@@ -921,6 +926,11 @@ function openEdit(job: JobRuntime): void {
     enabled: job.enabled,
     desc: job.desc ?? "",
   });
+  // 告警目标回显：ReSelect 读的是数组，把存量的逗号列表拆成标签
+  alarmEmails.value = String(form.alarmEmail ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   // 编辑回显：把存量任务的引擎同步进「上次选择」，之后切脚本 / 片段时语言不跳
   const restoredEngine = engineOfGlueType(job.glueType);
   if (restoredEngine) {
@@ -1022,6 +1032,10 @@ async function submit(): Promise<void> {
     return;
   }
 
+  // 多选面板回写：手动拦截与下面的 payload 都读 form.alarmEmail，先把标签列表汇进去
+  // 保证“未保存就点确定”时读到的始终是面板里最新的标签集合
+  form.alarmEmail = alarmEmails.value.join(",");
+
   const isScriptTask = isScriptForm.value;
   let jobKey = String(form.jobKey ?? "").trim();
   if (isScriptTask && formMode.value !== "edit") {
@@ -1108,7 +1122,13 @@ async function submit(): Promise<void> {
   try {
     await saveJob(payload);
     msgSuccess(formMode.value === "create" ? `已登记任务 ${jobKey}` : "任务已更新");
-    formVisible.value = false;
+    // 连续新建：保存成功（只是填表信息变了）保留弹层，打开一张已擦净的草稿继续写，
+    // 编辑则关窗，别把新建和编辑的流出差异混在一起。
+    if (formMode.value === "create") {
+      openCreate();
+    } else {
+      formVisible.value = false;
+    }
     reloadJobs();
     await loadExecutors();
   } catch (error) {
@@ -1342,12 +1362,14 @@ watch(formVisible, (visible) => {
       <template #action="{ row }">
         <ReButton
           layout="square"
+          size="small"
           icon="View"
           tip="查看任务详情"
           @click="detailRef?.open(row as unknown as JobRuntime)"
         />
         <ReButton
           layout="square"
+          size="small"
           icon="VideoPlay"
           type="primary"
           :disabled="Boolean(busyKey) || row.enabled !== true"
@@ -1360,15 +1382,24 @@ watch(formVisible, (visible) => {
         />
         <ReButton
           layout="square"
+          size="small"
           icon="Edit"
           :disabled="Boolean(busyKey)"
           :tip="isFlowRow(row as unknown as JobRuntime) ? '编辑流程调度' : '编辑任务'"
           @click="openEdit(row as unknown as JobRuntime)"
         />
+        <ReButton
+          layout="square"
+          size="small"
+          icon="Tickets"
+          tip="作业日志"
+          :disabled="Boolean(busyKey)"
+          @click="openLogs(row as unknown as JobRuntime)"
+        />
         <!--
           低频/危险动作收进「更多」：操作列平铺 6 个方形按钮时，按钮间距 38px 累积到
-          228px，宽一点的列也放不下，删除按钮会被挤到第二行。留 3 个常用动作在外，
-          其余按频率与风险降级到下拉里。
+          228px，宽一点的列也放不下，删除按钮会被挤到第二行。留 4 个常用动作在外，
+          复制/后续执行时间/删除按频率与风险降级到下拉里。
         -->
         <el-dropdown trigger="click" :disabled="Boolean(busyKey)">
           <!--
@@ -1489,14 +1520,6 @@ watch(formVisible, (visible) => {
           />
           <em class="task-form__help">
             引擎清单来自本进程的 SPI 运行时枚举（{{ taskKind === 'fragment' ? '写方法体' : '写完整文件' }}）
-          </em>
-          <em v-if="glueLang === 'python'" class="task-form__help">
-            Python 以子进程方式运行本机解释器，需在部署机 PATH 中装好 Python 3；
-            脚本可 import 本机已安装的三方库。
-          </em>
-          <em v-else class="task-form__help">
-            脚本类字段的 @Autowired 由执行器自动装配；脚本正文里自己 new 出来的对象不在容器内，
-            需要显式调用 objectContext.inject(对象) 才会注入。
           </em>
         </label>
 
@@ -1686,15 +1709,18 @@ watch(formVisible, (visible) => {
               <span>
                 告警目标<i v-if="form.alarmType" class="task-form__req" aria-hidden="true">*</i>
               </span>
-              <ReInput
-                v-model="form.alarmEmail"
-                maxlength="255"
+              <ReSelect
+                v-model="alarmEmails"
+                multiple
+                filterable
+                allow-create
+                clearable
+                collapse-tags
                 :disabled="!form.alarmType"
                 :placeholder="form.alarmType === 'WEBHOOK'
                   ? 'http(s):// 回调地址，接收 JSON POST'
-                  : form.alarmType === 'EMAIL'
-                    ? '失败时通知的邮箱，多个用逗号分隔'
-                    : '请先选择告警类型'"
+                  : '失败时通知的邮箱，多个用逗号分隔'"
+                style="width: 100%"
               />
               <em v-if="formErrors.alarmEmail" class="task-form__error">{{ formErrors.alarmEmail }}</em>
               <em v-else-if="form.alarmType" class="task-form__help">

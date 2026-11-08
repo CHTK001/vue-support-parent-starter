@@ -86,7 +86,7 @@ function cloneLayout(node: SplitNode): SplitNode {
  */
 const pristineDefaultLayout = cloneLayout(props.defaultLayout);
 
-const { layout, moveTab, removeTab, addTab, splitPanel, updateSizesForSplit, findPanelById } =
+const { layout, moveTab, removeTab, addTab, splitPanel, movePanel, updateSizesForSplit, findPanelById } =
   useLayout({
     defaultLayout: cloneLayout(props.initialLayout || props.defaultLayout),
     storageKey: props.storageKey,
@@ -109,6 +109,7 @@ function resetLayout() {
 provide('moveTab', moveTab);
 provide('closeTab', (tabId: string) => removeTab(tabId));
 provide('splitPanel', splitPanel);
+provide('movePanel', movePanel);
 provide('updateSizesForSplit', updateSizesForSplit);
 provide('layoutPanelContent', PanelHost);
 

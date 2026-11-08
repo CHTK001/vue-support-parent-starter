@@ -40,6 +40,7 @@ import ScSshDirectViewer from "../ScSshDirectViewer.vue";
 import ScVncDirectViewer from "../ScVncDirectViewer.vue";
 import ScGuacViewer from "../ScGuacViewer.vue";
 import ScSftpPanel from "../ScSftpPanel.vue";
+import ScTerminalSidePanel from "../ScTerminalSidePanel.vue";
 
 /** 主机（与 TerminalView 相同的字段口径） */
 interface Host {
@@ -352,6 +353,54 @@ function closeOtherSessions(tabId: string): void {
 
 /* ==================== 共享协同 ==================== */
 
+/** 终端右侧小列面板（片段 / 文件）展开态（任一条会话的工具条图标控制） */
+const sidePanelVisible = ref(false);
+/** 面板关联的目标会话：谁的工具条打开的，片段就下发给谁的终端 */
+const sidePanelSessionId = ref<string>();
+const sidePanelSession = computed<Session | null>(() => {
+  const id = sidePanelSessionId.value;
+  return id ? sessionOf(id) : null;
+});
+
+/** 模板里登记的 viewers：页签 id（== 会话 id）→ ScSshDirectViewer */
+const viewers = ref<Record<string, any>>({});
+
+/**
+ * 模板 ref 回调：把每个会话页签对应的 ScSshDirectViewer 登记到 viewers 里。
+ *
+ * <p>注意使用形如 `:ref="el => setterViewer(el, tab.id)"` 的函数式 ref，保证在
+ * `v-for` 里能准确按页签 id 登记（卸载时 Vue 回传 null，届时清掉映射）。</p>
+ *
+ * @param el 挂载上来的 viewer（卸载时 Vue 会传 null，届时清掉映射）
+ * @param tabId 页签 id（== 会话 id）
+ */
+function setterViewer(el: any, tabId: string): void {
+  if (el) viewers.value[tabId] = el; else delete viewers.value[tabId];
+}
+
+/** 片段被双击时，把命令文本下发给当前关联的终端 */
+function sendSnippetCommand(command: string): void {
+  const s = sidePanelSession.value;
+  if (!s) return;
+  if (s.protocol !== 'ssh') {
+    message.warning(`当前为 ${s.protocol.toUpperCase()} 终端，不支持下发片段：请手动粘贴「${command}」`);
+    return;
+  }
+  const v = viewers.value[s.id];
+  if (!v) {
+    message.warning('终端画面未挂载，无法下发片段');
+    return;
+  }
+  v.sendCommand(command.trim());
+}
+
+/** 切换右侧小列面板：点哪一条会话的工具条，面板就关联哪个终端的 viewer */
+function toggleSide(tabId: string): void {
+  const id = sidePanelSessionId.value;
+  sidePanelSessionId.value = id === tabId ? undefined : tabId;
+  sidePanelVisible.value = !!sidePanelSessionId.value;
+}
+
 /**
  * 当前登录用户标识。
  *
@@ -660,6 +709,7 @@ onBeforeUnmount(() => {
 const TB = [
   { key: "files", label: "文件", icon: "FolderOpened" },
   { key: "docker", label: "Docker", icon: "Box" },
+  { key: "k8s", label: "K8s", icon: "Coin" },
   { key: "tunnel", label: "隧道", icon: "Connection" },
   { key: "share", label: "共享", icon: "Share" },
 ];
@@ -671,6 +721,10 @@ function handleToolbarAction(key: string, s: Session): void {
   }
   if (key === "share") {
     openShare(s.id);
+    return;
+  }
+  if (key === "k8s") {
+    emit("open-panel", "k8s", s.hostId, s.hostName);
     return;
   }
   const panel = key === "tunnel" ? "tunnel" : "docker";
@@ -765,13 +819,14 @@ const currentHostLabel = computed(() => {
     </div>
 
     <template v-else>
-      <ReSplitLayout
-        ref="splitRef"
-        class="scr-split"
-        :default-layout="defaultLayout"
-        @change="onLayoutChange"
-      >
-        <template #panel="{ activeTab, panel }">
+        <div class="scr-body">
+          <ReSplitLayout
+            ref="splitRef"
+            class="scr-split"
+            :default-layout="defaultLayout"
+            @change="onLayoutChange"
+          >
+            <template #panel="{ activeTab, panel }">
           <div class="scr-panel">
             <!-- 该面板的全部会话都渲染，只显示激活页签：切页签不销毁 SSH -->
             <div
@@ -805,6 +860,7 @@ const currentHostLabel = computed(() => {
                     v-if="sessionOf(tab.id)!.protocol === 'ssh'"
                     :connection="sessionOf(tab.id)!.connection"
                     hide-close
+                    :ref="el => setterViewer(el, tab.id)"
                   />
                   <ScVncDirectViewer
                     v-else-if="sessionOf(tab.id)!.protocol === 'vnc' && sessionOf(tab.id)!.connection.mode === 'DIRECT'"
@@ -830,6 +886,15 @@ const currentHostLabel = computed(() => {
                     <ReIcon :name="t.icon" :size="11" />
                     <span>{{ t.label }}</span>
                   </button>
+                  <button
+                    type="button"
+                    class="scr-tool-btn"
+                    :title="sidePanelVisible && sidePanelSessionId === tab.id ? '收起右侧面板' : '文件与片段（双击下发到终端）'"
+                    @click.stop="toggleSide(tab.id)"
+                  >
+                    <ReIcon :name="sidePanelVisible && sidePanelSessionId === tab.id ? 'Fold' : 'Files'" :size="11" />
+                    <span>片段</span>
+                  </button>
                   <span class="scr-toolbar__spacer" />
                   <button
                     type="button"
@@ -854,6 +919,17 @@ const currentHostLabel = computed(() => {
           </div>
         </template>
       </ReSplitLayout>
+
+      <!-- 终端右侧小列面板：文件管理 / 命令片段（按关联的会话下发片段） -->
+      <ScTerminalSidePanel
+        v-if="sidePanelVisible && sidePanelSession"
+        :host-id="sidePanelSession!.hostId"
+        :host-name="sidePanelSession!.hostName"
+        :visible="sidePanelVisible"
+        @update:visible="(v: boolean) => { sidePanelVisible = v; if (!v) sidePanelSessionId = undefined }"
+        :on-command="sendSnippetCommand"
+      />
+      </div>
 
       <!-- 空态：没有会话时铺在分栏区域上（面板本身没有页签可渲染） -->
       <div v-if="isEmpty" class="scr-empty">
@@ -1056,7 +1132,7 @@ const currentHostLabel = computed(() => {
 .scr :deep(.panel-tab-bar) {
   background: var(--el-fill-color-light, #1c1f26);
 }
-.scr-split { flex: 1; min-height: 0; }
+.scr-split { flex: 1; min-width: 0; min-height: 0; }
 
 /* ==================== 单个会话 ==================== */
 .scr-panel { height: 100%; min-height: 0; display: flex; }
@@ -1418,5 +1494,12 @@ const currentHostLabel = computed(() => {
   border-radius: 7px;
   cursor: pointer;
   &:disabled { opacity: 0.55; cursor: not-allowed; }
+}
+/* 分栏骨架 + 右侧小列面板并排：布局占满剩余宽度，右侧面板固定 300px */
+.scr-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 10px;
 }
 </style>

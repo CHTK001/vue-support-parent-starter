@@ -8,7 +8,7 @@ import { getSummary, listExecutors, listNodes, pageJobLogs, pageJobs } from "../
 import { isFlowRow, isScriptJob, cronDesc } from "../../utils/jobFormat";
 import { statusText } from "../../constants/taskStatus";
 import { resolveHostPath } from "../../utils/hostPath";
-import type { JobExecutor, JobLog, JobNode, JobRuntime, JobSummary } from "../types/job";
+import type { JobExecutor, JobLog, JobNode, JobRuntime, JobSummary } from "../../types/job";
 import type { OvData, OvDispatch, OvHourly, OvKpi, OvPart } from "./types";
 
 const FAILURE_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -233,7 +233,7 @@ export function useOvxData() {
     const h = hourly.value;
     const num = (value: number) => value.toLocaleString("zh-CN");
     const covered = Math.max(s.runningJobs - s.unregisteredJobs, 0);
-    const gradientOf = (parts: OvKpiPart[]) => {
+    const gradientOf = (parts: OvPart[]) => {
       const total = parts.reduce((sum, item) => sum + Math.max(item.value, 0), 0);
       const stops: string[] = [];
       let from = 0;
@@ -245,15 +245,15 @@ export function useOvxData() {
       }
       return `linear-gradient(90deg, ${stops.join(", ")})`;
     };
-    const totalParts: OvKpiPart[] = [
+    const totalParts: OvPart[] = [
       { label: "启用", value: s.runningJobs, color: "var(--brand-500)" },
       { label: "停用", value: s.stoppedJobs, color: "var(--border-default)" },
     ];
-    const dispatchParts: OvKpiPart[] = [
+    const dispatchParts: OvPart[] = [
       { label: "本地", value: s.localJobs, color: "var(--brand-500)" },
       { label: "远程", value: s.remoteJobs, color: "var(--metric-net)" },
     ];
-    const handlerParts: OvKpiPart[] = [
+    const handlerParts: OvPart[] = [
       { label: "已覆盖", value: covered, color: "var(--status-success)" },
       { label: "未注册", value: s.unregisteredJobs, color: "var(--status-warning)" },
     ];

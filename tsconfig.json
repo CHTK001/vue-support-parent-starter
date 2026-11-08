@@ -190,6 +190,9 @@
       /* 渠道管理页：已从 pages/ai 抽离为独立包 @pages/channel */
       "@pages/channel": ["pages/channel/src"],
       "@pages/channel/*": ["pages/channel/src/*"],
+      // 设备远程控制（@pages/control）：页面根 + 深路径（业务写 @pages/control/src/...）
+      "@pages/control": ["pages/control/src"],
+      "@pages/control/*": ["pages/control/*"],
       // pages/ai 的页面（ModelsPage 等）用 `@/` 指向 pages/ai/src。宿主（如系统平台，无自有
       // paths、继承本文件）嵌入这些页面时靠此解析。自带 `@/*` 的应用（geo/video/ai-guada）
       // 有自己的 paths 会覆盖本项，不受影响；`@/*` 只匹配 `@/…`，不波及 @repo/*、@pages/*。

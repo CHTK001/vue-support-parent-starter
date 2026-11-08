@@ -16,6 +16,9 @@ const props = withDefaults(
 
 <template>
   <span class="re-loading" v-bind="$attrs">
+    <!-- 透传业务子项：ReLoading 是加载态容器（全屏遮罩），子项必须保留在 DOM 中
+        ，否则加载完成后内容不可见（主题逻辑只负责盖遮罩，不负责丢内容） -->
+    <slot />
     <transition name="el-fade-in-linear">
       <div v-if="props.loading" class="koi-loading-box">
         <div class="koi-loading">

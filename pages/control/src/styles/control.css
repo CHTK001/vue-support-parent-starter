@@ -1,0 +1,18 @@
+/**
+ * 远程控制（WebRTC）页面公共样式
+ *
+ * <p>导出供宿主（如 vue-support-monitor-starter）在 main.ts 中引入，页面内部
+ * 的布局与组件样式由 Scoped Style 提供。</p>
+ *
+ * @author CH
+ * @since 4.0.0.50
+ */
+:root {
+  --ctrl-primary: #409eff;
+  --ctrl-success: #67c23a;
+  --ctrl-warning: #e6a23c;
+  --ctrl-danger: #f56c6c;
+  --ctrl-text: #e6e9ef;
+  --ctrl-panel: #151922;
+  --ctrl-border: #252a36;
+}

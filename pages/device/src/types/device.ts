@@ -83,6 +83,59 @@ export interface PageResult<T> {
   totalPages: number
 }
 
+/** 轻设备索引（`/device/index` 返回的轻量行），不携带冗余字段 */
+export interface DeviceIndexItem {
+  deviceInfoId: string
+  deviceInfoName?: string
+  deviceInfoCode?: string
+  deviceInfoOrgId?: string
+  deviceInfoVendor?: string
+  deviceInfoCategory?: DeviceCategory
+  deviceInfoSubCategory?: string
+  deviceInfoOnline?: boolean
+  deviceInfoStatus?: DeviceStatus
+  deviceInfoArea?: string
+  deviceInfoTags?: string
+  deviceInfoWarrantyEnd?: string
+  deviceInfoLatitude?: number
+  deviceInfoLongitude?: number
+  deviceInfoUpdatedAt?: string
+  deviceInfoInstalledAt?: string
+}
+
+/** 标签字典行（显示名 + 颜色） */
+export interface DeviceTagOption {
+  value: string
+  label: string
+  color?: string
+  count?: number
+}
+
+/** 导入行（解析结果） */
+export interface DeviceImportRow {
+  /** 行号（从 1 开始） */
+  row: number
+  /** 动作 */
+  action: 'create' | 'update' | 'skip' | 'error'
+  /** 设备标识 */
+  deviceId?: string
+  /** 设备名称 */
+  deviceName?: string
+  /** 错误信息 */
+  message?: string
+}
+
+/** 导入结果 */
+export interface DeviceImportResult {
+  total: number
+  createCount: number
+  updateCount: number
+  skipCount: number
+  errorCount: number
+  rows: DeviceImportRow[]
+}
+
+
 /** 设备分页查询条件 */
 export interface DevicePageQuery {
   pageNo?: number
@@ -279,10 +332,6 @@ export interface ProviderCredential {
   deviceCredentialOfflineDetectEnabled?: boolean
   /** 在离线检测间隔（秒） */
   deviceCredentialOfflineDetectInterval?: number
-  /** 事件轮询开关：该凭据维度是否由时间轮自动拉取厂商事件（默认关闭） */
-  deviceCredentialEventPollEnabled?: boolean
-  /** 事件轮询间隔（秒） */
-  deviceCredentialEventPollInterval?: number
   /** 设备自动同步开关：该凭据维度是否由时间轮自动拉取设备目录（默认关闭） */
   deviceCredentialDeviceSyncEnabled?: boolean
   /** 设备自动同步间隔（秒） */

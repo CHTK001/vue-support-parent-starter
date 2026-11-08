@@ -47,6 +47,8 @@ import { createCdpRoutes } from "@pages/debug/src/routes";
 import { createMonitorRoutes, createMonitorManageRoutes } from "@pages/monitor/src/routes";
 // P2P 房间（@pages/room）：不单独占菜单，也不再注册 /room 路由——
 // 房间是服务侧的一种能力，由「服务管理」页在工作区里以页签打开。
+// 设备远程控制（@pages/control）：WebRTC 信令 + 桌面视频 + 键鼠控制。
+import { createControlRoutes } from "@pages/control/src/routes";
 // APM 观测台（@pages/apm）：按 SkyWalking 语义组织，自动适配当前服务器接入的 APM 引擎。
 // apmConfig 只用于菜单可见性（app.yaml 的 apmConfig.enable），与后端探测无关。
 import { apmRoutes } from "@pages/apm/src/routes";
@@ -307,6 +309,11 @@ export const monitorRoutes: RouteConfigsTable[] = [
       },
     ],
   },
+
+  // ==================== 远程控制 ====================
+  // WebRTC 远程控制（桌面共享 + 键鼠遥控）：由 @pages/control 的 createControlRoutes 产出
+  // （一级分组父节点 + 叶子页 /control/remote，界面与后端 API 同出 @pages/control）。
+  ...createControlRoutes({ showLink: true }),
 
   // ==================== 账号管理 ====================
   // 统一账号（设备密钥 / 邮箱 / 短信）是「设备资产」的凭据来源，但与设备不是同一种资产：

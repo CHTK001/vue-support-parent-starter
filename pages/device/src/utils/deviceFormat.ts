@@ -74,7 +74,25 @@ export function formatRelative(value?: string | Date | null): string {
  *
  * @param device 设备
  */
-export function hasLocation(device?: DeviceInfo | null): boolean {
+/**
+ * 判断日期是否在今天起算的 N 天内（到期前提醒）
+ *
+ * @param value 日期，null 返回 false
+ * @param days 距今天的天数，默认 90
+ */
+export function dateBefore(value?: string | Date | null, days = 90): boolean {
+  const date = parseDate(value)
+  if (!date) return false
+  const today = new Date(new Date().toISOString().slice(0, 10))
+  if (date < today) return true // 已过期
+  const limit = new Date(today)
+  limit.setDate(limit.getDate() + days)
+  return date <= limit
+}
+
+export function hasLocation<T extends { deviceInfoLatitude?: number; deviceInfoLongitude?: number }>(
+  device?: T | null
+): boolean {
   const lat = device?.deviceInfoLatitude
   const lng = device?.deviceInfoLongitude
   return typeof lat === 'number' && typeof lng === 'number' && lat !== 0 && lng !== 0

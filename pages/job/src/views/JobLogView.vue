@@ -17,7 +17,7 @@
 <script setup lang="ts">
 import { computed, onActivated, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { msgError, msgInfo } from "@repo/core";
+import { msgError, msgInfo, msgSuccess } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReIcon from "@repo/ui/re-icon";
@@ -292,6 +292,36 @@ function showDetail(input: Record<string, unknown>): void {
 }
 
 /**
+ * 把故障日志的正文复到剪贴板：失败排查时，正文贴到聊天 or 工单里比手动点选快。
+ *
+ * 没有filePath / 没读到 / 不复存在（日志已被清理）时，往剪贴板留一个短横杠，而
+ * 不是往剪贴板塞空串或一行"没有日志"的说明 —— 让粘贴出来的东西永远是"正文"或"-",
+ * 而不是告知文本。
+ *
+ * @param row 日志行
+ */
+async function copyLogContent(row: JobLog): Promise<void> {
+  let text = "-";
+  if (row.filePath) {
+    try {
+      const content = await readJobLogContent(row.filePath);
+      if (content?.exists) {
+        text = String(content.content ?? "");
+      }
+    } catch {
+      // 读不到就是没有，不额外抛错
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    msgSuccess(text === "-" ? "该轮没有可复制的日志" : "已复制日志正文");
+  } catch {
+    // 非安全上下文（HTTP）或客户手动拒绝时提示，而不是静默失败
+    msgError("剪切板不可用，请手动复制");
+  }
+}
+
+/**
  * 打开「查看日志」弹层并拉取这一轮的完整日志正文。
  *
  * 日志行只存结果说明（截断在 4000 字符），完整正文在每次执行一个的文件里，
@@ -542,6 +572,14 @@ onActivated(() => {
       <template #action="{ row }">
         <ReButton layout="square" icon="View" type="primary" tip="查看这条日志的完整字段" @click="showDetail(row)"/>
         <ReButton layout="square" icon="Document" tip="查看这一轮执行的完整日志" @click="showLogContent(row)"/>
+        <!-- 复制日志正文只给故障行：要贴出的正是这半截执行体，非故障行的正文复制没有这个场景 -->
+        <ReButton
+          v-if="(row as unknown as JobLog).executeCode === 'FAILURE'"
+          layout="square"
+          icon="Copy"
+          tip="复制这一轮执行的日志正文"
+          @click="copyLogContent(row as unknown as JobLog)"
+        />
       </template>
     </ReTable>
 

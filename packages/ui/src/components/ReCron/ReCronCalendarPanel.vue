@@ -192,9 +192,13 @@ const expression = computed<string>(() => {
   return `${head} ${day || "?"} ${month} ${week || "?"}`;
 });
 
-const timeLabel = computed(
-  () => `${String(hour.value).padStart(2, "0")}:${String(minute.value).padStart(2, "0")}`,
-);
+const timeLabel = computed(() => {
+  const hh = String(hour.value).padStart(2, "0");
+  const mm = String(minute.value).padStart(2, "0");
+  // 秒位从“可选”变成输入控件后，提示里必须能把秒显出来，否则
+  // 按 {{ cadenceLabel }} 写的是 09:00、实际是 09:00:15 就会对不上
+  return second.value ? `${hh}:${mm}:${String(second.value).padStart(2, "0")}` : `${hh}:${mm}`;
+});
 
 /** 档位下的一句人话，替代字段模式那串 token */
 const cadenceLabel = computed(() => {
@@ -387,6 +391,8 @@ defineExpose({ expression, emitApply });
           <ReInputNumber class="re-cron-cal__num" v-model="hour" :min="0" :max="23" :controls="false" aria-label="小时" />
           <span class="re-cron-cal__time-colon">:</span>
           <ReInputNumber class="re-cron-cal__num" v-model="minute" :min="0" :max="59" :controls="false" aria-label="分钟" />
+          <span class="re-cron-cal__time-colon">:</span>
+          <ReInputNumber class="re-cron-cal__num" v-model="second" :min="0" :max="59" :controls="false" aria-label="秒" />
         </div>
 
         <p class="re-cron-cal__hint">按 {{ cadenceLabel }} 执行</p>
@@ -636,12 +642,12 @@ defineExpose({ expression, emitApply });
 }
 
 /*
- * 时 / 分输入框的宽度约束。
+ * 时 / 分 / 秒三个输入框的宽度约束。
  *
  * ReInputNumber 默认渲染 Modern 布局（div.rm-number + 原生 input.rm-number__input），
  * 不再是 el-input-number：原先只写了 :deep(.el-input__inner) { width: 62px }，
- * 对 Modern 布局是死代码，于是组件自带的 min-width: 96px 直接生效。两个框加起来
- * 近 200px，把「标题 + 表盘 + 时分 + 提示」这一行撑到溢出——提示被挤成一条竖线，
+ * 对 Modern 布局是死代码，于是组件自带的 min-width: 96px 直接生效。三个框加起来
+ * 近 200px，把「标题 + 表盘 + 时分秒 + 提示」这一行撑到溢出——提示被挤成一条竖线，
  * 看上去就是「有个输入框大得离谱」。这里同时约束两种布局的外壳与输入，
  * 无论走哪个 layout 都不会再失控。
  */
@@ -660,6 +666,16 @@ defineExpose({ expression, emitApply });
   font-size: 15px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+}
+
+/* 冒号：与输入框同行、尺寸锁死，不随主框架缩放 */
+.re-cron-cal__time .re-cron-cal__time-colon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 30px;
 }
 
 /* 兜底：若某处显式指定 layout="default"（原生 el-input-number），外壳也要收窄 */

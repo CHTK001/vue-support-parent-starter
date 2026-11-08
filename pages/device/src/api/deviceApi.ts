@@ -11,7 +11,18 @@
  */
 
 import { createModuleHttp } from "@repo/core";
-import type { DevicePageQuery, PageResult, DeviceInfo, DeviceVendorDescriptor, SyncResult, TopologyNode, TopologyEdge } from '@pages/device/src/types/device'
+import type {
+  DevicePageQuery,
+  PageResult,
+  DeviceInfo,
+  DeviceIndexItem,
+  DeviceImportRow,
+  DeviceImportResult,
+  DeviceVendorDescriptor,
+  SyncResult,
+  TopologyNode,
+  TopologyEdge
+} from '@pages/device/src/types/device'
 
 /** 设备模块 Http 客户端（baseUrl 由配置 httpConfig.moduleBaseUrl.device 决定） */
 /**
@@ -56,6 +67,8 @@ export const deviceApi = {
   // ==================== 设备 ====================
   list: (orgId?: string) =>
     http.get("/list").query({ orgId }).then(unwrap) as Promise<DeviceInfo[]>,
+  /** 轻索引：全量设备的 id/名称/组织/厂商/状态/标签（计数、树种、快速筛选与标签池） */
+  listIndex: () => http.get("/index").then(unwrap) as Promise<DeviceIndexItem[]>,
   /** 服务端分页（列表页使用） */
   page: (params: DevicePageQuery) =>
     http.get("/page").query(params as unknown as Record<string, unknown>).then(unwrap) as Promise<PageResult<DeviceInfo>>,
@@ -87,6 +100,20 @@ export const deviceApi = {
   // ==================== Excel 导出 ====================
   exportDevices: (orgId?: string) =>
     http.get("/export").query({ orgId }).responseType("blob").then(unwrap),
+  /** 下载台账导入模板（Excel） */
+  downloadImportTemplate: () =>
+    http.get("/import/template").responseType("blob").then(unwrap),
+  /** 导入台账：multipart 提交 Excel 文件 + 模式参数，返回逐行校验结果 */
+  importDevices: (file: File, params: { mode: 'create' | 'update' | 'upsert'; dryRun: boolean }) =>
+    http
+      .post("/import")
+      .query({ mode: params.mode, dryRun: params.dryRun })
+      .data(function () {
+        const formData = new FormData()
+        formData.append("file", file)
+        return formData
+      }())
+      .then(unwrap) as Promise<DeviceImportResult>,
 
   // ==================== 视频 ====================
   getVideoStream: (deviceId: string, channel: number, protocol = 'hls', streamType: 'main' | 'sub' = 'main') =>

@@ -7,8 +7,28 @@
 <template>
   <div class="tshark-panel">
     <div class="tshark-panel__tools">
-      <!-- 过滤在上方的统一过滤条里做（报文 / 统计 / 会话流共用一份表达式）。
-           这里只保留与当前页相关的操作。 -->
+      <!-- 报文时间范围：只限制从 SQLite 查到的入库报文，不影响统计面板 -->
+      <div class="tshark-panel__time">
+        <ReDatePicker
+          :model-value="[packetStartTime, packetEndTime]"
+          type="datetimerange"
+          value-format="yyyy-MM-dd'T'HH:mm:ss"
+          start-placeholder="起点（不含）"
+          end-placeholder="终点（不含）"
+          @update:model-value="onTimeRange"
+        />
+        <ReButton
+          size="small"
+          :disabled="!packetStartTime && !packetEndTime"
+          @click="onApplyTimeRange"
+        >
+          应用
+        </ReButton>
+        <ReButton size="small" text @click="onClearTimeRange">
+          清除
+        </ReButton>
+      </div>
+
       <span class="tshark-dim packet-hint">右键报文可查看 TCP 生命周期</span>
 
       <span class="tshark-panel__spacer"></span>
@@ -20,6 +40,14 @@
         @click="emit('export')"
       >
         导出 CSV
+      </ReButton>
+      <ReButton
+        icon="Document"
+        :disabled="packets.length === 0"
+        tip="按显示过滤导出 pcap 子集"
+        @click="emit('export-pcap')"
+      >
+        导出 PCAP
       </ReButton>
     </div>
 
@@ -63,8 +91,8 @@
           <span class="tshark-ellipsis" :title="row.packetInfo">{{ row.packetInfo || row.restoredText || '—' }}</span>
         </template>
         <template #actions="{ row }">
-          <ReButton text type="primary" @click="emit('open-detail', row)">详情</ReButton>
-          <ReButton text type="primary" @click="emit('open-lifecycle', row)">生命周期</ReButton>
+          <ReButton link type="primary" @click="emit('open-detail', row)">详情</ReButton>
+          <ReButton link type="primary" @click="emit('open-lifecycle', row)">生命周期</ReButton>
         </template>
       </ReTable>
     </div>
@@ -94,6 +122,10 @@ defineProps<{
   pageSize: number
   total: number
   emptyText: string
+  /** 起点（不含） */
+  packetStartTime?: string
+  /** 终点（不含） */
+  packetEndTime?: string
 }>()
 
 const emit = defineEmits<{
@@ -101,7 +133,24 @@ const emit = defineEmits<{
   (e: 'open-detail', row: TsharkPacket): void
   (e: 'open-lifecycle', row: TsharkPacket): void
   (e: 'export'): void
+  (e: 'export-pcap'): void
+  (e: 'time-range-change', start: string, end: string): void
+  (e: 'clear-time-range'): void
 }>()
+
+/** 日期范围完成了：只传非空的，空串就是不清范围（请求不传参数 = 不过滤） */
+function onTimeRange(v: unknown) {
+  if (!Array.isArray(v) || v.length !== 2) return
+  emit('time-range-change', String(v[0] ?? ''), String(v[1] ?? ''))
+}
+
+function onApplyTimeRange() {
+  emit('time-range-change', props.packetStartTime ?? '', props.packetEndTime ?? '')
+}
+
+function onClearTimeRange() {
+  emit('clear-time-range')
+}
 
 /**
  * 报文列表列定义（ReTable columns 数组形态）。

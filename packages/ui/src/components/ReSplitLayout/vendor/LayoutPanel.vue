@@ -7,6 +7,10 @@
  *
  * <p>同时支持把页签拖到别的面板（合并 / 拆分），因此页签栏与内容区都要接
  * dragover / drop：内容区按落点位置决定上下左右拆分成新面板。</p>
+ *
+ * <p>另外支持把<b>整个面板</b>拖动重排序：页签栏左侧有拖拽手柄，拖到另一块区域
+ * 就按左/右/上/下换顺序（不是拆分新面板），即 `A | B | C` 把 B 拖到 A 左侧
+ * → `B | A | C`。</p>
  */
 import { ref, computed, inject, type Component } from 'vue';
 import type { PanelNode } from './useLayout';
@@ -20,6 +24,9 @@ const closeTab = inject<(tabId: string) => void>('closeTab')!;
 const splitPanel = inject<
   (panelId: string, dir: 'horizontal' | 'vertical', tabId: string, pos: 'before' | 'after') => void
 >('splitPanel')!;
+const movePanel = inject<
+  (sourceId: string, targetId: string, position: 'before' | 'after') => void
+>('movePanel', () => {});  // 独立使用 SplitLayout 时退化为无操作
 const panelContent = inject<Component>('layoutPanelContent', null as any);
 const tabIconComponent = inject<Component>('layoutTabIcon', null as any);
 
@@ -87,6 +94,43 @@ function onDragLeave(e: DragEvent) {
   tabDropIndex.value = null;
 }
 
+// --- 面板级拖拽：把整块区域拖动重排，不是拆页签 ---
+const panelDragId = ref<string | null>(null);
+let panelDragGhost: HTMLElement | null = null;
+
+/** 面板拖拽开始：告诉 drop 目标「我拖的是一块完整的区域」 */
+function onPanelDragStart(e: DragEvent): void {
+  if (!e.dataTransfer) return;
+  const sourcePanelId = props.panel.id;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('application/json', JSON.stringify({ type: 'panel', panelId: sourcePanelId }));
+  panelDragId.value = sourcePanelId;
+
+  const handle = e.currentTarget as HTMLElement;
+  const ghost = document.createElement('div');
+  ghost.className = 'panel-drag-ghost';
+  ghost.textContent =
+    (handle.closest('.panel-tab-bar') as HTMLElement)?.querySelector('.panel-tab.active')?.textContent?.trim() ??
+    props.panel.tabs[0]?.label ??
+    '';
+  panelDragGhost = ghost;
+  // 藏到屏幕外，浏览器只把它采样成拖拽影像
+  ghost.style.cssText = 'position:fixed;top:-9999px;left:-9999px;pointer-events:none;';
+  document.body.appendChild(ghost);
+  e.dataTransfer.setDragImage(ghost, 0, 0);
+  e.stopPropagation();
+  void ghost.getBoundingClientRect();
+}
+
+/** 面板拖拽结束：回收拖拽影像 */
+function onPanelDragEnd(e: DragEvent): void {
+  panelDragId.value = null;
+  if (panelDragGhost) {
+    panelDragGhost.remove();
+    panelDragGhost = null;
+  }
+}
+
 function onDrop(e: DragEvent) {
   e.preventDefault();
   const data = e.dataTransfer?.getData('application/json');
@@ -98,7 +142,25 @@ function onDrop(e: DragEvent) {
   if (!data) return;
 
   try {
-    const { tabId, sourcePanelId } = JSON.parse(data);
+    const parsed: Record<string, unknown> = JSON.parse(data);
+    const type = parsed.type as string | undefined;
+
+    // 整块区域拖拽：落在左/右/上/下半区就在这边插前/插后，落在标签栏就插到正前方
+    if (type === 'panel') {
+      const { panelId } = parsed as { panelId: string };
+      if (panelId === props.panel.id) return;  // 拖回到自己头上，忽略
+      const positionMap: Record<'left' | 'right' | 'top' | 'bottom' | 'center', 'before' | 'after'> = {
+        left: 'before',
+        right: 'after',
+        top: 'before',
+        bottom: 'after',
+        center: 'before',
+      };
+      movePanel(panelId, props.panel.id, currentDropZone ? positionMap[currentDropZone] : 'before');
+      return;
+    }
+
+    const { tabId, sourcePanelId } = parsed as { tabId: string; sourcePanelId: string };
 
     if (currentTabDropIndex !== null) {
       moveTab(tabId, sourcePanelId, props.panel.id, currentTabDropIndex);
@@ -212,6 +274,20 @@ const tabInsertLineStyle = computed(() => {
       @dragleave="onDragLeave"
       @drop="onDrop"
     >
+      <!-- 面板拖拽手柄：按住整块区域重排序（A | B | C 把 B 拖到 A 前 → B | A | C） -->
+      <div
+        class="panel-drag-handle"
+        draggable="true"
+        @dragstart="onPanelDragStart"
+        @dragend="onPanelDragEnd"
+        aria-label="拖拽此面板重排序"
+      >
+        <span class="panel-drag-handle__grip" aria-hidden="true">
+          <span class="panel-drag-handle__bar" />
+          <span class="panel-drag-handle__bar" />
+          <span class="panel-drag-handle__bar" />
+        </span>
+      </div>
       <div
         v-for="(tab, i) in panel.tabs"
         :key="tab.id"
@@ -305,6 +381,55 @@ const tabInsertLineStyle = computed(() => {
 }
 .panel-tab[draggable='true']:active {
   cursor: grabbing;
+}
+/* 面板拖拽手柄：整块区域重排序（拖动到另一块区域左侧/上方即插前，右/下即插后） */
+.panel-drag-handle {
+  order: -1;
+  flex-shrink: 0;
+  width: 22px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  color: var(--text-tertiary, #999);
+  cursor: grab;
+  user-select: none;
+}
+.panel-drag-handle:active {
+  cursor: grabbing;
+  color: var(--brand-500, #007acc);
+}
+.panel-drag-handle:hover {
+  color: var(--text-primary, #222);
+  background: var(--bg-tertiary, rgba(0, 0, 0, 0.06));
+}
+.panel-drag-handle__grip {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5px;
+  align-items: center;
+}
+.panel-drag-handle__bar {
+  display: block;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+}
+/* 面板拖拽时跟随鼠标的浮牌 */
+.panel-drag-ghost {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 5px;
+  background: var(--brand-500, #007acc);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 500;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 .panel-content {
   flex: 1;

@@ -23,7 +23,7 @@
         <div v-show="!railCollapsed" class="da-rail__head">
           <div class="da-rail__row">
             <span class="da-rail__title">设备资产</span>
-            <span class="da-rail__count">{{ filtered.length }}<i>/{{ rows.length }}</i></span>
+            <span class="da-rail__count">{{ filtered.length }}<i>/{{ indexFiltered.length }}</i></span>
             <span class="da-rail__gap" />
             <button type="button" class="da-tool" title="刷新" :disabled="loading" @click="fetchAll">
               <ReIcon name="RefreshRight" :size="12" />
@@ -37,6 +37,9 @@
             <button type="button" class="da-tool" title="导出台账" :disabled="!rows.length" @click="exportDevices">
               <ReIcon name="Download" :size="12" />
             </button>
+            <button type="button" class="da-tool" title="导入台账" @click="openImport">
+              <ReIcon name="Upload" :size="12" />
+            </button>
             <button type="button" class="da-tool is-primary" title="新增设备" @click="openCreate">
               <ReIcon name="Plus" :size="12" />
             </button>
@@ -48,11 +51,42 @@
               :key="f.value"
               type="button"
               class="da-chip"
-              :class="{ 'is-active': onlineFilter === f.value }"
-              @click="onlineFilter = f.value"
+              :class="{ 'is-active': quickFilter === f.value }"
+              @click="syncQuickFilter(f.value)"
             >
               <span>{{ f.label }}</span>
               <b>{{ f.count }}</b>
+            </button>
+          </div>
+          <!-- 快速筛选：一眼看问题 -->
+          <div class="da-quick-filters">
+            <button
+              v-for="f in quickFilters"
+              :key="f.value"
+              type="button"
+              class="da-chip is-quick"
+              :class="{ 'is-active': quickFilter === f.value }"
+              @click="quickFilter = f.value"
+            >
+              <span>{{ f.label }}</span>
+              <b>{{ f.count }}</b>
+            </button>
+          </div>
+          <!-- 标签筛选：来自全部设备的标签池 -->
+          <div v-if="tagOptions.length" class="da-tag-filters">
+            <button
+              v-for="t in tagOptions"
+              :key="t.value"
+              type="button"
+              class="da-chip is-tag"
+              :class="{ 'is-active': tagFilter === t.value }"
+              @click="tagFilter = t.value"
+            >
+              <i class="da-tag__dot" :style="{ background: t.color }" />
+              <span>{{ t.label }}</span>
+            </button>
+            <button v-if="tagFilter" type="button" class="da-chip is-tag is-clear" @click="tagFilter = undefined">
+              清除标签筛选
             </button>
           </div>
         </div>
@@ -344,9 +378,8 @@
                     </article>
                   </div>
                   <div v-else class="da-empty">
-                    <span class="da-empty__icon"><ReIcon name="Files" :size="24" /></span>
-                    <span class="da-empty__title">没有符合条件的设备</span>
-                    <span class="da-empty__text">试试清除筛选或换个关键词。</span>
+                    <ReIcon name="Files" :size="26" />
+                    <span>没有符合条件的设备，试试清除筛选或换个关键词。</span>
                   </div>
                 </ReScrollbar>
               </div>
@@ -354,12 +387,16 @@
               <!-- ============ 表格台账 ============ -->
               <div v-else class="da-table-wrap">
                 <ReTable
+                  ref="tableRef"
                   class="da-table"
                   table-id="device-assets"
-                  :data="tableRows"
+                  :loader="pageLoader"
                   :columns="columns"
                   :loading="loading"
-                  :pagination="false"
+                  :pagination="true"
+                  :page-size="PAGE_SIZE"
+                  :page-sizes="[100, 200, 500]"
+                  :params="pageParams as Record<string, unknown>"
                   :toolbar="false"
                   row-key="deviceInfoId"
                   :layout-table="{ fill: true }"
@@ -430,9 +467,8 @@
                   </template>
                   <template #empty>
                     <div class="da-empty">
-                      <span class="da-empty__icon"><ReIcon name="Files" :size="24" /></span>
-                      <span class="da-empty__title">暂无设备</span>
-                      <span class="da-empty__text">可点左上角「+」新增，或前往「厂商接入」同步。</span>
+                      <ReIcon name="Files" :size="26" />
+                      <span>暂无设备，可点左上角「+」新增，或前往「厂商接入」同步。</span>
                     </div>
                   </template>
                 </ReTable>
@@ -537,9 +573,8 @@
 
           <template #empty>
             <div class="da-empty">
-              <span class="da-empty__icon"><ReIcon name="Files" :size="24" /></span>
-              <span class="da-empty__title">还没有打开其它页签</span>
-              <span class="da-empty__text">右键左侧设备叶子可打开详情 / 通道 / 日志 / 拓扑。</span>
+              <ReIcon name="Files" :size="26" />
+              <span>还没有打开其它页签，右键左侧设备叶子可打开详情 / 通道 / 日志 / 拓扑。</span>
             </div>
           </template>
         </ReTabs>
@@ -616,6 +651,26 @@
       @saved="onAssetSaved"
     />
 
+    <!-- Excel 台账导入（右键菜单 / 工具条打开） -->
+    <ReDeviceImportDialog
+      v-model="importVisible"
+      :mode="importMode"
+      :dry-run="importDryRun"
+      :result="importResult"
+      @confirm="confirmImport"
+      @download="downloadImportTemplate"
+      @closed="refreshAll"
+    />
+
+    <!-- 标签管理弹窗 -->
+    <ReDeviceTagEditor
+      v-model="tagEditorVisible"
+      :tags="tagEditorTags"
+      :options="tagOptions"
+      @confirm="onTagConfirm"
+      @closed="onTagEditorClosed"
+    />
+
     <!-- 视频预览向导 -->
     <ReDialog v-model="videoWizardVisible" title="视频预览" width="480px" destroy-on-close>
       <div class="space-y-4">
@@ -686,7 +741,7 @@
  * @author CH
  * @since 4.0.0.42
  */
-import { computed, defineAsyncComponent, onMounted, reactive, ref } from 'vue'
+import { computed, defineAsyncComponent, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import {
@@ -715,7 +770,9 @@ import type {
   ReTableCellClickPayload,
   ReTableColumn,
   ReTableContextMenuContext,
-  ReTableContextMenuItem
+  ReTableContextMenuItem,
+  ReTableLoadParams,
+  RePageResult
 } from '@repo/ui/re-table'
 import ReTag from '@repo/ui/re-tag'
 import ReTabs from '@repo/ui/re-tabs'
@@ -729,6 +786,8 @@ import DeviceOwnerCell from '@pages/device/src/components/DeviceOwnerCell.vue'
 import DeviceLocationCell from '@pages/device/src/components/DeviceLocationCell.vue'
 import ReDeviceFormDialog from '@pages/device/src/components/ReDeviceFormDialog.vue'
 import ReDeviceAssetDialog from '@pages/device/src/components/ReDeviceAssetDialog.vue'
+import ReDeviceImportDialog from '@pages/device/src/components/ReDeviceImportDialog.vue'
+import ReDeviceTagEditor from '@pages/device/src/components/ReDeviceTagEditor.vue'
 import ReDeviceDetailPanel from '@pages/device/src/components/ReDeviceDetailPanel.vue'
 import ReDevicePlayPanel from '@pages/device/src/components/ReDevicePlayPanel.vue'
 import ReDeviceWallPlayer from '@pages/device/src/components/ReDeviceWallPlayer.vue'
@@ -743,20 +802,36 @@ import { getCategoryIcon, getCategoryLabel } from '@pages/device/src/utils/devic
 import { isPlayable } from '@pages/device/src/utils/deviceCapability'
 import {
   buildOrgTree,
+  dateBefore,
   formatCoord,
   hasLocation,
   statusMeta
 } from '@pages/device/src/utils/deviceFormat'
+import { mergeTagOptions, parseTags } from '@pages/device/src/utils/deviceTag'
 import type {
   DeviceGroupNode,
   DeviceInfo,
+  DeviceIndexItem,
+  DeviceTagOption,
   DeviceVendorDescriptor,
+  DeviceImportResult,
+  DevicePageQuery,
+  PageResult,
   OrgNode
 } from '@pages/device/src/types/device'
 
 const router = useRouter()
 
 const rows = ref<DeviceInfo[]>([])
+/** ReTable 实例：用于 reload / goto 等操作 */
+const tableRef = ref<InstanceType<typeof ReTable> | null>(null)
+/**
+ * 设备缓存：设备页签的数据源。
+ *
+ * <p>切到服务端分页后，页签里的设备不一定在当前页，因此按 id 单独缓存；
+ * 刷新列表时只覆盖命中的条目，不会把已缓存的页外设备冲掉。</p>
+ */
+const deviceCache = ref<Record<string, DeviceInfo>>({})
 const vendors = ref<DeviceVendorDescriptor[]>([])
 const orgTree = ref<OrgNode[]>([])
 const groups = ref<DeviceGroupNode[]>([])
@@ -772,13 +847,12 @@ const wallVisible = ref(false)
 /* ==================== 左侧分组列 ==================== */
 const railCollapsed = ref(false)
 const keyword = ref('')
-const onlineFilter = ref<'all' | 'online' | 'offline'>('all')
 
 /* ==================== 左侧树：组织 / 分组 / 厂家 三维度切换 ==================== */
 /** 厂家节点：从当前台账归并（显示名优先取厂商描述符） */
 const vendorNodes = computed<Array<{ vendor: string; label: string; count: number }>>(() => {
   const map = new Map<string, { vendor: string; label: string; count: number }>()
-  for (const device of rows.value) {
+  for (const device of allIndex.value) {
     const vendor = device.deviceInfoVendor || ''
     if (!vendor) continue
     const item = map.get(vendor) || { vendor, label: vendors.value.find((v) => v.vendor === vendor)?.name || vendor, count: 0 }
@@ -874,7 +948,7 @@ const parentOptions = computed<Array<{ value: string; label: string }>>(() => {
 /** 组织（含其下的子孙组织）关联的设备数 */
 const orgDeviceCount = (orgId: string): number => {
   const ids = orgDescendants(orgId)
-  return rows.value.filter((d) => ids.has(d.deviceInfoOrgId || '')).length
+  return allIndex.value.filter((d) => ids.has(d.deviceInfoOrgId || '')).length
 }
 
 /** 组织 id 集合：含后代（设备 id 不在组织树时，回退为自身） */
@@ -907,7 +981,7 @@ function subtreeOpen(ancestors: string[]): boolean {
 const treeNodes = computed<Array<TreeRow>>(() => {
   const out: Array<TreeRow> = []
   /** 追加某个节点下的设备叶子 */
-  const pushDevices = (nodeKey: string, list: DeviceInfo[], depth: number) => {
+  const pushDevices = (nodeKey: string, list: DeviceIndexItem[], depth: number) => {
     for (const device of list) {
       out.push({
         key: `${nodeKey}#dev-${device.deviceInfoId}`,
@@ -963,7 +1037,7 @@ const treeNodes = computed<Array<TreeRow>>(() => {
           label: node.groupName,
           depth,
           id: node.groupId,
-          count: groupDeviceIds(node.groupId).size,
+          count: groupDeviceCount(node.groupId),
           remark: node.groupRemark,
           hint: parent && !isGroupId(parent) ? orgLabelOf(parent) : undefined,
           hasChildren,
@@ -988,7 +1062,7 @@ const treeNodes = computed<Array<TreeRow>>(() => {
       label: node.label,
       depth: 0,
       id: node.vendor,
-      count: node.count,
+      count: vendorDeviceCount(node.vendor),
       hasChildren,
       expanded: open
     })
@@ -998,12 +1072,12 @@ const treeNodes = computed<Array<TreeRow>>(() => {
 })
 
 /** 组织直属（不含子孙组织）的设备 */
-function directOrgDevices(orgId: string): DeviceInfo[] {
-  return rows.value.filter((device) => (device.deviceInfoOrgId || '') === orgId)
+function directOrgDevices(orgId: string): DeviceIndexItem[] {
+  return allIndex.value.filter((d) => (d.deviceInfoOrgId || '') === orgId)
 }
 
 /** 分组直属（不含子分组）的设备 */
-function directGroupDevices(groupId: string): DeviceInfo[] {
+function directGroupDevices(groupId: string): DeviceIndexItem[] {
   const ids = new Set(
     assignments.value.filter((item) => item.groupId === groupId).map((item) => item.deviceId)
   )
@@ -1015,14 +1089,14 @@ function directGroupDevices(groupId: string): DeviceInfo[] {
   const takenByChildren = new Set(
     assignments.value.filter((item) => descendants.has(item.groupId)).map((item) => item.deviceId)
   )
-  return rows.value.filter(
+  return allIndex.value.filter(
     (device) => ids.has(device.deviceInfoId) && !takenByChildren.has(device.deviceInfoId)
   )
 }
 
 /** 某厂家的设备 */
-function vendorDevices(vendor: string): DeviceInfo[] {
-  return rows.value.filter((device) => (device.deviceInfoVendor || '') === vendor)
+function vendorDevices(vendor: string): DeviceIndexItem[] {
+  return allIndex.value.filter((d) => (d.deviceInfoVendor || '') === vendor)
 }
 
 /** 组织名（分组行的提示用） */
@@ -1077,11 +1151,27 @@ function tabKindOf(name: string): WorkTabKind | undefined {
   return tabOf(name)?.kind
 }
 
-/** 页签详情绑定的设备：始终取刷新后的最新对象 */
+/** 缓存单台设备（列表 / 详情拉取后都写进来） */
+function cacheDevice(device: DeviceInfo | null | undefined): void {
+  if (!device?.deviceInfoId) return
+  deviceCache.value = { ...deviceCache.value, [device.deviceInfoId]: device }
+}
+
+/** 批量缓存当前页设备：DeviceIndexItem 也能写（按 id 映射到完整设备） */
+function cacheDevices(list: Array<{ deviceInfoId: string }>): void {
+  if (!list.length) return
+  const next = { ...deviceCache.value }
+  for (const device of list) {
+    if (device.deviceInfoId) next[device.deviceInfoId] = device as unknown as DeviceInfo
+  }
+  deviceCache.value = next
+}
+
+/** 页签详情绑定的设备：优先取缓存，其次取当前页 */
 function deviceOfTab(name: string): DeviceInfo | null {
   const id = tabOf(name)?.deviceId
   if (!id) return null
-  return rows.value.find((device) => device.deviceInfoId === id) ?? null
+  return deviceCache.value[id] ?? rows.value.find((device) => device.deviceInfoId === id) ?? null
 }
 
 /** 页签刷新代次：右键「刷新」时 +1，作为子组件 key 的一部分重建内容 */
@@ -1108,6 +1198,7 @@ function openWorkTab(tab: WorkTab): void {
 
 /** 设备详情页签 */
 function openDetail(device: DeviceInfo): void {
+  cacheDevice(device)
   openWorkTab({
     name: `device:${device.deviceInfoId}:detail`,
     kind: 'detail',
@@ -1125,6 +1216,7 @@ function openPlay(device: DeviceInfo): void {
     message.warning('该设备不支持视频播放')
     return
   }
+  cacheDevice(device)
   openWorkTab({
     name: `device:${device.deviceInfoId}:play`,
     kind: 'play',
@@ -1211,6 +1303,71 @@ function closeAllWorkTabs(): void {
   workTabs.value = workTabs.value.filter((tab) => tab.name === ASSETS_TAB)
   activeTab.value = ASSETS_TAB
 }
+
+/* ==================== 页签持久化 ==================== */
+/** 本地存储 key：刷新后恢复上次打开的页签 */
+const WORK_TABS_STORAGE_KEY = 'device:workTabs'
+/** 可落盘的页签类别（「设备资产」固定重建，不存储） */
+const RESTORABLE_TAB_KINDS: WorkTabKind[] = ['detail', 'play', 'channels', 'events', 'topo']
+
+/** 校验从本地缓存读出的页签，坏数据直接丢弃 */
+function isValidWorkTab(value: unknown): value is WorkTab {
+  if (!value || typeof value !== 'object') return false
+  const tab = value as WorkTab
+  return typeof tab.name === 'string'
+    && typeof tab.label === 'string'
+    && RESTORABLE_TAB_KINDS.includes(tab.kind)
+    && !workTabs.value.some((item) => item.name === tab.name)
+}
+
+/** 恢复上次的页签与激活项（数据加载完成后再调用，避免详情拿到空设备） */
+function restoreWorkTabs(): void {
+  try {
+    const raw = localStorage.getItem(WORK_TABS_STORAGE_KEY)
+    if (!raw) return
+    const saved = JSON.parse(raw) as { tabs?: unknown[]; active?: unknown }
+    const restored = (Array.isArray(saved.tabs) ? saved.tabs : []).filter(isValidWorkTab)
+    if (restored.length) {
+      workTabs.value = [workTabs.value[0], ...restored]
+    }
+    if (typeof saved.active === 'string' && workTabs.value.some((tab) => tab.name === saved.active)) {
+      activeTab.value = saved.active
+    }
+  } catch {
+    // 本地缓存损坏或不可用时静默降级，不影响台账
+  }
+}
+
+/** 为恢复的详情 / 播放页签补拉设备数据（设备可能不在当前页） */
+async function hydrateRestoredTabs(): Promise<void> {
+  const targets = workTabs.value.filter(
+    (tab) => (tab.kind === 'detail' || tab.kind === 'play') && tab.deviceId && !deviceCache.value[tab.deviceId]
+  )
+  if (!targets.length) return
+  const ids = [...new Set(targets.map((tab) => tab.deviceId as string))]
+  await Promise.all(ids.map(async (id) => {
+    try {
+      cacheDevice(await deviceApi.get(id))
+    } catch {
+      // 设备已删除时保留页签，内容区显示为空即可
+    }
+  }))
+}
+
+watch(
+  [workTabs, activeTab],
+  () => {
+    try {
+      localStorage.setItem(WORK_TABS_STORAGE_KEY, JSON.stringify({
+        tabs: workTabs.value.filter((tab) => RESTORABLE_TAB_KINDS.includes(tab.kind)),
+        active: activeTab.value
+      }))
+    } catch {
+      // 存储空间不足 / 隐私模式：不持久化，不影响使用
+    }
+  },
+  { deep: true }
+)
 
 /** 页签右键菜单 */
 const tabContextMenu = computed<ReTabsContextItem[]>(() => {
@@ -1515,64 +1672,194 @@ function onTreeMenuSelect(command: string): void {
   else if (command === 'add-group') openGroupCreate(null, row.id)
 }
 
-const statusFilters = computed(() => {
-  const list = filtered.value
-  const online = list.filter((item) => item.deviceInfoOnline).length
-  return [
-    { label: '全部', value: 'all' as const, count: list.length },
-    { label: '在线', value: 'online' as const, count: online },
-    { label: '离线', value: 'offline' as const, count: list.length - online }
-  ]
+/**
+ * 轻索引 + 服务端分页。
+ *
+ * <p>轻索引（allIndex）拿全部设备的 id/名称/组织/分组/厂商/状态/标签，负责计数、树种、快速筛选
+ * 与标签筛选池；台账列表（rows）从 `/page` 拿当前页，配合快速筛选（标签/关键词/定位/快速筛选）。
+ * 组织/分组/厂家筛选走参数拼到 `/page`。</p>
+ */
+const allIndex = ref<DeviceIndexItem[]>([])
+const PAGE_SIZE = 100
+
+/** 快速筛选（离线 / 维保到期 / 未定位 / 未分组） */
+const quickFilter = ref<'all' | 'online' | 'offline' | 'warranty' | 'unlocated' | 'ungrouped'>('all')
+/** 按标签筛选（在快速筛选下一行铺开） */
+const tagFilter = ref<string | undefined>(undefined)
+
+/** 配置快速筛选时，取消互斥的树筛选和标签筛选 */
+function syncQuickFilter(kind: 'all' | 'online' | 'offline' | 'warranty' | 'unlocated' | 'ungrouped'): void {
+  quickFilter.value = kind
+  tagFilter.value = undefined
+}
+
+/** 轻索引：全量设备的 id/名称/组织/厂商/状态/标签（计数、树种、快速筛选/标签池的唯一来源） */
+async function loadIndex() {
+  try {
+    allIndex.value = (await deviceApi.listIndex()) as DeviceIndexItem[]
+    cacheDevices(allIndex.value)
+    syncPicked(allIndex.value)
+  } catch (err) {
+    allIndex.value = []
+    syncPicked([])
+    message.error('加载设备索引失败：' + errorText(err))
+  }
+}
+
+/** 传给 /page 的服务端参数：组织 / 分组 / 厂家 + 快速筛选 + 标签 + 关键词 */
+const pageParams = computed<DevicePageQuery>(() => {
+  const params: DevicePageQuery = {
+    // 在线/离线/未分组走后端，维保到期/未定位走前端兜底
+    online: quickFilter.value === 'online' ? true : quickFilter.value === 'offline' ? false : undefined,
+    ungrouped: quickFilter.value === 'ungrouped' ? true : undefined
+  }
+  const f = filterState.value
+  if (f) {
+    if (f.kind === 'org') params.orgId = f.id
+    else if (f.kind === 'group') params.groupId = f.id
+    else if (f.kind === 'vendor') params.vendor = f.id
+  }
+  params.tag = tagFilter.value
+  params.keyword = keyword.value.trim()
+  return params
 })
+
+/** 远程 loader：ReTable 交出页码/条数，页面拼参数；数据同时写回 rows（给卡片筛选用） */
+async function pageLoader(params: ReTableLoadParams): Promise<RePageResult<Record<string, unknown>>> {
+  try {
+    const res = await deviceApi.page({ ...pageParams.value, pageNo: params.page, pageSize: params.pageSize })
+    const entries = (res as unknown as { data?: DeviceInfo[]; records?: DeviceInfo[] }).data
+      ?? (res as unknown as { records?: DeviceInfo[] }).records
+      ?? []
+    rows.value = entries as DeviceInfo[]
+    cacheDevices(rows.value)
+    syncPicked(rows.value)
+    return { total: res?.total ?? 0, records: rows.value as unknown as Array<Record<string, unknown>> }
+  } catch (err) {
+    rows.value = []
+    syncPicked([])
+    message.error('加载设备列表失败：' + errorText(err))
+    return { total: 0 }
+  }
+}
+
+/** 在线/离线状态筛选：与快速筛选为同一池，避免两行重复；按轻索引计数 */
+const statusFilters = computed(() => quickFilters.value.slice(0, 3))
 
 /** 底部信息条跟随的设备：最近点选 / 右键的行优先，其次唯一勾选的那台 */
 const statusDevice = computed<DeviceInfo | null>(
   () => activeDevice.value ?? (selection.value.length === 1 ? selection.value[0] : null)
 )
 
-const onlineCount = computed(() => rows.value.filter((item) => item.deviceInfoOnline).length)
-const offlineCount = computed(() => rows.value.length - onlineCount.value)
-const locatedCount = computed(() => rows.value.filter((item) => hasLocation(item)).length)
+/** 轻索引按分组统计 */
+const groupDeviceCount = (groupId: string): number =>
+  allIndex.value.filter((d) => groupDeviceIds(groupId).has(d.deviceInfoId)).length
 
-const filtered = computed<DeviceInfo[]>(() => {
-  let list = rows.value
+/** 轻索引按厂家统计 */
+const vendorDeviceCount = (vendor: string): number =>
+  allIndex.value.filter((d) => (d.deviceInfoVendor || '') === vendor).length
+
+/** 按组织 / 分组 / 厂家维度过滤轻索引 */
+function indexFilterByFilterState(list: DeviceIndexItem[]): DeviceIndexItem[] {
   const f = filterState.value
-  if (f) {
-    if (f.kind === 'org') {
-      const ids = orgDescendants(f.id)
-      list = list.filter((d) => ids.has(d.deviceInfoOrgId || ''))
-    } else if (f.kind === 'group') {
-      const ids = groupDeviceIds(f.id)
-      list = list.filter((d) => ids.has(d.deviceInfoId || ''))
-    } else if (f.kind === 'vendor') {
-      list = list.filter((d) => (d.deviceInfoVendor || '') === f.id)
-    }
+  if (!f) return list
+  if (f.kind === 'org') {
+    return list.filter((d) => orgDescendants(f.id).has(d.deviceInfoOrgId || ''))
   }
-  if (onlineFilter.value === 'online') list = list.filter((d) => d.deviceInfoOnline)
-  else if (onlineFilter.value === 'offline') list = list.filter((d) => !d.deviceInfoOnline)
-  // 左树设备叶子：定位到单台设备
-  if (leafDeviceId.value) list = list.filter((d) => d.deviceInfoId === leafDeviceId.value)
+  if (f.kind === 'group') {
+    return list.filter((d) => groupDeviceIds(f.id).has(d.deviceInfoId))
+  }
+  if (f.kind === 'vendor') {
+    return list.filter((d) => (d.deviceInfoVendor || '') === f.id)
+  }
+  return []
+}
+
+/** 快速筛选，按轻索引全量计算（不分页） */
+function applyQuickFilter(list: DeviceIndexItem[], quick: 'all' | 'online' | 'offline' | 'warranty' | 'unlocated' | 'ungrouped'): DeviceIndexItem[] {
+  switch (quick) {
+    case 'online':
+      return list.filter((d) => d.deviceInfoOnline)
+    case 'offline':
+      return list.filter((d) => !d.deviceInfoOnline)
+    case 'warranty':
+      return list.filter((d) => d.deviceInfoWarrantyEnd && dateBefore(d.deviceInfoWarrantyEnd, 90))
+    case 'unlocated':
+      return list.filter((d) => !hasLocation(d))
+    case 'ungrouped':
+      return list.filter((d) => !assignments.value.some((a) => a.deviceId === d.deviceInfoId))
+    default:
+      return list
+  }
+}
+
+/** 轻索引 + 筛选：组织/分组/厂家 + 快速筛选 + 标签 + 关键词（台账数、快速筛选计数、树计数共用） */
+const indexFiltered = computed<DeviceIndexItem[]>(() => {
+  let list = indexFilterByFilterState(allIndex.value)
   const kw = keyword.value.trim().toLowerCase()
   if (kw) {
     list = list.filter(
-      (d) =>
-        `${d.deviceInfoName || ''} ${d.deviceInfoCode || ''} ${d.deviceInfoIp || ''} ${d.deviceInfoSerial || ''}`
-          .toLowerCase()
-          .includes(kw)
+      (d) => `${(d.deviceInfoName || '')} ${(d.deviceInfoCode || '')}`.toLowerCase().includes(kw)
     )
   }
+  // 标签筛选：在快速筛选之后，因为快速筛选不跨标签页
+  if (tagFilter.value) {
+    const tags = parseTags(tagFilter.value)
+    list = list.filter((d) => tags.some((t) => parseTags(d.deviceInfoTags || '').includes(t)))
+  }
+  return applyQuickFilter(list, quickFilter.value)
+})
+
+/** 当前页客户筛选：标签 + 关键词 + 定位（页面数据来自服务端分页） */
+const filtered = computed<DeviceInfo[]>(() => {
+  let list = rows.value
+  const kw = keyword.value.trim().toLowerCase()
+  if (kw) {
+    list = list.filter(
+      (d) => `${d.deviceInfoName || ''} ${d.deviceInfoCode || ''} ${d.deviceInfoIp || ''} ${d.deviceInfoSerial || ''}`
+        .toLowerCase()
+        .includes(kw)
+    )
+  }
+  if (tagFilter.value) {
+    const tags = parseTags(tagFilter.value)
+    if (tags.length) list = list.filter((d) => tags.every((t) => (d.deviceInfoTags || '').includes(t)))
+  }
+  if (quickFilter.value === 'online') list = list.filter((d) => d.deviceInfoOnline)
+  if (quickFilter.value === 'offline') list = list.filter((d) => !d.deviceInfoOnline)
+  if (quickFilter.value === 'warranty') list = list.filter((d) => d.deviceInfoWarrantyEnd && dateBefore(d.deviceInfoWarrantyEnd, 90))
+  if (quickFilter.value === 'unlocated') list = list.filter((d) => !hasLocation(d))
+  // 左树设备叶子：定位到单台设备
+  if (leafDeviceId.value) list = list.filter((d) => d.deviceInfoId === leafDeviceId.value)
   return list
 })
+
+/** 快速筛选的按钮池（按轻索引计数） */
+const quickFilters = computed(() => {
+  const list = indexFiltered.value
+  return [
+    { label: '全部', value: 'all' as const, count: list.length },
+    { label: '在线', value: 'online' as const, count: list.filter((item) => item.deviceInfoOnline).length },
+    { label: '离线', value: 'offline' as const, count: list.filter((d) => !d.deviceInfoOnline).length },
+    { label: '维保到期', value: 'warranty' as const, count: list.filter((d) => d.deviceInfoWarrantyEnd && dateBefore(d.deviceInfoWarrantyEnd, 90)).length },
+    { label: '未定位', value: 'unlocated' as const, count: list.filter((d) => !hasLocation(d)).length },
+    { label: '未分组', value: 'ungrouped' as const, count: list.filter((d) => !assignments.value.some((a) => a.deviceId === d.deviceInfoId)).length }
+  ]
+})
+
+/** 标签筛选池：来自全部设备，去重 + 颜色 */
+const tagOptions = computed<DeviceTagOption[]>(() => mergeTagOptions(allIndex.value.map((d) => d.deviceInfoTags).filter(Boolean) as string[]))
+
+const onlineCount = computed(() => indexFiltered.value.filter((item) => item.deviceInfoOnline).length)
+const offlineCount = computed(() => indexFiltered.value.length - onlineCount.value)
+const locatedCount = computed(() => indexFiltered.value.filter((item) => hasLocation(item)).length)
+
 
 function toggleRail(): void {
   railCollapsed.value = !railCollapsed.value
 }
 
 /* ==================== 设备表（ReTable） ==================== */
-/** 行数据：ReTable 只收 Record 数组，真实结构是 DeviceInfo */
-const tableRows = computed<Array<Record<string, unknown>>>(
-  () => filtered.value as unknown as Array<Record<string, unknown>>
-)
 
 const columns: ReTableColumn[] = [
   { prop: 'deviceInfoName', label: '设备', slot: 'device', minWidth: 250 },
@@ -1602,6 +1889,7 @@ const tableMenu: ReTableContextMenuItem[] = [
   { key: 'topo', label: '在拓扑中查看', icon: Grid, divided: true },
   { key: 'asset', label: '配置资产信息', icon: EditPen, divided: true },
   { key: 'location', label: '配置位置信息', icon: 'LocationInformation' },
+  { key: 'tags', label: '标签管理', icon: 'Notebook' },
   { key: 'edit', label: '编辑设备', icon: EditPen },
   { key: 'reconnect', label: '重新连接', icon: RefreshRight, divided: true },
   { key: 'refresh', label: '刷新状态', icon: Refresh },
@@ -1647,6 +1935,9 @@ function runDeviceCommand(command: string, d: DeviceInfo): void {
       break
     case 'location':
       openAssetDialog(d, 'location')
+      break
+    case 'tags':
+      openTagEditor(d)
       break
     case 'reconnect':
       reconnect(d)
@@ -1733,6 +2024,7 @@ const cardMenuItems = computed<ReContextMenuItem[]>(() => {
     { separator: true },
     { label: '配置资产信息', icon: 'EditPen', command: 'asset' },
     { label: '配置位置信息', icon: 'LocationInformation', command: 'location' },
+    { label: '标签管理', icon: 'Notebook', command: 'tags' },
     { label: '编辑设备', icon: 'EditPen', command: 'edit' },
     { separator: true },
     { label: '重新连接', icon: 'RefreshRight', command: 'reconnect' },
@@ -1757,9 +2049,9 @@ function onCardMenuSelect(command: string): void {
  * 不重新对齐的话底部信息条会停在旧快照上（在线状态 / 经纬度不更新），
  * 设备已被删除时还会显示一台不存在的设备。</p>
  */
-function syncPicked(list: DeviceInfo[]): void {
+function syncPicked(list: Array<{ deviceInfoId: string }>): void {
   const pick = (d: DeviceInfo | null): DeviceInfo | null =>
-    d ? list.find((item) => item.deviceInfoId === d.deviceInfoId) ?? null : null
+    d ? list.find((item) => item.deviceInfoId === d.deviceInfoId) as unknown as DeviceInfo : null
   activeDevice.value = pick(activeDevice.value)
   selection.value = selection.value
     .map((d) => pick(d))
@@ -1794,6 +2086,37 @@ const groupDialogTitle = computed(() =>
     : '设置分组'
 )
 
+/** 标签管理弹窗：设备 + 弹窗显隐 + 当前设备的标签（设备的标签字符串） */
+const tagEditorVisible = ref(false)
+const tagEditorDevice = ref<DeviceInfo | null>(null)
+const tagEditorTags = computed<string[]>(() => parseTags(tagEditorDevice.value?.deviceInfoTags || ''))
+
+/** 打开设备的标签管理 */
+function openTagEditor(device: DeviceInfo): void {
+  tagEditorDevice.value = device
+  tagEditorVisible.value = true
+}
+
+/** 标签保存：写回 `deviceInfoTags`，关闭弹窗 ========== 一次使选择态重新对齐 */
+async function onTagConfirm(tags: string[]): Promise<void> {
+  const d = tagEditorDevice.value
+  if (!d) return
+  try {
+    await deviceApi.update(d.deviceInfoId, { deviceInfoTags: tags.join(',') })
+    message.success('标签已保存')
+  } catch (err) {
+    message.error('标签保存失败：' + errorText(err))
+    return
+  }
+  refreshAll()
+  tagEditorVisible.value = false
+}
+
+function onTagEditorClosed(): void {
+  tagEditorVisible.value = false
+  refreshAll()
+}
+
 const groupOptions = computed(() => {
   const out: Array<{ groupId: string; groupName: string; label: string }> = []
   const walk = (nodes: DeviceGroupNode[], depth: number) => {
@@ -1816,6 +2139,54 @@ const groupOptions = computed(() => {
 function openCreate(): void {
   editingDevice.value = null
   formVisible.value = true
+}
+
+/** 导入弹窗（Excel 台账导入） */
+const importVisible = ref(false)
+const importMode = ref<'create' | 'update' | 'upsert'>('create')
+const importDryRun = ref(true)
+const importResult = ref<DeviceImportResult>({
+  total: 0,
+  createCount: 0,
+  updateCount: 0,
+  skipCount: 0,
+  errorCount: 0,
+  rows: []
+})
+
+/** 打开导入弹窗 */
+function openImport(): void {
+  importResult.value = { total: 0, createCount: 0, updateCount: 0, skipCount: 0, errorCount: 0, rows: [] }
+  importMode.value = 'create'
+  importDryRun.value = true
+  importVisible.value = true
+}
+
+/** 下载导入模板 */
+async function downloadImportTemplate() {
+  const blob = (await deviceApi.downloadImportTemplate()) as Blob
+  if (!blob.size) {
+    message.warning('未找到模板文件')
+    return
+  }
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = 'device-import-template.xlsx'
+  a.click()
+  URL.revokeObjectURL(a.href)
+}
+
+/** 确认导入（失败时先 dryRun 再真实导入） */
+/** 确认导入：干模拟 / 写库都保留弹窗展示逐行结果，用户关闭时再刷新（@closed 已绑定 refreshAll） */
+async function confirmImport(file: File): Promise<void> {
+  // 首次只读校验（干模拟），用户关弹窗 = 一次 refreshAll
+  try {
+    const res = await deviceApi.importDevices(file, { mode: importMode.value, dryRun: importDryRun.value })
+    importResult.value = res as unknown as DeviceImportResult
+    if (importResult.value.errorCount === 0) importDryRun.value = false
+  } catch (err) {
+    message.error('导入失败：' + errorText(err))
+  }
 }
 
 function openEdit(device: DeviceInfo): void {
@@ -2246,20 +2617,15 @@ function vendorLabel(vendor?: string): string {
 }
 
 
-/** 全量拉取设备（组织 / 在线 / 关键词均在前端过滤，无需分页） */
+/** 全量刷新：索引 + 表格重新取数（页码/筛选由 ReTable loader 维持） */
 async function fetchAll() {
+  quickFilter.value = 'all'
+  tagFilter.value = undefined
+  keyword.value = ''
   loading.value = true
   try {
-    const result = await deviceApi.page({ pageNo: 1, pageSize: 2000, sortBy: 'updatedAt', sortOrder: 'desc' })
-    const list = (result as unknown as { data?: DeviceInfo[]; records?: DeviceInfo[] })?.data
-      ?? (result as unknown as { records?: DeviceInfo[] })?.records
-      ?? []
-    rows.value = list
-    syncPicked(list)
-  } catch (err) {
-    rows.value = []
-    syncPicked([])
-    message.error('加载设备列表失败：' + errorText(err))
+    await loadIndex()
+    await tableRef.value?.reload()
   } finally {
     loading.value = false
   }
@@ -2341,7 +2707,9 @@ function errorText(err: unknown): string {
 
 onMounted(async () => {
   await Promise.all([fetchVendors(), fetchOrgTree(), fetchGroups()])
-  fetchAll()
+  await fetchAll()
+  restoreWorkTabs()
+  await hydrateRestoredTabs()
 })
 </script>
 
@@ -2798,21 +3166,11 @@ onMounted(async () => {
   font-weight: 600;
 }
 
-/* ============ 卡片台账（B 版默认视图） ============
-   2026-11-07 反馈：这块原来是裸的卡片网格直接压在页面底色上，看着像「漏了一块」。
-   现在外层按 card 口径包裹（与左树 / 底栏同色面 + 1px 边 + 16px 圆角 + 轻投影），
-   卡片网格收进 card 内部滚动，边界一眼可见。 */
+/* ============ 卡片台账（B 版默认视图） ============ */
 .da-cards {
   flex: 1 1 0;
   min-height: 0;
   display: flex;
-  box-sizing: border-box;
-  padding: 10px;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
-  overflow: hidden;
 }
 .da-cards__scroll {
   flex: 1;
@@ -2822,7 +3180,7 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(254px, 1fr));
   gap: 10px;
-  padding: 2px 2px 8px;
+  padding: 2px 2px 14px;
   align-content: start;
 }
 
@@ -3134,51 +3492,14 @@ onMounted(async () => {
   font-size: 12.5px;
 }
 
-/* 空态：淡主题色底 + 虚线边 + 图标块。
-   2026-11-07 反馈：原来是裸文字压在面板底色上，「直接底色不好看」。
-   这里给一层可见但克制的主题色浅底（深浅色主题都由 color-mix 自适应）。 */
 .da-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 7px;
-  margin: 10px;
-  padding: 26px 20px;
-  border: 1px dashed color-mix(in srgb, var(--el-color-primary) 30%, var(--el-border-color));
-  border-radius: var(--el-radius-xl, 16px);
-  background: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-bg-color));
-  text-align: center;
-}
-
-.da-empty__icon {
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
-  color: var(--el-color-primary);
-  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-}
-
-.da-empty__title {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.da-empty__text {
-  max-width: 420px;
-  font-size: 12px;
-  line-height: 1.7;
+  gap: 8px;
+  padding: 40px 20px;
   color: var(--el-text-color-secondary);
-}
-
-/* 卡片台账里的空态：外层已有一层卡面包裹，这里去掉重复外边距并撑出高度，
-   避免出现「卡里一小块浅底、其余全空」的观感。 */
-.da-cards__scroll .da-empty {
-  margin: 0;
-  min-height: 240px;
-  justify-content: center;
+  font-size: 13px;
 }
 
 .mono { font-family: var(--el-font-family-mono, monospace); }

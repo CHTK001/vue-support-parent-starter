@@ -13,15 +13,17 @@ import { message, useSocketService } from '@repo/core'
 import {
   checkTshark, getTsharkInterfaces, startTsharkCapture, stopTsharkCapture,
   delTsharkSession, getTsharkSessions, getTsharkPackets, getTsharkPacketDetail,
-  getTsharkHttpTransaction,
   getTsharkProtocolStats, getTsharkTopFlows, tsharkPcapUrl, importTsharkPcap,
   getTsharkTimeline, getTsharkAnomalies,
   openTsharkPacketStream,
-  getTsharkStatus, installTshark, openTsharkGlobalStream,
+  getTsharkStatus, installTshark, openTsharkInstallStream,
+  pauseTsharkCapture, resumeTsharkCapture, exportTsharkPcap, followTsharkTcpStream,
+  cleanupTsharkRetention,
 } from '../../api'
 import type {
-  TsharkAnomaly, TsharkFlow, TsharkHttpTransaction, TsharkInterface, TsharkPacket,
-  TsharkProtocolStat, TsharkRuntimeStatus, TsharkSession, TsharkSessionFilter, TsharkTimelinePoint,
+  TsharkAnomaly, TsharkFlow, TsharkInterface, TsharkPacket, TsharkProtocolStat,
+  TsharkRuntimeStatus, TsharkSession, TsharkSessionFilter, TsharkTimelinePoint,
+  TsharkTcpStream,
 } from './types'
 
 /** 会话列表每页条数（前端分页） */
@@ -105,7 +107,13 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
   })
 
   // ===== 抓包参数 =====
-  const iface = ref('')
+  /**
+   * 新建抓包会话时选中的网卡（可多选，多选时后端每张网卡建一条会话）。
+   *
+   * <p>后端收到 `captureInterfaces` 时才走多网卡模式；空列表时过程件发
+   * `captureInterface` 走原来的单网卡入口，两个入口绑同一套代码。</p>
+   */
+  const ifaces = ref<string[]>([])
   const filter = ref('')
   /**
    * 过滤语法：auto / bpf / display。
@@ -185,14 +193,27 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
   // ===== 报文详情 =====
   const detailOpen = ref(false)
   const packetDetail = ref<TsharkPacket | null>(null)
+  /** TCP Stream 完整还原（Follow TCP Stream），当前会话的任一条 TCP 报文打开 برس */
+  const tcpStream = ref<TsharkTcpStream | null>(null)
+  const tcpStreamLoading = ref(false)
+
   /**
-   * 当前报文所属的 HTTP 事务（请求 / 响应两帧）。
+   * 报文列表的时间范围筛选。
    *
-   * <p>列表和详情接口的 HTTP 字段是「按帧」的，请求头体与响应头体分别落在两个帧上；
-   * 这里额外拉一次事务配对，详情抽屉才能把请求头 / 请求体 / 响应头 / 响应体
-   * 四段同时展示。</p>
+   * <p>与后面要接的过滤条一样：`start/end` 传给 `pagePackets`（只筛报文、不影响统计）；
+   * 时间范围变了 → 报文列表重查（first page = packetPage）。</p>
    */
-  const packetHttpTx = ref<TsharkHttpTransaction | null>(null)
+  const packetStartTime = ref('')
+  const packetEndTime = ref('')
+
+  /** 其中任意一个置空就是不清时间范围（请求不传参 = 不过滤） */
+  function setPacketTimeRange(start?: string, end?: string) {
+    packetStartTime.value = start ?? ''
+    packetEndTime.value = end ?? ''
+  }
+  function clearPacketTimeRange() {
+    setPacketTimeRange('', '')
+  }
 
   // ===== 实时推送 =====
   const liveCount = ref(0)
@@ -240,8 +261,8 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
           return
         }
         if (event.event === 'session') {
-          // 会话状态变化（停止 / 解析完成）：只刷新统计与明细；会话列表由全局 SSE 统一刷新，
-          // 这里不再重复拉一次，避免同一次变化打两次 sessions 接口
+          // 会话状态变化（停止 / 解析完成）：刷新列表与统计，页数停在第一页时顺手对账
+          void loadSessions(false)
           const phase = event.data?.phase
           if (phase === 'parsed' || phase === 'finished') {
             void loadStats()
@@ -345,21 +366,23 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
 
   const runningCount = computed(() => sessions.value.filter(s => s.captureStatus === 1).length)
 
+  /** 会话暂停态：后端把暂停记在内存 Registry 里，由页面做一次本地跟踪 */
+  const sessionPaused = ref<Record<number, boolean>>({})
+
   // ==================== 初始化 ====================
   async function init() {
-      // 只取一次快照：之后的状态变化（安装进度 / 就绪）与所有会话变化都走全局 SSE，
-      // 不再有 setInterval 轮询 /tshark/status 的兜底路径
     await refreshRuntime()
-    openGlobalStream()
+    if (!runtime.value?.ready) {
+      // 服务端已经在自己补了，这里接上进度流；中途打开页面也能看到真实进度
+      openInstallStream()
+    }
     await Promise.allSettled([loadInterfaces(), loadSessions()])
   }
 
   /**
    * 拉一次运行时状态。
    *
-   * <p>只在初始化时取一次快照；后续由 {@link openGlobalStream} 的 {@code ready} /
-   * {@code progress} 事件增量更新。后端未升级（没有 /status）时回落到旧的 /check，
-   * 页面不至于因为探测失败而整块不可用。</p>
+   * <p>后端未升级（没有 /status）时回落到旧的 /check，页面不至于因为探测失败而整块不可用。</p>
    */
   async function refreshRuntime() {
     try {
@@ -382,55 +405,74 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     if (!next) return
     runtime.value = next
     tsharkOk.value = !!next.ready
+    if (next.ready) {
+      closeInstallStream()
+      stopInstallPoll()
+    }
   }
 
   /**
    * 触发一次安装 / 重试。
    *
-   * <p>失败后不需要重启服务：后端接口是幂等的，重新接上全局流即可继续看进度。</p>
+   * <p>失败后不需要重启服务：后端接口是幂等的，这里重新接上进度流即可。</p>
    */
   async function installNow() {
     try {
       applyRuntime(await installTshark())
-      openGlobalStream()
+      openInstallStream()
     } catch (e) {
       message.error('触发安装失败: ' + errorText(e))
     }
   }
 
-  // ==================== 全局 SSE（运行时状态 + 会话变化） ====================
-  let globalStream: { close?: () => void } | null = null
+  // ==================== 安装进度 SSE ====================
+  let installStream: { close?: () => void } | null = null
+  let installPollTimer: ReturnType<typeof setInterval> | null = null
 
-  /** 关掉全局事件流 */
-  function closeGlobalStream() {
-    globalStream?.close?.()
-    globalStream = null
+  /** 关掉安装进度流 */
+  function closeInstallStream() {
+    installStream?.close?.()
+    installStream = null
   }
 
   /**
-   * 接上全局事件流。
+   * 接上安装进度流。
    *
-   * <p>一条连接做两件事：把安装进度 / 可用性同步到页面顶部，把会话的新建 / 停止 /
-   * 解析完成 / 删除同步到会话列表。这样任何一处状态变化都不需要轮询。</p>
+   * <p>SSE 断线（代理掐长连接、后端重启）时退回 3s 轮询：进度条停住不动比没有进度条更糟。</p>
    */
-  function openGlobalStream() {
-    closeGlobalStream()
-    globalStream = openTsharkGlobalStream({
+  function openInstallStream() {
+    closeInstallStream()
+    installStream = openTsharkInstallStream({
       onMessage: (event: { event?: string; data?: any }) => {
-        if (event.event === 'ready' || event.event === 'progress') {
+        if (event.event === 'progress' || event.event === 'ready') {
           applyRuntime(event.data as TsharkRuntimeStatus)
-          return
-        }
-        if (event.event === 'session') {
-          const payload = event.data || {}
-          if (payload.deleted && activeSessionId.value != null
-            && String(payload.id) === String(activeSessionId.value)) {
-            clearActiveSession()
-          }
-          void loadSessions(false)
         }
       },
+      onError: () => {
+        installStream = null
+        startInstallPoll()
+      },
     })
+  }
+
+  /** 兜底轮询：只在 SSE 不可用时启动 */
+  function startInstallPoll() {
+    if (installPollTimer) return
+    installPollTimer = setInterval(async () => {
+      try {
+        applyRuntime(await getTsharkStatus())
+      } catch {
+        /* 轮询失败保持现状，等下一轮 */
+      }
+    }, 3000)
+  }
+
+  /** 停掉兜底轮询 */
+  function stopInstallPoll() {
+    if (installPollTimer) {
+      clearInterval(installPollTimer)
+      installPollTimer = null
+    }
   }
 
   async function loadInterfaces() {
@@ -505,6 +547,8 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     timeline.value = []
     anomalies.value = []
     liveCount.value = 0
+    tcpStream.value = null
+    clearPacketTimeRange()
   }
 
   function selectSession(id: number) {
@@ -516,12 +560,48 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
       packetFilter.value = ''
       filterError.value = ''
       packetPage.value = 1
+      tcpStream.value = null
+      clearPacketTimeRange()
       packets.value = []
       packetTotal.value = 0
     }
     openPacketStream(id)
     loadPackets(1)
     loadStats()
+  }
+
+  /** 手动发的暂停/恢复：SSE/ socket.io 同时掐断或托开，抓包入库不受影响 */
+  function setPaused(id: number, paused: boolean) {
+    return paused ? pauseTsharkCapture(id) : resumeTsharkCapture(id)
+  }
+
+  /** 会话本地暂停态：后端 Registry 只在内存里，所以由页面跟踪（不是 DB） */
+  function setPausedState(id: number, paused: boolean) {
+    sessionPaused.value = { ...sessionPaused.value, [id]: paused }
+  }
+
+  async function pauseSession(id: number) {
+    try {
+      await setPaused(id, true)
+      setPausedState(id, true)
+      message.success('已暂停实时推送，抓包与入库不受影响')
+      loadSessions(false)
+    } catch (e: any) {
+      setPausedState(id, false)
+      message.error('暂停失败: ' + (e?.message || e))
+    }
+  }
+
+  async function resumeSession(id: number) {
+    try {
+      await setPaused(id, false)
+      setPausedState(id, false)
+      message.success('已恢复实时推送')
+      loadSessions(false)
+    } catch (e: any) {
+      setPausedState(id, true)
+      message.error('恢复失败: ' + (e?.message || e))
+    }
   }
 
   // ==================== 报文 ====================
@@ -531,7 +611,8 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     loadingPackets.value = true
     try {
       const activeFilter = packetFilter.value.trim()
-      const r = await getTsharkPackets(sid, page, PACKET_PAGE_SIZE, activeFilter)
+      const r = await getTsharkPackets(sid, page, PACKET_PAGE_SIZE, activeFilter,
+        packetStartTime.value.trim(), packetEndTime.value.trim())
       // 竞态丢弃：慢请求回来时用户可能已经切到别的会话，写进去会串数据
       if (sid !== activeSessionId.value) return
       packets.value = (r?.records ?? r?.data ?? []) as TsharkPacket[]
@@ -548,6 +629,21 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     } finally {
       loadingPackets.value = false
     }
+  }
+
+  /**
+   * 报文时间范围变了：只重查报文列表（统计面板不在此刻重算，避免闪屏）。
+   *
+   * <p>`tshark -r` 回放不受影响——时间范围筛的是 SQLite 入过库的报文，
+   * 适合在统计面板里再复购一次 "traffic > 1s" 的补数。</p>
+   *
+   * @param start 起点（不含）
+   * @param end 终点（不含）
+   */
+  function onPacketTimeRangeChange(start: string, end: string) {
+    setPacketTimeRange(start, end)
+    packetPage.value = 1
+    void loadPackets(1)
   }
 
   /**
@@ -645,6 +741,52 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     a.click()
   }
 
+  /**
+   * 按显示过滤导出 pcap 子集（`POST /tshark/sessions/{id}/packets/export` 未用时替换成 GET）。
+   *
+   * <p>后端用 `tshark -r <pcap> -w <out> -Y <filter>` 把命中的报文再写回一个 pcap，
+   * 页面收到 blob 就直接下载，自动对应当前显示过滤。</p>
+   *
+   * @param id 会话 ID
+   * @param displayFilter 显示过滤表达式；空串则导全量
+   */
+  async function exportPcapSession(id: number, displayFilter = '') {
+    try {
+      const blob = await exportTsharkPcap(id, displayFilter)
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `export-${id}.pcap`
+      a.click()
+      URL.revokeObjectURL(a.href)
+      message.success('已导出 pcap 子集')
+    } catch (e: any) {
+      message.error('导出失败: ' + (e?.message || e))
+    }
+  }
+
+  /**
+   * Follow TCP Stream：从报文详情里按 5 元组还原双向载荷帧。
+   *
+   * <p>报文详情弹层的「Payload」Tab 保存还原结果：原始十六进制 + 协议还原文字；
+   * 非 TCP 报文（UDP/ICMP/ARP）走原来的「生命周期」。」</p>
+   *
+   * @param row 报文行
+   */
+  async function openTcpStream(row: TsharkPacket) {
+    const sid = activeSessionId.value
+    if (sid == null || row.id == null) return
+    tcpStreamLoading.value = true
+    try {
+      tcpStream.value = await followTsharkTcpStream(sid, row.id) as TsharkTcpStream
+    } catch (e: any) {
+      message.error('Follow TCP Stream 失败: ' + (e?.message || e))
+    } finally {
+      tcpStreamLoading.value = false
+    }
+  }
+
+  /** 加在下面的 `pauseSession`/`resumeSession` 之间，见 useTshark.ts 的抓包控制区 */
+
   // ==================== 统计 ====================
   async function loadStats() {
     const sid = activeSessionId.value
@@ -714,26 +856,36 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
   }
 
   // ==================== 抓包控制 ====================
+  /** 保留清理按钮 Loading（R9：一键清理与后台调度器同规则） */
+  const cleanupLoading = ref(false)
+
   async function startCapture(): Promise<boolean> {
-    if (!iface.value) {
+    if (ifaces.value.length === 0) {
       message.warning('请选择网卡')
       return false
     }
     starting.value = true
     try {
-      await startTsharkCapture({
+      const r = await startTsharkCapture({
         name: captureName.value.trim() || undefined,
-        captureInterface: iface.value,
+        captureInterfaces: ifaces.value,
         captureFilter: filter.value.trim() || undefined,
         filterType: filterType.value,
         count: count.value > 0 ? count.value : undefined,
         timeout: timeout.value > 0 ? timeout.value : undefined,
         maxSizeMb: maxSizeMb.value > 0 ? maxSizeMb.value : undefined,
       })
-      message.success('抓包已启动')
+      // 多网卡一次建多条会话：取第一条，剩下的已挂在列表里
+      const created = r?.data ?? []
+      const count = created.length > 0 ? created.length : 1
+      message.success(count > 1
+        ? `已启动 ${count} 条抓包会话（每张网卡一条）`
+        : '抓包已启动')
       captureName.value = ''
       maxSizeMb.value = 0
       await loadSessions()
+      // 第一次抓包或切网断了：列表自动把第一条挂到当前会话上
+      if (created.length > 0 && activeSessionId.value == null) selectSession(created[0].id)
       return true
     } catch (e: any) {
       message.error('启动抓包失败: ' + (e?.message || e))
@@ -755,6 +907,26 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
    *   比直接跳到还空着的报文页更符合预期（合作方要看的是「传上去了没、解出来了没」）。
    * @returns 是否上传成功；失败已弹提示，页面据此决定要不要清空已选文件
    */
+  /**
+   * 立即清理过期的抓包数据（一键清理）。
+   *
+   * <p>与后台 `TsharkRetentionCleanupScheduler` 同规则：超过保留天数 / 目录空间超量
+   * 的会话（会话 + 报文 + pcap + SQLite 报文 + 日志）一起删。页面只负责点一把，
+   * 删了多少条直接显示回来。</p>
+   */
+  async function cleanupRetention() {
+    cleanupLoading.value = true
+    try {
+      const r = await cleanupTsharkRetention()
+      message.success(`已清理 ${r?.data ?? 0} 条过期会话`)
+      loadSessions(false)
+    } catch (e: any) {
+      message.error('清理失败: ' + (e?.message || e))
+    } finally {
+      cleanupLoading.value = false
+    }
+  }
+
   async function importPcap(file: File, name = '', autoSelect = true): Promise<boolean> {
     importing.value = true
     try {
@@ -784,15 +956,6 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
   }
 
   async function deleteSession(id: number) {
-    // 抓包未停止不允许删：后端 deleteSession 也会以 captureStatus=1 拒绝，
-    // 这里先拦一道是为了不弹「确认删除」后又报错（用户会以为删成功了）。
-    const target = sessions.value.find(s => s.id === id)
-    if (target?.captureStatus === 1) {
-      message.warning(target.source === 'import'
-        ? '该会话正在解析中，请等待解析完成后再删除'
-        : '该会话正在抓包中，请先停止抓包再删除')
-      return
-    }
     try {
       await message.confirm('确认删除该会话及其所有数据包？', '提示', '确定', '取消', 'warning')
     } catch {
@@ -805,7 +968,6 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
         clearActiveSession()
         detailOpen.value = false
         packetDetail.value = null
-        packetHttpTx.value = null
       }
       // 传 true：被删的正好是当前会话时（现在已经没有选中项），顺手选中列表第一个；
       // 删的是别的会话时选中项没被清掉，这里也不会被换走（见 loadSessions 里的判定）。
@@ -819,22 +981,15 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     // 列表接口把「协议还原 / 原始数据」两大字段排除掉了（每页 20 条不背几十 KB 的
     // 十六进制串），但其余字段都在 —— 先用行数据秒开详情，再后台拉详情接口补齐大字段。
     packetDetail.value = row
-    packetHttpTx.value = null
     detailOpen.value = true
     const sid = activeSessionId.value
     if (sid == null || row.id == null) return
-      // 详情与 HTTP 事务并行取：两者都只按帧号 / 流号查一次，串行会让抽屉多空一拍
-    const [full, tx] = await Promise.allSettled([
-      getTsharkPacketDetail(sid, row.id),
-      getTsharkHttpTransaction(sid, row.id),
-    ])
-    // 竞态丢弃：慢请求回来时用户可能已经切到别的报文/会话
-    if (packetDetail.value?.id !== row.id) return
-    if (full.status === 'fulfilled') {
-      packetDetail.value = full.value as TsharkPacket
-    }
-    if (tx.status === 'fulfilled') {
-      packetHttpTx.value = tx.value as TsharkHttpTransaction
+    try {
+      const full = await getTsharkPacketDetail(sid, row.id) as TsharkPacket
+      // 竞态丢弃：慢请求回来时用户可能已经切到别的报文/会话
+      if (packetDetail.value?.id === row.id) packetDetail.value = full
+    } catch {
+      // 基础字段已经在展示了，补齐失败不必打扰
     }
   }
 
@@ -851,12 +1006,7 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     const sid = activeSessionId.value
     if (sid == null) return
     try {
-      const [full, tx] = await Promise.all([
-        getTsharkPacketDetail(sid, id),
-        getTsharkHttpTransaction(sid, id),
-      ])
-      packetDetail.value = full as TsharkPacket
-      packetHttpTx.value = tx as TsharkHttpTransaction
+      packetDetail.value = await getTsharkPacketDetail(sid, id) as TsharkPacket
       detailOpen.value = true
     } catch (e: any) {
       message.error('加载详情失败: ' + (e?.message || e))
@@ -878,7 +1028,8 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
   onBeforeUnmount(() => {
     socketUnsubs.forEach(fn => fn?.())
     closePacketStream()
-    closeGlobalStream()
+    closeInstallStream()
+    stopInstallPoll()
     if (liveRefreshTimer) clearTimeout(liveRefreshTimer)
   })
 
@@ -886,18 +1037,21 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     // 环境
     tsharkOk, runtime, installActive, captureReady, statusText, installNow, interfaces, ifaceOptions,
     // 抓包参数
-    iface, filter, filterType, captureName, count, timeout, maxSizeMb, starting, importing,
+    ifaces, filter, filterType, captureName, count, timeout, maxSizeMb, starting, importing,
     // 会话
     loadingSessions, sessions, sessionBackendTotal, sessionKeyword, sessionFilter,
     sessionPage, activeSessionId, activeSession, filteredSessions, pagedSessions,
-    runningCount, sessionPageSize,
+    runningCount, sessionPageSize, sessionPaused,
     // 报文
     loadingPackets, packets, packetPage, packetTotal, packetFilter, filterError,
     packetPageSize: PACKET_PAGE_SIZE,
+    packetStartTime, packetEndTime,
     // 统计
     loadingStats, protoStats, topFlows, statsVersion, timeline, timelineBucket, anomalies,
     // 详情
-    detailOpen, packetDetail, packetHttpTx,
+    detailOpen, packetDetail,
+    // TCP Stream
+    tcpStream, tcpStreamLoading,
     // 实时
     liveCount, liveConnected,
     // 动作
@@ -907,6 +1061,8 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     filterByProtocol, filterByFlow, refresh, exportCsv,
     downloadPcap, loadStats, loadTimeline, startCapture, stopSession, deleteSession, openPacketDetail,
     openPacketDetailById,
-    importPcap,
+    importPcap, pauseSession, resumeSession, exportPcapSession, openTcpStream,
+    setPacketTimeRange, clearPacketTimeRange, onPacketTimeRangeChange,
+    cleanupLoading, cleanupRetention,
   }
 }
