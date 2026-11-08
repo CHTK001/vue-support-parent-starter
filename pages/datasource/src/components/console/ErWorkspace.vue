@@ -556,7 +556,7 @@ const emptyText = computed(() => (props.filter ? "没有匹配的表" : "这个�
   top: 0;
   z-index: 1;
   padding: 3px 10px;
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.04em;
   color: var(--el-text-color-secondary);
@@ -608,7 +608,7 @@ const emptyText = computed(() => (props.filter ? "没有匹配的表" : "这个�
 
 .erw-deg {
   flex: none;
-  font-size: 10.5px;
+  font-size: 11px;
   line-height: 16px;
   padding: 0 6px;
   border-radius: var(--el-radius-full, 9999px);
@@ -783,7 +783,7 @@ const emptyText = computed(() => (props.filter ? "没有匹配的表" : "这个�
 
 .erw-col-null {
   flex: none;
-  font-size: 9.5px;
+  font-size: 10px;
   color: var(--el-text-color-placeholder);
 }
 

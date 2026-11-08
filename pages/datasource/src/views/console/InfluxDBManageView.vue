@@ -2253,7 +2253,7 @@ watch(source, applyConnectionInfo);
 }
 .dsm-kind-badge {
   display: inline-block;
-  font-size: 10.5px;
+  font-size: 11px;
   line-height: 1;
   padding: 3px 8px;
   border-radius: 6px;

@@ -348,7 +348,7 @@ const nginxRows = computed(() => {
 
 .ds-server-stats__title {
   margin: 0;
-  font-size: clamp(13px, 0.85rem + 0.2vw, 14.5px);
+  font-size: clamp(13px, 0.85rem + 0.2vw, 14px);
   font-weight: 600;
   color: var(--text-primary, #1f2430);
 }

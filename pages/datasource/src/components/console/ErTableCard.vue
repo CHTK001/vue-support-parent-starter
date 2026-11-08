@@ -134,7 +134,7 @@ function onCardClick(): void {
 }
 .er-card__pk {
   flex-shrink: 0;
-  font-size: 10.5px;
+  font-size: 11px;
   line-height: 16px;
   padding: 0 6px;
   border-radius: 8px;
@@ -194,11 +194,11 @@ function onCardClick(): void {
 }
 .er-card__col-null {
   flex-shrink: 0;
-  font-size: 9.5px;
+  font-size: 10px;
   color: var(--el-text-color-placeholder);
 }
 .er-card__more {
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--el-text-color-placeholder);
   padding-top: 1px;
 }
@@ -210,7 +210,7 @@ function onCardClick(): void {
   padding-top: 4px;
 }
 .er-card__deg {
-  font-size: 10.5px;
+  font-size: 11px;
   line-height: 16px;
   padding: 0 6px;
   border-radius: 8px;

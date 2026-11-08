@@ -826,7 +826,7 @@ onMounted(async () => {
 .flow-fail-chip:hover { border-color: var(--brand-500); color: var(--brand-600); }
 .flow-fail-chip.is-active { border-color: var(--brand-500); background: var(--brand-50); color: var(--brand-600); }
 .flow-fail-chip-count {
-  font-size: 10.5px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
   background: var(--bg-container);
   border-radius: 999px;
@@ -907,7 +907,7 @@ onMounted(async () => {
 .flow-node { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; }
 .flow-node.ok { background: var(--status-success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-success) 16%, transparent); }
 .flow-node.bad { background: var(--status-error); box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-error) 16%, transparent); }
-.flow-node-label { font-size: 10.5px; color: var(--text-tertiary); }
+.flow-node-label { font-size: 11px; color: var(--text-tertiary); }
 .flow-line { flex: 1; height: 2px; margin: 12px 6px 0; border-radius: 2px; }
 .flow-line.ok { background: var(--status-success); }
 .flow-line.bad { background: var(--status-error); }
