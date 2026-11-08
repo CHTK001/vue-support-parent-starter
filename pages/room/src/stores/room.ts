@@ -150,9 +150,24 @@ export const useRoomStore = defineStore("room", () => {
     status.value = RoomStatus.LEFT;
   }
 
+  /**
+   * 加入房间（创建/续接）。
+   *
+   * <p>「创建房间」时没有房间号：先生成一个房间码随 hello 下发，服务端按它建台账，
+   * welcome 再原样回执。页面顶部展示、复制给对端加入的都是这一串。</p>
+   *
+   * @param id 房间号；空表示新建
+   * @param resume 续接令牌
+   */
   function joinRoom(id?: string, resume = resumeToken.value): void {
     error.value = undefined;
-    roomSocket.joinRoom(id, resume);
+    const target = id?.trim() || roomId.value || newRoomId();
+    roomSocket.joinRoom(target, resume);
+  }
+
+  /** 生成房间码（去掉连字符的 UUID 前 12 位，短且好复制） */
+  function newRoomId(): string {
+    return uuid().replace(/-/g, "").slice(0, 12);
   }
 
   /** 离开房间 */

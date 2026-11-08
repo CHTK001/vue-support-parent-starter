@@ -2242,7 +2242,7 @@ function exportPerf() {
     traceEvents: perfSink,
     metadata: {
       recordedAt: new Date(perfStartAt.value || Date.now()).toISOString(),
-      windowMs: perfSummary.value?.window ?? 0,
+      windowMs: Math.round((perfSummary.value?.window ?? 0) / 1000),
       targetId: perfTarget.value,
       source: "monitor-debug-center",
     },
@@ -4465,7 +4465,7 @@ onBeforeUnmount(() => {
             停止
           </button>
           <span v-if="perfRecording" class="debug-pill debug-pill--warn">
-            <i class="debug-dot" />录制中 {{ perfElapsed }} · {{ perfEventCount }} 事件
+            <i class="debug-dot" />录制中 {{ perfElapsed }}<template v-if="perfEventCount"> · {{ perfEventCount }} 事件</template>
           </span>
           <span v-else-if="perfSummary" class="debug-pill debug-pill--info">
             {{ perfElapsed }} · {{ perfSummary.total }} 事件
