@@ -5,8 +5,9 @@
  * <p>两件事的共同点只在于「从外部搬东西进来」，但数据面完全不同，所以分两个页签：</p>
  * <ul>
  *   <li><b>客户端会话导入</b>：解析 OpenSSH {@code config}、PuTTY / plink 的
- *       {@code .reg} / {@code .ini}、Xshell {@code .xsh}，按<b>地址</b>匹配已有主机，
- *       把账号落到该主机的「主机账号」里（建身份 + 绑定）。凭据只导入能拿到明文的；
+ *       {@code .reg} / {@code .ini}、Xshell {@code .xsh}，先按<b>地址</b>匹配已有主机；
+ *       匹配不到且「未匹配自动建主机」打开时，按会话名/地址建资产（落未分组），
+ *       再把账号落到该主机的「主机账号」里（建身份 + 绑定）。凭据只导入能拿到明文的；
  *       客户端自己加密过的口令会标成「需手动补」，绝不把密文当口令写库。</li>
  *   <li><b>主机信息归档</b>：走后端 {@code /ms/server/host/archive}，导出主机 + 身份
  *       （口令密文）+ 绑定关系的 JSON，并支持把同一份 JSON 导回来（幂等去重）。
@@ -28,9 +29,11 @@ import {
   getIdentities,
   importHostArchive,
   listBoundIdentities,
+  saveHost,
   saveIdentity,
 } from "../api";
 import {
+  buildSessionHostPayload,
   decodeSessionText,
   matchImportHost,
   parseSessionFile,
@@ -47,6 +50,8 @@ interface PreviewRow extends ParsedSession {
   hostId: number | null;
   /** 命中的主机名 */
   hostName: string;
+  /** 解析阶段的可导入性（非 SSH 会话为 false），勾选开关不能把它翻回来 */
+  baseInclude: boolean;
 }
 
 const props = withDefaults(defineProps<{
@@ -80,7 +85,15 @@ const importing = ref(false);
 const parseErrors = ref<string[]>([]);
 
 /**
- * 把解析结果接到主机上，并补默认勾选与行备注。
+ * 未匹配到台账的 SSH 会话是否直接建资产。
+ *
+ * <p>默认开启：客户端里有的会话，平台上大概率还没有对应主机；不建的话整批导入只能导入
+ * 已经在台账里的那几台，剩下的全被丢掉。开关关掉时退回原来的「只绑定已有主机」语义。</p>
+ */
+const autoCreateHost = ref(true);
+
+/**
+ * 把解析结果接到主机上，并按当前开关决定未匹配行的默认勾选。
  *
  * @param rows 解析行
  * @returns 预览行
@@ -88,25 +101,73 @@ const parseErrors = ref<string[]>([]);
 function applyMatch(rows: ParsedSession[]): PreviewRow[] {
   return rows.map((r, i) => {
     const hit = matchImportHost(r.address, r.port, props.hosts ?? []);
-    let note = r.note;
-    let include = r.include;
-    if (!hit) {
-      note = note || "未找到对应主机，导入后会跳过";
-      include = false;
-    } else if (!r.username) {
-      note = note || "缺少登录用户，无法建立账号";
-      include = false;
-    }
     return {
       ...r,
       key: `${i}-${r.source}-${r.address}-${r.port}-${r.username}`,
+      baseInclude: r.include,
       hostId: hit ? hit.id : null,
       hostName: hit ? hit.serverHostName : "",
-      include,
-      note,
+      include: canIncludeRow(r.include, !!hit, r.address, r.username, autoCreateHost.value),
     };
   });
 }
+
+/**
+ * 一行是否允许勾选。
+ *
+ * <p>已匹配主机：必须有登录用户（否则没有账号可写）；
+ * 未匹配主机：开关开启时只要有地址就能建资产，用户可留给后面手动补账号。</p>
+ *
+ * @param baseInclude 解析阶段的协议判定
+ * @param matched     是否命中台账
+ * @param address     会话地址
+ * @param username    会话登录用户
+ * @param autoCreate  是否自动建主机
+ * @returns 是否允许勾选
+ */
+function canIncludeRow(baseInclude: boolean, matched: boolean, address: string, username: string, autoCreate: boolean): boolean {
+  if (!baseInclude || !address || !address.trim()) return false;
+  // 已匹配主机：没有登录用户就没有账号可写；未匹配主机：只建资产也算有效，没有用户也允许
+  return matched ? !!username : autoCreate;
+}
+
+/**
+ * 预览行的「匹配主机」栏文案。
+ *
+ * @param r 预览行
+ * @returns 展示文案
+ */
+function matchLabel(r: PreviewRow): string {
+  if (r.hostId) return r.hostName;
+  return autoCreateHost.value ? "将新建" : "未匹配";
+}
+
+/**
+ * 预览行的说明栏文案。
+ *
+ * @param r 预览行
+ * @returns 说明
+ */
+function rowNote(r: PreviewRow): string {
+  if (!r.baseInclude) return r.note || "不是 SSH 会话，已跳过";
+  if (r.hostId) {
+    if (!r.username) return "缺少登录用户，无法建立账号";
+    return r.note || "—";
+  }
+  if (!autoCreateHost.value) return "未找到对应主机，导入后会跳过";
+  const prefix = r.note ? `${r.note}；` : "";
+  return r.username
+    ? `${prefix}未匹配，导入时新建主机（${r.address}:${r.port}）`
+    : `${prefix}未匹配，导入时仅新建主机（无登录用户）`;
+}
+
+/** 开关切换后，只重算未匹配行；已匹配行保留用户手动勾选的结果 */
+watch(autoCreateHost, (v) => {
+  parsed.value = parsed.value.map(r => r.hostId ? r : ({
+    ...r,
+    include: canIncludeRow(r.baseInclude, false, r.address, r.username, v),
+  }));
+});
 
 /**
  * 选文件并解析（可多选，多个文件的结果合并去重）。
@@ -165,22 +226,22 @@ async function onDrop(e: DragEvent): Promise<void> {
   await onFilesPicked(fake);
 }
 
-/** 全选开关（只有「有主机且有登录用户」的行才可能被选中） */
+/** 全选开关（只选当前允许勾选的行） */
 const allChecked = computed({
-  get: () => parsed.value.length > 0 && parsed.value.every(r => r.include || !r.hostId || !r.username),
+  get: () => parsed.value.length > 0 && parsed.value.every(r => r.include || !canIncludeRow(r.baseInclude, !!r.hostId, r.address, r.username, autoCreateHost.value)),
   set: (v: boolean) => {
     parsed.value = parsed.value.map(r => ({
       ...r,
-      include: v && !!r.hostId && !!r.username,
+      include: v && canIncludeRow(r.baseInclude, !!r.hostId, r.address, r.username, autoCreateHost.value),
     }));
   },
 });
 
-/** 可导入行 */
-const importable = computed(() => parsed.value.filter(r => r.include && r.hostId && r.username));
+/** 本次会处理的行（建主机和/或建账号） */
+const importable = computed(() => parsed.value.filter(r => r.include));
 
 /**
- * 执行导入：身份按「主机名@账号」去重复用，绑定已存在则跳过。
+ * 执行导入：未匹配的先建主机，再建/复用账号并绑定。
  *
  * <p>复用已有身份时不改它的口令：那是当前环境正在用的凭据，被文件里的空值或旧口令覆盖会直接
  * 造成连不上。需要换口令的用户在主机账号里改一次即可。</p>
@@ -192,10 +253,15 @@ async function doSessionImport(): Promise<void> {
     return;
   }
   importing.value = true;
+  let createdHosts = 0;
+  let hostsOnly = 0;
   let created = 0;
   let reused = 0;
   let bound = 0;
   const failed: string[] = [];
+  // 同一批里一个「地址+端口」只建一台主机，否则多用户会话会重复建资产
+  const createdByEndpoint = new Map<string, number>();
+  const usedNames = new Set((props.hosts ?? []).map(h => String(h.serverHostName ?? "").toLowerCase()));
   try {
     const identities = await getIdentities();
     const byName = new Map<string, any>();
@@ -205,7 +271,25 @@ async function doSessionImport(): Promise<void> {
     const boundCache = new Map<number, Set<number>>();
     for (const r of rows) {
       try {
-        const hostId = r.hostId as number;
+        const endpoint = `${r.address}:${r.port}`;
+        let hostId = r.hostId ?? createdByEndpoint.get(endpoint) ?? null;
+        let createdThisRow = false;
+        if (!hostId) {
+          const host = await saveHost(null, buildSessionHostPayload(r, usedNames));
+          hostId = Number(host?.id ?? 0) || null;
+          if (!hostId) {
+            failed.push(`${endpoint} 主机创建失败`);
+            continue;
+          }
+          createdByEndpoint.set(endpoint, hostId);
+          createdHosts++;
+          createdThisRow = true;
+        }
+        // 没有登录用户的会话只建资产，不建账号
+        if (!r.username) {
+          if (createdThisRow) hostsOnly++;
+          continue;
+        }
         const identityName = `${r.hostName || r.address}@${r.username}`;
         let identity = byName.get(identityName);
         if (identity) {
@@ -222,7 +306,7 @@ async function doSessionImport(): Promise<void> {
           created++;
         }
         if (!identity?.id) {
-          failed.push(`${r.address}:${r.port} 账号创建失败`);
+          failed.push(`${endpoint} 账号创建失败`);
           continue;
         }
         let set = boundCache.get(hostId);
@@ -239,10 +323,11 @@ async function doSessionImport(): Promise<void> {
         failed.push(`${r.address}:${r.port} ${String((err as Error)?.message ?? err)}`);
       }
     }
+    const summary = `导入完成：新建主机 ${createdHosts}（其中仅建主机 ${hostsOnly}），新建账号 ${created}，复用 ${reused}，新增绑定 ${bound}`;
     if (failed.length) {
-      message.warning(`导入完成，${failed.length} 条失败：${failed.slice(0, 3).join("；")}`);
+      message.warning(`${summary}；${failed.length} 条失败：${failed.slice(0, 3).join("；")}`);
     } else {
-      message.success(`导入完成：新建账号 ${created}，复用 ${reused}，新增绑定 ${bound}`);
+      message.success(summary);
     }
     emit("imported");
     parsed.value = [];
@@ -363,8 +448,9 @@ watch(visible, (v) => {
       <div v-show="tab === 'session'" class="hie__pane">
         <p class="hie__hint">
           支持 OpenSSH <code>config</code>、PuTTY / plink 的 <code>.reg</code> 与便携版 <code>.ini</code>、
-          Xshell <code>.xsh</code>。解析后按<b>地址</b>匹配已有主机，账号会落到该主机的「主机账号」里；
-          未匹配到主机的行不会导入，同名账号沿用现有口令。
+          Xshell <code>.xsh</code>。解析后先按<b>地址</b>匹配已有主机；匹配不到且开关打开时，
+          按会话名/地址<b>新建主机</b>（落「未分组」，之后在主机编辑里调整），再把账号绑上去。
+          同名账号沿用现有口令。
         </p>
 
         <label
@@ -391,12 +477,16 @@ watch(visible, (v) => {
 
         <template v-if="parsed.length">
           <div class="hie__bar">
+            <label class="hie__check" title="未匹配到台账的 SSH 会话直接建主机；关掉则退回只绑定已有主机">
+              <input v-model="autoCreateHost" type="checkbox" />
+              <span>未匹配自动建主机</span>
+            </label>
             <label class="hie__check">
               <input type="checkbox" :checked="allChecked" @change="allChecked = ($event.target as HTMLInputElement).checked" />
-              <span>全选可导入行（{{ importable.length }}/{{ parsed.length }}）</span>
+              <span>全选（{{ importable.length }}/{{ parsed.length }}）</span>
             </label>
             <span class="hie__gap" />
-            <span class="hie__stat">新建/复用账号，绑定到对应主机</span>
+            <span class="hie__stat">匹配到的绑定账号，未匹配的建主机后再绑定</span>
             <ReButton icon="Check" type="primary" :loading="importing" :disabled="!importable.length" @click="doSessionImport">
               导入选中 {{ importable.length }} 条
             </ReButton>
@@ -413,7 +503,7 @@ watch(visible, (v) => {
                   <th>登录用户</th>
                   <th>口令</th>
                   <th>来源</th>
-                  <th>匹配主机</th>
+                  <th>匹配 / 新建</th>
                   <th>说明</th>
                 </tr>
               </thead>
@@ -423,7 +513,7 @@ watch(visible, (v) => {
                     <input
                       v-model="r.include"
                       type="checkbox"
-                      :disabled="!r.hostId || !r.username"
+                      :disabled="!canIncludeRow(r.baseInclude, !!r.hostId, r.address, r.username, autoCreateHost)"
                     />
                   </td>
                   <td class="mono" :title="r.name">{{ r.name || "—" }}</td>
@@ -437,10 +527,11 @@ watch(visible, (v) => {
                   </td>
                   <td>{{ SOURCE_LABEL[r.source] }}</td>
                   <td>
-                    <span v-if="r.hostId" class="hie__tag is-ok">{{ r.hostName }}</span>
-                    <span v-else class="hie__tag is-bad">未匹配</span>
+                    <span v-if="r.hostId" class="hie__tag is-ok">{{ matchLabel(r) }}</span>
+                    <span v-else-if="autoCreateHost" class="hie__tag is-warn" :title="`${r.address}:${r.port}`">{{ matchLabel(r) }}</span>
+                    <span v-else class="hie__tag is-bad">{{ matchLabel(r) }}</span>
                   </td>
-                  <td class="note" :title="r.note">{{ r.note || "—" }}</td>
+                  <td class="note" :title="rowNote(r)">{{ rowNote(r) }}</td>
                 </tr>
               </tbody>
             </table>

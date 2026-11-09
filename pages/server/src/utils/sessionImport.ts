@@ -462,6 +462,60 @@ export function parseSessionFile(fileName: string, text: string): ParsedSession[
 }
 
 /**
+ * 给自动创建的主机取一个不重名的名字。
+ *
+ * @param base 会话名或地址
+ * @param used 已占用的小写名称集合（会就地写入新名字）
+ * @returns 唯一主机名
+ */
+export function uniqueHostName(base: string, used: Set<string>): string {
+  const raw = (base || "").trim() || "未命名主机";
+  let name = raw;
+  let seq = 2;
+  while (used.has(name.toLowerCase())) {
+    name = `${raw} (${seq++})`;
+  }
+  used.add(name.toLowerCase());
+  return name;
+}
+
+/**
+ * 未匹配会话自动建主机时的字段口径。
+ *
+ * <p>分组统一落「未分组」，建完由用户在主机编辑里调整；系统类型先按 LINUX（客户端会话
+ * 基本都是类 Unix），不逐台探测，避免几十条会话把导入拖成分钟级。</p>
+ *
+ * @param session 解析出的会话
+ * @param used    已占用名称集合
+ * @returns 建主机请求体
+ */
+export function buildSessionHostPayload(session: Pick<ParsedSession, "name" | "address" | "port" | "source">, used: Set<string>): Record<string, unknown> {
+  return {
+    serverHostName: uniqueHostName(session.name || session.address, used),
+    serverHostAddress: session.address,
+    serverHostPort: session.port,
+    serverHostOsType: "LINUX",
+    serverHostSshEnabled: 1,
+    serverHostCollectMode: "OPENSSH",
+    serverHostRemoteEnabled: 1,
+    serverHostRemoteProtocol: "SSH",
+    serverHostRemoteMode: "DIRECT",
+    serverHostRemotePort: session.port,
+    msServerGroupId: null,
+    serverHostTags: "",
+    serverHostCode: "",
+    serverHostCollectInterval: 15,
+    serverHostOnlineEnabled: 1,
+    serverHostOnlineInterval: 60,
+    serverHostVncPassword: "",
+    serverHostAgentEnabled: 0,
+    serverHostDelayEnabled: 1,
+    serverHostDelayInterval: 60,
+    serverHostDescription: `从 ${SOURCE_LABEL[session.source]} 会话导入`,
+  };
+}
+
+/**
  * 把一条会话匹配到台账主机：先「地址 + 端口」，再「同地址」；内/外网 IP 也参与匹配。
  *
  * @param address 会话地址
