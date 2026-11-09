@@ -5,6 +5,11 @@
  * layout 只负责展示，不碰倒计时逻辑；
  * 逻辑层走 workjs（基于 @repo/work/countdown 的全局 worker 秒级 tick + rAF 插值）。
  *
+ * 每个 ReCountdown 实例对应注册中心的一条任务，
+ * 帧循环每帧从响应式的 `endTime`（props.end / props.duration 算出来）重新读目标，
+ * 所以 duration/end 变了不用重注册、watch 也不用；
+ * paused 变了走 workjs 的 pause/resume，turn 同样切到新的 frame。
+ *
  * 默认 layout = dial。
  *
  * 用法：
@@ -12,8 +17,8 @@
  *   <ReCountdown :end="Date.now() + 120_000" layout="segment" />
  *   <ReCountdown v-model:paused="isPaused" :duration="300" />
  */
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import type { CountdownColor, CountdownLayout } from "./types";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import type { CountdownColor, CountdownLayout, CountdownTask } from "./types";
 import { destroyCountdown, initCountdown, pauseCountdown, resumeCountdown, startCountdownLoop } from "./workjs";
 
 import ReCountdownDial from "./layouts/Dial.vue";
@@ -109,16 +114,27 @@ const endTime = computed(() => {
 
 const layoutComponent = computed(() => LAYOUTS[props.layout] ?? ReCountdownDial);
 
+/** 单条任务（主线程侧，workjs 帧循环读它，注册/暂停/恢复都把同一份数据改干净） */
+let task: CountdownTask | null = null;
+
 onMounted(() => {
+  task = reactive({
+    id: taskId.value,
+    endTime: endTime.value,
+    label: props.label,
+    paused: props.paused,
+  });
   // 注册到 workjs（由 registry 驱动，确保暂停/恢复/剩余时间走同一套）
-  const task = { id: taskId.value, endTime: endTime.value, label: props.label, paused: props.paused };
   initCountdown(task);
   // 恢复态也是：已暂停的任务不驱动循环
-  if (props.paused) pauseCountdown(taskId.value);
+  if (props.paused) pauseCountdown(task.id);
   stopLoop = startCountdownLoop((tasks) => {
-    const task = tasks.find((t) => t.id === taskId.value);
-    if (!task || task.paused) return; // 暂停：不驱动 remaining 与 finished
-    const next = Math.max(0, task.endTime - Date.now());
+    const current = tasks.find((t) => t.id === task?.id);
+    if (!current) return;
+    // 每帧从响应式目标时间重算（duration/end 变化不用重新登记，没有套装而且状态不掉）
+    current.endTime = endTime.value;
+    if (current.paused) return; // 暂停：不驱动 remaining 与 finished
+    const next = Math.max(0, current.endTime - Date.now());
     remaining.value = next;
     const isDone = next <= 0;
     finished.value = isDone;
@@ -126,6 +142,8 @@ onMounted(() => {
       ended.value = true;
       emit("end");
       props.onEnd?.();
+    } else if (!isDone) {
+      ended.value = false;
     }
   });
   remaining.value = Math.max(0, endTime.value - Date.now());
@@ -133,7 +151,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   stopLoop?.();
-  destroyCountdown(taskId.value);
+  destroyCountdown(task?.id ?? "");
+  stopLoop = null;
 });
 
 /** 动态暂停/恢复（父态Sync 到 workjs） */
@@ -141,27 +160,14 @@ watch(
   () => props.paused,
   (paused: boolean) => {
     if (paused) {
-      pauseCountdown(taskId.value);
+      pauseCountdown(task?.id ?? "");
       emit("pause");
     } else {
-      resumeCountdown(taskId.value);
+      resumeCountdown(task?.id ?? "");
       emit("resume");
     }
   }
 );
-
-/**
- * 目标时间变化（父级刷新了「上次执行时间 / 间隔」）时重新登记：
- * 否则 workjs 里仍是挂载时的那条任务，表盘会停在旧倒计时上不动。
- */
-watch(endTime, (value: number) => {
-  initCountdown({ id: taskId.value, endTime: value, label: props.label, paused: props.paused });
-  if (props.paused) pauseCountdown(taskId.value);
-  else resumeCountdown(taskId.value);
-  ended.value = false;
-  remaining.value = Math.max(0, value - Date.now());
-  finished.value = remaining.value <= 0;
-});
 
 /** 暴露 API */
 defineExpose({

@@ -2364,8 +2364,10 @@ function ctxCommandsFor(item: Project): CtxCommandItem[] {
   if (item.logPath) {
     out.push({ command: 'copy-log', label: '复制日志地址', icon: 'DocumentCopy' });
   }
+  // 系统日志：内容来自项目配置的 logPath（目录时服务端取最新文件），配了才有入口；
+  // 项目被禁用也不挡查看 —— 停止的服务往往正是最需要翻日志的时候
+  if (item.logPath) out.push({ command: 'log', label: '系统日志', icon: 'Tickets' });
   if (item.enabled !== false) {
-    if (item.logPath) out.push({ command: 'log', label: '系统日志', icon: 'Tickets' });
     if (isJavaProject(item)) out.push({ command: 'arthas', label: 'Arthas 诊断', icon: 'Monitor' });
     if (item.javaProcess) {
       out.push({ command: 'swagger', label: 'Swagger 接口文档', icon: 'Link' });

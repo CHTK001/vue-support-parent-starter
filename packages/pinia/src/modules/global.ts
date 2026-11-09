@@ -13,6 +13,15 @@ import { getFrameworkStorage } from "@repo/utils";
 /** 一次性迁移标记：历史默认布局为 group，系统默认导航应为垂直(vertical) */
 const LAYOUT_DEFAULT_MIGRATION_KEY = "layout-default-vertical-v1";
 
+/**
+ * 一次性迁移标记：标签栏恢复显示。
+ *
+ * 标签栏显隐原先没有默认值收敛，历史版本里 `isTabsShown=false` 一旦落盘就永久生效，
+ * 用户看到的是「顶部标签栏默认不显示、也不常显」，且设置面板外没有任何提示。
+ * 这里只在首次遇到该标记时把值纠正为 true，之后用户手动关闭照常持久化。
+ */
+const TABS_SHOWN_MIGRATION_KEY = "tabs-shown-default-on-v1";
+
 const globalStore = defineStore("global", {
   persist: {
     key: "global",
@@ -23,6 +32,11 @@ const globalStore = defineStore("global", {
         if (!storage.get(LAYOUT_DEFAULT_MIGRATION_KEY)) {
           ctx.store.layout = "vertical";
           storage.set(LAYOUT_DEFAULT_MIGRATION_KEY, true);
+        }
+        // 标签栏：历史残留的 false 纠正回 true，只做一次
+        if (!storage.get(TABS_SHOWN_MIGRATION_KEY)) {
+          ctx.store.isTabsShown = true;
+          storage.set(TABS_SHOWN_MIGRATION_KEY, true);
         }
       } catch {
         // 迁移失败忽略：保留已存布局值，不影响功能

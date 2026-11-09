@@ -3,7 +3,8 @@
     <ReMaximize />
     <RePerfMonitor />
     <ReAiCharacter />
-    <Tabs v-if="globalStore.isTabsShown" />
+    <!-- 标签栏：开关（other 设置面板 / 持久化的 isTabsShown）与屏宽双条件 -->
+    <Tabs v-if="globalStore.isTabsShown && showTabs" />
     <AnnouncementBar position="default" load-mode="single" />
     <el-main class="main-content">
       <router-view v-slot="{ Component, route }">
@@ -134,6 +135,7 @@ watch(
 );
 
 const screenWidth = ref(0);
+/** 标签栏是否显示：默认显示，窄屏（<520）才收起 */
 const showTabs = ref(true);
 
 /** 监听窗口大小变化，折叠侧边栏 */
@@ -145,6 +147,11 @@ const listeningWindow = useDebounceFn(() => {
 }, 100);
 
 window.addEventListener("resize", listeningWindow, false);
+
+// 首屏必须先量一次：不量的话 screenWidth 停在 0，而 showTabs 只能被 resize 打开，
+// 用户不拖窗口就永远看不到标签栏（顶部"不常显"的由来）
+screenWidth.value = document.body.clientWidth;
+showTabs.value = screenWidth.value >= 520;
 
 onBeforeUnmount(() => {
   window.removeEventListener("resize", listeningWindow);

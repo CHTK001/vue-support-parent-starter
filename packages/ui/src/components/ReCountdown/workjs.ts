@@ -2,10 +2,10 @@
  * ReCountdown workjs —— 把 <ReCountdown> 接入 @repo/work 的全局倒计时管理
  *
  * 每个 ReCountdown 实例对应一条任务（通过唯一 id 区分），
- * workjs 对公司：
+ * workjs 管事边界：
  *   1. 把任务注册到 @repo/work/countdown 的全局 worker（秒级 tick 推送）
- *   2. 订阅 tick 并暴露 computed（remaining / finished）给布局消费
- *   3. 提供 rAF 动画循环的开关（layout 内部用 rAF 微调可动画）
+ *   2. 暴露 rAF 插值循环（所有轮子共享一个 tick，每帧驱动所有订阅者）
+ *   3. 暂停/恢复/注销走全局 task 状态
  */
 import type { CountdownTask } from "./types";
 import { getGlobalCountdown } from "@repo/work/countdown";
@@ -55,19 +55,30 @@ export function getRemaining(id: string): number {
 
 /**
  * 在 work 的 tick（每秒）之上启动 rAF 插值循环
+ *
+ * 所有 ReCountdown 实例共享唯一 rAF，每帧把 callback 列表里的任务全部推一遍；
+ * 回调里应该从自己任务对象的 `endTime` 读目标时间戳（不与 work 内部 copy 解耦），
  * @returns 退出函数
  */
 export function startCountdownLoop(callback: LoopCallback): () => void {
   loopCallbacks.add(callback);
+  // 已有循环在转，直接把 callback 塞进去，每帧整个跑
   if (tickLoop) return () => loopCallbacks.delete(callback);
 
   const tick = () => {
     tickLoop = requestAnimationFrame(tick);
-    // 只把形存的 lastTick tasks 推一分
-    const tasks: CountdownTask[] = Array.from(registry.values());
-    callback(tasks);
+    // 无订阅者收掉循环，避免空转
+    if (loopCallbacks.size === 0) {
+      tickLoop = null;
+      return;
+    }
+    const tasks = Array.from(registry.values());
+    // 先拷一份，防止某条回调在 tick 中间 self-destroy
+    const callbacks = Array.from(loopCallbacks);
+    callbacks.forEach((cb) => cb(tasks));
   };
   tickLoop = requestAnimationFrame(tick);
+
   return () => loopCallbacks.delete(callback);
 }
 
