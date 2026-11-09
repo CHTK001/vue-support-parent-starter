@@ -231,16 +231,9 @@ async function loadChannels() {
         } catch { /* 单渠道模型拉取失败不拖垮整页 */ }
       }),
     )
-    // 默认选中要跳过被收进「Magpie 托管」的渠道：它们已不在左栏，
-    // 一进页面右侧却显示一个左栏里找不到的渠道（例如 qoder），会让人以为丢了入口。
-    const hiddenChannels = new Set(managedChannels.value.map((c) => c.channel))
-    const current = activeChannel.value
-    if (!current || !channels.value.some((c) => c.channel === current) || hiddenChannels.has(current)) {
-      activeChannel.value =
-        gatewayChannel.value?.channel ??
-        channels.value.find((c) => !hiddenChannels.has(c.channel))?.channel ??
-        channels.value[0]?.channel ??
-        ''
+    // 左栏现在就是全部业务渠道：当前选中失效时落到第一个渠道即可。
+    if (!activeChannel.value || !channels.value.some((c) => c.channel === activeChannel.value)) {
+      activeChannel.value = channels.value[0]?.channel ?? ''
     }
     // 左栏状态灯与「点进去落到上游还是插件」要看网关现状：只读拉一次，
     // 管理面不可用时按「未接入」处理，点开仍有预设 / 插件两条路。
@@ -1307,11 +1300,140 @@ const focusLabel = computed(() => {
   return channels.value.find((c) => c.channel === id)?.displayName || id
 })
 
-type RailItem =
-  | { kind: 'channel'; channel: ChannelSummary }
-  | { kind: 'managed'; entry: ManagedEntry }
-  | { kind: 'provider'; provider: MagpieProvider }
-  | { kind: 'plugin-group' }
+/* ==================== 左栏：业务渠道 + 拖拽排序 ==================== */
+
+/**
+ * 左栏顺序的本地存储键。
+ *
+ * <p>只影响展示顺序，不改后端、不改变渠道启用状态：渠道清单来自 SPI 注册表，
+ * 排序属于前端偏好。</p>
+ */
+const CHANNEL_ORDER_KEY = 'chm.rail.channel-order.v1'
+
+/** 读取本地记住的渠道顺序；读不到 / 格式不对时返回空数组 */
+function readChannelOrder(): string[] {
+  try {
+    const raw = localStorage.getItem(CHANNEL_ORDER_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+/** 左栏顺序（渠道 id）；新出现的渠道自动排在末尾 */
+const channelOrder = ref<string[]>(readChannelOrder())
+
+/** 正在拖拽的渠道 id */
+const draggingChannel = ref('')
+/** 当前拖到的目标渠道 id（用于画落点线） */
+const dropTargetChannel = ref('')
+
+/**
+ * 左栏条目：只放业务渠道，一行一个。
+ *
+ * <p>不再出现「托管 / 上游 / 插件」这些后端实现行：magpie、cdp 只是渠道背后的
+ * 接入方式，用户看到的是 Qoder、WorkBuddy、Trae 这些渠道本身。渠道之间的先后
+ * 顺序由拖拽决定，并记在本地。</p>
+ */
+const railItems = computed<ChannelSummary[]>(() => {
+  const rank = new Map(channelOrder.value.map((id, i) => [id, i]))
+  return [...channels.value].sort((a, b) => {
+    const ra = rank.get(a.channel)
+    const rb = rank.get(b.channel)
+    if (ra === undefined && rb === undefined) return 0
+    if (ra === undefined) return 1
+    if (rb === undefined) return -1
+    return ra - rb
+  })
+})
+
+/** 该行是否处于选中态（托管渠道跳去网关时按 focusChannel 高亮） */
+function railActive(c: ChannelSummary): boolean {
+  if (c.channel === activeChannel.value) return true
+  return activeChannel.value === gatewayChannel.value?.channel && focusChannel.value === c.channel
+}
+
+/**
+ * 点开一个渠道。
+ *
+ * <p>由 Magpie 托管、本地又没有连接的渠道，直接跳到聚合网关里定位它的上游 /
+ * 插件——登录和额度都在网关里，留在这边只会看到一张空账号表。</p>
+ *
+ * @param c 渠道摘要
+ */
+function onRailClick(c: ChannelSummary): void {
+  const vendor = magpieOwnedOf(c.channel)
+  if (vendor && !(c.connections ?? []).length && gatewayChannel.value) {
+    openManaged({ vendor, channel: c })
+    return
+  }
+  activeChannel.value = c.channel
+  clearManagedFocus()
+}
+
+/**
+ * 开始拖拽某一行。
+ *
+ * @param event   原生拖拽事件
+ * @param channel 渠道 id
+ */
+function onChannelDragStart(event: DragEvent, channel: string): void {
+  draggingChannel.value = channel
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', channel)
+  }
+}
+
+/**
+ * 拖到某一行上方：记录落点，由模板画一条落点线。
+ *
+ * @param channel 目标渠道 id
+ */
+function onChannelDragOver(channel: string): void {
+  if (!draggingChannel.value || draggingChannel.value === channel) return
+  dropTargetChannel.value = channel
+}
+
+/**
+ * 拖离某一行：清掉落点线。
+ *
+ * @param channel 目标渠道 id
+ */
+function onChannelDragLeave(channel: string): void {
+  if (dropTargetChannel.value === channel) dropTargetChannel.value = ''
+}
+
+/**
+ * 放下：把被拖渠道移动到目标位置，并写入本地顺序。
+ *
+ * @param channel 目标渠道 id
+ */
+function onChannelDrop(channel: string): void {
+  const from = draggingChannel.value
+  onChannelDragEnd()
+  if (!from || from === channel) return
+  const ids = railItems.value.map((c) => c.channel)
+  const fromIndex = ids.indexOf(from)
+  const toIndex = ids.indexOf(channel)
+  if (fromIndex < 0 || toIndex < 0) return
+  ids.splice(fromIndex, 1)
+  ids.splice(toIndex, 0, from)
+  channelOrder.value = ids
+  try {
+    localStorage.setItem(CHANNEL_ORDER_KEY, JSON.stringify(ids))
+  } catch {
+    /* 隐私模式 / 配额满：顺序只在本次会话生效，不影响功能 */
+  }
+}
+
+/** 结束拖拽：清掉落点与拖拽态 */
+function onChannelDragEnd(): void {
+  draggingChannel.value = ''
+  dropTargetChannel.value = ''
+}
 
 /**
  * 网关里还没有对应渠道行的上游。
@@ -1327,40 +1449,6 @@ const extraProviders = computed<MagpieProvider[]>(() => {
   ])
   return gatewayProviderRows.value.filter((p) => p?.id && !covered.has(String(p.id)))
 })
-
-/**
- * 左栏渲染顺序：普通渠道；网关那一行之后紧跟每个被托管渠道、其余上游，
- * 最后是插件分组。托管不再折叠成一个分组——每个渠道 / 上游都和别人一样占一行。
- */
-const railItems = computed<RailItem[]>(() => {
-  const hidden = new Set(managedChannels.value.map((c) => c.channel))
-  const gateway = gatewayChannel.value
-  const ready = !!gateway && (gateway.connections ?? []).length > 0
-  const items: RailItem[] = []
-  for (const c of channels.value) {
-    if (hidden.has(c.channel)) continue
-    items.push({ kind: 'channel', channel: c })
-    if (c.channel === gateway?.channel && ready) {
-      for (const entry of managedEntries.value) items.push({ kind: 'managed', entry })
-      for (const provider of extraProviders.value) items.push({ kind: 'provider', provider })
-      items.push({ kind: 'plugin-group' })
-    }
-  }
-  return items
-})
-
-/**
- * 左栏行唯一键：渠道 / 托管 / 上游 / 插件分组共用同一个 v-for。
- *
- * @param item 行
- * @returns 稳定唯一键
- */
-function railKey(item: RailItem): string {
-  if (item.kind === 'channel') return 'channel:' + item.channel.channel
-  if (item.kind === 'managed') return 'managed:' + item.entry.channel.channel
-  if (item.kind === 'provider') return 'provider:' + String(item.provider.id ?? '')
-  return 'plugin-group'
-}
 
 /** 清掉所有「刚才那一跳」的定位与预填 */
 function clearManagedFocus(): void {
@@ -1821,123 +1909,43 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
             </button>
           </span>
         </div>
-        <template v-for="item in railItems" :key="railKey(item)">
-          <button
-            v-if="item.kind === 'channel'"
-            type="button"
-            class="chm-rail__item"
-            :class="{ 'is-active': item.channel.channel === activeChannel }"
-            @click="activeChannel = item.channel.channel; clearManagedFocus()"
-          >
-            <span class="chm-rail__logo"
-                  :class="{ 'is-ico': !!brandOf(item.channel.channel).icon }"
-                  :style="brandOf(item.channel.channel).icon ? undefined : { background: brandOf(item.channel.channel).color }">
-              <img v-if="brandOf(item.channel.channel).icon" :src="brandOf(item.channel.channel).icon" :alt="item.channel.channel" />
-              <b v-else>{{ brandOf(item.channel.channel).glyph }}</b>
-            </span>
-            <span class="chm-rail__name" :title="item.channel.displayName || item.channel.channel">
-              {{ item.channel.displayName || item.channel.channel }}
-            </span>
-            <span class="chm-rail__kind" :title="kindText(item.channel)">{{ kindOf(item.channel) }}</span>
-            <span class="chm-rail__dot" :class="'is-' + channelState(item.channel)"
-                  :title="channelStateText(item.channel)" />
-          </button>
-
-          <!-- 托管渠道：不再折叠，和普通渠道一样一行一个；点开去网关里定位它的上游 / 插件 -->
-          <button
-            v-else-if="item.kind === 'managed'"
-            type="button"
-            class="chm-rail__item is-managed"
-            :class="{ 'is-active': activeChannel === gatewayChannel?.channel && focusChannel === item.entry.channel.channel }"
-            :title="managedHint(item.entry)"
-            @click="openManaged(item.entry)"
-          >
-            <span class="chm-rail__logo"
-                  :class="{ 'is-ico': !!brandOf(item.entry.channel.channel).icon }"
-                  :style="brandOf(item.entry.channel.channel).icon ? undefined : { background: brandOf(item.entry.channel.channel).color }">
-              <img v-if="brandOf(item.entry.channel.channel).icon" :src="brandOf(item.entry.channel.channel).icon" :alt="item.entry.channel.channel" />
-              <b v-else>{{ brandOf(item.entry.channel.channel).glyph }}</b>
-            </span>
-            <span class="chm-rail__name" :title="item.entry.channel.displayName || item.entry.channel.channel">
-              {{ item.entry.channel.displayName || item.entry.channel.channel }}
-            </span>
-            <span class="chm-rail__chip">托管</span>
-            <span class="chm-rail__dot" :class="'is-' + managedState(item.entry)"
-                  :title="managedState(item.entry) === 'online' ? '网关里已接入' : '网关里还没接入，点开可接'" />
-          </button>
-
-          <!-- 仅存在于网关的上游：同样占一行，账号 / 积分 / 模型都在上游详情里 -->
-          <button
-            v-else-if="item.kind === 'provider'"
-            type="button"
-            class="chm-rail__item is-upstream"
-            :class="{ 'is-active': activeChannel === gatewayChannel?.channel && focusProviderId === String(item.provider.id ?? '') }"
-            :title="providerHint(item.provider)"
-            @click="openProvider(item.provider)"
-          >
-            <span class="chm-rail__logo"
-                  :class="{ 'is-ico': !!providerBrand(item.provider).icon }"
-                  :style="providerBrand(item.provider).icon ? undefined : { background: providerBrand(item.provider).color }">
-              <img v-if="providerBrand(item.provider).icon" :src="providerBrand(item.provider).icon" :alt="String(item.provider.id ?? '')" />
-              <b v-else>{{ providerBrand(item.provider).glyph }}</b>
-            </span>
-            <span class="chm-rail__name" :title="String(item.provider.name ?? item.provider.id ?? '')">
-              {{ item.provider.name || item.provider.id }}
-            </span>
-            <span v-if="providerAccountCount(item.provider)" class="chm-rail__kind"
-                  :title="providerAccountCount(item.provider) + ' 个账号'">{{ providerAccountCount(item.provider) }}</span>
-            <span class="chm-rail__chip">上游</span>
-            <span class="chm-rail__dot" :class="'is-' + providerState(item.provider)"
-                  :title="providerState(item.provider) === 'online' ? '网关里已有账号或 Key' : '还没有账号，点开可登录'" />
-          </button>
-
-          <!-- 插件分组：magpie 社区插件能接管的渠道（含免费 / 反代），一行一个入口 -->
-          <template v-else>
-            <button
-              type="button"
-              class="chm-rail__item chm-rail__item--group"
-              :class="{ 'is-open': pluginOpen }"
-              :title="`Magpie 插件：magpie 社区插件能接管这 ${MAGPIE_PLUGIN_CHANNELS.length} 个渠道（含免费与反代聚合）——点开挑一个，未装时给出安装入口；安装、登录都要你自己点`"
-              @click="pluginOpen = !pluginOpen"
-            >
-              <span class="chm-rail__logo is-group is-plugin"><b>P</b></span>
-              <span class="chm-rail__name">插件</span>
-              <span class="chm-rail__kind">{{ MAGPIE_PLUGIN_CHANNELS.length }}</span>
-              <span class="chm-rail__chev">{{ pluginOpen ? '▾' : '▸' }}</span>
-            </button>
-            <template v-if="pluginOpen">
-              <div class="chm-rail__filter">
-                <input
-                  v-model="pluginFilter"
-                  type="search"
-                  placeholder="过滤插件渠道…"
-                  aria-label="过滤插件渠道"
-                />
-              </div>
-              <button
-                v-for="plugin in pluginRows"
-                :key="'plugin-' + plugin.spec"
-                type="button"
-                class="chm-rail__item is-plugin"
-                :class="{ 'is-active': activeChannel === gatewayChannel?.channel && focusPluginSpec === plugin.spec }"
-                :title="plugin.summary"
-                @click="openPlugin(plugin)"
-              >
-                <span class="chm-rail__logo"
-                      :class="{ 'is-ico': !!pluginBrand(plugin).icon }"
-                      :style="pluginBrand(plugin).icon ? undefined : { background: pluginBrand(plugin).color }">
-                  <img v-if="pluginBrand(plugin).icon" :src="pluginBrand(plugin).icon" :alt="plugin.name" />
-                  <b v-else>{{ pluginBrand(plugin).glyph }}</b>
-                </span>
-                <span class="chm-rail__name" :title="plugin.name">{{ plugin.name }}</span>
-                <span v-if="plugin.free" class="chm-rail__chip is-free">免费</span>
-                <span class="chm-rail__dot" :class="'is-' + pluginState(plugin)"
-                      :title="pluginState(plugin) === 'online' ? '网关里已接入' : '网关里还没接入，点开可装'" />
-              </button>
-              <p v-if="!pluginRows.length" class="chm-rail__empty">没有匹配的插件渠道</p>
-            </template>
-          </template>
-        </template>
+        <!--
+          左栏只有业务渠道：一行一个，拖上拖下调整顺序。
+          后端是 magpie、cdp 还是原生 SPI 都不在这里体现；接入方式在右侧详情里看。
+        -->
+        <button
+          v-for="c in railItems"
+          :key="c.channel"
+          type="button"
+          class="chm-rail__item"
+          :class="{
+            'is-active': railActive(c),
+            'is-dragging': draggingChannel === c.channel,
+            'is-drop-target': dropTargetChannel === c.channel && draggingChannel !== c.channel,
+          }"
+          draggable="true"
+          :title="`${c.displayName || c.channel}（拖拽调整顺序）`"
+          @click="onRailClick(c)"
+          @dragstart="onChannelDragStart($event, c.channel)"
+          @dragover.prevent="onChannelDragOver(c.channel)"
+          @dragleave="onChannelDragLeave(c.channel)"
+          @drop.prevent="onChannelDrop(c.channel)"
+          @dragend="onChannelDragEnd()"
+        >
+          <span class="chm-rail__grip" aria-hidden="true">⠿</span>
+          <span class="chm-rail__logo"
+                :class="{ 'is-ico': !!brandOf(c.channel).icon }"
+                :style="brandOf(c.channel).icon ? undefined : { background: brandOf(c.channel).color }">
+            <img v-if="brandOf(c.channel).icon" :src="brandOf(c.channel).icon" :alt="c.channel" />
+            <b v-else>{{ brandOf(c.channel).glyph }}</b>
+          </span>
+          <span class="chm-rail__name" :title="c.displayName || c.channel">
+            {{ c.displayName || c.channel }}
+          </span>
+          <span class="chm-rail__kind" :title="kindText(c)">{{ kindOf(c) }}</span>
+          <span class="chm-rail__dot" :class="'is-' + channelState(c)"
+                :title="channelStateText(c)" />
+        </button>
       </aside>
 
       <!-- 右：选中渠道详情 -->
@@ -2675,6 +2683,28 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 .chm-rail__item.is-active {
   background: color-mix(in srgb, var(--brand-500, #3b82f6) 10%, transparent);
   font-weight: 600;
+}
+/* 拖拽排序：手柄在 hover 时显形，落点用顶部亮线提示 */
+.chm-rail__grip {
+  flex: none;
+  width: 8px;
+  opacity: 0;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--text-tertiary, #94a3b8);
+  transition: opacity .12s ease;
+}
+.chm-rail__item:hover .chm-rail__grip {
+  opacity: 1;
+}
+.chm-rail__item[draggable='true'] {
+  cursor: grab;
+}
+.chm-rail__item.is-dragging {
+  opacity: .45;
+}
+.chm-rail__item.is-drop-target {
+  box-shadow: inset 0 2px 0 0 var(--brand-500, #3b82f6);
 }
 /* Magpie 托管分组：把已托管的 N 个渠道收敛成一行，展开才是子项 */
 .chm-rail__item--group {
