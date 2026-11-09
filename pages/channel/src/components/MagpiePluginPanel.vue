@@ -3,9 +3,16 @@
     <div class="mg-pl__head">
       <span class="mg-pl__title">
         网关插件
-        <i>{{ plugins.length }}</i>
+        <i>{{ visiblePlugins.length }}<template v-if="pluginQuery.trim()"> / {{ plugins.length }}</template></i>
       </span>
       <span class="mg-pl__ops">
+        <input
+          v-model="pluginQuery"
+          class="mg-pl__search"
+          type="search"
+          placeholder="搜索插件 / provider"
+          aria-label="搜索插件"
+        />
         <select
           v-if="connections.length > 1"
           v-model="connectionId"
@@ -83,7 +90,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="plugin in plugins" :key="String(plugin.spec)" :class="{ 'is-focus': isFocused(plugin) }">
+            <tr v-for="plugin in visiblePlugins" :key="String(plugin.spec)" :class="{ 'is-focus': isFocused(plugin) }">
               <td class="is-name" :title="String(plugin.name ?? '')">
                 {{ plugin.name || shortSpec(plugin.spec) }}
               </td>
@@ -125,9 +132,10 @@
                 >卸载</button>
               </td>
             </tr>
-            <tr v-if="!plugins.length && !loading">
+            <tr v-if="!visiblePlugins.length && !loading">
               <td colspan="6" class="mg-pl__empty-cell">
                 <template v-if="error">管理面不可用：{{ error }}</template>
+                <template v-else-if="pluginQuery.trim()">没有匹配「{{ pluginQuery }}」的插件</template>
                 <template v-else>网关里还没有插件，点「插件市场」挑一个装上</template>
               </td>
             </tr>
@@ -137,11 +145,11 @@
 
       <div v-if="listings.length" class="mg-pl__market">
         <div class="mg-pl__market-head">
-          <span>插件市场</span>
+          <span>插件市场<template v-if="pluginQuery.trim()"> · {{ visibleListings.length }} / {{ listings.length }}</template></span>
           <button type="button" class="mg-pl__link" @click="listings = []">收起</button>
         </div>
-        <ul class="mg-pl__list">
-          <li v-for="item in listings" :key="String(item.package ?? item.spec ?? item.name)">
+        <ul v-if="visibleListings.length" class="mg-pl__list">
+          <li v-for="item in visibleListings" :key="String(item.package ?? item.spec ?? item.name)">
             <div class="mg-pl__list-main">
               <b>{{ String(item.name ?? item.package ?? '') }}</b>
               <span class="mg-pl__list-spec">{{ String(item.package ?? '') }}</span>
@@ -161,6 +169,7 @@
             >{{ installed(String(item.package ?? '')) ? '已安装' : '安装' }}</button>
           </li>
         </ul>
+        <p v-else class="mg-pl__empty">没有匹配「{{ pluginQuery }}」的市场插件</p>
       </div>
     </template>
 
@@ -265,6 +274,35 @@ const focusPlugin = computed<MagpiePlugin | undefined>(() => {
 
 const focusInstalled = computed(() => !!focusPlugin.value)
 const focusVersion = computed(() => String(focusPlugin.value?.version ?? ''))
+
+/** 插件清单搜索词：名称 / 规格 / 接管 provider 任一命中 */
+const pluginQuery = ref('')
+
+/** 过滤后的已装插件 */
+const visiblePlugins = computed<MagpiePlugin[]>(() => {
+  const q = pluginQuery.value.trim().toLowerCase()
+  if (!q) return plugins.value
+  return plugins.value.filter((p) => {
+    const text = [
+      p.name,
+      p.spec,
+      ...(p.providers ?? []),
+      ...(p.moved ?? []),
+    ].map((x) => String(x ?? '')).join(' ').toLowerCase()
+    return text.includes(q)
+  })
+})
+
+/** 过滤后的市场列表 */
+const visibleListings = computed<Array<Record<string, unknown>>>(() => {
+  const q = pluginQuery.value.trim().toLowerCase()
+  if (!q) return listings.value
+  return listings.value.filter((item) => {
+    const text = [item.name, item.package, item.spec, ...(Array.isArray(item.providers) ? item.providers : [])]
+      .map((x) => String(x ?? '')).join(' ').toLowerCase()
+    return text.includes(q)
+  })
+})
 
 /** 该行是否就是左栏点进来的插件 */
 function isFocused(plugin: MagpiePlugin): boolean {
@@ -593,6 +631,20 @@ function shortSpec(spec: unknown): string {
   background: var(--el-fill-color-blank, #fff);
   color: var(--el-text-color-regular, #606266);
   font-size: 12px;
+}
+.mg-pl__search {
+  width: 190px;
+  height: 28px;
+  padding: 0 9px;
+  border-radius: 6px;
+  border: 1px solid var(--el-border-color, #dcdfe6);
+  background: var(--el-fill-color-blank, #fff);
+  color: var(--el-text-color-regular, #606266);
+  font-size: 12.5px;
+  outline: none;
+}
+.mg-pl__search:focus {
+  border-color: var(--el-color-primary, #409eff);
 }
 .mg-pl__btn {
   padding: 5px 12px;

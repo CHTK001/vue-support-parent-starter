@@ -42,25 +42,32 @@ function toReadableError(error: unknown): Error {
   if (typeof data === 'string') {
     text = data.trim()
   } else if (data && typeof data === 'object') {
-    const body = data as Record<string, unknown>
     /*
      * 异常处理器会把真正的失败信封再包一层统一响应：
      * `{ code: '00000', msg: '操作成功', data: { success: false, code, error } }`。
      * 只看外层 msg 会把「失败」显示成「操作成功」——「刷新失败：操作成功」就是这么来的。
      * 内层明确失败时优先取其 error / message / msg，外层只作兜底。
      */
-    const inner = body.data
-    const innerFailed = !!inner && typeof inner === 'object'
-      && ((inner as Record<string, unknown>).success === false
-        || (inner as Record<string, unknown>).ok === false)
-    if (innerFailed) {
-      const nested = inner as Record<string, unknown>
-      text = String(nested.error ?? nested.message ?? nested.msg ?? '').trim()
+    const pickFailure = (value: unknown, depth: number): string => {
+      if (!value || typeof value !== 'object' || depth > 4) return ''
+      const row = value as Record<string, unknown>
+      const failed = row.success === false || row.ok === false || row.code === 'INTERNAL_ERROR'
+      if (failed) {
+        const own = String(row.error ?? row.message ?? row.msg ?? '').trim()
+        if (own && own !== '操作成功') return own
+      }
+      return pickFailure(row.data, depth + 1)
     }
+    text = pickFailure(data, 0)
     if (!text) {
-      text = String(body.msg ?? body.message ?? body.error ?? '').trim()
+      text = String((data as Record<string, unknown>).msg
+        ?? (data as Record<string, unknown>).message
+        ?? (data as Record<string, unknown>).error
+        ?? '').trim()
     }
   }
+  // 「操作成功」出现在错误路径上没有任何信息量，宁可退回 axios 的原文/状态码。
+  if (text === '操作成功') text = ''
   if (!text) {
     text = String(source?.message ?? error ?? '').trim()
   }

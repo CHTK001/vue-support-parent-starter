@@ -52,7 +52,8 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="p in providers" :key="String(p.id)" :class="{ 'is-focus': !!resolvedFocus && String(p.id) === resolvedFocus }">
+          <template v-for="p in providers" :key="'up-' + String(p.id)">
+          <tr :class="{ 'is-focus': !!resolvedFocus && String(p.id) === resolvedFocus }">
             <td class="is-name" :title="String(p.name ?? '')">
               {{ p.name || p.id }}
               <span v-if="isPluginManaged(p)" class="mg-up__tag is-plugin" title="该上游由插件接管，登录与签到走插件">
@@ -81,7 +82,7 @@
                 class="mg-up__link"
                 :disabled="quotaLoading && quotaProviderId === p.id"
                 @click="openQuotas(p)"
-              >额度</button>
+              >账号 / 积分</button>
               <button type="button" class="mg-up__link" @click="openEditor(p)">编辑</button>
               <button
                 type="button"
@@ -98,6 +99,47 @@
               <button type="button" class="mg-up__link is-danger" @click="remove(p)">删除</button>
             </td>
           </tr>
+          <!-- 从左栏点进来的上游：直接把账号 / 积分摊开，不用再点「额度」才看得到 -->
+          <tr v-if="resolvedFocus && String(p.id) === resolvedFocus" class="mg-up__focus-row">
+            <td colspan="7">
+              <div class="mg-up__focus-panel">
+                <div class="mg-up__focus-head">
+                  <b>账号与积分</b>
+                  <span v-if="focusQuotaLoading" class="mg-up__formhint">读取中…</span>
+                  <span v-else-if="focusQuotaError" class="mg-up__error">{{ focusQuotaError }}</span>
+                  <span v-else class="mg-up__formhint">共 {{ focusQuotaRows.length }} 个账号</span>
+                  <button type="button" class="mg-up__link" :disabled="focusQuotaLoading" @click="loadFocusQuota(String(p.id))">
+                    刷新积分
+                  </button>
+                  <button v-if="signinEnabled" type="button" class="mg-up__link is-primary" :disabled="busyId === p.id" @click="openSignin(p)">
+                    ＋ 绑定账号
+                  </button>
+                </div>
+                <div v-if="focusQuotaRows.length" class="mg-up__quota-grid">
+                  <div v-for="(q, qi) in focusQuotaRows" :key="'fq-' + qi" class="mg-up__quota-card">
+                    <div class="mg-up__quota-head">
+                      <b>{{ String(q.user ?? q.provider ?? p.id) }}</b>
+                      <span v-if="q.plan" class="mg-up__tag">{{ String(q.plan) }}</span>
+                    </div>
+                    <p v-if="q.balance !== undefined && q.balance !== null" class="mg-up__quota-balance">
+                      余额 <b>{{ q.balance }}</b>
+                    </p>
+                    <ul v-if="quotaWindows(q).length" class="mg-up__quota-list">
+                      <li v-for="(w, wi) in quotaWindows(q)" :key="'fw-' + wi">
+                        <span>{{ windowName(w) }}</span>
+                        <span>{{ windowAmount(w) }}</span>
+                      </li>
+                    </ul>
+                    <p v-else-if="q.error" class="mg-up__formhint">{{ String(q.error) }}</p>
+                  </div>
+                </div>
+                <p v-else-if="!focusQuotaLoading" class="mg-up__formhint">
+                  这个上游还没有账号。点「＋ 绑定账号」发起登录，登录完成后账号与积分会出现在这里。
+                </p>
+              </div>
+            </td>
+          </tr>
+          </template>
           <tr v-if="!providers.length && !loading">
             <td colspan="7" class="mg-up__empty-cell">
               <template v-if="error">管理面不可用：{{ error }}</template>
@@ -394,6 +436,11 @@ const quotaError = ref('')
 const quotaProviderId = ref('')
 const quotaRows = ref<MagpieQuota[]>([])
 
+/** 聚焦上游的账号 / 积分（左栏点进来时直接摊开，不弹窗） */
+const focusQuotaRows = ref<MagpieQuota[]>([])
+const focusQuotaLoading = ref(false)
+const focusQuotaError = ref('')
+
 const quotaTitle = computed(() => {
   const id = quotaProviderId.value
   const name = providers.value.find((p) => String(p.id ?? '') === id)?.name
@@ -508,6 +555,40 @@ watch(
   },
   { flush: 'post' },
 )
+
+/** 读取聚焦上游的账号 / 积分（不打开弹窗） */
+async function loadFocusQuota(id: string): Promise<void> {
+  if (!id || !connectionId.value) {
+    focusQuotaRows.value = []
+    return
+  }
+  focusQuotaLoading.value = true
+  focusQuotaError.value = ''
+  try {
+    const res = await channelApi.magpieQuotas(
+      props.channel,
+      { connectionId: connectionId.value },
+      id,
+    )
+    const out = (res as any)?.data ?? res
+    focusQuotaRows.value = (out?.result?.quotas ?? out?.quotas ?? []) as MagpieQuota[]
+  } catch (e: any) {
+    focusQuotaError.value = e?.message ?? String(e)
+    focusQuotaRows.value = []
+  } finally {
+    focusQuotaLoading.value = false
+  }
+}
+
+/** 聚焦行变化时自动带出账号 / 积分 */
+watch(resolvedFocus, (id) => {
+  if (id) {
+    void loadFocusQuota(id)
+  } else {
+    focusQuotaRows.value = []
+    focusQuotaError.value = ''
+  }
+})
 
 /** 读取上游清单 */
 async function load(): Promise<void> {
@@ -703,7 +784,13 @@ async function testProvider(provider: MagpieProvider): Promise<void> {
       provider,
     })
     const out = (res as any)?.data ?? res
-    ElMessage.success('测试已发起：' + brief(out?.result ?? out))
+    const result = out?.result ?? out
+    const summary = testSummary(result)
+    if (testAllOk(result)) {
+      ElMessage.success('测试通过：' + summary)
+    } else {
+      ElMessage.warning('测试完成：' + summary)
+    }
   } catch (e: any) {
     ElMessage.error('测试失败：' + (e?.message ?? e))
   } finally {
@@ -712,9 +799,13 @@ async function testProvider(provider: MagpieProvider): Promise<void> {
 }
 
 /**
- * 该 provider 是否由插件接管（magpie 用 {@code move.state=plugin} 表示）。
+ * 该 provider 是否由插件接管。
  *
- * <p>接管后登录要走插件端点，所以按钮文案与请求体都得跟着变。</p>
+ * <p>{@code move.state=plugin} 只覆盖 magpie 明确标记过的那几个；实测
+ * minimax-code / trae-cn / trae-global 等 provider 的 {@code move} 是 null，
+ * 但 {@code account.logins[].agent} 已经写成 {@code plugin:xxx}，登录必须走
+ * 插件端点。只看 move 会让这些上游全部落到内置端点，magpie 直接回
+ * 「magpie can't sign in to xxx accounts」——用户看到的就是「所有登录都失败」。</p>
  *
  * @param provider 上游行
  * @returns 是否插件接管
@@ -722,7 +813,13 @@ async function testProvider(provider: MagpieProvider): Promise<void> {
 function isPluginManaged(provider: MagpieProvider): boolean {
   const move = provider.move as Record<string, unknown> | undefined
   const state = move?.state ?? (provider as Record<string, unknown>).moveState
-  return String(state ?? '') === 'plugin'
+  if (String(state ?? '') === 'plugin') return true
+  const account = (provider as Record<string, unknown>).account as Record<string, unknown> | undefined
+  const logins = Array.isArray(account?.logins) ? account.logins : []
+  if (logins.some((row) => String((row as Record<string, unknown>)?.agent ?? '').startsWith('plugin:'))) {
+    return true
+  }
+  return String((provider as Record<string, unknown>).chat ?? '').startsWith('plugin://')
 }
 
 /**
@@ -992,9 +1089,12 @@ function accountText(provider: MagpieProvider): string {
   const builtin = provider.keyCount
     ?? (Array.isArray(provider.keyList) ? provider.keyList.length : 0)
   const plugin = Number(provider.pluginAccounts ?? 0)
+  const account = (provider as Record<string, unknown>).account as Record<string, unknown> | undefined
+  const logins = Array.isArray(account?.logins) ? account.logins.length : 0
   const parts: string[] = []
   if (builtin > 0) parts.push(`内置 ${builtin}`)
   if (plugin > 0) parts.push(`插件 ${plugin}`)
+  if (logins > 0) parts.push(`登录 ${logins}`)
   return parts.length ? parts.join(' · ') : '—'
 }
 
@@ -1032,6 +1132,52 @@ function brief(value: unknown): string {
   } catch {
     return '已返回'
   }
+}
+
+/**
+ * 连通性测试结果的可读摘要。
+ *
+ * <p>magpie 的 {@code /api/provider/test} 返回
+ * {@code {results:[{protocol,ok,status,ms,model,error}]}}。把这段 JSON 原样塞进 toast
+ * 用户读不出「通没通、哪个协议、为什么失败」，这里按协议拼成人话：
+ * 「anthropic 连通（200 · 1.8s · MiniMax-M3.1-Flash）」。</p>
+ *
+ * @param value 动作接口返回的 result
+ * @returns 可读摘要；结构不认识时退回原文摘要
+ */
+function testSummary(value: unknown): string {
+  const result = value as Record<string, unknown> | undefined
+  const results = Array.isArray(result?.results) ? (result!.results as Record<string, unknown>[]) : []
+  if (!results.length) return brief(value)
+  return results
+    .map((row) => {
+      const protocol = String(row?.protocol ?? '未知协议')
+      const ok = row?.ok === true || Number(row?.status) === 200
+      const bits: string[] = []
+      if (row?.status != null) bits.push(String(row.status))
+      if (row?.ms != null && Number.isFinite(Number(row.ms))) {
+        bits.push((Math.round(Number(row.ms) / 100) / 10).toFixed(1) + 's')
+      }
+      if (row?.model) bits.push(String(row.model))
+      const detail = bits.length ? `（${bits.join(' · ')}）` : ''
+      const error = row?.error ? '：' + String(row.error) : ''
+      return `${protocol} ${ok ? '连通' : '失败'}${detail}${error}`
+    })
+    .join('；')
+}
+
+/**
+ * 测试结果是否全部连通。
+ *
+ * <p>只用于挑选 toast 的类型（成功 / 警告），不影响展示的摘要。</p>
+ *
+ * @param value 动作接口返回的 result
+ * @returns 全部协议成功时为 true；没有结果时按「未知」处理为 false
+ */
+function testAllOk(value: unknown): boolean {
+  const result = value as Record<string, unknown> | undefined
+  const results = Array.isArray(result?.results) ? (result!.results as Record<string, unknown>[]) : []
+  return results.length > 0 && results.every((row) => row?.ok === true || Number(row?.status) === 200)
 }
 </script>
 
@@ -1323,6 +1469,29 @@ function brief(value: unknown): string {
 .mg-up__signin-url a {
   color: var(--el-color-primary, #409eff);
   text-decoration: none;
+}
+/* 聚焦上游的账号 / 积分：紧跟在选中行下方，不弹窗 */
+.mg-up__focus-row > td {
+  padding: 0 10px 10px;
+  background: var(--el-fill-color-light, #f5f7fa);
+}
+.mg-up__focus-panel {
+  padding: 10px 12px;
+  border: 1px dashed var(--el-color-primary-light-5, #a0cfff);
+  border-radius: 8px;
+  background: var(--el-fill-color-blank, #fff);
+}
+.mg-up__focus-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.mg-up__quota-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
 }
 .mg-up__quota {
   display: flex;
