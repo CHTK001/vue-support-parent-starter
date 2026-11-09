@@ -137,6 +137,11 @@
                 <span class="ws-tag" :class="actStageTone(actDetail.act?.stage)">{{ actStageName(actDetail.act?.stage) }}</span>
               </div>
               <div class="ws-act-head-ops">
+                <button class="btn ghost ws-act-back" type="button" data-role="back-to-conv"
+                  title="退出幕次视图，回到可以观演、可以介入的对话视图"
+                  @click="backToConversation">
+                  回到对话
+                </button>
                 <button class="btn ghost" type="button" @click="showScript = !showScript">
                   {{ showScript ? '收起剧本' : '看剧本' }}
                 </button>
@@ -333,7 +338,7 @@
             <div class="ws-watch-bar">
               <span class="ws-watch-hint">只读账号：你只能看。角色与关系可微调，剧情由 AI 推进。</span>
               <button class="btn primary" type="button" :disabled="spectating || !canSpectate"
-                :title="canSpectate ? '让 AI 在这个场景继续演一段' : '回到对话视图才能观演'"
+                :title="canSpectate ? '让 AI 在这个场景继续演一段' : '先在场景页签里选一个场景'"
                 @click="spectate">
                 <el-icon v-if="!spectating"><VideoPlay /></el-icon>
                 <span v-else class="ws-spin"><el-icon><Loading /></el-icon></span>
@@ -1265,6 +1270,27 @@ async function selectScene(s: WorldScene) {
   await loadMessages()
 }
 
+/**
+ * 从幕次视图回到对话视图（场景不动，沿用当前已加载的消息）。
+ *
+ * 幕次视图只有只读演出稿，输入区与「观演」都不渲染，所以必须有看得见的退出口：
+ * 在此之前只能绕到右侧「地图」点场景名，提示语里那句「点幕次卡以外的地方」并不存在。
+ */
+async function backToConversation() {
+  if (!currentAct.value) return
+  currentAct.value = null
+  actDetail.value = null
+  showScript.value = false
+  showTextPlay.value = false
+  filmIndex.value = 0
+  // 没选过场景时补第一个：否则回到对话视图也点不了「观演」
+  if (currentSceneId.value == null && scenes.value.length) {
+    await selectScene(scenes.value[0])
+    return
+  }
+  scrollBottom()
+}
+
 /** 从幕次视图回到对话视图，并定位到某个场景 */
 async function goScene(s: WorldScene) {
   currentAct.value = null
@@ -1652,8 +1678,17 @@ function toggleAutoWatch() {
     stopAutoWatch()
     return
   }
-  if (!canSpectate.value) {
-    message.info('先回到对话视图（点幕次卡以外的地方）再自动观看')
+  if (!currentWorldId.value) {
+    message.info('先选一个世界')
+    return
+  }
+  // 幕次视图不渲染输入区，也开不了观演：这里必须指回真正存在的退出口
+  if (currentAct.value) {
+    message.info('现在停留在幕次视图：点幕次头部的「回到对话」退出后再开自动观看')
+    return
+  }
+  if (currentSceneId.value == null) {
+    message.info('先在场景页签里选一个场景，再开自动观看')
     return
   }
   // 两个自动开关同开会让同一轮里既推幕次又推对话，节奏互相打架
@@ -1698,11 +1733,11 @@ function stopAutoWatchTimerOnly() {
   }
 }
 
-function stopAutoWatch() {
+function stopAutoWatch(reason?: string) {
   stopAutoWatchTimerOnly()
   if (autoWatch.value) {
     autoWatch.value = false
-    message.info('自动观看已停止')
+    message.info(reason || '自动观看已停止')
   }
 }
 
@@ -1841,9 +1876,13 @@ async function openCreateAct() {
 }
 
 async function selectAct(a: WorldActListRow) {
+  // 幕次视图不能观演：自动观看继续跑只会在下一拍静默停掉，这里先把原因说清楚
+  if (autoWatch.value) stopAutoWatch('已进入幕次视图，自动观看停止')
   currentAct.value = a
   actDetail.value = null
   showScript.value = false
+  // 从聊天记录切进来时舞台可能停在半截，新幕要从头看
+  msgBoxRef.value?.scrollTo?.({ top: 0 })
   await fetchActDetail(a.actNo as number)
 }
 
@@ -2470,7 +2509,15 @@ async function send() {
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+  /* 长幕次滚到一半也能点到「回到对话」：头部吸顶，且用舞台底色盖住下方正文。
+     -18px 抵消 .ws-stage 的 padding-top，否则吸顶后会留一条缝让正文从上方露出。 */
+  position: sticky;
+  top: -18px;
+  z-index: 3;
+  padding-bottom: 8px;
+  background: var(--el-fill-color);
 }
+.ws-act-back { color: var(--el-color-primary); }
 .ws-act-head-main { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
 .ws-act-head-no { font-size: 11.5px; color: var(--el-color-primary); }
 .ws-act-head-title {

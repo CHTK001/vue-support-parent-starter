@@ -959,7 +959,6 @@ const currentActiveTab = computed(() => {
   if (routeName === 'TextToSpeech') return 'text-to-speech'
   if (routeName === 'Models') return 'models'
   if (routeName === 'Usage' || routeName === 'UsageSyncLogs') return 'usage'
-  if (routeName === 'MediaStatistics') return 'media-statistics'
   if (routeName === 'Connectors') return 'connectors'
   return ''
 })
@@ -1300,8 +1299,6 @@ const ROUTE_NAME_BY_TAB: Record<string, string> = {
   agents: 'Agents',
   services: 'Services',
   usage: 'Usage',
-  // 媒体资源统计：AI 生成任务按类型/状态/模型分类汇总
-  'media-statistics': 'MediaStatistics',
   connectors: 'Connectors',
   skills: 'Skills',
   capabilities: 'Capabilities',

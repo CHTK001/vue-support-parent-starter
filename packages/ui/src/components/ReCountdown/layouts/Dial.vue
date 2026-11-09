@@ -91,15 +91,20 @@ const colorMap = {
 .re-countdown__track {
   fill: none;
   stroke: var(--rm-border);
-  stroke-width: 6;
+  stroke-width: 9;
 }
 
+/*
+ * 环的残留比例由 rAF 每帧写入（remaining 每帧刷新），
+ * 所以绝不能给 stroke-dashoffset 加 transition：每帧重启的过渡会把环按在初始位置，
+ * 看上去就是「数字在走、环不动」。只让描边颜色做过渡。
+ */
 .re-countdown__ring {
   fill: none;
   stroke: var(--cd-color);
-  stroke-width: 6;
+  stroke-width: 9;
   stroke-linecap: round;
-  transition: stroke-dashoffset 250ms var(--rm-transition), stroke 250ms var(--rm-transition);
+  transition: stroke 250ms var(--rm-transition);
   transform-origin: center;
 }
 

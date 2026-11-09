@@ -38,6 +38,8 @@ const props = withDefaults(
     end?: number;
     /** 是否暂停 */
     paused?: boolean;
+    /** 倒计时总时长（ms），用于表盘环的进度；0 = 不画进度环 */
+    total?: number;
     /** 展示布局 */
     layout?: CountdownLayout;
     /** 尺寸 px */
@@ -63,6 +65,7 @@ const props = withDefaults(
     duration: undefined,
     end: undefined,
     paused: false,
+    total: 0,
     layout: "dial",
     size: 60,
     color: "primary",
@@ -147,6 +150,19 @@ watch(
   }
 );
 
+/**
+ * 目标时间变化（父级刷新了「上次执行时间 / 间隔」）时重新登记：
+ * 否则 workjs 里仍是挂载时的那条任务，表盘会停在旧倒计时上不动。
+ */
+watch(endTime, (value: number) => {
+  initCountdown({ id: taskId.value, endTime: value, label: props.label, paused: props.paused });
+  if (props.paused) pauseCountdown(taskId.value);
+  else resumeCountdown(taskId.value);
+  ended.value = false;
+  remaining.value = Math.max(0, value - Date.now());
+  finished.value = remaining.value <= 0;
+});
+
 /** 暴露 API */
 defineExpose({
   /** 剩余 ms */
@@ -169,5 +185,7 @@ defineExpose({
     :show-label="showLabel"
     :end-animation="endAnimation"
     :label="label"
+    :total="total"
+    :paused="paused"
   />
 </template>

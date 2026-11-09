@@ -1292,7 +1292,7 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 
 /* 能力行不再预留固定高度：无输入/输出能力的模型（如部分 ONNX 卡片）
    过去会空出一条 24px 的占位带，是「空白很大」的一部分来源。 */
-.mc-caps { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.mc-caps { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px;}
 .mc-cap-group { display: inline-flex; align-items: center; gap: 2px; color: var(--color-primary); }
 .mc-cap-group.dim { color: var(--color-text-disabled); font-size: 12px; }
 .cap-i { color: var(--color-primary); }

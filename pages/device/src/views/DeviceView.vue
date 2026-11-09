@@ -3094,6 +3094,11 @@ onMounted(async () => {
   min-height: 0;
 }
 .da-work > .re-tabs { flex: 1; min-height: 0; }
+/* 台账卡面是 16px 圆角，四个圆角切口会透出页面灰底，看起来像卡缺了一角。
+   把承载台账的页签面板垫成同色卡面，圆角弧线里就只剩白色，不再露页面底。 */
+.da-work :deep(.re-tabs__panel:has(> .da-assets)) {
+  background: var(--el-bg-color);
+}
 
 /* 「设备资产」页签内容：批量条 + 列表 + 底部信息条
    —— 三块同属一张卡面，块间留白由卡面自己填，不会再露出页面底色 */
@@ -3106,9 +3111,12 @@ onMounted(async () => {
   min-height: 0;
   padding: 10px;
   background: var(--el-bg-color);
+  /* 上方是白色页签条，卡面顶边与它直接相接：顶角做方，只留底部两个圆角，
+     避免「上面一条直的、下面一张圆角卡」两种轮廓在同一个面板里打架 */
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  border-top: 0;
+  border-radius: 0 0 var(--el-radius-xl, 16px) var(--el-radius-xl, 16px);
+  box-shadow: 0 10px 18px -12px #00000026;
   overflow: hidden;
 }
 

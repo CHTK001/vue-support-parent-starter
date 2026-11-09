@@ -253,14 +253,6 @@ const routes = [
         component: () => import("./components/management/UsagePage.vue"),
       },
       {
-        // 媒体资源统计：把 AI 生成模块的任务按类型/状态/模型分类汇总。
-        // 数据来自历史接口 /v2/ai/generate/tasks，前端本地聚合。
-        path: "media-statistics",
-        name: "MediaStatistics",
-        meta: { title: "媒体资源统计", requiresAuth: true },
-        component: () => import("./components/management/MediaStatisticsPage.vue"),
-      },
-      {
         path: "connectors",
         name: "Connectors",
         meta: { title: "连接器", requiresAuth: true },

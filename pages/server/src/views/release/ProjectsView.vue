@@ -132,8 +132,8 @@
                             <el-dropdown-item v-if="item.gitUrl" command="git-repo">
                               <ReIcon name="GitBranch" :size="15" class="dd-ic" />打开 Git 仓库
                             </el-dropdown-item>
-                            <el-dropdown-item v-if="item.enabled !== false && item.logPath" command="log">
-                              <ReIcon name="Tickets" :size="15" class="dd-ic" />实时日志
+                            <el-dropdown-item v-if="item.logPath" command="log">
+                              <ReIcon name="Tickets" :size="15" class="dd-ic" />系统日志
                             </el-dropdown-item>
                             <el-dropdown-item v-if="item.projectPath" command="copy-path">
                               <ReIcon name="DocumentCopy" :size="15" class="dd-ic" />复制项目地址
@@ -149,6 +149,9 @@
                             </el-dropdown-item>
                             <el-dropdown-item v-if="item.enabled !== false && item.javaProcess" command="actuator">
                               <ReIcon name="DataAnalysis" :size="15" class="dd-ic" />Actuator 运行指标
+                            </el-dropdown-item>
+                            <el-dropdown-item v-if="item.enabled !== false && hasObservableApm(item)" command="apm">
+                              <ReIcon name="DataLine" :size="15" class="dd-ic" />APM 观测
                             </el-dropdown-item>
                             <el-dropdown-item
                               v-if="item.enabled !== false && item.projectType === 'separated'"
@@ -220,7 +223,7 @@
               :tabs="workspaceTabs"
               closable
               show-close-all
-              empty-text="点击左侧项目行的「实时日志」（或双击项目行）打开日志"
+              empty-text="点击左侧项目行的「系统日志」（或双击项目行）打开日志"
               @close="closeWorkspaceTab"
               @close-all="closeAllLogTabs"
             >
@@ -230,6 +233,7 @@
                   :key="tab.name"
                   v-model:auto-scroll="logSessionByTab.get(tab.name)!.autoScroll"
                   :title="logSessionByTab.get(tab.name)!.projectName"
+                  :source="logSessionByTab.get(tab.name)!.source"
                   :lines="logSessionByTab.get(tab.name)!.lines"
                   :notice="logSessionByTab.get(tab.name)!.notice"
                   :push-offline="logSessionByTab.get(tab.name)!.pushOffline"
@@ -240,8 +244,8 @@
               <template #empty>
                 <div class="pj-workspace-empty">
                   <div class="pj-workspace-empty-ic"><ReIcon name="Tickets" :size="26" /></div>
-                  <div class="pj-workspace-empty-title">暂无实时日志</div>
-                  <div class="pj-workspace-empty-sub">点击左侧项目行的「实时日志」（或双击项目行），可在右侧同时打开多个项目的日志</div>
+                  <div class="pj-workspace-empty-title">暂无系统日志</div>
+                  <div class="pj-workspace-empty-sub">点击左侧项目行的「系统日志」（或双击项目行），可在右侧同时打开多个项目的日志</div>
                 </div>
               </template>
             </ReTabs>
@@ -974,12 +978,12 @@
       </template>
     </ReDialog>
 
-    <!-- 实时日志弹窗：每个会话一个，关闭弹窗不影响内嵌列 -->
+    <!-- 系统日志弹窗：每个会话一个，关闭弹窗不影响内嵌列 -->
     <ReDialog
       v-for="session in logSessions"
       :key="`log-popup-${session.projectId}`"
       v-model="session.popupVisible"
-      :title="`实时日志 - ${session.projectName}`"
+      :title="`系统日志 - ${session.projectName}`"
       width="900px"
       :close-on-click-modal="false"
     >
@@ -987,6 +991,7 @@
         popup
         v-model:auto-scroll="session.popupAutoScroll"
         :title="session.projectName"
+        :source="session.source"
         :lines="session.lines"
         :notice="session.notice"
         :push-offline="session.pushOffline"
@@ -1774,6 +1779,21 @@ function apmLabel(item: Project): string {
 }
 
 /**
+ * 该项目是否注入了会向 APM 观测台上报数据的 agent。
+ *
+ * <p>Arthas 只是运行时诊断工具，不产生观测数据，因此不算；平台自有 APM 与
+ * SkyWalking 才在服务列表里有对应的服务名。</p>
+ *
+ * @param item 项目
+ * @returns 是否可跳转 APM 观测台
+ */
+function hasObservableApm(item: Project): boolean {
+  if (!JAVA_APM_TYPES.includes(item.projectType)) return false;
+  const cfg = parseApmConfig(parseJson<string>(item.jvmArgs, []));
+  return cfg.apmType === 'platform' || cfg.apmType === 'skywalking';
+}
+
+/**
  * 从项目持久化后的 jvmArgs 反解 APM 高级配置。
  * SkyWalking 依据 agent 文件/参数标记识别；Arthas 依据 agent 文件名识别；其余 javaagent 视为平台自有 APM。
  */
@@ -2222,6 +2242,9 @@ function onMoreCommand(item: Project, command: string) {
     case 'log':
       openLogTab(item);
       break;
+    case 'apm':
+      openApmWorkbench(item);
+      break;
     case 'files':
       openFilesDialog(item);
       break;
@@ -2342,12 +2365,15 @@ function ctxCommandsFor(item: Project): CtxCommandItem[] {
     out.push({ command: 'copy-log', label: '复制日志地址', icon: 'DocumentCopy' });
   }
   if (item.enabled !== false) {
-    if (item.logPath) out.push({ command: 'log', label: '实时日志', icon: 'Tickets' });
+    if (item.logPath) out.push({ command: 'log', label: '系统日志', icon: 'Tickets' });
     if (isJavaProject(item)) out.push({ command: 'arthas', label: 'Arthas 诊断', icon: 'Monitor' });
     if (item.javaProcess) {
       out.push({ command: 'swagger', label: 'Swagger 接口文档', icon: 'Link' });
       out.push({ command: 'actuator', label: 'Actuator 运行指标', icon: 'DataAnalysis' });
     }
+    // APM 观测：只有注入过会向上报数据的 agent（平台自有 / SkyWalking）才给入口，
+    // 未接入的项目点进去只会看到一个空观测台
+    if (hasObservableApm(item)) out.push({ command: 'apm', label: 'APM 观测', icon: 'DataLine' });
     if (item.projectType === 'separated') {
       out.push({ command: 'update-lib', label: '更新依赖包', icon: 'Box' });
     }
@@ -2927,6 +2953,31 @@ function onGitRepoEdit(p: { id: number; projectName: string }) {
   }
 }
 
+/**
+ * 打开 APM 观测台并定位到该项目的服务。
+ *
+ * <p>只做一次跨页跳转，不在这里直接查 APM 接口：观测台是页签式单页，
+ * 服务名通过 URL query 带过去，由工作台在 setup 阶段暂存成
+ * {@code ApmTabContext}。这样落地页的「服务」页签会直接按该服务筛选，
+ * 而不是让用户在下拉里再选一次（APM 跨页下钻的既有口径）。</p>
+ *
+ * @param item 项目
+ */
+function openApmWorkbench(item: Project) {
+  const cfg = parseApmConfig(parseJson<string>(item.jvmArgs, []));
+  // SkyWalking 有显式 service_name；平台自有 APM 按项目名注册
+  const service = String(cfg.swServiceName || item.projectName || '').trim();
+  const target = router.resolve({
+    path: '/apm',
+    query: service ? { tab: 'services', service } : { tab: 'services' },
+  });
+  if (!target.matched.length) {
+    message.warning('当前宿主未挂载 APM 观测台，无法打开');
+    return;
+  }
+  router.push(target.fullPath);
+}
+
 // ---- 主机路径选择器（项目地址 / 日志地址 / Nginx 目录） ----
 /** 路径选择器弹框 */
 const pathPickerVisible = ref(false);
@@ -3184,6 +3235,8 @@ async function executeUpgrade() {
 interface LogSession {
   projectId: number;
   projectName: string;
+  /** 日志来源（项目配置的 logPath；目录时由服务端取最新文件） */
+  source: string;
   lines: string[];
   notice: string;
   pushOffline: boolean;
@@ -3281,6 +3334,7 @@ async function startLogSession(item: Project): Promise<LogSession> {
   const session: LogSession = {
     projectId: item.id,
     projectName: item.projectName,
+    source: String(item.logPath || ''),
     lines: [],
     notice: '',
     pushOffline: !releaseSse.online,
@@ -3365,12 +3419,12 @@ function cleanupAllLogSessions() {
 /** 当前激活的日志页签 name（ReTabs v-model，空串表示没有激活页签） */
 const activeWorkspaceTab = ref('');
 
-/** 页签列表：每项目一个「实时日志」页签，name = `log:${projectId}` */
+/** 页签列表：每项目一个「系统日志」页签，name = `log:${projectId}` */
 const workspaceTabs = computed<ReTabsItem[]>(() =>
   logSessions.value.map((s) => ({
     name: `log:${s.projectId}`,
     label: s.projectName,
-    hint: '实时日志',
+    hint: '系统日志',
     icon: 'Tickets',
     closable: true,
     status: statusKeyOfLog(s),

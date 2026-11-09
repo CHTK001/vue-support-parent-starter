@@ -64,6 +64,44 @@ defineOptions({ name: "ApmWorkbench" });
 
 const route = useRoute();
 
+/**
+ * 从地址里取跨页定位上下文（服务名 / 端点 / 实例 / 时间窗 / 链路 / 告警实体）。
+ *
+ * <p>深链场景：别的模块点「APM 观测」时只能带 URL（例如发布管理的项目右键，
+ * 会带 {@code ?tab=services&service=xxx}）。页签视图的 {@code onMounted} 早于
+ * 本组件的 {@code onMounted}，所以必须在 setup 阶段就把上下文暂存好，
+ * 否则落地页取到的永远是空对象。</p>
+ *
+ * @returns 有效的上下文；一个字段都没有时返回 null
+ */
+function contextFromRoute(): ApmTabContext | null {
+  const pick = (key: string): string => {
+    const raw = route.query[key];
+    const value = Array.isArray(raw) ? raw[0] : raw;
+    return value == null ? "" : String(value).trim();
+  };
+  const context: ApmTabContext = {};
+  const service = pick("service");
+  const endpoint = pick("endpoint");
+  const instance = pick("instance");
+  const traceId = pick("traceId");
+  const entity = pick("entity");
+  const minutes = Number(pick("minutes"));
+  if (service) context.service = service;
+  if (endpoint) context.endpoint = endpoint;
+  if (instance) context.instance = instance;
+  if (traceId) context.traceId = traceId;
+  if (entity) context.entity = entity;
+  if (Number.isFinite(minutes) && minutes > 0) context.minutes = minutes;
+  return Object.keys(context).length ? context : null;
+}
+
+// 只在 setup 里暂存一次：页签内部消费后即清空，切页签不该再触发一次筛选
+const bootContext = contextFromRoute();
+if (bootContext) {
+  stashApmTabContext(bootContext);
+}
+
 /** 弹出模式：地址上带 `popout=1` 时只渲染单个视图，不挂页签条 */
 const isPopout = computed(() => String(route.query.popout ?? "") === "1");
 

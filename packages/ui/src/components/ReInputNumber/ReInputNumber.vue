@@ -21,6 +21,15 @@ defineOptions({ name: "ReInputNumber", inheritAttrs: true });
 
 const model = defineModel<number | null | undefined>({ default: undefined });
 
+/** 真正提交后的值变化（业务侧用 @change 做「保存/校验」，不要再落到原生 change 事件上） */
+const emit = defineEmits<{ change: [value: number | undefined] }>();
+
+/** 统一回写并广播 change */
+function applyValue(value: number | null | undefined): void {
+  model.value = value;
+  emit("change", value === null ? undefined : value);
+}
+
 const props = withDefaults(
   defineProps<{
     /** 布局模式：modern 或 card（现代化扁平数字输入框，默认）/ default（原生 el-input-number） */
@@ -83,7 +92,7 @@ const resolvedLayout = computed<ReInputNumberLayout>(() => {
   <ModernLayout
     v-if="resolvedLayout === 'modern'"
     :model-value="model"
-    @update:model-value="(v: any) => (model = v)"
+    @update:model-value="(v: any) => applyValue(v)"
     v-bind="$attrs"
     :min="min"
     :max="max"
@@ -105,6 +114,7 @@ const resolvedLayout = computed<ReInputNumberLayout>(() => {
     v-else
     v-model="model"
     v-bind="$attrs"
+    @change="(v: number | undefined) => emit('change', v)"
     :min="min"
     :max="max"
     :step="step"

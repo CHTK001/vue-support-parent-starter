@@ -54,29 +54,33 @@
             </ReTag>
           </header>
 
-          <!-- 表盘：外环按「距上次执行已过时间 / 间隔」填充，中心是间隔秒数 -->
+          <!-- 表盘：外环是「距下次执行还剩多少」的倒计时（ReCountdown dial）；
+               已过期就换成按秒推进的「逾期 mm:ss」，不会停在 00:00:00 上一动不动 -->
           <div
             class="vtp-dial"
-            :class="{ 'is-full': dialProgress(row) >= 1 }"
+            :class="{ 'is-full': dialProgress(row) >= 1, 'is-idle': !row.lastRunAt, 'is-overdue': isOverdue(row) }"
             :data-progress="dialProgress(row).toFixed(2)"
             role="img"
             :aria-label="`${row.label} 间隔 ${row.interval ?? 30} 秒，${ago(row.lastRunAt)}`"
           >
-            <svg class="vtp-dial__svg" viewBox="0 0 96 96" aria-hidden="true">
-              <circle class="vtp-dial__track" cx="48" cy="48" r="40" />
-              <circle
-                class="vtp-dial__bar"
-                cx="48"
-                cy="48"
-                r="40"
-                :stroke-dasharray="DIAL_CIRC"
-                :stroke-dashoffset="dialOffset(row)"
-              />
-            </svg>
-            <div class="vtp-dial__center">
-              <b class="vtp-dial__value">{{ row.interval ?? 30 }}</b>
-              <span class="vtp-dial__unit">秒</span>
-            </div>
+            <ReCountdown
+              layout="dial"
+              :size="96"
+              :end="nextRunAt(row)"
+              :total="intervalMs(row)"
+              :paused="!row.lastRunAt || row.running"
+              :show-number="!!row.lastRunAt && !isOverdue(row)"
+              :show-text="false"
+              :color="isOverdue(row) || dialProgress(row) >= 1 ? 'warning' : 'primary'"
+            />
+            <span v-if="isOverdue(row)" class="vtp-dial__due">
+              <b>{{ overdueText(row) }}</b>
+              <i>逾期</i>
+            </span>
+            <span v-else-if="!row.lastRunAt" class="vtp-dial__due">
+              <b>{{ row.interval ?? 30 }}</b>
+              <i>秒</i>
+            </span>
           </div>
 
           <dl class="vtp-card__meta">
@@ -277,6 +281,7 @@ import { ElMessage } from 'element-plus'
 import { Timer } from '@element-plus/icons-vue'
 
 import ReButton from '@repo/ui/re-button'
+import ReCountdown from '@repo/ui/re-countdown'
 import ReInputNumber from '@repo/ui/re-input-number'
 import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
@@ -343,9 +348,31 @@ const runningTask = ref('')
 /** 任务名 → 最近一次保存成功的间隔（失败回填用） */
 const savedInterval = new Map<string, number>()
 
-/** 表盘外环半径 40（viewBox 96），周长用于 dasharray/dashoffset */
-const DIAL_RADIUS = 40
-const DIAL_CIRC = 2 * Math.PI * DIAL_RADIUS
+/**
+ * 任务间隔（秒）→ 毫秒。表盘倒计时的总时长也用它，保证环与数字同源。
+ *
+ * @param row 任务行
+ * @returns 间隔毫秒（最小 1 秒）
+ */
+function intervalMs(row: TaskRow): number {
+  return Math.max(1, Number(row.interval) || 30) * 1000
+}
+
+/**
+ * 下一次执行的时间戳：上次执行 + 间隔。
+ *
+ * <p>从未执行过时给一个固定的过去时刻，让倒计时停在 00:00:00 并保持暂停，
+ * 而不是每次渲染都取「现在 + 间隔」——那样数字会一直跳。</p>
+ *
+ * @param row 任务行
+ * @returns 下次执行时间戳（ms）
+ */
+function nextRunAt(row: TaskRow): number {
+  if (!row.lastRunAt) return NEVER_RUN_END
+  const last = new Date(row.lastRunAt).getTime()
+  if (!Number.isFinite(last)) return NEVER_RUN_END
+  return last + intervalMs(row)
+}
 
 /**
  * 「现在」的时钟。表盘要真的在走，所以每秒推进一次；
@@ -353,6 +380,11 @@ const DIAL_CIRC = 2 * Math.PI * DIAL_RADIUS
  */
 const now = ref(Date.now())
 let ticker: ReturnType<typeof setInterval> | undefined
+/** 任务状态轮询：last_run_at 只有后端调度完才写库，只挂载时读一次会让表盘一直停在旧值 */
+const STATE_POLL_MS = 10_000
+let poller: ReturnType<typeof setInterval> | undefined
+/** 从未执行过的任务给一个固定的过去时刻，保证倒计时稳定停在 0（不能每次渲染都取 Date.now()） */
+const NEVER_RUN_END = Date.now()
 
 const credentialMap = computed(
   () => new Map(props.credentials.map((item) => [item.deviceCredentialId || '', item]))
@@ -497,20 +529,37 @@ function dialProgress(row: TaskRow): number {
   if (!row.lastRunAt) return 0
   const last = new Date(row.lastRunAt).getTime()
   if (!Number.isFinite(last)) return 0
-  const intervalMs = Math.max(1, Number(row.interval) || 30) * 1000
-  const ratio = (now.value - last) / intervalMs
+  const ratio = (now.value - last) / intervalMs(row)
   if (!Number.isFinite(ratio)) return 0
   return Math.min(1, Math.max(0, ratio))
 }
 
 /**
- * 表盘外环的 dashoffset：progress 越大，环画得越满。
+ * 是否已经过了应执行时刻（后端调度没跟上）。
+ *
+ * <p>此时剩余时间恒为 0，若只靠倒计时，表盘会永远停在 00:00:00——
+ * 用户看到的就是「倒计时根本不动」。过期后改用「逾期 mm:ss」向上计时。</p>
  *
  * @param row 任务行
- * @returns 待绘制的周长偏移
+ * @returns 是否逾期
  */
-function dialOffset(row: TaskRow): number {
-  return DIAL_CIRC * (1 - dialProgress(row))
+function isOverdue(row: TaskRow): boolean {
+  if (row.running || !row.lastRunAt) return false
+  const last = new Date(row.lastRunAt).getTime()
+  if (!Number.isFinite(last)) return false
+  return now.value >= nextRunAt(row)
+}
+
+/**
+ * 逾期时长（HH:MM:SS），每秒推进一次，证明表盘还活着。
+ *
+ * @param row 任务行
+ * @returns 形如 00:03:12 的逾期时长
+ */
+function overdueText(row: TaskRow): string {
+  const total = Math.max(0, Math.floor((now.value - nextRunAt(row)) / 1000))
+  const pad = (n: number): string => String(n).padStart(2, '0')
+  return `${pad(Math.floor(total / 3600))}:${pad(Math.floor((total % 3600) / 60))}:${pad(total % 60)}`
 }
 
 /**
@@ -549,6 +598,33 @@ async function load(): Promise<void> {
   } finally {
     loading.value = false
   }
+}
+
+/**
+ * 静默刷新任务状态（轮询用）：不点亮刷新按钮，失败也不弹错。
+ *
+ * <p>表盘倒计时的起点是 last_run_at，后端只有调度完才写库；
+ * 只靠挂载时读一次的话，倒计时会一直停在旧值上。</p>
+ */
+async function refreshStates(): Promise<void> {
+  try {
+    const list = ((await deviceApi.listTaskStates()) as TaskState[]) || []
+    taskStates.value = list
+    for (const state of list) {
+      savedInterval.set(
+        state.deviceTaskStateName,
+        Number(state.deviceTaskStateInterval) || 30
+      )
+    }
+  } catch {
+    /* 轮询失败保持旧值，下一轮再试 */
+  }
+}
+
+/** 正在改间隔输入框时不刷新，避免把用户输入顶回去 */
+function isEditingInterval(): boolean {
+  const el = document.activeElement as HTMLElement | null
+  return Boolean(el && el.closest && el.closest('.vtp-int'))
 }
 
 async function onIntervalChange(row: TaskRow, value: number | undefined): Promise<void> {
@@ -598,12 +674,20 @@ onMounted(() => {
   ticker = setInterval(() => {
     now.value = Date.now()
   }, 1000)
+  poller = setInterval(() => {
+    if (loading.value || runningTask.value || isEditingInterval()) return
+    void refreshStates()
+  }, STATE_POLL_MS)
 })
 
 onBeforeUnmount(() => {
   if (ticker) {
     clearInterval(ticker)
     ticker = undefined
+  }
+  if (poller) {
+    clearInterval(poller)
+    poller = undefined
   }
 })
 </script>
@@ -730,7 +814,7 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-/* ---- 表盘 ---- */
+/* ---- 表盘（ReCountdown dial 布局）：环是到下次执行的剩余时间 ---- */
 .vtp-dial {
   position: relative;
   display: grid;
@@ -738,50 +822,67 @@ onBeforeUnmount(() => {
   width: 108px;
   height: 108px;
   margin: 2px auto 0;
+  /* ReCountdown 的 dial 布局消费 --rm-* 令牌，这里按 Element 主题喂进去 */
+  --rm-primary: var(--el-color-primary);
+  --rm-warning: var(--el-color-warning);
+  --rm-success: var(--el-color-success);
+  --rm-danger: var(--el-color-danger);
+  --rm-info: var(--el-color-info);
+  --rm-border: var(--el-border-color-lighter);
+  --rm-text: var(--el-text-color-primary);
+  --rm-text-regular: var(--el-text-color-regular);
+  --rm-text-secondary: var(--el-text-color-secondary);
+  --rm-transition: 0.28s ease;
 }
-.vtp-dial__svg {
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
+/* 中心是 HH:MM:SS，等宽 + 收紧字距，8 位数字才塞得进 96px 环内 */
+.vtp-dial :deep(.re-countdown__value) {
+  font-family: var(--el-font-family-mono, monospace);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
 }
-.vtp-dial__track {
-  fill: none;
-  stroke: var(--el-border-color-lighter);
-  stroke-width: 8;
+/* 已过期（环见底）：数字转预警色，配合卡片上的「已到期」提示 */
+.vtp-dial.is-full :deep(.re-countdown__value) {
+  color: var(--el-color-warning);
 }
-.vtp-dial__bar {
-  fill: none;
-  stroke: var(--el-color-primary);
-  stroke-width: 8;
-  stroke-linecap: round;
-  transition: stroke-dashoffset 0.6s ease;
+.vtp-dial.is-idle :deep(.re-countdown__value) {
+  color: var(--el-text-color-secondary);
 }
-.vtp-dial.is-full .vtp-dial__bar {
+/* 逾期：环补满成预警色，中心换成按秒上涨的「逾期 mm:ss」 */
+.vtp-dial.is-overdue :deep(.re-countdown__ring) {
+  stroke-dashoffset: 0 !important;
   stroke: var(--el-color-warning);
 }
-.vtp-card.is-running .vtp-dial__bar {
-  stroke: var(--el-color-success);
-  animation: vtp-pulse 1.4s ease-in-out infinite;
+/* 逾期 / 从未执行时，中心数字由 __due 接管，别让 00:00:00 从底下透出来 */
+.vtp-dial.is-overdue :deep(.re-countdown__value),
+.vtp-dial.is-idle :deep(.re-countdown__value) {
+  display: none;
 }
-@keyframes vtp-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.45; }
-}
-.vtp-dial__center {
+.vtp-dial__due {
   position: absolute;
+  inset: 0;
   display: flex;
-  align-items: baseline;
-  gap: 2px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  pointer-events: none;
+  color: var(--el-color-warning);
 }
-.vtp-dial__value {
+.vtp-dial__due b {
   font-family: var(--el-font-family-mono, monospace);
-  font-size: 22px;
+  font-size: 15px;
   font-weight: 700;
-  color: var(--el-text-color-primary);
-  line-height: 1;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
 }
-.vtp-dial__unit {
-  font-size: 11px;
+.vtp-dial__due i {
+  font-style: normal;
+  font-size: 10px;
+  line-height: 1;
+  opacity: 0.85;
+}
+.vtp-dial.is-idle .vtp-dial__due {
   color: var(--el-text-color-secondary);
 }
 

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
- * ProjectLogColumn —— 单项目实时日志列。
+ * ProjectLogColumn —— 单项目系统日志列。
  *
- * <p>发布管理页的实时日志既要能「贴在项目管理下方多项目并排看」，又要能
+ * <p>发布管理页的系统日志既要能「贴在项目管理下方多项目并排看」，又要能
  * 单独弹窗放大看，两种形态的滚动跟随逻辑完全一样。抽成一个组件，
  * 避免同一套 DOM/事件在页面里写两份、日后只改一处。</p>
  *
@@ -18,6 +18,8 @@ const props = withDefaults(
   defineProps<{
     /** 列标题（项目名） */
     title: string;
+    /** 日志来源（项目配置的 logPath，悬停可见完整路径） */
+    source?: string;
     /** 日志行 */
     lines: string[];
     /** 采集失败等提示（不放进 lines，避免被快照整段替换冲掉） */
@@ -28,6 +30,7 @@ const props = withDefaults(
     popup?: boolean;
   }>(),
   {
+    source: '',
     notice: '',
     pushOffline: false,
     popup: false,
@@ -91,12 +94,13 @@ defineExpose({ scrollToBottom });
     <div class="log-col-head">
       <span class="log-col-dot" :class="{ offline: pushOffline }"></span>
       <span class="log-col-title" :title="title">{{ title }}</span>
+      <span v-if="source" class="log-col-src" :title="`日志来源：${source}（在项目编辑的「日志」里修改）`">{{ source }}</span>
       <span class="log-col-count">{{ lines.length }} 行</span>
       <span class="log-col-actions">
         <button v-if="!popup" type="button" class="lc-btn" title="在弹窗中打开" @click="emit('popup')">
           <ReIcon name="FullScreen" :size="14" />
         </button>
-        <button type="button" class="lc-btn" title="关闭实时日志" @click="emit('close')">
+        <button type="button" class="lc-btn" title="关闭系统日志" @click="emit('close')">
           <ReIcon name="Close" :size="14" />
         </button>
       </span>
@@ -178,6 +182,23 @@ defineExpose({ scrollToBottom });
   font-size: 11px;
   color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
+}
+
+/* 日志来源：配置的 logPath。等宽字体便于扫目录，溢出时省略、悬停看全路径 */
+.log-col-src {
+  min-width: 0;
+  max-width: 42%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 1px 6px;
+  font-family: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+  background: var(--bg-hover, rgba(0, 0, 0, 0.06));
+  border-radius: 4px;
+  cursor: help;
 }
 
 .log-col-actions {

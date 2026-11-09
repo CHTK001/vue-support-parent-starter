@@ -477,7 +477,7 @@ function statusClass(status?: string | null): string {
   align-items: center;
   gap: 2px;
   min-width: 0;
-  padding: 0 4px;
+  padding: 0;
   border-bottom: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color);
 }
