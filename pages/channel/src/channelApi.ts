@@ -216,7 +216,13 @@ export interface ChannelSummary {
   /** 对话渠道是否同时具备文生图能力（如 Trae） */
   supportsImage?: boolean
   connections?: ChannelConnectionSummary[]
-  models?: Array<{ model: string; enabled: boolean; alias?: string; contextWindow?: number }>
+  /**
+   * 渠道模型清单。
+   *
+   * <p>除 model / enabled / alias / contextWindow 外，magpie 还可能回传模型的
+   * 资费信息（`rate` 倍率、`free` 是否免费），前面容器负责一起展示。</p>
+   */
+  models?: Array<{ model: string; enabled: boolean; alias?: string; contextWindow?: number; rate?: number; free?: boolean }>
 }
 
 export const channelApi = {

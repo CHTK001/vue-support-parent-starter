@@ -352,6 +352,28 @@ const isQrBind = () => /^qr-code$/i.test(bindMethod())
 const isKeylessBind = () => /^keyless$/i.test(bindMethod())
 const bindNeedsInput = () => isApiKeyBind()
 
+/** 弹窗头部展示的渠道名（缺省回落到渠道标识） */
+const bindChannelLabel = computed(
+  () => channels.value.find((c) => c.channel === bindChannel.value)?.displayName
+    || bindChannel.value
+    || '渠道',
+)
+
+/**
+ * 一句话状态：告诉用户「现在该做什么 / 正在等什么」。
+ *
+ * <p>不用「创建登录会话」「仪表」这类实现词；失败时也只给原因和下一步。</p>
+ */
+const bindStatusText = computed(() => {
+  if (bindPhase.value === 'starting') return '正在准备登录…'
+  if (bindPhase.value === 'error') return bindError.value || '绑定没有成功，请重试'
+  if (isKeylessBind()) return '这个渠道无需登录，正在自动完成绑定'
+  if (isApiKeyBind()) return '填入密钥后点「完成绑定」'
+  if (isQrBind()) return '等待扫码授权…'
+  if (callbackAuto(bindChannel.value)) return '等待你在授权页完成登录，完成后会自动绑定'
+  return '等待你在授权页完成登录…'
+})
+
 // 设备码：优先读句柄的 user_code；没有时从 verifyUrl 的 query 里兜底解析。
 // 上游（如 MiniMax）只把码拼在 verification_uri_complete 里，句柄不带独立字段，
 // 前端若只读 handle.user_code，弹窗上就会空一块，用户不知道该输什么。
@@ -579,13 +601,19 @@ function submitBindInput() {
   startSse(channel)
 }
 
+/** 兼容原生 input（Event）与 el-input（直接给字符串）两种输入源 */
+function inputText(source: Event | string): string {
+  if (typeof source === 'string') return source
+  return String((source.target as HTMLInputElement)?.value ?? '')
+}
+
 // Magpie 网关地址输入（远程 / Docker 部署时填非本机地址；
 // 也允许整条粘贴 magpie web 启动链接 http://127.0.0.1:3430/?k=…）
-function onBaseUrlInput(event: Event) {
+function onBaseUrlInput(event: Event | string) {
   const channel = bindChannel.value
   const state = bindState[channel]
   if (!state) return
-  const raw = (event.target as HTMLInputElement).value
+  const raw = inputText(event)
   state.input.baseUrl = raw
   if (channel !== 'magpie') return
   const split = splitMagpieLink(raw)
@@ -593,7 +621,6 @@ function onBaseUrlInput(event: Event) {
   state.input.baseUrl = split.gateway
   state.input.pageUrl = split.pageUrl
   state.input.pageKey = split.pageKey
-  ;(event.target as HTMLInputElement).value = split.gateway
 }
 
 // Magpie：整条启动链接拆成「数据面地址 / 页面地址 / 页面 Key」
@@ -620,27 +647,27 @@ function splitMagpieLink(raw: string): { gateway: string; pageUrl: string; pageK
 }
 
 // Magpie 页面地址输入（管理面，可空）
-function onPageUrlInput(event: Event) {
+function onPageUrlInput(event: Event | string) {
   const channel = bindChannel.value
   const state = bindState[channel]
   if (!state) return
-  state.input.pageUrl = (event.target as HTMLInputElement).value
+  state.input.pageUrl = inputText(event)
 }
 
 // Magpie 页面 Key 输入（管理面必需，只在管理上游 / 签到用）
-function onPageKeyInput(event: Event) {
+function onPageKeyInput(event: Event | string) {
   const channel = bindChannel.value
   const state = bindState[channel]
   if (!state) return
-  state.input.pageKey = (event.target as HTMLInputElement).value
+  state.input.pageKey = inputText(event)
 }
 
 // api-key 输入：直接写响应式状态（模板里用 $event 取 target，避免用未定义变量）
-function onApiKeyInput(event: Event) {
+function onApiKeyInput(event: Event | string) {
   const channel = bindChannel.value
   const state = bindState[channel]
   if (!state) return
-  state.input.apiKey = (event.target as HTMLInputElement).value
+  state.input.apiKey = inputText(event)
 }
 
 // 模型开关：从 $event 取 checked
@@ -650,11 +677,11 @@ function onModelToggle(model: string, event: Event) {
 }
 
 // 回调地址兜底输入：同样写响应式状态
-function onCallbackUrlInput(event: Event) {
+function onCallbackUrlInput(event: Event | string) {
   const channel = bindChannel.value
   const state = bindState[channel]
   if (!state) return
-  state.handle.callbackUrl = (event.target as HTMLInputElement).value
+  state.handle.callbackUrl = inputText(event)
 }
 
 // ---------- 账号刷新 / 签到 / 改名 / 切主 / 删除 ----------
@@ -935,7 +962,10 @@ async function pullModels(channel: string) {
       ElMessage.info('未返回模型')
     }
   } catch (e: any) {
-    ElMessage.error('拉取模型失败：' + (e?.message ?? e))
+    // 后端的 NOT_FOUND 文案已经是面向用户的（「还没有绑定账号…」），原样透出；
+    // 其余异常才补一句兜底，避免把英文 / 堆栈甩给用户。
+    const msg = String(e?.message ?? '').trim()
+    ElMessage.error(msg || '这次没有拉到模型，请稍后再试')
   } finally {
     b.models = false
   }
@@ -1044,6 +1074,18 @@ const kindText = (c?: ChannelSummary): string => KIND_TEXT[kindOf(c)] ?? kindOf(
 const accountsSupported = (c?: ChannelSummary): boolean =>
   kindOf(c) === 'AI' && !c?.supportsUpstream
 
+/**
+ * 模型清单是否可由上游拉取 / 逐项开关。
+ *
+ * <p>只有 AI 账号渠道才有 provider 行与授权账号，`/list-models` 与模型开关才有
+ * 上游可问。免登录对话 / 文生图渠道（kind=CHAT/IMAGE）的模型来自客户端内置表，
+ * 拉取只会拿到「未注册的渠道: image-duckduckgo」；短信 / 邮件临时渠道同样没有模型。</p>
+ *
+ * @param c 渠道摘要
+ * @returns true 表示可拉取、可开关
+ */
+const modelsManageable = (c?: ChannelSummary): boolean => kindOf(c) === 'AI'
+
 // ---------- 渠道账号（/api/accounts，按 channelKey 归属） ----------
 /*
  * 渠道管理只有一种模型：渠道 + 账号。
@@ -1131,6 +1173,20 @@ watch(activeChannel, () => {
  * {@code /api/channels} 的 {@code supportsCredit} / {@code supportsTask}。</p>
  */
 const detailTab = ref<string>('accounts')
+
+/**
+ * 切到「账号」页签时顺带拉一下它的积分读数（进度条 + 额度）：
+ * 数据存在监听的 `creditState` 里，与「积分」页签共享同一份状态。
+ *
+ * @param _ 组合属性（detailTab），仅当切到账号页签时触发
+ */
+watch(detailTab, (_tab) => {
+  if (_tab === 'accounts') {
+    const list = activeSummary()?.connections ?? []
+    if (!list.length || !activeSummary()?.supportsCredit) return
+    void Promise.all(list.map((conn) => loadCredit(conn)))
+  }
+})
 
 // ---------- Magpie 托管收敛（左栏） ----------
 
@@ -1349,26 +1405,22 @@ const railItems = computed<ChannelSummary[]>(() => {
   })
 })
 
-/** 该行是否处于选中态（托管渠道跳去网关时按 focusChannel 高亮） */
+/** 该行是否处于选中态 */
 function railActive(c: ChannelSummary): boolean {
-  if (c.channel === activeChannel.value) return true
-  return activeChannel.value === gatewayChannel.value?.channel && focusChannel.value === c.channel
+  return c.channel === activeChannel.value
 }
 
 /**
- * 点开一个渠道。
+ * 点开一个渠道：右侧永远展示该渠道自己的常规详情（账号 / 模型 / 积分 / 任务）。
  *
- * <p>由 Magpie 托管、本地又没有连接的渠道，直接跳到聚合网关里定位它的上游 /
- * 插件——登录和额度都在网关里，留在这边只会看到一张空账号表。</p>
+ * <p>后端是 magpie、cdp 还是原生 SPI 只是接入方式，不该改变左侧渠道行点击后的
+ * 落点。以前「由 magpie 托管且本地没有连接」的渠道会跳到网关的上游 / 插件面板，
+ * 用户点 Qoder 却看到一片 magpie 术语，等于把实现细节漏到渠道管理里。现在统一
+ * 留在渠道详情；要管理网关自身的上游与插件，点左栏的「Magpie 统一网关」行即可。</p>
  *
  * @param c 渠道摘要
  */
 function onRailClick(c: ChannelSummary): void {
-  const vendor = magpieOwnedOf(c.channel)
-  if (vendor && !(c.connections ?? []).length && gatewayChannel.value) {
-    openManaged({ vendor, channel: c })
-    return
-  }
   activeChannel.value = c.channel
   clearManagedFocus()
 }
@@ -1434,6 +1486,97 @@ function onChannelDragEnd(): void {
   draggingChannel.value = ''
   dropTargetChannel.value = ''
 }
+
+/* ==================== 左右分栏：左栏宽度可拖拽 ==================== */
+
+/** 左栏宽度偏好的本地存储键 */
+const RAIL_WIDTH_KEY = 'chm.rail.width.v1'
+/** 左栏最小宽度（px） */
+const RAIL_MIN_WIDTH = 200
+/** 左栏最大宽度（px） */
+const RAIL_MAX_WIDTH = 560
+/**
+ * 默认宽度。
+ *
+ * <p>原来是 188px，「WorkBuddy（腾讯）」「DuckDuckGo 文生图」这类长名只能靠省略号，
+ * 用户还得 hover 才知道是哪家。200 起才放得下常规渠道名，默认给 280。</p>
+ */
+const RAIL_DEFAULT_WIDTH = 280
+
+/** 读取本地记住的左栏宽度；读不到 / 超界时回到默认值 */
+function readRailWidth(): number {
+  try {
+    const raw = Number(localStorage.getItem(RAIL_WIDTH_KEY))
+    if (!Number.isFinite(raw) || raw <= 0) return RAIL_DEFAULT_WIDTH
+    return Math.min(RAIL_MAX_WIDTH, Math.max(RAIL_MIN_WIDTH, raw))
+  } catch {
+    return RAIL_DEFAULT_WIDTH
+  }
+}
+
+/** 左栏当前宽度（px），拖拽时实时变化 */
+const railWidth = ref<number>(readRailWidth())
+
+/** 拖拽起点：鼠标 x 与起始宽度 */
+let railResizeX = 0
+let railResizeWidth = 0
+
+/** 拖拽中：按鼠标位移改左栏宽度，并留出右栏最小可视宽度 */
+function onRailResizeMove(e: MouseEvent): void {
+  const room = window.innerWidth - 360
+  const max = Math.min(RAIL_MAX_WIDTH, Math.max(RAIL_MIN_WIDTH, room))
+  railWidth.value = Math.min(max, Math.max(RAIL_MIN_WIDTH, railResizeWidth + (e.clientX - railResizeX)))
+}
+
+/** 松手：移除全局监听并记住宽度 */
+function stopRailResize(): void {
+  document.removeEventListener('mousemove', onRailResizeMove)
+  document.removeEventListener('mouseup', stopRailResize)
+  document.body.style.userSelect = ''
+  document.body.style.cursor = ''
+  try {
+    localStorage.setItem(RAIL_WIDTH_KEY, String(Math.round(railWidth.value)))
+  } catch {
+    /* 隐私模式 / 配额满：宽度只在本次会话生效 */
+  }
+}
+
+/** 按下分栏手柄：开始跟踪鼠标 */
+function startRailResize(e: MouseEvent): void {
+  railResizeX = e.clientX
+  railResizeWidth = railWidth.value
+  document.addEventListener('mousemove', onRailResizeMove)
+  document.addEventListener('mouseup', stopRailResize)
+  document.body.style.userSelect = 'none'
+  document.body.style.cursor = 'col-resize'
+}
+
+/** 双击手柄：复位默认宽度 */
+function resetRailWidth(): void {
+  railWidth.value = RAIL_DEFAULT_WIDTH
+  try {
+    localStorage.setItem(RAIL_WIDTH_KEY, String(RAIL_DEFAULT_WIDTH))
+  } catch {
+    /* 忽略 */
+  }
+}
+
+/** 键盘微调（手柄可聚焦，←/→ 每次 ±16px） */
+function nudgeRail(delta: number): void {
+  const room = window.innerWidth - 360
+  const max = Math.min(RAIL_MAX_WIDTH, Math.max(RAIL_MIN_WIDTH, room))
+  railWidth.value = Math.min(max, Math.max(RAIL_MIN_WIDTH, railWidth.value + delta))
+  try {
+    localStorage.setItem(RAIL_WIDTH_KEY, String(Math.round(railWidth.value)))
+  } catch {
+    /* 忽略 */
+  }
+}
+
+onBeforeUnmount(() => {
+  document.removeEventListener('mousemove', onRailResizeMove)
+  document.removeEventListener('mouseup', stopRailResize)
+})
 
 /**
  * 网关里还没有对应渠道行的上游。
@@ -1872,10 +2015,7 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
     -->
 
     <!-- 错误条 -->
-    <div v-if="loadError" class="chm-alert is-danger">
-      <span>渠道列表加载失败：{{ loadError }}</span>
-      <button @click="loadChannels">重试</button>
-    </div>
+    <ReErrorBar v-if="loadError" :message="loadError" retryText="重试" @retry="loadChannels" />
 
     <!-- 空态 -->
     <el-empty v-if="!loading && !channels.length" description="尚未注册任何渠道">
@@ -1891,7 +2031,7 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
     <!-- 方案 A · 运维甲板：左渠道索引 + 右选中详情 -->
     <div v-else class="chm-deck">
       <!-- 左：渠道索引（官方图标 / 品牌徽标 + 状态灯） -->
-      <aside class="chm-rail">
+      <aside class="chm-rail" :style="{ width: railWidth + 'px' }">
         <div class="chm-rail__head">
           <span>渠道索引</span>
           <span class="chm-rail__head-right">
@@ -1947,6 +2087,26 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                 :title="channelStateText(c)" />
         </button>
       </aside>
+
+      <!--
+        左右分栏拖拽手柄：只调左栏宽度（不改右栏内容）。
+        宽度存本地偏好，刷新后保持；双击复位默认宽度。
+      -->
+      <div
+        class="chm-deck__split"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="拖拽调整左栏宽度"
+        :aria-valuenow="railWidth"
+        :aria-valuemin="RAIL_MIN_WIDTH"
+        :aria-valuemax="RAIL_MAX_WIDTH"
+        title="拖拽调整左栏宽度（双击复位）"
+        tabindex="0"
+        @mousedown.prevent="startRailResize"
+        @dblclick.prevent="resetRailWidth"
+        @keydown.left.prevent="nudgeRail(-16)"
+        @keydown.right.prevent="nudgeRail(16)"
+      />
 
       <!-- 右：选中渠道详情 -->
       <section v-if="activeSummary()" class="chm-panel">
@@ -2014,12 +2174,16 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                 <div class="chm-panel__sect-title">
                   <el-icon aria-hidden="true"><ConnectionIcon /></el-icon>
                   账号 <i>{{ accounts.length }}</i>
-                  <ReButton
-                    link
-                    size="small"
-                    :loading="accountsLoading"
+                  <button
+                    type="button"
+                    class="chm-panel__pull chm-panel__pull--icon"
+                    :title="accountsLoading ? '加载中…' : '刷新账号列表'"
+                    aria-label="刷新账号列表"
+                    :disabled="accountsLoading"
                     @click.stop="loadAccounts()"
-                  >刷新</ReButton>
+                  >
+                    <el-icon aria-hidden="true"><RefreshIcon /></el-icon>
+                  </button>
                   <ReButton link size="small" type="primary" @click.stop="addAccount()">
                     ＋ 添加账号
                   </ReButton>
@@ -2081,42 +2245,93 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                     class="chm-acc"
                     :class="{ 'is-stale': connState(conn) !== 'valid', 'is-primary': conn.primary }"
                   >
-                    <span class="chm-acc__label" :title="conn.label">{{ conn.label || '未命名' }}</span>
-                    <span v-if="conn.primary" class="chm-acc__primary">主账号</span>
-                    <span class="chm-acc__state" :class="'is-' + connState(conn)">
-                      {{ connStateText(conn) }}
-                    </span>
-                    <!--
-                      到期文案：connExpireText 缺 expiresAt 时返回空串，不占位。
-                      「已过期」单独上危险色，与「N 天后到期」的警告色区分。
-                    -->
-                    <span
-                      v-if="connExpireText(conn)"
-                      class="chm-acc__expire"
-                      :class="{ 'is-expired': connExpireText(conn) === '已过期' }"
-                    >{{ connExpireText(conn) }}</span>
-                    <!--
-                      上次签到：签到摘要由各 SPI 写进连接凭据（checkin_at /
-                      checkin_message），刷新页面仍在；hover 看上游返回的原话。
-                    -->
-                    <span
-                      v-if="conn.checkinAt"
-                      class="chm-acc__checkin"
-                      :title="conn.checkinMessage || ''"
-                    >签到 {{ shortTime(conn.checkinAt) }}</span>
-                    <div class="chm-acc__actions">
-                      <button class="chm-acc__btn"
-                              @click.stop="renameAccount(activeChannel, conn)">改名</button>
-                      <button v-if="!conn.primary" class="chm-acc__btn"
-                              @click.stop="setPrimaryAccount(activeChannel, conn)">设为主账号</button>
-                      <button v-if="activeSummary()!.supportsRefresh !== false"
-                              class="chm-acc__btn" :disabled="busyFor(activeChannel, 'refresh')"
-                              @click.stop="refreshAccount(activeChannel, conn)">刷新</button>
-                      <button v-if="activeSummary()!.supportsCheckin" class="chm-acc__btn"
-                              :disabled="busyFor(activeChannel, 'sign')"
-                              @click.stop="checkin(activeChannel, conn)">签到</button>
-                      <button class="chm-acc__btn is-danger"
-                              @click.stop="deleteAccount(activeChannel, conn)">删除</button>
+                    <div class="chm-acc__row">
+                      <span class="chm-acc__label" :title="conn.label">{{ conn.label || '未命名' }}</span>
+                      <span v-if="conn.primary" class="chm-acc__primary">主账号</span>
+                      <span class="chm-acc__state" :class="'is-' + connState(conn)">
+                        {{ connStateText(conn) }}
+                      </span>
+                      <!--
+                        到期文案：connExpireText 缺 expiresAt 时返回空串，不占位。
+                        「已过期」单独上危险色，与「N 天后到期」的警告色区分。
+                      -->
+                      <span
+                        v-if="connExpireText(conn)"
+                        class="chm-acc__expire"
+                        :class="{ 'is-expired': connExpireText(conn) === '已过期' }"
+                      >{{ connExpireText(conn) }}</span>
+                      <!--
+                        上次签到：签到摘要由各 SPI 写进连接凭据（checkin_at /
+                        checkin_message），刷新页面仍在；hover 看上游返回的原话。
+                      -->
+                      <span
+                        v-if="conn.checkinAt"
+                        class="chm-acc__checkin"
+                        :title="conn.checkinMessage || ''"
+                      >签到 {{ shortTime(conn.checkinAt) }}</span>
+                      <div class="chm-acc__actions">
+                        <button class="chm-acc__btn"
+                                @click.stop="renameAccount(activeChannel, conn)">改名</button>
+                        <button v-if="!conn.primary" class="chm-acc__btn"
+                                @click.stop="setPrimaryAccount(activeChannel, conn)">设为主账号</button>
+                        <button v-if="activeSummary()!.supportsRefresh !== false"
+                                class="chm-acc__btn" :disabled="busyFor(activeChannel, 'refresh')"
+                                @click.stop="refreshAccount(activeChannel, conn)">刷新</button>
+                        <!--
+                          有积分能力的渠道（supportsCredit=true）：签到放在积分行，最顺眼；
+                          没有积分能力（例如 magpie 管理面）才把签到留在操作行里。
+                        -->
+                        <button v-if="activeSummary()!.supportsCheckin && !activeSummary()!.supportsCredit" class="chm-acc__btn"
+                                :disabled="busyFor(activeChannel, 'sign')"
+                                @click.stop="checkin(activeChannel, conn)">签到</button>
+                        <button class="chm-acc__btn is-danger"
+                                @click.stop="deleteAccount(activeChannel, conn)">删除</button>
+                      </div>
+                    </div>
+                    <!-- 账号下方：积分滑块（进度条/额度/套餐）+ 签到 -->
+                    <div v-if="activeSummary()!.supportsCredit" class="chm-acc__credit">
+                      <div class="chm-credit__head">
+                        <span class="chm-credit__label">积分</span>
+                        <button type="button" class="chm-credit__load" :disabled="creditState[conn.connectionId]?.loading"
+                                @click.stop="loadCredit(conn)">
+                          {{ creditState[conn.connectionId]?.loading ? '查询中…' : '查询积分' }}
+                        </button>
+                      </div>
+                      <p v-if="creditState[conn.connectionId]?.error" class="chm-credit__error">
+                        {{ creditState[conn.connectionId]!.error }}
+                      </p>
+                      <div v-else-if="creditState[conn.connectionId]?.data" class="chm-credit__body">
+                        <div class="chm-credit__value">
+                          {{ creditText(creditState[conn.connectionId]!.data) }}
+                        </div>
+                        <div
+                          v-if="creditPercent(creditState[conn.connectionId]!.data) > 0"
+                          class="chm-credit__bar"
+                          role="progressbar"
+                          :aria-valuenow="creditPercent(creditState[conn.connectionId]!.data)"
+                          aria-valuemin="0"
+                          aria-valuemax="100"
+                        >
+                          <i :style="{ width: creditPercent(creditState[conn.connectionId]!.data) + '%' }" />
+                        </div>
+                        <div class="chm-credit__meta">
+                          <span v-if="creditState[conn.connectionId]!.data.plan">
+                            套餐 {{ creditState[conn.connectionId]!.data.plan }}
+                          </span>
+                          <span v-if="creditState[conn.connectionId]!.data.exceeded" class="is-warn">额度已用尽</span>
+                          <span v-if="creditState[conn.connectionId]!.data.updatedAt">
+                            更新于 {{ shortTime(creditState[conn.connectionId]!.data.updatedAt) }}
+                          </span>
+                        </div>
+                      </div>
+                      <div v-else class="chm-card__empty">尚未查询</div>
+                      <button
+                        v-if="activeSummary()!.supportsCheckin"
+                        class="chm-credit__checkin"
+                        type="button"
+                        :disabled="busyFor(activeChannel, 'sign')"
+                        @click.stop="checkin(activeChannel, conn)"
+                      >签到</button>
                     </div>
                   </div>
                 </div>
@@ -2141,24 +2356,32 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
             <!-- ════════ 模型 ════════ -->
             <div v-else-if="tab.name === 'models'" class="chm-panel__tabbody">
               <div class="chm-panel__block">
-                <div class="chm-panel__sect-title">
-                  <el-icon aria-hidden="true"><DataAnalysisIcon /></el-icon>
-                  模型 <i>{{ (activeSummary()!.models ?? []).length }}</i>
-                  <button class="chm-panel__pull" :disabled="busyFor(activeChannel, 'models')"
-                          @click.stop="pullModels(activeChannel)">
-                    {{ busyFor(activeChannel, 'models') ? '拉取中…' : '拉取模型' }}
-                  </button>
+                <div class="chm-models__title">
+                  <div class="chm-panel__sect-title">
+                    <el-icon aria-hidden="true"><DataAnalysisIcon /></el-icon>
+                    模型 <i>{{ (activeSummary()!.models ?? []).length }}</i>
+                  </div>
+                  <!-- 拉取 + 全选/反选/全不选只占一行：都是模型管理动作，不该拆成两个容器 -->
+                  <div v-if="modelsManageable(activeSummary())" class="chm-models__toolbar">
+                    <button type="button" class="chm-models__op" :disabled="busyFor(activeChannel, 'models')"
+                            @click.stop="pullModels(activeChannel)">
+                      {{ busyFor(activeChannel, 'models') ? '拉取中…' : '拉取模型' }}
+                    </button>
+                    <button type="button" class="chm-models__op" :disabled="busyFor(activeChannel, 'models')"
+                            @click.stop="selectAllModels()">全选</button>
+                    <button type="button" class="chm-models__op" :disabled="busyFor(activeChannel, 'models')"
+                            @click.stop="invertModels()">反选</button>
+                    <button type="button" class="chm-models__op" :disabled="busyFor(activeChannel, 'models')"
+                            @click.stop="deselectAllModels()">全不选</button>
+                  </div>
                 </div>
-                <!-- 批量快捷操作：全选 / 反选 / 全不选 -->
-                <div v-if="(activeSummary()!.models ?? []).length" class="chm-models__ops">
-                  <span class="chm-models__ops-title">批量：</span>
-                  <button type="button" class="chm-panel__pull" :disabled="busyFor(activeChannel, 'models')"
-                          @click.stop="selectAllModels()">全选</button>
-                  <button type="button" class="chm-panel__pull" :disabled="busyFor(activeChannel, 'models')"
-                          @click.stop="invertModels()">反选</button>
-                  <button type="button" class="chm-panel__pull" :disabled="busyFor(activeChannel, 'models')"
-                          @click.stop="deselectAllModels()">全不选</button>
-                </div>
+                <!--
+                  免登录 / 文生图渠道的模型是客户端内置表（后端 /api/channels 直接带回），
+                  没有上游模型接口，也没有 provider 行可落库；这里只读展示。
+                -->
+                <p v-if="!modelsManageable(activeSummary())" class="chm-models__hint">
+                  该渠道模型由客户端内置，无需拉取，也不能逐项开关。
+                </p>
                 <div class="chm-models">
                   <label
                     v-for="m in activeSummary()!.models ?? []"
@@ -2166,13 +2389,20 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                     class="chm-model"
                     :class="{ 'is-off': !m.enabled }"
                   >
-                    <input type="checkbox" :checked="m.enabled"
+                    <input v-if="modelsManageable(activeSummary())" type="checkbox" :checked="m.enabled"
                            @change="onModelToggle(m.model, $event)" />
-                    <span class="chm-model__name" :title="m.model">{{ m.model }}</span>
-                    <span v-if="m.contextWindow" class="chm-model__ctx">{{ m.contextWindow }}</span>
+                    <span v-else class="chm-model__lock" aria-hidden="true">·</span>
+                    <span class="chm-model__info">
+                      <span class="chm-model__name" :title="m.model">{{ m.model }}</span>
+                      <span class="chm-model__meta">
+                        <span v-if="m.free" class="chm-model__tag is-free">免费</span>
+                        <span v-if="m.rate" class="chm-model__tag">{{ m.rate }}x</span>
+                        <span v-if="m.contextWindow" class="chm-model__ctx">{{ m.contextWindow }}</span>
+                      </span>
+                    </span>
                   </label>
                   <div v-if="!(activeSummary()!.models ?? []).length" class="chm-card__empty">
-                    该渠道暂无已启用模型
+                    {{ modelsManageable(activeSummary()) ? '该渠道暂无已启用模型' : '该渠道未声明内置模型' }}
                   </div>
                 </div>
               </div>
@@ -2347,20 +2577,20 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 
     <!--
       绑定账号对话框：ReDialog（koi 平台壳），所有渠道统一。
-      内部结构（重构后）：
-        - #header：渠道品牌头部（官方图标 / 徽标 + 渠道名 + 登录方式 + provider）
-        - 状态带：四相（starting 创建会话 / waiting 等待授权 / error 失败）+ 计时
-        - 阶段区：按登录方式呈递内容
-            (1) 设备码（device-code / browser-device）：授权码大字 + 复制 + 授权链接
-            (2) 扫码（qr-code）：二维码 + 提示
-            (3) 浏览器授权（browser-oauth）：打开授权页主按钮 + 链接兜底
-            (4) API key：密钥输入
-        - #footer：重新发起 + 取消
+      结构（2026-11 重构）：
+        - #header：渠道身份（图标 + 名称 + 登录方式），不放计时器
+        - 状态行：一句话说明「正在等什么 / 该做什么」，等待时右侧给秒数
+        - 内容区：按登录方式只呈现用户当下要做的那一步
+            设备码：授权码 + 复制 + 打开授权页
+            扫码：二维码
+            浏览器授权：打开授权页 + 链接兜底
+            API key：带标签与说明的输入框 + 完成绑定
+        - #footer：取消 / 重新发起
       拿到凭据（SSE done）自动关闭；用户在弹窗里不做任何账号粘贴（Loomy 微信扫码同其它渠道）。
     -->
     <ReDialog
       v-model="bindDialogVisible"
-      width="480px"
+      width="520px"
       append-to-body
       :close-on-click-modal="false"
       :close-on-press-escape="false"
@@ -2368,7 +2598,7 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
       class="chm-bind-dialog"
       @closed="closeBindDialog"
     >
-      <!-- 头部：渠道品牌 -->
+      <!-- 头部：只留渠道身份与登录方式，不放计时器 / 仪表 -->
       <template #header>
         <div class="chm-bind__head">
           <span class="chm-bind__logo"
@@ -2378,138 +2608,101 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
             <b v-else>{{ brandOf(bindChannel).glyph }}</b>
           </span>
           <div class="chm-bind__headtext">
-            <b>{{ channels.find((c) => c.channel === bindChannel)?.displayName || bindChannel }}</b>
-            <span>
-              <i>{{ brandOf(bindChannel).method || '账号绑定' }}</i>
-              · 绑定新账号
-            </span>
+            <b>{{ bindChannelLabel }}</b>
+            <span>{{ brandOf(bindChannel).method || '账号绑定' }} · 绑定新账号</span>
           </div>
-          <!-- 秒表时钟（Console 仪表） -->
-          <span v-if="bindPhase !== 'error'" class="chm-bind__clock">
-            <span class="chm-bind__clock-label">已等待</span>
-            <b class="chm-bind__clock-value">{{ bindElapsed }}s</b>
-          </span>
         </div>
       </template>
 
       <div class="chm-bind">
-        <!-- 状态带 -->
-        <div class="chm-bind__status" :class="{ 'is-error': bindPhase === 'error' }">
-          <span class="chm-bind__dot" :class="{ 'is-error': bindPhase === 'error' }" />
-          <span class="chm-bind__status-text">
-            <span v-if="bindPhase === 'starting'">正在创建登录会话…</span>
-            <span v-else-if="bindPhase === 'error'">失败：{{ bindError }}</span>
-            <span v-else-if="isKeylessBind()">免鉴权渠道，正在自动完成绑定（无需填写凭据）</span>
-            <span v-else-if="isApiKeyBind()">请填写 API key 后提交</span>
-            <span v-else-if="isQrBind()">请用微信扫码授权</span>
-            <span v-else-if="callbackAuto(bindChannel)">已打开授权页，完成后会自动绑定（无需回到本页）</span>
-            <span v-else>已打开授权页，请在那里完成登录</span>
-          </span>
-          <span class="chm-bind__meter" :class="{ 'is-error': bindPhase === 'error' }">
-            <i :class="{ 'is-error': bindPhase === 'error' }" />
-          </span>
+        <!-- 一句话状态：现在在做什么 / 该做什么，右侧只有安静的等待秒数 -->
+        <div class="chm-bind__state" :class="'is-' + bindPhase">
+          <span class="chm-bind__state-icon" aria-hidden="true" />
+          <span class="chm-bind__state-text">{{ bindStatusText }}</span>
+          <span v-if="bindPhase === 'waiting'" class="chm-bind__elapsed">已等待 {{ bindElapsed }}s</span>
         </div>
 
-        <div class="chm-bind__stage">
-          <!-- (1) 设备码 / 授权码（device-code / browser-device） -->
-          <div v-if="bindUserCode()" class="chm-bind__code">
-            <span class="chm-bind__code-label">授权码</span>
-            <div class="chm-bind__code-row">
-              <b class="chm-bind__code-value">{{ bindUserCode() }}</b>
-              <button
-                class="chm-bind__copy"
-                type="button"
-                title="复制授权码"
-                @click="copyBindCode()"
-              >复制</button>
-            </div>
-            <span class="chm-bind__code-hint">在设备 / 授权页面输入此授权码完成登录</span>
+        <!-- 设备码：先给码，再给授权页入口 -->
+        <section v-if="bindUserCode()" class="chm-bind__card">
+          <p class="chm-bind__card-title">把授权码填到授权页</p>
+          <div class="chm-bind__code-row">
+            <b class="chm-bind__code-value">{{ bindUserCode() }}</b>
+            <el-button size="small" @click="copyBindCode()">复制</el-button>
           </div>
+          <p class="chm-bind__help">在授权页粘贴这串码并确认，完成后这里会自动关闭。</p>
+        </section>
 
-          <!-- (2) 扫码（qr-code） -->
-          <div v-if="isQrBind() && qrImages[bindChannel]" class="chm-bind__qr">
-            <img :src="qrImages[bindChannel]" alt="登录二维码" />
-            <span class="chm-bind__qr-hint">使用微信「扫一扫」完成授权，成功后自动绑定</span>
-          </div>
+        <!-- 扫码 -->
+        <section v-if="isQrBind() && qrImages[bindChannel]" class="chm-bind__card is-center">
+          <img class="chm-bind__qr" :src="qrImages[bindChannel]" alt="登录二维码" />
+          <p class="chm-bind__help">用微信「扫一扫」，在手机上确认授权。</p>
+        </section>
 
-          <!-- (3) 浏览器授权入口（授权链接兜底：自动开窗失败 / 被关闭时） -->
-          <div v-if="handleVerifyUrl(bindState[bindChannel]?.handle ?? {}) && !isQrBind() && !isApiKeyBind()"
-               class="chm-bind__cta">
-            <button
-              class="chm-bind__open"
-              type="button"
-              @click="openAuthWindow(handleVerifyUrl(bindState[bindChannel]?.handle ?? {}))"
-            >
-              打开授权页
-            </button>
-            <a class="chm-bind__href"
-               :href="handleVerifyUrl(bindState[bindChannel]?.handle ?? {})"
-               target="_blank" rel="noopener noreferrer">或点此链接</a>
-          </div>
+        <!-- 授权页入口（设备码 / 浏览器授权） -->
+        <section v-if="handleVerifyUrl(bindState[bindChannel]?.handle ?? {}) && !isQrBind() && !isApiKeyBind()"
+                 class="chm-bind__cta">
+          <el-button type="primary" class="chm-bind__wide"
+                     @click="openAuthWindow(handleVerifyUrl(bindState[bindChannel]?.handle ?? {}))">
+            打开授权页
+          </el-button>
+          <a class="chm-bind__link"
+             :href="handleVerifyUrl(bindState[bindChannel]?.handle ?? {})"
+             target="_blank" rel="noopener noreferrer">没有自动打开？点此进入</a>
+        </section>
 
-          <!-- (4) API key（OpenCode / Magpie 网关凭据） -->
-          <div v-if="isApiKeyBind()" class="chm-bind__form">
-            <div v-if="bindChannel === 'magpie'" class="chm-bind__row">
-              <input
-                :value="bindState[bindChannel]?.input?.baseUrl ?? ''"
-                @input="onBaseUrlInput($event)"
-                class="chm-input"
-                placeholder="网关地址，如 http://127.0.0.1:3425（也可整条粘贴 magpie web 的链接）"
-              />
-            </div>
-            <div v-if="bindChannel === 'magpie'" class="chm-bind__row">
-              <input
-                :value="bindState[bindChannel]?.input?.pageUrl ?? ''"
-                @input="onPageUrlInput($event)"
-                class="chm-input"
-                placeholder="页面地址，如 http://127.0.0.1:3430（缺省按网关地址推导）"
-              />
-            </div>
-            <div v-if="bindChannel === 'magpie'" class="chm-bind__row">
-              <input
-                :value="bindState[bindChannel]?.input?.pageKey ?? ''"
-                @input="onPageKeyInput($event)"
-                class="chm-input"
-                placeholder="页面 Key（启动链接里的 k=…，管理上游与签到用）"
-              />
-            </div>
-            <div class="chm-bind__row">
-              <input
-                :value="bindState[bindChannel]?.input?.apiKey ?? ''"
-                @input="onApiKeyInput($event)"
-                class="chm-input"
-                :placeholder="bindChannel === 'magpie'
-                  ? '网关 key（本机未开启鉴权可留空）'
-                  : 'Zen API key（匿名通道填 public）'"
-              />
-              <button class="chm-btn chm-btn--primary" type="button" @click="submitBindInput()">提交</button>
-            </div>
-            <span v-if="bindChannel === 'magpie'" class="chm-bind__code-hint">
-              网关地址用于对话 / 模型 / 配额；页面地址与页面 Key 只用于上游管理与签到
-              （桌面版需在 magpie 设置里打开「浏览器访问」）。
-            </span>
-          </div>
+        <!-- 密钥 -->
+        <section v-if="isApiKeyBind()" class="chm-bind__fields">
+          <template v-if="bindChannel === 'magpie'">
+            <label class="chm-bind__field">
+              <span>网关地址</span>
+              <el-input :model-value="bindState[bindChannel]?.input?.baseUrl ?? ''"
+                        @input="onBaseUrlInput"
+                        placeholder="http://127.0.0.1:3425" />
+              <em>对话、模型与配额走这里；也可以整条粘贴 magpie 的启动链接。</em>
+            </label>
+            <label class="chm-bind__field">
+              <span>页面地址</span>
+              <el-input :model-value="bindState[bindChannel]?.input?.pageUrl ?? ''"
+                        @input="onPageUrlInput"
+                        placeholder="http://127.0.0.1:3430（可空）" />
+              <em>只在管理上游与签到时使用；留空按网关地址推导。</em>
+            </label>
+            <label class="chm-bind__field">
+              <span>页面 Key</span>
+              <el-input :model-value="bindState[bindChannel]?.input?.pageKey ?? ''"
+                        @input="onPageKeyInput"
+                        placeholder="启动链接里的 k=…（可空）" />
+            </label>
+          </template>
+          <label class="chm-bind__field">
+            <span>{{ bindChannel === 'magpie' ? '网关 Key' : 'API Key' }}</span>
+            <el-input :model-value="bindState[bindChannel]?.input?.apiKey ?? ''"
+                      type="password"
+                      show-password
+                      @input="onApiKeyInput"
+                      :placeholder="bindChannel === 'magpie'
+                        ? '未开启鉴权可留空'
+                        : '粘贴密钥；匿名通道填 public'" />
+          </label>
+          <el-button type="primary" class="chm-bind__wide" @click="submitBindInput()">完成绑定</el-button>
+        </section>
 
-          <!-- (5) 本地回调不可用时的兜底：允许手工粘贴回调地址 -->
-          <div v-if="bindState[bindChannel]?.handle?.callbackListening === false" class="chm-bind__form">
-            <div class="chm-bind__hint">检测到本地回调端口不可用，授权后请把浏览器地址栏的回调地址粘到下面：</div>
-            <div class="chm-bind__row">
-              <input
-                :value="bindState[bindChannel]?.handle?.callbackUrl ?? ''"
-                @input="onCallbackUrlInput($event)"
-                class="chm-input"
-                placeholder="http://127.0.0.1:…/authorize?…"
-              />
-              <button class="chm-btn" type="button" @click="submitBindInput()">提交</button>
-            </div>
+        <!-- 回调没自动收到时的兜底 -->
+        <section v-if="bindState[bindChannel]?.handle?.callbackListening === false" class="chm-bind__card">
+          <p class="chm-bind__card-title">授权后没有自动完成？</p>
+          <p class="chm-bind__help">把浏览器地址栏里的完整回调地址粘贴到这里。</p>
+          <div class="chm-bind__row">
+            <el-input :model-value="bindState[bindChannel]?.handle?.callbackUrl ?? ''"
+                      @input="onCallbackUrlInput"
+                      placeholder="http://127.0.0.1:…/authorize?…" />
+            <el-button @click="submitBindInput()">提交</el-button>
           </div>
-        </div>
+        </section>
       </div>
 
       <template #footer>
-        <button class="chm-btn" type="button" @click="restartBind()"
-                :disabled="bindPhase === 'starting'">重新发起</button>
-        <button class="chm-btn chm-btn--primary" type="button" @click="closeBindDialog()">取消</button>
+        <el-button text @click="closeBindDialog()">取消</el-button>
+        <el-button :disabled="bindPhase === 'starting'" @click="restartBind()">重新发起</el-button>
       </template>
     </ReDialog>
 
@@ -2566,44 +2759,71 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   opacity: .55;
   cursor: not-allowed;
 }
-.chm-alert {
-  padding: 10px 14px;
-  border-radius: 8px;
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-.chm-alert.is-danger {
-  background: color-mix(in srgb, var(--el-color-danger, #f56c6c) 8%, transparent);
-  color: var(--el-color-danger, #f56c6c);
-}
-.chm-alert button {
-  border: 1px solid currentColor;
-  background: transparent;
-  color: inherit;
-  border-radius: 4px;
-  padding: 2px 10px;
-  cursor: pointer;
-  font-size: 12px;
-}
 /* ============ 方案 A · 运维甲板（OPS·DECK） ============ */
 .chm-deck {
   display: flex;
-  /* 左右两栏紧邻：原来是 14px 的缝，视觉上像两块割裂的卡片 */
-  gap: 8px;
+  /* 两栏之间只留分栏手柄本身，不再额外加缝（原来 8px + 手柄 = 12px 空档） */
+  gap: 0;
   align-items: stretch;
   /* 吃掉 .chm 除页头外的全部剩余高度：左右两栏等高，右栏内部自己滚动 */
   flex: 1;
   min-height: 0;
 }
 
+/* 分栏手柄：常显一条 4px 圆角竖条 + 中间三点握把，hover / 拖拽加深 */
+.chm-deck__split {
+  flex: none;
+  align-self: stretch;
+  width: 11px;
+  margin: 0 -1px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: col-resize;
+  touch-action: none;
+  outline: none;
+}
+.chm-deck__split::before {
+  content: '';
+  width: 4px;
+  height: 44px;
+  border-radius: 999px;
+  background: var(--border-default, #e2e9f3);
+  box-shadow: 0 0 0 1px var(--bg-container, #fff);
+  transition: background-color .15s ease, height .15s ease;
+}
+.chm-deck__split::after {
+  content: '';
+  position: absolute;
+  width: 2px;
+  height: 22px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-image: radial-gradient(circle, var(--text-tertiary, #94a3b8) 1px, transparent 1.2px);
+  background-size: 2px 6px;
+  background-repeat: repeat-y;
+  pointer-events: none;
+}
+.chm-deck__split:hover::before,
+.chm-deck__split:focus-visible::before,
+.chm-deck__split:active::before {
+  background: var(--brand-500, #3b82f6);
+  height: 72px;
+}
+.chm-deck__split:hover::after,
+.chm-deck__split:active::after {
+  background-image: radial-gradient(circle, #fff 1px, transparent 1.2px);
+}
+
 /* ---- 左：渠道索引 ---- */
 .chm-rail {
   flex: none;
-  /* 216 → 188：渠道名够放，把省下的宽度让给右侧详情 */
-  width: 188px;
+  /* 宽度由 railWidth 内联控制（可拖拽，存本地偏好）；这里只留兜底值 */
+  width: 280px;
+  min-width: 200px;
+  max-width: 560px;
   border: 1px solid var(--border-default, #e2e9f3);
   border-radius: 12px;
   background: var(--bg-container, #fff);
@@ -3169,6 +3389,27 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 .chm-panel__sect-title .el-icon {
   color: var(--text-tertiary, #94a3b8);
 }
+/* 刷新按钮只留图标：圈与文字一起去掉 */
+.chm-panel__pull--icon {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 6px;
+  border: 1px solid var(--border-default, #e2e9f3);
+  background: var(--bg-container, #fff);
+  color: var(--text-secondary, #475569);
+}
+.chm-panel__pull--icon:hover:not(:disabled) {
+  border-color: var(--brand-400, #60a5fa);
+  color: var(--brand-600, #2563eb);
+  background: var(--bg-hover, #f1f5fb);
+}
+.chm-panel__pull--icon:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
 /* 自动签到：全局开关，右对齐到标题行末尾（与「刷新 / 添加」按钮同侧） */
 .chm-auto {
   margin-left: auto;
@@ -3212,25 +3453,120 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   flex-direction: column;
   gap: 6px;
 }
-.chm-models__ops {
+.chm-models__title {
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
 }
-.chm-models__ops-title {
+/* 模型管理工具栏：拉取 + 全选/反选/全不选，同行排列，不再被 margin-left: auto 挤向不太分明的位置 */
+.chm-models__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.chm-models__op {
+  border: 1px solid var(--border-default, #e2e9f3);
+  background: var(--bg-container, #fff);
+  color: var(--text-regular, #475569);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color .15s, color .15s;
+}
+.chm-models__op:hover:not(:disabled) {
+  border-color: var(--brand-400, #60a5fa);
+  color: var(--brand-600, #2563eb);
+}
+.chm-models__op:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+/* 内置模型说明：免登录 / 文生图渠道只读，不提供拉取与开关 */
+.chm-models__hint {
+  margin: 0 0 2px;
   font-size: 12px;
   color: var(--text-tertiary, #94a3b8);
 }
-.chm-acc {
+/* 模型卡：名称 + 倍率 / 免费 / 上下文窗口 */
+.chm-model {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 12px;
+  padding: 7px 10px;
   border: 1px solid var(--border-subtle, #eef2f8);
   border-radius: 8px;
   font-size: 13px;
-  background: var(--bg-container, #fff);
+  cursor: pointer;
+  transition: border-color .15s, background-color .15s;
+}
+.chm-model:hover {
+  border-color: var(--brand-400, #60a5fa);
+}
+.chm-model.is-off {
+  opacity: .5;
+}
+.chm-model input[type="checkbox"] {
+  flex: none;
+  margin: 0;
+}
+.chm-model__info {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.chm-model__name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary, #0f172a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chm-model__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-secondary, #64748b);
+  flex-wrap: wrap;
+}
+.chm-model__tag {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--el-fill-color, #f0f2f5);
+  color: var(--text-regular, #475569);
+}
+.chm-model__tag.is-free {
+  background: color-mix(in srgb, var(--el-color-success, #67c23a) 14%, transparent);
+  color: var(--el-color-success, #67c23a);
+}
+.chm-model__ctx {
+  font-variant-numeric: tabular-nums;
+}
+/* 只读模型行的占位点：与勾选框同宽，保证名称左对齐 */
+.chm-model__lock {
+  width: 14px;
+  text-align: center;
+  color: var(--text-tertiary, #94a3b8);
+  cursor: default;
+}
+.chm-acc {
+  /* 两行布局：账号行 + 账号下方的积分滑块 */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.chm-acc__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
 }
 .chm-acc.is-stale {
   border-color: color-mix(in srgb, var(--el-color-warning, #e6a23c) 50%, transparent);
@@ -3332,6 +3668,67 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   cursor: not-allowed;
 }
 
+/* 已授权连接行下面的积分滑块：进度条 + 额度 + 更新 + 签到 */
+.chm-acc__credit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 7px;
+  background: var(--bg-elevated, #f8fafc);
+  border: 1px solid var(--border-subtle, #eef2f8);
+}
+.chm-acc__credit .chm-credit__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.chm-acc__credit .chm-credit__label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.chm-acc__credit .chm-credit__load {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary, #475569);
+  font-size: 11px;
+  cursor: pointer;
+}
+.chm-acc__credit .chm-credit__load:hover:not(:disabled) {
+  color: var(--brand-600, #2563eb);
+}
+.chm-acc__credit .chm-credit__load:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+.chm-acc__credit .chm-credit__error {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--el-color-danger, #f56c6c);
+}
+.chm-credit__checkin {
+  align-self: flex-end;
+  border: 1px solid var(--brand-600, #2563eb);
+  background: var(--brand-600, #2563eb);
+  color: #fff;
+  border-radius: 6px;
+  padding: 3px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color .15s;
+}
+.chm-credit__checkin:hover:not(:disabled) {
+  background: var(--brand-500, #3b82f6);
+}
+.chm-credit__checkin:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
 /* ---- 绑定虚线框 ---- */
 .chm-panel__bindbtn {
   display: flex;
@@ -3369,50 +3766,48 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 .chm-bind-dialog {
   border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 20px 50px rgba(15, 23, 42, .18);
   border: 1px solid var(--border-default, #e2e9f3);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, .16);
 }
 .chm-bind-dialog :deep(.el-dialog__header) {
-  padding: 16px 20px 0;
+  padding: 18px 22px 14px;
   margin-right: 0;
   border-bottom: 1px solid var(--border-subtle, #eef2f8);
-  background: var(--bg-elevated, #f8fafc);
 }
 .chm-bind-dialog :deep(.el-dialog__headerbtn) {
-  top: 16px;
-  right: 16px;
+  top: 18px;
+  right: 18px;
 }
 .chm-bind-dialog :deep(.el-dialog__body) {
-  padding: 16px 20px 8px;
+  padding: 18px 22px 6px;
 }
 .chm-bind-dialog :deep(.el-dialog__footer) {
-  padding: 8px 20px 16px;
+  padding: 4px 22px 18px;
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  border-top: 1px solid var(--border-subtle, #eef2f8);
-  background: var(--bg-elevated, #f8fafc);
 }
 .chm-bind {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
-/* 头部：渠道品牌 */
+
+/* 头部：渠道身份 + 登录方式 */
 .chm-bind__head {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 .chm-bind__logo {
   flex: none;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
   display: grid;
   place-items: center;
   color: #fff;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 700;
   overflow: hidden;
 }
@@ -3421,252 +3816,171 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   border: 1px solid var(--border-subtle, #eef2f8);
 }
 .chm-bind__logo img {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   object-fit: contain;
 }
 .chm-bind__logo b {
   color: #fff;
-  font-size: 14px;
+  font-size: 15px;
 }
 .chm-bind__headtext {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
+  min-width: 0;
 }
 .chm-bind__headtext > b {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--text-primary, #0f172a);
-  line-height: 1.2;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .chm-bind__headtext > span {
-  display: flex;
-  align-items: center;
-  gap: 5px;
   font-size: 12px;
   color: var(--text-secondary, #475569);
 }
-.chm-bind__headtext i {
-  font-style: normal;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
-  color: var(--text-secondary, #475569);
-  background: var(--bg-fill, #f1f5fb);
-  padding: 1px 6px;
-  border-radius: 4px;
-}
-/* 状态带 */
-.chm-bind__status {
+
+/* 一句话状态行 */
+.chm-bind__state {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid var(--border-subtle, #eef2f8);
+  border-radius: 9px;
+  background: var(--bg-elevated, #f8fafc);
   font-size: 13px;
   color: var(--text-regular, #475569);
-  border: 1px solid var(--border-subtle, #eef2f8);
-  border-radius: 8px;
-  padding: 8px 10px;
-  background: var(--bg-elevated, #f8fafc);
 }
-.chm-bind__status.is-error {
+.chm-bind__state.is-error {
   border-color: color-mix(in srgb, var(--el-color-danger, #f56c6c) 40%, transparent);
+  background: color-mix(in srgb, var(--el-color-danger, #f56c6c) 5%, transparent);
   color: var(--el-color-danger, #f56c6c);
 }
-.chm-bind__dot {
+.chm-bind__state-icon {
+  flex: none;
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: var(--brand-500, #3b82f6);
   animation: chm-pulse 1.2s ease-in-out infinite;
-  flex: none;
 }
-.chm-bind__dot.is-error {
+.chm-bind__state.is-error .chm-bind__state-icon {
   background: var(--el-color-danger, #f56c6c);
   animation: none;
 }
-.chm-bind__dot.is-done {
-  background: #22c55e;
-  animation: none;
+.chm-bind__state-text {
+  flex: 1;
+  min-width: 0;
+}
+.chm-bind__elapsed {
+  flex: none;
+  font-size: 11.5px;
+  color: var(--text-tertiary, #94a3b8);
+  font-variant-numeric: tabular-nums;
 }
 @keyframes chm-pulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.25; }
+  50% { opacity: .25; }
 }
-/* 状态文字：可截断（仪表行） */
-.chm-bind__status-text {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-/* 仪表进度条：等待时蓝色滑动，错误时红色满格 */
-.chm-bind__meter {
-  flex: none;
-  width: 72px;
-  height: 4px;
-  border-radius: 999px;
-  background: var(--border-subtle, #eef2f8);
-  overflow: hidden;
-}
-.chm-bind__meter i {
-  display: block;
-  height: 100%;
-  width: 40%;
-  border-radius: 999px;
-  background: var(--brand-500, #3b82f6);
-  animation: chm-meter 1.6s ease-in-out infinite;
-}
-.chm-bind__meter.is-error i {
-  background: var(--el-color-danger, #f56c6c);
-  animation: none;
-  width: 100%;
-}
-@keyframes chm-meter {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(260%); }
-}
-/* 秒表时钟（Console 仪表） */
-.chm-bind__clock {
-  flex: none;
-  display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
-  margin-left: auto;
-  padding: 3px 9px;
-  border: 1px solid var(--border-subtle, #eef2f8);
-  border-radius: 6px;
-  background: var(--bg-elevated, #f8fafc);
-}
-.chm-bind__clock-label {
-  font-size: 11px;
-  color: var(--text-tertiary, #94a3b8);
-}
-.chm-bind__clock-value {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 16px;
-  font-weight: 650;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-primary, #0f172a);
-}
-/* 阶段内容区 */
-.chm-bind__stage {
+
+/* 阶段卡片 */
+.chm-bind__card {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-}
-/* 设备码 / 授权码 */
-.chm-bind__code {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   gap: 8px;
-  padding: 14px 12px;
-  background: var(--bg-elevated, #f8fafc);
+  padding: 14px;
   border: 1px solid var(--border-subtle, #eef2f8);
   border-radius: 10px;
+  background: var(--bg-elevated, #f8fafc);
 }
-.chm-bind__code-label {
+.chm-bind__card.is-center {
+  align-items: center;
+  text-align: center;
+}
+.chm-bind__card-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #0f172a);
+}
+.chm-bind__help {
+  margin: 0;
   font-size: 12px;
-  color: var(--text-secondary, #475569);
+  line-height: 1.6;
+  color: var(--text-tertiary, #94a3b8);
 }
 .chm-bind__code-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 .chm-bind__code-value {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 22px;
-  letter-spacing: 2px;
-  user-select: all;
-  color: var(--text-primary, #0f172a);
-}
-.chm-bind__copy {
-  border: 1px solid var(--border-default, #e2e9f3);
+  font-size: 26px;
+  letter-spacing: 3px;
+  padding: 5px 12px;
+  border: 1px dashed var(--border-default, #e2e9f3);
+  border-radius: 8px;
   background: var(--bg-container, #fff);
-  color: var(--text-regular, #475569);
-  border-radius: 6px;
-  padding: 3px 10px;
-  font-size: 12px;
-  cursor: pointer;
+  color: var(--text-primary, #0f172a);
+  user-select: all;
 }
-.chm-bind__copy:hover {
-  border-color: var(--brand-400, #60a5fa);
-  color: var(--brand-600, #2563eb);
-}
-.chm-bind__code-hint {
-  font-size: 12px;
-  color: var(--text-tertiary, #94a3b8);
-}
-/* 扫码 */
 .chm-bind__qr {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-.chm-bind__qr img {
-  width: 210px;
-  height: 210px;
+  width: 200px;
+  height: 200px;
   border: 1px solid var(--border-subtle, #eef2f8);
   border-radius: 10px;
+  background: #fff;
 }
-.chm-bind__qr-hint {
-  font-size: 12px;
-  color: var(--text-tertiary, #94a3b8);
-}
-/* 授权入口 */
 .chm-bind__cta {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 10px;
-  font-size: 12px;
-}
-.chm-bind__open {
-  border: 1px solid var(--brand-600, #2563eb);
-  background: var(--brand-600, #2563eb);
-  color: #fff;
-  border-radius: 8px;
-  padding: 7px 18px;
-  font-size: 13px;
-  cursor: pointer;
-}
-.chm-bind__open:hover {
-  background: var(--brand-500, #3b82f6);
-}
-.chm-bind__href {
-  color: var(--brand-600, #2563eb);
-}
-/* 输入表单（API key / 回调粘贴） */
-.chm-bind__form {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+.chm-bind__wide {
+  width: 100%;
+}
+.chm-bind__link {
+  text-align: center;
+  font-size: 12px;
+  color: var(--brand-600, #2563eb);
+  text-decoration: none;
+}
+.chm-bind__link:hover {
+  text-decoration: underline;
+}
+
+/* 密钥表单 */
+.chm-bind__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.chm-bind__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12.5px;
+}
+.chm-bind__field > span {
+  font-weight: 600;
+  color: var(--text-primary, #0f172a);
+}
+.chm-bind__field > em {
+  font-style: normal;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-tertiary, #94a3b8);
 }
 .chm-bind__row {
   display: flex;
+  align-items: center;
   gap: 8px;
-}
-.chm-bind__hint {
-  font-size: 12px;
-  color: var(--el-color-warning, #e6a23c);
-}
-
-.chm-input {
-  padding: 5px 8px;
-  border: 1px solid var(--el-border-color, #dcdfe6);
-  border-radius: 4px;
-  font-size: 12px;
-  color: var(--el-text-color-regular, #606266);
-  background: var(--el-fill-color-blank, #fff);
-  width: 100%;
-}
-.chm-input:focus {
-  outline: none;
-  border-color: var(--el-color-primary, #409eff);
 }
 .chm-model {
   display: flex;
