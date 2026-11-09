@@ -11,7 +11,8 @@ export default {
   status: {
     queued: '待上传',
     uploading: '上传中',
-    uploaded: '上传完成',
+    // 磁盘上有原文、但向量库里没有它的分片（上传后未索引 / 进程重启后索引状态丢失）
+    uploaded: '待重建索引',
     pending: '等待处理',
     processing: '处理中',
     completed: '已完成',
@@ -64,10 +65,19 @@ export default {
     // 错误提示
     loadFileListFailed: '加载文件列表失败',
     retryFileTitle: '警告',
-    retryFileConfirm: '确定要重新处理文件“{name}”吗？这将重新启动后台处理任务。',
-    retryStarted: '已开始重新处理文件',
-    retryFailed: '重新处理失败',
-    waitRetry: '等待重新处理...',
+    retryFileConfirm: '确定重建“{name}”的索引吗？将读回原文并重新切分、向量化，不会改动文件内容。',
+    retryStarted: '已提交重建索引',
+    retryFailed: '重建索引失败',
+    waitRetry: '等待重建索引...',
+    reindexAll: '重建全部索引',
+    reindexAllConfirm: '将 {count} 篇未索引文档重新提交入库（读原文回写，不改内容）。',
+    reindexing: '正在重建索引...',
+    reindexDone: '重建完成：成功 {ok} 篇，失败 {fail} 篇',
+    reindexPartial: '重建已跑完：成功 {ok} 篇，仍有 {rest} 篇未入库（后端切块或向量化失败，见后端日志）',
+    reindexStillPending: '“{name}”仍未入库，重建没有真正完成',
+    reindexNone: '没有需要重建的文档',
+    // 待重建横幅与工序带共用：点掉之后要知道「后端没做完」和「你没点」不是一回事
+    reindexHint: '重建只补索引，不改原文；若重建后仍显示待重建，说明后端切块或向量化失败。',
     fileNotReady: '文件尚未处理完成，无法查看分块内容',
     deleteFileTitle: '警告',
     deleteFileConfirm: '确定要删除文件“{name}”吗？此操作不可恢复。',
@@ -103,7 +113,7 @@ export default {
     // 右键菜单
     rename: '重命名',
     moveTo: '移动到...',
-    retry: '重新处理',
+    retry: '重建索引',
     delete: '删除',
     // 重命名对话框
     renameTitle: '重命名',

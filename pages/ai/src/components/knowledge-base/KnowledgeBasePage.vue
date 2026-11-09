@@ -80,6 +80,16 @@
 
         <div class="kb-bar__right">
           <span class="kb-chip kb-chip--ok"><b>{{ filesForFilter.length }}</b> 文档</span>
+          <button
+            v-if="staleFileCount > 0"
+            type="button"
+            class="kb-chip kb-chip--warn kb-chip--act"
+            :disabled="reindexing || !canEditCurrent"
+            :title="t('knowledge.page.reindexAll')"
+            @click="handleReindexAllStale"
+          >
+            <b>{{ staleFileCount }}</b> {{ reindexing ? '重建中…' : '待重建' }}
+          </button>
           <!-- 处理中此前只在概览工序带里出现，顶栏只剩「失败」会让人以为别的都完事了 -->
           <span v-if="pendingFileCount > 0" class="kb-chip kb-chip--warn">
             <b>{{ pendingFileCount }}</b> 处理中
@@ -177,6 +187,29 @@
             </button>
           </div>
 
+          <!-- 待重建索引：原文在盘上但向量库没有分片（上传未跑完 / 重启后状态丢失）。
+               这一档不处理就是永远检索不到，所以与「失败」一样提到一级位置。 -->
+          <div v-if="staleFileCount > 0" class="kb-nav__group kb-nav__group--fail kb-nav__group--stale">
+            <h2 class="kb-nav__title">待重建索引<em>{{ staleFileCount }}</em></h2>
+            <div v-for="f in staleFiles.slice(0, 4)" :key="f.id" class="kb-failrow kb-failrow--stale">
+              <span class="kb-failrow__name">{{ f.displayName || f.fileName }}</span>
+              <span class="kb-failrow__why">原文在盘上，向量库没有它的分片</span>
+              <button
+                v-if="canEditCurrent"
+                type="button"
+                class="kb-failrow__retry"
+                :disabled="reindexing"
+                @click="handleRetryFile(f)"
+              >重建</button>
+            </div>
+            <button
+              type="button"
+              class="kb-nav__more"
+              :disabled="reindexing || !canEditCurrent"
+              @click="handleReindexAllStale"
+            >{{ reindexing ? '正在重建…' : `一键重建全部 ${staleFileCount} 篇` }}</button>
+          </div>
+
           <!-- 失败文档：失败只出现在卷内文档列表里等于没提示（那一格只有一个红点）。
                这里把失败项提到一级位置，原因与端点都给全，原地重试。 -->
           <div v-if="failedFiles.length > 0" class="kb-nav__group kb-nav__group--fail">
@@ -239,6 +272,16 @@
               </div>
               <div class="kb-head__right">
                 <span class="kb-stamp"><b>{{ filesForFilter.length }}</b> 篇</span>
+                <button
+                  v-if="staleFileCount > 0"
+                  type="button"
+                  class="kb-stamp kb-stamp--warn kb-stamp--act"
+                  :disabled="reindexing || !canEditCurrent"
+                  :title="reindexing ? t('knowledge.page.reindexing') : t('knowledge.page.reindexAll')"
+                  @click="handleReindexAllStale"
+                >
+                  <b>{{ staleFileCount }}</b> {{ reindexing ? '重建中…' : '待重建' }}
+                </button>
                 <span v-if="pendingFileCount > 0" class="kb-stamp kb-stamp--warn">
                   <b>{{ pendingFileCount }}</b> 处理中
                 </span>
@@ -270,14 +313,24 @@
                   @folder-created="handleFolderCreated" />
               </div>
 
-              <!-- 空文档：此前文件树中央只有一行「暂无文件」，而上传入口是工具栏末尾
-                   一排 20px 的方形图标，看不出这里是起步点。空态把「上传」变成主按钮。 -->
+              <!-- 待重建横幅：后端把「磁盘上有原文、向量库里没有分片」报成 uploaded，
+                   不点一下就永远检索不到，所以给一条能原地重建的提示 -->
+              <div v-if="staleFileCount > 0 && fileStatusFilter !== 'stale'" class="kb-docview__banner">
+                <span :title="t('knowledge.page.reindexHint')">
+                  <b>{{ staleFileCount }}</b> 篇文档在磁盘上但还没有索引（上传未跑完，或服务重启后索引状态丢失），检索不到它们。
+                </span>
+                <ReButton type="primary" link :loading="reindexing" :disabled="!canEditCurrent"
+                  @click="handleReindexAllStale">重建全部索引</ReButton>
+              </div>
+
               <div v-if="failedFileCount > 0 && fileStatusFilter !== 'failed'" class="kb-docview__banner">
                 <span><b>{{ failedFileCount }}</b> 篇解析失败，原因在左栏「待处理失败」里，可原地重试。</span>
                 <ReButton type="primary" link @click="fileStatusFilter = 'failed'">只看失败</ReButton>
               </div>
 
               <div v-if="filesForFilter.length === 0 && fileStatusFilter === 'all'" class="kb-docview__blank">
+                <!-- 空文档：此前文件树中央只有一行「暂无文件」，而上传入口是工具栏末尾
+                     一排 20px 的方形图标，看不出这里是起步点。空态把「上传」变成主按钮。 -->
                 <div class="kb-docview__blank-card">
                   <h3 class="kb-docview__blank-t">这个卷宗还没有文档</h3>
                   <p class="kb-docview__blank-d">
@@ -3438,46 +3491,133 @@ function handleScroll(event: Event) {
 /**
  * 处理上传完成事件
  */
-async function handleRetryFile(file: KBFile) {
+/**
+ * 重建后刷新真实状态。
+ *
+ * <p>后端 {@code PUT /bases/{id}/file} 同步走完入库管线（切块 → 向量化）后才返回，
+ * 所以这里不需要轮询不存在的「处理进度」接口——直接重拉文件清单即可。</p>
+ */
+async function refreshAfterReindex(): Promise<void> {
+  await Promise.allSettled([
+    loadFileInventory(),
+    fileTreeRef.value?.forceReload ? fileTreeRef.value.forceReload() : Promise.resolve(),
+  ])
+  await loadOverview()
+}
+
+/**
+ * 重建单个文件的索引（读原文 → 同内容回写）。
+ *
+ * <p>以前这里调的是 {@code retryKBFile} 的 {@code missingOutlet}，点下去必然抛
+ * 「后端没有重新解析接口」；随后又把状态改回 pending 去轮询一个不存在的状态接口，
+ * 于是界面永远停在「处理中」。现在这条路走的是真实入库链路。</p>
+ *
+ * @param file 目标文件
+ * @param silent 批量调用时不弹确认框、不逐条 toast
+ */
+async function handleRetryFile(file: KBFile, silent = false) {
+  const kbId = store.activeKnowledgeBaseId
+  if (!kbId) return
+  try {
+    if (!silent) {
+      const confirmed = await confirm(
+        t('knowledge.page.retryFileTitle'),
+        t('knowledge.page.retryFileConfirm', { name: file.displayName || file.fileName }),
+        { type: 'warning' },
+      )
+      if (!confirmed) return
+    }
+
+    await apiService.retryKBFile(kbId, file.id)
+    // 先就地改状态，避免重拉前的瞬间还显示旧状态；重拉后以接口为准
+    fileTreeRef.value?.updateFileStatus?.(file.id, {
+      processingStatus: 'processing',
+      progressPercentage: 0,
+      currentStep: t('knowledge.page.waitRetry'),
+      errorMessage: null,
+    })
+
+    if (!silent) {
+      toast.success(t('knowledge.page.retryStarted'))
+      await refreshAfterReindex()
+      // PUT 返回 200 只代表后端接下了这次回写，是否真的进了索引要看重新拉回来的状态。
+      // 后端入库没跑完（例如切块/向量化失败）时这篇仍会留在「待重建」，此时再报
+      // 「已提交」就成了假成功——补一条警告，让读者知道还要等或要看后端日志。
+      if (staleFiles.value.some((f) => f.id === file.id)) {
+        toast.warning(t('knowledge.page.reindexStillPending', { name: file.displayName || file.fileName }))
+      }
+    }
+  } catch (error: any) {
+    if (error === 'cancel') return
+    console.error('重建索引失败:', error)
+    toast.error(error?.response?.data?.detail || error?.message || t('knowledge.page.retryFailed'))
+    // 批量模式要知道这一篇失败，交给 handleReindexAllStale 计数；单篇则不再向上抛，
+    // 避免事件处理器里出现未捕获的 Promise rejection
+    if (silent) throw error
+  }
+}
+
+/**
+ * 一键重建全部「待重建索引」文档。
+ *
+ * <p>重启后后端把磁盘上所有文件都报成 {@code uploaded}（向量库分片还在、但进程内存的
+ * 文档登记表已空），逐个点太繁琐，这里串行跑一遍同一路径。串行是为了不把单线程的
+ * 嵌入服务打满，也便于逐篇报进度。</p>
+ */
+async function handleReindexAllStale() {
+  const kbId = store.activeKnowledgeBaseId
+  if (!kbId || reindexing.value) return
+  const targets = staleFiles.value.slice()
+  if (!targets.length) {
+    toast.info(t('knowledge.page.reindexNone'))
+    return
+  }
   try {
     const confirmed = await confirm(
       t('knowledge.page.retryFileTitle'),
-      t('knowledge.page.retryFileConfirm', { name: file.displayName }),
-      { type: 'warning' }
+      t('knowledge.page.reindexAllConfirm', { count: targets.length }),
+      { type: 'warning' },
     )
-
     if (!confirmed) return
-
-    if (!store.activeKnowledgeBaseId) return
-
-    // 调用后端 API 重新处理文件
-    await apiService.retryKBFile(store.activeKnowledgeBaseId, file.id)
-
-    toast.success(t('knowledge.page.retryStarted'))
-
-    // 关键修复：通过 KBFileTree 更新文件状态
-    if (fileTreeRef.value && fileTreeRef.value.updateFileStatus) {
-      fileTreeRef.value.updateFileStatus(file.id, {
-        processingStatus: 'pending',
-        progressPercentage: 0,
-        currentStep: t('knowledge.page.waitRetry'),
-        errorMessage: null
-      })
-      console.log(`[DEBUG] 文件状态已更新为 pending: ${file.displayName}`)
-    }
-
-    // 关键修复：重新处理后需要手动启动轮询
-    // 因为 updateFileStatus 不会自动触发 startFileProcessingPolling
-    if (fileTreeRef.value && fileTreeRef.value.startFileProcessingPolling) {
-      console.log('[DEBUG] 重新处理后，手动启动轮询')
-      await fileTreeRef.value.startFileProcessingPolling()
-    }
-  } catch (error: any) {
-    if (error !== 'cancel') {
-      console.error('重新处理失败:', error)
-      toast.error(error.response?.data?.detail || error.message || t('knowledge.page.retryFailed'))
-    }
+  } catch (error) {
+    if (error === 'cancel') return
+    throw error
   }
+
+  reindexing.value = true
+  const targetIds = new Set(targets.map((f) => f.id))
+  let requestFail = 0
+  try {
+    for (const f of targets) {
+      // 就地推进：轮到哪一篇就把哪一篇标成「处理中」，工序带与行状态跟着动，
+      // 读者能看出这批是在逐个跑，而不是点完之后界面一动不动。
+      fileTreeRef.value?.updateFileStatus?.(f.id, {
+        processingStatus: 'processing',
+        progressPercentage: 0,
+        currentStep: t('knowledge.page.reindexing'),
+        errorMessage: null,
+      })
+      try {
+        await handleRetryFile(f, true)
+      } catch {
+        requestFail += 1
+      }
+      await refreshAfterReindex()
+    }
+  } finally {
+    reindexing.value = false
+    await refreshAfterReindex()
+  }
+  // 成败以后端回来的状态为准：PUT 返回 200 只代表后端接下了回写，还留在「待重建」
+  // 的就说明后端没把它真正入库（切块/向量化中途失败等）。此时报「全部重建成功」
+  // 就是假成功，工序带上的数字也会和分栏对不上。
+  if (requestFail > 0) {
+    console.warn(`[Knowledge] 重建索引请求失败 ${requestFail} 篇，见上方 toast 与后端日志`)
+  }
+  const still = staleFiles.value.filter((f) => targetIds.has(f.id)).length
+  const ok = targets.length - still
+  if (still > 0) toast.warning(t('knowledge.page.reindexPartial', { ok, rest: still }))
+  else toast.success(t('knowledge.page.reindexDone', { ok, fail: 0 }))
 }
 
 /**
@@ -3770,22 +3910,31 @@ const activities = computed(() => {
  * 展示上没必要分这么细——用户只关心「能不能用了」：</p>
  * <ul>
  *   <li>{@code indexed}：completed，已可检索</li>
- *   <li>{@code parsing}：queued/uploading/uploaded/pending/processing，正在处理</li>
+ *   <li>{@code stale}：uploaded，原文在盘上但向量库没有它的分片，需要重建索引</li>
+ *   <li>{@code parsing}：queued/uploading/pending/processing，正在处理</li>
  *   <li>{@code failed}：failed</li>
  *   <li>{@code all}：不分组</li>
  * </ul>
+ *
+ * <p>此前 {@code uploaded} 被并进「解析中」，于是重启后后端把全部文件报成
+ * uploaded，界面显示「3 处理中 / 已索引 0」，看上去像三篇卡住了，实际是
+ * 索引状态随进程内存丢了、需要重建。两个语义分开，才不会误导。</p>
  */
 const FILE_STATUS_GROUPS: Record<string, string[]> = {
   indexed: ['completed'],
-  parsing: ['queued', 'uploading', 'uploaded', 'pending', 'processing'],
+  stale: ['uploaded'],
+  parsing: ['queued', 'uploading', 'pending', 'processing'],
   failed: ['failed'],
 }
 
-/** 文件状态分栏键：全部 / 已索引 / 解析中 / 失败 */
-type FileStatusFilter = 'all' | 'indexed' | 'parsing' | 'failed'
+/** 文件状态分栏键：全部 / 已索引 / 待重建 / 处理中 / 失败 */
+type FileStatusFilter = 'all' | 'indexed' | 'stale' | 'parsing' | 'failed'
 
 /** 当前选中的分栏 */
 const fileStatusFilter = ref<FileStatusFilter>('all')
+
+/** 批量重建索引进行中（按钮禁用与文案） */
+const reindexing = ref(false)
 
 /** 当前目录下的文件（来自 KBFileTree 的 files-loaded） */
 const loadedFiles = ref<KBFile[]>([])
@@ -3861,7 +4010,16 @@ const tokenStat = computed(() => readingOrDash(totalTokens.value))
 /** 处理中（尚未完成索引）的文档数 */
 const pendingFileCount = computed(() =>
   filesForFilter.value.filter((f) =>
-    ['queued', 'uploading', 'uploaded', 'pending', 'processing'].includes(f.processingStatus)).length)
+    ['queued', 'uploading', 'pending', 'processing'].includes(f.processingStatus)).length)
+
+/**
+ * 待重建索引的文档数。
+ *
+ * <p>对应后端的 {@code uploaded}：磁盘上有原文，但向量库里查不到它的分片。
+ * 上传从未真正走完、或者进程重启后内存索引表丢失，都会落到这一档。
+ * 它与「处理中」必须分开——前者是「等一会儿会好」，后者是「永远不会自己好」。</p>
+ */
+const staleFileCount = computed(() => filesForFilter.value.filter((f) => f.processingStatus === 'uploaded').length)
 
 /** 解析失败 / 索引失败的文档数 */
 const failedFileCount = computed(() => filesForFilter.value.filter((f) => f.processingStatus === 'failed').length)
@@ -3876,6 +4034,13 @@ const indexedFileCount = computed(() => filesForFilter.value.filter((f) => f.pro
  * 这里把失败项提出来，供左栏在原地展示原因和重试入口。</p>
  */
 const failedFiles = computed(() => filesForFilter.value.filter((f) => f.processingStatus === 'failed'))
+
+/**
+ * 待重建索引的文档（左栏「待重建索引」段的数据源）。
+ *
+ * <p>与 {@link staleFileCount} 同源，另出一份带元素引用的列表供左栏逐条渲染。</p>
+ */
+const staleFiles = computed(() => filesForFilter.value.filter((f) => f.processingStatus === 'uploaded'))
 
 /** 台账里所有轮次的引用总数 */
 const askCiteTotal = computed(() => askTurns.value.reduce((a, t) => a + (t.citeCount || 0), 0))
@@ -3906,8 +4071,9 @@ function typeBarWidth(count: number): string {
  */
 const pipelineStages = computed(() => {
   const fs = filesForFilter.value
-  const waiting = fs.filter((f) => ['queued', 'uploading', 'uploaded', 'pending'].includes(f.processingStatus)).length
+  const waiting = fs.filter((f) => ['queued', 'uploading', 'pending'].includes(f.processingStatus)).length
   const parsing = fs.filter((f) => f.processingStatus === 'processing').length
+  const stale = staleFileCount.value
   const failed = failedFileCount.value
   // 处理中那一篇的实时步骤：有 currentStep 就报它，没有就说「正在向量化」，
   // 不编造 12/21 这种界面算不出来的进度。
@@ -3937,11 +4103,16 @@ const pipelineStages = computed(() => {
     {
       key: 'embed',
       label: '向量化',
-      value: parsing > 0 ? `${parsing}` : `${indexedFileCount.value}`,
-      unit: parsing > 0 ? '篇进行中' : '篇已索引',
+      value: parsing > 0 ? `${parsing}` : stale > 0 ? `${stale}` : `${indexedFileCount.value}`,
+      unit: parsing > 0 ? '篇进行中' : stale > 0 ? '篇待重建' : '篇已索引',
       running: parsing > 0,
-      tone: parsing > 0 ? 'warning' : '',
-      hint: parsing > 0 ? runningHint || '正在写入向量' : indexedFileCount.value > 0 ? '索引就绪，可检索' : '还没有索引',
+      // 待重建用 warning：它不是「正在进行」，是「需要你点一下」，视觉上要能被看见
+      tone: parsing > 0 || stale > 0 ? 'warning' : '',
+      hint: parsing > 0
+        ? runningHint || '正在写入向量'
+        : stale > 0
+          ? '索引状态丢失，点顶栏「待重建」补齐'
+          : indexedFileCount.value > 0 ? '索引就绪，可检索' : '还没有索引',
     },
     {
       key: 'extract',
@@ -3987,7 +4158,8 @@ const fileStatusFilters = computed<ReadonlyArray<{ key: FileStatusFilter; label:
   return [
     { key: 'all', label: '全部', count: countOf('all') },
     { key: 'indexed', label: '已索引', count: countOf('indexed') },
-    { key: 'parsing', label: '解析中', count: countOf('parsing') },
+    { key: 'stale', label: '待重建', count: countOf('stale') },
+    { key: 'parsing', label: '处理中', count: countOf('parsing') },
     { key: 'failed', label: '失败', count: countOf('failed') },
   ]
 })

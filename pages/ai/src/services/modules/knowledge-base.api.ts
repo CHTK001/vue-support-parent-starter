@@ -568,12 +568,44 @@ export const knowledgeBaseApi: KnowledgeBaseApi = {
     );
   },
 
-  /** 无后端出口：/api/knowledge 未提供重新处理路由 */
+  /**
+   * 重建单个文件的索引。
+   *
+   * <p>后端没有 reindex / retry 路由（{@code ApiKnowledgeController} 里没有对应
+   * {@code @*Mapping}），但 {@code PUT /bases/{id}/file} 在写盘后必定调用
+   * {@code indexKnowledgeFile + refreshStats}（{@code ApiKnowledgeController:1138}），
+   * 这条链路与上传新文件完全一致，可稳定触发切块、向量化与统计刷新。</p>
+   *
+   * <p>做法是「读原文 → 同内容回写」：内容不变，不会污染用户文档，只是让后端
+   * 重新走一遍入库管线。所以这里不能再走 {@code missingOutlet}——以前点「重试」
+   * 必然抛错，界面上的「3 处理中 / 已索引 0」也就永远修不好。</p>
+   *
+   * @param kbId   知识库 id
+   * @param fileId 文件相对路径（后端 tree 条目的 rel_path，前端把它当 id 用）
+   */
   async retryKBFile(kbId, fileId) {
-    return missingOutlet(
-      "retryKBFile",
-      "后端 /api/knowledge 没有文件重新解析/重试接口",
+    const path = normalizeRelPath(fileId);
+    if (!path) {
+      throw new Error("[knowledge-base] 重建索引需要文件相对路径");
+    }
+    // 不用 this.readKBFileContent：这个对象可能被解构后再调用，this 会丢
+    const readEnv = await apiHttp.get(`/api/knowledge/bases/${encodeURIComponent(kbId)}/file`, {
+      params: { path },
+    });
+    const file = unwrapData<{ rel_path?: string; content?: string }>(
+      readEnv,
+      `GET ${KB}/bases/{id}/file`,
     );
+    if (typeof file?.content !== "string") {
+      throw new Error(`[knowledge-base] 读不到 ${path} 的原文，无法重建索引（可能是二进制文件）`);
+    }
+    const route = `PUT ${KB}/bases/{id}/file`;
+    const env = await apiHttp.put(`${KB}/bases/${encodeURIComponent(kbId)}/file`, {
+      path,
+      content: file.content,
+    });
+    unwrapData(env, route);
+    return { success: true, message: "已重新提交索引" };
   },
 
   /**

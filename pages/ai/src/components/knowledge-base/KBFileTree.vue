@@ -201,9 +201,9 @@ interface Props {
   kbId: string  // 知识库ID
   readonly?: boolean  // 只读模式（他人公开库）：不弹写操作菜单
   /**
-   * 处理状态分栏过滤：all / indexed / parsing / failed。
+   * 处理状态分栏过滤：all / indexed / stale / parsing / failed。
    *
-   * <p>父组件的「全部 / 已索引 / 解析中 / 失败」按钮改这个值来过滤列表。
+   * <p>父组件的「全部 / 已索引 / 待重建 / 处理中 / 失败」按钮改这个值来过滤列表。
    * 目录条目没有处理状态，因此<b>任何分栏下都保留</b>——否则选了「已索引」
    * 就没法进子目录去找未索引的文件了。</p>
    */
@@ -217,10 +217,16 @@ interface Props {
   suppressEmpty?: boolean
 }
 
-/** 状态分栏 → processingStatus 集合。indexed=已建索引，parsing=处理中，failed=失败。 */
+/**
+ * 状态分栏 → processingStatus 集合。
+ *
+ * <p>{@code stale} 对应后端的 {@code uploaded}：原文在盘上但向量库没有它的分片
+ * （上传未走完 / 进程重启后内存索引表丢失），需要重建索引，不能混进「处理中」。</p>
+ */
 const STATUS_GROUPS: Record<string, string[]> = {
   indexed: ['completed'],
-  parsing: ['queued', 'uploading', 'uploaded', 'pending', 'processing'],
+  stale: ['uploaded'],
+  parsing: ['queued', 'uploading', 'pending', 'processing'],
   failed: ['failed'],
 }
 
@@ -939,7 +945,7 @@ function getStatusType(status: string): 'primary' | 'success' | 'info' | 'warnin
   const types: Record<string, 'primary' | 'success' | 'info' | 'warning' | 'danger'> = {
     'queued': 'info',
     'uploading': 'warning',
-    'uploaded': 'primary',
+    'uploaded': 'warning',
     'pending': 'info',
     'processing': 'warning',
     'completed': 'success',

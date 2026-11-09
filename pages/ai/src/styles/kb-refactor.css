@@ -243,6 +243,29 @@
 .kb-chip--warn { background: color-mix(in srgb, var(--kb-warn) 12%, transparent); color: var(--kb-warn); }
 .kb-chip--warn b { color: var(--kb-warn); }
 
+/* 可点击的状态胶囊：把「待重建 N 篇」本身做成动作入口 */
+.kb-chip--act,
+.kb-stamp--act {
+  appearance: none;
+  border: 1px solid color-mix(in srgb, var(--kb-warn) 34%, transparent);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color var(--kb-dur) var(--kb-ease),
+              border-color var(--kb-dur) var(--kb-ease);
+}
+
+.kb-chip--act:hover,
+.kb-stamp--act:hover {
+  background: color-mix(in srgb, var(--kb-warn) 20%, transparent);
+  border-color: color-mix(in srgb, var(--kb-warn) 60%, transparent);
+}
+
+.kb-chip--act:disabled,
+.kb-stamp--act:disabled {
+  cursor: progress;
+  opacity: 0.75;
+}
+
 /* ############################################################################
    3. 三栏骨架
    ############################################################################ */
@@ -360,6 +383,34 @@
 }
 
 .kb-failrow__retry:hover { background: color-mix(in srgb, var(--kb-err) 10%, var(--kb-card)); }
+
+/* 待重建索引：同一套行版式，但用 warning 色调 —— 它不是错误，是需要补做动作 */
+.kb-nav__group--stale {
+  border-color: color-mix(in srgb, var(--kb-warn) 30%, var(--kb-line));
+  background: color-mix(in srgb, var(--kb-warn) 6%, var(--kb-card));
+}
+
+.kb-nav__group--stale .kb-nav__title,
+.kb-nav__group--stale .kb-nav__title em {
+  color: var(--kb-warn);
+}
+
+.kb-nav__group--stale .kb-nav__title em {
+  background: color-mix(in srgb, var(--kb-warn) 14%, transparent);
+}
+
+.kb-nav__group--stale .kb-failrow {
+  border-top-color: color-mix(in srgb, var(--kb-warn) 16%, transparent);
+}
+
+.kb-nav__group--stale .kb-failrow__retry {
+  border-color: color-mix(in srgb, var(--kb-warn) 40%, var(--kb-line));
+  color: var(--kb-warn);
+}
+
+.kb-nav__group--stale .kb-failrow__retry:hover {
+  background: color-mix(in srgb, var(--kb-warn) 12%, var(--kb-card));
+}
 
 .kb-nav__more {
   appearance: none;
