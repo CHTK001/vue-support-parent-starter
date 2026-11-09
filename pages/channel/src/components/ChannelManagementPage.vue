@@ -687,18 +687,60 @@ async function refreshAccount(channel: string, conn: ChannelConnectionSummary) {
   try {
     const res = await channelApi.refresh(channel, accountRef(conn))
     const out = (res as any)?.data ?? res
+    // 业务失败信封（success/ok=false）在 200/500 两种状态里都可能出现，统一当错误处理
+    if (out?.ok === false || out?.success === false) {
+      throw new Error(String(out?.error ?? out?.message ?? out?.msg ?? '刷新失败'))
+    }
     // SPI refresh() 可能返回同一份凭据（渠道没有可刷新字段、或上游未下发新 token），
     // 此时若仍提示「凭据已刷新」，用户会以为刷新成功但过期时间没变是 bug。
     if (out?.refreshed === false) {
-      ElMessage.info('凭据仍有效，无需刷新')
+      ElMessage.info(out?.message ?? '凭据仍有效，无需刷新')
     } else {
       ElMessage.success('凭据已刷新')
     }
   } catch (e: any) {
-    ElMessage.error('刷新失败：' + (e?.message ?? e))
+    const message = String(e?.message ?? e ?? '').trim() || '请求失败'
+    /*
+     * 「key 不可续期」属于渠道能力边界，不是服务故障：
+     * 用 warning 直说原因，不拼「刷新失败」，也不让别人以为重试就能好。
+     */
+    if (/不可续期|不支持刷新|未实现|NOT_IMPLEMENTED/i.test(message)) {
+      ElMessage.warning(message)
+    } else {
+      ElMessage.error('刷新失败：' + message)
+    }
   } finally {
     b.refresh = false
   }
+}
+
+/**
+ * 把签到结果整理成一句可读文案。
+ *
+ * <p>签到结果的 Map 里既有 {@code checkin_message} 这类人话摘要，也有
+ * {@code base_url} / {@code page_key} / {@code gateway_key} 等内部键；
+ * 直接 {@code JSON.stringify} 打印会给用户看一屏 JSON，还可能把页面 Key 泄露到界面上。</p>
+ *
+ * @param result  后端回传的签到结果（已剔除凭据敏感键）
+ * @param fallback 结果里没有可读文案时的兜底
+ * @returns 建议直接展示的一句话
+ */
+function checkinSummary(result: Record<string, any>, fallback?: string): string {
+  const text = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
+  let base = text(result?.checkin_message) || text(result?.message) || text(result?.msg)
+  if (!base) {
+    const nickname = text(result?.nickname)
+    base = nickname ? `${nickname} 签到完成` : ''
+  }
+  base = base || text(fallback) || '签到完成'
+  // WorkBuddy 类渠道会带回积分变化，附在摘要后面比单独一个数字更有意义
+  const credits = result?.credits
+  const total = result?.credits_total
+  if (credits !== undefined && credits !== null && credits !== '') {
+    const suffix = total !== undefined && total !== null && total !== '' ? `${credits}/${total}` : String(credits)
+    return `${base}（积分 ${suffix}）`
+  }
+  return base
 }
 
 async function checkin(channel: string, conn: ChannelConnectionSummary) {
@@ -707,10 +749,16 @@ async function checkin(channel: string, conn: ChannelConnectionSummary) {
   try {
     const res = await channelApi.checkin(channel, accountRef(conn))
     const out = (res as any)?.data ?? res
-    if (out?.result && Object.keys(out.result).length > 0) {
-      ElMessage.success('签到完成：' + JSON.stringify(out.result))
+    if (out?.ok === false) {
+      ElMessage.warning(String(out?.message ?? '签到未完成'))
+      return
+    }
+    const result = out?.result && typeof out.result === 'object' ? out.result : {}
+    const summary = checkinSummary(result, out?.message)
+    if (summary === '签到完成' && !out?.result) {
+      ElMessage.info(summary)
     } else {
-      ElMessage.info(out?.message ?? '签到完成')
+      ElMessage.success(summary)
     }
   } catch (e: any) {
     ElMessage.error('签到失败：' + (e?.message ?? e))
@@ -1009,6 +1057,16 @@ async function loadAccounts() {
   const channel = activeChannel.value
   if (!channel) {
     accounts.value = []
+    return
+  }
+  /*
+   * 网关型渠道（magpie）的账号由网关托管：统一账号列表对它没有意义，
+   * 页面也不再提供「添加账号」。这里直接跳过请求，避免拉出一片空列表。
+   */
+  if (activeSummary()?.supportsUpstream) {
+    accounts.value = []
+    accountsLoading.value = false
+    accountsError.value = ''
     return
   }
   accountsLoading.value = true
@@ -1832,8 +1890,11 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                 统一账号区：所有渠道同一种模型 —— 渠道 + 账号。
                 AI 账号渠道与免登录渠道（DuckDuckGo / Trae / Pollinations）都在这里
                 添加 / 删除账号，不再为免登录渠道提供单独的对话 / 出图操作页。
+
+                网关型渠道（magpie）例外：账号由网关自己托管，这里既不显示
+                「添加账号」也不显示统一账号列表，只保留下面的「已授权连接」。
               -->
-              <div class="chm-panel__block">
+              <div v-if="!activeSummary()?.supportsUpstream" class="chm-panel__block">
                 <div class="chm-panel__sect-title">
                   <el-icon aria-hidden="true"><ConnectionIcon /></el-icon>
                   账号 <i>{{ accounts.length }}</i>

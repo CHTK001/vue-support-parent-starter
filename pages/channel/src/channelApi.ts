@@ -43,7 +43,23 @@ function toReadableError(error: unknown): Error {
     text = data.trim()
   } else if (data && typeof data === 'object') {
     const body = data as Record<string, unknown>
-    text = String(body.msg ?? body.message ?? body.error ?? '').trim()
+    /*
+     * 异常处理器会把真正的失败信封再包一层统一响应：
+     * `{ code: '00000', msg: '操作成功', data: { success: false, code, error } }`。
+     * 只看外层 msg 会把「失败」显示成「操作成功」——「刷新失败：操作成功」就是这么来的。
+     * 内层明确失败时优先取其 error / message / msg，外层只作兜底。
+     */
+    const inner = body.data
+    const innerFailed = !!inner && typeof inner === 'object'
+      && ((inner as Record<string, unknown>).success === false
+        || (inner as Record<string, unknown>).ok === false)
+    if (innerFailed) {
+      const nested = inner as Record<string, unknown>
+      text = String(nested.error ?? nested.message ?? nested.msg ?? '').trim()
+    }
+    if (!text) {
+      text = String(body.msg ?? body.message ?? body.error ?? '').trim()
+    }
   }
   if (!text) {
     text = String(source?.message ?? error ?? '').trim()
@@ -249,8 +265,10 @@ export const channelApi = {
    * 寻址优先级 connectionId > label > 主账号。
    */
   refresh: (channel: string, body: ChannelAccountRef) =>
-    unwrapPayload<{ ok: boolean; refreshed?: boolean }>(
-      apiHttp.post(`/api/channels/${channel}/refresh`).data(body),
+    unwrapPayload<{ ok: boolean; refreshed?: boolean; message?: string }>(
+      // noToast：刷新失败要由页面按「能力边界 / 真实故障」分别提示，避免拦截器
+      // 先弹一条与业务无关的 5xx 通用错误，再被页面拼成「刷新失败：操作成功」。
+      apiHttp.post(`/api/channels/${channel}/refresh`).noToast(true).data(body),
     ),
   /** POST /api/channels/{channel}/checkin —— 签到/领额度（寻址同 refresh） */
   checkin: (channel: string, body: ChannelAccountRef) =>
