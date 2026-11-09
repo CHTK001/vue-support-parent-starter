@@ -1,5 +1,12 @@
 import type { ApiContext } from "./api-context";
 import type { GlobalSettings } from "@/types/service";
+import { createClient, rootHttp } from "@/framework/context";
+
+/**
+ * 根路径客户端：Agent 引擎运维接口在 /api/agents/engine（不走 /v2），
+ * 且 returned 是 {success, data} 信封，这里保持 unwrap:false 自行取 data。
+ */
+const engineHttp = createClient(rootHttp, { unwrap: false });
 
 export interface SettingsApi {
   fetchSettings(): Promise<GlobalSettings>;
@@ -34,6 +41,17 @@ export interface SettingsApi {
   addCustomTool(name: string, path: string): Promise<{ success: boolean; message?: string; count?: number }>;
   reloadPlugin(pluginId: string): Promise<{ success: boolean }>;
   fetchToolDisplays(lang?: string): Promise<Record<string, any>>;
+  /**
+   * 查询 Agent 引擎解析结果与 opencode 可用性（管理员运维面，根路径 /api/agents/engine）。
+   *
+   * 返回 selected / requested / effective / degraded / fallback / reason / preparing /
+   * autoInstall / opencode{installed,binary,serverReady,preparing,degraded,reason,baseUrl}。
+   */
+  fetchAgentEngineStatus(): Promise<any>;
+  /**
+   * 手动触发一次 opencode 的下载 + 启动（管理员专属，后台执行，立即返回）。
+   */
+  prepareAgentEngine(): Promise<any>;
 }
 
 export const settingsApi: SettingsApi = {
@@ -116,5 +134,19 @@ export const settingsApi: SettingsApi = {
     return await this._request("/plugins/tool-displays", {
       params: lang ? { lang } : undefined,
     });
+  },
+
+  /**
+   * 引擎运维接口不在 /v2 下（{@code ApiAgentEngineController} 基路径 /api/agents/engine），
+   * 这里走根路径客户端；后端回 {@code {success, data}} 信封，就地取出 data。
+   */
+  async fetchAgentEngineStatus(this: ApiContext) {
+    const body: any = await engineHttp.get("/api/agents/engine");
+    return body?.data ?? body;
+  },
+
+  async prepareAgentEngine(this: ApiContext) {
+    const body: any = await engineHttp.post("/api/agents/engine/prepare");
+    return body?.data ?? body;
   },
 };

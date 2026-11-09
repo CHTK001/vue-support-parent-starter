@@ -33,16 +33,40 @@
     <SettingsCard :title="t('settings.general.agent')">
       <SettingsRow :label="t('settings.general.agentImpl')" :description="t('settings.general.agentImplDesc')" control-width="208px">
         <el-select v-model="agentImpl">
-          <el-option label="AgentScope" value="agentscope" />
           <el-option label="OpenCode Server" value="opencode-server" />
-          <el-option label="LangChain4J" value="langchain4j" />
+          <el-option label="AgentScope" value="agentscope" />
         </el-select>
       </SettingsRow>
-      <!-- opencode-server 由本机常驻的 opencode serve 单实例承载（127.0.0.1 HTTP + SSE），
-           依赖目标机器已安装 opencode CLI 并具备可用凭据；首次调用会自动拉起服务。 -->
+      <!-- opencode-server 由本机常驻的 opencode serve 单实例承载（127.0.0.1 HTTP + SSE）。
+           首次使用会自动下载并启动；下载/启动失败时后端自动降级到 agentscope，
+           这里把「装没装、起没起、降到哪、为什么」直接摊给管理员看。 -->
       <div v-if="agentImpl === 'opencode-server'" class="agent-impl-warning" role="note">
         <el-icon><WarningFilled /></el-icon>
         <span>{{ t('settings.general.agentImplWarning') }}</span>
+      </div>
+      <div v-if="agentImpl === 'opencode-server' && engineStatus?.degraded" class="agent-impl-degraded" role="alert">
+        <el-icon><WarningFilled /></el-icon>
+        <span>{{ t('settings.general.engineDegraded', {
+          engine: engineFallbackLabel,
+          reason: engineStatus?.reason || t('settings.general.engineReasonUnknown')
+        }) }}</span>
+      </div>
+      <div v-if="agentImpl === 'opencode-server'" class="agent-engine-status">
+        <el-tag size="small" effect="plain" :type="engineStatus?.opencode?.installed ? 'success' : 'info'">
+          {{ engineStatus?.opencode?.installed ? t('settings.general.engineInstalled') : t('settings.general.engineNotInstalled') }}
+        </el-tag>
+        <el-tag size="small" effect="plain" :type="engineStateType">{{ engineStateText }}</el-tag>
+        <span class="agent-engine-binary" :title="engineStatus?.opencode?.binary || ''">
+          {{ engineStatus?.opencode?.binary || t('settings.general.engineBinaryUnknown') }}
+        </span>
+        <template v-if="isAdmin()">
+          <span class="agent-engine-spacer" />
+          <el-switch v-model="opencodeAutoInstall" size="small" @change="handleAutoInstallChange" />
+          <span class="agent-engine-auto-label">{{ t('settings.general.engineAutoInstall') }}</span>
+          <el-button size="small" :loading="enginePreparing" :disabled="enginePreparing" @click="prepareOpencode">
+            {{ t('settings.general.enginePrepare') }}
+          </el-button>
+        </template>
       </div>
       <SettingsRow :label="t('settings.general.maxToolIterations')" :description="t('settings.general.maxToolIterationsDesc')" control-width="128px">
         <el-select v-model="settingsForm.maxToolIterations">
@@ -185,7 +209,7 @@
 
 <script setup lang="ts">
 import { message, isAdmin } from '@repo/core'
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessageBox } from 'element-plus';
 import { WarningFilled } from '@element-plus/icons-vue'
@@ -211,8 +235,123 @@ const { locale: currentLocale, setLanguage } = useLanguage()
 const selectedLanguage = ref(currentLocale.value)
 
 // Agent 引擎实现：管理员在「Agent 设置」里切换，保存到 runtime.agent_impl
-const agentImpl = ref('agentscope')
+// 默认 opencode-server（本机常驻 opencode serve）；不可用时后端自动降级 agentscope
+const agentImpl = ref('opencode-server')
 const agentRuntimeLoaded = ref(false)
+
+/** 引擎解析结果（对应 runtime 分组的 __runtime 块） */
+interface AgentEngineStatus {
+  selected?: string
+  requested?: string
+  effective?: string
+  degraded?: boolean
+  fallback?: string | null
+  reason?: string | null
+  preparing?: boolean
+  autoInstall?: boolean
+  opencode?: {
+    installed?: boolean
+    binary?: string | null
+    serverReady?: boolean
+    preparing?: boolean
+    degraded?: boolean
+    reason?: string | null
+    baseUrl?: string | null
+  }
+}
+
+const engineStatus = ref<AgentEngineStatus | null>(null)
+const opencodeAutoInstall = ref(true)
+const enginePreparing = ref(false)
+let enginePollTimer: ReturnType<typeof setInterval> | null = null
+
+/** 降级目标显示名 */
+const engineFallbackLabel = computed(() =>
+  engineStatus.value?.fallback === 'agentscope' ? 'AgentScope' : (engineStatus.value?.fallback || 'AgentScope'))
+
+/** 当前是否正在下载/启动 */
+const engineWorking = computed(() => Boolean(
+  engineStatus.value?.preparing || engineStatus.value?.opencode?.preparing || enginePreparing.value))
+
+/** 状态标签文案 */
+const engineStateText = computed(() => {
+  if (engineStatus.value?.opencode?.serverReady) return t('settings.general.engineReady')
+  if (engineWorking.value) return t('settings.general.enginePreparing')
+  if (engineStatus.value?.opencode?.installed) return t('settings.general.engineNotReady')
+  return t('settings.general.engineNotInstalled')
+})
+
+/** 状态标签配色 */
+const engineStateType = computed(() => {
+  if (engineStatus.value?.opencode?.serverReady) return 'success'
+  if (engineWorking.value) return 'warning'
+  if (engineStatus.value?.degraded) return 'danger'
+  return 'info'
+})
+
+/** 读取引擎解析结果（设置页打开时初始化，准备过程中轮询） */
+async function loadEngineStatus() {
+  if (agentImpl.value !== 'opencode-server') return
+  try {
+    const response = await apiService.fetchAgentEngineStatus()
+    const data = response?.data || response
+    if (data && typeof data === 'object') {
+      engineStatus.value = data
+      if (typeof data.autoInstall === 'boolean') {
+        opencodeAutoInstall.value = data.autoInstall
+      }
+    }
+  } catch (error) {
+    // 状态查询失败不影响引擎下拉与会话链路，只是看不到可用性明细
+    console.warn('获取 Agent 引擎状态失败:', error)
+  }
+}
+
+/** 保存「自动下载并启动」开关到 runtime 分组 */
+async function handleAutoInstallChange(value: boolean | string | number) {
+  const enabled = value === true || value === 'true'
+  try {
+    await apiService.updateGroupSettings('runtime', { opencode_auto_install: String(enabled) })
+    notify.success(t('common.saveSuccess'), t('settings.general.updated'))
+    if (enabled) {
+      startEnginePolling()
+      await loadEngineStatus()
+    }
+  } catch (error: any) {
+    opencodeAutoInstall.value = !enabled
+    notify.error(t('common.saveFailed'), error.message || t('common.error.unknown'))
+  }
+}
+
+/** 管理员手动触发一次下载 + 启动 */
+async function prepareOpencode() {
+  enginePreparing.value = true
+  try {
+    await apiService.prepareAgentEngine()
+    startEnginePolling()
+    await loadEngineStatus()
+  } catch (error: any) {
+    notify.error(t('common.saveFailed'), error.message || t('common.error.unknown'))
+  } finally {
+    enginePreparing.value = false
+  }
+}
+
+/** 准备过程中每 3 秒刷新一次状态，就绪或停止准备后自动收尾 */
+function startEnginePolling() {
+  stopEnginePolling()
+  enginePollTimer = setInterval(async () => {
+    await loadEngineStatus()
+    if (!engineWorking.value) stopEnginePolling()
+  }, 3000)
+}
+
+function stopEnginePolling() {
+  if (enginePollTimer) {
+    clearInterval(enginePollTimer)
+    enginePollTimer = null
+  }
+}
 
 function handleLanguageChange(val: string) {
   setLanguage(val as 'zh-CN' | 'en-US')
@@ -620,6 +759,9 @@ watch(agentImpl, async (value, previous) => {
   try {
     await apiService.updateGroupSettings('runtime', { agent_impl: value })
     notify.success(t('common.saveSuccess'), t('settings.general.updated'))
+    // 切到 opencode 后立刻拉一次可用性：若本机未装会自动触发后台下载，
+    // 页面随即开始轮询，管理员能看到「准备中 → 就绪 / 已降级」
+    if (value === 'opencode-server') await loadEngineStatus()
   } catch (error: any) {
     console.error('保存 Agent 引擎配置失败:', error)
     notify.error(t('common.saveFailed'), error.message || t('common.error.unknown'))
@@ -694,13 +836,20 @@ const loadSettings = async () => {
     const configuredAgentImpl = String(runtimeData?.agent_impl || '').trim().toLowerCase()
     // 旧配置值 opencode 已由后端统一映射为 opencode-server，界面按新值展示
     const normalizedAgentImpl = configuredAgentImpl === 'opencode' ? 'opencode-server' : configuredAgentImpl
-    agentImpl.value = ['agentscope', 'opencode-server', 'langchain4j'].includes(normalizedAgentImpl)
+    agentImpl.value = ['agentscope', 'opencode-server'].includes(normalizedAgentImpl)
       ? normalizedAgentImpl
-      : 'agentscope'
+      : 'opencode-server'
+    // 后端回带的解析结果：实际生效引擎、降级原因、opencode 可用性
+    engineStatus.value = runtimeData?.__runtime || null
+    if (typeof runtimeData?.opencode_auto_install === 'boolean') {
+      opencodeAutoInstall.value = runtimeData.opencode_auto_install
+    }
   } catch (error: any) {
     console.error('获取 Agent 引擎配置失败:', error)
   } finally {
     agentRuntimeLoaded.value = true
+    // 后端可能已在后台下载/启动（启动预热或上一轮遗留），继续轮询直到就绪或失败
+    if (engineWorking.value) startEnginePolling()
   }
 }
 
@@ -790,6 +939,11 @@ onMounted(async () => {
   // 通用设置与压缩配置并行加载：前者管 system 分组表单，后者管 runtime 分组合并值
   await Promise.all([loadSettings(), loadCompressionSettings()])
 })
+
+// 离开页面时停掉引擎状态轮询，避免组件卸载后定时器继续打请求
+onBeforeUnmount(() => {
+  stopEnginePolling()
+})
 </script>
 
 <style scoped>
@@ -812,6 +966,58 @@ onMounted(async () => {
 .agent-impl-warning .el-icon {
   flex-shrink: 0;
   margin-top: 2px;
+}
+
+/* 已降级提示：用危险色区别于普通能力提示，让管理员一眼看到「现在跑的不是你选的引擎」 */
+.agent-impl-degraded {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 16px 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--el-color-danger-light-5);
+  border-radius: var(--el-border-radius-base, 6px);
+  background: var(--el-color-danger-light-9);
+  color: var(--el-color-danger);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.agent-impl-degraded .el-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* 引擎运行状态行：安装态 / 服务态 / 二进制路径 + 管理员动作 */
+.agent-engine-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 16px 14px;
+  padding: 8px 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-base, 6px);
+  background: var(--el-fill-color-lighter);
+  font-size: 12px;
+}
+
+.agent-engine-binary {
+  flex: 1 1 160px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--el-font-family-mono, monospace);
+  color: var(--el-text-color-secondary);
+}
+
+.agent-engine-spacer {
+  flex: 0 0 auto;
+}
+
+.agent-engine-auto-label {
+  color: var(--el-text-color-secondary);
 }
 </style>
 
