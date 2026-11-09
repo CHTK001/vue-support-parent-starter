@@ -632,9 +632,13 @@ function serveSharedAiImages(): Plugin {
 
   /** 安全校验：URL 对应的绝对路径必须在 aiImages 内且是文件 */
   const resolveAiImageFile = (urlPath: string): string | null => {
+    // aiImages 已经指向 apps/vue-support-ai-starter/public/images，而请求 URL 形如
+    // /images/bots/qq.png：必须先把 /images 这一段吃掉，否则会解析成
+    // <public>/images/images/bots/qq.png，dev 下所有图片都 404（2026-11-10 验收实测）。
+    if (!urlPath.startsWith("/images/")) return null;
     let decoded: string;
     try {
-      decoded = decodeURIComponent(urlPath);
+      decoded = decodeURIComponent(urlPath.slice("/images".length));
     } catch {
       return null;
     }

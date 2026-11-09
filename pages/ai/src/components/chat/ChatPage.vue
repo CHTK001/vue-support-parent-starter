@@ -75,7 +75,8 @@
                 <!-- 会话面板容器 -->
                 <div class="chat-panel-container" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;">
                   <!-- 执行轨迹：与对话互斥，占满主区域 -->
-                  <TracePanel v-if="showTracePanel && mainSession" :session-id="mainSession.id" />
+                  <TracePanel v-if="showTracePanel && mainSession" :session-id="mainSession.id"
+                    @close="showTracePanel = false" />
 
                   <template v-else>
                     <!-- 会话面板：主会话和子 Agent 共用同一个 ChatPanel，通过 session 切换 -->
@@ -601,7 +602,8 @@ const updateSessionById = async (sessionId: string, data: any) => {
 
 
 const updateSelectedSession = async (sessionId: string) => {
-  if (sessionId == null || sessionId === 'new-session') {
+  // vue-router 的可选参数直开 /chat 时给的是空串（不是 undefined），必须一并按「新建会话」处理
+  if (!sessionId || sessionId === 'new-session') {
     mainSession.value = null;
     sessionStore.activeSessionId = "new-session";
     tabStore.exitPreviewMode();

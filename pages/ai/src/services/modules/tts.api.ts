@@ -48,8 +48,10 @@ export const ttsApi: TtsApi = {
     if (!token) {
       return null;
     }
+    // 后端 TTS 挂在管理命名空间 /api/tts（不是 /v2/tts）；baseURL 带 /v2 时要退到根再接 /api
     const base = (this.baseURL || "").replace(/\/+$/, "");
-    const url = `${base}/tts`;
+    const root = base.replace(/\/v2$/, "");
+    const url = `${root}/api/tts`;
     const body: Record<string, string> = { text };
     if (options.model) body.model = options.model;
     if (options.voice) body.voice = options.voice;
@@ -80,8 +82,10 @@ export const ttsApi: TtsApi = {
     if (!token) {
       return null;
     }
+    // 同上：配置摘要与合成同属 /api/tts，不能拼 /v2/tts/config（那个前缀没有控制器）
     const base = (this.baseURL || "").replace(/\/+$/, "");
-    const url = `${base}/tts/config`;
+    const root = base.replace(/\/v2$/, "");
+    const url = `${root}/api/tts/config`;
     try {
       const res = await fetch(url, {
         method: "POST",
