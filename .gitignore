@@ -446,3 +446,28 @@ test/
 *.db.bak
 *.db.tmp
 *.db.corrupt
+
+#
+# =================================================
+# 2026-11-09: 生成物与一次性调试脚本（禁止再入库）
+# =================================================
+# @file-viewer 渲染器资产（worker / wasm / 字体）与清单由 @file-viewer/vite-plugin
+# 在每次 dev 启动和 build 时重建，属构建产物；共享副本维护在根 public/vendor。
+apps/vue-support-ai-starter/public/vendor/
+apps/vue-support-ai-starter/public/flyfish-viewer-assets.json
+
+# 一次性 CDP / 性能调试探针（历次拖拽、暗色切换排查遗留）。
+# 验收脚本统一放 test/<领域>/<需求>，见上面 test/ 规则。
+/scripts/cdp-*.js
+/scripts/analyze-*.js
+/scripts/check-chromium.js
+/scripts/check-prot.js
+/scripts/check-wp.js
+/scripts/search-*.js
+
+# 落地页遗留插画与脚手架图标（无任何代码引用）
+apps/vue-support-ai-starter/public/images/boy_book_512.webp
+apps/vue-support-ai-starter/public/images/girl_book_512.webp
+apps/vue-support-ai-starter/public/images/chat_banner.webp
+apps/vue-support-ai-starter/public/vite.svg
+
