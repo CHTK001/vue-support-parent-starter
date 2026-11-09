@@ -7,35 +7,40 @@
 -->
 <template>
   <ApmGate v-slot="{ status }">
-    <div class="apm-bar apm-toolbar">
-      <ReSelect
-        v-model="query.service"
-        :options="serviceOptions"
-        placeholder="全部服务"
-        clearable
-        filterable
-        style="width: 220px"
-        @change="onServiceChange"
-      />
-      <ReSelect
-        v-model="query.endpoint"
-        :options="endpointOptions"
-        placeholder="全部端点"
-        clearable
-        filterable
-        style="width: 260px"
-      />
-      <ReSelect v-model="query.state" :options="stateOptions" style="width: 120px" />
-      <ReSelect v-model="minutes" :options="windowOptions" style="width: 150px" />
-      <ReInput v-model="query.keyword" placeholder="按 traceId / 端点关键词" clearable style="width: 220px" />
-      <el-checkbox v-model="orderByDuration" label="按耗时倒序" />
-      <ReButton icon="Search" type="primary" :loading="loading" @click="search">查询</ReButton>
-      <span class="apm-bar__spacer" />
-      <!-- 分页并入工具条：原来它是表格下面独立一行，翻页要往下看再往上翻 -->
-      <span class="apm-count">第 {{ query.pageNum }} 页 · {{ items.length }} 条</span>
-      <ReButton icon="ArrowLeft" :disabled="query.pageNum <= 1 || loading" @click="prevPage">上一页</ReButton>
-      <ReButton icon="ArrowRight" :disabled="items.length < pageSize || loading" @click="nextPage">下一页</ReButton>
-      <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
+    <div class="apm-toolbar apm-toolbar--split">
+      <!-- 筛选区：控件多，宽度不够时自己换行，不牵连右侧分页 -->
+      <div class="apm-bar apm-toolbar__filters">
+        <ReSelect
+          v-model="query.service"
+          :options="serviceOptions"
+          placeholder="全部服务"
+          clearable
+          filterable
+          style="width: 200px"
+          @change="onServiceChange"
+        />
+        <ReSelect
+          v-model="query.endpoint"
+          :options="endpointOptions"
+          placeholder="全部端点"
+          clearable
+          filterable
+          style="width: 220px"
+        />
+        <ReSelect v-model="query.state" :options="stateOptions" style="width: 110px" />
+        <ReSelect v-model="minutes" :options="windowOptions" style="width: 140px" />
+        <ReInput v-model="query.keyword" placeholder="按 traceId / 端点关键词" clearable style="width: 200px" />
+        <!-- 勾选即重查：排序是查询条件，不该再多点一次「查询」 -->
+        <el-checkbox v-model="orderByDuration" label="按耗时倒序" @change="search" />
+        <ReButton icon="Search" type="primary" :loading="loading" @click="search">查询</ReButton>
+      </div>
+      <!-- 操作区：翻页/刷新是一组，整体推到右边，永不拆开 -->
+      <div class="apm-bar apm-toolbar__actions">
+        <span class="apm-count">第 {{ query.pageNum }} 页 · {{ items.length }} 条</span>
+        <ReButton layout="square" icon="ArrowLeft" tip="上一页" :disabled="query.pageNum <= 1 || loading" @click="prevPage" />
+        <ReButton layout="square" icon="ArrowRight" tip="下一页" :disabled="items.length < pageSize || loading" @click="nextPage" />
+        <ReButton layout="square" icon="Refresh" tip="刷新" :loading="loading" @click="load" />
+      </div>
     </div>
 
     <ReSkeleton v-if="loading && !items.length" :rows="8" animated />

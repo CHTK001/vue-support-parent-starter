@@ -147,6 +147,27 @@
   margin-left: auto;
 }
 
+/* 工具条分区：筛选区允许换行，操作区整体靠右且不拆行。
+   链路页控件最多，1680 宽时原来「下一页 + 刷新」会被挤到第二行单独待着，
+   看起来像布局塌了。分区后最差是筛选区换行，翻页组始终在一起。 */
+.apm-toolbar--split {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.apm-toolbar__filters {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.apm-toolbar__actions {
+  flex: 0 0 auto;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
 .apm-count {
   font-size: 12px;
   color: var(--apm-faint);
