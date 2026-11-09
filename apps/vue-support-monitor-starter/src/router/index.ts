@@ -80,10 +80,10 @@ export const monitorRoutes: RouteConfigsTable[] = [
   // 会让人以为告警是「监控平台自己的事」；独立成组之后，
   // 「主机 → 策略 → 告警 → 处理」这条链在菜单上就是一条直线。
   //
-  // 组内两页是同一件事的两端：
-  //   告警中心 = 正在发生什么（事件流 + 处理）
-  //   告警策略 = 什么情况下该响（策略 / 规则 / 维护窗口）
-  // 「因」与「果」分开摆，改策略时不会被一堆正在响的告警分心。
+  // 组内只留「告警中心 = 正在发生什么」。
+  // 策略是「每台主机自己的事」，已经落到主机资产右键菜单（工作区页签
+  // ScHostAlarmPolicy，按 ms_server_host_id 归属），侧边栏再挂一条反而让人
+  // 以为策略是全局的，因此那条入口撤掉，路由保留 showLink:false 兜老书签。
   {
     path: "/grp-alarm",
     name: "GroupAlarm",
@@ -98,10 +98,11 @@ export const monitorRoutes: RouteConfigsTable[] = [
       {
         path: "/alarm-policies",
         name: "AlarmPolicies",
-        // 原「系统管理 → 监控配置」：该页本来就只做策略 / 规则 / 维护窗口，
-        // 归到告警管理下才名副其实。视图与 API 不动，只改入口归属。
+        // 原「系统管理 → 监控配置」：该页本来就只做策略 / 规则 / 维护窗口。
+        // 现在策略按主机归属，入口在主机资产右键菜单；这里不进侧边栏，
+        // 只保证老书签与 /config 跳转仍有落点。
         component: () => import("@pages/monitor/src/views/ConfigView.vue"),
-        meta: { title: "告警策略", icon: "SetUp", showLink: true, rank: 2 },
+        meta: { title: "告警策略", icon: "SetUp", showLink: false, rank: 2 },
       },
     ],
   },
