@@ -56,6 +56,16 @@ export default createVite({
         target: apiTarget,
         changeOrigin: true,
       },
+      // 登录鉴权：未代理时 403，且本应用本地跑时与后端同源（Origin 被接受）
+      "/login": {
+        target: apiTarget,
+        changeOrigin: true,
+      },
+      // 登录态续期与登出
+      "/logout": {
+        target: apiTarget,
+        changeOrigin: true,
+      },
     },
   },
 });
