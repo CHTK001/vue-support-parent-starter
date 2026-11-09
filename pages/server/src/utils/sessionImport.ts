@@ -91,6 +91,32 @@ function unquote(value: string): string {
   return v;
 }
 
+/**
+ * 去掉值后面的行内注释（引号内的 {@code #} 不算注释）。
+ *
+ * <p>OpenSSH 允许 {@code Host web  # 生产}、{@code Port 2222 # 跳板} 这种写法，
+ * 不剥掉注释会把整段中文当成主机名或端口。</p>
+ *
+ * @param value 原始值
+ * @returns 去掉注释后的值
+ */
+function stripInlineComment(value: string): string {
+  let quote = "";
+  for (let i = 0; i < value.length; i++) {
+    const c = value[i];
+    if (quote) {
+      if (c === quote) quote = "";
+      continue;
+    }
+    if (c === '"' || c === "'") {
+      quote = c;
+      continue;
+    }
+    if (c === "#") return value.slice(0, i);
+  }
+  return value;
+}
+
 /** 把端口文本转成数字，非法回落 22 */
 function toPort(value: string | undefined): number {
   const n = Number((value ?? "").trim());
@@ -106,7 +132,11 @@ function toPort(value: string | undefined): number {
 export function parseOpenSsh(text: string): ParsedSession[] {
   const out: ParsedSession[] = [];
   let cur: ParsedSession | null = null;
+  // Match 块是条件块，里面的 User/Port 不属于任何具体主机，不能顺延到上一条会话
+  let inMatch = false;
   const flush = (): void => {
+    // OpenSSH 的语义：没有 HostName 时，地址就是别名本身
+    if (cur && !cur.address) cur.address = cur.name;
     if (cur && cur.address) out.push(cur);
     cur = null;
   };
@@ -116,9 +146,15 @@ export function parseOpenSsh(text: string): ParsedSession[] {
     const m = /^([A-Za-z]+)[\s=]+(.+)$/.exec(line);
     if (!m) continue;
     const key = m[1].toLowerCase();
-    const val = unquote(m[2]);
+    const val = unquote(stripInlineComment(m[2]));
+    if (key === "match") {
+      flush();
+      inMatch = true;
+      continue;
+    }
     if (key === "host") {
       flush();
+      inMatch = false;
       // 一个 Host 行可以带多个别名，取第一个当成这台主机的名字
       const alias = val.split(/\s+/)[0] ?? "";
       // 通配块（Host *）是模板而不是可登录会话
@@ -129,7 +165,7 @@ export function parseOpenSsh(text: string): ParsedSession[] {
       };
       continue;
     }
-    if (!cur) continue;
+    if (inMatch || !cur) continue;
     if (key === "hostname") cur.address = val;
     else if (key === "port") cur.port = toPort(val);
     else if (key === "user") cur.username = val;
@@ -147,10 +183,17 @@ export function parseOpenSsh(text: string): ParsedSession[] {
 export function parsePuttyReg(text: string): ParsedSession[] {
   const out: ParsedSession[] = [];
   let cur: ParsedSession | null = null;
+  // PuTTY 同一个导出里既有 SSH，也有 Telnet / Raw / Serial 会话，只有 SSH 有「主机账号」语义
+  let proto = "";
   const section = /^\[HKEY_CURRENT_USER\\Software\\SimonTatham\\PuTTY\\Sessions\\(.+)]/i;
   const flush = (): void => {
+    if (cur && proto && !/^ssh/i.test(proto)) {
+      cur.note = `协议 ${proto} 不是 SSH，已跳过`;
+      cur.include = false;
+    }
     if (cur && cur.address) out.push(cur);
     cur = null;
+    proto = "";
   };
   for (const raw of text.split(/\r?\n/)) {
     const line = raw.trim();
@@ -180,6 +223,7 @@ export function parsePuttyReg(text: string): ParsedSession[] {
     const val = unquote(kv[2]);
     if (key === "hostname") cur.address = val;
     else if (key === "username") cur.username = val;
+    else if (key === "protocol") proto = val;
     else if (key === "portnumber") {
       const hex = /^dword:([0-9a-f]+)$/i.exec(val);
       cur.port = hex ? toPort(String(parseInt(hex[1], 16))) : toPort(val);
@@ -207,9 +251,16 @@ export function parseIniSessions(text: string, source: SessionSource = "putty"):
   // 这些节是客户端自身的配置，不是会话
   const skip = new Set(["sessions", "session", "putty", "windows", "general", "main"]);
   let cur: ParsedSession | null = null;
+  // PuTTY 便携版同样会把 Telnet / Raw 会话写进 ini
+  let proto = "";
   const flush = (): void => {
+    if (cur && proto && !/^ssh/i.test(proto)) {
+      cur.note = `协议 ${proto} 不是 SSH，已跳过`;
+      cur.include = false;
+    }
     if (cur && cur.address) out.push(cur);
     cur = null;
+    proto = "";
   };
   for (const raw of text.split(/\r?\n/)) {
     const line = raw.trim();
@@ -232,6 +283,7 @@ export function parseIniSessions(text: string, source: SessionSource = "putty"):
     const val = unquote(kv[2]);
     if (key === "hostname" || key === "host") cur.address = val;
     else if (key === "username" || key === "user") cur.username = val;
+    else if (key === "protocol") proto = val;
     else if (key === "portnumber" || key === "port") cur.port = toPort(val);
     else if (key === "password") {
       if (val) {
@@ -261,6 +313,8 @@ export function parseXshell(text: string): ParsedSession[] {
   let pendingName = "";
   let cur: ParsedSession | null = null;
   const flush = (): void => {
+    // 个别导出的 .xsh 没有 [Session] Name，用地址兜底，避免预览表出现空会话名
+    if (cur && !cur.name) cur.name = cur.address;
     if (cur && cur.address) out.push(cur);
     cur = null;
   };
@@ -322,7 +376,7 @@ export function parseXshell(text: string): ParsedSession[] {
 export function parsePlainText(text: string): ParsedSession[] {
   const out: ParsedSession[] = [];
   const seen = new Set<string>();
-  const push = (address: string, port: number, username: string, password: string): void => {
+  const push = (address: string, port: number, username: string, password: string, source: SessionSource = "text"): void => {
     const addr = address.trim();
     if (!addr) return;
     // 过滤掉明显不是主机的词（文件名、选项值）
@@ -332,7 +386,7 @@ export function parsePlainText(text: string): ParsedSession[] {
     seen.add(key);
     out.push({
       name: `${username ? `${username}@` : ""}${addr}`,
-      source: "text", address: addr, port, username, password,
+      source, address: addr, port, username, password,
       passwordLocked: false, note: "", include: true,
     });
   };
@@ -343,6 +397,8 @@ export function parsePlainText(text: string): ParsedSession[] {
 
     // 形如 ssh -p 2222 root@10.0.0.1 / plink -P 2222 -l root -pw pass 10.0.0.1
     if (/\b(?:ssh|plink|putty|sshpass)\b/i.test(line)) {
+      // 来源标成 plink 才能在预览里看出这条是从 plink 命令行读出来的
+      const cmdSource: SessionSource = /\bplink\b/i.test(line) ? "plink" : "text";
       const tokens = line.split(/\s+/);
       let port = 22;
       let username = "";
@@ -369,7 +425,7 @@ export function parsePlainText(text: string): ParsedSession[] {
         const addr = at >= 0 ? target.slice(at + 1) : target;
         const user = at >= 0 ? target.slice(0, at) : username;
         const colon = /^(.*):(\d{1,5})$/.exec(addr);
-        push(colon ? colon[1] : addr, colon ? toPort(colon[2]) : port, user, password);
+        push(colon ? colon[1] : addr, colon ? toPort(colon[2]) : port, user, password, cmdSource);
         continue;
       }
     }

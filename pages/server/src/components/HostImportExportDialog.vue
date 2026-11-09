@@ -378,12 +378,11 @@ watch(visible, (v) => {
             type="file"
             multiple
             class="hie__file"
-            accept=".reg,.xsh,.ini,.config,.sshconfig,.txt,.conf,text/plain"
             @change="onFilesPicked"
           />
           <ReIcon name="UploadFilled" :size="26" />
           <b>{{ parsing ? "正在解析…" : "点击选择文件，或把文件拖到这里" }}</b>
-          <span>口令只有能拿到明文的才会导入；客户端加密过的口令会在下方标出，需手动补一次</span>
+          <span>OpenSSH 的 <code>config</code> 没有扩展名，所以这里不按后缀过滤；类型由内容特征识别。口令只有能拿到明文的才会导入，加密过的会在下方标出</span>
         </label>
 
         <ul v-if="parseErrors.length" class="hie__errs">
