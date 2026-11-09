@@ -54,7 +54,7 @@ interface LegacyHostForm {
   serverHostRemoteProtocol?: string | null;
   /** 远控端口（空表示按协议默认） */
   serverHostRemotePort?: number | null;
-  /** 远控通道：GUACD 中转 / DIRECT 直连 / NONE 无需通道（RDP 强制 GUACD） */
+  /** 远控通道：GUACD 中转 / DIRECT 直连 / NONE 无需通道 */
   serverHostRemoteMode?: string | null;
   /** VNC 口令（落库 AES 加密，详情接口回显明文） */
   serverHostVncPassword?: string | null;
@@ -295,6 +295,7 @@ function platformActive(value: string): boolean {
 const remoteProtocols = [
   { label: "自动（按平台）", value: "" },
   { label: "SSH", value: "SSH" },
+  { label: "Telnet", value: "TELNET" },
   { label: "RDP", value: "RDP" },
   { label: "VNC", value: "VNC" },
 ];
@@ -376,7 +377,7 @@ function mergeDetail(current: Record<string, any>, detail: Record<string, any> |
 function onCollectModeChange(mode: string): void {
   if (mode === "LOCAL") void loadLocalAddress();
 }
-/** 远控通道：GUACD 走 guacd 中转；DIRECT 由平台自身协议客户端直连（SSH/VNC）；NONE 不经平台通道 */
+/** 远控通道：GUACD 走 guacd 中转；DIRECT 由平台自身协议客户端直连（SSH/Telnet/VNC/RDP）；NONE 不经平台通道 */
 const remoteModes = [
   { label: "Guacd 中转", value: "GUACD" },
   { label: "平台直连", value: "DIRECT" },
@@ -385,14 +386,14 @@ const remoteModes = [
 /** 生效协议（含按平台推断），决定默认端口与口令字段 */
 const effectiveRemoteProtocol = computed(() => {
   const p = (form.value.serverHostRemoteProtocol ?? "").toUpperCase();
-  if (p === "SSH" || p === "RDP" || p === "VNC") return p;
+  if (p === "SSH" || p === "TELNET" || p === "RDP" || p === "VNC") return p;
   const os = (form.value.serverHostOsType ?? "").toUpperCase();
   if (os.includes("WIN")) return "RDP";
   if (os.includes("MAC")) return "VNC";
   return "SSH";
 });
 /** 各协议默认端口 */
-const REMOTE_DEFAULT_PORT: Record<string, number> = { SSH: 22, RDP: 3389, VNC: 5900 };
+const REMOTE_DEFAULT_PORT: Record<string, number> = { SSH: 22, TELNET: 23, RDP: 3389, VNC: 5900 };
 /** 端口占位提示（留空即按默认端口连接）；SSH 协议下跟随 SSH 端口 */
 const remotePortPlaceholder = computed(() => {
   if (effectiveRemoteProtocol.value === "SSH") return "与 SSH 端口一致";
@@ -407,7 +408,7 @@ const remotePortPlaceholder = computed(() => {
  *   <li><b>Linux / macOS</b>：采集方式默认 <b>OpenSSH</b>；远控协议 <b>SSH</b>、
  *       通道<b>平台直连</b>、端口 <b>22</b>；开启 SSH；</li>
  *   <li><b>Windows</b>：默认<b>不采集</b>、<b>不开远控</b>（Windows 侧要先启用
- *       OpenSSH / WinRM 才谈得上采集），远控字段预置成 RDP 走 guacd。</li>
+ *       OpenSSH / WinRM 才谈得上采集），远控字段预置成 RDP + 平台直连。</li>
  * </ul>
  *
  * <p>只写与「默认」相关的字段，不动主机名称、地址、分组、标签等用户已填内容；
@@ -424,7 +425,7 @@ function applyPlatformDefaults(osType: string): void {
     form.value.serverHostCollectEnabled = 0;
     form.value.serverHostRemoteEnabled = 0;
     form.value.serverHostRemoteProtocol = "RDP";
-    form.value.serverHostRemoteMode = "GUACD";
+    form.value.serverHostRemoteMode = "DIRECT";
     form.value.serverHostRemotePort = REMOTE_DEFAULT_PORT.RDP;
     return;
   }
@@ -435,22 +436,24 @@ function applyPlatformDefaults(osType: string): void {
   form.value.serverHostRemoteMode = "DIRECT";
   form.value.serverHostRemotePort = REMOTE_DEFAULT_PORT.SSH;
 }
-/** 平台自研直连通道覆盖 SSH（MINA SSHD）与 VNC（RFB）；RDP 必须经 guacd */
-const DIRECT_SUPPORTED = ["SSH", "VNC"];
+/** 平台自研直连通道覆盖 SSH（MINA SSHD）、Telnet（WS↔TCP 透传）、VNC（noVNC RFB）与 RDP（FreeRDP 原生桥）；Guacd 仅作可选的中转方案 */
+const DIRECT_SUPPORTED = ["SSH", "TELNET", "RDP", "VNC"];
 const directSupported = computed(() => DIRECT_SUPPORTED.includes(effectiveRemoteProtocol.value));
-/** RDP 只能由 guacd 渲染，通道锁定不可选 */
-const channelEditable = computed(() => effectiveRemoteProtocol.value !== "RDP");
 /**
- * 当前协议下可选通道（协议联动：除 RDP 外都不需要 guacd 远控通道）：
- * SSH / VNC → 平台直连 / 无需通道（MINA SSHD / noVNC RFB 自研客户端直连）；
- * RDP → 仅 Guacd 中转（平台无自研 RDP 客户端）。
+ * 当前协议下可选通道（协议联动）：
+ * SSH / Telnet / VNC → 平台直连 / 无需通道；
+ * RDP → 平台直连（FreeRDP 原生桥）/ Guacd 中转（兼容存量环境）。
  */
 const channelOptions = computed(() => {
   if (!directSupported.value) {
-    // RDP（或本机自采集限定的 VNC 之外）：只留 GUACD
+    // 未知协议：只留 GUACD，避免提交后端无法识别的直连组合
     return remoteModes.filter(m => m.value === "GUACD");
   }
-  // SSH / VNC：直连 / 无需通道，去掉 guacd 中转
+  if (effectiveRemoteProtocol.value === "RDP") {
+    // RDP 两种都支持：直连是默认，保留中转作为存量兜底
+    return remoteModes.filter(m => m.value !== "NONE");
+  }
+  // SSH / Telnet / VNC：直连 / 无需通道，去掉 guacd 中转
   return remoteModes.filter(m => m.value !== "GUACD");
 });
 
@@ -465,7 +468,8 @@ watch(effectiveRemoteProtocol, (protocol, prevProtocol) => {
     form.value.serverHostRemotePort = REMOTE_DEFAULT_PORT[protocol] ?? null;
   }
   if (protocol === "RDP") {
-    form.value.serverHostRemoteMode = "GUACD";
+    // RDP 也走平台自研直连（FreeRDP 原生桥）；仅当存量台账显式选了 guacd 时保留
+    if (form.value.serverHostRemoteMode !== "GUACD") form.value.serverHostRemoteMode = "DIRECT";
   } else if (form.value.serverHostRemoteMode === "GUACD") {
     // SSH / VNC 不需要远控通道，从 RDP 切过来时回落到平台直连
     form.value.serverHostRemoteMode = "DIRECT";
@@ -632,14 +636,14 @@ async function submitForm(): Promise<void> {
   form.value.serverHostRemoteEnabled = form.value.serverHostRemoteEnabled ? 1 : 0;
   form.value.serverHostAgentEnabled = form.value.serverHostAgentEnabled ? 1 : 0;
   form.value.serverHostDelayEnabled = form.value.serverHostDelayEnabled ? 1 : 0;
-  // 远控配置归一：协议留空=按平台推断，不支持直连的协议回落 guacd，非 VNC 不存口令
+  // 远控配置归一：协议留空=按平台推断，RDP 默认平台直连（FreeRDP 原生桥），非 VNC 不存口令
   const remoteProtocol = (form.value.serverHostRemoteProtocol || "").toUpperCase() || null;
   form.value.serverHostRemoteProtocol = remoteProtocol;
-  if (effectiveRemoteProtocol.value === "RDP"
-    || (form.value.serverHostRemoteMode === "DIRECT" && !directSupported.value)) {
+  if (form.value.serverHostRemoteMode === "DIRECT" && !directSupported.value) {
+    // 只有协议无法直连时才回落中转
     form.value.serverHostRemoteMode = "GUACD";
   }
-  if (!form.value.serverHostRemoteMode) form.value.serverHostRemoteMode = "GUACD";
+  if (!form.value.serverHostRemoteMode) form.value.serverHostRemoteMode = "DIRECT";
   if (remoteProtocol && remoteProtocol !== "VNC") form.value.serverHostVncPassword = null;
   if (form.value.serverHostRemotePort === 0) form.value.serverHostRemotePort = null;
   // 注入认证凭据（瞬态字段，后端不落库，用于 SSH 连接建立）
@@ -705,7 +709,7 @@ watch(() => props.modelValue, (v) => {
     if (form.value.serverHostSshEnabled == null) {
       form.value.serverHostSshEnabled = (form.value.serverHostOsType || "").toUpperCase() === "WINDOWS" ? 0 : 1;
     }
-    if (!form.value.serverHostRemoteMode) form.value.serverHostRemoteMode = "GUACD";
+    if (!form.value.serverHostRemoteMode) form.value.serverHostRemoteMode = "DIRECT";
     if (!form.value.serverHostCollectMode) form.value.serverHostCollectMode = "AGENT";
     tagsText.value = splitTags(form.value.serverHostTags).join(", ");
     formAuthMethod.value = "IDENTITY";
@@ -938,9 +942,7 @@ watch(() => props.modelValue, (v) => {
           <ReFormItem label="远控通道">
             <ReSelect
               v-model="form.serverHostRemoteMode"
-
               style="width:100%"
-              :disabled="!channelEditable"
               :options="channelOptions"
             />
           </ReFormItem>
@@ -953,10 +955,11 @@ watch(() => props.modelValue, (v) => {
           </ReFormItem>
           <ReFormItem class="col-span-2" label=" ">
             <span class="remote-tip">
-              通道随协议联动：SSH / VNC 由平台自研客户端直连（SSH 用 MINA SSHD PTY、VNC 用 noVNC RFB），
-              不需要 guacd 中转；RDP 平台无自研客户端，必须经 guacd 中转（通道自动锁定）。
+              通道随协议联动：SSH / Telnet / VNC / RDP 都由平台自研客户端直连
+              （SSH 用 MINA SSHD PTY、Telnet 走 WS↔TCP 透传、VNC 用 noVNC RFB、RDP 用 FreeRDP 原生桥），
+              不需要 guacd 中转；「Guacd 中转」仅作为存量环境的备选。
               「无需通道」表示平台不做任何中转，只显示本机客户端的连接地址（SSH 用系统终端、VNC 用本机客户端）。
-              端口留空按协议默认（SSH 22 / RDP 3389 / VNC 5900）。
+              端口留空按协议默认（SSH 22 / Telnet 23 / RDP 3389 / VNC 5900）。
             </span>
           </ReFormItem>
         </template>

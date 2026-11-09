@@ -220,6 +220,7 @@ const facets = computed<OpsFacetGroup[]>(() => {
       options: [
         { value: "", label: "全部协议", count: all.length },
         { value: "SSH", label: "SSH", count: protocolCount("SSH"), tone: "info" as OpsTone },
+        { value: "TELNET", label: "Telnet", count: protocolCount("TELNET"), tone: "mute" as OpsTone },
         { value: "RDP", label: "RDP", count: protocolCount("RDP"), tone: "warn" as OpsTone },
         { value: "VNC", label: "VNC", count: protocolCount("VNC"), tone: "brand" as OpsTone },
       ],

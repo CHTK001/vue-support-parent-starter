@@ -12,6 +12,7 @@ import { getHost } from "../api";
 import ScGuacViewer from "../components/ScGuacViewer.vue";
 import ScSshDirectViewer from "../components/ScSshDirectViewer.vue";
 import ScVncDirectViewer from "../components/ScVncDirectViewer.vue";
+import ScRdpDirectViewer from "../components/ScRdpDirectViewer.vue";
 
 interface StandHost {
   id: number;
@@ -39,7 +40,7 @@ const hostId = computed(() => {
 const protocol = computed(() => {
   const v = (route.query.protocol as string | string[] | undefined) ?? "";
   const p = (Array.isArray(v) ? v[0] : v).toLowerCase();
-  return p === "ssh" || p === "rdp" || p === "vnc" ? p : "";
+  return p === "ssh" || p === "telnet" || p === "rdp" || p === "vnc" ? p : "";
 });
 const identityId = computed(() => {
   const v = route.query.identityId;
@@ -52,14 +53,16 @@ function targetPortOf(h: StandHost, p: string): number {
   const configured = (h.serverHostRemoteProtocol ?? "").toLowerCase();
   if (configured === p && h.serverHostRemotePort && h.serverHostRemotePort > 0) return h.serverHostRemotePort;
   if (p === "ssh") return h.serverHostPort || 22;
+  if (p === "telnet") return h.serverHostPort || 23;
   return p === "rdp" ? 3389 : 5900;
 }
 
-/** 生效远控通道（协议联动）：SSH/VNC 平台自研直连，仅 RDP 必须 guacd 中转；显式 NONE 尊重 */
-function remoteModeOf(h: StandHost, p: string): string {
-  if (p === "rdp") return "GUACD";
+/** 生效远控通道（协议联动）：SSH/Telnet/VNC/RDP 平台自研直连；显式 NONE/GUACD 尊重台账 */
+function remoteModeOf(h: StandHost): string {
   const mode = (h.serverHostRemoteMode ?? "").toUpperCase();
-  return mode === "NONE" ? "NONE" : "DIRECT";
+  if (mode === "NONE") return "NONE";
+  if (mode === "GUACD") return "GUACD";
+  return "DIRECT";
 }
 
 const connection = computed(() => {
@@ -72,7 +75,7 @@ const connection = computed(() => {
     protocol: protocol.value,
     identityId: identityId.value,
     targetPort: targetPortOf(h, protocol.value),
-    mode: remoteModeOf(h, protocol.value),
+    mode: remoteModeOf(h),
   };
 });
 
@@ -119,12 +122,17 @@ function goBack(): void {
     </div>
     <template v-else-if="connection">
       <ScSshDirectViewer
-        v-if="connection.protocol === 'ssh'"
+        v-if="connection.protocol === 'ssh' || connection.protocol === 'telnet'"
         :connection="connection"
         @close="disconnected = true"
       />
       <ScVncDirectViewer
         v-else-if="connection.protocol === 'vnc' && connection.mode === 'DIRECT'"
+        :connection="connection"
+        @close="disconnected = true"
+      />
+      <ScRdpDirectViewer
+        v-else-if="connection.protocol === 'rdp' && connection.mode === 'DIRECT'"
         :connection="connection"
         @close="disconnected = true"
       />

@@ -1,9 +1,14 @@
 <script setup lang="ts">
 /**
- * SSH 直连渲染组件 —— iframe 嵌入后端静态页 /ssh-direct.html
+ * 字符终端直连渲染组件 —— iframe 嵌入后端静态页
  *
- * 与 ScGuacViewer 的分工：本组件不经过 guacd，页面内的 xterm 直接对接
- * 平台自研的 /ws/ms/server/terminal/ssh 端点（MINA SSHD PTY 桥接）。
+ * 与 ScGuacViewer 的分工：本组件不经过 guacd，页面内的 xterm 直接对接平台自研端点。
+ * 按连接协议选页面：
+ * <ul>
+ *   <li>{@code ssh} → `/ssh-direct.html`，对接 /ws/ms/server/terminal/ssh（MINA SSHD PTY 桥接）</li>
+ *   <li>{@code telnet} → `/telnet-direct.html`，对接 /ws/ms/server/terminal/telnet（WS ↔ TCP 透传）</li>
+ * </ul>
+ * Telnet 没有身份/口令与共享房间概念，这些参数只对 SSH 生效。
  */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { getAccessToken } from "@repo/utils";
@@ -92,11 +97,21 @@ defineExpose({
   sendCommands,
 });
 
+/** 是否 Telnet 连接 */
+const isTelnet = computed(() => (props.connection?.protocol ?? '').toLowerCase() === 'telnet');
+
 /** iframe src：直连端点只需主机与身份定位，端口由后端按主机配置解析 */
 const iframeSrc = computed(() => {
   const c = props.connection;
   if (!c) return '';
   const params = new URLSearchParams({ hostId: String(c.hostId) });
+  if (isTelnet.value) {
+    // Telnet 不带 identity/room/pwd 语义，只把目标端口透给后端解析
+    if (c.targetPort != null) params.set('targetPort', String(c.targetPort));
+    const telnetToken = getAccessToken();
+    if (telnetToken) params.set('x-oauth-token', telnetToken);
+    return `/telnet-direct.html?${params.toString()}`;
+  }
   if (c.identityId != null) params.set('identityId', String(c.identityId));
   // 共享终端：roomId 接入已有房间；userId 让后端按共享记录判定写权限；
   // readonly 让 iframe 本地也不发包（后端同样会丢弃）
@@ -119,7 +134,7 @@ const readonly = computed(() => !!props.connection?.roomId && props.connection?.
   <div class="ssh-wrap">
     <div v-if="connection" class="ssh-status">
       <span class="ssh-status-tag is-ok">
-        {{ connection.hostName }} · SSH 直连
+        {{ connection.hostName }} · {{ isTelnet ? 'TELNET 直连' : 'SSH 直连' }}
       </span>
       <span v-if="connection.roomId" class="ssh-status-tag" :class="readonly ? 'is-readonly' : 'is-shared'">
         {{ readonly ? '只读（无协同权限）' : '共享协同中' }}

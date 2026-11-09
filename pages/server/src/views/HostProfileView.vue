@@ -935,7 +935,7 @@ function delayBad(ms: number | null): boolean {
 }
 function protocolOf(h: Host): string {
   const configured = (h.serverHostRemoteProtocol ?? "").toUpperCase();
-  if (configured === "SSH" || configured === "RDP" || configured === "VNC") return configured.toLowerCase();
+  if (configured === "SSH" || configured === "TELNET" || configured === "RDP" || configured === "VNC") return configured.toLowerCase();
   const s = (h.serverHostOsType ?? "").toUpperCase();
   if (s.includes("WIN")) return "rdp";
   if (s.includes("MAC")) return "vnc";

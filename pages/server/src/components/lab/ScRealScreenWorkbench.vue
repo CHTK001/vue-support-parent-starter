@@ -38,6 +38,7 @@ import ReSplitLayout from "@repo/ui/re-split-layout";
 import type { LayoutNode, PanelTab, SplitNode } from "@repo/ui/re-split-layout";
 import ScSshDirectViewer from "../ScSshDirectViewer.vue";
 import ScVncDirectViewer from "../ScVncDirectViewer.vue";
+import ScRdpDirectViewer from "../ScRdpDirectViewer.vue";
 import ScGuacViewer from "../ScGuacViewer.vue";
 import ScSftpPanel from "../ScSftpPanel.vue";
 import ScTerminalSidePanel from "../ScTerminalSidePanel.vue";
@@ -97,7 +98,7 @@ onMounted(loadHosts);
 /** 主机默认协议（与 TerminalView.defaultProtocolOf 同口径） */
 function defaultProtocolOf(h: Host): string {
   const configured = (h.serverHostRemoteProtocol ?? "").toUpperCase();
-  if (configured === "SSH" || configured === "RDP" || configured === "VNC") return configured.toLowerCase();
+  if (configured === "SSH" || configured === "TELNET" || configured === "RDP" || configured === "VNC") return configured.toLowerCase();
   const s = (h.serverHostOsType ?? "").toUpperCase();
   if (s.includes("WIN")) return "rdp";
   if (s.includes("MAC")) return "vnc";
@@ -110,14 +111,16 @@ function remotePortOf(h: Host): number {
   const configured = (h.serverHostRemoteProtocol ?? "").toLowerCase();
   if (configured === p && h.serverHostRemotePort && h.serverHostRemotePort > 0) return h.serverHostRemotePort;
   if (p === "ssh") return h.serverHostPort || 22;
+  if (p === "telnet") return h.serverHostPort || 23;
   return p === "rdp" ? 3389 : 5900;
 }
 
-/** 生效远控通道（协议联动）：SSH/VNC 平台自研直连，仅 RDP 必须 guacd 中转；显式 NONE 尊重 */
+/** 生效远控通道（协议联动）：SSH/Telnet/VNC/RDP 平台自研直连；显式 NONE/GUACD 尊重台账 */
 function remoteModeOf(h: Host): string {
-  if (defaultProtocolOf(h) === "rdp") return "GUACD";
   const mode = (h.serverHostRemoteMode ?? "").toUpperCase();
-  return mode === "NONE" ? "NONE" : "DIRECT";
+  if (mode === "NONE") return "NONE";
+  if (mode === "GUACD") return "GUACD";
+  return "DIRECT";
 }
 
 /* ==================== 会话模型 ==================== */
@@ -857,13 +860,18 @@ const currentHostLabel = computed(() => {
 
                 <div class="scr-session__content" :style="{ '--latency': latencyColor(sessionOf(tab.id)!.latencyLevel) }">
                   <ScSshDirectViewer
-                    v-if="sessionOf(tab.id)!.protocol === 'ssh'"
+                    v-if="sessionOf(tab.id)!.protocol === 'ssh' || sessionOf(tab.id)!.protocol === 'telnet'"
                     :connection="sessionOf(tab.id)!.connection"
                     hide-close
                     :ref="el => setterViewer(el, tab.id)"
                   />
                   <ScVncDirectViewer
                     v-else-if="sessionOf(tab.id)!.protocol === 'vnc' && sessionOf(tab.id)!.connection.mode === 'DIRECT'"
+                    :connection="sessionOf(tab.id)!.connection"
+                    hide-close
+                  />
+                  <ScRdpDirectViewer
+                    v-else-if="sessionOf(tab.id)!.protocol === 'rdp' && sessionOf(tab.id)!.connection.mode === 'DIRECT'"
                     :connection="sessionOf(tab.id)!.connection"
                     hide-close
                   />

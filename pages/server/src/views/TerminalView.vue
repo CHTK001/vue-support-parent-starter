@@ -14,6 +14,7 @@ import { queryHosts, getHost } from "../api";
 import ScGuacViewer from "../components/ScGuacViewer.vue";
 import ScSshDirectViewer from "../components/ScSshDirectViewer.vue";
 import ScVncDirectViewer from "../components/ScVncDirectViewer.vue";
+import ScRdpDirectViewer from "../components/ScRdpDirectViewer.vue";
 import ScTerminalSidePanel from "../components/ScTerminalSidePanel.vue";
 import {
   SPECIAL_KEY_COMBOS,
@@ -92,7 +93,7 @@ function protocolQuery(): string {
   const raw = props.embedded ? props.protocol : route.query.protocol;
   const q = (Array.isArray(raw) ? raw[0] : raw) || "";
   const v = q.toLowerCase();
-  return v === "ssh" || v === "rdp" || v === "vnc" ? v : "";
+  return v === "ssh" || v === "telnet" || v === "rdp" || v === "vnc" ? v : "";
 }
 /**
  * 主机默认协议：主机配置优先，未配置时按平台推断
@@ -100,7 +101,7 @@ function protocolQuery(): string {
  */
 function defaultProtocolOf(h: Host): string {
   const configured = (h.serverHostRemoteProtocol ?? "").toUpperCase();
-  if (configured === "SSH" || configured === "RDP" || configured === "VNC") return configured.toLowerCase();
+  if (configured === "SSH" || configured === "TELNET" || configured === "RDP" || configured === "VNC") return configured.toLowerCase();
   const s = (h.serverHostOsType ?? "").toUpperCase();
   if (s.includes("WIN")) return "rdp";
   if (s.includes("MAC")) return "vnc";
@@ -126,20 +127,23 @@ function remotePortOf(h: Host): number {
   const configured = (h.serverHostRemoteProtocol ?? "").toLowerCase();
   if (configured === p && h.serverHostRemotePort && h.serverHostRemotePort > 0) return h.serverHostRemotePort;
   if (p === "ssh") return h.serverHostPort || 22;
+  if (p === "telnet") return h.serverHostPort || 23;
   return p === "rdp" ? 3389 : 5900;
 }
 
 /**
- * 生效远控通道（协议联动）：SSH / VNC 由平台自研客户端直连（MINA SSHD PTY /
- * noVNC RFB），不需要 guacd 中转通道；仅 RDP 平台无自研客户端，必须走 guacd。
+ * 生效远控通道（协议联动）：SSH / Telnet / VNC / RDP 由平台自研客户端直连
+ * （MINA SSHD PTY / WS↔TCP 透传 / noVNC RFB / FreeRDP 原生桥），不需要 guacd 中转通道。
  * 主机显式配置「无需通道」(NONE) 时尊重该选择（本机客户端连，平台不中转），
- * 其余一律按协议落到 DIRECT。
+ * 其余一律落到 DIRECT。
  * @param h 主机
  */
 function remoteModeOf(h: Host): string {
-  if (protocolOf(h) === "rdp") return "GUACD";
   const mode = (h.serverHostRemoteMode ?? "").toUpperCase();
-  return mode === "NONE" ? "NONE" : "DIRECT";
+  if (mode === "NONE") return "NONE";
+  /* 显式选了 guacd 中转的主机仍按配置走（兼容存量台账） */
+  if (mode === "GUACD") return "GUACD";
+  return "DIRECT";
 }
 
 const railWidth = computed(() => (railOpen.value ? `${layout.railWidth}px` : `${layout.railCollapsed}px`));
@@ -176,6 +180,7 @@ const noneTarget = computed(() => {
   if (!c) return "";
   if (c.targetPort) return `${c.address}:${c.targetPort}`;
   if (c.protocol === "ssh") return `${c.address}:${selectedHost.value?.serverHostPort ?? 22}`;
+  if (c.protocol === "telnet") return `${c.address}:${selectedHost.value?.serverHostPort ?? 23}`;
   return `${c.address}:${c.protocol === "rdp" ? 3389 : 5900}`;
 });
 
@@ -194,10 +199,16 @@ const guacViewerRef = ref<any>(null);
 /** VNC 直连渲染组件实例（noVNC） */
 const vncViewerRef = ref<any>(null);
 
-/** 当前连接是否支持特殊按键下发（SSH 终端无桌面语义、NONE 无线上通道，仅 RDP/VNC 显示） */
+/** RDP 直连渲染组件实例（FreeRDP 原生桥） */
+const rdpViewerRef = ref<any>(null);
+
+/** 当前连接是否支持特殊按键下发（SSH/Telnet 字符终端无桌面语义、NONE 无线上通道；RDP 直连页暂不下发） */
 const supportsSpecialKeys = computed(() => {
   const c = connection.value;
-  return !!c && c.protocol !== "ssh" && c.mode !== "NONE";
+  if (!c || c.mode === "NONE") return false;
+  if (c.protocol === "ssh" || c.protocol === "telnet") return false;
+  if (c.protocol === "rdp" && c.mode === "DIRECT") return false;
+  return true;
 });
 
 /**
@@ -212,7 +223,7 @@ const supportsSpecialKeys = computed(() => {
 function onSnippetCommand(command: string): void {
   const c = connection.value;
   if (!c) return;
-  if (c.protocol !== 'ssh') {
+  if (c.protocol !== 'ssh' && c.protocol !== 'telnet') {
     message.warning(`当前为 ${c.protocol.toUpperCase()} 终端，不支持下发片段：请手动粘贴 「${command}」`);
     return;
   }
@@ -532,7 +543,7 @@ onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
       <div v-else class="rail-collapsed" @click="railOpen = true" title="展开资源条">☰</div>
     </aside>
 
-    <!-- 右侧控制台：SSH/VNC 直连走自研终端与自研 RFB 桥接，其余经 guacd 隧道 -->
+    <!-- 右侧控制台：SSH/Telnet/VNC/RDP 直连走平台自研桥接（MINA PTY / WS↔TCP / RFB / FreeRDP），其余经 guacd 隧道 -->
     <main ref="termMainRef" class="term-main">
       <!-- 远控工具条：断开 / 全屏 / 可视范围全屏 / 弹出独立页面 -->
       <div
@@ -596,9 +607,9 @@ onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
         <b class="mono">{{ noneTarget }}</b>
         ；需要网页远控请把该主机的远控通道改为「平台直连」或「Guacd 中转」。
       </div>
-      <!-- SSH 始终走自研原生 PTY 直连桥（不依赖 guacd）；NONE 已在上方分支提示用本地客户端 -->
+      <!-- SSH / Telnet 始终走自研原生直连桥（不依赖 guacd）；NONE 已在上方分支提示用本地客户端 -->
       <ScSshDirectViewer
-        v-else-if="connection && connection.protocol === 'ssh'"
+        v-else-if="connection && (connection.protocol === 'ssh' || connection.protocol === 'telnet')"
         ref="sshViewerRef"
         :connection="connection"
         hide-close
@@ -606,6 +617,8 @@ onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
         @cwd="onTerminalCwd"
       />
       <ScVncDirectViewer v-else-if="connection && connection.protocol === 'vnc' && connection.mode === 'DIRECT'" ref="vncViewerRef" :connection="connection" hide-close @close="disconnected = true" />
+      <!-- RDP 平台直连：FreeRDP 原生桥（rdpj.dll），不经过 guacd -->
+      <ScRdpDirectViewer v-else-if="connection && connection.protocol === 'rdp' && connection.mode === 'DIRECT'" ref="rdpViewerRef" :connection="connection" hide-close @close="disconnected = true" />
       <!-- 必须有 connection 守卫，不能写成 v-else 兜底：
            ScGuacViewer 的 inline 根容器 .guac-wrap--inline 是 height:100% + min-height:400px，
            与连接无关。写成 v-else 后，未选主机时它照样渲染并占满整个显示区，

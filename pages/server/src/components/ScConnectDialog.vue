@@ -24,6 +24,7 @@ const emit = defineEmits<{
 /** 协议选项 */
 const protocolOptions = [
   { value: 'ssh', label: 'SSH 终端' },
+  { value: 'telnet', label: 'Telnet 终端' },
   { value: 'vnc', label: 'VNC 桌面' },
   { value: 'rdp', label: 'RDP 远程桌面' },
 ];
@@ -47,6 +48,7 @@ watch(visible, show => {
 const portPlaceholder = computed(() => {
   if (form.protocol === 'vnc') return '默认 5900';
   if (form.protocol === 'rdp') return '默认 3389';
+  if (form.protocol === 'telnet') return '默认 23（不填按主机台账端口）';
   return 'SSH 使用主机台账端口';
 });
 
@@ -90,7 +92,7 @@ function onConnect(): void {
           </ReRadioButton>
         </ReRadioGroup>
       </ReFormItem>
-      <ReFormItem label="登录身份">
+      <ReFormItem v-if="form.protocol !== 'ssh' && form.protocol !== 'telnet'" label="登录身份">
         <ReSelect v-model="form.identityId" placeholder="默认取优先级最高的绑定身份" clearable
           :data="identities.map(i => ({ label: `${i.msServerIdentityUsername} (${i.msServerIdentityAuthType})`, value: i.id }))"
           style="width: 100%" />

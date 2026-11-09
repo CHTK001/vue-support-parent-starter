@@ -453,7 +453,7 @@ function groupDotStyle(id?: number | null): Record<string, string> {
  */
 function protocolOf(h: Host): string {
   const p = (h.serverHostRemoteProtocol ?? "").toUpperCase();
-  if (p === "SSH" || p === "RDP" || p === "VNC") return p.toLowerCase();
+  if (p === "SSH" || p === "TELNET" || p === "RDP" || p === "VNC") return p.toLowerCase();
   const s = (h.serverHostOsType ?? "").toUpperCase();
   if (s.includes("WIN")) return "rdp";
   if (s.includes("MAC")) return "vnc";
@@ -468,6 +468,7 @@ function remotePortOf(h: Host): number {
   const configured = (h.serverHostRemoteProtocol ?? "").toLowerCase();
   if (configured === p && h.serverHostRemotePort && h.serverHostRemotePort > 0) return h.serverHostRemotePort;
   if (p === "ssh") return h.serverHostPort || 22;
+  if (p === "telnet") return h.serverHostPort || 23;
   return p === "rdp" ? 3389 : 5900;
 }
 const onlineCount = computed(() => hosts.value.filter(h => liveOnlineState(h) === 1).length);

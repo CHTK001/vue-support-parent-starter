@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>RDP 直连桌面</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #0b0d10; overflow: hidden; }
+    #stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+    #screen {
+      display: block;
+      outline: none;
+      background: #000;
+      image-rendering: auto;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, .06);
+      cursor: default;
+    }
+    #status { position: fixed; top: 8px; right: 14px;
+              color: #eee; background: rgba(0, 0, 0, .72); padding: 5px 12px; border-radius: 4px;
+              font: 12px/1.4 monospace; z-index: 11; pointer-events: none; }
+    #loading { position: fixed; inset: 0; z-index: 10; display: flex;
+               flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+               background: #0b0d10; transition: opacity .25s ease; }
+    #loading.hide { opacity: 0; pointer-events: none; }
+    #loading .lbl { color: #cfd3da; font: 13px/1.5 "Segoe UI", "Microsoft YaHei", sans-serif;
+                    letter-spacing: .3px; text-align: center; }
+    #loading .sub { color: #6b7280; font: 11px/1.4 monospace; }
+    #loading .err { color: #ff7a7a; max-width: 70%; }
+    .spinner { width: 38px; height: 38px; border-radius: 50%;
+               border: 3px solid rgba(255, 255, 255, .14); border-top-color: #6aa1ff;
+               animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div id="loading">
+    <div class="spinner"></div>
+    <div class="lbl" id="loading-lbl">正在建立 RDP 连接…</div>
+    <div class="sub" id="loading-sub"></div>
+  </div>
+  <div id="status">正在连接…</div>
+  <div id="stage"><canvas id="screen" tabindex="0"></canvas></div>
+  <script>
+    (function () {
+      var statusEl = document.getElementById('status');
+      var canvas = document.getElementById('screen');
+      var ctx = canvas.getContext('2d', { alpha: false });
+      var stage = document.getElementById('stage');
+      var params = new URLSearchParams(location.search);
+      var hostId = params.get('hostId') || '';
+      var identityId = params.get('identityId') || '';
+      var userName = params.get('user') || '';
+      var reqWidth = parseInt(params.get('width') || '1280', 10) || 1280;
+      var reqHeight = parseInt(params.get('height') || '800', 10) || 800;
+
+      var loadingEl = document.getElementById('loading');
+      var loadingLbl = document.getElementById('loading-lbl');
+      var loadingSub = document.getElementById('loading-sub');
+      loadingSub.textContent = 'hostId=' + hostId + ' ' + reqWidth + 'x' + reqHeight;
+
+      function hideLoading() { loadingEl.classList.add('hide'); }
+      function loadingError(msg) {
+        var sp = loadingEl.querySelector('.spinner');
+        if (sp) sp.style.display = 'none';
+        loadingLbl.classList.add('err');
+        loadingLbl.textContent = msg;
+        loadingEl.classList.remove('hide');
+      }
+
+      /* ============ 键盘：浏览器 KeyboardEvent.code → RDP scancode（扫描码集 1） ============ */
+      var SCAN = {
+        Escape: 0x01, Digit1: 0x02, Digit2: 0x03, Digit3: 0x04, Digit4: 0x05, Digit5: 0x06,
+        Digit6: 0x07, Digit7: 0x08, Digit8: 0x09, Digit9: 0x0A, Digit0: 0x0B, Minus: 0x0C,
+        Equal: 0x0D, Backspace: 0x0E, Tab: 0x0F, KeyQ: 0x10, KeyW: 0x11, KeyE: 0x12,
+        KeyR: 0x13, KeyT: 0x14, KeyY: 0x15, KeyU: 0x16, KeyI: 0x17, KeyO: 0x18, KeyP: 0x19,
+        BracketLeft: 0x1A, BracketRight: 0x1B, Enter: 0x1C, ControlLeft: 0x1D, KeyA: 0x1E,
+        KeyS: 0x1F, KeyD: 0x20, KeyF: 0x21, KeyG: 0x22, KeyH: 0x23, KeyJ: 0x24, KeyK: 0x25,
+        KeyL: 0x26, Semicolon: 0x27, Quote: 0x28, Backquote: 0x29, ShiftLeft: 0x2A,
+        Backslash: 0x2B, KeyZ: 0x2C, KeyX: 0x2D, KeyC: 0x2E, KeyV: 0x2F, KeyB: 0x30,
+        KeyN: 0x31, KeyM: 0x32, Comma: 0x33, Period: 0x34, Slash: 0x35, ShiftRight: 0x36,
+        NumpadMultiply: 0x37, AltLeft: 0x38, Space: 0x39, CapsLock: 0x3A,
+        F1: 0x3B, F2: 0x3C, F3: 0x3D, F4: 0x3E, F5: 0x3F, F6: 0x40, F7: 0x41, F8: 0x42,
+        F9: 0x43, F10: 0x44, NumLock: 0x45, ScrollLock: 0x46,
+        Numpad7: 0x47, Numpad8: 0x48, Numpad9: 0x49, NumpadSubtract: 0x4A,
+        Numpad4: 0x4B, Numpad5: 0x4C, Numpad6: 0x4D, NumpadAdd: 0x4E,
+        Numpad1: 0x4F, Numpad2: 0x50, Numpad3: 0x51, Numpad0: 0x52, NumpadDecimal: 0x53,
+        IntlBackslash: 0x56, F11: 0x57, F12: 0x58, NumpadEqual: 0x59,
+        /* 扩展键：高位 0x100 表示 E0 前缀 */
+        NumpadEnter: 0x11C, ControlRight: 0x11D, NumpadDivide: 0x135, PrintScreen: 0x137,
+        AltRight: 0x138, Home: 0x147, ArrowUp: 0x148, PageUp: 0x149, ArrowLeft: 0x14B,
+        ArrowRight: 0x14D, End: 0x14F, ArrowDown: 0x150, PageDown: 0x151, Insert: 0x152,
+        Delete: 0x153, MetaLeft: 0x15B, MetaRight: 0x15C, ContextMenu: 0x15D
+      };
+
+      /* 已按下集合：避免重复下发 keydown（浏览器会持续 repeat） */
+      var pressed = {};
+      var ws = null;
+
+      function send(obj) {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify(obj));
+        }
+      }
+      function keyDown(code) {
+        if (pressed[code]) return;
+        pressed[code] = true;
+        send({ type: 'keyboard', keysym: code, down: true });
+      }
+      function keyUp(code) {
+        if (!pressed[code]) return;
+        delete pressed[code];
+        send({ type: 'keyboard', keysym: code, down: false });
+      }
+      /* 把浏览器侧的修饰键状态同步给远端，保证 Shift+数字 之类能出对应字符 */
+      function syncModifiers(e) {
+        var mods = [[0x2A, e.shiftKey], [0x1D, e.ctrlKey], [0x38, e.altKey], [0x15B, e.metaKey]];
+        for (var i = 0; i < mods.length; i++) {
+          if (mods[i][1]) keyDown(mods[i][0]);
+          else keyUp(mods[i][0]);
+        }
+      }
+      function releaseAll() {
+        for (var code in pressed) {
+          if (Object.prototype.hasOwnProperty.call(pressed, code)) {
+            send({ type: 'keyboard', keysym: parseInt(code, 10), down: false });
+          }
+        }
+        pressed = {};
+      }
+
+      window.addEventListener('keydown', function (e) {
+        var code = SCAN[e.code];
+        /* Ctrl+Alt+Del 由平台工具条下发；浏览器里无法捕获该组合，这里只做兜底 */
+        if (code == null) return;
+        e.preventDefault();
+        syncModifiers(e);
+        keyDown(code);
+      });
+      window.addEventListener('keyup', function (e) {
+        var code = SCAN[e.code];
+        if (code == null) return;
+        e.preventDefault();
+        keyUp(code);
+        syncModifiers(e);
+      });
+      window.addEventListener('blur', releaseAll);
+
+      /* ============ 鼠标 ============ */
+      var lastMove = 0;
+      function pointOf(e) {
+        var rect = canvas.getBoundingClientRect();
+        var w = canvas.width || 1;
+        var h = canvas.height || 1;
+        var x = Math.round((e.clientX - rect.left) * w / (rect.width || 1));
+        var y = Math.round((e.clientY - rect.top) * h / (rect.height || 1));
+        if (x < 0) x = 0;
+        if (y < 0) y = 0;
+        if (x >= w) x = w - 1;
+        if (y >= h) y = h - 1;
+        return { x: x, y: y };
+      }
+      canvas.addEventListener('mousemove', function (e) {
+        var now = Date.now();
+        if (now - lastMove < 30) return;
+        lastMove = now;
+        var p = pointOf(e);
+        send({ type: 'mouse', x: p.x, y: p.y, button: 0, down: false });
+      });
+      function buttonOf(e) {
+        if (e.button === 0) return 1;
+        if (e.button === 2) return 2;
+        if (e.button === 1) return 3;
+        return 0;
+      }
+      canvas.addEventListener('mousedown', function (e) {
+        canvas.focus();
+        var p = pointOf(e);
+        send({ type: 'mouse', x: p.x, y: p.y, button: buttonOf(e), down: true });
+        e.preventDefault();
+      });
+      canvas.addEventListener('mouseup', function (e) {
+        var p = pointOf(e);
+        send({ type: 'mouse', x: p.x, y: p.y, button: buttonOf(e), down: false });
+        e.preventDefault();
+      });
+      canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+      /* 滚轮：按 RDP 的 wheel 事件折算（后端把 button 4/5 转成上下滚） */
+      canvas.addEventListener('wheel', function (e) {
+        e.preventDefault();
+        var p = pointOf(e);
+        send({ type: 'wheel', x: p.x, y: p.y, delta: e.deltaY < 0 ? 120 : -120 });
+      }, { passive: false });
+
+      /* ============ 画面自适应（保持比例，居中留黑边） ============ */
+      function fitCanvas() {
+        var w = canvas.width || 1;
+        var h = canvas.height || 1;
+        var availW = stage.clientWidth;
+        var availH = stage.clientHeight;
+        if (availW <= 0 || availH <= 0) return;
+        var scale = Math.min(availW / w, availH / h);
+        canvas.style.width = Math.max(1, Math.floor(w * scale)) + 'px';
+        canvas.style.height = Math.max(1, Math.floor(h * scale)) + 'px';
+      }
+      window.addEventListener('resize', fitCanvas);
+
+      /* ============ 帧解码：32 字节帧头 + 脏行 RGBA 像素 ============ */
+      var tempData = null;
+      function drawFrame(buffer) {
+        var view = new DataView(buffer);
+        var w = view.getInt32(0, true);
+        var h = view.getInt32(4, true);
+        var stride = view.getInt32(8, true);
+        var top = view.getInt32(20, true);
+        var rows = view.getInt32(28, true);
+        if (w <= 0 || h <= 0 || stride <= 0 || rows <= 0) return;
+        if (canvas.width !== w || canvas.height !== h) {
+          canvas.width = w;
+          canvas.height = h;
+          fitCanvas();
+        }
+        var need = rows * stride;
+        if (buffer.byteLength < 32 + need) return;
+        var raw = new Uint8ClampedArray(buffer, 32, need);
+        var image;
+        if (stride === w * 4) {
+          image = new ImageData(raw, w, rows);
+        } else {
+          if (!tempData || tempData.length !== w * rows * 4) tempData = new Uint8ClampedArray(w * rows * 4);
+          for (var y = 0; y < rows; y++) {
+            tempData.set(raw.subarray(y * stride, y * stride + w * 4), y * w * 4);
+          }
+          image = new ImageData(tempData, w, rows);
+        }
+        ctx.putImageData(image, 0, top);
+      }
+
+      /* ============ WebSocket ============ */
+      var wsProto = location.protocol === 'https:' ? 'wss://' : 'ws://';
+      var wsUrl = wsProto + location.host + '/ws/ms/server/terminal/rdp?hostId=' + encodeURIComponent(hostId)
+        + '&width=' + reqWidth + '&height=' + reqHeight
+        + (identityId ? '&identityId=' + encodeURIComponent(identityId) : '')
+        + (userName ? '&user=' + encodeURIComponent(userName) : '')
+        + (params.get('x-oauth-token') ? '&x-oauth-token=' + encodeURIComponent(params.get('x-oauth-token')) : '');
+      ws = new WebSocket(wsUrl);
+      ws.binaryType = 'arraybuffer';
+
+      var errored = false;
+      ws.onopen = function () {
+        statusEl.textContent = '已连接（RDP 直连）';
+        canvas.focus();
+      };
+      ws.onmessage = function (event) {
+        if (typeof event.data === 'string') {
+          var cmd = null;
+          try { cmd = JSON.parse(event.data); } catch (e) { cmd = null; }
+          var msg = cmd && cmd.msg ? cmd.msg : event.data;
+          errored = true;
+          statusEl.textContent = msg;
+          loadingError(msg);
+          return;
+        }
+        try { drawFrame(event.data); } catch (err) { /* 单帧异常不中断会话 */ }
+      };
+      ws.onclose = function () {
+        if (!errored) {
+          statusEl.textContent = '已断开';
+          loadingError('连接已关闭，请刷新页面重新连接');
+        }
+      };
+      ws.onerror = function () {
+        if (!errored) statusEl.textContent = '连接异常';
+      };
+
+      /* 首帧到达后再收起加载层，避免看到黑屏以为已连上 */
+      var firstFrame = false;
+      var origDraw = drawFrame;
+      drawFrame = function (buffer) {
+        origDraw(buffer);
+        if (!firstFrame) {
+          firstFrame = true;
+          hideLoading();
+          statusEl.textContent = '已连接（RDP 直连）';
+        }
+      };
+
+      setTimeout(fitCanvas, 100);
+      canvas.focus();
+    })();
+  </script>
+</body>
+</html>
