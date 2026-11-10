@@ -1225,18 +1225,19 @@ function hostedProviderOf(channel: string): MagpieProvider | undefined {
 /**
  * 详情页要展示的账号行。
  *
- * <p>本地有连接就按本地连接展示（后端积分 / 签到也优先本地）。本地一条都没有、
- * 但网关里已经有这个渠道的上游时，合成一行「网关托管」：凭据在 magpie 里，
- * 积分与签到借用网关连接，账号管理仍在网关自己的页面。</p>
+ * <p><b>网关优先</b>：只要网关里已经有这个渠道的上游，就以网关为准，
+ * 本地旧连接不再展示也不参与请求（数据仍在库里）。此前是「本地连接优先」，
+ * 结果是过期连接把请求挡回原生实现——直连 minimax 余额 404、缺 access_token
+ * 这类报错都来自那条路径。本地没有对应上游时才展示本地连接。</p>
  *
  * @param c 渠道摘要
  * @returns 真实连接，或一条虚拟的托管行
  */
 function displayConnections(c?: ChannelSummary): ChannelConnectionSummary[] {
-  const list = sortedConnections(c)
-  if (list.length || !c || c.supportsUpstream) return list
+  const local = sortedConnections(c)
+  if (!c || c.supportsUpstream) return local
   const provider = hostedProviderOf(c.channel)
-  if (!provider) return list
+  if (!provider) return local
   return [
     {
       connectionId: GATEWAY_CONNECTION_ID,
@@ -1251,9 +1252,20 @@ function displayConnections(c?: ChannelSummary): ChannelConnectionSummary[] {
 }
 
 /**
- * 当前渠道是否只由网关托管（没有本地连接）。
+ * 本地连接数（含被网关接管的旧连接）。
  *
- * <p>magpie 只提供签到，没有成长任务接口，所以这类渠道不显示「任务」页签：
+ * @param c 渠道摘要
+ * @returns 本地连接条数
+ */
+function localConnectionCount(c?: ChannelSummary): number {
+  return (c?.connections ?? []).length
+}
+
+/**
+ * 当前渠道是否由网关托管（展示出来的行全是网关托管行）。
+ *
+ * <p>网关优先：即使本地还留着旧连接，只要网关里有这个渠道的上游，就按托管处理。
+ * magpie 只提供签到，没有成长任务接口，所以这类渠道不显示「任务」页签：
  * 显示出来只会是一个点开就报错的入口。</p>
  *
  * @param c 渠道摘要
@@ -1323,22 +1335,21 @@ const gatewayChannel = computed(() => channels.value.find((c) => c.supportsUpstr
 /**
  * 已经可以整体交给 Magpie 的渠道。
  *
- * <p>三个条件缺一不可：</p>
+ * <p>两个条件缺一不可：</p>
  * <ol>
  *   <li>名单里有一个网关型渠道（能力位 {@code supportsUpstream}），它是收纳方；</li>
- *   <li>网关自己至少绑定了一个连接——没绑连接时跳过去只会看到「未绑定」，
- *       这时宁可让各渠道继续各占一行，也不要先把入口收走；</li>
- *   <li>被收纳的渠道在 {@link MAGPIE_OWNED_VENDORS} 名单里，且自己没有绑定账号——
- *       有连接就说明有存量凭据要展示，宁可多一行，也不把在用的入口藏起来。</li>
+ *   <li>网关自己至少绑定了一个连接——没绑连接时跳过去只会看到「未绑定」；</li>
+ *   <li>被收纳的渠道在 {@link MAGPIE_OWNED_VENDORS} 名单里。</li>
  * </ol>
+ *
+ * <p>网关优先：渠道即使还留着本地旧连接也算托管，旧连接不参与展示与请求，
+ * 但数据保留在库里。</p>
  */
 const managedChannels = computed(() => {
   const gateway = gatewayChannel.value
   if (!gateway || !(gateway.connections ?? []).length) return []
-  return channels.value.filter(
-    (c) =>
-      MAGPIE_OWNED_VENDORS.some((v) => v.channel === c.channel) &&
-      !(c.connections ?? []).length,
+  return channels.value.filter((c) =>
+    MAGPIE_OWNED_VENDORS.some((v) => v.channel === c.channel),
   )
 })
 
@@ -1809,6 +1820,23 @@ function openManaged(entry: ManagedEntry): void {
     focusLabelText.value = name
     if (plugin) applyPluginFocus(plugin)
   })
+}
+
+/**
+ * 网关托管的渠道：登录入口必须回到网关本身。
+ *
+ * <p>网关优先后本地连接不参与，页面上的「绑定登录态账号」只会新建一条马上被
+ * 忽略的本地连接。这里直接打开网关「上游」并定位该渠道的 provider（没接上时
+ * 落到新增 / 插件），由网关面板完成登录。</p>
+ */
+function openGatewayLogin(): void {
+  const channel = activeChannel.value
+  const entry = managedEntries.value.find((x) => x.channel.channel === channel)
+  if (entry) {
+    openManaged(entry)
+    return
+  }
+  openGatewayRoot()
 }
 
 /**
@@ -2311,7 +2339,7 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                 网关型渠道（magpie）例外：账号由网关自己托管，这里既不显示
                 「添加账号」也不显示统一账号列表，只保留下面的「已授权连接」。
               -->
-              <div v-if="accountsSupported(activeSummary())" class="chm-panel__block">
+              <div v-if="accountsSupported(activeSummary()) && !hostedOnly(activeSummary())" class="chm-panel__block">
                 <div class="chm-panel__sect-title">
                   <el-icon aria-hidden="true"><ConnectionIcon /></el-icon>
                   账号 <i>{{ accounts.length }}</i>
@@ -2399,6 +2427,13 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                           </span>
                         </div>
                         <div class="chm-acc__sub">
+                          <!-- 网关托管：说明凭据位置，并提示本地旧连接已被停用（数据未删）。 -->
+                          <span v-if="conn.hosted" class="chm-acc__muted">凭据在 Magpie 网关</span>
+                          <span
+                            v-if="conn.hosted && localConnectionCount(activeSummary())"
+                            class="chm-acc__muted"
+                            title="网关优先：本地旧连接不再参与请求，数据仍保留在库里"
+                          >本地 {{ localConnectionCount(activeSummary()) }} 条旧连接已停用</span>
                           <span
                             v-if="connExpireText(conn)"
                             class="chm-acc__expire"
@@ -2409,7 +2444,7 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                             class="chm-acc__checkin"
                             :title="conn.checkinMessage || ''"
                           >签到 {{ shortTime(conn.checkinAt) }}</span>
-                          <span v-if="!connExpireText(conn) && !conn.checkinAt" class="chm-acc__muted">长期有效</span>
+                          <span v-if="!conn.hosted && !connExpireText(conn) && !conn.checkinAt" class="chm-acc__muted">长期有效</span>
                         </div>
                       </div>
                       <div class="chm-acc__actions">
@@ -2511,7 +2546,7 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
               </div>
 
               <!-- 绑定登录态账号（AI 账号渠道的授权流程） -->
-              <div v-if="supportsFixed(activeSummary())" class="chm-panel__binds">
+              <div v-if="supportsFixed(activeSummary()) && !hostedOnly(activeSummary())" class="chm-panel__binds">
                 <button
                   class="chm-panel__bindbtn"
                   type="button"
@@ -2522,6 +2557,20 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                     <PlusIcon />
                   </el-icon>
                   {{ busyFor(activeChannel, 'login') ? '登录中…' : '＋ 绑定登录态账号（点击弹出）' }}
+                </button>
+              </div>
+              <!--
+                网关托管：凭据在 magpie 里，本地再绑一条只会被网关优先忽略。
+                登录 / 换号统一回网关「上游」处理。
+              -->
+              <div v-else-if="hostedOnly(activeSummary())" class="chm-panel__binds">
+                <button
+                  class="chm-panel__bindbtn"
+                  type="button"
+                  @click="openGatewayLogin"
+                >
+                  <el-icon class="chm-btn__icon" aria-hidden="true"><ConnectionIcon /></el-icon>
+                  账号在 Magpie 网关里 → 去网关登录 / 换号
                 </button>
               </div>
             </div>
