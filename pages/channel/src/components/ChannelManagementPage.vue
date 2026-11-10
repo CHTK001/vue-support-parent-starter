@@ -28,6 +28,8 @@ import {
   Delete as DeleteIcon,
   Connection as ConnectionIcon,
   DataAnalysis as DataAnalysisIcon,
+  Setting as SettingIcon,
+  Picture as PictureIcon,
 } from '@element-plus/icons-vue'
 import { channelApi } from '../channelApi'
 import type {
@@ -40,6 +42,8 @@ import type {
 import ReButton from '@repo/ui/re-button'
 import ReTabs from '@repo/ui/re-tabs'
 import ChannelAccountDialog from './ChannelAccountDialog.vue'
+import MagpieAccountBindDialog from './MagpieAccountBindDialog.vue'
+import MagpieGatewaySettingsDialog from './MagpieGatewaySettingsDialog.vue'
 import MagpieProviderPanel from './MagpieProviderPanel.vue'
 import MagpiePluginPanel from './MagpiePluginPanel.vue'
 import { MAGPIE_OWNED_VENDORS, magpieOwnedOf, type MagpieOwnedVendor } from '../magpieOwnership'
@@ -60,6 +64,11 @@ import geminiIcon from '../assets/channel-icons/gemini.svg'
 import minimaxIcon from '../assets/channel-icons/minimax.ico'
 import zcodeIcon from '../assets/channel-icons/zcode.ico'
 import lobsteraiIcon from '../assets/channel-icons/lobsterai.ico'
+// 这三个图标来自 Magpie 自带的品牌图（/icons/…），和网关里的上游列表同源，
+// 渠道页与网关页才不会同一家出现两种标记。
+import qoderIcon from '../assets/channel-icons/qoder.svg'
+import workbuddyIcon from '../assets/channel-icons/workbuddy.svg'
+import magpieIcon from '../assets/channel-icons/magpie.svg'
 
 /** 渠道品牌外观：官方图标（可选）+ 品牌色 + 徽标字形 */
 interface ChannelBrand {
@@ -76,8 +85,8 @@ interface ChannelBrand {
 // channel id（后端 @Spi 别名，小写）→ 品牌外观
 const CHANNEL_BRANDS: Record<string, ChannelBrand> = {
   cline: { icon: clineIcon, color: '#6E4FFF', glyph: 'C', method: '设备码' },
-  qoder: { color: '#4F6BFF', glyph: 'Q', method: '设备码' },
-  'qoder-cn': { color: '#F59E0B', glyph: 'Q', method: '设备码' }, // 国内变体用琥珀金区分
+  qoder: { icon: qoderIcon, color: '#4F6BFF', glyph: 'Q', method: '设备码' },
+  'qoder-cn': { icon: qoderIcon, color: '#F59E0B', glyph: 'Q', method: '设备码' }, // 国内变体用琥珀金区分
   trae: { icon: traeIcon, color: '#0F766E', glyph: 'T', method: '浏览器授权' },
   gemini: { icon: geminiIcon, color: '#8E75B2', glyph: 'G', method: '浏览器授权' },
   minimax: { icon: minimaxIcon, color: '#F5701A', glyph: 'M', method: '设备码' },
@@ -86,9 +95,9 @@ const CHANNEL_BRANDS: Record<string, ChannelBrand> = {
   loomy: { color: '#2B7DE9', glyph: 'L', method: '微信扫码' },
   lobsterai: { icon: lobsteraiIcon, color: '#F03D64', glyph: 'L', method: '浏览器授权' },
   opencode: { icon: opencodeIcon, color: '#111827', glyph: 'O', method: 'API Key' },
-  workbuddy: { color: '#5A4FF3', glyph: 'W', method: '浏览器授权' },
+  workbuddy: { icon: workbuddyIcon, color: '#5A4FF3', glyph: 'W', method: '浏览器授权' },
   // Magpie 统一网关：本机 / Docker 常驻，凭据是「网关地址 + 网关 key」
-  magpie: { color: '#0EA5A4', glyph: 'M', method: 'API Key' },
+  magpie: { icon: magpieIcon, color: '#0EA5A4', glyph: 'M', method: 'API Key' },
   // ChatClient 免登录渠道：无官方图标，用 DuckDuckGo 品牌橙 + 首字母徽标
   'chat-duckduckgo': { color: '#DE5833', glyph: 'D', method: '免登录' },
   // Trae：对话复用本机登录态（也可在面板里临时填 JWT），同时具备文生图能力
@@ -141,8 +150,9 @@ const activeChannel = ref<string>('')
 /**
  * 当前用户是否管理员。
  *
- * <p>「Magpie 统一网关」是运维入口（管理网关上游与插件），只对管理员显示；
- * 角色是登录后异步写入的，setup 时读一次可能还是空角色，onMounted 再确认一次。</p>
+ * <p>账号是每个用户自己的（与渠道页「按 userId 隔离」一致），新增入口对所有登录用户开放；
+ * 网关上游 / 插件的管理入口才是运维动作，只对管理员显示。角色是登录后异步写入的，
+ * setup 时读一次可能还是空角色，onMounted 再确认一次。</p>
  */
 const isAdminUser = ref(isAdmin())
 
@@ -1108,17 +1118,32 @@ function toggleModelChip(m: { model: string; enabled?: boolean }) {
   draft[m.model] = !current
 }
 
-/** 批量改草稿：全选 / 全不选 / 反选都不发请求 */
-function setAllModelDraft(target: 'all' | 'none' | 'invert') {
+/**
+ * 批量改草稿：全选 / 全不选 / 反选 / 全选免费都不发请求。
+ *
+ * <p>「全选免费」只把明确免费的模型打开，付费模型的勾选状态保持不变：
+ * 用户点它是想一键用上免费额度，不是想顺手关掉已经买过的模型。</p>
+ *
+ * @param target 目标动作
+ */
+function setAllModelDraft(target: 'all' | 'none' | 'invert' | 'free') {
   const models = activeSummary()?.models ?? []
   if (!models.length) {
     ElMessage.info('该渠道暂无模型，请先拉取模型')
+    return
+  }
+  if (target === 'free' && !models.some((m) => modelIsFree(m))) {
+    ElMessage.info('该渠道没有标记为免费的模型')
     return
   }
   if (!modelDraft.value[activeChannel.value]) syncModelDraft()
   const draft = modelDraft.value[activeChannel.value]
   for (const m of models) {
     const current = m.model in draft ? (draft[m.model] as boolean) : m.enabled !== false
+    if (target === 'free') {
+      if (modelIsFree(m)) draft[m.model] = true
+      continue
+    }
     draft[m.model] = target === 'all' ? true : target === 'none' ? false : !current
   }
 }
@@ -1159,7 +1184,85 @@ async function saveModelSelection() {
   }
 }
 
-// ---------- 账号类型（kind / accountTypes）----------
+// ---------- 文生图渠道：试出图 ----------
+// DuckDuckGo / Trae 这类渠道没有「模型清单」可配置（内置一个默认出图实现），
+// 只给一张空列表，用户看到的就是「啥也没有」。这里给一块最小可用的试出图面板：
+// 提示词 → 生成 → 结果留在页面上，让渠道本身可被验证。
+
+/** 试出图的提示词 */
+const imagePrompt = ref('')
+/** 出图比例（渠道支持的档位不多，给固定的几个） */
+const imageRatio = ref('1:1')
+/** 需要登录态的渠道（Trae）临时填的令牌，只随本次请求发送 */
+const imageToken = ref('')
+/** 出图请求进行中 */
+const imageBusy = ref(false)
+/** 最近一次出图的结果 */
+const imageResults = ref<Array<{ url: string; thumbUrl?: string }>>([])
+/** 出图失败原因（渠道上游的错误原样展示） */
+const imageError = ref('')
+/** 选中的出图模型；渠道没有模型清单时为空 */
+const imageModel = ref('')
+
+/** 当前渠道是不是文生图渠道 */
+const isImageChannel = computed(() => kindOf(activeSummary()) === 'IMAGE')
+
+/** 出图可选模型：渠道摘要里的模型清单，可能为空 */
+const imageModelOptions = computed(() => activeSummary()?.models ?? [])
+
+/**
+ * 换渠道时清掉上一渠道的出图输入与结果。
+ *
+ * <p>出图结果 URL 往往带时效签名，跨渠道混在一起既会误导，也会让用户以为
+ * 上一张图是当前渠道出的。</p>
+ */
+function resetImageTest(): void {
+  imagePrompt.value = ''
+  imageRatio.value = '1:1'
+  imageToken.value = ''
+  imageResults.value = []
+  imageError.value = ''
+  imageBusy.value = false
+  imageModel.value = ''
+}
+
+/**
+ * 按提示词出一张图。
+ *
+ * <p>失败时保留用户已写的提示词，只把上游给的原因显示出来（如 DuckDuckGo 的
+ * 出图限额、Trae 的登录态失效），不做「生成成功」的假提示。</p>
+ */
+async function runImageTest(): Promise<void> {
+  const prompt = imagePrompt.value.trim()
+  if (!prompt || imageBusy.value) return
+  const channel = activeChannel.value
+  if (!channel) return
+  imageBusy.value = true
+  imageError.value = ''
+  imageResults.value = []
+  try {
+    const res = await channelApi.generateImage(channel, {
+      prompt,
+      ratio: imageRatio.value,
+      n: 1,
+      ...(imageModel.value ? { model: imageModel.value } : {}),
+      ...(imageToken.value.trim() ? { token: imageToken.value.trim() } : {}),
+    })
+    const out = (res as any)?.data ?? res
+    const images = (out?.images ?? []) as Array<{ url?: string; thumbUrl?: string }>
+    const rows = images
+      .filter((x) => !!x?.url)
+      .map((x) => ({ url: String(x.url), thumbUrl: x.thumbUrl ? String(x.thumbUrl) : undefined }))
+    imageResults.value = rows
+    if (!rows.length) imageError.value = '上游没有返回图片地址，请换个提示词再试'
+  } catch (e: any) {
+    imageError.value = e?.message ?? String(e)
+  } finally {
+    imageBusy.value = false
+  }
+}
+
+
 // 渠道按「种类」与「支持的账号类型」两个正交维度描述：
 //   kind = AI / SMS / EMAIL；accountTypes ⊂ { FIXED, TEMPORARY }。
 // 历史响应缺省时按「AI + 仅固定账号」处理，保证向后兼容。
@@ -1724,8 +1827,8 @@ const dropTargetChannel = ref('')
  * 业务渠道：排除网关型渠道（支持上游管理的 magpie 之类）。
  *
  * <p>magpie 是「接入实现」而不是业务渠道：它自己维护上游 provider 与插件，
- * 用户在左栏要看到的是 Qoder / WorkBuddy / Trae 这些渠道本身。网关本身单独作为
- * 左栏底部的工具入口，不计入渠道数、不参与拖拽排序。</p>
+ * 用户在左栏要看到的是 Qoder / WorkBuddy / Trae 这些渠道本身。网关本身不出现在
+ * 左栏，也不计入渠道数、不参与拖拽排序。</p>
  */
 const businessChannels = computed<ChannelSummary[]>(() =>
   channels.value.filter((c) => !c.supportsUpstream),
@@ -1761,7 +1864,8 @@ function railActive(c: ChannelSummary): boolean {
  * <p>后端是 magpie、cdp 还是原生 SPI 只是接入方式，不该改变左侧渠道行点击后的
  * 落点。以前「由 magpie 托管且本地没有连接」的渠道会跳到网关的上游 / 插件面板，
  * 用户点 Qoder 却看到一片 magpie 术语，等于把实现细节漏到渠道管理里。现在统一
- * 留在渠道详情；要管理网关自身的上游与插件，点左栏的「Magpie 统一网关」行即可。</p>
+ * 留在渠道详情；要给托管渠道加账号，点底部「新增账号」原地走网关绑定，
+ * 网关自身上游 / 插件的管理入口留在账号区。</p>
  *
  * @param c 渠道摘要
  */
@@ -1938,6 +2042,36 @@ const extraProviders = computed<MagpieProvider[]>(() => {
   return gatewayProviderRows.value.filter((p) => p?.id && !covered.has(String(p.id)))
 })
 
+/** 上游条目的展示名：网关里的 name 优先，没有就退回 id */
+function extraProviderName(provider: MagpieProvider): string {
+  return providerLabel(provider)
+}
+
+/** 上游条目的首字：没有品牌图标时用文字徽标占位 */
+function extraProviderGlyph(provider: MagpieProvider): string {
+  const name = extraProviderName(provider).trim()
+  return name ? name.slice(0, 1).toUpperCase() : '·'
+}
+
+/**
+ * 点开一条「网关里还没有对应渠道行」的上游。
+ *
+ * <p>这类上游（devin / deepseek-web 等）没有自己的业务渠道，用户只能在网关里
+ * 找到它。左栏给一行，点开就落到网关渠道的「上游」页签并高亮这条，避免用户
+ * 先点进别的渠道再找。</p>
+ *
+ * @param provider 网关上游实例
+ */
+function openExtraProvider(provider: MagpieProvider): void {
+  const id = String(provider?.id ?? '')
+  if (!id) return
+  openGateway('upstream', () => {
+    clearManagedFocus()
+    focusProviderId.value = id
+    focusLabelText.value = extraProviderName(provider)
+  })
+}
+
 /** 清掉所有「刚才那一跳」的定位与预填 */
 function clearManagedFocus(): void {
   focusChannel.value = ''
@@ -2041,24 +2175,92 @@ function openGatewayLogin(): void {
 }
 
 /**
- * 网关入口是否选中：停在网关本身（没有盯住某个上游）时才算。
+ * 左栏入口：网关自己的「上游」页签。
  *
- * <p>否则点某个上游时两行同时高亮，看不出当前到底在看哪一个。</p>
- *
- * @return 选中返回 true
- */
-function gatewayRootActive(): boolean {
-  return activeChannel.value === gatewayChannel.value?.channel && !focusProviderId.value
-}
-
-/**
- * 左栏底部的网关入口：打开网关自己的「上游」页签。
- *
- * <p>管理网关的 provider / 插件必须有一个固定落点；此前只能靠「托管」子项
- * 间接进入，渠道一多就找不到。这里给它一行常驻入口。</p>
+ * <p>渠道页不再常驻这个入口（底部改成「新增账号」），只在网关里还没有上游、
+ * 需要先接入时由绑定弹窗带着用户进来。</p>
  */
 function openGatewayRoot(): void {
   openGateway('upstream', () => clearManagedFocus())
+}
+
+/* ==================== 底部「新增账号」 ==================== */
+
+/** 当前渠道能否新增账号：普通渠道走本页表单，网关托管渠道走 Magpie 绑定 */
+const canAddAccount = computed(() => {
+  const c = activeSummary()
+  return !!c && (accountsSupported(c) || !!magpieOwnedOf(c.channel))
+})
+
+/**
+ * 当前渠道是否交给 Magpie 处理。
+ *
+ * <p>判据是「网关里已经有这个渠道的上游」（托管行来源），而不是只看归属表：
+ * opencode / kilo / cline / gemini 这类渠道在网关里通常是预设上游，网关没接时
+ * 用户仍可以走本地账号表单。网关优先：接上了就按网关处理。</p>
+ */
+const activeMagpieOwned = computed(() => hostedOnly(activeSummary()))
+
+/** 网关主连接：上游管理与登录都按它取凭据 */
+const gatewayConnectionId = computed(() => {
+  const gateway = gatewayChannel.value
+  const conn = gateway?.connections?.find((x) => x.primary) ?? gateway?.connections?.[0]
+  return conn?.connectionId ?? ''
+})
+
+/** 当前渠道在网关里的上游实例（新增账号时选绑定到哪一个） */
+const activeMagpieProviders = computed(() => hostedProvidersOf(activeChannel.value))
+
+/** Magpie 绑定弹窗显隐 */
+const magpieBindVisible = ref(false)
+
+/**
+ * 「网关设置」弹窗显隐。
+ *
+ * <p>网关地址是所有托管渠道共用的基础设置，不该藏进某个渠道的账号表单里：
+ * 新电脑上还没装网关的人需要一个显眼的入口，既能看到怎么下载，也能填地址。</p>
+ */
+const gatewaySettingsVisible = ref(false)
+
+/** 打开网关设置：地址回显与探活由弹窗自己做 */
+function openGatewaySettings(): void {
+  gatewaySettingsVisible.value = true
+}
+
+/** 网关设置保存成功：连接摘要与上游索引都要重读 */
+async function onGatewaySettingsSaved(): Promise<void> {
+  await Promise.allSettled([loadChannels(), loadGatewayIndex()])
+}
+
+/**
+ * 底部「新增账号」的唯一入口。
+ *
+ * <p>普通渠道弹本页的账号表单；Magpie 托管的渠道当场走网关绑定会话，
+ * 不把用户送到网管页面去。</p>
+ */
+function openAddAccount(): void {
+  if (!activeChannel.value) return
+  if (activeMagpieOwned.value) {
+    if (!gatewayConnectionId.value) {
+      ElMessage.warning('还没有配置网关，请先在左下角「网关设置」里配置')
+      return
+    }
+    magpieBindVisible.value = true
+    return
+  }
+  addAccount()
+}
+
+/** 绑定成功：渠道摘要与网关索引都要重读（托管行按网关展开） */
+async function onMagpieBound(): Promise<void> {
+  magpieBindVisible.value = false
+  await Promise.allSettled([loadChannels(), loadGatewayIndex()])
+}
+
+/** 弹窗里点「去网关接入上游」：回到网关「上游」，按当前渠道定位 */
+function onMagpieManageUpstream(): void {
+  magpieBindVisible.value = false
+  openGatewayLogin()
 }
 
 /** 点开一个插件渠道：网关里已经有它的上游就去上游高亮，否则去「插件」页签置顶，
@@ -2102,10 +2304,13 @@ const detailTabs = computed(() => {
   if (accountsSupported(summary) || summary?.supportsUpstream || displayConnections(summary).length) {
     tabs.push({ name: 'accounts', label: '账号', icon: 'Connection' })
   }
-  tabs.push({ name: 'models', label: '模型', icon: 'DataAnalysis' })
-  if (summary?.supportsCredit) {
-    tabs.push({ name: 'credit', label: '积分', icon: 'Wallet' })
-  }
+  // 文生图渠道没有模型清单可配：页签直接叫「出图」，点进去就能写提示词试一张。
+  tabs.push({
+    name: 'models',
+    label: kindOf(summary) === 'IMAGE' ? '出图' : '模型',
+    icon: 'DataAnalysis',
+  })
+  // 积分不再单独成页：额度已经画在账号卡片里，单开一页只是把同一份数据读两遍。
   if (summary?.supportsTask && !hostedOnly(summary)) {
     tabs.push({ name: 'tasks', label: '任务', icon: 'Trophy' })
   }
@@ -2130,6 +2335,8 @@ function resetDetailTabs() {
   clearManagedFocus()
   creditState.value = {}
   taskState.value = {}
+  // 出图结果带时效签名，跨渠道留着只会误导；换渠道即清空
+  resetImageTest()
 }
 
 /** 积分 / 任务：按 connectionId 维度的加载与错误状态 */
@@ -2556,29 +2763,65 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
             <span class="chm-rail__dot" :class="'is-' + channelState(c)"
                   :title="channelStateText(c)" />
           </button>
+
+          <!--
+            网关里还有一批没有对应业务渠道的上游：一行一个放在渠道之后。
+            点开直接落到网关「上游」页签并高亮这一条，用户不用先猜它属于哪个渠道。
+          -->
+          <template v-if="extraProviders.length">
+            <p class="chm-rail__sect">网关里的其它上游</p>
+            <button
+              v-for="p in extraProviders"
+              :key="'upstream-' + p.id"
+              type="button"
+              class="chm-rail__item chm-rail__item--upstream"
+              :title="`${extraProviderName(p)}（在网关里管理）`"
+              @click="openExtraProvider(p)"
+            >
+              <span class="chm-rail__grip" aria-hidden="true">↗</span>
+              <span class="chm-rail__logo is-upstream">
+                <b>{{ extraProviderGlyph(p) }}</b>
+              </span>
+              <span class="chm-rail__name" :title="extraProviderName(p)">
+                {{ extraProviderName(p) }}
+              </span>
+              <span class="chm-rail__kind">上游</span>
+            </button>
+          </template>
         </div>
 
-        <!-- 网关自身：管理上游与插件的固定入口（仅管理员） -->
-        <button
-          v-if="gatewayChannel && isAdminUser"
-          type="button"
-          class="chm-rail__item chm-rail__item--util is-gateway-root"
-          :class="{ 'is-active': gatewayRootActive() }"
-          title="Magpie 统一网关 · 管理上游与插件（管理员）"
-          @click="openGatewayRoot"
-        >
-          <span class="chm-rail__grip" aria-hidden="true">⚙</span>
-          <span class="chm-rail__logo"
-                :class="{ 'is-ico': !!brandOf(gatewayChannel.channel).icon }"
-                :style="brandOf(gatewayChannel.channel).icon ? undefined : { background: brandOf(gatewayChannel.channel).color }">
-            <img v-if="brandOf(gatewayChannel.channel).icon"
-                 :src="brandOf(gatewayChannel.channel).icon" :alt="gatewayChannel.channel" />
-            <b v-else>{{ brandOf(gatewayChannel.channel).glyph }}</b>
-          </span>
-          <span class="chm-rail__name">{{ gatewayChannel.displayName || 'Magpie 统一网关' }}</span>
-          <span class="chm-rail__tag">管理员</span>
-          <span class="chm-rail__dot" :class="'is-' + channelState(gatewayChannel)" />
-        </button>
+        <!--
+          底部常驻入口：
+            新增账号 —— 普通渠道弹本页账号表单；托管渠道当场走网关登录会话。
+            网关设置 —— 配置网关地址 / 页面 Key，新电脑上还能从这里去下载网关。
+        -->
+        <div class="chm-rail__foot">
+          <button
+            v-if="canAddAccount"
+            type="button"
+            class="chm-rail__item chm-rail__item--util is-add-account"
+            title="给当前渠道新增一个账号"
+            @click="openAddAccount"
+          >
+            <span class="chm-rail__grip" aria-hidden="true">＋</span>
+            <span class="chm-rail__logo is-add" aria-hidden="true">
+              <el-icon><PlusIcon /></el-icon>
+            </span>
+            <span class="chm-rail__name">新增账号</span>
+          </button>
+          <button
+            type="button"
+            class="chm-rail__item chm-rail__item--util is-gateway"
+            title="配置网关地址，或下载安装网关"
+            @click="openGatewaySettings"
+          >
+            <span class="chm-rail__grip" aria-hidden="true">⚙</span>
+            <span class="chm-rail__logo is-gateway" aria-hidden="true">
+              <el-icon><SettingIcon /></el-icon>
+            </span>
+            <span class="chm-rail__name">网关设置</span>
+          </button>
+        </div>
       </aside>
 
       <!--
@@ -2652,10 +2895,14 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
             <span class="chm-rail__dot" :class="'is-' + channelState(activeSummary())" />
             {{ channelStateText(activeSummary()) }}
           </div>
+          <!--
+            渠道启停：关掉后该渠道不参与路由（后端按 provider.enabled 过滤），
+            免费渠道也不会再进 FreeChatClient；账号与模型配置都保留。
+          -->
           <el-switch
-            v-if="activeSummary()!.supportsCheckin || kindOf(activeSummary()) === 'AI'"
             :model-value="activeSummary()!.enabled"
             class="chm-panel__switch"
+            :title="activeSummary()!.enabled ? '已启用：可参与对话/出图路由' : '已停用：不参与路由'"
             @change="(v: boolean | string | number) => toggleChannelEnabled(activeChannel, !!v)"
           />
         </header>
@@ -2768,19 +3015,12 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                         <div class="chm-acc__titlerow">
                           <span class="chm-acc__label" :title="conn.label">{{ conn.label || '未命名' }}</span>
                           <span v-if="conn.primary && !conn.hosted" class="chm-acc__primary">主账号</span>
-                          <span v-if="conn.hosted" class="chm-acc__state is-valid" title="凭据在 Magpie 网关里，账号管理请到网关页">网关托管</span>
+                          <span v-if="conn.hosted" class="chm-acc__state is-valid" title="账号已授权，可直接使用">已授权</span>
                           <span v-else class="chm-acc__state" :class="'is-' + connState(conn)">
                             {{ connStateText(conn) }}
                           </span>
                         </div>
                         <div class="chm-acc__sub">
-                          <!-- 网关托管：说明凭据位置，并提示本地旧连接已被停用（数据未删）。 -->
-                          <span v-if="conn.hosted" class="chm-acc__muted">凭据在 Magpie 网关</span>
-                          <span
-                            v-if="conn.hosted && localConnectionCount(activeSummary())"
-                            class="chm-acc__muted"
-                            title="网关优先：本地旧连接不再参与请求，数据仍保留在库里"
-                          >本地 {{ localConnectionCount(activeSummary()) }} 条旧连接已停用</span>
                           <span
                             v-if="connExpireText(conn)"
                             class="chm-acc__expire"
@@ -2907,24 +3147,118 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                 </button>
               </div>
               <!--
-                网关托管：凭据在 magpie 里，本地再绑一条只会被网关优先忽略。
-                登录 / 换号统一回网关「上游」处理。
+                网关托管：账号在 Magpie 里。点这里当场发起网关登录会话（授权页在新窗口
+                打开），不跳转到网关自己的管理页；网关管理保留成次级链接。
               -->
               <div v-else-if="hostedOnly(activeSummary())" class="chm-panel__binds">
                 <button
                   class="chm-panel__bindbtn"
                   type="button"
+                  :disabled="!gatewayConnectionId"
+                  @click="openAddAccount"
+                >
+                  <el-icon class="chm-btn__icon" aria-hidden="true"><PlusIcon /></el-icon>
+                  新增账号
+                </button>
+                <button
+                  v-if="isAdminUser"
+                  class="chm-panel__bindlink"
+                  type="button"
                   @click="openGatewayLogin"
                 >
-                  <el-icon class="chm-btn__icon" aria-hidden="true"><ConnectionIcon /></el-icon>
-                  账号在 Magpie 网关里 → 去网关登录 / 换号
+                  管理上游与插件
                 </button>
               </div>
             </div>
 
-            <!-- ════════ 模型 ════════ -->
+            <!-- ════════ 模型 / 出图 ════════ -->
             <div v-else-if="tab.name === 'models'" class="chm-panel__tabbody">
-              <div class="chm-panel__block">
+              <!--
+                文生图渠道：DuckDuckGo / Trae 没有可配置的模型清单，页面以前只剩一句
+                「未声明内置模型」。这里给一块能直接出图的面板，渠道到底通不通一眼可见。
+              -->
+              <div v-if="isImageChannel" class="chm-panel__block chm-img">
+                <div class="chm-panel__sect-title">
+                  <el-icon aria-hidden="true"><PictureIcon /></el-icon>
+                  试出图
+                  <span class="chm-img__tip">写一句提示词，点「生成」</span>
+                </div>
+                <label class="chm-img__field">
+                  <span class="chm-img__label">提示词</span>
+                  <el-input
+                    v-model="imagePrompt"
+                    type="textarea"
+                    :rows="2"
+                    resize="vertical"
+                    placeholder="例如：黄昏下的雪山湖泊，写实摄影，柔和光线"
+                  />
+                </label>
+                <div class="chm-img__row">
+                  <label class="chm-img__field is-inline">
+                    <span class="chm-img__label">比例</span>
+                    <el-select v-model="imageRatio" class="chm-img__select">
+                      <el-option label="1:1" value="1:1" />
+                      <el-option label="4:3" value="4:3" />
+                      <el-option label="3:4" value="3:4" />
+                      <el-option label="16:9" value="16:9" />
+                      <el-option label="9:16" value="9:16" />
+                    </el-select>
+                  </label>
+                  <label v-if="imageModelOptions.length" class="chm-img__field is-inline">
+                    <span class="chm-img__label">模型</span>
+                    <el-select
+                      v-model="imageModel"
+                      class="chm-img__select"
+                      placeholder="默认"
+                      clearable
+                    >
+                      <el-option
+                        v-for="m in imageModelOptions"
+                        :key="m.model"
+                        :label="m.alias || m.model"
+                        :value="m.model"
+                      />
+                    </el-select>
+                  </label>
+                  <label class="chm-img__field is-inline is-grow">
+                    <span class="chm-img__label">登录令牌（需要登录态的渠道才填）</span>
+                    <el-input
+                      v-model="imageToken"
+                      type="password"
+                      show-password
+                      placeholder="可留空"
+                    />
+                  </label>
+                  <el-button
+                    type="primary"
+                    class="chm-img__run"
+                    :loading="imageBusy"
+                    :disabled="!imagePrompt.trim() || imageBusy"
+                    @click="runImageTest"
+                  >
+                    {{ imageBusy ? '生成中…' : '生成' }}
+                  </el-button>
+                </div>
+                <p v-if="imageError" class="chm-img__error">{{ imageError }}</p>
+                <div v-if="imageResults.length" class="chm-img__grid">
+                  <a
+                    v-for="(img, i) in imageResults"
+                    :key="img.url + i"
+                    class="chm-img__shot"
+                    :href="img.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    :title="'打开原图 ' + (i + 1)"
+                  >
+                    <img :src="img.thumbUrl || img.url" :alt="`生成结果 ${i + 1}`" />
+                  </a>
+                </div>
+              </div>
+
+              <div
+                v-if="!isImageChannel || (activeSummary()!.models ?? []).length"
+                class="chm-panel__block"
+              >
                 <div class="chm-models__title">
                   <div class="chm-panel__sect-title">
                     <el-icon aria-hidden="true"><DataAnalysisIcon /></el-icon>
@@ -2946,6 +3280,7 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                       <span class="chm-models__sep" aria-hidden="true"></span>
                     </template>
                     <button type="button" class="chm-models__op" @click.stop="setAllModelDraft('all')">全选</button>
+                    <button type="button" class="chm-models__op" @click.stop="setAllModelDraft('free')">全选免费</button>
                     <button type="button" class="chm-models__op" @click.stop="setAllModelDraft('invert')">反选</button>
                     <button type="button" class="chm-models__op" @click.stop="setAllModelDraft('none')">全不选</button>
                     <span class="chm-models__sep" aria-hidden="true"></span>
@@ -3014,98 +3349,6 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                   </div>
                 </div>
               </div>
-            </div>
-
-            <!-- ════════ 积分 ════════ -->
-            <div v-else-if="tab.name === 'credit'" class="chm-panel__tabbody">
-              <div v-if="!displayConnections(activeSummary()).length" class="chm-card__empty">
-                先绑定账号，才能查询积分
-              </div>
-              <article
-                v-for="conn in displayConnections(activeSummary())"
-                v-else
-                :key="'credit-' + conn.connectionId"
-                class="chm-credit"
-              >
-                <header class="chm-credit__head">
-                  <span class="chm-acc__avatar" aria-hidden="true">{{ (conn.label || '?').slice(0, 1).toUpperCase() }}</span>
-                  <span class="chm-credit__label">{{ conn.label || '未命名' }}</span>
-                  <span v-if="conn.primary" class="chm-acc__primary">主账号</span>
-                  <span v-if="connExpireText(conn)" class="chm-acc__expire">{{ connExpireText(conn) }}</span>
-                  <button
-                    class="chm-panel__pull chm-panel__pull--icon"
-                    type="button"
-                    :title="creditState[conn.connectionId]?.loading ? '查询中…' : '刷新积分'"
-                    aria-label="刷新积分"
-                    :disabled="creditState[conn.connectionId]?.loading"
-                    @click.stop="loadCredit(conn)"
-                  >
-                    <el-icon aria-hidden="true"><RefreshIcon /></el-icon>
-                  </button>
-                </header>
-                <div class="chm-credit__top">
-                  <span class="chm-credit__caption">积分</span>
-                  <template v-if="creditState[conn.connectionId]?.data">
-                    <span class="chm-credit__value">{{ creditText(creditState[conn.connectionId]!.data) }}</span>
-                    <span
-                      v-if="creditHasRatio(creditState[conn.connectionId]!.data)"
-                      class="chm-credit__pct"
-                      :class="{ 'is-low': creditPercent(creditState[conn.connectionId]!.data) <= 20 }"
-                    >剩余 {{ creditPercent(creditState[conn.connectionId]!.data) }}%</span>
-                  </template>
-                  <span v-else-if="creditState[conn.connectionId]?.loading" class="chm-credit__caption">查询中…</span>
-                  <span v-else class="chm-credit__caption">尚未查询</span>
-                  <button
-                    v-if="activeSummary()!.supportsCheckin"
-                    class="chm-credit__checkin"
-                    type="button"
-                    :disabled="busyFor(activeChannel, 'sign')"
-                    @click.stop="checkin(activeChannel, conn)"
-                  >签到</button>
-                </div>
-                <p v-if="creditState[conn.connectionId]?.error" class="chm-credit__error">
-                  {{ creditState[conn.connectionId]!.error }}
-                </p>
-                <template v-else-if="creditState[conn.connectionId]?.data">
-                  <div
-                    v-if="creditHasRatio(creditState[conn.connectionId]!.data)"
-                    class="chm-credit__bar"
-                    role="progressbar"
-                    :aria-valuenow="creditPercent(creditState[conn.connectionId]!.data)"
-                    aria-valuemin="0"
-                    aria-valuemax="100"
-                  >
-                    <i :style="{ width: creditPercent(creditState[conn.connectionId]!.data) + '%' }" />
-                  </div>
-                  <div class="chm-credit__meta">
-                    <span v-if="creditState[conn.connectionId]!.data.plan">
-                      套餐 {{ creditState[conn.connectionId]!.data.plan }}
-                    </span>
-                    <span v-if="creditState[conn.connectionId]!.data.exceeded" class="is-warn">额度已用尽</span>
-                    <span v-if="creditState[conn.connectionId]!.data.updatedAt">
-                      更新于 {{ shortTime(creditState[conn.connectionId]!.data.updatedAt) }}
-                    </span>
-                  </div>
-                  <div
-                    v-if="(creditState[conn.connectionId]!.data.packages ?? []).length"
-                    class="chm-credit__pkgs"
-                  >
-                    <span
-                      v-for="(pkg, idx) in creditState[conn.connectionId]!.data.packages"
-                      :key="'pkg-' + idx"
-                      class="chm-credit__pkg"
-                    >
-                      <b>{{ pkg.name || '额度包' }}</b>{{ creditPkgText(pkg) }}
-                    </span>
-                  </div>
-                  <p v-if="creditState[conn.connectionId]!.data.warning" class="chm-credit__warn">
-                    {{ creditState[conn.connectionId]!.data.warning }}
-                  </p>
-                </template>
-                <div v-else class="chm-card__empty">
-                  {{ creditState[conn.connectionId]?.loading ? '正在查询积分…' : '尚未查询' }}
-                </div>
-              </article>
             </div>
 
             <!-- ════════ 任务 ════════ -->
@@ -3345,6 +3588,32 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
       :channel-key="activeChannel"
       :channel-name="activeSummary()?.displayName"
       @saved="loadAccounts()"
+    />
+
+    <!--
+      新增账号（Magpie 托管渠道）：登录会话由网关持有，这里只展示授权地址并轮询状态。
+      授权页在浏览器里打开，不跳转到网关管理页。
+    -->
+    <MagpieAccountBindDialog
+      v-model="magpieBindVisible"
+      :channel="activeChannel"
+      :channel-name="activeSummary()?.displayName"
+      :gateway-channel="gatewayChannel?.channel ?? ''"
+      :connection-id="gatewayConnectionId"
+      :providers="activeMagpieProviders"
+      @bound="onMagpieBound"
+      @manage-upstream="onMagpieManageUpstream"
+    />
+
+    <!--
+      网关设置：地址 / 页面 Key 是全部托管渠道共用的基础配置，单独一个入口。
+      新电脑上还没装网关时，这里也能直接去下载页。
+    -->
+    <MagpieGatewaySettingsDialog
+      v-model="gatewaySettingsVisible"
+      :gateway-channel="gatewayChannel?.channel ?? ''"
+      :connection-id="gatewayConnectionId"
+      @saved="onGatewaySettingsSaved"
     />
   </div>
 </template>
@@ -3639,17 +3908,6 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   background: var(--fill-quaternary, #f1f5f9);
   letter-spacing: 0.04em;
 }
-/* 管理员专属入口标记 */
-.chm-rail__tag {
-  flex: none;
-  font-size: 10px;
-  line-height: 1;
-  padding: 2px 5px;
-  border-radius: 4px;
-  color: var(--el-color-warning, #b45309);
-  background: color-mix(in srgb, var(--el-color-warning, #e6a23c) 16%, transparent);
-  letter-spacing: 0.02em;
-}
 .chm-rail__dot {
   flex: none;
   width: 7px;
@@ -3687,17 +3945,56 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   color: #0f766e;
   background: color-mix(in srgb, #14b8a6 16%, transparent);
 }
-.chm-rail__item.is-gateway-root .chm-rail__grip {
+.chm-rail__item.is-add-account .chm-rail__grip {
   opacity: 1;
   width: 10px;
 }
-/* 网关自身入口：常驻底部，与上面的渠道行用一条分隔线区分 */
-.chm-rail__item.is-gateway-root {
+/* 底部常驻入口组：新增账号 + 网关设置，与上面的渠道列表用一条分隔线隔开 */
+.chm-rail__foot {
   flex: none;
   margin-top: 6px;
-  padding-top: 9px;
+  padding-top: 8px;
   border-top: 1px solid var(--border-subtle, #eef2f8);
-  border-radius: 0 0 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.chm-rail__item--util {
+  color: var(--text-secondary, #475569);
+}
+.chm-rail__item--util .chm-rail__grip {
+  opacity: 1;
+  width: 10px;
+}
+.chm-rail__logo.is-add,
+.chm-rail__logo.is-gateway {
+  background: color-mix(in srgb, var(--brand-500, #3b82f6) 12%, transparent);
+  color: var(--brand-500, #3b82f6);
+  font-size: 15px;
+}
+.chm-rail__logo.is-gateway {
+  color: var(--text-secondary, #475569);
+  background: var(--fill-quaternary, #f1f5f9);
+}
+/* 网关里没有对应渠道行的上游：与业务渠道分开，用更浅的文字提示它们是「网关侧」的 */
+.chm-rail__sect {
+  margin: 8px 0 2px;
+  padding: 0 8px 2px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--text-tertiary, #94a3b8);
+}
+.chm-rail__item--upstream .chm-rail__grip {
+  opacity: 0;
+}
+.chm-rail__item--upstream:hover .chm-rail__grip {
+  opacity: .8;
+}
+.chm-rail__logo.is-upstream {
+  background: var(--fill-quaternary, #f1f5f9);
+}
+.chm-rail__logo.is-upstream b {
   color: var(--text-secondary, #475569);
 }
 /* 插件过滤：44 行不靠滚动找 */
@@ -4156,7 +4453,98 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   border-radius: 8px;
   text-align: center;
 }
-.chm-accs,
+/*
+ * 账号区一行三列：账号/连接是「看一眼状态」的密集信息，一行一个会被拉成整屏
+ * 一张卡。窄屏按 2 列 / 1 列回收，避免卡片被压到读不清。
+ */
+.chm-accs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+@media (max-width: 1500px) {
+  .chm-accs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 1100px) {
+  .chm-accs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+/* 空态/说明行横跨整行，不被挤进第一列 */
+.chm-accs > .chm-card__empty {
+  grid-column: 1 / -1;
+}
+/* 文生图渠道的试出图面板：提示词 + 一行参数 + 结果网格 */
+.chm-img__tip {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-tertiary, #94a3b8);
+}
+.chm-img__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+}
+.chm-img__label {
+  font-size: 12px;
+  color: var(--text-secondary, #475569);
+}
+.chm-img__row {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.chm-img__row .chm-img__field {
+  margin-top: 10px;
+}
+.chm-img__field.is-inline {
+  flex: none;
+  width: 150px;
+}
+.chm-img__field.is-grow {
+  flex: 1 1 240px;
+  min-width: 200px;
+  width: auto;
+}
+.chm-img__select {
+  width: 100%;
+}
+.chm-img__run {
+  margin-bottom: 1px;
+}
+.chm-img__error {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-color-danger, #dc2626);
+  word-break: break-word;
+}
+.chm-img__grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+.chm-img__shot {
+  display: block;
+  width: 180px;
+  height: 180px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-default, #e2e9f3);
+  background: var(--fill-quaternary, #f8fafc);
+}
+.chm-img__shot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
 .chm-models {
   display: flex;
   flex-direction: column;
@@ -4691,11 +5079,25 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   opacity: .55;
   cursor: not-allowed;
 }
-/* 新增入口容器（当前只有固定账号绑定） */
+/* 新增入口容器（固定账号绑定 / 网关托管新增账号） */
 .chm-panel__binds {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+/* 网关管理的次级入口：不抢「新增账号」的位置 */
+.chm-panel__bindlink {
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  color: var(--text-tertiary, #94a3b8);
+  cursor: pointer;
+}
+.chm-panel__bindlink:hover {
+  color: var(--brand-600, #2563eb);
+  text-decoration: underline;
 }
 
 /* ---------- 绑定弹窗（ReDialog 重构） ---------- */

@@ -120,6 +120,8 @@ const specialProps = ref<Record<string, unknown>>({});
 const iframeSrc = ref("");
 /** 渲染器插件加载中 */
 const rendererLoading = ref(false);
+/** 文本类预览是否因超出读取上限被截断（标题栏给出明确提示，避免误以为文件就这么长） */
+const truncated = ref(false);
 
 const loadingVisible = computed(() => state.value === "loading" || (state.value === "client" && rendererLoading.value));
 
@@ -402,6 +404,83 @@ async function fetchBytes(url: string): Promise<Uint8Array> {
   return new Uint8Array(await res.arrayBuffer());
 }
 
+/**
+ * 带读取上限的字节获取（文本类长文件用）。
+ *
+ * <p>jsonl / ndjson 这类行式数据天生可以上 GB（一天一条的埋点导出），整篇读进
+ * 内存会直接把标签页撑爆。策略分两级：</p>
+ * <ol>
+ *   <li>先发 {@code Range: bytes=0-(max-1)}：服务端支持 Range 就直接只回前缀
+ *       （206），带宽与内存都省；</li>
+ *   <li>服务端忽略 Range（老版本 / 反向代理剥头）时流式读到上限即
+ *       {@code reader.cancel()}，绝不把整个响应读进内存。</li>
+ * </ol>
+ *
+ * @param url      字节直链
+ * @param maxBytes 读取上限（字节）；&lt;= 0 表示不限制
+ * @returns 字节内容 + 是否因超出上限被截断
+ */
+async function fetchBytesCapped(url: string, maxBytes: number): Promise<{ bytes: Uint8Array; truncated: boolean }> {
+  if (maxBytes <= 0) {
+    return { bytes: await fetchBytes(url), truncated: false };
+  }
+  const res = await fetch(url, { headers: { Range: `bytes=0-${maxBytes - 1}` } });
+  if (!res.ok) {
+    throw new Error(`读取文件失败：HTTP ${res.status}`);
+  }
+  if (res.status === 206) {
+    const total = Number((res.headers.get("content-range") || "").split("/")[1] || "0");
+    return { bytes: new Uint8Array(await res.arrayBuffer()), truncated: total > maxBytes };
+  }
+  const reader = res.body?.getReader();
+  if (!reader) {
+    return { bytes: new Uint8Array(await res.arrayBuffer()), truncated: false };
+  }
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  while (total < maxBytes) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (!value?.byteLength) continue;
+    const remain = maxBytes - total;
+    const take = value.byteLength > remain ? value.subarray(0, remain) : value;
+    chunks.push(take);
+    total += take.byteLength;
+    if (take.byteLength < value.byteLength) break;
+  }
+  try {
+    await reader.cancel();
+  } catch {
+    // 取消失败不影响已读到的内容
+  }
+  const merged = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return { bytes: merged, truncated: true };
+}
+
+/**
+ * 文本类预览的读取上限（字节）。
+ *
+ * <p>只对 renderer-text 组生效：代码/配置/日志/行式 JSON 都是「看开头就够」的
+ * 场景，8MB 足够覆盖日常排查；Office/图片/压缩包等格式不走这个上限（截断的
+ * 结构化文件无法解析，必须拿到全量字节）。</p>
+ */
+const TEXT_PREVIEW_LIMIT = 8 * 1024 * 1024;
+
+/**
+ * 取该文件名的文本预览上限；非文本组返回 0（不限制）。
+ *
+ * @param fileName 文件名
+ * @returns 上限字节数，0 表示不限制
+ */
+function textPreviewLimit(fileName: string): number {
+  return specFor(fileName)?.presetId === "text" ? TEXT_PREVIEW_LIMIT : 0;
+}
+
 /* ==================== 启动 ==================== */
 
 onMounted(async (): Promise<void> => {
@@ -410,9 +489,12 @@ onMounted(async (): Promise<void> => {
   if (boot?.bytesUrl) {
     channelLabel.value = "boot";
     try {
-      const bytes = await fetchBytes(boot.bytesUrl);
+      const name = boot.fileName || "file";
+      const got = await fetchBytesCapped(boot.bytesUrl, textPreviewLimit(name));
+      truncated.value = got.truncated;
+      const bytes = got.bytes;
       const bucketKey = boot.bucket && boot.key ? { bucket: boot.bucket, objectKey: boot.key } : null;
-      dispatch(boot.fileName || "file", {
+      dispatch(name, {
         bytes,
         bytesUrl: boot.bytesUrl,
         bucketKey,
@@ -465,8 +547,10 @@ onMounted(async (): Promise<void> => {
   const canDownload = await openDownloadOf(fileUrl);
   if (canDownload) {
     try {
-      const bytes = await fetchBytes(withParam(fileUrl, "download=true"));
-      dispatch(fileName, { bytes, bytesUrl: withParam(fileUrl, "download=true"), bucketKey: parseBucketKey(fileUrl) });
+      const url = withParam(fileUrl, "download=true");
+      const got = await fetchBytesCapped(url, textPreviewLimit(fileName));
+      truncated.value = got.truncated;
+      dispatch(fileName, { bytes: got.bytes, bytesUrl: url, bucketKey: parseBucketKey(fileUrl) });
       return;
     } catch (e) {
       console.warn("[FilePreviewEntry] 下载直链取数失败", e);
@@ -489,6 +573,9 @@ onMounted(async (): Promise<void> => {
     <header v-if="state !== 'iframe'" class="fpe__bar">
       <span class="fpe__title" :title="displayTitle">{{ displayTitle || "文件预览" }}</span>
       <span v-if="displaySize != null && displaySize > 0" class="fpe__size">{{ formatSize(displaySize) }}</span>
+      <span v-if="truncated" class="fpe__trunc" :title="`文本类预览最多读取 ${formatSize(TEXT_PREVIEW_LIMIT)}，其余内容请下载后查看`">
+        仅显示前 {{ formatSize(TEXT_PREVIEW_LIMIT) }}
+      </span>
       <span class="fpe__badge" :title="`预览通道：${channelLabel}`">{{ channelLabel }}</span>
       <button class="fpe__retry" type="button" @click="reload">重试</button>
     </header>
@@ -588,6 +675,15 @@ onMounted(async (): Promise<void> => {
 .fpe__size {
   font-size: 12px;
   color: var(--text-secondary, #6e7781);
+}
+
+.fpe__trunc {
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: var(--radius-md, 6px);
+  background: var(--bg-warning-subtle, #fff8e6);
+  color: var(--text-warning, #9a6700);
+  border: 1px solid var(--border-warning-subtle, #f2e2b0);
 }
 
 .fpe__badge {

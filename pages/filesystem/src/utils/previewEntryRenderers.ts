@@ -53,6 +53,10 @@ export const TEXT_EXTENSIONS: ReadonlySet<string> = new Set([
   "c", "cpp", "cc", "h", "hpp", "cs", "jsonc", "json5", "ipynb", "toml",
   "proto", "hcl", "tex",
   "gv", "http", "react", "rb", "swift", "kt",
+  // 行式 JSON（每行一个独立 JSON 文档）：renderer-text 白名单里没有这两个后缀，
+  // 不加会被 dispatch 改名成 .txt（文本可读，但会丢掉「这是 jsonl」的语义，
+  // 也让注册表查不到对应格式）。按纯文本渲染即可，不引入新依赖。
+  "jsonl", "ndjson",
 ]);
 
 const TEXT_SPEC: RendererSpec = {
@@ -217,6 +221,9 @@ const SPEC_BY_EXT: Record<string, RendererSpec> = {
   bdl: TEXT_SPEC,
   jsonc: TEXT_SPEC,
   json5: TEXT_SPEC,
+  // 行式 JSON：一行一个 JSON 文档（大日志/数据导出常见），按文本整篇渲染
+  jsonl: TEXT_SPEC,
+  ndjson: TEXT_SPEC,
   ipynb: TEXT_SPEC,
   toml: TEXT_SPEC,
   proto: TEXT_SPEC,

@@ -36,7 +36,10 @@ const props = defineProps<{
 
 // Logo 加载失败时回退到占位图（首字母），避免显示崩坏图像图标
 const showPlaceholder = ref(false);
-const onImgError = () => { showPlaceholder.value = true };
+// 同时向上广播：调用方要的兜底是「换成供应商 logo」而不是首字，只能靠 error 事件才知道
+// 这张图其实并不存在（路径存在 ≠ 资源存在）。
+const emit = defineEmits<{ error: [] }>();
+const onImgError = () => { showPlaceholder.value = true; emit('error') };
 
 // 添加时间戳避免缓存 - 类型化
 const avatarSrc = computed((): string => {

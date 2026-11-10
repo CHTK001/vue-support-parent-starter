@@ -26,6 +26,12 @@ export interface ModelConfig {
   temperature: number | null
   topP: number | null
   frequencyPenalty: number | null
+  /** 单次请求最多携带几张输入图片（null = 不限制） */
+  imageInputCount: number | null
+  /** 单次生成最多几张输出图片（null = 不限制） */
+  imageOutputCount: number | null
+  /** 是否支持参考图（图生图 / 参考图编辑） */
+  imageReference: boolean
   customParameters: Record<string, any>
   vectorDimensions: number | null
   // TTS 语音合成
@@ -114,6 +120,9 @@ export function createDefaultModelConfig(src: any = {}): ModelConfig {
     temperature: src.temperature ?? null,
     topP: src.topP ?? null,
     frequencyPenalty: src.frequencyPenalty ?? null,
+    imageInputCount: src.image?.inputCount ?? src.imageInputCount ?? null,
+    imageOutputCount: src.image?.outputCount ?? src.imageOutputCount ?? null,
+    imageReference: src.image?.reference ?? src.imageReference ?? false,
     customParameters: src.customParameters || {},
     vectorDimensions: src.vectorDimensions ?? null,
     ttsVoice: src.ttsVoice || '',

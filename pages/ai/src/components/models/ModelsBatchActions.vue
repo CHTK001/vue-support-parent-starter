@@ -1,29 +1,29 @@
 <template>
   <!--
-    供应商多选 / 批量删除的操作组。
+    供应商批量删除的操作组。
 
     <p>为什么单独拆一个组件：模型管理现在有**两个入口**（主页 /models 整页、
     配置中心 → 模型管理 内嵌块），两个入口的页头形态不同 —— 整页用 PageHeader 的
     actions 插槽，内嵌块用自己的一条操作条 —— 但这排按钮必须完全一样。
     复制两遍迟早漂移（改了一处忘了另一处），所以抽成组件，两边都引它。</p>
 
-    <p>纯展示 + 事件：多选状态仍由 ModelsPage 持有，这里不做任何数据请求。
+    <p>没有「多选」入口：供应商行悬停出现勾选框，勾中任意一个后这排操作自动出现
+    （用户需求：选中即接管工具栏，不再需要先点「多选」）。<b>未选中时不渲染任何内容</b>，
+    避免页头凭空多出一个空容器。</p>
+
+    <p>纯展示 + 事件：选中状态仍由 ModelsPage 持有，这里不做任何数据请求。
     按钮样式也随本组件走 —— 组件被两个入口引用，样式只能有一份来源。</p>
   -->
-  <div class="mba">
-    <button v-if="!multiSelect" class="mw-act" @click="emit('start')">多选</button>
-    <template v-else>
-      <span class="mba-count">已选 {{ selectedCount }} 个</span>
-      <button class="mw-act" @click="emit('cancel')">取消</button>
-      <button
-        v-if="selectedCount > 0"
-        class="mw-act mw-act-del"
-        :disabled="deleting"
-        @click="emit('remove')"
-      >
-        删除供应商
-      </button>
-    </template>
+  <div v-if="selectedCount > 0" class="mba">
+    <span class="mba-count">已选 {{ selectedCount }} 个</span>
+    <button class="mw-act" @click="emit('cancel')">取消</button>
+    <button
+      class="mw-act mw-act-del"
+      :disabled="deleting"
+      @click="emit('remove')"
+    >
+      删除供应商
+    </button>
   </div>
 </template>
 
@@ -31,19 +31,16 @@
 /**
  * 供应商批删操作组。
  *
- * @property multiSelect 是否处于多选模式
- * @property selectedCount 已选供应商数
+ * @property selectedCount 已选供应商数（0 时整组不渲染）
  * @property deleting 批量删除进行中（禁用来防重复提交）
  */
 defineProps<{
-  multiSelect: boolean
   selectedCount: number
   deleting?: boolean
 }>()
 
-/** start: 进入多选；cancel: 退出多选；remove: 执行批量删除。 */
+/** cancel: 清空选择；remove: 执行批量删除。 */
 const emit = defineEmits<{
-  start: []
   cancel: []
   remove: []
 }>()

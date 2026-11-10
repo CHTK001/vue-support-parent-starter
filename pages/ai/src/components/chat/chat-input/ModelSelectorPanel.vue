@@ -55,10 +55,32 @@
             :title="getModelProviderName(model) || undefined" @click="handleSelect(model.id)"
             @mouseenter="onItemEnter(model, $event)" @mouseleave="onItemLeave">
             <div class="model-avatar">
-              <Avatar :src="getModelAvatarPath(model.modelName, getModelProviderName(model)) || undefined"
-                :name="getModelDisplayName(model.modelName)" type="assistant" :round="false" class="w-full h-full" />
+              <!-- 模型 logo 缺失 / 加载失败 → 回退到它自己供应商的 logo，
+                   与模型管理卡片同一口径（不再落到首字头像） -->
+              <ProviderLogo
+                v-if="!modelAvatarOf(model) || avatarFailed.has(model.id)"
+                :pid="providerPidOf(model)"
+                :name="getModelProviderName(model) || getModelDisplayName(model.modelName)"
+                :size="18"
+              />
+              <Avatar v-else :src="modelAvatarOf(model) || undefined"
+                :name="getModelDisplayName(model.modelName)" type="assistant" :round="false" class="w-full h-full"
+                @error="avatarFailed.add(model.id)" />
             </div>
             <span class="model-item__name">{{ model.alias || getModelDisplayName(model.modelName) }}</span>
+            <!-- 输入 → 输出能力图标：与模型管理卡片的 mc-caps 同一套 KIND_ICONS 与语义色，
+                 这里只画图标不写文字（行高 30px，塞不下两行文案） -->
+            <span class="model-item__io" :title="ioTitleOf(model)">
+              <el-icon v-for="(k, i) in ioOf(model).input" :key="'io-in-' + i"
+                class="io-i" :class="'kind-' + k" :size="12">
+                <component :is="KIND_ICONS[k] || KIND_ICONS.text" />
+              </el-icon>
+              <el-icon class="io-arrow" :size="10"><ArrowRight24Regular /></el-icon>
+              <el-icon v-for="(k, i) in ioOf(model).output" :key="'io-out-' + i"
+                class="io-i" :class="'kind-' + k" :size="12">
+                <component :is="KIND_ICONS[k] || KIND_ICONS.text" />
+              </el-icon>
+            </span>
             <!-- 上下文徽标：128K / 1M；无数据显示空（不占位） -->
             <span v-if="formatContextSize(getModelContextWindow(model))" class="model-ctx">
               {{ formatContextSize(getModelContextWindow(model)) }}
@@ -85,13 +107,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onUnmounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElIcon } from 'element-plus'
-import { Checkmark24Regular, Add24Regular, Search16Filled, Dismiss16Regular } from '@vicons/fluent'
+import {
+  Checkmark24Regular, Add24Regular, Search16Filled, Dismiss16Regular, ArrowRight24Regular,
+  TextT24Regular, Image24Regular, Speaker224Regular, Video24Regular, Group24Regular,
+  DocumentText24Regular,
+} from '@vicons/fluent'
 import CustomPopover from '../../ui/CustomPopover.vue'
 import Avatar from '../../ui/Avatar.vue'
 import ModelInfoCard from './ModelInfoCard.vue'
+import ProviderLogo from '../../models/ProviderLogo.vue'
+import { deriveModelTraits } from '../../models/model.utils'
 import {
   getModelDisplayName, getModelAvatarPath,
   getModelContextWindow, formatContextSize,
@@ -129,6 +157,10 @@ interface Provider {
   id?: string
   /** 后端 /api/providers 的原始字段：供应商 id */
   provider_id?: string
+  /** 后端原始字段：品牌标识（openai / cline …），供应商 logo 兜底用它 */
+  provider?: string
+  /** 后端原始字段：平台标识，品牌 id 的另一来源 */
+  platform?: string
   name: string
   models?: Model[]
 }
@@ -249,6 +281,75 @@ function getModelProviderName(model: Model): string {
   if (!pid) return ''
   const provider = props.providers.find(p => providerIdOfProvider(p) === pid)
   return provider ? provider.name : ''
+}
+
+/* ==================== 头像 / 输入输出能力图标 ==================== */
+
+/** 模态种类 → 图标（与模型管理卡片 mc-caps 同一套 KIND_ICONS） */
+const KIND_ICONS: Record<string, any> = {
+  text: TextT24Regular,
+  image: Image24Regular,
+  audio: Speaker224Regular,
+  video: Video24Regular,
+  vector: Group24Regular,
+  file: DocumentText24Regular,
+}
+
+/** 模态种类 → 中文（悬停提示用） */
+const KIND_LABELS: Record<string, string> = {
+  text: '文本',
+  image: '图片',
+  audio: '音频',
+  video: '视频',
+  vector: '向量',
+  file: '文档',
+}
+
+/**
+ * 模型 logo 加载失败的模型 id 集合。
+ *
+ * <p>路径存在 ≠ 资源存在：按模型名猜出来的品牌图可能 404，
+ * 此时不能再退回首字头像，改用供应商 logo。</p>
+ */
+const avatarFailed = reactive(new Set<string>())
+
+/** 模型专属 logo 路径；拿不到返回 null，由模板回退到供应商 logo */
+function modelAvatarOf(model: Model): string | null {
+  return getModelAvatarPath(model.modelName, getModelProviderName(model))
+}
+
+/**
+ * 供应商 logo 的品牌 id：供应商行的 provider / platform / id。
+ *
+ * @param model 模型行
+ * @returns 品牌 id；取不到返回空串（ProviderLogo 里没有映射会渲染首字，不会报错）
+ */
+function providerPidOf(model: Model): string {
+  const pid = providerIdOfModel(model)
+  if (!pid) return ''
+  const provider = props.providers.find(p => providerIdOfProvider(p) === pid)
+  return provider?.provider || provider?.platform || provider?.id || provider?.name || ''
+}
+
+/**
+ * 输入 / 输出能力种类：与模型管理卡片同源，都走 {@link deriveModelTraits}。
+ *
+ * @param model 模型行
+ * @returns 输入、输出的种类列表（内部总有兜底值，不会是空数组）
+ */
+function ioOf(model: Model): { input: string[]; output: string[] } {
+  const traits = deriveModelTraits(model || {})
+  return {
+    input: traits?.inputCapabilities || ['text'],
+    output: traits?.outputCapabilities || ['text'],
+  }
+}
+
+/** 图标悬停提示：「输入 文本 + 图片 → 输出 文本」 */
+function ioTitleOf(model: Model): string {
+  const io = ioOf(model)
+  const label = (list: string[]) => list.map(k => KIND_LABELS[k] || k).join(' + ')
+  return `输入 ${label(io.input)} → 输出 ${label(io.output)}`
 }
 
 function handleSelect(modelId: string) {
@@ -601,6 +702,24 @@ watch(searchKw, () => {
   line-height: 18px;
   font-weight: 500;
 }
+
+/* 输入 → 输出能力图标：与模型管理卡片的 mc-caps 同一套语义色，
+   紧挨行尾上下文徽标之前，名字被挤掉时先压缩名字不压缩图标 */
+.model-item__io {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.model-item__io .io-arrow {
+  color: var(--text-tertiary, var(--el-text-color-placeholder));
+}
+.io-i.kind-text { color: var(--el-color-primary); }
+.io-i.kind-image { color: var(--el-color-warning); }
+.io-i.kind-audio { color: var(--el-color-info); }
+.io-i.kind-video { color: var(--el-color-danger); }
+.io-i.kind-vector { color: var(--el-color-success); }
+.io-i.kind-file { color: var(--el-color-info); }
 
 /* 行尾上下文：128K / 1M。目标 UI 里是纯灰文字，不做胶囊底 */
 .model-ctx {

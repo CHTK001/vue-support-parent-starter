@@ -278,7 +278,7 @@ import AiNextTaskPanel from './AiNextTaskPanel.vue';
 import McpSelectorPopover from './chat-input/McpSelectorPopover.vue';
 import { CommandNode } from './chat-input/commandNode';
 import CommandPicker from './chat-input/CommandPicker.vue';
-import { getModelThinkingEfforts, getThinkingEffortLabel, getModelDisplayName } from '@/utils/modelUtils';
+import { getModelThinkingEfforts, getThinkingEffortLabel, getModelDisplayName, getModelContextWindow } from '@/utils/modelUtils';
 import { detectModelProvider } from '@/utils/modelUtils';
 import {
 
@@ -1545,6 +1545,143 @@ function toggleMcpPopover() {
 function handleMcpChange(ids: string[]) {
   emit('config-change', { mcpServerIds: ids.join(',') });
 }
+
+// ========== 选中模型后自动补齐模型参数 ==========
+//
+// 模型信息卡（限制 / 成本 / 能力）与模型列表行的上下文徽标，读的都是
+// GET /api/providers 回来的 config + metrics。模型没在模型管理里手填上下文、
+// 指标库也还没同步过时这些字段就是空的 —— 用户看到的现象是「选了模型，
+// 对话配置（参数）没自动填充」，信息卡里 Context / Output 全是 —。
+//
+// 这里在模型切换时按模型名去指标端点拉一次快照并**就地回填模型行**，
+// 信息卡与徽标立刻有值。三条约束：
+//   ① 端点是 @Permission("admin")，非管理员只会 403，故仅管理员触发；
+//   ② 每个模型一次会话内只拉一次（成功 / 未收录 / 失败都记为已尝试），
+//      避免每次选模型都打一次注定失败的请求；
+//   ③ 只读回填，不写库 —— 落库仍归模型管理的「自动获取 / 同步价格」。
+
+/** 已尝试补齐的模型（providerId + 模型名），防重复请求 */
+const paramsFilled = new Set<string>();
+/** 正在补齐中的模型，防并发重复请求 */
+const paramsFilling = new Set<string>();
+
+/** 供应商 id：模型行的 providerId / provider_id，或复合键 id 的前缀 */
+const modelProviderIdOf = (m: any): string =>
+  String(m?.providerId || m?.provider_id || String(m?.id || '').split(':')[0] || '');
+/** 裸模型名：模型行的 modelName / model */
+const modelNameOf = (m: any): string => String(m?.modelName || m?.model || '');
+
+/** 宽松正数判断：区分「未填」与 0 */
+const isPositive = (v: any): boolean =>
+  v !== null && v !== undefined && v !== '' && Number.isFinite(Number(v)) && Number(v) > 0;
+
+/**
+ * 是否还缺参数：上下文窗口或单次输出上限任一取不到就补一次。
+ *
+ * @param m 模型行
+ * @returns 缺参数返回 true
+ */
+const needsModelParams = (m: any): boolean => {
+  const cfg = m?.config || {};
+  const mt = m?.metrics || {};
+  const hasCtx = getModelContextWindow(m) != null;
+  const hasOut = isPositive(cfg.maxOutputTokens) || isPositive(m?.max_tokens)
+    || isPositive(mt.max_output_tokens);
+  return !hasCtx || !hasOut;
+};
+
+/**
+ * 把指标端点返回的快照就地写回模型行（上下文 / 输出上限 / 价格 / 能力 / 模态）。
+ *
+ * @param m    模型行（models 列表里的同一个对象，改完信息卡会自动重渲染）
+ * @param snap GET /providers/{id}/models/metrics 的 data
+ */
+const applyMetricSnapshot = (m: any, snap: any) => {
+  const num = (v: any): number | null => {
+    if (v === null || v === undefined || v === '') return null;
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  };
+  const ctx = num(snap.context_window_tokens);
+  const out = num(snap.max_output_tokens);
+  const cfg: any = m.config && typeof m.config === 'object' ? { ...m.config } : {};
+  if (ctx != null) {
+    m.context_window = m.context_window ?? ctx;
+    if (!num(cfg.contextWindow)) cfg.contextWindow = ctx;
+  }
+  if (out != null) {
+    m.max_tokens = m.max_tokens ?? out;
+    if (!num(cfg.maxOutputTokens)) cfg.maxOutputTokens = out;
+  }
+
+  // 价格 / 知识截止 / 发布时间：并进 metrics（信息卡「成本」「元数据」两区读它）
+  const metrics: Record<string, any> = { ...(m.metrics || {}) };
+  for (const key of [
+    'context_window_tokens', 'max_output_tokens',
+    'price_input_per_musd', 'price_output_per_musd',
+    'price_cache_hit_per_musd', 'price_cache_write_per_musd',
+    'knowledge_cutoff', 'release_date', 'model_family',
+  ]) {
+    if (snap[key] !== undefined && snap[key] !== null && snap[key] !== '') {
+      metrics[key] = snap[key];
+    }
+  }
+  m.metrics = metrics;
+
+  // 能力 / 特性：信息卡「能力」区读 config.features，模态图标读 input/outputCapabilities
+  const caps = new Set<string>(Array.isArray(cfg.capabilities) ? cfg.capabilities : []);
+  const feats = new Set<string>(Array.isArray(cfg.features) ? cfg.features : []);
+  const flag = (v: any) => v === true || v === 'true' || v === 1;
+  if (flag(snap.attachment)) caps.add('attachment');
+  if (flag(snap.reasoning)) { caps.add('reasoning'); feats.add('thinking'); }
+  if (flag(snap.tool_call)) { caps.add('tool_call'); feats.add('tools'); }
+  if (flag(snap.temperature_supported)) caps.add('temperature');
+  if (flag(snap.open_weights)) caps.add('open_weights');
+  cfg.capabilities = [...caps];
+  cfg.features = [...feats];
+
+  const mod = snap.modalities;
+  if (mod && typeof mod === 'object') {
+    if (Array.isArray(mod.input) && mod.input.length) cfg.inputCapabilities = mod.input;
+    if (Array.isArray(mod.output) && mod.output.length) cfg.outputCapabilities = mod.output;
+  }
+  m.config = cfg;
+};
+
+/**
+ * 当前模型缺参数时，按模型名拉一次指标快照回填。
+ *
+ * @param m 当前模型行；null（还没选中模型）直接返回
+ */
+const ensureModelParams = async (m: any) => {
+  if (!m) return;
+  const providerId = modelProviderIdOf(m);
+  const name = modelNameOf(m);
+  if (!providerId || !name) return;
+  const key = `${providerId}::${name}`;
+  if (paramsFilled.has(key) || paramsFilling.has(key)) return;
+  if (!needsModelParams(m)) { paramsFilled.add(key); return; }
+  if (!admin.value) { paramsFilled.add(key); return; }
+  paramsFilling.add(key);
+  try {
+    const snap: any = await apiService.fetchModelMetrics(providerId, name);
+    if (snap && snap.found !== false) {
+      applyMetricSnapshot(m, snap);
+    }
+    paramsFilled.add(key);
+  } catch (error) {
+    // 403 / 指标源不可达：本次会话不再重试
+    paramsFilled.add(key);
+    console.debug('[ChatInput] 模型参数补齐跳过:', error);
+  } finally {
+    paramsFilling.delete(key);
+  }
+};
+
+// 模型切换即补齐：覆盖「打开会话时的默认模型」与「用户手动选模型」两条路径。
+// 只依赖模型 id，回填改的是模型行自身的字段，不会反过来再触发本 watcher。
+watch(() => currentModel.value, (m) => { void ensureModelParams(m); }, { immediate: true });
+
 const optimizing = ref(false);
 const handleOptimize = async () => {
   const text = editor.value ? editor.value.getText() : "";

@@ -244,12 +244,13 @@ const costRows = computed<InfoRow[]>(() => {
   ]
 })
 
-/** 限制行：上下文窗口手填优先、缺失回退指标表；输出上限只认手填 */
+/** 限制行：上下文窗口手填优先、缺失回退指标表；输出上限手填优先、缺失同样回退指标表 */
 const limitRows = computed<InfoRow[]>(() => {
   const cfg = props.model?.config || {}
   const manualCtx = numOrNull(cfg.contextWindow ?? props.model?.context_window)
   const ctx = manualCtx ?? numOrNull(metrics.value.context_window_tokens)
   const manualOut = numOrNull(cfg.maxOutputTokens ?? props.model?.max_tokens)
+  const out = manualOut ?? numOrNull(metrics.value.max_output_tokens)
   return [
     {
       label: 'Context',
@@ -260,8 +261,10 @@ const limitRows = computed<InfoRow[]>(() => {
     },
     {
       label: 'Output',
-      value: tokens(manualOut),
-      title: manualOut === null ? '单次输出上限：未指定' : `单次输出上限：${manualOut.toLocaleString('zh-CN')} token（手动填写）`,
+      value: tokens(out),
+      title: out === null
+        ? '单次输出上限：未指定'
+        : `单次输出上限：${out.toLocaleString('zh-CN')} token${manualOut !== null ? '（手动填写）' : '（指标表）'}`,
     },
   ]
 })

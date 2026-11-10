@@ -233,6 +233,8 @@
               closable
               show-close-all
               empty-text="点击左侧项目行查看系统信息；双击打开系统日志"
+              :context-menu="workspaceTabMenu"
+              @context-command="onWorkspaceTabCommand"
               @close="closeWorkspaceTab"
               @close-all="closeAllWorkspaceTabs"
             >
@@ -241,6 +243,7 @@
                   v-if="logSessionByTab.get(tab.name)"
                   :key="tab.name"
                   v-model:auto-scroll="logSessionByTab.get(tab.name)!.autoScroll"
+                  :project-id="logSessionByTab.get(tab.name)!.projectId"
                   :title="logSessionByTab.get(tab.name)!.projectName"
                   :source="logSessionByTab.get(tab.name)!.source"
                   :lines="logSessionByTab.get(tab.name)!.lines"
@@ -264,7 +267,7 @@
                 />
                 <HostFileManager
                   v-else-if="filesTabOf(tab.name)"
-                  :key="tab.name"
+                  :key="`${tab.name}:${filesReloadSeq[Number(tab.name.slice(6))] ?? 0}`"
                   :host-id="releaseHostId"
                   :platform="hostPlatform"
                   :initial-path="filesTabOf(tab.name)!.initPath"
@@ -942,6 +945,34 @@
         </div>
 
         <ReForm label-position="top">
+          <!-- 本地安装包：先传到目标主机的 uploads/，再把远端绝对路径回填到下面 -->
+          <ReFormItem label="本地安装包（可选：上传后自动回填路径）">
+            <div
+              class="upg-upload"
+              :class="{ 'is-busy': upgUploading }"
+              @dragover.prevent
+              @drop.prevent="onUpgDrop"
+            >
+              <ReIcon name="Upload" class="upg-upload-ic" />
+              <div class="upg-upload-body">
+                <div class="upg-upload-title">
+                  <template v-if="upgUploading">正在上传到目标主机…</template>
+                  <template v-else>
+                    拖入安装包，或
+                    <button type="button" class="upg-upload-link" @click="pickUpgFile">选择文件</button>
+                  </template>
+                </div>
+                <div class="upg-upload-sub">
+                  {{
+                    upgUploadedName
+                      ? `已上传：${upgUploadedName}`
+                      : '上传到项目目录的 uploads/，不会自动覆盖正在运行的包'
+                  }}
+                </div>
+              </div>
+              <input ref="upgFileInput" type="file" class="upg-upload-input" @change="onUpgFilePicked" />
+            </div>
+          </ReFormItem>
           <ReFormItem label="安装包路径（主机上的绝对路径，jar / tar.gz / zip；为空则仅执行重启）">
             <ReInput v-model="upgForm.packagePath" placeholder="如：/home/ubuntu/uploads/app.tar.gz" />
           </ReFormItem>
@@ -1010,6 +1041,25 @@
             <label class="upg-switch"><el-checkbox v-model="sysCfg.autoExtract" />自动解压（压缩包）</label>
             <label class="upg-switch"><el-checkbox v-model="sysCfg.autoRestart" />自动重启</label>
             <label class="upg-switch"><el-checkbox v-model="sysCfg.autoRollback" />失败自动回滚（需状态命令）</label>
+          </div>
+        </section>
+
+        <section class="syscfg-section">
+          <div class="syscfg-title"><ReIcon name="Document" :size="13" />日志</div>
+          <div class="syscfg-row">
+            <div class="syscfg-label">
+              <b>读取多少行日志</b>
+              <span>打开日志列与实时跟随的历史回放行数，10 ~ 5000 行，默认 100</span>
+            </div>
+            <el-input-number
+              v-model="sysCfg.logLines"
+              :min="10"
+              :max="5000"
+              :step="50"
+              size="small"
+              controls-position="right"
+              style="width: 130px"
+            />
           </div>
         </section>
 
@@ -1098,6 +1148,7 @@
       <ProjectLogColumn
         popup
         v-model:auto-scroll="session.popupAutoScroll"
+        :project-id="session.projectId"
         :title="session.projectName"
         :source="session.source"
         :lines="session.lines"
@@ -1191,6 +1242,37 @@
             <ReButton icon="Refresh" size="small" @click="endpointProject && openEndpointDialog(endpointProject, 'actuator')">重新探测</ReButton>
             <ReButton v-if="endpointData?.actuator" icon="TopRight" size="small" type="primary" @click="openInNewTab(endpointData?.actuatorUrl)">打开</ReButton>
           </div>
+        </div>
+      </div>
+    </ReDialog>
+
+    <!-- 健康检测对话框 -->
+    <ReDialog v-model="healthVisible" :title="`健康检测 - ${healthProject?.projectName || ''}`" width="640px">
+      <div class="hc-wrap">
+        <div class="hc-tip">在项目所在主机上发起 HTTP 请求，仅状态码 200 判定为健康。</div>
+        <div class="hc-field">
+          <span class="hc-label">检测地址</span>
+          <ReInput
+            v-model="healthUrl"
+            placeholder="http://127.0.0.1:8080/actuator/health"
+            style="width:100%"
+          />
+        </div>
+        <div class="hc-actions">
+          <ReButton icon="DocumentChecked" :loading="healthSaving" @click="saveHealthUrl">保存地址</ReButton>
+          <ReButton icon="Refresh" type="primary" :loading="healthChecking" @click="runHealthCheck">立即检测</ReButton>
+        </div>
+        <div v-if="healthResult" class="hc-result" :class="healthResult.ok ? 'is-ok' : 'is-bad'">
+          <div class="hc-result-head">
+            <el-tag size="small" :type="healthResult.ok ? 'success' : 'danger'" effect="dark">
+              {{ healthResult.ok ? '健康' : '异常' }}
+            </el-tag>
+            <span class="hc-code">HTTP {{ healthResult.statusCode || '—' }}</span>
+            <span class="hc-cost">{{ healthResult.elapsedMs }} ms</span>
+          </div>
+          <div class="hc-result-msg">{{ healthResult.message }}</div>
+          <div class="hc-result-url">{{ healthResult.url }}</div>
+          <div class="hc-result-time">检测时间 {{ healthResult.checkedAt }}</div>
         </div>
       </div>
     </ReDialog>
@@ -1301,7 +1383,7 @@ import { http, unwrapResult } from '@repo/utils';
 import { fillTemplate, bestTemplate } from '@repo/ui/components/ReCommand/templates';
 import ReCron from '@repo/ui/re-cron';
 import ReTabs from '@repo/ui/re-tabs';
-import type { ReTabsItem } from '@repo/ui/re-tabs';
+import type { ReTabsItem, ReTabsContextItem } from '@repo/ui/re-tabs';
 import ReRailSplit, { readRailWidth } from '@repo/ui/re-rail-split';
 import { trackTask, type ProcessTask } from '../../utils/processTasks';
 import { errorText, toastError } from '../../utils/errors';
@@ -2406,6 +2488,9 @@ function onMoreCommand(item: Project, command: string) {
     case 'files':
       openFilesTab(item);
       break;
+    case 'health':
+      openHealthCheck(item);
+      break;
     case 'upgrade':
       openUpgradeDialog(item);
       break;
@@ -2523,6 +2608,8 @@ function ctxCommandsFor(item: Project): CtxCommandItem[] {
     { command: 'edit', label: '编辑', icon: 'EditPen' },
     // 文件管理直接开成右侧页签，不再弹模态框盖住整个项目列表
     { command: 'files', label: '文件管理', icon: 'FolderOpened' },
+    // 健康检测：配置一个检测地址，按 HTTP 200 判定服务是否健康
+    { command: 'health', label: '健康检测', icon: 'FirstAidKit' },
   ];
   // 系统日志：内容来自项目配置的 logPath（目录时服务端取最新文件），配了才有入口；
   // 项目被禁用也不挡查看 —— 停止的服务往往正是最需要翻日志的时候
@@ -3434,6 +3521,7 @@ const sysCfg = ref({
   autoRollback: false,
   actuatorMonitorEnabled: false,
   actuatorIntervalSeconds: 30,
+  logLines: 100,
 });
 
 /** 该项目是否探测到 Actuator：只有可用时才显示定时采集配置 */
@@ -3454,6 +3542,7 @@ async function openSystemConfig(item: Project) {
     autoRollback: false,
     actuatorMonitorEnabled: false,
     actuatorIntervalSeconds: 30,
+    logLines: 100,
   };
   sysCfgActuatorAvailable.value = !!endpointCache[item.id]?.actuator;
   // Actuator 是否可用决定「定时采集」区块是否出现：缓存没有就静默探一次
@@ -3476,6 +3565,7 @@ async function openSystemConfig(item: Project) {
       autoRollback: base.autoRollback ?? false,
       actuatorMonitorEnabled: false,
       actuatorIntervalSeconds: 30,
+      logLines: 100,
     };
     // 定时采集配置独立存放（项目级开关 + 间隔），与升级默认值互不覆盖
     const mon = unwrapResult<any>(
@@ -3484,6 +3574,12 @@ async function openSystemConfig(item: Project) {
     sysCfg.value.actuatorMonitorEnabled = !!mon.enabled;
     const interval = Number(mon.intervalSeconds);
     sysCfg.value.actuatorIntervalSeconds = Number.isFinite(interval) && interval >= 5 ? interval : 30;
+    // 日志回放行数同样是项目级配置，默认 100
+    const lines = unwrapResult<number>(
+      await http().get(`${BASE}/project/${item.id}/log/lines`),
+    );
+    const lineNum = Number(lines);
+    sysCfg.value.logLines = Number.isFinite(lineNum) && lineNum >= 10 ? lineNum : 100;
   } catch {
     // 接口失败时用项目字段兜底，仍可保存
   } finally {
@@ -3497,8 +3593,8 @@ async function saveSystemConfig() {
   if (!item) return;
   sysCfgSaving.value = true;
   try {
-    // 升级默认值里不混入采集配置，各存各的
-    const { actuatorMonitorEnabled, actuatorIntervalSeconds, ...upgradeCfg } = sysCfg.value;
+    // 升级默认值里不混入采集与日志配置，各存各的
+    const { actuatorMonitorEnabled, actuatorIntervalSeconds, logLines, ...upgradeCfg } = sysCfg.value;
     await http()
       .put(`${BASE}/upgrade/config?scope=project&projectId=${item.id}`)
       .data(upgradeCfg);
@@ -3509,6 +3605,7 @@ async function saveSystemConfig() {
       enabled: actuatorMonitorEnabled,
       intervalSeconds: actuatorIntervalSeconds,
     });
+    await http().post(`${BASE}/project/${item.id}/log/lines?lines=${logLines ?? 100}`);
     message.success(`已保存「${item.projectName}」的系统配置`);
     sysCfgVisible.value = false;
     loadList();
@@ -3535,6 +3632,73 @@ const upgForm = ref({
   uploadExtract: true,
   uploadTargetDir: '',
 });
+/** 本地安装包上传：文件选择器、上传中状态、最近一次上传的文件名 */
+const upgFileInput = ref<HTMLInputElement | null>(null);
+const upgUploading = ref(false);
+const upgUploadedName = ref('');
+
+/** 触发本地文件选择（弹框内的「选择文件」） */
+function pickUpgFile() {
+  upgFileInput.value?.click();
+}
+
+/**
+ * 上传本地安装包到目标主机。
+ *
+ * <p>升级弹框以前只有「主机上的绝对路径」，本地包无处可传，只能先手动
+ * scp 再回来填路径。这里复用项目卡片拖拽用的同一个接口：
+ * 文件落到 {@code <项目目录>/uploads/}，再把远端绝对路径回填到
+ * {@code packagePath}，用户点「执行升级」才真正投递。</p>
+ *
+ * <p>接口返回 {@code upload-only:<path>} 表示项目未开启「上传后自动升级」，
+ * 只上传不部署；返回 taskId 则说明项目开了自动升级，后端已开始升级。</p>
+ *
+ * @param file 本地文件
+ */
+async function uploadUpgPackage(file: File) {
+  const project = upgProject.value;
+  if (!project) return;
+  upgUploading.value = true;
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await http().post(`${BASE}/project/${project.id}/upload`).data(fd);
+    const out = unwrapResult<string>(res);
+    if (typeof out === 'string' && out.startsWith('upload-only:')) {
+      const remote = out.slice('upload-only:'.length);
+      upgForm.value.packagePath = remote;
+      upgUploadedName.value = file.name;
+      message.success(`已上传到 ${remote}，点「执行升级」开始`);
+      return;
+    }
+    if (out) {
+      // 项目开启了「上传后自动升级」：后端已直接开始升级
+      upgVisible.value = false;
+      trackTask(out, project.projectName, 'upgrade');
+      message.success('已上传，升级任务已开始');
+      return;
+    }
+    message.error('上传失败：未返回安装包路径');
+  } catch (e: any) {
+    toastError(e, '上传安装包失败');
+  } finally {
+    upgUploading.value = false;
+  }
+}
+
+/** 文件选择器回调 */
+async function onUpgFilePicked(ev: Event) {
+  const input = ev.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  if (file) await uploadUpgPackage(file);
+}
+
+/** 拖入文件上传 */
+async function onUpgDrop(ev: DragEvent) {
+  const file = ev.dataTransfer?.files?.[0];
+  if (file) await uploadUpgPackage(file);
+}
 
 /**
  * 打开升级弹框：按「该项目自己的默认配置」预填。
@@ -3550,6 +3714,7 @@ const upgForm = ref({
 async function openUpgradeDialog(item: Project) {
   upgProject.value = item;
   upgLoading.value = true;
+  upgUploadedName.value = '';
   // 先用项目自身的字段兜底，接口失败也能用
   upgForm.value = {
     autoBackup: true,
@@ -3920,6 +4085,81 @@ function closeAllWorkspaceTabs() {
   activeWorkspaceTab.value = '';
 }
 
+/** 文件管理页签的重新挂载代次：刷新即换 key，按初始目录重新加载 */
+const filesReloadSeq = reactive<Record<number, number>>({});
+
+/** 页签右键菜单：刷新与关闭类命令 */
+const workspaceTabMenu = computed<ReTabsContextItem[]>(() => {
+  const tabs = workspaceTabs.value;
+  const idx = tabs.findIndex((t) => t.name === activeWorkspaceTab.value);
+  const hasRight = idx >= 0 && idx < tabs.length - 1;
+  return [
+    { key: 'refresh', label: '刷新当前页签', icon: 'RefreshRight' },
+    { key: 'close', label: '关闭当前页签', icon: 'Close', divided: true },
+    { key: 'close-others', label: '关闭其它页签', icon: 'CircleClose', disabled: tabs.length <= 1 },
+    { key: 'close-right', label: '关闭右侧页签', icon: 'DArrowRight', disabled: !hasRight },
+    { key: 'close-all', label: '关闭全部页签', icon: 'Delete', danger: true, divided: true },
+  ];
+});
+
+/**
+ * 刷新一个页签：日志重连、系统信息重新探测、文件管理重新挂载。
+ *
+ * @param name 页签 name（`kind:projectId`）
+ */
+function refreshWorkspaceTab(name: string) {
+  const id = Number(name.slice(name.indexOf(':') + 1));
+  const item = list.value.find((p) => p.id === id);
+  if (name.startsWith('log:')) {
+    const session = logSessions.value.find((s) => `log:${s.projectId}` === name);
+    if (!item || !session) return;
+    // 重开一次会话：停掉旧跟随，再按打开时的口径拉尾部快照并重新订阅
+    closeLogSession(session);
+    void startLogSession(item);
+    return;
+  }
+  if (name.startsWith('info:')) {
+    if (!item) return;
+    delete endpointCache[item.id];
+    void ensureEndpoint(item);
+    return;
+  }
+  if (name.startsWith('files:')) {
+    filesReloadSeq[id] = (filesReloadSeq[id] ?? 0) + 1;
+  }
+}
+
+/**
+ * 页签右键命令分发。
+ *
+ * @param payload.key 命令标识
+ * @param payload.tab 触发菜单的页签
+ */
+function onWorkspaceTabCommand(payload: { key: string; tab: ReTabsItem }) {
+  const name = payload.tab.name;
+  const tabs = workspaceTabs.value;
+  const idx = tabs.findIndex((t) => t.name === name);
+  switch (payload.key) {
+    case 'refresh':
+      refreshWorkspaceTab(name);
+      break;
+    case 'close':
+      closeWorkspaceTab(name);
+      break;
+    case 'close-others':
+      tabs.filter((t) => t.name !== name).forEach((t) => closeWorkspaceTab(t.name));
+      activeWorkspaceTab.value = name;
+      break;
+    case 'close-right':
+      if (idx >= 0) tabs.slice(idx + 1).forEach((t) => closeWorkspaceTab(t.name));
+      activeWorkspaceTab.value = name;
+      break;
+    case 'close-all':
+      closeAllWorkspaceTabs();
+      break;
+  }
+}
+
 /** 关闭页签后 ReTabs 只回传 update:modelValue（active），父级必须自己兜底修正 */
 watch(workspaceTabs, (tabs) => {
   if (tabs.length && !tabs.some((t) => t.name === activeWorkspaceTab.value)) {
@@ -4159,6 +4399,75 @@ function fmtFireMs(ms?: number): string {
 /** 新标签页打开外部地址（Swagger / Actuator） */
 function openInNewTab(url?: string) {
   if (url) window.open(url, '_blank', 'noopener');
+}
+
+// ---- 健康检测（配置检测地址 + 在目标主机上按 HTTP 200 判定） ----
+interface HealthCheckResult {
+  url: string;
+  ok: boolean;
+  statusCode: number;
+  elapsedMs: number;
+  checkedAt: string;
+  message: string;
+}
+
+const healthVisible = ref(false);
+const healthProject = ref<Project | null>(null);
+const healthUrl = ref('');
+const healthSaving = ref(false);
+const healthChecking = ref(false);
+const healthResult = ref<HealthCheckResult | null>(null);
+
+/**
+ * 打开健康检测对话框：读已保存地址，没有则预填按端口推导的建议地址。
+ *
+ * @param item 项目
+ */
+async function openHealthCheck(item: Project) {
+  healthProject.value = item;
+  healthResult.value = null;
+  healthUrl.value = '';
+  healthVisible.value = true;
+  try {
+    const res = await http().get(`${BASE}/project/${item.id}/health`);
+    const data = unwrapResult<{ url?: string; defaultUrl?: string }>(res);
+    healthUrl.value = (data?.url || data?.defaultUrl || '').trim();
+  } catch (e) {
+    toastError(e, '读取健康检测配置失败');
+  }
+}
+
+/** 保存检测地址（不改动检测结果） */
+async function saveHealthUrl() {
+  const item = healthProject.value;
+  if (!item) return;
+  healthSaving.value = true;
+  try {
+    await http().post(`${BASE}/project/${item.id}/health?url=${encodeURIComponent(healthUrl.value.trim())}`);
+    message.success('检测地址已保存');
+  } catch (e) {
+    toastError(e, '保存检测地址失败');
+  } finally {
+    healthSaving.value = false;
+  }
+}
+
+/** 立即检测：后端会在项目所在主机上取 HTTP 状态码 */
+async function runHealthCheck() {
+  const item = healthProject.value;
+  if (!item) return;
+  healthChecking.value = true;
+  healthResult.value = null;
+  try {
+    const res = await http().post(
+      `${BASE}/project/${item.id}/health/check?url=${encodeURIComponent(healthUrl.value.trim())}`,
+    );
+    healthResult.value = unwrapResult<HealthCheckResult>(res);
+  } catch (e) {
+    toastError(e, '健康检测失败');
+  } finally {
+    healthChecking.value = false;
+  }
 }
 
 function publishStatusText(st?: ScheduleStatus): string {
@@ -5981,6 +6290,56 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-regular);
   cursor: pointer;
 }
+/* 本地安装包上传区：拖拽 + 选择文件，命中后回填远端路径 */
+.upg-upload {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px dashed var(--border-subtle);
+  border-radius: 10px;
+  background: var(--bg-fill);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.upg-upload:hover {
+  border-color: var(--brand-500);
+}
+.upg-upload.is-busy {
+  opacity: 0.7;
+  pointer-events: none;
+}
+.upg-upload-ic {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+.upg-upload-body {
+  min-width: 0;
+  line-height: 1.5;
+}
+.upg-upload-title {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+.upg-upload-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--brand-500);
+  cursor: pointer;
+}
+.upg-upload-link:hover {
+  text-decoration: underline;
+}
+.upg-upload-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  word-break: break-all;
+}
+.upg-upload-input {
+  display: none;
+}
 
 /* 表单路径输入框内的「浏览主机文件」图标：贴着输入框右侧，避免独立方按钮的撕裂感 */
 .pj-path-browse {
@@ -6296,6 +6655,74 @@ onBeforeUnmount(() => {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 12px;
+}
+
+/* ===== 健康检测 ===== */
+.hc-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.hc-tip {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary, #667085);
+}
+.hc-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.hc-label {
+  flex: none;
+  width: 64px;
+  font-size: 13px;
+  color: var(--text-secondary, #667085);
+}
+.hc-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.hc-result {
+  border: 1px solid var(--border-subtle, #eef0f6);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: var(--bg-container, #fff);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.hc-result.is-ok {
+  border-color: var(--success-300, #6ce9a6);
+  background: var(--success-50, #ecfdf3);
+}
+.hc-result.is-bad {
+  border-color: var(--danger-300, #fda29b);
+  background: var(--danger-50, #fef3f2);
+}
+.hc-result-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.hc-code {
+  font-size: 13px;
+  font-weight: 600;
+}
+.hc-cost {
+  font-size: 12px;
+  color: var(--text-secondary, #667085);
+}
+.hc-result-msg {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.hc-result-url,
+.hc-result-time {
+  font-size: 12px;
+  color: var(--text-secondary, #667085);
+  word-break: break-all;
 }
 
 /* ===== 定时发布 tab ===== */

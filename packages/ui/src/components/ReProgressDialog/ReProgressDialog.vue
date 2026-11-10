@@ -59,6 +59,10 @@ const props = withDefaults(
     cancelLoading?: boolean;
     /** 启动失败/请求异常时的提示（此时没有任何进度可展示） */
     errorMessage?: string;
+    /** 取消按钮文案（不同长任务叫法不同：取消创建 / 取消复制 / 取消迁移） */
+    cancelText?: string;
+    /** 关闭按钮文案 */
+    closeText?: string;
   }>(),
   {
     title: "正在执行",
@@ -68,6 +72,8 @@ const props = withDefaults(
     cancellable: false,
     cancelLoading: false,
     errorMessage: "",
+    cancelText: "取消创建",
+    closeText: "关闭",
   },
 );
 
@@ -371,7 +377,7 @@ function toggleDetails(): void {
           :loading="cancelLoading"
           @click="handleCancel"
         >
-          取消创建
+          {{ cancelText }}
         </el-button>
         <el-button
           v-if="finished"
@@ -379,7 +385,7 @@ function toggleDetails(): void {
           data-action="provision-close"
           @click="handleClose"
         >
-          关闭
+          {{ closeText }}
         </el-button>
         <span v-if="!canCancel && !finished" class="rpd__footer-hint">
           任务执行中，完成后可关闭

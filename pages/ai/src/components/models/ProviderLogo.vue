@@ -1,18 +1,42 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { ElImage } from 'element-plus'
 import { PROVIDER_ICONS } from './providerIcons'
 
 const props = withDefaults(defineProps<{
   pid?: string
   name?: string
-  size?: 'sm' | 'md' | 'lg'
+  /** 预设档位 32/40/48；传数字则按像素直出（模型选择器的 18px 头像位用） */
+  size?: 'sm' | 'md' | 'lg' | number
 }>(), {
   size: 'sm',
 })
 
 const sizeMap: Record<string, string> = { sm: '32px', md: '40px', lg: '48px' }
 const currentSrc = ref<string | null>(null)
+
+/** 尺寸样式：预设档位走 sizeMap，数字档位直接按像素 */
+const sizeStyle = computed(() => {
+  const px = typeof props.size === 'number' ? `${props.size}px` : sizeMap[props.size || 'sm']
+  return { width: px, height: px }
+})
+
+/**
+ * 首字兜底头像的内联样式。
+ *
+ * <p>字号随盒子尺寸收敛（约 45%）：这个组件还被用在 18px 的模型选择器头像位，
+ * 固定字号的首字会在小盒子里溢出。</p>
+ */
+const fallbackStyle = computed(() => {
+  const box = typeof props.size === 'number'
+    ? props.size
+    : parseInt(sizeMap[props.size || 'sm'], 10) || 32
+  return {
+    ...sizeStyle.value,
+    '--avatar-hue': 'var(--color-primary)',
+    fontSize: `${Math.max(9, Math.round(box * 0.45))}px`,
+  }
+})
 
 /**
  * 静态资源 URL：拼上应用 base。
@@ -56,13 +80,13 @@ const onError = () => {
   <el-image
     v-if="currentSrc"
     :src="currentSrc"
-    :style="{ width: sizeMap[props.size], height: sizeMap[props.size], 'border-radius': 'var(--size-surface-radius)' }"
+    :style="{ ...sizeStyle, 'border-radius': 'var(--size-surface-radius)' }"
     @error="onError"
   />
   <div
     v-else
     class="avatar-auto flex items-center justify-center flex-shrink-0 font-bold"
-    :style="{ width: sizeMap[props.size], height: sizeMap[props.size], '--avatar-hue': 'var(--color-primary)' }"
+    :style="fallbackStyle"
   >
     {{ (props.name || '?').trim().charAt(0) || '?' }}
   </div>

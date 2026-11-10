@@ -53,6 +53,13 @@ const CLIENT_RENDERABLE_EXTS: ReadonlySet<string> = new Set([
   "pages", "numbers", "key",
   // WordPerfect（renderer-wordperfect README：wpd/wp/wp5/wp6）+ Hangul（hwp/hwpx）
   "wpd", "wp", "wp5", "wp6", "hwp", "hwpx",
+  // WPS Office 家族（wps 文字 / wpt 文字模板 / et、ett 表格 / dps 演示）。
+  // 这些后缀名本身没有对应的 renderer，**必须靠内容魔数改名**才能直渲：
+  // 新版 WPS 存的是 OOXML ZIP 容器（改名为 .docx/.xlsx/.pptx 后 preset-office
+  // 原生可读），老版本是 OLE2 CFB（改名为 .doc/.xls/.ppt 后走传统二进制解析器）。
+  // 改名规则见 {@link resolveViewerFileName}；两者都不像则保持原名交给
+  // PreviewOfficePanel 的兜底探测（服务端 ?format=pdf）。
+  "wps", "wpt", "et", "ett", "dps",
 ]);
 
 /**
@@ -65,6 +72,25 @@ const CLIENT_RENDERABLE_EXTS: ReadonlySet<string> = new Set([
  * {@link resolveViewerFileName} 校正。</p>
  */
 const LEGACY_BINARY_EXTS: ReadonlySet<string> = new Set(["doc", "xls", "ppt"]);
+
+/**
+ * WPS Office 家族扩展名 → 该后缀在 WPS 体系里对应的文档家族
+ *
+ * <p>WPS 没有独立的二进制格式：新版把文档存成 OOXML ZIP 容器（与 docx /
+ * xlsx / pptx 同构），老版存成 OLE2 CFB（与 doc / xls / ppt 同构）。两种容器
+ * 的解析器都只按扩展名选，所以必须先按魔数把它改名到对应家族，preset-office
+ * 才认得。</p>
+ *
+ * <p>{@code dps} 是 WPS 演示，{@code et}/{@code ett} 是 WPS 表格，
+ * {@code wps}/{@code wpt} 是 WPS 文字。</p>
+ */
+const WPS_FAMILY_EXTS: ReadonlyMap<string, "doc" | "excel" | "pptx"> = new Map([
+  ["wps", "doc"],
+  ["wpt", "doc"],
+  ["et", "excel"],
+  ["ett", "excel"],
+  ["dps", "pptx"],
+]);
 
 /** OLE2 / CFB 复合文档文件头（传统 .doc / .xls / .ppt） */
 const OLE2_MAGIC: readonly number[] = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1];
@@ -255,6 +281,28 @@ export function resolveViewerFileName(fileName: string, bytes?: Uint8Array): str
   const base = dot > 0 ? fileName.slice(0, dot) : fileName;
   if (ext !== "pdf" && startsWith(bytes, PDF_MAGIC)) {
     return `${base}.pdf`;
+  }
+  // WPS 家族：后缀名本身没有 renderer，必须按容器魔数改名到真实家族。
+  const wpsFamily = WPS_FAMILY_EXTS.get(ext);
+  if (wpsFamily) {
+    if (startsWith(bytes, ZIP_MAGIC)) {
+      const sniffed = sniffOoxmlRenderer(bytes);
+      if (sniffed === "docx") {
+        return `${base}.docx`;
+      }
+      if (sniffed === "excel") {
+        return `${base}.xlsx`;
+      }
+      if (sniffed === "pptx") {
+        return `${base}.pptx`;
+      }
+      // ZIP 但嗅不到已知部件：按后缀语义猜家族，猜错也只是渲染失败后走服务端兜底
+      return `${base}.${wpsFamily === "excel" ? "xlsx" : wpsFamily === "pptx" ? "pptx" : "docx"}`;
+    }
+    if (startsWith(bytes, OLE2_MAGIC)) {
+      return `${base}.${wpsFamily === "excel" ? "xls" : wpsFamily === "pptx" ? "ppt" : "doc"}`;
+    }
+    return fileName;
   }
   if (!LEGACY_BINARY_EXTS.has(ext)) {
     return fileName;

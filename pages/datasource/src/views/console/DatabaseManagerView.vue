@@ -964,283 +964,27 @@
     </div>
 
     <!-- 表头右键菜单（对齐 Navicat 的表头菜单，砍掉复制/粘贴那组：那是单元格的活儿，
-         表头上复制整列值没有明确语义）。外观与树菜单同一套 .dbm-context-* 皮。 -->
-    <Teleport to="body">
-      <div
-        v-if="headerMenu.visible"
-        class="dbm-context-menu dbm-hmenu"
-        :style="headerMenuStyle"
-        @click.stop
-        @contextmenu.prevent
-      >
-        <div class="dbm-context-item" @click="openColumnViewFromHeaderMenu">
-          <ReIcon name="Operation" :size="14" />显示或隐藏列…
-        </div>
-        <div class="dbm-context-item" @click="openColumnViewFromHeaderMenu">
-          <ReIcon name="Paperclip" :size="14" />冻结列…
-          <span class="dbm-context-hint">固定在左侧</span>
-        </div>
-        <div class="dbm-context-divider" />
-        <div class="dbm-context-group">排序 · {{ headerMenu.columnLabel || "当前列" }}</div>
-        <div
-          class="dbm-context-item"
-          :class="{ 'is-checked': isSortActive('ASC') }"
-          @click="sortFromHeaderMenu('ASC')"
-        >
-          <span class="dbm-context-check">{{ isSortActive("ASC") ? "✓" : "" }}</span>升序
-        </div>
-        <div
-          class="dbm-context-item"
-          :class="{ 'is-checked': isSortActive('DESC') }"
-          @click="sortFromHeaderMenu('DESC')"
-        >
-          <span class="dbm-context-check">{{ isSortActive("DESC") ? "✓" : "" }}</span>降序
-        </div>
-        <div class="dbm-context-item dbm-context-item--hint">
-          再点一次当前方向即取消排序
-        </div>
-        <div class="dbm-context-divider" />
-        <div class="dbm-context-item" @click="openColumnWidthFromHeaderMenu">
-          <ReIcon name="Setting" :size="14" />设置列宽…
-        </div>
-        <div class="dbm-context-item" @click="autoFitFromHeaderMenu('column')">
-          <ReIcon name="FullScreen" :size="14" />调整列宽以适应内容
-          <span class="dbm-context-hint">{{ headerMenu.columnLabel || "" }}</span>
-        </div>
-        <div class="dbm-context-item" @click="autoFitFromHeaderMenu('all')">
-          <ReIcon name="Rank" :size="14" />调整所有列的适合大小
-        </div>
-        <div class="dbm-context-divider" />
-        <div class="dbm-context-group">表头显示</div>
-        <div
-          class="dbm-context-item"
-          :class="{ 'is-checked': showHeaderComments }"
-          @click="toggleHeaderComments"
-        >
-          <span class="dbm-context-check">{{ showHeaderComments ? "✓" : "" }}</span>注释
-          <span class="dbm-context-hint">字段名下方一行</span>
-        </div>
-        <div
-          class="dbm-context-item"
-          :class="{ 'is-checked': showHeaderTypes }"
-          @click="toggleHeaderTypes"
-        >
-          <span class="dbm-context-check">{{ showHeaderTypes ? "✓" : "" }}</span>类型
-          <span class="dbm-context-hint">可与注释同时开</span>
-        </div>
-        <div class="dbm-context-divider" />
-        <div class="dbm-context-group">行显示</div>
-        <div
-          class="dbm-context-item"
-          :class="{ 'is-checked': showRowComments }"
-          @click="toggleRowComments"
-        >
-          <span class="dbm-context-check">{{ showRowComments ? "✓" : "" }}</span>注释
-          <span class="dbm-context-hint">数值下方一行</span>
-        </div>
-      </div>
-    </Teleport>
+         表头上复制整列值没有明确语义）。菜单项由 headerMenuItems 计算，走通用
+         ReContextMenu：贴边翻转、分组标题、勾选列、右侧说明都在组件里，
+         这里不再手算高度和二次夹取视口。 -->
+    <ReContextMenu
+      ref="headerMenuRef"
+      :items="headerMenuItems"
+      :min-width="208"
+      :max-width="300"
+      @select="onHeaderMenuSelect"
+    />
 
-    <!-- 右键菜单（对齐 Navicat：表 / 库 / 空白 三套动作） -->
-    <Teleport to="body">
-      <div
-        v-if="contextMenu.visible"
-        class="dbm-context-menu"
-        :style="contextMenuStyle"
-        @click.stop="closeContextMenu"
-      >
-        <!-- 表节点 -->
-        <template v-if="contextMenu.tableName">
-          <div class="dbm-context-item" @click="openTableData(contextMenu.tableName, contextMenu.database)">
-            <ReIcon name="Grid" :size="14" />打开表
-          </div>
-          <div class="dbm-context-item" @click="openTableDesign(contextMenu.tableName, contextMenu.database)">
-            <ReIcon name="Edit" :size="14" />设计表
-          </div>
-          <div class="dbm-context-item" @click="openQueryWithSql(`SELECT * FROM \`${contextMenu.tableName}\` LIMIT 100`, contextMenu.database)">
-            <ReIcon name="EditPen" :size="14" />查询数据
-          </div>
-          <div class="dbm-context-item" @click="showTableDdl(contextMenu.tableName, contextMenu.database)">
-            <ReIcon name="Document" :size="14" />查看建表语句
-          </div>
-          <div class="dbm-context-divider" />
-          <!-- 视图实测（MariaDB，jdbc_acc）：RENAME TABLE 对视图**是成功的**，
-               所以这项照常露出；唯独「复制表」三条候选（CREATE TABLE LIKE / AS SELECT / SELECT INTO）
-               在视图上全部被内核拒绝，才对视图收起 -->
-          <div class="dbm-context-item" @click="renameTable(contextMenu.tableName, contextMenu.database)">
-            <ReIcon name="EditPen" :size="14" />重命名表
-          </div>
-          <!-- 复制（二级）：先把表放进页面内的剪贴板，再在目标库按 Ctrl+V 粘贴。
-               走内联展开而不是绝对定位的悬浮子面板 —— 菜单本身是 overflow-y:auto 的
-               贴边浮层，绝对定位的子面板会在靠边时被裁掉一半。 -->
-          <template v-if="!contextMenu.isView">
-            <div
-              class="dbm-context-item dbm-context-item--group"
-              :class="{ 'is-open': contextMenu.copyOpen }"
-              @click.stop="contextMenu.copyOpen = !contextMenu.copyOpen"
-            >
-              <ReIcon name="CopyDocument" :size="14" />复制
-              <ReIcon :name="contextMenu.copyOpen ? 'ArrowDown' : 'ArrowRight'" :size="12" class="dbm-context-caret" />
-            </div>
-            <div v-if="contextMenu.copyOpen" class="dbm-context-sub">
-              <div
-                class="dbm-context-item"
-                @click.stop="copyTableToClipboard(contextMenu.tableName, contextMenu.database, false)"
-              >
-                只复制表结构
-              </div>
-              <div
-                class="dbm-context-item"
-                @click.stop="copyTableToClipboard(contextMenu.tableName, contextMenu.database, true)"
-              >
-                复制表结构和数据
-              </div>
-            </div>
-          </template>
-          <div class="dbm-context-item" @click="copyText(contextMenu.tableName)">
-            <ReIcon name="CopyDocument" :size="14" />复制表名
-          </div>
-          <div class="dbm-context-divider" />
-          <!-- 导入数据对视图也保留：简单视图是可更新的（实测 INSERT 成功） -->
-          <div class="dbm-context-item" @click="openImportDataFor(contextMenu.tableName, contextMenu.database)">
-            <ReIcon name="Upload" :size="14" />导入数据
-          </div>
-          <div class="dbm-context-item" @click="openExportDialog(contextMenu.tableName, contextMenu.database)">
-            <ReIcon name="Download" :size="14" />导出数据
-          </div>
-          <div class="dbm-context-item" @click="refreshTableInTree(contextMenu.database)">
-            <ReIcon name="Refresh" :size="14" />刷新
-          </div>
-          <div class="dbm-context-divider" />
-          <!-- 实测：TRUNCATE 对视图必败（'x' doesn't exist），DROP TABLE 同理 -->
-          <div v-if="!contextMenu.isView" class="dbm-context-item dbm-danger" @click="confirmTruncate(contextMenu.tableName, contextMenu.database)">
-            <ReIcon name="Delete" :size="14" />清空表
-          </div>
-          <div v-if="contextMenu.isView" class="dbm-context-item dbm-danger" @click="deleteView(contextMenu.tableName, contextMenu.database)">
-            <ReIcon name="Delete" :size="14" />删除视图
-          </div>
-          <div v-else class="dbm-context-item dbm-danger" @click="deleteTable(contextMenu.tableName, contextMenu.database)">
-            <ReIcon name="Delete" :size="14" />删除表
-          </div>
-        </template>
-
-        <!-- 库节点 -->
-        <template v-else-if="contextMenu.database">
-          <div class="dbm-context-item" @click="openCreateTable(contextMenu.database)">
-            <ReIcon name="Plus" :size="14" />新建表
-          </div>
-          <!-- 粘贴表：与 Ctrl+V 同一条链路（页面内剪贴板 → 目标库）。
-               剪贴板为空时不隐藏而是给一句说明，否则用户不知道「为什么没有粘贴」。 -->
-          <div class="dbm-context-item" @click="pasteTableInto(contextMenu.database)">
-            <ReIcon name="CopyDocument" :size="14" />粘贴表
-            <span class="dbm-context-hint">{{ tableClipboard ? tableClipboard.table : "剪贴板为空" }}</span>
-          </div>
-          <div class="dbm-context-item" @click="openImportDataForDb(contextMenu.database)">
-            <ReIcon name="Upload" :size="14" />导入数据到本库
-          </div>
-          <div class="dbm-context-item" @click="openQueryWithSql('', contextMenu.database)">
-            <ReIcon name="EditPen" :size="14" />新建查询
-          </div>
-          <div class="dbm-context-item" @click="openDocumentPreview(contextMenu.database)">
-            <ReIcon name="View" :size="14" />查看文档
-          </div>
-          <div class="dbm-context-item" @click="openErExportDialog(contextMenu.database)">
-            <ReIcon name="Share" :size="14" />ER 图（表关系）
-          </div>
-          <div class="dbm-context-item" @click="openStructureSync(contextMenu.database)">
-            <ReIcon name="Sort" :size="14" />结构同步（与目标库比较）
-          </div>
-          <div class="dbm-context-item" @click="openDocumentExport(contextMenu.database)">
-            <ReIcon name="Document" :size="14" />导出数据库文档
-          </div>
-          <div class="dbm-context-item" @click="openCreateUser(contextMenu.database)">
-            <ReIcon name="User" :size="14" />添加用户
-          </div>
-          <!-- 用户管理入口始终显示：JDBC 控制台总是有这个页签，非 MySQL/MariaDB
-               内核由 DbUserManagePanel 的 supported=false 降级提示，避免入口时有时无。 -->
-          <div class="dbm-context-item" @click="openUsersTab()">
-            <ReIcon name="UserFilled" :size="14" />用户管理
-          </div>
-          <div class="dbm-context-item" @click="copyText(contextMenu.database)">
-            <ReIcon name="CopyDocument" :size="14" />复制库名
-          </div>
-          <div class="dbm-context-divider" />
-          <div class="dbm-context-item" @click="loadTables(contextMenu.database)">
-            <ReIcon name="Refresh" :size="14" />刷新
-          </div>
-          <div class="dbm-context-divider" />
-          <div class="dbm-context-item dbm-danger" @click="deleteDatabase(contextMenu.database)">
-            <ReIcon name="Delete" :size="14" />删除数据库
-          </div>
-        </template>
-
-        <!-- 数据源根节点：整条连接的文档 / 新建 / 刷新。文档查看复用与主页
-             （数据源中心右键「查看数据库文档」）同一管线 —— 数据源级，不带库名。 -->
-        <template v-else-if="contextMenu.root">
-          <div class="dbm-context-item" @click="openDatasourceDocument">
-            <ReIcon name="View" :size="14" />查看数据库文档
-          </div>
-          <div class="dbm-context-item" @click="openCreateDatabase">
-            <ReIcon name="FolderAdd" :size="14" />新建数据库
-          </div>
-          <div class="dbm-context-item" @click="openCreateTable()">
-            <ReIcon name="Plus" :size="14" />新建表
-          </div>
-          <div class="dbm-context-item" @click="openNewQuery">
-            <ReIcon name="EditPen" :size="14" />新建查询
-          </div>
-          <div class="dbm-context-item" @click="openImportDataFromToolbar">
-            <ReIcon name="Upload" :size="14" />导入数据
-          </div>
-          <div class="dbm-context-item" @click="openExportDataFromToolbar">
-            <ReIcon name="Download" :size="14" />导出数据
-          </div>
-          <div class="dbm-context-divider" />
-          <div class="dbm-context-item" @click="refreshTree">
-            <ReIcon name="Refresh" :size="14" />刷新
-          </div>
-        </template>
-
-        <!-- 页签右键：关闭当前 / 关闭其他 / 关闭全部 -->
-        <template v-else-if="contextMenu.tabId">
-          <div class="dbm-context-item" @click="closeTab(contextMenu.tabId)">
-            <ReIcon name="Close" :size="14" />关闭当前
-          </div>
-          <div class="dbm-context-item" @click="closeOtherTabs(contextMenu.tabId)">
-            <ReIcon name="CircleClose" :size="14" />关闭其他
-          </div>
-          <div class="dbm-context-divider" />
-          <div class="dbm-context-item dbm-danger" @click="closeAllTabs()">
-            <ReIcon name="Delete" :size="14" />关闭全部
-          </div>
-        </template>
-
-        <!-- 空白区域 -->
-        <template v-else>
-          <div class="dbm-context-item" @click="openCreateDatabase">
-            <ReIcon name="FolderAdd" :size="14" />新建数据库
-          </div>
-          <div class="dbm-context-item" @click="openCreateTable()">
-            <ReIcon name="Plus" :size="14" />新建表
-          </div>
-          <div class="dbm-context-item" @click="openNewQuery">
-            <ReIcon name="EditPen" :size="14" />新建查询
-          </div>
-          <div class="dbm-context-item" @click="openImportDataFromToolbar">
-            <ReIcon name="Upload" :size="14" />导入数据
-          </div>
-          <!-- 导入/导出成对出现在同一组：此前空白处只有「导入数据」，导出只能从工具栏进，
-               用户反馈「空白地方有导入数据、没有导出数据」。 -->
-          <div class="dbm-context-item" @click="openExportDataFromToolbar">
-            <ReIcon name="Download" :size="14" />导出数据
-          </div>
-          <div class="dbm-context-divider" />
-          <div class="dbm-context-item" @click="refreshTree">
-            <ReIcon name="Refresh" :size="14" />刷新
-          </div>
-        </template>
-      </div>
-    </Teleport>
+    <!-- 右键菜单（对齐 Navicat：表 / 库 / 页签 / 空白 五套动作）。
+         菜单项由 treeMenuItems 计算，走通用 ReContextMenu：二级「复制」由组件渲染成
+         hover 展开的子面板并自动翻转贴边，本页不再自绘、也不再手算高度与二次夹取。 -->
+    <ReContextMenu
+      ref="treeMenuRef"
+      :items="treeMenuItems"
+      :min-width="200"
+      :max-width="300"
+      @select="onTreeMenuSelect"
+    />
 
     <!-- 复制表进度：不可关闭（进度由后端任务快照驱动，中途关掉就再也看不到这次复制的结果） -->
     <ReProgressDialog
@@ -2434,6 +2178,10 @@ import type { DbTemporalKind } from "../../utils/dbTemporal";
 // 「走 JDBC 协议」的类型判定：jdbc / clickhouse / duckdb 共用同一套元数据管线
 import { isJdbcFamilyType } from "../../jdbcTypes";
 import ReTable from "@repo/ui/re-table";
+import ReContextMenu from "@repo/ui/re-context-menu";
+import ReProgressDialog from "@repo/ui/re-progress-dialog";
+import type { ReContextMenuItem } from "@repo/ui/re-context-menu";
+import type { ProgressSnapshot, ProgressStep } from "@repo/ui/re-progress-dialog";
 import { ReFormItem, ReOption, ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 import DbSqlEditor from "../../components/console/DbSqlEditor.vue";
 import CreateTableDialog from "../../components/console/CreateTableDialog.vue";

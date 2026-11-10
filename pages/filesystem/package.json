@@ -62,6 +62,7 @@
     "@ruffle-rs/ruffle": "^0.7.1",
     "@run-slicer/cfr": "0.1.8-0.152",
     "ag-psd": "^31.0.2",
+    "apache-arrow": "21.2.0",
     "archive-wasm": "^2.1.0",
     "bpmn-js": "^18.31.0",
     "e-virt-table": "catalog:",

@@ -135,6 +135,26 @@
                 </el-checkbox-button>
               </el-checkbox-group>
             </el-form-item>
+
+            <!-- 图片能力的细化：勾了「图片」才出现。之前只有一个是/否的勾，
+                 表达不了「最多几张」「能不能拿图当参考」这类真实约束。
+                 张数留空 = 未配置（不限制）；支持参考图默认关。 -->
+            <template v-if="hasImageIn">
+              <el-form-item label="输入图片张数" prop="config.imageInputCount" class="mb-2">
+                <ReNumberInput v-model="form.config.imageInputCount" :min="1" :max="16"
+                  :placeholder="t('settings.providerDetail.modelDefault')" controls-position="right" class="num-input" />
+                <span class="me-hint">单次请求最多携带几张图片，留空 = 不限制</span>
+              </el-form-item>
+              <el-form-item label="支持参考图" prop="config.imageReference" class="mb-2">
+                <el-switch v-model="form.config.imageReference" />
+                <span class="me-hint">开启后可把图片作为参照传给该模型（图生图 / 参考图编辑）</span>
+              </el-form-item>
+            </template>
+            <el-form-item v-if="hasImageOut" label="输出图片张数" prop="config.imageOutputCount" class="mb-2">
+              <ReNumberInput v-model="form.config.imageOutputCount" :min="1" :max="8"
+                :placeholder="t('settings.providerDetail.modelDefault')" controls-position="right" class="num-input" />
+              <span class="me-hint">单次生成最多几张，留空 = 不限制</span>
+            </el-form-item>
             <el-form-item :label="t('settings.providerDetail.advancedFeatures')" prop="config.features" class="mb-2">
               <el-checkbox-group v-model="form.config.features">
                 <el-checkbox-button value="tools">
@@ -500,6 +520,10 @@ const currentType = computed(() => modelTypeOptions.find((o) => o.value === form
 const currentTypeIcon = computed(() => currentType.value?.icon)
 const currentTypeLabel = computed(() => currentType.value?.label || '')
 
+/** 输入 / 输出能力里勾了「图片」→ 展开张数与参考图的细化配置项 */
+const hasImageIn = computed(() => (form.value.config?.inputCapabilities || []).includes('image'))
+const hasImageOut = computed(() => (form.value.config?.outputCapabilities || []).includes('image'))
+
 const form = ref<any>({
   modelName: '',
   modelType: 'text',
@@ -510,6 +534,9 @@ const form = ref<any>({
 /**
  * 「自动获取」：按当前模型名从后台指标端点拉取指标快照（上下文/能力开关/思考档位/
  * family/knowledge 等），回填到表单 config；模型未被指标源收录时提示并保持表单不动。
+ *
+ * <p>这是**手动**入口（新增、编辑都能点，点了就是用户明确要求补全）。
+ * 自动补全见 {@link autoFillMetrics}，只在新增时触发。</p>
  */
 const handleAutoFetch = async () => {
   const modelName = String(form.value.modelName || '').trim()
@@ -521,7 +548,26 @@ const handleAutoFetch = async () => {
       message.warning(res?.message || '该模型未被指标源收录，可手动填写配置')
       return
     }
-    const cfg = form.value.config || {}
+    mergeMetricSnapshot(res)
+    message.success(`已按模型「${modelName}」自动获取指标参数，请核对后保存`)
+  } catch (error: any) {
+    message.error(error?.message || '自动获取指标参数失败')
+  } finally {
+    autoFetching.value = false
+  }
+}
+
+/**
+ * 指标快照 → 表单 config 的回填主体（上下文 / 输出上限 / 能力开关 / 特性 /
+ * 思考档位 / family 等信息字段）。
+ *
+ * <p>只负责回填，不弹提示、不管理 loading —— 手动按钮在外面包 toast，
+ * 新增态的静默自动补全则完全不打扰用户。</p>
+ *
+ * @param res 指标端点返回的 data（已确认 found !== false）
+ */
+const mergeMetricSnapshot = (res: any) => {
+  const cfg = form.value.config || {}
     // 上下文 / 输出上限：仅在未填时回填
     const ctx = Number(res.context_window_tokens)
     if (!cfg.contextWindow && Number.isFinite(ctx) && ctx > 0) cfg.contextWindow = ctx
@@ -553,17 +599,31 @@ const handleAutoFetch = async () => {
     if (res.release_date) cfg.releaseDate = String(res.release_date)
     if (res.last_updated) cfg.lastUpdated = String(res.last_updated)
     if (res.modalities && typeof res.modalities === 'object') cfg.modalities = res.modalities
-    configMerged.value = true
-    message.success(`已按模型「${modelName}」自动获取指标参数，请核对后保存`)
-  } catch (error: any) {
-    message.error(error?.message || '自动获取指标参数失败')
-  } finally {
-    autoFetching.value = false
-  }
+  configMerged.value = true
 }
 
 /** 标记「自动获取已回填」：新增保存时把 family 等指标带到 payload */
 const configMerged = ref(false)
+
+/**
+ * 新增态的**静默**自动补全：按模型名拉指标快照回填表单。
+ *
+ * <p>触发点只有一个 —— 从拉取列表点「选择」进入的新增表单（prefillFromFetch）。
+ * 编辑态一律不自动补全：编辑的回显就是库里的值，再自动补一遍只会把手填内容
+ * 盖掉（用户需求：只有新增才会补全，其它情况不处理）。</p>
+ */
+const autoFillMetrics = async () => {
+  if (isEditMode.value) return
+  const modelName = String(form.value.modelName || '').trim()
+  if (!modelName) return
+  try {
+    const res: any = await apiService.fetchModelMetrics(props.provider.id, modelName)
+    if (res && res.found !== false) mergeMetricSnapshot(res)
+  } catch (error: any) {
+    // 静默补全失败不打扰用户（指标源不可达 / 非管理员 403），控制台留痕即可
+    console.debug('[ModelFormDialog] 自动补全指标参数跳过:', error)
+  }
+}
 
 function configMergePayload() {
   const cfg = form.value.config || {}
@@ -733,6 +793,8 @@ const openEdit = (model: any) => {
     config: createDefaultModelConfig({
       ...model.config,
       generate: model.generate,
+      // 图片输入输出细化（张数 / 参考图）：后端同样以顶层 image 节点回传
+      image: model.image,
       // 档位后端同样以顶层 thinking_efforts 回传（见 ApiProviderController.toProviderModelResponse）
       thinkingEfforts: model.thinking_efforts,
       // 能力开关：由实体列/metrics 推导（编辑回显勾选态）
@@ -753,6 +815,10 @@ const prefillFromFetch = (model: any) => {
     config: mergeFetchConfig(model, type),
   }
   visible.value = true
+  // 只有新增才会补全（见 autoFillMetrics）：拉取列表里选中的行往往只有模型名，
+  // 上下文 / 能力等参数在这里静默从指标端点补齐，不必再手动点「自动获取」。
+  // 编辑态不补（openEdit 自己回显库里的值），这是本函数的固有前提，这里仍显式判断。
+  void autoFillMetrics()
 }
 
 /**

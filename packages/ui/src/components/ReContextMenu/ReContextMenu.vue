@@ -6,7 +6,7 @@
       v-if="visible"
       ref="menuEl"
       class="re-ctx-menu"
-      :style="{ left: ctxX + 'px', top: ctxY + 'px' }"
+      :style="{ left: ctxX + 'px', top: ctxY + 'px', minWidth: minWidth + 'px', maxWidth: maxWidth + 'px' }"
       role="menu"
       @contextmenu.prevent
     >
@@ -18,17 +18,23 @@
       <template v-for="(item, index) in visibleItems" :key="index">
         <!-- 分隔线 -->
         <div v-if="item.separator" class="re-ctx-sep" />
+        <!-- 分组小标题：不可点，只用来给下面几项归类 -->
+        <div v-else-if="item.group" class="re-ctx-group">{{ item.group }}</div>
+        <!-- 纯说明行：不可点、不响应悬停 -->
+        <div v-else-if="item.note" class="re-ctx-note">{{ item.note }}</div>
         <!-- 叶子节点：直接点击 -->
         <div
           v-else-if="!item.children"
           v-show="item.visible !== false"
           class="re-ctx-item"
-          :class="{ 'is-danger': item.danger, 'is-disabled': item.disabled }"
+          :class="{ 'is-danger': item.danger, 'is-disabled': item.disabled, 'is-checked': !!item.checked }"
           @click="handleSelect(item)"
         >
+          <span v-if="item.checked !== undefined" class="re-ctx-check">{{ item.checked ? "✓" : "" }}</span>
           <ReIcon v-if="typeof item.icon === 'string'" :name="item.icon" />
           <component :is="item.icon" v-else-if="item.icon" />
           <span>{{ item.label }}</span>
+          <span v-if="item.hint" class="re-ctx-hint">{{ item.hint }}</span>
         </div>
         <!-- 分组节点：hover 展开子菜单 -->
         <div
@@ -42,6 +48,7 @@
           <ReIcon v-if="typeof item.icon === 'string'" :name="item.icon" />
           <component :is="item.icon" v-else-if="item.icon" />
           <span>{{ item.label }}</span>
+          <span v-if="item.hint" class="re-ctx-hint">{{ item.hint }}</span>
           <ReIcon name="ArrowRight" class="re-ctx-arrow" />
           <div
             v-if="openSubKey === subKey(item, index)"
@@ -52,16 +59,24 @@
           >
             <template v-for="(child, ci) in item.children" :key="ci">
               <div v-if="child.separator" class="re-ctx-sep" />
+              <div v-else-if="child.group" class="re-ctx-group">{{ child.group }}</div>
+              <div v-else-if="child.note" class="re-ctx-note">{{ child.note }}</div>
               <div
                 v-else
                 v-show="child.visible !== false"
                 class="re-ctx-item"
-                :class="{ 'is-danger': child.danger, 'is-disabled': child.disabled }"
+                :class="{
+                  'is-danger': child.danger,
+                  'is-disabled': child.disabled,
+                  'is-checked': !!child.checked,
+                }"
                 @click.stop="handleSelect(child)"
               >
+                <span v-if="child.checked !== undefined" class="re-ctx-check">{{ child.checked ? "✓" : "" }}</span>
                 <ReIcon v-if="typeof child.icon === 'string'" :name="child.icon" />
                 <component :is="child.icon" v-else-if="child.icon" />
                 <span>{{ child.label }}</span>
+                <span v-if="child.hint" class="re-ctx-hint">{{ child.hint }}</span>
               </div>
             </template>
           </div>
@@ -95,10 +110,16 @@ const props = withDefaults(
     title?: string;
     /** 头部副文本 */
     subtitle?: string;
+    /** 最小宽度（px）。带右侧说明文字（hint）的菜单需要更宽 */
+    minWidth?: number;
+    /** 最大宽度（px）。label 过长时按此截断 */
+    maxWidth?: number;
   }>(),
   {
     title: "",
     subtitle: "",
+    minWidth: 176,
+    maxWidth: 240,
   },
 );
 
@@ -120,8 +141,8 @@ const openSubKey = ref<string | null>(null);
 /** 子菜单翻转状态 */
 const subFlip = reactive({ v: false, h: false });
 
-/** 过滤掉 visible=false 的顶层项 */
-const visibleItems = computed(() => props.items);
+/** 过滤掉 visible=false 的顶层项（叶子 / 分组 / 说明行一视同仁） */
+const visibleItems = computed(() => props.items.filter(item => item.visible !== false));
 
 /** 生成子菜单唯一 key */
 function subKey(item: ReContextMenuItem, index: number): string {
@@ -339,8 +360,8 @@ defineExpose({ open, close });
 .re-ctx-sub .re-ctx-item > svg,
 .re-ctx-sub .re-ctx-item > .el-icon,
 .re-ctx-sub .re-ctx-item > .el-icon > svg {
-  width: 13.5px;
-  height: 13.5px;
+  width: 13px;
+  height: 13px;
 }
 /* 宿主传的是图标组件（Element Plus 的 <Edit /> 一类），包一层 .el-icon：按同一档位收口 */
 .re-ctx-item .el-icon {
@@ -348,7 +369,7 @@ defineExpose({ open, close });
   flex-shrink: 0;
 }
 .re-ctx-sub .re-ctx-item .el-icon {
-  font-size: 13.5px;
+  font-size: 13px;
 }
 .re-ctx-item.is-disabled {
   color: var(--el-text-color-disabled, #c0c4cc);
@@ -417,11 +438,11 @@ defineExpose({ open, close });
 }
 .re-ctx-sub .re-ctx-item {
   height: 31px;
-  font-size: 12.5px;
+  font-size: 13px;
 }
 .re-ctx-sub .re-ctx-item .re-icon,
 .re-ctx-sub .re-ctx-item svg {
-  font-size: 13.5px;
+  font-size: 13px;
 }
 .re-ctx-sep {
   height: 1px;
@@ -446,11 +467,59 @@ defineExpose({ open, close });
   white-space: nowrap;
 }
 .re-ctx-head span {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--el-text-color-placeholder, #a8abb2);
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 右侧说明文字：占满剩余宽度、贴右、单行截断 */
+.re-ctx-hint {
+  margin-left: auto;
+  padding-left: 10px;
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 11px;
+  color: var(--el-text-color-placeholder, #a8abb2);
+}
+.re-ctx-item.is-danger .re-ctx-hint,
+.re-ctx-item.is-disabled .re-ctx-hint {
+  color: inherit;
+  opacity: 0.7;
+}
+
+/* 勾选列：固定宽度，保证同组文字左边缘对齐（false 也占位） */
+.re-ctx-check {
+  flex: none;
+  width: 12px;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--el-color-primary, #409eff);
+}
+.re-ctx-item.is-checked {
+  color: var(--el-color-primary, #409eff);
+  font-weight: 600;
+}
+
+/* 分组小标题：灰、字号最小、不可点 */
+.re-ctx-group {
+  padding: 5px 9px 3px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--el-text-color-placeholder, #a8abb2);
+  white-space: nowrap;
+}
+
+/* 纯说明行：比正文轻，不响应悬停 */
+.re-ctx-note {
+  padding: 0 9px 5px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-placeholder, #a8abb2);
+  white-space: normal;
 }
 </style>

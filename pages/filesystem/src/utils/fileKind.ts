@@ -98,10 +98,10 @@ const OFFICE_EXTS = [
   "xlsx", "xls", "docx", "doc", "pptx", "ppt",
   // WPS 家族：wps(文字) / wpt(文字模板) / et、ett(表格) / dps(演示)。
   // 归到 office 只是**语义归类**（isClientRenderable 不看本清单，它只认
-  // EXTENSION_TO_RENDERER / LEGACY_BINARY_EXTS），实际通道由文件内容决定：
-  // wps 走 needsPdfConvert 的服务端转 PDF 链路；et/ett/dps/wpt 目前走服务端。
-  // 若日后要改成「OOXML 型客户端直渲」，需同步改后端 ClientPreviewSupport
-  // 的 LEGACY_BINARY_EXTS + 本文件 officeRenderer.ts 的 LEGACY_BINARY_EXTS。
+  // EXTENSION_TO_RENDERER / LEGACY_BINARY_EXTS）。实际通道由内容魔数决定：
+  // 已在 officeRenderer#resolveViewerFileName 中按 ZIP/OLE2 改名到
+  // docx/xlsx/pptx 或 doc/xls/ppt，由 preset-office 客户端直渲；
+  // 客户端解析失败时由 PreviewOfficePanel 探测 ?format=pdf 兜底。
   "wps", "wpt", "et", "ett", "dps",
   // file-viewer 客户端直渲染的补充格式（2026/10/10 与 preset-office capability 对齐）：
   // WordPerfect wp/wp5/wp6、Excel 加载宏 xla/xlam、dBase 表 dbf。语义归 office，

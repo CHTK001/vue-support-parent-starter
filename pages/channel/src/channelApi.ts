@@ -719,6 +719,35 @@ export const channelApi = {
     unwrapPayload<{ ok: boolean; channel: string; result: MagpieSigninSession }>(
       apiHttp.post(`/api/channels/${channel}/signin`).data(body),
     ),
+  /**
+   * POST /api/channels/{channel}/signin/prompt —— 登录前的一问。
+   *
+   * <p>插件登录常常要先回答一个问题（loomy 要手机号）。网关每答一问就返回
+   * 下一问；{@code prompt} 为空表示可以真正发起登录，此时把累计的
+   * {@code inputs} 交给 {@link #magpieSignin}。</p>
+   */
+  magpieSigninPrompt: (
+    channel: string,
+    body: {
+      connectionId?: string
+      label?: string
+      provider: string
+      method?: number
+      inputs?: Record<string, string>
+      key?: string
+      value?: string
+    },
+  ) =>
+    unwrapPayload<{
+      ok: boolean
+      channel: string
+      result: {
+        prompt?: MagpieSigninPrompt | null
+        inputs?: Record<string, string>
+        /** 答案不合格时网关给的原因（如手机号格式） */
+        error?: string
+      }
+    }>(apiHttp.post(`/api/channels/${channel}/signin/prompt`).data(body)),
   /** GET /api/channels/{channel}/signin/{id} —— 轮询登录会话 */
   magpieSigninStatus: (channel: string, id: string, ref?: ChannelAccountRef) =>
     unwrapPayload<{ ok: boolean; channel: string; result: MagpieSigninSession }>(
@@ -901,6 +930,26 @@ export interface MagpieSigninSession {
   user?: string
   message?: string
   [key: string]: unknown
+}
+
+/**
+ * 上游登录前的一问（插件的 {@code prompt}）。
+ *
+ * <p>插件登录不一定一步到位：loomy 先要手机号，其它插件可能要验证码或选项。
+ * 网关把「下一步要什么」作为 {@code prompt} 下发，前端按类型渲染成输入框 /
+ * 下拉，答完再问，直到没有下一问才真正发起登录。</p>
+ */
+export interface MagpieSigninPrompt {
+  /** 题目类型：{@code text} / {@code password} / {@code select} */
+  type?: string
+  /** 答案回传时的字段名（如 {@code phone}） */
+  key?: string
+  /** 题面 */
+  message?: string
+  /** 输入框占位提示 */
+  placeholder?: string
+  /** {@code select} 的候选项 */
+  options?: string[]
 }
 
 /**

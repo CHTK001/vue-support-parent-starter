@@ -101,7 +101,9 @@
 
             <!-- 批量操作工具栏：始终占位，避免选中后把卡片网格往下顶。
                  整块只在可写时出现：勾选、启停、批量删除全是 admin-only 接口，
-                 只读账号没有可执行的动作。 -->
+                 只读账号没有可执行的动作。
+                 没有「多选」入口：卡片右上角常驻勾选框，勾中任意一个后这条工具栏
+                 自动变成批量操作（用户需求：选中即接管工具栏，不再需要先点「多选」）。 -->
             <div v-if="canWrite" class="batch-toolbar">
               <template v-if="selected.length > 0">
                 <span class="batch-count">已选 {{ selected.length }} 个</span>
@@ -119,25 +121,7 @@
                   :loading="batchDeleting"
                   @click="batchDelete"
                 >批量删除</el-button>
-                <el-button size="small" @click="exitMultiSelect">取消</el-button>
-              </template>
-              <!-- 未选择时显示多选入口，避免批量操作入口缺失 -->
-              <template v-else>
-                <span class="batch-count">多选模型进行批量操作</span>
-                <el-button v-if="!multiSelect" size="small" type="primary" @click="enterMultiSelect">多选</el-button>
-                <template v-else>
-                  <span
-                    class="batch-select-all"
-                    :class="{ 'is-all': selected.length === filteredModels.length && filteredModels.length > 0 }"
-                    @click="toggleSelectAllFiltered"
-                  >{{ selected.length === filteredModels.length ? '取消全选' : '全选当前筛选' }}</span>
-                  <!--
-                    批量启用/停用后 selected 会被清空，但 multiSelect 仍是 true；
-                    此前这个分支只剩「全选当前筛选」，没有退出入口，用户会被困在多选态
-                    （2026-11-09 浏览器验收实测）。补一个取消，随时能回到普通浏览。
-                  -->
-                  <el-button size="small" @click="exitMultiSelect">取消</el-button>
-                </template>
+                <el-button size="small" @click="clearSelection">取消</el-button>
               </template>
             </div>
           </div>
@@ -184,18 +168,21 @@
         </div>
         <div v-else class="model-grid">
           <article v-for="model in filteredModels" :key="model.id" class="mc"
-            :class="{ 'is-selected': selected.includes(getModelId(model)), 'is-multi': multiSelect, 'is-off': !model.isActive }">
+            :class="{ 'is-selected': selected.includes(getModelId(model)), 'is-off': !model.isActive }">
             <div class="mc-head">
-              <!-- 模型没有专属 logo 时回退到供应商 logo：默认图缺失不该让卡片空一块 -->
+              <!-- 模型没有专属 logo、或那张图根本加载不出来时，回退到**自己供应商**的 logo。
+                   只判「路径为空」不够：路径存在 ≠ 资源存在（旧图 404 会先破图再落回首字），
+                   所以补一条 error 兜底，由 Avatar 的 error 事件登记。 -->
               <ProviderLogo
-                v-if="!getModelAvatar(model)"
+                v-if="!getModelAvatar(model) || avatarFailed.has(getModelId(model))"
                 :pid="getProviderIcon(provider)"
                 :name="provider?.name"
                 size="md"
                 class="w-10 h-10 shrink-0 mr-3"
               />
               <Avatar v-else class="w-10 h-10 shrink-0 mr-3" :src="getModelAvatar(model)"
-                :name="getModelDisplayName(model.modelName)" type="assistant" :round="false" />
+                :name="getModelDisplayName(model.modelName)" type="assistant" :round="false"
+                @error="avatarFailed.add(getModelId(model))" />
               <div class="mc-head-text min-w-0">
                 <span class="mc-name" :title="model.alias ? `${model.alias} · ${model.modelName}` : getModelDisplayName(model.modelName)">
                   {{ model.alias || getModelDisplayName(model.modelName) }}
@@ -245,13 +232,15 @@
             <!-- 参数与官方指标：手填值优先，缺失回退指标表（sys_ai_model_metrics）。
                  本版把指标做成 2×2 等宽色块：同一行里的「输入 / 输出」或
                  「价格 / 速度」可以直接横向比较，比一行小字更容易扫读。
-                 条目数不定（0～8），色块网格自动铺满，不会留下空洞。 -->
+                 输入 / 输出 / 价格 / 速度 四项**恒定渲染**（缺数据显示 —），
+                 保证每张卡都是同样的 2×2、行高一致；最近使用 / 延迟 / 首字 /
+                 智能 这类附加指标仍是「有数据才占位」。 -->
             <div v-if="cardMeta(model).length" class="mc-meta">
               <span
                 v-for="(item, mi) in cardMeta(model)"
                 :key="item.label"
                 class="mc-meta-item"
-                :class="{ 'is-lead': mi === 0 }"
+                :class="{ 'is-lead': mi === 0, 'is-empty': item.value === '—' }"
                 :title="item.title"
               >
                 <span class="mc-meta-label">{{ item.label }}</span>
@@ -327,7 +316,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { message } from '@repo/core'
 import Avatar from '../ui/Avatar.vue'
@@ -408,18 +397,8 @@ const typeFilter = ref('')
 /** 批量选中的模型 id */
 const selected = ref<string[]>([])
 
-/** 多选模式：仅控制界面显隐，不改变已选中的模型 id */
-const multiSelect = ref(false)
-
-/** 进入多选模式：清空已有选择，准备重新勾选 */
-const enterMultiSelect = () => {
-  selected.value = []
-  multiSelect.value = true
-}
-
-/** 退出多选模式：清空已有选择 */
-const exitMultiSelect = () => {
-  multiSelect.value = false
+/** 清空已选模型（批量操作栏的「取消」） */
+const clearSelection = () => {
   selected.value = []
 }
 
@@ -571,6 +550,14 @@ const getModelAvatar = (model: any) => {
   return path || undefined
 }
 
+/**
+ * 模型 logo 加载失败的模型 id 集合。
+ *
+ * <p>模型 logo 的路径是「按模型名猜品牌」得到的，猜中了也不代表那张图真的存在。
+ * 路径非空 → Avatar 显示；资源 404 → 这里登记，模板改渲染供应商 logo 兜底。</p>
+ */
+const avatarFailed = reactive(new Set<string>())
+
 const fmtNum = (v: number) =>
   v >= 1000 ? (v >= 1000000 ? (v / 1000000).toFixed(1).replace(/\.0$/, '') + 'M' : Math.round(v / 1000) + 'K') : String(v)
 
@@ -617,7 +604,59 @@ const cardMeta = (model: any) => {
   const cfg = model?.config || {}
   const mt = model?.metrics || {}
   const items: Array<{ label: string; value: string; title: string }> = []
+  /** 无数据占位：四项核心指标恒定渲染，缺值就显示它 */
+  const EMPTY = '—'
 
+  const manualCtx = numOrNull(cfg.contextWindow)
+  const ctx = manualCtx ?? numOrNull(mt.context_window_tokens)
+  const out = numOrNull(cfg.maxOutputTokens)
+  const pIn = numOrNull(mt.price_input_per_musd)
+  const pOut = numOrNull(mt.price_output_per_musd)
+  const speed = numOrNull(mt.output_speed_tps)
+
+  // ① 输入 / ② 输出 / ③ 价格 / ④ 速度：**四项恒定渲染**，没有数据就显示 —。
+  //
+  // 为什么改成恒定：此前每一项都是「有数据才 push」，条目数在 0～4 之间随机，
+  // 色块是 flex 换行铺满的，行数跟着变 —— 同一屏卡片高低不齐（用户实测反馈）。
+  // 固定这四项后每张卡都是同样的 2×2，横向也能直接对齐比较。
+  items.push({
+    label: '输入',
+    value: ctx != null ? fmtNum(ctx) : EMPTY,
+    title: ctx == null
+      ? '输入最大 token：未配置（可在模型管理手填，或用「同步价格」回填）'
+      : `输入最大 token：${ctx.toLocaleString()}${manualCtx != null ? '（手动填写）' : '（指标表上下文窗口）'}`,
+  })
+  items.push({
+    label: '输出',
+    value: out != null ? fmtNum(out) : EMPTY,
+    title: out == null
+      ? '输出最大 token：未配置（可在模型管理手填）'
+      : `输出最大 token：${out.toLocaleString()}（手动填写）`,
+  })
+  {
+    const f = (v: number | null) => (v == null ? EMPTY : humanPrice(v))
+    // 输入输出都为 0 即免费：显式标注，别让用户对着「$0/$0」自己判断；
+    // 只有两边都采到才判免费，缺一边不算。
+    const free = pIn != null && pOut != null && pIn === 0 && pOut === 0
+    const known = pIn != null || pOut != null
+    items.push({
+      label: '价格',
+      value: !known ? EMPTY : free ? '免费' : `${f(pIn)}/${f(pOut)}`,
+      title: !known
+        ? '官方估价：指标源未采集（用「同步价格」回填）'
+        : free
+          ? '上游标注免费（输入输出价格均为 0）'
+          : `官方估价（USD / 百万 token）：输入 ${f(pIn)}，输出 ${f(pOut)}`,
+    })
+  }
+  items.push({
+    label: '速度',
+    value: speed != null ? `${humanDecimal(speed)} t/s` : EMPTY,
+    title: speed != null ? '输出速度（token/秒）' : '输出速度：指标源未采集',
+  })
+
+  // 以下为**可选附加指标**：有数据才占位。它们不参与上面的固定 2×2，
+  // 想让整块完全等高时再把这几项也改成恒定渲染。
   // 最近使用时间：后端若有 last_used_at / lastUsedAt 就展示；没有时不占位。
   const recentUse = model?.last_used_at ?? model?.lastUsedAt ?? model?.recent_use_at ?? model?.used_at
   if (recentUse) {
@@ -625,21 +664,6 @@ const cardMeta = (model: any) => {
     if (t) {
       items.push({ label: '最近使用', value: t, title: `最近使用时间：${t}` })
     }
-  }
-
-  const manualCtx = numOrNull(cfg.contextWindow)
-  const ctx = manualCtx ?? numOrNull(mt.context_window_tokens)
-  if (ctx) {
-    items.push({
-      label: '输入',
-      value: fmtNum(ctx),
-      title: `输入最大 token：${ctx.toLocaleString()}${manualCtx != null ? '（手动填写）' : '（指标表上下文窗口）'}`,
-    })
-  }
-
-  const out = numOrNull(cfg.maxOutputTokens)
-  if (out) {
-    items.push({ label: '输出', value: fmtNum(out), title: `输出最大 token：${out.toLocaleString()}（手动填写）` })
   }
 
   const latency = numOrNull(model.modelLastLatency ?? mt.probe_latency_ms ?? mt.latency_ms)
@@ -664,26 +688,6 @@ const cardMeta = (model: any) => {
       value: `${Math.round(ttftSec * 1000)}ms`,
       title: `官方首字延迟（TTFT，中位数）：${ttftSec.toFixed(2)}s`,
     })
-  }
-
-  const pIn = numOrNull(mt.price_input_per_musd)
-  const pOut = numOrNull(mt.price_output_per_musd)
-  if (pIn != null || pOut != null) {
-    const f = (v: number | null) => (v == null ? '—' : humanPrice(v))
-    // 输入输出都为 0 即免费：显式标注，别让用户对着「$0/$0」自己判断
-    const free = (pIn ?? 0) === 0 && (pOut ?? 0) === 0
-    items.push({
-      label: '价格',
-      value: free ? '免费' : `${f(pIn)}/${f(pOut)}`,
-      title: free
-        ? '上游标注免费（输入输出价格均为 0）'
-        : `官方估价（USD / 百万 token）：输入 ${f(pIn)}，输出 ${f(pOut)}`,
-    })
-  }
-
-  const speed = numOrNull(mt.output_speed_tps)
-  if (speed != null) {
-    items.push({ label: '速度', value: `${humanDecimal(speed)} t/s`, title: '输出速度（token/秒）' })
   }
 
   const idx = numOrNull(mt.intelligence_index)
@@ -1286,12 +1290,6 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
 }
 .mc:hover .mc-check { background: var(--el-fill-color-dark); }
-/* 多选模式下 checkbox 常驻可见，避免未被注意到 */
-.mc.is-multi .mc-check {
-  background: color-mix(in srgb, var(--color-text-disabled) 15%, var(--el-fill-color-light));
-  border: 1px solid var(--el-border-color-lighter);
-}
-.mc.is-multi .mc-check:hover { background: var(--el-fill-color-dark); }
 .mc.is-selected .mc-check {
   color: #fff;
   background: var(--color-primary);
@@ -1395,6 +1393,10 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   text-overflow: ellipsis;
 }
 .mc-meta-item.is-lead .mc-meta-val { color: var(--color-primary); }
+/* 无数据占位（—）：压成弱化色，别让「没数据」看起来像一个真数值 */
+.mc-meta-item.is-empty .mc-meta-val { color: var(--color-text-gray); font-weight: 600; }
+/* 主指标同时也是空值时，弱化色要盖过主色（同特异度下靠后声明取胜） */
+.mc-meta-item.is-lead.is-empty .mc-meta-val { color: var(--color-text-gray); }
 
 .mc-foot {
   display: flex;

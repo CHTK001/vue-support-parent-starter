@@ -130,6 +130,18 @@ function buildProviderModelBody(data: any) {
   const subType = String(data.subType || data.modelSubType || config.subType || config.modelSubType || '').trim();
   const mainCap: Record<string, any> = { task: mainTask, traits };
   if (subType) mainCap.subtype = subType;
+  // 图片输入输出细化（张数 / 参考图）：随主能力节点落库（capabilities[0].image），
+  // 后端 toCapabilityResponse / toProviderModelResponse 原样透传 —— 与 generate /
+  // thinking_efforts 同一套「复用 capabilities JSON，不新增数据库字段」的套路。
+  const imageIn = numOrNull(config.imageInputCount);
+  const imageOut = numOrNull(config.imageOutputCount);
+  if (config.imageReference === true || imageIn != null || imageOut != null) {
+    mainCap.image = {
+      inputCount: imageIn,
+      outputCount: imageOut,
+      reference: config.imageReference === true,
+    };
+  }
   if (gen && (mainTask === "image_generation" || mainTask === "video_generation")) {
     mainCap.generate = {
       referenceImage: !!gen.referenceImage,

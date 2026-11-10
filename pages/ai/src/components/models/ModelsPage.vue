@@ -2,34 +2,29 @@
   <div class="h-full overflow-hidden flex flex-col" data-page="models">
     <!--
       页头：独立路由（/models）渲染完整 PageHeader；嵌入到配置中心时（embedded=true）
-      交出标题与窗口控制，只保留「多选 / 删除供应商」这排操作 —— 外层已经有页头，
+      交出标题与窗口控制，只保留供应商批量删除这排操作 —— 外层已经有页头，
       再来一个就是同一条标题栏画两遍。
     -->
     <PageHeader v-if="!embedded" :title="t('settings.models.title')">
       <template #actions>
-        <!-- 供应商行多选/批删：与逐条删除分开，点供应商头像或名称进入该供应商的模型页。
-             按钮组是独立组件（ModelsBatchActions），配置中心内嵌入口引的是同一个，
-             两个入口的这排操作因此不会各写一份。
+        <!-- 供应商批量删除：勾选左侧供应商行后自动出现（不再有「多选」入口）。
              canWrite=false（非管理员）时整排不渲染：批量删除是 admin-only 接口。 -->
         <ModelsBatchActions
           v-if="canWrite"
-          :multi-select="multiSelect"
           :selected-count="selectedProviders.length"
           :deleting="batchDeleting"
-          @start="multiSelect = true"
-          @cancel="exitMultiSelect"
+          @cancel="clearProviderSelection"
           @remove="batchDeleteProviders"
         />
       </template>
     </PageHeader>
-    <!-- 内嵌模式（配置中心 → 模型管理）：外层已有页头，这里只保留那排操作 -->
-    <div v-else-if="canWrite" class="mw-toolbar">
+    <!-- 内嵌模式（配置中心 → 模型管理）：外层已有页头，这里只保留那排操作；
+         未选供应商时整条不渲染，避免留一条空操作条 -->
+    <div v-else-if="canWrite && selectedProviders.length > 0" class="mw-toolbar">
       <ModelsBatchActions
-        :multi-select="multiSelect"
         :selected-count="selectedProviders.length"
         :deleting="batchDeleting"
-        @start="multiSelect = true"
-        @cancel="exitMultiSelect"
+        @cancel="clearProviderSelection"
         @remove="batchDeleteProviders"
       />
     </div>
@@ -49,9 +44,18 @@
               v-for="p in providers"
               :key="p.id"
               class="mw-item"
-              :class="{ active: p.id === currentProviderId, selected: multiSelect && isSelected(p) }"
-              @click="multiSelect ? toggleSelectProvider(p) : selectProvider(p)"
+              :class="{ active: p.id === currentProviderId, selected: isSelected(p) }"
+              @click="selectProvider(p)"
             >
+              <!-- 供应商勾选框：平时隐形（保留占位，避免悬停时整行左右跳），
+                   悬停或已选中时显形；勾中任何一个后页头那排批删操作自动出现。 -->
+              <span v-if="canWrite" class="mw-item-check" @click.stop>
+                <el-checkbox
+                  :model-value="isSelected(p)"
+                  :title="isSelected(p) ? '取消选择' : '选择该供应商'"
+                  @change="toggleSelectProvider(p)"
+                />
+              </span>
               <ProviderLogo :pid="getProviderIcon(p)" :name="p.name" size="md" />
               <div class="mw-item-text">
                 <span class="mw-item-name">{{ p.name }}</span>
@@ -171,8 +175,7 @@ const currentProviderId = ref<string | null>(null)
 const formRef = ref<any>(null)
 const catalogRef = ref<any>(null)
 
-/** 供应商行多选/批量删除 */
-const multiSelect = ref(false)
+/** 供应商批量删除（勾选供应商行后，页头那排批删操作自动出现） */
 const selectedProviders = ref<any[]>([])
 const batchDeleting = ref(false)
 
@@ -200,8 +203,7 @@ const toggleSelectProvider = (p: any) => {
   else selectedProviders.value.push(p)
 }
 
-const exitMultiSelect = () => {
-  multiSelect.value = false
+const clearProviderSelection = () => {
   selectedProviders.value = []
 }
 
@@ -243,7 +245,7 @@ const batchDeleteProviders = async () => {
     if (deleted > 0) message.success(`已删除 ${deleted} 个供应商`)
     else message.error(res?.data?.msg || '删除失败')
     await reload()
-    exitMultiSelect()
+    clearProviderSelection()
   } catch (e: any) {
     console.error('批量删除供应商失败:', e)
     message.error(e?.message || '删除失败')
@@ -410,6 +412,23 @@ onMounted(async () => {
 }
 .mw-item.active .mw-item-name { color: var(--color-primary); }
 .mw-item-meta { font-size: 11px; color: var(--color-text-gray); margin-top: 1px; }
+
+/* 供应商勾选框：平时隐形但保留 18px 占位，悬停 / 已选中 / 键盘聚焦时显形。
+   保留占位是为了避免悬停时整行左右跳动。选中态不再依赖「多选模式」——
+   勾中任意一个供应商，页头那排批删操作就自动接管（用户需求 4）。 */
+.mw-item-check {
+  width: 18px;
+  height: 20px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.mw-item:hover .mw-item-check,
+.mw-item.selected .mw-item-check,
+.mw-item-check:focus-within { opacity: 1; }
 .mw-item-tail {
   position: relative;
   width: 26px;
@@ -506,6 +525,7 @@ onMounted(async () => {
   .mw-round,
   .mw-item,
   .mw-item-status,
+  .mw-item-check,
   .mw-item-del,
   .mw-store {
     transition: none;
@@ -541,7 +561,7 @@ onMounted(async () => {
 .mw-empty-title { margin: 0; font-size: 16px; font-weight: 700; color: var(--color-text); }
 .mw-empty-desc { margin: 6px 0 0; font-size: 13px; color: var(--color-text-gray); }
 
-/* 多选模式下供应商项的勾选态 */
+/* 供应商项的勾选态（勾中页头批删操作即接管） */
 .mw-item.selected {
   background: color-mix(in srgb, var(--color-primary) 10%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-primary) 25%, var(--color-surface-border));
@@ -582,6 +602,7 @@ onMounted(async () => {
   .mw-round,
   .mw-item,
   .mw-item-status,
+  .mw-item-check,
   .mw-item-del,
   .mw-store { transition: none; }
 }

@@ -4455,12 +4455,14 @@ function onImageSaved(): void {
  *   <li><b>ODF 模板（ott/ots/otp）</b>：SPI 提供器只回一张
  *       「需配置 LibreOffice」的提示卡；而 Aspose 三个转换器都能直接读，
  *       实测转出 23 KB / 7.6 KB / 14.8 KB 的有效 PDF。</li>
- *   <li><b>WPS（wps）</b>：后端 AsposeWord 的源格式里已经有 wps（实测把一份 OLE2
- *       文档改名成 .wps 走 format=pdf 能出真 PDF 19745 B），故接线。</li>
  *   <li><b>传统二进制 Word（doc）</b>：file-viewer 的 renderer-word 对部分
  *       97-2003 CFB 样本会抛 sector loop；后端 Aspose 转换可稳定出 PDF，
  *       且转换结果仍交给 file-viewer 的 renderer-pdf 渲染。</li>
  * </ul>
+ *
+ * <p>WPS 家族（wps/wpt/et/ett/dps）**不在此列**：它们按内容魔数改名后可由
+ * preset-office 直接渲染（见 {@code officeRenderer#resolveViewerFileName}），
+ * 只有在客户端解析失败时才由 PreviewOfficePanel 探测 {@code ?format=pdf} 兜底。</p>
  *
  * <p>注意：这条通道原本**只有「客户端组件失败后回报 channel:pdf」才会走**；
  * 而上述扩展名都不在 preset-office 清单内，客户端直渲分支本来轮不到它们，
@@ -4472,19 +4474,19 @@ function onImageSaved(): void {
  */
 function needsPdfConvert(name: string): boolean {
   const ext = name.slice(name.lastIndexOf(".") + 1).toLowerCase();
-  // wps：WPS 文字。**后端 AsposeWord 的源格式里已经有 wps**（实测把一份 OLE2 文档
-  // 改名成 .wps 走 format=pdf 能出真 PDF 19745 B），故接线。转不动时会**优雅降级**：
-  // convertToPdf 返回 null -> 带 convert=unavailable 继续走原通道 -> 落到提示卡
-  // （提示卡现在会显示「WPS Office」），不会崩也不会吐垃圾。
-  // 注意：这证明的是**路由 + 转换器链路**通，真 WPS 格式的保真度仍需真样本验证。
+  // wps 不再在此列：它现在按**内容魔数**分流（见 officeRenderer#resolveViewerFileName）。
+  // 新版 WPS 存的是 OOXML ZIP 容器，改名 .docx 后 preset-office 可纯前端直渲；
+  // 老版 OLE2 改名 .doc 交给传统二进制解析器。两者都失败时，PreviewOfficePanel
+  // 的 fallbackAfterClientError 会探测 ?format=pdf（后端 AsposeWord 支持 wps，
+  // 实测能出真 PDF），所以「纯前端优先 + 服务端兜底」两不误。
   //
-  // et / dps 不在此列：三个 Aspose 转换器的源格式里都没有它们，实测接线也只会
-  // 得到 convert=unavailable 并退回提示卡，属于白试一次，故不接。
+  // et / ett / dps 同理：不在本列，先按魔数改名直渲，失败再探 format=pdf。
+  //
   // ppt / pot：老式二进制 PowerPoint（OLE2）。file-viewer 的 preset-office 只认
   // OOXML，直接交给它只会得到空白面板（实测 .ppt/.pot 预览面板无内容、仅工具栏），
   // 故与 doc 同走服务端 aspose-ppt 转 PDF 通道（FileStorageServerFilter 的
   // ?format=pdf 分支；aspose-ppt 覆盖 ppt/pptx，转不了时后端标记 convert=unavailable）。
-  return ["ott", "ots", "otp", "doc", "ppt", "pot", "wps"].includes(ext);
+  return ["ott", "ots", "otp", "doc", "ppt", "pot"].includes(ext);
 }
 
 /**
