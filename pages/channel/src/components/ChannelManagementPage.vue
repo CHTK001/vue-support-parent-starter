@@ -69,6 +69,7 @@ import lobsteraiIcon from '../assets/channel-icons/lobsterai.ico'
 import qoderIcon from '../assets/channel-icons/qoder.svg'
 import workbuddyIcon from '../assets/channel-icons/workbuddy.svg'
 import magpieIcon from '../assets/channel-icons/magpie.svg'
+import kiloIcon from '../assets/channel-icons/kilo.svg'
 
 /** 渠道品牌外观：官方图标（可选）+ 品牌色 + 徽标字形 */
 interface ChannelBrand {
@@ -92,6 +93,8 @@ const CHANNEL_BRANDS: Record<string, ChannelBrand> = {
   minimax: { icon: minimaxIcon, color: '#F5701A', glyph: 'M', method: '设备码' },
   zcode: { icon: zcodeIcon, color: '#0C5CFF', glyph: 'Z', method: '浏览器授权' },
   raccoon: { color: '#0FA47F', glyph: 'R', method: '扫码' },
+  // Kilo 免费池：登录方式由后端给（keyless），这里只补官方图标
+  kilo: { icon: kiloIcon, color: '#F97316', glyph: 'K' },
   loomy: { color: '#2B7DE9', glyph: 'L', method: '微信扫码' },
   lobsterai: { icon: lobsteraiIcon, color: '#F03D64', glyph: 'L', method: '浏览器授权' },
   opencode: { icon: opencodeIcon, color: '#111827', glyph: 'O', method: 'API Key' },
