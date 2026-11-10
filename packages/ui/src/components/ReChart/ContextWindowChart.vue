@@ -62,6 +62,8 @@
           :key="cell.key"
           class="re-chart-context__cell"
           :class="{ 'is-free': cell.slice.kind === 'free' }"
+          :data-key="cell.key"
+          :data-kind="cell.slice.kind ?? 'other'"
           :style="cellStyle(cell)"
           :title="`${cell.slice.label} · ${formatTokens(cell.slice.tokens)} tokens`"
         >
@@ -185,7 +187,7 @@ const cells = computed(() =>
     : [],
 );
 
-/** 块间留 2px 缝隙：靠 inset 实现，不缩小 w/h，避免累计误差改变面积比 */
+/** 块只靠圆角与描边分隔（不缩 w/h），保证面积严格等于 token 占比 */
 function cellStyle(cell: { x: number; y: number; w: number; h: number; slice: ContextSlice }) {
   const free = cell.slice.kind === "free";
   const color = sliceColor(cell.slice);
