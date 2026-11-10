@@ -31,14 +31,15 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="设备状态">
-            <el-select v-model="form.deviceInfoStatus" class="w-full">
-              <el-option
+            <ReRadioGroup v-model="form.deviceInfoStatus">
+              <ReRadio
                 v-for="opt in DEVICE_STATUS_OPTIONS"
                 :key="opt.value"
-                :label="opt.label"
                 :value="opt.value"
-              />
-            </el-select>
+              >
+                {{ opt.label }}
+              </ReRadio>
+            </ReRadioGroup>
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -307,6 +308,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { message } from '@repo/core'
 import type { FormInstance, FormRules } from 'element-plus'
 import ReDialog from '@repo/ui/re-dialog'
+import { ReRadio, ReRadioGroup } from '@repo/ui/re-kit'
 import { deviceApi } from '@pages/device/src/api/deviceApi'
 import ReOrgTreeSelect from '@pages/device/src/components/ReOrgTreeSelect.vue'
 import { CATEGORY_OPTIONS, getSubCategoryOptions } from '@pages/device/src/utils/deviceCategory'

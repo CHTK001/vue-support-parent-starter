@@ -64,7 +64,7 @@ export interface ModelApi {
   fetchAllModels(): Promise<PaginatedResponse<ModelProvider>>;
   fetchRemoteModels(providerId: string): Promise<RemoteModelsResponse>;
   /** 拉取该提供商的全部远端模型并一次性批量录入（幂等） */
-  importAllModels(providerId: string, opts?: { tryFix?: boolean }): Promise<ImportAllModelsResponse>;
+  importAllModels(providerId: string, opts?: { tryFix?: boolean; models?: string[] }): Promise<ImportAllModelsResponse>;
   /** 按模型名从后台指标端点拉取指标快照，供新增/编辑模型页「自动获取」回填表单 */
   fetchModelMetrics(providerId: string, model: string): Promise<Record<string, any>>;
   createModel(data: any): Promise<Model>;
@@ -159,6 +159,29 @@ function buildProviderModelBody(data: any) {
     top_p: numOrNull(config.topP),
     frequency_penalty: numOrNull(config.frequencyPenalty),
   };
+  // 能力开关与上游元数据：ModelFormDialog 以顶层字段传进来，此前这里只挑了
+  // 上面那几个键，attachment/reasoning/tool_call/… 与 family/modalities 全被丢弃，
+  // 表现为「表单里勾了、保存后没回写」。这里原样透传给后端。
+  // 新增模型时表单只给 config.capabilities（顶层开关未单独下发），因此缺省从
+  // capabilities 反推，避免「能力勾了但库里的 attachment/reasoning 仍是 0」。
+  const capSet = new Set(toList(config.capabilities));
+  const fromCaps: Record<string, boolean> = {
+    attachment: capSet.has("attachment"),
+    reasoning: capSet.has("reasoning"),
+    tool_call: capSet.has("tool_call"),
+    temperature_supported: capSet.has("temperature"),
+    open_weights: capSet.has("open_weights"),
+  };
+  for (const key of [
+    "attachment", "reasoning", "tool_call", "temperature_supported", "open_weights",
+    "family", "knowledge", "release_date", "last_updated", "modalities", "thinking_efforts",
+  ]) {
+    if (data[key] !== undefined) {
+      model[key] = data[key];
+    } else if (key in fromCaps) {
+      model[key] = fromCaps[key];
+    }
+  }
   // 模型弹框没有这两项，编辑时不下发以免把已有值覆盖成默认值
   if (data.enabled !== undefined) model.enabled = data.enabled !== false;
   if (data.description !== undefined) model.description = data.description;
@@ -191,12 +214,17 @@ export const modelApi: ModelApi = {
     return await rawApi.get(`/api/providers/${encodeURIComponent(providerId)}/remote_models`);
   },
 
-  async importAllModels(this: ApiContext, providerId: string, opts?: { tryFix?: boolean }) {
+  async importAllModels(this: ApiContext, providerId: string, opts?: { tryFix?: boolean; models?: string[] }) {
     // 与 remote_models 同属 /api 命名空间：后端一次完成「调上游拉目录 + 批量落库」，
-    // 前端不再逐条点「选择」。try_fix 与单次拉取同语义（404 时补全 /v1 重试）。
+    // 前端不再逐条点「选择」。try_fix 与单次拉取同语义（404 时补全 /v1 重试）；
+    // models 非空时只录入勾选的模型（空 = 全部）。
+    const payload: Record<string, any> = { try_fix: !!opts?.tryFix };
+    if (opts?.models && opts.models.length) {
+      payload.models = opts.models;
+    }
     const body: any = await rawApi.post(
       `/api/providers/${encodeURIComponent(providerId)}/models/import-all`,
-      { try_fix: !!opts?.tryFix },
+      payload,
     );
     // rawApi 不解包（unwrap:false）：正常是 { code, data, msg }，data 即统计；
     // 个别出口直接回统计对象，这里统一成统计对象，信封 code!=0 视为业务失败。

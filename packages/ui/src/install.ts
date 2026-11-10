@@ -98,6 +98,7 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
   ReCron: () => import("./components/ReCron"),
   ReEmpty: () => import("./components/ReEmpty"),
   ReEmptyState: () => import("./components/ReEmptyState"),
+  ReErrorBar: () => import("./components/ReErrorBar"),
   ReSkeleton: () => import("./components/ReSkeleton"),
   RePagination: () => import("./components/RePagination"),
   ReRibbon: () => import("./components/ReRibbon"),

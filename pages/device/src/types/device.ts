@@ -368,6 +368,38 @@ export interface CredentialHealthResult {
   message?: string | null
 }
 
+/** 设备告警：webhook 入站 + 监听采集落库（后端查询与处理） */
+export interface DeviceAlarm {
+  /** 告警 ID */
+  deviceAlarmId: string
+  /** 来源（appKey 名称 / 厂商标识） */
+  deviceAlarmSource: string
+  /** 外部事件 ID（幂等键） */
+  deviceAlarmExternalId: string
+  /** 所属设备 ID */
+  deviceAlarmDeviceId: string
+  /** 通道号 */
+  deviceAlarmChannelNo: number | null
+  /** 告警类型 */
+  deviceAlarmType: string
+  /** 级别：critical / major / minor / info */
+  deviceAlarmLevel: string
+  /** 告警标题 */
+  deviceAlarmTitle: string
+  /** 告警详情 */
+  deviceAlarmDetail: string
+  /** 处理状态：unhandled / handling / resolved / ignored */
+  deviceAlarmStatus: string
+  /** 处理人 */
+  deviceAlarmHandler: string
+  /** 处理时间 */
+  deviceAlarmHandledAt: string | null
+  /** 发生时间 */
+  deviceAlarmOccurredAt: string
+  /** 入库时间 */
+  deviceAlarmCreatedAt: string
+}
+
 /** 机房拓扑的节点/边（与 ReRelationGraph 的节点契约对齐：{ id, label, group, type, size }） */
 export interface TopologyNode {
   /** 节点 id（带层级前缀）：area:名称 / subnet:区域:网段 / device:id / channel:id */

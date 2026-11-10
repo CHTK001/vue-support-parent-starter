@@ -18,6 +18,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import ReButton from "@repo/ui/re-button";
+import ReErrorBar from "@repo/ui/re-error-bar";
 import ReInput from "@repo/ui/re-input";
 import ReSelect from "@repo/ui/re-select";
 import ReTag from "@repo/ui/re-tag";
@@ -131,12 +132,13 @@ function typeHint(name: string): string {
   <div class="mapping-editor" @focusout="commit">
     <!-- 状态横幅：只提示不挡路 —— 读列中 / 读列失败也照常渲染下面的映射行 -->
     <div v-if="loading" class="mapping-state">正在读取表结构…</div>
-    <div v-else-if="loadError" class="mapping-state mapping-state-error">
-      <span>{{ loadError }}</span>
-      <span class="mapping-state-hint">
-        若是目标表还没建过：本字段下方常驻「建表…」按钮，点开设计表即可（或直接手填列名，运行期首跑会自动建表）；表清单读到后若确认表不存在，这里会自动切为新建表模式。也可能是数据源不可达或表没有读权限 —— 可点「重新读取表结构」重试。
-      </span>
-    </div>
+    <!-- 错误条：列读不出来，告诉人之后的操作步骤，并留一行「重新读取」 -->
+    <ReErrorBar
+      v-else-if="loadError"
+      :message="loadError"
+      retryText="重新读取表结构"
+      @retry="props.onRefresh"
+    />
     <div v-else-if="!table" class="mapping-state">
       先在上方选「目标表」，再回来配置：左边选这张表的列，右边写要写进去的值 / ${表达式}。
     </div>
@@ -304,20 +306,6 @@ function typeHint(name: string): string {
   background: var(--el-fill-color-lighter);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-md, 8px);
-}
-
-.mapping-state-hint {
-  display: block;
-  margin-top: 2px;
-  font-size: 11px;
-}
-
-.mapping-state-error {
-  /* 原来写 var(--el-color-danger, #f56c6c)，--el-color-danger 由 EP 必定定义，
-     兜底 hex 永远不会生效，属于误导性死代码，直接去掉兜底 */
-  color: var(--el-color-danger);
-  background: var(--el-color-danger-light-9);
-  border-color: var(--el-color-danger-light-7);
 }
 
 /* 新建表是正常配置路径，不是故障：用主色而不是错误色，提示该做什么就行 */

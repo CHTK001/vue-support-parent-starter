@@ -576,6 +576,13 @@ const props = withDefaults(
      */
     editable?: boolean;
     /**
+     * 行内编辑时是否修剪所有输入值（默认 true）。
+     *
+     * <p>只修剪 string 值（number / date / select 不受影响）。传 {@code trim: false} 时整表留空；
+     * 列级 {@code trim: false} 优先于本项，列级未传时回退到本项。</p>
+     */
+    trim?: boolean;
+    /**
      * 表头单元格是否显示溢出提示（默认 false）。
      *
      * <p>element 引擎走 `#header` 插槽 + CSS 省略（`.re-table__header-ellipsis`），
@@ -759,6 +766,7 @@ const props = withDefaults(
     areaClip: true,
     columnDraggable: false,
     editable: false,
+    trim: true,
     headerShowOverflowTooltip: false,
     showSearch: false,
     searchVisible: undefined,
@@ -1381,6 +1389,7 @@ const ctxMenuTree = computed<{ nodes: ReContextMenuItem[]; byKey: Map<string, Re
       icon: item.icon,
       command: item.key,
       disabled,
+      danger: item.danger,
       children: item.children?.length ? item.children.flatMap(mapItem) : undefined,
     });
     return nodes;
@@ -2126,6 +2135,13 @@ function getSelectValue(row: Record<string, unknown>, col: ReTableColumn): EditO
 }
 
 /**
+ * 取列级的修剪开关：列级优先，列级没传时回退到 ReTable 的 {@code trim}（默认 true）。
+ */
+function effectiveTrim(col: ReTableColumn): boolean {
+  return col.trim ?? props.trim;
+}
+
+/**
  * 设置编辑值。
  *
  * @param row 行数据
@@ -2133,6 +2149,10 @@ function getSelectValue(row: Record<string, unknown>, col: ReTableColumn): EditO
  * @param value 新值
  */
 function setEditValue(row: Record<string, unknown>, col: ReTableColumn, value: unknown): void {
+  // trim：只改 string 值（number / date / select 不受影响），默认开启
+  if (effectiveTrim(col) && typeof value === "string") {
+    value = value.trim();
+  }
   const key = String(row[props.rowKey] ?? "");
   if (props.editCache) {
     // 受控：不可变更新后 emit，交由父组件持有

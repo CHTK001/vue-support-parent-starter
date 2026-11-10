@@ -50,6 +50,8 @@ export interface ReFormField {
   rules?: Array<Record<string, unknown>>;
   /** 隐藏 */
   hidden?: boolean;
+  /** 是否修剪输入值（默认 true） */
+  trim?: boolean;
   /** 禁用 */
   disabled?: boolean;
   /** 栅格列宽（0-24）；开启 span 模式时生效 */

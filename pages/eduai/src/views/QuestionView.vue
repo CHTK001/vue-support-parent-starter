@@ -872,7 +872,7 @@ const statCards = computed(() => {
   const yesterdayDelta = Math.max(0, Number(questionStatsValue.todayNew) - 5);
   return [
     {
-      title: "今日审核",
+      title: "待审核",
       value: questionStatsValue.pendingAudit,
       icon: Warning,
       bg: "var(--el-color-warning-light-9)",
@@ -908,7 +908,9 @@ async function loadPage() {
       type: strParam(applied.type),
       difficulty: applied.difficulty ?? undefined,
       status: applied.status ?? undefined,
-      auditStatus: applied.auditStatus ?? undefined,
+      // 「全部审核」必须显式传 -1：后端省略该参数时默认按「已通过」过滤（组卷挑题口径），
+      // 传 undefined 会让筛选器写着「全部审核」却只列出已通过题目，与统计卡总数对不上。
+      auditStatus: applied.auditStatus ?? -1,
       orderBy: applied.orderBy,
       orderDir: "desc",
     });

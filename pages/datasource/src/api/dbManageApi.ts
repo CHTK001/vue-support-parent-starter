@@ -905,3 +905,156 @@ export const runDbImport = (
         handlers.onError?.(String((err as Error)?.message ?? err));
       },
     });
+
+/* ==================== 跨库复制表 ==================== */
+
+/**
+ * 跨库复制表请求体。
+ *
+ * <p>源与目标是两组独立的「数据源 + 库 + 表」：同库换名、同数据源跨库、
+ * 跨数据源复制都走同一个结构，不另开接口。{@code copyData} 缺省 true，
+ * {@code overwrite} 缺省 false（同名表直接失败，避免一次手滑把已有表 DROP 掉）。</p>
+ */
+export type DbTableCopyPayload = {
+  /** 源数据源 ID，0 / 省略表示应用默认主数据源 */
+  sourceDatasourceId?: number;
+  /** 源库名，可为空（沿连接默认库） */
+  sourceDatabase?: string;
+  sourceTable: string;
+  /** 目标数据源 ID，0 / 省略表示应用默认主数据源 */
+  targetDatasourceId?: number;
+  /** 目标库名，可为空（沿连接默认库） */
+  targetDatabase?: string;
+  targetTable: string;
+  /** 是否连同数据一起复制，缺省 true */
+  copyData?: boolean;
+  /** 目标同名表是否覆盖（先 DROP 再建），缺省 false */
+  overwrite?: boolean;
+};
+
+/** 复制任务里的单步骤（后端直接产出，字段与 ProgressStep 对齐） */
+export interface DbCopyTaskStep {
+  /** 步骤键：structure / create / data */
+  key: string;
+  title: string;
+  /** WAIT / RUNNING / SUCCESS / SKIPPED / ERROR / CANCELLED */
+  status?: string;
+  /** 结果补充（错误原因、跳过原因） */
+  detail?: string | null;
+}
+
+/**
+ * 复制任务快照（后端 {@code DbCopyTaskRegistry} 直接产出，字段与 ProgressSnapshot 对齐）。
+ *
+ * <p>后端刻意按前端的 {@code ProgressSnapshot} 组织字段，前端拿到后原样喂给
+ * {@code ReProgressDialog} 即可，不再做一层翻译 —— 多一层翻译就多一处会漂移的口径。</p>
+ */
+export interface DbCopyTaskSnapshot {
+  /** 任务标识（订阅方按它过滤，全局流里混着别人的任务） */
+  taskId: string;
+  /** 弹窗标题（后端固定的「复制表」） */
+  title?: string;
+  /** 副标题：源 库.表 → 目标 库.表 */
+  subtitle?: string;
+  /** RUNNING / SUCCESS / FAILED / CANCELLED */
+  status?: string;
+  /** 0-100 */
+  percentage?: number;
+  currentTitle?: string;
+  currentDescription?: string;
+  /** 最终结论 */
+  message?: string | null;
+  finished?: boolean;
+  cancellable?: boolean;
+  startedAt?: number;
+  finishedAt?: number;
+  steps?: DbCopyTaskStep[];
+  details?: string[];
+}
+
+/**
+ * 提交一次跨库复制表任务。
+ *
+ * <p>后端只做校验并立刻返回 {@code taskId}，数据搬运在后台线程执行；
+ * 进度必须走 {@link subscribeDbCopyTasks} 那条全局流，否则刷新页面就丢了。</p>
+ *
+ * @param payload 源/目标 + 是否复制数据 + 是否覆盖同名表
+ * @returns 任务 id
+ */
+export const copyDbTable = (payload: DbTableCopyPayload) =>
+  http()
+    .post("/ms/monitor/db/table/copy")
+    .noToast(true)
+    .data(payload)
+    .then(r => unwrap<{ taskId: string }>(r));
+
+/**
+ * 请求取消某个复制任务。
+ *
+ * <p>后端只置标志位，复制循环在批次边界停下（强行打断已执行的语句会把连接留在未知状态），
+ * 因此取消到生效之间可能还差最后一批数据。</p>
+ *
+ * @param taskId 任务 id
+ * @returns 后端是否受理
+ */
+export const cancelDbCopy = (taskId: string) =>
+  http()
+    .post(`/ms/monitor/db/copy/${encodeURIComponent(taskId)}/cancel`)
+    .noToast(true)
+    .then(r => unwrap<{ taskId: string; cancelled: boolean }>(r));
+
+/**
+ * 当前保留的复制任务快照（刷新页面后补齐状态用）。
+ *
+ * @returns 任务快照列表
+ */
+export const fetchDbCopyTasks = () =>
+  http()
+    .get("/ms/monitor/db/copy/tasks")
+    .noToast(true)
+    .then(r => unwrap<DbCopyTaskSnapshot[]>(r));
+
+/**
+ * 订阅复制任务的全局进度流。
+ *
+ * <p>只有一条流：事件按 {@code taskId} 分发，订阅方自己过滤掉别人的任务。
+ * 建连先给一帧 {@code ready}（当前全部任务），之后每次状态变化推一帧完整快照
+ * {@code task}（不是增量），因此页面上任何时刻收到一帧都能直接渲染。</p>
+ *
+ * <p>走 {@code http().sse()} 而不是裸 {@code EventSource}：统一 API 前缀、鉴权头
+ * 与 401 处理都在 http 客户端里，裸 EventSource 建连会拿不到数据。</p>
+ *
+ * @param handlers 事件回调
+ * @returns 关闭函数（离开页面时调用）
+ */
+export const subscribeDbCopyTasks = (handlers: {
+  /** 建连时的现存任务 */
+  onReady?: (tasks: DbCopyTaskSnapshot[]) => void;
+  /** 某任务的最新完整快照 */
+  onTask?: (task: DbCopyTaskSnapshot) => void;
+  /** 链路异常（自动重连由客户端负责） */
+  onError?: (message: string) => void;
+}) =>
+  http()
+    .get("/ms/monitor/db/copy/stream")
+    .noToast(true)
+    .sse<Record<string, unknown>>({
+      // 只读流：断开重连不会重复写入任何数据，允许自动重连
+      reconnect: true,
+      maxReconnectAttempts: 10,
+      reconnectInterval: 3000,
+      onMessage: (e) => {
+        const data = (e.data ?? {}) as Record<string, unknown>;
+        if (e.event === "ready") {
+          const tasks = Array.isArray(data.tasks) ? (data.tasks as DbCopyTaskSnapshot[]) : [];
+          handlers.onReady?.(tasks);
+          return;
+        }
+        if (e.event === "task") {
+          handlers.onTask?.(data as unknown as DbCopyTaskSnapshot);
+        }
+      },
+      onError: (err) => {
+        handlers.onError?.(String((err as Error)?.message ?? err));
+      },
+    });

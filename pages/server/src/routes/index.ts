@@ -143,6 +143,16 @@ export function createServerHostRoutes(options: ServerManageRoutesOptions = {}):
           meta: { title: "主机资产", icon: "Cpu", showLink: true, activeMenu },
         },
         {
+          // 控制管理：与主机资产同一套左侧主机栏，点一下主机右侧直接远控，
+          // 右键只保留远控相关动作。视图内部用 mode="control" 收窄功能。
+          // 路径用 /host-control 而非 /control：/control 是远控后端 API 的代理前缀
+          // （spring-support-control-starter），同名会让维护者误解，也挡住 hash 路由以外的场景。
+          path: "/host-control",
+          name: "HostControl",
+          component: () => import("../views/ControlView.vue"),
+          meta: { title: "控制管理", icon: "Position", showLink: true },
+        },
+        {
           // 远程控制：Guacamole / SSH 直连 / VNC 直连 / SFTP。
           // 已收进「主机资产」右键（右侧工作区页签），左侧不再单列；
           // 路由保留，AssetsView 的 ctxCommand("tab-remote") 与旧书签仍可直达。

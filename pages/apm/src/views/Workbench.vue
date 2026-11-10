@@ -56,7 +56,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import ReTabs from "@repo/ui/re-tabs";
 import type { ReTabsItem } from "@repo/ui/re-tabs";
-import { APM_DEFAULT_TAB, APM_OPEN_TAB_EVENT, APM_TABS, APM_WORKBENCH_ID, findApmTab, stashApmTabContext } from "../tabs";
+import { APM_DEFAULT_TAB, APM_OPEN_TAB_EVENT, APM_TAB_ACTIVATED_EVENT, APM_TABS, APM_WORKBENCH_ID, findApmTab, stashApmTabContext } from "../tabs";
 import type { ApmTabContext } from "../tabs";
 import { ROUTE_PREFIX } from "../config";
 
@@ -166,8 +166,11 @@ function syncUrl(name: string): void {
   }
 }
 
-// 页签变化 → 回填 URL
-watch(active, (name) => syncUrl(name));
+// 页签变化 → 回填 URL；同时广播「这一页到前台了」，常驻面板据此重取数据
+watch(active, (name) => {
+  syncUrl(name);
+  window.dispatchEvent(new CustomEvent(APM_TAB_ACTIVATED_EVENT, { detail: { tab: name } }));
+});
 
 // 外部改地址（旧地址重定向、手点深链）→ 跟着切页签
 watch(

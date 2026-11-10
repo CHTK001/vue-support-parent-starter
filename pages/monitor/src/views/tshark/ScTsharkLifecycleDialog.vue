@@ -255,10 +255,10 @@ import ReEmpty from '@repo/ui/re-empty'
 import ReIcon from '@repo/ui/re-icon'
 import ReTable from '@repo/ui/re-table'
 import ReTag from '@repo/ui/re-tag'
-import { getTsharkHandshake, getTsharkPacketDetail } from '../../api'
+import { getTsharkHandshake, getTsharkHttpTransaction, getTsharkPacketDetail } from '../../api'
 import { buildLifecycleBreakdown } from './lifecyclePhases'
 import ScTsharkHttpInfo from './ScTsharkHttpInfo.vue'
-import type { TsharkHandshake, TsharkPacket, TsharkStep } from './types'
+import type { TsharkHandshake, TsharkHttpTransaction, TsharkPacket, TsharkStep } from './types'
 
 /** 时序图每步的行高（px）：箭头 + 标签要放得下，又不能把几十步拉成一条长卷 */
 const STEP_H = 42
@@ -384,7 +384,14 @@ async function selectStep(id: number) {
 /**
  * 拉取选中报文与配对报文的详情。
  *
- * <p>详情包含 HTTP 头与正文，列表接口不返回；这里按需取，且同一帧只取一次。</p>
+ * <p>两条来源按优先级配合：</p>
+ * <ol>
+ *   <li><b>HTTP 事务接口</b>（{@code http-transaction}）：后端按 {@code tcp.stream}
+ *       配对请求 / 响应，把「起始帧 + 收全帧」两份落点合并、取正文更完整的一份。
+ *       只按步骤相邻配对会漏掉中间夹着 ACK 的响应，也会把收全帧当成第二条消息。</li>
+ *   <li><b>逐帧详情</b>：事务接口拿不到（非 HTTP 帧、老后端）时退回按步骤配对，
+ *       选中帧自身的详情（协议还原、原始数据）也走这里。</li>
+ * </ol>
  */
 async function loadSelected() {
   const id = selectedId.value
@@ -392,36 +399,46 @@ async function loadSelected() {
   if (id == null || sid == null) return
 
   const pair = pairIds(id)
-  const need = new Set<number>([id])
-  if (pair.req != null) need.add(pair.req)
-  if (pair.resp != null) need.add(pair.resp)
-
   // 先用缓存渲染，避免每次点击都空一下
-  applyDetails(pair)
+  selectedDetail.value = detailCache.get(id) ?? null
+  requestDetail.value = pair.req != null ? detailCache.get(pair.req) ?? null : null
+  responseDetail.value = pair.resp != null ? detailCache.get(pair.resp) ?? null : null
 
-  const pending = [...need].filter(x => !detailCache.has(x))
-  await Promise.allSettled(pending.map(async x => {
-    try {
-      detailCache.set(x, await getTsharkPacketDetail(sid, x) as TsharkPacket)
-    } catch {
-      // 单帧详情失败不影响整条生命周期，右侧保留已拿到的部分
-    }
-  }))
+  const jobs: Promise<unknown>[] = [loadDetail(sid, id)]
+  if (pair.req != null) jobs.push(loadDetail(sid, pair.req))
+  if (pair.resp != null) jobs.push(loadDetail(sid, pair.resp))
+
+  const [tx] = await Promise.all([
+    getTsharkHttpTransaction(sid, id).catch(() => null) as Promise<TsharkHttpTransaction | null>,
+    Promise.allSettled(jobs),
+  ])
   // 竞态丢弃：慢请求回来时用户可能已经点了别的步骤
   if (selectedId.value !== id) return
-  applyDetails(pair)
+
+  if (tx && (tx.request || tx.response)) {
+    requestDetail.value = tx.request ?? null
+    responseDetail.value = tx.response ?? null
+  } else {
+    // 后端事务接口没给结果：保持按步骤配对的逐帧结果
+    requestDetail.value = pair.req != null ? detailCache.get(pair.req) ?? null : null
+    responseDetail.value = pair.resp != null ? detailCache.get(pair.resp) ?? null : null
+  }
+  selectedDetail.value = detailCache.get(id) ?? null
 }
 
 /**
- * 把缓存里的详情映射到右侧三个槽位。
+ * 取一帧详情并放进缓存；失败不影响整条生命周期，右侧保留已拿到的部分。
  *
- * @param pair 请求 / 响应报文 id
+ * @param sid 会话 id
+ * @param id  报文 id
  */
-function applyDetails(pair: { req: number | null, resp: number | null }) {
-  const id = selectedId.value
-  selectedDetail.value = id != null ? (detailCache.get(id) ?? null) : null
-  requestDetail.value = pair.req != null ? (detailCache.get(pair.req) ?? null) : null
-  responseDetail.value = pair.resp != null ? (detailCache.get(pair.resp) ?? null) : null
+async function loadDetail(sid: number, id: number): Promise<void> {
+  if (detailCache.has(id)) return
+  try {
+    detailCache.set(id, await getTsharkPacketDetail(sid, id) as TsharkPacket)
+  } catch {
+    // 单帧详情失败：右侧退回已缓存的其它帧
+  }
 }
 
 /**

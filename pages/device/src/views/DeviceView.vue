@@ -3,7 +3,7 @@
     <!-- ==================== 左：三分支树 + 设备列表右区 ==================== -->
     <div class="da-body">
       <!-- 左侧：设备分组（含「全部」） -->
-      <aside class="da-rail" :class="{ 'is-collapsed': railCollapsed }">
+      <aside class="da-rail" :class="{ 'is-collapsed': railCollapsed }" :style="{ '--da-rail-width': railWidth + 'px' }">
         <!-- 折叠态：只留计数与展开按钮 -->
         <div v-if="railCollapsed" class="da-strip">
           <button type="button" class="da-strip__count" title="展开分组树" @click="toggleRail">
@@ -37,6 +37,9 @@
             <button type="button" class="da-tool" title="导出台账" :disabled="!rows.length" @click="exportDevices">
               <ReIcon name="Download" :size="12" />
             </button>
+            <button type="button" class="da-tool" title="设备告警" @click="openAlarm">
+              <ReIcon name="Bell" :size="12" />
+            </button>
             <button type="button" class="da-tool" title="导入台账" @click="openImport">
               <ReIcon name="Upload" :size="12" />
             </button>
@@ -58,10 +61,10 @@
               <b>{{ f.count }}</b>
             </button>
           </div>
-          <!-- 快速筛选：一眼看问题 -->
+          <!-- 快速筛选：一眼看问题（在线/离线已在上方状态行，这里不再重复） -->
           <div class="da-quick-filters">
             <button
-              v-for="f in quickFilters"
+              v-for="f in issueFilters"
               :key="f.value"
               type="button"
               class="da-chip is-quick"
@@ -206,6 +209,14 @@
           </button>
         </div>
       </aside>
+
+      <!-- 分栏手柄：拖拽改左栏宽度，双击复位，偏好存本地 -->
+      <ReRailSplit
+        v-model:width="railWidth"
+        storage-key="device.rail.width.v1"
+        :default-width="268"
+        label="拖拽调整设备分组宽度"
+      />
 
       <!-- 右侧：工作区页签（「设备资产」固定页签 + 设备详情 / 通道 / 日志 / 拓扑页签） -->
       <section class="da-work">
@@ -439,8 +450,10 @@
                   </template>
                   <template #col-status="{ row }">
                     <div class="da-status">
-                      <DeviceStatusPulse :online="row.deviceInfoOnline" />
-                      <div class="da-status__hint">{{ row.deviceInfoOnline ? '心跳正常' : '当前离线' }}</div>
+                      <DeviceStatusPulse :online="row.deviceInfoOnline && !isCollectionStopped(row)" />
+                      <div class="da-status__hint">
+                        {{ isCollectionStopped(row) ? '已禁用 · 暂停采集' : row.deviceInfoOnline ? '心跳正常' : '当前离线' }}
+                      </div>
                     </div>
                   </template>
                   <template #col-lastOnline="{ row }">
@@ -490,8 +503,8 @@
                 <template v-if="statusDevice">
                   <div class="da-bar__id">
                     <span class="da-bar__name" :title="statusDevice.deviceInfoName">{{ statusDevice.deviceInfoName }}</span>
-                    <el-tag size="small" effect="plain" :type="statusDevice.deviceInfoOnline ? 'success' : 'info'">
-                      {{ statusDevice.deviceInfoOnline ? '在线' : '离线' }}
+                    <el-tag size="small" effect="plain" :type="isCollectionStopped(statusDevice) ? 'warning' : statusDevice.deviceInfoOnline ? 'success' : 'info'">
+                      {{ isCollectionStopped(statusDevice) ? '禁用' : statusDevice.deviceInfoOnline ? '在线' : '离线' }}
                     </el-tag>
                   </div>
                   <div class="da-bar__item mono">
@@ -549,6 +562,13 @@
               :device="deviceOfTab(tab.name)"
               :devices="rows"
               :vendors="vendors"
+            />
+
+            <!-- ============ 设备告警 ============ -->
+            <DeviceAlarmView
+              v-else-if="tabKindOf(tab.name) === 'alarms'"
+              :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
+              :device-id="tabOf(tab.name)?.deviceId || ''"
             />
 
             <!-- ============ 通道管理 ============ -->
@@ -767,6 +787,7 @@ import ReDialog from '@repo/ui/re-dialog'
 import ReIcon from '@repo/ui/re-icon'
 import ReInput from '@repo/ui/re-input'
 import ReScrollbar from '@repo/ui/re-scrollbar'
+import ReRailSplit, { readRailWidth } from '@repo/ui/re-rail-split'
 import ReButton from '@repo/ui/re-button'
 import ReTable from '@repo/ui/re-table'
 import type {
@@ -795,6 +816,7 @@ import ReDeviceDetailPanel from '@pages/device/src/components/ReDeviceDetailPane
 import ReDevicePlayPanel from '@pages/device/src/components/ReDevicePlayPanel.vue'
 import ReDeviceWallPlayer from '@pages/device/src/components/ReDeviceWallPlayer.vue'
 import DeviceChannelView from '@pages/device/src/views/DeviceChannelView.vue'
+import DeviceAlarmView from '@pages/device/src/views/DeviceAlarmView.vue'
 import DeviceEventLogView from '@pages/device/src/views/DeviceEventLogView.vue'
 
 /** 账台账拓扑页签按需加载：首屏不背着机房拓扑的代码 */
@@ -849,6 +871,9 @@ const wallVisible = ref(false)
 
 /* ==================== 左侧分组列 ==================== */
 const railCollapsed = ref(false)
+/** 左栏宽度偏好（拖拽手柄改的就是它，折叠时仍保留，展开后恢复） */
+const RAIL_WIDTH_KEY = 'device.rail.width.v1'
+const railWidth = ref(readRailWidth(RAIL_WIDTH_KEY, 268))
 const keyword = ref('')
 
 /* ==================== 左侧树：组织 / 分组 / 厂家 三维度切换 ==================== */
@@ -1122,7 +1147,7 @@ function groupParentIdOf(groupId: string): string | undefined {
 const ASSETS_TAB = 'assets'
 
 /** 页签类别 */
-type WorkTabKind = 'assets' | 'detail' | 'play' | 'channels' | 'events' | 'topo'
+type WorkTabKind = 'assets' | 'detail' | 'alarms' | 'play' | 'channels' | 'events' | 'topo'
 
 /**
  * 工作区页签：比 ReTabsItem 多带业务上下文。
@@ -1311,7 +1336,7 @@ function closeAllWorkTabs(): void {
 /** 本地存储 key：刷新后恢复上次打开的页签 */
 const WORK_TABS_STORAGE_KEY = 'device:workTabs'
 /** 可落盘的页签类别（「设备资产」固定重建，不存储） */
-const RESTORABLE_TAB_KINDS: WorkTabKind[] = ['detail', 'play', 'channels', 'events', 'topo']
+const RESTORABLE_TAB_KINDS: WorkTabKind[] = ['detail', 'alarms', 'play', 'channels', 'events', 'topo']
 
 /** 校验从本地缓存读出的页签，坏数据直接丢弃 */
 function isValidWorkTab(value: unknown): value is WorkTab {
@@ -1586,8 +1611,9 @@ const treeMenuItems = computed<ReContextMenuItem[]>(() => {
   if (!row) return []
   if (row.kind === 'device') {
     const device = rows.value.find((item) => item.deviceInfoId === row.id) || null
-    return [
-      { label: '播放', icon: 'VideoPlay', command: 'play', disabled: !isPlayable(device, vendors.value) },
+    const stopped = isCollectionStopped(device)
+    const items: ReContextMenuItem[] = [
+      { label: '播放', icon: 'VideoPlay', command: 'play', disabled: stopped || !isPlayable(device, vendors.value) },
       { label: '设备详情', icon: 'Position', command: 'detail' },
       { label: '通道管理', icon: 'Connection', command: 'channels' },
       { label: '设备日志', icon: 'Tickets', command: 'events' },
@@ -1596,14 +1622,28 @@ const treeMenuItems = computed<ReContextMenuItem[]>(() => {
       { label: '配置资产信息', icon: 'EditPen', command: 'asset' },
       { label: '配置位置信息', icon: 'LocationInformation', command: 'location' },
       { separator: true },
-      { label: '在台账中定位', icon: 'Aim', command: 'locate' },
-      { label: '重新连接', icon: 'RefreshRight', command: 'reconnect' },
-      { label: '刷新状态', icon: 'Refresh', command: 'refresh' },
-      { label: '设置分组', icon: 'FolderOpened', command: 'groups' },
-      { label: '视频预览', icon: 'VideoCamera', command: 'preview' },
-      { separator: true },
-      { label: '删除设备', icon: 'Delete', command: 'remove', danger: true }
+      { label: '在台账中定位', icon: 'Aim', command: 'locate' }
     ]
+    if (!stopped) {
+      items.push(
+        { label: '重新连接', icon: 'RefreshRight', command: 'reconnect' },
+        { label: '刷新状态', icon: 'Refresh', command: 'refresh' },
+        { label: '设置分组', icon: 'FolderOpened', command: 'groups' },
+        { label: '视频预览', icon: 'VideoCamera', command: 'preview' }
+      )
+    } else {
+      items.push({ label: '设置分组', icon: 'FolderOpened', command: 'groups' })
+    }
+    items.push(
+      { separator: true },
+      {
+        label: stopped ? '启用设备' : '禁用设备',
+        icon: stopped ? 'VideoPlay' : 'VideoPause',
+        command: stopped ? 'enable' : 'disable'
+      },
+      { label: '删除设备', icon: 'Delete', command: 'remove', danger: true }
+    )
+    return items
   }
   if (row.kind === 'group') {
     return [
@@ -1648,6 +1688,8 @@ function onTreeMenuSelect(command: string): void {
       case 'locate': focusLeafDevice(row); break
       case 'reconnect': reconnect(device); break
       case 'refresh': refreshStatus(device); break
+      case 'disable': toggleDeviceStatus(device, 'disabled'); break
+      case 'enable': toggleDeviceStatus(device, 'normal'); break
       case 'groups': openDeviceGroups(device); break
       case 'preview': openPreviewWindow(device); break
       case 'remove': removeDevice(device); break
@@ -1753,6 +1795,8 @@ async function pageLoader(params: ReTableLoadParams): Promise<RePageResult<Recor
 
 /** 在线/离线状态筛选：与快速筛选为同一池，避免两行重复；按轻索引计数 */
 const statusFilters = computed(() => quickFilters.value.slice(0, 3))
+/** 问题类快速筛选：状态三项已由 statusFilters 承担，这里只留维保/未定位/未分组，避免在线离线出现两遍 */
+const issueFilters = computed(() => quickFilters.value.slice(3))
 
 /** 底部信息条跟随的设备：最近点选 / 右键的行优先，其次唯一勾选的那台 */
 const statusDevice = computed<DeviceInfo | null>(
@@ -1885,26 +1929,59 @@ function asDevice(row: Record<string, unknown>): DeviceInfo {
   return row as unknown as DeviceInfo
 }
 
+/**
+ * 设备是否处于「停用 / 报废」：这两类设备不参与后台定时采集。
+ *
+ * <p>与后端 {@code DeviceStatusUtil.collectionStopped} 保持同一口径，
+ * 前端只用来裁剪右键入口与置灰播放，不重复做业务判断。</p>
+ */
+function isCollectionStopped(device?: { deviceInfoStatus?: string } | null): boolean {
+  return device?.deviceInfoStatus === 'disabled' || device?.deviceInfoStatus === 'scrapped'
+}
+
 /** 底部条跟随的行：点选 / 右键都算 */
 const activeDevice = ref<DeviceInfo | null>(null)
 
-/** 行右键菜单：功能入口全部打开工作区页签，资产 / 位置各走自己的配置弹窗 */
-const tableMenu: ReTableContextMenuItem[] = [
-  { key: 'play', label: '播放', icon: VideoPlay, disabled: (ctx) => !isPlayable(asDevice(ctx.row), vendors.value) },
-  { key: 'detail', label: '设备详情', icon: Position },
-  { key: 'channels', label: '通道管理', icon: Connection },
-  { key: 'events', label: '设备日志', icon: Tickets },
-  { key: 'topo', label: '在拓扑中查看', icon: Grid, divided: true },
-  { key: 'asset', label: '配置资产信息', icon: EditPen, divided: true },
-  { key: 'location', label: '配置位置信息', icon: 'LocationInformation' },
-  { key: 'tags', label: '标签管理', icon: 'Notebook' },
-  { key: 'edit', label: '编辑设备', icon: EditPen },
-  { key: 'reconnect', label: '重新连接', icon: RefreshRight, divided: true },
-  { key: 'refresh', label: '刷新状态', icon: Refresh },
-  { key: 'groups', label: '设置分组', icon: FolderOpened },
-  { key: 'preview', label: '视频预览', icon: VideoCamera },
-  { key: 'remove', label: '删除设备', icon: Delete, divided: true }
-]
+/**
+ * 行右键菜单（按行生成）。
+ *
+ * <p>停用 / 报废的设备不再参与后台采集：与建连、拉流、探测相关的入口
+ * （播放 / 重新连接 / 刷新状态 / 视频预览）直接不出现，避免用户点了才看到
+ * 「设备已停用」的报错；其余台账类入口保持可用。</p>
+ */
+function tableMenu(ctx: ReTableContextMenuContext): ReTableContextMenuItem[] {
+  const d = asDevice(ctx.row)
+  const stopped = isCollectionStopped(d)
+  const items: ReTableContextMenuItem[] = [
+    { key: 'play', label: '播放', icon: VideoPlay, disabled: stopped || !isPlayable(d, vendors.value) },
+    { key: 'detail', label: '设备详情', icon: Position },
+    { key: 'channels', label: '通道管理', icon: Connection },
+    { key: 'events', label: '设备日志', icon: Tickets },
+    { key: 'topo', label: '在拓扑中查看', icon: Grid, divided: true },
+    { key: 'asset', label: '配置资产信息', icon: EditPen, divided: true },
+    { key: 'location', label: '配置位置信息', icon: 'LocationInformation' },
+    { key: 'tags', label: '标签管理', icon: 'Notebook' },
+    { key: 'edit', label: '编辑设备', icon: EditPen }
+  ]
+  if (!stopped) {
+    items.push(
+      { key: 'reconnect', label: '重新连接', icon: RefreshRight, divided: true },
+      { key: 'refresh', label: '刷新状态', icon: Refresh },
+      { key: 'preview', label: '视频预览', icon: VideoCamera }
+    )
+  }
+  items.push(
+    { key: 'groups', label: '设置分组', icon: FolderOpened },
+    {
+      key: stopped ? 'enable' : 'disable',
+      label: stopped ? '启用设备' : '禁用设备',
+      icon: stopped ? 'VideoPlay' : 'VideoPause',
+      divided: true
+    },
+    { key: 'remove', label: '删除设备', icon: Delete, danger: true }
+  )
+  return items
+}
 
 /** 右键菜单选中：ctx.row 就是被右键的设备 */
 function onTableMenuSelect(item: ReTableContextMenuItem, ctx: ReTableContextMenuContext): void {
@@ -1952,6 +2029,12 @@ function runDeviceCommand(command: string, d: DeviceInfo): void {
       break
     case 'refresh':
       refreshStatus(d)
+      break
+    case 'disable':
+      toggleDeviceStatus(d, 'disabled')
+      break
+    case 'enable':
+      toggleDeviceStatus(d, 'normal')
       break
     case 'groups':
       openDeviceGroups(d)
@@ -2019,12 +2102,13 @@ const cardMenuSubtitle = computed(() => {
   return d ? [d.deviceInfoCode, d.deviceInfoIp].filter(Boolean).join(' · ') : ''
 })
 
-/** 卡片右键菜单项：与表格同一套设备命令，「播放」按能力位置灰 */
+/** 卡片右键菜单项：与表格同一套设备命令；停用/报废设备不出现建连类入口 */
 const cardMenuItems = computed<ReContextMenuItem[]>(() => {
   const d = cardMenuTarget.value
   if (!d) return []
-  return [
-    { label: '播放', icon: 'VideoPlay', command: 'play', disabled: !isPlayable(d, vendors.value) },
+  const stopped = isCollectionStopped(d)
+  const items: ReContextMenuItem[] = [
+    { label: '播放', icon: 'VideoPlay', command: 'play', disabled: stopped || !isPlayable(d, vendors.value) },
     { label: '设备详情', icon: 'Position', command: 'detail' },
     { label: '通道管理', icon: 'Connection', command: 'channels' },
     { label: '设备日志', icon: 'Tickets', command: 'events' },
@@ -2033,15 +2117,27 @@ const cardMenuItems = computed<ReContextMenuItem[]>(() => {
     { label: '配置资产信息', icon: 'EditPen', command: 'asset' },
     { label: '配置位置信息', icon: 'LocationInformation', command: 'location' },
     { label: '标签管理', icon: 'Notebook', command: 'tags' },
-    { label: '编辑设备', icon: 'EditPen', command: 'edit' },
-    { separator: true },
-    { label: '重新连接', icon: 'RefreshRight', command: 'reconnect' },
-    { label: '刷新状态', icon: 'Refresh', command: 'refresh' },
-    { label: '设置分组', icon: 'FolderOpened', command: 'groups' },
-    { label: '视频预览', icon: 'VideoCamera', command: 'preview' },
-    { separator: true },
-    { label: '删除设备', icon: 'Delete', command: 'remove', danger: true }
+    { label: '编辑设备', icon: 'EditPen', command: 'edit' }
   ]
+  if (!stopped) {
+    items.push(
+      { separator: true },
+      { label: '重新连接', icon: 'RefreshRight', command: 'reconnect' },
+      { label: '刷新状态', icon: 'Refresh', command: 'refresh' },
+      { label: '视频预览', icon: 'VideoCamera', command: 'preview' }
+    )
+  }
+  items.push(
+    { label: '设置分组', icon: 'FolderOpened', command: 'groups' },
+    { separator: true },
+    {
+      label: stopped ? '启用设备' : '禁用设备',
+      icon: stopped ? 'VideoPlay' : 'VideoPause',
+      command: stopped ? 'enable' : 'disable'
+    },
+    { label: '删除设备', icon: 'Delete', command: 'remove', danger: true }
+  )
+  return items
 })
 
 function onCardMenuSelect(command: string): void {
@@ -2532,6 +2628,39 @@ async function refreshStatus(row: DeviceInfo) {
   }
 }
 
+/**
+ * 启用 / 停用设备。
+ *
+ * <p>停用只改状态：后台的在线探测、事件轮询、门禁抽取都会跳过这台设备，
+ * 后端同时注销它的会话；设备地址、凭据、组织、资产等原有配置保持不变。
+ * 启用后由下一轮在线检测自动恢复连接，不在这里同步建连。</p>
+ */
+async function toggleDeviceStatus(row: DeviceInfo, status: 'normal' | 'disabled') {
+  const disabling = status === 'disabled'
+  try {
+    await ElMessageBox.confirm(
+      disabling
+        ? `确认禁用设备「${row.deviceInfoName}」？禁用后会断开当前连接，后台定时采集（在线检测 / 事件轮询 / 门禁记录）全部停止，设备配置保持不变。`
+        : `确认启用设备「${row.deviceInfoName}」？启用后由在线检测恢复连接，后台定时采集随之恢复。`,
+      disabling ? '禁用设备' : '启用设备',
+      {
+        type: disabling ? 'warning' : 'info',
+        confirmButtonText: disabling ? '禁用' : '启用',
+        cancelButtonText: '取消'
+      }
+    )
+  } catch {
+    return
+  }
+  try {
+    await deviceApi.toggleStatus(row.deviceInfoId, status)
+    message.success(disabling ? '设备已禁用' : '设备已启用')
+    refreshAll()
+  } catch (err) {
+    message.error((disabling ? '禁用失败：' : '启用失败：') + errorText(err))
+  }
+}
+
 async function removeDevice(row: DeviceInfo) {
   try {
     await ElMessageBox.confirm(
@@ -2679,6 +2808,18 @@ function goScreen() {
   wallVisible.value = true
 }
 
+/** 设备告警：工作区页签（固定一个入口，重复点只切过去） */
+function openAlarm() {
+  openWorkTab({
+    name: 'alarms',
+    kind: 'alarms',
+    label: '设备告警',
+    hint: '告警中心',
+    icon: 'Bell',
+  })
+  activeTab.value = 'alarms'
+}
+
 /** 厂商接入 = 「提供商配置」菜单页（宿主路由名 DeviceProviders，独立包为 DeviceProvider） */
 function goProvider() {
   if (router.hasRoute('DeviceProviders')) {
@@ -2752,7 +2893,8 @@ onMounted(async () => {
 .da-body {
   display: flex;
   flex: 1 1 auto;
-  gap: 12px;
+  /* 间距交给分栏手柄本身，避免 gap + 手柄叠出一段空档 */
+  gap: 0;
   min-height: 0;
 }
 
@@ -2761,14 +2903,14 @@ onMounted(async () => {
   display: flex;
   flex: none;
   flex-direction: column;
-  width: 268px;
+  /* 宽度由分栏手柄写入 --da-rail-width（可拖拽，存本地偏好） */
+  width: var(--da-rail-width, 268px);
   min-height: 0;
   overflow: hidden;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-xl, 16px);
   box-shadow: var(--el-box-shadow-light, var(--shadow-1));
-  transition: width 0.18s ease;
 }
 .da-rail.is-collapsed {
   width: 44px;

@@ -131,7 +131,9 @@ async function loadDashboard() {
   stats.forEach((s) => (s.loading = true));
   try {
     const [qr, sr, er, mr] = await Promise.allSettled([
-      eduaiApi.pageQuestions({ pageSize: 1 }),
+      // 「题目总数」要覆盖待审核题目：省略 auditStatus 时后端默认只统计已通过（组卷口径），
+      // 会让首页总数比题库页「全部审核」少一截，两处人眼可见的数字对不上。
+      eduaiApi.pageQuestions({ pageSize: 1, auditStatus: -1 }),
       eduaiApi.listStudents(),
       eduaiApi.pageExams({ pageSize: 1 }),
       eduaiApi.teacherMarkingTasks(),

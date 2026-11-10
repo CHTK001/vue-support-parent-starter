@@ -37,10 +37,7 @@
     </template>
 
     <!-- 主体 -->
-    <div v-if="loadError" class="sw-error">
-      <ReIcon name="CircleCloseFilled" :size="16" />
-      {{ loadError }}
-    </div>
+    <ReErrorBar v-if="loadError" :message="loadError" retryText="重试" @retry="reload" />
 
     <ReEmpty v-else-if="!allRows.length && !loading" description="未获取到软件识别数据" />
 
@@ -707,14 +704,6 @@ onBeforeUnmount(() => offSoftware?.());
 }
 
 /* 错误 / 空 */
-.sw-error {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 20px 16px;
-  font-size: 13px;
-  color: var(--el-color-danger);
-}
 .sw-body { max-height: 420px; overflow-y: auto; }
 
 /* ---- 配置弹窗 ---- */

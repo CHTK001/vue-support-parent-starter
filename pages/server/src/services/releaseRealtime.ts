@@ -65,6 +65,22 @@ export interface ProjectOpLogPush {
   durationMs?: number;
 }
 
+/** Actuator 定时采集推送帧（全局时间轮采集后广播） */
+export interface ProjectEndpointsPush {
+  projectId: number;
+  at?: number;
+  swagger?: boolean;
+  actuator?: boolean;
+  port?: number;
+  swaggerUrl?: string;
+  swaggerApiUrl?: string;
+  actuatorUrl?: string;
+  health?: string;
+  metricCount?: number;
+  metrics?: string[];
+  message?: string;
+}
+
 /** 任务帧处理器 */
 export type ProjectTaskHandler = (task: ProjectTaskPush) => void;
 
@@ -73,6 +89,9 @@ export type ProjectLogHandler = (frame: ProjectLogPush) => void;
 
 /** 操作日志帧处理器 */
 export type ProjectOpLogHandler = (row: ProjectOpLogPush) => void;
+
+/** Actuator 采集帧处理器 */
+export type ProjectEndpointsHandler = (push: ProjectEndpointsPush) => void;
 
 /** 连接状态处理器 */
 export type ReleaseSseStatusHandler = (status: ReleaseSseStatus) => void;
@@ -84,6 +103,7 @@ const STREAM_PATH = "/ms/server/release/stream";
 const EVENT_PROJECT_TASK = "project-task";
 const EVENT_PROJECT_LOG = "project-log";
 const EVENT_OP_LOG = "op-log";
+const EVENT_PROJECT_ENDPOINTS = "project-endpoints";
 
 /** 重连间隔（毫秒） */
 const RECONNECT_INTERVAL_MS = 3_000;
@@ -112,18 +132,23 @@ function safeCall<T>(handler: (value: T) => void, value: T): void {
  * @returns 对象；无法解析时返回 null
  */
 function asRecord<T>(raw: unknown): T | null {
-  if (raw && typeof raw === "object") {
-    return raw as T;
+  let value: unknown = raw;
+  // 服务端 SseEmitter 会把字符串再 JSON 编码一次，收到的可能是「JSON 的字符串」，
+  // 因此最多解两遍：先拿对象，拿不到再解一层。
+  for (let depth = 0; depth < 3; depth += 1) {
+    if (value && typeof value === "object") {
+      return value as T;
+    }
+    if (typeof value !== "string" || value === "") {
+      return null;
+    }
+    try {
+      value = JSON.parse(value);
+    } catch {
+      return null;
+    }
   }
-  if (typeof raw !== "string" || raw === "") {
-    return null;
-  }
-  try {
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? (parsed as T) : null;
-  } catch {
-    return null;
-  }
+  return value && typeof value === "object" ? (value as T) : null;
 }
 
 /**
@@ -145,6 +170,8 @@ class ReleaseSse {
   private readonly logHandlers = new Set<ProjectLogHandler>();
   /** 操作日志帧处理器 */
   private readonly opLogHandlers = new Set<ProjectOpLogHandler>();
+  /** Actuator 采集帧处理器 */
+  private readonly endpointsHandlers = new Set<ProjectEndpointsHandler>();
   /** 状态处理器 */
   private readonly statusHandlers = new Set<ReleaseSseStatusHandler>();
   /** 连接标识（一次页面生命周期内保持不变） */
@@ -263,6 +290,19 @@ class ReleaseSse {
   }
 
   /**
+   * 订阅 Actuator 定时采集帧。
+   *
+   * @param handler 处理器
+   * @returns 取消订阅
+   */
+  onProjectEndpoints(handler: ProjectEndpointsHandler): () => void {
+    this.endpointsHandlers.add(handler);
+    return () => {
+      this.endpointsHandlers.delete(handler);
+    };
+  }
+
+  /**
    * 订阅连接状态变化。
    *
    * @param handler 处理器
@@ -300,6 +340,13 @@ class ReleaseSse {
       const row = asRecord<ProjectOpLogPush>(data);
       if (row) {
         this.opLogHandlers.forEach((handler) => safeCall(handler, row));
+      }
+      return;
+    }
+    if (event === EVENT_PROJECT_ENDPOINTS) {
+      const push = asRecord<ProjectEndpointsPush>(data);
+      if (push && Number.isFinite(Number(push.projectId))) {
+        this.endpointsHandlers.forEach((handler) => safeCall(handler, push));
       }
     }
   }

@@ -22,14 +22,7 @@
   >
     <div v-loading="loading" class="git-repo">
       <!-- 未配置：直接告诉人去哪配，不要显示一片空 -->
-      <div v-if="loadError" class="git-repo__error">
-        <span class="git-repo__error-title">读不到 Git 仓库</span>
-        <p class="git-repo__error-msg">{{ loadError }}</p>
-        <div class="git-repo__error-actions">
-          <ReButton icon="Refresh" :show-text="true" @click="load">重试</ReButton>
-          <ReButton v-if="project" icon="EditPen" :show-text="true" @click="emit('edit', project)">去配置</ReButton>
-        </div>
-      </div>
+      <ReErrorBar v-if="loadError" :message="loadError" retryText="重试" @retry="load" />
 
       <template v-else-if="repo">
         <!-- 顶部：地址 / 分支 / 落后提示（Gitee 的仓库头） -->
@@ -747,32 +740,6 @@ defineExpose({ open, reload: load });</script>
 .git-empty__path {
   margin: 4px 0 0;
   color: var(--text-tertiary, #9aa1ad);
-}
-
-.git-repo__error {
-  padding: 16px;
-  border-radius: 8px;
-  border: 1px solid var(--el-color-danger-light-5, #f56c6c);
-  background: var(--el-color-danger-light-9, #fef0f0);
-}
-
-.git-repo__error-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--el-color-danger-dark-2, #c45656);
-}
-
-.git-repo__error-msg {
-  margin: 6px 0 12px;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--text-primary, #1f2430);
-  white-space: pre-wrap;
-}
-
-.git-repo__error-actions {
-  display: flex;
-  gap: 8px;
 }
 
 @media (max-width: 760px) {

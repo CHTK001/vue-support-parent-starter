@@ -866,21 +866,44 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     }
     starting.value = true
     try {
-      const r = await startTsharkCapture({
-        name: captureName.value.trim() || undefined,
-        captureInterfaces: ifaces.value,
-        captureFilter: filter.value.trim() || undefined,
-        filterType: filterType.value,
-        count: count.value > 0 ? count.value : undefined,
-        timeout: timeout.value > 0 ? timeout.value : undefined,
-        maxSizeMb: maxSizeMb.value > 0 ? maxSizeMb.value : undefined,
-      })
-      // 多网卡一次建多条会话：取第一条，剩下的已挂在列表里
-      const created = r?.data ?? []
-      const count = created.length > 0 ? created.length : 1
-      message.success(count > 1
-        ? `已启动 ${count} 条抓包会话（每张网卡一条）`
-        : '抓包已启动')
+      // 后端 /tshark/capture 一次只接一张网卡（DTO 是 captureInterface 字符串、返回单条会话），
+      // 所以多选在这里展开成多次调用：任一张失败不影响已建好的会话，最后统一报结果。
+      const created: TsharkSession[] = []
+      const failures: string[] = []
+      // 下拉里展示的是友好名，报错也用它对用户说话
+      const labelOf = (name: string) =>
+        ifaceOptions.value.find(o => o.value === name)?.label || name
+      for (const iface of ifaces.value) {
+        try {
+          const r: any = await startTsharkCapture({
+            name: captureName.value.trim() || undefined,
+            captureInterface: iface,
+            captureFilter: filter.value.trim() || undefined,
+            filterType: filterType.value,
+            count: count.value > 0 ? count.value : undefined,
+            timeout: timeout.value > 0 ? timeout.value : undefined,
+            maxSizeMb: maxSizeMb.value > 0 ? maxSizeMb.value : undefined,
+          })
+          // startTsharkCapture 已经 unwrap，返回值就是单条会话对象
+          const one = r as TsharkSession | null
+          if (one && one.id != null) created.push(one)
+        } catch (e: any) {
+          failures.push(`${labelOf(iface)}: ${e?.message || e}`)
+        }
+      }
+      if (created.length === 0) {
+        message.error('启动抓包失败: ' + (failures[0] || '没有建起任何会话'))
+        return false
+      }
+      // 注意：这里的局部变量不能叫 count —— 会遮蔽外层的 count ref，让上面的 count.value 落进 TDZ
+      const createdCount = created.length
+      if (failures.length > 0) {
+        message.warning(`已启动 ${createdCount} 条抓包会话，${failures.length} 张网卡失败：${failures[0]}`)
+      } else {
+        message.success(createdCount > 1
+          ? `已启动 ${createdCount} 条抓包会话（每张网卡一条）`
+          : '抓包已启动')
+      }
       captureName.value = ''
       maxSizeMb.value = 0
       await loadSessions()

@@ -65,10 +65,22 @@
           </el-select>
         </el-form-item>
         <el-form-item label="开始时间">
-          <el-date-picker v-model="form.examStartTime" type="datetime" placeholder="请选择开始时间" style="width: 100%" />
+          <el-date-picker
+            v-model="form.examStartTime"
+            type="datetime"
+            value-format="YYYY-MM-DD HH:mm:ss"
+            placeholder="请选择开始时间"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="结束时间">
-          <el-date-picker v-model="form.examEndTime" type="datetime" placeholder="请选择结束时间" style="width: 100%" />
+          <el-date-picker
+            v-model="form.examEndTime"
+            type="datetime"
+            value-format="YYYY-MM-DD HH:mm:ss"
+            placeholder="请选择结束时间"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="时长(分)">
           <ReInputNumber v-model="form.examDuration" :min="10" :max="600" placeholder="请输入考试时长" />

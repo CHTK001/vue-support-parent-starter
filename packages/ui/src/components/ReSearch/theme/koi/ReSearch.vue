@@ -55,6 +55,12 @@ export interface SearchFilter {
   loader?: ReSelectLoader;
   /** 其他透传给子组件的属性 */
   attrs?: Record<string, unknown>;
+  /**
+   * 是否修剪该过滤项的输入值（默认 true）。
+   *
+   * <p>只修剪字符串值。关闭时原样写入搜索参数（适合需要保留空格的查询条件，如 IP / 路径）。</p>
+   */
+  trim?: boolean;
 }
 
 const props = withDefaults(
@@ -162,6 +168,12 @@ watch(
 );
 function onFilterInput(key: string, val: unknown): void {
   const prev = lastSeen[key];
+  const filter = props.filters?.find((f) => f.key === key);
+  // trim：只改 string 值（日期 / 数字 / 数组不走 trim），默认开启，
+  // 字段级 trim: false 可以关（IP 段、带空格的查询条件不允许丢字符）。
+  if (typeof val === "string" && (filter?.trim ?? true)) {
+    val = val.trim();
+  }
   filterValues.value[key] = val;
   lastSeen = { ...lastSeen, [key]: val };
   // 必须先把新值推给父级，再 emit search —— 父级的搜索处理读的就是这份新值，

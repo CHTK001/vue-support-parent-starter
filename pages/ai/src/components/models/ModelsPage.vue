@@ -292,10 +292,12 @@ const currentModels = computed(() =>
   models.value.filter((m) => m.providerId === currentProviderId.value),
 )
 
-// 可添加模板：过滤已添加类型
+// 可添加模板：过滤已添加类型。
+// 路由组例外：同一平台允许建多个不同策略的组（后端对 router-group 不做平台+名称判重），
+// 因此不按品牌去重，始终保留，用户可创建「主力组 / 备用组」等多个路由组。
 const availableTemplates = computed(() => {
   const added = new Set(providers.value.map((p) => p.provider))
-  return PROVIDER_TEMPLATES.filter((tpl) => !added.has(tpl.id))
+  return PROVIDER_TEMPLATES.filter((tpl) => tpl.id === 'router-group' || !added.has(tpl.id))
 })
 
 const selectProvider = (p: any) => {
@@ -303,6 +305,7 @@ const selectProvider = (p: any) => {
 }
 const handleCreate = () => formRef.value.openCreate()
 const openCatalog = () => catalogRef.value.open()
+
 const handleEditProvider = () => {
   if (currentProvider.value) formRef.value.openEdit(currentProvider.value)
 }
@@ -550,11 +553,29 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  gap: 10px;
   padding: 8px 18px;
   border-bottom: 1px solid var(--color-surface-border);
   background: var(--color-surface);
   flex-shrink: 0;
 }
+
+/* 全局配置弹窗：左侧说明 + 右侧开关 */
+.gg-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 4px 2px 8px;
+}
+.gg-text { flex: 1; min-width: 0; }
+.gg-title { font-size: 14px; font-weight: 600; color: var(--color-text); }
+.gg-desc {
+  margin-top: 6px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--color-text-gray);
+}
+.gg-row .el-switch { flex-shrink: 0; margin-top: 2px; }
 
 /* 动效降级 */
 @media (prefers-reduced-motion: reduce) {

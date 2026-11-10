@@ -1477,7 +1477,7 @@ function isMailbox(a: HaAccount): boolean {
             v-model="form.msServerIdentityPassword"
             type="password"
             show-password
-            :placeholder="editingId != null ? '留空保持不变' : 'SSH 口令'"
+            :placeholder="editingId != null ? '留空保持不变' : '登录口令'"
             style="width: 100%"
           />
         </ReFormItem>

@@ -167,7 +167,7 @@ export async function copyText(text?: string | null): Promise<boolean> {
 /** 设备状态下拉选项 */
 export const DEVICE_STATUS_OPTIONS: { label: string; value: DeviceStatus }[] = [
   { label: '正常', value: 'normal' },
-  { label: '停用', value: 'disabled' },
+  { label: '禁用', value: 'disabled' },
   { label: '维护', value: 'maintenance' },
   { label: '报废', value: 'scrapped' }
 ]
@@ -183,7 +183,7 @@ export function statusMeta(status?: string): {
 } {
   switch (status) {
     case 'disabled':
-      return { label: '停用', type: 'info' }
+      return { label: '禁用', type: 'info' }
     case 'maintenance':
       return { label: '维护', type: 'warning' }
     case 'scrapped':

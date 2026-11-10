@@ -911,10 +911,10 @@ async function submitAdd(): Promise<void> {
           <ReSelect v-model="addForm.msServerIdentityAuthType" style="width:100%" filterable allow-create default-first-option placeholder="选择或输入类型" :options="authTypeOptions" />
         </ReFormItem>
         <ReFormItem label="登录用户名">
-          <ReInput v-model="addForm.msServerIdentityUsername" placeholder="如 root / ubuntu" style="width:100%" />
+          <ReInput v-model="addForm.msServerIdentityUsername" placeholder="如 root / Administrator" style="width:100%" />
         </ReFormItem>
         <ReFormItem v-if="addForm.msServerIdentityAuthType === 'PASSWORD'" label="登录密码">
-          <ReInput v-model="addForm.msServerIdentityPassword" type="password" show-password placeholder="SSH 口令" style="width:100%" />
+          <ReInput v-model="addForm.msServerIdentityPassword" type="password" show-password placeholder="登录口令" style="width:100%" />
         </ReFormItem>
         <ReFormItem v-if="addForm.msServerIdentityAuthType === 'NONE'" label="免密说明">
           <span class="idm-hint">目标主机需已放行该账号（authorized_keys 已配置平台公钥，或 sshd 允许空口令）。平台只凭用户名连接，不保存密码 / 私钥。</span>

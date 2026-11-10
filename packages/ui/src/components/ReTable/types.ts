@@ -67,6 +67,12 @@ export interface ReTableColumn {
   className?: string;
   /** 是否可编辑（批量编辑模式下显示输入框） */
   editable?: boolean;
+  /**
+   * 是否修剪该列的输入值（默认 true）。
+   *
+   * <p>只修剪字符串值。关闭时原样写入 edit-cache（适合 IP / 密码等不能去空格的字段）。</p>
+   */
+  trim?: boolean;
   /** 编辑类型：text / number / select / date */
   editType?: "text" | "number" | "select" | "date";
   /**
@@ -303,6 +309,8 @@ export interface ReTableContextMenuItem {
   icon?: any;
   /** 是否禁用 */
   disabled?: boolean | ((ctx: ReTableContextMenuContext) => boolean);
+  /** 是否危险操作（红色文字） */
+  danger?: boolean;
   /** 是否显示分割线 */
   divided?: boolean;
   /** 子菜单 */
@@ -520,6 +528,12 @@ export interface ReTableSearchFilter {
   loader?: ReSelectLoader;
   /** 其他透传给子组件的属性 */
   attrs?: Record<string, unknown>;
+  /**
+   * 是否修剪该过滤项的输入值（默认 true）。
+   *
+   * <p>只修剪字符串值。关闭时原样写入搜索参数（适合需要保留空格的查询条件，如 IP / 路径）。</p>
+   */
+  trim?: boolean;
 }
 
 /** ReTable 内置 ReSearch 搜索区配置（search 传对象时的字段） */

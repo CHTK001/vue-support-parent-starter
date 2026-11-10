@@ -6,6 +6,8 @@
 
   一个帧只有一个方向：带请求头的显示「HTTP 请求」，带响应头的显示「HTTP 响应」。
   正文跟随头部归属，所以请求体不会跑到响应下面。
+
+  正文本身交给 ScTsharkHttpBody：文本 / JSON / HEX 三视图、截断说明、按视图复制。
 -->
 <template>
   <div v-if="hasAny" class="http-info">
@@ -17,14 +19,15 @@
         <ReButton text type="primary" @click="copy(requestText, '请求已复制')">复制</ReButton>
       </header>
       <pre class="http-head">{{ requestHead }}</pre>
-      <template v-if="body">
-        <div class="http-body__head">
-          <span class="http-body__title">请求体</span>
-          <span class="http-block__meta">{{ bodyMeta }}</span>
-          <ReButton text type="primary" @click="copy(body, '请求体已复制')">复制</ReButton>
-        </div>
-        <pre class="http-body">{{ body }}</pre>
-      </template>
+      <ScTsharkHttpBody
+        v-if="body"
+        title="请求体"
+        :meta="bodyMeta"
+        :body="body"
+        :body-hex="packet?.httpBodyHex"
+        :content-type="packet?.httpContentType"
+        :content-length="packet?.httpContentLength"
+      />
     </section>
 
     <section v-if="responseHead" class="http-block">
@@ -35,25 +38,31 @@
         <ReButton text type="primary" @click="copy(responseText, '响应已复制')">复制</ReButton>
       </header>
       <pre class="http-head">{{ responseHead }}</pre>
-      <template v-if="body">
-        <div class="http-body__head">
-          <span class="http-body__title">响应体</span>
-          <span class="http-block__meta">{{ bodyMeta }}</span>
-          <ReButton text type="primary" @click="copy(body, '响应体已复制')">复制</ReButton>
-        </div>
-        <pre class="http-body">{{ body }}</pre>
-      </template>
+      <ScTsharkHttpBody
+        v-if="body"
+        title="响应体"
+        :meta="bodyMeta"
+        :body="body"
+        :body-hex="packet?.httpBodyHex"
+        :content-type="packet?.httpContentType"
+        :content-length="packet?.httpContentLength"
+      />
     </section>
 
     <!-- 只有正文、没有起始行时的兜底（例如头部所在的帧被过滤掉，正文仍完整） -->
     <section v-if="body && !requestHead && !responseHead" class="http-block">
       <header class="http-block__head">
         <h4>HTTP 正文</h4>
-        <span class="http-block__meta">{{ bodyMeta }}</span>
         <span class="http-spacer"></span>
-        <ReButton text type="primary" @click="copy(body, '正文已复制')">复制</ReButton>
       </header>
-      <pre class="http-body">{{ body }}</pre>
+      <ScTsharkHttpBody
+        title="正文"
+        :meta="bodyMeta"
+        :body="body"
+        :body-hex="packet?.httpBodyHex"
+        :content-type="packet?.httpContentType"
+        :content-length="packet?.httpContentLength"
+      />
     </section>
   </div>
 </template>
@@ -62,6 +71,7 @@
 import { computed } from 'vue'
 import { message } from '@repo/core'
 import ReButton from '@repo/ui/re-button'
+import ScTsharkHttpBody from './ScTsharkHttpBody.vue'
 import type { TsharkPacket } from './types'
 
 const props = defineProps<{
@@ -148,8 +158,7 @@ async function copy(text: string, okText: string) {
 .http-spacer {
   flex: 1 1 auto;
 }
-.http-head,
-.http-body {
+.http-head {
   margin: 0;
   padding: 10px 12px;
   background: var(--el-fill-color-lighter);
@@ -161,20 +170,5 @@ async function copy(text: string, okText: string) {
   white-space: pre;
   overflow: auto;
   max-height: 220px;
-}
-.http-body {
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-.http-body__head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 2px;
-}
-.http-body__title {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--el-text-color-regular);
 }
 </style>

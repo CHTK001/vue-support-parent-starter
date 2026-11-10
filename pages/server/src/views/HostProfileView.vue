@@ -139,7 +139,7 @@ const sections: Array<{ name: SectionKey; label: string }> = [
   { name: "network", label: "网络" },
   { name: "env", label: "环境变量" },
   { name: "firewall", label: "防火墙" },
-  { name: "sysconfig", label: "系统配置" },
+  { name: "sysconfig", label: "主机配置" },
   { name: "deleted", label: "已删除文件" },
 ];
 
@@ -713,7 +713,7 @@ async function onApplyConfig(payload: {
 }): Promise<void> {
   const hid = actionHostId();
   if (hid == null) return;
-  const timing = payload.hot ? "热更新：写入后立即生效" : "非热更新：新登录 / 新会话生效，已运行进程不变";
+  const timing = payload.hot ? "立即生效：写入后直接对后续行为生效" : "需重启 / 新登录：已运行进程不变";
   const first = `配置项：${payload.label}（${payload.key}）\n新值：${payload.value}\n${timing}\n\n${payload.tip}`;
   if (!await confirmAction(first)) return;
   if (payload.requiresConfirm) {

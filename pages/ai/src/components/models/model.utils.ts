@@ -200,6 +200,9 @@ export function mapProvider(p: any): any {
     platform: brand,
     rawPlatform: p.platform,
     id: p.provider_id || p.id,
+    // 页面里不少分支（路由组面板 / 能力页）按 providerId 取 ID，
+    // 只给 id 会让这些分支的 v-if 永远不成立。
+    providerId: p.provider_id || p.id,
     apiUrl: p.base_url || p.apiUrl,
     protocol: deriveProtocol(p, modelsArr),
     models: modelsArr,
@@ -318,7 +321,127 @@ export function inferModelType(m: any): string {
       return TASK_TO_TYPE[task]
     }
   }
+  // 上游「从提供商获取」行没有 capabilities，只有 tasks / task；
+  // 不读它们的话，拉取列表与预填表单里的模型类型会一律落成 text。
+  for (const task of listOf(m?.tasks)) {
+    const key = String(task || '').toLowerCase()
+    if (TASK_TO_TYPE[key]) {
+      return TASK_TO_TYPE[key]
+    }
+  }
+  const singleTask = String(m?.task ?? m?.model_type ?? '').toLowerCase()
+  if (TASK_TO_TYPE[singleTask]) {
+    return TASK_TO_TYPE[singleTask]
+  }
   return inferTypeByName(m?.model || m?.modelName)
+}
+
+/** 宽松布尔判定：兼容 boolean / 字符串 / 数字（上游元数据三种形态都有） */
+function truthyFlag(v: unknown): boolean {
+  return v === true || v === 'true' || v === 1 || v === '1'
+}
+
+/**
+ * 上游模态 → 规范输入/输出种类。
+ *
+ * <p>上游 {@code /models} 常见三种写法：{@code modalities{input,output}}、
+ * {@code architecture.input_modalities}、{@code input_modalities[]}。
+ * 后端已归一成 {@code modalities}，这里做最后一道白名单过滤。</p>
+ */
+function fetchModalities(m: any): { input: string[]; output: string[] } {
+  const known = new Set(['text', 'image', 'audio', 'video', 'file', 'vector'])
+  const rename: Record<string, string> = { embedding: 'vector', embeddings: 'vector' }
+  const normalize = (v: any): string[] => {
+    const out: string[] = []
+    for (const item of listOf(v)) {
+      const key = rename[String(item).toLowerCase()] || String(item).toLowerCase()
+      if (known.has(key) && !out.includes(key)) out.push(key)
+    }
+    return out
+  }
+  const mod = m?.modalities ?? m?.metrics?.modalities
+  return {
+    input: normalize(mod?.input ?? m?.input_modalities ?? m?.metrics?.input_modalities),
+    output: normalize(mod?.output ?? m?.output_modalities ?? m?.metrics?.output_modalities),
+  }
+}
+
+/**
+ * 由上游拉取行推导模型表单配置（输入输出能力、特性、窗口、采样参数、能力开关）。
+ *
+ * <p>「从提供商获取」的行是扁平的上游行（{@code context_window} / {@code modalities} /
+ * {@code attachment} …），既没有 {@code config} 也没有 {@code capabilities[].traits}。
+ * 不给它做这层映射，用户选中后表单里的输入/输出能力与其它参数全是空的。</p>
+ *
+ * @param m         上游模型行
+ * @param modelType 规范类型，缺省按 {@link inferModelType} 推导
+ * @returns 可直接传给 {@code createDefaultModelConfig} 的配置片段
+ */
+export function deriveFetchedModelConfig(m: any, modelType?: string): Partial<ModelConfig> {
+  const type = modelType || inferModelType(m)
+  const [flowIn, flowOut] = FLOW_BY_TYPE[type] || ['text', 'text']
+  const mod = fetchModalities(m)
+  const metrics = m?.metrics && typeof m.metrics === 'object' ? m.metrics : {}
+  const num = (v: any): number | null => {
+    if (v === null || v === undefined || v === '') return null
+    const n = Number(v)
+    return Number.isFinite(n) ? n : null
+  }
+  const features: string[] = []
+  // 前端复选框的键是 tools / thinking（与 model.constants 的 FEATURE_TASKS 一致），
+  // 这里若写 tool_call / tools 两套口径，表单里会「勾了不显示」。
+  if (truthyFlag(m?.reasoning ?? metrics.reasoning)) features.push('thinking')
+  if (truthyFlag(m?.tool_call ?? metrics.function_calling)) features.push('tools')
+  if (truthyFlag(metrics.web_search ?? m?.web_search)) features.push('web-search')
+  const capabilities: string[] = []
+  if (truthyFlag(m?.attachment ?? metrics.attachment)) capabilities.push('attachment')
+  if (truthyFlag(m?.reasoning ?? metrics.reasoning)) capabilities.push('reasoning')
+  if (truthyFlag(m?.tool_call ?? metrics.function_calling)) capabilities.push('tool_call')
+  if (truthyFlag(m?.temperature_supported ?? metrics.temperature)) capabilities.push('temperature')
+  if (truthyFlag(m?.open_weights ?? metrics.open_weights)) capabilities.push('open_weights')
+  return {
+    inputCapabilities: mod.input.length ? mod.input : [flowIn],
+    outputCapabilities: mod.output.length ? mod.output : [flowOut],
+    features,
+    contextWindow: num(m?.context_window ?? m?.contextWindow ?? metrics.context_window_tokens),
+    maxOutputTokens: num(m?.max_tokens ?? m?.maxTokens ?? metrics.max_output_tokens),
+    temperature: num(m?.temperature ?? metrics.temperature),
+    topP: num(m?.top_p ?? m?.topP),
+    frequencyPenalty: num(m?.frequency_penalty ?? m?.frequencyPenalty),
+    capabilities,
+  }
+}
+
+/** 模型价格（USD / 百万 token）；{@code known=false} 表示上游未给价格 */
+export interface ModelPrice {
+  known: boolean
+  free: boolean
+  input: number | null
+  output: number | null
+}
+
+/**
+ * 读取模型价格，并识别「免费」（输入输出均为 0）。
+ *
+ * @param m 后端模型行或上游拉取行（价格可能在顶层或 metrics 里）
+ * @returns 价格信息
+ */
+export function modelPriceOf(m: any): ModelPrice {
+  const read = (v: any): number | null => {
+    if (v === null || v === undefined || v === '') return null
+    const n = Number(v)
+    return Number.isFinite(n) ? n : null
+  }
+  const input = read(m?.price_input_per_musd ?? m?.metrics?.price_input_per_musd)
+  const output = read(m?.price_output_per_musd ?? m?.metrics?.price_output_per_musd)
+  const known = input != null || output != null
+  return {
+    known,
+    // 只有输入价与输出价都明确为 0 才能标免费；缺一边是价格不完整，不能误报免费。
+    free: input === 0 && output === 0,
+    input,
+    output,
+  }
 }
 
 /**

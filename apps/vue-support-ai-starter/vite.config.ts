@@ -539,10 +539,15 @@ export default defineConfig({
         // public/wasm/cad（含 9.5MB libredwg-web.wasm CAD 渲染器），
         // Windows 下 chokidar 对仍在写入/被读取的大文件建 fs.watch → EBUSY → dev 进程崩溃；
         // 这些是插件生成的只读资产，监听无意义，故排除。
+        // 同理：public/images 是随包图片资产（含模型图标），运行时只读，监听无意义；
+        // dist* 是构建产物，其它进程正在写入时建 watch 同样会 EBUSY。
         (p: string) =>
           /(^|[/\\])public[/\\]vendor([/\\]|$)/.test(p) ||
           /(^|[/\\])public[/\\]flyfish-viewer-assets\.json$/.test(p) ||
-          /(^|[/\\])public[/\\]wasm([/\\]|$)/.test(p),
+          /(^|[/\\])public[/\\]wasm([/\\]|$)/.test(p) ||
+          /(^|[/\\])public[/\\]images([/\\]|$)/.test(p) ||
+          /(^|[/\\])dist(-[^/\\]*)?([/\\]|$)/.test(p) ||
+          /(^|[/\\])stats\.html$/.test(p),
       ],
     },
     proxy: {

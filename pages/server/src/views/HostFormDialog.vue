@@ -299,22 +299,34 @@ const remoteProtocols = [
   { label: "RDP", value: "RDP" },
   { label: "VNC", value: "VNC" },
 ];
+/**
+ * 凭据提示文案：密码字段是「主机登录凭据」，不是 SSH 专用。
+ *
+ * <p>Windows 主机默认走 RDP / VNC，提示里写「SSH 口令」会把用户带偏
+ * （Windows 根本没有 SSH 口令这回事，除非专门装了 OpenSSH Server）。
+ * 这里按平台给中性说明，真正的连接通道由「远控协议」决定。</p>
+ */
+const credentialPlaceholder = computed(() =>
+  form.value.serverHostOsType === "WINDOWS" ? "Windows 登录口令" : "登录口令",
+);
+/** 登录账号提示：Windows 习惯 Administrator，Linux/macOS 习惯 root/ubuntu */
+const accountPlaceholder = computed(() =>
+  form.value.serverHostOsType === "WINDOWS" ? "如 Administrator" : "如 root / ubuntu",
+);
 /** 本机采集方式仅「不采集 / 本机自采集」，其余主机显示全部 */
 const collectModeOptions = computed(() =>
   isLocalCollect.value
     ? collectModes.filter(m => m.value === "NONE" || m.value === "LOCAL")
     : collectModes,
 );
-/** 远控协议选项：本机支持 SSH / VNC，其余主机显示全部 */
-const remoteProtocolOptions = computed(() =>
-  isLocalCollect.value
-    ? [
-        { label: "自动（按平台）", value: "" },
-        { label: "SSH", value: "SSH" },
-        { label: "VNC", value: "VNC" },
-      ]
-    : remoteProtocols,
-);
+/**
+ * 远控协议选项：四种协议对任何主机都可用。
+ *
+ * <p>早期「本机只给 SSH / VNC」是按「本机已有控制台」的经验限制的，但它挡住了真实场景：
+ * 本机上的 Telnet 服务（设备/网络设备模拟）和 RDP 服务（本机多会话/测试环境）都要能直连。
+ * 是否可连由目标服务实际监听决定，界面不再按采集方式裁剪协议。</p>
+ */
+const remoteProtocolOptions = computed(() => remoteProtocols);
 /** 识别本机首选网卡 IP（远控不使用回环），写入地址字段 */
 async function loadLocalAddress(): Promise<void> {
   try {
@@ -849,23 +861,23 @@ watch(() => props.modelValue, (v) => {
         </ReFormItem>
         <template v-if="formAuthMethod === 'PASSWORD'">
           <ReFormItem label="登录账号">
-            <ReInput v-model="formAccount" placeholder="如 root / ubuntu" style="width:100%" />
+            <ReInput v-model="formAccount" :placeholder="accountPlaceholder" style="width:100%" />
           </ReFormItem>
           <ReFormItem label="登录密码" class="col-span-2">
-            <ReInput v-model="formPassword" type="password" show-password placeholder="SSH 口令" style="width:100%" />
+            <ReInput v-model="formPassword" type="password" show-password :placeholder="credentialPlaceholder" style="width:100%" />
           </ReFormItem>
         </template>
         <template v-if="formAuthMethod === 'PUBLIC_KEY'">
           <ReFormItem label="登录账号">
-            <ReInput v-model="formAccount" placeholder="如 root / ubuntu" style="width:100%" />
+            <ReInput v-model="formAccount" :placeholder="accountPlaceholder" style="width:100%" />
           </ReFormItem>
-          <ReFormItem label="SSH 私钥" class="col-span-2">
-            <ReInput v-model="formPrivateKey" type="textarea" :rows="3" placeholder="粘贴 PEM 格式私钥内容" style="width:100%" />
+          <ReFormItem label="私钥" class="col-span-2">
+            <ReInput v-model="formPrivateKey" type="textarea" :rows="3" placeholder="粘贴 PEM 格式私钥内容（OpenSSH 免密登录用）" style="width:100%" />
           </ReFormItem>
         </template>
         <template v-if="formAuthMethod === 'NONE'">
           <ReFormItem label="登录账号">
-            <ReInput v-model="formAccount" placeholder="如 root / ubuntu；本机可留空用平台运行账号" style="width:100%" />
+            <ReInput v-model="formAccount" :placeholder="accountPlaceholder + '；本机可留空用平台运行账号'" style="width:100%" />
           </ReFormItem>
           <ReFormItem label="免密说明" class="col-span-2">
             <ReText type="info">免密登录不需要密码或私钥，但必须填登录账号（本机主机可留空，默认用平台运行账号）。地址字段只写主机，不解析 <code>user@host</code>。</ReText>

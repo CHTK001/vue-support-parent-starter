@@ -933,6 +933,7 @@ const currentHostLabel = computed(() => {
         v-if="sidePanelVisible && sidePanelSession"
         :host-id="sidePanelSession!.hostId"
         :host-name="sidePanelSession!.hostName"
+        :file-enabled="sidePanelSession!.protocol === 'ssh' || sidePanelSession!.protocol === 'telnet'"
         :visible="sidePanelVisible"
         @update:visible="(v: boolean) => { sidePanelVisible = v; if (!v) sidePanelSessionId = undefined }"
         :on-command="sendSnippetCommand"

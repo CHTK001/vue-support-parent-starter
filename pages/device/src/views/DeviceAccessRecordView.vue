@@ -119,10 +119,7 @@
         </div>
       </header>
 
-      <div v-if="loadError" class="dar-error">
-        <span>{{ loadError }}</span>
-        <ReButton icon="RefreshRight" layout="square" tip="重试" :loading="loading" @click="query" />
-      </div>
+      <ReErrorBar v-if="loadError" :message="loadError" retryText="重试" @retry="query" />
 
       <ReTable
         v-if="filteredRows.length"
@@ -860,18 +857,6 @@ onMounted(async () => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-}
-
-.dar-error {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-  padding: 8px 14px;
-  border-radius: var(--el-radius-base, 8px);
-  background: var(--el-color-danger-light-9);
-  color: var(--el-color-danger);
-  font-size: 13px;
 }
 
 .dar-mono {

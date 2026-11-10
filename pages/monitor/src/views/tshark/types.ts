@@ -62,6 +62,52 @@ export interface TsharkPacket {
   restoredText?: string | null
   /** 报文原始十六进制 / 转义文本 */
   rawData?: string | null
+  /** tshark 的 tcp.stream（同一四元组可能复用成多条连接，配对 HTTP 事务用它） */
+  tcpStream?: number | null
+  /** HTTP 请求头（含起始行与空行）；非请求帧为空 */
+  httpRequestHead?: string | null
+  /** HTTP 响应头（含起始行与空行）；非响应帧为空 */
+  httpResponseHead?: string | null
+  /**
+   * HTTP 正文（已按 Content-Encoding 解压、按 charset 解码、按上限截断）。
+   *
+   * <p>纯二进制正文没有可读文本，后端把它压成 `HEX <十六进制预览>` 串；
+   * 要按字节看用 {@link httpBodyHex}，不要把这段串再当十六进制解析。</p>
+   */
+  httpBody?: string | null
+  /**
+   * HTTP 正文字节（十六进制串，无 0x 前缀、无空白）。
+   *
+   * <p>与 {@link httpBody} 是同一份字节的两种视图：正文文本 / JSON 美化用 httpBody，
+   * HEX 视图用这一段。老会话（该列上线前入库）为空，前端退回按文本重新编码。</p>
+   */
+  httpBodyHex?: string | null
+  /** HTTP 实体类型，如 text/html / application/json */
+  httpContentType?: string | null
+  /** HTTP 内容编码，如 gzip / br */
+  httpContentEncoding?: string | null
+  /** HTTP 实体原始字节数（不是截断后的字符数） */
+  httpContentLength?: number | null
+  /** HTTP 请求方法 */
+  httpMethod?: string | null
+  /** HTTP 请求 URI */
+  httpUri?: string | null
+  /** HTTP 响应状态码 */
+  httpStatus?: number | null
+}
+
+/**
+ * 一条 HTTP 事务：同一流上配好对的请求帧与响应帧。
+ *
+ * <p>`GET /tshark/sessions/{sessionId}/packets/{id}/http-transaction` 返回。
+ * 一帧只承载一个方向，详情抽屉只看当前帧时永远只有半条事务；后端按
+ * `tcp.stream` 把相邻的请求 / 响应配成对，并合并「起始帧 + 收全帧」的重复落点、
+ * 取正文更完整的那一份。没有响应（请求刚发出）时 response 为 null。</p>
+ */
+export interface TsharkHttpTransaction {
+  anchorId: number
+  request?: TsharkPacket | null
+  response?: TsharkPacket | null
 }
 
 /**

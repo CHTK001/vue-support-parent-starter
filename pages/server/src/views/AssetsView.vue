@@ -78,6 +78,7 @@ import { submitAgentAction } from "../api";
 import { hostAssetsSse, type HostSummaryPush } from "../services/realtime";
 import ReTabs from "@repo/ui/re-tabs";
 import ReLoader from "@repo/ui/re-loader";
+import ReRailSplit, { readRailWidth } from "@repo/ui/re-rail-split";
 import type { ReTabsContextItem, ReTabsItem } from "@repo/ui/re-tabs";
 
 export interface Host {
@@ -164,6 +165,18 @@ interface Identity { id: number; msServerIdentityName: string; msServerIdentityA
 
 const router = useRouter();
 const route = useRoute();
+
+/**
+ * 页面形态。
+ *
+ * <p>{@code assets}（默认）是完整的主机资产工作台；{@code control} 是「控制管理」页：
+ * 左侧主机栏与主机资产完全一致（同一份数据、搜索、分组、排序、状态筛选），
+ * 只把功能收窄到「点一下左侧主机，右侧直接远控」，右键菜单也只保留远控相关的少数动作。</p>
+ */
+const props = withDefaults(defineProps<{ mode?: "assets" | "control" }>(), { mode: "assets" });
+/** 是否控制管理模式 */
+const isControl = computed(() => props.mode === "control");
+
 const hosts = ref<Host[]>([]);
 const groups = ref<Group[]>([]);
 const identities = ref<Identity[]>([]);
@@ -692,7 +705,7 @@ const TAB_KINDS: Record<TabKind, TabKindMeta> = {
   network: { label: "网络", icon: "Share", section: "network" },
   env: { label: "环境变量", icon: "Document", section: "env" },
   firewall: { label: "防火墙", icon: "Lock", section: "firewall" },
-  sysconfig: { label: "系统配置", icon: "Setting", section: "sysconfig" },
+  sysconfig: { label: "主机配置", icon: "Setting", section: "sysconfig" },
   deleted: { label: "已删除文件", icon: "Delete", section: "deleted" },
   remote: { label: "远控", icon: "Position" },
   desktop: { label: "虚拟桌面", icon: "FullScreen" },
@@ -1890,6 +1903,10 @@ function onHostRowClick(h: Host): void {
     return;
   }
   selectHost(h);
+  // 控制管理页：点一下主机就直接在右侧开远控，不需要再走右键菜单
+  if (isControl.value) {
+    openTab(h, "remote");
+  }
 }
 
 /**
@@ -2194,7 +2211,7 @@ const paletteItems = computed<PaletteItem[]>(() => {
         key: `host:${h.id}`,
         label: h.serverHostName,
         hint: h.serverHostAddress,
-        icon: "Monitor",
+        icon: isControl.value ? "Position" : "Monitor",
         group: "主机",
       });
     }
@@ -2227,7 +2244,12 @@ const paletteItems = computed<PaletteItem[]>(() => {
     { key: "cmd:collapse", label: "折叠全部分组", hint: "动作", icon: "ArrowRight" },
     { key: "cmd:expand", label: "展开全部分组", hint: "动作", icon: "ArrowDown" },
   ];
-  for (const a of actions) list.push({ ...a, group: "功能" });
+  // 控制管理页左栏没有新增与多选，命令面板也不该给出这两个入口
+  const hidden = isControl.value ? ["cmd:add", "cmd:multi"] : [];
+  for (const a of actions) {
+    if (hidden.includes(a.key)) continue;
+    list.push({ ...a, group: "功能" });
+  }
 
   return list;
 });
@@ -2246,7 +2268,8 @@ function onPaletteSelect(item: PaletteItem): void {
   const value = rest.join(":");
   if (scope === "host") {
     const h = hosts.value.find(x => x.id === Number(value));
-    if (h) openTab(h, "metrics");
+    // 控制管理页里「选中主机」的语义就是开远控，与单击左侧主机一致
+    if (h) openTab(h, isControl.value ? "remote" : "metrics");
     return;
   }
   if (scope === "tab") {
@@ -2346,6 +2369,10 @@ function toggleDock(): void {
  * 中间工作区一次性多出 224px —— 指标 / 进程 / 端口这些页签本来就吃宽度。</p>
  */
 const railCollapsed = ref(localStorage.getItem("assets-rail-collapsed") === "1");
+
+/** 左栏宽度偏好（拖拽手柄改的就是它，折叠时仍保留，展开后恢复） */
+const RAIL_WIDTH_KEY = "assets.rail.width.v1";
+const railWidth = ref(readRailWidth(RAIL_WIDTH_KEY, 268));
 
 /** 展开/收起左侧主机栏，并记住选择 */
 function toggleRail(): void {
@@ -2485,14 +2512,11 @@ function onGlobalKeydown(e: KeyboardEvent): void {
 
 <template>
   <div class="as">
-    <div v-if="loadError" class="as-error">
-      <span>数据加载失败：{{ loadError }}</span>
-      <ReButton icon="RefreshRight" type="primary" :show-text="true" @click="fetchAll">重试</ReButton>
-    </div>
+    <ReErrorBar v-if="loadError" :message="loadError" retryText="重试" @retry="fetchAll" />
 
     <div class="as-body">
       <!-- ==================== 左侧：主机资源栏 ==================== -->
-      <aside class="as-rail" :class="{ 'is-collapsed': railCollapsed }">
+      <aside class="as-rail" :class="{ 'is-collapsed': railCollapsed }" :style="{ '--as-rail-width': railWidth + 'px' }">
         <!-- 折叠态：只留一条竖条，展开按钮压在底部 -->
         <div v-if="railCollapsed" class="rail-strip">
           <button type="button" class="rail-strip__count" title="展开主机列表" @click="toggleRail">
@@ -2511,10 +2535,11 @@ function onGlobalKeydown(e: KeyboardEvent): void {
 
         <div v-show="!railCollapsed" class="rail-head">
           <div class="rail-head__row">
-            <span class="rail-head__title">主机资产</span>
+            <span class="rail-head__title">{{ isControl ? '控制管理' : '主机资产' }}</span>
             <span class="rail-head__count">{{ filtered.length }}<i>/{{ hosts.length }}</i></span>
             <span class="rail-head__gap" />
             <button
+              v-if="!isControl"
               type="button"
               class="rail-tool"
               :class="{ 'is-on': multiSelect }"
@@ -2535,7 +2560,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
               <ReIcon name="RefreshRight" :size="12" />
             </button>
             <!-- 低频动作收进「更多」：顶部一行放不下第 6 个图标按钮 -->
-            <el-dropdown class="rail-tool-dd" trigger="click" placement="bottom-end" @command="onRailMore">
+            <el-dropdown v-if="!isControl" class="rail-tool-dd" trigger="click" placement="bottom-end" @command="onRailMore">
               <button type="button" class="rail-tool" title="更多：导入 / 导出主机、独立窗口、虚拟桌面">
                 <ReIcon name="MoreFilled" :size="12" />
               </button>
@@ -2553,7 +2578,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
-            <button type="button" class="rail-tool is-primary" title="新增主机" @click="openAdd">
+            <button v-if="!isControl" type="button" class="rail-tool is-primary" title="新增主机" @click="openAdd">
               <ReIcon name="Plus" :size="12" />
             </button>
           </div>
@@ -2608,7 +2633,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
                   'is-checked': multiSelect && checkedHostIds.has(h.id),
                 }"
                 @click="onHostRowClick(h)"
-                @dblclick="multiSelect || openTab(h, 'metrics')"
+                @dblclick="multiSelect || openTab(h, isControl ? 'remote' : 'metrics')"
                 @contextmenu="openCtxMenu($event, h)"
               >
                 <input
@@ -2634,8 +2659,13 @@ function onGlobalKeydown(e: KeyboardEvent): void {
                   <span class="rail-host__delay mono" :class="{ bad: delayBad(liveDelayMs(h)) }">{{ delayText(liveDelayMs(h)) }}</span>
                   <i class="rail-host__dot" :class="liveOnlineState(h) === 1 ? 'is-on' : 'is-off'" />
                 </span>
-                <!-- 行内操作：悬停浮出，不占常态宽度 -->
-                <span class="rail-host__ops">
+                <!-- 行内操作：悬停浮出，不占常态宽度；控制管理只留远控一个 -->
+                <span v-if="isControl" class="rail-host__ops">
+                  <button type="button" title="远程控制" @click.stop="openTab(h, 'remote')">
+                    <ReIcon name="Position" :size="13" />
+                  </button>
+                </span>
+                <span v-else class="rail-host__ops">
                   <button type="button" title="远程控制" @click.stop="openTab(h, 'remote')">
                     <ReIcon name="Position" :size="13" />
                   </button>
@@ -2658,7 +2688,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
             <span>{{ emptyDescription }}</span>
             <ReButton v-if="loadError" icon="RefreshRight" type="primary" :show-text="true" @click="fetchAll">重试</ReButton>
             <ReButton v-else-if="hasHosts" icon="Refresh" :show-text="true" @click="resetFilters">重置筛选</ReButton>
-            <ReButton v-else type="primary" icon="Plus" :show-text="true" @click="openAdd">新增主机</ReButton>
+            <ReButton v-else-if="!isControl" type="primary" icon="Plus" :show-text="true" @click="openAdd">新增主机</ReButton>
           </div>
         </ReScrollbar>
 
@@ -2686,6 +2716,15 @@ function onGlobalKeydown(e: KeyboardEvent): void {
         </div>
       </aside>
 
+      <!-- 分栏手柄：拖拽改左栏宽度，双击复位，偏好存本地 -->
+      <ReRailSplit
+        v-model:width="railWidth"
+        class="as-split"
+        storage-key="assets.rail.width.v1"
+        :default-width="268"
+        label="拖拽调整主机列表宽度"
+      />
+
       <!-- ==================== 右侧：多标签工作区 ==================== -->
       <section class="as-work">
         <ReTabs
@@ -2694,7 +2733,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
           closable
           show-close-all
           :context-menu="tabContextMenu"
-          empty-text="右键左侧主机，选择要打开的功能"
+          :empty-text="isControl ? '点击左侧主机，直接在右侧开始远控' : '右键左侧主机，选择要打开的功能'"
           @close="closeTab"
           @close-all="closeAllTabs"
           @context-command="onTabCommand"
@@ -2802,15 +2841,20 @@ function onGlobalKeydown(e: KeyboardEvent): void {
 
           <template #empty>
             <div class="work-empty">
-              <ReIcon name="Monitor" :size="30" />
-              <b class="work-empty__title">还没有打开任何功能</b>
+              <ReIcon name="Position" :size="30" />
+              <b class="work-empty__title">{{ isControl ? '选择左侧主机开始远控' : '还没有打开任何功能' }}</b>
               <p class="work-empty__desc">
-                在左侧主机上点<strong>右键</strong>，选择「远控 / 文件管理 / 指标监控 / 端口 / 进程 …」，
-                每个功能都会在这里打开一个独立页签，可以同时开多个互不干扰。
+                <template v-if="isControl">
+                  点一下左侧任意主机，右侧会直接打开它的远程控制；同一台主机会复用已打开的页签。
+                </template>
+                <template v-else>
+                  在左侧主机上点<strong>右键</strong>，选择「远控 / 文件管理 / 指标监控 / 端口 / 进程 …」，
+                  每个功能都会在这里打开一个独立页签，可以同时开多个互不干扰。
+                </template>
               </p>
               <div v-if="selectedHost" class="work-empty__quick">
                 <ReButton icon="Position" :show-text="true" @click="openTab(selectedHost, 'remote')">远控 {{ selectedHost.serverHostName }}</ReButton>
-                <ReButton icon="TrendCharts" :show-text="true" @click="openTab(selectedHost, 'metrics')">指标监控</ReButton>
+                <ReButton v-if="!isControl" icon="TrendCharts" :show-text="true" @click="openTab(selectedHost, 'metrics')">指标监控</ReButton>
               </div>
             </div>
           </template>
@@ -2844,8 +2888,8 @@ function onGlobalKeydown(e: KeyboardEvent): void {
             :rows="statusOverviewRows"
             @metric-click="openMetricHistory"
           />
-          <!-- Dock 开关：箭头直接销毁 / 恢复右侧快捷操作面板（不再套一层设置浮窗） -->
-          <div class="as-work__foot">
+          <!-- Dock 开关：箭头直接销毁 / 恢复右侧快捷操作面板（控制管理页不需要这层入口） -->
+          <div v-if="!isControl" class="as-work__foot">
             <button
               type="button"
               class="as-work__dock-toggle"
@@ -2862,7 +2906,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
       </section>
 
       <!-- ==================== 右侧：快捷操作 + 最近活动 ==================== -->
-      <aside v-if="dockOpen" class="as-dock">
+      <aside v-if="dockOpen && !isControl" class="as-dock">
         <div class="dock-head">
           <span class="dock-head__title">快捷操作</span>
         </div>
@@ -3051,6 +3095,23 @@ function onGlobalKeydown(e: KeyboardEvent): void {
           <span class="mono">{{ ctxMenu.host.serverHostAddress }}</span>
         </div>
 
+        <!-- 控制管理：右键只保留远控相关的少量动作 -->
+        <template v-if="isControl">
+          <div class="host-ctx-item" @click="ctxCommand('tab-remote')">
+            <ReIcon name="Position" /><span>远程控制</span>
+          </div>
+          <div class="host-ctx-item" @click="ctxCommand('edit')">
+            <ReIcon name="EditPen" /><span>编辑主机</span>
+          </div>
+          <div class="host-ctx-item" @click="ctxCommand('copy-address')">
+            <ReIcon name="Link" /><span>复制地址</span>
+          </div>
+          <div class="host-ctx-sep" />
+          <div class="host-ctx-item" @click="ctxCommand('close-host-tabs')">
+            <ReIcon name="CircleClose" /><span>关闭该主机全部页签</span>
+          </div>
+        </template>
+        <template v-else>
         <div class="host-ctx-item" @click="ctxCommand('tab-remote')">
           <ReIcon name="Position" /><span>远程控制</span>
         </div>
@@ -3067,6 +3128,10 @@ function onGlobalKeydown(e: KeyboardEvent): void {
         <!-- 编辑主机是最高频的改配动作：不再藏进「主机管理」二级菜单 -->
         <div class="host-ctx-item" @click="ctxCommand('edit')">
           <ReIcon name="EditPen" /><span>编辑主机</span>
+        </div>
+        <!-- 主机配置：随平台变化的系统参数（Linux sysctl/limits、Windows 注册表），独立顶层入口 -->
+        <div class="host-ctx-item" @click="ctxCommand('tab-sysconfig')">
+          <ReIcon name="Setting" /><span>主机配置</span>
         </div>
 
         <!-- 主机工作台：分屏 / K8s / 隧道 / 反向隧道（分屏工具条的 Docker 按钮走 /docker 独立页） -->
@@ -3132,9 +3197,6 @@ function onGlobalKeydown(e: KeyboardEvent): void {
               <ReIcon name="Lock" /><span>防火墙</span>
             </div>
             <div class="host-ctx-sep" />
-            <div class="host-ctx-item" @click="ctxCommand('tab-sysconfig')">
-              <ReIcon name="Setting" /><span>系统配置</span>
-            </div>
             <div class="host-ctx-item" @click="ctxCommand('tab-deleted')">
               <ReIcon name="Delete" /><span>已删除文件</span>
             </div>
@@ -3300,6 +3362,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
         <div class="host-ctx-item is-danger" @click="ctxCommand('delete')">
           <ReIcon name="Delete" /><span>删除主机</span>
         </div>
+        </template>
       </div>
     </Teleport>
 
@@ -3322,11 +3385,12 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   box-sizing: border-box;
 }
 
-/* 左右两栏：左侧定宽，右侧吃掉剩余 */
+/* 左右两栏：左侧可拖拽定宽，右侧吃掉剩余 */
 .as-body {
   display: flex;
   flex: 1 1 auto;
-  gap: 12px;
+  /* 间距交给分栏手柄本身，避免 gap + 手柄叠出一段空档 */
+  gap: 0;
   min-height: 0;
 }
 
@@ -3337,14 +3401,14 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   display: flex;
   flex: none;
   flex-direction: column;
-  width: 268px;
+  /* 宽度由分栏手柄写入 --as-rail-width（可拖拽，存本地偏好） */
+  width: var(--as-rail-width, 268px);
   min-height: 0;
   overflow: hidden;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-xl, 16px);
   box-shadow: var(--el-box-shadow-light, var(--shadow-1));
-  transition: width 0.18s ease;
 }
 
 /* 折叠态：268px → 44px，中间工作区净增 224px。只留计数、在线/离线点
@@ -4343,11 +4407,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   border-radius: var(--radius-sm);
 }
 
-@media (max-width: 1100px) {
-  .as-rail {
-    width: 232px;
-  }
-}
+/* 宽度完全交给拖拽偏好（上限已在手柄里按窗口宽算过），不再按断点写死 */
 
 @media (max-width: 860px) {
   /* 窄屏改为上下堆叠：左栏变成一条横向可滚动的主机带 */
@@ -4358,6 +4418,11 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   .as-rail {
     width: auto;
     max-height: 240px;
+  }
+
+  /* 上下堆叠时没有左右分栏，手柄一并收起 */
+  .as-split {
+    display: none;
   }
 }
 </style>

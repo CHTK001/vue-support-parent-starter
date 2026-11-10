@@ -466,6 +466,7 @@ import {
   inferModelType,
   deriveModelTraits,
   deriveCapabilitySwitches,
+  deriveFetchedModelConfig,
 } from './model.utils'
 import ReNumberInput from '@/components/ui/ReNumberInput.vue'
 
@@ -743,14 +744,45 @@ const openEdit = (model: any) => {
 }
 
 const prefillFromFetch = (model: any) => {
+  const type = model.modelType || inferModelType(model)
   form.value = {
     modelName: model.modelName || '',
-    modelType: model.modelType || 'text',
-    subType: model.subType || model.modelSubType || model.config?.modelSubType || inferSubType(model, model.modelType || 'text'),
-    config: createDefaultModelConfig(model.config),
+    alias: model.alias || '',
+    modelType: type,
+    subType: model.subType || model.modelSubType || model.config?.modelSubType || inferSubType(model, type),
+    config: mergeFetchConfig(model, type),
   }
   visible.value = true
 }
+
+/**
+ * 合并「上游拉取行」与它可能自带的 config。
+ *
+ * <p>上游行是扁平的（context_window / modalities / attachment …），由
+ * {@link deriveFetchedModelConfig} 推导；已映射过的行自带 config 时以 config 为准，
+ * 但空数组 / null 不能把推导值盖掉，否则输入输出能力又回到只有 text。</p>
+ */
+const mergeFetchConfig = (model: any, type: string) => {
+  const cfg = model?.config && typeof model.config === 'object' ? model.config : {}
+  const derived = deriveFetchedModelConfig(model, type)
+  return createDefaultModelConfig({
+    ...derived,
+    ...cfg,
+    inputCapabilities: listOr(cfg.inputCapabilities, derived.inputCapabilities),
+    outputCapabilities: listOr(cfg.outputCapabilities, derived.outputCapabilities),
+    features: listOr(cfg.features, derived.features),
+    capabilities: listOr(cfg.capabilities, derived.capabilities),
+    contextWindow: cfg.contextWindow ?? derived.contextWindow,
+    maxOutputTokens: cfg.maxOutputTokens ?? derived.maxOutputTokens,
+    temperature: cfg.temperature ?? derived.temperature,
+    topP: cfg.topP ?? derived.topP,
+    frequencyPenalty: cfg.frequencyPenalty ?? derived.frequencyPenalty,
+  })
+}
+
+/** 非空数组优先，否则回退推导值 */
+const listOr = (primary: any, fallback: any) =>
+  Array.isArray(primary) && primary.length ? primary : fallback
 
 /**
  * 仅显示但不重置表单数据：当从 fetchDialog 的「手动添加」退回时，
@@ -999,16 +1031,7 @@ const handleSave = async () => {
 .me-footer { display: flex; justify-content: flex-end; gap: 10px; }
 /* 原值 11px → lg 档 */
 .me-foot-btn { border-radius: var(--el-radius-lg, 12px); }
-.me-foot-btn:not(.el-button--primary) {
-  background: var(--el-bg-color);
-  border-color: var(--el-border-color-lighter);
-  color: var(--color-text);
-}
-.me-foot-btn:not(.el-button--primary):hover {
-  color: var(--el-color-primary);
-  border-color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
-}
+/* 按钮配色回归 Element Plus 默认（不再自造背景 / 边框 / 悬停主色） */
 
 /* 动效降级：系统开启「减少动态效果」时，左侧导航项的底色与文字直接到位。
    只关 .me-rail-item 自己的 transition，不写 `*` / `.me-rail-item *` 通配，

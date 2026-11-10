@@ -815,8 +815,10 @@ const currentModelNameOnly = computed(() => {
   }
   // 如果没有选中模型，显示"自动"
   const model = currentModel.value;
-  // 与模型面板同源：用 getModelDisplayName 去命名空间，避免面板/按钮两处口径分叉
-  return model ? getModelDisplayName(model.modelName) : '自动';
+  if (!model) return '自动';
+  // 用户给模型起了别名就优先显示别名（模型管理的别名就是给业务展示用的），
+  // 没有别名再回落到去掉命名空间的模型 ID。
+  return model.alias || getModelDisplayName(model.modelName);
 });
 
 const currentThinkingLabel = computed(() => {
@@ -850,7 +852,11 @@ const modelInfoTooltip = computed(() => {
   if (!model) {
     return currentModelNameOnly.value;
   }
-  const parts: string[] = [model.modelName];
+  const parts: string[] = [model.alias || model.modelName];
+  // 有别名时把真实模型 ID 放到第二位，悬停仍能看到到底调的是哪个模型
+  if (model.alias && model.alias !== model.modelName) {
+    parts.push(model.modelName);
+  }
   const provider = detectModelProvider(model.modelName);
   if (provider) {
     parts.push(provider);

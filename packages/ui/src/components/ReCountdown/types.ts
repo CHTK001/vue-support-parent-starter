@@ -3,7 +3,33 @@
  */
 
 /** 倒计时展示布局 */
-export type CountdownLayout = "dial" | "ribbon" | "pulse" | "segment" | "ticker";
+export type CountdownLayout = "dial" | "ribbon" | "pulse" | "segment" | "ticker" | "clock";
+
+/**
+ * 倒计时文本格式（layout 消费，决定时间显示哪些单位）
+ *
+ *   auto   按总时长（total）自动切单位（环形布局 / 文本显示默认Behavior）
+ *   hms    永远显示 HH:MM:SS
+ *   ms     永远显示 MM:SS
+ *   s      永远显示秒
+ *   short  显示短提示（"30秒"、"5分"、"1小时"）
+ */
+export type CountdownFormat = "auto" | "hms" | "ms" | "s" | "short";
+
+/** 时间单位（从大到小） */
+export type CountdownUnit = "d" | "h" | "m" | "s";
+
+/** 倒计时阈值配色（按剩余时间 / 总时长的比例） */
+export interface CountdownColorThresholds {
+  /** 剩余比例 >= 此值时的档位（默认 0.6） */
+  success?: number;
+  /** 剩余比例 >= 此值时的档位（默认 0.3） */
+  warning?: number;
+  /** 低于 warning 档位的兜底层色（默认 0，实际与 warning 以下同色） */
+  danger?: number;
+  /** 档位 → 实际颜色，不填则与档位同名 */
+  colors?: Record<string, CountdownColor>;
+}
 
 /** 倒计时任务（从工作流传入） */
 export interface CountdownTask {
@@ -82,6 +108,12 @@ export interface CountdownLayoutProps {
   total?: number;
   /** 是否暂停 */
   paused?: boolean;
+  /** 文本格式：auto 按总时长自适应单位，其余固定单位（auto 为默认） */
+  format?: CountdownFormat;
+  /** 阈值配色：按 remaining / total 比例切换颜色 */
+  colorThresholds?: CountdownColorThresholds;
+  /** 时钟布局的单位进度样式：ring 环状 / square 正方形 */
+  unitShape?: "ring" | "square";
 }
 
 export type CountdownColor = "primary" | "success" | "warning" | "danger" | "info" | "secondary";

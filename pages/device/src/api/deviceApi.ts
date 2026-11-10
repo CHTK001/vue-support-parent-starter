@@ -21,6 +21,7 @@ import type {
   DeviceVendorDescriptor,
   SyncResult,
   CredentialHealthResult,
+  DeviceAlarm,
   TopologyNode,
   TopologyEdge
 } from '@pages/device/src/types/device'
@@ -61,7 +62,16 @@ function unwrap<T>(r: { data?: { data?: T } | T }): T {
     }
   }
   const looksLikeEnvelope = !!body && typeof body === "object" && "data" in (body as object)
-  return ((looksLikeEnvelope ? (body as { data?: unknown }).data : body) ?? body) as T
+  const payload = (looksLikeEnvelope ? (body as { data?: unknown }).data : body) ?? body
+  // 监控后端的错误包壳是「外层 code=00000 / msg=操作成功，内层 success=false + error 文案」。
+  // 只看外层成功码会把失败弹成「操作成功」，这里把内层失败还原成真正的异常。
+  if (payload && typeof payload === "object") {
+    const nested = payload as { success?: unknown; error?: unknown; msg?: unknown }
+    if (nested.success === false) {
+      throw new Error(String(nested.error ?? nested.msg ?? "请求失败"))
+    }
+  }
+  return payload as T
 }
 
 export const deviceApi = {
@@ -91,6 +101,9 @@ export const deviceApi = {
   // ==================== 状态 ====================
   reconnect: (id: string) => http.post(`/${id}/reconnect`).then(unwrap),
   refreshStatus: (id: string) => http.post(`/${id}/refresh-status`).then(unwrap),
+  /** 启用 / 停用设备：只改状态，后台定时采集随之启停，其它配置不动 */
+  toggleStatus: (id: string, status: 'normal' | 'disabled') =>
+    http.put(`/${id}/status`).query({ status }).then(unwrap) as Promise<DeviceInfo>,
   testConnection: (info: Record<string, any>) => http.post("/test-connection").data(info).then(unwrap) as Promise<boolean>,
 
   // ==================== 组织 ====================
@@ -230,6 +243,22 @@ export const deviceApi = {
   /** 更新任务运行间隔（秒） */
   updateTaskInterval: (taskName: string, interval: number) =>
     http.put(`/tasks/${encodeURIComponent(taskName)}/interval?interval=${interval}`).then(unwrap),
+
+  // ==================== 设备告警 ====================
+  /** 告警概览指标（总数/未处理/严重/今日新增） */
+  alarmStats: () => http.get("/alarms/stats").then(unwrap) as Promise<Record<string, number>>,
+  /** 分页查询告警；后端 PageResult 用 records 承载行 */
+  listAlarms: (params: Record<string, unknown>) =>
+    http.get("/alarms").query(params).then(unwrap) as Promise<{
+      records?: DeviceAlarm[]
+      data?: DeviceAlarm[]
+      total?: number
+      pageNo?: number
+      pageSize?: number
+    }>,
+  /** 更新告警处理状态 */
+  updateAlarmStatus: (id: string, status: string, handler?: string) =>
+    http.put(`/alarms/${id}/status`).data({ status, handler: handler ?? '' }).then(unwrap),
 
   // ==================== 厂商设备目录同步（写回方向） ====================
   /** 把本地设备写回厂商侧（仅厂商实现写回 SPI 生效） */

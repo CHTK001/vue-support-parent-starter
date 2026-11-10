@@ -5,7 +5,7 @@
     <div v-if="model" class="mic">
       <!-- 模型名 + 供应商 -->
       <header class="mic-head">
-        <div class="mic-name" :title="displayName">{{ displayName }}</div>
+        <div class="mic-name" :title="displayTitle">{{ displayName }}</div>
         <div v-if="providerName" class="mic-provider" :title="providerName">{{ providerName }}</div>
       </header>
 
@@ -91,6 +91,8 @@ interface ModelInfoSource {
   id?: string
   model?: string
   modelName?: string
+  /** 用户配置的模型别名：有则优先展示 */
+  alias?: string
   modelType?: string
   providerId?: string
   provider_id?: string
@@ -161,8 +163,16 @@ const FEATURE_LABELS: Record<string, string> = {
 const kindLabel = (k: string): string => KIND_LABELS[k] || k
 const featureLabel = (f: string): string => FEATURE_LABELS[f] || f
 
-const displayName = computed(() =>
+const modelIdLabel = computed(() =>
   getModelDisplayName(props.model?.modelName || props.model?.model || props.model?.id || ''),
+)
+
+/** 有别名优先显示别名；悬停标题仍给出真实模型 ID */
+const displayName = computed(() => props.model?.alias || modelIdLabel.value)
+const displayTitle = computed(() =>
+  props.model?.alias && props.model.alias !== modelIdLabel.value
+    ? `${props.model.alias} · ${modelIdLabel.value}`
+    : modelIdLabel.value,
 )
 
 const metrics = computed<Record<string, any>>(() => props.model?.metrics || {})

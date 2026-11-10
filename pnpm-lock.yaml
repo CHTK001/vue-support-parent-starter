@@ -90,6 +90,9 @@ catalogs:
     '@tanstack/vue-query':
       specifier: ^5.104.5
       version: 5.104.5
+    '@techui/scifi':
+      specifier: 0.1.6-alpha.1
+      version: 0.1.6-alpha.1
     '@turf/turf':
       specifier: ^7.4.0
       version: 7.4.0
@@ -1130,12 +1133,15 @@ importers:
       '@repo/utils':
         specifier: workspace:*
         version: link:../../packages/utils
+      '@techui/scifi':
+        specifier: 'catalog:'
+        version: 0.1.6-alpha.1(typescript@5.9.3)
       axios:
         specifier: ^1.7.9
         version: 1.19.0
       echarts:
-        specifier: ^5.6.0
-        version: 5.6.0
+        specifier: ^6.1.0
+        version: 6.1.0
       element-plus:
         specifier: 'catalog:'
         version: 2.14.7(vue@3.5.45(typescript@5.9.3))
@@ -5384,6 +5390,30 @@ packages:
     peerDependenciesMeta:
       '@vue/composition-api':
         optional: true
+
+  '@techui/colors@2.0.1':
+    resolution: {integrity: sha512-RW2iY7kKYacN6FfaFBr88u4J/uTXcdgGJwMY1it54RQx9ZxWoIqWQWPvFB1WYaooJECd2LcmTZddq77+gFk5FA==}
+
+  '@techui/icons@1.0.5':
+    resolution: {integrity: sha512-GpOzFH3lwf8g3u679KGm+d3h6nlekA14gOk5xT97qZPj/6IF6E3ixk3jvE9j9fZreHjlt9YkK+aKt/aiYuMAiA==}
+
+  '@techui/libs@0.0.8':
+    resolution: {integrity: sha512-cWta1PYRcRT0L2oP+Osn5Bj72pTgd54COxWvCCaBZMnxjgiTLB/qfHjBkdxnLsawEXFaAiMESHHCLiD8zi6s/w==}
+
+  '@techui/locales@0.1.6':
+    resolution: {integrity: sha512-Wo6sQAPqLO3TzFHZHBnNVmsKaQQmkeDGK7KNsFTYfFk6TPQHBEsEsiwlSudshixD9hRQs7n1LksMOvIlqDhQKw==}
+
+  '@techui/mixins@0.1.6':
+    resolution: {integrity: sha512-rZgFrg+OsMdDsfZ9KdX29lBQgDkLS9JPEXpIU7JA3xzZhqllpkmfPkvbxxmsMFMOycqrO/2leMPupy8+MxqhJg==}
+
+  '@techui/scifi@0.1.6-alpha.1':
+    resolution: {integrity: sha512-XVknETcVJisiUc71Ld7K2EGZbSkBq1dpY3nRh+EWjt+9R/aTbbpLo0O17ob8flCMbBNKKPqApRsRbOaVTc/edA==}
+
+  '@techui/themes@0.1.6':
+    resolution: {integrity: sha512-Aia4NcBRQxnS4kjiTm+10hTDlTDC+alJrUL9Yz6t2sldIdnOumSyCOhy6nFRjBcOnKwiagOGK6goXHphdvV3Jw==}
+
+  '@techui/utils@0.1.6':
+    resolution: {integrity: sha512-fWZn26kteUp8Pr+7/s9pQEVYwXEcl5/5QOO8ENAaGwv2P5wCsPIqT6jd0i+2bmCP3hEqld5GvYoyxZ/XaQXGVQ==}
 
   '@tiptap/core@3.31.3':
     resolution: {integrity: sha512-Cz50pvciQrxdSxgTkHOVz0uD0Yl/8Xt0QatGD6ILm47jW8EzyHR9RkUGs/D5IqzXKuVPntfw1ttaT926vXfiRg==}
@@ -12242,6 +12272,36 @@ snapshots:
       '@vue/devtools-api': 6.6.4
       vue: 3.5.45(typescript@5.9.3)
       vue-demi: 0.14.10(vue@3.5.45(typescript@5.9.3))
+
+  '@techui/colors@2.0.1': {}
+
+  '@techui/icons@1.0.5': {}
+
+  '@techui/libs@0.0.8': {}
+
+  '@techui/locales@0.1.6': {}
+
+  '@techui/mixins@0.1.6':
+    dependencies:
+      '@techui/colors': 2.0.1
+
+  '@techui/scifi@0.1.6-alpha.1(typescript@5.9.3)':
+    dependencies:
+      '@techui/colors': 2.0.1
+      '@techui/icons': 1.0.5
+      '@techui/libs': 0.0.8
+      '@techui/locales': 0.1.6
+      '@techui/mixins': 0.1.6
+      '@techui/themes': 0.1.6
+      '@techui/utils': 0.1.6
+      vue: 3.5.45(typescript@5.9.3)
+      vue-router: 4.6.4(vue@3.5.45(typescript@5.9.3))
+    transitivePeerDependencies:
+      - typescript
+
+  '@techui/themes@0.1.6': {}
+
+  '@techui/utils@0.1.6': {}
 
   '@tiptap/core@3.31.3(@tiptap/pm@3.31.3)':
     dependencies:

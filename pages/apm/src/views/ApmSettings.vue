@@ -18,6 +18,9 @@
       <template #actions>
         <!-- 页头只留「保存」：打开页面就已经读过设置，保存后也会把最新状态取回来，
              因此「刷新」不是日常动作；「重新探测」属于状态卡自己的操作，贴到那张卡头上。 -->
+        <ReButton icon="Memo" text title="查看谁在什么时候改过 APM 设置" @click="operLogVisible = true">
+          操作日志
+        </ReButton>
         <ReButton icon="Check" type="primary" show-text :loading="saving" @click="save">保存</ReButton>
       </template>
     </ReSectionHead>
@@ -25,11 +28,7 @@
     <ReSkeleton v-if="loading && !settings" :rows="8" animated />
 
     <!-- 读不到设置 ≠ 没有 APM：一个是后端不可达，一个是设置文件问题，措辞必须分开 -->
-    <div v-else-if="loadError" class="settings-error">
-      <h3 class="settings-error__title">无法读取 APM 设置</h3>
-      <p class="settings-error__msg">{{ loadError }}</p>
-      <ReButton icon="Refresh" @click="load">重试</ReButton>
-    </div>
+    <ReErrorBar v-else-if="loadError" :message="loadError" retryText="重试" @retry="load" />
 
     <template v-else-if="settings">
       <!-- 保存结果：落盘失败必须在页内常驻，toast 一闪而过会被当成成功 -->
@@ -231,6 +230,19 @@
         </p>
       </div>
     </template>
+
+    <!-- 操作日志：与「操作日志」页签同一份数据，这里是为了改完设置就地看结果 -->
+    <ReDialog
+      v-model="operLogVisible"
+      width="1000px"
+      title="APM 操作日志"
+      :footer-hidden="true"
+      destroy-on-close
+    >
+      <div class="settings-oplog">
+        <ApmOperLogPanel />
+      </div>
+    </ReDialog>
   </div>
 </template>
 
@@ -238,6 +250,7 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import { message } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
+import ReDialog from "@repo/ui/re-dialog";
 import ReInput from "@repo/ui/re-input";
 import ReInputNumber from "@repo/ui/re-input-number";
 import ReSectionHead from "@repo/ui/re-section-head";
@@ -248,6 +261,7 @@ import ReTag from "@repo/ui/re-tag";
 import { detectApm, getApmSettings, saveApmSettings } from "../api/apmApi";
 import type { ApmEngineSettings, ApmSettings, ApmSettingsInput } from "../api/apmApi";
 import { refreshApmStatus } from "../composables/useApmStatus";
+import ApmOperLogPanel from "../components/ApmOperLogPanel.vue";
 
 const loading = ref(false);
 const saving = ref(false);
@@ -255,6 +269,8 @@ const detecting = ref(false);
 const loadError = ref("");
 const persistWarning = ref("");
 const settings = ref<ApmSettings | null>(null);
+/** 操作日志弹框开关：入口在页头，内容与「操作日志」页签同一份数据 */
+const operLogVisible = ref(false);
 
 const form = reactive({
   enabled: true,
@@ -521,24 +537,13 @@ onMounted(load);
   color: var(--el-color-warning-dark-2, #b88230);
 }
 
-.settings-error {
-  padding: 18px 16px;
-  border-radius: var(--apm-radius, 8px);
-  border: 1px solid var(--el-color-danger-light-5, #f56c6c);
-  background: var(--el-color-danger-light-9, #fef0f0);
+/* 弹框内高度必须写死：面板里的表格按 height:100% 撑，
+   父级没有确定高度时会塌成一条线，看起来像「没有数据」 */
+.settings-oplog {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  height: 520px;
 }
 
-.settings-error__title {
-  margin: 0 0 6px;
-  font-size: 15px;
-  color: var(--el-color-danger-dark-2, #c45656);
-}
-
-.settings-error__msg {
-  margin: 0 0 12px;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--el-text-color-regular);
-  white-space: pre-wrap;
-}
 </style>

@@ -26,8 +26,10 @@ import { message } from '@repo/core';
 import { useRoute } from 'vue-router';
 import ReTabs, { type ReTabsContextItem, type ReTabsItem } from '@repo/ui/re-tabs';
 import { RoomView } from '@pages/room';
+import ReDialog from '@repo/ui/re-dialog';
 import ScServerFormDrawer from '../components/ScServerFormDrawer.vue';
 import ScServerDetailDrawer from '../components/ScServerDetailDrawer.vue';
+import ScServerOperLogPanel from '../components/ScServerOperLogPanel.vue';
 import { useServiceNodes } from './service/useServiceNodes';
 import {
   primaryActionOf,
@@ -446,6 +448,30 @@ const ctxMenu = reactive<{ visible: boolean; x: number; y: number; card: Service
   card: null,
 });
 
+/* ==================== 操作日志弹框 ==================== */
+
+/** 操作日志弹框是否可见 */
+const operLogVisible = ref(false);
+/** 当前查看日志的节点（关闭弹框后仍保留，避免关闭动画期间标题闪空） */
+const operLogNode = ref<{ id: number; name: string } | null>(null);
+
+/**
+ * 打开节点操作日志。
+ *
+ * <p>只对已持久化的节点开放：{@code node_id} 是非空列，而新建时 id 在响应体里，
+ * 页面上的临时卡片还没有可查询的主键。</p>
+ *
+ * @param card 目标节点卡片
+ */
+function openOperLog(card: ServiceNodeCard): void {
+  if (!card.id) {
+    message.warning('该服务还未保存，暂无可查询的操作日志');
+    return;
+  }
+  operLogNode.value = { id: card.id, name: card.name };
+  operLogVisible.value = true;
+}
+
 /** 菜单估算尺寸（仅在菜单尚未挂载、量不到真实高度时兜底） */
 const CTX_MENU_W = 220;
 const CTX_MENU_H = 340;
@@ -542,6 +568,9 @@ function ctxCommand(cmd: string): void {
     }
     case 'close-tabs':
       closeNodeTabs(card.id);
+      break;
+    case 'oper-log':
+      openOperLog(card);
       break;
     case 'delete':
       if (nodeOf(card)) void vm.remove(nodeOf(card)!);
@@ -1069,6 +1098,21 @@ watch(
       @saved="vm.refresh()"
     />
 
+    <!-- 节点操作日志：右键菜单进入，只读分页 -->
+    <ReDialog
+      v-model="operLogVisible"
+      width="960px"
+      :title="operLogNode ? `操作日志 · ${operLogNode.name}` : '操作日志'"
+      :footer-hidden="true"
+      destroy-on-close
+    >
+      <div class="sv-operlog-wrap">
+        <ScServerOperLogPanel
+          :node-id="operLogNode?.id ?? null"
+          :node-name="operLogNode?.name"
+        />
+      </div>
+    </ReDialog>
     <!-- 节点右键菜单：Teleport 到 body，样式走 kit 里的全局 sv-ctx-* -->
     <Teleport to="body">
       <div
@@ -1101,6 +1145,10 @@ watch(
         <div class="sv-ctx-item" @click="ctxCommand('detail')">
           <ReIcon name="View" />
           <span>查看详情</span>
+        </div>
+        <div class="sv-ctx-item" @click="ctxCommand('oper-log')">
+          <ReIcon name="Document" />
+          <span>操作日志</span>
         </div>
         <div class="sv-ctx-item" @click="ctxCommand('filter')">
           <ReIcon name="Filter" />
@@ -1158,6 +1206,14 @@ watch(
 .load-notice {
   flex: none;
   margin: 0;
+}
+
+/* 操作日志弹框：面板内部按 100% 高铺开，ReTable 的高度才有参照 */
+.sv-operlog-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 520px;
+  min-height: 0;
 }
 
 /* ============ 控制条 ============ */

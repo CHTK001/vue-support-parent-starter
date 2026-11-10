@@ -34,7 +34,26 @@ export type {
   ReChartSankeyData,
   ReChartProps,
   ReChartEmit,
+  ViewPane,
+  TopologyNode,
+  TopologyEdge,
+  TopologyNodeStatus,
+  ReChartTopologyData,
+  ContextSlice,
+  ContextSliceKind,
+  ReChartContextData,
 } from "./types";
+export {
+  isTopologyData,
+  isContextWindowData,
+  normalizeContextWindow,
+  formatTokens,
+  sliceColor,
+  sliceKindLabel,
+  layoutTreemap,
+  assignDots,
+} from "./contract";
+export type { TreemapRect } from "./contract";
 export type {
   ChartSimpleData,
   ChartSimpleSeries,

@@ -201,25 +201,55 @@
               </div>
             </div>
 
+            <!-- 演出正文：一屏一场，剧照铺满舞台，台词排成人物气泡 -->
             <article v-if="storyScenes.length && (!playVideos.length || showTextPlay)" class="ws-play" data-role="play">
-              <section v-for="(s, i) in storyScenes" :key="i" class="ws-cue">
-                <div class="ws-cue-side">
-                  <span class="ws-cue-no">{{ s.no }}</span>
-                  <span v-if="s.stageName" class="ws-cue-where">{{ s.stageName }}</span>
-                </div>
-                <div class="ws-cue-body">
-                  <h3 class="ws-cue-title">{{ s.title }}</h3>
-                  <div v-if="s.cast" class="ws-cue-cast">在场：{{ s.cast }}</div>
-                  <p class="ws-cue-text">{{ s.body }}</p>
-                  <ul v-if="s.lines.length" class="ws-cue-lines" data-role="play-lines">
-                    <li v-for="(l, li) in s.lines" :key="li" class="ws-cue-line">
-                      <span v-if="l.speaker" class="ws-cue-who">{{ l.speaker }}</span>
+              <section v-if="cueScene" :key="cueIndex" class="ws-cue"
+                :class="{ 'no-photo': !cueScene.image, expanded: cueExpanded(cueIndex) }" :data-cue="cueIndex">
+                <img v-if="cueScene.image" class="ws-cue-img" :src="imageSrc(cueScene.image)" :alt="cueScene.title" draggable="false" />
+                <div class="ws-cue-veil"></div>
+
+                <header class="ws-cue-head">
+                  <span class="ws-cue-no">{{ cueScene.no }}</span>
+                  <span class="ws-cue-title">{{ cueScene.title }}</span>
+                  <span v-if="cueScene.stageName && cueScene.stageName !== cueScene.title" class="ws-cue-where">{{ cueScene.stageName }}</span>
+                  <span class="ws-cue-count">{{ cueIndex + 1 }} / {{ storyScenes.length }}</span>
+                </header>
+
+                <div class="ws-cue-cast" data-role="play-lines">
+                  <div v-if="cueScene.cast && cueScene.cast !== '-'" class="ws-cue-in">在场：{{ cueScene.cast }}</div>
+                  <div v-for="(l, li) in visibleLines(cueScene, cueIndex)" :key="li" class="ws-cue-line"
+                    :class="li % 2 ? 'right' : 'left'">
+                    <CardAvatar class="ws-cue-ava" :src="npcAvatar(l.speaker)" :name="l.speaker || 'AI'" size="sm" />
+                    <div class="ws-cue-bubble">
+                      <span class="ws-cue-who">{{ l.speaker }}</span>
                       <span class="ws-cue-say">{{ l.text }}</span>
-                    </li>
-                  </ul>
-                  <img v-if="s.image" class="ws-cue-img" :src="imageSrc(s.image)" :alt="s.title" />
+                    </div>
+                  </div>
+                  <button v-if="cueScene.lines.length > CUE_LINE_LIMIT" class="ws-cue-more" type="button"
+                    @click="toggleCue(cueIndex)">
+                    {{ cueExpanded(cueIndex) ? '收起台词' : `还有 ${cueScene.lines.length - CUE_LINE_LIMIT} 句台词` }}
+                  </button>
                 </div>
+
+                <footer v-if="cueScene.body" class="ws-cue-narr" :class="{ open: narrExpanded(cueIndex) }">
+                  <span class="ws-cue-narr-k">旁白</span>
+                  <span class="ws-cue-narr-t">{{ cueScene.body }}</span>
+                  <button v-if="isLongNarr(cueScene.body)" class="ws-cue-narr-more" type="button"
+                    @click="toggleNarr(cueIndex)">{{ narrExpanded(cueIndex) ? '收起' : '展开' }}</button>
+                </footer>
               </section>
+
+              <!-- 场次导航：一屏一场，点圆点翻场 -->
+              <nav v-if="storyScenes.length > 1" class="ws-cue-nav" data-role="cue-nav">
+                <button class="ws-cue-arrow" type="button" :disabled="cueIndex <= 0"
+                  title="上一场" @click="stepCue(-1)">‹</button>
+                <button v-for="(s, i) in storyScenes" :key="i" class="ws-cue-dot"
+                  :class="{ active: i === cueIndex }" type="button"
+                  :title="`第 ${i + 1} 场：${s.title}`" :aria-label="`第 ${i + 1} 场`"
+                  @click="gotoCue(i)"></button>
+                <button class="ws-cue-arrow" type="button" :disabled="cueIndex >= storyScenes.length - 1"
+                  title="下一场" @click="stepCue(1)">›</button>
+              </nav>
             </article>
 
             <!-- 还没演出：等 AI 写 -->
@@ -634,37 +664,45 @@
     </ReDialog>
 
     <!-- ============ 微调角色对话框 ============ -->
-    <ReDialog :close-on-click-modal="true" v-model="npcEditVisible" width="480" append-to-body class="ws-dialog">
+    <ReDialog :close-on-click-modal="true" v-model="npcEditVisible" width="720" append-to-body class="ws-dialog">
       <template #header><span class="ws-dlg-title">微调「{{ npcEditTarget?.displayName }}」</span></template>
-      <div v-if="npcEditTarget" class="ws-form">
-        <div class="ws-field">
-          <label class="ws-label">世界内昵称</label>
-          <el-input v-model="npcEditForm.nickname" placeholder="留空使用角色名" maxlength="20" />
-        </div>
-        <div class="ws-field">
-          <label class="ws-label">所在场景</label>
-          <el-select v-model="npcEditForm.sceneId" placeholder="未布置" clearable style="width: 100%">
-            <el-option v-for="s in scenes" :key="s.id" :label="s.name" :value="s.id" />
-          </el-select>
-        </div>
-        <div class="ws-field">
-          <label class="ws-label">性格 / 人设（prompt）</label>
-          <el-input v-model="npcEditForm.persona" type="textarea" :rows="5"
-            placeholder="在这个世界里的背景与性格，会盖过角色的系统提示词" />
-        </div>
-        <div class="ws-field">
-          <label class="ws-label">与 {{ npcEditTarget.displayName }} 的关系</label>
-          <div v-if="!npcRelations.length" class="ws-hint">还没有录入关系，AI 演过几轮后会自动生成。</div>
-          <div v-for="r in npcRelations" :key="r.id" class="npc-rel">
-            <span class="npc-rel-name">{{ otherName(r) }}</span>
-            <el-slider v-model="relDraft[r.id]" :min="-100" :max="100" :step="5" size="small" class="npc-rel-slider" />
-            <span class="npc-rel-val">{{ relDraft[r.id] }}</span>
+      <div v-if="npcEditTarget" class="ws-form ws-form-split">
+        <!-- 左栏：基本信息 -->
+        <div class="ws-col">
+          <div class="ws-col-head">基本信息</div>
+          <div class="ws-field">
+            <label class="ws-label">世界内昵称</label>
+            <el-input v-model="npcEditForm.nickname" placeholder="留空使用角色名" maxlength="20" />
+          </div>
+          <div class="ws-field">
+            <label class="ws-label">所在场景</label>
+            <el-select v-model="npcEditForm.sceneId" placeholder="未布置" clearable style="width: 100%">
+              <el-option v-for="s in scenes" :key="s.id" :label="s.name" :value="s.id" />
+            </el-select>
+          </div>
+          <div class="ws-field">
+            <label class="ws-label">参与演出</label>
+            <el-switch v-model="npcEditForm.isActive" active-text="参与" inactive-text="挂起" />
+            <span class="ws-hint">挂起的角色不会自动开口</span>
           </div>
         </div>
-        <div class="ws-field">
-          <label class="ws-label">参与演出</label>
-          <el-switch v-model="npcEditForm.isActive" active-text="参与" inactive-text="挂起" />
-          <span class="ws-hint">挂起的角色不会自动开口</span>
+        <!-- 右栏：性格与关系 -->
+        <div class="ws-col">
+          <div class="ws-col-head">性格与关系</div>
+          <div class="ws-field">
+            <label class="ws-label">性格 / 人设（prompt）</label>
+            <el-input v-model="npcEditForm.persona" type="textarea" :rows="7"
+              placeholder="在这个世界里的背景与性格，会盖过角色的系统提示词" />
+          </div>
+          <div class="ws-field">
+            <label class="ws-label">与 {{ npcEditTarget.displayName }} 的关系</label>
+            <div v-if="!npcRelations.length" class="ws-hint">还没有录入关系，AI 演过几轮后会自动生成。</div>
+            <div v-for="r in npcRelations" :key="r.id" class="npc-rel">
+              <span class="npc-rel-name">{{ otherName(r) }}</span>
+              <el-slider v-model="relDraft[r.id]" :min="-100" :max="100" :step="5" size="small" class="npc-rel-slider" />
+              <span class="npc-rel-val">{{ relDraft[r.id] }}</span>
+            </div>
+          </div>
         </div>
       </div>
       <template #footer>
@@ -948,6 +986,100 @@ const storyScenes = computed(() => {  const cur = stories.value.find((s) => s.ac
       }
     })
 })
+
+/* ---- 舞台：一屏只放一场 ---- */
+
+/** 当前摆在这一屏上的场次（0 基）；切幕 / 重播会归零，增量演出时跟着最新一场走 */
+const cueIndex = ref(0)
+
+/** 一屏最多先摆几句台词，多的收进「还有 N 句」 */
+const CUE_LINE_LIMIT = 3
+
+/** 已展开台词的场次下标 */
+const cueOpen = ref<number[]>([])
+
+/** 已展开旁白的场次下标（与台词分开，展开台词不该顺手把旁白也摊开） */
+const narrOpen = ref<number[]>([])
+
+/** 舞台上真正渲染的那一场 */
+const cueScene = computed(() => storyScenes.value[cueIndex.value] || storyScenes.value[0] || null)
+
+function cueExpanded(i: number) {
+  return cueOpen.value.includes(i)
+}
+
+function narrExpanded(i: number) {
+  return narrOpen.value.includes(i)
+}
+
+function toggleCue(i: number) {
+  cueOpen.value = cueExpanded(i)
+    ? cueOpen.value.filter((x) => x !== i)
+    : [...cueOpen.value, i]
+}
+
+function toggleNarr(i: number) {
+  narrOpen.value = narrExpanded(i)
+    ? narrOpen.value.filter((x) => x !== i)
+    : [...narrOpen.value, i]
+}
+
+function visibleLines(s: { lines?: Array<{ speaker?: string; text?: string }> }, i: number) {
+  const lines = s.lines || []
+  return cueExpanded(i) ? lines : lines.slice(0, CUE_LINE_LIMIT)
+}
+
+/** 旁白超过两行才给展开按钮，短旁白不占按钮（两行约 60 字，宁可早给也别把字藏掉） */
+function isLongNarr(text: string) {
+  return String(text || '').length > 60
+}
+
+/**
+ * 台词说话人 → 角色头像。
+ *
+ * <p>台词里的 speaker 是 AI 写出来的名字，可能带称谓（如「沈砚」对「沈砚大人」），
+ * 先精确匹配，再退化到包含匹配；都对不上就交给 CardAvatar 用姓氏字牌兜底。</p>
+ */
+function npcAvatar(speaker?: string) {
+  const name = String(speaker || '').trim()
+  if (!name) return null
+  const exact = npcs.value.find((n) => String(n.displayName || '').trim() === name)
+  if (exact) return exact.displayAvatar || null
+  const loose = npcs.value.find((n) => {
+    const dn = String(n.displayName || '').trim()
+    return dn && (name.includes(dn) || dn.includes(name))
+  })
+  return loose?.displayAvatar || null
+}
+
+function gotoCue(i: number) {
+  const n = storyScenes.value.length
+  if (!n) return
+  cueIndex.value = Math.min(Math.max(i, 0), n - 1)
+}
+
+function stepCue(delta: number) {
+  gotoCue(cueIndex.value + delta)
+}
+
+// 切幕归零；演出进行中每多演一场就跟到最新一场，观众不用自己点
+watch(
+  () => currentAct.value?.actNo,
+  () => {
+    cueIndex.value = 0
+    cueOpen.value = []
+    narrOpen.value = []
+  },
+)
+
+watch(
+  () => storyScenes.value.length,
+  (n, old) => {
+    if (!n) { cueIndex.value = 0; return }
+    if (n > (old || 0) && actProcessing.value) cueIndex.value = n - 1
+    else if (cueIndex.value >= n) cueIndex.value = n - 1
+  },
+)
 
 /** 舞台上的分镜视频：这一幕每个场景生成成功的视频按顺序连播 */
 interface FilmShot {
@@ -1645,6 +1777,10 @@ function runSpectatorTurn(hint: string): Promise<boolean> {
                 target.streaming = false
                 if (ev.error) target.content += `\n[错误] ${ev.error}`
                 else if (!target.content.trim()) target.content = '（模型未返回内容）'
+              } else if (ev.error) {
+                // 后端在 create 之前就失败（例如没有任何可用对话模型）时只会补一条带 error 的 finish，
+                // 此时没有气泡可挂错误，直接落一条错误气泡，避免「有动作但毫无结果」。
+                pushStreamError(ev)
               }
             } else if (ev.type === 'turn_end') {
               aiBySpeaker.forEach((m) => { m.streaming = false })
@@ -1653,6 +1789,8 @@ function runSpectatorTurn(hint: string): Promise<boolean> {
           onError: (err) => {
             console.error('world watch stream error', err)
             spectating.value = false
+            // 一条气泡都没建起来就断了：给用户一个可见结果，别让「观演」点了像没点
+            if (!got) pushStreamError({ error: '连接中断，本轮没有收到回复，请重试' })
             reject(err)
           },
           onClose: () => {
@@ -1956,6 +2094,9 @@ async function actPipelineAction(btn: { stage?: string; label?: string; action?:
       filmIndex.value = 0
       brokenShots.value = []
       showTextPlay.value = false
+      cueIndex.value = 0
+      cueOpen.value = []
+      narrOpen.value = []
       // 重播完 AI 自己接下一幕：接口会把新开的空幕带回来，列表刷新后直接跳过去。
       awaitingPlay.value = true
       let started: WorldActAdvance | null = null
@@ -2067,6 +2208,22 @@ function evSpeakerFallback(map: Map<string, UIMessage>): UIMessage | null {
   return streamings.length === 1 ? streamings[0] : null
 }
 
+/**
+ * 后端在 create 之前就失败时（例如一个可用对话模型都没有），SSE 只会补一条带 error 的
+ * finish 帧，没有任何气泡可以挂错误。这里补一个错误气泡，保证「点了发送一定看得见结果」。
+ */
+function pushStreamError(ev: { error?: string; speakerName?: string }) {
+  messages.value.push({
+    _key: keySeq++,
+    speakerType: 'ai',
+    speakerId: '',
+    speakerName: ev.speakerName || '系统',
+    content: `[错误] ${ev.error || '生成失败'}`,
+    streaming: false,
+  })
+  scrollBottom()
+}
+
 async function send() {
   const content = draft.value.trim()
   if (!content || !currentWorldId.value || sending.value) return
@@ -2114,6 +2271,8 @@ async function send() {
               } else if (!target.content.trim()) {
                 target.content = '（模型未返回内容）'
               }
+            } else if (ev.error) {
+              pushStreamError(ev)
             }
           } else if (type === 'user_message') {
             // 后端回显用户消息，忽略（本地已 push）
@@ -2124,6 +2283,8 @@ async function send() {
         onError: (err) => {
           console.error('world stream error', err)
           sending.value = false
+          // 一条 AI 气泡都没建起来：补一个可见结果，避免「发了消息却毫无反应」
+          if (aiBySpeaker.size === 0) pushStreamError({ error: '连接中断，本轮没有收到回复，请重试' })
         },
         onClose: () => {
           sending.value = false
@@ -2670,80 +2831,269 @@ async function send() {
 }
 .ws-film-to-text:hover { color: var(--el-color-primary); border-color: var(--el-color-primary); }
 
-/* ---- 演出正文：像剧本页一样排 ---- */
+/* ---- 演出正文：一屏一场的舞台 ---- */
 .ws-play {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  max-width: 760px;
+  gap: 10px;
 }
-.ws-cue { display: flex; gap: 14px; }
-.ws-cue-side {
-  flex: 0 0 62px;
+.ws-cue {
+  position: relative;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-  padding-top: 2px;
+  justify-content: flex-end;
+  gap: 10px;
+  min-height: 400px;
+  max-height: 620px;
+  padding: 58px 22px 18px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #12161f;
+  color: #fff;
+  isolation: isolate;
+  animation: ws-cue-in 0.32s ease;
 }
-.ws-cue-no {
-  font-size: 20px;
-  font-weight: 600;
-  line-height: 1;
-  color: var(--el-color-primary);
-  font-family: var(--el-font-family, inherit);
-}
-.ws-cue-where { font-size: 11px; color: var(--el-text-color-placeholder); text-align: right; }
-.ws-cue-body {
-  flex: 1;
-  min-width: 0;
-  padding-left: 14px;
-  border-left: 2px solid var(--el-border-color-lighter);
-}
-.ws-cue-title {
-  margin: 0 0 6px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-.ws-cue-cast { font-size: 11.5px; color: var(--el-text-color-placeholder); margin-bottom: 6px; }
-.ws-cue-text {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.85;
-  color: var(--el-text-color-regular);
-  white-space: pre-wrap;
-  word-break: break-word;
+/* 没剧照时用舞台渐变兜底：形态是 image 但这一场没出图，也不能塌成一条 */
+.ws-cue.no-photo {
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(120, 140, 255, 0.35), transparent 62%),
+    linear-gradient(160deg, #1b2233 0%, #10141c 60%, #0b0e14 100%);
 }
 .ws-cue-img {
-  margin-top: 10px;
-  max-width: 100%;
-  border-radius: var(--el-radius-md, 8px);
-  border: 1px solid var(--el-border-color-lighter);
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
 }
-/* 台词：说话人与内容分开，说话人弱化，读起来像剧本而不是一整段旁白 */
-.ws-cue-lines {
-  margin: 8px 0 0;
-  padding: 0;
-  list-style: none;
+.ws-cue-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 10, 16, 0.62) 0%,
+    rgba(8, 10, 16, 0.12) 32%,
+    rgba(8, 10, 16, 0.55) 70%,
+    rgba(8, 10, 16, 0.9) 100%
+  );
+}
+.ws-cue > *:not(.ws-cue-img):not(.ws-cue-veil) { position: relative; z-index: 2; }
+
+.ws-cue-head {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 14px 18px;
+  background: linear-gradient(180deg, rgba(6, 8, 12, 0.72), transparent);
+  z-index: 3;
+}
+.ws-cue-no {
+  flex: none;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  color: #ffd88a;
+  font-family: var(--el-font-family, inherit);
+}
+.ws-cue-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-cue-where {
+  flex: none;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.62);
+}
+.ws-cue-count {
+  margin-left: auto;
+  flex: none;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.68);
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-cue-cast {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
+  min-height: 0;
+  flex: 0 1 auto;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+}
+.ws-cue-cast::-webkit-scrollbar { width: 4px; }
+.ws-cue-cast::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.28); border-radius: 4px; }
+.ws-cue-in {
+  align-self: flex-start;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(10, 14, 22, 0.42);
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.66);
 }
 .ws-cue-line {
   display: flex;
+  align-items: flex-start;
   gap: 8px;
+  max-width: 84%;
   font-size: 13.5px;
-  line-height: 1.75;
-  color: var(--el-text-color-primary);
+  line-height: 1.7;
 }
+.ws-cue-line.left { align-self: flex-start; }
+.ws-cue-line.right { align-self: flex-end; flex-direction: row-reverse; }
+.ws-cue-ava {
+  flex: none;
+  margin-top: 2px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.18);
+}
+.ws-cue-bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 100%;
+  padding: 7px 12px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(14, 18, 28, 0.72);
+  backdrop-filter: blur(6px);
+}
+.ws-cue-line.left .ws-cue-bubble { border-top-left-radius: 4px; }
+.ws-cue-line.right .ws-cue-bubble { border-top-right-radius: 4px; }
 .ws-cue-who {
   flex: none;
-  color: var(--el-color-primary);
+  font-size: 11px;
   font-weight: 600;
+  line-height: 1.4;
+  color: #9fc4ff;
 }
-.ws-cue-who::after { content: '：'; }
-.ws-cue-say { word-break: break-word; }
+.ws-cue-say {
+  color: #fff;
+  word-break: break-word;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.ws-cue-more {
+  align-self: center;
+  padding: 2px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(10, 14, 22, 0.42);
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+}
+.ws-cue-more:hover { border-color: rgba(255, 255, 255, 0.5); color: #fff; }
+
+.ws-cue-narr {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(8, 11, 18, 0.6);
+  backdrop-filter: blur(6px);
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.86);
+}
+.ws-cue-narr-k {
+  flex: none;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.9;
+  color: #ffd88a;
+}
+.ws-cue-narr-t {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+.ws-cue-narr.open .ws-cue-narr-t {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+.ws-cue-narr-more {
+  flex: none;
+  margin-left: auto;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  font-size: 11.5px;
+  color: #9fc4ff;
+  cursor: pointer;
+}
+.ws-cue-narr-more:hover { color: #fff; }
+
+/* 一屏一场的翻页：圆点表示进度，箭头翻上/下一场 */
+.ws-cue-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+.ws-cue-arrow {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--el-border-color);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--el-text-color-regular);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.ws-cue-arrow:hover:not(:disabled) { color: var(--el-color-primary); border-color: var(--el-color-primary); }
+.ws-cue-arrow:disabled { opacity: 0.35; cursor: default; }
+.ws-cue-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--el-border-color);
+  cursor: pointer;
+  transition: width 0.16s ease, background 0.16s ease;
+}
+.ws-cue-dot:hover { background: var(--el-text-color-placeholder); }
+.ws-cue-dot.active {
+  width: 20px;
+  border-radius: 4px;
+  background: var(--el-color-primary);
+}
+
+@keyframes ws-cue-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+@media (max-width: 720px) {
+  .ws-cue { min-height: 440px; padding: 54px 14px 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ws-cue { animation: none; }
+  .ws-cue-dot { transition: none; }
+}
 
 /* ---- 舞台空态 ---- */
 .ws-stage-empty {
@@ -3249,6 +3599,31 @@ async function send() {
 .ws-dialog :deep(.el-dialog__header) { padding-bottom: 8px; }
 .ws-dlg-title { font-size: 15px; font-weight: 600; }
 .ws-form { display: flex; flex-direction: column; gap: 14px; }
+/* 左右两栏：左侧窄（身份/场景/开关），右侧宽（人设/关系） */
+.ws-form-split {
+  flex-direction: row;
+  align-items: stretch;
+  gap: 20px;
+}
+.ws-form-split .ws-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.ws-form-split .ws-col:first-child {
+  flex: 0 0 210px;
+  padding-right: 18px;
+  border-right: 1px solid var(--el-border-color-lighter);
+}
+.ws-form-split .ws-col:last-child { flex: 1 1 auto; }
+.ws-form-split .ws-col-head {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--el-text-color-placeholder);
+  padding-bottom: 2px;
+}
 .ws-field { display: flex; flex-direction: column; gap: 6px; }
 .ws-label { font-size: 12.5px; color: var(--el-text-color-secondary); }
 .ws-hint { display: block; font-size: 11.5px; color: var(--el-text-color-placeholder); line-height: 1.5; }
@@ -3284,5 +3659,15 @@ async function send() {
 @media (max-width: 1280px) {
   .ws-side { width: 264px; }
   .ws-list { width: 232px; }
+}
+@media (max-width: 820px) {
+  .ws-form-split { flex-direction: column; gap: 14px; }
+  .ws-form-split .ws-col:first-child {
+    flex: none;
+    padding-right: 0;
+    padding-bottom: 14px;
+    border-right: 0;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
 }
 </style>

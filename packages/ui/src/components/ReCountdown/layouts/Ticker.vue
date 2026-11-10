@@ -2,13 +2,13 @@
 /**
  * ReCountdown — ticker 滚动布局
  *
- * 时/分/秒 三行表格 + 底部进度条，滚动条带流光，适合看板/列表。
+ * 单位行（按 format / 总时长挑单位） + 底部进度条，进度条带流光，适合看板/列表。
  * 数据源：父组件透传的 remaining（ms）。
  */
 import { computed } from "vue";
 import "../../shared/modern-vars.css";
-import type { CountdownLayoutProps } from "../types";
-import { toHHMMSS } from "../utils";
+import type { CountdownLayoutProps, CountdownUnit } from "../types";
+import { relevantUnits, toShortText, UNIT_LABELS, unitTexts } from "../utils";
 
 const props = withDefaults(defineProps<CountdownLayoutProps>(), {
   size: 60,
@@ -19,20 +19,12 @@ const props = withDefaults(defineProps<CountdownLayoutProps>(), {
   endAnimation: false,
   total: 0,
   paused: false,
+  format: "auto",
+  colorThresholds: undefined,
+  unitShape: "ring",
 });
 
-/** 行列：时 / 分 / 秒 */
-const rows = computed(() => {
-  const hh = Math.floor(props.remaining / 3_600_000);
-  const mm = Math.floor((props.remaining % 3_600_000) / 60_000);
-  const ss = Math.floor((props.remaining % 60_000) / 1000);
-  return [
-    { label: "时", value: String(hh).padStart(2, "0") },
-    { label: "分", value: String(mm).padStart(2, "0") },
-    { label: "秒", value: String(ss).padStart(2, "0") },
-  ];
-});
-
+/** 百分比 */
 const percent = computed(() => {
   if (!props.total || props.total <= 0) return 0;
   return Math.min(1, Math.max(0, props.remaining / props.total));
@@ -46,6 +38,21 @@ const colorMap = {
   info: "var(--rm-info)",
   secondary: "var(--rm-text-regular)",
 };
+
+/** 按格式/总时长要的显示单位 */
+const units = computed(() => relevantUnits(props.total ?? 0, props.format));
+
+/** 单位行：单位标签 + 该单位的数值 */
+const rows = computed(() => {
+  const ts = unitTexts(props.remaining, units.value);
+  return units.value.map((u: CountdownUnit, i: number) => ({
+    label: UNIT_LABELS[u],
+    value: ts[i],
+  }));
+});
+
+/** 短提示（sub） */
+const sub = computed(() => (props.finished ? "已结束" : toShortText(props.remaining)));
 </script>
 
 <template>
@@ -66,6 +73,9 @@ const colorMap = {
       </div>
       <div class="re-countdown__bar">
         <div class="re-countdown__fill re-countdown__fill--stripe" :style="{ width: `${percent * 100}%` }" />
+      </div>
+      <div class="re-countdown__status" v-if="props.showText">
+        {{ props.finished ? "已结束" : `剩余 ${Math.round(props.remaining)} ms` }}
       </div>
     </div>
   </div>
@@ -170,5 +180,11 @@ const colorMap = {
 .re-countdown--finished .re-countdown__value,
 .re-countdown--finished .re-countdown__label {
   color: var(--rm-text-disabled);
+}
+
+.re-countdown__status {
+  font-size: 0.65rem;
+  color: var(--rm-text-secondary, #64748b);
+  margin-top: 8px;
 }
 </style>

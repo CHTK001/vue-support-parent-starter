@@ -52,7 +52,13 @@
 
         <div class="main-body">
           <div v-if="loadingMessages" class="main-hint">加载轨迹中…</div>
-          <div v-else-if="loadError" class="main-hint is-error">{{ loadError }}</div>
+          <!-- 错误条：消息拉取失败时给「重新加载」按钮，不用红色文字把失败感拉长 -->
+          <ReErrorBar
+            v-else-if="loadError"
+            :message="loadError"
+            retryText="重新加载"
+            @retry="retryLoad"
+          />
           <ProcessTimeline v-else-if="timelineItems.length" :items="timelineItems" :show-process="true" />
           <div v-else class="main-hint">该会话还没有可展示的执行步骤</div>
         </div>
@@ -69,6 +75,7 @@ import { Search16Filled, ClipboardPulse20Filled } from '@vicons/fluent';
 import { apiService } from '@/services/ApiService';
 import { flattenContentsForTimeline, type DisplayItem } from '@/utils/messageUtils';
 import ProcessTimeline from '@/components/chat/message-item/ProcessTimeline.vue';
+import ReErrorBar from '@repo/ui/re-error-bar';
 
 const PAGE_SIZE = 50;
 
@@ -152,6 +159,12 @@ async function loadSessions(reset = false) {
 
 function reload() {
   loadSessions(true);
+}
+
+/** 重新加载当前会话的消息（ReErrorBar 的「重新加载」按钮） */
+function retryLoad() {
+  loadError.value = '';
+  selectSession(activeSession.value?.id ?? '');
 }
 
 function loadMore() {
@@ -362,9 +375,6 @@ onMounted(() => {
   padding: 16px 18px 24px;
 }
 
-.main-hint.is-error {
-  color: var(--el-color-danger);
-}
 
 /* 尊重系统「减少动态效果」偏好 */
 @media (prefers-reduced-motion: reduce) {

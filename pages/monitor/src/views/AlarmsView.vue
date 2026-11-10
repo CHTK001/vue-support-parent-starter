@@ -44,10 +44,7 @@
     </template>
 
     <template #alerts>
-      <div v-if="loadError" class="as-error">
-        <span>告警读取失败：{{ loadError }}</span>
-        <ReButton text type="primary" @click="refresh">重试</ReButton>
-      </div>
+      <ReErrorBar v-if="loadError" :message="loadError" retryText="重试" @retry="refresh" />
     </template>
 
     <template #instrument>
@@ -991,19 +988,6 @@ onBeforeUnmount(() => {
 
 .gauge-line .gauge {
   flex: 0 0 64px;
-}
-
-/* ===== 错误条 ===== */
-.as-error {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  font-size: 13px;
-  color: var(--el-color-danger);
-  background: color-mix(in srgb, var(--el-color-danger) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--el-color-danger) 26%, transparent);
-  border-radius: var(--el-radius-sm, 6px);
 }
 
 /* ===== 处理弹窗 ===== */

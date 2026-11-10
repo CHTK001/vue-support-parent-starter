@@ -37,8 +37,17 @@ const props = withDefaults(
     path?: string
     /** 目录回传序号：同一路径重复 pwd 也要重新定位 */
     pathSeq?: number
+    /**
+     * 是否提供「文件」页签。
+     *
+     * <p>文件页签走的是 SFTP（`/ms/server/sftp/{hostId}`，本质是 SSH 通道）。
+     * 只有 SSH / Telnet 会话才存在这条通道；VNC / RDP 会话没有 SSH 时强行调用，
+     * 只会把「SSH 连接失败: xxx:22，远程计算机拒绝网络连接」这种底层报错抛给用户。
+     * 所以由外层按会话协议决定开关，默认 true 兼容老调用方。</p>
+     */
+    fileEnabled?: boolean
   }>(),
-  { hostId: null, hostName: '', onCommand: undefined, visible: true, path: '', pathSeq: 0 },
+  { hostId: null, hostName: '', onCommand: undefined, visible: true, path: '', pathSeq: 0, fileEnabled: true },
 )
 
 const emit = defineEmits<{
@@ -116,6 +125,10 @@ const fileLoading = ref(false)
  *              目录内容原地替换，避免敲一个 pwd 就让右侧面板闪一下。
  */
 async function loadFiles(quiet = false): Promise<void> {
+  if (!props.fileEnabled) {
+    entries.value = []
+    return
+  }
   if (!props.hostId) {
     entries.value = []
     return
@@ -169,6 +182,7 @@ function normalizeDir(raw: string): string {
  * @param raw 终端输出的绝对路径
  */
 function gotoDir(raw: string): void {
+  if (!props.fileEnabled) return
   const dir = normalizeDir(raw)
   if (!dir) return
   tab.value = 'files'
@@ -190,9 +204,15 @@ function formatSize(bytes?: number): string {
 
 /** 切页签 */
 function onTab(next: 'files' | 'snippets'): void {
+  if (next === 'files' && !props.fileEnabled) return
   tab.value = next
   if (next === 'files') loadFiles()
 }
+
+/** 会话协议换到不支持文件通道时，页签从「文件」退回「片段」 */
+watch(() => props.fileEnabled, (enabled) => {
+  if (!enabled && tab.value === 'files') tab.value = 'snippets'
+})
 </script>
 
 <template>
@@ -202,7 +222,7 @@ function onTab(next: 'files' | 'snippets'): void {
         <button type="button" class="lb-seg__btn" :class="{ 'is-active': tab === 'snippets' }" @click="onTab('snippets')">
           <ReIcon name="Document" :size="11" />片段
         </button>
-        <button type="button" class="lb-seg__btn" :class="{ 'is-active': tab === 'files' }" @click="onTab('files')">
+        <button type="button" class="lb-seg__btn" :class="{ 'is-active': tab === 'files' }" @click="onTab('files')" v-if="fileEnabled">
           <ReIcon name="Folder" :size="11" />文件
         </button>
       </div>
@@ -238,8 +258,8 @@ function onTab(next: 'files' | 'snippets'): void {
       </div>
     </div>
 
-    <!-- 文件面板 -->
-    <div v-else class="stp__body stp-body--file">
+    <!-- 文件面板（仅 SSH / Telnet 会话：SFTP 通道依赖 SSH） -->
+    <div v-else-if="fileEnabled" class="stp__body stp-body--file">
       <div class="stp-path">
         <button type="button" :disabled="fileDir === '/'" @click="up">↑ 上级</button>
         <span class="mono">{{ fileDir }}</span>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { ElImage } from 'element-plus'
+import { PROVIDER_ICONS } from './providerIcons'
 
 const props = withDefaults(defineProps<{
   pid?: string
@@ -12,7 +13,6 @@ const props = withDefaults(defineProps<{
 
 const sizeMap: Record<string, string> = { sm: '32px', md: '40px', lg: '48px' }
 const currentSrc = ref<string | null>(null)
-const triedSvg = ref(false)
 
 /**
  * 静态资源 URL：拼上应用 base。
@@ -36,35 +36,19 @@ function assetUrl(rel: string): string {
  * 4xx 证据，干扰「生产级无未知 4xx」的判据。这里直连 .svg 消掉这条假 404；
  * 清单缺项时仍走下面的 png→svg 兜底，最坏只是退回原来的探测行为。
  */
-const SVG_ONLY_IDS = new Set([
-  '360', 'agnes', 'ai302', 'aliyun-bailian', 'anthropic', 'deepseek', 'google', 'groq',
-  'huiqing', 'longcat', 'minimax', 'minimax-color', 'mock', 'nvidia', 'onnx', 'openai', 'shusheng',
-  'openai-response', 'openrouter', 'siliconflow', 'stepfun', 'volcengine', 'xai',
-])
-
 watch(() => props.pid, (pid) => {
   const id = String(pid || '').toLowerCase()
-  // agent = 内置 Agent 虚拟供应商（后端合成，无 logo 文件）：png/svg 双探必 404
-  // （2026-10-08 import-all gate 实测 agent.png/agent.svg 双 404），与 custom 同款走首字头像
-  // moss = Moss 开放平台，暂无品牌图标文件：同样走首字头像，避免两次必然 404
-  if (!id || id === 'custom' || id === 'agent' || id === 'moss') {
-    currentSrc.value = null; triedSvg.value = false; return
-  }
-  if (SVG_ONLY_IDS.has(id)) {
-    currentSrc.value = assetUrl(`images/providers/${id}.svg`)
-    triedSvg.value = true // 已是 svg，onError 不再重试
-    return
-  }
-  currentSrc.value = assetUrl(`images/providers/${id}.png`)
-  triedSvg.value = false
+  const mappedFile = PROVIDER_ICONS[id]
+  // 没有品牌映射的虚拟 / 自定义供应商显示首字；有映射时使用图板中的精确文件名，
+  // 兼容别名复用图标（例如 opencode-go → opencode.png），不再盲猜扩展名。
+  currentSrc.value = id && id !== 'custom' && id !== 'agent' && mappedFile
+    ? assetUrl(`images/providers/${mappedFile}`)
+    : null
 }, { immediate: true })
 
 const onError = () => {
-  if (triedSvg.value) return // png 和 svg 都失败了，不再重试
-  const id = String(props.pid || '').toLowerCase()
-  if (!id || id === 'custom') return
-  currentSrc.value = assetUrl(`images/providers/${id}.svg`)
-  triedSvg.value = true
+  // 图板映射资源缺失时降级为首字头像，不再额外请求一个猜测扩展名的 URL。
+  currentSrc.value = null
 }
 </script>
 

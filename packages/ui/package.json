@@ -295,6 +295,10 @@
       "types": "./src/components/ReEmptyState/index.ts",
       "default": "./src/components/ReEmptyState/index.ts"
     },
+    "./re-error-bar": {
+      "types": "./src/components/ReErrorBar/index.ts",
+      "default": "./src/components/ReErrorBar/index.ts"
+    },
     "./re-skeleton": {
       "types": "./src/components/ReSkeleton/index.ts",
       "default": "./src/components/ReSkeleton/index.ts"
@@ -398,6 +402,10 @@
     "./re-process-task": {
       "types": "./src/components/ReProcessTask/index.ts",
       "default": "./src/components/ReProcessTask/index.ts"
+    },
+    "./re-rail-split": {
+      "types": "./src/components/ReRailSplit/index.ts",
+      "default": "./src/components/ReRailSplit/index.ts"
     },
     "./re-element-picker": {
       "types": "./src/components/ReElementPicker/index.ts",

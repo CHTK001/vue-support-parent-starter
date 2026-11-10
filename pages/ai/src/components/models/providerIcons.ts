@@ -93,6 +93,15 @@ export const PROVIDER_ICONS: Record<string, string> = {
   iflytek: 'spark.png',
 
 
+  // ===== 路由 / 免费 / 兼容（模型管理侧自定标识，干净品牌图标） =====
+  'router-group': 'router-group.svg',
+  'free-channel': 'free-channel.svg',
+  free: 'free.svg',
+  'openai-compatible': 'openai-compatible.svg',
+  moss: 'moss.svg',
+  newapi: 'newapi.png',
+  tempr: 'tempr.svg',
+
   // ===== 本地 / 其他 =====
   onnx: 'onnx.svg',
   ollama: 'ollama.png',
@@ -240,7 +249,6 @@ export const PROVIDER_ICONS: Record<string, string> = {
   subconscious: 'subconscious.png',
   submodel: 'submodel.png',
   synthetic: 'synthetic.png',
-  tempr: 'tempr.png',
   tensorx: 'tensorx.png',
   'the-grid-ai': 'the-grid-ai.png',
   thinkingmachines: 'thinkingmachines.png',

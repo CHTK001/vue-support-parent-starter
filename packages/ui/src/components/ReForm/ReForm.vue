@@ -194,6 +194,8 @@ function renderField(field: ReFormField) {
   const value = model.value[field.prop];
   const update = (v: unknown): void => {
     if (field.format && v !== undefined) v = field.format(v);
+    // trim：只改 string 值，默认开启（field.trim: false 可关）
+    if (field.trim !== false && typeof v === "string") v = v.trim();
     model.value[field.prop] = v;
   };
 

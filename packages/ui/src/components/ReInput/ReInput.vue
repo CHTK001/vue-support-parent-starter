@@ -62,6 +62,12 @@ const props = withDefaults(
      * 让表格行列对齐抖动。</p>
      */
     focusRight?: boolean;
+    /**
+     * 是否修剪输入值（默认 true）。
+     *
+     * <p>只修剪 string 值。传 {@code trim: false} 时保留两端空格（适合密码 / IP 等不允许去空的字段）。</p>
+     */
+    trim?: boolean;
   }>(),
   {
     layout: "el",
@@ -83,10 +89,15 @@ const props = withDefaults(
     formatter: undefined,
     parser: undefined,
     focusRight: false,
+    trim: true,
   },
 );
 
 function onInput(value: string | number | null | undefined): void {
+  // trim：只改 string 值（parser 之后），默认开启
+  if (props.trim && typeof value === "string") {
+    value = value.trim();
+  }
   if (props.parser) {
     model.value = props.parser(String(value)) as never;
   } else {
@@ -230,6 +241,7 @@ function onElBlur(e: FocusEvent): void {
       :formatter="formatter"
       :parser="parser"
       :focus-right="focusRight"
+      :trim="trim"
     >
       <template v-if="$slots.prefix" #prefix>
         <slot name="prefix" />

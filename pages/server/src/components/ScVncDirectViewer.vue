@@ -50,6 +50,90 @@ const statusText = ref('');
 let rfb: any = null;
 let credential = { username: '', password: '' };
 
+/* ===== 画面指标：帧率 / 链路延迟 / 画面与帧缓冲尺寸（宿主 HUD 轮询） ===== */
+/** 最近 1 秒内到达的画面更新时间戳 */
+const frameTimes: number[] = [];
+/** 最近几次「更新请求 → 画面更新」的往返延迟（毫秒） */
+const latencySamples: number[] = [];
+/** 已发出、尚未收到画面更新的请求时间（同一条链路一次只有一个请求在途） */
+let requestAt = 0;
+/** 已挂钩子的 rfb 实例，避免重复包装 */
+let hookedRfb: any = null;
+
+/** 记录一次画面更新：更新帧时间戳，并为在途请求收一次链路延迟样本 */
+function recordFrame(): void {
+  const now = Date.now();
+  frameTimes.push(now);
+  if (requestAt > 0 && now - requestAt < 5000) {
+    latencySamples.push(now - requestAt);
+    if (latencySamples.length > 5) latencySamples.shift();
+  }
+  requestAt = 0;
+}
+
+/**
+ * 在 rfb 实例上挂帧计数与请求计时。
+ *
+ * <p>noVNC 没有公开「收到一帧」事件，这里包装内部 {@code _framebufferUpdate}：
+ * 每收到一次 FramebufferUpdate 消息计一帧。同时在 {@code _sock.flush} 上识别
+ * 单独成包的 FramebufferUpdateRequest（首字节 type=3、共 10 字节）——noVNC 每处理完
+ * 一次更新就会补发一条，因此「请求发出 → 更新到达」正好是这条 VNC 链路的往返延迟。
+ * 只读不改协议内容。</p>
+ *
+ * @param target RFB 实例
+ */
+function hookFrames(target: any): void {
+  if (!target || hookedRfb === target) return;
+  const orig = target._framebufferUpdate;
+  if (typeof orig !== 'function') return;
+  hookedRfb = target;
+  target._framebufferUpdate = function (this: any, ...args: any[]) {
+    const result = orig.apply(this, args);
+    recordFrame();
+    return result;
+  };
+  const sock = target._sock;
+  const origFlush = sock?.flush;
+  if (typeof origFlush !== 'function') return;
+  sock.flush = function (this: any, ...rest: any[]) {
+    // noVNC 把待发客户端消息排在 _sQ 里，flush 时整包发走。
+    // FramebufferUpdateRequest 固定 10 字节且单独 flush，首字节 3 即该请求。
+    if (requestAt === 0 && this._sQlen === 10 && this._sQ?.[0] === 3) {
+      requestAt = Date.now();
+    }
+    return origFlush.call(this, ...rest);
+  };
+}
+
+/** 当前指标快照 */
+function getMetrics(): {
+  fps: number;
+  latencyMs: number | null;
+  fbWidth: number;
+  fbHeight: number;
+  displayWidth: number;
+  displayHeight: number;
+  connected: boolean;
+} {
+  const now = Date.now();
+  while (frameTimes.length && now - frameTimes[0] > 1000) frameTimes.shift();
+  let latencyMs: number | null = null;
+  if (latencySamples.length) {
+    latencyMs = Math.round(latencySamples.reduce((a, b) => a + b, 0) / latencySamples.length);
+  }
+  const canvas = screenRef.value?.querySelector('canvas') as HTMLCanvasElement | null;
+  const rect = canvas?.getBoundingClientRect();
+  return {
+    fps: frameTimes.length,
+    latencyMs,
+    fbWidth: canvas?.width ?? 0,
+    fbHeight: canvas?.height ?? 0,
+    displayWidth: rect ? Math.round(rect.width) : 0,
+    displayHeight: rect ? Math.round(rect.height) : 0,
+    connected: state.value === 'connected',
+  };
+}
+
 function buildWsUrl(hostId: number, identityId?: number | null, targetPort?: number | null): string {
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
   const qs = new URLSearchParams({ hostId: String(hostId) });
@@ -85,6 +169,11 @@ async function connect() {
   teardown();
   state.value = 'connecting';
   statusText.value = '正在获取 VNC 凭据…';
+  // 新会话从干净的指标开始，避免上一台的帧率/延迟残留
+  frameTimes.length = 0;
+  latencySamples.length = 0;
+  requestAt = 0;
+  hookedRfb = null;
   try {
     credential = await getVncCredential(conn.hostId, conn.identityId);
   } catch (e: any) {
@@ -99,6 +188,8 @@ async function connect() {
       credentials: { username: credential.username, password: credential.password, target: '' },
       shared: true,
     });
+    // 帧计数只挂在统计用，不干预 RFB 的正常处理
+    hookFrames(rfb);
     // 自适应：远程帧缩放到容器，不主动改远端分辨率
     rfb.scaleViewport = true;
     rfb.clipViewport = true;
@@ -171,7 +262,7 @@ watch(
   },
 );
 onBeforeUnmount(teardown);
-defineExpose({ disconnect: teardown, sendSpecialKey });
+defineExpose({ disconnect: teardown, sendSpecialKey, getMetrics });
 </script>
 
 <style scoped>

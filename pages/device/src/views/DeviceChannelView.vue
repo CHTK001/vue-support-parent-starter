@@ -48,10 +48,7 @@
         <span class="dcv-panel__hint">{{ currentDeviceName }}</span>
       </header>
 
-      <div v-if="loadError" class="dcv-error">
-        <span>{{ loadError }}</span>
-        <ReButton icon="RefreshRight" layout="square" tip="重试" :loading="loading" @click="fetchChannels" />
-      </div>
+      <ReErrorBar v-if="loadError" :message="loadError" retryText="重试" @retry="fetchChannels" />
 
       <ReTable
         v-if="filteredChannels.length"
@@ -518,19 +515,6 @@ watch(
   font-size: 12px;
   font-weight: 400;
   color: var(--el-text-color-secondary);
-}
-
-.dcv-error {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
-  margin-bottom: 10px;
-  font-size: 13px;
-  color: var(--el-color-danger);
-  background: var(--el-color-danger-light-9);
-  border-radius: var(--el-radius-base, 8px);
 }
 
 .dcv-acts {

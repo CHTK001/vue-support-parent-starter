@@ -478,9 +478,10 @@
         </div>
         <p class="dpv-form__hint">凭证由后端加密存储，接口不回传明文，编辑时显示的是掩码；点「修改」填写新值才会覆盖。字段由厂商描述符（credentialFields）驱动，新增厂商无需改前端。</p>
 
-        <el-form-item label="Base URL">
+        <el-form-item v-if="isBaseUrlEditable" label="Base URL">
           <el-input v-model="form.deviceCredentialBaseUrl" maxlength="255" placeholder="留空使用平台默认地址" />
         </el-form-item>
+        <p v-else class="dpv-form__hint">平台地址固定（官方网关），无需填写；仅综合安防（私有部署）可自定义网关地址。</p>
         </div>
 
         <!-- 第 3 段：能力（04 配方 · 先选配方，再逐项微调） -->
@@ -1169,6 +1170,15 @@ const currentCredentialFields = computed<CredentialFieldDescriptor[]>(
     currentVendor.value?.platforms.find((item) => item.code === form.deviceCredentialPlatformType)
       ?.credentialFields || []
 )
+
+/**
+ * 是否允许自定义网关地址。
+ *
+ * 平台的官方网关是固定地址，放开改写会直接打断调用，所以只对「综合安防」
+ * （私有部署，需要填自己的 artemis 网关 IP/域名）展示 Base URL 输入框，
+ * 其余平台一律锁定为官方地址。
+ */
+const isBaseUrlEditable = computed(() => form.deviceCredentialPlatformType === 'secure-platform')
 
 /** 凭据维度同步的加载态（device / org / person） */
 const syncLoading = reactive({ device: false, org: false, person: false })

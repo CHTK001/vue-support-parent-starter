@@ -200,7 +200,7 @@ function onKeydown(e: KeyboardEvent): void {
 /* ===================== 容器 ===================== */
 .rm-number {
   --rm-num-bg: var(--rm-bg);
-  --rm-num-border: var(--rm-border-light);
+  --rm-num-border: var(--rm-border-hover);
   --rm-num-step-bg: transparent;
   --rm-num-step-color: var(--rm-text-secondary);
 

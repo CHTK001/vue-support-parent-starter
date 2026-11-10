@@ -7,6 +7,7 @@ import {
   Info24Regular, Key24Regular, Settings24Regular, CloudCheckmark24Regular,
   CloudArrowDown24Regular, Folder24Regular,
 } from '@vicons/fluent'
+import { AltRouteOutlined } from '@vicons/material'
 import { useI18n } from 'vue-i18n'
 import ReSelect from '@repo/ui/re-select'
 import ReDialog from '@repo/ui/re-dialog'
@@ -174,6 +175,9 @@ const isFreeChannelProvider = computed(() => {
   const brand = String(providerType.value || '').toLowerCase()
   return brand === 'free-channel' || brand === 'free'
 })
+
+/** 当前供应商是否是路由组：没有真实上游地址与凭证，成员来自模型库，策略在组内维护 */
+const isRouterGroupProvider = computed(() => String(providerType.value || '').toLowerCase() === 'router-group')
 
 /** 路由表编辑行：点击「添加」时新增，保存时写回 extra.routes */
 const formRoutes = ref<RouteTableRow[]>([])
@@ -466,8 +470,9 @@ const onExternalSaved = async () => {
 
 const handleSave = async () => {
   if (!form.name.trim()) { message.warning(t('settings.models.nameRequired')); return }
-  // ONNX 纯本地推理没有远端地址：不校验 apiUrl（模板里该输入框只在云端提供商显示）
-  if (!isLocalProvider.value && !isChannelProviderFlag.value && !form.apiUrl.trim()) {
+  // ONNX 纯本地推理没有远端地址；路由组也没有真实上游地址，都不校验 apiUrl
+  // （模型库驱动，成员各自带着地址与凭证）
+  if (!isLocalProvider.value && !isChannelProviderFlag.value && !isRouterGroupProvider.value && !form.apiUrl.trim()) {
     message.warning(t('settings.models.apiUrlRequired')); return
   }
   const headerErrors = validateHeadersText(form.customHeaders, t)
@@ -494,7 +499,8 @@ const handleSave = async () => {
     }
     // ONNX 的 base_url 是后端占位值（模型注册表驱动），表单已不展示该字段，
     // 不回传，避免把空串覆盖进库里
-    if (!isLocalProvider.value) updateData.base_url = form.apiUrl
+    // 路由组同样不传 base_url：地址留空，成员是库里的真实上游
+    if (!isLocalProvider.value && !isRouterGroupProvider.value) updateData.base_url = form.apiUrl
     // 凭证必须走 credentials：后端 ApiProviderController#updateProvider 只认 body.credentials，
     // 顶层 apiKey 不在它的字段表里 —— 早先这里发 apiKey，接口照样 200、前端照样弹「已更新」，
     // 但 Key 一个字节都没落库（用户报的「key 无法修改、无法保存」）。
@@ -509,14 +515,17 @@ const handleSave = async () => {
     // 依据名称 / 地址推断品牌，避免把自定义添加的 DeepSeek 等存成协议图标
     const inferred = resolveProviderBrand({ name: form.name, base_url: form.apiUrl })
     const platformVal = inferred !== 'custom' ? inferred : providerType.value
+    // 路由组没有真实上游：base_url 留空（后端对 router-group 不做必填校验），凭证也空
     const payload: any = {
-      platform: platformVal, name: form.name, base_url: isChannelProviderFlag.value ? '' : form.apiUrl,
-      auth_scheme: isLocalProvider.value ? 'none' : auth.authScheme,
+      platform: platformVal, name: form.name,
+      base_url: isRouterGroupProvider.value || isChannelProviderFlag.value ? '' : form.apiUrl,
+      auth_scheme: isRouterGroupProvider.value ? 'none' : (isLocalProvider.value ? 'none' : auth.authScheme),
       enabled: true, initial_model: null,
       extra: buildExtra(),
     }
     // 账号渠道 provider 凭据由渠道管理页绑定（sys_ai_provider_connection），表单不采集 api_key
-    if (!isChannelProviderFlag.value) {
+    // 路由组同样不采集：成员留在模型库，成员自己的 Key 在成员行上维护
+    if (!isChannelProviderFlag.value && !isRouterGroupProvider.value) {
       payload.credentials = { api_key: effectiveApiKey }
     }
     if (form.proxyUrl.trim()) payload.proxy = form.proxyUrl.trim()
@@ -604,6 +613,12 @@ const protocolOptions = [
             <p class="pf-onnx-root-hint">
               模型文件实际存放位置；通过目录选择器绑定，不能手工填写。
             </p>
+          </el-form-item>
+          <el-form-item v-else-if="isRouterGroupProvider" label="上游地址（不使用）">
+            <div class="pf-router-group-hint">
+              <p>路由组不是一个真实上游：它没有地址与密钥，自己的行为都来自模型库成员与组内的策略。</p>
+              <p>成员表与策略（路由策略 / 被限流时 / 延迟 / 全忙 / 上下文）在供应商详情页的「路由组」面板里维护。</p>
+            </div>
           </el-form-item>
           <el-form-item v-else :label="t('settings.models.apiUrl')" required>
             <el-input v-model="form.apiUrl"
@@ -722,6 +737,30 @@ const protocolOptions = [
           </div>
           <div v-else class="ch-conn-empty">
             尚无绑定账号，请前往渠道管理页完成绑定。
+          </div>
+        </div>
+      </section>
+
+      <!-- 路由组没有真实上游：不展示地址 / 鉴权，成员与策略在组内维护 -->
+      <section v-else-if="isRouterGroupProvider" class="pf-card">
+        <header class="pf-card-head">
+          <span class="pf-card-ico ico-select"><el-icon :size="16"><AltRouteOutlined /></el-icon></span>
+          <div class="pf-card-title-wrap">
+            <h3 class="pf-card-title">路由组</h3>
+            <span class="pf-card-sub">成员来自模型库，策略在组内选择</span>
+          </div>
+        </header>
+
+        <div class="key-list">
+          <div class="auth-block">
+            <p class="auth-preview">
+              路由组不是一个独立的上游：它不占有地址与密钥，成员全部来自「已添加的模型库」。
+              选哪个模型看这组自己的策略：被打上「智能 / 按顺序 / 轮流 / 手动」等标签，
+              在这儿只配置它本身不存在的东西。
+            </p>
+            <p class="auth-preview">
+              配置入口：创建或编辑完供应商后，在供应商详情页的「路由组」面板里设置成员、顺序与策略。
+            </p>
           </div>
         </div>
       </section>
@@ -1310,29 +1349,10 @@ const protocolOptions = [
 .pf-foot-btn {
   border-radius: var(--el-radius-lg, 12px);
   min-width: 76px;
-  transition: all 0.18s ease;
   cursor: pointer;
 }
-.pf-foot-btn:not(.el-button--primary) {
-  background: var(--el-bg-color-overlay);
-  border-color: var(--el-border-color-light);
-  color: var(--el-text-color-primary);
-}
-.pf-foot-btn:not(.el-button--primary):hover {
-  color: var(--el-color-primary);
-  border-color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
-}
-.pf-foot-primary {
-  background: var(--el-color-primary);
-  border: none;
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-primary) 30%, transparent);
-  font-weight: 600;
-}
-.pf-foot-primary:hover {
-  background: var(--el-color-primary-light-3);
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--el-color-primary) 40%, transparent);
-}
+/* 按钮配色回归 Element Plus 默认：此前这里自造了背景色 / 边框色 / 主色阴影，
+   与全局按钮口径不一致（悬停还会整块变色）。只保留圆角与最小宽度。 */
 
 /* 模型路由表（免费渠道专属：extra.routes 编辑态） */
 .route-list { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }

@@ -58,7 +58,7 @@
               <Avatar :src="getModelAvatarPath(model.modelName, getModelProviderName(model)) || undefined"
                 :name="getModelDisplayName(model.modelName)" type="assistant" :round="false" class="w-full h-full" />
             </div>
-            <span class="model-item__name">{{ getModelDisplayName(model.modelName) }}</span>
+            <span class="model-item__name">{{ model.alias || getModelDisplayName(model.modelName) }}</span>
             <!-- 上下文徽标：128K / 1M；无数据显示空（不占位） -->
             <span v-if="formatContextSize(getModelContextWindow(model))" class="model-ctx">
               {{ formatContextSize(getModelContextWindow(model)) }}
@@ -100,6 +100,8 @@ import {
 interface Model {
   id: string
   modelName: string
+  /** 用户配置的模型别名：有则优先展示 */
+  alias?: string
   providerId?: string
   /** 后端 /api/providers 的原始字段：供应商 id */
   provider_id?: string
@@ -163,6 +165,7 @@ const filteredModels = computed(() => {
   if (!kw) return allModels.value
   return allModels.value.filter((m) =>
     getModelDisplayName(m.modelName).toLowerCase().includes(kw)
+    || (m.alias || '').toLowerCase().includes(kw)
     || (m.model || '').toLowerCase().includes(kw)
     || getModelProviderName(m).toLowerCase().includes(kw),
   )

@@ -75,6 +75,12 @@ const props = withDefaults(
      * 编辑大段文本不受单元格宽度限制，也不会打扰表格布局。</p>
      */
     focusRight?: boolean;
+    /**
+     * 是否修剪输入值（默认 true）。
+     *
+     * <p>只修剪 string 值。传 {@code trim: false} 时保留两端空格（适合密码 / IP 等不允许去空的字段）。</p>
+     */
+    trim?: boolean;
   }>(),
   {
     type: "text",
@@ -95,6 +101,7 @@ const props = withDefaults(
     formatter: undefined,
     parser: undefined,
     focusRight: false,
+    trim: true,
   },
 );
 
@@ -132,7 +139,8 @@ function cancelFocusEditor(): void {
 
 /** 确定：把草稿回写成模型值 */
 function applyFocusEditor(): void {
-  model.value = focusDraft.value as never;
+  // trim：确保从草稿回写的值也经过同一套修剪口径
+  model.value = (props.trim ? focusDraft.value.trim() : focusDraft.value) as never;
   focusOpen.value = false;
 }
 
@@ -162,6 +170,8 @@ function onInput(e: Event): void {
   const target = e.target as HTMLInputElement | HTMLTextAreaElement;
   let val: string = target.value;
   if (props.parser) val = props.parser(val);
+  // trim：只改 string 值，默认开启
+  if (props.trim && typeof val === "string") val = val.trim();
   model.value = val as never;
 }
 
@@ -342,8 +352,7 @@ function togglePassword(): void {
 }
 
 /* Inner input */
-.rm-input__inner,
-.rm-input__textarea {
+.rm-input__inner {
   flex: 1;
   min-width: 0;
   border: none;
@@ -356,13 +365,23 @@ function togglePassword(): void {
   width: 100%;
   padding: 0;
 }
-.rm-input__inner::placeholder,
+
+/* 多行文本：可拖拽缩放，视觉自成一格（textarea 留足够内边距，减少对齐） */
+.rm-input__textarea {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--rm-text);
+  font-size: inherit;
+  font-family: inherit;
+  line-height: 1.6;
+  width: 100%;
+  resize: vertical;
+}
 .rm-input__textarea::placeholder {
   color: var(--rm-text-disabled);
-}
-
-.rm-input__textarea {
-  resize: vertical;
 }
 
 /* Prefix / Suffix */

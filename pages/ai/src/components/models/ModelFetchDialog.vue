@@ -20,17 +20,44 @@
           </template>
         </el-input>
         <!--
+          免费模型一键全选：上游 pricing 里输入/输出价均为 0 的行标记为免费。
+          没有免费行时按钮禁用，不会出现「点了没反应」。
+        -->
+        <el-button
+          :disabled="freeRows.length === 0 || fetching"
+          @click="toggleSelectFree"
+        >
+          {{ allFreeSelected
+            ? t('settings.providerDetail.clearFreeSelection')
+            : t('settings.providerDetail.selectAllFree', { n: freeRows.length }) }}
+        </el-button>
+      </div>
+      <div class="fetch-actions">
+        <span class="fetch-selected-count">
+          {{ t('settings.providerDetail.selectedCount', { n: selected.length }) }}
+        </span>
+        <el-button
+          type="primary"
+          :loading="importing"
+          :disabled="selected.length === 0 || fetching"
+          @click="handleImportSelected"
+        >
+          <template #icon><Download /></template>
+          {{ importing
+            ? t('settings.providerDetail.importing')
+            : t('settings.providerDetail.importSelected', { n: selected.length }) }}
+        </el-button>
+        <!--
           一键批量录入：整批走后端 POST /providers/{id}/models/import-all，
           后端负责调上游取目录 + 落库（已存在的跳过），用户不必逐条点「选择」。
         -->
         <el-button
-          type="primary"
-          :loading="importing"
+          :loading="importingAll"
           :disabled="fetched.length === 0 || fetching"
           @click="handleImportAll"
         >
           <template #icon><Download /></template>
-          {{ importing
+          {{ importingAll
             ? t('settings.providerDetail.importing')
             : t('settings.providerDetail.importAll', { n: fetched.length }) }}
         </el-button>
@@ -44,10 +71,25 @@
       <div v-else class="pb-4">
         <div v-if="filtered.length > 0">
           <ul class="fetch-list">
-            <li v-for="model in filtered" :key="model.modelName" class="fetch-row">
+            <li v-for="model in filtered" :key="model.modelName" class="fetch-row"
+              :class="{ 'is-picked': isSelected(model) }">
+              <!-- 多选：默认不勾，用户逐条勾选后「录入选中」批量落库 -->
+              <el-checkbox
+                class="fetch-check"
+                :model-value="isSelected(model)"
+                @change="toggleRow(model)"
+              />
               <div class="fetch-main">
                 <div class="fetch-id">
                   <span class="fetch-name">{{ model.modelName }}</span>
+                  <!-- 价格 / 免费：上游 pricing 经后端归一成每百万 token 美元 -->
+                  <span
+                    v-if="modelPriceOf(model).known"
+                    class="fetch-price"
+                    :class="{ 'is-free': modelPriceOf(model).free }"
+                  >
+                    {{ priceText(model) }}
+                  </span>
                   <!--
                     免费渠道行：后端每行补了 provider / baseUrl / authScheme，
                     用 resolveProviderBrand 把 route provider 转成品牌 id，
@@ -74,6 +116,7 @@
                   -->
                   <ModelTagStrip :tags="rowTags(model)" :max="2" />
                 </div>
+                <ModelTagStrip :tags="rowIoTags(model)" :max="2" />
                 <!-- 行内小字描述：后端 description 优先（ONNX 本地行自带真实描述），
                      云端上游目录不带描述时按 task 推类型说明，都没有则不渲染 -->
                 <div v-if="describeFetchRow(model)" class="fetch-desc">
@@ -86,22 +129,23 @@
             </li>
           </ul>
         </div>
-        <div v-else-if="loadError" class="fetch-error">
-          <el-icon class="fetch-error-icon" :size="20"><CircleCloseFilled /></el-icon>
-          <div class="fetch-error-text">
-            <div class="fetch-error-title">获取失败</div>
-            <div class="fetch-error-desc">{{ loadError }}</div>
-          </div>
-        </div>
-        <!-- 免费渠道未配置路由表时，后端只回传 hint（不是错误）：给用户提示，
-             配上路由再拉，不要落到「无匹配」的空状态里 -->
-        <div v-else-if="routeHint" class="fetch-hint">
-          <el-icon class="fetch-hint-icon" :size="16"><Wand24Regular /></el-icon>
-          <div class="fetch-hint-text">{{ routeHint }}</div>
-        </div>
-        <div v-else class="fetch-empty">
-          {{ t('settings.providerDetail.noMatchFound') }}
-        </div>
+        <!-- 拉取失败时显示错误信息，并提供「重新拉取」按钮（Connection 失败等可恢复错误） -->
+        <ReErrorBar
+          v-else-if="loadError"
+          :message="loadError"
+          retryText="重新拉取"
+          @retry="retryFetch"
+        />
+        <!-- 无模型不是「操作成功」：统一 ReEmpty，保留明确的重新拉取动作 -->
+        <ReEmpty v-else-if="hasFetched && routeHint" :text="routeHint">
+          <el-button type="primary" @click="retryFetch">重新拉取</el-button>
+        </ReEmpty>
+        <!-- 只有真正拉取过且无数据时才显示空状态；初始未拉取时不显示任何列表内容 -->
+        <ReEmpty v-else-if="hasFetched && fetched.length === 0" text="该提供商没有返回模型">
+          <el-button type="primary" @click="retryFetch">重新拉取</el-button>
+        </ReEmpty>
+        <!-- 有数据但当前搜索词筛不出结果 -->
+        <ReEmpty v-else-if="hasFetched" :text="t('settings.providerDetail.noMatchFound')" />
       </div>
 
       <!-- 逐条挑完就走；只想手工建一个（或供应商还没配好地址/Key）时走这里 -->
@@ -119,9 +163,14 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Model } from '@/types/api'
 import ReDialog from '@repo/ui/re-dialog'
-import { describeFetchRow, sourceBadgeFor, taskHintForName, resolveProviderBrand } from './model.utils'
+import ReErrorBar from '@repo/ui/re-error-bar'
+import ReEmpty from '@/components/ui/ReEmpty.vue'
 import {
-  MODEL_SUBTYPE_LABELS, MODEL_TYPE_ICON, MODEL_TYPE_KIND, TASK_TO_TYPE,
+  describeFetchRow, sourceBadgeFor, taskHintForName, resolveProviderBrand,
+  deriveFetchedModelConfig, modelPriceOf, inferModelType,
+} from './model.utils'
+import {
+  MODEL_SUBTYPE_LABELS, MODEL_TYPE_ICON, MODEL_TYPE_KIND, TASK_TO_TYPE, TYPE_TO_TASK,
 } from './model.constants'
 import { isChannelProvider } from './model.constants'
 import { channelApi } from '@/services/javaApi'
@@ -129,8 +178,9 @@ import { SearchOutlined, ScienceOutlined } from '@vicons/material'
 import {
   WrenchScrewdriver24Regular, LightbulbFilament24Regular,
   Desktop24Regular, Cloud24Regular, Scan24Regular, DocumentText24Regular, Wand24Regular,
+  TextT24Regular, Image24Regular, Speaker224Regular, Video24Regular, Folder24Regular,
 } from '@vicons/fluent'
-import { Loading, CircleCloseFilled, Download } from '@element-plus/icons-vue'
+import { Loading, Download } from '@element-plus/icons-vue'
 import { apiService } from '../../services/ApiService'
 import { message } from '@repo/core'
 import ModelTagStrip from './ModelTagStrip.vue'
@@ -152,13 +202,21 @@ const fetching = ref(false)
 const importing = ref(false)
 const searchName = ref('')
 const fetched = ref<any[]>([])
+/** 正在批量录入「全部」 */
+const importingAll = ref(false)
+/** 已勾选的模型名（多选批量录入） */
+const selected = ref<string[]>([])
 const loadError = ref('')
+/** 当前参数：open() 记住供应商，fetch 失败后「重新拉取」按钮用 */
+const currentProvider = ref<any>(null)
 /** 免费渠道提示：extra.routes 未配置时后端只回传 hint，前端展示它而不是空状态 */
 const routeHint = ref('')
 /** 当前供应商标识：批量录入要按它落库，open 时记下，避免再以 props 里猜 */
 const providerId = ref('')
 /** 本次 open 的是否渠道 provider（决定 handleImportAll 走逐条 createModel 还是后端 import-all） */
 const openIsChannel = ref(false)
+/** 是否已经真正执行过拉取（用于区分「还没拉取」和「拉完了但没数据」） */
+const hasFetched = ref(false)
 let existingModels: any[] = []
 /**
  * 已知在库里的模型名（打开时来自既有模型，每次录入成功后并入返回的新行）。
@@ -168,6 +226,132 @@ let existingModels: any[] = []
 const knownPresent = new Set<string>()
 /** 拉取列表行的模型名（上游条目字段名不统一，modelName/name/id 三处都可能有） */
 const fetchRowName = (m: any) => String(m?.modelName ?? m?.name ?? m?.id ?? '')
+
+/** 非空数组优先，否则回退推导值 */
+const listOr = (primary: any, fallback: any) =>
+  Array.isArray(primary) && primary.length ? primary : fallback
+
+/**
+ * 归一错误文案。
+ *
+ * <p>后端信封的成功 msg 是「操作成功」，个别链路会把它带进 error.message；
+ * 这种成功文案绝不能当成错误展示，否则会出现「操作成功 + 重新拉取」的怪状态。
+ * 拿不到真实错误时返回空串，交给上层走「无数据 / 正常」分支。</p>
+ *
+ * @param error 捕获到的异常
+ * @returns 可展示的错误文案；无有效错误时为空串
+ */
+const normalizeLoadError = (error: any): string => {
+  const candidates = [
+    error?.response?.data?.error,
+    error?.response?.data?.msg,
+    error?.data?.error,
+    error?.data?.msg,
+    error?.error,
+    error?.message,
+  ]
+  for (const c of candidates) {
+    const text = String(c ?? '').trim()
+    if (text && text !== t('common.operationSuccess')) return text
+  }
+  return ''
+}
+
+/** 勾选状态 */
+const isSelected = (m: any) => selected.value.includes(fetchRowName(m))
+
+/**
+ * 勾选/取消一行。
+ *
+ * @param m 上游模型行
+ */
+const toggleRow = (m: any) => {
+  const key = fetchRowName(m)
+  if (!key) return
+  const index = selected.value.indexOf(key)
+  if (index >= 0) selected.value.splice(index, 1)
+  else selected.value.push(key)
+}
+
+/** 当前筛选结果里的免费模型（价格已知且输入输出均为 0） */
+const freeRows = computed(() => filtered.value.filter((m) => modelPriceOf(m).free))
+
+/** 免费行是否已全选 */
+const allFreeSelected = computed(() =>
+  freeRows.value.length > 0 && freeRows.value.every((m) => isSelected(m)))
+
+/**
+ * 全选/取消全选免费模型（只作用于当前筛选结果，配合搜索使用）。
+ */
+const toggleSelectFree = () => {
+  const keys = freeRows.value.map(fetchRowName).filter(Boolean)
+  if (allFreeSelected.value) {
+    selected.value = selected.value.filter((k) => !keys.includes(k))
+  } else {
+    for (const key of keys) {
+      if (!selected.value.includes(key)) selected.value.push(key)
+    }
+  }
+}
+
+/**
+ * 价格文案：免费直接标注；有价格时显示「输入/输出 $/M」；未知不占位。
+ *
+ * @param m 上游模型行
+ * @returns 文案；无价格信息时返回空串
+ */
+const priceText = (m: any): string => {
+  const price = modelPriceOf(m)
+  if (!price.known) return ''
+  if (price.free) return '免费'
+  const fmt = (v: number | null) => (v == null ? '—' : `$${Number(v.toFixed(4))}`)
+  return `收费 · ${fmt(price.input)} / ${fmt(price.output)} / 1M`
+}
+
+const MODALITY_LABELS: Record<string, string> = {
+  text: '文本', image: '图片', audio: '音频', video: '视频', file: '文件', vector: '向量',
+}
+
+const MODALITY_ICON: Record<string, any> = {
+  text: TextT24Regular,
+  image: Image24Regular,
+  audio: Speaker224Regular,
+  video: Video24Regular,
+  file: DocumentText24Regular,
+  vector: Folder24Regular,
+}
+
+/** 输入 / 输出模态标签（图标 + tooltip，由 ModelTagStrip 统一渲染）。
+ *
+ * <p>上游 /models 极少携带价格，输入输出模态也不一定齐全；
+ * 这里只展示上游 genuinely 声明的模态，没有时不渲染，不做假能力。</p>
+ *
+ * @param m 上游模型行
+ * @returns 标签项列表（可能为空）
+ */
+const rowIoTags = (m: any) => {
+  const cfg = m?.config || deriveFetchedModelConfig(m, String(m?.modelType || inferModelType(m) || 'text'))
+  const tags: Array<{ key: string; label: string; icon: any; kind: string }> = []
+  const inList = Array.isArray(cfg?.inputCapabilities) ? cfg.inputCapabilities : []
+  const outList = Array.isArray(cfg?.outputCapabilities) ? cfg.outputCapabilities : []
+  if (inList.length) {
+    tags.push({
+      key: 'io:in',
+      label: `输入：${inList.map((v: string) => MODALITY_LABELS[String(v).toLowerCase()] || String(v)).join(' + ')}`,
+      icon: MODALITY_ICON[String(inList[0]).toLowerCase()] || ScienceOutlined,
+      kind: 'doc',
+    })
+  }
+  if (outList.length) {
+    tags.push({
+      key: 'io:out',
+      label: `输出：${outList.map((v: string) => MODALITY_LABELS[String(v).toLowerCase()] || String(v)).join(' + ')}`,
+      icon: MODALITY_ICON[String(outList[0]).toLowerCase()] || ScienceOutlined,
+      kind: 'doc',
+    })
+  }
+  return tags
+}
 
 const filtered = computed(() => {
   if (!searchName.value) return fetched.value
@@ -189,39 +373,6 @@ const getLableName = (type: string) => {
 }
 
 /**
- * 上游任务（task） → 规范模型类型，与 model.constants 的 TASK_TO_TYPE 对齐。
- *
- * <p>免费渠道行来自 extra.routes，后端只回传 tasks（如 ["chat"]），
- * 没有 modelType / model_type，所以类型推断降全靠它。</p>
- *
- * @param tasks 上游 tasks（数组、单个字符串或 JSON 字符串）
- * @returns 规范类型（text / embedding / rerank / asr / tts / image / video）
- */
-const inferTypeFromTask = (tasks: any): string => {
-  for (const t of toArray(tasks)) {
-    const key = String(t || '').toLowerCase()
-    if (TASK_TO_TYPE[key]) return TASK_TO_TYPE[key]
-  }
-  return 'text'
-}
-
-/** 把 task 拍平成字符串数组：非数组时自动拆分（分号/逗号/空格）或尝试 JSON 解析 */
-const toArray = (v: any): string[] => {
-  if (Array.isArray(v)) return v.filter((x): x is string => typeof x === 'string' && !!String(x).trim())
-  if (!v) return []
-  const s = String(v).trim()
-  if (!s) return []
-  if (s.startsWith('[')) {
-    try {
-      return toArray(JSON.parse(s))
-    } catch {
-      return []
-    }
-  }
-  return [s]
-}
-
-/**
  * 打开拉取列表。
  *
  * @param provider 供应商对象（含 id/apiUrl/apiKey）
@@ -231,9 +382,15 @@ const toArray = (v: any): string[] => {
  *   重置掉（openAdd 会清空表单）。
  */
 const open = async (provider: any, models: any[], fallbackToManual = true) => {
+  // 注册供应商：重新拉取（模型源连不上时 ReErrorBar 上的「重新拉取」）用
+  currentProvider.value = provider
   // 账号渠道 provider：模型目录由渠道管理页统一管理，不走云端 fetchRemoteModels（没有 apiKey）
   const channelProviderFlag = isChannelProvider(provider)
   const channelPlatform = String(provider?.platform || provider?.provider || provider?.id || '').toLowerCase()
+  // FreeChannel 是模型路由表聚合，不是 OAuth 渠道：即使不配置自身 Key，也应直接
+  // 读取后端 extra.routes 的路由键清单，而不是拦在「请先配 API 地址与 Key」。
+  const rawPlatform = String(provider?.rawPlatform || provider?.platform || provider?.provider || '').toLowerCase()
+  const freeChannelProvider = rawPlatform === 'free-channel' || rawPlatform === 'free'
 
   // 本地推理（ONNX）无需 base_url 与 Key：模型目录由后端本地模型门面提供，
   // 不能沿用云端提供商的「必须配好地址和 Key 才允许拉取」的前置校验，否则加模型流程会被堵死
@@ -254,9 +411,12 @@ const open = async (provider: any, models: any[], fallbackToManual = true) => {
     }
     searchName.value = ''
     fetched.value = []
+    selected.value = []
     loadError.value = ''
+    routeHint.value = ''
     visible.value = true
     fetching.value = true
+    hasFetched.value = false
     try {
       const res: any = await channelApi.list()
       const allChannels: any[] = (res as any)?.data ?? res
@@ -267,34 +427,54 @@ const open = async (provider: any, models: any[], fallbackToManual = true) => {
       // 从渠道摘要的 models 字段取已启用模型
       const rawModels: any[] = Array.isArray(hit.models) ? hit.models : []
       const enabledModels = rawModels.filter((m: any) => m.enabled !== false)
-      const apiModels: any[] = enabledModels.map((m: any) => ({
-        modelName: m.model || m.alias,
-        modelType: 'text',
-        config: { contextWindow: m.contextWindow ?? undefined, features: [] },
-      }))
+      const apiModels: any[] = enabledModels.map((m: any) => {
+        // 不要把渠道管理返回的价格、modality、tasks 等元数据裁掉；模型列表要能说明
+        // 输入/输出能力以及是否免费。渠道摘要字段可能是 contextWindow 驼峰形式。
+        const modelName = m.model || m.modelName || m.alias || m.id
+        const modelType = String(m.modelType || inferModelType(m) || 'text')
+        const config = deriveFetchedModelConfig({
+          ...m,
+          context_window: m.context_window ?? m.contextWindow,
+        }, modelType)
+        return { ...m, modelName, modelType, config }
+      })
       const enriched = apiModels.map((apiModel: any) => {
-        const existing = existingModels.find((m: any) => m.modelName === apiModel.modelName)
-        if (existing) {
-          return { ...apiModel, id: existing.id, config: { ...existing.config } }
+        const existing = existingModels.find((m: any) => m.modelName === apiModel.modelName || m.model === apiModel.modelName)
+        if (!existing) return apiModel
+        const oldConfig = existing.config || {}
+        return {
+          ...apiModel,
+          id: existing.id,
+          config: {
+            ...apiModel.config,
+            ...oldConfig,
+            inputCapabilities: listOr(oldConfig.inputCapabilities, apiModel.config.inputCapabilities),
+            outputCapabilities: listOr(oldConfig.outputCapabilities, apiModel.config.outputCapabilities),
+            features: listOr(oldConfig.features, apiModel.config.features),
+          },
         }
-        return { ...apiModel, config: apiModel.config || { features: [] } }
       })
       fetched.value = enriched
-      message.success(
-        t('settings.providerDetail.fetchSuccess', { n: enriched.length }),
-        { duration: 2000 },
-      )
+      // 明确清除旧错误：渠道拉取成功，不能留上一次的痕迹
+      loadError.value = ''
+      if (enriched.length > 0) {
+        message.success(
+          t('settings.providerDetail.fetchSuccess', { n: enriched.length }),
+          { duration: 2000 },
+        )
+      }
     } catch (error: any) {
       fetched.value = []
-      loadError.value = error?.message || t('settings.providerDetail.fetchFailed')
+      loadError.value = normalizeLoadError(error)
       console.error('拉取渠道模型失败:', error)
     } finally {
       fetching.value = false
+      hasFetched.value = true
     }
     return
   }
 
-  if (!isLocalProvider) {
+  if (!isLocalProvider && !freeChannelProvider) {
     const hasApiKey =
       provider.apiKey ||
       (provider.apiKeyList && provider.apiKeyList.length > 0) ||
@@ -324,10 +504,12 @@ const open = async (provider: any, models: any[], fallbackToManual = true) => {
   }
   searchName.value = ''
   fetched.value = []
+  selected.value = []
   loadError.value = ''
   routeHint.value = ''
   visible.value = true
   fetching.value = true
+  hasFetched.value = false
   try {
     const data = await apiService.fetchRemoteModels(provider.id)
     // 上游鉴权失败时后端返回 200 + success:false（避免被误判为会话过期而登出）
@@ -341,30 +523,44 @@ const open = async (provider: any, models: any[], fallbackToManual = true) => {
     const dataField = data?.data as any | undefined
     const isFreeChannel = Boolean(data?.route_keys) || Boolean(dataField?.route_keys)
     const routeHintMessage = (data?.hint as string | undefined) || (dataField?.hint as string | undefined) || ''
-    routeHint.value = isFreeChannel ? routeHintMessage : ''
+    // hint 不限于免费渠道：连接失败时后端回空列表 + hint，这里同样展示，
+    // 避免用户只看到一句「无匹配」而不知道原因。
+    routeHint.value = routeHintMessage
     const models = isFreeChannel
       ? (Array.isArray(dataField?.models) ? dataField.models : [])
       : (data.items ?? (Array.isArray(dataField) ? dataField : dataField?.items) ?? [])
     const apiModels: Model[] = models
     const enriched = apiModels.map((apiModel: any) => {
       const key = String(apiModel?.id ?? apiModel?.name ?? apiModel?.modelName ?? '')
-      if (isFreeChannel) {
-        // 路由 key 即模型名（ChatClient 按模型名命中路由），模型类型按 tasks 归一化，
-        // 特性走 traits（与后端 inferTasks 的语义一致）
-        return {
-          ...apiModel,
-          modelName: apiModel?.name || key,
-          modelType: inferTypeFromTask(apiModel?.tasks),
-          config: { ...(apiModel?.config || {}), features: toArray(apiModel?.traits) },
-        }
+      // 规范类型：上游行的 tasks / 模型名推断；输入输出能力、窗口、采样参数、
+      // 能力开关由 deriveFetchedModelConfig 从上游元数据推导，避免选中后表单全空。
+      const type = String(apiModel?.modelType || inferModelType(apiModel) || 'text')
+      const derived = deriveFetchedModelConfig(apiModel, type)
+      const rowName = apiModel?.modelName || apiModel?.name || key
+      const existing = existingModels.find((m: any) =>
+        m?.modelName === rowName || m?.model === rowName)
+      // 已存在的模型：以库里的配置为准，但空数组/空值不能盖掉从上游推导出的能力，
+      // 否则重新拉取后表单里的输入输出又回到空。
+      const config = existing?.config
+        ? {
+            ...derived,
+            ...existing.config,
+            inputCapabilities: listOr(existing.config.inputCapabilities, derived.inputCapabilities),
+            outputCapabilities: listOr(existing.config.outputCapabilities, derived.outputCapabilities),
+            features: listOr(existing.config.features, derived.features),
+          }
+        : derived
+      return {
+        ...apiModel,
+        modelName: rowName,
+        modelType: existing?.modelType || type,
+        ...(existing?.id ? { id: existing.id } : {}),
+        config,
       }
-      const existing = existingModels.find((m: any) => m.modelName === apiModel.modelName)
-      if (existing) {
-        return { ...apiModel, id: existing.id, config: { ...existing.config } }
-      }
-      return { ...apiModel, config: apiModel.config || { features: [] } }
     })
     fetched.value = enriched
+    // 明确清除旧错误：上游拉取成功，不能留上一次的痕迹
+    loadError.value = ''
     if (isFreeChannel) {
       // 有路由表时提示拉取完成；未配置路由时只展示 hint（空列表不是成功，不要贺电）
       if (routeHintMessage) {
@@ -373,19 +569,19 @@ const open = async (provider: any, models: any[], fallbackToManual = true) => {
         message.success(t('settings.providerDetail.fetchSuccess', { n: enriched.length }), { duration: 2000 })
       }
     } else {
-      message.success(t('settings.providerDetail.fetchSuccess', { n: enriched.length }), { duration: 2000 })
+      if (enriched.length) {
+        message.success(t('settings.providerDetail.fetchSuccess', { n: enriched.length }), { duration: 2000 })
+      } else if (routeHintMessage) {
+        message.warning(routeHintMessage, { duration: 5000 })
+      }
     }
   } catch (error: any) {
     fetched.value = []
-    loadError.value =
-      error?.response?.data?.error ||
-      error?.data?.error ||
-      error?.error ||
-      error?.message ||
-      t('settings.providerDetail.fetchFailed')
+    loadError.value = normalizeLoadError(error)
     console.error('获取模型列表失败:', error)
   } finally {
     fetching.value = false
+    hasFetched.value = true
   }
 }
 
@@ -584,6 +780,17 @@ const rowTags = (m: any) => {
 }
 
 const close = () => { visible.value = false }
+
+/**
+ * 重新拉取：用 open() 记住的供应商再跑一次（远程拉取 / 渠道拉取两者的错误都归到
+ * loadError，所以只靠它就能决定走哪条路）。loadError 由 open() 在 fetch 前清空、
+ * fetch 成功后再次确认清空，确保重新拉取成功时错误的痕迹不残留。
+ */
+const retryFetch = async () => {
+  if (!currentProvider.value) return
+  loadError.value = ''
+  await open(currentProvider.value, existingModels)
+}
 /** 点击「手动添加」：先关掉 fetchDialog，让表单-dialog 露出来。
  * 表单-dialog 在「添加模型」时就已打开，这里不能调 openAdd 重置用户内容。 */
 const handleManual = () => {
@@ -598,35 +805,91 @@ const handleSelect = (model: any) => {
 }
 
 /**
- * 一键批量录入：整个动作在后端一次完成（调上游取目录 + 写库），
- * 前端只负责把统计结果说清楚。
+ * 把一行上游模型整理成「保存模型」接口的入参。
  *
- * <p>去重语义由后端保证（模型名已存在则跳过、不覆盖用户改过的参数），
- * 所以这里**不做本地预判**，重复点击只是把新出现的模型补录进来。</p>
+ * <p>渠道 provider 没有后端 import-all 通路，只能逐条 createModel；
+ * 这里带上推导出的能力/参数，避免录进来的模型丢失上游元数据。</p>
+ *
+ * @param m 上游模型行
+ * @returns createModel 入参
+ */
+const createModelPayload = (m: any) => {
+  const type = String(m?.modelType || inferModelType(m) || 'text')
+  const cfg = m?.config && Object.keys(m.config).length ? m.config : deriveFetchedModelConfig(m, type)
+  const caps = Array.isArray((cfg as any).capabilities) ? (cfg as any).capabilities : []
+  return {
+    providerId: providerId.value,
+    modelName: fetchRowName(m),
+    alias: m?.alias || '',
+    modelType: type,
+    enabled: true,
+    sort_order: 0,
+    config: cfg,
+    capabilities: [{ task: TYPE_TO_TASK[type] || 'chat', traits: [] }],
+    attachment: caps.includes('attachment'),
+    reasoning: caps.includes('reasoning'),
+    tool_call: caps.includes('tool_call'),
+    temperature_supported: caps.includes('temperature'),
+    open_weights: caps.includes('open_weights'),
+    ...(m?.family ? { family: m.family } : {}),
+    ...(m?.knowledge ? { knowledge: m.knowledge } : {}),
+    ...(m?.release_date ? { release_date: m.release_date } : {}),
+    ...(m?.last_updated ? { last_updated: m.last_updated } : {}),
+    ...(m?.modalities ? { modalities: m.modalities } : {}),
+    ...(Array.isArray(m?.thinking_efforts) ? { thinking_efforts: m.thinking_efforts } : {}),
+  }
+}
+
+/**
+ * 一键批量录入（全部）。
  */
 const handleImportAll = async () => {
-  if (importing.value || !providerId.value || fetched.value.length === 0) return
+  if (importingAll.value || importing.value || !providerId.value || fetched.value.length === 0) return
+  importingAll.value = true
+  try {
+    await doImport(fetched.value, true)
+  } finally {
+    importingAll.value = false
+  }
+}
+
+/**
+ * 录入勾选的模型（多选）。
+ */
+const handleImportSelected = async () => {
+  if (importing.value || importingAll.value || !providerId.value || selected.value.length === 0) return
   importing.value = true
+  try {
+    await doImport(fetched.value.filter((m) => isSelected(m)), false)
+  } finally {
+    importing.value = false
+  }
+}
+
+/**
+ * 执行批量录入。
+ *
+ * <p>非渠道 provider 统一走后端 import-all：选中子集时把模型名放进
+ * {@code models} 过滤，仍复用后端同一套元数据回填与去重逻辑
+ * （逐条 createModel 会丢掉上游 metrics）。</p>
+ *
+ * @param rows  待录入行
+ * @param isAll 是否「全部录入」
+ */
+const doImport = async (rows: any[], isAll: boolean) => {
+  if (!providerId.value || rows.length === 0) return
   try {
     // 账号渠道 provider：后端 import-all 走 fetchModelsFromUpstream，对 oauth 类 provider 会失败
     // 渠道 provider 逐条走 createModel（PUT /api/provider-models）
-    const channelFlag = openIsChannel.value
-    if (channelFlag) {
+    if (openIsChannel.value) {
       // 逐条创建，已存在的跳过
       let imported = 0
       let skipped = 0
-      for (const m of fetched.value) {
+      for (const m of rows) {
         const name = fetchRowName(m)
         if (!name || knownPresent.has(name)) { skipped++; continue }
         try {
-          await apiService.createModel({
-            providerId: providerId.value,
-            modelName: name,
-            enabled: true,
-            sort_order: imported,
-            config: {},
-            capabilities: [{ task: 'chat', traits: [] }],
-          })
+          await apiService.createModel(createModelPayload(m))
           knownPresent.add(name)
           imported++
         } catch (e: any) {
@@ -641,40 +904,44 @@ const handleImportAll = async () => {
       )
       emit('imported')
       visible.value = false
-    } else {
-      const res = await apiService.importAllModels(providerId.value)
-      const imported = Number(res?.imported ?? 0)
-      const skipped = Number(res?.skipped ?? 0)
-      const total = Number(res?.total ?? imported + skipped)
-      if (total === 0) {
-        message.warning(
-          t('settings.providerDetail.fetchSuccess', { n: 0 }),
-          { duration: 3000 },
-        )
-        return
-      }
-      const processed = imported + skipped
-      const expected = fetched.value.length
-      for (const row of res?.models || []) {
-        const n = String(row?.model ?? row?.modelName ?? '')
-        if (n) knownPresent.add(n)
-      }
-      const missingLocally = fetched.value.filter((m) => !knownPresent.has(fetchRowName(m))).length
-      if (processed < expected && missingLocally > 0) {
-        message.warning(
-          t('settings.providerDetail.importPartialDesc', { got: processed, expected, imported, skipped }),
-          { duration: 6000 },
-        )
-        emit('imported')
-        return
-      }
-      message.success(
-        t('settings.providerDetail.importDone', { imported, skipped }),
-        { duration: 3000 },
+      return
+    }
+
+    const names = rows.map(fetchRowName).filter(Boolean)
+    const res = await apiService.importAllModels(
+      providerId.value,
+      isAll ? undefined : { models: names },
+    )
+    const imported = Number(res?.imported ?? 0)
+    const skipped = Number(res?.skipped ?? 0)
+    const total = Number(res?.total ?? imported + skipped)
+    if (total === 0) {
+      // 后端没返回/没有可录入模型不是成功：清空列表，交给 ReEmpty +「重新拉取」状态提示。
+      fetched.value = []
+      selected.value = []
+      return
+    }
+    const processed = imported + skipped
+    const expected = rows.length
+    for (const row of res?.models || []) {
+      const n = String(row?.model ?? row?.modelName ?? '')
+      if (n) knownPresent.add(n)
+    }
+    const missingLocally = rows.filter((m) => !knownPresent.has(fetchRowName(m))).length
+    if (processed < expected && missingLocally > 0) {
+      message.warning(
+        t('settings.providerDetail.importPartialDesc', { got: processed, expected, imported, skipped }),
+        { duration: 6000 },
       )
       emit('imported')
-      visible.value = false
+      return
     }
+    message.success(
+      t('settings.providerDetail.importDone', { imported, skipped }),
+      { duration: 3000 },
+    )
+    emit('imported')
+    visible.value = false
   } catch (error: any) {
     message.error(
       error?.response?.data?.message
@@ -684,8 +951,6 @@ const handleImportAll = async () => {
         || String(error),
       { duration: 5000 },
     )
-  } finally {
-    importing.value = false
   }
 }
 </script>
@@ -702,6 +967,39 @@ const handleImportAll = async () => {
   gap: 8px;
 }
 .fetch-input { flex: 1; min-width: 0; }
+/* 多选批量录入：勾选态 + 底部操作条 */
+.fetch-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+  margin-bottom: 16px;
+}
+.fetch-selected-count {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--color-text-gray);
+}
+.fetch-check { flex-shrink: 0; margin-right: 10px; }
+.fetch-row.is-picked { background: color-mix(in srgb, var(--color-primary) 8%, transparent); }
+.fetch-price {
+  flex-shrink: 0;
+  padding: 0 6px;
+  font-size: 11.5px;
+  line-height: 18px;
+  color: var(--color-text-gray);
+  border-radius: var(--el-radius-sm, 4px);
+  background: var(--el-fill-color-light);
+}
+.fetch-price.is-free {
+  color: var(--el-color-success);
+  background: color-mix(in srgb, var(--el-color-success) 12%, transparent);
+}
+.fetch-price.is-unknown {
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color);
+}
 .fetch-foot {
   display: flex;
   justify-content: flex-end;
@@ -727,10 +1025,15 @@ const handleImportAll = async () => {
 .fetch-main { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; margin-right: 16px; }
 .fetch-desc {
   font-size: 12px;
-  color: var(--color-text-gray);
+  color: var(--el-text-color-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.fetch-io {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--el-text-color-regular);
 }
 .fetch-id { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; margin-right: 16px; }
 /* 通道徽标：把 ProviderLogo 压到行内图标量级，跟在模型名后面 */
@@ -756,42 +1059,6 @@ const handleImportAll = async () => {
 /* .fetch-badge / .fetch-feature 已随标签改造移除：
    类型、来源、管线角色、特性统一由 ModelTagStrip 以「图标 + tooltip」渲染，
    不再有纯文字徽标，配色也由该组件的 kind-* 负责。 */
-.fetch-empty { text-align: center; padding: 48px 0; font-size: 13px; color: var(--color-text-disabled); }
-/* 免费渠道提示：路由表未配置时给用户指引，不是错误， warn 色即可 */
-.fetch-hint {
-  display: flex;
-  align-items: flex-start;
-  gap: 11px;
-  margin-top: 6px;
-  padding: 14px 15px;
-  border-radius: var(--el-radius-lg, 12px);
-  background: color-mix(in srgb, var(--el-color-warning) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--el-color-warning) 30%, transparent);
-}
-.fetch-hint-icon { color: var(--el-color-warning); flex-shrink: 0; margin-top: 1px; }
-.fetch-hint-text { font-size: 13px; color: var(--color-text); line-height: 1.5; }
-.fetch-error {
-  display: flex;
-  align-items: flex-start;
-  gap: 11px;
-  margin-top: 6px;
-  padding: 14px 15px;
-  /* 原值 11px → lg 档 */
-  border-radius: var(--el-radius-lg, 12px);
-  background: color-mix(in srgb, var(--el-color-danger) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--el-color-danger) 30%, transparent);
-}
-.fetch-error-icon { color: var(--el-color-danger); flex-shrink: 0; margin-top: 1px; }
-.fetch-error-text { min-width: 0; }
-.fetch-error-title { font-size: 13px; font-weight: 700; color: var(--el-color-danger); }
-.fetch-error-desc {
-  font-size: 12px;
-  color: var(--color-text-gray);
-  margin-top: 3px;
-  line-height: 1.5;
-  word-break: break-word;
-}
-
 /* 动效降级：系统开启「减少动态效果」时，供应商行的悬停底色直接到位。
    逐个列出，不写 `*` / .fetch-row * 通配，
    避免把 el-dialog / el-tag 内部 Element Plus 组件的合法过渡一起掐掉。 */

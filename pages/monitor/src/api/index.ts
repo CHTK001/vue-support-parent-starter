@@ -646,6 +646,18 @@ export const getTsharkPacketDetail = (sessionId: number, id: number) =>
   http().get(`${B}/tshark/sessions/${sessionId}/packets/${id}`).then(r => unwrap<any>(r));
 
 /**
+ * 取某报文所属的 HTTP 事务（请求帧 + 响应帧）。
+ *
+ * <p>报文详情是「一帧一份数据」，而一帧只有一个方向：点请求帧看不到响应，
+ * 点中间的 ACK 帧两边都看不到。后端按 `tcp.stream` 配对、合并重复落点、
+ * 取正文更完整的一份，前端右栏据此把「请求头 · 请求体 · 响应头 · 响应体」
+ * 一次显示全。</p>
+ */
+export const getTsharkHttpTransaction = (sessionId: number, packetId: number) =>
+  http().get(`${B}/tshark/sessions/${sessionId}/packets/${packetId}/http-transaction`)
+    .then(r => unwrap<any>(r));
+
+/**
  * 某报文所属 TCP 流的握手 / 关闭生命周期。
  *
  * <p>Controller 返回实体被全局响应包装成 `{code,data,msg}` 信封（后端返回

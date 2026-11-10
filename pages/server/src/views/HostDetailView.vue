@@ -27,7 +27,7 @@ import {
   aiAnalyzeHost, fetchAiStatus,
   type AssetMonitorRef, type SoftwareInstance,
 } from "@pages/monitor/src/api";
-import { getHost, fetchHostProfile, fetchHostProfileSection, closeNetProcess, killProcess, restartHostProcess, startService, stopService, restartService, setHostEnvVar, deleteHostEnvVar, fetchFirewallRules, type HostProfile } from "../api";
+import { getHost, fetchHostProfile, fetchHostProfileSection, closeNetProcess, killProcess, restartHostProcess, startService, stopService, restartService, setHostEnvVar, deleteHostEnvVar, fetchFirewallRules, applySystemConfig, type HostProfile } from "../api";
 import ProfileDisks from "../components/profile/ProfileDisks.vue";
 import ProfileProcesses from "../components/profile/ProfileProcesses.vue";
 import ProfileServices from "../components/profile/ProfileServices.vue";
@@ -35,6 +35,7 @@ import ProfilePorts from "../components/profile/ProfilePorts.vue";
 import ProfileNetwork from "../components/profile/ProfileNetwork.vue";
 import ProfileEnv from "../components/profile/ProfileEnv.vue";
 import ProfileFirewall from "../components/profile/ProfileFirewall.vue";
+import ProfileSystemConfig from "../components/profile/ProfileSystemConfig.vue";
 import ScSoftwarePanel from "../components/ScSoftwarePanel.vue";
 
 const route = useRoute();
@@ -1017,7 +1018,7 @@ function onSwCounts(c: { instanceCount: number; typeCount: number }): void {
 
 // ---------------- 画像分区（与 HostProfileView 同口径：ports/processes/services/disks/network/env/firewall） ----------------
 /** 分区定义：单主机详情无需左侧列表，直接沿用画像分区的列与动作 */
-type ProfileSection = "ports" | "processes" | "services" | "disks" | "network" | "env" | "firewall";
+type ProfileSection = "ports" | "processes" | "services" | "disks" | "network" | "env" | "firewall" | "sysconfig";
 const PROFILE_SECTIONS: Array<{ name: ProfileSection; label: string }> = [
   { name: "ports", label: "监听端口" },
   { name: "processes", label: "进程" },
@@ -1026,6 +1027,7 @@ const PROFILE_SECTIONS: Array<{ name: ProfileSection; label: string }> = [
   { name: "network", label: "网络" },
   { name: "env", label: "环境变量" },
   { name: "firewall", label: "防火墙" },
+  { name: "sysconfig", label: "主机配置" },
 ];
 /** 当前分区 */
 const profileTab = ref<ProfileSection>("disks");
@@ -1133,6 +1135,33 @@ async function confirmProfileAction(message: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/**
+ * 应用一项主机配置（Windows 注册表 / Linux sysctl）。
+ *
+ * <p>先弹一次说明生效时机与风险；requiresConfirm 的项再弹二次确认。
+ * 后端写后回读，失败原因原样返回。</p>
+ *
+ * @param payload 配置键、新值与展示信息
+ */
+async function onApplySystemConfig(payload: {
+  key: string;
+  value: string;
+  label: string;
+  tip: string;
+  hot: boolean;
+  requiresConfirm: boolean;
+}): Promise<void> {
+  const hid = hostId.value;
+  if (!hid) return;
+  const timing = payload.hot ? "立即生效：写入后直接对后续行为生效" : "需重启 / 新登录：已运行进程不变";
+  const first = `配置项：${payload.label}（${payload.key}）\n新值：${payload.value}\n${timing}\n\n${payload.tip}`;
+  if (!await confirmProfileAction(first)) return;
+  if (payload.requiresConfirm) {
+    if (!await confirmProfileAction(`重要配置项二次确认：确定修改「${payload.label}」为 ${payload.value}？\n\n${payload.tip}`)) return;
+  }
+  await runProfileAction(`cfg-${payload.key}`, applySystemConfig(hid, payload.key, payload.value));
 }
 /** 提交新增环境变量 */
 async function submitProfileEnv(): Promise<void> {
@@ -1702,7 +1731,7 @@ function onProfileCommit(kw: string): void {
 
         <!-- 防火墙：方向优先的规则行 -->
         <ProfileFirewall
-          v-else
+          v-else-if="profileTab === 'firewall'"
           :rows="profileVisibleRows"
           :keyword="profileKeyword"
           :loading="profileLoading"
@@ -1716,6 +1745,20 @@ function onProfileCommit(kw: string): void {
           @commit="onProfileCommit"
           @page="changeProfilePage"
           @refresh="loadProfileSection"
+        />
+
+        <!-- 主机配置：平台 SPI 决定参数集合（Linux sysctl/limits、Windows 注册表） -->
+        <ProfileSystemConfig
+          v-else
+          :rows="profileVisibleRows"
+          :keyword="profileKeyword"
+          :loading="profileLoading"
+          :error="profileError"
+          :busy-key="profileBusyRow"
+          @search="onProfileSearch"
+          @commit="onProfileCommit"
+          @refresh="loadProfileSection"
+          @apply="onApplySystemConfig"
         />
       </section>
 

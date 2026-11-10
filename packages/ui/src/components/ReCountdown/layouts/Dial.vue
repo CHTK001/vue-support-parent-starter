@@ -4,11 +4,14 @@
  *
  * 环形进度作为外壳，中心数字展示时间。最经典的仪表盘排布。
  *
+ * 环形中间的数字格式由 format 与总时长（total）决定：
+ *   <= 60s auto → 只显示秒（"45"），不再显示 HH:MM:SS；
+ *   60s~1h auto → MM:SS；1h~1d auto → HH:MM:SS；> 1d auto → "1天 01:00:45"。
  * 数据源：父组件透传的 remaining（ms）。
  */
 import { computed } from "vue";
 import type { CountdownLayoutProps } from "../types";
-import { toHHMMSS } from "../utils";
+import { formatRemaining, relevantUnits, toShortText } from "../utils";
 
 const props = withDefaults(defineProps<CountdownLayoutProps>(), {
   size: 60,
@@ -19,6 +22,9 @@ const props = withDefaults(defineProps<CountdownLayoutProps>(), {
   endAnimation: false,
   total: 0,
   paused: false,
+  format: "auto",
+  colorThresholds: undefined,
+  unitShape: "ring",
 });
 
 /** 弧度参数 */
@@ -40,6 +46,18 @@ const colorMap = {
   info: "var(--rm-info)",
   secondary: "var(--rm-text-regular)",
 };
+
+/** 按格式/总时长要的显示单位 */
+const units = computed(() => relevantUnits(props.total ?? 0, props.format));
+
+/** 环形中心的数字（按格式切单位） */
+const value = computed(() => {
+  if (!props.showNumber || props.remaining <= 0) return "00:00:00";
+  return formatRemaining(props.remaining, units.value, props.format);
+});
+
+/** 短提示（sub） */
+const sub = computed(() => (props.finished ? "已结束" : toShortText(props.remaining)));
 </script>
 
 <template>
@@ -61,10 +79,10 @@ const colorMap = {
         {{ props.label ?? "倒计时" }}
       </div>
       <div class="re-countdown__value">
-        {{ props.showNumber && props.remaining > 0 ? toHHMMSS(props.remaining) : "00:00:00" }}
+        {{ value }}
       </div>
       <div class="re-countdown__sub" v-if="props.showText && !props.showLabel">
-        remaining ms {{ Math.round(props.remaining) }}
+        {{ sub }}
       </div>
     </div>
   </div>

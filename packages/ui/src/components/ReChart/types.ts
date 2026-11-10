@@ -25,7 +25,9 @@ export type ReChartType =
   | "sankey" // 桑基（.antv 流线）
   | "heatmap" // 热力图（仅 echarts）
   | "custom" // 完全由 option 决定，type 只作标注
-  | "flow"; // 资金流/流线图（G6，独立于 echarts/d3）
+  | "flow" // 资金流/流线图（G6，独立于 echarts/d3）
+  | "topology" // 链路拓扑（自绘 SVG：连线流动动画 + 在用线路高亮 + 小鸟搬运）
+  | "context"; // 上下文窗口（同一份数据的两种画法：面积图 / 点阵图）
 
 /** 聚合面板使用的渲染引擎 */
 export type ReChartEngine = "echarts" | "d3";
@@ -101,4 +103,109 @@ export interface ReChartEmit {
   (e: "click", params: unknown): void;
   (e: "mouseover", params: unknown): void;
   (e: "mouseout", params: unknown): void;
+}
+
+/* ==================== 多视图（图标切换） ==================== */
+
+/**
+ * 一个视图面板：一个图标按钮 + 一份数据 + 一种图类型。
+ *
+ * **数据格式强约束**：`data` 的**所有视图必须同形状**，由 `type` 决定形状校验器。
+ * 形状不符且**没有** `transform` 时不渲染（告警 + 空态），本组件不做任何隐式猜测；
+ * 上游形状不同时，必须给出 {@link ViewPane.transform} 显式归一。
+ *
+ * ```ts
+ * // 形状一致：直接给
+ * { key: "route", type: "topology", icon: Connection, label: "链路", data: routeMap }
+ * // 形状不同：显式 transform 归一
+ * { key: "route", type: "topology", icon: Connection, data: raw.asIs, transform: toRouteMap }
+ * ```
+ */
+export interface ViewPane<TData = unknown> {
+  /** 视图唯一键 */
+  key: string;
+  /** 该视图的图类型；不填时沿用面板的 {@link ReChartProps.type} */
+  type?: ReChartType;
+  /** 图标：可直接给组件（markRaw 包一层），也可给已加载/懒加载组件的 Promise */
+  icon?: unknown;
+  /** 悬停提示与无障碍标签 */
+  label?: string;
+  /** 视图数据（形状须与 type 的契约一致） */
+  data?: TData;
+  /** 上游形状与契约不一致时的显式归一函数；给了就一定是它说了算 */
+  transform?: (raw: TData) => unknown;
+  /** 面板级覆盖：echarts 完整 option / categories / values / series 等 */
+  options?: Partial<ReChartProps>;
+}
+
+/* ==================== 链路拓扑（topology） ==================== */
+
+/** 拓扑节点状态：正常 / 正在使用 / 受限 / 离线 */
+export type TopologyNodeStatus = "idle" | "active" | "limited" | "offline";
+
+/** 拓扑节点 */
+export interface TopologyNode {
+  id: string;
+  /** 主标题 */
+  label: string;
+  /** 次标题（地址、型号等） */
+  detail?: string;
+  /** 分组列（相同 kind 的节点放同一列，列序按首次出现） */
+  kind?: string;
+  /** 节点状态，默认 idle */
+  status?: TopologyNodeStatus;
+  /** 节点角标（最多展示 2 条） */
+  meta?: string[];
+}
+
+/** 拓扑连线 */
+export interface TopologyEdge {
+  /** 起点节点 id */
+  from: string;
+  /** 终点节点 id */
+  to: string;
+  /** 是否为当前正在使用的线路；true 时流动动画加速 + 小鸟搬运 */
+  active?: boolean;
+  /** 连线状态，默认 idle */
+  status?: TopologyNodeStatus;
+  /** 连线上的标注 */
+  label?: string;
+}
+
+/** 链路拓扑数据（type="topology" 的唯一合法形状） */
+export interface ReChartTopologyData {
+  nodes: TopologyNode[];
+  edges: TopologyEdge[];
+}
+
+/* ==================== 上下文窗口（context） ==================== */
+
+/** 上下文切片类别（决定配色） */
+export type ContextSliceKind = "file" | "image" | "tool" | "turn" | "prompt" | "free" | "other";
+
+/** 上下文窗口的一个切片（一个对象/工具/文件占用的 token） */
+export interface ContextSlice {
+  key: string;
+  label: string;
+  /** 占用 token 数 */
+  tokens: number;
+  kind?: ContextSliceKind;
+}
+
+/** 上下文窗口数据（type="context" 的唯一合法形状） */
+export interface ReChartContextData {
+  /** 已用 token */
+  used: number;
+  /** 窗口总量 token */
+  total: number;
+  /** 明细切片；未给出 kind="free" 的切片时由 total - used 自动补出 */
+  slices: ContextSlice[];
+  /** 数据来源说明 */
+  source?: {
+    name?: string;
+    /** 分组 / 会话名 */
+    group?: string;
+    /** 状态文案，等于 "实时" 时显示实时徽标 */
+    status?: string;
+  };
 }

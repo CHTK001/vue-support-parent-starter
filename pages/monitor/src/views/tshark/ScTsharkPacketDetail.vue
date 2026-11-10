@@ -50,6 +50,10 @@
         <p class="tshark-mono detail-text">{{ packet.packetInfo || '—' }}</p>
       </section>
 
+      <section v-if="packet.httpRequestHead || packet.httpResponseHead || packet.httpBody" class="detail-section">
+        <ScTsharkHttpInfo :packet="packet" />
+      </section>
+
       <section v-if="packet.restoredText" class="detail-section">
         <header class="detail-section__head">
           <h4>协议还原</h4>
@@ -90,6 +94,7 @@
 import { computed } from 'vue'
 import { Connection, Document } from '@element-plus/icons-vue'
 import { message } from '@repo/core'
+import ScTsharkHttpInfo from './ScTsharkHttpInfo.vue'
 import type { TsharkPacket, TsharkTcpStream } from './types'
 
 /** 原始数据一次最多渲染的字符数：几十 KB 的十六进制串直接塞进 <pre> 会把抽屉卡住 */

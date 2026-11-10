@@ -114,11 +114,7 @@ onBeforeUnmount(() => {
       </template>
     </ReSectionHead>
 
-    <div v-if="loadError" class="as-error">
-      <ReStatusIndicator type="danger" />
-      <span>数据加载失败：{{ loadError }}</span>
-      <ReButton icon="RefreshRight" type="primary" size="small" :show-text="true" @click="fetchAll()">重试</ReButton>
-    </div>
+    <ReErrorBar v-if="loadError" :message="loadError" retryText="重试" @retry="fetchAll" />
 
     <ReSkeleton :loading="loading" :rows="2" :count="1" animated>
       <div class="stats-grid">
@@ -223,18 +219,6 @@ onBeforeUnmount(() => {
 }
 
 .page-head { margin-bottom: 4px; }
-
-.as-error {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  font-size: 13px;
-  color: var(--status-error-text, var(--status-error));
-  background: var(--status-error-bg, color-mix(in srgb, var(--status-error) 8%, transparent));
-  border: 1px solid var(--status-error-border, var(--border-subtle));
-  border-radius: var(--radius-lg);
-}
 
 .stats-grid {
   display: grid;

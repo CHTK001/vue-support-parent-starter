@@ -37,13 +37,14 @@ export interface ApmTabDef {
 }
 
 /**
- * 13 个页签，顺序即界面顺序。
+ * 14 个页签，顺序即界面顺序。
  *
  * <p>顺序按使用动线排：整体状况 → 服务下钻 → 链路与拓扑 → 指标与剖析 → 告警与日志。
  * 「告警」与「告警分析」保持两个页签：前者是事件流水，后者按规则聚合，
  * 默认时间窗和筛选维度都不同，合成一个反而两边都别扭。</p>
  *
- * <p>「APM 设置」固定在最后：它是运维动作，也是模块被关掉后唯一的入口。</p>
+ * <p>「APM 设置」固定在最后：它是运维动作，也是模块被关掉后唯一的入口。
+ * 「操作日志」排在设置前面：改完设置顺手看一眼刚才那条有没有落库。</p>
  */
 export const APM_TABS: ApmTabDef[] = [
   {
@@ -119,6 +120,12 @@ export const APM_TABS: ApmTabDef[] = [
     component: defineAsyncComponent(() => import("./views/Logs.vue")),
   },
   {
+    name: "oper-log",
+    label: "操作日志",
+    icon: "Memo",
+    component: defineAsyncComponent(() => import("./views/OperLog.vue")),
+  },
+  {
     // 设置放最后：日常看观测数据，需要改开关/地址时才来；它也是「模块被关掉」时唯一的入口
     name: "settings",
     label: "APM 设置",
@@ -169,6 +176,16 @@ export function isApmTabName(name?: string | null): boolean {
  * 事件让「总览点一条服务 → 跳到服务页签」保持在同一个工作台实例里。</p>
  */
 export const APM_OPEN_TAB_EVENT = "apm:open-tab";
+
+/**
+ * 页签被切到前台的事件名。
+ *
+ * <p>为什么不靠 {@code onActivated}：工作台用的是 {@code v-show} 常驻面板，
+ * 没有被 {@code <KeepAlive>} 包住，激活钩子不会触发。而「操作日志」这类
+ * 只读页签切回来必须重取一次，否则会显示切走前的旧数据 —— 改完设置回来
+ * 看到「共 0 条」，会以为刚才那条没落库。</p>
+ */
+export const APM_TAB_ACTIVATED_EVENT = "apm:tab-activated";
 
 /**
  * 跨视图跳转时携带的上下文。

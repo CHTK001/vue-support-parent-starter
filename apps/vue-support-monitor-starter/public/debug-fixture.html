@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>调试中心验收夹具</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 28px;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        background: #f5f6f8;
+        color: #1f2329;
+      }
+      h1 { margin: 0 0 6px; font-size: 20px; }
+      p.lead { margin: 0 0 20px; color: #646a73; font-size: 13px; }
+      .grid { display: flex; flex-wrap: wrap; gap: 12px; }
+      .card {
+        flex: 1 1 200px;
+        padding: 14px 16px;
+        border: 1px solid #e5e6eb;
+        border-radius: 8px;
+        background: #fff;
+      }
+      .card h2 { margin: 0 0 8px; font-size: 14px; }
+      .card span { color: #646a73; font-size: 12px; }
+      button {
+        margin: 18px 8px 0 0;
+        padding: 8px 16px;
+        border: 1px solid #3370ff;
+        border-radius: 6px;
+        background: #3370ff;
+        color: #fff;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      button.ghost { background: #fff; color: #3370ff; }
+      #out { margin-top: 14px; font-size: 12px; color: #646a73; }
+      .svg-row { display: flex; gap: 10px; margin-top: 16px; }
+      .svg-row svg { border: 1px solid #e5e6eb; border-radius: 6px; background: #fff; }
+    </style>
+  </head>
+  <body>
+    <h1>调试中心验收夹具</h1>
+    <p class="lead">同源静态页：给 CDP 网络 / 性能 / 元素三个页签提供稳定的目标页，不依赖外网。</p>
+    <div class="grid">
+      <div class="card"><h2>网络</h2><span>页面加载与同源 fetch 都会产生请求</span></div>
+      <div class="card"><h2>性能</h2><span>点击按钮会跑一段同步计算，便于录制</span></div>
+      <div class="card"><h2>元素</h2><span>DOM 树层级稳定，便于选取与反查</span></div>
+    </div>
+    <button id="btn-net" type="button">发起同源请求</button>
+    <button id="btn-calc" class="ghost" type="button">跑一段计算</button>
+    <div id="out">就绪</div>
+    <div class="svg-row">
+      <svg width="72" height="72" viewBox="0 0 72 72" aria-label="夹具图标一">
+        <circle cx="36" cy="36" r="26" fill="#3370ff" opacity="0.18" />
+        <circle cx="36" cy="36" r="14" fill="#3370ff" />
+      </svg>
+      <svg width="72" height="72" viewBox="0 0 72 72" aria-label="夹具图标二">
+        <rect x="12" y="12" width="48" height="48" rx="10" fill="#00b42a" opacity="0.2" />
+        <rect x="24" y="24" width="24" height="24" rx="6" fill="#00b42a" />
+      </svg>
+    </div>
+    <script>
+      document.getElementById("btn-net").addEventListener("click", async () => {
+        const out = document.getElementById("out");
+        try {
+          const r = await fetch("/logo.svg?fixture=" + Date.now(), { cache: "no-store" });
+          out.textContent = "同源请求完成 status=" + r.status;
+        } catch (e) {
+          out.textContent = "同源请求失败 " + e;
+        }
+      });
+      document.getElementById("btn-calc").addEventListener("click", () => {
+        let t = 0;
+        for (let i = 0; i < 400000; i++) t += Math.sqrt(i);
+        document.getElementById("out").textContent = "计算结果 " + Math.round(t);
+      });
+    </script>
+  </body>
+</html>

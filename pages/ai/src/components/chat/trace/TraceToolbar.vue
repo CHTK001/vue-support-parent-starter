@@ -44,8 +44,10 @@
 
       <button
         class="trace-toggle trace-refresh"
+        :class="{ 'is-loading': loading }"
         type="button"
         :disabled="loading"
+        :aria-busy="loading"
         :title="loading ? '加载中…' : '重新加载'"
         @click="$emit('refresh')"
       >
@@ -213,5 +215,16 @@ function toggle(key: ToggleKey) {
   display: inline-flex;
   align-items: center;
   padding: 4px 8px;
+}
+
+/* 加载中给图标加转圈：本机后端常在几十毫秒内返回，只靠置灰用户看不出在刷新 */
+.trace-refresh.is-loading svg {
+  animation: trace-spin 0.7s linear infinite;
+}
+
+@keyframes trace-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

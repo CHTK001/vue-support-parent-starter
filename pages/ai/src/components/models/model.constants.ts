@@ -216,6 +216,9 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
   { id: 'siliconflow', name: 'SiliconFlow 硅基流动', description: '国内 AI 模型平台，支持 DeepSeek、Qwen 等', protocol: 'openai', defaultApiUrl: 'https://api.siliconflow.cn/v1', keywords: ['jiguang', 'silicon'] },
   { id: 'bai', name: 'b.ai', description: '免费 AI 模型平台，支持 DeepSeek 等', protocol: 'openai', defaultApiUrl: 'https://api.b.ai/v1', keywords: [] },
   { id: 'ai302', name: 'AI302', description: 'AI302.com 聚合 API', protocol: 'openai', defaultApiUrl: 'https://api.ai302.com/v1', keywords: ['302'] },
+  // 路由组也是一个供应商：没有真实上游地址，成员来自已添加的模型库，
+  // 实际选谁由组内的策略（按顺序/轮流/智能…）决定。
+  { id: 'router-group', name: '路由组', description: '本地化管理抽象，成员来自模型库，按组内策略挑选真实调用的模型', protocol: 'openai', keywords: ['router', 'route', '路由', '组合'] },
 
   // ===== 国内大模型 =====
   { id: 'deepseek', name: 'DeepSeek', description: '深度求索大模型官方 API', protocol: 'openai', defaultApiUrl: 'https://api.deepseek.com/v1', keywords: ['r1', 'v3', 'seek'] },

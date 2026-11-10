@@ -759,3 +759,67 @@ export async function detectApm(): Promise<ApmSettings> {
   resetApmStatusCache();
   return result;
 }
+
+// ─────────────────────── APM 操作日志 ───────────────────────
+
+/**
+ * APM 操作日志列表项（对齐后端 {@code ApmOperLogVO}）。
+ *
+ * <p>只有写操作（保存设置 / 重新探测）会入账：查询接口是 GET，不进时间线。</p>
+ */
+export interface ApmOperLog {
+  id: number;
+  /** 操作码：CONFIG_UPDATE / DETECT */
+  action: string;
+  /** 操作中文名（后端给，前端只做兜底映射） */
+  actionName: string | null;
+  /** 操作对象：本次改动的设置项键名，逗号分隔 */
+  target: string | null;
+  /** 明细：{@code k=v; ...} */
+  detail: string | null;
+  /** 1 成功 / 0 失败 / null 未判定 */
+  success: number | null;
+  costMs: number | null;
+  operator: string | null;
+  clientIp: string | null;
+  requestUrl: string | null;
+  createTime: string | null;
+}
+
+/** 操作日志分页结果（对齐 MyBatis-Plus Page） */
+export interface ApmOperLogPage {
+  records: ApmOperLog[];
+  total: number;
+  current: number;
+  size: number;
+  pages: number;
+}
+
+/** 操作日志查询参数 */
+export interface ApmOperLogQuery {
+  /** 操作码过滤，空则全部 */
+  action?: string | null;
+  /** 起始时间（ISO 本地时间），空则不限 */
+  from?: string | null;
+  /** 截止时间（ISO 本地时间），空则不限 */
+  to?: string | null;
+  page?: number;
+  size?: number;
+}
+
+/**
+ * 分页查 APM 操作日志。
+ *
+ * <p><strong>路径不在 {@link apmPrefix()} 下</strong>：这个接口由 monitor 模块提供
+ * （{@code /ms/monitor/apm/oper-log}），因为它要写监控库的 {@code ms_apm_oper_log}；
+ * APM starter 只负责在写操作结束时回调 sink。因此这里不能用 {@code get()} 包装。</p>
+ *
+ * @param query 过滤与分页参数
+ * @returns 分页结果
+ */
+export function listApmOperLogs(query: ApmOperLogQuery = {}): Promise<ApmOperLogPage> {
+  return http()
+    .get("/ms/monitor/apm/oper-log")
+    .query(clean(query as Record<string, unknown>))
+    .then((res) => unwrapResult<ApmOperLogPage>(res));
+}

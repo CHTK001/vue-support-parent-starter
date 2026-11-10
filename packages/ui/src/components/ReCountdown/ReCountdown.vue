@@ -10,22 +10,27 @@
  * 所以 duration/end 变了不用重注册、watch 也不用；
  * paused 变了走 workjs 的 pause/resume，turn 同样切到新的 frame。
  *
- * 默认 layout = dial。
+ * 默认 layout = dial；默认 format = auto（按总时长自适应单位）。
  *
  * 用法：
  *   <ReCountdown :duration="60" layout="dial" />
  *   <ReCountdown :end="Date.now() + 120_000" layout="segment" />
  *   <ReCountdown v-model:paused="isPaused" :duration="300" />
+ *   <ReCountdown layout="clock" :duration="600" unit-shape="square" />
+ *   <ReCountdown :duration="900" format="ms" />
+ *   <ReCountdown :duration="300" :color-thresholds="{ success: 0.7, warning: 0.3, danger: 0.1 }" />
  */
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
-import type { CountdownColor, CountdownLayout, CountdownTask } from "./types";
+import type { CountdownColor, CountdownColorThresholds, CountdownFormat, CountdownLayout, CountdownTask } from "./types";
 import { destroyCountdown, initCountdown, pauseCountdown, resumeCountdown, startCountdownLoop } from "./workjs";
+import { resolveColor } from "./utils";
 
 import ReCountdownDial from "./layouts/Dial.vue";
 import ReCountdownRibbon from "./layouts/Ribbon.vue";
 import ReCountdownPulse from "./layouts/Pulse.vue";
 import ReCountdownSegmented from "./layouts/Segmented.vue";
 import ReCountdownTicker from "./layouts/Ticker.vue";
+import ReCountdownClock from "./layouts/Clock.vue";
 
 const LAYOUTS: Record<CountdownLayout, unknown> = {
   dial: ReCountdownDial,
@@ -33,6 +38,7 @@ const LAYOUTS: Record<CountdownLayout, unknown> = {
   pulse: ReCountdownPulse,
   segment: ReCountdownSegmented,
   ticker: ReCountdownTicker,
+  clock: ReCountdownClock,
 };
 
 const props = withDefaults(
@@ -65,6 +71,12 @@ const props = withDefaults(
     label?: string;
     /** 外部任务 id */
     id?: string;
+    /** 文本格式：auto 按总时长自适应单位，其余固定单位 */
+    format?: CountdownFormat;
+    /** 阈值配色：按 remaining / total 比例切换颜色 */
+    colorThresholds?: CountdownColorThresholds;
+    /** 时钟布局的单位进度样式：ring | square */
+    unitShape?: "ring" | "square";
   }>(),
   {
     duration: undefined,
@@ -81,6 +93,9 @@ const props = withDefaults(
     onEnd: undefined,
     label: undefined,
     id: undefined,
+    format: "auto",
+    colorThresholds: undefined,
+    unitShape: "ring",
   }
 );
 
@@ -116,6 +131,17 @@ const layoutComponent = computed(() => LAYOUTS[props.layout] ?? ReCountdownDial)
 
 /** 单条任务（主线程侧，workjs 帧循环读它，注册/暂停/恢复都把同一份数据改干净） */
 let task: CountdownTask | null = null;
+
+/**
+ * 颜色：配置了阈值就走阈值颜色（按 remaining / total），
+ * 否则保留透传进来的 color（向下兼容旧调用方）。
+ */
+const resolvedColor = computed(() => {
+  if (props.colorThresholds && (props.total ?? 0) > 0) {
+    return resolveColor(remaining.value, props.colorThresholds, props.total, props.color);
+  }
+  return props.color;
+});
 
 onMounted(() => {
   task = reactive({
@@ -185,13 +211,16 @@ defineExpose({
     :remaining="remaining"
     :finished="finished"
     :size="size"
-    :color="color"
+    :color="resolvedColor"
     :show-number="showNumber"
     :show-text="showText"
     :show-label="showLabel"
     :end-animation="endAnimation"
     :label="label"
     :total="total"
+    :format="format"
+    :color-thresholds="colorThresholds"
+    :unit-shape="unitShape"
     :paused="paused"
   />
 </template>

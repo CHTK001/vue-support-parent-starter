@@ -138,6 +138,8 @@ function canIncludeRow(baseInclude: boolean, matched: boolean, address: string, 
  * @returns 展示文案
  */
 function matchLabel(r: PreviewRow): string {
+  // 非 SSH 会话不会参与导入，不能标成「将新建」误导用户
+  if (!r.baseInclude) return "跳过";
   if (r.hostId) return r.hostName;
   return autoCreateHost.value ? "将新建" : "未匹配";
 }
@@ -527,7 +529,8 @@ watch(visible, (v) => {
                   </td>
                   <td>{{ SOURCE_LABEL[r.source] }}</td>
                   <td>
-                    <span v-if="r.hostId" class="hie__tag is-ok">{{ matchLabel(r) }}</span>
+                    <span v-if="!r.baseInclude" class="hie__tag is-bad">{{ matchLabel(r) }}</span>
+                    <span v-else-if="r.hostId" class="hie__tag is-ok">{{ matchLabel(r) }}</span>
                     <span v-else-if="autoCreateHost" class="hie__tag is-warn" :title="`${r.address}:${r.port}`">{{ matchLabel(r) }}</span>
                     <span v-else class="hie__tag is-bad">{{ matchLabel(r) }}</span>
                   </td>

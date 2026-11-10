@@ -127,6 +127,12 @@ export interface SystemConfigItem {
   hot: boolean;
   requiresConfirm: boolean;
   tip: string;
+  /** 分组（句柄与进程 / 网络与端口 / 内存与文件系统 / 安全与权限 / 诊断） */
+  group?: string;
+  /** 控件类型：int / bool / enum / text / range */
+  type?: string;
+  /** 枚举候选，形如 0=关闭;1=开启 */
+  options?: string;
 }
 
 /** 读取系统配置项 */

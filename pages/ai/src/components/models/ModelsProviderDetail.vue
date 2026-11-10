@@ -29,12 +29,10 @@
         </div>
         <div class="d-band-actions">
           <!--
-            ONNX 供应商已在启动时被物化进 provider 表（见 OnnxProviderMaterializer），
-            因此「编辑供应商」与其它供应商走同一套流程，可正常调用 updateProvider。
-            「删除」仍屏蔽：ONNX 供应商由模型注册表驱动，下次启动会被重新物化，
-            删除既无意义也会让用户以为模型丢失。
+            路由组：没有上游地址、没有自己的模型行，只做「成员来自模型库 + 组内策略」，
+            因此隐藏「编辑供应商 / 添加模型 / 同步价格」，成员在下方配置面板里维护。
           -->
-          <el-button v-if="canWrite" @click="emit('edit-provider')" round>
+          <el-button v-if="canWrite && !isRouterGroup" @click="emit('edit-provider')" round>
             <template #icon><EditOutlined /></template>
             编辑供应商
           </el-button>
@@ -42,19 +40,33 @@
             <template #icon><DeleteOutlined /></template>
             删除
           </el-button>
-          <el-button v-if="canWrite" type="primary" round @click="handleAdd">
+          <el-button v-if="canWrite && !isRouterGroup" type="primary" round @click="handleAdd">
             <template #icon><PlusOutlined /></template>
             {{ t('settings.providerDetail.addModel') }}
           </el-button>
-          <el-button v-if="!isOnnx && canWrite" round :loading="syncPricingLoading" @click="handleSyncPricing">
+          <el-button v-if="!isOnnx && !isRouterGroup && canWrite" round :loading="syncPricingLoading" @click="handleSyncPricing">
             <template #icon><Timer /></template>
             同步价格
           </el-button>
         </div>
       </section>
 
+      <!-- 路由组供应商：成员来自已添加的模型库，策略配置在组内部处理，
+           不显示空的「还没有模型」空态（那个按钮对路由组不适用） -->
+      <RouterGroupLiveView
+        v-if="isRouterGroup && provider?.providerId"
+        :provider-id="provider.providerId"
+        :provider-name="provider.name"
+      />
+
+      <RouterGroupPanel
+        v-if="isRouterGroup && provider?.providerId"
+        :provider-id="provider.providerId"
+        :can-write="canWrite"
+      />
+
       <!-- 空状态 -->
-      <div v-if="models.length === 0" class="d-empty">
+      <div v-if="models.length === 0 && !isRouterGroup" class="d-empty">
         <el-icon size="42" class="d-empty-icon"><Box16Regular /></el-icon>
         <p class="d-empty-title">{{ t('settings.providerDetail.noModels') }}</p>
         <p class="d-empty-desc">{{ t('settings.providerDetail.noModelsDesc') }}</p>
@@ -65,8 +77,8 @@
         </el-button>
       </div>
 
-      <!-- 模型卡片网格 -->
-      <template v-else>
+      <!-- 模型卡片网格（路由组没有自己的模型行，整块不渲染） -->
+      <template v-else-if="!isRouterGroup">
         <div class="d-section-head">
           <!-- 第一行：标题 + 计数 + 搜索 + 批量工具栏 -->
           <div class="d-head-row">
@@ -174,7 +186,15 @@
           <article v-for="model in filteredModels" :key="model.id" class="mc"
             :class="{ 'is-selected': selected.includes(getModelId(model)), 'is-multi': multiSelect, 'is-off': !model.isActive }">
             <div class="mc-head">
-              <Avatar class="w-10 h-10 shrink-0 mr-3" :src="getModelAvatar(model)"
+              <!-- 模型没有专属 logo 时回退到供应商 logo：默认图缺失不该让卡片空一块 -->
+              <ProviderLogo
+                v-if="!getModelAvatar(model)"
+                :pid="getProviderIcon(provider)"
+                :name="provider?.name"
+                size="md"
+                class="w-10 h-10 shrink-0 mr-3"
+              />
+              <Avatar v-else class="w-10 h-10 shrink-0 mr-3" :src="getModelAvatar(model)"
                 :name="getModelDisplayName(model.modelName)" type="assistant" :round="false" />
               <div class="mc-head-text min-w-0">
                 <span class="mc-name" :title="model.alias ? `${model.alias} · ${model.modelName}` : getModelDisplayName(model.modelName)">
@@ -335,6 +355,8 @@ import ProviderLogo from './ProviderLogo.vue'
 import ModelFormDialog from './ModelFormDialog.vue'
 import ModelFetchDialog from './ModelFetchDialog.vue'
 import ModelTagStrip from './ModelTagStrip.vue'
+import RouterGroupPanel from './RouterGroupPanel.vue'
+import RouterGroupLiveView from './RouterGroupLiveView.vue'
 import {
   LOCAL_PROVIDER_IDS, MODEL_SUBTYPE_LABELS, MODEL_SUBTYPE_OPTIONS,
   MODEL_TYPE_ICON, MODEL_TYPE_KIND, MODEL_TYPE_OPTIONS,
@@ -475,6 +497,21 @@ const filteredModels = computed(() => {
 const isOnnx = computed(
   () => props.provider?.id === 'onnx' || props.provider?.provider_id === 'onnx',
 )
+
+/**
+ * 是否为路由组供应商。
+ *
+ * <p>路由组的「模型」来自已添加的模型库，选谁由组内策略决定；页面改用
+ * 路由组配置面板展示，不再走「手动添加模型 / 拉模型 / 同步价格」这套流程
+ * （它没有上游地址，那些动作必然失败）。</p>
+ */
+const isRouterGroup = computed(
+  () => props.provider?.rawPlatform === ROUTER_GROUP_PLATFORM
+    || props.provider?.platform === ROUTER_GROUP_PLATFORM,
+)
+
+/** 路由组供应商的平台标识（与后端 ProviderRouteTargets.ROUTER_GROUP_PLATFORM 一致） */
+const ROUTER_GROUP_PLATFORM = 'router-group'
 
 /**
  * 是否为本地推理供应商。
@@ -633,10 +670,14 @@ const cardMeta = (model: any) => {
   const pOut = numOrNull(mt.price_output_per_musd)
   if (pIn != null || pOut != null) {
     const f = (v: number | null) => (v == null ? '—' : humanPrice(v))
+    // 输入输出都为 0 即免费：显式标注，别让用户对着「$0/$0」自己判断
+    const free = (pIn ?? 0) === 0 && (pOut ?? 0) === 0
     items.push({
       label: '价格',
-      value: `${f(pIn)}/${f(pOut)}`,
-      title: `官方估价（USD / 百万 token）：输入 ${f(pIn)}，输出 ${f(pOut)}`,
+      value: free ? '免费' : `${f(pIn)}/${f(pOut)}`,
+      title: free
+        ? '上游标注免费（输入输出价格均为 0）'
+        : `官方估价（USD / 百万 token）：输入 ${f(pIn)}，输出 ${f(pOut)}`,
     })
   }
 

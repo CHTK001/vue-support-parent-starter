@@ -2,12 +2,14 @@
 /**
  * ReCountdown — segment 分段布局
  *
- * 六格数字卡片 + 冒号分隔，终端/看板风格。
+ * 数字卡片 + 冒号分隔，终端/看板风格。
+ * 位数由 format/总时长决定：hms 三列、ms 两列、s 一列。
  * 数据源：父组件透传的 remaining（ms）。
  */
 import { computed } from "vue";
 import "../../shared/modern-vars.css";
 import type { CountdownLayoutProps } from "../types";
+import { relevantUnits, toShortText, unitTexts } from "../utils";
 
 const props = withDefaults(defineProps<CountdownLayoutProps>(), {
   size: 60,
@@ -18,16 +20,22 @@ const props = withDefaults(defineProps<CountdownLayoutProps>(), {
   endAnimation: false,
   total: 0,
   paused: false,
+  format: "auto",
+  colorThresholds: undefined,
+  unitShape: "ring",
 });
 
-/** 把 ms 拆成 [小时, 分钟, 秒] 两个数字块 */
-const digits = computed(() => {
-  const totalSeconds = Math.floor(props.remaining / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  return [hours, minutes, seconds].map((v) => String(v).padStart(2, "0"));
-});
+/** 按格式/总时长要的显示单位 */
+const units = computed(() => relevantUnits(props.total ?? 0, props.format));
+
+/** 各单位数值文本（已补零，顺序与 units 一致） */
+const digits = computed(() => unitTexts(props.remaining, units.value));
+
+/** 冒号数量 = 数字块数量 - 1 */
+const colons = computed(() => Math.max(0, digits.value.length - 1));
+
+/** 短提示（status） */
+const sub = computed(() => (props.finished ? "已结束" : toShortText(props.remaining)));
 </script>
 
 <template>
@@ -43,11 +51,11 @@ const digits = computed(() => {
         <div class="re-countdown__digit" v-for="(v, i) in digits" :key="`${props.remaining}-${i}`">
           {{ v }}
         </div>
-        <div class="re-countdown__colon" v-for="(c, i) in 2" :key="`${props.remaining}-colon-${i}`">:
+        <div class="re-countdown__colon" v-for="(c, i) in colons" :key="`${props.remaining}-colon-${i}`">:
         </div>
       </div>
       <div class="re-countdown__status" v-if="props.showText">
-        {{ props.finished ? "已结束" : `剩余 ${Math.round(props.remaining)} ms` }}
+        {{ sub }}
       </div>
     </div>
   </div>

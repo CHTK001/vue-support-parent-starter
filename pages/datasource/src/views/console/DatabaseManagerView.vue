@@ -1070,9 +1070,33 @@
           <div class="dbm-context-item" @click="renameTable(contextMenu.tableName, contextMenu.database)">
             <ReIcon name="EditPen" :size="14" />重命名表
           </div>
-          <div v-if="!contextMenu.isView" class="dbm-context-item" @click="duplicateTable(contextMenu.tableName, contextMenu.database)">
-            <ReIcon name="CopyDocument" :size="14" />复制表
-          </div>
+          <!-- 复制（二级）：先把表放进页面内的剪贴板，再在目标库按 Ctrl+V 粘贴。
+               走内联展开而不是绝对定位的悬浮子面板 —— 菜单本身是 overflow-y:auto 的
+               贴边浮层，绝对定位的子面板会在靠边时被裁掉一半。 -->
+          <template v-if="!contextMenu.isView">
+            <div
+              class="dbm-context-item dbm-context-item--group"
+              :class="{ 'is-open': contextMenu.copyOpen }"
+              @click.stop="contextMenu.copyOpen = !contextMenu.copyOpen"
+            >
+              <ReIcon name="CopyDocument" :size="14" />复制
+              <ReIcon :name="contextMenu.copyOpen ? 'ArrowDown' : 'ArrowRight'" :size="12" class="dbm-context-caret" />
+            </div>
+            <div v-if="contextMenu.copyOpen" class="dbm-context-sub">
+              <div
+                class="dbm-context-item"
+                @click.stop="copyTableToClipboard(contextMenu.tableName, contextMenu.database, false)"
+              >
+                只复制表结构
+              </div>
+              <div
+                class="dbm-context-item"
+                @click.stop="copyTableToClipboard(contextMenu.tableName, contextMenu.database, true)"
+              >
+                复制表结构和数据
+              </div>
+            </div>
+          </template>
           <div class="dbm-context-item" @click="copyText(contextMenu.tableName)">
             <ReIcon name="CopyDocument" :size="14" />复制表名
           </div>
@@ -1104,6 +1128,12 @@
         <template v-else-if="contextMenu.database">
           <div class="dbm-context-item" @click="openCreateTable(contextMenu.database)">
             <ReIcon name="Plus" :size="14" />新建表
+          </div>
+          <!-- 粘贴表：与 Ctrl+V 同一条链路（页面内剪贴板 → 目标库）。
+               剪贴板为空时不隐藏而是给一句说明，否则用户不知道「为什么没有粘贴」。 -->
+          <div class="dbm-context-item" @click="pasteTableInto(contextMenu.database)">
+            <ReIcon name="CopyDocument" :size="14" />粘贴表
+            <span class="dbm-context-hint">{{ tableClipboard ? tableClipboard.table : "剪贴板为空" }}</span>
           </div>
           <div class="dbm-context-item" @click="openImportDataForDb(contextMenu.database)">
             <ReIcon name="Upload" :size="14" />导入数据到本库
@@ -1211,6 +1241,20 @@
         </template>
       </div>
     </Teleport>
+
+    <!-- 复制表进度：不可关闭（进度由后端任务快照驱动，中途关掉就再也看不到这次复制的结果） -->
+    <ReProgressDialog
+      v-model="copyDialogVisible"
+      :title="copyTitle"
+      :subtitle="copySnapshot?.subtitle || copySubtitle"
+      :snapshot="copySnapshot"
+      :steps="copyStepDefs"
+      :cancellable="true"
+      :cancel-loading="copyCancelling"
+      cancel-text="取消复制"
+      @cancel="requestCancelCopy"
+      @close="closeCopyDialog"
+    />
 
     <!-- 结构同步（Navicat 复刻：选择源/目标 → 比较 → 差异 → 部署执行，SSE 实时日志） -->
     <ReDialog
@@ -6541,7 +6585,8 @@ async function runWithParams(): Promise<void> {
 }
 
 // 右键菜单（tableName=表节点 / database=库节点 / tabId=页签 / root=数据源根节点 / 全空=侧栏空白）
-const contextMenu = reactive({ visible: false, x: 0, y: 0, tableName: "", database: "", tabId: "", isView: false, root: false });
+// copyOpen 是表节点里「复制」二级菜单的展开态，收菜单时一起复位
+const contextMenu = reactive({ visible: false, x: 0, y: 0, tableName: "", database: "", tabId: "", isView: false, root: false, copyOpen: false });
 
 // 新建表：表单与 SQL 拼装都在共享组件里，这里只保留「弹窗开关 + 目标库」
 const createTableVisible = ref(false);
@@ -9003,6 +9048,8 @@ function closeAllTabs() {
 
 function closeContextMenu() {
   contextMenu.visible = false;
+  // 二级“复制”的展开态不跨次保留：下次右键一张表应该先看到收起状态
+  contextMenu.copyOpen = false;
 }
 
 /**

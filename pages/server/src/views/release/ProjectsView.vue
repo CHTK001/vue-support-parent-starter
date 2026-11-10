@@ -2,7 +2,7 @@
   <div class="pj">
     <div class="pj-body">
       <!-- 左侧：项目列表（rail 分组列表，双击行开日志；拖安装包到行上即升级） -->
-      <aside class="pj-rail" :class="{ 'is-collapsed': railCollapsed }">
+      <aside class="pj-rail" :class="{ 'is-collapsed': railCollapsed }" :style="{ '--pj-rail-width': railWidth + 'px' }">
             <!-- 折叠态：只留一条竖条，展开按钮压在底部 -->
             <div v-if="railCollapsed" class="rail-strip">
               <button type="button" class="rail-strip__count" title="展开项目列表" @click="toggleRail">
@@ -76,7 +76,7 @@
                       'is-disabled': item.enabled === false,
                       'is-dragover': dragOverId === item.id,
                     }"
-                    @click="selectedProject = item"
+                    @click="onRowClick(item)"
                     @dblclick="handleViewLog(item)"
                     @contextmenu.prevent.stop="openContextMenu(item, $event)"
                     @dragover.prevent="item.enabled !== false && (dragOverId = item.id)"
@@ -216,6 +216,15 @@
             </div>
           </aside>
 
+          <!-- 分栏手柄：拖拽改左栏宽度，双击复位，偏好存本地 -->
+          <ReRailSplit
+            v-model:width="railWidth"
+            class="pj-split"
+            storage-key="projects.rail.width.v1"
+            :default-width="268"
+            label="拖拽调整项目列表宽度"
+          />
+
           <!-- 右侧：多标签实时日志工作区 -->
           <section class="pj-workspace">
             <ReTabs
@@ -223,9 +232,9 @@
               :tabs="workspaceTabs"
               closable
               show-close-all
-              empty-text="点击左侧项目行的「系统日志」（或双击项目行）打开日志"
+              empty-text="点击左侧项目行查看系统信息；双击打开系统日志"
               @close="closeWorkspaceTab"
-              @close-all="closeAllLogTabs"
+              @close-all="closeAllWorkspaceTabs"
             >
               <template #default="{ tab }">
                 <ProjectLogColumn
@@ -240,12 +249,32 @@
                   @popup="openLogPopup(logSessionByTab.get(tab.name)!)"
                   @close="closeLogSession(logSessionByTab.get(tab.name)!)"
                 />
+                <ProjectInfoPanel
+                  v-else-if="infoProjectOf(tab.name)"
+                  :key="tab.name"
+                  :project="infoProjectOf(tab.name)!"
+                  :host-label="releaseHostLabel"
+                  :endpoint="endpointCache[infoProjectOf(tab.name)!.id] || null"
+                  :probing="!!probingIds[infoProjectOf(tab.name)!.id]"
+                  :lib-count="libCountMap[infoProjectOf(tab.name)!.id] || 0"
+                  :apm-label="apmLabelOf(infoProjectOf(tab.name)!)"
+                  :apm-observable="hasObservableApm(infoProjectOf(tab.name)!)"
+                  :can-log="!!infoProjectOf(tab.name)!.logPath"
+                  @action="(c: string) => onInfoAction(infoProjectOf(tab.name)!, c)"
+                />
+                <HostFileManager
+                  v-else-if="filesTabOf(tab.name)"
+                  :key="tab.name"
+                  :host-id="releaseHostId"
+                  :platform="hostPlatform"
+                  :initial-path="filesTabOf(tab.name)!.initPath"
+                />
               </template>
               <template #empty>
                 <div class="pj-workspace-empty">
-                  <div class="pj-workspace-empty-ic"><ReIcon name="Tickets" :size="26" /></div>
-                  <div class="pj-workspace-empty-title">暂无系统日志</div>
-                  <div class="pj-workspace-empty-sub">点击左侧项目行的「系统日志」（或双击项目行），可在右侧同时打开多个项目的日志</div>
+                  <div class="pj-workspace-empty-ic"><ReIcon name="InfoFilled" :size="26" /></div>
+                  <div class="pj-workspace-empty-title">选中左侧项目查看系统信息</div>
+                  <div class="pj-workspace-empty-sub">左键单击看系统信息，右键可取文件管理 / 系统日志 / 升级 / 下载源码；双击项目行直接打开系统日志</div>
                 </div>
               </template>
             </ReTabs>
@@ -270,6 +299,32 @@
                 <span class="pj-metrics-sep"></span>
               </template>
               <span v-else class="pj-metrics-note">{{ statusSub(metricsProject) }}</span>
+              <!-- Actuator 可用时补一行运行态：健康状态 + 指标数（悬停看指标名） -->
+              <template v-if="metricsEndpoint?.actuator && statusKey(metricsProject) === 'running'">
+                <span class="pj-metrics-seg">
+                  <span class="pj-metrics-k">健康</span>
+                  <span class="pj-metrics-v">{{ metricsEndpoint.health || 'UP' }}</span>
+                </span>
+                <span class="pj-metrics-sep"></span>
+                <el-popover placement="top" trigger="hover" :width="360" :show-after="120">
+                  <template #reference>
+                    <span class="pj-metrics-seg is-hover">
+                      <span class="pj-metrics-k">指标</span>
+                      <span class="pj-metrics-v">{{ metricsEndpoint.metricCount ?? 0 }} 项</span>
+                    </span>
+                  </template>
+                  <div class="pj-metrics-pop">
+                    <div class="pj-metrics-pop-title">
+                      Actuator 指标（{{ metricsEndpoint.metricCount ?? 0 }}）
+                    </div>
+                    <div class="pj-metrics-pop-list">
+                      <span v-for="m in (metricsEndpoint.metrics || []).slice(0, 24)" :key="m">{{ m }}</span>
+                      <span v-if="!(metricsEndpoint.metrics || []).length" class="is-muted">后端未返回指标名</span>
+                    </div>
+                  </div>
+                </el-popover>
+                <span class="pj-metrics-sep"></span>
+              </template>
               <span class="pj-metrics-type" :title="typeLabel(metricsProject.projectType)">{{ typeLabel(metricsProject.projectType) }}</span>
             </div>
           </section>
@@ -359,26 +414,32 @@
                 </ReFormItem>
               </template>
               <ReFormItem label="项目地址" required>
-                <div class="pj-path-field">
-                  <ReInput v-model="form.projectPath" placeholder="如：/opt/app/user-service" style="flex:1;min-width:0" />
-                  <ReButton
-                    icon="FolderOpened"
-                    layout="square"
-                    tip="从主机文件管理选择目录"
-                    @click="openPathPicker('projectPath')"
-                  />
-                </div>
+                <ReInput v-model="form.projectPath" placeholder="如：/opt/app/user-service" style="width:100%">
+                  <template #suffix>
+                    <button
+                      type="button"
+                      class="pj-path-browse"
+                      title="从主机文件管理选择目录"
+                      @click="openPathPicker('projectPath')"
+                    >
+                      <ReIcon name="FolderOpened" :size="14" />
+                    </button>
+                  </template>
+                </ReInput>
               </ReFormItem>
               <ReFormItem label="日志地址" required>
-                <div class="pj-path-field">
-                  <ReInput v-model="form.logPath" placeholder="如：/opt/app/user-service/logs/app.log" style="flex:1;min-width:0" />
-                  <ReButton
-                    icon="Document"
-                    layout="square"
-                    tip="从主机文件管理选择日志文件"
-                    @click="openPathPicker('logPath')"
-                  />
-                </div>
+                <ReInput v-model="form.logPath" placeholder="如：/opt/app/user-service/logs/app.log" style="width:100%">
+                  <template #suffix>
+                    <button
+                      type="button"
+                      class="pj-path-browse"
+                      title="从主机文件管理选择日志文件"
+                      @click="openPathPicker('logPath')"
+                    >
+                      <ReIcon name="Document" :size="14" />
+                    </button>
+                  </template>
+                </ReInput>
               </ReFormItem>
               <ReFormItem label="重启时日志">
                 <ReSelect v-model="form.logMode" style="width:100%">
@@ -393,15 +454,18 @@
                 <ReInput v-model="form.libDir" placeholder="如：lib" style="width:100%" />
               </ReFormItem>
               <ReFormItem v-if="form.projectType === 'nginx'" label="Nginx 目录（nginx 安装 / 配置目录）">
-                <div class="pj-path-field">
-                  <ReInput v-model="form.nginxDir" placeholder="如：/usr/local/nginx 或 ./nginx" style="flex:1;min-width:0" />
-                  <ReButton
-                    icon="FolderOpened"
-                    layout="square"
-                    tip="从主机文件管理选择目录"
-                    @click="openPathPicker('nginxDir')"
-                  />
-                </div>
+                <ReInput v-model="form.nginxDir" placeholder="如：/usr/local/nginx 或 ./nginx" style="width:100%">
+                  <template #suffix>
+                    <button
+                      type="button"
+                      class="pj-path-browse"
+                      title="从主机文件管理选择目录"
+                      @click="openPathPicker('nginxDir')"
+                    >
+                      <ReIcon name="FolderOpened" :size="14" />
+                    </button>
+                  </template>
+                </ReInput>
               </ReFormItem>
               <ReFormItem v-if="form.projectType === 'model'" label="上传目标目录（相对项目地址，如 models/onnx）" required>
                 <ReInput v-model="form.uploadTargetDir" placeholder="如：models/onnx" style="width:100%" />
@@ -419,16 +483,7 @@
                   <ReOption label="全部" value="both" />
                 </ReSelect>
               </ReFormItem>
-              <ReFormItem v-if="form.projectType !== 'static'" label="上传后自动升级">
-                <div class="up-auto">
-                  <el-switch v-model="form.uploadAutoUpgrade" />
-                  <span class="up-auto-hint">
-                    {{ form.uploadAutoUpgrade
-                      ? '上传完成后立即投放并重启（会覆盖运行中的包）'
-                      : '只上传到 uploads/，确认后再手动升级（默认）' }}
-                  </span>
-                </div>
-              </ReFormItem>
+              <!-- 「上传后自动升级」属于投放策略，不放在基础信息里：右键「系统配置」统一改 -->
               <ReFormItem label="项目图标">
                 <ReIconSelect v-model="form.icon" placeholder="留空则按类型使用默认图标" style="width:100%" />
               </ReFormItem>
@@ -476,12 +531,24 @@
               <span>先在「基础信息」选择项目类型并填写项目地址，脚本会自动生成</span>
             </div>
             <div v-else class="sa-preview">
+              <!-- 手改过就不再实时覆盖：用户一旦动过输入框，基础信息变化只提示不重算 -->
+              <div v-if="scriptAutoDirty" class="sa-dirty">
+                <ReIcon name="EditPen" />
+                <span>已手动修改脚本：基础信息再变化不会覆盖这里的命令</span>
+                <ReButton icon="Refresh" :show-text="true" @click="regenerateScripts(true)">恢复自动生成</ReButton>
+              </div>
               <div v-for="s in scriptPreviewRows" :key="s.key" class="sa-row">
                 <div class="sa-row-head">
                   <span class="sa-row-title">{{ s.label }}</span>
                   <span class="sa-row-tag" :class="`is-${hostOs}`">{{ hostOs === 'windows' ? 'PowerShell' : 'Shell' }}</span>
                 </div>
-                <pre class="sa-row-code">{{ s.code }}</pre>
+                <textarea
+                  class="sa-row-code sa-row-edit"
+                  spellcheck="false"
+                  :value="form[s.key]"
+                  placeholder="（待生成）"
+                  @input="onAutoScriptEdit(s.key, $event)"
+                ></textarea>
               </div>
               <div class="sa-foot">
                 <span>变量设置里的环境变量 / JVM 参数 / 程序参数会在保存时自动注入启动脚本</span>
@@ -917,6 +984,72 @@
       </template>
     </ReDialog>
 
+    <!-- 系统配置（右键）：上传后自动升级 + 升级默认选项，统一放在这里而不是编辑页 -->
+    <ReDialog
+      v-model="sysCfgVisible"
+      :title="sysCfgProject ? `系统配置 - ${sysCfgProject.projectName}` : '系统配置'"
+      width="560px"
+      :close-on-click-modal="false"
+    >
+      <div v-loading="sysCfgLoading" class="syscfg">
+        <section class="syscfg-section">
+          <div class="syscfg-title"><ReIcon name="Upload" :size="13" />投放策略</div>
+          <div class="syscfg-row">
+            <div class="syscfg-label">
+              <b>上传后自动升级</b>
+              <span>上传安装包后立即投放并重启；关闭时只上传到上传目录，确认后再手动升级</span>
+            </div>
+            <el-switch v-model="sysCfg.uploadAutoUpgrade" />
+          </div>
+        </section>
+
+        <section class="syscfg-section">
+          <div class="syscfg-title"><ReIcon name="Top" :size="13" />升级默认配置</div>
+          <div class="upg-switches">
+            <label class="upg-switch"><el-checkbox v-model="sysCfg.autoBackup" />自动备份</label>
+            <label class="upg-switch"><el-checkbox v-model="sysCfg.autoExtract" />自动解压（压缩包）</label>
+            <label class="upg-switch"><el-checkbox v-model="sysCfg.autoRestart" />自动重启</label>
+            <label class="upg-switch"><el-checkbox v-model="sysCfg.autoRollback" />失败自动回滚（需状态命令）</label>
+          </div>
+        </section>
+
+        <section v-if="sysCfgActuatorAvailable" class="syscfg-section">
+          <div class="syscfg-title"><ReIcon name="DataAnalysis" :size="13" />Actuator 定时采集</div>
+          <div class="syscfg-row">
+            <div class="syscfg-label">
+              <b>定时采集运行指标</b>
+              <span>由全局时间轮统一采集，结果经发布管理 SSE 推送到页面；关闭后只保留手动探测</span>
+            </div>
+            <el-switch v-model="sysCfg.actuatorMonitorEnabled" />
+          </div>
+          <div v-if="sysCfg.actuatorMonitorEnabled" class="syscfg-row">
+            <div class="syscfg-label">
+              <b>采集间隔</b>
+              <span>5 ~ 3600 秒，所有项目共用同一个时间轮与一条长连接</span>
+            </div>
+            <el-input-number
+              v-model="sysCfg.actuatorIntervalSeconds"
+              :min="5"
+              :max="3600"
+              :step="5"
+              size="small"
+              controls-position="right"
+              style="width: 130px"
+            />
+          </div>
+        </section>
+
+        <div class="syscfg-note">
+          <ReIcon name="InfoFilled" />
+          <span>保存后作为该项目的升级默认值；每次升级弹框里仍可临时调整，不影响这里的默认。</span>
+        </div>
+      </div>
+      <template #footer>
+        <ReButton @click="sysCfgVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="sysCfgSaving" @click="saveSystemConfig">保存</ReButton>
+      </template>
+    </ReDialog>
+
     <!-- 主机路径选择器：项目地址 / 日志地址 / Nginx 目录 -->
     <ReDialog
       v-model="pathPickerVisible"
@@ -935,31 +1068,6 @@
           @pick="onPathPicked"
         />
       </div>
-      <template #footer>
-        <ReButton @click="pathPickerVisible = false">取消</ReButton>
-      </template>
-    </ReDialog>
-
-    <!-- 项目文件管理：直接在项目目录里浏览/上传/下载/改文件，不用先去资产页找主机 -->
-    <ReDialog
-      v-model="filesVisible"
-      :title="filesProject ? `文件管理 - ${filesProject.projectName}` : '文件管理'"
-      width="980px"
-      :close-on-click-modal="false"
-      destroy-on-close
-    >
-      <div class="path-picker-body">
-        <div v-if="!releaseHostId" class="path-picker-empty">该发布未绑定主机，无法浏览主机文件</div>
-        <HostFileManager
-          v-else-if="filesVisible"
-          :host-id="releaseHostId"
-          :platform="hostPlatform"
-          :initial-path="filesInitPath"
-        />
-      </div>
-      <template #footer>
-        <ReButton @click="filesVisible = false">关闭</ReButton>
-      </template>
     </ReDialog>
 
     <!-- 项目 Git 仓库：分支 / 提交 / 工作区改动 + 拉取（不可关闭的进度弹窗） -->
@@ -1129,22 +1237,35 @@
     <Teleport to="body">
       <template v-if="ctxMenu.visible">
         <div class="pj-ctx-mask" @click="closeContextMenu" @contextmenu.prevent="closeContextMenu"></div>
-        <div class="pj-ctx" :style="{ left: `${ctxMenu.x}px`, top: `${ctxMenu.y}px` }" @contextmenu.prevent>
+        <div class="pj-ctx" :class="{ 'is-flip': ctxMenu.flip }" :style="{ left: `${ctxMenu.x}px`, top: `${ctxMenu.y}px` }" @contextmenu.prevent>
           <div class="pj-ctx__head">
             <ReIcon name="Files" :size="13" />
             <span :title="ctxMenu.item?.projectName">{{ ctxMenu.item?.projectName }}</span>
           </div>
-          <button
+          <div
             v-for="c in ctxCommands"
             :key="c.command"
-            type="button"
             class="pj-ctx__item"
-            :class="{ 'is-danger': c.danger, 'is-divided': c.divided }"
-            @click="onCtxCommand(c.command)"
+            :class="{ 'is-danger': c.danger, 'is-divided': c.divided, 'has-sub': !!c.children?.length }"
+            @click="c.children?.length ? undefined : onCtxCommand(c.command)"
           >
             <ReIcon :name="c.icon" :size="14" />
             <span>{{ c.label }}</span>
-          </button>
+            <ReIcon v-if="c.children?.length" name="ArrowRight" :size="12" class="pj-ctx__arrow" />
+            <!-- 二级菜单：链路追踪 / APM / Actuator 等观测入口收在这里，右键不再一长条 -->
+            <div v-if="c.children?.length" class="pj-ctx__sub">
+              <div
+                v-for="k in c.children"
+                :key="k.command"
+                class="pj-ctx__item"
+                :class="{ 'is-danger': k.danger }"
+                @click.stop="onCtxCommand(k.command)"
+              >
+                <ReIcon :name="k.icon" :size="14" />
+                <span>{{ k.label }}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </template>
     </Teleport>
@@ -1181,10 +1302,13 @@ import { fillTemplate, bestTemplate } from '@repo/ui/components/ReCommand/templa
 import ReCron from '@repo/ui/re-cron';
 import ReTabs from '@repo/ui/re-tabs';
 import type { ReTabsItem } from '@repo/ui/re-tabs';
+import ReRailSplit, { readRailWidth } from '@repo/ui/re-rail-split';
 import { trackTask, type ProcessTask } from '../../utils/processTasks';
 import { errorText, toastError } from '../../utils/errors';
+import { downloadHostFile } from '../../api';
 import { releaseSse } from '../../services/releaseRealtime';
 import HostFileManager from '../../components/HostFileManager.vue';
+import ProjectInfoPanel from '../../components/ProjectInfoPanel.vue';
 import ProjectLogColumn from '../../components/ProjectLogColumn.vue';
 import ProjectOpLogPanel from '../../components/ProjectOpLogPanel.vue';
 import GitRepositoryDialog from '../../components/GitRepositoryDialog.vue';
@@ -1265,6 +1389,8 @@ const activeTab = ref('basic');
 const hostOs = ref<'linux' | 'windows'>('linux');
 /** 发布绑定的主机 ID（路径选择器需要用它连主机）；0 表示未识别到 */
 const releaseHostId = ref(0);
+/** 发布绑定的主机展示名（系统信息面板用） */
+const releaseHostLabel = ref('');
 /** 发布绑定的主机平台（LINUX / WINDOWS），传给文件管理器决定分隔符 */
 const hostPlatform = ref('LINUX');
 
@@ -1613,6 +1739,7 @@ async function loadHostOs() {
     const hosts = unwrapResult<any[]>(hostRes) || [];
     const host = hosts.find((h) => h.id === rel.hostId);
     if (host) {
+      releaseHostLabel.value = String(host.serverName || host.serverHostName || host.name || '');
       const os = String(host.serverHostOsType || '').toUpperCase();
       hostPlatform.value = os === 'WINDOWS' ? 'WINDOWS' : 'LINUX';
       if (os === 'WINDOWS') {
@@ -1686,6 +1813,7 @@ function openCreateDialog() {
   resetForm();
   // 新建默认自动生成脚本：选完类型/地址就能直接跑
   scriptMode.value = 'auto';
+  scriptAutoDirty.value = false;
   activeTab.value = 'basic';
   dialogVisible.value = true;
 }
@@ -1745,6 +1873,7 @@ function openEditDialog(item: Project) {
   };
   // 已有项目默认自定义：保留线上正在用的脚本，用户想重算可手动切「自动生成」
   scriptMode.value = 'custom';
+  scriptAutoDirty.value = false;
   activeTab.value = 'basic';
   dialogVisible.value = true;
 }
@@ -2063,13 +2192,29 @@ const scriptMode = ref<'auto' | 'custom'>('auto');
 /** 自动模式是否有足够信息生成脚本 */
 const scriptAutoReady = computed(() => !!form.value.projectType && !!form.value.projectPath.trim());
 
+/** 用户在自动模式里手改过任一脚本：之后基础信息变化不再实时覆盖 */
+const scriptAutoDirty = ref(false);
+
+type ScriptField = 'startScript' | 'stopScript' | 'restartScript' | 'statusScript';
+
 /** 自动模式预览（直接读当前四个脚本字段，保存时用的就是它们） */
-const scriptPreviewRows = computed(() => [
-  { key: 'start', label: '启动命令', code: form.value.startScript || '（待生成）' },
-  { key: 'stop', label: '停止命令', code: form.value.stopScript || '（待生成）' },
-  { key: 'restart', label: '重启命令', code: form.value.restartScript || '（待生成）' },
-  { key: 'status', label: '状态命令', code: form.value.statusScript || '（待生成）' },
-]);
+const scriptPreviewRows: { key: ScriptField; label: string }[] = [
+  { key: 'startScript', label: '启动命令' },
+  { key: 'stopScript', label: '停止命令' },
+  { key: 'restartScript', label: '重启命令' },
+  { key: 'statusScript', label: '状态命令' },
+];
+
+/**
+ * 自动模式里直接编辑某条脚本：写入表单并标记「已手改」。
+ *
+ * @param key 脚本字段
+ * @param e   输入事件
+ */
+function onAutoScriptEdit(key: ScriptField, e: Event) {
+  form.value[key] = (e.target as HTMLTextAreaElement).value;
+  scriptAutoDirty.value = true;
+}
 
 /**
  * 按当前基础配置重新生成四个脚本（自动模式）。
@@ -2099,6 +2244,8 @@ function regenerateScripts(notify = false): boolean {
     form.value.statusScript = filled.status || '';
     // 展开 __JVMARGS__/__ARGS__ 并注入变量块，保证「生成即可用」
     materializeVars();
+    // 程序化重算意味着放弃手改，重新回到实时跟随
+    scriptAutoDirty.value = false;
     if (notify) message.success('已按当前配置重新生成脚本');
     return true;
   } catch (e: any) {
@@ -2132,6 +2279,8 @@ watch(
   ],
   () => {
     if (!dialogVisible.value || scriptMode.value !== 'auto') return;
+    // 用户手改过脚本后不再实时覆盖，避免刚敲的命令被基础字段一变就冲掉
+    if (scriptAutoDirty.value) return;
     regenerateScripts(false);
   },
 );
@@ -2172,9 +2321,12 @@ async function handleSave() {
     .replace(/[^a-z0-9_-]+/g, '-')
     .replace(/(^-|-$)/g, '');
   try {
-    // 脚本：自动模式按当前配置重算（用户不必手写）；自定义模式只补齐空项，不覆盖手写内容
+    // 脚本：自动模式下未手改则按当前配置重算；手改过就保留用户命令（仅补空项）
     if (scriptMode.value === 'auto') {
-      if (!regenerateScripts(false)) {
+      if (scriptAutoDirty.value) {
+        fillScriptsFromTemplate(true);
+        materializeVars();
+      } else if (!regenerateScripts(false)) {
         message.error('自动生成脚本失败：当前项目类型暂无内置模板');
         return;
       }
@@ -2236,6 +2388,9 @@ async function toggleEnabled(item: Project) {
 
 function onMoreCommand(item: Project, command: string) {
   switch (command) {
+    case 'info':
+      openInfoTab(item);
+      break;
     case 'edit':
       openEditDialog(item);
       break;
@@ -2245,8 +2400,20 @@ function onMoreCommand(item: Project, command: string) {
     case 'apm':
       openApmWorkbench(item);
       break;
+    case 'traces':
+      openApmTraces(item);
+      break;
     case 'files':
-      openFilesDialog(item);
+      openFilesTab(item);
+      break;
+    case 'upgrade':
+      openUpgradeDialog(item);
+      break;
+    case 'download-source':
+      downloadProjectSource(item);
+      break;
+    case 'system-config':
+      openSystemConfig(item);
       break;
     case 'git-repo':
       openGitRepository(item);
@@ -2327,14 +2494,17 @@ interface CtxCommandItem {
   icon: string;
   danger?: boolean;
   divided?: boolean;
+  /** 二级菜单项：有子项时该行只做分组，不直接执行 */
+  children?: CtxCommandItem[];
 }
 
 /** 右键菜单状态（Teleport 到 body，避免被 rail 的 overflow 裁切） */
-const ctxMenu = reactive<{ visible: boolean; x: number; y: number; item: Project | null }>({
+const ctxMenu = reactive<{ visible: boolean; x: number; y: number; item: Project | null; flip: boolean }>({
   visible: false,
   x: 0,
   y: 0,
   item: null,
+  flip: false,
 });
 
 /** 菜单宽度 / 行高（用于贴边翻转，元素未渲染前先按此估算） */
@@ -2349,39 +2519,59 @@ const CTX_HEAD_HEIGHT = 38;
  */
 function ctxCommandsFor(item: Project): CtxCommandItem[] {
   const out: CtxCommandItem[] = [
+    { command: 'info', label: '系统信息', icon: 'InfoFilled' },
     { command: 'edit', label: '编辑', icon: 'EditPen' },
-    // 浏览项目目录：与「实时日志」相邻，排障时「看日志 → 翻目录」是连着的两步
+    // 文件管理直接开成右侧页签，不再弹模态框盖住整个项目列表
     { command: 'files', label: '文件管理', icon: 'FolderOpened' },
   ];
+  // 系统日志：内容来自项目配置的 logPath（目录时服务端取最新文件），配了才有入口；
+  // 项目被禁用也不挡查看 —— 停止的服务往往正是最需要翻日志的时候
+  if (item.logPath) out.push({ command: 'log', label: '系统日志', icon: 'Tickets' });
   // Git 仓库：配了地址才给入口，点了看分支/提交/改动并能拉取
   if (item.gitUrl) {
     out.push({ command: 'git-repo', label: '打开 Git 仓库', icon: 'GitBranch' });
   }
-  // 路径复制：排障时经常要把项目目录/日志文件贴到终端或工单里
-  if (item.projectPath) {
-    out.push({ command: 'copy-path', label: '复制项目地址', icon: 'DocumentCopy' });
-  }
-  if (item.logPath) {
-    out.push({ command: 'copy-log', label: '复制日志地址', icon: 'DocumentCopy' });
-  }
-  // 系统日志：内容来自项目配置的 logPath（目录时服务端取最新文件），配了才有入口；
-  // 项目被禁用也不挡查看 —— 停止的服务往往正是最需要翻日志的时候
-  if (item.logPath) out.push({ command: 'log', label: '系统日志', icon: 'Tickets' });
+
+  // 观测与诊断收进二级菜单：类型不同能用的入口不同，运行时再按条件拼
+  const observe: CtxCommandItem[] = [];
   if (item.enabled !== false) {
-    if (isJavaProject(item)) out.push({ command: 'arthas', label: 'Arthas 诊断', icon: 'Monitor' });
     if (item.javaProcess) {
-      out.push({ command: 'swagger', label: 'Swagger 接口文档', icon: 'Link' });
-      out.push({ command: 'actuator', label: 'Actuator 运行指标', icon: 'DataAnalysis' });
+      observe.push({ command: 'swagger', label: 'Swagger 接口文档', icon: 'Link' });
+      observe.push({ command: 'actuator', label: 'Actuator 运行指标', icon: 'DataAnalysis' });
     }
-    // APM 观测：只有注入过会向上报数据的 agent（平台自有 / SkyWalking）才给入口，
+    // 只有注入过会向上报数据的 agent（平台自有 / SkyWalking）才给 APM 与链路追踪，
     // 未接入的项目点进去只会看到一个空观测台
-    if (hasObservableApm(item)) out.push({ command: 'apm', label: 'APM 观测', icon: 'DataLine' });
+    if (hasObservableApm(item)) {
+      observe.push({ command: 'apm', label: 'APM 观测', icon: 'DataLine' });
+      observe.push({ command: 'traces', label: '链路追踪', icon: 'Share' });
+    }
+    if (isJavaProject(item)) observe.push({ command: 'arthas', label: 'Arthas 诊断', icon: 'Monitor' });
+  }
+  if (observe.length) {
+    out.push({ command: 'observe', label: '观测与诊断', icon: 'Compass', children: observe, divided: true });
+  }
+
+  if (item.enabled !== false) {
+    out.push({ command: 'upgrade', label: '升级（安装包）', icon: 'Top', divided: true });
     if (item.projectType === 'separated') {
       out.push({ command: 'update-lib', label: '更新依赖包', icon: 'Box' });
     }
     out.push({ command: 'backup', label: '备份', icon: 'FolderChecked' });
     out.push({ command: 'rollback', label: '回滚', icon: 'RefreshLeft' });
     if (item.gitUrl) out.push({ command: 'git-deploy', label: '从 Git 更新', icon: 'GitBranch' });
+  }
+  // 下载源码：把项目目录整体打包下载，排障 / 存档不必再开文件管理器逐层翻
+  if (item.projectPath) {
+    out.push({ command: 'download-source', label: '下载源码', icon: 'Download', divided: true });
+  }
+  // 系统配置：上传后自动升级 + 升级默认选项（从编辑页挪出来的高级配置）
+  out.push({ command: 'system-config', label: '系统配置', icon: 'Setting' });
+  // 路径复制：排障时经常要把项目目录/日志文件贴到终端或工单里
+  if (item.projectPath) {
+    out.push({ command: 'copy-path', label: '复制项目地址', icon: 'DocumentCopy' });
+  }
+  if (item.logPath) {
+    out.push({ command: 'copy-log', label: '复制日志地址', icon: 'DocumentCopy' });
   }
   out.push({ command: 'op-log', label: '操作日志', icon: 'Tickets', divided: true });
   out.push({ command: 'copy', label: '复制到其他服务器', icon: 'CopyDocument' });
@@ -2412,6 +2602,8 @@ function openContextMenu(item: Project, event: MouseEvent) {
   ctxMenu.item = item;
   ctxMenu.x = Math.min(Math.max(8, event.clientX), maxX);
   ctxMenu.y = Math.min(Math.max(8, event.clientY), maxY);
+  // 二级菜单默认向右展开；贴着右边缘时整组向左翻
+  ctxMenu.flip = ctxMenu.x + CTX_MENU_WIDTH + 200 > window.innerWidth;
   ctxMenu.visible = true;
 }
 
@@ -2851,13 +3043,11 @@ async function handleUninstallService() {
   }
 }
 
-// ---- 项目文件管理（右键「文件管理」直接开项目目录） ----
-/** 文件管理弹框 */
-const filesVisible = ref(false);
-/** 当前浏览的项目（标题用） */
-const filesProject = ref<Project | null>(null);
-/** 初始目录：项目地址，没有就退回日志所在目录 */
-const filesInitPath = ref('');
+// ---- 项目文件管理（右键「文件管理」在右侧开页签） ----
+/** 已打开的文件管理页签（按项目去重） */
+const filesTabs = ref<{ projectId: number; projectName: string; initPath: string }[]>([]);
+/** 已打开的系统信息页签（项目 id） */
+const infoTabs = ref<number[]>([]);
 
 /** 单项目操作日志弹框 */
 const projOpLogVisible = ref(false);
@@ -2914,7 +3104,7 @@ function openProjectOpLog(item: Project) {
 }
 
 /**
- * 打开项目的文件管理。
+ * 打开项目的文件管理（右侧页签）。
  *
  * <p>为什么落到项目地址而不是主机根目录：右键是从某个项目上发起的，用户要看的是
  * 「这个项目的文件」；从根目录开始翻等于把路径再手抄一遍。项目地址为空时才退回
@@ -2922,15 +3112,129 @@ function openProjectOpLog(item: Project) {
  *
  * @param item 项目
  */
-function openFilesDialog(item: Project) {
+function openFilesTab(item: Project) {
   if (!releaseHostId.value) {
     message.warning('未识别到该发布绑定的主机，无法浏览主机文件');
     return;
   }
-  filesProject.value = item;
   const dir = String(item.projectPath || '').trim();
-  filesInitPath.value = dir || dirOf(String(item.logPath || '')) || '';
-  filesVisible.value = true;
+  const initPath = dir || dirOf(String(item.logPath || '')) || '';
+  const existing = filesTabs.value.find((f) => f.projectId === item.id);
+  if (existing) {
+    existing.initPath = initPath;
+  } else {
+    filesTabs.value.push({ projectId: item.id, projectName: item.projectName, initPath });
+  }
+  selectedProject.value = item;
+  activeWorkspaceTab.value = `files:${item.id}`;
+}
+
+/**
+ * 左键点击项目行：在右侧打开该项目的「系统信息」页签（复用已开的）。
+ *
+ * @param item 项目
+ */
+function openInfoTab(item: Project) {
+  selectedProject.value = item;
+  if (!infoTabs.value.includes(item.id)) infoTabs.value.push(item.id);
+  activeWorkspaceTab.value = `info:${item.id}`;
+  // 只有 Java 服务且运行中才值得走 SSH 探测，其余类型不打扰主机
+  if (item.enabled !== false && item.javaProcess) ensureEndpoint(item);
+}
+
+/** 项目行左键：右侧显示系统信息（双击另开日志） */
+function onRowClick(item: Project) {
+  openInfoTab(item);
+}
+
+/**
+ * 打开 APM 链路追踪页签，并按该项目的服务名筛选。
+ *
+ * @param item 项目
+ */
+function openApmTraces(item: Project) {
+  const cfg = parseApmConfig(parseJson<string>(item.jvmArgs, []));
+  const service = String(cfg.swServiceName || item.projectName || '').trim();
+  const target = router.resolve({
+    path: '/apm',
+    query: { tab: 'traces', ...(service ? { service } : {}) },
+  });
+  if (!target.matched.length) {
+    message.warning('当前宿主未挂载 APM 观测台，无法打开链路追踪');
+    return;
+  }
+  router.push(target.fullPath);
+}
+
+/**
+ * 下载项目源码：把目标主机上的项目目录整体打包下载。
+ *
+ * @param item 项目
+ */
+async function downloadProjectSource(item: Project) {
+  if (!releaseHostId.value) {
+    message.warning('未识别到该发布绑定的主机，无法下载源码');
+    return;
+  }
+  const dir = String(item.projectPath || '').trim();
+  if (!dir) {
+    message.warning('该项目未配置项目地址，无法下载源码');
+    return;
+  }
+  try {
+    message.info('正在打包项目目录，较大的项目需要等待…');
+    const blob = await downloadHostFile(releaseHostId.value, dir);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const base = dir.replace(/[\\/]+$/, '').split(/[\\/]/).pop() || item.projectName;
+    a.href = url;
+    a.download = `${base}-source.zip`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  } catch (e: any) {
+    toastError(e, '下载源码失败');
+  }
+}
+
+/**
+ * 项目注入的 APM 类型标签（空串 = 未接入）。
+ *
+ * @param item 项目
+ */
+function apmLabelOf(item: Project): string {
+  const cfg = parseApmConfig(parseJson<string>(item.jvmArgs, []));
+  if (cfg.apmType === 'platform') return '平台自有 APM';
+  if (cfg.apmType === 'skywalking') return 'SkyWalking';
+  if (cfg.apmType === 'arthas') return 'Arthas';
+  return '';
+}
+
+/**
+ * 系统信息面板里的操作统一回到页面既有命令，避免两套确认/任务浮层走岔。
+ *
+ * @param item    项目
+ * @param command 面板动作
+ */
+function onInfoAction(item: Project, command: string) {
+  switch (command) {
+    case 'start':
+      handleStart(item);
+      break;
+    case 'stop':
+      handleStop(item);
+      break;
+    case 'restart':
+      handleRestart(item);
+      break;
+    case 'vars':
+      openEditDialog(item);
+      activeTab.value = 'vars';
+      break;
+    default:
+      onMoreCommand(item, command);
+  }
 }
 
 /**
@@ -3115,6 +3419,104 @@ function handleUpdateLib(item: Project) {
     }
   };
   input.click();
+}
+
+// ---- 系统配置（右键）：上传后自动升级 + 升级默认选项 ----
+const sysCfgVisible = ref(false);
+const sysCfgProject = ref<Project | null>(null);
+const sysCfgLoading = ref(false);
+const sysCfgSaving = ref(false);
+const sysCfg = ref({
+  uploadAutoUpgrade: false,
+  autoBackup: true,
+  autoExtract: true,
+  autoRestart: true,
+  autoRollback: false,
+  actuatorMonitorEnabled: false,
+  actuatorIntervalSeconds: 30,
+});
+
+/** 该项目是否探测到 Actuator：只有可用时才显示定时采集配置 */
+const sysCfgActuatorAvailable = ref(false);
+
+/**
+ * 打开项目系统配置：上传投放策略 + 升级默认选项一次改完。
+ *
+ * @param item 项目
+ */
+async function openSystemConfig(item: Project) {
+  sysCfgProject.value = item;
+  sysCfg.value = {
+    uploadAutoUpgrade: !!item.uploadAutoUpgrade,
+    autoBackup: true,
+    autoExtract: item.uploadExtract ?? true,
+    autoRestart: true,
+    autoRollback: false,
+    actuatorMonitorEnabled: false,
+    actuatorIntervalSeconds: 30,
+  };
+  sysCfgActuatorAvailable.value = !!endpointCache[item.id]?.actuator;
+  // Actuator 是否可用决定「定时采集」区块是否出现：缓存没有就静默探一次
+  void ensureEndpoint(item).then(() => {
+    if (sysCfgProject.value?.id === item.id) {
+      sysCfgActuatorAvailable.value = !!endpointCache[item.id]?.actuator;
+    }
+  });
+  sysCfgVisible.value = true;
+  sysCfgLoading.value = true;
+  try {
+    const res = await http().get(`${BASE}/upgrade/config?projectId=${item.id}`);
+    const cfg = unwrapResult<any>(res) || {};
+    const base = { ...(cfg.global || {}), ...(cfg.project || {}) };
+    sysCfg.value = {
+      uploadAutoUpgrade: !!(base.uploadAutoUpgrade ?? item.uploadAutoUpgrade),
+      autoBackup: base.autoBackup ?? true,
+      autoExtract: base.autoExtract ?? item.uploadExtract ?? true,
+      autoRestart: base.autoRestart ?? true,
+      autoRollback: base.autoRollback ?? false,
+      actuatorMonitorEnabled: false,
+      actuatorIntervalSeconds: 30,
+    };
+    // 定时采集配置独立存放（项目级开关 + 间隔），与升级默认值互不覆盖
+    const mon = unwrapResult<any>(
+      await http().get(`${BASE}/project/${item.id}/endpoints/monitor`),
+    ) || {};
+    sysCfg.value.actuatorMonitorEnabled = !!mon.enabled;
+    const interval = Number(mon.intervalSeconds);
+    sysCfg.value.actuatorIntervalSeconds = Number.isFinite(interval) && interval >= 5 ? interval : 30;
+  } catch {
+    // 接口失败时用项目字段兜底，仍可保存
+  } finally {
+    sysCfgLoading.value = false;
+  }
+}
+
+/** 保存系统配置：项目级升级默认 + 项目自身的「上传后自动升级」 */
+async function saveSystemConfig() {
+  const item = sysCfgProject.value;
+  if (!item) return;
+  sysCfgSaving.value = true;
+  try {
+    // 升级默认值里不混入采集配置，各存各的
+    const { actuatorMonitorEnabled, actuatorIntervalSeconds, ...upgradeCfg } = sysCfg.value;
+    await http()
+      .put(`${BASE}/upgrade/config?scope=project&projectId=${item.id}`)
+      .data(upgradeCfg);
+    await http().put(`${BASE}/project/${item.id}`).data({
+      uploadAutoUpgrade: sysCfg.value.uploadAutoUpgrade,
+    });
+    await http().put(`${BASE}/project/${item.id}/endpoints/monitor`).data({
+      enabled: actuatorMonitorEnabled,
+      intervalSeconds: actuatorIntervalSeconds,
+    });
+    message.success(`已保存「${item.projectName}」的系统配置`);
+    sysCfgVisible.value = false;
+    loadList();
+  } catch (e: any) {
+    toastError(e, '保存系统配置失败');
+  } finally {
+    sysCfgSaving.value = false;
+  }
 }
 
 // ---- 手动升级弹窗 ----
@@ -3421,17 +3823,61 @@ function cleanupAllLogSessions() {
 /** 当前激活的日志页签 name（ReTabs v-model，空串表示没有激活页签） */
 const activeWorkspaceTab = ref('');
 
-/** 页签列表：每项目一个「系统日志」页签，name = `log:${projectId}` */
-const workspaceTabs = computed<ReTabsItem[]>(() =>
-  logSessions.value.map((s) => ({
-    name: `log:${s.projectId}`,
-    label: s.projectName,
-    hint: '系统日志',
-    icon: 'Tickets',
-    closable: true,
-    status: statusKeyOfLog(s),
-  })),
-);
+/** 页签列表：系统信息 / 文件管理 / 系统日志三类，name = `kind:${projectId}` */
+const workspaceTabs = computed<ReTabsItem[]>(() => {
+  const tabs: ReTabsItem[] = [];
+  // 系统信息（左键单击）
+  for (const id of infoTabs.value) {
+    const item = list.value.find((p) => p.id === id);
+    if (!item) continue;
+    tabs.push({
+      name: `info:${id}`,
+      label: item.projectName,
+      hint: '系统信息',
+      icon: 'InfoFilled',
+      closable: true,
+      status: statusKeyOfLog({ projectId: id }),
+    });
+  }
+  // 文件管理（右键）
+  for (const f of filesTabs.value) {
+    tabs.push({
+      name: `files:${f.projectId}`,
+      label: f.projectName,
+      hint: '文件管理',
+      icon: 'FolderOpened',
+      closable: true,
+      status: statusKeyOfLog({ projectId: f.projectId }),
+    });
+  }
+  // 系统日志（双击 / 右键）
+  for (const s of logSessions.value) {
+    tabs.push({
+      name: `log:${s.projectId}`,
+      label: s.projectName,
+      hint: '系统日志',
+      icon: 'Tickets',
+      closable: true,
+      status: statusKeyOfLog(s),
+    });
+  }
+  return tabs;
+});
+
+/** `info:` 页签对应的项目 */
+function infoProjectOf(name: string): Project | null {
+  if (!name.startsWith('info:')) return null;
+  const id = Number(name.slice(5));
+  return list.value.find((p) => p.id === id) ?? null;
+}
+
+/** `files:` 页签对应的项目与初始目录 */
+function filesTabOf(name: string): { initPath: string } | null {
+  if (!name.startsWith('files:')) return null;
+  const id = Number(name.slice(6));
+  const f = filesTabs.value.find((x) => x.projectId === id);
+  return f ? { initPath: f.initPath } : null;
+}
 
 /** 日志页签状态点：运行中=绿 / 已停止=灰 / 推送离线=红 */
 function statusKeyOfLog(s: { projectId: number }): 'online' | 'offline' | 'alarm' {
@@ -3448,19 +3894,29 @@ async function openLogTab(item: Project) {
   activeWorkspaceTab.value = `log:${session.projectId}`;
 }
 
-/** 关闭一个日志页签：停连接、移除会话，active 兜底切到相邻页签 */
+/** 关闭一个页签：按类型清资源（日志停连接、信息/文件移除记录），active 兜底切到相邻 */
 function closeWorkspaceTab(name: string) {
-  const session = logSessions.value.find((s) => `log:${s.projectId}` === name);
-  if (session) closeLogSession(session);
+  if (name.startsWith('log:')) {
+    const session = logSessions.value.find((s) => `log:${s.projectId}` === name);
+    if (session) closeLogSession(session);
+  } else if (name.startsWith('info:')) {
+    const id = Number(name.slice(5));
+    infoTabs.value = infoTabs.value.filter((x) => x !== id);
+  } else if (name.startsWith('files:')) {
+    const id = Number(name.slice(6));
+    filesTabs.value = filesTabs.value.filter((x) => x.projectId !== id);
+  }
   const rest = workspaceTabs.value.filter((t) => t.name !== name);
   if (activeWorkspaceTab.value === name) {
     activeWorkspaceTab.value = rest[rest.length - 1]?.name ?? '';
   }
 }
 
-/** 关闭全部日志页签 */
-function closeAllLogTabs() {
+/** 关闭全部页签 */
+function closeAllWorkspaceTabs() {
   logSessions.value.slice().forEach((session) => closeLogSession(session));
+  infoTabs.value = [];
+  filesTabs.value = [];
   activeWorkspaceTab.value = '';
 }
 
@@ -3477,11 +3933,20 @@ watch(workspaceTabs, (tabs) => {
 const metricsProject = computed<Project | null>(() => {
   const active = workspaceTabs.value.find((t) => t.name === activeWorkspaceTab.value);
   if (active) {
-    const pid = Number(active.name.replace(/^log:/, ''));
+    const pid = Number(active.name.replace(/^(info|files|log):/, ''));
     return list.value.find((p) => p.id === pid) ?? null;
   }
   return selectedProject.value;
 });
+
+/** 底部指标条要展示的 Actuator 探测结果（未探测到时为空） */
+const metricsEndpoint = computed<EndpointProbe | null>(() => {
+  const item = metricsProject.value;
+  if (!item) return null;
+  return endpointCache[item.id] ?? null;
+});
+
+// 激活项目变化时做一次静默探测（watch 定义在 selectedProject 之后，避免 setup 阶段 TDZ）
 
 const logSessionByTab = computed(() => {
   const map = new Map<string, LogSession>();
@@ -3492,6 +3957,9 @@ const logSessionByTab = computed(() => {
 // ---- 左侧 rail：折叠 / 分组 ----
 /** 左栏是否折叠成竖条（本地持久化） */
 const railCollapsed = ref(localStorage.getItem('projects-rail-collapsed') === '1');
+/** 左栏宽度偏好（拖拽手柄改的就是它，折叠时仍保留，展开后恢复） */
+const RAIL_WIDTH_KEY = 'projects.rail.width.v1';
+const railWidth = ref(readRailWidth(RAIL_WIDTH_KEY, 268));
 function toggleRail() {
   railCollapsed.value = !railCollapsed.value;
   localStorage.setItem('projects-rail-collapsed', railCollapsed.value ? '1' : '0');
@@ -3507,6 +3975,13 @@ function toggleGroup(key: StatusKey) {
 
 /** 左侧当前选中的项目（右键菜单 / 底部指标条兜底） */
 const selectedProject = ref<Project | null>(null);
+
+// 激活项目变化时静默探测一次；放在 selectedProject 之后，避免 setup 阶段 computed 踩 TDZ
+watch(metricsProject, (item) => {
+  if (item && item.enabled !== false && item.javaProcess && statusKey(item) === 'running') {
+    ensureEndpoint(item);
+  }
+});
 
 /** 按 STATUS_GROUPS 顺序分桶：全部组都展示（含空组，方便看到底下还有哪些状态） */
 const groupedProjects = computed(() =>
@@ -3596,6 +4071,23 @@ const endpointLoading = ref(false);
 const endpointData = ref<EndpointProbe | null>(null);
 /** 每项目探测结果缓存：同一次停留内反复打开不用重复 SSH */
 const endpointCache = reactive<Record<number, EndpointProbe>>({});
+/** 正在探测的项目（面板显示「探测中」，也防重复请求） */
+const probingIds = reactive<Record<number, boolean>>({});
+
+/**
+ * 静默探测一次，已有缓存或正在探测则跳过。
+ *
+ * @param item 项目
+ */
+async function ensureEndpoint(item: Project) {
+  if (endpointCache[item.id] || probingIds[item.id]) return;
+  probingIds[item.id] = true;
+  try {
+    await probeProject(item, true);
+  } finally {
+    probingIds[item.id] = false;
+  }
+}
 
 async function probeProject(item: Project, silent = false): Promise<EndpointProbe | null> {
   try {
@@ -3946,6 +4438,24 @@ const unsubTaskRefresh = releaseSse.onProjectTask((frame) => {
   }
 });
 
+// 全局时间轮采集的 Actuator 结果：直接写入缓存，底部指标条随当前项目刷新
+const unsubProjectEndpoints = releaseSse.onProjectEndpoints((push) => {
+  const pid = Number(push.projectId);
+  if (!Number.isFinite(pid)) return;
+  endpointCache[pid] = {
+    swagger: push.swagger,
+    actuator: push.actuator,
+    port: push.port,
+    swaggerUrl: push.swaggerUrl,
+    swaggerApiUrl: push.swaggerApiUrl,
+    actuatorUrl: push.actuatorUrl,
+    health: push.health,
+    metricCount: push.metricCount,
+    metrics: push.metrics,
+    message: push.message,
+  };
+});
+
 // 全局 SSE 连接状态：实时日志面板据此显示「推送离线」提示，重连后补启动未生效的日志会话
 const unsubReleaseStatus = releaseSse.onStatus((status) => {
   const online = status === 'connected';
@@ -3979,6 +4489,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   cleanupAllLogSessions();
   unsubTaskRefresh?.();
+  unsubProjectEndpoints?.();
   unsubReleaseStatus?.();
   releaseSse.close();
   closeContextMenu();
@@ -3998,11 +4509,12 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
 }
 
-/* 左右两栏：左侧定宽，右侧吃掉剩余，与主机资产页同构 */
+/* 左右两栏：左侧可拖拽定宽，右侧吃掉剩余，与主机资产页同构 */
 .pj-body {
   display: flex;
   flex: 1 1 auto;
-  gap: 12px;
+  /* 间距交给分栏手柄本身，避免 gap + 手柄叠出一段空档 */
+  gap: 0;
   min-height: 0;
 }
 /* ===== 左侧：项目列表（rail 分组列表） ===== */
@@ -4010,14 +4522,14 @@ onBeforeUnmount(() => {
   display: flex;
   flex: none;
   flex-direction: column;
-  width: 268px;
+  /* 宽度由分栏手柄写入 --pj-rail-width（可拖拽，存本地偏好） */
+  width: var(--pj-rail-width, 268px);
   min-height: 0;
   overflow: hidden;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-xl, 16px);
   box-shadow: var(--el-box-shadow-light, var(--shadow-1));
-  transition: width 0.18s ease;
 }
 
 /* 折叠态：268px → 44px，中间工作区净增 224px。只留计数、运行/停止点
@@ -4691,6 +5203,94 @@ onBeforeUnmount(() => {
   text-overflow: ellipsis;
 }
 
+/* 底部 Actuator 指标：悬停弹出指标名清单 */
+.pj-metrics-seg.is-hover {
+  padding: 1px 6px;
+  margin: -1px -2px;
+  border-radius: 6px;
+  cursor: help;
+}
+.pj-metrics-seg.is-hover:hover {
+  background: var(--bg-fill);
+}
+.pj-metrics-pop-title {
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.pj-metrics-pop-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  max-height: 220px;
+  overflow: auto;
+}
+.pj-metrics-pop-list span {
+  padding: 2px 7px;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--bg-fill);
+  border-radius: 5px;
+}
+.pj-metrics-pop-list span.is-muted {
+  font-family: inherit;
+  color: var(--text-tertiary);
+}
+
+/* ===== 系统配置弹框 ===== */
+.syscfg {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 2px;
+}
+.syscfg-section {
+  padding: 12px 14px;
+  background: var(--bg-fill, #f7f8fa);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 10px;
+}
+.syscfg-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.syscfg-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.syscfg-label {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.syscfg-label b {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+.syscfg-label span {
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--text-tertiary);
+}
+.syscfg-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--text-tertiary);
+}
+
 .pj-drop {
   position: absolute;
   inset: 0;
@@ -4710,6 +5310,8 @@ onBeforeUnmount(() => {
 /* 窄屏：左栏占满一行，不强制并排 */
 @media (max-width: 720px) {
   .pj-body { flex-direction: column; }
+  /* 上下堆叠时没有左右分栏，手柄一并收起 */
+  .pj-split { display: none; }
 }
 
 /* 编辑 tab */
@@ -4867,6 +5469,35 @@ onBeforeUnmount(() => {
   white-space: pre-wrap;
   word-break: break-all;
 }
+/* 自动模式的四条命令就地可编辑：用户改过即停止实时覆盖 */
+.sa-row-edit {
+  display: block;
+  width: 100%;
+  min-height: 62px;
+  border: none;
+  outline: none;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.sa-row-edit:focus {
+  background: var(--bg-fill, #f7f8fa);
+  box-shadow: inset 0 0 0 1px var(--brand-500, #6d5dfc);
+}
+.sa-dirty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  border: 1px solid var(--el-color-primary-light-7);
+  border-radius: 8px;
+}
+.sa-dirty span {
+  flex: 1;
+  min-width: 0;
+}
 .sa-foot {
   display: flex;
   align-items: center;
@@ -4940,6 +5571,35 @@ onBeforeUnmount(() => {
   border-radius: 0 0 7px 7px;
   padding-top: 4px;
   height: 34px;
+}
+/* 二级菜单：悬停展开到右侧，链路追踪 / APM 等观测入口不再堆在一级 */
+.pj-ctx__item.has-sub {
+  position: relative;
+}
+.pj-ctx__arrow {
+  margin-left: auto;
+  opacity: 0.6;
+}
+.pj-ctx__sub {
+  display: none;
+  position: absolute;
+  left: calc(100% + 6px);
+  top: -5px;
+  z-index: 3002;
+  width: 188px;
+  padding: 5px;
+  background: var(--el-bg-color-overlay, var(--el-bg-color));
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(15, 20, 40, 0.16);
+}
+.pj-ctx__item.has-sub:hover > .pj-ctx__sub {
+  display: block;
+}
+/* 菜单贴近右边缘时二级菜单向左翻，避免出屏 */
+.pj-ctx.is-flip .pj-ctx__sub {
+  left: auto;
+  right: calc(100% + 6px);
 }
 
 /* ===== 操作失败详情 ===== */
@@ -5322,12 +5982,24 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 
-/* 表单里「输入框 + 选择按钮」的组合行 */
-.pj-path-field {
-  display: flex;
+/* 表单路径输入框内的「浏览主机文件」图标：贴着输入框右侧，避免独立方按钮的撕裂感 */
+.pj-path-browse {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  width: 100%;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.pj-path-browse:hover {
+  color: var(--brand-500, #6d5dfc);
+  background: var(--bg-fill);
 }
 
 /* 主机路径选择器弹框：给文件管理器一个稳定高度 */

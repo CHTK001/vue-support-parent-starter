@@ -1,0 +1,2 @@
+import { _ as toFormData, a as CancelToken, c as VERSION, d as formToJSON, f as getAdapter, g as spread, h as mergeConfig, i as Cancel, l as all, m as isCancel, n as AxiosError, o as CanceledError, p as isAxiosError, r as AxiosHeaders, s as HttpStatusCode, t as Axios, u as create, v as axios } from "./axios-Du-YOERk.js";
+export { Axios, AxiosError, AxiosHeaders, Cancel, CancelToken, CanceledError, HttpStatusCode, VERSION, all, create, axios as default, formToJSON, getAdapter, isAxiosError, isCancel, mergeConfig, spread, toFormData };

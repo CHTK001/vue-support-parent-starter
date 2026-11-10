@@ -242,12 +242,6 @@ const visiblePills = computed(() => {
   return out;
 });
 
-/** 一键清空：对全部任务逐一 emit close（业务侧据此移除） */
-function clearAll(): void {
-  const ids = props.tasks.map((t) => t.taskId);
-  ids.forEach((id) => emit("close", id));
-}
-
 /** 点击「+N 个更早」：展开面板并定位到最早任务（面板内任务条可切换全部） */
 function showOldest(): void {
   activeIndex.value = 0;
@@ -368,15 +362,6 @@ const renderPills = computed<{ t: ProcessTaskData; i: number }[]>(() => {
       @mouseenter="onStackEnter"
       @mouseleave="onStackLeave"
     >
-      <!-- 堆叠工具条：任务总数 + 一键清空（展开态、多任务时显示） -->
-      <div v-if="!stackCollapsed && tasks.length > 1" class="rp-stackbar">
-        <span class="rp-stackbar__count">共 {{ tasks.length }} 个任务</span>
-        <button class="rp-stackbar__clear" type="button" title="关闭并清空全部任务" @click="clearAll">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M10 11v6M14 11v6" /></svg>
-          清空全部
-        </button>
-      </div>
-
       <!-- 超出最大显示数量：折叠为「+N 个更早」，点击展开面板（仅展开态显示） -->
       <button v-if="!stackCollapsed && hiddenCount > 0" class="rp-pill rp-pill--more" type="button"
         :title="'还有 ' + hiddenCount + ' 个更早任务'" @click="showOldest">
@@ -460,17 +445,28 @@ const renderPills = computed<{ t: ProcessTaskData; i: number }[]>(() => {
   box-shadow: 0 18px 48px rgba(7, 11, 26, 0.28);
   overflow: hidden;
 }
+.re-process--running { border-top: 2px solid var(--brand-500, #6d5dfc); }
+.re-process--success { border-top: 2px solid var(--el-color-success, #67c23a); }
+.re-process--error { border-top: 2px solid var(--el-color-danger, #f56c6c); }
+
+/**
+ * 最小化 / 堆叠态：根节点只承担定位（position: fixed + 拖拽坐标），
+ * 不画任何外壳 —— 视觉上只剩「共 N 个任务」工具条 + 一叠胶囊。
+ *
+ * <p><b>必须放在状态类之后</b>：`.re-process--min` 与 `.re-process--running`
+ * 特异度相同（都是一个类），普通顺序下后面的 `border-top` 会把前面 `border: none`
+ * 的 top 边重新画回来，最小化时胶囊外面就残留一条 2px 品牌色描边（顶部包边）。</p>
+ */
 .re-process--min {
   width: auto;
   height: auto;
   background: transparent;
   border: none;
+  border-top: none;
+  border-radius: 0;
   box-shadow: none;
   overflow: visible;
 }
-.re-process--running { border-top: 2px solid var(--brand-500, #6d5dfc); }
-.re-process--success { border-top: 2px solid var(--el-color-success, #67c23a); }
-.re-process--error { border-top: 2px solid var(--el-color-danger, #f56c6c); }
 
 .re-process__bar {
   display: flex;
@@ -575,75 +571,51 @@ const renderPills = computed<{ t: ProcessTaskData; i: number }[]>(() => {
 }
 @keyframes re-breathe { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
 
-/* 最小化态：胶囊堆叠 */
+/* 最小化态：胶囊堆叠（彼此独立、留足间隙；不再有外层容器兜底） */
 .re-process__stack {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
   align-items: stretch;
   max-height: calc(100vh - 32px);
+  /* 只允许纵向滚动：横向一旦可滚动，右上角数量角标外溢 6px 就会长出
+     一条横向滚动条（截图底部那条），视觉上像多了个容器 */
+  overflow-x: hidden;
   overflow-y: auto;
   padding-right: 2px;
   background: transparent;
 }
+/**
+ * 折叠态（多任务只显示最新一个 + 右上角「+N」角标）：
+ * 角标是 `top: -8px; right: -6px` 的绝对定位元素，背后还有两层
+ * `translateY(-13px)` 的堆叠卡片 —— 它们都超出胶囊边界。滚动容器
+ * （overflow 非 visible）会把它们直接裁掉，角标只剩下半截贴在卡片上，
+ * 看起来像 z-index 被压到了卡片后面。这里给溢出部分留出内边距。
+ */
+.re-process__stack--collapsed {
+  padding: 10px 8px 6px 0;
+}
 .re-process__stack::-webkit-scrollbar { width: 6px; }
 .re-process__stack::-webkit-scrollbar-thumb { background: var(--border-default, #dcdfe6); border-radius: 3px; }
-
-/* 堆叠工具条 */
-.rp-stackbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 0 2px;
-}
-.rp-stackbar__count {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--el-text-color-secondary, #909399);
-}
-.rp-stackbar__clear {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  border: none;
-  background: transparent;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--el-text-color-secondary, #909399);
-  cursor: pointer;
-  padding: 3px 7px;
-  border-radius: 6px;
-  transition: background 0.15s, color 0.15s;
-}
-.rp-stackbar__clear svg { width: 13px; height: 13px; }
-.rp-stackbar__clear:hover { background: var(--el-color-danger-light-9, #fdecec); color: var(--el-color-danger, #f56c6c); }
 
 /* 「+N 个更早」折叠胶囊（按钮形态，整体可点） */
 .rp-pill--more { cursor: pointer; }
 .rp-pill__state--muted { background: var(--bg-fill, #f3f4f8); color: var(--el-text-color-secondary, #909399); }
 
-/* 自动折叠态：最新胶囊置顶，背后叠两层卡片暗示「堆叠」 */
+/* 自动折叠态：只渲染最新一个胶囊，靠右上角「+N」角标提示还有几个任务。
+   早先版本在胶囊背后画两层伪元素卡片暗示「堆叠」，但那些伪元素是
+   `inset: 0` + 负向位移，超出胶囊边界会被滚动容器裁掉一半，视觉上更像
+   「被外层卡片压住」；改成不再画，任务卡片彼此独立。 */
 .rp-pill--stacktop { position: relative; }
-.rp-pill--stacktop::before,
-.rp-pill--stacktop::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 12px;
-  background: var(--bg-container, #fff);
-  border: 1px solid var(--border-subtle, #eef0f6);
-  z-index: -1;
-  pointer-events: none;
-}
-.rp-pill--stacktop::before { transform: translateY(-7px) scale(0.97); opacity: 0.75; }
-.rp-pill--stacktop::after { transform: translateY(-13px) scale(0.94); opacity: 0.45; }
 
 /* 折叠顶胶囊数量角标 */
 .rp-pill__count-badge {
   position: absolute;
   top: -8px;
   right: -6px;
+  /* 明确压在胶囊之上：角标与卡片有重叠区域，不显式抬层时
+     在部分层叠上下文里会被卡片本体盖住半截 */
+  z-index: 2;
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
@@ -668,7 +640,9 @@ const renderPills = computed<{ t: ProcessTaskData; i: number }[]>(() => {
   background: var(--bg-container, #fff);
   border: 1px solid var(--border-subtle, #eef0f6);
   border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(7, 11, 26, 0.16);
+  /* 阴影收窄：原来 30px 的扩散会在 10~14px 的间隙里互相叠加，
+     两个胶囊之间形成一条发灰的暗带，看着像黏成一整块 */
+  box-shadow: 0 2px 8px rgba(7, 11, 26, 0.1);
 }
 .rp-pill__state {
   display: inline-flex;

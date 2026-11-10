@@ -8,7 +8,7 @@
 import { computed } from "vue";
 import "../../shared/modern-vars.css";
 import type { CountdownLayoutProps } from "../types";
-import { isUrgent, toHHMMSS } from "../utils";
+import { formatRemaining, isUrgent, relevantUnits, toShortText } from "../utils";
 
 const props = withDefaults(defineProps<CountdownLayoutProps>(), {
   size: 60,
@@ -19,6 +19,9 @@ const props = withDefaults(defineProps<CountdownLayoutProps>(), {
   endAnimation: false,
   total: 0,
   paused: false,
+  format: "auto",
+  colorThresholds: undefined,
+  unitShape: "ring",
 });
 
 const colorMap = {
@@ -43,6 +46,18 @@ const activeColor = computed(() => {
 });
 
 const ringSize = computed(() => `${props.size * 1.6}px`);
+
+/** 按格式/总时长要的显示单位 */
+const units = computed(() => relevantUnits(props.total ?? 0, props.format));
+
+/** 环形中心的数字（按格式切单位） */
+const value = computed(() => {
+  if (!props.showNumber || props.finished) return "00:00:00";
+  return formatRemaining(props.remaining, units.value, props.format);
+});
+
+/** 短提示（sub） */
+const sub = computed(() => (props.finished ? "已结束" : toShortText(props.remaining)));
 </script>
 
 <template>
@@ -57,7 +72,7 @@ const ringSize = computed(() => `${props.size * 1.6}px`);
     </div>
     <div class="re-countdown__body">
       <div class="re-countdown__value" v-if="props.showNumber">
-        {{ props.finished ? "00:00:00" : toHHMMSS(props.remaining) }}
+        {{ value }}
       </div>
       <div class="re-countdown__sub" v-if="props.showLabel">
         {{ props.label ?? "倒计时" }}

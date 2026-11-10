@@ -560,7 +560,8 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
 .koi-dialog-shell .el-dialog__header {
   margin-right: 0;
   /* 紧凑 header：大幅降低上下内边距，header 高度由约 48px 降到约 26px */
-  padding: 3px 20px !important;
+  /* 左右 10px（原 20px）：左侧标题组再左移 10px、右侧窗口壳操作区再右移 10px */
+  padding: 3px 10px !important;
   /* 去除头部底色，并与下方内容留出一点间距 */
   background: transparent !important;
   margin-bottom: 8px;

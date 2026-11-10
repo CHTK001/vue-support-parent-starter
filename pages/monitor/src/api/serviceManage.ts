@@ -248,3 +248,69 @@ export interface DiscoveryStatus {
 export const getDiscoveryStatus = () =>
   http().get('/ms/monitor/discovery/status').then(r => unwrapResult<DiscoveryStatus>(r));
 
+// ===== 节点操作日志（GET /ms/monitor/server/oper-log/{id}）=====
+
+/** 节点操作日志列表项（对齐后端 ServerOperLogVO） */
+export interface ServerOperLog {
+  id: number;
+  nodeId: number;
+  nodeName: string | null;
+  /** 操作码，如 CREATE / UPDATE / HOT_UPDATE / START / STOP / DELETE */
+  action: string;
+  /** 操作中文名 */
+  actionName: string | null;
+  target: string | null;
+  detail: string | null;
+  /** 1 成功 / 0 失败 / null 未判定 */
+  success: number | null;
+  costMs: number | null;
+  operator: string | null;
+  clientIp: string | null;
+  requestUrl: string | null;
+  createTime: string | null;
+}
+
+/** 操作日志分页结果（对齐 MyBatis-Plus Page） */
+export interface ServerOperLogPage {
+  records: ServerOperLog[];
+  total: number;
+  current: number;
+  size: number;
+  pages: number;
+}
+
+/** 操作日志查询参数 */
+export interface ServerOperLogQuery {
+  /** 操作码过滤，空则全部 */
+  action?: string | null;
+  /** 起始时间（ISO 本地时间），空则不限 */
+  from?: string | null;
+  /** 截止时间（ISO 本地时间），空则不限 */
+  to?: string | null;
+  page?: number;
+  size?: number;
+}
+
+/**
+ * 按节点分页查操作日志。
+ *
+ * <p>读的是本模块自己落的 {@code ms_server_oper_log}，不是全仓通用的
+ * {@code /v2/log/page}：后者在当前部署上没有对应的消费者与表。</p>
+ *
+ * @param id    节点 ID
+ * @param query 过滤与分页参数
+ * @returns 分页结果
+ */
+export const listServerOperLogs = (id: number, query: ServerOperLogQuery = {}) => {
+  const params: Record<string, string | number> = {};
+  if (query.action) params.action = query.action;
+  if (query.from) params.from = query.from;
+  if (query.to) params.to = query.to;
+  if (query.page) params.page = query.page;
+  if (query.size) params.size = query.size;
+  return http()
+    .get(`${B}/oper-log/${id}`)
+    .query(params)
+    .then(r => unwrapResult<ServerOperLogPage>(r));
+};
+

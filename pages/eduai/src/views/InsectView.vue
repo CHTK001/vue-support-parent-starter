@@ -25,7 +25,7 @@
       </div>
     </header>
 
-    <p v-if="loadError" class="iw__error">{{ loadError }}</p>
+    <ReErrorBar v-if="loadError" :message="loadError" retryText="重新加载" @retry="loadLibrary" />
 
     <!-- 三栏工作台 -->
     <div class="iw__work">
@@ -511,15 +511,6 @@ watch(activeCode, (code) => {
   color: var(--el-color-white);
 }
 
-.iw__error {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--el-color-white);
-  background: var(--el-color-danger);
-  border-radius: var(--el-radius-lg, 12px);
-  padding: 10px 14px;
-}
 
 /* 三栏工作台 */
 .iw__work {

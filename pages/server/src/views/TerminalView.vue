@@ -330,6 +330,156 @@ watch([immersive, isFullscreen], () => {
   scheduleHide();
 });
 
+/* ================== 性能指标 HUD：FPS / 延迟 / 画面尺寸 / 分辨率 ================== */
+/** 指标显示位置（四个角） */
+type HudCorner = "tl" | "tr" | "bl" | "br";
+/** 四个角的位置定义（顺序即 2×2 小方格的排列：左上、右上、左下、右下） */
+const HUD_CORNERS: Array<{ value: HudCorner; label: string }> = [
+  { value: "tl", label: "左上角" },
+  { value: "tr", label: "右上角" },
+  { value: "bl", label: "左下角" },
+  { value: "br", label: "右下角" },
+];
+const METRICS_VISIBLE_KEY = "term-metrics-visible";
+const METRICS_CORNER_KEY = "term-metrics-corner";
+
+/**
+ * 规范化持久化里的角标值（旧值/脏值一律回落右上角）
+ *
+ * @param raw localStorage 原值
+ */
+function readCorner(raw: string | null): HudCorner {
+  return HUD_CORNERS.some(c => c.value === raw) ? (raw as HudCorner) : "tr";
+}
+
+/** 指标卡开关（跨会话保留） */
+const metricsVisible = ref(localStorage.getItem(METRICS_VISIBLE_KEY) === "1");
+/** 指标卡显示位置（跨会话保留，支持四个角配置） */
+const metricsCorner = ref<HudCorner>(readCorner(localStorage.getItem(METRICS_CORNER_KEY)));
+
+/** 渲染组件回传的画面指标 */
+interface ViewerMetrics {
+  /** 最近 1 秒呈现帧数 */
+  fps: number;
+  /** 输入到画面更新的响应延迟（毫秒），无样本为 null */
+  latencyMs: number | null;
+  /** 远端帧缓冲宽 */
+  fbWidth: number;
+  /** 远端帧缓冲高 */
+  fbHeight: number;
+  /** 画面在容器内的显示宽（CSS 像素） */
+  displayWidth: number;
+  /** 画面在容器内的显示高（CSS 像素） */
+  displayHeight: number;
+  /** 是否已收到首帧 */
+  connected: boolean;
+}
+
+/**
+ * 指标空值
+ */
+function emptyMetrics(): ViewerMetrics {
+  return { fps: 0, latencyMs: null, fbWidth: 0, fbHeight: 0, displayWidth: 0, displayHeight: 0, connected: false };
+}
+
+const metrics = ref<ViewerMetrics>(emptyMetrics());
+
+/** 只有直连的画面协议（RDP / VNC）才有帧率与帧缓冲尺寸可测；字符终端不做假数据 */
+const supportsMetrics = computed(() => {
+  const c = connection.value;
+  return !!c && c.mode === "DIRECT" && (c.protocol === "rdp" || c.protocol === "vnc");
+});
+
+/** 当前生效的画面渲染组件（VNC / RDP 直连各一个实例） */
+function metricsViewer(): any {
+  return connection.value?.protocol === "vnc" ? vncViewerRef.value : rdpViewerRef.value;
+}
+
+let metricsTimer: ReturnType<typeof setInterval> | null = null;
+
+/** 拉一次指标快照 */
+function sampleMetrics(): void {
+  const m = metricsViewer()?.getMetrics?.();
+  if (m) metrics.value = m;
+}
+/** 停止轮询 */
+function stopMetricsPolling(): void {
+  if (metricsTimer) {
+    clearInterval(metricsTimer);
+    metricsTimer = null;
+  }
+}
+/** 重启轮询（先立即取一次，避免开关后空等半秒） */
+function startMetricsPolling(): void {
+  stopMetricsPolling();
+  sampleMetrics();
+  metricsTimer = setInterval(sampleMetrics, 500);
+}
+/** 按「开关 + 当前协议 + 当前主机」对齐轮询状态 */
+function syncMetricsPolling(): void {
+  if (metricsVisible.value && supportsMetrics.value) {
+    startMetricsPolling();
+  } else {
+    stopMetricsPolling();
+    metrics.value = emptyMetrics();
+  }
+}
+watch([metricsVisible, supportsMetrics, () => connection.value?.protocol, () => connection.value?.hostId], syncMetricsPolling, { immediate: true });
+watch(metricsVisible, v => localStorage.setItem(METRICS_VISIBLE_KEY, v ? "1" : "0"));
+watch(metricsCorner, v => localStorage.setItem(METRICS_CORNER_KEY, v));
+onBeforeUnmount(stopMetricsPolling);
+
+/** 顶部工具条的指标开关 */
+function toggleMetrics(): void {
+  if (!supportsMetrics.value) {
+    message.info("字符终端没有画面指标：FPS / 延迟 / 分辨率仅对 RDP、VNC 直连可用");
+    return;
+  }
+  metricsVisible.value = !metricsVisible.value;
+  revealToolbar();
+  scheduleHide();
+}
+
+/**
+ * 切换指标显示位置
+ *
+ * @param corner 四角之一
+ */
+function setMetricsCorner(corner: HudCorner): void {
+  metricsCorner.value = corner;
+  revealToolbar();
+  scheduleHide();
+}
+
+/**
+ * 指标数值文案（无样本显示「—」，不拿 0 冒充）
+ *
+ * @param v 数值
+ * @param unit 单位后缀
+ */
+function metricsText(v: number | null, unit = ""): string {
+  return v == null || !Number.isFinite(v) ? "—" : `${v}${unit}`;
+}
+
+/** 远端分辨率文案（帧缓冲尺寸） */
+function fbSizeText(): string {
+  const m = metrics.value;
+  return m.fbWidth > 0 && m.fbHeight > 0 ? `${m.fbWidth}×${m.fbHeight}` : "—";
+}
+
+/** 当前画面显示尺寸文案（CSS 像素） */
+function displaySizeText(): string {
+  const m = metrics.value;
+  return m.displayWidth > 0 && m.displayHeight > 0 ? `${m.displayWidth}×${m.displayHeight}` : "—";
+}
+
+/** 指标卡底部：协议 + 通道 */
+const metricsChannelText = computed(() => {
+  const c = connection.value;
+  if (!c) return "";
+  return `${(c.protocol || "").toUpperCase()} · ${c.mode === "DIRECT" ? "直连" : c.mode}`;
+});
+
 /** 切换应用内沉浸（可视范围全屏） */
 function toggleImmersive(): void {
   immersive.value = !immersive.value;
@@ -593,6 +743,28 @@ onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
           @click="toggleImmersive"
         />
         <ReButton layout="square" icon="TopRight" title="弹出独立页面（独占可视范围）" @click="popout" />
+        <!-- 性能指标：开关 + 四角位置（直连 RDP / VNC 才有画面指标） -->
+        <template v-if="supportsMetrics">
+          <span class="tt-sep" />
+          <ReButton
+            layout="square"
+            icon="Odometer"
+            :type="metricsVisible ? 'primary' : 'default'"
+            :title="metricsVisible ? '隐藏性能指标' : '显示性能指标（FPS / 延迟 / 画面尺寸 / 分辨率）'"
+            @click="toggleMetrics"
+          />
+          <div v-if="metricsVisible" class="tt-corners" title="指标显示位置：四个角可配置">
+            <button
+              v-for="c in HUD_CORNERS"
+              :key="c.value"
+              type="button"
+              class="tt-corners__cell"
+              :class="{ 'is-on': metricsCorner === c.value }"
+              :title="c.label"
+              @click="setMetricsCorner(c.value)"
+            />
+          </div>
+        </template>
         <ReButton
           layout="square"
           :icon="sidePanelVisible ? 'Fold' : 'Files'"
@@ -630,11 +802,36 @@ onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
         {{ embedded ? '正在建立远控会话…' : '从左侧选择一台主机开始控制' }}
       </div>
 
+      <!-- 性能指标 HUD：叠在画面四角之一，不接管鼠标（pointer-events: none），不挡远控操作 -->
+      <div
+        v-if="metricsVisible && supportsMetrics"
+        class="term-hud"
+        :class="`is-${metricsCorner}`"
+      >
+        <div class="term-hud__row" title="最近 1 秒收到并绘制的画面帧数（画面静止时为 0）">
+          <span>帧率</span><b class="mono">{{ metrics.fps }}<i>fps</i></b>
+        </div>
+        <div class="term-hud__row" title="画面链路往返：RDP 为心跳往返，VNC 为画面更新请求往返">
+          <span>延迟</span><b class="mono">{{ metricsText(metrics.latencyMs, ' ms') }}</b>
+        </div>
+        <div class="term-hud__row" title="画面在窗口内的显示尺寸（CSS 像素）">
+          <span>画面</span><b class="mono">{{ displaySizeText() }}</b>
+        </div>
+        <div class="term-hud__row" title="远端桌面分辨率（帧缓冲）">
+          <span>分辨率</span><b class="mono">{{ fbSizeText() }}</b>
+        </div>
+        <div class="term-hud__foot">
+          <i class="term-hud__dot" :class="metrics.connected ? 'is-on' : 'is-off'" />
+          {{ metricsChannelText }}
+        </div>
+      </div>
+
       <!-- 终端右侧小列面板：文件管理 + 片段（终端内部弹出的面板） -->
       <ScTerminalSidePanel
         v-if="sidePanelVisible"
         :host-id="connection?.hostId ?? null"
         :host-name="connection?.hostName ?? ''"
+        :file-enabled="connection?.protocol === 'ssh' || connection?.protocol === 'telnet'"
         :path="terminalCwd"
         :path-seq="terminalCwdSeq"
         :visible="sidePanelVisible"
@@ -844,6 +1041,103 @@ onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
   font-size: 11px;
   color: var(--text-tertiary, #909399);
 }
+/* 指标位置选择：2×2 小方格，点哪格就贴哪个角 */
+.tt-corners {
+  display: grid;
+  grid-template-columns: repeat(2, 8px);
+  grid-template-rows: repeat(2, 8px);
+  gap: 3px;
+  align-self: center;
+  padding: 4px;
+  background: var(--bg-overlay-light, rgba(0, 0, 0, .04));
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, .1));
+  border-radius: 6px;
+}
+.tt-corners__cell {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--text-tertiary, #909399) 55%, transparent);
+  border-radius: 2px;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.tt-corners__cell:hover {
+  border-color: var(--brand-500, #409eff);
+}
+.tt-corners__cell.is-on {
+  background: var(--brand-500, #409eff);
+  border-color: var(--brand-500, #409eff);
+}
+.tt-corners__cell:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand-500, #409eff) 30%, transparent);
+}
+/* 性能指标卡：深色半透明，四角可配；刻意不接管鼠标，点穿到远控画面 */
+.term-hud {
+  position: absolute;
+  z-index: 35;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 156px;
+  padding: 9px 11px;
+  color: #e8eaf0;
+  font-size: 12px;
+  background: rgba(14, 17, 22, .76);
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .3);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+  user-select: none;
+}
+.term-hud.is-tl { top: 12px; left: 12px; }
+.term-hud.is-tr { top: 12px; right: 12px; }
+.term-hud.is-bl { bottom: 12px; left: 12px; }
+.term-hud.is-br { bottom: 12px; right: 12px; }
+.term-hud__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  line-height: 1.35;
+}
+.term-hud__row > span {
+  color: #9aa3b2;
+  font-size: 11px;
+}
+.term-hud__row > b {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.term-hud__row i {
+  margin-left: 2px;
+  font-weight: 400;
+  font-size: 10px;
+  font-style: normal;
+  color: #9aa3b2;
+}
+.term-hud__foot {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, .1);
+  color: #9aa3b2;
+  font-family: monospace;
+  font-size: 10px;
+}
+.term-hud__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6b7280;
+}
+.term-hud__dot.is-on { background: #3ecf8e; }
+.term-hud__dot.is-off { background: #f0a020; }
 
 .remote-frame {
   width: 100%;

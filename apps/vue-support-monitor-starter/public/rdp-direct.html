@@ -203,6 +203,55 @@
       }
       window.addEventListener('resize', fitCanvas);
 
+      /* ============ 性能指标：帧率 / 链路延迟 / 画面尺寸，供父窗口 HUD 展示 ============ */
+      var frameTimes = [];
+      var latencySamples = [];
+      var pingSeq = 0;
+      var pingSentAt = {};
+
+      /** 记录一帧：只存时间戳，快照时按最近 1 秒统计帧率（画面静止自然回落到 0） */
+      function recordFrame() {
+        frameTimes.push(Date.now());
+      }
+
+      /** 一次心跳：RDP 没有帧缓冲请求，用应用层 ping/pong 量真实链路往返 */
+      function sendPing() {
+        if (!ws || ws.readyState !== 1) return;
+        var t = ++pingSeq;
+        pingSentAt[t] = Date.now();
+        send({ c: 'ping', t: t });
+      }
+
+      /** 收到心跳回包：往返耗时即链路延迟（保留最近 5 次做均值） */
+      function onPong(cmd) {
+        var sentAt = pingSentAt[cmd.t];
+        if (!sentAt) return;
+        delete pingSentAt[cmd.t];
+        latencySamples.push(Date.now() - sentAt);
+        if (latencySamples.length > 5) latencySamples.shift();
+      }
+
+      /** 当前指标快照（父窗口通过 postMessage 每秒收一次） */
+      function metricsSnapshot() {
+        var now = Date.now();
+        while (frameTimes.length && now - frameTimes[0] > 1000) frameTimes.shift();
+        var latency = null;
+        if (latencySamples.length) {
+          var sum = 0;
+          for (var i = 0; i < latencySamples.length; i++) sum += latencySamples[i];
+          latency = Math.round(sum / latencySamples.length);
+        }
+        return {
+          fps: frameTimes.length,
+          latencyMs: latency,
+          fbWidth: canvas.width || 0,
+          fbHeight: canvas.height || 0,
+          displayWidth: canvas.clientWidth || 0,
+          displayHeight: canvas.clientHeight || 0,
+          connected: firstFrame
+        };
+      }
+
       /* ============ 帧解码：32 字节帧头 + 脏行 RGBA 像素 ============ */
       var tempData = null;
       function drawFrame(buffer) {
@@ -232,6 +281,7 @@
           image = new ImageData(tempData, w, rows);
         }
         ctx.putImageData(image, 0, top);
+        recordFrame();
       }
 
       /* ============ WebSocket ============ */
@@ -253,6 +303,11 @@
         if (typeof event.data === 'string') {
           var cmd = null;
           try { cmd = JSON.parse(event.data); } catch (e) { cmd = null; }
+          /* 心跳回包：只用于统计链路延迟，不当作连接错误 */
+          if (cmd && cmd.c === 'pong') {
+            onPong(cmd);
+            return;
+          }
           var msg = cmd && cmd.msg ? cmd.msg : event.data;
           errored = true;
           statusEl.textContent = msg;
@@ -285,6 +340,18 @@
 
       setTimeout(fitCanvas, 100);
       canvas.focus();
+
+      /* 每秒一次心跳，持续量 RDP 链路往返延迟（见 sendPing） */
+      setInterval(sendPing, 1000);
+
+      /* 每秒把指标回传给宿主页（同源 postMessage；未被 iframe 嵌入时不发） */
+      if (window.parent && window.parent !== window) {
+        setInterval(function () {
+          try {
+            window.parent.postMessage({ source: 'rdp-direct', type: 'metrics', metrics: metricsSnapshot() }, '*');
+          } catch (e) { /* 宿主不可达时忽略 */ }
+        }, 1000);
+      }
     })();
   </script>
 </body>

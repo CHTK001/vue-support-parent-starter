@@ -7,7 +7,7 @@
  * rdpj.dll（FreeRDP 3.x 原生桥）接出到目标 RDP 服务器；
  * 画面按「32 字节帧头 + 脏行 BGRA」推给 canvas，键鼠事件以 JSON 文本帧回传。
  */
-import { computed } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { getAccessToken } from '@repo/utils';
 
 const props = defineProps<{
@@ -26,6 +26,63 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{ (e: 'close'): void }>();
+
+/** 画面指标快照（由 iframe 内 rdp-direct.html 每秒 postMessage 回传） */
+interface ViewerMetrics {
+  /** 最近 1 秒呈现的帧数 */
+  fps: number;
+  /** 输入到画面更新的响应延迟（毫秒），无样本为 null */
+  latencyMs: number | null;
+  /** 远端帧缓冲宽（像素） */
+  fbWidth: number;
+  /** 远端帧缓冲高（像素） */
+  fbHeight: number;
+  /** 画面在容器内的显示宽（CSS 像素） */
+  displayWidth: number;
+  /** 画面在容器内的显示高（CSS 像素） */
+  displayHeight: number;
+  /** 是否已收到首帧 */
+  connected: boolean;
+}
+
+/** 指标默认值（未连接 / 未收到回传） */
+function emptyMetrics(): ViewerMetrics {
+  return {
+    fps: 0,
+    latencyMs: null,
+    fbWidth: 0,
+    fbHeight: 0,
+    displayWidth: 0,
+    displayHeight: 0,
+    connected: false,
+  };
+}
+
+const iframeRef = ref<HTMLIFrameElement>();
+const metrics = ref<ViewerMetrics>(emptyMetrics());
+
+/**
+ * 接收 iframe 回传的指标：只认本 iframe 的来源，避免同页其它消息串台。
+ *
+ * @param ev window message 事件
+ */
+function onMetricsMessage(ev: MessageEvent): void {
+  if (ev.source !== iframeRef.value?.contentWindow) return;
+  const data = ev.data as { source?: string; type?: string; metrics?: Partial<ViewerMetrics> } | null;
+  if (!data || data.source !== 'rdp-direct' || data.type !== 'metrics' || !data.metrics) return;
+  metrics.value = { ...emptyMetrics(), ...data.metrics };
+}
+onMounted(() => window.addEventListener('message', onMetricsMessage));
+onBeforeUnmount(() => window.removeEventListener('message', onMetricsMessage));
+watch(() => props.connection, () => { metrics.value = emptyMetrics(); });
+
+/**
+ * 当前指标快照（宿主页每 500ms 轮询一次）。
+ */
+function getMetrics(): ViewerMetrics {
+  return { ...metrics.value };
+}
+defineExpose({ getMetrics });
 
 /** iframe 地址：只带定位信息与申请分辨率，凭据由后端按主机台账解析 */
 const iframeSrc = computed(() => {
@@ -54,6 +111,7 @@ const iframeSrc = computed(() => {
     </div>
     <iframe
       v-if="connection"
+      ref="iframeRef"
       :src="iframeSrc"
       class="rdp-iframe"
       frameborder="0"

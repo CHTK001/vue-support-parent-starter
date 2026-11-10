@@ -81,9 +81,9 @@ function writePref(key: string, value: unknown): void {
  * 存储（Cookie / localStorage / sessionStorage）、截屏。SVG 抽取收进元素页签的
  * 侧栏，求值收进元素页签底部的 Console 抽屉。</p>
  */
-type PageTab = "elements" | "console" | "network" | "performance" | "app" | "screenshot";
+type PageTab = "elements" | "console" | "network" | "performance" | "svg" | "app" | "screenshot";
 
-const PAGE_TABS: readonly PageTab[] = ["elements", "console", "network", "performance", "app", "screenshot"];
+const PAGE_TABS: readonly PageTab[] = ["elements", "console", "network", "performance", "svg", "app", "screenshot"];
 
 /** 页签默认落在「网络」；上次停留的页签会记住，下次进来直接续上 */
 function readPageTab(): PageTab {
@@ -234,6 +234,12 @@ const svgLoading = ref(false);
 const svgError = ref("");
 /** 只显示已保存的 SVG */
 const svgSavedOnly = ref(false);
+/** SVG 页签：进页 / 导航 / 换目标后自动抽取（独立页与元素详情共用） */
+const svgAuto = ref<boolean>(readPref<boolean>("svg.auto", true));
+/** SVG 页签的关键字过滤（标签 / 来源 / 地址） */
+const svgKeyword = ref("");
+/** 放大预览中的 SVG（null = 关闭） */
+const svgPreview = ref<SvgItem | null>(null);
 /** 已保存 SVG 的 id（localStorage 持久化） */
 const svgSaved = ref<Set<string>>(new Set(loadSavedSvg()));
 
@@ -422,7 +428,7 @@ const uptime = computed(() => {
   return `${pad(Math.floor(seconds / 3600))}:${pad(Math.floor((seconds % 3600) / 60))}:${pad(seconds % 60)}`;
 });
 
-/** 六个页签（带计数）；整页源码与求值入口收在「元素」页签里，不再单开页签 */
+/** 七个页签（带计数）；整页源码与求值入口收在「元素」页签里，SVG 也单开一页做全量抽取 */
 const tabs = computed<{ name: PageTab; label: string; count?: number }[]>(() => [
   { name: "elements", label: "元素" },
   { name: "console", label: "控制台", count: consoleMessages.value.length },
@@ -432,6 +438,7 @@ const tabs = computed<{ name: PageTab; label: string; count?: number }[]>(() => 
     label: "性能",
     count: perfEventCount.value || perfSummary.value?.total || undefined,
   },
+  { name: "svg", label: "SVG", count: svgItems.value.length || undefined },
   { name: "app", label: "应用" },
   { name: "screenshot", label: "截屏" },
 ]);
@@ -931,6 +938,10 @@ function connectWs() {
     });
     // 页面脚本（变化监视 / sw8）依赖 WS 指令通道，连上后补挂一次
     injectPageScripts();
+  }).catch(() => {
+    // 握手失败（后端重启 / 鉴权过期 / 页面卸载）由 onclose 的指数退避重连兜底，
+    // 这里必须吞掉 rejection，否则会变成未处理的 Promise 拒绝（控制台 PAGEERROR）。
+    wsConnected.value = false;
   });
 }
 
@@ -1024,6 +1035,10 @@ function dispatchCdpEvent(m: Record<string, unknown>) {
     case "Tracing.bufferUsage":
       perfBufferUsage.value = Math.round(Number(((m.params ?? {}) as Record<string, unknown>).percentFull ?? 0) * 100);
       break;
+    // 录屏帧：交互舞台显示 + 录制截图采样（都靠这一路）
+    case "Page.screencastFrame":
+      onScreencastFrame((m.params ?? {}) as Record<string, unknown>, String(m.targetId ?? ""));
+      break;
     // 页面变化：页面里 MutationObserver 经 Runtime.addBinding 主动回推，零轮询
     case "Runtime.bindingCalled": {
       const params = (m.params ?? {}) as Record<string, unknown>;
@@ -1037,11 +1052,13 @@ function dispatchCdpEvent(m: Record<string, unknown>) {
     case "Page.frameNavigated":
       onPageChanged("导航", m);
       reinjectPageScripts(String(m.targetId ?? "") || selectedTarget.value);
+      autoRefreshSvg();
       break;
     case "Page.loadEventFired":
       onPageChanged("加载完成", m);
       // 页面加载完成后脚本上下文已重建，重挂变化监视 / sw8
       reinjectPageScripts(String(m.targetId ?? "") || selectedTarget.value);
+      autoRefreshSvg();
       break;
     // 目标变化：刷新列表（响应事件，不是轮询）
     case "Target.targetCreated":
@@ -1988,9 +2005,15 @@ async function startPerf() {
   perfEventCount.value = 0;
   perfBufferUsage.value = 0;
   perfSummary.value = null;
+  resetFilm();
   perfStartAt.value = Date.now();
   perfStopAt.value = 0;
   perfTarget.value = selectedTarget.value;
+  // 录制截图依赖 screencast：没开交互画面时临时开一路，停止后自动关掉
+  if (!liveOn.value) {
+    void startLive();
+    liveAutoStarted = true;
+  }
   const included = perfCategories.value.length
     ? [...perfCategories.value]
     : ["devtools.timeline"];
@@ -2011,6 +2034,7 @@ async function startPerf() {
   } catch (error) {
     perfError.value = "开始录制失败: " + (error as Error).message;
     ElMessage.error(perfError.value);
+    releaseAutoScreencast();
   }
 }
 
@@ -2025,6 +2049,8 @@ async function stopPerf() {
     perfError.value = "停止录制失败: " + (error as Error).message;
     perfRecording.value = false;
     perfStopping.value = false;
+    commitFilm();
+    releaseAutoScreencast();
     analyzePerf();
     return;
   }
@@ -2034,6 +2060,8 @@ async function stopPerf() {
     if (perfStopping.value) {
       perfRecording.value = false;
       perfStopping.value = false;
+      commitFilm();
+      releaseAutoScreencast();
       analyzePerf();
     }
   }, 8000);
@@ -2063,7 +2091,16 @@ function onTracingComplete() {
   perfRecording.value = false;
   perfStopping.value = false;
   if (!perfStopAt.value) perfStopAt.value = Date.now();
+  commitFilm();
+  releaseAutoScreencast();
   analyzePerf();
+}
+
+/** 停止录制后收回「为截图临时开启」的 screencast（用户手动开的保留） */
+function releaseAutoScreencast() {
+  if (!liveAutoStarted) return;
+  liveAutoStarted = false;
+  void stopLive();
 }
 
 /** 把暂存区的事件压成汇总模型 + 火焰图方块 */
@@ -2207,6 +2244,7 @@ function clearPerf() {
   perfBufferUsage.value = 0;
   perfStartAt.value = 0;
   perfStopAt.value = 0;
+  resetFilm();
 }
 
 /** 录制时长文案（依赖 now 心跳，录制过程中也会每秒走字） */
@@ -2324,6 +2362,35 @@ const SVG_EXTRACT_SCRIPT = `(function () {
       out.push({ markup: '', source: (isDataSvg ? '内联 data' : '外链'), label: src, external: src });
     }
   }
+  // <object data> / <embed src> 引用的 .svg
+  var embeds = document.querySelectorAll('object[data], embed[src]');
+  for (var e2 = 0; e2 < embeds.length; e2++) {
+    var es = embeds[e2].getAttribute('data') || embeds[e2].getAttribute('src') || '';
+    var isEmbSvg = /\\.svg(\\?|#|$)/i.test(es) || es.slice(0, 18).toLowerCase() === 'data:image/svg+xml';
+    if (isEmbSvg) {
+      var tag = embeds[e2].tagName.toLowerCase();
+      out.push({ markup: '', source: (tag === 'object' ? '<object> 外链' : '<embed> 外链'), label: es, external: es });
+    }
+  }
+  // CSS background-image 里的 .svg（限量扫描，避免在大页面里逐元素取计算样式拖慢）
+  var all = document.querySelectorAll('*');
+  var seenBg = {};
+  var checked = 0;
+  for (var b2 = 0; b2 < all.length && checked < 500; b2++) {
+    var bg = '';
+    try { bg = window.getComputedStyle(all[b2]).backgroundImage || ''; } catch (eb) { bg = ''; }
+    checked++;
+    if (!bg || bg.indexOf('url(') < 0) { continue; }
+    var re = /url\\((['"]?)([^'")]+)\\1\\)/g;
+    var mm;
+    while ((mm = re.exec(bg))) {
+      var u = mm[2] || '';
+      var isBgSvg = /\\.svg(\\?|#|$)/i.test(u) || u.slice(0, 18).toLowerCase() === 'data:image/svg+xml';
+      if (!isBgSvg || seenBg[u]) { continue; }
+      seenBg[u] = 1;
+      out.push({ markup: '', source: '背景图', label: u, external: u });
+    }
+  }
   return JSON.stringify({ title: document.title, items: out });
 })()`;
 
@@ -2366,10 +2433,15 @@ function persistSavedSvg() {
   }
 }
 
-/** 抽取当前页面里的全部 SVG */
-async function loadSvgs() {
+/** 抽取当前页面里的全部 SVG（silent = 自动触发，失败不弹提示） */
+async function loadSvgs(silent = false) {
   if (!selectedTarget.value) {
-    ElMessage.warning("请先在左侧选择一个目标");
+    if (!silent) {
+      ElMessage.warning("请先在左侧选择一个目标");
+    }
+    return;
+  }
+  if (svgLoading.value) {
     return;
   }
   svgLoading.value = true;
@@ -2431,6 +2503,22 @@ async function loadSvgs() {
   }
 }
 
+/** 自动抽取的防抖计时器（导航会连续触发 frameNavigated + loadEventFired） */
+let svgAutoTimer: ReturnType<typeof setTimeout> | undefined;
+
+/** 页面导航 / 加载完成时按需重抽（只在 SVG 页签且开着自动获取时） */
+function autoRefreshSvg() {
+  if (!svgAuto.value || pageTab.value !== "svg" || !selectedTarget.value) {
+    return;
+  }
+  clearTimeout(svgAutoTimer);
+  svgAutoTimer = setTimeout(() => {
+    if (svgAuto.value && pageTab.value === "svg" && selectedTarget.value) {
+      void loadSvgs(true);
+    }
+  }, 500);
+}
+
 /** 从 markup 里读 width / height / viewBox */
 function measureSvg(markup: string): { w: number; h: number } {
   const vb = /\bviewBox\s*=\s*["']\s*([-\d.]+)\s+([-\d.]+)\s+([\d.]+)\s+([\d.]+)/i.exec(markup);
@@ -2465,8 +2553,15 @@ async function fetchExternalSvg(url: string): Promise<string> {
   }
 }
 
-/** 显示中的 SVG 卡片 */
-const visibleSvgs = computed(() => (svgSavedOnly.value ? svgItems.value.filter((s) => s.saved) : svgItems.value));
+/** 显示中的 SVG 卡片（只看已保存 + 关键字过滤） */
+const visibleSvgs = computed(() => {
+  const kw = svgKeyword.value.trim().toLowerCase();
+  return svgItems.value.filter((s) => {
+    if (svgSavedOnly.value && !s.saved) return false;
+    if (!kw) return true;
+    return `${s.label} ${s.source} ${s.id}`.toLowerCase().includes(kw);
+  });
+});
 
 /** 下载一个 SVG（Blob + a[download]） */
 function downloadSvg(item: SvgItem) {
@@ -2494,6 +2589,365 @@ function toggleSaveSvg(item: SvgItem) {
   svgItems.value = svgItems.value.map((s) => (s.id === item.id ? { ...s, saved: next.has(item.id) } : s));
   persistSavedSvg();
   ElMessage.success(next.has(item.id) ? "已保存到本地列表" : "已取消保存");
+}
+
+/* ==================== 实时操作画面（Page.startScreencast） ==================== */
+
+/**
+ * 交互舞台状态
+ *
+ * <p>元素页签的舞台是「截屏 + 点选反查」，只能看不能动。这里走
+ * {@code Page.startScreencast} 拿连续的 jpeg 帧，再把鼠标 / 键盘 / 滚轮经
+ * {@code Input.*} 转发进页面——录制性能时能直接在调试中心里操作被调试页面。</p>
+ */
+/** 上一次由录制自动开启的 screencast（停止后要收回，用户自己开的则保留） */
+let liveAutoStarted = false;
+
+const liveOn = ref(false);
+const liveLoading = ref(false);
+/** 当前帧（data url，jpeg） */
+const liveFrame = ref("");
+/** 帧对应的 CSS 视口尺寸（metadata.deviceWidth / deviceHeight） */
+const liveMeta = ref({ w: 0, h: 0 });
+/** 当前 screencast 会话号（ack 必须带回） */
+const liveSession = ref(0);
+/** 舞台提示 */
+const liveHint = ref("开始后可在这里直接点击 / 输入，操作会转发到页面");
+/** 帧图片元素（算坐标用） */
+const liveImgRef = ref<HTMLImageElement | null>(null);
+/** 隐藏输入框（承接按键与输入法） */
+const liveInputRef = ref<HTMLTextAreaElement | null>(null);
+/** 上一次发出的鼠标位置（用于节流 mouseMoved） */
+let liveLastMove = 0;
+
+/** 录制中的截图采样（filmstrip） */
+interface FilmFrame {
+  /** 相对录制起点的毫秒偏移 */
+  t: number;
+  /** data url（jpeg） */
+  url: string;
+}
+const filmFrames = ref<FilmFrame[]>([]);
+const filmIndex = ref(0);
+/** 采样暂存区（不进响应式，录制中每帧都写会拖慢渲染） */
+let filmSink: FilmFrame[] = [];
+/** 采样最小间隔（ms，超上限后翻倍） */
+let filmInterval = 450;
+let filmLastAt = 0;
+/** 采样帧上限（防止长时间录制把内存吃光） */
+const FILM_MAX = 140;
+
+/** 当前选中的帧时间文案 */
+const filmTimeLabel = computed(() => {
+  const f = filmFrames.value[filmIndex.value];
+  return f ? `${(f.t / 1000).toFixed(1)}s` : "—";
+});
+
+/** 时间轴上帧点的相对位置（相对最后一帧） */
+function filmDotLeft(f: FilmFrame): string {
+  const last = filmFrames.value[filmFrames.value.length - 1];
+  const span = last && last.t > 0 ? last.t : 1;
+  return `${Math.min(100, Math.max(0, (f.t / span) * 100))}%`;
+}
+
+/** 选中的帧（大图预览） */
+const filmCurrent = computed(() => filmFrames.value[filmIndex.value] ?? null);
+
+/** 开始交互画面（录制开始前调用也一样） */
+async function startLive() {
+  if (liveOn.value || liveLoading.value) return;
+  if (!selectedTarget.value) {
+    ElMessage.warning("先在左侧选择一个页面目标");
+    return;
+  }
+  if (!wsReady()) {
+    ElMessage.warning("指令通道还没连上，稍后再试");
+    return;
+  }
+  liveLoading.value = true;
+  try {
+    await client.call(
+      "Page.startScreencast",
+      { format: "jpeg", quality: 70, maxWidth: 1280, maxHeight: 960, everyNthFrame: 1 },
+      selectedTarget.value,
+    );
+    liveOn.value = true;
+    liveHint.value = "画面就绪：点按、输入、滚轮都会转发到页面";
+    // 键盘事件要落到隐藏输入框上
+    void nextTick(() => liveInputRef.value?.focus());
+  } catch (error) {
+    liveHint.value = "启动交互画面失败: " + (error as Error).message;
+    ElMessage.error(liveHint.value);
+  } finally {
+    liveLoading.value = false;
+  }
+}
+
+/** 停止交互画面 */
+async function stopLive() {
+  if (!liveOn.value) return;
+  liveOn.value = false;
+  liveFrame.value = "";
+  liveSession.value = 0;
+  try {
+    await client.call("Page.stopScreencast", {}, selectedTarget.value);
+  } catch {
+    // 目标已关闭时 stop 会失败，忽略即可
+  }
+}
+
+/** 切换交互画面 */
+function toggleLive() {
+  if (liveOn.value) void stopLive();
+  else void startLive();
+}
+
+/**
+ * 处理一帧 screencast
+ *
+ * <p>不先 ack 浏览器只会推下一帧后一直等，画面就定格在第一张。因此无论这一帧
+ * 是否用得上（比如录制已停），只要会话号对得上就先 ack。</p>
+ */
+function onScreencastFrame(params: Record<string, unknown>, targetId: string) {
+  const sessionId = Number(params.sessionId ?? 0);
+  const meta = (params.metadata ?? {}) as Record<string, unknown>;
+  // 录制目标之外的帧直接丢弃，但仍然 ack（避免占住该页面的帧循环）
+  if (targetId && selectedTarget.value && targetId !== selectedTarget.value) {
+    return;
+  }
+  if (sessionId) {
+    liveSession.value = sessionId;
+    void client
+      .call("Page.screencastFrameAck", { sessionId }, targetId || selectedTarget.value)
+      .catch(() => undefined);
+  }
+  const data = String(params.data ?? "");
+  if (!data) return;
+  const url = `data:image/jpeg;base64,${data}`;
+  if (liveOn.value) {
+    liveFrame.value = url;
+    liveMeta.value = {
+      w: Number(meta.deviceWidth ?? 0) || liveMeta.value.w,
+      h: Number(meta.deviceHeight ?? 0) || liveMeta.value.h,
+    };
+  }
+  if (perfRecording.value) {
+    sampleFilmFrame(url);
+  }
+}
+
+/** 录制中按时间节奏采样一帧（超上限时隔帧丢弃并加倍间隔） */
+function sampleFilmFrame(url: string) {
+  if (!perfRecording.value || !perfStartAt.value) return;
+  const at = Date.now();
+  if (at - filmLastAt < filmInterval) return;
+  filmLastAt = at;
+  filmSink.push({ t: at - perfStartAt.value, url });
+  if (filmSink.length > FILM_MAX) {
+    filmSink = filmSink.filter((_, i) => i % 2 === 0);
+    filmInterval *= 2;
+  }
+}
+
+/** 采样复位（每次开始录制前调用） */
+function resetFilm() {
+  filmSink = [];
+  filmFrames.value = [];
+  filmIndex.value = 0;
+  filmInterval = 450;
+  filmLastAt = 0;
+}
+
+/** 停止录制后把采样结果交给时间轴 */
+function commitFilm() {
+  filmFrames.value = filmSink.slice();
+  filmIndex.value = Math.max(0, filmFrames.value.length - 1);
+}
+
+/** 舞台坐标：把鼠标位置换算成页面 CSS 视口坐标 */
+function livePoint(event: MouseEvent | WheelEvent): { x: number; y: number } | null {
+  const img = liveImgRef.value;
+  if (!img) return null;
+  const rect = img.getBoundingClientRect();
+  if (!rect.width || !rect.height) return null;
+  const dw = liveMeta.value.w || img.naturalWidth;
+  const dh = liveMeta.value.h || img.naturalHeight;
+  if (!dw || !dh) return null;
+  return {
+    x: Math.round(((event.clientX - rect.left) / rect.width) * dw),
+    y: Math.round(((event.clientY - rect.top) / rect.height) * dh),
+  };
+}
+
+/** CDP 修饰键位（Alt=1 Ctrl=2 Meta=4 Shift=8） */
+function liveModifiers(event: MouseEvent | KeyboardEvent | WheelEvent): number {
+  return (
+    (event.altKey ? 1 : 0) + (event.ctrlKey ? 2 : 0) + (event.metaKey ? 4 : 0) + (event.shiftKey ? 8 : 0)
+  );
+}
+
+/** 发一条 Input.* 指令（失败只更新提示，不打断操作） */
+async function sendInput(method: string, params: Record<string, unknown>) {
+  if (!selectedTarget.value) return;
+  try {
+    await client.call(method, params, selectedTarget.value);
+  } catch (error) {
+    liveHint.value = "指令未送达: " + (error as Error).message;
+  }
+}
+
+/** 鼠标按下 / 松开（左右键都转发，便于测右键菜单） */
+function liveMouseDown(event: MouseEvent) {
+  if (!liveOn.value) return;
+  event.preventDefault();
+  liveInputRef.value?.focus();
+  const point = livePoint(event);
+  if (!point) return;
+  const button = event.button === 2 ? "right" : event.button === 1 ? "middle" : "left";
+  const buttons = event.button === 2 ? 2 : event.button === 1 ? 4 : 1;
+  void sendInput("Input.dispatchMouseEvent", {
+    type: "mousePressed",
+    x: point.x,
+    y: point.y,
+    button,
+    buttons,
+    clickCount: 1,
+    modifiers: liveModifiers(event),
+  });
+}
+
+/** 鼠标松开（clickCount=1 才会触发 click；双击场景由浏览器自行判定） */
+function liveMouseUp(event: MouseEvent) {
+  if (!liveOn.value) return;
+  event.preventDefault();
+  const point = livePoint(event);
+  if (!point) return;
+  const button = event.button === 2 ? "right" : event.button === 1 ? "middle" : "left";
+  void sendInput("Input.dispatchMouseEvent", {
+    type: "mouseReleased",
+    x: point.x,
+    y: point.y,
+    button,
+    buttons: 0,
+    clickCount: 1,
+    modifiers: liveModifiers(event),
+  });
+}
+
+/** 悬停（40ms 节流，够 hover 菜单用又不至于打满指令通道） */
+function liveMouseMove(event: MouseEvent) {
+  if (!liveOn.value) return;
+  const at = Date.now();
+  if (at - liveLastMove < 40) return;
+  liveLastMove = at;
+  const point = livePoint(event);
+  if (!point) return;
+  void sendInput("Input.dispatchMouseEvent", {
+    type: "mouseMoved",
+    x: point.x,
+    y: point.y,
+    button: "none",
+    buttons: 0,
+    modifiers: liveModifiers(event),
+  });
+}
+
+/** 滚轮（preventDefault 阻止调试中心自己滚） */
+function liveWheel(event: WheelEvent) {
+  if (!liveOn.value) return;
+  event.preventDefault();
+  const point = livePoint(event);
+  if (!point) return;
+  void sendInput("Input.dispatchMouseEvent", {
+    type: "mouseWheel",
+    x: point.x,
+    y: point.y,
+    deltaX: Math.round(event.deltaX),
+    deltaY: Math.round(event.deltaY),
+    modifiers: liveModifiers(event),
+  });
+}
+
+/** 功能键位表（key -> code / Windows 虚拟键码 / 可选的 text） */
+const LIVE_KEYS: Record<string, { code: string; vk: number; text?: string }> = {
+  Enter: { code: "Enter", vk: 13, text: "\r" },
+  Backspace: { code: "Backspace", vk: 8 },
+  Tab: { code: "Tab", vk: 9, text: "\t" },
+  Escape: { code: "Escape", vk: 27 },
+  Delete: { code: "Delete", vk: 46 },
+  ArrowUp: { code: "ArrowUp", vk: 38 },
+  ArrowDown: { code: "ArrowDown", vk: 40 },
+  ArrowLeft: { code: "ArrowLeft", vk: 37 },
+  ArrowRight: { code: "ArrowRight", vk: 39 },
+  Home: { code: "Home", vk: 36 },
+  End: { code: "End", vk: 35 },
+  PageUp: { code: "PageUp", vk: 33 },
+  PageDown: { code: "PageDown", vk: 34 },
+};
+
+/** 按键转发：可打印字符交给隐藏输入框（insertText），功能键 / 组合键走 dispatchKeyEvent */
+function liveKeydown(event: KeyboardEvent) {
+  if (!liveOn.value) return;
+  // 输入法组合中：让 textarea 收下，compositionend 后再统一 insertText
+  if (event.isComposing || event.key === "Process") return;
+  const meta = LIVE_KEYS[event.key];
+  const combo = event.ctrlKey || event.metaKey || event.altKey;
+  if (!meta && !combo) {
+    // 普通字符：textarea 会触发 input 事件，由 liveInput 发 insertText
+    return;
+  }
+  event.preventDefault();
+  const params: Record<string, unknown> = {
+    type: meta?.text ? "keyDown" : "rawKeyDown",
+    key: event.key,
+    code: meta?.code ?? `Key${event.key.toUpperCase()}`,
+    windowsVirtualKeyCode: meta?.vk ?? event.key.toUpperCase().charCodeAt(0),
+    nativeVirtualKeyCode: meta?.vk ?? event.key.toUpperCase().charCodeAt(0),
+    modifiers: liveModifiers(event),
+  };
+  if (meta?.text && !combo) {
+    params.text = meta.text;
+    params.unmodifiedText = meta.text;
+  }
+  void sendInput("Input.dispatchKeyEvent", params).then(() => {
+    void sendInput("Input.dispatchKeyEvent", {
+      type: "keyUp",
+      key: event.key,
+      code: params.code,
+      windowsVirtualKeyCode: params.windowsVirtualKeyCode,
+      nativeVirtualKeyCode: params.nativeVirtualKeyCode,
+      modifiers: params.modifiers,
+    });
+  });
+}
+
+/** 输入法组合中（这期间的 input 不能直接发给页面，等 compositionend 再发） */
+let liveComposing = false;
+
+/** 文本输入（含输入法上屏）：发完即清空，避免下一次重复插入 */
+function liveInput(event: Event) {
+  if (liveComposing) return;
+  const el = event.target as HTMLTextAreaElement;
+  const text = el.value;
+  el.value = "";
+  if (!liveOn.value || !text) return;
+  void sendInput("Input.insertText", { text });
+}
+
+/** 输入法开始组合 */
+function liveCompositionStart() {
+  liveComposing = true;
+}
+
+/** 输入法结束：把上屏结果发一次，并清空暂存的组合文本 */
+function liveCompositionEnd(event: CompositionEvent) {
+  liveComposing = false;
+  const el = event.target as HTMLTextAreaElement;
+  if (el) el.value = "";
+  if (!liveOn.value) return;
+  const text = event.data;
+  if (!text) return;
+  void sendInput("Input.insertText", { text });
 }
 
 /* ==================== 原始网站舞台（与元素页签联动） ==================== */
@@ -3719,6 +4173,12 @@ async function ensureElementReady(): Promise<void> {
     }
     return;
   }
+  if (pageTab.value === "svg") {
+    if (svgAuto.value && !svgItems.value.length) {
+      void loadSvgs(true);
+    }
+    return;
+  }
   if (pageTab.value !== "elements" || !wsReady()) {
     return;
   }
@@ -3744,6 +4204,10 @@ async function ensureElementReady(): Promise<void> {
 watch(selectedTarget, (id) => {
   writePref("target", id);
   void stopPickNode();
+  // screencast 绑定在具体页面上，换目标必须停掉旧的，否则画面会停在上一页
+  if (liveOn.value) {
+    void stopLive();
+  }
   elementTree.value = null;
   elementNodeCount.value = 0;
   selectedNode.value = null;
@@ -3779,8 +4243,17 @@ watch(pageTab, (tab) => {
   if (tab !== "elements") {
     void stopPickNode();
   }
+  // 离开性能页且没在录制：收回交互画面，别让 screencast 在后台白跑
+  if (tab !== "performance" && liveOn.value && !perfRecording.value) {
+    void stopLive();
+  }
   if (tab === "elements") {
     void ensureElementReady();
+  } else if (tab === "svg") {
+    // 进 SVG 独立页：自动获取开着就抽一次，否则等用户点「重新抽取」
+    if (svgAuto.value && !svgItems.value.length) {
+      void loadSvgs(true);
+    }
   } else if (tab === "app") {
     // 进「应用」页签顺手拉一次存储，省一次点击
     if (selectedTarget.value && !storageCookies.value.length && !storageLocal.value.length) {
@@ -4159,6 +4632,13 @@ watch(netBodyPretty, (on) => writePref("net.pretty", on));
 watch(sw8Enabled, (on) => writePref("sw8.enabled", on));
 watch(storageTab, (tab) => writePref("app.storageTab", tab));
 watch(perfCategories, (list) => writePref("perf.categories", list));
+watch(svgAuto, (on) => {
+  writePref("svg.auto", on);
+  // 重新打开自动获取时立刻补抽一次（当前就在 SVG 页签）
+  if (on && pageTab.value === "svg" && selectedTarget.value) {
+    void loadSvgs(true);
+  }
+});
 watch(evaluateOpen, (on) => writePref("console.drawerOpen", on));
 
 /* ==================== 生命周期 ==================== */
@@ -4195,6 +4675,8 @@ onBeforeUnmount(() => {
   stageObserver?.disconnect();
   clearInterval(uptimeTimer);
   clearTimeout(perfFallbackTimer);
+  clearTimeout(svgAutoTimer);
+  void stopLive();
   if (pickTimer) {
     clearInterval(pickTimer);
     pickTimer = undefined;
@@ -4446,6 +4928,22 @@ onBeforeUnmount(() => {
             {{ netSummary.count }} 条 · {{ fmtSize(netSummary.bytes) }}<template v-if="netSummary.failed"> · {{ netSummary.failed }} 失败</template>
           </span>
           <button class="debug-btn debug-btn--sm" @click="clearNetwork">清空</button>
+        </div>
+
+        <!-- ---------- SVG 工具行 ---------- -->
+        <div v-else-if="pageTab === 'svg'" class="debug-tool">
+          <label class="debug-tool__switch" title="进入页签 / 页面导航后自动抽取">
+            <input v-model="svgAuto" type="checkbox" /> 自动获取
+          </label>
+          <button class="debug-btn debug-btn--sm debug-btn--primary" :disabled="svgLoading || !selectedTarget" @click="loadSvgs()">
+            {{ svgLoading ? "抽取中…" : "重新抽取" }}
+          </button>
+          <label class="debug-tool__switch">
+            <input v-model="svgSavedOnly" type="checkbox" /> 只看已保存
+          </label>
+          <span class="debug-tool__spacer" />
+          <input v-model="svgKeyword" class="debug-input debug-input--search" placeholder="过滤标签 / 来源 / 地址" />
+          <span class="debug-tool__hint">{{ visibleSvgs.length }} / {{ svgItems.length }} 个</span>
         </div>
 
         <!-- ---------- 性能（Tracing）工具行 ---------- -->
@@ -4802,7 +5300,7 @@ onBeforeUnmount(() => {
                       <label class="debug-tool__switch">
                         <input v-model="svgSavedOnly" type="checkbox" /> 只看已保存
                       </label>
-                      <button class="debug-btn debug-btn--sm" :disabled="svgLoading" @click="loadSvgs">
+                      <button class="debug-btn debug-btn--sm" :disabled="svgLoading" @click="loadSvgs()">
                         {{ svgLoading ? "抽取中…" : "重新抽取" }}
                       </button>
                     </div>
@@ -5071,12 +5569,126 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
+        <!-- ==================== SVG（独立页） ==================== -->
+        <div v-else-if="pageTab === 'svg'" class="debug-scroll debug-svg">
+          <div v-if="svgError" class="debug-perf__err">{{ svgError }}</div>
+          <div v-if="!selectedTarget" class="debug-empty">
+            <b>还没有选择目标</b>
+            <span>左侧选一个页面后点「重新抽取」，或打开「自动获取」</span>
+          </div>
+          <div v-else-if="svgLoading && !svgItems.length" class="debug-empty">
+            <b>正在抽取 SVG…</b>
+            <span>内联 &lt;svg&gt; / &lt;use&gt; / 图片 / object / embed / 背景图</span>
+          </div>
+          <div v-else-if="!visibleSvgs.length" class="debug-empty">
+            <b>{{ svgSavedOnly ? "还没有保存的 SVG" : svgKeyword ? "没有匹配的 SVG" : "这个页面没有 SVG" }}</b>
+            <span>{{ svgItems.length ? "换个关键字或关掉「只看已保存」" : "内联 / <use> / .svg 图片 / object / embed / 背景图都没有命中" }}</span>
+          </div>
+          <div v-else class="debug-svg__grid">
+            <div v-for="item in visibleSvgs" :key="item.id" class="debug-svgcard">
+              <button class="debug-svgcard__preview" @click="svgPreview = item">
+                <img :src="item.dataUrl" :alt="item.label" />
+              </button>
+              <div class="debug-svgcard__body">
+                <div class="debug-svgcard__label" :title="item.label">{{ item.label }}</div>
+                <div class="debug-svgcard__meta">
+                  <span :title="item.source">{{ item.source }}</span>
+                  <span>{{ fmtSize(item.bytes) }}</span>
+                  <span>{{ item.width || "?" }}×{{ item.height || "?" }} px</span>
+                </div>
+                <div class="debug-svgcard__acts">
+                  <button class="debug-btn debug-btn--sm" @click="downloadSvg(item)">下载</button>
+                  <button
+                    :class="['debug-btn', 'debug-btn--sm', { 'debug-btn--primary': item.saved }]"
+                    @click="toggleSaveSvg(item)"
+                  >
+                    {{ item.saved ? "已保存" : "保存" }}
+                  </button>
+                  <button class="debug-btn debug-btn--sm" @click="copyText(item.markup, '已复制 SVG 源码')">复制</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 放大预览 -->
+          <div v-if="svgPreview" class="debug-modal" @click.self="svgPreview = null">
+            <div class="debug-svgpreview">
+              <div class="debug-svgpreview__hd">
+                <b :title="svgPreview.label">{{ svgPreview.label }}</b>
+                <span class="debug-tool__hint">{{ svgPreview.source }} · {{ fmtSize(svgPreview.bytes) }}</span>
+                <span class="debug-tool__spacer" />
+                <button class="debug-btn debug-btn--sm" @click="downloadSvg(svgPreview)">下载</button>
+                <button class="debug-btn debug-btn--sm" @click="copyText(svgPreview.markup, '已复制 SVG 源码')">复制</button>
+                <button class="debug-btn debug-btn--sm" @click="svgPreview = null">关闭</button>
+              </div>
+              <div class="debug-svgpreview__body">
+                <img :src="svgPreview.dataUrl" :alt="svgPreview.label" />
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- ==================== 性能（Tracing） ==================== -->
         <div v-else-if="pageTab === 'performance'" class="debug-scroll debug-perf">
           <div v-if="perfError" class="debug-perf__err">{{ perfError }}</div>
+
+          <!-- 操作画面：screencast 帧 + 输入转发（录制时能直接操作被调试页面） -->
+          <div class="debug-live">
+            <div class="debug-live__hd">
+              <b class="debug-live__title">操作画面</b>
+              <span class="debug-live__hint">{{ liveHint }}</span>
+              <span class="debug-tool__spacer" />
+              <span v-if="liveOn" class="debug-pill debug-pill--info"><i class="debug-dot" />已接管</span>
+              <button
+                :class="['debug-btn', 'debug-btn--sm', { 'debug-btn--primary': !liveOn }]"
+                :disabled="!selectedTarget || liveLoading"
+                @click="toggleLive"
+              >
+                {{ liveLoading ? "启动中…" : liveOn ? "停止画面" : "开始操作画面" }}
+              </button>
+            </div>
+            <div class="debug-live__view">
+              <img
+                v-if="liveFrame"
+                ref="liveImgRef"
+                :src="liveFrame"
+                alt="可操作的页面画面"
+                draggable="false"
+                @mousedown="liveMouseDown"
+                @mouseup="liveMouseUp"
+                @mousemove="liveMouseMove"
+                @wheel="liveWheel"
+                @contextmenu.prevent
+              />
+              <div v-else class="debug-stage__ph">
+                <b>{{ liveLoading ? "正在启动画面…" : "操作画面未开启" }}</b>
+                <span v-if="selectedTarget">选「开始操作画面」后，这里可以直接点击 / 输入 / 滚动</span>
+                <span v-else>先在左侧选择一个页面目标</span>
+              </div>
+              <span v-if="liveOn && liveFrame" class="debug-live__badge">Live</span>
+            </div>
+            <div class="debug-live__bar">
+              <span class="debug-live__hint">
+                {{ liveMeta.w ? `${liveMeta.w} × ${liveMeta.h} CSS px` : "等待首帧…" }}
+              </span>
+              <span class="debug-tool__spacer" />
+              <span class="debug-live__hint">点按画面会聚焦到输入框，可直接打字</span>
+            </div>
+            <textarea
+              ref="liveInputRef"
+              class="debug-live__keys"
+              aria-hidden="true"
+              spellcheck="false"
+              @keydown="liveKeydown"
+              @input="liveInput"
+              @compositionstart="liveCompositionStart"
+              @compositionend="liveCompositionEnd"
+            ></textarea>
+          </div>
+
           <div v-if="!perfSummary" class="debug-empty">
             <b>{{ perfRecording ? "正在录制…" : "还没有录制数据" }}</b>
-            <span v-if="perfRecording">操作页面（滚动、点击、切路由），然后点「停止」分析</span>
+            <span v-if="perfRecording">在「操作画面」里滚动、点击、切路由，然后点「停止」分析</span>
             <span v-else>点上方「开始录制」，操作页面后停止，这里会出主线程时间线与汇总指标</span>
           </div>
 
@@ -5102,6 +5714,51 @@ onBeforeUnmount(() => {
                 <span class="debug-perf__k">帧</span>
                 <b class="debug-perf__v">{{ perfSummary.frames }}</b>
               </div>
+            </div>
+
+            <div class="debug-perf__sec">
+              录制截图
+              <span class="debug-perf__secn">
+                {{ filmFrames.length ? `${filmFrames.length} 帧 · 采样 ${(filmInterval / 1000).toFixed(1)}s` : "本次没有采样到画面" }}
+              </span>
+            </div>
+            <div v-if="filmFrames.length" class="debug-film">
+              <div class="debug-film__main">
+                <img v-if="filmCurrent" :src="filmCurrent.url" alt="录制帧" />
+                <span class="debug-film__time">{{ filmTimeLabel }}</span>
+              </div>
+              <div class="debug-film__track">
+                <button
+                  v-for="(f, i) in filmFrames"
+                  :key="i"
+                  :class="['debug-film__dot', { 'is-active': i === filmIndex }]"
+                  :style="{ left: filmDotLeft(f) }"
+                  :title="`${(f.t / 1000).toFixed(2)}s`"
+                  @click="filmIndex = i"
+                />
+              </div>
+              <input
+                v-model.number="filmIndex"
+                class="debug-film__range"
+                type="range"
+                min="0"
+                :max="Math.max(0, filmFrames.length - 1)"
+                step="1"
+              />
+              <div class="debug-film__strip">
+                <button
+                  v-for="(f, i) in filmFrames"
+                  :key="i"
+                  :class="['debug-film__thumb', { 'is-active': i === filmIndex }]"
+                  @click="filmIndex = i"
+                >
+                  <img :src="f.url" alt="" />
+                  <span>{{ (f.t / 1000).toFixed(1) }}s</span>
+                </button>
+              </div>
+            </div>
+            <div v-else class="debug-film__empty">
+              录制期间没有拿到画面帧：请保持「操作画面」可用，或页面被系统节流（后台标签页）时切到前台再录。
             </div>
 
             <div class="debug-perf__sec">阶段占比（主线程自耗时）</div>
