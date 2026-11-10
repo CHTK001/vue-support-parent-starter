@@ -154,6 +154,14 @@ export interface ChannelConnectionSummary {
    * 账号管理在网关自己的页面里。</p>
    */
   hosted?: boolean
+  /**
+   * 网关里的上游账号（托管行专用，如 magpie 额度卡上的 {@code user}）。
+   *
+   * <p>同一上游可能登录多个账号，托管行按此展开成多张卡；本地连接没有该字段。</p>
+   */
+  account?: string
+  /** 网关里的上游 provider id（托管行专用，用于展示与去重） */
+  provider?: string
 }
 
 /** 账号寻址参数：connectionId 优先，label 仅作旧接口兜底 */
@@ -226,10 +234,24 @@ export interface ChannelSummary {
   /**
    * 渠道模型清单。
    *
-   * <p>除 model / enabled / alias / contextWindow 外，magpie 还可能回传模型的
-   * 资费信息（`rate` 倍率、`free` 是否免费），前面容器负责一起展示。</p>
+   * <p>除 model / enabled / alias / contextWindow 外，渠道 SPI 还可能回传模型的
+   * 资费信息（`rate` 倍率、`free` 是否免费、每百万 token 的输入/输出价格）。
+   * 缺值不回字段：页面据此区分「免费」与「价格未知」，不会把未知显示成 0。</p>
    */
-  models?: Array<{ model: string; enabled: boolean; alias?: string; contextWindow?: number; rate?: number; free?: boolean }>
+  models?: Array<{
+    model: string
+    enabled: boolean
+    alias?: string
+    contextWindow?: number
+    /** 倍率（上游计费系数）；上游没给时不回字段 */
+    rate?: number
+    /** 是否免费（上游明确标记，或输入/输出价格都为 0） */
+    free?: boolean
+    /** 输入价格（USD / 百万 token） */
+    priceInput?: number
+    /** 输出价格（USD / 百万 token） */
+    priceOutput?: number
+  }>
 }
 
 export const channelApi = {

@@ -34,6 +34,7 @@ import type {
   ChannelConnectionSummary,
   ChannelAccount,
   MagpieProvider,
+  MagpieQuota,
 } from '../channelApi'
 import ReButton from '@repo/ui/re-button'
 import ReTabs from '@repo/ui/re-tabs'
@@ -687,7 +688,10 @@ function onCallbackUrlInput(event: Event | string) {
 const accountRef = (conn: ChannelConnectionSummary) =>
   // 网关托管行是前端合成的，本地没有这条连接记录：不带 connectionId，
   // 后端才会走「本地无连接 → 借网关凭据」的回落。带上假 id 只会 404。
-  conn.hosted ? {} : { connectionId: conn.connectionId, label: conn.label }
+  // 同一上游多个账号时用 account 指定网关里的账号，否则是这一家上游的合计。
+  conn.hosted
+    ? (conn.account ? { account: conn.account } : {})
+    : { connectionId: conn.connectionId, label: conn.label }
 
 /** 到期文案：无 expiresAt 视为长期有效；已过期 / 不足一天按小时展示 */
 function connExpireText(conn: ChannelConnectionSummary): string {
@@ -929,7 +933,9 @@ async function pullModels(channel: string) {
   b.models = true
   try {
     const summary = channels.value.find((c) => c.channel === channel)
-    const conns = summary?.connections ?? []
+    // 用页面展示的账号行定位：网关托管时本地没有连接，按本地 connections 取会得到
+    // 空数组、把「按哪个账号拉」说成默认账号。托管行的 accountRef 不带假 id。
+    const conns = displayConnections(summary)
     // 显式选主账号：不传寻址参数时后端取哪条取决于查询顺序，用户无从得知。
     const target = conns.find((x) => x.primary) ?? conns[0]
     const label = target?.label
@@ -958,6 +964,8 @@ async function pullModels(channel: string) {
         contextWindow: m.contextWindow,
         rate: m.rate,
         free: m.free,
+        priceInput: m.priceInput,
+        priceOutput: m.priceOutput,
       }))
       // 拉取后的模型清单重建草稿，避免上一轮未保存的勾选串到新清单上
       syncModelDraft(channel)
@@ -1015,6 +1023,38 @@ const modelChanges = computed<Array<{ model: string; enabled: boolean }>>(() => 
 const modelSelectedCount = computed(
   () => (activeSummary()?.models ?? []).filter((m) => modelEnabled(m)).length,
 )
+
+/** 数字去掉多余小数位（0.15 / 1 / 12.5） */
+function compactNumber(value: number): string {
+  if (!Number.isFinite(value)) return ''
+  return String(Number(value.toFixed(4)))
+}
+
+/**
+ * 模型单价文案：{@code $输入 / $输出}（USD / 百万 token）。
+ *
+ * <p>渠道摘要里的价格来自模型行 metrics（上游 / 指标库），没有就是没有：
+ * 缺值返回空串，模板据此不显示价格标签，不会把「未知」写成 $0。</p>
+ *
+ * @param m 渠道摘要里的模型项
+ * @returns 展示文案（可为空串）
+ */
+function modelPriceText(m: any): string {
+  const parts: string[] = []
+  if (m?.priceInput !== undefined && m?.priceInput !== null) {
+    parts.push('$' + compactNumber(Number(m.priceInput)))
+  }
+  if (m?.priceOutput !== undefined && m?.priceOutput !== null) {
+    parts.push('$' + compactNumber(Number(m.priceOutput)))
+  }
+  return parts.length ? `${parts.join(' / ')}/M` : ''
+}
+
+/** 价格标签的悬浮说明：写清单位，避免把「每百万 token」当成每次调用 */
+function modelPriceTitle(m: any): string {
+  const text = modelPriceText(m)
+  return text ? `每百万 token 价格（USD，输入 / 输出）：${text}` : ''
+}
 
 /** 点胶囊：直接切换选中态（不落库） */
 function toggleModelChip(m: { model: string; enabled?: boolean }) {
@@ -1209,6 +1249,13 @@ const gatewayProviderRows = ref<MagpieProvider[]>([])
 const gatewayProviders = ref<string[]>([])
 /** 已安装的 magpie 插件规格 */
 const gatewayPlugins = ref<string[]>([])
+/**
+ * 网关管理面的额度卡（含 {@code provider} + {@code user}）。
+ *
+ * <p>它是「网关里这一家上游登录了哪几个账号」的唯一可靠来源：上游 provider 行只有
+ * {@code pluginAccounts} 计数，没有账号名。拿不到额度卡时托管行退回「一条上游一行」。</p>
+ */
+const gatewayQuotaCards = ref<MagpieQuota[]>([])
 
 /** 前端合成的网关托管行所用的连接 id（后端不存在这条记录） */
 const GATEWAY_CONNECTION_ID = '__gateway__'
@@ -1223,6 +1270,73 @@ function hostedProviderOf(channel: string): MagpieProvider | undefined {
 }
 
 /**
+ * 某渠道在网关里命中的全部上游实例。
+ *
+ * <p>一个业务渠道可能对应多个上游（如 Trae 国内/国际两个实例），这里全部取回，
+ * 账号行按「上游 + 账号」展开；命中不到时返回空数组。</p>
+ *
+ * @param channel 业务渠道标识
+ * @returns 网关上游实例列表
+ */
+function hostedProvidersOf(channel: string): MagpieProvider[] {
+  const vendor = magpieOwnedOf(channel)
+  if (!vendor || !vendor.providers.length) return []
+  return gatewayProviderRows.value.filter((p) =>
+    vendor.providers.includes(String(p?.id ?? '')),
+  )
+}
+
+/**
+ * 某个上游实例下已登录的账号（按额度卡的 {@code user} 去重，顺序即网关返回顺序）。
+ *
+ * @param provider 网关上游实例
+ * @returns 账号名；没有账号明细时返回空数组
+ */
+function hostedAccountsOf(provider: MagpieProvider): string[] {
+  const providerId = String(provider?.id ?? '')
+  if (!providerId) return []
+  const users: string[] = []
+  for (const quota of gatewayQuotaCards.value) {
+    if (String(quota?.provider ?? '') !== providerId) continue
+    const user = String(quota?.user ?? '').trim()
+    if (!user || users.includes(user)) continue
+    users.push(user)
+  }
+  return users
+}
+
+/**
+ * 合成一条网关托管账号行。
+ *
+ * @param channel  业务渠道标识
+ * @param provider 网关上游实例
+ * @param user     上游账号（空表示只按上游展示，不含账号明细）
+ * @param primary  是否主行（只影响排序与高亮，不代表网关里的主账号）
+ * @returns 展示用连接行
+ */
+function hostedRow(
+  channel: string,
+  provider: MagpieProvider,
+  user: string,
+  primary: boolean,
+): ChannelConnectionSummary {
+  const providerId = String(provider?.id ?? '')
+  return {
+    connectionId: user
+      ? `${GATEWAY_CONNECTION_ID}:${providerId}:${user}`
+      : `${GATEWAY_CONNECTION_ID}:${providerId}`,
+    label: user || providerLabel(provider),
+    account: user || undefined,
+    provider: providerId,
+    primary,
+    status: 'valid',
+    hasCredentials: true,
+    hosted: true,
+    channel,
+  }
+}
+
+/**
  * 详情页要展示的账号行。
  *
  * <p><b>网关优先</b>：只要网关里已经有这个渠道的上游，就以网关为准，
@@ -1230,25 +1344,29 @@ function hostedProviderOf(channel: string): MagpieProvider | undefined {
  * 结果是过期连接把请求挡回原生实现——直连 minimax 余额 404、缺 access_token
  * 这类报错都来自那条路径。本地没有对应上游时才展示本地连接。</p>
  *
+ * <p>同一上游在网关里可能登录多个账号：额度卡带 {@code user} 时一行一账号，
+ * 每行按账号查自己的余额；拿不到账号明细时仍只展示一条上游行。</p>
+ *
  * @param c 渠道摘要
- * @returns 真实连接，或一条虚拟的托管行
+ * @returns 真实连接，或若干条虚拟的托管行
  */
 function displayConnections(c?: ChannelSummary): ChannelConnectionSummary[] {
   const local = sortedConnections(c)
   if (!c || c.supportsUpstream) return local
-  const provider = hostedProviderOf(c.channel)
-  if (!provider) return local
-  return [
-    {
-      connectionId: GATEWAY_CONNECTION_ID,
-      label: providerLabel(provider),
-      primary: true,
-      status: 'valid',
-      hasCredentials: true,
-      hosted: true,
-      channel: c.channel,
-    },
-  ]
+  const providers = hostedProvidersOf(c.channel)
+  if (!providers.length) return local
+  const rows: ChannelConnectionSummary[] = []
+  for (const provider of providers) {
+    const users = hostedAccountsOf(provider)
+    if (!users.length) {
+      rows.push(hostedRow(c.channel, provider, '', rows.length === 0))
+      continue
+    }
+    for (const user of users) {
+      rows.push(hostedRow(c.channel, provider, user, rows.length === 0))
+    }
+  }
+  return rows
 }
 
 /**
@@ -1384,12 +1502,16 @@ async function loadGatewayIndex(): Promise<void> {
     gatewayProviders.value = []
     gatewayProviderRows.value = []
     gatewayPlugins.value = []
+    gatewayQuotaCards.value = []
     return
   }
   const ref = { connectionId: conn.connectionId }
-  const [prov, plug] = await Promise.allSettled([
+  const [prov, plug, quota] = await Promise.allSettled([
     channelApi.magpieProviders(gateway.channel, ref),
     channelApi.magpiePlugins(gateway.channel, ref),
+    // 额度卡用来把「一家上游」展开成「一个账号一行」；管理面没开 / 页面 Key 失效时
+    // 读不到，托管行退回一条上游行，页面不受影响。
+    channelApi.magpieQuotas(gateway.channel, ref),
   ])
   if (prov.status === 'fulfilled') {
     const out = (prov.value as any)?.data ?? prov.value
@@ -1401,6 +1523,13 @@ async function loadGatewayIndex(): Promise<void> {
     gatewayProviders.value = rows
       .map((p: any) => String(p?.id ?? ''))
       .filter(Boolean)
+  }
+  if (quota.status === 'fulfilled') {
+    const out = (quota.value as any)?.data ?? quota.value
+    const list = out?.result?.quotas ?? out?.quotas ?? []
+    gatewayQuotaCards.value = Array.isArray(list) ? (list as MagpieQuota[]) : []
+  } else {
+    gatewayQuotaCards.value = []
   }
   if (plug.status === 'fulfilled') {
     const out = (plug.value as any)?.data ?? plug.value
@@ -2124,6 +2253,75 @@ const creditPercent = (credit: any): number => {
  */
 const creditHasRatio = (credit: any): boolean => Number(credit?.total ?? 0) > 0
 
+/** 顶部额度汇总的一项（按单位分组，不同单位不混算） */
+interface CreditTotal {
+  /** 单位（currency 时为币种代码） */
+  unit: string
+  /** 展示文案，如「1,234 积分」 */
+  text: string
+  /** 剩余比例（0~100）；没有总量时为 null，只显示数字 */
+  percent: number | null
+  /** 聚合的账号数 */
+  accounts: number
+}
+
+/**
+ * 当前渠道的剩余额度汇总（顶部条）。
+ *
+ * <p>数据来自每张账号卡的 {@code /credit} 读数，只做「同单位相加」：
+ * 积分 / token / 货币是三种量纲，混加会得到没有意义的数字。任一账号没有读数
+ * 就不参与合计，避免把「未知」当成 0；全部未知时返回空数组，顶部不显示。</p>
+ */
+const creditTotals = computed<CreditTotal[]>(() => {
+  const summary = activeSummary()
+  if (!summary?.supportsCredit) return []
+  const groups = new Map<string, {
+    unit: string
+    currency: string
+    remain: number
+    total: number
+    hasTotal: boolean
+    accounts: number
+  }>()
+  for (const conn of displayConnections(summary)) {
+    const data = creditState.value[conn.connectionId]?.data
+    if (!data || data.error) continue
+    if (data.remain === undefined || data.remain === null || data.remain === '') continue
+    const remain = Number(data.remain)
+    if (!Number.isFinite(remain)) continue
+    const unit = String(data.unit ?? '')
+    const currency = String(data.currency ?? '')
+    const key = unit === 'currency' ? `currency:${currency}` : unit
+    const group = groups.get(key) ?? {
+      unit,
+      currency,
+      remain: 0,
+      total: 0,
+      hasTotal: false,
+      accounts: 0,
+    }
+    group.remain += remain
+    group.accounts += 1
+    const total = Number(data.total)
+    if (data.total !== undefined && data.total !== null && data.total !== '' && Number.isFinite(total) && total > 0) {
+      group.total += total
+      group.hasTotal = true
+    }
+    groups.set(key, group)
+  }
+  return [...groups.values()].map((group) => {
+    const label = group.unit === 'currency' ? group.currency : creditUnitText(group.unit)
+    return {
+      unit: group.unit === 'currency' ? group.currency : group.unit,
+      text: `${compactNumber(group.remain)}${label ? ' ' + label : ''}`,
+      percent: group.hasTotal && group.total > 0
+        ? Math.max(0, Math.min(100, Math.round((group.remain / group.total) * 100)))
+        : null,
+      accounts: group.accounts,
+    }
+  })
+})
+
 /** 任务进度百分比 */
 const taskPercent = (task: any): number => {
   const target = Number(task?.target ?? 0)
@@ -2300,6 +2498,29 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
               <span class="chm-panel__chip is-credit" v-if="activeSummary()!.supportsCredit">积分</span>
               <span class="chm-panel__chip is-task" v-if="activeSummary()!.supportsTask && !hostedOnly(activeSummary())">任务</span>
             </span>
+          </div>
+          <!--
+            顶部额度汇总：把本渠道已查到的账号余额按单位合计。
+            有总量才画进度条，只有余额时退化成数字（上游不给总量不是 0%）。
+          -->
+          <div
+            v-if="creditTotals.length"
+            class="chm-total"
+            title="当前渠道已查询到的剩余额度：同单位相加，积分 / token / 货币不混算"
+          >
+            <div v-for="(total, idx) in creditTotals" :key="'chm-total-' + idx" class="chm-total__item">
+              <span class="chm-total__label">剩余</span>
+              <span class="chm-total__value">{{ total.text }}</span>
+              <span
+                v-if="total.percent !== null"
+                class="chm-total__bar"
+                role="progressbar"
+                :aria-valuenow="total.percent"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              ><i :style="{ width: total.percent + '%' }" /></span>
+              <span v-if="total.percent !== null" class="chm-total__pct">{{ total.percent }}%</span>
+            </div>
           </div>
           <div class="chm-panel__state">
             <span class="chm-rail__dot" :class="'is-' + channelState(activeSummary())" />
@@ -2589,11 +2810,12 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                   </div>
                   <!-- 拉取 + 批量 + 保存只占一行：都是模型管理动作，不该拆成两个容器 -->
                   <div v-if="modelsManageable(activeSummary())" class="chm-models__toolbar">
-                    <button v-if="!hostedOnly(activeSummary())" type="button" class="chm-models__op" :disabled="busyFor(activeChannel, 'models') || modelSaving"
+                    <!-- 托管渠道也允许拉取：后端按「网关优先」从网关上游 provider 取模型并落库 -->
+                    <button type="button" class="chm-models__op" :disabled="busyFor(activeChannel, 'models') || modelSaving"
                             @click.stop="pullModels(activeChannel)">
                       {{ busyFor(activeChannel, 'models') ? '拉取中…' : '拉取模型' }}
                     </button>
-                    <span v-if="!hostedOnly(activeSummary())" class="chm-models__sep" aria-hidden="true"></span>
+                    <span class="chm-models__sep" aria-hidden="true"></span>
                     <button type="button" class="chm-models__op" @click.stop="setAllModelDraft('all')">全选</button>
                     <button type="button" class="chm-models__op" @click.stop="setAllModelDraft('invert')">反选</button>
                     <button type="button" class="chm-models__op" @click.stop="setAllModelDraft('none')">全不选</button>
@@ -2634,6 +2856,11 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                     <span class="chm-chip__name">{{ m.model }}</span>
                     <span v-if="m.free" class="chm-chip__tag is-free">免费</span>
                     <span v-if="m.rate" class="chm-chip__tag is-rate">{{ m.rate }}x</span>
+                    <span
+                      v-if="modelPriceText(m)"
+                      class="chm-chip__tag is-price"
+                      :title="modelPriceTitle(m)"
+                    >{{ modelPriceText(m) }}</span>
                     <span v-if="m.contextWindow" class="chm-chip__ctx">{{ m.contextWindow }}</span>
                   </button>
                   <div v-if="!(activeSummary()!.models ?? []).length" class="chm-card__empty">
@@ -3596,6 +3823,54 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   width: 9px;
   height: 9px;
 }
+/* 顶部额度汇总：与状态灯同级的读数，窄屏时换行不挤压标题 */
+.chm-total {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.chm-total__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle, #eef2f8);
+  background: var(--bg-elevated, #f8fafc);
+  font-size: 12px;
+  color: var(--text-secondary, #475569);
+  white-space: nowrap;
+}
+.chm-total__label {
+  color: var(--text-tertiary, #94a3b8);
+}
+.chm-total__value {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary, #1e293b);
+}
+.chm-total__bar {
+  position: relative;
+  width: 64px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--el-fill-color, #f0f2f5);
+  overflow: hidden;
+}
+.chm-total__bar i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--el-color-primary, #409eff);
+  transition: width 0.25s ease;
+}
+.chm-total__pct {
+  font-size: 11px;
+  color: var(--text-tertiary, #94a3b8);
+  font-variant-numeric: tabular-nums;
+}
 .chm-panel__switch {
   margin: 0;
 }
@@ -3828,6 +4103,11 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 .chm-chip__tag.is-rate {
   background: color-mix(in srgb, var(--el-color-warning, #e6a23c) 15%, transparent);
   color: #b45309;
+}
+.chm-chip__tag.is-price {
+  background: color-mix(in srgb, var(--el-color-primary, #409eff) 12%, transparent);
+  color: var(--el-color-primary, #337ecc);
+  font-variant-numeric: tabular-nums;
 }
 .chm-chip__ctx {
   flex: none;
