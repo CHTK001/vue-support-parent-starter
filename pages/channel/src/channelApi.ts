@@ -147,6 +147,13 @@ export interface ChannelConnectionSummary {
   checkinMessage?: string
   /** 连接所属渠道标识 */
   channel?: string
+  /**
+   * 是否为本页合成的「网关托管」账号（凭据在 Magpie 等网关里，本地没有连接行）。
+   *
+   * <p>只在前端出现：后端不会返回这个字段。这类行不能改名 / 刷新 / 删除，
+   * 账号管理在网关自己的页面里。</p>
+   */
+  hosted?: boolean
 }
 
 /** 账号寻址参数：connectionId 优先，label 仅作旧接口兜底 */
@@ -385,6 +392,16 @@ export const channelApi = {
   setModelEnabled: (channel: string, model: string, enabled: boolean) =>
     unwrapPayload<{ ok: boolean; model: string; enabled: boolean }>(
       apiHttp.put(`/api/channels/${channel}/models/${encodeURIComponent(model)}/enabled`).data({ enabled }),
+    ),
+  /**
+   * PUT /api/channels/{channel}/models/enabled —— 批量开关（渠道页「保存」）。
+   *
+   * <p>前端勾选只改本地草稿，点保存时把有变化的模型一次性提交：后端按目标
+   * 状态分两组各发一条 UPDATE，避免逐模型串行请求（82 个模型 = 82 次往返）。</p>
+   */
+  setModelsEnabled: (channel: string, items: Array<{ model: string; enabled: boolean }>) =>
+    unwrapPayload<{ ok: boolean; channel: string; updated: number }>(
+      apiHttp.put(`/api/channels/${channel}/models/enabled`).data({ items }),
     ),
   /** PUT /api/channels/{channel}/enabled —— 渠道总开关 */
   setEnabled: (channel: string, enabled: boolean) =>
