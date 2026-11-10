@@ -417,7 +417,9 @@ const bodyClass = computed(() => ['pip-body', `type-${props.project.projectType 
   min-height: 0;
   padding: 14px 16px 18px;
   overflow: auto;
-  background: var(--bg-layout);
+  background:
+    radial-gradient(120% 80% at 100% 0%, color-mix(in srgb, var(--type-1) 7%, transparent) 0%, transparent 55%),
+    var(--bg-layout);
   --type-1: #1677ff;
   --type-2: #4d9bff;
 }
