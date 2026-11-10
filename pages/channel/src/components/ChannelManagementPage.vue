@@ -2085,6 +2085,35 @@ function upstreamGlyph(provider: MagpieProvider): string {
   return name ? name.slice(0, 1).toUpperCase() : '·'
 }
 
+/**
+ * 上游渠道的真实软件图标（magpie 内联的 data URL）。
+ *
+ * @param provider 网关上游实例
+ * @returns data URL；没有图标时返回空串（模板回落首字徽标）
+ */
+function upstreamIcon(provider: MagpieProvider): string {
+  const dataUrl = provider?.iconDataUrl
+  return typeof dataUrl === 'string' ? dataUrl : ''
+}
+
+/**
+ * 渠道行的图标：本地官方资源优先，没有就复用网关里同一家的真实图标。
+ *
+ * <p>左栏现在把「只存在于网关里的上游」也当成渠道展示，两类行必须长一样：
+ * 上游行能出 magpie 的品牌图，对应的业务渠道行（Loomy / Raccoon / WorkBuddy…）
+ * 如果本地没落地官方 SVG，也该用同一张图，否则同一家在左栏出现两种标记。
+ * 两边都没有时才回落品牌色 + 首字徽标。</p>
+ *
+ * @param channel 渠道标识
+ * @returns 图标 URL（本地资源或 data URL）；没有时返回空串
+ */
+function channelIcon(channel: string): string {
+  const local = brandOf(channel).icon
+  if (local) return local
+  const hosted = hostedProviderOf(channel)?.iconDataUrl
+  return typeof hosted === 'string' ? hosted : ''
+}
+
 /** 网关里这个上游带的模型数（用于左栏徽标） */
 function upstreamModelCount(provider: MagpieProvider): number {
   return Array.isArray(provider?.models) ? provider.models.length : 0
@@ -2799,12 +2828,12 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
             @dragend="onChannelDragEnd()"
           >
             <span class="chm-rail__grip" aria-hidden="true">⠿</span>
-            <!-- 渠道行：官方图标 / 品牌徽标；上游行：名称首字占位 -->
+            <!-- 渠道行 / 上游行都用真实软件图标，取不到才回落品牌色首字徽标 -->
             <template v-if="row.kind === 'channel' && row.summary">
               <span class="chm-rail__logo"
-                    :class="{ 'is-ico': !!brandOf(row.summary.channel).icon }"
-                    :style="brandOf(row.summary.channel).icon ? undefined : { background: brandOf(row.summary.channel).color }">
-                <img v-if="brandOf(row.summary.channel).icon" :src="brandOf(row.summary.channel).icon" :alt="row.summary.channel" />
+                    :class="{ 'is-ico': !!channelIcon(row.summary.channel) }"
+                    :style="channelIcon(row.summary.channel) ? undefined : { background: brandOf(row.summary.channel).color }">
+                <img v-if="channelIcon(row.summary.channel)" :src="channelIcon(row.summary.channel)" :alt="row.summary.channel" />
                 <b v-else>{{ brandOf(row.summary.channel).glyph }}</b>
               </span>
               <span class="chm-rail__name" :title="row.summary.displayName || row.summary.channel">
@@ -2815,8 +2844,10 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                     :title="channelStateText(row.summary)" />
             </template>
             <template v-else-if="row.provider">
-              <span class="chm-rail__logo is-upstream">
-                <b>{{ upstreamGlyph(row.provider) }}</b>
+              <span class="chm-rail__logo"
+                    :class="{ 'is-ico': !!upstreamIcon(row.provider), 'is-upstream': !upstreamIcon(row.provider) }">
+                <img v-if="upstreamIcon(row.provider)" :src="upstreamIcon(row.provider)" :alt="upstreamName(row.provider)" />
+                <b v-else>{{ upstreamGlyph(row.provider) }}</b>
               </span>
               <span class="chm-rail__name" :title="upstreamName(row.provider)">
                 {{ upstreamName(row.provider) }}
@@ -2891,9 +2922,9 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
       <section v-if="activeSummary()" class="chm-panel">
         <header class="chm-panel__head">
           <span class="chm-panel__logo"
-                :class="{ 'is-ico': !!brandOf(activeChannel).icon }"
-                :style="brandOf(activeChannel).icon ? undefined : { background: brandOf(activeChannel).color }">
-            <img v-if="brandOf(activeChannel).icon" :src="brandOf(activeChannel).icon" :alt="activeChannel" />
+                :class="{ 'is-ico': !!channelIcon(activeChannel) }"
+                :style="channelIcon(activeChannel) ? undefined : { background: brandOf(activeChannel).color }">
+            <img v-if="channelIcon(activeChannel)" :src="channelIcon(activeChannel)" :alt="activeChannel" />
             <b v-else>{{ brandOf(activeChannel).glyph }}</b>
           </span>
           <div class="chm-panel__title">

@@ -55,6 +55,7 @@
           <template v-for="p in providers" :key="'up-' + String(p.id)">
           <tr :class="{ 'is-focus': !!resolvedFocus && String(p.id) === resolvedFocus }">
             <td class="is-name" :title="String(p.name ?? '')">
+              <img v-if="iconOf(p)" class="mg-up__icon" :src="iconOf(p)" :alt="String(p.name ?? p.id ?? '')" />
               {{ p.name || p.id }}
               <span v-if="isPluginManaged(p)" class="mg-up__tag is-plugin" title="该上游由插件接管，登录与签到走插件">
                 插件
@@ -1059,6 +1060,20 @@ function briefText(value: unknown): string {
 onUnmounted(stopSignin)
 
 /** 协议摘要 */
+/**
+ * 上游的品牌图标（后端内联的 data URL）。
+ *
+ * <p>magpie 的图标挂在它的管理面且要页面 Cookie，浏览器取不到，由后端取回后
+ * 随 provider 列表内联；取不到时字段缺失，这里返回空串让表格只显示名称。</p>
+ *
+ * @param provider 上游实例
+ * @returns data URL 或空串
+ */
+function iconOf(provider: MagpieProvider): string {
+  const dataUrl = provider?.iconDataUrl
+  return typeof dataUrl === 'string' ? dataUrl : ''
+}
+
 function protocolText(provider: MagpieProvider): string {
   const list: string[] = []
   if (provider.chat) list.push('chat')
@@ -1288,6 +1303,14 @@ function testAllOk(value: unknown): boolean {
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--el-text-color-primary, #303133);
+}
+/* 上游品牌图标：与文字同基线，避免撑高表格行 */
+.mg-up__icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  vertical-align: -3px;
+  margin-right: 6px;
 }
 .mg-up__table td.is-id {
   max-width: 140px;

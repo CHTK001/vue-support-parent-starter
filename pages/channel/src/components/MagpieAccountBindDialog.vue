@@ -30,12 +30,14 @@
           <p class="mab__label">从哪个来源添加</p>
           <label v-for="p in providers" :key="String(p.id ?? '')" class="mab__option">
             <input v-model="pickedId" type="radio" :value="String(p.id ?? '')" />
+            <img v-if="iconOf(p)" class="mab__icon" :src="iconOf(p)" :alt="providerLabel(p)" />
             <span class="mab__option-name">{{ providerLabel(p) }}</span>
             <span class="mab__option-meta">{{ optionMeta(p) }}</span>
           </label>
         </section>
         <section v-else class="mab__single">
           <span class="mab__label">来源</span>
+          <img v-if="iconOf(providers[0]!)" class="mab__icon" :src="iconOf(providers[0]!)" :alt="providerLabel(providers[0]!)" />
           <b>{{ providerLabel(providers[0]!) }}</b>
           <span class="mab__option-meta">{{ optionMeta(providers[0]!) }}</span>
         </section>
@@ -171,6 +173,17 @@ let timer: ReturnType<typeof setTimeout> | undefined
 /** 上游展示名：网关 name 优先，没有退回 id */
 function providerLabel(provider: MagpieProvider): string {
   return String(provider?.name ?? '').trim() || String(provider?.id ?? '')
+}
+
+/**
+ * 上游品牌图标（后端内联的 data URL）。
+ *
+ * @param provider 上游实例
+ * @returns data URL；没有图标时返回空串
+ */
+function iconOf(provider: MagpieProvider): string {
+  const dataUrl = provider?.iconDataUrl
+  return typeof dataUrl === 'string' ? dataUrl : ''
 }
 
 /** 上游副信息：凭据与账号数 */
@@ -510,6 +523,13 @@ onBeforeUnmount(stopPoll)
 }
 .mab__option-name {
   font-weight: 600;
+}
+/* 上游品牌图标：16px，与名称同基线 */
+.mab__icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
 }
 .mab__option-meta {
   margin-left: auto;

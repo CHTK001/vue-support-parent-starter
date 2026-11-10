@@ -854,6 +854,14 @@ export interface MagpieProvider {
   gemini?: string
   /** 该上游的模型（magpie 下发对象数组 {@code [{id,name}]}，也兼容字符串数组） */
   models?: Array<string | { id?: string; name?: string }>
+  /**
+   * 品牌图标的 data URL（后端从 magpie 管理面取回并内联）。
+   *
+   * <p>magpie 的图标只挂在它的管理面且要页面 Cookie，浏览器直接 {@code <img>}
+   * 取不到；后端在列表里内联成 data URL，前端据此显示真实软件图标。
+   * 取不到时字段缺失，前端回落首字徽标。</p>
+   */
+  iconDataUrl?: string
   /** 其余 magpie 字段原样透传 */
   [key: string]: unknown
 }
