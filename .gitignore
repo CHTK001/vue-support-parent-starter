@@ -146,6 +146,7 @@ screenshots/
 *.debug.yaml
 *.debug.log
 debug-*.txt
+log-tsc*.txt
 rfb-test.js
 
 # 调试探测与截图产物
