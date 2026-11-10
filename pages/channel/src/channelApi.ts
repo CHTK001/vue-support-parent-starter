@@ -425,6 +425,27 @@ export const channelApi = {
     unwrapPayload<{ ok: boolean; channel: string; updated: number }>(
       apiHttp.put(`/api/channels/${channel}/models/enabled`).data({ items }),
     ),
+  /**
+   * GET /api/channels/{channel}/models/config —— 读取渠道已保存的模型配置。
+   *
+   * <p>免登录对话 / 文生图渠道的模型清单由客户端内置，摘要里没有数据库的启用
+   * 状态；页面用它把用户保存过的 enabled / alias / 价格合并回内置清单。</p>
+   */
+  modelConfig: (channel: string) =>
+    unwrapPayload<{
+      ok: boolean
+      channel: string
+      models: Array<{
+        model: string
+        enabled: boolean
+        alias?: string
+        contextWindow?: number
+        rate?: number
+        free?: boolean
+        priceInput?: number
+        priceOutput?: number
+      }>
+    }>(apiHttp.get(`/api/channels/${channel}/models/config`)),
   /** PUT /api/channels/{channel}/enabled —— 渠道总开关 */
   setEnabled: (channel: string, enabled: boolean) =>
     unwrapPayload<{ ok: boolean; enabled: boolean }>(

@@ -17,6 +17,7 @@
 
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { isAdmin } from '@repo/core'
 import ReDialog from '@repo/ui/re-dialog'
 import {
   // @element-plus/icons-vue 导出的名字**没有 Icon 后缀**（Refresh / Plus / Delete /
@@ -137,6 +138,14 @@ const channels = ref<ChannelSummary[]>([])
 // 当前选中的渠道 id
 const activeChannel = ref<string>('')
 
+/**
+ * 当前用户是否管理员。
+ *
+ * <p>「Magpie 统一网关」是运维入口（管理网关上游与插件），只对管理员显示；
+ * 角色是登录后异步写入的，setup 时读一次可能还是空角色，onMounted 再确认一次。</p>
+ */
+const isAdminUser = ref(isAdmin())
+
 // 渠道卡片内的状态：是否正在签到 / 正在拉模型 / 正在刷新
 const busy = ref<Record<string, { sign?: boolean; models?: boolean; refresh?: boolean; login?: boolean }>>({})
 
@@ -232,6 +241,33 @@ async function loadChannels() {
           }
         } catch { /* 单渠道模型拉取失败不拖垮整页 */ }
       }),
+    )
+    // 免登录对话 / 文生图渠道的模型由客户端内置，启用状态存在
+    // sys_ai_provider_model（与 AI 渠道同一套行）。这里把用户保存过的
+    // enabled / alias / 价格合并回内置清单；读不到就保留默认值，不阻塞页面。
+    await Promise.allSettled(
+      [...chatRows, ...imageRows]
+        .filter((c) => (c.models ?? []).length)
+        .map(async (c) => {
+          try {
+            const cfg = await channelApi.modelConfig(c.channel)
+            const rows = (cfg as any)?.models ?? []
+            if (Array.isArray(rows) && rows.length && c.models) {
+              const saved = new Map(rows.map((r: any) => [String(r.model), r]))
+              for (const m of c.models) {
+                const hit = saved.get(m.model)
+                if (!hit) continue
+                m.enabled = hit.enabled !== false
+                if (hit.alias) m.alias = hit.alias
+                if (hit.contextWindow) m.contextWindow = hit.contextWindow
+                if (hit.free !== undefined) m.free = hit.free
+                if (hit.rate !== undefined) m.rate = hit.rate
+                if (hit.priceInput !== undefined) m.priceInput = hit.priceInput
+                if (hit.priceOutput !== undefined) m.priceOutput = hit.priceOutput
+              }
+            }
+          } catch { /* 单渠道配置读取失败不拖垮整页 */ }
+        }),
     )
     // 当前选中失效时落到第一个业务渠道；网关允许被选中，但它不在左栏列表里。
     if (!activeChannel.value || !channels.value.some((c) => c.channel === activeChannel.value)) {
@@ -953,21 +989,12 @@ async function pullModels(channel: string) {
       const impRes = await channelApi.importModels(channel, targetRef)
       const imp = (impRes as any)?.data ?? impRes
       if (imp?.ok) {
-        ElMessage.success(`落库完成：新增 ${imp.created ?? 0}，更新 ${imp.updated ?? 0}`)
+        ElMessage.success(`落库完成：新增 ${imp.created ?? 0}，更新 ${imp.updated ?? 0}（新模型默认不启用）`)
       }
-      // 可能是 undefined：渠道列表刷新后，本次 `channel` 未必还在里面。
-      // 这种情况下上面已经把模型落库了，只是没处写回面板态 —— 不回写不算错。
-      if (summary) summary.models = out.models.map((m: any) => ({
-        model: m.id,
-        enabled: m.enabled ?? true,
-        alias: m.name,
-        contextWindow: m.contextWindow,
-        rate: m.rate,
-        free: m.free,
-        priceInput: m.priceInput,
-        priceOutput: m.priceOutput,
-      }))
-      // 拉取后的模型清单重建草稿，避免上一轮未保存的勾选串到新清单上
+      // 以数据库为准重建模型清单：拉取只负责同步目录，启用哪些由用户在页面上
+      // 勾选保存。以前这里直接把本次拉到的清单写成 enabled=true，等于替用户
+      // 把所有新模型全开，用户还得逐个关掉。
+      await loadChannels()
       syncModelDraft(channel)
     } else {
       ElMessage.info('未返回模型')
@@ -1054,6 +1081,22 @@ function modelPriceText(m: any): string {
 function modelPriceTitle(m: any): string {
   const text = modelPriceText(m)
   return text ? `每百万 token 价格（USD，输入 / 输出）：${text}` : ''
+}
+
+/**
+ * 模型是否免费。
+ *
+ * <p>两个来源：指标库明确标注（输入输出价格都是 0，或上游写了 free），
+ * 以及上游模型 ID 的免费命名约定 —— Kilo / OpenCode 之类的聚合源用
+ * {@code :free}、{@code -free}、{@code /free} 后缀标识免费档。只看 ID
+ * 里的独立片段，避免把 {@code freedom} 这类词误判成免费。</p>
+ *
+ * @param m 渠道摘要里的模型项
+ */
+function modelIsFree(m: any): boolean {
+  if (m?.free === true) return true
+  const id = String(m?.model ?? '')
+  return /(^|[/:_-])free($|[/:_-])/i.test(id)
 }
 
 /** 点胶囊：直接切换选中态（不落库） */
@@ -1153,16 +1196,45 @@ const accountsSupported = (c?: ChannelSummary): boolean =>
   kindOf(c) === 'AI' && !c?.supportsUpstream
 
 /**
- * 模型清单是否可由上游拉取 / 逐项开关。
+ * 模型清单是否可逐项配置（勾选 + 保存启用状态）。
  *
- * <p>只有 AI 账号渠道才有 provider 行与授权账号，`/list-models` 与模型开关才有
- * 上游可问。免登录对话 / 文生图渠道（kind=CHAT/IMAGE）的模型来自客户端内置表，
- * 拉取只会拿到「未注册的渠道: image-duckduckgo」；短信 / 邮件临时渠道同样没有模型。</p>
+ * <p>AI 账号渠道与免登录对话 / 文生图渠道都有模型清单，都需要能配置；三者的
+ * 启用状态都落在 {@code sys_ai_provider_model}（后端按渠道标识惰性建 provider 行），
+ * 保存走同一个 {@code PUT /models/enabled}。短信 / 邮件渠道没有模型，自然不显示。</p>
  *
  * @param c 渠道摘要
- * @returns true 表示可拉取、可开关
+ * @returns true 表示可勾选、可保存
  */
-const modelsManageable = (c?: ChannelSummary): boolean => kindOf(c) === 'AI'
+const modelsManageable = (c?: ChannelSummary): boolean => (c?.models ?? []).length > 0
+
+/**
+ * 模型能否从上游拉取。
+ *
+ * <p>只有 AI 账号渠道才有 provider 行与授权账号，{@code /list-models} 才有上游可问。
+ * 免登录渠道的模型是客户端内置表，拉取只会拿到「未注册的渠道」，因此不显示拉取按钮。</p>
+ *
+ * @param c 渠道摘要
+ * @returns true 表示可拉取
+ */
+const modelsPullable = (c?: ChannelSummary): boolean => kindOf(c) === 'AI'
+
+/**
+ * 模型展示顺序：已启用的排前面，其余保持后台 sortOrder 原序。
+ *
+ * <p>草稿会实时改变启用状态，所以排序按 {@link modelEnabled} 计算，勾选后
+ * 卡片会立刻上移；取消勾选则回落到未启用组。</p>
+ */
+const sortedModels = computed(() => {
+  const models = [...(activeSummary()?.models ?? [])]
+  return models
+    .map((m, index) => ({ m, index }))
+    .sort((a, b) => {
+      const ea = modelEnabled(a.m) ? 0 : 1
+      const eb = modelEnabled(b.m) ? 0 : 1
+      return ea !== eb ? ea - eb : a.index - b.index
+    })
+    .map((item) => item.m)
+})
 
 // ---------- 渠道账号（/api/accounts，按 channelKey 归属） ----------
 /*
@@ -2204,6 +2276,26 @@ const creditUnitText = (unit?: string): string => {
   return unit
 }
 
+/**
+ * 上下文窗口人类化：{@code 1048576} → {@code 1M}，{@code 200000} → {@code 200K}。
+ *
+ * <p>模型胶囊上直接印六位数字（1048576）会被挤成两行，也难一眼比较；
+ * 真正的精度放进 {@code title}。</p>
+ */
+const contextWindowText = (value: unknown): string => {
+  const size = Number(value)
+  if (!Number.isFinite(size) || size <= 0) return ''
+  if (size >= 1_000_000) {
+    const scaled = size / 1_000_000
+    return `${Math.round(scaled * 10) / 10}M`.replace('.0M', 'M')
+  }
+  if (size >= 1_000) {
+    const scaled = size / 1_000
+    return `${Math.round(scaled * 10) / 10}K`.replace('.0K', 'K')
+  }
+  return String(size)
+}
+
 /** 积分展示文案：有单位就带单位，缺失剩余时显示「未知」而不是 0 */
 const creditText = (credit: any): string => {
   if (!credit) return '—'
@@ -2227,7 +2319,7 @@ const creditPkgText = (pkg: any): string => {
   if (pkg.display !== undefined && pkg.display !== null && pkg.display !== '') {
     return String(pkg.display)
   }
-  const unit = creditUnitText(pkg.unit)
+  const unit = pkg.unit === 'currency' ? (pkg.currency ?? '') : creditUnitText(pkg.unit)
   const remain = pkg.remain
   const size = pkg.size
   const suffix = unit ? ' ' + unit : ''
@@ -2269,8 +2361,10 @@ interface CreditTotal {
  * 当前渠道的剩余额度汇总（顶部条）。
  *
  * <p>数据来自每张账号卡的 {@code /credit} 读数，只做「同单位相加」：
- * 积分 / token / 货币是三种量纲，混加会得到没有意义的数字。任一账号没有读数
- * 就不参与合计，避免把「未知」当成 0；全部未知时返回空数组，顶部不显示。</p>
+ * 积分 / token / 货币是三种量纲，混加会得到没有意义的数字。后端在
+ * {@code units} 里已经按「单位 + 币种」分好桶（{@code currency:USD} 与
+ * {@code currency:CNY} 也是两个桶），这里逐桶展示，一种单位一条。
+ * 任一账号没有读数就不参与合计，避免把「未知」当成 0；全部未知时返回空数组，顶部不显示。</p>
  */
 const creditTotals = computed<CreditTotal[]>(() => {
   const summary = activeSummary()
@@ -2280,46 +2374,71 @@ const creditTotals = computed<CreditTotal[]>(() => {
     currency: string
     remain: number
     total: number
+    hasRemain: boolean
     hasTotal: boolean
     accounts: number
   }>()
-  for (const conn of displayConnections(summary)) {
-    const data = creditState.value[conn.connectionId]?.data
-    if (!data || data.error) continue
-    if (data.remain === undefined || data.remain === null || data.remain === '') continue
-    const remain = Number(data.remain)
-    if (!Number.isFinite(remain)) continue
-    const unit = String(data.unit ?? '')
-    const currency = String(data.currency ?? '')
+  const addBucket = (unit: string, currency: string, remain: unknown, total: unknown) => {
+    const remainMissing = remain === undefined || remain === null || remain === ''
+    const totalMissing = total === undefined || total === null || total === ''
+    // 两个字段都没有的桶不显示：不能拿「未提供」画一条空账
+    if (remainMissing && totalMissing) return
     const key = unit === 'currency' ? `currency:${currency}` : unit
     const group = groups.get(key) ?? {
       unit,
       currency,
       remain: 0,
       total: 0,
+      hasRemain: false,
       hasTotal: false,
       accounts: 0,
     }
-    group.remain += remain
-    group.accounts += 1
-    const total = Number(data.total)
-    if (data.total !== undefined && data.total !== null && data.total !== '' && Number.isFinite(total) && total > 0) {
-      group.total += total
-      group.hasTotal = true
+    if (!remainMissing) {
+      const value = Number(remain)
+      if (Number.isFinite(value)) {
+        group.remain += value
+        group.hasRemain = true
+        group.accounts += 1
+      }
+    }
+    if (!totalMissing) {
+      const value = Number(total)
+      if (Number.isFinite(value) && value > 0) {
+        group.total += value
+        group.hasTotal = true
+      }
     }
     groups.set(key, group)
   }
-  return [...groups.values()].map((group) => {
-    const label = group.unit === 'currency' ? group.currency : creditUnitText(group.unit)
-    return {
-      unit: group.unit === 'currency' ? group.currency : group.unit,
-      text: `${compactNumber(group.remain)}${label ? ' ' + label : ''}`,
-      percent: group.hasTotal && group.total > 0
-        ? Math.max(0, Math.min(100, Math.round((group.remain / group.total) * 100)))
-        : null,
-      accounts: group.accounts,
+  for (const conn of displayConnections(summary)) {
+    const data = creditState.value[conn.connectionId]?.data
+    if (!data || data.error) continue
+    // 新后端按单位分桶；旧后端没有 units，退回单条 unit / remain / total
+    const units = Array.isArray(data.units) ? data.units : []
+    if (units.length) {
+      for (const bucket of units) {
+        if (!bucket) continue
+        addBucket(String(bucket.unit ?? ''), String(bucket.currency ?? ''), bucket.remain, bucket.total)
+      }
+      continue
     }
-  })
+    addBucket(String(data.unit ?? ''), String(data.currency ?? ''), data.remain, data.total)
+  }
+  return [...groups.values()]
+    .filter((group) => group.hasRemain || group.hasTotal)
+    .map((group) => {
+      const label = group.unit === 'currency' ? (group.currency || '货币') : creditUnitText(group.unit)
+      return {
+        unit: group.unit === 'currency' ? (group.currency || 'currency') : group.unit,
+        text: group.hasRemain
+          ? `${compactNumber(group.remain)}${label ? ' ' + label : ''}`
+          : `—${label ? ' ' + label : ''}`,
+        percent: group.hasRemain && group.hasTotal && group.total > 0
+          ? Math.max(0, Math.min(100, Math.round((group.remain / group.total) * 100)))
+          : null,
+        accounts: group.accounts,
+      }
+    })
 })
 
 /** 任务进度百分比 */
@@ -2331,6 +2450,9 @@ const taskPercent = (task: any): number => {
 }
 
 onMounted(() => {
+  // 角色是登录后异步写入 @repo/core 的模块级缓存（非响应式），
+  // setup 时读一次可能还是空角色，挂载时再确认一次。
+  isAdminUser.value = isAdmin()
   loadChannels()
 })
 
@@ -2399,47 +2521,50 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
           左栏只有业务渠道：一行一个，拖上拖下调整顺序。
           后端是 magpie、cdp 还是原生 SPI 都不在这里体现；接入方式在右侧详情里看。
         -->
-        <button
-          v-for="c in railItems"
-          :key="c.channel"
-          type="button"
-          class="chm-rail__item"
-          :class="{
-            'is-active': railActive(c),
-            'is-dragging': draggingChannel === c.channel,
-            'is-drop-target': dropTargetChannel === c.channel && draggingChannel !== c.channel,
-          }"
-          draggable="true"
-          :title="`${c.displayName || c.channel}（拖拽调整顺序）`"
-          @click="onRailClick(c)"
-          @dragstart="onChannelDragStart($event, c.channel)"
-          @dragover.prevent="onChannelDragOver(c.channel)"
-          @dragleave="onChannelDragLeave(c.channel)"
-          @drop.prevent="onChannelDrop(c.channel)"
-          @dragend="onChannelDragEnd()"
-        >
-          <span class="chm-rail__grip" aria-hidden="true">⠿</span>
-          <span class="chm-rail__logo"
-                :class="{ 'is-ico': !!brandOf(c.channel).icon }"
-                :style="brandOf(c.channel).icon ? undefined : { background: brandOf(c.channel).color }">
-            <img v-if="brandOf(c.channel).icon" :src="brandOf(c.channel).icon" :alt="c.channel" />
-            <b v-else>{{ brandOf(c.channel).glyph }}</b>
-          </span>
-          <span class="chm-rail__name" :title="c.displayName || c.channel">
-            {{ c.displayName || c.channel }}
-          </span>
-          <span class="chm-rail__kind" :title="kindText(c)">{{ kindOf(c) }}</span>
-          <span class="chm-rail__dot" :class="'is-' + channelState(c)"
-                :title="channelStateText(c)" />
-        </button>
+        <!-- 渠道行单独滚动：网关入口固定在底部，不被长列表挤出视口 -->
+        <div class="chm-rail__list">
+          <button
+            v-for="c in railItems"
+            :key="c.channel"
+            type="button"
+            class="chm-rail__item"
+            :class="{
+              'is-active': railActive(c),
+              'is-dragging': draggingChannel === c.channel,
+              'is-drop-target': dropTargetChannel === c.channel && draggingChannel !== c.channel,
+            }"
+            draggable="true"
+            :title="`${c.displayName || c.channel}（拖拽调整顺序）`"
+            @click="onRailClick(c)"
+            @dragstart="onChannelDragStart($event, c.channel)"
+            @dragover.prevent="onChannelDragOver(c.channel)"
+            @dragleave="onChannelDragLeave(c.channel)"
+            @drop.prevent="onChannelDrop(c.channel)"
+            @dragend="onChannelDragEnd()"
+          >
+            <span class="chm-rail__grip" aria-hidden="true">⠿</span>
+            <span class="chm-rail__logo"
+                  :class="{ 'is-ico': !!brandOf(c.channel).icon }"
+                  :style="brandOf(c.channel).icon ? undefined : { background: brandOf(c.channel).color }">
+              <img v-if="brandOf(c.channel).icon" :src="brandOf(c.channel).icon" :alt="c.channel" />
+              <b v-else>{{ brandOf(c.channel).glyph }}</b>
+            </span>
+            <span class="chm-rail__name" :title="c.displayName || c.channel">
+              {{ c.displayName || c.channel }}
+            </span>
+            <span class="chm-rail__kind" :title="kindText(c)">{{ kindOf(c) }}</span>
+            <span class="chm-rail__dot" :class="'is-' + channelState(c)"
+                  :title="channelStateText(c)" />
+          </button>
+        </div>
 
-        <!-- 网关自身：管理上游与插件的固定入口 -->
+        <!-- 网关自身：管理上游与插件的固定入口（仅管理员） -->
         <button
-          v-if="gatewayChannel"
+          v-if="gatewayChannel && isAdminUser"
           type="button"
-          class="chm-rail__item is-gateway-root"
+          class="chm-rail__item chm-rail__item--util is-gateway-root"
           :class="{ 'is-active': gatewayRootActive() }"
-          title="Magpie 统一网关 · 管理上游与插件"
+          title="Magpie 统一网关 · 管理上游与插件（管理员）"
           @click="openGatewayRoot"
         >
           <span class="chm-rail__grip" aria-hidden="true">⚙</span>
@@ -2451,6 +2576,7 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
             <b v-else>{{ brandOf(gatewayChannel.channel).glyph }}</b>
           </span>
           <span class="chm-rail__name">{{ gatewayChannel.displayName || 'Magpie 统一网关' }}</span>
+          <span class="chm-rail__tag">管理员</span>
           <span class="chm-rail__dot" :class="'is-' + channelState(gatewayChannel)" />
         </button>
       </aside>
@@ -2803,19 +2929,22 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                   <div class="chm-panel__sect-title">
                     <el-icon aria-hidden="true"><DataAnalysisIcon /></el-icon>
                     模型 <i>{{ (activeSummary()!.models ?? []).length }}</i>
-                    <span v-if="modelsManageable(activeSummary()) && (activeSummary()!.models ?? []).length"
+                    <span v-if="(activeSummary()!.models ?? []).length"
                           class="chm-models__count">
-                      已选 {{ modelSelectedCount }} / {{ (activeSummary()!.models ?? []).length }}
+                      已启用 {{ modelSelectedCount }} / {{ (activeSummary()!.models ?? []).length }}
                     </span>
                   </div>
                   <!-- 拉取 + 批量 + 保存只占一行：都是模型管理动作，不该拆成两个容器 -->
-                  <div v-if="modelsManageable(activeSummary())" class="chm-models__toolbar">
+                  <div v-if="modelsPullable(activeSummary()) || (activeSummary()!.models ?? []).length"
+                       class="chm-models__toolbar">
                     <!-- 托管渠道也允许拉取：后端按「网关优先」从网关上游 provider 取模型并落库 -->
-                    <button type="button" class="chm-models__op" :disabled="busyFor(activeChannel, 'models') || modelSaving"
-                            @click.stop="pullModels(activeChannel)">
-                      {{ busyFor(activeChannel, 'models') ? '拉取中…' : '拉取模型' }}
-                    </button>
-                    <span class="chm-models__sep" aria-hidden="true"></span>
+                    <template v-if="modelsPullable(activeSummary())">
+                      <button type="button" class="chm-models__op" :disabled="busyFor(activeChannel, 'models') || modelSaving"
+                              @click.stop="pullModels(activeChannel)">
+                        {{ busyFor(activeChannel, 'models') ? '拉取中…' : '拉取模型' }}
+                      </button>
+                      <span class="chm-models__sep" aria-hidden="true"></span>
+                    </template>
                     <button type="button" class="chm-models__op" @click.stop="setAllModelDraft('all')">全选</button>
                     <button type="button" class="chm-models__op" @click.stop="setAllModelDraft('invert')">反选</button>
                     <button type="button" class="chm-models__op" @click.stop="setAllModelDraft('none')">全不选</button>
@@ -2830,41 +2959,58 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                   </div>
                 </div>
                 <!--
-                  免登录 / 文生图渠道的模型是客户端内置表（后端 /api/channels 直接带回），
-                  没有上游模型接口，也没有 provider 行可落库；这里只读展示。
+                  免登录 / 文生图渠道的模型是客户端内置表：不需要（也不能）从上游拉取，
+                  但启用状态同样保存在后台，勾选后点「保存」即生效。
                 -->
-                <p v-if="!modelsManageable(activeSummary())" class="chm-models__hint">
-                  该渠道模型由客户端内置，无需拉取，也不能逐项开关。
+                <p v-if="!modelsPullable(activeSummary()) && (activeSummary()!.models ?? []).length"
+                   class="chm-models__hint">
+                  该渠道模型由客户端内置，无需拉取；勾选后点「保存」即可配置启用状态。
                 </p>
-                <p v-else-if="modelChanges.length" class="chm-models__dirty">
+                <p v-if="modelChanges.length" class="chm-models__dirty">
                   有 {{ modelChanges.length }} 处改动未保存，点右侧「保存」才会写入后台。
                 </p>
-                <!-- 胶囊：点一下即选中 / 取消，不实时请求后台 -->
-                <div class="chm-model-chips" role="group" aria-label="模型选择">
-                  <button
-                    v-for="m in activeSummary()!.models ?? []"
+                <!-- 卡片：与「模型管理」页同一套信息密度（名称 / 标签 / 启用开关） -->
+                <div class="chm-model-cards" role="group" aria-label="模型配置">
+                  <article
+                    v-for="m in sortedModels"
                     :key="m.model"
-                    type="button"
-                    class="chm-chip"
-                    :class="{ 'is-on': modelEnabled(m), 'is-readonly': !modelsManageable(activeSummary()) }"
-                    :aria-pressed="modelEnabled(m)"
-                    :disabled="!modelsManageable(activeSummary())"
-                    :title="m.model"
-                    @click.stop="toggleModelChip(m)"
+                    class="chm-mcard"
+                    :class="{ 'is-off': !modelEnabled(m) }"
                   >
-                    <span class="chm-chip__mark" aria-hidden="true">{{ modelEnabled(m) ? '✓' : '' }}</span>
-                    <span class="chm-chip__name">{{ m.model }}</span>
-                    <span v-if="m.free" class="chm-chip__tag is-free">免费</span>
-                    <span v-if="m.rate" class="chm-chip__tag is-rate">{{ m.rate }}x</span>
-                    <span
-                      v-if="modelPriceText(m)"
-                      class="chm-chip__tag is-price"
-                      :title="modelPriceTitle(m)"
-                    >{{ modelPriceText(m) }}</span>
-                    <span v-if="m.contextWindow" class="chm-chip__ctx">{{ m.contextWindow }}</span>
-                  </button>
+                    <header class="chm-mcard__head">
+                      <span class="chm-mcard__name" :title="m.model">{{ m.alias || m.model }}</span>
+                      <span v-if="m.alias && m.alias !== m.model" class="chm-mcard__id" :title="m.model">{{ m.model }}</span>
+                    </header>
+                    <div class="chm-mcard__tags">
+                      <span v-if="modelIsFree(m)" class="chm-mtag is-free">免费</span>
+                      <span v-if="m.rate" class="chm-mtag is-rate" title="计费倍率">{{ m.rate }}x 倍率</span>
+                      <span
+                        v-if="modelPriceText(m)"
+                        class="chm-mtag is-price"
+                        :title="modelPriceTitle(m)"
+                      >{{ modelPriceText(m) }}</span>
+                      <span
+                        v-if="m.contextWindow"
+                        class="chm-mtag is-ctx"
+                        :title="`上下文窗口 ${m.contextWindow} tokens`"
+                      >{{ contextWindowText(m.contextWindow) }} 上下文</span>
+                      <span
+                        v-if="!modelIsFree(m) && !m.rate && !modelPriceText(m)"
+                        class="chm-mtag is-unknown"
+                        title="上游没有提供价格或倍率，未把它当成免费"
+                      >价格未配置</span>
+                    </div>
+                    <footer class="chm-mcard__foot">
+                      <span class="chm-mcard__state">{{ modelEnabled(m) ? '已启用' : '未启用' }}</span>
+                      <el-switch
+                        :model-value="modelEnabled(m)"
+                        size="small"
+                        @change="toggleModelChip(m)"
+                      />
+                    </footer>
+                  </article>
                   <div v-if="!(activeSummary()!.models ?? []).length" class="chm-card__empty">
-                    {{ modelsManageable(activeSummary()) ? '该渠道暂无已启用模型' : '该渠道未声明内置模型' }}
+                    {{ modelsPullable(activeSummary()) ? '该渠道暂无模型，点「拉取模型」同步上游目录' : '该渠道未声明内置模型' }}
                   </div>
                 </div>
               </div>
@@ -3318,11 +3464,13 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   display: flex;
   flex-direction: column;
   gap: 2px;
-  /* 高度由 .chm-deck 的 stretch 决定（撑满），内部自己滚；不再写死 100vh-220px 的视口上限 */
+  /* 高度由 .chm-deck 的 stretch 决定（撑满）；滚动交给 .chm-rail__list，
+     这样底部的网关入口能常驻，不被长渠道列表顶出视口 */
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
 }
 .chm-rail__head {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3340,6 +3488,18 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 .chm-rail__head b {
   color: var(--text-tertiary, #94a3b8);
   font-variant-numeric: tabular-nums;
+}
+/* 渠道行滚动区：撑满标题与底部网关入口之间的空间 */
+.chm-rail__list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* 滚动条占位不挤压行宽，避免文字抖动 */
+  margin-right: -2px;
+  padding-right: 2px;
 }
 /* 刷新：原先在页头，页头移除后落到索引标题行，保持一键重取 */
 .chm-rail__refresh {
@@ -3479,6 +3639,17 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   background: var(--fill-quaternary, #f1f5f9);
   letter-spacing: 0.04em;
 }
+/* 管理员专属入口标记 */
+.chm-rail__tag {
+  flex: none;
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 4px;
+  color: var(--el-color-warning, #b45309);
+  background: color-mix(in srgb, var(--el-color-warning, #e6a23c) 16%, transparent);
+  letter-spacing: 0.02em;
+}
 .chm-rail__dot {
   flex: none;
   width: 7px;
@@ -3522,6 +3693,7 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 }
 /* 网关自身入口：常驻底部，与上面的渠道行用一条分隔线区分 */
 .chm-rail__item.is-gateway-root {
+  flex: none;
   margin-top: 6px;
   padding-top: 9px;
   border-top: 1px solid var(--border-subtle, #eef2f8);
@@ -4026,94 +4198,123 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   font-size: 12px;
   color: var(--text-tertiary, #94a3b8);
 }
-/* 模型胶囊：点击即选中 / 取消（草稿态，不请求后台） */
-.chm-model-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: flex-start;
-}
-.chm-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  max-width: 100%;
-  padding: 5px 10px 5px 7px;
-  border: 1px solid var(--border-default, #e2e9f3);
-  border-radius: 999px;
-  background: var(--bg-container, #fff);
-  color: var(--text-regular, #475569);
-  font-size: 12px;
-  line-height: 1.4;
-  cursor: pointer;
-  transition: border-color .15s, background-color .15s, color .15s, box-shadow .15s;
-}
-.chm-chip:hover:not(:disabled) {
-  border-color: var(--brand-400, #60a5fa);
-}
-.chm-chip.is-on {
-  border-color: var(--brand-500, #3b82f6);
-  background: color-mix(in srgb, var(--brand-500, #3b82f6) 8%, #fff);
-  color: var(--brand-700, #1d4ed8);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-500, #3b82f6) 18%, transparent);
-}
-.chm-chip.is-readonly {
-  cursor: default;
-  opacity: .95;
-}
-.chm-chip:disabled {
-  cursor: default;
-}
-.chm-chip__mark {
-  flex: none;
-  width: 16px;
-  height: 16px;
+/* 模型卡片网格：与「模型管理」页同一套信息密度（名称 / 标签 / 启用开关） */
+.chm-model-cards {
   display: grid;
-  place-items: center;
-  border-radius: 50%;
-  border: 1px solid var(--border-strong, #cbd5e1);
-  background: #fff;
-  color: #fff;
-  font-size: 10px;
-  line-height: 1;
+  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  align-items: start;
+  gap: 10px;
 }
-.chm-chip.is-on .chm-chip__mark {
-  border-color: var(--brand-600, #2563eb);
-  background: var(--brand-600, #2563eb);
+.chm-model-cards > .chm-card__empty {
+  grid-column: 1 / -1;
 }
-.chm-chip__name {
-  max-width: 240px;
+.chm-mcard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 12px 10px;
+  border: 1px solid var(--border-default, #e2e9f3);
+  border-radius: 10px;
+  background: var(--bg-container, #fff);
+  overflow: hidden;
+  transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+}
+/* 顶部色带作为身份标记：启用为主色，停用降为灰阶 */
+.chm-mcard::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--brand-500, #3b82f6), #6d28d9);
+}
+.chm-mcard.is-off::before {
+  background: linear-gradient(90deg, var(--border-strong, #d3dceb), var(--border-subtle, #eef2f8));
+}
+.chm-mcard:hover {
+  border-color: color-mix(in srgb, var(--brand-500, #3b82f6) 32%, var(--border-default, #e2e9f3));
+  box-shadow: 0 4px 12px rgba(15, 23, 42, .06);
+}
+.chm-mcard.is-off {
+  background: color-mix(in srgb, var(--el-fill-color-light, #f5f7fa) 60%, #fff);
+}
+.chm-mcard__head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.chm-mcard__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #1e293b);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 500;
 }
-.chm-chip__tag {
-  flex: none;
-  padding: 0 5px;
-  border-radius: 999px;
-  font-size: 10px;
-  background: var(--el-fill-color, #f0f2f5);
+.chm-mcard.is-off .chm-mcard__name {
   color: var(--text-secondary, #64748b);
 }
-.chm-chip__tag.is-free {
+.chm-mcard__id {
+  font-size: 11px;
+  color: var(--text-tertiary, #94a3b8);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chm-mcard__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 18px;
+}
+.chm-mtag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  line-height: 18px;
+  background: var(--el-fill-color, #f0f2f5);
+  color: var(--text-secondary, #64748b);
+  font-variant-numeric: tabular-nums;
+}
+.chm-mtag.is-free {
   background: color-mix(in srgb, var(--el-color-success, #67c23a) 15%, transparent);
   color: var(--el-color-success, #529b2e);
+  font-weight: 600;
 }
-.chm-chip__tag.is-rate {
+.chm-mtag.is-rate {
   background: color-mix(in srgb, var(--el-color-warning, #e6a23c) 15%, transparent);
   color: #b45309;
 }
-.chm-chip__tag.is-price {
+.chm-mtag.is-price {
   background: color-mix(in srgb, var(--el-color-primary, #409eff) 12%, transparent);
   color: var(--el-color-primary, #337ecc);
-  font-variant-numeric: tabular-nums;
 }
-.chm-chip__ctx {
-  flex: none;
-  font-size: 10px;
+.chm-mtag.is-ctx {
+  background: color-mix(in srgb, var(--el-fill-color, #f0f2f5) 70%, transparent);
+}
+.chm-mtag.is-unknown {
+  background: transparent;
+  border: 1px dashed var(--border-default, #e2e9f3);
   color: var(--text-tertiary, #94a3b8);
-  font-variant-numeric: tabular-nums;
+}
+.chm-mcard__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle, #eef2f8);
+}
+.chm-mcard__state {
+  font-size: 11px;
+  color: var(--text-tertiary, #94a3b8);
+}
+.chm-mcard:not(.is-off) .chm-mcard__state {
+  color: var(--brand-600, #2563eb);
 }
 /* 工具条：计数 / 分隔 / 主按钮 / 撤销 / 未保存提示 */
 .chm-models__count {

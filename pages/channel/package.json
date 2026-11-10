@@ -15,6 +15,7 @@
     "vue": "catalog:",
     "element-plus": "catalog:",
     "@element-plus/icons-vue": "catalog:",
+    "@repo/core": "workspace:*",
     "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",
     "qrcode": "^1.5.4"
