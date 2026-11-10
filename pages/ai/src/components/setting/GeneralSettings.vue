@@ -2,7 +2,7 @@
   <div class="flex-1">
     <!-- 语言设置 -->
     <SettingsCard :title="t('common.language')">
-      <SettingsRow :label="t('settings.general.language')" :description="t('settings.general.languageDesc')" control-width="208px">
+      <SettingsRow :label="t('settings.general.language')" :description="t('settings.general.languageDesc')">
         <el-select v-model="selectedLanguage" @change="handleLanguageChange">
           <el-option label="简体中文" value="zh-CN" />
           <el-option label="English" value="en-US" />
@@ -19,7 +19,7 @@
 
     <!-- 工作目录 -->
     <SettingsCard :title="t('settings.general.workspace')">
-      <SettingsRow :label="t('settings.general.workspaceBaseDir')" :description="t('settings.general.workspaceBaseDirDesc')" control-flex>
+      <SettingsRow :label="t('settings.general.workspaceBaseDir')" :description="t('settings.general.workspaceBaseDirDesc')">
         <div class="flex gap-2 w-full">
           <el-input v-model="settingsForm.workspaceBaseDir" :placeholder="t('settings.general.workspaceBaseDirPlaceholder')" clearable />
           <el-button @click="selectFolder" type="primary" plain>
@@ -31,7 +31,7 @@
 
     <!-- Agent 设置 -->
     <SettingsCard :title="t('settings.general.agent')">
-      <SettingsRow :label="t('settings.general.agentImpl')" :description="t('settings.general.agentImplDesc')" control-width="208px">
+      <SettingsRow :label="t('settings.general.agentImpl')" :description="t('settings.general.agentImplDesc')">
         <el-select v-model="agentImpl">
           <el-option label="OpenCode Server" value="opencode-server" />
           <el-option label="AgentScope" value="agentscope" />
@@ -68,7 +68,7 @@
           </el-button>
         </template>
       </div>
-      <SettingsRow :label="t('settings.general.maxToolIterations')" :description="t('settings.general.maxToolIterationsDesc')" control-width="128px">
+      <SettingsRow :label="t('settings.general.maxToolIterations')" :description="t('settings.general.maxToolIterationsDesc')">
         <el-select v-model="settingsForm.maxToolIterations">
           <el-option label="10" :value="10" />
           <el-option label="50" :value="50" />
@@ -77,7 +77,7 @@
           <el-option label="500" :value="500" />
         </el-select>
       </SettingsRow>
-      <SettingsRow :label="t('settings.general.llmRequestTimeout')" :description="t('settings.general.llmRequestTimeoutDesc')" control-width="144px">
+      <SettingsRow :label="t('settings.general.llmRequestTimeout')" :description="t('settings.general.llmRequestTimeoutDesc')">
         <el-select v-model="settingsForm.llmRequestTimeoutMs">
           <el-option label="30 秒" :value="30" />
           <el-option label="60 秒" :value="60" />
@@ -86,7 +86,7 @@
           <el-option label="600 秒" :value="600" />
         </el-select>
       </SettingsRow>
-      <SettingsRow :label="t('settings.general.llmIdleTimeout')" :description="t('settings.general.llmIdleTimeoutDesc')" control-width="144px">
+      <SettingsRow :label="t('settings.general.llmIdleTimeout')" :description="t('settings.general.llmIdleTimeoutDesc')">
         <el-select v-model="settingsForm.llmIdleTimeoutMs">
           <el-option label="10 秒" :value="10" />
           <el-option label="30 秒" :value="30" />
@@ -105,7 +105,6 @@
         :key="item.field"
         :label="compressionLabel(item)"
         :description="item.description"
-        control-width="208px"
       >
         <FieldControl
           :item="item"
@@ -129,14 +128,14 @@
       <SettingsRow label="折叠回复过程" description="回复成功完成后，将最终正文前的过程文本、思考和工具调用收进活动详情。">
         <el-switch v-model="settingsForm.collapseReplyProcess" />
       </SettingsRow>
-      <SettingsRow label="耗时显示格式" description="控制会话流和回复结果里的执行耗时精度。" control-width="128px">
+      <SettingsRow label="耗时显示格式" description="控制会话流和回复结果里的执行耗时精度。">
         <el-select v-model="settingsForm.durationDisplayFormat">
           <el-option label="整数秒" value="seconds" />
           <el-option label="精确到毫秒" value="milliseconds" />
           <el-option label="分秒格式" value="mmss" />
         </el-select>
       </SettingsRow>
-      <SettingsRow label="思考状态 Loader" description="选择思考状态文案左侧的加载动效。" control-width="160px">
+      <SettingsRow label="思考状态 Loader" description="选择思考状态文案左侧的加载动效。">
         <el-select v-model="settingsForm.thinkingLoaderStyle">
           <el-option label="Matrix（默认）" value="matrix" />
           <el-option label="Music" value="music" />
@@ -159,8 +158,7 @@
         这里只提供「在当前页面上全屏演示一次」的入口，方便确认实际观感。
       -->
       <SettingsRow label="当前动画"
-        description="加载动画由「主题配置 → 外观 → 加载动画」统一管理，首屏与应用内用同一款。这里可全屏演示 3 秒。"
-        control-width="320px">
+        description="加载动画由「主题配置 → 外观 → 加载动画」统一管理，首屏与应用内用同一款。这里可全屏演示 3 秒。">
         <div class="flex items-center gap-2 flex-wrap">
           <span class="loader-demo-name">{{ currentLoaderName }}</span>
           <el-button size="small" type="primary" @click="demoReLoader">演示</el-button>

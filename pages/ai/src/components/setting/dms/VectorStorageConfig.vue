@@ -9,7 +9,7 @@
         </div>
       </template>
 
-      <SettingsRow label="向量库实现" :description="selectedDescriptor?.description" control-flex>
+      <SettingsRow label="向量库实现" :description="selectedDescriptor?.description">
         <el-select :model-value="selectedVectorStorage" class="w-full"
           @update:model-value="$emit('update:selected', $event)">
           <el-option v-for="desc in vectorStorageOptions" :key="desc.name"
@@ -25,7 +25,7 @@
       <SettingsRow v-for="field in selectedVectorFields" :key="field.key"
         :label="field.label" :description="field.description"
         :tip="fieldTip(field)"
-        :badge="field.required ? '必填' : undefined" control-flex>
+        :badge="field.required ? '必填' : undefined">
         <el-input v-if="field.secret || field.type === 'PASSWORD'"
           :model-value="fieldValues[field.key]"
           type="password" show-password clearable

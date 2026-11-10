@@ -68,6 +68,8 @@ export interface ModelConfig {
 export interface ModelGenerateConfig {
   /** 是否支持参考图（图生图 / 图生视频） */
   referenceImage: boolean
+  /** 支持输入多少张参考图（null = 未配置，不限制）；仅 referenceImage 开启时有意义 */
+  referenceImageCount: number | null
   /** 是否支持负面提示词 */
   negativePrompt: boolean
   /** 是否支持随机种子 */
@@ -96,6 +98,7 @@ export interface ModelGenerateConfig {
 export function createDefaultGenerateConfig(src: any = {}): ModelGenerateConfig {
   return {
     referenceImage: src.referenceImage ?? false,
+    referenceImageCount: src.referenceImageCount ?? null,
     negativePrompt: src.negativePrompt ?? true,
     seed: src.seed ?? true,
     maxCount: src.maxCount ?? 1,

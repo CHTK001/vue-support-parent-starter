@@ -70,11 +70,12 @@ function set(name: string, value: string) {
            不按字段名硬编码分区是通用面板的关键——它服务于尚未注册专用组件的插件，
            前端不可能预先知道这些插件会声明哪些字段，但一定能判定出字段类型。 -->
       <ScFilterSectionCard
-        v-for="group in TYPE_GROUPS"
+        v-for="(group, i) in TYPE_GROUPS"
         :key="group.title"
         :title="group.title"
         :desc="group.desc"
         :count="fieldsOfType(group.types).length"
+        :no="i + 1"
       >
         <ScFilterFieldRow
           v-for="field in fieldsOfType(group.types)"
@@ -91,6 +92,7 @@ function set(name: string, value: string) {
         title="其它参数"
         desc="schema 声明了未识别类型的字段，按文本处理"
         :count="restFields.length"
+        :no="TYPE_GROUPS.length + 1"
       >
         <ScFilterFieldRow
           v-for="field in restFields"

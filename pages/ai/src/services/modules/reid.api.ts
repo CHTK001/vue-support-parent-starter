@@ -64,11 +64,14 @@ export interface ReidFaceBox {
   confidence?: number;
   /**
    * 分流类型：`FACE` = 人脸识别（脸清晰，认出了是谁），
-   * `REID` = 重识别（脸模糊，只知道这个人去过哪）。
+   * `REID` = 重识别（脸模糊，只知道这个人去过哪），
+   * `INVALID` = 不合规（低于 ReID 阈值，只提示不落库）。
    */
-  matchType?: "FACE" | "REID" | null;
+  matchType?: "FACE" | "REID" | "INVALID" | null;
   /** 认出的姓名（人脸识别命中时非空） */
   faceName?: string | null;
+  /** 分流原因（不合规时的提示文案；其余为空） */
+  reason?: string | null;
 }
 
 /** 观测一帧的结果。 */
@@ -89,6 +92,8 @@ export interface ReidObserveResult {
   faceMatches?: number;
   /** 其中走重识别的数量（脸模糊/远处，只能给轨迹） */
   reidMatches?: number;
+  /** 其中判为「不合规」的数量（低于 ReID 阈值，不落库、不出结果行） */
+  invalidCount?: number;
   /** 逐张脸的检测框（供叠加层画框） */
   faces?: ReidFaceBox[];
 }
@@ -310,6 +315,9 @@ export const reidApi: ReidApi = {
       ),
       reidMatches: Number(
         data?.reidMatches ?? faces.filter((f) => f.matchType === "REID").length,
+      ),
+      invalidCount: Number(
+        data?.invalidCount ?? faces.filter((f) => f.matchType === "INVALID").length,
       ),
       faces,
     };

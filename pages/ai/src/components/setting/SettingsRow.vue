@@ -111,14 +111,17 @@ watch(() => [props.label, props.tip, slots.label?.()], () => nextTick(scheduleMe
 
 const controlStyle = computed(() => {
   /*
-   * 右侧控件区默认「自己长」，不再写死宽度。
-   *
-   * 原来三个分支都带 flex: 0 0 auto（不给就不伸缩），宽屏上右侧会缩在一角、
-   * 左边空出一大片；controlFlex 更是把 380px 焊死在计算属性里。
-   * 现在：不传宽度 = 交给 CSS 的 flex 规则（可伸可缩，带上限）；
-   * 只有页面**显式**要求某个固定宽度时才内联写死（少数需要像素对齐的控件）。
+   * 右侧控件区宽度的三种口径：
+   *   ① 默认（不传）= 走 CSS 的固定列宽 `--set-row-control-width`（默认 240px），
+   *      让所有行的下拉/输入落在同一列、宽度一致（用户报障：宽度乱七八糟、对不齐）；
+   *   ② control-flex = 占满剩余宽度（多行文本、工作目录这类需要长输入的）；
+   *   ③ control-width = 页面对该行的显式像素要求（纯数字输入框 128/144 这类），
+   *      仍然是右对齐，只是比默认列窄。
    */
-  if (props.controlFlex) return {}
+  if (props.controlFlex) {
+    // 内联必须同时覆盖 width / max-width：CSS 里默认是固定列宽，只给 flex 会被 width 压住
+    return { flex: '1 1 auto', width: 'auto', maxWidth: 'var(--set-row-control-max, 100%)' }
+  }
   if (props.controlWidth) {
     // 静态属性传入无单位字符串（如 "200"），补 px
     const width = /^\d+(\.\d+)?$/.test(props.controlWidth)
@@ -220,32 +223,27 @@ const controlStyle = computed(() => {
 }
 
 /*
-  右侧控件区：默认**可伸缩**，不再写死宽度。
-  - flex: 1 1 auto → 宽屏上把多余空间给控件，而不是让左侧文本列一直吃到边；
-  - min-width 保证窄屏时控件不被压没（换行交给 flex-wrap）；
-  - max-width 用变量兜一下，避免多行输入这类控件在超宽屏上拉成一整面墙。
-  显式传了 control-width 的行仍走内联固定宽度（少数要像素对齐的控件），
-  那条内联规则会盖住这里的 flex。
+  右侧控件区：**固定列宽**，所有行共用 --set-row-control-width（默认 320px）。
+  之前是 flex: 1 1 auto + min-width 200，宽度由每行左侧文案长短决定 ——
+  同一页里 200 / 208 / 349 / 385 混在一起，用户看到的就是「宽度乱七八糟、对不齐」。
+  现在所有输入框 / 下拉框 / 数字框一律 320px 一列，左边缘与右边缘都对齐；
+  只有多行文本或「输入 + 按钮」这类结构特殊的行仍可用 control-flex 占满剩余宽度。
+  内部 el-select / el-input 由下面的 width:100% 撑满整列。
 */
 .set-row-control {
   display: flex; align-items: center; justify-content: flex-end;
-  /*
-    保底 200px：内部 el-select / el-input 被上面的 `width: 100%` 撑满，
-    容器一旦没有固有宽度（原来 flex: 0 0 auto + min-width: 0），
-    100% 就塌成很窄一条 —— 下拉框里只看得见一个「3」，
-    用户没法直观看出来「最多联想条数 / 初始加载记录数量」到底设了什么。
-  */
-  min-width: var(--set-row-control-min, 200px);
-  max-width: var(--set-row-control-max, 100%);
-  flex: 1 1 auto;
+  flex: 0 0 var(--set-row-control-width, 320px);
+  width: var(--set-row-control-width, 320px);
+  max-width: 100%;
+  min-width: 0;
 }
-/* 极窄屏：控件整体换到下一行，而不是被挤成一条竖线 */
+/* 极窄屏：控件整体换到下一行并占满，而不是被挤成一条竖线 */
 @media (max-width: 720px) {
   .set-row-body { flex-wrap: wrap; }
   .set-row-text { max-width: 100%; }
-  .set-row-control { justify-content: flex-start; }
+  .set-row-control { justify-content: flex-start; flex: 1 1 100%; width: 100%; }
 }
-.set-row--stack .set-row-control { justify-content: flex-start; }
+.set-row--stack .set-row-control { justify-content: flex-start; width: 100%; flex: 1 1 100%; }
 .set-row-control :deep(.el-switch) { flex-shrink: 0; }
 
 .set-row--clickable { cursor: pointer; transition: background 0.16s ease; }

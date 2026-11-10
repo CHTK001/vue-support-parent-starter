@@ -164,6 +164,8 @@ const FvGeoPanel = defineAsyncComponent(() => import("../components/fv/FvGeoPane
 const FvImagePanel = defineAsyncComponent(() => import("../components/fv/FvImagePanel.vue"));
 const FvJxlPanel = defineAsyncComponent(() => import("../components/fv/FvJxlPanel.vue"));
 const FvDicomPanel = defineAsyncComponent(() => import("../components/fv/FvDicomPanel.vue"));
+// Apache Arrow IPC（.arrow/.feather/.ipc）：renderer-data 无对应渲染器，走专用面板
+const FvArrowPanel = defineAsyncComponent(() => import("../components/fv/FvArrowPanel.vue"));
 const FvMediaPanel = defineAsyncComponent(() => import("../components/fv/FvMediaPanel.vue"));
 const VideoPreviewPanel = defineAsyncComponent(() => import("../components/VideoPreviewPanel.vue"));
 const FvModelPanel = defineAsyncComponent(() => import("../components/fv/FvModelPanel.vue"));
@@ -333,6 +335,11 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   wasm: FvDataPanel,
   parquet: FvDataPanel,
   avro: FvDataPanel,
+  // Apache Arrow IPC（.arrow / .feather / .ipc）：renderer-data 未收录，
+  // 由 FvArrowPanel 用 apache-arrow 的 tableFromIPC 在前端解析成表格
+  arrow: FvArrowPanel,
+  feather: FvArrowPanel,
+  ipc: FvArrowPanel,
   webarchive: FvDataPanel,
   p7m: FvSignaturePanel,
   p7s: FvSignaturePanel,

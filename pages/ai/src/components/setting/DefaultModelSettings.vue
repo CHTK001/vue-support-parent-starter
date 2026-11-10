@@ -33,7 +33,6 @@
         :tip="getFieldTip(item)"
         :risk="getFieldRisk(item, group.group)"
         :risk-tip="getFieldRiskTip(item, group.group)"
-        control-flex
       >
         <FieldControl
           :item="item"
@@ -85,7 +84,6 @@
             :tip="getFieldTip(item)"
             :risk="getFieldRisk(item, group.group)"
             :risk-tip="getFieldRiskTip(item, group.group)"
-            control-flex
           >
             <!-- usage_sync_providers 多选（逐字段特判，其余走 FieldControl） -->
             <el-select v-if="item.field === 'usage_sync_providers'"
@@ -198,6 +196,18 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  /**
+   * 只渲染指定字段（同一分组拆成多个设置页时用）。
+   *
+   * <p>典型场景：人脸重识别页复用 face 分组，但只该出现 ReID 专属的 7 项
+   * （分流阈值 / 低阈值检测 / 同人判定 / 时间窗 / 轨迹容量 / 保留时长 / 默认摄像头）；
+   * 检测模型、特征模型、活体、质量、超分这些属于「人脸识别配置」页，重复渲染就是
+   * 同一批字段两个入口。留空 = 渲染分组全部字段。</p>
+   */
+  fields: {
+    type: Array,
+    default: () => [],
+  },
 })
 
 /**
@@ -221,22 +231,68 @@ const props = defineProps({
  * 漏在这里的后果不是「多一个入口」，而是<b>越权</b> —— 普通用户能在默认模型页里
  * 改到试卷管线配置（保存会被接口层拒，但界面给了他们可编辑的假象，
  * 也暴露了管理员专属的管线参数）。</p>
+ *
+ * <p><b>2026-11-10 再收四个重复分组</b>（用户反馈「配置乱放」）：</p>
+ * <ul>
+ *   <li>{@code session} 会话 —— 「会话配置」页已逐字段接管（联想开关/条数/初始轮次/
+ *       超时/首包等待/整段等待/占位文案），这里再渲染就是同一批字段两个入口；</li>
+ *   <li>{@code marking} 阅卷设置 —— 「试卷配置」页已经按 paper+marking+compose 三组渲染；</li>
+ *   <li>{@code global} 用量配置 —— 「用量配置」页（UsageConfigSettings，11 字段全覆盖）；</li>
+ *   <li>{@code channel_probe} 渠道探针节奏 —— 按需求从配置中心下线（时间轮与按渠道间隔
+ *       仍按后端默认值运行，只是不再作为可配项暴露）。</li>
+ * </ul>
  */
-const SPLIT_GROUPS = ['face', 'image_search', 'layout', 'rag', 'ocr', 'bot', 'language', 'runtime', 'asr', 'tts', 'search', 'paper', 'compose']
+const SPLIT_GROUPS = ['face', 'image_search', 'layout', 'rag', 'ocr', 'bot', 'language', 'runtime', 'asr', 'tts', 'search', 'paper', 'compose', 'session', 'marking', 'global', 'channel_probe', 'protocol-server']
 
 /** 传入 groups 时只渲染指定分组（设置中心拆出的独立菜单复用同一套交互与保存逻辑） */
+/**
+ * 字段白名单模式下，后端定义还没跟上时的兜底声明。
+ *
+ * <p>共享联调后端常比前端源码旧一两个版本：新加的 ReID 专属字段在旧 jar 的定义接口里
+ * 不存在，白名单过滤后整行消失，用户看到的就是「配置页没改」。这里按前端已知的
+ * 字段类型/默认值补一行，后端定义到位后 known 集合会命中，不会重复渲染。
+ * 格式与 GlobalSettingProvider.SettingItem 一致（valueOnly 标记来源，便于排查）。</p>
+ */
+const FIELD_FALLBACK_SPECS = {
+    'face.reid_feature_model': { defaultValue: '', valueType: 'STRING', description: 'ReID 特征模型（留空则复用「人脸特征模型」）' },
+    'face.reid_feature_dimension': { defaultValue: '', valueType: 'NUMBER', description: 'ReID 特征向量维度（留空则复用人脸特征维度）' },
+    'face.reid_threshold': { defaultValue: '0.3', valueType: 'NUMBER', description: 'ReID 阈值：低于人脸阈值但达到此值走重识别管线' },
+    'face.reid_match_threshold': { defaultValue: '0.5', valueType: 'NUMBER', description: '重识别 1:N 特征检索相似度阈值' },
+}
+
 const displayGroups = computed(() => {
   const all = settingGroups.value
-  if (!props?.groups?.length) {
-    return all.filter((g) => !SPLIT_GROUPS.includes(g.group))
+  const picked = (!props?.groups?.length)
+    ? all.filter((g) => !SPLIT_GROUPS.includes(g.group))
+    : props.groups
+      // 按调用方声明的顺序排，而不是按后端返回的顺序 filter。
+      // 分组定义没有「组级 sort」（GlobalSettingDefinitions.build 按 SPI 发现顺序输出，
+      // 跨 jar 的注册顺序不稳定），直接 filter 会让「试卷识别」这类分组漂到卡片列表末尾，
+      // 同一个页面两次启动都可能不一样。groups 在这里是阅读顺序，不是集合。
+      .map((name) => all.find((g) => g.group === name))
+      .filter((g) => Boolean(g))
+  // 字段白名单：只渲染 caller 指定的字段（同一分组拆多个设置页时用，
+  // 例如人脸重识别页只取 ReID 专属 7 项，不把人脸识别的检测/特征/活体配置再摆一遍）
+  if (!props?.fields?.length) {
+    return picked
   }
-  // 按调用方声明的顺序排，而不是按后端返回的顺序 filter。
-  // 分组定义没有「组级 sort」（GlobalSettingDefinitions.build 按 SPI 发现顺序输出，
-  // 跨 jar 的注册顺序不稳定），直接 filter 会让「试卷识别」这类分组漂到卡片列表末尾，
-  // 同一个页面两次启动都可能不一样。groups 在这里是阅读顺序，不是集合。
-  return props.groups
-    .map((name) => all.find((g) => g.group === name))
-    .filter((g) => Boolean(g))
+  return picked.map((g) => {
+    const items = [...(g.items || [])]
+    const known = new Set(items.map((item) => item.field))
+    for (const field of props.fields) {
+      if (known.has(field)) {
+        continue
+      }
+      const spec = FIELD_FALLBACK_SPECS[`${g.group}.${field}`]
+      if (spec) {
+        items.push({ field, ...spec, sort: 999, adminOnly: false, valueOnly: true })
+      }
+    }
+    return {
+      ...g,
+      items: items.filter((item) => props.fields.includes(item.field)),
+    }
+  })
 })
 
 /**
@@ -534,7 +590,16 @@ const groupHasAlwaysVisibleFields = (group) =>
 
 /** 始终显示的字段：选模型的 + 上面这类目录配置。
  *  分组若没有任何常驻字段，则全部字段平铺，不再套一层空的「高级选项」。 */
+/** 是否处于「字段白名单」模式（同一分组拆多页时，只有指定的几项该出现） */
+const isFieldWhitelistMode = () => Boolean(props?.fields?.length)
+
 const visibleFields = (group) => {
+    // 白名单模式（如人脸重识别只取 7 项）：全部平铺，不再套「高级选项」折叠 ——
+    // 否则用户看到的只有 4 行，另外 3 个阈值/摄像头被折起来，页签又像缺功能。
+    if (isFieldWhitelistMode()) {
+        return (group.items || []).filter(item =>
+            notAdminOnly(item) && shouldShowField(group.group, item.field))
+    }
     const always = [...modelFields(group), ...plainVisibleFields(group)]
     if (always.length > 0) return always
     return (group.items || []).filter(item =>
@@ -542,6 +607,7 @@ const visibleFields = (group) => {
 }
 
 const advancedFields = (group) => {
+    if (isFieldWhitelistMode()) return []
     // 该分组没有常驻字段时，visibleFields 已平铺全部字段，折叠区必须为空，
     // 否则同一批字段会渲染两遍
     if (!groupHasAlwaysVisibleFields(group)) return []
@@ -830,6 +896,8 @@ const getFieldLabel = (item) => {
             'super_resolution_model': '超分模型',
             'detector_model': '检测模型',
             'feature_model': '特征模型',
+            'reid_feature_model': 'ReID 特征模型',
+            'reid_feature_dimension': 'ReID 特征维度',
             'liveness_model': '活体检测模型',
             'anime_detector_model': '动漫人脸检测模型',
             'restore_model': '修复模型',
@@ -1100,6 +1168,28 @@ const groupHasModelFields = (group) => {
 
 // 判断字段是否应该显示
 const shouldShowField = (group, field) => {
+    // 「前端有、后端没实现」的字段：定义里有，但全仓 Java 源码里除定义提供者外没有任何消费方
+    // （2026-11-10 逐字段扫描确认）。配置了也不生效 = 假配置，比缺功能更误导用户，故一律不渲染。
+    //
+    // 现状：这些定义已从后端 GlobalSettingProvider 里删除（generate 13 项、depth/pedestrian、
+    // llm_prompt、enable_connector_usage、protocol_server_host，以及整个 protocol-server 重复组）。
+    // 这里保留过滤只为兼容「共享联调后端还跑着旧 jar」的窗口期——旧后端仍会下发这些定义。
+    // 新后端上线后可整表删除。
+    //
+    // 注：generate 的 image_provider/api_key/base_url、video_provider/api_key/base_url
+    // 也属未实现，但下面的 generate 分支已经统一隐藏，这里不再重复列出。
+    const UNIMPLEMENTED_FIELDS = {
+        generate: ['image_enabled', 'image_negative_prompt', 'image_device',
+                   'video_enabled', 'video_duration', 'video_ratio'],
+        image: ['depth_enabled', 'pedestrian_enabled'],
+        paper: ['llm_prompt'],
+        global: ['enable_connector_usage'],
+        runtime: ['protocol_server_host'],
+    }
+    const unimplemented = UNIMPLEMENTED_FIELDS[group]
+    if (unimplemented && unimplemented.includes(field)) {
+        return false
+    }
     // 语音识别（asr）分组：在「默认模型」整页里只显示模型选择和语言，
     // 隐藏 provider、api_key、base_url 等复杂配置 —— 那里它只是众多分组之一，
     // 摊开凭据项会让整页变得又长又杂。

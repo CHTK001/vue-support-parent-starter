@@ -99,12 +99,10 @@
               </template>
             </el-input>
 
-            <!-- 批量操作工具栏：始终占位，避免选中后把卡片网格往下顶。
+            <!-- 批量操作工具栏：勾中卡片才出现（用户需求 2：空态不渲染，别留一块带底色的占位）。
                  整块只在可写时出现：勾选、启停、批量删除全是 admin-only 接口，
-                 只读账号没有可执行的动作。
-                 没有「多选」入口：卡片右上角常驻勾选框，勾中任意一个后这条工具栏
-                 自动变成批量操作（用户需求：选中即接管工具栏，不再需要先点「多选」）。 -->
-            <div v-if="canWrite" class="batch-toolbar">
+                 只读账号没有可执行的动作。 -->
+            <div v-if="canWrite && selected.length > 0" class="batch-toolbar">
               <template v-if="selected.length > 0">
                 <span class="batch-count">已选 {{ selected.length }} 个</span>
                 <span
@@ -1152,7 +1150,9 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 .filter-group { display: flex; align-items: center; }
 .type-select { width: 110px; }
 
-/* 批量操作工具栏：始终占位固定高度，避免卡片网格上下跳动；多选态/已选态微调背景，未选定态用浅色提示 */
+/* 批量操作工具栏：只在已选模型时渲染（空态不占位、不带底色）。
+   之前的「始终占位固定高度」已按用户需求撤掉——勾选时它出现在标题行右侧，
+   撑开的是同一行，不会把卡片网格往下顶。 */
 .batch-toolbar {
   display: flex;
   align-items: center;
@@ -1161,8 +1161,6 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   min-height: 34px;
   padding: 4px 10px;
   border-radius: var(--el-radius-base);
-  /* 去掉虚线框：虚线在浅底上显得像「未完成的占位」，
-     改用一层很淡的填充 + 发丝内描边表达「工具条」 */
   background: var(--bg-elevated, var(--el-fill-color-light));
   border: 1px solid var(--border-subtle, var(--el-border-color-lighter));
   transition: background 0.18s ease, border-color 0.18s ease;

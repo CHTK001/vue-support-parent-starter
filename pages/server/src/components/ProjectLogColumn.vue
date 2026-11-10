@@ -572,6 +572,93 @@ function segments(line: string): { text: string; hit: boolean }[] {
   cursor: pointer;
 }
 
+/* 本地 / 后端模式切换：紧贴在输入框左侧，字号与按钮保持一致 */
+.log-search-mode {
+  flex: none;
+  display: inline-flex;
+  padding: 1px;
+  gap: 1px;
+  background: var(--bg-hover, rgba(0, 0, 0, 0.06));
+  border-radius: 6px;
+}
+
+.ls-mode-btn {
+  padding: 3px 9px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.ls-mode-btn:hover {
+  color: var(--text-primary);
+}
+
+.ls-mode-btn.is-on {
+  color: var(--brand-500, #6d5dfc);
+  background: var(--bg-container, #fff);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
+}
+
+.ls-mode-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 预计耗时提示：只有后端检索模式出现 */
+.log-search-hint {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px 5px;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+
+/* 后端检索进行中的动画条：计时 + 预计耗时，避免大文件看起来像卡死 */
+.log-search-loading {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--bg-fill);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.lsl-spinner {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(109, 93, 252, 0.25);
+  border-top-color: var(--brand-500, #6d5dfc);
+  border-radius: 50%;
+  animation: lsl-spin 0.8s linear infinite;
+}
+
+.lsl-text {
+  font-variant-numeric: tabular-nums;
+}
+
+.lsl-sub {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+
+@keyframes lsl-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .log-search-err {
   flex: none;
   margin: 6px 8px 0;

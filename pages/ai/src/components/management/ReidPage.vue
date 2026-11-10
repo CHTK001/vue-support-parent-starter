@@ -65,6 +65,7 @@
                   'is-new': !f.matched,
                   'is-face': f.matchType === 'FACE',
                   'is-reid': f.matchType === 'REID',
+                  'is-invalid': f.matchType === 'INVALID',
                 }"
                 :x="f.x"
                 :y="f.y"
@@ -95,6 +96,10 @@
                 </span>
                 <span class="reid-split-item is-reid">
                   <i class="reid-split-dot" />重识别 {{ observeResult.reidMatches ?? 0 }}
+                </span>
+                <!-- 不合规：低于 ReID 阈值，明确提示且不落库（不是一条结果行） -->
+                <span v-if="observeResult.invalidCount" class="reid-split-item is-invalid">
+                  <i class="reid-split-dot" />不合规 {{ observeResult.invalidCount }}
                 </span>
               </div>
             </div>
@@ -175,11 +180,11 @@
               <!-- 分流类型标注：清晰脸走人脸识别（给出姓名），模糊脸走重识别（给出轨迹） -->
               <el-tag
                 v-if="c.matchType"
-                :type="c.matchType === 'FACE' ? 'success' : 'info'"
+                :type="c.matchType === 'FACE' ? 'success' : c.matchType === 'INVALID' ? 'warning' : 'info'"
                 size="small"
                 class="reid-card-type"
               >
-                {{ c.matchType === "FACE" ? "人脸识别" : "重识别" }}
+                {{ c.matchType === "FACE" ? "人脸识别" : c.matchType === "INVALID" ? "不合规" : "重识别" }}
               </el-tag>
               <el-tag v-if="c.crossCamera" type="warning" size="small">跨镜</el-tag>
               <!-- 分组标注：卡片列表是按分组拉回来的，标出来用户才知道「这条属于哪一组」 -->
@@ -467,10 +472,13 @@ function toEpoch(value?: string | number | null): number {
  * @returns 说明文本
  */
 function faceTitle(f: ReidFaceBox): string {
-  const kind = f.matchType === "FACE" ? "人脸识别" : f.matchType === "REID" ? "重识别" : "待分流";
+  const kind = f.matchType === "FACE" ? "人脸识别"
+    : f.matchType === "REID" ? "重识别"
+    : f.matchType === "INVALID" ? "不合规" : "待分流";
   const name = f.faceName ? ` · ${f.faceName}` : "";
   const conf = typeof f.confidence === "number" ? ` · 置信度 ${(f.confidence * 100).toFixed(0)}%` : "";
-  return `${kind}${name}${conf}`;
+  const reason = f.reason ? ` · ${f.reason}` : "";
+  return `${kind}${name}${conf}${reason}`;
 }
 
 /** 打开文件选择。 */
@@ -888,6 +896,13 @@ onMounted(async () => {
   filter: drop-shadow(0 0 6px #64748b);
 }
 
+/* 不合规（低于 ReID 阈值）：红色点线 —— 明确「这张脸不是一条结果，也没落库」 */
+.reid-box.is-invalid {
+  stroke: #ef4444;
+  stroke-dasharray: 4 10;
+  filter: drop-shadow(0 0 6px #ef4444);
+}
+
 .reid-mask {
   position: absolute;
   inset: 0;
@@ -955,6 +970,10 @@ onMounted(async () => {
 
 .reid-split-item.is-reid {
   color: #64748b;
+}
+
+.reid-split-item.is-invalid {
+  color: #ef4444;
 }
 
 .reid-split-dot {

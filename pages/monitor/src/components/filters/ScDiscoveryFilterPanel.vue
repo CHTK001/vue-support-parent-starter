@@ -130,11 +130,12 @@ watch(
 <template>
   <div class="fc-panels">
     <ScFilterSectionCard
-      v-for="section in SECTIONS"
+      v-for="(section, i) in SECTIONS"
       :key="section.title"
       :title="section.title"
       :desc="section.desc"
       :count="fieldsOf(section.keys).length"
+      :no="i + 1"
     >
       <ScFilterFieldRow
         v-for="field in fieldsOf(section.keys)"
@@ -150,6 +151,7 @@ watch(
       title="其它参数"
       desc="后端新增、尚未归入语义分区的参数（不会丢配置）"
       :count="restFields.length"
+      :no="SECTIONS.length + 1"
     >
       <ScFilterFieldRow
         v-for="field in restFields"
@@ -160,7 +162,11 @@ watch(
       />
     </ScFilterSectionCard>
 
-    <ScFilterSectionCard title="服务实例（实时查询）" desc="直查该插件自己的发现接口，不经参数表单，可反复查询">
+    <ScFilterSectionCard
+      title="服务实例（实时查询）"
+      desc="直查该插件自己的发现接口，不经参数表单，可反复查询"
+      :no="SECTIONS.length + (restFields.length ? 2 : 1)"
+    >
       <div class="fc-query">
         <ReSelect
           v-model="discoveryProtocol"

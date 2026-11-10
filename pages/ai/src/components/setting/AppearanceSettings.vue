@@ -12,7 +12,6 @@
       <SettingsRow
         label="配色主题"
         :description="`浅色/深色可分别设置，当前：${isDark ? '深色' : '浅色'}`"
-        control-width="208px"
       >
         <el-select
           v-model="selectedThemePreset"
@@ -74,14 +73,14 @@
 
     <!-- 透明度调节（仅有壁纸时） -->
     <SettingsCard v-if="previewUrl" title="透明度调节">
-      <SettingsRow label="侧边栏透明度" description="调节侧边栏背景的不透明度" control-width="200px">
+      <SettingsRow label="侧边栏透明度" description="调节侧边栏背景的不透明度">
         <div class="slider-line">
           <el-slider v-model="settingsForm.sidebarOpacity" :min="0" :max="100" :step="1"
             class="flex-1" @change="handleOpacityChange" />
           <span class="slider-val">{{ settingsForm.sidebarOpacity }}%</span>
         </div>
       </SettingsRow>
-      <SettingsRow label="内容区透明度" description="调节主内容区域背景的不透明度" control-width="200px">
+      <SettingsRow label="内容区透明度" description="调节主内容区域背景的不透明度">
         <div class="slider-line">
           <el-slider v-model="settingsForm.contentOpacity" :min="0" :max="100" :step="1"
             class="flex-1" @change="handleOpacityChange" />
@@ -95,7 +94,7 @@
       <SettingsRow label="启用毛玻璃效果" description="为背景添加毛玻璃模糊效果">
         <el-switch v-model="settingsForm.acrylicEnabled" @change="handleAcrylicChange" />
       </SettingsRow>
-      <SettingsRow label="模糊程度" description="调节背景壁纸的模糊半径" control-width="200px">
+      <SettingsRow label="模糊程度" description="调节背景壁纸的模糊半径">
         <div class="slider-line">
           <el-slider v-model="settingsForm.blurRadius" :min="0" :max="50" :step="1"
             class="flex-1" @change="handleBlurChange" />
@@ -109,7 +108,7 @@
       <SettingsRow label="显示悬浮窗" description="最小化到托盘时显示任务运行和未读统计">
         <el-switch v-model="settingsForm.floatWidgetEnabled" @change="handleFloatWidgetChange" />
       </SettingsRow>
-      <SettingsRow label="悬浮窗透明度" description="调节悬浮窗卡片的不透明度" control-width="200px">
+      <SettingsRow label="悬浮窗透明度" description="调节悬浮窗卡片的不透明度">
         <div class="slider-line">
           <el-slider v-model="settingsForm.floatWidgetOpacity" :min="30" :max="100" :step="1"
             class="flex-1" @change="handleFloatWidgetChange" />

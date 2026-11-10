@@ -137,7 +137,11 @@ const OFFICE_EXTS = [
 const WEBPAGE_EXTS = ["html", "htm"];
 
 /** 数据文件扩展名（数据库 / 大数据格式，服务端解析） */
-const DATA_EXTS = ["sqlite", "sqlite3", "db", "parquet", "pq", "avro", "avsc", "avdl"];
+const DATA_EXTS = [
+  "sqlite", "sqlite3", "db", "parquet", "pq", "avro", "avsc", "avdl",
+  // Apache Arrow IPC：.arrow / .feather（旧名）/ .ipc，前端 apache-arrow 解析
+  "arrow", "feather", "ipc",
+];
 
 /** 设计稿扩展名（服务端转图预览） */
 const DESIGN_EXTS = ["psd", "psb"];

@@ -5,7 +5,6 @@
       <SettingsRow
         :label="t('settings.browser.markdownLinkOpenMode')"
         :description="t('settings.browser.markdownLinkOpenModeDesc')"
-        control-width="140px"
       >
         <el-select v-model="linkOpenMode" @change="onLinkOpenModeChange">
           <el-option :label="t('settings.browser.internalBrowser')" value="internal" />

@@ -54,11 +54,12 @@ function set(name: string, value: string) {
 <template>
   <div class="fc-panels">
     <ScFilterSectionCard
-      v-for="section in SECTIONS"
+      v-for="(section, i) in SECTIONS"
       :key="section.title"
       :title="section.title"
       :desc="section.desc"
       :count="fieldsOf(section.keys).length"
+      :no="i + 1"
     >
       <ScFilterFieldRow
         v-for="field in fieldsOf(section.keys)"
@@ -74,6 +75,7 @@ function set(name: string, value: string) {
       title="其它参数"
       desc="后端新增、尚未归入语义分区的参数（不会丢配置）"
       :count="restFields.length"
+      :no="SECTIONS.length + 1"
     >
       <ScFilterFieldRow
         v-for="field in restFields"

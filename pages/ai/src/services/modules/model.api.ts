@@ -145,6 +145,7 @@ function buildProviderModelBody(data: any) {
   if (gen && (mainTask === "image_generation" || mainTask === "video_generation")) {
     mainCap.generate = {
       referenceImage: !!gen.referenceImage,
+      referenceImageCount: numOrNull(gen.referenceImageCount),
       negativePrompt: gen.negativePrompt !== false,
       seed: gen.seed !== false,
       maxCount: Math.max(1, Number(gen.maxCount) || 1),

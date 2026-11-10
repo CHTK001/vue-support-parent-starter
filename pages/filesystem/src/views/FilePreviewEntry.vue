@@ -54,6 +54,11 @@ const SPECIAL_COMPONENT_BY_EXT: Record<string, Component> = {
   class: defineAsyncComponent(() => import("../components/fv/FvBinaryPanel.vue")),
   // .log：hs_err_pid*.log（JVM 崩溃日志）运维分析（结论 / 原文双模式），普通日志退化为文本
   log: defineAsyncComponent(() => import("../components/fv/FvLogAnalyzePanel.vue")),
+  // Apache Arrow IPC（.arrow/.feather/.ipc）：renderer-data 无对应渲染器，
+  // 专用面板用 apache-arrow 的 tableFromIPC 前端解析成表格
+  arrow: defineAsyncComponent(() => import("../components/fv/FvArrowPanel.vue")),
+  feather: defineAsyncComponent(() => import("../components/fv/FvArrowPanel.vue")),
+  ipc: defineAsyncComponent(() => import("../components/fv/FvArrowPanel.vue")),
 };
 
 /* ==================== 引导参数（内嵌态唯一事实来源） ==================== */
@@ -279,6 +284,26 @@ function dispatch(
   //    普通 .log 由 FvLogAnalyzePanel 内部退化为文本渲染。优先字节直链 src。
   if (ext === "log" && (opts.bytesUrl || opts.bucketKey)) {
     const comp = SPECIAL_COMPONENT_BY_EXT["log"];
+    if (comp) {
+      specialComponent.value = comp;
+      specialProps.value = {
+        src: opts.bytesUrl ?? "",
+        fileName,
+        size: opts.size ?? 0,
+        inner: opts.inner ?? "",
+        ...(opts.bucketKey
+          ? { bucket: opts.bucketKey.bucket, objectKey: opts.bucketKey.objectKey }
+          : {}),
+      };
+      state.value = "special";
+      return;
+    }
+  }
+
+  // 2) Arrow IPC（arrow/feather/ipc）：前端 apache-arrow 解析成表格。
+  //    优先字节直链（src），无直链时用桶键在面板内签票取数。
+  if ((ext === "arrow" || ext === "feather" || ext === "ipc") && (opts.bytesUrl || opts.bucketKey)) {
+    const comp = SPECIAL_COMPONENT_BY_EXT[ext];
     if (comp) {
       specialComponent.value = comp;
       specialProps.value = {

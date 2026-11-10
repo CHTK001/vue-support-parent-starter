@@ -8,7 +8,7 @@
       <SettingsRow label="模型指标推送" description="开启后定时全量采集模型价格、速度、延迟等指标">
         <el-switch v-model="form.enabled" />
       </SettingsRow>
-      <SettingsRow label="采集间隔" description="每次采集全量同步指标库（最小 30 秒）" control-width="200">
+      <SettingsRow label="采集间隔" description="每次采集全量同步指标库（最小 30 秒）">
         <el-select v-model="form.intervalSec">
           <el-option label="30 秒" :value="30" />
           <el-option label="1 分钟" :value="60" />

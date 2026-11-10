@@ -96,10 +96,11 @@
                             <DefaultModelSettings :groups="['face']" />
                         </template>
                         <template v-else-if="currentTabValue === 'reid-config'">
-                            <!-- 人脸重识别：与人脸识别共享 face 分组的全部配置（检测/特征模型、
-                                 推力/归并阈值、时间窗/容量/保留时长、向量库与特征维度），
-                                 不再新建独立的 reid 配置分组。 -->
-                            <DefaultModelSettings :groups="['face']" />
+                            <!-- 人脸重识别：只渲染 ReID 专属的 7 项（分流阈值 / 低阈值检测 /
+                                 同人判定 / 时间窗 / 轨迹容量 / 保留时长 / 默认摄像头）。
+                                 检测模型、特征模型、活体、质量、超分、属性等属于「人脸识别配置」，
+                                 那一页已有全量入口，这里再渲染一遍就是同一批字段两个入口。 -->
+                            <DefaultModelSettings :groups="['face']" :fields="REID_FIELDS" />
                         </template>
                         <template v-else-if="currentTabValue === 'image-search-config'">
                             <DefaultModelSettings :groups="['image_search']" />
@@ -186,6 +187,12 @@
                         </template>
                         <template v-else-if="currentTabValue === 'services'">
                             <ServiceManagementPage />
+                        </template>
+                        <template v-else-if="currentTabValue === 'protocol-server'">
+                            <!-- 聚合协议服务：只暴露后端真正读取的两个字段
+                                 （runtime.protocol_server_enabled / _port）。
+                                 原先的 protocol-server 分组是无人读取的重复定义，已从后端删除。 -->
+                            <ProtocolServerSettings />
                         </template>
                         <template v-else-if="currentTabValue === 'service-tokens'">
                             <ServiceTokensPage />
@@ -288,6 +295,7 @@ import {
     DataUsage24Regular,
     PuzzlePiece24Regular,
     Server24Regular,
+    PlugConnected24Regular,
     Person20Regular,
     DesktopSpeaker24Regular,
     DocumentText24Regular,
@@ -299,6 +307,7 @@ import {
 import { ArrowBackIosNewTwotone, VerifiedUserOutlined } from '@vicons/material'
 
 import SessionConfigSettings from './SessionConfigSettings.vue'
+import ProtocolServerSettings from './ProtocolServerSettings.vue'
 import DisplaySettings from './DisplaySettings.vue'
 import { useAuthStore } from '../../stores/auth'
 import PageHeader from '@/components/PageHeader.vue'
@@ -348,6 +357,10 @@ const groupMap = computed<Record<string, string>>(() => ({
     usage: t('settings.system.groups.dataManagement'),
     security: t('settings.system.groups.account'),
     services: t('settings.system.groups.system'),
+    // 聚合协议服务（OpenAI/Claude/Gemini 三协议统一入口）：
+    // 原混在「默认模型」页里，但它是服务级参数（开关/端口/绑定地址），与模型选择无关；
+    // 收进「系统」分组，与「服务配置」相邻。仅管理员可改（写的是全局层）。
+    'protocol-server': t('settings.system.groups.system'),
     'service-tokens': t('settings.system.groups.system'),
     'menu-manage': t('settings.system.groups.system'),
     // 底库：图像底库与人脸底库归到同一个分组。
@@ -365,6 +378,36 @@ const groupMap = computed<Record<string, string>>(() => ({
     // 放在「渠道管理」组会让「供应商/模型在哪」这个问题更绕。
     models: t('settings.system.groups.modelConfig'),
 }))
+
+/**
+ * 人脸重识别的专属配置字段（face 分组尾部的 7 项）。
+ *
+ * <p>「人脸识别配置」页渲染 face 全量（检测/特征模型、活体、质量、超分、属性…）；
+ * 「人脸重识别配置」只该包含 ReID 自己的东西：ReID 特征模型与维度、分流/检索阈值、
+ * 轨迹归并参数、默认摄像头。两个页签渲染同一批 38 项，就是
+ * 「重识别配置 = 人脸识别配置」，用户改哪边都分不清。</p>
+ *
+ * <p>字段名与后端 FaceGlobalSettingProvider 逐字一致；后端新增 ReID 字段时在这里补一项。
+ * 检测模型仍复用 face.detector_model（重识别与人脸识别共用同一批检测框）。</p>
+ */
+const REID_FIELDS = [
+    // 模型（参考人脸识别管线的「检测模型 / 特征模型 / 特征维度」）
+    // 检测仍复用 face.detector_model，这里只暴露重识别自己的特征侧
+    'reid_feature_model',
+    'reid_feature_dimension',
+    // 分流与检索
+    'face_threshold',
+    'reid_threshold',
+    'reid_detector_threshold',
+    'reid_match_threshold',
+    // 轨迹归并
+    'track_threshold',
+    'track_gap_seconds',
+    'track_max_tracks',
+    'track_ttl_seconds',
+    // 采集
+    'default_camera_id',
+]
 
 // 设置项菜单
 const sidebarItems = computed(() => [
@@ -583,6 +626,16 @@ const sidebarItems = computed(() => [
         label: '服务配置',
         path: 'services',
         icon: Server24Regular,
+        roles: ['primary'],
+        adminOnly: true,
+    },
+    {
+        // 协议服务：聚合协议服务（OpenAI / Claude / Gemini 三协议统一入口）的
+        // 开关、端口与绑定地址。原在「默认模型」页里，与服务配置同类却分处两地；
+        // 独立成页后归「系统」分组。写的是全局层，故仅管理员。
+        label: '协议服务',
+        path: 'protocol-server',
+        icon: PlugConnected24Regular,
         roles: ['primary'],
         adminOnly: true,
     },

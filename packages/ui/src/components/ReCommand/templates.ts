@@ -228,6 +228,89 @@ function indentBlock(text: string, prefix: string): string {
 
 // ==================== Linux 模板 ====================
 
+/**
+ * Docker 脚本参数（项目 appConfig 里 JSON 对象的键，与后端 DockerProjectSettings 一致）
+ */
+export interface DockerScriptConfig {
+  /** Dockerfile 路径（相对项目地址，默认 Dockerfile） */
+  dockerfile?: string;
+  /** 构建上下文（相对项目地址，默认 .） */
+  context?: string;
+  /** 镜像名（默认 容器名:latest） */
+  image?: string;
+  /** 容器名（默认主入口/项目名） */
+  container?: string;
+  /** 端口映射，空格分隔 */
+  ports?: string;
+  /** 环境变量，空格分隔 K=V */
+  env?: string;
+  /** 数据卷，空格分隔 宿主:容器 */
+  volumes?: string;
+  /** 网络名 */
+  network?: string;
+  /** 重启策略（默认 unless-stopped） */
+  restart?: string;
+  /** 构建参数，空格分隔 K=V */
+  buildArgs?: string;
+  /** 覆盖容器启动命令 */
+  command?: string;
+}
+
+/**
+ * Docker 停止段：与后端 ProjectScripts#linuxDocker/windowsDocker 逐字一致。
+ */
+const LINUX_DOCKER_START = `cd '__PATH__' 2>/dev/null || { echo '项目地址不存在: __PATH__' >&2; exit 1; }
+docker build __DK_BUILDARGS__ -t __DK_IMAGE__ -f __DK_DOCKERFILE__ __DK_CONTEXT__ || { echo 'docker build 失败' >&2; exit 1; }
+docker rm -f __DK_CTR__ >/dev/null 2>&1 || true
+docker run -d --name __DK_CTR__ --restart __DK_RESTART__ __DK_PORTS__ __DK_ENV__ __DK_VOLUMES__ __DK_NETWORK__ __DK_IMAGE__ __DK_CMD__
+if [ $? -ne 0 ]; then echo 'docker run 失败' >&2; exit 1; fi
+__pid=$(docker inspect -f '{{.State.Pid}}' __DK_CTR__ 2>/dev/null)
+if [ -z "$__pid" ] || [ "$__pid" = "0" ]; then
+  echo '启动校验失败: 容器未运行' >&2
+  docker logs --tail 20 __DK_CTR__ >&2 2>/dev/null
+  exit 1
+fi
+echo "$__pid" > app.pid
+echo "running pid=$__pid"`;
+
+const LINUX_DOCKER_STOP = `docker stop __DK_CTR__ >/dev/null 2>&1 || true
+docker rm -f __DK_CTR__ >/dev/null 2>&1 || true
+rm -f app.pid
+echo stopped`;
+
+const LINUX_DOCKER_STATUS = `if [ "$(docker inspect -f '{{.State.Running}}' __DK_CTR__ 2>/dev/null)" = "true" ]; then
+  echo running
+else
+  echo stopped
+fi`;
+
+const WIN_DOCKER_START = `$ErrorActionPreference = 'Continue'
+Set-Location '__PATH__'
+docker build __DK_BUILDARGS__ -t __DK_IMAGE__ -f __DK_DOCKERFILE__ __DK_CONTEXT__
+if ($LASTEXITCODE -ne 0) { throw 'docker build 失败' }
+docker rm -f __DK_CTR__ 2>$null | Out-Null
+docker run -d --name __DK_CTR__ --restart __DK_RESTART__ __DK_PORTS__ __DK_ENV__ __DK_VOLUMES__ __DK_NETWORK__ __DK_IMAGE__ __DK_CMD__
+if ($LASTEXITCODE -ne 0) { throw 'docker run 失败' }
+$procId = (docker inspect -f '{{.State.Pid}}' __DK_CTR__).Trim()
+if (-not $procId -or $procId -eq '0') { throw '启动校验失败: 容器未运行' }
+Set-Content -Path 'app.pid' -Value $procId -NoNewline
+Write-Output "running pid=$procId"`;
+
+const WIN_DOCKER_STOP = `$ErrorActionPreference = 'SilentlyContinue'
+try { docker stop __DK_CTR__ 2>$null | Out-Null } catch { }
+try { docker rm -f __DK_CTR__ 2>$null | Out-Null } catch { }
+Remove-Item 'app.pid' -Force -ErrorAction SilentlyContinue
+Write-Output 'stopped'`;
+
+const WIN_DOCKER_STATUS = `$ErrorActionPreference = 'SilentlyContinue'
+$__running = $null
+try { $__running = docker inspect -f '{{.State.Running}}' __DK_CTR__ 2>$null } catch { $__running = $null }
+if ($__running -eq 'true') {
+  Write-Output 'running'
+} else {
+  Write-Output 'stopped'
+}`;
+
 const LINUX_TEMPLATES: CommandTemplate[] = [
   {
     id: 'linux-springboot',
@@ -379,6 +462,19 @@ echo $! > app.pid`,
     stop: LINUX_PID_STOP,
     restart: `${LINUX_ENTER}echo "Model repository - no process to restart"`,
     status: LINUX_PID_STATUS,
+  },
+  {
+    id: 'linux-docker',
+    name: 'Docker 容器（Dockerfile 构建）',
+    desc: '以项目地址为构建上下文 docker build，成功后才重建容器；容器 PID 写入 app.pid',
+    os: 'linux',
+    types: ['docker'],
+    needEntry: true,
+    start: LINUX_DOCKER_START,
+    stop: LINUX_DOCKER_STOP,
+    restart: `${LINUX_DOCKER_STOP}
+${LINUX_DOCKER_START}`,
+    status: LINUX_DOCKER_STATUS,
   },
   {
     id: 'linux-docker-compose',
@@ -548,6 +644,19 @@ ${winLaunch('python', `@('"__ENTRY__"') + @(__ARGS__)`)}`,
     status: WIN_STATUS,
   },
   {
+    id: 'win-docker',
+    name: 'Docker 容器（Dockerfile 构建）',
+    desc: '以项目地址为构建上下文 docker build，成功后才重建容器；容器 PID 写入 app.pid',
+    os: 'windows',
+    types: ['docker'],
+    needEntry: true,
+    start: WIN_DOCKER_START,
+    stop: WIN_DOCKER_STOP,
+    restart: `${WIN_DOCKER_STOP}
+${WIN_DOCKER_START}`,
+    status: WIN_DOCKER_STATUS,
+  },
+  {
     id: 'win-docker-compose',
     name: 'Docker Compose 编排',
     desc: 'docker compose 管理（up -d / down / restart）',
@@ -692,3 +801,141 @@ export function fillTemplate(tpl: CommandTemplate, ctx: FillContext) {
     status: tpl.status ? apply(tpl.status) : '',
   };
 }
+
+// ==================== Docker 参数展开 ====================
+
+/**
+ * Docker 单值白名单：与后端 DockerProjectSettings#sanitize 逐字等价。
+ *
+ * <p>最终要拼进目标主机的 shell 命令，故只保留字母、数字与
+ * {@code _ . : / \ = @ , + -}（路径类允许空格），其余字符（引号、分号、管道、{@code $}）
+ * 一律丢弃，避免项目配置变成命令注入入口。</p>
+ *
+ * @param raw 原始值
+ * @param allowBlank 是否允许空格（路径可以含空格，参数值不允许）
+ * @returns 过滤后的值
+ */
+function dockerSanitize(raw: string | undefined, allowBlank = false): string {
+  const value = raw ?? '';
+  let out = '';
+  for (const ch of value) {
+    const ok = /[A-Za-z0-9_.:\/\\=@,+\-]/.test(ch) || (allowBlank && ch === ' ');
+    if (ok) {
+      out += ch;
+    }
+  }
+  return out.trim();
+}
+
+/**
+ * 应用名归一：容器名/镜像名只允许小写字母、数字、`_ . -`（与后端 safeName 一致）。
+ *
+ * @param name 项目名/主入口
+ * @returns 归一名；为空时返回 app
+ */
+function dockerSafeName(name: string | undefined): string {
+  const base = (name ?? '').trim().toLowerCase();
+  let out = '';
+  for (const ch of base) {
+    if (/[a-z0-9_.\-]/.test(ch)) {
+      out += ch;
+    }
+  }
+  out = out.replace(/^[.\-]+/, '');
+  return out || 'app';
+}
+
+/**
+ * 取单值配置并做白名单过滤（空值回落默认值）。
+ *
+ * @param raw 原始值
+ * @param fallback 默认值
+ * @returns 过滤后的值
+ */
+function dockerValue(raw: string | undefined, fallback: string): string {
+  const cleaned = dockerSanitize(raw);
+  return cleaned || fallback;
+}
+
+/**
+ * 取「多个值」配置并按用途校验：端口/数据卷必须含 `:`，环境变量/构建参数必须含 `=`，
+ * 且不接受以 `-` 开头的片段（与后端 DockerProjectSettings#items 同口径）。
+ *
+ * @param raw 原始值（空格或逗号分隔）
+ * @param kind 校验类型
+ * @returns 值列表
+ */
+function dockerItems(raw: string | undefined, kind: 'colon' | 'equals' | 'plain'): string[] {
+  if (!raw || !raw.trim()) {
+    return [];
+  }
+  return raw
+    .trim()
+    .split(/[\s,]+/)
+    .map((v) => dockerSanitize(v))
+    .filter(
+      (v) =>
+        !!v &&
+        !v.startsWith('-') &&
+        (kind !== 'colon' || v.includes(':')) &&
+        (kind !== 'equals' || v.includes('=')),
+    );
+}
+
+/**
+ * 把值列表展开成带前缀的参数串。
+ *
+ * @param prefix 命令前缀（如 `-p `）
+ * @param items 值列表
+ * @returns 参数串；无值返回空串
+ */
+function dockerFlags(prefix: string, items: string[]): string {
+  return items.map((v) => prefix + v).join(' ');
+}
+
+/**
+ * 展开 Docker 脚本占位符（`__DK_*`）。
+ *
+ * <p>与后端 `DockerProjectSettings#expand` 同口径：容器名取「容器名配置 → 主入口 → 项目名」，
+ * 镜像默认 `容器名:latest`，未配置端口/环境变量/数据卷时对应参数整段为空。
+ * 前端展开只为「预览与保存即可执行」，执行期后端还会再展开一次（无占位符时原样返回）。</p>
+ *
+ * @param text 脚本（可含 __DK_*）
+ * @param cfg Docker 参数
+ * @param entry 主入口（容器的默认名）
+ * @param appName 项目名（容器名兜底）
+ * @returns 展开后的脚本
+ */
+export function expandDockerTemplate(
+  text: string,
+  cfg: DockerScriptConfig,
+  entry?: string,
+  appName?: string,
+): string {
+  if (!text || !text.includes('__DK_')) {
+    return text;
+  }
+  const app = dockerSafeName(appName);
+  const rawEntry = (entry ?? '').trim();
+  const entryName = rawEntry ? dockerSafeName(rawEntry) : '';
+  const container = dockerValue(cfg.container, entryName || app);
+  const network = dockerValue(cfg.network, '');
+  const values: Record<string, string> = {
+    __DK_DOCKERFILE__: `'${dockerSanitize(cfg.dockerfile) || 'Dockerfile'}'`,
+    __DK_CONTEXT__: `'${dockerSanitize(cfg.context) || '.'}'`,
+    __DK_IMAGE__: dockerValue(cfg.image, `${container}:latest`),
+    __DK_CTR__: container,
+    __DK_PORTS__: dockerFlags('-p ', dockerItems(cfg.ports, 'colon')),
+    __DK_ENV__: dockerFlags('-e ', dockerItems(cfg.env, 'equals')),
+    __DK_VOLUMES__: dockerFlags('-v ', dockerItems(cfg.volumes, 'colon')),
+    __DK_NETWORK__: network ? `--network ${network}` : '',
+    __DK_RESTART__: dockerValue(cfg.restart, 'unless-stopped'),
+    __DK_BUILDARGS__: dockerFlags('--build-arg ', dockerItems(cfg.buildArgs, 'equals')),
+    __DK_CMD__: dockerSanitize(cfg.command),
+  };
+  return text.replace(
+    /__DK_DOCKERFILE__|__DK_CONTEXT__|__DK_IMAGE__|__DK_CTR__|__DK_PORTS__|__DK_ENV__|__DK_VOLUMES__|__DK_NETWORK__|__DK_RESTART__|__DK_BUILDARGS__|__DK_CMD__/g,
+    (m) => values[m] ?? m,
+  );
+}
+

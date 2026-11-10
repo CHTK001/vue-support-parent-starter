@@ -36,7 +36,10 @@ export default defineConfig({
     presetTypography()
   ],
   transformers: [
-    transformerVariantGroup(),
+    // 分隔符必须收敛成 ":"：默认的 [":", "-"] 会把 Tailwind v4 的 CSS 变量简写
+    // `bg-(--color-x)` 当成「- 分隔的变体组」，把括号剥成非法的 `bg---color-x`，
+    // 全站 (--x) 类因此集体失效（配置中心左侧无激活态 / 管理员 tag 不上色）。
+    transformerVariantGroup({ separators: [":"] }),
     transformerDirectives()
   ],
   // 让 UnoCSS 扫描 monorepo 内所有 vue 文件（含 packages/theme/src/themes/koi/**）

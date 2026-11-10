@@ -17,7 +17,6 @@
       <SettingsRow
         :label="t('settings.search.provider')"
         :description="t('settings.search.providerDesc')"
-        control-width="220px"
       >
         <el-select v-model="selectedProvider" @update:model-value="handleProviderChange">
           <!-- 360 放最前并作为默认：它无需 API Key 即可用，是唯一「不配任何东西就能联网」
@@ -37,7 +36,6 @@
       <SettingsRow
         v-if="selectedProvider === 'metaso'"
         :label="t('settings.search.metasoApiKey')"
-        control-flex
       >
         <template #description>
           {{ t('settings.search.metasoApiKeyDesc') }}
@@ -51,7 +49,6 @@
       <SettingsRow
         v-if="selectedProvider === 'bocha'"
         :label="t('settings.search.bochaApiKey')"
-        control-flex
       >
         <template #description>
           {{ t('settings.search.bochaApiKeyDesc') }}
@@ -65,7 +62,6 @@
       <SettingsRow
         v-if="selectedProvider === 'tavily'"
         label="Tavily API Key"
-        control-flex
       >
         <template #description>
           {{ t('settings.search.tavilyApiKeyDesc') }}
@@ -82,7 +78,6 @@
         <SettingsRow
           v-if="selectedProvider === p.key"
           :label="`${p.label} API Key`"
-          control-flex
         >
           <template #description>
             {{ p.desc }}
@@ -100,7 +95,6 @@
           v-if="selectedProvider === p.provider"
           :label="p.label"
           :description="p.desc"
-          control-width="320px"
         >
           <el-input v-model="providerEndpoints[p.key]" :placeholder="p.placeholder" clearable />
         </SettingsRow>

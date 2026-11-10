@@ -990,10 +990,10 @@
     <ReProgressDialog
       v-model="copyDialogVisible"
       :title="copyTitle"
-      :subtitle="copySnapshot?.subtitle || copySubtitle"
+      :subtitle="copySubtitle"
       :snapshot="copySnapshot"
       :steps="copyStepDefs"
-      :cancellable="true"
+      :cancellable="copySnapshot?.cancellable ?? true"
       :cancel-loading="copyCancelling"
       cancel-text="取消复制"
       @cancel="requestCancelCopy"
@@ -2256,6 +2256,11 @@ import {
   updateDbTableOptions,
   fetchDbTableOptionValues,
   setDbTablePrimaryKey,
+  copyDbTable,
+  cancelDbCopy,
+  fetchDbCopyTasks,
+  subscribeDbCopyTasks,
+  type DbCopyTaskSnapshot,
 } from "../../api/dbManageApi";
 import {
   loadViewPref,
@@ -3244,7 +3249,7 @@ const GRID_MENU_TABLE = [
 
 /** 视图只读性实测（MariaDB，jdbc_acc，2026-10-12）：简单视图可 UPDATE/DELETE/INSERT，
  *  SELECT/SHOW CREATE/DESCRIBE 一律正常；真正会失败的是 TRUNCATE、DROP TABLE，
- *  以及 duplicateTable 的三条 CREATE TABLE 候选。所以这里只收起那几项，
+ *  以及跨库复制表里的那几条 CREATE TABLE 候选。所以这里只收起那几项，
  *  不把编辑/删除该行这类对简单视图能用的功能一起砍掉。 */
 const GRID_MENU_VIEW = [
   { key: "edit", label: "编辑该行", icon: EditPen },
@@ -6332,9 +6337,14 @@ async function runWithParams(): Promise<void> {
   await executeScriptWithParams();
 }
 
-// 右键菜单（tableName=表节点 / database=库节点 / tabId=页签 / root=数据源根节点 / 全空=侧栏空白）
-// copyOpen 是表节点里「复制」二级菜单的展开态，收菜单时一起复位
-const contextMenu = reactive({ visible: false, x: 0, y: 0, tableName: "", database: "", tabId: "", isView: false, root: false, copyOpen: false });
+// 右键菜单的「当前上下文」（tableName=表节点 / database=库节点 / tabId=页签 / root=数据源根节点 / 全空=侧栏空白）
+// 只存业务上下文，不再存 x / y / visible：位置与显隐由 ReContextMenu 自己管
+const contextMenu = reactive({ tableName: "", database: "", tabId: "", isView: false, root: false });
+
+/** 树 / 页签 / 空白区域的右键菜单（ReContextMenu 实例） */
+const treeMenuRef = ref<InstanceType<typeof ReContextMenu> | null>(null);
+/** 数据网格表头的右键菜单（ReContextMenu 实例） */
+const headerMenuRef = ref<InstanceType<typeof ReContextMenu> | null>(null);
 
 // 新建表：表单与 SQL 拼装都在共享组件里，这里只保留「弹窗开关 + 目标库」
 const createTableVisible = ref(false);
@@ -8613,16 +8623,13 @@ function formatSql() {
  */
 function onTableContextMenu(e: MouseEvent, tableName: string, database: string, isView = false) {
   e.stopPropagation();
-  contextMenu.visible = true;
-  contextMenu.x = e.clientX;
-  contextMenu.y = e.clientY;
   contextMenu.tableName = tableName;
   contextMenu.database = database;
   contextMenu.tabId = "";
   contextMenu.isView = isView;
   contextMenu.root = false;
   activeDatabase.value = database;
-  void clampContextMenuPosition();
+  treeMenuRef.value?.open(e.clientX, e.clientY);
 }
 
 /**
@@ -8632,16 +8639,13 @@ function onTableContextMenu(e: MouseEvent, tableName: string, database: string, 
  */
 function onDatabaseContextMenu(e: MouseEvent, database: string) {
   e.stopPropagation();
-  contextMenu.visible = true;
-  contextMenu.x = e.clientX;
-  contextMenu.y = e.clientY;
   contextMenu.tableName = "";
   contextMenu.database = database;
   contextMenu.tabId = "";
   contextMenu.isView = false;
   contextMenu.root = false;
   activeDatabase.value = database;
-  void clampContextMenuPosition();
+  treeMenuRef.value?.open(e.clientX, e.clientY);
 }
 
 /**
@@ -8651,29 +8655,23 @@ function onDatabaseContextMenu(e: MouseEvent, database: string) {
  */
 function onRootContextMenu(e: MouseEvent) {
   e.stopPropagation();
-  contextMenu.visible = true;
-  contextMenu.x = e.clientX;
-  contextMenu.y = e.clientY;
   contextMenu.tableName = "";
   contextMenu.database = "";
   contextMenu.tabId = "";
   contextMenu.isView = false;
   contextMenu.root = true;
-  void clampContextMenuPosition();
+  treeMenuRef.value?.open(e.clientX, e.clientY);
 }
 
 function onSidebarContextMenu(e: MouseEvent) {
   // 加载动画没有右键语义：业务菜单和浏览器菜单（粘贴/全选/onload）都不该弹出来
   if (isDbmLoadingTarget(e.target as EventTarget | null)) return;
-  contextMenu.visible = true;
-  contextMenu.x = e.clientX;
-  contextMenu.y = e.clientY;
   contextMenu.tableName = "";
   contextMenu.database = "";
   contextMenu.tabId = "";
   contextMenu.isView = false;
   contextMenu.root = false;
-  void clampContextMenuPosition();
+  treeMenuRef.value?.open(e.clientX, e.clientY);
 }
 
 /**
@@ -8718,15 +8716,12 @@ function onContentBlankContextMenu(e: MouseEvent) {
     return;
   }
   e.preventDefault();
-  contextMenu.visible = true;
-  contextMenu.x = e.clientX;
-  contextMenu.y = e.clientY;
   contextMenu.tableName = "";
   contextMenu.database = "";
   contextMenu.tabId = "";
   contextMenu.isView = false;
   contextMenu.root = false;
-  void clampContextMenuPosition();
+  treeMenuRef.value?.open(e.clientX, e.clientY);
 }
 
 /**
@@ -8758,15 +8753,12 @@ function isDbmLoadingTarget(target: EventTarget | null): boolean {
  */
 function onTabContextMenu(e: MouseEvent, tabId: string) {
   e.stopPropagation();
-  contextMenu.visible = true;
-  contextMenu.x = e.clientX;
-  contextMenu.y = e.clientY;
   contextMenu.tableName = "";
   contextMenu.database = "";
   contextMenu.tabId = tabId;
   contextMenu.isView = false;
   contextMenu.root = false;
-  void clampContextMenuPosition();
+  treeMenuRef.value?.open(e.clientX, e.clientY);
 }
 
 /**
@@ -8794,12 +8786,6 @@ function closeAllTabs() {
   tabDataCache.clear();
 }
 
-function closeContextMenu() {
-  contextMenu.visible = false;
-  // 二级“复制”的展开态不跨次保留：下次右键一张表应该先看到收起状态
-  contextMenu.copyOpen = false;
-}
-
 /**
  * 表头右键菜单。
  *
@@ -8811,24 +8797,15 @@ function closeContextMenu() {
  * 不是两份实现）。表头一组是「注释 / 类型」两个独立开关，可同时开。</p>
  */
 const headerMenu = reactive({
-  visible: false,
-  x: 0,
-  y: 0,
   /** 右键落在哪一列（列 prop）：设置列宽 / 只调整这一列时要用 */
   columnProp: "",
   /** 该列的显示名（菜单里做提示用，避免用户分不清「适应内容」针对谁） */
   columnLabel: "",
 });
 
-/** 表头菜单定位（位置在打开时已按真实尺寸夹过视口，这里只做直出） */
-const headerMenuStyle = computed<Record<string, string>>(() => ({
-  left: headerMenu.x + "px",
-  top: headerMenu.y + "px",
-}));
-
 /** 关表头菜单 */
 function closeHeaderMenu(): void {
-  headerMenu.visible = false;
+  headerMenuRef.value?.close();
 }
 
 /**
@@ -8853,25 +8830,114 @@ function onGridHeaderContextMenu(payload: {
   event.preventDefault();
   headerMenu.columnProp = payload.columnProp ?? "";
   headerMenu.columnLabel = payload.columnLabel ?? "";
-  headerMenu.x = event.clientX;
-  headerMenu.y = event.clientY;
-  headerMenu.visible = true;
-  void nextTick(clampHeaderMenuPosition);
+  headerMenuRef.value?.open(event.clientX, event.clientY);
 }
 
 /**
- * 按真实渲染尺寸把表头菜单夹回视口。
+ * 表头菜单项。
  *
- * <p>与树菜单 {@link clampContextMenuPosition} 同一套做法：首帧只能靠估算，
- * 而这里项数固定（11 项 + 2 分组标题 + 3 分割线），仍按实测校正一次更稳。</p>
+ * <p>勾选态读同一份 {@link sortState} / 表头显示开关，不另存状态：菜单只是这些
+ * 状态的另一个入口，点完立刻在网格上可见。</p>
  */
-async function clampHeaderMenuPosition(): Promise<void> {
-  await nextTick();
-  const el = document.querySelector<HTMLElement>(".dbm-hmenu");
-  if (!el) return;
-  const rect = el.getBoundingClientRect();
-  headerMenu.x = Math.min(Math.max(8, headerMenu.x), Math.max(8, window.innerWidth - rect.width - 8));
-  headerMenu.y = Math.min(Math.max(8, headerMenu.y), Math.max(8, window.innerHeight - rect.height - 8));
+const headerMenuItems = computed<ReContextMenuItem[]>(() => [
+  {
+    label: "显示或隐藏列…",
+    icon: "Operation",
+    command: "header:column-view",
+  },
+  {
+    label: "冻结列…",
+    icon: "Paperclip",
+    hint: "固定在左侧",
+    command: "header:column-view",
+  },
+  { separator: true },
+  { group: `排序 · ${headerMenu.columnLabel || "当前列"}` },
+  {
+    label: "升序",
+    checked: isSortActive("ASC"),
+    command: "header:sort-asc",
+  },
+  {
+    label: "降序",
+    checked: isSortActive("DESC"),
+    command: "header:sort-desc",
+  },
+  { note: "再点一次当前方向即取消排序" },
+  { separator: true },
+  {
+    label: "设置列宽…",
+    icon: "Setting",
+    command: "header:column-width",
+  },
+  {
+    label: "调整列宽以适应内容",
+    icon: "FullScreen",
+    hint: headerMenu.columnLabel || "",
+    command: "header:autofit-column",
+  },
+  {
+    label: "调整所有列的适合大小",
+    icon: "Rank",
+    command: "header:autofit-all",
+  },
+  { separator: true },
+  { group: "表头显示" },
+  {
+    label: "注释",
+    checked: showHeaderComments.value,
+    hint: "字段名下方一行",
+    command: "header:toggle-comments",
+  },
+  {
+    label: "类型",
+    checked: showHeaderTypes.value,
+    hint: "可与注释同时开",
+    command: "header:toggle-types",
+  },
+  { separator: true },
+  { group: "行显示" },
+  {
+    label: "注释",
+    checked: showRowComments.value,
+    hint: "数值下方一行",
+    command: "header:toggle-row-comments",
+  },
+]);
+
+/** 表头菜单命令分发（{@code select} 只带 command，列信息在 {@link headerMenu} 里） */
+function onHeaderMenuSelect(command: string): void {
+  switch (command) {
+    case "header:column-view":
+      openColumnViewFromHeaderMenu();
+      break;
+    case "header:sort-asc":
+      sortFromHeaderMenu("ASC");
+      break;
+    case "header:sort-desc":
+      sortFromHeaderMenu("DESC");
+      break;
+    case "header:column-width":
+      openColumnWidthFromHeaderMenu();
+      break;
+    case "header:autofit-column":
+      autoFitFromHeaderMenu("column");
+      break;
+    case "header:autofit-all":
+      autoFitFromHeaderMenu("all");
+      break;
+    case "header:toggle-comments":
+      toggleHeaderComments();
+      break;
+    case "header:toggle-types":
+      toggleHeaderTypes();
+      break;
+    case "header:toggle-row-comments":
+      toggleRowComments();
+      break;
+    default:
+      break;
+  }
 }
 
 /** 表头菜单里切「表头注释」（与「表头类型」互不影响，可同时开） */
@@ -9068,47 +9134,296 @@ function autoFitFromHeaderMenu(scope: "column" | "all"): void {
   );
 }
 
-/** 右键菜单估算高度（项高 32 + 上下内边距 + 按节点类型的分割线） */
-function menuEstimatedHeight(): number {
-  // 项数必须与模板四套菜单实际条目同步：表 12 项/3 分割线、**视图 10 项/3 分割线**、
-  // 库 8 项/2 分割线、**根节点 6 项/1 分割线**、页签 3 项/1 分割线、空白 5 项/1 分割线。
-  // 曾硬编码库 5 项（实际 8 项）→ 低估 96px → 靠近窗口底部时菜单溢出视口，
-  // 末项「删除数据库」落在屏幕外永远点不到（普通点击超时、force 点到屏外无响应）
-  // 视图菜单比表少 2 项（复制表 / 清空表 对视图必败），沿用 12 会高估 64px。
-  const count = contextMenu.tableName ? (contextMenu.isView ? 10 : 12) : contextMenu.database ? 8 : contextMenu.root ? 6 : contextMenu.tabId ? 3 : 5;
-  const dividers = contextMenu.tableName ? 3 : contextMenu.database ? 2 : contextMenu.root ? 1 : 1;
-  return count * 32 + dividers * 11 + 10;
+// ==================== 右键菜单项（ReContextMenu） ====================
+
+/**
+ * 表 / 视图节点菜单。
+ *
+ * <p>视图与表共用一套菜单，但能做的操作不同：视图不能重命名、不能清空、不能复制表、
+ * 也不能用 DROP TABLE 删，所以这几项按 isView 收起 —— 露出来只会是必然失败的入口。</p>
+ *
+ * @param tableName 对象名（仅用于回显，动作在 {@link onTreeMenuSelect} 里从 contextMenu 取）
+ * @param database 库名
+ * @param isView 是否视图节点
+ */
+function buildTableMenuItems(tableName: string, database: string, isView: boolean): ReContextMenuItem[] {
+  const items: ReContextMenuItem[] = [
+    { label: "打开表", icon: "Grid", command: "table:open" },
+    { label: "设计表", icon: "Edit", command: "table:design" },
+    { label: "查询数据", icon: "EditPen", command: "table:query" },
+    { label: "查看建表语句", icon: "Document", command: "table:ddl" },
+    { separator: true },
+    { label: "重命名表", icon: "EditPen", command: "table:rename" },
+  ];
+  if (!isView) {
+    items.push({
+      label: "复制",
+      icon: "CopyDocument",
+      children: [
+        { label: "只复制表结构", command: "copy:structure" },
+        { label: "复制表结构和数据", command: "copy:data" },
+      ],
+    });
+  }
+  items.push(
+    { label: "复制表名", icon: "CopyDocument", command: "table:copy-name" },
+    { separator: true },
+    { label: "导入数据", icon: "Upload", command: "table:import" },
+    { label: "导出数据", icon: "Download", command: "table:export" },
+    {
+      label: "刷新",
+      icon: "Refresh",
+      hint: database || "",
+      command: "table:refresh",
+    },
+    { separator: true },
+  );
+  if (isView) {
+    items.push({ label: "删除视图", icon: "Delete", danger: true, command: "table:drop-view" });
+  } else {
+    items.push(
+      { label: "清空表", icon: "Delete", danger: true, command: "table:truncate" },
+      { label: "删除表", icon: "Delete", danger: true, command: "table:drop" },
+    );
+  }
+  return items;
+}
+
+/** 库节点菜单 */
+function buildDatabaseMenuItems(database: string): ReContextMenuItem[] {
+  return [
+    { label: "新建表", icon: "Plus", command: "db:create-table" },
+    {
+      label: "粘贴表",
+      icon: "CopyDocument",
+      hint: tableClipboard.value ? tableClipboard.value.table : "剪贴板为空",
+      disabled: !tableClipboard.value,
+      command: "db:paste",
+    },
+    { label: "导入数据到本库", icon: "Upload", command: "db:import" },
+    { label: "新建查询", icon: "EditPen", command: "db:query" },
+    { label: "查看文档", icon: "View", command: "db:doc" },
+    { label: "ER 图（表关系）", icon: "Share", command: "db:er" },
+    { label: "结构同步（与目标库比较）", icon: "Sort", command: "db:sync" },
+    { label: "导出数据库文档", icon: "Document", command: "db:doc-export" },
+    { label: "添加用户", icon: "User", command: "db:add-user" },
+    // 用户管理入口始终显示：非 MySQL/MariaDB 内核由面板自己降级提示，避免入口时有时无
+    { label: "用户管理", icon: "UserFilled", command: "db:users" },
+    { label: "复制库名", icon: "CopyDocument", command: "db:copy-name" },
+    { separator: true },
+    { label: "刷新", icon: "Refresh", hint: database, command: "db:refresh" },
+    { separator: true },
+    { label: "删除数据库", icon: "Delete", danger: true, command: "db:drop" },
+  ];
+}
+
+/** 数据源根节点菜单 */
+function buildRootMenuItems(): ReContextMenuItem[] {
+  return [
+    { label: "查看数据库文档", icon: "View", command: "root:doc" },
+    { label: "新建数据库", icon: "FolderAdd", command: "root:create-db" },
+    { label: "新建表", icon: "Plus", command: "root:create-table" },
+    { label: "新建查询", icon: "EditPen", command: "root:query" },
+    { label: "导入数据", icon: "Upload", command: "root:import" },
+    { label: "导出数据", icon: "Download", command: "root:export" },
+    { separator: true },
+    { label: "刷新", icon: "Refresh", command: "root:refresh" },
+  ];
+}
+
+/** 页签菜单 */
+function buildTabMenuItems(): ReContextMenuItem[] {
+  return [
+    { label: "关闭当前", icon: "Close", command: "tab:close" },
+    { label: "关闭其他", icon: "CircleClose", command: "tab:close-others" },
+    { separator: true },
+    { label: "关闭全部", icon: "Delete", danger: true, command: "tab:close-all" },
+  ];
+}
+
+/** 空白区域菜单（无上下文：只给新建与刷新） */
+function buildBlankMenuItems(): ReContextMenuItem[] {
+  return [
+    { label: "新建数据库", icon: "FolderAdd", command: "blank:create-db" },
+    { label: "新建表", icon: "Plus", command: "blank:create-table" },
+    { label: "新建查询", icon: "EditPen", command: "blank:query" },
+    { label: "导入数据", icon: "Upload", command: "blank:import" },
+    // 导入/导出成对出现在同一组：此前空白处只有「导入数据」，导出只能从工具栏进
+    { label: "导出数据", icon: "Download", command: "blank:export" },
+    { separator: true },
+    { label: "刷新", icon: "Refresh", command: "blank:refresh" },
+  ];
 }
 
 /**
- * 菜单打开后用真实渲染尺寸二次夹取视口。
- * menuEstimatedHeight 的项数靠手维护，后续新增菜单项漏改就会低估 → 底部溢出。
- * 估算只影响首帧，这里在 nextTick 后按 getBoundingClientRect 校正 x/y，一劳永逸
+ * 当前右键上下文对应的菜单项。
+ *
+ * <p>判定顺序必须是 表 → 库 → 根 → 页签 → 空白：表节点同时带库名，
+ * 先判库会把表菜单变成库菜单。</p>
  */
-async function clampContextMenuPosition() {
-  await nextTick();
-  const el = document.querySelector<HTMLElement>(".dbm-context-menu");
-  if (!el) return;
-  const rect = el.getBoundingClientRect();
-  const x = Math.min(Math.max(8, contextMenu.x), Math.max(8, window.innerWidth - rect.width - 8));
-  const y = Math.min(Math.max(8, contextMenu.y), Math.max(8, window.innerHeight - rect.height - 8));
-  if (x !== contextMenu.x) contextMenu.x = x;
-  if (y !== contextMenu.y) contextMenu.y = y;
-}
-
-/**
- * 右键菜单位置（贴近光标，临近视口边缘时翻转，避免溢出屏外点不到）
- */
-const contextMenuStyle = computed<Record<string, string>>(() => {
-  const width = 200;
-  const height = menuEstimatedHeight();
-  const maxX = Math.max(8, window.innerWidth - width - 8);
-  const maxY = Math.max(8, window.innerHeight - height - 8);
-  return {
-    left: Math.min(Math.max(8, contextMenu.x), maxX) + "px",
-    top: Math.min(Math.max(8, contextMenu.y), maxY) + "px",
-  };
+const treeMenuItems = computed<ReContextMenuItem[]>(() => {
+  if (contextMenu.tableName) {
+    return buildTableMenuItems(contextMenu.tableName, contextMenu.database, contextMenu.isView);
+  }
+  if (contextMenu.database) return buildDatabaseMenuItems(contextMenu.database);
+  if (contextMenu.root) return buildRootMenuItems();
+  if (contextMenu.tabId) return buildTabMenuItems();
+  return buildBlankMenuItems();
 });
+
+/**
+ * 树 / 页签 / 空白菜单命令分发。
+ *
+ * <p>组件只回 command 字符串，表名库名等参数由 host 侧的 {@link contextMenu} 携带 ——
+ * 菜单关闭不会清空上下文，所以这里读到的就是「刚才右键的那个对象」。</p>
+ *
+ * @param command 菜单项命令
+ */
+function onTreeMenuSelect(command: string): void {
+  const tableName = contextMenu.tableName;
+  const database = contextMenu.database;
+  const tabId = contextMenu.tabId;
+  switch (command) {
+    // ---- 表 / 视图 ----
+    case "table:open":
+      if (tableName) void openTableData(tableName, database);
+      break;
+    case "table:design":
+      if (tableName) void openTableDesign(tableName, database);
+      break;
+    case "table:query":
+      if (tableName) {
+        openQueryWithSql(`SELECT * FROM \`${tableName}\` LIMIT 100`, database);
+      }
+      break;
+    case "table:ddl":
+      if (tableName) void showTableDdl(tableName, database);
+      break;
+    case "table:rename":
+      if (tableName) void renameTable(tableName, database);
+      break;
+    case "copy:structure":
+      if (tableName) copyTableToClipboard(tableName, database, false);
+      break;
+    case "copy:data":
+      if (tableName) copyTableToClipboard(tableName, database, true);
+      break;
+    case "table:copy-name":
+      if (tableName) void copyText(tableName);
+      break;
+    case "table:import":
+      if (tableName) openImportDataFor(tableName, database);
+      break;
+    case "table:export":
+      if (tableName) openExportDialog(tableName, database);
+      break;
+    case "table:refresh":
+      refreshTableInTree(database);
+      break;
+    case "table:truncate":
+      if (tableName) void confirmTruncate(tableName, database);
+      break;
+    case "table:drop":
+      if (tableName) void deleteTable(tableName, database);
+      break;
+    case "table:drop-view":
+      if (tableName) void deleteView(tableName, database);
+      break;
+    // ---- 库 ----
+    case "db:create-table":
+      openCreateTable(database);
+      break;
+    case "db:paste":
+      pasteTableInto(database);
+      break;
+    case "db:import":
+      openImportDataForDb(database);
+      break;
+    case "db:query":
+      openQueryWithSql("", database);
+      break;
+    case "db:doc":
+      void openDocumentPreview(database);
+      break;
+    case "db:er":
+      openErExportDialog(database);
+      break;
+    case "db:sync":
+      openStructureSync(database);
+      break;
+    case "db:doc-export":
+      void openDocumentExport(database);
+      break;
+    case "db:add-user":
+      openCreateUser(database);
+      break;
+    case "db:users":
+      openUsersTab();
+      break;
+    case "db:copy-name":
+      if (database) void copyText(database);
+      break;
+    case "db:refresh":
+      if (database) void loadTables(database);
+      break;
+    case "db:drop":
+      if (database) void deleteDatabase(database);
+      break;
+    // ---- 数据源根节点 ----
+    case "root:doc":
+      void openDatasourceDocument();
+      break;
+    case "root:create-db":
+      openCreateDatabase();
+      break;
+    case "root:create-table":
+      openCreateTable();
+      break;
+    case "root:query":
+      openNewQuery();
+      break;
+    case "root:import":
+      openImportDataFromToolbar();
+      break;
+    case "root:export":
+      openExportDataFromToolbar();
+      break;
+    case "root:refresh":
+      refreshTree();
+      break;
+    // ---- 页签 ----
+    case "tab:close":
+      if (tabId) closeTab(tabId);
+      break;
+    case "tab:close-others":
+      if (tabId) closeOtherTabs(tabId);
+      break;
+    case "tab:close-all":
+      closeAllTabs();
+      break;
+    // ---- 空白 ----
+    case "blank:create-db":
+      openCreateDatabase();
+      break;
+    case "blank:create-table":
+      openCreateTable();
+      break;
+    case "blank:query":
+      openNewQuery();
+      break;
+    case "blank:import":
+      openImportDataFromToolbar();
+      break;
+    case "blank:export":
+      openExportDataFromToolbar();
+      break;
+    case "blank:refresh":
+      refreshTree();
+      break;
+    default:
+      break;
+  }
+}
 
 /** 打开新建表弹窗：只定目标库，表单与建表都在共享组件里 */
 function openCreateTable(database?: string) {
@@ -9492,47 +9807,287 @@ async function renameTable(tableName: string, database?: string): Promise<void> 
   }
 }
 
+// ==================== 跨库复制表（剪贴板 + 进度弹窗 + 全局进度流） ====================
+
 /**
- * 复制表（CREATE TABLE ... LIKE）
- * @param tableName 源表
- * @param database  所属库
+ * 页面内的「表剪贴板」。
+ *
+ * <p>不用系统剪贴板：跨库复制要带的是「源数据源 + 库 + 表 + 是否带数据」这组
+ * 上下文，系统剪贴板只能放纯文本；而且明文 HTTP 下 {@code navigator.clipboard}
+ * 本身就不存在（见 {@link copyText}）。页面内的剪贴板也天然只活在这个标签页里，
+ * 不会把带库表名的文本漏到别的应用。</p>
  */
-async function duplicateTable(tableName: string, database?: string): Promise<void> {
-  const db = database || activeDatabase.value;
-  let input = "";
-  try {
-    input = await ElMessageBox.prompt(`复制表 ${tableName} 为：`, "复制表", {
-      inputValue: `${tableName}_copy`,
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-    });
-  } catch {
+interface DbTableClipboard {
+  /** 源数据源 ID */
+  sourceDatasourceId: number;
+  /** 源数据源名称（提示里回显） */
+  sourceDatasourceName: string;
+  /** 源库名 */
+  database: string;
+  /** 源表名 */
+  table: string;
+  /** 是否连同数据一起复制 */
+  withData: boolean;
+}
+
+/** 当前剪贴板里的表（空 = 还没复制过） */
+const tableClipboard = ref<DbTableClipboard | null>(null);
+
+/** 进度弹窗显隐（不可关闭：只能等结束或主动取消） */
+const copyDialogVisible = ref(false);
+/** 后端推来的最新快照（字段与 ProgressSnapshot 对齐，前端不再翻译） */
+const copySnapshot = ref<ProgressSnapshot | null>(null);
+/** 弹窗标题 / 副标题（首帧快照到达前先铺出来） */
+const copyTitle = ref("复制表");
+const copySubtitle = ref("");
+/** 取消请求进行中（按钮 loading） */
+const copyCancelling = ref(false);
+/** 当前跟踪的任务 id：全局流里混着别人的任务，按它过滤 */
+const copyTaskId = ref("");
+/** 目标上下文：结束时要刷新目标库的表列表 */
+const copyTarget = ref<{ datasourceId: number; database: string } | null>(null);
+/** 全局进度流句柄（整页只建一条连接） */
+let copyStreamStop: ReturnType<typeof subscribeDbCopyTasks> | null = null;
+
+/** 首帧快照到达前先铺出来的三步（与后端步骤键一致） */
+const copyStepDefs: ProgressStep[] = [
+  { key: "structure", title: "读取表结构", description: "取源表建表语句并改写目标表名" },
+  { key: "create", title: "创建目标表", description: "在目标库执行建表语句" },
+  { key: "data", title: "复制数据", description: "分批搬运行数据" },
+];
+
+/**
+ * 把一张表放进页面剪贴板（右键二级「复制」与 Ctrl+C 都走这里）。
+ *
+ * @param tableName 源表名
+ * @param database 源库名
+ * @param withData 是否连同数据一起复制
+ */
+function copyTableToClipboard(tableName: string, database: string, withData: boolean): void {
+  if (!tableName || !database) {
+    message.warning("请先选择要复制的表");
     return;
   }
-  const name = promptValue(input);
-  if (!name || name === tableName) return;
-  // 跨方言复制结构：MySQL 用 LIKE；H2/PG 用 CREATE TABLE AS ... WHERE 1=0；SQL Server 用 SELECT TOP 0 INTO
-  const candidates = [
-    `CREATE TABLE \`${name}\` LIKE \`${tableName}\``,
-    `CREATE TABLE "${name}" AS SELECT * FROM "${tableName}" WHERE 1=0`,
-    `SELECT TOP 0 * INTO ${name} FROM ${tableName}`,
-  ];
-  let lastError: unknown = null;
-  for (const statement of candidates) {
+  tableClipboard.value = {
+    sourceDatasourceId: currentDatasourceId.value,
+    sourceDatasourceName: currentDatasourceName.value,
+    database,
+    table: tableName,
+    withData,
+  };
+  const what = withData ? "表结构和数据" : "仅表结构";
+  message.success(`${database}.${tableName}（${what}）已复制，在目标库按 Ctrl+V 或右键「粘贴表」`);
+}
+
+/**
+ * 把剪贴板里的表粘贴到目标库。
+ *
+ * <p>目标表名：同库粘贴默认加 {@code _copy} 后缀（同名表直接拒绝），跨库粘贴沿用源表名。
+ * 目标已有同名表时不静默 DROP —— 先确认再带 {@code overwrite=true} 重发，避免一次
+ * 手滑把别人的表清掉。</p>
+ *
+ * @param database 目标库名
+ */
+async function pasteTableInto(database: string): Promise<void> {
+  const clip = tableClipboard.value;
+  if (!clip) {
+    message.warning("剪贴板里还没有表，先在源表上按 Ctrl+C 或右键「复制」");
+    return;
+  }
+  if (!database) {
+    message.warning("请先选择目标库");
+    return;
+  }
+  const targetDatasourceId = currentDatasourceId.value;
+  // 同库粘贴沿用源表名会和源表撞名，默认加 _copy；跨库沿用源表名
+  const sameDb = targetDatasourceId === clip.sourceDatasourceId && database === clip.database;
+  const targetTable = sameDb ? `${clip.table}_copy` : clip.table;
+  // 判重名要靠目标库真实的表清单：缓存里没有就先拉一次（不能只看缓存，
+  // 没展开过的库缓存是空的，会把「已存在的同名表」误判成「可以建」）
+  if (!tablesByDb[database]) {
     try {
-      await executeDbSql(statement, currentDatasourceId.value, db);
-      lastError = null;
-      break;
-    } catch (e) {
-      lastError = e;
+      tablesByDb[database] = await fetchDbTables(targetDatasourceId, database);
+    } catch {
+      // 拉不到就按空清单走：后端还有一道「目标表已存在」的兜底校验
+      tablesByDb[database] = [];
     }
   }
-  if (lastError) {
-    message.error(`复制表失败: ${String((lastError as Error)?.message ?? lastError)}`);
+  // 目标库里已经有这个名字：先问，再决定是否覆盖（不静默 DROP 别人的表）
+  const exists = tablesByDb[database].some(t => (t.name || "").toLowerCase() === targetTable.toLowerCase());
+  let overwrite = false;
+  if (exists) {
+    try {
+      await ElMessageBox.confirm(
+        `${database}.${targetTable} 已存在，继续将先删除它再复制。`,
+        "目标表已存在",
+        { type: "warning", confirmButtonText: "覆盖", cancelButtonText: "取消" },
+      );
+      overwrite = true;
+    } catch {
+      return;
+    }
+  }
+
+  copyTaskId.value = "";
+  copySnapshot.value = null;
+  copyTitle.value = "复制表";
+  copySubtitle.value = `${clip.database ? clip.database + "." : ""}${clip.table} → ${database}.${targetTable}`;
+  copyCancelling.value = false;
+  copyTarget.value = { datasourceId: targetDatasourceId, database };
+  copyDialogVisible.value = true;
+  try {
+    const { taskId } = await copyDbTable({
+      sourceDatasourceId: clip.sourceDatasourceId,
+      sourceDatabase: clip.database,
+      sourceTable: clip.table,
+      targetDatasourceId,
+      targetDatabase: database,
+      targetTable,
+      copyData: clip.withData,
+      overwrite,
+    });
+    copyTaskId.value = taskId;
+    // 任务已经建好再连流：先立 taskId 才能过滤出「自己这一条」，
+    // 否则建连瞬间推来的 ready 帧会因为还没有 taskId 被整帧丢掉。
+    startCopyStream();
+    // 建流与建任务之间差的那几帧由这里补拉：拉到的就是当前完整快照，
+    // 不会出现「进度停在 0% 等下一次状态变化」。
+    try {
+      const tasks = await fetchDbCopyTasks();
+      const mine = tasks.find(t => t.taskId === taskId);
+      if (mine) applyCopySnapshot(mine);
+    } catch {
+      // 进度流会补齐，不打断主流程
+    }
+  } catch (e) {
+    copyDialogVisible.value = false;
+    message.error(`启动复制失败: ${String((e as Error)?.message ?? e)}`);
+  }
+}
+
+/**
+ * 应用一帧任务快照（全局流与补拉共用）。
+ *
+ * @param task 后端推来的完整任务快照
+ */
+function applyCopySnapshot(task: DbCopyTaskSnapshot): void {
+  if (!task || !copyTaskId.value || task.taskId !== copyTaskId.value) return;
+  copySnapshot.value = {
+    taskId: task.taskId,
+    status: task.status,
+    percentage: task.percentage,
+    currentTitle: task.currentTitle,
+    currentDescription: task.currentDescription,
+    message: task.message ?? undefined,
+    finished: task.finished,
+    cancellable: task.cancellable,
+    steps: task.steps,
+    details: task.details,
+  };
+  if (task.subtitle) copySubtitle.value = task.subtitle;
+  if (!task.finished) return;
+  copyCancelling.value = false;
+  if (task.status === "SUCCESS") {
+    const finalMessage = task.message || "复制完成";
+    message.success(finalMessage);
+    const target = copyTarget.value;
+    if (target && target.datasourceId === currentDatasourceId.value) {
+      void loadTables(target.database);
+    }
     return;
   }
-  message.success(`已复制为 ${name}`);
-  await loadTables(db);
+  if (task.status === "CANCELLED") {
+    message.warning(task.message || "复制已取消");
+    return;
+  }
+  message.error(task.message || "复制失败");
+}
+
+/** 建立全局进度流（一条连接推所有任务，按 taskId 过滤） */
+function startCopyStream(): void {
+  copyStreamStop?.close();
+  copyStreamStop = subscribeDbCopyTasks({
+    onTask: task => applyCopySnapshot(task),
+    onReady: tasks => {
+      if (!copyTaskId.value) return;
+      const mine = tasks.find(t => t.taskId === copyTaskId.value);
+      if (mine) applyCopySnapshot(mine);
+    },
+    // 断流不改变任务结论：客户端会自动重连，重连后的 ready 帧会补齐状态
+    onError: () => {},
+  });
+}
+
+/** 断开进度流（离开页面时调用） */
+function stopCopyStream(): void {
+  copyStreamStop?.close();
+  copyStreamStop = null;
+}
+
+/** 请求取消当前复制任务（后端在批次边界停下） */
+async function requestCancelCopy(): Promise<void> {
+  if (!copyTaskId.value || copyCancelling.value) return;
+  copyCancelling.value = true;
+  try {
+    await cancelDbCopy(copyTaskId.value);
+  } catch (e) {
+    copyCancelling.value = false;
+    message.error(`取消失败: ${String((e as Error)?.message ?? e)}`);
+  }
+}
+
+/** 关掉进度弹窗（组件只在任务结束后才发 close，此时快照已定格） */
+function closeCopyDialog(): void {
+  copyDialogVisible.value = false;
+}
+
+/**
+ * 光标是否落在「复制粘贴有自己的语义」的控件里。
+ *
+ * <p>输入框里的 Ctrl+C 复制的是选中文字、编辑器里的 Ctrl+V 粘贴的是 SQL，
+ * 都轮不到「复制整张表」—— 在这些地方拦下来会把编辑器的原生能力一并废掉。</p>
+ *
+ * @param target 键盘事件目标
+ */
+function isTextEditingTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el || typeof el.closest !== "function") return false;
+  if (el.closest('input, textarea, select, [contenteditable="true"], [contenteditable=""]')) return true;
+  return Boolean(el.closest(".cm-editor, .CodeMirror, .vxe-cell--edit, .dbm-sql-editor"));
+}
+
+/**
+ * Ctrl+C / Ctrl+V：树上选中表后复制该表，在目标库粘贴。
+ *
+ * <p>不检查焦点是否在页面上：快捷键挂在 document 上，但过滤掉输入类控件，
+ * 所以整页任何空白处按下都有效，和 Navicat 的手感一致。</p>
+ *
+ * @param e 键盘事件
+ */
+function onCopyPasteShortcut(e: KeyboardEvent): void {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+  const key = e.key?.toLowerCase();
+  if (key !== "c" && key !== "v") return;
+  if (isTextEditingTarget(e.target)) return;
+  // 页面上正选着文字（比如在只读单元格里拖选了一串值）：这是浏览器自己的复制语义，
+  // 抢过来会把「复制选中的那几个字」变成「复制整张表」。
+  const selection = window.getSelection?.()?.toString() ?? "";
+  if (key === "c" && selection.trim()) return;
+  if (copyDialogVisible.value) return;
+  if (key === "c") {
+    const tableName = activeTable.value;
+    const database = activeDatabase.value;
+    if (!tableName || !database) return;
+    e.preventDefault();
+    // 快捷键是「复制整张表」的语义：结构和数据一起带走。
+    // 只想搬结构时走右键二级菜单的「只复制表结构」，那里有明确文案。
+    copyTableToClipboard(tableName, database, true);
+    return;
+  }
+  const targetDatabase = activeDatabase.value;
+  if (!targetDatabase || !tableClipboard.value) return;
+  e.preventDefault();
+  void pasteTableInto(targetDatabase);
 }
 
 /**
@@ -9625,10 +10180,8 @@ function exportQueryCsv(format: "csv" | "tsv" | "json" | "xml" = "csv"): void {
 }
 
 onMounted(() => {
-  document.addEventListener("click", closeContextMenu);
-  // 表头菜单也吃这一下：点空白处 / 点别处右键都要收起来。
-  // 用同一个 click 监听而不是另起一套，免得两个菜单的开关逻辑走岔。
-  document.addEventListener("click", closeHeaderMenu);
+  // 菜单关闭：ReContextMenu 自带透明遮罩（左键 / 右键都处理），不再需要全局 click 监听
+  document.addEventListener("keydown", onCopyPasteShortcut);
   // 备注 popover 是 manual 触发，点别处得自己收
   document.addEventListener("click", onDocumentClickCloseRemark);
 });
@@ -9645,9 +10198,10 @@ watch(currentDatasourceId, () => {
 });
 
 onBeforeUnmount(() => {
-  document.removeEventListener("click", closeContextMenu);
-  document.removeEventListener("click", closeHeaderMenu);
+  document.removeEventListener("keydown", onCopyPasteShortcut);
   document.removeEventListener("click", onDocumentClickCloseRemark);
+  // 复制任务进度流只活在本页：离开时断开，重连由下次进页面时重建
+  stopCopyStream();
   // 开着事务离开页面就等于把改动留在后端那条连接上，
   // 用户既看不见也关不掉（要等空闲超时才被回收）—— 这里兜底回滚。
   void releaseTxOnUnmount();
@@ -10864,66 +11418,7 @@ onBeforeUnmount(() => {
   overflow: auto;
 }
 
-/* 右键菜单（对齐 Navicat） */
-.dbm-context-menu {
-  position: fixed;
-  z-index: 4000;
-  min-width: 190px;
-  max-height: calc(100vh - 16px);
-  overflow-y: auto;
-  padding: 5px;
-  background: var(--el-bg-color-overlay, var(--el-bg-color));
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-md, 8px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-2));
-}
-.dbm-context-item {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  height: 32px;
-  padding: 0 9px;
-  font-size: 13px;
-  color: var(--el-text-color-regular);
-  border-radius: var(--el-radius-sm, 6px);
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease;
-}
-.dbm-context-item:hover { background: var(--el-fill-color-light); color: var(--el-color-primary); }
-.dbm-context-item.dbm-danger { color: var(--el-color-danger); }
-.dbm-context-item.dbm-danger:hover { background: var(--el-color-danger-light-9); color: var(--el-color-danger); }
-.dbm-context-hint { margin-left: auto; font-size: 11px; color: var(--el-text-color-placeholder); }
-.dbm-context-divider { height: 1px; margin: 5px 7px; background: var(--el-border-color-lighter); }
-
-/* 表头右键菜单：分组小标题 + 勾选态（与树菜单共用 .dbm-context-* 皮） */
-.dbm-hmenu { min-width: 208px; }
-.dbm-context-group {
-  padding: 4px 9px 2px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--el-text-color-placeholder);
-}
-.dbm-context-check {
-  display: inline-block;
-  width: 12px;
-  flex: none;
-  color: var(--el-color-primary);
-  font-size: 12px;
-  line-height: 1;
-}
-.dbm-context-item.is-checked { color: var(--el-color-primary); font-weight: 600; }
-/* 纯说明行（如「再点一次当前方向即取消排序」）：不可点、不响应悬停，
-   用来解释它上面那组菜单项的操作语义。 */
-.dbm-context-item--hint {
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-  cursor: default;
-  padding-top: 0;
-  padding-bottom: 4px;
-}
-.dbm-context-item--hint:hover { background: transparent; }
+/* 右键菜单样式已收口到通用组件 ReContextMenu（.re-ctx-*），本页不再自绘 */
 
 /* 弹窗表单 */
 .dbm-create-form { display: flex; flex-direction: column; gap: 14px; padding: 16px 20px 4px; }

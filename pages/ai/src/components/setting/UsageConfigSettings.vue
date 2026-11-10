@@ -14,13 +14,12 @@
 
     <!-- 聚合与调度 -->
     <SettingsCard title="聚合与调度">
-      <SettingsRow label="定时聚合间隔" description="最小 60 秒，默认 3600（1 小时）" control-width="140">
+      <SettingsRow label="定时聚合间隔" description="最小 60 秒，默认 3600（1 小时）">
         <ReNumberInput v-model="byField('usage_report_interval').value"
           :min="60" :step="60" controls-position="right" />
       </SettingsRow>
       <SettingsRow label="Provider 白名单"
-        description="选择需要采集的外部数据源，留空 = 全部启用。小米 MiMo（mimo）同时覆盖 MiMo Code 命令行与 MiMo 桌面软件，两者同源，无需分别勾选。"
-        control-flex>
+        description="选择需要采集的外部数据源，留空 = 全部启用。小米 MiMo（mimo）同时覆盖 MiMo Code 命令行与 MiMo 桌面软件，两者同源，无需分别勾选。">
         <el-select v-model="selectedProviders" multiple collapse-tags collapse-tags-tooltip
           clearable placeholder="留空 = 全部启用" class="w-full" :loading="parsersLoading">
           <el-option v-for="p in usageParsers" :key="p.name" :label="parserLabel(p)" :value="p.name" />
@@ -33,7 +32,7 @@
 
     <!-- 单位设置 -->
     <SettingsCard title="单位设置">
-      <SettingsRow label="货币单位" description="用量管理页所有费用显示的货币" control-width="200">
+      <SettingsRow label="货币单位" description="用量管理页所有费用显示的货币">
         <el-select v-model="byField('usage_currency').value">
           <el-option v-for="opt in byField('usage_currency').options"
             :key="opt.value" :label="opt.label" :value="opt.value" />
@@ -43,16 +42,16 @@
         <el-switch v-model="byField('usage_currency_auto_convert').value" />
       </SettingsRow>
       <template v-if="byField('usage_currency_auto_convert').value">
-        <SettingsRow label="美元汇率 (CNY / USD)" description="1 美元可兑换的人民币数量" control-width="150">
+        <SettingsRow label="美元汇率 (CNY / USD)" description="1 美元可兑换的人民币数量">
           <ReNumberInput v-model="byField('usage_rate_usd').value"
             :min="0.01" :step="0.1" :precision="3" controls-position="right" />
         </SettingsRow>
-        <SettingsRow label="欧元汇率 (CNY / EUR)" description="1 欧元可兑换的人民币数量" control-width="150">
+        <SettingsRow label="欧元汇率 (CNY / EUR)" description="1 欧元可兑换的人民币数量">
           <ReNumberInput v-model="byField('usage_rate_eur').value"
             :min="0.01" :step="0.1" :precision="3" controls-position="right" />
         </SettingsRow>
       </template>
-      <SettingsRow label="Token 显示量级" description="自动缩写（K/M/B）或完整数值" control-width="200">
+      <SettingsRow label="Token 显示量级" description="自动缩写（K/M/B）或完整数值">
         <el-select v-model="byField('usage_token_scale').value">
           <el-option v-for="opt in byField('usage_token_scale').options"
             :key="opt.value" :label="opt.label" :value="opt.value" />

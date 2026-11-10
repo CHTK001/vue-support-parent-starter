@@ -352,9 +352,10 @@
                   <ReOption label="模型" value="model" />
                   <ReOption label="静态页面" value="static" />
                   <ReOption label="Nginx" value="nginx" />
+                  <ReOption label="Docker（Dockerfile 构建）" value="docker" />
                 </ReSelect>
               </ReFormItem>
-              <ReFormItem v-if="needsEntry" label="主入口名称" :required="mainEntryRequired">
+              <ReFormItem v-if="needsEntry" :label="form.projectType === 'docker' ? '容器名' : '主入口名称'" :required="mainEntryRequired">
                 <ReInput v-model="form.mainEntry" :placeholder="entryPlaceholder" style="width:100%" />
               </ReFormItem>
               <!-- Git 源码部署：仓库与构建参数属于「项目类型」本身，随类型就地展开 -->
@@ -486,6 +487,42 @@
                   <ReOption label="全部" value="both" />
                 </ReSelect>
               </ReFormItem>
+              <template v-if="form.projectType === 'docker'">
+                <div class="dk-tip">
+                  <ReIcon name="InfoFilled" class="dk-tip-ic" />
+                  <span>
+                    项目地址即构建上下文：升级包解压到项目地址后执行 docker build，成功后才重建容器。
+                    「容器名」同时用于启动 / 停止 / 状态判定。
+                  </span>
+                </div>
+                <ReFormItem label="Dockerfile（相对项目地址）">
+                  <ReInput v-model="form.docker.dockerfile" placeholder="Dockerfile" style="width:100%" />
+                </ReFormItem>
+                <ReFormItem label="镜像名（留空自动用 容器名:latest）">
+                  <ReInput v-model="form.docker.image" placeholder="如：my-app:latest" style="width:100%" />
+                </ReFormItem>
+                <ReFormItem label="端口映射（空格分隔）">
+                  <ReInput v-model="form.docker.ports" placeholder="如：8080:8080 443:443" style="width:100%" />
+                </ReFormItem>
+                <ReFormItem label="环境变量（空格分隔 K=V）">
+                  <ReInput v-model="form.docker.env" placeholder="如：TZ=Asia/Shanghai PROFILE=prod" style="width:100%" />
+                </ReFormItem>
+                <ReFormItem label="数据卷（空格分隔 宿主:容器）">
+                  <ReInput v-model="form.docker.volumes" placeholder="如：/data/app:/app/data" style="width:100%" />
+                </ReFormItem>
+                <ReFormItem label="网络 / 重启策略">
+                  <div class="dk-inline">
+                    <ReInput v-model="form.docker.network" placeholder="网络名（可空）" />
+                    <ReInput v-model="form.docker.restart" placeholder="unless-stopped" />
+                  </div>
+                </ReFormItem>
+                <ReFormItem label="构建参数（空格分隔 K=V）/ 启动命令">
+                  <div class="dk-inline">
+                    <ReInput v-model="form.docker.buildArgs" placeholder="构建参数（可空）" />
+                    <ReInput v-model="form.docker.command" placeholder="覆盖启动命令（可空）" />
+                  </div>
+                </ReFormItem>
+              </template>
               <!-- 「上传后自动升级」属于投放策略，不放在基础信息里：右键「系统配置」统一改 -->
               <ReFormItem label="项目图标">
                 <ReIconSelect v-model="form.icon" placeholder="留空则按类型使用默认图标" style="width:100%" />
@@ -1045,6 +1082,20 @@
         </section>
 
         <section class="syscfg-section">
+          <div class="syscfg-title"><ReIcon name="CircleCheck" :size="13" />健康检测</div>
+          <div class="syscfg-row">
+            <div class="syscfg-label">
+              <b>启动预热期也做健康检测</b>
+              <span>
+                开启后严格只认 HTTP 200，服务刚启动未就绪（readiness 503）会显示不健康；
+                关闭后该状态视为「预热中」，不判失败。立即检测与手动检测都按这个开关判定
+              </span>
+            </div>
+            <el-switch v-model="sysCfg.healthWarmupCheck" />
+          </div>
+        </section>
+
+        <section class="syscfg-section">
           <div class="syscfg-title"><ReIcon name="Document" :size="13" />日志</div>
           <div class="syscfg-row">
             <div class="syscfg-label">
@@ -1249,7 +1300,7 @@
     <!-- 健康检测对话框 -->
     <ReDialog v-model="healthVisible" :title="`健康检测 - ${healthProject?.projectName || ''}`" width="640px">
       <div class="hc-wrap">
-        <div class="hc-tip">在项目所在主机上发起 HTTP 请求，仅状态码 200 判定为健康。</div>
+        <div class="hc-tip">在项目所在主机上发起 HTTP 请求，仅状态码 200 判定为健康。启动预热期（readiness 未就绪的 503）是否算健康，由「系统配置 → 健康检测」里的开关决定。</div>
         <div class="hc-field">
           <span class="hc-label">检测地址</span>
           <ReInput
@@ -1264,8 +1315,8 @@
         </div>
         <div v-if="healthResult" class="hc-result" :class="healthResult.ok ? 'is-ok' : 'is-bad'">
           <div class="hc-result-head">
-            <el-tag size="small" :type="healthResult.ok ? 'success' : 'danger'" effect="dark">
-              {{ healthResult.ok ? '健康' : '异常' }}
+            <el-tag size="small" :type="healthResult.ok ? (healthResult.warmup ? 'warning' : 'success') : 'danger'" effect="dark">
+              {{ healthResult.ok ? (healthResult.warmup ? '预热中' : '健康') : '异常' }}
             </el-tag>
             <span class="hc-code">HTTP {{ healthResult.statusCode || '—' }}</span>
             <span class="hc-cost">{{ healthResult.elapsedMs }} ms</span>
@@ -1380,7 +1431,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { ElMessageBox } from 'element-plus';
 import { message } from '@repo/core';
 import { http, unwrapResult } from '@repo/utils';
-import { fillTemplate, bestTemplate } from '@repo/ui/components/ReCommand/templates';
+import { fillTemplate, bestTemplate, expandDockerTemplate } from '@repo/ui/components/ReCommand/templates';
 import ReCron from '@repo/ui/re-cron';
 import ReTabs from '@repo/ui/re-tabs';
 import type { ReTabsItem, ReTabsContextItem } from '@repo/ui/re-tabs';
@@ -1581,6 +1632,63 @@ function runtimeLabel(item: Project): string {
 
 interface EnvVar { key: string; value: string; }
 interface KVRow { key: string; value: string; }
+/**
+ * Docker 项目参数（存在项目 appConfig 的 JSON 对象里，与 Java 项目的环境变量数组互不冲突）。
+ */
+interface DockerCfg {
+  dockerfile: string;
+  context: string;
+  image: string;
+  ports: string;
+  env: string;
+  volumes: string;
+  network: string;
+  restart: string;
+  buildArgs: string;
+  command: string;
+}
+
+/** Docker 参数默认值（后端 DockerProjectSettings 有同一套默认值） */
+function defaultDockerCfg(): DockerCfg {
+  return {
+    dockerfile: 'Dockerfile',
+    context: '.',
+    image: '',
+    ports: '',
+    env: '',
+    volumes: '',
+    network: '',
+    restart: 'unless-stopped',
+    buildArgs: '',
+    command: '',
+  };
+}
+
+/**
+ * 从 appConfig 解析 Docker 参数。
+ *
+ * <p>旧数据/其它类型可能是环境变量数组（`[{key,value}]`），解析结果不是对象时
+ * 一律按默认值处理，避免把 Java 项目的配置带进 Docker 表单。</p>
+ *
+ * @param raw appConfig 原始 JSON
+ * @returns Docker 参数
+ */
+function parseDockerCfg(raw?: string): DockerCfg {
+  const out = defaultDockerCfg();
+  if (!raw) return out;
+  try {
+    const obj = JSON.parse(raw);
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return out;
+    (Object.keys(out) as (keyof DockerCfg)[]).forEach((k) => {
+      const v = (obj as Record<string, unknown>)[k];
+      if (typeof v === 'string') out[k] = v;
+      else if (Array.isArray(v)) out[k] = v.join(' ');
+    });
+  } catch {
+    // 非 JSON：按默认值处理
+  }
+  return out;
+}
 
 const form = ref({
   projectName: '',
@@ -1604,6 +1712,8 @@ const form = ref({
   enabled: true,
   pid: '',
   appConfig: [] as EnvVar[],
+  // Docker 项目参数（保存时序列化进 appConfig）
+  docker: defaultDockerCfg(),
   configDir: '',
   libDir: '',
   nginxDir: '',
@@ -1676,6 +1786,8 @@ const entryPlaceholder = computed(() => {
       return '如：user-service.jar';
     case 'separated':
       return '如：app（可执行文件名）或 app.js';
+    case 'docker':
+      return '如：my-app（容器名，停止/状态按它判定）';
     case 'static':
     case 'nginx':
     case 'model':
@@ -1685,7 +1797,7 @@ const entryPlaceholder = computed(() => {
   }
 });
 
-const MAIN_ENTRY_REQUIRED_TYPES = ['springboot', 'separated', 'git'];
+const MAIN_ENTRY_REQUIRED_TYPES = ['springboot', 'separated', 'git', 'docker'];
 const mainEntryRequired = computed(() => MAIN_ENTRY_REQUIRED_TYPES.includes(form.value.projectType));
 // 静态页面 / Nginx / 模型无主入口；其余类型显示主入口
 const needsEntry = computed(() => !['static', 'nginx', 'model'].includes(form.value.projectType));
@@ -1725,6 +1837,7 @@ function typeLabel(t: string) {
     model: '模型',
     static: '静态页面',
     nginx: 'Nginx',
+    docker: 'Docker',
   } as Record<string, string>)[t] || t || '未知';
 }
 
@@ -1856,6 +1969,7 @@ function resetForm() {
     enabled: true,
     pid: '',
     appConfig: [],
+    docker: defaultDockerCfg(),
     configDir: '',
     libDir: '',
     nginxDir: '',
@@ -1929,6 +2043,7 @@ function openEditDialog(item: Project) {
     appConfig: parseJson<EnvVar>(item.appConfig, [])
       .filter((r) => r && typeof r.key === 'string')
       .map((r) => ({ key: r.key, value: r.value ?? '' })),
+    docker: parseDockerCfg(item.appConfig),
     configDir: item.configDir || '',
     libDir: item.libDir || '',
     nginxDir: item.nginxDir || '',
@@ -2168,6 +2283,34 @@ const anyScriptEmpty = computed(() =>
 const autogenLoading = ref(false);
 
 /**
+ * 用当前基础信息填充模板：Docker 项目额外把 `__DK_*` 展开成实际参数
+ * （与后端 DockerProjectSettings 同口径），使预览与保存的脚本即可直接执行。
+ *
+ * @param tpl 模板
+ * @returns 四段脚本
+ */
+function fillFromTemplate(tpl: Parameters<typeof fillTemplate>[0]) {
+  const filled = fillTemplate(tpl, {
+    entry: form.value.mainEntry,
+    log: form.value.logPath,
+    path: form.value.projectPath,
+    appName: form.value.projectName,
+    logOp: form.value.logMode === 'truncate' ? '>' : '>>',
+  });
+  if (form.value.projectType !== 'docker') {
+    return filled;
+  }
+  const expand = (s: string) =>
+    expandDockerTemplate(s, form.value.docker, form.value.mainEntry, form.value.projectName);
+  return {
+    start: expand(filled.start),
+    stop: expand(filled.stop),
+    restart: expand(filled.restart),
+    status: expand(filled.status),
+  };
+}
+
+/**
  * 用内置模板补齐为空的脚本（已手写的不覆盖）
  *
  * @param silent 静默模式：保存前自动补全时不弹校验/成功提示
@@ -2195,13 +2338,7 @@ function fillScriptsFromTemplate(silent = false): boolean {
     return false;
   }
   try {
-    const filled = fillTemplate(tpl, {
-      entry: form.value.mainEntry,
-      log: form.value.logPath,
-      path: form.value.projectPath,
-      appName: form.value.projectName,
-      logOp: form.value.logMode === 'truncate' ? '>' : '>>',
-    });
+    const filled = fillFromTemplate(tpl);
     // 仅填充为空的脚本，已手写的不覆盖
     if (!form.value.startScript) form.value.startScript = filled.start;
     if (!form.value.stopScript) form.value.stopScript = filled.stop;
@@ -2246,13 +2383,7 @@ async function autoGenerateScripts() {
   }
   autogenLoading.value = true;
   try {
-    const filled = fillTemplate(tpl, {
-      entry: form.value.mainEntry,
-      log: form.value.logPath,
-      path: form.value.projectPath,
-      appName: form.value.projectName,
-      logOp: form.value.logMode === 'truncate' ? '>' : '>>',
-    });
+    const filled = fillFromTemplate(tpl);
     form.value.startScript = filled.start;
     form.value.stopScript = filled.stop;
     form.value.restartScript = filled.restart;
@@ -2313,13 +2444,7 @@ function regenerateScripts(notify = false): boolean {
     return false;
   }
   try {
-    const filled = fillTemplate(tpl, {
-      entry: form.value.mainEntry,
-      log: form.value.logPath,
-      path: form.value.projectPath,
-      appName: form.value.projectName,
-      logOp: form.value.logMode === 'truncate' ? '>' : '>>',
-    });
+    const filled = fillFromTemplate(tpl);
     form.value.startScript = filled.start;
     form.value.stopScript = filled.stop;
     form.value.restartScript = filled.restart;
@@ -2357,6 +2482,8 @@ watch(
     () => form.value.mainEntry,
     () => form.value.projectName,
     () => form.value.logMode,
+    // Docker 参数会展开进脚本（端口/环境变量/镜像名…），改动后预览必须同步
+    () => JSON.stringify(form.value.docker),
     hostOs,
   ],
   () => {
@@ -2432,7 +2559,7 @@ async function handleSave() {
       },
       form.value.jvmArgs,
     );
-    const { apmType, apmJarPath, apmOptions, swJarPath, swServiceName, swBackendService, swExtraArgs, arthasJarPath, arthasTelnetPort, arthasHttpPort, gitLastCommit, scheduleStatus, ...projectForm } = form.value;
+    const { apmType, apmJarPath, apmOptions, swJarPath, swServiceName, swBackendService, swExtraArgs, arthasJarPath, arthasTelnetPort, arthasHttpPort, gitLastCommit, scheduleStatus, docker, ...projectForm } = form.value;
     const payload = {
       ...projectForm,
       // 空串要转 null：后端 null 表示「不修改」，空串会让 LocalDateTime 反序列化失败
@@ -2440,7 +2567,11 @@ async function handleSave() {
       envVars: JSON.stringify(form.value.envVars),
       jvmArgs: JSON.stringify(form.value.jvmArgs),
       cmdArgs: JSON.stringify(form.value.cmdArgs),
-      appConfig: JSON.stringify(form.value.appConfig),
+      // Docker 项目把参数存成 JSON 对象；其它类型仍然存环境变量数组
+      appConfig:
+        form.value.projectType === 'docker'
+          ? JSON.stringify(form.value.docker)
+          : JSON.stringify(form.value.appConfig),
     };
     if (editingId.value != null) {
       await http().put(`${BASE}/project/${editingId.value}`).data(payload);
@@ -3522,6 +3653,7 @@ const sysCfg = ref({
   actuatorMonitorEnabled: false,
   actuatorIntervalSeconds: 30,
   logLines: 100,
+  healthWarmupCheck: true,
 });
 
 /** 该项目是否探测到 Actuator：只有可用时才显示定时采集配置 */
@@ -3543,6 +3675,7 @@ async function openSystemConfig(item: Project) {
     actuatorMonitorEnabled: false,
     actuatorIntervalSeconds: 30,
     logLines: 100,
+    healthWarmupCheck: true,
   };
   sysCfgActuatorAvailable.value = !!endpointCache[item.id]?.actuator;
   // Actuator 是否可用决定「定时采集」区块是否出现：缓存没有就静默探一次
@@ -3566,7 +3699,11 @@ async function openSystemConfig(item: Project) {
       actuatorMonitorEnabled: false,
       actuatorIntervalSeconds: 30,
       logLines: 100,
+      healthWarmupCheck: true,
     };
+    // 健康检测配置独立存放（地址 + 预热期开关），与升级默认值互不覆盖
+    const hc = unwrapResult<any>(await http().get(`${BASE}/project/${item.id}/health`)) || {};
+    sysCfg.value.healthWarmupCheck = hc.warmupCheck !== false;
     // 定时采集配置独立存放（项目级开关 + 间隔），与升级默认值互不覆盖
     const mon = unwrapResult<any>(
       await http().get(`${BASE}/project/${item.id}/endpoints/monitor`),
@@ -3593,8 +3730,8 @@ async function saveSystemConfig() {
   if (!item) return;
   sysCfgSaving.value = true;
   try {
-    // 升级默认值里不混入采集与日志配置，各存各的
-    const { actuatorMonitorEnabled, actuatorIntervalSeconds, logLines, ...upgradeCfg } = sysCfg.value;
+    // 升级默认值里不混入采集 / 日志 / 健康检测配置，各存各的
+    const { actuatorMonitorEnabled, actuatorIntervalSeconds, logLines, healthWarmupCheck, ...upgradeCfg } = sysCfg.value;
     await http()
       .put(`${BASE}/upgrade/config?scope=project&projectId=${item.id}`)
       .data(upgradeCfg);
@@ -3606,6 +3743,10 @@ async function saveSystemConfig() {
       intervalSeconds: actuatorIntervalSeconds,
     });
     await http().post(`${BASE}/project/${item.id}/log/lines?lines=${logLines ?? 100}`);
+    // 预热期健康检测开关与地址共用一条配置：这里只改开关，不动已保存的地址
+    await http().post(
+      `${BASE}/project/${item.id}/health?warmupCheck=${healthWarmupCheck ? 'true' : 'false'}`,
+    );
     message.success(`已保存「${item.projectName}」的系统配置`);
     sysCfgVisible.value = false;
     loadList();
@@ -4406,6 +4547,8 @@ interface HealthCheckResult {
   url: string;
   ok: boolean;
   statusCode: number;
+  /** 是否处于启动预热期（readiness 未就绪的 503） */
+  warmup?: boolean;
   elapsedMs: number;
   checkedAt: string;
   message: string;
@@ -4427,13 +4570,15 @@ async function openHealthCheck(item: Project) {
   healthProject.value = item;
   healthResult.value = null;
   healthUrl.value = '';
-  healthVisible.value = true;
   try {
     const res = await http().get(`${BASE}/project/${item.id}/health`);
     const data = unwrapResult<{ url?: string; defaultUrl?: string }>(res);
     healthUrl.value = (data?.url || data?.defaultUrl || '').trim();
   } catch (e) {
     toastError(e, '读取健康检测配置失败');
+  } finally {
+    // 先拿到地址再显示弹框：否则弹框先出现、地址稍后异步回填，用户会看到一瞬空白
+    healthVisible.value = true;
   }
 }
 
@@ -6445,6 +6590,32 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-md, 8px);
   white-space: pre-wrap; word-break: break-all;
   line-height: 1.6;
+}
+
+/* ---- Docker 项目参数（基础信息里随类型展开） ---- */
+.dk-tip {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-secondary, #6b7280);
+  background: var(--bg-fill, #f7f8fa);
+  border: 1px solid var(--border-subtle, #eef0f6);
+  border-radius: var(--radius-md, 8px);
+}
+.dk-tip-ic {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: #2563eb;
+}
+.dk-inline {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
 }
 
 /* ---- Git 源码构建（已并入「基础信息」，随项目类型展开） ---- */

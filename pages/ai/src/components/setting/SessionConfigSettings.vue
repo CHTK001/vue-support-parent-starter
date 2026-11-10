@@ -50,8 +50,6 @@
       <SettingsRow
         label="「AI 正在思考…」占位文案"
         description="AI 答复的首字还没回来时，气泡里显示哪一句。一行一句，随机轮换且不会连着两次相同；留空则用内置的默认文案"
-        control-flex
-        style="--set-row-control-max: 640px"
       >
         <div class="flex flex-col gap-2 w-full">
           <el-input
@@ -84,6 +82,46 @@
             v-for="m in IDLE_TIMEOUT_OPTIONS"
             :key="m"
             :label="m === 0 ? '不限制' : `${m} 分钟`"
+            :value="m"
+          />
+        </el-select>
+      </SettingsRow>
+
+      <SettingsRow
+        label="流式首包等待上限"
+        description="发出请求后超过这么久（毫秒）还没出第一个字，就判定该密钥卡顿并切换；范围 1-600000"
+      >
+        <el-select
+          v-model="firstTokenModel"
+          :disabled="loading"
+          class="w-56"
+          aria-label="流式首包等待上限（毫秒）"
+          @change="onFirstTokenChange"
+        >
+          <el-option
+            v-for="m in FIRST_TOKEN_OPTIONS"
+            :key="m"
+            :label="`${m / 1000} 秒`"
+            :value="m"
+          />
+        </el-select>
+      </SettingsRow>
+
+      <SettingsRow
+        label="整段回复等待上限"
+        description="已经开始输出后，最多等这么久（秒）就结束本次回复并提示"
+      >
+        <el-select
+          v-model="completionWaitModel"
+          :disabled="loading"
+          class="w-56"
+          aria-label="整段回复等待上限（秒）"
+          @change="onCompletionWaitChange"
+        >
+          <el-option
+            v-for="m in COMPLETION_WAIT_OPTIONS"
+            :key="m"
+            :label="`${m} 秒`"
             :value="m"
           />
         </el-select>
@@ -204,8 +242,14 @@ const FIELD_THINKING_PHRASES = 'thinking_placeholder_phrases'
 const DEFAULT_INITIAL_TURNS = 10
 /** 会话超时字段名（分钟） */
 const FIELD_IDLE_TIMEOUT = 'stream_idle_timeout_minutes'
+/** 流式首包等待上限（毫秒）：超时即判定该密钥卡顿并切换 */
+const FIELD_FIRST_TOKEN_TIMEOUT = 'stream_first_token_timeout_millis'
+/** 整段回复等待上限（秒） */
+const FIELD_COMPLETION_WAIT = 'stream_completion_wait_seconds'
 /** 会话超时兜底值：后端未返回时用它，不让输入框空着 */
 const DEFAULT_IDLE_TIMEOUT = 30
+const DEFAULT_FIRST_TOKEN_TIMEOUT = 8000
+const DEFAULT_COMPLETION_WAIT = 100
 
 /**
  * 会话超时的可选档位（分钟）。0 = 不限制。
@@ -215,6 +259,11 @@ const DEFAULT_IDLE_TIMEOUT = 30
  * 超时本就该选档位而不是手打任意分钟数，顺带也避开了这个控件问题。</p>
  */
 const IDLE_TIMEOUT_OPTIONS = [0, 5, 10, 15, 30, 45, 60, 120]
+
+/** 首包等待可选档位（毫秒）：默认 8s，与后端定义 defaultValue 对齐 */
+const FIRST_TOKEN_OPTIONS = [3000, 5000, 8000, 15000, 30000, 60000]
+/** 整段回复等待可选档位（秒）：默认 100s */
+const COMPLETION_WAIT_OPTIONS = [60, 100, 180, 300, 600, 1800]
 
 /** 联想条数的可选档位 */
 const MAX_COUNT_OPTIONS = [1, 2, 3, 4, 5, 6, 8, 10]
@@ -419,6 +468,10 @@ const initialTurns = ref(DEFAULT_INITIAL_TURNS)
  */
 const maxCountModel = ref(3)
 const idleTimeoutModel = ref(DEFAULT_IDLE_TIMEOUT)
+const firstTokenTimeout = ref(DEFAULT_FIRST_TOKEN_TIMEOUT)
+const firstTokenModel = ref(DEFAULT_FIRST_TOKEN_TIMEOUT)
+const completionWait = ref(DEFAULT_COMPLETION_WAIT)
+const completionWaitModel = ref(DEFAULT_COMPLETION_WAIT)
 const initialTurnsModel = ref(DEFAULT_INITIAL_TURNS)
 /** 「AI 正在思考…」占位文案（多行文本，一行一句）；空 = 用内置默认文案 */
 const thinkingPhrasesText = ref('')
@@ -513,6 +566,18 @@ const load = async () => {
       ? Math.min(idle, 180)
       : DEFAULT_IDLE_TIMEOUT
     idleTimeoutModel.value = nearestOption(idleTimeout.value, IDLE_TIMEOUT_OPTIONS, DEFAULT_IDLE_TIMEOUT)
+    const firstTokenItem = pickField(response, FIELD_FIRST_TOKEN_TIMEOUT)
+    const firstToken = Number(firstTokenItem?.value ?? firstTokenItem?.defaultValue)
+    firstTokenTimeout.value = Number.isFinite(firstToken) && firstToken > 0
+      ? Math.min(Math.trunc(firstToken), 600000)
+      : DEFAULT_FIRST_TOKEN_TIMEOUT
+    firstTokenModel.value = nearestOption(firstTokenTimeout.value, FIRST_TOKEN_OPTIONS, DEFAULT_FIRST_TOKEN_TIMEOUT)
+    const completionItem = pickField(response, FIELD_COMPLETION_WAIT)
+    const completion = Number(completionItem?.value ?? completionItem?.defaultValue)
+    completionWait.value = Number.isFinite(completion) && completion > 0
+      ? Math.min(Math.trunc(completion), 3600)
+      : DEFAULT_COMPLETION_WAIT
+    completionWaitModel.value = nearestOption(completionWait.value, COMPLETION_WAIT_OPTIONS, DEFAULT_COMPLETION_WAIT)
     const turnsItem = pickField(response, FIELD_INITIAL_TURNS)
     const turns = Number(turnsItem?.value ?? turnsItem?.defaultValue)
     initialTurns.value = Number.isFinite(turns) && turns >= 1
@@ -591,6 +656,34 @@ const onIdleTimeoutChange = (value: number | undefined) => {
   idleTimeout.value = nearestOption(Math.trunc(Number(value)), IDLE_TIMEOUT_OPTIONS, DEFAULT_IDLE_TIMEOUT)
   idleTimeoutModel.value = idleTimeout.value
   saveOverrides({ [FIELD_IDLE_TIMEOUT]: idleTimeout.value })
+}
+
+/**
+ * 流式首包等待上限变更：写本人覆盖层（毫秒）。
+ *
+ * @param value 变更后的毫秒数
+ */
+const onFirstTokenChange = (value: number | undefined) => {
+  if (!Number.isFinite(value)) {
+    return
+  }
+  firstTokenTimeout.value = nearestOption(Math.trunc(Number(value)), FIRST_TOKEN_OPTIONS, DEFAULT_FIRST_TOKEN_TIMEOUT)
+  firstTokenModel.value = firstTokenTimeout.value
+  saveOverrides({ [FIELD_FIRST_TOKEN_TIMEOUT]: firstTokenTimeout.value })
+}
+
+/**
+ * 整段回复等待上限变更：写本人覆盖层（秒）。
+ *
+ * @param value 变更后的秒数
+ */
+const onCompletionWaitChange = (value: number | undefined) => {
+  if (!Number.isFinite(value)) {
+    return
+  }
+  completionWait.value = nearestOption(Math.trunc(Number(value)), COMPLETION_WAIT_OPTIONS, DEFAULT_COMPLETION_WAIT)
+  completionWaitModel.value = completionWait.value
+  saveOverrides({ [FIELD_COMPLETION_WAIT]: completionWait.value })
 }
 
 /**

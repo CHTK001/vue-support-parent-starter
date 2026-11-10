@@ -119,7 +119,12 @@ function unoConfig(themeColors?: Record<string, string>, rules?: UnoConfig["rule
       presetIcons({ scale: 1.2, warn: true }),
       presetTypography(),
     ],
-    transformers: [transformerVariantGroup(), transformerDirectives()],
+    // 与仓库根 unocss.config.ts 保持同一口径：变体组分隔符收敛成 ":"。
+    // 默认的 [":", "-"] 会把 Tailwind v4 的 CSS 变量简写 `bg-(--color-x)` 当成
+    // 「- 分隔的变体组」，把括号剥成非法的 `bg---color-x`，全站 (--x) 类集体失效
+    // （配置中心左侧无激活态 / 管理员 tag 不上色的根因）。
+    // 注：实际生效的是根 unocss.config.ts，这里同步一份避免以后有人只看这份配置。
+    transformers: [transformerVariantGroup({ separators: [":"] }), transformerDirectives()],
     content: {
       filesystem: [
         path.resolve(WORKSPACE_ROOT, "apps/**/*.{vue,ts,tsx,js,jsx,html}"),

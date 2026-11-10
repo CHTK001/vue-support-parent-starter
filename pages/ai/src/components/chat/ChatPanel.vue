@@ -151,6 +151,15 @@
               @config-change="handleConfigChange" @send="handleSendMessage" @abort="abortResponse">
             </ChatInput>
           </div>
+
+          <!-- 回到底部悬浮按钮：挂在「输入列」容器里（本列 = 模型动作条 + 输入卡的整体，
+               已 position:relative 且吃 contentMaxWidthStyle，与消息列同宽同左缘）。
+               为什么不用输入卡那一行：bottom 100% 会正好压在模型动作条上（实测
+               .model-action-bar y728–764 与按钮 y730–760 完全重叠，动作条上的「正在生成回答」
+               被盖住）。挂到这里，100% + 10px 落在整列上沿之外，既不压输入框也不压动作条。
+               横向仍以输入列左缘 + 24px，限宽窄屏下不会跑到面板最左缘（用户报障 2026-11-10）。 -->
+          <ScrollToBottomButton :show="showScrollToBottomBtn" :is-streaming="shouldButtonBreathe"
+            :status="processingStatus" @click="handleScrollToBottomClick" />
         </div>
       </div>
     </ScrollContainer>
@@ -168,9 +177,10 @@
         :context-breakdown="tokenStats?.breakdown || null" />
     </div>
 
-    <!-- 回到底部悬浮按钮（左下角：附带「当前在做什么」状态文案） -->
-    <ScrollToBottomButton :show="showScrollToBottomBtn" :is-streaming="shouldButtonBreathe"
-      :status="processingStatus" @click="handleScrollToBottomClick" />
+    <!-- 回到底部悬浮按钮的定位：见输入列内部（硬锚在输入框列上）。
+         旧实现挂在面板根部（position:absolute + left:24px），限宽窄屏下 24px 落在
+         面板最左缘、跑到内容列外面（用户报障 2026-11-10「跑到最左侧了」），
+         且面板根宽度含滚动区 px-5 内边距，与输入框列并不对齐。 -->
   </div>
   <!-- 记忆管理弹窗 -->
   <ReDialog v-model="memoPanelVisible" :title="t('chat.panel.memoryManagement')" width="560px"

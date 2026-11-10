@@ -56,10 +56,14 @@ export default createVite({
         target: apiTarget,
         changeOrigin: true,
       },
-      // 登录鉴权：未代理时 403，且本应用本地跑时与后端同源（Origin 被接受）
+      // 登录鉴权：未代理时 403，且本应用本地跑时与后端同源（Origin 被接受）。
+      // 注意只代理 **POST**：/login 同时是 SPA 的登录页路由（守卫 next({path:'/login'})），
+      // GET 也转给后端的话，dev 下登录页会直接渲染出后端那句「不支持GET请求」的 JSON，
+      // 登录页永远打不开（2026-11-10 实测）。GET 回落 index.html 交给前端路由。
       "/login": {
         target: apiTarget,
         changeOrigin: true,
+        bypass: (req) => (req.method === "GET" ? "/index.html" : undefined),
       },
       // 登录态续期与登出
       "/logout": {

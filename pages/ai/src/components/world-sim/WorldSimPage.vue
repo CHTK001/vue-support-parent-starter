@@ -1677,7 +1677,10 @@ function scheduleEvolve() {
       // 「待演」幕：上一幕演完时 AI 已把下一幕建出来停在 writing，
       // 此时焦点通常还在刚演完的 replay 幕上。若不主动把待演幕接上，
       // 自动演化就只会空推世界时间，剧本永远停在第一幕。
-      const waiting = acts.value.find((a) => ['writing', 'props_ok', 'playing'].includes(String(a.stage)))
+      // 取**最新**的待演幕：历史上积压的空幕（旧验收数据）不该被自动演化
+      // 从最早一幕开始倒着重写，观众要看的是世界往后走。
+      const waiting = [...acts.value].reverse()
+        .find((a) => ['writing', 'props_ok', 'playing'].includes(String(a.stage)))
       if (waiting && waiting.actNo !== currentAct.value?.actNo) {
         await selectAct(waiting)
       }

@@ -115,6 +115,19 @@
                   <span class="cap-label"><el-icon class="mr-1"><DocumentText24Regular /></el-icon>{{ t('settings.providerDetail.pdf') }}</span>
                 </el-checkbox-button>
               </el-checkbox-group>
+              <!-- 勾了「图片」→ 输入图片的细化：单次最多几张（留空=不限制）、能否拿图当参考。
+                   紧贴能力勾选行展开，不再单独占一个表单项 -->
+              <div v-if="hasImageIn" class="img-extra">
+                <span class="img-extra-field">
+                  <span class="img-extra-label">张数</span>
+                  <ReNumberInput v-model="form.config.imageInputCount" :min="1" :max="16"
+                    :placeholder="t('settings.providerDetail.modelDefault')" controls-position="right" class="num-input" />
+                </span>
+                <span class="img-extra-field">
+                  <span class="img-extra-label">支持参考图</span>
+                  <el-switch v-model="form.config.imageReference" />
+                </span>
+              </div>
             </el-form-item>
             <el-form-item :label="t('settings.providerDetail.outputCapabilities')" prop="config.outputCapabilities" class="mb-2">
               <el-checkbox-group v-model="form.config.outputCapabilities">
@@ -134,26 +147,14 @@
                   <span class="cap-label"><el-icon class="mr-1"><DocumentText24Regular /></el-icon>{{ t('settings.providerDetail.pdf') }}</span>
                 </el-checkbox-button>
               </el-checkbox-group>
-            </el-form-item>
-
-            <!-- 图片能力的细化：勾了「图片」才出现。之前只有一个是/否的勾，
-                 表达不了「最多几张」「能不能拿图当参考」这类真实约束。
-                 张数留空 = 未配置（不限制）；支持参考图默认关。 -->
-            <template v-if="hasImageIn">
-              <el-form-item label="输入图片张数" prop="config.imageInputCount" class="mb-2">
-                <ReNumberInput v-model="form.config.imageInputCount" :min="1" :max="16"
-                  :placeholder="t('settings.providerDetail.modelDefault')" controls-position="right" class="num-input" />
-                <span class="me-hint">单次请求最多携带几张图片，留空 = 不限制</span>
-              </el-form-item>
-              <el-form-item label="支持参考图" prop="config.imageReference" class="mb-2">
-                <el-switch v-model="form.config.imageReference" />
-                <span class="me-hint">开启后可把图片作为参照传给该模型（图生图 / 参考图编辑）</span>
-              </el-form-item>
-            </template>
-            <el-form-item v-if="hasImageOut" label="输出图片张数" prop="config.imageOutputCount" class="mb-2">
-              <ReNumberInput v-model="form.config.imageOutputCount" :min="1" :max="8"
-                :placeholder="t('settings.providerDetail.modelDefault')" controls-position="right" class="num-input" />
-              <span class="me-hint">单次生成最多几张，留空 = 不限制</span>
+              <!-- 勾了「图片」→ 输出图片的细化：单次生成最多几张（留空=不限制） -->
+              <div v-if="hasImageOut" class="img-extra">
+                <span class="img-extra-field">
+                  <span class="img-extra-label">张数</span>
+                  <ReNumberInput v-model="form.config.imageOutputCount" :min="1" :max="8"
+                    :placeholder="t('settings.providerDetail.modelDefault')" controls-position="right" class="num-input" />
+                </span>
+              </div>
             </el-form-item>
             <el-form-item :label="t('settings.providerDetail.advancedFeatures')" prop="config.features" class="mb-2">
               <el-checkbox-group v-model="form.config.features">
@@ -371,16 +372,22 @@
               <el-switch v-model="form.config.generate.referenceImage" />
               <span class="me-hint">开启后「图像生成」页可上传参考图做图生图</span>
             </el-form-item>
+            <!-- 输入张数：支持输入多少张参考图。参考图关着时没有输入可配，这项也不出现 -->
+            <el-form-item v-if="form.config.generate.referenceImage" label="输入张数" prop="config.generate.referenceImageCount">
+              <ReNumberInput v-model="form.config.generate.referenceImageCount" :min="1" :max="8"
+                class="num-input" controls-position="right" />
+              <span class="me-hint">支持输入多少张参考图</span>
+            </el-form-item>
             <el-form-item label="支持负面词" prop="config.generate.negativePrompt">
               <el-switch v-model="form.config.generate.negativePrompt" />
             </el-form-item>
             <el-form-item label="支持随机种子" prop="config.generate.seed">
               <el-switch v-model="form.config.generate.seed" />
             </el-form-item>
-            <el-form-item label="张数上限" prop="config.generate.maxCount">
+            <el-form-item label="输出张数" prop="config.generate.maxCount">
               <ReNumberInput v-model="form.config.generate.maxCount" :min="1" :max="8"
                 class="num-input" controls-position="right" />
-              <span class="me-hint">单次生成最多几张</span>
+              <span class="me-hint">单次生成最多几张（输出）</span>
             </el-form-item>
             <el-form-item label="可用分辨率" prop="config.generate.sizes">
               <el-select v-model="form.config.generate.sizes" multiple filterable allow-create
@@ -1037,6 +1044,20 @@ const handleSave = async () => {
 
 .cap-label { display: inline-flex; align-items: center; }
 .num-input { width: 100%; }
+
+/* 图片能力细化：张数 / 参考图。放在能力勾选的同一个表单项里、勾选行下面一行展开，
+   不再单独占一个带 label 的表单项（用户需求 1：图片类输入输出直接支持张数与参考图） */
+.img-extra {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  width: 100%;
+  margin-top: 2px;
+}
+.img-extra-field { display: inline-flex; align-items: center; gap: 8px; }
+.img-extra-label { font-size: 12px; color: var(--el-text-color-secondary); white-space: nowrap; }
+.img-extra .num-input { width: 120px; }
 .field-hint { font-size: 12px; color: var(--color-text-disabled); line-height: 1.6; }
 /* 生成参数：表单项内的补充说明与并排输入 */
 .me-hint {

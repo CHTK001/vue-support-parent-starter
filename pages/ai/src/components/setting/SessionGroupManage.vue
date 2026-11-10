@@ -2,7 +2,7 @@
   <div class="flex flex-col gap-2">
     <!-- 新建分组 -->
     <SettingsCard title="新建分组">
-      <SettingsRow label="分组名称" description="创建后可在会话列表中选择该分组，最多 20 个字符" control-flex>
+      <SettingsRow label="分组名称" description="创建后可在会话列表中选择该分组，最多 20 个字符">
         <div class="flex gap-2 w-full">
           <el-input v-model="newGroupName" placeholder="输入新分组名称" maxlength="20" show-word-limit
             @keyup.enter="handleCreateGroup" />
