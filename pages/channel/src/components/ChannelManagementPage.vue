@@ -1366,24 +1366,6 @@ function providerLabel(provider: MagpieProvider): string {
   return name || String(provider?.id ?? '')
 }
 
-/**
- * 左栏「Magpie 上游」分组：网关里每一个上游实例一行。
- *
- * <p>此前左栏只列业务渠道，网关里的上游只能在「上游」页签里翻——用户在 magpie
- * 里加了一堆账号，左栏还是那几行，看起来就像没生效。这里把 provider 原样拉平成
- * 渠道行：一行一个实例，点开定位到网关「上游」页签的对应行（那里有它的账号、
- * 额度与签到入口）。</p>
- *
- * <p><b>不去重</b>：同一个 vendor 可能既有本地连接、又有网关里的实例，两边是
- * 两份独立凭据；合并成一行会让人以为只有一份，绑错了也看不出来。</p>
- */
-const gatewayRailRows = computed<MagpieProvider[]>(() =>
-  gatewayProviderRows.value
-    .filter((p) => !!p && !!String(p.id ?? '').trim())
-    .slice()
-    .sort((a, b) => providerLabel(a).localeCompare(providerLabel(b), 'zh-Hans-CN')),
-)
-
 async function loadGatewayIndex(): Promise<void> {
   const gateway = gatewayChannel.value
   const conn = gateway?.connections?.find((c) => c.primary) ?? gateway?.connections?.[0]
@@ -1830,47 +1812,6 @@ function openManaged(entry: ManagedEntry): void {
 }
 
 /**
- * 点开一个只存在于 magpie、没有对应渠道行的上游。
- *
- * <p>只切到「上游」页签并定位该行，不发起任何写操作。</p>
- *
- * @param provider 上游
- */
-function openProvider(provider: MagpieProvider): void {
-  const id = String(provider.id ?? '')
-  if (!id) return
-  openGateway('upstream', () => {
-    clearManagedFocus()
-    focusProviderId.value = id
-    focusLabelText.value = String(provider.name ?? id)
-    focusPresetId.value = String(provider.preset ?? '')
-  })
-}
-
-/**
- * 左栏点一行 Magpie 上游：定位到网关「上游」页签的该 provider。
- *
- * <p>只切换视图与高亮，不发起任何写操作；绑定 / 签到 / 改 key 都在目标页签里
- * 由用户自己点。</p>
- *
- * @param provider 上游
- */
-function onGatewayProviderClick(provider: MagpieProvider): void {
-  openProvider(provider)
-}
-
-/**
- * 上游行是否选中：当前落在网关渠道，且焦点 provider 就是这一行。
- *
- * @param provider 上游
- * @return 选中返回 true
- */
-function gatewayProviderActive(provider: MagpieProvider): boolean {
-  return activeChannel.value === gatewayChannel.value?.channel
-    && focusProviderId.value === String(provider.id ?? '')
-}
-
-/**
  * 网关入口是否选中：停在网关本身（没有盯住某个上游）时才算。
  *
  * <p>否则点某个上游时两行同时高亮，看不出当前到底在看哪一个。</p>
@@ -1889,37 +1830,6 @@ function gatewayRootActive(): boolean {
  */
 function openGatewayRoot(): void {
   openGateway('upstream', () => clearManagedFocus())
-}
-
-/** 上游行品牌：优先复用渠道品牌表，没有就用首字母 + 中性色 */
-function providerBrand(provider: MagpieProvider): ChannelBrand {
-  const id = String(provider.id ?? '')
-  const known = CHANNEL_BRANDS[id] ?? CHANNEL_BRANDS[id.replace(/-ai$/, '')]
-  if (known) return known
-  const name = String(provider.name ?? id)
-  return { color: '#475569', glyph: (name || '?').slice(0, 1).toUpperCase() }
-}
-
-/** 上游已绑定的账号数：登录态 + API Key 池 */
-function providerAccountCount(provider: MagpieProvider): number {
-  const account = (provider as Record<string, unknown>).account as Record<string, unknown> | undefined
-  const logins = Array.isArray(account?.logins) ? account.logins.length : 0
-  const keys = Number((provider as Record<string, unknown>).keyCount ?? 0) || 0
-  return logins + keys
-}
-
-/** 上游行状态灯：有登录态 / 有 key / 有可用模型 → 绿 */
-function providerState(provider: MagpieProvider): 'online' | 'none' {
-  return providerAccountCount(provider) > 0 || (provider.models ?? []).length ? 'online' : 'none'
-}
-
-/** 上游行悬停提示 */
-function providerHint(provider: MagpieProvider): string {
-  const name = String(provider.name ?? provider.id ?? '')
-  const acc = providerAccountCount(provider)
-  return acc
-    ? `上游「${name}」· ${acc} 个账号（登录 / 积分 / 模型）`
-    : `上游「${name}」· 还没有账号，点开可登录`
 }
 
 /** 点开一个插件渠道：网关里已经有它的上游就去上游高亮，否则去「插件」页签置顶，
@@ -2297,45 +2207,13 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                 :title="channelStateText(c)" />
         </button>
 
-        <!--
-          Magpie 上游：网关里每个实例一行。
-          点开落到网关渠道的「上游」页签并高亮该行——那里有它的账号、额度与签到；
-          左栏本身不做任何写操作，避免「点一下就把上游改了」。
-        -->
-        <template v-if="gatewayChannel && gatewayRailRows.length">
-          <div class="chm-rail__group">
-            <span>Magpie 上游</span>
-            <b>{{ gatewayRailRows.length }}</b>
-          </div>
-          <button
-            v-for="p in gatewayRailRows"
-            :key="'gw-' + p.id"
-            type="button"
-            class="chm-rail__item is-gateway"
-            :class="{ 'is-active': gatewayProviderActive(p) }"
-            :title="providerHint(p)"
-            @click="onGatewayProviderClick(p)"
-          >
-            <span class="chm-rail__grip" aria-hidden="true">·</span>
-            <span class="chm-rail__logo"
-                  :class="{ 'is-ico': !!providerBrand(p).icon }"
-                  :style="providerBrand(p).icon ? undefined : { background: providerBrand(p).color }">
-              <img v-if="providerBrand(p).icon" :src="providerBrand(p).icon" :alt="String(p.id)" />
-              <b v-else>{{ providerBrand(p).glyph }}</b>
-            </span>
-            <span class="chm-rail__name" :title="providerLabel(p)">{{ providerLabel(p) }}</span>
-            <span v-if="providerAccountCount(p)" class="chm-rail__chip">{{ providerAccountCount(p) }}</span>
-            <span class="chm-rail__dot" :class="'is-' + providerState(p)" :title="providerHint(p)" />
-          </button>
-        </template>
-
         <!-- 网关自身：管理上游与插件的固定入口 -->
         <button
           v-if="gatewayChannel"
           type="button"
           class="chm-rail__item is-gateway-root"
           :class="{ 'is-active': gatewayRootActive() }"
-          :title="`Magpie 统一网关 · 管理上游与插件（${gatewayRailRows.length} 个上游）`"
+          title="Magpie 统一网关 · 管理上游与插件"
           @click="openGatewayRoot"
         >
           <span class="chm-rail__grip" aria-hidden="true">⚙</span>
@@ -3362,29 +3240,6 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   color: #0f766e;
   background: color-mix(in srgb, #14b8a6 16%, transparent);
 }
-/* Magpie 上游分组：把网关里的每个实例拉平成渠道行，单独一段 */
-.chm-rail__group {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin: 8px 4px 2px;
-  padding: 6px 4px 4px;
-  border-top: 1px solid var(--border-subtle, #eef2f8);
-  font-size: 11px;
-  letter-spacing: .04em;
-  color: var(--text-tertiary, #94a3b8);
-}
-.chm-rail__group b {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-secondary, #64748b);
-}
-/* 上游行：缩进一档表示「归属网关」，不做拖拽排序 */
-.chm-rail__item.is-gateway {
-  padding-left: 14px;
-}
-.chm-rail__item.is-gateway .chm-rail__grip,
 .chm-rail__item.is-gateway-root .chm-rail__grip {
   opacity: 1;
   width: 10px;
