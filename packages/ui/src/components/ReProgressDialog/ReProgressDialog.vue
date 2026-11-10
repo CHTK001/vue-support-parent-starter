@@ -196,6 +196,8 @@ function stepIcon(status?: string): string {
       return "⤼";
     case "ERROR":
       return "✕";
+    case "FAILED":
+      return "✕";
     case "CANCELLED":
       return "⊘";
     case "RUNNING":
@@ -213,6 +215,8 @@ function stepStatusLabel(status?: string): string {
     case "SKIPPED":
       return "已跳过";
     case "ERROR":
+      return "失败";
+    case "FAILED":
       return "失败";
     case "CANCELLED":
       return "已取消";
@@ -543,7 +547,8 @@ function toggleDetails(): void {
   color: var(--el-color-info);
 }
 
-.rpd__step-dot[data-state="ERROR"] {
+.rpd__step-dot[data-state="ERROR"],
+.rpd__step-dot[data-state="FAILED"] {
   border-color: var(--el-color-danger);
   background: var(--el-color-danger);
   color: #fff;
