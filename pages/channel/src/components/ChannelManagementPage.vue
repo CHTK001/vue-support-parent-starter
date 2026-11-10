@@ -1818,34 +1818,63 @@ function readChannelOrder(): string[] {
 /** 左栏顺序（渠道 id）；新出现的渠道自动排在末尾 */
 const channelOrder = ref<string[]>(readChannelOrder())
 
-/** 正在拖拽的渠道 id */
-const draggingChannel = ref('')
-/** 当前拖到的目标渠道 id（用于画落点线） */
-const dropTargetChannel = ref('')
+/** 正在拖拽的行键（渠道 id 或 up:&lt;providerId&gt;） */
+const draggingRow = ref('')
+/** 当前拖到的目标行键（用于画落点线） */
+const dropTargetRow = ref('')
 
 /**
  * 业务渠道：排除网关型渠道（支持上游管理的 magpie 之类）。
  *
  * <p>magpie 是「接入实现」而不是业务渠道：它自己维护上游 provider 与插件，
- * 用户在左栏要看到的是 Qoder / WorkBuddy / Trae 这些渠道本身。网关本身不出现在
- * 左栏，也不计入渠道数、不参与拖拽排序。</p>
+ * 用户在左栏要看到的是 Qoder / WorkBuddy / Trae 这些渠道本身。网关这个「实现」
+ * 本身不出现在左栏，也不计入渠道数、不参与拖拽排序。</p>
  */
 const businessChannels = computed<ChannelSummary[]>(() =>
   channels.value.filter((c) => !c.supportsUpstream),
 )
 
 /**
- * 左栏条目：只放业务渠道，一行一个。
+ * 只存在于网关里的上游（对不上任何业务渠道的那些，如 openrouter）。
  *
- * <p>不再出现「托管 / 上游 / 插件」这些后端实现行：magpie、cdp 只是渠道背后的
- * 接入方式，用户看到的是 Qoder、WorkBuddy、Trae 这些渠道本身。渠道之间的先后
- * 顺序由拖拽决定，并记在本地。</p>
+ * <p>网关里的上游就是渠道：能对上业务渠道的已经由渠道行承载，对不上的也要
+ * 作为一行渠道出现在左栏同一张列表里，不另开分组、不叫「其它上游」。</p>
  */
-const railItems = computed<ChannelSummary[]>(() => {
+const gatewayOnlyProviders = computed<MagpieProvider[]>(() => {
+  const covered = new Set<string>([
+    ...channels.value.map((c) => c.channel),
+    ...MAGPIE_OWNED_VENDORS.flatMap((v) => v.providers),
+  ])
+  return gatewayProviderRows.value.filter((p) => p?.id && !covered.has(String(p.id)))
+})
+
+/**
+ * 左栏一行：业务渠道，或只存在于网关里的上游。
+ *
+ * <p>两种行在同一张列表里、同一套样式与同一套拖拽顺序，用户不必知道某个名字
+ * 是「渠道」还是「网关里的上游」——对渠道管理页来说它们都是渠道。</p>
+ */
+interface RailRow {
+  /** 排序与选中用的稳定键：渠道用 channel，上游用 up:&lt;id&gt; */
+  key: string
+  /** 行类型 */
+  kind: 'channel' | 'upstream'
+  /** 渠道行携带的渠道摘要 */
+  summary?: ChannelSummary
+  /** 上游行携带的网关上游实例 */
+  provider?: MagpieProvider
+}
+
+/** 左栏列表：业务渠道 + 只存在于网关里的上游，顺序由拖拽决定并记在本地 */
+const railRows = computed<RailRow[]>(() => {
+  const rows: RailRow[] = [
+    ...businessChannels.value.map<RailRow>((c) => ({ key: c.channel, kind: 'channel', summary: c })),
+    ...gatewayOnlyProviders.value.map<RailRow>((p) => ({ key: 'up:' + String(p.id), kind: 'upstream', provider: p })),
+  ]
   const rank = new Map(channelOrder.value.map((id, i) => [id, i]))
-  return [...businessChannels.value].sort((a, b) => {
-    const ra = rank.get(a.channel)
-    const rb = rank.get(b.channel)
+  return rows.sort((a, b) => {
+    const ra = rank.get(a.key)
+    const rb = rank.get(b.key)
     if (ra === undefined && rb === undefined) return 0
     if (ra === undefined) return 1
     if (rb === undefined) return -1
@@ -1853,9 +1882,15 @@ const railItems = computed<ChannelSummary[]>(() => {
   })
 })
 
-/** 该行是否处于选中态 */
-function railActive(c: ChannelSummary): boolean {
-  return c.channel === activeChannel.value
+/** 该行是否处于选中态（上游行：网关渠道 + 这个上游被定位时选中） */
+function railActive(row: RailRow): boolean {
+  if (row.kind === 'upstream') {
+    return (
+      activeChannel.value === gatewayChannel.value?.channel &&
+      focusProviderId.value === String(row.provider?.id ?? '')
+    )
+  }
+  return row.summary?.channel === activeChannel.value
 }
 
 /**
@@ -1867,9 +1902,15 @@ function railActive(c: ChannelSummary): boolean {
  * 留在渠道详情；要给托管渠道加账号，点底部「新增账号」原地走网关绑定，
  * 网关自身上游 / 插件的管理入口留在账号区。</p>
  *
- * @param c 渠道摘要
+ * @param row 左栏行（渠道行或只存在于网关里的上游行）
  */
-function onRailClick(c: ChannelSummary): void {
+function onRailClick(row: RailRow): void {
+  if (row.kind === 'upstream') {
+    if (row.provider) openExtraProvider(row.provider)
+    return
+  }
+  const c = row.summary
+  if (!c) return
   activeChannel.value = c.channel
   clearManagedFocus()
 }
@@ -1877,48 +1918,48 @@ function onRailClick(c: ChannelSummary): void {
 /**
  * 开始拖拽某一行。
  *
- * @param event   原生拖拽事件
- * @param channel 渠道 id
+ * @param event 原生拖拽事件
+ * @param key   行键（渠道 id 或 up:&lt;providerId&gt;）
  */
-function onChannelDragStart(event: DragEvent, channel: string): void {
-  draggingChannel.value = channel
+function onChannelDragStart(event: DragEvent, key: string): void {
+  draggingRow.value = key
   if (event.dataTransfer) {
     event.dataTransfer.effectAllowed = 'move'
-    event.dataTransfer.setData('text/plain', channel)
+    event.dataTransfer.setData('text/plain', key)
   }
 }
 
 /**
  * 拖到某一行上方：记录落点，由模板画一条落点线。
  *
- * @param channel 目标渠道 id
+ * @param key 目标行键
  */
-function onChannelDragOver(channel: string): void {
-  if (!draggingChannel.value || draggingChannel.value === channel) return
-  dropTargetChannel.value = channel
+function onChannelDragOver(key: string): void {
+  if (!draggingRow.value || draggingRow.value === key) return
+  dropTargetRow.value = key
 }
 
 /**
  * 拖离某一行：清掉落点线。
  *
- * @param channel 目标渠道 id
+ * @param key 目标行键
  */
-function onChannelDragLeave(channel: string): void {
-  if (dropTargetChannel.value === channel) dropTargetChannel.value = ''
+function onChannelDragLeave(key: string): void {
+  if (dropTargetRow.value === key) dropTargetRow.value = ''
 }
 
 /**
- * 放下：把被拖渠道移动到目标位置，并写入本地顺序。
+ * 放下：把被拖的行移动到目标位置，并写入本地顺序。
  *
- * @param channel 目标渠道 id
+ * @param key 目标行键
  */
-function onChannelDrop(channel: string): void {
-  const from = draggingChannel.value
+function onChannelDrop(key: string): void {
+  const from = draggingRow.value
   onChannelDragEnd()
-  if (!from || from === channel) return
-  const ids = railItems.value.map((c) => c.channel)
+  if (!from || from === key) return
+  const ids = railRows.value.map((r) => r.key)
   const fromIndex = ids.indexOf(from)
-  const toIndex = ids.indexOf(channel)
+  const toIndex = ids.indexOf(key)
   if (fromIndex < 0 || toIndex < 0) return
   ids.splice(fromIndex, 1)
   ids.splice(toIndex, 0, from)
@@ -1932,8 +1973,8 @@ function onChannelDrop(channel: string): void {
 
 /** 结束拖拽：清掉落点与拖拽态 */
 function onChannelDragEnd(): void {
-  draggingChannel.value = ''
-  dropTargetChannel.value = ''
+  draggingRow.value = ''
+  dropTargetRow.value = ''
 }
 
 /* ==================== 左右分栏：左栏宽度可拖拽 ==================== */
@@ -2027,38 +2068,44 @@ onBeforeUnmount(() => {
   document.removeEventListener('mouseup', stopRailResize)
 })
 
-/**
- * 网关里还没有对应渠道行的上游。
- *
- * <p>能对上渠道的（zcode / workbuddy / trae…）已经由「托管」行承载，
- * 不再重复占一行；对不上的（devin / deepseek-web…）单独成行，保证每个
- * 上游都能像普通渠道一样点开。</p>
- */
-const extraProviders = computed<MagpieProvider[]>(() => {
-  const covered = new Set<string>([
-    ...channels.value.map((c) => c.channel),
-    ...MAGPIE_OWNED_VENDORS.flatMap((v) => v.providers),
-  ])
-  return gatewayProviderRows.value.filter((p) => p?.id && !covered.has(String(p.id)))
-})
+/** 左栏行的展示名：渠道用 displayName / channel，上游用网关里的 name / id */
+function railRowName(row: RailRow): string {
+  if (row.kind === 'upstream' && row.provider) return upstreamName(row.provider)
+  return row.summary?.displayName || row.summary?.channel || ''
+}
 
-/** 上游条目的展示名：网关里的 name 优先，没有就退回 id */
-function extraProviderName(provider: MagpieProvider): string {
+/** 上游渠道的展示名：网关里的 name 优先，没有就退回 id */
+function upstreamName(provider: MagpieProvider): string {
   return providerLabel(provider)
 }
 
-/** 上游条目的首字：没有品牌图标时用文字徽标占位 */
-function extraProviderGlyph(provider: MagpieProvider): string {
-  const name = extraProviderName(provider).trim()
+/** 上游渠道的首字：没有品牌图标时用文字徽标占位 */
+function upstreamGlyph(provider: MagpieProvider): string {
+  const name = upstreamName(provider).trim()
   return name ? name.slice(0, 1).toUpperCase() : '·'
 }
 
+/** 网关里这个上游带的模型数（用于左栏徽标） */
+function upstreamModelCount(provider: MagpieProvider): number {
+  return Array.isArray(provider?.models) ? provider.models.length : 0
+}
+
+/** 上游渠道的状态灯：网关里配了凭据即在线 */
+function upstreamState(provider: MagpieProvider): 'online' | 'none' {
+  return provider?.hasKey ? 'online' : 'none'
+}
+
+/** 上游渠道状态灯文案 */
+function upstreamStateText(provider: MagpieProvider): string {
+  return provider?.hasKey ? '在线（网关已配置凭据）' : '未配置凭据'
+}
+
 /**
- * 点开一条「网关里还没有对应渠道行」的上游。
+ * 点开一个只存在于网关里的上游渠道。
  *
- * <p>这类上游（devin / deepseek-web 等）没有自己的业务渠道，用户只能在网关里
- * 找到它。左栏给一行，点开就落到网关渠道的「上游」页签并高亮这条，避免用户
- * 先点进别的渠道再找。</p>
+ * <p>它在本地没有独立实现，登录、凭据、模型都由网关维护，所以点开就落到网关
+ * 渠道的「上游」页签并高亮这一条——左栏给的是渠道行，落点是这个渠道在网关里的
+ * 实际配置，用户不用先猜它属于哪个渠道再去找。</p>
  *
  * @param provider 网关上游实例
  */
@@ -2068,7 +2115,7 @@ function openExtraProvider(provider: MagpieProvider): void {
   openGateway('upstream', () => {
     clearManagedFocus()
     focusProviderId.value = id
-    focusLabelText.value = extraProviderName(provider)
+    focusLabelText.value = upstreamName(provider)
   })
 }
 
@@ -2710,7 +2757,7 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
         <div class="chm-rail__head">
           <span>渠道索引</span>
           <span class="chm-rail__head-right">
-            <b>{{ railItems.length }}</b>
+            <b>{{ railRows.length }}</b>
             <button
               type="button"
               class="chm-rail__refresh"
@@ -2725,69 +2772,64 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
           </span>
         </div>
         <!--
-          左栏只有业务渠道：一行一个，拖上拖下调整顺序。
-          后端是 magpie、cdp 还是原生 SPI 都不在这里体现；接入方式在右侧详情里看。
+          左栏就是渠道清单：一行一个，拖上拖下调整顺序。
+          网关里的上游同样是渠道，对不上业务渠道的那些也直接排在这张列表里，
+          不另开分组、不叫「其它上游」；后端是 magpie、cdp 还是原生 SPI 都不在这里体现。
         -->
-        <!-- 渠道行单独滚动：网关入口固定在底部，不被长列表挤出视口 -->
+        <!-- 渠道行单独滚动：底部入口固定在底部，不被长列表挤出视口 -->
         <div class="chm-rail__list">
           <button
-            v-for="c in railItems"
-            :key="c.channel"
+            v-for="row in railRows"
+            :key="row.key"
             type="button"
             class="chm-rail__item"
             :class="{
-              'is-active': railActive(c),
-              'is-dragging': draggingChannel === c.channel,
-              'is-drop-target': dropTargetChannel === c.channel && draggingChannel !== c.channel,
+              'is-active': railActive(row),
+              'is-dragging': draggingRow === row.key,
+              'is-drop-target': dropTargetRow === row.key && draggingRow !== row.key,
+              'chm-rail__item--upstream': row.kind === 'upstream',
             }"
             draggable="true"
-            :title="`${c.displayName || c.channel}（拖拽调整顺序）`"
-            @click="onRailClick(c)"
-            @dragstart="onChannelDragStart($event, c.channel)"
-            @dragover.prevent="onChannelDragOver(c.channel)"
-            @dragleave="onChannelDragLeave(c.channel)"
-            @drop.prevent="onChannelDrop(c.channel)"
+            :title="`${railRowName(row)}（拖拽调整顺序）`"
+            @click="onRailClick(row)"
+            @dragstart="onChannelDragStart($event, row.key)"
+            @dragover.prevent="onChannelDragOver(row.key)"
+            @dragleave="onChannelDragLeave(row.key)"
+            @drop.prevent="onChannelDrop(row.key)"
             @dragend="onChannelDragEnd()"
           >
             <span class="chm-rail__grip" aria-hidden="true">⠿</span>
-            <span class="chm-rail__logo"
-                  :class="{ 'is-ico': !!brandOf(c.channel).icon }"
-                  :style="brandOf(c.channel).icon ? undefined : { background: brandOf(c.channel).color }">
-              <img v-if="brandOf(c.channel).icon" :src="brandOf(c.channel).icon" :alt="c.channel" />
-              <b v-else>{{ brandOf(c.channel).glyph }}</b>
-            </span>
-            <span class="chm-rail__name" :title="c.displayName || c.channel">
-              {{ c.displayName || c.channel }}
-            </span>
-            <span class="chm-rail__kind" :title="kindText(c)">{{ kindOf(c) }}</span>
-            <span class="chm-rail__dot" :class="'is-' + channelState(c)"
-                  :title="channelStateText(c)" />
-          </button>
-
-          <!--
-            网关里还有一批没有对应业务渠道的上游：一行一个放在渠道之后。
-            点开直接落到网关「上游」页签并高亮这一条，用户不用先猜它属于哪个渠道。
-          -->
-          <template v-if="extraProviders.length">
-            <p class="chm-rail__sect">网关里的其它上游</p>
-            <button
-              v-for="p in extraProviders"
-              :key="'upstream-' + p.id"
-              type="button"
-              class="chm-rail__item chm-rail__item--upstream"
-              :title="`${extraProviderName(p)}（在网关里管理）`"
-              @click="openExtraProvider(p)"
-            >
-              <span class="chm-rail__grip" aria-hidden="true">↗</span>
+            <!-- 渠道行：官方图标 / 品牌徽标；上游行：名称首字占位 -->
+            <template v-if="row.kind === 'channel' && row.summary">
+              <span class="chm-rail__logo"
+                    :class="{ 'is-ico': !!brandOf(row.summary.channel).icon }"
+                    :style="brandOf(row.summary.channel).icon ? undefined : { background: brandOf(row.summary.channel).color }">
+                <img v-if="brandOf(row.summary.channel).icon" :src="brandOf(row.summary.channel).icon" :alt="row.summary.channel" />
+                <b v-else>{{ brandOf(row.summary.channel).glyph }}</b>
+              </span>
+              <span class="chm-rail__name" :title="row.summary.displayName || row.summary.channel">
+                {{ row.summary.displayName || row.summary.channel }}
+              </span>
+              <span class="chm-rail__kind" :title="kindText(row.summary)">{{ kindOf(row.summary) }}</span>
+              <span class="chm-rail__dot" :class="'is-' + channelState(row.summary)"
+                    :title="channelStateText(row.summary)" />
+            </template>
+            <template v-else-if="row.provider">
               <span class="chm-rail__logo is-upstream">
-                <b>{{ extraProviderGlyph(p) }}</b>
+                <b>{{ upstreamGlyph(row.provider) }}</b>
               </span>
-              <span class="chm-rail__name" :title="extraProviderName(p)">
-                {{ extraProviderName(p) }}
+              <span class="chm-rail__name" :title="upstreamName(row.provider)">
+                {{ upstreamName(row.provider) }}
               </span>
-              <span class="chm-rail__kind">上游</span>
-            </button>
-          </template>
+              <span
+                v-if="upstreamModelCount(row.provider)"
+                class="chm-rail__kind"
+                :title="`网关里这个渠道提供了 ${upstreamModelCount(row.provider)} 个模型`"
+              >{{ upstreamModelCount(row.provider) }} 模型</span>
+              <span class="chm-rail__dot" :class="'is-' + upstreamState(row.provider)"
+                    :title="upstreamStateText(row.provider)" />
+            </template>
+          </button>
         </div>
 
         <!--
@@ -2810,6 +2852,7 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
             <span class="chm-rail__name">新增账号</span>
           </button>
           <button
+            v-if="isAdminUser"
             type="button"
             class="chm-rail__item chm-rail__item--util is-gateway"
             title="配置网关地址，或下载安装网关"
@@ -2868,29 +2911,6 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
               <span class="chm-panel__chip is-task" v-if="activeSummary()!.supportsTask && !hostedOnly(activeSummary())">任务</span>
             </span>
           </div>
-          <!--
-            顶部额度汇总：把本渠道已查到的账号余额按单位合计。
-            有总量才画进度条，只有余额时退化成数字（上游不给总量不是 0%）。
-          -->
-          <div
-            v-if="creditTotals.length"
-            class="chm-total"
-            title="当前渠道已查询到的剩余额度：同单位相加，积分 / token / 货币不混算"
-          >
-            <div v-for="(total, idx) in creditTotals" :key="'chm-total-' + idx" class="chm-total__item">
-              <span class="chm-total__label">剩余</span>
-              <span class="chm-total__value">{{ total.text }}</span>
-              <span
-                v-if="total.percent !== null"
-                class="chm-total__bar"
-                role="progressbar"
-                :aria-valuenow="total.percent"
-                aria-valuemin="0"
-                aria-valuemax="100"
-              ><i :style="{ width: total.percent + '%' }" /></span>
-              <span v-if="total.percent !== null" class="chm-total__pct">{{ total.percent }}%</span>
-            </div>
-          </div>
           <div class="chm-panel__state">
             <span class="chm-rail__dot" :class="'is-' + channelState(activeSummary())" />
             {{ channelStateText(activeSummary()) }}
@@ -2906,6 +2926,31 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
             @change="(v: boolean | string | number) => toggleChannelEnabled(activeChannel, !!v)"
           />
         </header>
+
+        <!--
+          顶部额度汇总：把本渠道已查到的账号余额按单位合计。
+          有总量才画进度条，只有余额时退化成数字（上游不给总量不是 0%）。
+          单独占一行：网关渠道能同时有 5 种单位，塞进标题行会把标题挤成竖排。
+        -->
+        <div
+          v-if="creditTotals.length"
+          class="chm-total"
+          title="当前渠道已查询到的剩余额度：同单位相加，积分 / token / 货币不混算"
+        >
+          <div v-for="(total, idx) in creditTotals" :key="'chm-total-' + idx" class="chm-total__item">
+            <span class="chm-total__label">剩余</span>
+            <span class="chm-total__value">{{ total.text }}</span>
+            <span
+              v-if="total.percent !== null"
+              class="chm-total__bar"
+              role="progressbar"
+              :aria-valuenow="total.percent"
+              aria-valuemin="0"
+              aria-valuemax="100"
+            ><i :style="{ width: total.percent + '%' }" /></span>
+            <span v-if="total.percent !== null" class="chm-total__pct">{{ total.percent }}%</span>
+          </div>
+        </div>
 
         <!--
           详情页签：账号 / 模型 /（积分）/（任务）。
@@ -3976,21 +4021,7 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   color: var(--text-secondary, #475569);
   background: var(--fill-quaternary, #f1f5f9);
 }
-/* 网关里没有对应渠道行的上游：与业务渠道分开，用更浅的文字提示它们是「网关侧」的 */
-.chm-rail__sect {
-  margin: 8px 0 2px;
-  padding: 0 8px 2px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .04em;
-  color: var(--text-tertiary, #94a3b8);
-}
-.chm-rail__item--upstream .chm-rail__grip {
-  opacity: 0;
-}
-.chm-rail__item--upstream:hover .chm-rail__grip {
-  opacity: .8;
-}
+/* 只存在于网关里的上游：左栏与业务渠道同一套行，只是徽标用文字占位 */
 .chm-rail__logo.is-upstream {
   background: var(--fill-quaternary, #f1f5f9);
 }
@@ -4041,6 +4072,9 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   display: flex;
   align-items: center;
   gap: 12px;
+  /* 网关渠道头上有 5 枚额度胶囊 + 若干能力标签：允许换行，
+     否则 flex 会把标题挤成一条竖排文字（额度胶囊本身是 nowrap 的）。 */
+  flex-wrap: wrap;
 }
 .chm-panel__logo {
   flex: none;
@@ -4068,7 +4102,8 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   font-size: 18px;
 }
 .chm-panel__title {
-  flex: 1;
+  /* 标题给一个基准宽度：额度胶囊很多时优先让它换到下一行，而不是缩到几像素 */
+  flex: 1 1 260px;
   min-width: 0;
 }
 .chm-panel__title h3 {
@@ -4287,18 +4322,21 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   font-size: 12px;
   color: var(--text-secondary, #475569);
   white-space: nowrap;
+  flex: none;
 }
 .chm-panel__state .chm-rail__dot {
   width: 9px;
   height: 9px;
 }
-/* 顶部额度汇总：与状态灯同级的读数，窄屏时换行不挤压标题 */
+/* 顶部额度汇总：单独一行（网关渠道能同时有积分 / 货币 / token / requests 几种单位），
+   pills 自己换行，不参与标题行的伸缩，窄屏也不挤压标题 */
 .chm-total {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   min-width: 0;
+  flex: none;
 }
 .chm-total__item {
   display: inline-flex;
@@ -4342,6 +4380,7 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 }
 .chm-panel__switch {
   margin: 0;
+  flex: none;
 }
 
 /* ---- KPI 行 ---- */
