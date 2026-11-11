@@ -121,11 +121,24 @@ export const deviceRoutes: RouteConfigsTable[] = [
       isVisible: '0',
       rank: 15
     }
-  }
+  },
+  {
+    path: '/device/vehicle',
+    name: 'DeviceVehicle',
+    component: () => import('../views/DeviceVehicleView.vue'),
+    meta: {
+      title: '门禁车闸',
+      icon: 'Lock',
+      showLink: true,
+      keepAlive: true,
+      isVisible: '1',
+      rank: 13
+    }
+  },
 ]
 
 /**
- * 设备管理静态菜单（一级菜单，展开为设备台账与厂商接入）
+ * 设备管理静态菜单（一级菜单，展开为设备台账、厂商接入与车辆车闸）
  * 定时任务 / 分组 / 拓扑已收起为这两个菜单内的页签，不再出现在菜单中。
  */
 export const deviceMenus = [
@@ -148,6 +161,11 @@ export const deviceMenus = [
         path: '/device/provider',
         name: 'DeviceProvider',
         meta: { title: '厂商接入', icon: 'Connection', isVisible: '1' }
+      },
+      {
+        path: '/device/vehicle',
+        name: 'DeviceVehicle',
+        meta: { title: '门禁车闸', icon: 'Lock', isVisible: '1' }
       }
     ]
   }

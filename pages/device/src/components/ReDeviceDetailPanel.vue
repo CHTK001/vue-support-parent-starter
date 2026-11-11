@@ -166,6 +166,18 @@
           />
         </el-tab-pane>
 
+        <el-tab-pane label="车闸" name="barrier">
+          <el-table v-loading="barrierLoading" :data="barriers" size="small" border>
+            <el-table-column prop="deviceBarrierGateName" label="车闸名称" min-width="140" />
+            <el-table-column label="方向" width="90">
+              <template #default="{ row }">{{ barrierDirectionText(row.deviceBarrierGateDirection) }}</template>
+            </el-table-column>
+            <el-table-column prop="deviceBarrierGateChannelNo" label="通道号" width="80" />
+            <el-table-column prop="deviceBarrierGateStatus" label="状态" width="90" />
+          </el-table>
+          <div v-if="!barrierLoading && !barriers.length" class="ddp-barrier-empty">该设备暂无车闸点位</div>
+        </el-tab-pane>
+
         <el-tab-pane label="事件" name="events">
           <ReEventPanel
             :events="events"
@@ -251,6 +263,19 @@ const emit = defineEmits<{
 }>()
 
 const activeTab = ref('overview')
+
+/** 车闸点位 */
+const barriers = ref<Record<string, any>[]>([])
+/** 车闸加载中 */
+const barrierLoading = ref(false)
+
+/** 车闸方向文案 */
+function barrierDirectionText(value?: string): string {
+  if (value === 'in') return '入口'
+  if (value === 'out') return '出口'
+  if (value === 'both') return '双向'
+  return '—'
+}
 
 /**
  * 这台设备该显示哪些页签。
@@ -539,6 +564,7 @@ async function init() {
   activeTab.value = 'overview'
   videoUrl.value = ''
   multiViewVisible.value = false
+  barriers.value = []
   // 页签按能力位裁剪后，只有能出画面的设备才值得去拉通道 / 预置位 / 事件
   const keys = tabKeys.value
   if (keys.includes('video') || keys.includes('channel')) await loadChannels()
@@ -565,7 +591,25 @@ watch(tabKeys, (keys) => {
 
 watch(activeTab, (tab) => {
   if (tab === 'video' && !videoUrl.value) reloadStream()
+  if (tab === 'barrier' && !barriers.value.length) void loadBarriers()
 })
+
+/**
+ * 加载当前设备的车闸点位。
+ */
+async function loadBarriers() {
+  const deviceId = props.device?.deviceInfoId
+  if (!deviceId) return
+  barrierLoading.value = true
+  try {
+    const list = (await deviceApi.listBarriers({ deviceId })) as Record<string, any>[]
+    barriers.value = Array.isArray(list) ? list : []
+  } catch {
+    barriers.value = []
+  } finally {
+    barrierLoading.value = false
+  }
+}
 </script>
 
 <style scoped>

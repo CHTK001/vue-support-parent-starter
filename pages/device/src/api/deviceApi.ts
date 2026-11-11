@@ -300,7 +300,46 @@ export const deviceApi = {
     http.put(`/group/device/${deviceId}/groups`).data(groupIds).then(unwrap),
   /** 所有设备-分组关联（列表批量回显） */
   groupAssignments: () =>
-    http.get("/group/assignments").then(unwrap) as Promise<Array<{ deviceId: string; groupId: string }>>
+    http.get("/group/assignments").then(unwrap) as Promise<Array<{ deviceId: string; groupId: string }>>,
+
+  // ==================== 人员台账 ====================
+  pagePersons: (params: Record<string, unknown>) =>
+    http.get("/person/page").query(params).then(unwrap),
+  listPersons: (params: Record<string, unknown>) =>
+    http.get("/person/list").query(params).then(unwrap),
+  addPerson: (person: Record<string, any>) =>
+    http.post("/person").data(person).then(unwrap),
+  updatePerson: (id: string, person: Record<string, any>) =>
+    http.put(`/person/${id}`).data(person).then(unwrap),
+  deletePerson: (id: string) => http.delete(`/person/${id}`).then(unwrap),
+
+  // ==================== 车辆档案 ====================
+  pageVehicles: (params: Record<string, unknown>) =>
+    http.get("/vehicle/page").query(params).then(unwrap),
+  listVehicles: (keyword?: string) =>
+    http.get("/vehicle/list").query({ keyword }).then(unwrap),
+  getVehicleByPlate: (plateNo: string) =>
+    http.get("/vehicle/by-plate").query({ plateNo }).then(unwrap),
+  addVehicle: (vehicle: Record<string, any>) =>
+    http.post("/vehicle").data(vehicle).then(unwrap),
+  updateVehicle: (id: string, vehicle: Record<string, any>) =>
+    http.put(`/vehicle/${id}`).data(vehicle).then(unwrap),
+  deleteVehicle: (id: string) => http.delete(`/vehicle/${id}`).then(unwrap),
+
+  // ==================== 车闸 / 过车 ====================
+  pageBarriers: (params: Record<string, unknown>) =>
+    http.get("/barrier/page").query(params).then(unwrap),
+  listBarriers: (params: Record<string, unknown>) =>
+    http.get("/barrier/list").query(params).then(unwrap),
+  addBarrier: (gate: Record<string, any>) =>
+    http.post("/barrier").data(gate).then(unwrap),
+  updateBarrier: (id: string, gate: Record<string, any>) =>
+    http.put(`/barrier/${id}`).data(gate).then(unwrap),
+  deleteBarrier: (id: string) => http.delete(`/barrier/${id}`).then(unwrap),
+  pageVehiclePasses: (params: Record<string, unknown>) =>
+    http.get("/barrier/pass/page").query(params).then(unwrap),
+  recordVehiclePass: (pass: Record<string, any>) =>
+    http.post("/barrier/pass").data(pass).then(unwrap)
 }
 
 export default deviceApi
