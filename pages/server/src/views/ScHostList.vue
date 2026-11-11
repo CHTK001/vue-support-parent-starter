@@ -634,7 +634,7 @@ function diskColor(v?: number): string {
 
       <div class="host-card__actions" @click.stop>
         <ReButton show-text icon="View" type="primary" size="small" @click.stop="openDetail(row)">详情</ReButton>
-        <ReButton v-if="row.serverHostRemoteEnabled === 1" show-text icon="Connection" type="primary" size="small" @click="onOpenConnect(row)">远控</ReButton>
+        <ReButton v-if="row.serverHostRemoteEnabled === 1" :disabled="row.serverHostStatus !== 1" :title="row.serverHostStatus !== 1 ? '主机已禁用，启用后才能远控' : '远控'" show-text icon="Connection" type="primary" size="small" @click="onOpenConnect(row)">远控</ReButton>
         <ReButton v-if="row.serverHostSshEnabled === 1" show-text icon="FolderOpened" type="primary" size="small" @click="onOpenSftp(row)">文件</ReButton>
         <ReButton v-if="row.serverHostSshEnabled === 1" show-text icon="Aim" size="small" @click="onTestConnect(row)">测连</ReButton>
         <ReButton v-if="row.serverHostSshEnabled === 1" show-text icon="Search" type="warning" size="small" @click="onScanPorts(row)">扫端口</ReButton>

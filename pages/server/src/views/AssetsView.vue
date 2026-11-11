@@ -16,7 +16,7 @@ import { computed, nextTick, onMounted, onBeforeUnmount, ref, reactive, watch, d
 import type { Component } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessageBox } from "element-plus";
-import { queryHosts, delHost, switchHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity, scanPorts } from "../api";/**
+import { queryHosts, saveHost, delHost, switchHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity, scanPorts } from "../api";/**
  * 以下几屏只在「工作区页签」里按需出现，经 defineAsyncComponent 懒加载：
  *
  * - TerminalView 拉 @novnc/novnc（dev 4MB+）
@@ -207,23 +207,175 @@ const collapsedGroups = ref<Set<number>>(new Set());
  * <p>默认「在线优先」：台账顺序是后端返回的插入顺序，重启后主机一多，
  * 离线机器会混在在线机器中间，扫列表时得逐行看状态点。</p>
  */
-type SortMode = "online" | "name" | "address" | "cpu" | "mem";
+type SortMode = "online" | "name" | "address" | "cpu" | "mem" | "manual";
 const SORT_LABELS: Record<SortMode, string> = {
   online: "在线优先",
   name: "名称",
   address: "IP 地址",
   cpu: "CPU 使用率",
   mem: "内存使用率",
+  manual: "自定义顺序",
 };
-const sortMode = ref<SortMode>("online");
+/** 排序方式的本地存储键：拖出来的自定义顺序要配自定义排序，否则刷新就散回去了 */
+const SORT_MODE_KEY = "assets-sort-mode";
 
-/** 排序方式轮换顺序（工具栏单按钮循环，比下拉少一次点击） */
+/** 读上次用的排序方式（非法值回落「在线优先」） */
+function readSortMode(): SortMode {
+  try {
+    const v = localStorage.getItem(SORT_MODE_KEY);
+    return v && v in SORT_LABELS ? v as SortMode : "online";
+  } catch {
+    return "online";
+  }
+}
+
+const sortMode = ref<SortMode>(readSortMode());
+
+/** 切排序方式并落本地 */
+function setSortMode(mode: SortMode): void {
+  sortMode.value = mode;
+  try {
+    localStorage.setItem(SORT_MODE_KEY, mode);
+  } catch { /* 隐私模式下只影响记忆，不影响本次排序 */ }
+}
+
+/** 排序方式轮换顺序（工具栏单按钮循环，比下拉少一次点击；自定义顺序只由拖拽进入） */
 const SORT_ORDER: SortMode[] = ["online", "name", "address", "cpu", "mem"];
 
 /** 切到下一个排序方式 */
 function cycleSort(): void {
   const i = SORT_ORDER.indexOf(sortMode.value);
-  sortMode.value = SORT_ORDER[(i + 1) % SORT_ORDER.length] ?? "online";
+  setSortMode(SORT_ORDER[(i + 1) % SORT_ORDER.length] ?? "online");
+}
+
+/* ==================== 主机自定义顺序（拖拽排序） ==================== */
+
+/** 自定义顺序的本地存储键：与栏宽、折叠态一样属于本机偏好，不占后端字段 */
+const HOST_ORDER_KEY = "assets-host-order";
+
+/** 读本地保存的主机顺序（无效/被清空时返回空数组） */
+function readHostOrder(): number[] {
+  try {
+    const raw = localStorage.getItem(HOST_ORDER_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.filter((n: unknown) => typeof n === "number") : [];
+  } catch {
+    return [];
+  }
+}
+
+/** 主机自定义顺序；空数组表示「还没手动排过」 */
+const hostOrder = ref<number[]>(readHostOrder());
+
+/** 拖拽中的主机 id（null 表示没有拖拽进行中） */
+const dragHostId = ref<number | null>(null);
+/** 当前悬停的目标主机 id，用来画落点高亮 */
+const dragOverHostId = ref<number | null>(null);
+/** 刚结束拖拽：浏览器随后仍会派发一次 click，用它挡掉误选中 */
+let dragJustEnded = false;
+
+/** 保存自定义顺序到本地并切到「自定义顺序」 */
+function persistHostOrder(ids: number[]): void {
+  hostOrder.value = ids;
+  try {
+    localStorage.setItem(HOST_ORDER_KEY, JSON.stringify(ids));
+  } catch { /* 隐私模式写不进去也不影响本次排序 */ }
+}
+
+/**
+ * 拖拽开始：记下被拖的主机。
+ *
+ * @param e 拖拽事件
+ * @param h 被拖拽的主机
+ */
+function onHostDragStart(e: DragEvent, h: Host): void {
+  dragHostId.value = h.id;
+  dragOverHostId.value = null;
+  if (e.dataTransfer) {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(h.id));
+  }
+}
+
+/**
+ * 拖到某台主机上方：同组才允许落下。
+ *
+ * <p>分组是另一条维度（后端字段），跨组拖拽等于「改分组」，
+ * 这里刻意不做隐式改配置，只允许组内换序。</p>
+ *
+ * @param e 拖拽事件
+ * @param h 目标主机
+ * @param gid 目标主机所在分组 id
+ */
+function onHostDragOver(e: DragEvent, h: Host, gid: number): void {
+  if (dragHostId.value == null || dragHostId.value === h.id) return;
+  const from = hosts.value.find(x => x.id === dragHostId.value);
+  if (!from || (from.msServerGroupId ?? 0) !== gid) return;
+  e.preventDefault();
+  if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+  dragOverHostId.value = h.id;
+}
+
+/** 离开目标行时清掉高亮（拖到子元素上也会触发 dragleave，比对 relatedTarget 才算真离开） */
+function onHostDragLeave(e: DragEvent, h: Host): void {
+  if (dragOverHostId.value !== h.id) return;
+  const to = e.relatedTarget as Node | null;
+  const row = e.currentTarget as HTMLElement | null;
+  if (to && row?.contains(to)) return;
+  dragOverHostId.value = null;
+}
+
+/**
+ * 落下：把被拖主机插到目标位置，并把该分组的新顺序写进全局自定义顺序。
+ *
+ * @param e 拖拽事件
+ * @param target 目标主机
+ * @param gid 目标主机所在分组 id
+ */
+function onHostDrop(e: DragEvent, target: Host, gid: number): void {
+  e.preventDefault();
+  e.stopPropagation();
+  const fromId = dragHostId.value;
+  dragHostId.value = null;
+  dragOverHostId.value = null;
+  if (fromId == null || fromId === target.id) return;
+  reorderHosts(gid, fromId, target.id);
+}
+
+/** 拖拽结束（含取消）：清状态，并压掉紧跟着的那次 click */
+function onHostDragEnd(): void {
+  dragHostId.value = null;
+  dragOverHostId.value = null;
+  dragJustEnded = true;
+  window.setTimeout(() => { dragJustEnded = false; }, 200);
+}
+
+/**
+ * 组内换序。
+ *
+ * <p>只重排「当前筛选结果里该分组可见的那几行」，其它主机在自定义顺序里的位置不动：
+ * 否则用户只是挪了组内一台机器，别的分组也会跟着跳。</p>
+ *
+ * @param gid 分组 id
+ * @param fromId 被拖主机 id
+ * @param toId 落点主机 id
+ */
+function reorderHosts(gid: number, fromId: number, toId: number): void {
+  const visible = filtered.value
+    .filter(x => (x.msServerGroupId ?? 0) === gid)
+    .map(x => x.id);
+  const from = visible.indexOf(fromId);
+  const to = visible.indexOf(toId);
+  if (from < 0 || to < 0 || from === to) return;
+  visible.splice(to, 0, visible.splice(from, 1)[0]);
+  // 基线：已有自定义顺序就用它，否则按当前主机数组铺一遍；新加入的主机补在末尾
+  const base = hostOrder.value.length ? [...hostOrder.value] : hosts.value.map(h => h.id);
+  hosts.value.forEach(h => { if (!base.includes(h.id)) base.push(h.id); });
+  const slots: number[] = [];
+  base.forEach((id, i) => { if (visible.includes(id)) slots.push(i); });
+  slots.forEach((slot, i) => { base[slot] = visible[i]; });
+  persistHostOrder(base);
+  setSortMode("manual");
 }
 
 /**
@@ -265,14 +417,36 @@ function toggleCheckAll(): void {
 /**
  * 批量启停远控入口。
  *
+ * <p>远控入口是主机自己的配置位（{@code serverHostRemoteEnabled}），
+ * 与「主机启停」({@code serverHostStatus}) 是两件事：前者只收起远控按钮，
+ * 后者才是整台主机在平台侧停用。这里走局部更新，别误调启停接口。</p>
+ *
  * @param enabled 是否启用
  */
 async function batchToggleRemote(enabled: boolean): Promise<void> {
   const list = checkedHosts.value;
   if (!list.length) return;
   try {
-    await Promise.all(list.map(h => switchHost(h.id, enabled)));
+    await Promise.all(list.map(h => saveHost(h.id, { serverHostRemoteEnabled: enabled ? 1 : 0 })));
     message.success(`已${enabled ? "启用" : "停用"} ${list.length} 台主机的远控入口`);
+    checkedHostIds.value = new Set();
+    await fetchAll();
+  } catch (e) {
+    message.error(String((e as Error)?.message ?? e));
+  }
+}
+
+/**
+ * 批量启停主机（{@code serverHostStatus}）。
+ *
+ * @param enabled 是否启用
+ */
+async function batchToggleEnabled(enabled: boolean): Promise<void> {
+  const list = checkedHosts.value;
+  if (!list.length) return;
+  try {
+    await Promise.all(list.map(h => switchHost(h.id, enabled)));
+    message.success(`已${enabled ? "启用" : "禁用"} ${list.length} 台主机`);
     checkedHostIds.value = new Set();
     await fetchAll();
   } catch (e) {
@@ -528,6 +702,12 @@ function sortHosts(list: Host[], mode: SortMode): Host[] {
       return arr.sort((a, b) => byOnline(a, b) || usageOf(b, "cpu") - usageOf(a, "cpu"));
     case "mem":
       return arr.sort((a, b) => byOnline(a, b) || usageOf(b, "mem") - usageOf(a, "mem"));
+    case "manual": {
+      // 自定义顺序：完全按用户拖出来的次序，不再叠「在线优先」，否则拖完会自己跳回去
+      const idx = new Map(hostOrder.value.map((id, i) => [id, i]));
+      const big = Number.MAX_SAFE_INTEGER;
+      return arr.sort((a, b) => (idx.get(a.id) ?? big) - (idx.get(b.id) ?? big));
+    }
     default:
       return arr.sort((a, b) => byOnline(a, b) || zh(a.serverHostName ?? "", b.serverHostName ?? ""));
   }
@@ -768,6 +948,13 @@ const activeTab = ref("");
  * @param opts 附加参数（文件管理初始路径 / 远控登录身份 / 工作台初始面板）
  */
 function openTab(host: Host, kind: TabKind, opts?: { path?: string; identityId?: number | null; startPanel?: WorkbenchPanelKind }): void {
+  // 禁用主机不再开连接类页签；远控页签还要看「远控入口」开关，
+  // 后端在终端握手处同样会拒绝，这里先给出可读的原因
+  const blocked = tabBlockReason(host, kind);
+  if (blocked) {
+    message.warning(blocked);
+    return;
+  }
   const base = `${host.id}:${kind}`;
   const name = kind === "workbench" && opts?.startPanel ? `${base}:${opts.startPanel}` : base;
   const exist = openTabs.value.find(t => t.name === name);
@@ -1240,23 +1427,14 @@ function ctxCommand(cmd: string): void {
   const h = ctxMenu.host;
   closeCtxMenu();
   if (!h) return;
-  // 工作区页签类命令
-  const tabCmds: Record<string, TabKind> = {
-    "tab-remote": "remote",
-    "tab-files": "files",
-    "tab-metrics": "metrics",
-    "tab-ports": "ports",
-    "tab-processes": "processes",
-    "tab-services": "services",
-    "tab-disks": "disks",
-    "tab-mounts": "mounts",
-    "tab-network": "network",
-    "tab-env": "env",
-    "tab-firewall": "firewall",
-    "tab-sysconfig": "sysconfig",
-    "tab-deleted": "deleted",
-  };
-  const kind = tabCmds[cmd];
+  // 主机被禁用 / 远控入口被停用时，连接类命令在这里统一拦下，
+  // 与菜单置灰、左栏行内按钮同一口径（见 ctxBlockReason）
+  const blocked = ctxBlockReason(h, cmd);
+  if (blocked) {
+    message.warning(blocked);
+    return;
+  }
+  const kind = CTX_TAB_CMDS[cmd];
   if (kind) {
     openTab(h, kind);
     return;
@@ -1289,6 +1467,9 @@ function ctxCommand(cmd: string): void {
   switch (cmd) {
     case "toggle-remote":
       toggleHost(h);
+      break;
+    case "toggle-enabled":
+      toggleHostEnabled(h);
       break;
     case "edit":
       openEdit(h);
@@ -1408,7 +1589,8 @@ function cloneHost(h: Host): void {
     serverHostPrivateIp: null,
     serverHostPublicIp: null,
     serverHostOnline: 0,
-    serverHostStatus: 0,
+    // 克隆出来的是一台新机器，默认启用；禁用态属于原主机的运营状态，不该跟着复制
+    serverHostStatus: 1,
     serverHostCpuUsage: null,
     serverHostMemUsage: null,
     serverHostDiskUsage: null,
@@ -1485,6 +1667,11 @@ function saveSystemSettings(): void {
  * @param h 主机
  */
 function openConnect(h: Host): void {
+  const blocked = remoteBlockReason(h);
+  if (blocked) {
+    message.warning(blocked);
+    return;
+  }
   connectTarget.value = h;
   connectIdentityId.value = null;
   connectVisible.value = true;
@@ -1658,13 +1845,153 @@ function isAgentInstalled(h: Host): boolean {
  * @param h 主机
  */
 async function toggleHost(h: Host): Promise<void> {
+  const next = h.serverHostRemoteEnabled !== 1;
   try {
-    await switchHost(h.id, h.serverHostRemoteEnabled !== 1);
-    message.success("已切换");
+    await saveHost(h.id, { serverHostRemoteEnabled: next ? 1 : 0 });
+    message.success(`已${next ? "启用" : "停用"}「${h.serverHostName}」的远控入口`);
     await fetchAll();
   } catch (e) {
     message.error(String((e as Error)?.message ?? e));
   }
+}
+
+/**
+ * 启用 / 禁用主机（{@code serverHostStatus}）。
+ *
+ * <p>禁用是「平台侧先别管这台机器」：不删台账、不动远控开关，
+ * 只在列表里标灰并给一个「已禁用」角标，随时可以再启用。</p>
+ *
+ * @param h 主机
+ */
+async function toggleHostEnabled(h: Host): Promise<void> {
+  const next = h.serverHostStatus !== 1;
+  try {
+    await switchHost(h.id, next);
+    message.success(`已${next ? "启用" : "禁用"}主机「${h.serverHostName}」`);
+    await fetchAll();
+  } catch (e) {
+    message.error(String((e as Error)?.message ?? e));
+  }
+}
+
+/* ==================== 主机启停的入口联动 ==================== */
+
+/** 右键菜单里直接开页签的命令 → 页签类型 */
+const CTX_TAB_CMDS: Record<string, TabKind> = {
+  "tab-remote": "remote",
+  "tab-files": "files",
+  "tab-metrics": "metrics",
+  "tab-ports": "ports",
+  "tab-processes": "processes",
+  "tab-services": "services",
+  "tab-disks": "disks",
+  "tab-mounts": "mounts",
+  "tab-network": "network",
+  "tab-env": "env",
+  "tab-firewall": "firewall",
+  "tab-sysconfig": "sysconfig",
+  "tab-deleted": "deleted",
+};
+
+/**
+ * 连接类页签：主机被平台禁用后不再提供这些入口。
+ *
+ * <p>{@code metrics} 不在其中——指标监控读的是已落库的历史数据，
+ * 主机禁用后反而更需要看它最后一段曲线。</p>
+ */
+const HOST_REACH_TABS = new Set<TabKind>([
+  "remote", "desktop", "files", "workbench", "ports", "processes", "services",
+  "disks", "mounts", "network", "env", "firewall", "sysconfig", "deleted",
+  "sys-log", "user-log", "software", "software-instance",
+]);
+
+/** 走远程终端通道的页签：除主机启用外，还要求「远控入口」开启 */
+const REMOTE_TABS = new Set<TabKind>(["remote", "desktop"]);
+
+/** 工作台类命令：菜单里按 startPanel 打开，同样要连主机 */
+const WORKBENCH_CMDS = new Set<string>(["tab-workbench", "tab-docker", "tab-k8s", "tab-tunnel", "tab-tunnel-reverse"]);
+
+/** 不放页签、但同样要连主机才做得成的菜单命令 */
+const HOST_REACH_CMDS = new Set<string>(["scan", "agent-install", "agent-reinstall", "agent-upgrade", "agent-uninstall"]);
+
+/**
+ * 主机是否在平台侧被禁用（{@code serverHostStatus !== 1}）。
+ *
+ * <p>禁用后后端不再采集、不再探活，也不再放行任何远程终端；前端在这里同步收起
+ * 连接类入口，避免点进去才被拒。启用后入口立刻恢复，主机配置一概不动。</p>
+ *
+ * @param h 主机
+ * @returns 是否已禁用
+ */
+function hostDisabled(h?: Host | null): boolean {
+  return !!h && h.serverHostStatus !== 1;
+}
+
+/**
+ * 远控入口是否被单独停用（{@code serverHostRemoteEnabled === 0}）。
+ *
+ * <p>与主机启停是两个开关：这里只管「远控」，文件管理等其它连接入口不受影响。</p>
+ *
+ * @param h 主机
+ * @returns 是否已停用远控入口
+ */
+function remoteOff(h?: Host | null): boolean {
+  return !!h && h.serverHostRemoteEnabled === 0;
+}
+
+/**
+ * 主机被禁用时的拦因。
+ *
+ * @param h 主机
+ * @returns 提示文案；{@code null} 表示可以继续
+ */
+function hostBlockReason(h?: Host | null): string | null {
+  return hostDisabled(h) ? `主机「${h?.serverHostName}」已禁用，启用后才能连接` : null;
+}
+
+/**
+ * 远控被挡的原因：主机禁用、或远控入口被停用。
+ *
+ * @param h 主机
+ * @returns 提示文案；{@code null} 表示可以继续
+ */
+function remoteBlockReason(h?: Host | null): string | null {
+  if (hostDisabled(h)) {
+    return `主机「${h?.serverHostName}」已禁用，启用后才能发起远控`;
+  }
+  if (remoteOff(h)) {
+    return `主机「${h?.serverHostName}」的远控入口已停用，启用入口后才能发起远控`;
+  }
+  return null;
+}
+
+/**
+ * 页签类型对应的拦因。
+ *
+ * @param host 主机
+ * @param kind 页签类型
+ * @returns 提示文案；{@code null} 表示可以继续
+ */
+function tabBlockReason(host: Host, kind: TabKind): string | null {
+  if (REMOTE_TABS.has(kind)) return remoteBlockReason(host);
+  if (HOST_REACH_TABS.has(kind)) return hostBlockReason(host);
+  return null;
+}
+
+/**
+ * 右键菜单命令的拦因（与 {@link tabBlockReason} 同一口径，只是命令换成页签）。
+ *
+ * @param h   右键目标主机
+ * @param cmd 菜单命令
+ * @returns 提示文案；{@code null} 表示可以继续
+ */
+function ctxBlockReason(h: Host | null | undefined, cmd: string): string | null {
+  if (!h) return null;
+  if (cmd === "desktop") return remoteBlockReason(h);
+  const kind = CTX_TAB_CMDS[cmd];
+  if (kind) return tabBlockReason(h, kind);
+  if (WORKBENCH_CMDS.has(cmd) || HOST_REACH_CMDS.has(cmd)) return hostBlockReason(h);
+  return null;
 }
 
 /* ==================== 底部状态条数据 ==================== */
@@ -1898,6 +2225,8 @@ function selectHost(h: Host): void {
  * @param h 主机
  */
 function onHostRowClick(h: Host): void {
+  // 拖拽结束浏览器还会派发一次 click：不挡掉会把「拖完」变成「选中并开页签」
+  if (dragJustEnded) return;
   if (multiSelect.value) {
     toggleCheck(h);
     return;
@@ -2437,10 +2766,6 @@ function onRailMore(command: string): void {
   }
   if (command === "standalone") {
     openStandalone();
-    return;
-  }
-  if (command === "desktop") {
-    openDesktop();
   }
 }
 
@@ -2561,7 +2886,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
             </button>
             <!-- 低频动作收进「更多」：顶部一行放不下第 6 个图标按钮 -->
             <el-dropdown v-if="!isControl" class="rail-tool-dd" trigger="click" placement="bottom-end" @command="onRailMore">
-              <button type="button" class="rail-tool" title="更多：导入 / 导出主机、独立窗口、虚拟桌面">
+              <button type="button" class="rail-tool" title="更多：导入 / 导出主机、独立窗口">
                 <ReIcon name="MoreFilled" :size="12" />
               </button>
               <template #dropdown>
@@ -2571,9 +2896,6 @@ function onGlobalKeydown(e: KeyboardEvent): void {
                   </el-dropdown-item>
                   <el-dropdown-item command="standalone">
                     <ReIcon name="TopRight" :size="14" :style="{ marginRight: '6px' }" />独立窗口打开
-                  </el-dropdown-item>
-                  <el-dropdown-item command="desktop" divided>
-                    <ReIcon name="FullScreen" :size="14" :style="{ marginRight: '6px' }" />虚拟桌面
                   </el-dropdown-item>
                 </el-dropdown-menu>
               </template>
@@ -2607,6 +2929,8 @@ function onGlobalKeydown(e: KeyboardEvent): void {
               <span>全选 {{ checkedHostIds.size }}/{{ filtered.length }}</span>
             </label>
             <div class="rail-batch__ops">
+              <button type="button" :disabled="!checkedHostIds.size" @click="batchToggleEnabled(true)">启用主机</button>
+              <button type="button" :disabled="!checkedHostIds.size" @click="batchToggleEnabled(false)">禁用主机</button>
               <button type="button" :disabled="!checkedHostIds.size" @click="batchToggleRemote(true)">启用远控</button>
               <button type="button" :disabled="!checkedHostIds.size" @click="batchToggleRemote(false)">停用远控</button>
               <button type="button" class="is-danger" :disabled="!checkedHostIds.size" @click="batchDelete">删除</button>
@@ -2627,15 +2951,28 @@ function onGlobalKeydown(e: KeyboardEvent): void {
                 v-for="h in g.hosts"
                 :key="h.id"
                 class="rail-host"
+                draggable="true"
                 :class="{
                   'is-active': statusHost?.id === h.id,
                   'is-off': liveOnlineState(h) !== 1,
                   'is-checked': multiSelect && checkedHostIds.has(h.id),
+                  'is-disabled': h.serverHostStatus === 0,
+                  'is-dragging': dragHostId === h.id,
+                  'is-drop-target': dragOverHostId === h.id,
                 }"
                 @click="onHostRowClick(h)"
                 @dblclick="multiSelect || openTab(h, isControl ? 'remote' : 'metrics')"
                 @contextmenu="openCtxMenu($event, h)"
+                @dragstart="onHostDragStart($event, h)"
+                @dragover="onHostDragOver($event, h, g.id)"
+                @dragleave="onHostDragLeave($event, h)"
+                @drop="onHostDrop($event, h, g.id)"
+                @dragend="onHostDragEnd"
               >
+                <!-- 拖拽手柄：常态不占位（透明），悬停时浮出，拖它调整主机顺序 -->
+                <span class="rail-host__drag" title="拖拽调整顺序">
+                  <ReIcon name="Rank" :size="12" />
+                </span>
                 <input
                   v-if="multiSelect"
                   type="checkbox"
@@ -2647,7 +2984,10 @@ function onGlobalKeydown(e: KeyboardEvent): void {
                   <span v-html="osIconSvg(h.serverHostOsType)"></span>
                 </span>
                 <span class="rail-host__meta">
-                  <b class="rail-host__name">{{ h.serverHostName }}</b>
+                  <span class="rail-host__name">
+                    <span class="rail-host__name-text">{{ h.serverHostName }}</span>
+                    <i v-if="h.serverHostStatus === 0" class="rail-host__tag-off">已禁用</i>
+                  </span>
                   <span class="rail-host__addr mono">{{ h.serverHostAddress }}</span>
                 </span>
                 <!-- 常态：迷你 CPU/内存条 + 延迟 + 在线点；hover 时让位给操作图标 -->
@@ -2661,15 +3001,15 @@ function onGlobalKeydown(e: KeyboardEvent): void {
                 </span>
                 <!-- 行内操作：悬停浮出，不占常态宽度；控制管理只留远控一个 -->
                 <span v-if="isControl" class="rail-host__ops">
-                  <button type="button" title="远程控制" @click.stop="openTab(h, 'remote')">
+                  <button type="button" :class="{ 'is-blocked': !!remoteBlockReason(h) }" :title="remoteBlockReason(h) ?? '远程控制'" @click.stop="openTab(h, 'remote')">
                     <ReIcon name="Position" :size="13" />
                   </button>
                 </span>
                 <span v-else class="rail-host__ops">
-                  <button type="button" title="远程控制" @click.stop="openTab(h, 'remote')">
+                  <button type="button" :class="{ 'is-blocked': !!remoteBlockReason(h) }" :title="remoteBlockReason(h) ?? '远程控制'" @click.stop="openTab(h, 'remote')">
                     <ReIcon name="Position" :size="13" />
                   </button>
-                  <button type="button" title="文件管理" @click.stop="openTab(h, 'files')">
+                  <button type="button" :class="{ 'is-blocked': !!hostBlockReason(h) }" :title="hostBlockReason(h) ?? '文件管理'" @click.stop="openTab(h, 'files')">
                     <ReIcon name="FolderOpened" :size="13" />
                   </button>
                   <button type="button" title="指标监控" @click.stop="openTab(h, 'metrics')">
@@ -3091,13 +3431,23 @@ function onGlobalKeydown(e: KeyboardEvent): void {
         @contextmenu.prevent
       >
         <div class="host-ctx-head">
-          <b :title="ctxMenu.host.serverHostName">{{ ctxMenu.host.serverHostName }}</b>
+          <span class="host-ctx-head-row">
+            <b :title="ctxMenu.host.serverHostName">{{ ctxMenu.host.serverHostName }}</b>
+            <i v-if="hostDisabled(ctxMenu.host)" class="host-ctx-off">已禁用</i>
+          </span>
           <span class="mono">{{ ctxMenu.host.serverHostAddress }}</span>
+        </div>
+        <!-- 启停联动：连接类入口随之置灰，点了也会给出具体原因 -->
+        <div v-if="hostDisabled(ctxMenu.host)" class="host-ctx-notice">
+          <ReIcon name="Warning" /><span>主机已禁用：不采集、不探活，连接类入口不可用</span>
+        </div>
+        <div v-else-if="remoteOff(ctxMenu.host)" class="host-ctx-notice is-soft">
+          <ReIcon name="InfoFilled" /><span>远控入口已停用：远程控制不可用</span>
         </div>
 
         <!-- 控制管理：右键只保留远控相关的少量动作 -->
         <template v-if="isControl">
-          <div class="host-ctx-item" @click="ctxCommand('tab-remote')">
+          <div class="host-ctx-item" :class="{ 'is-blocked': !!remoteBlockReason(ctxMenu.host) }" :title="remoteBlockReason(ctxMenu.host) ?? ''" @click="ctxCommand('tab-remote')">
             <ReIcon name="Position" /><span>远程控制</span>
           </div>
           <div class="host-ctx-item" @click="ctxCommand('edit')">
@@ -3112,14 +3462,14 @@ function onGlobalKeydown(e: KeyboardEvent): void {
           </div>
         </template>
         <template v-else>
-        <div class="host-ctx-item" @click="ctxCommand('tab-remote')">
+        <div class="host-ctx-item" :class="{ 'is-blocked': !!remoteBlockReason(ctxMenu.host) }" :title="remoteBlockReason(ctxMenu.host) ?? ''" @click="ctxCommand('tab-remote')">
           <ReIcon name="Position" /><span>远程控制</span>
         </div>
         <!-- 虚拟桌面：这台主机的桌面壳（SSH 终端 / 文件 / 监控 / 命令），应用内页签打开 -->
-        <div class="host-ctx-item" @click="ctxCommand('desktop')">
+        <div class="host-ctx-item" :class="{ 'is-blocked': !!remoteBlockReason(ctxMenu.host) }" :title="remoteBlockReason(ctxMenu.host) ?? ''" @click="ctxCommand('desktop')">
           <ReIcon name="FullScreen" /><span>虚拟桌面</span>
         </div>
-        <div class="host-ctx-item" @click="ctxCommand('tab-files')">
+        <div class="host-ctx-item" :class="{ 'is-blocked': !!hostBlockReason(ctxMenu.host) }" :title="hostBlockReason(ctxMenu.host) ?? ''" @click="ctxCommand('tab-files')">
           <ReIcon name="FolderOpened" /><span>文件管理</span>
         </div>
         <div class="host-ctx-item" @click="ctxCommand('tab-metrics')">
@@ -3130,14 +3480,15 @@ function onGlobalKeydown(e: KeyboardEvent): void {
           <ReIcon name="EditPen" /><span>编辑主机</span>
         </div>
         <!-- 主机配置：随平台变化的系统参数（Linux sysctl/limits、Windows 注册表），独立顶层入口 -->
-        <div class="host-ctx-item" @click="ctxCommand('tab-sysconfig')">
+        <div class="host-ctx-item" :class="{ 'is-blocked': !!hostBlockReason(ctxMenu.host) }" :title="hostBlockReason(ctxMenu.host) ?? ''" @click="ctxCommand('tab-sysconfig')">
           <ReIcon name="Setting" /><span>主机配置</span>
         </div>
 
         <!-- 主机工作台：分屏 / K8s / 隧道 / 反向隧道（分屏工具条的 Docker 按钮走 /docker 独立页） -->
         <div
           class="host-ctx-item has-sub"
-          :class="{ 'is-open': ctxSub === 'workbench' }"
+          :class="{ 'is-open': ctxSub === 'workbench', 'is-blocked': !!hostBlockReason(ctxMenu.host) }"
+          :title="hostBlockReason(ctxMenu.host) ?? ''"
           @click="toggleCtxSub('workbench')"
           @mouseenter="hoverCtxSub('workbench')"
         >
@@ -3277,6 +3628,11 @@ function onGlobalKeydown(e: KeyboardEvent): void {
             <div class="host-ctx-item" @click="ctxCommand('toggle-remote')">
               <ReIcon name="SwitchButton" />
               <span>{{ ctxMenu.host.serverHostRemoteEnabled === 1 ? '停用远控入口' : '启用远控入口' }}</span>
+            </div>
+            <!-- 主机启停：与「远控入口」分开，这才是整台主机在平台侧的启用/禁用 -->
+            <div class="host-ctx-item" :class="{ 'is-danger': ctxMenu.host.serverHostStatus === 1 }" @click="ctxCommand('toggle-enabled')">
+              <ReIcon :name="ctxMenu.host.serverHostStatus === 1 ? 'CircleClose' : 'CircleCheck'" />
+              <span>{{ ctxMenu.host.serverHostStatus === 1 ? '禁用主机' : '启用主机' }}</span>
             </div>
           </div>
         </div>
@@ -3664,14 +4020,18 @@ function onGlobalKeydown(e: KeyboardEvent): void {
 
 .rail-batch__ops {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
 }
 
+/* 五个批量动作在 244px 栏宽里排不下，允许换行：每行三枚，禁用/删除不挤成半个字 */
 .rail-batch__ops button {
-  flex: 1;
+  flex: 1 1 calc(33% - 4px);
+  min-width: 0;
   height: 24px;
   padding: 0 4px;
   font-size: 11.5px;
+  white-space: nowrap;
   color: var(--el-text-color-regular);
   cursor: pointer;
   background: var(--el-bg-color);
@@ -3784,6 +4144,42 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   color: var(--el-text-color-secondary);
 }
 
+/* 已禁用（serverHostStatus=0）：整行降透明度，但保留可点（要能再启用） */
+.rail-host.is-disabled {
+  opacity: 0.62;
+}
+
+.rail-host.is-dragging {
+  opacity: 0.4;
+}
+
+.rail-host.is-drop-target {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+
+/* 拖拽手柄：常态透明占位（避免 hover 时整行跳动），悬停浮出 */
+.rail-host__drag {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  margin-right: -4px;
+  color: var(--el-text-color-placeholder);
+  cursor: grab;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.rail-host:hover .rail-host__drag {
+  opacity: 1;
+}
+
+.rail-host__drag:active {
+  cursor: grabbing;
+}
+
 /* 多选框：只在多选模式出现，宽度固定不挤压名称 */
 .rail-host__check {
   flex: none;
@@ -3832,12 +4228,32 @@ function onGlobalKeydown(e: KeyboardEvent): void {
 }
 
 .rail-host__name {
-  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
   font-size: 12.5px;
   font-weight: 600;
   color: var(--el-text-color-primary);
+}
+
+.rail-host__name-text {
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 「已禁用」角标：小一号、灰底，不抢主机名 */
+.rail-host__tag-off {
+  flex: none;
+  padding: 0 4px;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 15px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color);
+  border-radius: 3px;
 }
 
 .rail-host__addr {
@@ -3925,6 +4341,14 @@ function onGlobalKeydown(e: KeyboardEvent): void {
 .rail-host__ops button:hover {
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
+}
+
+/* 主机禁用 / 远控入口停用：行内按钮灰掉。仍可点，点了由 openTab 给出具体原因 */
+.rail-host__ops button.is-blocked,
+.rail-host__ops button.is-blocked:hover {
+  color: var(--el-text-color-disabled, #c0c4cc);
+  cursor: not-allowed;
+  background: transparent;
 }
 
 .rail-host__delay {
@@ -4523,6 +4947,15 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   background: var(--el-color-danger-light-9, #fef0f0);
   color: var(--el-color-danger, #f56c6c);
 }
+/* 主机禁用联动：连接类项灰掉；点击由 ctxCommand 统一提示原因，不静默失败 */
+.host-ctx-item.is-blocked,
+.host-ctx-item.is-blocked .re-icon {
+  color: var(--el-text-color-disabled, #c0c4cc);
+}
+.host-ctx-item.is-blocked:hover {
+  background: var(--el-fill-color-light, #f3f4f6);
+  color: var(--el-text-color-disabled, #c0c4cc);
+}
 /* 带二级菜单的条目：右侧一个箭头，hover 展开 */
 .host-ctx-item.has-sub {
   position: relative;
@@ -4611,6 +5044,51 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   white-space: nowrap;
   font-size: 11.5px;
   color: var(--el-text-color-placeholder, #a8abb2);
+}
+/* 主机名 + 状态徽标同一行：徽标不参与截断，长主机名先省略 */
+.host-ctx-head .host-ctx-head-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.host-ctx-head .host-ctx-head-row b {
+  flex: 1;
+  min-width: 0;
+}
+.host-ctx-off {
+  flex-shrink: 0;
+  padding: 0 4px;
+  font-size: 10.5px;
+  font-style: normal;
+  line-height: 15px;
+  color: var(--el-color-danger, #f56c6c);
+  background: var(--el-color-danger-light-9, #fef0f0);
+  border-radius: 3px;
+}
+/* 启停联动提示：主机禁用 / 远控入口停用时在菜单顶部亮一条，省得逐条去试 */
+.host-ctx-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 2px 6px 4px;
+  padding: 6px 8px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--el-color-warning-dark-2, #b88230);
+  background: var(--el-color-warning-light-9, #fdf6ec);
+  border-radius: var(--el-border-radius-small, 6px);
+}
+.host-ctx-notice.is-soft {
+  color: var(--el-text-color-secondary, #6b7280);
+  background: var(--el-fill-color-light, #f3f4f6);
+}
+.host-ctx-notice .re-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  font-size: 13px;
+}
+.host-ctx-notice > span {
+  min-width: 0;
 }
 /* 分组标题：把十几条菜单项切成「打开 / 画像分区 / 运维 / 主机」四段 */
 .host-ctx-label {

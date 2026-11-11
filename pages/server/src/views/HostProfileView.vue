@@ -1100,7 +1100,7 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
               @click="refreshCurrent">刷新主机</ReButton>
             <ReButton v-if="isAgentMode && !agentReady && selectedHost?.serverHostSshEnabled === 1" icon="Download" layout="square" type="success"
               @click="emit('deploy-agent', selectedHost)">安装 Agent</ReButton>
-            <ReButton v-if="selectedHost?.serverHostRemoteEnabled === 1" icon="Connection" layout="square" @click="emit('connect', selectedHost)">连接</ReButton>
+            <ReButton v-if="selectedHost?.serverHostRemoteEnabled === 1" :disabled="selectedHost?.serverHostStatus !== 1" :title="selectedHost?.serverHostStatus !== 1 ? '主机已禁用，启用后才能远控' : '连接'" icon="Connection" layout="square" @click="emit('connect', selectedHost)">连接</ReButton>
             <ReButton icon="TrendCharts" layout="square" @click="emit('detail', selectedHost)">监控详情</ReButton>
             <ReButton icon="EditPen" layout="square" @click="emit('edit', selectedHost)">编辑</ReButton>
             <label class="auto-switch" :title="autoRefresh ? '自动刷新中；可在右键菜单 → 系统 → 系统设置中调整间隔' : '自动刷新已关闭；可在右键菜单 → 系统 → 系统设置中开启'">
