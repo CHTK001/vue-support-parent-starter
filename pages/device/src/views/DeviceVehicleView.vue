@@ -2,166 +2,84 @@
   <div class="dvv">
     <header class="dvv-head">
       <div>
-        <h2 class="dvv-title">车辆与车闸</h2>
-        <p class="dvv-sub">车辆档案、车闸点位（含方向）与过车记录；数据落本地台账，厂商接口就绪后可同步。</p>
+        <h2 class="dvv-title">车辆管理</h2>
+        <p class="dvv-sub">车闸车辆档案：增删改、绑定设备、车牌所属与有效期续期。</p>
       </div>
-      <el-button :loading="loading" @click="reloadAll">刷新</el-button>
+      <el-button :loading="loading" @click="loadVehicles">刷新</el-button>
     </header>
 
-    <el-tabs v-model="activeTab" @tab-change="onTabChange">
-      <el-tab-pane label="门禁记录" name="access">
-        <DeviceAccessRecordView />
-      </el-tab-pane>
-      <el-tab-pane label="人员" name="person">
-        <div class="dvv-bar">
-          <el-input v-model="personKeyword" placeholder="姓名 / 手机 / 人员ID" clearable style="width: 240px" @keyup.enter="loadPersons" />
-          <el-button type="primary" @click="loadPersons">查询</el-button>
-          <el-button @click="openPerson()">新增人员</el-button>
-        </div>
-        <el-table v-loading="loading" :data="persons" border>
-          <el-table-column prop="devicePersonName" label="姓名" min-width="120" />
-          <el-table-column prop="devicePersonPhone" label="手机" width="140" />
-          <el-table-column prop="devicePersonTitle" label="职称" width="120" />
-          <el-table-column prop="devicePersonVendor" label="厂商" width="110" />
-          <el-table-column prop="devicePersonOrgId" label="组织" min-width="140" />
-          <el-table-column label="操作" width="260" fixed="right">
-            <template #default="{ row }">
-              <el-button link type="primary" @click="openPerson(row)">编辑</el-button>
-              <el-button link type="success" @click="pickFace(row)">人脸</el-button>
-              <el-button link type="warning" @click="removeFace(row)">删人脸</el-button>
-              <el-button link type="danger" @click="removePerson(row)">删除</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-        <input ref="faceInput" type="file" accept="image/*" style="display: none" @change="onFaceSelected" />
-      </el-tab-pane>
+    <div class="dvv-bar">
+      <el-input
+        v-model="keyword"
+        placeholder="车牌 / 车主 / 电话"
+        clearable
+        style="width: 240px"
+        @keyup.enter="loadVehicles"
+      />
+      <el-select v-model="deviceFilter" placeholder="全部设备" clearable filterable style="width: 240px">
+        <el-option v-for="d in deviceOptions" :key="d.value" :label="d.label" :value="d.value" />
+      </el-select>
+      <el-button type="primary" @click="loadVehicles">查询</el-button>
+      <el-button @click="openVehicle()">新增车辆</el-button>
+    </div>
 
-      <el-tab-pane label="车辆档案" name="vehicle">
-        <div class="dvv-bar">
-          <el-input
-            v-model="vehicleKeyword"
-            placeholder="车牌 / 车主 / 电话"
-            clearable
-            style="width: 240px"
-            @keyup.enter="loadVehicles"
-          />
-          <el-button type="primary" @click="loadVehicles">查询</el-button>
-          <el-button @click="openVehicle()">新增车辆</el-button>
-        </div>
-        <el-table v-loading="loading" :data="vehicles" border>
-          <el-table-column prop="deviceVehiclePlateNo" label="车牌号" min-width="120" />
-          <el-table-column prop="deviceVehiclePlateColor" label="车牌颜色" width="100" />
-          <el-table-column prop="deviceVehicleType" label="车辆类型" width="120" />
-          <el-table-column prop="deviceVehicleOwnerName" label="车主" width="120" />
-          <el-table-column prop="deviceVehicleOwnerPhone" label="电话" width="140" />
-          <el-table-column prop="deviceVehicleListType" label="名单" width="100" />
-          <el-table-column label="有效期" min-width="180">
-            <template #default="{ row }">
-              {{ row.deviceVehicleValidFrom || '—' }} ~ {{ row.deviceVehicleValidTo || '—' }}
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="150" fixed="right">
-            <template #default="{ row }">
-              <el-button link type="primary" @click="openVehicle(row)">编辑</el-button>
-              <el-button link type="danger" @click="removeVehicle(row)">删除</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-      </el-tab-pane>
+    <el-table v-loading="loading" :data="vehicles" border>
+      <el-table-column prop="deviceVehiclePlateNo" label="车牌号" min-width="120" />
+      <el-table-column prop="deviceVehiclePlateColor" label="车牌颜色" width="100" />
+      <el-table-column prop="deviceVehicleType" label="车辆类型" width="110" />
+      <el-table-column prop="deviceVehicleOwnerName" label="车主" width="110" />
+      <el-table-column prop="deviceVehicleOwnerPhone" label="电话" width="130" />
+      <el-table-column label="名单" width="90">
+        <template #default="{ row }">{{ listTypeText(row.deviceVehicleListType) }}</template>
+      </el-table-column>
+      <el-table-column label="对应设备" min-width="160">
+        <template #default="{ row }">{{ deviceName(row.deviceVehicleDeviceId) }}</template>
+      </el-table-column>
+      <el-table-column prop="deviceVehicleBelonging" label="车牌所属" min-width="140" />
+      <el-table-column label="有效期" min-width="180">
+        <template #default="{ row }">
+          {{ row.deviceVehicleValidFrom || '—' }} ~ {{ row.deviceVehicleValidTo || '—' }}
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="190" fixed="right">
+        <template #default="{ row }">
+          <el-button link type="primary" @click="openVehicle(row)">编辑</el-button>
+          <el-button link type="success" @click="openRenew(row)">续期</el-button>
+          <el-button link type="danger" @click="removeVehicle(row)">删除</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
 
-      <el-tab-pane label="车闸点位" name="barrier">
-        <div class="dvv-bar">
-          <el-input v-model="gateDeviceId" placeholder="设备 ID" clearable style="width: 220px" />
-          <el-select v-model="gateDirection" placeholder="方向" clearable style="width: 140px">
-            <el-option label="入口" value="in" />
-            <el-option label="出口" value="out" />
-            <el-option label="双向" value="both" />
-          </el-select>
-          <el-button type="primary" @click="loadGates">查询</el-button>
-          <el-button @click="openGate()">新增车闸</el-button>
-        </div>
-        <el-table v-loading="loading" :data="gates" border>
-          <el-table-column prop="deviceBarrierGateName" label="名称" min-width="160" />
-          <el-table-column prop="deviceBarrierGateDeviceId" label="设备 ID" min-width="160" />
-          <el-table-column prop="deviceBarrierGateChannelNo" label="通道号" width="90" />
-          <el-table-column label="方向" width="90">
-            <template #default="{ row }">{{ directionText(row.deviceBarrierGateDirection) }}</template>
-          </el-table-column>
-          <el-table-column prop="deviceBarrierGateStatus" label="状态" width="100" />
-          <el-table-column label="操作" width="150" fixed="right">
-            <template #default="{ row }">
-              <el-button link type="primary" @click="openGate(row)">编辑</el-button>
-              <el-button link type="danger" @click="removeGate(row)">删除</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-      </el-tab-pane>
-
-      <el-tab-pane label="过车记录" name="pass">
-        <div class="dvv-bar">
-          <el-input v-model="passGateId" placeholder="车闸 ID" clearable style="width: 200px" />
-          <el-select v-model="passDirection" placeholder="方向" clearable style="width: 140px">
-            <el-option label="入场" value="in" />
-            <el-option label="出场" value="out" />
-          </el-select>
-          <el-date-picker
-            v-model="passRange"
-            type="datetimerange"
-            start-placeholder="开始时间"
-            end-placeholder="结束时间"
-            value-format="YYYY-MM-DDTHH:mm:ss"
-          />
-          <el-button type="primary" @click="loadPasses">查询</el-button>
-        </div>
-        <el-table v-loading="loading" :data="passes" border>
-          <el-table-column prop="deviceVehiclePassPlateNo" label="车牌号" min-width="120" />
-          <el-table-column prop="deviceVehiclePassGateId" label="车闸 ID" min-width="160" />
-          <el-table-column label="方向" width="90">
-            <template #default="{ row }">{{ directionText(row.deviceVehiclePassDirection) }}</template>
-          </el-table-column>
-          <el-table-column prop="deviceVehiclePassTime" label="过车时间" min-width="180" />
-          <el-table-column prop="deviceVehiclePassVehicleType" label="车辆类型" width="120" />
-        </el-table>
-      </el-tab-pane>
-    </el-tabs>
-
-    <el-dialog v-model="personDialog.visible" :title="personDialog.id ? '编辑人员' : '新增人员'" width="520px">
-      <el-form :model="personDialog.form" label-width="90px">
-        <el-form-item label="姓名" required>
-          <el-input v-model="personDialog.form.devicePersonName" />
-        </el-form-item>
-        <el-form-item label="手机">
-          <el-input v-model="personDialog.form.devicePersonPhone" />
-        </el-form-item>
-        <el-form-item label="职称">
-          <el-input v-model="personDialog.form.devicePersonTitle" />
-        </el-form-item>
-        <el-form-item label="邮箱">
-          <el-input v-model="personDialog.form.devicePersonEmail" />
-        </el-form-item>
-        <el-form-item label="厂商">
-          <el-input v-model="personDialog.form.devicePersonVendor" />
-        </el-form-item>
-        <el-form-item label="组织 ID">
-          <el-input v-model="personDialog.form.devicePersonOrgId" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="personDialog.visible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="savePerson">保存</el-button>
-      </template>
-    </el-dialog>
-
-    <el-dialog v-model="vehicleDialog.visible" :title="vehicleDialog.id ? '编辑车辆' : '新增车辆'" width="520px">
+    <el-dialog v-model="vehicleDialog.visible" :title="vehicleDialog.id ? '编辑车辆' : '新增车辆'" width="560px">
       <el-form :model="vehicleDialog.form" label-width="90px">
         <el-form-item label="车牌号" required>
           <el-input v-model="vehicleDialog.form.deviceVehiclePlateNo" />
         </el-form-item>
         <el-form-item label="车牌颜色">
-          <el-input v-model="vehicleDialog.form.deviceVehiclePlateColor" />
+          <el-select v-model="vehicleDialog.form.deviceVehiclePlateColor" style="width: 100%">
+            <el-option label="蓝" value="蓝" />
+            <el-option label="黄" value="黄" />
+            <el-option label="绿" value="绿" />
+            <el-option label="白" value="白" />
+            <el-option label="黑" value="黑" />
+          </el-select>
         </el-form-item>
         <el-form-item label="车辆类型">
-          <el-input v-model="vehicleDialog.form.deviceVehicleType" />
+          <el-input v-model="vehicleDialog.form.deviceVehicleType" placeholder="小型车 / 大型车 / 新能源" />
+        </el-form-item>
+        <el-form-item label="对应设备">
+          <el-select
+            v-model="vehicleDialog.form.deviceVehicleDeviceId"
+            placeholder="选择车闸所在设备"
+            clearable
+            filterable
+            style="width: 100%"
+          >
+            <el-option v-for="d in deviceOptions" :key="d.value" :label="d.label" :value="d.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="车牌所属">
+          <el-input v-model="vehicleDialog.form.deviceVehicleBelonging" placeholder="单位 / 车场" />
         </el-form-item>
         <el-form-item label="车主">
           <el-input v-model="vehicleDialog.form.deviceVehicleOwnerName" />
@@ -176,6 +94,16 @@
             <el-option label="黑名单" value="black" />
           </el-select>
         </el-form-item>
+        <el-form-item label="有效期">
+          <el-date-picker
+            v-model="vehicleDialog.range"
+            type="datetimerange"
+            start-placeholder="开始"
+            end-placeholder="结束"
+            value-format="YYYY-MM-DD HH:mm:ss"
+            style="width: 100%"
+          />
+        </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="vehicleDialog.form.deviceVehicleRemark" type="textarea" />
         </el-form-item>
@@ -186,36 +114,33 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="gateDialog.visible" :title="gateDialog.id ? '编辑车闸' : '新增车闸'" width="520px">
-      <el-form :model="gateDialog.form" label-width="90px">
-        <el-form-item label="名称" required>
-          <el-input v-model="gateDialog.form.deviceBarrierGateName" />
-        </el-form-item>
-        <el-form-item label="设备 ID">
-          <el-input v-model="gateDialog.form.deviceBarrierGateDeviceId" />
-        </el-form-item>
-        <el-form-item label="通道号">
-          <el-input-number v-model="gateDialog.form.deviceBarrierGateChannelNo" :min="0" />
-        </el-form-item>
-        <el-form-item label="方向">
-          <el-select v-model="gateDialog.form.deviceBarrierGateDirection" style="width: 100%">
-            <el-option label="入口" value="in" />
-            <el-option label="出口" value="out" />
-            <el-option label="双向" value="both" />
+    <el-dialog v-model="renewDialog.visible" title="车辆续期" width="460px">
+      <el-form label-width="90px">
+        <el-form-item label="车牌号">{{ renewDialog.plateNo }}</el-form-item>
+        <el-form-item label="当前到期">{{ renewDialog.currentValidTo || '—' }}</el-form-item>
+        <el-form-item label="续期月数">
+          <el-select v-model="renewDialog.months" style="width: 100%" :disabled="!!renewDialog.validTo">
+            <el-option label="1 个月" :value="1" />
+            <el-option label="3 个月" :value="3" />
+            <el-option label="6 个月" :value="6" />
+            <el-option label="12 个月" :value="12" />
+            <el-option label="24 个月" :value="24" />
           </el-select>
         </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="gateDialog.form.deviceBarrierGateStatus" style="width: 100%">
-            <el-option label="未知" value="unknown" />
-            <el-option label="开" value="open" />
-            <el-option label="关" value="closed" />
-            <el-option label="离线" value="offline" />
-          </el-select>
+        <el-form-item label="指定到期">
+          <el-date-picker
+            v-model="renewDialog.validTo"
+            type="datetime"
+            placeholder="不填则按月顺延"
+            value-format="YYYY-MM-DD HH:mm:ss"
+            style="width: 100%"
+            clearable
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="gateDialog.visible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="saveGate">保存</el-button>
+        <el-button @click="renewDialog.visible = false">取消</el-button>
+        <el-button type="primary" :loading="saving" @click="submitRenew">确认续期</el-button>
       </template>
     </el-dialog>
   </div>
@@ -223,200 +148,69 @@
 
 <script setup lang="ts">
 /**
- * 车辆与车闸页：车辆档案、车闸点位（方向）、过车记录。
- *
- * 数据来自 device-starter：
- *   - /api/device/vehicle/**  车辆 CRUD
- *   - /api/device/barrier/**  车闸 CRUD + /pass 过车记录
+ * 车辆管理页：只负责车闸车辆档案，过车记录在独立菜单。
  *
  * @author CH
- * @since 4.0.0.51
+ * @since 4.0.0.52
  */
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { deviceApi } from '../api/deviceApi'
-import DeviceAccessRecordView from './DeviceAccessRecordView.vue'
 
-const activeTab = ref<'access' | 'person' | 'vehicle' | 'barrier' | 'pass'>('access')
 const loading = ref(false)
 const saving = ref(false)
-
+const keyword = ref('')
+const deviceFilter = ref('')
 const vehicles = ref<Record<string, any>[]>([])
-const persons = ref<Record<string, any>[]>([])
-const gates = ref<Record<string, any>[]>([])
-const passes = ref<Record<string, any>[]>([])
+const deviceOptions = ref<Array<{ value: string; label: string }>>([])
 
-const vehicleKeyword = ref('')
-const personKeyword = ref('')
-const faceInput = ref<HTMLInputElement>()
-let faceTarget: Record<string, any> | null = null
-const gateDeviceId = ref('')
-const gateDirection = ref('')
-const passGateId = ref('')
-const passDirection = ref('')
-const passRange = ref<[string, string] | null>(null)
+const vehicleDialog = reactive<{
+  visible: boolean
+  id: string
+  form: Record<string, any>
+  range: [string, string] | null
+}>({ visible: false, id: '', form: {}, range: null })
 
-const vehicleDialog = reactive<{ visible: boolean; id: string; form: Record<string, any> }>({
-  visible: false,
-  id: '',
-  form: {}
-})
-const gateDialog = reactive<{ visible: boolean; id: string; form: Record<string, any> }>({
-  visible: false,
-  id: '',
-  form: {}
-})
-const personDialog = reactive<{ visible: boolean; id: string; form: Record<string, any> }>({
-  visible: false,
-  id: '',
-  form: {}
-})
+const renewDialog = reactive<{
+  visible: boolean
+  id: string
+  plateNo: string
+  currentValidTo: string
+  months: number
+  validTo: string
+}>({ visible: false, id: '', plateNo: '', currentValidTo: '', months: 12, validTo: '' })
 
-/** 方向文案 */
-function directionText(value?: string) {
-  if (value === 'in') return '入口/入场'
-  if (value === 'out') return '出口/出场'
-  if (value === 'both') return '双向'
-  return '—'
-}
+const listTypeText = (value?: string) =>
+  value === 'white' ? '白名单' : value === 'black' ? '黑名单' : '普通'
 
-/** 取分页行 */
-function rowsOf(page: any): Record<string, any>[] {
-  return page?.records ?? page?.data ?? []
+const deviceName = (id?: string) =>
+  deviceOptions.value.find((d) => d.value === id)?.label ?? (id || '—')
+
+const rowsOf = (page: any): Record<string, any>[] => page?.records ?? page?.data ?? []
+
+async function loadDevices() {
+  try {
+    const list = (await deviceApi.listIndex()) as Array<Record<string, any>>
+    deviceOptions.value = list.map((d) => ({
+      value: d.deviceInfoId,
+      label: `${d.deviceInfoName || d.deviceInfoCode || d.deviceInfoId}${d.deviceInfoVendor ? `（${d.deviceInfoVendor}）` : ''}`
+    }))
+  } catch {
+    deviceOptions.value = []
+  }
 }
 
 async function loadVehicles() {
   loading.value = true
   try {
-    vehicles.value = rowsOf(await deviceApi.pageVehicles({ page: 1, size: 200, keyword: vehicleKeyword.value }))
+    const page = await deviceApi.pageVehicles({ page: 1, size: 500, keyword: keyword.value })
+    const rows = rowsOf(page)
+    vehicles.value = deviceFilter.value
+      ? rows.filter((r) => r.deviceVehicleDeviceId === deviceFilter.value)
+      : rows
   } finally {
     loading.value = false
   }
-}
-
-async function loadGates() {
-  loading.value = true
-  try {
-    gates.value = await deviceApi.listBarriers({ deviceId: gateDeviceId.value, direction: gateDirection.value })
-  } finally {
-    loading.value = false
-  }
-}
-
-async function loadPasses() {
-  loading.value = true
-  try {
-    passes.value = rowsOf(
-      await deviceApi.pageVehiclePasses({
-        page: 1,
-        size: 200,
-        gateId: passGateId.value,
-        direction: passDirection.value,
-        start: passRange.value?.[0],
-        end: passRange.value?.[1]
-      })
-    )
-  } finally {
-    loading.value = false
-  }
-}
-
-function reloadAll() {
-  void loadVehicles()
-  void loadGates()
-  void loadPasses()
-}
-
-function onTabChange(name: string) {
-  if (name === 'access') return
-  if (name === 'person') void loadPersons()
-  else if (name === 'vehicle') void loadVehicles()
-  else if (name === 'barrier') void loadGates()
-  else void loadPasses()
-}
-
-async function loadPersons() {
-  loading.value = true
-  try {
-    persons.value = rowsOf(await deviceApi.pagePersons({ page: 1, size: 200, keyword: personKeyword.value }))
-  } finally {
-    loading.value = false
-  }
-}
-
-function openPerson(row?: Record<string, any>) {
-  personDialog.id = row?.devicePersonId ?? ''
-  personDialog.form = row ? { ...row } : {}
-  personDialog.visible = true
-}
-
-async function savePerson() {
-  if (!personDialog.form.devicePersonName) {
-    ElMessage.warning('请填写姓名')
-    return
-  }
-  saving.value = true
-  try {
-    if (personDialog.id) {
-      await deviceApi.updatePerson(personDialog.id, personDialog.form)
-    } else {
-      await deviceApi.addPerson(personDialog.form)
-    }
-    ElMessage.success('已保存')
-    personDialog.visible = false
-    await loadPersons()
-  } catch (e: any) {
-    ElMessage.error(e?.message ?? '保存失败')
-  } finally {
-    saving.value = false
-  }
-}
-
-function pickFace(row: Record<string, any>) {
-  faceTarget = row
-  faceInput.value?.click()
-}
-
-async function onFaceSelected(event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file || !faceTarget) return
-  try {
-    const base64 = await readBase64(file)
-    await deviceApi.updatePersonFace(faceTarget.devicePersonId, base64)
-    ElMessage.success('人脸已提交')
-  } catch (e: any) {
-    ElMessage.error(e?.message ?? '人脸提交失败')
-  } finally {
-    input.value = ''
-    faceTarget = null
-  }
-}
-
-function readBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(String(reader.result ?? '').split(',')[1] ?? '')
-    reader.onerror = () => reject(reader.error ?? new Error('读取图片失败'))
-    reader.readAsDataURL(file)
-  })
-}
-
-async function removeFace(row: Record<string, any>) {
-  await ElMessageBox.confirm(`删除人员「${row.devicePersonName}」的人脸？`, '确认', { type: 'warning' })
-  try {
-    await deviceApi.deletePersonFace(row.devicePersonId)
-    ElMessage.success('人脸已删除')
-  } catch (e: any) {
-    ElMessage.error(e?.message ?? '删除人脸失败')
-  }
-}
-
-async function removePerson(row: Record<string, any>) {
-  await ElMessageBox.confirm(`删除人员「${row.devicePersonName}」？`, '确认', { type: 'warning' })
-  await deviceApi.deletePerson(row.devicePersonId)
-  ElMessage.success('已删除')
-  await loadPersons()
 }
 
 function openVehicle(row?: Record<string, any>) {
@@ -424,6 +218,9 @@ function openVehicle(row?: Record<string, any>) {
   vehicleDialog.form = row
     ? { ...row }
     : { deviceVehicleListType: 'normal', deviceVehiclePlateColor: '蓝' }
+  vehicleDialog.range = row?.deviceVehicleValidFrom && row?.deviceVehicleValidTo
+    ? [row.deviceVehicleValidFrom, row.deviceVehicleValidTo]
+    : null
   vehicleDialog.visible = true
 }
 
@@ -432,6 +229,8 @@ async function saveVehicle() {
     ElMessage.warning('请填写车牌号')
     return
   }
+  vehicleDialog.form.deviceVehicleValidFrom = vehicleDialog.range?.[0] ?? null
+  vehicleDialog.form.deviceVehicleValidTo = vehicleDialog.range?.[1] ?? null
   saving.value = true
   try {
     if (vehicleDialog.id) {
@@ -456,47 +255,35 @@ async function removeVehicle(row: Record<string, any>) {
   await loadVehicles()
 }
 
-function openGate(row?: Record<string, any>) {
-  gateDialog.id = row?.deviceBarrierGateId ?? ''
-  gateDialog.form = row
-    ? { ...row }
-    : { deviceBarrierGateDirection: 'both', deviceBarrierGateStatus: 'unknown' }
-  gateDialog.visible = true
+function openRenew(row: Record<string, any>) {
+  renewDialog.id = row.deviceVehicleId
+  renewDialog.plateNo = row.deviceVehiclePlateNo
+  renewDialog.currentValidTo = row.deviceVehicleValidTo || ''
+  renewDialog.months = 12
+  renewDialog.validTo = ''
+  renewDialog.visible = true
 }
 
-async function saveGate() {
-  if (!gateDialog.form.deviceBarrierGateName) {
-    ElMessage.warning('请填写车闸名称')
-    return
-  }
+async function submitRenew() {
   saving.value = true
   try {
-    if (gateDialog.id) {
-      await deviceApi.updateBarrier(gateDialog.id, gateDialog.form)
-    } else {
-      await deviceApi.addBarrier(gateDialog.form)
-    }
-    ElMessage.success('已保存')
-    gateDialog.visible = false
-    await loadGates()
+    await deviceApi.renewVehicle(renewDialog.id, {
+      months: renewDialog.validTo ? undefined : renewDialog.months,
+      validTo: renewDialog.validTo || undefined
+    })
+    ElMessage.success('续期成功')
+    renewDialog.visible = false
+    await loadVehicles()
   } catch (e: any) {
-    ElMessage.error(e?.message ?? '保存失败')
+    ElMessage.error(e?.message ?? '续期失败')
   } finally {
     saving.value = false
   }
 }
 
-async function removeGate(row: Record<string, any>) {
-  await ElMessageBox.confirm(`删除车闸「${row.deviceBarrierGateName}」？`, '确认', { type: 'warning' })
-  await deviceApi.deleteBarrier(row.deviceBarrierGateId)
-  ElMessage.success('已删除')
-  await loadGates()
-}
-
 onMounted(() => {
+  void loadDevices()
   void loadVehicles()
-  void loadGates()
-  void loadPersons()
 })
 </script>
 
@@ -509,7 +296,7 @@ onMounted(() => {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 .dvv-title {
   margin: 0;

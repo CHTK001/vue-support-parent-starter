@@ -328,6 +328,15 @@ export const deviceApi = {
   updateVehicle: (id: string, vehicle: Record<string, any>) =>
     http.put(`/vehicle/${id}`).data(vehicle).then(unwrap),
   deleteVehicle: (id: string) => http.delete(`/vehicle/${id}`).then(unwrap),
+  /** 车辆续期：months 按月顺延，validTo 指定新的有效期止 */
+  renewVehicle: (id: string, payload: { months?: number; validTo?: string }) =>
+    http.post(`/vehicle/${id}/renew`).data(payload).then(unwrap),
+
+  // ==================== 考勤记录（只读） ====================
+  pageAttendance: (params: Record<string, unknown>) =>
+    http.get("/attendance/page").query(params).then(unwrap),
+  listAttendance: (params: Record<string, unknown>) =>
+    http.get("/attendance/list").query(params).then(unwrap),
 
   // ==================== 车闸 / 过车 ====================
   pageBarriers: (params: Record<string, unknown>) =>

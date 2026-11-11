@@ -127,18 +127,70 @@ export const deviceRoutes: RouteConfigsTable[] = [
     name: 'DeviceVehicle',
     component: () => import('../views/DeviceVehicleView.vue'),
     meta: {
-      title: '门禁车闸',
-      icon: 'Lock',
+      title: '车辆管理',
+      icon: 'Van',
       showLink: true,
       keepAlive: true,
       isVisible: '1',
       rank: 13
     }
   },
+  {
+    path: '/device/vehicle-pass',
+    name: 'DeviceVehiclePass',
+    component: () => import('../views/DeviceVehiclePassView.vue'),
+    meta: {
+      title: '过车记录',
+      icon: 'Tickets',
+      showLink: true,
+      keepAlive: true,
+      isVisible: '1',
+      rank: 14
+    }
+  },
+  {
+    path: '/device/attendance',
+    name: 'DeviceAttendance',
+    component: () => import('../views/DeviceAttendanceView.vue'),
+    meta: {
+      title: '考勤记录',
+      icon: 'Clock',
+      showLink: true,
+      keepAlive: true,
+      isVisible: '1',
+      rank: 15
+    }
+  },
+  {
+    path: '/device/access',
+    name: 'DeviceAccess',
+    component: () => import('../views/DeviceAccessRecordView.vue'),
+    meta: {
+      title: '门禁记录',
+      icon: 'Door',
+      showLink: true,
+      keepAlive: true,
+      isVisible: '1',
+      rank: 16
+    }
+  },
+  {
+    path: '/device/person',
+    name: 'DevicePerson',
+    component: () => import('../views/DevicePersonView.vue'),
+    meta: {
+      title: '人员管理',
+      icon: 'User',
+      showLink: true,
+      keepAlive: true,
+      isVisible: '1',
+      rank: 17
+    }
+  },
 ]
 
 /**
- * 设备管理静态菜单（一级菜单，展开为设备台账、厂商接入与车辆车闸）
+ * 设备管理静态菜单（一级菜单，展开为设备台账、厂商接入、车辆管理、过车、考勤、门禁与人员）
  * 定时任务 / 分组 / 拓扑已收起为这两个菜单内的页签，不再出现在菜单中。
  */
 export const deviceMenus = [
@@ -165,7 +217,27 @@ export const deviceMenus = [
       {
         path: '/device/vehicle',
         name: 'DeviceVehicle',
-        meta: { title: '门禁车闸', icon: 'Lock', isVisible: '1' }
+        meta: { title: '车辆管理', icon: 'Van', isVisible: '1' }
+      },
+      {
+        path: '/device/vehicle-pass',
+        name: 'DeviceVehiclePass',
+        meta: { title: '过车记录', icon: 'Tickets', isVisible: '1' }
+      },
+      {
+        path: '/device/attendance',
+        name: 'DeviceAttendance',
+        meta: { title: '考勤记录', icon: 'Clock', isVisible: '1' }
+      },
+      {
+        path: '/device/access',
+        name: 'DeviceAccess',
+        meta: { title: '门禁记录', icon: 'Door', isVisible: '1' }
+      },
+      {
+        path: '/device/person',
+        name: 'DevicePerson',
+        meta: { title: '人员管理', icon: 'User', isVisible: '1' }
       }
     ]
   }
