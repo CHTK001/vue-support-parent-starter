@@ -216,6 +216,8 @@ export interface PlatformDescriptor {
   name: string
   defaultBaseUrl?: string
   credentialFields: CredentialFieldDescriptor[]
+  /** 平台级能力位；后端已按能力矩阵派生，旧数据可能缺失 */
+  capabilities?: DeviceCapability[]
 }
 
 /** 接入方式描述 */

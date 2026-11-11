@@ -379,6 +379,9 @@ const formRef = ref<FormInstance>()
 const submitting = ref(false)
 const credentials = ref<ProviderCredential[]>([])
 
+/** 精讯云是传感器/继电器平台，新增时默认落到「其他」大类 */
+const SENNOR_VENDOR = 'sennor'
+
 function emptyForm(): DeviceFormModel {
   return {
     deviceInfoName: '',
@@ -479,6 +482,10 @@ function initForm() {
       authType: device.deviceInfoIp ? 'SDK' : 'PLATFORM',
       platformType: ''
     })
+    if (!device.deviceInfoCategory && device.deviceInfoVendor === SENNOR_VENDOR) {
+      form.deviceInfoCategory = 'other'
+      form.deviceInfoSubCategory = ''
+    }
   } else {
     const vendor = props.vendors[0]
     if (vendor) {
@@ -486,9 +493,21 @@ function initForm() {
       form.authType = vendor.authTypes[0]?.code || 'PLATFORM'
       form.platformType = vendor.platforms[0]?.code || ''
       form.deviceInfoOfflineThreshold = vendor.defaultOfflineThreshold || 60
+      applyVendorCategory(vendor)
     }
   }
   loadCredentials()
+}
+
+/**
+ * 厂商切换后的表单默认值：精讯云设备没有视频通道，默认归到「其他」。
+ *
+ * @param vendor 厂商描述符
+ */
+function applyVendorCategory(vendor?: DeviceVendorDescriptor) {
+  if (vendor?.vendor !== SENNOR_VENDOR) return
+  form.deviceInfoCategory = 'other'
+  form.deviceInfoSubCategory = ''
 }
 
 function onVendorChange() {
@@ -496,6 +515,7 @@ function onVendorChange() {
   form.authType = vendor?.authTypes[0]?.code || 'PLATFORM'
   form.platformType = vendor?.platforms[0]?.code || ''
   form.deviceInfoOfflineThreshold = vendor?.defaultOfflineThreshold ?? 60
+  applyVendorCategory(vendor)
   form.deviceInfoCredentialId = ''
   loadCredentials()
 }

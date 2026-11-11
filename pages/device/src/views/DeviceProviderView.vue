@@ -1180,7 +1180,12 @@ const currentCredentialFields = computed<CredentialFieldDescriptor[]>(
  */
 const isBaseUrlEditable = computed(() => {
   const platform = form.deviceCredentialPlatformType
-  return platform === 'secure-platform' || platform === 'isup' || platform === 'gb28181'
+  return (
+    platform === 'secure-platform' ||
+    platform === 'isup' ||
+    platform === 'gb28181' ||
+    platform === 'sennor-cloud'
+  )
 })
 
 /** 凭据维度同步的加载态（device / org / person） */

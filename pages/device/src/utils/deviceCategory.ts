@@ -72,7 +72,13 @@ export const SUB_CATEGORY_OPTIONS: Record<DeviceCategory, { label: string; value
     { label: '门口机', value: 'doorStation' },
     { label: '室内机', value: 'indoorStation' }
   ],
-  other: []
+  other: [
+    { label: '温湿度', value: 'temperatureHumidity' },
+    { label: '气象', value: 'weather' },
+    { label: '水质', value: 'waterQuality' },
+    { label: '土壤', value: 'soil' },
+    { label: '继电器', value: 'relay' }
+  ]
 }
 
 export function getCategoryLabel(category: string): string {
