@@ -11,7 +11,7 @@ import { ElMessageBox } from "element-plus";
 import { pageForTenant, updateTenant, deleteTenant, dropTenantDatabase, updateTenantStatus, resetTenantPassword, getTenant, listForTenant, tenantProvisionCapabilities, startTenantProvision, cancelTenantProvision, tenantProvisionStatus, getTenantEndpoint, tenantDatasourceOptions } from "../api/systemApi";
 import type { SysTenant, TenantDatasourceOption, TenantEndpointInfo } from "../api/types";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
-import type { ProgressSnapshot, ProgressStep } from "@repo/ui/re-progress-dialog";
+import ReProgressDialog, { type ProgressSnapshot, type ProgressStep } from "@repo/ui/re-progress-dialog";
 import ServiceCatalogPanel from "./components/ServiceCatalogPanel.vue";
 import TenantServiceBindDialog from "./components/TenantServiceBindDialog.vue";
 
@@ -291,9 +291,18 @@ const provisionCancelling = ref(false);
 const provisionError = ref("");
 const provisionTaskId = ref("");
 
+/**
+ * taskId 返回前的进度帧。
+ *
+ * <p>后端是广播，同一时刻可能有另一个管理员在创建别的租户。
+ * 此时 HTTP 还没回来，不能把任意一帧当成当前任务，否则会显示成别人的租户。</p>
+ */
+const provisionPendingFrames = new Map<string, Record<string, unknown>>();
+
 let provisionUnsubscribe: (() => void) | null = null;
 let provisionPollTimer: number | null = null;
 let provisionPollCount = 0;
+let provisionPollFailures = 0;
 
 /** 停掉状态轮询 */
 function stopProvisionPolling() {
@@ -325,6 +334,9 @@ function applyProvisionSnapshot(raw: Record<string, unknown> | null | undefined)
   }
   const next = raw as unknown as ProgressSnapshot;
   const prev = provisionSnapshot.value;
+  if (prev?.finished && !next.finished) {
+    return;
+  }
   if (
     prev &&
     !next.finished &&
@@ -338,6 +350,32 @@ function applyProvisionSnapshot(raw: Record<string, unknown> | null | undefined)
   if (next.finished) {
     finishProvision();
   }
+}
+
+/**
+ * 通道本身坏了（启动失败 / 连续轮询失败）时，给弹窗补一份终态。
+ *
+ * <p>ReProgressDialog 只有 finished 才允许关闭；若这里不兜底，
+ * 一次网络故障就会把用户永久锁在“正在创建”里。</p>
+ */
+function failProvisionLocally(error: string, title = "创建未完成") {
+  provisionError.value = error;
+  stopProvisionPolling();
+  stopProvisionSubscription();
+  const prev = provisionSnapshot.value;
+  provisionSnapshot.value = {
+    ...(prev ?? {}),
+    taskId: prev?.taskId ?? provisionTaskId.value,
+    status: "FAILED",
+    finished: true,
+    percentage: prev?.percentage ?? 0,
+    currentTitle: title,
+    currentDescription: prev?.currentDescription ?? error,
+    message: error,
+    steps: prev?.steps ?? provisionSteps.value,
+    details: [...(prev?.details ?? []), error],
+  };
+  provisionPendingFrames.clear();
 }
 
 /** 任务结束：停轮询/退订，并按结果给出可见结论 + 刷新列表 */
@@ -386,10 +424,15 @@ async function pollProvisionStatus() {
   try {
     const res = await tenantProvisionStatus(taskId);
     const data = (res?.data ?? null) as Record<string, unknown> | null;
+    provisionPollFailures = 0;
     applyProvisionSnapshot(data);
   } catch {
-    // 任务过期/接口异常：停止轮询，弹窗保留最后一份快照
-    stopProvisionPolling();
+    // 单次失败可能只是抖动：套接字还在推就继续轮询；连续失败才认为通道断了
+    provisionPollFailures += 1;
+    if (provisionPollFailures < 3) {
+      return;
+    }
+    failProvisionLocally("连续获取创建进度失败，请关闭后刷新列表确认结果");
   }
 }
 
@@ -405,7 +448,9 @@ async function startProvision(payload: SysTenant) {
   provisionCancellable.value = false;
   provisionCancelling.value = false;
   provisionTaskId.value = "";
+  provisionPendingFrames.clear();
   provisionPollCount = 0;
+  provisionPollFailures = 0;
   stopProvisionPolling();
   stopProvisionSubscription();
   provisionVisible.value = true;
@@ -426,7 +471,20 @@ async function startProvision(payload: SysTenant) {
       provisionUnsubscribe =
         socket?.subscribe(module, topic, (msg: unknown) => {
           const typed = msg as { data?: Record<string, unknown> } & Record<string, unknown>;
-          applyProvisionSnapshot(typed?.data ?? typed);
+          const frame = (typed?.data ?? typed) as Record<string, unknown>;
+          const frameTaskId =
+            frame.taskId === undefined || frame.taskId === null ? "" : String(frame.taskId);
+          if (!frameTaskId) {
+            return;
+          }
+          if (provisionTaskId.value) {
+            if (frameTaskId === provisionTaskId.value) {
+              applyProvisionSnapshot(frame);
+            }
+            return;
+          }
+          // 任务号还没回来：按 taskId 缓存，等 start 响应到了再挑属于自己的那一份
+          provisionPendingFrames.set(frameTaskId, frame);
         }) ?? null;
     }
   } catch {
@@ -441,9 +499,15 @@ async function startProvision(payload: SysTenant) {
       throw new Error("后端未返回创建任务标识");
     }
     applyProvisionSnapshot(data);
+    const pendingFrame = provisionPendingFrames.get(provisionTaskId.value);
+    if (pendingFrame) {
+      applyProvisionSnapshot(pendingFrame);
+    }
+    provisionPendingFrames.clear();
     startProvisionPolling();
   } catch (e) {
-    provisionError.value = (e as Error)?.message ?? "启动租户创建失败";
+    const error = (e as Error)?.message ?? "启动租户创建失败";
+    failProvisionLocally(error, "创建未启动");
   }
 }
 
@@ -466,6 +530,7 @@ async function handleProvisionCancel() {
 /** 进度弹窗关闭（仅任务结束后可用） */
 function handleProvisionClose() {
   provisionVisible.value = false;
+  provisionPendingFrames.clear();
   stopProvisionPolling();
   stopProvisionSubscription();
   // 创建成功后列表必须立刻能看到新租户：弹窗一关就刷新，不用用户手动点刷新
