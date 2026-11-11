@@ -154,10 +154,10 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { message } from '@repo/core'
 import ReDialog from '@repo/ui/re-dialog'
-import { deviceApi } from '@pages/device/src/api/deviceApi'
-import { DEVICE_STATUS_OPTIONS } from '@pages/device/src/utils/deviceFormat'
-import { hasLocation } from '@pages/device/src/utils/deviceFormat'
-import type { DeviceInfo, DeviceStatus } from '@pages/device/src/types/device'
+import { deviceApi } from '../api/deviceApi'
+import { DEVICE_STATUS_OPTIONS } from '../utils/deviceFormat'
+import { hasLocation } from '../utils/deviceFormat'
+import type { DeviceInfo, DeviceStatus } from '../types/device'
 
 const props = defineProps<{
   modelValue: boolean

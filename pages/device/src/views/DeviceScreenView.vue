@@ -102,11 +102,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import ReMap from '@pages/device/src/components/ReMap.vue'
+import ReMap from '../components/ReMap.vue'
 import ReDialog from '@repo/ui/re-dialog'
-import { deviceApi } from '@pages/device/src/api/deviceApi'
-import { CATEGORY_LABELS, getCategoryLabel } from '@pages/device/src/utils/deviceCategory'
-import type { DeviceInfo } from '@pages/device/src/types/device'
+import { deviceApi } from '../api/deviceApi'
+import { CATEGORY_LABELS, getCategoryLabel } from '../utils/deviceCategory'
+import type { DeviceInfo } from '../types/device'
 
 const router = useRouter()
 const devices = ref<DeviceInfo[]>([])

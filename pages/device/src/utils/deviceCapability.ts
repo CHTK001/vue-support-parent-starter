@@ -16,7 +16,7 @@ import type {
   DeviceCapability,
   DeviceInfo,
   DeviceVendorDescriptor
-} from '@pages/device/src/types/device'
+} from '../types/device'
 
 /** 详情页的页签键 */
 export type DeviceDetailTabKey =

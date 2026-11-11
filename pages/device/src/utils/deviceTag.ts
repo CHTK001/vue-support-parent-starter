@@ -7,7 +7,7 @@
  * @since 4.0.0.42
  */
 
-import type { DeviceTagOption } from '@pages/device/src/types/device'
+import type { DeviceTagOption } from '../types/device'
 
 /** 常用标签及其颜色 */
 const DEFAULT_TAG_LIST: DeviceTagOption[] = [

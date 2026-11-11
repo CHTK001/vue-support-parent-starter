@@ -27,7 +27,7 @@
 </template>
 
 <script setup lang="ts">
-import type { DeviceInfo } from '@pages/device/src/types/device'
+import type { DeviceInfo } from '../types/device'
 
 defineProps<{
   device: DeviceInfo

@@ -8,8 +8,8 @@
 </template>
 
 <script setup lang="ts">
-import { ownerSubText, ownerText } from '@pages/device/src/utils/deviceFormat'
-import type { DeviceInfo } from '@pages/device/src/types/device'
+import { ownerSubText, ownerText } from '../utils/deviceFormat'
+import type { DeviceInfo } from '../types/device'
 
 defineProps<{
   device: DeviceInfo

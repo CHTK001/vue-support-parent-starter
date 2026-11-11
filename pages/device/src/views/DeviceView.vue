@@ -805,34 +805,34 @@ import ReContextMenu from '@repo/ui/re-context-menu'
 import type { ReContextMenuItem } from '@repo/ui/re-context-menu'
 import ReTime from '@repo/ui/re-time'
 
-import DeviceStatusPulse from '@pages/device/src/components/DeviceStatusPulse.vue'
-import DeviceOwnerCell from '@pages/device/src/components/DeviceOwnerCell.vue'
-import DeviceLocationCell from '@pages/device/src/components/DeviceLocationCell.vue'
-import ReDeviceFormDialog from '@pages/device/src/components/ReDeviceFormDialog.vue'
-import ReDeviceAssetDialog from '@pages/device/src/components/ReDeviceAssetDialog.vue'
-import ReDeviceImportDialog from '@pages/device/src/components/ReDeviceImportDialog.vue'
-import ReDeviceTagEditor from '@pages/device/src/components/ReDeviceTagEditor.vue'
-import ReDeviceDetailPanel from '@pages/device/src/components/ReDeviceDetailPanel.vue'
-import ReDevicePlayPanel from '@pages/device/src/components/ReDevicePlayPanel.vue'
-import ReDeviceWallPlayer from '@pages/device/src/components/ReDeviceWallPlayer.vue'
-import DeviceChannelView from '@pages/device/src/views/DeviceChannelView.vue'
-import DeviceAlarmView from '@pages/device/src/views/DeviceAlarmView.vue'
-import DeviceEventLogView from '@pages/device/src/views/DeviceEventLogView.vue'
+import DeviceStatusPulse from '../components/DeviceStatusPulse.vue'
+import DeviceOwnerCell from '../components/DeviceOwnerCell.vue'
+import DeviceLocationCell from '../components/DeviceLocationCell.vue'
+import ReDeviceFormDialog from '../components/ReDeviceFormDialog.vue'
+import ReDeviceAssetDialog from '../components/ReDeviceAssetDialog.vue'
+import ReDeviceImportDialog from '../components/ReDeviceImportDialog.vue'
+import ReDeviceTagEditor from '../components/ReDeviceTagEditor.vue'
+import ReDeviceDetailPanel from '../components/ReDeviceDetailPanel.vue'
+import ReDevicePlayPanel from '../components/ReDevicePlayPanel.vue'
+import ReDeviceWallPlayer from '../components/ReDeviceWallPlayer.vue'
+import DeviceChannelView from '../views/DeviceChannelView.vue'
+import DeviceAlarmView from '../views/DeviceAlarmView.vue'
+import DeviceEventLogView from '../views/DeviceEventLogView.vue'
 
 /** 账台账拓扑页签按需加载：首屏不背着机房拓扑的代码 */
-const DeviceTopoView = defineAsyncComponent(() => import('@pages/device/src/views/DeviceTopoView.vue'))
+const DeviceTopoView = defineAsyncComponent(() => import('../views/DeviceTopoView.vue'))
 
-import { deviceApi } from '@pages/device/src/api/deviceApi'
-import { getCategoryIcon, getCategoryLabel } from '@pages/device/src/utils/deviceCategory'
-import { isPlayable } from '@pages/device/src/utils/deviceCapability'
+import { deviceApi } from '../api/deviceApi'
+import { getCategoryIcon, getCategoryLabel } from '../utils/deviceCategory'
+import { isPlayable } from '../utils/deviceCapability'
 import {
   buildOrgTree,
   dateBefore,
   formatCoord,
   hasLocation,
   statusMeta
-} from '@pages/device/src/utils/deviceFormat'
-import { mergeTagOptions, parseTags } from '@pages/device/src/utils/deviceTag'
+} from '../utils/deviceFormat'
+import { mergeTagOptions, parseTags } from '../utils/deviceTag'
 import type {
   DeviceGroupNode,
   DeviceInfo,
@@ -843,7 +843,7 @@ import type {
   DevicePageQuery,
   PageResult,
   OrgNode
-} from '@pages/device/src/types/device'
+} from '../types/device'
 
 const router = useRouter()
 

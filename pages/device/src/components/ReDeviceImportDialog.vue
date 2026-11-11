@@ -14,7 +14,7 @@ import ReIcon from '@repo/ui/re-icon'
 import ReScrollbar from '@repo/ui/re-scrollbar'
 import ReDialog from '@repo/ui/re-dialog'
 import ReTag from '@repo/ui/re-tag'
-import type { DeviceImportResult } from '@pages/device/src/types/device'
+import type { DeviceImportResult } from '../types/device'
 
 /** 弹窗显隐（父组件 v-model 绑定） */
 const visible = defineModel<boolean>({ default: false })

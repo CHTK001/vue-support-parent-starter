@@ -64,8 +64,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { Refresh, Plus, Search } from '@element-plus/icons-vue'
-import { getCategoryLabel } from '@pages/device/src/utils/deviceCategory'
-import type { DeviceInfo, OrgNode } from '@pages/device/src/types/device'
+import { getCategoryLabel } from '../utils/deviceCategory'
+import type { DeviceInfo, OrgNode } from '../types/device'
 
 const props = defineProps<{
   orgTree: OrgNode[]

@@ -41,7 +41,7 @@
 
 <script setup lang="ts">
 import ReVideo from './ReVideo.vue'
-import type { DeviceChannel } from '@pages/device/src/types/device'
+import type { DeviceChannel } from '../types/device'
 import type { RtspGateway } from '../utils/streamProtocol'
 
 

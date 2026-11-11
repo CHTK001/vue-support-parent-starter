@@ -46,7 +46,7 @@
 
 <script setup lang="ts">
 import { Refresh } from '@element-plus/icons-vue'
-import type { DeviceDoor, AccessEvent } from '@pages/device/src/types/device'
+import type { DeviceDoor, AccessEvent } from '../types/device'
 import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 

@@ -309,10 +309,10 @@ import { message } from '@repo/core'
 import type { FormInstance, FormRules } from 'element-plus'
 import ReDialog from '@repo/ui/re-dialog'
 import { ReRadio, ReRadioGroup } from '@repo/ui/re-kit'
-import { deviceApi } from '@pages/device/src/api/deviceApi'
-import ReOrgTreeSelect from '@pages/device/src/components/ReOrgTreeSelect.vue'
-import { CATEGORY_OPTIONS, getSubCategoryOptions } from '@pages/device/src/utils/deviceCategory'
-import { DEVICE_STATUS_OPTIONS } from '@pages/device/src/utils/deviceFormat'
+import { deviceApi } from '../api/deviceApi'
+import ReOrgTreeSelect from '../components/ReOrgTreeSelect.vue'
+import { CATEGORY_OPTIONS, getSubCategoryOptions } from '../utils/deviceCategory'
+import { DEVICE_STATUS_OPTIONS } from '../utils/deviceFormat'
 import type {
   DeviceCategory,
   DeviceInfo,
@@ -320,7 +320,7 @@ import type {
   DeviceVendorDescriptor,
   OrgNode,
   ProviderCredential
-} from '@pages/device/src/types/device'
+} from '../types/device'
 
 const props = defineProps<{
   modelValue: boolean

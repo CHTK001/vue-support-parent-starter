@@ -15,7 +15,7 @@
 
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useSocketService, type WsMessage } from '@repo/core'
-import type { DeviceStatusEvent } from '@pages/device/src/types/device'
+import type { DeviceStatusEvent } from '../types/device'
 
 export interface UseDeviceRealtimeOptions {
   /** 收到设备状态事件 */

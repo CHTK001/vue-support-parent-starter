@@ -205,19 +205,19 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { message } from '@repo/core'
 import { Grid, Refresh } from '@element-plus/icons-vue'
-import ReVideo from '@pages/device/src/components/ReVideo.vue'
-import ReMultiVideo from '@pages/device/src/components/ReMultiVideo.vue'
-import RePtzControl from '@pages/device/src/components/RePtzControl.vue'
-import ReAccessPanel from '@pages/device/src/components/ReAccessPanel.vue'
-import ReEventPanel from '@pages/device/src/components/ReEventPanel.vue'
-import ReTimeline from '@pages/device/src/components/ReTimeline.vue'
-import ReMap from '@pages/device/src/components/ReMap.vue'
-import ReChannelManager from '@pages/device/src/components/ReChannelManager.vue'
-import DeviceStatusPulse from '@pages/device/src/components/DeviceStatusPulse.vue'
+import ReVideo from '../components/ReVideo.vue'
+import ReMultiVideo from '../components/ReMultiVideo.vue'
+import RePtzControl from '../components/RePtzControl.vue'
+import ReAccessPanel from '../components/ReAccessPanel.vue'
+import ReEventPanel from '../components/ReEventPanel.vue'
+import ReTimeline from '../components/ReTimeline.vue'
+import ReMap from '../components/ReMap.vue'
+import ReChannelManager from '../components/ReChannelManager.vue'
+import DeviceStatusPulse from '../components/DeviceStatusPulse.vue'
 import { RTSP_GATEWAY } from '../utils/streamConfig'
-import { deviceApi } from '@pages/device/src/api/deviceApi'
-import { detailTabKeys, isPlayable } from '@pages/device/src/utils/deviceCapability'
-import { getCategoryLabel } from '@pages/device/src/utils/deviceCategory'
+import { deviceApi } from '../api/deviceApi'
+import { detailTabKeys, isPlayable } from '../utils/deviceCapability'
+import { getCategoryLabel } from '../utils/deviceCategory'
 import {
   copyText,
   formatCoord,
@@ -229,7 +229,7 @@ import {
   ownerSubText,
   sourceLabel,
   statusMeta
-} from '@pages/device/src/utils/deviceFormat'
+} from '../utils/deviceFormat'
 import type {
   AccessEvent,
   DeviceEvent,
@@ -237,7 +237,7 @@ import type {
   DeviceVendorDescriptor,
   Preset,
   TimelineItem
-} from '@pages/device/src/types/device'
+} from '../types/device'
 
 const props = defineProps<{
   device: DeviceInfo | null

@@ -684,17 +684,17 @@ import ReIcon from '@repo/ui/re-icon'
 import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 import ReTag from '@repo/ui/re-tag'
-import ReVendorTaskPanel from '@pages/device/src/components/ReVendorTaskPanel.vue'
+import ReVendorTaskPanel from '../components/ReVendorTaskPanel.vue'
 
-import { deviceApi } from '@pages/device/src/api/deviceApi'
-import { formatDateTime } from '@pages/device/src/utils/deviceFormat'
+import { deviceApi } from '../api/deviceApi'
+import { formatDateTime } from '../utils/deviceFormat'
 import type {
   CredentialFieldDescriptor,
   DeviceCapability,
   DeviceVendorDescriptor,
   ProviderCredential,
   SyncResult
-} from '@pages/device/src/types/device'
+} from '../types/device'
 
 const router = useRouter()
 

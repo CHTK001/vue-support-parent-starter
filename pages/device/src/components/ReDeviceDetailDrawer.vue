@@ -28,8 +28,8 @@
  * @since 4.0.0.42
  */
 import { computed, ref } from 'vue'
-import ReDeviceDetailPanel from '@pages/device/src/components/ReDeviceDetailPanel.vue'
-import type { DeviceInfo, DeviceVendorDescriptor } from '@pages/device/src/types/device'
+import ReDeviceDetailPanel from '../components/ReDeviceDetailPanel.vue'
+import type { DeviceInfo, DeviceVendorDescriptor } from '../types/device'
 
 const props = defineProps<{
   modelValue: boolean

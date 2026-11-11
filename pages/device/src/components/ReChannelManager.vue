@@ -77,8 +77,8 @@ import { message } from "@repo/core";
 import { ref, watch, onMounted } from 'vue'
 import { ElMessageBox } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue'
-import { deviceApi } from '@pages/device/src/api/deviceApi'
-import type { DeviceChannel } from '@pages/device/src/types/device'
+import { deviceApi } from '../api/deviceApi'
+import type { DeviceChannel } from '../types/device'
 
 
 import ReDialog from "@repo/ui/re-dialog";

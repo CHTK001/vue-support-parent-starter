@@ -27,8 +27,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { ArrowDown } from '@element-plus/icons-vue'
-import { formatCoord, hasLocation, mapLinks } from '@pages/device/src/utils/deviceFormat'
-import type { DeviceInfo } from '@pages/device/src/types/device'
+import { formatCoord, hasLocation, mapLinks } from '../utils/deviceFormat'
+import type { DeviceInfo } from '../types/device'
 
 const props = defineProps<{
   device: DeviceInfo

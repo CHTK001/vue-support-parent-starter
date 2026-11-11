@@ -48,7 +48,7 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import ReMap, { MapType, MapTile, DEFAULT_MAP_CONFIG } from '@repo/re-map'
 import type { MarkerOptions, MapUrlConfig } from '@repo/re-map'
-import type { DeviceInfo } from '@pages/device/src/types/device'
+import type { DeviceInfo } from '../types/device'
 
 const props = withDefaults(
   defineProps<{

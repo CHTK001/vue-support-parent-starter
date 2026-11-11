@@ -138,14 +138,14 @@
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { RefreshRight, Setting } from '@element-plus/icons-vue'
-import ReVideo from '@pages/device/src/components/ReVideo.vue'
+import ReVideo from '../components/ReVideo.vue'
 import ReButton from '@repo/ui/re-button'
 import ReDialog from '@repo/ui/re-dialog'
 import ReInput from '@repo/ui/re-input'
 import ReInputNumber from '@repo/ui/re-input-number'
 import { ReFormItem } from '@repo/ui/re-kit'
-import { deviceApi } from '@pages/device/src/api/deviceApi'
-import type { DeviceInfo } from '@pages/device/src/types/device'
+import { deviceApi } from '../api/deviceApi'
+import type { DeviceInfo } from '../types/device'
 import { RTSP_GATEWAY, hasRtspGateway } from '../utils/streamConfig'
 
 const route = useRoute()

@@ -24,7 +24,7 @@ import type {
   DeviceAlarm,
   TopologyNode,
   TopologyEdge
-} from '@pages/device/src/types/device'
+} from '../types/device'
 
 /** 设备模块 Http 客户端（baseUrl 由配置 httpConfig.moduleBaseUrl.device 决定） */
 /**
@@ -109,7 +109,7 @@ export const deviceApi = {
   // ==================== 组织 ====================
   syncOrg: () => http.post("/org/sync").then(unwrap),
   getOrgTree: (vendor?: string) =>
-    http.get("/org/tree").query({ vendor }).then(unwrap) as Promise<import('@pages/device/src/types/device').OrgNode[]>,
+    http.get("/org/tree").query({ vendor }).then(unwrap) as Promise<import('../types/device').OrgNode[]>,
 
   // ==================== Excel 导出 ====================
   /**
@@ -280,7 +280,7 @@ export const deviceApi = {
 
   // ==================== 设备分组 ====================
   /** 分组树（含每个分组的直接设备数） */
-  groupTree: () => http.get("/group/tree").then(unwrap) as Promise<import('@pages/device/src/types/device').DeviceGroupNode[]>,
+  groupTree: () => http.get("/group/tree").then(unwrap) as Promise<import('../types/device').DeviceGroupNode[]>,
   createGroup: (req: Record<string, any>) =>
     http.post("/group").data(req).then(unwrap),
   updateGroup: (groupId: string, req: Record<string, any>) =>

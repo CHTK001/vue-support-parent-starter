@@ -53,7 +53,7 @@ import { computed, ref, watch } from 'vue'
 import ReButton from '@repo/ui/re-button'
 import ReIcon from '@repo/ui/re-icon'
 import ReDialog from '@repo/ui/re-dialog'
-import type { DeviceTagOption } from '@pages/device/src/types/device'
+import type { DeviceTagOption } from '../types/device'
 
 const props = defineProps<{
   /** 弹窗显隐 */

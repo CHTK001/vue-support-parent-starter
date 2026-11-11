@@ -60,7 +60,7 @@
  */
 import { computed, nextTick, ref, watch } from 'vue'
 import type { ElSelect, ElTree } from 'element-plus'
-import type { OrgNode } from '@pages/device/src/types/device'
+import type { OrgNode } from '../types/device'
 
 const props = withDefaults(
   defineProps<{

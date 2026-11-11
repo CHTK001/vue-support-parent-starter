@@ -151,12 +151,12 @@ import ReButton from '@repo/ui/re-button'
 import ReIcon from '@repo/ui/re-icon'
 import ReInput from '@repo/ui/re-input'
 import ReScrollbar from '@repo/ui/re-scrollbar'
-import ReVideo from '@pages/device/src/components/ReVideo.vue'
-import { RTSP_GATEWAY } from '@pages/device/src/utils/streamConfig'
-import { getCategoryIcon } from '@pages/device/src/utils/deviceCategory'
-import { isPlayable } from '@pages/device/src/utils/deviceCapability'
-import { deviceApi } from '@pages/device/src/api/deviceApi'
-import type { DeviceInfo, DeviceVendorDescriptor } from '@pages/device/src/types/device'
+import ReVideo from '../components/ReVideo.vue'
+import { RTSP_GATEWAY } from '../utils/streamConfig'
+import { getCategoryIcon } from '../utils/deviceCategory'
+import { isPlayable } from '../utils/deviceCapability'
+import { deviceApi } from '../api/deviceApi'
+import type { DeviceInfo, DeviceVendorDescriptor } from '../types/device'
 
 const props = defineProps<{
   device: DeviceInfo | null

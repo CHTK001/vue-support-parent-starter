@@ -7,7 +7,7 @@
  * @since 4.0.0.42
  */
 
-import type { DeviceInfo, DeviceStatus, OrgNode } from '@pages/device/src/types/device'
+import type { DeviceInfo, DeviceStatus, OrgNode } from '../types/device'
 
 /**
  * 解析后端时间（兼容 `yyyy-MM-dd HH:mm:ss` 与 ISO）

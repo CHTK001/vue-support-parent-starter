@@ -36,8 +36,8 @@
  * @since 4.0.0.42
  */
 import ReDialog from '@repo/ui/re-dialog'
-import ReDevicePlayPanel from '@pages/device/src/components/ReDevicePlayPanel.vue'
-import type { DeviceInfo, DeviceVendorDescriptor } from '@pages/device/src/types/device'
+import ReDevicePlayPanel from '../components/ReDevicePlayPanel.vue'
+import type { DeviceInfo, DeviceVendorDescriptor } from '../types/device'
 
 defineProps<{
   /** 台账里的全部设备（可播放的才会进入画面源） */
