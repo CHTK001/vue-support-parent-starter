@@ -284,6 +284,8 @@ const PROVISION_POLL_INTERVAL = 1500;
 const PROVISION_POLL_MAX = 400;
 /** 认为套接字仍有进度心跳的时间窗：超过这个时间没有帧就不再信任 isConnected */
 const PROVISION_SOCKET_ALIVE_MS = 120_000;
+/** 任务号返回前最多缓存多少份他人/并发任务的进度帧 */
+const PROVISION_PENDING_MAX = 32;
 
 const provisionVisible = ref(false);
 const provisionSnapshot = ref<ProgressSnapshot | null>(null);
@@ -526,6 +528,12 @@ async function startProvision(payload: SysTenant) {
             return;
           }
           // 任务号还没回来：按 taskId 缓存，等 start 响应到了再挑属于自己的那一份
+          if (provisionPendingFrames.size >= PROVISION_PENDING_MAX) {
+            const oldest = provisionPendingFrames.keys().next().value;
+            if (oldest) {
+              provisionPendingFrames.delete(oldest);
+            }
+          }
           provisionPendingFrames.set(frameTaskId, frame);
         }) ?? null;
     }

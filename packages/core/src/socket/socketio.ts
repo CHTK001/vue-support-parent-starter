@@ -121,9 +121,9 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
       //
       // 传输限制（务必知情）：extraHeaders 只在 **polling** 传输的 HTTP 握手里以
       // x-oauth-token 头发送；纯 websocket 传输下浏览器 WebSocket 握手不允许自定义头，
-      // 该头不发送。当前 socket 服务端不校验 token（无 AuthorizationListener，连接即收），
-      // 故不发送也不影响连接；若将来后端启用了 socket 鉴权，必须保留 polling 作为初始
-      // 传输（代码默认 ["polling","websocket"] 正是为此，只有 app.yaml 强制 websocket-only）。
+      // 该头不发送。服务端现已启用 SocketAuthFactory 握手鉴权，因此必须保留 polling
+      // 作为初始传输（代码默认 ["polling","websocket"] 正是为此）；若部署强制
+      // websocket-only，需要改用查询参数携带令牌，否则连接会被拒绝。
       extraHeaders: {
         "x-oauth-token": token || "",
       },
