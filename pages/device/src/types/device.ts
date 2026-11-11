@@ -103,6 +103,18 @@ export interface DeviceIndexItem {
   deviceInfoInstalledAt?: string
 }
 
+/** 设备环境指标最新快照 */
+export interface DeviceMetric {
+  deviceMetricId: string
+  deviceInfoId: string
+  deviceMetricKey: string
+  deviceMetricName: string
+  deviceMetricValue: string
+  deviceMetricUnit?: string
+  deviceMetricDataTime?: string
+  deviceMetricCollectedAt?: string
+}
+
 /** 标签字典行（显示名 + 颜色） */
 export interface DeviceTagOption {
   value: string
@@ -172,6 +184,7 @@ export type DeviceCapability =
   | 'EVENT'
   | 'ACCESS'
   | 'ORG'
+  | 'METRIC'
   | 'PARKING'
 
 /** 凭据字段描述 */
@@ -352,6 +365,10 @@ export interface ProviderCredential {
   deviceCredentialOrgSyncEnabled?: boolean
   /** 组织自动同步间隔（秒） */
   deviceCredentialOrgSyncInterval?: number
+  /** 环境指标采集开关：气象/传感器设备是否由时间轮自动采集（默认关闭） */
+  deviceCredentialMetricCollectEnabled?: boolean
+  /** 环境指标采集间隔（秒） */
+  deviceCredentialMetricCollectInterval?: number
   /** 最近一次连通性探测时间（单条测试 / 全部检测写入） */
   deviceCredentialLastTestAt?: string
   /** 最近一次连通性探测结果：true 成功、false 失败、null/undefined 未检测 */

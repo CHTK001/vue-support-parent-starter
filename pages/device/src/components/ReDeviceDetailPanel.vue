@@ -99,6 +99,10 @@
           <ReMap :devices="mapDevices" @select="onMapSelect" />
         </el-tab-pane>
 
+        <el-tab-pane v-if="tabKeys.includes('metrics')" label="指标" name="metrics">
+          <ReDeviceMetricPanel :device-id="device.deviceInfoId" />
+        </el-tab-pane>
+
         <el-tab-pane label="通道" name="channel">
           <ReChannelManager :device-id="device.deviceInfoId" />
         </el-tab-pane>
@@ -290,6 +294,7 @@ import ReEventPanel from '../components/ReEventPanel.vue'
 import ReTimeline from '../components/ReTimeline.vue'
 import ReMap from '../components/ReMap.vue'
 import ReChannelManager from '../components/ReChannelManager.vue'
+import ReDeviceMetricPanel from '../components/ReDeviceMetricPanel.vue'
 import DeviceStatusPulse from '../components/DeviceStatusPulse.vue'
 import { RTSP_GATEWAY } from '../utils/streamConfig'
 import { deviceApi } from '../api/deviceApi'

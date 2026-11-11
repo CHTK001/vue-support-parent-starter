@@ -698,7 +698,7 @@ import type {
 
 const router = useRouter()
 
-/** 能力固定顺序：点阵的列位与 tooltip 文案都按它来 */
+/** 能力固定顺序：点阵的列位与 tooltip 文案都按它来；共 9 位 */
 const CAP_ORDER: DeviceCapability[] = [
   'DEVICE',
   'CHANNEL',
@@ -707,6 +707,7 @@ const CAP_ORDER: DeviceCapability[] = [
   'EVENT',
   'ACCESS',
   'ORG',
+  'METRIC',
   'PARKING'
 ]
 
@@ -773,12 +774,14 @@ const form = reactive<FormPayload>({
   deviceCredentialDeviceSyncInterval: 300,
   deviceCredentialOrgSyncEnabled: false,
   deviceCredentialOrgSyncInterval: 600,
+  deviceCredentialMetricCollectEnabled: false,
+  deviceCredentialMetricCollectInterval: 60,
   deviceCredentialRemark: ''
 })
 
 /* ==================== 能力（第 3 段） ==================== */
 /** 能力行：开关绑定的表单字段 + 依托的厂商能力位 + 任务名前缀 */
-type CapKey = 'offline' | 'event' | 'deviceSync' | 'orgSync' | 'access'
+type CapKey = 'offline' | 'event' | 'deviceSync' | 'orgSync' | 'metric' | 'access'
 
 interface CapRow {
   key: CapKey
@@ -838,6 +841,17 @@ const CAP_ROWS: CapRow[] = [
     defaultInterval: 600
   },
   {
+    key: 'metric',
+    name: '环境指标采集',
+    desc: '按间隔读取气象站/传感器节点，更新最新指标快照。',
+    capability: 'METRIC',
+    code: 'METRIC',
+    enabledKey: 'deviceCredentialMetricCollectEnabled',
+    intervalKey: 'deviceCredentialMetricCollectInterval',
+    taskPrefix: 'metricCollect',
+    defaultInterval: 60
+  },
+  {
     key: 'access',
     name: '门禁记录抽取',
     desc: '按时间窗抽取门禁出入记录，补进门禁记录台账。',
@@ -850,7 +864,8 @@ const CAP_ROWS: CapRow[] = [
 const CAP_RECIPES: Array<{ key: string; name: string; desc: string; caps: CapKey[] }> = [
   { key: 'basic', name: '基础台账', desc: '只把设备接进来，并保持在线状态。', caps: ['offline', 'deviceSync'] },
   { key: 'org', name: '台账 + 组织', desc: '设备与组织一起同步，人员挂到组织下。', caps: ['offline', 'deviceSync', 'orgSync'] },
-  { key: 'full', name: '全量巡检', desc: '设备、组织、事件一起跑，适合值守场景。', caps: ['offline', 'event', 'deviceSync', 'orgSync'] }
+  { key: 'full', name: '全量巡检', desc: '设备、组织、事件一起跑，适合值守场景。', caps: ['offline', 'event', 'deviceSync', 'orgSync'] },
+  { key: 'climate', name: '气象采集', desc: '气象/传感器设备按间隔采集环境指标。', caps: ['offline', 'deviceSync', 'metric'] }
 ]
 
 const DIAL_CIRC = 2 * Math.PI * 40
@@ -1051,6 +1066,7 @@ function vendorEffects(vendor: string): Array<{ key: string; label: string; on: 
   }
   if (caps.includes('EVENT')) push('event', '事件轮询', 'eventPoll')
   if (caps.includes('ORG')) push('org', '组织同步', 'orgSync')
+  if (caps.includes('METRIC')) push('metric', '环境指标', 'metricCollect')
   return out
 }
 
@@ -1277,6 +1293,7 @@ function capabilityLabel(cap: DeviceCapability): string {
     EVENT: '事件',
     ACCESS: '门禁',
     ORG: '组织',
+    METRIC: '指标',
     PARKING: '停车'
   }
   return labels[cap] || cap
@@ -1288,7 +1305,7 @@ function monogram(name?: string): string {
   return text ? text.slice(0, 1) : '?'
 }
 
-/** 8 点阵的悬浮清单：支持 / 不支持都写清楚，避免只靠颜色猜 */
+/** 9 点阵的悬浮清单：支持 / 不支持都写清楚，避免只靠颜色猜 */
 function capabilityTitle(vendor: DeviceVendorDescriptor): string {
   return CAP_ORDER.map((cap) => `${capabilityLabel(cap)}${vendor.capabilities.includes(cap) ? ' ✓' : ' ✗'}`).join(
     ' · '
@@ -1371,6 +1388,8 @@ function resetForm() {
   form.deviceCredentialDeviceSyncInterval = 300
   form.deviceCredentialOrgSyncEnabled = false
   form.deviceCredentialOrgSyncInterval = 600
+  form.deviceCredentialMetricCollectEnabled = false
+  form.deviceCredentialMetricCollectInterval = 60
   form.deviceCredentialRemark = ''
 }
 
@@ -1444,6 +1463,8 @@ function openEdit(row: ProviderCredential) {
   form.deviceCredentialDeviceSyncInterval = row.deviceCredentialDeviceSyncInterval ?? 300
   form.deviceCredentialOrgSyncEnabled = !!row.deviceCredentialOrgSyncEnabled
   form.deviceCredentialOrgSyncInterval = row.deviceCredentialOrgSyncInterval ?? 600
+  form.deviceCredentialMetricCollectEnabled = !!row.deviceCredentialMetricCollectEnabled
+  form.deviceCredentialMetricCollectInterval = row.deviceCredentialMetricCollectInterval ?? 60
   form.deviceCredentialRemark = row.deviceCredentialRemark || ''
   dialogVisible.value = true
 }
@@ -1502,6 +1523,8 @@ async function submit() {
       deviceCredentialDeviceSyncInterval: form.deviceCredentialDeviceSyncInterval,
       deviceCredentialOrgSyncEnabled: !!form.deviceCredentialOrgSyncEnabled,
       deviceCredentialOrgSyncInterval: form.deviceCredentialOrgSyncInterval,
+      deviceCredentialMetricCollectEnabled: !!form.deviceCredentialMetricCollectEnabled,
+      deviceCredentialMetricCollectInterval: form.deviceCredentialMetricCollectInterval,
       deviceCredentialRemark: String(form.deviceCredentialRemark || '').trim() || null
     }
     /** 描述符驱动的字段：非空即回填，未提交的字段不加 key（不传 null） */
@@ -1888,11 +1911,11 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-secondary);
 }
 
-/* 能力点阵：8 格，亮 = 支持；hover 有完整清单 */
+/* 能力点阵：9 格，亮 = 支持；hover 有完整清单 */
 .dpv-chip__caps {
   display: grid;
   flex: none;
-  grid-template-columns: repeat(4, 4px);
+  grid-template-columns: repeat(5, 4px);
   gap: 2px;
   margin-left: 2px;
 }

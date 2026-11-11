@@ -101,6 +101,7 @@
  *   - offlineDetect_{cred} 该凭据维度的在离线检测
  *   - deviceSync_{cred}    该凭据维度的设备自动同步
  *   - orgSync_{cred}       该凭据维度的组织自动同步
+ *   - metricCollect_{cred} 该凭据维度的环境指标采集
  *
  * 任务间隔优先级：凭据高级配置（>0）→ 任务状态行（任务页改过）→ 默认 30 秒；
  * 凭据级开关关闭或凭据整体停用时，该凭据的任务不注册任何时间轮 tick，也不会出现在任务列表。
@@ -147,6 +148,7 @@ const TASK_PREFIX_LABELS: Record<string, string> = {
   offlineDetect_: '在离线检测',
   deviceSync_: '设备自动同步',
   orgSync_: '组织自动同步',
+  metricCollect_: '环境指标采集',
 }
 
 /** 任务名 → 展示名（全局任务查表，凭据级任务按前缀匹配） */

@@ -267,6 +267,7 @@
  *   <li>{@code offlineDetect_{credentialId}} —— 在离线检测</li>
  *   <li>{@code deviceSync_{credentialId}} —— 设备自动同步</li>
  *   <li>{@code orgSync_{credentialId}} —— 组织自动同步</li>
+ *   <li>{@code metricCollect_{credentialId}} —— 环境指标采集</li>
  *   <li>其余为全局任务（在离线检测 / 事件轮询 / 厂商同步 / 门禁记录抽取）</li>
  * </ul>
  *
@@ -334,7 +335,8 @@ const PREFIX_LABELS: Array<[string, string]> = [
   ['offlineDetect_', '在离线检测'],
   ['eventPoll_', '事件轮询'],
   ['deviceSync_', '设备自动同步'],
-  ['orgSync_', '组织自动同步']
+  ['orgSync_', '组织自动同步'],
+  ['metricCollect_', '环境指标采集']
 ]
 
 /** 仍由时间轮统一调度的任务 → 展示名 */

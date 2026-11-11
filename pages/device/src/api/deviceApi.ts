@@ -22,6 +22,7 @@ import type {
   SyncResult,
   CredentialHealthResult,
   DeviceAlarm,
+  DeviceMetric,
   TopologyNode,
   TopologyEdge
 } from '../types/device'
@@ -105,6 +106,14 @@ export const deviceApi = {
   toggleStatus: (id: string, status: 'normal' | 'disabled') =>
     http.put(`/${id}/status`).query({ status }).then(unwrap) as Promise<DeviceInfo>,
   testConnection: (info: Record<string, any>) => http.post("/test-connection").data(info).then(unwrap) as Promise<boolean>,
+
+  // ==================== 环境指标 ====================
+  /** 最新指标快照（气象站/温湿度传感器） */
+  listMetrics: (deviceId: string) =>
+    http.get(`/metrics/${deviceId}`).then(unwrap) as Promise<DeviceMetric[]>,
+  /** 立即采集一次，返回写入行数 */
+  collectMetrics: (deviceId: string) =>
+    http.post(`/metrics/${deviceId}/collect`).then(unwrap) as Promise<number>,
 
   // ==================== 组织 ====================
   syncOrg: () => http.post("/org/sync").then(unwrap),
