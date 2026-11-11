@@ -312,6 +312,9 @@ export const deviceApi = {
   updatePerson: (id: string, person: Record<string, any>) =>
     http.put(`/person/${id}`).data(person).then(unwrap),
   deletePerson: (id: string) => http.delete(`/person/${id}`).then(unwrap),
+  updatePersonFace: (id: string, imageBase64: string) =>
+    http.post(`/person/${id}/face`).data({ imageBase64 }).then(unwrap),
+  deletePersonFace: (id: string) => http.delete(`/person/${id}/face`).then(unwrap),
 
   // ==================== 车辆档案 ====================
   pageVehicles: (params: Record<string, unknown>) =>

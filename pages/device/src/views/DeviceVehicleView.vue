@@ -24,13 +24,16 @@
           <el-table-column prop="devicePersonTitle" label="职称" width="120" />
           <el-table-column prop="devicePersonVendor" label="厂商" width="110" />
           <el-table-column prop="devicePersonOrgId" label="组织" min-width="140" />
-          <el-table-column label="操作" width="150" fixed="right">
+          <el-table-column label="操作" width="260" fixed="right">
             <template #default="{ row }">
               <el-button link type="primary" @click="openPerson(row)">编辑</el-button>
+              <el-button link type="success" @click="pickFace(row)">人脸</el-button>
+              <el-button link type="warning" @click="removeFace(row)">删人脸</el-button>
               <el-button link type="danger" @click="removePerson(row)">删除</el-button>
             </template>
           </el-table-column>
         </el-table>
+        <input ref="faceInput" type="file" accept="image/*" style="display: none" @change="onFaceSelected" />
       </el-tab-pane>
 
       <el-tab-pane label="车辆档案" name="vehicle">
@@ -245,6 +248,8 @@ const passes = ref<Record<string, any>[]>([])
 
 const vehicleKeyword = ref('')
 const personKeyword = ref('')
+const faceInput = ref<HTMLInputElement>()
+let faceTarget: Record<string, any> | null = null
 const gateDeviceId = ref('')
 const gateDirection = ref('')
 const passGateId = ref('')
@@ -364,6 +369,46 @@ async function savePerson() {
     ElMessage.error(e?.message ?? '保存失败')
   } finally {
     saving.value = false
+  }
+}
+
+function pickFace(row: Record<string, any>) {
+  faceTarget = row
+  faceInput.value?.click()
+}
+
+async function onFaceSelected(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file || !faceTarget) return
+  try {
+    const base64 = await readBase64(file)
+    await deviceApi.updatePersonFace(faceTarget.devicePersonId, base64)
+    ElMessage.success('人脸已提交')
+  } catch (e: any) {
+    ElMessage.error(e?.message ?? '人脸提交失败')
+  } finally {
+    input.value = ''
+    faceTarget = null
+  }
+}
+
+function readBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result ?? '').split(',')[1] ?? '')
+    reader.onerror = () => reject(reader.error ?? new Error('读取图片失败'))
+    reader.readAsDataURL(file)
+  })
+}
+
+async function removeFace(row: Record<string, any>) {
+  await ElMessageBox.confirm(`删除人员「${row.devicePersonName}」的人脸？`, '确认', { type: 'warning' })
+  try {
+    await deviceApi.deletePersonFace(row.devicePersonId)
+    ElMessage.success('人脸已删除')
+  } catch (e: any) {
+    ElMessage.error(e?.message ?? '删除人脸失败')
   }
 }
 
