@@ -8,7 +8,7 @@
 import { getGlobalSocketService, message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
 import { ElMessageBox } from "element-plus";
-import { pageForTenant, updateTenant, deleteTenant, updateTenantStatus, resetTenantPassword, getTenant, listForTenant, tenantProvisionCapabilities, startTenantProvision, cancelTenantProvision, tenantProvisionStatus, getTenantEndpoint, tenantDatasourceOptions } from "../api/systemApi";
+import { pageForTenant, updateTenant, deleteTenant, dropTenantDatabase, updateTenantStatus, resetTenantPassword, getTenant, listForTenant, tenantProvisionCapabilities, startTenantProvision, cancelTenantProvision, tenantProvisionStatus, getTenantEndpoint, tenantDatasourceOptions } from "../api/systemApi";
 import type { SysTenant, TenantDatasourceOption, TenantEndpointInfo } from "../api/types";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 import type { ProgressSnapshot, ProgressStep } from "@repo/ui/re-progress-dialog";
@@ -52,6 +52,7 @@ async function loadTenants({ page, pageSize, params }: ReTableLoadParams): Promi
 const tableRef = ref();
 const statusLoading = ref<string>("");
 const deleteLoading = ref<string>("");
+const dropDbLoading = ref<string>("");
 const resetPasswordLoading = ref<string>("");
 
 function handleReset() {
@@ -529,10 +530,11 @@ async function handleDelete(row: Record<string, unknown>) {
   const tenant = row as unknown as SysTenant;
   if (deleteLoading.value) return;
   try {
-    await ElMessageBox.confirm(`确认删除租户「${tenant.sysTenantName}」？`, "提示", {
-      type: "warning",
-      confirmButtonText: "确定删除",
-    });
+    await ElMessageBox.confirm(
+      `确认删除租户「${tenant.sysTenantName}」？仅逻辑删除，独立数据库与库账号会保留。`,
+      "提示",
+      { type: "warning", confirmButtonText: "确定删除" },
+    );
   } catch {
     return;
   }
@@ -548,6 +550,59 @@ async function handleDelete(row: Record<string, unknown>) {
   }
 }
 
+/**
+ * 物理删除租户独立数据库。
+ *
+ * 与「删除租户」分开：删除租户只是逻辑删除，库保留；这里是唯一会 DROP DATABASE 的入口，
+ * 因此做三次确认，最后一步要求输入租户编码，避免误点。
+ */
+async function handleDropDatabase(row: Record<string, unknown>) {
+  const tenant = row as unknown as SysTenant;
+  if (!tenant.sysTenantDbname) {
+    message.warning("该租户未登记独立数据库");
+    return;
+  }
+  if (dropDbLoading.value) return;
+  let confirmCode = "";
+  try {
+    await ElMessageBox.confirm(
+      `即将删除租户「${tenant.sysTenantName}」的独立数据库「${tenant.sysTenantDbname}」。此操作不可撤销，是否继续？`,
+      "删除数据库（1/3）",
+      { type: "warning", confirmButtonText: "继续" },
+    );
+    await ElMessageBox.confirm(
+      "第二步确认：库内所有表与数据都会永久丢失，且无法从平台恢复。",
+      "删除数据库（2/3）",
+      { type: "warning", confirmButtonText: "继续" },
+    );
+    const result = await ElMessageBox.prompt(
+      `最后一步：请输入租户编码「${tenant.sysTenantCode}」以确认删除。`,
+      "删除数据库（3/3）",
+      {
+        type: "error",
+        confirmButtonText: "永久删除",
+        inputPlaceholder: tenant.sysTenantCode,
+        inputValidator: (value: string) =>
+          String(value ?? "").trim().toLowerCase() === String(tenant.sysTenantCode ?? "").toLowerCase()
+          || "租户编码不匹配",
+      },
+    );
+    confirmCode = String(result.value ?? "");
+  } catch {
+    return;
+  }
+  dropDbLoading.value = tenant.sysTenantId!;
+  try {
+    await dropTenantDatabase(tenant.sysTenantId!, confirmCode);
+    message.success("数据库已删除，租户已回落平台共享库");
+    tableRef.value?.reload();
+  } catch (e) {
+    message.error((e as Error)?.message ?? "删除数据库失败");
+  } finally {
+    dropDbLoading.value = "";
+  }
+}
+
 const columns: ReTableColumn[] = [
   { prop: "sysTenantName", label: "租户名称", minWidth: 150 },
   { prop: "sysTenantUsername", label: "租户账号", width: 140 },
@@ -556,7 +611,7 @@ const columns: ReTableColumn[] = [
   { prop: "sysTenantContact", label: "联系人", width: 110 },
   { prop: "sysTenantPhone", label: "手机号", width: 120 },
   { prop: "createTime", label: "创建时间", width: 170 },
-  { prop: "action", label: "操作", width: 300, slot: "action", fixed: "right" },
+  { prop: "action", label: "操作", width: 360, slot: "action", fixed: "right" },
 ];
 
 onMounted(() => {
@@ -619,6 +674,7 @@ onMounted(() => {
         <ReButton layout="square" type="info" icon="Key" tip="重置密码" v-admin :loading="resetPasswordLoading === row.sysTenantId" @click="handleResetPassword(row)" />
         <ReButton layout="square" type="info" icon="Link" tip="服务地址" @click="handleEndpoint(row)" />
         <ReButton layout="square" type="success" icon="Connection" tip="分配服务" v-admin @click="handleBindService(row)" />
+        <ReButton v-if="row.sysTenantDbname" layout="square" type="danger" icon="DeleteFilled" tip="删除数据库" v-admin :loading="dropDbLoading === row.sysTenantId" @click="handleDropDatabase(row)" />
         <ReButton layout="square" type="danger" icon="Delete" tip="删除" v-admin :loading="deleteLoading === row.sysTenantId" @click="handleDelete(row)" />
       </template>
     </ReTable>

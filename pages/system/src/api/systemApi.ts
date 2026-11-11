@@ -736,6 +736,14 @@ export function deleteTenant(sysTenantId: string) {
     .then<ApiResult<boolean>>((r) => r.data);
 }
 
+/** 物理删除租户独立数据库（不可逆，需传租户编码确认） */
+export function dropTenantDatabase(sysTenantId: string, confirmCode: string) {
+  return http()
+    .put("/v2/tenant/drop-database")
+    .query({ sysTenantId, confirmCode })
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
 /** 绑定租户服务（触发菜单重置推送） */
 export function bindTenantService(data: TenantServiceBindRequest) {
   return http()
