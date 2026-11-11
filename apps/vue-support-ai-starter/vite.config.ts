@@ -141,10 +141,11 @@ const EXACT_ASSETS: Record<string, string> = {
 /** 前缀映射：共享 public 目录下的资源（本应用 publicDir 是自己目录，故单独挂载） */
 const PREFIX_ASSETS: Array<[string, string]> = [
   ['/wasm/', path.join(SHARED_PUBLIC_DIR, 'wasm')],
-  // 通用图片（403/404/500 插图、品牌 logo、ruffle 等）只在根 public 维护一份，
-  // 本应用只保留 AI 专属文件（bots / models / providers 的新版本、社区二维码等），
-  // 其余由这里按 URL 回源到共享目录，避免同一批文件在两处各存一份。
-  ['/images/', path.join(SHARED_PUBLIC_DIR, 'images')],
+  // 图片不再在此回源：`/images/**` 的唯一源就是本应用自己的 public/images
+  // （models / providers / bots / 二维码全在里面），由 Vite 的 publicDir 直接服务。
+  // 2026-11-11 去掉 `['/images/', 根 public/images]` 这条映射：此前根目录与 app 目录
+  // 各存一份、同名文件内容还不一致（同一张 provider 图标两个版本），
+  // 谁是权威取决于两个中间件的注册顺序，属于隐患而非功能。
 ]
 
 /**
@@ -181,26 +182,6 @@ function uiComponentAliases(): Record<string, string> {
   return alias
 }
 
-/**
- * 递归复制目录/文件，**目标已存在时跳过**。
- *
- * <p>只用于 {@code /images/}：根 {@code public/images} 是共享副本，而
- * {@code apps/vue-support-ai-starter/public/images} 下的 provider / model 图标是
- * AI 侧权威版本（两者同名但内容可能不同）。构建时若用共享副本无条件覆盖，
- * 模型管理页会回退到旧图标，故这里只补缺、不覆盖。</p>
- */
-function copyDirSkipExisting(src: string, dest: string): void {
-  if (!fs.statSync(src).isDirectory()) {
-    fs.mkdirSync(path.dirname(dest), { recursive: true })
-    if (!fs.existsSync(dest)) fs.copyFileSync(src, dest)
-    return
-  }
-  fs.mkdirSync(dest, { recursive: true })
-  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
-    copyDirSkipExisting(path.join(src, entry.name), path.join(dest, entry.name))
-  }
-}
-
 function contentType(file: string): string {
   if (file.endsWith('.yaml')) return 'text/yaml; charset=utf-8'
   if (file.endsWith('.js')) return 'text/javascript'
@@ -224,33 +205,16 @@ function resolveSharedAsset(url: string): string | null {
 
 /**
  * 本应用使用独立 vite 配置（未走 createVite 的共享 publicDir），
- * 这里补齐框架 createApp 启动所需的两类共享资源：
+ * 这里补齐框架 createApp 启动所需的共享资源：
  * dev 由中间件按 URL 直接读取工作区文件；build 在 closeBundle 同步进 dist，
- * 保证部署后 `/apps/{appName}/app.yaml`、`/wasm/crypto-wasm.*`、`/images/*` 约定仍然可用。
+ * 保证部署后 `/apps/{appName}/app.yaml`、`/wasm/crypto-wasm.*` 约定仍然可用。
+ * （`/images/**` 不走这里：它是本应用 publicDir 的原生内容。）
  */
-/**
- * 应用自带 public 下的同名文件（存在且是文件时返回绝对路径）。
- *
- * <p>本插件的中间件注册在 Vite 默认静态服务之前，若不加这一层判断，
- * {@code /images/providers/deepseek.svg} 这类「两侧同名但内容不同」的文件会被共享
- * 目录的旧版本抢答，模型管理页回退到旧图标。故 app public 命中时直接 {@code next()}，
- * 交回 Vite 自己的 publicDir 服务。</p>
- */
-function appPublicFile(urlPath: string): string | null {
-  const root = path.join(__dirname, 'public')
-  const target = path.join(root, urlPath.replace(/^\/+/, ''))
-  if (!target.startsWith(root + path.sep)) return null
-  if (!fs.existsSync(target) || !fs.statSync(target).isFile()) return null
-  return target
-}
-
 function frameworkSharedAssets(): PluginOption {
   return {
     name: 'framework-shared-assets',
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
-        const pathname = (req.url ?? '').split('?')[0]
-        if (appPublicFile(pathname)) return next()
         const file = req.url ? resolveSharedAsset(req.url) : null
         if (!file) return next()
         res.setHeader('Content-Type', contentType(file))
@@ -271,11 +235,6 @@ function frameworkSharedAssets(): PluginOption {
         for (const entry of fs.readdirSync(dir)) {
           const source = path.join(dir, entry)
           const dest = path.join(destDir, entry)
-          // /images/：app public 里的同名文件是权威版本，共享副本只补缺
-          if (prefix === '/images/') {
-            copyDirSkipExisting(source, dest)
-            continue
-          }
           // 共享目录可能含子目录（如 wasm/cad 预览资源）：copyFileSync 对目录会抛
           // EPERM，这里统一用递归复制兼容文件与子目录两种形态。
           fs.cpSync(source, dest, { recursive: true })

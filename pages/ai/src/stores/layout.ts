@@ -14,7 +14,15 @@ export const useLayoutStore = defineStore('layout', () => {
   const sidebarVisible = useStorage('sidebarVisible', true)
 
   // 工作目录可见性（持久化）
-  const workspaceVisible = useStorage('workspaceVisible', true)
+  // 需求 2026-11-11：默认不开启。老浏览器 localStorage 里已存过 true，
+  // 只改 useStorage 默认值不会生效，故做一次性迁移：用独立标记在首次加载
+  // 把旧值重置为 false，之后用户自己的开合照常持久化，不再被这次迁移覆盖。
+  const workspaceVisible = useStorage('workspaceVisible', false)
+  const WORKSPACE_DEFAULT_OFF_KEY = 'workspaceVisibleDefaultOffV1'
+  if (typeof localStorage !== 'undefined' && !localStorage.getItem(WORKSPACE_DEFAULT_OFF_KEY)) {
+    workspaceVisible.value = false
+    localStorage.setItem(WORKSPACE_DEFAULT_OFF_KEY, '1')
+  }
 
   // 工作目录分割比例（持久化，默认 pane1=75%, pane2=25%）
   const workspaceSplitSize = useStorage('workspaceSplitSize', 75)

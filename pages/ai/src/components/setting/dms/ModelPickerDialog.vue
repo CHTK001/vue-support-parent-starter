@@ -14,8 +14,9 @@
           <div v-for="model in provider.models" :key="model.id" class="dms-mp-row"
             tabindex="0" @click="pick(model.id)" @keydown.enter="pick(model.id)">
             <div class="dms-mp-row-left">
-              <img v-if="modelLogo(model)" :src="modelLogo(model)" alt=""
-                class="w-4 h-4 object-contain shrink-0" />
+              <!-- 图标回退链与模型管理卡片一致：模型 logo → 上游通道 → 供应商 logo。
+                   此前只按模型名取图，免费渠道里绝大多数行取不到，整列都是空白。 -->
+              <ModelRowLogo :model="model" :provider="providerOf(model)" :size="28" />
               <div class="dms-mp-main">
                 <div class="dms-mp-line">
                   <span class="dms-mp-name">{{ model.model }}</span>
@@ -57,6 +58,7 @@ import { CheckCircleFilled } from "@vicons/material"
 import ReDialog from '@repo/ui/re-dialog'
 import ReButton from '@/components/ui/ReButton.vue'
 import ReTag from '@/components/ui/ReTag.vue'
+import ModelRowLogo from '@/components/models/ModelRowLogo.vue'
 
 const props = defineProps<{
   visible: boolean
@@ -65,7 +67,6 @@ const props = defineProps<{
   /** 当前临时选中的模型 id */
   selectedId?: string | null
   emptyText?: string
-  logoFor?: (model: any) => string | undefined | null
 }>()
 
 const emit = defineEmits<{
@@ -85,7 +86,9 @@ const filteredProviders = computed(() => {
     .filter((p) => p.models.length > 0)
 })
 
-const modelLogo = (model: any): string | undefined => (props.logoFor ? props.logoFor(model) ?? undefined : undefined)
+/** 行所属供应商（回退图标用；按 providerId 在分组里找，找不到就用行的 providerName 兜底） */
+const providerOf = (model: any) =>
+  props.providers.find((p) => p.id === model?.providerId) || null
 
 // 输入 / 输出种类的中文标签（与模型管理卡片 ModelInfoCard 的 KIND_LABELS 一致）
 const KIND_LABELS: Record<string, string> = {

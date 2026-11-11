@@ -771,7 +771,7 @@ onMounted(() => {
           <ReInput layout="modern" v-model="form.sysTenantSqlPassword" type="password" placeholder="明文传入，落库为密文" maxlength="255" show-word-limit />
         </el-form-item>
         <div v-if="useSharedInstance" class="tenant-ds-hint">
-          地址、端口与账号取自所选实例，这里只需填写该租户要用的库名。多个租户共用同一实例时，务必各自使用不同的库名。
+          地址与端口取自所选实例；选「平台自身实例」时平台会自动创建 t_&lt;租户编码&gt; 数据库账号并授权。多个租户共用同一实例时，务必各自使用不同的库名。
         </div>
         <el-form-item label="备注">
           <ReInput layout="modern" v-model="form.sysTenantRemark" type="textarea" :rows="2" maxlength="255" show-word-limit />

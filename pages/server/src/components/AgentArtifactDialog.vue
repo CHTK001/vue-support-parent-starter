@@ -55,7 +55,7 @@
             下载并投放到目标主机
           </ReButton>
           <ReButton :disabled="submitting" @click="visible = false">取消</ReButton>
-          <span class="aad-hint">同名文件会被覆盖</span>
+          <span class="aad-hint" v-if="!result">同名文件会被覆盖</span>
         </div>
 
         <div v-if="result" class="aad-result">
@@ -65,12 +65,11 @@
           </div>
           <div class="aad-result-path">{{ result.remotePath }}</div>
           <div class="aad-result-meta">
-            <span v-if="result.directory">整目录投放</span>
-            <span v-else>单文件投放</span>
+            <span>{{ result.directory ? '整目录投放' : '单文件投放' }}</span>
             <span>·</span>
             <span>来源 {{ result.source === 'local' ? '平台本机' : '远程下载' }}</span>
             <span>·</span>
-            <span>{{ result.hostName }}</span>
+            <span>目标主机 {{ result.hostName }}</span>
           </div>
           <div class="aad-result-local">本地缓存：{{ result.localPath }}</div>
           <div class="aad-result-actions">
@@ -342,6 +341,13 @@ function useResult() {
   color: var(--text-3, #9ca3af);
   font-size: 12px;
   word-break: break-all;
+}
+
+.aad-result-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
 }
 
 .aad-result-actions {

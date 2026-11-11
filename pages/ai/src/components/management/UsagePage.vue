@@ -219,6 +219,7 @@
             :stripe="false"
             size="small"
             :pagination="false"
+            :layout-table="{ fill: true }"
             empty-text="暂无模型用量"
           >
             <template #col-name="{ row }">
@@ -321,6 +322,7 @@
             :stripe="false"
             size="small"
             :pagination="false"
+            :layout-table="{ fill: true }"
             empty-text="暂无分组用量"
           >
             <template #col-name="{ row }">
@@ -571,43 +573,44 @@ const treemapOption = computed<EChartsOption>(() => {
         bottom: 0,
         width: '100%',
         height: '100%',
-        visibleMin: 10,
+        // 只画 Top 8 + 其余聚成的「其他」：块少了名字才看得清，不和空块挤在一起
         itemStyle: {
           borderColor: 'rgba(255,255,255,0.22)',
           borderWidth: 1,
           gapWidth: 2,
-          borderRadius: 6,
+          borderRadius: 8,
         },
+        // 文字清一色深色块：浅底（灰/黄/青）上白字绝对看不清，深底深灰字也压得住
         label: {
           show: true,
+          // rich 块必须用 {n|...} 标记来落样式，换行用 \n 拼接
           formatter: (p: any) => {
-            const pct = total > 0 ? (Number(p.value) / total) * 100 : 0
-            if (pct < 3) return ''
-            return `{n|${p.name}}\n{v|${metricText(Number(p.value))}}`
+            const name = String(p.name)
+            const cut = name.length > 16 ? `${name.slice(0, 15)}…` : name
+            return `{n|${cut}}\n{v|${metricText(p.value)}}`
           },
           rich: {
+            // 块名：最大号、最重，一段号占满
             n: {
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: 600,
-              lineHeight: 18,
-              color: '#fff',
-              textShadowColor: 'rgba(0,0,0,0.28)',
-              textShadowBlur: 4,
-              padding: [2, 2, 0, 2],
+              lineHeight: 19,
+              color: '#1D2129',
+              padding: [7, 9, 2, 9],
             },
+            // 数值：次一号，轻灰，和块名形成阶梯
             v: {
-              fontSize: 11,
-              lineHeight: 15,
-              color: 'rgba(255,255,255,0.9)',
-              textShadowColor: 'rgba(0,0,0,0.28)',
-              textShadowBlur: 4,
+              fontSize: 12,
+              lineHeight: 16,
+              color: '#4A5059',
+              padding: [2, 9, 7, 9],
             },
           },
         },
         upperLabel: { show: false },
-        data: treemapData.value.map((it) => ({
+        data: board.modelBoard.slices.map((it) => ({
           name: it.name,
-          value: it.value,
+          value: Number(it.value.toFixed(4)),
           itemStyle: { color: it.color },
         })),
       },
@@ -1052,8 +1055,8 @@ const derivedReadouts = computed<DerivedReadout[]>(() => {
 }
 
 /* ── 面板 ── */
-/* align-items: start：左侧「模型分布」只剩表格，不再被右侧环形卡拉高留白 */
-.usage-split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+/* 两格等高的网格：表格填满则卡片自然等高，不需要 start 做阶梯 */
+.usage-split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .usage-split--7-5 { grid-template-columns: minmax(0, 1.34fr) minmax(0, 1fr); }
 .usage-panel { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
 .usage-panel__head {

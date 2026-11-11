@@ -39,7 +39,7 @@
       :loader="loader"
       :params="params"
       :toolbar="false"
-      :layout-table="{ minHeight: 0 }"
+      :layout-table="layoutTable"
       @update:page="onPageChange"
       @update:page-size="onSizeChange"
       @selection-change="$emit('selection-change', $event)"
@@ -133,6 +133,19 @@ const props = defineProps({
   loader: { type: Function as PropType<ReTableLoader | undefined>, default: undefined },
   /** 传给 loader 的附加查询参数 */
   params: { type: Object as PropType<Record<string, unknown>>, default: () => ({}) },
+  /**
+   * 表格布局参数（透传 {@code layout-table}）。
+   *
+   * <p>默认空对象，把「表格是否吃满父容器」的判定权交给调用方。
+   * <b>不能在这里写死</b>（早先写成 {@code { minHeight: 0 }}）会命中完整版 ReTable
+   * 的 {@code hasMinHeight} 分支，让 {@code fill} 开关失效 —— 模型分布表
+   * 明明传了 {@code fill: true} 却始终撑不满面板高度就是这个名字Attrib没传到。</p>
+   *
+   * <p>用法与 {@code layout-table} 一致：{ {@code fill}, {@code minHeight},
+   * {@code height}, {@code maxHeight}, {@code showHeader} ... }，
+   * 例如 {@code :layout-table="{ fill: true }"} 让表格吃满可用高度。</p>
+   */
+  layoutTable: { type: Object as PropType<Record<string, any>>, default: () => ({}) },
 })
 
 const emit = defineEmits([

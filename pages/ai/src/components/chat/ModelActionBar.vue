@@ -37,6 +37,16 @@
           <span v-else class="mab-hollow"></span>
         </span>
 
+        <!-- 模型品牌图标：与模型选择面板同一口径（ProviderLogo + 品牌 id 解析）。
+             用户报障「xxx正在回答」里模型名前面要有图标；各阶段都显示，不只 streaming。 -->
+        <ProviderLogo v-if="props.modelName" class="mab-model-logo" :pid="modelBrand" :name="props.modelName" :size="14" />
+        <!-- 阶段徽标：后台流式事件（think / tool_call / search / confirmation / retry /
+             compression_start / finish）归一成 kind 后，用形状区分「在做什么」 -->
+        <svg class="mab-stage-icon" :class="`is-${props.kind}`" viewBox="0 0 16 16" fill="none"
+          stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path :d="stageIconPath" />
+        </svg>
+
         <span class="mab-head__text">{{ pillText }}</span>
         <span v-if="kind === 'executing' && progress" class="mab-head__badge">{{ progress }}</span>
 
@@ -105,6 +115,8 @@ import { useI18n } from 'vue-i18n';
 import { ElIcon } from 'element-plus';
 import { ArrowDown12Filled, Info12Filled } from '@vicons/fluent';
 import { apiService } from '@/services/ApiService';
+import ProviderLogo from '@/components/models/ProviderLogo.vue';
+import { detectModelProvider } from '@/utils/modelUtils';
 import type { SessionNextTaskItem } from '@/services/modules/session-next-task.api';
 
 const { t } = useI18n();
@@ -189,6 +201,24 @@ const visible = computed(() => props.kind !== null);
  *   ask   等你确认（信息图标，需要你动手）
  *   hollow 空闲（空心点，最弱）
  */
+const modelBrand = computed(() => detectModelProvider(props.modelName || ''));
+
+/**
+ * 阶段图标路径：与后端 SSE 的事件类型一一对应（见 useStreamResponse.ts 的
+ * response.type 分支）。前台把整条流归一成 kind，这里只负责把 kind 画出来，
+ * 不再自己判断「现在算不算在回答」—— 那属于会话状态一侧的判据。
+ */
+const STAGE_PATHS: Record<string, string> = {
+  executing: 'M2.5 4.5h4l2 3.5-2 3.5h-4 M9 11.5h4.5 M11.5 9.5v4',
+  thinking: 'M5.5 6.2a4.5 4.5 0 0 1 8.2 2.3c0 2-1.8 2.7-1.8 4.2H6.2c0-1.5-1.8-2.2-1.8-4.2 0-.9.4-1.7 1.1-2.3 M6.4 14.4h3.2',
+  streaming: 'M2.5 8h3l1.6-3.6 2 7.2L10.7 8h2.8',
+  waiting: 'M8 2.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11 M8 5.2v3.3l2.2 1.3',
+  retrying: 'M13 6.2A5.4 5.4 0 1 0 13.4 10 M13 2.8v3.5H9.5',
+  idle: 'M3 8.5h10 M3 5.5h10 M3 11.5h6',
+};
+
+const stageIconPath = computed(() => STAGE_PATHS[String(props.kind)] || STAGE_PATHS.idle);
+
 const markKind = computed(() => {
   if (props.kind === 'executing') return toolWaiting.value ? 'wait' : 'spin';
   switch (props.kind) {
@@ -456,6 +486,28 @@ const pillText = computed(() => {
   color: var(--text-tertiary, var(--el-text-color-placeholder));
   font-variant-numeric: tabular-nums;
 }
+
+/* ── 模型品牌图标 / 阶段图标（报障 3 / 3.1） ──
+    品牌图标与状态点分开：状态点表达「在动还是等」，品牌图标表达「哪个模型」，
+    阶段图标表达「后台当前走到哪一步」，三者语义不重叠。 */
+.mab-model-logo {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  line-height: 14px;
+}
+
+.mab-stage-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--el-color-primary);
+}
+
+.mab-stage-icon.is-thinking { color: var(--el-text-color-secondary); }
+.mab-stage-icon.is-waiting { color: var(--el-color-warning); }
+.mab-stage-icon.is-retrying { color: var(--el-color-warning); }
+.mab-stage-icon.is-idle { color: var(--el-text-color-placeholder); }
 
 /* ── 状态标记：形态即语义（旋转=在做 / 呼吸=在等 / 图标=需要你动手） ── */
 .mab-mark {

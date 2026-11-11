@@ -64,7 +64,7 @@ watch(() => props.pid, (pid) => {
   const id = String(pid || '').toLowerCase()
   const mappedFile = PROVIDER_ICONS[id]
   // 没有品牌映射的虚拟 / 自定义供应商显示首字；有映射时使用图板中的精确文件名，
-  // 兼容别名复用图标（例如 opencode-go → opencode.png），不再盲猜扩展名。
+  // 兼容别名复用图标（例如 opencode-go → opencode.svg），不再盲猜扩展名。
   currentSrc.value = id && id !== 'custom' && id !== 'agent' && mappedFile
     ? assetUrl(`images/providers/${mappedFile}`)
     : null
@@ -80,6 +80,7 @@ const onError = () => {
   <el-image
     v-if="currentSrc"
     :src="currentSrc"
+    fit="contain"
     :style="{ ...sizeStyle, 'border-radius': 'var(--size-surface-radius)' }"
     @error="onError"
   />

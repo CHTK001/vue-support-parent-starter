@@ -24,6 +24,10 @@ export interface WorldItem {
   description?: string | null;
   era?: string | null;
   weather?: string | null;
+  /** 导演模型：世界的剧本导演用哪个模型写剧本（可空，沿用全局默认） */
+  directorModel?: string | null;
+  /** 世界的演员/角色配置（JSON 数组字符串，例：["诸葛亮","曹操"]） */
+  actorRoles?: string | null;
   timeLabel?: string | null;
   tickCount?: number;
   status?: number;
@@ -214,8 +218,15 @@ export interface WorldStreamEvent {
 export interface WorldSimApi {
   fetchWorlds(): Promise<WorldItem[]>;
   fetchWorldView(worldId: number): Promise<WorldView>;
-  createWorld(name: string, description?: string, era?: string): Promise<WorldItem>;
-  updateWorld(worldId: number, patch: Partial<WorldItem>): Promise<WorldItem>;
+  createWorld(
+    name: string,
+    description?: string,
+    era?: string,
+    directorModel?: string,
+    actorRoles?: string,
+  ): Promise<WorldItem>;
+  /** patch 允许 snake_case 键（director_model / actor_roles），与后端 updateWorld 读取一致 */
+  updateWorld(worldId: number, patch: Partial<WorldItem> & Record<string, unknown>): Promise<WorldItem>;
   deleteWorld(worldId: number): Promise<unknown>;
 
   fetchWorldScenes(worldId: number): Promise<WorldScene[]>;
@@ -272,10 +283,23 @@ export const worldSimApi: WorldSimApi = {
     return await this._request(`/world-sim/worlds/${worldId}/view`);
   },
 
-  async createWorld(this: ApiContext, name: string, description?: string, era?: string) {
+  async createWorld(
+    this: ApiContext,
+    name: string,
+    description?: string,
+    era?: string,
+    directorModel?: string,
+    actorRoles?: string,
+  ) {
     return await this._request("/world-sim/worlds", {
       method: "POST",
-      data: { name, description: description || "", era: era || "现代" },
+      data: {
+        name,
+        description: description || "",
+        era: era || "现代",
+        director_model: directorModel || "",
+        actor_roles: actorRoles || "",
+      },
     });
   },
 
@@ -327,7 +351,7 @@ export const worldSimApi: WorldSimApi = {
 
   /** 让 AI 按世界现状自己造角色：起名、写人设、布置场景，并补上关系 */
   async createWorldNpcByAi(this: ApiContext, worldId: number, data: { count?: number; hint?: string }) {
-    return await this._request(`/world-sim/worlds/${worldId}/npcs/ai-create`, { method: "POST", data });
+    return await this._request(`/world-sim/worlds/${worldId}/npcs/ai-create`, { method: "POST", data, timeout: 300000 });
   },
 
   async fetchWorldRelationships(this: ApiContext, worldId: number) {
@@ -409,11 +433,14 @@ export const worldSimApi: WorldSimApi = {
   },
 
   async advanceWorldAct(this: ApiContext, worldId: number, actNo: number) {
-    return await this._request(`/world-sim/worlds/${worldId}/acts/${actNo}/advance`, { method: "POST" });
+    // AI 写剧本 / 逐场演出可能远超默认 60s（真实模型实测单次可到 2–3 分钟）。
+    // 默认超时会让观众在演出中途看到「timeout of 60000ms exceeded」，整幕白推。
+    return await this._request(`/world-sim/worlds/${worldId}/acts/${actNo}/advance`, { method: "POST", timeout: 300000 });
   },
 
   async replayWorldAct(this: ApiContext, worldId: number, actNo: number) {
-    return await this._request(`/world-sim/worlds/${worldId}/acts/${actNo}/replay`, { method: "POST" });
+    // 重播同时会让 AI 接下一幕（写剧本），同样要给足时间
+    return await this._request(`/world-sim/worlds/${worldId}/acts/${actNo}/replay`, { method: "POST", timeout: 300000 });
   },
 
   async finishWorldAct(this: ApiContext, worldId: number, actNo: number) {

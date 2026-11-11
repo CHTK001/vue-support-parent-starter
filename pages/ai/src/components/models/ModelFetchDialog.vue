@@ -21,10 +21,13 @@
         </el-input>
         <!--
           免费模型一键全选：上游 pricing 里输入/输出价均为 0 的行标记为免费。
-          没有免费行时按钮禁用，不会出现「点了没反应」。
+          没有免费行时**整颗按钮不渲染**——原先用 disabled 保留，
+          但 Element Plus 的 disabled 是 opacity .55 的白底按钮，压在白色弹窗上
+          等于「透明文字」，还被吸顶行滚过的列表内容透上来，看起来像坏了。
         -->
         <el-button
-          :disabled="freeRows.length === 0 || fetching"
+          v-if="freeRows.length > 0"
+          :disabled="fetching"
           @click="toggleSelectFree"
         >
           {{ allFreeSelected
@@ -79,6 +82,15 @@
                 :model-value="isSelected(model)"
                 @change="toggleRow(model)"
               />
+              <!-- 通道徽标：放在行首（勾选框之后、模型名之前），用户扫一眼就能看出
+                   这一行走哪个上游通道；尺寸压到 20px 与 30px 行高成比例 -->
+              <ProviderLogo
+                v-if="channelBrand(model)"
+                :pid="channelBrand(model)"
+                :name="model.provider"
+                :size="20"
+                class="fetch-brand"
+              />
               <div class="fetch-main">
                 <div class="fetch-id">
                   <span class="fetch-name">{{ model.modelName }}</span>
@@ -91,32 +103,28 @@
                     {{ priceText(model) }}
                   </span>
                   <!--
-                    免费渠道行：后端每行补了 provider / baseUrl / authScheme，
-                    用 resolveProviderBrand 把 route provider 转成品牌 id，
-                    再由 ProviderLogo 出图标，让用户一眼看到这一行实际走哪个上游通道。
-                  -->
-                  <ProviderLogo
-                    v-if="channelBrand(model)"
-                    :pid="channelBrand(model)"
-                    :name="model.provider"
-                    size="sm"
-                    class="fetch-brand"
-                  />
-                  <!--
                     行内标签统一走 ModelTagStrip（图标 + tooltip）：
                     类型 / 细分类型 / 来源（本地·云 API）/ 管线角色（检测·识别·矫正）/ 特性。
-
-                    为什么改：本弹框只有 600px 宽而模型名常很长，此前四个纯文字徽标
-                    （类型、来源、三态提示，外加特性文字）会把一行挤满甚至换行；
-                    「OCR识别 · 文字识别」这种复合徽标单独就占 100px 以上。
-                    图标化后每项只占 22px，最多显示 2 个、其余折叠成 +N，悬停看全。
-
-                    注意：类型徽标曾只认「非 text 即嵌入」，导致云端拉回的对话模型
-                    全被标成「嵌入」；推断逻辑保留在 fetchTypeBadge 里不动，这里只是换渲染。
                   -->
                   <ModelTagStrip :tags="rowTags(model)" :max="2" />
                 </div>
-                <ModelTagStrip :tags="rowIoTags(model)" :max="2" />
+                <!-- 输入 → 输出模态：与模型管理卡片 / 会话页选择面板同一口径，
+                     中间一定要有箭头，否则两个图标并排看不出谁进谁出 -->
+                <span
+                  v-if="ioOf(model).input.length || ioOf(model).output.length"
+                  class="fetch-io"
+                  :title="ioTitleOf(model)"
+                >
+                  <el-icon v-for="(k, i) in ioOf(model).input" :key="'fio-in-' + i"
+                    class="io-i" :class="'kind-' + k" :size="12">
+                    <component :is="MODALITY_ICON[k] || DocumentText24Regular" />
+                  </el-icon>
+                  <el-icon class="io-arrow" :size="10"><ArrowRight24Regular /></el-icon>
+                  <el-icon v-for="(k, i) in ioOf(model).output" :key="'fio-out-' + i"
+                    class="io-i" :class="'kind-' + k" :size="12">
+                    <component :is="MODALITY_ICON[k] || DocumentText24Regular" />
+                  </el-icon>
+                </span>
                 <!-- 行内小字描述：后端 description 优先（ONNX 本地行自带真实描述），
                      云端上游目录不带描述时按 task 推类型说明，都没有则不渲染 -->
                 <div v-if="describeFetchRow(model)" class="fetch-desc">
@@ -179,6 +187,7 @@ import {
   WrenchScrewdriver24Regular, LightbulbFilament24Regular,
   Desktop24Regular, Cloud24Regular, Scan24Regular, DocumentText24Regular, Wand24Regular,
   TextT24Regular, Image24Regular, Speaker224Regular, Video24Regular, Folder24Regular,
+  ArrowRight24Regular,
 } from '@vicons/fluent'
 import { Loading, Download } from '@element-plus/icons-vue'
 import { apiService } from '../../services/ApiService'
@@ -321,36 +330,35 @@ const MODALITY_ICON: Record<string, any> = {
   vector: Folder24Regular,
 }
 
-/** 输入 / 输出模态标签（图标 + tooltip，由 ModelTagStrip 统一渲染）。
+/**
+ * 输入 / 输出模态，拆成两个数组供「输入 → 输出」并排渲染。
  *
  * <p>上游 /models 极少携带价格，输入输出模态也不一定齐全；
- * 这里只展示上游 genuinely 声明的模态，没有时不渲染，不做假能力。</p>
+ * 只展示上游 genuinely 声明的模态，没有时不渲染，不做假能力。</p>
  *
  * @param m 上游模型行
- * @returns 标签项列表（可能为空）
+ * @returns { input, output }：小写模态键数组
  */
-const rowIoTags = (m: any) => {
+const ioOf = (m: any): { input: string[]; output: string[] } => {
   const cfg = m?.config || deriveFetchedModelConfig(m, String(m?.modelType || inferModelType(m) || 'text'))
-  const tags: Array<{ key: string; label: string; icon: any; kind: string }> = []
-  const inList = Array.isArray(cfg?.inputCapabilities) ? cfg.inputCapabilities : []
-  const outList = Array.isArray(cfg?.outputCapabilities) ? cfg.outputCapabilities : []
-  if (inList.length) {
-    tags.push({
-      key: 'io:in',
-      label: `输入：${inList.map((v: string) => MODALITY_LABELS[String(v).toLowerCase()] || String(v)).join(' + ')}`,
-      icon: MODALITY_ICON[String(inList[0]).toLowerCase()] || ScienceOutlined,
-      kind: 'doc',
-    })
-  }
-  if (outList.length) {
-    tags.push({
-      key: 'io:out',
-      label: `输出：${outList.map((v: string) => MODALITY_LABELS[String(v).toLowerCase()] || String(v)).join(' + ')}`,
-      icon: MODALITY_ICON[String(outList[0]).toLowerCase()] || ScienceOutlined,
-      kind: 'doc',
-    })
-  }
-  return tags
+  const norm = (list: any) =>
+    (Array.isArray(list) ? list : [])
+      .map((v: any) => String(v).toLowerCase())
+      .filter((v: string) => !!v)
+  return { input: norm(cfg?.inputCapabilities), output: norm(cfg?.outputCapabilities) }
+}
+
+/**
+ * 「输入 → 输出」整行 tooltip：中文模态名，缺失一侧时留空。
+ *
+ * @param m 上游模型行
+ * @returns 形如「输入：文本 → 输出：文本」
+ */
+const ioTitleOf = (m: any): string => {
+  const io = ioOf(m)
+  const label = (list: string[]) =>
+    list.length ? list.map((v) => MODALITY_LABELS[v] || v).join(' + ') : '—'
+  return `输入：${label(io.input)} → 输出：${label(io.output)}`
 }
 
 const filtered = computed(() => {
@@ -956,11 +964,18 @@ const doImport = async (rows: any[], isAll: boolean) => {
 </script>
 
 <style scoped>
+/* 吸顶行：内容是外层 .dialog-content-wrapper 在滚，
+   这一行必须自带不透明底色，否则滚动的行会从它底下透出来
+   （表现就是「全选免费」看起来透明、背景压到上面）。
+   padding 与负 margin 配平，只为把色带上下撑开、不改原有布局间距；
+   下方多留 10px，滚动时被裁掉的行不会紧贴搜索框底边。 */
 .fetch-search {
   position: sticky;
   top: 0;
   z-index: 10;
-  margin-bottom: 12px;
+  padding: 8px 0 10px;
+  margin: -8px 0 2px;
+  background: var(--el-bg-color, #fff);
   /* 搜索框 + 「全部录入」并排：录入是主操作，不能藏在列表里 */
   display: flex;
   align-items: center;
@@ -1030,23 +1045,37 @@ const doImport = async (rows: any[], isAll: boolean) => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* 输入 → 输出模态：图标 + 中间箭头，与模型管理卡片 / 会话页选择面板同一口径 */
 .fetch-io {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-size: 12px;
   line-height: 18px;
   color: var(--el-text-color-regular);
 }
+.fetch-io .io-arrow {
+  color: var(--el-text-color-placeholder);
+  margin: 0 1px;
+}
+.fetch-io .io-i.kind-text { color: var(--el-color-primary); }
+.fetch-io .io-i.kind-image { color: var(--el-color-warning); }
+.fetch-io .io-i.kind-audio { color: var(--el-color-info); }
+.fetch-io .io-i.kind-video { color: var(--el-color-danger); }
+.fetch-io .io-i.kind-file { color: var(--el-color-info); }
+.fetch-io .io-i.kind-vector { color: var(--el-color-success); }
 .fetch-id { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; margin-right: 16px; }
-/* 通道徽标：把 ProviderLogo 压到行内图标量级，跟在模型名后面 */
+/* 通道徽标：放在行首（勾选框之后），20px 与 30px 行高成比例 */
 .fetch-brand {
-  width: 24px;
-  height: 24px;
-  margin-right: 6px;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
   flex-shrink: 0;
 }
 .fetch-brand :deep(.el-image),
 .fetch-brand :deep(.avatar-auto) {
-  width: 24px !important;
-  height: 24px !important;
+  width: 20px !important;
+  height: 20px !important;
 }
 .fetch-name {
   font-size: 13px;

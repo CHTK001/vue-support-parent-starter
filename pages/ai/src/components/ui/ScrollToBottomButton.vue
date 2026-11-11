@@ -5,7 +5,7 @@
             v-if="show"
             ref="buttonRef"
             class="scroll-to-bottom-btn"
-            :class="{ streaming: isStreaming, 'has-status': !!status }"
+            :class="{ streaming: isStreaming, 'has-status': !!status, 'is-inline': inline }"
             @click="handleClick"
             type="button"
         >
@@ -42,6 +42,13 @@ const props = defineProps<{
     /** 当前正在处理的步骤文案（如「正在运行命令 · pwd」「正在压缩」）；空则不显示 */
     status?: string;
     onClick?: (event: MouseEvent) => void;
+    /**
+     * 内联形态（2026-11-11 用户要求「滚动到底部融合到模型名/档位的左侧」）。
+     *
+     * <p>默认是浮在消息流之上的 FAB（absolute + 主色圆）；内联时改成输入行里
+     * 的一个 28×28 纯图标按钮，与左侧工具按钮同一基线、不抢视觉焦点。</p>
+     */
+    inline?: boolean;
 }>()
 
 // Emits 类型化
@@ -207,6 +214,86 @@ defineExpose({
     }
 }
 
+/* ── 内联形态（2026-11-11）：挂在「模型名 / 档位」chip 左侧 ──
+   用户要求把「回到底部」融进输入行，不再浮在消息区左上方。
+   这里必须把 FAB 的绝对定位、主色实底、投影、缩放动效全部撤掉，
+   否则它会变成输入行里一颗突兀的蓝色圆钮，把模型 chip 挤歪。 */
+.scroll-to-bottom-btn.is-inline {
+    position: static;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--el-text-color-regular);
+    z-index: auto;
+    flex-shrink: 0;
+}
+
+.scroll-to-bottom-btn.is-inline:hover {
+    background: var(--el-fill-color-light);
+    color: var(--el-color-primary);
+    box-shadow: none;
+    transform: none;
+}
+
+.scroll-to-bottom-btn.is-inline:active {
+    transform: none;
+    box-shadow: none;
+}
+
+.scroll-to-bottom-btn.is-inline .scroll-icon {
+    width: 16px;
+    height: 16px;
+    /* 内联态用文字色描边，随悬停变主色（不再固定白） */
+    color: currentColor;
+}
+
+/* 流式时不再整颗按钮呼吸（输入行里闪会干扰输入），
+   改成图标染主色 + 右上角一颗小圆点把「有新内容」留住 */
+.scroll-to-bottom-btn.is-inline.streaming {
+    animation: none;
+    opacity: 1;
+    position: relative;
+}
+
+.scroll-to-bottom-btn.is-inline.streaming .scroll-icon {
+    color: var(--el-color-primary);
+}
+
+.scroll-to-bottom-btn.is-inline.streaming::after {
+    content: '';
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--el-color-primary);
+    animation: mab-wait-dot-inline 1.4s ease-in-out infinite;
+}
+
+@keyframes mab-wait-dot-inline {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 1; }
+}
+
+/* 内联态带状态文案：收成一枚小胶囊，文案用文字色，主色只留在图标上 */
+.scroll-to-bottom-btn.is-inline.has-status {
+    width: auto;
+    max-width: min(46vw, 280px);
+    height: 24px;
+    gap: 5px;
+    padding: 0 9px 0 6px;
+    border-radius: var(--el-radius-full, 9999px);
+    background: var(--el-fill-color-light);
+}
+
+.scroll-to-bottom-btn.is-inline.has-status .scroll-to-bottom-btn__status {
+    color: var(--el-text-color-regular);
+    font-size: 11.5px;
+}
+
 /* 淡入淡出动画 - 使用 !important 确保优先于呼吸动画 */
 .fade-enter-active,
 .fade-leave-active {
@@ -240,9 +327,25 @@ defineExpose({
         height: 40px;
     }
 
+    /* 内联态不跟随放大：它现在住在输入行里，40px 会把模型 chip 挤到换行 */
+    .scroll-to-bottom-btn.is-inline {
+        width: 28px;
+        height: 28px;
+    }
+
+    .scroll-to-bottom-btn.is-inline.has-status {
+        width: auto;
+        height: 24px;
+    }
+
     .scroll-icon {
         width: 20px;
         height: 20px;
+    }
+
+    .scroll-to-bottom-btn.is-inline .scroll-icon {
+        width: 16px;
+        height: 16px;
     }
 }
 

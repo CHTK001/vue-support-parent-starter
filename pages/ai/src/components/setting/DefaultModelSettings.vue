@@ -40,7 +40,7 @@
           :is-model-field="isModelField(group.group, item.field)"
           :is-enum-field="isEnumField(item)"
           :is-prompt-field="isPromptField(item.field)"
-          :logo="getFieldModelLogo(group.group, item.field)"
+          :model-row="getFieldModelRow(group.group, item.field)"
           :model-display="modelFieldDisplay(group.group, item.field)"
           :options="optionsOf(item)"
           :step="numberStep(group.group, item.field)"
@@ -99,7 +99,7 @@
               :is-model-field="false"
               :is-enum-field="isEnumField(item)"
               :is-prompt-field="isPromptField(item.field)"
-              :logo="getFieldModelLogo(group.group, item.field)"
+              :model-row="getFieldModelRow(group.group, item.field)"
               :model-display="modelFieldDisplay(group.group, item.field)"
               :options="optionsOf(item)"
               :step="numberStep(group.group, item.field)"
@@ -122,7 +122,6 @@
       :providers="filteredProviders"
       :selected-id="tempModelId"
       :empty-text="`没有匹配「${currentTypeLabel}」类型的模型`"
-      :logo-for="getModelRowLogo"
       @update:visible="(v) => (modelDialogVisible = v)"
       @select="selectModel"
       @clear="clearModelField"
@@ -148,9 +147,9 @@ import ModelPickerDialog from './dms/ModelPickerDialog.vue'
 import VectorStorageConfig from './dms/VectorStorageConfig.vue'
 import ImageLibraryPanel from './ImageLibraryPanel.vue'
 import { isAdmin } from '@repo/core'
-import { getModelAvatarPath } from '@/utils/modelUtils'
 import { MODEL_SUBTYPE_LABELS } from '@/components/models/model.constants'
-import { inferSubType, deriveModelTraits } from '@/components/models/model.utils'
+import { deriveModelTraits } from '@/components/models/model.utils'
+import { TYPE_LABELS, findPickedModel, mapProviderModel, resolveModelMeta } from '@/components/models/modelMeta'
 
 // Element Plus 组件导入
 import {
@@ -639,148 +638,8 @@ const advancedFields = (group) => {
 }
 
 // ===================== 模型类型体系 =====================
-// 规范类型中文标签
-const TYPE_LABELS = {
-    text: '对话',
-    embedding: '嵌入',
-    asr: '语音识别',
-    tts: '语音合成',
-    image: '文生图',
-    video: '文生视频',
-    rerank: '重排序',
-    ocr: 'OCR识别',
-    face: '人脸识别',
-    layout: '布局识别',
-    image_cv: '图片识别',
-    detection: '检测'
-}
-// 规范类型 → ReTag 配色
-const TYPE_TAG_TYPE = {
-    text: 'primary',
-    embedding: 'success',
-    asr: 'info',
-    tts: 'info',
-    image: 'warning',
-    video: 'danger',
-    rerank: 'info',
-    ocr: 'info',
-    face: 'info',
-    layout: 'info',
-    image_cv: 'info',
-    detection: 'info'
-}
-// 后端 capability.task → 规范类型
-const TASK_TO_TYPE = {
-    chat: 'text',
-    text_generation: 'text',
-    realtime_conversation: 'text',
-    embedding: 'embedding',
-    rerank: 'rerank',
-    speech_recognition: 'asr',
-    asr: 'asr',
-    speech_synthesis: 'tts',
-    tts: 'tts',
-    image_generation: 'image',
-    'text-to-image': 'image',
-    image: 'image',
-    video_generation: 'video',
-    'text-to-video': 'video',
-    video: 'video',
-    ocr: 'ocr',
-    ocr_recognition: 'ocr',
-    face: 'face',
-    face_recognition: 'face',
-    layout: 'layout',
-    // 图片识别 / 图像特征：后端 ApiProviderController.classifyOnnxTask 的兜底分支
-    // 就归这一类（resnet/clip/dino 等），此前前端没有对应项，
-    // 于是一律落到 'text'，「图像特征模型」字段的弹框里一个 CV 模型都看不到。
-    image_cv: 'image_cv',
-    image_feature: 'image_cv',
-    feature_extraction: 'image_cv',
-    detection: 'detection',
-    detect: 'detection',
-    object_detection: 'detection',
-}
-// feature 类 capability（属于附加能力，不是主类型）
-const FEATURE_LABELS = {
-    thinking: '深度思考',
-    'web-search': '在线检索',
-    tools: '工具调用',
-    tool_calls: '工具调用'
-}
-
-// 依据模型名推断规范类型（与后端 inferTasks 对齐）
-const inferTypeByName = (modelName) => {
-    const l = String(modelName || '').toLowerCase()
-    if (l.includes('embedding') || l.includes('embed') || l.includes('-bge-')) return 'embedding'
-    if (l.includes('rerank')) return 'rerank'
-    if (l.includes('tts') || l.includes('speech-synthesis') || l.includes('speech_synthesis')) return 'tts'
-    if (l.includes('whisper') || l.includes('asr') || l.includes('speech-recognition')) return 'asr'
-    if (l.includes('detect') || l.includes('-det-') || l.includes('yolo')
-        || l.includes('scrfd') || l.includes('nms')) return 'detection'
-    if (l.includes('dall-e') || l.includes('image-gen') || l.includes('cogview') || l.includes('flux') || l.includes('image')) return 'image'
-    if (l.includes('cogvideo') || l.includes('video-gen') || l.includes('video')) return 'video'
-    return 'text'
-}
-
-// 从 capabilities + 模型名解析模型的类型与特性
-const resolveModelMeta = (modelName, capabilities) => {
-    const types = []
-    const features = []
-    const subTypes = []
-    ;(capabilities || []).forEach((cap) => {
-        const task = cap?.task
-        if (!task) return
-        if (TASK_TO_TYPE[task]) {
-            const t = TASK_TO_TYPE[task]
-            if (!types.includes(t)) types.push(t)
-        } else if (FEATURE_LABELS[task]) {
-            if (!features.includes(task)) features.push(task)
-        }
-        const sub = cap?.subtype ?? cap?.subType
-        if (sub && MODEL_SUBTYPE_LABELS[String(sub)] && !subTypes.includes(String(sub))) {
-            subTypes.push(String(sub))
-        }
-    })
-    // 名称强类型纠偏：**仅在 capabilities 没给出任何确定类型时**才生效。
-    //
-    // 原为「名称无条件优先」，本意是修正 capabilities 误标（如 agnes-image 被标成 chat）。
-    // 但它会把 cn-clip-rn50-image、resnet50-feature 这类「名字里带 image 的图像特征模型」
-    // 经 inferTypeByName 的 'image' 分支拽到「文生图」去 —— 而 capabilities 已经明确
-    // 给了 embedding / image_cv。结果：「图像特征模型」字段的弹框里只剩扩散模型，
-    // 真正的特征模型一个都选不到（实测：以图搜图因此永远配不上）。
-    // 现在 capabilities 给出确定类型时以它为准，名称只在「空 / 只有 text」时兜底。
-    const nameType = inferTypeByName(modelName)
-    const hasDefinitive = types.some((t) => t !== 'text')
-    if (!hasDefinitive && nameType !== 'text') {
-        for (let i = types.length - 1; i >= 0; i--) {
-            if (types[i] === 'text') types.splice(i, 1)
-        }
-        if (!types.includes(nameType)) types.unshift(nameType)
-    }
-    if (types.length === 0) types.push(nameType)
-
-    const primaryType = types[0]
-    const inferredSubType = inferSubType({ model: modelName, capabilities }, primaryType)
-    if (inferredSubType && !subTypes.includes(inferredSubType)) {
-        subTypes.push(inferredSubType)
-    }
-    const displayTags = [
-        { value: `type:${primaryType}`, label: TYPE_LABELS[primaryType] || primaryType, tagType: TYPE_TAG_TYPE[primaryType] || 'info' }
-    ]
-    subTypes.forEach((sub) => displayTags.push({
-        value: `sub:${sub}`,
-        label: MODEL_SUBTYPE_LABELS[sub] || sub,
-        tagType: 'info'
-    }))
-    // thinking / web-search / tools 等特性仅对话模型有意义
-    if (primaryType === 'text') {
-        features.slice(0, 2).forEach((f) =>
-            displayTags.push({ value: `feat:${f}`, label: FEATURE_LABELS[f], tagType: 'info' })
-        )
-    }
-    return { types, features, primaryType, displayTags, subTypes }
-}
+// 规范类型标签、类型推断与弹框候选行构造统一在 components/models/modelMeta.ts
+// （配置中心的默认模型、会话对话路由、通用设置共用同一份，避免各页各造一套行）
 
 // 根据配置分组与字段，确定该字段需要的规范模型类型
 const requiredTypeFor = (group, field) => {
@@ -1375,23 +1234,8 @@ const shouldStoreBareModel = (group, field) => {
     return true
 }
 
-// 取字段当前所选模型的提供商 logo（字段值形如 providerId:modelName）
-const getFieldModelLogo = (group, field) => {
-    const v = getFieldValue(group, field)
-    if (!v) return null
-    const name = v.includes(':') ? v.split(':').slice(1).join(':') : v
-    return getModelAvatarPath(name)
-}
-
-// 取弹框模型行的提供商 logo
-const getModelRowLogo = (model) => getModelAvatarPath(model?.model || '')
-
-// 宽松数值解析：空值 / 非数字一律返回 null（区分「未采集」与 0）
-const numOrNull = (v) => {
-    if (v === null || v === undefined || v === '') return null
-    const n = Number(v)
-    return Number.isNaN(n) ? null : n
-}
+// 取字段当前所选模型的图标依据（字段值形如 providerId:modelName）
+const getFieldModelRow = (group, field) => findPickedModel(getFieldValue(group, field), providers.value)
 
 // 更新字段值
 const updateFieldValue = (group, field, value) => {
@@ -1593,31 +1437,9 @@ const loadModels = () => {
                     // （scrfd-face-detector / arc-face / resnet 等，available=true 但 external=false）
                     // 在「人脸识别/检测」「图像特征」等弹框里一个都选不到，门禁永远不亮。
                     .filter(m => isOnnxProvider ? (m.external === true || m.available === true) : true)
-                    .map((m) => {
-                        const meta = resolveModelMeta(m.model, m.capabilities)
-                        // 输入 / 输出种类：来自 capabilities[].traits（input:image / output:text 等），
-                        // 供模型弹框行内展示「支持什么进、出什么」。capabilities 缺失或没 traits 时
-                        // deriveModelTraits 按规范类型兜底（FLOW_BY_TYPE）。
-                        const traits = deriveModelTraits(m, meta.primaryType)
-                        // 延迟：优先最近一次实测（modelLastLatency / probe_latency_ms / latency_ms），
-                        // 都没有时回退指标表的官方首字延迟（latency_first_token_seconds，秒*1000→ms）。
-                        // 云端 OpenAI 兼容行 metrics 大多是官方评测源，只有后者。
-                        const metrics = m.metrics || {}
-                        const officialLatencySec = numOrNull(metrics.latency_first_token_seconds)
-                        const latencyMs = numOrNull(m.modelLastLatency ?? metrics.probe_latency_ms ?? metrics.latency_ms)
-                            ?? (officialLatencySec != null ? officialLatencySec * 1000 : null)
-                        return {
-                            id: `${provider.provider_id}:${m.model}`,
-                            modelName: `${provider.name}/${m.model}`,
-                            model: m.model,
-                            providerId: provider.provider_id,
-                            providerName: provider.name,
-                            inputKinds: traits.inputCapabilities,
-                            outputKinds: traits.outputCapabilities,
-                            latencyMs,
-                            ...meta
-                        }
-                    })
+                    // 行结构（类型 / 标签 / 输入输出 / 延迟 / 通道信息）统一由 modelMeta 构造，
+                    // 与其它模型弹框共用一份，避免各页字段口径漂移。
+                    .map((m) => mapProviderModel(provider, m))
                 models.value.push(...providerModels)
                 if (providerModels.length > 0) {
                     providers.value.push({

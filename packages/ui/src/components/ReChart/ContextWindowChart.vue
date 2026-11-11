@@ -25,9 +25,10 @@
             :class="{ 'is-active': viewMode === mode.key }"
             :aria-selected="viewMode === mode.key"
             :title="mode.label"
+            :aria-label="mode.label"
             @click="viewMode = mode.key"
           >
-            {{ mode.label }}
+            <ContextModeIcon :mode="mode.key" :size="14" />
           </button>
         </div>
       </header>
@@ -122,6 +123,7 @@
  * 保证两种画法的格子/面积总和都等于窗口总量。
  */
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import ContextModeIcon from "./ContextModeIcon.vue";
 import type { ContextSlice, ReChartContextData } from "./types";
 import {
   assignDots,
@@ -342,11 +344,13 @@ onBeforeUnmount(() => {
   background: var(--el-fill-color-light, #f1f5f9);
 }
 .re-chart-context__switch-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   background: transparent;
-  padding: 3px 10px;
+  padding: 4px 7px;
   border-radius: 6px;
-  font-size: 12px;
   color: var(--el-text-color-regular, #64748b);
   cursor: pointer;
   transition: background 0.2s ease, color 0.2s ease;

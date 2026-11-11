@@ -737,9 +737,13 @@ function onCallbackUrlInput(event: Event | string) {
 const accountRef = (conn: ChannelConnectionSummary) =>
   // 网关托管行是前端合成的，本地没有这条连接记录：不带 connectionId，
   // 后端才会走「本地无连接 → 借网关凭据」的回落。带上假 id 只会 404。
-  // 同一上游多个账号时用 account 指定网关里的账号，否则是这一家上游的合计。
+  // 同一上游多个账号时用 account 指定账号；provider 指定上游实例——
+  // 一个渠道挂多个上游（Trae 国内/国际）时，不传 provider 两行都会显示整家合计。
   conn.hosted
-    ? (conn.account ? { account: conn.account } : {})
+    ? {
+        ...(conn.account ? { account: conn.account } : {}),
+        ...(conn.provider ? { provider: conn.provider } : {}),
+      }
     : { connectionId: conn.connectionId, label: conn.label }
 
 /** 到期文案：无 expiresAt 视为长期有效；已过期 / 不足一天按小时展示 */
@@ -832,7 +836,7 @@ async function checkin(channel: string, conn: ChannelConnectionSummary) {
       ElMessage.success(summary)
     }
     // 签到会改变额度，签完立即重读，避免进度条停在签到前的旧数字
-    if (activeSummary()?.supportsCredit) void loadCredit(conn)
+    if (creditSupported(activeSummary())) void loadCredit(conn)
   } catch (e: any) {
     ElMessage.error('签到失败：' + (e?.message ?? e))
   } finally {
@@ -1572,6 +1576,23 @@ function hostedOnly(c?: ChannelSummary): boolean {
   return list.length > 0 && list.every((conn) => !!conn.hosted)
 }
 
+/**
+ * 当前渠道是否可以看积分。
+ *
+ * <p>本地有积分实现的渠道看后端能力位 {@code supportsCredit}；由网关承载的
+ * 渠道本地不一定有实现，但 {@code /credit} 读数本来就是网关优先的，容量照样
+ * 读得出来。只认能力位会把 Loomy 这类纯托管渠道的积分区整块藏掉——
+ * 用户看到的就是「这家没有余额」，而实际上网关里有一张额度卡。</p>
+ *
+ * @param c 渠道摘要
+ * @returns 需要显示 / 查询积分时 true
+ */
+function creditSupported(c?: ChannelSummary): boolean {
+  if (!c) return false
+  if (c.supportsCredit) return true
+  return hostedProvidersOf(c.channel).length > 0
+}
+
 /* ==================== 详情页签（ReTabs） ==================== */
 
 /**
@@ -1592,7 +1613,7 @@ const detailTab = ref<string>('accounts')
 watch(detailTab, (_tab) => {
   if (_tab === 'accounts') {
     const list = displayConnections(activeSummary())
-    if (!list.length || !activeSummary()?.supportsCredit) return
+    if (!list.length || !creditSupported(activeSummary())) return
     void Promise.all(list.map((conn) => loadCredit(conn)))
   }
 })
@@ -1608,7 +1629,7 @@ watch(
   () => displayConnections(activeSummary()).map((conn) => conn.connectionId).join('|'),
   () => {
     const summary = activeSummary()
-    if (!summary?.supportsCredit) return
+    if (!creditSupported(summary)) return
     const list = displayConnections(summary)
     if (!list.length) return
     void Promise.all(list.map((conn) => loadCredit(conn)))
@@ -2368,11 +2389,11 @@ function openPlugin(plugin: MagpiePluginChannel): void {
  */
 function managedHint(entry: ManagedEntry): string {
   const name = entry.channel.displayName || entry.channel.channel
-  if (entry.vendor.preset) return `到 Magpie 里接入「${name}」的上游（预设 + API Key）`
+  if (entry.vendor.preset) return `接入「${name}」的上游（预设 + API Key）`
   const plugin = entry.vendor.plugin ? magpiePluginOfSpec(entry.vendor.plugin) : undefined
   return plugin
-    ? `到 Magpie 里用插件「${plugin.name}」接管「${name}」的登录与签到`
-    : `到 Magpie 里管理「${name}」的登录与签到`
+    ? `用插件「${plugin.name}」接管「${name}」的登录与签到`
+    : `管理「${name}」的登录与签到`
 }
 
 /** 可选页签（随选中渠道能力变化） */
@@ -2588,6 +2609,8 @@ const creditText = (credit: any): string => {
   const unit = credit.unit === 'currency' ? (credit.currency ?? '') : creditUnitText(credit.unit)
   const total = credit.total
   const remainMissing = credit.remain === undefined || credit.remain === null || credit.remain === ''
+  // 上游只给文案（"0 credits left" / "$0.0064" / "92 魔粒"）：原文就是最准的读数
+  if (remainMissing && credit.text) return String(credit.text)
   // 上游只给了总量 / 只给了单位不一致的明细时，剩余就是「未知」，不能当 0 报给用户
   if (remainMissing) {
     return total === undefined || total === null || total === ''
@@ -2654,7 +2677,7 @@ interface CreditTotal {
  */
 const creditTotals = computed<CreditTotal[]>(() => {
   const summary = activeSummary()
-  if (!summary?.supportsCredit) return []
+  if (!creditSupported(summary)) return []
   const groups = new Map<string, {
     unit: string
     currency: string
@@ -2941,7 +2964,7 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
               </span>
               <span class="chm-panel__chip" v-if="activeSummary()!.supportsImage">可出图</span>
               <span class="chm-panel__chip" v-if="activeSummary()!.supportsCheckin">可签到</span>
-              <span class="chm-panel__chip is-credit" v-if="activeSummary()!.supportsCredit">积分</span>
+              <span class="chm-panel__chip is-credit" v-if="creditSupported(activeSummary())">积分</span>
               <span class="chm-panel__chip is-task" v-if="activeSummary()!.supportsTask && !hostedOnly(activeSummary())">任务</span>
             </span>
           </div>
@@ -3016,19 +3039,11 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                 <div class="chm-panel__sect-title">
                   <el-icon aria-hidden="true"><ConnectionIcon /></el-icon>
                   账号 <i>{{ accounts.length }}</i>
-                  <button
-                    type="button"
-                    class="chm-panel__pull chm-panel__pull--icon"
-                    :title="accountsLoading ? '加载中…' : '刷新账号列表'"
-                    aria-label="刷新账号列表"
-                    :disabled="accountsLoading"
-                    @click.stop="loadAccounts()"
-                  >
-                    <el-icon aria-hidden="true"><RefreshIcon /></el-icon>
-                  </button>
-                  <ReButton link size="small" type="primary" @click.stop="addAccount()">
-                    ＋ 添加账号
-                  </ReButton>
+                  <!--
+                    这一行不放大按钮：账号列表在切渠道、删除账号、加完账号后都会自动重拉
+                    （loadAccounts），手动刷新是多余的；「＋ 新增账号」在左栏底部常驻
+                    （openAddAccount → addAccount），也不需要第二个入口。
+                  -->
                 </div>
 
                 <p v-if="accountsError" class="chm-panel__error">账号加载失败：{{ accountsError }}</p>
@@ -3043,11 +3058,16 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                     </span>
                     <span v-if="acc.username" class="chm-acc__expire">{{ acc.username }}</span>
                     <div class="chm-acc__actions">
-                      <ReButton link size="small" type="danger" @click.stop="removeAccount(acc)">删除</ReButton>
+                      <!--
+                        与「已授权连接」卡同一套控件：ReButton square（24px 图标钮 + 悬浮提示）。
+                        卡片里的动作按钮不做成文字按钮，免得每张卡都被「删除」两个字撑出一块。
+                      -->
+                      <ReButton layout="square" size="mini" type="danger" icon="Delete"
+                                tip="删除账号" @click.stop="removeAccount(acc)" />
                     </div>
                   </div>
                   <div v-if="!accounts.length && !accountsLoading" class="chm-card__empty">
-                    尚无账号，点「＋ 添加账号」创建
+                    尚无账号，点左栏底部的「＋ 新增账号」创建
                   </div>
                 </div>
               </div>
@@ -3113,28 +3133,34 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                           <span v-if="!conn.hosted && !connExpireText(conn) && !conn.checkinAt" class="chm-acc__muted">长期有效</span>
                         </div>
                       </div>
+                      <!--
+                        账号操作统一用 ReButton 的 square 布局（24px 正方形图标钮 + 悬浮提示）：
+                        这张卡里的动作都是「对一个账号做一件事」，图标比文字短，行宽不会被按钮吃满。
+                      -->
                       <div class="chm-acc__actions">
-                        <button v-if="!conn.hosted" class="chm-acc__btn"
-                                @click.stop="renameAccount(activeChannel, conn)">改名</button>
-                        <button v-if="!conn.primary && !conn.hosted" class="chm-acc__btn"
-                                @click.stop="setPrimaryAccount(activeChannel, conn)">设为主账号</button>
-                        <button v-if="!conn.hosted && activeSummary()!.supportsRefresh !== false"
-                                class="chm-acc__btn" :disabled="busyFor(activeChannel, 'refresh')"
-                                @click.stop="refreshAccount(activeChannel, conn)">刷新</button>
+                        <ReButton v-if="!conn.hosted" layout="square" size="mini" icon="EditPen"
+                                  tip="改名" @click.stop="renameAccount(activeChannel, conn)" />
+                        <ReButton v-if="!conn.primary && !conn.hosted" layout="square" size="mini" icon="Star"
+                                  tip="设为主账号" @click.stop="setPrimaryAccount(activeChannel, conn)" />
+                        <ReButton v-if="!conn.hosted && activeSummary()!.supportsRefresh !== false"
+                                  layout="square" size="mini" icon="Refresh" tip="刷新账号信息"
+                                  :disabled="busyFor(activeChannel, 'refresh')"
+                                  @click.stop="refreshAccount(activeChannel, conn)" />
                         <!--
                           有积分能力的渠道：签到收进积分行（额度变化就在旁边）；
                           没有积分能力才把签到留在操作行里。
                         -->
-                        <button v-if="activeSummary()!.supportsCheckin && !activeSummary()!.supportsCredit" class="chm-acc__btn"
-                                :disabled="busyFor(activeChannel, 'sign')"
-                                @click.stop="checkin(activeChannel, conn)">签到</button>
-                        <button v-if="!conn.hosted" class="chm-acc__btn is-danger"
-                                @click.stop="deleteAccount(activeChannel, conn)">删除</button>
+                        <ReButton v-if="activeSummary()!.supportsCheckin && !creditSupported(activeSummary())"
+                                  layout="square" size="mini" icon="Calendar" tip="签到"
+                                  :disabled="busyFor(activeChannel, 'sign')"
+                                  @click.stop="checkin(activeChannel, conn)" />
+                        <ReButton v-if="!conn.hosted" layout="square" size="mini" type="danger" icon="Delete"
+                                  tip="删除账号" @click.stop="deleteAccount(activeChannel, conn)" />
                       </div>
                     </header>
 
                     <!-- 积分：额度 + 进度 + 签到，一条读完 -->
-                    <section v-if="activeSummary()!.supportsCredit" class="chm-acc__credit">
+                    <section v-if="creditSupported(activeSummary())" class="chm-acc__credit">
                       <div class="chm-credit__top">
                         <span class="chm-credit__caption">积分</span>
                         <template v-if="creditState[conn.connectionId]?.data">
@@ -3148,23 +3174,27 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                         <span v-else-if="creditState[conn.connectionId]?.loading" class="chm-credit__caption">查询中…</span>
                         <span v-else class="chm-credit__caption">尚未查询</span>
                         <div class="chm-credit__ops">
-                          <button
-                            type="button"
-                            class="chm-credit__icon"
-                            :title="creditState[conn.connectionId]?.loading ? '查询中…' : '刷新积分'"
-                            aria-label="刷新积分"
-                            :disabled="creditState[conn.connectionId]?.loading"
+                          <!--
+                            积分行的两个动作和账号操作行是同一套控件：ReButton square（24px 图标钮 + 悬浮提示）。
+                            原先这里是自绘的原生 <button>，和旁边的账号操作按钮不是一套。
+                          -->
+                          <ReButton
+                            layout="square"
+                            size="mini"
+                            icon="Refresh"
+                            :tip="creditState[conn.connectionId]?.loading ? '正在查询积分' : '刷新积分'"
+                            :loading="Boolean(creditState[conn.connectionId]?.loading)"
                             @click.stop="loadCredit(conn)"
-                          >
-                            <el-icon aria-hidden="true"><RefreshIcon /></el-icon>
-                          </button>
-                          <button
+                          />
+                          <ReButton
                             v-if="activeSummary()!.supportsCheckin"
-                            class="chm-credit__checkin"
-                            type="button"
+                            layout="square"
+                            size="mini"
+                            icon="Calendar"
+                            tip="签到"
                             :disabled="busyFor(activeChannel, 'sign')"
                             @click.stop="checkin(activeChannel, conn)"
-                          >签到</button>
+                          />
                         </div>
                       </div>
                       <p v-if="creditState[conn.connectionId]?.error" class="chm-credit__error">
@@ -4468,28 +4498,7 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 .chm-panel__sect-title .el-icon {
   color: var(--text-tertiary, #94a3b8);
 }
-/* 刷新按钮只留图标：圈与文字一起去掉 */
-.chm-panel__pull--icon {
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  display: inline-grid;
-  place-items: center;
-  border-radius: 6px;
-  border: 1px solid var(--border-default, #e2e9f3);
-  background: var(--bg-container, #fff);
-  color: var(--text-secondary, #475569);
-}
-.chm-panel__pull--icon:hover:not(:disabled) {
-  border-color: var(--brand-400, #60a5fa);
-  color: var(--brand-600, #2563eb);
-  background: var(--bg-hover, #f1f5fb);
-}
-.chm-panel__pull--icon:disabled {
-  opacity: .55;
-  cursor: not-allowed;
-}
-/* 自动签到：全局开关，右对齐到标题行末尾（与「刷新 / 添加」按钮同侧） */
+/* 自动签到：全局开关，右对齐到标题行末尾 */
 .chm-auto {
   margin-left: auto;
   display: inline-flex;
@@ -4527,18 +4536,14 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   text-align: center;
 }
 /*
- * 账号区一行三列：账号/连接是「看一眼状态」的密集信息，一行一个会被拉成整屏
- * 一张卡。窄屏按 2 列 / 1 列回收，避免卡片被压到读不清。
+ * 账号区一行两列：账号/连接是「看一眼状态」的密集信息，一行一个会被拉成整屏
+ * 一张卡；三列又把「设为主账号 / 刷新 / 删除」那排按钮挤到换行，所以固定两列。
+ * 窄屏按 1 列回收，避免卡片被压到读不清。
  */
 .chm-accs {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-}
-@media (max-width: 1500px) {
-  .chm-accs {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 @media (max-width: 1100px) {
   .chm-accs {
@@ -4948,29 +4953,8 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 }
 .chm-acc__actions {
   display: flex;
-  gap: 6px;
-}
-.chm-acc__btn {
-  border: 1px solid var(--border-default, #e2e9f3);
-  background: var(--bg-container, #fff);
-  color: var(--text-regular, #475569);
-  border-radius: 6px;
-  padding: 3px 10px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: border-color .15s, color .15s;
-}
-.chm-acc__btn:hover {
-  border-color: var(--brand-400, #60a5fa);
-  color: var(--brand-600, #2563eb);
-}
-.chm-acc__btn.is-danger:hover {
-  border-color: var(--el-color-danger-light-5, #fab6b6);
-  color: var(--el-color-danger, #f56c6c);
-}
-.chm-acc__btn:disabled {
-  opacity: .55;
-  cursor: not-allowed;
+  align-items: center;
+  gap: 2px;
 }
 
 /* 账号下方的积分块：额度 + 进度 + 签到 */
@@ -5061,37 +5045,12 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   line-height: 1.6;
   color: var(--el-color-danger, #f56c6c);
 }
-/* 积分页签里签到直接挂在顶部行尾，与数值同一行 */
-.chm-credit__top > .chm-credit__checkin {
-  margin-left: auto;
-  align-self: center;
-}
+/* 积分行右侧动作区：与账号操作行同一套 square 按钮（24px），保持一条视觉基线 */
 .chm-credit__ops {
   margin-left: auto;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-}
-.chm-credit__icon {
-  width: 24px;
-  height: 24px;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: 1px solid var(--border-default, #e2e9f3);
-  border-radius: 6px;
-  background: var(--bg-container, #fff);
-  color: var(--text-secondary, #475569);
-  cursor: pointer;
-  transition: border-color .15s, color .15s;
-}
-.chm-credit__icon:hover:not(:disabled) {
-  border-color: var(--brand-400, #60a5fa);
-  color: var(--brand-600, #2563eb);
-}
-.chm-credit__icon:disabled {
-  opacity: .55;
-  cursor: not-allowed;
+  gap: 2px;
 }
 .chm-credit__pkg {
   display: inline-flex;
@@ -5109,23 +5068,6 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   font-weight: 500;
   color: var(--text-secondary, #64748b);
 }
-.chm-credit__checkin {
-  border: 1px solid var(--brand-600, #2563eb);
-  background: var(--brand-600, #2563eb);
-  color: #fff;
-  border-radius: 6px;
-  padding: 3px 14px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: background-color .15s;
-}
-.chm-credit__checkin:hover:not(:disabled) {
-  background: var(--brand-500, #3b82f6);
-}
-.chm-credit__checkin:disabled {
-  opacity: .55;
-  cursor: not-allowed;
-}
 
 /* ---- 绑定虚线框 ---- */
 .chm-panel__bindbtn {
@@ -5134,10 +5076,12 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   justify-content: center;
   gap: 6px;
   width: 100%;
-  padding: 10px;
-  /* 作为「空槽位」吸收剩余高度（见 .chm-panel__binds），文字始终居中 */
-  flex: 1 1 auto;
-  min-height: 44px;
+  padding: 12px 10px;
+  /*
+   * 就是一条「点这里新增」的虚线入口，不吸收剩余高度：之前把它 flex 拉满，
+   * 内容少的时候会变成半屏高的空槽，看着像页面没加载完。
+   */
+  flex: 0 0 auto;
   font-size: 13px;
   color: var(--text-regular, #475569);
   background: transparent;

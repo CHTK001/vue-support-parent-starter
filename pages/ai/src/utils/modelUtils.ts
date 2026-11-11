@@ -12,8 +12,7 @@ import { t } from "@/locales";
  *
  * <p>值直接作为文件名拼接到 `/images/models/` 路径下，
  * 因此必须带上正确的 `.svg`/`.png` 扩展名，不能再像过去那样
- * 用 `isPng` 开关在函数里补后缀——那导致 MuseSpark.png/olmama.png
- * 被误判为 .svg 而找不到文件。</p>
+ * 用 `isPng` 开关在函数里补后缀——那会让 png 图标被误拼成 .svg 而找不到文件。</p>
  *
  * <p>「muse-spark」（带连字符）作为别名加入，
  * 这样模型名 `muse-spark-1.3-contributor` 能直接命中 startsWith 匹配，
@@ -21,9 +20,8 @@ import { t } from "@/locales";
  */
 const PROVIDER_LOGOS: Record<string, string> = {
   // OpenAI
-  openai: "openai.svg",
+  openai: "OpenAI.svg",
   gpt: "OpenAI.svg",
-  newapi: "newapi.png",
 
   // Anthropic
   anthropic: "Anthropic.svg",
@@ -31,7 +29,7 @@ const PROVIDER_LOGOS: Record<string, string> = {
 
   // Google
   google: "Google.svg",
-  gemini: "Google.svg",
+  gemini: "gemini.svg",
 
   // 百度文心一言
   baidu: "baidu.svg",
@@ -56,10 +54,9 @@ const PROVIDER_LOGOS: Record<string, string> = {
   moonshot: "kimi.png",
 
   // DeepSeek
-  deepseek: "deepseek.svg",
+  deepseek: "DeepSeek.svg",
 
-  // 百川智能
-  baichuan: "Baichuan.svg",
+  // 百川智能（无官方矢量图，交给供应商品牌图兜底）
 
   // 零一万物
   yi: "Yi.svg",
@@ -99,8 +96,10 @@ const PROVIDER_LOGOS: Record<string, string> = {
   dots: "dots.png",
   apodex:"apodex.png",
 
-  // MuseSpark — 同时注册带连字符别名，匹配模型名前缀 `muse-spark-*`
+  // Muse（Meta Muse / Muse Spark）— 同时注册带连字符与裸词别名，
+  // 匹配模型名前缀 `muse-spark-*` / `muse-wonder-*`
   "muse-spark": "MuseSpark.svg",
+  muse: "MuseSpark.svg",
 
   // 商汤 SenseNova — 模型名前缀 `sensenova-*` / `sensetime-*` 均命中同款图标
   sensenova: "sensenova.png",
@@ -117,11 +116,12 @@ const PROVIDER_LOGOS: Record<string, string> = {
   salesforce: "salesforce.svg",
   modelscope: "modelscope.png",
   hermes: "hermes.png",
-  opencode: "opencode.png",
+  opencode: "opencode.svg",
   openclaw: "openclaw.svg",
   onnx: "onnx.svg",
   grok: "grok.svg",
   bedrock: "bedrock.svg",
+  // Mistral AI
   mistral: "mistral.svg",
   azure: "azure.svg",
 };

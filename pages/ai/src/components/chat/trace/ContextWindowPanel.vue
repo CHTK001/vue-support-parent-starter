@@ -25,26 +25,48 @@
 
     <div v-if="loading && !tokenStats" class="cw-state">读取上下文用量…</div>
 
-    <!-- 分类方块图：每个色块可点击，点一下就把下面明细切到该分类 -->
+    <!--
+      上下文地图：默认画面积图（treemap），可切成方格（等格点阵）。
+      两种画法共用同一份 slices（后端 breakdown + 剩余空间），布局复用 ReChart
+      的 layoutTreemap / assignDots，图标复用 ReChart 导出的 ContextModeIcon，
+      配色沿用本面板的 --el-* 令牌，不写死 hex（需求 4.1 / 4.2 / 4.5）。
+    -->
     <template v-else-if="hasBreakdown || hasWindow">
-      <div class="cw-stack" role="group" aria-label="上下文分类构成">
-        <button
-          v-for="row in catRows"
-          :key="row.key"
-          type="button"
-          class="cw-seg"
-          :class="{ 'is-active': activeTab === row.key }"
-          :style="{ width: row.share + '%', background: row.color }"
-          :title="`${row.label}：${formatTokens(row.value)} token（${formatPercent(row.share)}）`"
-          :aria-label="`${row.label}，${formatTokens(row.value)} token`"
-          @click="pickTab(activeTab === row.key ? 'all' : row.key)"
-        />
-        <div
-          v-if="freeShare > 0"
-          class="cw-seg cw-seg--free"
-          :style="{ width: freeShare + '%' }"
-          :title="`剩余空间：${formatTokens(remainingTokens)} token`"
-        />
+      <div class="cw-chart">
+        <div v-if="viewMode === 'area'" ref="areaRef" class="cw-area" role="group" aria-label="上下文地图">
+          <button
+            v-for="cell in cells"
+            :key="cell.key"
+            type="button"
+            class="cw-cell"
+            :class="{ 'is-active': activeTab === cell.slice.key }"
+            :style="cellStyle(cell)"
+            :title="`${cell.slice.label} · ${formatTokens(cell.slice.tokens)} token`"
+            @click="pickTab(activeTab === cell.slice.key ? 'all' : cell.slice.key)"
+          >
+            <span v-if="cell.w > 56 && cell.h > 26" class="cw-cell__label">{{ cell.slice.label }}</span>
+            <span v-if="cell.w > 56 && cell.h > 44" class="cw-cell__token">{{ formatTokens(cell.slice.tokens) }}</span>
+          </button>
+        </div>
+
+        <div v-else class="cw-grid" role="group" aria-label="上下文方格">
+          <span v-for="(dot, i) in dots" :key="i" class="cw-grid__dot" :class="{ 'is-free': dot.key === 'free' }"
+            :style="{ background: dot.color }" :title="dot.title" />
+        </div>
+
+        <!-- 切换图标：截图里在图表右下角，两枚图标按钮 -->
+        <div class="cw-mode-switch" role="tablist" aria-label="上下文窗口画法">
+          <button type="button" role="tab" class="cw-mode-btn" :class="{ 'is-active': viewMode === 'area' }"
+            :aria-selected="viewMode === 'area'" title="上下文地图（面积图）" aria-label="上下文地图"
+            @click="viewMode = 'area'">
+            <ContextModeIcon mode="area" :size="13" />
+          </button>
+          <button type="button" role="tab" class="cw-mode-btn" :class="{ 'is-active': viewMode === 'grid' }"
+            :aria-selected="viewMode === 'grid'" title="方格" aria-label="方格"
+            @click="viewMode = 'grid'">
+            <ContextModeIcon mode="grid" :size="13" />
+          </button>
+        </div>
       </div>
 
       <div class="cw-legend">
@@ -105,7 +127,7 @@
 
       <div class="cw-rows">
         <div v-for="entry in visibleEntries" :key="entry.id" class="cw-entry">
-          <!-- 每个条目都是一颗可点击的行：点开后在下方展开卡片 -->
+          <!-- 每个条目都是一颗可点击的行：点开后弹出详情浮层（参考图 3） -->
           <button
             type="button"
             class="cw-row"
@@ -127,32 +149,6 @@
             </span>
             <span class="cw-row-chevron" :class="{ 'is-open': expandedId === entry.id }">›</span>
           </button>
-
-          <div v-if="expandedId === entry.id" class="cw-card">
-            <div class="cw-card-head">
-              <span class="cw-card-title">
-                {{ entry.kind === 'file' ? '文件' : entry.kind === 'tool' ? '工具结果' : '内容' }}
-                <span v-if="entry.path" class="cw-card-path" :title="entry.path"> · {{ entry.path }}</span>
-                <span v-else> · {{ entry.title }}</span>
-              </span>
-              <span class="cw-card-token">
-                {{ entry.tokens === null ? 'token 未逐条下发' : formatTokens(entry.tokens) + ' token' }}
-              </span>
-            </div>
-            <p class="cw-card-note">{{ entry.note }}</p>
-            <div class="cw-card-sub">
-              <span v-if="entry.toolName" class="cw-card-tag">{{ entry.toolName }}</span>
-              <span v-if="entry.outcome" class="cw-card-tag" :class="{ 'is-failed': entry.outcome !== 'success' }">
-                {{ entry.outcome === 'success' ? '成功' : entry.outcome }}
-              </span>
-              <span class="cw-card-hint">工具结果{{ entry.toolName ? ' · ' + entry.toolName : '' }}</span>
-            </div>
-            <pre class="cw-code">{{ entry.content || '（该条目没有可展示的正文）' }}</pre>
-            <footer class="cw-card-foot">
-              <span class="cw-card-count">该分类共 {{ countOf(entry.category) }} 条</span>
-              <button type="button" class="cw-card-btn" @click="toggleEntry(entry.id)">收起</button>
-            </footer>
-          </div>
         </div>
 
         <div v-if="!visibleEntries.length" class="cw-rows-empty">
@@ -160,6 +156,40 @@
         </div>
       </div>
     </section>
+
+    <!-- 详情浮层：Teleport 到 body，盖在会话之上（参考图 3 的居中卡片 + 遮罩）。
+         行内展开在 280px 右栏里会把正文挤成一条，改成浮层后正文可读。 -->
+    <Teleport to="body">
+      <div v-if="expandedEntry" class="cw-overlay" @click.self="toggleEntry('')">
+        <section class="cw-modal" role="dialog" aria-modal="true" :aria-label="expandedEntry.title">
+          <header class="cw-modal-head">
+            <span class="cw-modal-kind" :style="{ background: expandedEntry.color }" />
+            <span class="cw-modal-title">
+              {{ expandedEntry.kind === 'file' ? '文件' : expandedEntry.kind === 'tool' ? '工具结果' : '内容' }}
+              · {{ expandedEntry.title }}
+            </span>
+            <span class="cw-modal-token">
+              {{ expandedEntry.tokens === null ? 'token 未逐条下发' : formatTokens(expandedEntry.tokens) + ' token' }}
+            </span>
+            <button type="button" class="cw-modal-close" aria-label="关闭详情" @click="toggleEntry('')">×</button>
+          </header>
+          <p class="cw-card-note">{{ expandedEntry.note }}</p>
+          <div class="cw-card-sub">
+            <span v-if="expandedEntry.toolName" class="cw-card-tag">{{ expandedEntry.toolName }}</span>
+            <span v-if="expandedEntry.outcome" class="cw-card-tag"
+              :class="{ 'is-failed': expandedEntry.outcome !== 'success' }">
+              {{ expandedEntry.outcome === 'success' ? '成功' : expandedEntry.outcome }}
+            </span>
+            <span v-if="expandedEntry.path" class="cw-card-path" :title="expandedEntry.path">{{ expandedEntry.path }}</span>
+          </div>
+          <pre class="cw-code">{{ expandedEntry.content || '（该条目没有可展示的正文）' }}</pre>
+          <footer class="cw-card-foot">
+            <span class="cw-card-count">该分类共 {{ countOf(expandedEntry.category) }} 条</span>
+            <button type="button" class="cw-foot-btn cw-foot-btn--primary" @click="toggleEntry('')">关闭</button>
+          </footer>
+        </section>
+      </div>
+    </Teleport>
 
     <footer class="cw-foot">
       <span class="cw-foot-count">全部条目 · {{ entries.length }}</span>
@@ -186,9 +216,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { apiService } from "@/services/ApiService";
 import { useSessionTokenStats } from "@/composables/useSessionTokenStats";
+import { ContextModeIcon } from "@repo/ui/re-chart";
+import { assignDots, layoutTreemap, type ContextSlice } from "@repo/ui/re-chart";
 
 /**
  * 面板只接收会话标识：
@@ -264,6 +296,122 @@ const freeShare = computed(() => {
   const free = Math.max(0, contextWindow.value - Math.max(usedTokens.value, breakdownSum.value));
   return (free / chartBase.value) * 100;
 });
+
+/* ==================== 上下文地图（面积图 / 方格） ==================== */
+
+/**
+ * 当前画法。默认面积图（treemap），与参考图一致；方格式点阵是第二视图。
+ * 两个视图共用同一份 slices，切视图不改数据、不重新请求。
+ */
+const viewMode = ref<'area' | 'grid'>('area');
+
+/** 面积图容器实测尺寸：treemap 布局需要像素宽高才能切矩形 */
+const areaRef = ref<HTMLElement | null>(null);
+const areaSize = ref({ w: 0, h: 0 });
+
+function syncAreaSize() {
+  const el = areaRef.value;
+  if (!el) {
+    areaSize.value = { w: 0, h: 0 };
+    return;
+  }
+  const box = el.getBoundingClientRect();
+  const next = { w: Math.round(box.width), h: Math.round(box.height) };
+  // 只在真的变了才写：ResizeObserver 每次回调都会读一次，无条件下发会触发多余重算
+  if (next.w !== areaSize.value.w || next.h !== areaSize.value.h) areaSize.value = next;
+}
+
+/**
+ * 面积图尺寸跟踪。
+ *
+ * treemap 是像素布局，容器宽度在右栏拖动 / 抽屉开合 / 切视图时都会变，
+ * 因此不能只在 onMounted 量一次：watch 负责「从方格切回面积图」时重新挂载的 DOM，
+ * ResizeObserver 负责容器自身的尺寸变化。
+ */
+let areaObserver: ResizeObserver | null = null;
+
+function observeArea() {
+  areaObserver?.disconnect();
+  areaObserver = null;
+  syncAreaSize();
+  const el = areaRef.value;
+  if (!el || typeof ResizeObserver === 'undefined') return;
+  areaObserver = new ResizeObserver(syncAreaSize);
+  areaObserver.observe(el);
+}
+
+watch(viewMode, (mode) => {
+  if (mode === 'area') nextTick(observeArea);
+  else areaObserver?.disconnect();
+});
+
+/**
+ * 画图切片：breakdown 的 5 个真实分类 + 剩余空间。
+ *
+ * <p>剩余空间只在窗口已知时补；未知窗口时按构成合计画相对占比，
+ * 不补一条「剩余」——那等于凭空造一个分母。</p>
+ */
+const chartSlices = computed<ContextSlice[]>(() => {
+  // kind 留空：breakdown 的键（systemPrompt/tools/...）不在 ReChart 的 ContextSliceKind 枚举里，
+  // 配色统一由本面板的 catRows 决定，不借用契约里的默认色表。
+  const out: ContextSlice[] = catRows.value
+    .filter((row) => row.value > 0)
+    .map((row) => ({ key: row.key, label: row.label, tokens: row.value }))
+    .sort((a, b) => b.tokens - a.tokens);
+  if (freeShare.value > 0) {
+    const free = Math.max(0, contextWindow.value - Math.max(usedTokens.value, breakdownSum.value));
+    out.push({ key: 'free', label: '剩余空间', tokens: free, kind: 'free' });
+  }
+  return out;
+});
+
+/** treemap 单元格：key/x/y/w/h/slice，坐标为容器内 px */
+const cells = computed(() => {
+  const { w, h } = areaSize.value;
+  if (!w || !h) return [];
+  return layoutTreemap(chartSlices.value, w, h);
+});
+
+/** 方格视图：固定 24×12=288 格，按占比分配（剩余空间一格一色，不吞掉比例） */
+const dots = computed(() => {
+  const slices = chartSlices.value;
+  const total = slices.reduce((sum, s) => sum + Math.max(0, s.tokens), 0);
+  if (total <= 0) return [] as Array<{ key: string; color: string; title: string }>;
+  const count = 288;
+  const assignment = assignDots(slices, total, count);
+  const colorOf = (key: string) => {
+    if (key === 'free') return 'var(--el-fill-color)';
+    return catRows.value.find((row) => row.key === key)?.color || 'var(--el-color-primary)';
+  };
+  return assignment.map((index) => {
+    const slice = slices[index];
+    return {
+      key: slice.key,
+      color: colorOf(slice.key),
+      title: `${slice.label} · ${formatTokens(slice.tokens)} token`,
+    };
+  });
+});
+
+/** 单元格定位与底色：绝对定位 + 1px 间隙，避免相邻色块糊成一片 */
+function cellStyle(cell: { x: number; y: number; w: number; h: number; slice: ContextSlice }) {
+  const free = cell.slice.key === 'free';
+  const color = free
+    ? 'repeating-linear-gradient(135deg, var(--el-fill-color) 0 5px, var(--el-fill-color-dark, var(--el-fill-color-darker)) 5px 10px)'
+    : (catRows.value.find((row) => row.key === cell.slice.key)?.color || 'var(--el-color-primary)');
+  return {
+    left: `${cell.x + 1}px`,
+    top: `${cell.y + 1}px`,
+    width: `${Math.max(0, cell.w - 2)}px`,
+    height: `${Math.max(0, cell.h - 2)}px`,
+    background: color,
+  };
+}
+
+/** 浮层里正在看的那一条；null = 关闭 */
+const expandedEntry = computed<Entry | null>(
+  () => entries.value.find((entry) => entry.id === expandedId.value) || null,
+);
 
 /** 健康徽标：窗口未知不说「健康」，因为分母都没有，健康无从谈起 */
 const healthLabel = computed(() => {
@@ -645,6 +793,8 @@ function holdLoadingFloor() {
 
 onBeforeUnmount(() => {
   if (floorTimer) clearTimeout(floorTimer);
+  areaObserver?.disconnect();
+  areaObserver = null;
 });
 
 function reload() {
@@ -659,6 +809,15 @@ watch(sessionIdRef, () => {
   activeTab.value = "all";
   reload();
 });
+
+/** 图表区是 v-if 出来的：数据到了才有 DOM，到了再量尺寸并挂 ResizeObserver */
+watch(
+  () => hasBreakdown.value || hasWindow.value,
+  (show) => {
+    if (show) nextTick(observeArea);
+    else areaObserver?.disconnect();
+  },
+);
 </script>
 
 <style scoped>
@@ -739,40 +898,126 @@ watch(sessionIdRef, () => {
   padding-left: 12px;
 }
 
-.cw-stack {
-  display: flex;
-  gap: 2px;
-  height: 18px;
+/* ==================== 上下文地图（面积图 / 方格） ====================
+   参考形态：一块固定高度的地图区，右下角两枚图标切画法。
+   面积图用 slice & dice treemap（布局来自 @repo/ui/re-chart 的 layoutTreemap），
+   方格用等格点阵（assignDots），两者共用同一份 slices。 */
+.cw-chart {
+  position: relative;
   margin: 12px 16px 0;
-  border-radius: 4px;
-  overflow: hidden;
-  background: var(--el-fill-color-lighter);
+  min-height: 0;
 }
 
-.cw-seg {
+.cw-area {
+  position: relative;
+  width: 100%;
+  height: 132px;
+  border-radius: var(--el-radius-base, 6px);
+  background: var(--el-fill-color-lighter);
+  overflow: hidden;
+}
+
+.cw-cell {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 2px;
+  padding: 5px 7px;
   border: 0;
-  padding: 0;
-  min-width: 3px;
+  border-radius: 3px;
+  overflow: hidden;
   cursor: pointer;
+  color: var(--el-color-white);
+  text-align: left;
   transition: filter var(--el-transition-duration-fast, 0.2s) ease;
 }
-.cw-seg:hover {
-  filter: brightness(1.12);
+
+.cw-cell:hover {
+  filter: brightness(1.1);
 }
-.cw-seg.is-active {
+
+.cw-cell.is-active {
   box-shadow: inset 0 0 0 2px var(--el-text-color-primary);
 }
-.cw-seg--free {
-  cursor: default;
-  /* 剩余空间用斜纹，不占实色：避免被误读成又一种「已用内容」 */
-  background: repeating-linear-gradient(
-    135deg,
-    var(--el-fill-color) 0 4px,
-    var(--el-fill-color-dark, var(--el-fill-color-darker)) 4px 8px
-  );
+
+.cw-cell__label,
+.cw-cell__token {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
+  text-shadow: 0 1px 2px color-mix(in srgb, #000 28%, transparent);
 }
-.cw-seg--free:hover {
-  filter: none;
+.cw-cell__label {
+  font-size: 11px;
+  font-weight: 600;
+}
+.cw-cell__token {
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.92;
+}
+
+.cw-grid {
+  display: grid;
+  grid-template-columns: repeat(24, 1fr);
+  gap: 2px;
+  width: 100%;
+  height: 132px;
+  align-content: start;
+  padding: 1px;
+}
+
+.cw-grid__dot {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 1.5px;
+  background: var(--el-color-primary);
+}
+.cw-grid__dot.is-free {
+  background: var(--el-fill-color);
+}
+
+/* 画法切换：右下角浮层，两枚图标按钮（选中态用主色描边而不是实底，避免抢色块的视觉） */
+.cw-mode-switch {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--el-radius-base, 6px);
+  background: color-mix(in srgb, var(--el-bg-color) 88%, transparent);
+  border: 1px solid var(--el-border-color-lighter);
+  backdrop-filter: blur(4px);
+}
+
+.cw-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+.cw-mode-btn:hover {
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-regular);
+}
+
+.cw-mode-btn.is-active {
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
 }
 
 .cw-legend {
@@ -878,6 +1123,85 @@ watch(sessionIdRef, () => {
   flex-direction: column;
   border-top: 1px solid var(--el-border-color-lighter);
   margin-top: 4px;
+}
+
+/* ==================== 详情浮层 ====================
+   行内展开在 280px 右栏里正文只有几个字宽，改为 Teleport 到 body 的居中浮层。
+   层级 3000：要压过 element-plus 弹层（2000 起）与工作区抽屉。 */
+.cw-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: color-mix(in srgb, #000 42%, transparent);
+}
+
+.cw-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(760px, 100%);
+  max-height: min(80vh, 720px);
+  padding: 16px 18px 14px;
+  border-radius: var(--el-radius-lg, 10px);
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-light);
+  box-shadow: 0 18px 48px color-mix(in srgb, #000 30%, transparent);
+  color: var(--el-text-color-primary);
+}
+
+.cw-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.cw-modal-kind {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.cw-modal-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.cw-modal-token {
+  flex-shrink: 0;
+  color: var(--el-text-color-secondary);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cw-modal-close {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.cw-modal-close:hover {
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
 }
 
 .cw-detail-head {

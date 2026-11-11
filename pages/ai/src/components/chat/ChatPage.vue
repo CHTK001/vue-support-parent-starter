@@ -41,8 +41,8 @@
                     <Timeline20Filled class="w-5 h-5" />
                   </div>
                   </LTooltip>
-                  <!-- 内置浏览器：打开内嵌浏览器，默认显示「鹈鹕骑车」动画预览 -->
-                  <LTooltip v-if="mainSession?.id" content="内置浏览器" placement="bottom">
+                  <!-- 内置浏览器：点开工作区（内含浏览器标签），不再加载写死的演示页 -->
+                  <LTooltip v-if="mainSession?.id" content="打开工作区与内置浏览器" placement="bottom">
                   <div class="header-icon-btn" :class="{ active: builtinBrowserActive }" title="内置浏览器"
                     role="button" tabindex="0" aria-label="内置浏览器" :aria-pressed="builtinBrowserActive"
                     @click="openBuiltinBrowser"
@@ -87,6 +87,7 @@
                         @switch-agent="switchTab"
                         @save-settings="handleSaveSessionSettings"
                         @open-session="handleOpenSession"
+                        @open-context="openContextPanel"
                         @select-character="handleSelectCharacter" />
                     </Teleport>
 
@@ -172,7 +173,6 @@ import {
   // FileUploadOutlined
 } from "@vicons/material";
 import { PanelRightExpand20Filled, DataUsage20Filled, Timeline20Filled, Globe20Filled } from "@vicons/fluent";
-import { previewUrl, buildPelicanBikeUrl } from '@/utils/workspacePreview';
 
 
 const ChatOutline = defineAsyncComponent(() => import("./ChatOutline.vue"));
@@ -190,6 +190,18 @@ const showTracePanel = ref(false);
  */
 function toggleTracePanel() {
   showTracePanel.value = !showTracePanel.value;
+}
+
+/**
+ * 底部「上下文窗口」图标入口。
+ *
+ * 打开的是执行轨迹面板（内含「上下文窗口」页签），不是右侧的工作状态抽屉：
+ * 抽屉里只有一行百分比，而用户点这个入口想看的是 map + 明细。
+ * 轨迹面板默认就落在上下文页签，因此这里只负责把面板打开、把抽屉让开。
+ */
+function openContextPanel() {
+  showStatusPanel.value = false;
+  showTracePanel.value = true;
 }
 
 // 会话工作状态面板显示状态
@@ -400,19 +412,19 @@ const builtinBrowserActive = computed(() => {
 });
 
 /**
- * 打开内置浏览器，默认加载「鹈鹕骑车」动画预览
+ * 打开内置浏览器：按需求不再加载写死的「鹈鹕骑车」data URL 演示页，
+ * 只把工作区展开并回到目录视图 —— 浏览器标签由工作区内按需创建。
+ *
+ * 原先 previewUrl(buildPelicanBikeUrl()) 每次都新建一张内嵌浏览器标签并挂上
+ * 一份内联 SVG 动画，与会话内容无关，且会强制把工作区带出来（用户报障 3 / 3.1）。
  */
 async function openBuiltinBrowser(): Promise<void> {
   if (!mainSession.value) {
     toast.warning(t('chat.panel.noActiveSession'));
     return;
   }
-  try {
-    await previewUrl(buildPelicanBikeUrl());
-  } catch (error) {
-    console.error('[ChatPage] 打开内置浏览器失败:', error);
-    toast.error(t('common.error.operationFailed'));
-  }
+  layoutStore.workspaceVisible = true;
+  tabStore.exitPreviewMode();
 }
 
 /**

@@ -280,24 +280,7 @@
               <pre class="ws-script-body ws-script-item">{{ actDetail.script }}</pre>
             </div>
 
-            <!-- 素材（折叠） -->
-            <details v-if="actAssetSections().length" class="ws-assets">
-              <summary class="ws-assets-sum">素材 {{ assetDone(actDetail) }} / {{ assetTotal(actDetail) }}</summary>
-              <div class="ws-assets-grid">
-                <div v-for="sec in actAssetSections()" :key="sec.key" class="ws-asset-sec ws-act-asset-section">
-                  <div class="ws-asset-head">{{ sec.label }}（{{ sec.items?.length }}）</div>
-                  <div class="ws-asset-card ws-act-asset-card" v-for="it in sec.items" :key="it.name">
-                    <span class="ws-asset-name">{{ it.name }}</span>
-                    <span class="ws-asset-desc">{{ it.desc || it.text || '暂无描述' }}</span>
-                    <!-- 纯文本形态不产出素材，状态一律是「无需求」，显示它会让用户以为出错 -->
-                    <span v-if="it.mediaImage && it.mediaImage.status !== 'NO_PROMPT'" class="ws-tag sm ws-act-media-status" :class="mediaStatusClass(it.mediaImage)">图 · {{ mediaStatusName(it.mediaImage) }}</span>
-                    <span v-if="it.mediaVideo && it.mediaVideo.status !== 'NO_PROMPT'" class="ws-tag sm ws-act-media-status"
-                      :class="mediaStatusClass(it.mediaVideo)"
-                      :title="mediaModeName(it.mediaVideo)">{{ mediaModeName(it.mediaVideo) }}</span>
-                  </div>
-                </div>
-              </div>
-            </details>
+            <!-- 素材区已按验收要求移除：舞台不再展示素材清单，只保留演出正文 -->
           </template>
 
           <!-- 未选幕次：现场对话 -->
@@ -362,55 +345,18 @@
           </template>
         </div>
 
-        <!-- 底部：演出的幕次只读，不给输入框；对话视图才允许介入 -->
+        <!-- 底部：演出幕次只读；对话视图只留「观演」，不提供介入输入的输入框 -->
         <div v-if="!currentAct" class="ws-input">
-          <template v-if="readingOnly">
-            <div class="ws-watch-bar">
-              <span class="ws-watch-hint">只读账号：你只能看。角色与关系可微调，剧情由 AI 推进。</span>
-              <button class="btn primary" type="button" :disabled="spectating || !canSpectate"
-                :title="canSpectate ? '让 AI 在这个场景继续演一段' : '先在场景页签里选一个场景'"
-                @click="spectate">
-                <el-icon v-if="!spectating"><VideoPlay /></el-icon>
-                <span v-else class="ws-spin"><el-icon><Loading /></el-icon></span>
-                观演一次
-              </button>
-            </div>
-          </template>
-          <template v-else>
-            <div v-if="pendingAt" class="ws-at-chip">
-              <el-tag closable type="primary" @close="pendingAt = null">@{{ pendingAt.displayName }}</el-tag>
-            </div>
-            <div class="ws-input-tools">
-              <div class="ws-at-wrap">
-                <button class="ws-tool" type="button" title="@ 某位角色" @click="atMenuVisible = !atMenuVisible">
-                  <span class="ws-tool-at">@</span>
-                </button>
-                <div v-if="atMenuVisible" class="ws-at-menu">
-                  <div v-if="!npcs.length" class="ws-at-empty">世界里还没有角色</div>
-                  <div v-for="n in npcs" :key="n.id" class="ws-at-item" @click="onPickAt(n)">
-                    <CardAvatar :src="n.displayAvatar" :name="n.displayName || 'AI'" size="sm" />
-                    <span class="ws-at-name">{{ n.displayName }}</span>
-                    <span class="ws-at-scene">{{ sceneNameOf(n.sceneId) }}</span>
-                  </div>
-                </div>
-              </div>
-              <button class="ws-tool ws-tool-watch" type="button" :disabled="spectating || !canSpectate"
-                title="不说话，让 AI 自己演一小段" @click="spectate">观演</button>
-            </div>
-            <textarea
-              ref="taInputRef"
-              v-model="draft"
-              class="ws-textarea"
-              rows="3"
-              placeholder="介入这一幕：说一句话或做一个动作（不填也可点「观演」交给 AI）"
-              @keydown.enter.exact.prevent="send"
-              @keydown.enter.shift.exact="onShiftEnter"
-            ></textarea>
-            <div class="ws-input-foot">
-              <span class="ws-foot-hint">回车发送 · Shift + 回车换行</span>
-              <button class="ws-send" type="button" :class="{ ready: draft.trim() }" @click="send">行动(S)</button>
-            </div>
-          </template>
+          <div class="ws-watch-bar">
+            <span class="ws-watch-hint">{{ readingOnly ? '只读账号：' : '' }}你只能看。角色与关系可微调，剧情由 AI 推进。</span>
+            <button class="btn primary" type="button" :disabled="spectating || !canSpectate"
+              :title="canSpectate ? '让 AI 在这个场景继续演一段' : '先在场景页签里选一个场景'"
+              @click="spectate">
+              <el-icon v-if="!spectating"><VideoPlay /></el-icon>
+              <span v-else class="ws-spin"><el-icon><Loading /></el-icon></span>
+              观演一次
+            </button>
+          </div>
         </div>
       </template>
 
@@ -562,6 +508,19 @@
           </el-radio-group>
           <span class="ws-hint">{{ MEDIA_MODE_HINT[mediaForm.mediaMode] }}</span>
         </div>
+        <div class="ws-field">
+          <label class="ws-label">导演模型</label>
+          <el-select v-model="worldForm.directorModel" placeholder="留空使用全局默认模型" clearable filterable style="width: 100%">
+            <el-option v-for="m in directorModels" :key="m" :label="m" :value="m" />
+          </el-select>
+          <span class="ws-hint">世界的剧本导演用哪个模型写剧本；留空则沿用默认</span>
+        </div>
+        <div class="ws-field">
+          <label class="ws-label">演员（一行一个）</label>
+          <el-input v-model="worldForm.actorRoles" type="textarea" :rows="3"
+            placeholder="如：诸葛亮&#10;曹操&#10;刘备" />
+          <span class="ws-hint">导演可用的角色；留空由 AI 按世界观随机安排</span>
+        </div>
       </div>
       <template #footer>
         <el-button @click="randomCreate">随机生成</el-button>
@@ -610,6 +569,19 @@
             <el-option v-for="m in mediaForm.videoModels" :key="m" :label="m" :value="m" />
           </el-select>
           <span class="ws-hint">选哪个模型，决定了是文生视频还是图生视频；未配置时按场景图自动走图生视频。</span>
+        </div>
+        <div class="ws-field">
+          <label class="ws-label">导演模型</label>
+          <el-select v-model="worldForm.directorModel" placeholder="留空使用全局默认模型" clearable filterable style="width: 100%">
+            <el-option v-for="m in directorModels" :key="m" :label="m" :value="m" />
+          </el-select>
+          <span class="ws-hint">世界的剧本导演用哪个模型写剧本；留空则沿用默认</span>
+        </div>
+        <div class="ws-field">
+          <label class="ws-label">演员（一行一个）</label>
+          <el-input v-model="worldForm.actorRoles" type="textarea" :rows="3"
+            placeholder="如：诸葛亮&#10;曹操&#10;刘备" />
+          <span class="ws-hint">导演可用的角色；留空由 AI 按世界观随机安排</span>
         </div>
       </div>
       <template #footer>
@@ -684,6 +656,13 @@
             <label class="ws-label">参与演出</label>
             <el-switch v-model="npcEditForm.isActive" active-text="参与" inactive-text="挂起" />
             <span class="ws-hint">挂起的角色不会自动开口</span>
+          </div>
+          <div class="ws-field">
+            <label class="ws-label">演员模型</label>
+            <el-select v-model="npcEditForm.modelOverride" placeholder="留空沿用世界默认模型" clearable filterable style="width: 100%">
+              <el-option v-for="m in directorModels" :key="m" :label="m" :value="m" />
+            </el-select>
+            <span class="ws-hint">这个角色用什么模型开口；不选则沿用世界当前导演模型</span>
           </div>
         </div>
         <!-- 右栏：性格与关系 -->
@@ -879,6 +858,8 @@ const worldForm = reactive({
   era: '现代',
   weather: '晴',
   description: '',
+  directorModel: '',
+  actorRoles: '',
 })
 const sceneForm = reactive({ name: '', description: '' })
 
@@ -894,12 +875,14 @@ const mediaForm = reactive<{ mediaMode: 'text' | 'video' | 'image'; videoModel: 
   videoModel: '',
   videoModels: [],
 })
+/** 导演/演员模型候选项（来自文本模型列表，供世界设置与 NPC 微调的下拉用） */
+const directorModels = ref<string[]>([])
 const savingWorld = ref(false)
 const npcCreateForm = reactive<{ count: number; hint: string }>({ count: 2, hint: '' })
 const npcEditTarget = ref<WorldNpc | null>(null)
 const npcEditForm = reactive<{
-  nickname: string; persona: string; sceneId: number | null; isActive: boolean;
-}>({ nickname: '', persona: '', sceneId: null, isActive: true })
+  nickname: string; persona: string; sceneId: number | null; isActive: boolean; modelOverride: string;
+}>({ nickname: '', persona: '', sceneId: null, isActive: true, modelOverride: '' })
 const relEditTarget = ref<WorldRelationship | null>(null)
 const relEditForm = reactive<{ affinity: number; relationTag: string; memo: string }>({
   affinity: 0, relationTag: '', memo: '',
@@ -1267,7 +1250,10 @@ function openCreateWorld() {
   worldForm.era = '现代'
   worldForm.weather = '晴'
   worldForm.description = ''
+  worldForm.directorModel = ''
+  worldForm.actorRoles = ''
   void loadMediaSettings()
+  void loadDirectorModels()
   createVisible.value = true
 }
 
@@ -1292,7 +1278,9 @@ async function confirmCreate() {
   const era = worldForm.era || '现代'
   creating.value = true
   try {
-    const w = await apiService.createWorld(name || `${ERA_PREFIX[era] ?? '世界'} ${Math.floor(Math.random() * 10000)}`, desc, era)
+    const w = await apiService.createWorld(
+      name || `${ERA_PREFIX[era] ?? '世界'} ${Math.floor(Math.random() * 10000)}`,
+      desc, era, worldForm.directorModel, worldForm.actorRoles)
     // 出片方式是全站设置：新建世界时按这里选的写一次，免得用户建完还得再进设置改
     await saveMediaSettings()
     await loadWorlds()
@@ -1312,7 +1300,10 @@ function openWorldEdit() {
   worldForm.era = currentWorld.value.era || '现代'
   worldForm.weather = currentWorld.value.weather || '晴'
   worldForm.description = currentWorld.value.description || ''
+  worldForm.directorModel = currentWorld.value.directorModel || ''
+  worldForm.actorRoles = currentWorld.value.actorRoles || ''
   void loadMediaSettings()
+  void loadDirectorModels()
   editVisible.value = true
 }
 
@@ -1345,6 +1336,26 @@ async function loadVideoModels() {
   }
 }
 
+/** 可选对话模型（导演/演员下拉）：从供应商模型里挑能 chat 的，只留名字去重 */
+async function loadDirectorModels() {
+  try {
+    const list = await apiService.fetchModels() as any
+    const providers = Array.isArray(list) ? list : (list?.items ?? list?.data ?? [])
+    const names: string[] = []
+    for (const p of providers) {
+      for (const m of (p?.models ?? [])) {
+        const caps = (m as any)?.capabilities ?? []
+        const isChat = Array.isArray(caps) && caps.some((c: any) => String(c?.task) === 'chat')
+        const name = typeof m === 'string' ? m : (m?.model ?? m?.name ?? '')
+        if (name && (isChat || !Array.isArray(caps))) names.push(String(name))
+      }
+    }
+    directorModels.value = [...new Set(names)]
+  } catch {
+    directorModels.value = []
+  }
+}
+
 /** 把出片方式写回 sim 分组设置（只提交出片相关键，避免覆盖别人改的其他设置） */
 async function saveMediaSettings() {
   const payload: Record<string, string> = { media_mode: mediaForm.mediaMode }
@@ -1362,6 +1373,9 @@ async function confirmEdit() {
       era: worldForm.era,
       weather: worldForm.weather,
       description: worldForm.description,
+      // 导演/演员配置：snake_case 与后端 updateWorld 读取一致
+      director_model: worldForm.directorModel,
+      actor_roles: worldForm.actorRoles,
     })
     await saveMediaSettings()
   } catch (e: any) {
@@ -1505,6 +1519,8 @@ function openNpcEdit(n: WorldNpc) {
   npcEditForm.persona = n.persona || ''
   npcEditForm.sceneId = n.sceneId ?? null
   npcEditForm.isActive = n.isActive !== false
+  npcEditForm.modelOverride = n.modelOverride || ''
+  void loadDirectorModels()
   for (const r of relationships.value) {
     if (r.fromNpcId === n.id || r.toNpcId === n.id) relDraft[r.id] = r.affinity ?? 0
   }
@@ -1521,6 +1537,7 @@ async function confirmEditNpc() {
       persona: npcEditForm.persona || null,
       sceneId: npcEditForm.sceneId ?? null,
       isActive: npcEditForm.isActive,
+      modelOverride: npcEditForm.modelOverride || null,
     })
     // 关系程度一并保存：观众能微调的就这两样（性格 + 关系）
     const changed = npcRelations.value.filter((r) => (r.affinity ?? 0) !== relDraft[r.id])
@@ -2095,7 +2112,12 @@ async function actPipelineAction(btn: { stage?: string; label?: string; action?:
       let total = 0
       // 上限按场次数放：writing/props_ok 各占 1 轮，演出每场 1 轮，再多留几轮余量
       for (let i = 0; i < 32; i += 1) {
-        next = await apiService.advanceWorldAct(currentWorldId.value, no) as WorldActAdvance
+        try {
+          next = await apiService.advanceWorldAct(currentWorldId.value, no) as WorldActAdvance
+        } catch {
+          // 上一拍刚把这一幕推到 replay：直接放弃本轮，观众看到的是现有结果
+          break
+        }
         const st = String(next?.act?.stage ?? '')
         const done = Number(next?.playedScenes ?? 0)
         const all = Number(next?.totalScenes ?? 0)

@@ -155,7 +155,15 @@
           @click="openModelDialog(item.field)"
         >
           <template #prefix>
-            <img v-if="modelLogo(item.field)" :src="modelLogo(item.field) ?? undefined" alt="" class="w-4 h-4 object-contain" />
+            <!-- 输入框左侧图标与弹框行同一套回退链：模型 logo → 上游通道 → 供应商 logo。
+                 原先取不到模型图时一律画 OpenAI 图标，聚合渠道里会误标成 OpenAI。 -->
+            <ModelRowLogo
+              v-if="selectedModelRow(item.field)"
+              :model="selectedModelRow(item.field)?.model"
+              :provider="selectedModelRow(item.field)?.provider"
+              :size="16"
+              class="mr-1"
+            />
             <OpenAI v-else class="w-4 h-4" />
           </template>
           <template #suffix>
@@ -165,33 +173,17 @@
       </SettingsRow>
     </SettingsCard>
 
-    <ReDialog :close-on-click-modal="true" v-model="modelDialogVisible" title="选择模型" width="600px">
-      <div class="md-body">
-        <el-input v-model="modelSearchText" placeholder="搜索模型..." clearable>
-          <template #prefix>
-            <el-icon><Search /></el-icon>
-          </template>
-        </el-input>
-        <div class="md-list">
-          <div v-for="provider in filteredProviders" :key="provider.id">
-            <div class="md-provider">{{ provider.name }}</div>
-            <div v-for="model in provider.models" :key="model.id" class="md-row" @click="selectModel(model.id)">
-              <div class="md-row-left">
-                <span class="md-name">{{ model.model }}</span>
-              </div>
-              <el-icon v-if="tempModelId === model.id" class="md-check" :size="18"><CheckCircleFilled /></el-icon>
-            </div>
-          </div>
-          <div v-if="filteredProviders.length === 0" class="md-empty">
-            <div class="md-empty-main">没有匹配「对话」类型的模型</div>
-            <div class="md-empty-sub">请先在「模型管理」中添加对应类型的模型</div>
-          </div>
-        </div>
-      </div>
-      <template #footer>
-        <ReButton type="default" @click="clearModelField">清空（使用默认）</ReButton>
-      </template>
-    </ReDialog>
+    <!-- 模型选择弹框：与「默认模型」页共用 ModelPickerDialog（搜索 / 供应商分组 /
+         类型标签 / 输入输出 / 延迟 / 图标回退链 / 清空），不再在本页单独实现一套。 -->
+    <ModelPickerDialog
+      :visible="modelDialogVisible"
+      :providers="providers"
+      :selected-id="tempModelId"
+      empty-text="没有匹配「对话」类型的模型"
+      @update:visible="(v) => (modelDialogVisible = v)"
+      @select="selectModel"
+      @clear="clearModelField"
+    />
   </div>
 </template>
 
@@ -205,12 +197,11 @@ import SettingsCard from './SettingsCard.vue'
 import SettingsRow from './SettingsRow.vue'
 import { InfoFilled } from '@element-plus/icons-vue'
 import { adminApi } from '@/framework/context'
-import { Search, ArrowDown } from '@element-plus/icons-vue'
-import { CheckCircleFilled } from '@vicons/material'
+import { ArrowDown } from '@element-plus/icons-vue'
 import { OpenAI } from '@/components/icons'
-import ReDialog from '@repo/ui/re-dialog'
-import ReButton from '@/components/ui/ReButton.vue'
-import { getModelAvatarPath } from '@/utils/modelUtils'
+import ModelPickerDialog from './dms/ModelPickerDialog.vue'
+import ModelRowLogo from '@/components/models/ModelRowLogo.vue'
+import { mapProviderModel, findPickedModel } from '@/components/models/modelMeta'
 import { invalidateInitialLoadTurnsCache } from '../../services/modules/message.api'
 
 const { t } = useI18n()
@@ -300,7 +291,6 @@ const runtimeValues = ref<Record<string, any>>({})
 
 /** 模型弹框状态 */
 const modelDialogVisible = ref(false)
-const modelSearchText = ref('')
 const currentField = ref('')
 const tempModelId = ref('')
 
@@ -311,6 +301,10 @@ let modelsLoadPromise: Promise<void> | null = null
 
 /**
  * 加载模型列表（in-flight 去重，避免 onMounted 与弹框并发触发双份请求）。
+ *
+ * <p>候选行由 {@code mapProviderModel} 统一构造：类型标签、输入/输出、延迟与
+ * 「这一行真正接的上游通道」都带上，弹框才能与「默认模型」页长得一样。
+ * 这四个字段都是对话路由，只保留能跑对话（含 text 类型）的模型。</p>
  */
 const loadModels = () => {
   if (modelsLoadPromise) return modelsLoadPromise
@@ -321,12 +315,11 @@ const loadModels = () => {
       const all: any[] = []
       const provs: any[] = []
       for (const p of data) {
-        const list = (p.models || []).filter((m: any) => m.enabled !== false).map((m: any) => ({
-          id: `${p.provider_id}:${m.model}`,
-          model: m.model,
-          providerId: p.provider_id,
-          providerName: p.name,
-        }))
+        if (!p?.provider_id) continue
+        const list = (p.models || [])
+          .filter((m: any) => m.enabled !== false)
+          .map((m: any) => mapProviderModel(p, m))
+          .filter((m: any) => (m.types || []).includes('text'))
         if (list.length) {
           all.push(...list)
           provs.push({ id: p.provider_id, name: p.name, models: list })
@@ -342,15 +335,6 @@ const loadModels = () => {
   })()
   return modelsLoadPromise
 }
-
-/** 过滤后的模型列表：模板里引用了未声明的 computed，先用 computed 包一层保持响应式 */
-const filteredProviders = computed(() => {
-  const kw = modelSearchText.value.trim().toLowerCase()
-  if (!kw) return providers.value
-  return providers.value
-    .map((p) => ({ ...p, models: p.models.filter((m: any) => m.model.toLowerCase().includes(kw)) }))
-    .filter((p) => p.models.length > 0)
-})
 
 /**
  * runtime 分组合并视图里取字段值。
@@ -372,16 +356,15 @@ const displayValue = (field: string): string => {
 }
 
 /**
- * 模型字段的 logo（值形如 providerId:model，剥前缀后取本地图标）。
+ * 模型字段当前选中的模型行（值形如 providerId:model）。
+ *
+ * <p>只给输入框左侧的图标用：优先取已加载的候选行（带 description，
+ * 能还原这一行真正接的上游通道），与弹框行同一套回退链。</p>
  *
  * @param field 字段名
+ * @returns 模型行；未配置时返回 null
  */
-const modelLogo = (field: string): string | null => {
-  const v = String(runtimeItem(field)?.value ?? '')
-  if (!v) return null
-  const name = v.includes(':') ? v.split(':').slice(1).join(':') : v
-  return getModelAvatarPath(name)
-}
+const selectedModelRow = (field: string) => findPickedModel(runtimeItem(field)?.value, providers.value)
 
 /**
  * 打开模型选择弹框。
@@ -758,58 +741,5 @@ onMounted(() => {
 .session-config-note b {
   color: var(--el-text-color-regular);
   font-weight: 600;
-}
-
-/* 模型选择弹框：与 DefaultModelSettings 同一套结构，样式就近维护 */
-.md-body {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.md-list {
-  max-height: 360px;
-  overflow-y: auto;
-}
-.md-provider {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  padding: 6px 4px;
-}
-.md-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 10px;
-  border-radius: var(--el-radius-md, 8px);
-  cursor: pointer;
-}
-.md-row:hover {
-  background: var(--el-fill-color-light);
-}
-.md-row-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-.md-name {
-  font-size: 13px;
-  color: var(--el-text-color-primary);
-}
-.md-check {
-  color: var(--el-color-primary);
-}
-.md-empty {
-  text-align: center;
-  padding: 24px 0;
-}
-.md-empty-main {
-  font-size: 13px;
-  color: var(--el-text-color-regular);
-}
-.md-empty-sub {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  margin-top: 4px;
 }
 </style>

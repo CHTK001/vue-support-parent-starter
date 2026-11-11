@@ -99,28 +99,28 @@
               </template>
             </el-input>
 
-            <!-- 批量操作工具栏：勾中卡片才出现（用户需求 2：空态不渲染，别留一块带底色的占位）。
-                 整块只在可写时出现：勾选、启停、批量删除全是 admin-only 接口，
-                 只读账号没有可执行的动作。 -->
+            <!-- 批量操作工具栏：**保持原逻辑——勾中卡片才出现**（空态/未选不渲染、不占位）。
+                 全选 / 反选放在「批量删除」旁边，与其它批量动作同一条工具栏里。
+                 整块只在可写时出现：勾选、启停、批量删除全是 admin-only 接口。 -->
             <div v-if="canWrite && selected.length > 0" class="batch-toolbar">
-              <template v-if="selected.length > 0">
-                <span class="batch-count">已选 {{ selected.length }} 个</span>
-                <span
-                  class="batch-select-all"
-                  :class="{ 'is-all': selected.length === filteredModels.length && filteredModels.length > 0 }"
-                  @click="toggleSelectAllFiltered"
-                >{{ selected.length === filteredModels.length ? '取消全选' : '全选当前筛选' }}</span>
-                <el-button size="small" type="success" @click="batchEnable">启用</el-button>
-                <el-button size="small" type="warning" @click="batchDisable">停用</el-button>
-                <el-button
-                  size="small"
-                  type="danger"
-                  plain
-                  :loading="batchDeleting"
-                  @click="batchDelete"
-                >批量删除</el-button>
-                <el-button size="small" @click="clearSelection">取消</el-button>
-              </template>
+              <span class="batch-count">已选 {{ selected.length }} 个</span>
+              <el-button size="small" type="success" @click="batchEnable">启用</el-button>
+              <el-button size="small" type="warning" @click="batchDisable">停用</el-button>
+              <el-button
+                size="small"
+                :type="allFilteredSelected ? 'primary' : 'default'"
+                plain
+                @click="toggleSelectAllFiltered"
+              >{{ allFilteredSelected ? '取消全选' : '全选' }}</el-button>
+              <el-button size="small" plain @click="invertSelection">反选</el-button>
+              <el-button
+                size="small"
+                type="danger"
+                plain
+                :loading="batchDeleting"
+                @click="batchDelete"
+              >批量删除</el-button>
+              <el-button size="small" @click="clearSelection">取消</el-button>
             </div>
           </div>
 
@@ -168,18 +168,19 @@
           <article v-for="model in filteredModels" :key="model.id" class="mc"
             :class="{ 'is-selected': selected.includes(getModelId(model)), 'is-off': !model.isActive }">
             <div class="mc-head">
-              <!-- 模型没有专属 logo、或那张图根本加载不出来时，回退到**自己供应商**的 logo。
+              <!-- 模型没有专属 logo、或那张图根本加载不出来时，先回退到**这一行真正接的上游通道**
+                   （免费聚合渠道按路由拆到 opencode / kilo / xort），最后才回退**本供应商**的 logo。
                    只判「路径为空」不够：路径存在 ≠ 资源存在（旧图 404 会先破图再落回首字），
                    所以补一条 error 兜底，由 Avatar 的 error 事件登记。 -->
               <ProviderLogo
                 v-if="!getModelAvatar(model) || avatarFailed.has(getModelId(model))"
-                :pid="getProviderIcon(provider)"
-                :name="provider?.name"
+                :pid="getModelChannelBrand(model) || getProviderIcon(provider)"
+                :name="getModelChannelBrand(model) || provider?.name"
                 size="md"
                 class="w-10 h-10 shrink-0 mr-3"
               />
               <Avatar v-else class="w-10 h-10 shrink-0 mr-3" :src="getModelAvatar(model)"
-                :name="getModelDisplayName(model.modelName)" type="assistant" :round="false"
+                :name="getModelDisplayName(model.modelName)" type="assistant" :round="false" fit="contain"
                 @error="avatarFailed.add(getModelId(model))" />
               <div class="mc-head-text min-w-0">
                 <span class="mc-name" :title="model.alias ? `${model.alias} · ${model.modelName}` : getModelDisplayName(model.modelName)">
@@ -228,12 +229,12 @@
             </div>
 
             <!-- 参数与官方指标：手填值优先，缺失回退指标表（sys_ai_model_metrics）。
-                 本版把指标做成 2×2 等宽色块：同一行里的「输入 / 输出」或
-                 「价格 / 速度」可以直接横向比较，比一行小字更容易扫读。
-                 输入 / 输出 / 价格 / 速度 四项**恒定渲染**（缺数据显示 —），
-                 保证每张卡都是同样的 2×2、行高一致；最近使用 / 延迟 / 首字 /
-                 智能 这类附加指标仍是「有数据才占位」。 -->
-            <div v-if="cardMeta(model).length" class="mc-meta">
+                 恒定 6 格：输入 / 输出（文生图换成 张数 / 参考图）、价格、速度、智能、全知。
+                 缺值一律显示 —；每格都带一条恒定占位的副行（首字 TTFT / HLE 放副行），
+                 所以同一栏里每张卡的格数、格高完全相同 —— 这是卡片等高的前提。
+                 曾经只有前四项恒定、其余「有数据才占位」，格数在 4~10 之间浮动，
+                 flex 换行行数跟着变，claude-fable-5 多一格「全知」就比邻卡高一行。 -->
+            <div class="mc-meta">
               <span
                 v-for="(item, mi) in cardMeta(model)"
                 :key="item.label"
@@ -243,7 +244,15 @@
               >
                 <span class="mc-meta-label">{{ item.label }}</span>
                 <span class="mc-meta-val">{{ item.value }}</span>
+                <!-- 副行空着也占位：否则「有没有首字 / HLE」会把同排卡片撑出不同高度 -->
+                <span class="mc-meta-sub">{{ item.sub }}</span>
               </span>
+              <!-- 附加信息（最近使用 / 延迟）：不占 6 格，收进右上角 +N，悬停看明细 -->
+              <span
+                v-if="extraMeta(model).length"
+                class="mc-extra"
+                :title="extraMeta(model).map((e: any) => `${e.label}：${e.value}`).join('\n')"
+              >+{{ extraMeta(model).length }}</span>
             </div>
 
             <!-- 底部：与其它供应商一致（启用开关 + 编辑 + 删除） -->
@@ -339,6 +348,7 @@ import {
   CONTEXT_SIZE_TAGS, matchesContextTags,
 } from '@/utils/modelUtils'
 import ProviderLogo from './ProviderLogo.vue'
+import { resolveModelChannelBrand } from './providerIcons'
 import ModelFormDialog from './ModelFormDialog.vue'
 import ModelFetchDialog from './ModelFetchDialog.vue'
 import ModelTagStrip from './ModelTagStrip.vue'
@@ -398,6 +408,34 @@ const selected = ref<string[]>([])
 /** 清空已选模型（批量操作栏的「取消」） */
 const clearSelection = () => {
   selected.value = []
+}
+
+/**
+ * 当前筛选结果是否已全选。
+ *
+ * <p>供批量工具栏的「全选」按钮切文案与样式；空列表返回 false，
+ * 避免出现「已全选 0 个」的怪状态。</p>
+ */
+const allFilteredSelected = computed(() => {
+  const list = filteredModels.value
+  return list.length > 0 && list.every((m) => selected.value.includes(getModelId(m)))
+})
+
+/**
+ * 反选当前筛选结果。
+ *
+ * <p>只作用于**当前筛选出的行**：逐行翻转是否选中，
+ * 其它筛选条件下已勾选的模型不受影响（与「全选」的语义一致）。</p>
+ */
+const invertSelection = () => {
+  const ids = filteredModels.value.map(getModelId)
+  if (!ids.length) return
+  const next = new Set(selected.value)
+  for (const id of ids) {
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+  }
+  selected.value = Array.from(next)
 }
 
 /**
@@ -549,6 +587,18 @@ const getModelAvatar = (model: any) => {
 }
 
 /**
+ * 模型行「真正接的上游通道」品牌 id（opencode / kilo / xort …）。
+ *
+ * <p>免费聚合渠道下每个模型其实走不同上游，所以卡片图标不能一律用聚合供应商的 logo；
+ * 与「从供应商获取模型」弹窗行首的通道图标同一套解析。
+ * 解析不出时返回空串，模板回退到供应商 logo。</p>
+ *
+ * @param model 模型行
+ * @returns 品牌 id 或空串
+ */
+const getModelChannelBrand = (model: any) => resolveModelChannelBrand(model)
+
+/**
  * 模型 logo 加载失败的模型 id 集合。
  *
  * <p>模型 logo 的路径是「按模型名猜品牌」得到的，猜中了也不代表那张图真的存在。
@@ -597,12 +647,23 @@ const humanPrice = (v: number) => {
  * 未填则回退指标表的上下文窗口；「输出最大 token」指标表没有对应字段，只认手填。
  * 官方估价与速度 / 智能指数来自指标表（sys_ai_model_metrics），
  * 由后端 toProviderModelResponse 合并进 model.metrics。</p>
+ *
+ * <p><b>恒定 6 格</b>：输入 / 输出 / 价格 / 速度 / 智能 / 全知（文生图前两格换成
+ * 「张数 / 参考图」）。缺数据显示 —；首字延迟（TTFT）与 HLE 折进对应格的副行；
+ * 最近使用与延迟不进格子，走 {@link extraMeta} 的「+N」角标。</p>
+ *
+ * <p>为什么格数必须固定：此前只有前四项恒定，智能 / 全知 / 首字 / HLE 是
+ * 「有数据才渲染」，实际格数在 4～10 之间浮动。格子是 flex 换行铺满的，
+ * 格数一变换行行数就变，同一屏卡片高低不齐（实测 claude-fable-5 比邻卡多一格
+ * 「全知」就撑高一行）。固定成 6 格后，同一栏里每张卡宽度相同、换行结果也完全
+ * 相同，卡片自然等高，也能横向逐格比较。</p>
  */
 const cardMeta = (model: any) => {
   const cfg = model?.config || {}
   const mt = model?.metrics || {}
-  const items: Array<{ label: string; value: string; title: string }> = []
-  /** 无数据占位：四项核心指标恒定渲染，缺值就显示它 */
+  /** 固定 6 格；sub 是副行，空串也照样渲染占位，避免「有没有副行」撑出高度差 */
+  const items: Array<{ label: string; value: string; title: string; sub?: string }> = []
+  /** 无数据占位：缺值就显示它 */
   const EMPTY = '—'
 
   const manualCtx = numOrNull(cfg.contextWindow)
@@ -617,20 +678,51 @@ const cardMeta = (model: any) => {
   // 为什么改成恒定：此前每一项都是「有数据才 push」，条目数在 0～4 之间随机，
   // 色块是 flex 换行铺满的，行数跟着变 —— 同一屏卡片高低不齐（用户实测反馈）。
   // 固定这四项后每张卡都是同样的 2×2，横向也能直接对齐比较。
-  items.push({
-    label: '输入',
-    value: ctx != null ? fmtNum(ctx) : EMPTY,
-    title: ctx == null
-      ? '输入最大 token：未配置（可在模型管理手填，或用「同步价格」回填）'
-      : `输入最大 token：${ctx.toLocaleString()}${manualCtx != null ? '（手动填写）' : '（指标表上下文窗口）'}`,
-  })
-  items.push({
-    label: '输出',
-    value: out != null ? fmtNum(out) : EMPTY,
-    title: out == null
-      ? '输出最大 token：未配置（可在模型管理手填）'
-      : `输出最大 token：${out.toLocaleString()}（手动填写）`,
-  })
+  //
+  // 例外：文生图（image）没有 token 输入/输出的概念，前两项换成生成维度的
+  // 「张数」与「参考图」：张数 = 单次生成最多几张（generate.maxCount），
+  // 参考图 = 是否能拿参考图做图生图（generate.referenceImage）。
+  // 生成参数在后端行里是顶层 generate，也可能只挂在 capabilities[].generate，
+  // 两处都读，避免老数据缺顶层字段时全部落回「—」。
+  if (model?.modelType === 'image') {
+    const gen = model?.generate
+      || (Array.isArray(model?.capabilities) ? model.capabilities.find((c: any) => c?.generate)?.generate : null)
+      || {}
+    const maxCount = numOrNull(gen.maxCount)
+    const refOn = gen.referenceImage === true
+    const refCount = numOrNull(gen.referenceImageCount)
+    items.push({
+      label: '张数',
+      value: maxCount != null ? `${maxCount} 张` : EMPTY,
+      title: maxCount != null
+        ? `单次生成最多 ${maxCount} 张（模型管理的「输出张数」）`
+        : '单次生成张数：未配置（模型管理的「文生图配置 · 输出张数」）',
+    })
+    items.push({
+      label: '参考图',
+      value: gen.referenceImage === undefined ? EMPTY : (refOn ? '支持' : '不支持'),
+      title: gen.referenceImage === undefined
+        ? '参考图能力：未配置（模型管理的「文生图配置 · 支持参考图」）'
+        : (refOn
+          ? (refCount != null ? `支持参考图做图生图（最多 ${refCount} 张）` : '支持参考图做图生图（张数未限制）')
+          : '不支持参考图，只能纯文生图'),
+    })
+  } else {
+    items.push({
+      label: '输入',
+      value: ctx != null ? fmtNum(ctx) : EMPTY,
+      title: ctx == null
+        ? '输入最大 token：未配置（可在模型管理手填，或用「同步价格」回填）'
+        : `输入最大 token：${ctx.toLocaleString()}${manualCtx != null ? '（手动填写）' : '（指标表上下文窗口）'}`,
+    })
+    items.push({
+      label: '输出',
+      value: out != null ? fmtNum(out) : EMPTY,
+      title: out == null
+        ? '输出最大 token：未配置（可在模型管理手填）'
+        : `输出最大 token：${out.toLocaleString()}（手动填写）`,
+    })
+  }
   {
     const f = (v: number | null) => (v == null ? EMPTY : humanPrice(v))
     // 输入输出都为 0 即免费：显式标注，别让用户对着「$0/$0」自己判断；
@@ -647,67 +739,74 @@ const cardMeta = (model: any) => {
           : `官方估价（USD / 百万 token）：输入 ${f(pIn)}，输出 ${f(pOut)}`,
     })
   }
+  // ④ 速度：首字延迟（TTFT）不单独占格，而是这一格的副行 —— 两者都是「快不快」，
+  //    并列成两格会把真正要横向比较的 6 格挤掉。
+  //    注意「首字」（官方评测的中位首 Token）与「延迟」（本机探活实测）不是一回事，
+  //    延迟走 extraMeta，tooltip 里各自说明。
+  const ttftRaw = numOrNull(mt.latency_first_token_seconds)
+  const ttftSec = ttftRaw != null && ttftRaw > 0 ? ttftRaw : null
   items.push({
     label: '速度',
     value: speed != null ? `${humanDecimal(speed)} t/s` : EMPTY,
-    title: speed != null ? '输出速度（token/秒）' : '输出速度：指标源未采集',
+    title: [
+      speed != null ? `输出速度（token/秒）：${humanDecimal(speed)}` : '输出速度：指标源未采集',
+      ttftSec != null ? `首字延迟（TTFT，官方中位）：${ttftSec.toFixed(2)}s` : '首字延迟：指标源未采集',
+    ].join('；'),
+    sub: ttftSec != null ? `首字 ${Math.round(ttftSec * 1000)}ms` : '',
   })
 
-  // 以下为**可选附加指标**：有数据才占位。它们不参与上面的固定 2×2，
-  // 想让整块完全等高时再把这几项也改成恒定渲染。
-  // 最近使用时间：后端若有 last_used_at / lastUsedAt 就展示；没有时不占位。
+  // ⑤ 智能：Artificial Analysis 智能指数，HLE 得分折成副行（同为跑分维度）。
+  const idx = numOrNull(mt.intelligence_index)
+  const hle = numOrNull(mt.hle_score)
+  items.push({
+    label: '智能',
+    value: idx != null ? humanDecimal(idx) : EMPTY,
+    title: [
+      idx != null ? `智能指数（Artificial Analysis）：${humanDecimal(idx)}` : '智能指数：指标源未采集',
+      hle != null ? `HLE（Humanity's Last Exam）：${(hle * 100).toFixed(1)}%` : 'HLE：指标源未采集',
+    ].join('；'),
+    sub: hle != null ? `HLE ${(hle * 100).toFixed(1)}%` : '',
+  })
+
+  // ⑥ 全知：知识准确-幻觉指数。到这里恒定为 6 格，缺值一律显示 —。
+  const omni = numOrNull(mt.omniscience_index)
+  items.push({
+    label: '全知',
+    value: omni != null ? humanDecimal(omni) : EMPTY,
+    title: omni != null
+      ? `全知指数（知识准确-幻觉，Artificial Analysis）：${humanDecimal(omni)}`
+      : '全知指数：指标源未采集',
+    sub: '',
+  })
+
+  return items
+}
+
+/**
+ * 不进 6 格的附加信息：最近使用时间 / 本机探活延迟。
+ *
+ * <p>它们不是「模型能力」，放进指标区会让格数随数据浮动（这正是卡片高低不齐的
+ * 来源）。改成卡片指标区右上角的「+N」角标：绝对定位、不占布局高度，悬停看明细。</p>
+ */
+const extraMeta = (model: any) => {
+  const mt = model?.metrics || {}
+  const extras: Array<{ label: string; value: string }> = []
+
   const recentUse = model?.last_used_at ?? model?.lastUsedAt ?? model?.recent_use_at ?? model?.used_at
   if (recentUse) {
     const t = formatRecentUse(recentUse)
-    if (t) {
-      items.push({ label: '最近使用', value: t, title: `最近使用时间：${t}` })
-    }
+    if (t) extras.push({ label: '最近使用', value: t })
   }
 
   const latency = numOrNull(model.modelLastLatency ?? mt.probe_latency_ms ?? mt.latency_ms)
   if (latency != null) {
-    items.push({
+    extras.push({
       label: '延迟',
       value: `${Math.round(latency)}ms`,
-      title: model.modelLastLatency != null
-        ? `最近一次延迟测试：${Math.round(latency)}ms`
-        : `实测延迟：${Math.round(latency)}ms`,
     })
   }
 
-  // 官方首字延迟（TTFT）：指标表 latency_first_token_seconds 的单位是秒，
-  // 卡片上统一按毫秒展示。它和上面的「延迟」不是一回事 ——
-  // 延迟是本机探活的实测耗时，首字是官方评测源给出的中位首 Token 时间，
-  // 两者都存在时并列展示，各自有 tooltip 说明，避免被当成重复项。
-  const ttftSec = numOrNull(mt.latency_first_token_seconds)
-  if (ttftSec != null && ttftSec > 0) {
-    items.push({
-      label: '首字',
-      value: `${Math.round(ttftSec * 1000)}ms`,
-      title: `官方首字延迟（TTFT，中位数）：${ttftSec.toFixed(2)}s`,
-    })
-  }
-
-  const idx = numOrNull(mt.intelligence_index)
-  if (idx != null) {
-    items.push({ label: '智能', value: humanDecimal(idx), title: '智能指数（Artificial Analysis）' })
-  }
-
-  const hle = numOrNull(mt.hle_score)
-  if (hle != null) {
-    items.push({
-      label: 'HLE',
-      value: `${(hle * 100).toFixed(1)}%`,
-      title: "Humanity's Last Exam 得分（Artificial Analysis）",
-    })
-  }
-
-  const omni = numOrNull(mt.omniscience_index)
-  if (omni != null) {
-    items.push({ label: '全知', value: humanDecimal(omni), title: '全知指数（知识准确-幻觉，Artificial Analysis）' })
-  }
-
-  return items
+  return extras
 }
 
 // 模型类型 → 卡片标签（文字 + 配色），与系统配置「默认模型」类型体系一致
@@ -1151,8 +1250,7 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 .type-select { width: 110px; }
 
 /* 批量操作工具栏：只在已选模型时渲染（空态不占位、不带底色）。
-   之前的「始终占位固定高度」已按用户需求撤掉——勾选时它出现在标题行右侧，
-   撑开的是同一行，不会把卡片网格往下顶。 */
+   勾中卡片后出现在标题行右侧，撑开的是同一行，不会把卡片网格往下顶。 */
 .batch-toolbar {
   display: flex;
   align-items: center;
@@ -1173,14 +1271,7 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   font-size: 12px; color: var(--el-text-color-secondary); 
   border-radius: 4px;
 }
-.batch-select-all {
-  font-size: 12px;
-  color: var(--el-color-primary);
-  cursor: pointer;
-  user-select: none;
-}
-.batch-select-all:hover { opacity: 0.8; }
-.batch-select-all.is-all { color: var(--el-text-color-regular); }
+/* 「全选 / 反选」已改为 el-button，旧的文字链样式不再需要 */
 
 /* 上下文大小过滤（与模型选择卡片共用同一套标签） */
 .ctx-filter {
@@ -1341,17 +1432,20 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 .cap-arrow { color: var(--color-text-disabled); }
 /* .mc-feature 已随「其它标签」改造移除：特性改由 ModelTagStrip 以图标 + tooltip 渲染 */
 
-/* 指标区：等宽色块，每行 2 个（窄容器自动变 3 个）。
+/* 指标区：等宽色块，恒定 6 格。
    原来是一行「标签 + 值」的小字（gap 14px、无背景），多个指标挤在一起时
    需要逐个读；改成色块后，同一个位置上的数字可以直接上下比较，
-   并且首个指标（通常是「输入」或「最近使用」）用主色淡底强调。
+   并且首个指标（通常是「输入」或「张数」）用主色淡底强调。
 
-   为什么用 flex 换行而不是 grid auto-fit：指标个数随模型变化，可能是
-   1/2/3/5 项。grid 下奇数的最后一行会只剩一个色块、旁边的半格空着
-   （实测 5 项时末行 126px 半格空洞）；容器变窄时列数又会在 2/3 之间跳，
-   grid 无法同时兼顾。flex + flex:1 1 92px 让最后一行剩下的项自动
-   stretch 占满整行 —— 1 项铺满、2 项各半、3 项时第 3 项铺满，永不留空洞。 */
+   为什么用 flex 换行而不是 grid auto-fit：grid 下不整除的行会只剩一个色块、
+   旁边的半格空着（实测 5 项时末行 126px 半格空洞）；容器变窄时列数又会在 2/3
+   之间跳。flex + flex:1 1 92px 让每行剩下的项自动 stretch 占满整行，永不留空洞。
+
+   等高从哪来：格数恒定（6），同一栏里每张卡宽度相同 → 换行结果完全相同；
+   每格再用一条恒定占位的副行（.mc-meta-sub）锁住格高。两者缺一，卡片就会
+   高低不齐（格数会变、或有的格有副行有的没有）。 */
 .mc-meta {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -1363,8 +1457,11 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   display: flex;
   flex-direction: column;
   gap: 1px;
-  flex: 1 1 92px;
-  min-width: 92px;
+  /* 84px 基准而不是 92px：6 格要能排成 3+3 两行（92px 时常见卡片宽度只能放 2 个，
+     变成 3 行、卡片白白高出一截）；84-16(padding)=68px 仍放得下
+     "1,000,000"、"$8/$40"、"首字 850ms" 这类最长值。 */
+  flex: 1 1 84px;
+  min-width: 84px;
   padding: 6px 8px;
   border-radius: var(--radius-md, 8px);
   background: var(--bg-elevated, #f8fafc);
@@ -1389,6 +1486,36 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+/* 副行（首字 TTFT / HLE）：min-height 让空副行也占位。
+   没有它，有首字的卡比没有的高 13px，一屏卡片立刻高低不齐。 */
+.mc-meta-sub {
+  min-height: 14px;
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--color-text-gray);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 附加信息角标（最近使用 / 延迟）：骑在指标区分隔线上，绝对定位不参与布局，
+   所以「有附加信息」不会把卡片撑高。悬停看明细。 */
+.mc-extra {
+  position: absolute;
+  top: -8px;
+  right: 0;
+  z-index: 1;
+  height: 16px;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle, var(--color-surface-border));
+  background: var(--bg-elevated, #f8fafc);
+  color: var(--color-text-gray);
+  font-size: 10px;
+  line-height: 14px;
+  font-variant-numeric: tabular-nums;
+  cursor: help;
 }
 .mc-meta-item.is-lead .mc-meta-val { color: var(--color-primary); }
 /* 无数据占位（—）：压成弱化色，别让「没数据」看起来像一个真数值 */

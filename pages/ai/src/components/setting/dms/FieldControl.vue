@@ -8,7 +8,15 @@
     @click="$emit('pick-model')"
   >
     <template #prefix>
-      <img v-if="logo" :src="logo" alt="" class="w-4 h-4 object-contain" />
+      <!-- 输入框左侧与弹框行同一套图标回退链（模型 → 上游通道 → 供应商）；
+           原先只有「按模型名取到图 / 画 OpenAI」两种结果，聚合渠道里会误标。 -->
+      <ModelRowLogo
+        v-if="modelRow"
+        :model="modelRow.model"
+        :provider="modelRow.provider"
+        :size="16"
+        class="mr-1"
+      />
       <OpenAI v-else class="w-4 h-4" />
     </template>
     <template #suffix>
@@ -58,6 +66,7 @@
 import { OpenAI } from "@/components/icons"
 import { ArrowDown } from "@element-plus/icons-vue"
 import ReNumberInput from '@/components/ui/ReNumberInput.vue'
+import ModelRowLogo from '@/components/models/ModelRowLogo.vue'
 
 /**
  * 枚举 key → 中文标签。
@@ -87,8 +96,8 @@ const props = defineProps<{
   isEnumField: boolean
   /** 是否多行提示词（textarea） */
   isPromptField: boolean
-  /** 当前字段已选模型的 logo */
-  logo?: string
+  /** 当前字段已选模型的图标依据（模型行 + 所属供应商） */
+  modelRow?: { model: any; provider: any } | null
   /** 模型字段的展示文本（已配置/继承全局/请选择模型） */
   modelDisplay?: string
   /** 枚举选项 */

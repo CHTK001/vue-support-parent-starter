@@ -2,6 +2,7 @@
     <div>
         <img v-if="src && !showPlaceholder" :src="avatarSrc" alt="Avatar" class="avatar-image w-full h-full"
             :class="{ 'rounded-full': props.round, 'rounded-lg': !props.round }"
+            :style="props.fit === 'contain' ? { objectFit: 'contain' } : undefined"
             @error="onImgError"></img>
         <div v-else class="avatar-placeholder" :class="{
             'rounded-full': props.round,
@@ -32,6 +33,12 @@ const props = defineProps<{
     type?: 'user' | 'assistant';
     full?: boolean;
     name?: string;  // 用于生成首字头像的名称
+    /**
+     * 图片填充方式，默认 cover（人像/头像要铺满方形）。
+     * 品牌 Logo 请传 contain：词标（如 512×58 的横向 logo）与竖版标记
+     * 用 cover 会被裁掉两端，只剩中间一截，读不出品牌。
+     */
+    fit?: 'cover' | 'contain';
 }>();
 
 // Logo 加载失败时回退到占位图（首字母），避免显示崩坏图像图标

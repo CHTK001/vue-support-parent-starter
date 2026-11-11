@@ -157,12 +157,13 @@ export default {
     statusCompressing: '正在压缩',
     statusRunningTool: '正在{action}',
     statusThinking: '正在思考',
-    statusGenerating: '正在生成',
+    // 「正在生成」已按需求去掉：ScrollToBottomButton 上不再重复这个状态，
+    // 动作条文案也已改为「{model}正在回答」。
     // 输入框上方的模型动作条（ModelActionBar）
     actionBarExecuting: '{model}正在执行命令',
     actionBarToolWaiting: '{model}正在等待命令返回',
     actionBarThinking: '{model}正在思考',
-    actionBarStreaming: '{model}正在生成回答',
+    actionBarStreaming: '{model}正在回答',
     actionBarWaiting: '{model}正在等待你的确认',
     actionBarWaitingHint: '待你确认计划后继续执行',
     actionBarGoHandle: '去处理',

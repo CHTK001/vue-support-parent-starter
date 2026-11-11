@@ -185,6 +185,29 @@
       1.0 版起改为**纯图标按钮**：正文指标拥挤，露出「链路追踪」四个字反而喧宾夺主，
       图标（两个节点 + 连线）配 title/aria-label 表达语义，悬停高亮说明可点。
     -->
+    <!--
+      上下文窗口入口：与「链路追踪」同层，纯图标按钮。
+      参考「会话工作状态」的交互：点一下打开主区域的上下文窗口面板，
+      悬停浮层仍保留（看已用/窗口与 token 构成），两者不冲突。
+    -->
+    <button
+      type="button"
+      class="stats-trace-btn stats-context-btn"
+      title="打开上下文窗口"
+      aria-label="上下文窗口"
+      @click="emit('open-context')"
+    >
+      <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.3"
+        stroke-linejoin="round" aria-hidden="true">
+        <rect x="1.5" y="1.5" width="6" height="6" rx="1" />
+        <rect x="8.5" y="1.5" width="6" height="3" rx="1" />
+        <rect x="8.5" y="5.5" width="2.5" height="2" rx=".7" />
+        <rect x="12" y="5.5" width="2.5" height="2" rx=".7" />
+        <rect x="1.5" y="8.5" width="6" height="6" rx="1" />
+        <rect x="8.5" y="8.5" width="6" height="6" rx="1" />
+      </svg>
+    </button>
+
     <button
       type="button"
       class="stats-trace-btn"
@@ -246,6 +269,9 @@ const props = defineProps<{
    */
   contextBreakdown?: Record<string, number> | null;
 }>();
+
+/** 底部状态条向上抛的事件：点「上下文窗口」图标打开主区域面板 */
+const emit = defineEmits<{ 'open-context': [] }>();
 
 /** 链路追踪弹框开关 */
 const traceVisible = ref(false);

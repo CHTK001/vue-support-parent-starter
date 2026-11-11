@@ -14,10 +14,11 @@
         @click="handleSelect(item)"
         @mouseenter="handleMouseEnter(index)"
       >
-        <div class="item-icon" :style="{ backgroundColor: getSkillColor(item) }">
-          <el-icon size="14" color="#fff">
-            <Apps20Regular />
-          </el-icon>
+        <div class="item-icon" :class="`item-icon--${iconKind(item)}`">
+          <svg class="item-glyph" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path :d="iconPath(iconKind(item))" />
+          </svg>
         </div>
         <div class="item-content">
           <div class="item-name-row">
@@ -52,7 +53,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Apps20Regular, Search24Regular } from '@vicons/fluent';
+import { Search24Regular } from '@vicons/fluent';
 
 const { t } = useI18n();
 
@@ -75,20 +76,46 @@ const pickerRef = ref<HTMLElement | null>(null);
 const localSelectedIndex = ref(0);
 const searchQuery = ref('');
 
-// 技能颜色映射
-const skillColors = [
-  '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
-  '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'
-];
+/**
+ * 指令栏条目图标：按「这条指令会打开什么」分类，而不是所有行共用同一个九宫格。
+ *
+ * 用户报障「输入库的图标显示还是不对」：原实现每一行都渲染 Apps20Regular，
+ * 底色由 item.name 哈希到 8 个写死的 hex（换肤后是一排不跟随主题的彩色块）。
+ * 这里改成语义图标 + --el-* 主题色，附件 / 知识库 / 技能 / 模型 / 会话动作
+ * 一眼能分开；图标用内联 path，避免再出现「图标包缺项 → 渲染成空白」。
+ */
+type ItemIconKind = 'file' | 'image' | 'knowledge' | 'model' | 'skill' | 'session' | 'compress';
 
-function getSkillColor(item: any): string {
-  const name = item.name || item.label || '';
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const index = Math.abs(hash) % skillColors.length;
-  return skillColors[index];
+const ICON_PATHS: Record<ItemIconKind, string> = {
+  file: 'M5 2.5h6.2L15.5 6.8V17.5H5z M11 2.5v4.5h4.5',
+  image: 'M3 4.5h14v11H3z M3 12.5l3.6-3.4 3 2.7 2.4-2.2 5 4.6 M12.8 7.6h.01',
+  knowledge: 'M3.5 4.2c2.6-.8 4.6-.5 6.5.6v11c-1.9-1.1-3.9-1.4-6.5-.6z M16.5 4.2c-2.6-.8-4.6-.5-6.5.6v11c1.9-1.1 3.9-1.4 6.5-.6z',
+  model: 'M10 2.2l1.9 4.5 4.9.4-3.7 3.2 1.1 4.8L10 12.6l-4.2 2.5 1.1-4.8-3.7-3.2 4.9-.4z',
+  skill: 'M10 2.6l6.2 3.6v7.6L10 17.4 3.8 13.8V6.2z M10 7.2v5.6 M7.2 8.8l5.6 2.4',
+  session: 'M3.5 5.5h13v9h-8l-3.2 2.6v-2.6h-1.8z M7 9h6 M7 11.6h3.6',
+  compress: 'M4 6h12 M4 10h12 M4 14h12 M8 3.2 10 5.4 8 7.6 M12 12.4l-2 2.2 2 2.2',
+};
+
+/** 从 builtin 标记 / 名称推断类型；后端下发的技能统一落到 skill */
+function iconKind(item: any): ItemIconKind {
+  const builtin = String(item?.builtin || '');
+  if (builtin === 'attach-image') return 'image';
+  if (builtin === 'attach-file') return 'file';
+  if (builtin === 'knowledge-base') return 'knowledge';
+  if (builtin === 'model') return 'model';
+  if (builtin === 'compress') return 'compress';
+  if (builtin === 'new-session') return 'session';
+  if (builtin === 'create-skill') return 'skill';
+  const name = `${item?.name || ''} ${item?.label || ''}`.toLowerCase();
+  if (/image|图片/.test(name)) return 'image';
+  if (/file|upload|文件|附件/.test(name)) return 'file';
+  if (/kb|knowledge|知识库/.test(name)) return 'knowledge';
+  if (/model|模型/.test(name)) return 'model';
+  return 'skill';
+}
+
+function iconPath(kind: ItemIconKind): string {
+  return ICON_PATHS[kind];
 }
 
 // 同步外部 selectedIndex → 内部
@@ -261,7 +288,22 @@ defineExpose({
   border-radius: var(--el-radius-md, 8px);
   flex-shrink: 0;
   margin-top: 2px;
+  /* 图标与底色同源：默认主色，按类型覆盖。全部走 --el-* 令牌，换肤自动跟随 */
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
 }
+
+.item-glyph {
+  width: 16px;
+  height: 16px;
+}
+
+.item-icon--image { color: var(--el-color-success); background: var(--el-color-success-light-9); }
+.item-icon--knowledge { color: var(--el-color-warning); background: var(--el-color-warning-light-9); }
+.item-icon--model { color: var(--el-color-primary); background: var(--el-color-primary-light-9); }
+.item-icon--skill { color: var(--el-color-info); background: var(--el-color-info-light-9); }
+.item-icon--session { color: var(--el-color-success); background: var(--el-color-success-light-9); }
+.item-icon--compress { color: var(--el-color-danger); background: var(--el-color-danger-light-9); }
 
 .item-content {
   flex: 1;

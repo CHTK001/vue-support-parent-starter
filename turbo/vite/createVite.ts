@@ -599,17 +599,15 @@ function serveAppPublic(appRoot: string): Plugin {
 /**
  * 共享 AI 图片目录的全局挂载（`apps/vue-support-ai-starter/public/images`）。
  *
- * 本仓库只有 ai-starter 的 `public/images` 维护 `@pages/ai` 页面需要用到的全部静态
- * 图片（模型/供应商 Logo、对话机器人图标、Banner、二维码等），而 createVite 的 publicDir
- * 固定在仓库根 public（wasm/loader 等基础设施文件），两者不重合——于是 `@pages/ai` 的
- * 页面在 system-starter / eduai 里引用 `/images/**`（Vite 构建会原样保留这些 URL）时，
- * 必须有一处把它们驱动起来。本插件补齐两条链路：
+ * 本仓库的模型 / 供应商 Logo、对话机器人图标、Banner、二维码等静态图片，
+ * **只在** ai-starter 的 `public/images` 维护一份（仓库根 `public/images` 不再保留副本，
+ * 2026-11-11 去重）。createVite 的 publicDir 固定在仓库根 public（wasm/loader 等基础设施文件），
+ * 于是 `@pages/ai` 的页面在 system-starter / eduai 里引用 `/images/**`（Vite 构建会原样保留
+ * 这些 URL）时，必须由本插件驱动，否则会被 htmlFallback 换成 index.html。两条链路：
  *   - dev：`configureServer` 中间件接管 `/images/` 前缀，直接读工作区文件回写
  *     正确 `Content-Type` 的响应，先于 vite 内部的 `baseMiddleware` / `serveStaticMiddleware`
  *     / `htmlFallbackMiddleware`，避免 `/images/**` 被误写成 `index.html`；
- *   - build：`closeBundle` 把整棵树落到 `<outDir>/images/`，且覆盖共享 `publicDir` 在
- *     `buildStart` 阶段（`prepareOutDir` 的 `copyDir`）已写的对应份——`images/models`、
- *     `images/providers` 里的旧版 Logo 来自根 public，app 版才是权威源。
+ *   - build：`closeBundle` 把整棵树落到 `<outDir>/images/`。
  *
  * 顺序注意：`configureServer` 钩子（见 vite/dist/node/chunks/node.js `createServer`）在
  * 内部 `baseMiddleware` 注册之前执行，所以中间件拿到的是包含应用 `base` 的原始 URL
@@ -664,7 +662,7 @@ function serveSharedAiImages(): Plugin {
     return prefix && urlPath.startsWith(prefix) ? urlPath.slice(prefix.length) : urlPath;
   };
 
-  /** 递归复制，自动创建目录，覆盖已存在的文件（app 权威源） */
+  /** 递归复制，自动创建目录（目标已存在时覆盖） */
   const copyOverwrite = (from: string, to: string) => {
     fs.mkdirSync(to, { recursive: true });
     for (const entry of fs.readdirSync(from, { withFileTypes: true })) {
@@ -1050,8 +1048,8 @@ export function createVite(options: CreateViteOptions = {}): UserConfig {
   }
   // app 自身 public 目录兜底（Vite 的 publicDir 已被共享根 public 占用）
   plugins.push(serveAppPublic(root));
-  // @pages/ai 页面使用的全部 AI 图片集中在 ai-starter 的 public/images，
-  // createVite 的所有业务（system-starter / eduai 等）必须也能从 /images/** 访问同一份源，
+  // @pages/ai 页面使用的全部 AI 图片只维护在 ai-starter 的 public/images 这一份，
+  // createVite 的所有业务（system-starter / eduai 等）都从 /images/** 访问同一份源，
   // 开发者请使用 /images/xxx 而不是 app 自身 public 下的路径；逻辑见 serveSharedAiImages。
   plugins.push(serveSharedAiImages());
   // 仓库根 app.example.yaml 全局暴露（dev 期 /app.example.yaml 走中间件返回 yaml）

@@ -6,10 +6,10 @@
 // value = 图标文件名（含扩展名），对应 public/images/providers/{value}
 //
 // 注意：
-// - 图标文件放在 apps/vue-support-ai-starter/public/images/providers/
-// - 同时复制到仓库根 public/images/providers/（构建时复制）
-// - dist-dsh/images/providers/ 是 dev server 实际服务的目录
-// - 优先用 .svg（矢量清晰），其次 .png
+// - 图标文件**只**放在 apps/vue-support-ai-starter/public/images/providers/，
+//   其他应用（system / monitor / eduai …）由 createVite 的 serveSharedAiImages
+//   插件按 /images/** 从这一份目录回源，仓库根 public/images 不再保留副本。
+// - 优先用 .svg（矢量清晰），其次 .png；官方只发布位图的品牌才用 png
 // ============================================================
 
 import { PROVIDER_TEMPLATES } from './model.constants'
@@ -22,7 +22,7 @@ export const PROVIDER_ICONS: Record<string, string> = {
   azure: 'azure.png',
   'aws-bedrock': 'aws-bedrock.png',
   xai: 'xai.svg',
-  mistral: 'mistral.png',
+  mistral: 'mistral.svg',
   groq: 'groq.svg',
   together: 'together.png',
   cerebras: 'cerebras.png',
@@ -35,8 +35,8 @@ export const PROVIDER_ICONS: Record<string, string> = {
   openrouter: 'openrouter.svg',
   commandcode: 'commandcode.png',
   agnes: 'agnes.svg',
-  opencode: 'opencode.png',
-  'opencode-go': 'opencode.png',
+  opencode: 'opencode.svg',
+  'opencode-go': 'opencode.svg',
   siliconflow: 'siliconflow.svg',
   'siliconflow-cn': 'siliconflow.svg',
   bai: 'bai.png',
@@ -189,7 +189,7 @@ export const PROVIDER_ICONS: Record<string, string> = {
   jalapeno: 'jalapeno.png',
   jiekou: 'jiekou.png',
   kenari: 'kenari.png',
-  kilo: 'kilo.png',
+  kilo: 'kilo.svg',
   klokintegration: 'klokintegration.png',
   kosmik: 'kosmik.png',
   'kuae-cloud-coding-plan': 'kuae-cloud-coding-plan.png',
@@ -328,6 +328,8 @@ const DOMAIN_BRANDS: Array<[string, string]> = [
   ['ai302', 'ai302'],
   ['302.ai', 'ai302'],
   ['opencode', 'opencode'],
+  // 免费池里 api.kilo.ai 是另一条上游通道，图标按通道走，不再落到聚合供应商
+  ['kilo', 'kilo'],
   ['ollama', 'ollama'],
   ['onnx', 'onnx'],
   ['x.ai', 'xai'],
@@ -442,4 +444,50 @@ export function resolveProviderBrand(p: any): string {
     return plat
   }
   return 'custom'
+}
+
+/**
+ * 模型行的上游通道 baseUrl。
+ *
+ * <p>免费聚合渠道（FreeChannel）把同一批模型按路由拆到不同上游：
+ * {@code https://opencode.ai/...}、{@code https://api.kilo.ai/...}、{@code https://free.xort.fun/...}。
+ * 批量录入时后端把「协议 · baseUrl · 认证方式」写进了模型描述，因此从描述里取
+ * 第一个 http(s) 地址即可还原这一行走的是哪条上游通道；前端若已经拿到
+ * base_url / baseUrl 字段则优先用它。</p>
+ *
+ * @param model 模型行
+ * @returns baseUrl；拿不到返回空串
+ */
+export function upstreamBaseUrlOf(model: any): string {
+  if (!model) return ''
+  for (const key of ['base_url', 'baseUrl', 'api_url']) {
+    const v = model[key]
+    if (typeof v === 'string' && /^https?:\/\//i.test(v)) return v
+  }
+  const desc = String(model.description || '')
+  const hit = desc.match(/https?:\/\/[^\s·|;,，]+/i)
+  return hit ? hit[0] : ''
+}
+
+/**
+ * 模型行的上游通道品牌 id（交给 ProviderLogo 出图标）。
+ *
+ * <p>与「从供应商获取模型」弹窗行首的通道图标同一套 {@link resolveProviderBrand}：
+ * 聚合渠道下的模型不再一律显示聚合供应商自己的 logo，而是显示真正接的
+ * opencode / kilo / xort 等通道图标；解析不出时返回空串，由调用方回退供应商 logo。</p>
+ *
+ * @param model 模型行
+ * @returns 品牌 id；解析不出返回空串
+ */
+export function resolveModelChannelBrand(model: any): string {
+  const url = upstreamBaseUrlOf(model)
+  if (!url) return ''
+  // 只按域名认通道：模型的 provider 字段是**协议**（openai / anthropic），
+  // 不能拿去走名称兜底，否则所有走聚合渠道的模型都会被认成 OpenAI。
+  const protocol = String(model?.provider || '').toLowerCase()
+  const brand = resolveProviderBrand({
+    base_url: url,
+    ...(protocol && !PROTOCOL_IDS.has(protocol) ? { provider: protocol } : {}),
+  })
+  return brand && brand !== 'custom' ? brand : ''
 }

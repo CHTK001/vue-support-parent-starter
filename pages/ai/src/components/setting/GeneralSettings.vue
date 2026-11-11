@@ -112,7 +112,7 @@
           :is-model-field="isModelField('runtime', item.field)"
           :is-enum-field="isEnumField(item)"
           :is-prompt-field="false"
-          :logo="compressionModelLogo(item.field)"
+          :model-row="compressionModelRow(item.field)"
           :model-display="compressionModelDisplay(item.field)"
           :options="compressionOptions(item)"
           :step="compressionStep(item.field)"
@@ -172,7 +172,6 @@
       :providers="filteredProviders"
       :selectedId="tempModelId"
       :empty-text="`没有匹配「对话」类型的模型`"
-      :logo-for="getModelRowLogo"
       @update:visible="(v) => (modelDialogVisible = v)"
       @select="selectModel"
       @clear="clearModelField"
@@ -221,7 +220,7 @@ import SettingsCard from './SettingsCard.vue'
 import SettingsRow from './SettingsRow.vue'
 import FieldControl from './dms/FieldControl.vue'
 import ModelPickerDialog from './dms/ModelPickerDialog.vue'
-import { getModelAvatarPath } from '@/utils/modelUtils'
+import { mapProviderModel, findPickedModel } from '@/components/models/modelMeta'
 import { useModelConfigStore } from '@/stores/modelConfig'
 import { LOADER_ANIMATION_META, useLoaderAnimation } from '@repo/ui/re-loader'
 
@@ -511,13 +510,8 @@ const compressionModelDisplay = (field: string) => {
   return meta && meta.overridden === false ? `继承全局：${value}` : value
 }
 
-/** 压缩模型字段右侧的提供商 logo（字段名形如 providerId:modelName） */
-const compressionModelLogo = (field: string): string | undefined => {
-  const v = compressionValues[field]
-  if (!v) return undefined
-  const name = v.includes(':') ? v.split(':').slice(1).join(':') : v
-  return getModelAvatarPath(name) ?? undefined
-}
+/** 压缩模型字段左侧的图标依据（字段名形如 providerId:modelName） */
+const compressionModelRow = (field: string) => findPickedModel(compressionValues[field], providers.value)
 
 /** 数值字段的步长（与小数位同源） */
 const compressionStep = (field: string) => {
@@ -655,9 +649,6 @@ const filteredProviders = computed(() => {
     .filter((p: any) => p.models.length > 0)
 })
 
-/** 模型弹框行的 logo（通过模型名取修补） */
-const getModelRowLogo = (model: any) => getModelAvatarPath(model?.model || '')
-
 /** 加载模型列表（/api/providers，按供应商分组） */
 const loadModels = async () => {
   if (models.value.length > 0) return
@@ -670,15 +661,9 @@ const loadModels = async () => {
       if (!provider.provider_id) return
       const providerModels = (provider.models || [])
         .filter((m: any) => m.enabled !== false)
-        .map((m: any) => ({
-          id: `${provider.provider_id}:${m.model}`,
-          modelName: `${provider.name}/${m.model}`,
-          model: m.model,
-          providerId: provider.provider_id,
-          providerName: provider.name,
-          types: ['text'],
-          displayTags: [{ value: 'type:text', label: '对话', tagType: 'primary' }],
-        }))
+        // 行结构与「默认模型」弹框同一份（类型 / 标签 / 输入输出 / 延迟 / 通道信息），
+        // 这样压缩模型的候选列表不再把所有模型一律标成「对话」。
+        .map((m: any) => mapProviderModel(provider, m))
       models.value.push(...providerModels)
       providers.value.push({
         id: provider.provider_id,

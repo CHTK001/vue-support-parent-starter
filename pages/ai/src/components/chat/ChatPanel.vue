@@ -5,25 +5,9 @@
          否则内容会把底部统计条顶出可视区（min-h-0 是 flex 子项允许收缩的前提）。 -->
     <ScrollContainer ref="scrollContainerRef" class="flex-1 min-h-0 chat-scroll-container transition-opacity duration-300 px-5"
       :auto-scroll="needScrollToBottom" :aria-label="t('chat.messages')" @scroll="handleScroll">
-      <!-- 会话 Token 消耗统计条（有数据时显示） -->
-      <div v-if="tokenStats?.usedTokens" class="w-full mx-auto pt-3" :style="contentMaxWidthStyle">
-        <div class="token-stats-bar">
-          <el-icon size="14"><DataLine20Regular /></el-icon>
-          <span class="token-stats-label">{{ t('chat.tokenStats.used') }}</span>
-          <!--
-            分母（窗口）未知时不画进度条：一条空槽会被读成「占用 0%」，
-            而真相是模型没配上下文窗口（实测 27/31 个模型如此）。
-            有分母才画，缺分母只在右侧文字里说明。
-          -->
-          <div v-if="tokenStats.totalTokens > 0" class="token-stats-track">
-            <div class="token-stats-fill" :style="{ width: Math.min(tokenStats.percentage || 0, 100) + '%' }"></div>
-          </div>
-          <span class="token-stats-value">
-            {{ formatTokenCount(tokenStats.usedTokens) }} /
-            {{ tokenStats.totalTokens > 0 ? formatTokenCount(tokenStats.totalTokens) : '窗口未知' }}
-          </span>
-        </div>
-      </div>
+      <!-- 顶部不再显示「上下文占用」统计条（需求 2026-11-11）。
+          这条曾把 token 用量铺在消息列最上方，与底部状态条右侧的上下文入口重复；
+          删除后上下文总量的唯一入口是底部状态条，tokenStats 仍透传给统计条与目标计数器。 -->
       <!-- 初始加载时的骨架屏：仅在消息为空时显示 -->
       <div class="chat-messages w-full mx-auto pt-5 flex-1" :style="contentMaxWidthStyle">
         <template v-if="showSkeleton">
@@ -149,17 +133,16 @@
               :config="chatInputConfig" :streaming="isStreaming" :readonly="readonly" mode="chat"
               :backdrop="hasWallpaper"
               @config-change="handleConfigChange" @send="handleSendMessage" @abort="abortResponse">
+              <!-- 回到底部（2026-11-11 用户要求）：不再浮在消息区左上方，
+                   融进输入行，落在「模型名 / 档位」chip 的左侧。
+                   right-actions-before 正是右组第一个位置，与模型 chip 同一基线；
+                   inline 形态把 FAB 的绝对定位与主色实底撤掉（见 ScrollToBottomButton.vue）。 -->
+              <template #right-actions-before>
+                <ScrollToBottomButton inline :show="showScrollToBottomBtn" :is-streaming="shouldButtonBreathe"
+                  :status="processingStatus" @click="handleScrollToBottomClick" />
+              </template>
             </ChatInput>
           </div>
-
-          <!-- 回到底部悬浮按钮：挂在「输入列」容器里（本列 = 模型动作条 + 输入卡的整体，
-               已 position:relative 且吃 contentMaxWidthStyle，与消息列同宽同左缘）。
-               为什么不用输入卡那一行：bottom 100% 会正好压在模型动作条上（实测
-               .model-action-bar y728–764 与按钮 y730–760 完全重叠，动作条上的「正在生成回答」
-               被盖住）。挂到这里，100% + 10px 落在整列上沿之外，既不压输入框也不压动作条。
-               横向仍以输入列左缘 + 24px，限宽窄屏下不会跑到面板最左缘（用户报障 2026-11-10）。 -->
-          <ScrollToBottomButton :show="showScrollToBottomBtn" :is-streaming="shouldButtonBreathe"
-            :status="processingStatus" @click="handleScrollToBottomClick" />
         </div>
       </div>
     </ScrollContainer>
@@ -174,13 +157,10 @@
       <SessionStatsBar :messages="activeMessages" :session-id="effectiveSessionId"
         :context-used="tokenStats?.usedTokens || 0"
         :context-total="tokenStats?.totalTokens || 0" :context-percent="tokenStats?.percentage || 0"
-        :context-breakdown="tokenStats?.breakdown || null" />
+        :context-breakdown="tokenStats?.breakdown || null"
+        @open-context="emit('open-context')" />
     </div>
 
-    <!-- 回到底部悬浮按钮的定位：见输入列内部（硬锚在输入框列上）。
-         旧实现挂在面板根部（position:absolute + left:24px），限宽窄屏下 24px 落在
-         面板最左缘、跑到内容列外面（用户报障 2026-11-10「跑到最左侧了」），
-         且面板根宽度含滚动区 px-5 内边距，与输入框列并不对齐。 -->
   </div>
   <!-- 记忆管理弹窗 -->
   <ReDialog v-model="memoPanelVisible" :title="t('chat.panel.memoryManagement')" width="560px"
@@ -221,7 +201,7 @@ import WelcomeScreen from './WelcomeScreen.vue';
 import QueuedMessages from './QueuedMessages.vue';
 const MemoPanel = defineAsyncComponent(() => import("./MemoPanel.vue"));
 import { LoadingOutlined } from '@vicons/antd'
-import { Edit20Regular, DataLine20Regular } from '@vicons/fluent'
+import { Edit20Regular } from '@vicons/fluent'
 // 取消编辑是纯图标按钮，用 Element Plus 的 Close 保持与其它 el-button 图标同源
 import { Close } from '@element-plus/icons-vue'
 import AgentPanel from './AgentPanel.vue';
@@ -273,6 +253,8 @@ const emit = defineEmits<{
   'switch-agent': [tabId: string]
   /** 「从此处分叉」成功：请上层跳转到新会话 */
   'open-session': [sessionId: string]
+  /** 底部状态条右侧「上下文窗口」图标：请上层打开主区域面板 */
+  'open-context': []
 }>();
 
 // 计算属性 - 类型化
@@ -287,13 +269,6 @@ const currentSessionId = ref<string | null>(null);
 // 共享的 Token 统计（useSessionTokenStats 自动监听流状态刷新）
 const currentSessionIdRef = computed(() => currentSessionId.value);
 const { tokenStats } = useSessionTokenStats(currentSessionIdRef);
-
-function formatTokenCount(n: number) {
-  if (!n) return '0'
-  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M'
-  if (n >= 1000) return (n / 1000).toFixed(1) + 'k'
-  return String(n)
-}
 
 /**
  * 有效的会话 ID
@@ -556,9 +531,9 @@ const currentProcessItem = computed<{ kind: 'tool'; tool: any } | { kind: 'think
 /**
  * 回到底部按钮上的「当前在做什么」（用户要求 2026-10-24）。
  *
- * 优先级：压缩 > 正在跑的工具 > 思考 > 生成。
- * 压缩排最前是因为它会整段替换历史，用户最需要知道「现在别急」；
- * 工具排在生成前，因为「正在运行命令 pwd」比「正在生成」更具体、更有信息量。
+ * 优先级：压缩 > 正在跑的工具 > 思考。
+ * 「正在生成」按需求去掉：它与输入框上方的模型动作条重复，且生成态本身
+ * 由流式光标表达，不必在回到底部按钮上再写一遍。
  */
 const processingStatus = computed(() => {
   const sessionId = currentSessionId.value;
@@ -572,7 +547,7 @@ const processingStatus = computed(() => {
   if (current?.kind === 'think') {
     return t('chat.panel.statusThinking');
   }
-  return isStreaming.value ? t('chat.panel.statusGenerating') : '';
+  return '';
 });
 
 // ============================================
@@ -1995,41 +1970,6 @@ function scrollToMessage(messageId: string) {
 /* 确保消息项也使用隔离 */
 :deep(.message-item) {
   contain: layout style;
-}
-
-/* Token 消耗统计条 */
-.token-stats-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--el-color-primary) 5%, transparent);
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-.token-stats-label {
-  flex-shrink: 0;
-}
-.token-stats-track {
-  flex: 1;
-  height: 5px;
-  border-radius: 3px;
-  background: var(--el-fill-color);
-  overflow: hidden;
-  min-width: 60px;
-}
-.token-stats-fill {
-  height: 100%;
-  border-radius: 3px;
-  background: var(--el-color-primary);
-  transition: width 0.4s ease;
-}
-.token-stats-value {
-  flex-shrink: 0;
-  font-variant-numeric: tabular-nums;
-  color: var(--el-text-color-primary);
 }
 
 /* 编辑模式提示条样式 */

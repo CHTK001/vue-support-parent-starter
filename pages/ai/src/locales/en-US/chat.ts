@@ -157,12 +157,11 @@ export default {
     statusCompressing: 'Compressing',
     statusRunningTool: 'Running: {action}',
     statusThinking: 'Thinking',
-    statusGenerating: 'Generating',
     // Model action bar above the input (ModelActionBar)
     actionBarExecuting: '{model} is running a command',
     actionBarToolWaiting: '{model} is waiting for the command to return',
     actionBarThinking: '{model} is thinking',
-    actionBarStreaming: '{model} is generating a reply',
+    actionBarStreaming: '{model} is replying',
     actionBarWaiting: '{model} is waiting for your confirmation',
     actionBarWaitingHint: 'Confirm the plan to continue',
     actionBarGoHandle: 'Review',

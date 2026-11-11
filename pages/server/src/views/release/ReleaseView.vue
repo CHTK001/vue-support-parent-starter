@@ -184,8 +184,11 @@
               </el-option>
             </el-select>
           </el-form-item>
-          <el-form-item label="安装包路径（主机上的绝对路径，jar / tar.gz / zip；留空则仅重启）">
-            <el-input v-model="batchForm.packagePath" placeholder="如：/data/apps/app.jar" />
+          <el-form-item label="产物路径（各主机上的绝对路径，jar / tar.gz / zip；留空则仅重启）">
+            <el-input v-model="batchForm.packagePath" placeholder="/data/apps/app.jar" />
+            <div class="batch-tip-sub" style="width:100%; margin-top:2px">
+              批量升级不会上传文件；请先把产物放到各主机对应目录，再填路径。
+            </div>
           </el-form-item>
         </el-form>
 

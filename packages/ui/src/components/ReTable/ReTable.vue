@@ -4435,14 +4435,31 @@ function extractRecords(result: RePageResult): Array<Record<string, unknown>> {
 }
 
 /** 远程（后端分页）数据加载 —— 走 useDataSource 的首批。page 来自 internalPage。 */
+/**
+ * 取数换代：每发起一轮取数 +1，写死在组件作用域里，
+ * 否则每轮各自的 run() 都有自己独立的计数。
+ *
+ * <p>旧查询总是先发出，但旧响应可能晚到（未筛选查询的 COUNT + 首条页，
+ * 执行时间通常比筛选后的查询更长）。如果晚到的旧批次仍然落盘，
+ * 它拿回的那份 total 会覆盖掉新批次写的 total ——
+ * 数据行是最新条件的，总条数却是旧条件的，就是「共 1,202,497 条」
+ * 而表里只有 6 行的根因。</p>
+ *
+ * <p>守卫写在每轮开头（开始取数时计轮次），只控制落盘顺序，不控制请求本身。</p>
+ */
+let loadGen = 0;
+
 function buildRemoteSource(): ReDataSource<Array<Record<string, unknown>>> {
   const run = async (): Promise<Array<Record<string, unknown>>> => {
+    const mine = ++loadGen;
     // 滚动分页固定从第 1 批开始：追加由 loadMoreForScroll 驱动，这里只能拿首批；
     // 否则「页码模式翻到第 3 页再切滚动」会把第 3 页当首批、后续批次全错位。
     const curPage = isScrollPaging.value ? 1 : (internalPage.value || paginationCfg.value.page || 1);
     const curSize = currentPageSize.value;
     try {
       const { result, records, total } = await callLoader(curPage, curSize);
+      // 只有最新一轮的响应才负责写 total / load：旧批次就算迟来也不接盘
+      if (mine !== loadGen) return records;
       remoteTotal.value = total;
       emit("update:total", total);
       emit("load", result);

@@ -224,10 +224,20 @@ export function useUsageBoard() {
     },
   ]);
 
-  // 时间筛选
+  // 时间筛选：默认「今天」，首屏取数必须带上时间边界——
+  // ReTable 的首批取数跑在 setup 期、parent 的 onMounted 之前，
+  // 此时 timeParams 还是 {}，会先发出一笔未筛选查询（120 万条全量 COUNT），
+  // 晚来的旧响应又正好会覆盖掉 filter 后的 total。
   const activeFilter = ref("today");
   const customRange = ref<[string, string] | null>(null);
-  const timeParams = ref<{ startTime?: string; endTime?: string }>({});
+
+  /** 「今天」的时间边界，给 ReTable 的首批取数用（避免首笔发未筛选查询） */
+  function defaultTimeParams(): { startTime: string; endTime: string } {
+    const now = new Date();
+    const d = fmtDate(now);
+    return { startTime: `${d} 00:00:00`, endTime: `${d} 23:59:59` };
+  }
+  const timeParams = ref<{ startTime?: string; endTime?: string }>(defaultTimeParams());
 
   const quickFilters = [
     { key: "today", label: "今天" },

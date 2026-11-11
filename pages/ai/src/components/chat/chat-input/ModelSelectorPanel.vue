@@ -55,29 +55,29 @@
             :title="getModelProviderName(model) || undefined" @click="handleSelect(model.id)"
             @mouseenter="onItemEnter(model, $event)" @mouseleave="onItemLeave">
             <div class="model-avatar">
-              <!-- 模型 logo 缺失 / 加载失败 → 回退到它自己供应商的 logo，
-                   与模型管理卡片同一口径（不再落到首字头像） -->
+              <!-- 模型 logo 缺失 / 加载失败 → 先回退到这一行真正接的上游通道（opencode / kilo），
+                   最后才回退到它自己供应商的 logo，与模型管理卡片同一口径 -->
               <ProviderLogo
                 v-if="!modelAvatarOf(model) || avatarFailed.has(model.id)"
-                :pid="providerPidOf(model)"
-                :name="getModelProviderName(model) || getModelDisplayName(model.modelName)"
-                :size="18"
+                :pid="modelChannelBrand(model) || providerPidOf(model)"
+                :name="modelChannelBrand(model) || getModelProviderName(model) || getModelDisplayName(model.modelName)"
+                :size="20"
               />
               <Avatar v-else :src="modelAvatarOf(model) || undefined"
-                :name="getModelDisplayName(model.modelName)" type="assistant" :round="false" class="w-full h-full"
-                @error="avatarFailed.add(model.id)" />
+                :name="getModelDisplayName(model.modelName)" type="assistant" :round="false" fit="contain"
+                class="w-full h-full" @error="avatarFailed.add(model.id)" />
             </div>
             <span class="model-item__name">{{ model.alias || getModelDisplayName(model.modelName) }}</span>
             <!-- 输入 → 输出能力图标：与模型管理卡片的 mc-caps 同一套 KIND_ICONS 与语义色，
                  这里只画图标不写文字（行高 30px，塞不下两行文案） -->
             <span class="model-item__io" :title="ioTitleOf(model)">
               <el-icon v-for="(k, i) in ioOf(model).input" :key="'io-in-' + i"
-                class="io-i" :class="'kind-' + k" :size="12">
+                class="io-i" :class="'kind-' + k" :size="13">
                 <component :is="KIND_ICONS[k] || KIND_ICONS.text" />
               </el-icon>
-              <el-icon class="io-arrow" :size="10"><ArrowRight24Regular /></el-icon>
+              <el-icon class="io-arrow" :size="11"><ArrowRight24Regular /></el-icon>
               <el-icon v-for="(k, i) in ioOf(model).output" :key="'io-out-' + i"
-                class="io-i" :class="'kind-' + k" :size="12">
+                class="io-i" :class="'kind-' + k" :size="13">
                 <component :is="KIND_ICONS[k] || KIND_ICONS.text" />
               </el-icon>
             </span>
@@ -119,6 +119,7 @@ import CustomPopover from '../../ui/CustomPopover.vue'
 import Avatar from '../../ui/Avatar.vue'
 import ModelInfoCard from './ModelInfoCard.vue'
 import ProviderLogo from '../../models/ProviderLogo.vue'
+import { resolveModelChannelBrand } from '../../models/providerIcons'
 import { deriveModelTraits } from '../../models/model.utils'
 import {
   getModelDisplayName, getModelAvatarPath,
@@ -316,6 +317,20 @@ const avatarFailed = reactive(new Set<string>())
 /** 模型专属 logo 路径；拿不到返回 null，由模板回退到供应商 logo */
 function modelAvatarOf(model: Model): string | null {
   return getModelAvatarPath(model.modelName, getModelProviderName(model))
+}
+
+/**
+ * 模型真正接的上游通道品牌 id（opencode / kilo / xort …）。
+ *
+ * <p>与「从供应商获取模型」弹窗行首的通道图标、模型管理卡片同一口径：
+ * 免费聚合渠道下每个模型走不同上游，不能一律显示聚合供应商的 logo。
+ * 解析不出返回空串，模板回退到供应商 logo。</p>
+ *
+ * @param model 模型行
+ * @returns 品牌 id 或空串
+ */
+function modelChannelBrand(model: Model): string {
+  return resolveModelChannelBrand(model)
 }
 
 /**
@@ -566,13 +581,13 @@ watch(searchKw, () => {
   color: var(--text-tertiary, var(--el-text-color-secondary));
 }
 
-/* 头像统一 18px、4px 圆角：这是列表行里唯一的图形元素，不能再大 */
+/* 头像统一 20px、5px 圆角：列表行唯一的图形元素，左侧对齐、与 30px 行高成比例 */
 .model-avatar {
   flex-shrink: 0;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   overflow: hidden;
-  border-radius: 4px;
+  border-radius: 5px;
 }
 
 /* ===== 检索框：无描边、无填充，只有放大镜与一行占位文字（目标 UI 的极简形态） ===== */
@@ -704,15 +719,17 @@ watch(searchKw, () => {
 }
 
 /* 输入 → 输出能力图标：与模型管理卡片的 mc-caps 同一套语义色，
-   紧挨行尾上下文徽标之前，名字被挤掉时先压缩名字不压缩图标 */
+   紧挨行尾上下文徽标之前，名字被挤掉时先压缩名字不压缩图标。
+   中间的箭头与两侧图标等距，读起来就是「输入 → 输出」。 */
 .model-item__io {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
 }
 .model-item__io .io-arrow {
   color: var(--text-tertiary, var(--el-text-color-placeholder));
+  margin: 0 1px;
 }
 .io-i.kind-text { color: var(--el-color-primary); }
 .io-i.kind-image { color: var(--el-color-warning); }

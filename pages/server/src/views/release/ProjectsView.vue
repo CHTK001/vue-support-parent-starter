@@ -1,7 +1,7 @@
 <template>
   <div class="pj">
     <div class="pj-body">
-      <!-- 左侧：项目列表（rail 分组列表，双击行开日志；拖安装包到行上即升级） -->
+      <!-- 左侧：项目列表（rail 分组列表，双击行开日志；行内按钮选主机上的产物升级） -->
       <aside class="pj-rail" :class="{ 'is-collapsed': railCollapsed }" :style="{ '--pj-rail-width': railWidth + 'px' }">
             <!-- 折叠态：只留一条竖条，展开按钮压在底部 -->
             <div v-if="railCollapsed" class="rail-strip">
@@ -74,14 +74,10 @@
                     :class="{
                       'is-active': selectedProject?.id === item.id,
                       'is-disabled': item.enabled === false,
-                      'is-dragover': dragOverId === item.id,
                     }"
                     @click="onRowClick(item)"
                     @dblclick="handleViewLog(item)"
                     @contextmenu.prevent.stop="openContextMenu(item, $event)"
-                    @dragover.prevent="item.enabled !== false && (dragOverId = item.id)"
-                    @dragleave.prevent="dragOverId = null"
-                    @drop.prevent="onDropFile(item, $event)"
                   >
                     <span class="rail-host__os" :class="[statusKey(item), mediaTone(item)]">
                       <ReIcon :name="displayIcon(item)" :size="15" />
@@ -114,7 +110,7 @@
                           </button>
                         </template>
                       </template>
-                      <button v-if="item.enabled !== false" type="button" title="用安装包升级" @click.stop="openUpgradeDialog(item)">
+                      <button v-if="item.enabled !== false" type="button" title="升级（选择主机上的产物）" @click.stop="openUpgradeDialog(item)">
                         <ReIcon name="Top" :size="13" />
                       </button>
                       <el-dropdown trigger="click" placement="bottom-end" @click.stop @command="(c: string) => onMoreCommand(item, c)">
@@ -184,10 +180,6 @@
                         </template>
                       </el-dropdown>
                     </span>
-
-                    <div v-if="dragOverId === item.id" class="pj-drop">
-                      <ReIcon name="Upload" />松开即可用安装包升级「{{ item.projectName }}」
-                    </div>
                   </div>
                 </template>
               </div>
@@ -358,6 +350,11 @@
               <ReFormItem v-if="needsEntry" :label="form.projectType === 'docker' ? '容器名' : '主入口名称'" :required="mainEntryRequired">
                 <ReInput v-model="form.mainEntry" :placeholder="entryPlaceholder" style="width:100%" />
               </ReFormItem>
+              <!-- 多 JDK 并存：启动与 Git 构建都按项目指定的 JDK -->
+              <ReFormItem v-if="showJavaSection" label="JDK 安装路径（可选，留空用 PATH 上的 java）">
+                <ReInput v-model="form.jdkHome" placeholder="如 C:/jdk-17 或 /usr/lib/jvm/jdk-21" style="width:100%" />
+                <div class="git-skip-hint">填 JDK 根目录或 bin 目录均可；启动脚本与 Maven 构建都会用这套 JDK</div>
+              </ReFormItem>
               <!-- Git 源码部署：仓库与构建参数属于「项目类型」本身，随类型就地展开 -->
               <template v-if="showGitSection">
                 <div class="git-tip">
@@ -365,7 +362,7 @@
                   <div>
                     <div class="git-tip-title">Git 源码构建</div>
                     <div class="git-tip-sub">
-                      配置仓库后可在项目卡片上一键「从 Git 更新」：拉取最新代码 → Maven 构建 → 上传产物 → 备份并重启。
+                      配置仓库后可在项目卡片上一键「从 Git 更新」：拉取最新代码 → Maven 构建 → 定位构建产物 → 备份并重启。
                       管理端无需预装 Maven，系统会自动检测并在缺失时下载。
                     </div>
                   </div>
@@ -471,10 +468,10 @@
                   </template>
                 </ReInput>
               </ReFormItem>
-              <ReFormItem v-if="form.projectType === 'model'" label="上传目标目录（相对项目地址，如 models/onnx）" required>
+              <ReFormItem v-if="form.projectType === 'model'" label="产物投放目录（相对项目地址，如 models/onnx）" required>
                 <ReInput v-model="form.uploadTargetDir" placeholder="如：models/onnx" style="width:100%" />
               </ReFormItem>
-              <ReFormItem v-if="form.projectType === 'model'" label="上传时是否解压">
+              <ReFormItem v-if="form.projectType === 'model'" label="投放时是否解压">
                 <ReSelect v-model="form.uploadExtract" style="width:100%">
                   <ReOption label="解压（jar/zip/tar 自动解压）" :value="true" />
                   <ReOption label="不解压（保留原文件结构）" :value="false" />
@@ -523,7 +520,6 @@
                   </div>
                 </ReFormItem>
               </template>
-              <!-- 「上传后自动升级」属于投放策略，不放在基础信息里：右键「系统配置」统一改 -->
               <ReFormItem label="项目图标">
                 <ReIconSelect v-model="form.icon" placeholder="留空则按类型使用默认图标" style="width:100%" />
               </ReFormItem>
@@ -571,6 +567,38 @@
               <span>先在「基础信息」选择项目类型并填写项目地址，脚本会自动生成</span>
             </div>
             <div v-else class="sa-preview">
+              <!-- AI 生成：按当前参数一次出四段，生成后仍可编辑；无模型时保留现有脚本，不自动覆盖 -->
+              <div class="sa-ai">
+                <div class="sa-ai-text">
+                  <ReIcon name="MagicStick" />
+                  <span v-if="aiGenerating">{{ aiStage || 'AI 正在按当前参数生成脚本…' }}</span>
+                  <span v-else-if="aiModels.length">
+                    按当前参数用 AI 生成启动 / 停止 / 重启 / 状态，生成后仍可直接修改
+                  </span>
+                  <span v-else>未检测到可用模型；可先用内置模板生成，或到 AI 设置启用模型</span>
+                </div>
+                <ReSelect
+                  v-if="aiModels.length > 1"
+                  v-model="aiModel"
+                  class="sa-ai-model"
+                  placeholder="选择模型"
+                >
+                  <ReOption
+                    v-for="m in aiModels"
+                    :key="m.code || m.name"
+                    :label="m.name"
+                    :value="m.code || m.name"
+                  />
+                </ReSelect>
+                <ReButton
+                  icon="MagicStick"
+                  type="primary"
+                  :loading="aiGenerating"
+                  @click="aiGenerateScripts"
+                >
+                  AI 生成四个脚本
+                </ReButton>
+              </div>
               <!-- 手改过就不再实时覆盖：用户一旦动过输入框，基础信息变化只提示不重算 -->
               <div v-if="scriptAutoDirty" class="sa-dirty">
                 <ReIcon name="EditPen" />
@@ -591,7 +619,7 @@
                 ></textarea>
               </div>
               <div class="sa-foot">
-                <span>变量设置里的环境变量 / JVM 参数 / 程序参数会在保存时自动注入启动脚本</span>
+                <span>内置模板会注入环境变量 / JVM 参数 / 程序参数；AI 生成时已按当前参数写入脚本</span>
                 <ReButton icon="Refresh" :show-text="false" title="重新生成" @click="regenerateScripts(true)" />
               </div>
             </div>
@@ -753,7 +781,9 @@
                   <ReOption label="不启用" value="none" />
                   <ReOption label="平台自有 APM（runtime-agent）" value="platform" />
                   <ReOption label="SkyWalking" value="skywalking" />
-                  <ReOption label="Arthas 诊断" value="arthas" />
+                  <!-- Arthas 改为运行期 attach（更多操作 → Arthas 诊断），不再作为启动期 javaagent；
+                       这里只保留历史配置的回显，避免老项目选不出值 -->
+                  <ReOption v-if="form.apmType === 'arthas'" label="Arthas 诊断（历史配置）" value="arthas" />
                 </ReSelect>
               </ReFormItem>
 
@@ -804,15 +834,23 @@
                 <ReFormItem label="HTTP 端口（Arthas Web 控制台端口）">
                   <ReInput v-model.number="form.arthasHttpPort" type="number" style="width:100%" />
                 </ReFormItem>
-                <div class="apm-tip" style="margin-top:8px">
-                  <ReIcon name="InfoFilled" />
-                  <span>Arthas 通过 javaagent 挂载后，提供 telnet 交互式诊断（dashboard / thread / jvm 等命令）。也可在 Arthas 管理页运行时 attach，无需重启项目。</span>
+                <div class="apm-tip apm-tip-warn" style="margin-top:8px">
+                  <ReIcon name="WarningFilled" />
+                  <span>
+                    这是历史配置：启动时把 arthas-boot.jar 当 javaagent 挂载，需要重启项目，且与「Arthas 诊断」弹框的运行期 attach 是两套方式。
+                    建议移除，改用行菜单的「Arthas 诊断」运行期 attach（不用重启）。
+                  </span>
                 </div>
+                <ReButton size="small" class="legacy-drop" @click="dropLegacyArthasAgent">移除该项注入</ReButton>
               </template>
 
               <ReFormItem v-if="form.apmType !== 'none'" label="启动命令预览">
                 <pre class="apm-preview">java {{ apmPreviewArgs }} -jar {{ form.mainEntry || '&lt;主入口&gt;' }} ...</pre>
               </ReFormItem>
+
+              <div class="apm-tip apm-tip-sub">
+                Arthas 诊断不在这里注入：用项目行的「更多操作 → Arthas 诊断」运行期 attach，不需要重启项目。
+              </div>
             </ReForm>
           </div>
         </template>
@@ -982,7 +1020,7 @@
             <span class="upg-base-v mono">{{ upgProject?.mainEntry || '—' }}</span>
           </div>
           <div class="upg-base-row">
-            <span class="upg-base-k">上传目录</span>
+            <span class="upg-base-k">投放目录</span>
             <span class="upg-base-v mono">{{ upgProject?.uploadTargetDir || '—' }}</span>
           </div>
           <div class="upg-base-note">
@@ -990,42 +1028,29 @@
             <span>
               {{ upgHasProjectCfg
                 ? '已载入该项目保存过的默认配置，可再次调整并保存。'
-                : '当前显示该项目自身配置的默认值（部署类型 / 解压 / 上传目录均取自项目）。' }}
+                : '当前显示该项目自身配置的默认值（部署类型 / 解压 / 投放目录均取自项目）。' }}
             </span>
           </div>
         </div>
 
         <ReForm label-position="top">
-          <!-- 本地安装包：先传到目标主机的 uploads/，再把远端绝对路径回填到下面 -->
-          <ReFormItem label="本地安装包（可选：上传后自动回填路径）">
-            <div
-              class="upg-upload"
-              :class="{ 'is-busy': upgUploading }"
-              @dragover.prevent
-              @drop.prevent="onUpgDrop"
+          <ReFormItem label="产物路径（运行服务的这台机器上的绝对路径，jar / tar.gz / zip；为空则仅执行重启）">
+            <ReInput
+              v-model="upgForm.packagePath"
+              placeholder="如：/opt/app/releases/app.jar"
+              style="width:100%"
             >
-              <ReIcon name="Upload" class="upg-upload-ic" />
-              <div class="upg-upload-body">
-                <div class="upg-upload-title">
-                  <template v-if="upgUploading">正在上传到目标主机…</template>
-                  <template v-else>
-                    拖入安装包，或
-                    <button type="button" class="upg-upload-link" @click="pickUpgFile">选择文件</button>
-                  </template>
-                </div>
-                <div class="upg-upload-sub">
-                  {{
-                    upgUploadedName
-                      ? `已上传：${upgUploadedName}`
-                      : '上传到项目目录的 uploads/，不会自动覆盖正在运行的包'
-                  }}
-                </div>
-              </div>
-              <input ref="upgFileInput" type="file" class="upg-upload-input" @change="onUpgFilePicked" />
-            </div>
-          </ReFormItem>
-          <ReFormItem label="安装包路径（主机上的绝对路径，jar / tar.gz / zip；为空则仅执行重启）">
-            <ReInput v-model="upgForm.packagePath" placeholder="如：/home/ubuntu/uploads/app.tar.gz" />
+              <template #suffix>
+                <button
+                  type="button"
+                  class="pj-path-browse"
+                  title="从主机文件管理选择产物"
+                  @click="openPackagePicker"
+                >
+                  <ReIcon name="Document" :size="14" />
+                </button>
+              </template>
+            </ReInput>
           </ReFormItem>
           <ReFormItem v-if="upgProject?.projectType === 'separated'" label="部署类型">
             <ReSelect v-model="upgForm.deployType" style="width:100%">
@@ -1045,7 +1070,7 @@
           </ReFormItem>
           <ReFormItem
             v-if="upgProject?.projectType === 'model'"
-            label="上传目标目录（相对项目地址）"
+            label="产物投放目录（相对项目地址）"
           >
             <ReInput v-model="upgForm.uploadTargetDir" placeholder="如：models/onnx" />
           </ReFormItem>
@@ -1062,11 +1087,11 @@
         <ReButton @click="saveGlobalConfig">保存为全局默认</ReButton>
         <ReButton icon="CollectionTag" @click="saveProjectConfig">保存为项目默认</ReButton>
         <ReButton @click="upgVisible = false">取消</ReButton>
-        <ReButton type="primary" @click="executeUpgrade">执行升级</ReButton>
+        <ReButton type="primary" :loading="upgRunning" @click="executeUpgrade">执行升级</ReButton>
       </template>
     </ReDialog>
 
-    <!-- 系统配置（右键）：上传后自动升级 + 升级默认选项，统一放在这里而不是编辑页 -->
+    <!-- 系统配置（右键）：升级默认选项 + 健康检测 / 日志，统一放在这里而不是编辑页 -->
     <ReDialog
       v-model="sysCfgVisible"
       :title="sysCfgProject ? `系统配置 - ${sysCfgProject.projectName}` : '系统配置'"
@@ -1074,17 +1099,6 @@
       :close-on-click-modal="false"
     >
       <div v-loading="sysCfgLoading" class="syscfg">
-        <section class="syscfg-section">
-          <div class="syscfg-title"><ReIcon name="Upload" :size="13" />投放策略</div>
-          <div class="syscfg-row">
-            <div class="syscfg-label">
-              <b>上传后自动升级</b>
-              <span>上传安装包后立即投放并重启；关闭时只上传到上传目录，确认后再手动升级</span>
-            </div>
-            <el-switch v-model="sysCfg.uploadAutoUpgrade" />
-          </div>
-        </section>
-
         <section class="syscfg-section">
           <div class="syscfg-title"><ReIcon name="Top" :size="13" />升级默认配置</div>
           <div class="upg-switches">
@@ -1460,6 +1474,8 @@ import { ElMessageBox } from 'element-plus';
 import { message } from '@repo/core';
 import { http, unwrapResult } from '@repo/utils';
 import { fillTemplate, bestTemplate, expandDockerTemplate } from '@repo/ui/components/ReCommand/templates';
+import { listCommandModels, type CommandModel } from '../../api/commandGenerate';
+import { generateDeploymentScripts } from './scriptAi';
 import ReCron from '@repo/ui/re-cron';
 import ReTabs from '@repo/ui/re-tabs';
 import type { ReTabsItem, ReTabsContextItem } from '@repo/ui/re-tabs';
@@ -1517,6 +1533,7 @@ interface Project {
   gitSkipTests?: boolean;
   mavenHome?: string;
   mavenVersion?: string;
+  jdkHome?: string;
   uploadExtract?: boolean;
   uploadTargetDir?: string;
   deployType?: string;
@@ -1524,8 +1541,6 @@ interface Project {
   runtimeProcess?: boolean;
   /** 该类型是否为 JVM 进程（后端回填） */
   javaProcess?: boolean;
-  /** 上传后是否自动升级（默认 false：安装包只上传到 uploads/，不覆盖运行中的包） */
-  uploadAutoUpgrade?: boolean;
   /** 是否开启一次性定时发布 */
   scheduleEnabled?: boolean;
   /** 定时发布时间（后端 LocalDateTime，序列化为 ISO 字符串） */
@@ -1756,12 +1771,12 @@ const form = ref({
   // Maven 配置
   mavenHome: '',
   mavenVersion: '3.9.9',
-  // 上传配置
+  // 项目级 JDK：留空用 PATH 上的 java
+  jdkHome: '',
+  // 投放配置
   uploadExtract: true,
   uploadTargetDir: '',
   deployType: 'main',
-  // 上传后自动升级：默认关闭，安装包先落到 uploads/，确认无误再手动投递
-  uploadAutoUpgrade: false,
   // 一次性定时发布
   scheduleEnabled: false,
   scheduleTime: '',
@@ -1832,6 +1847,8 @@ const mainEntryRequired = computed(() => MAIN_ENTRY_REQUIRED_TYPES.includes(form
 const needsEntry = computed(() => !['static', 'nginx', 'model'].includes(form.value.projectType));
 // Git 源码构建参数：类型为 git 时展开；老项目（非 git 类型但配过 gitUrl）保留可编辑，避免升级入口失配
 const showGitSection = computed(() => form.value.projectType === 'git' || !!form.value.gitUrl);
+// JDK 安装路径：只有走 java 的项目才有意义（springboot / fatjar / git / separated）
+const showJavaSection = computed(() => ['springboot', 'fatjar', 'git', 'separated'].includes(form.value.projectType));
 
 const scriptContext = computed(() => ({
   entry: form.value.mainEntry,
@@ -2010,10 +2027,10 @@ function resetForm() {
     gitSkipTests: true,
     mavenHome: '',
     mavenVersion: '3.9.9',
+    jdkHome: '',
     uploadExtract: true,
     uploadTargetDir: '',
     deployType: 'main',
-    uploadAutoUpgrade: false,
     scheduleEnabled: false,
     scheduleTime: '',
     scheduleStatus: '',
@@ -2041,6 +2058,8 @@ function openCreateDialog() {
   scriptAutoDirty.value = false;
   activeTab.value = 'basic';
   dialogVisible.value = true;
+  // 模型可能在页面加载后才启用：每次打开弹框都补一次（已有可用模型时内部直接返回）
+  void ensureAiModels();
 }
 
 function openEditDialog(item: Project) {
@@ -2084,10 +2103,10 @@ function openEditDialog(item: Project) {
     gitSkipTests: item.gitSkipTests === undefined ? true : !!item.gitSkipTests,
     mavenHome: item.mavenHome || '',
     mavenVersion: item.mavenVersion || '3.9.9',
+    jdkHome: item.jdkHome || '',
     uploadExtract: item.uploadExtract === undefined ? true : !!item.uploadExtract,
     uploadTargetDir: item.uploadTargetDir || '',
     deployType: item.deployType || 'main',
-    uploadAutoUpgrade: !!item.uploadAutoUpgrade,
     scheduleEnabled: !!item.scheduleEnabled,
     // el-date-picker 的 value-format 与后端 LocalDateTime 对齐，秒级即可
     scheduleTime: item.scheduleTime ? String(item.scheduleTime).replace(' ', 'T').slice(0, 19) : '',
@@ -2102,6 +2121,7 @@ function openEditDialog(item: Project) {
   scriptAutoDirty.value = false;
   activeTab.value = 'basic';
   dialogVisible.value = true;
+  void ensureAiModels();
 }
 
 /** APM 类型描述（仅现有 jvmArgs 中的 javaagent 项会出现在这里） */
@@ -2222,14 +2242,20 @@ function parseApmConfig(jvm: string[]): ApmForm {
   };
 }
 
+/** 平台管理的 APM 注入参数前缀：切类型/停用时只清这些，用户自己的其它 JVM 参数原样保留 */
+const APM_ARG_PREFIXES = ['-javaagent:', '-Dskywalking.', '-Darthas.'];
+
+function stripApmArgs(jvm: string[]): string[] {
+  return jvm.filter((a) => !APM_ARG_PREFIXES.some((p) => a.startsWith(p)));
+}
+
 /** 保存前把 APM 高级选项合入 jvmArgs（选择启用时替换旧的 APM javaagent / skywalking 项） */
 function materializeApmArgs(apm: ApmForm, jvm: string[]): string[] {
+  const rest = stripApmArgs(jvm);
   if (apm.apmType === 'none') {
-    return jvm;
+    // 「不启用」要真的把上一轮的注入摘掉，否则界面上关了、启动命令里还在挂 agent
+    return rest;
   }
-  const rest = jvm.filter(
-    (a) => !a.startsWith('-javaagent:') && !a.startsWith('-Dskywalking.agent.service_name=') && !a.startsWith('-Dskywalking.collector.backend_service='),
-  );
   if (apm.apmType === 'platform' && apm.apmJarPath.trim()) {
     const base = `-javaagent:${apm.apmJarPath.trim()}`;
     const opts = apm.apmOptions?.trim();
@@ -2299,10 +2325,43 @@ function applyArgsToken(script: string): string {
     .replace(/__ARGS__/g, hostOs.value === 'windows' ? '$AppArgs' : '$APP_ARGS');
 }
 
+/**
+ * 按项目配置的 JDK 安装路径改写 java 调用点（与后端 ProjectPlatformProvider.applyJava 同口径）。
+ *
+ * <p>这里只是让「预览/保存的脚本」与真正下发的脚本一致；执行期后端仍会再改写一次，
+ * 且两种写法都只在未改写时命中，不会重复加前缀。</p>
+ *
+ * @param script 启动/重启脚本
+ * @returns 改写后的脚本
+ */
+function applyProjectJava(script: string): string {
+  const raw = (form.value.jdkHome || '').trim().replace(/[/\\]+$/, '');
+  if (!script || !raw) {
+    return script;
+  }
+  if (hostOs.value === 'windows') {
+    const home = raw.replace(/\//g, '\\');
+    // Win32_Process.Create 起的进程继承 WMI 自己的环境，脚本里的 $env: 传不到子进程，
+    // 必须在被创建的 cmd 命令行里就地 set；路径含空格时绝对 exe 会被 cmd 的引号规则拆坏，
+    // 所以前置 PATH、命令名保持 java。
+    const prefix = `set "JAVA_HOME=${home}" && set "PATH=${home}\\bin;%PATH%" && `;
+    return script
+      .replace(/\$inner = 'java '/g, `$inner = '${prefix.replace(/'/g, "''")}java '`)
+      .replace(/start "" \/b "java"/g, `${prefix}start "" /b "java"`);
+  }
+  const home = raw.replace(/\\/g, '/');
+  const exe = home.endsWith('/java')
+    ? home
+    : home.endsWith('/bin') ? `${home}/java` : `${home}/bin/java`;
+  const base = exe.replace(/\/bin\/java$/, '');
+  const q = (v: string) => v.replace(/'/g, `'\\''`);
+  return script.replace(/nohup java /g, `JAVA_HOME='${q(base)}' nohup '${q(exe)}' `);
+}
+
 function materializeVars() {
   const block = buildVarsBlock();
-  form.value.startScript = applyArgsToken(injectVarsBlock(form.value.startScript || '', block));
-  form.value.restartScript = applyArgsToken(injectVarsBlock(form.value.restartScript || '', block));
+  form.value.startScript = applyProjectJava(applyArgsToken(injectVarsBlock(form.value.startScript || '', block)));
+  form.value.restartScript = applyProjectJava(applyArgsToken(injectVarsBlock(form.value.restartScript || '', block)));
 }
 
 // ---- 一键生成全部脚本 ----
@@ -2496,9 +2555,153 @@ function regenerateScripts(notify = false): boolean {
  * @param mode 目标模式
  */
 function switchScriptMode(mode: 'auto' | 'custom') {
+  const from = scriptMode.value;
   scriptMode.value = mode;
-  if (mode === 'auto' && scriptAutoReady.value) {
+  if (mode !== 'auto' || from === 'auto') {
+    return;
+  }
+  // 从自定义切到自动时，已有脚本先原样保留：旧逻辑会立刻用模板覆盖，
+  // 用户还没点 AI 生成，手写内容就已经没了。
+  const hasScript = [
+    form.value.startScript,
+    form.value.stopScript,
+    form.value.restartScript,
+    form.value.statusScript,
+  ].some((s) => (s || '').trim());
+  if (hasScript) {
+    scriptAutoDirty.value = true;
+    if (scriptAutoReady.value) {
+      message.info('已保留当前脚本；如需按基础信息重算，点「恢复自动生成」');
+    }
+    return;
+  }
+  if (scriptAutoReady.value) {
     regenerateScripts(false);
+  }
+}
+
+// ---- AI 生成脚本：与内置模板并存，无模型 / 失败时仍可回退模板 ----
+/** 可用对话模型（拿不到就为空：AI 入口不可用，用户仍可用内置模板） */
+const aiModels = ref<CommandModel[]>([]);
+/** 当前选择的模型标识 */
+const aiModel = ref('');
+/** 生成中 */
+const aiGenerating = ref(false);
+/** 当前阶段文案（生成两段：三件套 + 状态脚本） */
+const aiStage = ref('');
+/** 模型列表是否已成功拿到；空列表不锁定，下次打开弹框会重试 */
+let aiModelsLoaded = false;
+/** 生成序号：关闭弹框后，迟到的 AI 结果不能写进下一个项目 */
+let aiRunSeq = 0;
+
+// 关窗即作废本轮生成（请求无法真正取消，但结果不再回写）
+watch(dialogVisible, (v) => {
+  if (!v) {
+    aiRunSeq += 1;
+    aiGenerating.value = false;
+    aiStage.value = '';
+  }
+});
+
+/**
+ * 懒加载模型列表。
+ *
+ * <p>拿不到模型不报错：发布页的主流程不能因为一个可选能力挂掉，按钮会提示先启用模型，
+ * 用户仍可继续用内置模板。</p>
+ */
+async function ensureAiModels() {
+  if (aiModelsLoaded) {
+    return;
+  }
+  // 优先只要对话模型：/v2/command/models 不带过滤时还会返回向量 / 绘图等模型，
+  // 误选后生成必然失败。若服务端没有打 capabilities 标签，再退回全量列表。
+  let models = await listCommandModels('chat');
+  if (!models.length) {
+    models = await listCommandModels();
+  }
+  aiModels.value = models;
+  if (!models.length) {
+    // 空列表可能是模型还没启用，也可能是瞬时失败：不锁死，下次打开弹框再拉
+    return;
+  }
+  aiModelsLoaded = true;
+  const stillValid = models.some((m) => (m.code || m.name) === aiModel.value);
+  if (!stillValid) {
+    aiModel.value = models[0].code || models[0].name;
+  }
+}
+
+/**
+ * 用 AI 生成四段部署脚本。
+ *
+ * <p>参数全部取自当前表单；JDK、环境变量、JVM / 程序参数没有独立的后端字段，
+ * 由 scriptAi 折进 requirement。生成结果写回四个字段并标记「已手改」，
+ * 这样基础信息再变不会把用户（或 AI）刚生成的脚本冲掉。</p>
+ */
+async function aiGenerateScripts() {
+  if (!scriptAutoReady.value) {
+    message.error('请先在「基础信息」选择项目类型并填写项目地址');
+    activeTab.value = 'basic';
+    return;
+  }
+  if (!aiModels.value.length) {
+    // 不用模板兜底覆盖：用户可能已经手改过脚本，静默重算会直接丢掉这些修改。
+    message.warning('暂无可用 AI 模型，请先在 AI 设置中启用对话模型；当前脚本不会被覆盖');
+    return;
+  }
+  aiGenerating.value = true;
+  aiStage.value = '准备参数';
+  const runId = ++aiRunSeq;
+  try {
+    const env = form.value.envVars
+      .filter((r) => r.key.trim())
+      .map((r) => `${r.key.trim()}=${r.value}`)
+      .join('\n');
+    const scripts = await generateDeploymentScripts(
+      {
+        os: hostOs.value,
+        projectType: form.value.projectType,
+        mainEntry: form.value.mainEntry,
+        projectPath: form.value.projectPath,
+        logPath: form.value.logPath,
+        appName: form.value.projectName,
+        jdkHome: form.value.jdkHome,
+        env,
+        jvmArgs: form.value.jvmArgs.map((a) => a.trim()).filter(Boolean).join(' '),
+        appArgs: form.value.cmdArgs.map((a) => a.trim()).filter(Boolean).join(' '),
+        docker: form.value.projectType === 'docker',
+      },
+      {
+        model: aiModel.value,
+        onProgress: (s) => {
+          // 弹框已关闭 / 已换项目：不再把旧阶段的文案写回当前弹框
+          if (runId === aiRunSeq) {
+            aiStage.value = s;
+          }
+        },
+      },
+    );
+    // 弹框已关闭 / 已给另一个项目重新生成：丢弃本次结果
+    if (runId !== aiRunSeq || !dialogVisible.value) {
+      return;
+    }
+    form.value.startScript = scripts.start;
+    form.value.stopScript = scripts.stop;
+    form.value.restartScript = scripts.restart;
+    form.value.statusScript = scripts.status;
+    // AI 产出的是一次性结果：后续基础信息变化不再自动覆盖，用户可继续手改
+    scriptAutoDirty.value = true;
+    message.success('AI 已生成四个脚本，确认后可继续修改');
+  } catch (e: any) {
+    // 用户已关闭弹框或换了项目：这是被放弃的请求，不能再弹一条红色错误
+    if (runId === aiRunSeq) {
+      message.error(e?.message || 'AI 生成脚本失败');
+    }
+  } finally {
+    if (runId === aiRunSeq) {
+      aiGenerating.value = false;
+      aiStage.value = '';
+    }
   }
 }
 
@@ -2799,7 +3002,7 @@ function ctxCommandsFor(item: Project): CtxCommandItem[] {
   }
 
   if (item.enabled !== false) {
-    out.push({ command: 'upgrade', label: '升级（安装包）', icon: 'Top', divided: true });
+    out.push({ command: 'upgrade', label: '升级（选择主机文件）', icon: 'Top', divided: true });
     if (item.projectType === 'separated') {
       out.push({ command: 'update-lib', label: '更新依赖包', icon: 'Box' });
     }
@@ -2811,7 +3014,7 @@ function ctxCommandsFor(item: Project): CtxCommandItem[] {
   if (item.projectPath) {
     out.push({ command: 'download-source', label: '下载源码', icon: 'Download', divided: true });
   }
-  // 系统配置：上传后自动升级 + 升级默认选项（从编辑页挪出来的高级配置）
+  // 系统配置：升级默认选项 + 健康检测 / 日志（从编辑页挪出来的高级配置）
   out.push({ command: 'system-config', label: '系统配置', icon: 'Setting' });
   // 路径复制：排障时经常要把项目目录/日志文件贴到终端或工单里
   if (item.projectPath) {
@@ -3056,6 +3259,45 @@ const JVM_CATALOG: CatalogItem[] = [
   { flag: '-Dlogging.config', desc: '日志配置文件，如 classpath:logback-spring.xml' },
   { flag: '-Dlogback.configurationFile', desc: 'Logback 配置文件路径' },
   { flag: '-Dlog4j.configurationFile', desc: 'Log4j2 配置文件路径' },
+  // —— 模块系统 / 预览特性（JDK9+，必须用 = 形式：空格形式会被当成一个参数）——
+  { flag: '--enable-preview', desc: '启用预览特性（编译与运行必须同一 JDK，如 JDK21）', boolean: true },
+  { flag: '--enable-native-access', desc: '放行受限本机方法调用（JDK22+），如 ALL-UNNAMED' },
+  { flag: '--add-opens', desc: '深反射开放包，如 java.base/java.lang=ALL-UNNAMED', sep: '=' },
+  { flag: '--add-exports', desc: '导出内部包，如 java.base/sun.net=ALL-UNNAMED', sep: '=' },
+  { flag: '--add-reads', desc: '补模块读依赖，如 java.base=ALL-UNNAMED', sep: '=' },
+  { flag: '--add-modules', desc: '并入额外模块，如 jdk.crypto.ec / ALL', sep: '=' },
+  { flag: '--limit-modules', desc: '限制可见模块集合', sep: '=' },
+  { flag: '--illegal-access', desc: '反射访问内部 API 策略（JDK16 前），permit / deny / warn', sep: '=' },
+  { flag: '-Djdk.module.main', desc: '指定主类所在模块，如 app', sep: '=' },
+  { flag: '-Djava.security.manager', desc: '安全管理器策略（JDK17+ 需 allow 才能自定义），如 allow', sep: '=' },
+  // —— 代理 / 诊断挂载（Arthas、JMX 远程）——
+  { flag: '-Djdk.attach.allowAttachSelf', desc: '允许进程自附加（Arthas / ByteBuddy 自挂载需 true）', sep: '=' },
+  { flag: '-XX:+EnableDynamicAgentLoading', desc: '允许动态挂载 Agent，压掉 JDK21+ 的告警', boolean: true },
+  { flag: '-Dcom.sun.management.jmxremote', desc: '开启 JMX 远程管理（配合下面的端口参数）', boolean: true },
+  { flag: '-Dcom.sun.management.jmxremote.port', desc: 'JMX 端口，如 9010', sep: '=' },
+  { flag: '-Dcom.sun.management.jmxremote.ssl', desc: 'JMX 是否要求 SSL，如 false', sep: '=' },
+  { flag: '-Dcom.sun.management.jmxremote.authenticate', desc: 'JMX 是否认证，如 false', sep: '=' },
+  { flag: '-XX:NativeMemoryTracking', desc: 'NMT 内存追踪（配合 jcmd），如 summary / detail', sep: '=' },
+  { flag: '-XX:StartFlightRecording', desc: '启动即开 JFR，如 duration=60s,filename=./rec.jfr', sep: '=' },
+  { flag: '-XX:ErrorFile', desc: 'JVM 崩溃日志路径，如 ./hs_err_pid%p.log', sep: '=' },
+  { flag: '-XX:+UnlockDiagnosticVMOptions', desc: '解锁诊断级参数（先加这条才能用 -XX 诊断项）', boolean: true },
+  // —— 容器 / 内存页 / GC 行为 ——
+  { flag: '-XX:+UseContainerSupport', desc: '按 cgroup 限额识别内存与 CPU（容器内必开）', boolean: true },
+  { flag: '-XX:-UseContainerSupport', desc: '关闭容器识别，退回物理机规格', boolean: true },
+  { flag: '-XX:+AlwaysPreTouch', desc: '启动即触碰全部堆页，避免运行期缺页抖动', boolean: true },
+  { flag: '-XX:+DisableExplicitGC', desc: '忽略 System.gc()（防 NIO 直接内存频繁触发 Full GC）', boolean: true },
+  { flag: '-XX:+ExplicitGCInvokesConcurrent', desc: 'System.gc() 转为并发 GC（保留回收直接内存能力）', boolean: true },
+  { flag: '-XX:+UseStringDeduplication', desc: 'G1/ZGC 字符串去重，节省内存', boolean: true },
+  { flag: '-XX:TieredStopAtLevel', desc: '限制 JIT 分层（1 启动快、适合短任务），如 1', sep: '=' },
+  { flag: '-XX:-OmitStackTraceInFastThrow', desc: '保留热点异常完整堆栈（否则 NPE 栈会被省略）', boolean: true },
+  { flag: '-XX:+UsePerfData', desc: '生成 perf 数据文件（jps / jstat 可见）', boolean: true },
+  { flag: '-XX:ActiveProcessorCount', desc: '强制指定可见核数，如 4（容器限核时用）', sep: '=' },
+  // —— AWT / 图形 ——
+  { flag: '-Djava.awt.headless', desc: '无显示器环境跑 AWT（服务端设 true）', sep: '=' },
+  { flag: '-Djava.library.path', desc: '本地库搜索路径，如 ./native', sep: '=' },
+  { flag: '-Dspring.main.lazy-initialization', desc: '懒加载 Bean，缩短启动时间（仅开发建议）', sep: '=' },
+  { flag: '--stdout', desc: '标准输出目标，如 System.out / Log 到文件', sep: '=' },
+  { flag: '--stderr', desc: '标准错误目标，如 System.err / Log', sep: '=' },
 ];
 
 const APP_CATALOG: CatalogItem[] = [
@@ -3135,6 +3377,7 @@ const keyPlaceholder = computed(() => ({
   jvm: '选择或输入 JVM 参数，如 -Xmx',
   app: '选择或输入命令参数，如 --server.port',
 }[varsCategory.value]));
+/** 无分隔符拼接的目录项（-Xmx512m / -cp）与布尔开关不需要值 */
 const valuePlaceholder = computed(() => ({
   env: '变量值',
   jvm: '参数值，如 512m',
@@ -3207,6 +3450,12 @@ function splitJvm(s: string): KVRow {
   }
   const cp = t.match(/^(-cp|-classpath)\s+(.+)$/);
   if (cp) return { key: cp[1], value: cp[2] };
+    // JDK9+ 长参数：--add-opens=... 带 = 值，--enable-preview 无值；
+    // 统一按第一个 = 拆，无值的自然落成 key=整串、value=空
+  if (t.startsWith('--')) {
+    const i = t.indexOf('=');
+    return i >= 0 ? { key: t.slice(0, i), value: t.slice(i + 1) } : { key: t, value: '' };
+  }
   return { key: t, value: '' };
 }
 
@@ -3531,11 +3780,11 @@ function openApmWorkbench(item: Project) {
   router.push(target.fullPath);
 }
 
-// ---- 主机路径选择器（项目地址 / 日志地址 / Nginx 目录） ----
+// ---- 主机路径选择器（项目地址 / 日志地址 / Nginx 目录 / 升级产物） ----
 /** 路径选择器弹框 */
 const pathPickerVisible = ref(false);
 /** 正在挑选的字段名 */
-const pathPickerField = ref<'projectPath' | 'logPath' | 'nginxDir' | ''>('');
+const pathPickerField = ref<'projectPath' | 'logPath' | 'nginxDir' | 'packagePath' | ''>('');
 /** 选择器初始目录 */
 const pathPickerInit = ref('');
 
@@ -3543,6 +3792,7 @@ const PATH_FIELD_LABELS: Record<string, string> = {
   projectPath: '项目地址',
   logPath: '日志地址',
   nginxDir: 'Nginx 目录',
+  packagePath: '产物路径',
 };
 
 const pathPickerTitle = computed(
@@ -3583,6 +3833,23 @@ function openPathPicker(field: 'projectPath' | 'logPath' | 'nginxDir') {
 }
 
 /**
+ * 打开主机文件管理，挑选本次升级要投放的产物。
+ *
+ * <p>产物就是运行服务那台机器上的文件，发布管理不再接收本机上传：
+ * 用户直接在主机文件管理器里选 jar / tar.gz / zip，绝对路径回填到升级弹框。</p>
+ */
+function openPackagePicker() {
+  if (!releaseHostId.value) {
+    message.warning('未识别到该发布绑定的主机，无法浏览主机文件');
+    return;
+  }
+  pathPickerField.value = 'packagePath';
+  // 已填过产物时从其所在目录开始，首次打开则落到项目目录
+  pathPickerInit.value = dirOf(upgForm.value.packagePath) || upgProject.value?.projectPath || '';
+  pathPickerVisible.value = true;
+}
+
+/**
  * 选择器回调：把主机路径写回表单字段。
  *
  * @param p 主机上的绝对路径
@@ -3591,6 +3858,12 @@ function onPathPicked(p: string) {
   const field = pathPickerField.value;
   pathPickerVisible.value = false;
   if (!field || !p) return;
+  // 升级弹框的产物路径单独回填，不污染新建/编辑表单
+  if (field === 'packagePath') {
+    upgForm.value.packagePath = p;
+    message.success(`已选择：${p}`);
+    return;
+  }
   form.value[field] = p;
   // 选了项目地址后，日志地址若不是以它开头，顺手补一个默认位置，减少手填
   if (field === 'projectPath' && !form.value.logPath.trim()) {
@@ -3600,81 +3873,28 @@ function onPathPicked(p: string) {
   message.success(`已选择：${p}`);
 }
 
-// ---- 拖拽升级 ----
-const dragOverId = ref<number | null>(null);
 /**
- * 拖拽上传安装包并按项目默认配置升级。
+ * 更新依赖包：打开升级弹框并预置「仅依赖」。
+ *
+ * <p>分离式项目的依赖包与主包是两套文件，必须显式选「仅依赖」；
+ * 默认按主包升级会直接替换主包，重启后服务起不来。产物路径在弹框里
+ * 从主机文件管理选择，发布管理不再接收本机上传。</p>
  *
  * @param item 项目
- * @param ev   拖拽事件
  */
-async function onDropFile(item: Project, ev: DragEvent) {
-  dragOverId.value = null;
-  const file = ev.dataTransfer?.files?.[0];
-  if (!file) return;
-  const fd = new FormData();
-  fd.append('file', file);
-  try {
-    const res = await http().post(`${BASE}/project/${item.id}/upload`).data(fd);
-    const taskId = unwrapResult<string>(res);
-    if (typeof taskId === 'string' && taskId.startsWith('upload-only:')) {
-      // 项目未开启「上传后自动升级」：安装包只落到 uploads/，不覆盖正在运行的包
-      message.success(`已上传到 ${taskId.slice('upload-only:'.length)}（未开启自动升级）`);
-      return;
-    }
-    if (taskId) {
-      trackTask(taskId, item.projectName, 'upgrade');
-    } else {
-      message.error('上传升级失败');
-    }
-  } catch (e: any) {
-    toastError(e, '上传升级失败');
+async function handleUpdateLib(item: Project) {
+  await openUpgradeDialog(item);
+  if (item.projectType === 'separated') {
+    upgForm.value.deployType = 'lib';
   }
 }
 
-/**
- * 更新依赖包：只投递依赖（lib），不动主包。
- *
- * <p>分离式项目的依赖包与主包是两套文件，拖拽卡片默认按「主包」升级；
- * 依赖变更时必须在操作里单独选，否则会被当成主包替换，重启后直接起不来。
- * 这里用一个隐藏的 file input 选包，然后带 {@code deployType=lib} 调用同一个上传接口。</p>
- *
- * @param item 项目
- */
-function handleUpdateLib(item: Project) {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.jar,.zip,.tar,.tar.gz,.tgz';
-  input.onchange = async () => {
-    const file = input.files?.[0];
-    if (!file) return;
-    const fd = new FormData();
-    fd.append('file', file);
-    try {
-      const res = await http()
-        .post(`${BASE}/project/${item.id}/upload?deployType=lib&autoRestart=false`)
-        .data(fd);
-      const taskId = unwrapResult<string>(res);
-      if (taskId) {
-        trackTask(taskId, `${item.projectName} · 依赖包`, 'upgrade');
-        message.success('依赖包上传中，完成后可手动重启生效');
-      } else {
-        message.error('依赖包更新失败');
-      }
-    } catch {
-      message.error('依赖包更新失败');
-    }
-  };
-  input.click();
-}
-
-// ---- 系统配置（右键）：上传后自动升级 + 升级默认选项 ----
+// ---- 系统配置（右键）：升级默认选项 / 健康检测 / 日志 ----
 const sysCfgVisible = ref(false);
 const sysCfgProject = ref<Project | null>(null);
 const sysCfgLoading = ref(false);
 const sysCfgSaving = ref(false);
 const sysCfg = ref({
-  uploadAutoUpgrade: false,
   autoBackup: true,
   autoExtract: true,
   autoRestart: true,
@@ -3689,14 +3909,13 @@ const sysCfg = ref({
 const sysCfgActuatorAvailable = ref(false);
 
 /**
- * 打开项目系统配置：上传投放策略 + 升级默认选项一次改完。
+ * 打开项目系统配置：升级默认选项 / 健康检测 / 日志一次改完。
  *
  * @param item 项目
  */
 async function openSystemConfig(item: Project) {
   sysCfgProject.value = item;
   sysCfg.value = {
-    uploadAutoUpgrade: !!item.uploadAutoUpgrade,
     autoBackup: true,
     autoExtract: item.uploadExtract ?? true,
     autoRestart: true,
@@ -3720,7 +3939,6 @@ async function openSystemConfig(item: Project) {
     const cfg = unwrapResult<any>(res) || {};
     const base = { ...(cfg.global || {}), ...(cfg.project || {}) };
     sysCfg.value = {
-      uploadAutoUpgrade: !!(base.uploadAutoUpgrade ?? item.uploadAutoUpgrade),
       autoBackup: base.autoBackup ?? true,
       autoExtract: base.autoExtract ?? item.uploadExtract ?? true,
       autoRestart: base.autoRestart ?? true,
@@ -3753,7 +3971,7 @@ async function openSystemConfig(item: Project) {
   }
 }
 
-/** 保存系统配置：项目级升级默认 + 项目自身的「上传后自动升级」 */
+/** 保存系统配置：项目级升级默认 + 健康检测 / 日志 */
 async function saveSystemConfig() {
   const item = sysCfgProject.value;
   if (!item) return;
@@ -3764,9 +3982,6 @@ async function saveSystemConfig() {
     await http()
       .put(`${BASE}/upgrade/config?scope=project&projectId=${item.id}`)
       .data(upgradeCfg);
-    await http().put(`${BASE}/project/${item.id}`).data({
-      uploadAutoUpgrade: sysCfg.value.uploadAutoUpgrade,
-    });
     await http().put(`${BASE}/project/${item.id}/endpoints/monitor`).data({
       enabled: actuatorMonitorEnabled,
       intervalSeconds: actuatorIntervalSeconds,
@@ -3790,6 +4005,10 @@ async function saveSystemConfig() {
 const upgVisible = ref(false);
 const upgProject = ref<Project | null>(null);
 const upgLoading = ref(false);
+/** 升级任务下发中：防止连点生成两个任务 */
+const upgRunning = ref(false);
+/** 升级配置请求序号：快速切项目时，迟到的响应不能写到当前项目上 */
+let upgSeq = 0;
 /** 该项目是否已有显式保存过的项目级默认配置 */
 const upgHasProjectCfg = ref(false);
 const upgForm = ref({
@@ -3802,74 +4021,6 @@ const upgForm = ref({
   uploadExtract: true,
   uploadTargetDir: '',
 });
-/** 本地安装包上传：文件选择器、上传中状态、最近一次上传的文件名 */
-const upgFileInput = ref<HTMLInputElement | null>(null);
-const upgUploading = ref(false);
-const upgUploadedName = ref('');
-
-/** 触发本地文件选择（弹框内的「选择文件」） */
-function pickUpgFile() {
-  upgFileInput.value?.click();
-}
-
-/**
- * 上传本地安装包到目标主机。
- *
- * <p>升级弹框以前只有「主机上的绝对路径」，本地包无处可传，只能先手动
- * scp 再回来填路径。这里复用项目卡片拖拽用的同一个接口：
- * 文件落到 {@code <项目目录>/uploads/}，再把远端绝对路径回填到
- * {@code packagePath}，用户点「执行升级」才真正投递。</p>
- *
- * <p>接口返回 {@code upload-only:<path>} 表示项目未开启「上传后自动升级」，
- * 只上传不部署；返回 taskId 则说明项目开了自动升级，后端已开始升级。</p>
- *
- * @param file 本地文件
- */
-async function uploadUpgPackage(file: File) {
-  const project = upgProject.value;
-  if (!project) return;
-  upgUploading.value = true;
-  try {
-    const fd = new FormData();
-    fd.append('file', file);
-    const res = await http().post(`${BASE}/project/${project.id}/upload`).data(fd);
-    const out = unwrapResult<string>(res);
-    if (typeof out === 'string' && out.startsWith('upload-only:')) {
-      const remote = out.slice('upload-only:'.length);
-      upgForm.value.packagePath = remote;
-      upgUploadedName.value = file.name;
-      message.success(`已上传到 ${remote}，点「执行升级」开始`);
-      return;
-    }
-    if (out) {
-      // 项目开启了「上传后自动升级」：后端已直接开始升级
-      upgVisible.value = false;
-      trackTask(out, project.projectName, 'upgrade');
-      message.success('已上传，升级任务已开始');
-      return;
-    }
-    message.error('上传失败：未返回安装包路径');
-  } catch (e: any) {
-    toastError(e, '上传安装包失败');
-  } finally {
-    upgUploading.value = false;
-  }
-}
-
-/** 文件选择器回调 */
-async function onUpgFilePicked(ev: Event) {
-  const input = ev.target as HTMLInputElement;
-  const file = input.files?.[0];
-  input.value = '';
-  if (file) await uploadUpgPackage(file);
-}
-
-/** 拖入文件上传 */
-async function onUpgDrop(ev: DragEvent) {
-  const file = ev.dataTransfer?.files?.[0];
-  if (file) await uploadUpgPackage(file);
-}
-
 /**
  * 打开升级弹框：按「该项目自己的默认配置」预填。
  *
@@ -3882,9 +4033,11 @@ async function onUpgDrop(ev: DragEvent) {
  * @param item 项目
  */
 async function openUpgradeDialog(item: Project) {
+  const seq = ++upgSeq;
   upgProject.value = item;
   upgLoading.value = true;
-  upgUploadedName.value = '';
+  // 先开弹框再拉配置：接口慢时用户能看到 loading，而不是右键后长时间没反应
+  upgVisible.value = true;
   // 先用项目自身的字段兜底，接口失败也能用
   upgForm.value = {
     autoBackup: true,
@@ -3899,6 +4052,10 @@ async function openUpgradeDialog(item: Project) {
   upgHasProjectCfg.value = false;
   try {
     const res = await http().get(`${BASE}/upgrade/config?projectId=${item.id}`);
+    // 已经切到别的项目：丢弃这次响应，避免 A 的配置显示在 B 的弹框里
+    if (seq !== upgSeq) {
+      return;
+    }
     const cfg = unwrapResult<any>(res) || {};
     const saved = cfg.project || {};
     upgHasProjectCfg.value = !!saved.__saved;
@@ -3913,13 +4070,14 @@ async function openUpgradeDialog(item: Project) {
       uploadExtract: base.uploadExtract ?? item.uploadExtract ?? true,
       uploadTargetDir: base.uploadTargetDir || item.uploadTargetDir || '',
     };
-    // 从配置里带出来的包路径是上一次的，不作为本次默认（避免误升同一个旧包）
+    // 从配置里带出来的产物路径是上一次的，不作为本次默认（避免误升同一个旧包）
     upgForm.value.packagePath = '';
   } catch {
     // 使用项目字段兜底
   } finally {
-    upgLoading.value = false;
-    upgVisible.value = true;
+    if (seq === upgSeq) {
+      upgLoading.value = false;
+    }
   }
 }
 
@@ -3949,17 +4107,21 @@ async function saveProjectConfig() {
 }
 
 async function executeUpgrade() {
-  if (!upgProject.value) return;
+  const item = upgProject.value;
+  if (!item || upgRunning.value) return;
+  upgRunning.value = true;
   try {
     await http().put(`${BASE}/upgrade/config?scope=last`).data(upgForm.value);
     const res = await http()
-      .post(`${BASE}/project/${upgProject.value.id}/upgrade/run`)
+      .post(`${BASE}/project/${item.id}/upgrade/run`)
       .data(upgForm.value);
     const taskId = unwrapResult<string>(res);
     upgVisible.value = false;
-    if (taskId) trackTask(taskId, upgProject.value.projectName, 'upgrade');
+    if (taskId) trackTask(taskId, item.projectName, 'upgrade');
   } catch (e: any) {
     toastError(e, '升级触发失败');
+  } finally {
+    upgRunning.value = false;
   }
 }
 
@@ -4711,6 +4873,13 @@ function onAgentDone(remotePath: string, kind: string) {
   message.success(`已回填路径：${remotePath}`);
 }
 
+/** 历史配置迁移：去掉启动期 Arthas javaagent，诊断改用运行期 attach */
+function dropLegacyArthasAgent() {
+  form.value.apmType = 'none';
+  form.value.arthasJarPath = '';
+  message.success('已移除启动期 Arthas javaagent，保存项目后启动命令里不再挂载；诊断请用「更多操作 → Arthas 诊断」');
+}
+
 async function openArthasDialog(item: Project) {
   arthasProject.value = item;
   arthasConsoleOutput.value = '';
@@ -4995,6 +5164,8 @@ function goBack() {
 onMounted(() => {
   // 发布管理全局 SSE：任务进度 / 实时日志 / 操作日志都走这一条连接
   releaseSse.open();
+  // 预拉模型列表；空列表不锁定，打开项目弹框时会再试，模板生成始终可用
+  void ensureAiModels();
   loadList();
   loadHostOs();
   nowTs.value = Date.now();
@@ -5364,11 +5535,6 @@ onBeforeUnmount(() => {
 
 .rail-host.is-disabled .rail-host__name {
   color: var(--el-text-color-secondary);
-}
-
-.rail-host.is-dragover {
-  border-color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
 }
 
 /* 类型图标块：与发布管理卡片同构的色调 */
@@ -5807,22 +5973,6 @@ onBeforeUnmount(() => {
   color: var(--text-tertiary);
 }
 
-.pj-drop {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--brand-50) 88%, transparent);
-  color: var(--brand-600);
-  font-size: 12.5px;
-  font-weight: 600;
-  pointer-events: none;
-  z-index: 3;
-}
-
 /* 窄屏：左栏占满一行，不强制并排 */
 @media (max-width: 720px) {
   .pj-body { flex-direction: column; }
@@ -6020,6 +6170,29 @@ onBeforeUnmount(() => {
   gap: 10px;
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+.sa-ai {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  background: var(--el-fill-color-lighter);
+}
+.sa-ai-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+}
+.sa-ai-model {
+  width: 156px;
+  flex: none;
 }
 
 /* ===== 项目右键菜单 ===== */
@@ -6497,57 +6670,6 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-regular);
   cursor: pointer;
 }
-/* 本地安装包上传区：拖拽 + 选择文件，命中后回填远端路径 */
-.upg-upload {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-  border: 1px dashed var(--border-subtle);
-  border-radius: 10px;
-  background: var(--bg-fill);
-  transition: border-color 0.15s ease, background 0.15s ease;
-}
-.upg-upload:hover {
-  border-color: var(--brand-500);
-}
-.upg-upload.is-busy {
-  opacity: 0.7;
-  pointer-events: none;
-}
-.upg-upload-ic {
-  flex-shrink: 0;
-  color: var(--text-tertiary);
-}
-.upg-upload-body {
-  min-width: 0;
-  line-height: 1.5;
-}
-.upg-upload-title {
-  font-size: 13px;
-  color: var(--text-primary);
-}
-.upg-upload-link {
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  color: var(--brand-500);
-  cursor: pointer;
-}
-.upg-upload-link:hover {
-  text-decoration: underline;
-}
-.upg-upload-sub {
-  margin-top: 2px;
-  font-size: 12px;
-  color: var(--text-tertiary);
-  word-break: break-all;
-}
-.upg-upload-input {
-  display: none;
-}
-
 /* 表单路径输入框内的「浏览主机文件」图标：贴着输入框右侧，避免独立方按钮的撕裂感 */
 .pj-path-browse {
   display: inline-flex;
@@ -6644,6 +6766,9 @@ onBeforeUnmount(() => {
 }
 .apm-tip b { color: var(--text-primary, #1f2430); }
 .apm-tip-sub { font-size: 12px; padding: 8px 12px; }
+.apm-tip-warn { font-size: 12px; padding: 8px 12px; color: var(--warning, #b45309); }
+.apm-tip-warn b { color: inherit; }
+.legacy-drop { align-self: flex-start; width: auto; }
 .jar-pick { display: flex; align-items: center; gap: 8px; width: 100%; }
 .apm-form { display: flex; flex-direction: column; gap: 4px; }
 .apm-preview {
@@ -6771,19 +6896,6 @@ onBeforeUnmount(() => {
   background: var(--primary);
   color: white;
   border-color: var(--primary);
-}
-
-/* ===== 上传后自动升级开关 ===== */
-.up-auto {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.up-auto-hint {
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--text-tertiary);
 }
 
 /* ===== 复制项目到其他服务器 ===== */

@@ -214,7 +214,6 @@
       :providers="pickerProviders"
       :selected-id="pickerSelected"
       :empty-text="pickerEmptyText"
-      :logo-for="logoForModel"
       @select="onModelSelect"
       @clear="onModelClear"
     />
@@ -766,8 +765,6 @@ const pickerEmptyText = computed(() => (
     ? '没有可用的人脸检测模型'
     : '没有可用的人脸特征模型'
 ))
-
-const logoForModel = (model: any): string | undefined => getModelAvatarPath(model?.model || '') ?? undefined
 
 /** 当前字段已配置的值；SYSTEM_DEFAULT 视为未配置 */
 const currentModelValue = (field: string): string => {

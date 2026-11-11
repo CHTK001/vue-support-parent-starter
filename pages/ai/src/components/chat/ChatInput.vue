@@ -713,12 +713,15 @@ watch(() => currentModel.value?.config, (config) => {
 // 后端模型行回传顶层布尔字段；仅显式 false 才隐藏按钮，字段为空（未配置 / 旧数据）
 // 保持按钮可见。思考胶囊用 modelReasoningVisible 单独控制。
 watch(() => currentModel.value, (model) => {
-  if (model?.['attachment'] === false) showButtons.attachmentButton = false;
-  if (model?.['tool_call'] === false) showButtons.skillButton = false;
+  // 必须双向赋值：旧写法只在能力位为 false 时把开关拨到 false、之后再也不拨回来，
+  // 于是用户切到某个 attachment=false 的模型后，底部左侧「+」会永久消失（报障 1.1）。
+  showButtons.attachmentButton = model?.['attachment'] !== false;
+  showButtons.skillButton = model?.['tool_call'] !== false;
 }, { immediate: true });
 
-/** 思考胶囊显隐：仅模型显式声明 reasoning=false 才隐藏；未配置/未知保持可见 */
-const modelReasoningVisible = computed(() => currentModel.value?.['reasoning'] !== false);
+/** 「模型 / 思考档位」两段常驻：用户要求底部始终显示 `xxx / yy`，且两段各自可点。
+ *  旧实现只在模型显式 reasoning=false 时把右半段整块摘掉，导致 `/ 不思考` 消失。 */
+const modelReasoningVisible = computed(() => true);
 
 // 思考强度相关
 const localThinkingEffort = ref<string>('none'); // 'none' | 'low' | 'medium' | 'high' | 'max' | ...
