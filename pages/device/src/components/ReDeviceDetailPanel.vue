@@ -176,6 +176,14 @@
             <el-table-column prop="deviceBarrierGateStatus" label="状态" width="90" />
           </el-table>
           <div v-if="!barrierLoading && !barriers.length" class="ddp-barrier-empty">该设备暂无车闸点位</div>
+          <el-divider content-position="left">该设备过车记录</el-divider>
+          <el-table v-loading="barrierLoading" :data="barrierPasses" size="small" border>
+            <el-table-column prop="deviceVehiclePassPlateNo" label="车牌号" min-width="120" />
+            <el-table-column label="方向" width="80">
+              <template #default="{ row }">{{ passDirectionText(row.deviceVehiclePassDirection) }}</template>
+            </el-table-column>
+            <el-table-column prop="deviceVehiclePassTime" label="过车时间" min-width="170" />
+          </el-table>
         </el-tab-pane>
 
         <el-tab-pane label="事件" name="events">
@@ -266,6 +274,8 @@ const activeTab = ref('overview')
 
 /** 车闸点位 */
 const barriers = ref<Record<string, any>[]>([])
+/** 当前设备的过车记录 */
+const barrierPasses = ref<Record<string, any>[]>([])
 /** 车闸加载中 */
 const barrierLoading = ref(false)
 
@@ -305,6 +315,13 @@ const accessEvents = ref<AccessEvent[]>([])
 const events = ref<DeviceEvent[]>([])
 const eventFilter = ref<{ type: string; dateRange: any }>({ type: '', dateRange: null })
 const eventRealtime = ref(true)
+
+/** 过车方向文案 */
+function passDirectionText(value?: string): string {
+  if (value === 'in') return '入场'
+  if (value === 'out') return '出场'
+  return '—'
+}
 
 const mapDevices = computed(() => {
   if (!props.device) return props.devices
@@ -565,6 +582,7 @@ async function init() {
   videoUrl.value = ''
   multiViewVisible.value = false
   barriers.value = []
+  barrierPasses.value = []
   // 页签按能力位裁剪后，只有能出画面的设备才值得去拉通道 / 预置位 / 事件
   const keys = tabKeys.value
   if (keys.includes('video') || keys.includes('channel')) await loadChannels()
@@ -604,8 +622,11 @@ async function loadBarriers() {
   try {
     const list = (await deviceApi.listBarriers({ deviceId })) as Record<string, any>[]
     barriers.value = Array.isArray(list) ? list : []
+    const page = (await deviceApi.pageVehiclePasses({ page: 1, size: 50, deviceId })) as Record<string, any>
+    barrierPasses.value = page?.records ?? page?.data ?? []
   } catch {
     barriers.value = []
+    barrierPasses.value = []
   } finally {
     barrierLoading.value = false
   }
