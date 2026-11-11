@@ -167,13 +167,28 @@
         </el-tab-pane>
 
         <el-tab-pane label="车闸" name="barrier">
+          <div class="ddp-barrier-head">
+            <span class="ddp-barrier-title">车闸点位</span>
+            <div class="ddp-barrier-actions">
+              <el-button size="small" @click="loadBarriers">刷新</el-button>
+              <el-button size="small" type="primary" @click="openGateDialog()">新增车闸</el-button>
+            </div>
+          </div>
           <el-table v-loading="barrierLoading" :data="barriers" size="small" border>
             <el-table-column prop="deviceBarrierGateName" label="车闸名称" min-width="140" />
             <el-table-column label="方向" width="90">
               <template #default="{ row }">{{ barrierDirectionText(row.deviceBarrierGateDirection) }}</template>
             </el-table-column>
             <el-table-column prop="deviceBarrierGateChannelNo" label="通道号" width="80" />
-            <el-table-column prop="deviceBarrierGateStatus" label="状态" width="90" />
+            <el-table-column label="状态" width="90">
+              <template #default="{ row }">{{ gateStatusText(row.deviceBarrierGateStatus) }}</template>
+            </el-table-column>
+            <el-table-column label="操作" width="120" fixed="right">
+              <template #default="{ row }">
+                <el-button link type="primary" @click="openGateDialog(row)">编辑</el-button>
+                <el-button link type="danger" @click="removeGate(row)">删除</el-button>
+              </template>
+            </el-table-column>
           </el-table>
           <div v-if="!barrierLoading && !barriers.length" class="ddp-barrier-empty">该设备暂无车闸点位</div>
           <el-divider content-position="left">该设备过车记录</el-divider>
@@ -199,6 +214,47 @@
       </el-tabs>
     </div>
 
+    <el-dialog
+      v-model="gateDialogVisible"
+      :title="gateForm.id ? '编辑车闸' : '新增车闸'"
+      width="460px"
+      append-to-body
+    >
+      <el-form label-width="80px">
+        <el-form-item label="车闸名称" required>
+          <el-input v-model="gateForm.name" maxlength="64" placeholder="如：东门入口道闸" />
+        </el-form-item>
+        <el-form-item label="方向">
+          <el-select v-model="gateForm.direction" style="width: 100%">
+            <el-option label="入口" value="in" />
+            <el-option label="出口" value="out" />
+            <el-option label="双向" value="both" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="通道号">
+          <el-input-number
+            v-model="gateForm.channelNo"
+            :min="1"
+            :max="999"
+            controls-position="right"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-select v-model="gateForm.status" style="width: 100%">
+            <el-option label="开启" value="open" />
+            <el-option label="关闭" value="closed" />
+            <el-option label="离线" value="offline" />
+            <el-option label="未知" value="unknown" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="gateDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="gateSaving" @click="saveGate">保存</el-button>
+      </template>
+    </el-dialog>
+
     <ReMultiVideo
       v-model="multiViewVisible"
       :layout="multiLayout"
@@ -222,8 +278,9 @@
  * @author CH
  * @since 4.0.0.42
  */
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { message } from '@repo/core'
+import { ElMessageBox } from 'element-plus'
 import { Grid, Refresh } from '@element-plus/icons-vue'
 import ReVideo from '../components/ReVideo.vue'
 import ReMultiVideo from '../components/ReMultiVideo.vue'
@@ -278,6 +335,18 @@ const barriers = ref<Record<string, any>[]>([])
 const barrierPasses = ref<Record<string, any>[]>([])
 /** 车闸加载中 */
 const barrierLoading = ref(false)
+/** 车闸编辑弹窗是否可见 */
+const gateDialogVisible = ref(false)
+/** 车闸保存中 */
+const gateSaving = ref(false)
+/** 车闸编辑表单 */
+const gateForm = reactive({
+  id: '',
+  name: '',
+  direction: 'in',
+  channelNo: 1,
+  status: 'closed'
+})
 
 /** 车闸方向文案 */
 function barrierDirectionText(value?: string): string {
@@ -285,6 +354,14 @@ function barrierDirectionText(value?: string): string {
   if (value === 'out') return '出口'
   if (value === 'both') return '双向'
   return '—'
+}
+
+/** 车闸状态文案 */
+function gateStatusText(value?: string): string {
+  if (value === 'open') return '开启'
+  if (value === 'closed') return '关闭'
+  if (value === 'offline') return '离线'
+  return '未知'
 }
 
 /**
@@ -613,6 +690,72 @@ watch(activeTab, (tab) => {
 })
 
 /**
+ * 打开车闸新增 / 编辑弹窗。
+ *
+ * @param row 为空表示新增，否则回填该车闸
+ */
+function openGateDialog(row?: Record<string, any>) {
+  gateForm.id = row?.deviceBarrierGateId || ''
+  gateForm.name = row?.deviceBarrierGateName || ''
+  gateForm.direction = row?.deviceBarrierGateDirection || 'in'
+  gateForm.channelNo = Number(row?.deviceBarrierGateChannelNo) || 1
+  gateForm.status = row?.deviceBarrierGateStatus || 'closed'
+  gateDialogVisible.value = true
+}
+
+/**
+ * 保存车闸：有主键走更新，否则新增并绑定当前设备。
+ */
+async function saveGate() {
+  const device = props.device
+  const name = gateForm.name.trim()
+  if (!device) return
+  if (!name) {
+    message.warning('请填写车闸名称')
+    return
+  }
+  gateSaving.value = true
+  try {
+    const payload = {
+      deviceBarrierGateDeviceId: device.deviceInfoId,
+      deviceBarrierGateVendor: device.deviceInfoVendor,
+      deviceBarrierGateName: name,
+      deviceBarrierGateDirection: gateForm.direction,
+      deviceBarrierGateChannelNo: gateForm.channelNo,
+      deviceBarrierGateStatus: gateForm.status
+    }
+    if (gateForm.id) {
+      await deviceApi.updateBarrier(gateForm.id, payload)
+    } else {
+      await deviceApi.addBarrier(payload)
+    }
+    message.success(gateForm.id ? '车闸已更新' : '车闸已新增')
+    gateDialogVisible.value = false
+    await loadBarriers()
+  } catch (e: any) {
+    message.error(e?.message ?? '保存车闸失败')
+  } finally {
+    gateSaving.value = false
+  }
+}
+
+/**
+ * 删除车闸点位。
+ *
+ * @param row 车闸行
+ */
+async function removeGate(row: Record<string, any>) {
+  try {
+    await ElMessageBox.confirm(`删除车闸「${row.deviceBarrierGateName}」？`, '确认', { type: 'warning' })
+    await deviceApi.deleteBarrier(row.deviceBarrierGateId)
+    message.success('车闸已删除')
+    await loadBarriers()
+  } catch (e: any) {
+    if (e !== 'cancel' && e !== 'close') message.error(e?.message ?? '删除车闸失败')
+  }
+}
+
+/**
  * 加载当前设备的车闸点位。
  */
 async function loadBarriers() {
@@ -683,6 +826,25 @@ async function loadBarriers() {
   display: flex;
   flex: none;
   align-items: center;
+  gap: 6px;
+}
+
+.ddp-barrier-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ddp-barrier-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.ddp-barrier-actions {
+  display: flex;
   gap: 6px;
 }
 
