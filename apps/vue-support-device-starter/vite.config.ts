@@ -43,7 +43,7 @@ export default createVite({
   title: '设备管理',
   alias: {
     '@': path.resolve(__dirname, '../../pages/device/src'),
-    // 新版页面内部统一使用 @pages/device/src/... 引用，便于同时被 8848 宿主挂载
+    // 包内页面已改为相对导入；别名保留给宿主与跨包深路径引用（如 monitor 的 DeviceScreenView）
     '@pages/device': path.resolve(__dirname, '../../pages/device')
   },
   server: {
