@@ -12,6 +12,27 @@
       <el-tab-pane label="门禁记录" name="access">
         <DeviceAccessRecordView />
       </el-tab-pane>
+      <el-tab-pane label="人员" name="person">
+        <div class="dvv-bar">
+          <el-input v-model="personKeyword" placeholder="姓名 / 手机 / 人员ID" clearable style="width: 240px" @keyup.enter="loadPersons" />
+          <el-button type="primary" @click="loadPersons">查询</el-button>
+          <el-button @click="openPerson()">新增人员</el-button>
+        </div>
+        <el-table v-loading="loading" :data="persons" border>
+          <el-table-column prop="devicePersonName" label="姓名" min-width="120" />
+          <el-table-column prop="devicePersonPhone" label="手机" width="140" />
+          <el-table-column prop="devicePersonTitle" label="职称" width="120" />
+          <el-table-column prop="devicePersonVendor" label="厂商" width="110" />
+          <el-table-column prop="devicePersonOrgId" label="组织" min-width="140" />
+          <el-table-column label="操作" width="150" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="openPerson(row)">编辑</el-button>
+              <el-button link type="danger" @click="removePerson(row)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-tab-pane>
+
       <el-tab-pane label="车辆档案" name="vehicle">
         <div class="dvv-bar">
           <el-input
@@ -101,6 +122,33 @@
       </el-tab-pane>
     </el-tabs>
 
+    <el-dialog v-model="personDialog.visible" :title="personDialog.id ? '编辑人员' : '新增人员'" width="520px">
+      <el-form :model="personDialog.form" label-width="90px">
+        <el-form-item label="姓名" required>
+          <el-input v-model="personDialog.form.devicePersonName" />
+        </el-form-item>
+        <el-form-item label="手机">
+          <el-input v-model="personDialog.form.devicePersonPhone" />
+        </el-form-item>
+        <el-form-item label="职称">
+          <el-input v-model="personDialog.form.devicePersonTitle" />
+        </el-form-item>
+        <el-form-item label="邮箱">
+          <el-input v-model="personDialog.form.devicePersonEmail" />
+        </el-form-item>
+        <el-form-item label="厂商">
+          <el-input v-model="personDialog.form.devicePersonVendor" />
+        </el-form-item>
+        <el-form-item label="组织 ID">
+          <el-input v-model="personDialog.form.devicePersonOrgId" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="personDialog.visible = false">取消</el-button>
+        <el-button type="primary" :loading="saving" @click="savePerson">保存</el-button>
+      </template>
+    </el-dialog>
+
     <el-dialog v-model="vehicleDialog.visible" :title="vehicleDialog.id ? '编辑车辆' : '新增车辆'" width="520px">
       <el-form :model="vehicleDialog.form" label-width="90px">
         <el-form-item label="车牌号" required>
@@ -186,15 +234,17 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { deviceApi } from '../api/deviceApi'
 import DeviceAccessRecordView from './DeviceAccessRecordView.vue'
 
-const activeTab = ref<'access' | 'vehicle' | 'barrier' | 'pass'>('access')
+const activeTab = ref<'access' | 'person' | 'vehicle' | 'barrier' | 'pass'>('access')
 const loading = ref(false)
 const saving = ref(false)
 
 const vehicles = ref<Record<string, any>[]>([])
+const persons = ref<Record<string, any>[]>([])
 const gates = ref<Record<string, any>[]>([])
 const passes = ref<Record<string, any>[]>([])
 
 const vehicleKeyword = ref('')
+const personKeyword = ref('')
 const gateDeviceId = ref('')
 const gateDirection = ref('')
 const passGateId = ref('')
@@ -207,6 +257,11 @@ const vehicleDialog = reactive<{ visible: boolean; id: string; form: Record<stri
   form: {}
 })
 const gateDialog = reactive<{ visible: boolean; id: string; form: Record<string, any> }>({
+  visible: false,
+  id: '',
+  form: {}
+})
+const personDialog = reactive<{ visible: boolean; id: string; form: Record<string, any> }>({
   visible: false,
   id: '',
   form: {}
@@ -269,9 +324,54 @@ function reloadAll() {
 
 function onTabChange(name: string) {
   if (name === 'access') return
-  if (name === 'vehicle') void loadVehicles()
+  if (name === 'person') void loadPersons()
+  else if (name === 'vehicle') void loadVehicles()
   else if (name === 'barrier') void loadGates()
   else void loadPasses()
+}
+
+async function loadPersons() {
+  loading.value = true
+  try {
+    persons.value = rowsOf(await deviceApi.pagePersons({ page: 1, size: 200, keyword: personKeyword.value }))
+  } finally {
+    loading.value = false
+  }
+}
+
+function openPerson(row?: Record<string, any>) {
+  personDialog.id = row?.devicePersonId ?? ''
+  personDialog.form = row ? { ...row } : {}
+  personDialog.visible = true
+}
+
+async function savePerson() {
+  if (!personDialog.form.devicePersonName) {
+    ElMessage.warning('请填写姓名')
+    return
+  }
+  saving.value = true
+  try {
+    if (personDialog.id) {
+      await deviceApi.updatePerson(personDialog.id, personDialog.form)
+    } else {
+      await deviceApi.addPerson(personDialog.form)
+    }
+    ElMessage.success('已保存')
+    personDialog.visible = false
+    await loadPersons()
+  } catch (e: any) {
+    ElMessage.error(e?.message ?? '保存失败')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function removePerson(row: Record<string, any>) {
+  await ElMessageBox.confirm(`删除人员「${row.devicePersonName}」？`, '确认', { type: 'warning' })
+  await deviceApi.deletePerson(row.devicePersonId)
+  ElMessage.success('已删除')
+  await loadPersons()
 }
 
 function openVehicle(row?: Record<string, any>) {
@@ -351,6 +451,7 @@ async function removeGate(row: Record<string, any>) {
 onMounted(() => {
   void loadVehicles()
   void loadGates()
+  void loadPersons()
 })
 </script>
 
